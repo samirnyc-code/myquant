@@ -1,6 +1,6 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** June 2, 2026  
+**Last Updated:** June 3, 2026  
 **Current Versions:** SIM_v3.3 / GS_v4.5 / SHEET_v3.3  
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 
@@ -38,6 +38,23 @@ Nothing in Phase C or beyond starts until all gates above pass.
 
 ---
 
+## Streamlit Viewer App (built June 3, 2026)
+
+A standalone data exploration app is now live. It is separate from the WFA engine — it is a viewing tool, not part of the build sequence.
+
+| Item | Detail |
+|------|--------|
+| File | `app.py` (repo root) |
+| Data | `data/raw/ESM6.CME_BarData.txt` (48M rows, not in git, ~3GB) |
+| What it does | Reads tick data, filters to RTH (08:30–15:15 CT), builds 5-min OHLCV bars, displays candlestick chart + table |
+| Run command | `.venv/bin/streamlit run app.py` (Mac) or `.venv\Scripts\streamlit run app.py` (Windows) |
+| First run | Takes a few minutes to load — cached after that |
+| Date range | 2026-03-31 to 2026-06-03 (56 trading days) |
+
+**Next session for this app:** share with Thomas via ngrok, add volume subplot.
+
+---
+
 ## Current Versions
 
 | Component | Version | Notes |
@@ -54,6 +71,7 @@ Nothing in Phase C or beyond starts until all gates above pass.
 |--------|--------|-------|
 | Sierra Charts scid (Delani) | Available | Primary research data. scid parser not yet built. |
 | NT8/Rithmic tick data | Available | 1 year on disk. Used for Gate 2 bar validation. |
+| ESM6 CME tick data (.txt) | Available | 56 trading days (2026-03-31 to 2026-06-03). Used by Streamlit viewer. Not in git. |
 | Massive.io | Not purchased | Optional crosscheck. Deferred until Phase E complete. |
 
 See `data_sources.md` for full detail.

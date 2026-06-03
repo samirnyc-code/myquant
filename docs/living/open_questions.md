@@ -1,6 +1,6 @@
 # Open Questions
 **Status:** Living — remove questions when resolved, never accumulate answered ones  
-**Last Updated:** June 2, 2026  
+**Last Updated:** June 3, 2026  
 **Rule:** A question lives here until it has a definitive answer. Once answered, move the decision to the relevant architecture doc and delete it here.
 
 ---
@@ -11,9 +11,8 @@
 Sierra Charts scid is a binary format. The struct must be confirmed from ACSIL documentation before building the parser. Do not guess.
 Action: Read ACSIL reference, confirm field sizes, byte order, timestamp format.
 
-**Q2: RTH session exact boundaries**
-Is RTH 08:30–15:15 CT or 09:30–16:00 ET? Must match the SC session template exactly or bar boundaries will differ.
-Action: Check SC session template settings for ES.
+**~~Q2: RTH session exact boundaries~~** ✅ Resolved June 3, 2026
+Confirmed 08:30–15:15 CT from ESM6 CME tick data. Used this boundary in Streamlit app with correct results.
 
 **Q3: Rollover handling in scid files**
 Are scid files per quarterly contract or a continuous stitched series? If quarterly, Python must stitch and handle gaps.
