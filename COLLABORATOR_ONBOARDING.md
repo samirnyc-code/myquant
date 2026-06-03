@@ -1,6 +1,19 @@
 # myquant — Collaborator Onboarding
 **For:** Thomas  
-**Last Updated:** June 2, 2026
+**Last Updated:** June 3, 2026
+
+---
+
+## One-time machine setup (do this before anything else)
+
+### 1. Install Git
+Download from [git-scm.com](https://git-scm.com). During install, check **"Add Git to PATH"**.
+
+### 2. Install Python 3
+Download from [python.org](https://python.org). During install, check **"Add Python to PATH"**.
+
+### 3. Install VS Code (recommended)
+Download from [code.visualstudio.com](https://code.visualstudio.com). Free. Install the **GitLens** extension inside VS Code (Extensions panel → search GitLens).
 
 ---
 
@@ -10,7 +23,55 @@ git clone https://github.com/samirnyc-code/myquant.git
 cd myquant
 ```
 
-## Step 2 — Read these first, in this order
+## Step 2 — Get the data file
+
+The tick data file (`ESM6.CME_BarData.txt`) is ~3GB and is intentionally excluded from git. Samir will send it via Dropbox or Google Drive.
+
+Once you have it, place it here — create the folder if it doesn't exist:
+```
+myquant/
+└── data/
+    └── raw/
+        └── ESM6.CME_BarData.txt   ← goes here
+```
+
+---
+
+## Step 3 — Set up the Python environment
+
+Open a terminal in the `myquant` folder, then run:
+
+```bash
+# Create a virtual environment
+python -m venv .venv
+
+# Activate it (Windows)
+.venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+Your prompt will show `(.venv)` when the environment is active. You must activate it every time you open a new terminal.
+
+---
+
+## Step 4 — Run the app
+
+```bash
+streamlit run app.py
+```
+
+The first run takes a few minutes — it reads and processes the full 48M-row tick file and caches the result. Every run after that is instant.
+
+Open **http://localhost:8501** in Chrome when you see:
+```
+  Local URL: http://localhost:8501
+```
+
+---
+
+## Step 5 — Read these first, in this order
 1. `docs/README.md` — what every file is
 2. `docs/living/handoff.md` — current state of the project
 3. `docs/living/roadmap.md` — what gets built and in what order
