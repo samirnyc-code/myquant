@@ -1,6 +1,6 @@
 # Roadmap
 **Status:** Living — update every session  
-**Last Updated:** June 2, 2026  
+**Last Updated:** June 3, 2026  
 **Rule:** This is the only source of truth for what gets built and in what order.  
 **Rule:** Phases are sequential within each track. Do not start a phase until its prerequisite passes.
 
@@ -76,7 +76,7 @@ These are not build phases — they are analytical obligations that run as Track
 | Question | Blocks | Status |
 |----------|--------|--------|
 | scid exact binary struct | Phase A | Confirm from ACSIL docs |
-| SC session boundaries (08:30 or 09:30 CT?) | Phase A | Confirm from SC settings |
+| SC session boundaries (08:30 or 09:30 CT?) | Phase A | ✅ Confirmed 08:30–15:15 CT from ESM6 tick data |
 | Rollover handling in scid files | Phase A | Continuous or quarterly? |
 | Regime classifier TF (5M vs higher) | Phase D | Design decision before optimizer runs |
 | New signal while in trade (same direction) | Phase C | Ignore / scale in / reset — undecided |
@@ -84,3 +84,12 @@ These are not build phases — they are analytical obligations that run as Track
 | Max daily loss rule | Phase C | Hard stop $ / no limit — undecided |
 
 **See:** `open_questions.md` for full detail and options on each.
+
+---
+
+## Tomorrow — June 4, 2026
+
+- [ ] Run the full app cold-start (first cache build) end to end and confirm all 56 trading days load without errors
+- [ ] Share the app with Thomas via ngrok — walk him through the date selector and chart
+- [ ] Add a volume subplot below the candlestick (secondary y-axis or separate panel)
+- [ ] Investigate whether more historical tick data exists (user expected 510 calendar days — only 65 days are in the current file)
