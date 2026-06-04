@@ -1,6 +1,6 @@
 # Roadmap
 **Status:** Living — update every session  
-**Last Updated:** June 3, 2026  
+**Last Updated:** June 4, 2026  
 **Rule:** This is the only source of truth for what gets built and in what order.  
 **Rule:** Phases are sequential within each track. Do not start a phase until its prerequisite passes.
 
@@ -89,19 +89,18 @@ These are not build phases — they are analytical obligations that run as Track
 
 ## Active — June 4, 2026
 
-- [ ] Run the full app cold-start (first cache build) end to end and confirm all 56 trading days load without errors
-- [ ] Share the app with Thomas via ngrok — walk him through the date selector and chart
-- [ ] Add a volume subplot below the candlestick (secondary y-axis or separate panel)
-- [ ] Investigate whether more historical tick data exists (user expected 510 calendar days — only 65 days are in the current file)
+- [x] Bar Validation module built and working (see below)
+- [x] NYSE holiday exclusion via exchange-calendars
+- [x] Filter toggles: first bar, last 45 min, ignore volume
+- [ ] Share app + data files with Thomas: upload both data files to Google Drive, run ngrok
+- [ ] Add volume subplot to Bar Viewer candlestick chart
+- [ ] Investigate whether more historical SC tick data exists (only 65 calendar days in current file)
 
 ---
 
 ## Bar Validation App — Backlog
 
-These are scoped features for the validation module, in rough priority order.
-
 | Feature | Notes |
 |---------|-------|
-| **Holiday exclusion** | Extend `KNOWN_HOLIDAYS` dict in `validation.py`. Add a toggle in the UI: "Exclude known holidays from mismatch count." 5/25 (Memorial Day + Whit Monday) already flagged. Need a full US market holiday calendar for the data range. |
-| **Economic calendar overlay** | Flag FOMC, NFP, CPI, PPI dates on the By Date chart and Time-of-Day chart. Hypothesis: mismatch rate spikes around high-impact news because fast price movement amplifies feed-latency bar boundary differences. Several free API options: FRED (Federal Reserve, free), Econoday, Trading Economics. Could also hardcode a static calendar for the Apr–Jun 2026 window as a first pass. |
-| **AI commentary (Claude API)** | Call the Anthropic API to generate a plain-English interpretation paragraph based on the comparison stats. Cache the result. Requires API key in environment. ~2s latency on first load. |
+| **Economic calendar overlay** | Flag FOMC, NFP, CPI, PPI dates on the By Date and Time-of-Day charts. Hypothesis: mismatch rate spikes on high-impact news days because fast price movement amplifies feed-latency boundary differences. First pass: hardcode Apr–Jun 2026 dates. Second pass: FRED or Trading Economics API. |
+| **AI commentary (Claude API)** | Call Anthropic API to generate plain-English interpretation based on comparison stats. Cache result. Requires API key in env. ~2s latency on first load. |

@@ -1,6 +1,6 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** June 3, 2026  
+**Last Updated:** June 4, 2026  
 **Current Versions:** SIM_v3.3 / GS_v4.5 / SHEET_v3.3  
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 
@@ -38,20 +38,34 @@ Nothing in Phase C or beyond starts until all gates above pass.
 
 ---
 
-## Streamlit Viewer App (built June 3, 2026)
+## Streamlit App (June 3–4, 2026)
 
-A standalone data exploration app is now live. It is separate from the WFA engine — it is a viewing tool, not part of the build sequence.
+Two-tab app. Both tabs share cached data loaded by `data_loader.py`.
 
-| Item | Detail |
-|------|--------|
-| File | `app.py` (repo root) |
-| Data | `data/raw/ESM6.CME_BarData.txt` (48M rows, not in git, ~3GB) |
-| What it does | Reads tick data, filters to RTH (08:30–15:15 CT), builds 5-min OHLCV bars, displays candlestick chart + table |
-| Run command | `.venv/bin/streamlit run app.py` (Mac) or `.venv\Scripts\streamlit run app.py` (Windows) |
-| First run | Takes a few minutes to load — cached after that |
-| Date range | 2026-03-31 to 2026-06-03 (56 trading days) |
+| File | Purpose |
+|------|---------|
+| `app.py` | Entry point, tab layout, sidebar Reload Data button |
+| `data_loader.py` | Loads SC tick data + NT 5M bars, `get_market_holidays()` |
+| `validation.py` | All comparison logic and views for the Bar Validation tab |
 
-**Next session for this app:** share with Thomas via ngrok, add volume subplot.
+**Tab 1 — Bar Viewer**
+- Date selector → 6 summary metrics → candlestick chart → 5-min bar table
+- SC tick data only (`ESM6.CME_BarData.txt`, 48M rows, not in git)
+
+**Tab 2 — Bar Validation**
+- Compares SC-built bars vs NT pre-built bars (`NinjaScript Output 03_06_2026 23_08.txt`, not in git)
+- NT timestamps converted Berlin CEST → CT, close→open (−7h −5min)
+- Filters: NYSE holiday exclusion (exchange-calendars), exclude first bar, exclude last 45 min, ignore volume
+- Views: summary metrics, field breakdown table, mismatch table, time-of-day chart, by-date chart, delta value counts
+- Known findings: Open has most mismatches (boundary noise), H/L nearly perfect, volume expected to differ
+
+**Data files — share via Google Drive with Thomas:**
+- `data/raw/ESM6.CME_BarData.txt` (~3GB)
+- `data/raw/NinjaScript Output 03_06_2026 23_08.txt`
+
+**To share app with Thomas:** `ngrok http 8501` → send URL
+
+**Run:** `pkill -f "streamlit run"` then `.venv/bin/streamlit run app.py`
 
 ---
 
@@ -71,7 +85,8 @@ A standalone data exploration app is now live. It is separate from the WFA engin
 |--------|--------|-------|
 | Sierra Charts scid (Delani) | Available | Primary research data. scid parser not yet built. |
 | NT8/Rithmic tick data | Available | 1 year on disk. Used for Gate 2 bar validation. |
-| ESM6 CME tick data (.txt) | Available | 56 trading days (2026-03-31 to 2026-06-03). Used by Streamlit viewer. Not in git. |
+| ESM6 CME tick data (.txt) | Available | 56 trading days (2026-03-31 to 2026-06-03). Used by Streamlit viewer. Not in git. Share via Google Drive. |
+| NT 5M bar data (.txt) | Available | April 1 – June 3 2026. Used by Bar Validation tab. Not in git. Share via Google Drive. |
 | Massive.io | Not purchased | Optional crosscheck. Deferred until Phase E complete. |
 
 See `data_sources.md` for full detail.

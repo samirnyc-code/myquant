@@ -1,5 +1,5 @@
 # Samir's Learning Journal
-**Last Updated:** June 3, 2026
+**Last Updated:** June 4, 2026
 
 ---
 
@@ -161,5 +161,62 @@ python3 -m venv .venv                        # create virtual environment
 .venv/bin/streamlit run app.py               # launch the app
 open -a "Google Chrome" http://localhost:8501 # open in Chrome
 ngrok http 8501                              # share app over the internet
+```
+
+---
+
+## Tag 4 — June 4, 2026
+### Bar Validation Module — Comparing Two Data Sources
+
+#### What we built
+A full data validation tab inside the Streamlit app that compares SC-built 5-minute bars (from raw tick data) against pre-built 5-minute bars exported from NinjaTrader. The goal: confirm the two sources agree before trusting either for backtesting.
+
+#### The core alignment problem
+NT exports bar data with **close times** in **Berlin (CEST)** timezone. SC builds bars with **open times** in **CT**. To compare apples to apples: subtract 7 hours (timezone) and 5 minutes (close→open) from every NT timestamp.
+
+| Source | Bar label | Timezone | Example |
+|--------|-----------|----------|---------|
+| SC | Open time | CT (CDT) | 08:30 CT |
+| NT | Close time | Berlin (CEST) | 15:35 Berlin |
+| After conversion | Open time | CT | 08:30 CT ✓ |
+
+#### Key findings from the comparison
+- **Open** has the most mismatches (3.8%) — both feeds capture a different "first print" at the bar boundary
+- **High/Low** are nearly perfect (<0.1%) — extreme prices are boundary-insensitive
+- **Close** has moderate mismatches (2.5%) — same boundary issue as Open but less severe
+- **Volume** often differs — expected: SC sums raw tick volumes, NT records broker-feed volume
+- **Mismatch pattern**: spikes at 08:30 (opening auction) and 14:45–15:10 (end of session) — normal. Mid-session is clean.
+
+#### Why summary OHLC % < individual field rates
+The summary "OHLC Exact Match" counts a bar as a mismatch if **any** of the four fields differ. A bar where only Open is wrong still counts as one full mismatch. The individual field rates (Open 96%, High 99.9%, Low 99.97%, Close 97.5%) are each measuring that field in isolation. This is correct and expected — the summary is the more conservative and useful number.
+
+#### Concepts learned
+
+| Concept | What it is |
+|---------|------------|
+| **Timezone conversion** | `dt.tz_localize("Europe/Berlin").dt.tz_convert("America/Chicago")` — attaches a timezone, then converts. Use zoneinfo-backed string names for DST correctness. |
+| **exchange-calendars** | Python package with full market calendars back to the 1990s. `xcals.get_calendar("XNYS")` gives the NYSE calendar including all holidays. Free, no API key, works offline. |
+| **NYSE vs CME calendar** | CME (CMES) considers Memorial Day a live session (Globex never closes). NYSE (XNYS) marks it as a holiday. For ES futures RTH strategy purposes, NYSE calendar is the right filter. |
+| **Outer join** | `df1.join(df2, how="outer")` keeps all rows from both sides. Rows in one but not the other get NaN for the missing columns — used to detect bars present in SC but not NT and vice versa. |
+| **Day-separator rows** | NT exports `-----` divider lines between each trading day. pandas read_csv chokes on these. Fix: read the file line-by-line in Python, skip non-digit rows, then build a DataFrame. |
+| **Bar boundary sensitivity** | Open and Close are "boundary bars" — the exact first/last tick within a 5-minute window. Under fast price movement, two feeds with 1ms latency difference capture different ticks. High/Low are the full range and are unaffected. |
+
+#### Module architecture
+```
+data_loader.py
+  load_sc_bars()      ← tick data → 5-min bars (existing)
+  load_nt_bars()      ← NT txt → timezone convert → open time
+  get_market_holidays() ← NYSE calendar via exchange-calendars
+
+validation.py
+  build_comparison()  ← outer join, compute Δ ticks per field
+  show_validation_tab()
+    ├── 4 filter toggles (holidays, first bar, late session, volume)
+    ├── Summary metrics strip
+    ├── Field breakdown table (Total, Exact, Mismatch, Match%, Min/Max/Mean Δ)
+    ├── Mismatch Table tab
+    ├── Time of Day tab (bar chart + rate % line)
+    ├── By Date tab (bar chart per trading day)
+    └── Delta Distribution tab (value counts tables)
 ```
 
