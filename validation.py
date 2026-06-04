@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 from data_loader import load_sc_bars, load_nt_bars, get_market_holidays, NT_FILE, TICK_SIZE
+from economic_calendar import get_economic_events, fred_key_configured, EVENT_COLOR
 
 PRICE_FIELDS = ["Open", "High", "Low", "Close"]
 ALL_FIELDS   = ["Open", "High", "Low", "Close", "Volume"]
@@ -261,7 +262,7 @@ def show_validation_tab():
 
     comp = build_comparison(sc_f, nt_f)
 
-    # Apply filters to comp before all stats
+    # ── Existing filters ───────────────────────────────────────────────────────
     holidays = get_market_holidays(str(date_from), str(date_to))
     n_holiday_bars = int((comp["DateTime"].dt.strftime("%Y-%m-%d").isin(holidays)).sum())
     if excl_holidays and holidays:
@@ -270,6 +271,63 @@ def show_validation_tab():
         comp = comp[comp["BarTime"] != "08:30"].copy()
     if excl_late:
         comp = comp[comp["BarTime"] < "14:30"].copy()
+
+    # ── Economic event filters ─────────────────────────────────────────────────
+    with st.expander("📅 Economic Event Filters", expanded=False):
+        if not fred_key_configured():
+            st.info(
+                "FOMC dates are built-in. For NFP and CPI, add your free FRED API key to "
+                "`.streamlit/secrets.toml`: `FRED_API_KEY = 'your_key'`  "
+                "([Register free at fred.stlouisfed.org](https://fred.stlouisfed.org/docs/api/api_key.html))"
+            )
+        ea, eb, ec, ed = st.columns(4)
+        use_fomc = ea.checkbox("FOMC",  value=False)
+        use_nfp  = eb.checkbox("NFP",   value=False, disabled=not fred_key_configured())
+        use_cpi  = ec.checkbox("CPI",   value=False, disabled=not fred_key_configured())
+        use_ppi  = ed.checkbox("PPI",   value=False, disabled=not fred_key_configured())
+
+        event_types = tuple(
+            e for e, on in [("FOMC", use_fomc), ("NFP", use_nfp),
+                            ("CPI", use_cpi),  ("PPI", use_ppi)] if on
+        )
+
+        ef1, ef2 = st.columns([1, 2])
+        event_filter_mode = ef1.radio(
+            "Filter mode",
+            ["Skip full day", "Window ±N minutes"],
+            index=0,
+            help=(
+                "**Skip full day:** removes all RTH bars on event dates.\n\n"
+                "**Window:** removes bars within N minutes of announcement time.\n\n"
+                "⚠️ NFP/CPI are released at 7:30 CT — before RTH opens at 8:30 CT. "
+                "A window < 60 min has no effect on RTH bars. Use 'Skip full day' for those."
+            ),
+        )
+        event_window = 30
+        if event_filter_mode == "Window ±N minutes":
+            event_window = ef2.slider("Minutes before/after", 15, 180, 30, 15)
+
+    events_df = get_economic_events(event_types, str(date_from), str(date_to)) \
+        if event_types else pd.DataFrame(columns=["DateTime", "EventType", "Color"])
+
+    n_event_bars = 0
+    if not events_df.empty:
+        if event_filter_mode == "Skip full day":
+            event_dates = set(events_df["DateTime"].dt.date)
+            mask = comp["DateTime"].dt.date.isin(event_dates)
+            n_event_bars = int(mask.sum())
+            comp = comp[~mask].copy()
+        else:
+            mask = pd.Series(False, index=comp.index)
+            for _, ev in events_df.iterrows():
+                ev_dt = ev["DateTime"]
+                in_win = (
+                    (comp["DateTime"] >= ev_dt - pd.Timedelta(minutes=event_window)) &
+                    (comp["DateTime"] <= ev_dt + pd.Timedelta(minutes=event_window))
+                )
+                mask |= in_win
+            n_event_bars = int(mask.sum())
+            comp = comp[~mask].copy()
 
     matched = comp[comp["Status"] == "Matched"]
 
@@ -292,14 +350,17 @@ def show_validation_tab():
                    "makes the whole bar a mismatch.")
     m5.metric("OHLC Mismatches",  f"{n_ohlc_mm:,}")
 
+    secondary = []
     if not excl_volume:
-        mx1, mx2, mx3, mx4, mx5 = st.columns(5)
-        mx1.metric("Vol Mismatches", f"{n_vol_mm:,}")
-        if excl_holidays:
-            mx2.metric("Holiday Bars Excluded", f"{n_holiday_bars:,}")
-    elif excl_holidays:
-        mx1, _, _, _, _ = st.columns(5)
-        mx1.metric("Holiday Bars Excluded", f"{n_holiday_bars:,}")
+        secondary.append(("Vol Mismatches",       f"{n_vol_mm:,}"))
+    if excl_holidays and n_holiday_bars:
+        secondary.append(("Holiday Bars Excl.",   f"{n_holiday_bars:,}"))
+    if n_event_bars:
+        secondary.append(("Event Bars Excl.",     f"{n_event_bars:,}"))
+    if secondary:
+        cols = st.columns(5)
+        for i, (label, val) in enumerate(secondary[:5]):
+            cols[i].metric(label, val)
 
     _summary_commentary(n_matched, n_sc_only, n_nt_only, pct_ohlc, pct_ohlc, n_ohlc_mm, excl_volume)
 
@@ -366,7 +427,7 @@ def show_validation_tab():
     with t2:
         _show_time_of_day(matched)
     with t3:
-        _show_by_date(matched)
+        _show_by_date(matched, events_df)
     with t4:
         _show_delta_distribution(matched, excl_volume)
 
@@ -503,16 +564,19 @@ def _show_time_of_day(matched: pd.DataFrame):
             )
 
 
-def _show_by_date(matched: pd.DataFrame):
+def _show_by_date(matched: pd.DataFrame, events_df: pd.DataFrame | None = None):
     if matched.empty:
         st.info("No matched bars.")
         return
 
+    has_events = events_df is not None and not events_df.empty
     _info(
         "Shows total OHLC mismatches per trading day. "
         "**What to look for:** a smooth low count across all days = random noise. "
         "A single day dominating = a data event (feed outage, rollover issue, or bad export). "
         "Percentage labels show mismatch rate for days with at least one mismatch."
+        + (" Coloured vertical lines mark economic events (use the Economic Event Filters expander above)."
+           if has_events else "")
     )
 
     by_date = (
@@ -530,11 +594,39 @@ def _show_by_date(matched: pd.DataFrame):
         text=by_date.apply(lambda r: f"{r['Rate%']:.0f}%" if r["OHLC_MM"] > 0 else "", axis=1),
         textposition="outside",
     )
+
+    # Event markers — one vertical line per event, coloured by type
+    if has_events:
+        shown_labels = set()
+        for _, ev in events_df.iterrows():
+            ev_date = pd.Timestamp(ev["DateTime"].date())
+            label   = ev["EventType"]
+            fig.add_vline(
+                x=ev_date.timestamp() * 1000,  # plotly expects ms epoch for date axes
+                line_dash="dash",
+                line_color=ev["Color"],
+                line_width=1.5,
+                annotation_text=label if label not in shown_labels else "",
+                annotation_position="top",
+                annotation_font_size=10,
+            )
+            shown_labels.add(label)
+
+        # Legend entries for event types
+        for etype, color in EVENT_COLOR.items():
+            if etype in events_df["EventType"].values:
+                fig.add_scatter(
+                    x=[None], y=[None], mode="lines",
+                    name=etype,
+                    line=dict(color=color, dash="dash", width=1.5),
+                )
+
     fig.update_layout(
         title="OHLC Mismatches per Trading Day",
         xaxis_title="Date", yaxis_title="# Mismatched Bars",
-        template="plotly_white", height=420,
+        template="plotly_white", height=440,
         xaxis=dict(tickformat="%b %d", tickangle=-45),
+        legend=dict(orientation="h", y=1.08),
     )
     st.plotly_chart(fig, use_container_width=True)
 
