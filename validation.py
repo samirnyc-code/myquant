@@ -61,7 +61,7 @@ def _info(text: str):
     st.info(text)
 
 
-def _summary_commentary(n_matched, n_sc_only, n_nt_only, pct_ohlc, pct_ohlcv, n_ohlc_mm):
+def _summary_commentary(n_matched, n_sc_only, n_nt_only, pct_ohlc, pct_ohlcv, n_ohlc_mm, excl_volume=False):
     if pct_ohlc >= 99:
         health = "🟢 **Strong agreement.** The two data sources are highly consistent on price."
     elif pct_ohlc >= 95:
@@ -76,7 +76,7 @@ def _summary_commentary(n_matched, n_sc_only, n_nt_only, pct_ohlc, pct_ohlcv, n_
             f"these are missing bars in one source and should be investigated separately."
         )
 
-    vol_note = (
+    vol_note = "" if excl_volume else (
         f" Volume exact match ({pct_ohlcv:.1f}%) is lower than OHLC match — "
         f"this is normal. Volume differences come from different data feed sources "
         f"counting ticks at bar boundaries differently. For a price-based strategy it does not affect signal generation."
@@ -85,14 +85,13 @@ def _summary_commentary(n_matched, n_sc_only, n_nt_only, pct_ohlc, pct_ohlcv, n_
     _info(f"{health} {n_ohlc_mm:,} of {n_matched:,} bars have at least one OHLC field that differs.{vol_note}{unmatched_note}")
 
 
-def _field_table_commentary(matched: pd.DataFrame):
+def _field_table_commentary(matched: pd.DataFrame, excl_volume: bool = False):
     if matched.empty:
         return
     open_mm  = int(matched["ΔOpen"].ne(0).sum())
     high_mm  = int(matched["ΔHigh"].ne(0).sum())
     low_mm   = int(matched["ΔLow"].ne(0).sum())
     close_mm = int(matched["ΔClose"].ne(0).sum())
-    vol_mm   = int(matched["ΔVolume"].ne(0).sum())
 
     notes = []
     if open_mm > close_mm:
@@ -106,11 +105,13 @@ def _field_table_commentary(matched: pd.DataFrame):
             f"**High and Low are nearly perfect ({high_mm} and {low_mm} mismatches)** — expected. "
             "Extreme prices are captured across the full bar window and are insensitive to boundary timing."
         )
-    if vol_mm > open_mm:
-        notes.append(
-            f"**Volume has the most mismatches ({vol_mm})** — normal and inconsequential for a price-based strategy. "
-            "SC sums raw tick volumes; NT records feed-level volume. Different sources, different boundary counting."
-        )
+    if not excl_volume:
+        vol_mm = int(matched["ΔVolume"].ne(0).sum())
+        if vol_mm > open_mm:
+            notes.append(
+                f"**Volume has the most mismatches ({vol_mm})** — normal and inconsequential for a price-based strategy. "
+                "SC sums raw tick volumes; NT records feed-level volume. Different sources, different boundary counting."
+            )
 
     for note in notes:
         _info(note)
@@ -300,7 +301,7 @@ def show_validation_tab():
         mx1, _, _, _, _ = st.columns(5)
         mx1.metric("Holiday Bars Excluded", f"{n_holiday_bars:,}")
 
-    _summary_commentary(n_matched, n_sc_only, n_nt_only, pct_ohlc, pct_ohlc, n_ohlc_mm)
+    _summary_commentary(n_matched, n_sc_only, n_nt_only, pct_ohlc, pct_ohlc, n_ohlc_mm, excl_volume)
 
     # ── Field breakdown ────────────────────────────────────────────────────────
     st.subheader("Mismatch by Field")
@@ -312,7 +313,7 @@ def show_validation_tab():
         "so it is always ≤ the lowest individual field rate."
     )
     _show_field_table(matched, excl_volume)
-    _field_table_commentary(matched)
+    _field_table_commentary(matched, excl_volume)
 
     # ── Unmatched bars ─────────────────────────────────────────────────────────
     null_vol = nt_f[nt_f["NullVol"]].copy()
