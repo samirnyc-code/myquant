@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 from data_loader import load_sc_bars, load_nt_bars, NT_FILE, TICK_SIZE
 
 PRICE_FIELDS = ["Open", "High", "Low", "Close"]
@@ -505,82 +506,108 @@ def _show_delta_distribution(matched: pd.DataFrame):
         return
 
     _info(
-        "Distribution of NT − SC price differences in ticks for each field. "
-        "**Ideal shape:** a sharp spike at 0 (most bars match), with a small symmetric spread around it. "
-        "A spike shifted left or right indicates a systematic bias between the two feeds. "
-        "Large outliers (> ±4 ticks) are worth inspecting individually in the Mismatch Table tab."
+        "Each panel shows the distribution of NT − SC differences for bars where that field mismatched. "
+        "Every field has its own independent scale so a field with 2 mismatches is just as readable as one with 135. "
+        "The exact count table below shows precise numbers for every delta value observed."
     )
 
-    nonzero_only = st.checkbox("Show mismatched bars only (exclude Δ = 0)", value=True)
+    # ── 1. Stacked bar: match vs mismatch count per field ─────────────────────
+    zero_counts    = {c: int(matched[f"Δ{c}"].dropna().eq(0).sum()) for c in PRICE_FIELDS}
+    nonzero_counts = {c: int(matched[f"Δ{c}"].dropna().ne(0).sum()) for c in PRICE_FIELDS}
 
-    # Compute zero / nonzero counts per field for the summary
-    zero_counts    = {c: int(matched[f"Δ{c}"].dropna().eq(0).sum())    for c in PRICE_FIELDS}
-    nonzero_counts = {c: int(matched[f"Δ{c}"].dropna().ne(0).sum())    for c in PRICE_FIELDS}
-
-    # Zero vs non-zero summary bar (always shown)
     fig0 = go.Figure()
-    fig0.add_bar(
-        x=PRICE_FIELDS,
-        y=[zero_counts[c]    for c in PRICE_FIELDS],
-        name="Δ = 0 (exact match)",
-        marker_color="#26a69a",
-    )
-    fig0.add_bar(
-        x=PRICE_FIELDS,
-        y=[nonzero_counts[c] for c in PRICE_FIELDS],
-        name="Δ ≠ 0 (mismatch)",
-        marker_color="#ef5350",
-    )
+    fig0.add_bar(x=PRICE_FIELDS, y=[zero_counts[c]    for c in PRICE_FIELDS],
+                 name="Δ = 0 (exact match)", marker_color="#26a69a")
+    fig0.add_bar(x=PRICE_FIELDS, y=[nonzero_counts[c] for c in PRICE_FIELDS],
+                 name="Δ ≠ 0 (mismatch)",   marker_color="#ef5350")
     fig0.update_layout(
-        barmode="stack",
-        title="Exact Match vs Mismatch Count per Field",
+        barmode="stack", title="Exact Match vs Mismatch Count per Field",
         xaxis_title="Field", yaxis_title="# Bars",
-        template="plotly_white", height=300,
-        legend=dict(orientation="h", y=1.12),
+        template="plotly_white", height=280,
+        legend=dict(orientation="h", y=1.15),
     )
     st.plotly_chart(fig0, use_container_width=True)
 
-    # Delta distribution
-    fig = go.Figure()
-    has_data = False
-    for col in PRICE_FIELDS:
-        vals = matched[f"Δ{col}"].dropna()
-        if nonzero_only:
-            vals = vals[vals.ne(0)]
-        if len(vals):
-            has_data = True
-            fig.add_histogram(x=vals, name=col, opacity=0.7,
-                              marker_color=FIELD_COLORS[col], xbins=dict(size=1))
+    # ── 2. 2×2 subplot grid — one panel per field, independent y-axes ─────────
+    fig = make_subplots(
+        rows=2, cols=2,
+        subplot_titles=[
+            f"{c}  ({nonzero_counts[c]} mismatches)" for c in PRICE_FIELDS
+        ],
+        horizontal_spacing=0.14,
+        vertical_spacing=0.24,
+    )
+    for i, col in enumerate(PRICE_FIELDS):
+        r, c_idx = divmod(i, 2)
+        vals    = matched[f"Δ{col}"].dropna()
+        nonzero = vals[vals.ne(0)]
+        if len(nonzero) > 0:
+            counts = nonzero.value_counts().sort_index()
+            fig.add_bar(
+                x=counts.index.astype(int),
+                y=counts.values,
+                name=col,
+                marker_color=FIELD_COLORS[col],
+                showlegend=False,
+                row=r + 1, col=c_idx + 1,
+            )
+        else:
+            # empty panel — add invisible point so axes render
+            fig.add_scatter(
+                x=[0], y=[0], mode="markers",
+                marker=dict(opacity=0, size=1),
+                showlegend=False,
+                row=r + 1, col=c_idx + 1,
+            )
+        fig.update_xaxes(title_text="NT − SC (ticks)", tickformat="+d",
+                         dtick=1, row=r + 1, col=c_idx + 1)
+        fig.update_yaxes(title_text="Count", row=r + 1, col=c_idx + 1)
 
-    if has_data:
-        title = "OHLC Delta Distribution — Mismatched Bars Only" if nonzero_only else "OHLC Delta Distribution (All Bars)"
-        fig.update_layout(
-            barmode="overlay", title=title,
-            xaxis_title="NT − SC (ticks)", yaxis_title="Count",
-            template="plotly_white", height=360,
-        )
-        st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.success("No mismatched bars to display." if nonzero_only else "No data.")
+    fig.update_layout(
+        title="OHLC Delta Distribution — Mismatched Bars Only (independent scales)",
+        template="plotly_white",
+        height=500,
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    # ── 3. Exact value-counts table ────────────────────────────────────────────
+    field_vc = {}
+    all_deltas: set = set()
+    for col in PRICE_FIELDS:
+        nonzero = matched[f"Δ{col}"].dropna()
+        nonzero = nonzero[nonzero.ne(0)]
+        vc = nonzero.value_counts().to_dict()
+        field_vc[col] = vc
+        all_deltas.update(vc.keys())
+
+    if all_deltas:
+        tbl_rows = []
+        for delta in sorted(all_deltas):
+            row = {"Δ (ticks)": f"{int(delta):+d}"}
+            for col in PRICE_FIELDS:
+                cnt = field_vc[col].get(delta, 0)
+                row[col] = int(cnt) if cnt > 0 else "—"
+            tbl_rows.append(row)
+        st.caption("Exact mismatch count per delta value per field")
+        st.dataframe(pd.DataFrame(tbl_rows), use_container_width=True, hide_index=True)
 
     _delta_distribution_commentary(matched)
 
-    # Volume histogram
-    vol = matched["ΔVolume"].dropna()
-    if nonzero_only:
-        vol = vol[vol.ne(0)]
-    if len(vol):
+    # ── 4. Volume ──────────────────────────────────────────────────────────────
+    vol_nz = matched["ΔVolume"].dropna()
+    vol_nz = vol_nz[vol_nz.ne(0)]
+    if len(vol_nz) > 0:
         fig2 = go.Figure()
-        fig2.add_histogram(x=vol, name="Volume", marker_color=FIELD_COLORS["Volume"], nbinsx=60)
+        fig2.add_histogram(x=vol_nz, name="Volume",
+                           marker_color=FIELD_COLORS["Volume"], nbinsx=50)
         fig2.update_layout(
-            title="Volume Delta Distribution (contracts)" + (" — Mismatched Only" if nonzero_only else ""),
+            title=f"Volume Delta — {len(vol_nz):,} mismatched bars (NT − SC, contracts)",
             xaxis_title="NT − SC (contracts)", yaxis_title="Count",
             template="plotly_white", height=300,
         )
         st.plotly_chart(fig2, use_container_width=True)
         _info(
-            "Volume differences are expected. SC sums raw tick-level volumes from its data feed; "
-            "NT records the volume provided by the broker feed (Rithmic/CQG). "
-            "The two feeds may include/exclude certain trade types (e.g., spread legs) differently. "
-            "Unless your strategy uses a volume signal, these differences can be ignored."
+            "Volume differences are expected and harmless for a price-based strategy. "
+            "SC sums raw tick-level volumes; NT records broker-feed volume (Rithmic/CQG). "
+            "The two feeds count trades at bar boundaries differently and may include/exclude spread legs."
         )
