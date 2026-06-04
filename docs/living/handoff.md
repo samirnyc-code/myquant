@@ -1,6 +1,6 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** June 4, 2026  
+**Last Updated:** June 4, 2026 (evening)  
 **Current Versions:** SIM_v3.3 / GS_v4.5 / SHEET_v3.3  
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 
@@ -44,10 +44,11 @@ Two-tab app. Both tabs share cached data loaded by `data_loader.py`.
 
 | File | Purpose |
 |------|---------|
-| `app.py` | Entry point, tab layout, sidebar Reload Data button |
+| `app.py` | Entry point, tab layout, Reload button in header row |
 | `data_loader.py` | Loads SC tick data + NT 5M bars, `get_market_holidays()` |
 | `validation.py` | All comparison logic and views for the Bar Validation tab |
 | `economic_calendar.py` | Economic event dates — FOMC hardcoded, NFP/CPI via FRED API |
+| `filter_defaults.json` | Persisted filter defaults (Save as Default button) — not in git |
 
 **economic_calendar.py — current state:**
 - FOMC dates hardcoded 2015–2026; 2026 confirmed from federalreserve.gov on 2026-06-04
@@ -58,14 +59,24 @@ Two-tab app. Both tabs share cached data loaded by `data_loader.py`.
 - Used by `validation.py` economic event filter expander
 
 **Tab 1 — Bar Viewer**
-- Date selector → 6 summary metrics → candlestick chart → 5-min bar table
-- SC tick data only (`ESM6.CME_BarData.txt`, 48M rows, not in git)
+- ‹/› prev/next buttons + date dropdown → 6 summary metrics → candlestick → collapsible 5-min bar table
+- "Show bar numbers" toggle: labels bars 1, 4, 7… (every 3rd, always labels last bar) at bar lows
+- Candlestick shading: grey vrects for excluded session zones — reads `excl_first_n`/`excl_last_min` from session state set by Bar Validation tab
 
 **Tab 2 — Bar Validation**
 - Compares SC-built bars vs NT pre-built bars (`NinjaScript Output 03_06_2026 23_08.txt`, not in git)
 - NT timestamps converted Berlin CEST → CT, close→open (−7h −5min)
-- Filters: NYSE holiday exclusion (exchange-calendars), exclude first bar, exclude last 45 min, ignore volume
-- Views: summary metrics, field breakdown table, mismatch table, time-of-day chart, by-date chart, delta value counts
+- **Single ⚙️ Filters expander** containing all controls:
+  - Exclude NYSE holidays + Show commentary toggles (top row)
+  - Display: ignore volume, shade excluded zones
+  - Session Boundaries: first N bars slider (0–12), last N min slider (0–90)
+  - Day of Week: Mon–Fri include checkboxes
+  - Economic Events: FOMC/NFP/CPI, Skip full day or Window ±N min
+  - Save as Default button → writes `filter_defaults.json`, restored on next load
+- Summary row 1: Matched Bars / Trading Days / OHLC Exact Match % / Holiday Bars Excl. / Event Bars Excl.
+- Summary row 2: SC Only / NT Only / Vol Mismatches / Open Bars Excl. / Close Bars Excl. / DOW Bars Excl.
+- Charts always show full post-holiday dataset; excluded zones shaded with grey overlay (overlay bar trace approach — `add_vrect` unreliable on categorical axes)
+- Commentary toggle: hides all `_info()` and commentary blocks when off
 - Known findings: Open has most mismatches (boundary noise), H/L nearly perfect, volume expected to differ
 
 **Data files — share via Google Drive with Thomas:**

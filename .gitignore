@@ -6,3 +6,4 @@ data/raw/NinjaScript Output*.txt
 __pycache__/
 *.pyc
 *.pyo
+filter_defaults.json

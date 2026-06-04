@@ -1,9 +1,24 @@
+import json
 import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
+from pathlib import Path
 from data_loader import load_sc_bars, load_nt_bars, get_market_holidays, NT_FILE, TICK_SIZE
 from economic_calendar import get_economic_events, fred_key_configured, EVENT_COLOR
+
+_DEFAULTS_FILE = Path(__file__).parent / "filter_defaults.json"
+
+def _load_filter_defaults() -> dict:
+    if _DEFAULTS_FILE.exists():
+        try:
+            return json.loads(_DEFAULTS_FILE.read_text())
+        except Exception:
+            pass
+    return {}
+
+def _save_filter_defaults(d: dict):
+    _DEFAULTS_FILE.write_text(json.dumps(d, indent=2))
 
 PRICE_FIELDS = ["Open", "High", "Low", "Close"]
 ALL_FIELDS   = ["Open", "High", "Low", "Close", "Volume"]
@@ -229,48 +244,104 @@ def show_validation_tab():
     date_from = dc1.date_input("From", value=overlap_min, min_value=all_min, max_value=all_max)
     date_to   = dc2.date_input("To",   value=overlap_max, min_value=all_min, max_value=all_max)
 
-    # ── Filter controls ───────────────────────────────────────────────────────
-    excl_holidays = st.checkbox(
-        "Exclude NYSE holidays", value=True,
-        help="Removes days like Memorial Day where there is no proper RTH session "
-             "(NYSE calendar via exchange-calendars)."
-    )
+    # ── Load defaults into session state on first run ─────────────────────────
+    if "vt_initialized" not in st.session_state:
+        for k, v in _load_filter_defaults().items():
+            st.session_state.setdefault(k, v)
+        st.session_state["vt_initialized"] = True
 
-    with st.expander("Display", expanded=False):
-        excl_volume = st.checkbox(
-            "Ignore volume differences", value=False,
-            help="Hides volume from all stats and tables. Useful when you have already "
-                 "confirmed volume differences are expected and want to focus on OHLC only."
-        )
-        show_excl_shading = st.checkbox(
-            "Shade excluded zones on charts", value=True,
-            help="Adds a light grey overlay on the Time of Day and By Date charts to show "
-                 "which bars and dates are being excluded by the active filters."
-        )
+    # ── Filters (single collapsible panel) ────────────────────────────────────
+    with st.expander("⚙️ Filters", expanded=False):
+        # Simple toggles row
+        tc1, tc2 = st.columns(2)
+        excl_holidays   = tc1.checkbox("Exclude NYSE holidays", key="f_excl_holidays",
+                                        value=st.session_state.get("f_excl_holidays", True),
+                                        help="Removes NYSE holiday sessions (Memorial Day etc.).")
+        show_commentary = tc2.checkbox("Show commentary",       key="f_show_commentary",
+                                        value=st.session_state.get("f_show_commentary", True),
+                                        help="Toggle explanatory text under each section.")
 
-    with st.expander("Session Boundaries", expanded=False):
+        st.divider()
+        st.markdown("**Display**")
+        dc1, dc2 = st.columns(2)
+        excl_volume       = dc1.checkbox("Ignore volume differences",      key="f_excl_volume",
+                                          value=st.session_state.get("f_excl_volume", False))
+        show_excl_shading = dc2.checkbox("Shade excluded zones on charts", key="f_show_excl_shading",
+                                          value=st.session_state.get("f_show_excl_shading", True))
+
+        st.divider()
+        st.markdown("**Session Boundaries**")
         sb1, sb2 = st.columns(2)
-        excl_first_n = sb1.slider(
-            "Exclude first N bars", min_value=0, max_value=12, value=0, step=1,
-            help="Removes the first N 5-minute bars of each session starting at 08:30 CT. "
-                 "0 = no exclusion. The opening bar has the highest mismatch rate due to "
-                 "opening auction noise."
-        )
-        excl_last_min = sb2.slider(
-            "Exclude last N minutes", min_value=0, max_value=90, value=0, step=5,
-            help="Removes bars from the end of the RTH session (counts back from 15:15 CT). "
-                 "0 = no exclusion. Closing bars have elevated mismatches from end-of-session "
-                 "order flow and settlement differences between feeds."
-        )
+        excl_first_n  = sb1.slider("Exclude first N bars",   0, 12,
+                                    st.session_state.get("f_excl_first_n",  0), 1,
+                                    key="f_excl_first_n")
+        excl_last_min = sb2.slider("Exclude last N minutes", 0, 90,
+                                    st.session_state.get("f_excl_last_min", 0), 5,
+                                    key="f_excl_last_min")
 
-    with st.expander("Day of Week", expanded=False):
+        st.divider()
+        st.markdown("**Day of Week**")
         st.caption("Include days:")
-        dow1, dow2, dow3, dow4, dow5 = st.columns(5)
-        incl_mon = dow1.checkbox("Mon", value=True)
-        incl_tue = dow2.checkbox("Tue", value=True)
-        incl_wed = dow3.checkbox("Wed", value=True)
-        incl_thu = dow4.checkbox("Thu", value=True)
-        incl_fri = dow5.checkbox("Fri", value=True)
+        dw1, dw2, dw3, dw4, dw5 = st.columns(5)
+        incl_mon = dw1.checkbox("Mon", key="f_incl_mon", value=st.session_state.get("f_incl_mon", True))
+        incl_tue = dw2.checkbox("Tue", key="f_incl_tue", value=st.session_state.get("f_incl_tue", True))
+        incl_wed = dw3.checkbox("Wed", key="f_incl_wed", value=st.session_state.get("f_incl_wed", True))
+        incl_thu = dw4.checkbox("Thu", key="f_incl_thu", value=st.session_state.get("f_incl_thu", True))
+        incl_fri = dw5.checkbox("Fri", key="f_incl_fri", value=st.session_state.get("f_incl_fri", True))
+
+        st.divider()
+        st.markdown("**Economic Events**")
+        if not fred_key_configured():
+            st.info(
+                "FOMC dates are built-in. For NFP and CPI, add your FRED API key to "
+                "`.streamlit/secrets.toml`: `FRED_API_KEY = 'your_key'`"
+            )
+        ea, eb, ec = st.columns(3)
+        use_fomc = ea.checkbox("FOMC", key="f_use_fomc", value=st.session_state.get("f_use_fomc", False))
+        use_nfp  = eb.checkbox("NFP",  key="f_use_nfp",  value=st.session_state.get("f_use_nfp",  False),
+                                disabled=not fred_key_configured())
+        use_cpi  = ec.checkbox("CPI",  key="f_use_cpi",  value=st.session_state.get("f_use_cpi",  False),
+                                disabled=not fred_key_configured())
+
+        event_types = tuple(
+            e for e, on in [("FOMC", use_fomc), ("NFP", use_nfp), ("CPI", use_cpi)] if on
+        )
+        ef1, ef2 = st.columns([1, 2])
+        _efm_default = st.session_state.get("f_event_filter_mode", "Skip full day")
+        event_filter_mode = ef1.radio(
+            "Filter mode", ["Skip full day", "Window ±N minutes"],
+            index=["Skip full day", "Window ±N minutes"].index(_efm_default),
+            key="f_event_filter_mode",
+            help="**Skip full day:** removes all RTH bars on event dates.\n\n"
+                 "**Window:** removes bars within N minutes of the announcement.\n\n"
+                 "⚠️ NFP/CPI release at 7:30 CT — window < 60 min has no effect on RTH bars.",
+        )
+        event_window = 30
+        if event_filter_mode == "Window ±N minutes":
+            event_window = ef2.slider("Minutes before/after", 15, 180,
+                                       st.session_state.get("f_event_window", 30), 15,
+                                       key="f_event_window")
+
+        st.divider()
+        if st.button("💾 Save as Default"):
+            _save_filter_defaults({
+                "f_excl_holidays": excl_holidays,
+                "f_show_commentary": show_commentary,
+                "f_excl_volume": excl_volume,
+                "f_show_excl_shading": show_excl_shading,
+                "f_excl_first_n": excl_first_n,
+                "f_excl_last_min": excl_last_min,
+                "f_incl_mon": incl_mon, "f_incl_tue": incl_tue,
+                "f_incl_wed": incl_wed, "f_incl_thu": incl_thu, "f_incl_fri": incl_fri,
+                "f_use_fomc": use_fomc, "f_use_nfp": use_nfp, "f_use_cpi": use_cpi,
+                "f_event_filter_mode": event_filter_mode,
+                "f_event_window": event_window,
+            })
+            st.success("Defaults saved.", icon="✅")
+
+    # Share session boundary values with Bar Viewer candlestick shading
+    st.session_state["excl_first_n"]  = excl_first_n
+    st.session_state["excl_last_min"] = excl_last_min
 
     sc_f = sc[(sc_dates >= date_from) & (sc_dates <= date_to)]
     nt_f = nt[(nt_dates >= date_from) & (nt_dates <= date_to)]
@@ -313,39 +384,6 @@ def show_validation_tab():
         n_dow_bars = int((~keep).sum())
         comp = comp[keep].copy()
 
-    # ── Economic event filters ─────────────────────────────────────────────────
-    with st.expander("📅 Economic Event Filters", expanded=False):
-        if not fred_key_configured():
-            st.info(
-                "FOMC dates are built-in. For NFP and CPI, add your free FRED API key to "
-                "`.streamlit/secrets.toml`: `FRED_API_KEY = 'your_key'`  "
-                "([Register free at fred.stlouisfed.org](https://fred.stlouisfed.org/docs/api/api_key.html))"
-            )
-        ea, eb, ec = st.columns(3)
-        use_fomc = ea.checkbox("FOMC",  value=False)
-        use_nfp  = eb.checkbox("NFP",   value=False, disabled=not fred_key_configured())
-        use_cpi  = ec.checkbox("CPI",   value=False, disabled=not fred_key_configured())
-
-        event_types = tuple(
-            e for e, on in [("FOMC", use_fomc), ("NFP", use_nfp), ("CPI", use_cpi)] if on
-        )
-
-        ef1, ef2 = st.columns([1, 2])
-        event_filter_mode = ef1.radio(
-            "Filter mode",
-            ["Skip full day", "Window ±N minutes"],
-            index=0,
-            help=(
-                "**Skip full day:** removes all RTH bars on event dates.\n\n"
-                "**Window:** removes bars within N minutes of announcement time.\n\n"
-                "⚠️ NFP/CPI are released at 7:30 CT — before RTH opens at 8:30 CT. "
-                "A window < 60 min has no effect on RTH bars. Use 'Skip full day' for those."
-            ),
-        )
-        event_window = 30
-        if event_filter_mode == "Window ±N minutes":
-            event_window = ef2.slider("Minutes before/after", 15, 180, 30, 15)
-
     events_df = get_economic_events(event_types, str(date_from), str(date_to)) \
         if event_types else pd.DataFrame(columns=["DateTime", "EventType", "Color"])
 
@@ -378,48 +416,46 @@ def show_validation_tab():
     pct_ohlc   = (1 - n_ohlc_mm / n_matched) * 100   if n_matched else 0.0
 
     # ── Summary strip ─────────────────────────────────────────────────────────
+    n_trading_days = matched["DateTime"].dt.date.nunique() if n_matched else 0
+
     st.subheader("Summary")
     m1, m2, m3, m4, m5 = st.columns(5)
-    m1.metric("Matched Bars",     f"{n_matched:,}")
-    m2.metric("SC Only",          f"{n_sc_only:,}")
-    m3.metric("NT Only",          f"{n_nt_only:,}")
-    m4.metric("OHLC Exact Match", f"{pct_ohlc:.1f}%",
-              help="Bars where ALL four OHLC fields match simultaneously. "
-                   "Lower than per-field rates in the table below because one wrong field "
-                   "makes the whole bar a mismatch.")
-    m5.metric("OHLC Mismatches",  f"{n_ohlc_mm:,}")
+    m1.metric("Matched Bars",      f"{n_matched:,}")
+    m2.metric("Trading Days",      f"{n_trading_days:,}")
+    m3.metric("OHLC Exact Match",  f"{pct_ohlc:.1f}%",
+              help="Bars where ALL four OHLC fields match simultaneously.")
+    m4.metric("Holiday Bars Excl.", f"{n_holiday_bars:,}" if excl_holidays and n_holiday_bars else "—")
+    m5.metric("Event Bars Excl.",   f"{n_event_bars:,}"   if n_event_bars else "—")
 
-    secondary = []
+    row2 = [("SC Only", f"{n_sc_only:,}"), ("NT Only", f"{n_nt_only:,}")]
     if not excl_volume:
-        secondary.append(("Vol Mismatches",       f"{n_vol_mm:,}"))
-    if excl_holidays and n_holiday_bars:
-        secondary.append(("Holiday Bars Excl.",   f"{n_holiday_bars:,}"))
+        row2.append(("Vol Mismatches",  f"{n_vol_mm:,}"))
     if n_first_n_bars:
-        secondary.append(("Open Bars Excl.",      f"{n_first_n_bars:,}"))
+        row2.append(("Open Bars Excl.", f"{n_first_n_bars:,}"))
     if n_last_min_bars:
-        secondary.append(("Close Bars Excl.",     f"{n_last_min_bars:,}"))
+        row2.append(("Close Bars Excl.", f"{n_last_min_bars:,}"))
     if n_dow_bars:
-        secondary.append(("DOW Bars Excl.",       f"{n_dow_bars:,}"))
-    if n_event_bars:
-        secondary.append(("Event Bars Excl.",     f"{n_event_bars:,}"))
-    if secondary:
-        cols = st.columns(5)
-        for i, (label, val) in enumerate(secondary[:5]):
-            cols[i].metric(label, val)
+        row2.append(("DOW Bars Excl.",  f"{n_dow_bars:,}"))
+    cols2 = st.columns(len(row2))
+    for col, (label, val) in zip(cols2, row2):
+        col.metric(label, val)
 
-    _summary_commentary(n_matched, n_sc_only, n_nt_only, pct_ohlc, pct_ohlc, n_ohlc_mm, excl_volume)
+    if show_commentary:
+        _summary_commentary(n_matched, n_sc_only, n_nt_only, pct_ohlc, pct_ohlc, n_ohlc_mm, excl_volume)
 
     # ── Field breakdown ────────────────────────────────────────────────────────
     st.subheader("Mismatch by Field")
-    _info(
-        "Each row shows how many bars matched exactly vs differed, and the range of the difference in ticks "
-        "(OHLC) or contracts (Volume). A tick on ES = 0.25 points = $12.50. "
-        "**Note:** the OHLC Exact Match % above is lower than all four individual field rates — "
-        "that is correct. The summary counts a bar as a mismatch if *any* of the four fields differ, "
-        "so it is always ≤ the lowest individual field rate."
-    )
+    if show_commentary:
+        _info(
+            "Each row shows how many bars matched exactly vs differed, and the range of the difference in ticks "
+            "(OHLC) or contracts (Volume). A tick on ES = 0.25 points = $12.50. "
+            "**Note:** the OHLC Exact Match % above is lower than all four individual field rates — "
+            "that is correct. The summary counts a bar as a mismatch if *any* of the four fields differ, "
+            "so it is always ≤ the lowest individual field rate."
+        )
     _show_field_table(matched, excl_volume)
-    _field_table_commentary(matched, excl_volume)
+    if show_commentary:
+        _field_table_commentary(matched, excl_volume)
 
     # ── Unmatched bars ─────────────────────────────────────────────────────────
     null_vol = nt_f[nt_f["NullVol"]].copy()
@@ -482,10 +518,11 @@ def show_validation_tab():
     with t2:
         _show_time_of_day(matched_full,
                           excl_first_n=excl_first_n, excl_last_min=excl_last_min,
-                          show_shading=show_excl_shading)
+                          show_shading=show_excl_shading, show_commentary=show_commentary)
     with t3:
         _show_by_date(matched_full, events_df,
-                      excl_dates=excl_dates if show_excl_shading else None)
+                      excl_dates=excl_dates if show_excl_shading else None,
+                      show_commentary=show_commentary)
     with t4:
         _show_delta_distribution(matched, excl_volume)
 
@@ -576,17 +613,18 @@ def _show_mismatch_table(matched: pd.DataFrame, excl_volume: bool = False):
 
 def _show_time_of_day(matched: pd.DataFrame,
                       excl_first_n: int = 0, excl_last_min: int = 0,
-                      show_shading: bool = False):
+                      show_shading: bool = False, show_commentary: bool = True):
     if matched.empty:
         st.info("No matched bars.")
         return
 
-    _info(
-        "Shows which 5-minute bar slots have the most OHLC mismatches across all trading days. "
-        "The orange line is the mismatch rate (mismatches ÷ total bars at that slot). "
-        "**What to look for:** spikes at 08:30 (opening bar) and 14:45–15:10 (close) are normal. "
-        "A spike in the middle of the session would suggest a systematic data problem worth investigating."
-    )
+    if show_commentary:
+        _info(
+            "Shows which 5-minute bar slots have the most OHLC mismatches across all trading days. "
+            "The orange line is the mismatch rate (mismatches ÷ total bars at that slot). "
+            "**What to look for:** spikes at 08:30 (opening bar) and 14:45–15:10 (close) are normal. "
+            "A spike in the middle of the session would suggest a systematic data problem worth investigating."
+        )
 
     tod = (
         matched.groupby("BarTime", sort=True)
@@ -595,22 +633,26 @@ def _show_time_of_day(matched: pd.DataFrame,
     )
     tod["Rate%"] = (tod["OHLC_MM"] / tod["Total"] * 100).round(1)
 
+    y_max   = max(int(tod["OHLC_MM"].max()), 1)
+    y_range = y_max * 1.4
+
     fig = go.Figure()
 
-    # Excluded zone shading — drawn first so bars render on top
-    if show_shading:
-        shade = dict(fillcolor="rgba(180,180,180,0.18)", line_width=0, layer="below")
+    # Excluded zone shading — overlay bars clipped by explicit y range
+    if show_shading and (excl_first_n > 0 or excl_last_min > 0):
+        excl_times: set = set()
         if excl_first_n > 0:
-            last_excl = f"{(8*60+30+(excl_first_n-1)*5)//60:02d}:{(8*60+30+(excl_first_n-1)*5)%60:02d}"
-            fig.add_vrect(x0="08:30", x1=last_excl, **shade,
-                          annotation_text="excluded", annotation_position="top left",
-                          annotation_font=dict(size=9, color="#aaa"))
+            excl_times |= {f"{(8*60+30+i*5)//60:02d}:{(8*60+30+i*5)%60:02d}" for i in range(excl_first_n)}
         if excl_last_min > 0:
-            cutoff_total = 15*60+15 - excl_last_min
-            cutoff_str = f"{cutoff_total//60:02d}:{cutoff_total%60:02d}"
-            fig.add_vrect(x0=cutoff_str, x1="15:10", **shade,
-                          annotation_text="excluded", annotation_position="top right",
-                          annotation_font=dict(size=9, color="#aaa"))
+            cutoff = 15*60+15 - excl_last_min
+            excl_times |= {f"{m//60:02d}:{m%60:02d}" for m in range(cutoff, 15*60+15, 5)}
+        excl_in_tod = [t for t in tod["BarTime"] if t in excl_times]
+        if excl_in_tod:
+            fig.add_bar(
+                x=excl_in_tod, y=[y_range * 20] * len(excl_in_tod),
+                marker=dict(color="rgba(180,180,180,0.18)", line_width=0),
+                name="Excluded", hoverinfo="skip", showlegend=True,
+            )
 
     fig.add_bar(x=tod["BarTime"], y=tod["OHLC_MM"], name="OHLC Mismatches", marker_color="#ef5350")
     fig.add_scatter(
@@ -620,16 +662,19 @@ def _show_time_of_day(matched: pd.DataFrame,
     )
     y2_max = max(tod["Rate%"].max() * 1.3, 5)
     fig.update_layout(
+        barmode="overlay",
         title="OHLC Mismatches by Bar Time Slot",
         xaxis_title="Bar Open Time (CT)", yaxis_title="# Mismatches",
+        yaxis=dict(range=[0, y_range]),
         yaxis2=dict(title="Mismatch Rate %", overlaying="y", side="right", range=[0, y2_max]),
-        xaxis=dict(tickangle=-45),
+        xaxis=dict(tickangle=-45, categoryorder="category ascending"),
         template="plotly_white", height=420,
         legend=dict(x=0.01, y=0.99),
     )
     st.plotly_chart(fig, use_container_width=True)
 
-    _time_of_day_commentary(tod)
+    if show_commentary:
+        _time_of_day_commentary(tod)
 
     worst = tod[tod["OHLC_MM"] > 0].sort_values("Rate%", ascending=False)
     if not worst.empty:
@@ -641,20 +686,21 @@ def _show_time_of_day(matched: pd.DataFrame,
 
 
 def _show_by_date(matched: pd.DataFrame, events_df: pd.DataFrame | None = None,
-                  excl_dates: set | None = None):
+                  excl_dates: set | None = None, show_commentary: bool = True):
     if matched.empty:
         st.info("No matched bars.")
         return
 
     has_events = events_df is not None and not events_df.empty
-    _info(
-        "Shows total OHLC mismatches per trading day. "
-        "**What to look for:** a smooth low count across all days = random noise. "
-        "A single day dominating = a data event (feed outage, rollover issue, or bad export). "
-        "Percentage labels show mismatch rate for days with at least one mismatch."
-        + (" Coloured vertical lines mark economic events (use the Economic Event Filters expander above)."
-           if has_events else "")
-    )
+    if show_commentary:
+        _info(
+            "Shows total OHLC mismatches per trading day. "
+            "**What to look for:** a smooth low count across all days = random noise. "
+            "A single day dominating = a data event (feed outage, rollover issue, or bad export). "
+            "Percentage labels show mismatch rate for days with at least one mismatch."
+            + (" Coloured vertical lines mark economic events."
+               if has_events else "")
+        )
 
     by_date = (
         matched.groupby("Date")
@@ -664,17 +710,19 @@ def _show_by_date(matched: pd.DataFrame, events_df: pd.DataFrame | None = None,
     by_date["Rate%"] = (by_date["OHLC_MM"] / by_date["Total"] * 100).round(1)
     by_date["Date"]  = pd.to_datetime(by_date["Date"])
 
+    y_max_d  = max(int(by_date["OHLC_MM"].max()), 1)
+    y_range_d = y_max_d * 1.4
+
     fig = go.Figure()
 
-    # Excluded date shading — drawn first so bars render on top
+    # Excluded date shading — overlay bars clipped by explicit y range
     if excl_dates:
-        for d in sorted(excl_dates):
-            ts = pd.Timestamp(d)
-            fig.add_vrect(
-                x0=(ts - pd.Timedelta(hours=12)).timestamp() * 1000,
-                x1=(ts + pd.Timedelta(hours=12)).timestamp() * 1000,
-                fillcolor="rgba(180,180,180,0.18)", line_width=0, layer="below",
-            )
+        excl_ts = [pd.Timestamp(d) for d in sorted(excl_dates)]
+        fig.add_bar(
+            x=excl_ts, y=[y_range_d * 20] * len(excl_ts),
+            marker=dict(color="rgba(180,180,180,0.18)", line_width=0),
+            name="Excluded", hoverinfo="skip", showlegend=True,
+        )
 
     fig.add_bar(
         x=by_date["Date"], y=by_date["OHLC_MM"],
@@ -710,15 +758,18 @@ def _show_by_date(matched: pd.DataFrame, events_df: pd.DataFrame | None = None,
                 )
 
     fig.update_layout(
+        barmode="overlay",
         title="OHLC Mismatches per Trading Day",
         xaxis_title="Date", yaxis_title="# Mismatched Bars",
+        yaxis=dict(range=[0, y_range_d]),
         template="plotly_white", height=440,
         xaxis=dict(tickformat="%b %d", tickangle=-45),
         legend=dict(orientation="h", y=1.08),
     )
     st.plotly_chart(fig, use_container_width=True)
 
-    _by_date_commentary(by_date)
+    if show_commentary:
+        _by_date_commentary(by_date)
 
     worst = by_date[by_date["OHLC_MM"] > 0].sort_values("OHLC_MM", ascending=False)
     if not worst.empty:

@@ -272,3 +272,58 @@ The By Date bar chart received colored dashed vertical lines marking event dates
 | **`st.secrets`** | Streamlit's built-in secrets manager. Reads `.streamlit/secrets.toml` (gitignored). Access via `st.secrets.get("KEY")`. Safe pattern for API keys in Streamlit apps. |
 | **Graceful degradation** | FRED-dependent checkboxes are `disabled=True` when no API key is configured. App stays functional — FOMC works without a key. |
 
+---
+
+## Tag 6 — June 4, 2026 (evening)
+### UI Polish — Filters, Navigation, Shading, Defaults
+
+#### What we built
+A full UI polish pass on the Streamlit app. No new analysis features — all changes are about making the tool faster to use and cleaner to read.
+
+#### Single Filters expander
+All filter controls (Display, Session Boundaries, Day of Week, Economic Events) consolidated into one `⚙️ Filters` expander. Previously each was its own expander, which made the page tall and fragmented. Now one click opens/closes all controls. Sections separated by `st.divider()` since Streamlit doesn't allow nested expanders.
+
+#### Save as Default
+"💾 Save as Default" button at the bottom of the Filters panel writes all current filter values to `filter_defaults.json`. On next app load, those values are injected into `st.session_state` before any widgets are created, so the widgets render with saved defaults. The pattern:
+
+```python
+# Inject defaults on first load only
+if "vt_initialized" not in st.session_state:
+    for k, v in _load_filter_defaults().items():
+        st.session_state.setdefault(k, v)
+    st.session_state["vt_initialized"] = True
+
+# Widget uses key= — Streamlit picks up session_state value automatically
+excl_holidays = st.checkbox("...", key="f_excl_holidays", value=True)
+```
+
+The `value=` parameter is only used when the key is not yet in session state. Once the key exists, `value=` is ignored. This means defaults loaded from file are honoured on first render.
+
+#### Commentary toggle
+`Show commentary` checkbox in the Filters panel. When off, all `_info()` and `_commentary()` calls are skipped, removing the blue info boxes and text paragraphs. Layout tightens automatically — no special rearrangement needed.
+
+#### Excluded zone shading — the hard part
+`add_vrect` and `add_shape` are unreliable on Plotly categorical x-axes. Multiple approaches failed:
+- `add_vrect` with string category labels — ignored silently
+- `add_shape` with integer category indices — not rendered
+- Secondary y-axis bar trace — rendered as tall grey bars, looked terrible
+
+**Solution that worked:** overlay bar traces with explicit y-axis range. Add a grey bar trace first (y = very large number), then add the data bars on top, then set an explicit y-axis range that clips the grey bars at the chart height. `barmode="overlay"` ensures data bars render on top. `categoryorder="category ascending"` ensures time strings sort chronologically regardless of trace insertion order.
+
+For the datetime (by-date) chart, the same overlay approach works. For the candlestick chart, `add_vrect` works correctly on a continuous time axis — offset x0/x1 by ±2.5 minutes (half a 5-min bar width) so the shaded region covers the full bar, not just its center.
+
+#### Candlestick bar numbers
+Positioned at `yref="y"` (data coordinates) with `yanchor="top"` and `yshift=-6` pixels — sits just below each bar's low. Font size 12 to match axis tick labels. Every 3rd bar starting from 1, plus the last bar always labeled regardless of step position.
+
+#### Prev/Next navigation
+`st.session_state` used to share the current date index between the buttons and the selectbox. Button click modifies `st.session_state.bar_viewer_idx`; selectbox reads it on the next render. Sync back: `st.session_state.bar_viewer_idx = dates.index(selected_date)` after the selectbox so direct dropdown changes are captured.
+
+#### Concepts learned
+
+| Concept | What it is |
+|---------|------------|
+| **Plotly categorical shading** | `add_vrect`/`add_shape` fail silently on categorical axes. Reliable workaround: overlay bar trace with clipped y-range. |
+| **Streamlit widget defaults** | `value=` is only used when the widget key is not yet in `st.session_state`. Pre-populate session state before widget creation to control initial values. |
+| **`barmode="overlay"`** | Plotly bar traces at the same x position render on top of each other. Add background trace first (low z-order), data trace second. Clip with explicit `yaxis.range`. |
+| **`header { visibility: hidden }` danger** | Hides the Streamlit header including the Rerun button and sidebar toggle. Use `#MainMenu { visibility: hidden }` to hide only the hamburger menu. |
+

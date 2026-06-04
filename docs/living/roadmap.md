@@ -91,10 +91,16 @@ These are not build phases — they are analytical obligations that run as Track
 
 - [x] Bar Validation module built and working
 - [x] NYSE holiday exclusion via exchange-calendars
-- [x] Filter toggles: first bar, last 45 min, ignore volume
 - [x] Economic event filter: FOMC/NFP/CPI — Skip full day or Window ±N min
-- [x] By Date chart: colored dashed vertical lines per event type
-- [x] FRED API wired (NFP/CPI release dates); FOMC hardcoded 2015–2026 confirmed
+- [x] FRED API wired; FOMC 2015–2026 hardcoded and confirmed
+- [x] All filters in single ⚙️ Filters expander with Save as Default
+- [x] Commentary toggle (show/hide all explanatory text)
+- [x] Session Boundaries: first N bars + last N min sliders
+- [x] Day of Week filter (Mon–Fri include checkboxes)
+- [x] Charts always show full dataset; excluded zones shaded with grey overlay
+- [x] Bar Viewer: ‹/› prev/next navigation, bar numbers on candlestick, collapsible bar table
+- [x] Candlestick shading synced from Bar Validation session boundary filters
+- [x] Summary strip: Trading Days added, rows reorganised
 - [ ] Share app + data files with Thomas: upload both data files to Google Drive, run ngrok
 - [ ] Add volume subplot to Bar Viewer candlestick chart
 - [ ] Investigate whether more historical SC tick data exists (only 65 calendar days in current file)
