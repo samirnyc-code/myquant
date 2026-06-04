@@ -13,7 +13,7 @@ st.set_page_config(
 
 # ── Chart builder ─────────────────────────────────────────────────────────────
 
-def make_candlestick(df: pd.DataFrame, date_str: str) -> go.Figure:
+def make_candlestick(df: pd.DataFrame, date_str: str, show_bar_nums: bool = False) -> go.Figure:
     fig = go.Figure(
         go.Candlestick(
             x=df["DateTime"],
@@ -26,6 +26,7 @@ def make_candlestick(df: pd.DataFrame, date_str: str) -> go.Figure:
             decreasing_line_color="#ef5350",
         )
     )
+    bottom_margin = 90 if show_bar_nums else 60
     fig.update_layout(
         title=f"ESM6 — 5-Min RTH Bars  ({date_str})",
         xaxis_title="Time (CT)",
@@ -34,9 +35,19 @@ def make_candlestick(df: pd.DataFrame, date_str: str) -> go.Figure:
         xaxis=dict(tickformat="%H:%M", dtick=15 * 60 * 1000, tickangle=-45),
         yaxis=dict(autorange=True),
         height=520,
-        margin=dict(l=50, r=20, t=60, b=60),
+        margin=dict(l=50, r=20, t=60, b=bottom_margin),
         template="plotly_white",
     )
+    if show_bar_nums:
+        for i in range(0, len(df), 3):
+            fig.add_annotation(
+                x=df.iloc[i]["DateTime"], xref="x",
+                y=0, yref="paper", yshift=-48,
+                text=str(i + 1),
+                showarrow=False,
+                font=dict(size=8, color="#999"),
+                xanchor="center",
+            )
     return fig
 
 
@@ -75,8 +86,10 @@ def show_bar_viewer():
     m5.metric("Change",       f"{chg:+.2f}", f"{chg_pct:+.2f}%")
     m6.metric("Total Volume", f"{day_vol:,.0f}")
 
+    show_bar_nums = st.checkbox("Show bar numbers", value=False,
+                                help="Labels every 3rd bar (1, 4, 7…) below the x-axis.")
     st.plotly_chart(
-        make_candlestick(day, selected_date.strftime("%B %d, %Y")),
+        make_candlestick(day, selected_date.strftime("%B %d, %Y"), show_bar_nums=show_bar_nums),
         use_container_width=True,
     )
 

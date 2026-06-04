@@ -229,29 +229,48 @@ def show_validation_tab():
     date_from = dc1.date_input("From", value=overlap_min, min_value=all_min, max_value=all_max)
     date_to   = dc2.date_input("To",   value=overlap_max, min_value=all_min, max_value=all_max)
 
-    # ── Filter toggles ────────────────────────────────────────────────────────
-    st.markdown("**Filters**")
-    fc1, fc2, fc3, fc4 = st.columns(4)
-    excl_holidays  = fc1.checkbox(
+    # ── Filter controls ───────────────────────────────────────────────────────
+    excl_holidays = st.checkbox(
         "Exclude NYSE holidays", value=True,
         help="Removes days like Memorial Day where there is no proper RTH session "
              "(NYSE calendar via exchange-calendars)."
     )
-    excl_first_bar = fc2.checkbox(
-        "Exclude first bar (08:30)", value=False,
-        help="The opening bar has the highest mismatch rate due to opening auction noise. "
-             "Toggle off to see clean mid-session agreement."
-    )
-    excl_late      = fc3.checkbox(
-        "Exclude last 45 min (14:30–15:15)", value=False,
-        help="Closing bars have elevated mismatches from end-of-session order flow and "
-             "settlement handling differences between feeds."
-    )
-    excl_volume    = fc4.checkbox(
-        "Ignore volume differences", value=False,
-        help="Hides volume from all stats and tables. Useful when you've already confirmed "
-             "volume differences are expected and want to focus on OHLC only."
-    )
+
+    with st.expander("Display", expanded=False):
+        excl_volume = st.checkbox(
+            "Ignore volume differences", value=False,
+            help="Hides volume from all stats and tables. Useful when you have already "
+                 "confirmed volume differences are expected and want to focus on OHLC only."
+        )
+        show_excl_shading = st.checkbox(
+            "Shade excluded zones on charts", value=True,
+            help="Adds a light grey overlay on the Time of Day and By Date charts to show "
+                 "which bars and dates are being excluded by the active filters."
+        )
+
+    with st.expander("Session Boundaries", expanded=False):
+        sb1, sb2 = st.columns(2)
+        excl_first_n = sb1.slider(
+            "Exclude first N bars", min_value=0, max_value=12, value=0, step=1,
+            help="Removes the first N 5-minute bars of each session starting at 08:30 CT. "
+                 "0 = no exclusion. The opening bar has the highest mismatch rate due to "
+                 "opening auction noise."
+        )
+        excl_last_min = sb2.slider(
+            "Exclude last N minutes", min_value=0, max_value=90, value=0, step=5,
+            help="Removes bars from the end of the RTH session (counts back from 15:15 CT). "
+                 "0 = no exclusion. Closing bars have elevated mismatches from end-of-session "
+                 "order flow and settlement differences between feeds."
+        )
+
+    with st.expander("Day of Week", expanded=False):
+        st.caption("Include days:")
+        dow1, dow2, dow3, dow4, dow5 = st.columns(5)
+        incl_mon = dow1.checkbox("Mon", value=True)
+        incl_tue = dow2.checkbox("Tue", value=True)
+        incl_wed = dow3.checkbox("Wed", value=True)
+        incl_thu = dow4.checkbox("Thu", value=True)
+        incl_fri = dow5.checkbox("Fri", value=True)
 
     sc_f = sc[(sc_dates >= date_from) & (sc_dates <= date_to)]
     nt_f = nt[(nt_dates >= date_from) & (nt_dates <= date_to)]
@@ -262,15 +281,37 @@ def show_validation_tab():
 
     comp = build_comparison(sc_f, nt_f)
 
-    # ── Existing filters ───────────────────────────────────────────────────────
+    # ── Apply filters ─────────────────────────────────────────────────────────
     holidays = get_market_holidays(str(date_from), str(date_to))
     n_holiday_bars = int((comp["DateTime"].dt.strftime("%Y-%m-%d").isin(holidays)).sum())
     if excl_holidays and holidays:
         comp = comp[~comp["DateTime"].dt.strftime("%Y-%m-%d").isin(holidays)].copy()
-    if excl_first_bar:
-        comp = comp[comp["BarTime"] != "08:30"].copy()
-    if excl_late:
-        comp = comp[comp["BarTime"] < "14:30"].copy()
+
+    # Full matched set for charts (post-holiday; session/DOW/event filters only affect stats)
+    matched_full = comp[comp["Status"] == "Matched"].copy()
+
+    n_first_n_bars = 0
+    if excl_first_n > 0:
+        first_n_times = {
+            f"{(8 * 60 + 30 + i * 5) // 60:02d}:{(8 * 60 + 30 + i * 5) % 60:02d}"
+            for i in range(excl_first_n)
+        }
+        n_first_n_bars = int(comp["BarTime"].isin(first_n_times).sum())
+        comp = comp[~comp["BarTime"].isin(first_n_times)].copy()
+
+    n_last_min_bars = 0
+    if excl_last_min > 0:
+        cutoff_total = 15 * 60 + 15 - excl_last_min
+        cutoff_str   = f"{cutoff_total // 60:02d}:{cutoff_total % 60:02d}"
+        n_last_min_bars = int((comp["BarTime"] >= cutoff_str).sum())
+        comp = comp[comp["BarTime"] < cutoff_str].copy()
+
+    n_dow_bars = 0
+    if not all([incl_mon, incl_tue, incl_wed, incl_thu, incl_fri]):
+        dow_map  = {0: incl_mon, 1: incl_tue, 2: incl_wed, 3: incl_thu, 4: incl_fri}
+        keep     = comp["DateTime"].dt.dayofweek.map(dow_map).fillna(False)
+        n_dow_bars = int((~keep).sum())
+        comp = comp[keep].copy()
 
     # ── Economic event filters ─────────────────────────────────────────────────
     with st.expander("📅 Economic Event Filters", expanded=False):
@@ -353,6 +394,12 @@ def show_validation_tab():
         secondary.append(("Vol Mismatches",       f"{n_vol_mm:,}"))
     if excl_holidays and n_holiday_bars:
         secondary.append(("Holiday Bars Excl.",   f"{n_holiday_bars:,}"))
+    if n_first_n_bars:
+        secondary.append(("Open Bars Excl.",      f"{n_first_n_bars:,}"))
+    if n_last_min_bars:
+        secondary.append(("Close Bars Excl.",     f"{n_last_min_bars:,}"))
+    if n_dow_bars:
+        secondary.append(("DOW Bars Excl.",       f"{n_dow_bars:,}"))
     if n_event_bars:
         secondary.append(("Event Bars Excl.",     f"{n_event_bars:,}"))
     if secondary:
@@ -413,6 +460,16 @@ def show_validation_tab():
                 st.caption("In NT, missing from SC")
                 st.dataframe(nt_only, use_container_width=True, hide_index=True)
 
+    # ── Excluded dates for chart shading ──────────────────────────────────────
+    excl_dates: set = set()
+    if show_excl_shading:
+        if not all([incl_mon, incl_tue, incl_wed, incl_thu, incl_fri]):
+            dow_excl = {i for i, inc in enumerate([incl_mon, incl_tue, incl_wed, incl_thu, incl_fri]) if not inc}
+            excl_dates |= {d for d in matched_full["DateTime"].dt.date.unique()
+                           if pd.Timestamp(d).dayofweek in dow_excl}
+        if not events_df.empty and event_filter_mode == "Skip full day":
+            excl_dates |= set(events_df["DateTime"].dt.date)
+
     # ── Sub-views ──────────────────────────────────────────────────────────────
     t1, t2, t3, t4 = st.tabs([
         "🔎 Mismatch Table",
@@ -423,9 +480,12 @@ def show_validation_tab():
     with t1:
         _show_mismatch_table(matched, excl_volume)
     with t2:
-        _show_time_of_day(matched)
+        _show_time_of_day(matched_full,
+                          excl_first_n=excl_first_n, excl_last_min=excl_last_min,
+                          show_shading=show_excl_shading)
     with t3:
-        _show_by_date(matched, events_df)
+        _show_by_date(matched_full, events_df,
+                      excl_dates=excl_dates if show_excl_shading else None)
     with t4:
         _show_delta_distribution(matched, excl_volume)
 
@@ -514,7 +574,9 @@ def _show_mismatch_table(matched: pd.DataFrame, excl_volume: bool = False):
     st.caption(caption)
 
 
-def _show_time_of_day(matched: pd.DataFrame):
+def _show_time_of_day(matched: pd.DataFrame,
+                      excl_first_n: int = 0, excl_last_min: int = 0,
+                      show_shading: bool = False):
     if matched.empty:
         st.info("No matched bars.")
         return
@@ -534,6 +596,22 @@ def _show_time_of_day(matched: pd.DataFrame):
     tod["Rate%"] = (tod["OHLC_MM"] / tod["Total"] * 100).round(1)
 
     fig = go.Figure()
+
+    # Excluded zone shading — drawn first so bars render on top
+    if show_shading:
+        shade = dict(fillcolor="rgba(180,180,180,0.18)", line_width=0, layer="below")
+        if excl_first_n > 0:
+            last_excl = f"{(8*60+30+(excl_first_n-1)*5)//60:02d}:{(8*60+30+(excl_first_n-1)*5)%60:02d}"
+            fig.add_vrect(x0="08:30", x1=last_excl, **shade,
+                          annotation_text="excluded", annotation_position="top left",
+                          annotation_font=dict(size=9, color="#aaa"))
+        if excl_last_min > 0:
+            cutoff_total = 15*60+15 - excl_last_min
+            cutoff_str = f"{cutoff_total//60:02d}:{cutoff_total%60:02d}"
+            fig.add_vrect(x0=cutoff_str, x1="15:10", **shade,
+                          annotation_text="excluded", annotation_position="top right",
+                          annotation_font=dict(size=9, color="#aaa"))
+
     fig.add_bar(x=tod["BarTime"], y=tod["OHLC_MM"], name="OHLC Mismatches", marker_color="#ef5350")
     fig.add_scatter(
         x=tod["BarTime"], y=tod["Rate%"], name="Mismatch Rate %",
@@ -562,7 +640,8 @@ def _show_time_of_day(matched: pd.DataFrame):
             )
 
 
-def _show_by_date(matched: pd.DataFrame, events_df: pd.DataFrame | None = None):
+def _show_by_date(matched: pd.DataFrame, events_df: pd.DataFrame | None = None,
+                  excl_dates: set | None = None):
     if matched.empty:
         st.info("No matched bars.")
         return
@@ -586,6 +665,17 @@ def _show_by_date(matched: pd.DataFrame, events_df: pd.DataFrame | None = None):
     by_date["Date"]  = pd.to_datetime(by_date["Date"])
 
     fig = go.Figure()
+
+    # Excluded date shading — drawn first so bars render on top
+    if excl_dates:
+        for d in sorted(excl_dates):
+            ts = pd.Timestamp(d)
+            fig.add_vrect(
+                x0=(ts - pd.Timedelta(hours=12)).timestamp() * 1000,
+                x1=(ts + pd.Timedelta(hours=12)).timestamp() * 1000,
+                fillcolor="rgba(180,180,180,0.18)", line_width=0, layer="below",
+            )
+
     fig.add_bar(
         x=by_date["Date"], y=by_date["OHLC_MM"],
         name="Mismatches", marker_color="#ef5350",

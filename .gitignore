@@ -3,3 +3,6 @@ data/raw/ESM6.CME_BarData.txt
 data/raw/NinjaScript Output*.txt
 .venv/
 .streamlit/secrets.toml
+__pycache__/
+*.pyc
+*.pyo
