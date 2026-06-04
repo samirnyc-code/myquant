@@ -603,8 +603,3 @@ def _show_delta_distribution(matched: pd.DataFrame, excl_volume: bool = False):
                 "SC sums raw tick-level volumes; NT records broker-feed volume (Rithmic/CQG). "
                 "The two feeds count trades at bar boundaries differently and may include/exclude spread legs."
             )
-        _info(
-            "Volume differences are expected and harmless for a price-based strategy. "
-            "SC sums raw tick-level volumes; NT records broker-feed volume (Rithmic/CQG). "
-            "The two feeds count trades at bar boundaries differently and may include/exclude spread legs."
-        )
