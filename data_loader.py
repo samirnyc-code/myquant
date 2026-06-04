@@ -59,7 +59,7 @@ def load_nt_bars() -> pd.DataFrame:
         sep=";",
         header=None,
         names=["DateTime", "Open", "High", "Low", "Close", "Volume"],
-        dtype={"Open": float, "High": float, "Low": float, "Close": float, "Volume": "int32"},
+        dtype={"Open": float, "High": float, "Low": float, "Close": float, "Volume": float},
     )
     # Berlin close times → Chicago open times
     # CEST (UTC+2) → CDT (UTC-5) = −7 h, then −5 min close→open
@@ -70,6 +70,9 @@ def load_nt_bars() -> pd.DataFrame:
         .dt.tz_localize(None)
         - pd.Timedelta(minutes=5)
     )
+    df = df.dropna(subset=["Open"])  # rows with no price are unusable
+    df["NullVol"] = df["Volume"].isna()
+    df["Volume"]  = df["Volume"].fillna(0)
     t = df["DateTime"].dt.time
     df = df[
         (t >= pd.Timestamp(RTH_START).time()) &

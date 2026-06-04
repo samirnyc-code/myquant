@@ -112,6 +112,18 @@ def show_validation_tab():
     st.subheader("Mismatch by Field")
     _show_field_table(matched)
 
+    # ── NT null-volume bars ────────────────────────────────────────────────────
+    null_vol = nt_f[nt_f["NullVol"]].copy()
+    n_null_vol = len(null_vol)
+    if n_null_vol > 0:
+        null_vol["DateTime"] = null_vol["DateTime"].dt.strftime("%Y-%m-%d %H:%M")
+        with st.expander(f"⚠️ NT bars with null Volume (filled as 0) — {n_null_vol} bar{'s' if n_null_vol > 1 else ''}"):
+            st.caption("These bars existed in the NT file with no volume value. Volume was set to 0 for comparison purposes.")
+            st.dataframe(
+                null_vol[["DateTime", "Open", "High", "Low", "Close"]],
+                use_container_width=True, hide_index=True,
+            )
+
     # ── Unmatched bars ─────────────────────────────────────────────────────────
     if n_sc_only > 0 or n_nt_only > 0:
         with st.expander(f"Unmatched bars — SC only: {n_sc_only}  |  NT only: {n_nt_only}"):
