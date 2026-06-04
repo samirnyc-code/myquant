@@ -222,14 +222,33 @@ def show_validation_tab():
     all_min     = min(sc_dates.min(), nt_dates.min())
     all_max     = max(sc_dates.max(), nt_dates.max())
 
-    c1, c2, c3 = st.columns([1, 1, 2])
-    date_from      = c1.date_input("From", value=overlap_min, min_value=all_min, max_value=all_max)
-    date_to        = c2.date_input("To",   value=overlap_max, min_value=all_min, max_value=all_max)
-    exclude_holidays = c3.checkbox(
-        "Exclude NYSE market holidays",
-        value=True,
-        help="Uses the NYSE calendar (exchange-calendars). Removes days like Memorial Day where "
-             "there is no proper RTH session even though CME Globex may have thin trading."
+    # ── Date range ────────────────────────────────────────────────────────────
+    dc1, dc2 = st.columns(2)
+    date_from = dc1.date_input("From", value=overlap_min, min_value=all_min, max_value=all_max)
+    date_to   = dc2.date_input("To",   value=overlap_max, min_value=all_min, max_value=all_max)
+
+    # ── Filter toggles ────────────────────────────────────────────────────────
+    st.markdown("**Filters**")
+    fc1, fc2, fc3, fc4 = st.columns(4)
+    excl_holidays  = fc1.checkbox(
+        "Exclude NYSE holidays", value=True,
+        help="Removes days like Memorial Day where there is no proper RTH session "
+             "(NYSE calendar via exchange-calendars)."
+    )
+    excl_first_bar = fc2.checkbox(
+        "Exclude first bar (08:30)", value=False,
+        help="The opening bar has the highest mismatch rate due to opening auction noise. "
+             "Toggle off to see clean mid-session agreement."
+    )
+    excl_late      = fc3.checkbox(
+        "Exclude last 45 min (14:30–15:15)", value=False,
+        help="Closing bars have elevated mismatches from end-of-session order flow and "
+             "settlement handling differences between feeds."
+    )
+    excl_volume    = fc4.checkbox(
+        "Ignore volume differences", value=False,
+        help="Hides volume from all stats and tables. Useful when you've already confirmed "
+             "volume differences are expected and want to focus on OHLC only."
     )
 
     sc_f = sc[(sc_dates >= date_from) & (sc_dates <= date_to)]
@@ -239,51 +258,60 @@ def show_validation_tab():
     last_sc_dt = sc_f["DateTime"].max()
     nt_f = nt_f[nt_f["DateTime"] <= last_sc_dt].copy()
 
-    comp    = build_comparison(sc_f, nt_f)
+    comp = build_comparison(sc_f, nt_f)
 
-    # Holiday exclusion — applied after merge so unmatched holiday bars are visible
-    # when the checkbox is off, but excluded from all stats when on.
+    # Apply filters to comp before all stats
     holidays = get_market_holidays(str(date_from), str(date_to))
     n_holiday_bars = int((comp["DateTime"].dt.strftime("%Y-%m-%d").isin(holidays)).sum())
-    if exclude_holidays and holidays:
+    if excl_holidays and holidays:
         comp = comp[~comp["DateTime"].dt.strftime("%Y-%m-%d").isin(holidays)].copy()
+    if excl_first_bar:
+        comp = comp[comp["BarTime"] != "08:30"].copy()
+    if excl_late:
+        comp = comp[comp["BarTime"] < "14:30"].copy()
 
     matched = comp[comp["Status"] == "Matched"]
 
     n_matched  = len(matched)
     n_sc_only  = int((comp["Status"] == "SC only").sum())
     n_nt_only  = int((comp["Status"] == "NT only").sum())
-    n_ohlc_mm  = int((~matched["OHLC_match"]).sum())   if n_matched else 0
-    n_vol_mm   = int(matched["ΔVolume"].ne(0).sum())   if n_matched else 0
-    n_ohlcv_mm = int((~matched["OHLCV_match"]).sum())  if n_matched else 0
-    pct_ohlc   = (1 - n_ohlc_mm  / n_matched) * 100   if n_matched else 0.0
-    pct_ohlcv  = (1 - n_ohlcv_mm / n_matched) * 100   if n_matched else 0.0
+    n_ohlc_mm  = int((~matched["OHLC_match"]).sum())  if n_matched else 0
+    n_vol_mm   = int(matched["ΔVolume"].ne(0).sum())  if n_matched else 0
+    pct_ohlc   = (1 - n_ohlc_mm / n_matched) * 100   if n_matched else 0.0
 
     # ── Summary strip ─────────────────────────────────────────────────────────
     st.subheader("Summary")
     m1, m2, m3, m4, m5 = st.columns(5)
-    m1.metric("Matched Bars",      f"{n_matched:,}")
-    m2.metric("SC Only",           f"{n_sc_only:,}")
-    m3.metric("NT Only",           f"{n_nt_only:,}")
-    m4.metric("OHLC Exact Match",  f"{pct_ohlc:.1f}%")
-    m5.metric("OHLCV Exact Match", f"{pct_ohlcv:.1f}%")
+    m1.metric("Matched Bars",     f"{n_matched:,}")
+    m2.metric("SC Only",          f"{n_sc_only:,}")
+    m3.metric("NT Only",          f"{n_nt_only:,}")
+    m4.metric("OHLC Exact Match", f"{pct_ohlc:.1f}%",
+              help="Bars where ALL four OHLC fields match simultaneously. "
+                   "Lower than per-field rates in the table below because one wrong field "
+                   "makes the whole bar a mismatch.")
+    m5.metric("OHLC Mismatches",  f"{n_ohlc_mm:,}")
 
-    m6, m7, m8, m9, _ = st.columns(5)
-    m6.metric("OHLC Mismatches",  f"{n_ohlc_mm:,}")
-    m7.metric("Vol Mismatches",   f"{n_vol_mm:,}")
-    m8.metric("OHLCV Mismatches", f"{n_ohlcv_mm:,}")
-    if exclude_holidays:
-        m9.metric("Holiday Bars Excluded", f"{n_holiday_bars:,}")
+    if not excl_volume:
+        mx1, mx2, mx3, mx4, mx5 = st.columns(5)
+        mx1.metric("Vol Mismatches", f"{n_vol_mm:,}")
+        if excl_holidays:
+            mx2.metric("Holiday Bars Excluded", f"{n_holiday_bars:,}")
+    elif excl_holidays:
+        mx1, _, _, _, _ = st.columns(5)
+        mx1.metric("Holiday Bars Excluded", f"{n_holiday_bars:,}")
 
-    _summary_commentary(n_matched, n_sc_only, n_nt_only, pct_ohlc, pct_ohlcv, n_ohlc_mm)
+    _summary_commentary(n_matched, n_sc_only, n_nt_only, pct_ohlc, pct_ohlc, n_ohlc_mm)
 
     # ── Field breakdown ────────────────────────────────────────────────────────
     st.subheader("Mismatch by Field")
     _info(
         "Each row shows how many bars matched exactly vs differed, and the range of the difference in ticks "
-        "(OHLC) or contracts (Volume). A tick on ES = 0.25 points = $12.50."
+        "(OHLC) or contracts (Volume). A tick on ES = 0.25 points = $12.50. "
+        "**Note:** the OHLC Exact Match % above is lower than all four individual field rates — "
+        "that is correct. The summary counts a bar as a mismatch if *any* of the four fields differ, "
+        "so it is always ≤ the lowest individual field rate."
     )
-    _show_field_table(matched)
+    _show_field_table(matched, excl_volume)
     _field_table_commentary(matched)
 
     # ── Unmatched bars ─────────────────────────────────────────────────────────
@@ -333,22 +361,23 @@ def show_validation_tab():
         "📊 Delta Distribution",
     ])
     with t1:
-        _show_mismatch_table(matched)
+        _show_mismatch_table(matched, excl_volume)
     with t2:
         _show_time_of_day(matched)
     with t3:
         _show_by_date(matched)
     with t4:
-        _show_delta_distribution(matched)
+        _show_delta_distribution(matched, excl_volume)
 
 
 # ── Sub-view functions ────────────────────────────────────────────────────────
 
-def _show_field_table(matched: pd.DataFrame):
+def _show_field_table(matched: pd.DataFrame, excl_volume: bool = False):
     if matched.empty:
         st.info("No matched bars in range.")
         return
 
+    n = len(matched)
     rows = []
     for col in PRICE_FIELDS:
         d     = matched[f"Δ{col}"].dropna()
@@ -356,27 +385,32 @@ def _show_field_table(matched: pd.DataFrame):
         rows.append({
             "Field":       col,
             "Unit":        "ticks",
-            "✓ Correct":  int(d.eq(0).sum()),
+            "Total":       n,
+            "✓ Exact":    int(d.eq(0).sum()),
             "✗ Mismatch": int(len(wrong)),
-            "Min Δ":      f"{wrong.min():.0f}"       if len(wrong) else "—",
-            "Max Δ":      f"{wrong.max():.0f}"       if len(wrong) else "—",
-            "Mean |Δ|":   f"{wrong.abs().mean():.2f}" if len(wrong) else "—",
+            "Match %":    f"{d.eq(0).sum() / n * 100:.2f}%" if n else "—",
+            "Min Δ":      f"{int(wrong.min()):+d}"          if len(wrong) else "—",
+            "Max Δ":      f"{int(wrong.max()):+d}"          if len(wrong) else "—",
+            "Mean |Δ|":   f"{wrong.abs().mean():.2f}"       if len(wrong) else "—",
         })
-    d     = matched["ΔVolume"].dropna()
-    wrong = d[d.ne(0)]
-    rows.append({
-        "Field":       "Volume",
-        "Unit":        "contracts",
-        "✓ Correct":  int(d.eq(0).sum()),
-        "✗ Mismatch": int(len(wrong)),
-        "Min Δ":      f"{wrong.min():.0f}"       if len(wrong) else "—",
-        "Max Δ":      f"{wrong.max():.0f}"       if len(wrong) else "—",
-        "Mean |Δ|":   f"{wrong.abs().mean():.0f}" if len(wrong) else "—",
-    })
+    if not excl_volume:
+        d     = matched["ΔVolume"].dropna()
+        wrong = d[d.ne(0)]
+        rows.append({
+            "Field":       "Volume",
+            "Unit":        "contracts",
+            "Total":       n,
+            "✓ Exact":    int(d.eq(0).sum()),
+            "✗ Mismatch": int(len(wrong)),
+            "Match %":    f"{d.eq(0).sum() / n * 100:.2f}%" if n else "—",
+            "Min Δ":      f"{int(wrong.min()):+,}"          if len(wrong) else "—",
+            "Max Δ":      f"{int(wrong.max()):+,}"          if len(wrong) else "—",
+            "Mean |Δ|":   f"{wrong.abs().mean():.0f}"       if len(wrong) else "—",
+        })
     st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
 
-def _show_mismatch_table(matched: pd.DataFrame):
+def _show_mismatch_table(matched: pd.DataFrame, excl_volume: bool = False):
     _info(
         "Every bar where at least one OHLC field differs between SC and NT. "
         "Δ is expressed in ticks (NT − SC). 🟠 = NT higher, 🔴 = NT lower. "
@@ -392,7 +426,8 @@ def _show_mismatch_table(matched: pd.DataFrame):
     display_cols = ["DateTime"]
     for c in PRICE_FIELDS:
         display_cols += [f"{c}_sc", f"{c}_nt", f"Δ{c}"]
-    display_cols += ["Volume_sc", "Volume_nt", "ΔVolume"]
+    if not excl_volume:
+        display_cols += ["Volume_sc", "Volume_nt", "ΔVolume"]
 
     display = subset[display_cols].copy()
     display["DateTime"] = display["DateTime"].dt.strftime("%Y-%m-%d %H:%M")
@@ -405,17 +440,18 @@ def _show_mismatch_table(matched: pd.DataFrame):
         except (TypeError, ValueError):
             return ""
 
-    price_fmt = {f"{c}_{s}": "{:.2f}" for c in PRICE_FIELDS for s in ("sc", "nt")}
-    delta_fmt = {f"Δ{c}": "{:+.0f}" for c in PRICE_FIELDS}
-    delta_cols = list(delta_fmt.keys()) + ["ΔVolume"]
+    price_fmt  = {f"{c}_{s}": "{:.2f}" for c in PRICE_FIELDS for s in ("sc", "nt")}
+    delta_fmt  = {f"Δ{c}": "{:+.0f}" for c in PRICE_FIELDS}
+    vol_fmt    = {"ΔVolume": "{:+.0f}", "Volume_sc": "{:.0f}", "Volume_nt": "{:.0f}"}
+    delta_cols = list(delta_fmt.keys()) + (["ΔVolume"] if not excl_volume else [])
 
-    styled = (
-        display.style
-        .map(_color_delta, subset=delta_cols)
-        .format(price_fmt | delta_fmt | {"ΔVolume": "{:+.0f}", "Volume_sc": "{:.0f}", "Volume_nt": "{:.0f}"})
-    )
+    fmt = price_fmt | delta_fmt | (vol_fmt if not excl_volume else {})
+    styled = display.style.map(_color_delta, subset=delta_cols).format(fmt)
     st.dataframe(styled, use_container_width=True, hide_index=True, height=420)
-    st.caption(f"Showing {len(subset):,} bars  |  Δ in ticks for OHLC  |  Δ in contracts for Volume")
+    caption = f"Showing {len(subset):,} bars  |  Δ in ticks for OHLC"
+    if not excl_volume:
+        caption += "  |  Δ in contracts for Volume"
+    st.caption(caption)
 
 
 def _show_time_of_day(matched: pd.DataFrame):
@@ -513,55 +549,18 @@ def _show_by_date(matched: pd.DataFrame):
             )
 
 
-def _show_delta_distribution(matched: pd.DataFrame):
+def _show_delta_distribution(matched: pd.DataFrame, excl_volume: bool = False):
     if matched.empty:
         st.info("No matched bars.")
         return
 
     _info(
-        "**Table 1** — match vs mismatch count and rate per field. "
-        "**Table 2** — for every delta value observed, how many bars had that exact difference. "
-        "Δ is in ticks for OHLC (1 tick = 0.25 pts), contracts for Volume."
+        "For every delta value observed, how many bars had that exact difference. "
+        "Δ is in ticks for OHLC (1 tick = 0.25 pts), contracts for Volume. "
+        "The field summary table at the top of this page has the match rates."
     )
 
-    n_total = len(matched)
-
-    # ── Table 1: match summary per field ──────────────────────────────────────
-    summary_rows = []
-    for col in PRICE_FIELDS:
-        d      = matched[f"Δ{col}"].dropna()
-        n_ok   = int(d.eq(0).sum())
-        n_mm   = int(d.ne(0).sum())
-        wrong  = d[d.ne(0)]
-        summary_rows.append({
-            "Field":        col,
-            "Total":        n_total,
-            "✓ Exact":     n_ok,
-            "✗ Mismatch":  n_mm,
-            "Match %":     f"{n_ok / n_total * 100:.2f}%" if n_total else "—",
-            "Min Δ":       f"{int(wrong.min()):+d}" if len(wrong) else "—",
-            "Max Δ":       f"{int(wrong.max()):+d}" if len(wrong) else "—",
-            "Mean |Δ|":    f"{wrong.abs().mean():.2f}" if len(wrong) else "—",
-        })
-    # Volume row
-    vol   = matched["ΔVolume"].dropna()
-    v_ok  = int(vol.eq(0).sum())
-    v_mm  = int(vol.ne(0).sum())
-    v_w   = vol[vol.ne(0)]
-    summary_rows.append({
-        "Field":       "Volume",
-        "Total":       n_total,
-        "✓ Exact":    v_ok,
-        "✗ Mismatch": v_mm,
-        "Match %":    f"{v_ok / n_total * 100:.2f}%" if n_total else "—",
-        "Min Δ":      f"{int(v_w.min()):+,}" if len(v_w) else "—",
-        "Max Δ":      f"{int(v_w.max()):+,}" if len(v_w) else "—",
-        "Mean |Δ|":   f"{v_w.abs().mean():.0f}" if len(v_w) else "—",
-    })
-    st.caption("Match summary per field")
-    st.dataframe(pd.DataFrame(summary_rows), use_container_width=True, hide_index=True)
-
-    # ── Table 2: delta value counts (OHLC) ────────────────────────────────────
+    # ── Delta value counts (OHLC) ──────────────────────────────────────────────
     field_vc: dict = {}
     all_deltas: set = set()
     for col in PRICE_FIELDS:
@@ -586,15 +585,23 @@ def _show_delta_distribution(matched: pd.DataFrame):
 
     _delta_distribution_commentary(matched)
 
-    # ── Table 3: volume delta value counts ────────────────────────────────────
-    if len(v_w) > 0:
-        vol_vc = v_w.value_counts().sort_index()
-        vol_tbl = pd.DataFrame({
-            "Δ Volume (contracts)": vol_vc.index.astype(int),
-            "Count": vol_vc.values,
-        })
-        st.caption(f"Volume delta distribution — {len(v_w):,} mismatched bars")
-        st.dataframe(vol_tbl, use_container_width=True, hide_index=True)
+    # ── Volume delta value counts ──────────────────────────────────────────────
+    if not excl_volume:
+        vol_nz = matched["ΔVolume"].dropna()
+        vol_nz = vol_nz[vol_nz.ne(0)]
+        if len(vol_nz) > 0:
+            vol_vc = vol_nz.value_counts().sort_index()
+            vol_tbl = pd.DataFrame({
+                "Δ Volume (contracts)": vol_vc.index.astype(int),
+                "Count": vol_vc.values,
+            })
+            st.caption(f"Volume delta distribution — {len(vol_nz):,} mismatched bars")
+            st.dataframe(vol_tbl, use_container_width=True, hide_index=True)
+            _info(
+                "Volume differences are expected and harmless for a price-based strategy. "
+                "SC sums raw tick-level volumes; NT records broker-feed volume (Rithmic/CQG). "
+                "The two feeds count trades at bar boundaries differently and may include/exclude spread legs."
+            )
         _info(
             "Volume differences are expected and harmless for a price-based strategy. "
             "SC sums raw tick-level volumes; NT records broker-feed volume (Rithmic/CQG). "
