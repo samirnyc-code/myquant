@@ -57,8 +57,12 @@ def build_comparison(sc: pd.DataFrame, nt: pd.DataFrame) -> pd.DataFrame:
 
 # ── Commentary helpers ────────────────────────────────────────────────────────
 
+KNOWN_HOLIDAYS = {
+    "2026-05-25": "Memorial Day (US) + Whit Monday (Germany) — both markets closed",
+}
+
 def _info(text: str):
-    st.markdown(f"> {text}")
+    st.info(text)
 
 
 def _summary_commentary(n_matched, n_sc_only, n_nt_only, pct_ohlc, pct_ohlcv, n_ohlc_mm):
@@ -88,9 +92,6 @@ def _summary_commentary(n_matched, n_sc_only, n_nt_only, pct_ohlc, pct_ohlcv, n_
 def _field_table_commentary(matched: pd.DataFrame):
     if matched.empty:
         return
-    open_wrong  = int((~matched["OHLC_match"]).sum() - matched["ΔOpen"].eq(0).sum() + matched["ΔOpen"].eq(0).sum() - matched["ΔOpen"].eq(0).sum())
-
-    # Simpler: compute each field's wrong count
     open_mm  = int(matched["ΔOpen"].ne(0).sum())
     high_mm  = int(matched["ΔHigh"].ne(0).sum())
     low_mm   = int(matched["ΔLow"].ne(0).sum())
@@ -232,6 +233,11 @@ def show_validation_tab():
     sc_f = sc[(sc_dates >= date_from) & (sc_dates <= date_to)]
     nt_f = nt[(nt_dates >= date_from) & (nt_dates <= date_to)]
 
+    # Cut NT at the last SC bar: SC was downloaded mid-session, NT after close.
+    # Any NT bars beyond the last SC timestamp are incomparable by definition.
+    last_sc_dt = sc_f["DateTime"].max()
+    nt_f = nt_f[nt_f["DateTime"] <= last_sc_dt].copy()
+
     comp    = build_comparison(sc_f, nt_f)
     matched = comp[comp["Status"] == "Matched"]
 
@@ -284,6 +290,15 @@ def show_validation_tab():
                 "Bars that exist in one source but not the other. Common causes: different session start/end handling, "
                 "one feed missing ticks on a particular day, or a rollover gap."
             )
+            # Flag known holidays present in unmatched bars
+            all_unmatched = comp[comp["Status"] != "Matched"]["DateTime"]
+            found_holidays = {
+                k: v for k, v in KNOWN_HOLIDAYS.items()
+                if (all_unmatched.dt.strftime("%Y-%m-%d") == k).any()
+            }
+            for date_str, reason in found_holidays.items():
+                st.warning(f"📅 **{date_str}** — {reason}. Bars on this date in either source are expected and can be ignored.")
+
             uc1, uc2 = st.columns(2)
             sc_only = comp[comp["Status"] == "SC only"][["DateTime","Open_sc","High_sc","Low_sc","Close_sc","Volume_sc"]].copy()
             nt_only = comp[comp["Status"] == "NT only"][["DateTime","Open_nt","High_nt","Low_nt","Close_nt","Volume_nt"]].copy()
