@@ -54,17 +54,19 @@ def load_sc_bars() -> pd.DataFrame:
 
 @st.cache_data(show_spinner="Loading NT bar data…")
 def load_nt_bars() -> pd.DataFrame:
-    df = pd.read_csv(
-        NT_FILE,
-        sep=";",
-        header=None,
-        names=["DateTime", "Open", "High", "Low", "Close", "Volume"],
-        dtype=str,  # read all as string — file has day-separator rows (---) that break dtype inference
-    )
-    # Drop NT day-separator rows (e.g. "-----...") — they don't start with a digit
-    df = df[df["DateTime"].str.match(r"\d{2}/\d{2}/\d{4}", na=False)].copy()
+    # Bypass pd.read_csv entirely — NT file contains day-separator rows
+    # ("-----...") that break pandas dtype inference regardless of dtype setting.
+    rows = []
+    with open(NT_FILE, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or not line[0].isdigit():
+                continue
+            parts = line.split(";")
+            if len(parts) == 6:
+                rows.append(parts)
 
-    # Convert numeric columns; Volume may still be empty on some bars
+    df = pd.DataFrame(rows, columns=["DateTime", "Open", "High", "Low", "Close", "Volume"])
     for col in ["Open", "High", "Low", "Close", "Volume"]:
         df[col] = pd.to_numeric(df[col], errors="coerce")
 
