@@ -2,3 +2,4 @@ streamlit>=1.35
 pandas>=2.0
 plotly>=5.20
 tzdata>=2023.3
+exchange-calendars>=4.0

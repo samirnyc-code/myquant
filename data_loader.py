@@ -1,6 +1,7 @@
 from pathlib import Path
 import pandas as pd
 import streamlit as st
+import exchange_calendars as xcals
 
 DATA_DIR  = Path(__file__).parent / "data" / "raw"
 SC_FILE   = DATA_DIR / "ESM6.CME_BarData.txt"
@@ -50,6 +51,15 @@ def load_sc_bars() -> pd.DataFrame:
         (bars.index.time <  pd.Timestamp(RTH_END).time())
     ]
     return bars.reset_index().rename(columns={"datetime": "DateTime"})
+
+
+@st.cache_data(show_spinner=False)
+def get_market_holidays(start: str, end: str) -> set:
+    """Return set of date strings ('YYYY-MM-DD') that are NYSE holidays.
+    Uses NYSE because ES futures RTH follows NYSE session conventions."""
+    nyse = xcals.get_calendar("XNYS")
+    dates = nyse.regular_holidays.holidays(start, end)
+    return set(dates.strftime("%Y-%m-%d"))
 
 
 @st.cache_data(show_spinner="Loading NT bar data…")

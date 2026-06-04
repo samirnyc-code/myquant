@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from data_loader import load_sc_bars, load_nt_bars, NT_FILE, TICK_SIZE
+from data_loader import load_sc_bars, load_nt_bars, get_market_holidays, NT_FILE, TICK_SIZE
 
 PRICE_FIELDS = ["Open", "High", "Low", "Close"]
 ALL_FIELDS   = ["Open", "High", "Low", "Close", "Volume"]
@@ -57,10 +57,6 @@ def build_comparison(sc: pd.DataFrame, nt: pd.DataFrame) -> pd.DataFrame:
 
 
 # ── Commentary helpers ────────────────────────────────────────────────────────
-
-KNOWN_HOLIDAYS = {
-    "2026-05-25": "Memorial Day (US) + Whit Monday (Germany) — both markets closed",
-}
 
 def _info(text: str):
     st.info(text)
@@ -227,19 +223,32 @@ def show_validation_tab():
     all_min     = min(sc_dates.min(), nt_dates.min())
     all_max     = max(sc_dates.max(), nt_dates.max())
 
-    c1, c2, _ = st.columns([1, 1, 2])
-    date_from = c1.date_input("From", value=overlap_min, min_value=all_min, max_value=all_max)
-    date_to   = c2.date_input("To",   value=overlap_max, min_value=all_min, max_value=all_max)
+    c1, c2, c3 = st.columns([1, 1, 2])
+    date_from      = c1.date_input("From", value=overlap_min, min_value=all_min, max_value=all_max)
+    date_to        = c2.date_input("To",   value=overlap_max, min_value=all_min, max_value=all_max)
+    exclude_holidays = c3.checkbox(
+        "Exclude NYSE market holidays",
+        value=True,
+        help="Uses the NYSE calendar (exchange-calendars). Removes days like Memorial Day where "
+             "there is no proper RTH session even though CME Globex may have thin trading."
+    )
 
     sc_f = sc[(sc_dates >= date_from) & (sc_dates <= date_to)]
     nt_f = nt[(nt_dates >= date_from) & (nt_dates <= date_to)]
 
     # Cut NT at the last SC bar: SC was downloaded mid-session, NT after close.
-    # Any NT bars beyond the last SC timestamp are incomparable by definition.
     last_sc_dt = sc_f["DateTime"].max()
     nt_f = nt_f[nt_f["DateTime"] <= last_sc_dt].copy()
 
     comp    = build_comparison(sc_f, nt_f)
+
+    # Holiday exclusion — applied after merge so unmatched holiday bars are visible
+    # when the checkbox is off, but excluded from all stats when on.
+    holidays = get_market_holidays(str(date_from), str(date_to))
+    n_holiday_bars = int((comp["DateTime"].dt.strftime("%Y-%m-%d").isin(holidays)).sum())
+    if exclude_holidays and holidays:
+        comp = comp[~comp["DateTime"].dt.strftime("%Y-%m-%d").isin(holidays)].copy()
+
     matched = comp[comp["Status"] == "Matched"]
 
     n_matched  = len(matched)
@@ -260,10 +269,12 @@ def show_validation_tab():
     m4.metric("OHLC Exact Match",  f"{pct_ohlc:.1f}%")
     m5.metric("OHLCV Exact Match", f"{pct_ohlcv:.1f}%")
 
-    m6, m7, m8, _, _ = st.columns(5)
+    m6, m7, m8, m9, _ = st.columns(5)
     m6.metric("OHLC Mismatches",  f"{n_ohlc_mm:,}")
     m7.metric("Vol Mismatches",   f"{n_vol_mm:,}")
     m8.metric("OHLCV Mismatches", f"{n_ohlcv_mm:,}")
+    if exclude_holidays:
+        m9.metric("Holiday Bars Excluded", f"{n_holiday_bars:,}")
 
     _summary_commentary(n_matched, n_sc_only, n_nt_only, pct_ohlc, pct_ohlcv, n_ohlc_mm)
 
@@ -291,14 +302,17 @@ def show_validation_tab():
                 "Bars that exist in one source but not the other. Common causes: different session start/end handling, "
                 "one feed missing ticks on a particular day, or a rollover gap."
             )
-            # Flag known holidays present in unmatched bars
-            all_unmatched = comp[comp["Status"] != "Matched"]["DateTime"]
-            found_holidays = {
-                k: v for k, v in KNOWN_HOLIDAYS.items()
-                if (all_unmatched.dt.strftime("%Y-%m-%d") == k).any()
-            }
-            for date_str, reason in found_holidays.items():
-                st.warning(f"📅 **{date_str}** — {reason}. Bars on this date in either source are expected and can be ignored.")
+            # Flag NYSE holidays still present (only visible when checkbox is off)
+            all_unmatched_dates = set(
+                comp[comp["Status"] != "Matched"]["DateTime"].dt.strftime("%Y-%m-%d")
+            )
+            holiday_dates_present = all_unmatched_dates & holidays
+            if holiday_dates_present:
+                st.warning(
+                    f"📅 NYSE holiday bars present in unmatched list: "
+                    f"{', '.join(sorted(holiday_dates_present))}. "
+                    f"Enable 'Exclude NYSE market holidays' above to remove them."
+                )
 
             uc1, uc2 = st.columns(2)
             sc_only = comp[comp["Status"] == "SC only"][["DateTime","Open_sc","High_sc","Low_sc","Close_sc","Volume_sc"]].copy()
