@@ -47,6 +47,15 @@ Two-tab app. Both tabs share cached data loaded by `data_loader.py`.
 | `app.py` | Entry point, tab layout, sidebar Reload Data button |
 | `data_loader.py` | Loads SC tick data + NT 5M bars, `get_market_holidays()` |
 | `validation.py` | All comparison logic and views for the Bar Validation tab |
+| `economic_calendar.py` | Economic event dates — FOMC hardcoded, NFP/CPI via FRED API |
+
+**economic_calendar.py — current state:**
+- FOMC dates hardcoded 2015–2026; 2026 confirmed from federalreserve.gov on 2026-06-04
+- NFP (release_id=50) and CPI (release_id=10) fetched from FRED API; requires `FRED_API_KEY` in `.streamlit/secrets.toml`
+- PPI was added then removed — not in scope
+- `_fetch_fred_dates` deduplicates: first release per calendar month only (FRED returns initial + revision dates)
+- `get_economic_events(event_types: tuple, start, end)` returns DataFrame with DateTime (CT, tz-naive), EventType, Color
+- Used by `validation.py` economic event filter expander
 
 **Tab 1 — Bar Viewer**
 - Date selector → 6 summary metrics → candlestick chart → 5-min bar table

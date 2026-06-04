@@ -280,15 +280,13 @@ def show_validation_tab():
                 "`.streamlit/secrets.toml`: `FRED_API_KEY = 'your_key'`  "
                 "([Register free at fred.stlouisfed.org](https://fred.stlouisfed.org/docs/api/api_key.html))"
             )
-        ea, eb, ec, ed = st.columns(4)
+        ea, eb, ec = st.columns(3)
         use_fomc = ea.checkbox("FOMC",  value=False)
         use_nfp  = eb.checkbox("NFP",   value=False, disabled=not fred_key_configured())
         use_cpi  = ec.checkbox("CPI",   value=False, disabled=not fred_key_configured())
-        use_ppi  = ed.checkbox("PPI",   value=False, disabled=not fred_key_configured())
 
         event_types = tuple(
-            e for e, on in [("FOMC", use_fomc), ("NFP", use_nfp),
-                            ("CPI", use_cpi),  ("PPI", use_ppi)] if on
+            e for e, on in [("FOMC", use_fomc), ("NFP", use_nfp), ("CPI", use_cpi)] if on
         )
 
         ef1, ef2 = st.columns([1, 2])

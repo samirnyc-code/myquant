@@ -89,9 +89,12 @@ These are not build phases — they are analytical obligations that run as Track
 
 ## Active — June 4, 2026
 
-- [x] Bar Validation module built and working (see below)
+- [x] Bar Validation module built and working
 - [x] NYSE holiday exclusion via exchange-calendars
 - [x] Filter toggles: first bar, last 45 min, ignore volume
+- [x] Economic event filter: FOMC/NFP/CPI — Skip full day or Window ±N min
+- [x] By Date chart: colored dashed vertical lines per event type
+- [x] FRED API wired (NFP/CPI release dates); FOMC hardcoded 2015–2026 confirmed
 - [ ] Share app + data files with Thomas: upload both data files to Google Drive, run ngrok
 - [ ] Add volume subplot to Bar Viewer candlestick chart
 - [ ] Investigate whether more historical SC tick data exists (only 65 calendar days in current file)
@@ -102,5 +105,4 @@ These are not build phases — they are analytical obligations that run as Track
 
 | Feature | Notes |
 |---------|-------|
-| **Economic calendar overlay** | Flag FOMC, NFP, CPI, PPI dates on the By Date and Time-of-Day charts. Hypothesis: mismatch rate spikes on high-impact news days because fast price movement amplifies feed-latency boundary differences. First pass: hardcode Apr–Jun 2026 dates. Second pass: FRED or Trading Economics API. |
 | **AI commentary (Claude API)** | Call Anthropic API to generate plain-English interpretation based on comparison stats. Cache result. Requires API key in env. ~2s latency on first load. |

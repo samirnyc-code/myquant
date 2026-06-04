@@ -220,3 +220,55 @@ validation.py
     └── Delta Distribution tab (value counts tables)
 ```
 
+---
+
+## Tag 5 — June 4, 2026
+### Economic Event Filter — FRED API, FOMC Hardcoding, PPI Decision
+
+#### What we built
+An economic event filter inside the Bar Validation tab. Allows excluding bars near FOMC, NFP, and CPI announcements to test whether mismatch rates are driven by high-impact news events (hypothesis: fast price movement amplifies feed-latency boundary differences).
+
+Two filter modes:
+- **Skip full day** — removes all RTH bars on event dates. Most useful for NFP/CPI since they release at 7:30 CT, before RTH opens.
+- **Window ±N minutes** — removes bars within N minutes of the announcement time. Useful for FOMC (1:00 PM CT, inside RTH). A window under 60 min has no effect on RTH bars for NFP/CPI since those release 60+ min before the open.
+
+#### FOMC — hardcoded, not API
+FOMC dates are hardcoded 2015–2026. Reason: there is no reliable free API for FOMC dates. The Fed publishes them on federalreserve.gov annually. 2026 dates were confirmed by fetching the page directly on 2026-06-04.
+
+The emergency cuts in 2020 (Mar 3 and Mar 15) are included alongside the scheduled meetings.
+
+#### FRED API — NFP and CPI
+FRED (Federal Reserve Economic Data) provides a free REST API with no rate limit for low-volume use. Release dates for any economic series can be fetched by release ID.
+
+| Event | Release ID | Series |
+|-------|-----------|--------|
+| NFP | 50 | Employment Situation (BLS) |
+| CPI | 10 | Consumer Price Index (BLS) |
+
+Key detail: FRED returns **multiple dates per month** for some releases — the initial release date plus revision dates. Only the **first date per calendar month** is the market-moving event. Fix: deduplicate by `YYYY-MM`, keeping earliest.
+
+```python
+seen = set()
+result = []
+for d in raw_dates:
+    ym = d[:7]          # "YYYY-MM"
+    if ym not in seen:
+        seen.add(ym)
+        result.append(d)
+```
+
+#### PPI — added then removed
+PPI was initially included (release_id=31). Removed because it is not in scope for the current analysis — the hypothesis is about high-impact events that move ES significantly, and PPI is secondary to NFP/CPI. Keeping the scope tight.
+
+#### By Date chart — event lines
+The By Date bar chart received colored dashed vertical lines marking event dates, with a legend. Color coding: FOMC orange (`#ff6b35`), NFP teal (`#4ecdc4`), CPI blue (`#45b7d1`).
+
+#### Concepts learned
+
+| Concept | What it is |
+|---------|------------|
+| **FRED API** | Free REST API from the St. Louis Fed. No rate limit for low-volume use. Register at fred.stlouisfed.org for a free key. Endpoint: `/fred/release/dates?release_id=N`. |
+| **FRED revision dates** | FRED stores every release date including data revisions, not just the initial publication. Always deduplicate to first-per-month when you want the market event date. |
+| **`st.secrets`** | Streamlit's built-in secrets manager. Reads `.streamlit/secrets.toml` (gitignored). Access via `st.secrets.get("KEY")`. Safe pattern for API keys in Streamlit apps. |
+| **Graceful degradation** | FRED-dependent checkboxes are `disabled=True` when no API key is configured. App stays functional — FOMC works without a key. |
+

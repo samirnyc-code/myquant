@@ -5,7 +5,8 @@ import requests
 # ── FOMC announcement dates (2:00 PM ET = 1:00 PM CT) ────────────────────────
 # Source: federalreserve.gov/monetarypolicy/fomccalendars.htm
 # These are the second day of each meeting — when the decision is announced.
-# Verified: 2015–2025. 2026: cross-check at federalreserve.gov before relying on these.
+# Verified through 2025 from the Fed's official calendar.
+# 2026: confirmed by fetching federalreserve.gov directly on 2026-06-04.
 
 _FOMC_DATES = [
     # 2015
@@ -41,39 +42,38 @@ _FOMC_DATES = [
     # 2025
     "2025-01-29","2025-03-19","2025-05-07","2025-06-18",
     "2025-07-30","2025-09-17","2025-10-29","2025-12-17",
-    # 2026 — verify at federalreserve.gov before use
+    # 2026 — confirmed from federalreserve.gov on 2026-06-04
     "2026-01-28","2026-03-18","2026-04-29","2026-06-17",
     "2026-07-29","2026-09-16","2026-10-28","2026-12-09",
 ]
 
 # ── Release times in CT ───────────────────────────────────────────────────────
-# These times are institutionally fixed and have not changed in decades.
-# NFP / CPI / PPI: 8:30 AM ET = 7:30 AM CT — released BEFORE RTH opens.
-#   → "Skip full day" is the meaningful filter for these.
-#   → "Window ±N min" only affects RTH bars if N > 60 (to reach the 8:30 CT open bar).
+# Institutionally fixed. CT is always 1 hour behind ET (both shift for DST).
+# NFP / CPI: 8:30 AM ET = 7:30 AM CT — released BEFORE RTH opens (8:30 CT).
+#   "Skip full day" is the most meaningful filter for these.
+#   "Window ±N min" only starts affecting RTH bars when N > 60.
 # FOMC: 2:00 PM ET = 1:00 PM CT — released DURING RTH.
-#   → Both "Skip full day" and "Window" are meaningful.
+#   Both filter modes are meaningful.
 
 EVENT_TIME_CT = {
     "FOMC": "13:00",
     "NFP":  "07:30",
     "CPI":  "07:30",
-    "PPI":  "07:30",
 }
 
 EVENT_COLOR = {
     "FOMC": "#ff6b35",
     "NFP":  "#4ecdc4",
     "CPI":  "#45b7d1",
-    "PPI":  "#96ceb4",
 }
 
-# ── FRED release IDs ──────────────────────────────────────────────────────────
-# Verify at: https://api.stlouisfed.org/fred/releases?api_key=YOUR_KEY&file_type=json
+# ── FRED release IDs (verified by calling FRED API) ───────────────────────────
+# release_id=50 → "Employment Situation" (NFP)
+# release_id=10 → "Consumer Price Index"  (CPI)
+
 _FRED_RELEASE_IDS = {
-    "NFP": 50,   # Employment Situation (BLS)
-    "CPI": 10,   # Consumer Price Index (BLS)
-    "PPI": 31,   # Producer Price Index (BLS)
+    "NFP": 50,
+    "CPI": 10,
 }
 
 
@@ -90,37 +90,53 @@ def fred_key_configured() -> bool:
     return _fred_key() is not None
 
 
-# ── Data fetching ─────────────────────────────────────────────────────────────
+# ── FRED fetch ────────────────────────────────────────────────────────────────
 
 @st.cache_data(show_spinner=False, ttl=86_400)
 def _fetch_fred_dates(release_id: int, start: str, end: str, api_key: str) -> list[str]:
-    """Call FRED release/dates endpoint. Returns list of 'YYYY-MM-DD' strings."""
+    """
+    Fetch all release dates for a FRED release ID.
+    FRED sometimes returns multiple dates per month (initial + revision).
+    We return the FIRST date per calendar month only — that is the market-moving event.
+    """
     try:
         resp = requests.get(
             "https://api.stlouisfed.org/fred/release/dates",
             params={
-                "release_id":      release_id,
-                "realtime_start":  start,
-                "realtime_end":    end,
-                "api_key":         api_key,
-                "file_type":       "json",
-                "sort_order":      "asc",
-                "limit":           1000,
+                "release_id":     release_id,
+                "realtime_start": start,
+                "realtime_end":   end,
+                "api_key":        api_key,
+                "file_type":      "json",
+                "sort_order":     "asc",
+                "limit":          1000,
             },
             timeout=10,
         )
         resp.raise_for_status()
-        return [d["date"] for d in resp.json().get("release_dates", [])]
+        raw_dates = [d["date"] for d in resp.json().get("release_dates", [])]
     except Exception:
         return []
 
+    # Deduplicate: keep only the first release per month
+    seen: set = set()
+    result: list[str] = []
+    for d in raw_dates:
+        ym = d[:7]  # "YYYY-MM"
+        if ym not in seen:
+            seen.add(ym)
+            result.append(d)
+    return result
+
+
+# ── Main public function ──────────────────────────────────────────────────────
 
 @st.cache_data(show_spinner=False)
 def get_economic_events(event_types: tuple, start: str, end: str) -> pd.DataFrame:
     """
-    Returns DataFrame with columns: DateTime (CT, tz-naive), EventType, Color.
+    Returns DataFrame: DateTime (CT, tz-naive), EventType, Color.
     DateTime is the exact announcement moment in CT.
-    event_types must be a tuple (not list) for st.cache_data compatibility.
+    event_types must be a tuple for st.cache_data compatibility.
     """
     key  = _fred_key()
     rows = []
@@ -129,6 +145,7 @@ def get_economic_events(event_types: tuple, start: str, end: str) -> pd.DataFram
 
     for etype in event_types:
         time_ct = EVENT_TIME_CT[etype]
+
         if etype == "FOMC":
             dates = _FOMC_DATES
         elif key:
