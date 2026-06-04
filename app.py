@@ -102,6 +102,12 @@ def main():
     st.title("ESM6 CME Futures — 5-Minute RTH Bars")
     st.caption("Regular Trading Hours 08:30 – 15:15 CT  |  5-minute bars  |  All times Central")
 
+    with st.sidebar:
+        st.markdown("---")
+        if st.button("🔄 Reload Data", help="Clears all cached data and reloads from disk. Use after updating data files."):
+            st.cache_data.clear()
+            st.rerun()
+
     if not SC_FILE.exists():
         st.error(f"SC data file not found: `{SC_FILE}`")
         st.stop()
