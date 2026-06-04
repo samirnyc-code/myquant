@@ -59,8 +59,15 @@ def load_nt_bars() -> pd.DataFrame:
         sep=";",
         header=None,
         names=["DateTime", "Open", "High", "Low", "Close", "Volume"],
-        dtype={"Open": float, "High": float, "Low": float, "Close": float, "Volume": float},
+        dtype=str,  # read all as string — file has day-separator rows (---) that break dtype inference
     )
+    # Drop NT day-separator rows (e.g. "-----...") — they don't start with a digit
+    df = df[df["DateTime"].str.match(r"\d{2}/\d{2}/\d{4}", na=False)].copy()
+
+    # Convert numeric columns; Volume may still be empty on some bars
+    for col in ["Open", "High", "Low", "Close", "Volume"]:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+
     # Berlin close times → Chicago open times
     # CEST (UTC+2) → CDT (UTC-5) = −7 h, then −5 min close→open
     df["DateTime"] = (
@@ -70,7 +77,6 @@ def load_nt_bars() -> pd.DataFrame:
         .dt.tz_localize(None)
         - pd.Timedelta(minutes=5)
     )
-    df = df.dropna(subset=["Open"])  # rows with no price are unusable
     df["NullVol"] = df["Volume"].isna()
     df["Volume"]  = df["Volume"].fillna(0)
     t = df["DateTime"].dt.time
