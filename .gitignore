@@ -1,9 +1,9 @@
 .DS_Store
-data/raw/ESM6.CME_BarData.txt
-data/raw/NinjaScript Output*.txt
+data/raw/
 .venv/
 .streamlit/secrets.toml
 __pycache__/
 *.pyc
 *.pyo
 filter_defaults.json
+ba_filter_defaults.json
