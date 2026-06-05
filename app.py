@@ -1,11 +1,12 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
-from data_loader import load_sc_bars, SC_FILE
+from data_loader import load_sc_bars, CONTRACTS, bar_num_from_dt
 import validation
+import bar_analysis
 
 st.set_page_config(
-    page_title="ESM6 5-Min RTH Bars",
+    page_title="ES Futures — 5-Min RTH Bars",
     page_icon="📈",
     layout="wide",
 )
@@ -22,7 +23,8 @@ st.markdown("""
 
 def make_candlestick(df: pd.DataFrame, date_str: str,
                      show_bar_nums: bool = False,
-                     excl_first_n: int = 0, excl_last_min: int = 0) -> go.Figure:
+                     excl_first_n: int = 0, excl_last_min: int = 0,
+                     contract: str = "ES") -> go.Figure:
     fig = go.Figure(
         go.Candlestick(
             x=df["DateTime"],
@@ -30,13 +32,13 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
             high=df["High"],
             low=df["Low"],
             close=df["Close"],
-            name="ESM6",
+            name=contract,
             increasing_line_color="#26a69a",
             decreasing_line_color="#ef5350",
         )
     )
     fig.update_layout(
-        title=f"ESM6 — 5-Min RTH Bars  ({date_str})",
+        title=f"{contract} — 5-Min RTH Bars  ({date_str})",
         xaxis_title="Time (CT)",
         yaxis_title="Price",
         xaxis_rangeslider_visible=False,
@@ -65,7 +67,7 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
                 x=df.iloc[i]["DateTime"], xref="x",
                 y=df.iloc[i]["Low"], yref="y",
                 yshift=-6,
-                text=str(i + 1),
+                text=str(bar_num_from_dt(df.iloc[i]["DateTime"])),
                 showarrow=False,
                 font=dict(size=12),
                 xanchor="center",
@@ -76,8 +78,8 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
 
 # ── Bar Viewer tab ────────────────────────────────────────────────────────────
 
-def show_bar_viewer():
-    bars = load_sc_bars()
+def show_bar_viewer(sc_file: str = "", contract: str = "ES"):
+    bars = load_sc_bars(sc_file) if sc_file else load_sc_bars()
     bars["Date"] = bars["DateTime"].dt.date
     dates = sorted(bars["Date"].unique())
 
@@ -119,6 +121,11 @@ def show_bar_viewer():
     m5.metric("Change",       f"{chg:+.2f}", f"{chg_pct:+.2f}%")
     m6.metric("Total Volume", f"{day_vol:,.0f}")
 
+    if len(day) < 81:
+        first_bar_time = day.iloc[0]["DateTime"].strftime("%H:%M")
+        st.warning(f"Incomplete data: {len(day)} bars, starts at {first_bar_time} (not 08:30). "
+                   "Bar numbers are correct — they reflect position from 08:30.")
+
     show_bar_nums = st.checkbox("Show bar numbers", value=False,
                                 help="Labels every 3rd bar (1, 4, 7…) below the x-axis.")
     excl_first_n  = st.session_state.get("excl_first_n",  0)
@@ -126,7 +133,8 @@ def show_bar_viewer():
     st.plotly_chart(
         make_candlestick(day, selected_date.strftime("%B %d, %Y"),
                          show_bar_nums=show_bar_nums,
-                         excl_first_n=excl_first_n, excl_last_min=excl_last_min),
+                         excl_first_n=excl_first_n, excl_last_min=excl_last_min,
+                         contract=contract),
         use_container_width=True,
     )
 
@@ -149,24 +157,42 @@ def show_bar_viewer():
 # ── App entry point ───────────────────────────────────────────────────────────
 
 def main():
-    st.title("ESM6 CME Futures — 5-Minute RTH Bars")
-    cap_col, reload_col = st.columns([9, 1])
-    cap_col.caption("Regular Trading Hours 08:30 – 15:15 CT  |  5-minute bars  |  All times Central")
+    st.title("ES Futures — 5-Minute RTH Bars")
+
+    hdr_l, hdr_r = st.columns([8, 2])
+    hdr_l.caption("Regular Trading Hours 08:30 – 15:15 CT  |  5-minute bars  |  All times Central")
+
+    from pathlib import Path
+    contract_keys = [k for k, v in CONTRACTS.items() if Path(v["sc_file"]).exists()]
+    if not contract_keys:
+        st.error("No SC data files found in data/raw/. Add at least one contract file.")
+        st.stop()
+
+    selected_key = hdr_r.selectbox(
+        "Contract", contract_keys,
+        index=0, key="active_contract", label_visibility="collapsed",
+    )
+
+    sc_file = str(CONTRACTS[selected_key]["sc_file"])
+    nt_file = str(CONTRACTS[selected_key]["nt_file"])
+
+    reload_col = st.columns([11, 1])[1]
     if reload_col.button("🔄 Reload", help="Clears all cached data and reloads from disk."):
         st.cache_data.clear()
         st.rerun()
 
-    if not SC_FILE.exists():
-        st.error(f"SC data file not found: `{SC_FILE}`")
-        st.stop()
+    tab1, tab2, tab3 = st.tabs(["📊 Bar Viewer", "🔍 Bar Validation", "📈 Bar Analysis"])
 
-    tab1, tab2 = st.tabs(["📊 Bar Viewer", "🔍 Bar Validation"])
+    contract_label = selected_key.split(" — ")[0]   # "ESM6", "ESH21", etc.
 
     with tab1:
-        show_bar_viewer()
+        show_bar_viewer(sc_file, contract=contract_label)
 
     with tab2:
-        validation.show_validation_tab()
+        validation.show_validation_tab(sc_file=sc_file, nt_file=nt_file)
+
+    with tab3:
+        bar_analysis.show_bar_analysis(sc_file=sc_file, contract=contract_label)
 
 
 main()

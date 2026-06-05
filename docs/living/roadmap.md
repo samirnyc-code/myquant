@@ -87,7 +87,7 @@ These are not build phases — they are analytical obligations that run as Track
 
 ---
 
-## Active — June 4, 2026
+## Active — June 5, 2026
 
 - [x] Bar Validation module built and working
 - [x] NYSE holiday exclusion via exchange-calendars
@@ -101,9 +101,14 @@ These are not build phases — they are analytical obligations that run as Track
 - [x] Bar Viewer: ‹/› prev/next navigation, bar numbers on candlestick, collapsible bar table
 - [x] Candlestick shading synced from Bar Validation session boundary filters
 - [x] Summary strip: Trading Days added, rows reorganised
+- [x] **Bar Analysis tab** — full signal simulation engine, per-day charts, signal table, optimal R sweep
+- [x] **Contract selector** — multi-contract registry in data_loader.py; selector auto-hides missing files
+- [x] Bar numbers derived from time (not index) — correct on incomplete days
+- [x] Incomplete-day warning banner (< 81 bars)
+- [ ] Add ESH21 2021 tick data file when clean data available
+- [ ] Add ESM1 2021 and ESH2/ESM2 2022 contracts to registry when files ready
 - [ ] Share app + data files with Thomas: upload both data files to Google Drive, run ngrok
 - [ ] Add volume subplot to Bar Viewer candlestick chart
-- [ ] Investigate whether more historical SC tick data exists (only 65 calendar days in current file)
 
 ---
 

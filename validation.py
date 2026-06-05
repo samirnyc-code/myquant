@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 from pathlib import Path
-from data_loader import load_sc_bars, load_nt_bars, get_market_holidays, NT_FILE, TICK_SIZE
+from data_loader import load_sc_bars, load_nt_bars, get_market_holidays, TICK_SIZE
 from economic_calendar import get_economic_events, fred_key_configured, EVENT_COLOR
 
 _DEFAULTS_FILE = Path(__file__).parent / "filter_defaults.json"
@@ -224,13 +224,15 @@ def _delta_distribution_commentary(matched: pd.DataFrame):
 
 # ── Tab entry point ───────────────────────────────────────────────────────────
 
-def show_validation_tab():
-    if not NT_FILE.exists():
-        st.error(f"NT data file not found:\n`{NT_FILE}`")
+def show_validation_tab(sc_file: str = "", nt_file: str = ""):
+    from pathlib import Path
+    nt_path = Path(nt_file) if nt_file else None
+    if nt_path and not nt_path.exists():
+        st.error(f"NT data file not found:\n`{nt_file}`")
         return
 
-    sc = load_sc_bars()
-    nt = load_nt_bars()
+    sc = load_sc_bars(sc_file) if sc_file else load_sc_bars()
+    nt = load_nt_bars(nt_file) if nt_file else load_nt_bars()
 
     sc_dates = sc["DateTime"].dt.date
     nt_dates = nt["DateTime"].dt.date

@@ -1,6 +1,6 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** June 4, 2026 (evening)  
+**Last Updated:** June 5, 2026  
 **Current Versions:** SIM_v3.3 / GS_v4.5 / SHEET_v3.3  
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 
@@ -38,52 +38,58 @@ Nothing in Phase C or beyond starts until all gates above pass.
 
 ---
 
-## Streamlit App (June 3–4, 2026)
+## Streamlit App (June 5, 2026)
 
-Two-tab app. Both tabs share cached data loaded by `data_loader.py`.
+Three-tab app with contract selector. All tabs share cached data loaded by `data_loader.py`.
 
 | File | Purpose |
 |------|---------|
-| `app.py` | Entry point, tab layout, Reload button in header row |
-| `data_loader.py` | Loads SC tick data + NT 5M bars, `get_market_holidays()` |
-| `validation.py` | All comparison logic and views for the Bar Validation tab |
-| `economic_calendar.py` | Economic event dates — FOMC hardcoded, NFP/CPI via FRED API |
-| `filter_defaults.json` | Persisted filter defaults (Save as Default button) — not in git |
+| `app.py` | Entry point, contract selector, tab layout, Reload button |
+| `data_loader.py` | Contract registry; parameterised loaders for SC bars, SC ticks, NT bars; `bar_num_from_dt()` |
+| `validation.py` | Bar Validation tab — SC vs NT comparison |
+| `bar_analysis.py` | Bar Analysis tab — signal sim, charts, R sweep |
+| `economic_calendar.py` | FOMC hardcoded 2015–2026; NFP/CPI via FRED API |
+| `filter_defaults.json` | Bar Validation persisted defaults — not in git |
+| `ba_filter_defaults.json` | Bar Analysis persisted defaults — not in git |
+
+**Contract registry (`data_loader.py` → `CONTRACTS` dict):**
+- `"ESM6 — 2026"` → `ESM6.CME_BarData.txt` / `NinjaScript Output 03_06_2026 23_08.txt`
+- `"ESH21 — 2021"` → `ESH21-CME.txt` / `NinjaScript Output 2021.txt` *(file not yet on disk)*
+- Add new contracts by adding an entry to `CONTRACTS` — no other code changes needed
+- Contract selector only shows contracts whose SC file exists on disk
 
 **economic_calendar.py — current state:**
 - FOMC dates hardcoded 2015–2026; 2026 confirmed from federalreserve.gov on 2026-06-04
 - NFP (release_id=50) and CPI (release_id=10) fetched from FRED API; requires `FRED_API_KEY` in `.streamlit/secrets.toml`
-- PPI was added then removed — not in scope
-- `_fetch_fred_dates` deduplicates: first release per calendar month only (FRED returns initial + revision dates)
 - `get_economic_events(event_types: tuple, start, end)` returns DataFrame with DateTime (CT, tz-naive), EventType, Color
-- Used by `validation.py` economic event filter expander
 
 **Tab 1 — Bar Viewer**
 - ‹/› prev/next buttons + date dropdown → 6 summary metrics → candlestick → collapsible 5-min bar table
-- "Show bar numbers" toggle: labels bars 1, 4, 7… (every 3rd, always labels last bar) at bar lows
-- Candlestick shading: grey vrects for excluded session zones — reads `excl_first_n`/`excl_last_min` from session state set by Bar Validation tab
+- Bar numbers derived from `bar_num_from_dt(DateTime)` — correct even when bars are missing
+- Incomplete days (< 81 bars) show a warning banner with first-bar time
+- Candlestick shading: grey vrects for excluded session zones
 
 **Tab 2 — Bar Validation**
-- Compares SC-built bars vs NT pre-built bars (`NinjaScript Output 03_06_2026 23_08.txt`, not in git)
+- Compares SC-built bars vs NT pre-built bars for selected contract
 - NT timestamps converted Berlin CEST → CT, close→open (−7h −5min)
-- **Single ⚙️ Filters expander** containing all controls:
-  - Exclude NYSE holidays + Show commentary toggles (top row)
-  - Display: ignore volume, shade excluded zones
-  - Session Boundaries: first N bars slider (0–12), last N min slider (0–90)
-  - Day of Week: Mon–Fri include checkboxes
-  - Economic Events: FOMC/NFP/CPI, Skip full day or Window ±N min
-  - Save as Default button → writes `filter_defaults.json`, restored on next load
-- Summary row 1: Matched Bars / Trading Days / OHLC Exact Match % / Holiday Bars Excl. / Event Bars Excl.
-- Summary row 2: SC Only / NT Only / Vol Mismatches / Open Bars Excl. / Close Bars Excl. / DOW Bars Excl.
-- Charts always show full post-holiday dataset; excluded zones shaded with grey overlay (overlay bar trace approach — `add_vrect` unreliable on categorical axes)
-- Commentary toggle: hides all `_info()` and commentary blocks when off
-- Known findings: Open has most mismatches (boundary noise), H/L nearly perfect, volume expected to differ
+- Filters: NYSE holidays, DOW, session boundaries, economic events, Save as Default
 
-**Data files — share via Google Drive with Thomas:**
-- `data/raw/ESM6.CME_BarData.txt` (~3GB)
-- `data/raw/NinjaScript Output 03_06_2026 23_08.txt`
+**Tab 3 — Bar Analysis**
+- Upload MC signals file (space-delimited: `Num Type Dir DD/MM/YYYY HH:MM:SS BarNum Price Stop`)
+- Same filters as Bar Validation plus: CC3/CC4 type filter, first-trade-of-day toggle
+- Trading params: instrument (ES/MES), contracts, entry/exit slippage (ticks), stop offset, target R, commission
+- Entry sim: stop-order fill logic, first tick AFTER signal bar close must tick through signal price, slippage applied post-fill
+- Signal table: SE Price / Fill Price / Entry Price (w/slip) columns; MAE/MFE in pts and R; cumulative PF; Exit Type (Target/Stop/EOD)
+- Summary strip: 3 rows × 6 metrics including MAE R / MFE R
+- Per-day chart: candlestick + signal markers + stop/target/BE lines + PnL annotations
+- Optimal R sweep (0.50–5.00, 0.25 steps): table with gold bold highlights on best per metric + line chart
+- ‹/› nav fixed (no key on selectbox); contract switch resets date/chart state automatically
 
-**To share app with Thomas:** `ngrok http 8501` → send URL
+**Data files (not in git — keep in `data/raw/`):**
+- `ESM6.CME_BarData.txt` (~3GB SC ticks, 2026)
+- `NinjaScript Output 03_06_2026 23_08.txt` (NT 5M bars, 2026)
+- `NinjaScript Output 2021.txt` (NT 5M bars, 2021 — needed for ESH21 contract)
+- `NinjaScript Signals 2021.txt` (MC signals 2021 — upload via Bar Analysis file uploader)
 
 **Run:** `pkill -f "streamlit run"` then `.venv/bin/streamlit run app.py`
 
