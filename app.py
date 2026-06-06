@@ -82,8 +82,19 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
 # ── Bar Viewer tab ────────────────────────────────────────────────────────────
 
 def show_bar_viewer(sc_file: str = "", contract: str = "ES"):
-    uploaded = st.session_state.get("uploaded_sc_bars")
-    bars = uploaded if uploaded is not None else (load_sc_bars(sc_file) if sc_file else load_sc_bars())
+    bar_source    = st.session_state.get("bar_source", "sc_disk")
+    uploaded_sc   = st.session_state.get("uploaded_sc_bars")
+    uploaded_ohlc = st.session_state.get("uploaded_ohlc_bars")
+
+    if bar_source == "sc_upload" and uploaded_sc is not None:
+        bars = uploaded_sc
+    elif bar_source == "ohlc_upload" and uploaded_ohlc is not None:
+        bars = uploaded_ohlc
+    elif sc_file:
+        bars = load_sc_bars(sc_file)
+    else:
+        bars = load_sc_bars()
+
     bars["Date"] = bars["DateTime"].dt.date
     dates = sorted(bars["Date"].unique())
 
@@ -185,69 +196,13 @@ def main():
     if reload_col.button("🔄 Reload", help="Clears all cached data and reloads from disk."):
         st.cache_data.clear()
         for k in ("uploaded_sc_bars", "uploaded_sc_ticks", "uploaded_ohlc_bars",
-                  "uploaded_sc_key", "uploaded_ohlc_key"):
+                  "uploaded_sc_key", "uploaded_ohlc_key", "ba_signals", "ba_signals_key"):
             st.session_state.pop(k, None)
         st.rerun()
 
-    # ── Upload expander ───────────────────────────────────────────────────────
-    with st.expander("📁 Upload Data", expanded=False):
-        up_l, up_r = st.columns(2)
-        tick_file = up_l.file_uploader(
-            "Tick Data (.txt)", type=["txt", "csv"], key="upload_tick",
-            help="SC BarData (Date,Time,…,Last,Volume) or NT8 tick export (YYYYMMDD HHMMSS SUBSEC;Price;Bid;Ask;Vol) — auto-detected",
-        )
-        ohlc_file = up_r.file_uploader(
-            "OHLC 5M bar_export (.txt/.csv)", type=["txt", "csv"], key="upload_ohlc",
-            help="MM/DD/YYYY HH:MM:SS;O;H;L;C;V — Berlin close times, used in Bar Validation",
-        )
-
-        # Parse tick upload once per unique file (name + size as cache key)
-        if tick_file is not None:
-            tick_key = f"{tick_file.name}_{tick_file.size}"
-            if st.session_state.get("uploaded_sc_key") != tick_key:
-                # Auto-detect format from first line
-                tick_file.seek(0)
-                peek = tick_file.read(200)
-                if isinstance(peek, bytes):
-                    peek = peek.decode("utf-8", errors="replace")
-                first_line = peek.split("\n")[0].strip()
-                tick_file.seek(0)
-                is_nt = bool(re.match(r"^\d{8} \d{6} \d+;", first_line))
-                fmt_label = "NT8" if is_nt else "SC"
-
-                st.caption(f"Parsing {fmt_label} tick file ({tick_file.size / 1e6:.0f} MB) — large files take 1–2 min…")
-                pbar = st.progress(0)
-                if is_nt:
-                    ticks = parse_nt_ticks_from_upload(tick_file, progress=pbar.progress)
-                else:
-                    ticks = parse_sc_ticks_from_upload(tick_file)
-                pbar.progress(1.0)
-                st.session_state["uploaded_sc_ticks"] = ticks
-                st.session_state["uploaded_sc_bars"]  = resample_ticks_to_bars(ticks)
-                st.session_state["uploaded_sc_key"] = tick_key
-            n_days = st.session_state["uploaded_sc_bars"]["DateTime"].dt.date.nunique()
-            fmt = "NT8" if re.match(r"^\d{8}", tick_file.name) else "SC"
-            up_l.caption(f"✅ {tick_file.name}  |  {n_days} trading days loaded")
-        else:
-            for k in ("uploaded_sc_bars", "uploaded_sc_ticks", "uploaded_sc_key"):
-                st.session_state.pop(k, None)
-
-        # Parse OHLC upload once per unique file
-        if ohlc_file is not None:
-            ohlc_key = f"{ohlc_file.name}_{ohlc_file.size}"
-            if st.session_state.get("uploaded_ohlc_key") != ohlc_key:
-                with st.spinner("Parsing OHLC data…"):
-                    st.session_state["uploaded_ohlc_bars"] = parse_ohlc_from_upload(ohlc_file)
-                st.session_state["uploaded_ohlc_key"] = ohlc_key
-            n_days = st.session_state["uploaded_ohlc_bars"]["DateTime"].dt.date.nunique()
-            up_r.caption(f"✅ {ohlc_file.name}  |  {n_days} trading days loaded")
-        else:
-            for k in ("uploaded_ohlc_bars", "uploaded_ohlc_key"):
-                st.session_state.pop(k, None)
-
     tab1, tab2, tab3 = st.tabs(["📊 Bar Viewer", "🔍 Bar Validation", "📈 Bar Analysis"])
 
-    contract_label = selected_key.split(" — ")[0]   # "ESM6", "ESH21", etc.
+    contract_label = selected_key.split(" — ")[0]
 
     with tab1:
         show_bar_viewer(sc_file, contract=contract_label)
@@ -256,6 +211,109 @@ def main():
         validation.show_validation_tab(sc_file=sc_file, nt_file=nt_file)
 
     with tab3:
+        # ── Upload expander ───────────────────────────────────────────────────
+        with st.expander("📁 Upload Data", expanded=False):
+            up_l, up_m, up_r = st.columns(3)
+
+            tick_file = up_l.file_uploader(
+                "Tick Data (.txt)", type=["txt", "csv"], key="upload_tick",
+                help="SC BarData or NT8 tick export — auto-detected",
+            )
+            ohlc_file = up_m.file_uploader(
+                "OHLC 5M bar_export (.txt/.csv)", type=["txt", "csv"], key="upload_ohlc",
+                help="MM/DD/YYYY HH:MM:SS;O;H;L;C;V — Berlin close times",
+            )
+            sig_file = up_r.file_uploader(
+                "MC Signals (.txt/.csv)", type=["txt", "csv"], key="upload_signals",
+                help="Space-delimited: Num Type Dir DD/MM/YYYY HH:MM:SS BarNum Price Stop",
+            )
+
+            # Tick upload
+            if tick_file is not None:
+                tick_key = f"{tick_file.name}_{tick_file.size}"
+                if st.session_state.get("uploaded_sc_key") != tick_key:
+                    tick_file.seek(0)
+                    peek = tick_file.read(200)
+                    if isinstance(peek, bytes):
+                        peek = peek.decode("utf-8", errors="replace")
+                    first_line = peek.split("\n")[0].strip()
+                    tick_file.seek(0)
+                    is_nt = bool(re.match(r"^\d{8} \d{6} \d+;", first_line))
+                    st.caption(f"Parsing {'NT8' if is_nt else 'SC'} tick file ({tick_file.size / 1e6:.0f} MB)…")
+                    pbar = st.progress(0)
+                    ticks = parse_nt_ticks_from_upload(tick_file, progress=pbar.progress) if is_nt \
+                            else parse_sc_ticks_from_upload(tick_file)
+                    pbar.progress(1.0)
+                    st.session_state["uploaded_sc_ticks"] = ticks
+                    st.session_state["uploaded_sc_bars"]  = resample_ticks_to_bars(ticks)
+                    st.session_state["uploaded_sc_key"]   = tick_key
+                n_days = st.session_state["uploaded_sc_bars"]["DateTime"].dt.date.nunique()
+                up_l.caption(f"✅ {tick_file.name}  |  {n_days} days")
+            else:
+                for k in ("uploaded_sc_bars", "uploaded_sc_ticks", "uploaded_sc_key"):
+                    st.session_state.pop(k, None)
+
+            # OHLC upload
+            if ohlc_file is not None:
+                ohlc_key = f"{ohlc_file.name}_{ohlc_file.size}"
+                if st.session_state.get("uploaded_ohlc_key") != ohlc_key:
+                    with st.spinner("Parsing OHLC data…"):
+                        st.session_state["uploaded_ohlc_bars"] = parse_ohlc_from_upload(ohlc_file)
+                    st.session_state["uploaded_ohlc_key"] = ohlc_key
+                n_days = st.session_state["uploaded_ohlc_bars"]["DateTime"].dt.date.nunique()
+                up_m.caption(f"✅ {ohlc_file.name}  |  {n_days} days")
+            else:
+                for k in ("uploaded_ohlc_bars", "uploaded_ohlc_key"):
+                    st.session_state.pop(k, None)
+
+            # Signals upload
+            if sig_file is not None:
+                sig_key = f"{sig_file.name}_{sig_file.size}"
+                if st.session_state.get("ba_signals_key") != sig_key:
+                    raw = sig_file.read().decode("utf-8", errors="replace")
+                    parsed = bar_analysis.parse_signals(raw)
+                    if parsed is None or parsed.empty:
+                        up_r.error("Could not parse signals.")
+                    else:
+                        st.session_state["ba_signals"]     = parsed
+                        st.session_state["ba_signals_key"] = sig_key
+                if st.session_state.get("ba_signals") is not None:
+                    n_sig = len(st.session_state["ba_signals"])
+                    up_r.caption(f"✅ {sig_file.name}  |  {n_sig} signals")
+            else:
+                for k in ("ba_signals", "ba_signals_key"):
+                    st.session_state.pop(k, None)
+
+        # ── Bar data source selector ──────────────────────────────────────────
+        _sc_on_disk      = bool(sc_file and Path(sc_file).exists())
+        _has_sc_upload   = st.session_state.get("uploaded_sc_bars")  is not None
+        _has_ohlc_upload = st.session_state.get("uploaded_ohlc_bars") is not None
+
+        _source_opts: list[tuple[str, str]] = []
+        if _has_sc_upload:
+            _source_opts.append(("SC Ticks (upload)", "sc_upload"))
+        if _has_ohlc_upload:
+            _source_opts.append(("OHLC (upload)", "ohlc_upload"))
+        if _sc_on_disk:
+            _source_opts.append(("SC Ticks (disk)", "sc_disk"))
+
+        if len(_source_opts) > 1:
+            _src_labels = [s[0] for s in _source_opts]
+            _src_keys   = [s[1] for s in _source_opts]
+            _prev     = st.session_state.get("bar_source", _src_keys[0])
+            _prev_idx = _src_keys.index(_prev) if _prev in _src_keys else 0
+            with st.expander("📡 Bar data source", expanded=False):
+                _chosen = st.radio(
+                    "Source", _src_labels,
+                    index=_prev_idx, horizontal=True, key="bar_source_radio",
+                    label_visibility="collapsed",
+                )
+            st.session_state["bar_source"] = _src_keys[_src_labels.index(_chosen)]
+        elif _source_opts:
+            st.session_state["bar_source"] = _source_opts[0][1]
+        else:
+            st.session_state["bar_source"] = "sc_disk"
+
         bar_analysis.show_bar_analysis(sc_file=sc_file, contract=contract_label, nt_file=nt_file)
 
 

@@ -44,10 +44,10 @@ Three-tab app with contract selector and file upload. All tabs share cached data
 
 | File | Purpose |
 |------|---------|
-| `app.py` | Entry point, contract selector, upload expander, tab layout, Reload button |
+| `app.py` | Entry point, contract selector, tab layout, Reload button; Upload Data expander lives inside Bar Analysis tab |
 | `data_loader.py` | Contract registry; parameterised loaders for SC bars, SC ticks, NT bars; upload parsers; `bar_num_from_dt()` |
 | `validation.py` | Bar Validation tab — SC vs NT comparison |
-| `bar_analysis.py` | Bar Analysis tab — signal sim, charts, R sweep |
+| `bar_analysis.py` | Bar Analysis tab — signal sim, charts, monthly breakdown, R sweep |
 | `economic_calendar.py` | FOMC hardcoded 2015–2026; NFP/CPI via FRED API |
 | `.streamlit/config.toml` | `maxUploadSize = 2000` (MB) |
 | `filter_defaults.json` | Bar Validation persisted defaults — not in git |
@@ -64,41 +64,73 @@ Three-tab app with contract selector and file upload. All tabs share cached data
 - NFP (release_id=50) and CPI (release_id=10) fetched from FRED API; requires `FRED_API_KEY` in `.streamlit/secrets.toml`
 - `get_economic_events(event_types: tuple, start, end)` returns DataFrame with DateTime (CT, tz-naive), EventType, Color
 
-**Upload expander (📁 Upload Data — above all three tabs):**
-- Left column: SC tick data (.txt) → parsed into 5-min bars (`uploaded_sc_bars`) and raw ticks (`uploaded_sc_ticks`) cached in session state
-- Right column: OHLC bar_export (.txt) → Berlin close → CT open (`uploaded_ohlc_bars`) cached in session state
+**Layout (tab-first design — as of this session):**
+- Tabs (`📊 Bar Viewer | 🔍 Bar Validation | 📈 Bar Analysis`) are the first element after the page header
+- All upload UI lives inside the Bar Analysis tab: `📁 Upload Data` expander (3 cols: Tick | OHLC | MC Signals), then `📡 Bar data source` expander (only shown when multiple sources available)
+- Session state carries uploaded data across tabs; Bar Viewer and Bar Validation read from session state silently
+- Reload button clears all upload state including `ba_signals`
+
+**Upload Data expander (inside Bar Analysis tab):**
+- Col 1: SC tick data (.txt) → `uploaded_sc_bars` + `uploaded_sc_ticks`
+- Col 2: OHLC bar_export (.txt) → `uploaded_ohlc_bars`
+- Col 3: MC Signals (.txt) → `ba_signals` — parsed by `bar_analysis.parse_signals()`
 - Cache key = `name_size` — re-parses only when a different file is uploaded
-- Reload button clears upload state along with `@st.cache_data`
-- Bar Viewer and Bar Analysis automatically use `uploaded_sc_bars`/`uploaded_sc_ticks` when present; Bar Validation uses `uploaded_sc_bars` + `uploaded_ohlc_bars`; shows data-source caption when uploaded data is active
-- Three parse functions in `data_loader.py`: `parse_sc_bars_from_upload`, `parse_sc_ticks_from_upload`, `parse_ohlc_from_upload`
+
+**Bar data source selector:**
+- Shown only when multiple bar sources are available (upload + disk)
+- Options: SC Ticks (upload) | OHLC (upload) | SC Ticks (disk)
+- Choice stored in `st.session_state["bar_source"]`; both Bar Viewer and Bar Analysis respect it
+
+**Bar-level simulation (no tick data):**
+- Falls back to `_simulate_one_bars()` when no tick data is available
+- Uses OHLC H/L for fill detection; conservative (stop before target when both reachable in same bar)
+- `>=` comparison on bar DateTime so fill is correctly on the NEXT bar after signal (not one bar late)
 
 **Tab 1 — Bar Viewer**
 - ‹/› prev/next buttons + date dropdown → 6 summary metrics → candlestick → collapsible 5-min bar table
 - Bar numbers derived from `bar_num_from_dt(DateTime)` — correct even when bars are missing
 - Incomplete days (< 81 bars) show a warning banner with first-bar time
-- Candlestick shading: grey vrects for excluded session zones
+- Uses `bar_source` session state to select between SC disk / uploaded bars
 
 **Tab 2 — Bar Validation**
 - Compares SC-built bars vs NT pre-built bars for selected contract
 - NT timestamps converted Berlin CEST → CT, close→open (−7h −5min)
 - Filters: NYSE holidays, DOW, session boundaries, economic events, Save as Default
+- `build_comparison()` in `validation.py` now strips extra columns before join (fixes NullVol/Date overlap)
 
-**Tab 3 — Bar Analysis**
-- Upload MC signals file (space-delimited: `Num Type Dir DD/MM/YYYY HH:MM:SS BarNum Price Stop`)
-- Same filters as Bar Validation plus: CC3/CC4 type filter, first-trade-of-day toggle
-- Trading params: instrument (ES/MES), contracts, entry/exit slippage (ticks), stop offset, target R, commission
-- Entry sim: stop-order fill logic, first tick AFTER signal bar close must tick through signal price, slippage applied post-fill
-- Signal table: SE Price / Fill Price / Entry Price (w/slip) columns; MAE/MFE in pts and R; cumulative PF; Exit Type (Target/Stop/EOD)
-- Summary strip: 3 rows × 6 metrics including MAE R / MFE R
-- Per-day chart: candlestick + signal markers + stop/target/BE lines + PnL annotations
-- Optimal R sweep (0.50–5.00, 0.25 steps): table with gold bold highlights on best per metric + line chart
-- ‹/› nav fixed (no key on selectbox); contract switch resets date/chart state automatically
+**Tab 3 — Bar Analysis — section layout (all collapsible expanders):**
+1. `📁 Upload Data` — tick / OHLC / signals upload
+2. `📡 Bar data source` — only when choice exists
+3. Filters + trading params (date range, DOW, econ events, CC3/CC4, instrument, slippage, target R, commission)
+4. `📋 Summary` — 4 rows × 6 metrics incl. Max Drawdown + Trading Days
+5. `📅 Monthly Breakdown` — monthly table (dynamic setup% columns) + equity/DD chart + setup% vs Net PnL chart
+6. `📊 Setup Analysis` — per-setup (CC3/CC4/…) breakdown table; add setups appear automatically
+7. `---` divider then unfilled/filtered signal expanders
+8. Winner/Loser filter radio (outside Daily Chart expander)
+9. `📈 Daily Chart` — nav controls, date picker, bar chart + signal markers
+10. Signal Table (day) expander + All Signals expander
+11. Optimal R sweep expander
+12. `🔍 Bar Data Mismatch Analysis` — collapsed by default
+
+**Simulation engine (`bar_analysis.py`):**
+- `parse_signals(raw)` — parses MC signal export; called from `app.py` now (not inside `show_bar_analysis`)
+- `_simulate_one()` — tick-level single-leg sim; stop-order fill, MAE/MFE, slippage tracking
+- `_simulate_one_bars()` — bar-level fallback; `>=` on DateTime to get correct next bar
+- `simulate_trades()` — dispatches to tick or bar sim; supports `bars_by_date` param for fallback
+- `compute_summary()` — returns dict with n_trades, win_pct, PF, exp, MAE/MFE R, max_dd, trading_days
+- `_show_monthly_breakdown()` — equity curve + OLS trend line + DD bars + setup% chart (dynamic signal types)
+- `_show_mismatch_analysis()` — collapsed by default
+
+**Hover behavior (Daily Chart):**
+- Signal/entry/exit bars use `fill="toself"` + `hoveron="fills+points"` + center marker for reliable hover
+- `<extra></extra>` removes trace-name badge; `font_size=15` in hoverlabel
+- `hoverinfo="skip"` on visual markers (circle-open, x)
 
 **Data files (not in git — keep in `data/raw/`):**
 - `ESM6.CME_BarData.txt` (~3GB SC ticks, 2026)
 - `NinjaScript Output 03_06_2026 23_08.txt` (NT 5M bars, 2026)
 - `NinjaScript Output 2021.txt` (NT 5M bars, 2021 — needed for ESH21 contract)
-- `NinjaScript Signals 2021.txt` (MC signals 2021 — upload via Bar Analysis file uploader)
+- `NinjaScript Signals 2021.txt` (MC signals 2021 — upload via Bar Analysis Upload Data panel)
 
 **Run:** `pkill -f "streamlit run"` then `.venv/bin/streamlit run app.py`
 

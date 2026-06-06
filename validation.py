@@ -34,8 +34,11 @@ FIELD_COLORS = {
 # ── Comparison engine ─────────────────────────────────────────────────────────
 
 def build_comparison(sc: pd.DataFrame, nt: pd.DataFrame) -> pd.DataFrame:
-    sc_m = sc.rename(columns={c: f"{c}_sc" for c in ALL_FIELDS}).set_index("DateTime")
-    nt_m = nt.rename(columns={c: f"{c}_nt" for c in ALL_FIELDS}).set_index("DateTime")
+    _keep = ["DateTime"] + ALL_FIELDS
+    sc_m = sc[[c for c in _keep if c in sc.columns]].rename(
+        columns={c: f"{c}_sc" for c in ALL_FIELDS}).set_index("DateTime")
+    nt_m = nt[[c for c in _keep if c in nt.columns]].rename(
+        columns={c: f"{c}_nt" for c in ALL_FIELDS}).set_index("DateTime")
 
     m = sc_m.join(nt_m, how="outer")
     matched = m["Open_sc"].notna() & m["Open_nt"].notna()
@@ -251,6 +254,13 @@ def show_validation_tab(sc_file: str = "", nt_file: str = ""):
 
     if uploaded_sc is not None or uploaded_ohlc is not None:
         st.caption(f"Data sources — SC: {sc_label}  |  NT/OHLC: {nt_label}")
+
+    if sc.empty:
+        st.warning("No SC bar data available. Upload a tick file in the 📁 Upload Data panel.")
+        return
+    if nt.empty:
+        st.warning("No NT/OHLC bar data available. Check that the NT file exists or upload an OHLC bar_export.")
+        return
 
     sc_dates = sc["DateTime"].dt.date
     nt_dates = nt["DateTime"].dt.date

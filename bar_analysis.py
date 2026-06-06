@@ -2,6 +2,7 @@ import json
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import streamlit as st
 from pathlib import Path
 
@@ -172,16 +173,17 @@ def _simulate_one(
         prices        = scan_ticks["Price"].values
         times         = scan_ticks["DateTime"].values
     else:
-        first_tick    = after.iloc[0]
-        first_tick_px = first_tick["Price"]
-        # Fill condition: first tick must be at/through signal price (stop order)
-        if is_long  and first_tick_px < signal_price:
+        # Scan ALL ticks for first qualifying tick (stop order: ticks through signal price)
+        qualifying = after[after["Price"] >= signal_price] if is_long else after[after["Price"] <= signal_price]
+        if qualifying.empty:
             return {"ok": False, "FilterStatus": "no_fill"}
-        if not is_long and first_tick_px > signal_price:
-            return {"ok": False, "FilterStatus": "no_fill"}
-        entry_dt = first_tick["DateTime"]
-        prices   = after["Price"].values
-        times    = after["DateTime"].values
+        fill_tick     = qualifying.iloc[0]
+        first_tick_px = fill_tick["Price"]
+        entry_dt      = fill_tick["DateTime"]
+        # Exit scan starts at fill tick
+        after  = after[after["DateTime"] >= fill_tick["DateTime"]]
+        prices = after["Price"].values
+        times  = after["DateTime"].values
 
     # Actual entry = fill price ± entry slippage
     actual_entry = first_tick_px + (entry_slip * ts if is_long else -entry_slip * ts)
@@ -231,9 +233,11 @@ def _simulate_one(
     exit_dt_ts   = pd.Timestamp(exit_dt_raw)
     exit_bar     = bar_num_from_dt(exit_dt_ts)
 
-    gross_pts = (actual_exit - actual_entry) if is_long else (actual_entry - actual_exit)
-    gross_pnl = gross_pts / ts * tv
-    r_achieved = gross_pts / risk_pts
+    gross_pts       = (actual_exit - actual_entry) if is_long else (actual_entry - actual_exit)
+    gross_pnl       = gross_pts / ts * tv
+    r_achieved      = gross_pts / risk_pts
+    slippage_pts    = (entry_slip + exit_slip) * ts
+    slippage_dollar = (entry_slip + exit_slip) * tv
 
     exit_label = "EOD" if exit_reason == "Session" else exit_reason
 
@@ -255,12 +259,108 @@ def _simulate_one(
         "GrossPnLPts": gross_pts,
         "GrossPnL":    gross_pnl,
         "R_achieved":  r_achieved,
-        "MAE_pts":     mae,
-        "MAE_dollar":  mae / ts * tv,
-        "MAE_R":       mae / risk_pts,
-        "MFE_pts":     mfe,
-        "MFE_dollar":  mfe / ts * tv,
-        "MFE_R":       mfe / risk_pts,
+        "MAE_pts":        mae,
+        "MAE_dollar":     mae / ts * tv,
+        "MAE_R":          mae / risk_pts,
+        "MFE_pts":        mfe,
+        "MFE_dollar":     mfe / ts * tv,
+        "MFE_R":          mfe / risk_pts,
+        "SlippagePts":    slippage_pts,
+        "SlippageDollar": slippage_dollar,
+    }
+
+
+def _simulate_one_bars(
+    sig_dt, direction: str, signal_price: float, stop_csv: float,
+    day_bars: pd.DataFrame,
+    target_r: float, entry_slip: int, exit_slip: int, stop_offset: int, tv: float,
+) -> dict:
+    """Bar-level fill simulation — used when tick data is unavailable.
+    Entry: stop order triggers if next bar's H/L reaches signal price.
+    Fill: max(Open, signal_price) for Long (handles gap-open above signal).
+    Exit scan: conservative — if both stop and target reachable in same bar, stop wins."""
+    ts      = TICK_SIZE
+    is_long = direction == "Long"
+
+    next_bars = day_bars[day_bars["DateTime"] >= sig_dt].reset_index(drop=True)
+    if next_bars.empty:
+        return {"ok": False, "FilterStatus": "no_next_bar"}
+
+    nb = next_bars.iloc[0]
+    if is_long  and float(nb["High"]) < signal_price:
+        return {"ok": False, "FilterStatus": "no_fill"}
+    if not is_long and float(nb["Low"]) > signal_price:
+        return {"ok": False, "FilterStatus": "no_fill"}
+
+    fill_px      = max(float(nb["Open"]), signal_price) if is_long else min(float(nb["Open"]), signal_price)
+    actual_entry = fill_px + (entry_slip * ts if is_long else -entry_slip * ts)
+    actual_stop  = (stop_csv - stop_offset * ts) if is_long else (stop_csv + stop_offset * ts)
+    risk_pts     = abs(actual_entry - actual_stop)
+    if risk_pts < 0.001:
+        return {"ok": False, "FilterStatus": "zero_risk"}
+
+    target_price = actual_entry + (target_r * risk_pts if is_long else -target_r * risk_pts)
+    entry_bar    = bar_num_from_dt(nb["DateTime"])
+    entry_dt     = nb["DateTime"]
+
+    exit_px_raw  = float(next_bars.iloc[-1]["Close"])
+    exit_dt_raw  = next_bars.iloc[-1]["DateTime"]
+    exit_reason  = "Session"
+    mae = mfe = 0.0
+
+    for _, bar in next_bars.iterrows():
+        hi, lo = float(bar["High"]), float(bar["Low"])
+        mfe = max(mfe, (hi - actual_entry) if is_long else (actual_entry - lo))
+        mae = max(mae, (actual_entry - lo) if is_long else (hi - actual_entry))
+
+        hit_tgt  = (hi >= target_price) if is_long else (lo <= target_price)
+        hit_stop = (lo <= actual_stop)  if is_long else (hi >= actual_stop)
+
+        if hit_stop and hit_tgt:
+            exit_px_raw, exit_dt_raw, exit_reason = actual_stop, bar["DateTime"], "Stop"
+            break
+        elif hit_tgt:
+            exit_px_raw, exit_dt_raw, exit_reason = target_price, bar["DateTime"], "Target"
+            break
+        elif hit_stop:
+            exit_px_raw, exit_dt_raw, exit_reason = actual_stop, bar["DateTime"], "Stop"
+            break
+
+    actual_exit     = exit_px_raw + (-exit_slip * ts if is_long else exit_slip * ts)
+    exit_dt_ts      = pd.Timestamp(exit_dt_raw)
+    exit_bar        = bar_num_from_dt(exit_dt_ts)
+    gross_pts       = (actual_exit - actual_entry) if is_long else (actual_entry - actual_exit)
+    gross_pnl       = gross_pts / ts * tv
+    r_achieved      = gross_pts / risk_pts
+    slippage_pts    = (entry_slip + exit_slip) * ts
+    slippage_dollar = (entry_slip + exit_slip) * tv
+
+    return {
+        "ok":             True,
+        "SEPrice":        signal_price,
+        "FillPrice":      fill_px,
+        "EntryTime":      pd.Timestamp(entry_dt),
+        "EntryBarNum":    entry_bar,
+        "EntryPrice":     actual_entry,
+        "ActualStop":     actual_stop,
+        "Target":         target_price,
+        "RiskPts":        risk_pts,
+        "RiskDollar":     risk_pts / ts * tv,
+        "ExitTime":       exit_dt_ts,
+        "ExitBarNum":     exit_bar,
+        "ExitPrice":      actual_exit,
+        "ExitReason":     "EOD" if exit_reason == "Session" else exit_reason,
+        "GrossPnLPts":    gross_pts,
+        "GrossPnL":       gross_pnl,
+        "R_achieved":     r_achieved,
+        "MAE_pts":        max(mae, 0.0),
+        "MAE_dollar":     max(mae, 0.0) / ts * tv,
+        "MAE_R":          max(mae, 0.0) / risk_pts,
+        "MFE_pts":        max(mfe, 0.0),
+        "MFE_dollar":     max(mfe, 0.0) / ts * tv,
+        "MFE_R":          max(mfe, 0.0) / risk_pts,
+        "SlippagePts":    slippage_pts,
+        "SlippageDollar": slippage_dollar,
     }
 
 
@@ -277,6 +377,7 @@ _EMPTY_TRADE = {
     "MAE_pts": np.nan, "MAE_dollar": np.nan, "MAE_R": np.nan,
     "MFE_pts": np.nan, "MFE_dollar": np.nan, "MFE_R": np.nan,
     "CumPF": np.nan,
+    "SlippagePts": np.nan, "SlippageDollar": np.nan,
 }
 
 
@@ -291,6 +392,7 @@ def simulate_trades(
     contracts: int,
     commission: float,
     overrides: dict | None = None,   # {signal_num: {"fill_price": float, "fill_bar": int}}
+    bars_by_date: dict | None = None, # fallback bar-level sim when ticks unavailable
 ) -> pd.DataFrame:
     tv   = tick_value * contracts
     rows = []
@@ -308,16 +410,29 @@ def simulate_trades(
             continue
 
         day_ticks = ticks_by_date.get(base["Date"])
-        if day_ticks is None or day_ticks.empty:
+        no_ticks  = day_ticks is None or day_ticks.empty
+
+        # Bar-level fallback when ticks unavailable
+        if no_ticks and bars_by_date is not None and not manual_fill:
+            day_bars_sim = bars_by_date.get(base["Date"])
+            if day_bars_sim is None or day_bars_sim.empty:
+                base["FilterStatus"] = "no_tick_data"
+                rows.append(base)
+                continue
+            res = _simulate_one_bars(
+                base["DateTime"], base["Direction"], base["SignalPrice"], base["StopPrice"],
+                day_bars_sim, target_r, entry_slip, exit_slip, stop_offset, tv,
+            )
+        elif no_ticks and not manual_fill:
             base["FilterStatus"] = "no_tick_data"
             rows.append(base)
             continue
-
-        res = _simulate_one(
-            base["DateTime"], base["Direction"], base["SignalPrice"], base["StopPrice"],
-            day_ticks, target_r, entry_slip, exit_slip, stop_offset, tv,
-            manual_fill=manual_fill,
-        )
+        else:
+            res = _simulate_one(
+                base["DateTime"], base["Direction"], base["SignalPrice"], base["StopPrice"],
+                day_ticks, target_r, entry_slip, exit_slip, stop_offset, tv,
+                manual_fill=manual_fill,
+            )
 
         if not res.get("ok", False):
             base["FilterStatus"] = res.get("FilterStatus", "no_fill")
@@ -386,6 +501,11 @@ def compute_summary(results: pd.DataFrame, commission: float) -> dict:
     avg_loss   = stops["NetPnL"].mean()  if n_stop else 0
     wl_ratio   = abs(avg_win / avg_loss) if avg_loss != 0 else float("inf")
 
+    equity       = filled.sort_values(["Date", "EntryTime"])["NetPnL"].cumsum()
+    peak         = equity.cummax()
+    max_dd       = float((equity - peak).min())
+    trading_days = int(filled["Date"].nunique())
+
     return dict(
         n_total=n_total, n_filtered=n_filtered, n_no_fill=n_no_fill,
         n_trades=n_trades, n_wins=n_wins, n_stop=n_stop, n_sess=n_sess,
@@ -397,6 +517,8 @@ def compute_summary(results: pd.DataFrame, commission: float) -> dict:
         largest_win=wins["NetPnL"].max()    if n_wins else 0,
         largest_loss=stops["NetPnL"].min()  if n_stop else 0,
         commission_total=n_trades * commission,
+        slippage_total=float(filled["SlippageDollar"].sum()) if "SlippageDollar" in filled.columns else 0.0,
+        max_dd=max_dd, trading_days=trading_days,
     )
 
 
@@ -414,6 +536,7 @@ def make_analysis_chart(
     excl_first_n: int = 0,
     excl_last_min: int = 0,
     contract: str = "ES",
+    show_hover: bool = True,
 ) -> go.Figure:
     df = day_bars
     fig = go.Figure(
@@ -450,6 +573,11 @@ def make_analysis_chart(
     # Collect all relevant prices for Y-range calculation
     y_prices = list(df["Low"].values) + list(df["High"].values)
 
+    # Pre-compute chart y-range for hover rectangles (extend well beyond bars)
+    y_lo_pre = df["Low"].min()
+    y_hi_pre = df["High"].max()
+    h_pad    = (y_hi_pre - y_lo_pre) * 0.30
+
     if not day_results.empty:
         day_range = df["High"].max() - df["Low"].min()
         marker_offset = day_range * 0.003
@@ -466,9 +594,25 @@ def make_analysis_chart(
                 continue
             bar_row = bar_rows.iloc[0]
 
-            marker_y = (bar_row["Low"] - marker_offset) if is_long else (bar_row["High"] + marker_offset)
-            msym     = "triangle-up" if is_long else "triangle-down"
-            mcolor   = "#26a69a" if (is_long and not filtered) else ("#ef5350" if (not is_long and not filtered) else "#bdbdbd")
+            if filtered:
+                rect_color   = "rgba(160,160,160,0.10)"
+                border_color = "rgba(160,160,160,0.30)"
+                dot_color    = "#aaaaaa"
+            elif is_long:
+                rect_color   = "rgba(0,230,118,0.18)"
+                border_color = "rgba(0,230,118,0.70)"
+                dot_color    = "#00e676"
+            else:
+                rect_color   = "rgba(255,80,80,0.18)"
+                border_color = "rgba(255,80,80,0.70)"
+                dot_color    = "#ff5252"
+
+            fig.add_vrect(
+                x0=bar_open - half, x1=bar_open + half,
+                fillcolor=rect_color,
+                line=dict(color=border_color, width=1.0),
+                layer="below",
+            )
 
             htxt = (
                 f"Signal #{int(row['SignalNum'])} {row['SignalType']} {row['Direction']}<br>"
@@ -476,12 +620,16 @@ def make_analysis_chart(
                 f"Signal Price: {row['SignalPrice']:.2f} | Stop: {row['StopPrice']:.2f}<br>"
                 f"Status: {row['FilterStatus']}"
             )
-            fig.add_trace(go.Scatter(
-                x=[bar_open], y=[marker_y], mode="markers",
-                marker=dict(symbol=msym, size=12, color=mcolor,
-                            line=dict(width=1, color="white")),
-                hovertext=htxt, hoverinfo="text", showlegend=False,
-            ))
+            if show_hover:
+                _cy = (y_lo_pre + y_hi_pre) / 2
+                fig.add_trace(go.Scatter(
+                    x=[bar_open-half, bar_open+half, bar_open+half, bar_open-half, bar_open-half, bar_open],
+                    y=[y_lo_pre-h_pad, y_lo_pre-h_pad, y_hi_pre+h_pad, y_hi_pre+h_pad, y_lo_pre-h_pad, _cy],
+                    fill="toself", fillcolor="rgba(0,0,0,0)", line=dict(width=0),
+                    mode="markers", marker=dict(size=1, color="rgba(0,0,0,0)", line=dict(width=0)),
+                    hovertemplate=htxt + "<extra></extra>", hoveron="fills+points",
+                    showlegend=False, name="",
+                ))
 
             if not row["Filled"]:
                 continue
@@ -502,70 +650,101 @@ def make_analysis_chart(
                 if pd.notna(p):
                     y_prices.append(p)
 
-            # Entry hover marker
+            entry_ts = pd.Timestamp(entry_dt)
+            exit_ts  = pd.Timestamp(exit_dt)
+
             entry_htxt = (
                 f"ENTRY #{int(row['SignalNum'])}<br>"
-                f"Time: {pd.Timestamp(entry_dt).strftime('%H:%M:%S')} | Bar {int(row['EntryBarNum'])}<br>"
+                f"Time: {entry_ts.strftime('%H:%M:%S')} | Bar {int(row['EntryBarNum'])}<br>"
                 f"Price: {entry_px:.2f}<br>"
                 f"Stop: {stop_px:.2f} | Target: {target_px:.2f}<br>"
                 f"Risk: {row['RiskPts']:.2f} pts (${row['RiskDollar']:.0f})"
             )
+            # Visual entry marker (hover handled by fill rect below)
             fig.add_trace(go.Scatter(
-                x=[pd.Timestamp(entry_dt)], y=[entry_px], mode="markers",
+                x=[entry_ts], y=[entry_px], mode="markers",
                 marker=dict(symbol="circle-open", size=9, color=oc, line=dict(width=2)),
-                hovertext=entry_htxt, hoverinfo="text", showlegend=False,
+                hoverinfo="skip", showlegend=False,
             ))
+            if show_hover:
+                _cy = (y_lo_pre + y_hi_pre) / 2
+                fig.add_trace(go.Scatter(
+                    x=[entry_ts-half, entry_ts+half, entry_ts+half, entry_ts-half, entry_ts-half, entry_ts],
+                    y=[y_lo_pre-h_pad, y_lo_pre-h_pad, y_hi_pre+h_pad, y_hi_pre+h_pad, y_lo_pre-h_pad, _cy],
+                    fill="toself", fillcolor="rgba(0,0,0,0)", line=dict(width=0),
+                    mode="markers", marker=dict(size=1, color="rgba(0,0,0,0)", line=dict(width=0)),
+                    hovertemplate=entry_htxt + "<extra></extra>", hoveron="fills+points",
+                    showlegend=False, name="",
+                ))
 
-            # Exit hover marker
             exit_htxt = (
                 f"EXIT #{int(row['SignalNum'])}  ({reason})<br>"
-                f"Time: {pd.Timestamp(exit_dt).strftime('%H:%M:%S')} | Bar {int(row['ExitBarNum'])}<br>"
+                f"Time: {exit_ts.strftime('%H:%M:%S')} | Bar {int(row['ExitBarNum'])}<br>"
                 f"Price: {exit_px:.2f}<br>"
                 f"Gross: {sign}{gross_pts:.2f} pts | Net: {sign}${net_pnl:.0f}<br>"
                 f"R: {row['R_achieved']:+.2f}<br>"
                 f"MAE: {row['MAE_pts']:.2f} pts | MFE: {row['MFE_pts']:.2f} pts"
             )
+            # Visual exit marker (hover handled by fill rect below)
             fig.add_trace(go.Scatter(
-                x=[pd.Timestamp(exit_dt)], y=[exit_px], mode="markers",
+                x=[exit_ts], y=[exit_px], mode="markers",
                 marker=dict(symbol="x", size=9, color=oc, line=dict(width=2)),
-                hovertext=exit_htxt, hoverinfo="text", showlegend=False,
+                hoverinfo="skip", showlegend=False,
             ))
+            if show_hover:
+                _cy = (y_lo_pre + y_hi_pre) / 2
+                fig.add_trace(go.Scatter(
+                    x=[exit_ts-half, exit_ts+half, exit_ts+half, exit_ts-half, exit_ts-half, exit_ts],
+                    y=[y_lo_pre-h_pad, y_lo_pre-h_pad, y_hi_pre+h_pad, y_hi_pre+h_pad, y_lo_pre-h_pad, _cy],
+                    fill="toself", fillcolor="rgba(0,0,0,0)", line=dict(width=0),
+                    mode="markers", marker=dict(size=1, color="rgba(0,0,0,0)", line=dict(width=0)),
+                    hovertemplate=exit_htxt + "<extra></extra>", hoveron="fills+points",
+                    showlegend=False, name="",
+                ))
 
             xref, yref = "x", "y"
 
-            # Stop line (dashed red)
+            # Stop line — extends from signal bar left edge to exit
             fig.add_shape(type="line",
-                x0=pd.Timestamp(entry_dt), x1=pd.Timestamp(exit_dt),
+                x0=bar_open, x1=exit_ts,
                 y0=stop_px, y1=stop_px,
                 line=dict(color="#ef5350", width=1.2, dash="dash"),
                 xref=xref, yref=yref)
 
             # Target line (dashed teal)
             fig.add_shape(type="line",
-                x0=pd.Timestamp(entry_dt), x1=pd.Timestamp(exit_dt),
+                x0=entry_ts, x1=exit_ts,
                 y0=target_px, y1=target_px,
                 line=dict(color="#26a69a", width=1.2, dash="dash"),
                 xref=xref, yref=yref)
 
+            # R label — right end of target line, centered on the line
+            fig.add_annotation(
+                x=exit_ts, y=target_px,
+                xshift=6, yshift=0,
+                text=f"<b>{row['TargetR']:.2f}R</b>",
+                showarrow=False, xanchor="left",
+                font=dict(size=11, color="#26a69a"),
+            )
+
             # BE line (orange) = entry price
             fig.add_shape(type="line",
-                x0=pd.Timestamp(entry_dt), x1=pd.Timestamp(exit_dt),
+                x0=entry_ts, x1=exit_ts,
                 y0=entry_px, y1=entry_px,
                 line=dict(color="#ff9800", width=1.0),
                 xref=xref, yref=yref)
 
             # Dotted diagonal: entry price → exit price
             fig.add_shape(type="line",
-                x0=pd.Timestamp(entry_dt), x1=pd.Timestamp(exit_dt),
+                x0=entry_ts, x1=exit_ts,
                 y0=entry_px, y1=exit_px,
                 line=dict(color=oc, width=1.5, dash="dot"),
                 xref=xref, yref=yref)
 
             # PnL annotation at exit point — offset above/below, larger font
-            day_range = df["High"].max() - df["Low"].min()
-            y_offset  = day_range * 0.012 * (1 if is_long else -1)
+            y_offset = day_range * 0.012 * (1 if is_long else -1)
             fig.add_annotation(
-                x=pd.Timestamp(exit_dt), y=exit_px + y_offset,
+                x=exit_ts, y=exit_px + y_offset,
                 xshift=10, yshift=0,
                 text=f"<b>#{int(row['SignalNum'])} {sign}{gross_pts:.2f}pt | {sign}${net_pnl:.0f}</b>",
                 showarrow=True, arrowhead=0, arrowcolor=oc, arrowwidth=1,
@@ -582,14 +761,20 @@ def make_analysis_chart(
         pad = (y_hi - y_lo) * 0.06
         fig.update_layout(yaxis=dict(range=[y_lo - pad, y_hi + pad]))
 
+    spike = dict(showspikes=True, spikethickness=1, spikedash="dot",
+                 spikecolor="rgba(128,128,128,0.40)", spikesnap="cursor")
     fig.update_layout(
         title=f"{contract} — Bar Analysis  ({date_str})",
         xaxis_title="Time (CT)", yaxis_title="Price",
         xaxis_rangeslider_visible=False,
-        xaxis=dict(tickformat="%H:%M", dtick=15 * 60 * 1000, tickangle=-45),
+        xaxis=dict(tickformat="%H:%M", dtick=15 * 60 * 1000, tickangle=-45, **spike),
+        yaxis=dict(**spike),
         height=560,
         margin=dict(l=50, r=20, t=60, b=60),
         template="plotly_white",
+        hovermode="closest" if show_hover else False,
+        hoverlabel=dict(font_size=15, bgcolor="rgba(30,30,30,0.90)", font_color="white"),
+        spikedistance=200,
     )
     return fig
 
@@ -713,13 +898,15 @@ def _run_r_sweep(
     signals: pd.DataFrame, ticks_by_date: dict,
     entry_slip: int, exit_slip: int, stop_offset: int,
     tick_value: float, contracts: int, commission: float,
+    bars_by_date: dict | None = None,
 ) -> pd.DataFrame:
     r_values = [round(r * 0.25, 2) for r in range(2, 21)]  # 0.50 – 5.00
     rows = []
     for r in r_values:
         res = simulate_trades(signals, ticks_by_date, r,
                                entry_slip, exit_slip, stop_offset,
-                               tick_value, contracts, commission)
+                               tick_value, contracts, commission,
+                               bars_by_date=bars_by_date)
         s = compute_summary(res, commission)
         if not s or s["n_trades"] == 0:
             continue
@@ -738,14 +925,15 @@ def _run_r_sweep(
 
 
 def _show_optimal_r(signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
-                    tick_value, contracts, commission):
+                    tick_value, contracts, commission, bars_by_date=None):
     with st.expander("🔍 Optimal R Sweep (0.50 – 5.00)"):
         st.caption("Runs simulation at every R from 0.50 to 5.00 in 0.25 steps. "
                    "Highlights best value per metric.")
         if st.button("Run R Sweep", key="ba_run_sweep"):
             with st.spinner("Running sweep…"):
                 sweep_df = _run_r_sweep(signals, ticks_by_date, entry_slip, exit_slip,
-                                         stop_offset, tick_value, contracts, commission)
+                                         stop_offset, tick_value, contracts, commission,
+                                         bars_by_date=bars_by_date)
             if sweep_df.empty:
                 st.warning("No results.")
                 return
@@ -763,7 +951,7 @@ def _show_optimal_r(signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
             return ["font-weight: bold; color: #ffd700; border: 1px solid #ffd700"
                     if v else "" for v in is_max]
 
-        fmt_map = {c: "{:.2f}" for c in ["Win %", "PF", "Exp R"]}
+        fmt_map = {c: "{:.2f}" for c in ["R", "Win %", "PF", "Exp R"]}
         fmt_map.update({c: "{:.0f}" for c in ["Exp $", "Net PnL", "Avg Win", "Avg Loss"]})
         styled = sweep_df.style.apply(highlight_max, subset=metric_cols).format(fmt_map)
         st.dataframe(styled, use_container_width=True, hide_index=True)
@@ -825,9 +1013,174 @@ def _missed_by_ticks(sig_row, ticks_by_date: dict):
         return None if closest <= sp else int(round((closest - sp) / TICK_SIZE))
 
 
+_SETUP_COLORS = ["#ffa726", "#ab47bc", "#29b6f6", "#66bb6a", "#ec407a", "#ef5350"]
+
+
+def _show_monthly_breakdown(results: pd.DataFrame, commission: float):
+    filled = results[results["Filled"]].copy()
+    if filled.empty:
+        return
+
+    filled = filled.sort_values(["Date", "EntryTime"]).reset_index(drop=True)
+    filled["Month"] = pd.to_datetime(filled["Date"]).dt.to_period("M")
+    signal_types = sorted(filled["SignalType"].unique())
+
+    # ── Shared stats helper ───────────────────────────────────────────────────
+    def _group_stats(g, setup_pcts: bool = False) -> pd.Series:
+        n       = len(g)
+        wins    = g[g["ExitReason"] == "Target"]
+        stops   = g[g["ExitReason"] == "Stop"]
+        pos_pnl = g.loc[g["GrossPnL"] > 0, "GrossPnL"].sum()
+        neg_pnl = g.loc[g["GrossPnL"] < 0, "GrossPnL"].sum()
+        pf      = abs(pos_pnl / neg_pnl) if neg_pnl < 0 else (float("inf") if pos_pnl > 0 else 0)
+        row = {
+            "Trades":  n,
+            "Win%":    round(len(wins) / n * 100, 1) if n else 0.0,
+            "PF":      round(min(pf, 99.9), 2),
+            "Net PnL": round(g["NetPnL"].sum(), 0),
+            "Avg R":   round(g["R_achieved"].mean(), 2),
+            "MAE R":   round(g["MAE_R"].mean(), 2),
+            "MFE R":   round(g["MFE_R"].mean(), 2),
+            "Best":    round(wins["NetPnL"].max(), 0) if len(wins) else 0.0,
+            "Worst":   round(stops["NetPnL"].min(), 0) if len(stops) else 0.0,
+        }
+        if setup_pcts:
+            for stype in signal_types:
+                row[f"{stype}%"] = round(int((g["SignalType"] == stype).sum()) / n * 100, 1) if n else 0.0
+        return pd.Series(row)
+
+    # ── Per-month ─────────────────────────────────────────────────────────────
+    monthly = (
+        filled.groupby("Month", sort=True)
+        .apply(lambda g: _group_stats(g, setup_pcts=True))
+        .reset_index()
+    )
+    monthly["Month"] = monthly["Month"].astype(str)
+
+    # ── Per-setup ─────────────────────────────────────────────────────────────
+    setup_df = (
+        filled.groupby("SignalType", sort=True)
+        .apply(lambda g: _group_stats(g, setup_pcts=False))
+        .reset_index()
+    )
+
+    # ── Equity / DD / trend ───────────────────────────────────────────────────
+    equity     = filled["NetPnL"].cumsum().values
+    peak       = pd.Series(equity).cummax().values
+    dd_vals    = equity - peak
+    trade_nums = list(range(1, len(filled) + 1))
+    tn_arr     = np.array(trade_nums, dtype=float)
+    coeffs     = np.polyfit(tn_arr, equity, 1)
+    trend_y    = np.polyval(coeffs, tn_arr)
+
+    stype_pct_cols = [f"{s}%" for s in signal_types]
+
+    def _fmt(df: pd.DataFrame) -> pd.DataFrame:
+        d = df.copy()
+        d["Net PnL"] = df["Net PnL"].apply(lambda v: f"${v:+,.0f}")
+        d["Best"]    = df["Best"].apply(lambda v: f"${v:+,.0f}" if v != 0 else "—")
+        d["Worst"]   = df["Worst"].apply(lambda v: f"${v:+,.0f}" if v != 0 else "—")
+        d["Win%"]    = df["Win%"].apply(lambda v: f"{v:.1f}%")
+        d["PF"]      = df["PF"].apply(lambda v: f"{v:.2f}")
+        d["Avg R"]   = df["Avg R"].apply(lambda v: f"{v:.2f}")
+        d["MAE R"]   = df["MAE R"].apply(lambda v: f"{v:.2f}")
+        d["MFE R"]   = df["MFE R"].apply(lambda v: f"{v:.2f}")
+        return d
+
+    base_cols = ["Trades", "Win%", "PF", "Net PnL", "Avg R", "MAE R", "MFE R", "Best", "Worst"]
+
+    # ── Monthly breakdown expander ────────────────────────────────────────────
+    with st.expander("📅 Monthly Breakdown", expanded=True):
+        disp = _fmt(monthly)
+        for col in stype_pct_cols:
+            if col in monthly.columns:
+                disp[col] = monthly[col].apply(lambda v: f"{v:.1f}%")
+        st.dataframe(
+            disp[["Month"] + base_cols + stype_pct_cols],
+            use_container_width=True, hide_index=True,
+        )
+
+        chart_l, chart_r = st.columns([3, 2])
+
+        with chart_l:
+            fig_eq = make_subplots(
+                rows=2, cols=1, shared_xaxes=True,
+                row_heights=[0.65, 0.35], vertical_spacing=0.04,
+                subplot_titles=("Equity Curve", "Drawdown ($)"),
+            )
+            fig_eq.add_trace(go.Scatter(
+                x=trade_nums, y=equity.tolist(),
+                mode="lines", name="Equity",
+                line=dict(color="#26a69a", width=2),
+                fill="tozeroy", fillcolor="rgba(38,166,154,0.12)",
+                hovertemplate="Trade %{x}<br>Equity: $%{y:,.0f}<extra></extra>",
+            ), row=1, col=1)
+            fig_eq.add_trace(go.Scatter(
+                x=[trade_nums[0], trade_nums[-1]],
+                y=[float(trend_y[0]), float(trend_y[-1])],
+                mode="lines", name="Trend",
+                line=dict(color="rgba(255,167,38,0.85)", width=1.5, dash="dash"),
+                hoverinfo="skip",
+            ), row=1, col=1)
+            fig_eq.add_trace(go.Bar(
+                x=trade_nums, y=dd_vals.tolist(),
+                name="DD", marker_color="rgba(239,83,80,0.65)",
+                hovertemplate="Trade %{x}<br>DD: $%{y:,.0f}<extra></extra>",
+            ), row=2, col=1)
+            fig_eq.update_layout(
+                height=400, showlegend=False, template="plotly_white",
+                margin=dict(l=55, r=15, t=40, b=40),
+                hovermode="x unified",
+            )
+            fig_eq.update_yaxes(tickprefix="$", row=1, col=1)
+            fig_eq.update_yaxes(tickprefix="$", row=2, col=1)
+            fig_eq.update_xaxes(title_text="Trade #", row=2, col=1)
+            st.plotly_chart(fig_eq, use_container_width=True)
+
+        with chart_r:
+            bar_colors = ["#26a69a" if v >= 0 else "#ef5350" for v in monthly["Net PnL"]]
+            fig_cc = go.Figure()
+            fig_cc.add_trace(go.Bar(
+                x=monthly["Month"], y=monthly["Net PnL"],
+                name="Net PnL", marker_color=bar_colors, yaxis="y",
+                hovertemplate="%{x}<br>Net PnL: $%{y:+,.0f}<extra></extra>",
+            ))
+            for i, stype in enumerate(signal_types):
+                col = f"{stype}%"
+                if col not in monthly.columns:
+                    continue
+                fig_cc.add_trace(go.Scatter(
+                    x=monthly["Month"], y=monthly[col],
+                    name=stype, mode="lines+markers",
+                    line=dict(color=_SETUP_COLORS[i % len(_SETUP_COLORS)], width=2),
+                    marker=dict(size=7), yaxis="y2",
+                    hovertemplate=f"%{{x}}<br>{stype}%%: %{{y:.1f}}%%<extra></extra>",
+                ))
+            setup_label = "/".join(signal_types) + "% vs Net PnL" if signal_types else "Setup% vs Net PnL"
+            fig_cc.update_layout(
+                height=400, template="plotly_white",
+                title=dict(text=setup_label, font=dict(size=13)),
+                margin=dict(l=55, r=65, t=45, b=60),
+                legend=dict(orientation="h", y=1.10, x=0),
+                yaxis=dict(title="Net PnL ($)", tickprefix="$"),
+                yaxis2=dict(title="Setup %", overlaying="y", side="right",
+                            range=[0, 100], ticksuffix="%"),
+                xaxis=dict(tickangle=-45),
+                hovermode="x unified",
+            )
+            st.plotly_chart(fig_cc, use_container_width=True)
+
+    # ── Setup analysis expander ───────────────────────────────────────────────
+    with st.expander("📊 Setup Analysis", expanded=True):
+        sdisp = _fmt(setup_df)
+        st.dataframe(
+            sdisp[["SignalType"] + base_cols],
+            use_container_width=True, hide_index=True,
+        )
+
+
 def _show_unfilled_table(results: pd.DataFrame, ticks_by_date: dict):
     st.markdown("---")
-    st.subheader("⚠️ Unfilled & Filtered Signals")
 
     # ── Signals that passed filters but didn't execute ────────────────────────
     exec_failed = results[results["FilterStatus"].isin(_EXECUTION_STATUSES)].copy()
@@ -846,8 +1199,8 @@ def _show_unfilled_table(results: pd.DataFrame, ticks_by_date: dict):
                 "Date":      exec_failed["Date"].astype(str),
                 "Bar":       exec_failed["BarNum"].astype(int),
                 "Dir":       exec_failed["Direction"],
-                "Signal Px": exec_failed["SignalPrice"].round(2),
-                "Stop Px":   exec_failed["StopPrice"].round(2),
+                "Signal Px": exec_failed["SignalPrice"].apply(lambda v: f"{v:.2f}"),
+                "Stop Px":   exec_failed["StopPrice"].apply(lambda v: f"{v:.2f}"),
                 "Reason":    exec_failed["Reason"],
                 "Missed by": exec_failed["Missed by (ticks)"].apply(
                     lambda v: f"{v} tks" if pd.notna(v) else "—"
@@ -905,7 +1258,7 @@ def _show_unfilled_table(results: pd.DataFrame, ticks_by_date: dict):
                 "Date":      filtered["Date"].astype(str),
                 "Bar":       filtered["BarNum"].astype(int),
                 "Dir":       filtered["Direction"],
-                "Signal Px": filtered["SignalPrice"].round(2),
+                "Signal Px": filtered["SignalPrice"].apply(lambda v: f"{v:.2f}"),
                 "Reason":    filtered["Reason"],
             })
             st.dataframe(disp, use_container_width=True, hide_index=True)
@@ -915,9 +1268,6 @@ def _show_unfilled_table(results: pd.DataFrame, ticks_by_date: dict):
 
 def _show_mismatch_analysis(results: pd.DataFrame, sc_bars: pd.DataFrame, nt_bars: pd.DataFrame):
     from validation import build_comparison
-
-    st.markdown("---")
-    st.subheader("🔍 Bar Data Mismatch Analysis")
 
     comp = build_comparison(sc_bars, nt_bars)
     # Index comparison by bar open DateTime for fast join
@@ -995,8 +1345,8 @@ def _show_mismatch_analysis(results: pd.DataFrame, sc_bars: pd.DataFrame, nt_bar
         disp["Date"]      = mismatched["Date"].astype(str)
         disp["Bar"]       = mismatched["BarNum"].astype(int)
         disp["Dir"]       = mismatched["Direction"]
-        disp["Sig Px"]    = mismatched["SignalPrice"].round(2)
-        disp["Entry Px"]  = mismatched["EntryPrice"].round(2)
+        disp["Sig Px"]    = mismatched["SignalPrice"].apply(lambda v: f"{v:.2f}" if pd.notna(v) else "—")
+        disp["Entry Px"]  = mismatched["EntryPrice"].apply(lambda v: f"{v:.2f}" if pd.notna(v) else "—")
         disp["Exit"]      = mismatched["ExitReason"].replace("", "—")
         disp["Net $"]     = mismatched["NetPnL"].apply(lambda v: f"{v:+.0f}" if pd.notna(v) else "—")
         disp["R"]         = mismatched["R_achieved"].apply(lambda v: f"{v:+.2f}" if pd.notna(v) else "—")
@@ -1031,54 +1381,79 @@ def _show_mismatch_analysis(results: pd.DataFrame, sc_bars: pd.DataFrame, nt_bar
 # ── Main tab ──────────────────────────────────────────────────────────────────
 
 def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""):
-    # ── CSV Upload ────────────────────────────────────────────────────────────
-    uploaded = st.file_uploader(
-        "Upload MC Signals CSV", type=["txt", "csv"],
-        help="Space-delimited: Num Type Dir DD/MM/YYYY HH:MM:SS BarNum Price Stop",
-        key="ba_file",
-    )
-    if uploaded is not None:
-        raw = uploaded.read().decode("utf-8", errors="replace")
-        signals_parsed = parse_signals(raw)
-        if signals_parsed is None or signals_parsed.empty:
-            st.error("Could not parse signals from uploaded file.")
-            return
-        st.session_state["ba_signals"] = signals_parsed
-        st.success(f"Loaded {len(signals_parsed)} signals.", icon="✅")
-
     signals_raw = st.session_state.get("ba_signals")
     if signals_raw is None:
-        st.info("Upload a signals file above to begin.")
+        st.info("Upload a signals file in the **📁 Upload Data** panel above to begin.")
         return
 
-    # ── Load data (prefer uploaded files) ────────────────────────────────────
+    # ── Load data — source determined by bar_source selector in app.py ──────────
+    from pathlib import Path
     uploaded_bars  = st.session_state.get("uploaded_sc_bars")
     uploaded_ticks = st.session_state.get("uploaded_sc_ticks")
+    uploaded_ohlc  = st.session_state.get("uploaded_ohlc_bars")
+    _sc_on_disk    = bool(sc_file and Path(sc_file).exists())
+    _bar_source    = st.session_state.get("bar_source", "sc_disk")
 
-    bars  = uploaded_bars  if uploaded_bars  is not None else (load_sc_bars(sc_file)  if sc_file else load_sc_bars())
-    ticks = uploaded_ticks if uploaded_ticks is not None else (load_sc_ticks(sc_file) if sc_file else load_sc_ticks())
+    if _bar_source == "sc_upload" and uploaded_bars is not None:
+        bars = uploaded_bars
+    elif _bar_source == "ohlc_upload" and uploaded_ohlc is not None:
+        bars = uploaded_ohlc
+    elif _sc_on_disk:
+        bars        = load_sc_bars(sc_file)
+        _bar_source = "sc_disk"
+    elif uploaded_ohlc is not None:
+        bars        = uploaded_ohlc
+        _bar_source = "ohlc_upload"
+    else:
+        st.error("No bar data available. Upload a tick file or OHLC bar_export in the 📁 Upload Data panel.")
+        return
+
+    # Tick source hierarchy: uploaded SC ticks → SC disk file → empty (bar-level sim)
+    if uploaded_ticks is not None:
+        ticks        = uploaded_ticks
+        _tick_source = "upload"
+    elif _sc_on_disk:
+        ticks        = load_sc_ticks(sc_file)
+        _tick_source = "disk"
+    else:
+        ticks        = pd.DataFrame(columns=["DateTime", "Price", "Volume"])
+        _tick_source = "none"
+
+    _bar_sim_mode = _tick_source == "none"
+    if _bar_sim_mode:
+        st.warning(
+            "No tick data — running **bar-level simulation** (5-min OHLC H/L checks). "
+            "Fill accuracy is lower than tick-level. Conservative assumption: when both "
+            "stop and target are reachable within the same bar, stop is filled first.",
+            icon="⚠️",
+        )
+    if _bar_source == "ohlc_upload":
+        st.caption("📊 Bar data: uploaded OHLC bar_export (no SC tick file on disk)")
 
     # NT bars for mismatch analysis (uploaded OHLC wins over disk file)
-    _uploaded_ohlc = st.session_state.get("uploaded_ohlc_bars")
-    if _uploaded_ohlc is not None:
-        nt_bars = _uploaded_ohlc
-    elif nt_file:
+    _nt_bars_for_mismatch = uploaded_ohlc
+    if _nt_bars_for_mismatch is None and nt_file and Path(nt_file).exists():
         from data_loader import load_nt_bars
-        nt_bars = load_nt_bars(nt_file)
-    else:
-        nt_bars = None
+        _nt_bars_for_mismatch = load_nt_bars(nt_file)
+    nt_bars = _nt_bars_for_mismatch
 
-    # Cache key: uploaded data uses upload-key suffix so switching files busts the cache
+    # Tick groupby (empty dict when no ticks → bar-level sim handles via bars_by_date)
     _up_key = st.session_state.get("uploaded_sc_key", "")
     tbd_key = (f"ba_ticks_by_date__up_{_up_key}"
-               if uploaded_ticks is not None
+               if _tick_source == "upload"
                else f"ba_ticks_by_date_{sc_file}")
     if tbd_key not in st.session_state:
-        st.session_state[tbd_key] = {
-            d: grp.reset_index(drop=True)
-            for d, grp in ticks.groupby(ticks["DateTime"].dt.date)
-        }
+        st.session_state[tbd_key] = (
+            {d: grp.reset_index(drop=True) for d, grp in ticks.groupby(ticks["DateTime"].dt.date)}
+            if not ticks.empty else {}
+        )
     ticks_by_date = st.session_state[tbd_key]
+
+    # Bar groupby for bar-level sim fallback (built from whichever bar source is active)
+    bars_by_date_sim = {
+        d: grp.reset_index(drop=True)
+        for d, grp in bars.groupby(bars["DateTime"].dt.date)
+    }
 
     bars["Date"] = bars["DateTime"].dt.date
     bar_dates    = sorted(bars["Date"].unique())
@@ -1088,7 +1463,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
     data_max     = bars["Date"].max()
 
     # ── Detect data change (contract switch OR new upload) — reset stale date state ──
-    _active_key = f"{sc_file}|{st.session_state.get('uploaded_sc_key', '')}"
+    _active_key = f"{sc_file}|{st.session_state.get('uploaded_sc_key', '')}|{st.session_state.get('uploaded_ohlc_key', '')}"
     if st.session_state.get("ba_active_data_key") != _active_key:
         for k in ("ba_date_from", "ba_date_to", "ba_chart_idx", "ba_initialized"):
             st.session_state.pop(k, None)
@@ -1102,9 +1477,12 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
 
     # ── Date range ────────────────────────────────────────────────────────────
     dc1, dc2 = st.columns(2)
-    date_from = dc1.date_input("From", value=max(sig_min, data_min),
+    # Clamp defaults to [data_min, data_max] — handles signals from a different year than bars
+    _from_default = min(max(sig_min, data_min), data_max)
+    _to_default   = max(min(sig_max, data_max), data_min)
+    date_from = dc1.date_input("From", value=_from_default,
                                 min_value=data_min, max_value=data_max, key="ba_date_from")
-    date_to   = dc2.date_input("To",   value=min(sig_max, data_max),
+    date_to   = dc2.date_input("To",   value=_to_default,
                                 min_value=data_min, max_value=data_max, key="ba_date_to")
 
     # ── Filters expander ──────────────────────────────────────────────────────
@@ -1231,6 +1609,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         entry_slip, exit_slip, stop_offset,
         tick_value, contracts, commission,
         overrides=st.session_state.get("ba_manual_overrides"),
+        bars_by_date=bars_by_date_sim,
     )
 
     # When first_trade_only is active, drop non-first-trade signals from all display/metrics
@@ -1240,91 +1619,123 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
     summary = compute_summary(results, commission)
 
     # ── Summary strip ─────────────────────────────────────────────────────────
-    st.subheader("Summary")
-    if summary:
-        r1 = st.columns(6)
-        r1[0].metric("Signals",      f"{summary['n_total']}")
-        r1[1].metric("Filtered Out", f"{summary['n_filtered']}")
-        r1[2].metric("Trades Taken", f"{summary['n_trades']}")
-        r1[3].metric("Win %",        f"{summary['win_pct']:.1f}%",
-                     help=f"W{summary['n_wins']} / L{summary['n_stop']} / S{summary['n_sess']}")
-        r1[4].metric("Gross PnL",    f"${summary['gross_total']:,.0f}")
-        r1[5].metric("Net PnL",      f"${summary['net_total']:,.0f}")
+    with st.expander("📋 Summary", expanded=True):
+        if summary:
+            r1 = st.columns(6)
+            r1[0].metric("Signals",      f"{summary['n_total']}")
+            r1[1].metric("Filtered Out", f"{summary['n_filtered']}")
+            r1[2].metric("Trades Taken", f"{summary['n_trades']}")
+            r1[3].metric("Win %",        f"{summary['win_pct']:.1f}%",
+                         help=f"W{summary['n_wins']} / L{summary['n_stop']} / S{summary['n_sess']}")
+            r1[4].metric("Gross PnL",    f"${summary['gross_total']:,.0f}")
+            r1[5].metric("Net PnL",      f"${summary['net_total']:,.0f}")
 
-        r2 = st.columns(6)
-        pf_str = f"{summary['pf']:.2f}" if summary['pf'] < 99 else "∞"
-        r2[0].metric("Profit Factor", pf_str)
-        r2[1].metric("Exp $",         f"${summary['exp_dollar']:+.0f}")
-        r2[2].metric("Exp R",         f"{summary['exp_r']:+.2f}")
-        r2[3].metric("Avg Win",       f"${summary['avg_win']:+.0f}")
-        r2[4].metric("Avg Loss",      f"${summary['avg_loss']:+.0f}")
-        r2[5].metric("W/L Ratio",
-                     f"{summary['wl_ratio']:.2f}" if summary['wl_ratio'] < 99 else "∞")
+            r2 = st.columns(6)
+            pf_str = f"{summary['pf']:.2f}" if summary['pf'] < 99 else "∞"
+            r2[0].metric("Profit Factor", pf_str)
+            r2[1].metric("Exp $",         f"${summary['exp_dollar']:+.0f}")
+            r2[2].metric("Exp R",         f"{summary['exp_r']:+.2f}")
+            r2[3].metric("Avg Win",       f"${summary['avg_win']:+.0f}")
+            r2[4].metric("Avg Loss",      f"${summary['avg_loss']:+.0f}")
+            r2[5].metric("W/L Ratio",
+                         f"{summary['wl_ratio']:.2f}" if summary['wl_ratio'] < 99 else "∞")
 
-        r3 = st.columns(6)
-        r3[0].metric("Avg MAE",      f"{summary['avg_mae_pts']:.2f} pts")
-        r3[1].metric("Avg MFE",      f"{summary['avg_mfe_pts']:.2f} pts")
-        r3[2].metric("MAE R",        f"{summary['avg_mae_R']:.2f}")
-        r3[3].metric("MFE R",        f"{summary['avg_mfe_R']:.2f}")
-        r3[4].metric("Largest Win",  f"${summary['largest_win']:+.0f}")
-        r3[5].metric("Largest Loss", f"${summary['largest_loss']:+.0f}")
-    else:
-        st.info("No filled trades in the selected range.")
+            r3 = st.columns(6)
+            r3[0].metric("Avg MAE",      f"{summary['avg_mae_pts']:.2f} pts")
+            r3[1].metric("Avg MFE",      f"{summary['avg_mfe_pts']:.2f} pts")
+            r3[2].metric("MAE R",        f"{summary['avg_mae_R']:.2f}")
+            r3[3].metric("MFE R",        f"{summary['avg_mfe_R']:.2f}")
+            r3[4].metric("Largest Win",  f"${summary['largest_win']:+.0f}")
+            r3[5].metric("Largest Loss", f"${summary['largest_loss']:+.0f}")
+
+            total_slip_tks = (entry_slip + exit_slip) * summary["n_trades"]
+            total_slip_usd = total_slip_tks * tick_value * contracts
+            total_cost_usd = total_slip_usd + summary["commission_total"]
+            r4 = st.columns(6)
+            r4[0].metric("Slippage",     f"{total_slip_tks} tks  /  ${total_slip_usd:.0f}")
+            r4[1].metric("Commission",   f"${summary['commission_total']:.0f}")
+            r4[2].metric("Total Cost",   f"${total_cost_usd:.0f}")
+            r4[3].metric("Max Drawdown", f"${summary['max_dd']:,.0f}")
+            r4[4].metric("Trading Days", f"{summary['trading_days']}")
+        else:
+            st.info("No filled trades in the selected range.")
+
+    # ── Monthly breakdown ──────────────────────────────────────────────────────
+    _show_monthly_breakdown(results, commission)
 
     # ── Unfilled signals ──────────────────────────────────────────────────────
     _show_unfilled_table(results, ticks_by_date)
 
     # ── Per-day chart ─────────────────────────────────────────────────────────
-    st.subheader("Daily Chart")
+    in_range   = results[(results["Date"] >= date_from) & (results["Date"] <= date_to)]
+    filled_all = in_range[in_range["Filled"]]
 
-    # Date selector — dates with at least one signal in range
-    in_range = results[(results["Date"] >= date_from) & (results["Date"] <= date_to)]
-    signal_dates = sorted(in_range["Date"].unique())
-
-    if not signal_dates:
-        st.info("No signals in selected date range.")
-        return
-
-    if "ba_chart_idx" not in st.session_state:
-        st.session_state["ba_chart_idx"] = len(signal_dates) - 1
-    st.session_state["ba_chart_idx"] = min(st.session_state["ba_chart_idx"], len(signal_dates) - 1)
-
-    cc1, cc2, cc3 = st.columns([1, 1, 14])
-    if cc1.button("‹", key="ba_prev"):
-        st.session_state["ba_chart_idx"] = max(0, st.session_state["ba_chart_idx"] - 1)
-    if cc2.button("›", key="ba_next"):
-        st.session_state["ba_chart_idx"] = min(len(signal_dates) - 1, st.session_state["ba_chart_idx"] + 1)
-
-    # No key on the selectbox — index parameter drives it; buttons update ba_chart_idx
-    selected_date = cc3.selectbox(
-        "Date", options=signal_dates,
-        index=st.session_state["ba_chart_idx"],
-        format_func=lambda d: pd.Timestamp(d).strftime("%A %b %d, %Y"),
-    )
-    st.session_state["ba_chart_idx"] = list(signal_dates).index(selected_date)
-
-    day_bars    = bars[bars["Date"] == selected_date].drop(columns="Date").reset_index(drop=True)
-    day_results = results[results["Date"] == selected_date]
-
-    if len(day_bars) < 81:
-        first_bar_time = day_bars.iloc[0]["DateTime"].strftime("%H:%M") if not day_bars.empty else "?"
-        st.warning(f"Incomplete data: {len(day_bars)} bars, starts {first_bar_time} (not 08:30). "
-                   "Bar numbers reflect position from 08:30.")
-
-    show_bar_nums = st.checkbox("Show bar numbers", value=False, key="ba_show_bar_nums")
-
-    if not day_bars.empty:
-        fig = make_analysis_chart(
-            day_bars, day_results,
-            pd.Timestamp(selected_date).strftime("%B %d, %Y"),
-            show_bar_nums=show_bar_nums,
-            excl_first_n=excl_first_n,
-            excl_last_min=excl_last_min,
-            contract=contract,
+    with st.expander("📈 Daily Chart", expanded=True):
+        _trade_filter = st.radio(
+            "Show dates with:", ["All signals", "Winners only", "Losers only"],
+            horizontal=True, key="ba_trade_filter",
         )
-        st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.warning("No bar data for this date.")
+
+        if _trade_filter == "Winners only":
+            _win_dates   = set(filled_all.loc[filled_all["ExitReason"] == "Target", "Date"])
+            signal_dates = sorted(d for d in in_range["Date"].unique() if d in _win_dates)
+        elif _trade_filter == "Losers only":
+            _loss_dates  = set(filled_all.loc[filled_all["ExitReason"] == "Stop", "Date"])
+            signal_dates = sorted(d for d in in_range["Date"].unique() if d in _loss_dates)
+        else:
+            signal_dates = sorted(in_range["Date"].unique())
+
+        if not signal_dates:
+            label = "winners" if _trade_filter == "Winners only" else "losers"
+            st.info(f"No dates with {label} in the selected range.")
+            return
+
+        if st.session_state.get("_last_trade_filter") != _trade_filter:
+            st.session_state["ba_chart_idx"] = len(signal_dates) - 1
+            st.session_state["_last_trade_filter"] = _trade_filter
+
+        if "ba_chart_idx" not in st.session_state:
+            st.session_state["ba_chart_idx"] = len(signal_dates) - 1
+        st.session_state["ba_chart_idx"] = min(st.session_state["ba_chart_idx"], len(signal_dates) - 1)
+
+        cc1, cc2, cc3 = st.columns([1, 1, 14])
+        if cc1.button("‹", key="ba_prev"):
+            st.session_state["ba_chart_idx"] = max(0, st.session_state["ba_chart_idx"] - 1)
+        if cc2.button("›", key="ba_next"):
+            st.session_state["ba_chart_idx"] = min(len(signal_dates) - 1, st.session_state["ba_chart_idx"] + 1)
+
+        selected_date = cc3.selectbox(
+            "Date", options=signal_dates,
+            index=st.session_state["ba_chart_idx"],
+            format_func=lambda d: pd.Timestamp(d).strftime("%A %b %d, %Y"),
+        )
+        st.session_state["ba_chart_idx"] = list(signal_dates).index(selected_date)
+
+        day_bars    = bars[bars["Date"] == selected_date].drop(columns="Date").reset_index(drop=True)
+        day_results = results[results["Date"] == selected_date]
+
+        if len(day_bars) < 81:
+            first_bar_time = day_bars.iloc[0]["DateTime"].strftime("%H:%M") if not day_bars.empty else "?"
+            st.warning(f"Incomplete data: {len(day_bars)} bars, starts {first_bar_time} (not 08:30). "
+                       "Bar numbers reflect position from 08:30.")
+
+        ctrl_l, ctrl_r = st.columns(2)
+        show_bar_nums = ctrl_l.checkbox("Show bar numbers", value=False, key="ba_show_bar_nums")
+        show_hover    = ctrl_r.checkbox("Show hover labels", value=True, key="ba_show_hover")
+
+        if not day_bars.empty:
+            fig = make_analysis_chart(
+                day_bars, day_results,
+                pd.Timestamp(selected_date).strftime("%B %d, %Y"),
+                show_bar_nums=show_bar_nums,
+                excl_first_n=excl_first_n,
+                excl_last_min=excl_last_min,
+                contract=contract,
+                show_hover=show_hover,
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("No bar data for this date.")
 
     # ── Signal table for selected day ─────────────────────────────────────────
     with st.expander(f"Signal Table — {pd.Timestamp(selected_date).strftime('%b %d, %Y')}"
@@ -1340,8 +1751,11 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         filtered_signals, ticks_by_date,
         entry_slip, exit_slip, stop_offset,
         tick_value, contracts, commission,
+        bars_by_date=bars_by_date_sim,
     )
 
     # ── Bar data mismatch analysis ────────────────────────────────────────────
     if nt_bars is not None and not nt_bars.empty:
-        _show_mismatch_analysis(results, bars, nt_bars)
+        st.markdown("---")
+        with st.expander("🔍 Bar Data Mismatch Analysis", expanded=False):
+            _show_mismatch_analysis(results, bars, nt_bars)
