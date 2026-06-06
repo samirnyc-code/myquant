@@ -147,25 +147,43 @@ def _simulate_one(
     sig_dt, direction: str, signal_price: float, stop_csv: float,
     day_ticks: pd.DataFrame,
     target_r: float, entry_slip: int, exit_slip: int, stop_offset: int, tv: float,
+    manual_fill: dict | None = None,   # {"fill_price": float, "fill_bar": int}
 ) -> dict:
+    from data_loader import RTH_START_MIN
     ts      = TICK_SIZE
     is_long = direction == "Long"
 
-    # Ticks strictly after signal bar close
     after = day_ticks[day_ticks["DateTime"] > sig_dt]
     if after.empty:
         return {"ok": False, "FilterStatus": "no_next_bar"}
 
-    first_tick      = after.iloc[0]
-    first_tick_px   = first_tick["Price"]
+    if manual_fill is not None:
+        # Manual override: bypass fill check, start scan from the specified bar
+        fill_bar    = int(manual_fill["fill_bar"])
+        fill_px_raw = float(manual_fill["fill_price"])
+        bar_open_min = RTH_START_MIN + (fill_bar - 1) * 5
+        sig_date     = pd.Timestamp(sig_dt).normalize()
+        bar_open_dt  = sig_date + pd.Timedelta(minutes=bar_open_min)
+        scan_ticks   = day_ticks[day_ticks["DateTime"] >= bar_open_dt]
+        if scan_ticks.empty:
+            return {"ok": False, "FilterStatus": "no_tick_data"}
+        first_tick_px = fill_px_raw
+        entry_dt      = scan_ticks.iloc[0]["DateTime"]
+        prices        = scan_ticks["Price"].values
+        times         = scan_ticks["DateTime"].values
+    else:
+        first_tick    = after.iloc[0]
+        first_tick_px = first_tick["Price"]
+        # Fill condition: first tick must be at/through signal price (stop order)
+        if is_long  and first_tick_px < signal_price:
+            return {"ok": False, "FilterStatus": "no_fill"}
+        if not is_long and first_tick_px > signal_price:
+            return {"ok": False, "FilterStatus": "no_fill"}
+        entry_dt = first_tick["DateTime"]
+        prices   = after["Price"].values
+        times    = after["DateTime"].values
 
-    # Fill condition: first tick must be at/through signal price (stop order)
-    if is_long  and first_tick_px < signal_price:
-        return {"ok": False, "FilterStatus": "no_fill"}
-    if not is_long and first_tick_px > signal_price:
-        return {"ok": False, "FilterStatus": "no_fill"}
-
-    # Actual entry = first tick price ± entry slippage
+    # Actual entry = fill price ± entry slippage
     actual_entry = first_tick_px + (entry_slip * ts if is_long else -entry_slip * ts)
 
     # Actual stop = CSV stop ± stop_offset ticks (one extra tick beyond level)
@@ -176,12 +194,9 @@ def _simulate_one(
         return {"ok": False, "FilterStatus": "zero_risk"}
 
     target_price = actual_entry + (target_r * risk_pts if is_long else -target_r * risk_pts)
-    entry_dt     = first_tick["DateTime"]
     entry_bar    = bar_num_from_dt(entry_dt)
 
     # Scan for exit + MAE/MFE
-    prices = after["Price"].values
-    times  = after["DateTime"].values
 
     exit_px_raw  = float(prices[-1])
     exit_dt_raw  = times[-1]
@@ -275,6 +290,7 @@ def simulate_trades(
     tick_value: float,
     contracts: int,
     commission: float,
+    overrides: dict | None = None,   # {signal_num: {"fill_price": float, "fill_bar": int}}
 ) -> pd.DataFrame:
     tv   = tick_value * contracts
     rows = []
@@ -285,7 +301,9 @@ def simulate_trades(
         base.update(_EMPTY_TRADE)
         base["FilterStatus"] = sig.get("FilterStatus", "ok")  # restore after update
 
-        if base["FilterStatus"] != "ok":
+        manual_fill = (overrides or {}).get(int(base.get("SignalNum", -1)))
+
+        if base["FilterStatus"] != "ok" and not manual_fill:
             rows.append(base)
             continue
 
@@ -298,6 +316,7 @@ def simulate_trades(
         res = _simulate_one(
             base["DateTime"], base["Direction"], base["SignalPrice"], base["StopPrice"],
             day_ticks, target_r, entry_slip, exit_slip, stop_offset, tv,
+            manual_fill=manual_fill,
         )
 
         if not res.get("ok", False):
@@ -305,12 +324,13 @@ def simulate_trades(
             rows.append(base)
             continue
 
-        # Merge simulation result into base row
         for k, v in res.items():
             if k != "ok":
                 base[k] = v
-        base["Filled"]  = True
-        base["NetPnL"]  = base["GrossPnL"] - commission
+        base["Filled"]   = True
+        base["NetPnL"]   = base["GrossPnL"] - commission
+        if manual_fill:
+            base["FilterStatus"] = "manual_override"
         rows.append(base)
 
     df = pd.DataFrame(rows)
@@ -766,6 +786,131 @@ def _show_optimal_r(signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
         st.plotly_chart(fig, use_container_width=True)
 
 
+# ── Unfilled signals table ────────────────────────────────────────────────────
+
+_FILTER_LABELS = {
+    "no_fill":        "Price never crossed signal level",
+    "no_next_bar":    "No ticks after signal bar close",
+    "no_tick_data":   "No tick data for this date",
+    "zero_risk":      "Stop distance is zero",
+    "holiday":        "NYSE holiday",
+    "dow":            "Day-of-week excluded",
+    "event":          "Economic event window",
+    "first_bars":     "Within excluded opening bars",
+    "last_bars":      "Within excluded closing window",
+    "signal_type":    "Signal type excluded (CC3/CC4)",
+    "date_range":     "Outside selected date range",
+    "first_trade_day":"Non-first trade of day",
+    "manual_override":"Manual fill override ✓",
+}
+
+_EXECUTION_STATUSES = {"no_fill", "no_next_bar", "no_tick_data", "zero_risk"}
+
+
+def _missed_by_ticks(sig_row, ticks_by_date: dict):
+    """For a no_fill signal, how many ticks did price miss the signal level by?"""
+    day_ticks = ticks_by_date.get(sig_row["Date"])
+    if day_ticks is None:
+        return None
+    after = day_ticks[day_ticks["DateTime"] > sig_row["DateTime"]]
+    if after.empty:
+        return None
+    sp = sig_row["SignalPrice"]
+    prices = after["Price"]
+    if sig_row["Direction"] == "Long":
+        closest = prices.max()
+        return None if closest >= sp else int(round((sp - closest) / TICK_SIZE))
+    else:
+        closest = prices.min()
+        return None if closest <= sp else int(round((closest - sp) / TICK_SIZE))
+
+
+def _show_unfilled_table(results: pd.DataFrame, ticks_by_date: dict):
+    st.markdown("---")
+    st.subheader("⚠️ Unfilled & Filtered Signals")
+
+    # ── Signals that passed filters but didn't execute ────────────────────────
+    exec_failed = results[results["FilterStatus"].isin(_EXECUTION_STATUSES)].copy()
+
+    with st.expander(f"Execution failures — {len(exec_failed)} signals", expanded=True):
+        if exec_failed.empty:
+            st.success("All filter-passing signals were filled.")
+        else:
+            exec_failed["Reason"] = exec_failed["FilterStatus"].map(_FILTER_LABELS)
+            exec_failed["Missed by (ticks)"] = exec_failed.apply(
+                lambda r: _missed_by_ticks(r, ticks_by_date)
+                          if r["FilterStatus"] == "no_fill" else None,
+                axis=1,
+            )
+            disp = pd.DataFrame({
+                "Date":      exec_failed["Date"].astype(str),
+                "Bar":       exec_failed["BarNum"].astype(int),
+                "Dir":       exec_failed["Direction"],
+                "Signal Px": exec_failed["SignalPrice"].round(2),
+                "Stop Px":   exec_failed["StopPrice"].round(2),
+                "Reason":    exec_failed["Reason"],
+                "Missed by": exec_failed["Missed by (ticks)"].apply(
+                    lambda v: f"{v} tks" if pd.notna(v) else "—"
+                ),
+            })
+            st.dataframe(disp, use_container_width=True, hide_index=True)
+
+        # ── Manual fill override form ─────────────────────────────────────────
+        st.markdown("**Manual Fill Override**")
+        overrides = st.session_state.get("ba_manual_overrides", {})
+
+        fillable = results[results["FilterStatus"].isin({"no_fill", "no_next_bar"})].copy()
+        if not fillable.empty:
+            ov_cols = st.columns([2, 2, 2, 1])
+            sig_opts = {
+                f"#{int(r['SignalNum'])} — {r['Date']} Bar {int(r['BarNum'])} {r['Direction']} @ {r['SignalPrice']:.2f}": int(r["SignalNum"])
+                for _, r in fillable.iterrows()
+            }
+            sel_label = ov_cols[0].selectbox("Signal", list(sig_opts.keys()),
+                                              key="ov_sig_sel", label_visibility="collapsed")
+            sel_num   = sig_opts[sel_label]
+            sel_sig   = fillable[fillable["SignalNum"] == sel_num].iloc[0]
+            fill_px   = ov_cols[1].number_input("Fill Price", value=float(sel_sig["SignalPrice"]),
+                                                 step=0.25, format="%.2f", key="ov_fill_px",
+                                                 label_visibility="collapsed")
+            fill_bar  = ov_cols[2].number_input("Entry Bar #", value=int(sel_sig["BarNum"]) + 1,
+                                                 min_value=1, max_value=81, step=1,
+                                                 key="ov_fill_bar", label_visibility="collapsed")
+            if ov_cols[3].button("Add", use_container_width=True):
+                overrides[sel_num] = {"fill_price": fill_px, "fill_bar": int(fill_bar)}
+                st.session_state["ba_manual_overrides"] = overrides
+                st.rerun()
+        else:
+            st.caption("No fillable signals to override.")
+
+        # Active overrides
+        if overrides:
+            st.caption("Active overrides:")
+            for sig_num, ov in list(overrides.items()):
+                r1, r2 = st.columns([6, 1])
+                r1.caption(f"Signal #{sig_num} — fill @ {ov['fill_price']:.2f}  bar {ov['fill_bar']}")
+                if r2.button("✕", key=f"rm_ov_{sig_num}"):
+                    del overrides[sig_num]
+                    st.session_state["ba_manual_overrides"] = overrides
+                    st.rerun()
+
+    # ── Signals filtered by user settings ────────────────────────────────────
+    filtered = results[~results["FilterStatus"].isin(_EXECUTION_STATUSES | {"ok", "manual_override"})].copy()
+    with st.expander(f"Filtered by settings — {len(filtered)} signals", expanded=False):
+        if filtered.empty:
+            st.info("No signals filtered by current settings.")
+        else:
+            filtered["Reason"] = filtered["FilterStatus"].map(_FILTER_LABELS).fillna(filtered["FilterStatus"])
+            disp = pd.DataFrame({
+                "Date":      filtered["Date"].astype(str),
+                "Bar":       filtered["BarNum"].astype(int),
+                "Dir":       filtered["Direction"],
+                "Signal Px": filtered["SignalPrice"].round(2),
+                "Reason":    filtered["Reason"],
+            })
+            st.dataframe(disp, use_container_width=True, hide_index=True)
+
+
 # ── Mismatch analysis ─────────────────────────────────────────────────────────
 
 def _show_mismatch_analysis(results: pd.DataFrame, sc_bars: pd.DataFrame, nt_bars: pd.DataFrame):
@@ -1085,6 +1230,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         filtered_signals, ticks_by_date, target_r,
         entry_slip, exit_slip, stop_offset,
         tick_value, contracts, commission,
+        overrides=st.session_state.get("ba_manual_overrides"),
     )
 
     # When first_trade_only is active, drop non-first-trade signals from all display/metrics
@@ -1124,6 +1270,9 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         r3[5].metric("Largest Loss", f"${summary['largest_loss']:+.0f}")
     else:
         st.info("No filled trades in the selected range.")
+
+    # ── Unfilled signals ──────────────────────────────────────────────────────
+    _show_unfilled_table(results, ticks_by_date)
 
     # ── Per-day chart ─────────────────────────────────────────────────────────
     st.subheader("Daily Chart")
