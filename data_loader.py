@@ -103,6 +103,65 @@ def load_sc_ticks(sc_file_path: str = str(SC_FILE)) -> pd.DataFrame:
 
 # ── Upload parsers (no cache — data comes from Streamlit UploadedFile) ────────
 
+def resample_ticks_to_bars(ticks: pd.DataFrame) -> pd.DataFrame:
+    """Build 5-min RTH bars from a (DateTime, Price, Volume) ticks DataFrame."""
+    if ticks.empty:
+        return pd.DataFrame(columns=["DateTime", "Open", "High", "Low", "Close", "Volume"])
+    df = ticks.set_index("DateTime").rename(columns={"Price": "Last"})
+    bars = (
+        df.resample("5min", closed="left", label="left")
+        .agg(Open=("Last", "first"), High=("Last", "max"),
+             Low=("Last", "min"),  Close=("Last", "last"), Volume=("Volume", "sum"))
+        .dropna(subset=["Open"])
+    )
+    bars = bars[
+        (bars.index.time >= pd.Timestamp(RTH_START).time()) &
+        (bars.index.time <  pd.Timestamp(RTH_END).time())
+    ]
+    return bars.reset_index()
+
+
+def parse_nt_ticks_from_upload(uploaded_file) -> pd.DataFrame:
+    """Parse NT8 tick export: YYYYMMDD HHMMSS SUBSEC100NS;Price;Bid;Ask;Volume
+    No header row. SUBSEC is in 100-nanosecond units.
+    RTH ticks only (08:30–15:15 CT). Returns DataFrame: DateTime, Price, Volume."""
+    uploaded_file.seek(0)
+    chunks = []
+    for chunk in pd.read_csv(
+        uploaded_file,
+        sep=r"[ ;]",
+        engine="python",
+        header=None,
+        names=["date", "time", "subsec", "price", "bid", "ask", "volume"],
+        dtype=str,
+        na_filter=False,
+        chunksize=500_000,
+        on_bad_lines="skip",
+    ):
+        chunk["time"] = chunk["time"].str.strip()
+        t_fmt = (chunk["time"].str[:2] + ":" +
+                 chunk["time"].str[2:4] + ":" +
+                 chunk["time"].str[4:6])
+        mask = (t_fmt >= RTH_START) & (t_fmt <= RTH_END)
+        chunk = chunk.loc[mask].copy()
+        if chunk.empty:
+            continue
+        base_dt = pd.to_datetime(
+            chunk["date"].str.strip() + chunk["time"].str.strip(),
+            format="%Y%m%d%H%M%S", errors="coerce",
+        )
+        subsec_100ns = pd.to_numeric(chunk["subsec"].str.strip(), errors="coerce").fillna(0)
+        chunk["DateTime"] = base_dt + pd.to_timedelta(subsec_100ns * 100, unit="ns")
+        chunk["Price"]    = pd.to_numeric(chunk["price"],  errors="coerce")
+        chunk["Volume"]   = pd.to_numeric(chunk["volume"], errors="coerce").fillna(0).astype("int32")
+        chunks.append(chunk[["DateTime", "Price", "Volume"]])
+    if not chunks:
+        return pd.DataFrame(columns=["DateTime", "Price", "Volume"])
+    return (pd.concat(chunks, ignore_index=True)
+              .dropna(subset=["DateTime", "Price"])
+              .sort_values("DateTime")
+              .reset_index(drop=True))
+
 def _sc_detect_sep(uploaded_file) -> str:
     """Peek at the first line to detect the delimiter (comma or tab)."""
     uploaded_file.seek(0)

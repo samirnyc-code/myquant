@@ -1,9 +1,10 @@
+import re
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 from data_loader import (load_sc_bars, CONTRACTS, bar_num_from_dt,
-                         parse_sc_bars_from_upload, parse_sc_ticks_from_upload,
-                         parse_ohlc_from_upload)
+                         parse_sc_ticks_from_upload, parse_nt_ticks_from_upload,
+                         resample_ticks_to_bars, parse_ohlc_from_upload)
 import validation
 import bar_analysis
 
@@ -191,8 +192,8 @@ def main():
     with st.expander("📁 Upload Data", expanded=False):
         up_l, up_r = st.columns(2)
         tick_file = up_l.file_uploader(
-            "SC Tick Data (.txt)", type=["txt", "csv"], key="upload_tick",
-            help="Sierra Charts BarData format — builds 5-min bars and feeds all three tabs",
+            "Tick Data (.txt)", type=["txt", "csv"], key="upload_tick",
+            help="SC BarData (Date,Time,…,Last,Volume) or NT8 tick export (YYYYMMDD HHMMSS SUBSEC;Price;Bid;Ask;Vol) — auto-detected",
         )
         ohlc_file = up_r.file_uploader(
             "OHLC 5M bar_export (.txt/.csv)", type=["txt", "csv"], key="upload_ohlc",
@@ -203,12 +204,26 @@ def main():
         if tick_file is not None:
             tick_key = f"{tick_file.name}_{tick_file.size}"
             if st.session_state.get("uploaded_sc_key") != tick_key:
-                with st.spinner("Building bars from uploaded tick data…"):
-                    st.session_state["uploaded_sc_bars"]  = parse_sc_bars_from_upload(tick_file)
-                    tick_file.seek(0)
-                    st.session_state["uploaded_sc_ticks"] = parse_sc_ticks_from_upload(tick_file)
+                # Auto-detect format from first line
+                tick_file.seek(0)
+                peek = tick_file.read(200)
+                if isinstance(peek, bytes):
+                    peek = peek.decode("utf-8", errors="replace")
+                first_line = peek.split("\n")[0].strip()
+                tick_file.seek(0)
+                is_nt = bool(re.match(r"^\d{8} \d{6} \d+;", first_line))
+                fmt_label = "NT8" if is_nt else "SC"
+
+                with st.spinner(f"Parsing {fmt_label} tick data…"):
+                    if is_nt:
+                        ticks = parse_nt_ticks_from_upload(tick_file)
+                    else:
+                        ticks = parse_sc_ticks_from_upload(tick_file)
+                    st.session_state["uploaded_sc_ticks"] = ticks
+                    st.session_state["uploaded_sc_bars"]  = resample_ticks_to_bars(ticks)
                 st.session_state["uploaded_sc_key"] = tick_key
             n_days = st.session_state["uploaded_sc_bars"]["DateTime"].dt.date.nunique()
+            fmt = "NT8" if re.match(r"^\d{8}", tick_file.name) else "SC"
             up_l.caption(f"✅ {tick_file.name}  |  {n_days} trading days loaded")
         else:
             for k in ("uploaded_sc_bars", "uploaded_sc_ticks", "uploaded_sc_key"):
