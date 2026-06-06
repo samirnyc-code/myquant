@@ -214,13 +214,15 @@ def main():
                 is_nt = bool(re.match(r"^\d{8} \d{6} \d+;", first_line))
                 fmt_label = "NT8" if is_nt else "SC"
 
-                with st.spinner(f"Parsing {fmt_label} tick data…"):
-                    if is_nt:
-                        ticks = parse_nt_ticks_from_upload(tick_file)
-                    else:
-                        ticks = parse_sc_ticks_from_upload(tick_file)
-                    st.session_state["uploaded_sc_ticks"] = ticks
-                    st.session_state["uploaded_sc_bars"]  = resample_ticks_to_bars(ticks)
+                st.caption(f"Parsing {fmt_label} tick file ({tick_file.size / 1e6:.0f} MB) — large files take 1–2 min…")
+                pbar = st.progress(0)
+                if is_nt:
+                    ticks = parse_nt_ticks_from_upload(tick_file, progress=pbar.progress)
+                else:
+                    ticks = parse_sc_ticks_from_upload(tick_file)
+                pbar.progress(1.0)
+                st.session_state["uploaded_sc_ticks"] = ticks
+                st.session_state["uploaded_sc_bars"]  = resample_ticks_to_bars(ticks)
                 st.session_state["uploaded_sc_key"] = tick_key
             n_days = st.session_state["uploaded_sc_bars"]["DateTime"].dt.date.nunique()
             fmt = "NT8" if re.match(r"^\d{8}", tick_file.name) else "SC"

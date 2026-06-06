@@ -121,46 +121,68 @@ def resample_ticks_to_bars(ticks: pd.DataFrame) -> pd.DataFrame:
     return bars.reset_index()
 
 
-def parse_nt_ticks_from_upload(uploaded_file) -> pd.DataFrame:
+_RTH_START_S = RTH_START.replace(":", "")  # "083000"
+_RTH_END_S   = RTH_END.replace(":", "")    # "151500"
+
+
+def parse_nt_ticks_from_upload(uploaded_file, progress=None) -> pd.DataFrame:
     """Parse NT8 tick export: YYYYMMDD HHMMSS SUBSEC100NS;Price;Bid;Ask;Volume
     No header row. SUBSEC is in 100-nanosecond units.
-    RTH ticks only (08:30–15:15 CT). Returns DataFrame: DateTime, Price, Volume."""
+    RTH ticks only (08:30–15:15 CT). Returns DataFrame: DateTime, Price, Volume.
+    progress: optional callable(fraction 0–1) for UI progress updates."""
     uploaded_file.seek(0)
-    chunks = []
-    # Use C engine with semicolon — first column is "YYYYMMDD HHMMSS SUBSEC" (space-joined)
+    file_size   = getattr(uploaded_file, "size", None)
+    tick_chunks = []
+    bytes_read  = 0
+
     for chunk in pd.read_csv(
         uploaded_file,
         sep=";",
         header=None,
-        names=["ts", "price", "bid", "ask", "volume"],
+        usecols=[0, 1, 4],        # skip bid (col 2) and ask (col 3)
         dtype=str,
         na_filter=False,
         chunksize=500_000,
         on_bad_lines="skip",
     ):
+        chunk.columns = ["ts", "price", "volume"]
+
         # Split "YYYYMMDD HHMMSS SUBSEC" on whitespace
         ts_parts = chunk["ts"].str.strip().str.split(expand=True)
-        if ts_parts.shape[1] < 3:
+        if ts_parts.shape[1] < 2:
             continue
         time_s = ts_parts[1]
-        # RTH filter using HHMMSS string comparison
-        rth_start_s = RTH_START.replace(":", "")   # "083000"
-        rth_end_s   = RTH_END.replace(":", "")     # "151500"
-        mask = (time_s >= rth_start_s) & (time_s <= rth_end_s)
+
+        mask = (time_s >= _RTH_START_S) & (time_s <= _RTH_END_S)
         if not mask.any():
+            if progress and file_size:
+                bytes_read += chunk.memory_usage(deep=False).sum()
+                progress(min(bytes_read / file_size, 0.99))
             continue
-        date_s   = ts_parts[0][mask]
-        time_s   = time_s[mask]
-        subsec   = ts_parts[2][mask]
-        base_dt  = pd.to_datetime(date_s + time_s, format="%Y%m%d%H%M%S", errors="coerce")
-        subsec_ns = pd.to_numeric(subsec, errors="coerce").fillna(0) * 100
-        dt = base_dt + pd.to_timedelta(subsec_ns, unit="ns")
+
+        date_s = ts_parts[0][mask]
+        time_s = time_s[mask]
+        base_dt = pd.to_datetime(date_s + time_s, format="%Y%m%d%H%M%S", errors="coerce")
+
+        if ts_parts.shape[1] >= 3:
+            subsec_ns = pd.to_numeric(ts_parts[2][mask], errors="coerce").fillna(0) * 100
+            dt = base_dt + pd.to_timedelta(subsec_ns, unit="ns")
+        else:
+            dt = base_dt
+
         price  = pd.to_numeric(chunk["price"][mask],  errors="coerce")
         volume = pd.to_numeric(chunk["volume"][mask], errors="coerce").fillna(0).astype("int32")
-        chunks.append(pd.DataFrame({"DateTime": dt.values, "Price": price.values, "Volume": volume.values}))
-    if not chunks:
+        tick_chunks.append(pd.DataFrame({
+            "DateTime": dt.values, "Price": price.values, "Volume": volume.values,
+        }))
+
+        if progress and file_size:
+            bytes_read += chunk.memory_usage(deep=False).sum()
+            progress(min(bytes_read / file_size, 0.99))
+
+    if not tick_chunks:
         return pd.DataFrame(columns=["DateTime", "Price", "Volume"])
-    return (pd.concat(chunks, ignore_index=True)
+    return (pd.concat(tick_chunks, ignore_index=True)
               .dropna(subset=["DateTime", "Price"])
               .sort_values("DateTime")
               .reset_index(drop=True))
