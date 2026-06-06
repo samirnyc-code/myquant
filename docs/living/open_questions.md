@@ -64,3 +64,13 @@ If we add at 0.5R pullback and the stop stays at the original level, the dollar 
 
 **Q11: What triggers scale-in — tick data or bar close?**
 Current simulator uses tick data for entry fills (stop-order: price must trade through the level). Scale-in at a PB level likely uses the same logic. Confirm: scale-in fills are tick-based, same as initial entry.
+
+---
+
+## Trade Configuration UI
+
+**Q12: Should slippage and commission be per-trade-mode or global?**
+Currently each column (Single Leg, 2-Leg) has its own entry slip, exit slip, stop offset, and commission inputs. This lets you model different assumptions per mode but adds inputs to fill in. Alternative: a single shared Execution section above the columns that applies to all modes. Which is more useful in practice?
+
+**Q13: Is the single-leg "BE Stop" sub-mode the right design, or should it be its own 2nd column?**
+Currently "BE Stop" (T1 moves stop to break-even, full position exits at T2) is a radio inside the Single Leg column (`ba_sl_mode = "AIAO" | "BE Stop"`). But mechanically it uses the same 2-phase multileg path as "2-Leg" mode — the only difference is all contracts are on Leg 2. Could be argued it belongs in the 2-Leg column with `C₁=0`. Decide before building 3-leg.

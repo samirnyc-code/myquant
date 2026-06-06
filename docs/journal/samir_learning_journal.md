@@ -406,4 +406,19 @@ The Setup Analysis table was showing win rates around 11% when the real number w
 | **Risk pts auto-scaling** | In the ES simulator, `risk_pts = entry - stop`. Modifying the stop before simulation automatically scales both the target price and the dollar value of 1R. Target R ratio is preserved. |
 | **`_ml_invalid` flag pattern** | For input validation in multi-column UIs: use a flag, not a mode override. Keep the column visible, degrade the simulation path, show a warning. Don't hide the widget the user needs to fix. |
 | **matplotlib required for `background_gradient`** | `pandas Styler.background_gradient` requires matplotlib as a backend. It's not installed by default in a fresh venv. `pip install matplotlib` if you see `ImportError: Import matplotlib failed`. |
+| **`disabled=True` on Streamlit inputs** | Passes `disabled=True` to `st.number_input`, `st.radio`, etc. — widget renders greyed-out, user cannot interact, but the stored value is still readable by Python. Inactive columns stay visible (values preserved for when you switch back) but their values are ignored in the derive block. |
+| **Session state key migration with fallbacks** | When renaming widget keys (e.g., `ba_entry_slip` → `ba_entry_slip_sl`), use `st.session_state.get("ba_entry_slip_sl", st.session_state.get("ba_entry_slip", 0.0))` as the `value=` parameter. New key wins when it exists; old key is the fallback for users who haven't yet saved new defaults. No migration script needed. |
+
+#### Multi-column trade config — the pattern
+
+When a UI needs to support N mutually exclusive modes (Single Leg, 2-Leg, 3-Leg), the cleanest Streamlit pattern is:
+
+1. A top-level `st.radio` (persistent selection, survives all reruns — see Tag 7 `st.button` trap)
+2. `N` columns side by side, always visible
+3. Each column's inputs carry `disabled=not is_active`
+4. A derive block *after* the columns that reads from the active column's variables and assigns them to plain names used by the rest of the code
+
+The inactive columns stay visible so the user can see what they'd get if they switch. Values are preserved. Adding a 3rd column later means adding one more `with _col_3l:` block and one more branch in the derive block — no other code changes.
+
+The key discipline: the derive block is the **single handoff point** between UI and simulation. Every variable that flows into `simulate_trades()` comes from the derive block, not directly from a widget. This makes it easy to add modes, validation, or overrides without touching the simulation code.
 

@@ -1,6 +1,6 @@
 # Roadmap
 **Status:** Living — update every session  
-**Last Updated:** June 6, 2026  
+**Last Updated:** June 7, 2026  
 **Rule:** This is the only source of truth for what gets built and in what order.  
 **Rule:** Phases are sequential within each track. Do not start a phase until its prerequisite passes.
 
@@ -87,8 +87,9 @@ These are not build phases — they are analytical obligations that run as Track
 
 ---
 
-## Active — June 6, 2026
+## Active — June 7, 2026
 
+### Done (committed)
 - [x] Bar Validation module built and working
 - [x] NYSE holiday exclusion via exchange-calendars
 - [x] Economic event filter: FOMC/NFP/CPI — Skip full day or Window ±N min
@@ -99,13 +100,24 @@ These are not build phases — they are analytical obligations that run as Track
 - [x] Day of Week filter (Mon–Fri include checkboxes)
 - [x] Charts always show full dataset; excluded zones shaded with grey overlay
 - [x] Bar Viewer: ‹/› prev/next navigation, bar numbers on candlestick, collapsible bar table
-- [x] Candlestick shading synced from Bar Validation session boundary filters
-- [x] Summary strip: Trading Days added, rows reorganised
+- [x] Summary strip: Trading Days, Max Drawdown added
 - [x] **Bar Analysis tab** — full signal simulation engine, per-day charts, signal table, optimal R sweep
 - [x] **Contract selector** — multi-contract registry in data_loader.py; selector auto-hides missing files
 - [x] Bar numbers derived from time (not index) — correct on incomplete days
-- [x] Incomplete-day warning banner (< 81 bars)
 - [x] **File upload** — 📁 Upload Data expander; SC tick → 5-min bars + ticks; OHLC bar_export; feeds all three tabs
+- [x] Setup Analysis table (per-setup CC3/CC4 breakdown, dynamic columns)
+- [x] Monthly Breakdown: equity curve + drawdown + OLS trend + setup% chart
+- [x] Winner/Loser filter on daily chart
+- [x] Optimal R sweep: 1D and T1×T2 2D heatmap
+- [x] Stop multiplier sweep (0.25×–2.00×)
+
+### Coded, NOT YET TESTED — do not commit until tested in running app
+- [ ] **2-leg simulation engine** — `_simulate_one_multileg`, `_simulate_one_bars_multileg`, `simulate_trades` multileg path, `compute_summary` multileg, `_EMPTY_TRADE` multileg fields
+- [ ] **Trade type column layout** — replaces Instrument & Sizing / Execution / 2-Leg sections; Instrument shared above; `st.radio("ba_trade_mode")`; 3 columns (Single Leg / 2-Leg / 3-Leg placeholder); `disabled=True` on inactive columns; derive block outputs plain-named vars
+- [ ] **T1 and T2 chart lines** — T1 dotted teal + "T1 X.XXR" annotation; T2 dashed teal + "T2 X.XXR" annotation; single-leg shows bold R label only
+
+### Near-term backlog
+- [ ] 3-Leg column: build after 2-leg is tested and committed
 - [ ] Add ESH21 2021 tick data file when clean data available
 - [ ] Add ESM1 2021 and ESH2/ESM2 2022 contracts to registry when files ready
 - [ ] Share app + data files with Thomas: upload both data files to Google Drive, run ngrok
