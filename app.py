@@ -1,7 +1,9 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
-from data_loader import load_sc_bars, CONTRACTS, bar_num_from_dt
+from data_loader import (load_sc_bars, CONTRACTS, bar_num_from_dt,
+                         parse_sc_bars_from_upload, parse_sc_ticks_from_upload,
+                         parse_ohlc_from_upload)
 import validation
 import bar_analysis
 
@@ -79,7 +81,8 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
 # ── Bar Viewer tab ────────────────────────────────────────────────────────────
 
 def show_bar_viewer(sc_file: str = "", contract: str = "ES"):
-    bars = load_sc_bars(sc_file) if sc_file else load_sc_bars()
+    uploaded = st.session_state.get("uploaded_sc_bars")
+    bars = uploaded if uploaded is not None else (load_sc_bars(sc_file) if sc_file else load_sc_bars())
     bars["Date"] = bars["DateTime"].dt.date
     dates = sorted(bars["Date"].unique())
 
@@ -179,7 +182,50 @@ def main():
     reload_col = st.columns([11, 1])[1]
     if reload_col.button("🔄 Reload", help="Clears all cached data and reloads from disk."):
         st.cache_data.clear()
+        for k in ("uploaded_sc_bars", "uploaded_sc_ticks", "uploaded_ohlc_bars",
+                  "uploaded_sc_key", "uploaded_ohlc_key"):
+            st.session_state.pop(k, None)
         st.rerun()
+
+    # ── Upload expander ───────────────────────────────────────────────────────
+    with st.expander("📁 Upload Data", expanded=False):
+        up_l, up_r = st.columns(2)
+        tick_file = up_l.file_uploader(
+            "SC Tick Data (.txt)", type=["txt", "csv"], key="upload_tick",
+            help="Sierra Charts BarData format — builds 5-min bars and feeds all three tabs",
+        )
+        ohlc_file = up_r.file_uploader(
+            "OHLC 5M bar_export (.txt/.csv)", type=["txt", "csv"], key="upload_ohlc",
+            help="MM/DD/YYYY HH:MM:SS;O;H;L;C;V — Berlin close times, used in Bar Validation",
+        )
+
+        # Parse tick upload once per unique file (name + size as cache key)
+        if tick_file is not None:
+            tick_key = f"{tick_file.name}_{tick_file.size}"
+            if st.session_state.get("uploaded_sc_key") != tick_key:
+                with st.spinner("Building bars from uploaded tick data…"):
+                    st.session_state["uploaded_sc_bars"]  = parse_sc_bars_from_upload(tick_file)
+                    tick_file.seek(0)
+                    st.session_state["uploaded_sc_ticks"] = parse_sc_ticks_from_upload(tick_file)
+                st.session_state["uploaded_sc_key"] = tick_key
+            n_days = st.session_state["uploaded_sc_bars"]["DateTime"].dt.date.nunique()
+            up_l.caption(f"✅ {tick_file.name}  |  {n_days} trading days loaded")
+        else:
+            for k in ("uploaded_sc_bars", "uploaded_sc_ticks", "uploaded_sc_key"):
+                st.session_state.pop(k, None)
+
+        # Parse OHLC upload once per unique file
+        if ohlc_file is not None:
+            ohlc_key = f"{ohlc_file.name}_{ohlc_file.size}"
+            if st.session_state.get("uploaded_ohlc_key") != ohlc_key:
+                with st.spinner("Parsing OHLC data…"):
+                    st.session_state["uploaded_ohlc_bars"] = parse_ohlc_from_upload(ohlc_file)
+                st.session_state["uploaded_ohlc_key"] = ohlc_key
+            n_days = st.session_state["uploaded_ohlc_bars"]["DateTime"].dt.date.nunique()
+            up_r.caption(f"✅ {ohlc_file.name}  |  {n_days} trading days loaded")
+        else:
+            for k in ("uploaded_ohlc_bars", "uploaded_ohlc_key"):
+                st.session_state.pop(k, None)
 
     tab1, tab2, tab3 = st.tabs(["📊 Bar Viewer", "🔍 Bar Validation", "📈 Bar Analysis"])
 

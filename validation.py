@@ -226,13 +226,31 @@ def _delta_distribution_commentary(matched: pd.DataFrame):
 
 def show_validation_tab(sc_file: str = "", nt_file: str = ""):
     from pathlib import Path
-    nt_path = Path(nt_file) if nt_file else None
-    if nt_path and not nt_path.exists():
-        st.error(f"NT data file not found:\n`{nt_file}`")
-        return
 
-    sc = load_sc_bars(sc_file) if sc_file else load_sc_bars()
-    nt = load_nt_bars(nt_file) if nt_file else load_nt_bars()
+    # Prefer uploaded data when available
+    uploaded_sc   = st.session_state.get("uploaded_sc_bars")
+    uploaded_ohlc = st.session_state.get("uploaded_ohlc_bars")
+
+    if uploaded_sc is not None:
+        sc = uploaded_sc
+        sc_label = "Uploaded SC tick data"
+    else:
+        sc = load_sc_bars(sc_file) if sc_file else load_sc_bars()
+        sc_label = Path(sc_file).name if sc_file else "SC (default)"
+
+    if uploaded_ohlc is not None:
+        nt = uploaded_ohlc
+        nt_label = "Uploaded OHLC bar_export"
+    else:
+        nt_path = Path(nt_file) if nt_file else None
+        if nt_path and not nt_path.exists():
+            st.error(f"NT data file not found:\n`{nt_file}`")
+            return
+        nt = load_nt_bars(nt_file) if nt_file else load_nt_bars()
+        nt_label = Path(nt_file).name if nt_file else "NT (default)"
+
+    if uploaded_sc is not None or uploaded_ohlc is not None:
+        st.caption(f"Data sources — SC: {sc_label}  |  NT/OHLC: {nt_label}")
 
     sc_dates = sc["DateTime"].dt.date
     nt_dates = nt["DateTime"].dt.date

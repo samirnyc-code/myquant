@@ -1,6 +1,6 @@
 # Roadmap
 **Status:** Living — update every session  
-**Last Updated:** June 4, 2026  
+**Last Updated:** June 6, 2026  
 **Rule:** This is the only source of truth for what gets built and in what order.  
 **Rule:** Phases are sequential within each track. Do not start a phase until its prerequisite passes.
 
@@ -87,7 +87,7 @@ These are not build phases — they are analytical obligations that run as Track
 
 ---
 
-## Active — June 5, 2026
+## Active — June 6, 2026
 
 - [x] Bar Validation module built and working
 - [x] NYSE holiday exclusion via exchange-calendars
@@ -105,6 +105,7 @@ These are not build phases — they are analytical obligations that run as Track
 - [x] **Contract selector** — multi-contract registry in data_loader.py; selector auto-hides missing files
 - [x] Bar numbers derived from time (not index) — correct on incomplete days
 - [x] Incomplete-day warning banner (< 81 bars)
+- [x] **File upload** — 📁 Upload Data expander; SC tick → 5-min bars + ticks; OHLC bar_export; feeds all three tabs
 - [ ] Add ESH21 2021 tick data file when clean data available
 - [ ] Add ESM1 2021 and ESH2/ESM2 2022 contracts to registry when files ready
 - [ ] Share app + data files with Thomas: upload both data files to Google Drive, run ngrok

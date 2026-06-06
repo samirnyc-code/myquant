@@ -1,6 +1,6 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** June 5, 2026  
+**Last Updated:** June 6, 2026  
 **Current Versions:** SIM_v3.3 / GS_v4.5 / SHEET_v3.3  
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 
@@ -38,17 +38,18 @@ Nothing in Phase C or beyond starts until all gates above pass.
 
 ---
 
-## Streamlit App (June 5, 2026)
+## Streamlit App (June 6, 2026)
 
-Three-tab app with contract selector. All tabs share cached data loaded by `data_loader.py`.
+Three-tab app with contract selector and file upload. All tabs share cached data loaded by `data_loader.py`.
 
 | File | Purpose |
 |------|---------|
-| `app.py` | Entry point, contract selector, tab layout, Reload button |
-| `data_loader.py` | Contract registry; parameterised loaders for SC bars, SC ticks, NT bars; `bar_num_from_dt()` |
+| `app.py` | Entry point, contract selector, upload expander, tab layout, Reload button |
+| `data_loader.py` | Contract registry; parameterised loaders for SC bars, SC ticks, NT bars; upload parsers; `bar_num_from_dt()` |
 | `validation.py` | Bar Validation tab — SC vs NT comparison |
 | `bar_analysis.py` | Bar Analysis tab — signal sim, charts, R sweep |
 | `economic_calendar.py` | FOMC hardcoded 2015–2026; NFP/CPI via FRED API |
+| `.streamlit/config.toml` | `maxUploadSize = 2000` (MB) |
 | `filter_defaults.json` | Bar Validation persisted defaults — not in git |
 | `ba_filter_defaults.json` | Bar Analysis persisted defaults — not in git |
 
@@ -62,6 +63,14 @@ Three-tab app with contract selector. All tabs share cached data loaded by `data
 - FOMC dates hardcoded 2015–2026; 2026 confirmed from federalreserve.gov on 2026-06-04
 - NFP (release_id=50) and CPI (release_id=10) fetched from FRED API; requires `FRED_API_KEY` in `.streamlit/secrets.toml`
 - `get_economic_events(event_types: tuple, start, end)` returns DataFrame with DateTime (CT, tz-naive), EventType, Color
+
+**Upload expander (📁 Upload Data — above all three tabs):**
+- Left column: SC tick data (.txt) → parsed into 5-min bars (`uploaded_sc_bars`) and raw ticks (`uploaded_sc_ticks`) cached in session state
+- Right column: OHLC bar_export (.txt) → Berlin close → CT open (`uploaded_ohlc_bars`) cached in session state
+- Cache key = `name_size` — re-parses only when a different file is uploaded
+- Reload button clears upload state along with `@st.cache_data`
+- Bar Viewer and Bar Analysis automatically use `uploaded_sc_bars`/`uploaded_sc_ticks` when present; Bar Validation uses `uploaded_sc_bars` + `uploaded_ohlc_bars`; shows data-source caption when uploaded data is active
+- Three parse functions in `data_loader.py`: `parse_sc_bars_from_upload`, `parse_sc_ticks_from_upload`, `parse_ohlc_from_upload`
 
 **Tab 1 — Bar Viewer**
 - ‹/› prev/next buttons + date dropdown → 6 summary metrics → candlestick → collapsible 5-min bar table

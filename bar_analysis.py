@@ -789,13 +789,18 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES"):
         st.info("Upload a signals file above to begin.")
         return
 
-    # ── Load data ─────────────────────────────────────────────────────────────
-    bars  = load_sc_bars(sc_file) if sc_file else load_sc_bars()
-    ticks = load_sc_ticks(sc_file) if sc_file else load_sc_ticks()
+    # ── Load data (prefer uploaded files) ────────────────────────────────────
+    uploaded_bars  = st.session_state.get("uploaded_sc_bars")
+    uploaded_ticks = st.session_state.get("uploaded_sc_ticks")
 
-    # Build date-keyed tick dict (cached in session state, keyed by file so
-    # switching contracts doesn't serve stale ticks)
-    tbd_key = f"ba_ticks_by_date_{sc_file}"
+    bars  = uploaded_bars  if uploaded_bars  is not None else (load_sc_bars(sc_file)  if sc_file else load_sc_bars())
+    ticks = uploaded_ticks if uploaded_ticks is not None else (load_sc_ticks(sc_file) if sc_file else load_sc_ticks())
+
+    # Cache key: uploaded data uses upload-key suffix so switching files busts the cache
+    _up_key = st.session_state.get("uploaded_sc_key", "")
+    tbd_key = (f"ba_ticks_by_date__up_{_up_key}"
+               if uploaded_ticks is not None
+               else f"ba_ticks_by_date_{sc_file}")
     if tbd_key not in st.session_state:
         st.session_state[tbd_key] = {
             d: grp.reset_index(drop=True)

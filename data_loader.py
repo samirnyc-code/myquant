@@ -101,6 +101,96 @@ def load_sc_ticks(sc_file_path: str = str(SC_FILE)) -> pd.DataFrame:
     return df
 
 
+# ── Upload parsers (no cache — data comes from Streamlit UploadedFile) ────────
+
+def parse_sc_bars_from_upload(uploaded_file) -> pd.DataFrame:
+    """Build 5-min RTH bars from an uploaded SC BarData file (same format as load_sc_bars)."""
+    uploaded_file.seek(0)
+    chunks = []
+    for chunk in pd.read_csv(
+        uploaded_file,
+        skipinitialspace=True,
+        usecols=["Date", "Time", "Last", "Volume"],
+        chunksize=500_000,
+        dtype={"Date": str, "Time": str, "Last": float, "Volume": "int32"},
+    ):
+        mask = (chunk["Time"] >= RTH_START) & (chunk["Time"] < RTH_END)
+        chunk = chunk.loc[mask].copy()
+        if chunk.empty:
+            continue
+        chunk["datetime"] = pd.to_datetime(chunk["Date"] + " " + chunk["Time"], format="mixed")
+        chunks.append(chunk[["datetime", "Last", "Volume"]])
+    if not chunks:
+        return pd.DataFrame()
+    df = pd.concat(chunks, ignore_index=True).sort_values("datetime")
+    df.set_index("datetime", inplace=True)
+    bars = (
+        df.resample("5min", closed="left", label="left")
+        .agg(Open=("Last","first"), High=("Last","max"),
+             Low=("Last","min"), Close=("Last","last"), Volume=("Volume","sum"))
+        .dropna(subset=["Open"])
+    )
+    bars = bars[
+        (bars.index.time >= pd.Timestamp(RTH_START).time()) &
+        (bars.index.time <  pd.Timestamp(RTH_END).time())
+    ]
+    return bars.reset_index().rename(columns={"datetime": "DateTime"})
+
+
+def parse_sc_ticks_from_upload(uploaded_file) -> pd.DataFrame:
+    """Return RTH ticks from an uploaded SC BarData file (same format as load_sc_ticks)."""
+    uploaded_file.seek(0)
+    chunks = []
+    for chunk in pd.read_csv(
+        uploaded_file,
+        skipinitialspace=True,
+        usecols=["Date", "Time", "Last", "Volume"],
+        chunksize=500_000,
+        dtype={"Date": str, "Time": str, "Last": float, "Volume": "int32"},
+    ):
+        mask = (chunk["Time"] >= RTH_START) & (chunk["Time"] <= RTH_END)
+        chunk = chunk.loc[mask].copy()
+        if chunk.empty:
+            continue
+        chunk["DateTime"] = pd.to_datetime(chunk["Date"] + " " + chunk["Time"], format="mixed")
+        chunks.append(chunk[["DateTime", "Last", "Volume"]].rename(columns={"Last": "Price"}))
+    if not chunks:
+        return pd.DataFrame()
+    return pd.concat(chunks, ignore_index=True).sort_values("DateTime").reset_index(drop=True)
+
+
+def parse_ohlc_from_upload(uploaded_file) -> pd.DataFrame:
+    """Parse bar_export OHLC file: MM/DD/YYYY HH:MM:SS;O;H;L;C;V
+    Timestamps are Berlin close times → converted to CT open times (−7h −5min)."""
+    uploaded_file.seek(0)
+    df = pd.read_csv(
+        uploaded_file,
+        sep=";",
+        header=None,
+        names=["DateTime", "Open", "High", "Low", "Close", "Volume"],
+        skipinitialspace=True,
+        dtype=str,
+    )
+    for col in ["Open", "High", "Low", "Close"]:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+    df["Volume"] = pd.to_numeric(df["Volume"], errors="coerce").fillna(0)
+    df["NullVol"] = df["Volume"].isna()
+
+    df["DateTime"] = (
+        pd.to_datetime(df["DateTime"], format="%m/%d/%Y %H:%M:%S")
+        .dt.tz_localize("Europe/Berlin")
+        .dt.tz_convert("America/Chicago")
+        .dt.tz_localize(None)
+        - pd.Timedelta(minutes=5)
+    )
+    t = df["DateTime"].dt.time
+    df = df[
+        (t >= pd.Timestamp(RTH_START).time()) &
+        (t <  pd.Timestamp(RTH_END).time())
+    ].dropna(subset=["Open"])
+    return df.sort_values("DateTime").reset_index(drop=True)
+
+
 @st.cache_data(show_spinner=False)
 def get_market_holidays(start: str, end: str) -> set:
     """Return set of date strings ('YYYY-MM-DD') that are NYSE holidays."""
