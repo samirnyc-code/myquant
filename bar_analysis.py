@@ -364,11 +364,287 @@ def _simulate_one_bars(
     }
 
 
+def _simulate_one_multileg(
+    sig_dt, direction: str, signal_price: float, stop_csv: float,
+    day_ticks: pd.DataFrame,
+    target_r: float, t1_r: float, entry_slip: float, exit_slip: float, stop_offset: int, tv: float,
+    manual_fill: dict | None = None,
+) -> dict:
+    """Tick-level 2-leg partial profit simulation.
+    Phase 1: fill same as single-leg; scan for Stop (both legs) or T1 (Leg1 exits, BE for Leg2).
+    Phase 2 (after T1): scan for BE stop or T2 for Leg2.
+    T1 wins over Stop at same tick; T2 wins over BE at same tick."""
+    from data_loader import RTH_START_MIN
+    ts      = TICK_SIZE
+    is_long = direction == "Long"
+
+    after = day_ticks[day_ticks["DateTime"] > sig_dt]
+    if after.empty:
+        return {"ok": False, "FilterStatus": "no_next_bar"}
+
+    if manual_fill is not None:
+        fill_bar     = int(manual_fill["fill_bar"])
+        fill_px_raw  = float(manual_fill["fill_price"])
+        bar_open_min = RTH_START_MIN + (fill_bar - 1) * 5
+        sig_date     = pd.Timestamp(sig_dt).normalize()
+        bar_open_dt  = sig_date + pd.Timedelta(minutes=bar_open_min)
+        scan_ticks   = day_ticks[day_ticks["DateTime"] >= bar_open_dt]
+        if scan_ticks.empty:
+            return {"ok": False, "FilterStatus": "no_tick_data"}
+        first_tick_px = fill_px_raw
+        entry_dt      = scan_ticks.iloc[0]["DateTime"]
+        prices        = scan_ticks["Price"].values
+        times         = scan_ticks["DateTime"].values
+    else:
+        qualifying = after[after["Price"] >= signal_price] if is_long else after[after["Price"] <= signal_price]
+        if qualifying.empty:
+            return {"ok": False, "FilterStatus": "no_fill"}
+        fill_tick     = qualifying.iloc[0]
+        first_tick_px = fill_tick["Price"]
+        entry_dt      = fill_tick["DateTime"]
+        after         = after[after["DateTime"] >= fill_tick["DateTime"]]
+        prices        = after["Price"].values
+        times         = after["DateTime"].values
+
+    actual_entry = first_tick_px + (entry_slip * ts if is_long else -entry_slip * ts)
+    actual_stop  = (stop_csv - stop_offset * ts) if is_long else (stop_csv + stop_offset * ts)
+    risk_pts     = abs(actual_entry - actual_stop)
+    if risk_pts < 0.001:
+        return {"ok": False, "FilterStatus": "zero_risk"}
+
+    t1_price  = actual_entry + (t1_r     * risk_pts if is_long else -t1_r     * risk_pts)
+    t2_price  = actual_entry + (target_r * risk_pts if is_long else -target_r * risk_pts)
+    entry_bar = bar_num_from_dt(entry_dt)
+    mae = mfe = 0.0
+
+    def _leg_pts(exit_px):
+        return (exit_px - actual_entry) if is_long else (actual_entry - exit_px)
+
+    def _build(exit_reason, exit_price, exit_dt,
+               leg1_er, leg1_px, leg2_er, leg2_px):
+        l1_pts = _leg_pts(leg1_px)
+        l2_pts = _leg_pts(leg2_px)
+        g_pts  = l1_pts + l2_pts
+        g_pnl  = g_pts / ts * tv
+        edt    = pd.Timestamp(exit_dt)
+        return {
+            "ok": True,
+            "SEPrice": signal_price,   "FillPrice":   first_tick_px,
+            "EntryTime": pd.Timestamp(entry_dt), "EntryBarNum": entry_bar,
+            "EntryPrice": actual_entry, "ActualStop": actual_stop,
+            "Target": t2_price,        "Target1": t1_price,
+            "RiskPts": risk_pts,       "RiskDollar": risk_pts / ts * tv * 2,
+            "ExitTime": edt,           "ExitBarNum": bar_num_from_dt(edt),
+            "ExitPrice": exit_price,   "ExitReason": exit_reason,
+            "GrossPnLPts": g_pts,      "GrossPnL": g_pnl,
+            "R_achieved": g_pts / (2 * risk_pts),
+            "MAE_pts": max(mae, 0.0),  "MAE_dollar": max(mae, 0.0) / ts * tv * 2,
+            "MAE_R": max(mae, 0.0) / risk_pts,
+            "MFE_pts": max(mfe, 0.0),  "MFE_dollar": max(mfe, 0.0) / ts * tv * 2,
+            "MFE_R": max(mfe, 0.0) / risk_pts,
+            "SlippagePts": (entry_slip + exit_slip) * ts,
+            "SlippageDollar": (entry_slip + exit_slip) * tv * 2,
+            "Leg1ExitReason": leg1_er, "Leg1ExitPrice": leg1_px,
+            "Leg1GrossPts": l1_pts,    "Leg1GrossPnL": l1_pts / ts * tv,
+            "Leg2ExitReason": leg2_er, "Leg2ExitPrice": leg2_px,
+            "Leg2GrossPts": l2_pts,    "Leg2GrossPnL": l2_pts / ts * tv,
+        }
+
+    # ── Phase 1: scan for Stop (both legs) or T1 (Leg1 exit) ─────────────────
+    phase1_end_idx  = None
+    leg1_exit_price = None
+    full_stop_price = None
+    full_stop_dt    = None
+
+    for i, (p, t) in enumerate(zip(prices, times)):
+        excursion = (p - actual_entry) if is_long else (actual_entry - p)
+        mfe = max(mfe, excursion)
+        mae = max(mae, -excursion)
+        if i == 0:
+            continue
+        hit_t1   = (p >= t1_price)   if is_long else (p <= t1_price)
+        hit_stop = (p <= actual_stop) if is_long else (p >= actual_stop)
+        if hit_t1:
+            leg1_exit_price = t1_price + (-exit_slip * ts if is_long else exit_slip * ts)
+            phase1_end_idx  = i
+            break
+        if hit_stop:
+            full_stop_price = actual_stop + (-exit_slip * ts if is_long else exit_slip * ts)
+            full_stop_dt    = t
+            break
+
+    if full_stop_price is not None:
+        sp = full_stop_price
+        return _build("Stop", sp, full_stop_dt, "Stop", sp, "Stop", sp)
+
+    if phase1_end_idx is None:
+        eod_px = float(prices[-1]) + (-exit_slip * ts if is_long else exit_slip * ts)
+        return _build("EOD", eod_px, times[-1], "EOD", eod_px, "EOD", eod_px)
+
+    # ── Phase 2: Leg2 with BE stop after T1 ──────────────────────────────────
+    be_stop = actual_entry
+    p2      = prices[phase1_end_idx:]
+    t2_arr  = times[phase1_end_idx:]
+    l2_reason_raw = "Session"
+    l2_px_raw     = float(p2[-1])
+    l2_dt_raw     = t2_arr[-1]
+
+    for j, (p2v, t2v) in enumerate(zip(p2, t2_arr)):
+        excursion = (p2v - actual_entry) if is_long else (actual_entry - p2v)
+        mfe = max(mfe, excursion)
+        mae = max(mae, -excursion)
+        if j == 0:
+            continue
+        hit_t2 = (p2v >= t2_price) if is_long else (p2v <= t2_price)
+        hit_be = (p2v <= be_stop)  if is_long else (p2v >= be_stop)
+        if hit_t2:
+            l2_reason_raw, l2_px_raw, l2_dt_raw = "Target", t2_price, t2v
+            break
+        if hit_be:
+            l2_reason_raw, l2_px_raw, l2_dt_raw = "BE", be_stop, t2v
+            break
+
+    l2_exit_px = l2_px_raw + (-exit_slip * ts if is_long else exit_slip * ts)
+    reason_map = {"Target": ("T1+Target", "Target"),
+                  "BE":     ("T1+BE",     "BE"),
+                  "Session":("T1+EOD",    "EOD")}
+    exit_str, l2_er = reason_map[l2_reason_raw]
+    return _build(exit_str, l2_exit_px, l2_dt_raw, "T1", leg1_exit_price, l2_er, l2_exit_px)
+
+
+def _simulate_one_bars_multileg(
+    sig_dt, direction: str, signal_price: float, stop_csv: float,
+    day_bars: pd.DataFrame,
+    target_r: float, t1_r: float, entry_slip: float, exit_slip: float, stop_offset: int, tv: float,
+) -> dict:
+    """Bar-level 2-leg partial profit simulation.
+    Phase 1 conservative: stop wins over T1 if same bar.
+    Phase 2 conservative: BE wins over T2 if same bar."""
+    ts      = TICK_SIZE
+    is_long = direction == "Long"
+
+    next_bars = day_bars[day_bars["DateTime"] >= sig_dt].reset_index(drop=True)
+    if next_bars.empty:
+        return {"ok": False, "FilterStatus": "no_next_bar"}
+
+    nb = next_bars.iloc[0]
+    if is_long  and float(nb["High"]) < signal_price:
+        return {"ok": False, "FilterStatus": "no_fill"}
+    if not is_long and float(nb["Low"]) > signal_price:
+        return {"ok": False, "FilterStatus": "no_fill"}
+
+    fill_px      = max(float(nb["Open"]), signal_price) if is_long else min(float(nb["Open"]), signal_price)
+    actual_entry = fill_px + (entry_slip * ts if is_long else -entry_slip * ts)
+    actual_stop  = (stop_csv - stop_offset * ts) if is_long else (stop_csv + stop_offset * ts)
+    risk_pts     = abs(actual_entry - actual_stop)
+    if risk_pts < 0.001:
+        return {"ok": False, "FilterStatus": "zero_risk"}
+
+    t1_price  = actual_entry + (t1_r     * risk_pts if is_long else -t1_r     * risk_pts)
+    t2_price  = actual_entry + (target_r * risk_pts if is_long else -target_r * risk_pts)
+    entry_bar = bar_num_from_dt(nb["DateTime"])
+    entry_dt  = nb["DateTime"]
+    mae = mfe = 0.0
+
+    def _leg_pts(exit_px):
+        return (exit_px - actual_entry) if is_long else (actual_entry - exit_px)
+
+    def _build(exit_reason, exit_price, exit_dt,
+               leg1_er, leg1_px, leg2_er, leg2_px):
+        l1_pts = _leg_pts(leg1_px)
+        l2_pts = _leg_pts(leg2_px)
+        g_pts  = l1_pts + l2_pts
+        g_pnl  = g_pts / ts * tv
+        edt    = pd.Timestamp(exit_dt)
+        return {
+            "ok": True,
+            "SEPrice": signal_price,   "FillPrice": fill_px,
+            "EntryTime": pd.Timestamp(entry_dt), "EntryBarNum": entry_bar,
+            "EntryPrice": actual_entry, "ActualStop": actual_stop,
+            "Target": t2_price,        "Target1": t1_price,
+            "RiskPts": risk_pts,       "RiskDollar": risk_pts / ts * tv * 2,
+            "ExitTime": edt,           "ExitBarNum": bar_num_from_dt(edt),
+            "ExitPrice": exit_price,   "ExitReason": exit_reason,
+            "GrossPnLPts": g_pts,      "GrossPnL": g_pnl,
+            "R_achieved": g_pts / (2 * risk_pts),
+            "MAE_pts": max(mae, 0.0),  "MAE_dollar": max(mae, 0.0) / ts * tv * 2,
+            "MAE_R": max(mae, 0.0) / risk_pts,
+            "MFE_pts": max(mfe, 0.0),  "MFE_dollar": max(mfe, 0.0) / ts * tv * 2,
+            "MFE_R": max(mfe, 0.0) / risk_pts,
+            "SlippagePts": (entry_slip + exit_slip) * ts,
+            "SlippageDollar": (entry_slip + exit_slip) * tv * 2,
+            "Leg1ExitReason": leg1_er, "Leg1ExitPrice": leg1_px,
+            "Leg1GrossPts": l1_pts,    "Leg1GrossPnL": l1_pts / ts * tv,
+            "Leg2ExitReason": leg2_er, "Leg2ExitPrice": leg2_px,
+            "Leg2GrossPts": l2_pts,    "Leg2GrossPnL": l2_pts / ts * tv,
+        }
+
+    # ── Phase 1: Stop or T1 ───────────────────────────────────────────────────
+    t1_bar_idx      = None
+    leg1_exit_price = None
+    full_stop_price = None
+    full_stop_dt    = None
+
+    for idx, bar in next_bars.iterrows():
+        hi, lo = float(bar["High"]), float(bar["Low"])
+        mfe = max(mfe, (hi - actual_entry) if is_long else (actual_entry - lo))
+        mae = max(mae, (actual_entry - lo) if is_long else (hi - actual_entry))
+        hit_t1   = (hi >= t1_price) if is_long else (lo <= t1_price)
+        hit_stop = (lo <= actual_stop) if is_long else (hi >= actual_stop)
+        if hit_stop:
+            full_stop_price = actual_stop + (-exit_slip * ts if is_long else exit_slip * ts)
+            full_stop_dt    = bar["DateTime"]
+            break
+        if hit_t1:
+            leg1_exit_price = t1_price + (-exit_slip * ts if is_long else exit_slip * ts)
+            t1_bar_idx      = idx
+            break
+
+    if full_stop_price is not None:
+        sp = full_stop_price
+        return _build("Stop", sp, full_stop_dt, "Stop", sp, "Stop", sp)
+
+    if t1_bar_idx is None:
+        last   = next_bars.iloc[-1]
+        eod_px = float(last["Close"]) + (-exit_slip * ts if is_long else exit_slip * ts)
+        return _build("EOD", eod_px, last["DateTime"], "EOD", eod_px, "EOD", eod_px)
+
+    # ── Phase 2: Leg2 with BE stop ────────────────────────────────────────────
+    be_stop  = actual_entry
+    phase2   = next_bars[next_bars.index >= t1_bar_idx].reset_index(drop=True)
+    last2    = phase2.iloc[-1]
+    l2_r_raw = "Session"
+    l2_px_r  = float(last2["Close"])
+    l2_dt_r  = last2["DateTime"]
+
+    for j, (_, bar2) in enumerate(phase2.iterrows()):
+        hi2, lo2 = float(bar2["High"]), float(bar2["Low"])
+        mfe = max(mfe, (hi2 - actual_entry) if is_long else (actual_entry - lo2))
+        mae = max(mae, (actual_entry - lo2) if is_long else (hi2 - actual_entry))
+        if j == 0:
+            continue
+        hit_t2 = (hi2 >= t2_price) if is_long else (lo2 <= t2_price)
+        hit_be = (lo2 <= be_stop)  if is_long else (hi2 >= be_stop)
+        if hit_be:
+            l2_r_raw, l2_px_r, l2_dt_r = "BE", be_stop, bar2["DateTime"]
+            break
+        if hit_t2:
+            l2_r_raw, l2_px_r, l2_dt_r = "Target", t2_price, bar2["DateTime"]
+            break
+
+    l2_exit_px = l2_px_r + (-exit_slip * ts if is_long else exit_slip * ts)
+    reason_map = {"Target": ("T1+Target", "Target"),
+                  "BE":     ("T1+BE",     "BE"),
+                  "Session":("T1+EOD",    "EOD")}
+    exit_str, l2_er = reason_map[l2_r_raw]
+    return _build(exit_str, l2_exit_px, l2_dt_r, "T1", leg1_exit_price, l2_er, l2_exit_px)
+
+
 _EMPTY_TRADE = {
     "Filled": False,
     "SEPrice": np.nan, "FillPrice": np.nan,
     "EntryTime": pd.NaT, "EntryBarNum": np.nan,
-    "EntryPrice": np.nan, "ActualStop": np.nan, "Target": np.nan,
+    "EntryPrice": np.nan, "ActualStop": np.nan, "Target": np.nan, "Target1": np.nan,
     "RiskPts": np.nan, "RiskDollar": np.nan,
     "ExitTime": pd.NaT, "ExitBarNum": np.nan,
     "ExitPrice": np.nan, "ExitReason": "",
@@ -378,6 +654,10 @@ _EMPTY_TRADE = {
     "MFE_pts": np.nan, "MFE_dollar": np.nan, "MFE_R": np.nan,
     "CumPF": np.nan,
     "SlippagePts": np.nan, "SlippageDollar": np.nan,
+    "Leg1ExitReason": np.nan, "Leg1ExitPrice": np.nan,
+    "Leg1GrossPts": np.nan,   "Leg1GrossPnL": np.nan,
+    "Leg2ExitReason": np.nan, "Leg2ExitPrice": np.nan,
+    "Leg2GrossPts": np.nan,   "Leg2GrossPnL": np.nan,
 }
 
 
@@ -385,14 +665,16 @@ def simulate_trades(
     signals: pd.DataFrame,
     ticks_by_date: dict,
     target_r: float,
-    entry_slip: int,
-    exit_slip: int,
+    entry_slip: float,
+    exit_slip: float,
     stop_offset: int,
     tick_value: float,
     contracts: int,
     commission: float,
-    overrides: dict | None = None,   # {signal_num: {"fill_price": float, "fill_bar": int}}
-    bars_by_date: dict | None = None, # fallback bar-level sim when ticks unavailable
+    overrides: dict | None = None,    # {signal_num: {"fill_price": float, "fill_bar": int}}
+    bars_by_date: dict | None = None,  # fallback bar-level sim when ticks unavailable
+    multileg: bool = False,
+    t1_r: float = 1.0,
 ) -> pd.DataFrame:
     tv   = tick_value * contracts
     rows = []
@@ -412,27 +694,49 @@ def simulate_trades(
         day_ticks = ticks_by_date.get(base["Date"])
         no_ticks  = day_ticks is None or day_ticks.empty
 
-        # Bar-level fallback when ticks unavailable
-        if no_ticks and bars_by_date is not None and not manual_fill:
-            day_bars_sim = bars_by_date.get(base["Date"])
-            if day_bars_sim is None or day_bars_sim.empty:
+        # Multileg routing (manual_fill always falls through to single-leg)
+        if multileg and not manual_fill:
+            if no_ticks and bars_by_date is not None:
+                day_bars_sim = bars_by_date.get(base["Date"])
+                if day_bars_sim is None or day_bars_sim.empty:
+                    base["FilterStatus"] = "no_tick_data"
+                    rows.append(base)
+                    continue
+                res = _simulate_one_bars_multileg(
+                    base["DateTime"], base["Direction"], base["SignalPrice"], base["StopPrice"],
+                    day_bars_sim, target_r, t1_r, entry_slip, exit_slip, stop_offset, tv,
+                )
+            elif no_ticks:
                 base["FilterStatus"] = "no_tick_data"
                 rows.append(base)
                 continue
-            res = _simulate_one_bars(
-                base["DateTime"], base["Direction"], base["SignalPrice"], base["StopPrice"],
-                day_bars_sim, target_r, entry_slip, exit_slip, stop_offset, tv,
-            )
-        elif no_ticks and not manual_fill:
-            base["FilterStatus"] = "no_tick_data"
-            rows.append(base)
-            continue
+            else:
+                res = _simulate_one_multileg(
+                    base["DateTime"], base["Direction"], base["SignalPrice"], base["StopPrice"],
+                    day_ticks, target_r, t1_r, entry_slip, exit_slip, stop_offset, tv,
+                )
         else:
-            res = _simulate_one(
-                base["DateTime"], base["Direction"], base["SignalPrice"], base["StopPrice"],
-                day_ticks, target_r, entry_slip, exit_slip, stop_offset, tv,
-                manual_fill=manual_fill,
-            )
+            # Single-leg path (bar-level fallback when ticks unavailable)
+            if no_ticks and bars_by_date is not None and not manual_fill:
+                day_bars_sim = bars_by_date.get(base["Date"])
+                if day_bars_sim is None or day_bars_sim.empty:
+                    base["FilterStatus"] = "no_tick_data"
+                    rows.append(base)
+                    continue
+                res = _simulate_one_bars(
+                    base["DateTime"], base["Direction"], base["SignalPrice"], base["StopPrice"],
+                    day_bars_sim, target_r, entry_slip, exit_slip, stop_offset, tv,
+                )
+            elif no_ticks and not manual_fill:
+                base["FilterStatus"] = "no_tick_data"
+                rows.append(base)
+                continue
+            else:
+                res = _simulate_one(
+                    base["DateTime"], base["Direction"], base["SignalPrice"], base["StopPrice"],
+                    day_ticks, target_r, entry_slip, exit_slip, stop_offset, tv,
+                    manual_fill=manual_fill,
+                )
 
         if not res.get("ok", False):
             base["FilterStatus"] = res.get("FilterStatus", "no_fill")
@@ -442,8 +746,9 @@ def simulate_trades(
         for k, v in res.items():
             if k != "ok":
                 base[k] = v
-        base["Filled"]   = True
-        base["NetPnL"]   = base["GrossPnL"] - commission
+        base["Filled"] = True
+        _comm = 2 * commission if (multileg and not manual_fill) else commission
+        base["NetPnL"] = base["GrossPnL"] - _comm
         if manual_fill:
             base["FilterStatus"] = "manual_override"
         rows.append(base)
@@ -466,7 +771,7 @@ def simulate_trades(
 
 # ── Summary metrics ───────────────────────────────────────────────────────────
 
-def compute_summary(results: pd.DataFrame, commission: float) -> dict:
+def compute_summary(results: pd.DataFrame, commission: float, is_multileg: bool = False) -> dict:
     if results.empty:
         return {}
     filled = results[results["Filled"] == True]
@@ -479,9 +784,10 @@ def compute_summary(results: pd.DataFrame, commission: float) -> dict:
         ["no_fill", "no_next_bar", "no_tick_data", "zero_risk"]).sum())
     n_trades   = len(filled)
 
-    wins   = filled[filled["ExitReason"] == "Target"]
+    wins   = filled[filled["ExitReason"].str.contains("Target", na=False)]
     stops  = filled[filled["ExitReason"] == "Stop"]
-    sess   = filled[filled["ExitReason"] == "Session"]
+    sess   = filled[~filled["ExitReason"].str.contains("Target", na=False) &
+                    (filled["ExitReason"] != "Stop")]
     n_wins = len(wins)
     n_stop = len(stops)
     n_sess = len(sess)
@@ -516,7 +822,7 @@ def compute_summary(results: pd.DataFrame, commission: float) -> dict:
         avg_mae_R=filled["MAE_R"].mean(),     avg_mfe_R=filled["MFE_R"].mean(),
         largest_win=wins["NetPnL"].max()    if n_wins else 0,
         largest_loss=stops["NetPnL"].min()  if n_stop else 0,
-        commission_total=n_trades * commission,
+        commission_total=n_trades * (2 * commission if is_multileg else commission),
         slippage_total=float(filled["SlippageDollar"].sum()) if "SlippageDollar" in filled.columns else 0.0,
         max_dd=max_dd, trading_days=trading_days,
     )
@@ -525,7 +831,13 @@ def compute_summary(results: pd.DataFrame, commission: float) -> dict:
 # ── Chart ─────────────────────────────────────────────────────────────────────
 
 def _outcome_color(exit_reason: str) -> str:
-    return {"Target": "#26a69a", "Stop": "#ef5350"}.get(exit_reason, "#9e9e9e")
+    if "Target" in exit_reason:
+        return "#26a69a"   # green — full or partial win
+    if exit_reason == "Stop":
+        return "#ef5350"   # red — full stop
+    if exit_reason in ("T1+BE", "T1+EOD"):
+        return "#ff9800"   # orange — partial profit
+    return "#9e9e9e"       # grey — EOD, session
 
 
 def make_analysis_chart(
@@ -803,9 +1115,17 @@ def _show_signal_table(results: pd.DataFrame, key_suffix: str = ""):
         st.info("No signals to display.")
         return
 
+    _has_multileg = (
+        "Leg1ExitReason" in results.columns and
+        results["Leg1ExitReason"].notna().any()
+    )
+    _group_opts = ["Core", "Entry/Exit", "P&L", "Risk & R", "MAE/MFE"]
+    if _has_multileg:
+        _group_opts.append("Multileg")
+
     col_groups = st.multiselect(
         "Column groups",
-        ["Core", "Entry/Exit", "P&L", "Risk & R", "MAE/MFE"],
+        _group_opts,
         default=["Core", "Entry/Exit", "P&L", "Risk & R"],
         key=f"ba_col_groups{key_suffix}",
     )
@@ -822,6 +1142,8 @@ def _show_signal_table(results: pd.DataFrame, key_suffix: str = ""):
         cols += ["Risk$", "Target R", "R"]
     if "MAE/MFE" in col_groups:
         cols += ["MAE pts", "MAE$", "MAE R", "MFE pts", "MFE$", "MFE R"]
+    if "Multileg" in col_groups and _has_multileg:
+        cols += ["T1", "L1 Exit", "L1 Px", "L1 $", "L2 Exit", "L2 Px", "L2 $"]
 
     if not cols:
         st.info("Select at least one column group above.")
@@ -882,6 +1204,14 @@ def _show_signal_table(results: pd.DataFrame, key_suffix: str = ""):
     disp["MFE pts"]    = results["MFE_pts"].apply(fmt_f)
     disp["MFE$"]       = results["MFE_dollar"].apply(lambda v: f"${v:.0f}" if pd.notna(v) else "—")
     disp["MFE R"]      = results["MFE_R"].apply(fmt_f)
+    if _has_multileg:
+        disp["T1"]     = results["Target1"].apply(fmt_f)
+        disp["L1 Exit"]= results["Leg1ExitReason"].fillna("—")
+        disp["L1 Px"]  = results["Leg1ExitPrice"].apply(fmt_f)
+        disp["L1 $"]   = results["Leg1GrossPnL"].apply(lambda v: f"{v:+.0f}" if pd.notna(v) else "—")
+        disp["L2 Exit"]= results["Leg2ExitReason"].fillna("—")
+        disp["L2 Px"]  = results["Leg2ExitPrice"].apply(fmt_f)
+        disp["L2 $"]   = results["Leg2GrossPnL"].apply(lambda v: f"{v:+.0f}" if pd.notna(v) else "—")
 
     # Filter to selected column groups
     visible = [c for c in cols if c in disp.columns]
@@ -896,9 +1226,10 @@ def _show_signal_table(results: pd.DataFrame, key_suffix: str = ""):
 
 def _run_r_sweep(
     signals: pd.DataFrame, ticks_by_date: dict,
-    entry_slip: int, exit_slip: int, stop_offset: int,
+    entry_slip: float, exit_slip: float, stop_offset: int,
     tick_value: float, contracts: int, commission: float,
     bars_by_date: dict | None = None,
+    multileg: bool = False, t1_r: float = 1.0,
 ) -> pd.DataFrame:
     r_values = [round(r * 0.25, 2) for r in range(2, 21)]  # 0.50 – 5.00
     rows = []
@@ -906,8 +1237,9 @@ def _run_r_sweep(
         res = simulate_trades(signals, ticks_by_date, r,
                                entry_slip, exit_slip, stop_offset,
                                tick_value, contracts, commission,
-                               bars_by_date=bars_by_date)
-        s = compute_summary(res, commission)
+                               bars_by_date=bars_by_date,
+                               multileg=multileg, t1_r=t1_r)
+        s = compute_summary(res, commission, is_multileg=multileg)
         if not s or s["n_trades"] == 0:
             continue
         rows.append({
@@ -925,15 +1257,21 @@ def _run_r_sweep(
 
 
 def _show_optimal_r(signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
-                    tick_value, contracts, commission, bars_by_date=None):
-    with st.expander("🔍 Optimal R Sweep (0.50 – 5.00)"):
-        st.caption("Runs simulation at every R from 0.50 to 5.00 in 0.25 steps. "
-                   "Highlights best value per metric.")
+                    tick_value, contracts, commission, bars_by_date=None,
+                    multileg: bool = False, t1_r: float = 1.0):
+    label = "🔍 Optimal T2 Sweep (0.50 – 5.00)" if multileg else "🔍 Optimal R Sweep (0.50 – 5.00)"
+    caption = ("Sweeps T2 target at every R from 0.50 to 5.00 (T1 fixed). "
+               if multileg else
+               "Runs simulation at every R from 0.50 to 5.00 in 0.25 steps. ") + \
+              "Highlights best value per metric."
+    with st.expander(label):
+        st.caption(caption)
         if st.button("Run R Sweep", key="ba_run_sweep"):
             with st.spinner("Running sweep…"):
                 sweep_df = _run_r_sweep(signals, ticks_by_date, entry_slip, exit_slip,
                                          stop_offset, tick_value, contracts, commission,
-                                         bars_by_date=bars_by_date)
+                                         bars_by_date=bars_by_date,
+                                         multileg=multileg, t1_r=t1_r)
             if sweep_df.empty:
                 st.warning("No results.")
                 return
@@ -1028,7 +1366,7 @@ def _show_monthly_breakdown(results: pd.DataFrame, commission: float):
     # ── Shared stats helper ───────────────────────────────────────────────────
     def _group_stats(g, setup_pcts: bool = False) -> pd.Series:
         n       = len(g)
-        wins    = g[g["ExitReason"] == "Target"]
+        wins    = g[g["ExitReason"].str.contains("Target", na=False)]
         stops   = g[g["ExitReason"] == "Stop"]
         pos_pnl = g.loc[g["GrossPnL"] > 0, "GrossPnL"].sum()
         neg_pnl = g.loc[g["GrossPnL"] < 0, "GrossPnL"].sum()
@@ -1564,18 +1902,34 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
 
         st.markdown("**Execution Parameters**")
         ep1, ep2, ep3, ep4 = st.columns(4)
-        entry_slip  = ep1.number_input("Entry slip (ticks)",  0, 10,
-                                        int(st.session_state.get("ba_entry_slip", 0)),
-                                        key="ba_entry_slip")
-        exit_slip   = ep2.number_input("Exit slip (ticks)",   0, 10,
-                                        int(st.session_state.get("ba_exit_slip",  0)),
-                                        key="ba_exit_slip")
+        entry_slip  = ep1.number_input("Entry slip (ticks)",  0.0, 10.0,
+                                        float(st.session_state.get("ba_entry_slip", 0.0)),
+                                        step=0.5, format="%.1f", key="ba_entry_slip")
+        exit_slip   = ep2.number_input("Exit slip (ticks)",   0.0, 10.0,
+                                        float(st.session_state.get("ba_exit_slip",  0.0)),
+                                        step=0.5, format="%.1f", key="ba_exit_slip")
         stop_offset = ep3.number_input("Stop offset (ticks)", 0, 10,
                                         int(st.session_state.get("ba_stop_offset", 1)),
                                         key="ba_stop_offset")
-        target_r    = ep4.number_input("Target R", 0.25, 10.0,
+        target_r    = ep4.number_input("Target R (T2 if 2-leg)", 0.25, 10.0,
                                         float(st.session_state.get("ba_target_r", 2.0)),
                                         step=0.25, format="%.2f", key="ba_target_r")
+
+        st.divider()
+        st.markdown("**2-Leg Partial Exit**")
+        ml1, ml2, ml3 = st.columns([1, 1, 4])
+        use_multileg = ml1.checkbox("Enable", key="ba_multileg",
+                                    value=bool(st.session_state.get("ba_multileg", False)))
+        t1_r = float(st.session_state.get("ba_t1_r", 1.0))
+        if use_multileg:
+            t1_r = ml2.number_input("T1 (R)", 0.25, 10.0, t1_r,
+                                     step=0.25, format="%.2f", key="ba_t1_r")
+            if t1_r >= target_r:
+                ml3.warning(f"T1 ({t1_r}R) must be less than T2 ({target_r}R) — multileg disabled.")
+                use_multileg = False
+            else:
+                ml3.caption(f"Leg1 exits at T1={t1_r}R · Leg2 targets T2={target_r}R · "
+                            f"Commission × 2 = ${2*commission:.2f}/trade")
 
         st.divider()
         if st.button("💾 Save as Default", key="ba_save_defaults"):
@@ -1591,7 +1945,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                 "ba_instrument": instrument, "ba_contracts": contracts,
                 "ba_commission": commission, "ba_entry_slip": entry_slip,
                 "ba_exit_slip": exit_slip, "ba_stop_offset": stop_offset,
-                "ba_target_r": target_r,
+                "ba_target_r": target_r, "ba_multileg": use_multileg, "ba_t1_r": t1_r,
             })
             st.success("Defaults saved.", icon="✅")
 
@@ -1610,13 +1964,14 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         tick_value, contracts, commission,
         overrides=st.session_state.get("ba_manual_overrides"),
         bars_by_date=bars_by_date_sim,
+        multileg=use_multileg, t1_r=t1_r,
     )
 
     # When first_trade_only is active, drop non-first-trade signals from all display/metrics
     if first_trade_only:
         results = results[results["FilterStatus"] != "first_trade_day"].reset_index(drop=True)
 
-    summary = compute_summary(results, commission)
+    summary = compute_summary(results, commission, is_multileg=use_multileg)
 
     # ── Summary strip ─────────────────────────────────────────────────────────
     with st.expander("📋 Summary", expanded=True):
@@ -1648,11 +2003,15 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
             r3[4].metric("Largest Win",  f"${summary['largest_win']:+.0f}")
             r3[5].metric("Largest Loss", f"${summary['largest_loss']:+.0f}")
 
-            total_slip_tks = (entry_slip + exit_slip) * summary["n_trades"]
-            total_slip_usd = total_slip_tks * tick_value * contracts
-            total_cost_usd = total_slip_usd + summary["commission_total"]
+            _slip_usd = summary.get("slippage_total", 0.0)
+            if use_multileg:
+                _slip_str = f"${_slip_usd:.0f}"
+            else:
+                total_slip_tks = int((entry_slip + exit_slip) * summary["n_trades"])
+                _slip_str = f"{total_slip_tks} tks  /  ${_slip_usd:.0f}"
+            total_cost_usd = _slip_usd + summary["commission_total"]
             r4 = st.columns(6)
-            r4[0].metric("Slippage",     f"{total_slip_tks} tks  /  ${total_slip_usd:.0f}")
+            r4[0].metric("Slippage",     _slip_str)
             r4[1].metric("Commission",   f"${summary['commission_total']:.0f}")
             r4[2].metric("Total Cost",   f"${total_cost_usd:.0f}")
             r4[3].metric("Max Drawdown", f"${summary['max_dd']:,.0f}")
@@ -1752,6 +2111,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         entry_slip, exit_slip, stop_offset,
         tick_value, contracts, commission,
         bars_by_date=bars_by_date_sim,
+        multileg=use_multileg, t1_r=t1_r,
     )
 
     # ── Bar data mismatch analysis ────────────────────────────────────────────
