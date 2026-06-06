@@ -18,6 +18,8 @@ st.markdown("""
     .block-container { padding-top: 1.5rem; padding-bottom: 1rem; }
     #MainMenu { visibility: hidden; }
     footer    { visibility: hidden; }
+    [data-testid="stMetricValue"] { font-size: 1.5rem !important; }
+    [data-testid="stMetricLabel"] { font-size: 0.72rem !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -184,10 +186,13 @@ def main():
         st.error("No SC data files found in data/raw/. Add at least one contract file.")
         st.stop()
 
-    selected_key = hdr_r.selectbox(
-        "Contract", contract_keys,
-        index=0, key="active_contract", label_visibility="collapsed",
-    )
+    if len(contract_keys) > 1:
+        selected_key = hdr_r.selectbox(
+            "Contract", contract_keys,
+            index=0, key="active_contract", label_visibility="collapsed",
+        )
+    else:
+        selected_key = contract_keys[0]
 
     sc_file = str(CONTRACTS[selected_key]["sc_file"])
     nt_file = str(CONTRACTS[selected_key]["nt_file"])
