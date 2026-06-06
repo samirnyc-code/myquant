@@ -103,29 +103,52 @@ def load_sc_ticks(sc_file_path: str = str(SC_FILE)) -> pd.DataFrame:
 
 # ── Upload parsers (no cache — data comes from Streamlit UploadedFile) ────────
 
-def parse_sc_bars_from_upload(uploaded_file) -> pd.DataFrame:
-    """Build 5-min RTH bars from an uploaded SC BarData file (same format as load_sc_bars)."""
+def _sc_detect_sep(uploaded_file) -> str:
+    """Peek at the first line to detect the delimiter (comma or tab)."""
     uploaded_file.seek(0)
-    chunks = []
+    raw = uploaded_file.read(2048)
+    if isinstance(raw, bytes):
+        raw = raw.decode("utf-8", errors="replace")
+    uploaded_file.seek(0)
+    first_line = raw.splitlines()[0] if raw else ""
+    return "\t" if "\t" in first_line else ","
+
+
+def _sc_parse_chunks(uploaded_file, rth_end_op):
+    """Shared chunk iterator for SC BarData uploads. Yields (date_str, time_str, last, volume) rows."""
+    sep = _sc_detect_sep(uploaded_file)
+    uploaded_file.seek(0)
     for chunk in pd.read_csv(
         uploaded_file,
+        sep=sep,
         skipinitialspace=True,
         chunksize=500_000,
         dtype=str,
         na_filter=False,
     ):
-        # Strip column names — BytesIO reads may preserve leading spaces even with skipinitialspace
         chunk.columns = chunk.columns.str.strip()
+        missing = [c for c in ("Date", "Time", "Last", "Volume") if c not in chunk.columns]
+        if missing:
+            raise ValueError(
+                f"SC BarData file is missing columns: {missing}. "
+                f"Found: {list(chunk.columns[:8])}. "
+                "Make sure you uploaded a Sierra Charts BarData tick file."
+            )
         chunk["Time"] = chunk["Time"].str.strip()
         chunk["Date"] = chunk["Date"].str.strip()
-        mask = (chunk["Time"] >= RTH_START) & (chunk["Time"] < RTH_END)
+        mask = (chunk["Time"] >= RTH_START) & rth_end_op(chunk["Time"])
         chunk = chunk.loc[mask].copy()
         if chunk.empty:
             continue
         chunk["Last"]   = pd.to_numeric(chunk["Last"],   errors="coerce")
         chunk["Volume"] = pd.to_numeric(chunk["Volume"], errors="coerce").fillna(0).astype("int32")
         chunk["datetime"] = pd.to_datetime(chunk["Date"] + " " + chunk["Time"], format="mixed")
-        chunks.append(chunk[["datetime", "Last", "Volume"]])
+        yield chunk[["datetime", "Last", "Volume"]]
+
+
+def parse_sc_bars_from_upload(uploaded_file) -> pd.DataFrame:
+    """Build 5-min RTH bars from an uploaded SC BarData file (same format as load_sc_bars)."""
+    chunks = list(_sc_parse_chunks(uploaded_file, lambda t: t < RTH_END))
     if not chunks:
         return pd.DataFrame()
     df = pd.concat(chunks, ignore_index=True).sort_values("datetime")
@@ -145,26 +168,9 @@ def parse_sc_bars_from_upload(uploaded_file) -> pd.DataFrame:
 
 def parse_sc_ticks_from_upload(uploaded_file) -> pd.DataFrame:
     """Return RTH ticks from an uploaded SC BarData file (same format as load_sc_ticks)."""
-    uploaded_file.seek(0)
     chunks = []
-    for chunk in pd.read_csv(
-        uploaded_file,
-        skipinitialspace=True,
-        chunksize=500_000,
-        dtype=str,
-        na_filter=False,
-    ):
-        chunk.columns = chunk.columns.str.strip()
-        chunk["Time"] = chunk["Time"].str.strip()
-        chunk["Date"] = chunk["Date"].str.strip()
-        mask = (chunk["Time"] >= RTH_START) & (chunk["Time"] <= RTH_END)
-        chunk = chunk.loc[mask].copy()
-        if chunk.empty:
-            continue
-        chunk["Last"]   = pd.to_numeric(chunk["Last"],   errors="coerce")
-        chunk["Volume"] = pd.to_numeric(chunk["Volume"], errors="coerce").fillna(0).astype("int32")
-        chunk["DateTime"] = pd.to_datetime(chunk["Date"] + " " + chunk["Time"], format="mixed")
-        chunks.append(chunk[["DateTime", "Last", "Volume"]].rename(columns={"Last": "Price"}))
+    for c in _sc_parse_chunks(uploaded_file, lambda t: t <= RTH_END):
+        chunks.append(c.rename(columns={"Last": "Price", "datetime": "DateTime"}))
     if not chunks:
         return pd.DataFrame()
     return pd.concat(chunks, ignore_index=True).sort_values("DateTime").reset_index(drop=True)
