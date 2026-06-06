@@ -766,9 +766,126 @@ def _show_optimal_r(signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
         st.plotly_chart(fig, use_container_width=True)
 
 
+# ── Mismatch analysis ─────────────────────────────────────────────────────────
+
+def _show_mismatch_analysis(results: pd.DataFrame, sc_bars: pd.DataFrame, nt_bars: pd.DataFrame):
+    from validation import build_comparison
+
+    st.markdown("---")
+    st.subheader("🔍 Bar Data Mismatch Analysis")
+
+    comp = build_comparison(sc_bars, nt_bars)
+    # Index comparison by bar open DateTime for fast join
+    comp_idx = comp.set_index("DateTime")[["OHLC_match", "ΔOpen", "ΔHigh", "ΔLow", "ΔClose"]].copy()
+
+    filled = results[results["Filled"] == True].copy()
+    if filled.empty:
+        st.info("No filled trades to analyse.")
+        return
+
+    # Signal bar open = signal fire time (bar close) − 5 min
+    filled["_SigBarDT"] = filled["DateTime"] - pd.Timedelta(minutes=5)
+    filled = filled.join(comp_idx, on="_SigBarDT", how="left")
+
+    # Impact: does the mismatch help or hurt the trade direction?
+    # Δ = NT − SC  →  ΔHigh > 0 means NT showed higher high than SC (SC had less upside)
+    # LONG favored by:  ΔHigh ≤ 0 (SC high ≥ NT high)  AND  ΔLow ≤ 0 (SC low ≥ NT low)
+    # SHORT favored by: ΔHigh ≥ 0 (SC high ≤ NT high)  AND  ΔLow ≥ 0 (SC low ≤ NT low)
+    def _impact(row):
+        if pd.isna(row.get("ΔHigh")):
+            return "No data"
+        dh, dl = row["ΔHigh"], row["ΔLow"]
+        net = -(dh + dl) if row["Direction"] == "Long" else (dh + dl)
+        if net > 0:
+            return "Favorable"
+        elif net < 0:
+            return "Unfavorable"
+        return "Neutral"
+
+    filled["Impact"] = filled.apply(_impact, axis=1)
+
+    n_total    = len(filled)
+    mism_mask  = filled["OHLC_match"] == False
+    n_mismatch = int(mism_mask.sum())
+
+    filled["_Won"] = filled["NetPnL"] > 0
+    wr_matched  = filled.loc[~mism_mask, "_Won"].mean()
+    wr_mismatch = filled.loc[mism_mask,  "_Won"].mean()
+
+    c1, c2, c3, c4, c5 = st.columns(5)
+    c1.metric("Signals on Mismatch Bars", n_mismatch)
+    c2.metric("% of Filled Signals",
+              f"{n_mismatch / n_total * 100:.1f}%" if n_total else "—")
+    c3.metric("Win Rate — Matched",
+              f"{wr_matched  * 100:.1f}%" if not pd.isna(wr_matched)  else "—")
+    c4.metric("Win Rate — Mismatched",
+              f"{wr_mismatch * 100:.1f}%" if not pd.isna(wr_mismatch) else "—")
+    delta_wr = (wr_mismatch - wr_matched) if not (pd.isna(wr_mismatch) or pd.isna(wr_matched)) else None
+    c5.metric("Win Rate Δ",
+              f"{delta_wr * 100:+.1f}%" if delta_wr is not None else "—",
+              delta_color="normal" if delta_wr is None else ("normal" if delta_wr >= 0 else "inverse"))
+
+    if n_mismatch == 0:
+        st.success("No filled signals fell on mismatched bars.")
+        return
+
+    mismatched = filled[mism_mask].copy()
+
+    # Breakdown: favorable vs unfavorable
+    impact_counts = mismatched["Impact"].value_counts()
+    b1, b2, b3 = st.columns(3)
+    b1.metric("Favorable",   int(impact_counts.get("Favorable",   0)), delta_color="off")
+    b2.metric("Unfavorable", int(impact_counts.get("Unfavorable", 0)), delta_color="off")
+    b3.metric("Neutral",     int(impact_counts.get("Neutral",     0)), delta_color="off")
+
+    IMPACT_STYLE = {
+        "Favorable":   "color:#26a69a; font-weight:bold",
+        "Unfavorable": "color:#ef5350; font-weight:bold",
+        "Neutral":     "color:#888",
+        "No data":     "color:#555",
+    }
+
+    with st.expander(f"Mismatched signals — detail ({n_mismatch})", expanded=True):
+        disp = pd.DataFrame()
+        disp["Date"]      = mismatched["Date"].astype(str)
+        disp["Bar"]       = mismatched["BarNum"].astype(int)
+        disp["Dir"]       = mismatched["Direction"]
+        disp["Sig Px"]    = mismatched["SignalPrice"].round(2)
+        disp["Entry Px"]  = mismatched["EntryPrice"].round(2)
+        disp["Exit"]      = mismatched["ExitReason"].replace("", "—")
+        disp["Net $"]     = mismatched["NetPnL"].apply(lambda v: f"{v:+.0f}" if pd.notna(v) else "—")
+        disp["R"]         = mismatched["R_achieved"].apply(lambda v: f"{v:+.2f}" if pd.notna(v) else "—")
+        disp["ΔOpen"]     = mismatched["ΔOpen"].round(0).astype("Int64")
+        disp["ΔHigh"]     = mismatched["ΔHigh"].round(0).astype("Int64")
+        disp["ΔLow"]      = mismatched["ΔLow"].round(0).astype("Int64")
+        disp["ΔClose"]    = mismatched["ΔClose"].round(0).astype("Int64")
+        disp["Impact"]    = mismatched["Impact"].values
+
+        def _style_impact(s):
+            return [IMPACT_STYLE.get(v, "") for v in s]
+
+        def _style_delta(s):
+            out = []
+            for v in s:
+                if pd.isna(v) or v == 0:
+                    out.append("color:#888")
+                elif v > 0:
+                    out.append("color:#26a69a")
+                else:
+                    out.append("color:#ef5350")
+            return out
+
+        styled = (
+            disp.style
+            .apply(_style_impact, subset=["Impact"])
+            .apply(_style_delta,  subset=["ΔOpen", "ΔHigh", "ΔLow", "ΔClose"])
+        )
+        st.dataframe(styled, use_container_width=True, hide_index=True)
+
+
 # ── Main tab ──────────────────────────────────────────────────────────────────
 
-def show_bar_analysis(sc_file: str = "", contract: str = "ES"):
+def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""):
     # ── CSV Upload ────────────────────────────────────────────────────────────
     uploaded = st.file_uploader(
         "Upload MC Signals CSV", type=["txt", "csv"],
@@ -796,6 +913,16 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES"):
     bars  = uploaded_bars  if uploaded_bars  is not None else (load_sc_bars(sc_file)  if sc_file else load_sc_bars())
     ticks = uploaded_ticks if uploaded_ticks is not None else (load_sc_ticks(sc_file) if sc_file else load_sc_ticks())
 
+    # NT bars for mismatch analysis (uploaded OHLC wins over disk file)
+    _uploaded_ohlc = st.session_state.get("uploaded_ohlc_bars")
+    if _uploaded_ohlc is not None:
+        nt_bars = _uploaded_ohlc
+    elif nt_file:
+        from data_loader import load_nt_bars
+        nt_bars = load_nt_bars(nt_file)
+    else:
+        nt_bars = None
+
     # Cache key: uploaded data uses upload-key suffix so switching files busts the cache
     _up_key = st.session_state.get("uploaded_sc_key", "")
     tbd_key = (f"ba_ticks_by_date__up_{_up_key}"
@@ -815,11 +942,12 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES"):
     data_min     = bars["Date"].min()
     data_max     = bars["Date"].max()
 
-    # ── Detect contract switch — reset date/chart state to avoid out-of-range ──
-    if st.session_state.get("ba_active_sc_file") != sc_file:
+    # ── Detect data change (contract switch OR new upload) — reset stale date state ──
+    _active_key = f"{sc_file}|{st.session_state.get('uploaded_sc_key', '')}"
+    if st.session_state.get("ba_active_data_key") != _active_key:
         for k in ("ba_date_from", "ba_date_to", "ba_chart_idx", "ba_initialized"):
             st.session_state.pop(k, None)
-        st.session_state["ba_active_sc_file"] = sc_file
+        st.session_state["ba_active_data_key"] = _active_key
 
     # ── Initialize defaults ───────────────────────────────────────────────────
     if "ba_initialized" not in st.session_state:
@@ -1064,3 +1192,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES"):
         entry_slip, exit_slip, stop_offset,
         tick_value, contracts, commission,
     )
+
+    # ── Bar data mismatch analysis ────────────────────────────────────────────
+    if nt_bars is not None and not nt_bars.empty:
+        _show_mismatch_analysis(results, bars, nt_bars)

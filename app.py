@@ -256,7 +256,7 @@ def main():
         validation.show_validation_tab(sc_file=sc_file, nt_file=nt_file)
 
     with tab3:
-        bar_analysis.show_bar_analysis(sc_file=sc_file, contract=contract_label)
+        bar_analysis.show_bar_analysis(sc_file=sc_file, contract=contract_label, nt_file=nt_file)
 
 
 main()
