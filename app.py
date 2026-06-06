@@ -89,6 +89,7 @@ def show_bar_viewer(sc_file: str = "", contract: str = "ES"):
 
     if "bar_viewer_idx" not in st.session_state:
         st.session_state.bar_viewer_idx = len(dates) - 1
+    st.session_state.bar_viewer_idx = max(0, min(st.session_state.bar_viewer_idx, len(dates) - 1))
 
     c_prev, c_next, c_sel = st.columns([1, 1, 14])
     if c_prev.button("‹", help="Previous date"):
