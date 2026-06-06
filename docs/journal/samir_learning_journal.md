@@ -1,5 +1,5 @@
 # Samir's Learning Journal
-**Last Updated:** June 4, 2026
+**Last Updated:** June 7, 2026
 
 ---
 
@@ -326,4 +326,84 @@ Positioned at `yref="y"` (data coordinates) with `yanchor="top"` and `yshift=-6`
 | **Streamlit widget defaults** | `value=` is only used when the widget key is not yet in `st.session_state`. Pre-populate session state before widget creation to control initial values. |
 | **`barmode="overlay"`** | Plotly bar traces at the same x position render on top of each other. Add background trace first (low z-order), data trace second. Clip with explicit `yaxis.range`. |
 | **`header { visibility: hidden }` danger** | Hides the Streamlit header including the Rerun button and sidebar toggle. Use `#MainMenu { visibility: hidden }` to hide only the hamburger menu. |
+
+---
+
+## Tag 7 — June 6–7, 2026
+### Trade Simulation — Sweeps, Multileg, and Streamlit Gotchas
+
+#### What we built
+- T1×T2 2D sweep: heatmap + ranked table to find the optimal T1/T2 combo for 2-leg trades
+- Stop multiplier sweep: simulate 10 stop sizes (0.25×–2.00× of the original signal stop)
+- Single-leg BE Stop mode: T1 moves stop to break-even, full position exits at T2
+- Mode-switching fix: replaced `st.button` pattern with `st.radio` for trade mode selection
+- Sweep table highlighting: best value per metric column in heatmap green; T1/T2 of best combo also highlighted
+
+#### The `st.button` mode-switching trap
+
+This burned us. The original code used three buttons ("Single Leg", "2-Leg", "3-Leg") to switch trade mode, storing the choice in session state. It appeared to work — until we noticed that changing any other widget (slippage, target R, etc.) caused the mode to silently reset back to Single Leg.
+
+**Why:** `st.button` only returns `True` in the single Streamlit rerun caused by clicking that button. The next rerun — triggered by any other widget — all buttons return `False`. If any code path checked button state to set mode, it ran False on that rerun and overwrote the saved state.
+
+**Fix:** `st.radio("Trade Mode", ["Single Leg", "2-Leg"], key="ba_trade_mode")`. Streamlit manages `ba_trade_mode` in session state natively. The value persists across all reruns, regardless of what triggered the rerun. No `st.rerun()` needed.
+
+**Rule:** Use `st.button` for one-shot actions (run sweep, save defaults). Use `st.radio` or `st.selectbox` for anything that must persist as a selection.
+
+#### The `Styler.apply` kwargs trap
+
+We wanted to pass a threshold to a highlighting function:
+
+```python
+# WRONG — pandas passes "kwargs" as a literal keyword arg name
+styled.apply(_hl_max, kwargs={"thr": thr}, subset=[col])
+
+# RIGHT — pass extra args directly as keyword args
+styled.apply(_hl_max, thr=thr, subset=[col])
+```
+
+`Styler.apply(func, **kwargs)` passes any extra keyword arguments directly to `func`. Wrapping them in a `kwargs={}` dict doesn't unpack them — pandas just tries to call `func(series, kwargs={"thr": thr})`, which fails because `_hl_max` has no `kwargs` parameter.
+
+#### Stop sweep — targets auto-scale with the stop
+
+When sweeping stop sizes, the question was: does the target also change, or stay fixed? Answer: it changes automatically, because of how the simulator works.
+
+The target price is computed as:
+```
+risk_pts = abs(actual_entry - actual_stop)   # uses the modified stop
+target_price = actual_entry + target_r * risk_pts
+```
+
+So if you use a 0.5× stop, `risk_pts` is half as large, and a 2R target is placed at half the original distance. The **R ratio is preserved** relative to the new stop. You're not changing the R — you're changing the dollar size of 1R. This is the correct behavior for sweep analysis: each row tests a different risk/reward dollar amount at the same R multiple.
+
+#### Validation flags instead of mode overrides
+
+When T1 ≥ T2 in the 2-leg column, the original code set `_is_ml = False` inside the column block. Bug: on the next Streamlit rerun, `ba_trade_mode` was still "2-Leg" so `_is_ml` reset to True, then T1≥T2 fired again — flickering, and the column disappeared.
+
+**Fix:** introduce a `_ml_invalid = False` flag initialized before the columns block. Set it to `True` only when T1≥T2. The column stays visible (the user can see and fix it). The derive block reads:
+
+```python
+if _is_ml and not _ml_invalid:   # valid 2-leg path
+elif _sl_be_deriv:               # single-leg BE mode
+else:                            # single-leg AIAO
+```
+
+The flag pattern separates "what did the user select" from "is that selection currently valid." Never override the user's selection — show a warning and degrade gracefully.
+
+#### Win rate definition matters
+
+The Setup Analysis table was showing win rates around 11% when the real number was closer to 40%. Root cause: the win filter was `ExitReason.str.contains("Target")`, which missed `"T1+BE"` exits (T1 hits, stop moves to break-even, then price hits EOD or BE stop).
+
+`T1+BE` is a win — you protected your capital and had a partial winner. The contains-based filter only caught `"Target"` and `"T1+Target"`. Fix: add an explicit OR condition.
+
+**Broader lesson:** define "win" precisely before you write any filter. For this strategy: a win is any trade that hit at least one profit target. Exits at stop, EOD, or BE (no T1) are losses.
+
+#### Concepts learned
+
+| Concept | What it is |
+|---------|------------|
+| **`st.radio` vs `st.button`** | `st.radio` is a persistent selection — value lives in session state across all reruns. `st.button` is a one-shot event — True only in the rerun it caused. Use radio for mode switches, button for actions. |
+| **`Styler.apply` extra args** | Pass extra args directly as keyword args (`thr=thr`), not wrapped in `kwargs={}`. The Styler unpacks them into the function call. |
+| **Risk pts auto-scaling** | In the ES simulator, `risk_pts = entry - stop`. Modifying the stop before simulation automatically scales both the target price and the dollar value of 1R. Target R ratio is preserved. |
+| **`_ml_invalid` flag pattern** | For input validation in multi-column UIs: use a flag, not a mode override. Keep the column visible, degrade the simulation path, show a warning. Don't hide the widget the user needs to fix. |
+| **matplotlib required for `background_gradient`** | `pandas Styler.background_gradient` requires matplotlib as a backend. It's not installed by default in a fresh venv. `pip install matplotlib` if you see `ImportError: Import matplotlib failed`. |
 
