@@ -1109,7 +1109,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         pf_str = f"{summary['pf']:.2f}" if summary['pf'] < 99 else "∞"
         r2[0].metric("Profit Factor", pf_str)
         r2[1].metric("Exp $",         f"${summary['exp_dollar']:+.0f}")
-        r2[2].metric("Exp R",         f"{summary['exp_r']:+.3f}")
+        r2[2].metric("Exp R",         f"{summary['exp_r']:+.2f}")
         r2[3].metric("Avg Win",       f"${summary['avg_win']:+.0f}")
         r2[4].metric("Avg Loss",      f"${summary['avg_loss']:+.0f}")
         r2[5].metric("W/L Ratio",
