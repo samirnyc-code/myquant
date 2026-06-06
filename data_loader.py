@@ -127,34 +127,37 @@ def parse_nt_ticks_from_upload(uploaded_file) -> pd.DataFrame:
     RTH ticks only (08:30–15:15 CT). Returns DataFrame: DateTime, Price, Volume."""
     uploaded_file.seek(0)
     chunks = []
+    # Use C engine with semicolon — first column is "YYYYMMDD HHMMSS SUBSEC" (space-joined)
     for chunk in pd.read_csv(
         uploaded_file,
-        sep=r"[ ;]",
-        engine="python",
+        sep=";",
         header=None,
-        names=["date", "time", "subsec", "price", "bid", "ask", "volume"],
+        names=["ts", "price", "bid", "ask", "volume"],
         dtype=str,
         na_filter=False,
         chunksize=500_000,
         on_bad_lines="skip",
     ):
-        chunk["time"] = chunk["time"].str.strip()
-        t_fmt = (chunk["time"].str[:2] + ":" +
-                 chunk["time"].str[2:4] + ":" +
-                 chunk["time"].str[4:6])
-        mask = (t_fmt >= RTH_START) & (t_fmt <= RTH_END)
-        chunk = chunk.loc[mask].copy()
-        if chunk.empty:
+        # Split "YYYYMMDD HHMMSS SUBSEC" on whitespace
+        ts_parts = chunk["ts"].str.strip().str.split(expand=True)
+        if ts_parts.shape[1] < 3:
             continue
-        base_dt = pd.to_datetime(
-            chunk["date"].str.strip() + chunk["time"].str.strip(),
-            format="%Y%m%d%H%M%S", errors="coerce",
-        )
-        subsec_100ns = pd.to_numeric(chunk["subsec"].str.strip(), errors="coerce").fillna(0)
-        chunk["DateTime"] = base_dt + pd.to_timedelta(subsec_100ns * 100, unit="ns")
-        chunk["Price"]    = pd.to_numeric(chunk["price"],  errors="coerce")
-        chunk["Volume"]   = pd.to_numeric(chunk["volume"], errors="coerce").fillna(0).astype("int32")
-        chunks.append(chunk[["DateTime", "Price", "Volume"]])
+        time_s = ts_parts[1]
+        # RTH filter using HHMMSS string comparison
+        rth_start_s = RTH_START.replace(":", "")   # "083000"
+        rth_end_s   = RTH_END.replace(":", "")     # "151500"
+        mask = (time_s >= rth_start_s) & (time_s <= rth_end_s)
+        if not mask.any():
+            continue
+        date_s   = ts_parts[0][mask]
+        time_s   = time_s[mask]
+        subsec   = ts_parts[2][mask]
+        base_dt  = pd.to_datetime(date_s + time_s, format="%Y%m%d%H%M%S", errors="coerce")
+        subsec_ns = pd.to_numeric(subsec, errors="coerce").fillna(0) * 100
+        dt = base_dt + pd.to_timedelta(subsec_ns, unit="ns")
+        price  = pd.to_numeric(chunk["price"][mask],  errors="coerce")
+        volume = pd.to_numeric(chunk["volume"][mask], errors="coerce").fillna(0).astype("int32")
+        chunks.append(pd.DataFrame({"DateTime": dt.values, "Price": price.values, "Volume": volume.values}))
     if not chunks:
         return pd.DataFrame(columns=["DateTime", "Price", "Volume"])
     return (pd.concat(chunks, ignore_index=True)
