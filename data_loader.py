@@ -110,14 +110,20 @@ def parse_sc_bars_from_upload(uploaded_file) -> pd.DataFrame:
     for chunk in pd.read_csv(
         uploaded_file,
         skipinitialspace=True,
-        usecols=["Date", "Time", "Last", "Volume"],
         chunksize=500_000,
-        dtype={"Date": str, "Time": str, "Last": float, "Volume": "int32"},
+        dtype=str,
+        na_filter=False,
     ):
+        # Strip column names — BytesIO reads may preserve leading spaces even with skipinitialspace
+        chunk.columns = chunk.columns.str.strip()
+        chunk["Time"] = chunk["Time"].str.strip()
+        chunk["Date"] = chunk["Date"].str.strip()
         mask = (chunk["Time"] >= RTH_START) & (chunk["Time"] < RTH_END)
         chunk = chunk.loc[mask].copy()
         if chunk.empty:
             continue
+        chunk["Last"]   = pd.to_numeric(chunk["Last"],   errors="coerce")
+        chunk["Volume"] = pd.to_numeric(chunk["Volume"], errors="coerce").fillna(0).astype("int32")
         chunk["datetime"] = pd.to_datetime(chunk["Date"] + " " + chunk["Time"], format="mixed")
         chunks.append(chunk[["datetime", "Last", "Volume"]])
     if not chunks:
@@ -144,14 +150,19 @@ def parse_sc_ticks_from_upload(uploaded_file) -> pd.DataFrame:
     for chunk in pd.read_csv(
         uploaded_file,
         skipinitialspace=True,
-        usecols=["Date", "Time", "Last", "Volume"],
         chunksize=500_000,
-        dtype={"Date": str, "Time": str, "Last": float, "Volume": "int32"},
+        dtype=str,
+        na_filter=False,
     ):
+        chunk.columns = chunk.columns.str.strip()
+        chunk["Time"] = chunk["Time"].str.strip()
+        chunk["Date"] = chunk["Date"].str.strip()
         mask = (chunk["Time"] >= RTH_START) & (chunk["Time"] <= RTH_END)
         chunk = chunk.loc[mask].copy()
         if chunk.empty:
             continue
+        chunk["Last"]   = pd.to_numeric(chunk["Last"],   errors="coerce")
+        chunk["Volume"] = pd.to_numeric(chunk["Volume"], errors="coerce").fillna(0).astype("int32")
         chunk["DateTime"] = pd.to_datetime(chunk["Date"] + " " + chunk["Time"], format="mixed")
         chunks.append(chunk[["DateTime", "Last", "Volume"]].rename(columns={"Last": "Price"}))
     if not chunks:
@@ -160,8 +171,9 @@ def parse_sc_ticks_from_upload(uploaded_file) -> pd.DataFrame:
 
 
 def parse_ohlc_from_upload(uploaded_file) -> pd.DataFrame:
-    """Parse bar_export OHLC file: MM/DD/YYYY HH:MM:SS;O;H;L;C;V
-    Timestamps are Berlin close times → converted to CT open times (−7h −5min)."""
+    """Parse bar_export OHLC file: DD/MM/YYYY HH:MM:SS;O;H;L;C;V (same layout as NT file on disk).
+    Timestamps are Berlin close times → converted to CT open times (−7h −5min).
+    Non-data rows (dashes, headers) are silently dropped."""
     uploaded_file.seek(0)
     df = pd.read_csv(
         uploaded_file,
@@ -170,24 +182,31 @@ def parse_ohlc_from_upload(uploaded_file) -> pd.DataFrame:
         names=["DateTime", "Open", "High", "Low", "Close", "Volume"],
         skipinitialspace=True,
         dtype=str,
+        on_bad_lines="skip",
     )
     for col in ["Open", "High", "Low", "Close"]:
         df[col] = pd.to_numeric(df[col], errors="coerce")
     df["Volume"] = pd.to_numeric(df["Volume"], errors="coerce").fillna(0)
     df["NullVol"] = df["Volume"].isna()
 
+    # Try DD/MM/YYYY first (NinjaScript Output format); fall back to MM/DD/YYYY
+    dt_parsed = pd.to_datetime(df["DateTime"], format="%d/%m/%Y %H:%M:%S", errors="coerce")
+    if dt_parsed.isna().mean() > 0.5:
+        dt_parsed = pd.to_datetime(df["DateTime"], format="%m/%d/%Y %H:%M:%S", errors="coerce")
+
     df["DateTime"] = (
-        pd.to_datetime(df["DateTime"], format="%m/%d/%Y %H:%M:%S")
+        dt_parsed
         .dt.tz_localize("Europe/Berlin")
         .dt.tz_convert("America/Chicago")
         .dt.tz_localize(None)
         - pd.Timedelta(minutes=5)
     )
+    df = df.dropna(subset=["DateTime", "Open"])
     t = df["DateTime"].dt.time
     df = df[
         (t >= pd.Timestamp(RTH_START).time()) &
         (t <  pd.Timestamp(RTH_END).time())
-    ].dropna(subset=["Open"])
+    ]
     return df.sort_values("DateTime").reset_index(drop=True)
 
 
