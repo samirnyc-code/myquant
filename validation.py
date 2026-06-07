@@ -230,9 +230,13 @@ def _delta_distribution_commentary(matched: pd.DataFrame):
 def show_validation_tab(sc_file: str = "", nt_file: str = ""):
     from pathlib import Path
 
-    # Prefer uploaded data when available
     uploaded_sc   = st.session_state.get("uploaded_sc_bars")
     uploaded_ohlc = st.session_state.get("uploaded_ohlc_bars")
+
+    if (uploaded_sc is None and uploaded_ohlc is None
+            and st.session_state.get("bar_source", "none") == "none"):
+        st.info("Upload data in the **📁 Upload Data** panel in Bar Analysis to begin.")
+        return
 
     if uploaded_sc is not None:
         sc = uploaded_sc

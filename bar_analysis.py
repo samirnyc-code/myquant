@@ -148,6 +148,9 @@ def _simulate_one(
     sig_dt, direction: str, signal_price: float, stop_csv: float,
     day_ticks: pd.DataFrame,
     target_r: float, entry_slip: int, exit_slip: int, stop_offset: int, tv: float,
+    ratchet_r: float = 0.0,       # 0 = disabled; >0 = trigger R from entry
+    ratchet_dest: str = "BE",     # "BE" | "E1" | "Lock-in"
+    ratchet_lock_r: float = 0.0,  # lock-in R (only used when dest="Lock-in")
     manual_fill: dict | None = None,   # {"fill_price": float, "fill_bar": int}
 ) -> dict:
     from data_loader import RTH_START_MIN
@@ -200,10 +203,12 @@ def _simulate_one(
 
     # Scan for exit + MAE/MFE
 
-    exit_px_raw  = float(prices[-1])
-    exit_dt_raw  = times[-1]
-    exit_reason  = "Session"
-    mae = mfe = 0.0
+    exit_px_raw   = float(prices[-1])
+    exit_dt_raw   = times[-1]
+    exit_reason   = "Session"
+    mae = mfe     = 0.0
+    active_stop   = actual_stop
+    ratchet_fired = False
 
     for i, (p, t) in enumerate(zip(prices, times)):
         excursion = (p - actual_entry) if is_long else (actual_entry - p)
@@ -213,19 +218,30 @@ def _simulate_one(
         if i == 0:
             continue  # entry tick — no exit check on entry itself
 
+        # Stop ratchet
+        if ratchet_r > 0.0 and not ratchet_fired:
+            favor = (p - actual_entry) if is_long else (actual_entry - p)
+            if favor >= ratchet_r * risk_pts:
+                if ratchet_dest == "Lock-in":
+                    lk = ratchet_lock_r * risk_pts
+                    active_stop = (actual_entry + lk) if is_long else (actual_entry - lk)
+                else:  # "BE" or "E1" — same for single-leg
+                    active_stop = actual_entry
+                ratchet_fired = True
+
         if is_long:
             if p >= target_price:
                 exit_px_raw, exit_dt_raw, exit_reason = target_price, t, "Target"
                 break
-            if p <= actual_stop:
-                exit_px_raw, exit_dt_raw, exit_reason = actual_stop, t, "Stop"
+            if p <= active_stop:
+                exit_px_raw, exit_dt_raw, exit_reason = active_stop, t, "Stop"
                 break
         else:
             if p <= target_price:
                 exit_px_raw, exit_dt_raw, exit_reason = target_price, t, "Target"
                 break
-            if p >= actual_stop:
-                exit_px_raw, exit_dt_raw, exit_reason = actual_stop, t, "Stop"
+            if p >= active_stop:
+                exit_px_raw, exit_dt_raw, exit_reason = active_stop, t, "Stop"
                 break
 
     # Exit fill = theoretical exit ± exit slippage (always adverse)
@@ -274,6 +290,9 @@ def _simulate_one_bars(
     sig_dt, direction: str, signal_price: float, stop_csv: float,
     day_bars: pd.DataFrame,
     target_r: float, entry_slip: int, exit_slip: int, stop_offset: int, tv: float,
+    ratchet_r: float = 0.0,
+    ratchet_dest: str = "BE",
+    ratchet_lock_r: float = 0.0,
 ) -> dict:
     """Bar-level fill simulation — used when tick data is unavailable.
     Entry: stop order triggers if next bar's H/L reaches signal price.
@@ -303,27 +322,42 @@ def _simulate_one_bars(
     entry_bar    = bar_num_from_dt(nb["DateTime"])
     entry_dt     = nb["DateTime"]
 
-    exit_px_raw  = float(next_bars.iloc[-1]["Close"])
-    exit_dt_raw  = next_bars.iloc[-1]["DateTime"]
-    exit_reason  = "Session"
-    mae = mfe = 0.0
+    exit_px_raw      = float(next_bars.iloc[-1]["Close"])
+    exit_dt_raw      = next_bars.iloc[-1]["DateTime"]
+    exit_reason      = "Session"
+    mae = mfe        = 0.0
+    active_stop      = actual_stop
+    ratchet_fired    = False
+    same_bar_conflict = False   # True when stop AND target both reachable in same bar
 
     for _, bar in next_bars.iterrows():
         hi, lo = float(bar["High"]), float(bar["Low"])
         mfe = max(mfe, (hi - actual_entry) if is_long else (actual_entry - lo))
         mae = max(mae, (actual_entry - lo) if is_long else (hi - actual_entry))
 
+        # Stop ratchet (bar-level: trigger based on bar high/low in favor direction)
+        if ratchet_r > 0.0 and not ratchet_fired:
+            favor = (hi - actual_entry) if is_long else (actual_entry - lo)
+            if favor >= ratchet_r * risk_pts:
+                if ratchet_dest == "Lock-in":
+                    lk = ratchet_lock_r * risk_pts
+                    active_stop = (actual_entry + lk) if is_long else (actual_entry - lk)
+                else:
+                    active_stop = actual_entry
+                ratchet_fired = True
+
         hit_tgt  = (hi >= target_price) if is_long else (lo <= target_price)
-        hit_stop = (lo <= actual_stop)  if is_long else (hi >= actual_stop)
+        hit_stop = (lo <= active_stop)  if is_long else (hi >= active_stop)
 
         if hit_stop and hit_tgt:
-            exit_px_raw, exit_dt_raw, exit_reason = actual_stop, bar["DateTime"], "Stop"
+            same_bar_conflict = True
+            exit_px_raw, exit_dt_raw, exit_reason = active_stop, bar["DateTime"], "Stop"
             break
         elif hit_tgt:
             exit_px_raw, exit_dt_raw, exit_reason = target_price, bar["DateTime"], "Target"
             break
         elif hit_stop:
-            exit_px_raw, exit_dt_raw, exit_reason = actual_stop, bar["DateTime"], "Stop"
+            exit_px_raw, exit_dt_raw, exit_reason = active_stop, bar["DateTime"], "Stop"
             break
 
     actual_exit     = exit_px_raw + (-exit_slip * ts if is_long else exit_slip * ts)
@@ -336,31 +370,32 @@ def _simulate_one_bars(
     slippage_dollar = (entry_slip + exit_slip) * tv
 
     return {
-        "ok":             True,
-        "SEPrice":        signal_price,
-        "FillPrice":      fill_px,
-        "EntryTime":      pd.Timestamp(entry_dt),
-        "EntryBarNum":    entry_bar,
-        "EntryPrice":     actual_entry,
-        "ActualStop":     actual_stop,
-        "Target":         target_price,
-        "RiskPts":        risk_pts,
-        "RiskDollar":     risk_pts / ts * tv,
-        "ExitTime":       exit_dt_ts,
-        "ExitBarNum":     exit_bar,
-        "ExitPrice":      actual_exit,
-        "ExitReason":     "EOD" if exit_reason == "Session" else exit_reason,
-        "GrossPnLPts":    gross_pts,
-        "GrossPnL":       gross_pnl,
-        "R_achieved":     r_achieved,
-        "MAE_pts":        max(mae, 0.0),
-        "MAE_dollar":     max(mae, 0.0) / ts * tv,
-        "MAE_R":          max(mae, 0.0) / risk_pts,
-        "MFE_pts":        max(mfe, 0.0),
-        "MFE_dollar":     max(mfe, 0.0) / ts * tv,
-        "MFE_R":          max(mfe, 0.0) / risk_pts,
-        "SlippagePts":    slippage_pts,
-        "SlippageDollar": slippage_dollar,
+        "ok":               True,
+        "SEPrice":          signal_price,
+        "FillPrice":        fill_px,
+        "EntryTime":        pd.Timestamp(entry_dt),
+        "EntryBarNum":      entry_bar,
+        "EntryPrice":       actual_entry,
+        "ActualStop":       actual_stop,
+        "Target":           target_price,
+        "RiskPts":          risk_pts,
+        "RiskDollar":       risk_pts / ts * tv,
+        "ExitTime":         exit_dt_ts,
+        "ExitBarNum":       exit_bar,
+        "ExitPrice":        actual_exit,
+        "ExitReason":       "EOD" if exit_reason == "Session" else exit_reason,
+        "GrossPnLPts":      gross_pts,
+        "GrossPnL":         gross_pnl,
+        "R_achieved":       r_achieved,
+        "MAE_pts":          max(mae, 0.0),
+        "MAE_dollar":       max(mae, 0.0) / ts * tv,
+        "MAE_R":            max(mae, 0.0) / risk_pts,
+        "MFE_pts":          max(mfe, 0.0),
+        "MFE_dollar":       max(mfe, 0.0) / ts * tv,
+        "MFE_R":            max(mfe, 0.0) / risk_pts,
+        "SlippagePts":      slippage_pts,
+        "SlippageDollar":   slippage_dollar,
+        "SameBarConflict":  same_bar_conflict,
     }
 
 
@@ -370,6 +405,9 @@ def _simulate_one_multileg(
     target_r: float, t1_r: float, t1_action: str,
     entry_slip: float, exit_slip: float, stop_offset: int,
     tv1: float, tv2: float,
+    ratchet_r: float = 0.0,
+    ratchet_dest: str = "BE",
+    ratchet_lock_r: float = 0.0,
     manual_fill: dict | None = None,
 ) -> dict:
     """Tick-level 2-leg simulation.
@@ -461,6 +499,8 @@ def _simulate_one_multileg(
     leg1_exit_price = None
     full_stop_price = None
     full_stop_dt    = None
+    active_stop     = actual_stop
+    ratchet_fired   = False
 
     for i, (p, t) in enumerate(zip(prices, times)):
         excursion = (p - actual_entry) if is_long else (actual_entry - p)
@@ -468,8 +508,20 @@ def _simulate_one_multileg(
         mae = max(mae, -excursion)
         if i == 0:
             continue
-        hit_t1   = (p >= t1_price)    if is_long else (p <= t1_price)
-        hit_stop = (p <= actual_stop)  if is_long else (p >= actual_stop)
+
+        # Stop ratchet (Phase 1 only; Phase 2 BE stop takes over after T1)
+        if ratchet_r > 0.0 and not ratchet_fired:
+            favor = (p - actual_entry) if is_long else (actual_entry - p)
+            if favor >= ratchet_r * risk_pts:
+                if ratchet_dest == "Lock-in":
+                    lk = ratchet_lock_r * risk_pts
+                    active_stop = (actual_entry + lk) if is_long else (actual_entry - lk)
+                else:  # "BE" or "E1"
+                    active_stop = actual_entry
+                ratchet_fired = True
+
+        hit_t1   = (p >= t1_price)   if is_long else (p <= t1_price)
+        hit_stop = (p <= active_stop) if is_long else (p >= active_stop)
         if hit_t1:
             if t1_action == "exit":
                 leg1_exit_price = t1_price + (-exit_slip * ts if is_long else exit_slip * ts)
@@ -477,7 +529,7 @@ def _simulate_one_multileg(
             phase1_end_idx = i
             break
         if hit_stop:
-            full_stop_price = actual_stop + (-exit_slip * ts if is_long else exit_slip * ts)
+            full_stop_price = active_stop + (-exit_slip * ts if is_long else exit_slip * ts)
             full_stop_dt    = t
             break
 
@@ -527,8 +579,14 @@ def _simulate_one_bars_multileg(
     target_r: float, t1_r: float, t1_action: str,
     entry_slip: float, exit_slip: float, stop_offset: int,
     tv1: float, tv2: float,
+    ratchet_r: float = 0.0,
+    ratchet_dest: str = "BE",
+    ratchet_lock_r: float = 0.0,
+    e2_pb_r: float = 0.0,    # R from E1 entry where E2 fills (0 = fills immediately at T1)
+    e2_pb_ticks: int = 0,    # additional tick offset applied to the PB level
 ) -> dict:
-    """Bar-level 2-leg simulation. Conservative: stop wins over T1 (Phase 1); BE wins over T2 (Phase 2)."""
+    """Bar-level 2-leg simulation. Conservative: stop wins over T1 (Phase 1); BE wins over T2 (Phase 2).
+    When e2_pb_r > 0, E2 only fills after price retraces to that level from T1."""
     ts       = TICK_SIZE
     is_long  = direction == "Long"
     tv_total = tv1 + tv2
@@ -550,23 +608,35 @@ def _simulate_one_bars_multileg(
     if risk_pts < 0.001:
         return {"ok": False, "FilterStatus": "zero_risk"}
 
-    t1_price  = actual_entry + (t1_r     * risk_pts if is_long else -t1_r     * risk_pts)
-    t2_price  = actual_entry + (target_r * risk_pts if is_long else -target_r * risk_pts)
+    t1_price  = actual_entry + (t1_r * risk_pts if is_long else -t1_r * risk_pts)
+    t2_price  = t1_price  # placeholder; overwritten after E2 fills using blended-entry R
     entry_bar = bar_num_from_dt(nb["DateTime"])
     entry_dt  = nb["DateTime"]
     mae = mfe = 0.0
 
+    # e2_entry / e2_fill_dt: updated when PB fills. _build reads via closure at call time.
+    e2_entry   = actual_entry
+    e2_fill_dt = None
+
     def _leg_pts(exit_px):
         return (exit_px - actual_entry) if is_long else (actual_entry - exit_px)
 
+    def _leg2_pts(exit_px):
+        return (exit_px - e2_entry) if is_long else (e2_entry - exit_px)
+
+    same_bar_conflict = False  # set True when stop+T1 OR BE+T2 both reachable same bar
+
     def _build(exit_reason, exit_price, exit_dt, leg1_er, leg1_px, leg2_er, leg2_px):
         l1_pts = _leg_pts(leg1_px) if leg1_px is not None else 0.0
-        l2_pts = _leg_pts(leg2_px)
+        l2_pts = _leg2_pts(leg2_px) if leg2_px is not None else 0.0
         l1_pnl = l1_pts / ts * tv1
         l2_pnl = l2_pts / ts * tv2
         g_pnl  = l1_pnl + l2_pnl
         g_pts  = l1_pts + l2_pts
-        r_ach  = g_pnl / (risk_pts / ts * tv_total) if tv_total > 0 else 0.0
+        # Use only tv1 when E2 never filled (T1_only / Stop before E2 / EOD before E2)
+        _e2_filled = (leg2_er not in ("NoFill", None))
+        _tv_active = tv_total if _e2_filled else tv1
+        r_ach  = g_pnl / (risk_pts / ts * _tv_active) if _tv_active > 0 else 0.0
         edt    = pd.Timestamp(exit_dt)
         return {
             "ok": True,
@@ -574,22 +644,26 @@ def _simulate_one_bars_multileg(
             "EntryTime": pd.Timestamp(entry_dt), "EntryBarNum": entry_bar,
             "EntryPrice": actual_entry, "ActualStop": actual_stop,
             "Target": t2_price,         "Target1": t1_price,
-            "RiskPts": risk_pts,        "RiskDollar": risk_pts / ts * tv_total,
+            "RiskPts": risk_pts,        "RiskDollar": risk_pts / ts * _tv_active,
             "ExitTime": edt,            "ExitBarNum": bar_num_from_dt(edt),
             "ExitPrice": exit_price,    "ExitReason": exit_reason,
             "GrossPnLPts": g_pts,       "GrossPnL": g_pnl,
             "R_achieved": r_ach,
-            "MAE_pts": max(mae, 0.0),   "MAE_dollar": max(mae, 0.0) / ts * tv_total,
+            "MAE_pts": max(mae, 0.0),   "MAE_dollar": max(mae, 0.0) / ts * _tv_active,
             "MAE_R": max(mae, 0.0) / risk_pts,
-            "MFE_pts": max(mfe, 0.0),   "MFE_dollar": max(mfe, 0.0) / ts * tv_total,
+            "MFE_pts": max(mfe, 0.0),   "MFE_dollar": max(mfe, 0.0) / ts * _tv_active,
             "MFE_R": max(mfe, 0.0) / risk_pts,
             "SlippagePts": (entry_slip + exit_slip) * ts,
-            "SlippageDollar": (entry_slip + exit_slip) * ts / ts * tv_total,
+            "SlippageDollar": (entry_slip + exit_slip) * ts / ts * _tv_active,
             "Leg1ExitReason": leg1_er if leg1_px is not None else np.nan,
             "Leg1ExitPrice":  leg1_px if leg1_px is not None else np.nan,
             "Leg1GrossPts": l1_pts, "Leg1GrossPnL": l1_pnl,
             "Leg2ExitReason": leg2_er, "Leg2ExitPrice": leg2_px,
             "Leg2GrossPts": l2_pts, "Leg2GrossPnL": l2_pnl,
+            "PBLevel":    float(pb_trigger) if pb_trigger is not None else np.nan,
+            "E2FillPrice": e2_entry if _e2_filled else np.nan,
+            "E2FillTime":  pd.Timestamp(e2_fill_dt) if (e2_fill_dt is not None and _e2_filled) else pd.NaT,
+            "SameBarConflict": same_bar_conflict,
         }
 
     # ── Phase 1: Stop or T1 ───────────────────────────────────────────────────
@@ -597,62 +671,610 @@ def _simulate_one_bars_multileg(
     leg1_exit_price = None
     full_stop_price = None
     full_stop_dt    = None
+    active_stop     = actual_stop
+    # ── Pre-compute PB trigger (if scale-in enabled) ──────────────────────────
+    # PB is negative R from E1 entry (a dip below entry before T1 is reached).
+    # e2_pb_r = -0.5 → PB = entry - 0.5R (for long)
+    use_pb      = e2_pb_r < 0
+    pb_trigger  = None
+    if use_pb:
+        pb_level   = actual_entry + (e2_pb_r * risk_pts if is_long else -e2_pb_r * risk_pts)
+        pb_trigger = (pb_level - e2_pb_ticks * ts) if is_long else (pb_level + e2_pb_ticks * ts)
 
-    for idx, bar in next_bars.iterrows():
+    # ── Phase 1: Scan simultaneously for T1, stop, and PB fill ───────────────
+    # Scale-in model: E2 must fill BEFORE T1 is hit.
+    #   • If T1 hits first  → trade over, E1 profit only (no scale-in)
+    #   • If PB fills first → E2 added, proceed to Phase 2 targeting T1/T2
+    #   • If stop hits first → E1 stops out
+    # Same-bar conservative priorities: stop > T1 > PB fill
+    p1_result  = "Session"   # "T1_only" | "PB_filled" | "Stop" | "Session" (EOD)
+    p1_dt      = None
+    p1_exit_px = None
+    p1_fill_pos = None       # bar position where PB fills (to slice Phase 2)
+
+    for pos, (_, bar) in enumerate(next_bars.iterrows()):
         hi, lo = float(bar["High"]), float(bar["Low"])
         mfe = max(mfe, (hi - actual_entry) if is_long else (actual_entry - lo))
         mae = max(mae, (actual_entry - lo) if is_long else (hi - actual_entry))
-        hit_t1   = (hi >= t1_price) if is_long else (lo <= t1_price)
+
+        hit_t1   = (hi >= t1_price)    if is_long else (lo <= t1_price)
         hit_stop = (lo <= actual_stop) if is_long else (hi >= actual_stop)
+        hit_pb   = use_pb and ((lo <= pb_trigger) if is_long else (hi >= pb_trigger))
+
+        if hit_stop and (hit_t1 or hit_pb):
+            same_bar_conflict = True
+        if hit_t1 and hit_pb:
+            same_bar_conflict = True
+
         if hit_stop:
-            full_stop_price = actual_stop + (-exit_slip * ts if is_long else exit_slip * ts)
-            full_stop_dt    = bar["DateTime"]
+            p1_result  = "Stop"
+            p1_dt      = bar["DateTime"]
+            p1_exit_px = actual_stop + (-exit_slip * ts if is_long else exit_slip * ts)
             break
-        if hit_t1:
-            if t1_action == "exit":
-                leg1_exit_price = t1_price + (-exit_slip * ts if is_long else exit_slip * ts)
+        if hit_t1 and not hit_pb:
+            # T1 hit before PB → trade over, E1 wins at T1
+            p1_result  = "T1_only"
+            p1_dt      = bar["DateTime"]
+            p1_exit_px = t1_price + (-exit_slip * ts if is_long else exit_slip * ts)
+            break
+        if hit_pb:
+            # PB filled (T1 not yet hit on this bar, or same bar hit both → PB got in first
+            # not possible since stop > T1 > PB priority; if T1 also hit same bar, conflict)
+            if hit_t1:
+                # Same bar: T1 hit AND PB triggered. Conservative: T1 wins, no scale-in.
+                same_bar_conflict = True
+                p1_result  = "T1_only"
+                p1_dt      = bar["DateTime"]
+                p1_exit_px = t1_price + (-exit_slip * ts if is_long else exit_slip * ts)
+            else:
+                # Clean PB fill: E2 scales in
+                e2_entry      = pb_trigger + (entry_slip * ts if is_long else -entry_slip * ts)
+                e2_fill_dt    = bar["DateTime"]
+                # Blended avg entry (tv1/tv2 are proportional to contract counts)
+                blended_entry = (actual_entry * tv1 + e2_entry * tv2) / tv_total
+                blended_risk  = abs(blended_entry - actual_stop)
+                t2_price      = blended_entry + (target_r * blended_risk if is_long else -target_r * blended_risk)
+                p1_result     = "PB_filled"
+                p1_fill_pos   = pos
+            break
+
+    # ── Resolve Phase 1 outcome ───────────────────────────────────────────────
+    if p1_result == "Stop":
+        return _build("Stop", p1_exit_px, p1_dt, "Stop", p1_exit_px, "Stop", p1_exit_px)
+
+    if p1_result == "T1_only":
+        # Leg 1 exits at T1; Leg 2 never entered → e2_entry still = actual_entry → l2_pts = 0
+        return _build("T1_only", p1_exit_px, p1_dt, "T1", p1_exit_px, "NoFill", actual_entry)
+
+    if p1_result == "Session":
+        # Reached EOD without T1, stop, or PB
+        last_bar   = next_bars.iloc[-1]
+        eod_px     = float(last_bar["Close"]) + (-exit_slip * ts if is_long else exit_slip * ts)
+        return _build("EOD", eod_px, last_bar["DateTime"], "EOD", eod_px, "EOD", eod_px)
+
+    # ── Phase 2: E2 filled — combined position (Leg1+Leg2) targets T2 or stop ─
+    # T2 = blended_entry + target_r * blended_risk (blended avg of E1+E2, original stop)
+    phase2   = next_bars.iloc[p1_fill_pos + 1:]
+    last_bar = next_bars.iloc[-1]
+    p2_result = "Session"
+    p2_px_r   = float(last_bar["Close"])
+    p2_dt     = last_bar["DateTime"]
+
+    for _, bar2 in phase2.iterrows():
+        hi2, lo2 = float(bar2["High"]), float(bar2["Low"])
+        mfe = max(mfe, (hi2 - actual_entry) if is_long else (actual_entry - lo2))
+        mae = max(mae, (actual_entry - lo2) if is_long else (hi2 - actual_entry))
+
+        hit_t2   = (hi2 >= t2_price) if is_long else (lo2 <= t2_price)
+        hit_stop2 = (lo2 <= actual_stop) if is_long else (hi2 >= actual_stop)
+
+        if hit_stop2 and hit_t2:
+            same_bar_conflict = True
+        if hit_stop2:
+            p2_result, p2_px_r, p2_dt = "Stop", actual_stop, bar2["DateTime"]
+            break
+        if hit_t2:
+            p2_result, p2_px_r, p2_dt = "Target", t2_price, bar2["DateTime"]
+            break
+
+    p2_exit_px = p2_px_r + (-exit_slip * ts if is_long else exit_slip * ts)
+    reason_map = {"Target":  ("E1E2+Target", "Target"),
+                  "Stop":    ("E1E2+Stop",   "Stop"),
+                  "Session": ("E1E2+EOD",    "EOD")}
+    exit_str, l2_er = reason_map[p2_result]
+    return _build(exit_str, p2_exit_px, p2_dt, "E2filled", p2_exit_px, l2_er, p2_exit_px)
+
+
+def _simulate_one_3leg(
+    sig_dt, direction: str, signal_price: float, stop_csv: float,
+    day_ticks: pd.DataFrame,
+    t1_r: float, t2_r: float, target_r: float,
+    t1_action: str,
+    tv1: float, tv2: float, tv3: float,
+    e1c: int, e2c: int, e3c: int,
+    pb1_r: float, pb1_ticks: int,
+    pb2_r: float, pb2_ticks: int,
+    entry_slip: float, exit_slip: float, stop_offset: int,
+    ratchet_r: float = 0.0, ratchet_dest: str = "BE", ratchet_lock_r: float = 0.0,
+    manual_fill: dict | None = None,
+) -> dict:
+    """Tick-level 3-leg simulation. E1→T1, E2→T2, E3→T3(=target_r).
+    All legs share original stop; after T1 hit, stop moves to blended BE."""
+    from data_loader import RTH_START_MIN
+    ts      = TICK_SIZE
+    is_long = direction == "Long"
+
+    after = day_ticks[day_ticks["DateTime"] > sig_dt]
+    if after.empty:
+        return {"ok": False, "FilterStatus": "no_next_bar"}
+
+    if manual_fill is not None:
+        fill_bar     = int(manual_fill["fill_bar"])
+        fill_px_raw  = float(manual_fill["fill_price"])
+        bar_open_min = RTH_START_MIN + (fill_bar - 1) * 5
+        sig_date     = pd.Timestamp(sig_dt).normalize()
+        bar_open_dt  = sig_date + pd.Timedelta(minutes=bar_open_min)
+        scan_ticks   = day_ticks[day_ticks["DateTime"] >= bar_open_dt]
+        if scan_ticks.empty:
+            return {"ok": False, "FilterStatus": "no_tick_data"}
+        first_tick_px = fill_px_raw
+        entry_dt      = scan_ticks.iloc[0]["DateTime"]
+        prices        = scan_ticks["Price"].values
+        times         = scan_ticks["DateTime"].values
+    else:
+        qualifying = (after[after["Price"] >= signal_price] if is_long
+                      else after[after["Price"] <= signal_price])
+        if qualifying.empty:
+            return {"ok": False, "FilterStatus": "no_fill"}
+        fill_tick     = qualifying.iloc[0]
+        first_tick_px = fill_tick["Price"]
+        entry_dt      = fill_tick["DateTime"]
+        after         = after[after["DateTime"] >= fill_tick["DateTime"]]
+        prices        = after["Price"].values
+        times         = after["DateTime"].values
+
+    e1_entry    = first_tick_px + (entry_slip * ts if is_long else -entry_slip * ts)
+    actual_stop = (stop_csv - stop_offset * ts) if is_long else (stop_csv + stop_offset * ts)
+    risk_pts    = abs(e1_entry - actual_stop)
+    if risk_pts < 0.001:
+        return {"ok": False, "FilterStatus": "zero_risk"}
+
+    t1_price  = e1_entry + (t1_r     * risk_pts if is_long else -t1_r     * risk_pts)
+    t2_price  = e1_entry + (t2_r     * risk_pts if is_long else -t2_r     * risk_pts)
+    t3_price  = e1_entry + (target_r * risk_pts if is_long else -target_r * risk_pts)
+    entry_bar = bar_num_from_dt(entry_dt)
+
+    if is_long:
+        pb1_price_raw = e1_entry - pb1_r * risk_pts + pb1_ticks * ts
+        pb2_price_raw = e1_entry - pb2_r * risk_pts + pb2_ticks * ts
+        pb1_price = max(pb1_price_raw, actual_stop + ts)
+        pb2_price = max(pb2_price_raw, actual_stop + ts)
+        pb2_price = min(pb2_price, pb1_price - ts)
+    else:
+        pb1_price_raw = e1_entry + pb1_r * risk_pts - pb1_ticks * ts
+        pb2_price_raw = e1_entry + pb2_r * risk_pts - pb2_ticks * ts
+        pb1_price = min(pb1_price_raw, actual_stop - ts)
+        pb2_price = min(pb2_price_raw, actual_stop - ts)
+        pb2_price = max(pb2_price, pb1_price + ts)
+
+    active_stop    = actual_stop
+    ratchet_fired  = False
+    pb1_filled     = False
+    pb2_filled     = False
+    e2_entry_px    = None
+    e3_entry_px    = None
+    phase1_end_idx = None
+    full_stop_px   = None
+    full_stop_dt   = None
+    mae = mfe      = 0.0
+
+    def _blended():
+        if pb2_filled and e2_entry_px is not None and e3_entry_px is not None:
+            tot = tv1 + tv2 + tv3
+            return (e1_entry*tv1 + e2_entry_px*tv2 + e3_entry_px*tv3) / tot if tot > 0 else e1_entry
+        if pb1_filled and e2_entry_px is not None:
+            tot = tv1 + tv2
+            return (e1_entry*tv1 + e2_entry_px*tv2) / tot if tot > 0 else e1_entry
+        return e1_entry
+
+    def _build(exit_reason, exit_px, exit_dt, leg1_exit_px=None,
+               e2_exit=None, e2_rsn=None, e3_exit=None, e3_rsn=None):
+        tv_used = tv1 + (tv2 if pb1_filled else 0.0) + (tv3 if pb2_filled else 0.0)
+        l1_ep   = leg1_exit_px if leg1_exit_px is not None else exit_px
+        l1_pts  = (l1_ep - e1_entry) if is_long else (e1_entry - l1_ep)
+        l1_pnl  = l1_pts / ts * tv1
+        l2_ep   = e2_exit if e2_exit is not None else exit_px
+        l2_pts  = (l2_ep - e2_entry_px) if (is_long and pb1_filled) else \
+                  (e2_entry_px - l2_ep) if (not is_long and pb1_filled) else 0.0
+        l2_pnl  = l2_pts / ts * tv2 if pb1_filled else 0.0
+        l3_ep   = e3_exit if e3_exit is not None else exit_px
+        l3_pts  = (l3_ep - e3_entry_px) if (is_long and pb2_filled) else \
+                  (e3_entry_px - l3_ep) if (not is_long and pb2_filled) else 0.0
+        l3_pnl  = l3_pts / ts * tv3 if pb2_filled else 0.0
+        g_pnl   = l1_pnl + l2_pnl + l3_pnl
+        g_pts   = l1_pts + l2_pts + l3_pts
+        r_risk  = risk_pts / ts * tv1
+        r_ach   = g_pnl / r_risk if r_risk > 0 else 0.0
+        ttype   = ("E1+PB1+PB2" if pb2_filled else "E1+PB1" if pb1_filled else "Rocket")
+        filled_c = e1c + (e2c if pb1_filled else 0) + (e3c if pb2_filled else 0)
+        edt     = pd.Timestamp(exit_dt)
+        l1_er   = "T1" if leg1_exit_px is not None else exit_reason
+        return {
+            "ok": True,
+            "SEPrice":    signal_price,        "FillPrice":   first_tick_px,
+            "EntryTime":  pd.Timestamp(entry_dt), "EntryBarNum": entry_bar,
+            "EntryPrice": e1_entry,            "ActualStop":  actual_stop,
+            "Target":     t3_price,            "Target1":     t1_price,
+            "RiskPts":    risk_pts,            "RiskDollar":  risk_pts / ts * tv1,
+            "ExitTime":   edt,                 "ExitBarNum":  bar_num_from_dt(edt),
+            "ExitPrice":  exit_px,             "ExitReason":  exit_reason,
+            "GrossPnLPts": g_pts,              "GrossPnL":    g_pnl,
+            "R_achieved": r_ach,
+            "MAE_pts":    max(mae, 0.0),       "MAE_dollar":  max(mae, 0.0) / ts * tv_used,
+            "MAE_R":      max(mae, 0.0) / risk_pts,
+            "MFE_pts":    max(mfe, 0.0),       "MFE_dollar":  max(mfe, 0.0) / ts * tv_used,
+            "MFE_R":      max(mfe, 0.0) / risk_pts,
+            "SlippagePts":    (entry_slip + exit_slip) * ts,
+            "SlippageDollar": (entry_slip + exit_slip) * ts / ts * tv_used,
+            "Leg1ExitReason": l1_er,           "Leg1ExitPrice": l1_ep,
+            "Leg1GrossPts":   l1_pts,          "Leg1GrossPnL":  l1_pnl,
+            "Leg2ExitReason": (e2_rsn or exit_reason) if pb1_filled else np.nan,
+            "Leg2ExitPrice":  l2_ep if pb1_filled else np.nan,
+            "Leg2GrossPts":   l2_pts,          "Leg2GrossPnL":  l2_pnl,
+            "Leg3ExitReason": (e3_rsn or exit_reason) if pb2_filled else np.nan,
+            "Leg3ExitPrice":  l3_ep if pb2_filled else np.nan,
+            "Leg3GrossPts":   l3_pts,          "Leg3GrossPnL":  l3_pnl,
+            "TradeType":      ttype,
+            "BlendedEntry":   _blended(),
+            "PB1FillPrice":   e2_entry_px if pb1_filled else np.nan,
+            "PB2FillPrice":   e3_entry_px if pb2_filled else np.nan,
+            "FilledContracts": filled_c,
+        }
+
+    # ── Phase 1: PB fills → ratchet → stop → T1 ──────────────────────────────
+    for i, (p, t) in enumerate(zip(prices, times)):
+        excursion = (p - e1_entry) if is_long else (e1_entry - p)
+        mfe = max(mfe, excursion)
+        mae = max(mae, -excursion)
+        if i == 0:
+            continue
+
+        # PB1 fill (limit order below/above entry)
+        if not pb1_filled and tv2 > 0:
+            if (p <= pb1_price) if is_long else (p >= pb1_price):
+                e2_fill = pb1_price + (-entry_slip * ts if is_long else entry_slip * ts)
+                if (is_long and e2_fill > actual_stop) or (not is_long and e2_fill < actual_stop):
+                    e2_entry_px = e2_fill
+                    pb1_filled  = True
+
+        # PB2 fill (requires PB1 first)
+        if pb1_filled and not pb2_filled and tv3 > 0:
+            if (p <= pb2_price) if is_long else (p >= pb2_price):
+                e3_fill = pb2_price + (-entry_slip * ts if is_long else entry_slip * ts)
+                if (is_long and e3_fill > actual_stop) or (not is_long and e3_fill < actual_stop):
+                    e3_entry_px = e3_fill
+                    pb2_filled  = True
+
+        # Ratchet (uses blended entry after any fills this tick)
+        if ratchet_r > 0.0 and not ratchet_fired:
+            bl    = _blended()
+            favor = (p - bl) if is_long else (bl - p)
+            if favor >= ratchet_r * risk_pts:
+                if ratchet_dest == "Lock-in":
+                    lk = ratchet_lock_r * risk_pts
+                    active_stop = (bl + lk) if is_long else (bl - lk)
+                elif ratchet_dest == "E1":
+                    active_stop = e1_entry
+                else:  # "BE"
+                    active_stop = _blended()
+                ratchet_fired = True
+
+        # Stop (all contracts)
+        if (p <= active_stop) if is_long else (p >= active_stop):
+            sp = active_stop + (-exit_slip * ts if is_long else exit_slip * ts)
+            full_stop_px = sp
+            full_stop_dt = t
+            break
+
+        # T1
+        if (p >= t1_price) if is_long else (p <= t1_price):
+            phase1_end_idx = i
+            break
+
+    if full_stop_px is not None:
+        return _build("Stop", full_stop_px, full_stop_dt)
+
+    if phase1_end_idx is None:
+        eod_px = float(prices[-1]) + (-exit_slip * ts if is_long else exit_slip * ts)
+        return _build("EOD", eod_px, times[-1])
+
+    # ── Phase 2: E2→T2, E3→T3, blended-BE stop ───────────────────────────────
+    leg1_exit_px = None
+    if t1_action == "exit":
+        leg1_exit_px = t1_price + (-exit_slip * ts if is_long else exit_slip * ts)
+
+    be_stop_p2 = _blended()
+    p2_pr      = prices[phase1_end_idx:]
+    p2_ts      = times[phase1_end_idx:]
+    last_p2_px = float(p2_pr[-1]) + (-exit_slip * ts if is_long else exit_slip * ts)
+    last_p2_dt = p2_ts[-1]
+
+    e2_done = not pb1_filled
+    e3_done = not pb2_filled
+    e2_exit = None; e2_rsn = None
+    e3_exit = None; e3_rsn = None
+    be_px   = None; be_dt  = None
+
+    for j, (p2v, t2v) in enumerate(zip(p2_pr, p2_ts)):
+        excursion = (p2v - e1_entry) if is_long else (e1_entry - p2v)
+        mfe = max(mfe, excursion)
+        mae = max(mae, -excursion)
+        if j == 0:
+            continue
+        if (p2v <= be_stop_p2) if is_long else (p2v >= be_stop_p2):
+            sp2 = be_stop_p2 + (-exit_slip * ts if is_long else exit_slip * ts)
+            if not e2_done: e2_exit = sp2; e2_rsn = "BE"; e2_done = True
+            if not e3_done: e3_exit = sp2; e3_rsn = "BE"; e3_done = True
+            be_px = sp2; be_dt = t2v
+            break
+        if not e2_done and ((p2v >= t2_price) if is_long else (p2v <= t2_price)):
+            e2_exit = t2_price + (-exit_slip * ts if is_long else exit_slip * ts)
+            e2_rsn = "T2"; e2_done = True
+        if not e3_done and ((p2v >= t3_price) if is_long else (p2v <= t3_price)):
+            e3_exit = t3_price + (-exit_slip * ts if is_long else exit_slip * ts)
+            e3_rsn = "T3"; e3_done = True
+        if e2_done and e3_done:
+            break
+
+    if not e2_done: e2_exit = last_p2_px; e2_rsn = "EOD"
+    if not e3_done: e3_exit = last_p2_px; e3_rsn = "EOD"
+
+    p2_rsns = {r for r in [e2_rsn if pb1_filled else None,
+                             e3_rsn if pb2_filled else None] if r}
+    if be_px is not None:
+        overall = "T1+BE"; final_px = be_px; final_dt = be_dt
+    elif not p2_rsns:
+        overall = "Target"; final_px = leg1_exit_px or last_p2_px; final_dt = last_p2_dt
+    elif p2_rsns <= {"T2", "T3"}:
+        overall = "Target"; final_px = e3_exit or e2_exit; final_dt = last_p2_dt
+    elif "EOD" in p2_rsns and not (p2_rsns & {"T2", "T3"}):
+        overall = "T1+EOD"; final_px = last_p2_px; final_dt = last_p2_dt
+    else:
+        overall = "Target"; final_px = e3_exit or e2_exit or last_p2_px; final_dt = last_p2_dt
+
+    return _build(overall, final_px, final_dt, leg1_exit_px, e2_exit, e2_rsn, e3_exit, e3_rsn)
+
+
+def _simulate_one_bars_3leg(
+    sig_dt, direction: str, signal_price: float, stop_csv: float,
+    day_bars: pd.DataFrame,
+    t1_r: float, t2_r: float, target_r: float,
+    t1_action: str,
+    tv1: float, tv2: float, tv3: float,
+    e1c: int, e2c: int, e3c: int,
+    pb1_r: float, pb1_ticks: int,
+    pb2_r: float, pb2_ticks: int,
+    entry_slip: float, exit_slip: float, stop_offset: int,
+    ratchet_r: float = 0.0, ratchet_dest: str = "BE", ratchet_lock_r: float = 0.0,
+) -> dict:
+    """Bar-level 3-leg simulation. E1→T1, E2→T2, E3→T3. Conservative: stop wins same bar."""
+    ts      = TICK_SIZE
+    is_long = direction == "Long"
+
+    next_bars = day_bars[day_bars["DateTime"] >= sig_dt].reset_index(drop=True)
+    if next_bars.empty:
+        return {"ok": False, "FilterStatus": "no_next_bar"}
+
+    nb = next_bars.iloc[0]
+    if is_long  and float(nb["High"]) < signal_price:
+        return {"ok": False, "FilterStatus": "no_fill"}
+    if not is_long and float(nb["Low"])  > signal_price:
+        return {"ok": False, "FilterStatus": "no_fill"}
+
+    fill_px     = max(float(nb["Open"]), signal_price) if is_long else min(float(nb["Open"]), signal_price)
+    e1_entry    = fill_px + (entry_slip * ts if is_long else -entry_slip * ts)
+    actual_stop = (stop_csv - stop_offset * ts) if is_long else (stop_csv + stop_offset * ts)
+    risk_pts    = abs(e1_entry - actual_stop)
+    if risk_pts < 0.001:
+        return {"ok": False, "FilterStatus": "zero_risk"}
+
+    t1_price  = e1_entry + (t1_r     * risk_pts if is_long else -t1_r     * risk_pts)
+    t2_price  = e1_entry + (t2_r     * risk_pts if is_long else -t2_r     * risk_pts)
+    t3_price  = e1_entry + (target_r * risk_pts if is_long else -target_r * risk_pts)
+    entry_bar = bar_num_from_dt(nb["DateTime"])
+    entry_dt  = nb["DateTime"]
+
+    if is_long:
+        pb1_price = max(e1_entry - pb1_r * risk_pts + pb1_ticks * ts, actual_stop + ts)
+        pb2_price = max(e1_entry - pb2_r * risk_pts + pb2_ticks * ts, actual_stop + ts)
+        pb2_price = min(pb2_price, pb1_price - ts)
+    else:
+        pb1_price = min(e1_entry + pb1_r * risk_pts - pb1_ticks * ts, actual_stop - ts)
+        pb2_price = min(e1_entry + pb2_r * risk_pts - pb2_ticks * ts, actual_stop - ts)
+        pb2_price = max(pb2_price, pb1_price + ts)
+
+    active_stop   = actual_stop
+    ratchet_fired = False
+    pb1_filled    = False
+    pb2_filled    = False
+    e2_entry_px   = None
+    e3_entry_px   = None
+    t1_bar_idx    = None
+    full_stop_px  = None
+    full_stop_dt  = None
+    mae = mfe     = 0.0
+
+    def _blended():
+        if pb2_filled and e2_entry_px is not None and e3_entry_px is not None:
+            tot = tv1 + tv2 + tv3
+            return (e1_entry*tv1 + e2_entry_px*tv2 + e3_entry_px*tv3) / tot if tot > 0 else e1_entry
+        if pb1_filled and e2_entry_px is not None:
+            tot = tv1 + tv2
+            return (e1_entry*tv1 + e2_entry_px*tv2) / tot if tot > 0 else e1_entry
+        return e1_entry
+
+    def _build(exit_reason, exit_px, exit_dt, leg1_exit_px=None,
+               e2_exit=None, e2_rsn=None, e3_exit=None, e3_rsn=None):
+        tv_used = tv1 + (tv2 if pb1_filled else 0.0) + (tv3 if pb2_filled else 0.0)
+        l1_ep   = leg1_exit_px if leg1_exit_px is not None else exit_px
+        l1_pts  = (l1_ep - e1_entry) if is_long else (e1_entry - l1_ep)
+        l1_pnl  = l1_pts / ts * tv1
+        l2_ep   = e2_exit if e2_exit is not None else exit_px
+        l2_pts  = (l2_ep - e2_entry_px) if (is_long and pb1_filled) else \
+                  (e2_entry_px - l2_ep) if (not is_long and pb1_filled) else 0.0
+        l2_pnl  = l2_pts / ts * tv2 if pb1_filled else 0.0
+        l3_ep   = e3_exit if e3_exit is not None else exit_px
+        l3_pts  = (l3_ep - e3_entry_px) if (is_long and pb2_filled) else \
+                  (e3_entry_px - l3_ep) if (not is_long and pb2_filled) else 0.0
+        l3_pnl  = l3_pts / ts * tv3 if pb2_filled else 0.0
+        g_pnl   = l1_pnl + l2_pnl + l3_pnl
+        g_pts   = l1_pts + l2_pts + l3_pts
+        r_risk  = risk_pts / ts * tv1
+        r_ach   = g_pnl / r_risk if r_risk > 0 else 0.0
+        ttype   = ("E1+PB1+PB2" if pb2_filled else "E1+PB1" if pb1_filled else "Rocket")
+        filled_c = e1c + (e2c if pb1_filled else 0) + (e3c if pb2_filled else 0)
+        l1_er   = "T1" if leg1_exit_px is not None else exit_reason
+        return {
+            "ok": True,
+            "SEPrice":    signal_price,        "FillPrice":   fill_px,
+            "EntryTime":  pd.Timestamp(entry_dt), "EntryBarNum": entry_bar,
+            "EntryPrice": e1_entry,            "ActualStop":  actual_stop,
+            "Target":     t3_price,            "Target1":     t1_price,
+            "RiskPts":    risk_pts,            "RiskDollar":  risk_pts / ts * tv1,
+            "ExitTime":   pd.Timestamp(exit_dt), "ExitBarNum":  bar_num_from_dt(pd.Timestamp(exit_dt)),
+            "ExitPrice":  exit_px,             "ExitReason":  exit_reason,
+            "GrossPnLPts": g_pts,              "GrossPnL":    g_pnl,
+            "R_achieved": r_ach,
+            "MAE_pts":    max(mae, 0.0),       "MAE_dollar":  max(mae, 0.0) / ts * tv_used,
+            "MAE_R":      max(mae, 0.0) / risk_pts,
+            "MFE_pts":    max(mfe, 0.0),       "MFE_dollar":  max(mfe, 0.0) / ts * tv_used,
+            "MFE_R":      max(mfe, 0.0) / risk_pts,
+            "SlippagePts":    (entry_slip + exit_slip) * ts,
+            "SlippageDollar": (entry_slip + exit_slip) * ts / ts * tv_used,
+            "Leg1ExitReason": l1_er,           "Leg1ExitPrice": l1_ep,
+            "Leg1GrossPts":   l1_pts,          "Leg1GrossPnL":  l1_pnl,
+            "Leg2ExitReason": (e2_rsn or exit_reason) if pb1_filled else np.nan,
+            "Leg2ExitPrice":  l2_ep if pb1_filled else np.nan,
+            "Leg2GrossPts":   l2_pts,          "Leg2GrossPnL":  l2_pnl,
+            "Leg3ExitReason": (e3_rsn or exit_reason) if pb2_filled else np.nan,
+            "Leg3ExitPrice":  l3_ep if pb2_filled else np.nan,
+            "Leg3GrossPts":   l3_pts,          "Leg3GrossPnL":  l3_pnl,
+            "TradeType":      ttype,
+            "BlendedEntry":   _blended(),
+            "PB1FillPrice":   e2_entry_px if pb1_filled else np.nan,
+            "PB2FillPrice":   e3_entry_px if pb2_filled else np.nan,
+            "FilledContracts": filled_c,
+        }
+
+    # ── Phase 1: bar-level scan ────────────────────────────────────────────────
+    for idx, bar in next_bars.iterrows():
+        hi, lo = float(bar["High"]), float(bar["Low"])
+        mfe = max(mfe, (hi - e1_entry) if is_long else (e1_entry - lo))
+        mae = max(mae, (e1_entry - lo) if is_long else (hi - e1_entry))
+
+        # Stop check first (conservative — stop wins before PB on same bar)
+        if (lo <= active_stop) if is_long else (hi >= active_stop):
+            sp = active_stop + (-exit_slip * ts if is_long else exit_slip * ts)
+            full_stop_px, full_stop_dt = sp, bar["DateTime"]
+            break
+
+        # PB fills (only if stop didn't fire)
+        if not pb1_filled and tv2 > 0:
+            if (lo <= pb1_price) if is_long else (hi >= pb1_price):
+                e2_fill = pb1_price + (-entry_slip * ts if is_long else entry_slip * ts)
+                if (is_long and e2_fill > actual_stop) or (not is_long and e2_fill < actual_stop):
+                    e2_entry_px = e2_fill
+                    pb1_filled  = True
+
+        if pb1_filled and not pb2_filled and tv3 > 0:
+            if (lo <= pb2_price) if is_long else (hi >= pb2_price):
+                e3_fill = pb2_price + (-entry_slip * ts if is_long else entry_slip * ts)
+                if (is_long and e3_fill > actual_stop) or (not is_long and e3_fill < actual_stop):
+                    e3_entry_px = e3_fill
+                    pb2_filled  = True
+
+        # Ratchet
+        if ratchet_r > 0.0 and not ratchet_fired:
+            bl    = _blended()
+            favor = (hi - bl) if is_long else (bl - lo)
+            if favor >= ratchet_r * risk_pts:
+                if ratchet_dest == "Lock-in":
+                    lk = ratchet_lock_r * risk_pts
+                    active_stop = (bl + lk) if is_long else (bl - lk)
+                elif ratchet_dest == "E1":
+                    active_stop = e1_entry
+                else:
+                    active_stop = _blended()
+                ratchet_fired = True
+
+        # T1 check
+        if (hi >= t1_price) if is_long else (lo <= t1_price):
             t1_bar_idx = idx
             break
 
-    if full_stop_price is not None:
-        sp = full_stop_price
-        return _build("Stop", sp, full_stop_dt, "Stop", sp, "Stop", sp)
+    if full_stop_px is not None:
+        return _build("Stop", full_stop_px, full_stop_dt)
 
     if t1_bar_idx is None:
         last   = next_bars.iloc[-1]
         eod_px = float(last["Close"]) + (-exit_slip * ts if is_long else exit_slip * ts)
-        return _build("EOD", eod_px, last["DateTime"], "EOD", eod_px, "EOD", eod_px)
+        return _build("EOD", eod_px, last["DateTime"])
 
-    # ── Phase 2: Leg2 / full position with BE stop ────────────────────────────
-    be_stop  = actual_entry
-    phase2   = next_bars[next_bars.index >= t1_bar_idx].reset_index(drop=True)
-    last2    = phase2.iloc[-1]
-    l2_r_raw = "Session"
-    l2_px_r  = float(last2["Close"])
-    l2_dt_r  = last2["DateTime"]
+    # ── Phase 2: E2→T2, E3→T3, blended-BE stop ───────────────────────────────
+    leg1_exit_px = None
+    if t1_action == "exit":
+        leg1_exit_px = t1_price + (-exit_slip * ts if is_long else exit_slip * ts)
+
+    be_stop_p2 = _blended()
+    phase2     = next_bars[next_bars.index >= t1_bar_idx].reset_index(drop=True)
+    last2      = phase2.iloc[-1]
+    last_p2_px = float(last2["Close"]) + (-exit_slip * ts if is_long else exit_slip * ts)
+    last_p2_dt = last2["DateTime"]
+
+    e2_done = not pb1_filled
+    e3_done = not pb2_filled
+    e2_exit = None; e2_rsn = None
+    e3_exit = None; e3_rsn = None
+    be_px   = None; be_dt  = None
 
     for j, (_, bar2) in enumerate(phase2.iterrows()):
         hi2, lo2 = float(bar2["High"]), float(bar2["Low"])
-        mfe = max(mfe, (hi2 - actual_entry) if is_long else (actual_entry - lo2))
-        mae = max(mae, (actual_entry - lo2) if is_long else (hi2 - actual_entry))
+        mfe = max(mfe, (hi2 - e1_entry) if is_long else (e1_entry - lo2))
+        mae = max(mae, (e1_entry - lo2) if is_long else (hi2 - e1_entry))
         if j == 0:
             continue
-        hit_t2 = (hi2 >= t2_price) if is_long else (lo2 <= t2_price)
-        hit_be = (lo2 <= be_stop)  if is_long else (hi2 >= be_stop)
-        if hit_be:
-            l2_r_raw, l2_px_r, l2_dt_r = "BE", be_stop, bar2["DateTime"]
+        if (lo2 <= be_stop_p2) if is_long else (hi2 >= be_stop_p2):
+            sp2 = be_stop_p2 + (-exit_slip * ts if is_long else exit_slip * ts)
+            if not e2_done: e2_exit = sp2; e2_rsn = "BE"; e2_done = True
+            if not e3_done: e3_exit = sp2; e3_rsn = "BE"; e3_done = True
+            be_px = sp2; be_dt = bar2["DateTime"]
             break
-        if hit_t2:
-            l2_r_raw, l2_px_r, l2_dt_r = "Target", t2_price, bar2["DateTime"]
+        if not e2_done and ((hi2 >= t2_price) if is_long else (lo2 <= t2_price)):
+            e2_exit = t2_price + (-exit_slip * ts if is_long else exit_slip * ts)
+            e2_rsn = "T2"; e2_done = True
+        if not e3_done and ((hi2 >= t3_price) if is_long else (lo2 <= t3_price)):
+            e3_exit = t3_price + (-exit_slip * ts if is_long else exit_slip * ts)
+            e3_rsn = "T3"; e3_done = True
+        if e2_done and e3_done:
             break
 
-    l2_exit_px = l2_px_r + (-exit_slip * ts if is_long else exit_slip * ts)
-    reason_map = {"Target": ("T1+Target", "Target"),
-                  "BE":     ("T1+BE",     "BE"),
-                  "Session":("T1+EOD",    "EOD")}
-    exit_str, l2_er = reason_map[l2_r_raw]
-    l1_er = "T1" if leg1_exit_price is not None else np.nan
-    return _build(exit_str, l2_exit_px, l2_dt_r, l1_er, leg1_exit_price, l2_er, l2_exit_px)
+    if not e2_done: e2_exit = last_p2_px; e2_rsn = "EOD"
+    if not e3_done: e3_exit = last_p2_px; e3_rsn = "EOD"
+
+    p2_rsns = {r for r in [e2_rsn if pb1_filled else None,
+                             e3_rsn if pb2_filled else None] if r}
+    if be_px is not None:
+        overall = "T1+BE"; final_px = be_px; final_dt = be_dt
+    elif not p2_rsns:
+        overall = "Target"; final_px = leg1_exit_px or last_p2_px; final_dt = last_p2_dt
+    elif p2_rsns <= {"T2", "T3"}:
+        overall = "Target"; final_px = e3_exit or e2_exit; final_dt = last_p2_dt
+    elif "EOD" in p2_rsns and not (p2_rsns & {"T2", "T3"}):
+        overall = "T1+EOD"; final_px = last_p2_px; final_dt = last_p2_dt
+    else:
+        overall = "Target"; final_px = e3_exit or e2_exit or last_p2_px; final_dt = last_p2_dt
+
+    return _build(overall, final_px, final_dt, leg1_exit_px, e2_exit, e2_rsn, e3_exit, e3_rsn)
 
 
 _EMPTY_TRADE = {
@@ -673,6 +1295,14 @@ _EMPTY_TRADE = {
     "Leg1GrossPts": np.nan,   "Leg1GrossPnL": np.nan,
     "Leg2ExitReason": np.nan, "Leg2ExitPrice": np.nan,
     "Leg2GrossPts": np.nan,   "Leg2GrossPnL": np.nan,
+    "Leg3ExitReason": np.nan, "Leg3ExitPrice": np.nan,
+    "Leg3GrossPts": np.nan,   "Leg3GrossPnL": np.nan,
+    # 3-leg specific
+    "TradeType": "",   "BlendedEntry": np.nan,
+    "PB1FillPrice": np.nan, "PB2FillPrice": np.nan,
+    # 2-leg scale-in specific
+    "PBLevel": np.nan, "E2FillPrice": np.nan, "E2FillTime": pd.NaT,
+    "SameBarConflict": False,
 }
 
 
@@ -686,24 +1316,46 @@ def simulate_trades(
     tick_value: float,
     contracts: int,
     commission: float,
-    overrides: dict | None = None,    # {signal_num: {"fill_price": float, "fill_bar": int}}
-    bars_by_date: dict | None = None,  # fallback bar-level sim when ticks unavailable
+    overrides: dict | None = None,
+    bars_by_date: dict | None = None,
     multileg: bool = False,
     t1_r: float = 1.0,
-    t1_action: str = "exit",   # "exit" | "be_only"
+    t1_action: str = "exit",
     contracts_t1: int = 1,
     contracts_t2: int = 1,
+    # ratchet (single-leg and 2-leg)
+    ratchet_r: float = 0.0,
+    ratchet_dest: str = "BE",
+    ratchet_lock_r: float = 0.0,
+    # 2-leg pullback for E2
+    ml_pb_r: float = 0.0,
+    ml_pb_ticks: int = 0,
+    # 3-leg
+    threeleg: bool = False,
+    contracts_e1: int = 1,
+    contracts_e2: int = 1,
+    contracts_e3: int = 1,
+    pb1_r: float = 0.5,
+    pb1_ticks: int = 0,
+    pb2_r: float = 1.0,
+    pb2_ticks: int = 0,
+    t2_r: float = 0.0,   # E2 target; defaults to target_r if 0
 ) -> pd.DataFrame:
-    tv   = tick_value * contracts     # single-leg
-    tv1  = tick_value * contracts_t1  # multileg Leg1
-    tv2  = tick_value * contracts_t2  # multileg Leg2
+    _t2_r = t2_r if t2_r > 0 else target_r   # default E2 target = T3 if not set
+    tv   = tick_value * contracts
+    tv1  = tick_value * contracts_t1
+    tv2  = tick_value * contracts_t2
+    # 3-leg tick values
+    tv_e1 = tick_value * contracts_e1
+    tv_e2 = tick_value * contracts_e2
+    tv_e3 = tick_value * contracts_e3
     rows = []
 
     for _, sig in signals.iterrows():
         base = sig.to_dict()
         base["TargetR"] = target_r
         base.update(_EMPTY_TRADE)
-        base["FilterStatus"] = sig.get("FilterStatus", "ok")  # restore after update
+        base["FilterStatus"] = sig.get("FilterStatus", "ok")
 
         manual_fill = (overrides or {}).get(int(base.get("SignalNum", -1)))
 
@@ -714,8 +1366,37 @@ def simulate_trades(
         day_ticks = ticks_by_date.get(base["Date"])
         no_ticks  = day_ticks is None or day_ticks.empty
 
-        # Multileg routing (manual_fill always falls through to single-leg)
-        if multileg and not manual_fill:
+        # ── 3-leg routing ──────────────────────────────────────────────────────
+        if threeleg and not manual_fill:
+            if no_ticks and bars_by_date is not None:
+                day_bars_sim = bars_by_date.get(base["Date"])
+                if day_bars_sim is None or day_bars_sim.empty:
+                    base["FilterStatus"] = "no_tick_data"
+                    rows.append(base)
+                    continue
+                res = _simulate_one_bars_3leg(
+                    base["DateTime"], base["Direction"], base["SignalPrice"], base["StopPrice"],
+                    day_bars_sim, t1_r, _t2_r, target_r, t1_action,
+                    tv_e1, tv_e2, tv_e3, contracts_e1, contracts_e2, contracts_e3,
+                    pb1_r, pb1_ticks, pb2_r, pb2_ticks,
+                    entry_slip, exit_slip, stop_offset,
+                    ratchet_r, ratchet_dest, ratchet_lock_r,
+                )
+            elif no_ticks:
+                base["FilterStatus"] = "no_tick_data"
+                rows.append(base)
+                continue
+            else:
+                res = _simulate_one_3leg(
+                    base["DateTime"], base["Direction"], base["SignalPrice"], base["StopPrice"],
+                    day_ticks, t1_r, _t2_r, target_r, t1_action,
+                    tv_e1, tv_e2, tv_e3, contracts_e1, contracts_e2, contracts_e3,
+                    pb1_r, pb1_ticks, pb2_r, pb2_ticks,
+                    entry_slip, exit_slip, stop_offset,
+                    ratchet_r, ratchet_dest, ratchet_lock_r,
+                )
+        # ── 2-leg routing ──────────────────────────────────────────────────────
+        elif multileg and not manual_fill:
             if no_ticks and bars_by_date is not None:
                 day_bars_sim = bars_by_date.get(base["Date"])
                 if day_bars_sim is None or day_bars_sim.empty:
@@ -726,6 +1407,8 @@ def simulate_trades(
                     base["DateTime"], base["Direction"], base["SignalPrice"], base["StopPrice"],
                     day_bars_sim, target_r, t1_r, t1_action,
                     entry_slip, exit_slip, stop_offset, tv1, tv2,
+                    ratchet_r, ratchet_dest, ratchet_lock_r,
+                    e2_pb_r=ml_pb_r, e2_pb_ticks=ml_pb_ticks,
                 )
             elif no_ticks:
                 base["FilterStatus"] = "no_tick_data"
@@ -736,9 +1419,10 @@ def simulate_trades(
                     base["DateTime"], base["Direction"], base["SignalPrice"], base["StopPrice"],
                     day_ticks, target_r, t1_r, t1_action,
                     entry_slip, exit_slip, stop_offset, tv1, tv2,
+                    ratchet_r, ratchet_dest, ratchet_lock_r,
                 )
+        # ── single-leg routing ─────────────────────────────────────────────────
         else:
-            # Single-leg path (bar-level fallback when ticks unavailable)
             if no_ticks and bars_by_date is not None and not manual_fill:
                 day_bars_sim = bars_by_date.get(base["Date"])
                 if day_bars_sim is None or day_bars_sim.empty:
@@ -748,6 +1432,7 @@ def simulate_trades(
                 res = _simulate_one_bars(
                     base["DateTime"], base["Direction"], base["SignalPrice"], base["StopPrice"],
                     day_bars_sim, target_r, entry_slip, exit_slip, stop_offset, tv,
+                    ratchet_r, ratchet_dest, ratchet_lock_r,
                 )
             elif no_ticks and not manual_fill:
                 base["FilterStatus"] = "no_tick_data"
@@ -757,6 +1442,7 @@ def simulate_trades(
                 res = _simulate_one(
                     base["DateTime"], base["Direction"], base["SignalPrice"], base["StopPrice"],
                     day_ticks, target_r, entry_slip, exit_slip, stop_offset, tv,
+                    ratchet_r, ratchet_dest, ratchet_lock_r,
                     manual_fill=manual_fill,
                 )
 
@@ -766,11 +1452,15 @@ def simulate_trades(
             continue
 
         for k, v in res.items():
-            if k != "ok":
+            if k != "ok" and k != "FilledContracts":
                 base[k] = v
         base["Filled"] = True
-        if multileg and not manual_fill:
-            _comm = commission * (contracts_t1 + contracts_t2)
+        if threeleg and not manual_fill:
+            _comm = commission * res.get("FilledContracts", contracts_e1)
+        elif multileg and not manual_fill:
+            _e2_traded = str(base.get("Leg2ExitReason", "NoFill")) != "NoFill"
+            _active_c  = (contracts_t1 + contracts_t2) if _e2_traded else contracts_t1
+            _comm = commission * _active_c
         else:
             _comm = commission * contracts
         base["NetPnL"] = base["GrossPnL"] - _comm
@@ -814,10 +1504,10 @@ def compute_summary(results: pd.DataFrame, commission: float,
 
     _win_mask = (
         filled["ExitReason"].str.contains("Target", na=False) |
-        (filled["ExitReason"] == "T1+BE")
+        filled["ExitReason"].isin(["T1+BE", "T1_only"])
     )
     wins   = filled[_win_mask]
-    stops  = filled[filled["ExitReason"] == "Stop"]
+    stops  = filled[filled["ExitReason"].isin(["Stop", "E1E2+Stop"])]
     sess   = filled[~_win_mask & (filled["ExitReason"] != "Stop")]
     n_wins = len(wins)
     n_stop = len(stops)
@@ -857,6 +1547,130 @@ def compute_summary(results: pd.DataFrame, commission: float,
         slippage_total=float(filled["SlippageDollar"].sum()) if "SlippageDollar" in filled.columns else 0.0,
         max_dd=max_dd, trading_days=trading_days,
     )
+
+
+# ── Ratchet/BE-Stop bar-ambiguity diagnostic ──────────────────────────────────
+
+def diagnose_ratchet_bar_ambiguities(
+    results_df: pd.DataFrame,
+    ticks_by_date: dict,
+    bars_by_date: dict | None,
+    ratchet_r: float,
+    target_r: float,
+    tick_value: float,
+    entry_slip: float,
+    exit_slip: float,
+    stop_offset: int,
+    commission: float,
+    contracts: int,
+) -> pd.DataFrame:
+    """Identify AIAO trades that stopped at ~BE after ratchet, then re-simulate as
+    BE Stop to show whether the same trade would have continued and hit the target.
+    Returns a comparison DataFrame showing the PnL delta per trade."""
+    ts = TICK_SIZE
+    tv = tick_value * contracts
+    tol = (exit_slip + 1.5) * ts   # price tolerance for "exit ≈ entry"
+
+    filled = results_df[results_df["Filled"] == True].copy()
+    # Candidate trades: Stop exit priced within tol of entry (ratcheted BE stop)
+    be_stops = filled[
+        (filled["ExitReason"] == "Stop") &
+        (abs(filled["ExitPrice"] - filled["EntryPrice"]) <= tol)
+    ].copy()
+
+    rows = []
+    for _, row in be_stops.iterrows():
+        date       = row["Date"]
+        sig_dt     = row["DateTime"]
+        direction  = row["Direction"]
+        is_long    = direction == "Long"
+        entry_px   = float(row["EntryPrice"])
+        actual_stop = float(row["ActualStop"])
+        risk_pts   = float(row["RiskPts"])
+        sig_price  = float(row.get("SignalPrice", entry_px))
+        stop_price = float(row.get("StopPrice",  actual_stop))
+        t1_level   = entry_px + (ratchet_r * risk_pts if is_long else -ratchet_r * risk_pts)
+
+        # ── Find the exit bar to verify the Hi/Lo pattern ─────────────────────
+        bar_hi = bar_lo = None
+        is_ambiguous = False
+        day_bars = (bars_by_date or {}).get(date)
+        exit_time = row.get("ExitTime")
+
+        if day_bars is not None and exit_time is not None:
+            exit_ts = pd.Timestamp(exit_time)
+            candidates = day_bars[day_bars["DateTime"] <= exit_ts]
+            if not candidates.empty:
+                eb = candidates.iloc[-1]
+                bar_hi = float(eb["High"])
+                bar_lo = float(eb["Low"])
+                if is_long:
+                    is_ambiguous = (
+                        bar_hi >= t1_level - 0.001 and
+                        bar_lo <= entry_px + 0.001 and
+                        bar_lo > actual_stop - 0.001
+                    )
+                else:
+                    is_ambiguous = (
+                        bar_lo <= t1_level + 0.001 and
+                        bar_hi >= entry_px - 0.001 and
+                        bar_hi < actual_stop + 0.001
+                    )
+
+        # ── Re-simulate as BE Stop (same T1 level, full position continues) ───
+        be_exit_reason = be_exit_px = be_net_pnl = None
+        day_ticks = ticks_by_date.get(date)
+        no_ticks  = day_ticks is None or day_ticks.empty
+
+        try:
+            if not no_ticks:
+                res = _simulate_one_multileg(
+                    sig_dt, direction, sig_price, stop_price,
+                    day_ticks, target_r, ratchet_r, "be_only",
+                    entry_slip, exit_slip, stop_offset,
+                    tv1=0.0, tv2=tv,
+                )
+            elif day_bars is not None:
+                res = _simulate_one_bars_multileg(
+                    sig_dt, direction, sig_price, stop_price,
+                    day_bars, target_r, ratchet_r, "be_only",
+                    entry_slip, exit_slip, stop_offset,
+                    tv1=0.0, tv2=tv,
+                )
+            else:
+                res = {"ok": False}
+
+            if res.get("ok"):
+                be_exit_reason = res["ExitReason"]
+                be_exit_px     = round(float(res["ExitPrice"]), 2)
+                be_net_pnl     = round(float(res["GrossPnL"]) - commission * contracts, 2)
+        except Exception:
+            pass
+
+        pnl_diff = round(be_net_pnl - float(row["NetPnL"]), 2) if be_net_pnl is not None else None
+
+        rows.append({
+            "Date":          str(date),
+            "Dir":           direction,
+            "Entry":         round(entry_px, 2),
+            "Stop":          round(actual_stop, 2),
+            "T1_Level":      round(t1_level, 2),
+            "Bar_Hi":        round(bar_hi, 2) if bar_hi else None,
+            "Bar_Lo":        round(bar_lo, 2) if bar_lo else None,
+            "Ambiguous_Bar": is_ambiguous,
+            "AIAO_Exit":     row["ExitReason"],
+            "AIAO_Px":       round(float(row["ExitPrice"]), 2),
+            "AIAO_Net":      round(float(row["NetPnL"]), 2),
+            "BEStop_Exit":   be_exit_reason,
+            "BEStop_Px":     be_exit_px,
+            "BEStop_Net":    be_net_pnl,
+            "PnL_Delta":     pnl_diff,
+        })
+
+    df = pd.DataFrame(rows)
+    if not df.empty:
+        df = df.sort_values("Date").reset_index(drop=True)
+    return df
 
 
 # ── Chart ─────────────────────────────────────────────────────────────────────
@@ -1055,6 +1869,38 @@ def make_analysis_chart(
                     font=dict(size=10, color="#26a69a"),
                 )
 
+            # PB level line + E2 fill circle (scale-in model)
+            pb_level_px  = row.get("PBLevel",    np.nan)
+            e2_fill_px   = row.get("E2FillPrice", np.nan)
+            e2_fill_time = row.get("E2FillTime",  pd.NaT)
+            if pd.notna(pb_level_px):
+                y_prices.append(pb_level_px)
+                e2_end_ts = pd.Timestamp(e2_fill_time) if pd.notna(e2_fill_time) else exit_ts
+                fig.add_shape(type="line",
+                    x0=entry_ts, x1=e2_end_ts,
+                    y0=pb_level_px, y1=pb_level_px,
+                    line=dict(color="#ffa726", width=1.2, dash="dashdot"),
+                    xref=xref, yref=yref)
+                fig.add_annotation(
+                    x=entry_ts, y=pb_level_px,
+                    xshift=-4, yshift=0,
+                    text="PB", showarrow=False, xanchor="right",
+                    font=dict(size=9, color="#ffa726"),
+                )
+                if pd.notna(e2_fill_px) and pd.notna(e2_fill_time):
+                    e2_htxt = (
+                        f"E2 FILL (scale-in)<br>"
+                        f"Time: {e2_end_ts.strftime('%H:%M')}<br>"
+                        f"Fill price: {e2_fill_px:.2f}"
+                    )
+                    _e2kw = {"hovertemplate": e2_htxt + "<extra></extra>"} if show_hover else {"hoverinfo": "skip"}
+                    fig.add_trace(go.Scatter(
+                        x=[e2_end_ts], y=[e2_fill_px], mode="markers",
+                        marker=dict(symbol="circle", size=9, color="#ffa726",
+                                    line=dict(color="#ffa726", width=2)),
+                        showlegend=False, name="", **_e2kw,
+                    ))
+
             # T2 / Target line (dashed teal)
             t2_label = f"T2 {row['TargetR']:.2f}R" if _has_t1 else f"<b>{row['TargetR']:.2f}R</b>"
             fig.add_shape(type="line",
@@ -1234,6 +2080,12 @@ def _show_signal_table(results: pd.DataFrame, key_suffix: str = ""):
         disp["L2 Exit"]= results["Leg2ExitReason"].fillna("—")
         disp["L2 Px"]  = results["Leg2ExitPrice"].apply(fmt_f)
         disp["L2 $"]   = results["Leg2GrossPnL"].apply(lambda v: f"{v:+.0f}" if pd.notna(v) else "—")
+        if "PBLevel" in results.columns:
+            disp["PB Lvl"] = results["PBLevel"].apply(fmt_f)
+            disp["E2 Fill"]= results["E2FillPrice"].apply(fmt_f)
+            disp["E2 Time"]= results["E2FillTime"].apply(
+                lambda t: pd.Timestamp(t).strftime("%H:%M") if pd.notna(t) else "—"
+            )
 
     # Filter to selected column groups
     visible = [c for c in cols if c in disp.columns]
@@ -1320,6 +2172,157 @@ def _run_t1t2_sweep(
             rows.append({
                 "T1":      t1,
                 "T2":      t2,
+                "Win %":   round(s["win_pct"], 1),
+                "PF":      round(s["pf"], 2) if s["pf"] < 99 else 99.9,
+                "Net PnL": round(s["net_total"], 0),
+                "DD $":    round(_dd_abs, 0) if _dd_abs else 0.0,
+                "PnL/DD":  round(s["net_total"] / _dd_abs, 2) if _dd_abs else 0.0,
+                "Exp $":   round(s["exp_dollar"], 0),
+            })
+    return pd.DataFrame(rows)
+
+
+def _run_ml_scalein_sweep(
+    signals: pd.DataFrame, ticks_by_date: dict,
+    entry_slip: float, exit_slip: float, stop_offset: int,
+    tick_value: float, contracts: int, commission: float,
+    contracts_t1: int, contracts_t2: int,
+    bars_by_date: dict | None = None,
+    pb_vals: list | None = None,
+    t1_vals: list | None = None,
+    t2_vals: list | None = None,
+) -> pd.DataFrame:
+    """Sweep PB_R × T1_R × T2_R for 2-leg scale-in mode."""
+    if pb_vals is None:
+        pb_vals = [-0.25, -0.33, -0.50, -0.66, -0.75, -1.0, -1.25, -1.50]
+    if t1_vals is None:
+        t1_vals = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
+    if t2_vals is None:
+        t2_vals = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0]
+    rows = []
+    for pb in pb_vals:
+        for t1 in t1_vals:
+            for t2 in t2_vals:
+                res = simulate_trades(
+                    signals, ticks_by_date, t2,
+                    entry_slip, exit_slip, stop_offset,
+                    tick_value, contracts, commission,
+                    bars_by_date=bars_by_date,
+                    multileg=True, t1_r=t1, t1_action="exit",
+                    contracts_t1=contracts_t1, contracts_t2=contracts_t2,
+                    ml_pb_r=pb, ml_pb_ticks=0,
+                )
+                s = compute_summary(
+                    res, commission, contracts=contracts, is_multileg=True,
+                    t1_action="exit", contracts_t1=contracts_t1, contracts_t2=contracts_t2,
+                )
+                if not s or s["n_trades"] == 0:
+                    continue
+                _dd_abs = abs(s["max_dd"]) if s["max_dd"] != 0 else None
+                rows.append({
+                    "PB_R":    pb,
+                    "T1_R":    t1,
+                    "T2_R":    t2,
+                    "Win %":   round(s["win_pct"], 1),
+                    "PF":      round(s["pf"], 2) if s["pf"] < 99 else 99.9,
+                    "Net PnL": round(s["net_total"], 0),
+                    "DD $":    round(_dd_abs, 0) if _dd_abs else 0.0,
+                    "PnL/DD":  round(s["net_total"] / _dd_abs, 2) if _dd_abs else 0.0,
+                    "Exp $":   round(s["exp_dollar"], 0),
+                })
+    return pd.DataFrame(rows)
+
+
+def _run_pb_sweep(
+    signals: pd.DataFrame, ticks_by_date: dict,
+    entry_slip: float, exit_slip: float, stop_offset: int,
+    tick_value: float, commission: float,
+    target_r: float, t1_r: float, t2_r: float, t1_action: str,
+    tv_e1: float, tv_e2: float, tv_e3: float,
+    e1c: int, e2c: int, e3c: int,
+    pb1_ticks: int, pb2_ticks: int,
+    ratchet_r: float, ratchet_dest: str, ratchet_lock_r: float,
+    bars_by_date: dict | None = None,
+    max_pb1: float = 1.5, max_pb2: float = 2.0,
+) -> pd.DataFrame:
+    """Grid sweep over PB1_R × PB2_R for 3-leg mode (tick offsets and targets held fixed)."""
+    _step = 0.25
+    pb1_vals = [round(r * _step, 2) for r in range(1, max(1, round(max_pb1 / _step)) + 1)]
+    pb2_vals = [round(r * _step, 2) for r in range(2, max(2, round(max_pb2 / _step)) + 1)]
+    rows = []
+    for pb1 in pb1_vals:
+        for pb2 in pb2_vals:
+            if pb2 <= pb1:
+                continue
+            res = simulate_trades(
+                signals, ticks_by_date, target_r,
+                entry_slip, exit_slip, stop_offset,
+                tick_value, e1c, commission,
+                bars_by_date=bars_by_date,
+                threeleg=True, t1_r=t1_r, t2_r=t2_r, t1_action=t1_action,
+                contracts_e1=e1c, contracts_e2=e2c, contracts_e3=e3c,
+                pb1_r=pb1, pb1_ticks=pb1_ticks,
+                pb2_r=pb2, pb2_ticks=pb2_ticks,
+                ratchet_r=0.0,
+            )
+            total_c = e1c + e2c + e3c
+            s = compute_summary(res, commission, contracts=total_c,
+                                is_multileg=False)
+            if not s or s["n_trades"] == 0:
+                continue
+            _dd_abs = abs(s["max_dd"]) if s["max_dd"] != 0 else None
+            rows.append({
+                "PB1": pb1, "PB2": pb2,
+                "Win %":   round(s["win_pct"], 1),
+                "PF":      round(s["pf"], 2) if s["pf"] < 99 else 99.9,
+                "Net PnL": round(s["net_total"], 0),
+                "DD $":    round(_dd_abs, 0) if _dd_abs else 0.0,
+                "PnL/DD":  round(s["net_total"] / _dd_abs, 2) if _dd_abs else 0.0,
+                "Exp $":   round(s["exp_dollar"], 0),
+            })
+    return pd.DataFrame(rows)
+
+
+def _run_t1t2_sweep_3leg(
+    signals: pd.DataFrame, ticks_by_date: dict,
+    entry_slip: float, exit_slip: float, stop_offset: int,
+    tick_value: float, commission: float,
+    t2_r_fixed: float, t1_action: str,
+    tv_e1: float, tv_e2: float, tv_e3: float,
+    e1c: int, e2c: int, e3c: int,
+    pb1_r: float, pb1_ticks: int,
+    pb2_r: float, pb2_ticks: int,
+    bars_by_date: dict | None = None,
+    max_t1: float = 3.0, max_t3: float = 5.0,
+) -> pd.DataFrame:
+    """Sweep T1 (E1 target) × T3 (E3 target) with T2 (E2 target) held fixed."""
+    _step   = 0.25
+    t1_vals = [round(r * _step, 2) for r in range(1, max(1, round(max_t1 / _step)) + 1)]
+    t3_vals = [round(r * _step, 2) for r in range(2, max(2, round(max_t3 / _step)) + 1)]
+    rows = []
+    for t1 in t1_vals:
+        for t3 in t3_vals:
+            if t1 >= t2_r_fixed or t2_r_fixed >= t3:
+                continue
+            res = simulate_trades(
+                signals, ticks_by_date, t3,
+                entry_slip, exit_slip, stop_offset,
+                tick_value, e1c, commission,
+                bars_by_date=bars_by_date,
+                threeleg=True, t1_r=t1, t2_r=t2_r_fixed, t1_action=t1_action,
+                contracts_e1=e1c, contracts_e2=e2c, contracts_e3=e3c,
+                pb1_r=pb1_r, pb1_ticks=pb1_ticks,
+                pb2_r=pb2_r, pb2_ticks=pb2_ticks,
+                ratchet_r=0.0,
+            )
+            total_c = e1c + e2c + e3c
+            s = compute_summary(res, commission, contracts=total_c, is_multileg=False)
+            if not s or s["n_trades"] == 0:
+                continue
+            _dd_abs = abs(s["max_dd"]) if s["max_dd"] != 0 else None
+            rows.append({
+                "T1":      t1,
+                "T3":      t3,
                 "Win %":   round(s["win_pct"], 1),
                 "PF":      round(s["pf"], 2) if s["pf"] < 99 else 99.9,
                 "Net PnL": round(s["net_total"], 0),
@@ -1467,12 +2470,170 @@ def _apply_best_green(sweep_df: pd.DataFrame, styled, metric_cols: list[str],
 def _show_optimal_r(signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
                     tick_value, contracts, commission, bars_by_date=None,
                     multileg: bool = False, t1_r: float = 1.0,
-                    t1_action: str = "exit", contracts_t1: int = 1, contracts_t2: int = 1):
+                    t1_action: str = "exit", contracts_t1: int = 1, contracts_t2: int = 1,
+                    threeleg: bool = False,
+                    tv_e1: float = 0.0, tv_e2: float = 0.0, tv_e3: float = 0.0,
+                    e1c: int = 1, e2c: int = 1, e3c: int = 1,
+                    pb1_ticks: int = 0, pb2_ticks: int = 0,
+                    t2_r: float = 0.0,
+                    ratchet_r: float = 0.0, ratchet_dest: str = "BE", ratchet_lock_r: float = 0.0):
 
     _METRIC_COLS  = ["Win %", "PF", "Net PnL", "DD $", "PnL/DD", "Exp $"]
     _THRESHOLDS   = {"PF": 1.0, "Net PnL": 0, "PnL/DD": 0, "Exp $": 0}
 
-    if multileg:
+    if threeleg:
+        # ── 2D PB1×PB2 grid sweep ─────────────────────────────────────────────
+        with st.expander("🔍 PB1×PB2 Sweep", expanded=False):
+            st.caption(
+                "Sweeps pullback entry levels (as R distance back from E1) with tick offsets held fixed. "
+                "Ratchet is disabled during sweep for clean robustness testing."
+            )
+            _rc1, _rc2 = st.columns(2)
+            _max_pb1 = _rc1.number_input(
+                "Max PB1 (R back)", min_value=0.25, max_value=3.0,
+                value=float(st.session_state.get("ba_sweep_max_pb1", 1.5)),
+                step=0.25, format="%.2f", key="ba_sweep_max_pb1",
+            )
+            _max_pb2 = _rc2.number_input(
+                "Max PB2 (R back)", min_value=0.5, max_value=4.0,
+                value=float(st.session_state.get("ba_sweep_max_pb2", 2.0)),
+                step=0.25, format="%.2f", key="ba_sweep_max_pb2",
+            )
+            _n_pb1 = max(1, round(_max_pb1 / 0.25))
+            _n_pb2 = max(2, round(_max_pb2 / 0.25))
+            _n_combos = sum(1 for p1 in range(1, _n_pb1 + 1)
+                              for p2 in range(2, _n_pb2 + 1)
+                              if p2 > p1)
+            st.caption(f"PB1: 0.25–{_max_pb1:.2f}R × PB2: 0.50–{_max_pb2:.2f}R — {_n_combos} combinations")
+
+            if st.button("Run PB1×PB2 Sweep", key="ba_run_pb_sweep"):
+                with st.spinner(f"Running PB1×PB2 sweep ({_n_combos} combinations)…"):
+                    _pb_df = _run_pb_sweep(
+                        signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
+                        tick_value, commission,
+                        target_r=float(st.session_state.get("ba_target_r_3l", 3.0)),
+                        t1_r=t1_r, t2_r=t2_r, t1_action=t1_action,
+                        tv_e1=tv_e1, tv_e2=tv_e2, tv_e3=tv_e3,
+                        e1c=e1c, e2c=e2c, e3c=e3c,
+                        pb1_ticks=pb1_ticks, pb2_ticks=pb2_ticks,
+                        ratchet_r=0.0, ratchet_dest="BE", ratchet_lock_r=0.0,
+                        bars_by_date=bars_by_date,
+                        max_pb1=_max_pb1, max_pb2=_max_pb2,
+                    )
+                if _pb_df.empty:
+                    st.warning("No results.")
+                    return
+                st.session_state["ba_pb_sweep_df"] = _pb_df
+
+            sweep_df = st.session_state.get("ba_pb_sweep_df")
+            if sweep_df is None or sweep_df.empty:
+                return
+
+            _metric_opts = ["Net PnL", "PF", "Win %", "PnL/DD", "Exp $"]
+            _metric = st.selectbox("Color heatmap by", _metric_opts, key="ba_pb_metric")
+
+            _pivot = sweep_df.pivot(index="PB1", columns="PB2", values=_metric)
+            _pb1_labels = [f"{v:.2f}" for v in _pivot.index]
+            _pb2_labels = [f"{v:.2f}" for v in _pivot.columns]
+            _hover = "PB1: %{y}R back<br>PB2: %{x}R back<br>" + _metric + ": %{z}<extra></extra>"
+            _hfig = go.Figure(go.Heatmap(
+                x=_pb2_labels, y=_pb1_labels, z=_pivot.values.tolist(),
+                colorscale="RdYlGn", hovertemplate=_hover,
+                colorbar=dict(title=_metric, thickness=14),
+            ))
+            _hfig.update_layout(
+                xaxis_title="PB2 (R back)", yaxis_title="PB1 (R back)",
+                height=400, template="plotly_white",
+                margin=dict(l=60, r=20, t=30, b=60),
+            )
+            st.plotly_chart(_hfig, use_container_width=True)
+
+            st.caption(f"Top 20 combinations by **{_metric}**")
+            _ranked = sweep_df.sort_values(_metric, ascending=False).head(20).reset_index(drop=True)
+            _ranked.index = _ranked.index + 1
+            _fmt = {"PB1": "{:.2f}", "PB2": "{:.2f}", "Win %": "{:.1f}",
+                    "PF": "{:.2f}", "PnL/DD": "{:.2f}",
+                    "Net PnL": "${:.0f}", "DD $": "${:.0f}", "Exp $": "${:.0f}"}
+            _styled = _apply_best_green(_ranked, _ranked.style.format(_fmt), _METRIC_COLS, _THRESHOLDS)
+            st.dataframe(_styled, use_container_width=True)
+
+        # ── T1×T3 sweep for 3-leg (T2 held fixed at current value) ───────────
+        with st.expander("🔍 T1×T3 Sweep (3-Leg)", expanded=False):
+            _t2_fixed = t2_r if t2_r > 0 else float(st.session_state.get("ba_t2_r_3l", 2.0))
+            st.caption(
+                f"Sweeps T1 (E1 target) × T3 (E3 target) with T2={_t2_fixed:.2f}R (E2 target) held fixed. "
+                "PB levels and ratchet disabled."
+            )
+            _t3c1, _t3c2 = st.columns(2)
+            _max_t1_3l = _t3c1.number_input(
+                "Max T1 (R)", min_value=0.25, max_value=5.0,
+                value=float(st.session_state.get("ba_sweep_max_t1_3l", 3.0)),
+                step=0.25, format="%.2f", key="ba_sweep_max_t1_3l",
+            )
+            _max_t3_3l = _t3c2.number_input(
+                "Max T3 (R)", min_value=0.5, max_value=10.0,
+                value=float(st.session_state.get("ba_sweep_max_t3_3l", 5.0)),
+                step=0.25, format="%.2f", key="ba_sweep_max_t3_3l",
+            )
+            _n_t1_3l = max(1, round(_max_t1_3l / 0.25))
+            _n_t3_3l = max(2, round(_max_t3_3l / 0.25))
+            _n_combos_t = sum(1 for t1i in range(1, _n_t1_3l + 1)
+                               for t3i in range(2, _n_t3_3l + 1)
+                               if t1i < _t2_fixed / 0.25 and _t2_fixed / 0.25 < t3i)
+            st.caption(f"T1: 0.25–{_max_t1_3l:.2f}R × T3: 0.50–{_max_t3_3l:.2f}R — {_n_combos_t} combinations")
+
+            if st.button("Run T1×T3 Sweep", key="ba_run_t1t2_3l"):
+                _pb1_cur = float(st.session_state.get("ba_pb1_r_3l", 0.33))
+                _pb2_cur = float(st.session_state.get("ba_pb2_r_3l", 0.66))
+                with st.spinner(f"Running T1×T3 sweep ({_n_combos_t} combinations)…"):
+                    _t1t2_3l_df = _run_t1t2_sweep_3leg(
+                        signals, ticks_by_date,
+                        entry_slip, exit_slip, stop_offset,
+                        tick_value, commission,
+                        t2_r_fixed=_t2_fixed, t1_action=t1_action,
+                        tv_e1=tv_e1, tv_e2=tv_e2, tv_e3=tv_e3,
+                        e1c=e1c, e2c=e2c, e3c=e3c,
+                        pb1_r=_pb1_cur, pb1_ticks=pb1_ticks,
+                        pb2_r=_pb2_cur, pb2_ticks=pb2_ticks,
+                        bars_by_date=bars_by_date,
+                        max_t1=_max_t1_3l, max_t3=_max_t3_3l,
+                    )
+                if _t1t2_3l_df.empty:
+                    st.warning("No results.")
+                else:
+                    st.session_state["ba_t1t2_3l_df"] = _t1t2_3l_df
+
+            _t1t2_3l_res = st.session_state.get("ba_t1t2_3l_df")
+            if _t1t2_3l_res is not None and not _t1t2_3l_res.empty:
+                _t3_metric_opts = ["Net PnL", "PF", "Win %", "PnL/DD", "Exp $"]
+                _t3_metric = st.selectbox("Color heatmap by", _t3_metric_opts, key="ba_t1t2_3l_metric")
+
+                _pivot_t = _t1t2_3l_res.pivot(index="T1", columns="T3", values=_t3_metric)
+                _t1_labels = [f"{v:.2f}" for v in _pivot_t.index]
+                _t2_labels = [f"{v:.2f}" for v in _pivot_t.columns]
+                _hover_t = "T1: %{y}R<br>T3: %{x}R<br>" + _t3_metric + ": %{z}<extra></extra>"
+                _tfig = go.Figure(go.Heatmap(
+                    x=_t2_labels, y=_t1_labels, z=_pivot_t.values.tolist(),
+                    colorscale="RdYlGn", hovertemplate=_hover_t,
+                    colorbar=dict(title=_t3_metric, thickness=14),
+                ))
+                _tfig.update_layout(
+                    xaxis_title="T2 (R)", yaxis_title="T1 (R)",
+                    height=400, template="plotly_white",
+                    margin=dict(l=60, r=20, t=30, b=60),
+                )
+                st.plotly_chart(_tfig, use_container_width=True)
+
+                st.caption(f"Top 20 combinations by **{_t3_metric}**")
+                _t_ranked = _t1t2_3l_res.sort_values(_t3_metric, ascending=False).head(20).reset_index(drop=True)
+                _t_ranked.index = _t_ranked.index + 1
+                _t_fmt = {"T1": "{:.2f}", "T3": "{:.2f}", "Win %": "{:.1f}",
+                          "PF": "{:.2f}", "PnL/DD": "{:.2f}",
+                          "Net PnL": "${:.0f}", "DD $": "${:.0f}", "Exp $": "${:.0f}"}
+                _t_styled = _apply_best_green(_t_ranked, _t_ranked.style.format(_t_fmt), _METRIC_COLS, _THRESHOLDS)
+                st.dataframe(_t_styled, use_container_width=True)
+
+    elif multileg:
         # ── 2D T1×T2 grid sweep ───────────────────────────────────────────────
         with st.expander("🔍 T1×T2 Sweep", expanded=False):
             _rc1, _rc2 = st.columns(2)
@@ -1555,6 +2716,109 @@ def _show_optimal_r(signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
                 if _tc in _ranked.columns:
                     _styled = _styled.apply(_hl_rank1_t1t2, subset=[_tc])
             st.dataframe(_styled, use_container_width=True)
+
+        # ── Scale-In sweep: PB × T1 × T2 ─────────────────────────────────────
+        with st.expander("🔍 Scale-In Sweep (PB × T1 × T2)", expanded=False):
+            _all_pb = [-0.25, -0.33, -0.50, -0.66, -0.75, -1.0, -1.25, -1.50]
+            _all_t1 = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
+            _all_t2 = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0]
+            _pb_lbl = [f"{v:.2f}R" for v in _all_pb]
+            _t1_lbl = [f"{v:.2f}R" for v in _all_t1]
+            _t2_lbl = [f"{v:.2f}R" for v in _all_t2]
+
+            _sc1, _sc2, _sc3 = st.columns(3)
+            with _sc1:
+                st.caption("**PB range**")
+                _pb_from_sel = st.selectbox("Shallowest", _pb_lbl, index=0,           key="ba_si_pb_from")
+                _pb_to_sel   = st.selectbox("Deepest",    _pb_lbl, index=len(_pb_lbl)-1, key="ba_si_pb_to")
+            with _sc2:
+                st.caption("**T1 range**")
+                _t1_from_sel = st.selectbox("Min T1", _t1_lbl, index=0,           key="ba_si_t1_from")
+                _t1_to_sel   = st.selectbox("Max T1", _t1_lbl, index=len(_t1_lbl)-1, key="ba_si_t1_to")
+            with _sc3:
+                st.caption("**T2 range**")
+                _t2_from_sel = st.selectbox("Min T2", _t2_lbl, index=0,           key="ba_si_t2_from")
+                _t2_to_sel   = st.selectbox("Max T2", _t2_lbl, index=len(_t2_lbl)-1, key="ba_si_t2_to")
+
+            _pb_from_i = _pb_lbl.index(_pb_from_sel)
+            _pb_to_i   = _pb_lbl.index(_pb_to_sel)
+            _t1_from_i = _t1_lbl.index(_t1_from_sel)
+            _t1_to_i   = _t1_lbl.index(_t1_to_sel)
+            _t2_from_i = _t2_lbl.index(_t2_from_sel)
+            _t2_to_i   = _t2_lbl.index(_t2_to_sel)
+
+            _sweep_pb = _all_pb[min(_pb_from_i, _pb_to_i) : max(_pb_from_i, _pb_to_i) + 1]
+            _sweep_t1 = _all_t1[min(_t1_from_i, _t1_to_i) : max(_t1_from_i, _t1_to_i) + 1]
+            _sweep_t2 = _all_t2[min(_t2_from_i, _t2_to_i) : max(_t2_from_i, _t2_to_i) + 1]
+            _si_n = len(_sweep_pb) * len(_sweep_t1) * len(_sweep_t2)
+            st.caption(f"PB: {len(_sweep_pb)} values · T1: {len(_sweep_t1)} values · T2: {len(_sweep_t2)} values — **{_si_n} combinations**")
+
+            if st.button("Run Scale-In Sweep", key="ba_run_si_sweep"):
+                with st.spinner(f"Running scale-in sweep ({_si_n} combinations)…"):
+                    _si_df = _run_ml_scalein_sweep(
+                        signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
+                        tick_value, contracts, commission,
+                        contracts_t1=contracts_t1, contracts_t2=contracts_t2,
+                        bars_by_date=bars_by_date,
+                        pb_vals=_sweep_pb, t1_vals=_sweep_t1, t2_vals=_sweep_t2,
+                    )
+                if _si_df.empty:
+                    st.warning("No scale-in results.")
+                else:
+                    st.session_state["ba_si_sweep_df"] = _si_df
+
+            _si_res = st.session_state.get("ba_si_sweep_df")
+            if _si_res is not None and "T1_R" not in _si_res.columns:
+                # stale result from old 2-param sweep — discard it
+                st.session_state.pop("ba_si_sweep_df", None)
+                _si_res = None
+            if _si_res is not None and not _si_res.empty:
+                _si_metric_opts = ["Net PnL", "PF", "Win %", "PnL/DD", "Exp $"]
+                _si_c1, _si_c2 = st.columns(2)
+                _si_metric  = _si_c1.selectbox("Color heatmap by", _si_metric_opts, key="ba_si_metric")
+                _si_t1_vals = sorted(_si_res["T1_R"].unique())
+                _si_t1_lbls = [f"{v:.2f}R" for v in _si_t1_vals]
+                _si_t1_sel  = _si_c2.selectbox("T1 slice (heatmap)", _si_t1_lbls, key="ba_si_t1_slice")
+                _si_t1_val  = _si_t1_vals[_si_t1_lbls.index(_si_t1_sel)]
+
+                _si_slice = _si_res[_si_res["T1_R"] == _si_t1_val]
+                if not _si_slice.empty:
+                    _si_pivot  = _si_slice.pivot(index="PB_R", columns="T2_R", values=_si_metric)
+                    _pb_lbls_h = [f"{v:.2f}" for v in _si_pivot.index]
+                    _t2_lbls_h = [f"{v:.2f}" for v in _si_pivot.columns]
+                    _si_hover  = f"T1={_si_t1_val:.2f}R<br>PB: %{{y}}R<br>T2: %{{x}}R<br>{_si_metric}: %{{z}}<extra></extra>"
+                    _si_fig = go.Figure(go.Heatmap(
+                        x=_t2_lbls_h, y=_pb_lbls_h,
+                        z=_si_pivot.values.tolist(),
+                        colorscale="RdYlGn",
+                        hovertemplate=_si_hover,
+                        colorbar=dict(title=_si_metric, thickness=14),
+                    ))
+                    _si_fig.update_layout(
+                        title=f"PB × T2  (T1 = {_si_t1_val:.2f}R)",
+                        xaxis_title="T2 (R from blended entry)",
+                        yaxis_title="E2 Pullback (R from entry)",
+                        height=380, template="plotly_white",
+                        margin=dict(l=80, r=20, t=40, b=60),
+                    )
+                    st.plotly_chart(_si_fig, use_container_width=True)
+
+                st.caption(f"Top 20 combinations (all T1) by **{_si_metric}**")
+                _si_ranked = _si_res.sort_values(_si_metric, ascending=False).head(20).reset_index(drop=True)
+                _si_ranked.index = _si_ranked.index + 1
+                _si_fmt = {"PB_R": "{:.2f}", "T1_R": "{:.2f}", "T2_R": "{:.2f}", "Win %": "{:.1f}",
+                           "PF": "{:.2f}", "PnL/DD": "{:.2f}",
+                           "Net PnL": "${:.0f}", "DD $": "${:.0f}", "Exp $": "${:.0f}"}
+                _si_styled = _apply_best_green(
+                    _si_ranked, _si_ranked.style.format(_si_fmt), _METRIC_COLS, _THRESHOLDS
+                )
+                def _hl_rank1_si(s):
+                    return [f"background-color: {_SWEEP_GREEN}; color: white; font-weight: bold"
+                            if i == s.index[0] else "" for i in s.index]
+                for _sc in ("PB_R", "T1_R", "T2_R"):
+                    if _sc in _si_ranked.columns:
+                        _si_styled = _si_styled.apply(_hl_rank1_si, subset=[_sc])
+                st.dataframe(_si_styled, use_container_width=True)
 
     else:
         # ── 1D R sweep (single-leg) ───────────────────────────────────────────
@@ -2028,15 +3292,14 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
     uploaded_ticks = st.session_state.get("uploaded_sc_ticks")
     uploaded_ohlc  = st.session_state.get("uploaded_ohlc_bars")
     _sc_on_disk    = bool(sc_file and Path(sc_file).exists())
-    _bar_source    = st.session_state.get("bar_source", "sc_disk")
+    _bar_source    = st.session_state.get("bar_source", "none")
 
     if _bar_source == "sc_upload" and uploaded_bars is not None:
         bars = uploaded_bars
     elif _bar_source == "ohlc_upload" and uploaded_ohlc is not None:
         bars = uploaded_ohlc
-    elif _sc_on_disk:
+    elif _bar_source == "sc_disk" and _sc_on_disk:
         bars        = load_sc_bars(sc_file)
-        _bar_source = "sc_disk"
     elif uploaded_ohlc is not None:
         bars        = uploaded_ohlc
         _bar_source = "ohlc_upload"
@@ -2044,11 +3307,11 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         st.error("No bar data available. Upload a tick file or OHLC bar_export in the 📁 Upload Data panel.")
         return
 
-    # Tick source hierarchy: uploaded SC ticks → SC disk file → empty (bar-level sim)
+    # Tick source hierarchy: uploaded SC ticks → SC disk file (only if bar_source=sc_disk) → empty
     if uploaded_ticks is not None:
         ticks        = uploaded_ticks
         _tick_source = "upload"
-    elif _sc_on_disk:
+    elif _sc_on_disk and _bar_source == "sc_disk":
         ticks        = load_sc_ticks(sc_file)
         _tick_source = "disk"
     else:
@@ -2183,15 +3446,21 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
 
     # ── Trading Parameters expander ───────────────────────────────────────────
     with st.expander("⚙️ Trading Parameters", expanded=False):
-        if st.session_state.get("ba_trade_mode") not in ("Single Leg", "2-Leg"):
-            st.session_state["ba_trade_mode"] = "Single Leg"
+        # 3-Leg hidden until tick data is available.
+        _mode_opts = ["Single Leg", "2-Leg"]
+        _saved_mode = st.session_state.get("ba_trade_mode", "Single Leg")
+        if _saved_mode not in _mode_opts:
+            _saved_mode = "Single Leg"
         _trade_mode = st.radio(
-            "Trade Mode", ["Single Leg", "2-Leg"],
-            horizontal=True,
-            key="ba_trade_mode",
+            "Trade Mode", _mode_opts,
+            index=_mode_opts.index(_saved_mode),
+            horizontal=True, key="ba_trade_mode_radio",
+            label_visibility="collapsed",
         )
-        _is_sl = _trade_mode == "Single Leg"
-        _is_ml = _trade_mode == "2-Leg"
+        st.session_state["ba_trade_mode"] = _trade_mode
+        _is_sl = (_trade_mode == "Single Leg")
+        _is_ml = (_trade_mode == "2-Leg")
+        _is_3l = False
 
         _col_sl, _col_ml, _col_3l = st.columns(3)
         _ml_invalid = False
@@ -2207,36 +3476,23 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                     key="ba_instrument_sl",
                     format_func=lambda k: INSTRUMENTS[k]["label"],
                 )
-                _sl_mode = st.radio(
-                    "Mode", ["AIAO", "BE Stop"],
-                    horizontal=True,
-                    index=0 if st.session_state.get("ba_sl_mode", "AIAO") == "AIAO" else 1,
-                    key="ba_sl_mode",
-                )
-                _sl_be = _sl_mode == "BE Stop"
+                # BE Stop and Stop Ratchet modes hidden — require tick data for
+                # accurate bar-level simulation (dynamic stop movement creates
+                # intrabar sequence ambiguity).
+                _sl_be = False
+                st.session_state["ba_sl_mode"] = "AIAO"
                 st.number_input(
                     "Contracts", 1, 100,
                     int(st.session_state.get("ba_contracts_sl",
                         st.session_state.get("ba_contracts", 1))),
                     key="ba_contracts_sl",
                 )
-                if _sl_be:
-                    st.number_input(
-                        "Target 1 (R)", 0.25, 10.0,
-                        float(st.session_state.get("ba_t1_r_sl", 1.0)),
-                        step=0.25, format="%.2f", key="ba_t1_r_sl",
-                    )
                 st.number_input(
-                    "Target 2 (R)" if _sl_be else "Target (R)", 0.25, 10.0,
+                    "Target (R)", 0.25, 10.0,
                     float(st.session_state.get("ba_target_r_sl",
                           st.session_state.get("ba_target_r", 2.0))),
                     step=0.25, format="%.2f", key="ba_target_r_sl",
                 )
-                if _sl_be:
-                    _t1v = float(st.session_state.get("ba_t1_r_sl", 1.0))
-                    _t2v = float(st.session_state.get("ba_target_r_sl", 2.0))
-                    if _t1v >= _t2v:
-                        st.warning(f"T1 ({_t1v}R) ≥ T2 ({_t2v}R) — fix T1 < T2.")
                 st.number_input(
                     "Entry slip (ticks)", 0.0, 10.0,
                     float(st.session_state.get("ba_entry_slip_sl",
@@ -2265,8 +3521,15 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                 )
                 _sl_c    = int(st.session_state.get("ba_contracts_sl", 1))
                 _sl_comm = float(st.session_state.get("ba_commission_sl", _def_comm_sl))
-                _be_suffix = " · BE stop" if _sl_be else ""
-                st.caption(f"{_sl_c}c × ${_sl_comm:.2f} = ${_sl_c * _sl_comm:.2f}/trade{_be_suffix}")
+                st.caption(f"{_sl_c}c × ${_sl_comm:.2f} = ${_sl_c * _sl_comm:.2f}/trade")
+                if False:  # Stop Ratchet — hidden until tick data available
+                    _sl_rdest = st.selectbox("Move stop to",
+                        ["BE (entry)", "Lock-in R"], index=0,
+                        key="ba_ratchet_dest_sl")
+                    if _sl_rdest == "Lock-in R":
+                        st.number_input("Lock-in (R)", 0.0, 5.0,
+                            float(st.session_state.get("ba_ratchet_lock_r_sl", 0.5)),
+                            step=0.25, format="%.2f", key="ba_ratchet_lock_r_sl")
 
         # -- 2-Leg --
         with _col_ml:
@@ -2279,38 +3542,53 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                     key="ba_instrument_ml",
                     format_func=lambda k: INSTRUMENTS[k]["label"],
                 )
-                st.caption("**Leg 1**")
+                _r_opts  = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0]
+                _r_lbls  = [f"{v:.2f}R" for v in _r_opts]
+
+                st.caption("**Leg 1 (E1)**")
                 contracts_t1 = st.number_input(
-                    "Contracts", 0, 100,
+                    "E1 Contracts", 1, 100,
                     int(st.session_state.get("ba_contracts_t1", 1)),
                     key="ba_contracts_t1",
                 )
-                t1_r = st.number_input(
-                    "T1 (R)", 0.25, 10.0,
-                    float(st.session_state.get("ba_t1_r", 1.0)),
-                    step=0.25, format="%.2f", key="ba_t1_r",
+                _saved_t1_lbl = st.session_state.get("ba_t1_r_sel", "1.00R")
+                _t1_idx    = _r_lbls.index(_saved_t1_lbl) if _saved_t1_lbl in _r_lbls else 2
+                _t1_sel    = st.selectbox(
+                    "T1 (E1 target, R from entry)", _r_lbls, index=_t1_idx,
+                    key="ba_t1_r_sel",
+                    help="If price hits T1 before PB fills → trade over, E1 profits.",
                 )
-                _t1_lbl = st.radio(
-                    "At T1", ["Exit Leg 1", "Move stop to BE only"],
-                    index=0 if st.session_state.get("ba_t1_action", "exit") == "exit" else 1,
-                    key="ba_t1_action_radio",
-                )
-                t1_action = "exit" if _t1_lbl == "Exit Leg 1" else "be_only"
-                if t1_action == "be_only":
-                    contracts_t1 = 0
+                t1_r      = _r_opts[_r_lbls.index(_t1_sel)]
+                t1_action = "exit"  # scale-in model always exits E1 at T1
 
-                st.caption("**Leg 2**")
+                st.caption("**Leg 2 (E2 scale-in)**")
                 contracts_t2 = st.number_input(
-                    "Contracts", 1, 100,
+                    "E2 Contracts", 1, 100,
                     int(st.session_state.get("ba_contracts_t2", 1)),
                     key="ba_contracts_t2",
                 )
-                target_r_ml = st.number_input(
-                    "T2 (R)", 0.25, 10.0,
-                    float(st.session_state.get("ba_target_r_ml",
-                          st.session_state.get("ba_target_r", 2.0))),
-                    step=0.25, format="%.2f", key="ba_target_r_ml",
+                _pb_vals = [0.0, -0.25, -0.33, -0.50, -0.66, -0.75, -1.0, -1.25, -1.50, -2.0]
+                _pb_lbls = ["None (immediate)", "-0.25R", "-0.33R", "-0.50R",
+                            "-0.66R", "-0.75R", "-1.0R", "-1.25R", "-1.50R", "-2.0R"]
+                _saved_pb = float(st.session_state.get("ba_ml_pb_r", -0.50))
+                _pb_idx   = _pb_vals.index(_saved_pb) if _saved_pb in _pb_vals else 3
+                _pb_sel   = st.selectbox(
+                    "E2 Pullback (R from entry)", _pb_lbls, index=_pb_idx,
+                    key="ba_ml_pb_sel",
+                    help="How far price must retrace from E1 entry before E2 fills. "
+                         "-0.5R = half-R below E1 entry (for longs).",
                 )
+                ml_pb_r_v = _pb_vals[_pb_lbls.index(_pb_sel)]
+
+                _saved_t2_lbl = st.session_state.get("ba_t2_r_sel", "2.00R")
+                _t2_idx    = _r_lbls.index(_saved_t2_lbl) if _saved_t2_lbl in _r_lbls else 4
+                _t2_sel    = st.selectbox(
+                    "T2 (R from blended entry)", _r_lbls, index=_t2_idx,
+                    key="ba_t2_r_sel",
+                    help="Target for combined E1+E2 position. Measured from blended avg entry "
+                         "using original stop as risk.",
+                )
+                target_r_ml = _r_opts[_r_lbls.index(_t2_sel)]
 
                 st.caption("**Execution**")
                 st.number_input(
@@ -2340,34 +3618,209 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                     step=0.5, format="%.2f", key="ba_commission_ml",
                 )
 
-                if t1_r >= target_r_ml:
-                    st.warning(f"T1 ({t1_r}R) ≥ T2 ({target_r_ml}R) — fix T1 < T2 to enable.")
-                    _ml_invalid = True
-                else:
-                    _ml_c    = contracts_t1 + contracts_t2
-                    _ml_comm = float(st.session_state.get("ba_commission_ml", 4.0))
-                    st.caption(f"{_ml_c}c × ${_ml_comm:.2f} = ${_ml_c * _ml_comm:.2f}/trade")
+                _ml_c    = contracts_t1 + contracts_t2
+                _ml_comm = float(st.session_state.get("ba_commission_ml", _def_comm_ml))
+                st.caption(f"{_ml_c}c × ${_ml_comm:.2f} = ${_ml_c * _ml_comm:.2f}/trade")
+                st.caption("**Stop Ratchet**")
+                _ml_ratchet = st.checkbox("Enable", value=bool(st.session_state.get("ba_ratchet_ml", False)), key="ba_ratchet_ml")
+                if _ml_ratchet:
+                    st.number_input("Trigger (R from entry)", 0.25, 10.0,
+                        float(st.session_state.get("ba_ratchet_r_ml", 1.0)),
+                        step=0.25, format="%.2f", key="ba_ratchet_r_ml")
+                    _ml_rdest = st.selectbox("Move stop to",
+                        ["BE (entry)", "Lock-in R"], index=0,
+                        key="ba_ratchet_dest_ml")
+                    if _ml_rdest == "Lock-in R":
+                        st.number_input("Lock-in (R)", 0.0, 5.0,
+                            float(st.session_state.get("ba_ratchet_lock_r_ml", 0.5)),
+                            step=0.25, format="%.2f", key="ba_ratchet_lock_r_ml")
 
-        # -- 3-Leg placeholder --
+        # -- 3-Leg --
         with _col_3l:
-            st.caption("3-Leg *(coming soon)*")
+            if _is_3l:
+                st.selectbox(
+                    "Instrument", list(INSTRUMENTS.keys()),
+                    index=list(INSTRUMENTS.keys()).index(
+                        st.session_state.get("ba_instrument_3l",
+                        st.session_state.get("ba_instrument", "ES"))),
+                    key="ba_instrument_3l",
+                    format_func=lambda k: INSTRUMENTS[k]["label"],
+                )
+
+                # ── E1 ────────────────────────────────────────────────────────
+                st.markdown("**E1 — Initial entry at signal**")
+                e1c_3l = st.number_input("E1 Contracts", 1, 100,
+                    int(st.session_state.get("ba_e1c_3l", 1)), key="ba_e1c_3l")
+                t1_r_3l = st.number_input("T1 — E1 target (R)", 0.25, 10.0,
+                    float(st.session_state.get("ba_t1_r_3l", 1.0)),
+                    step=0.25, format="%.2f", key="ba_t1_r_3l")
+                _t1_lbl_3l = st.radio("At T1", ["Exit E1", "BE stop only"],
+                    index=0 if st.session_state.get("ba_t1_action_3l", "exit") == "exit" else 1,
+                    key="ba_t1_action_3l_radio", horizontal=True)
+                t1_action_3l = "exit" if _t1_lbl_3l == "Exit E1" else "be_only"
+
+                st.divider()
+
+                # ── E2 ────────────────────────────────────────────────────────
+                st.markdown("**E2 — Pullback entry 1**")
+                e2c_3l = st.number_input("E2 Contracts (0 = disabled)", 0, 100,
+                    int(st.session_state.get("ba_e2c_3l", 1)), key="ba_e2c_3l")
+                _pb1c1, _pb1c2 = st.columns(2)
+                _pb1c1.number_input("PB1 (R back)", 0.01, 4.0,
+                    float(st.session_state.get("ba_pb1_r_3l", 0.33)),
+                    step=0.01, format="%.2f", key="ba_pb1_r_3l",
+                    help="How far back from E1 entry (in R) to place the PB1 limit order")
+                _pb1c2.number_input("PB1 tick offset", -20, 20,
+                    int(st.session_state.get("ba_pb1_ticks_3l", 0)), key="ba_pb1_ticks_3l",
+                    help="+= shallower (closer to entry), –= deeper")
+                t2_r_3l = st.number_input("T2 — E2 target (R)", 0.25, 10.0,
+                    float(st.session_state.get("ba_t2_r_3l", 2.0)),
+                    step=0.25, format="%.2f", key="ba_t2_r_3l")
+
+                st.divider()
+
+                # ── E3 ────────────────────────────────────────────────────────
+                st.markdown("**E3 — Pullback entry 2**")
+                e3c_3l = st.number_input("E3 Contracts (0 = disabled)", 0, 100,
+                    int(st.session_state.get("ba_e3c_3l", 1)), key="ba_e3c_3l")
+                _pb2c1, _pb2c2 = st.columns(2)
+                _pb2c1.number_input("PB2 (R back)", 0.01, 5.0,
+                    float(st.session_state.get("ba_pb2_r_3l", 0.66)),
+                    step=0.01, format="%.2f", key="ba_pb2_r_3l",
+                    help="Must be deeper than PB1")
+                _pb2c2.number_input("PB2 tick offset", -20, 20,
+                    int(st.session_state.get("ba_pb2_ticks_3l", 0)), key="ba_pb2_ticks_3l",
+                    help="+= shallower, –= deeper")
+                target_r_3l = st.number_input("T3 — E3 target (R)", 0.25, 10.0,
+                    float(st.session_state.get("ba_target_r_3l", 3.0)),
+                    step=0.25, format="%.2f", key="ba_target_r_3l")
+
+                # Validation
+                _pb1_r_v = float(st.session_state.get("ba_pb1_r_3l", 0.33))
+                _pb2_r_v = float(st.session_state.get("ba_pb2_r_3l", 0.66))
+                _t2_r_v  = float(st.session_state.get("ba_t2_r_3l", 2.0))
+                if _pb2_r_v <= _pb1_r_v:
+                    st.warning(f"PB2 ({_pb2_r_v:.2f}R) must be > PB1 ({_pb1_r_v:.2f}R).")
+                if not (t1_r_3l < _t2_r_v < target_r_3l):
+                    st.warning(f"Targets must satisfy T1 ({t1_r_3l}R) < T2 ({_t2_r_v}R) < T3 ({target_r_3l}R).")
+
+                st.divider()
+
+                # ── Execution ─────────────────────────────────────────────────
+                st.markdown("**Execution**")
+                st.number_input("Entry slip (ticks)", 0.0, 10.0,
+                    float(st.session_state.get("ba_entry_slip_3l",
+                          st.session_state.get("ba_entry_slip", 0.0))),
+                    step=0.5, format="%.1f", key="ba_entry_slip_3l")
+                st.number_input("Exit slip (ticks)", 0.0, 10.0,
+                    float(st.session_state.get("ba_exit_slip_3l",
+                          st.session_state.get("ba_exit_slip", 0.0))),
+                    step=0.5, format="%.1f", key="ba_exit_slip_3l")
+                st.number_input("Stop offset (ticks)", 0, 10,
+                    int(st.session_state.get("ba_stop_offset_3l",
+                        st.session_state.get("ba_stop_offset", 1))),
+                    key="ba_stop_offset_3l")
+                _def_comm_3l = INSTRUMENTS.get(
+                    st.session_state.get("ba_instrument_3l", "ES"), {}
+                ).get("default_commission", 3.0)
+                st.number_input("Commission ($/contract)", min_value=0.0,
+                    value=float(st.session_state.get("ba_commission_3l", _def_comm_3l)),
+                    step=0.5, format="%.2f", key="ba_commission_3l")
+                _3l_c_tot = e1c_3l + e2c_3l + e3c_3l
+                st.caption(f"E1:{e1c_3l} · E2:{e2c_3l} · E3:{e3c_3l} "
+                           f"× ${float(st.session_state.get('ba_commission_3l', _def_comm_3l)):.2f} "
+                           f"= ${_3l_c_tot * float(st.session_state.get('ba_commission_3l', _def_comm_3l)):.2f} max/trade")
+
+                st.divider()
+
+                # ── Stop Ratchet ──────────────────────────────────────────────
+                st.markdown("**Stop Ratchet**")
+                _3l_ratchet = st.checkbox("Enable", value=bool(st.session_state.get("ba_ratchet_3l", False)), key="ba_ratchet_3l")
+                if _3l_ratchet:
+                    st.number_input("Trigger (R from blended entry)", 0.25, 10.0,
+                        float(st.session_state.get("ba_ratchet_r_3l", 1.0)),
+                        step=0.25, format="%.2f", key="ba_ratchet_r_3l")
+                    _3l_rdest = st.selectbox("Move stop to",
+                        ["BE (blended)", "E1 entry", "Lock-in R"], index=0,
+                        key="ba_ratchet_dest_3l")
+                    if _3l_rdest == "Lock-in R":
+                        st.number_input("Lock-in (R)", 0.0, 5.0,
+                            float(st.session_state.get("ba_ratchet_lock_r_3l", 0.5)),
+                            step=0.25, format="%.2f", key="ba_ratchet_lock_r_3l")
 
         # ── Derive active parameters ──────────────────────────────────────────
-        _sl_be_deriv = _is_sl and st.session_state.get("ba_sl_mode", "AIAO") == "BE Stop"
-        trade_mode   = "2-Leg" if (_is_ml and not _ml_invalid) else "Single Leg"
+        _sl_be_deriv  = _is_sl and st.session_state.get("ba_sl_mode", "AIAO") == "BE Stop"
+        _3l_pb_ok  = float(st.session_state.get("ba_pb2_r_3l", 0.66)) > float(st.session_state.get("ba_pb1_r_3l", 0.33))
+        _3l_tgt_ok = (float(st.session_state.get("ba_t1_r_3l", 1.0))
+                      < float(st.session_state.get("ba_t2_r_3l", 2.0))
+                      < float(st.session_state.get("ba_target_r_3l", 3.0)))
+        _3l_valid  = _is_3l and _3l_pb_ok and _3l_tgt_ok
 
-        if _is_ml and not _ml_invalid:
+        # Ratchet params (resolved per active mode)
+        def _resolve_ratchet(prefix):
+            if not st.session_state.get(f"ba_ratchet_{prefix}", False):
+                return 0.0, "BE", 0.0
+            r_r   = float(st.session_state.get(f"ba_ratchet_r_{prefix}", 1.0))
+            dest_raw = st.session_state.get(f"ba_ratchet_dest_{prefix}", "BE (entry)")
+            if dest_raw == "Lock-in R":
+                dest = "Lock-in"
+                lock = float(st.session_state.get(f"ba_ratchet_lock_r_{prefix}", 0.5))
+            elif dest_raw == "E1 entry":
+                dest, lock = "E1", 0.0
+            else:
+                dest, lock = "BE", 0.0
+            return r_r, dest, lock
+
+        ml_pb_r_v = 0.0  # default; overridden in 2-leg block below
+
+        if _is_3l and _3l_valid:
+            use_threeleg = True
+            use_multileg = False
+            instrument  = st.session_state.get("ba_instrument_3l", "ES")
+            tick_value  = INSTRUMENTS[instrument]["tick_value"]
+            target_r    = float(st.session_state.get("ba_target_r_3l", 3.0))
+            t1_r        = float(st.session_state.get("ba_t1_r_3l", 1.0))
+            t2_r_val    = float(st.session_state.get("ba_t2_r_3l", 2.0))
+            t1_action   = t1_action_3l  # defined in _col_3l block
+            entry_slip  = float(st.session_state.get("ba_entry_slip_3l", 0.0))
+            exit_slip   = float(st.session_state.get("ba_exit_slip_3l", 0.0))
+            stop_offset = int(st.session_state.get("ba_stop_offset_3l", 1))
+            commission  = float(st.session_state.get("ba_commission_3l", 4.0))
+            contracts   = e1c_3l
+            contracts_t1 = e1c_3l; contracts_t2 = e2c_3l + e3c_3l
+            pb1_r_val   = float(st.session_state.get("ba_pb1_r_3l", 0.33))
+            pb2_r_val   = float(st.session_state.get("ba_pb2_r_3l", 0.66))
+            pb1_ticks_v = int(st.session_state.get("ba_pb1_ticks_3l", 0))
+            pb2_ticks_v = int(st.session_state.get("ba_pb2_ticks_3l", 0))
+            ratchet_r_v, ratchet_dest_v, ratchet_lock_r_v = _resolve_ratchet("3l")
+        elif _is_ml and not _ml_invalid:
+            use_threeleg = False
             use_multileg = True
             instrument  = st.session_state.get("ba_instrument_ml", "ES")
             tick_value  = INSTRUMENTS[instrument]["tick_value"]
-            target_r    = float(st.session_state.get("ba_target_r_ml", 2.0))
+            # T2: read from selectbox label → float
+            _t2_r_opts  = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0]
+            _t2_r_lbls  = [f"{v:.2f}R" for v in _t2_r_opts]
+            _t2_sel_ss  = st.session_state.get("ba_t2_r_sel", "2.00R")
+            target_r    = _t2_r_opts[_t2_r_lbls.index(_t2_sel_ss)] if _t2_sel_ss in _t2_r_lbls else 2.0
             entry_slip  = float(st.session_state.get("ba_entry_slip_ml", 0.0))
             exit_slip   = float(st.session_state.get("ba_exit_slip_ml", 0.0))
             stop_offset = int(st.session_state.get("ba_stop_offset_ml", 1))
             commission  = float(st.session_state.get("ba_commission_ml", 4.0))
             contracts   = 1
-            # t1_r, t1_action, contracts_t1, contracts_t2 defined in _col_ml block above
+            # PB level: read from selectbox label → float
+            _pb_vals_ss = [0.0, -0.25, -0.33, -0.50, -0.66, -0.75, -1.0, -1.25, -1.50, -2.0]
+            _pb_lbls_ss = ["None (immediate)", "-0.25R", "-0.33R", "-0.50R",
+                           "-0.66R", "-0.75R", "-1.0R", "-1.25R", "-1.50R", "-2.0R"]
+            _pb_sel_ss  = st.session_state.get("ba_ml_pb_sel", "-0.50R")
+            ml_pb_r_v   = _pb_vals_ss[_pb_lbls_ss.index(_pb_sel_ss)] if _pb_sel_ss in _pb_lbls_ss else -0.50
+            pb1_r_val = pb2_r_val = pb1_ticks_v = pb2_ticks_v = 0
+            t2_r_val = 0.0
+            e1c_3l = e2c_3l = e3c_3l = 1
+            ratchet_r_v, ratchet_dest_v, ratchet_lock_r_v = _resolve_ratchet("ml")
+            # t1_r, t1_action, contracts_t1, contracts_t2 defined in _col_ml block
         elif _sl_be_deriv:
+            use_threeleg = False
             use_multileg = True
             instrument   = st.session_state.get("ba_instrument_sl", "ES")
             tick_value   = INSTRUMENTS[instrument]["tick_value"]
@@ -2381,7 +3834,12 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
             stop_offset  = int(st.session_state.get("ba_stop_offset_sl", 1))
             commission   = float(st.session_state.get("ba_commission_sl", 4.0))
             contracts    = 1
+            pb1_r_val = pb2_r_val = pb1_ticks_v = pb2_ticks_v = 0
+            t2_r_val = 0.0
+            e1c_3l = e2c_3l = e3c_3l = 1
+            ratchet_r_v, ratchet_dest_v, ratchet_lock_r_v = _resolve_ratchet("sl")
         else:
+            use_threeleg = False
             use_multileg = False
             instrument  = st.session_state.get("ba_instrument_sl", "ES")
             tick_value  = INSTRUMENTS[instrument]["tick_value"]
@@ -2391,10 +3849,20 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
             stop_offset = int(st.session_state.get("ba_stop_offset_sl", 1))
             commission  = float(st.session_state.get("ba_commission_sl", 4.0))
             contracts   = int(st.session_state.get("ba_contracts_sl", 1))
-            t1_r        = 1.0
-            t1_action   = "exit"
-            contracts_t1 = 0
-            contracts_t2 = 0
+            t1_r        = 1.0; t1_action = "exit"
+            contracts_t1 = 0;  contracts_t2 = 0
+            pb1_r_val = pb2_r_val = pb1_ticks_v = pb2_ticks_v = 0
+            t2_r_val = 0.0
+            e1c_3l = e2c_3l = e3c_3l = 1
+            ratchet_r_v, ratchet_dest_v, ratchet_lock_r_v = _resolve_ratchet("sl")
+
+        # Ensure 3-leg locals always exist (used by sweep calls even in other modes)
+        if not _is_3l:
+            e1c_3l = e2c_3l = e3c_3l = 1
+            pb1_r_val = 0.33; pb2_r_val = 0.66
+            pb1_ticks_v = pb2_ticks_v = 0
+            t1_action_3l = "exit"
+            target_r_3l = 3.0; t1_r_3l = 1.0; t2_r_val = 2.0; _t2_r_v = 2.0
 
         st.divider()
         if st.button("💾 Save as Default", key="ba_save_defaults"):
@@ -2408,7 +3876,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                 "ba_fomc": use_fomc, "ba_nfp": use_nfp, "ba_cpi": use_cpi,
                 "ba_event_mode": event_filter_mode, "ba_event_window": event_window,
                 "ba_trade_mode": st.session_state.get("ba_trade_mode", "Single Leg"),
-                # Single-leg params
+                # Single-leg
                 "ba_instrument_sl": st.session_state.get("ba_instrument_sl", "ES"),
                 "ba_sl_mode": st.session_state.get("ba_sl_mode", "AIAO"),
                 "ba_contracts_sl": int(st.session_state.get("ba_contracts_sl", 1)),
@@ -2418,7 +3886,11 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                 "ba_exit_slip_sl": float(st.session_state.get("ba_exit_slip_sl", 0.0)),
                 "ba_stop_offset_sl": int(st.session_state.get("ba_stop_offset_sl", 1)),
                 "ba_commission_sl": float(st.session_state.get("ba_commission_sl", 4.0)),
-                # 2-leg params
+                "ba_ratchet_sl": bool(st.session_state.get("ba_ratchet_sl", False)),
+                "ba_ratchet_r_sl": float(st.session_state.get("ba_ratchet_r_sl", 1.0)),
+                "ba_ratchet_dest_sl": st.session_state.get("ba_ratchet_dest_sl", "BE (entry)"),
+                "ba_ratchet_lock_r_sl": float(st.session_state.get("ba_ratchet_lock_r_sl", 0.5)),
+                # 2-leg
                 "ba_instrument_ml": st.session_state.get("ba_instrument_ml", "ES"),
                 "ba_contracts_t1": int(st.session_state.get("ba_contracts_t1", 1)),
                 "ba_t1_r": float(st.session_state.get("ba_t1_r", 1.0)),
@@ -2429,6 +3901,30 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                 "ba_exit_slip_ml": float(st.session_state.get("ba_exit_slip_ml", 0.0)),
                 "ba_stop_offset_ml": int(st.session_state.get("ba_stop_offset_ml", 1)),
                 "ba_commission_ml": float(st.session_state.get("ba_commission_ml", 4.0)),
+                "ba_ratchet_ml": bool(st.session_state.get("ba_ratchet_ml", False)),
+                "ba_ratchet_r_ml": float(st.session_state.get("ba_ratchet_r_ml", 1.0)),
+                "ba_ratchet_dest_ml": st.session_state.get("ba_ratchet_dest_ml", "BE (entry)"),
+                "ba_ratchet_lock_r_ml": float(st.session_state.get("ba_ratchet_lock_r_ml", 0.5)),
+                # 3-leg
+                "ba_instrument_3l": st.session_state.get("ba_instrument_3l", "ES"),
+                "ba_e1c_3l": int(st.session_state.get("ba_e1c_3l", 1)),
+                "ba_e2c_3l": int(st.session_state.get("ba_e2c_3l", 1)),
+                "ba_e3c_3l": int(st.session_state.get("ba_e3c_3l", 1)),
+                "ba_pb1_r_3l": float(st.session_state.get("ba_pb1_r_3l", 0.5)),
+                "ba_pb1_ticks_3l": int(st.session_state.get("ba_pb1_ticks_3l", 0)),
+                "ba_pb2_r_3l": float(st.session_state.get("ba_pb2_r_3l", 1.0)),
+                "ba_pb2_ticks_3l": int(st.session_state.get("ba_pb2_ticks_3l", 0)),
+                "ba_t1_r_3l": float(st.session_state.get("ba_t1_r_3l", 1.0)),
+                "ba_t1_action_3l": t1_action_3l,
+                "ba_target_r_3l": float(st.session_state.get("ba_target_r_3l", 2.0)),
+                "ba_entry_slip_3l": float(st.session_state.get("ba_entry_slip_3l", 0.0)),
+                "ba_exit_slip_3l": float(st.session_state.get("ba_exit_slip_3l", 0.0)),
+                "ba_stop_offset_3l": int(st.session_state.get("ba_stop_offset_3l", 1)),
+                "ba_commission_3l": float(st.session_state.get("ba_commission_3l", 4.0)),
+                "ba_ratchet_3l": bool(st.session_state.get("ba_ratchet_3l", False)),
+                "ba_ratchet_r_3l": float(st.session_state.get("ba_ratchet_r_3l", 1.0)),
+                "ba_ratchet_dest_3l": st.session_state.get("ba_ratchet_dest_3l", "BE (blended)"),
+                "ba_ratchet_lock_r_3l": float(st.session_state.get("ba_ratchet_lock_r_3l", 0.5)),
             })
             st.success("Defaults saved.", icon="✅")
 
@@ -2449,14 +3945,23 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         bars_by_date=bars_by_date_sim,
         multileg=use_multileg, t1_r=t1_r,
         t1_action=t1_action, contracts_t1=contracts_t1, contracts_t2=contracts_t2,
+        ratchet_r=ratchet_r_v, ratchet_dest=ratchet_dest_v, ratchet_lock_r=ratchet_lock_r_v,
+        ml_pb_r=ml_pb_r_v,
+        threeleg=use_threeleg,
+        contracts_e1=e1c_3l, contracts_e2=e2c_3l, contracts_e3=e3c_3l,
+        pb1_r=pb1_r_val, pb1_ticks=pb1_ticks_v,
+        pb2_r=pb2_r_val, pb2_ticks=pb2_ticks_v,
+        t2_r=t2_r_val,
     )
 
     # When first_trade_only is active, drop non-first-trade signals from all display/metrics
     if first_trade_only:
         results = results[results["FilterStatus"] != "first_trade_day"].reset_index(drop=True)
 
+    _summary_contracts = e1c_3l + e2c_3l + e3c_3l if use_threeleg else contracts
     summary = compute_summary(results, commission,
-                              contracts=contracts, is_multileg=use_multileg,
+                              contracts=_summary_contracts,
+                              is_multileg=(use_multileg or use_threeleg),
                               t1_action=t1_action,
                               contracts_t1=contracts_t1, contracts_t2=contracts_t2)
 
@@ -2492,21 +3997,176 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
 
             _slip_usd = summary.get("slippage_total", 0.0)
             if use_multileg:
-                _slip_str = f"${_slip_usd:.0f}"
+                # Derive ticks from dollar total — correct for variable leg fill counts
+                total_slip_tks = int(round(_slip_usd / tick_value)) if tick_value > 0 else 0
             else:
                 total_slip_tks = int((entry_slip + exit_slip) * summary["n_trades"] * contracts)
-                _slip_str = f"{total_slip_tks} tks  /  ${_slip_usd:.0f}"
+            _slip_str = f"{total_slip_tks} tks  /  ${_slip_usd:.0f}"
             total_cost_usd = _slip_usd + summary["commission_total"]
+            _dd_abs = abs(summary["max_dd"]) if summary["max_dd"] != 0 else None
+            _pnl_dd = summary["net_total"] / _dd_abs if _dd_abs else None
             r4 = st.columns(6)
             r4[0].metric("Slippage",     _slip_str)
             r4[1].metric("Commission",   f"${summary['commission_total']:.0f}")
             r4[2].metric("Total Cost",   f"${total_cost_usd:.0f}")
             r4[3].metric("Max Drawdown", f"${summary['max_dd']:,.0f}")
-            r4[4].metric("Trading Days", f"{summary['trading_days']}")
+            r4[4].metric("PnL/DD",       f"{_pnl_dd:.2f}" if _pnl_dd is not None else "—")
+            r4[5].metric("Trading Days", f"{summary['trading_days']}")
         else:
             st.info("No filled trades in the selected range.")
 
-    # ── Optimal R sweep ───────────────────────────────────────────────────────
+    # ── Ratchet bar-ambiguity diagnostic (AIAO+ratchet mode only) ────────────
+    _is_aiao_ratchet = (not use_multileg and not use_threeleg and ratchet_r_v > 0)
+    if _is_aiao_ratchet:
+        with st.expander("🔬 Ratchet BE-Stop Diagnostic", expanded=False):
+            st.caption(
+                "Finds AIAO trades that stopped at ~BE after ratchet fired, "
+                "then re-simulates each as BE Stop to show what the outcome "
+                "would have been. Isolates the bar-level intrabar ambiguity."
+            )
+            if st.button("Run Diagnostic", key="ba_run_ratchet_diag"):
+                with st.spinner("Re-simulating…"):
+                    diag_df = diagnose_ratchet_bar_ambiguities(
+                        results,
+                        ticks_by_date,
+                        bars_by_date_sim,
+                        ratchet_r=ratchet_r_v,
+                        target_r=target_r,
+                        tick_value=tick_value,
+                        entry_slip=entry_slip,
+                        exit_slip=exit_slip,
+                        stop_offset=stop_offset,
+                        commission=commission,
+                        contracts=contracts,
+                    )
+                st.session_state["ba_diag_df"] = diag_df
+
+            diag_df = st.session_state.get("ba_diag_df")
+            if diag_df is not None and not diag_df.empty:
+                n_amb   = int(diag_df["Ambiguous_Bar"].sum())
+                n_total_be = len(diag_df)
+                delta_sum  = diag_df["PnL_Delta"].sum()
+                amb_delta  = diag_df.loc[diag_df["Ambiguous_Bar"], "PnL_Delta"].sum() if n_amb else 0
+
+                mc = st.columns(4)
+                mc[0].metric("BE-stop trades found",   n_total_be)
+                mc[1].metric("Confirmed ambiguous bars", n_amb)
+                mc[2].metric("Total PnL delta (all)",  f"${delta_sum:+,.0f}")
+                mc[3].metric("PnL delta (ambiguous bars only)", f"${amb_delta:+,.0f}")
+
+                show_all = st.checkbox("Show all BE-stop trades (uncheck = ambiguous only)",
+                                       value=False, key="ba_diag_all")
+                display_df = (diag_df if show_all else diag_df[diag_df["Ambiguous_Bar"]]).copy()
+                # Convert bool to readable label before display
+                display_df["Ambiguous_Bar"] = display_df["Ambiguous_Bar"].map(
+                    {True: "YES — same bar", False: "no"}
+                )
+                # Colour-code BEStop_Exit column
+                def _be_color(v):
+                    if isinstance(v, str):
+                        if "Target" in v:  return "color:#26a69a;font-weight:bold"
+                        if v == "T1+BE":   return "color:#ff9800"
+                    return ""
+                st.dataframe(
+                    display_df.style.format({
+                        "Entry": "{:.2f}", "Stop": "{:.2f}", "T1_Level": "{:.2f}",
+                        "Bar_Hi": "{:.2f}", "Bar_Lo": "{:.2f}",
+                        "AIAO_Px": "{:.2f}", "AIAO_Net": "${:,.0f}",
+                        "BEStop_Px": "{:.2f}", "BEStop_Net": "${:,.0f}",
+                        "PnL_Delta": "${:+,.0f}",
+                    }).map(
+                        lambda v: "background-color:#1a3a1a" if v == "YES — same bar" else "",
+                        subset=["Ambiguous_Bar"]
+                    ).map(_be_color, subset=["BEStop_Exit"]),
+                    use_container_width=True,
+                )
+                st.caption(
+                    "**Ambiguous_Bar = YES** — the exit bar's Hi crossed T1_Level AND its Lo "
+                    "crossed Entry on the same bar. AIAO stopped out; BE Stop let it live.  "
+                    "**BEStop_Exit: T1+Target** (green) = real money left on table. "
+                    "**T1+BE** (orange) = same exit price, only classification differs.  "
+                    f"Sum across all {n_total_be} trades: **${delta_sum:+,.0f}**."
+                )
+            elif diag_df is not None:
+                st.success("No ratchet-triggered BE stops found in this result set.")
+
+    # ── Same-Bar Conflict diagnostic ─────────────────────────────────────────
+    _sbc_df = results[results["SameBarConflict"] == True].copy() \
+        if "SameBarConflict" in results.columns else pd.DataFrame()
+    with st.expander(
+        f"⚠️ Same-Bar Conflicts  ({len(_sbc_df)} trades)" if not _sbc_df.empty
+        else "⚠️ Same-Bar Conflicts  (none found)",
+        expanded=not _sbc_df.empty,
+    ):
+        if _sbc_df.empty:
+            st.success(
+                "No same-bar conflicts found: no trade's stop AND target "
+                "were both reachable in the same bar."
+            )
+        else:
+            st.caption(
+                "These trades had both their **stop AND target reachable in the same bar**. "
+                "The conservative bar rule applied: stop wins. "
+                "The outcome may have been different with tick-level data."
+            )
+            _ts = TICK_SIZE
+            # Derive $ per tick per trade from existing GrossPnL / GrossPnLPts
+            # Works for single-leg; for 2-leg it gives blended TV (good enough for direction).
+            _sbc_df["_tv"] = _sbc_df.apply(
+                lambda r: r["GrossPnL"] / (r["GrossPnLPts"] / _ts)
+                if abs(r.get("GrossPnLPts", 0)) > 1e-6 else np.nan,
+                axis=1,
+            )
+            # For single-leg, hypothetical: target wins instead of stop
+            # Delta = (Target - ActualStop) * sign(direction) / ts * tv
+            def _if_target_won(r):
+                tv = r["_tv"]
+                if np.isnan(tv):
+                    return np.nan
+                if r["Direction"] == "Long":
+                    delta_pts = r["Target"] - r["ActualStop"]
+                else:
+                    delta_pts = r["ActualStop"] - r["Target"]
+                return r["NetPnL"] + delta_pts / _ts * tv
+
+            _sbc_df["IfTargetWon"] = _sbc_df.apply(_if_target_won, axis=1)
+            _sbc_df["PnL_Delta"]   = _sbc_df["IfTargetWon"] - _sbc_df["NetPnL"]
+            total_delta = _sbc_df["PnL_Delta"].sum()
+
+            _mc = st.columns(3)
+            _mc[0].metric("Trades affected", len(_sbc_df))
+            _mc[1].metric("PnL delta if targets won", f"${total_delta:+,.0f}")
+            _mc[2].metric("Avg delta / trade", f"${total_delta / len(_sbc_df):+,.0f}")
+
+            _disp = _sbc_df[[
+                "Date", "Direction", "EntryPrice", "ActualStop", "Target",
+                "ExitReason", "NetPnL", "IfTargetWon", "PnL_Delta",
+            ]].rename(columns={
+                "Direction": "Dir", "EntryPrice": "Entry",
+                "ActualStop": "Stop", "ExitReason": "ExitResult",
+                "IfTargetWon": "IfTgtWon_Net",
+            }).copy()
+
+            st.dataframe(
+                _disp.style.format({
+                    "Entry": "{:.2f}", "Stop": "{:.2f}", "Target": "{:.2f}",
+                    "NetPnL": "${:,.0f}", "IfTgtWon_Net": "${:,.0f}",
+                    "PnL_Delta": "${:+,.0f}",
+                }).map(
+                    lambda v: "color:#ef5350" if isinstance(v, (int, float)) and v < 0 else
+                              "color:#26a69a" if isinstance(v, (int, float)) and v > 0 else "",
+                    subset=["PnL_Delta"],
+                ),
+                use_container_width=True,
+                hide_index=True,
+            )
+            st.caption(
+                "**IfTgtWon_Net** — hypothetical net P&L if the target had been reached "
+                "before the stop (tick-level outcome unknown). "
+                "For 2-Leg Phase-2 BE conflicts the delta is computed as if T2 had won over BE stop."
+            )
+
+    # ── Optimal R / PB sweep ─────────────────────────────────────────────────
     _show_optimal_r(
         filtered_signals, ticks_by_date,
         entry_slip, exit_slip, stop_offset,
@@ -2514,6 +4174,11 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         bars_by_date=bars_by_date_sim,
         multileg=use_multileg, t1_r=t1_r,
         t1_action=t1_action, contracts_t1=contracts_t1, contracts_t2=contracts_t2,
+        threeleg=use_threeleg,
+        tv_e1=tick_value * e1c_3l, tv_e2=tick_value * e2c_3l, tv_e3=tick_value * e3c_3l,
+        e1c=e1c_3l, e2c=e2c_3l, e3c=e3c_3l,
+        pb1_ticks=pb1_ticks_v, pb2_ticks=pb2_ticks_v,
+        t2_r=t2_r_val,
     )
 
     # ── Stop multiplier sweep ─────────────────────────────────────────────────

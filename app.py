@@ -84,9 +84,13 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
 # ── Bar Viewer tab ────────────────────────────────────────────────────────────
 
 def show_bar_viewer(sc_file: str = "", contract: str = "ES"):
-    bar_source    = st.session_state.get("bar_source", "sc_disk")
+    bar_source    = st.session_state.get("bar_source", "none")
     uploaded_sc   = st.session_state.get("uploaded_sc_bars")
     uploaded_ohlc = st.session_state.get("uploaded_ohlc_bars")
+
+    if bar_source == "none":
+        st.info("Upload data in the **📁 Upload Data** panel in Bar Analysis to begin.")
+        return
 
     if bar_source == "sc_upload" and uploaded_sc is not None:
         bars = uploaded_sc
@@ -305,7 +309,7 @@ def main():
         if len(_source_opts) > 1:
             _src_labels = [s[0] for s in _source_opts]
             _src_keys   = [s[1] for s in _source_opts]
-            _prev     = st.session_state.get("bar_source", _src_keys[0])
+            _prev     = st.session_state.get("bar_source", "none")
             _prev_idx = _src_keys.index(_prev) if _prev in _src_keys else 0
             with st.expander("📡 Bar data source", expanded=False):
                 _chosen = st.radio(
@@ -314,10 +318,12 @@ def main():
                     label_visibility="collapsed",
                 )
             st.session_state["bar_source"] = _src_keys[_src_labels.index(_chosen)]
-        elif _source_opts:
+        elif _source_opts and _source_opts[0][1] != "sc_disk":
+            # single upload source → auto-select it
             st.session_state["bar_source"] = _source_opts[0][1]
         else:
-            st.session_state["bar_source"] = "sc_disk"
+            # only sc_disk available or nothing → don't auto-load
+            st.session_state.setdefault("bar_source", "none")
 
         bar_analysis.show_bar_analysis(sc_file=sc_file, contract=contract_label, nt_file=nt_file)
 
