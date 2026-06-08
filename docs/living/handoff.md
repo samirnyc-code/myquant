@@ -40,7 +40,7 @@ Nothing in Phase C or beyond starts until all gates above pass.
 
 ## Streamlit App (June 8, 2026)
 
-Three-tab app with contract selector and file upload. All tabs share cached data loaded by `data_loader.py`.
+Four-tab app with contract selector and file upload. All tabs share cached data loaded by `data_loader.py`.
 
 | File | Purpose |
 |------|---------|
@@ -48,10 +48,13 @@ Three-tab app with contract selector and file upload. All tabs share cached data
 | `data_loader.py` | Contract registry; parameterised loaders for SC bars, SC ticks, NT bars; upload parsers; `bar_num_from_dt()` |
 | `validation.py` | Bar Validation tab — SC vs NT comparison |
 | `bar_analysis.py` | Bar Analysis tab — signal sim, charts, monthly breakdown, R sweep |
+| `portfolio.py` | Portfolio tab — per-setup 2-leg simulation, equity curves, sweep, saved runs, PDF export |
 | `economic_calendar.py` | FOMC hardcoded 2015–2026; NFP/CPI via FRED API |
 | `.streamlit/config.toml` | `maxUploadSize = 2000` (MB) |
 | `filter_defaults.json` | Bar Validation persisted defaults — not in git |
 | `ba_filter_defaults.json` | Bar Analysis persisted defaults — not in git |
+| `pf_defaults.json` | Portfolio per-setup params persisted defaults — not in git |
+| `pf_saved_runs.json` | Portfolio saved run comparison store — not in git |
 
 **Contract registry (`data_loader.py` → `CONTRACTS` dict):**
 - `"ESM6 — 2026"` → `ESM6.CME_BarData.txt` / `NinjaScript Output 03_06_2026 23_08.txt`
@@ -65,7 +68,7 @@ Three-tab app with contract selector and file upload. All tabs share cached data
 - `get_economic_events(event_types: tuple, start, end)` returns DataFrame with DateTime (CT, tz-naive), EventType, Color
 
 **Layout (tab-first design):**
-- Tabs (`📊 Bar Viewer | 🔍 Bar Validation | 📈 Bar Analysis`) are the first element after the page header
+- Tabs (`📊 Bar Viewer | 🔍 Bar Validation | 📈 Bar Analysis | 📊 Portfolio`) are the first element after the page header
 - All upload UI lives inside the Bar Analysis tab: `📁 Upload Data` expander (3 cols: Tick | OHLC | MC Signals), then `📡 Bar data source` expander (only shown when multiple sources available)
 - Session state carries uploaded data across tabs; Bar Viewer and Bar Validation read from session state silently
 - Reload button clears all upload state including `ba_signals`
@@ -239,22 +242,55 @@ Slippage ticks for multileg: derived as `round(slippage_total_usd / tick_value)`
 
 **Session 1 (June 7):** ✅ Committed + pushed  
 **Session 2 (June 7):** ✅ Committed + pushed (no-auto-load, library tenets)  
-**Session 3 (June 8):** ✅ Committed + pushed — 2-leg scale-in model complete
+**Session 3 (June 8):** ✅ Committed + pushed — 2-leg scale-in model complete  
+**Session 4 (June 8):** ✅ Committed + pushed — Portfolio tab complete
 
 ---
 
-## Known Issues / Not Yet Verified
+## Portfolio Tab (Session 4 — June 8, 2026)
 
-- **Math verification pending**: user has not yet verified T2 prices, blended entry, and per-leg P&L math against manual calculations. Confirmed it's firing, math check deferred to next session.
-- **`first_trade_only` filter**: not applied in sweep (pre-existing issue across all sweeps).
-- **Ratchet**: ignored in all sweeps (intentional — too many dimensions).
+### Feature Set
+
+- **Per-setup 2-leg simulation** — all enabled CC types run independently using `simulate_trades(multileg=True)` + `compute_summary(is_multileg=True)`
+- **Equity curves** — combined portfolio + per-setup traces on one Plotly chart
+- **Drawdown chart** — portfolio-level drawdown subplot
+- **Per-setup breakdown table** — Trades, Win%, PF, Net PnL, Max DD, Ann Return, Starting Capital configurable
+- **Global Settings** — Instrument, date range, contracts T1/T2, slippage/commission, starting capital
+- **Setup Parameters** — per-CC T1/PB/T2 dropdowns in expander; Save as Defaults button persists to `pf_defaults.json`
+- **Portfolio Sweep** — per-CC independent T1×PB×T2 grid sweep; ranked by PnL/DD, Net PnL, or PF; click row to apply directly to setup config
+- **Saved Runs** — save named run with structured name (Scope | Period | Description) to `pf_saved_runs.json`; Compare tab shows side-by-side metrics for all saved runs
+- **PDF Export** — `components.html()` with `window.parent.print()`; counter in JS comment forces re-render on every click; `matchMedia('print')` + `Plotly.relayout()` resizes equity chart from 420→680px; no expanders are auto-opened
+
+### Key Technical Patterns
+
+**Versioned widget keys** — programmatic config updates (e.g. "apply sweep row") cannot use `st.session_state["pf_t1_CC2"] = new_val` after widget is rendered. Solution: version counter `pf_cfg_ver` in session state; incrementing it changes the key suffix (`_v0` → `_v1`), creating uninitialized keys that accept `index=` parameter.
+
+```python
+def _apply_to_config(cc, t1_raw, pb_raw, t2_raw):
+    _cfg = dict(st.session_state.get(f"pf_cfg_{cc}", {}))
+    _cfg["t1_idx"] = _t_idx(t1_raw)
+    _cfg["pb_idx"] = _pb_idx(pb_raw)
+    _cfg["t2_idx"] = _t_idx(t2_raw)
+    st.session_state[f"pf_cfg_{cc}"] = _cfg
+    st.session_state["pf_cfg_ver"] = st.session_state.get("pf_cfg_ver", 0) + 1
+```
+
+**PDF equity chart resize** — CSS alone cannot resize Plotly SVGs (fixed at render time). `matchMedia('print')` fires `Plotly.relayout({height: 680})` on the open "Equity Curves" expander's chart element before print, then restores after.
+
+**Row-level apply** — `st.dataframe(on_select="rerun", selection_mode="single-row")` + apply button renders a per-row apply flow without custom components.
+
+### Known Gaps / Not Yet Verified
+
+- **PDF equity chart resize** — `Plotly.relayout()` is called from an iframe (`components.html`); browser security policy may block `window.parent.Plotly` depending on browser/version. Needs testing.
+- **2-leg math** — per-leg P&L math against manual calculations still unverified (carried from session 3).
+- **`first_trade_only` filter** — not applied in sweep (pre-existing across all sweeps).
 
 ---
 
 ## Next Session — Priorities
 
-1. **Verify 2-leg math** — spot-check a scale-in trade: confirm PB level, E2 fill price, blended entry, T2 price, and per-leg P&L all compute correctly. Use the `PB Lvl` / `E2 Fill` columns in the trade table.
-2. **3-leg mode** — if math checks out, consider extending to 3-leg (see Session 2 design decisions below — still valid).
+1. **Verify PDF equity chart resize** — open Portfolio tab, load data, click Export PDF, confirm equity chart expands in print preview.
+2. **Verify 2-leg math** — spot-check a scale-in trade: PB level, E2 fill, blended entry, T2, per-leg P&L.
 3. **Historical data** — 2022–2025 + pre-2021 data arriving. When received: add to `CONTRACTS`, verify bars, begin WFA.
 
 ---

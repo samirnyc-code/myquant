@@ -7,3 +7,5 @@ __pycache__/
 *.pyo
 filter_defaults.json
 ba_filter_defaults.json
+pf_defaults.json
+pf_saved_runs.json

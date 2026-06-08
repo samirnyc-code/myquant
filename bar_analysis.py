@@ -73,9 +73,12 @@ def apply_signal_filters(
     event_types: tuple,
     event_filter_mode: str,
     event_window: int,
+    incl_cc1: bool,
+    incl_cc2: bool,
     incl_cc3: bool,
     incl_cc4: bool,
-    first_trade_only: bool,
+    incl_cc5: bool,
+    direction: str,          # "Both", "Long", "Short"
 ) -> pd.DataFrame:
     df = signals.copy()
     df["FilterStatus"] = "ok"
@@ -84,10 +87,15 @@ def apply_signal_filters(
     df.loc[(df["Date"] < date_from) | (df["Date"] > date_to), "FilterStatus"] = "date_range"
 
     # Signal type
-    for stype, incl in [("CC3", incl_cc3), ("CC4", incl_cc4)]:
+    for stype, incl in [("CC1", incl_cc1), ("CC2", incl_cc2), ("CC3", incl_cc3), ("CC4", incl_cc4), ("CC5", incl_cc5)]:
         if not incl:
             df.loc[(df["FilterStatus"] == "ok") & (df["SignalType"] == stype),
                    "FilterStatus"] = "signal_type"
+
+    # Direction
+    if direction != "Both":
+        df.loc[(df["FilterStatus"] == "ok") & (df["Direction"] != direction),
+               "FilterStatus"] = "direction"
 
     # NYSE holidays
     if excl_holidays:
@@ -129,12 +137,6 @@ def apply_signal_filters(
                         (df["DateTime"] <= dt + pd.Timedelta(minutes=event_window))
                     )
                 df.loc[(df["FilterStatus"] == "ok") & ev_mask, "FilterStatus"] = "event"
-
-    # First trade of day (applied after all other signal filters)
-    if first_trade_only:
-        ok_first    = df[df["FilterStatus"] == "ok"].sort_values("SignalNum").groupby("Date").head(1).index
-        non_first   = df[(df["FilterStatus"] == "ok") & ~df.index.isin(ok_first)].index
-        df.loc[non_first, "FilterStatus"] = "first_trade_day"
 
     return df
 
@@ -535,11 +537,11 @@ def _simulate_one_multileg(
 
     if full_stop_price is not None:
         sp = full_stop_price
-        return _build("Stop", sp, full_stop_dt, "Stop", sp, "Stop", sp)
+        return _build("Stop", sp, full_stop_dt, "Stop", sp, "NoFill", actual_entry)
 
     if phase1_end_idx is None:
         eod_px = float(prices[-1]) + (-exit_slip * ts if is_long else exit_slip * ts)
-        return _build("EOD", eod_px, times[-1], "EOD", eod_px, "EOD", eod_px)
+        return _build("EOD", eod_px, times[-1], "EOD", eod_px, "NoFill", actual_entry)
 
     # ── Phase 2: Leg2 / full position with BE stop ────────────────────────────
     be_stop       = actual_entry
@@ -602,7 +604,8 @@ def _simulate_one_bars_multileg(
         return {"ok": False, "FilterStatus": "no_fill"}
 
     fill_px      = max(float(nb["Open"]), signal_price) if is_long else min(float(nb["Open"]), signal_price)
-    actual_entry = fill_px + (entry_slip * ts if is_long else -entry_slip * ts)
+    actual_entry_raw = fill_px + (entry_slip * ts if is_long else -entry_slip * ts)
+    actual_entry = round(round(actual_entry_raw / ts) * ts, 10)
     actual_stop  = (stop_csv - stop_offset * ts) if is_long else (stop_csv + stop_offset * ts)
     risk_pts     = abs(actual_entry - actual_stop)
     if risk_pts < 0.001:
@@ -614,9 +617,11 @@ def _simulate_one_bars_multileg(
     entry_dt  = nb["DateTime"]
     mae = mfe = 0.0
 
-    # e2_entry / e2_fill_dt: updated when PB fills. _build reads via closure at call time.
-    e2_entry   = actual_entry
-    e2_fill_dt = None
+    # e2_entry / e2_fill_dt / blended_entry / blended_risk: updated when PB fills.
+    e2_entry      = actual_entry
+    e2_fill_dt    = None
+    blended_entry = np.nan
+    blended_risk  = np.nan
 
     def _leg_pts(exit_px):
         return (exit_px - actual_entry) if is_long else (actual_entry - exit_px)
@@ -636,7 +641,13 @@ def _simulate_one_bars_multileg(
         # Use only tv1 when E2 never filled (T1_only / Stop before E2 / EOD before E2)
         _e2_filled = (leg2_er not in ("NoFill", None))
         _tv_active = tv_total if _e2_filled else tv1
-        r_ach  = g_pnl / (risk_pts / ts * _tv_active) if _tv_active > 0 else 0.0
+        # True combined stop-out risk: blended_risk×tv_total = E1_risk×tv1 + E2_risk×tv2
+        _risk_dollar = (blended_risk / ts * tv_total
+                        if (_e2_filled and not (isinstance(blended_risk, float) and np.isnan(blended_risk)))
+                        else risk_pts / ts * tv1)
+        # R always expressed as multiples of E1's original 1R (standardised basis)
+        _e1_risk_dollar = risk_pts / ts * tv1
+        r_ach  = g_pnl / _e1_risk_dollar if _e1_risk_dollar > 0 else 0.0
         edt    = pd.Timestamp(exit_dt)
         return {
             "ok": True,
@@ -644,7 +655,7 @@ def _simulate_one_bars_multileg(
             "EntryTime": pd.Timestamp(entry_dt), "EntryBarNum": entry_bar,
             "EntryPrice": actual_entry, "ActualStop": actual_stop,
             "Target": t2_price,         "Target1": t1_price,
-            "RiskPts": risk_pts,        "RiskDollar": risk_pts / ts * _tv_active,
+            "RiskPts": risk_pts,        "RiskDollar": _risk_dollar,
             "ExitTime": edt,            "ExitBarNum": bar_num_from_dt(edt),
             "ExitPrice": exit_price,    "ExitReason": exit_reason,
             "GrossPnLPts": g_pts,       "GrossPnL": g_pnl,
@@ -660,9 +671,11 @@ def _simulate_one_bars_multileg(
             "Leg1GrossPts": l1_pts, "Leg1GrossPnL": l1_pnl,
             "Leg2ExitReason": leg2_er, "Leg2ExitPrice": leg2_px,
             "Leg2GrossPts": l2_pts, "Leg2GrossPnL": l2_pnl,
-            "PBLevel":    float(pb_trigger) if pb_trigger is not None else np.nan,
-            "E2FillPrice": e2_entry if _e2_filled else np.nan,
+            "PBLevel":    round(float(pb_trigger), 2) if pb_trigger is not None else np.nan,
+            "PBLevelRaw": round(float(pb_level_raw), 4) if not np.isnan(pb_level_raw) else np.nan,
+            "E2FillPrice": round(float(e2_entry), 2) if _e2_filled else np.nan,
             "E2FillTime":  pd.Timestamp(e2_fill_dt) if (e2_fill_dt is not None and _e2_filled) else pd.NaT,
+            "BlendedEntry": round(float(blended_entry), 2) if _e2_filled else np.nan,
             "SameBarConflict": same_bar_conflict,
         }
 
@@ -675,11 +688,18 @@ def _simulate_one_bars_multileg(
     # ── Pre-compute PB trigger (if scale-in enabled) ──────────────────────────
     # PB is negative R from E1 entry (a dip below entry before T1 is reached).
     # e2_pb_r = -0.5 → PB = entry - 0.5R (for long)
-    use_pb      = e2_pb_r < 0
-    pb_trigger  = None
+    use_pb       = e2_pb_r < 0
+    pb_trigger   = None
+    pb_level_raw = np.nan   # exact R-based level before tick-snap; stored for inspection
     if use_pb:
-        pb_level   = actual_entry + (e2_pb_r * risk_pts if is_long else -e2_pb_r * risk_pts)
-        pb_trigger = (pb_level - e2_pb_ticks * ts) if is_long else (pb_level + e2_pb_ticks * ts)
+        pb_level_raw = actual_entry + (e2_pb_r * risk_pts if is_long else -e2_pb_r * risk_pts)
+        pb_raw       = (pb_level_raw - e2_pb_ticks * ts) if is_long else (pb_level_raw + e2_pb_ticks * ts)
+        # Snap conservatively: long PB is below entry → floor (price must come further down);
+        # short PB is above entry → ceil (price must go further up).
+        if is_long:
+            pb_trigger = round(float(np.floor(pb_raw / ts)) * ts, 10)
+        else:
+            pb_trigger = round(float(np.ceil(pb_raw / ts)) * ts, 10)
 
     # ── Phase 1: Scan simultaneously for T1, stop, and PB fill ───────────────
     # Scale-in model: E2 must fill BEFORE T1 is hit.
@@ -699,7 +719,7 @@ def _simulate_one_bars_multileg(
 
         hit_t1   = (hi >= t1_price)    if is_long else (lo <= t1_price)
         hit_stop = (lo <= actual_stop) if is_long else (hi >= actual_stop)
-        hit_pb   = use_pb and ((lo <= pb_trigger) if is_long else (hi >= pb_trigger))
+        hit_pb   = use_pb and ((lo < pb_trigger) if is_long else (hi > pb_trigger))
 
         if hit_stop and (hit_t1 or hit_pb):
             same_bar_conflict = True
@@ -728,29 +748,30 @@ def _simulate_one_bars_multileg(
                 p1_exit_px = t1_price + (-exit_slip * ts if is_long else exit_slip * ts)
             else:
                 # Clean PB fill: E2 scales in
-                e2_entry      = pb_trigger + (entry_slip * ts if is_long else -entry_slip * ts)
+                e2_entry      = round(round((pb_trigger + (entry_slip * ts if is_long else -entry_slip * ts)) / ts) * ts, 10)
                 e2_fill_dt    = bar["DateTime"]
                 # Blended avg entry (tv1/tv2 are proportional to contract counts)
                 blended_entry = (actual_entry * tv1 + e2_entry * tv2) / tv_total
                 blended_risk  = abs(blended_entry - actual_stop)
-                t2_price      = blended_entry + (target_r * blended_risk if is_long else -target_r * blended_risk)
+                t2_price      = round(round((blended_entry + (target_r * blended_risk if is_long else -target_r * blended_risk)) / ts) * ts, 10)
                 p1_result     = "PB_filled"
                 p1_fill_pos   = pos
             break
 
     # ── Resolve Phase 1 outcome ───────────────────────────────────────────────
     if p1_result == "Stop":
-        return _build("Stop", p1_exit_px, p1_dt, "Stop", p1_exit_px, "Stop", p1_exit_px)
+        # E2 never filled — NoFill keeps _e2_filled=False so only E1 P&L counts
+        return _build("Stop", p1_exit_px, p1_dt, "Stop", p1_exit_px, "NoFill", actual_entry)
 
     if p1_result == "T1_only":
         # Leg 1 exits at T1; Leg 2 never entered → e2_entry still = actual_entry → l2_pts = 0
         return _build("T1_only", p1_exit_px, p1_dt, "T1", p1_exit_px, "NoFill", actual_entry)
 
     if p1_result == "Session":
-        # Reached EOD without T1, stop, or PB
+        # EOD before PB fills — E2 never entered
         last_bar   = next_bars.iloc[-1]
         eod_px     = float(last_bar["Close"]) + (-exit_slip * ts if is_long else exit_slip * ts)
-        return _build("EOD", eod_px, last_bar["DateTime"], "EOD", eod_px, "EOD", eod_px)
+        return _build("EOD", eod_px, last_bar["DateTime"], "EOD", eod_px, "NoFill", actual_entry)
 
     # ── Phase 2: E2 filled — combined position (Leg1+Leg2) targets T2 or stop ─
     # T2 = blended_entry + target_r * blended_risk (blended avg of E1+E2, original stop)
@@ -1279,7 +1300,7 @@ def _simulate_one_bars_3leg(
 
 _EMPTY_TRADE = {
     "Filled": False,
-    "SEPrice": np.nan, "FillPrice": np.nan,
+    "SBClose": np.nan, "SEPrice": np.nan, "FillPrice": np.nan,
     "EntryTime": pd.NaT, "EntryBarNum": np.nan,
     "EntryPrice": np.nan, "ActualStop": np.nan, "Target": np.nan, "Target1": np.nan,
     "RiskPts": np.nan, "RiskDollar": np.nan,
@@ -1301,7 +1322,8 @@ _EMPTY_TRADE = {
     "TradeType": "",   "BlendedEntry": np.nan,
     "PB1FillPrice": np.nan, "PB2FillPrice": np.nan,
     # 2-leg scale-in specific
-    "PBLevel": np.nan, "E2FillPrice": np.nan, "E2FillTime": pd.NaT,
+    "PBLevel": np.nan, "PBLevelRaw": np.nan, "E2FillPrice": np.nan, "E2FillTime": pd.NaT,
+    "BlendedEntry": np.nan, "T1_R": np.nan, "PB_R": np.nan,
     "SameBarConflict": False,
 }
 
@@ -1355,6 +1377,9 @@ def simulate_trades(
         base = sig.to_dict()
         base["TargetR"] = target_r
         base.update(_EMPTY_TRADE)
+        if multileg:
+            base["T1_R"] = t1_r
+            base["PB_R"] = ml_pb_r if ml_pb_r < 0 else np.nan
         base["FilterStatus"] = sig.get("FilterStatus", "ok")
 
         manual_fill = (overrides or {}).get(int(base.get("SignalNum", -1)))
@@ -1502,13 +1527,21 @@ def compute_summary(results: pd.DataFrame, commission: float,
         ["no_fill", "no_next_bar", "no_tick_data", "zero_risk"]).sum())
     n_trades   = len(filled)
 
-    _win_mask = (
+    _tgt_mask  = (
         filled["ExitReason"].str.contains("Target", na=False) |
         filled["ExitReason"].isin(["T1+BE", "T1_only"])
     )
-    wins   = filled[_win_mask]
-    stops  = filled[filled["ExitReason"].isin(["Stop", "E1E2+Stop"])]
-    sess   = filled[~_win_mask & (filled["ExitReason"] != "Stop")]
+    _stop_mask = filled["ExitReason"].isin(["Stop", "E1E2+Stop"])
+    _eod_mask  = ~_tgt_mask & ~_stop_mask          # EOD / Session exits
+
+    # EOD trades count as W or L based on NetPnL vs avg position price
+    _eod_w = _eod_mask & (filled["NetPnL"] > 0)
+    _eod_l = _eod_mask & (filled["NetPnL"] < 0)
+    _eod_b = _eod_mask & (filled["NetPnL"] == 0)   # exactly breakeven — rare
+
+    wins   = filled[_tgt_mask  | _eod_w]
+    stops  = filled[_stop_mask | _eod_l]
+    sess   = filled[_eod_b]                         # only true breakeven EOD
     n_wins = len(wins)
     n_stop = len(stops)
     n_sess = len(sess)
@@ -1533,12 +1566,35 @@ def compute_summary(results: pd.DataFrame, commission: float,
     max_dd       = float((equity - peak).min())
     trading_days = int(filled["Date"].nunique())
 
+    # R distribution
+    r_vals = filled["R_achieved"].dropna().values
+    r_std  = float(np.std(r_vals, ddof=1)) if len(r_vals) > 1 else 0.0
+
+    # SQN — Van Tharp, N capped at 100
+    n_sqn = min(n_trades, 100)
+    sqn   = float(exp_r / r_std * np.sqrt(n_sqn)) if r_std > 0 else 0.0
+
+    # Median win / loss (net)
+    median_win  = float(wins["NetPnL"].median())  if n_wins else 0.0
+    median_loss = float(stops["NetPnL"].median()) if n_stop else 0.0
+
+    # Bootstrap 95% CI on Exp R (2 000 resamples, fixed seed for reproducibility)
+    exp_r_ci_lo = exp_r_ci_hi = np.nan
+    if len(r_vals) >= 5:
+        rng  = np.random.default_rng(42)
+        boot = rng.choice(r_vals, size=(2000, len(r_vals)), replace=True).mean(axis=1)
+        exp_r_ci_lo = float(np.percentile(boot, 2.5))
+        exp_r_ci_hi = float(np.percentile(boot, 97.5))
+
     return dict(
         n_total=n_total, n_filtered=n_filtered, n_no_fill=n_no_fill,
         n_trades=n_trades, n_wins=n_wins, n_stop=n_stop, n_sess=n_sess,
         win_pct=win_pct, gross_total=gross_total, net_total=net_total,
         pf=pf, exp_dollar=exp_dollar, exp_r=exp_r,
         avg_win=avg_win, avg_loss=avg_loss, wl_ratio=wl_ratio,
+        median_win=median_win, median_loss=median_loss,
+        r_std=r_std, sqn=sqn,
+        exp_r_ci_lo=exp_r_ci_lo, exp_r_ci_hi=exp_r_ci_hi,
         avg_mae_pts=filled["MAE_pts"].mean(), avg_mfe_pts=filled["MFE_pts"].mean(),
         avg_mae_R=filled["MAE_R"].mean(),     avg_mfe_R=filled["MFE_R"].mean(),
         largest_win=wins["NetPnL"].max()    if n_wins else 0,
@@ -1546,6 +1602,8 @@ def compute_summary(results: pd.DataFrame, commission: float,
         commission_total=n_trades * commission * ((contracts_t1 + contracts_t2) if is_multileg else contracts),
         slippage_total=float(filled["SlippageDollar"].sum()) if "SlippageDollar" in filled.columns else 0.0,
         max_dd=max_dd, trading_days=trading_days,
+        max_risk_dollar=float(filled["RiskDollar"].max()) if "RiskDollar" in filled.columns else 0.0,
+        avg_risk_dollar=float(filled["RiskDollar"].mean()) if "RiskDollar" in filled.columns else 0.0,
     )
 
 
@@ -1965,6 +2023,7 @@ _STATUS_LABELS = {
     "ok":             "Filtered",    # shouldn't appear if not filled
     "date_range":     "Date range",
     "signal_type":    "Signal type",
+    "direction":      "Direction",
     "holiday":        "Holiday",
     "dow":            "Day of week",
     "first_bars":     "Open excl.",
@@ -2002,7 +2061,7 @@ def _show_signal_table(results: pd.DataFrame, key_suffix: str = ""):
     if "Core" in col_groups:
         cols += ["#", "Type", "Dir", "Date", "Sig Time", "Sig Bar", "Status"]
     if "Entry/Exit" in col_groups:
-        cols += ["SE Px", "Fill Px", "Entry Time", "Entry Bar", "Entry Px", "Stop", "Target",
+        cols += ["SB Close", "SE Px", "Bar Open", "Entry Time", "Entry Bar", "Entry Px", "Stop", "Target",
                  "Exit Time", "Exit Bar", "Exit Px", "Exit Type"]
     if "P&L" in col_groups:
         cols += ["Gross$", "Net$", "Cum PF"]
@@ -2011,7 +2070,8 @@ def _show_signal_table(results: pd.DataFrame, key_suffix: str = ""):
     if "MAE/MFE" in col_groups:
         cols += ["MAE pts", "MAE$", "MAE R", "MFE pts", "MFE$", "MFE R"]
     if "Multileg" in col_groups and _has_multileg:
-        cols += ["T1", "L1 Exit", "L1 Px", "L1 $", "L2 Exit", "L2 Px", "L2 $"]
+        cols += ["T1 R", "T2 R", "T1", "L1 Exit", "L1 Px", "L1 $",
+                 "PB R", "PB Exact", "PB Lvl", "E2 Fill", "E2 Time", "Blend", "L2 Exit", "L2 Px", "L2 $"]
 
     if not cols:
         st.info("Select at least one column group above.")
@@ -2049,8 +2109,9 @@ def _show_signal_table(results: pd.DataFrame, key_suffix: str = ""):
     disp["Status"]     = results.apply(
         lambda r: "✓ Filled" if r["Filled"] else fmt_status(r["FilterStatus"]), axis=1
     )
+    disp["SB Close"]   = results["SBClose"].apply(fmt_f) if "SBClose" in results.columns else "—"
     disp["SE Px"]      = results["SEPrice"].apply(fmt_f)
-    disp["Fill Px"]    = results["FillPrice"].apply(fmt_f)
+    disp["Bar Open"]   = results["FillPrice"].apply(fmt_f)
     disp["Entry Time"] = results["EntryTime"].apply(fmt_time)
     disp["Entry Bar"]  = results["EntryBarNum"].apply(lambda v: int(v) if pd.notna(v) else "—")
     disp["Entry Px"]   = results["EntryPrice"].apply(fmt_f)
@@ -2073,6 +2134,8 @@ def _show_signal_table(results: pd.DataFrame, key_suffix: str = ""):
     disp["MFE$"]       = results["MFE_dollar"].apply(lambda v: f"${v:.0f}" if pd.notna(v) else "—")
     disp["MFE R"]      = results["MFE_R"].apply(fmt_f)
     if _has_multileg:
+        disp["T1 R"]   = results["T1_R"].apply(lambda v: f"{v:.2f}R" if pd.notna(v) else "—")
+        disp["T2 R"]   = results["TargetR"].apply(lambda v: f"{v:.2f}R" if pd.notna(v) else "—")
         disp["T1"]     = results["Target1"].apply(fmt_f)
         disp["L1 Exit"]= results["Leg1ExitReason"].fillna("—")
         disp["L1 Px"]  = results["Leg1ExitPrice"].apply(fmt_f)
@@ -2081,11 +2144,14 @@ def _show_signal_table(results: pd.DataFrame, key_suffix: str = ""):
         disp["L2 Px"]  = results["Leg2ExitPrice"].apply(fmt_f)
         disp["L2 $"]   = results["Leg2GrossPnL"].apply(lambda v: f"{v:+.0f}" if pd.notna(v) else "—")
         if "PBLevel" in results.columns:
-            disp["PB Lvl"] = results["PBLevel"].apply(fmt_f)
+            disp["PB R"]     = results["PB_R"].apply(lambda v: f"{v:.2f}R" if pd.notna(v) else "—")
+            disp["PB Lvl"]   = results["PBLevel"].apply(fmt_f)
+            disp["PB Exact"] = results["PBLevelRaw"].apply(lambda v: f"{v:.4f}" if pd.notna(v) else "—")
             disp["E2 Fill"]= results["E2FillPrice"].apply(fmt_f)
             disp["E2 Time"]= results["E2FillTime"].apply(
                 lambda t: pd.Timestamp(t).strftime("%H:%M") if pd.notna(t) else "—"
             )
+            disp["Blend"]  = results["BlendedEntry"].apply(fmt_f)
 
     # Filter to selected column groups
     visible = [c for c in cols if c in disp.columns]
@@ -2098,6 +2164,25 @@ def _show_signal_table(results: pd.DataFrame, key_suffix: str = ""):
 
 # ── Optimal R sweep ───────────────────────────────────────────────────────────
 
+def _apply_day_trade_filters(
+    results: pd.DataFrame,
+    first_trade_only: bool,
+    first_2_filled_only: bool,
+) -> pd.DataFrame:
+    """Apply post-simulation per-day trade count filters (mirrors main sim path)."""
+    if results.empty:
+        return results
+    if first_trade_only:
+        _fm = results["Filled"] == True
+        _keep = results[_fm].sort_values(["Date", "SignalNum"]).groupby("Date").head(1).index
+        results = results.drop(results[_fm & ~results.index.isin(_keep)].index).reset_index(drop=True)
+    if first_2_filled_only and not results.empty:
+        _fm = results["Filled"] == True
+        _keep = results[_fm].sort_values(["Date", "SignalNum"]).groupby("Date").head(2).index
+        results = results.drop(results[_fm & ~results.index.isin(_keep)].index).reset_index(drop=True)
+    return results
+
+
 def _run_r_sweep(
     signals: pd.DataFrame, ticks_by_date: dict,
     entry_slip: float, exit_slip: float, stop_offset: int,
@@ -2106,6 +2191,7 @@ def _run_r_sweep(
     multileg: bool = False, t1_r: float = 1.0,
     t1_action: str = "exit", contracts_t1: int = 1, contracts_t2: int = 1,
     max_r: float = 5.0,
+    first_trade_only: bool = False, first_2_filled_only: bool = False,
 ) -> pd.DataFrame:
     _n_steps = max(1, round(max_r / 0.25))
     r_values = [round(r * 0.25, 2) for r in range(2, _n_steps + 1)]  # 0.50 – max_r
@@ -2118,6 +2204,7 @@ def _run_r_sweep(
                                multileg=multileg, t1_r=t1_r,
                                t1_action=t1_action, contracts_t1=contracts_t1,
                                contracts_t2=contracts_t2)
+        res = _apply_day_trade_filters(res, first_trade_only, first_2_filled_only)
         s = compute_summary(res, commission, contracts=contracts, is_multileg=multileg,
                             t1_action=t1_action, contracts_t1=contracts_t1, contracts_t2=contracts_t2)
         if not s or s["n_trades"] == 0:
@@ -2142,6 +2229,7 @@ def _run_t1t2_sweep(
     bars_by_date: dict | None = None,
     t1_action: str = "exit", contracts_t1: int = 1, contracts_t2: int = 1,
     max_t1: float = 3.0, max_t2: float = 5.0,
+    first_trade_only: bool = False, first_2_filled_only: bool = False,
 ) -> pd.DataFrame:
     """Grid sweep over all valid (T1, T2) pairs for 2-leg / BE-stop mode."""
     _n_t1 = max(1, round(max_t1 / 0.25))
@@ -2162,6 +2250,7 @@ def _run_t1t2_sweep(
                 t1_action=t1_action,
                 contracts_t1=contracts_t1, contracts_t2=contracts_t2,
             )
+            res = _apply_day_trade_filters(res, first_trade_only, first_2_filled_only)
             s = compute_summary(
                 res, commission, contracts=contracts, is_multileg=True,
                 t1_action=t1_action, contracts_t1=contracts_t1, contracts_t2=contracts_t2,
@@ -2191,12 +2280,13 @@ def _run_ml_scalein_sweep(
     pb_vals: list | None = None,
     t1_vals: list | None = None,
     t2_vals: list | None = None,
+    first_trade_only: bool = False, first_2_filled_only: bool = False,
 ) -> pd.DataFrame:
     """Sweep PB_R × T1_R × T2_R for 2-leg scale-in mode."""
     if pb_vals is None:
         pb_vals = [-0.25, -0.33, -0.50, -0.66, -0.75, -1.0, -1.25, -1.50]
     if t1_vals is None:
-        t1_vals = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
+        t1_vals = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
     if t2_vals is None:
         t2_vals = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0]
     rows = []
@@ -2212,6 +2302,7 @@ def _run_ml_scalein_sweep(
                     contracts_t1=contracts_t1, contracts_t2=contracts_t2,
                     ml_pb_r=pb, ml_pb_ticks=0,
                 )
+                res = _apply_day_trade_filters(res, first_trade_only, first_2_filled_only)
                 s = compute_summary(
                     res, commission, contracts=contracts, is_multileg=True,
                     t1_action="exit", contracts_t1=contracts_t1, contracts_t2=contracts_t2,
@@ -2219,10 +2310,16 @@ def _run_ml_scalein_sweep(
                 if not s or s["n_trades"] == 0:
                     continue
                 _dd_abs = abs(s["max_dd"]) if s["max_dd"] != 0 else None
+                _filled = res[res["Filled"] == True]
+                _n_f    = len(_filled)
+                _t1_pct = round(_filled["ExitReason"].eq("T1_only").sum() / _n_f * 100, 1) if _n_f else 0.0
+                _t2_pct = round(_filled["ExitReason"].str.contains("Target", na=False).sum() / _n_f * 100, 1) if _n_f else 0.0
                 rows.append({
                     "PB_R":    pb,
                     "T1_R":    t1,
                     "T2_R":    t2,
+                    "T1 %":    _t1_pct,
+                    "T2 %":    _t2_pct,
                     "Win %":   round(s["win_pct"], 1),
                     "PF":      round(s["pf"], 2) if s["pf"] < 99 else 99.9,
                     "Net PnL": round(s["net_total"], 0),
@@ -2244,6 +2341,7 @@ def _run_pb_sweep(
     ratchet_r: float, ratchet_dest: str, ratchet_lock_r: float,
     bars_by_date: dict | None = None,
     max_pb1: float = 1.5, max_pb2: float = 2.0,
+    first_trade_only: bool = False, first_2_filled_only: bool = False,
 ) -> pd.DataFrame:
     """Grid sweep over PB1_R × PB2_R for 3-leg mode (tick offsets and targets held fixed)."""
     _step = 0.25
@@ -2265,6 +2363,7 @@ def _run_pb_sweep(
                 pb2_r=pb2, pb2_ticks=pb2_ticks,
                 ratchet_r=0.0,
             )
+            res = _apply_day_trade_filters(res, first_trade_only, first_2_filled_only)
             total_c = e1c + e2c + e3c
             s = compute_summary(res, commission, contracts=total_c,
                                 is_multileg=False)
@@ -2294,6 +2393,7 @@ def _run_t1t2_sweep_3leg(
     pb2_r: float, pb2_ticks: int,
     bars_by_date: dict | None = None,
     max_t1: float = 3.0, max_t3: float = 5.0,
+    first_trade_only: bool = False, first_2_filled_only: bool = False,
 ) -> pd.DataFrame:
     """Sweep T1 (E1 target) × T3 (E3 target) with T2 (E2 target) held fixed."""
     _step   = 0.25
@@ -2315,6 +2415,7 @@ def _run_t1t2_sweep_3leg(
                 pb2_r=pb2_r, pb2_ticks=pb2_ticks,
                 ratchet_r=0.0,
             )
+            res = _apply_day_trade_filters(res, first_trade_only, first_2_filled_only)
             total_c = e1c + e2c + e3c
             s = compute_summary(res, commission, contracts=total_c, is_multileg=False)
             if not s or s["n_trades"] == 0:
@@ -2356,6 +2457,7 @@ def _run_stop_mult_sweep(
     target_r: float, bars_by_date: dict | None = None,
     multileg: bool = False, t1_r: float = 1.0,
     t1_action: str = "exit", contracts_t1: int = 1, contracts_t2: int = 1,
+    first_trade_only: bool = False, first_2_filled_only: bool = False,
 ) -> pd.DataFrame:
     """Sweep stop multipliers [0.25 … 1.00] at the current target R."""
     rows = []
@@ -2368,6 +2470,7 @@ def _run_stop_mult_sweep(
                                multileg=multileg, t1_r=t1_r,
                                t1_action=t1_action,
                                contracts_t1=contracts_t1, contracts_t2=contracts_t2)
+        res = _apply_day_trade_filters(res, first_trade_only, first_2_filled_only)
         s = compute_summary(res, commission, contracts=contracts, is_multileg=multileg,
                             t1_action=t1_action,
                             contracts_t1=contracts_t1, contracts_t2=contracts_t2)
@@ -2389,7 +2492,8 @@ def _run_stop_mult_sweep(
 def _show_stop_sweep(signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
                      tick_value, contracts, commission, target_r, bars_by_date=None,
                      multileg: bool = False, t1_r: float = 1.0,
-                     t1_action: str = "exit", contracts_t1: int = 1, contracts_t2: int = 1):
+                     t1_action: str = "exit", contracts_t1: int = 1, contracts_t2: int = 1,
+                     first_trade_only: bool = False, first_2_filled_only: bool = False):
     _METRIC_COLS = ["Win %", "PF", "Net PnL", "DD $", "PnL/DD", "Exp $"]
     _THRESHOLDS  = {"PF": 1.0, "Net PnL": 0, "PnL/DD": 0, "Exp $": 0}
     with st.expander("🔍 Stop Multiplier Sweep", expanded=False):
@@ -2405,6 +2509,7 @@ def _show_stop_sweep(signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
                     tick_value, contracts, commission, target_r,
                     bars_by_date=bars_by_date, multileg=multileg, t1_r=t1_r,
                     t1_action=t1_action, contracts_t1=contracts_t1, contracts_t2=contracts_t2,
+                    first_trade_only=first_trade_only, first_2_filled_only=first_2_filled_only,
                 )
             if stop_df.empty:
                 st.warning("No results.")
@@ -2476,7 +2581,8 @@ def _show_optimal_r(signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
                     e1c: int = 1, e2c: int = 1, e3c: int = 1,
                     pb1_ticks: int = 0, pb2_ticks: int = 0,
                     t2_r: float = 0.0,
-                    ratchet_r: float = 0.0, ratchet_dest: str = "BE", ratchet_lock_r: float = 0.0):
+                    ratchet_r: float = 0.0, ratchet_dest: str = "BE", ratchet_lock_r: float = 0.0,
+                    first_trade_only: bool = False, first_2_filled_only: bool = False):
 
     _METRIC_COLS  = ["Win %", "PF", "Net PnL", "DD $", "PnL/DD", "Exp $"]
     _THRESHOLDS   = {"PF": 1.0, "Net PnL": 0, "PnL/DD": 0, "Exp $": 0}
@@ -2519,6 +2625,7 @@ def _show_optimal_r(signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
                         ratchet_r=0.0, ratchet_dest="BE", ratchet_lock_r=0.0,
                         bars_by_date=bars_by_date,
                         max_pb1=_max_pb1, max_pb2=_max_pb2,
+                        first_trade_only=first_trade_only, first_2_filled_only=first_2_filled_only,
                     )
                 if _pb_df.empty:
                     st.warning("No results.")
@@ -2597,6 +2704,7 @@ def _show_optimal_r(signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
                         pb2_r=_pb2_cur, pb2_ticks=pb2_ticks,
                         bars_by_date=bars_by_date,
                         max_t1=_max_t1_3l, max_t3=_max_t3_3l,
+                        first_trade_only=first_trade_only, first_2_filled_only=first_2_filled_only,
                     )
                 if _t1t2_3l_df.empty:
                     st.warning("No results.")
@@ -2662,6 +2770,7 @@ def _show_optimal_r(signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
                         bars_by_date=bars_by_date, t1_action=t1_action,
                         contracts_t1=contracts_t1, contracts_t2=contracts_t2,
                         max_t1=_max_t1, max_t2=_max_t2,
+                        first_trade_only=first_trade_only, first_2_filled_only=first_2_filled_only,
                     )
                 if _t1t2_df.empty:
                     st.warning("No results.")
@@ -2669,58 +2778,56 @@ def _show_optimal_r(signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
                 st.session_state["ba_t1t2_df"] = _t1t2_df
 
             sweep_df = st.session_state.get("ba_t1t2_df")
-            if sweep_df is None or sweep_df.empty:
-                return
+            if sweep_df is not None and not sweep_df.empty:
+                _metric_opts = ["Net PnL", "PF", "Win %", "PnL/DD", "Exp $"]
+                _metric = st.selectbox(
+                    "Color heatmap by", _metric_opts,
+                    key="ba_t1t2_metric",
+                )
 
-            _metric_opts = ["Net PnL", "PF", "Win %", "PnL/DD", "Exp $"]
-            _metric = st.selectbox(
-                "Color heatmap by", _metric_opts,
-                key="ba_t1t2_metric",
-            )
+                # ── Heatmap ───────────────────────────────────────────────────
+                _pivot = sweep_df.pivot(index="T1", columns="T2", values=_metric)
+                _t1_labels = [f"{v:.2f}" for v in _pivot.index]
+                _t2_labels = [f"{v:.2f}" for v in _pivot.columns]
 
-            # ── Heatmap ───────────────────────────────────────────────────────
-            _pivot = sweep_df.pivot(index="T1", columns="T2", values=_metric)
-            _t1_labels = [f"{v:.2f}" for v in _pivot.index]
-            _t2_labels = [f"{v:.2f}" for v in _pivot.columns]
+                _hover = "T1: %{y}<br>T2: %{x}<br>" + _metric + ": %{z}<extra></extra>"
+                _hfig = go.Figure(go.Heatmap(
+                    x=_t2_labels, y=_t1_labels,
+                    z=_pivot.values.tolist(),
+                    colorscale="RdYlGn",
+                    hovertemplate=_hover,
+                    colorbar=dict(title=_metric, thickness=14),
+                ))
+                _hfig.update_layout(
+                    xaxis_title="T2 (R)", yaxis_title="T1 (R)",
+                    height=420, template="plotly_white",
+                    margin=dict(l=60, r=20, t=30, b=60),
+                )
+                st.plotly_chart(_hfig, use_container_width=True)
 
-            _hover = "T1: %{y}<br>T2: %{x}<br>" + _metric + ": %{z}<extra></extra>"
-            _hfig = go.Figure(go.Heatmap(
-                x=_t2_labels, y=_t1_labels,
-                z=_pivot.values.tolist(),
-                colorscale="RdYlGn",
-                hovertemplate=_hover,
-                colorbar=dict(title=_metric, thickness=14),
-            ))
-            _hfig.update_layout(
-                xaxis_title="T2 (R)", yaxis_title="T1 (R)",
-                height=420, template="plotly_white",
-                margin=dict(l=60, r=20, t=30, b=60),
-            )
-            st.plotly_chart(_hfig, use_container_width=True)
+                # ── Ranked table ──────────────────────────────────────────────
+                st.caption(f"Top 20 combinations by **{_metric}**")
+                _ranked = sweep_df.sort_values(_metric, ascending=False).head(20).reset_index(drop=True)
+                _ranked.index = _ranked.index + 1
 
-            # ── Ranked table — best-per-column in heatmap green ───────────────
-            st.caption(f"Top 20 combinations by **{_metric}**")
-            _ranked = sweep_df.sort_values(_metric, ascending=False).head(20).reset_index(drop=True)
-            _ranked.index = _ranked.index + 1
-
-            _fmt = {"T1": "{:.2f}", "T2": "{:.2f}", "Win %": "{:.1f}",
-                    "PF": "{:.2f}", "PnL/DD": "{:.2f}",
-                    "Net PnL": "${:.0f}", "DD $": "${:.0f}", "Exp $": "${:.0f}"}
-            _styled = _apply_best_green(
-                _ranked, _ranked.style.format(_fmt), _METRIC_COLS, _THRESHOLDS
-            )
-            def _hl_rank1_t1t2(s):
-                return [f"background-color: {_SWEEP_GREEN}; color: white; font-weight: bold"
-                        if i == s.index[0] else "" for i in s.index]
-            for _tc in ("T1", "T2"):
-                if _tc in _ranked.columns:
-                    _styled = _styled.apply(_hl_rank1_t1t2, subset=[_tc])
-            st.dataframe(_styled, use_container_width=True)
+                _fmt = {"T1": "{:.2f}", "T2": "{:.2f}", "Win %": "{:.1f}",
+                        "PF": "{:.2f}", "PnL/DD": "{:.2f}",
+                        "Net PnL": "${:.0f}", "DD $": "${:.0f}", "Exp $": "${:.0f}"}
+                _styled = _apply_best_green(
+                    _ranked, _ranked.style.format(_fmt), _METRIC_COLS, _THRESHOLDS
+                )
+                def _hl_rank1_t1t2(s):
+                    return [f"background-color: {_SWEEP_GREEN}; color: white; font-weight: bold"
+                            if i == s.index[0] else "" for i in s.index]
+                for _tc in ("T1", "T2"):
+                    if _tc in _ranked.columns:
+                        _styled = _styled.apply(_hl_rank1_t1t2, subset=[_tc])
+                st.dataframe(_styled, use_container_width=True)
 
         # ── Scale-In sweep: PB × T1 × T2 ─────────────────────────────────────
         with st.expander("🔍 Scale-In Sweep (PB × T1 × T2)", expanded=False):
             _all_pb = [-0.25, -0.33, -0.50, -0.66, -0.75, -1.0, -1.25, -1.50]
-            _all_t1 = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
+            _all_t1 = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
             _all_t2 = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0]
             _pb_lbl = [f"{v:.2f}R" for v in _all_pb]
             _t1_lbl = [f"{v:.2f}R" for v in _all_t1]
@@ -2751,16 +2858,57 @@ def _show_optimal_r(signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
             _sweep_t1 = _all_t1[min(_t1_from_i, _t1_to_i) : max(_t1_from_i, _t1_to_i) + 1]
             _sweep_t2 = _all_t2[min(_t2_from_i, _t2_to_i) : max(_t2_from_i, _t2_to_i) + 1]
             _si_n = len(_sweep_pb) * len(_sweep_t1) * len(_sweep_t2)
-            st.caption(f"PB: {len(_sweep_pb)} values · T1: {len(_sweep_t1)} values · T2: {len(_sweep_t2)} values — **{_si_n} combinations**")
+            st.caption(f"PB: {len(_sweep_pb)} values · T1: {len(_sweep_t1)} values · T2: {len(_sweep_t2)} values — **{_si_n} combinations** (T1 auto-capped at run time — see below)")
+
+            with st.expander("ℹ️ How the T1 ceiling works", expanded=False):
+                st.markdown("""
+**Problem:** If T1 is set very high (e.g. 9R or 10R), it can never be reached before
+the pullback fills — so the T1-only exit path disappears entirely. The sweep would
+label those rows as "optimal" simply because they are equivalent to having no T1 at
+all (every trade becomes a scale-in attempt). That is a degenerate result, not a
+genuine optimum.
+
+**Solution — data-driven T1 ceiling:**
+When you click *Run Scale-In Sweep*, the app first runs a single-leg simulation with
+a target of 999R (effectively infinite) so that the trade stays open until the stop
+or end-of-day. This gives the **unconstrained MFE** (Maximum Favorable Excursion)
+for every signal — i.e. how far price actually ran from entry before stopping out or
+hitting EOD, with no artificial T1 cap.
+
+The **95th percentile** of that MFE distribution (in R units) becomes the T1 ceiling.
+Any T1 value above that ceiling would produce a T1-only exit rate of ~0 % across
+all signals — meaning the T1 parameter has no effect and the sweep result is
+meaningless for those rows.
+
+T1 values above the ceiling are removed from the sweep before it runs.
+The ceiling is shown next to the results table after each run.
+""")
 
             if st.button("Run Scale-In Sweep", key="ba_run_si_sweep"):
-                with st.spinner(f"Running scale-in sweep ({_si_n} combinations)…"):
+                # ── Compute data-driven T1 ceiling before sweeping ──────────────
+                # Run a single-leg sim with target=999R so T1 is never constrained;
+                # 95th pct of MFE_R gives the highest T1 that could ever trigger.
+                with st.spinner("Computing T1 ceiling from data…"):
+                    _bl_res  = simulate_trades(
+                        signals, ticks_by_date, 999.0,
+                        entry_slip, exit_slip, stop_offset,
+                        tick_value, contracts_t1, commission,
+                        bars_by_date=bars_by_date, multileg=False,
+                    )
+                    _bl_res  = _apply_day_trade_filters(_bl_res, first_trade_only, first_2_filled_only)
+                    _mfe_ser = _bl_res[_bl_res["Filled"] == True]["MFE_R"]
+                    _t1_cap  = float(round(_mfe_ser.quantile(0.95) * 4) / 4) if not _mfe_ser.empty else 10.0
+                    st.session_state["ba_si_t1_cap"] = _t1_cap
+                _sweep_t1_capped = [v for v in _sweep_t1 if v <= _t1_cap] or [_sweep_t1[0]]
+                _si_n_actual = len(_sweep_pb) * len(_sweep_t1_capped) * len(_sweep_t2)
+                with st.spinner(f"Running scale-in sweep ({_si_n_actual} combinations, T1 ≤ {_t1_cap:.2f}R)…"):
                     _si_df = _run_ml_scalein_sweep(
                         signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
                         tick_value, contracts, commission,
                         contracts_t1=contracts_t1, contracts_t2=contracts_t2,
                         bars_by_date=bars_by_date,
-                        pb_vals=_sweep_pb, t1_vals=_sweep_t1, t2_vals=_sweep_t2,
+                        pb_vals=_sweep_pb, t1_vals=_sweep_t1_capped, t2_vals=_sweep_t2,
+                        first_trade_only=first_trade_only, first_2_filled_only=first_2_filled_only,
                     )
                 if _si_df.empty:
                     st.warning("No scale-in results.")
@@ -2803,10 +2951,20 @@ def _show_optimal_r(signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
                     )
                     st.plotly_chart(_si_fig, use_container_width=True)
 
+                _t1_cap_shown = st.session_state.get("ba_si_t1_cap")
+                if _t1_cap_shown:
+                    st.info(
+                        f"**T1 ceiling applied: {_t1_cap_shown:.2f}R** — "
+                        f"computed as the 95th percentile of unconstrained MFE across all filled signals "
+                        f"(single-leg sim, target = 999R). "
+                        f"T1 values above {_t1_cap_shown:.2f}R would produce a ~0% T1-only rate and were excluded from the sweep.",
+                        icon="📐",
+                    )
                 st.caption(f"Top 20 combinations (all T1) by **{_si_metric}**")
                 _si_ranked = _si_res.sort_values(_si_metric, ascending=False).head(20).reset_index(drop=True)
                 _si_ranked.index = _si_ranked.index + 1
-                _si_fmt = {"PB_R": "{:.2f}", "T1_R": "{:.2f}", "T2_R": "{:.2f}", "Win %": "{:.1f}",
+                _si_fmt = {"PB_R": "{:.2f}", "T1_R": "{:.2f}", "T2_R": "{:.2f}",
+                           "T1 %": "{:.1f}", "T2 %": "{:.1f}", "Win %": "{:.1f}",
                            "PF": "{:.2f}", "PnL/DD": "{:.2f}",
                            "Net PnL": "${:.0f}", "DD $": "${:.0f}", "Exp $": "${:.0f}"}
                 _si_styled = _apply_best_green(
@@ -2840,6 +2998,7 @@ def _show_optimal_r(signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
                         multileg=False, t1_r=t1_r, t1_action=t1_action,
                         contracts_t1=contracts_t1, contracts_t2=contracts_t2,
                         max_r=_max_r,
+                        first_trade_only=first_trade_only, first_2_filled_only=first_2_filled_only,
                     )
                 if sweep_df.empty:
                     st.warning("No results.")
@@ -2886,13 +3045,23 @@ _FILTER_LABELS = {
     "event":          "Economic event window",
     "first_bars":     "Within excluded opening bars",
     "last_bars":      "Within excluded closing window",
-    "signal_type":    "Signal type excluded (CC3/CC4)",
+    "signal_type":    "Signal type excluded",
+    "direction":      "Direction excluded",
     "date_range":     "Outside selected date range",
     "first_trade_day":"Non-first trade of day",
     "manual_override":"Manual fill override ✓",
 }
 
 _EXECUTION_STATUSES = {"no_fill", "no_next_bar", "no_tick_data", "zero_risk"}
+
+
+def _on_first_trade_change():
+    if st.session_state.get("ba_first_trade"):
+        st.session_state["ba_first_2_filled"] = False
+
+def _on_first_2_change():
+    if st.session_state.get("ba_first_2_filled"):
+        st.session_state["ba_first_trade"] = False
 
 
 def _missed_by_ticks(sig_row, ticks_by_date: dict):
@@ -3126,7 +3295,7 @@ def _show_unfilled_table(results: pd.DataFrame, ticks_by_date: dict):
             fill_px   = ov_cols[1].number_input("Fill Price", value=float(sel_sig["SignalPrice"]),
                                                  step=0.25, format="%.2f", key="ov_fill_px",
                                                  label_visibility="collapsed")
-            fill_bar  = ov_cols[2].number_input("Entry Bar #", value=int(sel_sig["BarNum"]) + 1,
+            fill_bar  = ov_cols[2].number_input("Entry Bar #", value=min(int(sel_sig["BarNum"]) + 1, 81),
                                                  min_value=1, max_value=81, step=1,
                                                  key="ov_fill_bar", label_visibility="collapsed")
             if ov_cols[3].button("Add", use_container_width=True):
@@ -3354,6 +3523,14 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         for d, grp in bars.groupby(bars["DateTime"].dt.date)
     }
 
+    # Expose to Portfolio tab via session state
+    st.session_state["pf_ticks_by_date"] = ticks_by_date
+    st.session_state["pf_bars_by_date"]  = bars_by_date_sim
+
+    # Attach signal-bar close to each signal (bar open time matches signal DateTime)
+    _sb_close_map = bars.set_index("DateTime")["Close"]
+    signals_raw["SBClose"] = signals_raw["DateTime"].map(_sb_close_map)
+
     bars["Date"] = bars["DateTime"].dt.date
     bar_dates    = sorted(bars["Date"].unique())
     sig_min      = signals_raw["Date"].min()
@@ -3436,13 +3613,29 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
 
     # ── Signals ───────────────────────────────────────────────────────────────
     with st.expander("📶 Signals", expanded=False):
-        _sc1, _sc2, _sc3, _sc4 = st.columns([1, 1, 2, 4])
-        incl_cc3 = _sc1.checkbox("CC3", key="ba_incl_cc3",
-                                  value=st.session_state.get("ba_incl_cc3", True))
-        incl_cc4 = _sc2.checkbox("CC4", key="ba_incl_cc4",
-                                  value=st.session_state.get("ba_incl_cc4", True))
-        first_trade_only = _sc3.checkbox("First trade of day only", key="ba_first_trade",
-                                          value=st.session_state.get("ba_first_trade", False))
+        _cc_cols = st.columns(5)
+        incl_cc1 = _cc_cols[0].checkbox("CC1", key="ba_incl_cc1",
+                                         value=st.session_state.get("ba_incl_cc1", True))
+        incl_cc2 = _cc_cols[1].checkbox("CC2", key="ba_incl_cc2",
+                                         value=st.session_state.get("ba_incl_cc2", True))
+        incl_cc3 = _cc_cols[2].checkbox("CC3", key="ba_incl_cc3",
+                                         value=st.session_state.get("ba_incl_cc3", True))
+        incl_cc4 = _cc_cols[3].checkbox("CC4", key="ba_incl_cc4",
+                                         value=st.session_state.get("ba_incl_cc4", True))
+        incl_cc5 = _cc_cols[4].checkbox("CC5", key="ba_incl_cc5",
+                                         value=st.session_state.get("ba_incl_cc5", True))
+        _sf_cols = st.columns([2, 2, 3])
+        first_trade_only = _sf_cols[0].checkbox("First trade of day only", key="ba_first_trade",
+                                                 value=st.session_state.get("ba_first_trade", False),
+                                                 on_change=_on_first_trade_change)
+        first_2_filled_only = _sf_cols[1].checkbox("First 2 of day", key="ba_first_2_filled",
+                                                    value=st.session_state.get("ba_first_2_filled", False),
+                                                    on_change=_on_first_2_change)
+        _dir_opts = ["Both", "Long", "Short"]
+        direction_filter = _sf_cols[2].radio(
+            "Direction", _dir_opts, horizontal=True, key="ba_direction_filter",
+            index=_dir_opts.index(st.session_state.get("ba_direction_filter", "Both")),
+        )
 
     # ── Trading Parameters expander ───────────────────────────────────────────
     with st.expander("⚙️ Trading Parameters", expanded=False):
@@ -3542,7 +3735,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                     key="ba_instrument_ml",
                     format_func=lambda k: INSTRUMENTS[k]["label"],
                 )
-                _r_opts  = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0]
+                _r_opts  = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
                 _r_lbls  = [f"{v:.2f}R" for v in _r_opts]
 
                 st.caption("**Leg 1 (E1)**")
@@ -3867,8 +4060,11 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         st.divider()
         if st.button("💾 Save as Default", key="ba_save_defaults"):
             _save_ba_defaults({
-                "ba_incl_cc3": incl_cc3, "ba_incl_cc4": incl_cc4,
+                "ba_incl_cc1": incl_cc1, "ba_incl_cc2": incl_cc2,
+                "ba_incl_cc3": incl_cc3, "ba_incl_cc4": incl_cc4, "ba_incl_cc5": incl_cc5,
                 "ba_first_trade": first_trade_only,
+                "ba_first_2_filled": first_2_filled_only,
+                "ba_direction_filter": direction_filter,
                 "ba_excl_holidays": excl_holidays,
                 "ba_mon": incl_mon, "ba_tue": incl_tue, "ba_wed": incl_wed,
                 "ba_thu": incl_thu, "ba_fri": incl_fri,
@@ -3934,7 +4130,8 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         [incl_mon, incl_tue, incl_wed, incl_thu, incl_fri],
         excl_first_n, excl_last_min,
         event_types, event_filter_mode, event_window,
-        incl_cc3, incl_cc4, first_trade_only,
+        incl_cc1, incl_cc2, incl_cc3, incl_cc4, incl_cc5,
+        direction_filter,
     )
 
     results = simulate_trades(
@@ -3954,9 +4151,21 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         t2_r=t2_r_val,
     )
 
-    # When first_trade_only is active, drop non-first-trade signals from all display/metrics
-    if first_trade_only:
-        results = results[results["FilterStatus"] != "first_trade_day"].reset_index(drop=True)
+    # First trade of day — only the first *filled* trade per day counts
+    if first_trade_only and not results.empty:
+        _filled_mask = results["Filled"] == True
+        _filled_sorted = results[_filled_mask].sort_values(["Date", "SignalNum"])
+        _keep_idx = _filled_sorted.groupby("Date").head(1).index
+        _beyond_idx = results[_filled_mask & ~results.index.isin(_keep_idx)].index
+        results = results.drop(_beyond_idx).reset_index(drop=True)
+
+    # First 2 of day — only the first 2 *filled* trades per day count
+    if first_2_filled_only and not results.empty:
+        _filled_mask = results["Filled"] == True
+        _filled_sorted = results[_filled_mask].sort_values(["Date", "SignalNum"])
+        _keep_idx = _filled_sorted.groupby("Date").head(2).index
+        _beyond_idx = results[_filled_mask & ~results.index.isin(_keep_idx)].index
+        results = results.drop(_beyond_idx).reset_index(drop=True)
 
     _summary_contracts = e1c_3l + e2c_3l + e3c_3l if use_threeleg else contracts
     summary = compute_summary(results, commission,
@@ -3965,55 +4174,295 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                               t1_action=t1_action,
                               contracts_t1=contracts_t1, contracts_t2=contracts_t2)
 
-    # ── Summary strip ─────────────────────────────────────────────────────────
-    with st.expander("📋 Summary", expanded=True):
+    # ── Summary — pre-compute shared derived values ───────────────────────────
+    if summary:
+        _pf_str    = f"{summary['pf']:.2f}" if summary['pf'] < 99 else "∞"
+        _wl_str    = f"{summary['wl_ratio']:.2f}" if summary['wl_ratio'] < 99 else "∞"
+        _slip_usd  = summary.get("slippage_total", 0.0)
+        if use_multileg:
+            _slip_tks = int(round(_slip_usd / tick_value)) if tick_value > 0 else 0
+        else:
+            _slip_tks = int((entry_slip + exit_slip) * summary["n_trades"] * contracts)
+        _slip_str      = f"{_slip_tks} tks  /  ${_slip_usd:.0f}"
+        # Actual commission = gross − net (slippage already embedded in gross prices)
+        _actual_comm   = summary["gross_total"] - summary["net_total"]
+        _total_cost    = _slip_usd + _actual_comm
+        _dd_abs        = abs(summary["max_dd"]) if summary["max_dd"] != 0 else None
+        _pnl_dd        = summary["net_total"] / _dd_abs if _dd_abs else None
+        _ci_lo         = summary.get("exp_r_ci_lo", np.nan)
+        _ci_hi         = summary.get("exp_r_ci_hi", np.nan)
+        _ci_known      = not (np.isnan(_ci_lo) or np.isnan(_ci_hi))
+        _exp_r_help    = (f"95 % CI  [{_ci_lo:+.2f}, {_ci_hi:+.2f}]") if _ci_known else None
+
+    # ── PDF export ───────────────────────────────────────────────────────────
+    st.markdown("""
+<style>
+@media print {
+    header[data-testid="stHeader"],[data-testid="stToolbar"],[data-testid="stDecoration"],
+    [data-testid="stSidebar"],[data-testid="stStatusWidget"],footer,.stButton,
+    [data-testid="stFileUploadDropzone"] { display: none !important; }
+    details[data-testid="stExpander"] { display: block !important; }
+    details[data-testid="stExpander"] > div,
+    details[data-testid="stExpander"] > section { display: block !important; }
+    .block-container { max-width: 100% !important; padding: 0.5rem !important; }
+    .js-plotly-plot, .plotly, .plot-container { height: 580px !important; min-height: 580px !important; }
+    .js-plotly-plot .svg-container { height: 580px !important; }
+    @page { size: landscape; margin: 1.2cm; }
+}
+</style>""", unsafe_allow_html=True)
+    _pdf_col = st.columns([10, 2])[1]
+    if _pdf_col.button("📄 Export PDF", key="ba_pdf_btn", use_container_width=True,
+                       help="Opens browser print dialog — choose 'Save as PDF', check Downloads."):
+        import streamlit.components.v1 as _cmp
+        _pn = st.session_state.get("_ba_pdf_n", 0) + 1
+        st.session_state["_ba_pdf_n"] = _pn
+        _cmp.html(
+            f"""<script>
+(function(){{
+    var w = window.parent;
+    // Print the page exactly as it currently looks — no expander changes.
+    // The Daily Chart (already expanded) gets relayout to ~full page height.
+    var _plot = null;
+    var _orig = 520;
+    function findChart() {{
+        var found = null;
+        w.document.querySelectorAll('details').forEach(function(d) {{
+            if (!d.open) return;
+            var s = d.querySelector('summary');
+            if (s && s.textContent.indexOf('Daily Chart') >= 0) {{
+                found = d.querySelector('.js-plotly-plot');
+            }}
+        }});
+        return found;
+    }}
+    function bp() {{ _plot = findChart(); if (_plot && w.Plotly) {{ _orig = _plot.clientHeight || 520; w.Plotly.relayout(_plot, {{height: 680}}); }} }}
+    function ap() {{ if (_plot && w.Plotly) w.Plotly.relayout(_plot, {{height: _orig}}); }}
+    w.matchMedia('print').addEventListener('change', function(e) {{ if (e.matches) bp(); else ap(); }});
+    w.addEventListener('beforeprint', bp);
+    w.addEventListener('afterprint',  ap);
+    setTimeout(function(){{ w.print(); }}, 150);
+}})(); // {_pn}
+</script>""",
+            height=0,
+        )
+
+    # ── Quick View (expanded by default) ─────────────────────────────────────
+    with st.expander("📋 Quick View", expanded=True):
         if summary:
             r1 = st.columns(6)
-            r1[0].metric("Signals",      f"{summary['n_total']}")
-            r1[1].metric("Filtered Out", f"{summary['n_filtered']}")
-            r1[2].metric("Trades Taken", f"{summary['n_trades']}")
-            r1[3].metric("Win %",        f"{summary['win_pct']:.1f}%",
+            r1[0].metric("Net PnL",   f"${summary['net_total']:,.0f}")
+            r1[1].metric("Win %",     f"{summary['win_pct']:.1f}%",
                          help=f"W{summary['n_wins']} / L{summary['n_stop']} / S{summary['n_sess']}")
-            r1[4].metric("Gross PnL",    f"${summary['gross_total']:,.0f}")
-            r1[5].metric("Net PnL",      f"${summary['net_total']:,.0f}")
+            r1[2].metric("Exp R",     f"{summary['exp_r']:+.2f}", help=_exp_r_help)
+            r1[3].metric("PnL/DD",    f"{_pnl_dd:.2f}" if _pnl_dd is not None else "—")
+            # SQN is unreliable for multi-leg (high R variance by design) — show PF instead
+            if use_multileg or use_threeleg:
+                r1[4].metric("PF",    _pf_str)
+            else:
+                r1[4].metric("SQN",   f"{summary['sqn']:+.2f}")
+            r1[5].metric("Max DD",    f"${summary['max_dd']:,.0f}")
 
             r2 = st.columns(6)
-            pf_str = f"{summary['pf']:.2f}" if summary['pf'] < 99 else "∞"
-            r2[0].metric("Profit Factor", pf_str)
-            r2[1].metric("Exp $",         f"${summary['exp_dollar']:+.0f}")
-            r2[2].metric("Exp R",         f"{summary['exp_r']:+.2f}")
-            r2[3].metric("Avg Win",       f"${summary['avg_win']:+.0f}")
-            r2[4].metric("Avg Loss",      f"${summary['avg_loss']:+.0f}")
-            r2[5].metric("W/L Ratio",
-                         f"{summary['wl_ratio']:.2f}" if summary['wl_ratio'] < 99 else "∞")
-
-            r3 = st.columns(6)
-            r3[0].metric("Avg MAE",      f"{summary['avg_mae_pts']:.2f} pts")
-            r3[1].metric("Avg MFE",      f"{summary['avg_mfe_pts']:.2f} pts")
-            r3[2].metric("MAE R",        f"{summary['avg_mae_R']:.2f}")
-            r3[3].metric("MFE R",        f"{summary['avg_mfe_R']:.2f}")
-            r3[4].metric("Largest Win",  f"${summary['largest_win']:+.0f}")
-            r3[5].metric("Largest Loss", f"${summary['largest_loss']:+.0f}")
-
-            _slip_usd = summary.get("slippage_total", 0.0)
-            if use_multileg:
-                # Derive ticks from dollar total — correct for variable leg fill counts
-                total_slip_tks = int(round(_slip_usd / tick_value)) if tick_value > 0 else 0
-            else:
-                total_slip_tks = int((entry_slip + exit_slip) * summary["n_trades"] * contracts)
-            _slip_str = f"{total_slip_tks} tks  /  ${_slip_usd:.0f}"
-            total_cost_usd = _slip_usd + summary["commission_total"]
-            _dd_abs = abs(summary["max_dd"]) if summary["max_dd"] != 0 else None
-            _pnl_dd = summary["net_total"] / _dd_abs if _dd_abs else None
-            r4 = st.columns(6)
-            r4[0].metric("Slippage",     _slip_str)
-            r4[1].metric("Commission",   f"${summary['commission_total']:.0f}")
-            r4[2].metric("Total Cost",   f"${total_cost_usd:.0f}")
-            r4[3].metric("Max Drawdown", f"${summary['max_dd']:,.0f}")
-            r4[4].metric("PnL/DD",       f"{_pnl_dd:.2f}" if _pnl_dd is not None else "—")
-            r4[5].metric("Trading Days", f"{summary['trading_days']}")
+            r2[0].metric("Trades",    f"{summary['n_trades']}")
+            r2[1].metric("Avg Win",   f"${summary['avg_win']:+.0f}")
+            r2[2].metric("Avg Loss",  f"${summary['avg_loss']:+.0f}")
+            r2[3].metric("Median W",  f"${summary['median_win']:+.0f}")
+            r2[4].metric("Median L",  f"${summary['median_loss']:+.0f}")
+            r2[5].metric("Days",      f"{summary['trading_days']}")
         else:
             st.info("No filled trades in the selected range.")
+
+    # ── Detail (collapsed) ────────────────────────────────────────────────────
+    with st.expander("📊 Detail", expanded=False):
+        if summary:
+            r1 = st.columns(6)
+            r1[0].metric("Signals",       f"{summary['n_total']}")
+            r1[1].metric("Filtered Out",  f"{summary['n_filtered']}")
+            r1[2].metric("Gross PnL",     f"${summary['gross_total']:,.0f}")
+            r1[3].metric("Profit Factor", _pf_str)
+            r1[4].metric("W/L Ratio",     _wl_str)
+            r1[5].metric("Exp $",         f"${summary['exp_dollar']:+.0f}")
+
+            r2 = st.columns(6)
+            r2[0].metric("Slippage",      _slip_str)
+            r2[1].metric("Commission",    f"${_actual_comm:.0f}")
+            r2[2].metric("Total Cost",    f"${_total_cost:.0f}")
+            r2[3].metric("Max Risk $",    f"${summary['max_risk_dollar']:,.0f}")
+            r2[4].metric("Avg Risk $",    f"${summary['avg_risk_dollar']:,.0f}")
+            r2[5].metric("Std R",         f"{summary['r_std']:.3f}")
+
+            r3 = st.columns(6)
+            r3[0].metric("Avg MAE",       f"{summary['avg_mae_pts']:.2f} pts")
+            r3[1].metric("Avg MFE",       f"{summary['avg_mfe_pts']:.2f} pts")
+            r3[2].metric("MAE R",         f"{summary['avg_mae_R']:.2f}")
+            r3[3].metric("MFE R",         f"{summary['avg_mfe_R']:.2f}")
+            r3[4].metric("Largest Win",   f"${summary['largest_win']:+.0f}")
+            r3[5].metric("Largest Loss",  f"${summary['largest_loss']:+.0f}")
+        else:
+            st.info("No filled trades in the selected range.")
+
+    # ── Edge Analysis ─────────────────────────────────────────────────────────
+    with st.expander("📊 Edge Analysis", expanded=False):
+        if summary and not results.empty:
+            _ea_filled = results[results["Filled"] == True].copy()
+            _ea_wins   = _ea_filled[
+                _ea_filled["ExitReason"].str.contains("Target", na=False) |
+                _ea_filled["ExitReason"].isin(["T1+BE", "T1_only"])
+            ]
+            _ea_losses = _ea_filled[_ea_filled["ExitReason"].isin(["Stop", "E1E2+Stop"])]
+
+            # ── R-multiple histogram ──────────────────────────────────────────
+            _r_vals = _ea_filled["R_achieved"].dropna()
+            if not _r_vals.empty:
+                _exp_r  = float(_r_vals.mean())
+                _r_pos  = _r_vals[_r_vals >= 0]
+                _r_neg  = _r_vals[_r_vals < 0]
+                _fig_r  = go.Figure()
+                _bin_sz = 0.1
+                if not _r_pos.empty:
+                    _fig_r.add_trace(go.Histogram(
+                        x=_r_pos, name="Positive R", xbins=dict(size=_bin_sz),
+                        marker_color="rgba(46,204,113,0.75)", marker_line_width=0,
+                    ))
+                if not _r_neg.empty:
+                    _fig_r.add_trace(go.Histogram(
+                        x=_r_neg, name="Negative R", xbins=dict(size=_bin_sz),
+                        marker_color="rgba(231,76,60,0.75)", marker_line_width=0,
+                    ))
+                _ci_lo_ea = summary.get("exp_r_ci_lo", np.nan)
+                _ci_hi_ea = summary.get("exp_r_ci_hi", np.nan)
+                if not (np.isnan(_ci_lo_ea) or np.isnan(_ci_hi_ea)):
+                    _fig_r.add_vrect(x0=_ci_lo_ea, x1=_ci_hi_ea,
+                                     fillcolor="rgba(243,156,18,0.25)", line_width=0)
+                    _fig_r.add_annotation(
+                        x=_ci_lo_ea, y=1, yref="paper", xanchor="right",
+                        text=f"95% CI [{_ci_lo_ea:+.2f}, {_ci_hi_ea:+.2f}]",
+                        showarrow=False, font=dict(color="#f39c12", size=11),
+                        bgcolor="rgba(0,0,0,0.4)",
+                    )
+                _fig_r.add_vline(x=0, line_color="rgba(255,255,255,0.4)", line_dash="dot")
+                _fig_r.add_vline(x=_exp_r, line_color="#f39c12", line_dash="dash",
+                                 annotation_text=f"Exp R {_exp_r:+.2f}",
+                                 annotation_position="top left")
+                _fig_r.update_layout(
+                    barmode="overlay", height=300, margin=dict(l=40, r=20, t=30, b=40),
+                    legend=dict(orientation="h", y=1.08),
+                    xaxis_title="R multiple (E1 basis)", yaxis_title="Count",
+                    paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                    font=dict(color="#ccc"),
+                )
+                st.plotly_chart(_fig_r, use_container_width=True)
+
+            # ── MAE / MFE by outcome ──────────────────────────────────────────
+            _mae_col = "MAE_R"
+            _mfe_col = "MFE_R"
+            _col_l, _col_r = st.columns(2)
+
+            with _col_l:
+                st.caption("**MAE R — how far price moved against you** (winners blue, losers red)")
+                _mae_w = _ea_wins[_mae_col].dropna()
+                _mae_l = _ea_losses[_mae_col].dropna()
+                _fig_mae = go.Figure()
+                if not _mae_w.empty:
+                    _fig_mae.add_trace(go.Histogram(
+                        x=_mae_w, name="Winners", xbins=dict(size=0.05),
+                        marker_color="rgba(52,152,219,0.7)", marker_line_width=0,
+                    ))
+                if not _mae_l.empty:
+                    _fig_mae.add_trace(go.Histogram(
+                        x=_mae_l, name="Losers", xbins=dict(size=0.05),
+                        marker_color="rgba(231,76,60,0.7)", marker_line_width=0,
+                    ))
+                _fig_mae.update_layout(
+                    barmode="overlay", height=260, margin=dict(l=40, r=10, t=20, b=40),
+                    legend=dict(orientation="h", y=1.1),
+                    xaxis_title="MAE (R)", yaxis_title="Count",
+                    paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                    font=dict(color="#ccc"),
+                )
+                st.plotly_chart(_fig_mae, use_container_width=True)
+
+            with _col_r:
+                st.caption("**MFE R — best price reached before exit** (winners blue, losers red)")
+                _mfe_w = _ea_wins[_mfe_col].dropna()
+                _mfe_l = _ea_losses[_mfe_col].dropna()
+                _fig_mfe = go.Figure()
+                if not _mfe_w.empty:
+                    _fig_mfe.add_trace(go.Histogram(
+                        x=_mfe_w, name="Winners", xbins=dict(size=0.05),
+                        marker_color="rgba(52,152,219,0.7)", marker_line_width=0,
+                    ))
+                if not _mfe_l.empty:
+                    _fig_mfe.add_trace(go.Histogram(
+                        x=_mfe_l, name="Losers", xbins=dict(size=0.05),
+                        marker_color="rgba(231,76,60,0.7)", marker_line_width=0,
+                    ))
+                _fig_mfe.update_layout(
+                    barmode="overlay", height=260, margin=dict(l=10, r=10, t=20, b=40),
+                    legend=dict(orientation="h", y=1.1),
+                    xaxis_title="MFE (R)", yaxis_title="Count",
+                    paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                    font=dict(color="#ccc"),
+                )
+                st.plotly_chart(_fig_mfe, use_container_width=True)
+
+            # ── Drawdown events table ─────────────────────────────────────────
+            st.markdown("**Drawdown periods**")
+            _dd_sorted  = _ea_filled.sort_values(["Date", "EntryTime"]).reset_index(drop=True)
+            _dd_pnl     = _dd_sorted["NetPnL"].values
+            _dd_dates   = _dd_sorted["Date"].values
+            _n_dd       = len(_dd_pnl)
+            _dd_equity  = np.zeros(_n_dd + 1)
+            for _i in range(_n_dd):
+                _dd_equity[_i + 1] = _dd_equity[_i] + _dd_pnl[_i]
+
+            _dd_events = []
+            _pk        = 0.0
+            _pk_date   = None
+            _in_dd     = False
+            _tr_val    = 0.0
+            _tr_date   = None
+
+            for _i in range(1, _n_dd + 1):
+                _v = _dd_equity[_i]
+                _d = _dd_dates[_i - 1]
+                if _v >= _pk:
+                    if _in_dd:
+                        _dd_events.append({
+                            "Start":    str(_pk_date),
+                            "Trough":   str(_tr_date),
+                            "Recovery": str(_d),
+                            "DD $":     f"${_tr_val - _pk:,.0f}",
+                            "Days":     (pd.Timestamp(_d) - pd.Timestamp(_pk_date)).days,
+                        })
+                        _in_dd = False
+                    _pk      = _v
+                    _pk_date = _d
+                else:
+                    if not _in_dd:
+                        _in_dd   = True
+                        _tr_val  = _v
+                        _tr_date = _d
+                    elif _v < _tr_val:
+                        _tr_val  = _v
+                        _tr_date = _d
+
+            if _in_dd:
+                _dd_events.append({
+                    "Start":    str(_pk_date),
+                    "Trough":   str(_tr_date),
+                    "Recovery": "—",
+                    "DD $":     f"${_tr_val - _pk:,.0f}",
+                    "Days":     (pd.Timestamp(_dd_dates[-1]) - pd.Timestamp(_pk_date)).days,
+                })
+
+            if _dd_events:
+                _dd_df = pd.DataFrame(_dd_events).sort_values("DD $")
+                st.dataframe(_dd_df, use_container_width=True, hide_index=True)
+            else:
+                st.success("No drawdown periods — equity curve is monotonically increasing.")
+        else:
+            st.info("Run a simulation first.")
 
     # ── Ratchet bar-ambiguity diagnostic (AIAO+ratchet mode only) ────────────
     _is_aiao_ratchet = (not use_multileg and not use_threeleg and ratchet_r_v > 0)
@@ -4179,6 +4628,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         e1c=e1c_3l, e2c=e2c_3l, e3c=e3c_3l,
         pb1_ticks=pb1_ticks_v, pb2_ticks=pb2_ticks_v,
         t2_r=t2_r_val,
+        first_trade_only=first_trade_only, first_2_filled_only=first_2_filled_only,
     )
 
     # ── Stop multiplier sweep ─────────────────────────────────────────────────
@@ -4190,6 +4640,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         bars_by_date=bars_by_date_sim,
         multileg=use_multileg, t1_r=t1_r,
         t1_action=t1_action, contracts_t1=contracts_t1, contracts_t2=contracts_t2,
+        first_trade_only=first_trade_only, first_2_filled_only=first_2_filled_only,
     )
 
     # ── Monthly breakdown ──────────────────────────────────────────────────────

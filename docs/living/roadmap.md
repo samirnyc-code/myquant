@@ -1,6 +1,6 @@
 # Roadmap
 **Status:** Living — update every session  
-**Last Updated:** June 7, 2026  
+**Last Updated:** June 8, 2026  
 **Rule:** This is the only source of truth for what gets built and in what order.  
 **Rule:** Phases are sequential within each track. Do not start a phase until its prerequisite passes.
 
@@ -87,7 +87,7 @@ These are not build phases — they are analytical obligations that run as Track
 
 ---
 
-## Active — June 7, 2026
+## Active — June 8, 2026
 
 ### Done (committed)
 - [x] Bar Validation module built and working
@@ -110,14 +110,15 @@ These are not build phases — they are analytical obligations that run as Track
 - [x] Winner/Loser filter on daily chart
 - [x] Optimal R sweep: 1D and T1×T2 2D heatmap
 - [x] Stop multiplier sweep (0.25×–2.00×)
-
-### Coded, NOT YET TESTED — do not commit until tested in running app
-- [ ] **2-leg simulation engine** — `_simulate_one_multileg`, `_simulate_one_bars_multileg`, `simulate_trades` multileg path, `compute_summary` multileg, `_EMPTY_TRADE` multileg fields
-- [ ] **Trade type column layout** — replaces Instrument & Sizing / Execution / 2-Leg sections; Instrument shared above; `st.radio("ba_trade_mode")`; 3 columns (Single Leg / 2-Leg / 3-Leg placeholder); `disabled=True` on inactive columns; derive block outputs plain-named vars
-- [ ] **T1 and T2 chart lines** — T1 dotted teal + "T1 X.XXR" annotation; T2 dashed teal + "T2 X.XXR" annotation; single-leg shows bold R label only
+- [x] **2-leg scale-in simulation engine** — `simulate_trades(multileg=True)`, `compute_summary(is_multileg=True)`, PB/T1/T2 chart annotations
+- [x] **Scale-In Sweep (PB × T1 × T2)** — 432-combo grid, heatmap slices, ranked table
+- [x] **PDF export** — Bar Analysis + Portfolio tabs; `matchMedia('print')` + `Plotly.relayout()` for chart resize; counter forces re-render on every click
+- [x] **Portfolio tab** (`portfolio.py`) — per-setup 2-leg sim, equity curves, DD chart, breakdown table, T1×PB×T2 sweep, save/compare runs, PDF export, Save as Defaults
 
 ### Near-term backlog
-- [ ] 3-Leg column: build after 2-leg is tested and committed
+- [ ] **Verify PDF equity chart resize** — `Plotly.relayout()` from iframe may be blocked by browser; test in running app
+- [ ] **Verify 2-leg P&L math** — spot-check blended entry, T2 price, per-leg PnL against manual calc
+- [ ] 3-Leg column: build after 2-leg math verified
 - [ ] Add ESH21 2021 tick data file when clean data available
 - [ ] Add ESM1 2021 and ESH2/ESM2 2022 contracts to registry when files ready
 - [ ] Share app + data files with Thomas: upload both data files to Google Drive, run ngrok

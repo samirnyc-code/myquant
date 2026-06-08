@@ -7,6 +7,7 @@ from data_loader import (load_sc_bars, CONTRACTS, bar_num_from_dt,
                          resample_ticks_to_bars, parse_ohlc_from_upload)
 import validation
 import bar_analysis
+import portfolio
 
 st.set_page_config(
     page_title="ES Futures — 5-Min RTH Bars",
@@ -209,7 +210,7 @@ def main():
             st.session_state.pop(k, None)
         st.rerun()
 
-    tab1, tab2, tab3 = st.tabs(["📊 Bar Viewer", "🔍 Bar Validation", "📈 Bar Analysis"])
+    tab1, tab2, tab3, tab4 = st.tabs(["📊 Bar Viewer", "🔍 Bar Validation", "📈 Bar Analysis", "📊 Portfolio"])
 
     contract_label = selected_key.split(" — ")[0]
 
@@ -326,6 +327,9 @@ def main():
             st.session_state.setdefault("bar_source", "none")
 
         bar_analysis.show_bar_analysis(sc_file=sc_file, contract=contract_label, nt_file=nt_file)
+
+    with tab4:
+        portfolio.show_portfolio()
 
 
 main()

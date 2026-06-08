@@ -1,6 +1,6 @@
 # Open Questions
 **Status:** Living — remove questions when resolved, never accumulate answered ones  
-**Last Updated:** June 7, 2026  
+**Last Updated:** June 8, 2026  
 **Rule:** A question lives here until it has a definitive answer. Once answered, move the decision to the relevant architecture doc and delete it here.
 
 ---
@@ -50,20 +50,13 @@ Deferred until Phase E complete. Used for crosscheck only.
 
 ---
 
-## Scale-In Design (to resolve next session — June 8)
+## ~~Scale-In Design~~ ✅ Resolved June 8, 2026
 
-**Q9: What is the R reference for scale-in trades?**
-After scaling in, "1R" is ambiguous. Options:
-- Original risk only (signal→stop, fixed): simple, comparable across all trades
-- Blended entry risk (weighted average entry → stop): accurate P&L but harder to interpret
-- Per-leg risk (each leg has its own R): most granular but complex
-Decision needed before the simulator is built.
+**~~Q9: R reference for scale-in trades~~** — T1 uses original R. T2 uses blended R (blended entry → original stop). Blended entry = `(E1_price × tv1 + E2_price × tv2) / tv_total`. Implemented in `_simulate_one_bars_multileg`.
 
-**Q10: Does the stop move when we scale in?**
-If we add at 0.5R pullback and the stop stays at the original level, the dollar risk on the new leg is smaller than the original (entry is closer to stop). If we widen the stop to maintain the same risk per leg, the total dollar risk grows. Which behavior do we want?
+**~~Q10: Does the stop move when we scale in?~~** — Stop stays at original level after E2 fills. Dollar risk on E2 is smaller (entry is closer to stop). This is the implemented behavior.
 
-**Q11: What triggers scale-in — tick data or bar close?**
-Current simulator uses tick data for entry fills (stop-order: price must trade through the level). Scale-in at a PB level likely uses the same logic. Confirm: scale-in fills are tick-based, same as initial entry.
+**~~Q11: Scale-in trigger — tick or bar close?~~** — Bar-based: PB fill is detected when a bar's low (long) trades through the PB level. Same bar-priority rule: Stop > T1 > PB (conservative — T1 wins if both reachable on same bar).
 
 ---
 
