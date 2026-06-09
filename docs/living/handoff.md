@@ -1,6 +1,6 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** June 8, 2026 (session 3)
+**Last Updated:** June 9, 2026 (session 5)
 **Current Versions:** SIM_v3.3 / GS_v4.5 / SHEET_v3.3  
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 
@@ -69,11 +69,17 @@ Four-tab app with contract selector and file upload. All tabs share cached data 
 
 **Layout (tab-first design):**
 - Tabs (`📊 Bar Viewer | 🔍 Bar Validation | 📈 Bar Analysis | 📊 Portfolio`) are the first element after the page header
-- All upload UI lives inside the Bar Analysis tab: `📁 Upload Data` expander (3 cols: Tick | OHLC | MC Signals), then `📡 Bar data source` expander (only shown when multiple sources available)
+- **Source selector runs BEFORE `st.tabs()`** — critical for render-order correctness. Tab1 (Bar Viewer) needs `bar_source` to be set before it renders. If selector was inside Tab3, it would be one render cycle stale.
+- Upload UI lives inside the Bar Analysis tab: `📁 Upload Data` expander (3 cols: Tick | OHLC | MC Signals)
+- `📡 Bar data source` expander only shown when multiple sources available (inside Tab3, collapsed), but the actual `bar_source` session state key is set before tabs
 - Session state carries uploaded data across tabs; Bar Viewer and Bar Validation read from session state silently
-- Reload button clears all upload state including `ba_signals`
+- Reload button clears all upload state including `ba_signals`, `bar_source`, and `bar_source_radio`
 
-**Tab 3 — Bar Analysis — section layout (expander order, as of June 8):**
+**Radio widget key guard:** `key="bar_source_radio"` persists across rerenders. After disk SCID load, `st.session_state.pop("bar_source_radio", None)` is called before `st.rerun()` to prevent stale "SC Ticks (disk)" value overriding the new source.
+
+**Upload guard:** The `else` branch of the tick file uploader (empty uploader) only clears `uploaded_sc_*` keys if `uploaded_sc_key` does NOT start with `"scid_"`. This prevents the auto-loaded SCID cache from being evicted on every rerender when the uploader widget is empty.
+
+**Tab 3 — Bar Analysis — section layout (expander order, as of June 9):**
 1. `📁 Upload Data` — tick / OHLC / signals upload (collapsed)
 2. `📡 Bar data source` — only when choice exists (collapsed)
 3. `⚙️ Filters` — date range, DOW, econ events, CC3/CC4 (collapsed)
@@ -229,12 +235,103 @@ Slippage ticks for multileg: derived as `round(slippage_total_usd / tick_value)`
 
 ---
 
-## Data files (not in git — keep in `data/raw/`)
-- `ESM6.CME_BarData.txt` (~3GB SC ticks, 2026)
-- `NinjaScript Output 03_06_2026 23_08.txt` (NT 5M bars, 2026)
-- `NinjaScript Output 2021.txt` (NT 5M bars, 2021 — needed for ESH21 contract)
+## SCID Data System (Session 5 — June 9, 2026)
 
-**Run:** `pkill -f "streamlit run"` then `.venv/bin/streamlit run app.py`
+### SCID Disk Loader
+
+**Data directory:** `C:\Users\Admin\Desktop\NT Code Versions\ChartMarker_Files\Data`  
+**Defined as:** `SCID_DATA_DIR` in `data_loader.py`
+
+**Functions:**
+- `build_scid_quarter_map()` — scans SCID_DATA_DIR for `*.scid` files, reads first/last record of each, returns `{contract_name: {"quarters": [...], "path": ...}}`
+- `load_scid_ticks_chunked(contracts, quarters, ...)` — streams selected contracts/quarters in chunks, returns DataFrame of RTH ticks (08:30–15:15 CT)
+- `resample_ticks_to_bars(ticks)` — resamples tick DataFrame to 5-min OHLCV bars
+
+**Available quarterly contracts (confirmed on disk):**
+ESH24-CME, ESM24-CME, ESU23-CME, ESZ23-CME, ESH25-CME, ESM25-CME, ESU24-CME, ESZ24-CME, ESH26-CME, ESM26-CME, ESU25-CME, ESZ25-CME
+
+### Parquet Cache
+
+Prevents re-scanning 9M+ tick binary files on every app restart.
+
+**Location:** `SCID_DATA_DIR/_scid_cache/ticks.parquet` + `meta.json`  
+**Cache functions in `data_loader.py`:**
+- `save_scid_cache(ticks, quarters)` — snappy-compressed parquet + meta.json with quarters, n_ticks, saved_at
+- `load_scid_cache()` → `(ticks_df, meta_dict)` or `(None, None)`
+- `clear_scid_cache()` — rmtree the `_scid_cache` dir
+
+**Auto-load on startup:** At top of `main()` in `app.py`, before any tabs render:
+```python
+if "uploaded_sc_bars" not in st.session_state:
+    _cached_ticks, _cache_meta = load_scid_cache()
+    if _cached_ticks is not None:
+        _cached_bars = resample_ticks_to_bars(_cached_ticks)
+        st.session_state["uploaded_sc_ticks"]  = _cached_ticks
+        st.session_state["uploaded_sc_bars"]   = _cached_bars
+        st.session_state["uploaded_sc_key"]    = f"scid_{','.join(_cache_meta['quarters'])}"
+        st.session_state["bar_source"] = "sc_upload"
+        st.session_state.pop("bar_source_radio", None)
+```
+
+**Session state keys (SCID):**
+
+| Key | Content |
+|-----|---------|
+| `uploaded_sc_bars` | 5-min bar DataFrame (from SCID or uploaded tick file) |
+| `uploaded_sc_ticks` | raw tick DataFrame |
+| `uploaded_sc_key` | starts with `"scid_"` for disk/cache loads, else filename |
+| `scid_loaded_label` | human-readable label shown in the UI |
+| `scid_load_summary` | stats string (n ticks, date range) |
+| `scid_quarter_map` | result of `build_scid_quarter_map()` |
+
+### SCID Binary Format (Confirmed)
+
+| Field | Type | Detail |
+|-------|------|--------|
+| Header | 56 bytes | Fixed header block |
+| Record size | 40 bytes | `s_IntradayRecord` |
+| `DateTime` | int64 | Microseconds since 1899-12-30 00:00:00 UTC |
+| OHLC | float32 × 4 | Open, High, Low, Close |
+| NumTrades | int32 | |
+| TotalVolume | int32 | |
+| BidVolume | int32 | |
+| AskVolume | int32 | |
+
+**Timestamp conversion:**
+```python
+SC_EPOCH = pd.Timestamp("1899-12-30")
+dt_utc = SC_EPOCH + pd.to_timedelta(raw_int64_microseconds, unit="us")
+dt_ct  = dt_utc.tz_localize("UTC").tz_convert("America/Chicago").tz_localize(None)
+```
+
+**Bar timestamp question (PENDING):** Both NT TXT and SCID files appear to use CT bar **close** time as the timestamp (bar 1 = 08:35, opens 08:30). This means bar 1 ticks fall in the [08:35, 08:40) resample bin → labeled bar 2. Fix would be to subtract 5 min from SCID `DateTime` before resampling. NOT YET APPLIED — user was uncertain ("maybe SC uses bar open times?"). Needs verification with SC before applying.
+
+### OHLC Timestamp Auto-Detection
+
+`parse_ohlc_from_upload()` in `data_loader.py` auto-detects whether the NT TXT file uses Berlin or CT close times:
+```python
+is_berlin = valid_hours.median() > 14  # Berlin ~18-19h, CT ~11-12h
+if is_berlin:
+    df["DateTime"] = dt_parsed.dt.tz_localize("Europe/Berlin")
+                     .dt.tz_convert("America/Chicago").dt.tz_localize(None) - 5min
+else:
+    df["DateTime"] = dt_parsed - 5min
+```
+Old NT exports used Berlin close times. New direct exports use CT. Heuristic is reliable.
+
+### Bar Viewer / Bar Validation — Upload-Only Policy
+
+Neither tab has disk fallbacks. If no data is uploaded (and no cache loaded), they show an info message. No 2026 disk data ever appears unless explicitly loaded or cached. This is enforced in `show_bar_viewer()` and `validation.py`.
+
+---
+
+## Data files (not in git — keep in `data/raw/`)
+- `ESM6.CME_BarData.txt` (~3GB SC ticks, 2026) — old disk file, not used by bar viewer unless uploaded
+- `NinjaScript Output 03_06_2026 23_08.txt` (NT 5M bars, 2026) — old disk file, not used unless uploaded
+- `NinjaScript Output 2021.txt` (NT 5M bars, 2021 — needed for ESH21 contract)
+- SCID files live at: `C:\Users\Admin\Desktop\NT Code Versions\ChartMarker_Files\Data\`
+
+**Run:** `.venv\Scripts\streamlit run app.py` (Windows)
 
 ---
 
@@ -243,7 +340,8 @@ Slippage ticks for multileg: derived as `round(slippage_total_usd / tick_value)`
 **Session 1 (June 7):** ✅ Committed + pushed  
 **Session 2 (June 7):** ✅ Committed + pushed (no-auto-load, library tenets)  
 **Session 3 (June 8):** ✅ Committed + pushed — 2-leg scale-in model complete  
-**Session 4 (June 8):** ✅ Committed + pushed — Portfolio tab complete
+**Session 4 (June 8):** ✅ Committed + pushed — Portfolio tab complete  
+**Session 5 (June 9):** ✅ Committed (`c5c2f0f`) — SCID disk loader, Parquet cache, source selector fix, OHLC auto-detect, upload-only bar viewer/validation; push pending (auth issue — user pushes manually)
 
 ---
 
@@ -289,9 +387,11 @@ def _apply_to_config(cc, t1_raw, pb_raw, t2_raw):
 
 ## Next Session — Priorities
 
-1. **Verify PDF equity chart resize** — open Portfolio tab, load data, click Export PDF, confirm equity chart expands in print preview.
-2. **Verify 2-leg math** — spot-check a scale-in trade: PB level, E2 fill, blended entry, T2, per-leg P&L.
-3. **Historical data** — 2022–2025 + pre-2021 data arriving. When received: add to `CONTRACTS`, verify bars, begin WFA.
+1. **Verify SCID bar timestamp direction** — upload 1 quarter SCID + matching NT TXT, compare bar 1 open time. Does SC `DateTime` represent bar open or bar close? If close: subtract 5 min in `load_scid_ticks_chunked()` and `parse_scid_ticks_from_upload()`, and change RTH filter from `<= 15:15` to `< 15:15`. Do NOT apply until confirmed.
+2. **Bar Validation** — now requires both SCID upload AND OHLC upload. Test with Q1/2024 SCID + matching NT TXT to verify SC vs NT bar comparison works end-to-end.
+3. **Verify PDF equity chart resize** — open Portfolio tab, load data, click Export PDF, confirm equity chart expands in print preview.
+4. **Verify 2-leg math** — spot-check a scale-in trade: PB level, E2 fill, blended entry, T2, per-leg P&L.
+5. **Historical data** — 2022–2025 + pre-2021 data arriving. When received: verify bars against NT, begin WFA.
 
 ---
 
@@ -353,11 +453,11 @@ Trigger = after X R move → stop to blended BE / E1 / lock-in R.
 
 | Source | Status | Notes |
 |--------|--------|-------|
-| Sierra Charts scid (Delani) | Available | Primary research data. scid parser not yet built. |
+| Sierra Charts scid (Delani) | ✅ Parser built | 12 quarterly contracts on disk (ESU23–ESZ25). Parser working: 9M+ ticks/quarter. See SCID Data System section above. |
 | NT8/Rithmic tick data | Available | 1 year on disk. Used for Gate 2 bar validation. |
-| ESM6 CME tick data (.txt) | Available | 56 trading days. Used by Streamlit viewer. Not in git. |
-| NT 5M bar data (.txt) | Available | April 1 – June 3 2026. Not in git. |
-| 2022–2025 + pre-2021 data | Arriving | Expected next week. |
+| ESM6 CME tick data (.txt) | Available | 56 trading days. Old disk file — not loaded by default. |
+| NT 5M bar data (.txt) | Available | April 1 – June 3 2026. Upload via OHLC uploader. |
+| 2022–2025 + pre-2021 data | Arriving | Expected soon. |
 
 ---
 

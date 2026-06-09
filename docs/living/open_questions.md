@@ -1,22 +1,25 @@
 # Open Questions
 **Status:** Living — remove questions when resolved, never accumulate answered ones  
-**Last Updated:** June 8, 2026  
+**Last Updated:** June 9, 2026  
 **Rule:** A question lives here until it has a definitive answer. Once answered, move the decision to the relevant architecture doc and delete it here.
 
 ---
 
 ## Blocking — Phase A (Data Layer)
 
-**Q1: scid exact binary struct**
-Sierra Charts scid is a binary format. The struct must be confirmed from ACSIL documentation before building the parser. Do not guess.
-Action: Read ACSIL reference, confirm field sizes, byte order, timestamp format.
+**~~Q1: scid exact binary struct~~** ✅ Resolved June 9, 2026
+Confirmed: 56-byte header + 40-byte `s_IntradayRecord`. `DateTime` = int64 microseconds since 1899-12-30 UTC. Parser built and working (9M+ ticks loaded per quarter). See `data_sources.md`.
 
 **~~Q2: RTH session exact boundaries~~** ✅ Resolved June 3, 2026
 Confirmed 08:30–15:15 CT from ESM6 CME tick data. Used this boundary in Streamlit app with correct results.
 
-**Q3: Rollover handling in scid files**
-Are scid files per quarterly contract or a continuous stitched series? If quarterly, Python must stitch and handle gaps.
-Action: Check what Delani provides. Check SC continuous contract settings.
+**~~Q3: Rollover handling in scid files~~** ✅ Resolved June 9, 2026
+Files are per quarterly contract (one `.scid` per ESH/ESM/ESU/ESZ). Python `build_scid_quarter_map()` scans the data directory, `load_scid_ticks_chunked()` loads selected quarters and concatenates. No stitching needed — just select the quarter range.
+
+**Q14: SCID bar timestamp — open or close?**
+NT TXT exports use bar **close** time (bar 1 = 08:35 row, opens 08:30). Does SCID `DateTime` also represent the bar close? If yes, bar 1 ticks resample into the [08:35, 08:40) bin and display as bar 2 — off by one.
+Action: Upload 1 quarter SCID + matching NT TXT. Compare bar 1 timestamp. If both use close time, subtract 5 min from SCID `DateTime` before resampling and change RTH filter from `<= 15:15` to `< 15:15`.
+**Do not apply the fix until verified.** User was uncertain: "maybe SC uses bar open times."
 
 ---
 

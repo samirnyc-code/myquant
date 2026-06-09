@@ -1,6 +1,6 @@
 # Roadmap
 **Status:** Living — update every session  
-**Last Updated:** June 8, 2026  
+**Last Updated:** June 9, 2026  
 **Rule:** This is the only source of truth for what gets built and in what order.  
 **Rule:** Phases are sequential within each track. Do not start a phase until its prerequisite passes.
 
@@ -36,7 +36,7 @@ All phases are sequential. No phase starts until its prerequisite gate passes.
 
 | Phase | Description | Prerequisite | Status |
 |-------|-------------|-------------|--------|
-| A | Data layer: scid parser, 5M bar builder, parquet storage | scid format confirmed | Not started |
+| A | Data layer: scid parser, 5M bar builder, parquet storage | scid format confirmed | 🔄 In progress — parser built, cache working; bar timestamp direction (open vs close) still pending |
 | — | Gate 1: Python bars vs SC export | Phase A | Blocking |
 | — | Gate 2: Sierra bars vs NT8/Rithmic bars (1yr on disk) | Gate 1 | Blocking |
 | B | Signal detector: port MC logic from MCSimulatorV5_5.cs | Gates 1+2 | Not started |
@@ -75,9 +75,10 @@ These are not build phases — they are analytical obligations that run as Track
 
 | Question | Blocks | Status |
 |----------|--------|--------|
-| scid exact binary struct | Phase A | Confirm from ACSIL docs |
+| ~~scid exact binary struct~~ | Phase A | ✅ Resolved June 9 — 56B header + 40B record, int64 µs since 1899-12-30 |
 | SC session boundaries (08:30 or 09:30 CT?) | Phase A | ✅ Confirmed 08:30–15:15 CT from ESM6 tick data |
-| Rollover handling in scid files | Phase A | Continuous or quarterly? |
+| ~~Rollover handling in scid files~~ | Phase A | ✅ Resolved June 9 — quarterly files, one per contract |
+| **SCID bar timestamp (open or close?)** | Gate 1 | Unconfirmed — verify by comparing bar 1 SCID vs NT TXT |
 | Regime classifier TF (5M vs higher) | Phase D | Design decision before optimizer runs |
 | New signal while in trade (same direction) | Phase C | Ignore / scale in / reset — undecided |
 | Max concurrent positions | Phase C | 1 / 2 / unlimited — undecided |
@@ -87,9 +88,14 @@ These are not build phases — they are analytical obligations that run as Track
 
 ---
 
-## Active — June 8, 2026
+## Active — June 9, 2026
 
 ### Done (committed)
+- [x] **SCID disk loader** — `build_scid_quarter_map()`, `load_scid_ticks_chunked()`, quarter selector UI; 12 contracts on disk
+- [x] **Parquet cache** — `save/load/clear_scid_cache()`; auto-loads on app restart; snappy-compressed ticks + meta.json
+- [x] **Source selector before tabs** — fix for render-order bug (Tab1 was reading stale `bar_source`)
+- [x] **Bar viewer upload-only** — no disk fallbacks; no 2026 data unless explicitly loaded
+- [x] **OHLC timestamp auto-detect** — median-hour heuristic (>14 = Berlin, ≤14 = CT); fixes missing 15:15 bar
 - [x] Bar Validation module built and working
 - [x] NYSE holiday exclusion via exchange-calendars
 - [x] Economic event filter: FOMC/NFP/CPI — Skip full day or Window ±N min
@@ -116,6 +122,8 @@ These are not build phases — they are analytical obligations that run as Track
 - [x] **Portfolio tab** (`portfolio.py`) — per-setup 2-leg sim, equity curves, DD chart, breakdown table, T1×PB×T2 sweep, save/compare runs, PDF export, Save as Defaults
 
 ### Near-term backlog
+- [ ] **Verify SCID bar timestamp** — upload Q1/2024 SCID + matching NT TXT, compare bar 1 open time; apply -5min fix if SCID uses close time (see Q14 in open_questions.md)
+- [ ] **End-to-end Bar Validation** — test with Q1/2024 SCID + matching NT TXT; confirm SC vs NT comparison produces valid diff stats
 - [ ] **Verify PDF equity chart resize** — `Plotly.relayout()` from iframe may be blocked by browser; test in running app
 - [ ] **Verify 2-leg P&L math** — spot-check blended entry, T2 price, per-leg PnL against manual calc
 - [ ] 3-Leg column: build after 2-leg math verified

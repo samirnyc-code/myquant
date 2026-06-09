@@ -1,6 +1,6 @@
 # Data Sources
 **Status:** Architecture — Living  
-**Last Updated:** June 2, 2026  
+**Last Updated:** June 9, 2026  
 **Rule:** This is the only file that defines data sources. All other docs reference this file, never duplicate it.
 
 ---
@@ -12,12 +12,40 @@
 | Provider | Sierra Charts via Delani |
 | Instrument | ES (E-mini S&P 500 futures) |
 | Format | `.scid` binary files (Sierra Charts native tick format) |
-| Coverage | Multi-year — exact range TBD once files confirmed |
-| Session | RTH only: 08:30–15:15 CT (confirm exact session template with SC settings) |
-| Rollover | Quarterly ES contracts — SC rollover handling TBD |
-| Status | Available |
+| Data directory | `C:\Users\Admin\Desktop\NT Code Versions\ChartMarker_Files\Data\` |
+| Coverage | ESU23–ESZ25 — 12 quarterly contracts confirmed on disk |
+| Session | RTH: 08:30–15:15 CT (confirmed from ESM6 tick data; applied as filter in loader) |
+| Rollover | One `.scid` file per quarterly contract. Python loads multiple quarters and concatenates. No stitching needed — just select quarter range. |
+| Status | ✅ Parser built and working |
 
-**Parser needed:** Python `.scid` binary parser. Format is documented in Sierra Charts ACSIL reference. Each record: 4-byte date, 4-byte time (seconds since midnight), 4-byte float open, high, low, close, 4-byte volume. Confirm exact struct before building.
+### Confirmed Binary Format (`s_IntradayRecord`)
+
+| Field | Offset | Type | Detail |
+|-------|--------|------|--------|
+| Header | 0 | 56 bytes | Fixed file header |
+| `DateTime` | 0 | int64 | Microseconds since 1899-12-30 00:00:00 UTC |
+| `Open` | 8 | float32 | |
+| `High` | 12 | float32 | |
+| `Low` | 16 | float32 | |
+| `Close` | 20 | float32 | Last trade price |
+| `NumTrades` | 24 | int32 | |
+| `TotalVolume` | 28 | int32 | |
+| `BidVolume` | 32 | int32 | |
+| `AskVolume` | 36 | int32 | |
+| Record size | — | 40 bytes | |
+
+**Timestamp conversion:**
+```python
+SC_EPOCH = pd.Timestamp("1899-12-30")
+dt_utc = SC_EPOCH + pd.to_timedelta(raw_microseconds, unit="us")
+dt_ct  = dt_utc.tz_localize("UTC").tz_convert("America/Chicago").tz_localize(None)
+```
+
+**Parser location:** `data_loader.py` — `build_scid_quarter_map()`, `load_scid_ticks_chunked()`, `parse_scid_ticks_from_upload()`
+
+**Parquet cache:** `SCID_DATA_DIR/_scid_cache/ticks.parquet` (snappy) + `meta.json`. Auto-loaded on app startup. Functions: `save_scid_cache()`, `load_scid_cache()`, `clear_scid_cache()`.
+
+**Open question — bar timestamp direction:** It is not yet confirmed whether the SCID `DateTime` field represents bar **open** or bar **close** time. NT TXT exports use bar close time (bar 1 = 08:35 row). If SCID also uses close time, bar 1 ticks resample into the [08:35, 08:40) bin → displayed as bar 2. Fix would be to subtract 5 min before resampling. **Do not apply until verified.** See `open_questions.md`.
 
 ---
 
@@ -98,7 +126,10 @@ Same underlying CME feed, different results. Sources of divergence:
 
 ## Open Questions
 
-- [ ] Exact Sierra Charts scid struct — confirm with ACSIL docs before building parser
-- [ ] SC rollover handling — continuous contract or quarterly? How are gaps handled?
-- [ ] RTH session exact boundaries — 08:30 or 09:30 CT start? Confirm with SC session template
+- [ ] **SCID bar timestamp direction** — does `DateTime` represent bar open or bar close? NT TXT uses close. If SCID uses close, bar numbering is off by 1 in the Streamlit app. Verify by comparing SCID tick first bar timestamp against a known NT bar. See `open_questions.md` Q14.
+- [ ] SC session exact template — confirmed 08:30–15:15 CT from data, but not verified against SC session settings directly
 - [ ] Massive.io — purchase decision deferred until Sierra sim is producing results
+
+~~Exact Sierra Charts scid struct~~ ✅ Resolved June 9, 2026 (see format table above)  
+~~SC rollover handling~~ ✅ Resolved June 9, 2026 — quarterly files, one per contract, loaded and concatenated by Python  
+~~RTH session exact boundaries~~ ✅ Resolved June 3, 2026 — 08:30–15:15 CT confirmed from ESM6 tick data
