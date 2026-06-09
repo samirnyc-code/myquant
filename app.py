@@ -4,7 +4,10 @@ import pandas as pd
 import plotly.graph_objects as go
 from data_loader import (load_sc_bars, CONTRACTS, bar_num_from_dt,
                          parse_sc_ticks_from_upload, parse_nt_ticks_from_upload,
-                         resample_ticks_to_bars, parse_ohlc_from_upload)
+                         parse_scid_ticks_from_upload,
+                         resample_ticks_to_bars, parse_ohlc_from_upload,
+                         discover_scid_files, build_scid_quarter_map, load_scid_ticks_chunked,
+                         save_scid_cache, load_scid_cache, clear_scid_cache)
 import validation
 import bar_analysis
 import portfolio
@@ -85,22 +88,22 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
 # ── Bar Viewer tab ────────────────────────────────────────────────────────────
 
 def show_bar_viewer(sc_file: str = "", contract: str = "ES"):
-    bar_source    = st.session_state.get("bar_source", "none")
     uploaded_sc   = st.session_state.get("uploaded_sc_bars")
     uploaded_ohlc = st.session_state.get("uploaded_ohlc_bars")
+    bar_source    = st.session_state.get("bar_source", "none")
 
-    if bar_source == "none":
+    if uploaded_sc is None and uploaded_ohlc is None:
         st.info("Upload data in the **📁 Upload Data** panel in Bar Analysis to begin.")
         return
 
-    if bar_source == "sc_upload" and uploaded_sc is not None:
+    # bar_source only matters to pick between two loaded upload types
+    if uploaded_sc is not None and (bar_source != "ohlc_upload" or uploaded_ohlc is None):
         bars = uploaded_sc
-    elif bar_source == "ohlc_upload" and uploaded_ohlc is not None:
+    elif uploaded_ohlc is not None:
         bars = uploaded_ohlc
-    elif sc_file:
-        bars = load_sc_bars(sc_file)
     else:
-        bars = load_sc_bars()
+        st.info("Upload data in the **📁 Upload Data** panel in Bar Analysis to begin.")
+        return
 
     bars["Date"] = bars["DateTime"].dt.date
     dates = sorted(bars["Date"].unique())
@@ -144,11 +147,6 @@ def show_bar_viewer(sc_file: str = "", contract: str = "ES"):
     m5.metric("Change",       f"{chg:+.2f}", f"{chg_pct:+.2f}%")
     m6.metric("Total Volume", f"{day_vol:,.0f}")
 
-    if len(day) < 81:
-        first_bar_time = day.iloc[0]["DateTime"].strftime("%H:%M")
-        st.warning(f"Incomplete data: {len(day)} bars, starts at {first_bar_time} (not 08:30). "
-                   "Bar numbers are correct — they reflect position from 08:30.")
-
     show_bar_nums = st.checkbox("Show bar numbers", value=False,
                                 help="Labels every 3rd bar (1, 4, 7…) below the x-axis.")
     excl_first_n  = st.session_state.get("excl_first_n",  0)
@@ -180,6 +178,21 @@ def show_bar_viewer(sc_file: str = "", contract: str = "ES"):
 # ── App entry point ───────────────────────────────────────────────────────────
 
 def main():
+    # ── Auto-load Parquet cache on first run of the session ───────────────────
+    if "uploaded_sc_bars" not in st.session_state:
+        _cached_ticks, _cache_meta = load_scid_cache()
+        if _cached_ticks is not None:
+            _cached_bars = resample_ticks_to_bars(_cached_ticks)
+            st.session_state["uploaded_sc_ticks"]  = _cached_ticks
+            st.session_state["uploaded_sc_bars"]   = _cached_bars
+            st.session_state["uploaded_sc_key"]    = f"scid_{','.join(_cache_meta['quarters'])}"
+            st.session_state["scid_loaded_label"]  = (
+                f"{_cache_meta['quarters'][0]}–{_cache_meta['quarters'][-1]}"
+                if len(_cache_meta["quarters"]) > 1 else _cache_meta["quarters"][0]
+            )
+            st.session_state["bar_source"] = "sc_upload"
+            st.session_state.pop("bar_source_radio", None)
+
     st.title("ES Futures — 5-Minute RTH Bars")
 
     hdr_l, hdr_r = st.columns([8, 2])
@@ -202,13 +215,44 @@ def main():
     sc_file = str(CONTRACTS[selected_key]["sc_file"])
     nt_file = str(CONTRACTS[selected_key]["nt_file"])
 
-    reload_col = st.columns([11, 1])[1]
-    if reload_col.button("🔄 Reload", help="Clears all cached data and reloads from disk."):
+    _rl_col, _src_col = st.columns([1, 10])
+    if _rl_col.button("🔄 Reload", help="Clears all uploaded data from session."):
         st.cache_data.clear()
         for k in ("uploaded_sc_bars", "uploaded_sc_ticks", "uploaded_ohlc_bars",
-                  "uploaded_sc_key", "uploaded_ohlc_key", "ba_signals", "ba_signals_key"):
+                  "uploaded_sc_key", "uploaded_ohlc_key", "ba_signals", "ba_signals_key",
+                  "scid_load_summary", "scid_loaded_label", "scid_quarter_map",
+                  "bar_source", "bar_source_radio"):
             st.session_state.pop(k, None)
         st.rerun()
+
+    # ── Source selector — runs BEFORE tabs so bar_source is current on every render ──
+    _sc_on_disk      = bool(sc_file and Path(sc_file).exists())
+    _has_sc_upload   = st.session_state.get("uploaded_sc_bars")  is not None
+    _has_ohlc_upload = st.session_state.get("uploaded_ohlc_bars") is not None
+
+    _source_opts: list[tuple[str, str]] = []
+    if _has_sc_upload:
+        _source_opts.append(("SC Ticks / SCID", "sc_upload"))
+    if _has_ohlc_upload:
+        _source_opts.append(("OHLC bar export", "ohlc_upload"))
+
+    if len(_source_opts) > 1:
+        _src_labels = [s[0] for s in _source_opts]
+        _src_keys   = [s[1] for s in _source_opts]
+        _prev     = st.session_state.get("bar_source", "sc_upload")
+        _prev_idx = _src_keys.index(_prev) if _prev in _src_keys else 0
+        _chosen = _src_col.radio(
+            "Bar data source", _src_labels,
+            index=_prev_idx, horizontal=True, key="bar_source_radio",
+            label_visibility="collapsed",
+        )
+        st.session_state["bar_source"] = _src_keys[_src_labels.index(_chosen)]
+    elif _has_sc_upload:
+        st.session_state["bar_source"] = "sc_upload"
+    elif _has_ohlc_upload:
+        st.session_state["bar_source"] = "ohlc_upload"
+    else:
+        st.session_state["bar_source"] = "none"
 
     tab1, tab2, tab3, tab4 = st.tabs(["📊 Bar Viewer", "🔍 Bar Validation", "📈 Bar Analysis", "📊 Portfolio"])
 
@@ -226,8 +270,8 @@ def main():
             up_l, up_m, up_r = st.columns(3)
 
             tick_file = up_l.file_uploader(
-                "Tick Data (.txt)", type=["txt", "csv"], key="upload_tick",
-                help="SC BarData or NT8 tick export — auto-detected",
+                "Tick Data (.txt / .scid)", type=["txt", "csv", "scid"], key="upload_tick",
+                help="SC BarData (.txt), NT8 tick export (.txt), or Sierra Chart binary (.scid) — auto-detected",
             )
             ohlc_file = up_m.file_uploader(
                 "OHLC 5M bar_export (.txt/.csv)", type=["txt", "csv"], key="upload_ohlc",
@@ -243,25 +287,43 @@ def main():
                 tick_key = f"{tick_file.name}_{tick_file.size}"
                 if st.session_state.get("uploaded_sc_key") != tick_key:
                     tick_file.seek(0)
-                    peek = tick_file.read(200)
-                    if isinstance(peek, bytes):
-                        peek = peek.decode("utf-8", errors="replace")
-                    first_line = peek.split("\n")[0].strip()
+                    magic = tick_file.read(4)
+                    is_scid = magic == b"SCID"
                     tick_file.seek(0)
-                    is_nt = bool(re.match(r"^\d{8} \d{6} \d+;", first_line))
-                    st.caption(f"Parsing {'NT8' if is_nt else 'SC'} tick file ({tick_file.size / 1e6:.0f} MB)…")
+
+                    if is_scid:
+                        fmt_label = "SCID"
+                        is_nt = False
+                    else:
+                        peek = magic + tick_file.read(196)
+                        if isinstance(peek, bytes):
+                            peek = peek.decode("utf-8", errors="replace")
+                        first_line = peek.split("\n")[0].strip()
+                        tick_file.seek(0)
+                        is_nt = bool(re.match(r"^\d{8} \d{6} \d+;", first_line))
+                        fmt_label = "NT8" if is_nt else "SC"
+
+                    st.caption(f"Parsing {fmt_label} tick file ({tick_file.size / 1e6:.0f} MB)…")
                     pbar = st.progress(0)
-                    ticks = parse_nt_ticks_from_upload(tick_file, progress=pbar.progress) if is_nt \
-                            else parse_sc_ticks_from_upload(tick_file)
-                    pbar.progress(1.0)
+                    if is_scid:
+                        ticks = parse_scid_ticks_from_upload(tick_file)
+                        pbar.progress(1.0)
+                    elif is_nt:
+                        ticks = parse_nt_ticks_from_upload(tick_file, progress=pbar.progress)
+                        pbar.progress(1.0)
+                    else:
+                        ticks = parse_sc_ticks_from_upload(tick_file)
+                        pbar.progress(1.0)
                     st.session_state["uploaded_sc_ticks"] = ticks
                     st.session_state["uploaded_sc_bars"]  = resample_ticks_to_bars(ticks)
                     st.session_state["uploaded_sc_key"]   = tick_key
                 n_days = st.session_state["uploaded_sc_bars"]["DateTime"].dt.date.nunique()
                 up_l.caption(f"✅ {tick_file.name}  |  {n_days} days")
             else:
-                for k in ("uploaded_sc_bars", "uploaded_sc_ticks", "uploaded_sc_key"):
-                    st.session_state.pop(k, None)
+                # Only wipe if data came from the uploader — preserve disk-loaded SCID data
+                if not st.session_state.get("uploaded_sc_key", "").startswith("scid_"):
+                    for k in ("uploaded_sc_bars", "uploaded_sc_ticks", "uploaded_sc_key"):
+                        st.session_state.pop(k, None)
 
             # OHLC upload
             if ohlc_file is not None:
@@ -294,37 +356,94 @@ def main():
                 for k in ("ba_signals", "ba_signals_key"):
                     st.session_state.pop(k, None)
 
-        # ── Bar data source selector ──────────────────────────────────────────
-        _sc_on_disk      = bool(sc_file and Path(sc_file).exists())
-        _has_sc_upload   = st.session_state.get("uploaded_sc_bars")  is not None
-        _has_ohlc_upload = st.session_state.get("uploaded_ohlc_bars") is not None
+        # ── SCID disk loader ─────────────────────────────────────────────────
+        if discover_scid_files():
+            with st.expander("📂 Load SCID from Disk", expanded=False):
+                # Build quarter→file map once per session
+                if "scid_quarter_map" not in st.session_state:
+                    with st.spinner("Scanning all SCID files for available quarters…"):
+                        st.session_state["scid_quarter_map"] = build_scid_quarter_map()
+                _q_map = st.session_state["scid_quarter_map"]
 
-        _source_opts: list[tuple[str, str]] = []
-        if _has_sc_upload:
-            _source_opts.append(("SC Ticks (upload)", "sc_upload"))
-        if _has_ohlc_upload:
-            _source_opts.append(("OHLC (upload)", "ohlc_upload"))
-        if _sc_on_disk:
-            _source_opts.append(("SC Ticks (disk)", "sc_disk"))
+                if _q_map:
+                    _all_q = list(_q_map.keys())
+                    st.caption(
+                        f"{len(_all_q)} quarters available across "
+                        f"{len(set(_q_map.values()))} contract files  "
+                        f"({_all_q[0]} – {_all_q[-1]})"
+                    )
+                    ca, cb = st.columns([3, 1])
+                    _sel_q = ca.multiselect(
+                        "Select quarters to load", _all_q,
+                        default=_all_q, key="scid_sel_quarters",
+                        label_visibility="collapsed",
+                    )
+                    if cb.button("Select all", key="scid_sel_all"):
+                        st.session_state["scid_sel_quarters"] = _all_q
+                        st.rerun()
 
-        if len(_source_opts) > 1:
-            _src_labels = [s[0] for s in _source_opts]
-            _src_keys   = [s[1] for s in _source_opts]
-            _prev     = st.session_state.get("bar_source", "none")
-            _prev_idx = _src_keys.index(_prev) if _prev in _src_keys else 0
-            with st.expander("📡 Bar data source", expanded=False):
-                _chosen = st.radio(
-                    "Source", _src_labels,
-                    index=_prev_idx, horizontal=True, key="bar_source_radio",
-                    label_visibility="collapsed",
-                )
-            st.session_state["bar_source"] = _src_keys[_src_labels.index(_chosen)]
-        elif _source_opts and _source_opts[0][1] != "sc_disk":
-            # single upload source → auto-select it
-            st.session_state["bar_source"] = _source_opts[0][1]
-        else:
-            # only sc_disk available or nothing → don't auto-load
-            st.session_state.setdefault("bar_source", "none")
+                    if st.button("Load selected quarters", key="scid_load_btn",
+                                 disabled=not _sel_q):
+                        # Group selected quarters by file
+                        _by_file: dict[Path, set[str]] = {}
+                        for q in _sel_q:
+                            _by_file.setdefault(_q_map[q], set()).add(q)
+
+                        all_ticks = []
+                        pbar    = st.progress(0)
+                        _status = st.empty()
+                        for i, (fpath, fquarters) in enumerate(_by_file.items()):
+                            _status.caption(f"Reading {fpath.stem}… ({i+1}/{len(_by_file)})")
+                            frac_start = i / len(_by_file)
+                            frac_end   = (i + 1) / len(_by_file)
+                            def _prog(x, s=frac_start, e=frac_end):
+                                pbar.progress(s + x * (e - s))
+                            ticks = load_scid_ticks_chunked(fpath, fquarters, progress=_prog)
+                            if not ticks.empty:
+                                all_ticks.append(ticks)
+
+                        _status.empty()
+                        pbar.empty()
+                        if not all_ticks:
+                            st.error("No RTH ticks found for the selected quarters.")
+                        else:
+                            combined = (pd.concat(all_ticks, ignore_index=True)
+                                          .sort_values("DateTime")
+                                          .reset_index(drop=True))
+                            bars = resample_ticks_to_bars(combined)
+                            st.session_state["uploaded_sc_ticks"] = combined
+                            st.session_state["uploaded_sc_bars"]  = bars
+                            st.session_state["uploaded_sc_key"]   = f"scid_{','.join(_sel_q)}"
+                            st.session_state["scid_loaded_label"] = (
+                                f"{_sel_q[0]}–{_sel_q[-1]}" if len(_sel_q) > 1 else _sel_q[0]
+                            )
+                            st.session_state["bar_source"] = "sc_upload"
+                            # Reset the radio widget so it shows "SC Ticks (upload)" on next render
+                            st.session_state.pop("bar_source_radio", None)
+                            n_days = bars["DateTime"].dt.date.nunique()
+                            st.session_state["scid_load_summary"] = (
+                                f"{n_days} trading days  |  {len(_sel_q)} quarters  "
+                                f"({_sel_q[0]}–{_sel_q[-1]})"
+                            )
+                            with st.spinner("Saving Parquet cache…"):
+                                save_scid_cache(combined, _sel_q)
+                            st.rerun()
+
+                    # Persistent status line + cache controls
+                    _summary = st.session_state.get("scid_load_summary")
+                    if _summary:
+                        _s_col, _c_col = st.columns([8, 2])
+                        _s_col.success(f"✅ Loaded — {_summary}  |  Go to **Bar Viewer** or **Bar Validation** tabs.")
+                        if _c_col.button("🗑️ Clear cache", key="scid_clear_cache",
+                                         help="Deletes the on-disk Parquet cache. Next load will re-scan SCID files."):
+                            clear_scid_cache()
+                            for k in ("uploaded_sc_bars", "uploaded_sc_ticks", "uploaded_sc_key",
+                                      "scid_load_summary", "scid_loaded_label"):
+                                st.session_state.pop(k, None)
+                            st.session_state["bar_source"] = "none"
+                            st.rerun()
+                else:
+                    st.warning("No SCID files found in the Sierra Chart data folder.")
 
         bar_analysis.show_bar_analysis(sc_file=sc_file, contract=contract_label, nt_file=nt_file)
 

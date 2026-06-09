@@ -233,38 +233,25 @@ def show_validation_tab(sc_file: str = "", nt_file: str = ""):
     uploaded_sc   = st.session_state.get("uploaded_sc_bars")
     uploaded_ohlc = st.session_state.get("uploaded_ohlc_bars")
 
-    if (uploaded_sc is None and uploaded_ohlc is None
-            and st.session_state.get("bar_source", "none") == "none"):
+    if uploaded_sc is None and uploaded_ohlc is None:
         st.info("Upload data in the **📁 Upload Data** panel in Bar Analysis to begin.")
         return
 
-    if uploaded_sc is not None:
-        sc = uploaded_sc
-        sc_label = "Uploaded SC tick data"
-    else:
-        sc = load_sc_bars(sc_file) if sc_file else load_sc_bars()
-        sc_label = Path(sc_file).name if sc_file else "SC (default)"
-
-    if uploaded_ohlc is not None:
-        nt = uploaded_ohlc
-        nt_label = "Uploaded OHLC bar_export"
-    else:
-        nt_path = Path(nt_file) if nt_file else None
-        if nt_path and not nt_path.exists():
-            st.error(f"NT data file not found:\n`{nt_file}`")
-            return
-        nt = load_nt_bars(nt_file) if nt_file else load_nt_bars()
-        nt_label = Path(nt_file).name if nt_file else "NT (default)"
-
-    if uploaded_sc is not None or uploaded_ohlc is not None:
-        st.caption(f"Data sources — SC: {sc_label}  |  NT/OHLC: {nt_label}")
-
-    if sc.empty:
-        st.warning("No SC bar data available. Upload a tick file in the 📁 Upload Data panel.")
+    if uploaded_sc is None:
+        st.info("Upload SCID/SC tick data in the **📁 Upload Data** panel to populate the left side.")
         return
-    if nt.empty:
-        st.warning("No NT/OHLC bar data available. Check that the NT file exists or upload an OHLC bar_export.")
+
+    if uploaded_ohlc is None:
+        st.info("Upload an **OHLC bar export** (NT8 TXT) in the **📁 Upload Data** panel to compare against the SCID bars.")
         return
+
+    scid_label = st.session_state.get("scid_loaded_label")
+    sc_label   = f"SCID — {scid_label}" if scid_label else "Uploaded SC/SCID tick data"
+    nt_label   = "Uploaded OHLC bar_export"
+    sc = uploaded_sc
+    nt = uploaded_ohlc
+
+    st.caption(f"Data sources — SC: {sc_label}  |  NT/OHLC: {nt_label}")
 
     sc_dates = sc["DateTime"].dt.date
     nt_dates = nt["DateTime"].dt.date

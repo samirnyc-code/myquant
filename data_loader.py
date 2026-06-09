@@ -1,4 +1,6 @@
 from pathlib import Path
+import struct
+import numpy as np
 import pandas as pd
 import streamlit as st
 import exchange_calendars as xcals
@@ -260,9 +262,220 @@ def parse_sc_ticks_from_upload(uploaded_file) -> pd.DataFrame:
     return pd.concat(chunks, ignore_index=True).sort_values("DateTime").reset_index(drop=True)
 
 
+_SCID_MAGIC = b"SCID"
+# SCDateTimeMS is int64 microseconds since 1899-12-30 UTC (not an OLE double)
+_SCID_BASE_NS = pd.Timestamp("1899-12-30", tz="UTC").value  # epoch-ns
+_SCID_DTYPE = np.dtype([
+    ("DateTime",    "<i8"),   # int64 us since 1899-12-30 UTC
+    ("Open",        "<f4"),
+    ("High",        "<f4"),
+    ("Low",         "<f4"),
+    ("Close",       "<f4"),
+    ("NumTrades",   "<u4"),
+    ("TotalVolume", "<u4"),
+    ("BidVolume",   "<u4"),
+    ("AskVolume",   "<u4"),
+])  # 40 bytes per record
+
+
+def _scid_us_to_ct(us: np.ndarray) -> pd.DatetimeIndex:
+    """SCDateTimeMS (int64 us since 1899-12-30 UTC) -> tz-naive Chicago datetime."""
+    ns = _SCID_BASE_NS + us * np.int64(1_000)
+    return pd.DatetimeIndex(ns, tz="UTC").tz_convert("America/Chicago").tz_localize(None)
+
+
+def parse_scid_ticks_from_upload(uploaded_file) -> pd.DataFrame:
+    """Parse a Sierra Chart binary .scid intraday file.
+    Returns RTH ticks as DataFrame: DateTime (CT, tz-naive), Price, Volume."""
+    uploaded_file.seek(0)
+    raw = uploaded_file.read()
+
+    if raw[:4] != _SCID_MAGIC:
+        raise ValueError("Not a valid SCID file — missing 'SCID' magic bytes")
+
+    header_size = struct.unpack_from("<I", raw, 4)[0]
+    record_size = struct.unpack_from("<I", raw, 8)[0]
+    if record_size != 40:
+        raise ValueError(f"Unsupported SCID record size {record_size} (expected 40)")
+
+    rec_bytes = raw[header_size:]
+    n = len(rec_bytes) // record_size
+    if n == 0:
+        return pd.DataFrame(columns=["DateTime", "Price", "Volume"])
+
+    records = np.frombuffer(rec_bytes[: n * record_size], dtype=_SCID_DTYPE)
+    valid = records["DateTime"] > 0   # skip filler records with timestamp == 0
+    records = records[valid]
+    dt_ct = _scid_us_to_ct(records["DateTime"])
+
+    df = pd.DataFrame({
+        "DateTime": dt_ct,
+        "Price":    records["Close"].astype("float64"),
+        "Volume":   records["TotalVolume"].astype("int32"),
+    })
+
+    t = df["DateTime"].dt.strftime("%H:%M:%S")
+    df = df[(t >= RTH_START) & (t <= RTH_END)]
+    return df.sort_values("DateTime").reset_index(drop=True)
+
+
+SCID_DATA_DIR  = Path(r"C:\Users\Admin\Desktop\NT Code Versions\ChartMarker_Files\Data")
+SCID_CACHE_DIR = SCID_DATA_DIR / "_scid_cache"
+
+_SCID_CHUNK_RECS = 262_144  # ~10 MB per chunk (262144 * 40 bytes)
+
+
+# ── Parquet cache helpers ─────────────────────────────────────────────────────
+
+def save_scid_cache(ticks: pd.DataFrame, quarters: list[str]) -> None:
+    """Persist ticks to Parquet so the next app start loads instantly."""
+    import json
+    SCID_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    ticks.to_parquet(SCID_CACHE_DIR / "ticks.parquet", index=False, compression="snappy")
+    meta = {
+        "quarters": sorted(quarters),
+        "n_ticks":  len(ticks),
+        "saved_at": pd.Timestamp.now().isoformat(timespec="seconds"),
+    }
+    (SCID_CACHE_DIR / "meta.json").write_text(json.dumps(meta))
+
+
+def load_scid_cache() -> tuple:
+    """Load cached ticks from Parquet. Returns (ticks_df, meta_dict) or (None, None)."""
+    import json
+    meta_path  = SCID_CACHE_DIR / "meta.json"
+    ticks_path = SCID_CACHE_DIR / "ticks.parquet"
+    if not meta_path.exists() or not ticks_path.exists():
+        return None, None
+    meta  = json.loads(meta_path.read_text())
+    ticks = pd.read_parquet(ticks_path)
+    return ticks, meta
+
+
+def clear_scid_cache() -> None:
+    """Delete the on-disk Parquet cache."""
+    import shutil
+    if SCID_CACHE_DIR.exists():
+        shutil.rmtree(SCID_CACHE_DIR)
+
+
+def discover_scid_files() -> list[tuple[str, Path]]:
+    """Return sorted (display_name, path) pairs for ES .scid files in SCID_DATA_DIR."""
+    if not SCID_DATA_DIR.exists():
+        return []
+    return sorted(
+        [(p.stem, p) for p in SCID_DATA_DIR.glob("ES*.scid")],
+        key=lambda x: x[0],
+    )
+
+
+def _scid_sample_quarters(path: Path) -> set[str]:
+    """Sample one SCID file and return the set of 'YYYYQN' quarter strings it contains."""
+    with open(path, "rb") as f:
+        hdr_bytes = f.read(56)
+        hdr = struct.unpack_from("<I", hdr_bytes, 4)[0]
+        rec = struct.unpack_from("<I", hdr_bytes, 8)[0]
+        file_size = f.seek(0, 2)
+    total = (file_size - hdr) // rec
+    if total == 0:
+        return set()
+
+    sample_idx = np.linspace(0, total - 1, min(500, total), dtype=np.int64)
+    quarters: set[str] = set()
+    with open(path, "rb") as f:
+        for idx in sample_idx:
+            f.seek(hdr + int(idx) * rec)
+            raw = f.read(8)
+            if len(raw) < 8:
+                continue
+            us = struct.unpack_from("<q", raw)[0]
+            if us <= 0:
+                continue
+            ns = _SCID_BASE_NS + us * 1_000
+            dt = pd.Timestamp(ns, tz="UTC").tz_convert("America/Chicago").tz_localize(None)
+            quarters.add(dt.to_period("Q").strftime("%YQ%q"))
+    return quarters
+
+
+def build_scid_quarter_map() -> dict[str, Path]:
+    """Scan all ES SCID files and return a {quarter: path} mapping.
+    When a quarter appears in multiple files the later contract takes precedence."""
+    q_map: dict[str, Path] = {}
+    for _name, path in discover_scid_files():
+        for q in _scid_sample_quarters(path):
+            q_map[q] = path
+    return dict(sorted(q_map.items()))
+
+
+def load_scid_ticks_chunked(
+    path: Path,
+    quarters: set[str],
+    progress=None,
+) -> pd.DataFrame:
+    """Read a SCID file from disk in ~10 MB chunks.
+    Keeps only RTH ticks whose quarter (YYYYQN) is in `quarters`.
+    progress: optional callable(fraction 0-1).
+    Returns DataFrame: DateTime (CT, tz-naive), Price, Volume."""
+    with open(path, "rb") as f:
+        hdr_bytes = f.read(56)
+        hdr = struct.unpack_from("<I", hdr_bytes, 4)[0]
+        rec = struct.unpack_from("<I", hdr_bytes, 8)[0]
+        file_size = f.seek(0, 2)
+
+    if rec != 40:
+        raise ValueError(f"Unsupported SCID record size {rec}")
+
+    total_recs = (file_size - hdr) // rec
+    chunks_out = []
+
+    with open(path, "rb") as f:
+        f.seek(hdr)
+        recs_read = 0
+        while True:
+            raw = f.read(_SCID_CHUNK_RECS * rec)
+            if not raw:
+                break
+            n = len(raw) // rec
+            records = np.frombuffer(raw[: n * rec], dtype=_SCID_DTYPE)
+            valid = records["DateTime"] > 0
+            records = records[valid]
+            if len(records) == 0:
+                recs_read += n
+                if progress and total_recs:
+                    progress(min(recs_read / total_recs, 0.99))
+                continue
+
+            dt_ct = _scid_us_to_ct(records["DateTime"])
+            t_str = dt_ct.strftime("%H:%M:%S")
+            q_str = pd.PeriodIndex(dt_ct, freq="Q").strftime("%YQ%q")
+
+            rth_mask = (t_str >= RTH_START) & (t_str <= RTH_END)
+            q_mask   = np.isin(q_str, list(quarters))
+            keep     = rth_mask & q_mask
+
+            if keep.any():
+                chunks_out.append(pd.DataFrame({
+                    "DateTime": dt_ct[keep],
+                    "Price":    records["Close"][keep].astype("float64"),
+                    "Volume":   records["TotalVolume"][keep].astype("int32"),
+                }))
+
+            recs_read += n
+            if progress and total_recs:
+                progress(min(recs_read / total_recs, 0.99))
+
+    if progress:
+        progress(1.0)
+    if not chunks_out:
+        return pd.DataFrame(columns=["DateTime", "Price", "Volume"])
+    return (pd.concat(chunks_out, ignore_index=True)
+              .sort_values("DateTime")
+              .reset_index(drop=True))
+
+
 def parse_ohlc_from_upload(uploaded_file) -> pd.DataFrame:
-    """Parse bar_export OHLC file: DD/MM/YYYY HH:MM:SS;O;H;L;C;V (same layout as NT file on disk).
-    Timestamps are Berlin close times → converted to CT open times (−7h −5min).
+    """Parse NT8 bar_export OHLC file: DD/MM/YYYY HH:MM:SS;O;H;L;C;V
+    Timestamps are CT bar CLOSE times → subtract 5 min → CT bar OPEN times.
     Non-data rows (dashes, headers) are silently dropped."""
     uploaded_file.seek(0)
     df = pd.read_csv(
@@ -279,18 +492,29 @@ def parse_ohlc_from_upload(uploaded_file) -> pd.DataFrame:
     df["Volume"] = pd.to_numeric(df["Volume"], errors="coerce").fillna(0)
     df["NullVol"] = df["Volume"].isna()
 
-    # Try DD/MM/YYYY first (NinjaScript Output format); fall back to MM/DD/YYYY
+    # Try DD/MM/YYYY first; fall back to MM/DD/YYYY
     dt_parsed = pd.to_datetime(df["DateTime"], format="%d/%m/%Y %H:%M:%S", errors="coerce")
     if dt_parsed.isna().mean() > 0.5:
         dt_parsed = pd.to_datetime(df["DateTime"], format="%m/%d/%Y %H:%M:%S", errors="coerce")
 
-    df["DateTime"] = (
-        dt_parsed
-        .dt.tz_localize("Europe/Berlin")
-        .dt.tz_convert("America/Chicago")
-        .dt.tz_localize(None)
-        - pd.Timedelta(minutes=5)
-    )
+    # Auto-detect timezone format from median hour of valid rows:
+    # CT close times cluster around 08:35–15:15 (median ≈ 11–12)
+    # Berlin close times cluster around 15:35–22:15 (median ≈ 18–19)
+    valid_hours = dt_parsed.dropna().dt.hour
+    is_berlin = valid_hours.median() > 14 if not valid_hours.empty else False
+
+    if is_berlin:
+        df["DateTime"] = (
+            dt_parsed
+            .dt.tz_localize("Europe/Berlin")
+            .dt.tz_convert("America/Chicago")
+            .dt.tz_localize(None)
+            - pd.Timedelta(minutes=5)
+        )
+    else:
+        # CT close times — just subtract 5 min to get open times
+        df["DateTime"] = dt_parsed - pd.Timedelta(minutes=5)
+
     df = df.dropna(subset=["DateTime", "Open"])
     t = df["DateTime"].dt.time
     df = df[
