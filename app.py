@@ -33,31 +33,60 @@ st.markdown("""
 
 def make_candlestick(df: pd.DataFrame, date_str: str,
                      show_bar_nums: bool = False,
+                     show_volume: bool = False,
                      excl_first_n: int = 0, excl_last_min: int = 0,
                      contract: str = "ES") -> go.Figure:
-    fig = go.Figure(
-        go.Candlestick(
-            x=df["DateTime"],
-            open=df["Open"],
-            high=df["High"],
-            low=df["Low"],
-            close=df["Close"],
-            name=contract,
-            increasing_line_color="#26a69a",
-            decreasing_line_color="#ef5350",
+    candle = go.Candlestick(
+        x=df["DateTime"],
+        open=df["Open"], high=df["High"],
+        low=df["Low"],   close=df["Close"],
+        name=contract,
+        increasing_line_color="#26a69a",
+        decreasing_line_color="#ef5350",
+    )
+
+    if show_volume:
+        from plotly.subplots import make_subplots
+        fig = make_subplots(
+            rows=2, cols=1,
+            shared_xaxes=True,
+            row_heights=[0.75, 0.25],
+            vertical_spacing=0.02,
         )
-    )
-    fig.update_layout(
-        title=f"{contract} — 5-Min RTH Bars  ({date_str})",
-        xaxis_title="Time (CT)",
-        yaxis_title="Price",
-        xaxis_rangeslider_visible=False,
-        xaxis=dict(tickformat="%H:%M", dtick=15 * 60 * 1000, tickangle=-45),
-        yaxis=dict(autorange=True),
-        height=520,
-        margin=dict(l=50, r=20, t=60, b=60),
-        template="plotly_white",
-    )
+        fig.add_trace(candle, row=1, col=1)
+        vol_colors = [
+            "#26a69a" if c >= o else "#ef5350"
+            for o, c in zip(df["Open"], df["Close"])
+        ]
+        fig.add_trace(
+            go.Bar(x=df["DateTime"], y=df["Volume"],
+                   marker_color=vol_colors, showlegend=False, name="Volume"),
+            row=2, col=1,
+        )
+        fig.update_layout(
+            title=f"{contract} — 5-Min RTH Bars  ({date_str})",
+            xaxis_rangeslider_visible=False,
+            xaxis2=dict(tickformat="%H:%M", dtick=15 * 60 * 1000, tickangle=-45),
+            yaxis=dict(autorange=True, title="Price"),
+            yaxis2=dict(tickformat=",d", title="Vol"),
+            height=640,
+            margin=dict(l=50, r=20, t=60, b=60),
+            template="plotly_white",
+        )
+    else:
+        fig = go.Figure(candle)
+        fig.update_layout(
+            title=f"{contract} — 5-Min RTH Bars  ({date_str})",
+            xaxis_title="Time (CT)",
+            yaxis_title="Price",
+            xaxis_rangeslider_visible=False,
+            xaxis=dict(tickformat="%H:%M", dtick=15 * 60 * 1000, tickangle=-45),
+            yaxis=dict(autorange=True),
+            height=520,
+            margin=dict(l=50, r=20, t=60, b=60),
+            template="plotly_white",
+        )
+
     half  = pd.Timedelta(minutes=2, seconds=30)
     shade = dict(fillcolor="rgba(180,180,180,0.15)", line_width=0, layer="below")
     if excl_first_n > 0 and excl_first_n <= len(df):
@@ -148,13 +177,17 @@ def show_bar_viewer(sc_file: str = "", contract: str = "ES"):
     m5.metric("Change",       f"{chg:+.2f}", f"{chg_pct:+.2f}%")
     m6.metric("Total Volume", f"{day_vol:,.0f}")
 
-    show_bar_nums = st.checkbox("Show bar numbers", value=False,
-                                help="Labels every 3rd bar (1, 4, 7…) below the x-axis.")
+    cb1, cb2 = st.columns(2)
+    show_bar_nums = cb1.checkbox("Show bar numbers", value=False,
+                                  help="Labels every 3rd bar (1, 4, 7…) below the x-axis.")
+    show_volume   = cb2.checkbox("Show volume", value=False,
+                                  help="Adds a colour-coded volume panel below the price chart.")
     excl_first_n  = st.session_state.get("excl_first_n",  0)
     excl_last_min = st.session_state.get("excl_last_min", 0)
     st.plotly_chart(
         make_candlestick(day, selected_date.strftime("%B %d, %Y"),
                          show_bar_nums=show_bar_nums,
+                         show_volume=show_volume,
                          excl_first_n=excl_first_n, excl_last_min=excl_last_min,
                          contract=contract),
         use_container_width=True,
