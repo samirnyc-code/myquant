@@ -322,34 +322,101 @@ def parse_scid_ticks_from_upload(uploaded_file) -> pd.DataFrame:
 SCID_DATA_DIR  = Path(r"C:\Users\Admin\Desktop\NT Code Versions\ChartMarker_Files\Data")
 SCID_CACHE_DIR = SCID_DATA_DIR / "_scid_cache"
 
-_SCID_CHUNK_RECS = 262_144  # ~10 MB per chunk (262144 * 40 bytes)
+_SCID_CHUNK_RECS = 2_097_152  # ~80 MB per chunk (2M * 40 bytes)
+
+# Integer UTC time-of-day bounds covering both CDT (UTC-5) and CST (UTC-6) RTH windows.
+# CDT RTH: 08:30–15:15 CT = 13:30–20:15 UTC
+# CST RTH: 08:30–15:15 CT = 14:30–21:15 UTC
+# Conservative window eliminates ~65% of ETH records before any tz conversion.
+_PRE_RTH_START_US = 13 * 3_600_000_000                     # 13:00 UTC in microseconds
+_PRE_RTH_END_US   = 21 * 3_600_000_000 + 30 * 60_000_000   # 21:30 UTC in microseconds
+
+_RTH_START_SEC = 8 * 3600 + 30 * 60   # 30600 — 08:30:00 CT
+_RTH_END_SEC   = 15 * 3600 + 15 * 60  # 54900 — 15:15:00 CT
 
 
 # ── Parquet cache helpers ─────────────────────────────────────────────────────
 
 def save_scid_cache(ticks: pd.DataFrame, quarters: list[str]) -> None:
-    """Persist ticks to Parquet so the next app start loads instantly."""
+    """Write one Parquet file per quarter into the cache directory."""
+    SCID_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    if not ticks.empty:
+        yq_int = ticks["DateTime"].dt.year * 10 + ((ticks["DateTime"].dt.month - 1) // 3 + 1)
+        for q in quarters:
+            yr, qn = int(q[:4]), int(q[5])
+            subset = ticks[yq_int == yr * 10 + qn].reset_index(drop=True)
+            if not subset.empty:
+                subset.to_parquet(SCID_CACHE_DIR / f"{q}.parquet",
+                                  index=False, compression="snappy")
+
+
+def save_last_selection(quarters: list[str]) -> None:
+    """Persist the last quarter selection so app startup can auto-reload it."""
     import json
     SCID_CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    ticks.to_parquet(SCID_CACHE_DIR / "ticks.parquet", index=False, compression="snappy")
+    (SCID_CACHE_DIR / "last_selection.json").write_text(
+        json.dumps({"quarters": sorted(quarters),
+                    "saved_at": pd.Timestamp.now().isoformat(timespec="seconds")})
+    )
+
+
+def list_cached_quarters() -> list[str]:
+    """Return sorted list of quarters that have a Parquet file in the cache."""
+    if not SCID_CACHE_DIR.exists():
+        return []
+    return sorted(p.stem for p in SCID_CACHE_DIR.glob("????Q?.parquet"))
+
+
+def load_quarters_from_cache(quarters: list[str]) -> tuple:
+    """Load specific quarters from per-quarter Parquet files.
+    Returns (ticks_df, meta) or (None, None) if none are cached.
+    Each Parquet is already sorted; loading in quarter order means no global sort needed."""
+    cached = set(list_cached_quarters())
+    to_load = sorted(q for q in quarters if q in cached)
+    if not to_load:
+        return None, None
+    dfs = [pd.read_parquet(SCID_CACHE_DIR / f"{q}.parquet") for q in to_load]
+    ticks = pd.concat(dfs, ignore_index=True)
     meta = {
-        "quarters": sorted(quarters),
+        "quarters": to_load,
         "n_ticks":  len(ticks),
         "saved_at": pd.Timestamp.now().isoformat(timespec="seconds"),
     }
-    (SCID_CACHE_DIR / "meta.json").write_text(json.dumps(meta))
+    return ticks, meta
+
+
+def build_bars_from_cache(quarters: list[str]) -> pd.DataFrame:
+    """Build 5-min bars from cached quarters one at a time — never holds more than
+    one quarter of ticks in memory. Use this for large quarter ranges."""
+    cached = set(list_cached_quarters())
+    bars_list = []
+    for q in sorted(quarters):
+        if q not in cached:
+            continue
+        ticks = pd.read_parquet(SCID_CACHE_DIR / f"{q}.parquet")
+        if not ticks.empty:
+            bars_list.append(resample_ticks_to_bars(ticks))
+    if not bars_list:
+        return pd.DataFrame(columns=["DateTime", "Open", "High", "Low", "Close", "Volume"])
+    return pd.concat(bars_list, ignore_index=True).reset_index(drop=True)
 
 
 def load_scid_cache() -> tuple:
-    """Load cached ticks from Parquet. Returns (ticks_df, meta_dict) or (None, None)."""
+    """Load the last-selected quarters from per-quarter Parquet cache.
+    Falls back to the legacy single-file ticks.parquet if new format not present."""
     import json
+    sel_path = SCID_CACHE_DIR / "last_selection.json"
+    if sel_path.exists():
+        sel = json.loads(sel_path.read_text())
+        ticks, meta = load_quarters_from_cache(sel.get("quarters", []))
+        if ticks is not None:
+            return ticks, meta
+    # Legacy fallback — single-file cache written by the old save_scid_cache
     meta_path  = SCID_CACHE_DIR / "meta.json"
     ticks_path = SCID_CACHE_DIR / "ticks.parquet"
-    if not meta_path.exists() or not ticks_path.exists():
-        return None, None
-    meta  = json.loads(meta_path.read_text())
-    ticks = pd.read_parquet(ticks_path)
-    return ticks, meta
+    if meta_path.exists() and ticks_path.exists():
+        return pd.read_parquet(ticks_path), json.loads(meta_path.read_text())
+    return None, None
 
 
 def clear_scid_cache() -> None:
@@ -412,14 +479,15 @@ def load_scid_ticks_chunked(
     quarters: set[str],
     progress=None,
 ) -> pd.DataFrame:
-    """Read a SCID file from disk in ~10 MB chunks.
+    """Read a SCID file from disk in 80 MB chunks.
+    Integer UTC pre-filter eliminates ~65% of ETH records before timezone conversion.
     Keeps only RTH ticks whose quarter (YYYYQN) is in `quarters`.
     progress: optional callable(fraction 0-1).
     Returns DataFrame: DateTime (CT, tz-naive), Price, Volume."""
     with open(path, "rb") as f:
         hdr_bytes = f.read(56)
-        hdr = struct.unpack_from("<I", hdr_bytes, 4)[0]
-        rec = struct.unpack_from("<I", hdr_bytes, 8)[0]
+        hdr      = struct.unpack_from("<I", hdr_bytes, 4)[0]
+        rec      = struct.unpack_from("<I", hdr_bytes, 8)[0]
         file_size = f.seek(0, 2)
 
     if rec != 40:
@@ -427,6 +495,9 @@ def load_scid_ticks_chunked(
 
     total_recs = (file_size - hdr) // rec
     chunks_out = []
+    # Precompute allowed (year*10 + quarter_num) ints for vectorised quarter filter
+    allowed_yq = (np.array([int(q[:4]) * 10 + int(q[5]) for q in quarters])
+                  if quarters else None)
 
     with open(path, "rb") as f:
         f.seek(hdr)
@@ -435,23 +506,41 @@ def load_scid_ticks_chunked(
             raw = f.read(_SCID_CHUNK_RECS * rec)
             if not raw:
                 break
-            n = len(raw) // rec
+            n       = len(raw) // rec
             records = np.frombuffer(raw[: n * rec], dtype=_SCID_DTYPE)
-            valid = records["DateTime"] > 0
-            records = records[valid]
+
+            # drop sentinel/invalid records
+            records = records[records["DateTime"] > 0]
             if len(records) == 0:
                 recs_read += n
                 if progress and total_recs:
                     progress(min(recs_read / total_recs, 0.99))
                 continue
 
-            dt_ct = _scid_us_to_ct(records["DateTime"])
-            t_str = dt_ct.strftime("%H:%M:%S")
-            q_str = pd.PeriodIndex(dt_ct, freq="Q").strftime("%YQ%q")
+            # integer UTC time-of-day pre-filter — no tz conversion, drops ~65% of ETH records
+            tod = records["DateTime"] % 86_400_000_000
+            records = records[(tod >= _PRE_RTH_START_US) & (tod <= _PRE_RTH_END_US)]
+            if len(records) == 0:
+                recs_read += n
+                if progress and total_recs:
+                    progress(min(recs_read / total_recs, 0.99))
+                continue
 
-            rth_mask = (t_str >= RTH_START) & (t_str <= RTH_END)
-            q_mask   = np.isin(q_str, list(quarters))
-            keep     = rth_mask & q_mask
+            # timezone conversion only on the surviving ~35%
+            dt_ct = _scid_us_to_ct(records["DateTime"])
+
+            # integer RTH check — no strftime, equivalent to >= "08:30:00" and <= "15:15:00"
+            ts_sec = (dt_ct.hour.values * 3600
+                      + dt_ct.minute.values * 60
+                      + dt_ct.second.values)
+            rth_mask = (ts_sec >= _RTH_START_SEC) & (ts_sec <= _RTH_END_SEC)
+
+            # vectorised quarter filter
+            if allowed_yq is not None:
+                yq_int = dt_ct.year.values * 10 + (dt_ct.month.values - 1) // 3 + 1
+                keep   = rth_mask & np.isin(yq_int, allowed_yq)
+            else:
+                keep = rth_mask
 
             if keep.any():
                 chunks_out.append(pd.DataFrame({

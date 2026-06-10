@@ -7,7 +7,8 @@ from data_loader import (load_sc_bars, CONTRACTS, bar_num_from_dt,
                          parse_scid_ticks_from_upload,
                          resample_ticks_to_bars, parse_ohlc_from_upload,
                          discover_scid_files, build_scid_quarter_map, load_scid_ticks_chunked,
-                         save_scid_cache, load_scid_cache, clear_scid_cache)
+                         save_scid_cache, save_last_selection, load_scid_cache, clear_scid_cache,
+                         list_cached_quarters, load_quarters_from_cache, build_bars_from_cache)
 import validation
 import bar_analysis
 import portfolio
@@ -367,10 +368,15 @@ def main():
 
                 if _q_map:
                     _all_q = list(_q_map.keys())
+                    # Apply "Select all" flag before the widget is instantiated
+                    if st.session_state.pop("_scid_select_all", False):
+                        st.session_state["scid_sel_quarters"] = _all_q
+                    _n_cached = sum(1 for q in _all_q if q in set(list_cached_quarters()))
                     st.caption(
                         f"{len(_all_q)} quarters available across "
                         f"{len(set(_q_map.values()))} contract files  "
-                        f"({_all_q[0]} – {_all_q[-1]})"
+                        f"({_all_q[0]} – {_all_q[-1]})  ·  "
+                        f"{_n_cached} cached (instant load)"
                     )
                     ca, cb = st.columns([3, 1])
                     _sel_q = ca.multiselect(
@@ -379,64 +385,86 @@ def main():
                         label_visibility="collapsed",
                     )
                     if cb.button("Select all", key="scid_sel_all"):
-                        st.session_state["scid_sel_quarters"] = _all_q
+                        st.session_state["_scid_select_all"] = True
                         st.rerun()
 
                     if st.button("Load selected quarters", key="scid_load_btn",
                                  disabled=not _sel_q):
-                        # Group selected quarters by file
-                        _by_file: dict[Path, set[str]] = {}
-                        for q in _sel_q:
-                            _by_file.setdefault(_q_map[q], set()).add(q)
+                        _cached_q_set = set(list_cached_quarters())
+                        _need_scid    = [q for q in _sel_q if q not in _cached_q_set]
 
-                        all_ticks = []
-                        pbar    = st.progress(0)
-                        _status = st.empty()
-                        for i, (fpath, fquarters) in enumerate(_by_file.items()):
-                            _status.caption(f"Reading {fpath.stem}… ({i+1}/{len(_by_file)})")
-                            frac_start = i / len(_by_file)
-                            frac_end   = (i + 1) / len(_by_file)
-                            def _prog(x, s=frac_start, e=frac_end):
-                                pbar.progress(s + x * (e - s))
-                            ticks = load_scid_ticks_chunked(fpath, fquarters, progress=_prog)
-                            if not ticks.empty:
-                                all_ticks.append(ticks)
+                        # ── Parse from raw SCID only for quarters not yet cached ──
+                        if _need_scid:
+                            _by_file: dict[Path, set[str]] = {}
+                            for q in _need_scid:
+                                _by_file.setdefault(_q_map[q], set()).add(q)
 
-                        _status.empty()
-                        pbar.empty()
-                        if not all_ticks:
-                            st.error("No RTH ticks found for the selected quarters.")
+                            all_new = []
+                            pbar    = st.progress(0)
+                            _status = st.empty()
+                            for i, (fpath, fquarters) in enumerate(_by_file.items()):
+                                _status.caption(f"Reading {fpath.stem}… ({i+1}/{len(_by_file)})")
+                                frac_start = i / len(_by_file)
+                                frac_end   = (i + 1) / len(_by_file)
+                                def _prog(x, s=frac_start, e=frac_end):
+                                    pbar.progress(s + x * (e - s))
+                                ticks = load_scid_ticks_chunked(fpath, set(fquarters), progress=_prog)
+                                if not ticks.empty:
+                                    all_new.append(ticks)
+                            _status.empty()
+                            pbar.empty()
+
+                            if all_new:
+                                new_ticks = (pd.concat(all_new, ignore_index=True)
+                                               .sort_values("DateTime").reset_index(drop=True))
+                                with st.spinner("Saving to Parquet cache…"):
+                                    save_scid_cache(new_ticks, _need_scid)
+                            elif not (_cached_q_set & set(_sel_q)):
+                                st.error("No RTH ticks found for the selected quarters.")
+                                st.stop()
+
+                        # ── Load from Parquet cache ──
+                        # >16 quarters: build bars one quarter at a time to avoid OOM.
+                        # ≤16 quarters: load full ticks (needed for tick-level simulation).
+                        _TICK_Q_LIMIT = 16
+                        if len(_sel_q) > _TICK_Q_LIMIT:
+                            with st.spinner(f"Building 5-min bars from {len(_sel_q)} quarters…"):
+                                bars = build_bars_from_cache(_sel_q)
+                            combined = pd.DataFrame(columns=["DateTime", "Price", "Volume"])
                         else:
-                            combined = (pd.concat(all_ticks, ignore_index=True)
-                                          .sort_values("DateTime")
-                                          .reset_index(drop=True))
-                            bars = resample_ticks_to_bars(combined)
-                            st.session_state["uploaded_sc_ticks"] = combined
-                            st.session_state["uploaded_sc_bars"]  = bars
-                            st.session_state["uploaded_sc_key"]   = f"scid_{','.join(_sel_q)}"
-                            st.session_state["scid_loaded_label"] = (
-                                f"{_sel_q[0]}–{_sel_q[-1]}" if len(_sel_q) > 1 else _sel_q[0]
-                            )
-                            st.session_state["bar_source"] = "sc_upload"
-                            # Reset the radio widget so it shows "SC Ticks (upload)" on next render
-                            st.session_state.pop("bar_source_radio", None)
-                            n_days = bars["DateTime"].dt.date.nunique()
-                            st.session_state["scid_load_summary"] = (
-                                f"{n_days} trading days  |  {len(_sel_q)} quarters  "
-                                f"({_sel_q[0]}–{_sel_q[-1]})"
-                            )
-                            with st.spinner("Saving Parquet cache…"):
-                                save_scid_cache(combined, _sel_q)
-                            st.rerun()
+                            with st.spinner(f"Loading {len(_sel_q)} quarters from cache…"):
+                                combined, _meta = load_quarters_from_cache(_sel_q)
+                            if combined is None or combined.empty:
+                                st.error("No ticks found — check Parquet cache.")
+                                st.stop()
+                            with st.spinner("Building 5-min bars…"):
+                                bars = resample_ticks_to_bars(combined)
+                        if bars.empty:
+                            st.error("No bars produced — check Parquet cache.")
+                            st.stop()
+                        st.session_state["uploaded_sc_ticks"] = combined
+                        st.session_state["uploaded_sc_bars"]  = bars
+                        st.session_state["uploaded_sc_key"]   = f"scid_{','.join(_sel_q)}"
+                        st.session_state["scid_loaded_label"] = (
+                            f"{_sel_q[0]}–{_sel_q[-1]}" if len(_sel_q) > 1 else _sel_q[0]
+                        )
+                        st.session_state["bar_source"] = "sc_upload"
+                        st.session_state.pop("bar_source_radio", None)
+                        n_days = bars["DateTime"].dt.date.nunique()
+                        st.session_state["scid_load_summary"] = (
+                            f"{n_days} trading days  |  {len(_sel_q)} quarters  "
+                            f"({_sel_q[0]}–{_sel_q[-1]})"
+                        )
+                        save_last_selection(_sel_q)
+                        st.rerun()
 
                     # Persistent status line + cache controls
                     _summary = st.session_state.get("scid_load_summary")
                     if _summary:
                         _s_col, _c_col = st.columns([8, 2])
                         _s_col.success(f"✅ Loaded — {_summary}  |  Go to **Bar Viewer** or **Bar Validation** tabs.")
-                        if _c_col.button("🗑️ Clear cache", key="scid_clear_cache",
-                                         help="Deletes the on-disk Parquet cache. Next load will re-scan SCID files."):
-                            clear_scid_cache()
+                        if _c_col.button("⏏️ Unload", key="scid_clear_cache",
+                                         help="Clears loaded data from this session. Parquet cache on disk is kept."):
                             for k in ("uploaded_sc_bars", "uploaded_sc_ticks", "uploaded_sc_key",
                                       "scid_load_summary", "scid_loaded_label"):
                                 st.session_state.pop(k, None)
