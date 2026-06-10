@@ -1,6 +1,6 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** June 9, 2026 (session 5)
+**Last Updated:** June 10, 2026 (session 6)
 **Current Versions:** SIM_v3.3 / GS_v4.5 / SHEET_v3.3  
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 
@@ -235,30 +235,56 @@ Slippage ticks for multileg: derived as `round(slippage_total_usd / tick_value)`
 
 ---
 
-## SCID Data System (Session 5 — June 9, 2026)
+## SCID Data System (Session 6 — June 10, 2026)
+
+### Architecture Decision — 1-Second OHLCV (locked)
+
+**Previous approach:** tick SCID files (individual trades) — deleted June 10, 2026 (108 GB).  
+**New approach:** 1-second OHLCV bars stored in SCID format.
+
+**Rationale:**
+- 5-minute bar simulation with conservative same-bar priority (Stop > T1 > PB) is too coarse — same-bar conflicts are frequent with tight stops
+- Tick data (108 GB, weeks to download) is impractical
+- 1-second bars (~210 MB/quarter, ~14 GB total) give simulation granularity sufficient to eliminate same-bar ambiguity while remaining practical to download and store
+- 1-minute bars are NOT sufficient — ES 1-min range frequently spans both stop and target simultaneously
+
+**Simulation design (to be built):**
+- 5-minute bars: built from 1-second bars for charting/display only
+- Simulation engine: scans 1-second bars sequentially within each 5-minute signal window to detect stop/target/PB hits in order
+
+**Data to download:** Configure Sierra Chart to store 1-second OHLCV for all ES quarterly contracts (ESZ09–ESM26). Request historical data from SC.
 
 ### SCID Disk Loader
 
 **Data directory:** `C:\Users\Admin\Desktop\NT Code Versions\ChartMarker_Files\Data`  
 **Defined as:** `SCID_DATA_DIR` in `data_loader.py`
 
-**Functions:**
-- `build_scid_quarter_map()` — scans SCID_DATA_DIR for `*.scid` files, reads first/last record of each, returns `{contract_name: {"quarters": [...], "path": ...}}`
-- `load_scid_ticks_chunked(contracts, quarters, ...)` — streams selected contracts/quarters in chunks, returns DataFrame of RTH ticks (08:30–15:15 CT)
-- `resample_ticks_to_bars(ticks)` — resamples tick DataFrame to 5-min OHLCV bars
+**Key functions in `data_loader.py`:**
+- `build_scid_quarter_map()` — scans SCID_DATA_DIR for `ES*.scid`, samples timestamps, returns `{quarter: path}`
+- `load_scid_ticks_chunked(path, quarters, progress)` — optimised loader: integer UTC pre-filter (eliminates ~65% ETH records before tz_convert), integer RTH check (no strftime), 2M-record chunks. Returns RTH DataFrame: DateTime, Price, Volume
+- `resample_ticks_to_bars(ticks)` — resamples to 5-min OHLCV bars
+- `build_bars_from_cache(quarters)` — builds 5-min bars one quarter at a time (no OOM); use for >16 quarters
 
-**Available quarterly contracts (confirmed on disk):**
-ESH24-CME, ESM24-CME, ESU23-CME, ESZ23-CME, ESH25-CME, ESM25-CME, ESU24-CME, ESZ24-CME, ESH26-CME, ESM26-CME, ESU25-CME, ESZ25-CME
+**TODO when 1-second data arrives:**
+- `load_scid_ticks_chunked` currently uses `records["Close"]` as tick price — correct for ticks, but for 1-second bars must aggregate OHLC properly (first Open, max High, min Low, last Close per 5-min window)
+- `resample_ticks_to_bars` needs updating to resample 1-second OHLCV → 5-min OHLCV (not tick prices)
+- Simulation engine needs new 1-second scan path
 
 ### Parquet Cache
 
-Prevents re-scanning 9M+ tick binary files on every app restart.
+One Parquet file per calendar quarter — built once via `scripts/build_scid_cache.py`, loaded instantly thereafter.
 
-**Location:** `SCID_DATA_DIR/_scid_cache/ticks.parquet` + `meta.json`  
+**Location:** `SCID_DATA_DIR/_scid_cache/{quarter}.parquet` + `last_selection.json`  
 **Cache functions in `data_loader.py`:**
-- `save_scid_cache(ticks, quarters)` — snappy-compressed parquet + meta.json with quarters, n_ticks, saved_at
-- `load_scid_cache()` → `(ticks_df, meta_dict)` or `(None, None)`
-- `clear_scid_cache()` — rmtree the `_scid_cache` dir
+- `save_scid_cache(ticks, quarters)` — writes per-quarter Parquet files (snappy)
+- `save_last_selection(quarters)` — updates last_selection.json (startup auto-load target)
+- `load_scid_cache()` → reads last_selection.json, loads those quarters; legacy ticks.parquet fallback
+- `load_quarters_from_cache(quarters)` → loads specific quarters from per-quarter Parquet
+- `build_bars_from_cache(quarters)` → bars only, one quarter at a time (OOM-safe for large ranges)
+- `list_cached_quarters()` → sorted list of cached quarter strings
+- `clear_scid_cache()` — rmtree the `_scid_cache` dir (use with caution — cache takes time to rebuild)
+
+**UI note:** "Unload" button in the SCID expander clears session state only — does NOT delete Parquet files.
 
 **Auto-load on startup:** At top of `main()` in `app.py`, before any tabs render:
 ```python
@@ -341,7 +367,8 @@ Neither tab has disk fallbacks. If no data is uploaded (and no cache loaded), th
 **Session 2 (June 7):** ✅ Committed + pushed (no-auto-load, library tenets)  
 **Session 3 (June 8):** ✅ Committed + pushed — 2-leg scale-in model complete  
 **Session 4 (June 8):** ✅ Committed + pushed — Portfolio tab complete  
-**Session 5 (June 9):** ✅ Committed (`c5c2f0f`) — SCID disk loader, Parquet cache, source selector fix, OHLC auto-detect, upload-only bar viewer/validation; push pending (auth issue — user pushes manually)
+**Session 5 (June 9):** ✅ Committed + pushed (`c5c2f0f`) — SCID disk loader, Parquet cache, source selector fix, OHLC auto-detect, upload-only bar viewer/validation  
+**Session 6 (June 10):** ✅ Committed + pushed (`e4e0c6c`) — optimised SCID loader (integer pre-filter, no strftime, 8× larger chunks), per-quarter Parquet cache, OOM fix (build_bars_from_cache), Unload button, Select All fix; deleted 108 GB tick SCID files; architecture decision: switch to 1-second OHLCV
 
 ---
 
@@ -387,11 +414,12 @@ def _apply_to_config(cc, t1_raw, pb_raw, t2_raw):
 
 ## Next Session — Priorities
 
-1. **Verify SCID bar timestamp direction** — upload 1 quarter SCID + matching NT TXT, compare bar 1 open time. Does SC `DateTime` represent bar open or bar close? If close: subtract 5 min in `load_scid_ticks_chunked()` and `parse_scid_ticks_from_upload()`, and change RTH filter from `<= 15:15` to `< 15:15`. Do NOT apply until confirmed.
-2. **Bar Validation** — now requires both SCID upload AND OHLC upload. Test with Q1/2024 SCID + matching NT TXT to verify SC vs NT bar comparison works end-to-end.
-3. **Verify PDF equity chart resize** — open Portfolio tab, load data, click Export PDF, confirm equity chart expands in print preview.
-4. **Verify 2-leg math** — spot-check a scale-in trade: PB level, E2 fill, blended entry, T2, per-leg P&L.
-5. **Historical data** — 2022–2025 + pre-2021 data arriving. When received: verify bars against NT, begin WFA.
+1. **Configure Sierra Chart for 1-second OHLCV** — set chart type to 1-second bars for all ES quarterly contracts (ESZ09–ESM26), request historical data from SC. Expected: ~210 MB/quarter, full 15-year history in hours.
+2. **Run `scripts/build_scid_cache.py`** once 1-second data is on disk.
+3. **Update SCID pipeline for 1-second bars** — `load_scid_ticks_chunked` uses `records["Close"]` as tick price; for 1-second bars need to aggregate OHLC. `resample_ticks_to_bars` needs to resample 1-second OHLCV → 5-min OHLCV properly.
+4. **Gate 1** — validate Python-built 5-min bars vs SC native 5-min export.
+5. **Simulation engine** — new 1-second scan path for stop/target/PB detection within 5-min signal windows.
+6. **Carry-over:** Verify PDF equity chart resize, verify 2-leg math (both low priority).
 
 ---
 
