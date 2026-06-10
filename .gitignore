@@ -1,5 +1,6 @@
 .DS_Store
 data/raw/
+data/cache/
 .venv/
 .streamlit/secrets.toml
 __pycache__/

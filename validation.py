@@ -4,8 +4,7 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 from pathlib import Path
-from data_loader import (load_sc_bars, load_nt_bars, get_market_holidays, TICK_SIZE,
-                         parse_sc_ohlc_from_upload, parse_ohlc_from_upload)
+from data_loader import (load_sc_bars, load_nt_bars, get_market_holidays, TICK_SIZE)
 from economic_calendar import get_economic_events, fred_key_configured, EVENT_COLOR
 
 _DEFAULTS_FILE = Path(__file__).parent / "filter_defaults.json"
@@ -245,6 +244,14 @@ def _show_gate_body(
 ):
     left_dates  = left["DateTime"].dt.date
     right_dates = right["DateTime"].dt.date
+
+    if left_dates.empty or right_dates.empty:
+        st.error(
+            f"**{left_label if left_dates.empty else right_label}** has no bars after RTH filtering. "
+            "Check that the uploaded file contains RTH bars (08:30–15:15 CT)."
+        )
+        return
+
     overlap_min = max(left_dates.min(), right_dates.min())
     overlap_max = min(left_dates.max(), right_dates.max())
     all_min     = min(left_dates.min(), right_dates.min())
@@ -436,65 +443,41 @@ def show_validation_tab(sc_file: str = "", nt_file: str = ""):
     with st.expander("📁 Data Sources", expanded=True):
         uc1, uc2, uc3 = st.columns(3)
 
-        py_bars = st.session_state.get("uploaded_sc_bars")
+        py_bars = st.session_state.get("data_sc_py5m")
         if py_bars is not None:
             n_py   = py_bars["DateTime"].dt.date.nunique()
-            py_lbl = st.session_state.get("scid_loaded_label", "loaded")
+            py_lbl = st.session_state.get("data_sc_1s_label", "SC 1s")
             uc1.success(f"**Python 5M**  ·  {py_lbl}  ·  {n_py} days")
         else:
-            uc1.info("**Python 5M**\nLoad SCID quarters in Bar Analysis")
+            uc1.info("**Python 5M**\nUpload SC 1s in the 📂 Data tab")
 
-        sc5m_file = uc2.file_uploader(
-            "SC 5M export (.csv/.txt)", type=["csv", "txt"], key="bv_sc5m_upload",
-            help="SC: Analysis → Export Chart Data → 5-Min bars → CSV",
-        )
-        if sc5m_file:
-            k = f"{sc5m_file.name}_{sc5m_file.size}"
-            if st.session_state.get("bv_sc5m_key") != k:
-                try:
-                    parsed = parse_sc_ohlc_from_upload(sc5m_file)
-                    st.session_state["bv_sc5m_bars"] = parsed
-                    st.session_state["bv_sc5m_key"]  = k
-                except Exception as e:
-                    uc2.error(str(e))
-            if "bv_sc5m_bars" in st.session_state:
-                n = st.session_state["bv_sc5m_bars"]["DateTime"].dt.date.nunique()
-                uc2.caption(f"✅ {sc5m_file.name}  ·  {n} days")
+        sc_bars = st.session_state.get("data_sc_5m")
+        if sc_bars is not None:
+            n_sc   = sc_bars["DateTime"].dt.date.nunique()
+            sc_lbl = st.session_state.get("data_sc_5m_label", "SC 5M")
+            uc2.success(f"**SC 5M**  ·  {sc_lbl}  ·  {n_sc} days")
         else:
-            st.session_state.pop("bv_sc5m_bars", None)
-            st.session_state.pop("bv_sc5m_key",  None)
+            uc2.info("**SC 5M**\nUpload SC 5M in the 📂 Data tab")
 
-        nt5m_file = uc3.file_uploader(
-            "NT8 5M export (.csv/.txt)", type=["csv", "txt"], key="bv_nt5m_upload",
-            help="NT8 OHLCV bar export — semicolon-separated, bar close times",
-        )
-        if nt5m_file:
-            k = f"{nt5m_file.name}_{nt5m_file.size}"
-            if st.session_state.get("bv_nt5m_key") != k:
-                try:
-                    parsed = parse_ohlc_from_upload(nt5m_file)
-                    st.session_state["bv_nt5m_bars"] = parsed
-                    st.session_state["bv_nt5m_key"]  = k
-                except Exception as e:
-                    uc3.error(str(e))
-            if "bv_nt5m_bars" in st.session_state:
-                n = st.session_state["bv_nt5m_bars"]["DateTime"].dt.date.nunique()
-                uc3.caption(f"✅ {nt5m_file.name}  ·  {n} days")
+        nt_bars = st.session_state.get("data_nt_5m")
+        if nt_bars is not None:
+            n_nt   = nt_bars["DateTime"].dt.date.nunique()
+            nt_lbl = st.session_state.get("data_nt_5m_label", "NT 5M")
+            uc3.success(f"**NT 5M**  ·  {nt_lbl}  ·  {n_nt} days")
         else:
-            st.session_state.pop("bv_nt5m_bars", None)
-            st.session_state.pop("bv_nt5m_key",  None)
+            uc3.info("**NT 5M** *(optional)*\nUpload NT 5M in the 📂 Data tab")
 
     # ── Gate availability ─────────────────────────────────────────────────────
-    py_bars = st.session_state.get("uploaded_sc_bars")
-    sc_bars = st.session_state.get("bv_sc5m_bars")
-    nt_bars = st.session_state.get("bv_nt5m_bars")
+    py_bars = st.session_state.get("data_sc_py5m")
+    sc_bars = st.session_state.get("data_sc_5m")
+    nt_bars = st.session_state.get("data_nt_5m")
 
     gate1_ok = py_bars is not None and sc_bars is not None
     gate2_ok = sc_bars is not None and nt_bars is not None
 
     if not gate1_ok and not gate2_ok:
         st.info(
-            "**Gate 1** — Python 5M vs SC 5M: load SCID quarters (Bar Analysis) + upload SC 5M export above  \n"
+            "**Gate 1** — Python 5M vs SC 5M: upload 1s SC export (Bar Analysis) + upload SC 5M export above  \n"
             "**Gate 2** — SC 5M vs NT8 5M: upload SC 5M export + NT8 5M export above"
         )
         return
@@ -598,8 +581,9 @@ def show_validation_tab(sc_file: str = "", nt_file: str = ""):
 
     if gate1_ok:
         with gate_tabs[tab_idx]:
+            _py_lbl = st.session_state.get("data_sc_1s_label", "SC 1s")
             _show_gate_body(py_bars, sc_bars,
-                            left_label="Python 5M (SCID)", right_label="SC 5M",
+                            left_label=f"Python 5M ({_py_lbl})", right_label="SC 5M",
                             gate_key="g1", **filter_kwargs)
         tab_idx += 1
 
@@ -700,6 +684,9 @@ def _show_mismatch_table(matched: pd.DataFrame, excl_volume: bool = False,
     delta_cols = list(delta_fmt.keys()) + (["ΔVolume"] if not excl_volume else [])
 
     fmt = price_fmt | delta_fmt | (vol_fmt if not excl_volume else {})
+    n_cells = display.shape[0] * display.shape[1]
+    if n_cells > pd.options.styler.render.max_elements:
+        pd.set_option("styler.render.max_elements", n_cells)
     styled = display.style.map(_color_delta, subset=delta_cols).format(fmt)
     st.dataframe(styled, use_container_width=True, hide_index=True, height=420)
     caption = f"Showing {len(subset):,} bars  |  Δ in ticks for OHLC"

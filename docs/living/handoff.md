@@ -1,6 +1,6 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** June 10, 2026 (session 6)
+**Last Updated:** June 10, 2026 (session 7)
 **Current Versions:** SIM_v3.3 / GS_v4.5 / SHEET_v3.3  
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 
@@ -22,7 +22,7 @@ Phase A: scid parser + 5M bar builder
 Gate 1: Python bars vs SC export (bar_validation.md)
         |
         v
-Gate 2: Sierra bars vs NT8/Rithmic bars (1 year on disk)
+Gate 2: Sierra bars vs NT8/Rithmic bars — ROOT CAUSES FOUND (see Session 7 below)
         |
         v
 Phase B: Signal detector — port from MCSimulatorV5_5.cs
@@ -330,20 +330,111 @@ dt_utc = SC_EPOCH + pd.to_timedelta(raw_int64_microseconds, unit="us")
 dt_ct  = dt_utc.tz_localize("UTC").tz_convert("America/Chicago").tz_localize(None)
 ```
 
-**Bar timestamp question (PENDING):** Both NT TXT and SCID files appear to use CT bar **close** time as the timestamp (bar 1 = 08:35, opens 08:30). This means bar 1 ticks fall in the [08:35, 08:40) resample bin → labeled bar 2. Fix would be to subtract 5 min from SCID `DateTime` before resampling. NOT YET APPLIED — user was uncertain ("maybe SC uses bar open times?"). Needs verification with SC before applying.
+**Bar timestamp — CONFIRMED (Session 7):** In NinjaTrader with `Calculate.OnBarClose`, `Time[0]` is the bar **close** time. Empirically verified: NT's 15:35 Berlin bar prices match SC's 08:30 CT bar prices exactly (same O/H/L/C within back-adjustment). This confirms the −5 min shift is correct for NT TXT exports.
 
-### OHLC Timestamp Auto-Detection
+SC SCID timestamp behaviour: SCID bar timestamps appear to use bar **open** time (08:30:00 for the first RTH bar). The SCID loader does NOT apply a −5 min shift. This was not changed in Session 7 — verify if ever unclear by comparing first SCID bar DateTime to known SC bar open.
 
-`parse_ohlc_from_upload()` in `data_loader.py` auto-detects whether the NT TXT file uses Berlin or CT close times:
-```python
-is_berlin = valid_hours.median() > 14  # Berlin ~18-19h, CT ~11-12h
-if is_berlin:
-    df["DateTime"] = dt_parsed.dt.tz_localize("Europe/Berlin")
-                     .dt.tz_convert("America/Chicago").dt.tz_localize(None) - 5min
-else:
-    df["DateTime"] = dt_parsed - 5min
+### OHLC NT Parser — Dual-Format Support (Session 7)
+
+`parse_ohlc_from_upload()` in `data_loader.py` auto-detects format from first 512 bytes of the file.
+
+**Format 1 — NT CSV** (comma-separated, has header, open times):
 ```
-Old NT exports used Berlin close times. New direct exports use CT. Heuristic is reliable.
+DateTime,Open,High,Low,Close,Volume
+2025-01-02 08:30:00,6238.50,6241.25,6222.00,6222.25,12345
+```
+- Detected when first line contains `,` and not `;`
+- Parses `DateTime` column as-is — already bar **open** time, NO −5 min shift needed
+- Tolerant: tries strict format first, falls back to `pd.to_datetime`
+
+**Format 2 — NT TXT** (semicolon-separated, no header, close times):
+```
+23/12/2024 15:35:00;6269.50;6279.00;6268.00;6273.50;12345
+```
+- Tries `DD/MM/YYYY HH:MM:SS` first; falls back to `MM/DD/YYYY` if >50% fail
+- Detects Berlin vs CT via median hour heuristic (`> 14` → Berlin)
+- Berlin path: `tz_localize("Europe/Berlin", ambiguous="infer", nonexistent="shift_forward")` → tz_convert → strip tz → −5 min
+- CT path: dt_parsed − 5 min (fast; no DST lookup; preferred)
+
+**Why CT is preferred over Berlin:** `tz_localize("Europe/Berlin")` on 29 K rows requires DST checking for every timestamp — very slow on Windows. The new MyOHLCReader.cs outputs `Time[0]` directly (CT), so Berlin path is legacy only.
+
+**Key invariant:** After parsing, `DateTime` is always the bar **open** time in CT, tz-naive.
+
+---
+
+## Session 7 — Gate 2 Investigation (June 10, 2026)
+
+### NT OHLCExporter (MyOHLCReader.cs) — Fixed
+
+File location: `MyOHLCReader.cs` in repo root (NinjaTrader NinjaScript indicator).
+
+**Problem found:** Old code called `BarCloseTime(Time[0])` to compute close time. But `Time[0]` with `Calculate.OnBarClose` IS already the bar close time — calling `BarCloseTime()` added another 5 minutes, so every bar was exported 5 min late.
+
+**Fix:** Use `Time[0]` directly. Simplified indicator:
+- Removed all timezone conversion (Berlin tz code deleted entirely)
+- Removed CSV output — TXT only
+- Reduced to 2 properties: `OutputPath`, `AppendMode`
+- Core write: `Time[0]` direct, no conversion, no helper calls
+
+```csharp
+string line = string.Format(CultureInfo.InvariantCulture,
+    "{0:dd/MM/yyyy HH:mm:ss};{1:F2};{2:F2};{3:F2};{4:F2};{5}",
+    Time[0], Open[0], High[0], Low[0], Close[0], (long)Volume[0]);
+```
+
+This matches the exact approach confirmed by a colleague: `Print(Time[0], Open[0], High[0], Low[0], Close[0], Volume[0])`.
+
+**Evidence of fix:** Old file started at `15:40:00 Berlin` (one bar late). New export starts at `15:35:00 Berlin` (correct close of 08:30 bar).
+
+**NT export files on disk:**  
+`C:\Users\Admin\Desktop\NT Code Versions\ChartMarker_Files\Data\OHLC 5M\ohlc_export.txt`  
+`C:\Users\Admin\Desktop\NT Code Versions\ChartMarker_Files\Data\OHLC 5M\ohlc_export.csv`  
+Both ~1.7 MB, written 2026-06-10 17:07 local. These are from an intermediate build (Time[0] fixed, Berlin conversion still present). The final simplified build (no Berlin) must be recompiled in NT and a fresh export run.
+
+### Gate 2 Root Cause — Back-Adjustment Discrepancy
+
+After fixing the timestamp bug, Gate 2 still showed 0% match. Root cause:
+
+- **SC** exports from `ESM26-CME [CB]` — Sierra Chart's "CB" back-adjusted continuous contract
+- **NT** exports from its continuous contract — different roll dates and spreads
+
+**Observed deltas (from price comparison):**
+
+| Period | Back-adj delta | Mismatches/day |
+|--------|---------------|----------------|
+| Dec 2024 – Jun 2025 (ESZ24/H25/M25) | Hundreds of points | ~80 (all bars) |
+| Jul 2025 – present (ESU25+) | ~0.50 pt (2 ticks) | 0–10 |
+
+Even 2 ticks is unacceptable — user requires 100% exact match.
+
+**Evidence from price check:**
+```
+SC  Dec 23 2024 08:30 CT: O=6269.50 H=6279.00 L=6268.00 C=6273.50
+NT  Dec 23 2024 08:30 CT: O=6269.00 H=6278.50 L=6267.50 C=6273.00
+Delta:                       −0.50    −0.50    −0.25      −0.00
+```
+
+### Gate 2 Fix — Individual Contracts Required
+
+Both SC and NT must export from the **same individual (non-back-adjusted) quarterly contract charts** to get exact tick-for-tick price match.
+
+**Contracts needed:** ESZ24, ESH25, ESM25, ESU25, ESZ25, ESH26, ESM26
+
+**SC:** Open individual contract charts (ESZ24-CME, ESH25-CME, etc.), export 5M bars from each.  
+**NT:** Run OHLCExporter indicator on each individual contract chart in NT8.
+
+**Agreed next step:** Start with **ESM26 only** (current front month — zero back-adjustment on either platform). Verify 100% match end-to-end. Then expand to full history.
+
+**App change needed (not yet built):** Gate 2 UI must accept multiple per-contract files and stitch them date-by-date for the full comparison. Currently only one NT 5M file slot exists.
+
+### Code Changes — Session 7
+
+| File | Change |
+|------|--------|
+| `MyOHLCReader.cs` | Completely rewritten — simplified to `Time[0]` direct, no tz conversion, 2 props |
+| `data_loader.py` | `parse_ohlc_from_upload` rewritten — auto-detects CSV vs TXT; CSV=no shift; TXT=−5min |
+| `validation.py` | Empty DataFrame guard at line ~247 (before `max()`/`min()` date overlap) |
+| `app.py` | Empty DataFrame guard after NT 5M parse — shows error with first 200 chars, `st.stop()` |
 
 ### Bar Viewer / Bar Validation — Upload-Only Policy
 
@@ -368,7 +459,8 @@ Neither tab has disk fallbacks. If no data is uploaded (and no cache loaded), th
 **Session 3 (June 8):** ✅ Committed + pushed — 2-leg scale-in model complete  
 **Session 4 (June 8):** ✅ Committed + pushed — Portfolio tab complete  
 **Session 5 (June 9):** ✅ Committed + pushed (`c5c2f0f`) — SCID disk loader, Parquet cache, source selector fix, OHLC auto-detect, upload-only bar viewer/validation  
-**Session 6 (June 10):** ✅ Committed + pushed (`e4e0c6c`) — optimised SCID loader (integer pre-filter, no strftime, 8× larger chunks), per-quarter Parquet cache, OOM fix (build_bars_from_cache), Unload button, Select All fix; deleted 108 GB tick SCID files; architecture decision: switch to 1-second OHLCV
+**Session 6 (June 10):** ✅ Committed + pushed (`e4e0c6c`) — optimised SCID loader (integer pre-filter, no strftime, 8× larger chunks), per-quarter Parquet cache, OOM fix (build_bars_from_cache), Unload button, Select All fix; deleted 108 GB tick SCID files; architecture decision: switch to 1-second OHLCV  
+**Session 7 (June 10):** ✅ Committed + pushed — NT OHLCExporter Time[0] fix (MyOHLCReader.cs), NT parser dual-format (CSV/TXT), empty DataFrame guards (validation.py + app.py), Gate 2 root cause documented (back-adjustment); Gate 2 100% match requires individual contracts (ESM26 first)
 
 ---
 

@@ -3452,7 +3452,7 @@ def _show_mismatch_analysis(results: pd.DataFrame, sc_bars: pd.DataFrame, nt_bar
 def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""):
     signals_raw = st.session_state.get("ba_signals")
     if signals_raw is None:
-        st.info("Upload a signals file in the **📁 Upload Data** panel above to begin.")
+        st.info("Upload a signals file in the **📊 MC Signals** panel above to begin.")
         return
 
     # ── Load data — source determined by bar_source selector in app.py ──────────
@@ -3487,14 +3487,17 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         ticks        = pd.DataFrame(columns=["DateTime", "Price", "Volume"])
         _tick_source = "none"
 
-    _bar_sim_mode = _tick_source == "none"
-    if _bar_sim_mode:
+    _bar_sim_mode  = _tick_source == "none"
+    _has_1s_bars   = st.session_state.get("data_sc_1s") is not None
+    if _bar_sim_mode and not _has_1s_bars:
         st.warning(
             "No tick data — running **bar-level simulation** (5-min OHLC H/L checks). "
             "Fill accuracy is lower than tick-level. Conservative assumption: when both "
             "stop and target are reachable within the same bar, stop is filled first.",
             icon="⚠️",
         )
+    elif _bar_sim_mode and _has_1s_bars:
+        st.caption("📊 Simulation mode: 1s OHLCV bar-level (near-tick accuracy)")
     if _bar_source == "ohlc_upload":
         st.caption("📊 Bar data: uploaded OHLC bar_export (no SC tick file on disk)")
 
@@ -3517,10 +3520,12 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         )
     ticks_by_date = st.session_state[tbd_key]
 
-    # Bar groupby for bar-level sim fallback (built from whichever bar source is active)
+    # Bar groupby for simulation — use 1s bars when available (near-tick accuracy)
+    _sim_src = st.session_state.get("data_sc_1s") if _has_1s_bars else None
+    _sim_df  = _sim_src if _sim_src is not None else bars
     bars_by_date_sim = {
         d: grp.reset_index(drop=True)
-        for d, grp in bars.groupby(bars["DateTime"].dt.date)
+        for d, grp in _sim_df.groupby(_sim_df["DateTime"].dt.date)
     }
 
     # Expose to Portfolio tab via session state

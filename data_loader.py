@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import struct
 import numpy as np
 import pandas as pd
@@ -114,6 +115,25 @@ def resample_ticks_to_bars(ticks: pd.DataFrame) -> pd.DataFrame:
         df.resample("5min", closed="left", label="left")
         .agg(Open=("Last", "first"), High=("Last", "max"),
              Low=("Last", "min"),  Close=("Last", "last"), Volume=("Volume", "sum"))
+        .dropna(subset=["Open"])
+    )
+    bars = bars[
+        (bars.index.time >= pd.Timestamp(RTH_START).time()) &
+        (bars.index.time <  pd.Timestamp(RTH_END).time())
+    ]
+    return bars.reset_index()
+
+
+def resample_1s_ohlcv_to_5m(df: pd.DataFrame) -> pd.DataFrame:
+    """Aggregate 1s OHLCV bars (SC export) into 5-min RTH bars.
+    Input columns: DateTime, Open, High, Low, Close, Volume"""
+    if df.empty:
+        return pd.DataFrame(columns=["DateTime", "Open", "High", "Low", "Close", "Volume"])
+    d = df.set_index("DateTime")
+    bars = (
+        d.resample("5min", closed="left", label="left")
+        .agg(Open=("Open", "first"), High=("High", "max"),
+             Low=("Low", "min"), Close=("Close", "last"), Volume=("Volume", "sum"))
         .dropna(subset=["Open"])
     )
     bars = bars[
@@ -563,46 +583,77 @@ def load_scid_ticks_chunked(
 
 
 def parse_ohlc_from_upload(uploaded_file) -> pd.DataFrame:
-    """Parse NT8 bar_export OHLC file: DD/MM/YYYY HH:MM:SS;O;H;L;C;V
-    Timestamps are CT bar CLOSE times → subtract 5 min → CT bar OPEN times.
-    Non-data rows (dashes, headers) are silently dropped."""
+    """Parse NT OHLCExporter output — handles two formats:
+
+    CSV (current):  DateTime,Open,High,Low,Close,Volume
+                    2025-01-02 08:30:00,6238.50,...
+                    DateTime is CT bar OPEN time — no shift needed.
+
+    TXT (legacy):   DD/MM/YYYY HH:MM:SS;O;H;L;C;V  (no header)
+                    DateTime is CT or Berlin bar CLOSE time — subtract 5 min.
+    """
     uploaded_file.seek(0)
-    df = pd.read_csv(
-        uploaded_file,
-        sep=";",
-        header=None,
-        names=["DateTime", "Open", "High", "Low", "Close", "Volume"],
-        skipinitialspace=True,
-        dtype=str,
-        on_bad_lines="skip",
-    )
-    for col in ["Open", "High", "Low", "Close"]:
-        df[col] = pd.to_numeric(df[col], errors="coerce")
-    df["Volume"] = pd.to_numeric(df["Volume"], errors="coerce").fillna(0)
-    df["NullVol"] = df["Volume"].isna()
+    peek = uploaded_file.read(512)
+    if isinstance(peek, bytes):
+        peek = peek.decode("utf-8", errors="replace")
+    uploaded_file.seek(0)
 
-    # Try DD/MM/YYYY first; fall back to MM/DD/YYYY
-    dt_parsed = pd.to_datetime(df["DateTime"], format="%d/%m/%Y %H:%M:%S", errors="coerce")
-    if dt_parsed.isna().mean() > 0.5:
-        dt_parsed = pd.to_datetime(df["DateTime"], format="%m/%d/%Y %H:%M:%S", errors="coerce")
+    first_line = peek.splitlines()[0] if peek else ""
+    is_csv = "," in first_line and ";" not in first_line
 
-    # Auto-detect timezone format from median hour of valid rows:
-    # CT close times cluster around 08:35–15:15 (median ≈ 11–12)
-    # Berlin close times cluster around 15:35–22:15 (median ≈ 18–19)
-    valid_hours = dt_parsed.dropna().dt.hour
-    is_berlin = valid_hours.median() > 14 if not valid_hours.empty else False
-
-    if is_berlin:
-        df["DateTime"] = (
-            dt_parsed
-            .dt.tz_localize("Europe/Berlin")
-            .dt.tz_convert("America/Chicago")
-            .dt.tz_localize(None)
-            - pd.Timedelta(minutes=5)
+    if is_csv:
+        # CSV: has header, comma-separated, DateTime already in CT open time
+        df = pd.read_csv(
+            uploaded_file,
+            skipinitialspace=True,
+            dtype=str,
+            on_bad_lines="skip",
         )
+        df.columns = df.columns.str.strip()
+        if "DateTime" not in df.columns:
+            raise ValueError("NT CSV is missing a DateTime column.")
+        for col in ["Open", "High", "Low", "Close"]:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors="coerce")
+        df["Volume"]  = pd.to_numeric(df.get("Volume", 0), errors="coerce").fillna(0)
+        df["NullVol"] = df["Volume"].isna()
+        dt_parsed = pd.to_datetime(df["DateTime"], format="%Y-%m-%d %H:%M:%S", errors="coerce")
+        if dt_parsed.isna().mean() > 0.5:
+            dt_parsed = pd.to_datetime(df["DateTime"], errors="coerce")
+        df["DateTime"] = dt_parsed  # already open time — no shift
     else:
-        # CT close times — just subtract 5 min to get open times
-        df["DateTime"] = dt_parsed - pd.Timedelta(minutes=5)
+        # TXT: no header, semicolon-separated, DateTime is close time
+        df = pd.read_csv(
+            uploaded_file,
+            sep=";",
+            header=None,
+            names=["DateTime", "Open", "High", "Low", "Close", "Volume"],
+            skipinitialspace=True,
+            dtype=str,
+            on_bad_lines="skip",
+        )
+        for col in ["Open", "High", "Low", "Close"]:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+        df["Volume"]  = pd.to_numeric(df["Volume"], errors="coerce").fillna(0)
+        df["NullVol"] = df["Volume"].isna()
+
+        dt_parsed = pd.to_datetime(df["DateTime"], format="%d/%m/%Y %H:%M:%S", errors="coerce")
+        if dt_parsed.isna().mean() > 0.5:
+            dt_parsed = pd.to_datetime(df["DateTime"], format="%m/%d/%Y %H:%M:%S", errors="coerce")
+
+        valid_hours = dt_parsed.dropna().dt.hour
+        is_berlin = valid_hours.median() > 14 if not valid_hours.empty else False
+
+        if is_berlin:
+            df["DateTime"] = (
+                dt_parsed
+                .dt.tz_localize("Europe/Berlin", ambiguous="infer", nonexistent="shift_forward")
+                .dt.tz_convert("America/Chicago")
+                .dt.tz_localize(None)
+                - pd.Timedelta(minutes=5)
+            )
+        else:
+            df["DateTime"] = dt_parsed - pd.Timedelta(minutes=5)
 
     df = df.dropna(subset=["DateTime", "Open"])
     t = df["DateTime"].dt.time
@@ -610,7 +661,8 @@ def parse_ohlc_from_upload(uploaded_file) -> pd.DataFrame:
         (t >= pd.Timestamp(RTH_START).time()) &
         (t <  pd.Timestamp(RTH_END).time())
     ]
-    return df.sort_values("DateTime").reset_index(drop=True)
+    return df[["DateTime", "Open", "High", "Low", "Close", "Volume", "NullVol"]]\
+        .sort_values("DateTime").reset_index(drop=True)
 
 
 def parse_sc_ohlc_from_upload(uploaded_file) -> pd.DataFrame:
@@ -631,6 +683,10 @@ def parse_sc_ohlc_from_upload(uploaded_file) -> pd.DataFrame:
     )
     df.columns = df.columns.str.strip()
 
+    # SC "Export Chart Data" uses "Last" for the close price
+    if "Close" not in df.columns and "Last" in df.columns:
+        df = df.rename(columns={"Last": "Close"})
+
     missing = [c for c in ("Date", "Time", "Open", "High", "Low", "Close") if c not in df.columns]
     if missing:
         raise ValueError(
@@ -640,10 +696,12 @@ def parse_sc_ohlc_from_upload(uploaded_file) -> pd.DataFrame:
         )
 
     dt_str = df["Date"].str.strip() + " " + df["Time"].str.strip()
-    dt = pd.to_datetime(dt_str, format="%m/%d/%Y %H:%M", errors="coerce")
-    if dt.isna().mean() > 0.5:
-        dt = pd.to_datetime(dt_str, format="%Y/%m/%d %H:%M", errors="coerce")
-    if dt.isna().mean() > 0.5:
+    for fmt in ("%m/%d/%Y %H:%M", "%m/%d/%Y %H:%M:%S",
+                "%Y/%m/%d %H:%M", "%Y/%m/%d %H:%M:%S"):
+        dt = pd.to_datetime(dt_str, format=fmt, errors="coerce")
+        if dt.isna().mean() <= 0.5:
+            break
+    else:
         dt = pd.to_datetime(dt_str, errors="coerce")
     df["DateTime"] = dt
 
@@ -672,6 +730,50 @@ def parse_sc_ohlc_from_upload(uploaded_file) -> pd.DataFrame:
         .sort_values("DateTime")
         .reset_index(drop=True)
     )
+
+
+# ── CSV upload Parquet cache ───────────────────────────────────────────────────
+
+CSV_CACHE_DIR = Path(__file__).parent / "data" / "cache"
+_CSV_MANIFEST = CSV_CACHE_DIR / "manifest.json"
+
+
+def _csv_cache_path(prefix: str, name: str, size: int) -> Path:
+    CSV_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    safe = re.sub(r"[^\w\-.]", "_", name)
+    return CSV_CACHE_DIR / f"{prefix}_{safe}_{size}.parquet"
+
+
+def load_csv_cache(prefix: str, name: str, size: int) -> pd.DataFrame | None:
+    p = _csv_cache_path(prefix, name, size)
+    return pd.read_parquet(p) if p.exists() else None
+
+
+def save_csv_cache(df: pd.DataFrame, prefix: str, name: str, size: int) -> None:
+    p = _csv_cache_path(prefix, name, size)
+    df.to_parquet(p, index=False)
+
+
+def load_csv_manifest() -> dict:
+    import json
+    if _CSV_MANIFEST.exists():
+        try:
+            return json.loads(_CSV_MANIFEST.read_text())
+        except Exception:
+            pass
+    return {}
+
+
+def save_csv_manifest(manifest: dict) -> None:
+    import json
+    CSV_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    _CSV_MANIFEST.write_text(json.dumps(manifest, indent=2))
+
+
+def clear_csv_cache() -> None:
+    import shutil
+    if CSV_CACHE_DIR.exists():
+        shutil.rmtree(CSV_CACHE_DIR)
 
 
 @st.cache_data(show_spinner=False)
