@@ -4,7 +4,8 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 from pathlib import Path
-from data_loader import load_sc_bars, load_nt_bars, get_market_holidays, TICK_SIZE
+from data_loader import (load_sc_bars, load_nt_bars, get_market_holidays, TICK_SIZE,
+                         parse_sc_ohlc_from_upload, parse_ohlc_from_upload)
 from economic_calendar import get_economic_events, fred_key_configured, EVENT_COLOR
 
 _DEFAULTS_FILE = Path(__file__).parent / "filter_defaults.json"
@@ -225,161 +226,50 @@ def _delta_distribution_commentary(matched: pd.DataFrame):
     _info(" ".join(parts))
 
 
-# ── Tab entry point ───────────────────────────────────────────────────────────
+def _show_gate_body(
+    left: pd.DataFrame,
+    right: pd.DataFrame,
+    left_label: str,
+    right_label: str,
+    gate_key: str,
+    excl_holidays: bool,
+    show_commentary: bool,
+    excl_volume: bool,
+    show_excl_shading: bool,
+    excl_first_n: int,
+    excl_last_min: int,
+    incl_days: tuple,
+    event_types: tuple,
+    event_filter_mode: str,
+    event_window: int,
+):
+    left_dates  = left["DateTime"].dt.date
+    right_dates = right["DateTime"].dt.date
+    overlap_min = max(left_dates.min(), right_dates.min())
+    overlap_max = min(left_dates.max(), right_dates.max())
+    all_min     = min(left_dates.min(), right_dates.min())
+    all_max     = max(left_dates.max(), right_dates.max())
 
-def show_validation_tab(sc_file: str = "", nt_file: str = ""):
-    from pathlib import Path
+    st.caption(f"**{left_label}** (left) vs **{right_label}** (right)  ·  Δ = right − left")
 
-    uploaded_sc   = st.session_state.get("uploaded_sc_bars")
-    uploaded_ohlc = st.session_state.get("uploaded_ohlc_bars")
-
-    if uploaded_sc is None and uploaded_ohlc is None:
-        st.info("Upload data in the **📁 Upload Data** panel in Bar Analysis to begin.")
-        return
-
-    if uploaded_sc is None:
-        st.info("Upload SCID/SC tick data in the **📁 Upload Data** panel to populate the left side.")
-        return
-
-    if uploaded_ohlc is None:
-        st.info("Upload an **OHLC bar export** (NT8 TXT) in the **📁 Upload Data** panel to compare against the SCID bars.")
-        return
-
-    scid_label = st.session_state.get("scid_loaded_label")
-    sc_label   = f"SCID — {scid_label}" if scid_label else "Uploaded SC/SCID tick data"
-    nt_label   = "Uploaded OHLC bar_export"
-    sc = uploaded_sc
-    nt = uploaded_ohlc
-
-    st.caption(f"Data sources — SC: {sc_label}  |  NT/OHLC: {nt_label}")
-
-    sc_dates = sc["DateTime"].dt.date
-    nt_dates = nt["DateTime"].dt.date
-    overlap_min = max(sc_dates.min(), nt_dates.min())
-    overlap_max = min(sc_dates.max(), nt_dates.max())
-    all_min     = min(sc_dates.min(), nt_dates.min())
-    all_max     = max(sc_dates.max(), nt_dates.max())
-
-    # ── Date range ────────────────────────────────────────────────────────────
     dc1, dc2 = st.columns(2)
-    date_from = dc1.date_input("From", value=overlap_min, min_value=all_min, max_value=all_max)
-    date_to   = dc2.date_input("To",   value=overlap_max, min_value=all_min, max_value=all_max)
+    date_from = dc1.date_input("From", value=overlap_min, min_value=all_min, max_value=all_max,
+                                key=f"{gate_key}_date_from")
+    date_to   = dc2.date_input("To",   value=overlap_max, min_value=all_min, max_value=all_max,
+                                key=f"{gate_key}_date_to")
 
-    # ── Load defaults into session state on first run ─────────────────────────
-    if "vt_initialized" not in st.session_state:
-        for k, v in _load_filter_defaults().items():
-            st.session_state.setdefault(k, v)
-        st.session_state["vt_initialized"] = True
+    left_f  = left[  (left_dates  >= date_from) & (left_dates  <= date_to)]
+    right_f = right[ (right_dates >= date_from) & (right_dates <= date_to)]
+    last_left_dt = left_f["DateTime"].max() if not left_f.empty else pd.Timestamp.max
+    right_f = right_f[right_f["DateTime"] <= last_left_dt].copy()
 
-    # ── Filters (single collapsible panel) ────────────────────────────────────
-    with st.expander("⚙️ Filters", expanded=False):
-        # Simple toggles row
-        tc1, tc2 = st.columns(2)
-        excl_holidays   = tc1.checkbox("Exclude NYSE holidays", key="f_excl_holidays",
-                                        value=st.session_state.get("f_excl_holidays", True),
-                                        help="Removes NYSE holiday sessions (Memorial Day etc.).")
-        show_commentary = tc2.checkbox("Show commentary",       key="f_show_commentary",
-                                        value=st.session_state.get("f_show_commentary", True),
-                                        help="Toggle explanatory text under each section.")
+    comp = build_comparison(left_f, right_f)
 
-        st.divider()
-        st.markdown("**Display**")
-        dc1, dc2 = st.columns(2)
-        excl_volume       = dc1.checkbox("Ignore volume differences",      key="f_excl_volume",
-                                          value=st.session_state.get("f_excl_volume", False))
-        show_excl_shading = dc2.checkbox("Shade excluded zones on charts", key="f_show_excl_shading",
-                                          value=st.session_state.get("f_show_excl_shading", True))
-
-        st.divider()
-        st.markdown("**Session Boundaries**")
-        sb1, sb2 = st.columns(2)
-        excl_first_n  = sb1.slider("Exclude first N bars",   0, 12,
-                                    st.session_state.get("f_excl_first_n",  0), 1,
-                                    key="f_excl_first_n")
-        excl_last_min = sb2.slider("Exclude last N minutes", 0, 90,
-                                    st.session_state.get("f_excl_last_min", 0), 5,
-                                    key="f_excl_last_min")
-
-        st.divider()
-        st.markdown("**Day of Week**")
-        st.caption("Include days:")
-        dw1, dw2, dw3, dw4, dw5 = st.columns(5)
-        incl_mon = dw1.checkbox("Mon", key="f_incl_mon", value=st.session_state.get("f_incl_mon", True))
-        incl_tue = dw2.checkbox("Tue", key="f_incl_tue", value=st.session_state.get("f_incl_tue", True))
-        incl_wed = dw3.checkbox("Wed", key="f_incl_wed", value=st.session_state.get("f_incl_wed", True))
-        incl_thu = dw4.checkbox("Thu", key="f_incl_thu", value=st.session_state.get("f_incl_thu", True))
-        incl_fri = dw5.checkbox("Fri", key="f_incl_fri", value=st.session_state.get("f_incl_fri", True))
-
-        st.divider()
-        st.markdown("**Economic Events**")
-        if not fred_key_configured():
-            st.info(
-                "FOMC dates are built-in. For NFP and CPI, add your FRED API key to "
-                "`.streamlit/secrets.toml`: `FRED_API_KEY = 'your_key'`"
-            )
-        ea, eb, ec = st.columns(3)
-        use_fomc = ea.checkbox("FOMC", key="f_use_fomc", value=st.session_state.get("f_use_fomc", False))
-        use_nfp  = eb.checkbox("NFP",  key="f_use_nfp",  value=st.session_state.get("f_use_nfp",  False),
-                                disabled=not fred_key_configured())
-        use_cpi  = ec.checkbox("CPI",  key="f_use_cpi",  value=st.session_state.get("f_use_cpi",  False),
-                                disabled=not fred_key_configured())
-
-        event_types = tuple(
-            e for e, on in [("FOMC", use_fomc), ("NFP", use_nfp), ("CPI", use_cpi)] if on
-        )
-        ef1, ef2 = st.columns([1, 2])
-        _efm_default = st.session_state.get("f_event_filter_mode", "Skip full day")
-        event_filter_mode = ef1.radio(
-            "Filter mode", ["Skip full day", "Window ±N minutes"],
-            index=["Skip full day", "Window ±N minutes"].index(_efm_default),
-            key="f_event_filter_mode",
-            help="**Skip full day:** removes all RTH bars on event dates.\n\n"
-                 "**Window:** removes bars within N minutes of the announcement.\n\n"
-                 "⚠️ NFP/CPI release at 7:30 CT — window < 60 min has no effect on RTH bars.",
-        )
-        event_window = 30
-        if event_filter_mode == "Window ±N minutes":
-            event_window = ef2.slider("Minutes before/after", 15, 180,
-                                       st.session_state.get("f_event_window", 30), 15,
-                                       key="f_event_window")
-
-        st.divider()
-        if st.button("💾 Save as Default"):
-            _save_filter_defaults({
-                "f_excl_holidays": excl_holidays,
-                "f_show_commentary": show_commentary,
-                "f_excl_volume": excl_volume,
-                "f_show_excl_shading": show_excl_shading,
-                "f_excl_first_n": excl_first_n,
-                "f_excl_last_min": excl_last_min,
-                "f_incl_mon": incl_mon, "f_incl_tue": incl_tue,
-                "f_incl_wed": incl_wed, "f_incl_thu": incl_thu, "f_incl_fri": incl_fri,
-                "f_use_fomc": use_fomc, "f_use_nfp": use_nfp, "f_use_cpi": use_cpi,
-                "f_event_filter_mode": event_filter_mode,
-                "f_event_window": event_window,
-            })
-            st.success("Defaults saved.", icon="✅")
-
-    # Share session boundary values with Bar Viewer candlestick shading
-    st.session_state["excl_first_n"]  = excl_first_n
-    st.session_state["excl_last_min"] = excl_last_min
-
-    sc_f = sc[(sc_dates >= date_from) & (sc_dates <= date_to)]
-    nt_f = nt[(nt_dates >= date_from) & (nt_dates <= date_to)]
-
-    # Cut NT at the last SC bar: SC was downloaded mid-session, NT after close.
-    last_sc_dt = sc_f["DateTime"].max()
-    nt_f = nt_f[nt_f["DateTime"] <= last_sc_dt].copy()
-
-    comp = build_comparison(sc_f, nt_f)
-
-    # ── Apply filters ─────────────────────────────────────────────────────────
     holidays = get_market_holidays(str(date_from), str(date_to))
     n_holiday_bars = int((comp["DateTime"].dt.strftime("%Y-%m-%d").isin(holidays)).sum())
     if excl_holidays and holidays:
         comp = comp[~comp["DateTime"].dt.strftime("%Y-%m-%d").isin(holidays)].copy()
 
-    # Full matched set for charts (post-holiday; session/DOW/event filters only affect stats)
     matched_full = comp[comp["Status"] == "Matched"].copy()
 
     n_first_n_bars = 0
@@ -398,10 +288,11 @@ def show_validation_tab(sc_file: str = "", nt_file: str = ""):
         n_last_min_bars = int((comp["BarTime"] >= cutoff_str).sum())
         comp = comp[comp["BarTime"] < cutoff_str].copy()
 
+    incl_mon, incl_tue, incl_wed, incl_thu, incl_fri = incl_days
     n_dow_bars = 0
-    if not all([incl_mon, incl_tue, incl_wed, incl_thu, incl_fri]):
-        dow_map  = {0: incl_mon, 1: incl_tue, 2: incl_wed, 3: incl_thu, 4: incl_fri}
-        keep     = comp["DateTime"].dt.dayofweek.map(dow_map).fillna(False)
+    if not all(incl_days):
+        dow_map = {0: incl_mon, 1: incl_tue, 2: incl_wed, 3: incl_thu, 4: incl_fri}
+        keep    = comp["DateTime"].dt.dayofweek.map(dow_map).fillna(False)
         n_dow_bars = int((~keep).sum())
         comp = comp[keep].copy()
 
@@ -427,118 +318,108 @@ def show_validation_tab(sc_file: str = "", nt_file: str = ""):
             n_event_bars = int(mask.sum())
             comp = comp[~mask].copy()
 
-    matched = comp[comp["Status"] == "Matched"]
-
+    matched    = comp[comp["Status"] == "Matched"]
     n_matched  = len(matched)
-    n_sc_only  = int((comp["Status"] == "SC only").sum())
-    n_nt_only  = int((comp["Status"] == "NT only").sum())
-    n_ohlc_mm  = int((~matched["OHLC_match"]).sum())  if n_matched else 0
-    n_vol_mm   = int(matched["ΔVolume"].ne(0).sum())  if n_matched else 0
-    pct_ohlc   = (1 - n_ohlc_mm / n_matched) * 100   if n_matched else 0.0
-
-    # ── Summary strip ─────────────────────────────────────────────────────────
+    n_lo       = int((comp["Status"] == "SC only").sum())
+    n_ro       = int((comp["Status"] == "NT only").sum())
+    n_ohlc_mm  = int((~matched["OHLC_match"]).sum()) if n_matched else 0
+    n_vol_mm   = int(matched["ΔVolume"].ne(0).sum()) if n_matched else 0
+    pct_ohlc   = (1 - n_ohlc_mm / n_matched) * 100  if n_matched else 0.0
     n_trading_days = matched["DateTime"].dt.date.nunique() if n_matched else 0
+
+    if n_matched > 0:
+        if pct_ohlc >= 99:
+            st.success(f"✅ PASS — {pct_ohlc:.1f}% OHLC exact match  ·  {n_matched:,} bars  ·  {n_trading_days} days")
+        elif pct_ohlc >= 95:
+            st.warning(f"⚠️ MARGINAL — {pct_ohlc:.1f}% OHLC exact match  ·  {n_matched:,} bars  ·  {n_trading_days} days")
+        else:
+            st.error(f"❌ FAIL — {pct_ohlc:.1f}% OHLC exact match  ·  {n_matched:,} bars  ·  {n_trading_days} days")
 
     st.subheader("Summary")
     m1, m2, m3, m4, m5 = st.columns(5)
-    m1.metric("Matched Bars",      f"{n_matched:,}")
-    m2.metric("Trading Days",      f"{n_trading_days:,}")
-    m3.metric("OHLC Exact Match",  f"{pct_ohlc:.1f}%",
+    m1.metric("Matched Bars",       f"{n_matched:,}")
+    m2.metric("Trading Days",       f"{n_trading_days:,}")
+    m3.metric("OHLC Exact Match",   f"{pct_ohlc:.1f}%",
               help="Bars where ALL four OHLC fields match simultaneously.")
     m4.metric("Holiday Bars Excl.", f"{n_holiday_bars:,}" if excl_holidays and n_holiday_bars else "—")
     m5.metric("Event Bars Excl.",   f"{n_event_bars:,}"   if n_event_bars else "—")
 
-    row2 = [("SC Only", f"{n_sc_only:,}"), ("NT Only", f"{n_nt_only:,}")]
+    row2 = [(f"{left_label} Only", f"{n_lo:,}"), (f"{right_label} Only", f"{n_ro:,}")]
     if not excl_volume:
-        row2.append(("Vol Mismatches",  f"{n_vol_mm:,}"))
+        row2.append(("Vol Mismatches",   f"{n_vol_mm:,}"))
     if n_first_n_bars:
-        row2.append(("Open Bars Excl.", f"{n_first_n_bars:,}"))
+        row2.append(("Open Bars Excl.",  f"{n_first_n_bars:,}"))
     if n_last_min_bars:
         row2.append(("Close Bars Excl.", f"{n_last_min_bars:,}"))
     if n_dow_bars:
-        row2.append(("DOW Bars Excl.",  f"{n_dow_bars:,}"))
+        row2.append(("DOW Bars Excl.",   f"{n_dow_bars:,}"))
     cols2 = st.columns(len(row2))
     for col, (label, val) in zip(cols2, row2):
         col.metric(label, val)
 
     if show_commentary:
-        _summary_commentary(n_matched, n_sc_only, n_nt_only, pct_ohlc, pct_ohlc, n_ohlc_mm, excl_volume)
+        _summary_commentary(n_matched, n_lo, n_ro, pct_ohlc, pct_ohlc, n_ohlc_mm, excl_volume)
 
-    # ── Field breakdown ────────────────────────────────────────────────────────
     st.subheader("Mismatch by Field")
     if show_commentary:
         _info(
-            "Each row shows how many bars matched exactly vs differed, and the range of the difference in ticks "
-            "(OHLC) or contracts (Volume). A tick on ES = 0.25 points = $12.50. "
-            "**Note:** the OHLC Exact Match % above is lower than all four individual field rates — "
-            "that is correct. The summary counts a bar as a mismatch if *any* of the four fields differ, "
-            "so it is always ≤ the lowest individual field rate."
+            "Each row shows how many bars matched exactly vs differed, and the range of the difference in ticks. "
+            "A tick on ES = 0.25 points = $12.50. "
+            "The OHLC Exact Match % above is ≤ all four individual field rates — a bar is a mismatch if *any* field differs."
         )
     _show_field_table(matched, excl_volume)
     if show_commentary:
         _field_table_commentary(matched, excl_volume)
 
-    # ── Unmatched bars ─────────────────────────────────────────────────────────
-    null_vol = nt_f[nt_f["NullVol"]].copy()
-    n_null_vol = len(null_vol)
-    if n_null_vol > 0:
-        null_vol["DateTime"] = null_vol["DateTime"].dt.strftime("%Y-%m-%d %H:%M")
-        with st.expander(f"⚠️ NT bars with null Volume (filled as 0) — {n_null_vol} bar{'s' if n_null_vol > 1 else ''}"):
-            st.caption("These bars existed in the NT file with no volume value. Volume was set to 0 for comparison purposes.")
-            st.dataframe(null_vol[["DateTime", "Open", "High", "Low", "Close"]], use_container_width=True, hide_index=True)
+    if "NullVol" in right_f.columns:
+        null_vol = right_f[right_f["NullVol"]].copy()
+        n_nv = len(null_vol)
+        if n_nv > 0:
+            null_vol["DateTime"] = null_vol["DateTime"].dt.strftime("%Y-%m-%d %H:%M")
+            with st.expander(f"⚠️ {right_label} bars with null Volume — {n_nv} bar{'s' if n_nv > 1 else ''}"):
+                st.caption("Volume was set to 0 for comparison purposes.")
+                st.dataframe(null_vol[["DateTime", "Open", "High", "Low", "Close"]],
+                             use_container_width=True, hide_index=True)
 
-    if n_sc_only > 0 or n_nt_only > 0:
-        with st.expander(f"Unmatched bars — SC only: {n_sc_only}  |  NT only: {n_nt_only}"):
-            _info(
-                "Bars that exist in one source but not the other. Common causes: different session start/end handling, "
-                "one feed missing ticks on a particular day, or a rollover gap."
-            )
-            # Flag NYSE holidays still present (only visible when checkbox is off)
-            all_unmatched_dates = set(
-                comp[comp["Status"] != "Matched"]["DateTime"].dt.strftime("%Y-%m-%d")
-            )
-            holiday_dates_present = all_unmatched_dates & holidays
-            if holiday_dates_present:
-                st.warning(
-                    f"📅 NYSE holiday bars present in unmatched list: "
-                    f"{', '.join(sorted(holiday_dates_present))}. "
-                    f"Enable 'Exclude NYSE market holidays' above to remove them."
-                )
-
+    if n_lo > 0 or n_ro > 0:
+        with st.expander(f"Unmatched bars — {left_label} only: {n_lo}  |  {right_label} only: {n_ro}"):
+            if show_commentary:
+                _info("Bars that exist in one source but not the other. Common causes: session boundary differences, missing ticks, rollover gaps.")
+            all_unmatched = set(comp[comp["Status"] != "Matched"]["DateTime"].dt.strftime("%Y-%m-%d"))
+            hp = all_unmatched & holidays
+            if hp:
+                st.warning(f"📅 NYSE holiday bars in unmatched list: {', '.join(sorted(hp))}.")
             uc1, uc2 = st.columns(2)
-            sc_only = comp[comp["Status"] == "SC only"][["DateTime","Open_sc","High_sc","Low_sc","Close_sc","Volume_sc"]].copy()
-            nt_only = comp[comp["Status"] == "NT only"][["DateTime","Open_nt","High_nt","Low_nt","Close_nt","Volume_nt"]].copy()
-            sc_only["DateTime"] = sc_only["DateTime"].dt.strftime("%Y-%m-%d %H:%M")
-            nt_only["DateTime"] = nt_only["DateTime"].dt.strftime("%Y-%m-%d %H:%M")
+            lo_df = comp[comp["Status"] == "SC only"][["DateTime","Open_sc","High_sc","Low_sc","Close_sc","Volume_sc"]].copy()
+            ro_df = comp[comp["Status"] == "NT only"][["DateTime","Open_nt","High_nt","Low_nt","Close_nt","Volume_nt"]].copy()
+            lo_df["DateTime"] = lo_df["DateTime"].dt.strftime("%Y-%m-%d %H:%M")
+            ro_df["DateTime"] = ro_df["DateTime"].dt.strftime("%Y-%m-%d %H:%M")
+            lo_df = lo_df.rename(columns={c: c.replace("_sc", "") for c in lo_df.columns if "_sc" in c})
+            ro_df = ro_df.rename(columns={c: c.replace("_nt", "") for c in ro_df.columns if "_nt" in c})
             with uc1:
-                st.caption("In SC, missing from NT")
-                st.dataframe(sc_only, use_container_width=True, hide_index=True)
+                st.caption(f"In {left_label}, missing from {right_label}")
+                st.dataframe(lo_df, use_container_width=True, hide_index=True)
             with uc2:
-                st.caption("In NT, missing from SC")
-                st.dataframe(nt_only, use_container_width=True, hide_index=True)
+                st.caption(f"In {right_label}, missing from {left_label}")
+                st.dataframe(ro_df, use_container_width=True, hide_index=True)
 
-    # ── Excluded dates for chart shading ──────────────────────────────────────
     excl_dates: set = set()
     if show_excl_shading:
-        if not all([incl_mon, incl_tue, incl_wed, incl_thu, incl_fri]):
-            dow_excl = {i for i, inc in enumerate([incl_mon, incl_tue, incl_wed, incl_thu, incl_fri]) if not inc}
+        if not all(incl_days):
+            dow_excl = {i for i, inc in enumerate(incl_days) if not inc}
             excl_dates |= {d for d in matched_full["DateTime"].dt.date.unique()
                            if pd.Timestamp(d).dayofweek in dow_excl}
         if not events_df.empty and event_filter_mode == "Skip full day":
             excl_dates |= set(events_df["DateTime"].dt.date)
 
-    # ── Sub-views ──────────────────────────────────────────────────────────────
     t1, t2, t3, t4 = st.tabs([
-        "🔎 Mismatch Table",
-        "🕐 Time of Day",
-        "📅 By Date",
-        "📊 Delta Distribution",
+        "🔎 Mismatch Table", "🕐 Time of Day", "📅 By Date", "📊 Delta Distribution",
     ])
     with t1:
-        _show_mismatch_table(matched, excl_volume)
+        _show_mismatch_table(matched, excl_volume,
+                              gate_key=gate_key, left_label=left_label, right_label=right_label)
     with t2:
-        _show_time_of_day(matched_full,
-                          excl_first_n=excl_first_n, excl_last_min=excl_last_min,
+        _show_time_of_day(matched_full, excl_first_n=excl_first_n, excl_last_min=excl_last_min,
                           show_shading=show_excl_shading, show_commentary=show_commentary)
     with t3:
         _show_by_date(matched_full, events_df,
@@ -546,6 +427,187 @@ def show_validation_tab(sc_file: str = "", nt_file: str = ""):
                       show_commentary=show_commentary)
     with t4:
         _show_delta_distribution(matched, excl_volume)
+
+
+# ── Tab entry point ───────────────────────────────────────────────────────────
+
+def show_validation_tab(sc_file: str = "", nt_file: str = ""):
+    # ── Data Sources ──────────────────────────────────────────────────────────
+    with st.expander("📁 Data Sources", expanded=True):
+        uc1, uc2, uc3 = st.columns(3)
+
+        py_bars = st.session_state.get("uploaded_sc_bars")
+        if py_bars is not None:
+            n_py   = py_bars["DateTime"].dt.date.nunique()
+            py_lbl = st.session_state.get("scid_loaded_label", "loaded")
+            uc1.success(f"**Python 5M**  ·  {py_lbl}  ·  {n_py} days")
+        else:
+            uc1.info("**Python 5M**\nLoad SCID quarters in Bar Analysis")
+
+        sc5m_file = uc2.file_uploader(
+            "SC 5M export (.csv/.txt)", type=["csv", "txt"], key="bv_sc5m_upload",
+            help="SC: Analysis → Export Chart Data → 5-Min bars → CSV",
+        )
+        if sc5m_file:
+            k = f"{sc5m_file.name}_{sc5m_file.size}"
+            if st.session_state.get("bv_sc5m_key") != k:
+                try:
+                    parsed = parse_sc_ohlc_from_upload(sc5m_file)
+                    st.session_state["bv_sc5m_bars"] = parsed
+                    st.session_state["bv_sc5m_key"]  = k
+                except Exception as e:
+                    uc2.error(str(e))
+            if "bv_sc5m_bars" in st.session_state:
+                n = st.session_state["bv_sc5m_bars"]["DateTime"].dt.date.nunique()
+                uc2.caption(f"✅ {sc5m_file.name}  ·  {n} days")
+        else:
+            st.session_state.pop("bv_sc5m_bars", None)
+            st.session_state.pop("bv_sc5m_key",  None)
+
+        nt5m_file = uc3.file_uploader(
+            "NT8 5M export (.csv/.txt)", type=["csv", "txt"], key="bv_nt5m_upload",
+            help="NT8 OHLCV bar export — semicolon-separated, bar close times",
+        )
+        if nt5m_file:
+            k = f"{nt5m_file.name}_{nt5m_file.size}"
+            if st.session_state.get("bv_nt5m_key") != k:
+                try:
+                    parsed = parse_ohlc_from_upload(nt5m_file)
+                    st.session_state["bv_nt5m_bars"] = parsed
+                    st.session_state["bv_nt5m_key"]  = k
+                except Exception as e:
+                    uc3.error(str(e))
+            if "bv_nt5m_bars" in st.session_state:
+                n = st.session_state["bv_nt5m_bars"]["DateTime"].dt.date.nunique()
+                uc3.caption(f"✅ {nt5m_file.name}  ·  {n} days")
+        else:
+            st.session_state.pop("bv_nt5m_bars", None)
+            st.session_state.pop("bv_nt5m_key",  None)
+
+    # ── Gate availability ─────────────────────────────────────────────────────
+    py_bars = st.session_state.get("uploaded_sc_bars")
+    sc_bars = st.session_state.get("bv_sc5m_bars")
+    nt_bars = st.session_state.get("bv_nt5m_bars")
+
+    gate1_ok = py_bars is not None and sc_bars is not None
+    gate2_ok = sc_bars is not None and nt_bars is not None
+
+    if not gate1_ok and not gate2_ok:
+        st.info(
+            "**Gate 1** — Python 5M vs SC 5M: load SCID quarters (Bar Analysis) + upload SC 5M export above  \n"
+            "**Gate 2** — SC 5M vs NT8 5M: upload SC 5M export + NT8 5M export above"
+        )
+        return
+
+    # ── Shared filters ────────────────────────────────────────────────────────
+    if "vt_initialized" not in st.session_state:
+        for k, v in _load_filter_defaults().items():
+            st.session_state.setdefault(k, v)
+        st.session_state["vt_initialized"] = True
+
+    with st.expander("⚙️ Filters", expanded=False):
+        tc1, tc2 = st.columns(2)
+        excl_holidays   = tc1.checkbox("Exclude NYSE holidays", key="f_excl_holidays",
+                                        value=st.session_state.get("f_excl_holidays", True),
+                                        help="Removes NYSE holiday sessions (Memorial Day etc.).")
+        show_commentary = tc2.checkbox("Show commentary",        key="f_show_commentary",
+                                        value=st.session_state.get("f_show_commentary", True))
+        st.divider()
+        st.markdown("**Display**")
+        dc1, dc2 = st.columns(2)
+        excl_volume       = dc1.checkbox("Ignore volume differences",      key="f_excl_volume",
+                                          value=st.session_state.get("f_excl_volume", False))
+        show_excl_shading = dc2.checkbox("Shade excluded zones on charts", key="f_show_excl_shading",
+                                          value=st.session_state.get("f_show_excl_shading", True))
+        st.divider()
+        st.markdown("**Session Boundaries**")
+        sb1, sb2 = st.columns(2)
+        excl_first_n  = sb1.slider("Exclude first N bars",   0, 12,
+                                    st.session_state.get("f_excl_first_n",  0), 1, key="f_excl_first_n")
+        excl_last_min = sb2.slider("Exclude last N minutes", 0, 90,
+                                    st.session_state.get("f_excl_last_min", 0), 5, key="f_excl_last_min")
+        st.divider()
+        st.markdown("**Day of Week**")
+        st.caption("Include days:")
+        dw1, dw2, dw3, dw4, dw5 = st.columns(5)
+        incl_mon = dw1.checkbox("Mon", key="f_incl_mon", value=st.session_state.get("f_incl_mon", True))
+        incl_tue = dw2.checkbox("Tue", key="f_incl_tue", value=st.session_state.get("f_incl_tue", True))
+        incl_wed = dw3.checkbox("Wed", key="f_incl_wed", value=st.session_state.get("f_incl_wed", True))
+        incl_thu = dw4.checkbox("Thu", key="f_incl_thu", value=st.session_state.get("f_incl_thu", True))
+        incl_fri = dw5.checkbox("Fri", key="f_incl_fri", value=st.session_state.get("f_incl_fri", True))
+        st.divider()
+        st.markdown("**Economic Events**")
+        if not fred_key_configured():
+            st.info("FOMC dates built-in. For NFP/CPI add `FRED_API_KEY` to `.streamlit/secrets.toml`.")
+        ea, eb, ec = st.columns(3)
+        use_fomc = ea.checkbox("FOMC", key="f_use_fomc", value=st.session_state.get("f_use_fomc", False))
+        use_nfp  = eb.checkbox("NFP",  key="f_use_nfp",  value=st.session_state.get("f_use_nfp",  False),
+                                disabled=not fred_key_configured())
+        use_cpi  = ec.checkbox("CPI",  key="f_use_cpi",  value=st.session_state.get("f_use_cpi",  False),
+                                disabled=not fred_key_configured())
+        event_types = tuple(
+            e for e, on in [("FOMC", use_fomc), ("NFP", use_nfp), ("CPI", use_cpi)] if on
+        )
+        ef1, ef2 = st.columns([1, 2])
+        _efm_default = st.session_state.get("f_event_filter_mode", "Skip full day")
+        event_filter_mode = ef1.radio(
+            "Filter mode", ["Skip full day", "Window ±N minutes"],
+            index=["Skip full day", "Window ±N minutes"].index(_efm_default),
+            key="f_event_filter_mode",
+            help="**Skip full day:** removes all RTH bars on event dates.\n\n"
+                 "**Window:** removes bars within N minutes of the announcement.",
+        )
+        event_window = 30
+        if event_filter_mode == "Window ±N minutes":
+            event_window = ef2.slider("Minutes before/after", 15, 180,
+                                       st.session_state.get("f_event_window", 30), 15,
+                                       key="f_event_window")
+        st.divider()
+        if st.button("💾 Save as Default"):
+            _save_filter_defaults({
+                "f_excl_holidays": excl_holidays, "f_show_commentary": show_commentary,
+                "f_excl_volume": excl_volume, "f_show_excl_shading": show_excl_shading,
+                "f_excl_first_n": excl_first_n, "f_excl_last_min": excl_last_min,
+                "f_incl_mon": incl_mon, "f_incl_tue": incl_tue,
+                "f_incl_wed": incl_wed, "f_incl_thu": incl_thu, "f_incl_fri": incl_fri,
+                "f_use_fomc": use_fomc, "f_use_nfp": use_nfp, "f_use_cpi": use_cpi,
+                "f_event_filter_mode": event_filter_mode, "f_event_window": event_window,
+            })
+            st.success("Defaults saved.", icon="✅")
+
+    st.session_state["excl_first_n"]  = excl_first_n
+    st.session_state["excl_last_min"] = excl_last_min
+
+    # ── Gate tabs ─────────────────────────────────────────────────────────────
+    filter_kwargs = dict(
+        excl_holidays=excl_holidays, show_commentary=show_commentary,
+        excl_volume=excl_volume, show_excl_shading=show_excl_shading,
+        excl_first_n=excl_first_n, excl_last_min=excl_last_min,
+        incl_days=(incl_mon, incl_tue, incl_wed, incl_thu, incl_fri),
+        event_types=event_types, event_filter_mode=event_filter_mode, event_window=event_window,
+    )
+
+    gate_labels = []
+    if gate1_ok:
+        gate_labels.append("Gate 1 — Python vs SC")
+    if gate2_ok:
+        gate_labels.append("Gate 2 — SC vs NT8")
+
+    gate_tabs = st.tabs(gate_labels)
+    tab_idx = 0
+
+    if gate1_ok:
+        with gate_tabs[tab_idx]:
+            _show_gate_body(py_bars, sc_bars,
+                            left_label="Python 5M (SCID)", right_label="SC 5M",
+                            gate_key="g1", **filter_kwargs)
+        tab_idx += 1
+
+    if gate2_ok:
+        with gate_tabs[tab_idx]:
+            _show_gate_body(sc_bars, nt_bars,
+                            left_label="SC 5M", right_label="NT8 5M",
+                            gate_key="g2", **filter_kwargs)
 
 
 # ── Sub-view functions ────────────────────────────────────────────────────────
@@ -588,13 +650,17 @@ def _show_field_table(matched: pd.DataFrame, excl_volume: bool = False):
     st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
 
-def _show_mismatch_table(matched: pd.DataFrame, excl_volume: bool = False):
+def _show_mismatch_table(matched: pd.DataFrame, excl_volume: bool = False,
+                          gate_key: str = "g0",
+                          left_label: str = "SC", right_label: str = "NT"):
     _info(
-        "Every bar where at least one OHLC field differs between SC and NT. "
-        "Δ is expressed in ticks (NT − SC). 🟠 = NT higher, 🔴 = NT lower. "
+        f"Every bar where at least one OHLC field differs between {left_label} and {right_label}. "
+        f"Δ is expressed in ticks ({right_label} − {left_label}). "
+        f"🟠 = {right_label} higher, 🔴 = {right_label} lower. "
         "Toggle below to also show bars that match perfectly."
     )
-    show_all = st.checkbox("Show all matched bars (not just mismatches)", value=False)
+    show_all = st.checkbox("Show all matched bars (not just mismatches)", value=False,
+                            key=f"{gate_key}_show_all_mm")
     subset   = matched if show_all else matched[~matched["OHLC_match"]]
 
     if subset.empty:
@@ -610,6 +676,15 @@ def _show_mismatch_table(matched: pd.DataFrame, excl_volume: bool = False):
     display = subset[display_cols].copy()
     display["DateTime"] = display["DateTime"].dt.strftime("%Y-%m-%d %H:%M")
 
+    la = left_label.replace(" ", "")[:5]
+    ra = right_label.replace(" ", "")[:5]
+    rename = {f"{c}_sc": f"{c}_{la}" for c in PRICE_FIELDS}
+    rename |= {f"{c}_nt": f"{c}_{ra}" for c in PRICE_FIELDS}
+    if not excl_volume:
+        rename["Volume_sc"] = f"Vol_{la}"
+        rename["Volume_nt"] = f"Vol_{ra}"
+    display = display.rename(columns=rename)
+
     def _color_delta(val):
         try:
             v = float(val)
@@ -618,9 +693,10 @@ def _show_mismatch_table(matched: pd.DataFrame, excl_volume: bool = False):
         except (TypeError, ValueError):
             return ""
 
-    price_fmt  = {f"{c}_{s}": "{:.2f}" for c in PRICE_FIELDS for s in ("sc", "nt")}
+    price_fmt = {f"{c}_{la}": "{:.2f}" for c in PRICE_FIELDS}
+    price_fmt |= {f"{c}_{ra}": "{:.2f}" for c in PRICE_FIELDS}
     delta_fmt  = {f"Δ{c}": "{:+.0f}" for c in PRICE_FIELDS}
-    vol_fmt    = {"ΔVolume": "{:+.0f}", "Volume_sc": "{:.0f}", "Volume_nt": "{:.0f}"}
+    vol_fmt    = {"ΔVolume": "{:+.0f}", f"Vol_{la}": "{:.0f}", f"Vol_{ra}": "{:.0f}"}
     delta_cols = list(delta_fmt.keys()) + (["ΔVolume"] if not excl_volume else [])
 
     fmt = price_fmt | delta_fmt | (vol_fmt if not excl_volume else {})

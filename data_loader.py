@@ -613,6 +613,67 @@ def parse_ohlc_from_upload(uploaded_file) -> pd.DataFrame:
     return df.sort_values("DateTime").reset_index(drop=True)
 
 
+def parse_sc_ohlc_from_upload(uploaded_file) -> pd.DataFrame:
+    """Parse SC 'Analysis → Export Chart Data' 5M bar CSV.
+    Columns: Date (MM/DD/YYYY), Time (HH:MM), Open, High, Low, Close,
+             then one of: Volume | UpVolume + DownVolume.
+    Timestamps are CT bar OPEN times — no shift needed.
+    Returns: DateTime, Open, High, Low, Close, Volume, NullVol"""
+    sep = _sc_detect_sep(uploaded_file)
+    uploaded_file.seek(0)
+    df = pd.read_csv(
+        uploaded_file,
+        sep=sep,
+        skipinitialspace=True,
+        dtype=str,
+        na_filter=False,
+        on_bad_lines="skip",
+    )
+    df.columns = df.columns.str.strip()
+
+    missing = [c for c in ("Date", "Time", "Open", "High", "Low", "Close") if c not in df.columns]
+    if missing:
+        raise ValueError(
+            f"SC 5M export is missing columns: {missing}. "
+            f"Got: {list(df.columns)}. "
+            "Export via SC Analysis → Export Chart Data → CSV."
+        )
+
+    dt_str = df["Date"].str.strip() + " " + df["Time"].str.strip()
+    dt = pd.to_datetime(dt_str, format="%m/%d/%Y %H:%M", errors="coerce")
+    if dt.isna().mean() > 0.5:
+        dt = pd.to_datetime(dt_str, format="%Y/%m/%d %H:%M", errors="coerce")
+    if dt.isna().mean() > 0.5:
+        dt = pd.to_datetime(dt_str, errors="coerce")
+    df["DateTime"] = dt
+
+    for col in ("Open", "High", "Low", "Close"):
+        df[col] = pd.to_numeric(df[col].str.strip(), errors="coerce")
+
+    if "Volume" in df.columns:
+        df["Volume"] = pd.to_numeric(df["Volume"].str.strip(), errors="coerce").fillna(0)
+    elif "UpVolume" in df.columns and "DownVolume" in df.columns:
+        df["Volume"] = (
+            pd.to_numeric(df["UpVolume"].str.strip(), errors="coerce").fillna(0) +
+            pd.to_numeric(df["DownVolume"].str.strip(), errors="coerce").fillna(0)
+        )
+    else:
+        df["Volume"] = 0
+
+    df["NullVol"] = df["Volume"].isna()
+    df = df.dropna(subset=["DateTime", "Open"])
+    t = df["DateTime"].dt.time
+    df = df[
+        (t >= pd.Timestamp(RTH_START).time()) &
+        (t <  pd.Timestamp(RTH_END).time())
+    ]
+    return (
+        df[["DateTime", "Open", "High", "Low", "Close", "Volume", "NullVol"]]
+        .sort_values("DateTime")
+        .reset_index(drop=True)
+    )
+
+
 @st.cache_data(show_spinner=False)
 def get_market_holidays(start: str, end: str) -> set:
     """Return set of date strings ('YYYY-MM-DD') that are NYSE holidays."""

@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 from data_loader import (load_sc_bars, CONTRACTS, bar_num_from_dt,
                          parse_sc_ticks_from_upload, parse_nt_ticks_from_upload,
                          parse_scid_ticks_from_upload,
-                         resample_ticks_to_bars, parse_ohlc_from_upload,
+                         resample_ticks_to_bars, parse_ohlc_from_upload, parse_sc_ohlc_from_upload,
                          discover_scid_files, build_scid_quarter_map, load_scid_ticks_chunked,
                          save_scid_cache, save_last_selection, load_scid_cache, clear_scid_cache,
                          list_cached_quarters, load_quarters_from_cache, build_bars_from_cache)
