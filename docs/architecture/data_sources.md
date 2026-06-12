@@ -49,21 +49,36 @@ dt_ct  = dt_utc.tz_localize("UTC").tz_convert("America/Chicago").tz_localize(Non
 
 ---
 
-## Secondary Tick Data — Massive.io (Optional)
+## Secondary Tick Data — Massive.io
 
 | Item | Detail |
 |------|--------|
 | Provider | Massive.io |
-| Plan needed | Futures Advanced or Futures Business CME |
+| Plan | Futures Developer (subscribing 2026-06-16) |
 | Instrument | ES quarterly contracts: ESH, ESM, ESU, ESZ |
-| Format | Daily flat files, one tick per line, Last price only |
-| Timestamp | Milliseconds since epoch |
-| Fields | timestamp, ticker, price, volume |
-| Coverage | Back to 2017 |
-| Status | Not purchased |
-| Purpose | Cross-provider analysis validation only — not primary research data |
+| Ticker format | `ESH6`, `ESM6`, `ESU6`, `ESZ6` (product code + month + 2-digit year) |
+| Delivery | REST API — `GET /futures/v1/trades/{ticker}` |
+| Timestamp | Nanosecond Unix in API response; millisecond float in flat file CSV |
+| Fields | timestamp, ticker, price, size, sequence_number, correction, exchange, session_end_date |
+| Coverage | 5 years (Developer plan); full history to 2017-04-03 (Advanced/Business) |
+| Status | Subscribing 2026-06-16 |
+| Purpose | Independent parallel validation track (Track 4) — completely separate from SC gates |
 
-**Decision:** Purchase only after Sierra Charts data is validated and Python sim is producing results. Massive data will be used to verify that WFA conclusions from Sierra data hold up on an independent data source. It is not required to build the sim.
+**Plan limits:** Developer = 10-min delay, 5-year history. Sufficient for bar validation. Advanced needed for full WFA history back to 2010.
+
+**API docs:** `docs/reference/massive_io/` — full endpoint reference for Contracts, Schedules, Trades, Aggs, and supporting endpoints.
+
+**Key fields for bar building:**
+- `correction != 0` → exclude (cancelled/corrected trades)
+- `conditions` → ignore for ES (equities only)
+- `session_end_date` → shared key across all massive.io APIs; CME day ends 17:00 CT
+- Rollover boundaries → from `last_trade_date` in Contracts API (no hardcoded dates)
+
+**Three-way validation (Track 4):**
+1. Ticks → App bar builder (`resample_ticks_to_bars`) → App 5M bars
+2. Ticks → NT import format → NT builds 5M bars + MCSignals CSV
+3. Aggs API (`resolution=5min`) → massive.io reference bars
+All three must match.
 
 ---
 

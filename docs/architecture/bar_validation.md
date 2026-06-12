@@ -1,6 +1,6 @@
 # Bar Validation Architecture
 **Status:** Architecture — Living  
-**Last Updated:** June 2, 2026  
+**Last Updated:** June 12, 2026  
 **Supersedes:** `BarValidation_Architecture.md` (original June 1, 2026)
 
 ---
@@ -161,9 +161,55 @@ Gate 2 — Sierra vs Rithmic:
 
 ---
 
+## Track 2 — Massive.io Three-Way Validation (independent from Track 1)
+
+Added 2026-06-12. Completely independent from SC Gates 1 and 2. Lives in a new Streamlit tab.
+
+```
+massive.io tick data (via Trades API)
+        |
+        ├── parse_massive_ticks_from_api() → resample_ticks_to_bars()
+        │              → App 5M bars
+        |
+        ├── convert to NT import format (yyyyMMdd HHmmss;price;volume)
+        │   → import into NT → NT builds 5M bars internally
+        │       → NinjaScript bar exporter → NT 5M bars CSV
+        │       → NinjaScript signal indicator → MCSignals CSV
+        |
+        └── Aggs API (resolution=5min) → massive.io reference bars
+                |
+        three-way comparison: App bars vs NT bars vs massive bars
+                |
+            all must match → trust App bars for simulation
+                |
+        import MCSignals CSV → run simulations in App
+```
+
+**Same tolerance thresholds as Track 1 (Gate 1/2).**
+
+**What this proves:** App bar builder matches NT bar builder on the same underlying tick data. MCSignal simulations in the App are trustworthy.
+
+**What this does not replace:** SC Gate 1/2. The SC path continues independently. If massive.io track succeeds first, SC track may be retired.
+
+### Files (to be created)
+| File | Description |
+|------|-------------|
+| `massive_tab.py` | New Streamlit tab — fetch, compare, simulate |
+| Additions to `data_loader.py` | `parse_massive_ticks_from_csv()`, `parse_massive_ticks_from_api()`, `parse_massive_bars_from_api()` |
+
+### Implementation Notes
+- Reuse `resample_ticks_to_bars()` — no new bar logic
+- Reuse `build_comparison()` — called twice for three-way diff
+- Cache ticks locally after API fetch (parquet) — do not re-fetch on every run
+- Rollover: use `last_trade_date` from Contracts API
+- NinjaScript bar exporter: to be written when tick data arrives (next week)
+
+---
+
 ## Open Questions
 
 - [ ] scid binary struct — confirm exact format from Sierra Charts ACSIL docs before building parser
 - [ ] RTH session definition — 08:30 or 09:30 CT start? Must match SC session template exactly
 - [ ] NT8 tick data format on disk — confirm it can be parsed directly or needs NT8 export first
 - [ ] Rollover dates in 1-year NT8 sample — flag these bars separately in Gate 2 comparison
+- [ ] ES ticker format in massive.io — confirm via `GET /futures/v1/contracts?product_code=ES&type=single` once API key available (2026-06-16)

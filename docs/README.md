@@ -13,6 +13,21 @@
 | `library_tenets.md` | Pardo chapter-by-chapter extraction. Key thresholds, quotes, warnings. |
 | `strategy_validation_framework.md` | Full testing protocol for MC setups. Layers 1-6. Per-setup report structure. |
 
+### reference/massive_io/ — Massive.io REST API docs (futures). Added 2026-06-12.
+
+| File | What it is |
+|------|------------|
+| `README.md` | Index + plan requirements table + key facts for bar building |
+| `contracts.md` | `GET /futures/v1/contracts` — rollover dates, tick sizes, contract registry |
+| `products.md` | `GET /futures/v1/products` — product-level specs |
+| `schedules.md` | `GET /futures/v1/schedules` — session open/close per day, holiday handling |
+| `aggregates.md` | `GET /futures/v1/aggs/{ticker}` — pre-built OHLCV bars, reference bars |
+| `trades.md` | `GET /futures/v1/trades/{ticker}` — tick-level data, NT import source |
+| `quotes.md` | `GET /futures/v1/quotes/{ticker}` — bid/ask data |
+| `contracts_snapshot.md` | `GET /futures/v1/snapshot` — real-time snapshots |
+| `market_status.md` | `GET /futures/v1/market-status` — market open/close status |
+| `exchanges.md` | `GET /futures/v1/exchanges` — exchange ID lookup |
+
 ---
 
 ## architecture/ — How the system is built. Changes when design decisions are made.

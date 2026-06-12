@@ -1,6 +1,6 @@
 # Roadmap
 **Status:** Living — update every session  
-**Last Updated:** June 9, 2026  
+**Last Updated:** June 12, 2026  
 **Rule:** This is the only source of truth for what gets built and in what order.  
 **Rule:** Phases are sequential within each track. Do not start a phase until its prerequisite passes.
 
@@ -48,9 +48,27 @@ All phases are sequential. No phase starts until its prerequisite gate passes.
 | G | Streamlit UI: all results, interactive, exportable | Phase E | Not started |
 
 **After Phase E (optional):**
-- Massive.io crosscheck: purchase, parse, run same WFA, compare conclusions
+- Massive.io crosscheck: run same WFA on massive.io data, compare WFA conclusions to SC results
+- Note: massive.io bar validation (Track 4) runs in parallel now and may retire the SC path if it succeeds first
 
 **See:** `python_wfa_spec.md` for full detail on each phase.
+
+---
+
+## Track 4 — Massive.io Independent Validation Tab (new, active)
+
+Completely independent from Track 2 SC gates. New Streamlit tab.
+
+| Phase | Description | Prerequisite | Status |
+|-------|-------------|-------------|--------|
+| M1 | API client: `parse_massive_ticks_from_api()`, `parse_massive_bars_from_api()`, local parquet cache | API key (2026-06-16) | Not started |
+| M2 | NT tick-to-import converter: massive CSV → `yyyyMMdd HHmmss;price;volume`, file naming | Actual ES tick data | Not started |
+| M3 | NinjaScript bar exporter: writes 5M OHLCV CSV from NT | M2 (data in NT) | Not started |
+| M4 | New Streamlit tab: fetch ticks, build App bars, upload NT bars, upload MCSignals, three-way compare | M1 + M3 | Not started |
+| M5 | Simulation in massive tab: run signal sim on App bars using MCSignals | M4 pass | Not started |
+| M6 | Reversal setup: review NT CSV + strategy logic, add to massive tab | M5 + reversal data | Not started |
+
+**See:** `bar_validation.md` Track 2 section for detailed architecture.
 
 ---
 
@@ -88,7 +106,7 @@ These are not build phases — they are analytical obligations that run as Track
 
 ---
 
-## Active — June 9, 2026
+## Active — June 12, 2026
 
 ### Done (committed)
 - [x] **SCID disk loader** — `build_scid_quarter_map()`, `load_scid_ticks_chunked()`, quarter selector UI; 12 contracts on disk
@@ -131,6 +149,9 @@ These are not build phases — they are analytical obligations that run as Track
 - [ ] Add ESM1 2021 and ESH2/ESM2 2022 contracts to registry when files ready
 - [ ] Share app + data files with Thomas: upload both data files to Google Drive, run ngrok
 - [ ] Add volume subplot to Bar Viewer candlestick chart
+- [ ] **Track 4 M1** — massive.io API key arrives Monday 2026-06-16; confirm ES ticker format, build API client + new tab skeleton
+- [ ] **Track 4 M2/M3** — massive tick converter + NinjaScript bar exporter when ES tick data confirmed
+- [ ] **Reversal setup** — review NT signal CSV + strategy logic before any code (arriving next week)
 
 ---
 

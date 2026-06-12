@@ -1,6 +1,6 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** June 10, 2026 (session 7)
+**Last Updated:** June 12, 2026 (session 8)
 **Current Versions:** SIM_v3.3 / GS_v4.5 / SHEET_v3.3  
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 
@@ -10,8 +10,9 @@
 
 The NT8 simulator and Sheets analysis pipeline are complete and working. All new development is Python-first. No new Sheets or NT8 features are being built unless explicitly scoped.
 
-The Python WFA engine is the primary focus. It has not started. The prerequisite sequence is:
+Two parallel tracks are now active:
 
+**Track 2 — Python WFA Engine (SC path):**
 ```
 Sierra Charts scid data confirmed
         |
@@ -34,6 +35,24 @@ Signal validation gate: match C# output on 4-week test period
 Phase C onward: simulator, optimizer, WFA engine
 ```
 
+**Track 4 — Massive.io Independent Tab (new, parallel):**
+```
+massive.io API (Developer plan, subscribing 2026-06-16)
+        |
+        v
+Pull ticks via API → App 5M bars (reuse resample_ticks_to_bars)
+        |
+        ├── Convert ticks → NT import format → NT builds 5M bars
+        │          → NinjaScript indicator → MCSignals CSV
+        │          → NinjaScript bar exporter → NT 5M bars CSV
+        |
+        ├── massive.io Aggs API → massive 5M reference bars
+        |
+        └── Three-way comparison: App bars vs NT bars vs massive bars
+                   → all must match → trust App bars for simulation
+```
+
+Track 4 is completely independent from Track 2 (SC gates). SC path continues in parallel.
 Nothing in Phase C or beyond starts until all gates above pass.
 
 ---
@@ -504,6 +523,27 @@ def _apply_to_config(cc, t1_raw, pb_raw, t2_raw):
 
 ---
 
+## Massive.io Tab — Architecture Decisions (Session 5, locked)
+
+- **New independent tab** in app.py — no shared state or code with SC validation tabs
+- **API-first** — ticks pulled via `GET /futures/v1/trades/{ticker}`, cached locally (parquet) after first fetch
+- **Bar builder** — reuse existing `resample_ticks_to_bars()` in data_loader.py; no new bar logic
+- **Comparison** — reuse existing `build_comparison()` in validation.py; called twice for three-way diff
+- **Rollover** — use `last_trade_date` from Contracts API; no hardcoded rollover dates
+- **Session boundaries** — hardcoded RTH_START/RTH_END (08:30–15:15 CT) for now; Schedules API is a future enhancement
+- **Conditions field** — ignore for ES (applies to equities only; confirmed by massive.io)
+- **Correction filter** — exclude `correction != 0` trades
+- **NT role** — NT is the signal factory; ticks must be imported into NT so NinjaScript indicator can produce MCSignals
+- **NT bar exporter** — NinjaScript indicator writing 5M OHLCV to CSV; to be written when data arrives
+- **Three new functions needed in data_loader.py:**
+  - `parse_massive_ticks_from_csv(file)` → `(DateTime CT, Price, Volume)` for CSV upload path
+  - `parse_massive_ticks_from_api(key, ticker, start, end)` → same shape via API + cache
+  - `parse_massive_bars_from_api(key, ticker, start, end)` → massive 5M agg bars as reference
+- **Reversal setup** — new NT signal CSV arriving next week; defer all design until CSV + NT strategy logic is seen. Likely reuses existing simulation engine with possible new `_simulate_one_bars_reversal()`. Do not design in advance.
+- **Developer plan** — 5-year history (back to ~2021), 10-min delay. Sufficient for validation. Advanced needed for full history to 2010 (WFA).
+
+---
+
 ## Next Session — Priorities
 
 1. **Configure Sierra Chart for 1-second OHLCV** — set chart type to 1-second bars for all ES quarterly contracts (ESZ09–ESM26), request historical data from SC. Expected: ~210 MB/quarter, full 15-year history in hours.
@@ -512,6 +552,9 @@ def _apply_to_config(cc, t1_raw, pb_raw, t2_raw):
 4. **Gate 1** — validate Python-built 5-min bars vs SC native 5-min export.
 5. **Simulation engine** — new 1-second scan path for stop/target/PB detection within 5-min signal windows.
 6. **Carry-over:** Verify PDF equity chart resize, verify 2-leg math (both low priority).
+7. **Massive.io tab (Track 4)** — API key arrives Monday 2026-06-16. First: confirm ES ticker format via `GET /futures/v1/contracts?product_code=ES&type=single`. Then build `parse_massive_ticks_from_api()` + new tab skeleton.
+8. **NT tick-to-import converter** — write Python converter (massive CSV → NT `yyyyMMdd HHmmss;price;volume`, file `ESM6.Last.txt`) once actual ES tick data confirmed.
+9. **Reversal setup** — review NT signal CSV + strategy logic before any code (arriving next week).
 
 ---
 
@@ -578,6 +621,7 @@ Trigger = after X R move → stop to blended BE / E1 / lock-in R.
 | ESM6 CME tick data (.txt) | Available | 56 trading days. Old disk file — not loaded by default. |
 | NT 5M bar data (.txt) | Available | April 1 – June 3 2026. Upload via OHLC uploader. |
 | 2022–2025 + pre-2021 data | Arriving | Expected soon. |
+| massive.io API | Subscribing 2026-06-16 | Developer plan. Futures Trades + Aggs APIs. ES quarterly contracts. Full docs in `docs/reference/massive_io/`. |
 
 ---
 
