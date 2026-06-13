@@ -1,6 +1,6 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** June 12, 2026 (session 8)
+**Last Updated:** June 13, 2026 (session 9)
 **Current Versions:** SIM_v3.3 / GS_v4.5 / SHEET_v3.3  
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 
@@ -541,20 +541,41 @@ def _apply_to_config(cc, t1_raw, pb_raw, t2_raw):
   - `parse_massive_bars_from_api(key, ticker, start, end)` → massive 5M agg bars as reference
 - **Reversal setup** — new NT signal CSV arriving next week; defer all design until CSV + NT strategy logic is seen. Likely reuses existing simulation engine with possible new `_simulate_one_bars_reversal()`. Do not design in advance.
 - **Developer plan** — 5-year history (back to ~2021), 10-min delay. Sufficient for validation. Advanced needed for full history to 2010 (WFA).
+- **massive Agg bars caveat** — massive.io 5M Agg bars may differ slightly at session boundaries (08:30/15:15 CT) because massive uses its own session logic. App bars vs NT bars is the comparison that matters most. Massive Agg bars are a third data point only.
+- **fetch_for_nt.py** — standalone Python script needed on the PC (Python confirmed installed). Fetches massive.io ticks, converts to NT import format, saves to disk. No file transfer needed — runs natively on PC.
+
+## NT Data Isolation — Confirmed Facts (Session 9)
+
+From NT8 documentation (Historical Data Manager):
+
+**Delete does not work for isolation:**
+> "Deleted historical data will be replaced when data is reloaded from the connectivity provider."
+Deleting ESM6 Rithmic data then importing massive ticks is unreliable — Rithmic refills on reconnect. Do not use this approach.
+
+**Custom instrument approach — UNRESOLVED:**
+From NT docs: "Any data imported where the instrument does not exist in the database will automatically be imported as a Stock instrument type. Futures and forex instruments must pre-exist in the database."
+- Custom Future instruments CAN be created in NT Instrument Manager before import
+- Whether NinjaScript indicators run cleanly on a custom-named instrument is **unconfirmed**
+- User is testing this on the PC (session 9 end). Do not design around it until confirmed working.
+
+**Merge vs overwrite on import:** NT documentation does not specify. Unknown.
+
+**Rule added:** Never guess NT8 behavior. If uncertain, say so immediately and stop. Do not present plausible-sounding guesses as recommendations.
 
 ---
 
 ## Next Session — Priorities
 
-1. **Configure Sierra Chart for 1-second OHLCV** — set chart type to 1-second bars for all ES quarterly contracts (ESZ09–ESM26), request historical data from SC. Expected: ~210 MB/quarter, full 15-year history in hours.
-2. **Run `scripts/build_scid_cache.py`** once 1-second data is on disk.
-3. **Update SCID pipeline for 1-second bars** — `load_scid_ticks_chunked` uses `records["Close"]` as tick price; for 1-second bars need to aggregate OHLC. `resample_ticks_to_bars` needs to resample 1-second OHLCV → 5-min OHLCV properly.
-4. **Gate 1** — validate Python-built 5-min bars vs SC native 5-min export.
-5. **Simulation engine** — new 1-second scan path for stop/target/PB detection within 5-min signal windows.
-6. **Carry-over:** Verify PDF equity chart resize, verify 2-leg math (both low priority).
-7. **Massive.io tab (Track 4)** — API key arrives Monday 2026-06-16. First: confirm ES ticker format via `GET /futures/v1/contracts?product_code=ES&type=single`. Then build `parse_massive_ticks_from_api()` + new tab skeleton.
-8. **NT tick-to-import converter** — write Python converter (massive CSV → NT `yyyyMMdd HHmmss;price;volume`, file `ESM6.Last.txt`) once actual ES tick data confirmed.
-9. **Reversal setup** — review NT signal CSV + strategy logic before any code (arriving next week).
+1. **NT custom instrument test** — user testing on PC (session 9 end). First task next session: report result. If it works, design the NT import pipeline around it. If not, escalate to NinjaTrader support before any further NT design.
+2. **Configure Sierra Chart for 1-second OHLCV** — set chart type to 1-second bars for all ES quarterly contracts (ESZ09–ESM26), request historical data from SC. Expected: ~210 MB/quarter, full 15-year history in hours.
+3. **Run `scripts/build_scid_cache.py`** once 1-second data is on disk.
+4. **Update SCID pipeline for 1-second bars** — `load_scid_ticks_chunked` uses `records["Close"]` as tick price; for 1-second bars need to aggregate OHLC. `resample_ticks_to_bars` needs to resample 1-second OHLCV → 5-min OHLCV properly.
+5. **Gate 1** — validate Python-built 5-min bars vs SC native 5-min export.
+6. **Simulation engine** — new 1-second scan path for stop/target/PB detection within 5-min signal windows.
+7. **Carry-over:** Verify PDF equity chart resize, verify 2-leg math (both low priority).
+8. **Massive.io tab (Track 4)** — API key arrives Monday 2026-06-16. First: confirm ES ticker format via `GET /futures/v1/contracts?product_code=ES&type=single`. Then build `parse_massive_ticks_from_api()` + new tab skeleton.
+9. **NT tick-to-import converter** — write Python converter (massive CSV → NT `yyyyMMdd HHmmss;price;volume`, file naming TBD pending custom instrument test result).
+10. **Reversal setup** — review NT signal CSV + strategy logic before any code (arriving next week).
 
 ---
 
@@ -636,3 +657,5 @@ Trigger = after X R move → stop to blended BE / E1 / lock-in R.
 7. Always search project knowledge and past chats before answering questions about prior decisions
 8. Read `docs/README.md` index before adding any new doc — no duplicates, no orphans
 9. **NEVER commit and push code the user has not tested. Syntax check is not a test.**
+10. **Never guess NT8 behavior.** If the answer is not in the docs or confirmed by the user, say "I don't know" and stop. Do not fill gaps with plausible-sounding guesses.
+11. **Two-machine workflow:** User works on both a PC and a Mac laptop. Always remind to `git pull` at the start of every session before any other work.
