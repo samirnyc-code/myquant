@@ -776,6 +776,170 @@ def clear_csv_cache() -> None:
         shutil.rmtree(CSV_CACHE_DIR)
 
 
+# ── Massive.io API ────────────────────────────────────────────────────────────
+
+MASSIVE_BASE_URL  = "https://api.massive.io"   # TODO: confirm when key arrives
+MASSIVE_CACHE_DIR = Path(__file__).parent / "data" / "massive_cache"
+_MASSIVE_PAGE_LIMIT = 49_999
+_MASSIVE_MONTH_TO_NUM = {"H": 3, "M": 6, "U": 9, "Z": 12}
+
+
+def _massive_headers(api_key: str) -> dict:
+    # TODO: confirm auth scheme from API docs when key arrives Monday
+    return {"Authorization": f"Bearer {api_key}"}
+
+
+def fetch_massive_contract_info(api_key: str, ticker: str) -> dict:
+    """Return contract record from Massive Contracts API."""
+    import requests
+    resp = requests.get(
+        f"{MASSIVE_BASE_URL}/futures/v1/contracts",
+        headers=_massive_headers(api_key),
+        params={"ticker.any_of": ticker},
+        timeout=30,
+    )
+    resp.raise_for_status()
+    results = resp.json().get("results", [])
+    if not results:
+        raise ValueError(f"No contract found for ticker '{ticker}'")
+    return results[0]
+
+
+def massive_ticker_to_nt_name(ticker: str, first_trade_date: str) -> str:
+    """'ESM6' + '2026-03-17' → 'ES_MAS 06-26'. Uses first_trade_date for unambiguous year."""
+    month_num = _MASSIVE_MONTH_TO_NUM[ticker[2]]
+    year      = int(first_trade_date[:4])
+    return f"ES_MAS {month_num:02d}-{year % 100:02d}"
+
+
+def fetch_massive_trades(
+    api_key: str,
+    ticker: str,
+    date_start: str,
+    date_end: str,
+    use_cache: bool = True,
+) -> pd.DataFrame:
+    """
+    Fetch RTH tick data from Massive.io Trades API for one ES contract.
+    Paginates via next_url cursor. Filters: correction==0, RTH only (08:30–15:15 CT).
+    Caches result to Parquet — delete cache file to force re-fetch.
+    Returns DataFrame: DateTime (CT, tz-naive), Price (float64), Volume (int64).
+    """
+    import requests
+
+    MASSIVE_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    cache_path = MASSIVE_CACHE_DIR / f"{ticker}_{date_start}_{date_end}_ticks.parquet"
+    if use_cache and cache_path.exists():
+        return pd.read_parquet(cache_path)
+
+    url    = f"{MASSIVE_BASE_URL}/futures/v1/trades/{ticker}"
+    params = {
+        "session_end_date.gte": date_start,
+        "session_end_date.lte": date_end,
+        "limit":                _MASSIVE_PAGE_LIMIT,
+        "sort.asc":             "timestamp",  # TODO: confirm sort param format
+    }
+
+    rows = []
+    while url:
+        resp = requests.get(url, headers=_massive_headers(api_key), params=params, timeout=60)
+        resp.raise_for_status()
+        body = resp.json()
+        for t in body.get("results", []):
+            if t.get("correction", 0) != 0:
+                continue
+            rows.append((int(t["timestamp"]), float(t["price"]), int(t["size"])))
+        url    = body.get("next_url")
+        params = {}  # next_url already encodes all params
+
+    if not rows:
+        return pd.DataFrame(columns=["DateTime", "Price", "Volume"])
+
+    raw = pd.DataFrame(rows, columns=["timestamp_ns", "price", "size"])
+    raw.sort_values("timestamp_ns", inplace=True, ignore_index=True)
+
+    dt_ct = (pd.to_datetime(raw["timestamp_ns"], unit="ns", utc=True)
+               .dt.tz_convert("America/Chicago")
+               .dt.tz_localize(None))
+
+    df = pd.DataFrame({"DateTime": dt_ct, "Price": raw["price"], "Volume": raw["size"]})
+    t  = df["DateTime"].dt.strftime("%H:%M:%S")
+    df = df[(t >= RTH_START) & (t <= RTH_END)].reset_index(drop=True)
+
+    df.to_parquet(cache_path, index=False, compression="snappy")
+    return df
+
+
+def fetch_massive_aggs(
+    api_key: str,
+    ticker: str,
+    date_start: str,
+    date_end: str,
+    resolution: str = "5min",
+    use_cache: bool = True,
+) -> pd.DataFrame:
+    """
+    Fetch OHLCV aggregate bars from Massive.io Aggs API.
+    Returns RTH bars only: DateTime (CT bar open time, tz-naive), Open, High, Low, Close, Volume.
+    """
+    import requests
+
+    MASSIVE_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    cache_path = MASSIVE_CACHE_DIR / f"{ticker}_{date_start}_{date_end}_aggs_{resolution}.parquet"
+    if use_cache and cache_path.exists():
+        return pd.read_parquet(cache_path)
+
+    url    = f"{MASSIVE_BASE_URL}/futures/v1/aggs/{ticker}"
+    params = {
+        "resolution":       resolution,
+        "window_start.gte": date_start,
+        "window_start.lte": date_end,
+        "limit":            50_000,
+        "sort.asc":         "window_start",  # TODO: confirm sort param format
+    }
+
+    rows = []
+    while url:
+        resp = requests.get(url, headers=_massive_headers(api_key), params=params, timeout=60)
+        resp.raise_for_status()
+        body = resp.json()
+        for b in body.get("results", []):
+            rows.append({
+                "DateTime": b["window_start"],
+                "Open":     float(b["open"]),
+                "High":     float(b["high"]),
+                "Low":      float(b["low"]),
+                "Close":    float(b["close"]),
+                "Volume":   int(b["volume"]),
+            })
+        url    = body.get("next_url")
+        params = {}
+
+    if not rows:
+        return pd.DataFrame(columns=["DateTime", "Open", "High", "Low", "Close", "Volume"])
+
+    df = pd.DataFrame(rows)
+
+    # window_start can be ISO string (CT) or nanosecond int — handle both
+    if pd.api.types.is_integer_dtype(df["DateTime"]):
+        dt = (pd.to_datetime(df["DateTime"], unit="ns", utc=True)
+                .dt.tz_convert("America/Chicago")
+                .dt.tz_localize(None))
+    else:
+        dt = pd.to_datetime(df["DateTime"], errors="coerce")
+        if dt.dt.tz is not None:
+            dt = dt.dt.tz_convert("America/Chicago").dt.tz_localize(None)
+
+    df["DateTime"] = dt
+    df = df.sort_values("DateTime").reset_index(drop=True)
+
+    t  = df["DateTime"].dt.strftime("%H:%M:%S")
+    df = df[(t >= RTH_START) & (t < RTH_END)].reset_index(drop=True)
+
+    df.to_parquet(cache_path, index=False, compression="snappy")
+    return df
+
+
 @st.cache_data(show_spinner=False)
 def get_market_holidays(start: str, end: str) -> set:
     """Return set of date strings ('YYYY-MM-DD') that are NYSE holidays."""

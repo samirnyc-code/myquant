@@ -1,6 +1,6 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** June 13, 2026 (session 9)
+**Last Updated:** June 13, 2026 (session 10)
 **Current Versions:** SIM_v3.3 / GS_v4.5 / SHEET_v3.3  
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 
@@ -479,7 +479,9 @@ Neither tab has disk fallbacks. If no data is uploaded (and no cache loaded), th
 **Session 4 (June 8):** ✅ Committed + pushed — Portfolio tab complete  
 **Session 5 (June 9):** ✅ Committed + pushed (`c5c2f0f`) — SCID disk loader, Parquet cache, source selector fix, OHLC auto-detect, upload-only bar viewer/validation  
 **Session 6 (June 10):** ✅ Committed + pushed (`e4e0c6c`) — optimised SCID loader (integer pre-filter, no strftime, 8× larger chunks), per-quarter Parquet cache, OOM fix (build_bars_from_cache), Unload button, Select All fix; deleted 108 GB tick SCID files; architecture decision: switch to 1-second OHLCV  
-**Session 7 (June 10):** ✅ Committed + pushed — NT OHLCExporter Time[0] fix (MyOHLCReader.cs), NT parser dual-format (CSV/TXT), empty DataFrame guards (validation.py + app.py), Gate 2 root cause documented (back-adjustment); Gate 2 100% match requires individual contracts (ESM26 first)
+**Session 7 (June 10):** ✅ Committed + pushed — NT OHLCExporter Time[0] fix (MyOHLCReader.cs), NT parser dual-format (CSV/TXT), empty DataFrame guards (validation.py + app.py), Gate 2 root cause documented (back-adjustment); Gate 2 100% match requires individual contracts (ESM26 first)  
+**Session 8 (June 10):** ✅ Committed + pushed — `validation.py` CSV download fix (st.download_button, gate_key param); corrected back-adjustment findings; NT corrupted bar (2025-07-15) found and fixed in NT  
+**Session 10 (June 13):** ✅ Committed + pushed — `scripts/fetch_for_nt.py` (NT import script), `data_loader.py` (4 Massive.io API functions), `massive.py` (new Massive.io tab), `app.py` (6th tab added); all Massive.io code ready pending API key Monday 2026-06-16
 
 ---
 
@@ -523,26 +525,36 @@ def _apply_to_config(cc, t1_raw, pb_raw, t2_raw):
 
 ---
 
-## Massive.io Tab — Architecture Decisions (Session 5, locked)
+## Massive.io Tab — Architecture (locked, implemented Session 10)
 
-- **New independent tab** in app.py — no shared state or code with SC validation tabs
-- **API-first** — ticks pulled via `GET /futures/v1/trades/{ticker}`, cached locally (parquet) after first fetch
-- **Bar builder** — reuse existing `resample_ticks_to_bars()` in data_loader.py; no new bar logic
-- **Comparison** — reuse existing `build_comparison()` in validation.py; called twice for three-way diff
-- **Rollover** — use `last_trade_date` from Contracts API; no hardcoded rollover dates
-- **Session boundaries** — hardcoded RTH_START/RTH_END (08:30–15:15 CT) for now; Schedules API is a future enhancement
-- **Conditions field** — ignore for ES (applies to equities only; confirmed by massive.io)
-- **Correction filter** — exclude `correction != 0` trades
-- **NT role** — NT is the signal factory; ticks must be imported into NT so NinjaScript indicator can produce MCSignals
-- **NT bar exporter** — NinjaScript indicator writing 5M OHLCV to CSV; to be written when data arrives
-- **Three new functions needed in data_loader.py:**
-  - `parse_massive_ticks_from_csv(file)` → `(DateTime CT, Price, Volume)` for CSV upload path
-  - `parse_massive_ticks_from_api(key, ticker, start, end)` → same shape via API + cache
-  - `parse_massive_bars_from_api(key, ticker, start, end)` → massive 5M agg bars as reference
-- **Reversal setup** — new NT signal CSV arriving next week; defer all design until CSV + NT strategy logic is seen. Likely reuses existing simulation engine with possible new `_simulate_one_bars_reversal()`. Do not design in advance.
-- **Developer plan** — 5-year history (back to ~2021), 10-min delay. Sufficient for validation. Advanced needed for full history to 2010 (WFA).
-- **massive Agg bars caveat** — massive.io 5M Agg bars may differ slightly at session boundaries (08:30/15:15 CT) because massive uses its own session logic. App bars vs NT bars is the comparison that matters most. Massive Agg bars are a third data point only.
-- **fetch_for_nt.py** — standalone Python script needed on the PC (Python confirmed installed). Fetches massive.io ticks, converts to NT import format, saves to disk. No file transfer needed — runs natively on PC.
+- **Tab:** `📡 Massive.io` — 6th tab in app.py (`massive.py`). Independent from SC validation tabs. No shared state.
+- **API-first** — ticks via `GET /futures/v1/trades/{ticker}`, agg bars via `GET /futures/v1/aggs/{ticker}`. Both cached to `data/massive_cache/` as parquet after first fetch.
+- **Bar builder** — reuses `resample_ticks_to_bars()` in `data_loader.py`. No new bar logic.
+- **Comparison** — reuses `build_comparison()` from `validation.py`, called twice:
+  - Comparison 1: tick-built bars vs Massive agg bars (validates bar builder)
+  - Comparison 2: tick-built bars vs NT ES_MAS bars (validates full import round-trip)
+- **Rollover** — use `last_trade_date` from Contracts API; no hardcoded dates.
+- **Correction filter** — exclude `correction != 0` trades.
+- **Conditions field** — ignore for ES (equities only, confirmed by massive.io).
+- **Session boundaries** — hardcoded RTH_START/RTH_END (08:30–15:15 CT).
+- **Developer plan** — 5-year history (~2021 to present), 10-min delay. Sufficient for validation. Advanced needed for full WFA history to 2010.
+- **Massive Agg bars caveat** — may differ slightly at session boundaries (08:30/15:15 CT). Tick-built vs NT is the comparison that matters most.
+- **Reversal setup** — NT signal CSV arriving this week. Defer all design until CSV + NT strategy logic is seen. Do not design in advance.
+
+### Functions in `data_loader.py` (built Session 10)
+
+| Function | Purpose |
+| -------- | ------- |
+| `fetch_massive_trades(api_key, ticker, date_start, date_end)` | Paginate Trades API → DataFrame(DateTime CT, Price, Volume); cache to parquet |
+| `fetch_massive_aggs(api_key, ticker, date_start, date_end, resolution)` | Paginate Aggs API → DataFrame(DateTime, OHLCV); cache to parquet |
+| `fetch_massive_contract_info(api_key, ticker)` | Single contract metadata (first/last trade date, tick size) |
+| `massive_ticker_to_nt_name(ticker, first_trade_date)` | `'ESM6' + '2026-03-17'` → `'ES_MAS 06-26'` |
+
+**TODOs for Monday (require live API key):** confirm `BASE_URL`, auth header format, sort param syntax, exact ticker format (`ESM6` vs `ESM26`). All are marked with `# TODO` in code.
+
+### `scripts/fetch_for_nt.py` (built Session 10)
+
+Standalone script — runs natively on PC (Python + requests). Configure `API_KEY`, `TICKER`, `DATE_START`, `DATE_END` at top, then run. Output: `ES_MAS MM-YY.Last.txt` in `OUTPUT_DIR` + parquet cache. Same TODOs as above.
 
 ## NT Data Isolation — Confirmed Facts (Session 9)
 
@@ -552,11 +564,14 @@ From NT8 documentation (Historical Data Manager):
 > "Deleted historical data will be replaced when data is reloaded from the connectivity provider."
 Deleting ESM6 Rithmic data then importing massive ticks is unreliable — Rithmic refills on reconnect. Do not use this approach.
 
-**Custom instrument approach — UNRESOLVED:**
+**Custom instrument approach — IN PROGRESS (Session 10):**
 From NT docs: "Any data imported where the instrument does not exist in the database will automatically be imported as a Stock instrument type. Futures and forex instruments must pre-exist in the database."
-- Custom Future instruments CAN be created in NT Instrument Manager before import
-- Whether NinjaScript indicators run cleanly on a custom-named instrument is **unconfirmed**
-- User is testing this on the PC (session 9 end). Do not design around it until confirmed working.
+
+- **ES_MAS** custom Future instrument created in NT Instrument Manager ✅
+- Contract months added manually one at a time with rollover dates + price offsets; NT applies back-adjustment ("merge back adjusted" setting)
+- NT contract month naming: `ES_MAS 06-26`, `ES_MAS 12-25`, etc. (`MM-YY` format)
+- Whether NinjaScript indicators run cleanly on ES_MAS is **still unconfirmed** — blocked on tick data (API key Monday)
+- First test: one contract month only. If indicators work → expand. If not → escalate to NinjaTrader support.
 
 **Merge vs overwrite on import:** NT documentation does not specify. Unknown.
 
@@ -566,16 +581,26 @@ From NT docs: "Any data imported where the instrument does not exist in the data
 
 ## Next Session — Priorities
 
-1. **NT custom instrument test** — user testing on PC (session 9 end). First task next session: report result. If it works, design the NT import pipeline around it. If not, escalate to NinjaTrader support before any further NT design.
-2. **Configure Sierra Chart for 1-second OHLCV** — set chart type to 1-second bars for all ES quarterly contracts (ESZ09–ESM26), request historical data from SC. Expected: ~210 MB/quarter, full 15-year history in hours.
-3. **Run `scripts/build_scid_cache.py`** once 1-second data is on disk.
-4. **Update SCID pipeline for 1-second bars** — `load_scid_ticks_chunked` uses `records["Close"]` as tick price; for 1-second bars need to aggregate OHLC. `resample_ticks_to_bars` needs to resample 1-second OHLCV → 5-min OHLCV properly.
-5. **Gate 1** — validate Python-built 5-min bars vs SC native 5-min export.
-6. **Simulation engine** — new 1-second scan path for stop/target/PB detection within 5-min signal windows.
-7. **Carry-over:** Verify PDF equity chart resize, verify 2-leg math (both low priority).
-8. **Massive.io tab (Track 4)** — API key arrives Monday 2026-06-16. First: confirm ES ticker format via `GET /futures/v1/contracts?product_code=ES&type=single`. Then build `parse_massive_ticks_from_api()` + new tab skeleton.
-9. **NT tick-to-import converter** — write Python converter (massive CSV → NT `yyyyMMdd HHmmss;price;volume`, file naming TBD pending custom instrument test result).
-10. **Reversal setup** — review NT signal CSV + strategy logic before any code (arriving next week).
+### Massive.io — Monday 2026-06-16 (API key arrives)
+
+1. **Confirm API details** — `BASE_URL`, auth header scheme, sort param format, exact ticker string (`ESM6` vs `ESM26`). Update the 4 `# TODO` comments in `data_loader.py` and `scripts/fetch_for_nt.py`.
+2. **Contract lookup** — run `fetch_massive_contract_info()` for ESM6. Confirm `first_trade_date`, `last_trade_date`, `tick_size`.
+3. **Add ESM6 contract month to ES_MAS in NT** — set rollover dates + price offset. One contract only for the first test.
+4. **Run `scripts/fetch_for_nt.py`** — fetch ESM6 ticks, write `ES_MAS 06-26.Last.txt`, import into NT via Historical Data Manager (CT timezone).
+5. **Run OHLCExporter on ES_MAS chart** — export 5M bars, upload to Massive.io tab Comparison 2. If tick bars == NT bars → ES_MAS approach confirmed. If not → diagnose before expanding.
+6. **App validation** — fetch ESM6 ticks + agg bars via Massive.io tab, run Comparison 1 (tick-built vs agg). Expect near-perfect match.
+
+### SCID / WFA (carry-over, blocked on SC data)
+
+1. **Configure SC for 1-second OHLCV** — set chart type to 1-second bars for all ES quarterly contracts (ESZ09–ESM26), request historical data from SC. Expected ~210 MB/quarter.
+2. **Run `scripts/build_scid_cache.py`** once 1-second data is on disk.
+3. **Update SCID pipeline for 1-second bars** — `resample_ticks_to_bars` needs to aggregate OHLC from 1-second OHLCV, not tick prices.
+4. **Gate 1** — validate Python-built 5-min bars vs SC native 5-min export.
+
+### Other
+
+1. **Reversal setup** — review NT signal CSV + strategy logic before any code. Do not design in advance.
+2. **Carry-over:** Verify PDF equity chart resize, verify 2-leg math (both low priority).
 
 ---
 

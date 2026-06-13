@@ -12,6 +12,7 @@ from data_loader import (load_sc_bars, CONTRACTS, bar_num_from_dt,
 import validation
 import bar_analysis
 import portfolio
+import massive
 
 st.set_page_config(
     page_title="ES Futures — 5-Min RTH Bars",
@@ -453,8 +454,8 @@ def main():
             "sc_upload" if st.session_state.get("data_sc_1s") is not None else "none"
         )
 
-    tab0, tab1, tab2, tab3, tab4 = st.tabs([
-        "📂 Data", "📊 Bar Viewer", "🔍 Bar Validation", "📈 Bar Analysis", "📊 Portfolio",
+    tab0, tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        "📂 Data", "📊 Bar Viewer", "🔍 Bar Validation", "📈 Bar Analysis", "📊 Portfolio", "📡 Massive.io",
     ])
 
     contract_label = selected_key.split(" — ")[0] if selected_key else "ES"
@@ -496,6 +497,9 @@ def main():
 
     with tab4:
         portfolio.show_portfolio()
+
+    with tab5:
+        massive.show_massive_tab()
 
 
 main()

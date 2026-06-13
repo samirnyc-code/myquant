@@ -1,6 +1,6 @@
 # Data Sources
 **Status:** Architecture — Living  
-**Last Updated:** June 9, 2026  
+**Last Updated:** June 13, 2026  
 **Rule:** This is the only file that defines data sources. All other docs reference this file, never duplicate it.
 
 ---

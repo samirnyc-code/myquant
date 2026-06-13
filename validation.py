@@ -433,7 +433,7 @@ def _show_gate_body(
                       excl_dates=excl_dates if show_excl_shading else None,
                       show_commentary=show_commentary)
     with t4:
-        _show_delta_distribution(matched, excl_volume)
+        _show_delta_distribution(matched, excl_volume, gate_key=gate_key)
 
 
 # ── Tab entry point ───────────────────────────────────────────────────────────
@@ -693,6 +693,14 @@ def _show_mismatch_table(matched: pd.DataFrame, excl_volume: bool = False,
     if not excl_volume:
         caption += "  |  Δ in contracts for Volume"
     st.caption(caption)
+    ts = pd.Timestamp.now().strftime("%Y-%m-%dT%H-%M")
+    st.download_button(
+        "⬇ Download CSV",
+        data=display.to_csv(index=False).encode("utf-8-sig"),
+        file_name=f"{ts}_export.csv",
+        mime="text/csv",
+        key=f"{gate_key}_dl_mismatch",
+    )
 
 
 def _show_time_of_day(matched: pd.DataFrame,
@@ -865,7 +873,7 @@ def _show_by_date(matched: pd.DataFrame, events_df: pd.DataFrame | None = None,
             )
 
 
-def _show_delta_distribution(matched: pd.DataFrame, excl_volume: bool = False):
+def _show_delta_distribution(matched: pd.DataFrame, excl_volume: bool = False, gate_key: str = "g0"):
     if matched.empty:
         st.info("No matched bars.")
         return
@@ -895,7 +903,16 @@ def _show_delta_distribution(matched: pd.DataFrame, excl_volume: bool = False):
                 row[col] = int(cnt) if cnt > 0 else "—"
             tbl_rows.append(row)
         st.caption("OHLC mismatch count by delta value (mismatched bars only)")
-        st.dataframe(pd.DataFrame(tbl_rows), use_container_width=True, hide_index=True)
+        tbl_df = pd.DataFrame(tbl_rows)
+        st.dataframe(tbl_df, use_container_width=True, hide_index=True)
+        ts2 = pd.Timestamp.now().strftime("%Y-%m-%dT%H-%M")
+        st.download_button(
+            "⬇ Download CSV",
+            data=tbl_df.replace("—", "").to_csv(index=False).encode("utf-8-sig"),
+            file_name=f"{ts2}_delta_dist.csv",
+            mime="text/csv",
+            key=f"{gate_key}_dl_delta",
+        )
     else:
         st.success("All OHLC fields match exactly across every bar.")
 
