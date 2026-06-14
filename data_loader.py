@@ -585,12 +585,13 @@ def load_scid_ticks_chunked(
 def parse_ohlc_from_upload(uploaded_file) -> pd.DataFrame:
     """Parse NT OHLCExporter output — handles two formats:
 
-    CSV (current):  DateTime,Open,High,Low,Close,Volume
-                    2025-01-02 08:30:00,6238.50,...
-                    DateTime is CT bar OPEN time — no shift needed.
+    CSV:  DateTime,Open,High,Low,Close,Volume
+          2025-01-02 08:30:00,6238.50,...
+          DateTime is CT bar OPEN time — no shift needed.
 
-    TXT (legacy):   DD/MM/YYYY HH:MM:SS;O;H;L;C;V  (no header)
-                    DateTime is CT or Berlin bar CLOSE time — subtract 5 min.
+    TXT:  DD/MM/YYYY HH:MM:SS;O;H;L;C;V  (no header)
+          DateTime is CT or Berlin bar CLOSE time — kept as-is so timestamps
+          match what NT charts display (bar close label = Time[0]).
     """
     uploaded_file.seek(0)
     peek = uploaded_file.read(512)
@@ -650,17 +651,24 @@ def parse_ohlc_from_upload(uploaded_file) -> pd.DataFrame:
                 .dt.tz_localize("Europe/Berlin", ambiguous="infer", nonexistent="shift_forward")
                 .dt.tz_convert("America/Chicago")
                 .dt.tz_localize(None)
-                - pd.Timedelta(minutes=5)
             )
         else:
-            df["DateTime"] = dt_parsed - pd.Timedelta(minutes=5)
+            df["DateTime"] = dt_parsed
 
     df = df.dropna(subset=["DateTime", "Open"])
     t = df["DateTime"].dt.time
-    df = df[
-        (t >= pd.Timestamp(RTH_START).time()) &
-        (t <  pd.Timestamp(RTH_END).time())
-    ]
+    if is_csv:
+        # CSV has open times: include 08:30, exclude 15:15
+        df = df[
+            (t >= pd.Timestamp(RTH_START).time()) &
+            (t <  pd.Timestamp(RTH_END).time())
+        ]
+    else:
+        # TXT has close times: exclude 08:30 (no partial bar), include 15:15 (last bar)
+        df = df[
+            (t >  pd.Timestamp(RTH_START).time()) &
+            (t <= pd.Timestamp(RTH_END).time())
+        ]
     return df[["DateTime", "Open", "High", "Low", "Close", "Volume", "NullVol"]]\
         .sort_values("DateTime").reset_index(drop=True)
 
@@ -859,9 +867,9 @@ def fetch_massive_trades(
     raw = pd.DataFrame(rows, columns=["timestamp_ns", "price", "size"])
     raw.sort_values("timestamp_ns", inplace=True, ignore_index=True)
 
-    dt_ct = (pd.to_datetime(raw["timestamp_ns"], unit="ns", utc=True)
-               .dt.tz_convert("America/Chicago")
-               .dt.tz_localize(None))
+    # Massive timestamps are CT (exchange local time) stored as nanoseconds since
+    # Unix epoch — treat as local CT directly, do NOT convert from UTC.
+    dt_ct = pd.to_datetime(raw["timestamp_ns"], unit="ns")
 
     df = pd.DataFrame({"DateTime": dt_ct, "Price": raw["price"], "Volume": raw["size"]})
     t  = df["DateTime"].dt.strftime("%H:%M:%S")

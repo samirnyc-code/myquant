@@ -29,10 +29,10 @@ import requests
 import pandas as pd
 
 # ── Config ───────────────────────────────────────────────────────────────────
-API_KEY    = "YOUR_API_KEY_HERE"   # TODO: fill in when key arrives Monday
+API_KEY    = "4aTW6AdSEwulL86_kJnNupQppKxSgwXw"
 TICKER     = "ESM6"                # Massive.io ticker (confirm exact format with API)
-DATE_START = "2026-03-17"          # session_end_date inclusive, YYYY-MM-DD
-DATE_END   = "2026-06-20"          # session_end_date inclusive, YYYY-MM-DD
+DATE_START = "2026-06-12"          # narrow range for first test — expand after confirming format
+DATE_END   = "2026-06-13"
 OUTPUT_DIR = r"C:\Users\Admin\Desktop\NT Code Versions\ChartMarker_Files\Data\MAS_Import"
 
 BASE_URL   = "https://api.massive.com"  # confirmed from AAPL test
@@ -63,15 +63,15 @@ def get_contract_info(ticker: str) -> dict:
     return results[0]
 
 
-def ticker_to_nt_name(ticker: str, first_trade_date: str) -> str:
+def ticker_to_nt_name(ticker: str, last_trade_date: str) -> str:
     """
-    Convert Massive ticker + contract start date → NT8 instrument contract name.
-    'ESM6' + '2026-03-17' → 'ES_MAS 06-26'
-    Uses first_trade_date for unambiguous year (avoids single-digit year guessing).
+    Convert Massive ticker + last_trade_date → NT8 instrument contract name.
+    'ESM6' + '2026-06-18' → 'ES_MAS 06-26'
+    Uses last_trade_date year (first_trade_date is ~3 years early for ES futures).
     """
     month_code = ticker[2]                   # 'M'
     month_num  = _MONTH_TO_NUM[month_code]   # 6
-    year       = int(first_trade_date[:4])   # 2026
+    year       = int(last_trade_date[:4])    # 2026
     return f"ES_MAS {month_num:02d}-{year % 100:02d}"
 
 
@@ -89,7 +89,7 @@ def fetch_all_trades(ticker: str, date_start: str, date_end: str) -> pd.DataFram
         "session_end_date.gte": date_start,
         "session_end_date.lte": date_end,
         "limit":                PAGE_LIMIT,
-        "sort":                 "asc",  # confirmed from AAPL test
+        "sort":                 "timestamp",  # futures: sort by field name, not direction
         **_auth_params(),
     }
 
@@ -97,18 +97,29 @@ def fetch_all_trades(ticker: str, date_start: str, date_end: str) -> pd.DataFram
     page = 0
     while url:
         resp = requests.get(url, params=params, timeout=60)
-        resp.raise_for_status()
+        if not resp.ok:
+            print(f"  [ERROR] {resp.status_code}: {resp.text[:1000]}")
+            resp.raise_for_status()
         body = resp.json()
 
-        for t in body.get("results", []):
+        results = body.get("results", [])
+        if page == 0 and results:
+            first = results[0]
+            last  = results[-1]
+            print(f"  [DEBUG] first raw result: {first}")
+            print(f"  [DEBUG] last  raw result: {last}")
+        for t in results:
             if t.get("correction", 0) != 0:
                 continue
             rows.append((int(t["timestamp"]), float(t["price"]), int(t["size"])))
 
         url    = body.get("next_url")   # None on last page
-        params = {}                     # next_url already encodes all params
+        params = _auth_params()         # futures next_url does not encode apiKey
         page  += 1
         print(f"  page {page:3d}: {len(rows):>10,} ticks so far")
+        if page == 1:
+            print("  [DEBUG] stopping after page 1 to verify date range — remove this break to fetch all")
+            break
 
     df = pd.DataFrame(rows, columns=["timestamp_ns", "price", "size"])
     df.sort_values("timestamp_ns", inplace=True, ignore_index=True)
@@ -120,7 +131,8 @@ def write_nt_file(df: pd.DataFrame, output_path: str) -> None:
     Write NT8 import file: one tick per line, format yyyyMMdd HHmmss;price;volume
     Timestamps converted from nanosecond UTC → Central Time (CT).
     """
-    dt_ct    = pd.to_datetime(df["timestamp_ns"], unit="ns", utc=True).dt.tz_convert("America/Chicago")
+    # Massive timestamps are CT (exchange local time) stored as nanoseconds — treat as local CT directly.
+    dt_ct    = pd.to_datetime(df["timestamp_ns"], unit="ns")
     dt_str   = dt_ct.dt.strftime("%Y%m%d %H%M%S")
     price_str = df["price"].map("{:.2f}".format)
     size_str  = df["size"].astype(str)
@@ -133,7 +145,7 @@ def write_nt_file(df: pd.DataFrame, output_path: str) -> None:
 
 
 def main():
-    print(f"Fetching {TICKER}  {DATE_START} → {DATE_END}")
+    print(f"Fetching {TICKER}  {DATE_START} to {DATE_END}")
     print(f"Output:  {OUTPUT_DIR}")
 
     os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -143,8 +155,9 @@ def main():
     # ── Contract metadata ────────────────────────────────────────────────────
     print("\nLooking up contract...")
     contract = get_contract_info(TICKER)
-    nt_name  = ticker_to_nt_name(TICKER, contract["first_trade_date"])
-    print(f"  {TICKER}: {contract['first_trade_date']} – {contract['last_trade_date']}")
+    print(f"  [DEBUG] full contract info: {contract}")
+    nt_name  = ticker_to_nt_name(TICKER, contract["last_trade_date"])
+    print(f"  {TICKER}: {contract['first_trade_date']} to {contract['last_trade_date']}")
     print(f"  NT name: {nt_name}")
 
     # ── Fetch or load cache ──────────────────────────────────────────────────

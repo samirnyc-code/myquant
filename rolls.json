@@ -1,0 +1,82 @@
+{
+  "ESU1": {
+    "roll_date": "2021-09-09",
+    "offset": null
+  },
+  "ESZ1": {
+    "roll_date": "2021-12-09",
+    "offset": null
+  },
+  "ESH2": {
+    "roll_date": "2022-03-10",
+    "offset": null
+  },
+  "ESM2": {
+    "roll_date": "2022-06-09",
+    "offset": null
+  },
+  "ESU2": {
+    "roll_date": "2022-09-08",
+    "offset": null
+  },
+  "ESZ2": {
+    "roll_date": "2022-12-08",
+    "offset": null
+  },
+  "ESH3": {
+    "roll_date": "2023-03-09",
+    "offset": null
+  },
+  "ESM3": {
+    "roll_date": "2023-06-08",
+    "offset": null
+  },
+  "ESU3": {
+    "roll_date": "2023-09-07",
+    "offset": null
+  },
+  "ESZ3": {
+    "roll_date": "2023-12-07",
+    "offset": null
+  },
+  "ESH4": {
+    "roll_date": "2024-03-07",
+    "offset": null
+  },
+  "ESM4": {
+    "roll_date": "2024-06-13",
+    "offset": null
+  },
+  "ESU4": {
+    "roll_date": "2024-09-12",
+    "offset": null
+  },
+  "ESZ4": {
+    "roll_date": "2024-12-12",
+    "offset": null
+  },
+  "ESH5": {
+    "roll_date": "2025-03-13",
+    "offset": null
+  },
+  "ESM5": {
+    "roll_date": "2025-06-12",
+    "offset": null
+  },
+  "ESU5": {
+    "roll_date": "2025-09-11",
+    "offset": null
+  },
+  "ESZ5": {
+    "roll_date": "2025-12-11",
+    "offset": null
+  },
+  "ESH6": {
+    "roll_date": "2026-03-12",
+    "offset": null
+  },
+  "ESM6": {
+    "roll_date": "2026-06-11",
+    "offset": null
+  }
+}

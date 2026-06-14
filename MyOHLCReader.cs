@@ -27,9 +27,15 @@ namespace NinjaTrader.NinjaScript.Indicators
 {
 	public class OHLCExporter : Indicator
 	{
-		private StreamWriter _txtWriter;
-		private StreamWriter _csvWriter;
+		// Bars are buffered in memory and written atomically on Terminated.
+		// This avoids holding a file lock during bar processing, so re-running
+		// the indicator never blocks on "file in use".
+		private List<string> _txtLines;
+		private List<string> _csvLines;
+		private bool         _csvNeedsHeader;
 		private int          _barsWritten;
+		private DateTime     _firstBarTime;
+		private DateTime     _lastBarTime;
 
 		protected override void OnStateChange()
 		{
@@ -57,54 +63,68 @@ namespace NinjaTrader.NinjaScript.Indicators
 				Print("  Instrument  : " + Instrument.FullName);
 				Print("  Bar period  : " + BarsPeriod);
 				Print("  Exchange TZ : " + BarsArray[0].TradingHours.TimeZoneInfo.DisplayName);
-
-				_barsWritten = 0;
-
-				// -- TXT writer -----------------------------------------------
-				if (ValidateFilePath(TxtOutputPath, "TXT"))
-				{
-					try
-					{
-						EnsureDirectory(TxtOutputPath);
-						_txtWriter = new StreamWriter(TxtOutputPath, TxtAppendMode, Encoding.UTF8);
-						Print("  TXT output  : " + TxtOutputPath + (TxtAppendMode ? " (append)" : " (overwrite)"));
-					}
-					catch (Exception ex)
-					{
-						Print("  ERROR opening TXT file: " + ex.Message);
-					}
-				}
-
-				// -- CSV writer -----------------------------------------------
+				Print("  TXT output  : " + TxtOutputPath + (TxtAppendMode ? " (append)" : " (overwrite)"));
 				if (EnableCsvOutput)
-				{
-					if (ValidateFilePath(CsvOutputPath, "CSV"))
-					{
-						try
-						{
-							EnsureDirectory(CsvOutputPath);
-							bool writeHeader = !CsvAppendMode || !File.Exists(CsvOutputPath);
-							_csvWriter = new StreamWriter(CsvOutputPath, CsvAppendMode, Encoding.UTF8);
-							if (writeHeader)
-								_csvWriter.WriteLine("DateTime,Open,High,Low,Close,Volume");
-							Print("  CSV output  : " + CsvOutputPath + (CsvAppendMode ? " (append)" : " (overwrite)"));
-						}
-						catch (Exception ex)
-						{
-							Print("  ERROR opening CSV file: " + ex.Message);
-						}
-					}
-				}
+					Print("  CSV output  : " + CsvOutputPath + (CsvAppendMode ? " (append)" : " (overwrite)"));
 				else
-				{
 					Print("  CSV output  : disabled");
-				}
+
+				_barsWritten    = 0;
+				_firstBarTime   = DateTime.MinValue;
+				_lastBarTime    = DateTime.MinValue;
+				_txtLines       = new List<string>();
+				_csvNeedsHeader = EnableCsvOutput && (!CsvAppendMode || !File.Exists(CsvOutputPath));
+				_csvLines       = EnableCsvOutput ? new List<string>() : null;
 			}
 			else if (State == State.Terminated)
 			{
-				Print("OHLCExporter: Terminated - flushing and closing files");
-				CloseWriter(ref _txtWriter);
-				CloseWriter(ref _csvWriter);
+				// Build auto filenames: {OutputDir}\{Instrument}_{StartDate}_{EndDate}.txt/.csv
+				// Instrument name has spaces/slashes stripped for safe filenames.
+				string autoTxt = TxtOutputPath;
+				string autoCsv = CsvOutputPath;
+				if (_barsWritten > 0 && _firstBarTime != DateTime.MinValue)
+				{
+					string instrSafe = System.Text.RegularExpressions.Regex.Replace(
+						Instrument.FullName, @"[\\/:*?""<>|]", "_").Trim();
+					string dateRange = _firstBarTime.ToString("yyyyMMdd") + "_"
+					                 + _lastBarTime.ToString("yyyyMMdd");
+					string dir = Path.GetDirectoryName(TxtOutputPath) ?? "";
+					autoTxt = Path.Combine(dir, instrSafe + "_" + dateRange + ".txt");
+					if (EnableCsvOutput)
+					{
+						string csvDir = Path.GetDirectoryName(CsvOutputPath) ?? "";
+						autoCsv = Path.Combine(csvDir, instrSafe + "_" + dateRange + ".csv");
+					}
+					Print("  Auto filename: " + autoTxt);
+				}
+
+				// Files opened and written here only — no lock held during bar processing.
+				try
+				{
+					if (_txtLines != null && ValidateFilePath(autoTxt, "TXT"))
+					{
+						EnsureDirectory(autoTxt);
+						if (TxtAppendMode)
+							File.AppendAllLines(autoTxt, _txtLines, Encoding.UTF8);
+						else
+							File.WriteAllLines(autoTxt, _txtLines, Encoding.UTF8);
+					}
+					if (_csvLines != null && ValidateFilePath(autoCsv, "CSV"))
+					{
+						EnsureDirectory(autoCsv);
+						IEnumerable<string> csvOut = _csvNeedsHeader
+							? new[] { "DateTime,Open,High,Low,Close,Volume" }.Concat(_csvLines)
+							: (IEnumerable<string>)_csvLines;
+						if (CsvAppendMode)
+							File.AppendAllLines(autoCsv, csvOut, Encoding.UTF8);
+						else
+							File.WriteAllLines(autoCsv, csvOut, Encoding.UTF8);
+					}
+				}
+				catch (Exception ex)
+				{
+					Print("OHLCExporter: ERROR writing files - " + ex.Message);
+				}
 				Print("OHLCExporter: Done - wrote " + _barsWritten + " bars");
 			}
 		}
@@ -119,70 +139,36 @@ namespace NinjaTrader.NinjaScript.Indicators
 			DateTime closeTime = Time[0];
 			DateTime openTime  = BarOpenTime(closeTime);
 
-			// TXT: CT close time — Python parser subtracts 5 min to get bar open time
+			// TXT: semicolon-delimited, close time — Python parser keeps close time (matches NT chart display)
 			string txtLine = string.Format(CultureInfo.InvariantCulture,
 				"{0:dd/MM/yyyy HH:mm:ss};{1:F2};{2:F2};{3:F2};{4:F2};{5}",
 				closeTime,
 				Open[0], High[0], Low[0], Close[0], (long)Volume[0]);
 
+			// CSV: comma-delimited with header, open time
 			string csvLine = string.Format(CultureInfo.InvariantCulture,
 				"{0:yyyy-MM-dd HH:mm:ss},{1:F2},{2:F2},{3:F2},{4:F2},{5}",
 				openTime,
 				Open[0], High[0], Low[0], Close[0], (long)Volume[0]);
 
-			// -- Write TXT -----------------------------------------------------
-			if (_txtWriter != null)
-			{
-				try
-				{
-					_txtWriter.WriteLine(txtLine);
-				}
-				catch (Exception ex)
-				{
-					Print("OHLCExporter: ERROR writing TXT bar " + CurrentBar + " - " + ex.Message);
-				}
-			}
-
-			// -- Write CSV -----------------------------------------------------
-			if (_csvWriter != null)
-			{
-				try
-				{
-					_csvWriter.WriteLine(csvLine);
-				}
-				catch (Exception ex)
-				{
-					Print("OHLCExporter: ERROR writing CSV bar " + CurrentBar + " - " + ex.Message);
-				}
-			}
+			if (_txtLines != null) _txtLines.Add(txtLine);
+			if (_csvLines != null) _csvLines.Add(csvLine);
 
 			_barsWritten++;
-
-			// Print first bar so you can verify the format immediately
 			if (_barsWritten == 1)
 			{
-				Print("OHLCExporter: first bar written");
-				Print("  TXT line : " + txtLine);
-				if (_csvWriter != null)
-					Print("  CSV line : " + csvLine);
+				_firstBarTime = openTime;
+				Print("OHLCExporter: first bar — " + txtLine);
 			}
+			_lastBarTime = openTime;
 
-			// Progress update every 1000 bars
 			if (_barsWritten % 1000 == 0)
-				Print("OHLCExporter: " + _barsWritten + " bars written  (bar "
+				Print("OHLCExporter: " + _barsWritten + " bars buffered  (bar "
 					+ CurrentBar + "  " + openTime.ToString("yyyy-MM-dd HH:mm") + ")");
-
-			// Flush to disk every 500 bars
-			if (CurrentBar % 500 == 0)
-			{
-				_txtWriter?.Flush();
-				_csvWriter?.Flush();
-			}
 		}
 
 		// -- Helpers -----------------------------------------------------------
 
-		// Time[0] in NT OnBarClose is the close time; subtract the bar period to get open time.
 		private DateTime BarOpenTime(DateTime closeTime)
 		{
 			switch (BarsPeriod.BarsPeriodType)
@@ -222,19 +208,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 			string dir = Path.GetDirectoryName(filePath);
 			if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
 				Directory.CreateDirectory(dir);
-		}
-
-		private static void CloseWriter(ref StreamWriter writer)
-		{
-			if (writer == null) return;
-			try
-			{
-				writer.Flush();
-				writer.Close();
-				writer.Dispose();
-			}
-			catch { }
-			writer = null;
 		}
 
 		// -- Properties --------------------------------------------------------

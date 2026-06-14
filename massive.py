@@ -1,240 +1,576 @@
+"""
+massive.py — Massive data tab: contract manager, flat-file download, roll schedule,
+             and quick API-based comparison.
+"""
+
+from __future__ import annotations
+
+import gzip
+import io
+import os
 import shutil
-import streamlit as st
+from datetime import date, timedelta
+from pathlib import Path
+
+import boto3
 import pandas as pd
+import streamlit as st
+from botocore.config import Config
+
+from contracts import (
+    CATALOG, CATALOG_BY_TICKER,
+    load_rolls, save_rolls, ensure_rolls_file,
+    get_roll_date, get_offset,
+    apply_back_adjustment,
+    Contract,
+)
 from data_loader import (
     fetch_massive_trades, fetch_massive_aggs,
-    fetch_massive_contract_info, massive_ticker_to_nt_name,
+    fetch_massive_contract_info,
     resample_ticks_to_bars, parse_ohlc_from_upload,
     MASSIVE_CACHE_DIR,
 )
 from validation import build_comparison
 
-_PRICE_COLS = ["Open", "High", "Low", "Close"]
+# ── Constants ─────────────────────────────────────────────────────────────────
+
+_API_KEY              = "4aTW6AdSEwulL86_kJnNupQppKxSgwXw"
+_S3_ACCESS_KEY_ID     = "d0e1191e-61c3-454b-adcb-5bea8e9e9c6a"
+_S3_SECRET_KEY        = _API_KEY
+_S3_ENDPOINT          = "https://files.massive.com"
+_S3_BUCKET            = "flatfiles"
+_S3_PREFIX            = "us_futures_cme/trades_v1"
+
+_DATA_DIR      = Path(__file__).parent / "data"
+_GZ_CACHE_DIR  = _DATA_DIR / "flatfiles_cache"
+_BARS_DIR      = _DATA_DIR / "bars"
+_NT_IMPORT_DIR = _DATA_DIR / "nt_import"
 
 
-def _api_key() -> str:
-    if st.session_state.get("mas_api_key"):
-        return st.session_state["mas_api_key"]
+def _ensure_dirs():
+    for d in (_GZ_CACHE_DIR, _BARS_DIR, _NT_IMPORT_DIR):
+        d.mkdir(parents=True, exist_ok=True)
+
+
+def _bars_path(ticker: str) -> Path:
+    return _BARS_DIR / f"{ticker}.parquet"
+
+
+def _nt_import_path(contract: Contract) -> Path:
+    return _NT_IMPORT_DIR / f"{contract.nt_name}.Last.txt"
+
+
+def _is_downloaded(ticker: str) -> bool:
+    return _bars_path(ticker).exists()
+
+
+def _status_emoji(ticker: str) -> str:
+    return "✅" if _is_downloaded(ticker) else "⬜"
+
+
+# ── S3 helpers ────────────────────────────────────────────────────────────────
+
+def _make_s3():
+    session = boto3.Session(
+        aws_access_key_id=_S3_ACCESS_KEY_ID,
+        aws_secret_access_key=_S3_SECRET_KEY,
+    )
+    return session.client(
+        "s3",
+        endpoint_url=_S3_ENDPOINT,
+        config=Config(signature_version="s3v4"),
+    )
+
+
+def _s3_key(d: date) -> str:
+    return f"{_S3_PREFIX}/{d.year}/{d.month:02d}/{d.isoformat()}.csv.gz"
+
+
+def _download_day(s3, d: date) -> Path | None:
+    local = _GZ_CACHE_DIR / f"{d.isoformat()}.csv.gz"
+    if local.exists():
+        return local
+    key = _s3_key(d)
     try:
-        return st.secrets.get("MASSIVE_API_KEY", "")
-    except Exception:
-        return ""
+        s3.download_file(_S3_BUCKET, key, str(local))
+        return local
+    except Exception as e:
+        if "404" in str(e) or "NoSuchKey" in str(e):
+            return None
+        raise
 
 
-def _status_box(bars: pd.DataFrame | None, label: str):
-    if bars is not None:
-        d = bars["DateTime"].dt.date
-        st.success(f"✅ **{label}**  \n{d.nunique()} days · {d.min()} → {d.max()}")
-    else:
-        st.info(f"{label} — not loaded")
+def _load_gz(local: Path, ticker: str) -> pd.DataFrame:
+    with gzip.open(local, "rb") as f:
+        raw = f.read()
+    df = pd.read_csv(io.BytesIO(raw))
+    return df[df["ticker"] == ticker].copy()
 
+
+def _ticks_to_5m_bars(df: pd.DataFrame) -> pd.DataFrame:
+    """Convert raw tick DataFrame → 5M RTH OHLCV bars (open times, CT naive)."""
+    from data_loader import RTH_START, RTH_END
+
+    dt_ct = (
+        pd.to_datetime(df["timestamp"], unit="ns", utc=True)
+        .dt.tz_convert("America/Chicago")
+        .dt.tz_localize(None)
+    )
+    ticks = pd.DataFrame({"DateTime": dt_ct, "Price": df["price"].astype(float).values,
+                          "Volume": df["size"].astype(int).values})
+    ticks = ticks.set_index("DateTime").sort_index()
+
+    # RTH filter
+    t = ticks.index.time
+    rth = (t >= pd.Timestamp(RTH_START).time()) & (t < pd.Timestamp(RTH_END).time())
+    ticks = ticks[rth]
+    if ticks.empty:
+        return pd.DataFrame()
+
+    bars = ticks["Price"].resample("5min", label="left", closed="left").ohlc()
+    bars["Volume"] = ticks["Volume"].resample("5min", label="left", closed="left").sum()
+    bars = bars.dropna(subset=["open"])
+    bars = bars.rename(columns={"open": "Open", "high": "High", "low": "Low", "close": "Close"})
+    bars.index.name = "DateTime"
+    return bars.reset_index()
+
+
+def _write_nt_file(ticks_df: pd.DataFrame, path: Path) -> None:
+    """Write NT8 tick import file: yyyyMMdd HHmmss;price;volume"""
+    dt_ct = (
+        pd.to_datetime(ticks_df["timestamp"], unit="ns", utc=True)
+        .dt.tz_convert("America/Chicago")
+        .dt.tz_localize(None)
+    )
+    dt_str    = dt_ct.dt.strftime("%Y%m%d %H%M%S")
+    price_str = ticks_df["price"].astype(float).map("{:.2f}".format)
+    size_str  = ticks_df["size"].astype(str)
+    lines = (dt_str + ";" + price_str + ";" + size_str + "\n").tolist()
+    path.write_text("".join(lines), encoding="utf-8")
+
+
+# ── Download one contract ─────────────────────────────────────────────────────
+
+def download_contract(contract: Contract, rolls: dict, status_placeholder) -> bool:
+    """
+    Download flat files for one contract's front-month period, build 5M bars,
+    write NT import file. Returns True on success.
+    """
+    _ensure_dirs()
+    s3 = _make_s3()
+
+    from_date = date.fromisoformat(contract.active_from)
+    to_date   = date.fromisoformat(contract.last_trade)
+
+    all_ticks  = []
+    all_frames = []
+    d = from_date
+    day_count = (to_date - from_date).days + 1
+
+    while d <= to_date:
+        status_placeholder.write(f"  {d.isoformat()} …")
+        local = _download_day(s3, d)
+        if local:
+            day_df = _load_gz(local, contract.ticker)
+            if not day_df.empty:
+                all_ticks.append(day_df)
+                all_frames.append(_ticks_to_5m_bars(day_df))
+        d += timedelta(days=1)
+
+    if not all_ticks:
+        status_placeholder.error(f"No data found for {contract.ticker}")
+        return False
+
+    # Build and cache 5M bars
+    bars = pd.concat([f for f in all_frames if not f.empty], ignore_index=True)
+    bars.sort_values("DateTime", inplace=True, ignore_index=True)
+    bars.to_parquet(_bars_path(contract.ticker), index=False)
+
+    # Write NT import file
+    ticks_all = pd.concat(all_ticks, ignore_index=True)
+    ticks_all = ticks_all[ticks_all["correction"] == 0]
+    _write_nt_file(ticks_all, _nt_import_path(contract))
+
+    status_placeholder.success(
+        f"✅ {contract.ticker} — {len(bars):,} bars · "
+        f"NT import: {_nt_import_path(contract).name}"
+    )
+    return True
+
+
+def load_bars(ticker: str) -> pd.DataFrame | None:
+    p = _bars_path(ticker)
+    return pd.read_parquet(p) if p.exists() else None
+
+
+# ── Comparison helper (carried over from old massive.py) ─────────────────────
 
 def _show_comparison(comp: pd.DataFrame, label_a: str, label_b: str):
-    """Summary metrics + mismatch table for one build_comparison() result."""
     matched  = comp["Status"] == "Matched"
     n_match  = matched.sum()
-    n_a_only = (comp["Status"] == "SC only").sum()
-    n_b_only = (comp["Status"] == "NT only").sum()
+    n_a_only = (comp["Status"] == "left only").sum()
+    n_b_only = (comp["Status"] == "right only").sum()
     ohlc_pct  = comp.loc[matched, "OHLC_match"].mean()  * 100 if n_match else 0.0
     ohlcv_pct = comp.loc[matched, "OHLCV_match"].mean() * 100 if n_match else 0.0
 
     c1, c2, c3, c4, c5 = st.columns(5)
-    c1.metric("Matched bars",       f"{n_match:,}")
-    c2.metric(f"{label_a} only",    f"{n_a_only:,}")
-    c3.metric(f"{label_b} only",    f"{n_b_only:,}")
-    c4.metric("OHLC match",         f"{ohlc_pct:.1f}%")
-    c5.metric("OHLCV match",        f"{ohlcv_pct:.1f}%")
+    c1.metric("Matched bars",     f"{n_match:,}")
+    c2.metric(f"{label_a} only",  f"{n_a_only:,}")
+    c3.metric(f"{label_b} only",  f"{n_b_only:,}")
+    c4.metric("OHLC match",       f"{ohlc_pct:.1f}%")
+    c5.metric("OHLCV match",      f"{ohlcv_pct:.1f}%")
 
     mismatches = comp[matched & ~comp["OHLC_match"]]
     if mismatches.empty:
         st.success("All matched bars have identical OHLC ✅")
         return
-
     with st.expander(f"Mismatch detail — {len(mismatches):,} bars", expanded=True):
         display = mismatches[[
             "DateTime", "BarTime",
-            "Open_sc",  "Open_nt",  "ΔOpen",
-            "High_sc",  "High_nt",  "ΔHigh",
-            "Low_sc",   "Low_nt",   "ΔLow",
-            "Close_sc", "Close_nt", "ΔClose",
+            "Open_sc", "Open_nt", "ΔOpen",
+            "High_sc", "High_nt", "ΔHigh",
+            "Low_sc",  "Low_nt",  "ΔLow",
+            "Close_sc","Close_nt","ΔClose",
         ]].copy()
         display.columns = [
             c.replace("_sc", f"_{label_a}").replace("_nt", f"_{label_b}")
             for c in display.columns
         ]
         st.dataframe(display, use_container_width=True, hide_index=True)
-        st.download_button(
-            "⬇ Download CSV",
-            display.to_csv(index=False, encoding="utf-8-sig"),
-            f"mas_{label_a}_vs_{label_b}_mismatches.csv",
-            "text/csv",
-            key=f"dl_{label_a}_{label_b}",
-        )
 
+
+# ── Main tab ──────────────────────────────────────────────────────────────────
 
 def show_massive_tab():
-    st.markdown("### Massive.io — Tick Import & Three-Way Validation")
-    st.caption(
-        "Fetch ES ticks from Massive.io API, build 5M bars, compare against "
-        "Massive agg bars and NT ES_MAS bars (imported from the same ticks)."
-    )
+    ensure_rolls_file()
+    rolls = load_rolls()
 
-    # ── API Config ───────────────────────────────────────────────────────────
-    with st.expander("⚙️ Config", expanded=not _api_key()):
-        col_key, col_ticker = st.columns([3, 1])
+    st.markdown("### Massive — ES Contract Manager")
 
-        raw_key = col_key.text_input(
-            "Massive.io API Key",
-            value=st.session_state.get("mas_api_key", ""),
-            type="password",
-            placeholder="Paste key here — stored in session only, not on disk",
-        )
-        if raw_key:
-            st.session_state["mas_api_key"] = raw_key
+    mgr_tab, quick_tab = st.tabs(["📋 Contracts & Rolls", "⚡ Quick Compare (API)"])
 
-        ticker = col_ticker.text_input(
-            "Ticker",
-            value=st.session_state.get("mas_ticker", "ESM6"),
-            help="Massive.io contract ticker e.g. ESM6, ESZ5",
-        )
-        st.session_state["mas_ticker"] = ticker
+    # ═════════════════════════════════════════════════════════════════════════
+    with mgr_tab:
+        # ── Roll schedule + download ──────────────────────────────────────
+        with st.expander("📋 Roll Schedule & Downloads", expanded=True):
+            st.caption(
+                "Pre-populated from CME convention (expiry − 8 days). "
+                "Edit **Roll Date** and **Offset** to match what you enter in NT's Instrument Manager. "
+                "Check contracts you want to download, then hit **Download Selected**."
+            )
 
-        col_d1, col_d2 = st.columns(2)
-        date_start = col_d1.text_input(
-            "Start Date (YYYY-MM-DD)",
-            value=st.session_state.get("mas_date_start", "2026-03-17"),
-        )
-        date_end = col_d2.text_input(
-            "End Date (YYYY-MM-DD)",
-            value=st.session_state.get("mas_date_end", "2026-06-20"),
-        )
-        st.session_state["mas_date_start"] = date_start
-        st.session_state["mas_date_end"]   = date_end
+            rows = []
+            for c in CATALOG:
+                rd  = get_roll_date(c.ticker, rolls)
+                off = get_offset(c.ticker, rolls)
+                rows.append({
+                    "✓":            False,
+                    "Contract":     c.ticker,
+                    "NT Name":      c.nt_name,
+                    "Period":       c.label,
+                    "Active From":  c.active_from,
+                    "Last Trade":   c.last_trade,
+                    "Roll Date":    rd,
+                    "Offset (pts)": off,
+                    "Downloaded":   _status_emoji(c.ticker),
+                })
 
-        if st.button("🔎 Look up contract info", disabled=not _api_key()):
-            try:
-                info = fetch_massive_contract_info(_api_key(), ticker)
-                nt_name = massive_ticker_to_nt_name(ticker, info["first_trade_date"])
-                st.info(
-                    f"**{ticker}** · {info['first_trade_date']} → {info['last_trade_date']}  \n"
-                    f"NT name: `{nt_name}.Last.txt`  |  tick size: {info.get('tick_size', '—')}"
-                )
-            except Exception as e:
-                st.error(f"Lookup failed: {e}")
+            df_rolls = pd.DataFrame(rows)
 
-    api_key = _api_key()
+            edited = st.data_editor(
+                df_rolls,
+                column_config={
+                    "✓":            st.column_config.CheckboxColumn("Select", default=False),
+                    "Contract":     st.column_config.TextColumn(disabled=True),
+                    "NT Name":      st.column_config.TextColumn(disabled=True),
+                    "Period":       st.column_config.TextColumn(disabled=True),
+                    "Active From":  st.column_config.TextColumn("Active From", disabled=True),
+                    "Last Trade":   st.column_config.TextColumn("Last Trade",  disabled=True),
+                    "Roll Date":    st.column_config.TextColumn("Roll Date (YYYY-MM-DD)"),
+                    "Offset (pts)": st.column_config.NumberColumn("Offset (pts)", format="%.2f"),
+                    "Downloaded":   st.column_config.TextColumn(disabled=True, width="small"),
+                },
+                hide_index=True,
+                use_container_width=True,
+                num_rows="fixed",
+                key="rolls_editor",
+            )
 
-    # ── Data Status & Fetch ──────────────────────────────────────────────────
-    st.markdown("#### Data")
-    col_t, col_a, col_n, col_nn = st.columns(4)
+            col_save, col_dl, col_clear = st.columns([1, 1, 1])
 
-    tick_bars    = st.session_state.get("mas_tick_bars")
-    agg_bars     = st.session_state.get("mas_agg_bars")
-    nt_bars      = st.session_state.get("mas_nt_bars")
-    nt_native_bars = st.session_state.get("mas_nt_native_bars")
-
-    with col_t:
-        _status_box(tick_bars, "Tick-built bars")
-        if st.button("📥 Fetch Ticks → Build Bars", disabled=not api_key,
-                     help="Fetches raw ticks, caches to parquet, resamples to 5M RTH bars."):
-            try:
-                with st.spinner(f"Fetching {ticker} ticks…"):
-                    ticks = fetch_massive_trades(api_key, ticker, date_start, date_end)
-                bars = resample_ticks_to_bars(ticks)
-                st.session_state["mas_tick_bars"]  = bars
-                st.session_state["mas_tick_ticks"] = ticks
-                st.rerun()
-            except Exception as e:
-                st.error(f"Fetch failed: {e}")
-
-    with col_a:
-        _status_box(agg_bars, "Massive agg bars")
-        if st.button("📊 Fetch Agg Bars", disabled=not api_key,
-                     help="Fetches Massive.io pre-built 5M bars as a reference."):
-            try:
-                with st.spinner(f"Fetching {ticker} agg bars…"):
-                    bars = fetch_massive_aggs(api_key, ticker, date_start, date_end)
-                st.session_state["mas_agg_bars"] = bars
-                st.rerun()
-            except Exception as e:
-                st.error(f"Fetch failed: {e}")
-
-    with col_n:
-        _status_box(nt_bars, "NT ES_MAS bars")
-        nt_file = st.file_uploader(
-            "Upload NT ES_MAS 5M export (.txt/.csv)",
-            type=["txt", "csv"],
-            key="mas_nt_upload",
-            help="Run OHLCExporter on the ES_MAS chart in NT after importing ticks.",
-        )
-        if nt_file:
-            _key = f"{nt_file.name}_{nt_file.size}"
-            if st.session_state.get("mas_nt_key") != _key:
-                with st.spinner("Parsing…"):
-                    df = parse_ohlc_from_upload(nt_file)
-                st.session_state["mas_nt_bars"] = df
-                st.session_state["mas_nt_key"]  = _key
+            if col_save.button("💾 Save Roll Schedule"):
+                new_rolls = {}
+                for _, row in edited.iterrows():
+                    ticker = row["Contract"]
+                    off_val = row["Offset (pts)"]
+                    new_rolls[ticker] = {
+                        "roll_date": str(row["Roll Date"]).strip(),
+                        "offset":    float(off_val) if pd.notna(off_val) and off_val != "" else None,
+                    }
+                save_rolls(new_rolls)
+                st.success("Roll schedule saved.")
                 st.rerun()
 
-    with col_nn:
-        _status_box(nt_native_bars, "NT native bars")
-        nt_native_file = st.file_uploader(
-            "Upload NT native 5M export (.txt/.csv)",
-            type=["txt", "csv"],
-            key="mas_nt_native_upload",
-            help="OHLCExporter on the standard ESM6 (Rithmic) chart — not ES_MAS.",
-        )
-        if nt_native_file:
-            _key = f"{nt_native_file.name}_{nt_native_file.size}"
-            if st.session_state.get("mas_nt_native_key") != _key:
-                with st.spinner("Parsing…"):
-                    df = parse_ohlc_from_upload(nt_native_file)
-                st.session_state["mas_nt_native_bars"] = df
-                st.session_state["mas_nt_native_key"]  = _key
+            selected_tickers = [
+                row["Contract"] for _, row in edited.iterrows() if row["✓"]
+            ]
+
+            dl_disabled = len(selected_tickers) == 0
+            if col_dl.button("📥 Download Selected", disabled=dl_disabled):
+                st.markdown(f"**Downloading {len(selected_tickers)} contract(s)…**")
+                updated_rolls = load_rolls()
+                for ticker in selected_tickers:
+                    c = CATALOG_BY_TICKER[ticker]
+                    st.markdown(f"**{ticker} — {c.label}** ({c.active_from} → {c.last_trade})")
+                    ph = st.empty()
+                    try:
+                        download_contract(c, updated_rolls, ph)
+                    except Exception as e:
+                        ph.error(f"Failed: {e}")
                 st.rerun()
 
-    # ── Cache ────────────────────────────────────────────────────────────────
-    if st.button("🗑️ Clear Massive cache", help="Deletes parquet cache — next fetch re-downloads from API."):
-        if MASSIVE_CACHE_DIR.exists():
-            shutil.rmtree(MASSIVE_CACHE_DIR)
-        for k in ("mas_tick_bars", "mas_tick_ticks", "mas_agg_bars",
-                  "mas_nt_bars", "mas_nt_key",
-                  "mas_nt_native_bars", "mas_nt_native_key"):
-            st.session_state.pop(k, None)
-        st.rerun()
+            if col_clear.button("🗑️ Clear Downloaded Data"):
+                if _BARS_DIR.exists():
+                    shutil.rmtree(_BARS_DIR)
+                    _BARS_DIR.mkdir()
+                if _NT_IMPORT_DIR.exists():
+                    shutil.rmtree(_NT_IMPORT_DIR)
+                    _NT_IMPORT_DIR.mkdir()
+                st.success("Cleared downloaded bars and NT import files.")
+                st.rerun()
 
-    st.divider()
+        # ── NT import files ───────────────────────────────────────────────
+        nt_files = sorted(_NT_IMPORT_DIR.glob("*.Last.txt")) if _NT_IMPORT_DIR.exists() else []
+        with st.expander(f"📂 NT Import Files ({len(nt_files)} ready)", expanded=False):
+            st.caption(
+                f"After downloading, one `.Last.txt` file is written per contract to:  \n"
+                f"`{_NT_IMPORT_DIR}`  \n\n"
+                "**To import into NT:** Tools → Historical Data Manager → Import tab  \n"
+                "Select the file · Timezone: **Central Time (US & Canada)**  \n"
+                "Once imported you no longer need these files."
+            )
+            if nt_files:
+                for f in nt_files:
+                    size_kb = f.stat().st_size // 1024
+                    st.write(f"📄 `{f.name}` — {size_kb:,} KB")
+            else:
+                st.info("No NT import files yet — download contracts above.")
 
-    # ── Comparison 1: Tick-built vs Massive Agg ──────────────────────────────
-    st.markdown("#### Comparison 1 — Tick-Built Bars vs Massive Agg Bars")
-    st.caption("Both sourced from Massive.io — should be identical if bar builder is correct.")
+        # ── Continuous series vs NT @ES ───────────────────────────────────
+        downloaded = [c for c in CATALOG if _is_downloaded(c.ticker)]
+        n_dl = len(downloaded)
+        with st.expander(f"📊 Continuous Series vs NT @ES  ({n_dl}/{len(CATALOG)} contracts downloaded)", expanded=False):
+            st.caption(
+                "Validates that the Massive back-adjusted continuous matches NT's `@ES` continuous contract. "
+                "This is a prerequisite for WFA — if they diverge, WFA signals from NT won't align with Massive data."
+            )
 
-    if tick_bars is not None and agg_bars is not None:
-        _show_comparison(build_comparison(tick_bars, agg_bars), "Tick", "Agg")
-    else:
-        missing = [l for l, d in [("Tick-built bars", tick_bars), ("Massive agg bars", agg_bars)] if d is None]
-        st.info(f"Needs: {', '.join(missing)}")
+            missing_offsets = [
+                c.ticker for c in downloaded[1:]
+                if get_offset(c.ticker, rolls) is None
+            ]
 
-    st.divider()
+            col_build, col_status = st.columns([1, 2])
+            with col_build:
+                build_disabled = (n_dl == 0) or bool(missing_offsets)
+                if st.button("🔗 Build Continuous Series", disabled=build_disabled,
+                             help="Needs all contracts downloaded + offsets filled in."):
+                    bars_by_ticker = {c.ticker: load_bars(c.ticker) for c in downloaded if _is_downloaded(c.ticker)}
+                    continuous = apply_back_adjustment(bars_by_ticker, rolls)
+                    st.session_state["mas_continuous"] = continuous
+                    st.rerun()
 
-    # ── Comparison 2: Tick-built vs NT ES_MAS ────────────────────────────────
-    st.markdown("#### Comparison 2 — Tick-Built Bars vs NT ES_MAS Bars")
-    st.caption("Validates the full round-trip: Massive ticks → NT import → OHLCExporter → bars.")
+            with col_status:
+                if missing_offsets:
+                    st.warning(f"Missing offsets: **{', '.join(missing_offsets)}** — fill in Roll Schedule above and save.")
+                elif n_dl == 0:
+                    st.info("No contracts downloaded yet.")
+                else:
+                    cont = st.session_state.get("mas_continuous")
+                    if cont is not None and not cont.empty:
+                        d = cont["DateTime"].dt.date
+                        st.success(
+                            f"Continuous ready: **{len(cont):,} bars** · "
+                            f"{d.min()} → {d.max()} · {d.nunique()} days · {n_dl} contracts"
+                        )
+                    else:
+                        st.info(f"{n_dl} contracts ready — click Build to stitch them.")
 
-    if tick_bars is not None and nt_bars is not None:
-        _show_comparison(build_comparison(tick_bars, nt_bars), "Tick", "NT_MAS")
-    else:
-        missing = [l for l, d in [("Tick-built bars", tick_bars), ("NT ES_MAS bars", nt_bars)] if d is None]
-        st.info(f"Needs: {', '.join(missing)}")
+            st.divider()
 
-    st.divider()
+            st.markdown("**Upload NT `@ES` continuous 5M export**")
+            st.caption(
+                "In NT: add OHLCExporter to an `@ES` continuous chart (5M, RTH), "
+                "reload the chart to export, then upload the `.txt` file here."
+            )
 
-    # ── Comparison 3: Tick-built vs NT native ────────────────────────────────
-    st.markdown("#### Comparison 3 — Tick-Built Bars vs NT Native Bars")
-    st.caption("Cross-checks Massive.io tick data against NT's native Rithmic feed on the same contract.")
+            nt_cont_file = st.file_uploader(
+                "NT @ES continuous export (.txt)", type=["txt"], key="nt_cont_upload",
+            )
+            if nt_cont_file:
+                _key = f"{nt_cont_file.name}_{nt_cont_file.size}"
+                if st.session_state.get("nt_cont_key") != _key:
+                    with st.spinner("Parsing NT export…"):
+                        df_nt_cont = parse_ohlc_from_upload(nt_cont_file)
+                    st.session_state["nt_cont_bars"] = df_nt_cont
+                    st.session_state["nt_cont_key"]  = _key
+                    st.rerun()
 
-    if tick_bars is not None and nt_native_bars is not None:
-        _show_comparison(build_comparison(tick_bars, nt_native_bars), "Tick", "NT_Native")
-    else:
-        missing = [l for l, d in [("Tick-built bars", tick_bars), ("NT native bars", nt_native_bars)] if d is None]
-        st.info(f"Needs: {', '.join(missing)}")
+            nt_cont = st.session_state.get("nt_cont_bars")
+            mas_cont = st.session_state.get("mas_continuous")
+
+            if nt_cont is not None:
+                d = nt_cont["DateTime"].dt.date
+                st.success(f"NT @ES loaded: **{len(nt_cont):,} bars** · {d.min()} → {d.max()}")
+
+            if mas_cont is not None and nt_cont is not None:
+                st.divider()
+                st.markdown("#### Comparison — Massive Continuous vs NT @ES")
+                comp = build_comparison(mas_cont, nt_cont)
+                _show_comparison(comp, "Massive", "NT@ES")
+
+                with st.expander("Show full comparison table", expanded=False):
+                    st.dataframe(comp, use_container_width=True, hide_index=True)
+            elif mas_cont is None and nt_cont is not None:
+                st.info("Build the continuous series above to run the comparison.")
+            elif mas_cont is not None and nt_cont is None:
+                st.info("Upload the NT @ES export above to run the comparison.")
+
+    # ═════════════════════════════════════════════════════════════════════════
+    with quick_tab:
+        st.markdown("### Quick Compare — Single Contract (API)")
+        st.caption(
+            "Fetches a small date range via the Massive REST API for spot-checking. "
+            "Use the Contract Manager tab for bulk historical downloads."
+        )
+
+        with st.expander("⚙️ Config", expanded=True):
+            col_ticker, col_d1, col_d2 = st.columns([1, 1, 1])
+            ticker = col_ticker.text_input(
+                "Ticker",
+                value=st.session_state.get("mas_ticker", "ESM6"),
+                help="Massive contract ticker e.g. ESM6, ESZ5",
+            )
+            date_start = col_d1.text_input(
+                "Start Date", value=st.session_state.get("mas_date_start", "2026-06-12"),
+            )
+            date_end = col_d2.text_input(
+                "End Date", value=st.session_state.get("mas_date_end", "2026-06-13"),
+            )
+            st.session_state["mas_ticker"]     = ticker
+            st.session_state["mas_date_start"] = date_start
+            st.session_state["mas_date_end"]   = date_end
+
+            if st.button("🔎 Look up contract info"):
+                try:
+                    info    = fetch_massive_contract_info(_API_KEY, ticker)
+                    c_cat   = CATALOG_BY_TICKER.get(ticker)
+                    nt_name = c_cat.nt_name if c_cat else ticker
+                    st.info(
+                        f"**{ticker}** · {info['first_trade_date']} → {info['last_trade_date']}  \n"
+                        f"NT name: `{nt_name}`  |  tick size: {info.get('tick_size', '—')}"
+                    )
+                except Exception as e:
+                    st.error(f"Lookup failed: {e}")
+
+        st.markdown("#### Data")
+        col_t, col_a, col_n, col_nn = st.columns(4)
+
+        tick_bars      = st.session_state.get("mas_tick_bars")
+        agg_bars       = st.session_state.get("mas_agg_bars")
+        nt_bars        = st.session_state.get("mas_nt_bars")
+        nt_native_bars = st.session_state.get("mas_nt_native_bars")
+
+        def _status_box(bars, label):
+            if bars is not None:
+                d = bars["DateTime"].dt.date
+                st.success(f"✅ **{label}**  \n{d.nunique()} days · {d.min()} → {d.max()}")
+            else:
+                st.info(f"{label} — not loaded")
+
+        with col_t:
+            _status_box(tick_bars, "Tick-built bars")
+            if st.button("📥 Fetch Ticks → Build Bars",
+                         help="Fetches raw ticks via API, resamples to 5M RTH bars."):
+                try:
+                    with st.spinner(f"Fetching {ticker} ticks…"):
+                        ticks = fetch_massive_trades(_API_KEY, ticker, date_start, date_end)
+                    bars = resample_ticks_to_bars(ticks)
+                    st.session_state["mas_tick_bars"]  = bars
+                    st.session_state["mas_tick_ticks"] = ticks
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Fetch failed: {e}")
+
+        with col_a:
+            _status_box(agg_bars, "Massive agg bars")
+            if st.button("📊 Fetch Agg Bars",
+                         help="Fetches Massive pre-built 5M bars as a reference."):
+                try:
+                    with st.spinner(f"Fetching {ticker} agg bars…"):
+                        bars = fetch_massive_aggs(_API_KEY, ticker, date_start, date_end)
+                    st.session_state["mas_agg_bars"] = bars
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Fetch failed: {e}")
+
+        with col_n:
+            _status_box(nt_bars, "NT ES_MAS bars")
+            nt_file = st.file_uploader(
+                "Upload NT ES_MAS 5M export", type=["txt", "csv"], key="mas_nt_upload",
+            )
+            if nt_file:
+                _key = f"{nt_file.name}_{nt_file.size}"
+                if st.session_state.get("mas_nt_key") != _key:
+                    with st.spinner("Parsing…"):
+                        df = parse_ohlc_from_upload(nt_file)
+                    st.session_state["mas_nt_bars"] = df
+                    st.session_state["mas_nt_key"]  = _key
+                    st.rerun()
+
+        with col_nn:
+            _status_box(nt_native_bars, "NT native bars")
+            nt_native_file = st.file_uploader(
+                "Upload NT native 5M export", type=["txt", "csv"], key="mas_nt_native_upload",
+            )
+            if nt_native_file:
+                _key = f"{nt_native_file.name}_{nt_native_file.size}"
+                if st.session_state.get("mas_nt_native_key") != _key:
+                    with st.spinner("Parsing…"):
+                        df = parse_ohlc_from_upload(nt_native_file)
+                    st.session_state["mas_nt_native_bars"] = df
+                    st.session_state["mas_nt_native_key"]  = _key
+                    st.rerun()
+
+        if st.button("🗑️ Clear cache",
+                     help="Deletes parquet cache — next fetch re-downloads from Massive API."):
+            if MASSIVE_CACHE_DIR.exists():
+                shutil.rmtree(MASSIVE_CACHE_DIR)
+            for k in ("mas_tick_bars", "mas_tick_ticks", "mas_agg_bars",
+                      "mas_nt_bars", "mas_nt_key", "mas_nt_native_bars", "mas_nt_native_key"):
+                st.session_state.pop(k, None)
+            st.rerun()
+
+        st.divider()
+        st.markdown("#### Comparison 1 — Tick-Built vs Massive Agg")
+        st.caption("Both from Massive — should be identical if bar builder is correct.")
+        if tick_bars is not None and agg_bars is not None:
+            _show_comparison(build_comparison(tick_bars, agg_bars), "Tick", "Agg")
+        else:
+            st.info(f"Needs: {', '.join(l for l, d in [('Tick-built', tick_bars), ('Agg', agg_bars)] if d is None)}")
+
+        st.divider()
+        st.markdown("#### Comparison 2 — Tick-Built vs NT ES_MAS")
+        st.caption("Validates round-trip: Massive ticks → NT import → OHLCExporter → bars.")
+        if tick_bars is not None and nt_bars is not None:
+            _show_comparison(build_comparison(tick_bars, nt_bars), "Tick", "NT_MAS")
+        else:
+            st.info(f"Needs: {', '.join(l for l, d in [('Tick-built', tick_bars), ('NT ES_MAS', nt_bars)] if d is None)}")
+
+        st.divider()
+        st.markdown("#### Comparison 3 — Tick-Built vs NT Native")
+        st.caption("Cross-checks Massive tick data against NT's native Rithmic feed.")
+        if tick_bars is not None and nt_native_bars is not None:
+            _show_comparison(build_comparison(tick_bars, nt_native_bars), "Tick", "NT_Native")
+        else:
+            st.info(f"Needs: {', '.join(l for l, d in [('Tick-built', tick_bars), ('NT Native', nt_native_bars)] if d is None)}")

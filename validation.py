@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 from pathlib import Path
-from data_loader import (load_sc_bars, load_nt_bars, get_market_holidays, TICK_SIZE)
+from data_loader import (get_market_holidays, TICK_SIZE)
 from economic_calendar import get_economic_events, fred_key_configured, EVENT_COLOR
 
 _DEFAULTS_FILE = Path(__file__).parent / "filter_defaults.json"
@@ -44,8 +44,8 @@ def build_comparison(sc: pd.DataFrame, nt: pd.DataFrame) -> pd.DataFrame:
     matched = m["Open_sc"].notna() & m["Open_nt"].notna()
 
     m["Status"] = "Matched"
-    m.loc[m["Open_sc"].notna() & m["Open_nt"].isna(), "Status"] = "SC only"
-    m.loc[m["Open_sc"].isna() & m["Open_nt"].notna(), "Status"] = "NT only"
+    m.loc[m["Open_sc"].notna() & m["Open_nt"].isna(), "Status"] = "left only"
+    m.loc[m["Open_sc"].isna() & m["Open_nt"].notna(), "Status"] = "right only"
 
     for col in PRICE_FIELDS:
         m[f"Δ{col}"] = np.nan
@@ -80,7 +80,7 @@ def _info(text: str):
     st.info(text)
 
 
-def _summary_commentary(n_matched, n_sc_only, n_nt_only, pct_ohlc, pct_ohlcv, n_ohlc_mm, excl_volume=False):
+def _summary_commentary(n_matched, n_lo, n_ro, pct_ohlc, pct_ohlcv, n_ohlc_mm, excl_volume=False):
     if pct_ohlc >= 99:
         health = "🟢 **Strong agreement.** The two data sources are highly consistent on price."
     elif pct_ohlc >= 95:
@@ -89,9 +89,9 @@ def _summary_commentary(n_matched, n_sc_only, n_nt_only, pct_ohlc, pct_ohlcv, n_
         health = "🔴 **Meaningful discrepancies detected.** Investigate the mismatch table before trusting either source."
 
     unmatched_note = ""
-    if n_sc_only > 0 or n_nt_only > 0:
+    if n_lo > 0 or n_ro > 0:
         unmatched_note = (
-            f" Note: {n_sc_only} bar(s) exist only in SC and {n_nt_only} only in NT — "
+            f" Note: {n_lo} bar(s) exist only in the left source and {n_ro} only in the right — "
             f"these are missing bars in one source and should be investigated separately."
         )
 
@@ -129,7 +129,7 @@ def _field_table_commentary(matched: pd.DataFrame, excl_volume: bool = False):
         if vol_mm > open_mm:
             notes.append(
                 f"**Volume has the most mismatches ({vol_mm})** — normal and inconsequential for a price-based strategy. "
-                "SC sums raw tick volumes; NT records feed-level volume. Different sources, different boundary counting."
+                "Massive sums raw tick volumes; NT records feed-level volume (Rithmic). Different sources count trades at bar boundaries differently."
             )
 
     for note in notes:
@@ -140,26 +140,26 @@ def _time_of_day_commentary(tod: pd.DataFrame):
     if tod.empty:
         return
     worst = tod.loc[tod["OHLC_MM"].idxmax(), "BarTime"] if tod["OHLC_MM"].max() > 0 else None
-    open_bar  = tod[tod["BarTime"] == "08:30"]["OHLC_MM"].sum()
-    close_bars = tod[tod["BarTime"].isin(["14:45", "15:00", "15:05", "15:10"])]["OHLC_MM"].sum()
-    mid_bars   = tod[(tod["BarTime"] > "09:00") & (tod["BarTime"] < "14:30")]["OHLC_MM"].sum()
-    mid_total  = tod[(tod["BarTime"] > "09:00") & (tod["BarTime"] < "14:30")]["Total"].sum()
+    open_bar  = tod[tod["BarTime"] == "08:35"]["OHLC_MM"].sum()
+    close_bars = tod[tod["BarTime"].isin(["14:50", "15:05", "15:10", "15:15"])]["OHLC_MM"].sum()
+    mid_bars   = tod[(tod["BarTime"] > "09:05") & (tod["BarTime"] < "14:35")]["OHLC_MM"].sum()
+    mid_total  = tod[(tod["BarTime"] > "09:05") & (tod["BarTime"] < "14:35")]["Total"].sum()
     mid_rate   = mid_bars / mid_total * 100 if mid_total > 0 else 0
 
     parts = []
     if open_bar > 0:
         parts.append(
-            f"The **08:30 open bar** has {open_bar} mismatches — "
+            f"The **08:35 open bar** has {open_bar} mismatches — "
             "expected, as both feeds capture a different 'first print' of the session during the opening auction."
         )
     if close_bars > 0:
         parts.append(
-            f"The **last 30 minutes** (14:45–15:10) show elevated mismatches ({int(close_bars)}) — "
+            f"The **last 30 minutes** (14:50–15:15) show elevated mismatches ({int(close_bars)}) — "
             "end-of-session closing orders and settlement handling differ between feeds."
         )
     if mid_rate < 2:
         parts.append(
-            f"The **mid-session** (09:00–14:30) is clean at {mid_rate:.1f}% mismatch rate — "
+            f"The **mid-session** (09:05–14:35) is clean at {mid_rate:.1f}% mismatch rate — "
             "a healthy sign that both feeds are in sync during liquid hours."
         )
     if parts:
@@ -203,7 +203,7 @@ def _delta_distribution_commentary(matched: pd.DataFrame):
 
     is_symmetric = abs(nonzero_deltas.mean()) < 0.5
     has_outliers  = nonzero_deltas.abs().max() > 4
-    bias_dir      = "positive (NT > SC)" if nonzero_deltas.mean() > 0 else "negative (NT < SC)"
+    bias_dir      = "positive (right > left)" if nonzero_deltas.mean() > 0 else "negative (right < left)"
 
     parts = []
     if is_symmetric:
@@ -327,8 +327,8 @@ def _show_gate_body(
 
     matched    = comp[comp["Status"] == "Matched"]
     n_matched  = len(matched)
-    n_lo       = int((comp["Status"] == "SC only").sum())
-    n_ro       = int((comp["Status"] == "NT only").sum())
+    n_lo       = int((comp["Status"] == "left only").sum())
+    n_ro       = int((comp["Status"] == "right only").sum())
     n_ohlc_mm  = int((~matched["OHLC_match"]).sum()) if n_matched else 0
     n_vol_mm   = int(matched["ΔVolume"].ne(0).sum()) if n_matched else 0
     pct_ohlc   = (1 - n_ohlc_mm / n_matched) * 100  if n_matched else 0.0
@@ -397,8 +397,8 @@ def _show_gate_body(
             if hp:
                 st.warning(f"📅 NYSE holiday bars in unmatched list: {', '.join(sorted(hp))}.")
             uc1, uc2 = st.columns(2)
-            lo_df = comp[comp["Status"] == "SC only"][["DateTime","Open_sc","High_sc","Low_sc","Close_sc","Volume_sc"]].copy()
-            ro_df = comp[comp["Status"] == "NT only"][["DateTime","Open_nt","High_nt","Low_nt","Close_nt","Volume_nt"]].copy()
+            lo_df = comp[comp["Status"] == "left only"][["DateTime","Open_sc","High_sc","Low_sc","Close_sc","Volume_sc"]].copy()
+            ro_df = comp[comp["Status"] == "right only"][["DateTime","Open_nt","High_nt","Low_nt","Close_nt","Volume_nt"]].copy()
             lo_df["DateTime"] = lo_df["DateTime"].dt.strftime("%Y-%m-%d %H:%M")
             ro_df["DateTime"] = ro_df["DateTime"].dt.strftime("%Y-%m-%d %H:%M")
             lo_df = lo_df.rename(columns={c: c.replace("_sc", "") for c in lo_df.columns if "_sc" in c})
@@ -438,48 +438,35 @@ def _show_gate_body(
 
 # ── Tab entry point ───────────────────────────────────────────────────────────
 
-def show_validation_tab(sc_file: str = "", nt_file: str = ""):
+def show_validation_tab():
     # ── Data Sources ──────────────────────────────────────────────────────────
     with st.expander("📁 Data Sources", expanded=True):
-        uc1, uc2, uc3 = st.columns(3)
-
-        py_bars = st.session_state.get("data_sc_py5m")
-        if py_bars is not None:
-            n_py   = py_bars["DateTime"].dt.date.nunique()
-            py_lbl = st.session_state.get("data_sc_1s_label", "SC 1s")
-            uc1.success(f"**Python 5M**  ·  {py_lbl}  ·  {n_py} days")
-        else:
-            uc1.info("**Python 5M**\nUpload SC 1s in the 📂 Data tab")
+        uc1, uc2 = st.columns(2)
 
         sc_bars = st.session_state.get("data_sc_5m")
         if sc_bars is not None:
             n_sc   = sc_bars["DateTime"].dt.date.nunique()
-            sc_lbl = st.session_state.get("data_sc_5m_label", "SC 5M")
-            uc2.success(f"**SC 5M**  ·  {sc_lbl}  ·  {n_sc} days")
+            sc_lbl = st.session_state.get("data_sc_5m_label", "ES_MAS 5M")
+            uc1.success(f"**ES_MAS 5M**  ·  {sc_lbl}  ·  {n_sc} days")
         else:
-            uc2.info("**SC 5M**\nUpload SC 5M in the 📂 Data tab")
+            uc1.info("**ES_MAS 5M** — not loaded\nUpload in the 📂 Data tab")
 
         nt_bars = st.session_state.get("data_nt_5m")
         if nt_bars is not None:
             n_nt   = nt_bars["DateTime"].dt.date.nunique()
             nt_lbl = st.session_state.get("data_nt_5m_label", "NT 5M")
-            uc3.success(f"**NT 5M**  ·  {nt_lbl}  ·  {n_nt} days")
+            uc2.success(f"**NT 5M**  ·  {nt_lbl}  ·  {n_nt} days")
         else:
-            uc3.info("**NT 5M** *(optional)*\nUpload NT 5M in the 📂 Data tab")
+            uc2.info("**NT 5M** — not loaded *(optional)*\nUpload in the 📂 Data tab")
 
     # ── Gate availability ─────────────────────────────────────────────────────
-    py_bars = st.session_state.get("data_sc_py5m")
     sc_bars = st.session_state.get("data_sc_5m")
     nt_bars = st.session_state.get("data_nt_5m")
 
-    gate1_ok = py_bars is not None and sc_bars is not None
     gate2_ok = sc_bars is not None and nt_bars is not None
 
-    if not gate1_ok and not gate2_ok:
-        st.info(
-            "**Gate 1** — Python 5M vs SC 5M: upload 1s SC export (Bar Analysis) + upload SC 5M export above  \n"
-            "**Gate 2** — SC 5M vs NT8 5M: upload SC 5M export + NT8 5M export above"
-        )
+    if not gate2_ok:
+        st.info("Upload both **ES_MAS 5M** and **NT 5M** exports in the 📂 Data tab to run Gate 2 validation.")
         return
 
     # ── Shared filters ────────────────────────────────────────────────────────
@@ -561,7 +548,7 @@ def show_validation_tab(sc_file: str = "", nt_file: str = ""):
     st.session_state["excl_first_n"]  = excl_first_n
     st.session_state["excl_last_min"] = excl_last_min
 
-    # ── Gate tabs ─────────────────────────────────────────────────────────────
+    # ── Gate 2 — ES_MAS vs NT real ES ────────────────────────────────────────
     filter_kwargs = dict(
         excl_holidays=excl_holidays, show_commentary=show_commentary,
         excl_volume=excl_volume, show_excl_shading=show_excl_shading,
@@ -570,28 +557,11 @@ def show_validation_tab(sc_file: str = "", nt_file: str = ""):
         event_types=event_types, event_filter_mode=event_filter_mode, event_window=event_window,
     )
 
-    gate_labels = []
-    if gate1_ok:
-        gate_labels.append("Gate 1 — Python vs SC")
-    if gate2_ok:
-        gate_labels.append("Gate 2 — SC vs NT8")
-
-    gate_tabs = st.tabs(gate_labels)
-    tab_idx = 0
-
-    if gate1_ok:
-        with gate_tabs[tab_idx]:
-            _py_lbl = st.session_state.get("data_sc_1s_label", "SC 1s")
-            _show_gate_body(py_bars, sc_bars,
-                            left_label=f"Python 5M ({_py_lbl})", right_label="SC 5M",
-                            gate_key="g1", **filter_kwargs)
-        tab_idx += 1
-
-    if gate2_ok:
-        with gate_tabs[tab_idx]:
-            _show_gate_body(sc_bars, nt_bars,
-                            left_label="SC 5M", right_label="NT8 5M",
-                            gate_key="g2", **filter_kwargs)
+    _sc_lbl = st.session_state.get("data_sc_5m_label", "ES_MAS 5M")
+    _nt_lbl = st.session_state.get("data_nt_5m_label", "NT 5M")
+    _show_gate_body(sc_bars, nt_bars,
+                    left_label=_sc_lbl, right_label=_nt_lbl,
+                    gate_key="g2", **filter_kwargs)
 
 
 # ── Sub-view functions ────────────────────────────────────────────────────────
@@ -932,6 +902,6 @@ def _show_delta_distribution(matched: pd.DataFrame, excl_volume: bool = False, g
             st.dataframe(vol_tbl, use_container_width=True, hide_index=True)
             _info(
                 "Volume differences are expected and harmless for a price-based strategy. "
-                "SC sums raw tick-level volumes; NT records broker-feed volume (Rithmic/CQG). "
+                "Massive sums raw tick-level volumes; NT records broker-feed volume (Rithmic). "
                 "The two feeds count trades at bar boundaries differently and may include/exclude spread legs."
             )
