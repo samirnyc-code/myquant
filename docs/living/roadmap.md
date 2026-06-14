@@ -1,6 +1,6 @@
 # Roadmap
 **Status:** Living — update every session  
-**Last Updated:** June 13, 2026  
+**Last Updated:** June 14, 2026  
 **Rule:** This is the only source of truth for what gets built and in what order.  
 **Rule:** Phases are sequential within each track. Do not start a phase until its prerequisite passes.
 
@@ -61,10 +61,10 @@ Completely independent from Track 2 SC gates. New Streamlit tab.
 
 | Phase | Description | Prerequisite | Status |
 |-------|-------------|-------------|--------|
-| M1 | API client: `fetch_massive_trades()`, `fetch_massive_aggs()`, local parquet cache | API key (2026-06-16) | ✅ Code built — awaiting API key to test |
-| M2 | NT tick-to-import converter: `scripts/fetch_for_nt.py` → `ES_MAS MM-YY.Last.txt` | API key | ✅ Code built — awaiting API key to test |
-| M3 | ES_MAS custom instrument + one contract month in NT; import ticks; run OHLCExporter | M2 + API key | 🔄 ES_MAS instrument created; contract months pending tick data |
-| M4 | `massive.py` tab: tick-built bars vs agg bars vs NT ES_MAS bars (three-way compare) | M1 + M3 | ✅ Built — all comparisons wired |
+| M1 | API client: `fetch_massive_trades()`, `fetch_massive_aggs()`, local parquet cache | API key | ✅ Code built; API confirmed (URL/auth/sort); futures endpoint paths pending first live call |
+| M2 | NT tick-to-import converter: `scripts/fetch_for_nt.py` → `ES_MAS MM-YY.Last.txt` | API key | ✅ Code built + file format confirmed working |
+| M3 | ES_MAS custom instrument + one contract month in NT; import ticks; run OHLCExporter | M2 + API key | ✅ Confirmed working end-to-end with AAPL test data (Session 11) |
+| M4 | `massive.py` tab: tick-built vs agg vs NT ES_MAS vs NT native (four-way compare) | M1 + M3 | ✅ Built — all 3 comparisons wired + NT native slot added |
 | M5 | Simulation in massive tab: run signal sim on App bars using MCSignals | M4 pass | Not started |
 | M6 | Reversal setup: review NT CSV + strategy logic, add to massive tab | M5 + reversal data | Not started |
 
@@ -106,7 +106,7 @@ These are not build phases — they are analytical obligations that run as Track
 
 ---
 
-## Active — June 13, 2026
+## Active — June 14, 2026
 
 ### Done (committed)
 - [x] **SCID disk loader** — `build_scid_quarter_map()`, `load_scid_ticks_chunked()`, quarter selector UI; 12 contracts on disk
@@ -149,8 +149,7 @@ These are not build phases — they are analytical obligations that run as Track
 - [ ] Add ESM1 2021 and ESH2/ESM2 2022 contracts to registry when files ready
 - [ ] Share app + data files with Thomas: upload both data files to Google Drive, run ngrok
 - [ ] Add volume subplot to Bar Viewer candlestick chart
-- [ ] **Track 4 M1/M2/M4** — code built ✅; Monday 2026-06-16: confirm API details (BASE_URL, auth, sort param, ticker format), run first fetch, validate
-- [ ] **Track 4 M3** — import ticks into NT ES_MAS, run OHLCExporter, validate Comparison 2 in app
+- [ ] **Track 4 — first live ES futures fetch** — API key in hand; confirm futures endpoint paths, fetch ESM6 ticks, run `fetch_for_nt.py`, import into NT, run OHLCExporter, validate Comparisons 1 & 2 in app
 - [ ] **Reversal setup** — review NT signal CSV + strategy logic before any code (arriving next week)
 
 ---

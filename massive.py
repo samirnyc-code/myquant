@@ -126,11 +126,12 @@ def show_massive_tab():
 
     # ── Data Status & Fetch ──────────────────────────────────────────────────
     st.markdown("#### Data")
-    col_t, col_a, col_n = st.columns(3)
+    col_t, col_a, col_n, col_nn = st.columns(4)
 
-    tick_bars = st.session_state.get("mas_tick_bars")
-    agg_bars  = st.session_state.get("mas_agg_bars")
-    nt_bars   = st.session_state.get("mas_nt_bars")
+    tick_bars    = st.session_state.get("mas_tick_bars")
+    agg_bars     = st.session_state.get("mas_agg_bars")
+    nt_bars      = st.session_state.get("mas_nt_bars")
+    nt_native_bars = st.session_state.get("mas_nt_native_bars")
 
     with col_t:
         _status_box(tick_bars, "Tick-built bars")
@@ -175,12 +176,30 @@ def show_massive_tab():
                 st.session_state["mas_nt_key"]  = _key
                 st.rerun()
 
+    with col_nn:
+        _status_box(nt_native_bars, "NT native bars")
+        nt_native_file = st.file_uploader(
+            "Upload NT native 5M export (.txt/.csv)",
+            type=["txt", "csv"],
+            key="mas_nt_native_upload",
+            help="OHLCExporter on the standard ESM6 (Rithmic) chart — not ES_MAS.",
+        )
+        if nt_native_file:
+            _key = f"{nt_native_file.name}_{nt_native_file.size}"
+            if st.session_state.get("mas_nt_native_key") != _key:
+                with st.spinner("Parsing…"):
+                    df = parse_ohlc_from_upload(nt_native_file)
+                st.session_state["mas_nt_native_bars"] = df
+                st.session_state["mas_nt_native_key"]  = _key
+                st.rerun()
+
     # ── Cache ────────────────────────────────────────────────────────────────
     if st.button("🗑️ Clear Massive cache", help="Deletes parquet cache — next fetch re-downloads from API."):
         if MASSIVE_CACHE_DIR.exists():
             shutil.rmtree(MASSIVE_CACHE_DIR)
         for k in ("mas_tick_bars", "mas_tick_ticks", "mas_agg_bars",
-                  "mas_nt_bars", "mas_nt_key"):
+                  "mas_nt_bars", "mas_nt_key",
+                  "mas_nt_native_bars", "mas_nt_native_key"):
             st.session_state.pop(k, None)
         st.rerun()
 
@@ -203,7 +222,19 @@ def show_massive_tab():
     st.caption("Validates the full round-trip: Massive ticks → NT import → OHLCExporter → bars.")
 
     if tick_bars is not None and nt_bars is not None:
-        _show_comparison(build_comparison(tick_bars, nt_bars), "Tick", "NT")
+        _show_comparison(build_comparison(tick_bars, nt_bars), "Tick", "NT_MAS")
     else:
         missing = [l for l, d in [("Tick-built bars", tick_bars), ("NT ES_MAS bars", nt_bars)] if d is None]
+        st.info(f"Needs: {', '.join(missing)}")
+
+    st.divider()
+
+    # ── Comparison 3: Tick-built vs NT native ────────────────────────────────
+    st.markdown("#### Comparison 3 — Tick-Built Bars vs NT Native Bars")
+    st.caption("Cross-checks Massive.io tick data against NT's native Rithmic feed on the same contract.")
+
+    if tick_bars is not None and nt_native_bars is not None:
+        _show_comparison(build_comparison(tick_bars, nt_native_bars), "Tick", "NT_Native")
+    else:
+        missing = [l for l, d in [("Tick-built bars", tick_bars), ("NT native bars", nt_native_bars)] if d is None]
         st.info(f"Needs: {', '.join(missing)}")

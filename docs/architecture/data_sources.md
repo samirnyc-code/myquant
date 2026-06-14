@@ -54,19 +54,35 @@ dt_ct  = dt_utc.tz_localize("UTC").tz_convert("America/Chicago").tz_localize(Non
 | Item | Detail |
 |------|--------|
 | Provider | Massive.io |
-| Plan | Futures Developer (API key arriving 2026-06-16) |
+| Plan | Futures Developer (subscribed 2026-06-14) |
 | Instrument | ES quarterly contracts: ESH, ESM, ESU, ESZ |
-| Ticker format | `ESH6`, `ESM6`, `ESU6`, `ESZ6` (confirmed single-digit year) |
-| Delivery | REST API — `GET /futures/v1/trades/{ticker}` |
-| Timestamp | Nanosecond Unix in API response |
-| Fields | timestamp, ticker, price, size, sequence_number, correction, exchange, session_end_date |
+| Ticker format | `ESH6`, `ESM6`, `ESU6`, `ESZ6` (single-digit year) |
+| Delivery | REST API — `GET /futures/v1/trades/{ticker}` (path TBC — see below) |
 | Coverage | 5 years (Developer plan); full history to 2017-04-03 (Advanced/Business) |
-| Status | ✅ Full pipeline coded (Session 10) — pending API key to run |
+| Status | ✅ Pipeline coded + NT import confirmed working. Futures API endpoint paths pending first live call. |
 | Purpose | Independent parallel validation track (Track 4) — completely separate from SC gates |
 
 **Plan limits:** Developer = 10-min delay, 5-year history. Sufficient for bar validation. Advanced needed for full WFA history back to 2010.
 
 **API docs:** `docs/reference/massive_io/` — full endpoint reference for Contracts, Schedules, Trades, Aggs, and supporting endpoints.
+
+### Confirmed API Details (Session 11 — from AAPL test)
+
+| Item | Value |
+|------|-------|
+| Base URL | `https://api.massive.com` |
+| Auth | `?apiKey=KEY` query parameter — NOT a header |
+| Sort | `sort=asc` |
+| Pagination | `next_url` cursor; must re-add `apiKey` on each subsequent page |
+| Agg timestamps | Unix **milliseconds** (`t` field) |
+| Agg fields (equities) | `t`, `o`, `h`, `l`, `c`, `v`, `vw`, `n` |
+
+**Still unconfirmed for futures (confirm on first live call):**
+- Endpoint path: `/futures/v1/trades/{ticker}` vs `/v2/trades/ticker/{ticker}/...`
+- Date filter param names for trades (`session_end_date.gte` vs `timestamp.gte`)
+- Agg response field names for futures (may differ from equities `o/h/l/c/v/t`)
+
+All confirmed fixes in `data_loader.py`. Remaining futures-specific unknowns marked `# TODO`.
 
 **Key fields for bar building:**
 
@@ -75,24 +91,40 @@ dt_ct  = dt_utc.tz_localize("UTC").tz_convert("America/Chicago").tz_localize(Non
 - `session_end_date` → shared key across all massive.io APIs; CME day ends 17:00 CT
 - Rollover boundaries → from `last_trade_date` in Contracts API (no hardcoded dates)
 
-**NT import isolation — ES_MAS custom instrument (Session 9–10):**
+### NT Import Isolation — ES_MAS Custom Instrument (Confirmed Session 11)
 
-Importing Massive ticks directly into NT's native ES instrument is not viable — Rithmic overwrites on reconnect. Solution: custom Future instrument `ES_MAS` created in NT Instrument Manager. Contract months added manually (e.g. `ES_MAS 06-26`) with rollover dates + price offsets. NT applies back-adjustment ("merge back adjusted"). Whether NinjaScript indicators run cleanly on ES_MAS is unconfirmed — blocked on tick data.
+Importing Massive ticks directly into NT's native ES instrument is not viable — Rithmic overwrites on reconnect. Solution: custom Future instrument `ES_MAS` in NT Instrument Manager. **Fully confirmed working** with AAPL test data (Session 11):
 
-**Pipeline (Track 4, all coded Session 10):**
+| Fact | Status |
+|------|--------|
+| `ES_MAS 06-26.Last.txt` → NT HDM import | ✅ Confirmed |
+| File naming convention routes to correct contract month | ✅ Confirmed |
+| NT builds minute bars from imported tick data | ✅ Confirmed |
+| Tick size rounding (0.25) applied correctly | ✅ Confirmed |
+| EMA indicator runs on ES_MAS | ✅ Confirmed |
+| OHLCExporter runs on ES_MAS | ✅ Confirmed |
+| OHLCExporter writes bar close timestamps | ✅ Confirmed (08:30 open → 08:35 in output) |
+| "Unknown instrument" error on chart open | ⚠️ Appears but does NOT block indicators |
+| Exchange TZ in OHLCExporter log | Eastern Time (CME session template) |
+| NT back-adjustment on continuous chart | Unknown — test individual contract months, not continuous |
+
+**Import settings (NT HDM):** Format = NinjaTrader (beginning of bar timestamp), Data Type = Last, Timezone = Central Time.
+
+### Pipeline (Track 4)
 
 - `scripts/fetch_for_nt.py` — fetch ticks → write `ES_MAS MM-YY.Last.txt` → import into NT
 - `data_loader.py` — `fetch_massive_trades()`, `fetch_massive_aggs()`, `fetch_massive_contract_info()`, `massive_ticker_to_nt_name()`
 - `massive.py` — `📡 Massive.io` tab in app (6th tab)
 - Cache: `data/massive_cache/{ticker}_{start}_{end}_ticks.parquet` and `..._aggs_5min.parquet`
 
-**Three-way validation:**
+### Four-Way Validation (massive.py tab)
 
-1. Massive ticks → `resample_ticks_to_bars()` → App 5M bars
-2. Massive ticks → `fetch_for_nt.py` → NT ES_MAS → OHLCExporter → NT 5M bars
-3. Massive Aggs API (`resolution=5min`) → reference bars
+1. **Tick-built bars** — Massive ticks → `resample_ticks_to_bars()` → App 5M bars
+2. **Massive agg bars** — Aggs API (`resolution=5min`) → reference bars
+3. **NT ES_MAS bars** — ticks → `fetch_for_nt.py` → NT import → OHLCExporter
+4. **NT native bars** — OHLCExporter on standard ESM6 (Rithmic) chart
 
-Comparison 1 (App vs Agg) validates bar builder. Comparison 2 (App vs NT) validates full import round-trip. Both run in the `📡 Massive.io` tab.
+Comparison 1 (Tick vs Agg) validates bar builder. Comparison 2 (Tick vs NT_MAS) validates full import round-trip. Comparison 3 (Tick vs NT_Native) cross-checks Massive data against Rithmic. All in `📡 Massive.io` tab.
 
 ---
 

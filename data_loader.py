@@ -778,24 +778,22 @@ def clear_csv_cache() -> None:
 
 # ── Massive.io API ────────────────────────────────────────────────────────────
 
-MASSIVE_BASE_URL  = "https://api.massive.io"   # TODO: confirm when key arrives
+MASSIVE_BASE_URL  = "https://api.massive.com"  # confirmed from AAPL test
 MASSIVE_CACHE_DIR = Path(__file__).parent / "data" / "massive_cache"
 _MASSIVE_PAGE_LIMIT = 49_999
 _MASSIVE_MONTH_TO_NUM = {"H": 3, "M": 6, "U": 9, "Z": 12}
-
-
-def _massive_headers(api_key: str) -> dict:
-    # TODO: confirm auth scheme from API docs when key arrives Monday
-    return {"Authorization": f"Bearer {api_key}"}
+# Auth: apiKey as query param (confirmed). No Authorization header needed.
 
 
 def fetch_massive_contract_info(api_key: str, ticker: str) -> dict:
-    """Return contract record from Massive Contracts API."""
+    """Return contract record from Massive Contracts API.
+    TODO: confirm futures endpoint path (/futures/v1/ vs /v2/) with live key.
+    TODO: confirm 'ticker.any_of' filter param name for futures contracts endpoint.
+    """
     import requests
     resp = requests.get(
         f"{MASSIVE_BASE_URL}/futures/v1/contracts",
-        headers=_massive_headers(api_key),
-        params={"ticker.any_of": ticker},
+        params={"ticker.any_of": ticker, "apiKey": api_key},
         timeout=30,
     )
     resp.raise_for_status()
@@ -833,16 +831,19 @@ def fetch_massive_trades(
         return pd.read_parquet(cache_path)
 
     url    = f"{MASSIVE_BASE_URL}/futures/v1/trades/{ticker}"
+    # TODO: confirm futures trades endpoint path (/futures/v1/ vs /v2/) with live key.
+    # TODO: confirm date filter param names for futures trades (session_end_date.gte vs timestamp.gte).
     params = {
         "session_end_date.gte": date_start,
         "session_end_date.lte": date_end,
         "limit":                _MASSIVE_PAGE_LIMIT,
-        "sort.asc":             "timestamp",  # TODO: confirm sort param format
+        "sort":                 "asc",   # confirmed from AAPL test
+        "apiKey":               api_key, # confirmed: query param, not header
     }
 
     rows = []
     while url:
-        resp = requests.get(url, headers=_massive_headers(api_key), params=params, timeout=60)
+        resp = requests.get(url, params=params, timeout=60)
         resp.raise_for_status()
         body = resp.json()
         for t in body.get("results", []):
@@ -890,27 +891,33 @@ def fetch_massive_aggs(
         return pd.read_parquet(cache_path)
 
     url    = f"{MASSIVE_BASE_URL}/futures/v1/aggs/{ticker}"
+    # TODO: confirm futures aggs endpoint path (/futures/v1/ vs /v2/aggs/ticker/{ticker}/range/5/minute/) with live key.
+    # TODO: confirm date filter param names and resolution format for futures aggs.
+    # TODO: confirm response field names for futures aggs (may differ from equities o/h/l/c/v/t).
     params = {
         "resolution":       resolution,
         "window_start.gte": date_start,
         "window_start.lte": date_end,
         "limit":            50_000,
-        "sort.asc":         "window_start",  # TODO: confirm sort param format
+        "sort":             "asc",   # confirmed from AAPL test
+        "apiKey":           api_key, # confirmed: query param, not header
     }
 
     rows = []
     while url:
-        resp = requests.get(url, headers=_massive_headers(api_key), params=params, timeout=60)
+        resp = requests.get(url, params=params, timeout=60)
         resp.raise_for_status()
         body = resp.json()
         for b in body.get("results", []):
+            # Field names below are for equities (o/h/l/c/v/t confirmed from AAPL test).
+            # Futures may use window_start/open/high/low/close/volume — update after first live call.
             rows.append({
-                "DateTime": b["window_start"],
-                "Open":     float(b["open"]),
-                "High":     float(b["high"]),
-                "Low":      float(b["low"]),
-                "Close":    float(b["close"]),
-                "Volume":   int(b["volume"]),
+                "DateTime": b.get("t") or b.get("window_start"),
+                "Open":     float(b.get("o") or b.get("open")),
+                "High":     float(b.get("h") or b.get("high")),
+                "Low":      float(b.get("l") or b.get("low")),
+                "Close":    float(b.get("c") or b.get("close")),
+                "Volume":   int(b.get("v") or b.get("volume")),
             })
         url    = body.get("next_url")
         params = {}
@@ -920,9 +927,10 @@ def fetch_massive_aggs(
 
     df = pd.DataFrame(rows)
 
-    # window_start can be ISO string (CT) or nanosecond int — handle both
+    # Timestamp: equities confirmed as Unix milliseconds (t field).
+    # Futures may use ISO string (window_start) — handle both.
     if pd.api.types.is_integer_dtype(df["DateTime"]):
-        dt = (pd.to_datetime(df["DateTime"], unit="ns", utc=True)
+        dt = (pd.to_datetime(df["DateTime"], unit="ms", utc=True)
                 .dt.tz_convert("America/Chicago")
                 .dt.tz_localize(None))
     else:

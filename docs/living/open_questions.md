@@ -1,6 +1,6 @@
 # Open Questions
 **Status:** Living — remove questions when resolved, never accumulate answered ones  
-**Last Updated:** June 9, 2026  
+**Last Updated:** June 14, 2026  
 **Rule:** A question lives here until it has a definitive answer. Once answered, move the decision to the relevant architecture doc and delete it here.
 
 ---
@@ -48,8 +48,8 @@ Must be decided and documented before scan ranges are defined. Cannot be changed
 
 ## Non-blocking
 
-**Q8: Massive.io purchase**
-Deferred until Phase E complete. Used for crosscheck only.
+**~~Q8: Massive.io purchase~~** ✅ Resolved June 14, 2026
+Subscribed to Futures Developer plan. API key in hand. Pipeline confirmed working with AAPL test data. First live ES futures fetch is next step.
 
 ---
 

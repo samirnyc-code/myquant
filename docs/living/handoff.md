@@ -481,7 +481,8 @@ Neither tab has disk fallbacks. If no data is uploaded (and no cache loaded), th
 **Session 6 (June 10):** ✅ Committed + pushed (`e4e0c6c`) — optimised SCID loader (integer pre-filter, no strftime, 8× larger chunks), per-quarter Parquet cache, OOM fix (build_bars_from_cache), Unload button, Select All fix; deleted 108 GB tick SCID files; architecture decision: switch to 1-second OHLCV  
 **Session 7 (June 10):** ✅ Committed + pushed — NT OHLCExporter Time[0] fix (MyOHLCReader.cs), NT parser dual-format (CSV/TXT), empty DataFrame guards (validation.py + app.py), Gate 2 root cause documented (back-adjustment); Gate 2 100% match requires individual contracts (ESM26 first)  
 **Session 8 (June 10):** ✅ Committed + pushed — `validation.py` CSV download fix (st.download_button, gate_key param); corrected back-adjustment findings; NT corrupted bar (2025-07-15) found and fixed in NT  
-**Session 10 (June 13):** ✅ Committed + pushed — `scripts/fetch_for_nt.py` (NT import script), `data_loader.py` (4 Massive.io API functions), `massive.py` (new Massive.io tab), `app.py` (6th tab added); all Massive.io code ready pending API key Monday 2026-06-16
+**Session 10 (June 13):** ✅ Committed + pushed — `scripts/fetch_for_nt.py` (NT import script), `data_loader.py` (4 Massive.io API functions), `massive.py` (new Massive.io tab), `app.py` (6th tab added); all Massive.io code ready pending API key Monday 2026-06-16  
+**Session 11 (June 14):** ✅ Committed + pushed — Massive.io API details confirmed (base URL, auth, sort); ES_MAS full pipeline confirmed working end-to-end with AAPL test data; NT native bars slot + Comparison 3 added to massive.py; API key subscribed today
 
 ---
 
@@ -579,16 +580,71 @@ From NT docs: "Any data imported where the instrument does not exist in the data
 
 ---
 
+## Session 11 — Massive.io API Confirmed + ES_MAS Pipeline Proven (June 14, 2026)
+
+### Massive.io API — Confirmed Details
+
+From a live AAPL test call, the following are now confirmed API-wide (equities and futures):
+
+| Item | Old assumption | Confirmed |
+|------|---------------|-----------|
+| Base URL | `https://api.massive.io` | **`https://api.massive.com`** |
+| Auth | `Authorization: Bearer` header | **`?apiKey=KEY` query param** |
+| Sort param | `sort.asc=timestamp` | **`sort=asc`** |
+| Agg timestamp | unknown unit | **Unix milliseconds** (`t` field) |
+| Agg fields (equities) | `window_start`, `open`... | **`t`, `o`, `h`, `l`, `c`, `v`** |
+| Pagination | `next_url` cursor | ✅ confirmed; must re-add `apiKey` on each page |
+
+**Still unconfirmed for futures specifically:**
+- Endpoint path: `/futures/v1/trades/` and `/futures/v1/aggs/` vs `/v2/` — confirm on first live futures call
+- Date filter param names for trades (`session_end_date.gte` vs `timestamp.gte`)
+- Response field names for futures aggs (may differ from equities `o/h/l/c/v/t`)
+
+All confirmed fixes applied in `data_loader.py` and `scripts/fetch_for_nt.py`. Remaining unknowns marked with `# TODO` in code.
+
+**API key:** Subscribed June 14, 2026.
+
+### ES_MAS NT Pipeline — Fully Confirmed
+
+Tested end-to-end using AAPL 5-min agg bars as synthetic tick data (May 5–29, 2026, 1,404 RTH bars).
+
+| Step | Result |
+|------|--------|
+| `ES_MAS 06-26.Last.txt` → NT HDM import | ✅ 29 test bars loaded, then 1,404 RTH bars |
+| NT builds minute bars from imported ticks | ✅ confirmed (doji bars, O=H=L=C as expected) |
+| Tick size rounding (0.25) | ✅ 279.40 → 279.50 |
+| EMA indicator on ES_MAS 06-26 chart | ✅ runs correctly |
+| OHLCExporter on ES_MAS 06-26 chart | ✅ runs and writes bars |
+| OHLCExporter bar timestamps | ✅ close times (08:30 open → 08:35 in output) |
+| "Unknown instrument 'ES_MAS 06-26'" error | ⚠️ appears on chart open but does NOT block indicators |
+| Exchange TZ in OHLCExporter log | Eastern Time (CME session template) — watch for offset with CT imports |
+
+**Key finding:** Bars are dots/dashes because each 5-min agg bar was imported as a single tick (O=H=L=C = close price). This is expected and does not affect OHLCExporter output. Real ES futures ticks will produce proper OHLC bars.
+
+**File naming confirmed:** `ES_MAS MM-YY.Last.txt` → NT HDM correctly associates with the matching contract month.
+
+### Code Changes — Session 11
+
+| File | Change |
+|------|--------|
+| `data_loader.py` | BASE_URL `.io`→`.com`; auth `Bearer header`→`apiKey` query param; `sort`→`asc`; agg timestamp `unit="ns"`→`"ms"`; agg fields dual-support (`o/t` + `open/window_start`); removed `_massive_headers()` |
+| `scripts/fetch_for_nt.py` | Same URL/auth/sort fixes; `_headers()`→`_auth_params()` |
+| `massive.py` | 4th data slot: **NT native bars** (upload, `mas_nt_native_bars`); **Comparison 3**: Tick-built vs NT native; Clear cache includes new keys; Comparison 2 label `"NT"`→`"NT_MAS"` |
+| `scripts/write_aapl_test_nt.py` | New one-off: 29 pre-market AAPL bars → NT import file (first test) |
+| `scripts/write_aapl_rth_nt.py` | New one-off: fetch AAPL RTH bars from API → NT import file (pipeline test) |
+
+---
+
 ## Next Session — Priorities
 
-### Massive.io — Monday 2026-06-16 (API key arrives)
+### Massive.io — API Key In Hand
 
-1. **Confirm API details** — `BASE_URL`, auth header scheme, sort param format, exact ticker string (`ESM6` vs `ESM26`). Update the 4 `# TODO` comments in `data_loader.py` and `scripts/fetch_for_nt.py`.
-2. **Contract lookup** — run `fetch_massive_contract_info()` for ESM6. Confirm `first_trade_date`, `last_trade_date`, `tick_size`.
-3. **Add ESM6 contract month to ES_MAS in NT** — set rollover dates + price offset. One contract only for the first test.
-4. **Run `scripts/fetch_for_nt.py`** — fetch ESM6 ticks, write `ES_MAS 06-26.Last.txt`, import into NT via Historical Data Manager (CT timezone).
-5. **Run OHLCExporter on ES_MAS chart** — export 5M bars, upload to Massive.io tab Comparison 2. If tick bars == NT bars → ES_MAS approach confirmed. If not → diagnose before expanding.
-6. **App validation** — fetch ESM6 ticks + agg bars via Massive.io tab, run Comparison 1 (tick-built vs agg). Expect near-perfect match.
+1. **Confirm futures endpoint paths** — hit `/futures/v1/trades/ESM6` with live key. If 404, try `/v2/trades/ticker/ESM6/...`. Update the remaining `# TODO`s in `data_loader.py`.
+2. **Confirm futures agg field names** — fetch one page of `/futures/v1/aggs/ESM6`, check response field names (`t` vs `window_start`, `o` vs `open`, etc.).
+3. **Contract lookup** — run `fetch_massive_contract_info()` for ESM6. Confirm `first_trade_date`, `last_trade_date`, `tick_size`.
+4. **Run `scripts/fetch_for_nt.py`** for ESM6 — fetch ticks, write `ES_MAS 06-26.Last.txt`, import into NT via HDM (Central Time, Last, NinjaTrader format).
+5. **Run OHLCExporter on ES_MAS 06-26 chart** with real ES data — export 5M bars, upload to Massive.io tab Comparison 2. Real ES ticks = proper OHLC candles.
+6. **App Comparison 1** — fetch ESM6 ticks + agg bars via Massive.io tab, run Comparison 1 (tick-built vs agg).
 
 ### SCID / WFA (carry-over, blocked on SC data)
 

@@ -1,5 +1,5 @@
 # myquant / docs — Index
-**Last Updated:** June 2, 2026  
+**Last Updated:** June 14, 2026  
 **Rule:** Every doc in this repo is listed here. If it's not in this index, it doesn't exist.  
 **Rule:** One source of truth per topic. Never duplicate information across files.  
 **Rule:** Update this index every session before closing.

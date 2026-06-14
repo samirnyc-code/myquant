@@ -35,24 +35,25 @@ DATE_START = "2026-03-17"          # session_end_date inclusive, YYYY-MM-DD
 DATE_END   = "2026-06-20"          # session_end_date inclusive, YYYY-MM-DD
 OUTPUT_DIR = r"C:\Users\Admin\Desktop\NT Code Versions\ChartMarker_Files\Data\MAS_Import"
 
-BASE_URL   = "https://api.massive.io"  # TODO: confirm when key arrives
+BASE_URL   = "https://api.massive.com"  # confirmed from AAPL test
 PAGE_LIMIT = 49_999
 # ─────────────────────────────────────────────────────────────────────────────
 
 _MONTH_TO_NUM = {"H": 3, "M": 6, "U": 9, "Z": 12}
 
 
-def _headers() -> dict:
-    # TODO: confirm auth scheme from API docs when key arrives
-    return {"Authorization": f"Bearer {API_KEY}"}
+def _auth_params() -> dict:
+    # Auth confirmed from AAPL test: apiKey as query param, not a header.
+    return {"apiKey": API_KEY}
 
 
 def get_contract_info(ticker: str) -> dict:
-    """Return contract record from Contracts API (first_trade_date, last_trade_date, etc.)."""
+    """Return contract record from Contracts API (first_trade_date, last_trade_date, etc.).
+    TODO: confirm futures endpoint path (/futures/v1/ vs /v2/) with live key.
+    """
     resp = requests.get(
         f"{BASE_URL}/futures/v1/contracts",
-        headers=_headers(),
-        params={"ticker.any_of": ticker},
+        params={"ticker.any_of": ticker, **_auth_params()},
         timeout=30,
     )
     resp.raise_for_status()
@@ -82,19 +83,20 @@ def fetch_all_trades(ticker: str, date_start: str, date_end: str) -> pd.DataFram
     Filters: correction == 0 only (cancelled/corrected trades excluded).
     """
     url    = f"{BASE_URL}/futures/v1/trades/{ticker}"
+    # TODO: confirm futures trades endpoint path (/futures/v1/ vs /v2/) with live key.
+    # TODO: confirm date filter param names (session_end_date.gte vs timestamp.gte).
     params = {
         "session_end_date.gte": date_start,
         "session_end_date.lte": date_end,
         "limit":                PAGE_LIMIT,
-        # TODO: confirm sort param format from live API docs
-        # likely one of: "sort.asc=timestamp" / "sort=timestamp" / "order=asc"
-        "sort.asc":             "timestamp",
+        "sort":                 "asc",  # confirmed from AAPL test
+        **_auth_params(),
     }
 
     rows = []
     page = 0
     while url:
-        resp = requests.get(url, headers=_headers(), params=params, timeout=60)
+        resp = requests.get(url, params=params, timeout=60)
         resp.raise_for_status()
         body = resp.json()
 
