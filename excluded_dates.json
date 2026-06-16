@@ -1,0 +1,3 @@
+{
+  "2026-04-06": "NT OHLCExporter capture gap — only 1 stray tick (12:55, vol=1) recorded all session; IsSuspendedWhileInactive likely suppressed OnBarUpdate while the chart tab was inactive. Not a real price discrepancy."
+}

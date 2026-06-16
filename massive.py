@@ -28,9 +28,9 @@ from data_loader import (
     fetch_massive_trades, fetch_massive_aggs,
     fetch_massive_contract_info,
     resample_ticks_to_bars, parse_ohlc_from_upload,
-    MASSIVE_CACHE_DIR, apply_data_slot,
+    MASSIVE_CACHE_DIR, apply_data_slot, filter_excluded_dates,
 )
-from validation import build_comparison
+from validation import build_comparison, get_filters, show_gate_body
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -41,14 +41,15 @@ _S3_ENDPOINT          = "https://files.massive.com"
 _S3_BUCKET            = "flatfiles"
 _S3_PREFIX            = "us_futures_cme/trades_v1"
 
-_DATA_DIR      = Path(__file__).parent / "data"
-_GZ_CACHE_DIR  = _DATA_DIR / "flatfiles_cache"
-_BARS_DIR      = _DATA_DIR / "bars"
-_NT_IMPORT_DIR = _DATA_DIR / "nt_import"
+_DATA_DIR        = Path(__file__).parent / "data"
+_GZ_CACHE_DIR    = _DATA_DIR / "flatfiles_cache"
+_BARS_DIR        = _DATA_DIR / "bars"
+_NT_IMPORT_DIR   = _DATA_DIR / "nt_import"
+_TICKS_CONT_DIR  = _DATA_DIR / "ticks_continuous"
 
 
 def _ensure_dirs():
-    for d in (_GZ_CACHE_DIR, _BARS_DIR, _NT_IMPORT_DIR):
+    for d in (_GZ_CACHE_DIR, _BARS_DIR, _NT_IMPORT_DIR, _TICKS_CONT_DIR):
         d.mkdir(parents=True, exist_ok=True)
 
 
@@ -133,6 +134,152 @@ def _ticks_to_5m_bars(df: pd.DataFrame) -> pd.DataFrame:
     bars = bars.rename(columns={"open": "Open", "high": "High", "low": "Low", "close": "Close"})
     bars.index.name = "DateTime"
     return bars.reset_index()
+
+
+# ── Continuous back-adjusted tick series (per-day cache) ──────────────────────
+# Building one combined multi-year tick file isn't practical (~500M+ rows across
+# the catalog). Instead each day gets its own small Parquet file: front-month
+# ticker only, RTH-filtered, back-adjustment offset already applied to price.
+# This reuses the existing flatfiles_cache .csv.gz (no new downloads) and
+# persists to disk so repeated app reloads never re-decompress/re-filter.
+
+def _ticks_continuous_path(d: date) -> Path:
+    return _TICKS_CONT_DIR / f"{d.isoformat()}.parquet"
+
+
+def build_continuous_ticks_for_date(d: date, rolls: dict) -> pd.DataFrame | None:
+    """Build (and cache) one day's back-adjusted, RTH-filtered, front-month ticks.
+    Returns None if there's no active contract or no local gz cache for that date."""
+    from contracts import get_active_contract
+    from data_loader import RTH_START, RTH_END
+
+    out_path = _ticks_continuous_path(d)
+    if out_path.exists():
+        return pd.read_parquet(out_path)
+
+    active = get_active_contract(d, rolls)
+    if active is None:
+        return None
+
+    gz_path = _GZ_CACHE_DIR / f"{d.isoformat()}.csv.gz"
+    if not gz_path.exists():
+        return None
+
+    raw = _load_gz(gz_path, active["ticker"])
+    raw = raw[raw["correction"] == 0]
+    if raw.empty:
+        return None
+
+    dt_ct = (
+        pd.to_datetime(raw["timestamp"], unit="ns", utc=True)
+        .dt.tz_convert("America/Chicago")
+        .dt.tz_localize(None)
+    )
+    ticks = pd.DataFrame({
+        "DateTime": dt_ct,
+        "Price":    raw["price"].astype(float).values + active["cum_offset"],
+        "Volume":   raw["size"].astype(int).values,
+    }).sort_values("DateTime")
+
+    t   = ticks["DateTime"].dt.time
+    rth = (t >= pd.Timestamp(RTH_START).time()) & (t < pd.Timestamp(RTH_END).time())
+    ticks = ticks[rth].reset_index(drop=True)
+    if ticks.empty:
+        return None
+
+    _ensure_dirs()
+    ticks.to_parquet(out_path, index=False)
+    return ticks
+
+
+def load_continuous_ticks(d: date) -> pd.DataFrame:
+    """Read a previously-built day's continuous ticks. Empty DataFrame if not built."""
+    p = _ticks_continuous_path(d)
+    if p.exists():
+        return pd.read_parquet(p)
+    return pd.DataFrame(columns=["DateTime", "Price", "Volume"])
+
+
+def build_all_continuous_ticks(rolls: dict, status_placeholder=None) -> int:
+    """Build the per-day continuous tick cache for every date in the catalog's
+    active window that doesn't already have one. Returns count of days built."""
+    from contracts import CATALOG
+
+    start = date.fromisoformat(min(c.active_from for c in CATALOG))
+    end   = date.fromisoformat(max(c.last_trade  for c in CATALOG))
+
+    built = 0
+    d = start
+    while d <= end:
+        if not _ticks_continuous_path(d).exists():
+            if status_placeholder:
+                status_placeholder.write(f"  {d.isoformat()} …")
+            result = build_continuous_ticks_for_date(d, rolls)
+            if result is not None:
+                built += 1
+        d += timedelta(days=1)
+    return built
+
+
+def validate_ticks_vs_bars(rolls: dict) -> dict:
+    """Resample the cached continuous ticks to 5M and compare against the
+    Massive 5M bar series built from the same rolls. Returns summary stats.
+
+    Processes one cached day at a time — concatenating all ~445M+ ticks into
+    a single DataFrame first (the original approach) blew past available
+    memory (numpy ArrayMemoryError trying to allocate a 3.3GB column)."""
+    from data_loader import filter_excluded_dates
+
+    bars_by_ticker = {c.ticker: load_bars(c.ticker) for c in CATALOG if _is_downloaded(c.ticker)}
+    mas_bars = filter_excluded_dates(apply_back_adjustment(bars_by_ticker, rolls))
+    mas_bars_by_date = {
+        d: g.set_index("DateTime")[["Open", "High", "Low", "Close"]]
+        for d, g in mas_bars.groupby(mas_bars["DateTime"].dt.date)
+    }
+
+    total_ticks       = 0
+    total_matched     = 0
+    total_ohlc_match  = 0
+    total_extra       = 0
+
+    for f in sorted(_TICKS_CONT_DIR.glob("*.parquet")):
+        day_ticks = pd.read_parquet(f)
+        if day_ticks.empty:
+            continue
+        total_ticks += len(day_ticks)
+
+        day_ticks = day_ticks.set_index("DateTime").sort_index()
+        resampled = day_ticks["Price"].resample("5min", label="left", closed="left").ohlc()
+        resampled = resampled.dropna(subset=["open"]).rename(
+            columns={"open": "Open", "high": "High", "low": "Low", "close": "Close"})
+        if resampled.empty:
+            continue
+
+        d = pd.Timestamp(f.stem).date()
+        day_bars = mas_bars_by_date.get(d)
+        if day_bars is None:
+            total_extra += len(resampled)
+            continue
+
+        m = resampled.add_suffix("_tk").join(day_bars.add_suffix("_bar"), how="outer")
+        matched = m.dropna()
+        total_matched += len(matched)
+        total_extra   += int(m["Open_bar"].isna().sum())
+        total_ohlc_match += int((
+            (matched["Open_tk"].round(2)  == matched["Open_bar"].round(2)) &
+            (matched["High_tk"].round(2)  == matched["High_bar"].round(2)) &
+            (matched["Low_tk"].round(2)   == matched["Low_bar"].round(2)) &
+            (matched["Close_tk"].round(2) == matched["Close_bar"].round(2))
+        ).sum())
+        del day_ticks, resampled, m, matched
+
+    n_mas_bars = len(mas_bars)
+    return {
+        "total_ticks":     total_ticks,
+        "coverage_pct":    total_matched / n_mas_bars * 100 if n_mas_bars else 0.0,
+        "ohlc_match_pct":  total_ohlc_match / total_matched * 100 if total_matched else 0.0,
+        "extra_bars":      total_extra,
+    }
 
 
 # ── Download one contract ─────────────────────────────────────────────────────
@@ -297,6 +444,22 @@ def show_massive_tab():
     ensure_rolls_file()
     rolls = load_rolls()
 
+    # ── Auto-load persisted continuous series / NT upload on app restart ────
+    if "mas_continuous" not in st.session_state:
+        cont_path = _BARS_DIR / "_continuous.parquet"
+        if cont_path.exists():
+            st.session_state["mas_continuous"] = pd.read_parquet(cont_path)
+
+    if "nt_cont_bars" not in st.session_state:
+        from data_loader import load_csv_cache, load_csv_manifest
+        _mf = load_csv_manifest()
+        _info = _mf.get("nt_cont")
+        if _info:
+            _df = load_csv_cache("nt_cont", _info["name"], _info["size"])
+            if _df is not None:
+                st.session_state["nt_cont_bars"] = _df
+                st.session_state["nt_cont_key"]  = f"{_info['name']}_{_info['size']}"
+
     st.markdown("### Massive — ES Contract Manager")
 
     mgr_tab, quick_tab = st.tabs(["📋 Contracts & Rolls", "⚡ Quick Compare (API)"])
@@ -320,8 +483,6 @@ def show_massive_tab():
                     "Contract":     c.ticker,
                     "NT Name":      c.nt_name,
                     "Period":       c.label,
-                    "Active From":  c.active_from,
-                    "Last Trade":   c.last_trade,
                     "Roll Date":    rd,
                     "Offset (pts)": off,
                     "Downloaded":   _status_emoji(c.ticker),
@@ -336,8 +497,6 @@ def show_massive_tab():
                     "Contract":     st.column_config.TextColumn(disabled=True),
                     "NT Name":      st.column_config.TextColumn(disabled=True),
                     "Period":       st.column_config.TextColumn(disabled=True),
-                    "Active From":  st.column_config.TextColumn("Active From", disabled=True),
-                    "Last Trade":   st.column_config.TextColumn("Last Trade",  disabled=True),
                     "Roll Date":    st.column_config.TextColumn("Roll Date (YYYY-MM-DD)"),
                     "Offset (pts)": st.column_config.NumberColumn("Offset (pts)", format="%.2f"),
                     "Downloaded":   st.column_config.TextColumn(disabled=True, width="small"),
@@ -429,7 +588,9 @@ def show_massive_tab():
                              help="Needs all contracts downloaded + offsets filled in."):
                     bars_by_ticker = {c.ticker: load_bars(c.ticker) for c in downloaded if _is_downloaded(c.ticker)}
                     continuous = apply_back_adjustment(bars_by_ticker, rolls)
+                    continuous = filter_excluded_dates(continuous)
                     st.session_state["mas_continuous"] = continuous
+                    continuous.to_parquet(_BARS_DIR / "_continuous.parquet", index=False)
                     st.rerun()
 
             with col_status:
@@ -448,7 +609,7 @@ def show_massive_tab():
                         if st.button("📊 Open in Bar Viewer"):
                             apply_data_slot("sc_5m", cont.drop(columns=["Contract"], errors="ignore"),
                                              "Massive Continuous (back-adjusted)", "mas_continuous")
-                            st.success("Loaded into Bar Viewer — switch to the 📊 Bar Viewer tab.")
+                            st.rerun()
                     else:
                         st.info(f"{n_dl} contracts ready — click Build to stitch them.")
 
@@ -468,7 +629,13 @@ def show_massive_tab():
                 if st.session_state.get("nt_cont_key") != _key:
                     with st.spinner("Parsing NT export…"):
                         df_nt_cont = parse_ohlc_from_upload(nt_cont_file)
+                    df_nt_cont = filter_excluded_dates(df_nt_cont)
                     st.session_state["nt_cont_bars"] = df_nt_cont
+                    from data_loader import save_csv_cache, load_csv_manifest, save_csv_manifest
+                    save_csv_cache(df_nt_cont, "nt_cont", nt_cont_file.name, nt_cont_file.size)
+                    _mf = load_csv_manifest()
+                    _mf["nt_cont"] = {"name": nt_cont_file.name, "size": nt_cont_file.size}
+                    save_csv_manifest(_mf)
                     st.session_state["nt_cont_key"]  = _key
                     st.rerun()
 
@@ -482,15 +649,53 @@ def show_massive_tab():
             if mas_cont is not None and nt_cont is not None:
                 st.divider()
                 st.markdown("#### Comparison — Massive Continuous vs NT @ES")
-                comp = build_comparison(mas_cont, nt_cont)
-                _show_comparison(comp, "Massive", "NT@ES")
-
-                with st.expander("Show full comparison table", expanded=False):
-                    st.dataframe(comp, use_container_width=True, hide_index=True)
+                st.caption("Filters are set once in the 🗂️ Data tab and shared with Bar Analysis.")
+                cont_filter_kwargs = get_filters("shared")
+                show_gate_body(
+                    mas_cont.drop(columns=["Contract"], errors="ignore"), nt_cont,
+                    left_label="Massive Continuous", right_label="NT @ES",
+                    gate_key="g_cont", **cont_filter_kwargs,
+                )
             elif mas_cont is None and nt_cont is not None:
                 st.info("Build the continuous series above to run the comparison.")
             elif mas_cont is not None and nt_cont is None:
                 st.info("Upload the NT @ES export above to run the comparison.")
+
+        # ── Continuous tick series (per-day cache, for Bar Analysis) ───────
+        n_tick_days = len(list(_TICKS_CONT_DIR.glob("*.parquet"))) if _TICKS_CONT_DIR.exists() else 0
+        with st.expander(f"🧮 Continuous Tick Series  ({n_tick_days} day(s) cached)", expanded=False):
+            st.caption(
+                "Builds one small Parquet per trading day from the already-downloaded flat-file cache — "
+                "front-month ticker only, RTH-filtered, back-adjustment offset baked into price. "
+                "Used by Bar Analysis for tick-level simulation. One-time build; persists across reloads, "
+                "and re-running only fills in missing days."
+            )
+            col_build_tk, col_val_tk = st.columns(2)
+            with col_build_tk:
+                if st.button("🔨 Build / Update Tick Cache", disabled=(n_dl == 0) or bool(missing_offsets)):
+                    status = st.empty()
+                    with st.spinner("Building per-day continuous ticks…"):
+                        built = build_all_continuous_ticks(rolls, status_placeholder=status)
+                    status.empty()
+                    st.success(f"Built {built} new day(s). Total cached: "
+                               f"{len(list(_TICKS_CONT_DIR.glob('*.parquet')))}")
+
+            with col_val_tk:
+                if st.button("✅ Validate vs 5M Bars", disabled=n_tick_days == 0):
+                    with st.spinner("Resampling ticks to 5M and comparing…"):
+                        result = validate_ticks_vs_bars(rolls)
+                    st.session_state["mas_tick_validation"] = result
+
+            val = st.session_state.get("mas_tick_validation")
+            if val is not None:
+                v1, v2, v3, v4 = st.columns(4)
+                v1.metric("Total Ticks", f"{val['total_ticks']:,}")
+                v2.metric("Bars w/ Tick Coverage",
+                          f"{val['coverage_pct']:.1f}%", help="% of Massive 5M bars reconstructable from ticks.")
+                v3.metric("OHLC Exact Match", f"{val['ohlc_match_pct']:.2f}%",
+                          help="Of bars present in both, % where O/H/L/C all match exactly.")
+                v4.metric("Extra Resampled Bars", f"{val['extra_bars']:,}",
+                          help="Bars from resampling ticks that have no corresponding Massive 5M bar.")
 
     # ═════════════════════════════════════════════════════════════════════════
     with quick_tab:

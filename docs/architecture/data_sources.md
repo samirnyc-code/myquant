@@ -1,11 +1,40 @@
 # Data Sources
 **Status:** Architecture — Living  
-**Last Updated:** June 13, 2026  
+**Last Updated:** June 16, 2026 (Session 12)  
 **Rule:** This is the only file that defines data sources. All other docs reference this file, never duplicate it.
 
 ---
 
-## Primary Tick Data — Sierra Charts (Delani)
+## ⚠️ Session 12 update: Massive is now primary
+
+As of June 16, 2026, **Massive is the primary and only active data source** feeding Bar Analysis. The Sierra Charts/SCID section below is paused (not deleted — kept for reference in case the path is revisited).
+
+**Current pipeline, in order:**
+
+1. **Flat-file ticks** (S3, `us_futures_cme/trades_v1/`) → downloaded per contract via the **📂 Massive** tab's Contract Manager, cached at `data/flatfiles_cache/{date}.csv.gz` (raw, all CME symbols, gzip CSV)
+2. **Per-contract 5M bars** → built from the flat files, cached at `data/bars/{ticker}.parquet`
+3. **Back-adjusted continuous 5M series** → `contracts.py: apply_back_adjustment()`, stitches all downloaded contracts using roll dates/offsets from `rolls.json` (committed to git — same schedule for every collaborator). Persisted to `data/bars/_continuous.parquet`, auto-loaded into `st.session_state["mas_continuous"]` on every app restart.
+4. **Back-adjusted continuous tick series** → `massive.py: build_continuous_ticks_for_date()`, one small Parquet per trading day (front-month ticker only, RTH-filtered, offset baked into price), built from the same flat-file cache (no new downloads). Cached at `data/ticks_continuous/{date}.parquet`. As of Session 12: 1,220 days, ~445M ticks, validated 99.49% OHLC-exact match against the 5M bars (98.6–100% coverage depending on validation method — see handoff.md Known Gaps).
+5. **NT `@ES` continuous upload** (Massive tab) → used **only** for matching/validation (the signal-bar-Close gate in Bar Analysis's alt-path mismatch check, and the Massive-vs-NT comparison panel). Never used for fills/exits. Persisted via the generic CSV-cache mechanism, prefix `"nt_cont"`.
+
+**Key files:**
+
+| File | Role |
+|------|------|
+| `contracts.py` | Contract catalog (`CATALOG`), roll schedule I/O (`rolls.json`), `apply_back_adjustment()`, `get_contract_windows()`, `get_active_contract()` |
+| `massive.py` | Contract Manager UI, S3 download, bar building, continuous tick cache, NT @ES upload, the Massive-vs-NT comparison panel |
+| `data_loader.py` | `filter_excluded_dates()` / manual exclusion registry (`excluded_dates.json`), `apply_data_slot()` (shared session-state funnel) |
+| `bar_analysis.py` | Sources `bars` from `mas_continuous`, ticks lazily per-day from the continuous tick cache (only for dates with signals) |
+
+**Manual exclusions:** `excluded_dates.json` (committed) — dates known to have bad data (feed gaps, capture artifacts) are dropped everywhere via `filter_excluded_dates()`. Currently seeded with `2026-04-06` (NT OHLCExporter captured only 1 stray tick all session — likely `IsSuspendedWhileInactive` suppressing updates while the chart tab was inactive).
+
+**Filters:** a single shared filter panel (holidays, day-of-week, session boundaries, economic events) lives in the 🗂️ Data tab (`validation.render_filters("shared")`). The Massive comparison panel reads it read-only via `validation.get_filters("shared")`. Bar Analysis's own filter panel is **not yet migrated** to this shared instance — top priority for the next session.
+
+See `docs/living/handoff.md` Session 12 section for the full list of bugs found/fixed this session (back-adjustment roll-date semantics, 5-min timestamp misalignment, OOM crash in tick validation, 403-vs-404 download handling, NT bars accidentally being the de-facto simulation source via dead `bar_source` code).
+
+---
+
+## Primary Tick Data — Sierra Charts (Delani) — PAUSED, not active
 
 | Item | Detail |
 |------|--------|

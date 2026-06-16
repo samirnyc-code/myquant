@@ -6,11 +6,12 @@ from data_loader import (CONTRACTS, bar_num_from_dt,
                          parse_ohlc_from_upload,
                          load_csv_cache, save_csv_cache,
                          load_csv_manifest, save_csv_manifest, clear_csv_cache,
-                         apply_data_slot)
-import validation
+                         apply_data_slot,
+                         load_excluded_dates, save_excluded_dates)
 import bar_analysis
 import portfolio
 import massive
+import validation
 
 st.set_page_config(
     page_title="ES Futures — 5-Min RTH Bars",
@@ -125,7 +126,7 @@ def show_bar_viewer(sc_file: str = "", contract: str = "ES"):
     bars = st.session_state.get("data_sc_5m")
 
     if bars is None:
-        st.info("Upload Massive 5M data in the **📂 Data** tab to begin.")
+        st.info("Build the continuous series in the **📂 Massive** tab to begin.")
         return
 
     bars["Date"] = bars["DateTime"].dt.date
@@ -205,89 +206,82 @@ def show_bar_viewer(sc_file: str = "", contract: str = "ES"):
 # ── Data tab ──────────────────────────────────────────────────────────────────
 
 def show_data_tab():
+    st.caption(
+        "Set once here — these same filters (holidays, day-of-week, session boundaries, "
+        "economic events) automatically apply to the Massive continuous-series comparison "
+        "and to Bar Analysis. No need to set them twice."
+    )
+    validation.render_filters("shared")
+
+    st.divider()
     st.markdown("### Data Sources")
     st.caption(
-        "Upload Massive and NT OHLC exports once — each file is cached to Parquet and reloaded "
-        "automatically on next session. Use the OHLCExporter indicator to generate NT bar exports."
+        "Massive bars/ticks (built in the 📂 Massive tab) drive Bar Viewer and all trade analysis. "
+        "NT is only used as a continuous-contract upload in the Massive tab, for matching — "
+        "it doesn't need anything here. This panel is a manual override if you ever need to "
+        "load a different ES_MAS 5M export by hand."
     )
 
-    col_sc, col_nt = st.columns(2)
+    _sc5m = st.session_state.get("data_sc_5m")
+    if _sc5m is not None:
+        _lbl  = st.session_state.get("data_sc_5m_label", "")
+        _days = _sc5m["DateTime"].dt.date.nunique()
+        _min  = _sc5m["DateTime"].dt.date.min()
+        _max  = _sc5m["DateTime"].dt.date.max()
+        st.success(f"✅ **ES_MAS 5M** — {_lbl}  |  {_days:,} days  |  {_min} → {_max}")
+    else:
+        st.info("ES_MAS 5M — not loaded")
 
-    # ── Massive column (ES_MAS OHLCExporter) ─────────────────────────────────
-    with col_sc:
-        st.markdown("**Massive (ES_MAS)**")
+    sc_5m_file = st.file_uploader(
+        "Upload ES_MAS 5M bars (.txt / .csv) — overrides the Massive continuous series",
+        type=["txt", "csv"], key="dt_sc5m",
+        help="OHLCExporter TXT from the ES_MAS chart in NT",
+    )
+    if sc_5m_file:
+        _key = f"{sc_5m_file.name}_{sc_5m_file.size}"
+        if st.session_state.get("data_sc_5m_key") != _key:
+            _cached = load_csv_cache("sc_5m", sc_5m_file.name, sc_5m_file.size)
+            if _cached is not None:
+                _df = _cached
+            else:
+                with st.spinner("Parsing ES_MAS 5M data…"):
+                    _df = parse_ohlc_from_upload(sc_5m_file)
+                save_csv_cache(_df, "sc_5m", sc_5m_file.name, sc_5m_file.size)
+                _mf = load_csv_manifest()
+                _mf["sc_5m"] = {"name": sc_5m_file.name, "size": sc_5m_file.size}
+                save_csv_manifest(_mf)
+            _apply_data_slot("sc_5m", _df, sc_5m_file.name, _key)
+            st.rerun()
 
-        _sc5m = st.session_state.get("data_sc_5m")
-        if _sc5m is not None:
-            _lbl  = st.session_state.get("data_sc_5m_label", "")
-            _days = _sc5m["DateTime"].dt.date.nunique()
-            _min  = _sc5m["DateTime"].dt.date.min()
-            _max  = _sc5m["DateTime"].dt.date.max()
-            st.success(f"✅ **ES_MAS 5M** — {_lbl}  |  {_days:,} days  |  {_min} → {_max}")
-        else:
-            st.info("ES_MAS 5M — not loaded")
-
-        sc_5m_file = st.file_uploader(
-            "Upload ES_MAS 5M bars (.txt / .csv)", type=["txt", "csv"], key="dt_sc5m",
-            help="OHLCExporter TXT from the ES_MAS chart in NT",
+    # ── Manually excluded dates ───────────────────────────────────────────────
+    st.divider()
+    with st.expander("🚫 Manually Excluded Dates", expanded=False):
+        st.caption(
+            "Dates flagged here are dropped everywhere in the app — comparisons, Bar Viewer, "
+            "and trade simulation/WFA — because the underlying data for that day is known to be bad "
+            "(feed gap, capture artifact, etc), not a real price discrepancy."
         )
-        if sc_5m_file:
-            _key = f"{sc_5m_file.name}_{sc_5m_file.size}"
-            if st.session_state.get("data_sc_5m_key") != _key:
-                _cached = load_csv_cache("sc_5m", sc_5m_file.name, sc_5m_file.size)
-                if _cached is not None:
-                    _df = _cached
-                else:
-                    with st.spinner("Parsing ES_MAS 5M data…"):
-                        _df = parse_ohlc_from_upload(sc_5m_file)
-                    save_csv_cache(_df, "sc_5m", sc_5m_file.name, sc_5m_file.size)
-                    _mf = load_csv_manifest()
-                    _mf["sc_5m"] = {"name": sc_5m_file.name, "size": sc_5m_file.size}
-                    save_csv_manifest(_mf)
-                _apply_data_slot("sc_5m", _df, sc_5m_file.name, _key)
-                st.rerun()
+        excluded = load_excluded_dates()
 
-    # ── NT column (real ES / Rithmic OHLCExporter) ───────────────────────────
-    with col_nt:
-        st.markdown("**NinjaTrader (real ES / Rithmic)**")
+        ec1, ec2, ec3 = st.columns([2, 3, 1])
+        new_date   = ec1.date_input("Date", key="excl_date_input")
+        new_reason = ec2.text_input("Reason", key="excl_reason_input", placeholder="e.g. NT capture gap")
+        if ec3.button("Add", key="excl_date_add"):
+            excluded[str(new_date)] = new_reason or "—"
+            save_excluded_dates(excluded)
+            st.rerun()
 
-        _nt5m = st.session_state.get("data_nt_5m")
-        if _nt5m is not None:
-            _lbl  = st.session_state.get("data_nt_5m_label", "")
-            _days = _nt5m["DateTime"].dt.date.nunique()
-            _min  = _nt5m["DateTime"].dt.date.min()
-            _max  = _nt5m["DateTime"].dt.date.max()
-            st.success(f"✅ **NT 5M** — {_lbl}  |  {_days:,} days  |  {_min} → {_max}")
+        if excluded:
+            for d in sorted(excluded):
+                rc1, rc2, rc3 = st.columns([2, 5, 1])
+                rc1.write(d)
+                rc2.write(excluded[d])
+                if rc3.button("🗑️", key=f"excl_remove_{d}"):
+                    excluded.pop(d, None)
+                    save_excluded_dates(excluded)
+                    st.rerun()
         else:
-            st.info("NT 5M — not loaded")
-
-        nt_5m_file = st.file_uploader(
-            "Upload NT 5M bars (.txt / .csv)", type=["txt", "csv"], key="dt_nt5m",
-            help="OHLCExporter TXT from the real ES (Rithmic) chart in NT",
-        )
-        if nt_5m_file:
-            _key = f"{nt_5m_file.name}_{nt_5m_file.size}"
-            if st.session_state.get("data_nt_5m_key") != _key:
-                _cached = load_csv_cache("nt_5m", nt_5m_file.name, nt_5m_file.size)
-                if _cached is not None:
-                    _df = _cached
-                else:
-                    with st.spinner("Parsing NT 5M data…"):
-                        _df = parse_ohlc_from_upload(nt_5m_file)
-                    if _df.empty:
-                        st.error(
-                            f"**{nt_5m_file.name}** parsed to 0 RTH bars.  \n"
-                            "Expected: semicolon-delimited TXT with CT bar close times "
-                            "(e.g. `12/06/2026 08:35:00;7423.50;...`).  \n"
-                            f"First 200 chars: `{nt_5m_file.read(200)}`"
-                        )
-                        st.stop()
-                    save_csv_cache(_df, "nt_5m", nt_5m_file.name, nt_5m_file.size)
-                    _mf = load_csv_manifest()
-                    _mf["nt_5m"] = {"name": nt_5m_file.name, "size": nt_5m_file.size}
-                    save_csv_manifest(_mf)
-                _apply_data_slot("nt_5m", _df, nt_5m_file.name, _key)
-                st.rerun()
+            st.info("No dates excluded.")
 
     # ── Cache management ──────────────────────────────────────────────────────
     st.divider()
@@ -351,11 +345,19 @@ def main():
                 st.session_state.pop(k, None)
         st.rerun()
 
-    tab0, tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "📂 Data", "📊 Bar Viewer", "🔍 Bar Validation", "📈 Bar Analysis", "📊 Portfolio", "📡 Massive",
+    tab_massive, tab0, tab1, tab3, tab4 = st.tabs([
+        "📂 Massive", "🗂️ Data", "📊 Bar Viewer", "📈 Bar Analysis", "📊 Portfolio",
     ])
 
     contract_label = selected_key.split(" — ")[0] if selected_key else "ES"
+
+    with tab_massive:
+        massive.show_massive_tab()
+
+    if st.session_state.get("data_sc_5m") is None and st.session_state.get("mas_continuous") is not None:
+        mas_cont = st.session_state["mas_continuous"]
+        apply_data_slot("sc_5m", mas_cont.drop(columns=["Contract"], errors="ignore"),
+                         "Massive Continuous (auto)", "mas_continuous_auto")
 
     with tab0:
         show_data_tab()
@@ -363,40 +365,47 @@ def main():
     with tab1:
         show_bar_viewer(sc_file, contract=contract_label)
 
-    with tab2:
-        validation.show_validation_tab()
-
     with tab3:
         # Signals upload lives here (price data is in the Data tab)
-        with st.expander("📊 MC Signals", expanded=False):
-            sig_file = st.file_uploader(
-                "MC Signals (.txt/.csv)", type=["txt", "csv"], key="upload_signals",
-                help="Space-delimited: Num Type Dir DD/MM/YYYY HH:MM:SS BarNum Price Stop",
-            )
-            if sig_file is not None:
-                sig_key = f"{sig_file.name}_{sig_file.size}"
-                if st.session_state.get("ba_signals_key") != sig_key:
-                    raw    = sig_file.read().decode("utf-8", errors="replace")
-                    parsed = bar_analysis.parse_signals(raw)
-                    if parsed is None or parsed.empty:
-                        st.error("Could not parse signals.")
-                    else:
-                        st.session_state["ba_signals"]     = parsed
-                        st.session_state["ba_signals_key"] = sig_key
-                if st.session_state.get("ba_signals") is not None:
-                    n_sig = len(st.session_state["ba_signals"])
-                    st.caption(f"✅ {sig_file.name}  |  {n_sig} signals")
-            else:
-                for k in ("ba_signals", "ba_signals_key"):
-                    st.session_state.pop(k, None)
+        def _signal_uploader(label: str, upload_key: str, state_prefix: str):
+            with st.expander(label, expanded=False):
+                sig_file = st.file_uploader(
+                    "Signals (.txt/.csv)", type=["txt", "csv"], key=upload_key,
+                    help="Space-delimited: Num Type Dir DD/MM/YYYY HH:MM:SS BarNum Price Stop",
+                )
+                if sig_file is not None:
+                    sig_key = f"{sig_file.name}_{sig_file.size}"
+                    if st.session_state.get(f"{state_prefix}_key") != sig_key:
+                        raw    = sig_file.read().decode("utf-8", errors="replace")
+                        parsed = bar_analysis.parse_signals(raw)
+                        if parsed is None or parsed.empty:
+                            st.error("Could not parse signals.")
+                        else:
+                            st.session_state[state_prefix]           = parsed
+                            st.session_state[f"{state_prefix}_key"]  = sig_key
+                    if st.session_state.get(state_prefix) is not None:
+                        n_sig = len(st.session_state[state_prefix])
+                        st.caption(f"✅ {sig_file.name}  |  {n_sig} signals")
+                else:
+                    for k in (state_prefix, f"{state_prefix}_key"):
+                        st.session_state.pop(k, None)
+
+        _signal_uploader("📊 MC Signals", "upload_signals", "ba_signals_mc")
+        _signal_uploader("🔁 RevFTSignals", "upload_signals_revft", "ba_signals_revft")
+
+        active_set = st.radio(
+            "Active Signal Set", ["MC Signals", "RevFTSignals"],
+            key="ba_active_signal_set", horizontal=True,
+        )
+        st.session_state["ba_signals"] = (
+            st.session_state.get("ba_signals_mc") if active_set == "MC Signals"
+            else st.session_state.get("ba_signals_revft")
+        )
 
         bar_analysis.show_bar_analysis(sc_file=sc_file, contract=contract_label, nt_file=nt_file)
 
     with tab4:
         portfolio.show_portfolio()
-
-    with tab5:
-        massive.show_massive_tab()
 
 
 main()

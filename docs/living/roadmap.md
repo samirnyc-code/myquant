@@ -1,8 +1,10 @@
 # Roadmap
 **Status:** Living — update every session  
-**Last Updated:** June 14, 2026  
+**Last Updated:** June 16, 2026 (Session 12)  
 **Rule:** This is the only source of truth for what gets built and in what order.  
 **Rule:** Phases are sequential within each track. Do not start a phase until its prerequisite passes.
+
+**Session 12 note:** Track 4 (Massive) is now primary and the only active track. Track 2 (SC/SCID) is paused. See `docs/living/handoff.md` Session 12 section for full detail.
 
 ---
 
@@ -139,7 +141,17 @@ These are not build phases — they are analytical obligations that run as Track
 - [x] **PDF export** — Bar Analysis + Portfolio tabs; `matchMedia('print')` + `Plotly.relayout()` for chart resize; counter forces re-render on every click
 - [x] **Portfolio tab** (`portfolio.py`) — per-setup 2-leg sim, equity curves, DD chart, breakdown table, T1×PB×T2 sweep, save/compare runs, PDF export, Save as Defaults
 
-### Near-term backlog
+### Near-term backlog (Session 12, Massive track — top priority)
+- [ ] **Migrate Bar Analysis filters to the shared panel** — `ba_`-prefixed filter widgets in `bar_analysis.py` still independent from `validation.get_filters("shared")`; should read from the same Data-tab panel as Massive's comparison
+- [ ] **Optimize by calendar month, not by contract** — user request, not yet designed: Bar Analysis needs to slice/optimize across arbitrary calendar-month ranges independent of which contract was front-month
+- [ ] **Re-download ~50 missing trading days** in `data/flatfiles_cache/` (2021–2022 heavy) — listed in handoff.md Session 12 section
+- [ ] Root-cause the tick-cache validation discrepancy (98.6%/1,587 vs 100%/243 extra bars between the two measurement methods)
+- [ ] Live-test RevFTSignals end-to-end with a real second signal file
+- [ ] Live-test the alt-path mismatch table with a real divergent trade (none seen yet in spot checks)
+- [ ] NT `OHLCExporter` buffer-loss fix (flush-to-disk periodically) — drafted, reverted per user instruction; revisit only if asked
+- [ ] **"Clear all cached data" needs two confirmation popups** — explain what it does (deletes Parquet cache files, not just session state) and what's needed to get the data back (rebuild via Massive tab / re-upload). Currently a single button, no confirmation at all.
+
+### Near-term backlog (Track 2 — SC/SCID, paused)
 - [ ] **Verify SCID bar timestamp** — upload Q1/2024 SCID + matching NT TXT, compare bar 1 open time; apply -5min fix if SCID uses close time (see Q14 in open_questions.md)
 - [ ] **End-to-end Bar Validation** — test with Q1/2024 SCID + matching NT TXT; confirm SC vs NT comparison produces valid diff stats
 - [ ] **Verify PDF equity chart resize** — `Plotly.relayout()` from iframe may be blocked by browser; test in running app

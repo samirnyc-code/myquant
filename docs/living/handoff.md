@@ -1,16 +1,29 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** June 13, 2026 (session 10)
+**Last Updated:** June 16, 2026 (session 12)
 **Current Versions:** SIM_v3.3 / GS_v4.5 / SHEET_v3.3  
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 
 ---
 
+## ⚠️ Architecture shift as of Session 12 (June 16, 2026)
+
+**Massive (Track 4) is now the primary and only active data pipeline.** The Sierra Charts/SCID path (Track 2) is paused — not deleted, not formally retired, just not being worked on. Everything below "Session 12" in this doc reflects the new reality:
+
+- Massive flat-file ticks (S3) → per-contract 5M bars + back-adjusted continuous series, built and persisted in the **📂 Massive** tab
+- NT is used **only** as a continuous-contract upload for matching/validation — never as a fill/exit data source
+- Bar Analysis simulates trades using Massive bars + a per-day continuous tick cache, not NT bars
+- The old `📡 Massive.io` tab name/6th-tab numbering below is stale — it's now the **first** tab, named `📂 Massive`, and absorbed the Contract Manager UI described in `data_sources.md`
+
+Read `docs/architecture/data_sources.md` (updated Session 12) for the current pipeline. Treat anything about SCID/`.scid` files in this doc as historical/paused, not active work.
+
+---
+
 ## What Is Active Right Now
 
-The NT8 simulator and Sheets analysis pipeline are complete and working. All new development is Python-first. No new Sheets or NT8 features are being built unless explicitly scoped.
+The NT8 simulator and Sheets analysis pipeline are complete and working. All new development is Python-first, on the Massive pipeline (Track 4). The SC/SCID path (Track 2) is paused.
 
-Two parallel tracks are now active:
+Two parallel tracks were active before Session 12; Track 4 has since become primary:
 
 **Track 2 — Python WFA Engine (SC path):**
 ```
@@ -483,6 +496,91 @@ Neither tab has disk fallbacks. If no data is uploaded (and no cache loaded), th
 **Session 8 (June 10):** ✅ Committed + pushed — `validation.py` CSV download fix (st.download_button, gate_key param); corrected back-adjustment findings; NT corrupted bar (2025-07-15) found and fixed in NT  
 **Session 10 (June 13):** ✅ Committed + pushed — `scripts/fetch_for_nt.py` (NT import script), `data_loader.py` (4 Massive.io API functions), `massive.py` (new Massive.io tab), `app.py` (6th tab added); all Massive.io code ready pending API key Monday 2026-06-16  
 **Session 11 (June 14):** ✅ Committed + pushed — Massive.io API details confirmed (base URL, auth, sort); ES_MAS full pipeline confirmed working end-to-end with AAPL test data; NT native bars slot + Comparison 3 added to massive.py; API key subscribed today
+**Session 12 (June 16):** ✅ Committed + pushed — see full section below. Massive promoted to primary pipeline: contract manager, back-adjustment bug fix, continuous tick series (445M ticks, validated 99.49% vs 5M bars), app-restart persistence for continuous series + NT upload, unified filters (single editable home in Data tab), alt-path mismatch analysis in Bar Analysis, tab reorder/cleanup, Bar Validation tab removed, requirements.txt fixed, onboarding docs updated
+
+---
+
+## Session 12 — June 16, 2026 — Massive Becomes Primary Pipeline
+
+### Summary
+
+Long session. Took Massive from "parallel validation track" to "the only data source Bar Analysis actually uses." Found and fixed several real bugs along the way (back-adjustment roll-date semantics, OOM crash in validation, NT OHLCExporter buffer-loss risk investigated but not changed — see below). Ended by unifying filters across tabs and removing the now-redundant Bar Validation tab.
+
+### Bugs found and fixed
+
+1. **Back-adjustment roll-date semantics** (`contracts.py`) — `apply_back_adjustment` was treating the user-entered `roll_date` as the contract's own roll-OUT date instead of NT's actual convention (roll-IN date — the date a contract BECOMES front month). This clipped every middle contract to ~2 trading days instead of its full quarter. Fixed by swapping the bound logic: lower bound = own roll_date, upper bound = NEXT contract's roll_date. Verified before/after: 7,662 bars/96 days → 94,435 bars/1,189 days (19 contracts at the time).
+2. **5-minute timestamp misalignment between Massive and NT** — Massive resamples bars with `label="left"` (DateTime = bar open time); NT TXT uploads keep NT's close-time label as-is. Every comparison row was silently off by one bar. Fixed in `build_comparison()` (`validation.py`) — shifts the NT side back 5 minutes before joining, at comparison time only (neither source's own convention touched).
+3. **OOM crash in tick-cache validation** — `validate_ticks_vs_bars()` originally concatenated all ~445M cached ticks into one DataFrame before resampling (`numpy._core._exceptions._ArrayMemoryError`, tried to allocate 3.3GB for one column). Fixed to process one cached day-file at a time, accumulating only summary counters.
+4. **403 vs 404 on Massive's S3 endpoint** — Massive returns 403 (not 404) for dates with no data yet (future dates). The old `_download_day()` only treated 404/NoSuchKey as "skip," so it crashed mid-download whenever the loop reached today's date boundary. Now treats 403/Forbidden the same as 404.
+5. **Memory-unsafe NT tick-import writer** — `download_contract()` accumulated all of a contract's ticks in memory before one big write; switched to incremental per-day appends (`_append_nt_lines`).
+6. **`bar_source` dead code in `bar_analysis.py`** — `bar_source` session-state key was read everywhere but never written anywhere in the codebase, so `show_bar_analysis()` always fell through to the `uploaded_ohlc_bars` branch (NT bars) regardless of what was actually intended. This meant Bar Analysis was silently simulating on NT data, not Massive, this whole time. Fixed by rewiring to source `bars` from `mas_continuous` directly (see below).
+
+### New capability: continuous back-adjusted tick series
+
+Built `massive.py: build_continuous_ticks_for_date()` / `load_continuous_ticks()` / `build_all_continuous_ticks()` — one small Parquet per trading day (front-month ticker only, RTH-filtered, back-adjustment offset baked into price), built from the flat-file cache that's already on disk (no new downloads). A combined multi-year tick file was considered and rejected — ~500M+ rows is impractical to hold in memory or load as one file; per-day files keep memory bounded and each individual day-read fast regardless of total history size.
+
+**Built and validated:** 1,220 days, 444,968,944 total ticks. Validation (`validate_ticks_vs_bars()`, also surfaced as a button in the Massive tab UI): 98.6–100% of Massive 5M bars have tick coverage (two measurement passes gave slightly different numbers — see Known Gaps below), 99.49% OHLC exact match.
+
+`contracts.py` gained `get_contract_windows()` (shared front-month-window + cumulative-offset table, extracted from `apply_back_adjustment`) and `get_active_contract(date, rolls)` (which contract + offset was active on a given date) — both used by the tick builder so it applies the exact same roll/offset logic as the bar back-adjustment.
+
+### Persistence across app restarts
+
+Previously `mas_continuous` (Massive's built continuous series) and `nt_cont_bars` (the NT `@ES` continuous upload) only lived in `st.session_state` — gone on every restart, requiring a manual rebuild/re-upload. Fixed:
+
+- `mas_continuous` → saved to `data/bars/_continuous.parquet` on build, auto-loaded on `show_massive_tab()` entry if not already in session.
+- `nt_cont_bars` → saved via the existing generic CSV-cache mechanism (`save_csv_cache`/`load_csv_manifest`, prefix `"nt_cont"`), auto-loaded the same way. First upload after this fix still required once to seed the cache; every restart after that is automatic.
+- Bar Viewer's `data_sc_5m` slot (separate from `mas_continuous`) also auto-derives from `mas_continuous` now, via a one-line check placed in `app.py: main()` right after the Massive tab renders (placement matters — Data tab renders before Bar Viewer in tab order, so the derive has to happen before Data tab's status check, not inside Bar Viewer itself).
+
+### Bar Analysis now actually uses Massive data
+
+`show_bar_analysis()` rewired: `bars` comes from `mas_continuous`; ticks load lazily per-day from the continuous tick cache, scoped only to dates that actually have signals (not the full multi-year history — keeps memory bounded regardless of total cache size). NT bars are used **only** for the signal-bar-Close matching gate (`_nt_bars_for_mismatch`), never for fills/exits. Legacy `uploaded_sc_bars`/`uploaded_sc_ticks`/`sc_disk` routing removed (was dead code per bug #6 above).
+
+**New: alt-path mismatch analysis** (`compute_alt_path_outcomes()` in `bar_analysis.py`) — for filled trades, checks whether the NT signal bar's Close differs from Massive's Close at that exact bar (the gate). Only for gated trades, re-derives the outcome using NT's 5M bars in place of Massive's (same entry/pullback/target logic, `signal_price`/`stop_csv` held fixed since they come from the external signals file). Flags `AltDiffers=True` only when the re-derived outcome actually changes (different fill/no-fill, exit reason, or PnL) — most gated trades re-derive to the same outcome and aren't flagged. Dispatches across all three trade structures (single-leg, 2-leg, 3-leg) via `_resimulate_bars(mode, ...)`. Surfaced as a second section under the existing `_show_mismatch_analysis` table.
+
+**New: RevFTSignals** — a second, independent signal upload alongside MC Signals (own session-state keys), with a radio toggle deciding which one actually feeds the simulation. Lets you keep both loaded and switch without re-uploading.
+
+### Manual date exclusion (global)
+
+New `excluded_dates.json` (committed, same pattern as `rolls.json`) + `load_excluded_dates()`/`save_excluded_dates()`/`filter_excluded_dates()` in `data_loader.py`. Managed via a "🚫 Manually Excluded Dates" panel (currently in the Data tab). Wired into every bar-loading path: `apply_data_slot`, Massive continuous build, NT upload parsing, and Bar Analysis's `bars`/`ticks`/`nt_bars`/`signals_raw`. One add removes that date everywhere.
+
+Seeded with `2026-04-06`: NT's OHLCExporter captured only 1 stray tick (12:55, vol=1) that entire session — diagnosed as `IsSuspendedWhileInactive = true` (in `MyOHLCReader.cs`) likely suppressing `OnBarUpdate` while the chart tab was inactive. **Not fixed in the indicator** — user explicitly said not to touch it without being asked; the exclusion-list workaround was used instead. If this recurs often, the indicator fix (flush-to-disk periodically instead of buffering until `Terminated`) is sketched out in conversation history but was reverted, never applied.
+
+### Investigated mismatch patterns (no further action needed)
+
+- **2026-04-06**: see above — NT capture gap, not a Massive/back-adjustment issue.
+- **~50 missing trading days across 14 contracts (2021–2022 heavy)**: real gaps in `data/flatfiles_cache/` — some days' `.csv.gz` never downloaded (likely transient 403s before the fix above existed), some downloaded but produced zero bars. Not yet re-downloaded. Listed precisely in conversation history; would need a targeted re-download pass for just those dates.
+- **Outliers up to ~30 ticks on ordinary (non-roll) days**: cluster at session open/close boundaries (feed-timing disagreement between Massive's raw CME ticks and NT's Rithmic feed, worse during real volatility — e.g. 2025-04-04 Liberation Day tariffs, 2024-08-05/06 yen-carry unwind). Not a bug.
+- **2021-10-01 (24 mismatches)**: same boundary-noise mechanism, just an unusually choppy day. Not a bug.
+
+### Unified filters
+
+Filters (exclude NYSE holidays, day-of-week, session boundaries — first-N-bars/last-N-min, economic events FOMC/NFP/CPI) previously existed as three **separate** widget sets: Massive's comparison panel, the old Bar Validation tab, and Bar Analysis's own panel. Streamlit can't have the same interactive widget editable from two tabs in one script run (duplicate key error), so true bidirectional sync isn't directly possible.
+
+**Resolution (user's choice from 3 options presented):** single editable copy lives in the **🗂️ Data tab** (`validation.render_filters("shared")`). Massive's comparison section reads the same values read-only via the new `validation.get_filters("shared")` (no widgets rendered there anymore — just `get_filters("shared")` called directly). **Bar Analysis's own separate `ba_`-prefixed filter widgets were NOT yet migrated to the shared panel — this is the main carry-over item for next session** (see Next Session Priorities).
+
+### Tab/UI cleanup
+
+- Tabs reordered: Massive first (📂 icon, was 📡), Data second (🗂️ icon, was 📂 — avoided icon collision)
+- **Bar Validation tab removed entirely** — fully superseded by Massive's own comparison panel (same underlying `show_gate_body` engine, just pointed at Massive continuous bars instead of manually-uploaded single-contract files). `import validation` removed from `app.py` then re-added once the shared-filters work needed it again.
+- Data tab's NT 5M upload column removed — was used only by the now-removed Bar Validation tab and a legacy Bar Analysis fallback, both superseded by the NT `@ES` continuous upload in the Massive tab. ES_MAS 5M upload kept as an explicit manual override (auto-derives from `mas_continuous` otherwise).
+- Roll Schedule table: removed "Active From"/"Last Trade" columns — confirmed read-only display fields with no logic dependency (download window comes from the `Contract` dataclass directly, never from the edited table).
+- `_show_by_date` chart x-axis now shows the year (`tickformat="%b %d, %Y"`) — was ambiguous across a 5-year multi-year series.
+
+### Onboarding / requirements
+
+- `requirements.txt` was missing `boto3`, `pyarrow`, `numpy`, `requests` — would have crashed Thomas's first run on import. Fixed.
+- `COLLABORATOR_ONBOARDING.md` rewritten for the Massive pipeline (was written for the old 3GB SC tick file approach). A duplicate `ONBOARDING.md` created mid-session was merged into it and deleted — **one onboarding doc, not two**, per the existing "never duplicate information across files" rule.
+
+### Known gaps / not yet verified
+
+- **Bar Analysis filters not yet unified** with the shared Data-tab panel (see above) — top priority for next session.
+- **Tick-cache validation discrepancy**: the UI button's day-by-day validation (`validate_ticks_vs_bars`, memory-safe) reported 98.6% coverage / 1,587 extra bars, while an earlier single-pass full-history script (same logic, no memory constraint) reported 100% / 243 extra bars. Both confirm the data is sound; the gap itself wasn't root-caused. Worth checking if it matters before relying on the UI number for anything precise.
+- **~50 missing-day gaps in `flatfiles_cache`** (listed above) — not re-downloaded.
+- **NT `OHLCExporter` buffer-loss risk** (the mechanism behind the 2026-04-06 exclusion) — diagnosed, a fix was drafted (flush-to-disk every N bars instead of buffering until `Terminated`) but reverted per explicit user instruction not to touch it without being asked. If gaps recur, that fix is the move — ask first.
+- **Calendar-month-range optimization in Bar Analysis** — user asked "we need to be able to optimize on particular date ranges, not by contract, rather by calendar months" — raised but not yet designed or scoped. Carry over.
+- Live-tested via Playwright (chromium installed this session: `pip install playwright && python -m playwright install chromium` — now available for future UI smoke tests) for: tab order, Roll Schedule columns, tick-cache build + validation button (including the OOM crash and its fix), Data-tab auto-load on a real process restart, Massive continuous-series persistence on restart. NOT live-tested: RevFTSignals end-to-end with a real second signal file, alt-path mismatch table with a real divergent trade, the new shared-filters panel's actual effect on Bar Analysis simulation results (since Bar Analysis filters aren't wired to it yet).
+
+---
 
 ---
 
@@ -637,14 +735,28 @@ Tested end-to-end using AAPL 5-min agg bars as synthetic tick data (May 5–29, 
 
 ## Next Session — Priorities
 
-### Massive.io — API Key In Hand
+**User explicitly stated: "tomorrow we will work on the WFA."** This is the headline priority — everything else below is carry-over cleanup, not the main focus.
 
-1. **Confirm futures endpoint paths** — hit `/futures/v1/trades/ESM6` with live key. If 404, try `/v2/trades/ticker/ESM6/...`. Update the remaining `# TODO`s in `data_loader.py`.
-2. **Confirm futures agg field names** — fetch one page of `/futures/v1/aggs/ESM6`, check response field names (`t` vs `window_start`, `o` vs `open`, etc.).
-3. **Contract lookup** — run `fetch_massive_contract_info()` for ESM6. Confirm `first_trade_date`, `last_trade_date`, `tick_size`.
-4. **Run `scripts/fetch_for_nt.py`** for ESM6 — fetch ticks, write `ES_MAS 06-26.Last.txt`, import into NT via HDM (Central Time, Last, NinjaTrader format).
-5. **Run OHLCExporter on ES_MAS 06-26 chart** with real ES data — export 5M bars, upload to Massive.io tab Comparison 2. Real ES ticks = proper OHLC candles.
-6. **App Comparison 1** — fetch ESM6 ticks + agg bars via Massive.io tab, run Comparison 1 (tick-built vs agg).
+### WFA (new focus — not yet scoped)
+Nothing designed yet. Track 2's old phased plan (Phase B signal detector → Phase C simulator → Phase D optimizer → Phase E WFA engine, see `python_wfa_spec.md`) was written for the SC/SCID path and may not map directly onto the Massive pipeline as-is — Bar Analysis already has a working simulator (`bar_analysis.py`), so the real gap is likely the optimizer + rolling-window WFA layer on top of it, not a from-scratch simulator. Confirm scope with the user before designing.
+
+### Carry-over from Session 12 (do before or alongside WFA work, as relevant)
+1. **Migrate Bar Analysis filters to the shared panel** — `ba_`-prefixed widgets in `bar_analysis.py` still independent from `validation.get_filters("shared")`.
+2. **Calendar-month-range optimization** — user wants to optimize/slice Bar Analysis results by calendar month, not by contract. Likely relevant to WFA window design too — surface this when scoping WFA.
+3. **"Clear all cached data" needs confirmation popups** — explain what it deletes and what's needed to restore (rebuild via Massive tab / re-upload). Currently no confirmation at all.
+4. Re-download ~50 missing trading days in `data/flatfiles_cache/` (listed in Session 12 section above).
+5. Root-cause the tick-cache validation discrepancy (98.6%/1,587 vs 100%/243 extra bars).
+6. Live-test RevFTSignals and the alt-path mismatch table with real data that actually exercises them.
+
+### Stale / superseded (kept for history only — do not act on without re-confirming with user)
+The items below were written for the old Massive.io-as-secondary-track plan (Sessions 10–11) and are now superseded by Session 12's work — Massive is already primary, the API is already confirmed and working, and `massive.py` already has the contract manager described here. Left in place rather than deleted per "preserve existing architecture unless instructed otherwise," but treat as historical.
+
+1. ~~Confirm futures endpoint paths~~ — done, `massive.py` Contract Manager downloads real ES futures successfully.
+2. ~~Confirm futures agg field names~~ — superseded; current pipeline uses flat-file trades, not the Aggs API.
+3. ~~Contract lookup~~ — done, `CATALOG` in `contracts.py`.
+4. ~~Run `scripts/fetch_for_nt.py`~~ — superseded by `massive.py`'s built-in NT import file writer.
+5. ~~Run OHLCExporter on ES_MAS chart~~ — done, all 20 contracts have NT import files.
+6. ~~App Comparison 1 (tick-built vs agg)~~ — superseded by the tick-cache-vs-5M-bars validation built in Session 12.
 
 ### SCID / WFA (carry-over, blocked on SC data)
 

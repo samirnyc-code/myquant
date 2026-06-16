@@ -4,6 +4,8 @@ data/cache/
 data/bars/
 data/flatfiles_cache/
 data/nt_import/
+data/ticks_continuous/
+streamlit.log
 .venv/
 .streamlit/secrets.toml
 __pycache__/

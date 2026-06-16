@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 import re
 import struct
 import numpy as np
@@ -13,9 +14,40 @@ RTH_END       = "15:15:00"
 TICK_SIZE     = 0.25
 RTH_START_MIN = 8 * 60 + 30   # 510
 
+EXCLUDED_DATES_FILE = Path(__file__).parent / "excluded_dates.json"
+
+
+def load_excluded_dates() -> dict:
+    """{date_str ("YYYY-MM-DD"): reason} — dates manually flagged as bad data
+    (feed gaps, capture artifacts, etc). Applied app-wide: comparisons, Bar
+    Viewer, and trade simulation all drop these dates via filter_excluded_dates."""
+    if not EXCLUDED_DATES_FILE.exists():
+        return {}
+    try:
+        return json.loads(EXCLUDED_DATES_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def save_excluded_dates(d: dict) -> None:
+    EXCLUDED_DATES_FILE.write_text(json.dumps(d, indent=2, sort_keys=True), encoding="utf-8")
+
+
+def filter_excluded_dates(df: pd.DataFrame, date_col: str = "DateTime") -> pd.DataFrame:
+    """Drop rows whose date is in the manually-excluded list. No-op if the list is empty."""
+    excluded = load_excluded_dates()
+    if not excluded or df.empty or date_col not in df.columns:
+        return df
+    dates = df[date_col].dt.strftime("%Y-%m-%d")
+    return df[~dates.isin(excluded)].copy()
+
 
 def apply_data_slot(slot: str, df: pd.DataFrame, label: str, key: str) -> None:
-    """Push a 5M bar DataFrame into a named session-state slot used by the Bar Viewer / validation."""
+    """Push a 5M bar DataFrame into a named session-state slot used by the Bar Viewer / validation.
+
+    Manually-excluded dates are dropped here so every consumer of these slots
+    (Bar Viewer, Bar Validation tab, trade simulation) sees the same filtered data."""
+    df = filter_excluded_dates(df)
     st.session_state[f"data_{slot}"]       = df
     st.session_state[f"data_{slot}_label"] = label
     st.session_state[f"data_{slot}_key"]   = key

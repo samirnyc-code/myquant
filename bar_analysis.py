@@ -3335,6 +3335,106 @@ def _show_unfilled_table(results: pd.DataFrame, ticks_by_date: dict):
 
 # ── Mismatch analysis ─────────────────────────────────────────────────────────
 
+def _resimulate_bars(mode: str, sig_dt, direction: str, signal_price: float, stop_csv: float,
+                      day_bars: pd.DataFrame, p: dict) -> dict:
+    """Dispatch to the matching bar-level simulate_one_bars* variant. p holds the same
+    kwargs already in scope at the simulate_trades call site for the active mode."""
+    if mode == "3leg":
+        return _simulate_one_bars_3leg(
+            sig_dt, direction, signal_price, stop_csv, day_bars,
+            p["t1_r"], p["t2_r"], p["target_r"], p["t1_action"],
+            p["tv_e1"], p["tv_e2"], p["tv_e3"],
+            p["contracts_e1"], p["contracts_e2"], p["contracts_e3"],
+            p["pb1_r"], p["pb1_ticks"], p["pb2_r"], p["pb2_ticks"],
+            p["entry_slip"], p["exit_slip"], p["stop_offset"],
+            p["ratchet_r"], p["ratchet_dest"], p["ratchet_lock_r"],
+        )
+    elif mode == "multileg":
+        return _simulate_one_bars_multileg(
+            sig_dt, direction, signal_price, stop_csv, day_bars,
+            p["target_r"], p["t1_r"], p["t1_action"],
+            p["entry_slip"], p["exit_slip"], p["stop_offset"],
+            p["tv1"], p["tv2"],
+            p["ratchet_r"], p["ratchet_dest"], p["ratchet_lock_r"],
+            e2_pb_r=p["ml_pb_r"], e2_pb_ticks=p["ml_pb_ticks"],
+        )
+    else:
+        return _simulate_one_bars(
+            sig_dt, direction, signal_price, stop_csv, day_bars,
+            p["target_r"], p["entry_slip"], p["exit_slip"], p["stop_offset"], p["tv"],
+            p["ratchet_r"], p["ratchet_dest"], p["ratchet_lock_r"],
+        )
+
+
+def compute_alt_path_outcomes(results: pd.DataFrame, sc_bars: pd.DataFrame, nt_bars: pd.DataFrame,
+                               mode: str, params: dict) -> pd.DataFrame:
+    """Flag filled trades where NT and Massive would have produced a different outcome.
+
+    Gate: only check trades whose NT signal bar's Close differs from Massive's Close for
+    that same bar (signal_price *is* that NT close, by construction — see _simulate_one_bars
+    docstring). If they agree, Massive-based simulation is already faithful to what NT showed
+    and there's nothing to re-derive.
+
+    For gated trades, re-run the same entry/pullback/target logic using NT's 5M bars (the only
+    NT granularity available) instead of Massive's, holding signal_price/stop_csv fixed (they
+    come from the external signals file, not from either bar source). Only rows where the
+    re-derived outcome actually differs (fill/no-fill, exit reason, or PnL) get the Alt* columns
+    populated — most gated trades will re-derive to the same outcome and aren't flagged.
+    """
+    from validation import build_comparison
+
+    out = results.copy()
+    out["AltChecked"]    = False
+    out["AltDiffers"]    = False
+    out["AltExitReason"] = pd.NA
+    out["AltGrossPnL"]   = np.nan
+    out["AltEntryPrice"] = np.nan
+    out["AltExitPrice"]  = np.nan
+
+    if nt_bars is None or nt_bars.empty or "Filled" not in out.columns:
+        return out
+
+    filled = out[out["Filled"] == True]
+    if filled.empty:
+        return out
+
+    comp = build_comparison(sc_bars, nt_bars)
+    comp_close_delta = comp.set_index("DateTime")["ΔClose"]
+    nt_by_date = {d: g for d, g in nt_bars.groupby(nt_bars["DateTime"].dt.date)}
+
+    for idx, row in filled.iterrows():
+        sig_bar_dt = row["DateTime"] - pd.Timedelta(minutes=5)
+        d_close = comp_close_delta.get(sig_bar_dt)
+        if d_close is None or pd.isna(d_close) or d_close == 0:
+            continue  # NT close at the signal bar matches Massive — nothing to re-check
+
+        out.at[idx, "AltChecked"] = True
+        day_bars_nt = nt_by_date.get(row["Date"])
+        if day_bars_nt is None or day_bars_nt.empty:
+            continue
+
+        alt = _resimulate_bars(mode, row["DateTime"], row["Direction"],
+                                row["SignalPrice"], row["StopPrice"], day_bars_nt, params)
+
+        alt_ok   = bool(alt.get("ok", False))
+        alt_exit = alt.get("ExitReason") if alt_ok else "NoFill"
+        alt_pnl  = alt.get("GrossPnL", 0.0) if alt_ok else 0.0
+
+        differs = (
+            alt_ok != True
+            or alt_exit != row.get("ExitReason")
+            or abs(alt_pnl - row.get("GrossPnL", 0.0)) > 0.01
+        )
+        if differs:
+            out.at[idx, "AltDiffers"]    = True
+            out.at[idx, "AltExitReason"] = alt_exit
+            out.at[idx, "AltGrossPnL"]   = alt_pnl
+            out.at[idx, "AltEntryPrice"] = alt.get("EntryPrice")
+            out.at[idx, "AltExitPrice"]  = alt.get("ExitPrice")
+
+    return out
+
+
 def _show_mismatch_analysis(results: pd.DataFrame, sc_bars: pd.DataFrame, nt_bars: pd.DataFrame):
     from validation import build_comparison
 
@@ -3446,79 +3546,102 @@ def _show_mismatch_analysis(results: pd.DataFrame, sc_bars: pd.DataFrame, nt_bar
         )
         st.dataframe(styled, use_container_width=True, hide_index=True)
 
+    # ── Alt-path outcomes: trades whose NT signal bar Close differs AND the ──
+    # ── re-derived NT-bar outcome actually changes the result ───────────────
+    if "AltChecked" in results.columns:
+        n_checked = int(results["AltChecked"].sum())
+        n_differs = int(results["AltDiffers"].sum())
+        st.markdown("---")
+        st.caption(
+            f"**Signal-bar Close gate**: {n_checked} filled trade(s) had an NT signal-bar Close "
+            f"that differs from Massive's — re-derived using NT's 5M bars. "
+            f"**{n_differs}** actually changed outcome."
+        )
+        if n_differs == 0:
+            st.success("No trades changed outcome when re-derived with NT bars.")
+        else:
+            alt = results[results["AltDiffers"] == True].copy()
+            disp2 = pd.DataFrame()
+            disp2["Date"]         = alt["Date"].astype(str)
+            disp2["Bar"]          = alt["BarNum"].astype(int)
+            disp2["Dir"]          = alt["Direction"]
+            disp2["Exit (SC)"]    = alt["ExitReason"].replace("", "—")
+            disp2["Net $ (SC)"]   = alt["NetPnL"].apply(lambda v: f"{v:+.0f}" if pd.notna(v) else "—")
+            disp2["Exit (NT)"]    = alt["AltExitReason"].fillna("NoFill")
+            disp2["Gross $ (NT)"] = alt["AltGrossPnL"].apply(lambda v: f"{v:+.0f}" if pd.notna(v) else "—")
+            disp2["Entry (NT)"]   = alt["AltEntryPrice"].apply(lambda v: f"{v:.2f}" if pd.notna(v) else "—")
+            disp2["Exit Px (NT)"] = alt["AltExitPrice"].apply(lambda v: f"{v:.2f}" if pd.notna(v) else "—")
+            st.dataframe(disp2, use_container_width=True, hide_index=True)
+
 
 # ── Main tab ──────────────────────────────────────────────────────────────────
 
 def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""):
+    from data_loader import filter_excluded_dates
+
     signals_raw = st.session_state.get("ba_signals")
     if signals_raw is None:
         st.info("Upload a signals file in the **📊 MC Signals** panel above to begin.")
         return
+    signals_raw = filter_excluded_dates(signals_raw)
 
-    # ── Load data — source determined by bar_source selector in app.py ──────────
+    # ── Load data — Massive continuous is the analysis source; NT is matching-only ──
     from pathlib import Path
-    uploaded_bars  = st.session_state.get("uploaded_sc_bars")
-    uploaded_ticks = st.session_state.get("uploaded_sc_ticks")
-    uploaded_ohlc  = st.session_state.get("uploaded_ohlc_bars")
-    _sc_on_disk    = bool(sc_file and Path(sc_file).exists())
-    _bar_source    = st.session_state.get("bar_source", "none")
+    uploaded_ohlc = st.session_state.get("uploaded_ohlc_bars")   # legacy fallback only
+    mas_cont      = st.session_state.get("mas_continuous")
 
-    if _bar_source == "sc_upload" and uploaded_bars is not None:
-        bars = uploaded_bars
-    elif _bar_source == "ohlc_upload" and uploaded_ohlc is not None:
-        bars = uploaded_ohlc
-    elif _bar_source == "sc_disk" and _sc_on_disk:
-        bars        = load_sc_bars(sc_file)
+    if mas_cont is not None and not mas_cont.empty:
+        bars        = mas_cont.drop(columns=["Contract"], errors="ignore")
+        _bar_source = "massive_continuous"
     elif uploaded_ohlc is not None:
         bars        = uploaded_ohlc
         _bar_source = "ohlc_upload"
     else:
-        st.error("No bar data available. Upload a tick file or OHLC bar_export in the 📁 Upload Data panel.")
+        st.error(
+            "No bar data available. Build the continuous series in the 📂 Massive tab, "
+            "or upload an OHLC bar export in the 🗂️ Data tab."
+        )
         return
+    bars = filter_excluded_dates(bars)
 
-    # Tick source hierarchy: uploaded SC ticks → SC disk file (only if bar_source=sc_disk) → empty
-    if uploaded_ticks is not None:
-        ticks        = uploaded_ticks
-        _tick_source = "upload"
-    elif _sc_on_disk and _bar_source == "sc_disk":
-        ticks        = load_sc_ticks(sc_file)
-        _tick_source = "disk"
-    else:
-        ticks        = pd.DataFrame(columns=["DateTime", "Price", "Volume"])
-        _tick_source = "none"
+    # Continuous ticks: built lazily, only for the dates that actually have signals —
+    # never the full multi-year history (the per-day Parquet cache from the Massive
+    # tab makes each individual day-read fast regardless of total history size).
+    import massive as _massive_mod
+    _sig_dates = sorted(signals_raw["Date"].unique())
+    _ticks_cache_key = f"ba_cont_ticks__{hash(tuple(_sig_dates))}"
+    if _ticks_cache_key not in st.session_state:
+        _tbd = {}
+        for d in _sig_dates:
+            day_ticks = _massive_mod.load_continuous_ticks(d)
+            if not day_ticks.empty:
+                _tbd[d] = day_ticks
+        st.session_state[_ticks_cache_key] = _tbd
+    ticks_by_date = st.session_state[_ticks_cache_key]
+    _tick_source  = "massive_continuous" if ticks_by_date else "none"
 
     _bar_sim_mode  = _tick_source == "none"
     _has_1s_bars   = st.session_state.get("data_sc_1s") is not None
     if _bar_sim_mode and not _has_1s_bars:
         st.warning(
-            "No tick data — running **bar-level simulation** (5-min OHLC H/L checks). "
-            "Fill accuracy is lower than tick-level. Conservative assumption: when both "
-            "stop and target are reachable within the same bar, stop is filled first.",
+            "No continuous tick cache for these signal dates — running **bar-level simulation** "
+            "(5-min OHLC H/L checks). Build the tick cache in the 📂 Massive tab for tick-level fills. "
+            "Conservative assumption: when both stop and target are reachable within the same bar, "
+            "stop is filled first.",
             icon="⚠️",
         )
     elif _bar_sim_mode and _has_1s_bars:
         st.caption("📊 Simulation mode: 1s OHLCV bar-level (near-tick accuracy)")
     if _bar_source == "ohlc_upload":
-        st.caption("📊 Bar data: uploaded OHLC bar_export (no SC tick file on disk)")
+        st.caption("📊 Bar data: uploaded OHLC bar_export (Massive continuous series not built yet)")
 
-    # NT bars for mismatch analysis (uploaded OHLC wins over disk file)
-    _nt_bars_for_mismatch = uploaded_ohlc
+    # NT bars for the signal-bar Close matching gate only — never used for fills/exits.
+    # NT @ES continuous (Massive tab upload) wins over the legacy single-contract upload.
+    _nt_bars_for_mismatch = st.session_state.get("nt_cont_bars") or uploaded_ohlc
     if _nt_bars_for_mismatch is None and nt_file and Path(nt_file).exists():
         from data_loader import load_nt_bars
         _nt_bars_for_mismatch = load_nt_bars(nt_file)
-    nt_bars = _nt_bars_for_mismatch
-
-    # Tick groupby (empty dict when no ticks → bar-level sim handles via bars_by_date)
-    _up_key = st.session_state.get("uploaded_sc_key", "")
-    tbd_key = (f"ba_ticks_by_date__up_{_up_key}"
-               if _tick_source == "upload"
-               else f"ba_ticks_by_date_{sc_file}")
-    if tbd_key not in st.session_state:
-        st.session_state[tbd_key] = (
-            {d: grp.reset_index(drop=True) for d, grp in ticks.groupby(ticks["DateTime"].dt.date)}
-            if not ticks.empty else {}
-        )
-    ticks_by_date = st.session_state[tbd_key]
+    nt_bars = filter_excluded_dates(_nt_bars_for_mismatch) if _nt_bars_for_mismatch is not None else None
 
     # Bar groupby for simulation — use 1s bars when available (near-tick accuracy)
     _sim_src = st.session_state.get("data_sc_1s") if _has_1s_bars else None
@@ -3544,7 +3667,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
     data_max     = bars["Date"].max()
 
     # ── Detect data change (contract switch OR new upload) — reset stale date state ──
-    _active_key = f"{sc_file}|{st.session_state.get('uploaded_sc_key', '')}|{st.session_state.get('uploaded_ohlc_key', '')}"
+    _active_key = f"{_bar_source}|{len(bars)}|{data_min}|{data_max}|{st.session_state.get('uploaded_ohlc_key', '')}"
     if st.session_state.get("ba_active_data_key") != _active_key:
         for k in ("ba_date_from", "ba_date_to", "ba_chart_idx", "ba_initialized"):
             st.session_state.pop(k, None)
@@ -4155,6 +4278,22 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         pb2_r=pb2_r_val, pb2_ticks=pb2_ticks_v,
         t2_r=t2_r_val,
     )
+
+    if nt_bars is not None and not nt_bars.empty:
+        _alt_mode = "3leg" if use_threeleg else ("multileg" if use_multileg else "single")
+        _alt_params = dict(
+            target_r=target_r, entry_slip=entry_slip, exit_slip=exit_slip, stop_offset=stop_offset,
+            tv=tick_value * contracts,
+            ratchet_r=ratchet_r_v, ratchet_dest=ratchet_dest_v, ratchet_lock_r=ratchet_lock_r_v,
+            t1_r=t1_r, t1_action=t1_action,
+            tv1=tick_value * contracts_t1, tv2=tick_value * contracts_t2,
+            ml_pb_r=ml_pb_r_v, ml_pb_ticks=0,
+            t2_r=(t2_r_val if t2_r_val > 0 else target_r),
+            tv_e1=tick_value * e1c_3l, tv_e2=tick_value * e2c_3l, tv_e3=tick_value * e3c_3l,
+            contracts_e1=e1c_3l, contracts_e2=e2c_3l, contracts_e3=e3c_3l,
+            pb1_r=pb1_r_val, pb1_ticks=pb1_ticks_v, pb2_r=pb2_r_val, pb2_ticks=pb2_ticks_v,
+        )
+        results = compute_alt_path_outcomes(results, bars, nt_bars, _alt_mode, _alt_params)
 
     # First trade of day — only the first *filled* trade per day counts
     if first_trade_only and not results.empty:

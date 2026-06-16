@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 from pathlib import Path
-from data_loader import (get_market_holidays, TICK_SIZE)
+from data_loader import (get_market_holidays, TICK_SIZE, load_excluded_dates)
 from economic_calendar import get_economic_events, fred_key_configured, EVENT_COLOR
 
 _DEFAULTS_FILE = Path(__file__).parent / "filter_defaults.json"
@@ -39,6 +39,13 @@ def build_comparison(sc: pd.DataFrame, nt: pd.DataFrame) -> pd.DataFrame:
         columns={c: f"{c}_sc" for c in ALL_FIELDS}).set_index("DateTime")
     nt_m = nt[[c for c in _keep if c in nt.columns]].rename(
         columns={c: f"{c}_nt" for c in ALL_FIELDS}).set_index("DateTime")
+
+    # sc bars are timestamped at bar OPEN (resample label="left" in massive.py);
+    # nt TXT uploads are timestamped at bar CLOSE (parse_ohlc_from_upload keeps
+    # NT's close-time label as-is). Shift nt back one bar period (5 min) here,
+    # at comparison time only, so both sides align on open time without
+    # touching either source's own timestamp convention.
+    nt_m.index = nt_m.index - pd.Timedelta(minutes=5)
 
     m = sc_m.join(nt_m, how="outer")
     matched = m["Open_sc"].notna() & m["Open_nt"].notna()
@@ -225,7 +232,136 @@ def _delta_distribution_commentary(matched: pd.DataFrame):
     _info(" ".join(parts))
 
 
-def _show_gate_body(
+def render_filters(key_prefix: str) -> dict:
+    """Render the comparison filter UI (holidays, session boundaries, day-of-week,
+    economic events) and return a filter_kwargs dict for show_gate_body().
+
+    key_prefix namespaces all widget keys so multiple instances of this filter
+    panel can coexist in the same script run (e.g. the Bar Validation tab and
+    the Massive continuous-series comparison) without Streamlit duplicate-key
+    errors. Saved defaults are stored under the prefixed keys in the same
+    filter_defaults.json, so each panel keeps its own saved settings.
+    """
+    init_flag = f"{key_prefix}_initialized"
+    if init_flag not in st.session_state:
+        for k, v in _load_filter_defaults().items():
+            if k.startswith(f"{key_prefix}_"):
+                st.session_state.setdefault(k, v)
+        st.session_state[init_flag] = True
+
+    with st.expander("⚙️ Filters", expanded=False):
+        tc1, tc2 = st.columns(2)
+        excl_holidays   = tc1.checkbox("Exclude NYSE holidays", key=f"{key_prefix}_excl_holidays",
+                                        value=st.session_state.get(f"{key_prefix}_excl_holidays", True),
+                                        help="Removes NYSE holiday sessions (Memorial Day etc.).")
+        show_commentary = tc2.checkbox("Show commentary",        key=f"{key_prefix}_show_commentary",
+                                        value=st.session_state.get(f"{key_prefix}_show_commentary", True))
+        st.divider()
+        st.markdown("**Display**")
+        dc1, dc2 = st.columns(2)
+        excl_volume       = dc1.checkbox("Ignore volume differences",      key=f"{key_prefix}_excl_volume",
+                                          value=st.session_state.get(f"{key_prefix}_excl_volume", False))
+        show_excl_shading = dc2.checkbox("Shade excluded zones on charts", key=f"{key_prefix}_show_excl_shading",
+                                          value=st.session_state.get(f"{key_prefix}_show_excl_shading", True))
+        st.divider()
+        st.markdown("**Session Boundaries**")
+        sb1, sb2 = st.columns(2)
+        excl_first_n  = sb1.slider("Exclude first N bars",   0, 12,
+                                    st.session_state.get(f"{key_prefix}_excl_first_n",  0), 1, key=f"{key_prefix}_excl_first_n")
+        excl_last_min = sb2.slider("Exclude last N minutes", 0, 90,
+                                    st.session_state.get(f"{key_prefix}_excl_last_min", 0), 5, key=f"{key_prefix}_excl_last_min")
+        st.divider()
+        st.markdown("**Day of Week**")
+        st.caption("Include days:")
+        dw1, dw2, dw3, dw4, dw5 = st.columns(5)
+        incl_mon = dw1.checkbox("Mon", key=f"{key_prefix}_incl_mon", value=st.session_state.get(f"{key_prefix}_incl_mon", True))
+        incl_tue = dw2.checkbox("Tue", key=f"{key_prefix}_incl_tue", value=st.session_state.get(f"{key_prefix}_incl_tue", True))
+        incl_wed = dw3.checkbox("Wed", key=f"{key_prefix}_incl_wed", value=st.session_state.get(f"{key_prefix}_incl_wed", True))
+        incl_thu = dw4.checkbox("Thu", key=f"{key_prefix}_incl_thu", value=st.session_state.get(f"{key_prefix}_incl_thu", True))
+        incl_fri = dw5.checkbox("Fri", key=f"{key_prefix}_incl_fri", value=st.session_state.get(f"{key_prefix}_incl_fri", True))
+        st.divider()
+        st.markdown("**Economic Events**")
+        if not fred_key_configured():
+            st.info("FOMC dates built-in. For NFP/CPI add `FRED_API_KEY` to `.streamlit/secrets.toml`.")
+        ea, eb, ec = st.columns(3)
+        use_fomc = ea.checkbox("FOMC", key=f"{key_prefix}_use_fomc", value=st.session_state.get(f"{key_prefix}_use_fomc", False))
+        use_nfp  = eb.checkbox("NFP",  key=f"{key_prefix}_use_nfp",  value=st.session_state.get(f"{key_prefix}_use_nfp",  False),
+                                disabled=not fred_key_configured())
+        use_cpi  = ec.checkbox("CPI",  key=f"{key_prefix}_use_cpi",  value=st.session_state.get(f"{key_prefix}_use_cpi",  False),
+                                disabled=not fred_key_configured())
+        event_types = tuple(
+            e for e, on in [("FOMC", use_fomc), ("NFP", use_nfp), ("CPI", use_cpi)] if on
+        )
+        ef1, ef2 = st.columns([1, 2])
+        _efm_default = st.session_state.get(f"{key_prefix}_event_filter_mode", "Skip full day")
+        event_filter_mode = ef1.radio(
+            "Filter mode", ["Skip full day", "Window ±N minutes"],
+            index=["Skip full day", "Window ±N minutes"].index(_efm_default),
+            key=f"{key_prefix}_event_filter_mode",
+            help="**Skip full day:** removes all RTH bars on event dates.\n\n"
+                 "**Window:** removes bars within N minutes of the announcement.",
+        )
+        event_window = 30
+        if event_filter_mode == "Window ±N minutes":
+            event_window = ef2.slider("Minutes before/after", 15, 180,
+                                       st.session_state.get(f"{key_prefix}_event_window", 30), 15,
+                                       key=f"{key_prefix}_event_window")
+        st.divider()
+        if st.button("💾 Save as Default", key=f"{key_prefix}_save_defaults"):
+            _save_filter_defaults({
+                f"{key_prefix}_excl_holidays": excl_holidays, f"{key_prefix}_show_commentary": show_commentary,
+                f"{key_prefix}_excl_volume": excl_volume, f"{key_prefix}_show_excl_shading": show_excl_shading,
+                f"{key_prefix}_excl_first_n": excl_first_n, f"{key_prefix}_excl_last_min": excl_last_min,
+                f"{key_prefix}_incl_mon": incl_mon, f"{key_prefix}_incl_tue": incl_tue,
+                f"{key_prefix}_incl_wed": incl_wed, f"{key_prefix}_incl_thu": incl_thu, f"{key_prefix}_incl_fri": incl_fri,
+                f"{key_prefix}_use_fomc": use_fomc, f"{key_prefix}_use_nfp": use_nfp, f"{key_prefix}_use_cpi": use_cpi,
+                f"{key_prefix}_event_filter_mode": event_filter_mode, f"{key_prefix}_event_window": event_window,
+            })
+            st.success("Defaults saved.", icon="✅")
+
+    st.session_state["excl_first_n"]  = excl_first_n
+    st.session_state["excl_last_min"] = excl_last_min
+
+    return dict(
+        excl_holidays=excl_holidays, show_commentary=show_commentary,
+        excl_volume=excl_volume, show_excl_shading=show_excl_shading,
+        excl_first_n=excl_first_n, excl_last_min=excl_last_min,
+        incl_days=(incl_mon, incl_tue, incl_wed, incl_thu, incl_fri),
+        event_types=event_types, event_filter_mode=event_filter_mode, event_window=event_window,
+    )
+
+
+def get_filters(key_prefix: str = "shared") -> dict:
+    """Read-only counterpart to render_filters() — no widgets, just the current
+    values for a panel that was rendered elsewhere (single editable home, e.g.
+    the Data tab; other tabs read the same values so there's one source of truth).
+    Returns the same shape as render_filters(), with the documented defaults if
+    the panel hasn't been rendered/initialized yet in this session."""
+    s = st.session_state
+    use_fomc = s.get(f"{key_prefix}_use_fomc", False)
+    use_nfp  = s.get(f"{key_prefix}_use_nfp",  False)
+    use_cpi  = s.get(f"{key_prefix}_use_cpi",  False)
+    event_types = tuple(e for e, on in [("FOMC", use_fomc), ("NFP", use_nfp), ("CPI", use_cpi)] if on)
+
+    return dict(
+        excl_holidays=s.get(f"{key_prefix}_excl_holidays", True),
+        show_commentary=s.get(f"{key_prefix}_show_commentary", True),
+        excl_volume=s.get(f"{key_prefix}_excl_volume", False),
+        show_excl_shading=s.get(f"{key_prefix}_show_excl_shading", True),
+        excl_first_n=s.get(f"{key_prefix}_excl_first_n", 0),
+        excl_last_min=s.get(f"{key_prefix}_excl_last_min", 0),
+        incl_days=(
+            s.get(f"{key_prefix}_incl_mon", True), s.get(f"{key_prefix}_incl_tue", True),
+            s.get(f"{key_prefix}_incl_wed", True), s.get(f"{key_prefix}_incl_thu", True),
+            s.get(f"{key_prefix}_incl_fri", True),
+        ),
+        event_types=event_types,
+        event_filter_mode=s.get(f"{key_prefix}_event_filter_mode", "Skip full day"),
+        event_window=s.get(f"{key_prefix}_event_window", 30),
+    )
+
+
+def show_gate_body(
     left: pd.DataFrame,
     right: pd.DataFrame,
     left_label: str,
@@ -276,6 +412,11 @@ def _show_gate_body(
     n_holiday_bars = int((comp["DateTime"].dt.strftime("%Y-%m-%d").isin(holidays)).sum())
     if excl_holidays and holidays:
         comp = comp[~comp["DateTime"].dt.strftime("%Y-%m-%d").isin(holidays)].copy()
+
+    manual_excl = load_excluded_dates()
+    n_manual_excl_bars = int((comp["DateTime"].dt.strftime("%Y-%m-%d").isin(manual_excl)).sum())
+    if manual_excl:
+        comp = comp[~comp["DateTime"].dt.strftime("%Y-%m-%d").isin(manual_excl)].copy()
 
     matched_full = comp[comp["Status"] == "Matched"].copy()
 
@@ -354,6 +495,8 @@ def _show_gate_body(
     row2 = [(f"{left_label} Only", f"{n_lo:,}"), (f"{right_label} Only", f"{n_ro:,}")]
     if not excl_volume:
         row2.append(("Vol Mismatches",   f"{n_vol_mm:,}"))
+    if n_manual_excl_bars:
+        row2.append(("Manually Excl.",   f"{n_manual_excl_bars:,}"))
     if n_first_n_bars:
         row2.append(("Open Bars Excl.",  f"{n_first_n_bars:,}"))
     if n_last_min_bars:
@@ -469,97 +612,12 @@ def show_validation_tab():
         st.info("Upload both **ES_MAS 5M** and **NT 5M** exports in the 📂 Data tab to run Gate 2 validation.")
         return
 
-    # ── Shared filters ────────────────────────────────────────────────────────
-    if "vt_initialized" not in st.session_state:
-        for k, v in _load_filter_defaults().items():
-            st.session_state.setdefault(k, v)
-        st.session_state["vt_initialized"] = True
-
-    with st.expander("⚙️ Filters", expanded=False):
-        tc1, tc2 = st.columns(2)
-        excl_holidays   = tc1.checkbox("Exclude NYSE holidays", key="f_excl_holidays",
-                                        value=st.session_state.get("f_excl_holidays", True),
-                                        help="Removes NYSE holiday sessions (Memorial Day etc.).")
-        show_commentary = tc2.checkbox("Show commentary",        key="f_show_commentary",
-                                        value=st.session_state.get("f_show_commentary", True))
-        st.divider()
-        st.markdown("**Display**")
-        dc1, dc2 = st.columns(2)
-        excl_volume       = dc1.checkbox("Ignore volume differences",      key="f_excl_volume",
-                                          value=st.session_state.get("f_excl_volume", False))
-        show_excl_shading = dc2.checkbox("Shade excluded zones on charts", key="f_show_excl_shading",
-                                          value=st.session_state.get("f_show_excl_shading", True))
-        st.divider()
-        st.markdown("**Session Boundaries**")
-        sb1, sb2 = st.columns(2)
-        excl_first_n  = sb1.slider("Exclude first N bars",   0, 12,
-                                    st.session_state.get("f_excl_first_n",  0), 1, key="f_excl_first_n")
-        excl_last_min = sb2.slider("Exclude last N minutes", 0, 90,
-                                    st.session_state.get("f_excl_last_min", 0), 5, key="f_excl_last_min")
-        st.divider()
-        st.markdown("**Day of Week**")
-        st.caption("Include days:")
-        dw1, dw2, dw3, dw4, dw5 = st.columns(5)
-        incl_mon = dw1.checkbox("Mon", key="f_incl_mon", value=st.session_state.get("f_incl_mon", True))
-        incl_tue = dw2.checkbox("Tue", key="f_incl_tue", value=st.session_state.get("f_incl_tue", True))
-        incl_wed = dw3.checkbox("Wed", key="f_incl_wed", value=st.session_state.get("f_incl_wed", True))
-        incl_thu = dw4.checkbox("Thu", key="f_incl_thu", value=st.session_state.get("f_incl_thu", True))
-        incl_fri = dw5.checkbox("Fri", key="f_incl_fri", value=st.session_state.get("f_incl_fri", True))
-        st.divider()
-        st.markdown("**Economic Events**")
-        if not fred_key_configured():
-            st.info("FOMC dates built-in. For NFP/CPI add `FRED_API_KEY` to `.streamlit/secrets.toml`.")
-        ea, eb, ec = st.columns(3)
-        use_fomc = ea.checkbox("FOMC", key="f_use_fomc", value=st.session_state.get("f_use_fomc", False))
-        use_nfp  = eb.checkbox("NFP",  key="f_use_nfp",  value=st.session_state.get("f_use_nfp",  False),
-                                disabled=not fred_key_configured())
-        use_cpi  = ec.checkbox("CPI",  key="f_use_cpi",  value=st.session_state.get("f_use_cpi",  False),
-                                disabled=not fred_key_configured())
-        event_types = tuple(
-            e for e, on in [("FOMC", use_fomc), ("NFP", use_nfp), ("CPI", use_cpi)] if on
-        )
-        ef1, ef2 = st.columns([1, 2])
-        _efm_default = st.session_state.get("f_event_filter_mode", "Skip full day")
-        event_filter_mode = ef1.radio(
-            "Filter mode", ["Skip full day", "Window ±N minutes"],
-            index=["Skip full day", "Window ±N minutes"].index(_efm_default),
-            key="f_event_filter_mode",
-            help="**Skip full day:** removes all RTH bars on event dates.\n\n"
-                 "**Window:** removes bars within N minutes of the announcement.",
-        )
-        event_window = 30
-        if event_filter_mode == "Window ±N minutes":
-            event_window = ef2.slider("Minutes before/after", 15, 180,
-                                       st.session_state.get("f_event_window", 30), 15,
-                                       key="f_event_window")
-        st.divider()
-        if st.button("💾 Save as Default"):
-            _save_filter_defaults({
-                "f_excl_holidays": excl_holidays, "f_show_commentary": show_commentary,
-                "f_excl_volume": excl_volume, "f_show_excl_shading": show_excl_shading,
-                "f_excl_first_n": excl_first_n, "f_excl_last_min": excl_last_min,
-                "f_incl_mon": incl_mon, "f_incl_tue": incl_tue,
-                "f_incl_wed": incl_wed, "f_incl_thu": incl_thu, "f_incl_fri": incl_fri,
-                "f_use_fomc": use_fomc, "f_use_nfp": use_nfp, "f_use_cpi": use_cpi,
-                "f_event_filter_mode": event_filter_mode, "f_event_window": event_window,
-            })
-            st.success("Defaults saved.", icon="✅")
-
-    st.session_state["excl_first_n"]  = excl_first_n
-    st.session_state["excl_last_min"] = excl_last_min
+    filter_kwargs = render_filters("f")
 
     # ── Gate 2 — ES_MAS vs NT real ES ────────────────────────────────────────
-    filter_kwargs = dict(
-        excl_holidays=excl_holidays, show_commentary=show_commentary,
-        excl_volume=excl_volume, show_excl_shading=show_excl_shading,
-        excl_first_n=excl_first_n, excl_last_min=excl_last_min,
-        incl_days=(incl_mon, incl_tue, incl_wed, incl_thu, incl_fri),
-        event_types=event_types, event_filter_mode=event_filter_mode, event_window=event_window,
-    )
-
     _sc_lbl = st.session_state.get("data_sc_5m_label", "ES_MAS 5M")
     _nt_lbl = st.session_state.get("data_nt_5m_label", "NT 5M")
-    _show_gate_body(sc_bars, nt_bars,
+    show_gate_body(sc_bars, nt_bars,
                     left_label=_sc_lbl, right_label=_nt_lbl,
                     gate_key="g2", **filter_kwargs)
 
@@ -825,7 +883,7 @@ def _show_by_date(matched: pd.DataFrame, events_df: pd.DataFrame | None = None,
         xaxis_title="Date", yaxis_title="# Mismatched Bars",
         yaxis=dict(range=[0, y_range_d]),
         template="plotly_white", height=440,
-        xaxis=dict(tickformat="%b %d", tickangle=-45),
+        xaxis=dict(tickformat="%b %d, %Y", tickangle=-45),
         legend=dict(orientation="h", y=1.08),
     )
     st.plotly_chart(fig, use_container_width=True)

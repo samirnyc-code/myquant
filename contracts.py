@@ -144,6 +144,46 @@ def get_offset(ticker: str, rolls: dict) -> float | None:
 
 # ── Back-adjustment (Panama method, backward) ─────────────────────────────────
 
+def get_contract_windows(tickers: list[str], rolls: dict[str, dict]) -> list[dict]:
+    """
+    Build the front-month window + cumulative back-adjustment offset for each
+    ticker, in catalog order. Shared by bar back-adjustment and the per-day
+    continuous tick builder so both apply the exact same roll/offset logic.
+
+    Returns a list of dicts: {ticker, start (date), end (date or None = open-ended),
+    cum_offset}, oldest to newest.
+    """
+    ordered = [c for c in CATALOG if c.ticker in tickers]
+    windows = []
+    cum_offset = 0.0
+
+    for i in range(len(ordered) - 1, -1, -1):
+        c = ordered[i]
+        own_roll  = date.fromisoformat(get_roll_date(c.ticker, rolls))
+        next_roll = (date.fromisoformat(get_roll_date(ordered[i + 1].ticker, rolls))
+                     if i < len(ordered) - 1 else None)
+
+        windows.append({
+            "ticker": c.ticker, "start": own_roll, "end": next_roll,
+            "cum_offset": cum_offset,
+        })
+
+        if i > 0:
+            off = get_offset(c.ticker, rolls)
+            cum_offset += (off if off is not None else 0.0)
+
+    return windows[::-1]
+
+
+def get_active_contract(d: date, rolls: dict[str, dict]) -> dict | None:
+    """Which contract + offset was front-month on date d. None if outside the catalog."""
+    windows = get_contract_windows([c.ticker for c in CATALOG], rolls)
+    for w in windows:
+        if w["start"] <= d and (w["end"] is None or d < w["end"]):
+            return w
+    return None
+
+
 def apply_back_adjustment(
     bars_by_ticker: "dict[str, pd.DataFrame]",
     rolls: dict[str, dict],
@@ -169,44 +209,29 @@ def apply_back_adjustment(
     """
     import pandas as pd
 
-    ordered = [c for c in CATALOG if c.ticker in bars_by_ticker]
-    if not ordered:
+    windows = get_contract_windows(list(bars_by_ticker.keys()), rolls)
+    if not windows:
         return pd.DataFrame()
 
-    segments   = []
-    cum_offset = 0.0
+    segments = []
+    for w in windows:
+        df = bars_by_ticker[w["ticker"]].copy()
+        df = df[df["DateTime"].dt.date >= w["start"]]
+        if w["end"] is not None:
+            df = df[df["DateTime"].dt.date < w["end"]]
 
-    for i in range(len(ordered) - 1, -1, -1):
-        c  = ordered[i]
-        df = bars_by_ticker[c.ticker].copy()
-
-        # Lower bound: this contract's own roll date (when it becomes front month)
-        own_roll = date.fromisoformat(get_roll_date(c.ticker, rolls))
-        df = df[df["DateTime"].dt.date >= own_roll]
-
-        # Upper bound: next contract's roll date (when this one hands off)
-        if i < len(ordered) - 1:
-            next_roll = date.fromisoformat(get_roll_date(ordered[i + 1].ticker, rolls))
-            df = df[df["DateTime"].dt.date < next_roll]
-
-        # Apply price adjustment
-        if cum_offset != 0.0:
+        if w["cum_offset"] != 0.0:
             for col in ("Open", "High", "Low", "Close"):
                 if col in df.columns:
-                    df[col] = (df[col] + cum_offset).round(2)
+                    df[col] = (df[col] + w["cum_offset"]).round(2)
 
         df = df.copy()
-        df["Contract"] = c.ticker
+        df["Contract"] = w["ticker"]
         segments.append(df)
-
-        # Accumulate: the next older contract needs += this contract's offset
-        if i > 0:
-            off = get_offset(c.ticker, rolls)
-            cum_offset += (off if off is not None else 0.0)
 
     if not segments:
         return pd.DataFrame()
 
-    result = pd.concat(segments[::-1], ignore_index=True)
+    result = pd.concat(segments, ignore_index=True)
     result.sort_values("DateTime", inplace=True, ignore_index=True)
     return result
