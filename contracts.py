@@ -4,8 +4,10 @@ contracts.py — ES futures contract catalog and roll schedule management.
 Catalog covers ESU1 (Sep 2021) → ESM6 (Jun 2026): ~5 years of front-month data,
 matching Massive's availability window.
 
-Roll dates are pre-computed from the CME convention:
-    roll_date = expiry − 8 calendar days  (always a Thursday)
+Roll dates follow NT's convention: roll_date = the date a contract BECOMES the
+front month (the date you roll INTO it from the previous contract). Defaults
+are pre-computed as (expiry − 8 calendar days) + 1 day of the PREVIOUS contract
+— i.e. the day after the previous contract's nominal roll-out.
 
 Roll offsets must be entered manually in the app — use the same value you enter
 in NT's Instrument Manager for each ES_MAS contract:
@@ -30,8 +32,8 @@ class Contract:
     month:       int  # 6
     year:        int  # 2026
     last_trade:  str  # "2026-06-20"  (3rd Friday of contract month)
-    roll_date:   str  # "2026-06-12"  (last_trade − 8 calendar days, Thursday)
-    active_from: str  # "2026-03-21"  (day after previous contract's roll date)
+    roll_date:   str  # "2026-03-21"  (date THIS contract becomes front month — NT convention)
+    active_from: str  # "2026-03-21"  (download window start; equals default roll_date)
 
     @property
     def nt_name(self) -> str:
@@ -79,7 +81,7 @@ def _build_catalog() -> list[Contract]:
             month       = month,
             year        = year,
             last_trade  = expiry.isoformat(),
-            roll_date   = roll_dt.isoformat(),
+            roll_date   = from_dt.isoformat(),   # becomes-active date (NT convention)
             active_from = from_dt.isoformat(),
         ))
         prev_roll_dt = roll_dt
@@ -149,8 +151,13 @@ def apply_back_adjustment(
     """
     Stitch per-contract 5M bar DataFrames into one back-adjusted continuous series.
 
+    Roll date convention (matches NT's Instrument Manager):
+        roll_date for contract X = the date X BECOMES the front month
+        (i.e. the date you roll INTO X from the previous contract).
+        This is the same value you enter in NT for each ES_MAS instrument.
+
     Offset convention (same as NT):
-        offset for contract X = X_price − prev_price at prev contract's roll date
+        offset for contract X = X_price − prev_price at X's roll date
         Positive offset means the new contract opened higher (typical for ES).
 
     Panama method: start from the newest contract (no adjustment), accumulate
@@ -173,17 +180,14 @@ def apply_back_adjustment(
         c  = ordered[i]
         df = bars_by_ticker[c.ticker].copy()
 
-        # Clip to this contract's front-month window
-        this_roll = date.fromisoformat(get_roll_date(c.ticker, rolls))
+        # Lower bound: this contract's own roll date (when it becomes front month)
+        own_roll = date.fromisoformat(get_roll_date(c.ticker, rolls))
+        df = df[df["DateTime"].dt.date >= own_roll]
 
+        # Upper bound: next contract's roll date (when this one hands off)
         if i < len(ordered) - 1:
-            # Not the current front month — clip upper bound to roll date
-            df = df[df["DateTime"].dt.date <= this_roll]
-
-        if i > 0:
-            prev_c    = ordered[i - 1]
-            prev_roll = date.fromisoformat(get_roll_date(prev_c.ticker, rolls))
-            df = df[df["DateTime"].dt.date > prev_roll]
+            next_roll = date.fromisoformat(get_roll_date(ordered[i + 1].ticker, rolls))
+            df = df[df["DateTime"].dt.date < next_roll]
 
         # Apply price adjustment
         if cum_offset != 0.0:
