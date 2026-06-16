@@ -735,18 +735,19 @@ Tested end-to-end using AAPL 5-min agg bars as synthetic tick data (May 5–29, 
 
 ## Next Session — Priorities
 
-**User explicitly stated: "tomorrow we will work on the WFA."** This is the headline priority — everything else below is carry-over cleanup, not the main focus.
+**User explicitly stated: "WFA is the focus. Architecture first."** This is the headline priority — everything else below is carry-over cleanup, not the main focus. "Architecture first" means: scope/design the WFA architecture before writing simulator/optimizer code — do not jump straight to implementation.
 
 ### WFA (new focus — not yet scoped)
 Nothing designed yet. Track 2's old phased plan (Phase B signal detector → Phase C simulator → Phase D optimizer → Phase E WFA engine, see `python_wfa_spec.md`) was written for the SC/SCID path and may not map directly onto the Massive pipeline as-is — Bar Analysis already has a working simulator (`bar_analysis.py`), so the real gap is likely the optimizer + rolling-window WFA layer on top of it, not a from-scratch simulator. Confirm scope with the user before designing.
 
 ### Carry-over from Session 12 (do before or alongside WFA work, as relevant)
-1. **Migrate Bar Analysis filters to the shared panel** — `ba_`-prefixed widgets in `bar_analysis.py` still independent from `validation.get_filters("shared")`.
-2. **Calendar-month-range optimization** — user wants to optimize/slice Bar Analysis results by calendar month, not by contract. Likely relevant to WFA window design too — surface this when scoping WFA.
-3. **"Clear all cached data" needs confirmation popups** — explain what it deletes and what's needed to restore (rebuild via Massive tab / re-upload). Currently no confirmation at all.
-4. Re-download ~50 missing trading days in `data/flatfiles_cache/` (listed in Session 12 section above).
-5. Root-cause the tick-cache validation discrepancy (98.6%/1,587 vs 100%/243 extra bars).
-6. Live-test RevFTSignals and the alt-path mismatch table with real data that actually exercises them.
+1. **Econ calendar API pipeline needs fixing** — user flagged this explicitly at end of Session 12, no detail given yet on what's broken. Ask first. Likely `economic_calendar.py` (FRED API for NFP/CPI) — check `FRED_API_KEY` config and the fetch logic before assuming the cause.
+2. **Migrate Bar Analysis filters to the shared panel** — `ba_`-prefixed widgets in `bar_analysis.py` still independent from `validation.get_filters("shared")`.
+3. **Calendar-month-range optimization** — user wants to optimize/slice Bar Analysis results by calendar month, not by contract. Likely relevant to WFA window design too — surface this when scoping WFA.
+4. **"Clear all cached data" needs confirmation popups** — explain what it deletes and what's needed to restore (rebuild via Massive tab / re-upload). Currently no confirmation at all.
+5. Re-download ~50 missing trading days in `data/flatfiles_cache/` (listed in Session 12 section above).
+6. Root-cause the tick-cache validation discrepancy (98.6%/1,587 vs 100%/243 extra bars).
+7. Live-test RevFTSignals and the alt-path mismatch table with real data that actually exercises them.
 
 ### Stale / superseded (kept for history only — do not act on without re-confirming with user)
 The items below were written for the old Massive.io-as-secondary-track plan (Sessions 10–11) and are now superseded by Session 12's work — Massive is already primary, the API is already confirmed and working, and `massive.py` already has the contract manager described here. Left in place rather than deleted per "preserve existing architecture unless instructed otherwise," but treat as historical.
