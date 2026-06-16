@@ -5,7 +5,8 @@ import plotly.graph_objects as go
 from data_loader import (CONTRACTS, bar_num_from_dt,
                          parse_ohlc_from_upload,
                          load_csv_cache, save_csv_cache,
-                         load_csv_manifest, save_csv_manifest, clear_csv_cache)
+                         load_csv_manifest, save_csv_manifest, clear_csv_cache,
+                         apply_data_slot)
 import validation
 import bar_analysis
 import portfolio
@@ -29,19 +30,7 @@ st.markdown("""
 
 # ── Data slot helper ──────────────────────────────────────────────────────────
 
-def _apply_data_slot(slot: str, df: pd.DataFrame, label: str, key: str) -> None:
-    st.session_state[f"data_{slot}"]       = df
-    st.session_state[f"data_{slot}_label"] = label
-    st.session_state[f"data_{slot}_key"]   = key
-
-    if slot == "sc_5m":
-        st.session_state["bv_sc5m_bars"] = df
-        st.session_state["bv_sc5m_key"]  = key
-    elif slot == "nt_5m":
-        st.session_state["bv_nt5m_bars"]       = df
-        st.session_state["bv_nt5m_key"]        = key
-        st.session_state["uploaded_ohlc_bars"] = df
-        st.session_state["uploaded_ohlc_key"]  = key
+_apply_data_slot = apply_data_slot  # alias — shared implementation lives in data_loader.py
 
 
 # ── Chart builder ─────────────────────────────────────────────────────────────

@@ -28,7 +28,7 @@ from data_loader import (
     fetch_massive_trades, fetch_massive_aggs,
     fetch_massive_contract_info,
     resample_ticks_to_bars, parse_ohlc_from_upload,
-    MASSIVE_CACHE_DIR,
+    MASSIVE_CACHE_DIR, apply_data_slot,
 )
 from validation import build_comparison
 
@@ -95,8 +95,8 @@ def _download_day(s3, d: date) -> Path | None:
         s3.download_file(_S3_BUCKET, key, str(local))
         return local
     except Exception as e:
-        if "404" in str(e) or "NoSuchKey" in str(e):
-            return None
+        if "404" in str(e) or "NoSuchKey" in str(e) or "403" in str(e) or "Forbidden" in str(e):
+            return None  # day doesn't exist yet (future date, weekend, holiday)
         raise
 
 
@@ -135,26 +135,35 @@ def _ticks_to_5m_bars(df: pd.DataFrame) -> pd.DataFrame:
     return bars.reset_index()
 
 
-def _write_nt_file(ticks_df: pd.DataFrame, path: Path) -> None:
-    """Write NT8 tick import file: yyyyMMdd HHmmss;price;volume"""
+# ── Download one contract ─────────────────────────────────────────────────────
+
+def _append_nt_lines(ticks_df: pd.DataFrame, path: Path) -> int:
+    """Append one day's ticks to the NT import file. Returns lines written."""
+    df = ticks_df[ticks_df["correction"] == 0]
+    if df.empty:
+        return 0
     dt_ct = (
-        pd.to_datetime(ticks_df["timestamp"], unit="ns", utc=True)
+        pd.to_datetime(df["timestamp"], unit="ns", utc=True)
         .dt.tz_convert("America/Chicago")
         .dt.tz_localize(None)
     )
     dt_str    = dt_ct.dt.strftime("%Y%m%d %H%M%S")
-    price_str = ticks_df["price"].astype(float).map("{:.2f}".format)
-    size_str  = ticks_df["size"].astype(str)
+    price_str = df["price"].astype(float).map("{:.2f}".format)
+    size_str  = df["size"].astype(str)
     lines = (dt_str + ";" + price_str + ";" + size_str + "\n").tolist()
-    path.write_text("".join(lines), encoding="utf-8")
+    with open(path, "a", encoding="utf-8") as f:
+        f.writelines(lines)
+    return len(lines)
 
-
-# ── Download one contract ─────────────────────────────────────────────────────
 
 def download_contract(contract: Contract, rolls: dict, status_placeholder) -> bool:
     """
     Download flat files for one contract's front-month period, build 5M bars,
     write NT import file. Returns True on success.
+
+    Processes one day at a time and writes the NT file incrementally — holding
+    every tick for a high-volume front-month contract in memory at once can run
+    into multiple GB and crash the process.
     """
     _ensure_dirs()
     s3 = _make_s3()
@@ -162,10 +171,13 @@ def download_contract(contract: Contract, rolls: dict, status_placeholder) -> bo
     from_date = date.fromisoformat(contract.active_from)
     to_date   = date.fromisoformat(contract.last_trade)
 
-    all_ticks  = []
-    all_frames = []
+    nt_path = _nt_import_path(contract)
+    if nt_path.exists():
+        nt_path.unlink()  # start fresh — we append per day below
+
+    all_frames  = []
+    total_lines = 0
     d = from_date
-    day_count = (to_date - from_date).days + 1
 
     while d <= to_date:
         status_placeholder.write(f"  {d.isoformat()} …")
@@ -173,27 +185,25 @@ def download_contract(contract: Contract, rolls: dict, status_placeholder) -> bo
         if local:
             day_df = _load_gz(local, contract.ticker)
             if not day_df.empty:
-                all_ticks.append(day_df)
-                all_frames.append(_ticks_to_5m_bars(day_df))
+                bars = _ticks_to_5m_bars(day_df)
+                if not bars.empty:
+                    all_frames.append(bars)
+                total_lines += _append_nt_lines(day_df, nt_path)
+            del day_df
         d += timedelta(days=1)
 
-    if not all_ticks:
+    if not all_frames:
         status_placeholder.error(f"No data found for {contract.ticker}")
         return False
 
     # Build and cache 5M bars
-    bars = pd.concat([f for f in all_frames if not f.empty], ignore_index=True)
+    bars = pd.concat(all_frames, ignore_index=True)
     bars.sort_values("DateTime", inplace=True, ignore_index=True)
     bars.to_parquet(_bars_path(contract.ticker), index=False)
 
-    # Write NT import file
-    ticks_all = pd.concat(all_ticks, ignore_index=True)
-    ticks_all = ticks_all[ticks_all["correction"] == 0]
-    _write_nt_file(ticks_all, _nt_import_path(contract))
-
     status_placeholder.success(
         f"✅ {contract.ticker} — {len(bars):,} bars · "
-        f"NT import: {_nt_import_path(contract).name}"
+        f"NT import: {nt_path.name} ({total_lines:,} ticks)"
     )
     return True
 
@@ -201,6 +211,48 @@ def download_contract(contract: Contract, rolls: dict, status_placeholder) -> bo
 def load_bars(ticker: str) -> pd.DataFrame | None:
     p = _bars_path(ticker)
     return pd.read_parquet(p) if p.exists() else None
+
+
+def bars_from_cache(ticker: str, date_start: str, date_end: str) -> pd.DataFrame:
+    """
+    Build 5M RTH bars for a ticker/date range using local data only.
+
+    Priority:
+      1. Contract parquet (data/bars/{ticker}.parquet) — instant, filter by date
+      2. Daily gzip files in flatfiles_cache — build bar-by-bar from ticks
+      3. Returns empty DataFrame if neither exists (caller falls back to API)
+    """
+    start = date.fromisoformat(date_start)
+    end   = date.fromisoformat(date_end)
+
+    # 1 — contract parquet already has 5M bars for the full front-month period
+    parquet = _bars_path(ticker)
+    if parquet.exists():
+        df = pd.read_parquet(parquet)
+        mask = (df["DateTime"].dt.date >= start) & (df["DateTime"].dt.date <= end)
+        filtered = df[mask].reset_index(drop=True)
+        if not filtered.empty:
+            return filtered
+
+    # 2 — build from individual daily gzip files in the cache
+    frames = []
+    d = start
+    while d <= end:
+        local = _GZ_CACHE_DIR / f"{d.isoformat()}.csv.gz"
+        if local.exists():
+            day_df = _load_gz(local, ticker)
+            if not day_df.empty:
+                bars = _ticks_to_5m_bars(day_df)
+                if not bars.empty:
+                    frames.append(bars)
+        d += timedelta(days=1)
+
+    if not frames:
+        return pd.DataFrame()
+
+    result = pd.concat(frames, ignore_index=True)
+    result.sort_values("DateTime", inplace=True, ignore_index=True)
+    return result
 
 
 # ── Comparison helper (carried over from old massive.py) ─────────────────────
@@ -393,6 +445,10 @@ def show_massive_tab():
                             f"Continuous ready: **{len(cont):,} bars** · "
                             f"{d.min()} → {d.max()} · {d.nunique()} days · {n_dl} contracts"
                         )
+                        if st.button("📊 Open in Bar Viewer"):
+                            apply_data_slot("sc_5m", cont.drop(columns=["Contract"], errors="ignore"),
+                                             "Massive Continuous (back-adjusted)", "mas_continuous")
+                            st.success("Loaded into Bar Viewer — switch to the 📊 Bar Viewer tab.")
                     else:
                         st.info(f"{n_dl} contracts ready — click Build to stitch them.")
 
@@ -489,18 +545,27 @@ def show_massive_tab():
                 st.info(f"{label} — not loaded")
 
         with col_t:
-            _status_box(tick_bars, "Tick-built bars")
-            if st.button("📥 Fetch Ticks → Build Bars",
-                         help="Fetches raw ticks via API, resamples to 5M RTH bars."):
+            _status_box(tick_bars, "Flat-file bars")
+            has_parquet = _bars_path(ticker).exists()
+            has_cache   = any(
+                (_GZ_CACHE_DIR / f"{(date.fromisoformat(date_start) + timedelta(days=i)).isoformat()}.csv.gz").exists()
+                for i in range((date.fromisoformat(date_end) - date.fromisoformat(date_start)).days + 1)
+            )
+            src_label = "contract parquet" if has_parquet else ("gzip cache" if has_cache else "API")
+            if st.button(f"📥 Build Bars  ({src_label})",
+                         help="Uses local flat-file cache if available, otherwise falls back to Massive API."):
                 try:
-                    with st.spinner(f"Fetching {ticker} ticks…"):
-                        ticks = fetch_massive_trades(_API_KEY, ticker, date_start, date_end)
-                    bars = resample_ticks_to_bars(ticks)
-                    st.session_state["mas_tick_bars"]  = bars
-                    st.session_state["mas_tick_ticks"] = ticks
+                    bars = bars_from_cache(ticker, date_start, date_end)
+                    if bars.empty:
+                        st.warning("Not in local cache — falling back to API…")
+                        with st.spinner(f"Fetching {ticker} ticks from API…"):
+                            ticks = fetch_massive_trades(_API_KEY, ticker, date_start, date_end)
+                        bars = resample_ticks_to_bars(ticks)
+                        st.session_state["mas_tick_ticks"] = ticks
+                    st.session_state["mas_tick_bars"] = bars
                     st.rerun()
                 except Exception as e:
-                    st.error(f"Fetch failed: {e}")
+                    st.error(f"Failed: {e}")
 
         with col_a:
             _status_box(agg_bars, "Massive agg bars")

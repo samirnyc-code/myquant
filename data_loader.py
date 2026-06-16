@@ -13,6 +13,22 @@ RTH_END       = "15:15:00"
 TICK_SIZE     = 0.25
 RTH_START_MIN = 8 * 60 + 30   # 510
 
+
+def apply_data_slot(slot: str, df: pd.DataFrame, label: str, key: str) -> None:
+    """Push a 5M bar DataFrame into a named session-state slot used by the Bar Viewer / validation."""
+    st.session_state[f"data_{slot}"]       = df
+    st.session_state[f"data_{slot}_label"] = label
+    st.session_state[f"data_{slot}_key"]   = key
+
+    if slot == "sc_5m":
+        st.session_state["bv_sc5m_bars"] = df
+        st.session_state["bv_sc5m_key"]  = key
+    elif slot == "nt_5m":
+        st.session_state["bv_nt5m_bars"]       = df
+        st.session_state["bv_nt5m_key"]        = key
+        st.session_state["uploaded_ohlc_bars"] = df
+        st.session_state["uploaded_ohlc_key"]  = key
+
 # ── Contract registry ─────────────────────────────────────────────────────────
 # Add new contracts here. sc_file must be a SC BarData tick file.
 # nt_file must be a NinjaTrader semicolon-delimited OHLC export.

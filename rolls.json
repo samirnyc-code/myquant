@@ -1,82 +1,82 @@
 {
   "ESU1": {
-    "roll_date": "2021-09-09",
-    "offset": null
+    "roll_date": "2021-06-10",
+    "offset": -9.5
   },
   "ESZ1": {
-    "roll_date": "2021-12-09",
-    "offset": null
+    "roll_date": "2021-09-09",
+    "offset": -9.5
   },
   "ESH2": {
-    "roll_date": "2022-03-10",
-    "offset": null
+    "roll_date": "2021-12-09",
+    "offset": -7.25
   },
   "ESM2": {
-    "roll_date": "2022-06-09",
-    "offset": null
+    "roll_date": "2022-03-10",
+    "offset": -7.25
   },
   "ESU2": {
-    "roll_date": "2022-09-08",
-    "offset": null
+    "roll_date": "2022-06-13",
+    "offset": 1.25
   },
   "ESZ2": {
-    "roll_date": "2022-12-08",
-    "offset": null
+    "roll_date": "2022-09-12",
+    "offset": 17.75
   },
   "ESH3": {
-    "roll_date": "2023-03-09",
-    "offset": null
+    "roll_date": "2022-12-12",
+    "offset": 33.0
   },
   "ESM3": {
-    "roll_date": "2023-06-08",
-    "offset": null
+    "roll_date": "2023-03-13",
+    "offset": 34.5
   },
   "ESU3": {
-    "roll_date": "2023-09-07",
-    "offset": null
+    "roll_date": "2023-06-12",
+    "offset": 43.75
   },
   "ESZ3": {
-    "roll_date": "2023-12-07",
-    "offset": null
+    "roll_date": "2023-09-11",
+    "offset": 49.25
   },
   "ESH4": {
-    "roll_date": "2024-03-07",
-    "offset": null
+    "roll_date": "2023-12-11",
+    "offset": 52.75
   },
   "ESM4": {
-    "roll_date": "2024-06-13",
-    "offset": null
+    "roll_date": "2024-03-11",
+    "offset": 64.25
   },
   "ESU4": {
-    "roll_date": "2024-09-12",
-    "offset": null
+    "roll_date": "2024-06-17",
+    "offset": 64.5
   },
   "ESZ4": {
-    "roll_date": "2024-12-12",
-    "offset": null
+    "roll_date": "2024-09-16",
+    "offset": 60.75
   },
   "ESH5": {
-    "roll_date": "2025-03-13",
-    "offset": null
+    "roll_date": "2024-12-16",
+    "offset": 70.25
   },
   "ESM5": {
-    "roll_date": "2025-06-12",
-    "offset": null
+    "roll_date": "2025-03-17",
+    "offset": 52.25
   },
   "ESU5": {
-    "roll_date": "2025-09-11",
-    "offset": null
+    "roll_date": "2025-06-16",
+    "offset": 51.75
   },
   "ESZ5": {
-    "roll_date": "2025-12-11",
-    "offset": null
+    "roll_date": "2025-09-15",
+    "offset": 56.75
   },
   "ESH6": {
-    "roll_date": "2026-03-12",
-    "offset": null
+    "roll_date": "2025-12-15",
+    "offset": 59.75
   },
   "ESM6": {
-    "roll_date": "2026-06-11",
-    "offset": null
+    "roll_date": "2026-03-16",
+    "offset": 49.75
   }
 }
