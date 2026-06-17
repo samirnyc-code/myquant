@@ -398,8 +398,12 @@ def _guardrail_badges(report: dict) -> None:
 def show_wfa_tab() -> None:
     st.header("🔄 Walk-Forward Analysis")
 
-    mas_cont = st.session_state.get("mas_continuous")
-    signals_raw = st.session_state.get("ba_signals") or st.session_state.get("rev_signals")
+    mas_cont    = st.session_state.get("mas_continuous")
+    _ba_sig     = st.session_state.get("ba_signals")
+    _rev_sig    = st.session_state.get("rev_signals")
+    signals_raw = (_ba_sig  if _ba_sig  is not None and not (hasattr(_ba_sig,  "empty") and _ba_sig.empty)
+                   else _rev_sig if _rev_sig is not None and not (hasattr(_rev_sig, "empty") and _rev_sig.empty)
+                   else None)
 
     # ── Data availability check ───────────────────────────────────────────────
     if mas_cont is None or mas_cont.empty:
@@ -413,20 +417,6 @@ def show_wfa_tab() -> None:
     bars = mas_cont.drop(columns=["Contract"], errors="ignore")
     bars_by_date = {d: grp.reset_index(drop=True)
                     for d, grp in bars.groupby("Date")}
-
-    # Load tick cache for dates that have signals
-    import massive as _massive_mod
-    sig_dates = sorted(signals_raw["Date"].unique())
-
-    _ticks_key = f"wfa_ticks__{hash(tuple(sig_dates))}"
-    if _ticks_key not in st.session_state:
-        tbd = {}
-        for d in sig_dates:
-            dt = _massive_mod.load_continuous_ticks(d)
-            if not dt.empty:
-                tbd[d] = dt
-        st.session_state[_ticks_key] = tbd
-    ticks_by_date = st.session_state[_ticks_key]
 
     # ── Tabs: Configure / Results ─────────────────────────────────────────────
     tab_cfg, tab_res = st.tabs(["⚙️ Configure & Run", "📊 Results"])
@@ -513,6 +503,20 @@ def show_wfa_tab() -> None:
 
             progress_bar = st.progress(0.0)
             status_text  = st.empty()
+
+            # Load tick cache now (only on run, not on every render)
+            import massive as _massive_mod
+            sig_dates  = sorted(signals_filtered["Date"].unique())
+            _ticks_key = f"wfa_ticks__{hash(tuple(sig_dates))}"
+            if _ticks_key not in st.session_state:
+                status_text.text("Loading tick cache…")
+                tbd = {}
+                for d in sig_dates:
+                    dt = _massive_mod.load_continuous_ticks(d)
+                    if not dt.empty:
+                        tbd[d] = dt
+                st.session_state[_ticks_key] = tbd
+            ticks_by_date = st.session_state[_ticks_key]
 
             def _cb(i, total, msg):
                 progress_bar.progress((i + 0.5) / total)

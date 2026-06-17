@@ -1,4 +1,4 @@
-﻿import json
+import json
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -33,7 +33,7 @@ def _save_ba_defaults(d: dict):
     _BA_DEFAULTS_FILE.write_text(json.dumps(d, indent=2))
 
 
-# â”€â”€ CSV parser â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── CSV parser ────────────────────────────────────────────────────────────────
 
 def parse_signals(raw: str) -> pd.DataFrame | None:
     """Parse MC signals text.
@@ -63,7 +63,7 @@ def parse_signals(raw: str) -> pd.DataFrame | None:
     return df.sort_values("SignalNum").reset_index(drop=True)
 
 
-# â”€â”€ Filter logic â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Filter logic ──────────────────────────────────────────────────────────────
 
 def apply_signal_filters(
     signals: pd.DataFrame,
@@ -143,12 +143,12 @@ def apply_signal_filters(
     return df
 
 
-# â”€â”€ Trade simulation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Trade simulation ──────────────────────────────────────────────────────────
 
-# bar_num_from_dt imported from data_loader â€” shared with app.py
+# bar_num_from_dt imported from data_loader — shared with app.py
 
 
-# â”€â”€ Ratchet/BE-Stop bar-ambiguity diagnostic â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Ratchet/BE-Stop bar-ambiguity diagnostic ──────────────────────────────────
 
 def diagnose_ratchet_bar_ambiguities(
     results_df: pd.DataFrame,
@@ -168,7 +168,7 @@ def diagnose_ratchet_bar_ambiguities(
     Returns a comparison DataFrame showing the PnL delta per trade."""
     ts = TICK_SIZE
     tv = tick_value * contracts
-    tol = (exit_slip + 1.5) * ts   # price tolerance for "exit â‰ˆ entry"
+    tol = (exit_slip + 1.5) * ts   # price tolerance for "exit ≈ entry"
 
     filled = results_df[results_df["Filled"] == True].copy()
     # Candidate trades: Stop exit priced within tol of entry (ratcheted BE stop)
@@ -190,7 +190,7 @@ def diagnose_ratchet_bar_ambiguities(
         stop_price = float(row.get("StopPrice",  actual_stop))
         t1_level   = entry_px + (ratchet_r * risk_pts if is_long else -ratchet_r * risk_pts)
 
-        # â”€â”€ Find the exit bar to verify the Hi/Lo pattern â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # ── Find the exit bar to verify the Hi/Lo pattern ─────────────────────
         bar_hi = bar_lo = None
         is_ambiguous = False
         day_bars = (bars_by_date or {}).get(date)
@@ -216,7 +216,7 @@ def diagnose_ratchet_bar_ambiguities(
                         bar_hi < actual_stop + 0.001
                     )
 
-        # â”€â”€ Re-simulate as BE Stop (same T1 level, full position continues) â”€â”€â”€
+        # ── Re-simulate as BE Stop (same T1 level, full position continues) ───
         be_exit_reason = be_exit_px = be_net_pnl = None
         day_ticks = ticks_by_date.get(date)
         no_ticks  = day_ticks is None or day_ticks.empty
@@ -272,16 +272,16 @@ def diagnose_ratchet_bar_ambiguities(
     return df
 
 
-# â”€â”€ Chart â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Chart ─────────────────────────────────────────────────────────────────────
 
 def _outcome_color(exit_reason: str) -> str:
     if "Target" in exit_reason:
-        return "#26a69a"   # green â€” full or partial win
+        return "#26a69a"   # green — full or partial win
     if exit_reason == "Stop":
-        return "#ef5350"   # red â€” full stop
+        return "#ef5350"   # red — full stop
     if exit_reason in ("T1+BE", "T1+EOD"):
-        return "#ff9800"   # orange â€” partial profit
-    return "#9e9e9e"       # grey â€” EOD, session
+        return "#ff9800"   # orange — partial profit
+    return "#9e9e9e"       # grey — EOD, session
 
 
 def make_analysis_chart(
@@ -416,7 +416,7 @@ def make_analysis_chart(
                 f"Stop: {stop_px:.2f} | Target: {target_px:.2f}<br>"
                 f"Risk: {row['RiskPts']:.2f} pts (${row['RiskDollar']:.0f})"
             )
-            # Entry marker â€” hover directly on the circle
+            # Entry marker — hover directly on the circle
             _ekw = {"hovertemplate": entry_htxt + "<extra></extra>"} if show_hover else {"hoverinfo": "skip"}
             fig.add_trace(go.Scatter(
                 x=[entry_ts], y=[entry_px], mode="markers",
@@ -432,7 +432,7 @@ def make_analysis_chart(
                 f"R: {row['R_achieved']:+.2f}<br>"
                 f"MAE: {row['MAE_pts']:.2f} pts | MFE: {row['MFE_pts']:.2f} pts"
             )
-            # Exit marker â€” hover directly on the x marker
+            # Exit marker — hover directly on the x marker
             _xkw = {"hovertemplate": exit_htxt + "<extra></extra>"} if show_hover else {"hoverinfo": "skip"}
             fig.add_trace(go.Scatter(
                 x=[exit_ts], y=[exit_px], mode="markers",
@@ -442,7 +442,7 @@ def make_analysis_chart(
 
             xref, yref = "x", "y"
 
-            # Stop line â€” extends from signal bar left edge to exit
+            # Stop line — extends from signal bar left edge to exit
             fig.add_shape(type="line",
                 x0=bar_open, x1=exit_ts,
                 y0=stop_px, y1=stop_px,
@@ -508,7 +508,7 @@ def make_analysis_chart(
                 line=dict(color="#26a69a", width=1.2, dash="dash"),
                 xref=xref, yref=yref)
 
-            # R label â€” right end of target line
+            # R label — right end of target line
             fig.add_annotation(
                 x=exit_ts, y=target_px,
                 xshift=6, yshift=0,
@@ -524,7 +524,7 @@ def make_analysis_chart(
                 line=dict(color="#ff9800", width=1.0),
                 xref=xref, yref=yref)
 
-            # Dotted diagonal: entry price â†’ exit price
+            # Dotted diagonal: entry price → exit price
             fig.add_shape(type="line",
                 x0=entry_ts, x1=exit_ts,
                 y0=entry_px, y1=exit_px,
@@ -543,7 +543,7 @@ def make_analysis_chart(
     spike = dict(showspikes=True, spikethickness=1, spikedash="dot",
                  spikecolor="rgba(128,128,128,0.40)", spikesnap="cursor")
     fig.update_layout(
-        title=f"{contract} â€” Bar Analysis  ({date_str})",
+        title=f"{contract} — Bar Analysis  ({date_str})",
         xaxis_title="Time (CT)", yaxis_title="Price",
         xaxis_rangeslider_visible=False,
         xaxis=dict(tickvals=_tick_vals, ticktext=_tick_text, tickangle=-45, **spike),
@@ -558,7 +558,7 @@ def make_analysis_chart(
     return fig
 
 
-# â”€â”€ Signal table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Signal table ──────────────────────────────────────────────────────────────
 
 _STATUS_LABELS = {
     "ok":             "Filtered",    # shouldn't appear if not filled
@@ -622,20 +622,20 @@ def _show_signal_table(results: pd.DataFrame, key_suffix: str = ""):
         try:
             ts = pd.Timestamp(t)
             if not pd.notna(ts):
-                return "â€”"
+                return "—"
             base = ts.strftime("%H:%M:%S")
             ms = ts.microsecond // 1000
             return f"{base}.{ms:03d}" if ms else base
         except Exception:
-            return "â€”"
+            return "—"
 
     def fmt_f(v, decimals=2):
-        return f"{v:.{decimals}f}" if pd.notna(v) else "â€”"
+        return f"{v:.{decimals}f}" if pd.notna(v) else "—"
 
     def fmt_pf(v):
         if pd.isna(v):
-            return "â€”"
-        return "âˆž" if v > 99 else f"{v:.2f}"
+            return "—"
+        return "∞" if v > 99 else f"{v:.2f}"
 
     def fmt_status(s):
         return _STATUS_LABELS.get(s, s)
@@ -648,49 +648,49 @@ def _show_signal_table(results: pd.DataFrame, key_suffix: str = ""):
     disp["Sig Time"]   = results["DateTime"].dt.strftime("%H:%M")
     disp["Sig Bar"]    = results["BarNum"]
     disp["Status"]     = results.apply(
-        lambda r: "âœ“ Filled" if r["Filled"] else fmt_status(r["FilterStatus"]), axis=1
+        lambda r: "✓ Filled" if r["Filled"] else fmt_status(r["FilterStatus"]), axis=1
     )
-    disp["SB Close"]   = results["SBClose"].apply(fmt_f) if "SBClose" in results.columns else "â€”"
+    disp["SB Close"]   = results["SBClose"].apply(fmt_f) if "SBClose" in results.columns else "—"
     disp["SE Px"]      = results["SEPrice"].apply(fmt_f)
     disp["Bar Open"]   = results["FillPrice"].apply(fmt_f)
     disp["Entry Time"] = results["EntryTime"].apply(fmt_time)
-    disp["Entry Bar"]  = results["EntryBarNum"].apply(lambda v: int(v) if pd.notna(v) else "â€”")
+    disp["Entry Bar"]  = results["EntryBarNum"].apply(lambda v: int(v) if pd.notna(v) else "—")
     disp["Entry Px"]   = results["EntryPrice"].apply(fmt_f)
     disp["Stop"]       = results["ActualStop"].apply(fmt_f)
     disp["Target"]     = results["Target"].apply(fmt_f)
     disp["Exit Time"]  = results["ExitTime"].apply(fmt_time)
-    disp["Exit Bar"]   = results["ExitBarNum"].apply(lambda v: int(v) if pd.notna(v) else "â€”")
+    disp["Exit Bar"]   = results["ExitBarNum"].apply(lambda v: int(v) if pd.notna(v) else "—")
     disp["Exit Px"]    = results["ExitPrice"].apply(fmt_f)
-    disp["Exit Type"]  = results["ExitReason"].replace("", "â€”")
-    disp["Gross$"]     = results["GrossPnL"].apply(lambda v: f"{v:+.0f}" if pd.notna(v) else "â€”")
-    disp["Net$"]       = results["NetPnL"].apply(lambda v: f"{v:+.0f}" if pd.notna(v) else "â€”")
+    disp["Exit Type"]  = results["ExitReason"].replace("", "—")
+    disp["Gross$"]     = results["GrossPnL"].apply(lambda v: f"{v:+.0f}" if pd.notna(v) else "—")
+    disp["Net$"]       = results["NetPnL"].apply(lambda v: f"{v:+.0f}" if pd.notna(v) else "—")
     disp["Cum PF"]     = results["CumPF"].apply(fmt_pf)
-    disp["Risk$"]      = results["RiskDollar"].apply(lambda v: f"${v:.0f}" if pd.notna(v) else "â€”")
-    disp["Target R"]   = results["TargetR"].apply(lambda v: f"{v:.2f}" if pd.notna(v) else "â€”")
-    disp["R"]          = results["R_achieved"].apply(lambda v: f"{v:+.2f}" if pd.notna(v) else "â€”")
+    disp["Risk$"]      = results["RiskDollar"].apply(lambda v: f"${v:.0f}" if pd.notna(v) else "—")
+    disp["Target R"]   = results["TargetR"].apply(lambda v: f"{v:.2f}" if pd.notna(v) else "—")
+    disp["R"]          = results["R_achieved"].apply(lambda v: f"{v:+.2f}" if pd.notna(v) else "—")
     disp["MAE pts"]    = results["MAE_pts"].apply(fmt_f)
-    disp["MAE$"]       = results["MAE_dollar"].apply(lambda v: f"${v:.0f}" if pd.notna(v) else "â€”")
+    disp["MAE$"]       = results["MAE_dollar"].apply(lambda v: f"${v:.0f}" if pd.notna(v) else "—")
     disp["MAE R"]      = results["MAE_R"].apply(fmt_f)
     disp["MFE pts"]    = results["MFE_pts"].apply(fmt_f)
-    disp["MFE$"]       = results["MFE_dollar"].apply(lambda v: f"${v:.0f}" if pd.notna(v) else "â€”")
+    disp["MFE$"]       = results["MFE_dollar"].apply(lambda v: f"${v:.0f}" if pd.notna(v) else "—")
     disp["MFE R"]      = results["MFE_R"].apply(fmt_f)
     if _has_multileg:
-        disp["T1 R"]   = results["T1_R"].apply(lambda v: f"{v:.2f}R" if pd.notna(v) else "â€”")
-        disp["T2 R"]   = results["TargetR"].apply(lambda v: f"{v:.2f}R" if pd.notna(v) else "â€”")
+        disp["T1 R"]   = results["T1_R"].apply(lambda v: f"{v:.2f}R" if pd.notna(v) else "—")
+        disp["T2 R"]   = results["TargetR"].apply(lambda v: f"{v:.2f}R" if pd.notna(v) else "—")
         disp["T1"]     = results["Target1"].apply(fmt_f)
-        disp["L1 Exit"]= results["Leg1ExitReason"].fillna("â€”")
+        disp["L1 Exit"]= results["Leg1ExitReason"].fillna("—")
         disp["L1 Px"]  = results["Leg1ExitPrice"].apply(fmt_f)
-        disp["L1 $"]   = results["Leg1GrossPnL"].apply(lambda v: f"{v:+.0f}" if pd.notna(v) else "â€”")
-        disp["L2 Exit"]= results["Leg2ExitReason"].fillna("â€”")
+        disp["L1 $"]   = results["Leg1GrossPnL"].apply(lambda v: f"{v:+.0f}" if pd.notna(v) else "—")
+        disp["L2 Exit"]= results["Leg2ExitReason"].fillna("—")
         disp["L2 Px"]  = results["Leg2ExitPrice"].apply(fmt_f)
-        disp["L2 $"]   = results["Leg2GrossPnL"].apply(lambda v: f"{v:+.0f}" if pd.notna(v) else "â€”")
+        disp["L2 $"]   = results["Leg2GrossPnL"].apply(lambda v: f"{v:+.0f}" if pd.notna(v) else "—")
         if "PBLevel" in results.columns:
-            disp["PB R"]     = results["PB_R"].apply(lambda v: f"{v:.2f}R" if pd.notna(v) else "â€”")
+            disp["PB R"]     = results["PB_R"].apply(lambda v: f"{v:.2f}R" if pd.notna(v) else "—")
             disp["PB Lvl"]   = results["PBLevel"].apply(fmt_f)
-            disp["PB Exact"] = results["PBLevelRaw"].apply(lambda v: f"{v:.4f}" if pd.notna(v) else "â€”")
+            disp["PB Exact"] = results["PBLevelRaw"].apply(lambda v: f"{v:.4f}" if pd.notna(v) else "—")
             disp["E2 Fill"]= results["E2FillPrice"].apply(fmt_f)
             disp["E2 Time"]= results["E2FillTime"].apply(
-                lambda t: pd.Timestamp(t).strftime("%H:%M") if pd.notna(t) else "â€”"
+                lambda t: pd.Timestamp(t).strftime("%H:%M") if pd.notna(t) else "—"
             )
             disp["Blend"]  = results["BlendedEntry"].apply(fmt_f)
 
@@ -703,7 +703,7 @@ def _show_signal_table(results: pd.DataFrame, key_suffix: str = ""):
     st.caption(f"{len(results)} signals  |  {int(results['Filled'].sum())} filled trades")
 
 
-# â”€â”€ Optimal R sweep â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Optimal R sweep ───────────────────────────────────────────────────────────
 
 def _apply_day_trade_filters(
     results: pd.DataFrame,
@@ -735,7 +735,7 @@ def _run_r_sweep(
     first_trade_only: bool = False, first_2_filled_only: bool = False,
 ) -> pd.DataFrame:
     _n_steps = max(1, round(max_r / 0.25))
-    r_values = [round(r * 0.25, 2) for r in range(2, _n_steps + 1)]  # 0.50 â€“ max_r
+    r_values = [round(r * 0.25, 2) for r in range(2, _n_steps + 1)]  # 0.50 – max_r
     rows = []
     for r in r_values:
         res = simulate_trades(signals, ticks_by_date, r,
@@ -823,7 +823,7 @@ def _run_ml_scalein_sweep(
     t2_vals: list | None = None,
     first_trade_only: bool = False, first_2_filled_only: bool = False,
 ) -> pd.DataFrame:
-    """Sweep PB_R Ã— T1_R Ã— T2_R for 2-leg scale-in mode."""
+    """Sweep PB_R × T1_R × T2_R for 2-leg scale-in mode."""
     if pb_vals is None:
         pb_vals = [-0.25, -0.33, -0.50, -0.66, -0.75, -1.0, -1.25, -1.50]
     if t1_vals is None:
@@ -884,7 +884,7 @@ def _run_pb_sweep(
     max_pb1: float = 1.5, max_pb2: float = 2.0,
     first_trade_only: bool = False, first_2_filled_only: bool = False,
 ) -> pd.DataFrame:
-    """Grid sweep over PB1_R Ã— PB2_R for 3-leg mode (tick offsets and targets held fixed)."""
+    """Grid sweep over PB1_R × PB2_R for 3-leg mode (tick offsets and targets held fixed)."""
     _step = 0.25
     pb1_vals = [round(r * _step, 2) for r in range(1, max(1, round(max_pb1 / _step)) + 1)]
     pb2_vals = [round(r * _step, 2) for r in range(2, max(2, round(max_pb2 / _step)) + 1)]
@@ -936,7 +936,7 @@ def _run_t1t2_sweep_3leg(
     max_t1: float = 3.0, max_t3: float = 5.0,
     first_trade_only: bool = False, first_2_filled_only: bool = False,
 ) -> pd.DataFrame:
-    """Sweep T1 (E1 target) Ã— T3 (E3 target) with T2 (E2 target) held fixed."""
+    """Sweep T1 (E1 target) × T3 (E3 target) with T2 (E2 target) held fixed."""
     _step   = 0.25
     t1_vals = [round(r * _step, 2) for r in range(1, max(1, round(max_t1 / _step)) + 1)]
     t3_vals = [round(r * _step, 2) for r in range(2, max(2, round(max_t3 / _step)) + 1)]
@@ -1000,7 +1000,7 @@ def _run_stop_mult_sweep(
     t1_action: str = "exit", contracts_t1: int = 1, contracts_t2: int = 1,
     first_trade_only: bool = False, first_2_filled_only: bool = False,
 ) -> pd.DataFrame:
-    """Sweep stop multipliers [0.25 â€¦ 1.00] at the current target R."""
+    """Sweep stop multipliers [0.25 … 1.00] at the current target R."""
     rows = []
     for mult in _STOP_MULTS:
         sigs = _apply_stop_mult(signals, mult)
@@ -1019,7 +1019,7 @@ def _run_stop_mult_sweep(
             continue
         _dd_abs = abs(s["max_dd"]) if s["max_dd"] != 0 else None
         rows.append({
-            "Stop Mult": f"{mult:.2f}Ã—",
+            "Stop Mult": f"{mult:.2f}×",
             "Win %":     round(s["win_pct"], 1),
             "PF":        round(s["pf"], 2) if s["pf"] < 99 else 99.9,
             "Net PnL":   round(s["net_total"], 0),
@@ -1037,14 +1037,14 @@ def _show_stop_sweep(signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
                      first_trade_only: bool = False, first_2_filled_only: bool = False):
     _METRIC_COLS = ["Win %", "PF", "Net PnL", "DD $", "PnL/DD", "Exp $"]
     _THRESHOLDS  = {"PF": 1.0, "Net PnL": 0, "PnL/DD": 0, "Exp $": 0}
-    with st.expander("ðŸ” Stop Multiplier Sweep", expanded=False):
+    with st.expander("🔍 Stop Multiplier Sweep", expanded=False):
         st.caption(
             f"Runs simulation at {len(_STOP_MULTS)} stop sizes "
-            f"(0.25Ã—â€“2.00Ã— of the original signal stop) at the current target R = {target_r:.2f}. "
-            "1.00Ã— is the baseline (original stop). Target scales proportionally with the stop."
+            f"(0.25×–2.00× of the original signal stop) at the current target R = {target_r:.2f}. "
+            "1.00× is the baseline (original stop). Target scales proportionally with the stop."
         )
         if st.button("Run Stop Sweep", key="ba_run_stop_sweep"):
-            with st.spinner("Running stop sweepâ€¦"):
+            with st.spinner("Running stop sweep…"):
                 stop_df = _run_stop_mult_sweep(
                     signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
                     tick_value, contracts, commission, target_r,
@@ -1087,7 +1087,7 @@ def _show_stop_sweep(signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
 def _apply_best_green(sweep_df: pd.DataFrame, styled, metric_cols: list[str],
                       thresholds: dict | None = None):
     """Highlight only the single best value per column in heatmap-green.
-    threshold dict: {col: min_value_to_qualify} â€” no highlight if best < threshold."""
+    threshold dict: {col: min_value_to_qualify} — no highlight if best < threshold."""
     thresholds = thresholds or {}
 
     def _hl_max(s, thr=0):
@@ -1129,8 +1129,8 @@ def _show_optimal_r(signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
     _THRESHOLDS   = {"PF": 1.0, "Net PnL": 0, "PnL/DD": 0, "Exp $": 0}
 
     if threeleg:
-        # â”€â”€ 2D PB1Ã—PB2 grid sweep â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        with st.expander("ðŸ” PB1Ã—PB2 Sweep", expanded=False):
+        # ── 2D PB1×PB2 grid sweep ─────────────────────────────────────────────
+        with st.expander("🔍 PB1×PB2 Sweep", expanded=False):
             st.caption(
                 "Sweeps pullback entry levels (as R distance back from E1) with tick offsets held fixed. "
                 "Ratchet is disabled during sweep for clean robustness testing."
@@ -1151,10 +1151,10 @@ def _show_optimal_r(signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
             _n_combos = sum(1 for p1 in range(1, _n_pb1 + 1)
                               for p2 in range(2, _n_pb2 + 1)
                               if p2 > p1)
-            st.caption(f"PB1: 0.25â€“{_max_pb1:.2f}R Ã— PB2: 0.50â€“{_max_pb2:.2f}R â€” {_n_combos} combinations")
+            st.caption(f"PB1: 0.25–{_max_pb1:.2f}R × PB2: 0.50–{_max_pb2:.2f}R — {_n_combos} combinations")
 
-            if st.button("Run PB1Ã—PB2 Sweep", key="ba_run_pb_sweep"):
-                with st.spinner(f"Running PB1Ã—PB2 sweep ({_n_combos} combinations)â€¦"):
+            if st.button("Run PB1×PB2 Sweep", key="ba_run_pb_sweep"):
+                with st.spinner(f"Running PB1×PB2 sweep ({_n_combos} combinations)…"):
                     _pb_df = _run_pb_sweep(
                         signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
                         tick_value, commission,
@@ -1205,11 +1205,11 @@ def _show_optimal_r(signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
             _styled = _apply_best_green(_ranked, _ranked.style.format(_fmt), _METRIC_COLS, _THRESHOLDS)
             st.dataframe(_styled, use_container_width=True)
 
-        # â”€â”€ T1Ã—T3 sweep for 3-leg (T2 held fixed at current value) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        with st.expander("ðŸ” T1Ã—T3 Sweep (3-Leg)", expanded=False):
+        # ── T1×T3 sweep for 3-leg (T2 held fixed at current value) ───────────
+        with st.expander("🔍 T1×T3 Sweep (3-Leg)", expanded=False):
             _t2_fixed = t2_r if t2_r > 0 else float(st.session_state.get("ba_t2_r_3l", 2.0))
             st.caption(
-                f"Sweeps T1 (E1 target) Ã— T3 (E3 target) with T2={_t2_fixed:.2f}R (E2 target) held fixed. "
+                f"Sweeps T1 (E1 target) × T3 (E3 target) with T2={_t2_fixed:.2f}R (E2 target) held fixed. "
                 "PB levels and ratchet disabled."
             )
             _t3c1, _t3c2 = st.columns(2)
@@ -1228,12 +1228,12 @@ def _show_optimal_r(signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
             _n_combos_t = sum(1 for t1i in range(1, _n_t1_3l + 1)
                                for t3i in range(2, _n_t3_3l + 1)
                                if t1i < _t2_fixed / 0.25 and _t2_fixed / 0.25 < t3i)
-            st.caption(f"T1: 0.25â€“{_max_t1_3l:.2f}R Ã— T3: 0.50â€“{_max_t3_3l:.2f}R â€” {_n_combos_t} combinations")
+            st.caption(f"T1: 0.25–{_max_t1_3l:.2f}R × T3: 0.50–{_max_t3_3l:.2f}R — {_n_combos_t} combinations")
 
-            if st.button("Run T1Ã—T3 Sweep", key="ba_run_t1t2_3l"):
+            if st.button("Run T1×T3 Sweep", key="ba_run_t1t2_3l"):
                 _pb1_cur = float(st.session_state.get("ba_pb1_r_3l", 0.33))
                 _pb2_cur = float(st.session_state.get("ba_pb2_r_3l", 0.66))
-                with st.spinner(f"Running T1Ã—T3 sweep ({_n_combos_t} combinations)â€¦"):
+                with st.spinner(f"Running T1×T3 sweep ({_n_combos_t} combinations)…"):
                     _t1t2_3l_df = _run_t1t2_sweep_3leg(
                         signals, ticks_by_date,
                         entry_slip, exit_slip, stop_offset,
@@ -1283,8 +1283,8 @@ def _show_optimal_r(signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
                 st.dataframe(_t_styled, use_container_width=True)
 
     elif multileg:
-        # â”€â”€ 2D T1Ã—T2 grid sweep â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        with st.expander("ðŸ” T1Ã—T2 Sweep", expanded=False):
+        # ── 2D T1×T2 grid sweep ───────────────────────────────────────────────
+        with st.expander("🔍 T1×T2 Sweep", expanded=False):
             _rc1, _rc2 = st.columns(2)
             _max_t1 = _rc1.number_input(
                 "Max T1 (R)", min_value=0.5, max_value=5.0,
@@ -1301,10 +1301,10 @@ def _show_optimal_r(signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
             _n_combos = sum(1 for t1i in range(1, _n_t1 + 1)
                               for t2i in range(2, _n_t2 + 1)
                               if t1i < t2i)
-            st.caption(f"T1: 0.25â€“{_max_t1:.2f} Ã— T2: 0.50â€“{_max_t2:.2f} â€” {_n_combos} combinations")
+            st.caption(f"T1: 0.25–{_max_t1:.2f} × T2: 0.50–{_max_t2:.2f} — {_n_combos} combinations")
 
-            if st.button("Run T1Ã—T2 Sweep", key="ba_run_sweep"):
-                with st.spinner(f"Running T1Ã—T2 sweep ({_n_combos} combinations)â€¦"):
+            if st.button("Run T1×T2 Sweep", key="ba_run_sweep"):
+                with st.spinner(f"Running T1×T2 sweep ({_n_combos} combinations)…"):
                     _t1t2_df = _run_t1t2_sweep(
                         signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
                         tick_value, contracts, commission,
@@ -1326,7 +1326,7 @@ def _show_optimal_r(signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
                     key="ba_t1t2_metric",
                 )
 
-                # â”€â”€ Heatmap â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                # ── Heatmap ───────────────────────────────────────────────────
                 _pivot = sweep_df.pivot(index="T1", columns="T2", values=_metric)
                 _t1_labels = [f"{v:.2f}" for v in _pivot.index]
                 _t2_labels = [f"{v:.2f}" for v in _pivot.columns]
@@ -1346,7 +1346,7 @@ def _show_optimal_r(signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
                 )
                 st.plotly_chart(_hfig, use_container_width=True)
 
-                # â”€â”€ Ranked table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                # ── Ranked table ──────────────────────────────────────────────
                 st.caption(f"Top 20 combinations by **{_metric}**")
                 _ranked = sweep_df.sort_values(_metric, ascending=False).head(20).reset_index(drop=True)
                 _ranked.index = _ranked.index + 1
@@ -1365,8 +1365,8 @@ def _show_optimal_r(signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
                         _styled = _styled.apply(_hl_rank1_t1t2, subset=[_tc])
                 st.dataframe(_styled, use_container_width=True)
 
-        # â”€â”€ Scale-In sweep: PB Ã— T1 Ã— T2 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        with st.expander("ðŸ” Scale-In Sweep (PB Ã— T1 Ã— T2)", expanded=False):
+        # ── Scale-In sweep: PB × T1 × T2 ─────────────────────────────────────
+        with st.expander("🔍 Scale-In Sweep (PB × T1 × T2)", expanded=False):
             _all_pb = [-0.25, -0.33, -0.50, -0.66, -0.75, -1.0, -1.25, -1.50]
             _all_t1 = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
             _all_t2 = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0]
@@ -1399,26 +1399,26 @@ def _show_optimal_r(signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
             _sweep_t1 = _all_t1[min(_t1_from_i, _t1_to_i) : max(_t1_from_i, _t1_to_i) + 1]
             _sweep_t2 = _all_t2[min(_t2_from_i, _t2_to_i) : max(_t2_from_i, _t2_to_i) + 1]
             _si_n = len(_sweep_pb) * len(_sweep_t1) * len(_sweep_t2)
-            st.caption(f"PB: {len(_sweep_pb)} values Â· T1: {len(_sweep_t1)} values Â· T2: {len(_sweep_t2)} values â€” **{_si_n} combinations** (T1 auto-capped at run time â€” see below)")
+            st.caption(f"PB: {len(_sweep_pb)} values · T1: {len(_sweep_t1)} values · T2: {len(_sweep_t2)} values — **{_si_n} combinations** (T1 auto-capped at run time — see below)")
 
-            with st.expander("â„¹ï¸ How the T1 ceiling works", expanded=False):
+            with st.expander("ℹ️ How the T1 ceiling works", expanded=False):
                 st.markdown("""
 **Problem:** If T1 is set very high (e.g. 9R or 10R), it can never be reached before
-the pullback fills â€” so the T1-only exit path disappears entirely. The sweep would
+the pullback fills — so the T1-only exit path disappears entirely. The sweep would
 label those rows as "optimal" simply because they are equivalent to having no T1 at
 all (every trade becomes a scale-in attempt). That is a degenerate result, not a
 genuine optimum.
 
-**Solution â€” data-driven T1 ceiling:**
+**Solution — data-driven T1 ceiling:**
 When you click *Run Scale-In Sweep*, the app first runs a single-leg simulation with
 a target of 999R (effectively infinite) so that the trade stays open until the stop
 or end-of-day. This gives the **unconstrained MFE** (Maximum Favorable Excursion)
-for every signal â€” i.e. how far price actually ran from entry before stopping out or
+for every signal — i.e. how far price actually ran from entry before stopping out or
 hitting EOD, with no artificial T1 cap.
 
 The **95th percentile** of that MFE distribution (in R units) becomes the T1 ceiling.
 Any T1 value above that ceiling would produce a T1-only exit rate of ~0 % across
-all signals â€” meaning the T1 parameter has no effect and the sweep result is
+all signals — meaning the T1 parameter has no effect and the sweep result is
 meaningless for those rows.
 
 T1 values above the ceiling are removed from the sweep before it runs.
@@ -1426,10 +1426,10 @@ The ceiling is shown next to the results table after each run.
 """)
 
             if st.button("Run Scale-In Sweep", key="ba_run_si_sweep"):
-                # â”€â”€ Compute data-driven T1 ceiling before sweeping â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                # ── Compute data-driven T1 ceiling before sweeping ──────────────
                 # Run a single-leg sim with target=999R so T1 is never constrained;
                 # 95th pct of MFE_R gives the highest T1 that could ever trigger.
-                with st.spinner("Computing T1 ceiling from dataâ€¦"):
+                with st.spinner("Computing T1 ceiling from data…"):
                     _bl_res  = simulate_trades(
                         signals, ticks_by_date, 999.0,
                         entry_slip, exit_slip, stop_offset,
@@ -1442,7 +1442,7 @@ The ceiling is shown next to the results table after each run.
                     st.session_state["ba_si_t1_cap"] = _t1_cap
                 _sweep_t1_capped = [v for v in _sweep_t1 if v <= _t1_cap] or [_sweep_t1[0]]
                 _si_n_actual = len(_sweep_pb) * len(_sweep_t1_capped) * len(_sweep_t2)
-                with st.spinner(f"Running scale-in sweep ({_si_n_actual} combinations, T1 â‰¤ {_t1_cap:.2f}R)â€¦"):
+                with st.spinner(f"Running scale-in sweep ({_si_n_actual} combinations, T1 ≤ {_t1_cap:.2f}R)…"):
                     _si_df = _run_ml_scalein_sweep(
                         signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
                         tick_value, contracts, commission,
@@ -1458,7 +1458,7 @@ The ceiling is shown next to the results table after each run.
 
             _si_res = st.session_state.get("ba_si_sweep_df")
             if _si_res is not None and "T1_R" not in _si_res.columns:
-                # stale result from old 2-param sweep â€” discard it
+                # stale result from old 2-param sweep — discard it
                 st.session_state.pop("ba_si_sweep_df", None)
                 _si_res = None
             if _si_res is not None and not _si_res.empty:
@@ -1484,7 +1484,7 @@ The ceiling is shown next to the results table after each run.
                         colorbar=dict(title=_si_metric, thickness=14),
                     ))
                     _si_fig.update_layout(
-                        title=f"PB Ã— T2  (T1 = {_si_t1_val:.2f}R)",
+                        title=f"PB × T2  (T1 = {_si_t1_val:.2f}R)",
                         xaxis_title="T2 (R from blended entry)",
                         yaxis_title="E2 Pullback (R from entry)",
                         height=380, template="plotly_white",
@@ -1495,11 +1495,11 @@ The ceiling is shown next to the results table after each run.
                 _t1_cap_shown = st.session_state.get("ba_si_t1_cap")
                 if _t1_cap_shown:
                     st.info(
-                        f"**T1 ceiling applied: {_t1_cap_shown:.2f}R** â€” "
+                        f"**T1 ceiling applied: {_t1_cap_shown:.2f}R** — "
                         f"computed as the 95th percentile of unconstrained MFE across all filled signals "
                         f"(single-leg sim, target = 999R). "
                         f"T1 values above {_t1_cap_shown:.2f}R would produce a ~0% T1-only rate and were excluded from the sweep.",
-                        icon="ðŸ“",
+                        icon="📐",
                     )
                 st.caption(f"Top 20 combinations (all T1) by **{_si_metric}**")
                 _si_ranked = _si_res.sort_values(_si_metric, ascending=False).head(20).reset_index(drop=True)
@@ -1520,18 +1520,18 @@ The ceiling is shown next to the results table after each run.
                 st.dataframe(_si_styled, use_container_width=True)
 
     else:
-        # â”€â”€ 1D R sweep (single-leg) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        with st.expander("ðŸ” Optimal R Sweep", expanded=False):
+        # ── 1D R sweep (single-leg) ───────────────────────────────────────────
+        with st.expander("🔍 Optimal R Sweep", expanded=False):
             _max_r = st.number_input(
                 "Max R", min_value=0.5, max_value=10.0,
                 value=float(st.session_state.get("ba_sweep_max_r", 3.0)),
                 step=0.25, format="%.2f", key="ba_sweep_max_r",
             )
             _n_r = max(1, round(_max_r / 0.25)) - 1  # steps from 0.50
-            st.caption(f"R: 0.50â€“{_max_r:.2f} in 0.25 steps â€” {_n_r} values")
+            st.caption(f"R: 0.50–{_max_r:.2f} in 0.25 steps — {_n_r} values")
 
             if st.button("Run R Sweep", key="ba_run_sweep"):
-                with st.spinner(f"Running sweep ({_n_r} values)â€¦"):
+                with st.spinner(f"Running sweep ({_n_r} values)…"):
                     sweep_df = _run_r_sweep(
                         signals, ticks_by_date, entry_slip, exit_slip,
                         stop_offset, tick_value, contracts, commission,
@@ -1574,7 +1574,7 @@ The ceiling is shown next to the results table after each run.
             st.plotly_chart(fig, use_container_width=True)
 
 
-# â”€â”€ Unfilled signals table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Unfilled signals table ────────────────────────────────────────────────────
 
 _FILTER_LABELS = {
     "no_fill":        "Price never crossed signal level",
@@ -1590,7 +1590,7 @@ _FILTER_LABELS = {
     "direction":      "Direction excluded",
     "date_range":     "Outside selected date range",
     "first_trade_day":"Non-first trade of day",
-    "manual_override":"Manual fill override âœ“",
+    "manual_override":"Manual fill override ✓",
 }
 
 _EXECUTION_STATUSES = {"no_fill", "no_next_bar", "no_tick_data", "zero_risk"}
@@ -1635,7 +1635,7 @@ def _show_monthly_breakdown(results: pd.DataFrame, commission: float):
     filled["Month"] = pd.to_datetime(filled["Date"]).dt.to_period("M")
     signal_types = sorted(filled["SignalType"].unique())
 
-    # â”€â”€ Shared stats helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Shared stats helper ───────────────────────────────────────────────────
     def _group_stats(g, setup_pcts: bool = False) -> pd.Series:
         n       = len(g)
         wins    = g[g["ExitReason"].str.contains("Target", na=False) | (g["ExitReason"] == "T1+BE")]
@@ -1659,7 +1659,7 @@ def _show_monthly_breakdown(results: pd.DataFrame, commission: float):
                 row[f"{stype}%"] = round(int((g["SignalType"] == stype).sum()) / n * 100, 1) if n else 0.0
         return pd.Series(row)
 
-    # â”€â”€ Per-month â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Per-month ─────────────────────────────────────────────────────────────
     monthly = (
         filled.groupby("Month", sort=True)
         .apply(lambda g: _group_stats(g, setup_pcts=True))
@@ -1667,14 +1667,14 @@ def _show_monthly_breakdown(results: pd.DataFrame, commission: float):
     )
     monthly["Month"] = monthly["Month"].astype(str)
 
-    # â”€â”€ Per-setup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Per-setup ─────────────────────────────────────────────────────────────
     setup_df = (
         filled.groupby("SignalType", sort=True)
         .apply(lambda g: _group_stats(g, setup_pcts=False))
         .reset_index()
     )
 
-    # â”€â”€ Equity / DD / trend â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Equity / DD / trend ───────────────────────────────────────────────────
     equity     = filled["NetPnL"].cumsum().values
     peak       = pd.Series(equity).cummax().values
     dd_vals    = equity - peak
@@ -1688,8 +1688,8 @@ def _show_monthly_breakdown(results: pd.DataFrame, commission: float):
     def _fmt(df: pd.DataFrame) -> pd.DataFrame:
         d = df.copy()
         d["Net PnL"] = df["Net PnL"].apply(lambda v: f"${v:+,.0f}")
-        d["Best"]    = df["Best"].apply(lambda v: f"${v:+,.0f}" if v != 0 else "â€”")
-        d["Worst"]   = df["Worst"].apply(lambda v: f"${v:+,.0f}" if v != 0 else "â€”")
+        d["Best"]    = df["Best"].apply(lambda v: f"${v:+,.0f}" if v != 0 else "—")
+        d["Worst"]   = df["Worst"].apply(lambda v: f"${v:+,.0f}" if v != 0 else "—")
         d["Win%"]    = df["Win%"].apply(lambda v: f"{v:.1f}%")
         d["PF"]      = df["PF"].apply(lambda v: f"{v:.2f}")
         d["Avg R"]   = df["Avg R"].apply(lambda v: f"{v:.2f}")
@@ -1699,8 +1699,8 @@ def _show_monthly_breakdown(results: pd.DataFrame, commission: float):
 
     base_cols = ["Trades", "Win%", "PF", "Net PnL", "Avg R", "MAE R", "MFE R", "Best", "Worst"]
 
-    # â”€â”€ Monthly breakdown expander â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    with st.expander("ðŸ“… Monthly Breakdown", expanded=False):
+    # ── Monthly breakdown expander ────────────────────────────────────────────
+    with st.expander("📅 Monthly Breakdown", expanded=False):
         disp = _fmt(monthly)
         for col in stype_pct_cols:
             if col in monthly.columns:
@@ -1780,8 +1780,8 @@ def _show_monthly_breakdown(results: pd.DataFrame, commission: float):
             )
             st.plotly_chart(fig_cc, use_container_width=True)
 
-    # â”€â”€ Setup analysis expander â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    with st.expander("ðŸ“Š Setup Analysis", expanded=False):
+    # ── Setup analysis expander ───────────────────────────────────────────────
+    with st.expander("📊 Setup Analysis", expanded=False):
         sdisp = _fmt(setup_df)
         st.dataframe(
             sdisp[["SignalType"] + base_cols],
@@ -1792,10 +1792,10 @@ def _show_monthly_breakdown(results: pd.DataFrame, commission: float):
 def _show_unfilled_table(results: pd.DataFrame, ticks_by_date: dict):
     st.markdown("---")
 
-    # â”€â”€ Signals that passed filters but didn't execute â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Signals that passed filters but didn't execute ────────────────────────
     exec_failed = results[results["FilterStatus"].isin(_EXECUTION_STATUSES)].copy()
 
-    with st.expander(f"Execution failures â€” {len(exec_failed)} signals", expanded=False):
+    with st.expander(f"Execution failures — {len(exec_failed)} signals", expanded=False):
         if exec_failed.empty:
             st.success("All filter-passing signals were filled.")
         else:
@@ -1813,12 +1813,12 @@ def _show_unfilled_table(results: pd.DataFrame, ticks_by_date: dict):
                 "Stop Px":   exec_failed["StopPrice"].apply(lambda v: f"{v:.2f}"),
                 "Reason":    exec_failed["Reason"],
                 "Missed by": exec_failed["Missed by (ticks)"].apply(
-                    lambda v: f"{v} tks" if pd.notna(v) else "â€”"
+                    lambda v: f"{v} tks" if pd.notna(v) else "—"
                 ),
             })
             st.dataframe(disp, use_container_width=True, hide_index=True)
 
-        # â”€â”€ Manual fill override form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # ── Manual fill override form ─────────────────────────────────────────
         st.markdown("**Manual Fill Override**")
         overrides = st.session_state.get("ba_manual_overrides", {})
 
@@ -1826,7 +1826,7 @@ def _show_unfilled_table(results: pd.DataFrame, ticks_by_date: dict):
         if not fillable.empty:
             ov_cols = st.columns([2, 2, 2, 1])
             sig_opts = {
-                f"#{int(r['SignalNum'])} â€” {r['Date']} Bar {int(r['BarNum'])} {r['Direction']} @ {r['SignalPrice']:.2f}": int(r["SignalNum"])
+                f"#{int(r['SignalNum'])} — {r['Date']} Bar {int(r['BarNum'])} {r['Direction']} @ {r['SignalPrice']:.2f}": int(r["SignalNum"])
                 for _, r in fillable.iterrows()
             }
             sel_label = ov_cols[0].selectbox("Signal", list(sig_opts.keys()),
@@ -1851,15 +1851,15 @@ def _show_unfilled_table(results: pd.DataFrame, ticks_by_date: dict):
             st.caption("Active overrides:")
             for sig_num, ov in list(overrides.items()):
                 r1, r2 = st.columns([6, 1])
-                r1.caption(f"Signal #{sig_num} â€” fill @ {ov['fill_price']:.2f}  bar {ov['fill_bar']}")
-                if r2.button("âœ•", key=f"rm_ov_{sig_num}"):
+                r1.caption(f"Signal #{sig_num} — fill @ {ov['fill_price']:.2f}  bar {ov['fill_bar']}")
+                if r2.button("✕", key=f"rm_ov_{sig_num}"):
                     del overrides[sig_num]
                     st.session_state["ba_manual_overrides"] = overrides
                     st.rerun()
 
-    # â”€â”€ Signals filtered by user settings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Signals filtered by user settings ────────────────────────────────────
     filtered = results[~results["FilterStatus"].isin(_EXECUTION_STATUSES | {"ok", "manual_override"})].copy()
-    with st.expander(f"Filtered by settings â€” {len(filtered)} signals", expanded=False):
+    with st.expander(f"Filtered by settings — {len(filtered)} signals", expanded=False):
         if filtered.empty:
             st.info("No signals filtered by current settings.")
         else:
@@ -1879,7 +1879,7 @@ def compute_alt_path_outcomes(results: pd.DataFrame, sc_bars: pd.DataFrame, nt_b
     """Flag filled trades where NT and Massive would have produced a different outcome.
 
     Gate: only check trades whose NT signal bar's Close differs from Massive's Close for
-    that same bar (signal_price *is* that NT close, by construction â€” see _simulate_one_bars
+    that same bar (signal_price *is* that NT close, by construction — see _simulate_one_bars
     docstring). If they agree, Massive-based simulation is already faithful to what NT showed
     and there's nothing to re-derive.
 
@@ -1887,7 +1887,7 @@ def compute_alt_path_outcomes(results: pd.DataFrame, sc_bars: pd.DataFrame, nt_b
     NT granularity available) instead of Massive's, holding signal_price/stop_csv fixed (they
     come from the external signals file, not from either bar source). Only rows where the
     re-derived outcome actually differs (fill/no-fill, exit reason, or PnL) get the Alt* columns
-    populated â€” most gated trades will re-derive to the same outcome and aren't flagged.
+    populated — most gated trades will re-derive to the same outcome and aren't flagged.
     """
     from validation import build_comparison
 
@@ -1907,14 +1907,14 @@ def compute_alt_path_outcomes(results: pd.DataFrame, sc_bars: pd.DataFrame, nt_b
         return out
 
     comp = build_comparison(sc_bars, nt_bars)
-    comp_close_delta = comp.set_index("DateTime")["Î”Close"]
+    comp_close_delta = comp.set_index("DateTime")["ΔClose"]
     nt_by_date = {d: g for d, g in nt_bars.groupby(nt_bars["DateTime"].dt.date)}
 
     for idx, row in filled.iterrows():
         sig_bar_dt = row["DateTime"] - pd.Timedelta(minutes=5)
         d_close = comp_close_delta.get(sig_bar_dt)
         if d_close is None or pd.isna(d_close) or d_close == 0:
-            continue  # NT close at the signal bar matches Massive â€” nothing to re-check
+            continue  # NT close at the signal bar matches Massive — nothing to re-check
 
         out.at[idx, "AltChecked"] = True
         day_bars_nt = nt_by_date.get(row["Date"])
@@ -1948,25 +1948,25 @@ def _show_mismatch_analysis(results: pd.DataFrame, sc_bars: pd.DataFrame, nt_bar
 
     comp = build_comparison(sc_bars, nt_bars)
     # Index comparison by bar open DateTime for fast join
-    comp_idx = comp.set_index("DateTime")[["OHLC_match", "Î”Open", "Î”High", "Î”Low", "Î”Close"]].copy()
+    comp_idx = comp.set_index("DateTime")[["OHLC_match", "ΔOpen", "ΔHigh", "ΔLow", "ΔClose"]].copy()
 
     filled = results[results["Filled"] == True].copy()
     if filled.empty:
         st.info("No filled trades to analyse.")
         return
 
-    # Signal bar open = signal fire time (bar close) âˆ’ 5 min
+    # Signal bar open = signal fire time (bar close) − 5 min
     filled["_SigBarDT"] = filled["DateTime"] - pd.Timedelta(minutes=5)
     filled = filled.join(comp_idx, on="_SigBarDT", how="left")
 
     # Impact: does the mismatch help or hurt the trade direction?
-    # Î” = NT âˆ’ SC  â†’  Î”High > 0 means NT showed higher high than SC (SC had less upside)
-    # LONG favored by:  Î”High â‰¤ 0 (SC high â‰¥ NT high)  AND  Î”Low â‰¤ 0 (SC low â‰¥ NT low)
-    # SHORT favored by: Î”High â‰¥ 0 (SC high â‰¤ NT high)  AND  Î”Low â‰¥ 0 (SC low â‰¤ NT low)
+    # Δ = NT − SC  →  ΔHigh > 0 means NT showed higher high than SC (SC had less upside)
+    # LONG favored by:  ΔHigh ≤ 0 (SC high ≥ NT high)  AND  ΔLow ≤ 0 (SC low ≥ NT low)
+    # SHORT favored by: ΔHigh ≥ 0 (SC high ≤ NT high)  AND  ΔLow ≥ 0 (SC low ≤ NT low)
     def _impact(row):
-        if pd.isna(row.get("Î”High")):
+        if pd.isna(row.get("ΔHigh")):
             return "No data"
-        dh, dl = row["Î”High"], row["Î”Low"]
+        dh, dl = row["ΔHigh"], row["ΔLow"]
         net = -(dh + dl) if row["Direction"] == "Long" else (dh + dl)
         if net > 0:
             return "Favorable"
@@ -1987,14 +1987,14 @@ def _show_mismatch_analysis(results: pd.DataFrame, sc_bars: pd.DataFrame, nt_bar
     c1, c2, c3, c4, c5 = st.columns(5)
     c1.metric("Signals on Mismatch Bars", n_mismatch)
     c2.metric("% of Filled Signals",
-              f"{n_mismatch / n_total * 100:.1f}%" if n_total else "â€”")
-    c3.metric("Win Rate â€” Matched",
-              f"{wr_matched  * 100:.1f}%" if not pd.isna(wr_matched)  else "â€”")
-    c4.metric("Win Rate â€” Mismatched",
-              f"{wr_mismatch * 100:.1f}%" if not pd.isna(wr_mismatch) else "â€”")
+              f"{n_mismatch / n_total * 100:.1f}%" if n_total else "—")
+    c3.metric("Win Rate — Matched",
+              f"{wr_matched  * 100:.1f}%" if not pd.isna(wr_matched)  else "—")
+    c4.metric("Win Rate — Mismatched",
+              f"{wr_mismatch * 100:.1f}%" if not pd.isna(wr_mismatch) else "—")
     delta_wr = (wr_mismatch - wr_matched) if not (pd.isna(wr_mismatch) or pd.isna(wr_matched)) else None
-    c5.metric("Win Rate Î”",
-              f"{delta_wr * 100:+.1f}%" if delta_wr is not None else "â€”",
+    c5.metric("Win Rate Δ",
+              f"{delta_wr * 100:+.1f}%" if delta_wr is not None else "—",
               delta_color="normal" if delta_wr is None else ("normal" if delta_wr >= 0 else "inverse"))
 
     if n_mismatch == 0:
@@ -2017,20 +2017,20 @@ def _show_mismatch_analysis(results: pd.DataFrame, sc_bars: pd.DataFrame, nt_bar
         "No data":     "color:#555",
     }
 
-    with st.expander(f"Mismatched signals â€” detail ({n_mismatch})", expanded=False):
+    with st.expander(f"Mismatched signals — detail ({n_mismatch})", expanded=False):
         disp = pd.DataFrame()
         disp["Date"]      = mismatched["Date"].astype(str)
         disp["Bar"]       = mismatched["BarNum"].astype(int)
         disp["Dir"]       = mismatched["Direction"]
-        disp["Sig Px"]    = mismatched["SignalPrice"].apply(lambda v: f"{v:.2f}" if pd.notna(v) else "â€”")
-        disp["Entry Px"]  = mismatched["EntryPrice"].apply(lambda v: f"{v:.2f}" if pd.notna(v) else "â€”")
-        disp["Exit"]      = mismatched["ExitReason"].replace("", "â€”")
-        disp["Net $"]     = mismatched["NetPnL"].apply(lambda v: f"{v:+.0f}" if pd.notna(v) else "â€”")
-        disp["R"]         = mismatched["R_achieved"].apply(lambda v: f"{v:+.2f}" if pd.notna(v) else "â€”")
-        disp["Î”Open"]     = mismatched["Î”Open"].round(0).astype("Int64")
-        disp["Î”High"]     = mismatched["Î”High"].round(0).astype("Int64")
-        disp["Î”Low"]      = mismatched["Î”Low"].round(0).astype("Int64")
-        disp["Î”Close"]    = mismatched["Î”Close"].round(0).astype("Int64")
+        disp["Sig Px"]    = mismatched["SignalPrice"].apply(lambda v: f"{v:.2f}" if pd.notna(v) else "—")
+        disp["Entry Px"]  = mismatched["EntryPrice"].apply(lambda v: f"{v:.2f}" if pd.notna(v) else "—")
+        disp["Exit"]      = mismatched["ExitReason"].replace("", "—")
+        disp["Net $"]     = mismatched["NetPnL"].apply(lambda v: f"{v:+.0f}" if pd.notna(v) else "—")
+        disp["R"]         = mismatched["R_achieved"].apply(lambda v: f"{v:+.2f}" if pd.notna(v) else "—")
+        disp["ΔOpen"]     = mismatched["ΔOpen"].round(0).astype("Int64")
+        disp["ΔHigh"]     = mismatched["ΔHigh"].round(0).astype("Int64")
+        disp["ΔLow"]      = mismatched["ΔLow"].round(0).astype("Int64")
+        disp["ΔClose"]    = mismatched["ΔClose"].round(0).astype("Int64")
         disp["Impact"]    = mismatched["Impact"].values
 
         def _style_impact(s):
@@ -2050,19 +2050,19 @@ def _show_mismatch_analysis(results: pd.DataFrame, sc_bars: pd.DataFrame, nt_bar
         styled = (
             disp.style
             .apply(_style_impact, subset=["Impact"])
-            .apply(_style_delta,  subset=["Î”Open", "Î”High", "Î”Low", "Î”Close"])
+            .apply(_style_delta,  subset=["ΔOpen", "ΔHigh", "ΔLow", "ΔClose"])
         )
         st.dataframe(styled, use_container_width=True, hide_index=True)
 
-    # â”€â”€ Alt-path outcomes: trades whose NT signal bar Close differs AND the â”€â”€
-    # â”€â”€ re-derived NT-bar outcome actually changes the result â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Alt-path outcomes: trades whose NT signal bar Close differs AND the ──
+    # ── re-derived NT-bar outcome actually changes the result ───────────────
     if "AltChecked" in results.columns:
         n_checked = int(results["AltChecked"].sum())
         n_differs = int(results["AltDiffers"].sum())
         st.markdown("---")
         st.caption(
             f"**Signal-bar Close gate**: {n_checked} filled trade(s) had an NT signal-bar Close "
-            f"that differs from Massive's â€” re-derived using NT's 5M bars. "
+            f"that differs from Massive's — re-derived using NT's 5M bars. "
             f"**{n_differs}** actually changed outcome."
         )
         if n_differs == 0:
@@ -2073,27 +2073,27 @@ def _show_mismatch_analysis(results: pd.DataFrame, sc_bars: pd.DataFrame, nt_bar
             disp2["Date"]         = alt["Date"].astype(str)
             disp2["Bar"]          = alt["BarNum"].astype(int)
             disp2["Dir"]          = alt["Direction"]
-            disp2["Exit (SC)"]    = alt["ExitReason"].replace("", "â€”")
-            disp2["Net $ (SC)"]   = alt["NetPnL"].apply(lambda v: f"{v:+.0f}" if pd.notna(v) else "â€”")
+            disp2["Exit (SC)"]    = alt["ExitReason"].replace("", "—")
+            disp2["Net $ (SC)"]   = alt["NetPnL"].apply(lambda v: f"{v:+.0f}" if pd.notna(v) else "—")
             disp2["Exit (NT)"]    = alt["AltExitReason"].fillna("NoFill")
-            disp2["Gross $ (NT)"] = alt["AltGrossPnL"].apply(lambda v: f"{v:+.0f}" if pd.notna(v) else "â€”")
-            disp2["Entry (NT)"]   = alt["AltEntryPrice"].apply(lambda v: f"{v:.2f}" if pd.notna(v) else "â€”")
-            disp2["Exit Px (NT)"] = alt["AltExitPrice"].apply(lambda v: f"{v:.2f}" if pd.notna(v) else "â€”")
+            disp2["Gross $ (NT)"] = alt["AltGrossPnL"].apply(lambda v: f"{v:+.0f}" if pd.notna(v) else "—")
+            disp2["Entry (NT)"]   = alt["AltEntryPrice"].apply(lambda v: f"{v:.2f}" if pd.notna(v) else "—")
+            disp2["Exit Px (NT)"] = alt["AltExitPrice"].apply(lambda v: f"{v:.2f}" if pd.notna(v) else "—")
             st.dataframe(disp2, use_container_width=True, hide_index=True)
 
 
-# â”€â”€ Main tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Main tab ──────────────────────────────────────────────────────────────────
 
 def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""):
     from data_loader import filter_excluded_dates
 
     signals_raw = st.session_state.get("ba_signals")
     if signals_raw is None:
-        st.info("Upload a signals file in the **ðŸ“Š MC Signals** panel above to begin.")
+        st.info("Upload a signals file in the **📊 MC Signals** panel above to begin.")
         return
     signals_raw = filter_excluded_dates(signals_raw)
 
-    # â”€â”€ Load data â€” Massive continuous is the analysis source; NT is matching-only â”€â”€
+    # ── Load data — Massive continuous is the analysis source; NT is matching-only ──
     from pathlib import Path
     uploaded_ohlc = st.session_state.get("uploaded_ohlc_bars")   # legacy fallback only
     mas_cont      = st.session_state.get("mas_continuous")
@@ -2106,13 +2106,13 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         _bar_source = "ohlc_upload"
     else:
         st.error(
-            "No bar data available. Build the continuous series in the ðŸ“‚ Massive tab, "
-            "or upload an OHLC bar export in the ðŸ—‚ï¸ Data tab."
+            "No bar data available. Build the continuous series in the 📂 Massive tab, "
+            "or upload an OHLC bar export in the 🗂️ Data tab."
         )
         return
     bars = filter_excluded_dates(bars)
 
-    # Continuous ticks: built lazily, only for the dates that actually have signals â€”
+    # Continuous ticks: built lazily, only for the dates that actually have signals —
     # never the full multi-year history (the per-day Parquet cache from the Massive
     # tab makes each individual day-read fast regardless of total history size).
     import massive as _massive_mod
@@ -2120,10 +2120,14 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
     _ticks_cache_key = f"ba_cont_ticks__{hash(tuple(_sig_dates))}"
     if _ticks_cache_key not in st.session_state:
         _tbd = {}
-        for d in _sig_dates:
+        _tick_prog = st.progress(0.0, text="Loading tick cache…")
+        for _i, d in enumerate(_sig_dates):
             day_ticks = _massive_mod.load_continuous_ticks(d)
             if not day_ticks.empty:
                 _tbd[d] = day_ticks
+            _tick_prog.progress((_i + 1) / len(_sig_dates),
+                                text=f"Loading tick cache… {_i+1}/{len(_sig_dates)}")
+        _tick_prog.empty()
         st.session_state[_ticks_cache_key] = _tbd
     ticks_by_date = st.session_state[_ticks_cache_key]
     _tick_source  = "massive_continuous" if ticks_by_date else "none"
@@ -2132,26 +2136,28 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
     _has_1s_bars   = st.session_state.get("data_sc_1s") is not None
     if _bar_sim_mode and not _has_1s_bars:
         st.warning(
-            "No continuous tick cache for these signal dates â€” running **bar-level simulation** "
-            "(5-min OHLC H/L checks). Build the tick cache in the ðŸ“‚ Massive tab for tick-level fills. "
+            "No continuous tick cache for these signal dates — running **bar-level simulation** "
+            "(5-min OHLC H/L checks). Build the tick cache in the 📂 Massive tab for tick-level fills. "
             "Conservative assumption: when both stop and target are reachable within the same bar, "
             "stop is filled first.",
-            icon="âš ï¸",
+            icon="⚠️",
         )
     elif _bar_sim_mode and _has_1s_bars:
-        st.caption("ðŸ“Š Simulation mode: 1s OHLCV bar-level (near-tick accuracy)")
+        st.caption("📊 Simulation mode: 1s OHLCV bar-level (near-tick accuracy)")
     if _bar_source == "ohlc_upload":
-        st.caption("ðŸ“Š Bar data: uploaded OHLC bar_export (Massive continuous series not built yet)")
+        st.caption("📊 Bar data: uploaded OHLC bar_export (Massive continuous series not built yet)")
 
-    # NT bars for the signal-bar Close matching gate only â€” never used for fills/exits.
+    # NT bars for the signal-bar Close matching gate only — never used for fills/exits.
     # NT @ES continuous (Massive tab upload) wins over the legacy single-contract upload.
-    _nt_bars_for_mismatch = st.session_state.get("nt_cont_bars") or uploaded_ohlc
+    _nt_bars_for_mismatch = st.session_state.get("nt_cont_bars")
+    if _nt_bars_for_mismatch is None or (hasattr(_nt_bars_for_mismatch, "empty") and _nt_bars_for_mismatch.empty):
+        _nt_bars_for_mismatch = uploaded_ohlc
     if _nt_bars_for_mismatch is None and nt_file and Path(nt_file).exists():
         from data_loader import load_nt_bars
         _nt_bars_for_mismatch = load_nt_bars(nt_file)
     nt_bars = filter_excluded_dates(_nt_bars_for_mismatch) if _nt_bars_for_mismatch is not None else None
 
-    # Bar groupby for simulation â€” use 1s bars when available (near-tick accuracy)
+    # Bar groupby for simulation — use 1s bars when available (near-tick accuracy)
     _sim_src = st.session_state.get("data_sc_1s") if _has_1s_bars else None
     _sim_df  = _sim_src if _sim_src is not None else bars
     bars_by_date_sim = {
@@ -2174,22 +2180,22 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
     data_min     = bars["Date"].min()
     data_max     = bars["Date"].max()
 
-    # â”€â”€ Detect data change (contract switch OR new upload) â€” reset stale date state â”€â”€
+    # ── Detect data change (contract switch OR new upload) — reset stale date state ──
     _active_key = f"{_bar_source}|{len(bars)}|{data_min}|{data_max}|{st.session_state.get('uploaded_ohlc_key', '')}"
     if st.session_state.get("ba_active_data_key") != _active_key:
         for k in ("ba_date_from", "ba_date_to", "ba_chart_idx", "ba_initialized"):
             st.session_state.pop(k, None)
         st.session_state["ba_active_data_key"] = _active_key
 
-    # â”€â”€ Initialize defaults â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Initialize defaults ───────────────────────────────────────────────────
     if "ba_initialized" not in st.session_state:
         for k, v in _load_ba_defaults().items():
             st.session_state.setdefault(k, v)
         st.session_state["ba_initialized"] = True
 
-    # â”€â”€ Date range â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Date range ────────────────────────────────────────────────────────────
     dc1, dc2 = st.columns(2)
-    # Clamp defaults to [data_min, data_max] â€” handles signals from a different year than bars
+    # Clamp defaults to [data_min, data_max] — handles signals from a different year than bars
     _from_default = min(max(sig_min, data_min), data_max)
     _to_default   = max(min(sig_max, data_max), data_min)
     date_from = dc1.date_input("From", value=_from_default,
@@ -2197,8 +2203,8 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
     date_to   = dc2.date_input("To",   value=_to_default,
                                 min_value=data_min, max_value=data_max, key="ba_date_to")
 
-    # â”€â”€ Filters expander â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    with st.expander("âš™ï¸ Filters", expanded=False):
+    # ── Filters expander ──────────────────────────────────────────────────────
+    with st.expander("⚙️ Filters", expanded=False):
         st.markdown("**Session Filters**")
         sf1, sf2, sf3 = st.columns(3)
         excl_holidays = sf1.checkbox("Exclude NYSE holidays", key="ba_excl_holidays",
@@ -2235,20 +2241,23 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         event_types = tuple(e for e, on in [("FOMC", use_fomc), ("NFP", use_nfp), ("CPI", use_cpi)] if on)
 
         ef1, ef2 = st.columns([1, 2])
-        _efm_default = st.session_state.get("ba_event_mode", "Skip full day")
+        _EFM_OPTS = ["Skip full day", "Window ±N minutes"]
+        _efm_raw  = st.session_state.get("ba_event_mode", _EFM_OPTS[0])
+        # Normalise: stored value may have plain ± while code had mojibake, or vice versa
+        _efm_default = _EFM_OPTS[1] if ("±" in _efm_raw or "±" in _efm_raw) else _EFM_OPTS[0]
         event_filter_mode = ef1.radio(
-            "Filter mode", ["Skip full day", "Window Â±N minutes"],
-            index=["Skip full day", "Window Â±N minutes"].index(_efm_default),
+            "Filter mode", _EFM_OPTS,
+            index=_EFM_OPTS.index(_efm_default),
             key="ba_event_mode",
         )
         event_window = 30
-        if event_filter_mode == "Window Â±N minutes":
+        if event_filter_mode == _EFM_OPTS[1]:
             event_window = ef2.slider("Minutes before/after", 15, 180,
                                        st.session_state.get("ba_event_window", 30), 15,
                                        key="ba_event_window")
 
-    # â”€â”€ Signals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    with st.expander("ðŸ“¶ Signals", expanded=False):
+    # ── Signals ───────────────────────────────────────────────────────────────
+    with st.expander("📶 Signals", expanded=False):
         _cc_cols = st.columns(5)
         incl_cc1 = _cc_cols[0].checkbox("CC1", key="ba_incl_cc1",
                                          value=st.session_state.get("ba_incl_cc1", True))
@@ -2273,8 +2282,8 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
             index=_dir_opts.index(st.session_state.get("ba_direction_filter", "Both")),
         )
 
-    # â”€â”€ Trading Parameters expander â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    with st.expander("âš™ï¸ Trading Parameters", expanded=False):
+    # ── Trading Parameters expander ───────────────────────────────────────────
+    with st.expander("⚙️ Trading Parameters", expanded=False):
         # 3-Leg hidden until tick data is available.
         _mode_opts = ["Single Leg", "2-Leg"]
         _saved_mode = st.session_state.get("ba_trade_mode", "Single Leg")
@@ -2305,7 +2314,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                     key="ba_instrument_sl",
                     format_func=lambda k: INSTRUMENTS[k]["label"],
                 )
-                # BE Stop and Stop Ratchet modes hidden â€” require tick data for
+                # BE Stop and Stop Ratchet modes hidden — require tick data for
                 # accurate bar-level simulation (dynamic stop movement creates
                 # intrabar sequence ambiguity).
                 _sl_be = False
@@ -2350,8 +2359,8 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                 )
                 _sl_c    = int(st.session_state.get("ba_contracts_sl", 1))
                 _sl_comm = float(st.session_state.get("ba_commission_sl", _def_comm_sl))
-                st.caption(f"{_sl_c}c Ã— ${_sl_comm:.2f} = ${_sl_c * _sl_comm:.2f}/trade")
-                if False:  # Stop Ratchet â€” hidden until tick data available
+                st.caption(f"{_sl_c}c × ${_sl_comm:.2f} = ${_sl_c * _sl_comm:.2f}/trade")
+                if False:  # Stop Ratchet — hidden until tick data available
                     _sl_rdest = st.selectbox("Move stop to",
                         ["BE (entry)", "Lock-in R"], index=0,
                         key="ba_ratchet_dest_sl")
@@ -2385,7 +2394,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                 _t1_sel    = st.selectbox(
                     "T1 (E1 target, R from entry)", _r_lbls, index=_t1_idx,
                     key="ba_t1_r_sel",
-                    help="If price hits T1 before PB fills â†’ trade over, E1 profits.",
+                    help="If price hits T1 before PB fills → trade over, E1 profits.",
                 )
                 t1_r      = _r_opts[_r_lbls.index(_t1_sel)]
                 t1_action = "exit"  # scale-in model always exits E1 at T1
@@ -2449,7 +2458,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
 
                 _ml_c    = contracts_t1 + contracts_t2
                 _ml_comm = float(st.session_state.get("ba_commission_ml", _def_comm_ml))
-                st.caption(f"{_ml_c}c Ã— ${_ml_comm:.2f} = ${_ml_c * _ml_comm:.2f}/trade")
+                st.caption(f"{_ml_c}c × ${_ml_comm:.2f} = ${_ml_c * _ml_comm:.2f}/trade")
                 st.caption("**Stop Ratchet**")
                 _ml_ratchet = st.checkbox("Enable", value=bool(st.session_state.get("ba_ratchet_ml", False)), key="ba_ratchet_ml")
                 if _ml_ratchet:
@@ -2476,11 +2485,11 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                     format_func=lambda k: INSTRUMENTS[k]["label"],
                 )
 
-                # â”€â”€ E1 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-                st.markdown("**E1 â€” Initial entry at signal**")
+                # ── E1 ────────────────────────────────────────────────────────
+                st.markdown("**E1 — Initial entry at signal**")
                 e1c_3l = st.number_input("E1 Contracts", 1, 100,
                     int(st.session_state.get("ba_e1c_3l", 1)), key="ba_e1c_3l")
-                t1_r_3l = st.number_input("T1 â€” E1 target (R)", 0.25, 10.0,
+                t1_r_3l = st.number_input("T1 — E1 target (R)", 0.25, 10.0,
                     float(st.session_state.get("ba_t1_r_3l", 1.0)),
                     step=0.25, format="%.2f", key="ba_t1_r_3l")
                 _t1_lbl_3l = st.radio("At T1", ["Exit E1", "BE stop only"],
@@ -2490,8 +2499,8 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
 
                 st.divider()
 
-                # â”€â”€ E2 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-                st.markdown("**E2 â€” Pullback entry 1**")
+                # ── E2 ────────────────────────────────────────────────────────
+                st.markdown("**E2 — Pullback entry 1**")
                 e2c_3l = st.number_input("E2 Contracts (0 = disabled)", 0, 100,
                     int(st.session_state.get("ba_e2c_3l", 1)), key="ba_e2c_3l")
                 _pb1c1, _pb1c2 = st.columns(2)
@@ -2501,15 +2510,15 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                     help="How far back from E1 entry (in R) to place the PB1 limit order")
                 _pb1c2.number_input("PB1 tick offset", -20, 20,
                     int(st.session_state.get("ba_pb1_ticks_3l", 0)), key="ba_pb1_ticks_3l",
-                    help="+= shallower (closer to entry), â€“= deeper")
-                t2_r_3l = st.number_input("T2 â€” E2 target (R)", 0.25, 10.0,
+                    help="+= shallower (closer to entry), –= deeper")
+                t2_r_3l = st.number_input("T2 — E2 target (R)", 0.25, 10.0,
                     float(st.session_state.get("ba_t2_r_3l", 2.0)),
                     step=0.25, format="%.2f", key="ba_t2_r_3l")
 
                 st.divider()
 
-                # â”€â”€ E3 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-                st.markdown("**E3 â€” Pullback entry 2**")
+                # ── E3 ────────────────────────────────────────────────────────
+                st.markdown("**E3 — Pullback entry 2**")
                 e3c_3l = st.number_input("E3 Contracts (0 = disabled)", 0, 100,
                     int(st.session_state.get("ba_e3c_3l", 1)), key="ba_e3c_3l")
                 _pb2c1, _pb2c2 = st.columns(2)
@@ -2519,8 +2528,8 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                     help="Must be deeper than PB1")
                 _pb2c2.number_input("PB2 tick offset", -20, 20,
                     int(st.session_state.get("ba_pb2_ticks_3l", 0)), key="ba_pb2_ticks_3l",
-                    help="+= shallower, â€“= deeper")
-                target_r_3l = st.number_input("T3 â€” E3 target (R)", 0.25, 10.0,
+                    help="+= shallower, –= deeper")
+                target_r_3l = st.number_input("T3 — E3 target (R)", 0.25, 10.0,
                     float(st.session_state.get("ba_target_r_3l", 3.0)),
                     step=0.25, format="%.2f", key="ba_target_r_3l")
 
@@ -2535,7 +2544,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
 
                 st.divider()
 
-                # â”€â”€ Execution â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                # ── Execution ─────────────────────────────────────────────────
                 st.markdown("**Execution**")
                 st.number_input("Entry slip (ticks)", 0.0, 10.0,
                     float(st.session_state.get("ba_entry_slip_3l",
@@ -2556,13 +2565,13 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                     value=float(st.session_state.get("ba_commission_3l", _def_comm_3l)),
                     step=0.5, format="%.2f", key="ba_commission_3l")
                 _3l_c_tot = e1c_3l + e2c_3l + e3c_3l
-                st.caption(f"E1:{e1c_3l} Â· E2:{e2c_3l} Â· E3:{e3c_3l} "
-                           f"Ã— ${float(st.session_state.get('ba_commission_3l', _def_comm_3l)):.2f} "
+                st.caption(f"E1:{e1c_3l} · E2:{e2c_3l} · E3:{e3c_3l} "
+                           f"× ${float(st.session_state.get('ba_commission_3l', _def_comm_3l)):.2f} "
                            f"= ${_3l_c_tot * float(st.session_state.get('ba_commission_3l', _def_comm_3l)):.2f} max/trade")
 
                 st.divider()
 
-                # â”€â”€ Stop Ratchet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                # ── Stop Ratchet ──────────────────────────────────────────────
                 st.markdown("**Stop Ratchet**")
                 _3l_ratchet = st.checkbox("Enable", value=bool(st.session_state.get("ba_ratchet_3l", False)), key="ba_ratchet_3l")
                 if _3l_ratchet:
@@ -2577,7 +2586,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                             float(st.session_state.get("ba_ratchet_lock_r_3l", 0.5)),
                             step=0.25, format="%.2f", key="ba_ratchet_lock_r_3l")
 
-        # â”€â”€ Derive active parameters â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # ── Derive active parameters ──────────────────────────────────────────
         _sl_be_deriv  = _is_sl and st.session_state.get("ba_sl_mode", "AIAO") == "BE Stop"
         _3l_pb_ok  = float(st.session_state.get("ba_pb2_r_3l", 0.66)) > float(st.session_state.get("ba_pb1_r_3l", 0.33))
         _3l_tgt_ok = (float(st.session_state.get("ba_t1_r_3l", 1.0))
@@ -2627,7 +2636,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
             use_multileg = True
             instrument  = st.session_state.get("ba_instrument_ml", "ES")
             tick_value  = INSTRUMENTS[instrument]["tick_value"]
-            # T2: read from selectbox label â†’ float
+            # T2: read from selectbox label → float
             _t2_r_opts  = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0]
             _t2_r_lbls  = [f"{v:.2f}R" for v in _t2_r_opts]
             _t2_sel_ss  = st.session_state.get("ba_t2_r_sel", "2.00R")
@@ -2637,7 +2646,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
             stop_offset = int(st.session_state.get("ba_stop_offset_ml", 1))
             commission  = float(st.session_state.get("ba_commission_ml", 4.0))
             contracts   = 1
-            # PB level: read from selectbox label â†’ float
+            # PB level: read from selectbox label → float
             _pb_vals_ss = [0.0, -0.25, -0.33, -0.50, -0.66, -0.75, -1.0, -1.25, -1.50, -2.0]
             _pb_lbls_ss = ["None (immediate)", "-0.25R", "-0.33R", "-0.50R",
                            "-0.66R", "-0.75R", "-1.0R", "-1.25R", "-1.50R", "-2.0R"]
@@ -2694,7 +2703,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
             target_r_3l = 3.0; t1_r_3l = 1.0; t2_r_val = 2.0; _t2_r_v = 2.0
 
         st.divider()
-        if st.button("ðŸ’¾ Save as Default", key="ba_save_defaults"):
+        if st.button("💾 Save as Default", key="ba_save_defaults"):
             _save_ba_defaults({
                 "ba_incl_cc1": incl_cc1, "ba_incl_cc2": incl_cc2,
                 "ba_incl_cc3": incl_cc3, "ba_incl_cc4": incl_cc4, "ba_incl_cc5": incl_cc5,
@@ -2758,9 +2767,9 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                 "ba_ratchet_dest_3l": st.session_state.get("ba_ratchet_dest_3l", "BE (blended)"),
                 "ba_ratchet_lock_r_3l": float(st.session_state.get("ba_ratchet_lock_r_3l", 0.5)),
             })
-            st.success("Defaults saved.", icon="âœ…")
+            st.success("Defaults saved.", icon="✅")
 
-    # â”€â”€ Apply filters & simulate â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Apply filters & simulate ──────────────────────────────────────────────
     filtered_signals = apply_signal_filters(
         signals_raw, date_from, date_to, excl_holidays,
         [incl_mon, incl_tue, incl_wed, incl_thu, incl_fri],
@@ -2803,7 +2812,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         )
         results = compute_alt_path_outcomes(results, bars, nt_bars, _alt_mode, _alt_params)
 
-    # First trade of day â€” only the first *filled* trade per day counts
+    # First trade of day — only the first *filled* trade per day counts
     if first_trade_only and not results.empty:
         _filled_mask = results["Filled"] == True
         _filled_sorted = results[_filled_mask].sort_values(["Date", "SignalNum"])
@@ -2811,7 +2820,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         _beyond_idx = results[_filled_mask & ~results.index.isin(_keep_idx)].index
         results = results.drop(_beyond_idx).reset_index(drop=True)
 
-    # First 2 of day â€” only the first 2 *filled* trades per day count
+    # First 2 of day — only the first 2 *filled* trades per day count
     if first_2_filled_only and not results.empty:
         _filled_mask = results["Filled"] == True
         _filled_sorted = results[_filled_mask].sort_values(["Date", "SignalNum"])
@@ -2826,17 +2835,17 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                               t1_action=t1_action,
                               contracts_t1=contracts_t1, contracts_t2=contracts_t2)
 
-    # â”€â”€ Summary â€” pre-compute shared derived values â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Summary — pre-compute shared derived values ───────────────────────────
     if summary:
-        _pf_str    = f"{summary['pf']:.2f}" if summary['pf'] < 99 else "âˆž"
-        _wl_str    = f"{summary['wl_ratio']:.2f}" if summary['wl_ratio'] < 99 else "âˆž"
+        _pf_str    = f"{summary['pf']:.2f}" if summary['pf'] < 99 else "∞"
+        _wl_str    = f"{summary['wl_ratio']:.2f}" if summary['wl_ratio'] < 99 else "∞"
         _slip_usd  = summary.get("slippage_total", 0.0)
         if use_multileg:
             _slip_tks = int(round(_slip_usd / tick_value)) if tick_value > 0 else 0
         else:
             _slip_tks = int((entry_slip + exit_slip) * summary["n_trades"] * contracts)
         _slip_str      = f"{_slip_tks} tks  /  ${_slip_usd:.0f}"
-        # Actual commission = gross âˆ’ net (slippage already embedded in gross prices)
+        # Actual commission = gross − net (slippage already embedded in gross prices)
         _actual_comm   = summary["gross_total"] - summary["net_total"]
         _total_cost    = _slip_usd + _actual_comm
         _dd_abs        = abs(summary["max_dd"]) if summary["max_dd"] != 0 else None
@@ -2846,7 +2855,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         _ci_known      = not (np.isnan(_ci_lo) or np.isnan(_ci_hi))
         _exp_r_help    = (f"95 % CI  [{_ci_lo:+.2f}, {_ci_hi:+.2f}]") if _ci_known else None
 
-    # â”€â”€ PDF export â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── PDF export ───────────────────────────────────────────────────────────
     st.markdown("""
 <style>
 @media print {
@@ -2863,8 +2872,8 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
 }
 </style>""", unsafe_allow_html=True)
     _pdf_col = st.columns([10, 2])[1]
-    if _pdf_col.button("ðŸ“„ Export PDF", key="ba_pdf_btn", use_container_width=True,
-                       help="Opens browser print dialog â€” choose 'Save as PDF', check Downloads."):
+    if _pdf_col.button("📄 Export PDF", key="ba_pdf_btn", use_container_width=True,
+                       help="Opens browser print dialog — choose 'Save as PDF', check Downloads."):
         import streamlit.components.v1 as _cmp
         _pn = st.session_state.get("_ba_pdf_n", 0) + 1
         st.session_state["_ba_pdf_n"] = _pn
@@ -2872,7 +2881,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
             f"""<script>
 (function(){{
     var w = window.parent;
-    // Print the page exactly as it currently looks â€” no expander changes.
+    // Print the page exactly as it currently looks — no expander changes.
     // The Daily Chart (already expanded) gets relayout to ~full page height.
     var _plot = null;
     var _orig = 520;
@@ -2898,16 +2907,16 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
             height=0,
         )
 
-    # â”€â”€ Quick View (expanded by default) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    with st.expander("ðŸ“‹ Quick View", expanded=True):
+    # ── Quick View (expanded by default) ─────────────────────────────────────
+    with st.expander("📋 Quick View", expanded=True):
         if summary:
             r1 = st.columns(6)
             r1[0].metric("Net PnL",   f"${summary['net_total']:,.0f}")
             r1[1].metric("Win %",     f"{summary['win_pct']:.1f}%",
                          help=f"W{summary['n_wins']} / L{summary['n_stop']} / S{summary['n_sess']}")
             r1[2].metric("Exp R",     f"{summary['exp_r']:+.2f}", help=_exp_r_help)
-            r1[3].metric("PnL/DD",    f"{_pnl_dd:.2f}" if _pnl_dd is not None else "â€”")
-            # SQN is unreliable for multi-leg (high R variance by design) â€” show PF instead
+            r1[3].metric("PnL/DD",    f"{_pnl_dd:.2f}" if _pnl_dd is not None else "—")
+            # SQN is unreliable for multi-leg (high R variance by design) — show PF instead
             if use_multileg or use_threeleg:
                 r1[4].metric("PF",    _pf_str)
             else:
@@ -2924,8 +2933,8 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         else:
             st.info("No filled trades in the selected range.")
 
-    # â”€â”€ Detail (collapsed) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    with st.expander("ðŸ“Š Detail", expanded=False):
+    # ── Detail (collapsed) ────────────────────────────────────────────────────
+    with st.expander("📊 Detail", expanded=False):
         if summary:
             r1 = st.columns(6)
             r1[0].metric("Signals",       f"{summary['n_total']}")
@@ -2953,8 +2962,8 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         else:
             st.info("No filled trades in the selected range.")
 
-    # â”€â”€ Edge Analysis â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    with st.expander("ðŸ“Š Edge Analysis", expanded=False):
+    # ── Edge Analysis ─────────────────────────────────────────────────────────
+    with st.expander("📊 Edge Analysis", expanded=False):
         if summary and not results.empty:
             _ea_filled = results[results["Filled"] == True].copy()
             _ea_wins   = _ea_filled[
@@ -2963,7 +2972,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
             ]
             _ea_losses = _ea_filled[_ea_filled["ExitReason"].isin(["Stop", "E1E2+Stop"])]
 
-            # â”€â”€ R-multiple histogram â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            # ── R-multiple histogram ──────────────────────────────────────────
             _r_vals = _ea_filled["R_achieved"].dropna()
             if not _r_vals.empty:
                 _exp_r  = float(_r_vals.mean())
@@ -3005,13 +3014,13 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                 )
                 st.plotly_chart(_fig_r, use_container_width=True)
 
-            # â”€â”€ MAE / MFE by outcome â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            # ── MAE / MFE by outcome ──────────────────────────────────────────
             _mae_col = "MAE_R"
             _mfe_col = "MFE_R"
             _col_l, _col_r = st.columns(2)
 
             with _col_l:
-                st.caption("**MAE R â€” how far price moved against you** (winners blue, losers red)")
+                st.caption("**MAE R — how far price moved against you** (winners blue, losers red)")
                 _mae_w = _ea_wins[_mae_col].dropna()
                 _mae_l = _ea_losses[_mae_col].dropna()
                 _fig_mae = go.Figure()
@@ -3035,7 +3044,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                 st.plotly_chart(_fig_mae, use_container_width=True)
 
             with _col_r:
-                st.caption("**MFE R â€” best price reached before exit** (winners blue, losers red)")
+                st.caption("**MFE R — best price reached before exit** (winners blue, losers red)")
                 _mfe_w = _ea_wins[_mfe_col].dropna()
                 _mfe_l = _ea_losses[_mfe_col].dropna()
                 _fig_mfe = go.Figure()
@@ -3058,7 +3067,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                 )
                 st.plotly_chart(_fig_mfe, use_container_width=True)
 
-            # â”€â”€ Drawdown events table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            # ── Drawdown events table ─────────────────────────────────────────
             st.markdown("**Drawdown periods**")
             _dd_sorted  = _ea_filled.sort_values(["Date", "EntryTime"]).reset_index(drop=True)
             _dd_pnl     = _dd_sorted["NetPnL"].values
@@ -3103,7 +3112,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                 _dd_events.append({
                     "Start":    str(_pk_date),
                     "Trough":   str(_tr_date),
-                    "Recovery": "â€”",
+                    "Recovery": "—",
                     "DD $":     f"${_tr_val - _pk:,.0f}",
                     "Days":     (pd.Timestamp(_dd_dates[-1]) - pd.Timestamp(_pk_date)).days,
                 })
@@ -3112,21 +3121,21 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                 _dd_df = pd.DataFrame(_dd_events).sort_values("DD $")
                 st.dataframe(_dd_df, use_container_width=True, hide_index=True)
             else:
-                st.success("No drawdown periods â€” equity curve is monotonically increasing.")
+                st.success("No drawdown periods — equity curve is monotonically increasing.")
         else:
             st.info("Run a simulation first.")
 
-    # â”€â”€ Ratchet bar-ambiguity diagnostic (AIAO+ratchet mode only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Ratchet bar-ambiguity diagnostic (AIAO+ratchet mode only) ────────────
     _is_aiao_ratchet = (not use_multileg and not use_threeleg and ratchet_r_v > 0)
     if _is_aiao_ratchet:
-        with st.expander("ðŸ”¬ Ratchet BE-Stop Diagnostic", expanded=False):
+        with st.expander("🔬 Ratchet BE-Stop Diagnostic", expanded=False):
             st.caption(
                 "Finds AIAO trades that stopped at ~BE after ratchet fired, "
                 "then re-simulates each as BE Stop to show what the outcome "
                 "would have been. Isolates the bar-level intrabar ambiguity."
             )
             if st.button("Run Diagnostic", key="ba_run_ratchet_diag"):
-                with st.spinner("Re-simulatingâ€¦"):
+                with st.spinner("Re-simulating…"):
                     diag_df = diagnose_ratchet_bar_ambiguities(
                         results,
                         ticks_by_date,
@@ -3160,7 +3169,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                 display_df = (diag_df if show_all else diag_df[diag_df["Ambiguous_Bar"]]).copy()
                 # Convert bool to readable label before display
                 display_df["Ambiguous_Bar"] = display_df["Ambiguous_Bar"].map(
-                    {True: "YES â€” same bar", False: "no"}
+                    {True: "YES — same bar", False: "no"}
                 )
                 # Colour-code BEStop_Exit column
                 def _be_color(v):
@@ -3176,13 +3185,13 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                         "BEStop_Px": "{:.2f}", "BEStop_Net": "${:,.0f}",
                         "PnL_Delta": "${:+,.0f}",
                     }).map(
-                        lambda v: "background-color:#1a3a1a" if v == "YES â€” same bar" else "",
+                        lambda v: "background-color:#1a3a1a" if v == "YES — same bar" else "",
                         subset=["Ambiguous_Bar"]
                     ).map(_be_color, subset=["BEStop_Exit"]),
                     use_container_width=True,
                 )
                 st.caption(
-                    "**Ambiguous_Bar = YES** â€” the exit bar's Hi crossed T1_Level AND its Lo "
+                    "**Ambiguous_Bar = YES** — the exit bar's Hi crossed T1_Level AND its Lo "
                     "crossed Entry on the same bar. AIAO stopped out; BE Stop let it live.  "
                     "**BEStop_Exit: T1+Target** (green) = real money left on table. "
                     "**T1+BE** (orange) = same exit price, only classification differs.  "
@@ -3191,12 +3200,12 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
             elif diag_df is not None:
                 st.success("No ratchet-triggered BE stops found in this result set.")
 
-    # â”€â”€ Same-Bar Conflict diagnostic â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Same-Bar Conflict diagnostic ─────────────────────────────────────────
     _sbc_df = results[results["SameBarConflict"] == True].copy() \
         if "SameBarConflict" in results.columns else pd.DataFrame()
     with st.expander(
-        f"âš ï¸ Same-Bar Conflicts  ({len(_sbc_df)} trades)" if not _sbc_df.empty
-        else "âš ï¸ Same-Bar Conflicts  (none found)",
+        f"⚠️ Same-Bar Conflicts  ({len(_sbc_df)} trades)" if not _sbc_df.empty
+        else "⚠️ Same-Bar Conflicts  (none found)",
         expanded=not _sbc_df.empty,
     ):
         if _sbc_df.empty:
@@ -3262,12 +3271,12 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                 hide_index=True,
             )
             st.caption(
-                "**IfTgtWon_Net** â€” hypothetical net P&L if the target had been reached "
+                "**IfTgtWon_Net** — hypothetical net P&L if the target had been reached "
                 "before the stop (tick-level outcome unknown). "
                 "For 2-Leg Phase-2 BE conflicts the delta is computed as if T2 had won over BE stop."
             )
 
-    # â”€â”€ Optimal R / PB sweep â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Optimal R / PB sweep ─────────────────────────────────────────────────
     _show_optimal_r(
         filtered_signals, ticks_by_date,
         entry_slip, exit_slip, stop_offset,
@@ -3283,7 +3292,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         first_trade_only=first_trade_only, first_2_filled_only=first_2_filled_only,
     )
 
-    # â”€â”€ Stop multiplier sweep â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Stop multiplier sweep ─────────────────────────────────────────────────
     _show_stop_sweep(
         filtered_signals, ticks_by_date,
         entry_slip, exit_slip, stop_offset,
@@ -3295,17 +3304,17 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         first_trade_only=first_trade_only, first_2_filled_only=first_2_filled_only,
     )
 
-    # â”€â”€ Monthly breakdown â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Monthly breakdown ──────────────────────────────────────────────────────
     _show_monthly_breakdown(results, commission)
 
-    # â”€â”€ Unfilled signals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Unfilled signals ──────────────────────────────────────────────────────
     _show_unfilled_table(results, ticks_by_date)
 
-    # â”€â”€ Per-day chart â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Per-day chart ─────────────────────────────────────────────────────────
     in_range   = results[(results["Date"] >= date_from) & (results["Date"] <= date_to)]
     filled_all = in_range[in_range["Filled"]]
 
-    with st.expander("ðŸ“ˆ Daily Chart", expanded=True):
+    with st.expander("📈 Daily Chart", expanded=True):
         _trade_filter = st.radio(
             "Show dates with:", ["All signals", "Winners only", "Losers only"],
             horizontal=True, key="ba_trade_filter",
@@ -3334,9 +3343,9 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         st.session_state["ba_chart_idx"] = min(st.session_state["ba_chart_idx"], len(signal_dates) - 1)
 
         cc1, cc2, cc3 = st.columns([1, 1, 14])
-        if cc1.button("â€¹", key="ba_prev"):
+        if cc1.button("‹", key="ba_prev"):
             st.session_state["ba_chart_idx"] = max(0, st.session_state["ba_chart_idx"] - 1)
-        if cc2.button("â€º", key="ba_next"):
+        if cc2.button("›", key="ba_next"):
             st.session_state["ba_chart_idx"] = min(len(signal_dates) - 1, st.session_state["ba_chart_idx"] + 1)
 
         selected_date = cc3.selectbox(
@@ -3372,17 +3381,17 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         else:
             st.warning("No bar data for this date.")
 
-    # â”€â”€ Signal table for selected day â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    with st.expander(f"Signal Table â€” {pd.Timestamp(selected_date).strftime('%b %d, %Y')}"
+    # ── Signal table for selected day ─────────────────────────────────────────
+    with st.expander(f"Signal Table — {pd.Timestamp(selected_date).strftime('%b %d, %Y')}"
                      f"  ({len(day_results)} signals)", expanded=False):
         _show_signal_table(day_results.reset_index(drop=True), key_suffix="_day")
 
-    # â”€â”€ Full-range signal table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    with st.expander(f"All Signals â€” full range  ({len(results)} signals)", expanded=False):
+    # ── Full-range signal table ───────────────────────────────────────────────
+    with st.expander(f"All Signals — full range  ({len(results)} signals)", expanded=False):
         _show_signal_table(results.reset_index(drop=True), key_suffix="_all")
 
-    # â”€â”€ Bar data mismatch analysis â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Bar data mismatch analysis ────────────────────────────────────────────
     if nt_bars is not None and not nt_bars.empty:
         st.markdown("---")
-        with st.expander("ðŸ” Bar Data Mismatch Analysis", expanded=False):
+        with st.expander("🔍 Bar Data Mismatch Analysis", expanded=False):
             _show_mismatch_analysis(results, bars, nt_bars)
