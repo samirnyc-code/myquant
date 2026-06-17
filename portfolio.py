@@ -310,12 +310,12 @@ def _detail_strip(summary: dict, pf_str, starting_cap: float = 0.0):
         r2[0].metric("Slippage",    f"${_slip_usd:.0f}")
         r2[1].metric("Commission",  f"${_actual_comm:.0f}")
         r2[2].metric("Total Cost",  f"${_total_cost:.0f}")
-        r2[3].metric("Max Risk $",  f"${summary['max_risk_dollar']:,.0f}")
-        r2[4].metric("Avg Risk $",  f"${summary['avg_risk_dollar']:,.0f}")
+        r2[3].metric("Max Risk $",    f"${summary['max_risk_dollar']:,.0f}", help="Largest single-trade risk")
+        r2[4].metric("Max Conc Risk", f"${summary.get('max_concurrent_risk_dollar', 0):,.0f}", help="Peak total $ at risk across all simultaneously open trades")
         if starting_cap > 0:
             r2[5].metric("Capital", f"${starting_cap:,.0f}")
         else:
-            r2[5].metric("Trades",  f"{summary['n_trades']}")
+            r2[5].metric("Avg Risk $", f"${summary['avg_risk_dollar']:,.0f}")
 
 
 # ── Sweep helpers ─────────────────────────────────────────────────────────────

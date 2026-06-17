@@ -666,6 +666,7 @@ def _show_signal_table(results: pd.DataFrame, key_suffix: str = ""):
     disp["Net$"]       = results["NetPnL"].apply(lambda v: f"{v:+.0f}" if pd.notna(v) else "—")
     disp["Cum PF"]     = results["CumPF"].apply(fmt_pf)
     disp["Risk$"]      = results["RiskDollar"].apply(lambda v: f"${v:.0f}" if pd.notna(v) else "—")
+    disp["ConcRisk$"]  = results["ConcurrentRiskDollar"].apply(lambda v: f"${v:.0f}" if pd.notna(v) else "—") if "ConcurrentRiskDollar" in results.columns else "—"
     disp["Target R"]   = results["TargetR"].apply(lambda v: f"{v:.2f}" if pd.notna(v) else "—")
     disp["R"]          = results["R_achieved"].apply(lambda v: f"{v:+.2f}" if pd.notna(v) else "—")
     disp["MAE pts"]    = results["MAE_pts"].apply(fmt_f)
@@ -1638,8 +1639,12 @@ def _show_monthly_breakdown(results: pd.DataFrame, commission: float):
     # ── Shared stats helper ───────────────────────────────────────────────────
     def _group_stats(g, setup_pcts: bool = False) -> pd.Series:
         n       = len(g)
-        wins    = g[g["ExitReason"].str.contains("Target", na=False) | (g["ExitReason"] == "T1+BE")]
-        stops   = g[g["ExitReason"] == "Stop"]
+        _tgt    = g["ExitReason"].str.contains("Target", na=False) | g["ExitReason"].isin(["T1+BE", "T1_only"])
+        _stp    = g["ExitReason"].isin(["Stop", "E1E2+Stop"])
+        _eod_w  = ~_tgt & ~_stp & (g["NetPnL"] > 0)
+        _eod_l  = ~_tgt & ~_stp & (g["NetPnL"] < 0)
+        wins    = g[_tgt | _eod_w]
+        stops   = g[_stp | _eod_l]
         pos_pnl = g.loc[g["GrossPnL"] > 0, "GrossPnL"].sum()
         neg_pnl = g.loc[g["GrossPnL"] < 0, "GrossPnL"].sum()
         pf      = abs(pos_pnl / neg_pnl) if neg_pnl < 0 else (float("inf") if pos_pnl > 0 else 0)
@@ -2169,9 +2174,8 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
     st.session_state["pf_ticks_by_date"] = ticks_by_date
     st.session_state["pf_bars_by_date"]  = bars_by_date_sim
 
-    # Attach signal-bar close to each signal (bar open time matches signal DateTime)
-    _sb_close_map = bars.set_index("DateTime")["Close"]
-    signals_raw["SBClose"] = signals_raw["DateTime"].map(_sb_close_map)
+    # Signal bar close = the signal price (which IS the NT bar close by construction)
+    signals_raw["SBClose"] = signals_raw["SignalPrice"]
 
     bars["Date"] = bars["DateTime"].dt.date
     bar_dates    = sorted(bars["Date"].unique())
@@ -2769,7 +2773,13 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
             })
             st.success("Defaults saved.", icon="✅")
 
-    # ── Apply filters & simulate ──────────────────────────────────────────────
+    # ── Run button ────────────────────────────────────────────────────────────
+    st.divider()
+    _rb_col, _ = st.columns([2, 5])
+    run_btn = _rb_col.button("▶ Run Simulation", key="ba_run_btn", type="primary",
+                             use_container_width=True)
+
+    # ── Apply filters ─────────────────────────────────────────────────────────
     filtered_signals = apply_signal_filters(
         signals_raw, date_from, date_to, excl_holidays,
         [incl_mon, incl_tue, incl_wed, incl_thu, incl_fri],
@@ -2779,61 +2789,89 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         direction_filter,
     )
 
-    results = simulate_trades(
-        filtered_signals, ticks_by_date, target_r,
-        entry_slip, exit_slip, stop_offset,
-        tick_value, contracts, commission,
-        overrides=st.session_state.get("ba_manual_overrides"),
-        bars_by_date=bars_by_date_sim,
-        multileg=use_multileg, t1_r=t1_r,
-        t1_action=t1_action, contracts_t1=contracts_t1, contracts_t2=contracts_t2,
-        ratchet_r=ratchet_r_v, ratchet_dest=ratchet_dest_v, ratchet_lock_r=ratchet_lock_r_v,
-        ml_pb_r=ml_pb_r_v,
-        threeleg=use_threeleg,
-        contracts_e1=e1c_3l, contracts_e2=e2c_3l, contracts_e3=e3c_3l,
-        pb1_r=pb1_r_val, pb1_ticks=pb1_ticks_v,
-        pb2_r=pb2_r_val, pb2_ticks=pb2_ticks_v,
-        t2_r=t2_r_val,
-    )
+    _sim_fp = hash((
+        len(filtered_signals),
+        int(filtered_signals["SignalNum"].sum()) if not filtered_signals.empty else 0,
+        target_r, entry_slip, exit_slip, stop_offset,
+        commission, contracts, use_multileg, use_threeleg,
+        t1_r, t1_action, contracts_t1, contracts_t2, ml_pb_r_v,
+        e1c_3l, e2c_3l, e3c_3l, pb1_r_val, pb2_r_val, pb1_ticks_v, pb2_ticks_v,
+        t2_r_val, ratchet_r_v, ratchet_dest_v, ratchet_lock_r_v,
+        str(st.session_state.get("ba_manual_overrides", {})),
+        first_trade_only, first_2_filled_only,
+    ))
+    _has_results = (st.session_state.get("ba_results_fp") == _sim_fp
+                    and st.session_state.get("ba_results") is not None)
 
-    if nt_bars is not None and not nt_bars.empty:
-        _alt_mode = "3leg" if use_threeleg else ("multileg" if use_multileg else "single")
-        _alt_params = dict(
-            target_r=target_r, entry_slip=entry_slip, exit_slip=exit_slip, stop_offset=stop_offset,
-            tv=tick_value * contracts,
-            ratchet_r=ratchet_r_v, ratchet_dest=ratchet_dest_v, ratchet_lock_r=ratchet_lock_r_v,
-            t1_r=t1_r, t1_action=t1_action,
-            tv1=tick_value * contracts_t1, tv2=tick_value * contracts_t2,
-            ml_pb_r=ml_pb_r_v, ml_pb_ticks=0,
-            t2_r=(t2_r_val if t2_r_val > 0 else target_r),
-            tv_e1=tick_value * e1c_3l, tv_e2=tick_value * e2c_3l, tv_e3=tick_value * e3c_3l,
-            contracts_e1=e1c_3l, contracts_e2=e2c_3l, contracts_e3=e3c_3l,
-            pb1_r=pb1_r_val, pb1_ticks=pb1_ticks_v, pb2_r=pb2_r_val, pb2_ticks=pb2_ticks_v,
-        )
-        results = compute_alt_path_outcomes(results, bars, nt_bars, _alt_mode, _alt_params)
+    if not run_btn and not _has_results:
+        if filtered_signals.empty:
+            st.warning("No signals match the current filters.")
+        else:
+            st.info(f"**{len(filtered_signals)} signals** ready — click **▶ Run Simulation**.")
+        return
 
-    # First trade of day — only the first *filled* trade per day counts
-    if first_trade_only and not results.empty:
-        _filled_mask = results["Filled"] == True
-        _filled_sorted = results[_filled_mask].sort_values(["Date", "SignalNum"])
-        _keep_idx = _filled_sorted.groupby("Date").head(1).index
-        _beyond_idx = results[_filled_mask & ~results.index.isin(_keep_idx)].index
-        results = results.drop(_beyond_idx).reset_index(drop=True)
+    if run_btn or not _has_results:
+        with st.spinner("Running simulation…"):
+            results = simulate_trades(
+                filtered_signals, ticks_by_date, target_r,
+                entry_slip, exit_slip, stop_offset,
+                tick_value, contracts, commission,
+                overrides=st.session_state.get("ba_manual_overrides"),
+                bars_by_date=bars_by_date_sim,
+                multileg=use_multileg, t1_r=t1_r,
+                t1_action=t1_action, contracts_t1=contracts_t1, contracts_t2=contracts_t2,
+                ratchet_r=ratchet_r_v, ratchet_dest=ratchet_dest_v, ratchet_lock_r=ratchet_lock_r_v,
+                ml_pb_r=ml_pb_r_v,
+                threeleg=use_threeleg,
+                contracts_e1=e1c_3l, contracts_e2=e2c_3l, contracts_e3=e3c_3l,
+                pb1_r=pb1_r_val, pb1_ticks=pb1_ticks_v,
+                pb2_r=pb2_r_val, pb2_ticks=pb2_ticks_v,
+                t2_r=t2_r_val,
+            )
 
-    # First 2 of day — only the first 2 *filled* trades per day count
-    if first_2_filled_only and not results.empty:
-        _filled_mask = results["Filled"] == True
-        _filled_sorted = results[_filled_mask].sort_values(["Date", "SignalNum"])
-        _keep_idx = _filled_sorted.groupby("Date").head(2).index
-        _beyond_idx = results[_filled_mask & ~results.index.isin(_keep_idx)].index
-        results = results.drop(_beyond_idx).reset_index(drop=True)
+            if nt_bars is not None and not nt_bars.empty:
+                _alt_mode = "3leg" if use_threeleg else ("multileg" if use_multileg else "single")
+                _alt_params = dict(
+                    target_r=target_r, entry_slip=entry_slip, exit_slip=exit_slip, stop_offset=stop_offset,
+                    tv=tick_value * contracts,
+                    ratchet_r=ratchet_r_v, ratchet_dest=ratchet_dest_v, ratchet_lock_r=ratchet_lock_r_v,
+                    t1_r=t1_r, t1_action=t1_action,
+                    tv1=tick_value * contracts_t1, tv2=tick_value * contracts_t2,
+                    ml_pb_r=ml_pb_r_v, ml_pb_ticks=0,
+                    t2_r=(t2_r_val if t2_r_val > 0 else target_r),
+                    tv_e1=tick_value * e1c_3l, tv_e2=tick_value * e2c_3l, tv_e3=tick_value * e3c_3l,
+                    contracts_e1=e1c_3l, contracts_e2=e2c_3l, contracts_e3=e3c_3l,
+                    pb1_r=pb1_r_val, pb1_ticks=pb1_ticks_v, pb2_r=pb2_r_val, pb2_ticks=pb2_ticks_v,
+                )
+                results = compute_alt_path_outcomes(results, bars, nt_bars, _alt_mode, _alt_params)
 
-    _summary_contracts = e1c_3l + e2c_3l + e3c_3l if use_threeleg else contracts
-    summary = compute_summary(results, commission,
-                              contracts=_summary_contracts,
-                              is_multileg=(use_multileg or use_threeleg),
-                              t1_action=t1_action,
-                              contracts_t1=contracts_t1, contracts_t2=contracts_t2)
+            if first_trade_only and not results.empty:
+                _filled_mask = results["Filled"] == True
+                _filled_sorted = results[_filled_mask].sort_values(["Date", "SignalNum"])
+                _keep_idx = _filled_sorted.groupby("Date").head(1).index
+                _beyond_idx = results[_filled_mask & ~results.index.isin(_keep_idx)].index
+                results = results.drop(_beyond_idx).reset_index(drop=True)
+
+            if first_2_filled_only and not results.empty:
+                _filled_mask = results["Filled"] == True
+                _filled_sorted = results[_filled_mask].sort_values(["Date", "SignalNum"])
+                _keep_idx = _filled_sorted.groupby("Date").head(2).index
+                _beyond_idx = results[_filled_mask & ~results.index.isin(_keep_idx)].index
+                results = results.drop(_beyond_idx).reset_index(drop=True)
+
+            _summary_contracts = e1c_3l + e2c_3l + e3c_3l if use_threeleg else contracts
+            summary = compute_summary(results, commission,
+                                      contracts=_summary_contracts,
+                                      is_multileg=(use_multileg or use_threeleg),
+                                      t1_action=t1_action,
+                                      contracts_t1=contracts_t1, contracts_t2=contracts_t2)
+
+        st.session_state["ba_results"]    = results
+        st.session_state["ba_summary"]    = summary
+        st.session_state["ba_results_fp"] = _sim_fp
+    else:
+        results = st.session_state["ba_results"]
+        summary = st.session_state["ba_summary"]
 
     # ── Summary — pre-compute shared derived values ───────────────────────────
     if summary:
@@ -2948,9 +2986,9 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
             r2[0].metric("Slippage",      _slip_str)
             r2[1].metric("Commission",    f"${_actual_comm:.0f}")
             r2[2].metric("Total Cost",    f"${_total_cost:.0f}")
-            r2[3].metric("Max Risk $",    f"${summary['max_risk_dollar']:,.0f}")
-            r2[4].metric("Avg Risk $",    f"${summary['avg_risk_dollar']:,.0f}")
-            r2[5].metric("Std R",         f"{summary['r_std']:.3f}")
+            r2[3].metric("Max Risk $",    f"${summary['max_risk_dollar']:,.0f}", help="Largest single-trade risk")
+            r2[4].metric("Max Conc Risk", f"${summary.get('max_concurrent_risk_dollar', 0):,.0f}", help="Peak total $ at risk across all simultaneously open trades")
+            r2[5].metric("Avg Risk $",    f"${summary['avg_risk_dollar']:,.0f}")
 
             r3 = st.columns(6)
             r3[0].metric("Avg MAE",       f"{summary['avg_mae_pts']:.2f} pts")
@@ -3310,6 +3348,25 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
     # ── Unfilled signals ──────────────────────────────────────────────────────
     _show_unfilled_table(results, ticks_by_date)
 
+    # ── Missing tick-data days ────────────────────────────────────────────────
+    in_range_pre = results[(results["Date"] >= date_from) & (results["Date"] <= date_to)]
+    _missing = (
+        in_range_pre[in_range_pre["FilterStatus"] == "no_tick_data"]["Date"]
+        .drop_duplicates()
+        .sort_values()
+    )
+    if not _missing.empty:
+        st.warning(
+            f"⚠️ **{len(_missing)} trading day(s)** in the selected range have no tick data — "
+            f"all signals on those days were excluded from the analysis."
+        )
+        with st.expander(f"Missing tick-data days ({len(_missing)})", expanded=False):
+            st.dataframe(
+                pd.DataFrame({"Date": _missing.values,
+                              "Weekday": [pd.Timestamp(d).strftime("%A") for d in _missing.values]}),
+                hide_index=True, use_container_width=True,
+            )
+
     # ── Per-day chart ─────────────────────────────────────────────────────────
     in_range   = results[(results["Date"] >= date_from) & (results["Date"] <= date_to)]
     filled_all = in_range[in_range["Filled"]]
@@ -3387,8 +3444,8 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         _show_signal_table(day_results.reset_index(drop=True), key_suffix="_day")
 
     # ── Full-range signal table ───────────────────────────────────────────────
-    with st.expander(f"All Signals — full range  ({len(results)} signals)", expanded=False):
-        _show_signal_table(results.reset_index(drop=True), key_suffix="_all")
+    with st.expander(f"All Signals — {date_from} to {date_to}  ({len(in_range)} signals)", expanded=False):
+        _show_signal_table(in_range.reset_index(drop=True), key_suffix="_all")
 
     # ── Bar data mismatch analysis ────────────────────────────────────────────
     if nt_bars is not None and not nt_bars.empty:

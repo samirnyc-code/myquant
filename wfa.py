@@ -71,19 +71,29 @@ def build_folds(
 
 # ── IS grid sweep ─────────────────────────────────────────────────────────────
 
-def _build_param_grid(mode: str) -> list[dict]:
-    """Return all valid parameter combinations for the IS sweep."""
+def _build_param_grid(
+    mode: str,
+    pin_t1: float | None = None,
+    pin_t2: float | None = None,
+    pin_pb: float | None = None,
+) -> list[dict]:
+    """Return all valid parameter combinations for the IS sweep.
+    Pass a float to pin that parameter to a fixed value; None = sweep full range."""
+    t1_vals = [pin_t1] if pin_t1 is not None else _T_VALS
+    t2_vals = [pin_t2] if pin_t2 is not None else _T_VALS
+    pb_vals = [pin_pb] if pin_pb is not None else _PB_VALS
+
     combos = []
     if mode == "singleleg":
-        for t1 in _T_VALS:
+        for t1 in t1_vals:
             combos.append({"target_r": t1})
     elif mode == "multileg":
-        for t1, t2, pb in itertools.product(_T_VALS, _T_VALS, _PB_VALS):
+        for t1, t2, pb in itertools.product(t1_vals, t2_vals, pb_vals):
             if t1 >= t2:
                 continue  # T1 must be < T2
             combos.append({"t1_r": t1, "target_r": t2, "ml_pb_r": pb})
     elif mode == "3leg":
-        for t1, t2, pb1 in itertools.product(_T_VALS, _T_VALS, _PB_VALS):
+        for t1, t2, pb1 in itertools.product(t1_vals, t2_vals, pb_vals):
             if t1 >= t2:
                 continue
             combos.append({"t1_r": t1, "t2_r": t1, "target_r": t2, "pb1_r": abs(pb1)})
@@ -96,9 +106,12 @@ def run_is_sweep(
     bars_by_date: dict,
     base_params: dict,        # fixed: entry_slip, exit_slip, stop_offset, tick_value, contracts, commission, etc.
     mode: str,
+    pin_t1: float | None = None,
+    pin_t2: float | None = None,
+    pin_pb: float | None = None,
 ) -> pd.DataFrame:
     """Run all parameter combinations on IS data. Returns DataFrame with one row per combo."""
-    grid   = _build_param_grid(mode)
+    grid   = _build_param_grid(mode, pin_t1=pin_t1, pin_t2=pin_t2, pin_pb=pin_pb)
     rows   = []
 
     multileg  = (mode == "multileg")
@@ -190,6 +203,9 @@ def run_wfa(
     oos_days: int = _TRADING_DAYS_PER_QTR,
     n_param_sets: int = 3,
     progress_cb=None,         # optional callable(fold_id, total_folds, msg)
+    pin_t1: float | None = None,
+    pin_t2: float | None = None,
+    pin_pb: float | None = None,
 ) -> list[dict]:
     """Run the full WFA. Returns list of fold result dicts (also persisted to store)."""
     all_dates = sorted(signals["Date"].unique())
@@ -215,7 +231,8 @@ def run_wfa(
             continue
 
         # ── IS sweep ──────────────────────────────────────────────────────────
-        sweep_df = run_is_sweep(signals_is, ticks_by_date, bars_by_date, base_params, mode)
+        sweep_df = run_is_sweep(signals_is, ticks_by_date, bars_by_date, base_params, mode,
+                                pin_t1=pin_t1, pin_t2=pin_t2, pin_pb=pin_pb)
 
         if sweep_df.empty:
             continue
@@ -416,7 +433,7 @@ def show_wfa_tab() -> None:
 
     bars = mas_cont.drop(columns=["Contract"], errors="ignore")
     bars_by_date = {d: grp.reset_index(drop=True)
-                    for d, grp in bars.groupby("Date")}
+                    for d, grp in bars.groupby(bars["DateTime"].dt.date)}
 
     # ── Tabs: Configure / Results ─────────────────────────────────────────────
     tab_cfg, tab_res = st.tabs(["⚙️ Configure & Run", "📊 Results"])
@@ -472,6 +489,41 @@ def show_wfa_tab() -> None:
             contracts_t2 = contracts_t2,
             commission   = commission,
             ratchet_r    = 0.0,   # sweeps always run without ratchet (Kaufman)
+        )
+
+        # ── Target / Pullback pin controls ────────────────────────────────────
+        st.subheader("Target & Pullback Parameters")
+        st.caption(
+            "Leave 'Pin?' unchecked to sweep the full grid. "
+            "Check to fix a value and reduce the search space."
+        )
+        tp1, tp2, tp3 = st.columns(3)
+        _T_OPTS = [0.50, 0.625, 0.75, 1.00, 1.25, 1.50, 2.00]
+        _PB_OPTS = [-0.25, -0.375, -0.50, -0.625, -0.75, -1.00]
+
+        pin_t1_chk = tp1.checkbox("Pin T1?", value=False, key="wfa_pin_t1_chk")
+        pin_t1 = (
+            tp1.selectbox("T1 value (R)", _T_OPTS, index=3, key="wfa_pin_t1_val")
+            if pin_t1_chk else None
+        )
+
+        pin_t2_chk = tp2.checkbox("Pin T2?", value=False, key="wfa_pin_t2_chk")
+        pin_t2 = (
+            tp2.selectbox("T2 value (R)", _T_OPTS, index=3, key="wfa_pin_t2_val")
+            if pin_t2_chk else None
+        )
+
+        pin_pb_chk = tp3.checkbox("Pin PB?", value=False, key="wfa_pin_pb_chk")
+        pin_pb = (
+            tp3.selectbox("PB value (R)", _PB_OPTS, index=2, key="wfa_pin_pb_val")
+            if pin_pb_chk else None
+        )
+
+        _pinned = sum(v is not None for v in (pin_t1, pin_t2, pin_pb))
+        _combos = len(_T_OPTS) ** (2 - sum(v is not None for v in (pin_t1, pin_t2))) * len(_PB_OPTS) ** (1 - pin_pb_chk)
+        st.caption(
+            f"Grid size (multileg): **{_combos} combos** per IS fold  "
+            f"({'full sweep' if _pinned == 0 else f'{_pinned} param(s) pinned'})"
         )
 
         # Signal CC filter
@@ -530,6 +582,9 @@ def show_wfa_tab() -> None:
                     is_days=is_days, oos_days=oos_days,
                     n_param_sets=int(n_sets),
                     progress_cb=_cb,
+                    pin_t1=pin_t1,
+                    pin_t2=pin_t2,
+                    pin_pb=pin_pb,
                 )
 
             progress_bar.progress(1.0)

@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from data_loader import TICK_SIZE, bar_num_from_dt
+from data_loader import TICK_SIZE, bar_num_from_dt, RTH_START_MIN
 
 INSTRUMENTS = {
     "ES":  {"tick_value": 12.50, "label": "ES  ($12.50/tick)", "default_commission": 3.0},
@@ -53,7 +53,6 @@ def _simulate_one(
     ratchet_lock_r: float = 0.0,
     manual_fill: dict | None = None,
 ) -> dict:
-    from data_loader import RTH_START_MIN
     ts      = TICK_SIZE
     is_long = direction == "Long"
 
@@ -75,13 +74,24 @@ def _simulate_one(
         prices        = scan_ticks["Price"].values
         times         = scan_ticks["DateTime"].values
     else:
-        qualifying = after[after["Price"] >= signal_price] if is_long else after[after["Price"] <= signal_price]
-        if qualifying.empty:
+        # Entry = first tick of the bar where price ticks THROUGH signal_price
+        sig_date  = pd.Timestamp(sig_dt).normalize()
+        rth_start = sig_date + pd.Timedelta(minutes=RTH_START_MIN)
+        after_c   = after.copy()
+        after_c["_bslot"] = ((after_c["DateTime"] - rth_start).dt.total_seconds() // 300).astype(int)
+        first_tick_px = None
+        entry_dt      = None
+        for _, bar_ticks in after_c.groupby("_bslot", sort=True):
+            bar_prices = bar_ticks["Price"].values
+            crossed = (bar_prices > signal_price).any() if is_long else (bar_prices < signal_price).any()
+            if crossed:
+                first_row     = bar_ticks.iloc[0]
+                first_tick_px = float(first_row["Price"])
+                entry_dt      = first_row["DateTime"]
+                after         = after[after["DateTime"] >= first_row["DateTime"]]
+                break
+        if first_tick_px is None:
             return {"ok": False, "FilterStatus": "no_fill"}
-        fill_tick     = qualifying.iloc[0]
-        first_tick_px = fill_tick["Price"]
-        entry_dt      = fill_tick["DateTime"]
-        after  = after[after["DateTime"] >= fill_tick["DateTime"]]
         prices = after["Price"].values
         times  = after["DateTime"].values
 
@@ -119,14 +129,14 @@ def _simulate_one(
                 ratchet_fired = True
 
         if is_long:
-            if p >= target_price:
+            if p > target_price:
                 exit_px_raw, exit_dt_raw, exit_reason = target_price, t, "Target"
                 break
             if p <= active_stop:
                 exit_px_raw, exit_dt_raw, exit_reason = active_stop, t, "Stop"
                 break
         else:
-            if p <= target_price:
+            if p < target_price:
                 exit_px_raw, exit_dt_raw, exit_reason = target_price, t, "Target"
                 break
             if p >= active_stop:
@@ -178,9 +188,9 @@ def _simulate_one_bars(
         return {"ok": False, "FilterStatus": "no_next_bar"}
 
     nb = next_bars.iloc[0]
-    if is_long  and float(nb["High"]) < signal_price:
+    if is_long  and float(nb["High"]) <= signal_price:
         return {"ok": False, "FilterStatus": "no_fill"}
-    if not is_long and float(nb["Low"]) > signal_price:
+    if not is_long and float(nb["Low"]) >= signal_price:
         return {"ok": False, "FilterStatus": "no_fill"}
 
     fill_px      = max(float(nb["Open"]), signal_price) if is_long else min(float(nb["Open"]), signal_price)
@@ -216,8 +226,8 @@ def _simulate_one_bars(
                     active_stop = actual_entry
                 ratchet_fired = True
 
-        hit_tgt  = (hi >= target_price) if is_long else (lo <= target_price)
-        hit_stop = (lo <= active_stop)  if is_long else (hi >= active_stop)
+        hit_tgt  = (hi > target_price) if is_long else (lo < target_price)
+        hit_stop = (lo <= active_stop) if is_long else (hi >= active_stop)
 
         if hit_stop and hit_tgt:
             same_bar_conflict = True
@@ -272,7 +282,6 @@ def _simulate_one_multileg(
     ratchet_lock_r: float = 0.0,
     manual_fill: dict | None = None,
 ) -> dict:
-    from data_loader import RTH_START_MIN
     ts       = TICK_SIZE
     is_long  = direction == "Long"
     tv_total = tv1 + tv2
@@ -295,15 +304,26 @@ def _simulate_one_multileg(
         prices        = scan_ticks["Price"].values
         times         = scan_ticks["DateTime"].values
     else:
-        qualifying = after[after["Price"] >= signal_price] if is_long else after[after["Price"] <= signal_price]
-        if qualifying.empty:
+        # Entry = first tick of the bar where price ticks THROUGH signal_price
+        sig_date  = pd.Timestamp(sig_dt).normalize()
+        rth_start = sig_date + pd.Timedelta(minutes=RTH_START_MIN)
+        after_c   = after.copy()
+        after_c["_bslot"] = ((after_c["DateTime"] - rth_start).dt.total_seconds() // 300).astype(int)
+        first_tick_px = None
+        entry_dt      = None
+        for _, bar_ticks in after_c.groupby("_bslot", sort=True):
+            bar_prices = bar_ticks["Price"].values
+            crossed = (bar_prices > signal_price).any() if is_long else (bar_prices < signal_price).any()
+            if crossed:
+                first_row     = bar_ticks.iloc[0]
+                first_tick_px = float(first_row["Price"])
+                entry_dt      = first_row["DateTime"]
+                after         = after[after["DateTime"] >= first_row["DateTime"]]
+                break
+        if first_tick_px is None:
             return {"ok": False, "FilterStatus": "no_fill"}
-        fill_tick     = qualifying.iloc[0]
-        first_tick_px = fill_tick["Price"]
-        entry_dt      = fill_tick["DateTime"]
-        after         = after[after["DateTime"] >= fill_tick["DateTime"]]
-        prices        = after["Price"].values
-        times         = after["DateTime"].values
+        prices = after["Price"].values
+        times  = after["DateTime"].values
 
     actual_entry = first_tick_px + (entry_slip * ts if is_long else -entry_slip * ts)
     actual_stop  = (stop_csv - stop_offset * ts) if is_long else (stop_csv + stop_offset * ts)
@@ -376,7 +396,7 @@ def _simulate_one_multileg(
                     active_stop = actual_entry
                 ratchet_fired = True
 
-        hit_t1   = (p >= t1_price)   if is_long else (p <= t1_price)
+        hit_t1   = (p > t1_price)    if is_long else (p < t1_price)
         hit_stop = (p <= active_stop) if is_long else (p >= active_stop)
         if hit_t1:
             if t1_action == "exit":
@@ -409,7 +429,7 @@ def _simulate_one_multileg(
         mae = max(mae, -excursion)
         if j == 0:
             continue
-        hit_t2 = (p2v >= t2_price) if is_long else (p2v <= t2_price)
+        hit_t2 = (p2v > t2_price)  if is_long else (p2v < t2_price)
         hit_be = (p2v <= be_stop)  if is_long else (p2v >= be_stop)
         if hit_t2:
             l2_reason_raw, l2_px_raw, l2_dt_raw = "Target", t2_price, t2v
@@ -450,9 +470,9 @@ def _simulate_one_bars_multileg(
         return {"ok": False, "FilterStatus": "no_next_bar"}
 
     nb = next_bars.iloc[0]
-    if is_long  and float(nb["High"]) < signal_price:
+    if is_long  and float(nb["High"]) <= signal_price:
         return {"ok": False, "FilterStatus": "no_fill"}
-    if not is_long and float(nb["Low"]) > signal_price:
+    if not is_long and float(nb["Low"]) >= signal_price:
         return {"ok": False, "FilterStatus": "no_fill"}
 
     fill_px          = max(float(nb["Open"]), signal_price) if is_long else min(float(nb["Open"]), signal_price)
@@ -548,7 +568,7 @@ def _simulate_one_bars_multileg(
         mfe = max(mfe, (hi - actual_entry) if is_long else (actual_entry - lo))
         mae = max(mae, (actual_entry - lo) if is_long else (hi - actual_entry))
 
-        hit_t1   = (hi >= t1_price)    if is_long else (lo <= t1_price)
+        hit_t1   = (hi > t1_price)     if is_long else (lo < t1_price)
         hit_stop = (lo <= actual_stop) if is_long else (hi >= actual_stop)
         hit_pb   = use_pb and ((lo < pb_trigger) if is_long else (hi > pb_trigger))
 
@@ -603,7 +623,7 @@ def _simulate_one_bars_multileg(
         mfe = max(mfe, (hi2 - actual_entry) if is_long else (actual_entry - lo2))
         mae = max(mae, (actual_entry - lo2) if is_long else (hi2 - actual_entry))
 
-        hit_t2    = (hi2 >= t2_price) if is_long else (lo2 <= t2_price)
+        hit_t2    = (hi2 > t2_price)  if is_long else (lo2 < t2_price)
         hit_stop2 = (lo2 <= actual_stop) if is_long else (hi2 >= actual_stop)
 
         if hit_stop2 and hit_t2:
@@ -638,7 +658,6 @@ def _simulate_one_3leg(
     ratchet_r: float = 0.0, ratchet_dest: str = "BE", ratchet_lock_r: float = 0.0,
     manual_fill: dict | None = None,
 ) -> dict:
-    from data_loader import RTH_START_MIN
     ts      = TICK_SIZE
     is_long = direction == "Long"
 
@@ -660,16 +679,26 @@ def _simulate_one_3leg(
         prices        = scan_ticks["Price"].values
         times         = scan_ticks["DateTime"].values
     else:
-        qualifying = (after[after["Price"] >= signal_price] if is_long
-                      else after[after["Price"] <= signal_price])
-        if qualifying.empty:
+        # Entry = first tick of the bar where price ticks THROUGH signal_price
+        sig_date  = pd.Timestamp(sig_dt).normalize()
+        rth_start = sig_date + pd.Timedelta(minutes=RTH_START_MIN)
+        after_c   = after.copy()
+        after_c["_bslot"] = ((after_c["DateTime"] - rth_start).dt.total_seconds() // 300).astype(int)
+        first_tick_px = None
+        entry_dt      = None
+        for _, bar_ticks in after_c.groupby("_bslot", sort=True):
+            bar_prices = bar_ticks["Price"].values
+            crossed = (bar_prices > signal_price).any() if is_long else (bar_prices < signal_price).any()
+            if crossed:
+                first_row     = bar_ticks.iloc[0]
+                first_tick_px = float(first_row["Price"])
+                entry_dt      = first_row["DateTime"]
+                after         = after[after["DateTime"] >= first_row["DateTime"]]
+                break
+        if first_tick_px is None:
             return {"ok": False, "FilterStatus": "no_fill"}
-        fill_tick     = qualifying.iloc[0]
-        first_tick_px = fill_tick["Price"]
-        entry_dt      = fill_tick["DateTime"]
-        after         = after[after["DateTime"] >= fill_tick["DateTime"]]
-        prices        = after["Price"].values
-        times         = after["DateTime"].values
+        prices = after["Price"].values
+        times  = after["DateTime"].values
 
     e1_entry    = first_tick_px + (entry_slip * ts if is_long else -entry_slip * ts)
     actual_stop = (stop_csv - stop_offset * ts) if is_long else (stop_csv + stop_offset * ts)
@@ -775,13 +804,13 @@ def _simulate_one_3leg(
         if i == 0:
             continue
         if not pb1_filled and tv2 > 0:
-            if (p <= pb1_price) if is_long else (p >= pb1_price):
+            if (p < pb1_price) if is_long else (p > pb1_price):
                 e2_fill = pb1_price + (-entry_slip * ts if is_long else entry_slip * ts)
                 if (is_long and e2_fill > actual_stop) or (not is_long and e2_fill < actual_stop):
                     e2_entry_px = e2_fill
                     pb1_filled  = True
         if pb1_filled and not pb2_filled and tv3 > 0:
-            if (p <= pb2_price) if is_long else (p >= pb2_price):
+            if (p < pb2_price) if is_long else (p > pb2_price):
                 e3_fill = pb2_price + (-entry_slip * ts if is_long else entry_slip * ts)
                 if (is_long and e3_fill > actual_stop) or (not is_long and e3_fill < actual_stop):
                     e3_entry_px = e3_fill
@@ -802,7 +831,7 @@ def _simulate_one_3leg(
             sp = active_stop + (-exit_slip * ts if is_long else exit_slip * ts)
             full_stop_px = sp; full_stop_dt = t
             break
-        if (p >= t1_price) if is_long else (p <= t1_price):
+        if (p > t1_price) if is_long else (p < t1_price):
             phase1_end_idx = i
             break
 
@@ -836,10 +865,10 @@ def _simulate_one_3leg(
             if not e2_done: e2_exit = sp2; e2_rsn = "BE"; e2_done = True
             if not e3_done: e3_exit = sp2; e3_rsn = "BE"; e3_done = True
             be_px = sp2; be_dt = t2v; break
-        if not e2_done and ((p2v >= t2_price) if is_long else (p2v <= t2_price)):
+        if not e2_done and ((p2v > t2_price) if is_long else (p2v < t2_price)):
             e2_exit = t2_price + (-exit_slip * ts if is_long else exit_slip * ts)
             e2_rsn = "T2"; e2_done = True
-        if not e3_done and ((p2v >= t3_price) if is_long else (p2v <= t3_price)):
+        if not e3_done and ((p2v > t3_price) if is_long else (p2v < t3_price)):
             e3_exit = t3_price + (-exit_slip * ts if is_long else exit_slip * ts)
             e3_rsn = "T3"; e3_done = True
         if e2_done and e3_done: break
@@ -885,9 +914,9 @@ def _simulate_one_bars_3leg(
         return {"ok": False, "FilterStatus": "no_next_bar"}
 
     nb = next_bars.iloc[0]
-    if is_long  and float(nb["High"]) < signal_price:
+    if is_long  and float(nb["High"]) <= signal_price:
         return {"ok": False, "FilterStatus": "no_fill"}
-    if not is_long and float(nb["Low"])  > signal_price:
+    if not is_long and float(nb["Low"]) >= signal_price:
         return {"ok": False, "FilterStatus": "no_fill"}
 
     fill_px     = max(float(nb["Open"]), signal_price) if is_long else min(float(nb["Open"]), signal_price)
@@ -992,12 +1021,12 @@ def _simulate_one_bars_3leg(
             sp = active_stop + (-exit_slip * ts if is_long else exit_slip * ts)
             full_stop_px, full_stop_dt = sp, bar["DateTime"]; break
         if not pb1_filled and tv2 > 0:
-            if (lo <= pb1_price) if is_long else (hi >= pb1_price):
+            if (lo < pb1_price) if is_long else (hi > pb1_price):
                 e2_fill = pb1_price + (-entry_slip * ts if is_long else entry_slip * ts)
                 if (is_long and e2_fill > actual_stop) or (not is_long and e2_fill < actual_stop):
                     e2_entry_px = e2_fill; pb1_filled = True
         if pb1_filled and not pb2_filled and tv3 > 0:
-            if (lo <= pb2_price) if is_long else (hi >= pb2_price):
+            if (lo < pb2_price) if is_long else (hi > pb2_price):
                 e3_fill = pb2_price + (-entry_slip * ts if is_long else entry_slip * ts)
                 if (is_long and e3_fill > actual_stop) or (not is_long and e3_fill < actual_stop):
                     e3_entry_px = e3_fill; pb2_filled = True
@@ -1013,7 +1042,7 @@ def _simulate_one_bars_3leg(
                 else:
                     active_stop = _blended()
                 ratchet_fired = True
-        if (hi >= t1_price) if is_long else (lo <= t1_price):
+        if (hi > t1_price) if is_long else (lo < t1_price):
             t1_bar_idx = idx; break
 
     if full_stop_px is not None:
@@ -1048,10 +1077,10 @@ def _simulate_one_bars_3leg(
             if not e2_done: e2_exit = sp2; e2_rsn = "BE"; e2_done = True
             if not e3_done: e3_exit = sp2; e3_rsn = "BE"; e3_done = True
             be_px = sp2; be_dt = bar2["DateTime"]; break
-        if not e2_done and ((hi2 >= t2_price) if is_long else (lo2 <= t2_price)):
+        if not e2_done and ((hi2 > t2_price) if is_long else (lo2 < t2_price)):
             e2_exit = t2_price + (-exit_slip * ts if is_long else exit_slip * ts)
             e2_rsn = "T2"; e2_done = True
-        if not e3_done and ((hi2 >= t3_price) if is_long else (lo2 <= t3_price)):
+        if not e3_done and ((hi2 > t3_price) if is_long else (lo2 < t3_price)):
             e3_exit = t3_price + (-exit_slip * ts if is_long else exit_slip * ts)
             e3_rsn = "T3"; e3_done = True
         if e2_done and e3_done: break
@@ -1167,23 +1196,11 @@ def simulate_trades(
         day_ticks = ticks_by_date.get(base["Date"])
         no_ticks  = day_ticks is None or day_ticks.empty
 
+        if no_ticks and not manual_fill:
+            base["FilterStatus"] = "no_tick_data"; rows.append(base); continue
+
         if threeleg and not manual_fill:
-            if no_ticks and bars_by_date is not None:
-                day_bars_sim = bars_by_date.get(base["Date"])
-                if day_bars_sim is None or day_bars_sim.empty:
-                    base["FilterStatus"] = "no_tick_data"; rows.append(base); continue
-                res = _simulate_one_bars_3leg(
-                    base["DateTime"], base["Direction"], base["SignalPrice"], base["StopPrice"],
-                    day_bars_sim, t1_r, _t2_r, target_r, t1_action,
-                    tv_e1, tv_e2, tv_e3, contracts_e1, contracts_e2, contracts_e3,
-                    pb1_r, pb1_ticks, pb2_r, pb2_ticks,
-                    entry_slip, exit_slip, stop_offset,
-                    ratchet_r, ratchet_dest, ratchet_lock_r,
-                )
-            elif no_ticks:
-                base["FilterStatus"] = "no_tick_data"; rows.append(base); continue
-            else:
-                res = _simulate_one_3leg(
+            res = _simulate_one_3leg(
                     base["DateTime"], base["Direction"], base["SignalPrice"], base["StopPrice"],
                     day_ticks, t1_r, _t2_r, target_r, t1_action,
                     tv_e1, tv_e2, tv_e3, contracts_e1, contracts_e2, contracts_e3,
@@ -1192,39 +1209,13 @@ def simulate_trades(
                     ratchet_r, ratchet_dest, ratchet_lock_r,
                 )
         elif multileg and not manual_fill:
-            if no_ticks and bars_by_date is not None:
-                day_bars_sim = bars_by_date.get(base["Date"])
-                if day_bars_sim is None or day_bars_sim.empty:
-                    base["FilterStatus"] = "no_tick_data"; rows.append(base); continue
-                res = _simulate_one_bars_multileg(
-                    base["DateTime"], base["Direction"], base["SignalPrice"], base["StopPrice"],
-                    day_bars_sim, target_r, t1_r, t1_action,
-                    entry_slip, exit_slip, stop_offset, tv1, tv2,
-                    ratchet_r, ratchet_dest, ratchet_lock_r,
-                    e2_pb_r=ml_pb_r, e2_pb_ticks=ml_pb_ticks,
-                )
-            elif no_ticks:
-                base["FilterStatus"] = "no_tick_data"; rows.append(base); continue
-            else:
-                res = _simulate_one_multileg(
+            res = _simulate_one_multileg(
                     base["DateTime"], base["Direction"], base["SignalPrice"], base["StopPrice"],
                     day_ticks, target_r, t1_r, t1_action,
                     entry_slip, exit_slip, stop_offset, tv1, tv2,
                     ratchet_r, ratchet_dest, ratchet_lock_r,
                 )
         else:
-            if no_ticks and bars_by_date is not None and not manual_fill:
-                day_bars_sim = bars_by_date.get(base["Date"])
-                if day_bars_sim is None or day_bars_sim.empty:
-                    base["FilterStatus"] = "no_tick_data"; rows.append(base); continue
-                res = _simulate_one_bars(
-                    base["DateTime"], base["Direction"], base["SignalPrice"], base["StopPrice"],
-                    day_bars_sim, target_r, entry_slip, exit_slip, stop_offset, tv,
-                    ratchet_r, ratchet_dest, ratchet_lock_r,
-                )
-            elif no_ticks and not manual_fill:
-                base["FilterStatus"] = "no_tick_data"; rows.append(base); continue
-            else:
                 res = _simulate_one(
                     base["DateTime"], base["Direction"], base["SignalPrice"], base["StopPrice"],
                     day_ticks, target_r, entry_slip, exit_slip, stop_offset, tv,
@@ -1265,6 +1256,21 @@ def simulate_trades(
         cum_wins = g_pnl.clip(lower=0).cumsum()
         cum_loss = g_pnl.clip(upper=0).cumsum().abs()
         df.loc[filled_mask, "CumPF"] = (cum_wins / cum_loss.replace(0, np.nan)).values
+
+    # Concurrent risk: at each trade's entry, sum RiskDollar of all simultaneously open trades.
+    # Peak concurrent risk always falls at an entry moment (exits only decrease it).
+    df["ConcurrentRiskDollar"] = np.nan
+    if filled_mask.any():
+        f = df.loc[filled_mask, ["EntryTime", "ExitTime", "RiskDollar"]].copy()
+        et_arr = f["EntryTime"].values
+        ex_arr = f["ExitTime"].values
+        rd_arr = f["RiskDollar"].values
+        concurrent = np.empty(len(f))
+        for i in range(len(f)):
+            t = et_arr[i]
+            open_mask = (et_arr <= t) & (ex_arr > t)
+            concurrent[i] = rd_arr[open_mask].sum()
+        df.loc[filled_mask, "ConcurrentRiskDollar"] = concurrent
 
     return df
 
@@ -1377,6 +1383,7 @@ def compute_summary(results: pd.DataFrame, commission: float,
         max_dd=max_dd, trading_days=trading_days,
         max_risk_dollar=float(filled["RiskDollar"].max()) if "RiskDollar" in filled.columns else 0.0,
         avg_risk_dollar=float(filled["RiskDollar"].mean()) if "RiskDollar" in filled.columns else 0.0,
+        max_concurrent_risk_dollar=float(filled["ConcurrentRiskDollar"].max()) if "ConcurrentRiskDollar" in filled.columns else 0.0,
         pnl_dd=pnl_dd,
         prom=prom,
     )
