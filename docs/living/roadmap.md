@@ -1,10 +1,12 @@
 # Roadmap
 **Status:** Living — update every session  
-**Last Updated:** June 16, 2026 (Session 12)  
+**Last Updated:** June 17, 2026 (Session 13)  
 **Rule:** This is the only source of truth for what gets built and in what order.  
 **Rule:** Phases are sequential within each track. Do not start a phase until its prerequisite passes.
 
 **Session 12 note:** Track 4 (Massive) is now primary and the only active track. Track 2 (SC/SCID) is paused. See `docs/living/handoff.md` Session 12 section for full detail.
+
+**Session 13 note:** WFA infrastructure built. `simulation_engine.py`, `results_store.py`, `wfa.py`, and `app.py` tab wired. See handoff Session 13 section for full detail. First end-to-end test with real signals is the next step.
 
 ---
 
@@ -67,8 +69,13 @@ Completely independent from Track 2 SC gates. New Streamlit tab.
 | M2 | NT tick-to-import converter: `scripts/fetch_for_nt.py` → `ES_MAS MM-YY.Last.txt` | API key | ✅ Code built + file format confirmed working |
 | M3 | ES_MAS custom instrument + one contract month in NT; import ticks; run OHLCExporter | M2 + API key | ✅ Confirmed working end-to-end with AAPL test data (Session 11) |
 | M4 | `massive.py` tab: tick-built vs agg vs NT ES_MAS vs NT native (four-way compare) | M1 + M3 | ✅ Built — all 3 comparisons wired + NT native slot added |
-| M5 | Simulation in massive tab: run signal sim on App bars using MCSignals | M4 pass | Not started |
-| M6 | Reversal setup: review NT CSV + strategy logic, add to massive tab | M5 + reversal data | Not started |
+| M5 | Simulation in massive tab: run signal sim on App bars using MCSignals | M4 pass | Superseded — Bar Analysis tab already does this via `simulation_engine.py` |
+| M6 | Reversal setup: review NT CSV + strategy logic, add to massive tab | M5 + reversal data | Pending — RevFT signals not ready yet |
+| **W1** | **WFA engine: `simulation_engine.py`, `results_store.py`, `wfa.py`, `🔄 WFA` tab** | Massive pipeline | ✅ Built Session 13 — NOT yet end-to-end tested with real signals |
+| **W2** | **First real WFA run: CC2 multileg, confirm IS sweep + OOS + guardrails produce sane output** | W1 | 🔄 Next — requires `mas_continuous` + signals upload |
+| **W3** | **Portfolio WFA: combine OOS equity curves across all CC setups** | W1 + all CC setups run | Pending — `load_portfolio_oos_trades()` wired in `results_store.py`, Portfolio tab not yet updated |
+| **W4** | **Window stability scanner: IS/OOS size grid → WFE std-dev matrix** | W2 | Pending |
+| **W5** | **RevFT setup in WFA** | W2 + RevFT signals | Pending — no code changes required when signals arrive; just a new `setup_id` |
 
 **See:** `bar_validation.md` Track 2 section for detailed architecture.
 
@@ -141,15 +148,23 @@ These are not build phases — they are analytical obligations that run as Track
 - [x] **PDF export** — Bar Analysis + Portfolio tabs; `matchMedia('print')` + `Plotly.relayout()` for chart resize; counter forces re-render on every click
 - [x] **Portfolio tab** (`portfolio.py`) — per-setup 2-leg sim, equity curves, DD chart, breakdown table, T1×PB×T2 sweep, save/compare runs, PDF export, Save as Defaults
 
-### Near-term backlog (Session 12, Massive track — top priority)
+### Near-term backlog (Session 13 — WFA first, then carry-over)
+
+**WFA (top priority):**
+- [ ] **First end-to-end WFA run** — open the `🔄 WFA` tab, upload CC2 signals, run multileg mode; confirm fold count, IS sweep output, guardrail badges, OOS equity curve all look correct
+- [ ] **Decide Q5/Q6** (max concurrent positions, max daily loss) before relying on WFA output for real trading decisions — current `wfa.py` runs all signals independently with no position cap or daily loss limit
+- [ ] **Portfolio WFA layer** — update Portfolio tab to load and combine OOS equity curves from multiple setup runs via `load_portfolio_oos_trades()`
+- [ ] **Window stability scanner** (W4) — grid of IS/OOS sizes, WFE std-dev matrix to confirm 1yr/3mo is a stable choice
+
+**Carry-over from Session 12 (Massive track):**
 - [ ] **Migrate Bar Analysis filters to the shared panel** — `ba_`-prefixed filter widgets in `bar_analysis.py` still independent from `validation.get_filters("shared")`; should read from the same Data-tab panel as Massive's comparison
-- [ ] **Optimize by calendar month, not by contract** — user request, not yet designed: Bar Analysis needs to slice/optimize across arbitrary calendar-month ranges independent of which contract was front-month
-- [ ] **Re-download ~50 missing trading days** in `data/flatfiles_cache/` (2021–2022 heavy) — listed in handoff.md Session 12 section
-- [ ] Root-cause the tick-cache validation discrepancy (98.6%/1,587 vs 100%/243 extra bars between the two measurement methods)
+- [ ] **Optimize by calendar month, not by contract** — user request, not yet designed
+- [ ] **Re-download ~50 missing trading days** in `data/flatfiles_cache/` (2021–2022 heavy)
+- [ ] Root-cause the tick-cache validation discrepancy (98.6%/1,587 vs 100%/243 extra bars)
 - [ ] Live-test RevFTSignals end-to-end with a real second signal file
-- [ ] Live-test the alt-path mismatch table with a real divergent trade (none seen yet in spot checks)
-- [ ] NT `OHLCExporter` buffer-loss fix (flush-to-disk periodically) — drafted, reverted per user instruction; revisit only if asked
-- [ ] **"Clear all cached data" needs two confirmation popups** — explain what it does (deletes Parquet cache files, not just session state) and what's needed to get the data back (rebuild via Massive tab / re-upload). Currently a single button, no confirmation at all.
+- [ ] Live-test the alt-path mismatch table with a real divergent trade
+- [ ] NT `OHLCExporter` buffer-loss fix — drafted, reverted per user instruction; revisit only if asked
+- [ ] **"Clear all cached data" needs confirmation popup** — explain what it deletes and what's needed to restore
 
 ### Near-term backlog (Track 2 — SC/SCID, paused)
 - [ ] **Verify SCID bar timestamp** — upload Q1/2024 SCID + matching NT TXT, compare bar 1 open time; apply -5min fix if SCID uses close time (see Q14 in open_questions.md)

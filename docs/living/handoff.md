@@ -1,6 +1,6 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** June 16, 2026 (session 12)
+**Last Updated:** June 17, 2026 (session 13)
 **Current Versions:** SIM_v3.3 / GS_v4.5 / SHEET_v3.3  
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 
@@ -496,7 +496,85 @@ Neither tab has disk fallbacks. If no data is uploaded (and no cache loaded), th
 **Session 8 (June 10):** ✅ Committed + pushed — `validation.py` CSV download fix (st.download_button, gate_key param); corrected back-adjustment findings; NT corrupted bar (2025-07-15) found and fixed in NT  
 **Session 10 (June 13):** ✅ Committed + pushed — `scripts/fetch_for_nt.py` (NT import script), `data_loader.py` (4 Massive.io API functions), `massive.py` (new Massive.io tab), `app.py` (6th tab added); all Massive.io code ready pending API key Monday 2026-06-16  
 **Session 11 (June 14):** ✅ Committed + pushed — Massive.io API details confirmed (base URL, auth, sort); ES_MAS full pipeline confirmed working end-to-end with AAPL test data; NT native bars slot + Comparison 3 added to massive.py; API key subscribed today
-**Session 12 (June 16):** ✅ Committed + pushed — see full section below. Massive promoted to primary pipeline: contract manager, back-adjustment bug fix, continuous tick series (445M ticks, validated 99.49% vs 5M bars), app-restart persistence for continuous series + NT upload, unified filters (single editable home in Data tab), alt-path mismatch analysis in Bar Analysis, tab reorder/cleanup, Bar Validation tab removed, requirements.txt fixed, onboarding docs updated
+**Session 12 (June 16):** ✅ Committed + pushed — see full section below. Massive promoted to primary pipeline: contract manager, back-adjustment bug fix, continuous tick series (445M ticks, validated 99.49% vs 5M bars), app-restart persistence for continuous series + NT upload, unified filters (single editable home in Data tab), alt-path mismatch analysis in Bar Analysis, tab reorder/cleanup, Bar Validation tab removed, requirements.txt fixed, onboarding docs updated  
+**Session 13 (June 17):** ✅ Committed + pushed — WFA infrastructure: `simulation_engine.py` extracted from `bar_analysis.py`, `results_store.py` (SQLite + Parquet), `wfa.py` (full IS sweep + guardrails + OOS + Streamlit tab), `app.py` wired; scipy added to venv. **NOT yet user-tested end-to-end — do not rely on this as validated output.**
+
+---
+
+## Session 13 — June 17, 2026 — WFA Infrastructure
+
+### Summary
+
+Built the complete WFA (Walk-Forward Analysis) infrastructure from scratch. Three new files plus changes to two existing files. The Streamlit tab is wired and the module tree imports cleanly. **No end-to-end run with real signal data has been done yet** — that is the first thing to do next session.
+
+### New Files
+
+| File | Lines | Purpose |
+|------|-------|---------|
+| `simulation_engine.py` | ~750 | All simulation functions extracted from `bar_analysis.py` + PROM metric added to `compute_summary()` |
+| `results_store.py` | ~275 | SQLite fold metadata (`runs` + `folds` tables) + Parquet per-fold trade logs; full CRUD |
+| `wfa.py` | ~460 | WFA engine (`build_folds`, `run_is_sweep`, `compute_robustness`, `select_params`, `average_params`, `run_wfa`) + Streamlit tab (`show_wfa_tab`) |
+
+### Modified Files
+
+| File | Change |
+|------|--------|
+| `bar_analysis.py` | All simulation function definitions removed (lines 150–1608 original, plus `_resimulate_bars`); import block at top pulls from `simulation_engine` |
+| `app.py` | `import wfa as wfa_mod`; 6th tab `🔄 WFA` added; `show_wfa_tab()` wired |
+
+`portfolio.py` unchanged — it imports `simulate_trades`, `compute_summary`, `INSTRUMENTS` from `bar_analysis`, which now re-exports them from `simulation_engine`. No breakage.
+
+### WFA Architecture (locked this session)
+
+**Window:** rolling IS=1yr / OOS=3mo (configurable; warns if < 10 folds). Step = OOS window length. ~16 folds over the current 5-year dataset.
+
+**Parameter grid (IS sweep):**
+- Single-leg: T1 only (7 values: 0.50–2.00R, multiplicative spacing per Kaufman)
+- 2-leg (multileg): T1 × T2 × PB1 (~120 valid combos, T1 < T2 enforced)
+- 3-leg: T1 × T2 × PB1 (same grid, different sim path)
+- Ratchet always off during sweep (Kaufman: do not co-optimize)
+
+**Objective function:** PROM (Pessimistic Return on Margin) — primary. PnL/DD and PF displayed alongside.
+
+**Kaufman guardrails (per fold):**
+- ≥ 70% of IS param combos profitable → `rob_passed`
+- Kurtosis of PROM surface ≤ 6 → `kurtosis_ok`
+- ≥ 30 trades in IS window → `min_trades_ok`
+- Trade the average of top-N sets (default 3), not the single best
+
+**Pardo rules (hard constraints, not just metrics):**
+- OOS locked immediately after run (`lock_oos()` called inside `run_wfa`)
+- Forward live risk = 2× IS max drawdown (surfaced as warning in UI, not enforced in code)
+- Scan ranges, strategy logic, and objective function are all fixed before the first IS sweep runs
+
+**Storage:**
+- `data/wfa_store/wfa_results.db` — SQLite; `runs` table (run-level config) + `folds` table (all scalar metrics + guardrail flags per fold)
+- `data/wfa_store/trades/{run_id}/{setup_id}/fold_{N}_{is|oos}.parquet` — per-fold trade logs
+
+**Streamlit UI (two sub-tabs):**
+- `⚙️ Configure & Run` — setup ID, instrument, mode, IS/OOS window, param-set count, execution params, CC filter, run button with progress bar
+- `📊 Results` — run selector, guardrail badge panel, combined OOS equity curve with 4 summary metrics, fold table (color-coded WFE), per-fold drill-down (IS/OOS metrics + chosen param sets + trade log expanders), delete run
+
+### PROM formula (now in `compute_summary`)
+
+```
+PROM = [GrossWin × (1 − 1/√Nw) − GrossLoss × (1 + 1/√Nl)] / |MaxDrawdown|
+```
+
+Uses gross (pre-commission) win/loss to match Pardo's original formulation. Returns `nan` when max drawdown = 0 (no drawdown → infinite PROM, which is nonsensical). `compute_summary()` now returns `prom` and `pnl_dd` alongside all previous metrics.
+
+### Dependency added
+
+`scipy` installed to `.venv` (needed for `scipy.stats.kurtosis` in `compute_robustness()`).
+
+### What is NOT yet done / NOT yet tested
+
+- **No end-to-end run with real signals** — `show_wfa_tab()` requires `mas_continuous` (from Massive tab) + an uploaded signals file. First real test is a full WFA run on CC2 signals in multileg mode.
+- **Bar Analysis filters not yet migrated** to the shared Data-tab panel — same carry-over from Session 12.
+- **Max concurrent positions / max daily loss** (Q5, Q6 in `open_questions.md`) — wfa.py currently ignores both. All signals run independently. Decide before relying on WFA output for live trading.
+- **RevFT signals** — not ready yet. When they arrive, slot in as another `setup_id`; no code changes required.
+- **Portfolio WFA layer** — individual setup runs work; combining OOS equity curves across setups (`load_portfolio_oos_trades()` in `results_store.py`) is wired but the Portfolio tab doesn't yet call it.
+- **Window stability scanner** (Phase F in roadmap) — not built. Runs the fold builder over a grid of IS/OOS sizes to find the most stable window pair.
 
 ---
 
@@ -735,19 +813,30 @@ Tested end-to-end using AAPL 5-min agg bars as synthetic tick data (May 5–29, 
 
 ## Next Session — Priorities
 
-**User explicitly stated: "WFA is the focus. Architecture first."** This is the headline priority — everything else below is carry-over cleanup, not the main focus. "Architecture first" means: scope/design the WFA architecture before writing simulator/optimizer code — do not jump straight to implementation.
+**WFA first test is the headline.** The infrastructure is built but completely untested with real data. Do not move on to portfolio layer or window scanner until a clean end-to-end run confirms the engine works.
 
-### WFA (new focus — not yet scoped)
-Nothing designed yet. Track 2's old phased plan (Phase B signal detector → Phase C simulator → Phase D optimizer → Phase E WFA engine, see `python_wfa_spec.md`) was written for the SC/SCID path and may not map directly onto the Massive pipeline as-is — Bar Analysis already has a working simulator (`bar_analysis.py`), so the real gap is likely the optimizer + rolling-window WFA layer on top of it, not a from-scratch simulator. Confirm scope with the user before designing.
+### Step 1 — First real WFA run
+1. Start the app (`.venv\Scripts\streamlit run app.py`)
+2. Build `mas_continuous` in the Massive tab if not already persisted
+3. Upload CC2 signals (or whichever setup has the most data)
+4. Open the `🔄 WFA` tab → Configure & Run → select multileg, default windows (IS=12mo / OOS=3mo, 3 param sets)
+5. Verify: fold count shown (~16), IS sweep runs without error, guardrail badges appear, OOS equity curve renders, fold table populates
+6. Spot-check one fold's IS sweep: confirm the param grid was correct (T1 < T2 enforced, PB values negative)
+7. **Only after a clean run** move on to portfolio layer or window scanner
 
-### Carry-over from Session 12 (do before or alongside WFA work, as relevant)
-1. **Econ calendar API pipeline needs fixing** — user flagged this explicitly at end of Session 12, no detail given yet on what's broken. Ask first. Likely `economic_calendar.py` (FRED API for NFP/CPI) — check `FRED_API_KEY` config and the fetch logic before assuming the cause.
-2. **Migrate Bar Analysis filters to the shared panel** — `ba_`-prefixed widgets in `bar_analysis.py` still independent from `validation.get_filters("shared")`.
-3. **Calendar-month-range optimization** — user wants to optimize/slice Bar Analysis results by calendar month, not by contract. Likely relevant to WFA window design too — surface this when scoping WFA.
-4. **"Clear all cached data" needs confirmation popups** — explain what it deletes and what's needed to restore (rebuild via Massive tab / re-upload). Currently no confirmation at all.
-5. Re-download ~50 missing trading days in `data/flatfiles_cache/` (listed in Session 12 section above).
-6. Root-cause the tick-cache validation discrepancy (98.6%/1,587 vs 100%/243 extra bars).
-7. Live-test RevFTSignals and the alt-path mismatch table with real data that actually exercises them.
+### Step 2 — Decide Q5 and Q6
+Max concurrent positions and max daily loss rule are still open (`open_questions.md`). Current WFA output assumes unlimited concurrent positions and no daily loss cap. Decide these before treating any WFA OOS metrics as actionable.
+
+### Step 3 — Portfolio WFA layer
+Update Portfolio tab to load and combine OOS equity curves from multiple setup runs via `load_portfolio_oos_trades()` in `results_store.py`. This is already wired on the storage side; only the Portfolio tab UI needs updating.
+
+### Carry-over from Session 12 (lower priority than WFA)
+1. **Econ calendar API** — user flagged this as broken at end of Session 12. Ask what specifically is broken before touching `economic_calendar.py`.
+2. **Migrate Bar Analysis filters to the shared panel** — `ba_`-prefixed widgets still independent from `validation.get_filters("shared")`.
+3. **"Clear all cached data" confirmation popup** — no confirmation UI exists currently.
+4. Re-download ~50 missing trading days in `data/flatfiles_cache/`.
+5. Root-cause tick-cache validation discrepancy (98.6% vs 100%).
+6. Live-test RevFTSignals and alt-path mismatch table with real divergent data.
 
 ### Stale / superseded (kept for history only — do not act on without re-confirming with user)
 The items below were written for the old Massive.io-as-secondary-track plan (Sessions 10–11) and are now superseded by Session 12's work — Massive is already primary, the API is already confirmed and working, and `massive.py` already has the contract manager described here. Left in place rather than deleted per "preserve existing architecture unless instructed otherwise," but treat as historical.

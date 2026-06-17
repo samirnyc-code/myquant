@@ -12,6 +12,7 @@ import bar_analysis
 import portfolio
 import massive
 import validation
+import wfa as wfa_mod
 
 st.set_page_config(
     page_title="ES Futures — 5-Min RTH Bars",
@@ -345,8 +346,8 @@ def main():
                 st.session_state.pop(k, None)
         st.rerun()
 
-    tab_massive, tab0, tab1, tab3, tab4 = st.tabs([
-        "📂 Massive", "🗂️ Data", "📊 Bar Viewer", "📈 Bar Analysis", "📊 Portfolio",
+    tab_massive, tab0, tab1, tab3, tab4, tab_wfa = st.tabs([
+        "📂 Massive", "🗂️ Data", "📊 Bar Viewer", "📈 Bar Analysis", "📊 Portfolio", "🔄 WFA",
     ])
 
     contract_label = selected_key.split(" — ")[0] if selected_key else "ES"
@@ -406,6 +407,9 @@ def main():
 
     with tab4:
         portfolio.show_portfolio()
+
+    with tab_wfa:
+        wfa_mod.show_wfa_tab()
 
 
 main()

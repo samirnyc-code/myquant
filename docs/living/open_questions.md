@@ -1,6 +1,6 @@
 # Open Questions
 **Status:** Living — remove questions when resolved, never accumulate answered ones  
-**Last Updated:** June 14, 2026  
+**Last Updated:** June 17, 2026  
 **Rule:** A question lives here until it has a definitive answer. Once answered, move the decision to the relevant architecture doc and delete it here.
 
 ---
@@ -31,10 +31,12 @@ Scale-in is in scope. The scale-in entry is NOT triggered by a new signal — it
 **Q5: Max concurrent positions**
 Options: 1 / 2 / unlimited
 Decide on position sizing principles first.
+**Current state:** `wfa.py` runs all signals independently with no position cap. WFA output is not valid for live trading sizing until this is decided. Affects both Bar Analysis sweep results and WFA fold metrics (trades may overlap in real time).
 
 **Q6: Max daily loss rule**
 Options: Hard stop $ / No limit
 If hard stop, what threshold and based on what?
+**Current state:** `wfa.py` applies no daily loss limit. Same caveat as Q5 — decide before using WFA OOS metrics as a basis for live risk sizing.
 
 ---
 
