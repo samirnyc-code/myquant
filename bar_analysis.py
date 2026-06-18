@@ -910,6 +910,24 @@ def _apply_day_trade_filters(
     return results
 
 
+def _win_breakdown(res: pd.DataFrame):
+    """Decompose filled trades into target hits vs EOD-only wins, using the exact
+    same buckets as compute_summary(). Returns (tgt_pct, eod_win_pct, eod_win_avg_r).
+    By construction Win % == tgt_pct + eod_win_pct (to within independent rounding)."""
+    f = res[res["Filled"] == True]
+    n = len(f)
+    if not n:
+        return 0.0, 0.0, 0.0
+    tgt  = (f["ExitReason"].str.contains("Target", na=False) |
+            f["ExitReason"].isin(["T1+BE", "T1_only"]))
+    stp  = f["ExitReason"].isin(["Stop", "E1E2+Stop"])
+    eodw = (~tgt & ~stp) & (f["NetPnL"] > 0)
+    tgt_pct  = round(float(tgt.mean())  * 100, 1)
+    eodw_pct = round(float(eodw.mean()) * 100, 1)
+    eodw_r   = round(float(f.loc[eodw, "R_achieved"].mean()), 2) if bool(eodw.any()) else 0.0
+    return tgt_pct, eodw_pct, eodw_r
+
+
 def _run_r_sweep(
     signals: pd.DataFrame, ticks_by_date: dict,
     entry_slip: float, exit_slip: float, stop_offset: int,
@@ -937,9 +955,16 @@ def _run_r_sweep(
         if not s or s["n_trades"] == 0:
             continue
         _dd_abs = abs(s["max_dd"]) if s["max_dd"] != 0 else None
+
+        # Decompose Win % into target hits vs EOD-only wins.
+        tgt_pct, eodw_pct, eodw_r = _win_breakdown(res)
+
         rows.append({
             "R":       r,
             "Win %":   round(s["win_pct"], 1),
+            "Tgt %":     tgt_pct,
+            "EOD Win %": eodw_pct,
+            "EOD Win R": eodw_r,
             "PF":      round(s["pf"], 2) if s["pf"] < 99 else 99.9,
             "Net PnL": round(s["net_total"], 0),
             "DD $":    round(_dd_abs, 0) if _dd_abs else 0.0,
@@ -1010,12 +1035,23 @@ def _run_ml_scalein_sweep(
     first_trade_only: bool = False, first_2_filled_only: bool = False,
     progress_bar=None,
 ) -> pd.DataFrame:
-    """Sweep PB_R × T1_R × T2_R for 2-leg scale-in mode.
+    """FAST scale-in sweep (PB_R × T1_R × T2_R for 2-leg PB scale-in, ratchet off).
 
-    Speed strategy:
-      - Per-day numpy arrays extracted once; np.searchsorted replaces pandas boolean filter.
-      - stop_i, pb_i, t1_i precomputed per signal outside the combo loop (O(n_signals) scans).
-      - Combo loop only does np.argmax for phase-2 t2 detection on signals that hit PB.
+    Identical results to the engine reference (`_run_ml_scalein_sweep_engine` →
+    simulate_trades + compute_summary), but seconds instead of minutes. How:
+
+      * Per signal, the entry slice + running-max / running-min are precomputed ONCE
+        (combo-independent). Those arrays are monotonic, so each combo's first PB /
+        T1 / stop hit is an O(log n) np.searchsorted instead of an O(n) scan over
+        ~100k ticks. Phase-2 (after PB fills) is a C-level numpy scan of just the
+        post-PB suffix, only for signals that actually scaled in.
+      * The exit sequencing mirrors the engine's vectorized PB path EXACTLY
+        (PB fills before stop and continues; pre-PB only T1 can fire; post-PB stop
+        beats T2 on a tie). floor/ceil PB rounding and all slip/round arithmetic are
+        copied verbatim from simulation_engine._simulate_one_multileg.
+
+    Verified byte-identical to the reference across the full default grid by
+    scripts/validate_scalein_sweep.py — run it after ANY change here.
     """
     if pb_vals is None:
         pb_vals = [-0.25, -0.33, -0.50, -0.66, -0.75, -1.0, -1.25, -1.50]
@@ -1024,78 +1060,71 @@ def _run_ml_scalein_sweep(
     if t2_vals is None:
         t2_vals = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0]
 
-    ts             = TICK_SIZE
-    tv1            = tick_value * contracts_t1
-    tv2            = tick_value * contracts_t2
-    tv_tot         = tv1 + tv2
-    comm_per_trade_1 = commission * contracts_t1
-    comm_per_trade_2 = commission * contracts
+    ts      = TICK_SIZE
+    tv1     = tick_value * contracts_t1
+    tv2     = tick_value * contracts_t2
+    tv_tot  = tv1 + tv2
+    comm1   = commission * contracts_t1                 # leg-1-only commission
+    comm12  = commission * (contracts_t1 + contracts_t2)  # both-legs commission
 
-    # ── Extract per-day numpy arrays once (avoids repeated pandas filtering) ──
-    day_dt_np = {}
-    day_px_np = {}
-    for d, df in ticks_by_date.items():
-        if df is not None and not df.empty:
-            day_dt_np[d] = df["DateTime"].values
-            day_px_np[d] = df["Price"].values.astype(np.float64)
-
-    # ── Apply day-trade filters ───────────────────────────────────────────────
-    _sigs = signals[signals.get("FilterStatus", pd.Series("ok", index=signals.index)) == "ok"].copy()
-    if first_trade_only or first_2_filled_only:
-        n_keep = 1 if first_trade_only else 2
-        _sigs = (
-            _sigs.sort_values(["Date", "SignalNum"])
-                 .groupby("Date", group_keys=False)
-                 .head(n_keep)
-                 .reset_index(drop=True)
-        )
-
-    # ── Step 1: precompute per-signal numpy arrays (done ONCE) ──────────────────
-    sig_cache = []
-    for _, row in _sigs.iterrows():
-        direction = row["Direction"]
-        sig_dt    = pd.Timestamp(row["DateTime"])
-        date      = row["Date"]
-        stop_csv  = float(row["StopPrice"])
-        is_long   = direction == "Long"
-
-        dt_arr = day_dt_np.get(date)
-        px_arr = day_px_np.get(date)
-        if dt_arr is None:
+    # ── Per-signal cache (combo-independent). A signal is "filled" exactly when the
+    #    engine fills it: FilterStatus ok + tick data + ≥1 tick after signal + risk≥
+    #    0.001. That set never changes across combos, so build it once. ──
+    _ok = signals[signals.get("FilterStatus", pd.Series("ok", index=signals.index)) == "ok"]
+    cache = []
+    for _, row in _ok.iterrows():
+        date = row["Date"]
+        df   = ticks_by_date.get(date)
+        if df is None or df.empty:
             continue
-
-        # Binary search for first tick after signal — O(log n) vs O(n) pandas filter
-        start = int(np.searchsorted(dt_arr, np.datetime64(sig_dt), side="right"))
-        if start >= len(px_arr) - 1:
+        dt_arr = df["DateTime"].values
+        start  = int(np.searchsorted(dt_arr, np.datetime64(pd.Timestamp(row["DateTime"])), side="right"))
+        if start >= len(dt_arr):
             continue
-
-        prices = px_arr[start:].copy()   # copy so each signal owns its slice
-        if len(prices) < 2:
+        prices  = df["Price"].values[start:].astype(np.float64)
+        is_long = row["Direction"] == "Long"
+        sgn     = 1.0 if is_long else -1.0
+        entry   = float(prices[0]) + sgn * entry_slip * ts
+        stop    = float(row["StopPrice"]) - sgn * stop_offset * ts
+        risk    = abs(entry - stop)
+        if risk < 0.001:
             continue
-
-        p1           = prices[1:]
-        actual_entry = prices[0] + (entry_slip * ts if is_long else -entry_slip * ts)
-        actual_stop  = (stop_csv - stop_offset * ts) if is_long else (stop_csv + stop_offset * ts)
-        risk_pts     = abs(actual_entry - actual_stop)
-        if risk_pts < 0.001:
-            continue
-
-        sig_cache.append({
-            "is_long": is_long,
-            "prices":  prices,
-            "p1":      p1,
-            "entry":   actual_entry,
-            "stop":    actual_stop,
-            "risk":    risk_pts,
+        cache.append({
+            "is_long": is_long, "sgn": sgn,
+            "prices": prices,
+            "rmax": np.maximum.accumulate(prices),
+            "neg_rmin": -np.minimum.accumulate(prices),
+            "entry": entry, "stop": stop, "risk": risk,
+            "last_px": float(prices[-1]), "n": len(prices),
+            "entry_time": dt_arr[start], "date": date,
+            "signum": row.get("SignalNum", -1),
         })
 
-    if not sig_cache:
+    if not cache:
         return pd.DataFrame()
 
-    n_sigs = len(sig_cache)
+    # Day-trade filters: keep first N filled per day by (Date, SignalNum), preserving
+    # original signal order (matches _apply_day_trade_filters' drop+reset semantics).
+    if first_trade_only or first_2_filled_only:
+        keep_n = 1 if first_trade_only else 2
+        cnt, keep = {}, set()
+        for i in sorted(range(len(cache)), key=lambda j: (str(cache[j]["date"]), cache[j]["signum"])):
+            d = cache[i]["date"]
+            if cnt.get(d, 0) < keep_n:
+                keep.add(i); cnt[d] = cnt.get(d, 0) + 1
+        cache = [cache[i] for i in range(len(cache)) if i in keep]
+        if not cache:
+            return pd.DataFrame()
 
-    # ── Step 2: sweep combos — flatnonzero on prebuilt numpy arrays ───────────
-    # exit codes: 0=EOD/nofill, 1=Stop, 2=T1_only, 3=E1E2+Target, 4=E1E2+Stop, 5=E1E2+EOD
+    n_sigs = len(cache)
+    # DD equity order: by (Date, EntryTime), stable on original order — matches
+    # compute_summary's sort_values(["Date","EntryTime"]).
+    dd_idx = np.array(sorted(range(n_sigs), key=lambda j: (str(cache[j]["date"]), cache[j]["entry_time"])))
+    e1_risk_dollar = np.array([c["risk"] / ts * tv1 for c in cache])
+
+    # exit-reason codes
+    T1, STOP, EOD, E2TGT, E2EOD, E2STOP = 0, 1, 2, 3, 4, 5
+
     total = len(pb_vals) * len(t1_vals) * len(t2_vals)
     done  = 0
     rows  = []
@@ -1109,132 +1138,190 @@ def _run_ml_scalein_sweep(
                                           text=f"Scale-in sweep: {done} / {total}  "
                                                f"(PB={pb_r}R  T1={t1_r}R  T2={t2_r}R)")
 
-                net_pnls   = np.empty(n_sigs, dtype=np.float64)
-                exit_codes = np.empty(n_sigs, dtype=np.int8)
+                gross = np.empty(n_sigs)
+                net   = np.empty(n_sigs)
+                rach  = np.empty(n_sigs)
+                codes = np.empty(n_sigs, dtype=np.int8)
 
-                for idx, sd in enumerate(sig_cache):
-                    is_long = sd["is_long"]
-                    prices  = sd["prices"]
-                    p1      = sd["p1"]
-                    entry   = sd["entry"]
-                    stop    = sd["stop"]
-                    risk    = sd["risk"]
+                for i, c in enumerate(cache):
+                    is_long = c["is_long"]; sgn = c["sgn"]
+                    prices  = c["prices"]; rmax = c["rmax"]; neg_rmin = c["neg_rmin"]
+                    entry   = c["entry"]; stop = c["stop"]; risk = c["risk"]; n = c["n"]
 
-                    pb_raw     = entry + (pb_r * risk if is_long else -pb_r * risk)
-                    pb_trigger = round(round(pb_raw / ts) * ts, 10)
-                    t1_level   = entry + (t1_r * risk if is_long else -t1_r * risk)
-
+                    t1_price = entry + sgn * t1_r * risk
+                    pb_raw   = entry + sgn * pb_r * risk    # ml_pb_ticks = 0
                     if is_long:
-                        pb_hits   = np.flatnonzero(p1 <= pb_trigger - ts)
-                        t1_hits   = np.flatnonzero(p1 > t1_level)
-                        stop_hits = np.flatnonzero(p1 <= stop)
+                        pb_trigger = round(float(np.floor(pb_raw / ts)) * ts, 10)
+                        pb_i   = int(np.searchsorted(neg_rmin, -pb_trigger, side="right"))
+                        t1_i   = int(np.searchsorted(rmax, t1_price, side="right"))
+                        stop_i = int(np.searchsorted(neg_rmin, -stop, side="left"))
                     else:
-                        pb_hits   = np.flatnonzero(p1 >= pb_trigger + ts)
-                        t1_hits   = np.flatnonzero(p1 < t1_level)
-                        stop_hits = np.flatnonzero(p1 >= stop)
+                        pb_trigger = round(float(np.ceil(pb_raw / ts)) * ts, 10)
+                        pb_i   = int(np.searchsorted(rmax, pb_trigger, side="right"))
+                        t1_i   = int(np.searchsorted(neg_rmin, -t1_price, side="right"))
+                        stop_i = int(np.searchsorted(rmax, stop, side="left"))
 
-                    pb_i   = int(pb_hits[0])   if len(pb_hits)   else len(p1)
-                    t1_i   = int(t1_hits[0])   if len(t1_hits)   else len(p1)
-                    stop_i = int(stop_hits[0]) if len(stop_hits) else len(p1)
-                    first  = min(pb_i, t1_i, stop_i)
-
-                    if first == len(p1):
-                        eod_px = prices[-1] + (-exit_slip * ts if is_long else exit_slip * ts)
-                        l1_pts = (eod_px - entry) if is_long else (entry - eod_px)
-                        net_pnls[idx]   = l1_pts / ts * tv1 - comm_per_trade_1
-                        exit_codes[idx] = 0
+                    if pb_i >= n:                                   # PB never fills
+                        if t1_i >= n and stop_i >= n:
+                            exit_px = c["last_px"] - sgn * exit_slip * ts; codes[i] = EOD
+                        elif t1_i < n and (stop_i >= n or t1_i < stop_i):
+                            exit_px = t1_price - sgn * exit_slip * ts;     codes[i] = T1
+                        else:
+                            exit_px = stop - sgn * exit_slip * ts;         codes[i] = STOP
+                        g = sgn * (exit_px - entry) / ts * tv1
+                        gross[i] = g; net[i] = g - comm1
+                        rach[i] = g / e1_risk_dollar[i] if e1_risk_dollar[i] > 0 else 0.0
                         continue
 
-                    if stop_i == first:
-                        sp     = stop + (-exit_slip * ts if is_long else exit_slip * ts)
-                        l1_pts = (sp - entry) if is_long else (entry - sp)
-                        net_pnls[idx]   = l1_pts / ts * tv1 - comm_per_trade_1
-                        exit_codes[idx] = 1
+                    if t1_i < pb_i:                                 # T1 before PB → no scale-in
+                        exit_px = t1_price - sgn * exit_slip * ts
+                        g = sgn * (exit_px - entry) / ts * tv1
+                        gross[i] = g; net[i] = g - comm1; codes[i] = T1
+                        rach[i] = g / e1_risk_dollar[i] if e1_risk_dollar[i] > 0 else 0.0
                         continue
 
-                    if t1_i == first:
-                        t1_ep  = t1_level + (-exit_slip * ts if is_long else exit_slip * ts)
-                        l1_pts = (t1_ep - entry) if is_long else (entry - t1_ep)
-                        net_pnls[idx]   = l1_pts / ts * tv1 - comm_per_trade_1
-                        exit_codes[idx] = 2
-                        continue
+                    # PB fills at pb_i
+                    e2        = round(round((pb_trigger + sgn * entry_slip * ts) / ts) * ts, 10)
+                    blended   = (entry * tv1 + e2 * tv2) / tv_tot
+                    b_risk    = abs(blended - stop)
+                    t2_price  = round(round((blended + sgn * t2_r * b_risk) / ts) * ts, 10)
 
-                    # PB filled
-                    e2_raw   = pb_trigger + (entry_slip * ts if is_long else -entry_slip * ts)
-                    e2_entry = round(round(e2_raw / ts) * ts, 10)
-                    blended  = (entry * tv1 + e2_entry * tv2) / tv_tot
-                    b_risk   = abs(blended - stop)
-                    t2_level = blended + (t2_r * b_risk if is_long else -t2_r * b_risk)
-                    t2_level = round(round(t2_level / ts) * ts, 10)
-
-                    p2_start = pb_i + 2
-                    p2       = prices[p2_start:]
-
-                    if len(p2) == 0:
-                        eod_px = prices[-1] + (-exit_slip * ts if is_long else exit_slip * ts)
-                        l1_pts = (eod_px - entry)    if is_long else (entry    - eod_px)
-                        l2_pts = (eod_px - e2_entry) if is_long else (e2_entry - eod_px)
-                        net_pnls[idx]   = l1_pts / ts * tv1 + l2_pts / ts * tv2 - comm_per_trade_2
-                        exit_codes[idx] = 5
-                        continue
-
-                    if is_long:
-                        t2_hits2   = np.flatnonzero(p2 > t2_level)
-                        stop_hits2 = np.flatnonzero(p2 <= stop)
+                    suffix = prices[pb_i + 1:]                      # ticks strictly after PB
+                    if suffix.size:
+                        if is_long:
+                            sm = suffix <= stop; tm = suffix > t2_price
+                        else:
+                            sm = suffix >= stop; tm = suffix < t2_price
+                        has_s = bool(sm.any()); has_t = bool(tm.any())
+                        s_rel = int(np.argmax(sm)) if has_s else n
+                        t_rel = int(np.argmax(tm)) if has_t else n
                     else:
-                        t2_hits2   = np.flatnonzero(p2 < t2_level)
-                        stop_hits2 = np.flatnonzero(p2 >= stop)
+                        has_s = has_t = False; s_rel = t_rel = n
 
-                    t2_i2   = int(t2_hits2[0])   if len(t2_hits2)   else len(p2)
-                    stop_i2 = int(stop_hits2[0]) if len(stop_hits2) else len(p2)
-
-                    if t2_i2 < stop_i2:
-                        t2_ep  = t2_level + (-exit_slip * ts if is_long else exit_slip * ts)
-                        l1_pts = (t2_ep - entry)    if is_long else (entry    - t2_ep)
-                        l2_pts = (t2_ep - e2_entry) if is_long else (e2_entry - t2_ep)
-                        net_pnls[idx]   = l1_pts / ts * tv1 + l2_pts / ts * tv2 - comm_per_trade_2
-                        exit_codes[idx] = 3
-                    elif stop_i2 < len(p2):
-                        sp     = stop + (-exit_slip * ts if is_long else exit_slip * ts)
-                        l1_pts = (sp - entry)    if is_long else (entry    - sp)
-                        l2_pts = (sp - e2_entry) if is_long else (e2_entry - sp)
-                        net_pnls[idx]   = l1_pts / ts * tv1 + l2_pts / ts * tv2 - comm_per_trade_2
-                        exit_codes[idx] = 4
+                    if not has_s and not has_t:
+                        exit_px = c["last_px"] - sgn * exit_slip * ts; codes[i] = E2EOD
+                    elif has_t and (not has_s or t_rel < s_rel):
+                        exit_px = t2_price - sgn * exit_slip * ts;     codes[i] = E2TGT
                     else:
-                        eod_px = prices[-1] + (-exit_slip * ts if is_long else exit_slip * ts)
-                        l1_pts = (eod_px - entry)    if is_long else (entry    - eod_px)
-                        l2_pts = (eod_px - e2_entry) if is_long else (e2_entry - eod_px)
-                        net_pnls[idx]   = l1_pts / ts * tv1 + l2_pts / ts * tv2 - comm_per_trade_2
-                        exit_codes[idx] = 5
+                        exit_px = stop - sgn * exit_slip * ts;         codes[i] = E2STOP
+                    l1 = sgn * (exit_px - entry) / ts * tv1
+                    l2 = sgn * (exit_px - e2) / ts * tv2
+                    g  = l1 + l2
+                    gross[i] = g; net[i] = g - comm12
+                    rach[i] = g / e1_risk_dollar[i] if e1_risk_dollar[i] > 0 else 0.0
 
-                # ── Aggregate ────────────────────────────────────────────────
-                if n_sigs == 0:
+                # ── Aggregate (mirrors compute_summary buckets exactly) ──
+                tgt  = (codes == T1) | (codes == E2TGT)
+                stp  = (codes == STOP) | (codes == E2STOP)
+                eod  = ~tgt & ~stp
+                eodw = eod & (net > 0)
+                n_wins = int((tgt | eodw).sum())
+
+                pos = float(gross[gross > 0].sum())
+                neg = float(gross[gross < 0].sum())
+                pf  = abs(pos / neg) if neg < 0 else (float("inf") if pos > 0 else 0.0)
+
+                net_total  = float(net.sum())
+                exp_dollar = float(net.mean())
+                eq   = np.cumsum(net[dd_idx])
+                dd   = float((eq - np.maximum.accumulate(eq)).min())
+                _dd  = abs(dd) if dd != 0 else None
+
+                rows.append({
+                    "PB_R":      pb_r,
+                    "T1_R":      t1_r,
+                    "T2_R":      t2_r,
+                    "T1 %":      round(float((codes == T1).mean()) * 100, 1),
+                    "T2 %":      round(float((codes == E2TGT).mean()) * 100, 1),
+                    "Tgt %":     round(float(tgt.mean()) * 100, 1),
+                    "EOD Win %": round(float(eodw.mean()) * 100, 1),
+                    "EOD Win R": round(float(rach[eodw].mean()), 2) if bool(eodw.any()) else 0.0,
+                    "Win %":     round(n_wins / n_sigs * 100, 1),
+                    "PF":        round(pf, 2) if pf < 99 else 99.9,
+                    "Net PnL":   round(net_total, 0),
+                    "DD $":      round(_dd, 0) if _dd else 0.0,
+                    "PnL/DD":    round(net_total / _dd, 2) if _dd else 0.0,
+                    "Exp $":     round(exp_dollar, 0),
+                })
+
+    return pd.DataFrame(rows)
+
+
+def _run_ml_scalein_sweep_engine(
+    signals: pd.DataFrame, ticks_by_date: dict,
+    entry_slip: float, exit_slip: float, stop_offset: int,
+    tick_value: float, contracts: int, commission: float,
+    contracts_t1: int, contracts_t2: int,
+    bars_by_date: dict | None = None,
+    pb_vals: list | None = None,
+    t1_vals: list | None = None,
+    t2_vals: list | None = None,
+    first_trade_only: bool = False, first_2_filled_only: bool = False,
+    progress_bar=None,
+) -> pd.DataFrame:
+    """REFERENCE (slow, ~2s/combo) scale-in sweep: each combo is a full run through
+    simulate_trades(multileg + PB) + compute_summary — i.e. literally the main-sim
+    path. The app uses the fast `_run_ml_scalein_sweep` instead; this stays as the
+    ground-truth oracle that scripts/validate_scalein_sweep.py checks the fast path
+    against across the whole grid (so the fast path can never silently drift)."""
+    if pb_vals is None:
+        pb_vals = [-0.25, -0.33, -0.50, -0.66, -0.75, -1.0, -1.25, -1.50]
+    if t1_vals is None:
+        t1_vals = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
+    if t2_vals is None:
+        t2_vals = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0]
+
+    total = len(pb_vals) * len(t1_vals) * len(t2_vals)
+    done  = 0
+    rows  = []
+
+    for pb_r in pb_vals:
+        for t1_r in t1_vals:
+            for t2_r in t2_vals:
+                done += 1
+                if progress_bar is not None and (done % 5 == 0 or done == total):
+                    progress_bar.progress(done / total,
+                                          text=f"Scale-in sweep: {done} / {total}  "
+                                               f"(PB={pb_r}R  T1={t1_r}R  T2={t2_r}R)")
+
+                res = simulate_trades(
+                    signals, ticks_by_date, t2_r,
+                    entry_slip, exit_slip, stop_offset,
+                    tick_value, contracts, commission,
+                    bars_by_date=bars_by_date,
+                    multileg=True, t1_r=t1_r, t1_action="exit",
+                    contracts_t1=contracts_t1, contracts_t2=contracts_t2,
+                    ml_pb_r=pb_r,
+                )
+                res = _apply_day_trade_filters(res, first_trade_only, first_2_filled_only)
+                s = compute_summary(
+                    res, commission, contracts=contracts, is_multileg=True,
+                    t1_action="exit", contracts_t1=contracts_t1, contracts_t2=contracts_t2,
+                )
+                if not s or s["n_trades"] == 0:
                     continue
 
-                wins       = net_pnls > 0
-                gross_win  = float(np.sum(net_pnls[net_pnls > 0]))
-                gross_loss = float(abs(np.sum(net_pnls[net_pnls < 0])))
-                pf         = (gross_win / gross_loss) if gross_loss > 0 else 99.9
+                filled  = res[res["Filled"] == True]
+                t1_pct  = round(float((filled["ExitReason"] == "T1_only").mean()) * 100, 1)
+                t2_pct  = round(float((filled["ExitReason"] == "E1E2+Target").mean()) * 100, 1)
+                tgt_pct, eodw_pct, eodw_r = _win_breakdown(res)
+                _dd_abs = abs(s["max_dd"]) if s["max_dd"] != 0 else None
 
-                cum    = np.cumsum(net_pnls)
-                dd     = float(np.min(cum - np.maximum.accumulate(cum)))
-                dd_abs = abs(dd)
-
-                t1_pct    = round(float(np.mean(exit_codes == 2)) * 100, 1)
-                t2_pct    = round(float(np.mean(exit_codes == 3)) * 100, 1)
-                net_total = float(np.sum(net_pnls))
                 rows.append({
-                    "PB_R":    pb_r,
-                    "T1_R":    t1_r,
-                    "T2_R":    t2_r,
-                    "T1 %":    t1_pct,
-                    "T2 %":    t2_pct,
-                    "Win %":   round(float(np.mean(wins)) * 100, 1),
-                    "PF":      round(min(pf, 99.9), 2),
-                    "Net PnL": round(net_total, 0),
-                    "DD $":    round(dd_abs, 0),
-                    "PnL/DD":  round(net_total / dd_abs, 2) if dd_abs else 0.0,
-                    "Exp $":   round(net_total / n_sigs, 0),
+                    "PB_R":      pb_r,
+                    "T1_R":      t1_r,
+                    "T2_R":      t2_r,
+                    "T1 %":      t1_pct,
+                    "T2 %":      t2_pct,
+                    "Tgt %":     tgt_pct,
+                    "EOD Win %": eodw_pct,
+                    "EOD Win R": eodw_r,
+                    "Win %":     round(s["win_pct"], 1),
+                    "PF":        round(s["pf"], 2) if s["pf"] < 99 else 99.9,
+                    "Net PnL":   round(s["net_total"], 0),
+                    "DD $":      round(_dd_abs, 0) if _dd_abs else 0.0,
+                    "PnL/DD":    round(s["net_total"] / _dd_abs, 2) if _dd_abs else 0.0,
+                    "Exp $":     round(s["exp_dollar"], 0),
                 })
 
     return pd.DataFrame(rows)
@@ -1863,7 +1950,9 @@ def _show_optimal_r(signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
                 _si_ranked = _si_res.sort_values(_si_metric, ascending=False).head(20).reset_index(drop=True)
                 _si_ranked.index = _si_ranked.index + 1
                 _si_fmt = {"PB_R": "{:.2f}", "T1_R": "{:.2f}", "T2_R": "{:.2f}",
-                           "T1 %": "{:.1f}", "T2 %": "{:.1f}", "Win %": "{:.1f}",
+                           "T1 %": "{:.1f}", "T2 %": "{:.1f}",
+                           "Tgt %": "{:.1f}", "EOD Win %": "{:.1f}", "EOD Win R": "{:.2f}",
+                           "Win %": "{:.1f}",
                            "PF": "{:.2f}", "PnL/DD": "{:.2f}",
                            "Net PnL": "${:.0f}", "DD $": "${:.0f}", "Exp $": "${:.0f}"}
                 _si_styled = _apply_best_green(
@@ -1909,6 +1998,7 @@ def _show_optimal_r(signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
                 return
 
             fmt_map = {"R": "{:.2f}", "Win %": "{:.1f}", "PF": "{:.2f}", "PnL/DD": "{:.2f}"}
+            fmt_map.update({"Tgt %": "{:.1f}", "EOD Win %": "{:.1f}", "EOD Win R": "{:.2f}"})
             fmt_map.update({"Net PnL": "${:.0f}", "DD $": "${:.0f}", "Exp $": "${:.0f}"})
             styled = _apply_best_green(
                 sweep_df, sweep_df.style.format(fmt_map), _METRIC_COLS, _THRESHOLDS
@@ -2586,7 +2676,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                                     st.session_state.get("ba_excl_first_n", 0), 1,
                                     key="ba_excl_first_n")
         excl_last_min = sb2.slider("Exclude last N minutes", 0, 90,
-                                    st.session_state.get("ba_excl_last_min", 0), 5,
+                                    st.session_state.get("ba_excl_last_min", 45), 5,
                                     key="ba_excl_last_min")
 
         st.divider()
@@ -2594,7 +2684,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         if not fred_key_configured():
             st.info("FOMC built-in. Add FRED_API_KEY to .streamlit/secrets.toml for NFP/CPI.")
         ea, eb, ec = st.columns(3)
-        use_fomc = ea.checkbox("FOMC", key="ba_fomc", value=st.session_state.get("ba_fomc", False))
+        use_fomc = ea.checkbox("FOMC", key="ba_fomc", value=st.session_state.get("ba_fomc", True))
         use_nfp  = eb.checkbox("NFP",  key="ba_nfp",  value=st.session_state.get("ba_nfp",  False),
                                 disabled=not fred_key_configured())
         use_cpi  = ec.checkbox("CPI",  key="ba_cpi",  value=st.session_state.get("ba_cpi",  False),
@@ -2603,7 +2693,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
 
         ef1, ef2 = st.columns([1, 2])
         _EFM_OPTS = ["Skip full day", "Window ±N minutes"]
-        _efm_raw  = st.session_state.get("ba_event_mode", _EFM_OPTS[0])
+        _efm_raw  = st.session_state.get("ba_event_mode", _EFM_OPTS[1])
         # Normalise: stored value may have plain ± while code had mojibake, or vice versa
         _efm_default = _EFM_OPTS[1] if ("±" in _efm_raw or "±" in _efm_raw) else _EFM_OPTS[0]
         event_filter_mode = ef1.radio(
@@ -2614,7 +2704,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         event_window = 30
         if event_filter_mode == _EFM_OPTS[1]:
             event_window = ef2.slider("Minutes before/after", 15, 180,
-                                       st.session_state.get("ba_event_window", 30), 15,
+                                       st.session_state.get("ba_event_window", 15), 15,
                                        key="ba_event_window")
 
     # ── Signals ───────────────────────────────────────────────────────────────

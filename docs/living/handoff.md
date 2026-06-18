@@ -1,6 +1,6 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** June 18, 2026 (session 14)
+**Last Updated:** June 18, 2026 (session 16, evening)
 **Current Versions:** SIM_v3.3 / GS_v4.5 / SHEET_v3.3  
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 
@@ -887,6 +887,31 @@ All contract data (flatfiles_cache, bars parquet, continuous tick cache) lives o
 ## ⭐ HANDOFF FOR NEW CHAT — Bar Analysis sweep-speed rewrite (Session 16)
 *Written 2026-06-18 by Opus. Read this whole section before writing any code. The goal: make ALL Bar Analysis sweeps + the main simulation fast, with progress bars, and provably correct — then a full 5-year validation. Only after Bar Analysis is "perfect" do we touch the WFA tab.*
 
+### ✅ Session 16 progress (evening of 2026-06-18) — NOT yet committed→ committed at end of session
+
+**Step A — engine vectorized (DONE, verified).** `simulation_engine.py`: added a numpy first-hit-index scan path for `ratchet_r == 0` to `_simulate_one` (single-leg) and `_simulate_one_multileg` (PB scale-in). Python loop kept for `ratchet_r > 0` / manual-fill and as regression reference. Verified **byte-identical** (`validate_regression.py` old-vs-new), Layer A all pass, Layer B 0 mismatches (1097 trades, both modes). Speed: main multileg sim **59s → 2.4s**.
+- **Deferred (do later, needs its own oracle first):** `_simulate_one_3leg` and the non-PB branch of `_simulate_one_multileg` still run the Python loop. 3-leg has no independent oracle — write one before vectorizing.
+
+**Step B — scale-in sweep fast + engine-accurate (DONE, verified).** `bar_analysis.py`:
+- Deleted the **drifted inline** `_run_ml_scalein_sweep` (it overstated Net PnL by up to **$7.4k/combo** — `round()` vs floor/ceil PB, and mis-scored same-tick PB+stop gaps).
+- New **fast prefix-scan** `_run_ml_scalein_sweep`: precompute running-max/min per signal ONCE → each combo's first-hit is O(log n) `searchsorted` + a C-level numpy suffix scan post-PB. **Full 1224-combo grid ~2 min (95 ms/combo), was ~41 min** (~20×). A 432-combo grid ≈ 40s.
+- Kept the slow `_run_ml_scalein_sweep_engine` (= simulate_trades + compute_summary) as the **reference oracle**.
+- New permanent regression **`scripts/validate_scalein_sweep.py`** proves fast == engine. **64-combo subset (all code paths, T1<T2 and T1>T2): IDENTICAL on all 14 columns.** Full 1224-combo `--full` run was launched end-of-session → **confirm `data/_regress/scalein_full_verify.log` tomorrow** (expected green; logic is combo-uniform so the subset is the real proof).
+
+**Win-decomposition columns (DONE).** Shared `_win_breakdown()` helper adds **Tgt % / EOD Win % / EOD Win R** to BOTH the R sweep and the scale-in sweep. `Win % = Tgt % + EOD Win %`. (Surfaced *why* Win% plateaus at high R: target becomes non-binding intraday → wins shift from target-hits to EOD-green.)
+
+**Filter defaults changed (DONE).** New defaults in `bar_analysis.py` (code fallbacks) **and** `ba_filter_defaults.json` (git-tracked, so it propagates): **Exclude last 45 min** of RTH, **FOMC ON with ±15-min window cushion** (event mode = "Window ±N minutes", window = 15). These change sweep/sim numbers vs before (fewer signals) — intended. Requires a full app restart (defaults load via `setdefault`, won't override an existing session).
+
+**Note on speed reality (measured this session):** routing sweeps through the engine per-combo is ~1.9–2.7s/combo (full result-dict build dominates, NOT post-processing) → ~15 min for 432 combos. The prefix-scan is the only thing that makes big sweeps usable. Other engine-based sweeps (R, T1×T2, stop-mult) still call the engine per combo and are still minutes on large grids — same prefix-scan treatment could be applied later if needed.
+
+### 🐞 Data-integrity finding (investigated this session, fix NOT yet written)
+The "missing tick data" sweep warnings are **truncated Massive flatfile downloads**, verified by inspecting raw gz contents (not file size — multi-product files mask time-truncation):
+- **7 dates "no tick data"** — gz truncated before 08:30 RTH open → builder writes no parquet: 2021-07-21, 2021-08-12, 2021-08-13, 2021-10-07, 2021-11-23, 2022-03-16, 2022-06-24.
+- **3 dates "no ticks after signal" (truncated mid-session)** — confirmed every contract in the file stops early: 2021-07-26 (08:59), 2021-11-30 (13:01), 2021-12-08 (10:29). (2021-11-30 gz is 45M but multi-product; ESZ1 = 397k RTH rows stopping at 13:01.) Active-contract pick is correct (ESZ1) — NOT a roll bug.
+- **5 dates "no ticks after signal" by design** — signal on bar 81 (15:10–15:15, the last bar, no next bar to fill). **No fix needed.**
+
+**Planned fix (script not yet written):** `scripts/refetch_truncated_days.py` — re-fetch those 10 dates (force-overwrite gz) → rebuild continuous ticks → **assert RTH span ~08:30→15:15 and fail loud** (don't silently keep a partial). Plus a **build-time guard** in `build_continuous_ticks_for_date` to flag abnormally short RTH coverage so future partial downloads surface immediately. Re-fetch hits the Massive API (metered) + overwrites cache — get explicit OK before running. Only helps if Massive now serves complete data for those days (the assert tells us).
+
 ### Non-negotiable principles (the user was emphatic — this is for real money)
 1. **One engine, one definition of a trade.** `simulation_engine.py` is the single source of truth. The main sim, every sweep, the WFA tab, AND a future NinjaTrader auto-trade robot must all produce identical trades. NEVER reimplement trade logic in a sweep — call the engine. (The old `_run_ml_scalein_sweep` violated this and silently drifted — see below.)
 2. **Every tick matters.** Entry = first tick after the signal bar close. PB level must be 100% identical across all CSVs, tables, and charts. Stop fills on touch. Floor/ceil PB rounding (see toggle below). Do not "optimize" by changing any comparator, rounding, or priority.
@@ -947,9 +972,23 @@ Run validation across the entire signal history **year by year** (memory: ~444M 
 
 ---
 
-## Next Session — Priorities
+## Next Session — Priorities (set 2026-06-18 evening, session 16)
 
-**Critical path:** ✅ validate sim engine (DONE) → 🔄 make Bar Analysis sweeps fast+correct (the ⭐ section above) → decide Q5/Q6 → first WFA run. The sweep rewrite is the active task; do it in a fresh chat using the ⭐ HANDOFF section.
+**First: `git pull` (two-machine).** Then confirm `data/_regress/scalein_full_verify.log` says IDENTICAL (the full-grid fast-vs-engine check launched at end of session 16).
+
+**Critical path:** ✅ sim engine validated → ✅ scale-in sweep fast+correct → 🔄 finish the sweep-speed plan (D, E) + the new feature work below → decide Q5/Q6 → first WFA run.
+
+### Session-17 explicit asks from the user (2026-06-18)
+1. **Trailing stop → BE after xR, on BOTH setups (single-leg + 2-leg).** The engine already has `ratchet_r` / `ratchet_dest="BE"` (move stop to break-even after favor ≥ xR) — it works in the loop path but the vectorized fast paths are `ratchet_r == 0` only, and it is not exposed/wired as a first-class control on both setups or in the sweeps. Task: surface it cleanly on both setups, make sure it flows into sweeps + the sim fingerprint, and decide defaults. (Will need a vectorized ratchet path OR keep ratchet-on sims on the loop and document the speed cost.)
+2. **New setup: RevFT.** A RevFT signal CSV is arriving. Slot it in as another `setup_id` alongside MC signals (the RevFTSignals upload scaffolding already exists per Session 12). Review the CSV + its strategy logic BEFORE writing code — do not design in advance. No engine changes expected (same trade structures).
+
+### Remaining sweep-speed plan items (⭐ section)
+- **D. PB rounding toggle** — Filters expander: "Floor/Ceil (conservative)" [default] vs "Round to nearest", threaded through engine → every sweep → sim fingerprint.
+- **E. Progress bars** on every sweep + main sim Run path.
+- **Vectorize 3-leg + non-PB multileg** — write a 3-leg Layer-B oracle first, then vectorize (currently loop-only, so the 3-leg sweep is slow).
+
+### Data integrity (paused — script not yet written)
+- Write `scripts/refetch_truncated_days.py` (10 truncated dates) + build-time RTH-coverage guard. See "🐞 Data-integrity finding" in the ⭐ section above. Re-fetch hits Massive API + overwrites gz → get OK before running.
 
 ### Step 2 — Decide Q5 and Q6 (before reading any OOS)
 Max concurrent positions and max daily loss rule are still open (`open_questions.md`). Current WFA output assumes unlimited concurrent positions and no daily loss cap. Decide these **before** reading OOS results — reading OOS then changing the model is a Pardo no-feedback violation. WFA OOS metrics are not actionable for live sizing until decided.

@@ -26,6 +26,13 @@ def _ticks_after(day_ticks: pd.DataFrame, sig_dt):
     return day_ticks["Price"].values[start:], dt_arr[start:]
 
 
+def _first_hit(mask: np.ndarray):
+    """Index of the first True in a boolean array, or None. O(n) C-level scan —
+    the vectorized analogue of the engine's `break` on the first matching tick."""
+    nz = np.flatnonzero(mask)
+    return int(nz[0]) if nz.size else None
+
+
 # ── Empty trade template ──────────────────────────────────────────────────────
 
 _EMPTY_TRADE = {
@@ -111,37 +118,67 @@ def _simulate_one(
     active_stop   = actual_stop
     ratchet_fired = False
 
-    for i, (p, t) in enumerate(zip(prices, times)):
-        excursion = (p - actual_entry) if is_long else (actual_entry - p)
-        mfe = max(mfe, excursion)
-        mae = max(mae, -excursion)
-        if i == 0:
-            continue
-
-        if ratchet_r > 0.0 and not ratchet_fired:
-            favor = (p - actual_entry) if is_long else (actual_entry - p)
-            if favor >= ratchet_r * risk_pts:
-                if ratchet_dest == "Lock-in":
-                    lk = ratchet_lock_r * risk_pts
-                    active_stop = (actual_entry + lk) if is_long else (actual_entry - lk)
-                else:
-                    active_stop = actual_entry
-                ratchet_fired = True
-
+    if ratchet_r == 0.0 and manual_fill is None:
+        # Vectorized ratchet-off scan: first-hit index instead of the Python loop.
+        # Stop never moves (ratchet off), so active_stop == actual_stop throughout.
+        # Target is checked before stop in the loop, but for a single price the two
+        # can never trigger on the same tick (target > entry > stop for a long), so
+        # the earlier index wins unambiguously.
+        n   = len(prices)
+        idx = np.arange(n)
+        elig = idx >= 1
+        exc  = (prices - actual_entry) if is_long else (actual_entry - prices)
         if is_long:
-            if p > target_price:
-                exit_px_raw, exit_dt_raw, exit_reason = target_price, t, "Target"
-                break
-            if p <= active_stop:
-                exit_px_raw, exit_dt_raw, exit_reason = active_stop, t, "Stop"
-                break
+            stop_m = (prices <= actual_stop) & elig
+            tgt_m  = (prices >  target_price) & elig
         else:
-            if p < target_price:
-                exit_px_raw, exit_dt_raw, exit_reason = target_price, t, "Target"
-                break
-            if p >= active_stop:
-                exit_px_raw, exit_dt_raw, exit_reason = active_stop, t, "Stop"
-                break
+            stop_m = (prices >= actual_stop) & elig
+            tgt_m  = (prices <  target_price) & elig
+        si = _first_hit(stop_m)
+        ti = _first_hit(tgt_m)
+        if si is None and ti is None:
+            exit_idx = n - 1  # Session/EOD — exit_px_raw/exit_dt_raw already last tick
+        elif ti is not None and (si is None or ti < si):
+            exit_idx = ti
+            exit_px_raw, exit_dt_raw, exit_reason = target_price, times[ti], "Target"
+        else:
+            exit_idx = si
+            exit_px_raw, exit_dt_raw, exit_reason = active_stop, times[si], "Stop"
+        seg = exc[:exit_idx + 1]
+        mfe = max(0.0, float(seg.max()))
+        mae = max(0.0, float(-seg.min()))
+    else:
+        for i, (p, t) in enumerate(zip(prices, times)):
+            excursion = (p - actual_entry) if is_long else (actual_entry - p)
+            mfe = max(mfe, excursion)
+            mae = max(mae, -excursion)
+            if i == 0:
+                continue
+
+            if ratchet_r > 0.0 and not ratchet_fired:
+                favor = (p - actual_entry) if is_long else (actual_entry - p)
+                if favor >= ratchet_r * risk_pts:
+                    if ratchet_dest == "Lock-in":
+                        lk = ratchet_lock_r * risk_pts
+                        active_stop = (actual_entry + lk) if is_long else (actual_entry - lk)
+                    else:
+                        active_stop = actual_entry
+                    ratchet_fired = True
+
+            if is_long:
+                if p > target_price:
+                    exit_px_raw, exit_dt_raw, exit_reason = target_price, t, "Target"
+                    break
+                if p <= active_stop:
+                    exit_px_raw, exit_dt_raw, exit_reason = active_stop, t, "Stop"
+                    break
+            else:
+                if p < target_price:
+                    exit_px_raw, exit_dt_raw, exit_reason = target_price, t, "Target"
+                    break
+                if p >= active_stop:
+                    exit_px_raw, exit_dt_raw, exit_reason = active_stop, t, "Stop"
+                    break
 
     actual_exit     = exit_px_raw + (-exit_slip * ts if is_long else exit_slip * ts)
     exit_dt_ts      = pd.Timestamp(exit_dt_raw)
@@ -383,6 +420,84 @@ def _simulate_one_multileg(
     # Rule: if T1 hits before PB → trade over (single leg at T1).
     # Rule: if PB hits before T1 → E2 fills, T2 recomputed from blended entry.
     #       After PB fills, T1 is ignored; both legs hold to T2 or stop.
+    if use_pb and ratchet_r == 0.0 and manual_fill is None:
+        # Vectorized ratchet-off PB scan — mirrors the loop below via first-hit
+        # indices (same mechanism proven correct by scripts/validate_oracle.py).
+        # Tick-priority within the loop: PB fill (then `continue`) → stop (touch) →
+        # T2 (post-PB) or T1 (pre-PB). Stop sits deeper than pb_trigger, so any
+        # stop tick is also a PB tick → no stop can fire before PB fills; only T1
+        # can fire pre-PB. Post-PB, stop is checked before T2 (earlier index wins;
+        # a single price can't hit both).
+        n    = len(prices)
+        idx  = np.arange(n)
+        elig = idx >= 1
+        exc  = (prices - actual_entry) if is_long else (actual_entry - prices)
+        if is_long:
+            pb_m   = (prices <  pb_trigger) & elig
+            stop_m = (prices <= actual_stop) & elig
+            t1_m   = (prices >  t1_price) & elig
+        else:
+            pb_m   = (prices >  pb_trigger) & elig
+            stop_m = (prices >= actual_stop) & elig
+            t1_m   = (prices <  t1_price) & elig
+
+        def _exc_mae_mfe(end_idx):
+            seg = exc[:end_idx + 1]
+            return max(0.0, float(-seg.min())), max(0.0, float(seg.max()))
+
+        pb_i = _first_hit(pb_m)
+
+        if pb_i is None:
+            # PB never fills → single leg, T1/stop/EOD only (stop can't fire here).
+            si = _first_hit(stop_m)
+            ti = _first_hit(t1_m)
+            if si is None and ti is None:
+                mae, mfe = _exc_mae_mfe(n - 1)
+                eod_px = float(prices[-1]) + (-exit_slip * ts if is_long else exit_slip * ts)
+                return _build("EOD", eod_px, times[-1], "EOD", eod_px, "NoFill", actual_entry)
+            if ti is not None and (si is None or ti < si):
+                mae, mfe = _exc_mae_mfe(ti)
+                t1_exit_px = t1_price + (-exit_slip * ts if is_long else exit_slip * ts)
+                return _build("T1_only", t1_exit_px, times[ti], "T1", t1_exit_px, "NoFill", actual_entry)
+            mae, mfe = _exc_mae_mfe(si)
+            sp = actual_stop + (-exit_slip * ts if is_long else exit_slip * ts)
+            return _build("Stop", sp, times[si], "Stop", sp, "NoFill", actual_entry)
+
+        # T1 before PB → leg-1-only exit, no scale-in
+        t1_pre = _first_hit(t1_m & (idx < pb_i))
+        if t1_pre is not None:
+            mae, mfe = _exc_mae_mfe(t1_pre)
+            t1_exit_px = t1_price + (-exit_slip * ts if is_long else exit_slip * ts)
+            return _build("T1_only", t1_exit_px, times[t1_pre], "T1", t1_exit_px, "NoFill", actual_entry)
+
+        # PB fills at pb_i — arithmetic copied verbatim from the loop
+        e2_raw        = pb_trigger + (entry_slip * ts if is_long else -entry_slip * ts)
+        e2_entry      = round(round(e2_raw / ts) * ts, 10)
+        e2_fill_dt    = times[pb_i]
+        blended_entry = (actual_entry * tv1 + e2_entry * tv2) / tv_total
+        blended_risk  = abs(blended_entry - actual_stop)
+        t2_price      = round(round((blended_entry + (target_r * blended_risk if is_long else -target_r * blended_risk)) / ts) * ts, 10)
+
+        post = idx > pb_i
+        if is_long:
+            t2_m = (prices > t2_price) & elig
+        else:
+            t2_m = (prices < t2_price) & elig
+        stop_post = _first_hit(stop_m & post)
+        t2_post   = _first_hit(t2_m & post)
+
+        if stop_post is None and t2_post is None:
+            mae, mfe = _exc_mae_mfe(n - 1)
+            eod_px = float(prices[-1]) + (-exit_slip * ts if is_long else exit_slip * ts)
+            return _build("E1E2+EOD", eod_px, times[-1], "E2filled", eod_px, "EOD", eod_px)
+        if t2_post is not None and (stop_post is None or t2_post < stop_post):
+            mae, mfe = _exc_mae_mfe(t2_post)
+            t2_exit_px = t2_price + (-exit_slip * ts if is_long else exit_slip * ts)
+            return _build("E1E2+Target", t2_exit_px, times[t2_post], "E2filled", t2_exit_px, "Target", t2_exit_px)
+        mae, mfe = _exc_mae_mfe(stop_post)
+        sp = actual_stop + (-exit_slip * ts if is_long else exit_slip * ts)
+        return _build("Stop", sp, times[stop_post], "Stop", sp, "Stop", sp)
+
     if use_pb:
         pb_filled       = False
         full_stop_price = None
