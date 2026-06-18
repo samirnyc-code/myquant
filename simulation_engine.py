@@ -10,6 +10,22 @@ INSTRUMENTS = {
 RTH_END_MIN = 15 * 60 + 15  # 915
 
 
+def _ticks_after(day_ticks: pd.DataFrame, sig_dt):
+    """Price/time numpy arrays for ticks strictly after sig_dt.
+
+    Equivalent to `day_ticks[day_ticks["DateTime"] > sig_dt]` (the DateTime column
+    is sorted ascending), but uses searchsorted — O(log n) + a view — instead of a
+    full boolean mask + DataFrame copy on every signal. Returns None if no tick
+    falls after sig_dt. side="right" excludes ticks exactly == sig_dt, matching the
+    strict `>` comparison exactly.
+    """
+    dt_arr = day_ticks["DateTime"].values
+    start = int(np.searchsorted(dt_arr, np.datetime64(pd.Timestamp(sig_dt)), side="right"))
+    if start >= len(dt_arr):
+        return None
+    return day_ticks["Price"].values[start:], dt_arr[start:]
+
+
 # ── Empty trade template ──────────────────────────────────────────────────────
 
 _EMPTY_TRADE = {
@@ -56,8 +72,8 @@ def _simulate_one(
     ts      = TICK_SIZE
     is_long = direction == "Long"
 
-    after = day_ticks[day_ticks["DateTime"] > sig_dt]
-    if after.empty:
+    _after = _ticks_after(day_ticks, sig_dt)
+    if _after is None:
         return {"ok": False, "FilterStatus": "no_next_bar"}
 
     if manual_fill is not None:
@@ -75,11 +91,9 @@ def _simulate_one(
         times         = scan_ticks["DateTime"].values
     else:
         # Entry = first tick of the bar after the SB, unconditional
-        first_row     = after.iloc[0]
-        first_tick_px = float(first_row["Price"])
-        entry_dt      = first_row["DateTime"]
-        prices        = after["Price"].values
-        times         = after["DateTime"].values
+        prices, times = _after
+        first_tick_px = float(prices[0])
+        entry_dt      = pd.Timestamp(times[0])
 
     actual_entry = first_tick_px + (entry_slip * ts if is_long else -entry_slip * ts)
     actual_stop  = (stop_csv - stop_offset * ts) if is_long else (stop_csv + stop_offset * ts)
@@ -270,8 +284,8 @@ def _simulate_one_multileg(
     tv_total = tv1 + tv2
     use_pb   = ml_pb_r < 0
 
-    after = day_ticks[day_ticks["DateTime"] > sig_dt]
-    if after.empty:
+    _after = _ticks_after(day_ticks, sig_dt)
+    if _after is None:
         return {"ok": False, "FilterStatus": "no_next_bar"}
 
     if manual_fill is not None:
@@ -289,11 +303,9 @@ def _simulate_one_multileg(
         times         = scan_ticks["DateTime"].values
     else:
         # Entry = first tick of the bar after the SB, unconditional
-        first_row     = after.iloc[0]
-        first_tick_px = float(first_row["Price"])
-        entry_dt      = first_row["DateTime"]
-        prices        = after["Price"].values
-        times         = after["DateTime"].values
+        prices, times = _after
+        first_tick_px = float(prices[0])
+        entry_dt      = pd.Timestamp(times[0])
 
     actual_entry = first_tick_px + (entry_slip * ts if is_long else -entry_slip * ts)
     actual_stop  = (stop_csv - stop_offset * ts) if is_long else (stop_csv + stop_offset * ts)
@@ -738,8 +750,8 @@ def _simulate_one_3leg(
     ts      = TICK_SIZE
     is_long = direction == "Long"
 
-    after = day_ticks[day_ticks["DateTime"] > sig_dt]
-    if after.empty:
+    _after = _ticks_after(day_ticks, sig_dt)
+    if _after is None:
         return {"ok": False, "FilterStatus": "no_next_bar"}
 
     if manual_fill is not None:
@@ -757,11 +769,9 @@ def _simulate_one_3leg(
         times         = scan_ticks["DateTime"].values
     else:
         # Entry = first tick of the bar after the SB, unconditional
-        first_row     = after.iloc[0]
-        first_tick_px = float(first_row["Price"])
-        entry_dt      = first_row["DateTime"]
-        prices        = after["Price"].values
-        times         = after["DateTime"].values
+        prices, times = _after
+        first_tick_px = float(prices[0])
+        entry_dt      = pd.Timestamp(times[0])
 
     e1_entry    = first_tick_px + (entry_slip * ts if is_long else -entry_slip * ts)
     actual_stop = (stop_csv - stop_offset * ts) if is_long else (stop_csv + stop_offset * ts)

@@ -884,56 +884,72 @@ All contract data (flatfiles_cache, bars parquet, continuous tick cache) lives o
 
 ---
 
-## Scale-In Sweep — Performance Optimization (BLOCKS WFA)
-*Folded in from HANDOFF_FOR_OPUS.md, 2026-06-18. This is the prerequisite for the first WFA run — at current speed a full WFA run is ~48 min and unusable.*
+## ⭐ HANDOFF FOR NEW CHAT — Bar Analysis sweep-speed rewrite (Session 16)
+*Written 2026-06-18 by Opus. Read this whole section before writing any code. The goal: make ALL Bar Analysis sweeps + the main simulation fast, with progress bars, and provably correct — then a full 5-year validation. Only after Bar Analysis is "perfect" do we touch the WFA tab.*
 
-### The problem
-`_run_ml_scalein_sweep` in `bar_analysis.py` (~lines 1002–1240) runs the PB×T1×T2 grid. Current speed: **~1 sec/combo = ~3 min for 168 combos** on 1165 signals. WFA needs ~16 folds × a sweep each. Target: **under 30 sec for 168 combos**.
+### Non-negotiable principles (the user was emphatic — this is for real money)
+1. **One engine, one definition of a trade.** `simulation_engine.py` is the single source of truth. The main sim, every sweep, the WFA tab, AND a future NinjaTrader auto-trade robot must all produce identical trades. NEVER reimplement trade logic in a sweep — call the engine. (The old `_run_ml_scalein_sweep` violated this and silently drifted — see below.)
+2. **Every tick matters.** Entry = first tick after the signal bar close. PB level must be 100% identical across all CSVs, tables, and charts. Stop fills on touch. Floor/ceil PB rounding (see toggle below). Do not "optimize" by changing any comparator, rounding, or priority.
+3. **Correctness is verified, not assumed.** Three tools exist (committed). After ANY engine/sweep change, all three must pass before commit: exact regression + Layer A + Layer B (see "Verification protocol").
+4. **No commit/push without the user's explicit OK**, and the user must have run the app. Verified-identical output is necessary but not sufficient — still ask.
+5. **Edit/Write tools only** for Python source (PowerShell double-encodes UTF-8 → mojibake). All sims behind a Run button in the app. Keep responses short.
 
-**Root cause:** the combo loop calls `np.flatnonzero()` on the full per-signal tick array for every signal for every combo — O(n_ticks × n_signals × n_combos), ~977M ops/sweep.
+### What is ALREADY DONE and verified (committed — do not redo)
+- **Sim engine validated.** Session-14 entry logic + PB scale-in are correct. Proven by Layer A (invariants) + Layer B (independent oracle): 0 violations / 0 mismatches on all 1,097 filled trades, both single-leg and 2-leg PB modes, 1-yr window.
+- **Engine speedup Step 1 (searchsorted).** `_simulate_one`, `_simulate_one_multileg`, `_simulate_one_3leg` now get the post-signal tick slice via a shared `_ticks_after()` helper (searchsorted, O(log n) + view) instead of `day_ticks[day_ticks["DateTime"] > sig_dt]` (O(n) boolean mask + copy per signal). **Proven byte-identical** to the prior engine: regression = 1,107 rows × 63 cols identical across single/multi/3leg. The scan loops were NOT touched.
 
-### The fix — precompute per-signal indices once, then O(1) lookups in the combo loop
+### Verification tools (committed in `scripts/`)
+- `validate_engine.py` — Layer A invariants. `python scripts/validate_engine.py --mode multileg --start 2021-06-18 --end 2022-06-18`
+- `validate_oracle.py` — Layer B independent first-hit-index oracle. `--per-reason 100000` checks every trade. Same args.
+- `validate_regression.py` — dumps simulate_trades output (all 3 modes) and diffs trade-for-trade. `dump <dir>` then `cmp <dirA> <dirB>`. Use it to prove a rewrite is identical: dump new → `git stash` → dump old → `git stash pop` → cmp.
+- Default exec params used by all three (mirror ES multileg defaults): tick_value 12.50, commission 3.0, entry_slip 1, exit_slip 1, stop_offset 0, contracts_t1 1, contracts_t2 1, t1_r 1.5, target_r(=T2) 1.0, ml_pb_r −0.50. Data: `saved_signals/ba_signals_mc.parquet` (5,580 signals 2021–2026) + per-day tick cache `data/ticks_continuous/*.parquet` (1,247 days). **Work on the 1-yr window 2021-06-18 → 2022-06-18 (1,097 filled) unless told otherwise.**
 
-Precompute outside the combo loop:
-- per signal: `stop_i` (constant), `pb_i_arr[n_pb]` (one scan per PB value), `t1_i_arr[n_t1]` (one scan per T1 value)
-- per (signal, pb_idx): `e2_entry_arr`, `b_risk_arr`, phase-2 stop `stop_i2_arr`
-- per (signal, pb_idx, t2_idx): `t2_i2_arr` — scan `prices[pb_i+2:]` for the blended T2 level
+### THE BOTTLENECK (measured — read this before planning)
+One **multileg `simulate_trades` over 1,107 signals = ~59 seconds** on the real continuous tick cache (~356k ticks/day). The dominant cost is the **Python per-tick scan loop** in `_simulate_one*` (EOD/long-held trades scan ~100k+ ticks each in interpreted Python), NOT the pandas filter (that was already fixed by `searchsorted`). Consequence: routing the scale-in sweep through per-combo `simulate_trades` would be ~168 × 59s ≈ **2.8 hours** — so "just call the engine per combo" is NOT viable for the big sweep. The old handoff's "~1 s/combo" was from different/smaller data — ignore it. **Vectorizing the scan is the core fix, and it also makes the main-sim Run button fast.**
 
-Combo loop becomes pure arithmetic/indexing — `min(pb_i, t1_i, stop_i)` then no array scanning.
+### THE REMAINING WORK (in order)
 
-Expected: ~20–50× → sweep in 5–10 sec.
+**A. Vectorize the tick scan in the engine (the core fix — ratchet-off case).**
+In `simulation_engine.py`, give each `_simulate_one*` a vectorized scan path for `ratchet_r == 0` (always true in sweeps; usually true in the main sim) that computes the outcome via numpy first-hit indices (`np.flatnonzero`/`argmax`) instead of the Python loop — producing the **full result dict** (exit reason/price/PnL, MAE/MFE, E2 fill, blended entry, leg fields, bar nums…). **Layer B's oracle (`scripts/validate_oracle.py`) is the proven template** — it already re-derives exit sequencing this way and matches the engine on every trade. Keep the existing Python loop as (1) the `ratchet_r > 0` path and (2) the regression reference. Preserve every comparator, the PB `continue`, floor/ceil, and stop-on-touch exactly.
 
-### Gotchas from the previous failed attempt (DO NOT repeat)
-- **`p2_start = pb_i + 2`, NOT `pb_i + 1`.** `prices[pb_i]` = entry tick, `prices[pb_i+1]` = E2 entry tick, `prices[pb_i+2:]` = phase-2 prices. The earlier attempt used `stop_i - pb_i - 1` and got ~10× PnL overstatement. Correct phase-2 stop is `stop_i - (pb_i + 2)`, valid only when `stop_i > pb_i + 1`; if stop never hit in p1 (`stop_i == len(p1)`), the formula yields `len(p2)` which correctly means "never hit."
-- **T2 is NOT independent of PB.** `t2_level = blended_entry + t2_r × blended_risk`, and both blended terms depend on `e2_entry`, which depends on `pb_r`. T2 hits must be precomputed per (signal, pb_idx, t2_idx) — cannot be precomputed once independent of pb.
+**B. Reuse per-signal setup across combos; reroute all sweeps; delete the inline scale-in copy.**
+Split each `_simulate_one*` into `prepare_setup(signal, day_arrays)` (entry tick via searchsorted + entry/stop/risk — combo-independent, computed ONCE) and `resolve(setup, params)` (the vectorized scan from A). Precompute each day's `(price_array, datetime_array)` once at the top of `simulate_trades`. Then:
+- Main sim = prepare + resolve once.
+- Every sweep (`_run_r_sweep`, `_run_t1t2_sweep`, `_run_pb_sweep`, `_run_t1t2_sweep_3leg`, `_run_stop_mult_sweep`, `_run_ml_scalein_sweep`) = prepare setups once, loop combos calling `resolve`. ONE logic copy, no drift.
+- **Delete the inline body of `_run_ml_scalein_sweep` (`bar_analysis.py` ~1002–1240).** It is a reimplementation that DRIFTED from the engine in two ways: (1) `round()` for the PB trigger vs the engine's `floor`/`ceil`; (2) on a tick that gaps through both PB and the stop, the engine fills PB and continues while the inline copy calls it a leg-1 stop. Replacing it with the shared `resolve` auto-fixes both.
 
-### Already fixed this session (keep)
-- **searchsorted precompute** — replaced O(n) pandas `day_ticks[... > sig_dt]` scan with `np.searchsorted` on pre-extracted numpy datetime arrays. Fixed a ~2-min precompute hang; now near-instant.
-- **FilterStatus bug** — `apply_signal_filters()` marks out-of-range rows with `FilterStatus="date_range"` but does NOT drop them. The sweep was processing all 5576 signals regardless of date range. Fixed at line ~1043: `_sigs = signals[signals["FilterStatus"] == "ok"].copy()`. Caption count at line ~1774 also fixed. Now shows 1165 signals (correct for 1-yr range), matching the sim's ~1121 filled trades.
+**C. Confirm the speed target.** After A+B, time it. Need: 17 WFA folds finish in reasonable time (a sweep should be seconds, not minutes). If a sweep reuses setups + vectorized resolve, a 168-combo scale-in sweep should drop from hours to seconds. Measure with `scripts/_timeit.py`-style timing (then delete that throwaway).
 
-### Verification (mandatory — do not change the grid values, only the computation)
-Run one combo (e.g. PB=−0.50, T1=1.50, T2=0.75) with both the old `flatnonzero` path and the new precomputed path; Net PnL, Win%, PF must match exactly (within float). Pardo "scan ranges fixed" applies — this work changes speed only, never the PB/T1/T2 ranges.
+**D. PB rounding toggle (user requested).**
+Add a toggle in the **Filters** expander of Bar Analysis: PB level rounding = "Floor/Ceil (conservative)" [default] vs "Round to nearest". Thread it through `simulate_trades` → `_simulate_one_multileg` + `_simulate_one_3leg` (the `pb_trigger` / `pb1_price` / `pb2_price` computation, currently `np.floor`/`np.ceil` at simulation_engine.py ~315). Must flow to every sweep and into the sim fingerprint so changing it re-runs. Default preserves today's exact behavior (floor/ceil = snap PB away from entry = harder to fill = never overstate scale-ins). This is a comparison knob, not a new default.
 
-### Independent ground truth
-`2026-06-18T12-41_export7.csv` — 1187 signals (Jun 2021–Jun 2022), simulation output. Use as ground truth to validate the sim engine at a fixed param set (relevant after the Session-14 entry-logic + PB-scale-in changes, which are themselves untested end-to-end).
+**E. Progress bars on everything.** Every sweep `_show_*` and the main sim Run path must show a live progress bar (the scale-in sweep already has one — pattern at bar_analysis.py ~1107). The user must never see a frozen screen.
+
+### Verification protocol (run BEFORE asking to commit — all must pass)
+1. `validate_regression.py`: new vs old (git-stash trick) → **IDENTICAL** for single/multi/3leg. (For sweeps: also confirm one combe, e.g. PB=−0.50 T1=1.50 T2=1.00, sweep row == direct `simulate_trades` + `compute_summary`.)
+2. `validate_engine.py` (Layer A) → all invariants pass, multileg + single.
+3. `validate_oracle.py --per-reason 100000` (Layer B) → 0 mismatches, multileg + single.
+4. Then the user runs the app and eyeballs a sweep + the main sim.
+5. **Pardo rule:** never change the PB/T1/T2 grid VALUES during this work — speed only.
+
+### Full 5-year validation (after Bar Analysis is "perfect")
+Run validation across the entire signal history **year by year** (memory: ~444M ticks total — never load all at once; `validate_oracle.py` already chunks yearly, mirror that for any new check). All years must pass Layer A + B. This is the confidence gate before WFA.
 
 ### Current numbers (1-yr IS window, Jun 2021 – Jun 2022)
-- Signals in file: ~5576 · after date filter (`FilterStatus=="ok"`): ~1165 · filled: ~1121
-- 8 dates permanently missing tick data (Massive has none for those days)
-- Typical sweep grid: 168 combos (PB:4 · T1:6 · T2:7); full default is 392 (8×7×7)
-- Current: ~1 sec/combo (~3 min/168) · Target: <30 sec/168
+- Signals in file: ~5,580 · in window with tick data: 1,107 · filled: 1,097
+- 8 dates permanently missing tick data (Massive has none)
+- Scale-in grid: typical 168 combos (PB:4 · T1:6 · T2:7); full default 392 (8×7×7)
+- **Measured speed:** one multileg `simulate_trades` over 1,107 signals = **~59 s** (full tick cache, ~356k ticks/day; Python scan loop dominates). So 168 combos via per-combo engine calls ≈ 2.8 h — vectorization required. Target: a sweep in seconds so 17 WFA folds finish in reasonable time.
+
+### Loose ends to clean up at handoff
+- `scripts/_timeit.py` was a throwaway perf script — delete it. `2026-06-18T12-41_export7.csv` lives in the user's Downloads, NOT the repo; it is the app's OWN exported trade log (regression-only, not independent ground truth) — do not rely on it for correctness.
+- `data/_regress/` holds regression dumps (gitignore it or it clutters `git status`).
 
 ---
 
 ## Next Session — Priorities
 
-**Corrected critical path (Opus, 2026-06-18):** validate the sim engine → fix sweep speed → decide Q5/Q6 → first WFA run. Speed is not a competing priority with the WFA run — it is the gate to it.
-
-### Step 0 — Validate the sim engine (do first)
-Session 14 changed the entry rule in all 6 sim functions and added PB scale-in to the tick engine — both untested end-to-end. Everything (sweeps, WFA, OOS curves) sits on this. Validate against `2026-06-18T12-41_export7.csv` at a fixed param set before trusting any sweep or WFA number.
-
-### Step 1 — Fix sweep speed
-See the "Scale-In Sweep — Performance Optimization" section above. Prerequisite for a usable WFA run.
+**Critical path:** ✅ validate sim engine (DONE) → 🔄 make Bar Analysis sweeps fast+correct (the ⭐ section above) → decide Q5/Q6 → first WFA run. The sweep rewrite is the active task; do it in a fresh chat using the ⭐ HANDOFF section.
 
 ### Step 2 — Decide Q5 and Q6 (before reading any OOS)
 Max concurrent positions and max daily loss rule are still open (`open_questions.md`). Current WFA output assumes unlimited concurrent positions and no daily loss cap. Decide these **before** reading OOS results — reading OOS then changing the model is a Pardo no-feedback violation. WFA OOS metrics are not actionable for live sizing until decided.
