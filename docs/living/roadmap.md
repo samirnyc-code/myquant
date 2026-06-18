@@ -8,6 +8,8 @@
 
 **Session 13 note:** WFA infrastructure built. `simulation_engine.py`, `results_store.py`, `wfa.py`, and `app.py` tab wired. See handoff Session 13 section for full detail. First end-to-end test with real signals is the next step.
 
+**Session 14 note:** Simulation engine entry logic corrected across all 6 functions (was wrongly waiting for price to cross SBClose; now unconditionally takes first tick after sig_dt). PB scale-in added to `_simulate_one_multileg` (was missing). Entry zoom chart added to Bar Analysis. `SBClose` column bug fixed (was always NaN; now uses `SEPrice`). scipy added to requirements.txt.
+
 ---
 
 ## Track 1 — NT8 / Sheets (current system, maintenance mode)
@@ -147,8 +149,11 @@ These are not build phases — they are analytical obligations that run as Track
 - [x] **Scale-In Sweep (PB × T1 × T2)** — 432-combo grid, heatmap slices, ranked table
 - [x] **PDF export** — Bar Analysis + Portfolio tabs; `matchMedia('print')` + `Plotly.relayout()` for chart resize; counter forces re-render on every click
 - [x] **Portfolio tab** (`portfolio.py`) — per-setup 2-leg sim, equity curves, DD chart, breakdown table, T1×PB×T2 sweep, save/compare runs, PDF export, Save as Defaults
+- [x] **Simulation engine entry logic fix** — all 6 functions: entry = first tick after sig_dt, unconditional; removed SBClose crossing condition
+- [x] **2-leg PB scale-in in tick engine** — `_simulate_one_multileg` now has full PB fill logic (was missing entirely)
+- [x] **Entry zoom chart** — `_show_entry_zoom` in bar_analysis.py; 3 ticks before SBClose + 3 after fill; timestamps on every tick; `🔍 Entry Zoom` expander after signal table
 
-### Near-term backlog (Session 13 — WFA first, then carry-over)
+### Near-term backlog (Session 14 — WFA first, then carry-over)
 
 **WFA (top priority):**
 - [ ] **First end-to-end WFA run** — open the `🔄 WFA` tab, upload CC2 signals, run multileg mode; confirm fold count, IS sweep output, guardrail badges, OOS equity curve all look correct

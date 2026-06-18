@@ -74,26 +74,12 @@ def _simulate_one(
         prices        = scan_ticks["Price"].values
         times         = scan_ticks["DateTime"].values
     else:
-        # Entry = first tick of the bar where price ticks THROUGH signal_price
-        sig_date  = pd.Timestamp(sig_dt).normalize()
-        rth_start = sig_date + pd.Timedelta(minutes=RTH_START_MIN)
-        after_c   = after.copy()
-        after_c["_bslot"] = ((after_c["DateTime"] - rth_start).dt.total_seconds() // 300).astype(int)
-        first_tick_px = None
-        entry_dt      = None
-        for _, bar_ticks in after_c.groupby("_bslot", sort=True):
-            bar_prices = bar_ticks["Price"].values
-            crossed = (bar_prices > signal_price).any() if is_long else (bar_prices < signal_price).any()
-            if crossed:
-                first_row     = bar_ticks.iloc[0]
-                first_tick_px = float(first_row["Price"])
-                entry_dt      = first_row["DateTime"]
-                after         = after[after["DateTime"] >= first_row["DateTime"]]
-                break
-        if first_tick_px is None:
-            return {"ok": False, "FilterStatus": "no_fill"}
-        prices = after["Price"].values
-        times  = after["DateTime"].values
+        # Entry = first tick of the bar after the SB, unconditional
+        first_row     = after.iloc[0]
+        first_tick_px = float(first_row["Price"])
+        entry_dt      = first_row["DateTime"]
+        prices        = after["Price"].values
+        times         = after["DateTime"].values
 
     actual_entry = first_tick_px + (entry_slip * ts if is_long else -entry_slip * ts)
     actual_stop  = (stop_csv - stop_offset * ts) if is_long else (stop_csv + stop_offset * ts)
@@ -188,12 +174,7 @@ def _simulate_one_bars(
         return {"ok": False, "FilterStatus": "no_next_bar"}
 
     nb = next_bars.iloc[0]
-    if is_long  and float(nb["High"]) <= signal_price:
-        return {"ok": False, "FilterStatus": "no_fill"}
-    if not is_long and float(nb["Low"]) >= signal_price:
-        return {"ok": False, "FilterStatus": "no_fill"}
-
-    fill_px      = max(float(nb["Open"]), signal_price) if is_long else min(float(nb["Open"]), signal_price)
+    fill_px      = float(nb["Open"])
     actual_entry = fill_px + (entry_slip * ts if is_long else -entry_slip * ts)
     actual_stop  = (stop_csv - stop_offset * ts) if is_long else (stop_csv + stop_offset * ts)
     risk_pts     = abs(actual_entry - actual_stop)
@@ -281,10 +262,13 @@ def _simulate_one_multileg(
     ratchet_dest: str = "BE",
     ratchet_lock_r: float = 0.0,
     manual_fill: dict | None = None,
+    ml_pb_r: float = 0.0,
+    ml_pb_ticks: int = 0,
 ) -> dict:
     ts       = TICK_SIZE
     is_long  = direction == "Long"
     tv_total = tv1 + tv2
+    use_pb   = ml_pb_r < 0
 
     after = day_ticks[day_ticks["DateTime"] > sig_dt]
     if after.empty:
@@ -304,26 +288,12 @@ def _simulate_one_multileg(
         prices        = scan_ticks["Price"].values
         times         = scan_ticks["DateTime"].values
     else:
-        # Entry = first tick of the bar where price ticks THROUGH signal_price
-        sig_date  = pd.Timestamp(sig_dt).normalize()
-        rth_start = sig_date + pd.Timedelta(minutes=RTH_START_MIN)
-        after_c   = after.copy()
-        after_c["_bslot"] = ((after_c["DateTime"] - rth_start).dt.total_seconds() // 300).astype(int)
-        first_tick_px = None
-        entry_dt      = None
-        for _, bar_ticks in after_c.groupby("_bslot", sort=True):
-            bar_prices = bar_ticks["Price"].values
-            crossed = (bar_prices > signal_price).any() if is_long else (bar_prices < signal_price).any()
-            if crossed:
-                first_row     = bar_ticks.iloc[0]
-                first_tick_px = float(first_row["Price"])
-                entry_dt      = first_row["DateTime"]
-                after         = after[after["DateTime"] >= first_row["DateTime"]]
-                break
-        if first_tick_px is None:
-            return {"ok": False, "FilterStatus": "no_fill"}
-        prices = after["Price"].values
-        times  = after["DateTime"].values
+        # Entry = first tick of the bar after the SB, unconditional
+        first_row     = after.iloc[0]
+        first_tick_px = float(first_row["Price"])
+        entry_dt      = first_row["DateTime"]
+        prices        = after["Price"].values
+        times         = after["DateTime"].values
 
     actual_entry = first_tick_px + (entry_slip * ts if is_long else -entry_slip * ts)
     actual_stop  = (stop_csv - stop_offset * ts) if is_long else (stop_csv + stop_offset * ts)
@@ -331,22 +301,42 @@ def _simulate_one_multileg(
     if risk_pts < 0.001:
         return {"ok": False, "FilterStatus": "zero_risk"}
 
-    t1_price  = actual_entry + (t1_r     * risk_pts if is_long else -t1_r     * risk_pts)
-    t2_price  = actual_entry + (target_r * risk_pts if is_long else -target_r * risk_pts)
+    t1_price = actual_entry + (t1_r     * risk_pts if is_long else -t1_r     * risk_pts)
+    t2_price = actual_entry + (target_r * risk_pts if is_long else -target_r * risk_pts)
     entry_bar = bar_num_from_dt(entry_dt)
     mae = mfe = 0.0
+
+    # PB trigger (only used when use_pb=True)
+    pb_trigger   = None
+    pb_level_raw = np.nan
+    if use_pb:
+        pb_level_raw = actual_entry + (ml_pb_r * risk_pts if is_long else -ml_pb_r * risk_pts)
+        pb_raw = (pb_level_raw - ml_pb_ticks * ts) if is_long else (pb_level_raw + ml_pb_ticks * ts)
+        pb_trigger = round(float(np.floor(pb_raw / ts) if is_long else np.ceil(pb_raw / ts)) * ts, 10)
+
+    # E2 state (populated if PB fills)
+    e2_entry      = actual_entry
+    e2_fill_dt    = None
+    blended_entry = np.nan
+    blended_risk  = np.nan
 
     def _leg_pts(exit_px):
         return (exit_px - actual_entry) if is_long else (actual_entry - exit_px)
 
+    def _leg2_pts(exit_px):
+        return (exit_px - e2_entry) if is_long else (e2_entry - exit_px)
+
     def _build(exit_reason, exit_price, exit_dt, leg1_er, leg1_px, leg2_er, leg2_px):
+        _e2_filled  = leg2_er not in ("NoFill", None)
         l1_pts = _leg_pts(leg1_px) if leg1_px is not None else 0.0
-        l2_pts = _leg_pts(leg2_px)
+        l2_pts = _leg2_pts(leg2_px) if (_e2_filled and leg2_px is not None) else 0.0
         l1_pnl = l1_pts / ts * tv1
         l2_pnl = l2_pts / ts * tv2
         g_pnl  = l1_pnl + l2_pnl
         g_pts  = l1_pts + l2_pts
-        r_ach  = g_pnl / (risk_pts / ts * tv_total) if tv_total > 0 else 0.0
+        _e1_risk_dollar = risk_pts / ts * tv1
+        r_ach  = g_pnl / _e1_risk_dollar if _e1_risk_dollar > 0 else 0.0
+        _tv_active = tv_total if _e2_filled else tv1
         edt    = pd.Timestamp(exit_dt)
         return {
             "ok": True,
@@ -354,30 +344,122 @@ def _simulate_one_multileg(
             "EntryTime": pd.Timestamp(entry_dt), "EntryBarNum": entry_bar,
             "EntryPrice": actual_entry, "ActualStop": actual_stop,
             "Target": t2_price, "Target1": t1_price,
-            "RiskPts": risk_pts, "RiskDollar": risk_pts / ts * tv_total,
+            "RiskPts": risk_pts, "RiskDollar": risk_pts / ts * tv1,
             "ExitTime": edt, "ExitBarNum": bar_num_from_dt(edt),
             "ExitPrice": exit_price, "ExitReason": exit_reason,
             "GrossPnLPts": g_pts, "GrossPnL": g_pnl,
             "R_achieved": r_ach,
-            "MAE_pts": max(mae, 0.0), "MAE_dollar": max(mae, 0.0) / ts * tv_total,
+            "MAE_pts": max(mae, 0.0), "MAE_dollar": max(mae, 0.0) / ts * _tv_active,
             "MAE_R": max(mae, 0.0) / risk_pts,
-            "MFE_pts": max(mfe, 0.0), "MFE_dollar": max(mfe, 0.0) / ts * tv_total,
+            "MFE_pts": max(mfe, 0.0), "MFE_dollar": max(mfe, 0.0) / ts * _tv_active,
             "MFE_R": max(mfe, 0.0) / risk_pts,
             "SlippagePts": (entry_slip + exit_slip) * ts,
-            "SlippageDollar": (entry_slip + exit_slip) * ts / ts * tv_total,
+            "SlippageDollar": (entry_slip + exit_slip) * ts / ts * _tv_active,
             "Leg1ExitReason": leg1_er if leg1_px is not None else np.nan,
             "Leg1ExitPrice":  leg1_px if leg1_px is not None else np.nan,
             "Leg1GrossPts": l1_pts, "Leg1GrossPnL": l1_pnl,
             "Leg2ExitReason": leg2_er, "Leg2ExitPrice": leg2_px,
             "Leg2GrossPts": l2_pts, "Leg2GrossPnL": l2_pnl,
+            "PBLevel":    round(float(pb_trigger), 2) if pb_trigger is not None else np.nan,
+            "PBLevelRaw": round(float(pb_level_raw), 4) if not (isinstance(pb_level_raw, float) and np.isnan(pb_level_raw)) else np.nan,
+            "E2FillPrice": round(float(e2_entry), 2) if _e2_filled else np.nan,
+            "E2FillTime":  pd.Timestamp(e2_fill_dt) if (e2_fill_dt is not None and _e2_filled) else pd.NaT,
+            "BlendedEntry": round(float(blended_entry), 2) if _e2_filled else np.nan,
         }
 
+    # ── PB SCALE-IN MODE ─────────────────────────────────────────────────────────
+    # Rule: if T1 hits before PB → trade over (single leg at T1).
+    # Rule: if PB hits before T1 → E2 fills, T2 recomputed from blended entry.
+    #       After PB fills, T1 is ignored; both legs hold to T2 or stop.
+    if use_pb:
+        pb_filled       = False
+        full_stop_price = None
+        full_stop_dt    = None
+        t1_only         = False
+        t1_exit_px      = None
+        t1_exit_dt      = None
+        t2_exit_px      = None
+        t2_exit_dt      = None
+        active_stop     = actual_stop
+        ratchet_fired   = False
+
+        for i, (p, t) in enumerate(zip(prices, times)):
+            excursion = (p - actual_entry) if is_long else (actual_entry - p)
+            mfe = max(mfe, excursion)
+            mae = max(mae, -excursion)
+            if i == 0:
+                continue
+
+            # PB fill: tick-through (strict < for long, strict > for short)
+            if not pb_filled:
+                if (p < pb_trigger) if is_long else (p > pb_trigger):
+                    e2_raw = pb_trigger + (entry_slip * ts if is_long else -entry_slip * ts)
+                    e2_entry   = round(round(e2_raw / ts) * ts, 10)
+                    e2_fill_dt = t
+                    blended_entry = (actual_entry * tv1 + e2_entry * tv2) / tv_total
+                    blended_risk  = abs(blended_entry - actual_stop)
+                    t2_price = round(round((blended_entry + (target_r * blended_risk if is_long else -target_r * blended_risk)) / ts) * ts, 10)
+                    pb_filled = True
+                    continue  # don't check stop/target on this same tick
+
+            # Ratchet (stop trail) — active after PB fills; uses blended entry as reference
+            if ratchet_r > 0.0 and not ratchet_fired:
+                ref   = blended_entry if pb_filled else actual_entry
+                favor = (p - ref) if is_long else (ref - p)
+                if favor >= ratchet_r * risk_pts:
+                    if ratchet_dest == "Lock-in":
+                        lk = ratchet_lock_r * risk_pts
+                        active_stop = (ref + lk) if is_long else (ref - lk)
+                    else:
+                        active_stop = ref
+                    ratchet_fired = True
+
+            # Stop check (fills on touch)
+            if (p <= active_stop) if is_long else (p >= active_stop):
+                sp = active_stop + (-exit_slip * ts if is_long else exit_slip * ts)
+                full_stop_price = sp
+                full_stop_dt    = t
+                break
+
+            if pb_filled:
+                # T2 check (tick-through, blended target)
+                if (p > t2_price) if is_long else (p < t2_price):
+                    t2_exit_px = t2_price + (-exit_slip * ts if is_long else exit_slip * ts)
+                    t2_exit_dt = t
+                    break
+            else:
+                # T1 check (tick-through) — only relevant before PB fills
+                if (p > t1_price) if is_long else (p < t1_price):
+                    t1_only    = True
+                    t1_exit_px = t1_price + (-exit_slip * ts if is_long else exit_slip * ts)
+                    t1_exit_dt = t
+                    break
+
+        if full_stop_price is not None:
+            sp = full_stop_price
+            if pb_filled:
+                return _build("Stop", sp, full_stop_dt, "Stop", sp, "Stop", sp)
+            return _build("Stop", sp, full_stop_dt, "Stop", sp, "NoFill", actual_entry)
+
+        if t1_only:
+            return _build("T1_only", t1_exit_px, t1_exit_dt, "T1", t1_exit_px, "NoFill", actual_entry)
+
+        if t2_exit_px is not None:
+            return _build("E1E2+Target", t2_exit_px, t2_exit_dt, "E2filled", t2_exit_px, "Target", t2_exit_px)
+
+        # EOD: session ended without T1, stop, or T2
+        eod_px = float(prices[-1]) + (-exit_slip * ts if is_long else exit_slip * ts)
+        if pb_filled:
+            return _build("E1E2+EOD", eod_px, times[-1], "E2filled", eod_px, "EOD", eod_px)
+        return _build("EOD", eod_px, times[-1], "EOD", eod_px, "NoFill", actual_entry)
+
+    # ── ORIGINAL T1+T2 MODE (no PB) ──────────────────────────────────────────────
+    active_stop   = actual_stop
+    ratchet_fired = False
     phase1_end_idx  = None
     leg1_exit_price = None
     full_stop_price = None
     full_stop_dt    = None
-    active_stop     = actual_stop
-    ratchet_fired   = False
 
     for i, (p, t) in enumerate(zip(prices, times)):
         excursion = (p - actual_entry) if is_long else (actual_entry - p)
@@ -470,12 +552,7 @@ def _simulate_one_bars_multileg(
         return {"ok": False, "FilterStatus": "no_next_bar"}
 
     nb = next_bars.iloc[0]
-    if is_long  and float(nb["High"]) <= signal_price:
-        return {"ok": False, "FilterStatus": "no_fill"}
-    if not is_long and float(nb["Low"]) >= signal_price:
-        return {"ok": False, "FilterStatus": "no_fill"}
-
-    fill_px          = max(float(nb["Open"]), signal_price) if is_long else min(float(nb["Open"]), signal_price)
+    fill_px          = float(nb["Open"])
     actual_entry_raw = fill_px + (entry_slip * ts if is_long else -entry_slip * ts)
     actual_entry     = round(round(actual_entry_raw / ts) * ts, 10)
     actual_stop      = (stop_csv - stop_offset * ts) if is_long else (stop_csv + stop_offset * ts)
@@ -679,26 +756,12 @@ def _simulate_one_3leg(
         prices        = scan_ticks["Price"].values
         times         = scan_ticks["DateTime"].values
     else:
-        # Entry = first tick of the bar where price ticks THROUGH signal_price
-        sig_date  = pd.Timestamp(sig_dt).normalize()
-        rth_start = sig_date + pd.Timedelta(minutes=RTH_START_MIN)
-        after_c   = after.copy()
-        after_c["_bslot"] = ((after_c["DateTime"] - rth_start).dt.total_seconds() // 300).astype(int)
-        first_tick_px = None
-        entry_dt      = None
-        for _, bar_ticks in after_c.groupby("_bslot", sort=True):
-            bar_prices = bar_ticks["Price"].values
-            crossed = (bar_prices > signal_price).any() if is_long else (bar_prices < signal_price).any()
-            if crossed:
-                first_row     = bar_ticks.iloc[0]
-                first_tick_px = float(first_row["Price"])
-                entry_dt      = first_row["DateTime"]
-                after         = after[after["DateTime"] >= first_row["DateTime"]]
-                break
-        if first_tick_px is None:
-            return {"ok": False, "FilterStatus": "no_fill"}
-        prices = after["Price"].values
-        times  = after["DateTime"].values
+        # Entry = first tick of the bar after the SB, unconditional
+        first_row     = after.iloc[0]
+        first_tick_px = float(first_row["Price"])
+        entry_dt      = first_row["DateTime"]
+        prices        = after["Price"].values
+        times         = after["DateTime"].values
 
     e1_entry    = first_tick_px + (entry_slip * ts if is_long else -entry_slip * ts)
     actual_stop = (stop_csv - stop_offset * ts) if is_long else (stop_csv + stop_offset * ts)
@@ -914,12 +977,7 @@ def _simulate_one_bars_3leg(
         return {"ok": False, "FilterStatus": "no_next_bar"}
 
     nb = next_bars.iloc[0]
-    if is_long  and float(nb["High"]) <= signal_price:
-        return {"ok": False, "FilterStatus": "no_fill"}
-    if not is_long and float(nb["Low"]) >= signal_price:
-        return {"ok": False, "FilterStatus": "no_fill"}
-
-    fill_px     = max(float(nb["Open"]), signal_price) if is_long else min(float(nb["Open"]), signal_price)
+    fill_px     = float(nb["Open"])
     e1_entry    = fill_px + (entry_slip * ts if is_long else -entry_slip * ts)
     actual_stop = (stop_csv - stop_offset * ts) if is_long else (stop_csv + stop_offset * ts)
     risk_pts    = abs(e1_entry - actual_stop)
@@ -1214,6 +1272,7 @@ def simulate_trades(
                     day_ticks, target_r, t1_r, t1_action,
                     entry_slip, exit_slip, stop_offset, tv1, tv2,
                     ratchet_r, ratchet_dest, ratchet_lock_r,
+                    ml_pb_r=ml_pb_r, ml_pb_ticks=ml_pb_ticks,
                 )
         else:
                 res = _simulate_one(

@@ -1,6 +1,6 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** June 17, 2026 (session 13)
+**Last Updated:** June 18, 2026 (session 14)
 **Current Versions:** SIM_v3.3 / GS_v4.5 / SHEET_v3.3  
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 
@@ -808,6 +808,79 @@ Tested end-to-end using AAPL 5-min agg bars as synthetic tick data (May 5–29, 
 | `massive.py` | 4th data slot: **NT native bars** (upload, `mas_nt_native_bars`); **Comparison 3**: Tick-built vs NT native; Clear cache includes new keys; Comparison 2 label `"NT"`→`"NT_MAS"` |
 | `scripts/write_aapl_test_nt.py` | New one-off: 29 pre-market AAPL bars → NT import file (first test) |
 | `scripts/write_aapl_rth_nt.py` | New one-off: fetch AAPL RTH bars from API → NT import file (pipeline test) |
+
+---
+
+## Session 14 — June 18, 2026
+
+### What Was Done
+
+#### 1. Simulation engine — entry logic corrected (all 6 functions)
+
+The old entry logic in ALL 6 simulation functions was wrong: it scanned bars and waited for price to cross `signal_price` (SBClose) before filling. The correct rule is:
+
+> **Entry = first tick after signal datetime, unconditional. `signal_price` is informational only.**
+
+Fixed in `_simulate_one`, `_simulate_one_multileg`, `_simulate_one_3leg` (tick-based) and `_simulate_one_bars`, `_simulate_one_bars_multileg`, `_simulate_one_bars_3leg` (bar-based).
+
+Tick-based fix:
+```python
+# Before (wrong): bar-grouping crossing scan
+# After (correct):
+first_row     = after.iloc[0]   # after = ticks after sig_dt
+first_tick_px = float(first_row["Price"])
+entry_dt      = first_row["DateTime"]
+```
+
+Bar-based fix:
+```python
+# Before (wrong): returned no_fill if nb["High"] <= signal_price (long)
+# After (correct):
+fill_px = float(nb["Open"])  # unconditional
+```
+
+#### 2. `_simulate_one_multileg` — PB scale-in added (was missing entirely)
+
+The tick-based multileg function had no PB logic. Added:
+- `ml_pb_r` and `ml_pb_ticks` parameters
+- `use_pb = ml_pb_r < 0` flag
+- Single scan loop: PB fill check (strict tick-through) → stop (touch) → T2 (after PB) or T1 (before PB)
+- Returns `PBLevel`, `PBLevelRaw`, `E2FillPrice`, `E2FillTime`, `BlendedEntry`
+- `simulate_trades` dispatcher now forwards `ml_pb_r`, `ml_pb_ticks` to the tick function (was silently dropping them)
+
+#### 3. `_build` fixes in `_simulate_one_multileg`
+
+- Leg 2 P&L now measured from `e2_entry` (PB fill price), not `actual_entry`
+- `r_ach` uses `_e1_risk_dollar = risk_pts / ts * tv1` for 1-leg exits (was always dividing by `tv_total`)
+
+#### 4. Entry Zoom chart added (`bar_analysis.py`)
+
+New `_show_entry_zoom` function renders a tick-level chart around every filled trade entry:
+- **3 ticks before SBClose** + **3 ticks after EB Open** (tick-count window, not time window)
+- Orange circle = SBClose tick (last tick ≤ sig_dt) with timestamp
+- Cyan diamond = EB Open (first tick > sig_dt = fill tick) with timestamp
+- Grey dots = surrounding ticks with timestamps
+- Orange solid vertical line at sig_dt = 5M bar boundary
+- Horizontal lines: SBClose price (orange dotted), Entry price (green dashed), Stop (red dashed)
+- Title: `SB Closes HH:MM:SS · EB Opens HH:MM:SS.mmm · Fill XXXX.XX → Entry XXXX.XX`
+- Metrics strip: SBClose | EB Open | Entry (Δ slip) | Stop (Δ risk pts)
+
+`_show_entry_zoom_section` wraps it in a `🔍 Entry Zoom` expander with a selectbox — appears after the signal table in Bar Analysis.
+
+#### 5. `SBClose` column bug fixed
+
+`SBClose` in the results DataFrame was always NaN because `base.update(_EMPTY_TRADE)` overwrites it after `sig.to_dict()`. The correct column is `SEPrice` (set by every sim function as `signal_price`). Fixed in:
+- `_show_entry_zoom`: uses `sig_row["SEPrice"]` instead of `sig_row["SBClose"]`
+- Signal table display (line ~653): `disp["SB Close"]` now reads `results["SEPrice"]` (was always showing `—`)
+
+#### 6. Dependency fixes
+
+- `scipy` installed and added to `requirements.txt` (used by `wfa.py`)
+- `boto3` was in `requirements.txt` but not installed in the venv on this machine — reinstalled
+
+#### 7. Two-machine note
+
+All contract data (flatfiles_cache, bars parquet, continuous tick cache) lives on the PC. The Mac only has `data/raw/` with a few files. App runs on both but full contract history requires the PC.
 
 ---
 

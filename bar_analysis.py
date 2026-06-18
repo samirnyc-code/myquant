@@ -650,8 +650,7 @@ def _show_signal_table(results: pd.DataFrame, key_suffix: str = ""):
     disp["Status"]     = results.apply(
         lambda r: "✓ Filled" if r["Filled"] else fmt_status(r["FilterStatus"]), axis=1
     )
-    disp["SB Close"]   = results["SBClose"].apply(fmt_f) if "SBClose" in results.columns else "—"
-    disp["SE Px"]      = results["SEPrice"].apply(fmt_f)
+    disp["SB Close"]   = results["SEPrice"].apply(fmt_f)   # SEPrice = SignalPrice = SBClose
     disp["Bar Open"]   = results["FillPrice"].apply(fmt_f)
     disp["Entry Time"] = results["EntryTime"].apply(fmt_time)
     disp["Entry Bar"]  = results["EntryBarNum"].apply(lambda v: int(v) if pd.notna(v) else "—")
@@ -702,6 +701,192 @@ def _show_signal_table(results: pd.DataFrame, key_suffix: str = ""):
     st.dataframe(disp, use_container_width=True, hide_index=True,
                  height=min(35 * len(disp) + 38, 600))
     st.caption(f"{len(results)} signals  |  {int(results['Filled'].sum())} filled trades")
+
+
+# ── Entry Zoom chart ──────────────────────────────────────────────────────────
+
+def _show_entry_zoom(
+    sig_row: pd.Series,
+    ticks_by_date: dict,
+) -> None:
+    """Tick-level zoom — 3 ticks before SBClose and 3 ticks after the entry fill.
+    Every tick shows its timestamp so the bar boundary (5M close / EB open) is visible."""
+    date      = sig_row["Date"]
+    sig_dt    = pd.Timestamp(sig_row["DateTime"])
+    day_ticks = ticks_by_date.get(date)
+
+    if day_ticks is None or day_ticks.empty:
+        st.warning("No tick data for this date.")
+        return
+
+    fill_price  = float(sig_row["FillPrice"])    # EB Open = first tick after sig_dt
+    entry_price = float(sig_row["EntryPrice"])   # fill + entry slippage
+    stop_price  = float(sig_row["ActualStop"])
+    # SEPrice = signal_price = SBClose price (SBClose column is overwritten by _EMPTY_TRADE)
+    sb_close_px = float(sig_row["SEPrice"]) if pd.notna(sig_row.get("SEPrice")) else None
+    is_long     = sig_row["Direction"] == "Long"
+
+    # Split at signal datetime
+    before = day_ticks[day_ticks["DateTime"] <= sig_dt]
+    after  = day_ticks[day_ticks["DateTime"] >  sig_dt]
+
+    if before.empty or after.empty:
+        st.warning("Not enough ticks around this signal.")
+        return
+
+    # 3 ticks before (ending with SBClose tick) + 3 ticks after (starting with EB Open)
+    pre   = before.iloc[-3:].copy()   # last 3 ticks of the signal bar
+    post  = after.iloc[:3].copy()     # first 3 ticks of the entry bar
+
+    zoom = pd.concat([pre, post]).reset_index(drop=True)
+
+    def ts_label(t):
+        ts = pd.Timestamp(t)
+        ms = ts.microsecond // 1000
+        return ts.strftime("%H:%M:%S") + (f".{ms:03d}" if ms else "")
+
+    labels = [ts_label(t) for t in zoom["DateTime"]]
+
+    # Assign colour + symbol per tick role
+    colors  = []
+    symbols = []
+    sizes   = []
+    for i, row in zoom.iterrows():
+        dt = row["DateTime"]
+        px = row["Price"]
+        if dt <= sig_dt:
+            # Signal bar ticks (pre)
+            if dt == pre.iloc[-1]["DateTime"]:   # SBClose tick (last before sig)
+                colors.append("orange"); symbols.append("circle"); sizes.append(14)
+            else:
+                colors.append("#888");   symbols.append("circle"); sizes.append(7)
+        else:
+            # Entry bar ticks (post) — EB Open is the fill tick; entry price is EB Open ± slip
+            if dt == post.iloc[0]["DateTime"]:   # EB Open = fill tick
+                colors.append("#00bfff"); symbols.append("diamond"); sizes.append(14)
+            else:
+                colors.append("#888");   symbols.append("circle"); sizes.append(7)
+
+    fig = go.Figure()
+
+    # Connecting line
+    fig.add_trace(go.Scatter(
+        x=zoom["DateTime"], y=zoom["Price"],
+        mode="lines",
+        line=dict(color="#555", width=1),
+        showlegend=False,
+        hoverinfo="skip",
+    ))
+
+    # Individual ticks with timestamp labels
+    fig.add_trace(go.Scatter(
+        x=zoom["DateTime"], y=zoom["Price"],
+        mode="markers+text",
+        marker=dict(size=sizes, color=colors, symbol=symbols, line=dict(width=1, color="#333")),
+        text=labels,
+        textposition=["bottom center"] * len(zoom),
+        textfont=dict(size=9, color="#bbb"),
+        name="Ticks",
+        hovertemplate="%{text}<br>%{y:.2f}<extra></extra>",
+        customdata=labels,
+    ))
+
+    # Vertical line at signal bar boundary (5M close / EB open)
+    fig.add_vline(
+        x=sig_dt.value / 1e6,
+        line=dict(color="orange", width=2, dash="solid"),
+        annotation_text=f"5M Bar Close  {sig_dt.strftime('%H:%M:%S')}",
+        annotation_position="top left",
+        annotation_font=dict(color="orange", size=10),
+    )
+
+    # Horizontal: SBClose reference price (the signal bar's close price)
+    if sb_close_px is not None:
+        fig.add_hline(
+            y=sb_close_px,
+            line=dict(color="orange", width=1, dash="dot"),
+            annotation_text=f"SBClose  {sb_close_px:.2f}",
+            annotation_position="right",
+            annotation_font=dict(color="orange", size=10),
+        )
+
+    # Horizontal: Entry price
+    fig.add_hline(
+        y=entry_price,
+        line=dict(color="#00ff88", width=1.5, dash="dash"),
+        annotation_text=f"Entry  {entry_price:.2f}",
+        annotation_position="right",
+        annotation_font=dict(color="#00ff88", size=10),
+    )
+
+    # Horizontal: Stop
+    fig.add_hline(
+        y=stop_price,
+        line=dict(color="#ff4444", width=1.5, dash="dash"),
+        annotation_text=f"Stop  {stop_price:.2f}",
+        annotation_position="right",
+        annotation_font=dict(color="#ff4444", size=10),
+    )
+
+    dir_label = "LONG" if is_long else "SHORT"
+    eb_open_time = ts_label(post.iloc[0]["DateTime"])
+    fig.update_layout(
+        title=dict(
+            text=(f"Entry Zoom  ·  {date}  ·  {dir_label} {sig_row.get('SignalType','')}  "
+                  f"·  SB Closes {sig_dt.strftime('%H:%M:%S')}  "
+                  f"·  EB Opens {eb_open_time}  "
+                  f"·  Fill {fill_price:.2f}  →  Entry {entry_price:.2f}"),
+            font=dict(size=11),
+        ),
+        xaxis=dict(
+            title="",
+            type="date",
+            tickformat="%H:%M:%S",
+            showgrid=True, gridcolor="#333",
+        ),
+        yaxis=dict(title="Price", showgrid=True, gridcolor="#333"),
+        height=380,
+        showlegend=False,
+        margin=dict(r=140, t=55, b=60, l=60),
+        plot_bgcolor="#1a1a1a",
+        paper_bgcolor="#1a1a1a",
+        font=dict(color="#ddd"),
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Key price strip
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("SBClose (ref)", f"{sb_close_px:.2f}" if sb_close_px else "—",
+              help="Close price of the signal bar — reference only, not the entry trigger")
+    c2.metric("EB Open (fill px)", f"{fill_price:.2f}",
+              help="First tick of the entry bar = unconditional fill price")
+    c3.metric("Entry price", f"{entry_price:.2f}",
+              delta=f"{entry_price - fill_price:+.2f} slip",
+              help="EB Open ± entry slippage ticks")
+    c4.metric("Stop", f"{stop_price:.2f}",
+              delta=f"{abs(entry_price - stop_price):.2f} risk pts")
+
+
+def _show_entry_zoom_section(results: pd.DataFrame, ticks_by_date: dict) -> None:
+    """Expander that lets the user pick a filled trade and view the tick entry zoom."""
+    filled = results[results["Filled"] == True]
+    if filled.empty or not ticks_by_date:
+        return
+
+    with st.expander("🔍 Entry Zoom — tick-level view around trade entry", expanded=False):
+        sig_opts = {
+            f"#{int(r['SignalNum'])}  {r['Date']} {r['Direction']} "
+            f"@ {pd.Timestamp(r['DateTime']).strftime('%H:%M')} "
+            f"→ EB Open {float(r['FillPrice']):.2f}  Entry {float(r['EntryPrice']):.2f}"
+            : idx
+            for idx, r in filled.iterrows()
+        }
+        chosen_label = st.selectbox("Select trade", list(sig_opts.keys()),
+                                    key="ba_entry_zoom_sel")
+        if chosen_label:
+            row_idx = sig_opts[chosen_label]
+            _show_entry_zoom(results.loc[row_idx], ticks_by_date)
 
 
 # ── Optimal R sweep ───────────────────────────────────────────────────────────
@@ -3446,6 +3631,9 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
     # ── Full-range signal table ───────────────────────────────────────────────
     with st.expander(f"All Signals — {date_from} to {date_to}  ({len(in_range)} signals)", expanded=False):
         _show_signal_table(in_range.reset_index(drop=True), key_suffix="_all")
+
+    # ── Entry zoom ────────────────────────────────────────────────────────────
+    _show_entry_zoom_section(results, ticks_by_date)
 
     # ── Bar data mismatch analysis ────────────────────────────────────────────
     if nt_bars is not None and not nt_bars.empty:
