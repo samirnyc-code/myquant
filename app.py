@@ -1,4 +1,5 @@
 import re
+from pathlib import Path
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
@@ -368,7 +369,11 @@ def main():
 
     with tab3:
         # Signals upload lives here (price data is in the Data tab)
+        _SIGNALS_DIR = Path(__file__).parent / "saved_signals"
+        _SIGNALS_DIR.mkdir(exist_ok=True)
+
         def _signal_uploader(label: str, upload_key: str, state_prefix: str):
+            _disk_path = _SIGNALS_DIR / f"{state_prefix}.parquet"
             with st.expander(label, expanded=False):
                 sig_file = st.file_uploader(
                     "Signals (.txt/.csv)", type=["txt", "csv"], key=upload_key,
@@ -384,12 +389,16 @@ def main():
                         else:
                             st.session_state[state_prefix]           = parsed
                             st.session_state[f"{state_prefix}_key"]  = sig_key
+                            parsed.to_parquet(_disk_path, index=False)
                     if st.session_state.get(state_prefix) is not None:
                         n_sig = len(st.session_state[state_prefix])
                         st.caption(f"✅ {sig_file.name}  |  {n_sig} signals")
                 else:
-                    for k in (state_prefix, f"{state_prefix}_key"):
-                        st.session_state.pop(k, None)
+                    if state_prefix not in st.session_state and _disk_path.exists():
+                        st.session_state[state_prefix] = pd.read_parquet(_disk_path)
+                    if st.session_state.get(state_prefix) is not None:
+                        n_sig = len(st.session_state[state_prefix])
+                        st.caption(f"✅ (auto-loaded from disk)  |  {n_sig} signals")
 
         _signal_uploader("📊 MC Signals", "upload_signals", "ba_signals_mc")
         _signal_uploader("🔁 RevFTSignals", "upload_signals_revft", "ba_signals_revft")

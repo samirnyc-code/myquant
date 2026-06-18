@@ -5,6 +5,10 @@ data/bars/
 data/flatfiles_cache/
 data/nt_import/
 data/ticks_continuous/
+data/massive_cache/
+data/wfa_store/
+saved_signals/
+scripts/_commit_msg.txt
 streamlit.log
 .venv/
 .streamlit/secrets.toml

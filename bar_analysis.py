@@ -1008,52 +1008,235 @@ def _run_ml_scalein_sweep(
     t1_vals: list | None = None,
     t2_vals: list | None = None,
     first_trade_only: bool = False, first_2_filled_only: bool = False,
+    progress_bar=None,
 ) -> pd.DataFrame:
-    """Sweep PB_R × T1_R × T2_R for 2-leg scale-in mode."""
+    """Sweep PB_R × T1_R × T2_R for 2-leg scale-in mode.
+
+    Speed strategy:
+      - Per-day numpy arrays extracted once; np.searchsorted replaces pandas boolean filter.
+      - stop_i, pb_i, t1_i precomputed per signal outside the combo loop (O(n_signals) scans).
+      - Combo loop only does np.argmax for phase-2 t2 detection on signals that hit PB.
+    """
     if pb_vals is None:
         pb_vals = [-0.25, -0.33, -0.50, -0.66, -0.75, -1.0, -1.25, -1.50]
     if t1_vals is None:
         t1_vals = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
     if t2_vals is None:
         t2_vals = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0]
-    rows = []
-    for pb in pb_vals:
-        for t1 in t1_vals:
-            for t2 in t2_vals:
-                res = simulate_trades(
-                    signals, ticks_by_date, t2,
-                    entry_slip, exit_slip, stop_offset,
-                    tick_value, contracts, commission,
-                    bars_by_date=bars_by_date,
-                    multileg=True, t1_r=t1, t1_action="exit",
-                    contracts_t1=contracts_t1, contracts_t2=contracts_t2,
-                    ml_pb_r=pb, ml_pb_ticks=0,
-                )
-                res = _apply_day_trade_filters(res, first_trade_only, first_2_filled_only)
-                s = compute_summary(
-                    res, commission, contracts=contracts, is_multileg=True,
-                    t1_action="exit", contracts_t1=contracts_t1, contracts_t2=contracts_t2,
-                )
-                if not s or s["n_trades"] == 0:
+
+    ts             = TICK_SIZE
+    tv1            = tick_value * contracts_t1
+    tv2            = tick_value * contracts_t2
+    tv_tot         = tv1 + tv2
+    comm_per_trade_1 = commission * contracts_t1
+    comm_per_trade_2 = commission * contracts
+
+    # ── Extract per-day numpy arrays once (avoids repeated pandas filtering) ──
+    day_dt_np = {}
+    day_px_np = {}
+    for d, df in ticks_by_date.items():
+        if df is not None and not df.empty:
+            day_dt_np[d] = df["DateTime"].values
+            day_px_np[d] = df["Price"].values.astype(np.float64)
+
+    # ── Apply day-trade filters ───────────────────────────────────────────────
+    _sigs = signals[signals.get("FilterStatus", pd.Series("ok", index=signals.index)) == "ok"].copy()
+    if first_trade_only or first_2_filled_only:
+        n_keep = 1 if first_trade_only else 2
+        _sigs = (
+            _sigs.sort_values(["Date", "SignalNum"])
+                 .groupby("Date", group_keys=False)
+                 .head(n_keep)
+                 .reset_index(drop=True)
+        )
+
+    # ── Step 1: precompute per-signal numpy arrays (done ONCE) ──────────────────
+    sig_cache = []
+    for _, row in _sigs.iterrows():
+        direction = row["Direction"]
+        sig_dt    = pd.Timestamp(row["DateTime"])
+        date      = row["Date"]
+        stop_csv  = float(row["StopPrice"])
+        is_long   = direction == "Long"
+
+        dt_arr = day_dt_np.get(date)
+        px_arr = day_px_np.get(date)
+        if dt_arr is None:
+            continue
+
+        # Binary search for first tick after signal — O(log n) vs O(n) pandas filter
+        start = int(np.searchsorted(dt_arr, np.datetime64(sig_dt), side="right"))
+        if start >= len(px_arr) - 1:
+            continue
+
+        prices = px_arr[start:].copy()   # copy so each signal owns its slice
+        if len(prices) < 2:
+            continue
+
+        p1           = prices[1:]
+        actual_entry = prices[0] + (entry_slip * ts if is_long else -entry_slip * ts)
+        actual_stop  = (stop_csv - stop_offset * ts) if is_long else (stop_csv + stop_offset * ts)
+        risk_pts     = abs(actual_entry - actual_stop)
+        if risk_pts < 0.001:
+            continue
+
+        sig_cache.append({
+            "is_long": is_long,
+            "prices":  prices,
+            "p1":      p1,
+            "entry":   actual_entry,
+            "stop":    actual_stop,
+            "risk":    risk_pts,
+        })
+
+    if not sig_cache:
+        return pd.DataFrame()
+
+    n_sigs = len(sig_cache)
+
+    # ── Step 2: sweep combos — flatnonzero on prebuilt numpy arrays ───────────
+    # exit codes: 0=EOD/nofill, 1=Stop, 2=T1_only, 3=E1E2+Target, 4=E1E2+Stop, 5=E1E2+EOD
+    total = len(pb_vals) * len(t1_vals) * len(t2_vals)
+    done  = 0
+    rows  = []
+
+    for pb_r in pb_vals:
+        for t1_r in t1_vals:
+            for t2_r in t2_vals:
+                done += 1
+                if progress_bar is not None and (done % 5 == 0 or done == total):
+                    progress_bar.progress(done / total,
+                                          text=f"Scale-in sweep: {done} / {total}  "
+                                               f"(PB={pb_r}R  T1={t1_r}R  T2={t2_r}R)")
+
+                net_pnls   = np.empty(n_sigs, dtype=np.float64)
+                exit_codes = np.empty(n_sigs, dtype=np.int8)
+
+                for idx, sd in enumerate(sig_cache):
+                    is_long = sd["is_long"]
+                    prices  = sd["prices"]
+                    p1      = sd["p1"]
+                    entry   = sd["entry"]
+                    stop    = sd["stop"]
+                    risk    = sd["risk"]
+
+                    pb_raw     = entry + (pb_r * risk if is_long else -pb_r * risk)
+                    pb_trigger = round(round(pb_raw / ts) * ts, 10)
+                    t1_level   = entry + (t1_r * risk if is_long else -t1_r * risk)
+
+                    if is_long:
+                        pb_hits   = np.flatnonzero(p1 <= pb_trigger - ts)
+                        t1_hits   = np.flatnonzero(p1 > t1_level)
+                        stop_hits = np.flatnonzero(p1 <= stop)
+                    else:
+                        pb_hits   = np.flatnonzero(p1 >= pb_trigger + ts)
+                        t1_hits   = np.flatnonzero(p1 < t1_level)
+                        stop_hits = np.flatnonzero(p1 >= stop)
+
+                    pb_i   = int(pb_hits[0])   if len(pb_hits)   else len(p1)
+                    t1_i   = int(t1_hits[0])   if len(t1_hits)   else len(p1)
+                    stop_i = int(stop_hits[0]) if len(stop_hits) else len(p1)
+                    first  = min(pb_i, t1_i, stop_i)
+
+                    if first == len(p1):
+                        eod_px = prices[-1] + (-exit_slip * ts if is_long else exit_slip * ts)
+                        l1_pts = (eod_px - entry) if is_long else (entry - eod_px)
+                        net_pnls[idx]   = l1_pts / ts * tv1 - comm_per_trade_1
+                        exit_codes[idx] = 0
+                        continue
+
+                    if stop_i == first:
+                        sp     = stop + (-exit_slip * ts if is_long else exit_slip * ts)
+                        l1_pts = (sp - entry) if is_long else (entry - sp)
+                        net_pnls[idx]   = l1_pts / ts * tv1 - comm_per_trade_1
+                        exit_codes[idx] = 1
+                        continue
+
+                    if t1_i == first:
+                        t1_ep  = t1_level + (-exit_slip * ts if is_long else exit_slip * ts)
+                        l1_pts = (t1_ep - entry) if is_long else (entry - t1_ep)
+                        net_pnls[idx]   = l1_pts / ts * tv1 - comm_per_trade_1
+                        exit_codes[idx] = 2
+                        continue
+
+                    # PB filled
+                    e2_raw   = pb_trigger + (entry_slip * ts if is_long else -entry_slip * ts)
+                    e2_entry = round(round(e2_raw / ts) * ts, 10)
+                    blended  = (entry * tv1 + e2_entry * tv2) / tv_tot
+                    b_risk   = abs(blended - stop)
+                    t2_level = blended + (t2_r * b_risk if is_long else -t2_r * b_risk)
+                    t2_level = round(round(t2_level / ts) * ts, 10)
+
+                    p2_start = pb_i + 2
+                    p2       = prices[p2_start:]
+
+                    if len(p2) == 0:
+                        eod_px = prices[-1] + (-exit_slip * ts if is_long else exit_slip * ts)
+                        l1_pts = (eod_px - entry)    if is_long else (entry    - eod_px)
+                        l2_pts = (eod_px - e2_entry) if is_long else (e2_entry - eod_px)
+                        net_pnls[idx]   = l1_pts / ts * tv1 + l2_pts / ts * tv2 - comm_per_trade_2
+                        exit_codes[idx] = 5
+                        continue
+
+                    if is_long:
+                        t2_hits2   = np.flatnonzero(p2 > t2_level)
+                        stop_hits2 = np.flatnonzero(p2 <= stop)
+                    else:
+                        t2_hits2   = np.flatnonzero(p2 < t2_level)
+                        stop_hits2 = np.flatnonzero(p2 >= stop)
+
+                    t2_i2   = int(t2_hits2[0])   if len(t2_hits2)   else len(p2)
+                    stop_i2 = int(stop_hits2[0]) if len(stop_hits2) else len(p2)
+
+                    if t2_i2 < stop_i2:
+                        t2_ep  = t2_level + (-exit_slip * ts if is_long else exit_slip * ts)
+                        l1_pts = (t2_ep - entry)    if is_long else (entry    - t2_ep)
+                        l2_pts = (t2_ep - e2_entry) if is_long else (e2_entry - t2_ep)
+                        net_pnls[idx]   = l1_pts / ts * tv1 + l2_pts / ts * tv2 - comm_per_trade_2
+                        exit_codes[idx] = 3
+                    elif stop_i2 < len(p2):
+                        sp     = stop + (-exit_slip * ts if is_long else exit_slip * ts)
+                        l1_pts = (sp - entry)    if is_long else (entry    - sp)
+                        l2_pts = (sp - e2_entry) if is_long else (e2_entry - sp)
+                        net_pnls[idx]   = l1_pts / ts * tv1 + l2_pts / ts * tv2 - comm_per_trade_2
+                        exit_codes[idx] = 4
+                    else:
+                        eod_px = prices[-1] + (-exit_slip * ts if is_long else exit_slip * ts)
+                        l1_pts = (eod_px - entry)    if is_long else (entry    - eod_px)
+                        l2_pts = (eod_px - e2_entry) if is_long else (e2_entry - eod_px)
+                        net_pnls[idx]   = l1_pts / ts * tv1 + l2_pts / ts * tv2 - comm_per_trade_2
+                        exit_codes[idx] = 5
+
+                # ── Aggregate ────────────────────────────────────────────────
+                if n_sigs == 0:
                     continue
-                _dd_abs = abs(s["max_dd"]) if s["max_dd"] != 0 else None
-                _filled = res[res["Filled"] == True]
-                _n_f    = len(_filled)
-                _t1_pct = round(_filled["ExitReason"].eq("T1_only").sum() / _n_f * 100, 1) if _n_f else 0.0
-                _t2_pct = round(_filled["ExitReason"].str.contains("Target", na=False).sum() / _n_f * 100, 1) if _n_f else 0.0
+
+                wins       = net_pnls > 0
+                gross_win  = float(np.sum(net_pnls[net_pnls > 0]))
+                gross_loss = float(abs(np.sum(net_pnls[net_pnls < 0])))
+                pf         = (gross_win / gross_loss) if gross_loss > 0 else 99.9
+
+                cum    = np.cumsum(net_pnls)
+                dd     = float(np.min(cum - np.maximum.accumulate(cum)))
+                dd_abs = abs(dd)
+
+                t1_pct    = round(float(np.mean(exit_codes == 2)) * 100, 1)
+                t2_pct    = round(float(np.mean(exit_codes == 3)) * 100, 1)
+                net_total = float(np.sum(net_pnls))
                 rows.append({
-                    "PB_R":    pb,
-                    "T1_R":    t1,
-                    "T2_R":    t2,
-                    "T1 %":    _t1_pct,
-                    "T2 %":    _t2_pct,
-                    "Win %":   round(s["win_pct"], 1),
-                    "PF":      round(s["pf"], 2) if s["pf"] < 99 else 99.9,
-                    "Net PnL": round(s["net_total"], 0),
-                    "DD $":    round(_dd_abs, 0) if _dd_abs else 0.0,
-                    "PnL/DD":  round(s["net_total"] / _dd_abs, 2) if _dd_abs else 0.0,
-                    "Exp $":   round(s["exp_dollar"], 0),
+                    "PB_R":    pb_r,
+                    "T1_R":    t1_r,
+                    "T2_R":    t2_r,
+                    "T1 %":    t1_pct,
+                    "T2 %":    t2_pct,
+                    "Win %":   round(float(np.mean(wins)) * 100, 1),
+                    "PF":      round(min(pf, 99.9), 2),
+                    "Net PnL": round(net_total, 0),
+                    "DD $":    round(dd_abs, 0),
+                    "PnL/DD":  round(net_total / dd_abs, 2) if dd_abs else 0.0,
+                    "Exp $":   round(net_total / n_sigs, 0),
                 })
+
     return pd.DataFrame(rows)
 
 
@@ -1563,16 +1746,16 @@ def _show_optimal_r(signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
             _sc1, _sc2, _sc3 = st.columns(3)
             with _sc1:
                 st.caption("**PB range**")
-                _pb_from_sel = st.selectbox("Shallowest", _pb_lbl, index=0,           key="ba_si_pb_from")
-                _pb_to_sel   = st.selectbox("Deepest",    _pb_lbl, index=len(_pb_lbl)-1, key="ba_si_pb_to")
+                _pb_from_sel = st.selectbox("Shallowest", _pb_lbl, index=0, key="ba_si_pb_from")
+                _pb_to_sel   = st.selectbox("Deepest",    _pb_lbl, index=3, key="ba_si_pb_to")
             with _sc2:
                 st.caption("**T1 range**")
-                _t1_from_sel = st.selectbox("Min T1", _t1_lbl, index=0,           key="ba_si_t1_from")
-                _t1_to_sel   = st.selectbox("Max T1", _t1_lbl, index=len(_t1_lbl)-1, key="ba_si_t1_to")
+                _t1_from_sel = st.selectbox("Min T1", _t1_lbl, index=0, key="ba_si_t1_from")
+                _t1_to_sel   = st.selectbox("Max T1", _t1_lbl, index=5, key="ba_si_t1_to")
             with _sc3:
                 st.caption("**T2 range**")
-                _t2_from_sel = st.selectbox("Min T2", _t2_lbl, index=0,           key="ba_si_t2_from")
-                _t2_to_sel   = st.selectbox("Max T2", _t2_lbl, index=len(_t2_lbl)-1, key="ba_si_t2_to")
+                _t2_from_sel = st.selectbox("Min T2", _t2_lbl, index=0, key="ba_si_t2_from")
+                _t2_to_sel   = st.selectbox("Max T2", _t2_lbl, index=6, key="ba_si_t2_to")
 
             _pb_from_i = _pb_lbl.index(_pb_from_sel)
             _pb_to_i   = _pb_lbl.index(_pb_to_sel)
@@ -1585,58 +1768,47 @@ def _show_optimal_r(signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
             _sweep_t1 = _all_t1[min(_t1_from_i, _t1_to_i) : max(_t1_from_i, _t1_to_i) + 1]
             _sweep_t2 = _all_t2[min(_t2_from_i, _t2_to_i) : max(_t2_from_i, _t2_to_i) + 1]
             _si_n = len(_sweep_pb) * len(_sweep_t1) * len(_sweep_t2)
-            st.caption(f"PB: {len(_sweep_pb)} values · T1: {len(_sweep_t1)} values · T2: {len(_sweep_t2)} values — **{_si_n} combinations** (T1 auto-capped at run time — see below)")
-
-            with st.expander("ℹ️ How the T1 ceiling works", expanded=False):
-                st.markdown("""
-**Problem:** If T1 is set very high (e.g. 9R or 10R), it can never be reached before
-the pullback fills — so the T1-only exit path disappears entirely. The sweep would
-label those rows as "optimal" simply because they are equivalent to having no T1 at
-all (every trade becomes a scale-in attempt). That is a degenerate result, not a
-genuine optimum.
-
-**Solution — data-driven T1 ceiling:**
-When you click *Run Scale-In Sweep*, the app first runs a single-leg simulation with
-a target of 999R (effectively infinite) so that the trade stays open until the stop
-or end-of-day. This gives the **unconstrained MFE** (Maximum Favorable Excursion)
-for every signal — i.e. how far price actually ran from entry before stopping out or
-hitting EOD, with no artificial T1 cap.
-
-The **95th percentile** of that MFE distribution (in R units) becomes the T1 ceiling.
-Any T1 value above that ceiling would produce a T1-only exit rate of ~0 % across
-all signals — meaning the T1 parameter has no effect and the sweep result is
-meaningless for those rows.
-
-T1 values above the ceiling are removed from the sweep before it runs.
-The ceiling is shown next to the results table after each run.
-""")
+            _use_t1_cap = st.checkbox("Apply data-driven T1 ceiling", value=False, key="ba_si_use_t1_cap",
+                                      help="Runs a pre-sweep simulation to find the 95th-pct MFE and prunes T1 values above it. Useful when sweeping a wide T1 range; skip it if your Max T1 is already conservative (≤ 2–3R).")
+            _cap_suffix = " (T1 auto-capped at run time)" if _use_t1_cap else ""
+            _si_ok = signals[signals.get("FilterStatus", pd.Series("ok", index=signals.index)) == "ok"]
+            _si_sig_count = len(_si_ok)
+            if first_2_filled_only:
+                _si_sig_count = len(_si_ok.sort_values(["Date", "SignalNum"]).groupby("Date").head(2))
+            elif first_trade_only:
+                _si_sig_count = len(_si_ok.sort_values(["Date", "SignalNum"]).groupby("Date").head(1))
+            st.caption(f"PB: {len(_sweep_pb)} values · T1: {len(_sweep_t1)} values · T2: {len(_sweep_t2)} values — **{_si_n} combinations**{_cap_suffix} · **{_si_sig_count} signals**")
 
             if st.button("Run Scale-In Sweep", key="ba_run_si_sweep"):
-                # ── Compute data-driven T1 ceiling before sweeping ──────────────
-                # Run a single-leg sim with target=999R so T1 is never constrained;
-                # 95th pct of MFE_R gives the highest T1 that could ever trigger.
-                with st.spinner("Computing T1 ceiling from data…"):
-                    _bl_res  = simulate_trades(
-                        signals, ticks_by_date, 999.0,
-                        entry_slip, exit_slip, stop_offset,
-                        tick_value, contracts_t1, commission,
-                        bars_by_date=bars_by_date, multileg=False,
-                    )
-                    _bl_res  = _apply_day_trade_filters(_bl_res, first_trade_only, first_2_filled_only)
-                    _mfe_ser = _bl_res[_bl_res["Filled"] == True]["MFE_R"]
-                    _t1_cap  = float(round(_mfe_ser.quantile(0.95) * 4) / 4) if not _mfe_ser.empty else 10.0
-                    st.session_state["ba_si_t1_cap"] = _t1_cap
-                _sweep_t1_capped = [v for v in _sweep_t1 if v <= _t1_cap] or [_sweep_t1[0]]
+                if _use_t1_cap:
+                    with st.spinner("Computing T1 ceiling from data…"):
+                        _bl_res  = simulate_trades(
+                            signals, ticks_by_date, 999.0,
+                            entry_slip, exit_slip, stop_offset,
+                            tick_value, contracts_t1, commission,
+                            bars_by_date=bars_by_date, multileg=False,
+                        )
+                        _bl_res  = _apply_day_trade_filters(_bl_res, first_trade_only, first_2_filled_only)
+                        _mfe_ser = _bl_res[_bl_res["Filled"] == True]["MFE_R"]
+                        _t1_cap  = float(round(_mfe_ser.quantile(0.95) * 4) / 4) if not _mfe_ser.empty else 10.0
+                        st.session_state["ba_si_t1_cap"] = _t1_cap
+                    _sweep_t1_capped = [v for v in _sweep_t1 if v <= _t1_cap] or [_sweep_t1[0]]
+                else:
+                    _t1_cap = None
+                    _sweep_t1_capped = _sweep_t1
                 _si_n_actual = len(_sweep_pb) * len(_sweep_t1_capped) * len(_sweep_t2)
-                with st.spinner(f"Running scale-in sweep ({_si_n_actual} combinations, T1 ≤ {_t1_cap:.2f}R)…"):
-                    _si_df = _run_ml_scalein_sweep(
-                        signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
-                        tick_value, contracts, commission,
-                        contracts_t1=contracts_t1, contracts_t2=contracts_t2,
-                        bars_by_date=bars_by_date,
-                        pb_vals=_sweep_pb, t1_vals=_sweep_t1_capped, t2_vals=_sweep_t2,
-                        first_trade_only=first_trade_only, first_2_filled_only=first_2_filled_only,
-                    )
+                _cap_str = f", T1 ≤ {_t1_cap:.2f}R" if _t1_cap is not None else ""
+                _si_prog = st.progress(0.0, text=f"Scale-in sweep: 0 / {_si_n_actual}")
+                _si_df = _run_ml_scalein_sweep(
+                    signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
+                    tick_value, contracts, commission,
+                    contracts_t1=contracts_t1, contracts_t2=contracts_t2,
+                    bars_by_date=bars_by_date,
+                    pb_vals=_sweep_pb, t1_vals=_sweep_t1_capped, t2_vals=_sweep_t2,
+                    first_trade_only=first_trade_only, first_2_filled_only=first_2_filled_only,
+                    progress_bar=_si_prog,
+                )
+                _si_prog.empty()
                 if _si_df.empty:
                     st.warning("No scale-in results.")
                 else:

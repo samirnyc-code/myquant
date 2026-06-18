@@ -884,11 +884,61 @@ All contract data (flatfiles_cache, bars parquet, continuous tick cache) lives o
 
 ---
 
+## Scale-In Sweep — Performance Optimization (BLOCKS WFA)
+*Folded in from HANDOFF_FOR_OPUS.md, 2026-06-18. This is the prerequisite for the first WFA run — at current speed a full WFA run is ~48 min and unusable.*
+
+### The problem
+`_run_ml_scalein_sweep` in `bar_analysis.py` (~lines 1002–1240) runs the PB×T1×T2 grid. Current speed: **~1 sec/combo = ~3 min for 168 combos** on 1165 signals. WFA needs ~16 folds × a sweep each. Target: **under 30 sec for 168 combos**.
+
+**Root cause:** the combo loop calls `np.flatnonzero()` on the full per-signal tick array for every signal for every combo — O(n_ticks × n_signals × n_combos), ~977M ops/sweep.
+
+### The fix — precompute per-signal indices once, then O(1) lookups in the combo loop
+
+Precompute outside the combo loop:
+- per signal: `stop_i` (constant), `pb_i_arr[n_pb]` (one scan per PB value), `t1_i_arr[n_t1]` (one scan per T1 value)
+- per (signal, pb_idx): `e2_entry_arr`, `b_risk_arr`, phase-2 stop `stop_i2_arr`
+- per (signal, pb_idx, t2_idx): `t2_i2_arr` — scan `prices[pb_i+2:]` for the blended T2 level
+
+Combo loop becomes pure arithmetic/indexing — `min(pb_i, t1_i, stop_i)` then no array scanning.
+
+Expected: ~20–50× → sweep in 5–10 sec.
+
+### Gotchas from the previous failed attempt (DO NOT repeat)
+- **`p2_start = pb_i + 2`, NOT `pb_i + 1`.** `prices[pb_i]` = entry tick, `prices[pb_i+1]` = E2 entry tick, `prices[pb_i+2:]` = phase-2 prices. The earlier attempt used `stop_i - pb_i - 1` and got ~10× PnL overstatement. Correct phase-2 stop is `stop_i - (pb_i + 2)`, valid only when `stop_i > pb_i + 1`; if stop never hit in p1 (`stop_i == len(p1)`), the formula yields `len(p2)` which correctly means "never hit."
+- **T2 is NOT independent of PB.** `t2_level = blended_entry + t2_r × blended_risk`, and both blended terms depend on `e2_entry`, which depends on `pb_r`. T2 hits must be precomputed per (signal, pb_idx, t2_idx) — cannot be precomputed once independent of pb.
+
+### Already fixed this session (keep)
+- **searchsorted precompute** — replaced O(n) pandas `day_ticks[... > sig_dt]` scan with `np.searchsorted` on pre-extracted numpy datetime arrays. Fixed a ~2-min precompute hang; now near-instant.
+- **FilterStatus bug** — `apply_signal_filters()` marks out-of-range rows with `FilterStatus="date_range"` but does NOT drop them. The sweep was processing all 5576 signals regardless of date range. Fixed at line ~1043: `_sigs = signals[signals["FilterStatus"] == "ok"].copy()`. Caption count at line ~1774 also fixed. Now shows 1165 signals (correct for 1-yr range), matching the sim's ~1121 filled trades.
+
+### Verification (mandatory — do not change the grid values, only the computation)
+Run one combo (e.g. PB=−0.50, T1=1.50, T2=0.75) with both the old `flatnonzero` path and the new precomputed path; Net PnL, Win%, PF must match exactly (within float). Pardo "scan ranges fixed" applies — this work changes speed only, never the PB/T1/T2 ranges.
+
+### Independent ground truth
+`2026-06-18T12-41_export7.csv` — 1187 signals (Jun 2021–Jun 2022), simulation output. Use as ground truth to validate the sim engine at a fixed param set (relevant after the Session-14 entry-logic + PB-scale-in changes, which are themselves untested end-to-end).
+
+### Current numbers (1-yr IS window, Jun 2021 – Jun 2022)
+- Signals in file: ~5576 · after date filter (`FilterStatus=="ok"`): ~1165 · filled: ~1121
+- 8 dates permanently missing tick data (Massive has none for those days)
+- Typical sweep grid: 168 combos (PB:4 · T1:6 · T2:7); full default is 392 (8×7×7)
+- Current: ~1 sec/combo (~3 min/168) · Target: <30 sec/168
+
+---
+
 ## Next Session — Priorities
 
-**WFA first test is the headline.** The infrastructure is built but completely untested with real data. Do not move on to portfolio layer or window scanner until a clean end-to-end run confirms the engine works.
+**Corrected critical path (Opus, 2026-06-18):** validate the sim engine → fix sweep speed → decide Q5/Q6 → first WFA run. Speed is not a competing priority with the WFA run — it is the gate to it.
 
-### Step 1 — First real WFA run
+### Step 0 — Validate the sim engine (do first)
+Session 14 changed the entry rule in all 6 sim functions and added PB scale-in to the tick engine — both untested end-to-end. Everything (sweeps, WFA, OOS curves) sits on this. Validate against `2026-06-18T12-41_export7.csv` at a fixed param set before trusting any sweep or WFA number.
+
+### Step 1 — Fix sweep speed
+See the "Scale-In Sweep — Performance Optimization" section above. Prerequisite for a usable WFA run.
+
+### Step 2 — Decide Q5 and Q6 (before reading any OOS)
+Max concurrent positions and max daily loss rule are still open (`open_questions.md`). Current WFA output assumes unlimited concurrent positions and no daily loss cap. Decide these **before** reading OOS results — reading OOS then changing the model is a Pardo no-feedback violation. WFA OOS metrics are not actionable for live sizing until decided.
+
+### Step 3 — First real WFA run
 1. Start the app (`.venv\Scripts\streamlit run app.py`)
 2. Build `mas_continuous` in the Massive tab if not already persisted
 3. Upload CC2 signals (or whichever setup has the most data)
@@ -896,9 +946,6 @@ All contract data (flatfiles_cache, bars parquet, continuous tick cache) lives o
 5. Verify: fold count shown (~16), IS sweep runs without error, guardrail badges appear, OOS equity curve renders, fold table populates
 6. Spot-check one fold's IS sweep: confirm the param grid was correct (T1 < T2 enforced, PB values negative)
 7. **Only after a clean run** move on to portfolio layer or window scanner
-
-### Step 2 — Decide Q5 and Q6
-Max concurrent positions and max daily loss rule are still open (`open_questions.md`). Current WFA output assumes unlimited concurrent positions and no daily loss cap. Decide these before treating any WFA OOS metrics as actionable.
 
 ### Step 3 — Portfolio WFA layer
 Update Portfolio tab to load and combine OOS equity curves from multiple setup runs via `load_portfolio_oos_trades()` in `results_store.py`. This is already wired on the storage side; only the Portfolio tab UI needs updating.
