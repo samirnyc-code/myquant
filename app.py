@@ -14,6 +14,55 @@ import portfolio
 import massive
 import validation
 import wfa as wfa_mod
+import continuous_chart
+
+# ── Global display rule for st.dataframe (DISPLAY only — calc precision intact) ─
+# One wrapper instead of editing ~35 call sites (and it catches future ones).
+# Money/PnL columns → whole dollars (0 dp); ratios/percentages/everything else
+# → max 2 dp. Uses Streamlit column_config for plain DataFrames (cheap, no Styler
+# overhead on big trade-log tables) and Styler.format for already-styled tables.
+# Columns that genuinely need 3 dp (R-grid values like 0.625) are passed as
+# pre-formatted strings at their call site, so they're object dtype and untouched.
+import re as _re
+from pandas.io.formats.style import Styler as _Styler
+
+_ORIG_DATAFRAME = st.dataframe
+_MONEY_RE = _re.compile(r'(\$|net|gross|pnl|p&l|profit|loss|slippage|commission|dollar|cost|equity|drawdown|\bdd\b|margin)', _re.I)
+_RATIO_RE = _re.compile(r'(/|ratio|factor|\bpf\b|prom|wfe|pct|%|kurt|sqn|win|\br\b)', _re.I)
+
+
+def _col_dp(name) -> int:
+    """0 dp for money/PnL columns, 2 dp for ratios/percentages/everything else."""
+    n = str(name)
+    if _RATIO_RE.search(n):
+        return 2
+    if _MONEY_RE.search(n):
+        return 0
+    return 2
+
+
+def _dataframe_2dp(data=None, *args, **kwargs):
+    try:
+        if isinstance(data, _Styler):
+            fmt = {c: ("{:,.0f}" if _col_dp(c) == 0 else "{:.2f}")
+                   for c in data.data.select_dtypes(include="floating").columns}
+            if fmt:
+                data = data.format(fmt, na_rep="—")
+        elif isinstance(data, pd.DataFrame):
+            cfg = dict(kwargs.get("column_config") or {})
+            for c in data.select_dtypes(include="floating").columns:
+                if c in cfg:
+                    continue
+                cfg[c] = st.column_config.NumberColumn(
+                    format="%.0f" if _col_dp(c) == 0 else "%.2f")
+            if cfg:
+                kwargs["column_config"] = cfg
+    except Exception:
+        pass
+    return _ORIG_DATAFRAME(data, *args, **kwargs)
+
+
+st.dataframe = _dataframe_2dp
 
 st.set_page_config(
     page_title="ES Futures — 5-Min RTH Bars",
@@ -360,8 +409,8 @@ def main():
         st.session_state.clear()
         st.rerun()
 
-    tab_massive, tab0, tab1, tab3, tab4, tab_wfa = st.tabs([
-        "📂 Massive", "🗂️ Data", "📊 Bar Viewer", "📈 Bar Analysis", "📊 Portfolio", "🔄 WFA",
+    tab_massive, tab0, tab1, tab_chart, tab3, tab4, tab_wfa = st.tabs([
+        "📂 Massive", "🗂️ Data", "📊 Bar Viewer", "📈 Chart", "📈 Bar Analysis", "📊 Portfolio", "🔄 WFA",
     ])
 
     contract_label = selected_key.split(" — ")[0] if selected_key else "ES"
@@ -379,6 +428,9 @@ def main():
 
     with tab1:
         show_bar_viewer(sc_file, contract=contract_label)
+
+    with tab_chart:
+        continuous_chart.show_continuous_chart_tab()
 
     with tab3:
         # Signals upload lives here (price data is in the Data tab)

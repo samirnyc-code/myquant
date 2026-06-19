@@ -10,11 +10,11 @@ from data_loader import load_sc_bars, load_sc_ticks, get_market_holidays, TICK_S
 from economic_calendar import get_economic_events, fred_key_configured, EVENT_COLOR
 from simulation_engine import (
     INSTRUMENTS, RTH_END_MIN, _EMPTY_TRADE,
-    simulate_trades, compute_summary,
+    simulate_trades, compute_summary, friction_ledger,
     _simulate_one, _simulate_one_bars,
     _simulate_one_multileg, _simulate_one_bars_multileg,
     _simulate_one_3leg, _simulate_one_bars_3leg,
-    _resimulate_bars,
+    _resimulate_bars, _snap_level,
 )
 
 _BA_DEFAULTS_FILE = Path(__file__).parent / "ba_filter_defaults.json"
@@ -1029,7 +1029,7 @@ def _run_ml_scalein_sweep(
     t2_vals: list | None = None,
     first_trade_only: bool = False, first_2_filled_only: bool = False,
     scale_in_style: str = "e2",
-    pb_round: str = "floor_ceil",
+    pb_round: str = "nearest",
     progress_bar=None,
 ) -> pd.DataFrame:
     """FAST scale-in sweep (PB_R × T1_R × T2_R for 2-leg PB scale-in, ratchet off).
@@ -1145,7 +1145,7 @@ def _run_ml_scalein_sweep(
                     prices  = c["prices"]; rmax = c["rmax"]; neg_rmin = c["neg_rmin"]
                     entry   = c["entry"]; stop = c["stop"]; risk = c["risk"]; n = c["n"]
 
-                    t1_price = entry + sgn * t1_r * risk
+                    t1_price = _snap_level(entry + sgn * t1_r * risk, ts, entry, pb_round)
                     pb_raw   = entry + sgn * pb_r * risk    # ml_pb_ticks = 0
                     if is_long:
                         pb_trigger = (round(round(pb_raw / ts) * ts, 10) if pb_round == "nearest"
@@ -1186,7 +1186,7 @@ def _run_ml_scalein_sweep(
                         _ref, _rr = blended, abs(blended - stop)
                     else:
                         _ref, _rr = e2, abs(e2 - stop)
-                    t2_price  = round(round((_ref + sgn * t2_r * _rr) / ts) * ts, 10)
+                    t2_price  = _snap_level(_ref + sgn * t2_r * _rr, ts, _ref, pb_round)
 
                     suffix = prices[pb_i + 1:]                      # ticks strictly after PB
                     if suffix.size:
@@ -1260,7 +1260,7 @@ def _run_ml_scalein_sweep_engine(
     t2_vals: list | None = None,
     first_trade_only: bool = False, first_2_filled_only: bool = False,
     scale_in_style: str = "e2",
-    pb_round: str = "floor_ceil",
+    pb_round: str = "nearest",
     progress_bar=None,
 ) -> pd.DataFrame:
     """REFERENCE (slow, ~2s/combo) scale-in sweep: each combo is a full run through
@@ -1583,7 +1583,7 @@ def _show_optimal_r(signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
                     pb1_ticks: int = 0, pb2_ticks: int = 0,
                     t2_r: float = 0.0,
                     ratchet_r: float = 0.0, ratchet_dest: str = "BE", ratchet_lock_r: float = 0.0,
-                    scale_in_style: str = "e2", pb_round: str = "floor_ceil",
+                    scale_in_style: str = "e2", pb_round: str = "nearest",
                     first_trade_only: bool = False, first_2_filled_only: bool = False):
 
     _METRIC_COLS  = ["Win %", "PF", "Net PnL", "DD $", "PnL/DD", "Exp $"]
@@ -2906,14 +2906,15 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                 )
                 scale_in_style_v = _si_style_map[_si_style_sel]
 
-                _pbr_lbls = ["Floor/Ceil (conservative)", "Round to nearest"]
+                _pbr_lbls = ["Round to nearest", "Floor/Ceil (conservative)"]
                 st.selectbox(
-                    "PB level rounding", _pbr_lbls,
+                    "Price rounding (PB & targets)", _pbr_lbls,
                     index=_pbr_lbls.index(st.session_state.get("ba_pb_round", _pbr_lbls[0]))
                           if st.session_state.get("ba_pb_round", _pbr_lbls[0]) in _pbr_lbls else 0,
                     key="ba_pb_round",
-                    help="Floor/Ceil snaps the PB trigger AWAY from entry (harder to fill — never "
-                         "overstates scale-ins). Round-to-nearest snaps to the closest tick.",
+                    help="Snaps all computed price levels (PB triggers AND profit targets) to a tradeable "
+                         "tick. Round-to-nearest (default) = realistic closest-tick fill. Floor/Ceil snaps "
+                         "AWAY from entry (conservative — targets land further/harder to fill, PB deeper).",
                 )
 
                 st.caption("**Execution**")
@@ -3099,7 +3100,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
 
         ml_pb_r_v = 0.0  # default; overridden in 2-leg block below
         scale_in_style_v = "e2"  # default; overridden in 2-leg block below
-        pb_round_v = "floor_ceil"  # default; overridden in 2-leg block below
+        pb_round_v = "nearest"  # default; overridden in 2-leg block below
 
         if _is_3l and _3l_valid:
             use_threeleg = True
@@ -3385,6 +3386,26 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         f"{_n_filled}/{len(results)} filled · slip {entry_slip:.0f}/{exit_slip:.0f} · "
         f"comm ${commission:.2f}"
     )
+
+    # ── Assumption ledger — frictionless gross → net (stacked conservatism visible) ─
+    _led = friction_ledger(results) if not results.empty else {}
+    if _led:
+        with st.expander("🧮 Assumption Ledger (frictionless → net)", expanded=False):
+            _ldf = pd.DataFrame([
+                {"Step": "Frictionless gross", "Amount $": _led["frictionless_gross"]},
+                {"Step": "− Slippage",          "Amount $": -_led["slippage"]},
+                {"Step": "− Commission",        "Amount $": -_led["commission"]},
+                {"Step": "= Net (modeled)",     "Amount $": _led["net"]},
+            ])
+            _lc1, _lc2 = st.columns([2, 1])
+            _lc1.dataframe(_ldf, use_container_width=True, hide_index=True)
+            _lc2.metric("Friction / trade", f"${_led['per_trade_friction']:,.0f}",
+                        help="Slippage+commission ÷ trades. Sanity-check vs real execution "
+                             "(ES ≈ $15.50/trade). A model haircut far above reality = under-optimizing.")
+            _lc2.metric("Net / trade", f"${_led['per_trade_net']:,.0f}")
+            st.caption("Slippage is embedded in fills, so frictionless = GrossPnL + slippage. "
+                       "Tick-snap & same-bar priority are baked into fills (bounded ~½ tick) and would "
+                       "need a counterfactual re-run to isolate.")
 
     # ── Summary — pre-compute shared derived values ───────────────────────────
     if summary:

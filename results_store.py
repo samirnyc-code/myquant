@@ -19,9 +19,11 @@ from datetime import date
 _STORE_DIR  = Path(__file__).parent / "data" / "wfa_store"
 _DB_PATH    = _STORE_DIR / "wfa_results.db"
 _TRADES_DIR = _STORE_DIR / "trades"
+_SWEEP_DIR  = _STORE_DIR / "sweeps"
 
 _STORE_DIR.mkdir(parents=True, exist_ok=True)
 _TRADES_DIR.mkdir(parents=True, exist_ok=True)
+_SWEEP_DIR.mkdir(parents=True, exist_ok=True)
 
 
 # ── Database init ─────────────────────────────────────────────────────────────
@@ -120,9 +122,10 @@ def delete_run(run_id: str) -> None:
         conn.execute("DELETE FROM folds WHERE run_id=?", (run_id,))
         conn.execute("DELETE FROM runs  WHERE run_id=?", (run_id,))
     import shutil
-    run_dir = _TRADES_DIR / run_id
-    if run_dir.exists():
-        shutil.rmtree(run_dir)
+    for base in (_TRADES_DIR, _SWEEP_DIR):
+        run_dir = base / run_id
+        if run_dir.exists():
+            shutil.rmtree(run_dir)
 
 
 # ── Fold storage ──────────────────────────────────────────────────────────────
@@ -218,6 +221,23 @@ def load_folds(run_id: str, setup_id: str | None = None) -> pd.DataFrame:
 def load_fold_trades(run_id: str, setup_id: str, fold_id: int,
                      period: str = "oos") -> pd.DataFrame:
     path = _TRADES_DIR / run_id / setup_id / f"fold_{fold_id}_{period}.parquet"
+    if not path.exists():
+        return pd.DataFrame()
+    return pd.read_parquet(path)
+
+
+def save_sweep(run_id: str, setup_id: str, fold_id: int, sweep_df: pd.DataFrame) -> None:
+    """Persist the full IS optimization-surface grid for one fold (for heatmaps)."""
+    if sweep_df is None or sweep_df.empty:
+        return
+    d = _SWEEP_DIR / run_id / setup_id
+    d.mkdir(parents=True, exist_ok=True)
+    sweep_df.to_parquet(d / f"fold_{fold_id}.parquet", index=False)
+
+
+def load_sweep(run_id: str, setup_id: str, fold_id: int) -> pd.DataFrame:
+    """Load the IS optimization-surface grid for one fold (empty if not stored)."""
+    path = _SWEEP_DIR / run_id / setup_id / f"fold_{fold_id}.parquet"
     if not path.exists():
         return pd.DataFrame()
     return pd.read_parquet(path)

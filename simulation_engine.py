@@ -33,6 +33,21 @@ def _first_hit(mask: np.ndarray):
     return int(nz[0]) if nz.size else None
 
 
+def _snap_level(raw: float, ts: float, entry: float, mode: str) -> float:
+    """Snap a computed price level (target/PB) to a tradeable tick — no instrument
+    quotes off-tick. One policy for all computed levels:
+      'nearest'    → closest tick (realistic; the default for execution accuracy).
+      'floor_ceil' → snap AWAY from entry (conservative: targets land further/harder
+                     to fill, pullbacks deeper). Matches the legacy PB convention
+                     (long PB below entry → floor; short PB above entry → ceil).
+    Entries and stops are already tick-aligned upstream, so this is for targets/PB."""
+    if mode == "nearest":
+        return round(round(raw / ts) * ts, 10)
+    if raw >= entry:
+        return round(float(np.ceil(raw / ts)) * ts, 10)
+    return round(float(np.floor(raw / ts)) * ts, 10)
+
+
 # ── Empty trade template ──────────────────────────────────────────────────────
 
 _EMPTY_TRADE = {
@@ -75,6 +90,7 @@ def _simulate_one(
     ratchet_dest: str = "BE",
     ratchet_lock_r: float = 0.0,
     manual_fill: dict | None = None,
+    pb_round: str = "nearest",
     _force_loop: bool = False,
 ) -> dict:
     ts      = TICK_SIZE
@@ -109,7 +125,9 @@ def _simulate_one(
     if risk_pts < 0.001:
         return {"ok": False, "FilterStatus": "zero_risk"}
 
-    target_price = actual_entry + (target_r * risk_pts if is_long else -target_r * risk_pts)
+    target_price = _snap_level(
+        actual_entry + (target_r * risk_pts if is_long else -target_r * risk_pts),
+        ts, actual_entry, pb_round)
     entry_bar    = bar_num_from_dt(entry_dt)
 
     exit_px_raw   = float(prices[-1])
@@ -265,7 +283,8 @@ def _simulate_one_bars(
     if risk_pts < 0.001:
         return {"ok": False, "FilterStatus": "zero_risk"}
 
-    target_price     = actual_entry + (target_r * risk_pts if is_long else -target_r * risk_pts)
+    target_price     = _snap_level(actual_entry + (target_r * risk_pts if is_long else -target_r * risk_pts),
+                                    ts, actual_entry, "nearest")
     entry_bar        = bar_num_from_dt(nb["DateTime"])
     entry_dt         = nb["DateTime"]
     exit_px_raw      = float(next_bars.iloc[-1]["Close"])
@@ -349,7 +368,7 @@ def _simulate_one_multileg(
     ml_pb_r: float = 0.0,
     ml_pb_ticks: int = 0,
     scale_in_style: str = "e2",
-    pb_round: str = "floor_ceil",
+    pb_round: str = "nearest",
     _force_loop: bool = False,
 ) -> dict:
     ts       = TICK_SIZE
@@ -386,8 +405,10 @@ def _simulate_one_multileg(
     if risk_pts < 0.001:
         return {"ok": False, "FilterStatus": "zero_risk"}
 
-    t1_price = actual_entry + (t1_r     * risk_pts if is_long else -t1_r     * risk_pts)
-    t2_price = actual_entry + (target_r * risk_pts if is_long else -target_r * risk_pts)
+    t1_price = _snap_level(actual_entry + (t1_r     * risk_pts if is_long else -t1_r     * risk_pts),
+                           ts, actual_entry, pb_round)
+    t2_price = _snap_level(actual_entry + (target_r * risk_pts if is_long else -target_r * risk_pts),
+                           ts, actual_entry, pb_round)
     entry_bar = bar_num_from_dt(entry_dt)
     mae = mfe = 0.0
 
@@ -412,7 +433,7 @@ def _simulate_one_multileg(
         else:
             ref, rr = e2_entry, abs(e2_entry - actual_stop)
         raw = ref + (target_r * rr if is_long else -target_r * rr)
-        return round(round(raw / ts) * ts, 10)
+        return _snap_level(raw, ts, ref, pb_round)
 
     # E2 state (populated if PB fills)
     e2_entry      = actual_entry
@@ -870,7 +891,8 @@ def _simulate_one_bars_multileg(
     if risk_pts < 0.001:
         return {"ok": False, "FilterStatus": "zero_risk"}
 
-    t1_price  = actual_entry + (t1_r * risk_pts if is_long else -t1_r * risk_pts)
+    t1_price  = _snap_level(actual_entry + (t1_r * risk_pts if is_long else -t1_r * risk_pts),
+                            ts, actual_entry, "nearest")
     t2_price  = t1_price  # overwritten after E2 fills
     entry_bar = bar_num_from_dt(nb["DateTime"])
     entry_dt  = nb["DateTime"]
@@ -880,6 +902,12 @@ def _simulate_one_bars_multileg(
     e2_fill_dt    = None
     blended_entry = np.nan
     blended_risk  = np.nan
+
+    def _t2_for(blended_entry, e2_entry):
+        # e2-style default: T2 off E2's own risk, tick-snapped — matches the tick engine.
+        raw = e2_entry + (target_r * abs(e2_entry - actual_stop) if is_long
+                          else -target_r * abs(e2_entry - actual_stop))
+        return _snap_level(raw, ts, e2_entry, "nearest")
 
     def _leg_pts(exit_px):
         return (exit_px - actual_entry) if is_long else (actual_entry - exit_px)
@@ -940,10 +968,7 @@ def _simulate_one_bars_multileg(
     if use_pb:
         pb_level_raw = actual_entry + (e2_pb_r * risk_pts if is_long else -e2_pb_r * risk_pts)
         pb_raw       = (pb_level_raw - e2_pb_ticks * ts) if is_long else (pb_level_raw + e2_pb_ticks * ts)
-        if is_long:
-            pb_trigger = round(float(np.floor(pb_raw / ts)) * ts, 10)
-        else:
-            pb_trigger = round(float(np.ceil(pb_raw / ts)) * ts, 10)
+        pb_trigger   = _snap_level(pb_raw, ts, actual_entry, "nearest")
 
     p1_result  = "Session"
     p1_dt      = None
@@ -1044,6 +1069,7 @@ def _simulate_one_3leg(
     entry_slip: float, exit_slip: float, stop_offset: int,
     ratchet_r: float = 0.0, ratchet_dest: str = "BE", ratchet_lock_r: float = 0.0,
     manual_fill: dict | None = None,
+    pb_round: str = "nearest",
 ) -> dict:
     ts      = TICK_SIZE
     is_long = direction == "Long"
@@ -1077,20 +1103,20 @@ def _simulate_one_3leg(
     if risk_pts < 0.001:
         return {"ok": False, "FilterStatus": "zero_risk"}
 
-    t1_price  = e1_entry + (t1_r     * risk_pts if is_long else -t1_r     * risk_pts)
-    t2_price  = e1_entry + (t2_r     * risk_pts if is_long else -t2_r     * risk_pts)
-    t3_price  = e1_entry + (target_r * risk_pts if is_long else -target_r * risk_pts)
+    t1_price  = _snap_level(e1_entry + (t1_r     * risk_pts if is_long else -t1_r     * risk_pts), ts, e1_entry, pb_round)
+    t2_price  = _snap_level(e1_entry + (t2_r     * risk_pts if is_long else -t2_r     * risk_pts), ts, e1_entry, pb_round)
+    t3_price  = _snap_level(e1_entry + (target_r * risk_pts if is_long else -target_r * risk_pts), ts, e1_entry, pb_round)
     entry_bar = bar_num_from_dt(entry_dt)
 
     if is_long:
-        pb1_price_raw = e1_entry - pb1_r * risk_pts + pb1_ticks * ts
-        pb2_price_raw = e1_entry - pb2_r * risk_pts + pb2_ticks * ts
+        pb1_price_raw = _snap_level(e1_entry - pb1_r * risk_pts + pb1_ticks * ts, ts, e1_entry, pb_round)
+        pb2_price_raw = _snap_level(e1_entry - pb2_r * risk_pts + pb2_ticks * ts, ts, e1_entry, pb_round)
         pb1_price = max(pb1_price_raw, actual_stop + ts)
         pb2_price = max(pb2_price_raw, actual_stop + ts)
         pb2_price = min(pb2_price, pb1_price - ts)
     else:
-        pb1_price_raw = e1_entry + pb1_r * risk_pts - pb1_ticks * ts
-        pb2_price_raw = e1_entry + pb2_r * risk_pts - pb2_ticks * ts
+        pb1_price_raw = _snap_level(e1_entry + pb1_r * risk_pts - pb1_ticks * ts, ts, e1_entry, pb_round)
+        pb2_price_raw = _snap_level(e1_entry + pb2_r * risk_pts - pb2_ticks * ts, ts, e1_entry, pb_round)
         pb1_price = min(pb1_price_raw, actual_stop - ts)
         pb2_price = min(pb2_price_raw, actual_stop - ts)
         pb2_price = max(pb2_price, pb1_price + ts)
@@ -1535,7 +1561,7 @@ def simulate_trades(
     pb2_ticks: int = 0,
     t2_r: float = 0.0,
     scale_in_style: str = "e2",
-    pb_round: str = "floor_ceil",
+    pb_round: str = "nearest",
     _force_loop: bool = False,
 ) -> pd.DataFrame:
     _t2_r = t2_r if t2_r > 0 else target_r
@@ -1576,6 +1602,7 @@ def simulate_trades(
                     pb1_r, pb1_ticks, pb2_r, pb2_ticks,
                     entry_slip, exit_slip, stop_offset,
                     ratchet_r, ratchet_dest, ratchet_lock_r,
+                    pb_round=pb_round,
                 )
         elif multileg and not manual_fill:
             res = _simulate_one_multileg(
@@ -1591,7 +1618,7 @@ def simulate_trades(
                     base["DateTime"], base["Direction"], base["SignalPrice"], base["StopPrice"],
                     day_ticks, target_r, entry_slip, exit_slip, stop_offset, tv,
                     ratchet_r, ratchet_dest, ratchet_lock_r,
-                    manual_fill=manual_fill, _force_loop=_force_loop,
+                    manual_fill=manual_fill, pb_round=pb_round, _force_loop=_force_loop,
                 )
 
         if not res.get("ok", False):
@@ -1662,6 +1689,40 @@ def _compute_prom(filled: pd.DataFrame, max_dd: float) -> float:
     w_factor = (1.0 - 1.0 / np.sqrt(nw)) if nw > 0 else 0.0
     l_factor = (1.0 + 1.0 / np.sqrt(nl)) if nl > 0 else 1.0
     return (gw * w_factor - gl * l_factor) / abs(max_dd)
+
+
+def friction_ledger(results: pd.DataFrame) -> dict:
+    """Decompose net profit into the conservative layers, from the trade log alone.
+
+    Slippage is embedded in GrossPnL (fills are slipped), so frictionless gross =
+    GrossPnL + SlippageDollar. Commission = GrossPnL − NetPnL. This makes the stacked
+    execution conservatism *visible* so it can't compound invisibly. Tick-snap and
+    same-bar priority can't be isolated from one log (they're baked into the fills) —
+    they need a counterfactual re-run; their per-trade impact is bounded (~½ tick).
+    """
+    if results is None or results.empty:
+        return {}
+    f = results[results["Filled"] == True] if "Filled" in results.columns else results
+    if f.empty:
+        return {}
+    gross = float(f["GrossPnL"].sum())
+    net   = float(f["NetPnL"].sum())
+    slip  = float(f["SlippageDollar"].sum()) if "SlippageDollar" in f.columns else 0.0
+    comm  = gross - net
+    frictionless = gross + slip
+    n = len(f)
+    return {
+        "n_trades":           n,
+        "frictionless_gross": frictionless,
+        "slippage":           slip,
+        "gross":              gross,
+        "commission":         comm,
+        "net":                net,
+        "friction_total":     slip + comm,
+        "friction_pct":       (slip + comm) / frictionless * 100 if frictionless else float("nan"),
+        "per_trade_friction": (slip + comm) / n if n else float("nan"),
+        "per_trade_net":      net / n if n else float("nan"),
+    }
 
 
 def compute_summary(results: pd.DataFrame, commission: float,

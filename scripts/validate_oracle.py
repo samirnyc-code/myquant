@@ -48,7 +48,7 @@ def oracle_single(after: pd.DataFrame, is_long: bool, cfg: dict, stop_csv: float
     entry = float(px[0]) + sgn * es * ts
     stop = stop_csv - sgn * so * ts
     risk = abs(entry - stop)
-    target = entry + sgn * cfg["target_r"] * risk
+    target = _round_tick(entry + sgn * cfg["target_r"] * risk)   # engine snaps target to tick
 
     elig = np.arange(len(px)) >= 1
     stop_m = ((px <= stop) if is_long else (px >= stop)) & elig
@@ -85,10 +85,10 @@ def oracle_multileg(after: pd.DataFrame, is_long: bool, cfg: dict, stop_csv: flo
     entry = float(px[0]) + sgn * es * ts
     stop = stop_csv - sgn * so * ts
     risk = abs(entry - stop)
-    t1 = entry + sgn * t1_r * risk
+    t1 = _round_tick(entry + sgn * t1_r * risk)        # engine snaps T1 to tick
 
     pb_level_raw = entry + sgn * pb_r * risk           # pb_r is negative
-    pb_trigger = round(float(np.floor(pb_level_raw / ts) if is_long else np.ceil(pb_level_raw / ts)) * ts, 10)
+    pb_trigger = _round_tick(pb_level_raw)             # default pb_round = "nearest"
 
     elig = np.arange(n) >= 1
     pb_m = ((px < pb_trigger) if is_long else (px > pb_trigger)) & elig
@@ -125,9 +125,8 @@ def oracle_multileg(after: pd.DataFrame, is_long: bool, cfg: dict, stop_csv: flo
 
     # ── PB fills at pb_i ──
     e2 = _round_tick(pb_trigger + sgn * es * ts)
-    blended = (entry * tv1 + e2 * tv2) / tv_tot
-    b_risk = abs(blended - stop)
-    t2 = _round_tick(blended + sgn * t2_r * b_risk)
+    # Engine default scale_in_style="e2": T2 off E2's OWN risk (not the blended avg).
+    t2 = _round_tick(e2 + sgn * t2_r * abs(e2 - stop))
 
     post = np.arange(n) > pb_i
     stop_post = _first(stop_m & post)

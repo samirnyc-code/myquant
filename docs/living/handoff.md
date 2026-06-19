@@ -1,8 +1,46 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** June 19, 2026 (session 17)
-**Current Versions:** SIM_v3.3 / GS_v4.5 / SHEET_v3.3  
+**Last Updated:** June 19, 2026 (session 18)
+**Current Versions:** SIM_v3.4 / GS_v4.5 / SHEET_v3.3  
 **Rule:** Read this file first every session. It is the only source of truth for current state.
+
+---
+
+## ⭐ SESSION 18 HANDOFF — June 19, 2026 (read first)
+*WFA UI overhaul + Pardo-safe diagnostics, two heatmaps, a continuous 5yr chart tab, app-wide 2-decimal display, and the big engine change: tick-snap of all computed targets (default nearest). All internal-consistency validators green. Committed + pushed at end of session.*
+
+### Engine change (re-baselines numbers — intended, like the S17 T2 change)
+- **Tick-snap of computed price levels.** Every computed target (single-leg `target_price`, 2-leg `t1`/`t2`/`_t2_for`, 3-leg `t1`/`t2`/`t3`, + their PB triggers) now snaps to a tradeable tick via one helper `_snap_level(raw, ts, entry, mode)` in `simulation_engine.py`. Before, fractional-R targets (e.g. 0.625×risk) booked exits at off-tick prices that can't trade — distorting PnL. **Why:** prices must be divisible by tick size (ES 0.25). User decision: **Option 1 (snap the level), default `nearest`** (realistic execution accuracy, NOT max-pessimism — "be realistic on execution, conservative on selection").
+- **`pb_round` is now the single rounding policy for ALL levels (PB + targets), default flipped `floor_ceil`→`nearest`.** Threaded through `_simulate_one`, `_simulate_one_multileg`, `_simulate_one_3leg` (added `pb_round` param to single-leg & 3-leg), the bars-path diagnostics, the fast scale-in sweep (`bar_analysis._run_ml_scalein_sweep` — uses the SAME imported `_snap_level` so fast==oracle holds), the UI (`ba_pb_round` selectbox reordered, default "Round to nearest", relabeled "Price rounding (PB & targets)"), and `wfa.py` base_params (`pb_round="nearest"`). **2-leg/single numbers shifted vs S17 — intended.** `validate_regression` is a manual dump/cmp tool (no committed golden) → take a fresh `dump` as the new reference.
+- **Fixed a STALE Layer-B oracle.** `scripts/validate_oracle.py` still computed **blended-style T2** — never updated for the S17 e2-style default — so it was silently RED at the S17 commit. Rewrote it to the current definition (e2-style T2 + nearest snap on target/T1/PB). **Now green, multileg + single.**
+- **Verified (all green):** Layer A (`validate_engine`), Layer B (`validate_oracle` multi+single), vec==loop (`validate_ratchet` multileg/e2, 9 settings byte-identical), fast==oracle (`validate_scalein_sweep`, 64 combos identical).
+
+### WFA tab — UI overhaul + Pardo-safe diagnostics (`wfa.py`)
+- **Setup ID → per-SignalType checkboxes** (like Bar Analysis): they filter signals AND derive the storage label; empty-selection guards everywhere.
+- **Metric tooltips** (`_METRIC_HELP`) on inputs + OOS metrics + a **Metric Glossary** expander.
+- **Per-fold guardrail breakdown table** (`_guardrail_breakdown`) — ✓/✗ per rail + roll-up of which folds failed. (Fixed a dict-key-collapse bug that rendered every flag as "None"; use `_flag()`.)
+- **Removed the forward-risk `st.warning`.**
+- **Results expanded:** per-fold WFE/PnL charts, OOS NetPnL histogram, **Friction & Robustness Diagnostics** (Windsorized WFE, Pain Index, Total Commission/Slippage, Friction-to-Profit, interactive **SEC slippage-elasticity slider** + curve, **assumption ledger** table), Max-Time-Underwater + OOS PF added to equity metrics.
+- **Two heatmaps:**
+  - **Per-fold IS optimization surface** (`_is_surface_section`) — PB×T2 (sliced by T1) coloured by PROM/NetPnL/PF, ✕ marks the chosen set → see plateau vs spike. Needs the full IS sweep grid, now persisted per fold via `results_store.save_sweep`/`load_sweep` (`data/wfa_store/sweeps/...`). **Old runs lack it → re-run to populate.**
+  - **Window-anchor heatmap** — new "🗺️ Window Map" sub-tab. `run_window_grid()` runs a full non-persisted WFA per IS×OOS pair (added `persist=False` to `run_wfa`), colours cells by Mean WFE / Total OOS PnL / Mean OOS PROM / %profitable. Heavy compute; pin params to shrink.
+- **Objective is PROM** (`select_params` nlargest by `prom`) — confirmed; NetPnL/PF/PnL-DD displayed but don't drive selection. Drill-down param table now labelled (Target R / T1 R / T2 R / PB R), ranked, with the averaged locked set; R-values rendered as 3-dp strings so the 2-dp display rule leaves them intact.
+
+### New: Continuous Chart tab (`continuous_chart.py`, wired in `app.py` as "📈 Chart")
+- Windowed scrollable candlestick over the full 99k-bar / 5yr continuous series (`data_sc_5m`/`mas_continuous`). Date-range presets, RTH rangebreaks. Overlays: EMAs (multi), session VWAP, Daily-200EMA, Daily ATR(14) & ADX(14) subplots. Indicators computed on full series then sliced (correct at window edge). **Trade overlays / tick price-paths = deliberate Phase-2** (ticks can't render across 5yr; drill-in per day only).
+
+### App-wide: 2-decimal display
+- Global `st.dataframe` wrapper in `app.py` (`_dataframe_2dp`): money/PnL cols → 0 dp, ratios/% → 2 dp, via `column_config` (plain DF) or `Styler.format` (styled). Calc precision untouched — display only. Commission label fixed to "($/contract, round-trip)".
+
+### Session 19 priorities
+- **15M timeframe.** User will import 15M signals as a CSV from NT (same schema as 5M) → slots in like RevFT (a new signal set; dynamic checkboxes already handle it). Engine is **tick-based ⇒ largely timeframe-agnostic** (entry = first tick after signal-bar timestamp). TWO things to fix first: (1) verify the 15M NT export's **DateTime convention** (signal-bar close → "first tick after" = next 15M bar open; reconcile one trade vs NT); (2) **`bar_num_from_dt` is 5M-hardcoded** (`/5+1`) → mislabels `EntryBar` and breaks manual-fill mapping on 15M — make it timeframe-aware. Continuous Chart: add a **timeframe selector (5M/15M)** (resample) — easy.
+- **TOD/DOW expectancy breakdown** (Tier-2, Pardo-safe) in Bar Analysis. We have a DoW *filter* + session filter + Monthly breakdown, but **no TOD/DOW read-only expectancy table and no optimization.** Build the per-condition matrix (by hour/session-phase/weekday) as DESCRIPTION; form a structural hypothesis; lock on a design slice; the filter then lives in the **shared engine layer** and WFA *inherits* it. **NEVER co-sweep TOD/DOW inside the WFA IS grid** (dimensionality → curve-fit + no-feedback violation). Rolling-PF self-filter is the most robust regime idea.
+- Tier-2 OOS-trade export tagged with daily macro metadata (VIX/ATR%ile/ADX/200EMA-dist/ToD) → per-condition expectancy matrix (read-only; needs a macro data-source decision: Massive vs FRED vs computed-from-bars).
+- Counterfactual "tick-snap & same-bar-priority cost" rows for the assumption ledger (needs no-snap/optimistic-priority re-runs).
+- Deferred still: vectorize 3-leg; truncated-flatfile refetch (10 dates, metered).
+
+### Carry-forward rules
+NEVER commit/push without explicit OK · user must have run the app · `git pull` first (two-machine) · Edit/Write only for Python source (PowerShell → mojibake) · all sims behind Run button · one engine = one trade definition.
 
 ---
 

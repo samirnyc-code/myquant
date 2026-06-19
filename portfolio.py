@@ -303,7 +303,7 @@ def _detail_strip(summary: dict, pf_str, starting_cap: float = 0.0):
         r1[1].metric("Profit Factor", pf_str)
         r1[2].metric("W/L Ratio",     _wl_str)
         r1[3].metric("Exp $",         f"${summary['exp_dollar']:+.0f}")
-        r1[4].metric("Std R",         f"{summary['r_std']:.3f}")
+        r1[4].metric("Std R",         f"{summary['r_std']:.2f}")
         r1[5].metric("Trading Days",  f"{summary['trading_days']}")
 
         r2 = st.columns(6)
