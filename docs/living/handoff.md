@@ -1,8 +1,47 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** June 19, 2026 (session 18)
+**Last Updated:** June 19, 2026 (session 19)
 **Current Versions:** SIM_v3.4 / GS_v4.5 / SHEET_v3.3  
 **Rule:** Read this file first every session. It is the only source of truth for current state.
+
+---
+
+## ⭐ SESSION 19 HANDOFF — June 19, 2026 (read first)
+*New `indicators.py` engine (VWAP σ-bands, multi-timeframe volume-profile value areas, daily ATR/ADX + percentiles, look-ahead-safe trade tagging); Continuous Chart overlays with grouped-legend toggles + single-session scroll; two new descriptive expectancy tables in Bar Analysis (TOD/DOW and Regime/Indicator); FRED key stored; a full setup-decision manual written. No engine change → all validators still green. Committed + pushed.*
+
+### New: `indicators.py` (pure compute, no engine change)
+- **Session VWAP σ-bands** — `session_vwap_bands()` returns developing (causal) VWAP, volume-weighted σ, and `VWAP_dev` (signed σ-distance). Warmup-guarded (first 3 bars/session → `VWAP_dev` NaN so early-session readings don't explode).
+- **Volume-profile value areas** — `value_areas(bars, period)` for period ∈ {session, weekly, monthly, quarterly, yearly}: POC/VAH/VAL via 70%-rule expansion over a typical-price volume histogram. `prior_period_levels()` projects the **prior** period's levels (look-ahead-safe; shift over existing periods handles holidays).
+- **Daily regime** — `daily_regime()` → ATR(14), **ATR percentile** (252d rolling rank), ADX(14), **ADX percentile**.
+- **`tag_signals()`** — joins all of the above onto any df with a `DateTime` column (causal VWAP via `merge_asof`; prior-day regime; prior-period value areas for session/weekly/monthly). Verified on the full 99k-bar series (VAL≤POC≤VAH all sessions, no NaN leakage, dev range ±6σ).
+
+### Continuous Chart (`continuous_chart.py`) overlays + UX
+- VWAP **±1/2/3σ bands** (multiselect) and **value areas** at all 5 timeframes (multiselect), drawn with **grouped legend** + `groupclick="togglegroup"` → click a group title to hide a whole set, click one item (e.g. just +3σ, or M-POC) to toggle it individually.
+- VWAP line **breaks at the session edge** (helper `_break_last_of_group`); VA levels are **flat horizontal segments** (no risers); **VA shading + opacity slider**; **chart-height slider** (drives fullscreen vertical size); **single-session ◀/▶ scroll mode** (like Bar Viewer); EMA50 off by default.
+
+### Bar Analysis — two new descriptive tables (read-only, Pardo-safe)
+- **🕐 Time-of-Day / Day-of-Week Breakdown** — Day-of-Week table, Session-phase table (Open 08:30–11:30 / Mid –13:00 / Late –14:45 / Close –15:15 CT), Weekday×phase heatmap (selectable metric). Helper `_expectancy_stats` shared.
+- **🌡️ Regime / Indicator Expectancy** — buckets the current trade set by ATR%ile, ADX%ile, VWAP-deviation band, value-area location (session/weekly/monthly), plus an **ADX×ATR matrix heatmap**. Trade tags cached via `_tag_trades_cached` (joins `indicators.tag_signals` onto filled trades by EntryTime). **Description only — no filter, no optimization; trade counts shown everywhere.**
+
+### NOT built / paused (important)
+- **Entry filter** — started wiring `indicator_filters` into `apply_signal_filters`, then **reverted** at user's request (`apply_signal_filters` is back at baseline). User paused the "regime module" to realign.
+- **The PDF "Regime Analysis Module" spec** (OOS-only, describe-don't-filter, prefer sizing) is the agreed direction but NOT built. See `docs/living/setup_decision_manual.md`.
+
+### Setup-decision manual (`docs/living/setup_decision_manual.md`)
+Step-by-step Phase 0→7 pipeline (Discovery → Validation → Portfolio), per-setup individual WFA then portfolio last, with discard rules + a tooling-status table. Incorporates user's pro-level additions: **regime stability across WF segments, WF-structure robustness, Monte Carlo on OOS, profit concentration, time-under-water, Observation→Hypothesis→Rationale gate, concurrent-exposure %, acceptance report card**. Most of those = **to build**; Window-Map heatmap (`run_window_grid`) and Max Time Underwater already exist.
+
+### Misc
+- **FRED API key** stored in `.streamlit/secrets.toml` (git-ignored) → enables VIX (`VIXCLS`) for the future VIX regime module.
+- **App launch (PowerShell):** `.\.venv\Scripts\streamlit.exe run app.py` (the `.\` prefix is required; bare relative path errors).
+- Validators all green (no engine change this session): `validate_engine`, `validate_oracle`, `validate_ratchet`.
+
+### Session 20 priorities
+- Decide direction with user (paused): build the **OOS Regime Analysis module** per the PDF/manual (regime stability across WF segments → Monte Carlo → profit concentration → report card), vs. the in-sample entry filter. Manual is the blueprint.
+- Quick wins already specced as "to build": top-10-trade profit concentration, profit-by-year, average recovery time, concurrent-exposure %, acceptance report card.
+- Still carried from S18: 15M timeframe (`bar_num_from_dt` is 5M-hardcoded), vectorize 3-leg, truncated-flatfile refetch.
+
+### Carry-forward rules
+NEVER commit/push without explicit OK · user must have run the app · `git pull` first (two-machine) · Edit/Write only for source (PowerShell → mojibake) · all sims behind Run button · one engine = one trade definition.
 
 ---
 

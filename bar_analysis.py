@@ -8,6 +8,7 @@ from pathlib import Path
 
 from data_loader import load_sc_bars, load_sc_ticks, get_market_holidays, TICK_SIZE, bar_num_from_dt
 from economic_calendar import get_economic_events, fred_key_configured, EVENT_COLOR
+import indicators as ind
 from simulation_engine import (
     INSTRUMENTS, RTH_END_MIN, _EMPTY_TRADE,
     simulate_trades, compute_summary, friction_ledger,
@@ -2247,6 +2248,313 @@ def _show_monthly_breakdown(results: pd.DataFrame, commission: float):
         )
 
 
+# Session phases (CT), keyed by trade EntryTime. Right-open intervals.
+# Open 08:30–11:30 · Mid 11:30–13:00 · Late 13:00–14:45 · Close 14:45–15:15
+_SESSION_PHASES = [
+    ("Open",  8 * 60 + 30, 11 * 60 + 30),
+    ("Mid",  11 * 60 + 30, 13 * 60 +  0),
+    ("Late", 13 * 60 +  0, 14 * 60 + 45),
+    ("Close", 14 * 60 + 45, 15 * 60 + 15),
+]
+_PHASE_ORDER = [p[0] for p in _SESSION_PHASES]
+_DOW_ORDER   = ["Mon", "Tue", "Wed", "Thu", "Fri"]
+
+
+def _phase_of(ts) -> str:
+    """Map an entry timestamp to its session phase by minute-of-day (CT)."""
+    m = ts.hour * 60 + ts.minute
+    for name, lo, hi in _SESSION_PHASES:
+        if lo <= m < hi:
+            return name
+    return "Other"  # outside RTH phases (rare; e.g. last-bar edge)
+
+
+def _expectancy_stats(g: pd.DataFrame) -> pd.Series:
+    """Read-only per-group expectancy. Same definitions as the Monthly
+    breakdown's _group_stats (Trades/Win%/PF/Net PnL/Avg R/MAE R/MFE R)."""
+    n      = len(g)
+    _tgt   = g["ExitReason"].str.contains("Target", na=False) | g["ExitReason"].isin(["T1+BE", "T1_only"])
+    _stp   = g["ExitReason"].isin(["Stop", "E1E2+Stop"])
+    _eod_w = ~_tgt & ~_stp & (g["NetPnL"] > 0)
+    wins   = g[_tgt | _eod_w]
+    pos    = g.loc[g["GrossPnL"] > 0, "GrossPnL"].sum()
+    neg    = g.loc[g["GrossPnL"] < 0, "GrossPnL"].sum()
+    pf     = abs(pos / neg) if neg < 0 else (float("inf") if pos > 0 else 0.0)
+    return pd.Series({
+        "Trades":  n,
+        "Win%":    round(len(wins) / n * 100, 1) if n else 0.0,
+        "PF":      round(min(pf, 99.9), 2),
+        "Net PnL": round(g["NetPnL"].sum(), 0),
+        "Avg R":   round(g["R_achieved"].mean(), 2),
+        "MAE R":   round(g["MAE_R"].mean(), 2),
+        "MFE R":   round(g["MFE_R"].mean(), 2),
+    })
+
+
+def _show_tod_dow_breakdown(results: pd.DataFrame):
+    """Read-only Time-of-Day / Day-of-Week expectancy matrix.
+
+    DESCRIPTION ONLY — no optimization, no sweep, no WFA coupling. Surfaces
+    structural patterns for hypothesis-forming; locking a filter is a separate,
+    deliberate step that lives in the shared engine layer (NEVER co-swept in WFA).
+    """
+    filled = results[results["Filled"]].copy()
+    if filled.empty:
+        return
+
+    filled["Phase"] = filled["EntryTime"].apply(_phase_of)
+    filled["DoW"]   = filled["EntryTime"].dt.dayofweek.map(
+        {0: "Mon", 1: "Tue", 2: "Wed", 3: "Thu", 4: "Fri"})
+    filled = filled[filled["DoW"].notna()]
+
+    base_cols = ["Trades", "Win%", "PF", "Net PnL", "Avg R", "MAE R", "MFE R"]
+
+    def _fmt(df: pd.DataFrame) -> pd.DataFrame:
+        d = df.copy()
+        d["Net PnL"] = df["Net PnL"].apply(lambda v: f"${v:+,.0f}")
+        d["Win%"]    = df["Win%"].apply(lambda v: f"{v:.1f}%")
+        d["PF"]      = df["PF"].apply(lambda v: f"{v:.2f}")
+        for c in ("Avg R", "MAE R", "MFE R"):
+            d[c] = df[c].apply(lambda v: f"{v:.2f}")
+        return d
+
+    def _ordered(df: pd.DataFrame, key: str, order: list) -> pd.DataFrame:
+        df = df[df[key].isin(order)].copy()
+        df[key] = pd.Categorical(df[key], categories=order, ordered=True)
+        return df.sort_values(key)
+
+    with st.expander("🕐 Time-of-Day / Day-of-Week Breakdown", expanded=False):
+        st.caption(
+            "Descriptive only — read this to form a *structural* hypothesis, not to "
+            "pick the best cell. Thin cells (low Trades) are noise. Any filter you "
+            "lock from this lives in the shared engine layer; it is never co-swept in WFA."
+        )
+
+        # ── Day-of-Week table ──────────────────────────────────────────────────
+        st.markdown("**By Day of Week**")
+        dow_df = _ordered(
+            filled.groupby("DoW", sort=False).apply(_expectancy_stats).reset_index(),
+            "DoW", _DOW_ORDER)
+        st.dataframe(_fmt(dow_df)[["DoW"] + base_cols],
+                     use_container_width=True, hide_index=True)
+
+        # ── Session-phase table ────────────────────────────────────────────────
+        st.markdown("**By Session Phase**  (Open 08:30–11:30 · Mid 11:30–13:00 · "
+                    "Late 13:00–14:45 · Close 14:45–15:15 CT)")
+        ph_df = _ordered(
+            filled.groupby("Phase", sort=False).apply(_expectancy_stats).reset_index(),
+            "Phase", _PHASE_ORDER)
+        st.dataframe(_fmt(ph_df)[["Phase"] + base_cols],
+                     use_container_width=True, hide_index=True)
+
+        # ── Weekday × phase heatmap ─────────────────────────────────────────────
+        st.markdown("**Weekday × Phase Heatmap**")
+        metric = st.radio(
+            "Colour by", ["Avg R", "Net PnL", "Win%", "PF"],
+            horizontal=True, key="ba_tod_metric",
+        )
+        cell = (filled.groupby(["Phase", "DoW"], sort=False)
+                      .apply(_expectancy_stats).reset_index())
+        cell = cell[cell["DoW"].isin(_DOW_ORDER) & cell["Phase"].isin(_PHASE_ORDER)]
+
+        z   = cell.pivot(index="Phase", columns="DoW", values=metric).reindex(
+                  index=_PHASE_ORDER, columns=_DOW_ORDER)
+        cnt = cell.pivot(index="Phase", columns="DoW", values="Trades").reindex(
+                  index=_PHASE_ORDER, columns=_DOW_ORDER)
+
+        # annotate each cell with "value (n=trades)"; blank where no trades
+        txt = []
+        for ph in _PHASE_ORDER:
+            row = []
+            for d in _DOW_ORDER:
+                v, n = z.loc[ph, d], cnt.loc[ph, d]
+                if pd.isna(n) or n == 0:
+                    row.append("")
+                elif metric == "Net PnL":
+                    row.append(f"${v:+,.0f}<br>n={int(n)}")
+                elif metric == "Win%":
+                    row.append(f"{v:.0f}%<br>n={int(n)}")
+                else:
+                    row.append(f"{v:.2f}<br>n={int(n)}")
+            txt.append(row)
+
+        # diverging scale centred at 0 for Avg R / Net PnL; sequential otherwise
+        diverging = metric in ("Avg R", "Net PnL")
+        fig = go.Figure(go.Heatmap(
+            z=z.values, x=_DOW_ORDER, y=_PHASE_ORDER,
+            text=txt, texttemplate="%{text}", textfont={"size": 11},
+            colorscale="RdYlGn" if diverging else "Blues",
+            zmid=0 if diverging else None,
+            hovertemplate="%{y} · %{x}<br>" + metric + ": %{z}<extra></extra>",
+            colorbar=dict(title=metric),
+        ))
+        fig.update_layout(
+            height=320, template="plotly_white",
+            margin=dict(l=60, r=15, t=10, b=40),
+            yaxis=dict(autorange="reversed"),
+        )
+        st.plotly_chart(fig, use_container_width=True)
+        st.caption("Cell annotation: metric value with trade count (n). "
+                   "Treat any n below ~15–20 as too sparse to interpret.")
+
+
+# Percentile bucket edges/labels (0–1 percentile inputs) and VWAP σ-bands.
+_PCT_EDGES   = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
+_PCT_LABELS  = ["0–20", "20–40", "40–60", "60–80", "80–100"]
+_VWAP_EDGES  = [-np.inf, -2, -1, 1, 2, np.inf]
+_VWAP_LABELS = ["≤ −2σ", "−2..−1σ", "−1..+1σ", "+1..+2σ", "≥ +2σ"]
+_TERCILE     = [0.0, 1 / 3, 2 / 3, 1.0]
+
+
+@st.cache_data(show_spinner="Tagging trades with regime indicators…")
+def _tag_trades_cached(fp: int, _filled: pd.DataFrame, _bars: pd.DataFrame) -> pd.DataFrame:
+    """Join look-ahead-safe indicator tags onto each filled trade by EntryTime.
+    `fp` is the cache key; `_filled`/`_bars` are not hashed (underscore prefix)."""
+    base = pd.DataFrame({
+        "_idx": range(len(_filled)),
+        "DateTime": pd.to_datetime(_filled["EntryTime"]).values,
+        "Price": _filled["EntryPrice"].astype(float).values,
+    })
+    tags = ind.tag_signals(base, _bars, periods=("session", "weekly", "monthly"))
+    tags = tags.set_index("_idx").sort_index()
+    cols = ["VWAP_dev", "prior_ATR_pct", "prior_ADX_pct", "prior_ATR", "prior_ADX",
+            "vaD_loc", "vaW_loc", "vaM_loc"]
+    return tags[cols].reset_index(drop=True)
+
+
+def _show_regime_expectancy(results: pd.DataFrame):
+    """Read-only regime / indicator expectancy tables for the CURRENT trade set.
+
+    DESCRIPTION ONLY — measures where expectancy already exists by regime
+    (ATR%ile, ADX%ile, VWAP deviation, value-area location, ADX×ATR matrix).
+    No optimization, no filtering. Trade counts are shown everywhere: thin
+    buckets are noise. This is in-sample exploration — lock nothing here.
+    """
+    bars = st.session_state.get("data_sc_5m")
+    if bars is None or getattr(bars, "empty", True):
+        bars = st.session_state.get("mas_continuous")
+        if bars is not None:
+            bars = bars.drop(columns=["Contract"], errors="ignore")
+
+    filled = results[results["Filled"]].reset_index(drop=True)
+    if filled.empty:
+        return
+
+    with st.expander("🌡️ Regime / Indicator Expectancy", expanded=False):
+        if bars is None or bars.empty:
+            st.info("Build the continuous series in the **📂 Massive** tab to tag trades "
+                    "with regime indicators (ATR/ADX/VWAP/value-area).")
+            return
+        st.caption("Descriptive only — where does the current trade set already have "
+                   "expectancy, by regime? **Watch n (Trades): thin buckets are noise.** "
+                   "In-sample exploration; lock nothing from here.")
+
+        fp = hash((len(filled),
+                   int(pd.to_datetime(filled["EntryTime"]).astype("int64").sum()),
+                   round(float(filled["EntryPrice"].sum()), 2),
+                   len(bars), str(bars["DateTime"].iloc[-1])))
+        d = pd.concat([filled, _tag_trades_cached(fp, filled, bars)], axis=1)
+
+        # ── bucket columns ────────────────────────────────────────────────────
+        d["ATR%"]   = pd.cut(d["prior_ATR_pct"], _PCT_EDGES, labels=_PCT_LABELS, include_lowest=True)
+        d["ADX%"]   = pd.cut(d["prior_ADX_pct"], _PCT_EDGES, labels=_PCT_LABELS, include_lowest=True)
+        d["VWAPσ"]  = pd.cut(d["VWAP_dev"], _VWAP_EDGES, labels=_VWAP_LABELS)
+        d["ATR3"]   = pd.cut(d["prior_ATR_pct"], _TERCILE,
+                             labels=["Low ATR", "Mid ATR", "High ATR"], include_lowest=True)
+        d["ADX3"]   = pd.cut(d["prior_ADX_pct"], _TERCILE,
+                             labels=["Low ADX", "Mid ADX", "High ADX"], include_lowest=True)
+
+        base_cols = ["Trades", "Win%", "PF", "Net PnL", "Exp $", "Avg R"]
+
+        def _bucket(df, col, order):
+            g = (df[df[col].notna()].groupby(col, sort=False, observed=True)
+                 .apply(_expectancy_stats).reset_index())
+            g[col] = pd.Categorical(g[col], categories=order, ordered=True)
+            g = g.sort_values(col)
+            g["Exp $"] = (g["Net PnL"] / g["Trades"]).round(0)
+            return g
+
+        def _fmt(df, key):
+            o = df[[key, "Trades", "Win%", "PF", "Net PnL", "Exp $", "Avg R"]].copy()
+            o["Win%"]    = o["Win%"].map(lambda v: f"{v:.1f}%")
+            o["PF"]      = o["PF"].map(lambda v: f"{v:.2f}")
+            o["Net PnL"] = o["Net PnL"].map(lambda v: f"${v:+,.0f}")
+            o["Exp $"]   = o["Exp $"].map(lambda v: f"${v:+,.0f}")
+            o["Avg R"]   = o["Avg R"].map(lambda v: f"{v:.2f}")
+            return o
+
+        n_tag = int(d["prior_ATR_pct"].notna().sum())
+        st.caption(f"{n_tag} of {len(filled)} filled trades have a full indicator reading "
+                   "(early-history/warm-up trades excluded from buckets).")
+
+        c1, c2 = st.columns(2)
+        with c1:
+            st.markdown("**ATR percentile** (volatility regime)")
+            st.dataframe(_fmt(_bucket(d, "ATR%", _PCT_LABELS), "ATR%"),
+                         use_container_width=True, hide_index=True)
+        with c2:
+            st.markdown("**ADX percentile** (trend strength)")
+            st.dataframe(_fmt(_bucket(d, "ADX%", _PCT_LABELS), "ADX%"),
+                         use_container_width=True, hide_index=True)
+
+        c3, c4 = st.columns(2)
+        with c3:
+            st.markdown("**VWAP deviation** (distance from session VWAP, σ)")
+            st.dataframe(_fmt(_bucket(d, "VWAPσ", _VWAP_LABELS), "VWAPσ"),
+                         use_container_width=True, hide_index=True)
+        with c4:
+            tf = st.selectbox("Value-area timeframe", ["Session", "Weekly", "Monthly"],
+                              key="ba_regime_va_tf")
+            loc_col = {"Session": "vaD_loc", "Weekly": "vaW_loc", "Monthly": "vaM_loc"}[tf]
+            d["VA loc"] = d[loc_col]
+            st.markdown(f"**{tf} value-area location** (entry vs prior value)")
+            st.dataframe(_fmt(_bucket(d, "VA loc", ["below", "inside", "above"]), "VA loc"),
+                         use_container_width=True, hide_index=True)
+
+        # ── ADX × ATR regime matrix (the high-value view) ─────────────────────
+        st.markdown("**ADX × ATR regime matrix**")
+        metric = st.radio("Cell metric", ["Exp $", "Avg R", "PF", "Win%"],
+                          horizontal=True, key="ba_regime_matrix_metric")
+        cell = (d[d["ATR3"].notna() & d["ADX3"].notna()]
+                .groupby(["ADX3", "ATR3"], sort=False, observed=True)
+                .apply(_expectancy_stats).reset_index())
+        cell["Exp $"] = cell["Net PnL"] / cell["Trades"]
+        rows = ["High ADX", "Mid ADX", "Low ADX"]
+        cols = ["Low ATR", "Mid ATR", "High ATR"]
+        z   = cell.pivot(index="ADX3", columns="ATR3", values=metric).reindex(index=rows, columns=cols)
+        nt  = cell.pivot(index="ADX3", columns="ATR3", values="Trades").reindex(index=rows, columns=cols)
+        pf  = cell.pivot(index="ADX3", columns="ATR3", values="PF").reindex(index=rows, columns=cols)
+
+        txt = []
+        for r in rows:
+            row = []
+            for cc in cols:
+                v, n, p = z.loc[r, cc], nt.loc[r, cc], pf.loc[r, cc]
+                if pd.isna(n) or n == 0:
+                    row.append("")
+                elif metric == "Exp $":
+                    row.append(f"${v:+,.0f}<br>PF {p:.2f}<br>n={int(n)}")
+                elif metric == "Win%":
+                    row.append(f"{v:.0f}%<br>n={int(n)}")
+                else:
+                    row.append(f"{v:.2f}<br>n={int(n)}")
+            txt.append(row)
+
+        diverging = metric in ("Exp $", "Avg R")
+        fig = go.Figure(go.Heatmap(
+            z=z.values, x=cols, y=rows, text=txt, texttemplate="%{text}",
+            textfont={"size": 12}, colorscale="RdYlGn" if diverging else "Blues",
+            zmid=0 if diverging else None,
+            hovertemplate="%{y} · %{x}<br>" + metric + ": %{z}<extra></extra>",
+            colorbar=dict(title=metric)))
+        fig.update_layout(height=300, template="plotly_white",
+                          margin=dict(l=70, r=15, t=10, b=30))
+        st.plotly_chart(fig, use_container_width=True)
+        st.caption("Spec discipline: this finds *where* edge exists — it is not a filter "
+                   "and not optimization. A bucket is only interesting if it has a real "
+                   "sample (n) and a structural reason, and survives OOS/WFA validation.")
+
+
 def _show_unfilled_table(results: pd.DataFrame, ticks_by_date: dict):
     st.markdown("---")
 
@@ -3879,6 +4187,12 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
 
     # ── Monthly breakdown ──────────────────────────────────────────────────────
     _show_monthly_breakdown(results, commission)
+
+    # ── Time-of-Day / Day-of-Week breakdown (read-only, Pardo-safe) ────────────
+    _show_tod_dow_breakdown(results)
+
+    # ── Regime / indicator expectancy (read-only, descriptive) ─────────────────
+    _show_regime_expectancy(results)
 
     # ── Unfilled signals ──────────────────────────────────────────────────────
     _show_unfilled_table(results, ticks_by_date)
