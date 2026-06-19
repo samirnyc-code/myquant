@@ -33,6 +33,8 @@ def main():
     ap.add_argument("--start", default="2021-06-18")
     ap.add_argument("--end", default="2022-06-18")
     ap.add_argument("--full", action="store_true", help="full default grid (slow)")
+    ap.add_argument("--style", choices=["e2", "blended"], default="e2")
+    ap.add_argument("--pb-round", choices=["floor_ceil", "nearest"], default="floor_ceil")
     ap.add_argument("--first-trade-only", action="store_true")
     ap.add_argument("--first-2-filled-only", action="store_true")
     args = ap.parse_args()
@@ -62,6 +64,7 @@ def main():
         tick_value=cfg["tick_value"], contracts=cfg["contracts_t1"] + cfg["contracts_t2"],
         commission=cfg["commission"], contracts_t1=cfg["contracts_t1"], contracts_t2=cfg["contracts_t2"],
         first_trade_only=args.first_trade_only, first_2_filled_only=args.first_2_filled_only,
+        scale_in_style=args.style, pb_round=args.pb_round,
         **grid,
     )
 

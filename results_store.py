@@ -152,27 +152,29 @@ def save_fold(
     kurtosis_ok    = 1 if is_kurtosis <= 6.0  else 0
     min_trades_ok  = 1 if is_summary.get("n_trades", 0) >= 30 else 0
 
+    values = (
+        run_id, setup_id, fold_id,
+        str(is_start), str(is_end), str(oos_start), str(oos_end),
+        json.dumps(params_chosen),
+        is_summary.get("n_trades"),  is_summary.get("net_total"),
+        is_summary.get("win_pct"),   is_summary.get("pf"),
+        is_summary.get("prom"),      is_summary.get("pnl_dd"),
+        is_summary.get("max_dd"),    is_summary.get("sqn"),
+        is_rob_pct, is_kurtosis,
+        oos_summary.get("n_trades"), oos_summary.get("net_total"),
+        oos_summary.get("win_pct"),  oos_summary.get("pf"),
+        oos_summary.get("prom"),     oos_summary.get("pnl_dd"),
+        oos_summary.get("max_dd"),   oos_summary.get("sqn"),
+        wfe, prom_decay,
+        rob_passed, kurtosis_ok, min_trades_ok,
+        0,  # oos_used = 0 until locked
+    )
     with _get_conn() as conn:
-        conn.execute("""
-            INSERT OR REPLACE INTO folds VALUES
-            (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-        """, (
-            run_id, setup_id, fold_id,
-            str(is_start), str(is_end), str(oos_start), str(oos_end),
-            json.dumps(params_chosen),
-            is_summary.get("n_trades"),  is_summary.get("net_total"),
-            is_summary.get("win_pct"),   is_summary.get("pf"),
-            is_summary.get("prom"),      is_summary.get("pnl_dd"),
-            is_summary.get("max_dd"),    is_summary.get("sqn"),
-            is_rob_pct, is_kurtosis,
-            oos_summary.get("n_trades"), oos_summary.get("net_total"),
-            oos_summary.get("win_pct"),  oos_summary.get("pf"),
-            oos_summary.get("prom"),     oos_summary.get("pnl_dd"),
-            oos_summary.get("max_dd"),   oos_summary.get("sqn"),
-            wfe, prom_decay,
-            rob_passed, kurtosis_ok, min_trades_ok,
-            0,  # oos_used = 0 until locked
-        ))
+        # Placeholders generated from the tuple so count can't drift from the schema.
+        conn.execute(
+            f"INSERT OR REPLACE INTO folds VALUES ({','.join('?' * len(values))})",
+            values,
+        )
 
     # Parquet trade logs
     trade_dir = _TRADES_DIR / run_id / setup_id

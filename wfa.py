@@ -383,7 +383,7 @@ def _fold_table(folds_df: pd.DataFrame) -> None:
         return "background-color: #3a1a1a"
 
     st.dataframe(
-        display.style.applymap(_color_wfe, subset=["wfe_pct"]),
+        display.style.map(_color_wfe, subset=["wfe_pct"]),
         use_container_width=True, hide_index=True,
     )
 

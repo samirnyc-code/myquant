@@ -75,11 +75,7 @@ def apply_signal_filters(
     event_types: tuple,
     event_filter_mode: str,
     event_window: int,
-    incl_cc1: bool,
-    incl_cc2: bool,
-    incl_cc3: bool,
-    incl_cc4: bool,
-    incl_cc5: bool,
+    excluded_types: set,     # SignalType values to filter out (unchecked in UI)
     direction: str,          # "Both", "Long", "Short"
 ) -> pd.DataFrame:
     df = signals.copy()
@@ -89,10 +85,9 @@ def apply_signal_filters(
     df.loc[(df["Date"] < date_from) | (df["Date"] > date_to), "FilterStatus"] = "date_range"
 
     # Signal type
-    for stype, incl in [("CC1", incl_cc1), ("CC2", incl_cc2), ("CC3", incl_cc3), ("CC4", incl_cc4), ("CC5", incl_cc5)]:
-        if not incl:
-            df.loc[(df["FilterStatus"] == "ok") & (df["SignalType"] == stype),
-                   "FilterStatus"] = "signal_type"
+    if excluded_types:
+        df.loc[(df["FilterStatus"] == "ok") & (df["SignalType"].isin(excluded_types)),
+               "FilterStatus"] = "signal_type"
 
     # Direction
     if direction != "Both":
@@ -1033,6 +1028,8 @@ def _run_ml_scalein_sweep(
     t1_vals: list | None = None,
     t2_vals: list | None = None,
     first_trade_only: bool = False, first_2_filled_only: bool = False,
+    scale_in_style: str = "e2",
+    pb_round: str = "floor_ceil",
     progress_bar=None,
 ) -> pd.DataFrame:
     """FAST scale-in sweep (PB_R × T1_R × T2_R for 2-leg PB scale-in, ratchet off).
@@ -1151,12 +1148,14 @@ def _run_ml_scalein_sweep(
                     t1_price = entry + sgn * t1_r * risk
                     pb_raw   = entry + sgn * pb_r * risk    # ml_pb_ticks = 0
                     if is_long:
-                        pb_trigger = round(float(np.floor(pb_raw / ts)) * ts, 10)
+                        pb_trigger = (round(round(pb_raw / ts) * ts, 10) if pb_round == "nearest"
+                                      else round(float(np.floor(pb_raw / ts)) * ts, 10))
                         pb_i   = int(np.searchsorted(neg_rmin, -pb_trigger, side="right"))
                         t1_i   = int(np.searchsorted(rmax, t1_price, side="right"))
                         stop_i = int(np.searchsorted(neg_rmin, -stop, side="left"))
                     else:
-                        pb_trigger = round(float(np.ceil(pb_raw / ts)) * ts, 10)
+                        pb_trigger = (round(round(pb_raw / ts) * ts, 10) if pb_round == "nearest"
+                                      else round(float(np.ceil(pb_raw / ts)) * ts, 10))
                         pb_i   = int(np.searchsorted(rmax, pb_trigger, side="right"))
                         t1_i   = int(np.searchsorted(neg_rmin, -t1_price, side="right"))
                         stop_i = int(np.searchsorted(rmax, stop, side="left"))
@@ -1183,8 +1182,11 @@ def _run_ml_scalein_sweep(
                     # PB fills at pb_i
                     e2        = round(round((pb_trigger + sgn * entry_slip * ts) / ts) * ts, 10)
                     blended   = (entry * tv1 + e2 * tv2) / tv_tot
-                    b_risk    = abs(blended - stop)
-                    t2_price  = round(round((blended + sgn * t2_r * b_risk) / ts) * ts, 10)
+                    if scale_in_style == "blended":
+                        _ref, _rr = blended, abs(blended - stop)
+                    else:
+                        _ref, _rr = e2, abs(e2 - stop)
+                    t2_price  = round(round((_ref + sgn * t2_r * _rr) / ts) * ts, 10)
 
                     suffix = prices[pb_i + 1:]                      # ticks strictly after PB
                     if suffix.size:
@@ -1257,6 +1259,8 @@ def _run_ml_scalein_sweep_engine(
     t1_vals: list | None = None,
     t2_vals: list | None = None,
     first_trade_only: bool = False, first_2_filled_only: bool = False,
+    scale_in_style: str = "e2",
+    pb_round: str = "floor_ceil",
     progress_bar=None,
 ) -> pd.DataFrame:
     """REFERENCE (slow, ~2s/combo) scale-in sweep: each combo is a full run through
@@ -1291,7 +1295,7 @@ def _run_ml_scalein_sweep_engine(
                     bars_by_date=bars_by_date,
                     multileg=True, t1_r=t1_r, t1_action="exit",
                     contracts_t1=contracts_t1, contracts_t2=contracts_t2,
-                    ml_pb_r=pb_r,
+                    ml_pb_r=pb_r, scale_in_style=scale_in_style, pb_round=pb_round,
                 )
                 res = _apply_day_trade_filters(res, first_trade_only, first_2_filled_only)
                 s = compute_summary(
@@ -1579,6 +1583,7 @@ def _show_optimal_r(signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
                     pb1_ticks: int = 0, pb2_ticks: int = 0,
                     t2_r: float = 0.0,
                     ratchet_r: float = 0.0, ratchet_dest: str = "BE", ratchet_lock_r: float = 0.0,
+                    scale_in_style: str = "e2", pb_round: str = "floor_ceil",
                     first_trade_only: bool = False, first_2_filled_only: bool = False):
 
     _METRIC_COLS  = ["Win %", "PF", "Net PnL", "DD $", "PnL/DD", "Exp $"]
@@ -1893,6 +1898,7 @@ def _show_optimal_r(signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
                     bars_by_date=bars_by_date,
                     pb_vals=_sweep_pb, t1_vals=_sweep_t1_capped, t2_vals=_sweep_t2,
                     first_trade_only=first_trade_only, first_2_filled_only=first_2_filled_only,
+                    scale_in_style=scale_in_style, pb_round=pb_round,
                     progress_bar=_si_prog,
                 )
                 _si_prog.empty()
@@ -2709,17 +2715,20 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
 
     # ── Signals ───────────────────────────────────────────────────────────────
     with st.expander("📶 Signals", expanded=False):
-        _cc_cols = st.columns(5)
-        incl_cc1 = _cc_cols[0].checkbox("CC1", key="ba_incl_cc1",
-                                         value=st.session_state.get("ba_incl_cc1", True))
-        incl_cc2 = _cc_cols[1].checkbox("CC2", key="ba_incl_cc2",
-                                         value=st.session_state.get("ba_incl_cc2", True))
-        incl_cc3 = _cc_cols[2].checkbox("CC3", key="ba_incl_cc3",
-                                         value=st.session_state.get("ba_incl_cc3", True))
-        incl_cc4 = _cc_cols[3].checkbox("CC4", key="ba_incl_cc4",
-                                         value=st.session_state.get("ba_incl_cc4", True))
-        incl_cc5 = _cc_cols[4].checkbox("CC5", key="ba_incl_cc5",
-                                         value=st.session_state.get("ba_incl_cc5", True))
+        # Signal-type filter — built dynamically from the loaded signals' own types,
+        # so it adapts to MC (CC2/CC3/…), RevFT (OB/IB/Trap), or any future set.
+        _all_types = (sorted(signals_raw["SignalType"].dropna().unique())
+                      if not signals_raw.empty else [])
+        excluded_types = set()
+        if _all_types:
+            _cc_cols = st.columns(min(len(_all_types), 6))
+            for _i, _stype in enumerate(_all_types):
+                _tk = f"ba_incl_{_stype}"
+                if not _cc_cols[_i % len(_cc_cols)].checkbox(
+                        str(_stype), key=_tk, value=st.session_state.get(_tk, True)):
+                    excluded_types.add(_stype)
+        else:
+            st.caption("No signals loaded.")
         _sf_cols = st.columns([2, 2, 3])
         first_trade_only = _sf_cols[0].checkbox("First trade of day only", key="ba_first_trade",
                                                  value=st.session_state.get("ba_first_trade", False),
@@ -2811,7 +2820,12 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                 _sl_c    = int(st.session_state.get("ba_contracts_sl", 1))
                 _sl_comm = float(st.session_state.get("ba_commission_sl", _def_comm_sl))
                 st.caption(f"{_sl_c}c × ${_sl_comm:.2f} = ${_sl_c * _sl_comm:.2f}/trade")
-                if False:  # Stop Ratchet — hidden until tick data available
+                st.caption("**Stop Ratchet (trail to BE)**")
+                _sl_ratchet = st.checkbox("Enable", value=bool(st.session_state.get("ba_ratchet_sl", False)), key="ba_ratchet_sl")
+                if _sl_ratchet:
+                    st.number_input("Trigger (R from entry)", 0.25, 10.0,
+                        float(st.session_state.get("ba_ratchet_r_sl", 1.0)),
+                        step=0.25, format="%.2f", key="ba_ratchet_r_sl")
                     _sl_rdest = st.selectbox("Move stop to",
                         ["BE (entry)", "Lock-in R"], index=0,
                         key="ba_ratchet_dest_sl")
@@ -2872,12 +2886,35 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                 _saved_t2_lbl = st.session_state.get("ba_t2_r_sel", "2.00R")
                 _t2_idx    = _r_lbls.index(_saved_t2_lbl) if _saved_t2_lbl in _r_lbls else 4
                 _t2_sel    = st.selectbox(
-                    "T2 (R from blended entry)", _r_lbls, index=_t2_idx,
+                    "T2 (R after E2)", _r_lbls, index=_t2_idx,
                     key="ba_t2_r_sel",
-                    help="Target for combined E1+E2 position. Measured from blended avg entry "
-                         "using original stop as risk.",
+                    help="Target for the position after E2 fills. Reference + risk unit "
+                         "depend on the scale-in style below.",
                 )
                 target_r_ml = _r_opts[_r_lbls.index(_t2_sel)]
+
+                _si_style_lbls = ["E1 break-even (E2-based)", "Blended position"]
+                _si_style_map  = {"E1 break-even (E2-based)": "e2", "Blended position": "blended"}
+                _si_style_idx  = _si_style_lbls.index(
+                    st.session_state.get("ba_scale_in_style", _si_style_lbls[0]))
+                _si_style_sel  = st.selectbox(
+                    "Scale-in style", _si_style_lbls, index=_si_style_idx,
+                    key="ba_scale_in_style",
+                    help="E1 break-even: T2 = E2 entry + R × E2's own risk. At a 50% PB both "
+                         "legs exit at E1 entry (E1 scratches at BE, E2 banks R). "
+                         "Blended: T2 = blended entry + R × blended risk (manage as one averaged position).",
+                )
+                scale_in_style_v = _si_style_map[_si_style_sel]
+
+                _pbr_lbls = ["Floor/Ceil (conservative)", "Round to nearest"]
+                st.selectbox(
+                    "PB level rounding", _pbr_lbls,
+                    index=_pbr_lbls.index(st.session_state.get("ba_pb_round", _pbr_lbls[0]))
+                          if st.session_state.get("ba_pb_round", _pbr_lbls[0]) in _pbr_lbls else 0,
+                    key="ba_pb_round",
+                    help="Floor/Ceil snaps the PB trigger AWAY from entry (harder to fill — never "
+                         "overstates scale-ins). Round-to-nearest snaps to the closest tick.",
+                )
 
                 st.caption("**Execution**")
                 st.number_input(
@@ -3061,6 +3098,8 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
             return r_r, dest, lock
 
         ml_pb_r_v = 0.0  # default; overridden in 2-leg block below
+        scale_in_style_v = "e2"  # default; overridden in 2-leg block below
+        pb_round_v = "floor_ceil"  # default; overridden in 2-leg block below
 
         if _is_3l and _3l_valid:
             use_threeleg = True
@@ -3103,6 +3142,12 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                            "-0.66R", "-0.75R", "-1.0R", "-1.25R", "-1.50R", "-2.0R"]
             _pb_sel_ss  = st.session_state.get("ba_ml_pb_sel", "-0.50R")
             ml_pb_r_v   = _pb_vals_ss[_pb_lbls_ss.index(_pb_sel_ss)] if _pb_sel_ss in _pb_lbls_ss else -0.50
+            scale_in_style_v = ("blended"
+                if str(st.session_state.get("ba_scale_in_style", "")).startswith("Blended")
+                else "e2")
+            pb_round_v = ("nearest"
+                if str(st.session_state.get("ba_pb_round", "")).startswith("Round")
+                else "floor_ceil")
             pb1_r_val = pb2_r_val = pb1_ticks_v = pb2_ticks_v = 0
             t2_r_val = 0.0
             e1c_3l = e2c_3l = e3c_3l = 1
@@ -3156,8 +3201,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         st.divider()
         if st.button("💾 Save as Default", key="ba_save_defaults"):
             _save_ba_defaults({
-                "ba_incl_cc1": incl_cc1, "ba_incl_cc2": incl_cc2,
-                "ba_incl_cc3": incl_cc3, "ba_incl_cc4": incl_cc4, "ba_incl_cc5": incl_cc5,
+                **{f"ba_incl_{t}": (t not in excluded_types) for t in _all_types},
                 "ba_first_trade": first_trade_only,
                 "ba_first_2_filled": first_2_filled_only,
                 "ba_direction_filter": direction_filter,
@@ -3232,7 +3276,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         [incl_mon, incl_tue, incl_wed, incl_thu, incl_fri],
         excl_first_n, excl_last_min,
         event_types, event_filter_mode, event_window,
-        incl_cc1, incl_cc2, incl_cc3, incl_cc4, incl_cc5,
+        excluded_types,
         direction_filter,
     )
 
@@ -3243,7 +3287,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         commission, contracts, use_multileg, use_threeleg,
         t1_r, t1_action, contracts_t1, contracts_t2, ml_pb_r_v,
         e1c_3l, e2c_3l, e3c_3l, pb1_r_val, pb2_r_val, pb1_ticks_v, pb2_ticks_v,
-        t2_r_val, ratchet_r_v, ratchet_dest_v, ratchet_lock_r_v,
+        t2_r_val, ratchet_r_v, ratchet_dest_v, ratchet_lock_r_v, scale_in_style_v, pb_round_v,
         str(st.session_state.get("ba_manual_overrides", {})),
         first_trade_only, first_2_filled_only,
     ))
@@ -3268,7 +3312,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                 multileg=use_multileg, t1_r=t1_r,
                 t1_action=t1_action, contracts_t1=contracts_t1, contracts_t2=contracts_t2,
                 ratchet_r=ratchet_r_v, ratchet_dest=ratchet_dest_v, ratchet_lock_r=ratchet_lock_r_v,
-                ml_pb_r=ml_pb_r_v,
+                ml_pb_r=ml_pb_r_v, scale_in_style=scale_in_style_v, pb_round=pb_round_v,
                 threeleg=use_threeleg,
                 contracts_e1=e1c_3l, contracts_e2=e2c_3l, contracts_e3=e3c_3l,
                 pb1_r=pb1_r_val, pb1_ticks=pb1_ticks_v,
@@ -3319,6 +3363,28 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
     else:
         results = st.session_state["ba_results"]
         summary = st.session_state["ba_summary"]
+
+    # ── Param echo — exactly what the sim consumed (stale-result guard) ───────
+    _mode_str = "3-leg" if use_threeleg else ("2-leg" if use_multileg else "single-leg")
+    if ratchet_r_v > 0:
+        _rdest = (f"Lock-in +{ratchet_lock_r_v:.2f}R" if ratchet_dest_v == "Lock-in"
+                  else ratchet_dest_v)
+        _rat_str = f"ratchet {ratchet_r_v:.2f}R→{_rdest}"
+    else:
+        _rat_str = "ratchet off"
+    if use_multileg:
+        _spec = (f"T1 {t1_r:.2f}R · PB {ml_pb_r_v:.2f}R · T2 {target_r:.2f}R · "
+                 f"style {scale_in_style_v} · PBround {pb_round_v}")
+    elif use_threeleg:
+        _spec = f"T1 {t1_r:.2f}R · PB1 {pb1_r_val:.2f}R · PB2 {pb2_r_val:.2f}R · T2 {t2_r_val:.2f}R"
+    else:
+        _spec = f"target {target_r:.2f}R"
+    _n_filled = int((results["Filled"] == True).sum()) if not results.empty else 0
+    st.caption(
+        f"🧾 ran: **{_mode_str}** · {_spec} · {_rat_str} · "
+        f"{_n_filled}/{len(results)} filled · slip {entry_slip:.0f}/{exit_slip:.0f} · "
+        f"comm ${commission:.2f}"
+    )
 
     # ── Summary — pre-compute shared derived values ───────────────────────────
     if summary:
@@ -3774,6 +3840,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         e1c=e1c_3l, e2c=e2c_3l, e3c=e3c_3l,
         pb1_ticks=pb1_ticks_v, pb2_ticks=pb2_ticks_v,
         t2_r=t2_r_val,
+        scale_in_style=scale_in_style_v, pb_round=pb_round_v,
         first_trade_only=first_trade_only, first_2_filled_only=first_2_filled_only,
     )
 

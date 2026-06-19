@@ -1,8 +1,56 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** June 18, 2026 (session 16, evening)
+**Last Updated:** June 19, 2026 (session 17)
 **Current Versions:** SIM_v3.3 / GS_v4.5 / SHEET_v3.3  
 **Rule:** Read this file first every session. It is the only source of truth for current state.
+
+---
+
+## ⭐ SESSION 17 HANDOFF — June 19, 2026 (read first)
+*Ratchet vectorized + exposed on both setups, 2-leg T2 redefinition, PB-rounding toggle, WFA unblocked. All sim changes verified vec==loop / fast==oracle over the full 1-yr window. Committed at end of session.*
+
+### Done + verified this session
+- **Vectorized ratchet (BE + Lock-in)** in `simulation_engine.py` for `_simulate_one` (single-leg) and `_simulate_one_multileg` (2-leg PB). Loop kept as live reference via new private `_force_loop` kwarg (threaded through `simulate_trades`). The 2-leg vectorized path encodes the full state machine incl. **pre-E2 ratchet fire that can block the scale-in** (confirmed intended — Q1). Proven **byte-identical to the loop** across 9 ratchet settings (5 BE + 4 Lock-in) for BOTH `scale_in_style` values via new `scripts/validate_ratchet.py` (1107 trades, 63 cols, 0 diffs each).
+- **2-leg T2 redefinition (the big one).** Found a 3-way drift: code did `blended + R×blended_risk`, the Session-2 design doc said `blended + R×original_risk`, and the user wanted **E1-to-BE**. User decided: T2 = **E2 entry + R × E2's-own-risk** (`scale_in_style="e2"`, now DEFAULT) → at a 50% PB both legs exit at E1 entry (E1 scratches BE, E2 banks 1R). The old behavior kept as `scale_in_style="blended"`. One shared `_t2_for()` helper drives all 3 engine paths. **2-leg sweep/WFA numbers shift vs before — intended** (old default was a drifted formula). Ratchet R-unit left on ORIGINAL risk for now (user unsure; refine later — see open items).
+- **PB-rounding toggle (plan item D).** `pb_round` = "floor_ceil" [default, = old behavior] vs "nearest". Threaded engine→fast sweep→oracle→`_show_optimal_r`→main sim→fingerprint→param echo. Fast==oracle verified for BOTH modes (`validate_scalein_sweep.py --pb-round …`).
+- **Single-leg ratchet UI exposed** — was hard-disabled behind `if False` in `bar_analysis.py` (the cause of "same PnL for every ratchet R" — it was inert). Now a real "Stop Ratchet (trail to BE)" section. **Sensitivity proven live** (`scripts/test_ratchet_sensitivity.py`): single-leg PnL varies strongly for `ratchet_r < target_r`; identical to OFF for `ratchet_r >= target_r` (target hit before trigger — correct, not a bug).
+- **Dynamic signal-type checkboxes** — `📶 Signals` filter now builds from the loaded signals' own `SignalType`s (MC CC2/CC3/…, RevFT OB/IB/Trap, anything). `apply_signal_filters` now takes `excluded_types: set` instead of 5 hardcoded `incl_cc*` bools.
+- **♻️ Full Restart button** (top of app, next to Reload) — clears all session_state + caches, re-derives from disk. **Param echo** line above the Bar Analysis Summary showing exactly what the sim consumed (`🧾 ran: 2-leg · T1 1.50R · PB -0.50R · T2 1.00R · style e2 · PBround floor_ceil · …`) — stale-result guard.
+- **WFA unblocked (2 bugs fixed):** `results_store.save_fold` had 33 `?` placeholders vs 32 columns → now generated from the tuple so it can't drift. `wfa.py` used removed `Styler.applymap` → `.map`. WFA now runs end-to-end and persists folds.
+- **RevFT reviewed:** `saved_signals/ba_signals_revft.parquet` has IDENTICAL schema to MC (155 sigs, 2026-04-29→06-12; 5yr coming). No engine changes needed; only the dynamic checkboxes (done). `portfolio.py` already groups setups dynamically. Source NT logic in `Downloads/MyReversals (2).zip`.
+
+### New permanent tools (`scripts/`)
+- `validate_ratchet.py [--mode single|multileg] [--style e2|blended]` — vec==loop across the ratchet grid.
+- `explain_trade.py [--signal N …]` — **CLI** tick-level, NT-reconcilable trade tracer (CT times, 5M bar #, raw+adjusted prices, event timeline with the 3 ticks before each event, per-leg PnL, engine-consistency assert). Auto-selects representative trades. **Not yet in the app** (user wants an in-app "🔎 Trade Explainer" expander — filled-trades dropdown — to eventually replace the "useless" Entry Zoom).
+- `test_ratchet_sensitivity.py` — PnL vs ratchet_r table + #trades-differ-from-off.
+
+### Verification protocol (unchanged — all must pass before commit)
+`validate_regression.py` (note: 2-leg now DIFFERS from pre-session-17 by design — T2 change), `validate_engine.py` (Layer A), `validate_oracle.py` (Layer B), `validate_ratchet.py`, `validate_scalein_sweep.py`. One engine, one trade definition — never reimplement sim logic in a sweep without a verified-identical regression.
+
+### Session 18 priorities (set 2026-06-19) — two LLM MD files in chat to mine
+User pasted 2 analyses of the **first WFA run** (`gemini-code-*.md`, `chatgpt-code-*.md`). **Pardo discipline is paramount — user is emphatic about NOT overfitting.** Distilled stance:
+- **TAKE the diagnostics** (Pardo-safe, add no strategy params): WFA **window-stability heatmap** (IS×OOS grid — is 12m/3m itself overfit? already roadmap Phase F), **Monte Carlo** on OOS trades (reshuffle/bootstrap → DD & terminal-PnL distributions, empirical "forward risk" — endorse strongly), **windsorized/trimmed Mean WFE** (is WFE outlier-driven?), **max time-underwater + Pain Index**, **friction/slippage sensitivity (SEC)**, per-condition **expectancy analysis**.
+- **RESIST** the Gemini doc's instinct to read the OOS equity curve and design regime filters from it — that is the Pardo no-feedback violation / overfitting trap. The ChatGPT doc's frame is correct: **one hypothesis at a time, demand a macro/structural reason, decide+lock on a design slice BEFORE final OOS, don't co-optimize.** The "self-filtering" (rolling PF/expectancy circuit-breaker) is the most robust regime idea (adaptive, fewer fixed thresholds to fit).
+- ⚠️ Caveat: the MD files analyze a run produced BEFORE today's T2/ratchet fixes — treat their specific numbers ($233k OOS, WFE 129.9%, etc.) as provisional; the *framework* is what's useful.
+
+User's explicit WFA asks (items 2–8):
+1. **Setup ID → checkboxes** like the Signals tab (currently the `wfa_setup_id` text field at `wfa.py:445` likely runs effectively one/all — give per-`SignalType` checkboxes to run individual setups).
+2. **Metric tooltips** (hover-i `help=`) on all WFA metrics.
+3. **Breakdown tables** inside metrics (e.g. which folds failed each guardrail, distributions).
+4. **Remove the "Pardo forward risk rule" warning** — `wfa.py:633-637` (`forward_risk_warning` st.warning, "2× IS max drawdown").
+5. **TOD/DOW filter placement** (item 6): recommend the FILTER lives in the **shared engine/signal layer** (one definition for Bar Analysis research + WFA validation + future NT robot). Research *which* TOD/DOW in Bar Analysis on a design slice; once locked it becomes strategy logic and WFA inherits it. **Do NOT** sweep TOD/DOW inside WFA's IS grid (co-optimization).
+6. **Expand WFA Results section** — detailed tables, equity/DD charts, histograms, bell curves, Monte Carlo (per the MD files, Pardo-safe subset).
+
+### Other open items (excluding 3-leg, per user)
+- In-app 🔎 Trade Explainer expander (filled-trades dropdown; leave Entry Zoom for now — "fix zoom later").
+- Progress bars on every sweep + main-sim Run (plan item E). Scale-in sweep already has one.
+- **Decide Q5/Q6** (max concurrent positions, max daily loss) BEFORE reading any WFA OOS (`open_questions.md`).
+- Deferred: vectorize `_simulate_one_3leg` + non-PB multileg (write a 3-leg Layer-B oracle first).
+- Bar-based multileg (`_simulate_one_bars_multileg`, alt-path diagnostic only) NOT updated for `scale_in_style`/`pb_round` — still floor_ceil/blended-ish; low priority (NT-mismatch diagnostic, not primary sim).
+- Truncated-flatfile refetch (10 dates) — still not written; needs OK (metered API).
+
+### Carry-forward rules
+NEVER commit/push without explicit OK · user must have run the app · `git pull` first (two-machine) · Edit/Write only for Python source (PowerShell → mojibake) · all sims behind Run button · one engine = one trade definition.
 
 ---
 

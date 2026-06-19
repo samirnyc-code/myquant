@@ -335,7 +335,7 @@ def main():
     sc_file = str(CONTRACTS[selected_key]["sc_file"]) if selected_key else ""
     nt_file = str(CONTRACTS[selected_key]["nt_file"]) if selected_key else ""
 
-    _rl_col, _ = st.columns([1, 10])
+    _rl_col, _fr_col, _ = st.columns([1, 1.6, 9])
     if _rl_col.button("🔄 Reload", help="Clears session data (cache files are preserved)."):
         st.cache_data.clear()
         for k in list(st.session_state.keys()):
@@ -345,6 +345,19 @@ def main():
                 "ba_signals", "ba_signals_key",
             ):
                 st.session_state.pop(k, None)
+        st.rerun()
+    if _fr_col.button(
+        "♻️ Full Restart",
+        help="Resets ALL session state + caches and re-derives everything from disk "
+             "(continuous series, defaults, widgets). The in-app equivalent of relaunching — "
+             "use after code changes. Cache files on disk are preserved.",
+    ):
+        st.cache_data.clear()
+        try:
+            st.cache_resource.clear()
+        except Exception:
+            pass
+        st.session_state.clear()
         st.rerun()
 
     tab_massive, tab0, tab1, tab3, tab4, tab_wfa = st.tabs([
