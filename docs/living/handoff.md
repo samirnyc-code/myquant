@@ -1,14 +1,47 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** June 20, 2026 (session 21)
-**Current Versions:** SIM_v3.4 / GS_v4.5 / SHEET_v3.3 *(no engine change in S21 — UI/metric/research only)*
+**Last Updated:** June 20, 2026 (session 22)
+**Current Versions:** SIM_v3.4 / GS_v4.5 / SHEET_v3.3 *(no engine change in S22 — charter, WFA window-robustness UI, headless master-run pipeline, research)*
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 **Handoff hygiene (S20):** A competing handoff had grown in the `.claude/.../memory/` auto-memory folder and a new chat read *that* instead of this file. Fixed: added repo `CLAUDE.md` + rewrote `.claude` `MEMORY.md` to point here; deleted the duplicate session-state memories. **There is now ONE handoff: this file.**
+**Onboarding (S22):** `docs/living/PROJECT_CHARTER.md` is the from-inception synthesis (the *arc* + locked decisions). Read the charter first for orientation, then this handoff for current state. The charter owns the arc/locked rails; **this handoff still wins on what's true today.**
+
+---
+
+## ⭐ SESSION 22 HANDOFF — June 20, 2026 (read first)
+*Built the onboarding charter, the WFA window-robustness UI, and a headless master-run pipeline — then drove ONE setup (CC4 single-leg) end-to-end to a real go/no-go. Result: **NO-GO** (regime-dependent edge). No engine change. Committed + pushed. The strategic-review/S22-plan block below is now largely DONE — see this block for what actually happened.*
+
+### Built
+- **`docs/living/PROJECT_CHARTER.md`** — from-inception synthesis (mission, the arc SC→Massive / engine→validation, current architecture, locked rails §4, on-track assessment). New-chat reading order: **charter → handoff**. Pointer added at top of this file. Charter owns the arc + locked rails; **this handoff still wins on what's true today.**
+- **WFA → 🗺️ Window Map, one scrollable page (`wfa.py`):**
+  - **🛡️ Window Robustness Score** — every IS/OOS architecture scored 0–7 by *independent fixed pass/fail tests survived* (NOT profit-weighted): OOS PnL>0, Median WFE≥50%, ≥60% OOS green, Median PF≥1.2, Mean PROM>0, Return≥MaxDD, ≥8 folds. Heatmap + **ranked architecture table** (`_window_robustness_tests`/`_window_robustness_score`, `_WIN_N_TESTS`). Thresholds fixed in advance.
+  - **Four component heatmaps** stacked (Total OOS PnL, Median WFE, Median OOS PF, Worst-fold Max DD) via `_window_heatmap` — replaced the single metric dropdown. PF/DD are *per-fold aggregates* (median PF, worst-fold DD); `_aggregate_grid_cell` extended with `oos_pf_median`/`oos_maxdd_worst`. Added **3m** to the IS grid options/default; OOS default now 1/2/3/4/6.
+  - **🧭 4-Window Robustness Report** — `run_window_structures()` runs a FULL WFA per editable IS/OOS structure, `_robustness_report()` renders each in sequence (per-fold + cumulative OOS PnL) then a combined **ROBUST / FRAGILE / FAIL** verdict (`_window_pass`, rails `_WIN_MIN_*`). Nothing persisted.
+- **Headless master-run pipeline `scripts/run_setup_pipeline.py`** — drives ONE pre-specified setup through Phase 0→verdict using the SAME engine (`simulate_trades`, `wfa.run_wfa`, `run_window_structures`); no trade-logic reimplementation, **no auto-tuning** (executes a locked config and reports — charter §4 hard rail). Emits `docs/living/pipeline_<setup>_<mode>_<date>.md`. Persists the baseline WFA as run `pipe_<setup>_<mode>` (viewable in the Results tab).
+
+### First real end-to-end go/no-go — CC4 single-leg, filter OFF, unpinned (the S22 deliverable)
+- **Verdict: NO-GO (regime-dependent).** Raw edge IS positive (1643 trades, +$50k @1.0R, PF 1.10) and the 12m/3m baseline WFA *passes* (Median WFE 55%, 82% OOS folds green, +$41k). **But the equity PATH is the tell:** combined OOS +$41k yet **72% of OOS profit is 2025 alone** (regime-dependent, >70% flag), 2023 is a year-long bleed (−$6k/323 trades), MAR 2.05, and **Mean PROM is NEGATIVE in all 6 window architectures**. Monte Carlo **DD95 −$50k > total profit +$41k**. Only **2/6 architectures score ≥5/7**.
+- **Optimizer boundary-pinning:** IS PROM picked **2.0R (the grid max in `_T_VALS`) as the #1 target in 9/11 folds** — likely the true optimum is beyond the grid; **widen the target grid past 2.0R and re-check** before trusting CC4's params. Locked R per fold landed ~1.3–1.6 only because Kaufman-averaging the top-3 pulls it off the 2.0 ceiling.
+
+### ⚠️ Report-card BLIND SPOT found & fixed (the user caught it: "the equity curve is a disaster, how come that did not get flagged?")
+- v1 of the pipeline gated **aggregates only** (total PnL, median WFE, %folds-profitable, MC P-loss) and **never gated the equity PATH** → a regime-dependent curve passed as "CONDITIONAL." Also computed profit-concentration on the RAW full sample (61%, passed) instead of **OOS** (72%, fails).
+- **Fix (added, NOT yet re-run):** new **Phase 4.6 — OOS equity PATH & shape** (`oos_path_stats`) + two **shape gates** — **MAR ≥ 1** and **OOS best-year share ≤ 70%** — computed on the combined OOS curve. **Shape failures are DECISIVE** (force NO-GO regardless of aggregates). On the existing CC4 numbers this flips the verdict to **NO-GO** (best-year 72% fails). Re-run `--setup CC4 --mode singleleg` to regenerate the card; the on-disk report still shows the old "CONDITIONAL".
+
+### Open / next
+- **Re-run CC4 pipeline** with the new shape gates (will read NO-GO) and/or **widen `_T_VALS` past 2.0R** to test the boundary-pinning, then re-judge.
+- **CC3** (1653 trades) through the same pipeline for comparison (user hasn't decided yet).
+- Investigate **negative PROM vs positive PnL** across all architectures (PROM is the WFA objective — params are *selected* on a metric that's negative OOS).
+- Regime-filter question was raised ("which filter would've been good here") — **declined to crown a backtest-fit filter** (no-feedback rail); the legitimate path is the descriptive Phase-2 map (Bar Analysis → Regime/Indicator Expectancy) on a design slice → hypothesis → lock → validate OOS via the built `🧭 Regime Filter`.
+- Throwaway run logs `streamlit_run.log` / `pipeline_run.log` are gitignored.
+- Carry-forward from S21: verify 2-D sweep cross-checks in-app; identical-per-setup OOS-count flag.
+
+### Carry-forward rules
+NEVER commit/push without explicit OK · user must have run the app · `git pull` first (two-machine) · Edit/Write only for source (PowerShell → mojibake) · all sims behind Run button · one engine = one trade definition · **regime filters LOCKED before WFA, never optimized/tuned against OOS; describe-don't-fit; sizing deferred to MES**.
 
 ---
 
 ## 🧭 STRATEGIC REVIEW & S22 PLAN — June 20, 2026 (read this BEFORE the session logs)
-*Written end of S21 in response to the user's onboarding/direction questions. A new chat: read this block, then S21 below, then act.*
+*Written end of S21 in response to the user's onboarding/direction questions. A new chat: read this block, then S21 below, then act. **Most of this plan is now DONE — see the SESSION 22 block above for outcomes.***
 
 ### Where a new chat should start (the onboarding gap)
 There is **no single from-inception synthesis yet** — `handoff.md` is a stack of session *deltas* (1300+ lines) and gives current state well but not the *arc*. **First S22 task: write `docs/living/PROJECT_CHARTER.md`** (original goal, how it evolved, current architecture, irreversible decisions, on-track/risks). Then a fresh chat reads charter (the arc) + this handoff (the frontier) and is oriented in one pass.

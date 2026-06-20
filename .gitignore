@@ -20,3 +20,7 @@ ba_filter_defaults.json
 pf_defaults.json
 pf_saved_runs.json
 data/_regress/
+
+# throwaway run logs
+streamlit_run.log
+pipeline_run.log

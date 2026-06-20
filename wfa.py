@@ -339,11 +339,19 @@ def _aggregate_grid_cell(folds: list[dict]) -> dict:
     """Collapse a full WFA's fold results into one window-grid cell's summary."""
     if not folds:
         return {"n_folds": 0, "mean_wfe": float("nan"), "total_oos_pnl": float("nan"),
-                "mean_oos_prom": float("nan"), "pct_oos_prof": float("nan")}
+                "mean_oos_prom": float("nan"), "pct_oos_prof": float("nan"),
+                "oos_pf_median": float("nan"), "oos_maxdd_worst": float("nan")}
     wfe  = [f["wfe"] for f in folds if f["wfe"] is not None and not np.isnan(f["wfe"])]
     opnl = [f["oos_summary"].get("net_total", 0.0) for f in folds]
     opr  = [f["oos_summary"].get("prom", float("nan")) for f in folds]
     opr  = [v for v in opr if v is not None and not np.isnan(v)]
+    # PF / Max DD are per-fold aggregates (median PF, worst single-fold DD) — the
+    # store has no pooled gross win/loss or concatenated equity in grid mode. The
+    # true concatenated-equity PF/DD live in the single-run 📊 Results tab.
+    opf  = [f["oos_summary"].get("pf", float("nan")) for f in folds]
+    opf  = [v for v in opf if v is not None and not np.isnan(v) and not np.isinf(v)]
+    odd  = [f["oos_summary"].get("max_dd", float("nan")) for f in folds]
+    odd  = [v for v in odd if v is not None and not np.isnan(v)]
     return {
         "n_folds":       len(folds),
         # Median (not mean) so a couple of undefined/extreme folds can't dominate.
@@ -351,6 +359,8 @@ def _aggregate_grid_cell(folds: list[dict]) -> dict:
         "total_oos_pnl": float(np.sum(opnl)),
         "mean_oos_prom": float(np.mean(opr)) if opr else float("nan"),
         "pct_oos_prof":  float(np.mean([p > 0 for p in opnl]) * 100) if opnl else float("nan"),
+        "oos_pf_median":   float(np.median(opf)) if opf else float("nan"),
+        "oos_maxdd_worst": float(np.min(odd))    if odd else float("nan"),  # most negative
     }
 
 
@@ -384,6 +394,41 @@ def run_window_grid(
             cell.update({"is_months": im, "oos_months": om})
             rows.append(cell)
     return pd.DataFrame(rows)
+
+
+# ── Multi-structure robustness (Phase 3a) ──────────────────────────────────────
+# Run a FULL walk-forward at several IS/OOS window structures so the same setup +
+# locked params can be judged under each, in sequence. A system that only works
+# under one window structure is fragile (Pardo / setup_decision_manual Phase 3a).
+def run_window_structures(
+    signals: pd.DataFrame, ticks_by_date: dict, bars_by_date: dict,
+    base_params: dict, mode: str,
+    structures: list[tuple[int, int]],          # [(is_months, oos_months), …]
+    n_param_sets: int = 3,
+    pin_t1: float | None = None, pin_t2: float | None = None, pin_pb: float | None = None,
+    progress_cb=None,
+) -> list[dict]:
+    """For each (IS months, OOS months) structure, run a full non-persisted WFA and
+    return its fold dicts + aggregate. Feeds the on-one-page Robustness Report."""
+    out   = []
+    total = max(len(structures), 1)
+    for k, (im, om) in enumerate(structures):
+        if progress_cb:
+            progress_cb(k, total, f"IS {im}m / OOS {om}m")
+        isd  = int(im * _TRADING_DAYS_PER_YEAR / 12)
+        oosd = int(om * _TRADING_DAYS_PER_YEAR / 12)
+        folds = run_wfa(
+            "__struct__", "__struct__", signals, ticks_by_date, bars_by_date,
+            base_params, mode, is_days=isd, oos_days=oosd,
+            n_param_sets=n_param_sets, pin_t1=pin_t1, pin_t2=pin_t2, pin_pb=pin_pb,
+            persist=False,
+        )
+        agg = _aggregate_grid_cell(folds)
+        agg.update({"is_months": im, "oos_months": om})
+        out.append({"is_months": im, "oos_months": om, "folds": folds, "agg": agg})
+    if progress_cb:
+        progress_cb(total, total, "done")
+    return out
 
 
 # ── Streamlit UI ──────────────────────────────────────────────────────────────
@@ -420,6 +465,27 @@ def _dark_layout(fig: go.Figure, title: str, height: int = 300) -> go.Figure:
         yaxis=dict(showgrid=True, gridcolor="#2a2a2a", zeroline=True, zerolinecolor="#555"),
         legend=dict(bgcolor="rgba(0,0,0,0)"),
     )
+    return fig
+
+
+def _window_heatmap(grid_df: pd.DataFrame, value_col: str, label: str,
+                    zfmt: str = ".1f") -> go.Figure:
+    """One Window-Anchor heatmap: IS (rows) × OOS (cols), coloured by value_col, each
+    cell labelled with the value and (fold count). Higher = greener for every metric
+    we plot — Max DD is stored negative, so 'less negative' is already the max → green."""
+    piv  = grid_df.pivot(index="is_months", columns="oos_months", values=value_col)
+    nfld = grid_df.pivot(index="is_months", columns="oos_months", values="n_folds")
+    fig = go.Figure(go.Heatmap(
+        z=piv.values,
+        x=[f"{c}m" for c in piv.columns], y=[f"{r}m" for r in piv.index],
+        text=nfld.values, texttemplate="%{z:" + zfmt + "}<br>(%{text} folds)",
+        colorscale="RdYlGn", colorbar=dict(title=label),
+        hovertemplate="IS=%{y} · OOS=%{x}<br>" + label + "=%{z:" + zfmt +
+                      "}<br>folds=%{text}<extra></extra>",
+    ))
+    _dark_layout(fig, f"Window-Anchor Map — {label}", 360)
+    fig.update_xaxes(title="OOS window")
+    fig.update_yaxes(title="IS window")
     return fig
 
 
@@ -696,6 +762,178 @@ def _guardrail_breakdown(folds_df: pd.DataFrame) -> None:
             "the IS sweep had too few combos (parameters pinned) to form a surface. "
             "These guardrails only apply when WFA is choosing among multiple parameter sets; "
             "unpin params to make them meaningful.")
+
+
+# ── Robustness Report (one scrollable page: each window in sequence + verdict) ──
+# Acceptance rails per window structure — Pardo / setup_decision_manual Phase 3a/3b.
+# Fixed in advance; the report NEVER tunes them to the result.
+_WIN_MIN_FOLDS   = 6      # too few folds = low confidence (Pardo prefers ≥10)
+_WIN_MIN_WFE     = 50.0   # Median WFE ≥ 50%
+_WIN_MIN_PROFPCT = 50.0   # ≥ 50% of OOS windows profitable
+
+
+def _window_robustness_tests(cell: dict) -> list[tuple[str, bool]]:
+    """The independent pass/fail robustness tests for one IS/OOS architecture (grid
+    cell). Thresholds are fixed in advance (Pardo / handoff: WFE≥50%, ≥60% OOS green).
+    Profit is ONE test among several — the score rewards surviving the most tests, not
+    making the most money. Returns [(test_name, passed), …]."""
+    n   = cell.get("n_folds", 0)
+    pnl = cell.get("total_oos_pnl", float("nan"))
+    wfe = cell.get("mean_wfe", float("nan"))       # already median × 100
+    pp  = cell.get("pct_oos_prof", float("nan"))
+    pf  = cell.get("oos_pf_median", float("nan"))
+    pr  = cell.get("mean_oos_prom", float("nan"))
+    dd  = cell.get("oos_maxdd_worst", float("nan"))
+    _ok = lambda v, cond: bool(v is not None and not np.isnan(v) and cond)
+    rr  = (pnl / abs(dd)) if (_ok(pnl, True) and _ok(dd, dd < 0)) else float("nan")
+    return [
+        ("≥8 folds",          n >= 8),
+        ("OOS PnL > 0",       _ok(pnl, pnl > 0)),
+        ("Median WFE ≥ 50%",  _ok(wfe, wfe >= 50)),
+        ("≥60% OOS green",    _ok(pp,  pp >= 60)),
+        ("Median PF ≥ 1.2",   _ok(pf,  pf >= 1.2)),
+        ("Mean PROM > 0",     _ok(pr,  pr > 0)),
+        ("Return ≥ Max DD",   _ok(rr,  rr >= 1.0)),
+    ]
+
+
+_WIN_N_TESTS = len(_window_robustness_tests({}))   # total tests (for "x/N" labels)
+
+
+def _window_robustness_score(cell: dict) -> int:
+    """How many robustness tests this IS/OOS architecture survives (0–_WIN_N_TESTS)."""
+    return sum(1 for _, ok in _window_robustness_tests(cell) if ok)
+
+
+def _window_pass(agg: dict) -> tuple[bool, list[str]]:
+    """Does one window structure clear the acceptance rails? → (passed, reasons-failed)."""
+    fails = []
+    n   = agg.get("n_folds", 0)
+    wfe = agg.get("mean_wfe", float("nan"))      # already median × 100
+    pnl = agg.get("total_oos_pnl", float("nan"))
+    pp  = agg.get("pct_oos_prof", float("nan"))
+    if n < _WIN_MIN_FOLDS:
+        fails.append(f"only {n} folds (<{_WIN_MIN_FOLDS})")
+    if not (pnl > 0):
+        fails.append("OOS PnL ≤ 0")
+    if np.isnan(wfe) or wfe < _WIN_MIN_WFE:
+        fails.append(f"Median WFE {_fmt(wfe, '.0f')}% (<{_WIN_MIN_WFE:.0f}%)")
+    if np.isnan(pp) or pp < _WIN_MIN_PROFPCT:
+        fails.append(f"{_fmt(pp, '.0f')}% OOS profitable (<{_WIN_MIN_PROFPCT:.0f}%)")
+    return (len(fails) == 0, fails)
+
+
+def _robustness_report(results: list[dict]) -> None:
+    """One scrollable narrative: each window structure in sequence, then a combined,
+    actionable ROBUST / FRAGILE / FAIL verdict. Answers 'does the edge survive
+    different walk-forward structures?' — the Phase 3a robustness question."""
+    if not results:
+        st.info("No window structures to report.")
+        return
+
+    st.markdown("## 🧭 Robustness Report — does the edge survive different window structures?")
+    st.caption(
+        "Same setup, same locked parameters, validated under several IS/OOS walk-forward "
+        "structures **in sequence**. Read top to bottom: each window below is one full "
+        "walk-forward; the final verdict combines all of them. An edge that only holds under "
+        "one structure is fragile (Pardo)."
+    )
+
+    passes = []
+    for idx, res in enumerate(results, 1):
+        agg   = res["agg"]
+        folds = res["folds"]
+        ok, fails = _window_pass(agg)
+        passes.append(ok)
+
+        st.divider()
+        _tag = "✅ holds" if ok else "❌ does not hold"
+        st.markdown(f"### Window {idx} — IS {res['is_months']}m / OOS {res['oos_months']}m  ·  {_tag}")
+
+        if not folds:
+            st.warning("This structure produced **0 folds** (window too long for the data span) — "
+                       "the edge cannot be judged here. Shorten IS+OOS or widen the date range.")
+            continue
+
+        n   = agg["n_folds"]
+        wfe = agg["mean_wfe"]; pnl = agg["total_oos_pnl"]; pp = agg["pct_oos_prof"]
+        st.write(
+            f"Rolled **{n}** walk-forward folds. In each, parameters were optimised in-sample and "
+            f"locked, then traded on untouched out-of-sample data. Across those {n} OOS segments the "
+            f"edge produced **${pnl:,.0f}** total, kept **{_fmt(wfe, '.0f')}%** of its in-sample "
+            f"efficiency (median WFE), and was profitable in **{_fmt(pp, '.0f')}%** of windows."
+        )
+
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric("Folds", n)
+        m2.metric("Total OOS PnL", f"${pnl:,.0f}")
+        m3.metric("Median WFE", _fmt(wfe, ".0f") + "%")
+        m4.metric("% OOS profitable", _fmt(pp, ".0f") + "%")
+
+        # The sequence itself: per-fold OOS PnL (bars) + cumulative (line), both in $.
+        _f   = sorted(folds, key=lambda f: f["fold_id"])
+        xs   = [f"F{f['fold_id'] + 1}" for f in _f]
+        opnl = [f["oos_summary"].get("net_total", 0.0) for f in _f]
+        cum  = list(np.cumsum(opnl))
+        fig  = go.Figure()
+        fig.add_trace(go.Bar(x=xs, y=opnl, name="OOS PnL / fold",
+                             marker_color=["#00d4aa" if v >= 0 else "#ff6b6b" for v in opnl]))
+        fig.add_trace(go.Scatter(x=xs, y=cum, name="Cumulative OOS PnL",
+                                 mode="lines+markers", line=dict(color="#e0e0e0")))
+        _dark_layout(fig, "OOS result in sequence (fold by fold)", 300)
+        st.plotly_chart(fig, use_container_width=True, key=f"rob_seq_{idx}")
+
+        if not ok:
+            st.caption("⚠️ Fails: " + "; ".join(fails) + ".")
+
+    # ── Combined verdict ──────────────────────────────────────────────────────
+    st.divider()
+    st.markdown("## 🏁 Verdict — combining all windows")
+
+    n_win  = len(results)
+    n_pass = sum(passes)
+
+    rows = []
+    for res in results:
+        a = res["agg"]
+        ok, _ = _window_pass(a)
+        rows.append({
+            "Window":           f"IS {res['is_months']}m / OOS {res['oos_months']}m",
+            "Folds":            a["n_folds"],
+            "Total OOS PnL":    round(a["total_oos_pnl"], 0) if not np.isnan(a["total_oos_pnl"]) else None,
+            "Median WFE %":     round(a["mean_wfe"], 0)      if not np.isnan(a["mean_wfe"]) else None,
+            "% OOS profitable": round(a["pct_oos_prof"], 0)  if not np.isnan(a["pct_oos_prof"]) else None,
+            "Mean OOS PROM":    round(a["mean_oos_prom"], 2) if not np.isnan(a["mean_oos_prom"]) else None,
+            "Holds?":           "✅" if ok else "❌",
+        })
+    st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+
+    if n_win and n_pass == n_win:
+        verdict, color, msg = ("ROBUST", "#00d4aa",
+            "The edge held under **every** window structure tested — the strongest walk-forward "
+            "evidence available here. Next: Monte Carlo on the OOS trades, then portfolio sizing.")
+    elif n_pass >= max(1, n_win // 2):
+        verdict, color, msg = ("FRAGILE", "#d4a000",
+            f"The edge held under **{n_pass} of {n_win}** structures — it is structure-dependent. "
+            "Treat as provisional; find out which windows fail and why before risking capital.")
+    else:
+        verdict, color, msg = ("FAIL", "#ff6b6b",
+            f"The edge held under only **{n_pass} of {n_win}** structures — it does not generalise "
+            "across walk-forward structures. Do NOT trade this configuration as-is.")
+
+    st.markdown(
+        f"<div style='padding:14px 18px;border-radius:8px;background:{color}22;"
+        f"border-left:5px solid {color};'>"
+        f"<span style='font-size:1.5rem;font-weight:700;color:{color};'>{verdict}</span>"
+        f"<span style='margin-left:10px;'>— {n_pass} of {n_win} window structures held.</span>"
+        f"<div style='margin-top:6px;'>{msg}</div></div>",
+        unsafe_allow_html=True,
+    )
+    st.caption(
+        f"Pass rails per window (fixed in advance): Median WFE ≥ {_WIN_MIN_WFE:.0f}%, "
+        f"≥ {_WIN_MIN_PROFPCT:.0f}% of OOS windows profitable, total OOS PnL > 0, "
+        f"≥ {_WIN_MIN_FOLDS} folds. The report never tunes these to the result."
+    )
 
 
 def show_wfa_tab() -> None:
@@ -1373,21 +1611,13 @@ def show_wfa_tab() -> None:
         if signals_filtered.empty:
             st.info("Select at least one SignalType in ⚙️ Configure & Run first.")
         else:
-            mg1, mg2, mg3 = st.columns(3)
-            is_grid  = mg1.multiselect("IS windows (months)", [6, 9, 12, 18, 24],
-                                       default=[6, 12, 18, 24], key="wfa_map_is")
+            mg1, mg2 = st.columns(2)
+            is_grid  = mg1.multiselect("IS windows (months)", [3, 6, 9, 12, 18, 24],
+                                       default=[3, 6, 12, 18, 24], key="wfa_map_is")
             oos_grid = mg2.multiselect("OOS windows (months)", [1, 2, 3, 4, 6],
-                                       default=[1, 3, 6], key="wfa_map_oos")
-            # Total OOS PnL is the default — it has no divide-by-zero instability, unlike
-            # Mean WFE. Switching this re-reads the cached grid below; it never recomputes.
-            metric_lbl = mg3.selectbox("Cell metric", ["Total OOS PnL", "Median WFE %",
-                                                       "Mean OOS PROM", "% OOS folds profitable"],
-                                       key="wfa_map_metric",
-                                       help="All four metrics are computed in one pass when you "
-                                            "build the map; changing this just re-colours the "
-                                            "cached grid instantly (no re-run).")
-            _metric_col = {"Median WFE %": "mean_wfe", "Total OOS PnL": "total_oos_pnl",
-                           "Mean OOS PROM": "mean_oos_prom", "% OOS folds profitable": "pct_oos_prof"}[metric_lbl]
+                                       default=[1, 2, 3, 4, 6], key="wfa_map_oos")
+            st.caption("All metrics (PnL, WFE, PF, Max DD, % profitable) are computed in one pass "
+                       "when you build the map and shown together below — no metric dropdown.")
 
             n_cells = len(is_grid) * len(oos_grid)
             st.caption(f"**{n_cells} cells** — each is a full WFA "
@@ -1430,22 +1660,111 @@ def show_wfa_tab() -> None:
 
             grid_df = st.session_state.get("wfa_map_df")
             if grid_df is not None and not grid_df.empty:
-                # Drive the display off the LIVE dropdown, not a build-time copy, so
-                # switching the metric re-colours the cached grid instantly.
-                _mc, _ml = _metric_col, metric_lbl
-                piv  = grid_df.pivot(index="is_months", columns="oos_months", values=_mc)
-                nfld = grid_df.pivot(index="is_months", columns="oos_months", values="n_folds")
-                cscale = "RdYlGn" if _mc != "total_oos_pnl" else "RdYlGn"
-                fig = go.Figure(go.Heatmap(
-                    z=piv.values,
-                    x=[f"{c}m" for c in piv.columns], y=[f"{r}m" for r in piv.index],
-                    text=nfld.values, texttemplate="%{z:.1f}<br>(%{text} folds)",
-                    colorscale=cscale, colorbar=dict(title=_ml),
-                    hovertemplate="IS=%{y} · OOS=%{x}<br>" + _ml + "=%{z:.2f}<br>folds=%{text}<extra></extra>",
-                ))
-                _dark_layout(fig, f"Window-Anchor Map — {_ml}", 420)
-                fig.update_xaxes(title="OOS window")
-                fig.update_yaxes(title="IS window")
-                st.plotly_chart(fig, use_container_width=True)
+                grid_df = grid_df.copy()
+                # Window Robustness Score — count how many fixed pass/fail tests each
+                # architecture survives (NOT a profit-weighted blend; profit is only
+                # one of the tests). Rank by tests survived → "which window structure
+                # is most robust", not "which made the most money".
+                grid_df["robust_score"] = grid_df.apply(
+                    lambda r: _window_robustness_score(r.to_dict()), axis=1)
+
+                # ── Robustness-score heatmap (the headline) ───────────────────
+                st.markdown("#### 🛡️ Window Robustness Score — tests survived (0–"
+                            f"{_WIN_N_TESTS})")
+                st.plotly_chart(
+                    _window_heatmap(grid_df, "robust_score", "Tests survived", ".0f"),
+                    use_container_width=True)
+                st.caption(
+                    f"Each cell = how many of {_WIN_N_TESTS} independent robustness tests that "
+                    "IS/OOS architecture passes (PnL>0, WFE≥50%, ≥60% OOS green, PF≥1.2, PROM>0, "
+                    "return≥Max DD, ≥8 folds). Thresholds are fixed in advance — not tuned to the "
+                    "result. **Pick a structure from a high-scoring *cluster*, not the single top "
+                    "cell** (one peak cell is meta-overfitting; a warm neighbourhood is durable)."
+                )
+
+                # ── Ranked architecture table ─────────────────────────────────
+                _rank = grid_df.copy()
+                _rank["Window"] = ("IS " + _rank["is_months"].astype(str) + "m / OOS "
+                                   + _rank["oos_months"].astype(str) + "m")
+                _rank["Tests"]  = _rank["robust_score"].astype(str) + f"/{_WIN_N_TESTS}"
+                _rank = _rank.sort_values(["robust_score", "mean_wfe", "mean_oos_prom"],
+                                          ascending=False)
+                _show = _rank[["Window", "Tests", "n_folds", "total_oos_pnl", "oos_pf_median",
+                               "mean_wfe", "pct_oos_prof", "mean_oos_prom", "oos_maxdd_worst"]].copy()
+                _show.columns = ["Window", "Tests survived", "Folds", "Total OOS PnL", "Median OOS PF",
+                                 "Median WFE %", "% OOS green", "Mean PROM", "Worst-fold Max DD"]
+                for _c, _r in {"Total OOS PnL": 0, "Median OOS PF": 2, "Median WFE %": 0,
+                               "% OOS green": 0, "Mean PROM": 2, "Worst-fold Max DD": 0}.items():
+                    _show[_c] = _show[_c].map(lambda v, _r=_r: round(v, _r) if pd.notna(v) else None)
+                st.markdown("**Architectures ranked by robustness** (tests survived, then WFE, then PROM):")
+                st.dataframe(_show, use_container_width=True, hide_index=True)
+
+                # ── The four component heatmaps (the evidence behind the score) ─
+                st.markdown("#### Component metrics (the evidence behind the score)")
+                st.plotly_chart(_window_heatmap(grid_df, "total_oos_pnl", "Total OOS PnL", ",.0f"),
+                                use_container_width=True)
+                st.plotly_chart(_window_heatmap(grid_df, "mean_wfe", "Median WFE %", ".0f"),
+                                use_container_width=True)
+                st.plotly_chart(_window_heatmap(grid_df, "oos_pf_median", "Median OOS PF", ".2f"),
+                                use_container_width=True)
+                st.plotly_chart(_window_heatmap(grid_df, "oos_maxdd_worst", "Worst-fold OOS Max DD", ",.0f"),
+                                use_container_width=True)
                 st.caption("Each cell label: metric value and (fold count). Few folds = low confidence — "
-                           "large IS + large OOS leaves fewer rolling windows in a 5-yr dataset.")
+                           "large IS + large OOS leaves fewer rolling windows in a 5-yr dataset. PF and Max "
+                           "DD are per-fold aggregates (median PF, worst single-fold DD); the concatenated-"
+                           "equity PF/DD for one chosen window live in the 📊 Results tab.")
+
+            # ── 🧭 4-Window Robustness Report (full WFAs in sequence + verdict) ──
+            st.divider()
+            st.markdown("### 🧭 Robustness Report — validate across 4 window structures")
+            st.caption(
+                "Beyond the heatmap: runs a **full walk-forward for each of the 4 structures below**, "
+                "shows them in sequence on this page, and ends with one actionable verdict "
+                "(ROBUST / FRAGILE / FAIL). Same setup, params, pins and filters as ⚙️ Configure & Run. "
+                "Heavier than the heatmap (4 full WFAs); nothing is persisted."
+            )
+            _def_struct = [(12, 3), (12, 1), (6, 3), (6, 1)]
+            _scols = st.columns(4)
+            structures = []
+            for _i, (_dim, _dom) in enumerate(_def_struct):
+                _im = _scols[_i].number_input(f"W{_i + 1} IS (mo)", 3, 24, _dim, 3, key=f"wfa_rob_is_{_i}")
+                _om = _scols[_i].number_input(f"W{_i + 1} OOS (mo)", 1, 6, _dom, 1, key=f"wfa_rob_oos_{_i}")
+                structures.append((int(_im), int(_om)))
+
+            if st.button("▶ Build 4-Window Robustness Report", type="primary",
+                         key="wfa_rob_run", disabled=signals_filtered.empty):
+                import massive as _massive_mod
+                sig_dates  = sorted(signals_filtered["Date"].unique())
+                _ticks_key = f"wfa_ticks__{hash(tuple(sig_dates))}"
+                if _ticks_key not in st.session_state:
+                    with st.spinner("Loading tick cache…"):
+                        tbd = {}
+                        for d in sig_dates:
+                            dt = _massive_mod.load_continuous_ticks(d)
+                            if not dt.empty:
+                                tbd[d] = dt
+                        st.session_state[_ticks_key] = tbd
+                ticks_by_date = st.session_state[_ticks_key]
+
+                rbar = st.progress(0.0)
+                rstat = st.empty()
+
+                def _rcb(k, total, msg):
+                    rbar.progress(min(k / total, 1.0))
+                    rstat.text(f"{k}/{total} — {msg}")
+
+                with st.spinner("Running 4 walk-forward structures…"):
+                    rob_results = run_window_structures(
+                        signals_filtered, ticks_by_date, bars_by_date,
+                        base_params, mode, structures,
+                        n_param_sets=int(n_sets),
+                        pin_t1=pin_t1, pin_t2=pin_t2, pin_pb=pin_pb,
+                        progress_cb=_rcb,
+                    )
+                rbar.progress(1.0)
+                rstat.text("Done.")
+                st.session_state["wfa_rob_results"] = rob_results
+
+            rob_results = st.session_state.get("wfa_rob_results")
+            if rob_results:
+                _robustness_report(rob_results)
