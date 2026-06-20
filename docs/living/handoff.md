@@ -1,9 +1,42 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** June 20, 2026 (session 20)
-**Current Versions:** SIM_v3.4 / GS_v4.5 / SHEET_v3.3  
+**Last Updated:** June 20, 2026 (session 21)
+**Current Versions:** SIM_v3.4 / GS_v4.5 / SHEET_v3.3 *(no engine change in S21 — UI/metric/research only)*
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 **Handoff hygiene (S20):** A competing handoff had grown in the `.claude/.../memory/` auto-memory folder and a new chat read *that* instead of this file. Fixed: added repo `CLAUDE.md` + rewrote `.claude` `MEMORY.md` to point here; deleted the duplicate session-state memories. **There is now ONE handoff: this file.**
+
+---
+
+## ⭐ SESSION 21 HANDOFF — June 20, 2026 (read first)
+*Built both lead S21 priorities (2-D Stop×Target sweep + locked multi-slice regime filter), reordered tabs, and fixed three misleading WFA metrics that a long debugging thread surfaced. No engine change → trade definitions & validators unaffected. Committed + pushed.*
+
+### Built
+- **2-D Stop × Target sweep** (`bar_analysis.py`, descriptive, per `docs/reference/stop_target_2d_sweep_spec.md`). `_run_stop_target_sweep` (reuses `_apply_stop_mult`/`simulate_trades`/`compute_summary`/`_win_breakdown`) + `_show_stop_target_sweep` expander (Bar Analysis, right after Stop Multiplier Sweep). PnL/DD heatmap, ranked top-20, and a **neighbor-stability "plateau not peak" caption** (`_stop_target_plateau`) + low-Tgt%/thin-trades flags. **Cross-check still to verify in-app:** 1.00× column == 1-D R sweep; current-target row == 1-D stop sweep. Never wired into WFA. **Spec status updated to BUILT.**
+- **Locked multi-slice regime filter for WFA** (`regime_filter.py` — new, pure/testable + UI in `wfa.py` Configure & Run, after the CC filter). Reuses `indicators.tag_signals` and imports the **same bin edges** from `bar_analysis` (one definition shared research↔validation). Orthogonal shortlist (one per factor): VWAP σ, Range/ATR, ADX %ile, Intraday ER 60m, 20-EMA alignment, Session VA. **Master "Enable regime filter" checkbox, default OFF** (this is the on/off; "locked" only means *not optimized by WFA*). AND across active indicators; NaN-regime signals dropped; open-ended-tail nudge; time-spread flag; locked spec recorded into run notes. **Fold-feasibility guard** added (warns when filtered signal-days < IS+OOS so you don't silently get 0 folds).
+
+### WFA metric fixes (display only — a debugging thread proved these were artifacts, not strategy problems)
+- **WFE undefined when IS≤0** (`wfa.py` `run_wfa`): `wfe = oos/is if is_ann > 0 else NaN`. The −8606/−11108% folds were divide-by-≈0, not OOS losses. Headline is now **Median WFE** (badge, equity panel, `results_store.guardrail_report`, window-map aggregate) so 1–2 folds can't dominate. Existing run `run_a8f45df7`: old Mean −1145% → **Median −16.1%** (no re-run needed); a re-run marks 4 IS-unprofitable folds N/A → median +39.2%. *Per-fold WFE column/chart for OLD runs still show stored blowups until re-run.*
+- **Kurtosis N/A for single-combo sweeps** (pinned params): was a red **0/17** because `NaN<=6` is False. Now stored NULL + badge shows **N/A** (neutral) + breakdown caption explaining the surface is degenerate. Robustness∈{0,100} exactly + kurtosis N/A is the tell that **all of T1/T2/PB were pinned** (run a8f45df7 was such a run).
+- **Window Map**: default cell metric → **Total OOS PnL** (no divide-by-zero), and **switching the metric no longer recomputes** — it re-colours the cached grid instantly (was stuck on build-time metric — a real bug).
+
+### UX
+- **Tab order restored**: Bar Viewer first, **Bar Analysis second**, then Massive/Data/Chart/Portfolio/WFA. A one-time guarded JS click (`app.py`, `components.html` + sessionStorage) keeps Bar Analysis the **default-open** tab without yanking you back on later reruns (native `st.tabs` always opens tab 0).
+
+### Verified
+- All five files byte-compile. `regime_filter` pure-logic unit tests pass (AND/subset/NaN-drop, open-ended detection). On-disk audit: **all 11 stored runs** have `sum(per-fold oos_n_trades) == equity filled count` (the reported "mismatch" was a mis-add; 4788 vs 4701 = 87 unfilled signals). Engine validators NOT re-run (no engine change) — re-run before any future engine edit.
+
+### ⚠️ Data-quality flag to investigate (S22)
+On-disk, several runs share **identical** OOS counts across *different* setup labels (ALL/CC1/CC2/CC4 all = 4701 at 17 folds, all = 4129 at 15 folds). Could be the user relabelling `setup_id` on otherwise-identical ALL runs, OR the per-SignalType checkbox not actually filtering signals into WFA. **Verify the setup filter actually subsets the signal set before trusting per-setup results.**
+
+### Session 22 priorities
+- **Verify the 2-D sweep edge cross-checks in-app** (1.00×/current-target) — that's its definition-of-done.
+- **Investigate the identical-per-setup-count flag above.**
+- **Master autonomous run + full export** (user request): drive ONE CC setup through the whole Phase 0→7 pipeline end-to-end, render in-app, and emit a single self-contained artifact (HTML/zip) capturing every table + chart. See `docs/living/setup_decision_manual.md` for the pipeline; this needs scoping (headless render of Streamlit figures, or a parallel report builder).
+- **Onboarding:** consider a `docs/living/PROJECT_CHARTER.md` (original task, what's changed, on-track assessment) so a fresh chat can realign from one read.
+- Carry-forward from S20: OOS Regime Analysis module; quick wins (profit concentration, profit-by-year, recovery time, concurrent-exposure %, acceptance report card); 15M timeframe; vectorize 3-leg.
+
+### Carry-forward rules
+NEVER commit/push without explicit OK · user must have run the app · `git pull` first (two-machine) · Edit/Write only for source (PowerShell → mojibake) · all sims behind Run button · one engine = one trade definition · **regime filters are LOCKED before WFA and never optimized/re-tuned against OOS; pre-commit a few hypothesis-driven filters, don't combo-hunt; sizing deferred to MES**.
 
 ---
 
@@ -33,6 +66,7 @@
   3. Prefer **open-ended thresholds** (e.g. |VWAP σ| ≥ 2) over hand-drawn bands (e.g. +2..+3). Capping the extreme usually = fitting to a thin in-sample bucket. Every kept/dropped bucket needs a structural *why*, not "it was red."
 
 ### Session 21 priorities
+- **BUILD the 2-D Stop × Target sweep** (Bar Analysis, descriptive) per the full build spec `docs/reference/stop_target_2d_sweep_spec.md`. Rationale: R is measured in stop units, so the existing 1-D R sweep (`_run_r_sweep`) and 1-D stop sweep (`_run_stop_mult_sweep`) are slices of one interacting surface — chaining their picks can miss the joint optimum. Spec reuses `_apply_stop_mult`/`simulate_trades`/`compute_summary`/`_win_breakdown`, mirrors the T1×T2 heatmap UI, and REQUIRES a neighbor-stability "plateau not peak" caption. Descriptive only — never wired into the WFA grid. Edge cross-check: 1.00× column == R sweep, current-target row == stop sweep.
 - **BUILD the locked multi-slice regime filter in WFA → Configure & Run** (next to the CC filter, ~wfa.py:838): per shortlist indicator, multiselect of buckets to KEEP (or a threshold); tag signals via `tag_signals`; filter the signal set BEFORE the fold loop; show post-filter trade count + time-spread; **never optimized by WFA**. Honor the discipline rails in the DIRECTION section.
 - Carry-forward from S19/S20: OOS Regime Analysis module per `setup_decision_manual.md` (regime stability across WF segments → Monte Carlo → profit concentration → report card); quick wins (top-10 profit concentration, profit-by-year, recovery time, concurrent-exposure %, acceptance report card); 15M timeframe (`bar_num_from_dt` 5M-hardcoded); vectorize 3-leg.
 

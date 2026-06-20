@@ -294,7 +294,11 @@ def run_wfa(
                    if len(is_dates)  > 0 else 0)
         oos_ann = (oos_summary.get("net_total", 0) / len(oos_dates) * _TRADING_DAYS_PER_YEAR
                    if len(oos_dates) > 0 else 0)
-        wfe = oos_ann / is_ann if is_ann != 0 else float("nan")
+        # WFE = OOS ÷ IS is only meaningful when the IS edge is positive — it measures
+        # how much of a *profitable* in-sample carried out-of-sample. If IS PnL ≤ 0 the
+        # fold's optimization never produced an edge, so WFE is undefined (NaN), not a
+        # huge negative number from dividing by a ~0/negative denominator.
+        wfe = oos_ann / is_ann if is_ann > 0 else float("nan")
 
         # ── Persist ───────────────────────────────────────────────────────────
         is_start  = min(fold["is_dates"])
@@ -342,7 +346,8 @@ def _aggregate_grid_cell(folds: list[dict]) -> dict:
     opr  = [v for v in opr if v is not None and not np.isnan(v)]
     return {
         "n_folds":       len(folds),
-        "mean_wfe":      float(np.mean(wfe)) * 100 if wfe else float("nan"),
+        # Median (not mean) so a couple of undefined/extreme folds can't dominate.
+        "mean_wfe":      float(np.median(wfe)) * 100 if wfe else float("nan"),
         "total_oos_pnl": float(np.sum(opnl)),
         "mean_oos_prom": float(np.mean(opr)) if opr else float("nan"),
         "pct_oos_prof":  float(np.mean([p > 0 for p in opnl]) * 100) if opnl else float("nan"),
@@ -581,12 +586,15 @@ def _guardrail_badges(report: dict) -> None:
         return
 
     cols = st.columns(6)
+    _kn = report.get("kurtosis_n", n)
+    _kurt_val = f"{report['kurtosis_ok']}/{_kn}" if _kn else "N/A"
+    _kurt_ok  = (_kn == 0) or (report["kurtosis_ok"] == _kn)   # N/A is neutral, not red
     metrics = [
         ("Rob ≥70%",    f"{report['rob_passed']}/{n}",        report['rob_passed'] == n),
-        ("Kurt ≤6",     f"{report['kurtosis_ok']}/{n}",       report['kurtosis_ok'] == n),
+        ("Kurt ≤6",     _kurt_val,                            _kurt_ok),
         ("Min trades",  f"{report['min_trades_ok']}/{n}",     report['min_trades_ok'] == n),
         ("OOS profit%", f"{report['pct_oos_profitable']}%",   report['pct_oos_profitable'] >= 60),
-        ("Mean WFE",    f"{report['mean_wfe']}%",             report['mean_wfe'] >= 50),
+        ("Median WFE",  f"{report['mean_wfe']}%",             report['mean_wfe'] >= 50),
         ("PROM decay",  f"{report.get('mean_prom_decay','—')}", True),
     ]
     for col, (label, val, ok) in zip(cols, metrics):
@@ -662,12 +670,16 @@ def _guardrail_breakdown(folds_df: pd.DataFrame) -> None:
     fails = []
     for label, col, good in [
         ("Robustness <70%", "rob_passed", True),
-        ("Kurtosis >6",     "kurtosis_ok", True),
         ("IS trades <30",   "min_trades_ok", True),
     ]:
         failed = folds_df.loc[folds_df[col].astype(bool) != good, "fold_id"].tolist()
         if failed:
             fails.append(f"- **{label}:** fold(s) {', '.join(map(str, failed))}")
+    # Kurtosis handled separately: only DEFINED folds (>6) are real failures; NaN = N/A.
+    _kd = pd.to_numeric(folds_df["is_kurtosis"], errors="coerce")
+    _kfail = folds_df.loc[_kd > 6.0, "fold_id"].tolist()
+    if _kfail:
+        fails.append(f"- **Kurtosis >6:** fold(s) {', '.join(map(str, _kfail))}")
     oos_neg = folds_df.loc[folds_df["oos_net_pnl"] <= 0, "fold_id"].tolist()
     if oos_neg:
         fails.append(f"- **OOS unprofitable:** fold(s) {', '.join(map(str, oos_neg))}")
@@ -676,6 +688,14 @@ def _guardrail_breakdown(folds_df: pd.DataFrame) -> None:
         st.markdown("\n".join(fails))
     else:
         st.caption("✓ All folds passed every guardrail.")
+
+    _kna = folds_df.loc[_kd.isna(), "fold_id"].tolist()
+    if _kna:
+        st.caption(
+            f"ℹ️ Kurtosis & robustness are **N/A** for fold(s) {', '.join(map(str, _kna))} — "
+            "the IS sweep had too few combos (parameters pinned) to form a surface. "
+            "These guardrails only apply when WFA is choosing among multiple parameter sets; "
+            "unpin params to make them meaningful.")
 
 
 def show_wfa_tab() -> None:
@@ -851,6 +871,113 @@ def show_wfa_tab() -> None:
 
         st.caption(f"{len(signals_filtered)} signals after filter")
 
+        # ── 🧭 Multi-slice regime filter (optional; validated via WFA) ─────────
+        # Research the buckets in Bar Analysis → Regime/Indicator Expectancy,
+        # pre-commit a small hypothesis-driven set HERE, then let WFA validate it.
+        # WFA optimizes ONLY T1/T2/PB — these buckets are NEVER swept (S20 rails).
+        # "Locked" = fixed before the run & not optimized by WFA; it is NOT an
+        # on/off state. The master toggle below is the on/off control.
+        import regime_filter as _rf
+        locked_spec: dict = {}
+        with st.expander("🧭 Regime Filter (optional — off by default)", expanded=False):
+            _rf_on = st.checkbox(
+                "Enable regime filter", value=False, key="wfa_rf_enable",
+                help="OFF = every signal passes through (default). ON = keep only "
+                     "signals whose regime buckets you select below. Once enabled, the "
+                     "selection is LOCKED for the run — WFA never optimizes it (only "
+                     "T1/T2/PB). To turn a single indicator off, leave ALL its buckets "
+                     "selected.",
+            )
+            st.caption(
+                "**Discipline (handoff S20):** pre-commit a *small* hypothesis-driven "
+                "set, prefer open-ended tails over interior bands, and never re-tune "
+                "against OOS results. Each kept bucket needs a structural *why*. "
+                "Counts shown are on the current signal set."
+            )
+
+            if not _rf_on:
+                st.caption("Filter OFF — all signals pass to WFA.")
+            elif signals_filtered.empty:
+                st.info("No signals to filter.")
+            else:
+                # Tag once and memoize across reruns (tag_signals runs market
+                # structure over the full bar series — too heavy to redo per widget).
+                _rf_fp = (len(signals_filtered),
+                          int(pd.util.hash_pandas_object(
+                              signals_filtered["DateTime"], index=False).sum()
+                              & 0xFFFFFFFF),
+                          str(bars["DateTime"].iloc[-1]), len(bars))
+                if st.session_state.get("_wfa_rf_fp") != _rf_fp:
+                    try:
+                        _tagged, _bcols = _rf.tag_and_bucket(signals_filtered, bars)
+                    except Exception as _e:                      # pragma: no cover
+                        _tagged, _bcols = None, {}
+                        st.warning(f"Could not tag signals for regime filtering: {_e}")
+                    st.session_state["_wfa_rf_fp"]     = _rf_fp
+                    st.session_state["_wfa_rf_tagged"] = _tagged
+                    st.session_state["_wfa_rf_bcols"]  = _bcols
+                else:
+                    _tagged = st.session_state["_wfa_rf_tagged"]
+                    _bcols  = st.session_state["_wfa_rf_bcols"]
+
+                if _bcols:
+                    for ind in _rf.SHORTLIST:
+                        if ind.key not in _bcols:
+                            continue
+                        _bcol    = _bcols[ind.key]
+                        _present = _rf.present_buckets(_tagged, ind, _bcol)
+                        if not _present:
+                            continue
+                        _counts = _tagged[_bcol].value_counts()
+                        _sel = st.multiselect(
+                            f"{ind.label}  ·  *{ind.factor}*",
+                            _present, default=_present, key=f"wfa_rf_{ind.key}",
+                            format_func=lambda b, c=_counts: f"{b}  ({int(c.get(b, 0))})",
+                            help="Keep signals whose value falls in the selected "
+                                 "bucket(s). Leave ALL selected = this indicator is off.",
+                        )
+                        if _sel and set(_sel) < set(_present):
+                            locked_spec[ind.key] = _sel
+                            if ind.ordered and not _rf.is_open_ended(ind, _sel):
+                                st.caption(f"⚠️ {ind.label}: interior band selected — "
+                                           "prefer an open-ended tail (rail #3).")
+
+                    if locked_spec:
+                        _mask = _rf.filter_mask(_tagged, _bcols, locked_spec)
+                        _kept = set(_tagged.loc[_mask, "_rf_id"].tolist())
+                        _sig2 = signals_filtered.copy()
+                        _sig2["_rf_id"] = np.arange(len(_sig2))
+                        signals_filtered = (_sig2[_sig2["_rf_id"].isin(_kept)]
+                                            .drop(columns="_rf_id").copy())
+                        st.success(
+                            f"Regime filter ACTIVE — **{len(signals_filtered)} of "
+                            f"{len(_sig2)}** signals kept.")
+                        st.caption(f"🔒 Locked: {_rf.describe_spec(locked_spec)}")
+                        if len(signals_filtered):
+                            _em, _sh, _cm = _rf.time_concentration(signals_filtered["DateTime"])
+                            st.caption(f"Time spread of kept signals: {_em} {_cm} "
+                                       "(🔴 = single-regime windfall risk — a filter that "
+                                       "only 'works' in one window is not durable).")
+                    else:
+                        st.caption("Enabled, but every indicator has all buckets "
+                                   "selected — no constraint active, all signals pass.")
+                elif _tagged is not None:
+                    st.info("Regime indicators unavailable on this signal set "
+                            "(missing Direction / price / indicator columns).")
+
+        # Fold-feasibility guard: surface WHY a run might yield 0 folds.
+        _n_into = len(signals_filtered)
+        _n_days = signals_filtered["Date"].nunique() if _n_into else 0
+        _need_days = int(is_days + oos_days)
+        st.caption(f"{_n_into} signals into WFA across {_n_days} signal-days "
+                   f"(need ≥ ~{_need_days} trading-days of span to form 1 fold).")
+        if _n_into and _n_days < _need_days:
+            st.warning(
+                f"Only {_n_days} signal-days remain — fewer than the ~{_need_days} "
+                f"(IS {is_days} + OOS {oos_days}) needed for a single fold, so the run "
+                "will produce **0 folds**. Disable/loosen the regime filter or widen the "
+                "date range / shorten the IS+OOS windows.")
+
         # ── Run button ────────────────────────────────────────────────────────
         st.divider()
         run_id_input = st.text_input("Run ID (leave blank to auto-generate)", value="", key="wfa_run_id_input")
@@ -861,7 +988,14 @@ def show_wfa_tab() -> None:
 
         if run_btn and not signals_filtered.empty:
             run_id = run_id_input.strip() or f"run_{uuid.uuid4().hex[:8]}"
-            create_run(run_id, setup_id, mode, base_params, notes_input)
+            # Permanently record the locked regime filter with the run (rail #1:
+            # the filter is LOCKED before the run — the run notes prove what it was).
+            _notes_full = notes_input
+            if locked_spec:
+                _rf_desc = _rf.describe_spec(locked_spec)
+                _notes_full = (f"{notes_input} | " if notes_input else "") + \
+                              f"regime_filter[LOCKED]: {_rf_desc}"
+            create_run(run_id, setup_id, mode, base_params, _notes_full)
 
             progress_bar = st.progress(0.0)
             status_text  = st.empty()
@@ -1043,12 +1177,15 @@ def show_wfa_tab() -> None:
                 total_comm = float((_ft["GrossPnL"] - _ft["NetPnL"]).sum())
                 eq         = _ft.sort_values(["Date", "EntryTime"])["NetPnL"].cumsum()
                 pain_usd, pain_pct = _pain_index(eq)
-                mean_wfe   = folds_df["wfe"].mean() * 100
-                wwfe       = _windsorized_mean_wfe(folds_df["wfe"]) * 100
+                _wfe_defined = pd.to_numeric(folds_df["wfe"], errors="coerce").dropna()
+                _n_undef     = len(folds_df) - len(_wfe_defined)
+                median_wfe   = _wfe_defined.median() * 100 if len(_wfe_defined) else float("nan")
+                wwfe         = _windsorized_mean_wfe(folds_df["wfe"]) * 100
 
                 d1, d2, d3 = st.columns(3)
-                d1.metric("Mean WFE", _fmt(mean_wfe, ".1f") + "%",
-                          help=_METRIC_HELP["wfe"])
+                d1.metric("Median WFE", _fmt(median_wfe, ".1f") + "%",
+                          help=_METRIC_HELP["wfe"] +
+                               (f" · {_n_undef} fold(s) N/A (IS not profitable)" if _n_undef else ""))
                 d2.metric("Windsorized WFE", _fmt(wwfe, ".1f") + "%",
                           help="Mean WFE after dropping the single best and worst folds. If this is far below "
                                "the raw Mean WFE, the headline is outlier-driven (one windfall window), not "
@@ -1241,10 +1378,15 @@ def show_wfa_tab() -> None:
                                        default=[6, 12, 18, 24], key="wfa_map_is")
             oos_grid = mg2.multiselect("OOS windows (months)", [1, 2, 3, 4, 6],
                                        default=[1, 3, 6], key="wfa_map_oos")
-            metric_lbl = mg3.selectbox("Cell metric", ["Mean WFE %", "Total OOS PnL",
+            # Total OOS PnL is the default — it has no divide-by-zero instability, unlike
+            # Mean WFE. Switching this re-reads the cached grid below; it never recomputes.
+            metric_lbl = mg3.selectbox("Cell metric", ["Total OOS PnL", "Median WFE %",
                                                        "Mean OOS PROM", "% OOS folds profitable"],
-                                       key="wfa_map_metric")
-            _metric_col = {"Mean WFE %": "mean_wfe", "Total OOS PnL": "total_oos_pnl",
+                                       key="wfa_map_metric",
+                                       help="All four metrics are computed in one pass when you "
+                                            "build the map; changing this just re-colours the "
+                                            "cached grid instantly (no re-run).")
+            _metric_col = {"Median WFE %": "mean_wfe", "Total OOS PnL": "total_oos_pnl",
                            "Mean OOS PROM": "mean_oos_prom", "% OOS folds profitable": "pct_oos_prof"}[metric_lbl]
 
             n_cells = len(is_grid) * len(oos_grid)
@@ -1284,14 +1426,13 @@ def show_wfa_tab() -> None:
                     )
                 pbar.progress(1.0)
                 stat.text("Done.")
-                st.session_state["wfa_map_df"]     = grid_df
-                st.session_state["wfa_map_metric_col"] = _metric_col
-                st.session_state["wfa_map_metric_lbl"] = metric_lbl
+                st.session_state["wfa_map_df"] = grid_df
 
             grid_df = st.session_state.get("wfa_map_df")
             if grid_df is not None and not grid_df.empty:
-                _mc  = st.session_state.get("wfa_map_metric_col", _metric_col)
-                _ml  = st.session_state.get("wfa_map_metric_lbl", metric_lbl)
+                # Drive the display off the LIVE dropdown, not a build-time copy, so
+                # switching the metric re-colours the cached grid instantly.
+                _mc, _ml = _metric_col, metric_lbl
                 piv  = grid_df.pivot(index="is_months", columns="oos_months", values=_mc)
                 nfld = grid_df.pivot(index="is_months", columns="oos_months", values="n_folds")
                 cscale = "RdYlGn" if _mc != "total_oos_pnl" else "RdYlGn"

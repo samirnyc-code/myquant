@@ -1,6 +1,7 @@
 import re
 from pathlib import Path
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 import plotly.graph_objects as go
 from data_loader import (CONTRACTS, bar_num_from_dt,
@@ -442,10 +443,31 @@ def main():
         st.session_state.clear()
         st.rerun()
 
-    # Bar Analysis is the landing tab (first = default-active in st.tabs).
-    tab3, tab_massive, tab0, tab1, tab_chart, tab4, tab_wfa = st.tabs([
-        "📈 Bar Analysis", "📂 Massive", "🗂️ Data", "📊 Bar Viewer", "📈 Chart", "📊 Portfolio", "🔄 WFA",
+    # Tab order: Bar Viewer first, Bar Analysis right after it (restored). st.tabs
+    # always opens tab 0, so a one-time JS click below makes Bar Analysis the
+    # default-active tab while keeping it in second position.
+    tab1, tab3, tab_massive, tab0, tab_chart, tab4, tab_wfa = st.tabs([
+        "📊 Bar Viewer", "📈 Bar Analysis", "📂 Massive", "🗂️ Data", "📈 Chart", "📊 Portfolio", "🔄 WFA",
     ])
+
+    # Auto-select Bar Analysis (index 1) once per browser session — guarded so it
+    # does NOT re-fire on every rerun and yank you off a tab you navigated to.
+    components.html(
+        """
+        <script>
+        (function () {
+          if (window.sessionStorage.getItem('ba_default_done')) return;
+          const doc = window.parent.document;
+          const tabs = doc.querySelectorAll('button[data-baseweb="tab"]');
+          if (tabs.length > 1) {
+            tabs[1].click();
+            window.sessionStorage.setItem('ba_default_done', '1');
+          }
+        })();
+        </script>
+        """,
+        height=0,
+    )
 
     contract_label = selected_key.split(" — ")[0] if selected_key else "ES"
 

@@ -1497,6 +1497,77 @@ def _run_stop_mult_sweep(
     return pd.DataFrame(rows)
 
 
+def _run_stop_target_sweep(
+    signals: pd.DataFrame, ticks_by_date: dict,
+    entry_slip: float, exit_slip: float, stop_offset: int,
+    tick_value: float, contracts: int, commission: float,
+    bars_by_date: dict | None = None,
+    multileg: bool = False, t1_r: float = 1.0,
+    t1_action: str = "exit", contracts_t1: int = 1, contracts_t2: int = 1,
+    stop_mults: list | None = None,
+    target_rs:  list | None = None,
+    first_trade_only: bool = False, first_2_filled_only: bool = False,
+    progress_cb=None,
+) -> pd.DataFrame:
+    """2-D grid sweep over (stop_mult × target_r), single-leg by default.
+
+    R is measured in stop units, so the stop axis also moves the *absolute*
+    target — the two parameters interact and the joint optimum can differ from
+    chaining the two 1-D sweeps. This crosses both axes so the real surface is
+    visible. Reuses _apply_stop_mult (stop scaling), simulate_trades +
+    _apply_day_trade_filters + compute_summary (exact engine path), and
+    _win_breakdown (Tgt%/EOD decomposition). Descriptive only — never a WFA input.
+
+    Built-in cross-check: the stop_mult = 1.00× column reproduces the 1-D R
+    sweep exactly, and the row at any given target_r reproduces the 1-D stop
+    sweep at that target.
+    """
+    if stop_mults is None:
+        stop_mults = _STOP_MULTS
+    if target_rs is None:
+        target_rs = [round(r * 0.25, 2) for r in range(2, 21)]   # 0.50 – 5.00
+
+    rows = []
+    total = len(stop_mults) * len(target_rs)
+    i = 0
+    for mult in stop_mults:
+        sigs = _apply_stop_mult(signals, mult)          # scale stop ONCE per column
+        for tr in target_rs:
+            i += 1
+            if progress_cb:
+                progress_cb(i / total, f"Stop {mult:.2f}× · T {tr:.2f}R ({i}/{total})")
+            res = simulate_trades(
+                sigs, ticks_by_date, tr,
+                entry_slip, exit_slip, stop_offset,
+                tick_value, contracts, commission,
+                bars_by_date=bars_by_date,
+                multileg=multileg, t1_r=t1_r, t1_action=t1_action,
+                contracts_t1=contracts_t1, contracts_t2=contracts_t2,
+            )
+            res = _apply_day_trade_filters(res, first_trade_only, first_2_filled_only)
+            s = compute_summary(res, commission, contracts=contracts, is_multileg=multileg,
+                                t1_action=t1_action,
+                                contracts_t1=contracts_t1, contracts_t2=contracts_t2)
+            if not s or s["n_trades"] == 0:
+                continue
+            _dd_abs = abs(s["max_dd"]) if s["max_dd"] != 0 else None
+            tgt_pct, eodw_pct, eodw_r = _win_breakdown(res)
+            rows.append({
+                "Stop Mult": f"{mult:.2f}×",
+                "R":         tr,
+                "Win %":     round(s["win_pct"], 1),
+                "Tgt %":     tgt_pct,
+                "EOD Win %": eodw_pct,
+                "PF":        round(s["pf"], 2) if s["pf"] < 99 else 99.9,
+                "Net PnL":   round(s["net_total"], 0),
+                "DD $":      round(_dd_abs, 0) if _dd_abs else 0.0,
+                "PnL/DD":    round(s["net_total"] / _dd_abs, 2) if _dd_abs else 0.0,
+                "Exp $":     round(s["exp_dollar"], 0),
+                "Trades":    int(s["n_trades"]),
+            })
+    return pd.DataFrame(rows)
+
+
 def _show_stop_sweep(signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
                      tick_value, contracts, commission, target_r, bars_by_date=None,
                      multileg: bool = False, t1_r: float = 1.0,
@@ -1566,6 +1637,181 @@ def _show_stop_sweep(signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
             legend=dict(x=0.01, y=0.99),
         )
         st.plotly_chart(fig, use_container_width=True)
+
+
+def _stop_target_plateau(df: pd.DataFrame):
+    """Neighbor-stability of the best PnL/DD cell on the stop×target grid.
+
+    Returns (best_val, stop_lbl, r_val, n_within, n_tot, tgt_pct, trades) where
+    n_within of n_tot of the 8 grid neighbors are within 10% of the best cell.
+    This is the anti-overfit guardrail: a lone spike whose neighbors fall away is
+    in-sample luck; a stable plateau is a robust region.
+    """
+    piv = df.pivot(index="Stop Mult", columns="R", values="PnL/DD")
+    row_order = sorted(piv.index, key=lambda s: float(str(s).rstrip("×")))
+    piv = piv.reindex(row_order)
+    arr = piv.values
+    if not np.isfinite(arr).any():
+        return None
+    bi, bj = np.unravel_index(np.nanargmax(arr), arr.shape)
+    best = arr[bi, bj]
+    n_within = n_tot = 0
+    for di in (-1, 0, 1):
+        for dj in (-1, 0, 1):
+            if di == 0 and dj == 0:
+                continue
+            ii, jj = bi + di, bj + dj
+            if 0 <= ii < arr.shape[0] and 0 <= jj < arr.shape[1]:
+                v = arr[ii, jj]
+                if np.isfinite(v):
+                    n_tot += 1
+                    if best != 0 and abs(v - best) <= 0.10 * abs(best):
+                        n_within += 1
+    stop_lbl = row_order[bi]
+    r_val    = piv.columns[bj]
+    cell = df[(df["Stop Mult"] == stop_lbl) & (df["R"] == r_val)]
+    tgt_pct = float(cell["Tgt %"].iloc[0]) if not cell.empty else float("nan")
+    trades  = int(cell["Trades"].iloc[0]) if not cell.empty else 0
+    return best, stop_lbl, r_val, n_within, n_tot, tgt_pct, trades
+
+
+def _show_stop_target_sweep(signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
+                            tick_value, contracts, commission, bars_by_date=None,
+                            multileg=False, t1_r=1.0, t1_action="exit",
+                            contracts_t1=1, contracts_t2=1,
+                            first_trade_only=False, first_2_filled_only=False):
+    _METRIC_COLS = ["Win %", "PF", "Net PnL", "DD $", "PnL/DD", "Exp $"]
+    _THRESHOLDS  = {"PF": 1.0, "Net PnL": 0, "PnL/DD": 0, "Exp $": 0}
+    with st.expander("🔍 2-D Stop × Target Sweep", expanded=False):
+        st.caption(
+            "Crosses stop size (× baseline stop) with target R. Because R is measured "
+            "in stop units, these two interact — the joint optimum can differ from "
+            "chaining the two 1-D sweeps. Read the surface for a stable PLATEAU, not a "
+            "lone peak. Descriptive only: this never feeds the WFA optimizer."
+        )
+
+        _c1, _c2, _c3 = st.columns(3)
+        with _c1:
+            st.caption("**Stop range** (× baseline)")
+            _sm_min = st.select_slider("Min stop mult", options=_STOP_MULTS,
+                                       value=0.50, key="ba_st_stop_min")
+            _sm_max = st.select_slider("Max stop mult", options=_STOP_MULTS,
+                                       value=1.25, key="ba_st_stop_max")
+        with _c2:
+            st.caption("**Target range** (R)")
+            _r_min = st.number_input("Min R", min_value=0.50, max_value=10.0,
+                                     value=0.50, step=0.25, key="ba_st_r_min")
+            _r_max = st.number_input("Max R", min_value=0.50, max_value=10.0,
+                                     value=3.00, step=0.25, key="ba_st_r_max")
+        _sel_mults = [m for m in _STOP_MULTS if _sm_min <= m <= _sm_max]
+        _lo, _hi = sorted((_r_min, _r_max))
+        _target_rs = [round(r * 0.25, 2) for r in
+                      range(max(2, round(_lo / 0.25)), round(_hi / 0.25) + 1)]
+
+        # filter-aware signal count (mirrors the scale-in expander)
+        _st_ok = signals[signals.get("FilterStatus", pd.Series("ok", index=signals.index)) == "ok"]
+        _st_sig = len(_st_ok)
+        if first_2_filled_only:
+            _st_sig = len(_st_ok.sort_values(["Date", "SignalNum"]).groupby("Date").head(2))
+        elif first_trade_only:
+            _st_sig = len(_st_ok.sort_values(["Date", "SignalNum"]).groupby("Date").head(1))
+
+        _n_combos = len(_sel_mults) * len(_target_rs)
+        with _c3:
+            st.caption("**Grid size**")
+            st.markdown(f"{len(_sel_mults)} stops × {len(_target_rs)} targets = "
+                        f"**{_n_combos} combos**")
+            st.caption(f"{_st_sig} signals")
+        if _n_combos > 200:
+            st.warning(f"{_n_combos} combos — each is a full engine simulation; this "
+                       "will be slow. Narrow a range to reduce it.")
+        if not _sel_mults or not _target_rs:
+            st.info("Pick a non-empty stop and target range.")
+            return
+
+        if st.button("Run 2-D Sweep", key="ba_run_st_sweep"):
+            _prog = st.progress(0.0)
+            _stat = st.empty()
+            def _st_cb(pct, msg):
+                _prog.progress(pct)
+                _stat.caption(msg)
+            with st.spinner(f"Running 2-D stop×target sweep ({_n_combos} combos)…"):
+                st_df = _run_stop_target_sweep(
+                    signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
+                    tick_value, contracts, commission,
+                    bars_by_date=bars_by_date, multileg=multileg, t1_r=t1_r,
+                    t1_action=t1_action, contracts_t1=contracts_t1, contracts_t2=contracts_t2,
+                    stop_mults=_sel_mults, target_rs=_target_rs,
+                    first_trade_only=first_trade_only, first_2_filled_only=first_2_filled_only,
+                    progress_cb=_st_cb,
+                )
+            _prog.empty()
+            _stat.empty()
+            if st_df.empty:
+                st.warning("No results.")
+                return
+            st.session_state["ba_st_sweep_df"] = st_df
+
+        st_df = st.session_state.get("ba_st_sweep_df")
+        if st_df is None or st_df.empty:
+            return
+
+        _metric = st.selectbox(
+            "Color heatmap by", ["PnL/DD", "Net PnL", "PF", "Exp $", "Win %"],
+            key="ba_st_metric",
+        )
+
+        # ── Heatmap (Stop Mult × Target R) ───────────────────────────────────
+        _pivot = st_df.pivot(index="Stop Mult", columns="R", values=_metric)
+        _row_order = sorted(_pivot.index, key=lambda s: float(str(s).rstrip("×")))
+        _pivot = _pivot.reindex(_row_order)
+        _x_labels = [f"{v:.2f}" for v in _pivot.columns]
+        _hover = "Stop: %{y}<br>Target R: %{x}<br>" + _metric + ": %{z}<extra></extra>"
+        _hfig = go.Figure(go.Heatmap(
+            x=_x_labels, y=list(_pivot.index),
+            z=_pivot.values.tolist(),
+            colorscale="RdYlGn",
+            hovertemplate=_hover,
+            colorbar=dict(title=_metric, thickness=14),
+        ))
+        _hfig.update_layout(
+            xaxis_title="Target (R)", yaxis_title="Stop Mult",
+            height=420, template="plotly_white",
+            margin=dict(l=60, r=20, t=30, b=60),
+        )
+        st.plotly_chart(_hfig, use_container_width=True)
+
+        # ── Plateau caption (anti-overfit guardrail) ─────────────────────────
+        _pl = _stop_target_plateau(st_df)
+        if _pl:
+            _best, _slbl, _rval, _nw, _nt, _tgt, _trd = _pl
+            _stable = _nt > 0 and _nw >= max(1, round(0.5 * _nt))
+            _verdict = ("stable plateau" if _stable
+                        else "isolated peak — treat as overfit")
+            _emoji = "🟢" if _stable else "🔴"
+            st.markdown(
+                f"{_emoji} **Best PnL/DD {_best:.2f} at {_slbl}/{_rval:.2f}R — "
+                f"{_nw}/{_nt} neighbors within 10% ({_verdict}).** "
+                f"That cell: {_trd} trades, Tgt% {_tgt:.1f}."
+            )
+            if _tgt < 30:
+                st.caption("⚠️ Low Tgt% at the winner — profit is mostly EOD closes, "
+                           "not target hits; this isn't really a stop/target edge.")
+            if _trd < 30:
+                st.caption("⚠️ Thin trade count at the winner — unreliable regardless "
+                           "of metric.")
+
+        # ── Ranked top-20 table ──────────────────────────────────────────────
+        st.caption(f"Top 20 cells by **{_metric}**")
+        _ranked = st_df.sort_values(_metric, ascending=False).head(20).reset_index(drop=True)
+        _ranked.index = _ranked.index + 1
+        _fmt = {"R": "{:.2f}", "Win %": "{:.1f}", "Tgt %": "{:.1f}", "EOD Win %": "{:.1f}",
+                "PF": "{:.2f}", "PnL/DD": "{:.2f}", "Trades": "{:.0f}",
+                "Net PnL": "${:.0f}", "DD $": "${:.0f}", "Exp $": "${:.0f}"}
+        _styled = _apply_best_green(
+            _ranked, _ranked.style.format(_fmt), _METRIC_COLS, _THRESHOLDS
+        )
+        st.dataframe(_styled, use_container_width=True)
 
 
 def _apply_best_green(sweep_df: pd.DataFrame, styled, metric_cols: list[str],
@@ -4917,6 +5163,18 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         entry_slip, exit_slip, stop_offset,
         tick_value, contracts, commission,
         target_r=target_r,
+        bars_by_date=bars_by_date_sim,
+        multileg=use_multileg, t1_r=t1_r,
+        t1_action=t1_action, contracts_t1=contracts_t1, contracts_t2=contracts_t2,
+        first_trade_only=first_trade_only, first_2_filled_only=first_2_filled_only,
+    )
+
+    # ── 2-D Stop × Target sweep (descriptive; never a WFA input) ──────────────
+    # target is an AXIS here, not a fixed input — so no target_r is passed.
+    _show_stop_target_sweep(
+        filtered_signals, ticks_by_date,
+        entry_slip, exit_slip, stop_offset,
+        tick_value, contracts, commission,
         bars_by_date=bars_by_date_sim,
         multileg=use_multileg, t1_r=t1_r,
         t1_action=t1_action, contracts_t1=contracts_t1, contracts_t2=contracts_t2,

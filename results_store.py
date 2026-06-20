@@ -152,7 +152,9 @@ def save_fold(
                   else float("nan"))
 
     rob_passed     = 1 if is_rob_pct >= 70.0 else 0
-    kurtosis_ok    = 1 if is_kurtosis <= 6.0  else 0
+    # Kurtosis is undefined when the IS sweep has <4 combos (e.g. all params pinned):
+    # there is no surface to measure. Store NULL (→ "N/A") rather than a false fail.
+    kurtosis_ok    = None if pd.isna(is_kurtosis) else (1 if is_kurtosis <= 6.0 else 0)
     min_trades_ok  = 1 if is_summary.get("n_trades", 0) >= 30 else 0
 
     values = (
@@ -283,13 +285,19 @@ def guardrail_report(folds_df: pd.DataFrame) -> dict:
     if folds_df.empty:
         return {}
     n = len(folds_df)
+    # Kurtosis pass/denominator derived from is_kurtosis directly (NaN = N/A, not a
+    # fail) — works for older runs that stored kurtosis_ok=0 for degenerate grids too.
+    _kurt    = pd.to_numeric(folds_df["is_kurtosis"], errors="coerce")
+    _kurt_n  = int(_kurt.notna().sum())
+    _kurt_ok = int((_kurt <= 6.0).sum())
     return {
         "total_folds":       n,
         "rob_passed":        int(folds_df["rob_passed"].sum()),
-        "kurtosis_ok":       int(folds_df["kurtosis_ok"].sum()),
+        "kurtosis_ok":       _kurt_ok,
+        "kurtosis_n":        _kurt_n,
         "min_trades_ok":     int(folds_df["min_trades_ok"].sum()),
         "oos_profitable":    int((folds_df["oos_net_pnl"] > 0).sum()),
         "pct_oos_profitable": round((folds_df["oos_net_pnl"] > 0).mean() * 100, 1),
-        "mean_wfe":          round(folds_df["wfe"].mean() * 100, 1),
+        "mean_wfe":          round(pd.to_numeric(folds_df["wfe"], errors="coerce").median() * 100, 1),
         "mean_prom_decay":   round(folds_df["prom_decay"].dropna().mean(), 3),
     }
