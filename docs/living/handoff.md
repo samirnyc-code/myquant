@@ -1,8 +1,43 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** June 19, 2026 (session 19)
+**Last Updated:** June 20, 2026 (session 20)
 **Current Versions:** SIM_v3.4 / GS_v4.5 / SHEET_v3.3  
 **Rule:** Read this file first every session. It is the only source of truth for current state.
+**Handoff hygiene (S20):** A competing handoff had grown in the `.claude/.../memory/` auto-memory folder and a new chat read *that* instead of this file. Fixed: added repo `CLAUDE.md` + rewrote `.claude` `MEMORY.md` to point here; deleted the duplicate session-state memories. **There is now ONE handoff: this file.**
+
+---
+
+## ⭐ SESSION 20 HANDOFF — June 20, 2026 (read first)
+*All work this session was **descriptive / read-only** (consistent with describe-don't-filter): regime research tooling in Bar Analysis, a new intraday efficiency indicator, and the MSS engine — validated and bug-fixed. No engine change. Committed + pushed (627a708, 18cd2b3). Plus the handoff-hygiene fix above.*
+
+### Bar Analysis — Regime/Indicator Expectancy expander (descriptive only)
+- **Factor Groups & Redundancy** (`_show_factor_groups`, `_FACTOR_MAP`) — groups the 15 regime indicators into latent factors (Displacement-from-value, Volatility, Trend strength, Intraday efficiency, Directional alignment, Market structure), marks the highest-RIC pick per factor (✅, `_RIC_FLOOR=35%`), prints an orthogonal shortlist, and shows a **Spearman correlation matrix** of the underlying values (|ρ|>0.6 ⇒ redundant). Purpose: stop the user stacking 3 filters that measure the same thing. On user data the shortlist ≈ **VWAP σ, 20-EMA alignment, Range/ATR, ADX** (+ intraday ER). User likes **Session VA** (defensible: low-DoF 3-bucket, prior-day-fixed reference).
+- **Time-distribution flag** (`_time_concentration`) — Notable Slices now shows a **Time Spread** column (🟢<40% / 🟡 / 🔴>65% of a slice's trades in its busiest 6-month window) + a per-slice caption. Guards against single-regime / windfall artifacts (e.g. the +802% VWAP tail).
+- **Slice Inspector** (`_plot_slice_inspector`) — pick any indicator/bucket → plots exactly those entries on the continuous price line (▲/▼ long/short, green/red W/L); Focus dropdown zooms to one trade (±5d). Directional/HOY/OR bucket labels now persisted on the trade frame so they're selectable.
+- **Auto-hypotheses corrected** — were wrongly framed as "mean-reversion"; MC is a **breakout / volatility-expansion** system. All hypothesis text now breakout-framed.
+
+### `indicators.py` — intraday Kaufman ER (new) + MSS engine
+- **`bar_kaufman_er(bars, spans=(6,12,24))`** = 30m/60m/120m developing ER on the 5M close, causal, merged in `tag_signals` → new **"Intraday Efficiency"** factor (fixed 0–1 bins). *Why:* the existing Kaufman ER is **daily (10-day)** = macro horizon (middling RIC); intraday tests trade-local efficiency. **Built as a ROBUSTNESS SET, not a tuned value** — read all three; a real edge is stable across lookbacks. Reminder: ATR/ADX(14), ER(10d), 252d percentile are **conventions, not optimized** — never sweep a lookback to fit the trades (= overfitting).
+- **MSS engine `calculate_market_structure`** — validated **look-ahead-safe** (the 4 merged cols are byte-identical under truncation). **Fixed a real bug**: the zigzag swing-low reversal gate (line ~406) was asymmetric (gated on the bar's *low*); now mirrors the swing-high gate (`h[i]-anchor>=threshold`). Added **Structural Trend** + **Deep Pullback** regime buckets. **BUT RIC ≈ 0–6% on user data → SHELVED as a filter** (structure state doesn't differentiate this breakout strat; revisit only with a reason). `last_swing_type` is non-causal (backfill) and correctly NOT merged.
+
+### UX + bug fixes
+- **Bar Analysis is now the default landing tab**; **ALL expanders default collapsed**; **load-status strip** under the title (✅ price / continuous / MC signals / RevFT) — renders at the END of `main()` via a container placeholder so it reflects state the tab blocks populate later.
+- Fixes: Slice Inspector **stale-selectbox crash** (composite keys per indicator/bucket); status strip **read empty state** (deferred render); Slice Inspector **blank chart** (`Scattergl`→`Scatter`; WebGL ignores axis `rangebreaks`).
+
+### ✅ DIRECTION — DECIDED (S20): multi-slice FILTER, validated via WFA
+- **Decision:** build a **locked multi-slice regime filter** and validate it in WFA. **Sizing is deferred** — it needs position granularity the user doesn't have at 1 ES contract; revisit sizing only on **MES** (micro, 1/10 size). So filtering is the pragmatic tool now; the old "prefer sizing" stance is paused for ES, not abandoned.
+- **What "filter" means here:** per shortlist indicator, KEEP a *set* of buckets (e.g. VWAP keep the tails / exclude inside; VA keep above+below / exclude inside; ADX keep most / drop with a reason). NOT a single slice.
+- **Discipline rails (non-negotiable — "survived WFA" only counts if these hold):**
+  1. Filter is **LOCKED before the run** and never re-tuned against OOS results. WFA optimizes only T1/T2/PB per fold.
+  2. **Pre-commit a small number** of hypothesis-driven filters; do NOT try many combos and keep the survivors (multiple-testing).
+  3. Prefer **open-ended thresholds** (e.g. |VWAP σ| ≥ 2) over hand-drawn bands (e.g. +2..+3). Capping the extreme usually = fitting to a thin in-sample bucket. Every kept/dropped bucket needs a structural *why*, not "it was red."
+
+### Session 21 priorities
+- **BUILD the locked multi-slice regime filter in WFA → Configure & Run** (next to the CC filter, ~wfa.py:838): per shortlist indicator, multiselect of buckets to KEEP (or a threshold); tag signals via `tag_signals`; filter the signal set BEFORE the fold loop; show post-filter trade count + time-spread; **never optimized by WFA**. Honor the discipline rails in the DIRECTION section.
+- Carry-forward from S19/S20: OOS Regime Analysis module per `setup_decision_manual.md` (regime stability across WF segments → Monte Carlo → profit concentration → report card); quick wins (top-10 profit concentration, profit-by-year, recovery time, concurrent-exposure %, acceptance report card); 15M timeframe (`bar_num_from_dt` 5M-hardcoded); vectorize 3-leg.
+
+### Carry-forward rules
+NEVER commit/push without explicit OK · user must have run the app · `git pull` first (two-machine) · Edit/Write only for source (PowerShell → mojibake) · all sims behind Run button · one engine = one trade definition · **regime filters are LOCKED before WFA and never optimized/re-tuned against OOS; pre-commit a few hypothesis-driven filters, don't combo-hunt; sizing is deferred to MES**.
 
 ---
 
