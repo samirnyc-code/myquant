@@ -601,6 +601,146 @@ def _equity_chart(oos_trades: pd.DataFrame, title: str = "Combined OOS Equity Cu
     return fig
 
 
+def _cells_from_folds(folds_df: pd.DataFrame) -> list[dict]:
+    """Loaded fold DataFrame → the list-of-dicts shape `_aggregate_grid_cell` wants
+    (so a stored run can be aggregated the same way an in-memory run is)."""
+    out = []
+    for _, r in folds_df.iterrows():
+        out.append({
+            "wfe": r["wfe"],
+            "oos_summary": {"net_total": r["oos_net_pnl"], "prom": r["oos_prom"],
+                            "pf": r["oos_pf"], "max_dd": r["oos_max_dd"]},
+        })
+    return out
+
+
+def _mc_dd95(pnl: np.ndarray, iters: int = 2000) -> float:
+    """95%-worst bootstrap max-drawdown of the realised OOS trades (seeded → stable
+    across reruns). Size capital against THIS, not the single realised path."""
+    n = len(pnl)
+    if n < 30:
+        return float("nan")
+    rng = np.random.default_rng(42)
+    maxdd = np.empty(iters)
+    for i in range(iters):
+        eq = np.cumsum(rng.choice(pnl, size=n, replace=True))
+        maxdd[i] = (eq - np.maximum.accumulate(eq)).min()
+    return float(np.percentile(maxdd, 5))
+
+
+def _compare_metrics(run_id: str, setup: str) -> dict | None:
+    """All side-by-side metrics for one stored run, OOS only. Mirrors
+    scripts/compare_va_filter.py so the in-app compare == the headless report."""
+    folds_df = load_folds(run_id, setup)
+    if folds_df.empty:
+        return None
+    agg = _aggregate_grid_cell(_cells_from_folds(folds_df))
+    oos = load_all_oos_trades(run_id, setup)
+    f = oos[oos["Filled"] == True].copy() if not oos.empty else pd.DataFrame()
+    if f.empty:
+        return {"n": 0, "n_folds": agg["n_folds"], "wfe": agg["mean_wfe"],
+                "prom": agg["mean_oos_prom"], "pct_green": agg["pct_oos_prof"]}
+    f = f.sort_values(["Date", "EntryTime"])
+    pnl = f["NetPnL"].to_numpy()
+    eq = np.cumsum(pnl)
+    dd = eq - np.maximum.accumulate(eq)
+    maxdd = float(dd.min())
+    net = float(eq[-1])
+    yr = pd.to_datetime(f["Date"]).dt.year
+    by_year = f.groupby(yr)["NetPnL"].sum()
+    best_share = float(by_year.max() / net * 100) if net > 0 else float("nan")
+    tuw = _max_underwater_days(f["Date"], pd.Series(eq < np.maximum.accumulate(eq)))
+    dd95 = _mc_dd95(pnl)
+    return {
+        "n": len(f), "n_folds": agg["n_folds"], "net": net,
+        "exp": float(pnl.mean()), "win": float((pnl > 0).mean() * 100),
+        "med": float(np.median(pnl)), "pct_green": agg["pct_oos_prof"],
+        "best_share": best_share, "maxdd": maxdd,
+        "mar": (net / abs(maxdd)) if maxdd < 0 else float("nan"),
+        "dd95": dd95, "mar95": (net / abs(dd95)) if (not np.isnan(dd95) and dd95 < 0) else float("nan"),
+        "longest_uw": tuw, "wfe": agg["mean_wfe"], "prom": agg["mean_oos_prom"],
+    }
+
+
+def _compare_overlay_chart(a_oos: pd.DataFrame, b_oos: pd.DataFrame,
+                           a_id: str, b_id: str) -> go.Figure:
+    """Overlay two runs' combined OOS equity curves on one axis."""
+    fig = go.Figure()
+    for oos, name, color in ((a_oos, a_id, "#00d4aa"), (b_oos, b_id, "#f5a623")):
+        if oos is None or oos.empty or "NetPnL" not in oos.columns:
+            continue
+        d = oos[oos["Filled"] == True].copy().sort_values(["Date", "EntryTime"])
+        if d.empty:
+            continue
+        d["Equity"] = d["NetPnL"].cumsum()
+        fig.add_trace(go.Scatter(x=d["Date"].astype(str), y=d["Equity"],
+                                 mode="lines", name=name, line=dict(color=color, width=2)))
+    return _dark_layout(fig, "Combined OOS Equity — overlay", height=380)
+
+
+def _compare_runs_ui(all_runs: pd.DataFrame, run_labels: list[str], default_a: str) -> None:
+    """Side-by-side of two stored WFA runs: OOS metrics diff + overlaid equity.
+    Read-only — it loads persisted runs and never re-runs a sim or tunes anything."""
+    ids = all_runs["run_id"].tolist()
+    a_default = ids.index(default_a) if default_a in ids else 0
+    b_default = next((i for i in range(len(ids)) if i != a_default), a_default)
+
+    c1, c2 = st.columns(2)
+    a_lbl = c1.selectbox("Run A", run_labels, index=a_default, key="wfa_cmp_a")
+    b_lbl = c2.selectbox("Run B", run_labels, index=b_default, key="wfa_cmp_b")
+    a_row = all_runs.iloc[run_labels.index(a_lbl)]
+    b_row = all_runs.iloc[run_labels.index(b_lbl)]
+    a_id, a_setup = a_row["run_id"], a_row["setup_id"]
+    b_id, b_setup = b_row["run_id"], b_row["setup_id"]
+    if a_id == b_id:
+        st.caption("Pick two different runs to compare.")
+        return
+
+    a = _compare_metrics(a_id, a_setup)
+    b = _compare_metrics(b_id, b_setup)
+    if not a or not b or a.get("n", 0) == 0 or b.get("n", 0) == 0:
+        st.info("Both runs need persisted OOS trades to compare.")
+        return
+
+    def _money(x): return f"${x:,.0f}"
+    rows = [
+        ("OOS trades (filled)",        f"{a['n']}", f"{b['n']}"),
+        ("Net $",                      _money(a["net"]), _money(b["net"])),
+        ("Expectancy $/trade",         f"${a['exp']:,.1f}", f"${b['exp']:,.1f}"),
+        ("Win%",                       f"{_fmt(a['win'],'.1f')}%", f"{_fmt(b['win'],'.1f')}%"),
+        ("Median trade $",             f"${a['med']:,.1f}", f"${b['med']:,.1f}"),
+        ("% OOS windows green",        f"{_fmt(a['pct_green'],'.0f')}%", f"{_fmt(b['pct_green'],'.0f')}%"),
+        ("Best-year share % (OOS)",    f"{_fmt(a['best_share'],'.0f')}%", f"{_fmt(b['best_share'],'.0f')}%"),
+        ("Max DD $",                   _money(a["maxdd"]), _money(b["maxdd"])),
+        ("MAR (net÷|maxDD|)",          _fmt(a["mar"], ".2f"), _fmt(b["mar"], ".2f")),
+        ("MC DD95 $",                  _money(a["dd95"]), _money(b["dd95"])),
+        ("MAR95 (net÷|MC DD95|)",      _fmt(a["mar95"], ".2f"), _fmt(b["mar95"], ".2f")),
+        ("Longest underwater (days)",  f"{a['longest_uw']}", f"{b['longest_uw']}"),
+        ("Median WFE %",               f"{_fmt(a['wfe'],'.0f')}%", f"{_fmt(b['wfe'],'.0f')}%"),
+        ("Mean PROM",                  _fmt(a["prom"], ".2f"), _fmt(b["prom"], ".2f")),
+        ("Folds",                      f"{a['n_folds']}", f"{b['n_folds']}"),
+    ]
+    table = pd.DataFrame(rows, columns=["Metric", f"A · {a_id}", f"B · {b_id}"])
+    st.dataframe(table, use_container_width=True, hide_index=True)
+
+    # Overlaid OOS equity
+    a_oos = load_all_oos_trades(a_id, a_setup)
+    b_oos = load_all_oos_trades(b_id, b_setup)
+    st.plotly_chart(_compare_overlay_chart(a_oos, b_oos, f"A · {a_id}", f"B · {b_id}"),
+                    use_container_width=True)
+
+    # Read aids (no auto-verdict — the user judges; just surface the traps)
+    if b["n"] < a["n"] and b["net"] >= a["net"]:
+        st.caption(f"⚠️ B keeps fewer trades ({b['n']} vs {a['n']}) yet earns **more** net "
+                   "OOS — a filter improving net on fewer trades is NOT a PF-by-attrition artifact.")
+    _wfe_lo = lambda m: (not np.isnan(m["wfe"])) and m["wfe"] < 50
+    if (_wfe_lo(a) or _wfe_lo(b)):
+        st.caption("ℹ️ **WFE caveat:** WFE = OOS÷IS. A *stronger in-sample* (larger denominator) "
+                   "lowers WFE even when OOS is equal-or-better — so judge OOS durability on "
+                   "**Mean PROM, best-year share, and MAR/DD95**, not WFE alone (S21/S22 flagged "
+                   "WFE as denominator-fragile).")
+
+
 def _flag(v) -> str:
     """NaN-safe boolean → ✓/✗/—. Robust to int64 1/0, bool, or NaN."""
     if pd.isna(v):
@@ -1312,6 +1452,13 @@ def show_wfa_tab() -> None:
         if folds_df.empty:
             st.info("No fold data for this run.")
             return
+
+        # ── Compare two runs (side-by-side OOS metrics + overlaid equity) ──────
+        if len(all_runs) >= 2:
+            with st.expander("⚖️ Compare Two Runs", expanded=False):
+                st.caption("Read-only side-by-side of any two persisted runs — OOS metrics "
+                           "diff and overlaid equity. Loads stored results; never re-runs a sim.")
+                _compare_runs_ui(all_runs, run_labels, sel_run_id)
 
         # ── Guardrail summary ─────────────────────────────────────────────────
         with st.expander("🔒 Kaufman / Pardo Guardrails", expanded=False):
