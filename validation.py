@@ -583,7 +583,7 @@ def show_gate_body(
 
 def show_validation_tab():
     # ── Data Sources ──────────────────────────────────────────────────────────
-    with st.expander("📁 Data Sources", expanded=True):
+    with st.expander("📁 Data Sources", expanded=False):
         uc1, uc2 = st.columns(2)
 
         sc_bars = st.session_state.get("data_sc_5m")

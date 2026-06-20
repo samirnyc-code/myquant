@@ -1460,10 +1460,16 @@ def _run_stop_mult_sweep(
     multileg: bool = False, t1_r: float = 1.0,
     t1_action: str = "exit", contracts_t1: int = 1, contracts_t2: int = 1,
     first_trade_only: bool = False, first_2_filled_only: bool = False,
+    progress_cb=None, mults: list | None = None,
 ) -> pd.DataFrame:
-    """Sweep stop multipliers [0.25 … 1.00] at the current target R."""
+    """Sweep stop multipliers at the current target R."""
+    if mults is None:
+        mults = _STOP_MULTS
     rows = []
-    for mult in _STOP_MULTS:
+    total = len(mults)
+    for i, mult in enumerate(mults):
+        if progress_cb:
+            progress_cb((i + 1) / total, f"Stop {mult:.2f}× ({i+1}/{total})")
         sigs = _apply_stop_mult(signals, mult)
         res  = simulate_trades(sigs, ticks_by_date, target_r,
                                entry_slip, exit_slip, stop_offset,
@@ -1500,11 +1506,25 @@ def _show_stop_sweep(signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
     _THRESHOLDS  = {"PF": 1.0, "Net PnL": 0, "PnL/DD": 0, "Exp $": 0}
     with st.expander("🔍 Stop Multiplier Sweep", expanded=False):
         st.caption(
-            f"Runs simulation at {len(_STOP_MULTS)} stop sizes "
-            f"(0.25×–2.00× of the original signal stop) at the current target R = {target_r:.2f}. "
+            "Runs simulation at multiple stop sizes "
+            f"(multiplier of the original signal stop) at the current target R = {target_r:.2f}. "
             "1.00× is the baseline (original stop). Target scales proportionally with the stop."
         )
+        _sc1, _sc2 = st.columns(2)
+        _sm_min = _sc1.select_slider("Min stop mult", options=_STOP_MULTS,
+                                     value=0.75, key="ba_stop_min")
+        _sm_max = _sc2.select_slider("Max stop mult", options=_STOP_MULTS,
+                                     value=1.50, key="ba_stop_max")
+        _sel_mults = [m for m in _STOP_MULTS if _sm_min <= m <= _sm_max]
+        st.caption(f"**{len(_sel_mults)}** stop sizes: "
+                   f"{', '.join(f'{m:.2f}×' for m in _sel_mults)}")
+
         if st.button("Run Stop Sweep", key="ba_run_stop_sweep"):
+            _prog = st.progress(0.0)
+            _stat = st.empty()
+            def _stop_cb(pct, msg):
+                _prog.progress(pct)
+                _stat.caption(msg)
             with st.spinner("Running stop sweep…"):
                 stop_df = _run_stop_mult_sweep(
                     signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
@@ -1512,7 +1532,10 @@ def _show_stop_sweep(signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
                     bars_by_date=bars_by_date, multileg=multileg, t1_r=t1_r,
                     t1_action=t1_action, contracts_t1=contracts_t1, contracts_t2=contracts_t2,
                     first_trade_only=first_trade_only, first_2_filled_only=first_2_filled_only,
+                    progress_cb=_stop_cb, mults=_sel_mults,
                 )
+            _prog.empty()
+            _stat.empty()
             if stop_df.empty:
                 st.warning("No results.")
                 return
@@ -2398,12 +2421,22 @@ def _show_tod_dow_breakdown(results: pd.DataFrame):
                    "Treat any n below ~15–20 as too sparse to interpret.")
 
 
-# Percentile bucket edges/labels (0–1 percentile inputs) and VWAP σ-bands.
+# ── Regime bucket constants ──────────────────────────────────────────────────
 _PCT_EDGES   = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
 _PCT_LABELS  = ["0–20", "20–40", "40–60", "60–80", "80–100"]
-_VWAP_EDGES  = [-np.inf, -2, -1, 1, 2, np.inf]
-_VWAP_LABELS = ["≤ −2σ", "−2..−1σ", "−1..+1σ", "+1..+2σ", "≥ +2σ"]
+_VWAP_EDGES  = ([-4.5 + i * 0.5 for i in range(19)]   # −4.5 to +4.5 in 0.5 steps
+                + [np.inf])
+_VWAP_EDGES[0] = -np.inf
+_VWAP_LABELS = ([f"{_VWAP_EDGES[i]:+.1f}..{_VWAP_EDGES[i+1]:+.1f}σ"
+                 for i in range(len(_VWAP_EDGES) - 1)])
+_VWAP_LABELS[0]  = "≤ −4.0σ"
+_VWAP_LABELS[-1] = "≥ +4.0σ"
 _TERCILE     = [0.0, 1 / 3, 2 / 3, 1.0]
+_RANGE_ATR_EDGES  = [0.0, 0.6, 0.8, 1.0, 1.2, np.inf]
+_RANGE_ATR_LABELS = ["<0.6", "0.6–0.8", "0.8–1.0", "1.0–1.2", ">1.2"]
+# Intraday Kaufman ER is already 0–1, so use fixed bins (no percentile window).
+_ERI_EDGES   = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
+_ERI_LABELS  = ["0–0.2 chop", "0.2–0.4", "0.4–0.6", "0.6–0.8", "0.8–1.0 trend"]
 
 
 @st.cache_data(show_spinner="Tagging trades with regime indicators…")
@@ -2415,20 +2448,437 @@ def _tag_trades_cached(fp: int, _filled: pd.DataFrame, _bars: pd.DataFrame) -> p
         "DateTime": pd.to_datetime(_filled["EntryTime"]).values,
         "Price": _filled["EntryPrice"].astype(float).values,
     })
+    if "Direction" in _filled.columns:
+        base["Direction"] = _filled["Direction"].values
     tags = ind.tag_signals(base, _bars, periods=("session", "weekly", "monthly"))
     tags = tags.set_index("_idx").sort_index()
-    cols = ["VWAP_dev", "prior_ATR_pct", "prior_ADX_pct", "prior_ATR", "prior_ADX",
-            "vaD_loc", "vaW_loc", "vaM_loc"]
+    cols = [c for c in tags.columns if c not in ("_idx", "DateTime", "Price", "Direction")]
     return tags[cols].reset_index(drop=True)
+
+
+def _compute_ric(bucket_df: pd.DataFrame, total_exp: float) -> float:
+    """Regime Information Coefficient (normalized): sample-weighted MAD of bucket
+    expectancy from the baseline, divided by |baseline|.
+    0% = uniform performance across buckets, 100%+ = strongly polarized."""
+    n = bucket_df["Trades"].values.astype(float)
+    total = n.sum()
+    if total == 0 or total_exp == 0:
+        return 0.0
+    exp = bucket_df["Net PnL"].values / np.where(n > 0, n, 1.0)
+    raw = float(np.sum((n / total) * np.abs(exp - total_exp)))
+    return raw / abs(total_exp) * 100.0
+
+
+def _auto_hypothesis(category: str, indicator: str, bucket: str,
+                     positive: bool) -> str:
+    """Generate a default structural hypothesis for a notable regime slice."""
+    edge = "higher" if positive else "lower"
+    anti = "lower" if positive else "higher"
+
+    _hyp = {
+        # Volatility
+        ("Volatility", "ATR percentile"): {
+            True: {
+                "80–100": "High-volatility regimes produce wider swings — breakout/expansion signals get larger follow-through and R-multiples are bigger in point terms.",
+                "0–20": "Very low volatility compresses ranges — breakouts from compression can be clean and directional, but targets may need to be tighter.",
+            },
+            False: {
+                "0–20": "Low-volatility regimes lack the range for targets to be hit intraday — trades stall and exit EOD or at small losses.",
+                "80–100": "Extreme volatility overruns stops before expansion can develop cleanly — whipsaws dominate.",
+            },
+        },
+        ("Volatility", "Prior-day Range/ATR"): {
+            True: {
+                "<0.6": "Compressed prior day (range < 0.6× ATR) precedes expansion — signals at the start of a new move tend to be higher quality.",
+                ">1.2": "Extended prior day may trigger profit-taking / reversion the next session — breakout entries may face exhaustion.",
+            },
+            False: {
+                ">1.2": "After an extended day, continuation pressure can overrun stops before reversion occurs.",
+                "<0.6": "After compression, breakout direction is uncertain — signals may be false starts.",
+            },
+        },
+        # Trend
+        ("Trend", "ADX percentile"): {
+            True: {
+                "0–20": "Low ADX = no dominant trend = range-bound market — breakout signals may lack follow-through without directional momentum.",
+                "80–100": "Strong trend provides directional conviction — breakout entries align with the dominant momentum.",
+            },
+            False: {
+                "80–100": "Strong trends in the wrong direction overpower breakout signals — counter-trend entries get steamrolled.",
+                "0–20": "Choppy with no direction — signals lack the initial expansion quality needed for clean follow-through.",
+            },
+        },
+        ("Trend", "Kaufman ER percentile"): {
+            True: {
+                "0–20": "Low efficiency = choppy path — breakout signals may whipsaw as price oscillates without direction.",
+                "80–100": "High efficiency = clean directional move — breakout entries ride sustained momentum with minimal noise.",
+            },
+            False: {
+                "80–100": "Highly efficient trends in the wrong direction trap counter-trend breakout entries.",
+                "0–20": "Ultra-choppy conditions produce noisy signals with poor follow-through in either direction.",
+            },
+        },
+    }
+
+    # Market Structure
+    _mss_hyp = {
+        ("Market Structure", "Structural Trend"): {
+            True: {
+                "Bullish": "Breakout signals firing with bullish market structure — HH/HL sequence supports expansion entries.",
+                "Bearish": "Breakout signals fire during bearish structure — short-side entries align with LL/LH sequence.",
+            },
+            False: {
+                "Bullish": "Long breakouts underperform in bullish structure — may be buying late into established moves.",
+                "Bearish": "Short breakouts underperform in bearish structure — may be selling into established declines.",
+            },
+        },
+        ("Market Structure", "Deep Pullback (liquidity sweep)"): {
+            True: {
+                "Yes": "Liquidity sweep (wick pierce without close) — smart money absorbed the stop hunt, expansion follows.",
+                "No": "No liquidity sweep — clean structural trend, breakout signals fire in orderly market.",
+            },
+            False: {
+                "Yes": "Liquidity sweep destabilizes — the stop hunt creates noise that degrades signal quality.",
+                "No": "No sweep but still underperforms — breakout signal fires in ambiguous structure.",
+            },
+        },
+    }
+
+    # check MSS keys
+    key = (category, indicator)
+    if key in _mss_hyp and positive in _mss_hyp[key]:
+        for pattern, text in _mss_hyp[key][positive].items():
+            if pattern in bucket:
+                return text
+
+    # Directional indicators
+    _dir_hyp = {
+        "Above/Below 20 EMA (directional)": {
+            "Aligned": "Trading in the direction of the short-term trend (20 EMA) — breakout momentum and EMA bias are aligned.",
+            "Misaligned": "Counter-trend to the 20 EMA — the breakout signal fights the prevailing short-term momentum.",
+        },
+        "Above/Below VWAP (directional)": {
+            "Aligned": "Trading in the direction of institutional flow (VWAP) — institutional volume supports the trade direction.",
+            "Misaligned": "Counter to VWAP positioning — fighting the volume-weighted fair value of the session.",
+        },
+        "Above/Below Open of Day (directional)": {
+            "Aligned": "Price above open for longs / below for shorts — session bias confirms trade direction.",
+            "Misaligned": "Trading against the session's opening bias — early session direction is a weak but real signal.",
+        },
+        "vs Prior-Day High/Low": {
+            "Above HOY": "Price above yesterday's high — breakout/extension territory. Expansion signals align with the directional move.",
+            "Below LOY": "Price below yesterday's low — breakdown zone. Short-side breakout signals align with selling pressure.",
+            "Between": "Price within yesterday's range — no extreme displacement. Breakout signals may lack follow-through without a level break.",
+        },
+        "vs 60-min Opening Range": {
+            "Above OR": "Above the 60-min opening range — directional bias established. Breakout longs ride session momentum.",
+            "Below OR": "Below the 60-min opening range — bearish bias. Breakout shorts align with session direction.",
+            "Inside OR": "Inside the opening range — no directional bias yet. Signals are in a balance zone.",
+        },
+    }
+
+    # VWAP sigma
+    if "VWAP" in indicator and "σ" in indicator:
+        if "−" in bucket or bucket.startswith("≤"):
+            if positive:
+                return "Price well below session VWAP — breakout signals fire at displacement from institutional fair value, expansion room is larger."
+            return "Deep below VWAP may indicate persistent selling pressure — long-side breakouts fight the institutional flow."
+        if "+" in bucket or bucket.startswith("≥"):
+            if positive:
+                return "Price well above session VWAP — breakout signals fire at displacement from fair value, momentum has room to expand."
+            return "Extended above VWAP may indicate strong buying exhaustion — short-side breakouts fight the flow."
+        if positive:
+            return "Near-VWAP signals trade in the acceptance zone — breakouts from fair value may lack the displacement for follow-through."
+        return "Near VWAP = low displacement — targets may not be reached before EOD."
+
+    # Value areas
+    if "value-area" in indicator:
+        va_hyp = {
+            "above": ("Price above prior value area — displaced from acceptance, breakout/expansion signals have room to run.",
+                      "Price above value area in a strong trend — continuation may exhaust before targets are reached."),
+            "below": ("Price below prior value area — displaced below acceptance, breakout shorts align with rejection.",
+                      "Below value = breakdown territory — long-side breakouts fight selling pressure."),
+            "inside": ("Inside prior value area — high-volume acceptance zone, breakout signals may lack displacement for follow-through.",
+                       "Inside value = no edge — trades perform at baseline because there's no displacement to exploit."),
+        }
+        if bucket in va_hyp:
+            return va_hyp[bucket][0 if positive else 1]
+
+    # Directional indicators
+    for ind_name, buckets in _dir_hyp.items():
+        if ind_name in indicator and bucket in buckets:
+            return buckets[bucket]
+
+    # Percentile-based lookups
+    key = (category, indicator)
+    if key in _hyp and positive in _hyp[key]:
+        for pattern, text in _hyp[key][positive].items():
+            if pattern in bucket:
+                return text
+
+    # Generic fallback
+    if positive:
+        return f"This regime slice shows {edge} expectancy — investigate the structural market reason before using as a filter."
+    return f"This regime slice shows {anti} expectancy — understand why before excluding these trades."
+
+
+_RTH_RANGEBREAKS = [
+    dict(bounds=["sat", "mon"]),
+    dict(bounds=[15.25, 8.5], pattern="hour"),
+]
+
+
+def _time_concentration(entry_times) -> tuple:
+    """How concentrated in calendar time is a slice's trades?
+
+    Returns (emoji, top6mo_share, comment). A slice whose edge is bunched into
+    one 6-month window is a single-regime artifact, not a persistent filter.
+    🟢 well-spread (<40% in any 6mo) · 🟡 moderate (40–65%) · 🔴 concentrated (>65%).
+    """
+    ts = pd.to_datetime(pd.Series(list(entry_times))).dropna().sort_values()
+    if len(ts) < 3:
+        return "•", 1.0, "too few trades to assess time spread"
+    months = ts.dt.to_period("M")
+    full = pd.period_range(months.min(), months.max(), freq="M")
+    counts = months.value_counts().reindex(full, fill_value=0).sort_index()
+    if len(counts) <= 6:
+        share = 1.0
+        win = f"{full.min().strftime('%b %Y')}–{full.max().strftime('%b %Y')}"
+    else:
+        roll = counts.rolling(6).sum()
+        share = float(roll.max()) / len(ts)
+        end_i = int(np.nanargmax(roll.values))
+        start_i = max(0, end_i - 5)
+        win = f"{full[start_i].strftime('%b %Y')}–{full[end_i].strftime('%b %Y')}"
+    emoji = "🟢" if share < 0.40 else ("🟡" if share < 0.65 else "🔴")
+    return emoji, share, f"{share:.0%} of these trades fall in {win}"
+
+
+def _plot_slice_inspector(d: pd.DataFrame, bars: pd.DataFrame, bucket_defs: list):
+    """Plot the trades that fall in a chosen indicator/bucket on the continuous
+    price series. Read-only — purely for eyeballing where a slice's trades live."""
+    # indicators whose per-trade bucket column is present on the trade frame
+    opts = {}
+    for cat, name, col, order, ric, bdf in bucket_defs:
+        if col in d.columns:
+            opts[f"{name}"] = (col, [str(o) for o in order])
+    if not opts:
+        st.info("No tagged bucket columns available to inspect.")
+        return
+
+    c1, c2, c3 = st.columns([2, 1.6, 1.4])
+    ind_name = c1.selectbox("Indicator", list(opts), key="ba_si_ind")
+    col, order = opts[ind_name]
+
+    present = [str(b) for b in d[col].dropna().astype(str).unique()]
+    ordered = [b for b in order if b in present] + [b for b in present if b not in order]
+    if not ordered:
+        st.info("No trades tagged for this indicator.")
+        return
+    # Composite key: switching Indicator gives a fresh Bucket widget, so a stale
+    # bucket label from a different indicator can't crash the selectbox.
+    bucket = c2.selectbox("Bucket", ordered, key=f"ba_si_bucket::{ind_name}")
+
+    sub = d[d[col].astype(str) == str(bucket)].copy()
+    sub = sub[sub["EntryTime"].notna() & sub["EntryPrice"].notna()]
+    if sub.empty:
+        st.info("No trades in this slice.")
+        return
+
+    # focus control: whole range, or zoom to a single trade (±5 trading days).
+    # Per-trade list only for reasonably small slices; big buckets stay "All".
+    _FOCUS_CAP = 300
+    if len(sub) <= _FOCUS_CAP:
+        focus_opts = ["All trades"] + [
+            f"{i+1}. {pd.to_datetime(t).strftime('%Y-%m-%d %H:%M')} "
+            f"{dir_} ({pnl:+,.0f})"
+            for i, (t, dir_, pnl) in enumerate(zip(
+                sub["EntryTime"], sub.get("Direction", pd.Series("", index=sub.index)),
+                sub["NetPnL"]))
+        ]
+    else:
+        focus_opts = ["All trades"]
+    # Key depends on indicator+bucket so changing the slice resets Focus to "All".
+    focus = c3.selectbox("Focus", focus_opts, key=f"ba_si_focus::{ind_name}::{bucket}")
+    if len(sub) > _FOCUS_CAP:
+        c3.caption(f"{len(sub)} trades — too many to list; zoom manually.")
+
+    n_win = int((sub["NetPnL"] > 0).sum())
+    n_los = int((sub["NetPnL"] <= 0).sum())
+    exp = float(sub["NetPnL"].mean())
+    st.caption(f"**{ind_name} → {bucket}** · {len(sub)} trades "
+               f"({n_win}W / {n_los}L) · Exp ${exp:+,.0f}/trade · "
+               f"Net ${sub['NetPnL'].sum():+,.0f}")
+
+    # price line over the full series (downsample so the line stays light)
+    b = bars.sort_values("DateTime")
+    step = max(1, len(b) // 12000)
+    line = b.iloc[::step]
+
+    is_long = sub.get("Direction", pd.Series("", index=sub.index)) \
+                 .astype(str).str.upper().str.startswith("L")
+    win = sub["NetPnL"] > 0
+
+    fig = go.Figure()
+    fig.add_trace(go.Scattergl(
+        x=line["DateTime"], y=line["Close"], mode="lines",
+        line=dict(width=0.8, color="#5a6472"), name="ES (continuous)",
+        hoverinfo="skip"))
+
+    for lbl, m_dir, sym in [("Long", is_long, "triangle-up"),
+                            ("Short", ~is_long, "triangle-down")]:
+        for wlbl, m_win, color in [("win", win, "#26a69a"),
+                                   ("loss", ~win, "#ef5350")]:
+            mk = sub[m_dir & m_win]
+            if mk.empty:
+                continue
+            fig.add_trace(go.Scattergl(
+                x=mk["EntryTime"], y=mk["EntryPrice"], mode="markers",
+                marker=dict(symbol=sym, size=10, color=color,
+                            line=dict(width=0.5, color="#0e1117")),
+                name=f"{lbl} {wlbl}",
+                customdata=np.c_[mk["NetPnL"].values],
+                hovertemplate=("%{x|%Y-%m-%d %H:%M}<br>" + lbl +
+                               " @ %{y:.2f}<br>PnL $%{customdata[0]:+,.0f}"
+                               "<extra></extra>")))
+
+    layout = dict(
+        height=520, margin=dict(l=50, r=20, t=20, b=30),
+        plot_bgcolor="#0e1117", paper_bgcolor="#0e1117", font=dict(color="#e0e0e0"),
+        dragmode="pan", xaxis_rangeslider_visible=False,
+        legend=dict(orientation="h", y=1.02, yanchor="bottom",
+                    bgcolor="rgba(0,0,0,0)"))
+    fig.update_xaxes(rangebreaks=_RTH_RANGEBREAKS, showgrid=False)
+    fig.update_yaxes(showgrid=True, gridcolor="#2a2a2a")
+
+    if focus != "All trades":
+        idx = focus_opts.index(focus) - 1
+        ft = pd.to_datetime(sub["EntryTime"].iloc[idx])
+        x0, x1 = ft - pd.Timedelta(days=5), ft + pd.Timedelta(days=5)
+        win_bars = b[(b["DateTime"] >= x0) & (b["DateTime"] <= x1)]
+        layout["xaxis"] = dict(range=[x0, x1])
+        if not win_bars.empty:
+            pad = (win_bars["High"].max() - win_bars["Low"].min()) * 0.1 or 5
+            layout["yaxis"] = dict(range=[win_bars["Low"].min() - pad,
+                                          win_bars["High"].max() + pad])
+
+    fig.update_layout(**layout)
+    st.plotly_chart(fig, use_container_width=True,
+                    config={"scrollZoom": True, "displayModeBar": True})
+    st.caption("Continuous back-adjusted price. Drag to pan · scroll to zoom · "
+               "use **Focus** to jump to one trade (±5 days). For full indicator "
+               "overlays use the 📈 Continuous Chart tab.")
+
+
+# Latent factor each indicator proxies → use the best 1 per factor, not all of
+# them (correlated filters double-count the same edge and shrink the sample).
+_FACTOR_MAP = {
+    "VWAP deviation (0.5σ)":               "Displacement from value",
+    "Above/Below VWAP (directional)":      "Displacement from value",
+    "Session value-area location":         "Displacement from value",
+    "Weekly value-area location":          "Displacement from value",
+    "Monthly value-area location":         "Displacement from value",
+    "vs Prior-Day High/Low":               "Displacement from value",
+    "vs 60-min Opening Range":             "Displacement from value",
+    "Prior-day Range/ATR":                 "Volatility regime",
+    "ATR percentile":                      "Volatility regime",
+    "ADX percentile":                      "Trend strength",
+    "Kaufman ER percentile":               "Trend strength",
+    "Intraday ER 30m":                     "Intraday efficiency",
+    "Intraday ER 60m":                     "Intraday efficiency",
+    "Intraday ER 120m":                    "Intraday efficiency",
+    "Above/Below 20 EMA (directional)":    "Directional alignment",
+    "Above/Below Open of Day (directional)": "Directional alignment",
+    "Structural Trend":                    "Market structure",
+    "Deep Pullback (liquidity sweep)":     "Market structure",
+}
+_FACTOR_ORDER = ["Displacement from value", "Volatility regime", "Trend strength",
+                 "Intraday efficiency", "Directional alignment", "Market structure"]
+_RIC_FLOOR = 35.0   # below this, an indicator differentiates too little to filter on
+
+
+def _show_factor_groups(d: pd.DataFrame, bucket_defs: list):
+    """Group indicators by the latent factor they proxy, recommend the best one
+    per factor (avoid redundant filters), and show an empirical Spearman
+    correlation matrix so the conceptual grouping can be confirmed on the data."""
+    st.markdown("---")
+    st.markdown("### Factor Groups & Redundancy — pick ~1 per group")
+    st.caption("Indicators that measure the *same underlying thing* are redundant — "
+               "stacking them double-counts one edge and shrinks your sample. "
+               "Use the highest-RIC indicator in each factor (✅), confirm with the "
+               "correlation matrix below.")
+
+    ric_by_name = {name: ric for _, name, _, _, ric, _ in bucket_defs}
+
+    rows, shortlist = [], []
+    for factor in _FACTOR_ORDER:
+        members = [(n, ric_by_name[n]) for n in ric_by_name
+                   if _FACTOR_MAP.get(n) == factor]
+        if not members:
+            continue
+        members.sort(key=lambda x: x[1], reverse=True)
+        best_name, best_ric = members[0]
+        for j, (n, ric) in enumerate(members):
+            if j == 0 and best_ric >= _RIC_FLOOR:
+                pick = "✅ use this"
+                shortlist.append((n, ric))
+            elif j == 0:
+                pick = f"⚠️ best in group but RIC < {_RIC_FLOOR:.0f}% — weak"
+            else:
+                pick = "redundant proxy"
+            rows.append({"Factor": factor, "Indicator": n,
+                         "RIC %": f"{ric:.0f}%", "Use?": pick})
+    if rows:
+        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+    if shortlist:
+        chips = " · ".join(f"**{n}** ({r:.0f}%)" for n, r in shortlist)
+        st.success(f"Suggested orthogonal shortlist: {chips}")
+    else:
+        st.warning(f"No factor has an indicator above the {_RIC_FLOOR:.0f}% RIC floor "
+                   "on this trade set — nothing here is filter-worthy yet.")
+
+    # ── empirical Spearman correlation of the underlying numeric values ──────
+    num = {}
+    if "VWAP_dev" in d.columns:      num["VWAP σ"]     = d["VWAP_dev"]
+    if "prior_RangeATR" in d.columns: num["Range/ATR"] = d["prior_RangeATR"]
+    if "prior_ATR_pct" in d.columns:  num["ATR %ile"]  = d["prior_ATR_pct"]
+    if "prior_ADX_pct" in d.columns:  num["ADX %ile"]  = d["prior_ADX_pct"]
+    if "prior_ER_pct" in d.columns:   num["Kaufman ER"] = d["prior_ER_pct"]
+    if "ER_intra_12" in d.columns:    num["Intra ER 60m"] = d["ER_intra_12"]
+    if {"EntryPrice", "EMA_20"} <= set(d.columns):
+        num["Px−EMA20"] = d["EntryPrice"].astype(float) - d["EMA_20"].astype(float)
+    if {"EntryPrice", "OOD"} <= set(d.columns):
+        num["Px−OOD"] = d["EntryPrice"].astype(float) - d["OOD"].astype(float)
+    if {"EntryPrice", "VWAP"} <= set(d.columns):
+        num["Px−VWAP"] = d["EntryPrice"].astype(float) - d["VWAP"].astype(float)
+    if "structural_trend" in d.columns:
+        num["Struct Trend"] = pd.to_numeric(d["structural_trend"], errors="coerce")
+    if "is_deep_pullback" in d.columns:
+        num["Deep PB"] = d["is_deep_pullback"].astype(float)
+
+    nf = pd.DataFrame(num)
+    if nf.shape[1] >= 2:
+        corr = nf.corr(method="spearman")
+        labels = list(corr.columns)
+        txt = [[f"{corr.iloc[i, j]:+.2f}" for j in range(len(labels))]
+               for i in range(len(labels))]
+        fig = go.Figure(go.Heatmap(
+            z=corr.values, x=labels, y=labels, text=txt, texttemplate="%{text}",
+            textfont={"size": 10}, colorscale="RdBu", zmid=0, zmin=-1, zmax=1,
+            colorbar=dict(title="ρ")))
+        fig.update_layout(height=max(300, 36 * len(labels) + 120),
+                          template="plotly_white",
+                          margin=dict(l=90, r=15, t=10, b=90))
+        st.plotly_chart(fig, use_container_width=True)
+        st.caption("Spearman ρ on the underlying values. **|ρ| > 0.6 ≈ redundant** — "
+                   "two such indicators carry the same information; keep only one.")
 
 
 def _show_regime_expectancy(results: pd.DataFrame):
     """Read-only regime / indicator expectancy tables for the CURRENT trade set.
 
-    DESCRIPTION ONLY — measures where expectancy already exists by regime
-    (ATR%ile, ADX%ile, VWAP deviation, value-area location, ADX×ATR matrix).
-    No optimization, no filtering. Trade counts are shown everywhere: thin
-    buckets are noise. This is in-sample exploration — lock nothing here.
+    DESCRIPTION ONLY — measures where expectancy already exists by regime.
+    No optimization, no filtering. Trade counts are shown everywhere.
     """
     bars = st.session_state.get("data_sc_5m")
     if bars is None or getattr(bars, "empty", True):
@@ -2443,7 +2893,7 @@ def _show_regime_expectancy(results: pd.DataFrame):
     with st.expander("🌡️ Regime / Indicator Expectancy", expanded=False):
         if bars is None or bars.empty:
             st.info("Build the continuous series in the **📂 Massive** tab to tag trades "
-                    "with regime indicators (ATR/ADX/VWAP/value-area).")
+                    "with regime indicators.")
             return
         st.caption("Descriptive only — where does the current trade set already have "
                    "expectancy, by regime? **Watch n (Trades): thin buckets are noise.** "
@@ -2455,17 +2905,12 @@ def _show_regime_expectancy(results: pd.DataFrame):
                    len(bars), str(bars["DateTime"].iloc[-1])))
         d = pd.concat([filled, _tag_trades_cached(fp, filled, bars)], axis=1)
 
-        # ── bucket columns ────────────────────────────────────────────────────
-        d["ATR%"]   = pd.cut(d["prior_ATR_pct"], _PCT_EDGES, labels=_PCT_LABELS, include_lowest=True)
-        d["ADX%"]   = pd.cut(d["prior_ADX_pct"], _PCT_EDGES, labels=_PCT_LABELS, include_lowest=True)
-        d["VWAPσ"]  = pd.cut(d["VWAP_dev"], _VWAP_EDGES, labels=_VWAP_LABELS)
-        d["ATR3"]   = pd.cut(d["prior_ATR_pct"], _TERCILE,
-                             labels=["Low ATR", "Mid ATR", "High ATR"], include_lowest=True)
-        d["ADX3"]   = pd.cut(d["prior_ADX_pct"], _TERCILE,
-                             labels=["Low ADX", "Mid ADX", "High ADX"], include_lowest=True)
+        has_dir = "Direction" in d.columns
 
-        base_cols = ["Trades", "Win%", "PF", "Net PnL", "Exp $", "Avg R"]
+        # ── total baseline expectancy ────────────────────────────────────────
+        total_exp = float(d["NetPnL"].sum() / len(d)) if len(d) > 0 else 0.0
 
+        # ── helpers ──────────────────────────────────────────────────────────
         def _bucket(df, col, order):
             g = (df[df[col].notna()].groupby(col, sort=False, observed=True)
                  .apply(_expectancy_stats).reset_index())
@@ -2475,81 +2920,374 @@ def _show_regime_expectancy(results: pd.DataFrame):
             return g
 
         def _fmt(df, key):
-            o = df[[key, "Trades", "Win%", "PF", "Net PnL", "Exp $", "Avg R"]].copy()
+            o = df[[key, "Trades", "Win%", "PF", "Net PnL", "Exp $"]].copy()
             o["Win%"]    = o["Win%"].map(lambda v: f"{v:.1f}%")
             o["PF"]      = o["PF"].map(lambda v: f"{v:.2f}")
             o["Net PnL"] = o["Net PnL"].map(lambda v: f"${v:+,.0f}")
             o["Exp $"]   = o["Exp $"].map(lambda v: f"${v:+,.0f}")
-            o["Avg R"]   = o["Avg R"].map(lambda v: f"{v:.2f}")
             return o
 
+        def _dir_bucket(df, level_col, label):
+            """Directional bucket: Aligned/Misaligned based on Direction vs price
+            relative to a level (above=long aligned, below=short aligned).
+            Persists the per-trade label on `df[label]` so the Slice Inspector
+            can re-select the same trades."""
+            mask = df[level_col].notna() & df["EntryPrice"].notna()
+            if not mask.any():
+                return pd.DataFrame()
+            px = df["EntryPrice"].astype(float)
+            lv = df[level_col].astype(float)
+            above = px > lv
+            is_long = df["Direction"].str.upper().str.startswith("L")
+            aligned = (above & is_long) | (~above & ~is_long)
+            lab = pd.Series(np.where(aligned, "Aligned", "Misaligned"),
+                            index=df.index).where(mask)
+            df[label] = pd.Categorical(lab, categories=["Aligned", "Misaligned"])
+            return _bucket(df, label, ["Aligned", "Misaligned"])
+
+        # ── build all bucket tables + RIC scores ─────────────────────────────
+        bucket_defs = []   # (category, name, bucket_col, order, ric, df)
+
+        # --- Category: Volatility ---
+        d["ATR%"] = pd.cut(d["prior_ATR_pct"], _PCT_EDGES, labels=_PCT_LABELS,
+                           include_lowest=True)
+        b = _bucket(d, "ATR%", _PCT_LABELS)
+        ric = _compute_ric(b, total_exp)
+        bucket_defs.append(("Volatility", "ATR percentile", "ATR%", _PCT_LABELS, ric, b))
+
+        d["RangeATR"] = pd.cut(d["prior_RangeATR"], _RANGE_ATR_EDGES,
+                               labels=_RANGE_ATR_LABELS, include_lowest=True)
+        b = _bucket(d, "RangeATR", _RANGE_ATR_LABELS)
+        ric = _compute_ric(b, total_exp)
+        bucket_defs.append(("Volatility", "Prior-day Range/ATR", "RangeATR",
+                            _RANGE_ATR_LABELS, ric, b))
+
+        # --- Category: Trend ---
+        d["ADX%"] = pd.cut(d["prior_ADX_pct"], _PCT_EDGES, labels=_PCT_LABELS,
+                           include_lowest=True)
+        b = _bucket(d, "ADX%", _PCT_LABELS)
+        ric = _compute_ric(b, total_exp)
+        bucket_defs.append(("Trend", "ADX percentile", "ADX%", _PCT_LABELS, ric, b))
+
+        d["ER%"] = pd.cut(d["prior_ER_pct"], _PCT_EDGES, labels=_PCT_LABELS,
+                          include_lowest=True)
+        b = _bucket(d, "ER%", _PCT_LABELS)
+        ric = _compute_ric(b, total_exp)
+        bucket_defs.append(("Trend", "Kaufman ER percentile", "ER%", _PCT_LABELS, ric, b))
+
+        # --- Category: Intraday Efficiency (developing ER, 30/60/120m) ───────
+        # Fixed 0–1 bins (ER is already normalized) — no percentile window needed.
+        # The trio is a ROBUSTNESS set: a real edge should appear at a similar
+        # RIC across all three lookbacks, not just one.
+        for n_bars, lbl in [(6, "30m"), (12, "60m"), (24, "120m")]:
+            src = f"ER_intra_{n_bars}"
+            if src not in d.columns:
+                continue
+            bcol = f"ERi {lbl}"
+            d[bcol] = pd.cut(d[src], _ERI_EDGES, labels=_ERI_LABELS,
+                             include_lowest=True)
+            b = _bucket(d, bcol, _ERI_LABELS)
+            ric = _compute_ric(b, total_exp)
+            bucket_defs.append(("Intraday Efficiency",
+                                f"Intraday ER {lbl}", bcol, _ERI_LABELS, ric, b))
+
+        # --- Category: VWAP ---
+        d["VWAPσ"] = pd.cut(d["VWAP_dev"], _VWAP_EDGES, labels=_VWAP_LABELS)
+        b = _bucket(d, "VWAPσ", _VWAP_LABELS)
+        ric = _compute_ric(b, total_exp)
+        bucket_defs.append(("VWAP", "VWAP deviation (0.5σ)", "VWAPσ", _VWAP_LABELS, ric, b))
+
+        if has_dir and "VWAP" in d.columns:
+            b = _dir_bucket(d, "VWAP", "vs VWAP")
+            if not b.empty:
+                ric = _compute_ric(b, total_exp)
+                bucket_defs.append(("VWAP", "Above/Below VWAP (directional)",
+                                    "vs VWAP", ["Aligned", "Misaligned"], ric, b))
+
+        # --- Category: EMA ---
+        if has_dir and "EMA_20" in d.columns:
+            b = _dir_bucket(d, "EMA_20", "vs EMA20")
+            if not b.empty:
+                ric = _compute_ric(b, total_exp)
+                bucket_defs.append(("EMA", "Above/Below 20 EMA (directional)",
+                                    "vs EMA20", ["Aligned", "Misaligned"], ric, b))
+
+        # --- Category: Session Levels ---
+        if has_dir and "OOD" in d.columns:
+            b = _dir_bucket(d, "OOD", "vs OOD")
+            if not b.empty:
+                ric = _compute_ric(b, total_exp)
+                bucket_defs.append(("Session Levels",
+                                    "Above/Below Open of Day (directional)",
+                                    "vs OOD", ["Aligned", "Misaligned"], ric, b))
+
+        if has_dir and "HOY" in d.columns:
+            m = d["HOY"].notna() & d["LOY"].notna() & d["EntryPrice"].notna()
+            if m.any():
+                px = d["EntryPrice"].astype(float)
+                above_hoy = px > d["HOY"].astype(float)
+                below_loy = px < d["LOY"].astype(float)
+                order_hl = ["Above HOY", "Between", "Below LOY"]
+                lab = pd.Series(np.select([above_hoy, below_loy],
+                                          ["Above HOY", "Below LOY"],
+                                          default="Between"),
+                                index=d.index).where(m)
+                d["vs HOY/LOY"] = pd.Categorical(lab, categories=order_hl, ordered=True)
+                b = _bucket(d, "vs HOY/LOY", order_hl)
+                ric = _compute_ric(b, total_exp)
+                bucket_defs.append(("Session Levels", "vs Prior-Day High/Low",
+                                    "vs HOY/LOY", order_hl, ric, b))
+
+        if has_dir and "OR60_High" in d.columns:
+            m = d["OR60_High"].notna() & d["OR60_Low"].notna() & d["EntryPrice"].notna()
+            if m.any():
+                px = d["EntryPrice"].astype(float)
+                above_or = px > d["OR60_High"].astype(float)
+                below_or = px < d["OR60_Low"].astype(float)
+                order_or = ["Above OR", "Inside OR", "Below OR"]
+                lab = pd.Series(np.select([above_or, below_or],
+                                          ["Above OR", "Below OR"],
+                                          default="Inside OR"),
+                                index=d.index).where(m)
+                d["vs 60m OR"] = pd.Categorical(lab, categories=order_or, ordered=True)
+                b = _bucket(d, "vs 60m OR", order_or)
+                ric = _compute_ric(b, total_exp)
+                bucket_defs.append(("Session Levels", "vs 60-min Opening Range",
+                                    "vs 60m OR", order_or, ric, b))
+
+        # --- Category: Value Areas ---
+        for tf, loc_col in [("Session", "vaD_loc"), ("Weekly", "vaW_loc"),
+                            ("Monthly", "vaM_loc")]:
+            d[f"VA {tf}"] = d.get(loc_col)
+            if d[f"VA {tf}"] is not None:
+                order_va = ["below", "inside", "above"]
+                b = _bucket(d, f"VA {tf}", order_va)
+                ric = _compute_ric(b, total_exp)
+                bucket_defs.append(("Value Areas", f"{tf} value-area location",
+                                    f"VA {tf}", order_va, ric, b))
+
+        # --- Category: Market Structure ---
+        if "structural_trend" in d.columns:
+            mask_st = d["structural_trend"].notna()
+            if mask_st.any():
+                sub_st = d[mask_st].copy()
+                sub_st["Struct Trend"] = sub_st["structural_trend"].map(
+                    {1: "Bullish", -1: "Bearish"}).fillna("Unknown")
+                order_st = ["Bullish", "Bearish"]
+                b = _bucket(sub_st, "Struct Trend", order_st)
+                ric = _compute_ric(b, total_exp)
+                bucket_defs.append(("Market Structure", "Structural Trend",
+                                    "Struct Trend", order_st, ric, b))
+                d["Struct Trend"] = sub_st["Struct Trend"]
+
+        if "is_deep_pullback" in d.columns:
+            mask_dp = d["is_deep_pullback"].notna()
+            if mask_dp.any():
+                sub_dp = d[mask_dp].copy()
+                sub_dp["Deep PB"] = sub_dp["is_deep_pullback"].map(
+                    {True: "Yes", False: "No", 1: "Yes", 0: "No"}).fillna("No")
+                order_dp = ["Yes", "No"]
+                b = _bucket(sub_dp, "Deep PB", order_dp)
+                ric = _compute_ric(b, total_exp)
+                bucket_defs.append(("Market Structure",
+                                    "Deep Pullback (liquidity sweep)",
+                                    "Deep PB", order_dp, ric, b))
+                d["Deep PB"] = sub_dp["Deep PB"]
+
+        # ── RIC ranking table (the high-value summary) ───────────────────────
         n_tag = int(d["prior_ATR_pct"].notna().sum())
-        st.caption(f"{n_tag} of {len(filled)} filled trades have a full indicator reading "
-                   "(early-history/warm-up trades excluded from buckets).")
+        st.caption(f"{n_tag} of {len(filled)} filled trades tagged "
+                   f"(baseline Exp $: ${total_exp:+,.0f}/trade).")
 
-        c1, c2 = st.columns(2)
-        with c1:
-            st.markdown("**ATR percentile** (volatility regime)")
-            st.dataframe(_fmt(_bucket(d, "ATR%", _PCT_LABELS), "ATR%"),
-                         use_container_width=True, hide_index=True)
-        with c2:
-            st.markdown("**ADX percentile** (trend strength)")
-            st.dataframe(_fmt(_bucket(d, "ADX%", _PCT_LABELS), "ADX%"),
-                         use_container_width=True, hide_index=True)
+        st.markdown("### RIC Ranking — Regime Information Coefficient")
+        st.caption("Higher RIC = this indicator differentiates performance more. "
+                   "Low RIC = uniform expectancy across buckets (no regime utility).")
+        ric_rows = [{"Category": cat, "Indicator": name, "RIC %": f"{ric:.0f}%",
+                     "Buckets": len(bdf), "RIC_raw": ric}
+                    for cat, name, _, _, ric, bdf in bucket_defs]
+        ric_df = pd.DataFrame(ric_rows).sort_values("RIC_raw", ascending=False)
+        st.dataframe(ric_df[["Category", "Indicator", "RIC %", "Buckets"]],
+                     use_container_width=True, hide_index=True)
 
-        c3, c4 = st.columns(2)
-        with c3:
-            st.markdown("**VWAP deviation** (distance from session VWAP, σ)")
-            st.dataframe(_fmt(_bucket(d, "VWAPσ", _VWAP_LABELS), "VWAPσ"),
-                         use_container_width=True, hide_index=True)
-        with c4:
-            tf = st.selectbox("Value-area timeframe", ["Session", "Weekly", "Monthly"],
-                              key="ba_regime_va_tf")
-            loc_col = {"Session": "vaD_loc", "Weekly": "vaW_loc", "Monthly": "vaM_loc"}[tf]
-            d["VA loc"] = d[loc_col]
-            st.markdown(f"**{tf} value-area location** (entry vs prior value)")
-            st.dataframe(_fmt(_bucket(d, "VA loc", ["below", "inside", "above"]), "VA loc"),
-                         use_container_width=True, hide_index=True)
+        # ── factor groups & redundancy ───────────────────────────────────────
+        _show_factor_groups(d, bucket_defs)
 
-        # ── ADX × ATR regime matrix (the high-value view) ─────────────────────
-        st.markdown("**ADX × ATR regime matrix**")
-        metric = st.radio("Cell metric", ["Exp $", "Avg R", "PF", "Win%"],
-                          horizontal=True, key="ba_regime_matrix_metric")
-        cell = (d[d["ATR3"].notna() & d["ADX3"].notna()]
-                .groupby(["ADX3", "ATR3"], sort=False, observed=True)
-                .apply(_expectancy_stats).reset_index())
-        cell["Exp $"] = cell["Net PnL"] / cell["Trades"]
-        rows = ["High ADX", "Mid ADX", "Low ADX"]
-        cols = ["Low ATR", "Mid ATR", "High ATR"]
-        z   = cell.pivot(index="ADX3", columns="ATR3", values=metric).reindex(index=rows, columns=cols)
-        nt  = cell.pivot(index="ADX3", columns="ATR3", values="Trades").reindex(index=rows, columns=cols)
-        pf  = cell.pivot(index="ADX3", columns="ATR3", values="PF").reindex(index=rows, columns=cols)
+        # ── notable slices (potential filter candidates) ────────────────────
+        st.markdown("---")
+        st.markdown("### Notable Slices — Potential Filter Candidates")
+        st.caption("Buckets where per-trade expectancy deviates >50% from baseline "
+                   "AND has n ≥ 20 trades. Edit the hypothesis — a slice without a "
+                   "structural *why* is curve-fit, not edge.")
+        notable_items = []
+        for cat, name, col, order, ric, bdf in bucket_defs:
+            for _, row in bdf.iterrows():
+                n_trades = int(row["Trades"])
+                if n_trades < 20:
+                    continue
+                bucket_exp = float(row["Net PnL"]) / n_trades
+                if total_exp == 0:
+                    continue
+                pct_dev = (bucket_exp - total_exp) / abs(total_exp) * 100
+                if abs(pct_dev) < 50:
+                    continue
+                direction = "+" if pct_dev > 0 else ""
+                slice_ts = d.loc[d[col].astype(str) == str(row[col]), "EntryTime"] \
+                    if col in d.columns else []
+                tc_emoji, tc_share, tc_comment = _time_concentration(slice_ts)
+                notable_items.append({
+                    "Category": cat,
+                    "Indicator": name,
+                    "Bucket": str(row[col]),
+                    "Trades": n_trades,
+                    "Exp $": f"${bucket_exp:+,.0f}",
+                    "vs Baseline": f"{direction}{pct_dev:.0f}%",
+                    "Time Spread": f"{tc_emoji} {tc_share:.0%}",
+                    "PF": f"{row['PF']:.2f}",
+                    "Win%": f"{row['Win%']:.1f}%",
+                    "_dev": abs(pct_dev),
+                    "_positive": pct_dev > 0,
+                    "_col": col,
+                    "_tc": tc_comment,
+                    "_tc_emoji": tc_emoji,
+                })
+        if notable_items:
+            notable_items.sort(key=lambda x: x["_dev"], reverse=True)
+            notable_df = pd.DataFrame(notable_items)
+            st.dataframe(
+                notable_df.drop(columns=["_dev", "_positive", "_col", "_tc", "_tc_emoji"]),
+                use_container_width=True, hide_index=True,
+                column_config={"Time Spread": st.column_config.TextColumn(
+                    "Time Spread",
+                    help="Share of this slice's trades in its busiest 6-month window. "
+                         "🟢 <40% well-spread · 🟡 40–65% · 🔴 >65% concentrated "
+                         "(edge may be a single-regime artifact, not a durable filter).")})
 
-        txt = []
-        for r in rows:
-            row = []
-            for cc in cols:
-                v, n, p = z.loc[r, cc], nt.loc[r, cc], pf.loc[r, cc]
-                if pd.isna(n) or n == 0:
-                    row.append("")
-                elif metric == "Exp $":
-                    row.append(f"${v:+,.0f}<br>PF {p:.2f}<br>n={int(n)}")
-                elif metric == "Win%":
-                    row.append(f"{v:.0f}%<br>n={int(n)}")
-                else:
-                    row.append(f"{v:.2f}<br>n={int(n)}")
-            txt.append(row)
+            st.markdown("#### Hypotheses")
+            st.caption("Auto-generated structural reasons + time-spread note. "
+                       "Edit to refine or reject.")
+            hyp_store = st.session_state.setdefault("ba_regime_hypotheses", {})
+            for i, item in enumerate(notable_items):
+                key = f"{item['Indicator']}|{item['Bucket']}"
+                default = _auto_hypothesis(
+                    item["Category"], item["Indicator"], item["Bucket"],
+                    item["_positive"])
+                current = hyp_store.get(key, default)
+                edge = "outperforms" if item["_positive"] else "underperforms"
+                label = (f"**{item['Indicator']}** → {item['Bucket']} "
+                         f"({edge}, {item['vs Baseline']}, n={item['Trades']})")
+                st.markdown(label)
+                st.caption(f"{item['_tc_emoji']} Time concentration: {item['_tc']}.")
+                new_val = st.text_area(
+                    "Hypothesis", value=current, key=f"ba_hyp_{i}",
+                    height=68, label_visibility="collapsed")
+                hyp_store[key] = new_val
+        else:
+            st.info("No buckets meet the threshold (>50% deviation, n ≥ 20).")
 
-        diverging = metric in ("Exp $", "Avg R")
-        fig = go.Figure(go.Heatmap(
-            z=z.values, x=cols, y=rows, text=txt, texttemplate="%{text}",
-            textfont={"size": 12}, colorscale="RdYlGn" if diverging else "Blues",
-            zmid=0 if diverging else None,
-            hovertemplate="%{y} · %{x}<br>" + metric + ": %{z}<extra></extra>",
-            colorbar=dict(title=metric)))
-        fig.update_layout(height=300, template="plotly_white",
-                          margin=dict(l=70, r=15, t=10, b=30))
-        st.plotly_chart(fig, use_container_width=True)
+        # ── slice inspector — plot the trades of one slice on price ──────────
+        st.markdown("---")
+        st.markdown("### 🔍 Slice Inspector — see the trades on a chart")
+        st.caption("Pick any indicator/bucket and plot exactly those entries on the "
+                   "continuous price series. Green = winner, red = loser; ▲ long, ▼ short.")
+        _plot_slice_inspector(d, bars, bucket_defs)
+
+        # ── all bucket tables (scrollable, one per row) ──────────────────────
+        st.markdown("---")
+        st.markdown("### All Bucket Tables")
+        current_cat = None
+        for cat, name, col, order, ric, bdf in bucket_defs:
+            if cat != current_cat:
+                st.markdown(f"#### {cat}")
+                current_cat = cat
+            st.markdown(f"**{name}** · RIC: {ric:.0f}%")
+            st.dataframe(_fmt(bdf, col), use_container_width=True, hide_index=True,
+                         height=min(35 * (len(bdf) + 1) + 10, 600))
+
+        # ── custom heatmap builder ───────────────────────────────────────────
+        st.markdown("---")
+        st.markdown("### Custom Heatmap Builder")
+        st.caption("Pick any two bucket dimensions as axes. Cell metric is selectable.")
+
+        # tercile versions for matrix axes
+        d["ATR3"] = pd.cut(d["prior_ATR_pct"], _TERCILE,
+                           labels=["Low ATR", "Mid ATR", "High ATR"], include_lowest=True)
+        d["ADX3"] = pd.cut(d["prior_ADX_pct"], _TERCILE,
+                           labels=["Low ADX", "Mid ADX", "High ADX"], include_lowest=True)
+        d["ER3"]  = pd.cut(d["prior_ER_pct"], _TERCILE,
+                           labels=["Low ER", "Mid ER", "High ER"], include_lowest=True)
+
+        heatmap_axes = {}
+        for cat, name, col, order, _, bdf in bucket_defs:
+            if len(order) >= 2:
+                heatmap_axes[f"{name}"] = (col, order)
+        heatmap_axes["ATR tercile"]  = ("ATR3",  ["Low ATR", "Mid ATR", "High ATR"])
+        heatmap_axes["ADX tercile"]  = ("ADX3",  ["Low ADX", "Mid ADX", "High ADX"])
+        heatmap_axes["ER tercile"]   = ("ER3",   ["Low ER",  "Mid ER",  "High ER"])
+        if "Struct Trend" in d.columns and d["Struct Trend"].notna().any():
+            heatmap_axes["Structural Trend"] = ("Struct Trend", ["Bullish", "Bearish"])
+        if "Deep PB" in d.columns and d["Deep PB"].notna().any():
+            heatmap_axes["Deep Pullback"] = ("Deep PB", ["Yes", "No"])
+
+        axis_names = list(heatmap_axes.keys())
+        hc1, hc2, hc3 = st.columns(3)
+        y_name = hc1.selectbox("Y axis", axis_names, index=0, key="ba_hm_y")
+        x_name = hc2.selectbox("X axis", axis_names,
+                               index=min(1, len(axis_names) - 1), key="ba_hm_x")
+        metric = hc3.selectbox("Metric", ["Exp $", "PF", "Win%"],
+                               key="ba_hm_metric")
+
+        y_col, y_order = heatmap_axes[y_name]
+        x_col, x_order = heatmap_axes[x_name]
+
+        valid = d[d[y_col].notna() & d[x_col].notna()]
+        if valid.empty:
+            st.warning("No trades with both dimensions tagged.")
+        else:
+            cell = (valid.groupby([y_col, x_col], sort=False, observed=True)
+                    .apply(_expectancy_stats).reset_index())
+            cell["Exp $"] = cell["Net PnL"] / cell["Trades"]
+
+            z   = cell.pivot(index=y_col, columns=x_col, values=metric
+                             ).reindex(index=y_order, columns=x_order)
+            nt  = cell.pivot(index=y_col, columns=x_col, values="Trades"
+                             ).reindex(index=y_order, columns=x_order)
+            pf  = cell.pivot(index=y_col, columns=x_col, values="PF"
+                             ).reindex(index=y_order, columns=x_order)
+
+            txt = []
+            for r in y_order:
+                row = []
+                for cc in x_order:
+                    try:
+                        v, n, p = z.loc[r, cc], nt.loc[r, cc], pf.loc[r, cc]
+                    except KeyError:
+                        row.append("")
+                        continue
+                    if pd.isna(n) or n == 0:
+                        row.append("")
+                    elif metric == "Exp $":
+                        row.append(f"${v:+,.0f}<br>PF {p:.2f}<br>n={int(n)}")
+                    elif metric == "Win%":
+                        row.append(f"{v:.0f}%<br>n={int(n)}")
+                    else:
+                        row.append(f"{v:.2f}<br>n={int(n)}")
+                txt.append(row)
+
+            diverging = metric in ("Exp $",)
+            fig = go.Figure(go.Heatmap(
+                z=z.values, x=x_order, y=y_order, text=txt,
+                texttemplate="%{text}", textfont={"size": 11},
+                colorscale="RdYlGn" if diverging else "Blues",
+                zmid=0 if diverging else None,
+                hovertemplate="%{y} · %{x}<br>" + metric + ": %{z}<extra></extra>",
+                colorbar=dict(title=metric)))
+            fig.update_layout(
+                height=max(250, 50 * len(y_order)),
+                template="plotly_white",
+                margin=dict(l=100, r=15, t=10, b=50),
+                xaxis_title=x_name, yaxis_title=y_name)
+            st.plotly_chart(fig, use_container_width=True)
+
         st.caption("Spec discipline: this finds *where* edge exists — it is not a filter "
                    "and not optimization. A bucket is only interesting if it has a real "
                    "sample (n) and a structural reason, and survives OOS/WFA validation.")
@@ -3788,7 +4526,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         )
 
     # ── Quick View (expanded by default) ─────────────────────────────────────
-    with st.expander("📋 Quick View", expanded=True):
+    with st.expander("📋 Quick View", expanded=False):
         if summary:
             r1 = st.columns(6)
             r1[0].metric("Net PnL",   f"${summary['net_total']:,.0f}")
@@ -4220,7 +4958,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
     in_range   = results[(results["Date"] >= date_from) & (results["Date"] <= date_to)]
     filled_all = in_range[in_range["Filled"]]
 
-    with st.expander("📈 Daily Chart", expanded=True):
+    with st.expander("📈 Daily Chart", expanded=False):
         _trade_filter = st.radio(
             "Show dates with:", ["All signals", "Winners only", "Losers only"],
             horizontal=True, key="ba_trade_filter",

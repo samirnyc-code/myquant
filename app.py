@@ -349,6 +349,35 @@ def show_data_tab():
 
 # ── App entry point ───────────────────────────────────────────────────────────
 
+def _render_status_strip():
+    """A compact load-status row: price, continuous series, and signal sets.
+    Checkmarks reflect current session state (continuous self-corrects on the
+    next rerun after the Massive tab builds it)."""
+    def _has(x):
+        return x is not None and not getattr(x, "empty", False)
+
+    def _chk(ok):
+        return "✅" if ok else "⬜"
+
+    price = st.session_state.get("data_sc_5m")
+    cont  = st.session_state.get("mas_continuous")
+    mc    = st.session_state.get("ba_signals_mc")
+    rev   = st.session_state.get("ba_signals_revft")
+
+    s1, s2, s3, s4 = st.columns(4)
+    if _has(price):
+        d0, d1 = price["DateTime"].min().date(), price["DateTime"].max().date()
+        s1.markdown(f"{_chk(True)} **Price** · {len(price):,} bars · {d0} → {d1}")
+    else:
+        s1.markdown(f"{_chk(False)} **Price** — none loaded")
+    s2.markdown(f"{_chk(_has(cont))} **Continuous** "
+                + (f"· {len(cont):,} bars" if _has(cont) else "— not built"))
+    s3.markdown(f"{_chk(_has(mc))} **MC signals** "
+                + (f"· {len(mc)}" if _has(mc) else "— none"))
+    s4.markdown(f"{_chk(_has(rev))} **RevFT signals** "
+                + (f"· {len(rev)}" if _has(rev) else "— none"))
+
+
 def main():
     # ── Auto-load from CSV Parquet cache on first run ─────────────────────────
     if "data_sc_5m" not in st.session_state and "data_nt_5m" not in st.session_state:
@@ -367,6 +396,10 @@ def main():
 
     hdr_l, hdr_r = st.columns([8, 2])
     hdr_l.caption("Regular Trading Hours 08:30 – 15:15 CT  |  5-minute bars  |  All times Central")
+
+    # Positioned here but filled at the END of main(), so it reflects state that
+    # the tab blocks populate later (continuous series, signals, sc_5m bridge).
+    status_ph = st.container()
 
     from pathlib import Path
     contract_keys = [k for k, v in CONTRACTS.items() if Path(v["sc_file"]).exists()]
@@ -409,8 +442,9 @@ def main():
         st.session_state.clear()
         st.rerun()
 
-    tab_massive, tab0, tab1, tab_chart, tab3, tab4, tab_wfa = st.tabs([
-        "📂 Massive", "🗂️ Data", "📊 Bar Viewer", "📈 Chart", "📈 Bar Analysis", "📊 Portfolio", "🔄 WFA",
+    # Bar Analysis is the landing tab (first = default-active in st.tabs).
+    tab3, tab_massive, tab0, tab1, tab_chart, tab4, tab_wfa = st.tabs([
+        "📈 Bar Analysis", "📂 Massive", "🗂️ Data", "📊 Bar Viewer", "📈 Chart", "📊 Portfolio", "🔄 WFA",
     ])
 
     contract_label = selected_key.split(" — ")[0] if selected_key else "ES"
@@ -484,6 +518,10 @@ def main():
 
     with tab_wfa:
         wfa_mod.show_wfa_tab()
+
+    # Render the status strip now that all tabs have populated session state.
+    with status_ph:
+        _render_status_strip()
 
 
 main()

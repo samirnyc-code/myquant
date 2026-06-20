@@ -423,7 +423,7 @@ def _show_comparison(comp: pd.DataFrame, label_a: str, label_b: str):
     if mismatches.empty:
         st.success("All matched bars have identical OHLC ✅")
         return
-    with st.expander(f"Mismatch detail — {len(mismatches):,} bars", expanded=True):
+    with st.expander(f"Mismatch detail — {len(mismatches):,} bars", expanded=False):
         display = mismatches[[
             "DateTime", "BarTime",
             "Open_sc", "Open_nt", "ΔOpen",
@@ -467,7 +467,7 @@ def show_massive_tab():
     # ═════════════════════════════════════════════════════════════════════════
     with mgr_tab:
         # ── Roll schedule + download ──────────────────────────────────────
-        with st.expander("📋 Roll Schedule & Downloads", expanded=True):
+        with st.expander("📋 Roll Schedule & Downloads", expanded=False):
             st.caption(
                 "Pre-populated from CME convention (expiry − 8 days). "
                 "Edit **Roll Date** and **Offset** to match what you enter in NT's Instrument Manager. "
@@ -705,7 +705,7 @@ def show_massive_tab():
             "Use the Contract Manager tab for bulk historical downloads."
         )
 
-        with st.expander("⚙️ Config", expanded=True):
+        with st.expander("⚙️ Config", expanded=False):
             col_ticker, col_d1, col_d2 = st.columns([1, 1, 1])
             ticker = col_ticker.text_input(
                 "Ticker",

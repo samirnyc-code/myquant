@@ -637,14 +637,14 @@ def _guardrail_breakdown(folds_df: pd.DataFrame) -> None:
         "Fold":        folds_df["fold_id"],
         "OOS Start":   folds_df["oos_start"],
         "Rob ≥70%":    folds_df["rob_passed"].map(_flag),
-        "IS Rob %":    folds_df["is_rob_pct"].round(1),
+        "IS Rob %":    pd.to_numeric(folds_df["is_rob_pct"], errors="coerce").round(1),
         "Kurt ≤6":     folds_df["kurtosis_ok"].map(_flag),
-        "Kurtosis":    folds_df["is_kurtosis"].round(2),
+        "Kurtosis":    pd.to_numeric(folds_df["is_kurtosis"], errors="coerce").round(2),
         "≥30 trades":  folds_df["min_trades_ok"].map(_flag),
         "IS Trades":   folds_df["is_n_trades"],
         "OOS Profit":  (folds_df["oos_net_pnl"] > 0).map(_flag),
-        "OOS Net $":   folds_df["oos_net_pnl"].round(0),
-        "WFE %":       (folds_df["wfe"] * 100).round(1),
+        "OOS Net $":   pd.to_numeric(folds_df["oos_net_pnl"], errors="coerce").round(0),
+        "WFE %":       (pd.to_numeric(folds_df["wfe"], errors="coerce") * 100).round(1),
     })
 
     def _mark(val):
@@ -942,13 +942,13 @@ def show_wfa_tab() -> None:
             return
 
         # ── Guardrail summary ─────────────────────────────────────────────────
-        with st.expander("🔒 Kaufman / Pardo Guardrails", expanded=True):
+        with st.expander("🔒 Kaufman / Pardo Guardrails", expanded=False):
             report = guardrail_report(folds_df)
             _guardrail_badges(report)
             _guardrail_breakdown(folds_df)
 
         # ── OOS equity curve ──────────────────────────────────────────────────
-        with st.expander("📈 Combined OOS Equity Curve", expanded=True):
+        with st.expander("📈 Combined OOS Equity Curve", expanded=False):
             oos_trades = load_all_oos_trades(sel_run_id, sel_setup)
             if not oos_trades.empty:
                 fig = _equity_chart(oos_trades, f"OOS Equity — {sel_setup} / {sel_run_id}")
@@ -987,7 +987,7 @@ def show_wfa_tab() -> None:
                 st.info("No OOS trade data found.")
 
         # ── Fold summary table ────────────────────────────────────────────────
-        with st.expander("📋 Fold Summary Table", expanded=True):
+        with st.expander("📋 Fold Summary Table", expanded=False):
             _fold_table(folds_df)
 
         # ── Per-fold charts (describes the run — no new strategy params) ───────
@@ -1140,19 +1140,24 @@ def show_wfa_tab() -> None:
             fold_row = folds_df[folds_df["fold_id"] == sel_fold].iloc[0]
             dc1, dc2 = st.columns(2)
 
+            def _sf(v, fmt, prefix="", suffix=""):
+                if v is None or (isinstance(v, float) and np.isnan(v)):
+                    return "—"
+                return f"{prefix}{v:{fmt}}{suffix}"
+
             with dc1:
                 st.markdown("**IS Period**")
                 st.caption(f"{fold_row['is_start']} → {fold_row['is_end']}")
                 is_metrics = {
                     "Trades": fold_row["is_n_trades"],
-                    "Net PnL": f"${fold_row['is_net_pnl']:,.0f}",
-                    "Win%": f"{fold_row['is_win_pct']:.1f}%",
-                    "PF": f"{fold_row['is_pf']:.2f}",
-                    "PROM": f"{fold_row['is_prom']:.2f}",
-                    "PnL/DD": f"{fold_row['is_pnl_dd']:.2f}",
-                    "Max DD": f"${fold_row['is_max_dd']:,.0f}",
-                    "Robustness": f"{fold_row['is_rob_pct']:.1f}%",
-                    "Kurtosis": f"{fold_row['is_kurtosis']:.2f}",
+                    "Net PnL": _sf(fold_row['is_net_pnl'], ",.0f", "$"),
+                    "Win%": _sf(fold_row['is_win_pct'], ".1f", suffix="%"),
+                    "PF": _sf(fold_row['is_pf'], ".2f"),
+                    "PROM": _sf(fold_row['is_prom'], ".2f"),
+                    "PnL/DD": _sf(fold_row['is_pnl_dd'], ".2f"),
+                    "Max DD": _sf(fold_row['is_max_dd'], ",.0f", "$"),
+                    "Robustness": _sf(fold_row['is_rob_pct'], ".1f", suffix="%"),
+                    "Kurtosis": _sf(fold_row['is_kurtosis'], ".2f"),
                 }
                 for k, v in is_metrics.items():
                     st.text(f"  {k:<14} {v}")
@@ -1160,15 +1165,16 @@ def show_wfa_tab() -> None:
             with dc2:
                 st.markdown("**OOS Period**")
                 st.caption(f"{fold_row['oos_start']} → {fold_row['oos_end']}")
+                _wfe = fold_row['wfe']
                 oos_metrics = {
                     "Trades": fold_row["oos_n_trades"],
-                    "Net PnL": f"${fold_row['oos_net_pnl']:,.0f}",
-                    "Win%": f"{fold_row['oos_win_pct']:.1f}%",
-                    "PF": f"{fold_row['oos_pf']:.2f}",
-                    "PROM": f"{fold_row['oos_prom']:.2f}",
-                    "PnL/DD": f"{fold_row['oos_pnl_dd']:.2f}",
-                    "Max DD": f"${fold_row['oos_max_dd']:,.0f}",
-                    "WFE": f"{fold_row['wfe']*100:.1f}%",
+                    "Net PnL": _sf(fold_row['oos_net_pnl'], ",.0f", "$"),
+                    "Win%": _sf(fold_row['oos_win_pct'], ".1f", suffix="%"),
+                    "PF": _sf(fold_row['oos_pf'], ".2f"),
+                    "PROM": _sf(fold_row['oos_prom'], ".2f"),
+                    "PnL/DD": _sf(fold_row['oos_pnl_dd'], ".2f"),
+                    "Max DD": _sf(fold_row['oos_max_dd'], ",.0f", "$"),
+                    "WFE": _sf(_wfe * 100 if _wfe is not None else None, ".1f", suffix="%"),
                 }
                 for k, v in oos_metrics.items():
                     st.text(f"  {k:<14} {v}")

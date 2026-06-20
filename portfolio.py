@@ -268,7 +268,7 @@ def _pdf_button(key: str):
 # ── Summary strips ────────────────────────────────────────────────────────────
 
 def _summary_strip(summary: dict, pnl_dd, pf_str, exp_r_help, starting_cap: float = 0.0):
-    with st.expander("📋 Quick View", expanded=True):
+    with st.expander("📋 Quick View", expanded=False):
         r1 = st.columns(6)
         r1[0].metric("Net PnL",  f"${summary['net_total']:,.0f}")
         r1[1].metric("Win %",    f"{summary['win_pct']:.1f}%",
@@ -431,7 +431,7 @@ def show_portfolio():
     _cfg_ver        = st.session_state.get("pf_cfg_ver", 0)
     _saved_defaults = _load_defaults()
 
-    with st.expander("⚙️ Setup Parameters (2-Leg Scale-In)", expanded=True):
+    with st.expander("⚙️ Setup Parameters (2-Leg Scale-In)", expanded=False):
         hdr = st.columns([0.6, 1.2, 1.5, 2.5, 2.5, 1.5, 2.5, 1.2])
         for col, lbl in zip(hdr, ["Run", "Setup", "E1 Contr.", "T1", "PB", "E2 Contr.", "T2", "Sigs"]):
             col.markdown(f"<small>**{lbl}**</small>", unsafe_allow_html=True)
@@ -697,7 +697,7 @@ def show_portfolio():
     _detail_strip(summary, _pf_str, starting_cap=float(starting_cap))
 
     # ── Equity curves ─────────────────────────────────────────────────────────
-    with st.expander("📈 Equity Curves", expanded=True):
+    with st.expander("📈 Equity Curves", expanded=False):
         fig = go.Figure()
         for cc, res in pf_results.items():
             filled = res[res["Filled"] == True].sort_values(["Date", "EntryTime"])
@@ -731,7 +731,7 @@ def show_portfolio():
         st.plotly_chart(fig, use_container_width=True)
 
     # ── Per-setup breakdown ───────────────────────────────────────────────────
-    with st.expander("📊 Per-Setup Breakdown", expanded=True):
+    with st.expander("📊 Per-Setup Breakdown", expanded=False):
         rows = []
         for cc, res in pf_results.items():
             cfg  = run_configs.get(cc, {})
