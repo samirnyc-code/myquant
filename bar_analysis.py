@@ -2720,7 +2720,7 @@ def _plot_slice_inspector(d: pd.DataFrame, bars: pd.DataFrame, bucket_defs: list
     win = sub["NetPnL"] > 0
 
     fig = go.Figure()
-    fig.add_trace(go.Scattergl(
+    fig.add_trace(go.Scatter(
         x=line["DateTime"], y=line["Close"], mode="lines",
         line=dict(width=0.8, color="#5a6472"), name="ES (continuous)",
         hoverinfo="skip"))
@@ -2732,7 +2732,7 @@ def _plot_slice_inspector(d: pd.DataFrame, bars: pd.DataFrame, bucket_defs: list
             mk = sub[m_dir & m_win]
             if mk.empty:
                 continue
-            fig.add_trace(go.Scattergl(
+            fig.add_trace(go.Scatter(
                 x=mk["EntryTime"], y=mk["EntryPrice"], mode="markers",
                 marker=dict(symbol=sym, size=10, color=color,
                             line=dict(width=0.5, color="#0e1117")),
