@@ -7,6 +7,35 @@
 
 ---
 
+## 🧭 STRATEGIC REVIEW & S22 PLAN — June 20, 2026 (read this BEFORE the session logs)
+*Written end of S21 in response to the user's onboarding/direction questions. A new chat: read this block, then S21 below, then act.*
+
+### Where a new chat should start (the onboarding gap)
+There is **no single from-inception synthesis yet** — `handoff.md` is a stack of session *deltas* (1300+ lines) and gives current state well but not the *arc*. **First S22 task: write `docs/living/PROJECT_CHARTER.md`** (original goal, how it evolved, current architecture, irreversible decisions, on-track/risks). Then a fresh chat reads charter (the arc) + this handoff (the frontier) and is oriented in one pass.
+
+### What we are building (reconstructed — make it authoritative in the charter)
+- **Original task:** NT8 sim + Google-Sheets pipeline were done; the task became **build a Python walk-forward engine to validate an ES-futures breakout strategy (MC "CC" signals) with Pardo-grade discipline — prove a *durable* edge without overfitting.**
+- **What changed:** the *data pipeline* (Sierra/SCID → **Massive.io** ticks, S12); the *focus* (engine-build → descriptive research tooling → now validation + decision tooling).
+- **What hasn't:** the core mission — *rigorously decide whether a setup is tradeable, without curve-fitting* — is unchanged.
+
+### On track? Doing it right? (honest assessment — keep challenging this)
+- **Method: yes.** Pardo rails are sound and enforced (lock before OOS, no co-optimization in WFA, describe-don't-fit, one engine/one trade definition). Today's scare was *measurement* artifacts (WFE÷~0, kurtosis-on-pinned-grid), now fixed — not a strategy failure.
+- **Pushback (standing keep-in-check order):** we are accumulating **tooling/metrics faster than decisions**. Tells: the only dissected WFA run was **fully pinned** (so WFA wasn't doing its core job — testing parameter robustness) with a **modest edge** (OOS PF 1.16). Risk = analysis-as-procrastination.
+- **Recommendation:** run **one real end-to-end** — a single CC setup, **unpinned** WFA, regime filter either OFF or *one* pre-locked hypothesis — and force a **go/no-go**. More dashboards won't answer the question; that run will.
+
+### Autonomous "master run" + full export (user request — feasible, with one hard rail)
+- **Master-run pipeline** (`run_master(setup, config)`): execute the whole sequence headless — load signals → descriptive expectancy → WFA → window map → guardrails → friction → equity — persisting every artifact; one-button "Run Full Pipeline" in-app + progress log.
+- **Full export:** one self-contained `report.html` (Plotly embeds natively; tables as HTML) **plus** a `zip` of the raw parquet/CSV behind every chart. Data already persists (folds DB, OOS trade logs, sweep grids) → mostly a report-builder over existing stores. "Every byte" is realistic at that scope.
+- **HARD RAIL:** "without us interfering" must **NOT** include auto-selecting the regime filter or pinning params to results — that is the no-feedback / overfitting violation the whole project guards against. The master run executes a **human-pre-specified config** and *reports*; it never auto-tunes.
+
+### Recommended S22 order
+1. **`PROJECT_CHARTER.md`** (cheap; permanently fixes onboarding).
+2. **Master-run pipeline + full HTML/zip export** (the artifact the user asked for).
+3. **First real unpinned end-to-end go/no-go** on one CC setup, using #2.
+This fixes continuity, delivers the export, and breaks the analysis-paralysis risk in one move. *(Also still open from S21: verify 2-D sweep edge cross-checks in-app; investigate identical-per-setup OOS counts — possible setup filter not subsetting signals.)*
+
+---
+
 ## ⭐ SESSION 21 HANDOFF — June 20, 2026 (read first)
 *Built both lead S21 priorities (2-D Stop×Target sweep + locked multi-slice regime filter), reordered tabs, and fixed three misleading WFA metrics that a long debugging thread surfaced. No engine change → trade definitions & validators unaffected. Committed + pushed.*
 
