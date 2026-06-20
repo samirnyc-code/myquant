@@ -39,6 +39,7 @@
 - **`scripts/run_setup_pipeline.py`**: `--excl-last-min` (applies the app's session filter via `apply_signal_filters`) + **Phase 4.6 OOS equity PATH/shape gates** (MAR, best-year concentration) — added after the user caught that a regime-dependent equity curve passed as "CONDITIONAL"; shape failures are now decisive (force NO-GO).
 
 ### OPEN / NEXT (priority order)
+0. **NEXT CHAT STARTS HERE:** `docs/living/next_task_va_imbalance.md` — run the VA-imbalance hypothesis (drop inside-VA signals, keep `below`+`above`) at pinned 1.0R and compare **side-by-side** vs baseline `pin10_all_sl`. Self-contained brief; do it headless (no in-app compare tool yet).
 1. **Window-map / robustness-report results are NOT persisted** (`persist=False`, session_state only) → an app restart loses them (~2 hr to rebuild). User wants this fixed. **BUILD: save grid_df to disk on build, reload on startup.**
 2. **Better WFA optimization** (the user's ask): cap target grid ≤1.5R (structural) and/or maximin/median-fold objective instead of peak-PROM — so it stops harvesting EOD drift.
 3. **BA→WFA filter inheritance** (still pending from earlier): WFA must apply the same session/FOMC/DOW filters as Bar Analysis (via `apply_signal_filters`, reading the live `ba_*` session keys) so the two tools validate the identical population.
