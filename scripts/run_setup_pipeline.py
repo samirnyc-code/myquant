@@ -27,7 +27,7 @@ _ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_ROOT))
 
 import massive  # noqa: E402
-from simulation_engine import simulate_trades, compute_summary, INSTRUMENTS  # noqa: E402
+from simulation_engine import simulate_trades, compute_summary, INSTRUMENTS, RTH_END_MIN  # noqa: E402
 import results_store as store  # noqa: E402
 import wfa  # noqa: E402
 
@@ -56,11 +56,20 @@ def _fmt(v, f=".2f", fb="—"):
 
 
 # ── Data loading ──────────────────────────────────────────────────────────────
-def load_inputs(setup: str):
+def load_inputs(setup: str, excl_last_min: int = 0):
     sig = pd.read_parquet(_SIGNALS)
     sig = sig[sig["SignalType"] == setup].copy()
     if sig.empty:
         raise SystemExit(f"No signals for setup {setup}")
+    # Session filter — exclude entries in the last N minutes of RTH. Mirrors the app's
+    # apply_signal_filters exactly: drop signals with time >= (RTH_END − N). A priori,
+    # structural (thin liquidity / forced EOD exits into the close), NOT result-mined.
+    if excl_last_min > 0:
+        cut = RTH_END_MIN - excl_last_min
+        cutoff = pd.Timestamp(f"{cut // 60:02d}:{cut % 60:02d}:00").time()
+        before = len(sig)
+        sig = sig[sig["DateTime"].dt.time < cutoff].copy()
+        _log(f"Excluded last {excl_last_min} min (≥ {cutoff}): {before} → {len(sig)} signals.")
 
     bars = pd.read_parquet(_BARS).drop(columns=["Contract"], errors="ignore")
     bars_by_date = {d: g.reset_index(drop=True)
@@ -144,16 +153,21 @@ def main():
     ap.add_argument("--setup", default="CC4")
     ap.add_argument("--mode", default="singleleg", choices=["singleleg", "multileg", "3leg"])
     ap.add_argument("--filter", default="off", choices=["off"])  # locked OFF this run
+    ap.add_argument("--excl-last-min", type=int, default=0,
+                    help="Exclude entries in the last N min of RTH (structural session filter; app default 45).")
     args = ap.parse_args()
 
     setup, mode = args.setup, args.mode
+    elm = args.excl_last_min
     comm = INSTRUMENTS["ES"]["default_commission"]
     bp = base_params(comm)
+    sess = f", excl last {elm}min" if elm else ""
+    tag = f"_x{elm}" if elm else ""
 
     store.init_db()
-    sig, bars_by_date, ticks_by_date = load_inputs(setup)
+    sig, bars_by_date, ticks_by_date = load_inputs(setup, elm)
     R = []  # report lines
-    R.append(f"# Pipeline Report — {setup} ({mode}, regime filter OFF)")
+    R.append(f"# Pipeline Report — {setup} ({mode}, regime filter OFF{sess})")
     R.append(f"*Generated {datetime.now():%Y-%m-%d %H:%M} · headless · same engine as the app · "
              "human-pre-specified config, no auto-tuning (PROJECT_CHARTER §4).*\n")
 
@@ -207,9 +221,9 @@ def main():
                  f"({'⚠️ concentrated (>25%)' if top10_share > 25 else 'ok'}).\n")
 
     # ── Phase 3 — Baseline WFA (unpinned, persisted) ───────────────────────────
-    run_id = f"pipe_{setup.lower()}_{mode}"
+    run_id = f"pipe_{setup.lower()}_{mode}{tag}"
     store.delete_run(run_id)
-    store.create_run(run_id, setup, mode, bp, "headless pipeline run (filter OFF)")
+    store.create_run(run_id, setup, mode, bp, f"headless pipeline run (filter OFF{sess})")
     is_days = int(_BASELINE_IS_MO * wfa._TRADING_DAYS_PER_YEAR / 12)
     oos_days = int(_BASELINE_OOS_MO * wfa._TRADING_DAYS_PER_YEAR / 12)
     _log(f"Phase 3 — baseline WFA {_BASELINE_IS_MO}m/{_BASELINE_OOS_MO}m…")

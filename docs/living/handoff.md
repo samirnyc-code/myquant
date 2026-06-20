@@ -8,6 +8,46 @@
 
 ---
 
+## ⭐⭐ SESSION 22 — RESEARCH FINDINGS (the headline; read FIRST) — June 20, 2026
+*Drove the whole MC signal set through the validation apparatus end-to-end. The big finding: there **is** a real edge, but only a **target-driven** one — and the WFA optimizer was actively burying it.*
+
+### THE KEY FINDING — the optimizer harvests EOD drift; pin the target low
+- **Unpinned WFA (optimizer free to pick R) chooses ~2.0R (grid ceiling) and produces a regime-dependent EOD-drift bet, NOT a breakout edge.** Decomposing OOS PnL into the breakout mechanic (target-hits + stops) vs hold-to-close (EOD-green): on the ALL-setup portfolio (`run_13693b64`, $242,938 OOS) the **target game is −$23,381** (the breakout system *loses money*) and **EOD-drift is +$266,319** — i.e. **100%+ of profit is just ES drifting into the close**, concentrated in the 2024–25 bull grind.
+- **Pinning the target at 1.0R FLIPS it to a real breakout edge.** Same portfolio pinned 1.0R (`pin10_all_sl`): Net **$194,776**, **target game +$186,962 (96% of profit)**, EOD only +$7,814. Median trade −$53 → **+$47**, win% 46.9 → **52.1**. The edge was real all along; the optimizer was chasing high R into drift.
+- **WHY the optimizer can't see this:** its objective is **PROM**, and PROM is *higher* at 2R because EOD-drift wins inflate GrossWin while MaxDD (stops) is R-invariant. The drift is present in BOTH IS and OOS (2021–26 was drift-friendly), so neither in-sample optimization nor the OOS test punishes it — only the mechanical target-vs-EOD split exposes it. **FIX (next session, OPEN): cap `_T_VALS` at ~1.5R (structural: targets >1.5R don't bind) and/or change the objective from peak-PROM to a robustness/worst-fold (maximin) metric.** The user explicitly wants a better WFA optimization approach.
+
+### Per-setup battery (pinned 1.0R, single-leg, 12m/3m) — validate individually (manual's order)
+| Setup | OOS Net | Target$ | %grn | BestYr | MAR95 | U/W | PROM | verdict |
+|---|---|---|---|---|---|---|---|---|
+| ALL | $194,776 | $186,962 | 67% | 54% | 4.0 | 315d | −0.08 | diversified blend |
+| CC5 | $55,494 | $53,740 | 62% | **49%** | 2.1 | 250d | **+0.14** | **the real edge (only +PROM)** |
+| CC4 | $50,244 | $40,556 | **91%** | 66% | 1.3 | 417d | −0.74 | consistent but risk-thin |
+| CC2 | $46,535 | $35,834 | 67% | **93%** | 2.1 | 392d | −0.18 | ❌ one-year windfall |
+| CC3 | $19,123 | $25,773 | 60% | 60% | **0.4** | **798d** | −0.90 | ❌ risk disaster |
+| CC1 | — | — | — | — | — | — | — | unvalidatable (~7 trades/fold) |
+- **CONCLUSION: the tradeable core is CC5 (+ maybe CC4), NOT the 5-setup blend.** The portfolio's robustness is **diversification masking 2 unsound setups** (CC2 = 93% one year; CC3 = MAR95 0.4 / 798 days underwater) + 1 untestable (CC1). Diversification IS real (portfolio MAR95 4.0 > any single's 2.1) but you'd be trading dead-weight setups for it. **Everything is thin (PF 1.1–1.3, PROM ≈ 0) → size on MES.**
+- MAR95 = Net ÷ Monte-Carlo DD95 (realistic worst DD, ~$52k for the portfolio vs −$29k realized). U/W = longest underwater (days).
+
+### The "$599k sweep is BS" scare — RESOLVED, no bug
+- User saw a sweep showing ~$599k and distrusted the WFA. **Reproduced their EXACT config with the validated engine → $110,031**, matching the **Summary ($110,637)**, the **1-D R sweep**, AND the **2-D Stop×Target sweep's 1.00× column** (S21's never-verified cross-check now PASSES: 1.00×/1.75R = $110,637). **The $599k was 2-Leg mode**, not a bug — a different (legitimate) config. Lesson = the WFA and Bar Analysis must run the SAME config (filter-inheritance still TODO).
+- Also corrected the user's framing: WFA never "lost money" — negative **PROM** ≠ negative dollars; it made +$40–58k OOS. PROM is risk-adjusted/pessimistic.
+
+### Fixes made this session (committed)
+- **`indicators.py` dtype bug** — signals parquet is `datetime64[us]`, bars `[ns]` → `merge_asof` in `tag_signals` raised "incompatible merge keys", **crashing the regime filter**. Now normalises both to ns. Fixes WFA regime filter AND Bar Analysis regime expectancy.
+- **`regime_filter.py` SHORTLIST: `eri_60` → `eri_30`** (`ER_intra_12`→`ER_intra_6`) so the locked filter names the SAME indicator (Intraday ER 30m) Bar Analysis's factor-grouping picks (highest RIC). User flagged "these don't match".
+- **`wfa.py` `_T_VALS`/`_T_OPTS`: clean 0.25 steps** `[0.50,0.75,1.00,1.25,1.50,1.75,2.00]` (was non-0.25 `0.625`). Pin default kept at 1.00R (index 2).
+- **`scripts/run_setup_pipeline.py`**: `--excl-last-min` (applies the app's session filter via `apply_signal_filters`) + **Phase 4.6 OOS equity PATH/shape gates** (MAR, best-year concentration) — added after the user caught that a regime-dependent equity curve passed as "CONDITIONAL"; shape failures are now decisive (force NO-GO).
+
+### OPEN / NEXT (priority order)
+1. **Window-map / robustness-report results are NOT persisted** (`persist=False`, session_state only) → an app restart loses them (~2 hr to rebuild). User wants this fixed. **BUILD: save grid_df to disk on build, reload on startup.**
+2. **Better WFA optimization** (the user's ask): cap target grid ≤1.5R (structural) and/or maximin/median-fold objective instead of peak-PROM — so it stops harvesting EOD drift.
+3. **BA→WFA filter inheritance** (still pending from earlier): WFA must apply the same session/FOMC/DOW filters as Bar Analysis (via `apply_signal_filters`, reading the live `ba_*` session keys) so the two tools validate the identical population.
+4. **Decide: trade CC5 (+CC4) core, or the diversified portfolio?** Investigate CC2's one-year concentration and CC3's 798-day drawdown — salvage or drop.
+- Persisted runs created this session (loadable headless via `results_store` / viewable in app Results): `run_13693b64` (unpinned ALL), `pin10_all_sl` + `pin10_cc2/cc3/cc4/cc5_sl` (pinned battery), `repro_cc4_175`, `pipe_cc4_singleleg`.
+- **TIP for next chat:** any saved WFA run can be analysed headless straight from `data/wfa_store` — no screenshots needed; just the run_id. The deep-analysis pattern (per-setup decomposition, target-vs-EOD split, year/fold concentration, Monte-Carlo DD95, longest-underwater) is the right lens — reuse it.
+
+---
+
 ## ⭐ SESSION 22 HANDOFF — June 20, 2026 (read first)
 *Built the onboarding charter, the WFA window-robustness UI, and a headless master-run pipeline — then drove ONE setup (CC4 single-leg) end-to-end to a real go/no-go. Result: **NO-GO** (regime-dependent edge). No engine change. Committed + pushed. The strategic-review/S22-plan block below is now largely DONE — see this block for what actually happened.*
 

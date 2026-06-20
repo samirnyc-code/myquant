@@ -520,6 +520,16 @@ def tag_signals(signals: pd.DataFrame, bars: pd.DataFrame,
     """
     sig = signals.copy()
 
+    # merge_asof requires identical datetime resolution on both sides. Signals
+    # loaded from parquet are datetime64[us]; bars are datetime64[ns] — normalise
+    # both to ns so every as-of merge below joins (was raising "incompatible merge
+    # keys [us] vs [ns]" when the regime filter tagged signals).
+    if str(sig["DateTime"].dtype) != "datetime64[ns]":
+        sig["DateTime"] = sig["DateTime"].astype("datetime64[ns]")
+    if str(bars["DateTime"].dtype) != "datetime64[ns]":
+        bars = bars.copy()
+        bars["DateTime"] = bars["DateTime"].astype("datetime64[ns]")
+
     # ── VWAP deviation at the signal bar (as-of merge on DateTime) ────────────
     vb = session_vwap_bands(bars)[["DateTime", "VWAP", "VWAP_sigma", "VWAP_dev"]]
     sig = sig.sort_values("DateTime")

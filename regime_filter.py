@@ -58,8 +58,9 @@ class RegimeIndicator:
 # One indicator per latent factor (the S20 factor-redundancy analysis), so we
 # never stack two filters that measure the same thing. Session value-area is
 # included because the user finds it defensible (low-DoF 3-bucket, prior-day-
-# fixed reference). The intraday-ER trio is a robustness set in research; here
-# we expose the 60m member as the single representative.
+# fixed reference). The intraday-ER trio is a robustness set in research; we expose
+# the 30m member to MATCH Bar Analysis's factor-grouping pick (highest RIC), so the
+# locked filter and the descriptive shortlist name the identical indicator.
 SHORTLIST: list[RegimeIndicator] = [
     RegimeIndicator("vwap_sigma", "VWAP σ-deviation", "Displacement from value",
                     "numeric", "VWAP_dev", _VWAP_EDGES, _VWAP_LABELS, ordered=True),
@@ -68,8 +69,8 @@ SHORTLIST: list[RegimeIndicator] = [
                     ordered=True),
     RegimeIndicator("adx_pct", "ADX percentile", "Trend strength",
                     "numeric", "prior_ADX_pct", _PCT_EDGES, _PCT_LABELS, ordered=True),
-    RegimeIndicator("eri_60", "Intraday ER 60m", "Intraday efficiency",
-                    "numeric", "ER_intra_12", _ERI_EDGES, _ERI_LABELS, ordered=True),
+    RegimeIndicator("eri_30", "Intraday ER 30m", "Intraday efficiency",
+                    "numeric", "ER_intra_6", _ERI_EDGES, _ERI_LABELS, ordered=True),
     RegimeIndicator("ema20_align", "20-EMA alignment", "Directional alignment",
                     "directional", "EMA_20", labels=["Aligned", "Misaligned"],
                     ordered=False),

@@ -36,7 +36,7 @@ _TRADING_DAYS_PER_YEAR = 252
 _TRADING_DAYS_PER_QTR  = 63
 
 # Multiplicative R steps (Kaufman rule — not linear)
-_T_VALS  = [0.50, 0.625, 0.75, 1.00, 1.25, 1.50, 2.00]   # T1 or T2
+_T_VALS  = [0.50, 0.75, 1.00, 1.25, 1.50, 1.75, 2.00]   # T1 or T2 — clean 0.25 steps
 _PB_VALS = [-0.25, -0.375, -0.50, -0.625, -0.75, -1.00]   # PB (negative R)
 
 
@@ -1065,18 +1065,18 @@ def show_wfa_tab() -> None:
             "Check to fix a value and reduce the search space."
         )
         tp1, tp2, tp3 = st.columns(3)
-        _T_OPTS = [0.50, 0.625, 0.75, 1.00, 1.25, 1.50, 2.00]
+        _T_OPTS = [0.50, 0.75, 1.00, 1.25, 1.50, 1.75, 2.00]
         _PB_OPTS = [-0.25, -0.375, -0.50, -0.625, -0.75, -1.00]
 
         pin_t1_chk = tp1.checkbox("Pin T1?", value=False, key="wfa_pin_t1_chk")
         pin_t1 = (
-            tp1.selectbox("T1 value (R)", _T_OPTS, index=3, key="wfa_pin_t1_val")
+            tp1.selectbox("T1 value (R)", _T_OPTS, index=2, key="wfa_pin_t1_val")
             if pin_t1_chk else None
         )
 
         pin_t2_chk = tp2.checkbox("Pin T2?", value=False, key="wfa_pin_t2_chk")
         pin_t2 = (
-            tp2.selectbox("T2 value (R)", _T_OPTS, index=3, key="wfa_pin_t2_val")
+            tp2.selectbox("T2 value (R)", _T_OPTS, index=2, key="wfa_pin_t2_val")
             if pin_t2_chk else None
         )
 
