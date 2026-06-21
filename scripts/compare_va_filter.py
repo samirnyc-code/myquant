@@ -50,7 +50,7 @@ VA_SPEC = {"session_va": ["below", "above"]}  # keep imbalance (outside VA), dro
 
 BASE_PARAMS = dict(
     entry_slip=0.5, exit_slip=0.5, stop_offset=1, tick_value=12.5,
-    contracts=1, contracts_t1=1, contracts_t2=1, commission=3.0,
+    contracts=1, contracts_t1=1, contracts_t2=1, commission=4.36,
     ratchet_r=0.0, pb_round="nearest",
 )
 IS_DAYS, OOS_DAYS = 252, 63  # 12m IS / 3m OOS (matches the baseline battery)

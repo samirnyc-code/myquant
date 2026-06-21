@@ -1,10 +1,58 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** June 20, 2026 (session 22)
+**Last Updated:** June 21, 2026 (session 23)
 **Current Versions:** SIM_v3.4 / GS_v4.5 / SHEET_v3.3 *(no engine change in S22 — charter, WFA window-robustness UI, headless master-run pipeline, research)*
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 **Handoff hygiene (S20):** A competing handoff had grown in the `.claude/.../memory/` auto-memory folder and a new chat read *that* instead of this file. Fixed: added repo `CLAUDE.md` + rewrote `.claude` `MEMORY.md` to point here; deleted the duplicate session-state memories. **There is now ONE handoff: this file.**
 **Onboarding (S22):** `docs/living/PROJECT_CHARTER.md` is the from-inception synthesis (the *arc* + locked decisions). Read the charter first for orientation, then this handoff for current state. The charter owns the arc/locked rails; **this handoff still wins on what's true today.**
+
+---
+
+## ⭐⭐ SESSION 23 — June 21, 2026
+*Research session: regime filter ablation (ER confirmed), prom_tgt objective test, WFA optimizer exposed as gaming PB depth. Major planning session — roadmap through prop firm deployment, research backlog built out.*
+
+### FIRST ORDER OF BUSINESS — NEXT SESSION
+1. **Multiprocessing for IS sweep** — implement the plan in handoff (Pool(4), initializer pattern, slice ticks to IS dates). Every run after this is ~4x faster. Sonnet can do it.
+2. **Per-setup optimization with sane PB grid** — `_PB_VALS` already updated to `[-0.25, -0.33, -0.50]`. Run unpinned WFA for each CC (CC2–CC5) individually with ER≥0.30 chop filter. Find the best T1/T2/PB per setup.
+3. **Find ideal ER30 chop threshold per setup** — sweep ER from 0.20–0.40 in 0.02 steps per CC (not just ALL). Each setup may have a different sweet spot.
+4. **Run the portfolio** — combine per-setup optimal params + per-setup ER thresholds, run the full portfolio WFA with those pinned settings. This is the real test.
+
+### Key findings this session
+
+**Ablation 6 — PROM vs PROM-target (unpinned per-CC with ER≥0.30):**
+- prom_tgt works as designed: picks lower targets (avg 1.14–1.40R vs 1.49–1.78R), higher target hit rates (50–61% vs 35–46%)
+- BUT: not universally better. CC4 prom $89k vs prom_tgt $42k; CC5 prom $52k vs prom_tgt $40k. These setups genuinely profit from bigger moves.
+- CC2 is the exception: prom_tgt $48k vs prom $40k. CC2 breakouts are smaller moves.
+- **Conclusion: per-setup objective selection, not one-size-fits-all.**
+
+**WFA optimizer exposed — PB depth exploit:**
+- Optimizer chose PB = -0.94R (94% pullback to stop!). E2 fills at ~34% rate, EVERY E2 fill is a net loser (avg −$417 to −$835).
+- The deep PB exploits R math: E2 enters near the stop → tiny risk denominator → inflated R-achieved → inflated PROM.
+- All money comes from E1-only trades (avg +$450 to +$625). The pullback leg destroys value across every setup and every objective.
+- **FIX: capped `_PB_VALS` to `[-0.25, -0.33, -0.50]`** — removed -0.625, -0.75, -1.00.
+- User direction: pin params after manual optimization in Bar Analysis. WFA optimizer not trusted.
+
+**Commission update:**
+- ES commission updated from $3.00 to **$4.36** RT (NinjaTrader Free tier: $2.18/side). Was undercharging by $1.36/trade.
+- MES updated from $1.00 to **$1.30** RT ($0.65/side).
+- Updated in `simulation_engine.py` INSTRUMENTS dict + all 9 ablation/validation scripts.
+
+**ER bar-granularity update (previous conversation, noting here):**
+- `bar_analysis.py` ER bins changed from 0.2-wide to 0.02-wide (50 bins). Propagates to regime filter multiselect.
+
+### Changes made this session
+- `simulation_engine.py`: ES commission 3.0→4.36, MES commission 1.0→1.30; added `prom_tgt` to `compute_summary` (target-hit-only PROM)
+- `wfa.py`: `_PB_VALS` capped to [-0.25, -0.33, -0.50]; `select_params` accepts `objective` param; `run_wfa`/`run_window_grid`/`run_window_structures` thread `objective` through; IS objective dropdown added to UI
+- `bar_analysis.py`: ER bin granularity 0.2→0.02
+- All ablation scripts: commission 3.0→4.36
+- `scripts/filter_ablation6_prom_tgt.py`: new — unpinned per-CC PROM vs PROM-target comparison
+- Results CSV: `docs/living/filter_ablation6_prom_tgt.csv`
+
+### Runs created this session
+- `abl6_CC2_prom`, `abl6_CC2_prom_tgt` (4 folds each)
+- `abl6_CC3_prom`, `abl6_CC3_prom_tgt` (8 folds each)
+- `abl6_CC4_prom`, `abl6_CC4_prom_tgt` (9 folds each)
+- `abl6_CC5_prom`, `abl6_CC5_prom_tgt` (8 folds each)
 
 ---
 
@@ -45,8 +93,43 @@
 - **`wfa.py` `_T_VALS`/`_T_OPTS`: clean 0.25 steps** `[0.50,0.75,1.00,1.25,1.50,1.75,2.00]` (was non-0.25 `0.625`). Pin default kept at 1.00R (index 2).
 - **`scripts/run_setup_pipeline.py`**: `--excl-last-min` (applies the app's session filter via `apply_signal_filters`) + **Phase 4.6 OOS equity PATH/shape gates** (MAR, best-year concentration) — added after the user caught that a regime-dependent equity curve passed as "CONDITIONAL"; shape failures are now decisive (force NO-GO).
 
+### ROADMAP (user-defined, June 21 2026)
+
+**Phase 1 — MC breakout optimization (CURRENT):**
+Per-setup optimization (CC2–CC5), each with own regime filters (ER≥0.30 confirmed, testing others). Decide pinned vs unpinned params. Assemble portfolio, validate with window maps, Monte Carlo, robustness. At some point: stop optimizing and call it done.
+
+**Phase 2 — Realistic trade constraints:**
+Position management (one-at-a-time, one-per-direction, close-and-reverse). Max daily loss, risk caps, MES position sizing. Re-run WFAs with constraints baked into the sim — optimal params may change when you can't take every signal.
+
+**Phase 3 — Reversal setup (RevFT):**
+New signal type, separate development. Own regime filters, own WFA optimization. Eventually: combined MC + RevFT portfolio.
+
+**Phase 4 — Multi-system portfolio:**
+Portfolio of MC breakouts + RevFT reversals + possibly MC fades (failed breakouts flipped as reversal entries — the two systems are two sides of the same coin). Diversification across signal types, not just setups within one type.
+
+**Phase 5 — NT sim validation:**
+Run automated strategy on NinjaTrader sim for several months. Compare live-sim results to backtest expectations — fills, slippage, P&L, drawdown. This is the ultimate reality check before real capital.
+
+**Phase 6 — Prop firm deployment:**
+Separate accounts for long and short (prop firm requirement). New cost structure: monthly fees, higher commissions, profit share — all must be modeled. Each account level has strict rules (max drawdown, daily loss limits, position limits, scaling rules) that must be baked into the automated strategy. These constraints alone could break things — the system must be re-validated under each firm's specific ruleset. Account-level rules vary by firm and tier.
+
 ### OPEN / NEXT (priority order)
-0. **NEXT CHAT STARTS HERE:** `docs/living/next_task_va_imbalance.md` — run the VA-imbalance hypothesis (drop inside-VA signals, keep `below`+`above`) at pinned 1.0R and compare **side-by-side** vs baseline `pin10_all_sl`. Self-contained brief; do it headless (no in-app compare tool yet).
+0. **NEXT SESSION TODO — three items before new research:**
+   - **Late-period signal filter:** ~1,195 late-session trades with PF <1 and negative PnL. Price out the bucket, find the right time cutoff, run ablation (ALL+ER≥0.30 ± late cut). No reason to keep structurally negative trades.
+   - **ER timing fix (real issue):** ER_intra_6 includes bar T's close — the same bar that generates the signal. A strong breakout bar pushes ER higher AND creates the CC pattern, so the filter partially selects FOR signal bars rather than independently measuring the pre-signal regime. Fix: use T−1's ER (the value before the signal bar). Re-run the ER≥0.30 ablation with 1-bar lag to confirm the edge holds on prior-bar ER. Also worth exploring: compute ER on tick/price-change basis and use the last value before bar T closes.
+   - **Range/ATR >1.2 filter:** 857 trades, PF 0.98, Exp −$22. Test dropping them (ALL+ER≥0.30+RangeATR≤1.2 vs baseline). Also consider: per-trade stop-size cap based on volatility (skip signals where risk is too wide relative to ATR) — different mechanism than population filter, worth testing.
+   - **Stop size / volatility cap:** Investigate capping stop size based on ATR. High-vol days have wider stops → more dollar risk per trade. A per-trade risk gate (e.g., skip if stop > X × ATR) could normalize risk and remove the worst Range/ATR bucket organically.
+   - **Adaptive target based on ATR:** Instead of fixed 1.0R, scale target to the day's range/ATR. Tight days = smaller target (easier to hit), wide days = larger target (more room). Could improve target hit rates without giving up edge. Test against fixed-R baseline.
+   - **Volume analysis (3 angles):** (a) Signal bar volume relative to time-of-day average — breakout on 2x normal volume = institutional conviction vs 0.5x = noise. TOD avg infrastructure exists in indicators.py. (b) PB fill bar volume — low-volume pullback fill = weak counter-move (good), high-volume = real reversal (bad). (c) E1 fill volume as predictor of whether E2 gets reached in multileg mode. All three are independent of ER/ATR/VA — they measure conviction, not regime.
+   - **Volume Profile features — single prints + HVN/LVN nodes:** VP is already implemented (`indicators.py` `_profile_value_area`). Next step: extract single prints (zero-volume price levels = low-acceptance, price tends to revisit) and HVN/LVN nodes (high/low volume nodes = support/resistance vs acceleration zones). Signal near an LVN = price likely to move through fast (good for breakout); signal into an HVN = likely to stall (bad). Could be a powerful structural filter beyond simple VA location.
+   - **TOD bar-level filtering:** Investigate which time-of-day windows hurt performance. Three candidates: (a) skip first N bars after open (noise/fake breakouts in first 5–15 min), (b) skip last N bars before close (already have late-period filter above), (c) skip lunch hour (~11:30–13:00 ET) when volume drops and chop increases. Run per-bar-number expectancy table first, then ablate the worst windows. DOW (day of week) stays — no reason to skip any day.
+   - **FOMC expansion — day before + time window:** Current FOMC filter only handles the announcement day with ±15-min cushion. Investigate: (a) day before FOMC — positioning/hedging activity may create false breakouts, (b) wider time window around the announcement (±30 min? ±1 hr?) — the current ±15 min may be too tight if the volatility regime persists longer. Price out each bucket (FOMC day ±window, day before FOMC, day after) to find the optimal exclusion zone.
+   - **All-In Flip (revisit old idea):** Previously discussed concept — when a CC signal fires in one direction and price reverses completely, treat the reversal as an even stronger signal (the original breakout trapped traders, now the unwind IS the move). Needs definition: what constitutes a "flip"? Stop-out on original signal + new CC in opposite direction within N bars? Price out historically — how often does the flip signal have better edge than the original? Could be a powerful entry type if the data supports it.
+   - **Fade hypothesis — turn structural losers into winners (HIGH PRIORITY RESEARCH):** Core idea: some losing CC signals aren't random — they fail for structural reasons (liquidity grab, mean reversion at fair value, exhaustion, breakout into overhead supply). A signal that *reliably* goes the wrong way is just as informative as one that goes right. **Test plan:** (1) Take all losing trades from current system (ER≥0.30, pinned). (2) Tag each with regime context: VA location, HVN/LVN proximity, ER bucket, TOD/bar number, distance to prior-day POC/VAH/VAL. (3) For each tagged bucket, compute what happens if you entered the OPPOSITE direction at the same entry price with symmetric target/stop. (4) Any bucket where the fade has positive expectancy + reasonable sample = real signal. **Three action levels per bucket:** full fade (reverse direction), quick-exit/BE management (same direction but move to BE after N bars if no progress — saves R on slow bleeds), or skip (what filters do now). **Why this matters:** ~2000 losing trades in the system. Converting just 10% to BE or small winners recovers $10–20k+ and improves every performance metric simultaneously (PF, PROM, MAR, drawdown) with zero additional signals needed. **Key regime contexts to test as fade candidates:** (a) low-ER signals below 0.30 (chop = mean reversion), (b) VA-inside (breakout at fair value reverts to POC), (c) signal into prior-day HVN (supply/demand stalls the move), (d) late-session signals (MOC/profit-taking reversion), (e) exhaustion bars where the signal bar itself was the entire move (high ER caused BY the bar, not preceding it). Pairs naturally with VP nodes and ER timing fix work. **Fade entry refinement — low MFE after fill:** Especially interested in trades with near-zero MFE in the first N bars after fill (price never even tried to go in the breakout direction). These are the cleanest fades: (a) the MFE itself becomes the fade stop (very tight, e.g., 1–2 ticks), (b) the reversal is already underway = fast R, (c) structurally means immediate rejection of the breakout = institutional selling into buyer liquidity. Test: bucket all filled trades by MFE at bar 1/2/3 after fill. Trades with MFE < 0.25R AND high MAE = reliable fade candidates. Also connects to ER exhaustion — high ER on signal bar + zero post-fill MFE = the breakout bar was the entire move.
+   - **🔴 PRIORITY: Position management / realistic constraints (ENGINE GAP):** Current sim treats every signal independently — unlimited simultaneous positions, no capital constraints. This is not how live trading works. MUST quantify: (a) how often do positions overlap? (b) how much does performance change under realistic rules? **Test order:** (1) one-per-direction (1 long + 1 short max), (2) one-at-a-time (strictest), (3) close-and-reverse (opposite signal closes current + enters new). **Risk layers to add:** max daily loss, max open risk $, daily trade cap. Implementation requires a position manager that tracks state across signals chronologically — significant engine change. **Opus recommended for implementation.**
+   - **🔴 PRIORITY: Multiprocessing for IS sweep (verified bottleneck, plan ready):** Confirmed via live profiling: Python GIL means only 1 of 6 CPU cores is active during WFA runs (99% on one core, 5 idle). Hardware: Intel i5-8400T, 6C/6T @ 1.70 GHz, 16 GB RAM. **Plan:** Parallelize the combo loop in `run_is_sweep` (`wfa.py` line 121). Each of ~126 combos is independent. Use `multiprocessing.Pool(4)` with an `initializer` pattern — worker init pickles shared data (signals_is, ticks_subset, bars_subset) ONCE per worker, not per combo. Two new module-level functions: `_init_worker` (stores data in module global `_worker_data`) and `_sweep_one_combo` (runs simulate_trades + compute_summary for one combo, reads from `_worker_data`). **Critical: slice ticks_by_date to only IS fold dates before passing to workers** — full dataset is ~800 days/800 MB, IS fold is ~252 days/250 MB, so 4 workers × 250 MB = 1 GB copies (fine with 16 GB RAM). Keep sequential fallback via `workers=1` for debugging. **Windows gotchas:** must use `spawn` (default), worker functions must be module-level (not nested), guard against Streamlit re-import on worker spawn. **What does NOT change:** simulation_engine.py (untouched), run_wfa (untouched), any sweep logic or result format. Expected speedup: ~4x → 1-hour ablation runs become ~15 min. **Sonnet can implement this.**
+   - **Performance: Numba JIT for sim engine tick loop (phase 2):** The inner tick scan in `_simulate_one_multileg` still runs in Python. The PB vectorized path (lines 495–571) uses numpy, but the fallback loop and `simulate_trades` per-signal iteration are pure Python. Numba `@njit` on the tick scan could yield 20–50x per-signal. Combined with multiprocessing = under 1 min for a full WFA run. Bigger project than multiprocessing — do after.
+1. **NEXT CHAT STARTS HERE:** `docs/living/next_task_va_imbalance.md` — run the VA-imbalance hypothesis (drop inside-VA signals, keep `below`+`above`) at pinned 1.0R and compare **side-by-side** vs baseline `pin10_all_sl`. Self-contained brief; do it headless (no in-app compare tool yet).
 1. **Window-map / robustness-report results are NOT persisted** (`persist=False`, session_state only) → an app restart loses them (~2 hr to rebuild). User wants this fixed. **BUILD: save grid_df to disk on build, reload on startup.**
 2. **Better WFA optimization** (the user's ask): cap target grid ≤1.5R (structural) and/or maximin/median-fold objective instead of peak-PROM — so it stops harvesting EOD drift.
 3. **BA→WFA filter inheritance** (still pending from earlier): WFA must apply the same session/FOMC/DOW filters as Bar Analysis (via `apply_signal_filters`, reading the live `ba_*` session keys) so the two tools validate the identical population.

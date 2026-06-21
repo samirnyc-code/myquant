@@ -34,7 +34,7 @@ TICKS_DIR = ROOT / "data" / "ticks_continuous"
 
 # Default execution params (mirror the Bar Analysis ES multileg defaults).
 DEFAULTS = dict(
-    tick_value=12.50, commission=3.0,
+    tick_value=12.50, commission=4.36,
     entry_slip=1.0, exit_slip=1.0, stop_offset=0,
     contracts_t1=1, contracts_t2=1,
     t1_r=1.5, target_r=1.0, ml_pb_r=-0.50,

@@ -37,7 +37,7 @@ _TRADING_DAYS_PER_QTR  = 63
 
 # Multiplicative R steps (Kaufman rule — not linear)
 _T_VALS  = [0.50, 0.75, 1.00, 1.25, 1.50, 1.75, 2.00]   # T1 or T2 — clean 0.25 steps
-_PB_VALS = [-0.25, -0.375, -0.50, -0.625, -0.75, -1.00]   # PB (negative R)
+_PB_VALS = [-0.25, -0.33, -0.50]   # PB (negative R) — capped; deep PBs exploit R math
 
 
 # ── Fold date slicer ──────────────────────────────────────────────────────────
@@ -170,15 +170,18 @@ def compute_robustness(sweep_df: pd.DataFrame) -> tuple[float, float]:
     return pct, kurt
 
 
-def select_params(sweep_df: pd.DataFrame, n: int = 3) -> list[dict]:
-    """Select the top-N param sets by PROM (IS objective function).
-    Per Kaufman: trade the average of ≥3 sets, not the single best."""
+def select_params(sweep_df: pd.DataFrame, n: int = 3,
+                   objective: str = "prom") -> list[dict]:
+    """Select the top-N param sets by the chosen IS objective function.
+    Per Kaufman: trade the average of ≥3 sets, not the single best.
+    objective: 'prom' (default) or 'prom_tgt' (target-hit only, ignores EOD drift)."""
     if sweep_df.empty:
         return []
 
+    rank_col = objective if objective in sweep_df.columns else "prom"
     param_cols = [c for c in sweep_df.columns
                   if c in {"target_r", "t1_r", "t2_r", "ml_pb_r", "pb1_r"}]
-    top = sweep_df.nlargest(n, "prom")[param_cols]
+    top = sweep_df.nlargest(n, rank_col)[param_cols]
     return top.to_dict("records")
 
 
@@ -208,6 +211,7 @@ def run_wfa(
     pin_t2: float | None = None,
     pin_pb: float | None = None,
     persist: bool = True,     # False = in-memory only (used by the window-anchor grid)
+    objective: str = "prom",  # IS ranking: 'prom' or 'prom_tgt' (target-hit only)
 ) -> list[dict]:
     """Run the full WFA. Returns list of fold result dicts.
     persist=True also writes folds, trade logs, sweep grids to the store and locks OOS."""
@@ -241,7 +245,7 @@ def run_wfa(
             continue
 
         rob_pct, kurtosis = compute_robustness(sweep_df)
-        param_sets        = select_params(sweep_df, n_param_sets)
+        param_sets        = select_params(sweep_df, n_param_sets, objective=objective)
 
         if not param_sets:
             continue
@@ -371,6 +375,7 @@ def run_window_grid(
     n_param_sets: int = 3,
     pin_t1: float | None = None, pin_t2: float | None = None, pin_pb: float | None = None,
     progress_cb=None,
+    objective: str = "prom",
 ) -> pd.DataFrame:
     """Run a full (non-persisted) WFA for each (IS months × OOS months) pair and
     aggregate one cell per pair. Proves the 12m/3m window choice isn't itself overfit."""
@@ -388,7 +393,7 @@ def run_window_grid(
                 "__grid__", "__grid__", signals, ticks_by_date, bars_by_date,
                 base_params, mode, is_days=isd, oos_days=oosd,
                 n_param_sets=n_param_sets, pin_t1=pin_t1, pin_t2=pin_t2, pin_pb=pin_pb,
-                persist=False,
+                persist=False, objective=objective,
             )
             cell = _aggregate_grid_cell(folds)
             cell.update({"is_months": im, "oos_months": om})
@@ -407,6 +412,7 @@ def run_window_structures(
     n_param_sets: int = 3,
     pin_t1: float | None = None, pin_t2: float | None = None, pin_pb: float | None = None,
     progress_cb=None,
+    objective: str = "prom",
 ) -> list[dict]:
     """For each (IS months, OOS months) structure, run a full non-persisted WFA and
     return its fold dicts + aggregate. Feeds the on-one-page Robustness Report."""
@@ -421,7 +427,7 @@ def run_window_structures(
             "__struct__", "__struct__", signals, ticks_by_date, bars_by_date,
             base_params, mode, is_days=isd, oos_days=oosd,
             n_param_sets=n_param_sets, pin_t1=pin_t1, pin_t2=pin_t2, pin_pb=pin_pb,
-            persist=False,
+            persist=False, objective=objective,
         )
         agg = _aggregate_grid_cell(folds)
         agg.update({"is_months": im, "oos_months": om})
@@ -1155,6 +1161,19 @@ def show_wfa_tab() -> None:
         n_sets     = wc3.number_input("Param sets (Kaufman avg)", min_value=1, max_value=10, value=3,
                                       key="wfa_n_sets", help=_METRIC_HELP["n_sets"])
 
+        _obj_opts = ["PROM (standard)", "PROM-target (target-hit only)"]
+        _obj_map  = {"PROM (standard)": "prom", "PROM-target (target-hit only)": "prom_tgt"}
+        _obj_sel  = st.selectbox(
+            "IS objective function", _obj_opts,
+            index=_obj_opts.index(st.session_state.get("wfa_objective", _obj_opts[0]))
+                  if st.session_state.get("wfa_objective", _obj_opts[0]) in _obj_opts else 0,
+            key="wfa_objective",
+            help="Standard PROM ranks combos by total PnL (including EOD drift wins). "
+                 "PROM-target excludes EOD-green trades from the win side, so the optimizer "
+                 "picks params where targets actually get hit — prevents chasing high-R drift.",
+        )
+        wfa_objective = _obj_map[_obj_sel]
+
         is_days  = int(is_months  * _TRADING_DAYS_PER_YEAR / 12)
         oos_days = int(oos_months * _TRADING_DAYS_PER_YEAR / 12)
 
@@ -1407,6 +1426,7 @@ def show_wfa_tab() -> None:
                     pin_t1=pin_t1,
                     pin_t2=pin_t2,
                     pin_pb=pin_pb,
+                    objective=wfa_objective,
                 )
 
             progress_bar.progress(1.0)
@@ -1799,7 +1819,7 @@ def show_wfa_tab() -> None:
                         base_params, mode, is_grid, oos_grid,
                         n_param_sets=int(n_sets),
                         pin_t1=pin_t1, pin_t2=pin_t2, pin_pb=pin_pb,
-                        progress_cb=_mcb,
+                        progress_cb=_mcb, objective=wfa_objective,
                     )
                 pbar.progress(1.0)
                 stat.text("Done.")
@@ -1906,7 +1926,7 @@ def show_wfa_tab() -> None:
                         base_params, mode, structures,
                         n_param_sets=int(n_sets),
                         pin_t1=pin_t1, pin_t2=pin_t2, pin_pb=pin_pb,
-                        progress_cb=_rcb,
+                        progress_cb=_rcb, objective=wfa_objective,
                     )
                 rbar.progress(1.0)
                 rstat.text("Done.")

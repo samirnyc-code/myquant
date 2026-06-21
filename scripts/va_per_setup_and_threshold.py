@@ -46,7 +46,7 @@ _OUT = _ROOT / "docs" / "living"
 VA_SPEC = {"session_va": ["below", "above"]}
 SETUPS = ["CC2", "CC3", "CC4", "CC5"]  # CC1 excluded (too few signal-days for a fold)
 BASE_PARAMS = dict(entry_slip=0.5, exit_slip=0.5, stop_offset=1, tick_value=12.5,
-                   contracts=1, contracts_t1=1, contracts_t2=1, commission=3.0,
+                   contracts=1, contracts_t1=1, contracts_t2=1, commission=4.36,
                    ratchet_r=0.0, pb_round="nearest")
 IS_DAYS, OOS_DAYS = 252, 63
 

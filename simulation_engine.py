@@ -4,8 +4,8 @@ import pandas as pd
 from data_loader import TICK_SIZE, bar_num_from_dt, RTH_START_MIN
 
 INSTRUMENTS = {
-    "ES":  {"tick_value": 12.50, "label": "ES  ($12.50/tick)", "default_commission": 3.0},
-    "MES": {"tick_value":  1.25, "label": "MES ($1.25/tick)",  "default_commission": 1.0},
+    "ES":  {"tick_value": 12.50, "label": "ES  ($12.50/tick)", "default_commission": 4.36},
+    "MES": {"tick_value":  1.25, "label": "MES ($1.25/tick)",  "default_commission": 1.30},
 }
 RTH_END_MIN = 15 * 60 + 15  # 915
 
@@ -1797,6 +1797,14 @@ def compute_summary(results: pd.DataFrame, commission: float,
     pnl_dd = net_total / abs(max_dd) if max_dd < 0 else float("nan")
     prom   = _compute_prom(filled, max_dd)
 
+    # Target-hit PROM: same formula but only target-hit trades count as wins.
+    # EOD-green trades are excluded (neither win nor loss). This penalizes
+    # combos that "win" via EOD drift rather than the thesis playing out.
+    tgt_and_stops = filled[_tgt_mask | _stop_mask | _eod_l]
+    tgt_eq   = tgt_and_stops.sort_values(["Date", "EntryTime"])["NetPnL"].cumsum()
+    tgt_dd   = float((tgt_eq - tgt_eq.cummax()).min()) if len(tgt_eq) else 0.0
+    prom_tgt = _compute_prom(tgt_and_stops, tgt_dd)
+
     return dict(
         n_total=n_total, n_filtered=n_filtered, n_no_fill=n_no_fill,
         n_trades=n_trades, n_wins=n_wins, n_stop=n_stop, n_sess=n_sess,
@@ -1818,4 +1826,5 @@ def compute_summary(results: pd.DataFrame, commission: float,
         max_concurrent_risk_dollar=float(filled["ConcurrentRiskDollar"].max()) if "ConcurrentRiskDollar" in filled.columns else 0.0,
         pnl_dd=pnl_dd,
         prom=prom,
+        prom_tgt=prom_tgt,
     )

@@ -2680,9 +2680,10 @@ _VWAP_LABELS[-1] = "≥ +4.0σ"
 _TERCILE     = [0.0, 1 / 3, 2 / 3, 1.0]
 _RANGE_ATR_EDGES  = [0.0, 0.6, 0.8, 1.0, 1.2, np.inf]
 _RANGE_ATR_LABELS = ["<0.6", "0.6–0.8", "0.8–1.0", "1.0–1.2", ">1.2"]
-# Intraday Kaufman ER is already 0–1, so use fixed bins (no percentile window).
-_ERI_EDGES   = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
-_ERI_LABELS  = ["0–0.2 chop", "0.2–0.4", "0.4–0.6", "0.6–0.8", "0.8–1.0 trend"]
+# Intraday Kaufman ER is already 0–1; 0.02-step bins for threshold-finding.
+_ERI_EDGES   = [round(i * 0.02, 2) for i in range(51)]          # 0.00 .. 1.00
+_ERI_LABELS  = [f"{round(i*0.02,2):.2f}–{round((i+1)*0.02,2):.2f}"
+                for i in range(50)]
 
 
 @st.cache_data(show_spinner="Tagging trades with regime indicators…")
