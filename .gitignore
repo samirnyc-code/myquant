@@ -24,3 +24,8 @@ data/_regress/
 # throwaway run logs
 streamlit_run.log
 pipeline_run.log
+.ablation*_log.txt
+.ablation_log.txt
+.streamlit_err.txt
+.streamlit_log.txt
+.claude/
