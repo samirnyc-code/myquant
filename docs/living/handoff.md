@@ -110,7 +110,24 @@ market-state edge: CC breakouts work better in "balance state." All tests this s
 `mfe_by_balance.py`. Reports in `docs/living/`: `regime_ladder_*.md`, `regime_overlay_phaseB_*.md`,
 `confirm_balance_day_*.md`, `fade_by_state_*.md`, `balance_deepdive_*.md`, `hod_lod_by_bar.csv`.
 
-### NEXT (S25 → S26)
+### S26 FIRST ORDER OF BUSINESS (decisions already made — just execute)
+- **Baseline = A: ER30-pinned-1.0R-ALL, single-leg** (user chose, apples-to-apples).
+- **Build the app regime-filter checkboxes** (user wants to test himself): Bar Analysis
+  trade-parameter section + WFA Config section. Filters: **Balance state**, **Prior inside
+  day**, **Skip prior trend day (>1.6×ADR)** (ER≥0.30 already exists). Exact look-ahead-safe
+  defs are in this S25 block ("Filter definitions"). Foundation first: add developing
+  session High/Low (causal cummax/cummin shifted 1 bar) + `balance_state` / `prior_inside_day`
+  / `prior_adr_ext` columns to `indicators.tag_signals`, THEN wire the checkboxes.
+- **TEST THE SCALE-OUT (the big one, untested):** verified the engine supports it as-is —
+  multileg with **`ml_pb_r=0` (E1=E2, no pullback add) + `t1_r=1.0` + `t1_action="BE"` +
+  `target_r`=~1.5–2.0** = bank at 1R (keep the 58% leg-1 win), runner to bigger T2 risk-free.
+  This is where the balance bigger-MFE finding (p75 1.97R, 25% reach 2R) should pay off.
+  NOTE: BE-ratchet at 0.5/0.75R HURT — only ratchet AFTER the T1 partial.
+- **Head-to-head WFA:** baseline A vs A+balance-sizing+prior-trend-skip vs A+scale-out.
+  The 3 gates to "convinced": (1) scale-out beats flat 1R, (2) combined beats A head-to-head
+  OOS, (3) survives realistic constraints.
+
+### NEXT (S25 → S26) — backlog
 1. **WFA: balanced+prior+ER30 vs the best portfolio from yesterday** (the user's priority).
    ⚠️ Yesterday's stored runs (`opt_A/opt_B_CC*` per-setup, ES1/MES5, single+multileg) and the
    S22 `pin10_all_sl` predate/straddle the slippage fix — re-run the baseline FRESH on the
