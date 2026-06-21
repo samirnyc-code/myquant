@@ -396,12 +396,12 @@ def show_portfolio():
                                     index=0, key="pf_instrument")
         tick_value   = INSTRUMENTS[instrument]["tick_value"]
         def_comm     = INSTRUMENTS[instrument]["default_commission"]
-        entry_slip   = g2.number_input("Entry Slip (ticks)", 0.0, 5.0,
-                                       value=float(st.session_state.get("pf_entry_slip", 0.5)),
-                                       step=0.5, key="pf_entry_slip")
-        exit_slip    = g3.number_input("Exit Slip (ticks)",  0.0, 5.0,
-                                       value=float(st.session_state.get("pf_exit_slip",  0.5)),
-                                       step=0.5, key="pf_exit_slip")
+        entry_slip   = g2.number_input("Entry Slip (ticks)", 0, 5,
+                                       value=int(st.session_state.get("pf_entry_slip", 1)),
+                                       step=1, key="pf_entry_slip")
+        exit_slip    = g3.number_input("Exit Slip (ticks)",  0, 5,
+                                       value=int(st.session_state.get("pf_exit_slip",  0)),
+                                       step=1, key="pf_exit_slip")
         commission   = g4.number_input("Commission ($/contract)", 0.0, 20.0,
                                        value=float(st.session_state.get("pf_commission", def_comm)),
                                        step=0.5, key="pf_commission")

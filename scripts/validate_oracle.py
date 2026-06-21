@@ -124,7 +124,9 @@ def oracle_multileg(after: pd.DataFrame, is_long: bool, cfg: dict, stop_csv: flo
                 "EntryPrice": entry, "E2FillPrice": np.nan}
 
     # ── PB fills at pb_i ──
-    e2 = _round_tick(pb_trigger + sgn * es * ts)
+    # PB add is a resting limit at the trigger → fills AT the level (pb_trigger is
+    # already tick-snapped); no adverse slip. Matches the engine's E2 definition.
+    e2 = pb_trigger
     # Engine default scale_in_style="e2": T2 off E2's OWN risk (not the blended avg).
     t2 = _round_tick(e2 + sgn * t2_r * abs(e2 - stop))
 

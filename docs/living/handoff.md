@@ -1,10 +1,60 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** June 21, 2026 (session 23)
-**Current Versions:** SIM_v3.4 / GS_v4.5 / SHEET_v3.3 *(no engine change in S22 — charter, WFA window-robustness UI, headless master-run pipeline, research)*
+**Last Updated:** June 21, 2026 (session 24)
+**Current Versions:** SIM_v3.5 / GS_v4.5 / SHEET_v3.3 *(S24: critical slippage off-tick bugfix + E2 fill-at-limit redefinition — engine change, re-baselines all numbers)*
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 **Handoff hygiene (S20):** A competing handoff had grown in the `.claude/.../memory/` auto-memory folder and a new chat read *that* instead of this file. Fixed: added repo `CLAUDE.md` + rewrote `.claude` `MEMORY.md` to point here; deleted the duplicate session-state memories. **There is now ONE handoff: this file.**
 **Onboarding (S22):** `docs/living/PROJECT_CHARTER.md` is the from-inception synthesis (the *arc* + locked decisions). Read the charter first for orientation, then this handoff for current state. The charter owns the arc/locked rails; **this handoff still wins on what's true today.**
+
+---
+
+## 🚨🚨 SESSION 24 — June 21, 2026 — CRITICAL SLIPPAGE BUGFIX (read FIRST)
+*A trade trace exposed a long-standing engine bug: every research script passed
+`entry_slip=0.5, exit_slip=0.5`, and the engine computes slippage as `slip × tick_size`
+→ `0.5 × 0.25 = 0.125 pts = HALF A TICK`, pricing **every** computed fill off-tick.
+**All prior S22–S23 dollar/PF/PROM/MAR numbers produced via the research scripts are
+INVALID and must be regenerated.** Directional conclusions may survive; specific numbers do not.*
+
+### Root cause
+- Slippage is in **whole ticks** (engine does `slip × ts`). Scripts passed `0.5` → 0.125 pts
+  off-tick on E1 entry, E2 entry, and all exits; `RiskPts`/R-multiples/PB/target levels
+  inherited the error. Intended default was always integer ticks (`validate_engine.DEFAULTS`
+  + handoff both say `entry_slip=1, exit_slip=1`). The `0.5` lived ONLY in research scripts,
+  never the validators — which is why every validator stayed green and the bug survived.
+- **Second bug found:** the PB (pullback) add is a resting **limit** at the trigger, but the
+  engine applied *adverse* slip (`pb_trigger ∓ slip`), modelling a fill *worse than the limit*
+  — impossible. Produced a short E2 filling at 4973.50 below a 4973.75 trigger.
+
+### Fix (engine change — re-baselines numbers, intended)
+1. **E2/PB add now fills AT `pb_trigger`** (already tick-snapped), no adverse slip. Applied
+   identically to vec + loop + ratchet-on + bars-path + the Bar Analysis fast sweep + the
+   oracle reference, so vec==loop and fast==oracle still hold.
+2. **Guard:** `simulate_trades` now **raises** on any non-integer slip → can't recur.
+3. **Params → `entry_slip=1, exit_slip=0`** (ES rarely slips: 1 tick on the market entry,
+   exits fill at level on touch). Updated active scripts + UI defaults/integer step
+   (`wfa.py`, `portfolio.py` — no more half-tick entry).
+
+### Validated (all green AFTER the fix)
+- `validate_ratchet` multileg/e2: vec==loop byte-identical, 9 settings
+- `validate_oracle` multileg: independent reference agrees on every trade incl. `E2FillPrice`
+- `validate_scalein_sweep`: fast==engine, 64 combos
+- Live trade check: all prices on valid 0.25 ticks; CC2 short E2 fills at 4973.75 (trigger)
+
+### Files
+- `simulation_engine.py` (E2 fill ×4 sites, slip guard), `bar_analysis.py` (fast sweep E2),
+  `wfa.py` + `portfolio.py` (UI integer slip), `scripts/validate_oracle.py` (oracle E2 def)
+- Full writeup: **`docs/living/slippage_offtick_bugfix.md`**
+- New (corrected) research scripts present but **NOT yet re-run**: `per_setup_portfolio.py`
+  (`--mode`/`--instrument`/`--contracts` CLI; multileg/singleleg × ES/MES), `late_period_analysis.py`
+  (TOD/per-bar/session-phase), `er_timing_compare.py` (ER bar-T vs T-1, no auto-shift),
+  `fade_analysis.py` (reverse losers, bucket by VA/ER/TOD/dir), `overnight_batch.py` (chains them)
+
+### NEXT
+- **All re-runs were CANCELLED at user's request** — no corrected numbers exist yet. Do NOT
+  cite any S22–S23 figure as current. Regenerate before drawing conclusions.
+- The multiprocessing experiment for `run_is_sweep` was attempted and **reverted** (Windows
+  spawn pickle of the full tick dict failed; ~1.7x at best on multileg, slower on singleleg).
+- **User moved on to a new task after this commit.**
 
 ---
 

@@ -1194,8 +1194,8 @@ def show_wfa_tab() -> None:
 
         st.subheader("Execution Parameters")
         ec1, ec2, ec3, ec4, ec5 = st.columns(5)
-        entry_slip  = ec1.number_input("Entry slip (ticks)", 0.0, 5.0, 1.0, 0.5, key="wfa_eslip")
-        exit_slip   = ec2.number_input("Exit slip (ticks)",  0.0, 5.0, 1.0, 0.5, key="wfa_xslip")
+        entry_slip  = ec1.number_input("Entry slip (ticks)", 0, 5, 1, 1, key="wfa_eslip")
+        exit_slip   = ec2.number_input("Exit slip (ticks)",  0, 5, 0, 1, key="wfa_xslip")
         stop_offset = ec3.number_input("Stop offset (ticks)",0, 5, 1, key="wfa_soff")
         contracts_t1= ec4.number_input("Contracts E1",       1, 10, 1, key="wfa_ct1")
         contracts_t2= ec5.number_input("Contracts E2",       0, 10, 1, key="wfa_ct2")

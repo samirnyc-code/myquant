@@ -1180,8 +1180,8 @@ def _run_ml_scalein_sweep(
                         rach[i] = g / e1_risk_dollar[i] if e1_risk_dollar[i] > 0 else 0.0
                         continue
 
-                    # PB fills at pb_i
-                    e2        = round(round((pb_trigger + sgn * entry_slip * ts) / ts) * ts, 10)
+                    # PB fills at pb_i — limit add fills AT the trigger (tick-snapped); no adverse slip
+                    e2        = pb_trigger
                     blended   = (entry * tv1 + e2 * tv2) / tv_tot
                     if scale_in_style == "blended":
                         _ref, _rr = blended, abs(blended - stop)

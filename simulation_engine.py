@@ -543,8 +543,7 @@ def _simulate_one_multileg(
             return _build("T1_only", t1_exit_px, times[t1_pre], "T1", t1_exit_px, "NoFill", actual_entry)
 
         # PB fills at pb_i — arithmetic copied verbatim from the loop
-        e2_raw        = pb_trigger + (entry_slip * ts if is_long else -entry_slip * ts)
-        e2_entry      = round(round(e2_raw / ts) * ts, 10)
+        e2_entry      = pb_trigger  # PB add = resting limit at the trigger → fills AT the level (already tick-snapped); no adverse slip
         e2_fill_dt    = times[pb_i]
         blended_entry = (actual_entry * tv1 + e2_entry * tv2) / tv_total
         blended_risk  = abs(blended_entry - actual_stop)
@@ -651,8 +650,7 @@ def _simulate_one_multileg(
             pb_i = pb_i0
 
         # ── Phase 2: PB filled at pb_i (arithmetic copied verbatim from the loop) ──
-        e2_raw        = pb_trigger + (entry_slip * ts if is_long else -entry_slip * ts)
-        e2_entry      = round(round(e2_raw / ts) * ts, 10)
+        e2_entry      = pb_trigger  # PB add = resting limit at the trigger → fills AT the level (already tick-snapped); no adverse slip
         e2_fill_dt    = times[pb_i]
         blended_entry = (actual_entry * tv1 + e2_entry * tv2) / tv_total
         blended_risk  = abs(blended_entry - actual_stop)
@@ -724,8 +722,7 @@ def _simulate_one_multileg(
             # PB fill: tick-through (strict < for long, strict > for short)
             if not pb_filled:
                 if (p < pb_trigger) if is_long else (p > pb_trigger):
-                    e2_raw = pb_trigger + (entry_slip * ts if is_long else -entry_slip * ts)
-                    e2_entry   = round(round(e2_raw / ts) * ts, 10)
+                    e2_entry   = pb_trigger  # limit add fills AT trigger (tick-snapped); no adverse slip
                     e2_fill_dt = t
                     blended_entry = (actual_entry * tv1 + e2_entry * tv2) / tv_total
                     blended_risk  = abs(blended_entry - actual_stop)
@@ -1006,7 +1003,7 @@ def _simulate_one_bars_multileg(
                 p1_dt      = bar["DateTime"]
                 p1_exit_px = t1_price + (-exit_slip * ts if is_long else exit_slip * ts)
             else:
-                e2_entry      = round(round((pb_trigger + (entry_slip * ts if is_long else -entry_slip * ts)) / ts) * ts, 10)
+                e2_entry      = pb_trigger  # limit add fills AT trigger (tick-snapped); no adverse slip
                 e2_fill_dt    = bar["DateTime"]
                 blended_entry = (actual_entry * tv1 + e2_entry * tv2) / tv_total
                 blended_risk  = abs(blended_entry - actual_stop)
@@ -1564,6 +1561,17 @@ def simulate_trades(
     pb_round: str = "nearest",
     _force_loop: bool = False,
 ) -> pd.DataFrame:
+    # Slippage is measured in WHOLE TICKS (engine multiplies by tick size). A
+    # fractional value (e.g. 0.5) would price fills off-tick — not a tradeable
+    # ES increment — so reject it loudly rather than silently corrupt every price.
+    for _slip_name, _slip_val in (("entry_slip", entry_slip), ("exit_slip", exit_slip)):
+        if float(_slip_val) != int(_slip_val):
+            raise ValueError(
+                f"{_slip_name}={_slip_val} must be an integer number of ticks "
+                f"(fractional slip prices fills off-tick).")
+    entry_slip = int(entry_slip)
+    exit_slip  = int(exit_slip)
+
     _t2_r = t2_r if t2_r > 0 else target_r
     tv    = tick_value * contracts
     tv1   = tick_value * contracts_t1
