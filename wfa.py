@@ -1268,6 +1268,70 @@ def show_wfa_tab() -> None:
 
         st.caption(f"{len(signals_filtered)} signals after filter")
 
+        # ── Regime population gates (S25: ER chop + balance/inside/trend) ─────
+        st.divider()
+        st.markdown("**Regime Gates**")
+        eg1, eg2, eg3, eg4 = st.columns([2, 2, 2, 2])
+        flt_er30 = eg1.checkbox(
+            "ER 30m ≥ gate", key="wfa_flt_er30",
+            value=st.session_state.get("wfa_flt_er30", False),
+            help="Chop gate on 30-minute Kaufman ER (ER_intra_6). "
+                 "Below 0.30 everything loses.")
+        er_min = eg2.number_input(
+            "ER30 gate", 0.0, 1.0,
+            float(st.session_state.get("wfa_flt_er_min", 0.30)),
+            step=0.02, format="%.2f", key="wfa_flt_er_min",
+            help="ER30 threshold (default 0.30).")
+        flt_er10 = eg3.checkbox(
+            "ER 10m ≥ gate", key="wfa_flt_er10",
+            value=st.session_state.get("wfa_flt_er10", False),
+            help="Chop gate on 10-minute Kaufman ER (ER_intra_2, 2-bar). "
+                 "S26 research: $116 exp, PF 1.40, 15/15 OOS folds green at 0.30.")
+        er10_min = eg4.number_input(
+            "ER10 gate", 0.0, 1.0,
+            float(st.session_state.get("wfa_flt_er10_min", 0.30)),
+            step=0.02, format="%.2f", key="wfa_flt_er10_min",
+            help="ER10 threshold (default 0.30).")
+
+        st.markdown("**Balance State (S25, secondary boosters on top of ER)**")
+        rb1, rb2, rb3 = st.columns(3)
+        flt_balance = rb1.checkbox(
+            "Balance state only", key="wfa_flt_balance",
+            value=st.session_state.get("wfa_flt_balance", False),
+            help="Keep only signals on a balance day: opened INSIDE the prior "
+                 "RTH range AND still rotating inside it at signal time (no "
+                 "discovery yet). Look-ahead-safe.")
+        flt_inside = rb2.checkbox(
+            "Prior inside day only", key="wfa_flt_inside",
+            value=st.session_state.get("wfa_flt_inside", False),
+            help="Keep only signals whose PRIOR day's range fell inside the "
+                 "day-before's range (compression → expansion).")
+        flt_skip_trend = rb3.checkbox(
+            "Skip prior trend day", key="wfa_flt_skip_trend",
+            value=st.session_state.get("wfa_flt_skip_trend", False),
+            help="Drop signals whose prior day was a trend day (range > 1.6×ADR) "
+                 "— the S25 clean hard-skip (breakout edge ≈ dead after a trend day).")
+
+        if flt_er30 or flt_er10 or flt_balance or flt_inside or flt_skip_trend:
+            from bar_analysis import _regime_tags_cached, apply_regime_population_filters
+            _reg_fp = hash((
+                len(signals_filtered),
+                int(signals_filtered["SignalNum"].sum()) if not signals_filtered.empty else 0,
+                len(bars),
+            ))
+            _reg_tags = _regime_tags_cached(_reg_fp, signals_filtered, bars)
+            signals_filtered = signals_filtered.copy()
+            signals_filtered["FilterStatus"] = "ok"
+            signals_filtered = apply_regime_population_filters(
+                signals_filtered, _reg_tags, flt_er30, er_min,
+                flt_balance, flt_inside, flt_skip_trend,
+                want_er10=flt_er10, er10_min=er10_min)
+            _n_ok = (signals_filtered["FilterStatus"] == "ok").sum()
+            _n_tot = len(signals_filtered)
+            st.caption(f"Regime gates: **{_n_ok} of {_n_tot}** signals pass")
+            signals_filtered = (signals_filtered[signals_filtered["FilterStatus"] == "ok"]
+                                .drop(columns="FilterStatus").copy())
+
         # ── 🧭 Multi-slice regime filter (optional; validated via WFA) ─────────
         # Research the buckets in Bar Analysis → Regime/Indicator Expectancy,
         # pre-commit a small hypothesis-driven set HERE, then let WFA validate it.
@@ -1388,9 +1452,23 @@ def show_wfa_tab() -> None:
             # Permanently record the locked regime filter with the run (rail #1:
             # the filter is LOCKED before the run — the run notes prove what it was).
             _notes_full = notes_input
+            _regime_gates = []
+            if flt_er30:
+                _regime_gates.append(f"ER30>={er_min:.2f}")
+            if flt_er10:
+                _regime_gates.append(f"ER10>={er10_min:.2f}")
+            if flt_balance:
+                _regime_gates.append("balance")
+            if flt_inside:
+                _regime_gates.append("prior_inside")
+            if flt_skip_trend:
+                _regime_gates.append("skip_trend")
+            if _regime_gates:
+                _rg_desc = "regime_gates[LOCKED]: " + "+".join(_regime_gates)
+                _notes_full = (f"{_notes_full} | " if _notes_full else "") + _rg_desc
             if locked_spec:
                 _rf_desc = _rf.describe_spec(locked_spec)
-                _notes_full = (f"{notes_input} | " if notes_input else "") + \
+                _notes_full = (f"{_notes_full} | " if _notes_full else "") + \
                               f"regime_filter[LOCKED]: {_rf_desc}"
             create_run(run_id, setup_id, mode, base_params, _notes_full)
 

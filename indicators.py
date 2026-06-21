@@ -283,6 +283,51 @@ def session_levels(bars: pd.DataFrame) -> pd.DataFrame:
     })
 
 
+def developing_session_levels(bars: pd.DataFrame) -> pd.DataFrame:
+    """Developing intraday High/Low *strictly before* each bar (causal, S25).
+
+    Within each session, dev_High / dev_Low at bar T are the running max/min over
+    bars [0 .. T-1] — cummax/cummin shifted one bar so the signal bar's own
+    High/Low is excluded (look-ahead-safe). The first bar of a session has no
+    prior bar, so it falls back to that session's Open. This is the
+    "developing range" used to test whether price is still rotating inside the
+    prior day's range (balance) or has already broken out (discovery).
+    """
+    df  = bars.sort_values("DateTime").reset_index(drop=True)
+    day = df["DateTime"].dt.normalize()
+    g   = df.groupby(day)
+    cmax = g["High"].cummax()
+    cmin = g["Low"].cummin()
+    dev_hi = cmax.groupby(day).shift(1)
+    dev_lo = cmin.groupby(day).shift(1)
+    ood = g["Open"].transform("first")
+    return pd.DataFrame({
+        "DateTime": df["DateTime"],
+        "dev_High": dev_hi.fillna(ood).values,
+        "dev_Low":  dev_lo.fillna(ood).values,
+    })
+
+
+def _daily_balance_context(bars: pd.DataFrame, adr_window: int = 14,
+                           trend_mult: float = 1.6) -> pd.DataFrame:
+    """Per-(completed)-day balance context, indexed by normalized day (causal).
+
+      inside_day — this day's RTH range fell inside the prior day's range
+                   (High < prior High AND Low > prior Low) → compression.
+      adr_ext    — this day's range exceeded `trend_mult`×ADR, where ADR is the
+                   trailing-`adr_window` mean of prior daily ranges → a trend day.
+
+    `tag_signals` reads the PRIOR completed day's values (via shift(1)) so the
+    signal day's own forming range never leaks in.
+    """
+    d   = _daily_ohlc(bars)
+    rng = d["High"] - d["Low"]
+    inside = (d["High"] < d["High"].shift(1)) & (d["Low"] > d["Low"].shift(1))
+    adr = rng.shift(1).rolling(adr_window, min_periods=5).mean()
+    adr_ext = rng > (trend_mult * adr)
+    return pd.DataFrame({"inside_day": inside, "adr_ext": adr_ext}, index=d.index)
+
+
 def bar_ema(bars: pd.DataFrame, span: int = 20) -> pd.DataFrame:
     """Developing EMA on the 5M bar Close (causal — uses only bars up to T).
 
@@ -515,6 +560,12 @@ def tag_signals(signals: pd.DataFrame, bars: pd.DataFrame,
     Daily regime (prior-day, look-ahead-safe):
       prior_ATR/ATR_pct, prior_ADX/ADX_pct, prior_ER/ER_pct, prior_RangeATR
 
+    Balance-state context (S25, look-ahead-safe):
+      dev_High/dev_Low  — developing range strictly before the signal bar
+      balance_state     — opened inside prior range AND still rotating inside it
+      prior_inside_day  — prior day's range fell inside the day-before's range
+      prior_adr_ext     — prior day was a trend day (range > 1.6×ADR) → skip
+
     Value areas — for each period in `periods`, the PRIOR period's levels:
       {p}_POC/VAH/VAL, {p}_loc, {p}_dist
     """
@@ -546,7 +597,7 @@ def tag_signals(signals: pd.DataFrame, bars: pd.DataFrame,
     )
 
     # ── Intraday Kaufman ER (30m/60m/120m, causal) ───────────────────────────
-    eri = bar_kaufman_er(bars, spans=(6, 12, 24))
+    eri = bar_kaufman_er(bars, spans=(2, 6, 12, 24))
     sig = pd.merge_asof(
         sig, eri.sort_values("DateTime"),
         on="DateTime", direction="backward",
@@ -583,6 +634,22 @@ def tag_signals(signals: pd.DataFrame, bars: pd.DataFrame,
     sig["prior_ER"]       = s_day.map(reg["ER"]).values
     sig["prior_ER_pct"]   = s_day.map(reg["ER_pct"]).values
     sig["prior_RangeATR"] = s_day.map(reg["RangeATR"]).values
+
+    # ── Balance-state context (S25) — look-ahead-safe ────────────────────────
+    # Developing range strictly before the signal bar (causal cummax/cummin -1).
+    dev = developing_session_levels(bars)
+    sig = pd.merge_asof(sig, dev.sort_values("DateTime"),
+                        on="DateTime", direction="backward")
+    # Balance = opened INSIDE prior range AND still rotating inside it at signal
+    # (developing High <= HOY AND developing Low >= LOY = no discovery yet).
+    inside_open = (sig["OOD"] >= sig["LOY"]) & (sig["OOD"] <= sig["HOY"])
+    rotation    = (sig["dev_High"] <= sig["HOY"]) & (sig["dev_Low"] >= sig["LOY"])
+    sig["balance_state"] = (inside_open & rotation).fillna(False).astype(bool)
+
+    # Prior completed day: inside day (compression) / trend day (>1.6×ADR, skip).
+    bal = _daily_balance_context(bars).shift(1)
+    sig["prior_inside_day"] = s_day.map(bal["inside_day"]).fillna(False).astype(bool).values
+    sig["prior_adr_ext"]    = s_day.map(bal["adr_ext"]).fillna(False).astype(bool).values
 
     # ── Prior-period value areas (one block per timeframe) ────────────────────
     for period in periods:

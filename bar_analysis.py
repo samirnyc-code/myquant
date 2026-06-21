@@ -139,6 +139,48 @@ def apply_signal_filters(
     return df
 
 
+def apply_regime_population_filters(
+    df: pd.DataFrame,
+    tags: pd.DataFrame,
+    want_er: bool,
+    er_min: float,
+    want_balance: bool,
+    want_inside: bool,
+    skip_trend: bool,
+    want_er10: bool = False,
+    er10_min: float = 0.30,
+) -> pd.DataFrame:
+    """Mark FilterStatus for rows excluded by the regime population gates.
+
+    `tags` carries the look-ahead-safe columns ER_intra_2 / ER_intra_6 /
+    balance_state / prior_inside_day / prior_adr_ext (from indicators.tag_signals),
+    aligned to `df.index`. Only rows currently "ok" can be excluded — these stack
+    AFTER the session/event filters, like every other status. NaN readings fail the
+    keep gates (conservative, matching the research's fillna(0) on ER) and are NOT
+    treated as trend days for the skip. ER gates run first (primary chop filters;
+    balance/inside are secondary boosters on top).
+    """
+    if not (want_er or want_er10 or want_balance or want_inside or skip_trend):
+        return df
+    t = tags.reindex(df.index)
+    if want_er:
+        bad = (df["FilterStatus"] == "ok") & ~(t["ER_intra_6"] >= er_min)
+        df.loc[bad, "FilterStatus"] = "low_er"
+    if want_er10:
+        bad = (df["FilterStatus"] == "ok") & ~(t["ER_intra_2"] >= er10_min)
+        df.loc[bad, "FilterStatus"] = "low_er10"
+    if want_balance:
+        bad = (df["FilterStatus"] == "ok") & ~t["balance_state"].fillna(False)
+        df.loc[bad, "FilterStatus"] = "not_balance"
+    if want_inside:
+        bad = (df["FilterStatus"] == "ok") & ~t["prior_inside_day"].fillna(False)
+        df.loc[bad, "FilterStatus"] = "not_inside"
+    if skip_trend:
+        bad = (df["FilterStatus"] == "ok") & t["prior_adr_ext"].fillna(False)
+        df.loc[bad, "FilterStatus"] = "prior_trend"
+    return df
+
+
 # ── Trade simulation ──────────────────────────────────────────────────────────
 
 # bar_num_from_dt imported from data_loader — shared with app.py
@@ -2315,6 +2357,11 @@ _FILTER_LABELS = {
     "date_range":     "Outside selected date range",
     "first_trade_day":"Non-first trade of day",
     "manual_override":"Manual fill override ✓",
+    "low_er":         "Intraday ER 30m below gate (chop)",
+    "low_er10":       "Intraday ER 10m below gate (chop)",
+    "not_balance":    "Not a balance-state day (S25)",
+    "not_inside":     "Prior day not an inside day (S25)",
+    "prior_trend":    "Prior day a trend day >1.6×ADR (S25)",
 }
 
 _EXECUTION_STATUSES = {"no_fill", "no_next_bar", "no_tick_data", "zero_risk"}
@@ -2701,6 +2748,24 @@ def _tag_trades_cached(fp: int, _filled: pd.DataFrame, _bars: pd.DataFrame) -> p
     tags = tags.set_index("_idx").sort_index()
     cols = [c for c in tags.columns if c not in ("_idx", "DateTime", "Price", "Direction")]
     return tags[cols].reset_index(drop=True)
+
+
+@st.cache_data(show_spinner="Tagging regime state…")
+def _regime_tags_cached(fp: int, _signals: pd.DataFrame, _bars: pd.DataFrame) -> pd.DataFrame:
+    """Look-ahead-safe regime-gate columns for the whole signal population.
+
+    Returns ER_intra_6 (intraday 30m Kaufman ER — the deployed chop gate) plus the
+    S25 balance columns balance_state / prior_inside_day / prior_adr_ext, aligned
+    to `_signals.index`. `fp` is the cache key; frames are unhashed (underscore
+    prefix). periods=("session",) skips the weekly/monthly value-area work these
+    gates don't need."""
+    base = _signals.copy()
+    base["_bid"] = np.arange(len(base))
+    tagged = ind.tag_signals(base, _bars, periods=("session",))
+    cols = ["ER_intra_2", "ER_intra_6", "balance_state", "prior_inside_day", "prior_adr_ext"]
+    out = tagged.set_index("_bid").sort_index()[cols]
+    out.index = _signals.index
+    return out
 
 
 def _compute_ric(bucket_df: pd.DataFrame, total_exp: float) -> float:
@@ -4006,6 +4071,49 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                                        st.session_state.get("ba_event_window", 15), 15,
                                        key="ba_event_window")
 
+        st.divider()
+        st.markdown("**Regime Gates**")
+        eg1, eg2, eg3, eg4 = st.columns([2, 2, 2, 2])
+        flt_er30 = eg1.checkbox(
+            "ER 30m ≥ gate", key="ba_flt_er30",
+            value=st.session_state.get("ba_flt_er30", False),
+            help="Chop gate on 30-minute Kaufman ER (ER_intra_6). "
+                 "Below 0.30 everything loses.")
+        er_min = eg2.number_input(
+            "ER30 gate", 0.0, 1.0,
+            float(st.session_state.get("ba_flt_er_min", 0.30)),
+            step=0.02, format="%.2f", key="ba_flt_er_min",
+            help="ER30 threshold (default 0.30).")
+        flt_er10 = eg3.checkbox(
+            "ER 10m ≥ gate", key="ba_flt_er10",
+            value=st.session_state.get("ba_flt_er10", False),
+            help="Chop gate on 10-minute Kaufman ER (ER_intra_2, 2-bar). "
+                 "S26 research: $116 exp, PF 1.40, 15/15 OOS folds green at 0.30.")
+        er10_min = eg4.number_input(
+            "ER10 gate", 0.0, 1.0,
+            float(st.session_state.get("ba_flt_er10_min", 0.30)),
+            step=0.02, format="%.2f", key="ba_flt_er10_min",
+            help="ER10 threshold (default 0.30).")
+
+        st.markdown("**Balance State (S25, secondary boosters on top of ER)**")
+        rb1, rb2, rb3 = st.columns(3)
+        flt_balance = rb1.checkbox(
+            "Balance state only", key="ba_flt_balance",
+            value=st.session_state.get("ba_flt_balance", False),
+            help="Keep only signals on a balance day: opened INSIDE the prior "
+                 "RTH range AND still rotating inside it at signal time (no "
+                 "discovery yet). Look-ahead-safe.")
+        flt_inside = rb2.checkbox(
+            "Prior inside day only", key="ba_flt_inside",
+            value=st.session_state.get("ba_flt_inside", False),
+            help="Keep only signals whose PRIOR day's range fell inside the "
+                 "day-before's range (compression → expansion).")
+        flt_skip_trend = rb3.checkbox(
+            "Skip prior trend day", key="ba_flt_skip_trend",
+            value=st.session_state.get("ba_flt_skip_trend", False),
+            help="Drop signals whose prior day was a trend day (range > 1.6×ADR) "
+                 "— the S25 clean hard-skip (breakout edge ≈ dead after a trend day).")
+
     # ── Signals ───────────────────────────────────────────────────────────────
     with st.expander("📶 Signals", expanded=False):
         # Signal-type filter — built dynamically from the loaded signals' own types,
@@ -4505,6 +4613,10 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                 "ba_excl_first_n": excl_first_n, "ba_excl_last_min": excl_last_min,
                 "ba_fomc": use_fomc, "ba_nfp": use_nfp, "ba_cpi": use_cpi,
                 "ba_event_mode": event_filter_mode, "ba_event_window": event_window,
+                "ba_flt_er30": flt_er30, "ba_flt_er_min": float(er_min),
+                "ba_flt_er10": flt_er10, "ba_flt_er10_min": float(er10_min),
+                "ba_flt_balance": flt_balance, "ba_flt_inside": flt_inside,
+                "ba_flt_skip_trend": flt_skip_trend,
                 "ba_trade_mode": st.session_state.get("ba_trade_mode", "Single Leg"),
                 # Single-leg
                 "ba_instrument_sl": st.session_state.get("ba_instrument_sl", "ES"),
@@ -4574,6 +4686,20 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         direction_filter,
     )
 
+    # Regime population gates (ER chop + S25 balance) — tag only when at least one
+    # is active (the tag is cached, so it computes once per signal/bar set).
+    if flt_er30 or flt_er10 or flt_balance or flt_inside or flt_skip_trend:
+        _reg_fp = hash((
+            len(signals_raw),
+            int(signals_raw["SignalNum"].sum()) if not signals_raw.empty else 0,
+            len(bars),
+        ))
+        _reg_tags = _regime_tags_cached(_reg_fp, signals_raw, bars)
+        filtered_signals = apply_regime_population_filters(
+            filtered_signals, _reg_tags, flt_er30, er_min,
+            flt_balance, flt_inside, flt_skip_trend,
+            want_er10=flt_er10, er10_min=er10_min)
+
     _sim_fp = hash((
         len(filtered_signals),
         int(filtered_signals["SignalNum"].sum()) if not filtered_signals.empty else 0,
@@ -4584,6 +4710,8 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         t2_r_val, ratchet_r_v, ratchet_dest_v, ratchet_lock_r_v, scale_in_style_v, pb_round_v,
         str(st.session_state.get("ba_manual_overrides", {})),
         first_trade_only, first_2_filled_only,
+        flt_er30, round(er_min, 4), flt_er10, round(er10_min, 4),
+        flt_balance, flt_inside, flt_skip_trend,
     ))
     _has_results = (st.session_state.get("ba_results_fp") == _sim_fp
                     and st.session_state.get("ba_results") is not None)

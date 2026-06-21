@@ -1,10 +1,181 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** June 21, 2026 (session 24)
+**Last Updated:** June 21, 2026 (session 26)
 **Current Versions:** SIM_v3.5 / GS_v4.5 / SHEET_v3.3 *(S24: critical slippage off-tick bugfix + E2 fill-at-limit redefinition — engine change, re-baselines all numbers)*
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 **Handoff hygiene (S20):** A competing handoff had grown in the `.claude/.../memory/` auto-memory folder and a new chat read *that* instead of this file. Fixed: added repo `CLAUDE.md` + rewrote `.claude` `MEMORY.md` to point here; deleted the duplicate session-state memories. **There is now ONE handoff: this file.**
 **Onboarding (S22):** `docs/living/PROJECT_CHARTER.md` is the from-inception synthesis (the *arc* + locked decisions). Read the charter first for orientation, then this handoff for current state. The charter owns the arc/locked rails; **this handoff still wins on what's true today.**
+
+---
+
+## ⭐⭐ SESSION 26 — June 21, 2026 (night) — REGIME GATES BUILT + SCALE-OUT TESTED (read FIRST)
+*Built the S25 regime gates into both apps (Bar Analysis + WFA), tested scale-out
+head-to-head vs flat 2c baseline. No engine change. User reproduced S25 balance
+numbers live in-app ($145 exp, PF 1.42, 676 trades). Scale-out decisively loses to
+flat 1R — the 1R edge is already maximally capital-efficient.*
+
+### THE HEADLINE — scale-out does NOT beat flat 1R (clean finding, close the question)
+Head-to-head on ER≥0.30 + skip-prior-trend, `entry_slip=1/exit_slip=0`, commission
+$4.36, 3886 filled trades:
+
+| run | net | exp | PF | win% | max DD |
+|---|---|---|---|---|---|
+| **Baseline: 2c flat 1.0R** | **$763,939** | **$197** | 1.34 | 56% | −$44,741 |
+| Scale-out: T1=1.0R BE, T2=1.5R | $417,609 | $107 | 1.37 | 47% | −$22,404 |
+| Scale-out: T1=1.0R BE, T2=1.75R | $448,346 | $115 | 1.40 | 45% | −$24,242 |
+| Scale-out: T1=1.0R BE, T2=2.0R | $463,921 | $119 | 1.41 | 44% | −$25,880 |
+
+**WHY:** back-of-envelope confirmed by the sim. Flat 2c at 1R: 58% × 2R − 42% × 2R
+= +0.32R. Scale-out: when T1 misses both contracts stop (−2R); when T1 hits you bank
+only 1R instead of 2R, and the runner needs to reach 1.5–2R to compensate — but
+P(reach T2 | reached T1) is only 43–60%. The runner doesn't recover the sacrificed
+guaranteed second 1R bank. Scale-out PF is slightly better (1.41 vs 1.34) and DD is
+half — but that's just because it makes less money.
+**CONCLUSION:** 1R flat is the right trade management, not a compromise. The breakout
+edge is too efficient at 1R to justify splitting positions. **Close this question.**
+
+### REGIME GATES — built into both apps (BA + WFA)
+
+**Foundation (`indicators.py`):**
+- `developing_session_levels()` — causal cummax/cummin shifted 1 bar (dev range
+  strictly before the signal bar, no look-ahead).
+- `_daily_balance_context()` — prior completed day `inside_day` + `adr_ext`
+  (range > 1.6×ADR trend day).
+- `tag_signals()` now emits: `dev_High`, `dev_Low`, `balance_state`,
+  `prior_inside_day`, `prior_adr_ext`. Validated 99.55% agreement with the
+  canonical `tag_states` from `regime_overlay_phaseB.py` (22 diffs = days
+  missing from `regime_ladder_sessions.parquet`, 3 = off-bar-edge ties).
+
+**Bar Analysis (`bar_analysis.py`):**
+- ⚙️ Filters expander → **Regime Gates** section:
+  - **Intraday ER 30m ≥ gate** (adjustable threshold, default 0.30) — the deployed
+    chop gate, now a hard population filter (not just a descriptive bucket).
+  - **Balance state only** — opened inside prior range AND still rotating inside.
+  - **Prior inside day only** — compression → expansion.
+  - **Skip prior trend day** — range > 1.6×ADR, the one clean hard-skip.
+- `apply_regime_population_filters()` stacks onto existing `FilterStatus` pipeline.
+- `_regime_tags_cached()` tags once per signal/bar set (only when a gate is active).
+- New FilterStatus labels: `low_er`, `not_balance`, `not_inside`, `prior_trend`.
+- Wired into sim fingerprint + Save Defaults.
+
+**WFA (`wfa.py`):**
+- Same 4 checkboxes in WFA Config, placed between CC filter and multi-slice regime
+  filter. Imports `_regime_tags_cached` + `apply_regime_population_filters` from
+  `bar_analysis`. Temporary `FilterStatus` column added/removed (WFA signals don't
+  carry one natively). Active gates recorded in run notes as
+  `regime_gates[LOCKED]: ER>=0.30+skip_trend` etc. for traceability.
+
+**User verified live in-app:** ER≥0.30 + Balance → $145 exp, PF 1.42, 57.8% win,
+676 trades — matches S25 research exactly.
+
+### ⚠️ ER10 (2-bar) DOMINATES ER30 OOS — STRONG, but NOT YET reproduced in-app
+*This is the biggest result of the session and it looks **too good to be true** →
+the immediate next action (S27) is to reproduce these numbers in the live app
+before anyone adopts ER10. Treat as PROMISING, not BANKED.*
+
+**The tautology scare — raised then resolved.** First reaction was that ER_intra_2
+must be circular because the 2-bar ER includes the signal bar itself, so it's just
+"big signal bars." The lag-1 test (ER excluding the signal bar) killed the edge,
+seeming to confirm it. **But the user correctly pushed back:** the signal AND its
+ER are both computed at the *same* bar-T close, and the trade enters on a LATER tick
+— so bar-T's ER is *contemporaneous*, available at decision time, look-ahead-safe.
+It is NOT future data. The lag-1 test was over-conservative (it deleted real,
+available information). Correct framing: ER_intra_2 is largely an **entry-quality
+reading of the breakout bar** (how cleanly the signal bar moved) — a legitimate,
+executable filter, not a tautology. The one open item is OPERATIONAL: confirm NT can
+compute ER10 from the just-closed bar and gate the order before the next tick (trivial,
+but verify in the NT-sim phase).
+
+**OOS evidence (walk-forward 15× 252/63 folds, pinned 1.0R, 1c, no other filters):**
+- `ER_intra_2 ≥ 0.30` beats deployed `ER_intra_6 ≥ 0.30` on every metric at the same
+  ~3,400 trades: exp $116 vs $94, PF 1.40 vs 1.31, **15/15 vs 12/15 green folds**,
+  2022 $114 vs $100. All three of ER30's red folds flip green.
+- Monotonic improvement to ~0.7–0.8 (net peaks ~0.7), 2022 exp keeps climbing to 0.9.
+- **worstFold turns POSITIVE at ≥0.30 and stays positive through 0.9** — i.e. NO losing
+  OOS fold anywhere. SQN reaches 12–13, Sharpe ~5. (Harness reproduces the deployed
+  ER30 = $321k / $94 / 12-15 green EXACTLY, so it's apples-to-apples with S25.)
+
+**DISCIPLINE — what is and isn't decided:**
+- The defensible change is the **lookback swap (ER6→ER2) at the SAME 0.30 threshold** —
+  a *single-knob* change vs the deployed gate, OOS-proven. That can be adopted.
+- **Raising the threshold (0.30→0.7/0.8) is a SECOND knob = multiple-testing.** The
+  monotonic pattern is reassuring but do NOT crown the in-sample net-max. Decide the
+  threshold forward, by structure, with the full filter stack on.
+- **The MAR95/SQN/Sharpe numbers are ROSY** — 1 contract, pinned 1R, NO session/FOMC/DOW
+  filters, NO position management. They will worsen under realistic constraints (Phase 2).
+  Treat as relative rankings, not promised live performance.
+
+**Full sweep saved:** `docs/living/er10_oos_sweep_20260621.md` — all 4 filter
+conditions (ER10 only / +skip-trend / +balance / +prior-inside) × 9 thresholds ×
+20 OOS metrics. Re-confirms S25: **balance & prior-inside are SIZING signals, not
+gates** (great per-trade exp/PF but worstFold stays negative, MAR95 single-digit,
+>1yr underwater — sparsity kills them as standalone books). **ER10 + skip-trend is
+the tradeable book.**
+
+**NEXT (immediate): reproduce the ER10 table numbers in the app** (gates already
+wired). Turn OFF all session/FOMC/DOW filters to match the headless runs, set ER10
+gate, pinned 1.0R single-leg, ES, slip 1/0, $4.36. If the app matches → trust the
+tables. If not → find the discrepancy before going further.
+
+Related: ER gate is mildly counterproductive on bars 1–5 ($90 gated vs $111 ungated)
+— the cross-session blend window; ER10's shorter reach largely fixes this.
+
+### Early-bar analysis (within ER≥0.30, 1R single-leg)
+| bar | n | exp | PF |
+|---|---|---|---|
+| 2 | 67 | $273 | 1.99 |
+| 3 | 98 | $15 | 1.03 |
+| 4 | 111 | $149 | 1.31 |
+| 5 | 81 | −$51 | 0.91 |
+| 1–5 | 357 | $90 | 1.19 |
+| 6+ | 4082 | $87 | 1.29 |
+Small n, noisy — bar 2 looks great but it's 67 trades. Not actionable alone.
+
+### ER10 UI + infrastructure (S26 late — parallel chat)
+
+- `indicators.py` — `bar_kaufman_er` spans extended `(6,12,24)` → `(2,6,12,24)`;
+  `tag_signals()` now emits `ER_intra_2` (10-min / 2-bar Kaufman ER).
+- `bar_analysis.py` — **ER 10m ≥ gate** checkbox + **ER10 gate** threshold input
+  added to Regime Gates section (next to ER30). `apply_regime_population_filters()`
+  accepts `want_er10`/`er10_min` params. New FilterStatus `low_er10`.
+  `_regime_tags_cached()` returns `ER_intra_2`. Wired into defaults + sim fingerprint.
+- `wfa.py` — same ER10 checkbox + threshold in WFA Config. Run notes record
+  `ER10>=X` when active.
+- Both ER gates stack: a signal must pass whichever are enabled (AND logic).
+
+### Files changed this session
+- `indicators.py` — `developing_session_levels()`, `_daily_balance_context()`,
+  `tag_signals()` extended with 5 new columns + `ER_intra_2`
+- `bar_analysis.py` — `apply_regime_population_filters()`, `_regime_tags_cached()`,
+  Regime Gates UI (ER30 + ER10), FilterStatus labels, sim fingerprint, Save Defaults
+- `wfa.py` — regime gate checkboxes (ER30 + ER10 + balance + inside + skip-trend),
+  filtering + run-notes recording
+- `docs/living/next_task_er_granularity.md` — ER granularity HYPOTHESIS (parked)
+
+### S26 STATUS vs S25 FIRST ORDER OF BUSINESS
+- ✅ **Build the app regime-filter checkboxes** — done (both apps).
+- ✅ **TEST THE SCALE-OUT** — done. Result: flat 1R wins. Question closed.
+- ⬜ **Baseline A re-run** — not done (deferred, but now trivial: just check ER≥0.30 +
+  skip-trend in WFA and run).
+- ⬜ **Head-to-head WFA:** baseline A vs A+balance-sizing+prior-trend-skip — the
+  scale-out arm is now dead, simplifying this to a 2-way comparison.
+
+### NEXT (S27)
+0. **REPRODUCE ER10 IN-APP (do this FIRST).** The ER10>ER30 OOS result is the
+   session's headline and looks too good to be true. Before adopting anything,
+   reproduce the `er10_oos_sweep_20260621.md` numbers in the live app (gates are
+   wired). Match the headless setup: all session/FOMC/DOW filters OFF, ER10 gate on,
+   pinned 1.0R single-leg, ES, slip 1/0, $4.36. App must match the tables.
+1. **Head-to-head WFA OOS:** baseline A (ER≥0.30 + skip-trend, flat 1R) vs
+   A+balance-sizing (same population, but MES position sizing: base 3 MES,
+   size up on balance). This is the remaining gate to "convinced." If ER10 is
+   confirmed in-app, run baseline A on ER10 instead of ER30.
+2. **A–G state taxonomy** (friend's framework) — specifically F/G
+   (balance→discovery transition). The balance gate is built; the next
+   question is whether the *transition out of* balance carries its own edge.
+3. **ER timing fix + threshold decision** (`docs/living/next_task_er_granularity.md`):
+   lookback swap (ER6→ER2 @0.30) is the defensible single-knob change; the threshold
+   raise is a separate forward decision, not the in-sample net-max.
 
 ---
 
