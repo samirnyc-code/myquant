@@ -160,12 +160,41 @@ Small n, noisy — bar 2 looks great but it's 67 trades. Not actionable alone.
 - ⬜ **Head-to-head WFA:** baseline A vs A+balance-sizing+prior-trend-skip — the
   scale-out arm is now dead, simplifying this to a 2-way comparison.
 
+### S26 PART 2 (late night) — ER10 VALIDATED OOS + stability panel + the BA→WFA gap
+- **ER10 reproduced & validated.** In-app: ER≥0.30+balance → $145 exp/PF 1.42 (matches S25).
+  Engine confirmed UNCHANGED this session; export reconciles to the penny from raw prices
+  (pure arithmetic $562,970 vs $563,279), all fills on valid 0.25 ticks → numbers are real.
+- **`low_er10` filtered-OUT signals LOSE −$297,883** (1,854 fillable, exp −$161, PF 0.66,
+  win 40%) — the gate removes a deeply net-negative population. Conservation, not magic.
+- **⭐ run_f76c8b92 (ALL / single-leg / PINNED 1.0R / ER10≥0.70) — the champagne run.**
+  OOS 2,395 trades, **net $470,333, ExpR +0.212, PF 1.78, 62% win, 12/13 folds green.**
+  maxDD $12k, MC-DD95 $14.8k, **MAR95 31.8**, longest UW 71d, SQN 12.3, Sharpe 4.71.
+  **Every calendar year green** (2022–2026, ExpR 0.16–0.24), best-year share 40% (NOT
+  regime-concentrated). **Breakout-vs-drift decomposition: Target +$942k, Stop −$521k,
+  EOD +$50k → 89% of profit is the breakout MECHANIC, only 11% drift.** This is the
+  EXACT INVERSE of the S22 unpinned disaster — pinning 1R + ER10 gate gives a REAL
+  breakout edge, not a closet drift bet. The lone red fold (5) = the 2024-Q1 soft patch
+  the rolling-ExpR chart independently flagged. **Verdict given: pour a glass, not the
+  bottle** — 0.70 is an in-sample-selected threshold (validates the ER10 *concept*, not
+  0.70 vs 0.30/0.50 specifically), and it's frictionless (no constraints, NT fills unproven).
+- **Built: 📈 Expectancy Stability (R) expander in Bar Analysis** (`bar_analysis.py`, after
+  Quick View) — rolling Exp-R chart (windows A/B adjustable, year markers) + green/red
+  bar chart by Year/Half/Quarter + period table. Reads `R_achieved`; contract-independent.
+- **🔴 CONFIRMED GAP — BA session filters are NOT inherited by WFA.** WFA shares only signal
+  source + SignalType/CC selection + the new regime gates. It does NOT apply: exclude-holidays,
+  DOW, excl-first-N-bars, **excl-last-N-min**, **FOMC/NFP/CPI**, **first-trade-only**,
+  **first-2-of-day**, **direction**, date-range. So `run_f76c8b92` still contains late-session
+  + FOMC + all-directions + every-trade-per-day. **BA and WFA validate DIFFERENT populations**
+  — exactly the long-flagged "BA→WFA filter inheritance" gap. **THIS IS S27 FIRST TASK.**
+
 ### NEXT (S27)
-0. **REPRODUCE ER10 IN-APP (do this FIRST).** The ER10>ER30 OOS result is the
-   session's headline and looks too good to be true. Before adopting anything,
-   reproduce the `er10_oos_sweep_20260621.md` numbers in the live app (gates are
-   wired). Match the headless setup: all session/FOMC/DOW filters OFF, ER10 gate on,
-   pinned 1.0R single-leg, ES, slip 1/0, $4.36. App must match the tables.
+0. **🔴 WIRE BA→WFA FILTER INHERITANCE (FIRST TASK, user's explicit ask).** Make WFA apply
+   the SAME `apply_signal_filters` as Bar Analysis (reading the live `ba_*` session keys:
+   holidays/DOW/excl-first-N/excl-last-N-min/FOMC-NFP-CPI) PLUS first-trade-only / first-2 /
+   direction, so the two tools validate the IDENTICAL population. Mechanical, well-scoped.
+   Then RE-RUN the ER10 WFA so its book matches the BA book.
+0b. **REPRODUCE ER10 IN-APP (also early).** Reproduce `er10_oos_sweep_20260621.md` in the live
+   app: all session filters OFF, ER10 gate on, pinned 1.0R single-leg, ES, slip 1/0, $4.36.
 1. **Head-to-head WFA OOS:** baseline A (ER≥0.30 + skip-trend, flat 1R) vs
    A+balance-sizing (same population, but MES position sizing: base 3 MES,
    size up on balance). This is the remaining gate to "convinced." If ER10 is

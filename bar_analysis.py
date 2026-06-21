@@ -4926,6 +4926,76 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         else:
             st.info("No filled trades in the selected range.")
 
+    # ── Expectancy Stability (rolling R + per-period) ─────────────────────────
+    with st.expander("📈 Expectancy Stability (R)", expanded=False):
+        _fr = (results[results["Filled"] == True].copy()
+               if results is not None and "Filled" in results.columns else pd.DataFrame())
+        if _fr.empty or "R_achieved" not in _fr.columns:
+            st.info("No filled trades to analyze.")
+        else:
+            _fr = _fr.sort_values("DateTime").reset_index(drop=True)
+            _fr["_n"] = np.arange(1, len(_fr) + 1)
+            _R = _fr["R_achieved"].astype(float)
+            _dt = pd.to_datetime(_fr["DateTime"])
+            _overall = float(_R.mean())
+
+            _cc = st.columns([1, 1, 2])
+            _wa = _cc[0].number_input("Rolling window A", 20, 1000,
+                                      int(st.session_state.get("ba_exprw_a", 100)), 10, key="ba_exprw_a")
+            _wb = _cc[1].number_input("Rolling window B", 20, 1000,
+                                      int(st.session_state.get("ba_exprw_b", 200)), 10, key="ba_exprw_b")
+            _grain = _cc[2].radio("Period grain", ["Year", "Half-year", "Quarter"],
+                                  horizontal=True, key="ba_exprw_grain")
+
+            _rA, _rB = _R.rolling(_wa).mean(), _R.rolling(_wb).mean()
+            _ymax = float(np.nanmax([_rA.max(), _rB.max(), _overall]))
+
+            _fig = go.Figure()
+            _fig.add_trace(go.Scatter(x=_fr["_n"], y=_rA, name=f"Rolling {_wa}",
+                                      line=dict(color="#1f77b4", width=1.2)))
+            _fig.add_trace(go.Scatter(x=_fr["_n"], y=_rB, name=f"Rolling {_wb}",
+                                      line=dict(color="#d62728", width=2)))
+            _fig.add_hline(y=0, line=dict(color="black", width=1))
+            _fig.add_hline(y=_overall, line=dict(color="green", dash="dash", width=1),
+                           annotation_text=f"overall {_overall:+.3f}R")
+            for _yr in sorted(_dt.dt.year.unique()):
+                _x0 = int(_fr.loc[_dt.dt.year == _yr, "_n"].iloc[0])
+                _fig.add_vline(x=_x0, line=dict(color="lightgray", width=1))
+                _fig.add_annotation(x=_x0, y=_ymax, text=str(_yr), showarrow=False,
+                                    yshift=8, font=dict(size=10, color="gray"))
+            _fig.update_layout(template="plotly_white", height=420,
+                               title=f"Rolling Expectancy (R) — {len(_fr)} trades, overall {_overall:+.3f}R",
+                               xaxis_title="Trade # (chronological)", yaxis_title="Exp R",
+                               legend=dict(orientation="h", y=1.02, x=0.5, xanchor="center"))
+            st.plotly_chart(_fig, use_container_width=True)
+
+            if _grain == "Year":
+                _key = _dt.dt.year.astype(str)
+            elif _grain == "Half-year":
+                _key = _dt.dt.year.astype(str) + "-H" + ((_dt.dt.quarter > 2).astype(int) + 1).astype(str)
+            else:
+                _key = _dt.dt.year.astype(str) + "-Q" + _dt.dt.quarter.astype(str)
+            _per = (pd.DataFrame({"R": _R.values, "k": _key.values})
+                    .groupby("k")["R"].agg(["count", "mean"]))
+            _per.columns = ["Trades", "Exp R"]
+
+            _bar = go.Figure(go.Bar(
+                x=_per.index, y=_per["Exp R"],
+                marker_color=np.where(_per["Exp R"] >= 0, "#2ca02c", "#d62728"),
+                text=[f"{v:+.2f}" for v in _per["Exp R"]], textposition="outside"))
+            _bar.add_hline(y=_overall, line=dict(color="green", dash="dash", width=1))
+            _bar.update_layout(template="plotly_white", height=320, margin=dict(t=40),
+                               title=f"Exp R by {_grain.lower()}", yaxis_title="Exp R")
+            st.plotly_chart(_bar, use_container_width=True)
+
+            _disp = _per.copy()
+            _disp["Exp R"] = _disp["Exp R"].map(lambda v: f"{v:+.3f}")
+            st.dataframe(_disp, use_container_width=True)
+            _green = int((_per["Exp R"] >= 0).sum())
+            st.caption(f"**{_green}/{len(_per)} {_grain.lower()} periods positive.** "
+                       f"Overall {_overall:+.3f}R over {len(_fr)} trades. "
+                       f"R is contract-independent — identical for 1c, 2c or MES.")
+
     # ── Detail (collapsed) ────────────────────────────────────────────────────
     with st.expander("📊 Detail", expanded=False):
         if summary:
