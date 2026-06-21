@@ -8,6 +8,123 @@
 
 ---
 
+## ⭐⭐ SESSION 25 — June 21, 2026 (eve) — BALANCE-STATE RESEARCH + ETH LEVELS (read FIRST)
+*Built overnight (ETH) levels from raw flat files, then discovered a real, regime-stable
+market-state edge: CC breakouts work better in "balance state." All tests this session are
+**single-leg, pinned 1.0R, corrected engine** (entry_slip=1, exit_slip=0). No engine change.*
+
+### THE HEADLINE — "balance state" is a real, regime-stable conviction signal
+- **Definition (look-ahead-safe, observable at signal time):** opened **inside** prior RTH
+  range (LOY<OOD<HOY) **AND** still inside at signal (developing High<HOY AND Low>LOY) =
+  market rotating inside yesterday's range, no discovery yet.
+- **Finding:** within ER≥0.30, balance trades **$149/trade vs $75 non-balance** (PF 1.43 vs
+  1.25). Survives the **time-of-day confound** (within the same TOD window: Open $147 vs $21,
+  Lunch $273 vs $96) and persists **9/14 walk-forward OOS folds**, incl. 2022. The opening
+  session — otherwise your weakest — is where balance helps most.
+- **WHY:** with a 1R target, a balance-day breakout only needs to ride to the nearby untouched
+  prior extreme (inside-open days touch a prior extreme **84%** of the time) to hit target.
+
+### ⚠️ ER30 IS THE PRIMARY GATE — balance is a SECONDARY booster (2×2, all corrected-engine)
+| | balance | non-balance |
+|---|---|---|
+| **ER≥0.30** | $149 (PF 1.43) | $75 (PF 1.25) |
+| **ER<0.30** | **−$103** | **−$132** |
+- **Below ER 0.30 EVERYTHING loses** — balance can't rescue chop. ER30 is make-or-break; the
+  user's instinct that ER30 is the filter with most merit is **correct**. Balance is additive
+  *on top of* ER30 (nearly doubles exp), not a replacement. Balance-alone (ignoring ER) is mildly
+  positive (~$91) — earlier "balance alone loses" was imprecise; only its low-ER slice loses.
+
+### HOW TO APPLY IT — size, don't skip (the key practical conclusion)
+- **Do NOT hard-filter to balance-only.** Non-balance ER30 trades still profit ($75); WFA
+  shows ER30-only nets **$321k** vs balance-only **$65k** — skipping non-balance throws away
+  ~$240k of edge (same lesson as the VA-imbalance test: filtering for quality kills volume).
+- **Structure:** ER≥0.30 = hard gate · **balance = size-up (conviction)** · inside-day-prior =
+  size-up more · **prior trend-day (>1.6×ADR) = the one clean hard-SKIP** (see below).
+
+### PRIOR-DAY CONTEXT (within ER≥0.30) — two of three theories confirmed hard
+| prior day was… | exp | PF | +balance |
+|---|---|---|---|
+| **inside day** | $172 | 1.60 | $348 (n=44) |
+| normal | $82 | 1.26 | $135 |
+| **trend day (>1.6×ADR)** | **$6** | 1.01 | $2 (dead) |
+- Inside-day-prior → compression→expansion, **breakouts much better**. Trend-day-prior →
+  digestion, **breakout edge DEAD** ($6) → clean skip. CLV (close location) = weak, nothing.
+
+### WALK-FORWARD OOS config comparison (pinned 1.0R, same is=252/oos=63 folds, corrected engine)
+| config | trades | exp | PF | %green | pooled net | MAR | exp 2022 |
+|---|---|---|---|---|---|---|---|
+| none | 4184 | $54 | 1.17 | 73% | $227k | 8.5 | $33 |
+| **ER≥0.30** | 3422 | $94 | 1.31 | 80% | **$321k** | **13.4** | **$99** |
+| balance only | 719 | $91 | 1.26 | 80% | $65k | 4.9 | $89 |
+| ER≥0.30+balance | 576 | $141 | 1.43 | 73% | $81k | 7.8 | $119 |
+| ER+bal+prior-inside | 33 | $450 | 4.05 | 77% | $15k | 4.8 | (thin) |
+| ER+bal+prior-trend>1.6 | 119 | $20 | 1.04 | 50% | $2k | 0.2 | dead |
+- **ER30 is the workhorse — strongest single result in the project.** More net than no-filter on
+  fewer trades, best MAR, 80% green, $99 exp even in 2022.
+
+### MFE/BE (S25 late) — balance trades have more follow-through
+- Balance MFE_R median **0.96** vs non-bal **0.71** → hints balance supports a bigger target/2nd
+  leg. **BUT MFE is censored at the 1.0R target** — must re-run with a HIGH/no target to confirm.
+- Give-back after +0.5R: balance 18% vs non-bal 20% (after +0.75R: 8% vs 10%) — too small to
+  manage differently. BE/ratchet at ~0.5–0.75R is a general lever, not balance-specific.
+
+### FADE — symmetric fade is dead; asymmetric is a real but DEFERRED idea
+- Mirror-stop fade (flip direction + mirror stop across entry) **loses in every regime bucket**
+  (−$124/trade) because the system is net-positive everywhere — no structural loser to reverse.
+- User's insight (real fades may use a **tighter stop + bigger R target** — asymmetric) is valid
+  and *can* be positive where the mirror isn't. **DEFERRED to the reversal/RevFT signal work.**
+  Build order then: reclaim-trigger entry, stop just beyond the failed-breakout extreme, sweep
+  target R / structural targets, bucket by regime (esp. trend-prior / non-balance days).
+
+### A–G STATE TAXONOMY (friend's framework) — adopt next
+- Friend's PDF is a clean synthesis of THIS session's results (its test table = our `confirm`
+  output) **plus** one real new contribution: a MECE state taxonomy observable at signal time —
+  A Balance (=our balance), B/C Accepted above/below (discovery — our data says WEAKER, test it),
+  D/E Failed discovery (=the fade setups, deferred), **F/G intraday discovery** (opened inside
+  then broke YH/YL — the balance→imbalance transition we never isolated; friend hypothesizes
+  this "potential energy released" is the real edge → TEST). Validate at **portfolio level**,
+  **within ER≥0.30**. Friend under-weights ER (it's the gate, not a 2ndary feature).
+- **Acceptance is a PARAMETER, not a binary.** Default for B/C/D/E: "traded ≥2 ticks beyond
+  YH/YL AND not returned inside since" (causal); **sweep the buffer** (0/2/4/8 ticks) — edge
+  must survive. Cross-check vs value-area migration (VP engine exists) as ground truth.
+
+### ETH OVERNIGHT LEVELS — new infrastructure (validated vs NT)
+- `scripts/build_eth_levels.py` → `data/eth_levels.parquet` (per-session ETH H/L, back-adjusted
+  via the project's roll machinery `get_active_contract`→`cum_offset`; RTH H/L matches continuous
+  bars exactly). Parallel pyarrow extractor (~4 min). **NT-matched window = [prev 17:00, 08:15)**
+  — NT labels 15-min bars by CLOSE time, so its `08:15` cutoff = last bar 08:00–08:15. **Validated
+  8/10 exact vs the user's NT `ES_ETH_levels.csv`** (2 misses = partial holiday sessions). Window
+  is one constant if we want to change it. Also captures post-close tail (PC_High/Low) for a
+  def-B "[prev 15:15, 08:15)" variant if wanted.
+- Ladder base rates (`scripts/regime_ladder_study.py` → `regime_ladder_sessions.parquet`): ETH-edge
+  break = ~coin-flip on acceptance (54%); Brooks PDH/PDL "magnet" = 84% of inside-open days touch a
+  prior extreme (but only 9% both); ADR has NO exhaustion cliff (~56% continuation per +0.25×ADR
+  past 1×). All base rates **regime-stable across years incl 2022**.
+- HOD/LOD-by-bar table (`docs/living/hod_lod_by_bar.csv`): day extreme forms at the OPEN (bar 0 =
+  27%), one side locks by ~10:00 (80% either-in) but BOTH not in until ~14:10; sharp EOD surge
+  (bars 77–80) = the EOD-drift signature quantified. Bar 18/10:00 is NOT special (baseline 2.5%).
+
+### Scripts added this session
+`build_eth_levels.py`, `regime_ladder_study.py`, `regime_overlay_phaseB.py`,
+`confirm_balance_day.py`, `fade_by_state.py` (fixed: mirror-stop), `balance_deepdive.py`,
+`mfe_by_balance.py`. Reports in `docs/living/`: `regime_ladder_*.md`, `regime_overlay_phaseB_*.md`,
+`confirm_balance_day_*.md`, `fade_by_state_*.md`, `balance_deepdive_*.md`, `hod_lod_by_bar.csv`.
+
+### NEXT (S25 → S26)
+1. **WFA: balanced+prior+ER30 vs the best portfolio from yesterday** (the user's priority).
+   ⚠️ Yesterday's stored runs (`opt_A/opt_B_CC*` per-setup, ES1/MES5, single+multileg) and the
+   S22 `pin10_all_sl` predate/straddle the slippage fix — re-run the baseline FRESH on the
+   corrected engine for an apples-to-apples compare. Decide baseline: per-setup-optimized vs
+   ER30-pinned-1R-ALL. Test balance as **size-up** + **prior-trend skip**, not a hard filter.
+2. **Implement A–G states** + acceptance-buffer sweep; portfolio-level OOS within ER30; isolate
+   **F/G (balance→discovery)**.
+3. **High/no-target re-run** to settle the target question (balance MFE censored at 1R).
+4. **MES position-sizing engine (roadmap Phase 2)** — 3 MES base, size up on balance/inside-day,
+   skip trend-prior. Keep multipliers simple (don't optimize). Real engine build (position mgr).
+5. Fade/RevFT (deferred — see above) when reversal signals are explored.
+
+---
+
 ## 🚨🚨 SESSION 24 — June 21, 2026 — CRITICAL SLIPPAGE BUGFIX (read FIRST)
 *A trade trace exposed a long-standing engine bug: every research script passed
 `entry_slip=0.5, exit_slip=0.5`, and the engine computes slippage as `slip × tick_size`
