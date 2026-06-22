@@ -4825,6 +4825,30 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                  "0 = no timeout. Data shows fills >30 min are net losers.")
         exec_max_fill_ms = int(exec_max_fill_min * 60000)
 
+    # ── Date whitelist (optional CSV/TXT upload) ─────────────────────────
+    from datetime import datetime as _dt_cls
+    _ba_date_files = st.file_uploader(
+        "Date whitelist (optional — upload YYYYMMDD files to restrict days)",
+        type=["csv", "txt"], accept_multiple_files=True,
+        key="ba_date_whitelist")
+    _ba_wl_dates = None
+    if _ba_date_files:
+        _ba_wl_dates = set()
+        for _f in _ba_date_files:
+            for _line in _f.read().decode("utf-8", errors="ignore").splitlines():
+                _line = _line.strip()
+                if _line and _line.isdigit() and len(_line) == 8:
+                    try:
+                        _ba_wl_dates.add(_dt_cls.strptime(_line, "%Y%m%d").date())
+                    except ValueError:
+                        pass
+        if _ba_wl_dates:
+            st.caption(f"Date whitelist active: **{len(_ba_wl_dates)}** dates from "
+                       f"{len(_ba_date_files)} file{'s' if len(_ba_date_files) > 1 else ''}")
+        else:
+            st.warning("No valid YYYYMMDD dates found in uploaded files.")
+            _ba_wl_dates = None
+
     # ── Run button ────────────────────────────────────────────────────────────
     st.divider()
     _rb_col, _ = st.columns([2, 5])
@@ -4840,6 +4864,17 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         excluded_types,
         direction_filter,
     )
+
+    # Apply date whitelist if uploaded
+    if _ba_wl_dates is not None:
+        _before_wl = (filtered_signals["FilterStatus"] == "ok").sum()
+        filtered_signals.loc[
+            (filtered_signals["FilterStatus"] == "ok") &
+            ~filtered_signals["Date"].isin(_ba_wl_dates),
+            "FilterStatus"
+        ] = "date_whitelist"
+        _after_wl = (filtered_signals["FilterStatus"] == "ok").sum()
+        st.caption(f"Date whitelist: **{_after_wl}** of {_before_wl} filtered signals on whitelisted dates")
 
     # Regime population gates (ER chop + S25 balance) — tag only when at least one
     # is active (the tag is cached, so it computes once per signal/bar set).
