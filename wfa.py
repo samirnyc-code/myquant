@@ -23,7 +23,7 @@ import streamlit as st
 from plotly.subplots import make_subplots
 from scipy import stats as scipy_stats
 
-from simulation_engine import simulate_trades, compute_summary, friction_ledger, INSTRUMENTS
+from simulation_engine import simulate_trades, compute_summary, friction_ledger, INSTRUMENTS, EXECUTION_PRESETS
 from results_store import (
     create_run, save_fold, load_folds, load_all_oos_trades,
     load_fold_trades, guardrail_report, delete_run, list_runs, lock_oos,
@@ -1193,9 +1193,30 @@ def show_wfa_tab() -> None:
                        "Consider a shorter IS or OOS window.")
 
         st.subheader("Execution Parameters")
+
+        # ── ESA: execution model (preset / entry model / delays) ──
+        _esa_col1, _esa_col2, _esa_col3 = st.columns(3)
+        _wfa_preset = _esa_col1.selectbox(
+            "Execution preset", ["Custom", *EXECUTION_PRESETS.keys()],
+            key="wfa_exec_preset",
+            help="Named presets (Optimistic…Brutal) override slip + delays. "
+                 "Custom = use the slip inputs below + no delay.")
+        wfa_entry_model = _esa_col2.radio(
+            "Entry model", ["market", "stop"], horizontal=True,
+            key="wfa_entry_model",
+            help="market = fill at first tick after calc + wire delay. "
+                 "stop = retrace + tick-through (realistic stop entry).")
+        _wfa_calc_in = _esa_col3.number_input(
+            "Calc delay (ms)", 0, 1000, 0, step=10, key="wfa_calc_ms",
+            help="Indicator computation time. Used in Custom mode.",
+            disabled=(_wfa_preset != "Custom"))
+
+        _preset_active = _wfa_preset != "Custom"
         ec1, ec2, ec3, ec4, ec5 = st.columns(5)
-        entry_slip  = ec1.number_input("Entry slip (ticks)", 0, 5, 1, 1, key="wfa_eslip")
-        exit_slip   = ec2.number_input("Exit slip (ticks)",  0, 5, 0, 1, key="wfa_xslip")
+        entry_slip  = ec1.number_input("Entry slip (ticks)", 0, 5, 1, 1, key="wfa_eslip",
+                                       disabled=_preset_active)
+        exit_slip   = ec2.number_input("Exit slip (ticks)",  0, 5, 0, 1, key="wfa_xslip",
+                                       disabled=_preset_active)
         stop_offset = ec3.number_input("Stop offset (ticks)",0, 5, 1, key="wfa_soff")
         contracts_t1= ec4.number_input("Contracts E1",       1, 10, 1, key="wfa_ct1")
         contracts_t2= ec5.number_input("Contracts E2",       0, 10, 1, key="wfa_ct2")
@@ -1204,17 +1225,45 @@ def show_wfa_tab() -> None:
                                       help="Round-trip commission per contract, charged once per trade per "
                                            "contract (entry+exit combined — NOT per side). ES default $3.00 is r/t.")
 
+        wfa_max_fill_min = st.number_input(
+            "Max fill time (min)", 0, 120, 0, step=5, key="wfa_max_fill_min",
+            help="Cancel entry if not filled within this many minutes. 0 = no timeout.")
+        wfa_max_fill_ms = int(wfa_max_fill_min * 60000)
+
+        # Resolve ESA params
+        if _wfa_preset == "Custom":
+            wfa_calc_ms = int(_wfa_calc_in)
+            wfa_wire_ms = 0
+            wfa_entry_slip = entry_slip
+            wfa_exit_slip = exit_slip
+            wfa_seed = 42
+        else:
+            _pp = EXECUTION_PRESETS[_wfa_preset]
+            wfa_entry_slip = _pp["entry_slip"]
+            wfa_exit_slip = _pp["exit_slip"]
+            wfa_calc_ms = int(_pp["calc_delay_ms"])
+            wfa_wire_ms = int(_pp.get("wire_delay_ms", 0))
+            wfa_seed = 42
+            st.caption(f"**{_wfa_preset}** → calc {wfa_calc_ms}ms · wire {wfa_wire_ms}ms · "
+                       f"entry slip {wfa_entry_slip} · exit slip {wfa_exit_slip} ticks "
+                       f"(overrides slip inputs above)")
+
         base_params = dict(
-            entry_slip   = entry_slip,
-            exit_slip    = exit_slip,
+            entry_slip   = wfa_entry_slip,
+            exit_slip    = wfa_exit_slip,
             stop_offset  = int(stop_offset),
             tick_value   = tick_value,
             contracts    = contracts_t1,
             contracts_t1 = contracts_t1,
             contracts_t2 = contracts_t2,
             commission   = commission,
-            ratchet_r    = 0.0,   # sweeps always run without ratchet (Kaufman)
-            pb_round     = "nearest",  # realistic tick-snap of PB & targets (execution accuracy)
+            ratchet_r    = 0.0,
+            pb_round     = "nearest",
+            entry_model  = wfa_entry_model,
+            calc_delay_ms = wfa_calc_ms,
+            wire_delay_ms = wfa_wire_ms,
+            max_fill_ms  = wfa_max_fill_ms,
+            exec_seed    = wfa_seed,
         )
 
         # ── Target / Pullback pin controls ────────────────────────────────────
@@ -1470,6 +1519,11 @@ def show_wfa_tab() -> None:
                 _rf_desc = _rf.describe_spec(locked_spec)
                 _notes_full = (f"{_notes_full} | " if _notes_full else "") + \
                               f"regime_filter[LOCKED]: {_rf_desc}"
+            _esa_desc = (f"ESA: {_wfa_preset} entry={wfa_entry_model} "
+                         f"calc={wfa_calc_ms}ms wire={wfa_wire_ms}ms "
+                         f"fill_timeout={wfa_max_fill_min}min "
+                         f"slip={wfa_entry_slip}/{wfa_exit_slip}")
+            _notes_full = (f"{_notes_full} | " if _notes_full else "") + _esa_desc
             create_run(run_id, setup_id, mode, base_params, _notes_full)
 
             progress_bar = st.progress(0.0)

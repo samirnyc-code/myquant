@@ -131,10 +131,10 @@ def test_entry_models():
 # ── Exit-model acceptance (§17 Tests 4,5,6) via full single-leg sim ──
 
 def _sim(prices, direction="Long", sb=6000.0, stop=5990.0, target_r=2.0,
-         entry_slip=0, exit_slip=0, entry_model="market", delay_ms=0):
+         entry_slip=0, exit_slip=0, entry_model="market", calc_delay_ms=0):
     return _simulate_one(SIG, direction, sb, stop, _day_ticks(prices),
                          target_r, entry_slip, exit_slip, 0, 12.5,
-                         entry_model=entry_model, delay_ms=delay_ms)
+                         entry_model=entry_model, calc_delay_ms=calc_delay_ms)
 
 
 def test_exit_models():
@@ -175,10 +175,10 @@ def test_baseline_and_audit():
 
     # ESA v2: SEPrice is ALWAYS prices[0] (first tick), delay only shifts the fill.
     # With 2500ms delay, fill is at idx2 (6010.00) but SEPrice stays 6000.00.
-    r = _sim([6000.00, 6005.00, 6010.00, 6020.25], delay_ms=2500)
-    check("delay 2500ms → SEPrice still 6000.00 (ESA v2)", abs(r["SEPrice"] - 6000.00) < 1e-9, f"got {r['SEPrice']}")
-    check("delay 2500ms → EntryPrice at delayed tick", abs(r["EntryPrice"] - 6010.00) < 1e-9, f"got {r['EntryPrice']}")
-    check("delay recorded ActualDelayMs=2500", int(r["ActualDelayMs"]) == 2500, f"got {r['ActualDelayMs']}")
+    r = _sim([6000.00, 6005.00, 6010.00, 6020.25], calc_delay_ms=2500)
+    check("calc_delay 2500ms → SEPrice still 6000.00 (ESA v2)", abs(r["SEPrice"] - 6000.00) < 1e-9, f"got {r['SEPrice']}")
+    check("calc_delay 2500ms → EntryPrice at delayed tick", abs(r["EntryPrice"] - 6010.00) < 1e-9, f"got {r['EntryPrice']}")
+    check("calc_delay recorded ActualCalcMs=2500", int(r["ActualCalcMs"]) == 2500, f"got {r['ActualCalcMs']}")
 
 
 # ── Seeded determinism for slippage ranges (via simulate_trades) ──
