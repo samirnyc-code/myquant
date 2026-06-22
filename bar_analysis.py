@@ -6122,25 +6122,6 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
     # ── Unfilled signals ──────────────────────────────────────────────────────
     _show_unfilled_table(results, ticks_by_date)
 
-    # ── Missing tick-data days ────────────────────────────────────────────────
-    in_range_pre = results[(results["Date"] >= date_from) & (results["Date"] <= date_to)]
-    _missing = (
-        in_range_pre[in_range_pre["FilterStatus"] == "no_tick_data"]["Date"]
-        .drop_duplicates()
-        .sort_values()
-    )
-    if not _missing.empty:
-        st.warning(
-            f"⚠️ **{len(_missing)} trading day(s)** in the selected range have no tick data — "
-            f"all signals on those days were excluded from the analysis."
-        )
-        with st.expander(f"Missing tick-data days ({len(_missing)})", expanded=False):
-            st.dataframe(
-                pd.DataFrame({"Date": _missing.values,
-                              "Weekday": [pd.Timestamp(d).strftime("%A") for d in _missing.values]}),
-                hide_index=True, use_container_width=True,
-            )
-
     # ── Per-day chart ─────────────────────────────────────────────────────────
     in_range   = results[(results["Date"] >= date_from) & (results["Date"] <= date_to)]
     filled_all = in_range[in_range["Filled"]]
