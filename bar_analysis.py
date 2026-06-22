@@ -5126,18 +5126,15 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
     # ── Quick View (expanded by default) ─────────────────────────────────────
     with st.expander("📋 Quick View", expanded=False):
         if summary:
-            r1 = st.columns(6)
+            r1 = st.columns(7)
             r1[0].metric("Net PnL",   f"${summary['net_total']:,.0f}")
             r1[1].metric("Win %",     f"{summary['win_pct']:.1f}%",
                          help=f"W{summary['n_wins']} / L{summary['n_stop']} / S{summary['n_sess']}")
-            r1[2].metric("Exp R",     f"{summary['exp_r']:+.2f}", help=_exp_r_help)
-            r1[3].metric("PnL/DD",    f"{_pnl_dd:.2f}" if _pnl_dd is not None else "—")
-            # SQN is unreliable for multi-leg (high R variance by design) — show PF instead
-            if use_multileg or use_threeleg:
-                r1[4].metric("PF",    _pf_str)
-            else:
-                r1[4].metric("SQN",   f"{summary['sqn']:+.2f}")
+            r1[2].metric("PF",        _pf_str)
+            r1[3].metric("Exp $",     f"${summary['expectancy']:+.0f}")
+            r1[4].metric("Exp R",     f"{summary['exp_r']:+.2f}", help=_exp_r_help)
             r1[5].metric("Max DD",    f"${summary['max_dd']:,.0f}")
+            r1[6].metric("PnL/DD",    f"{_pnl_dd:.2f}" if _pnl_dd is not None else "—")
 
             _n_trades = summary['n_trades']
             _n_days = summary['trading_days']
@@ -5147,8 +5144,8 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                          delta=f"{_avg_per_day:.1f}/day")
             r2[1].metric("Avg Win",   f"${summary['avg_win']:+.0f}")
             r2[2].metric("Avg Loss",  f"${summary['avg_loss']:+.0f}")
-            r2[3].metric("Days",      f"{_n_days}")
-            r2[4].metric("PnL/DD",    f"{summary.get('pnl_dd', 0):.2f}")
+            r2[3].metric("SQN",       f"{summary['sqn']:+.2f}")
+            r2[4].metric("Days",      f"{_n_days}")
         else:
             st.info("No filled trades in the selected range.")
 
