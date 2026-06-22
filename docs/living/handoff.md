@@ -1,10 +1,102 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** June 21, 2026 (session 26)
-**Current Versions:** SIM_v3.5 / GS_v4.5 / SHEET_v3.3 *(S24: critical slippage off-tick bugfix + E2 fill-at-limit redefinition — engine change, re-baselines all numbers)*
+**Last Updated:** June 22, 2026 (session 27)
+**Current Versions:** SIM_v3.6 / GS_v4.5 / SHEET_v3.3 *(S27: ESA execution model — entry resolver w/ delay + market/stop entry + slippage ranges + audit trail. Baseline PRESERVED: market+delay0+fixed-slip is byte-identical to SIM_v3.5. S24: critical slippage off-tick bugfix.)*
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 **Handoff hygiene (S20):** A competing handoff had grown in the `.claude/.../memory/` auto-memory folder and a new chat read *that* instead of this file. Fixed: added repo `CLAUDE.md` + rewrote `.claude` `MEMORY.md` to point here; deleted the duplicate session-state memories. **There is now ONE handoff: this file.**
 **Onboarding (S22):** `docs/living/PROJECT_CHARTER.md` is the from-inception synthesis (the *arc* + locked decisions). Read the charter first for orientation, then this handoff for current state. The charter owns the arc/locked rails; **this handoff still wins on what's true today.**
+
+---
+
+## ⭐⭐ SESSION 27 — June 22, 2026 — EXECUTION SENSITIVITY ANALYSIS (ESA) — PHASE A BUILT (read FIRST)
+*New priority: the ESA design spec (`Execution Sensitivity Analysis Design Specification.pdf`).
+Make execution assumptions a first-class, auditable, stress-testable object. Phase A
+(engine) is DONE + validated; Phase B (ESA UI expander) NOT started — user paused to
+test the engine on real data first.*
+
+### ⚠️ THE TRUST ISSUE THAT STARTED THIS (read carefully)
+User believed the engine "filled trades on touch at the SignalPrice" = cheating. **It did
+NOT** — every fill is at the **first tick of the bar after the signal bar** (`first_tick_px
+= float(prices[0])`), which is a realistic *basis*. TWO real problems existed:
+1. **Labeling bug:** the output column `SEPrice` stored `signal_price` (the signal *bar
+   close*), not the entry reference. Fixed: **SEPrice now = the post-delay entry reference
+   (first tick at/after SB_close+delay)**; signal bar close moved to a new `SBClose` column.
+2. **No execution realism:** zero latency, no delay, no slippage ranges, no market-vs-stop
+   entry, no audit. That optimism (instant fill) — not a fake price — is what ESA stress-tests.
+
+### LOCKED DEFINITIONS (confirmed by user this session)
+- **SEPrice = first tick at/after (SB_close + delay)** — the Entry Reference Price. Delay=0
+  reproduces today's fill exactly.
+- **Stop-entry reference = SEPrice** (the first tick), NOT a separate level. §6 acceptance-test
+  numbers were illustrative. Long stop: retrace ≥1 tick below SEPrice, THEN tick-through ≥1
+  tick above → fill at SEPrice+1tick (mirror for short); else NO FILL.
+- **R convention = fill-based (unchanged):** target = slipped fill + target_r×R; stop level =
+  signal `StopPrice` ± stop_offset (fixed, NOT fill-derived); R unit = |slipped fill − stop|.
+  Slippage genuinely widens risk + stretches the target.
+- **3-leg tick path: SKIPPED per user** (baseline-identical, not audit-wired).
+
+### WHAT WAS BUILT (Phase A — `simulation_engine.py`)
+- **`_resolve_entry(prices, times, sig_dt, is_long, entry_model, delay_ms, entry_slip, ts)`**
+  — the one shared entry resolver. Returns fill_idx + SEPrice + raw/adjusted fill + audit, or
+  None (new FilterStatus `no_entry_fill`). Callers slice `prices/times` at fill_idx so the
+  **validated exit machinery (target tick-through, stop-on-touch, PB, ratchet, vec==loop) is
+  UNTOUCHED.**
+- Wired into `_simulate_one` (single-leg) + `_simulate_one_multileg` (2-leg) tick paths.
+- **Slippage:** `entry_slip`/`exit_slip` accept int (fixed) OR (lo,hi) integer-tick range,
+  drawn per-trade from a seeded RNG (`exec_seed`, default 42). Fixed ints do NOT consume the
+  RNG → baseline byte-identical. `target_slip`/`stop_slip` accepted but must equal each other
+  (raises otherwise — every preset has target==stop; full per-side split deferred).
+- **Audit fields** (`_exec_audit_fields`, in `_EMPTY_TRADE`): SEPrice, SBClose, RawFillPrice,
+  EntryType, EntrySlipTicks/ExitSlipTicks, ActualDelayMs, ExecCostTicks, ExecModelVersion,
+  ReferenceTime/RetraceTime/FirstThroughTime/ExitTriggerTime.
+- **`EXECUTION_PRESETS`** (§13): Idealized/Optimistic/Realistic/Conservative/Brutal (delay +
+  slip per spec; spread into `simulate_trades(**preset)`).
+- **`compute_summary`**: added **CAGR + Sharpe** (vs notional `cagr_capital`=$100k — for
+  *relative* degradation across presets, not promised live %) + `ann_return_dollar`.
+- **`EXECUTION_MODEL_VERSION = "ESA_v1"`**.
+- `bar_analysis.py`: SEPrice/SBClose display labels fixed (3 sites).
+
+### VALIDATION
+- **`scripts/validate_execution.py` — 21/21 pass.** Synthetic controlled paths: §17 entry
+  tests (stop valid/invalid long+short, market+delay), §10 exit tests (target tick-through,
+  stop touch), baseline equivalence, slip application, delay shift, seeded determinism.
+- ⚠️ **Could NOT run the historical validators** (`validate_engine/oracle/ratchet/scalein`) —
+  they OOM (MemoryError) loading every tick parquet in this 16GB env. Baseline equivalence was
+  proven on synthetic paths instead. **User should run the historical validators on their box
+  to confirm byte-identical baseline before trusting ESA degradation numbers.**
+
+### IN-APP EXECUTION CONTROL (added after the engine, for testing)
+`bar_analysis.py` now has a **⚙️ Execution model (ESA)** expander right above the Run button:
+preset dropdown (Custom + Idealized…Brutal) · entry-model radio (market/stop) · delay (ms).
+Feeds the MAIN run (`exec_entry_slip/exec_exit_slip/exec_entry_model/exec_delay_ms/exec_seed`),
+included in `_sim_fp` so changes require a re-run. Defaults (Custom/market/0ms) = baseline.
+Named presets OVERRIDE the Trading-Params slip. This is the single-run tester, NOT the full
+preset-comparison ESA expander (that's still Phase B).
+
+### NEXT (S27 → continue)
+1. **USER IS TESTING THE ENGINE** on real data (paused here). Sanity-check: SEPrice now shows
+   the entry reference (not bar close); a default run (Custom/market/delay0) must match the
+   prior numbers; flip the Execution preset to Realistic/Brutal and re-run to see edge decay.
+2. **Phase B — ESA comparison expander** (NOT started). Goes directly below the Detail expander
+   (`bar_analysis.py:5000`). Preset selector + Comparison table (per-preset re-run:
+   Trades/Win%/PF/Exp/AvgTrade/Net/MaxDD/CAGR/Sharpe/SQN) + Degradation table (Δ vs Idealized)
+   + **Execution Robustness Score** (§15: Conservative ExpR / Idealized ExpR, banded, guard the
+   near-zero denominator) + "View Execution Audit Trades" drill-down. **5× sim → Run-button gated.**
+3. **Deferred:** mirror the resolver in the `bar_analysis.py:1127` fast-sweep (separate from ESA;
+   baseline unchanged so `validate_scalein_sweep` stays green); full per-side target/stop slip.
+4. **Downstream:** once trusted, re-state the ER10 "champagne run" (S26) under the Realistic
+   preset to see how much edge survives realistic execution.
+
+### Files changed this session
+- `simulation_engine.py` — `_resolve_entry`, `_exec_audit_fields`, `_draw_slip`,
+  `EXECUTION_MODEL_VERSION`, `EXECUTION_PRESETS`, single-leg + multileg entry integration,
+  `_EMPTY_TRADE` audit fields, `simulate_trades` params (entry_model/delay/ranges/seed),
+  `compute_summary` (+CAGR/Sharpe)
+- `bar_analysis.py` — SEPrice/SBClose display labels (3 sites) + ⚙️ Execution model (ESA)
+  expander (preset/entry-model/delay controls, feeds main sim run, fingerprint-gated)
+- `ba_filter_defaults.json` — updated UI defaults (single-leg, 1.0R, slip/commission tweaks)
+- `scripts/validate_execution.py` — NEW (21 synthetic acceptance/regression tests)
+- Plan: `C:\Users\Admin\.claude\plans\snappy-gliding-gray.md`
 
 ---
 

@@ -688,8 +688,9 @@ def _show_signal_table(results: pd.DataFrame, key_suffix: str = ""):
     disp["Status"]     = results.apply(
         lambda r: "✓ Filled" if r["Filled"] else fmt_status(r["FilterStatus"]), axis=1
     )
-    disp["SB Close"]   = results["SEPrice"].apply(fmt_f)   # SEPrice = SignalPrice = SBClose
-    disp["Bar Open"]   = results["FillPrice"].apply(fmt_f)
+    disp["SB Close"]   = results["SBClose"].apply(fmt_f)   # signal bar close (diagnostic)
+    disp["Entry Ref"]  = results["SEPrice"].apply(fmt_f)   # SEPrice = post-delay entry reference
+    disp["Bar Open"]   = results["FillPrice"].apply(fmt_f) # raw fill (pre-slip)
     disp["Entry Time"] = results["EntryTime"].apply(fmt_time)
     disp["Entry Bar"]  = results["EntryBarNum"].apply(lambda v: int(v) if pd.notna(v) else "—")
     disp["Entry Px"]   = results["EntryPrice"].apply(fmt_f)
@@ -760,8 +761,8 @@ def _show_entry_zoom(
     fill_price  = float(sig_row["FillPrice"])    # EB Open = first tick after sig_dt
     entry_price = float(sig_row["EntryPrice"])   # fill + entry slippage
     stop_price  = float(sig_row["ActualStop"])
-    # SEPrice = signal_price = SBClose price (SBClose column is overwritten by _EMPTY_TRADE)
-    sb_close_px = float(sig_row["SEPrice"]) if pd.notna(sig_row.get("SEPrice")) else None
+    # SBClose = signal bar close (diagnostic); SEPrice = post-delay entry reference
+    sb_close_px = float(sig_row["SBClose"]) if pd.notna(sig_row.get("SBClose")) else None
     is_long     = sig_row["Direction"] == "Long"
 
     # Split at signal datetime
@@ -897,8 +898,8 @@ def _show_entry_zoom(
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("SBClose (ref)", f"{sb_close_px:.2f}" if sb_close_px else "—",
               help="Close price of the signal bar — reference only, not the entry trigger")
-    c2.metric("EB Open (fill px)", f"{fill_price:.2f}",
-              help="First tick of the entry bar = unconditional fill price")
+    c2.metric("SEPrice (raw fill)", f"{fill_price:.2f}",
+              help="Raw fill = entry reference (first tick at/after SB close + delay), before slippage")
     c3.metric("Entry price", f"{entry_price:.2f}",
               delta=f"{entry_price - fill_price:+.2f} slip",
               help="EB Open ± entry slippage ticks")
@@ -4670,6 +4671,38 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
             })
             st.success("Defaults saved.", icon="✅")
 
+    # ── Execution model (ESA) ──────────────────────────────────────────────────
+    # Single-run execution controls (delay / entry model / preset). The full
+    # preset-comparison ESA expander is separate; this just drives ONE main run so
+    # the engine can be tested on real data. Defaults (Custom / market / 0 ms) keep
+    # the run byte-identical to the pre-ESA baseline.
+    from simulation_engine import EXECUTION_PRESETS as _ESA_PRESETS
+    with st.expander("⚙️ Execution model (ESA) — delay / entry / preset", expanded=False):
+        _ex = st.columns(3)
+        _exec_preset = _ex[0].selectbox(
+            "Execution preset", ["Custom", *_ESA_PRESETS.keys()], key="ba_exec_preset",
+            help="Custom = use Entry/Exit slip from Trading Parameters + the delay below. "
+                 "Named presets (Idealized…Brutal) override slip + delay per the ESA spec.")
+        exec_entry_model = _ex[1].radio(
+            "Entry model", ["market", "stop"], horizontal=True, key="ba_exec_entry_model",
+            help="market = fill at SEPrice (first tick at/after SB close + delay). "
+                 "stop = §6 conservative entry: retrace ≥1 tick beyond SEPrice then "
+                 "tick-through ≥1 tick the other side, else no fill.")
+        _exec_delay_in = _ex[2].number_input(
+            "Delay (ms)", 0, 10000, value=0, step=250, key="ba_exec_delay_ms",
+            help="Latency between SB close and SEPrice. Used in Custom mode "
+                 "(named presets carry their own delay).")
+        if _exec_preset == "Custom":
+            exec_entry_slip, exec_exit_slip = entry_slip, exit_slip
+            exec_delay_ms = int(_exec_delay_in)
+        else:
+            _pp = _ESA_PRESETS[_exec_preset]
+            exec_entry_slip, exec_exit_slip = _pp["entry_slip"], _pp["exit_slip"]
+            exec_delay_ms = int(_pp["entry_delay_ms"])
+            st.caption(f"**{_exec_preset}** → delay {exec_delay_ms} ms · entry slip "
+                       f"{exec_entry_slip} · exit slip {exec_exit_slip} ticks (overrides Trading Params slip)")
+        exec_seed = 42
+
     # ── Run button ────────────────────────────────────────────────────────────
     st.divider()
     _rb_col, _ = st.columns([2, 5])
@@ -4712,6 +4745,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         first_trade_only, first_2_filled_only,
         flt_er30, round(er_min, 4), flt_er10, round(er10_min, 4),
         flt_balance, flt_inside, flt_skip_trend,
+        exec_entry_model, exec_delay_ms, str(exec_entry_slip), str(exec_exit_slip), exec_seed,
     ))
     _has_results = (st.session_state.get("ba_results_fp") == _sim_fp
                     and st.session_state.get("ba_results") is not None)
@@ -4727,7 +4761,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         with st.spinner("Running simulation…"):
             results = simulate_trades(
                 filtered_signals, ticks_by_date, target_r,
-                entry_slip, exit_slip, stop_offset,
+                exec_entry_slip, exec_exit_slip, stop_offset,
                 tick_value, contracts, commission,
                 overrides=st.session_state.get("ba_manual_overrides"),
                 bars_by_date=bars_by_date_sim,
@@ -4740,6 +4774,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                 pb1_r=pb1_r_val, pb1_ticks=pb1_ticks_v,
                 pb2_r=pb2_r_val, pb2_ticks=pb2_ticks_v,
                 t2_r=t2_r_val,
+                entry_model=exec_entry_model, entry_delay_ms=exec_delay_ms, exec_seed=exec_seed,
             )
 
             if nt_bars is not None and not nt_bars.empty:

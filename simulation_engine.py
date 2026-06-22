@@ -9,6 +9,22 @@ INSTRUMENTS = {
 }
 RTH_END_MIN = 15 * 60 + 15  # 915
 
+# Execution model version — bump when the entry/delay/slippage semantics change so
+# stored audit trails can be matched to the engine that produced them (ESA §12).
+EXECUTION_MODEL_VERSION = "ESA_v1"
+
+# Execution presets (ESA §13) — increasingly conservative fill assumptions.
+# Every preset uses target slip == stop slip, so one `exit_slip` captures both.
+# Slip values are ticks (int = fixed, (lo, hi) = uniform integer draw per trade);
+# delays are fixed ms. Spread a preset directly into simulate_trades(**preset).
+EXECUTION_PRESETS = {
+    "Idealized":    dict(entry_delay_ms=0,    entry_slip=0,      exit_slip=0),
+    "Optimistic":   dict(entry_delay_ms=250,  entry_slip=(0, 1), exit_slip=0),
+    "Realistic":    dict(entry_delay_ms=500,  entry_slip=(1, 2), exit_slip=(0, 1)),
+    "Conservative": dict(entry_delay_ms=1000, entry_slip=(1, 3), exit_slip=1),
+    "Brutal":       dict(entry_delay_ms=2000, entry_slip=(2, 4), exit_slip=(1, 2)),
+}
+
 
 def _ticks_after(day_ticks: pd.DataFrame, sig_dt):
     """Price/time numpy arrays for ticks strictly after sig_dt.
@@ -48,6 +64,113 @@ def _snap_level(raw: float, ts: float, entry: float, mode: str) -> float:
     return round(float(np.floor(raw / ts)) * ts, 10)
 
 
+# ── Execution: delay + slippage + entry-model resolution (ESA) ─────────────────
+
+def _draw_slip(spec, rng) -> int:
+    """Resolve a slippage spec to an integer number of ticks.
+
+    `spec` is either an int (fixed ticks) or a (lo, hi) tuple/list → a uniform
+    integer draw in [lo, hi] inclusive (seeded `rng`). Fractional values are
+    rejected upstream; everything here stays on whole ticks so fills land on
+    tradeable increments."""
+    if isinstance(spec, (tuple, list)):
+        lo, hi = int(spec[0]), int(spec[1])
+        return lo if hi <= lo else int(rng.integers(lo, hi + 1))
+    return int(spec)
+
+
+def _resolve_entry(prices, times, sig_dt, is_long: bool, entry_model: str,
+                   delay_ms: int, entry_slip_ticks: int, ts: float):
+    """Determine the entry reference (SEPrice) and the fill, honoring the live
+    event sequence (ESA §3–§6):
+
+      SB close (sig_dt) → wait `delay_ms` → SEPrice = first tick at/after
+      (sig_dt + delay) → entry model gates the fill.
+
+    `prices`/`times` are the tick arrays strictly after sig_dt (from _ticks_after).
+
+    Entry models:
+      "market" — fill at SEPrice (raw), then + entry slip. Always fills if a tick
+                 exists at/after the delayed reference time.
+      "stop"   — §6 conservative stop entry: price must first retrace ≥1 tick beyond
+                 SEPrice, THEN tick through ≥1 tick the other side; raw fill = the
+                 tick-through level (SEPrice ± 1 tick), then + entry slip. If either
+                 leg never occurs → NO FILL (returns None).
+
+    Returns a dict with fill_idx (index into prices/times of the fill tick), the
+    SEPrice, the raw + slip-adjusted fill, the fill timestamp, and the audit
+    timestamps the model can observe; or None when no fill is possible."""
+    n = len(prices)
+    if n == 0:
+        return None
+
+    # Step 3–4: SEPrice = first tick at/after the delayed reference time.
+    if delay_ms and delay_ms > 0:
+        thresh = np.datetime64(pd.Timestamp(sig_dt) + pd.Timedelta(milliseconds=int(delay_ms)))
+        se_idx = int(np.searchsorted(times, thresh, side="left"))
+    else:
+        se_idx = 0
+    if se_idx >= n:
+        return None
+    se_price = float(prices[se_idx])
+    ref_ts   = times[se_idx]
+
+    audit = {"reference_ts": ref_ts, "retrace_ts": pd.NaT, "first_through_ts": pd.NaT}
+
+    if entry_model == "market":
+        raw_fill = se_price
+        fill_idx = se_idx
+    elif entry_model == "stop":
+        retr_level = (se_price - ts) if is_long else (se_price + ts)  # ≥1 tick beyond ref
+        thru_level = (se_price + ts) if is_long else (se_price - ts)  # ≥1 tick the other side
+        sub = prices[se_idx:]
+        retr_hits = np.flatnonzero(sub <= retr_level) if is_long else np.flatnonzero(sub >= retr_level)
+        if retr_hits.size == 0:
+            return None
+        r0 = int(retr_hits[0])
+        audit["retrace_ts"] = times[se_idx + r0]
+        after = sub[r0:]
+        thru_hits = np.flatnonzero(after >= thru_level) if is_long else np.flatnonzero(after <= thru_level)
+        if thru_hits.size == 0:
+            return None
+        fill_idx = se_idx + r0 + int(thru_hits[0])
+        raw_fill = round(round(thru_level / ts) * ts, 10)  # fill at the (tick-aligned) trigger level
+        audit["first_through_ts"] = times[fill_idx]
+    else:
+        raise ValueError(f"unknown entry_model={entry_model!r} (expected 'market' or 'stop')")
+
+    actual_entry = raw_fill + (entry_slip_ticks * ts if is_long else -entry_slip_ticks * ts)
+    return {
+        "fill_idx": fill_idx, "se_idx": se_idx, "se_price": se_price,
+        "raw_fill": raw_fill, "actual_entry": actual_entry,
+        "fill_dt": times[fill_idx], "entry_slip_ticks": int(entry_slip_ticks),
+        "audit": audit,
+    }
+
+
+def _exec_audit_fields(se_price, raw_fill, sb_close, entry_model,
+                       entry_slip_ticks, exit_slip_ticks, delay_ms,
+                       entry_audit, exit_dt):
+    """The ESA execution-audit columns (§12), shared by every sim path so the
+    audit schema stays identical. SEPrice = post-delay entry reference; FillPrice/
+    RawFillPrice = raw (pre-slip) fill; SBClose = signal bar close (diagnostic)."""
+    def _ts(v):
+        return pd.Timestamp(v) if (v is not None and not pd.isna(v)) else pd.NaT
+    ea = entry_audit or {}
+    es, xs = int(entry_slip_ticks), int(exit_slip_ticks)
+    return {
+        "SEPrice": se_price, "FillPrice": raw_fill, "SBClose": sb_close,
+        "EntryType": entry_model, "RawFillPrice": raw_fill,
+        "EntrySlipTicks": es, "ExitSlipTicks": xs,
+        "ActualDelayMs": int(delay_ms), "ExecCostTicks": es + xs,
+        "ExecModelVersion": EXECUTION_MODEL_VERSION,
+        "ReferenceTime": _ts(ea.get("reference_ts")),
+        "RetraceTime": _ts(ea.get("retrace_ts")),
+        "FirstThroughTime": _ts(ea.get("first_through_ts")),
+        "ExitTriggerTime": _ts(exit_dt),
+    }
+
+
 # ── Empty trade template ──────────────────────────────────────────────────────
 
 _EMPTY_TRADE = {
@@ -77,6 +200,13 @@ _EMPTY_TRADE = {
     "PBLevel": np.nan, "PBLevelRaw": np.nan, "E2FillPrice": np.nan, "E2FillTime": pd.NaT,
     "T1_R": np.nan, "PB_R": np.nan,
     "SameBarConflict": False,
+    # ESA execution audit (§12)
+    "EntryType": "", "RawFillPrice": np.nan,
+    "EntrySlipTicks": np.nan, "ExitSlipTicks": np.nan,
+    "ActualDelayMs": np.nan, "ExecCostTicks": np.nan,
+    "ExecModelVersion": "",
+    "ReferenceTime": pd.NaT, "RetraceTime": pd.NaT,
+    "FirstThroughTime": pd.NaT, "ExitTriggerTime": pd.NaT,
 }
 
 
@@ -92,9 +222,13 @@ def _simulate_one(
     manual_fill: dict | None = None,
     pb_round: str = "nearest",
     _force_loop: bool = False,
+    entry_model: str = "market",
+    delay_ms: int = 0,
 ) -> dict:
     ts      = TICK_SIZE
     is_long = direction == "Long"
+    sb_close   = signal_price            # signal bar close (reference/diagnostic only)
+    entry_audit = {}
 
     _after = _ticks_after(day_ticks, sig_dt)
     if _after is None:
@@ -110,16 +244,25 @@ def _simulate_one(
         if scan_ticks.empty:
             return {"ok": False, "FilterStatus": "no_tick_data"}
         first_tick_px = fill_px_raw
+        se_price      = fill_px_raw
         entry_dt      = scan_ticks.iloc[0]["DateTime"]
         prices        = scan_ticks["Price"].values
         times         = scan_ticks["DateTime"].values
+        actual_entry  = first_tick_px + (entry_slip * ts if is_long else -entry_slip * ts)
     else:
-        # Entry = first tick of the bar after the SB, unconditional
         prices, times = _after
-        first_tick_px = float(prices[0])
-        entry_dt      = pd.Timestamp(times[0])
+        ent = _resolve_entry(prices, times, sig_dt, is_long, entry_model,
+                             delay_ms, entry_slip, ts)
+        if ent is None:
+            return {"ok": False, "FilterStatus": "no_entry_fill"}
+        fi            = ent["fill_idx"]
+        prices, times = prices[fi:], times[fi:]   # exit scan starts at the fill tick
+        se_price      = ent["se_price"]            # SEPrice = entry reference (post-delay)
+        first_tick_px = ent["raw_fill"]            # raw fill (pre-slip)
+        actual_entry  = ent["actual_entry"]
+        entry_dt      = pd.Timestamp(ent["fill_dt"])
+        entry_audit   = ent["audit"]
 
-    actual_entry = first_tick_px + (entry_slip * ts if is_long else -entry_slip * ts)
     actual_stop  = (stop_csv - stop_offset * ts) if is_long else (stop_csv + stop_offset * ts)
     risk_pts     = abs(actual_entry - actual_stop)
     if risk_pts < 0.001:
@@ -243,7 +386,8 @@ def _simulate_one(
 
     return {
         "ok": True,
-        "SEPrice": signal_price, "FillPrice": first_tick_px,
+        **_exec_audit_fields(se_price, first_tick_px, sb_close, entry_model,
+                             entry_slip, exit_slip, delay_ms, entry_audit, exit_dt_ts),
         "EntryTime": pd.Timestamp(entry_dt), "EntryBarNum": entry_bar,
         "EntryPrice": actual_entry, "ActualStop": actual_stop,
         "Target": target_price,
@@ -370,11 +514,15 @@ def _simulate_one_multileg(
     scale_in_style: str = "e2",
     pb_round: str = "nearest",
     _force_loop: bool = False,
+    entry_model: str = "market",
+    delay_ms: int = 0,
 ) -> dict:
     ts       = TICK_SIZE
     is_long  = direction == "Long"
     tv_total = tv1 + tv2
     use_pb   = ml_pb_r < 0
+    sb_close    = signal_price
+    entry_audit = {}
 
     _after = _ticks_after(day_ticks, sig_dt)
     if _after is None:
@@ -390,16 +538,25 @@ def _simulate_one_multileg(
         if scan_ticks.empty:
             return {"ok": False, "FilterStatus": "no_tick_data"}
         first_tick_px = fill_px_raw
+        se_price      = fill_px_raw
         entry_dt      = scan_ticks.iloc[0]["DateTime"]
         prices        = scan_ticks["Price"].values
         times         = scan_ticks["DateTime"].values
+        actual_entry  = first_tick_px + (entry_slip * ts if is_long else -entry_slip * ts)
     else:
-        # Entry = first tick of the bar after the SB, unconditional
         prices, times = _after
-        first_tick_px = float(prices[0])
-        entry_dt      = pd.Timestamp(times[0])
+        ent = _resolve_entry(prices, times, sig_dt, is_long, entry_model,
+                             delay_ms, entry_slip, ts)
+        if ent is None:
+            return {"ok": False, "FilterStatus": "no_entry_fill"}
+        fi            = ent["fill_idx"]
+        prices, times = prices[fi:], times[fi:]
+        se_price      = ent["se_price"]
+        first_tick_px = ent["raw_fill"]
+        actual_entry  = ent["actual_entry"]
+        entry_dt      = pd.Timestamp(ent["fill_dt"])
+        entry_audit   = ent["audit"]
 
-    actual_entry = first_tick_px + (entry_slip * ts if is_long else -entry_slip * ts)
     actual_stop  = (stop_csv - stop_offset * ts) if is_long else (stop_csv + stop_offset * ts)
     risk_pts     = abs(actual_entry - actual_stop)
     if risk_pts < 0.001:
@@ -461,7 +618,8 @@ def _simulate_one_multileg(
         edt    = pd.Timestamp(exit_dt)
         return {
             "ok": True,
-            "SEPrice": signal_price, "FillPrice": first_tick_px,
+            **_exec_audit_fields(se_price, first_tick_px, sb_close, entry_model,
+                                 entry_slip, exit_slip, delay_ms, entry_audit, edt),
             "EntryTime": pd.Timestamp(entry_dt), "EntryBarNum": entry_bar,
             "EntryPrice": actual_entry, "ActualStop": actual_stop,
             "Target": t2_price, "Target1": t1_price,
@@ -1067,9 +1225,13 @@ def _simulate_one_3leg(
     ratchet_r: float = 0.0, ratchet_dest: str = "BE", ratchet_lock_r: float = 0.0,
     manual_fill: dict | None = None,
     pb_round: str = "nearest",
+    entry_model: str = "market",
+    delay_ms: int = 0,
 ) -> dict:
     ts      = TICK_SIZE
     is_long = direction == "Long"
+    sb_close    = signal_price
+    entry_audit = {}
 
     _after = _ticks_after(day_ticks, sig_dt)
     if _after is None:
@@ -1085,16 +1247,25 @@ def _simulate_one_3leg(
         if scan_ticks.empty:
             return {"ok": False, "FilterStatus": "no_tick_data"}
         first_tick_px = fill_px_raw
+        se_price      = fill_px_raw
         entry_dt      = scan_ticks.iloc[0]["DateTime"]
         prices        = scan_ticks["Price"].values
         times         = scan_ticks["DateTime"].values
+        e1_entry      = first_tick_px + (entry_slip * ts if is_long else -entry_slip * ts)
     else:
-        # Entry = first tick of the bar after the SB, unconditional
         prices, times = _after
-        first_tick_px = float(prices[0])
-        entry_dt      = pd.Timestamp(times[0])
+        ent = _resolve_entry(prices, times, sig_dt, is_long, entry_model,
+                             delay_ms, entry_slip, ts)
+        if ent is None:
+            return {"ok": False, "FilterStatus": "no_entry_fill"}
+        fi            = ent["fill_idx"]
+        prices, times = prices[fi:], times[fi:]
+        se_price      = ent["se_price"]
+        first_tick_px = ent["raw_fill"]
+        e1_entry      = ent["actual_entry"]
+        entry_dt      = pd.Timestamp(ent["fill_dt"])
+        entry_audit   = ent["audit"]
 
-    e1_entry    = first_tick_px + (entry_slip * ts if is_long else -entry_slip * ts)
     actual_stop = (stop_csv - stop_offset * ts) if is_long else (stop_csv + stop_offset * ts)
     risk_pts    = abs(e1_entry - actual_stop)
     if risk_pts < 0.001:
@@ -1560,17 +1731,47 @@ def simulate_trades(
     scale_in_style: str = "e2",
     pb_round: str = "nearest",
     _force_loop: bool = False,
+    entry_model: str = "market",
+    entry_delay_ms: int = 0,
+    entry_delay_range: tuple | None = None,
+    target_slip=None,
+    stop_slip=None,
+    exec_seed: int = 42,
 ) -> pd.DataFrame:
     # Slippage is measured in WHOLE TICKS (engine multiplies by tick size). A
-    # fractional value (e.g. 0.5) would price fills off-tick — not a tradeable
-    # ES increment — so reject it loudly rather than silently corrupt every price.
-    for _slip_name, _slip_val in (("entry_slip", entry_slip), ("exit_slip", exit_slip)):
-        if float(_slip_val) != int(_slip_val):
-            raise ValueError(
-                f"{_slip_name}={_slip_val} must be an integer number of ticks "
-                f"(fractional slip prices fills off-tick).")
-    entry_slip = int(entry_slip)
-    exit_slip  = int(exit_slip)
+    # fractional value (e.g. 0.5) would price fills off-tick — not a tradeable ES
+    # increment — so reject it loudly. Specs may be a fixed int OR an (lo, hi)
+    # integer-tick range (drawn per trade); every element must be a whole number.
+    def _validate_slip(name, spec):
+        if spec is None:
+            return
+        vals = spec if isinstance(spec, (tuple, list)) else (spec,)
+        for v in vals:
+            if float(v) != int(v):
+                raise ValueError(
+                    f"{name}={spec} must be integer ticks (fractional slip prices "
+                    f"fills off-tick).")
+    for _n, _v in (("entry_slip", entry_slip), ("exit_slip", exit_slip),
+                   ("target_slip", target_slip), ("stop_slip", stop_slip)):
+        _validate_slip(_n, _v)
+    if entry_model not in ("market", "stop"):
+        raise ValueError(f"entry_model={entry_model!r} must be 'market' or 'stop'.")
+    # Note: simulate_trades is tick-only; stop-entry / delay are sub-bar events and
+    # are never routed to the bar paths (those run via _resimulate_bars).
+
+    _rng = np.random.default_rng(int(exec_seed))
+    # The exit machinery applies ONE exit slip per fill. target_slip/stop_slip are
+    # accepted for API/preset completeness, but every ESA preset uses target==stop,
+    # so we require them equal rather than silently ignoring a divergent value.
+    _eff_exit = exit_slip
+    if target_slip is not None or stop_slip is not None:
+        _t = target_slip if target_slip is not None else exit_slip
+        _s = stop_slip   if stop_slip   is not None else exit_slip
+        if _t != _s:
+            raise NotImplementedError(
+                "separate target/stop slippage is not yet wired through the exit "
+                "machinery — set target_slip == stop_slip (all presets do).")
+        _eff_exit = _t
 
     _t2_r = t2_r if t2_r > 0 else target_r
     tv    = tick_value * contracts
@@ -1602,31 +1803,41 @@ def simulate_trades(
         if no_ticks and not manual_fill:
             base["FilterStatus"] = "no_tick_data"; rows.append(base); continue
 
+        # Per-trade execution draws (seeded → deterministic). Fixed int specs do
+        # NOT consume the RNG and delay defaults to 0, so a fixed-slip / delay-0 /
+        # market config is byte-identical to the pre-ESA engine.
+        _es  = _draw_slip(entry_slip, _rng)
+        _xs  = _draw_slip(_eff_exit,  _rng)
+        _dly = (int(entry_delay_ms) if entry_delay_range is None
+                else int(_rng.integers(int(entry_delay_range[0]), int(entry_delay_range[1]) + 1)))
+
         if threeleg and not manual_fill:
             res = _simulate_one_3leg(
                     base["DateTime"], base["Direction"], base["SignalPrice"], base["StopPrice"],
                     day_ticks, t1_r, _t2_r, target_r, t1_action,
                     tv_e1, tv_e2, tv_e3, contracts_e1, contracts_e2, contracts_e3,
                     pb1_r, pb1_ticks, pb2_r, pb2_ticks,
-                    entry_slip, exit_slip, stop_offset,
+                    _es, _xs, stop_offset,
                     ratchet_r, ratchet_dest, ratchet_lock_r,
-                    pb_round=pb_round,
+                    pb_round=pb_round, entry_model=entry_model, delay_ms=_dly,
                 )
         elif multileg and not manual_fill:
             res = _simulate_one_multileg(
                     base["DateTime"], base["Direction"], base["SignalPrice"], base["StopPrice"],
                     day_ticks, target_r, t1_r, t1_action,
-                    entry_slip, exit_slip, stop_offset, tv1, tv2,
+                    _es, _xs, stop_offset, tv1, tv2,
                     ratchet_r, ratchet_dest, ratchet_lock_r,
                     ml_pb_r=ml_pb_r, ml_pb_ticks=ml_pb_ticks,
                     scale_in_style=scale_in_style, pb_round=pb_round, _force_loop=_force_loop,
+                    entry_model=entry_model, delay_ms=_dly,
                 )
         else:
                 res = _simulate_one(
                     base["DateTime"], base["Direction"], base["SignalPrice"], base["StopPrice"],
-                    day_ticks, target_r, entry_slip, exit_slip, stop_offset, tv,
+                    day_ticks, target_r, _es, _xs, stop_offset, tv,
                     ratchet_r, ratchet_dest, ratchet_lock_r,
                     manual_fill=manual_fill, pb_round=pb_round, _force_loop=_force_loop,
+                    entry_model=entry_model, delay_ms=_dly,
                 )
 
         if not res.get("ok", False):
@@ -1736,7 +1947,8 @@ def friction_ledger(results: pd.DataFrame) -> dict:
 def compute_summary(results: pd.DataFrame, commission: float,
                     contracts: int = 1,
                     is_multileg: bool = False, t1_action: str = "exit",
-                    contracts_t1: int = 1, contracts_t2: int = 1) -> dict:
+                    contracts_t1: int = 1, contracts_t2: int = 1,
+                    cagr_capital: float = 100_000.0) -> dict:
     if results.empty:
         return {}
     filled = results[results["Filled"] == True]
@@ -1805,6 +2017,18 @@ def compute_summary(results: pd.DataFrame, commission: float,
     pnl_dd = net_total / abs(max_dd) if max_dd < 0 else float("nan")
     prom   = _compute_prom(filled, max_dd)
 
+    # CAGR / Sharpe (ESA §13 table). The sim has no account model, so these are
+    # measured against a fixed notional `cagr_capital` — defensible for *relative*
+    # degradation across execution presets (same base for every preset), not a
+    # promise of live percentage returns.
+    _years   = trading_days / 252.0 if trading_days else 0.0
+    _ending  = cagr_capital + net_total
+    cagr     = ((_ending / cagr_capital) ** (1.0 / _years) - 1.0) if (_years > 0 and _ending > 0) else float("nan")
+    _daily   = filled.groupby("Date")["NetPnL"].sum() / cagr_capital
+    _dstd    = float(_daily.std(ddof=1)) if len(_daily) > 1 else 0.0
+    sharpe   = float(_daily.mean() / _dstd * np.sqrt(252)) if _dstd > 0 else 0.0
+    ann_return_dollar = net_total / _years if _years > 0 else float("nan")
+
     # Target-hit PROM: same formula but only target-hit trades count as wins.
     # EOD-green trades are excluded (neither win nor loss). This penalizes
     # combos that "win" via EOD drift rather than the thesis playing out.
@@ -1835,4 +2059,5 @@ def compute_summary(results: pd.DataFrame, commission: float,
         pnl_dd=pnl_dd,
         prom=prom,
         prom_tgt=prom_tgt,
+        cagr=cagr, sharpe=sharpe, ann_return_dollar=ann_return_dollar,
     )
