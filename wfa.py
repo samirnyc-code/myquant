@@ -1597,7 +1597,11 @@ def show_wfa_tab() -> None:
             _run_cfg = json.loads(sel_run_row.get("params_json") or "{}")
         except Exception:
             _run_cfg = {}
-        _base_slip_ticks = float(_run_cfg.get("entry_slip", 0)) + float(_run_cfg.get("exit_slip", 0))
+        def _slip_val(v):
+            if isinstance(v, (list, tuple)):
+                return float(sum(v)) / len(v)
+            return float(v)
+        _base_slip_ticks = _slip_val(_run_cfg.get("entry_slip", 0)) + _slip_val(_run_cfg.get("exit_slip", 0))
 
         folds_df = load_folds(sel_run_id, sel_setup)
 
