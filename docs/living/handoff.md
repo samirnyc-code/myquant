@@ -1,10 +1,108 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** June 22, 2026 (session 28)
-**Current Versions:** SIM_v3.7 / GS_v4.5 / SHEET_v3.3 *(S28: ESA v2 — fixed SEPrice to first tick, wire delay, fill timeout, full audit with Y/N checks + fill-time distribution. S27: ESA Phase A. S24: critical slippage off-tick bugfix.)*
+**Last Updated:** June 22, 2026 (session 29)
+**Current Versions:** SIM_v3.8 / GS_v4.5 / SHEET_v3.3 *(S29: ESA wired into WFA, delay renamed calc_delay, session filters in WFA, 15M/100s bars, ER10 distribution, date whitelist, UI reorg. S28: ESA v2. S27: ESA Phase A. S24: critical slippage off-tick bugfix.)*
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 **Handoff hygiene (S20):** A competing handoff had grown in the `.claude/.../memory/` auto-memory folder and a new chat read *that* instead of this file. Fixed: added repo `CLAUDE.md` + rewrote `.claude` `MEMORY.md` to point here; deleted the duplicate session-state memories. **There is now ONE handoff: this file.**
 **Onboarding (S22):** `docs/living/PROJECT_CHARTER.md` is the from-inception synthesis (the *arc* + locked decisions). Read the charter first for orientation, then this handoff for current state. The charter owns the arc/locked rails; **this handoff still wins on what's true today.**
+
+---
+
+## ⭐⭐ SESSION 29 — June 22, 2026 — ESA into WFA + Session Filters + Multi-TF + ER10 Analysis (read FIRST)
+*Wired ESA execution model into WFA, closed the BA→WFA filter inheritance gap,
+renamed delay parameters to reflect automated execution timeline, built 15M/100s
+bar series, added ER10 distribution analysis, date whitelist upload, and reorganized
+the UI for better workflow.*
+
+### ESA WIRED INTO WFA
+- **Full ESA controls in WFA Config:** Execution preset dropdown (Custom / Optimistic /
+  Realistic / Conservative / Brutal), entry model radio (market/stop), calc delay, wire
+  delay, fill timeout. Named presets grey out slip/delay inputs they override.
+- **ESA params flow through all sim calls:** IS sweep, IS summary, OOS run — every
+  `simulate_trades` call in WFA receives `entry_model`, `calc_delay_ms`, `wire_delay_ms`,
+  `max_fill_ms`, `exec_seed` via `base_params`.
+- **Run notes record ESA config** for traceability.
+
+### DELAY RENAMED — `entry_delay_ms` → `calc_delay_ms`
+- **Physical timeline clarified:** SB closes → first tick of new bar = SEPrice (trigger
+  moment, can't act before it) → `calc_delay_ms` (indicator computation: ER10 filter
+  etc., 10-50ms automated) → `wire_delay_ms` (network to exchange, 50-250ms) → order
+  is live at exchange → retrace scan begins.
+- **Presets updated:** Removed Idealized (serves no purpose for automated strategy).
+  New values: Optimistic (10ms calc / 50ms wire), Realistic (20/100), Conservative
+  (30/150), Brutal (50/250). Will update with real NT8 timing data.
+- **`ActualDelayMs` → `ActualCalcMs`** in audit columns.
+- **Phase B comparison baseline** changed from Idealized to Optimistic.
+- 27/27 validation tests pass after rename.
+
+### BA→WFA FILTER INHERITANCE — CLOSED (S26 item 2)
+- **Session filters now in WFA:** Exclude holidays, DOW checkboxes, exclude first N bars,
+  exclude last N minutes, FOMC/NFP/CPI event exclusion (±15min window), direction filter.
+- **First-trade-only / First-2-of-day** added to WFA session filters.
+- Applied to `signals_filtered` before regime gates, so all folds (IS + OOS) see the
+  identical filtered population as BA.
+- Session filter config recorded in run notes.
+
+### 15M + 100s BAR SERIES
+- **15M continuous bars:** Resampled from 5M (instant build), per-day grouping to avoid
+  cross-session bars. Build button in Massive tab, auto-loads from parquet on restart.
+- **100s continuous bars:** Resampled from per-day continuous tick cache. Build button in
+  Massive tab (takes a few minutes), cached to parquet.
+- **Bar timeframe selector** (5M / 15M / 100s radio) in both BA and WFA.
+
+### ER10 DISTRIBUTION + THRESHOLD ANALYSIS
+- **ER10 column** added to signal table (Core column group).
+- **ER10 Distribution expander:** Histogram (0.1-wide buckets, colored green/red by avg R),
+  summary stats (median, mean, count < 0.30, count > 0.70), per-bucket table.
+- **ER10 Threshold Analysis table:** Each row = "if ER10 >= X": trades, win%, PF, Exp R,
+  Net $, Max DD. Shows the marginal value of raising the threshold.
+- Values come from the same `_regime_tags_cached` the filter uses — guaranteed consistent.
+
+### DATE WHITELIST UPLOAD
+- **BA + WFA:** File uploader accepts CSV/TXT with one YYYYMMDD per line. Multiple files
+  merged. Signals filtered to only those dates before all other filters apply.
+- BA: placed under Bar Timeframe selector. WFA: placed before Session Filters.
+
+### ENTRY ZOOM CHART IMPROVEMENTS
+- **Label placement:** Pixel-offset annotations with arrows pointing to events. Early
+  cluster (SB Close, SEPrice, Order Live) goes left; later events (Retrace, Tick-Through)
+  go above/below. No markers obscuring PA.
+- **Delay/wire shading:** Faint colored vertical bands when calc/wire > 0, labeled.
+- **Interval metrics strip:** Sig→SEPrice, SEPrice→Live, Live→Fill, Sig→Fill (total),
+  Retrace→Fill. Adaptive formatting (ms/s/min).
+- **Finer hlines:** SEPrice and Entry (slipped) lines thinner (0.8 vs 1.5). SBClose
+  right-side label removed (already marked by event annotation).
+
+### UI REORGANIZATION
+- **Tab order:** Massive → Data → BA → WFA → Bar Viewer → Chart → Portfolio.
+- **BA expander order after sim:** Quick View → Detail → Monthly/Setup → Entry Zoom →
+  Edge Analysis → TOD/DOW → Regime → rest.
+- **Auto-expand after run:** Quick View, Detail, Monthly, Setup expand on sim run.
+- **Quick View layout:** Row 1: Net PnL | Win% | PF | Exp$ | ExpR | MaxDD | PnL/DD.
+  Row 2: Trades (with avg/day delta) | Avg Win | Avg Loss | SQN | Days.
+- Removed Median W / Median L from Quick View.
+- Removed missing tick-data days warning.
+
+### Files changed this session
+- `simulation_engine.py` — `calc_delay_ms` rename throughout, updated `EXECUTION_PRESETS`
+  (removed Idealized, new values), `ActualCalcMs` audit column
+- `bar_analysis.py` — Entry Zoom rewrite (labels, shading, intervals), ER10 column +
+  distribution + threshold table, date whitelist, bar TF selector (5M/15M/100s), Quick
+  View rearrange, expander reorder + auto-expand, removed missing-tick warning
+- `wfa.py` — ESA controls (preset/entry-model/delays/timeout), session filters (holidays/
+  DOW/last-N-min/FOMC/first-trade/first-2/direction), date whitelist, bar TF selector,
+  tuple slip fix for saved runs
+- `massive.py` — `_resample_5m_to_15m`, `_resample_ticks_to_bars`, 15M/100s build
+  buttons + auto-load + parquet cache
+- `scripts/validate_execution.py` — calc_delay rename, 27/27 pass
+- `app.py` — tab order: Massive → Data → BA → WFA → Bar Viewer → Chart → Portfolio
+
+### NEXT (S30)
+0. **Run WFA with realistic execution + ER10 >= 0.70** — stop entry, Realistic preset,
+   ER10 gate on, session filters matching BA. This is the real validation test.
+1. **ER10 reproduction in-app under realistic execution** (S28 item 3).
+2. **NT Trade Overlay** — CSV export button + NT8 indicator skeleton (S28 item 4).
+3. **15M signal set** — user getting 15M MC signals; run strategy on 15M bars.
 
 ---
 
