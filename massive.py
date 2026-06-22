@@ -518,6 +518,11 @@ def show_massive_tab():
             st.session_state["mas_continuous_15m"] = _c15
             _c15.to_parquet(_BARS_DIR / "_continuous_15m.parquet", index=False)
 
+    if "mas_continuous_1m" not in st.session_state:
+        cont_1m_path = _BARS_DIR / "_continuous_1m.parquet"
+        if cont_1m_path.exists():
+            st.session_state["mas_continuous_1m"] = pd.read_parquet(cont_1m_path)
+
     if "mas_continuous_100s" not in st.session_state:
         cont_100s_path = _BARS_DIR / "_continuous_100s.parquet"
         if cont_100s_path.exists():
@@ -693,10 +698,28 @@ def show_massive_tab():
             # ── Additional bar timeframes ─────────────────────────────────────
             st.divider()
             st.markdown("**Additional Bar Timeframes**")
-            _tf_col1, _tf_col2 = st.columns(2)
+            _tf_col1, _tf_col2, _tf_col3 = st.columns(3)
+
+            # 1M status/build
+            with _tf_col1:
+                _c1m = st.session_state.get("mas_continuous_1m")
+                if _c1m is not None and not _c1m.empty:
+                    st.success(f"1M bars: **{len(_c1m):,}** bars ready")
+                else:
+                    _has_ticks = _TICKS_CONT_DIR.exists() and any(_TICKS_CONT_DIR.glob("*.parquet"))
+                    if _has_ticks:
+                        if st.button("Build 1M bars (from ticks)"):
+                            _status = st.empty()
+                            _c1m = _resample_ticks_to_bars("1min", _status)
+                            _status.empty()
+                            st.session_state["mas_continuous_1m"] = _c1m
+                            _c1m.to_parquet(_BARS_DIR / "_continuous_1m.parquet", index=False)
+                            st.rerun()
+                    else:
+                        st.info("Build continuous ticks first.")
 
             # 15M status/build
-            with _tf_col1:
+            with _tf_col2:
                 _c15 = st.session_state.get("mas_continuous_15m")
                 if _c15 is not None and not _c15.empty:
                     st.success(f"15M bars: **{len(_c15):,}** bars ready")
@@ -710,7 +733,7 @@ def show_massive_tab():
                     st.info("Build 5M continuous first.")
 
             # 100s status/build
-            with _tf_col2:
+            with _tf_col3:
                 _c100s = st.session_state.get("mas_continuous_100s")
                 if _c100s is not None and not _c100s.empty:
                     st.success(f"100s bars: **{len(_c100s):,}** bars ready")

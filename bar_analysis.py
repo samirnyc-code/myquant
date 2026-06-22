@@ -4031,8 +4031,11 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
     mas_cont      = st.session_state.get("mas_continuous")
     mas_cont_15m  = st.session_state.get("mas_continuous_15m")
 
+    mas_cont_1m   = st.session_state.get("mas_continuous_1m")
     mas_cont_100s = st.session_state.get("mas_continuous_100s")
     _tf_options = ["5M"]
+    if mas_cont_1m is not None and not mas_cont_1m.empty:
+        _tf_options.insert(0, "1M")
     if mas_cont_15m is not None and not mas_cont_15m.empty:
         _tf_options.append("15M")
     if mas_cont_100s is not None and not mas_cont_100s.empty:
@@ -4063,7 +4066,10 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
             st.warning("No valid YYYYMMDD dates found in uploaded files.")
             _ba_wl_dates = None
 
-    if _bar_tf == "100s" and mas_cont_100s is not None and not mas_cont_100s.empty:
+    if _bar_tf == "1M" and mas_cont_1m is not None and not mas_cont_1m.empty:
+        bars        = mas_cont_1m.drop(columns=["Contract"], errors="ignore")
+        _bar_source = "massive_continuous_1m"
+    elif _bar_tf == "100s" and mas_cont_100s is not None and not mas_cont_100s.empty:
         bars        = mas_cont_100s.drop(columns=["Contract"], errors="ignore")
         _bar_source = "massive_continuous_100s"
     elif _bar_tf == "15M" and mas_cont_15m is not None and not mas_cont_15m.empty:

@@ -1,10 +1,87 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** June 22, 2026 (session 29)
-**Current Versions:** SIM_v3.8 / GS_v4.5 / SHEET_v3.3 *(S29: ESA wired into WFA, delay renamed calc_delay, session filters in WFA, 15M/100s bars, ER10 distribution, date whitelist, UI reorg. S28: ESA v2. S27: ESA Phase A. S24: critical slippage off-tick bugfix.)*
+**Last Updated:** June 22, 2026 (session 30)
+**Current Versions:** SIM_v3.8 / GS_v4.5 / SHEET_v3.3 *(S30: Prop Sim tab, Extras tab, 1M bars, NT strategy, signal overlap, heatmap fix, multileg max_fill_ms fix. S29: ESA into WFA, session filters, multi-TF, ER10, UI reorg. S28: ESA v2. S27: ESA Phase A. S24: critical slippage off-tick bugfix.)*
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 **Handoff hygiene (S20):** A competing handoff had grown in the `.claude/.../memory/` auto-memory folder and a new chat read *that* instead of this file. Fixed: added repo `CLAUDE.md` + rewrote `.claude` `MEMORY.md` to point here; deleted the duplicate session-state memories. **There is now ONE handoff: this file.**
 **Onboarding (S22):** `docs/living/PROJECT_CHARTER.md` is the from-inception synthesis (the *arc* + locked decisions). Read the charter first for orientation, then this handoff for current state. The charter owns the arc/locked rails; **this handoff still wins on what's true today.**
+
+---
+
+## ⭐⭐ SESSION 30 — June 22, 2026 — Prop Sim + Extras + NT Strategy + 1M Bars + Bug Fixes (read FIRST)
+*Built the Prop Firm Simulator as a new tab, the Extras tab (signal overlap & account
+allocation), 1M continuous bars, the NT8 MCBreakout strategy, and fixed several bugs.*
+
+### PROP SIM TAB (NEW — `prop_sim.py`)
+- **Sequential walk-through simulator** that replays BA filled trades with prop firm rules.
+  Trades that violate limits are **SKIPPED** — the equity path reflects what a real prop
+  account would experience, unlike the Extras tab which retroactively rescales.
+- **Account rules:** Starting balance, max daily loss cutoff, max trailing DD (account blown),
+  max trades/day (total or per-direction).
+- **Contract scaling:** Base contracts + 1 per $X profit above start. Scales DOWN when balance
+  drops. Configurable max contracts.
+- **Output:** Quick View (PnL/Win%/PF/Exp$/MaxDD/PnL-DD/SQN), Detail breakdown, Monthly
+  Breakdown (bar chart + cumulative + table), 4-panel chart (Balance/Daily PnL/Trailing DD/
+  Contracts), Scaling breakdown table, Daily + Trade detail tables.
+- **Run-button gated** — configure, then click Run Prop Sim.
+
+### EXTRAS TAB (NEW — `extras.py`)
+- **Signal Overlap & Account Allocation:** Trades-per-day distribution (stacked L/S over time +
+  histogram), gap-between-signals stats, concurrent position estimate (30-min window chart),
+  account allocation scenarios (1-5 per direction), per-account equity curves with slider,
+  per-account summary table.
+- **Prop Firm Compliance** section (simplified, uses retroactive rescaling — the Prop Sim tab
+  is the proper sequential version).
+
+### 1M CONTINUOUS BARS
+- **Build button in Massive tab** (from tick cache, same as 100s). Saved to
+  `_continuous_1m.parquet`, auto-loaded on restart.
+- **1M selector in BA + WFA** bar timeframe radio (appears when 1M bars are built).
+
+### NT8 STRATEGY — `@@MCBreakout.cs`
+- **Managed-order strategy:** MC CC signal → market entry on bar close, stop at MCX ± offset
+  (absolute price), target at entry ± R × risk (absolute price).
+- **Properties:** Direction (Both/Long/Short), TargetR, StopOffsetTicks, Contracts, MinCC,
+  MaxTradesPerDay (total or per-direction), MaxDailyLossDollars, MaxRiskPerTrade.
+- **CSV logging (32 columns):** Appends per trade — SignalDateTime, CalcTime, OrderSubmitTime,
+  FillTime, FillPrice, CalcDelayMs, FillDelayMs, TotalDelayMs, SlippageTicks, ExitTime,
+  ExitPrice, ExitType, PnLPts, GrossPnL, R_Achieved, DailyPnL, etc.
+- **Purpose:** Run on NT sim for months, build a database of real timing data, feed measured
+  delays back into ESA's calc_delay_ms / wire_delay_ms parameters.
+- **NOT YET COMPILED IN NT** — user needs to open, compile, and test.
+
+### BUG FIXES
+- **`_simulate_one_multileg` missing `max_fill_ms`** — parameter was passed by `simulate_trades`
+  but not in the function signature. Added. Crashed WFA when using ESA fill timeout.
+- **WFA event filter hardcoded** — was `Skip ±window` at 15 min with no UI controls. Added
+  "Skip full day" / "Window ±N minutes" radio + slider (15–180 min), matching BA.
+- **Window Map heatmaps red-to-green on good data** — used relative `RdYlGn` scale so even
+  excellent values got colored red. Replaced with absolute thresholds: red/orange only for
+  genuinely bad values (PnL<0, PF<1, DD worse than -$30k), shades of green for good.
+- **Duplicate Streamlit key `pf_commission`** — collided with Portfolio tab. Renamed all
+  Extras keys to `ext_pf_*`.
+
+### FILES CHANGED
+- `app.py` — new tabs (Extras, Prop Sim), imports
+- `extras.py` — NEW (signal overlap + prop firm compliance)
+- `prop_sim.py` — NEW (sequential prop firm simulator)
+- `bar_analysis.py` — 1M bar selector + source branch
+- `wfa.py` — 1M selector, event filter UI (mode radio + window slider), absolute heatmap
+  color thresholds (`_HEATMAP_THRESHOLDS`, `_abs_colorscale`)
+- `massive.py` — 1M build button + auto-load
+- `simulation_engine.py` — `max_fill_ms` added to `_simulate_one_multileg` signature
+- `@@MCBreakout.cs` — NEW NT8 strategy (in NT Strategies folder, not repo)
+
+### NEXT (S31)
+0. **Compile + test MCBreakout in NT sim** — verify signals match, measure real delays.
+1. **Stress-test the simulation engine** — the original ask this session. Layer 1 (fill logic
+   asymmetry, EOD pricing, same-bar priority), Layer 2 (WFA methodology), Layer 3 (filter
+   timing / look-ahead). Started analysis but pivoted to building.
+2. **Feed NT CSV timing data back into ESA** — once MCBreakout runs for a few days, import
+   the CSV and set calc_delay_ms / wire_delay_ms to measured values.
+3. **Calendar-day WFA folds** — option to slice by calendar dates instead of signal-days.
+4. **Position management in sim** — the biggest result-overstating gap. One-at-a-time,
+   one-per-direction, close-and-reverse modes.
 
 ---
 

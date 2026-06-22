@@ -556,6 +556,7 @@ def _simulate_one_multileg(
     entry_model: str = "market",
     calc_delay_ms: int = 0,
     wire_delay_ms: int = 0,
+    max_fill_ms: int = 0,
 ) -> dict:
     ts       = TICK_SIZE
     is_long  = direction == "Long"

@@ -16,6 +16,8 @@ import massive
 import validation
 import wfa as wfa_mod
 import continuous_chart
+import extras
+import prop_sim
 
 # ── Global display rule for st.dataframe (DISPLAY only — calc precision intact) ─
 # One wrapper instead of editing ~35 call sites (and it catches future ones).
@@ -446,8 +448,8 @@ def main():
     # Tab order: Bar Viewer first, Bar Analysis right after it (restored). st.tabs
     # always opens tab 0, so a one-time JS click below makes Bar Analysis the
     # default-active tab while keeping it in second position.
-    tab_massive, tab0, tab3, tab_wfa, tab1, tab_chart, tab4 = st.tabs([
-        "📂 Massive", "🗂️ Data", "📈 Bar Analysis", "🔄 WFA", "📊 Bar Viewer", "📈 Chart", "📊 Portfolio",
+    tab_massive, tab0, tab3, tab_wfa, tab1, tab_chart, tab4, tab_extras, tab_prop = st.tabs([
+        "📂 Massive", "🗂️ Data", "📈 Bar Analysis", "🔄 WFA", "📊 Bar Viewer", "📈 Chart", "📊 Portfolio", "🧩 Extras", "🏢 Prop Sim",
     ])
 
     # Auto-select Bar Analysis (index 1) once per browser session — guarded so it
@@ -540,6 +542,12 @@ def main():
 
     with tab_wfa:
         wfa_mod.show_wfa_tab()
+
+    with tab_extras:
+        extras.show_extras_tab()
+
+    with tab_prop:
+        prop_sim.show_prop_sim_tab()
 
     # Render the status strip now that all tabs have populated session state.
     with status_ph:

@@ -474,18 +474,72 @@ def _dark_layout(fig: go.Figure, title: str, height: int = 300) -> go.Figure:
     return fig
 
 
+_HEATMAP_THRESHOLDS = {
+    "total_oos_pnl":   {"bad": 0,      "ok": 30_000},
+    "mean_wfe":        {"bad": 50,     "ok": 80},
+    "oos_pf_median":   {"bad": 1.0,    "ok": 1.3},
+    "oos_maxdd_worst": {"bad": -30_000, "ok": -10_000},
+    "robust_score":    {"bad": 2,      "ok": 5},
+}
+
+def _abs_colorscale(zmin, zmax, bad_thresh, ok_thresh):
+    """Build a green-shaded colorscale with red/orange only for genuinely bad values.
+    Values above ok_thresh get shades of green; between bad and ok = yellow/orange;
+    below bad = red. If all values are above ok, the entire map is shades of green."""
+    if zmax == zmin:
+        return [[0, "#2e7d32"], [1, "#2e7d32"]]
+
+    def _pos(v):
+        return max(0.0, min(1.0, (v - zmin) / (zmax - zmin)))
+
+    stops = []
+    p_bad = _pos(bad_thresh)
+    p_ok  = _pos(ok_thresh)
+
+    if p_bad > 0:
+        stops.append([0.0, "#c62828"])
+        stops.append([min(p_bad, 1.0), "#ff8f00"])
+    else:
+        stops.append([0.0, "#ff8f00" if p_ok > 0 else "#388e3c"])
+
+    if 0 < p_ok < 1:
+        stops.append([p_ok, "#388e3c"])
+
+    if not stops or stops[-1][0] < 1.0:
+        stops.append([1.0, "#1b5e20"])
+
+    # Deduplicate and ensure monotonic
+    cleaned = [stops[0]]
+    for s in stops[1:]:
+        if s[0] > cleaned[-1][0]:
+            cleaned.append(s)
+    if cleaned[-1][0] < 1.0:
+        cleaned.append([1.0, cleaned[-1][1]])
+    return cleaned
+
+
 def _window_heatmap(grid_df: pd.DataFrame, value_col: str, label: str,
                     zfmt: str = ".1f") -> go.Figure:
     """One Window-Anchor heatmap: IS (rows) × OOS (cols), coloured by value_col, each
-    cell labelled with the value and (fold count). Higher = greener for every metric
-    we plot — Max DD is stored negative, so 'less negative' is already the max → green."""
+    cell labelled with the value and (fold count). Uses absolute color thresholds —
+    red/orange only for genuinely bad values, shades of green for good."""
     piv  = grid_df.pivot(index="is_months", columns="oos_months", values=value_col)
     nfld = grid_df.pivot(index="is_months", columns="oos_months", values="n_folds")
+
+    zvals = piv.values.flatten()
+    zmin, zmax = float(np.nanmin(zvals)), float(np.nanmax(zvals))
+
+    thresh = _HEATMAP_THRESHOLDS.get(value_col)
+    if thresh:
+        cscale = _abs_colorscale(zmin, zmax, thresh["bad"], thresh["ok"])
+    else:
+        cscale = [[0, "#388e3c"], [1, "#1b5e20"]]
+
     fig = go.Figure(go.Heatmap(
         z=piv.values,
         x=[f"{c}m" for c in piv.columns], y=[f"{r}m" for r in piv.index],
         text=nfld.values, texttemplate="%{z:" + zfmt + "}<br>(%{text} folds)",
-        colorscale="RdYlGn", colorbar=dict(title=label),
+        colorscale=cscale, colorbar=dict(title=label),
         hovertemplate="IS=%{y} · OOS=%{x}<br>" + label + "=%{z:" + zfmt +
                       "}<br>folds=%{text}<extra></extra>",
     ))
@@ -1102,15 +1156,20 @@ def show_wfa_tab() -> None:
         st.info("Upload a signals file (MC Signals or RevFT Signals) in the 📈 Bar Analysis tab first.")
         return
 
+    mas_cont_1m   = st.session_state.get("mas_continuous_1m")
     mas_cont_100s = st.session_state.get("mas_continuous_100s")
     _wfa_tf_opts = ["5M"]
+    if mas_cont_1m is not None and not mas_cont_1m.empty:
+        _wfa_tf_opts.insert(0, "1M")
     if mas_cont_15m is not None and not mas_cont_15m.empty:
         _wfa_tf_opts.append("15M")
     if mas_cont_100s is not None and not mas_cont_100s.empty:
         _wfa_tf_opts.append("100s")
     _wfa_bar_tf = st.radio("Bar timeframe", _wfa_tf_opts, horizontal=True, key="wfa_bar_tf") if len(_wfa_tf_opts) > 1 else "5M"
 
-    if _wfa_bar_tf == "100s" and mas_cont_100s is not None:
+    if _wfa_bar_tf == "1M" and mas_cont_1m is not None:
+        bars = mas_cont_1m.drop(columns=["Contract"], errors="ignore")
+    elif _wfa_bar_tf == "100s" and mas_cont_100s is not None:
         bars = mas_cont_100s.drop(columns=["Contract"], errors="ignore")
     elif _wfa_bar_tf == "15M" and mas_cont_15m is not None:
         bars = mas_cont_15m.drop(columns=["Contract"], errors="ignore")
@@ -1378,6 +1437,21 @@ def show_wfa_tab() -> None:
             default=["FOMC", "NFP", "CPI"],
             key="wfa_event_types")
 
+        if wfa_event_types:
+            _wfa_efm_opts = ["Skip full day", "Window ±N minutes"]
+            ef1, ef2 = st.columns(2)
+            wfa_event_mode = ef1.radio(
+                "Event filter mode", _wfa_efm_opts,
+                index=1, horizontal=True, key="wfa_event_mode")
+            wfa_event_window = 15
+            if wfa_event_mode == _wfa_efm_opts[1]:
+                wfa_event_window = ef2.slider(
+                    "Minutes before/after", 15, 180, 15, 15,
+                    key="wfa_event_window")
+        else:
+            wfa_event_mode = "Skip full day"
+            wfa_event_window = 15
+
         sf6, sf7 = st.columns(2)
         wfa_first_trade = sf6.checkbox("First trade of day only", key="wfa_first_trade")
         wfa_first_2 = sf7.checkbox("First 2 filled of day", key="wfa_first_2")
@@ -1411,8 +1485,8 @@ def show_wfa_tab() -> None:
                 excl_first_n=wfa_excl_first_n,
                 excl_last_min=wfa_excl_last_min,
                 event_types=tuple(wfa_event_types),
-                event_filter_mode="Skip ±window",
-                event_window=15,
+                event_filter_mode=wfa_event_mode,
+                event_window=wfa_event_window,
                 excluded_types=set(),
                 direction=wfa_direction,
             )
@@ -1634,7 +1708,8 @@ def show_wfa_tab() -> None:
             if wfa_direction != "Both":
                 _sf_parts.append(f"dir={wfa_direction}")
             if wfa_event_types:
-                _sf_parts.append(f"excl_events={'+'.join(wfa_event_types)}")
+                _mode_lbl = "allday" if wfa_event_mode == "Skip full day" else f"±{wfa_event_window}m"
+                _sf_parts.append(f"excl_events={'+'.join(wfa_event_types)}({_mode_lbl})")
             if wfa_first_trade:
                 _sf_parts.append("first_trade_only")
             elif wfa_first_2:
