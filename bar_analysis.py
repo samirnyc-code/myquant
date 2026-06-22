@@ -5131,7 +5131,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
             r1[1].metric("Win %",     f"{summary['win_pct']:.1f}%",
                          help=f"W{summary['n_wins']} / L{summary['n_stop']} / S{summary['n_sess']}")
             r1[2].metric("PF",        _pf_str)
-            r1[3].metric("Exp $",     f"${summary['expectancy']:+.0f}")
+            r1[3].metric("Exp $",     f"${summary['exp_dollar']:+.0f}")
             r1[4].metric("Exp R",     f"{summary['exp_r']:+.2f}", help=_exp_r_help)
             r1[5].metric("Max DD",    f"${summary['max_dd']:,.0f}")
             r1[6].metric("PnL/DD",    f"{_pnl_dd:.2f}" if _pnl_dd is not None else "—")
