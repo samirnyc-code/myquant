@@ -1317,6 +1317,56 @@ def show_wfa_tab() -> None:
 
         st.caption(f"{len(signals_filtered)} signals after filter")
 
+        # ── Session filters (same as BA — applied to all folds) ────────────────
+        st.divider()
+        st.markdown("**Session Filters**")
+        from bar_analysis import apply_signal_filters
+
+        sf1, sf2, sf3 = st.columns(3)
+        wfa_excl_holidays = sf1.checkbox("Exclude holidays", value=True, key="wfa_excl_holidays")
+        wfa_excl_first_n = sf2.number_input("Excl first N bars", 0, 20, 0, key="wfa_excl_first_n")
+        wfa_excl_last_min = sf3.number_input("Excl last N min", 0, 60, 15, step=5, key="wfa_excl_last_min")
+
+        sf4, sf5 = st.columns(2)
+        wfa_direction = sf4.radio("Direction", ["Both", "Long", "Short"],
+                                  horizontal=True, key="wfa_direction")
+        wfa_event_types = sf5.multiselect(
+            "Exclude econ events",
+            ["FOMC", "NFP", "CPI"],
+            default=["FOMC", "NFP", "CPI"],
+            key="wfa_event_types")
+
+        dow_cols = st.columns(5)
+        wfa_dow = [
+            dow_cols[0].checkbox("Mon", value=True, key="wfa_dow_mon"),
+            dow_cols[1].checkbox("Tue", value=True, key="wfa_dow_tue"),
+            dow_cols[2].checkbox("Wed", value=True, key="wfa_dow_wed"),
+            dow_cols[3].checkbox("Thu", value=True, key="wfa_dow_thu"),
+            dow_cols[4].checkbox("Fri", value=True, key="wfa_dow_fri"),
+        ]
+
+        # Apply session filters
+        if not signals_filtered.empty:
+            _date_min = signals_filtered["Date"].min()
+            _date_max = signals_filtered["Date"].max()
+            signals_filtered = apply_signal_filters(
+                signals_filtered,
+                date_from=_date_min, date_to=_date_max,
+                excl_holidays=wfa_excl_holidays,
+                incl_dow=wfa_dow,
+                excl_first_n=wfa_excl_first_n,
+                excl_last_min=wfa_excl_last_min,
+                event_types=tuple(wfa_event_types),
+                event_filter_mode="Skip ±window",
+                event_window=15,
+                excluded_types=set(),
+                direction=wfa_direction,
+            )
+            _n_session = (signals_filtered["FilterStatus"] == "ok").sum()
+            signals_filtered = (signals_filtered[signals_filtered["FilterStatus"] == "ok"]
+                                .drop(columns="FilterStatus").copy())
+            st.caption(f"Session filters: **{_n_session}** signals pass")
+
         # ── Regime population gates (S25: ER chop + balance/inside/trend) ─────
         st.divider()
         st.markdown("**Regime Gates**")
@@ -1519,6 +1569,25 @@ def show_wfa_tab() -> None:
                 _rf_desc = _rf.describe_spec(locked_spec)
                 _notes_full = (f"{_notes_full} | " if _notes_full else "") + \
                               f"regime_filter[LOCKED]: {_rf_desc}"
+            # Session filters in notes
+            _sf_parts = []
+            if wfa_excl_holidays:
+                _sf_parts.append("excl_holidays")
+            if wfa_excl_first_n > 0:
+                _sf_parts.append(f"excl_first_{wfa_excl_first_n}")
+            if wfa_excl_last_min > 0:
+                _sf_parts.append(f"excl_last_{wfa_excl_last_min}min")
+            if wfa_direction != "Both":
+                _sf_parts.append(f"dir={wfa_direction}")
+            if wfa_event_types:
+                _sf_parts.append(f"excl_events={'+'.join(wfa_event_types)}")
+            _skip_dow = [d for d, v in zip("MTWRF", wfa_dow) if not v]
+            if _skip_dow:
+                _sf_parts.append(f"skip_dow={''.join(_skip_dow)}")
+            if _sf_parts:
+                _sf_desc = "session[LOCKED]: " + ", ".join(_sf_parts)
+                _notes_full = (f"{_notes_full} | " if _notes_full else "") + _sf_desc
+
             _esa_desc = (f"ESA: {_wfa_preset} entry={wfa_entry_model} "
                          f"calc={wfa_calc_ms}ms wire={wfa_wire_ms}ms "
                          f"fill_timeout={wfa_max_fill_min}min "
