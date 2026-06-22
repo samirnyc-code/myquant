@@ -748,8 +748,8 @@ def _show_entry_zoom(
     sig_row: pd.Series,
     ticks_by_date: dict,
 ) -> None:
-    """Tick-level zoom — 3 ticks before SBClose and 3 ticks after the entry fill.
-    Every tick shows its timestamp so the bar boundary (5M close / EB open) is visible."""
+    """Full tick-level view from signal bar close through fill + a few ticks beyond.
+    Annotates every ESA event: SBClose, SEPrice, OrderLive, Retrace, TickThrough/Fill."""
     date      = sig_row["Date"]
     sig_dt    = pd.Timestamp(sig_row["DateTime"])
     day_ticks = ticks_by_date.get(date)
@@ -758,153 +758,172 @@ def _show_entry_zoom(
         st.warning("No tick data for this date.")
         return
 
-    fill_price  = float(sig_row["FillPrice"])    # EB Open = first tick after sig_dt
-    entry_price = float(sig_row["EntryPrice"])   # fill + entry slippage
+    entry_price = float(sig_row["EntryPrice"])
     stop_price  = float(sig_row["ActualStop"])
-    # SBClose = signal bar close (diagnostic); SEPrice = post-delay entry reference
     sb_close_px = float(sig_row["SBClose"]) if pd.notna(sig_row.get("SBClose")) else None
+    se_price    = float(sig_row["SEPrice"]) if pd.notna(sig_row.get("SEPrice")) else None
+    raw_fill    = float(sig_row["RawFillPrice"]) if pd.notna(sig_row.get("RawFillPrice")) else None
+    target_px   = float(sig_row["Target"]) if pd.notna(sig_row.get("Target")) else None
     is_long     = sig_row["Direction"] == "Long"
+    entry_type  = sig_row.get("EntryType", "market")
 
-    # Split at signal datetime
+    # ESA timestamps
+    _get_ts = lambda col: pd.Timestamp(sig_row[col]) if col in sig_row.index and pd.notna(sig_row.get(col)) else pd.NaT
+    ref_ts   = _get_ts("ReferenceTime")
+    live_ts  = _get_ts("OrderLiveTime")
+    retr_ts  = _get_ts("RetraceTime")
+    thru_ts  = _get_ts("FirstThroughTime")
+    entry_ts = _get_ts("EntryTime")
+    exit_ts  = _get_ts("ExitTriggerTime")
+
+    # Determine the fill timestamp (tick-through for stop, or entry time for market)
+    fill_ts = thru_ts if (entry_type == "stop" and pd.notna(thru_ts)) else entry_ts
+
+    # Window: tight around the action — 3 ticks before signal, through fill + 5 ticks after
     before = day_ticks[day_ticks["DateTime"] <= sig_dt]
-    after  = day_ticks[day_ticks["DateTime"] >  sig_dt]
-
+    after  = day_ticks[day_ticks["DateTime"] > sig_dt]
     if before.empty or after.empty:
         st.warning("Not enough ticks around this signal.")
         return
 
-    # 3 ticks before (ending with SBClose tick) + 3 ticks after (starting with EB Open)
-    pre   = before.iloc[-3:].copy()   # last 3 ticks of the signal bar
-    post  = after.iloc[:3].copy()     # first 3 ticks of the entry bar
+    pre = before.iloc[-3:]
+    if pd.notna(fill_ts):
+        fill_after = after[after["DateTime"] >= fill_ts]
+        post_fill_count = min(5, len(fill_after))
+        end_idx = after.index.get_loc(fill_after.index[post_fill_count - 1]) + 1 if post_fill_count > 0 else len(after)
+        post = after.iloc[:end_idx]
+    else:
+        post = after.iloc[:20]
 
     zoom = pd.concat([pre, post]).reset_index(drop=True)
+    if zoom.empty:
+        st.warning("No ticks in zoom window.")
+        return
 
     def ts_label(t):
         ts = pd.Timestamp(t)
         ms = ts.microsecond // 1000
         return ts.strftime("%H:%M:%S") + (f".{ms:03d}" if ms else "")
 
-    labels = [ts_label(t) for t in zoom["DateTime"]]
-
-    # Assign colour + symbol per tick role
-    colors  = []
-    symbols = []
-    sizes   = []
-    for i, row in zoom.iterrows():
-        dt = row["DateTime"]
-        px = row["Price"]
-        if dt <= sig_dt:
-            # Signal bar ticks (pre)
-            if dt == pre.iloc[-1]["DateTime"]:   # SBClose tick (last before sig)
-                colors.append("orange"); symbols.append("circle"); sizes.append(14)
-            else:
-                colors.append("#888");   symbols.append("circle"); sizes.append(7)
-        else:
-            # Entry bar ticks (post) — EB Open is the fill tick; entry price is EB Open ± slip
-            if dt == post.iloc[0]["DateTime"]:   # EB Open = fill tick
-                colors.append("#00bfff"); symbols.append("diamond"); sizes.append(14)
-            else:
-                colors.append("#888");   symbols.append("circle"); sizes.append(7)
-
     fig = go.Figure()
 
-    # Connecting line
+    # Price line — all ticks
     fig.add_trace(go.Scatter(
         x=zoom["DateTime"], y=zoom["Price"],
-        mode="lines",
-        line=dict(color="#555", width=1),
-        showlegend=False,
-        hoverinfo="skip",
+        mode="lines", line=dict(color="#555", width=1.2),
+        showlegend=False, hoverinfo="skip",
     ))
 
-    # Individual ticks with timestamp labels
+    # Tick dots with hover
     fig.add_trace(go.Scatter(
         x=zoom["DateTime"], y=zoom["Price"],
-        mode="markers+text",
-        marker=dict(size=sizes, color=colors, symbol=symbols, line=dict(width=1, color="#333")),
-        text=labels,
-        textposition=["bottom center"] * len(zoom),
-        textfont=dict(size=9, color="#bbb"),
+        mode="markers",
+        marker=dict(size=4, color="#888"),
         name="Ticks",
-        hovertemplate="%{text}<br>%{y:.2f}<extra></extra>",
-        customdata=labels,
+        hovertemplate="%{x|%H:%M:%S.%L}<br>%{y:.2f}<extra></extra>",
     ))
 
-    # Vertical line at signal bar boundary (5M close / EB open)
+    # ── Annotated ESA event markers ──
+    def _add_event(ts_val, label, color, symbol, size=14, yshift=15):
+        if pd.isna(ts_val):
+            return
+        ts_val = pd.Timestamp(ts_val)
+        mask = zoom["DateTime"] == ts_val
+        if not mask.any():
+            nearest_idx = (zoom["DateTime"] - ts_val).abs().idxmin()
+            px = float(zoom.loc[nearest_idx, "Price"])
+            tx = zoom.loc[nearest_idx, "DateTime"]
+        else:
+            px = float(zoom.loc[mask, "Price"].iloc[0])
+            tx = ts_val
+        fig.add_trace(go.Scatter(
+            x=[tx], y=[px], mode="markers+text",
+            marker=dict(size=size, color=color, symbol=symbol, line=dict(width=1.5, color="white")),
+            text=[f"{label}<br>{ts_label(tx)}<br>{px:.2f}"],
+            textposition="top center", textfont=dict(size=10, color=color),
+            showlegend=False,
+            hovertemplate=f"<b>{label}</b><br>%{{x|%H:%M:%S.%L}}<br>%{{y:.2f}}<extra></extra>",
+        ))
+
+    _add_event(sig_dt, "SB Close", "orange", "circle")
+    _add_event(ref_ts, "SEPrice", "#00bfff", "square")
+    _add_event(live_ts, "Order Live", "#22cc22", "triangle-up")
+    if entry_type == "stop":
+        _add_event(retr_ts, "Retrace", "#ffcc00", "triangle-down")
+        _add_event(thru_ts, "Tick-Through (Fill)", "#ff3366", "diamond", size=16)
+    else:
+        _add_event(entry_ts, "Fill", "#ff3366", "diamond", size=16)
+
+    # ── Vertical line at signal bar close ──
     fig.add_vline(
         x=sig_dt.value / 1e6,
         line=dict(color="orange", width=2, dash="solid"),
-        annotation_text=f"5M Bar Close  {sig_dt.strftime('%H:%M:%S')}",
-        annotation_position="top left",
-        annotation_font=dict(color="orange", size=10),
     )
 
-    # Horizontal: SBClose reference price (the signal bar's close price)
-    if sb_close_px is not None:
-        fig.add_hline(
-            y=sb_close_px,
-            line=dict(color="orange", width=1, dash="dot"),
-            annotation_text=f"SBClose  {sb_close_px:.2f}",
-            annotation_position="right",
-            annotation_font=dict(color="orange", size=10),
-        )
+    # ── Horizontal price levels ──
+    def _add_hline(px, label, color, dash="dash"):
+        if px is None or np.isnan(px):
+            return
+        fig.add_hline(y=px, line=dict(color=color, width=1.5, dash=dash),
+                      annotation_text=f"{label}  {px:.2f}",
+                      annotation_position="right",
+                      annotation_font=dict(color=color, size=10))
 
-    # Horizontal: Entry price
-    fig.add_hline(
-        y=entry_price,
-        line=dict(color="#00ff88", width=1.5, dash="dash"),
-        annotation_text=f"Entry  {entry_price:.2f}",
-        annotation_position="right",
-        annotation_font=dict(color="#00ff88", size=10),
-    )
-
-    # Horizontal: Stop
-    fig.add_hline(
-        y=stop_price,
-        line=dict(color="#ff4444", width=1.5, dash="dash"),
-        annotation_text=f"Stop  {stop_price:.2f}",
-        annotation_position="right",
-        annotation_font=dict(color="#ff4444", size=10),
-    )
+    _add_hline(sb_close_px, "SBClose", "orange", "dot")
+    _add_hline(se_price, "SEPrice", "#00bfff", "dot")
+    _add_hline(entry_price, "Entry (slipped)", "#00ff88", "dash")
+    _add_hline(stop_price, "Stop", "#ff4444", "dash")
+    if target_px and not np.isnan(target_px):
+        _add_hline(target_px, "Target", "#44aaff", "dash")
 
     dir_label = "LONG" if is_long else "SHORT"
-    eb_open_time = ts_label(post.iloc[0]["DateTime"])
+    fill_time_ms = sig_row.get("SigToFill_ms", 0)
+    fill_time_str = f"{fill_time_ms/1000:.1f}s" if fill_time_ms < 60000 else f"{fill_time_ms/60000:.1f}min"
+    exit_reason = sig_row.get("ExitReason", "")
+    r_achieved = sig_row.get("R_achieved", 0)
+
     fig.update_layout(
         title=dict(
-            text=(f"Entry Zoom  ·  {date}  ·  {dir_label} {sig_row.get('SignalType','')}  "
-                  f"·  SB Closes {sig_dt.strftime('%H:%M:%S')}  "
-                  f"·  EB Opens {eb_open_time}  "
-                  f"·  Fill {fill_price:.2f}  →  Entry {entry_price:.2f}"),
-            font=dict(size=11),
+            text=(f"🔬 {dir_label} {sig_row.get('SignalType','')}  ·  {date}  "
+                  f"·  Entry {entry_type}  ·  Fill in {fill_time_str}  "
+                  f"·  {exit_reason} {r_achieved:+.2f}R  ·  ${sig_row.get('NetPnL',0):+,.0f}"),
+            font=dict(size=12),
         ),
-        xaxis=dict(
-            title="",
-            type="date",
-            tickformat="%H:%M:%S",
-            showgrid=True, gridcolor="#333",
-        ),
-        yaxis=dict(title="Price", showgrid=True, gridcolor="#333"),
-        height=380,
+        xaxis=dict(title="", type="date", tickformat="%H:%M:%S.%L",
+                   showgrid=True, gridcolor="#333",
+                   range=[zoom["DateTime"].min() - pd.Timedelta(seconds=2),
+                          zoom["DateTime"].max() + pd.Timedelta(seconds=2)]),
+        yaxis=dict(title="Price", showgrid=True, gridcolor="#333",
+                   tickformat=".2f", dtick=0.25,
+                   range=[float(zoom["Price"].min()) - 0.75,
+                          float(zoom["Price"].max()) + 0.75]),
+        height=600,
         showlegend=False,
-        margin=dict(r=140, t=55, b=60, l=60),
-        plot_bgcolor="#1a1a1a",
-        paper_bgcolor="#1a1a1a",
+        margin=dict(r=160, t=60, b=60, l=70),
+        plot_bgcolor="#1a1a1a", paper_bgcolor="#1a1a1a",
         font=dict(color="#ddd"),
     )
 
     st.plotly_chart(fig, use_container_width=True)
 
-    # Key price strip
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("SBClose (ref)", f"{sb_close_px:.2f}" if sb_close_px else "—",
-              help="Close price of the signal bar — reference only, not the entry trigger")
-    c2.metric("SEPrice (raw fill)", f"{fill_price:.2f}",
-              help="Raw fill = entry reference (first tick at/after SB close + delay), before slippage")
-    c3.metric("Entry price", f"{entry_price:.2f}",
-              delta=f"{entry_price - fill_price:+.2f} slip",
-              help="EB Open ± entry slippage ticks")
+    # ── Key metrics strip ──
+    c1, c2, c3, c4, c5 = st.columns(5)
+    c1.metric("SBClose", f"{sb_close_px:.2f}" if sb_close_px else "—")
+    c2.metric("SEPrice", f"{se_price:.2f}" if se_price else "—")
+    c3.metric("Entry (slipped)", f"{entry_price:.2f}",
+              delta=f"{entry_price - (raw_fill or entry_price):+.2f} slip")
     c4.metric("Stop", f"{stop_price:.2f}",
               delta=f"{abs(entry_price - stop_price):.2f} risk pts")
+    c5.metric("Fill time", fill_time_str)
+
+    # ── Timestamp trail ──
+    _ts_fmt = lambda t: ts_label(t) if pd.notna(t) else "—"
+    t1, t2, t3, t4, t5 = st.columns(5)
+    t1.metric("Signal", sig_dt.strftime("%H:%M:%S"))
+    t2.metric("SEPrice tick", _ts_fmt(ref_ts))
+    t3.metric("Order live", _ts_fmt(live_ts))
+    t4.metric("Retrace" if entry_type == "stop" else "—", _ts_fmt(retr_ts))
+    t5.metric("Fill", _ts_fmt(fill_ts))
 
 
 def _show_entry_zoom_section(results: pd.DataFrame, ticks_by_date: dict) -> None:
@@ -4695,13 +4714,20 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         if _exec_preset == "Custom":
             exec_entry_slip, exec_exit_slip = entry_slip, exit_slip
             exec_delay_ms = int(_exec_delay_in)
+            exec_wire_ms = 0
         else:
             _pp = _ESA_PRESETS[_exec_preset]
             exec_entry_slip, exec_exit_slip = _pp["entry_slip"], _pp["exit_slip"]
             exec_delay_ms = int(_pp["entry_delay_ms"])
-            st.caption(f"**{_exec_preset}** → delay {exec_delay_ms} ms · entry slip "
-                       f"{exec_entry_slip} · exit slip {exec_exit_slip} ticks (overrides Trading Params slip)")
+            exec_wire_ms = int(_pp.get("wire_delay_ms", 0))
+            st.caption(f"**{_exec_preset}** → delay {exec_delay_ms} ms · wire {exec_wire_ms} ms · "
+                       f"entry slip {exec_entry_slip} · exit slip {exec_exit_slip} ticks (overrides Trading Params slip)")
         exec_seed = 42
+        exec_max_fill_min = st.number_input(
+            "Max fill time (min)", 0, 120, value=0, step=5, key="ba_exec_max_fill_min",
+            help="Cancel the entry if not filled within this many minutes of the signal bar close. "
+                 "0 = no timeout. Data shows fills >30 min are net losers.")
+        exec_max_fill_ms = int(exec_max_fill_min * 60000)
 
     # ── Run button ────────────────────────────────────────────────────────────
     st.divider()
@@ -4745,7 +4771,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         first_trade_only, first_2_filled_only,
         flt_er30, round(er_min, 4), flt_er10, round(er10_min, 4),
         flt_balance, flt_inside, flt_skip_trend,
-        exec_entry_model, exec_delay_ms, str(exec_entry_slip), str(exec_exit_slip), exec_seed,
+        exec_entry_model, exec_delay_ms, exec_wire_ms, exec_max_fill_ms, str(exec_entry_slip), str(exec_exit_slip), exec_seed,
     ))
     _has_results = (st.session_state.get("ba_results_fp") == _sim_fp
                     and st.session_state.get("ba_results") is not None)
@@ -4774,7 +4800,9 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                 pb1_r=pb1_r_val, pb1_ticks=pb1_ticks_v,
                 pb2_r=pb2_r_val, pb2_ticks=pb2_ticks_v,
                 t2_r=t2_r_val,
-                entry_model=exec_entry_model, entry_delay_ms=exec_delay_ms, exec_seed=exec_seed,
+                entry_model=exec_entry_model, entry_delay_ms=exec_delay_ms,
+                wire_delay_ms=exec_wire_ms, max_fill_ms=exec_max_fill_ms,
+                exec_seed=exec_seed,
             )
 
             if nt_bars is not None and not nt_bars.empty:
@@ -5059,6 +5087,509 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
             r3[5].metric("Largest Loss",  f"${summary['largest_loss']:+.0f}")
         else:
             st.info("No filled trades in the selected range.")
+
+    # ── Execution Audit (main run) ───────────────────────────────────────────
+    with st.expander("🔍 Execution Audit — verify fills against tick data", expanded=False):
+      try:
+        if summary and not results.empty:
+            _au = results[results["Filled"] == True].copy()
+            if _au.empty:
+                st.info("No filled trades to audit.")
+            else:
+                _ts_sz = 0.25
+                _sig_dt = pd.to_datetime(_au["DateTime"])
+
+                # ── Computed delay columns (ms) for eyeball verification ──
+                _ref_t = pd.to_datetime(_au.get("ReferenceTime"))
+                _live_t = pd.to_datetime(_au.get("OrderLiveTime"))
+                _retr_t = pd.to_datetime(_au.get("RetraceTime"))
+                _thru_t = pd.to_datetime(_au.get("FirstThroughTime"))
+                _entry_t = pd.to_datetime(_au.get("EntryTime"))
+
+                # Actual elapsed ms from signal bar close to each event
+                _au["SigToRef_ms"] = ((_ref_t - _sig_dt).dt.total_seconds() * 1000).round(0)
+                _au["SigToLive_ms"] = ((_live_t - _sig_dt).dt.total_seconds() * 1000).round(0)
+                _au["SigToFill_ms"] = ((_entry_t - _sig_dt).dt.total_seconds() * 1000).round(0)
+                _au["LiveToFill_ms"] = ((_entry_t - _live_t).dt.total_seconds() * 1000).round(0)
+
+                _expected_delay = _au.get("ActualDelayMs", 0).fillna(0).astype(float)
+                _expected_wire = _au.get("WireDelayMs", 0).fillna(0).astype(float)
+                _expected_total = _expected_delay + _expected_wire
+
+                # ── Y/N verification columns ──
+
+                # 1. SEPrice = first tick price (always, ESA v2)
+                _au["SEPrice_OK"] = "?"
+                if "SEPrice" in _au.columns and "ReferenceTime" in _au.columns:
+                    _au["SEPrice_OK"] = np.where(
+                        _ref_t.notna() & (_au["SigToRef_ms"] >= 0), "Y", "N")
+
+                # 2. ReferenceTime >= DateTime (SEPrice tick is after signal bar close)
+                _au["Ref≥SigDt"] = np.where(
+                    _ref_t.notna() & (_ref_t >= _sig_dt), "Y", "N")
+
+                # 3. OrderLiveTime >= DateTime + delay + wire
+                _au["Live≥Delay"] = "N/A"
+                if _live_t is not None:
+                    _live_valid = _live_t.notna()
+                    _au.loc[_live_valid, "Live≥Delay"] = np.where(
+                        _au.loc[_live_valid, "SigToLive_ms"] >= _expected_total[_live_valid] - 1,
+                        "Y", "N")
+                    _au.loc[_expected_total == 0, "Live≥Delay"] = np.where(
+                        _au.loc[_expected_total == 0, "SigToLive_ms"] >= 0, "Y", "N")
+
+                # 4. Fill happens after order is live
+                _au["Fill≥Live"] = "N/A"
+                if _entry_t is not None and _live_t is not None:
+                    _both_valid = _entry_t.notna() & _live_t.notna()
+                    _au.loc[_both_valid, "Fill≥Live"] = np.where(
+                        _entry_t[_both_valid] >= _live_t[_both_valid], "Y", "N")
+
+                # 5. Stop entry: retrace after order live
+                _is_stop = _au.get("EntryType", "") == "stop"
+                _stop_mask = _is_stop if isinstance(_is_stop, pd.Series) else pd.Series(False, index=_au.index)
+
+                _au["Retr≥Live"] = "N/A"
+                if _retr_t is not None and _live_t is not None:
+                    _sm_valid = _stop_mask & _retr_t.notna() & _live_t.notna()
+                    _au.loc[_sm_valid, "Retr≥Live"] = np.where(
+                        _retr_t[_sm_valid] >= _live_t[_sm_valid], "Y", "N")
+
+                # 6. Stop entry: tick-through after retrace (sequence)
+                _au["Thru>Retr"] = "N/A"
+                if _retr_t is not None and _thru_t is not None:
+                    _sm_both = _stop_mask & _retr_t.notna() & _thru_t.notna()
+                    _au.loc[_sm_both, "Thru>Retr"] = np.where(
+                        _thru_t[_sm_both] >= _retr_t[_sm_both], "Y", "N")
+
+                # 7. Slip applied correctly (|EntryPrice - RawFillPrice| == slip_ticks * tick_size)
+                _au["SlipOK"] = "?"
+                if "RawFillPrice" in _au.columns and "EntrySlipTicks" in _au.columns:
+                    _slip_diff = (_au["EntryPrice"] - _au["RawFillPrice"]).abs()
+                    _slip_exp = _au["EntrySlipTicks"].abs() * _ts_sz
+                    _au["SlipOK"] = np.where(
+                        (_slip_diff - _slip_exp).abs() <= 0.001, "Y", "N")
+
+                # 8. Stop fill price = SEPrice ± 1 tick (for stop entries)
+                _au["StopFillOK"] = "N/A"
+                if _stop_mask.any() and "RawFillPrice" in _au.columns:
+                    _is_long = _au["Direction"] == "Long"
+                    _exp_stop_fill_long = _au["SEPrice"] + _ts_sz
+                    _exp_stop_fill_short = _au["SEPrice"] - _ts_sz
+                    _exp_fill = np.where(_is_long, _exp_stop_fill_long, _exp_stop_fill_short)
+                    _au.loc[_stop_mask, "StopFillOK"] = np.where(
+                        ((_au.loc[_stop_mask, "RawFillPrice"] - _exp_fill[_stop_mask]).abs() < 0.001),
+                        "Y", "N")
+
+                # ── Summary banner ──
+                _n_au = len(_au)
+                _checks = ["Ref≥SigDt", "Live≥Delay", "Fill≥Live", "SlipOK"]
+                _stop_checks = ["Retr≥Live", "Thru>Retr", "StopFillOK"]
+                _fails = {}
+                for _ck in _checks + _stop_checks:
+                    if _ck in _au.columns:
+                        _n_fail = int((_au[_ck] == "N").sum())
+                        if _n_fail > 0:
+                            _fails[_ck] = _n_fail
+                if _fails:
+                    st.error(f"**{sum(_fails.values())} verification failures:** " +
+                             ", ".join(f"{k}={v}" for k, v in _fails.items()))
+                else:
+                    st.success(f"**All {_n_au} trades pass verification checks.**")
+
+                # ── Display table ──
+                _au_cols = [
+                    "Date", "SignalType", "Direction", "DateTime",
+                    "SBClose", "SEPrice", "RawFillPrice", "EntryPrice",
+                    "EntryType", "EntryTime",
+                    "EntrySlipTicks", "ExitSlipTicks",
+                    "ActualDelayMs", "WireDelayMs",
+                    "ReferenceTime", "OrderLiveTime",
+                    "RetraceTime", "FirstThroughTime",
+                    "ExitTriggerTime",
+                    "SigToRef_ms", "SigToLive_ms", "SigToFill_ms", "LiveToFill_ms",
+                    "ExitPrice", "ExitReason",
+                    "GrossPnL", "NetPnL", "R_achieved",
+                    "Ref≥SigDt", "Live≥Delay", "Fill≥Live",
+                    "SlipOK", "Retr≥Live", "Thru>Retr", "StopFillOK",
+                ]
+                _au_cols = [c for c in _au_cols if c in _au.columns]
+                st.dataframe(_au[_au_cols].reset_index(drop=True),
+                             use_container_width=True, height=500)
+
+                # ── Filter to failures only ──
+                _fail_rows = _au[_au_cols].copy()
+                _any_fail = pd.Series(False, index=_fail_rows.index)
+                for _ck in _checks + _stop_checks:
+                    if _ck in _fail_rows.columns:
+                        _any_fail = _any_fail | (_fail_rows[_ck] == "N")
+                if _any_fail.any():
+                    with st.expander(f"⚠️ Show only failed checks ({int(_any_fail.sum())} trades)",
+                                     expanded=False):
+                        st.dataframe(_fail_rows[_any_fail].reset_index(drop=True),
+                                     use_container_width=True, height=400)
+
+                # ── Fill time distribution table ──
+                st.subheader("Signal-to-Fill Time Distribution")
+                _fill_min = _au["SigToFill_ms"] / 60000.0
+                _buckets = [
+                    ("< 30 sec", 0, 0.5),
+                    ("30s – 1 min", 0.5, 1),
+                    ("1–5 min (within bar)", 1, 5),
+                    ("5–15 min (1–3 bars)", 5, 15),
+                    ("15–30 min (3–6 bars)", 15, 30),
+                    ("30–60 min (6–12 bars)", 30, 60),
+                    ("> 60 min (12+ bars)", 60, 999999),
+                ]
+                _ft_rows = []
+                for _bl, _blo, _bhi in _buckets:
+                    _bm = (_fill_min >= _blo) & (_fill_min < _bhi)
+                    _bn = int(_bm.sum())
+                    _bpct = _bn / len(_au) * 100 if len(_au) else 0
+                    _bsub = _au[_bm]
+                    _br = float(_bsub["R_achieved"].mean()) if _bn > 0 else 0
+                    _bw = float((_bsub["R_achieved"] > 0).mean() * 100) if _bn > 0 else 0
+                    _bnet = float(_bsub["NetPnL"].sum()) if _bn > 0 else 0
+                    _ft_rows.append({
+                        "Bucket": _bl, "Trades": _bn,
+                        "Pct": f"{_bpct:.1f}%", "Avg R": f"{_br:+.3f}",
+                        "Win%": f"{_bw:.1f}%", "Net $": f"${_bnet:+,.0f}",
+                    })
+                st.dataframe(pd.DataFrame(_ft_rows).set_index("Bucket"),
+                             use_container_width=True)
+                st.caption("Trades filling after 30 min are typically net losers. "
+                           "Use **Max fill time** in the ESA expander to cap stale fills.")
+        else:
+            st.info("Run the simulation first.")
+      except Exception as _audit_err:
+        st.error(f"Execution Audit error: {_audit_err}")
+        import traceback
+        st.code(traceback.format_exc())
+
+    # ── ESA Phase B — Execution Sensitivity Comparison ──────────────────────
+    with st.expander("🔬 Execution Sensitivity Analysis (ESA)", expanded=False):
+        if summary and not results.empty:
+            _esa_all_presets = list(_ESA_PRESETS.keys())
+            _esa_selected = st.multiselect(
+                "Presets to compare", _esa_all_presets,
+                default=_esa_all_presets, key="ba_esa_presets")
+
+            _esa_run = st.button("▶ Run ESA Comparison", key="ba_esa_run_btn",
+                                 type="secondary", use_container_width=False)
+
+            _esa_cache_key = "ba_esa_cache"
+            _esa_fp_key = "ba_esa_fp"
+            _esa_fp = hash((
+                _sim_fp,
+                tuple(sorted(_esa_selected)),
+            ))
+            _esa_cached = (st.session_state.get(_esa_fp_key) == _esa_fp
+                           and st.session_state.get(_esa_cache_key) is not None)
+
+            if _esa_run or _esa_cached:
+                if _esa_run or not _esa_cached:
+                    if not _esa_selected:
+                        st.warning("Select at least one preset.")
+                    else:
+                        _esa_results = {}
+                        _prog = st.progress(0, text="Running ESA presets…")
+                        for _pi, _pname in enumerate(_esa_selected):
+                            _prog.progress((_pi) / len(_esa_selected),
+                                           text=f"Running **{_pname}**…")
+                            _pp = _ESA_PRESETS[_pname]
+                            _p_eslip = _pp["entry_slip"]
+                            _p_xslip = _pp["exit_slip"]
+                            _p_delay = int(_pp["entry_delay_ms"])
+                            _p_wire = int(_pp.get("wire_delay_ms", 0))
+                            _p_res = simulate_trades(
+                                filtered_signals, ticks_by_date, target_r,
+                                _p_eslip, _p_xslip, stop_offset,
+                                tick_value, contracts, commission,
+                                overrides=st.session_state.get("ba_manual_overrides"),
+                                bars_by_date=bars_by_date_sim,
+                                multileg=use_multileg, t1_r=t1_r,
+                                t1_action=t1_action, contracts_t1=contracts_t1,
+                                contracts_t2=contracts_t2,
+                                ratchet_r=ratchet_r_v, ratchet_dest=ratchet_dest_v,
+                                ratchet_lock_r=ratchet_lock_r_v,
+                                ml_pb_r=ml_pb_r_v, scale_in_style=scale_in_style_v,
+                                pb_round=pb_round_v,
+                                threeleg=use_threeleg,
+                                contracts_e1=e1c_3l, contracts_e2=e2c_3l,
+                                contracts_e3=e3c_3l,
+                                pb1_r=pb1_r_val, pb1_ticks=pb1_ticks_v,
+                                pb2_r=pb2_r_val, pb2_ticks=pb2_ticks_v,
+                                t2_r=t2_r_val,
+                                entry_model=exec_entry_model,
+                                entry_delay_ms=_p_delay, wire_delay_ms=_p_wire,
+                                max_fill_ms=exec_max_fill_ms, exec_seed=exec_seed,
+                            )
+                            if first_trade_only and not _p_res.empty:
+                                _fm = _p_res["Filled"] == True
+                                _fs = _p_res[_fm].sort_values(["Date", "SignalNum"])
+                                _ki = _fs.groupby("Date").head(1).index
+                                _p_res = _p_res.drop(
+                                    _p_res[_fm & ~_p_res.index.isin(_ki)].index
+                                ).reset_index(drop=True)
+                            if first_2_filled_only and not _p_res.empty:
+                                _fm = _p_res["Filled"] == True
+                                _fs = _p_res[_fm].sort_values(["Date", "SignalNum"])
+                                _ki = _fs.groupby("Date").head(2).index
+                                _p_res = _p_res.drop(
+                                    _p_res[_fm & ~_p_res.index.isin(_ki)].index
+                                ).reset_index(drop=True)
+                            _sc = e1c_3l + e2c_3l + e3c_3l if use_threeleg else contracts
+                            _p_sum = compute_summary(
+                                _p_res, commission, contracts=_sc,
+                                is_multileg=(use_multileg or use_threeleg),
+                                t1_action=t1_action,
+                                contracts_t1=contracts_t1,
+                                contracts_t2=contracts_t2)
+                            _esa_results[_pname] = {"results": _p_res, "summary": _p_sum}
+                        _prog.empty()
+                        st.session_state[_esa_cache_key] = _esa_results
+                        st.session_state[_esa_fp_key] = _esa_fp
+
+                _esa_data = st.session_state.get(_esa_cache_key, {})
+                if _esa_data:
+                    _esa_metrics = []
+                    for _pn in _esa_all_presets:
+                        if _pn not in _esa_data:
+                            continue
+                        _s = _esa_data[_pn]["summary"]
+                        if not _s:
+                            continue
+                        _esa_metrics.append({
+                            "Preset": _pn,
+                            "Trades": _s.get("n_trades", 0),
+                            "Win%": _s.get("win_pct", 0),
+                            "PF": _s.get("pf", 0),
+                            "Exp $": _s.get("exp_dollar", 0),
+                            "Exp R": _s.get("exp_r", 0),
+                            "Net $": _s.get("net_total", 0),
+                            "MaxDD": _s.get("max_dd", 0),
+                            "CAGR": _s.get("cagr", 0),
+                            "Sharpe": _s.get("sharpe", 0),
+                            "SQN": _s.get("sqn", 0),
+                        })
+
+                    if _esa_metrics:
+                        _esa_df = pd.DataFrame(_esa_metrics).set_index("Preset")
+
+                        # ── Comparison table ──
+                        st.subheader("Comparison")
+                        _disp = _esa_df.copy()
+                        _disp["Trades"] = _disp["Trades"].astype(int)
+                        _disp["Win%"] = _disp["Win%"].map(lambda v: f"{v:.1f}%")
+                        _disp["PF"] = _disp["PF"].map(lambda v: f"{v:.2f}")
+                        _disp["Exp $"] = _disp["Exp $"].map(lambda v: f"${v:+,.0f}")
+                        _disp["Exp R"] = _disp["Exp R"].map(lambda v: f"{v:+.3f}")
+                        _disp["Net $"] = _disp["Net $"].map(lambda v: f"${v:+,.0f}")
+                        _disp["MaxDD"] = _disp["MaxDD"].map(lambda v: f"${v:,.0f}")
+                        _disp["CAGR"] = _disp["CAGR"].map(
+                            lambda v: f"{v:.1%}" if not np.isnan(v) else "N/A")
+                        _disp["Sharpe"] = _disp["Sharpe"].map(lambda v: f"{v:.2f}")
+                        _disp["SQN"] = _disp["SQN"].map(lambda v: f"{v:.1f}")
+                        st.dataframe(_disp, use_container_width=True)
+
+                        # ── Degradation vs Idealized ──
+                        if "Idealized" in _esa_df.index and len(_esa_df) > 1:
+                            st.subheader("Degradation vs Idealized")
+                            _ideal = _esa_df.loc["Idealized"]
+                            _deg_rows = []
+                            for _pn in _esa_df.index:
+                                if _pn == "Idealized":
+                                    continue
+                                _row = _esa_df.loc[_pn]
+                                _dr = {"Preset": _pn}
+                                for _col in ["Trades", "Win%", "PF", "Exp $",
+                                             "Exp R", "Net $", "CAGR", "Sharpe", "SQN"]:
+                                    _iv = _ideal[_col]
+                                    _rv = _row[_col]
+                                    _delta = _rv - _iv
+                                    if _col == "Trades":
+                                        _dr[f"Δ {_col}"] = f"{int(_delta):+d}"
+                                    elif _col in ("Win%",):
+                                        _dr[f"Δ {_col}"] = f"{_delta:+.1f}pp"
+                                    elif _col in ("Exp $", "Net $"):
+                                        _dr[f"Δ {_col}"] = f"${_delta:+,.0f}"
+                                    elif _col == "CAGR":
+                                        if np.isnan(_iv) or np.isnan(_rv):
+                                            _dr[f"Δ {_col}"] = "N/A"
+                                        else:
+                                            _dr[f"Δ {_col}"] = f"{_delta:+.1%}"
+                                    else:
+                                        _dr[f"Δ {_col}"] = f"{_delta:+.3f}"
+                                _deg_rows.append(_dr)
+                            _deg_df = pd.DataFrame(_deg_rows).set_index("Preset")
+                            st.dataframe(_deg_df, use_container_width=True)
+
+                        # ── Execution Robustness Score ──
+                        st.subheader("Execution Robustness Score")
+                        _cons_name = "Conservative"
+                        _ideal_name = "Idealized"
+                        if _ideal_name in _esa_df.index and _cons_name in _esa_df.index:
+                            _ideal_expr = _esa_df.loc[_ideal_name, "Exp R"]
+                            _cons_expr = _esa_df.loc[_cons_name, "Exp R"]
+                            if abs(_ideal_expr) < 0.005:
+                                st.warning("Idealized Exp R ≈ 0 — robustness score "
+                                           "undefined (no edge to degrade).")
+                                _rob_score = float("nan")
+                            elif _ideal_expr < 0:
+                                st.warning("Idealized Exp R < 0 — no positive edge "
+                                           "at baseline.")
+                                _rob_score = float("nan")
+                            else:
+                                _rob_score = _cons_expr / _ideal_expr
+
+                            if not np.isnan(_rob_score):
+                                if _rob_score >= 0.80:
+                                    _band, _color = "Strong", "🟢"
+                                elif _rob_score >= 0.60:
+                                    _band, _color = "Adequate", "🟡"
+                                elif _rob_score >= 0.40:
+                                    _band, _color = "Weak", "🟠"
+                                else:
+                                    _band, _color = "Fragile", "🔴"
+                                st.metric(
+                                    "ExpR Robustness (Conservative / Idealized)",
+                                    f"{_rob_score:.1%}",
+                                    delta=f"{_band}",
+                                    delta_color="off",
+                                )
+                                st.caption(
+                                    f"{_color} **{_band}** — Conservative Exp R "
+                                    f"({_cons_expr:+.3f}) retains "
+                                    f"**{_rob_score:.0%}** of Idealized ({_ideal_expr:+.3f}). "
+                                    f"Bands: ≥80% Strong · ≥60% Adequate · ≥40% Weak · <40% Fragile.")
+                        else:
+                            _missing = []
+                            if _ideal_name not in _esa_df.index:
+                                _missing.append(_ideal_name)
+                            if _cons_name not in _esa_df.index:
+                                _missing.append(_cons_name)
+                            st.info(f"Select **{' + '.join(_missing)}** to compute "
+                                    f"the robustness score.")
+
+                        # ── Equity overlay chart ──
+                        st.subheader("OOS Equity Overlay")
+                        _eq_fig = go.Figure()
+                        _preset_colors = {
+                            "Idealized": "#2ca02c", "Optimistic": "#1f77b4",
+                            "Realistic": "#ff7f0e", "Conservative": "#d62728",
+                            "Brutal": "#7f7f7f",
+                        }
+                        for _pn in _esa_all_presets:
+                            if _pn not in _esa_data:
+                                continue
+                            _pr = _esa_data[_pn]["results"]
+                            _pf_filled = _pr[_pr["Filled"] == True].sort_values(
+                                ["Date", "EntryTime"])
+                            if _pf_filled.empty:
+                                continue
+                            _eq = _pf_filled["NetPnL"].cumsum()
+                            _eq_fig.add_trace(go.Scatter(
+                                x=list(range(len(_eq))), y=_eq.values,
+                                name=_pn, mode="lines",
+                                line=dict(
+                                    color=_preset_colors.get(_pn, "#999"),
+                                    width=2 if _pn in ("Idealized", "Conservative") else 1.2,
+                                ),
+                            ))
+                        _eq_fig.update_layout(
+                            template="plotly_white", height=400,
+                            title="Cumulative Net PnL by Execution Preset",
+                            xaxis_title="Trade #", yaxis_title="Cumulative Net $",
+                            legend=dict(orientation="h", y=1.02, x=0.5,
+                                        xanchor="center"),
+                        )
+                        st.plotly_chart(_eq_fig, use_container_width=True)
+
+                        # ── Audit drill-down ──
+                        with st.expander("🔍 Execution Audit — per-trade detail",
+                                         expanded=False):
+                            _audit_preset = st.selectbox(
+                                "Preset", [p for p in _esa_all_presets
+                                           if p in _esa_data],
+                                key="ba_esa_audit_preset")
+                            if _audit_preset and _audit_preset in _esa_data:
+                                _ar = _esa_data[_audit_preset]["results"]
+                                _af = _ar[_ar["Filled"] == True].copy()
+
+                                _ts_size = 0.25
+                                _is_long = _af["Direction"] == "Long"
+
+                                # Y/N: delay applied correctly
+                                if "ActualDelayMs" in _af.columns:
+                                    _pp_ad = _ESA_PRESETS.get(_audit_preset, {})
+                                    _exp_delay = int(_pp_ad.get("entry_delay_ms", 0))
+                                    _af["DelayOK"] = np.where(
+                                        _af["ActualDelayMs"] == _exp_delay, "Y", "N")
+                                else:
+                                    _af["DelayOK"] = "?"
+
+                                # Y/N: SEPrice after SBClose + delay
+                                if "ReferenceTime" in _af.columns and "EntryTime" in _af.columns:
+                                    _ref_valid = _af["ReferenceTime"].notna()
+                                    _af["RefAfterSB"] = np.where(
+                                        _ref_valid & (_af["ReferenceTime"] >= _af["EntryTime"].shift(0)),
+                                        "Y", "?")
+                                    _af.loc[_ref_valid, "RefAfterSB"] = "Y"
+                                    _af.loc[~_ref_valid, "RefAfterSB"] = "?"
+
+                                # Y/N: for stop entry — retrace happened
+                                if "RetraceTime" in _af.columns:
+                                    _is_stop = _af.get("EntryType", "") == "stop"
+                                    _af["RetraceOK"] = "N/A"
+                                    _stop_mask = _is_stop if isinstance(_is_stop, pd.Series) else pd.Series(False, index=_af.index)
+                                    _af.loc[_stop_mask, "RetraceOK"] = np.where(
+                                        _af.loc[_stop_mask, "RetraceTime"].notna(), "Y", "N")
+
+                                # Y/N: for stop entry — tick-through happened
+                                if "FirstThroughTime" in _af.columns:
+                                    _af["ThruOK"] = "N/A"
+                                    if isinstance(_is_stop, pd.Series):
+                                        _af.loc[_stop_mask, "ThruOK"] = np.where(
+                                            _af.loc[_stop_mask, "FirstThroughTime"].notna(), "Y", "N")
+
+                                # Y/N: retrace before tick-through (sequence check)
+                                if "RetraceTime" in _af.columns and "FirstThroughTime" in _af.columns:
+                                    _af["SeqOK"] = "N/A"
+                                    if isinstance(_is_stop, pd.Series):
+                                        _both = _stop_mask & _af["RetraceTime"].notna() & _af["FirstThroughTime"].notna()
+                                        _af.loc[_both, "SeqOK"] = np.where(
+                                            _af.loc[_both, "RetraceTime"] <= _af.loc[_both, "FirstThroughTime"],
+                                            "Y", "N")
+
+                                # Y/N: slip applied correctly
+                                _af["SlipOK"] = np.where(
+                                    (_af["EntryPrice"] - _af["RawFillPrice"]).abs() <=
+                                    _af["EntrySlipTicks"] * _ts_size + 0.001,
+                                    "Y", "N") if "RawFillPrice" in _af.columns else "?"
+
+                                _audit_cols = [
+                                    "Date", "SignalType", "Direction",
+                                    "SBClose", "SEPrice", "RawFillPrice",
+                                    "EntryPrice", "EntryType",
+                                    "EntrySlipTicks", "ExitSlipTicks",
+                                    "ActualDelayMs", "WireDelayMs", "ExecCostTicks",
+                                    "ReferenceTime", "OrderLiveTime",
+                                    "RetraceTime",
+                                    "FirstThroughTime", "ExitTriggerTime",
+                                    "ExitPrice", "ExitReason",
+                                    "GrossPnL", "NetPnL", "R_achieved",
+                                    "DelayOK", "SlipOK",
+                                    "RetraceOK", "ThruOK", "SeqOK",
+                                ]
+                                _audit_cols = [c for c in _audit_cols
+                                               if c in _af.columns]
+                                st.dataframe(
+                                    _af[_audit_cols].reset_index(drop=True),
+                                    use_container_width=True, height=400)
+                    else:
+                        st.info("No filled trades — nothing to compare.")
+        else:
+            st.info("Run the simulation first to enable ESA comparison.")
 
     # ── Edge Analysis ─────────────────────────────────────────────────────────
     with st.expander("📊 Edge Analysis", expanded=False):

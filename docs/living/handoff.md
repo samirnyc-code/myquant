@@ -1,10 +1,87 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** June 22, 2026 (session 27)
-**Current Versions:** SIM_v3.6 / GS_v4.5 / SHEET_v3.3 *(S27: ESA execution model — entry resolver w/ delay + market/stop entry + slippage ranges + audit trail. Baseline PRESERVED: market+delay0+fixed-slip is byte-identical to SIM_v3.5. S24: critical slippage off-tick bugfix.)*
+**Last Updated:** June 22, 2026 (session 28)
+**Current Versions:** SIM_v3.7 / GS_v4.5 / SHEET_v3.3 *(S28: ESA v2 — fixed SEPrice to first tick, wire delay, fill timeout, full audit with Y/N checks + fill-time distribution. S27: ESA Phase A. S24: critical slippage off-tick bugfix.)*
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 **Handoff hygiene (S20):** A competing handoff had grown in the `.claude/.../memory/` auto-memory folder and a new chat read *that* instead of this file. Fixed: added repo `CLAUDE.md` + rewrote `.claude` `MEMORY.md` to point here; deleted the duplicate session-state memories. **There is now ONE handoff: this file.**
 **Onboarding (S22):** `docs/living/PROJECT_CHARTER.md` is the from-inception synthesis (the *arc* + locked decisions). Read the charter first for orientation, then this handoff for current state. The charter owns the arc/locked rails; **this handoff still wins on what's true today.**
+
+---
+
+## ⭐⭐ SESSION 28 — June 22, 2026 — ESA v2 + Phase B + Fill Timeout + Audit (read FIRST)
+*Rebuilt the execution model (ESA v2), built Phase B comparison UI, discovered fill-time decay,
+added fill timeout filter, built full execution audit with Y/N verification checks. Major
+trust-building session — every fill is now verified against actual tick data.*
+
+### ESA v2 ENGINE CHANGES (`simulation_engine.py`)
+- **`EXECUTION_MODEL_VERSION` → `ESA_v2`**
+- **SEPrice fixed to `prices[0]`** (first tick after SB close) — independent of delay. Previously
+  SEPrice shifted with delay, meaning the stop-entry reference changed depending on execution
+  assumptions. Now the reference is always the same; delay only affects when the scan starts.
+- **`wire_delay_ms`** — new parameter: order-to-exchange latency (separate from reaction delay).
+  Presets: Idealized 0ms, Optimistic 30ms, Realistic 60ms, Conservative 90ms, Brutal 120ms.
+- **`max_fill_ms`** — new parameter: cancel entry if not filled within N ms of signal bar close.
+  Data showed fills >30 min are net losers (avg R -0.09, 45% win). UI control in ESA expander.
+- **Stop entry logic:** reference = first tick (fixed), scan starts at `sig_dt + delay + wire`,
+  retrace + tick-through evaluated within the `max_fill_ms` deadline.
+- **New audit fields:** `WireDelayMs`, `OrderLiveTime` (when order reaches exchange).
+- 27/27 validation tests pass (3 new timeout tests, 2 wire delay tests).
+
+### ESA PHASE B — COMPARISON EXPANDER (built)
+- **Multiselect** presets (default all 5), "Run ESA Comparison" button, cached.
+- **Comparison table:** Trades/Win%/PF/Exp$/ExpR/Net$/MaxDD/CAGR/Sharpe/SQN per preset.
+- **Degradation table:** Δ vs Idealized for each metric.
+- **Execution Robustness Score:** Conservative ExpR ÷ Idealized ExpR, banded
+  (≥80% Strong, ≥60% Adequate, ≥40% Weak, <40% Fragile), near-zero denominator guarded.
+- **Equity overlay chart:** all preset curves on one plot, color-coded.
+- **Audit drill-down:** per-preset trade table with timestamps + Y/N checks.
+
+### EXECUTION AUDIT EXPANDER (built — main run)
+- Full **Y/N verification** on every filled trade:
+  `Ref≥SigDt`, `Live≥Delay`, `Fill≥Live`, `SlipOK`, `Retr≥Live`, `Thru>Retr`, `StopFillOK`.
+- **Computed delay columns:** `SigToRef_ms`, `SigToLive_ms`, `SigToFill_ms`, `LiveToFill_ms`.
+- **Pass/fail banner** + failures-only filter.
+- **Fill-time distribution table** — bucket breakdown with avg R / win% / net PnL per bucket.
+- **Result: ALL 2710+ trades pass all verification checks (all Y).** Engine is trustworthy.
+
+### ⭐ FILL-TIME DECAY DISCOVERY (key finding)
+Analyzed `SigToFill_ms` across all stop-entry trades (Brutal preset):
+- **75% fill within 2 min** (median 24 sec). These are clean breakouts.
+- **< 1 min fills: avg R +0.15, 59% win, $296k net** (the core edge).
+- **1-5 min fills: avg R +0.03, 54% win** (still marginal).
+- **30+ min fills: avg R -0.12, 42% win, -$10k net** — stale entry, net losers.
+- **Recommendation:** cap at 15-30 min. Built `max_fill_ms` for this. Validate in WFA.
+
+### ENTRY ZOOM REWRITE
+- Old zoom showed 6 ticks total — useless. New version shows **full tick path from signal
+  to fill + 5 ticks beyond**, with annotated ESA events (SBClose, SEPrice, OrderLive,
+  Retrace, TickThrough/Fill) as labeled colored markers. Auto-scales to trade data.
+- Metrics strip: SBClose, SEPrice, Entry (slipped), Stop, Fill time.
+- Timestamp trail: Signal → SEPrice tick → Order Live → Retrace → Fill.
+
+### TRADE COUNT NON-MONOTONICITY (investigated, understood)
+Market-entry ESA showed Brutal having MORE trades than Idealized (2747 vs 2738). Root cause:
+`zero_risk` gate uses slipped entry price, so different slip draws push borderline trades in/out.
+Magnitude is ~0.5% of trades — noise, not a bug. All performance metrics degrade monotonically
+as expected. Stop entry resolves this (fewer fills with stricter execution).
+
+### Files changed this session
+- `simulation_engine.py` — ESA v2: fixed SEPrice, `wire_delay_ms`, `max_fill_ms`, updated
+  `_resolve_entry` + all 3 sim paths + `simulate_trades`, `EXECUTION_PRESETS` with wire delays,
+  `_exec_audit_fields` + `_EMPTY_TRADE` (WireDelayMs, OrderLiveTime)
+- `bar_analysis.py` — ESA Phase B expander (comparison/degradation/robustness/equity/audit),
+  Execution Audit expander (Y/N checks + fill-time table), Entry Zoom rewrite (full tick trail),
+  `max_fill_ms` UI control, wire delay UI display
+- `scripts/validate_execution.py` — 27 tests (3 new timeout, 2 wire delay, updated SEPrice test)
+- `docs/living/handoff.md` — this session block + NT overlay idea documented
+
+### NEXT (S29)
+0. **Wire ESA into WFA** — single locked preset (option 2 from discussion). Add execution model
+   controls (preset dropdown + entry model + delay + fill timeout) to WFA Config section.
+1. **Validate fill timeout in WFA** — run with 15-min and 30-min caps, compare OOS metrics.
+2. **BA→WFA filter inheritance** (still pending from S26).
+3. **ER10 reproduction in-app** under realistic execution (S26 item 0b).
+4. **NT Trade Overlay** — CSV export button + NT8 indicator skeleton (documented in NEXT item 5).
 
 ---
 
@@ -86,6 +163,17 @@ preset-comparison ESA expander (that's still Phase B).
    baseline unchanged so `validate_scalein_sweep` stays green); full per-side target/stop slip.
 4. **Downstream:** once trusted, re-state the ER10 "champagne run" (S26) under the Realistic
    preset to see how much edge survives realistic execution.
+5. **NT Trade Overlay (idea, not started):** Export a CSV per run with trade timestamps + prices
+   (SignalDateTime, EntryDateTime, ExitDateTime, Direction, EntryPrice, StopPrice, TargetPrice,
+   ExitPrice, EntryType, RawFillPrice, SEPrice, all ESA timestamps). Then build a lightweight
+   NT8 indicator that reads the CSV on chart load and draws markers on a 1-tick chart:
+   `DrawDiamond` at fill, `DrawArrowUp/Down` at signal, `DrawLine` entry→exit (green/red),
+   `DrawRay` for stop/target levels. The audit data already has everything needed — this is
+   purely a rendering job on the NT side (~100 lines C#). The real value: verify fills visually
+   against the actual market tape in NT's native chart, where you can scroll/zoom freely and
+   cross-reference against volume, order flow, and other NT indicators. **Build the CSV export
+   button first** (trivial — the Execution Audit dataframe already has the columns), then the
+   NT indicator.
 
 ### Files changed this session
 - `simulation_engine.py` — `_resolve_entry`, `_exec_audit_fields`, `_draw_slip`,

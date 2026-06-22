@@ -82,17 +82,50 @@ def test_entry_models():
     r = _resolve_entry(p, _times(2), SIG, False, "stop", 0, 0, TS)
     check("short stop invalid → NO FILL", r is None, f"got {r}")
 
-    # Test 7 — Market entry honors delay: SEPrice = first tick at/after T+delay
+    # Test 7 — Market entry honors delay: fill at first tick at/after T+delay,
+    # but SEPrice (entry reference) is ALWAYS prices[0] (ESA v2).
     p = np.array([6000.00, 6000.50, 6001.00])  # ticks at +1s, +2s, +3s
-    r = _resolve_entry(p, _times(3), SIG, True, "market", 1500, 0, TS)  # 1.5s delay → +2s tick
-    check("T7 market delay 1500ms → SEPrice 6000.50 @idx1",
-          r is not None and r["fill_idx"] == 1 and abs(r["se_price"] - 6000.50) < 1e-9,
+    r = _resolve_entry(p, _times(3), SIG, True, "market", 1500, 0, TS)  # 1.5s delay → fill @idx1
+    check("T7 market delay 1500ms → fill @6000.50 idx1, SEPrice=6000.00",
+          r is not None and r["fill_idx"] == 1 and abs(r["raw_fill"] - 6000.50) < 1e-9
+          and abs(r["se_price"] - 6000.00) < 1e-9,
           f"got {r}")
 
     # Market delay 0 → first tick
     r = _resolve_entry(p, _times(3), SIG, True, "market", 0, 0, TS)
     check("market delay 0 → first tick 6000.00 @idx0",
           r is not None and r["fill_idx"] == 0 and abs(r["se_price"] - 6000.00) < 1e-9, f"got {r}")
+
+    # Wire delay: market + 500ms reaction + 100ms wire → total 600ms → fill at idx1 (+2s tick)
+    r = _resolve_entry(p, _times(3), SIG, True, "market", 500, 0, TS, wire_delay_ms=100)
+    check("market delay 500+wire 100 → fill @idx0 (600ms < 1s)",
+          r is not None and r["fill_idx"] == 0 and abs(r["raw_fill"] - 6000.00) < 1e-9,
+          f"got {r}")
+
+    # Wire delay: stop entry — ref is always prices[0], scan starts after delay+wire
+    p2 = np.array([6000.00, 6000.25, 5999.75, 6000.25])  # ref=6000, then up, retrace, through
+    r = _resolve_entry(p2, _times(4), SIG, True, "stop", 0, 0, TS, wire_delay_ms=1500)
+    # wire 1500ms → scan starts at idx1 (+2s), retrace=5999.75@idx2, through=6000.25@idx3
+    check("stop + wire 1500ms → scan from idx1, fill @idx3",
+          r is not None and r["fill_idx"] == 3 and abs(r["se_price"] - 6000.00) < 1e-9
+          and abs(r["raw_fill"] - 6000.25) < 1e-9,
+          f"got {r}")
+
+    # Fill timeout: stop entry fills at idx3 (+4s), timeout at 3s → NO FILL
+    r = _resolve_entry(p2, _times(4), SIG, True, "stop", 0, 0, TS, max_fill_ms=3000)
+    check("stop + timeout 3s → NO FILL (fill at 4s exceeds deadline)",
+          r is None, f"got {r}")
+
+    # Fill timeout: stop entry fills at idx3 (+4s), timeout at 5s → FILL
+    r = _resolve_entry(p2, _times(4), SIG, True, "stop", 0, 0, TS, max_fill_ms=5000)
+    check("stop + timeout 5s → FILL (fill at 4s within deadline)",
+          r is not None and r["fill_idx"] == 3, f"got {r}")
+
+    # Fill timeout: market entry, timeout at 500ms → still fills (idx0 is at +1s but that's the first tick)
+    p3 = np.array([6000.00, 6001.00])
+    r = _resolve_entry(p3, _times(2), SIG, True, "market", 0, 0, TS, max_fill_ms=2000)
+    check("market + timeout 2s → FILL at idx0 (+1s within deadline)",
+          r is not None and r["fill_idx"] == 0, f"got {r}")
 
 
 # ── Exit-model acceptance (§17 Tests 4,5,6) via full single-leg sim ──
@@ -140,9 +173,11 @@ def test_baseline_and_audit():
     r = _sim([6000.00, 6020.25], entry_slip=0, exit_slip=1)
     check("exit slip 1t on target → ExitPrice 6019.75", abs(r["ExitPrice"] - (6020.00 - TS)) < 1e-9, f"got {r['ExitPrice']}")
 
-    # Delay shifts the reference: 2000ms delay picks the +3s tick
-    r = _sim([6000.00, 6005.00, 6010.00, 6020.25], delay_ms=2500)  # +3s tick = 6010.00
-    check("delay 2500ms → SEPrice 6010.00", abs(r["SEPrice"] - 6010.00) < 1e-9, f"got {r['SEPrice']}")
+    # ESA v2: SEPrice is ALWAYS prices[0] (first tick), delay only shifts the fill.
+    # With 2500ms delay, fill is at idx2 (6010.00) but SEPrice stays 6000.00.
+    r = _sim([6000.00, 6005.00, 6010.00, 6020.25], delay_ms=2500)
+    check("delay 2500ms → SEPrice still 6000.00 (ESA v2)", abs(r["SEPrice"] - 6000.00) < 1e-9, f"got {r['SEPrice']}")
+    check("delay 2500ms → EntryPrice at delayed tick", abs(r["EntryPrice"] - 6010.00) < 1e-9, f"got {r['EntryPrice']}")
     check("delay recorded ActualDelayMs=2500", int(r["ActualDelayMs"]) == 2500, f"got {r['ActualDelayMs']}")
 
 

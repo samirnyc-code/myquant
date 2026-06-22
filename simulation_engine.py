@@ -11,18 +11,19 @@ RTH_END_MIN = 15 * 60 + 15  # 915
 
 # Execution model version — bump when the entry/delay/slippage semantics change so
 # stored audit trails can be matched to the engine that produced them (ESA §12).
-EXECUTION_MODEL_VERSION = "ESA_v1"
+EXECUTION_MODEL_VERSION = "ESA_v2"
 
 # Execution presets (ESA §13) — increasingly conservative fill assumptions.
 # Every preset uses target slip == stop slip, so one `exit_slip` captures both.
 # Slip values are ticks (int = fixed, (lo, hi) = uniform integer draw per trade);
-# delays are fixed ms. Spread a preset directly into simulate_trades(**preset).
+# delays are fixed ms; wire_delay_ms = order-to-exchange latency (separate from
+# reaction delay). Spread a preset directly into simulate_trades(**preset).
 EXECUTION_PRESETS = {
-    "Idealized":    dict(entry_delay_ms=0,    entry_slip=0,      exit_slip=0),
-    "Optimistic":   dict(entry_delay_ms=250,  entry_slip=(0, 1), exit_slip=0),
-    "Realistic":    dict(entry_delay_ms=500,  entry_slip=(1, 2), exit_slip=(0, 1)),
-    "Conservative": dict(entry_delay_ms=1000, entry_slip=(1, 3), exit_slip=1),
-    "Brutal":       dict(entry_delay_ms=2000, entry_slip=(2, 4), exit_slip=(1, 2)),
+    "Idealized":    dict(entry_delay_ms=0,    wire_delay_ms=0,   entry_slip=0,      exit_slip=0),
+    "Optimistic":   dict(entry_delay_ms=250,  wire_delay_ms=30,  entry_slip=(0, 1), exit_slip=0),
+    "Realistic":    dict(entry_delay_ms=500,  wire_delay_ms=60,  entry_slip=(1, 2), exit_slip=(0, 1)),
+    "Conservative": dict(entry_delay_ms=1000, wire_delay_ms=90,  entry_slip=(1, 3), exit_slip=1),
+    "Brutal":       dict(entry_delay_ms=2000, wire_delay_ms=120, entry_slip=(2, 4), exit_slip=(1, 2)),
 }
 
 
@@ -80,64 +81,95 @@ def _draw_slip(spec, rng) -> int:
 
 
 def _resolve_entry(prices, times, sig_dt, is_long: bool, entry_model: str,
-                   delay_ms: int, entry_slip_ticks: int, ts: float):
-    """Determine the entry reference (SEPrice) and the fill, honoring the live
-    event sequence (ESA §3–§6):
+                   delay_ms: int, entry_slip_ticks: int, ts: float,
+                   wire_delay_ms: int = 0, max_fill_ms: int = 0):
+    """Determine the entry reference and the fill from actual tick data.
 
-      SB close (sig_dt) → wait `delay_ms` → SEPrice = first tick at/after
-      (sig_dt + delay) → entry model gates the fill.
+    Timeline (ESA v2):
+      SB close (sig_dt) → prices[0] = first tick of new bar (stop_ref for stop
+      entries — fixed, always) → wait reaction `delay_ms` + `wire_delay_ms`
+      (order-to-exchange) → order is live at the exchange → entry model gates fill.
 
     `prices`/`times` are the tick arrays strictly after sig_dt (from _ticks_after).
 
-    Entry models:
-      "market" — fill at SEPrice (raw), then + entry slip. Always fills if a tick
-                 exists at/after the delayed reference time.
-      "stop"   — §6 conservative stop entry: price must first retrace ≥1 tick beyond
-                 SEPrice, THEN tick through ≥1 tick the other side; raw fill = the
-                 tick-through level (SEPrice ± 1 tick), then + entry slip. If either
-                 leg never occurs → NO FILL (returns None).
+    `max_fill_ms` — if > 0, the fill must occur within this many ms of sig_dt.
+    If the retrace + tick-through (stop) or the delayed fill (market) lands after
+    sig_dt + max_fill_ms, returns None (no fill). 0 = no timeout (default).
 
-    Returns a dict with fill_idx (index into prices/times of the fill tick), the
-    SEPrice, the raw + slip-adjusted fill, the fill timestamp, and the audit
-    timestamps the model can observe; or None when no fill is possible."""
+    Entry models:
+      "market" — fill at the first tick at/after (sig_dt + delay + wire), then
+                 + entry slip.
+      "stop"   — reference = prices[0] (first tick after SB close, FIXED regardless
+                 of delay). Scan starts at the first tick at/after (sig_dt + delay +
+                 wire) — the order is now resting at the exchange. From that scan
+                 start: price must retrace ≥1 tick beyond stop_ref, THEN tick through
+                 ≥1 tick the other side; fill at the tick-through level. If either leg
+                 never occurs → NO FILL.
+
+    Returns a dict with fill_idx, SEPrice, raw/adjusted fill, timestamps, audit;
+    or None when no fill is possible."""
     n = len(prices)
     if n == 0:
         return None
 
-    # Step 3–4: SEPrice = first tick at/after the delayed reference time.
-    if delay_ms and delay_ms > 0:
-        thresh = np.datetime64(pd.Timestamp(sig_dt) + pd.Timedelta(milliseconds=int(delay_ms)))
-        se_idx = int(np.searchsorted(times, thresh, side="left"))
-    else:
-        se_idx = 0
-    if se_idx >= n:
-        return None
-    se_price = float(prices[se_idx])
-    ref_ts   = times[se_idx]
+    total_delay = int(delay_ms or 0) + int(wire_delay_ms or 0)
 
-    audit = {"reference_ts": ref_ts, "retrace_ts": pd.NaT, "first_through_ts": pd.NaT}
+    # SEPrice = first tick after signal bar close (always prices[0]). This is
+    # the entry reference and stop-order level — independent of delay.
+    se_price = float(prices[0])
+    se_idx   = 0
+
+    # The tick index where the order is live at the exchange (after reaction + wire).
+    if total_delay > 0:
+        thresh = np.datetime64(pd.Timestamp(sig_dt) + pd.Timedelta(milliseconds=total_delay))
+        live_idx = int(np.searchsorted(times, thresh, side="left"))
+    else:
+        live_idx = 0
+    if live_idx >= n:
+        return None
+
+    # Fill timeout: if max_fill_ms > 0, compute the deadline and the max tick index.
+    # Ticks beyond the deadline are excluded from the fill scan.
+    _max_fill_ms = int(max_fill_ms or 0)
+    if _max_fill_ms > 0:
+        deadline = np.datetime64(pd.Timestamp(sig_dt) + pd.Timedelta(milliseconds=_max_fill_ms))
+        deadline_idx = int(np.searchsorted(times, deadline, side="right"))
+    else:
+        deadline_idx = n
+
+    audit = {"reference_ts": times[se_idx], "retrace_ts": pd.NaT,
+             "first_through_ts": pd.NaT, "order_live_ts": times[live_idx]}
 
     if entry_model == "market":
-        raw_fill = se_price
-        fill_idx = se_idx
+        raw_fill = float(prices[live_idx])
+        fill_idx = live_idx
     elif entry_model == "stop":
-        retr_level = (se_price - ts) if is_long else (se_price + ts)  # ≥1 tick beyond ref
-        thru_level = (se_price + ts) if is_long else (se_price - ts)  # ≥1 tick the other side
-        sub = prices[se_idx:]
-        retr_hits = np.flatnonzero(sub <= retr_level) if is_long else np.flatnonzero(sub >= retr_level)
+        stop_ref = se_price
+        retr_level = (stop_ref - ts) if is_long else (stop_ref + ts)
+        thru_level = (stop_ref + ts) if is_long else (stop_ref - ts)
+        # Only scan ticks within the fill timeout window
+        scan_end = deadline_idx
+        sub = prices[live_idx:scan_end]
+        retr_hits = (np.flatnonzero(sub <= retr_level) if is_long
+                     else np.flatnonzero(sub >= retr_level))
         if retr_hits.size == 0:
             return None
         r0 = int(retr_hits[0])
-        audit["retrace_ts"] = times[se_idx + r0]
+        audit["retrace_ts"] = times[live_idx + r0]
         after = sub[r0:]
-        thru_hits = np.flatnonzero(after >= thru_level) if is_long else np.flatnonzero(after <= thru_level)
+        thru_hits = (np.flatnonzero(after >= thru_level) if is_long
+                     else np.flatnonzero(after <= thru_level))
         if thru_hits.size == 0:
             return None
-        fill_idx = se_idx + r0 + int(thru_hits[0])
-        raw_fill = round(round(thru_level / ts) * ts, 10)  # fill at the (tick-aligned) trigger level
+        fill_idx = live_idx + r0 + int(thru_hits[0])
+        raw_fill = round(round(thru_level / ts) * ts, 10)
         audit["first_through_ts"] = times[fill_idx]
     else:
         raise ValueError(f"unknown entry_model={entry_model!r} (expected 'market' or 'stop')")
+
+    # Final timeout check — applies to both market and stop
+    if _max_fill_ms > 0 and fill_idx >= deadline_idx:
+        return None
 
     actual_entry = raw_fill + (entry_slip_ticks * ts if is_long else -entry_slip_ticks * ts)
     return {
@@ -150,10 +182,11 @@ def _resolve_entry(prices, times, sig_dt, is_long: bool, entry_model: str,
 
 def _exec_audit_fields(se_price, raw_fill, sb_close, entry_model,
                        entry_slip_ticks, exit_slip_ticks, delay_ms,
-                       entry_audit, exit_dt):
+                       entry_audit, exit_dt, wire_delay_ms=0):
     """The ESA execution-audit columns (§12), shared by every sim path so the
-    audit schema stays identical. SEPrice = post-delay entry reference; FillPrice/
-    RawFillPrice = raw (pre-slip) fill; SBClose = signal bar close (diagnostic)."""
+    audit schema stays identical. SEPrice = first tick after SB close (entry
+    reference, fixed); FillPrice/RawFillPrice = raw (pre-slip) fill; SBClose =
+    signal bar close (diagnostic)."""
     def _ts(v):
         return pd.Timestamp(v) if (v is not None and not pd.isna(v)) else pd.NaT
     ea = entry_audit or {}
@@ -162,9 +195,11 @@ def _exec_audit_fields(se_price, raw_fill, sb_close, entry_model,
         "SEPrice": se_price, "FillPrice": raw_fill, "SBClose": sb_close,
         "EntryType": entry_model, "RawFillPrice": raw_fill,
         "EntrySlipTicks": es, "ExitSlipTicks": xs,
-        "ActualDelayMs": int(delay_ms), "ExecCostTicks": es + xs,
+        "ActualDelayMs": int(delay_ms), "WireDelayMs": int(wire_delay_ms),
+        "ExecCostTicks": es + xs,
         "ExecModelVersion": EXECUTION_MODEL_VERSION,
         "ReferenceTime": _ts(ea.get("reference_ts")),
+        "OrderLiveTime": _ts(ea.get("order_live_ts")),
         "RetraceTime": _ts(ea.get("retrace_ts")),
         "FirstThroughTime": _ts(ea.get("first_through_ts")),
         "ExitTriggerTime": _ts(exit_dt),
@@ -203,9 +238,10 @@ _EMPTY_TRADE = {
     # ESA execution audit (§12)
     "EntryType": "", "RawFillPrice": np.nan,
     "EntrySlipTicks": np.nan, "ExitSlipTicks": np.nan,
-    "ActualDelayMs": np.nan, "ExecCostTicks": np.nan,
+    "ActualDelayMs": np.nan, "WireDelayMs": np.nan, "ExecCostTicks": np.nan,
     "ExecModelVersion": "",
-    "ReferenceTime": pd.NaT, "RetraceTime": pd.NaT,
+    "ReferenceTime": pd.NaT, "OrderLiveTime": pd.NaT,
+    "RetraceTime": pd.NaT,
     "FirstThroughTime": pd.NaT, "ExitTriggerTime": pd.NaT,
 }
 
@@ -224,6 +260,8 @@ def _simulate_one(
     _force_loop: bool = False,
     entry_model: str = "market",
     delay_ms: int = 0,
+    wire_delay_ms: int = 0,
+    max_fill_ms: int = 0,
 ) -> dict:
     ts      = TICK_SIZE
     is_long = direction == "Long"
@@ -252,7 +290,9 @@ def _simulate_one(
     else:
         prices, times = _after
         ent = _resolve_entry(prices, times, sig_dt, is_long, entry_model,
-                             delay_ms, entry_slip, ts)
+                             delay_ms, entry_slip, ts,
+                             wire_delay_ms=wire_delay_ms,
+                             max_fill_ms=max_fill_ms)
         if ent is None:
             return {"ok": False, "FilterStatus": "no_entry_fill"}
         fi            = ent["fill_idx"]
@@ -387,7 +427,8 @@ def _simulate_one(
     return {
         "ok": True,
         **_exec_audit_fields(se_price, first_tick_px, sb_close, entry_model,
-                             entry_slip, exit_slip, delay_ms, entry_audit, exit_dt_ts),
+                             entry_slip, exit_slip, delay_ms, entry_audit, exit_dt_ts,
+                             wire_delay_ms=wire_delay_ms),
         "EntryTime": pd.Timestamp(entry_dt), "EntryBarNum": entry_bar,
         "EntryPrice": actual_entry, "ActualStop": actual_stop,
         "Target": target_price,
@@ -516,6 +557,7 @@ def _simulate_one_multileg(
     _force_loop: bool = False,
     entry_model: str = "market",
     delay_ms: int = 0,
+    wire_delay_ms: int = 0,
 ) -> dict:
     ts       = TICK_SIZE
     is_long  = direction == "Long"
@@ -546,7 +588,9 @@ def _simulate_one_multileg(
     else:
         prices, times = _after
         ent = _resolve_entry(prices, times, sig_dt, is_long, entry_model,
-                             delay_ms, entry_slip, ts)
+                             delay_ms, entry_slip, ts,
+                             wire_delay_ms=wire_delay_ms,
+                             max_fill_ms=max_fill_ms)
         if ent is None:
             return {"ok": False, "FilterStatus": "no_entry_fill"}
         fi            = ent["fill_idx"]
@@ -619,7 +663,8 @@ def _simulate_one_multileg(
         return {
             "ok": True,
             **_exec_audit_fields(se_price, first_tick_px, sb_close, entry_model,
-                                 entry_slip, exit_slip, delay_ms, entry_audit, edt),
+                                 entry_slip, exit_slip, delay_ms, entry_audit, edt,
+                                 wire_delay_ms=wire_delay_ms),
             "EntryTime": pd.Timestamp(entry_dt), "EntryBarNum": entry_bar,
             "EntryPrice": actual_entry, "ActualStop": actual_stop,
             "Target": t2_price, "Target1": t1_price,
@@ -1227,6 +1272,8 @@ def _simulate_one_3leg(
     pb_round: str = "nearest",
     entry_model: str = "market",
     delay_ms: int = 0,
+    wire_delay_ms: int = 0,
+    max_fill_ms: int = 0,
 ) -> dict:
     ts      = TICK_SIZE
     is_long = direction == "Long"
@@ -1255,7 +1302,9 @@ def _simulate_one_3leg(
     else:
         prices, times = _after
         ent = _resolve_entry(prices, times, sig_dt, is_long, entry_model,
-                             delay_ms, entry_slip, ts)
+                             delay_ms, entry_slip, ts,
+                             wire_delay_ms=wire_delay_ms,
+                             max_fill_ms=max_fill_ms)
         if ent is None:
             return {"ok": False, "FilterStatus": "no_entry_fill"}
         fi            = ent["fill_idx"]
@@ -1734,6 +1783,8 @@ def simulate_trades(
     entry_model: str = "market",
     entry_delay_ms: int = 0,
     entry_delay_range: tuple | None = None,
+    wire_delay_ms: int = 0,
+    max_fill_ms: int = 0,
     target_slip=None,
     stop_slip=None,
     exec_seed: int = 42,
@@ -1820,6 +1871,8 @@ def simulate_trades(
                     _es, _xs, stop_offset,
                     ratchet_r, ratchet_dest, ratchet_lock_r,
                     pb_round=pb_round, entry_model=entry_model, delay_ms=_dly,
+                    wire_delay_ms=wire_delay_ms,
+                    max_fill_ms=max_fill_ms,
                 )
         elif multileg and not manual_fill:
             res = _simulate_one_multileg(
@@ -1830,6 +1883,8 @@ def simulate_trades(
                     ml_pb_r=ml_pb_r, ml_pb_ticks=ml_pb_ticks,
                     scale_in_style=scale_in_style, pb_round=pb_round, _force_loop=_force_loop,
                     entry_model=entry_model, delay_ms=_dly,
+                    wire_delay_ms=wire_delay_ms,
+                    max_fill_ms=max_fill_ms,
                 )
         else:
                 res = _simulate_one(
@@ -1838,6 +1893,8 @@ def simulate_trades(
                     ratchet_r, ratchet_dest, ratchet_lock_r,
                     manual_fill=manual_fill, pb_round=pb_round, _force_loop=_force_loop,
                     entry_model=entry_model, delay_ms=_dly,
+                    wire_delay_ms=wire_delay_ms,
+                    max_fill_ms=max_fill_ms,
                 )
 
         if not res.get("ok", False):
