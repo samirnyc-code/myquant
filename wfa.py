@@ -1085,7 +1085,8 @@ def _robustness_report(results: list[dict]) -> None:
 def show_wfa_tab() -> None:
     st.header("🔄 Walk-Forward Analysis")
 
-    mas_cont    = st.session_state.get("mas_continuous")
+    mas_cont      = st.session_state.get("mas_continuous")
+    mas_cont_15m  = st.session_state.get("mas_continuous_15m")
     _ba_sig     = st.session_state.get("ba_signals")
     _rev_sig    = st.session_state.get("rev_signals")
     signals_raw = (_ba_sig  if _ba_sig  is not None and not (hasattr(_ba_sig,  "empty") and _ba_sig.empty)
@@ -1101,7 +1102,20 @@ def show_wfa_tab() -> None:
         st.info("Upload a signals file (MC Signals or RevFT Signals) in the 📈 Bar Analysis tab first.")
         return
 
-    bars = mas_cont.drop(columns=["Contract"], errors="ignore")
+    mas_cont_100s = st.session_state.get("mas_continuous_100s")
+    _wfa_tf_opts = ["5M"]
+    if mas_cont_15m is not None and not mas_cont_15m.empty:
+        _wfa_tf_opts.append("15M")
+    if mas_cont_100s is not None and not mas_cont_100s.empty:
+        _wfa_tf_opts.append("100s")
+    _wfa_bar_tf = st.radio("Bar timeframe", _wfa_tf_opts, horizontal=True, key="wfa_bar_tf") if len(_wfa_tf_opts) > 1 else "5M"
+
+    if _wfa_bar_tf == "100s" and mas_cont_100s is not None:
+        bars = mas_cont_100s.drop(columns=["Contract"], errors="ignore")
+    elif _wfa_bar_tf == "15M" and mas_cont_15m is not None:
+        bars = mas_cont_15m.drop(columns=["Contract"], errors="ignore")
+    else:
+        bars = mas_cont.drop(columns=["Contract"], errors="ignore")
     bars_by_date = {d: grp.reset_index(drop=True)
                     for d, grp in bars.groupby(bars["DateTime"].dt.date)}
 
@@ -1364,6 +1378,10 @@ def show_wfa_tab() -> None:
             default=["FOMC", "NFP", "CPI"],
             key="wfa_event_types")
 
+        sf6, sf7 = st.columns(2)
+        wfa_first_trade = sf6.checkbox("First trade of day only", key="wfa_first_trade")
+        wfa_first_2 = sf7.checkbox("First 2 filled of day", key="wfa_first_2")
+
         dow_cols = st.columns(5)
         wfa_dow = [
             dow_cols[0].checkbox("Mon", value=True, key="wfa_dow_mon"),
@@ -1372,6 +1390,14 @@ def show_wfa_tab() -> None:
             dow_cols[3].checkbox("Thu", value=True, key="wfa_dow_thu"),
             dow_cols[4].checkbox("Fri", value=True, key="wfa_dow_fri"),
         ]
+
+        # Apply first-trade / first-2 as pre-sim signal filter (keep N signals per day)
+        if not signals_filtered.empty and (wfa_first_trade or wfa_first_2):
+            _keep_n = 1 if wfa_first_trade else 2
+            signals_filtered = (signals_filtered
+                .sort_values("DateTime")
+                .groupby("Date").head(_keep_n)
+                .copy())
 
         # Apply session filters
         if not signals_filtered.empty:
@@ -1609,6 +1635,10 @@ def show_wfa_tab() -> None:
                 _sf_parts.append(f"dir={wfa_direction}")
             if wfa_event_types:
                 _sf_parts.append(f"excl_events={'+'.join(wfa_event_types)}")
+            if wfa_first_trade:
+                _sf_parts.append("first_trade_only")
+            elif wfa_first_2:
+                _sf_parts.append("first_2_of_day")
             _skip_dow = [d for d, v in zip("MTWRF", wfa_dow) if not v]
             if _skip_dow:
                 _sf_parts.append(f"skip_dow={''.join(_skip_dow)}")

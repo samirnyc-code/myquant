@@ -4029,8 +4029,23 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
     from pathlib import Path
     uploaded_ohlc = st.session_state.get("uploaded_ohlc_bars")   # legacy fallback only
     mas_cont      = st.session_state.get("mas_continuous")
+    mas_cont_15m  = st.session_state.get("mas_continuous_15m")
 
-    if mas_cont is not None and not mas_cont.empty:
+    mas_cont_100s = st.session_state.get("mas_continuous_100s")
+    _tf_options = ["5M"]
+    if mas_cont_15m is not None and not mas_cont_15m.empty:
+        _tf_options.append("15M")
+    if mas_cont_100s is not None and not mas_cont_100s.empty:
+        _tf_options.append("100s")
+    _bar_tf = st.radio("Bar timeframe", _tf_options, horizontal=True, key="ba_bar_tf") if len(_tf_options) > 1 else "5M"
+
+    if _bar_tf == "100s" and mas_cont_100s is not None and not mas_cont_100s.empty:
+        bars        = mas_cont_100s.drop(columns=["Contract"], errors="ignore")
+        _bar_source = "massive_continuous_100s"
+    elif _bar_tf == "15M" and mas_cont_15m is not None and not mas_cont_15m.empty:
+        bars        = mas_cont_15m.drop(columns=["Contract"], errors="ignore")
+        _bar_source = "massive_continuous_15m"
+    elif mas_cont is not None and not mas_cont.empty:
         bars        = mas_cont.drop(columns=["Contract"], errors="ignore")
         _bar_source = "massive_continuous"
     elif uploaded_ohlc is not None:
@@ -5124,13 +5139,16 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                 r1[4].metric("SQN",   f"{summary['sqn']:+.2f}")
             r1[5].metric("Max DD",    f"${summary['max_dd']:,.0f}")
 
-            r2 = st.columns(6)
-            r2[0].metric("Trades",    f"{summary['n_trades']}")
+            _n_trades = summary['n_trades']
+            _n_days = summary['trading_days']
+            _avg_per_day = _n_trades / _n_days if _n_days > 0 else 0
+            r2 = st.columns(5)
+            r2[0].metric("Trades",    f"{_n_trades}",
+                         delta=f"{_avg_per_day:.1f}/day")
             r2[1].metric("Avg Win",   f"${summary['avg_win']:+.0f}")
             r2[2].metric("Avg Loss",  f"${summary['avg_loss']:+.0f}")
-            r2[3].metric("Median W",  f"${summary['median_win']:+.0f}")
-            r2[4].metric("Median L",  f"${summary['median_loss']:+.0f}")
-            r2[5].metric("Days",      f"{summary['trading_days']}")
+            r2[3].metric("Days",      f"{_n_days}")
+            r2[4].metric("PnL/DD",    f"{summary.get('pnl_dd', 0):.2f}")
         else:
             st.info("No filled trades in the selected range.")
 

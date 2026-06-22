@@ -108,6 +108,65 @@ def _load_gz(local: Path, ticker: str) -> pd.DataFrame:
     return df[df["ticker"] == ticker].copy()
 
 
+def _resample_5m_to_15m(bars_5m: pd.DataFrame) -> pd.DataFrame:
+    """Resample 5M continuous bars to 15M. Groups by date to avoid cross-session bars."""
+    if bars_5m.empty:
+        return pd.DataFrame()
+    df = bars_5m.copy()
+    df["DateTime"] = pd.to_datetime(df["DateTime"])
+    df = df.set_index("DateTime").sort_index()
+    # Resample within each trading day
+    df["_date"] = df.index.date
+    chunks = []
+    for _, day in df.groupby("_date"):
+        r = day[["Open", "High", "Low", "Close"]].resample("15min", label="left", closed="left")
+        b = pd.DataFrame({
+            "Open": r["Open"].first(),
+            "High": r["High"].max(),
+            "Low": r["Low"].min(),
+            "Close": r["Close"].last(),
+        }).dropna(subset=["Open"])
+        if "Volume" in day.columns:
+            b["Volume"] = day["Volume"].resample("15min", label="left", closed="left").sum()
+        if "Contract" in day.columns:
+            b["Contract"] = day["Contract"].resample("15min", label="left", closed="left").first()
+        chunks.append(b)
+    if not chunks:
+        return pd.DataFrame()
+    out = pd.concat(chunks).sort_index()
+    out.index.name = "DateTime"
+    return out.reset_index()
+
+
+def _resample_ticks_to_bars(freq: str, status_placeholder=None) -> pd.DataFrame:
+    """Build bars at an arbitrary pandas frequency from per-day continuous tick cache."""
+    from data_loader import RTH_START, RTH_END
+    all_days = sorted(f.stem for f in _TICKS_CONT_DIR.glob("*.parquet"))
+    chunks = []
+    for i, day_str in enumerate(all_days):
+        if status_placeholder and i % 50 == 0:
+            status_placeholder.text(f"Resampling {freq} bars: day {i+1}/{len(all_days)}…")
+        ticks = pd.read_parquet(_TICKS_CONT_DIR / f"{day_str}.parquet")
+        if ticks.empty:
+            continue
+        dt = pd.to_datetime(ticks["DateTime"])
+        ticks = ticks.set_index(dt).sort_index()
+        t = ticks.index.time
+        rth = (t >= pd.Timestamp(RTH_START).time()) & (t < pd.Timestamp(RTH_END).time())
+        ticks = ticks[rth]
+        if ticks.empty:
+            continue
+        r = ticks["Price"].resample(freq, label="left", closed="left")
+        b = r.ohlc().dropna(subset=["open"])
+        b["Volume"] = ticks["Volume"].resample(freq, label="left", closed="left").sum() if "Volume" in ticks.columns else 0
+        b = b.rename(columns={"open": "Open", "high": "High", "low": "Low", "close": "Close"})
+        b.index.name = "DateTime"
+        chunks.append(b.reset_index())
+    if not chunks:
+        return pd.DataFrame()
+    return pd.concat(chunks, ignore_index=True).sort_values("DateTime").reset_index(drop=True)
+
+
 def _ticks_to_5m_bars(df: pd.DataFrame) -> pd.DataFrame:
     """Convert raw tick DataFrame → 5M RTH OHLCV bars (open times, CT naive)."""
     from data_loader import RTH_START, RTH_END
@@ -450,6 +509,20 @@ def show_massive_tab():
         if cont_path.exists():
             st.session_state["mas_continuous"] = pd.read_parquet(cont_path)
 
+    if "mas_continuous_15m" not in st.session_state:
+        cont_15m_path = _BARS_DIR / "_continuous_15m.parquet"
+        if cont_15m_path.exists():
+            st.session_state["mas_continuous_15m"] = pd.read_parquet(cont_15m_path)
+        elif "mas_continuous" in st.session_state:
+            _c15 = _resample_5m_to_15m(st.session_state["mas_continuous"])
+            st.session_state["mas_continuous_15m"] = _c15
+            _c15.to_parquet(_BARS_DIR / "_continuous_15m.parquet", index=False)
+
+    if "mas_continuous_100s" not in st.session_state:
+        cont_100s_path = _BARS_DIR / "_continuous_100s.parquet"
+        if cont_100s_path.exists():
+            st.session_state["mas_continuous_100s"] = pd.read_parquet(cont_100s_path)
+
     if "nt_cont_bars" not in st.session_state:
         from data_loader import load_csv_cache, load_csv_manifest
         _mf = load_csv_manifest()
@@ -591,6 +664,10 @@ def show_massive_tab():
                     continuous = filter_excluded_dates(continuous)
                     st.session_state["mas_continuous"] = continuous
                     continuous.to_parquet(_BARS_DIR / "_continuous.parquet", index=False)
+                    # Build 15M bars from 5M
+                    cont_15m = _resample_5m_to_15m(continuous)
+                    st.session_state["mas_continuous_15m"] = cont_15m
+                    cont_15m.to_parquet(_BARS_DIR / "_continuous_15m.parquet", index=False)
                     st.rerun()
 
             with col_status:
@@ -612,6 +689,43 @@ def show_massive_tab():
                             st.rerun()
                     else:
                         st.info(f"{n_dl} contracts ready — click Build to stitch them.")
+
+            # ── Additional bar timeframes ─────────────────────────────────────
+            st.divider()
+            st.markdown("**Additional Bar Timeframes**")
+            _tf_col1, _tf_col2 = st.columns(2)
+
+            # 15M status/build
+            with _tf_col1:
+                _c15 = st.session_state.get("mas_continuous_15m")
+                if _c15 is not None and not _c15.empty:
+                    st.success(f"15M bars: **{len(_c15):,}** bars ready")
+                elif mas_cont is not None and not mas_cont.empty:
+                    if st.button("Build 15M bars (from 5M)"):
+                        _c15 = _resample_5m_to_15m(mas_cont)
+                        st.session_state["mas_continuous_15m"] = _c15
+                        _c15.to_parquet(_BARS_DIR / "_continuous_15m.parquet", index=False)
+                        st.rerun()
+                else:
+                    st.info("Build 5M continuous first.")
+
+            # 100s status/build
+            with _tf_col2:
+                _c100s = st.session_state.get("mas_continuous_100s")
+                if _c100s is not None and not _c100s.empty:
+                    st.success(f"100s bars: **{len(_c100s):,}** bars ready")
+                else:
+                    _has_ticks = _TICKS_CONT_DIR.exists() and any(_TICKS_CONT_DIR.glob("*.parquet"))
+                    if _has_ticks:
+                        if st.button("Build 100s bars (from ticks)"):
+                            _status = st.empty()
+                            _c100s = _resample_ticks_to_bars("100s", _status)
+                            _status.empty()
+                            st.session_state["mas_continuous_100s"] = _c100s
+                            _c100s.to_parquet(_BARS_DIR / "_continuous_100s.parquet", index=False)
+                            st.rerun()
+                    else:
+                        st.info("Build continuous ticks first.")
 
             st.divider()
 
