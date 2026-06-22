@@ -14,7 +14,7 @@ Architecture:
 import itertools
 import json
 import uuid
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 import numpy as np
 import pandas as pd
@@ -1316,6 +1316,34 @@ def show_wfa_tab() -> None:
             signals_filtered = signals_typed.copy()
 
         st.caption(f"{len(signals_filtered)} signals after filter")
+
+        # ── Date whitelist (optional CSV/TXT upload) ─────────────────────────
+        st.divider()
+        st.markdown("**Date Whitelist (optional)**")
+        _date_files = st.file_uploader(
+            "Upload date files (one YYYYMMDD per line)",
+            type=["csv", "txt"], accept_multiple_files=True,
+            key="wfa_date_whitelist")
+        if _date_files:
+            _wl_dates = set()
+            for _f in _date_files:
+                for _line in _f.read().decode("utf-8", errors="ignore").splitlines():
+                    _line = _line.strip()
+                    if _line and _line.isdigit() and len(_line) == 8:
+                        try:
+                            _wl_dates.add(datetime.strptime(_line, "%Y%m%d").date())
+                        except ValueError:
+                            pass
+            if _wl_dates and not signals_filtered.empty:
+                _before = len(signals_filtered)
+                signals_filtered = signals_filtered[signals_filtered["Date"].isin(_wl_dates)].copy()
+                st.caption(f"Date whitelist: **{len(signals_filtered)}** of {_before} signals "
+                           f"on **{len(_wl_dates)}** uploaded dates "
+                           f"({len(_date_files)} file{'s' if len(_date_files) > 1 else ''})")
+            elif _wl_dates:
+                st.warning("No signals match the uploaded dates.")
+            else:
+                st.warning("No valid YYYYMMDD dates found in uploaded files.")
 
         # ── Session filters (same as BA — applied to all folds) ────────────────
         st.divider()
