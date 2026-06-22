@@ -2513,7 +2513,7 @@ def _missed_by_ticks(sig_row, ticks_by_date: dict):
 _SETUP_COLORS = ["#ffa726", "#ab47bc", "#29b6f6", "#66bb6a", "#ec407a", "#ef5350"]
 
 
-def _show_monthly_breakdown(results: pd.DataFrame, commission: float):
+def _show_monthly_breakdown(results: pd.DataFrame, commission: float, expanded: bool = False):
     filled = results[results["Filled"]].copy()
     if filled.empty:
         return
@@ -2591,7 +2591,7 @@ def _show_monthly_breakdown(results: pd.DataFrame, commission: float):
     base_cols = ["Trades", "Win%", "PF", "Net PnL", "Avg R", "MAE R", "MFE R", "Best", "Worst"]
 
     # ── Monthly breakdown expander ────────────────────────────────────────────
-    with st.expander("📅 Monthly Breakdown", expanded=False):
+    with st.expander("📅 Monthly Breakdown", expanded=expanded):
         disp = _fmt(monthly)
         for col in stype_pct_cols:
             if col in monthly.columns:
@@ -2672,7 +2672,7 @@ def _show_monthly_breakdown(results: pd.DataFrame, commission: float):
             st.plotly_chart(fig_cc, use_container_width=True)
 
     # ── Setup analysis expander ───────────────────────────────────────────────
-    with st.expander("📊 Setup Analysis", expanded=False):
+    with st.expander("📊 Setup Analysis", expanded=expanded):
         sdisp = _fmt(setup_df)
         st.dataframe(
             sdisp[["SignalType"] + base_cols],
@@ -4039,6 +4039,30 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         _tf_options.append("100s")
     _bar_tf = st.radio("Bar timeframe", _tf_options, horizontal=True, key="ba_bar_tf") if len(_tf_options) > 1 else "5M"
 
+    # ── Date whitelist (optional CSV/TXT upload) ─────────────────────────
+    from datetime import datetime as _dt_cls
+    _ba_date_files = st.file_uploader(
+        "Date whitelist (optional — upload YYYYMMDD files to restrict days)",
+        type=["csv", "txt"], accept_multiple_files=True,
+        key="ba_date_whitelist")
+    _ba_wl_dates = None
+    if _ba_date_files:
+        _ba_wl_dates = set()
+        for _f in _ba_date_files:
+            for _line in _f.read().decode("utf-8", errors="ignore").splitlines():
+                _line = _line.strip()
+                if _line and _line.isdigit() and len(_line) == 8:
+                    try:
+                        _ba_wl_dates.add(_dt_cls.strptime(_line, "%Y%m%d").date())
+                    except ValueError:
+                        pass
+        if _ba_wl_dates:
+            st.caption(f"Date whitelist active: **{len(_ba_wl_dates)}** dates from "
+                       f"{len(_ba_date_files)} file{'s' if len(_ba_date_files) > 1 else ''}")
+        else:
+            st.warning("No valid YYYYMMDD dates found in uploaded files.")
+            _ba_wl_dates = None
+
     if _bar_tf == "100s" and mas_cont_100s is not None and not mas_cont_100s.empty:
         bars        = mas_cont_100s.drop(columns=["Contract"], errors="ignore")
         _bar_source = "massive_continuous_100s"
@@ -4840,30 +4864,6 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                  "0 = no timeout. Data shows fills >30 min are net losers.")
         exec_max_fill_ms = int(exec_max_fill_min * 60000)
 
-    # ── Date whitelist (optional CSV/TXT upload) ─────────────────────────
-    from datetime import datetime as _dt_cls
-    _ba_date_files = st.file_uploader(
-        "Date whitelist (optional — upload YYYYMMDD files to restrict days)",
-        type=["csv", "txt"], accept_multiple_files=True,
-        key="ba_date_whitelist")
-    _ba_wl_dates = None
-    if _ba_date_files:
-        _ba_wl_dates = set()
-        for _f in _ba_date_files:
-            for _line in _f.read().decode("utf-8", errors="ignore").splitlines():
-                _line = _line.strip()
-                if _line and _line.isdigit() and len(_line) == 8:
-                    try:
-                        _ba_wl_dates.add(_dt_cls.strptime(_line, "%Y%m%d").date())
-                    except ValueError:
-                        pass
-        if _ba_wl_dates:
-            st.caption(f"Date whitelist active: **{len(_ba_wl_dates)}** dates from "
-                       f"{len(_ba_date_files)} file{'s' if len(_ba_date_files) > 1 else ''}")
-        else:
-            st.warning("No valid YYYYMMDD dates found in uploaded files.")
-            _ba_wl_dates = None
-
     # ── Run button ────────────────────────────────────────────────────────────
     st.divider()
     _rb_col, _ = st.columns([2, 5])
@@ -5124,7 +5124,8 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         )
 
     # ── Quick View (expanded by default) ─────────────────────────────────────
-    with st.expander("📋 Quick View", expanded=False):
+    _auto_expand = run_btn or not _has_results  # expand after a sim run
+    with st.expander("📋 Quick View", expanded=_auto_expand):
         if summary:
             r1 = st.columns(7)
             r1[0].metric("Net PnL",   f"${summary['net_total']:,.0f}")
@@ -5220,7 +5221,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                        f"R is contract-independent — identical for 1c, 2c or MES.")
 
     # ── Detail (collapsed) ────────────────────────────────────────────────────
-    with st.expander("📊 Detail", expanded=False):
+    with st.expander("📊 Detail", expanded=_auto_expand):
         if summary:
             r1 = st.columns(6)
             r1[0].metric("Signals",       f"{summary['n_total']}")
@@ -6107,7 +6108,10 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
     )
 
     # ── Monthly breakdown ──────────────────────────────────────────────────────
-    _show_monthly_breakdown(results, commission)
+    _show_monthly_breakdown(results, commission, expanded=_auto_expand)
+
+    # ── Entry zoom ────────────────────────────────────────────────────────────
+    _show_entry_zoom_section(results, ticks_by_date)
 
     # ── Time-of-Day / Day-of-Week breakdown (read-only, Pardo-safe) ────────────
     _show_tod_dow_breakdown(results)
@@ -6310,9 +6314,6 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                     })
                 if _thresh_rows:
                     st.dataframe(pd.DataFrame(_thresh_rows), use_container_width=True, hide_index=True)
-
-    # ── Entry zoom ────────────────────────────────────────────────────────────
-    _show_entry_zoom_section(results, ticks_by_date)
 
     # ── Bar data mismatch analysis ────────────────────────────────────────────
     if nt_bars is not None and not nt_bars.empty:

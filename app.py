@@ -446,8 +446,8 @@ def main():
     # Tab order: Bar Viewer first, Bar Analysis right after it (restored). st.tabs
     # always opens tab 0, so a one-time JS click below makes Bar Analysis the
     # default-active tab while keeping it in second position.
-    tab1, tab3, tab_massive, tab0, tab_chart, tab4, tab_wfa = st.tabs([
-        "📊 Bar Viewer", "📈 Bar Analysis", "📂 Massive", "🗂️ Data", "📈 Chart", "📊 Portfolio", "🔄 WFA",
+    tab_massive, tab0, tab3, tab_wfa, tab1, tab_chart, tab4 = st.tabs([
+        "📂 Massive", "🗂️ Data", "📈 Bar Analysis", "🔄 WFA", "📊 Bar Viewer", "📈 Chart", "📊 Portfolio",
     ])
 
     # Auto-select Bar Analysis (index 1) once per browser session — guarded so it
