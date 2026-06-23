@@ -48,12 +48,24 @@ shelved); added a BA "fade signals" toggle. RevFT signal set = the MyReversals e
   so fade emits canonical "Long"/"Short".
 - **Honest framing given the user's −$300k 1:1 RevFT curve:** fading is ONE trade/one set of
   costs (NOT double commission). Correct accounting: strip costs → flip gross → pay costs once;
-  `Net_fade ≈ −Gross_orig − Costs`. A steady linear bleed is the signature of a cost-drag on a
-  ~coinflip → fading it **stays a loser**. Fade only wins if gross is genuinely negative beyond
-  costs. NOT yet run on `ba_signals_revft` (offered: report gross/costs/net original vs fade).
+  `Net_fade ≈ −Gross_orig − Costs`.
+
+### ⭐ Fade test — RUN on RevFT → SAVED `docs/living/fade_revft_20260624.md`
+- `scripts/fade_revft_test.py` (one tick-load pass for orig/fade × gross/net; first version
+  timed out reloading ticks 4×). RevFT 6,133 filled trades, 1R, real = $5 comm + 1t entry slip.
+- **ORIGINAL:** gross **−$79,150**, costs $108k, **net −$187,465**, PF0.90, expR−0.073, DD−$197k.
+- **FADE:** gross **+$18,638**, costs $89k, **net −$70,790**, PF0.97, expR−0.020, DD−$91k.
+- **Findings:** (1) real small NEGATIVE directional edge — orig loses even gross, so not pure
+  cost bleed; fading flips gross positive. (2) **Fade still loses net** — +$18.6k gross swamped
+  by ~$89k cost. "Less bad" (½ DD) but a firm loser. (3) **1:1 whipsaw tax is large** — clean
+  mirror would be +$79k gross, fade realized only +$18.6k → ~$60k lost to intrabar
+  which-touched-first (confirms at-1:1 fade is NOT a clean sign-flip). (4) by year even faded:
+  only 2021/2023 green. **Verdict:** problem isn't direction — it's ~6k trades/run at 1:1 with a
+  sub-cost (~$15–18/trade) edge. Levers: trade far less (selectivity gate > ~$15 gross/trade) or
+  widen R.
 
 ### Open / next
-- Optional: run fade headless on RevFT set for the real gross/costs/net split.
+- Optional: selectivity-gate sweep on RevFT (find a subset clearing the cost hurdle); fade at 2:1/3:1.
 - Optional: AID as a *sizer* (size with/against regime, keep all trades) instead of a gate.
 - `AlwaysIn.cs` needs compiling in NT8 (F5); not under repo version control.
 
