@@ -1,2 +1,10 @@
 [server]
 maxUploadSize = 2000
+# Auto-reload the running app when any source file (app.py, indicators.py,
+# engine, etc.) changes on disk. S37: a long-running process held PRE-fix
+# indicators.py in memory for 10h and kept serving ER10 look-ahead numbers
+# until it was manually restarted. runOnSave makes edits reload automatically.
+# NOTE: a FULL restart (kill + relaunch) is still the only bulletproof way to
+# guarantee the latest code after engine/indicator changes.
+runOnSave = true
+fileWatcherType = "auto"

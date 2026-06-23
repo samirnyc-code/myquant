@@ -8,6 +8,43 @@
 
 ---
 
+## ⭐ SESSION 37 — June 24, 2026 — ER10 look-ahead "regression" was a STALE PROCESS (read FIRST)
+*User saw the too-good ER10 numbers come back in the BA sim. Root cause was NOT a
+code regression — the S34 causal fix is intact & committed (`8cbca3e`). It was a
+long-running Streamlit process serving pre-fix code from memory.*
+
+### Root cause — stale in-memory code, not a bad cache
+- The app process (PID 2796) **started 6/23 07:01**; the S34 causal `tag_signals`
+  fix was **committed 6/23 17:47**. That process held the **pre-fix `indicators.py`
+  in RAM for 10h** and never reloaded it → kept serving the ER10 look-ahead
+  (~61% win / ~$167/trade). A clean restart loaded the fixed code → numbers
+  correctly collapsed to no-edge. **The disk was right the whole time.**
+- Verified the fix is NOT reverted: `_causal_at_signal_bar` defined + wired into all
+  5 `merge_asof` paths in `indicators.tag_signals`; working tree == HEAD. Saved
+  signals (`ba_signals_revft.parquet`) carry only RAW cols (no baked tagged ER/VWAP/
+  EMA) → tagged fresh each run. `bar_analysis.py` overlays use `searchsorted`, not
+  `merge_asof` (no dtype-crash surface there).
+
+### Prevention (DONE this session)
+- **`.streamlit/config.toml`: `runOnSave = true` + `fileWatcherType = "auto"`** so
+  source edits auto-reload the running app. **Still: a FULL kill+relaunch is the only
+  bulletproof guarantee after engine/indicator changes — do it every time.**
+- App restarted clean on current code (incl. uncommitted S36 AID/fade), port 8501.
+
+### Stale WFA store QUARANTINED (reversible)
+- All **222 pre-fix WFA run dirs** (6/19–6/20, every one ER10-look-ahead) moved to
+  `data/wfa_store/_contaminated_pre_S34/{trades,sweeps}/`. DB pruned **122→1 runs /
+  1144→15 folds**; full pre-prune backup at `_contaminated_pre_S34/wfa_results_full_backup.db`.
+- **KEPT (post-fix, valid):** `run_0c65425a` (6/23 18:15) — the validated cluster-gate run.
+- NOT touched (source data, not caches): `data/flatfiles_cache` (45G Massive raw),
+  `data/bars`, `data/ticks_continuous`, `saved_signals`.
+
+### Note
+- A separate headless day-by-day worker (another chat) was running earlier and
+  finished on its own; never targeted by the restarts here.
+
+---
+
 ## ⭐ SESSION 36 — June 24, 2026 — "Always In" port + AID overlay (negative result) + Fade toggle (read FIRST)
 *Reverse-engineered a TradeStation "MyReversals/Logan" system from screenshots; built its
 "Always In" regime piece for NT8; wired an AID overlay into BA and tested it (subtractive —
