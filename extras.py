@@ -353,7 +353,7 @@ def _show_prop_firm():
         key="ext_pf_tick_value",
         help="ES = $12.50, MES = $1.25")
     commission = sc5.number_input(
-        "Commission ($/contract RT)", value=4.36, step=0.50,
+        "Commission ($/contract RT)", value=5.0, step=0.50,
         key="ext_pf_commission")
 
     # ── Run the scaled simulation ────────────────────────────────────────────

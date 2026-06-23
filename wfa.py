@@ -1186,7 +1186,7 @@ def show_wfa_tab() -> None:
         _wfa_tf_opts.append("15M")
     if mas_cont_100s is not None and not mas_cont_100s.empty:
         _wfa_tf_opts.append("100s")
-    _wfa_bar_tf = st.radio("Bar timeframe", _wfa_tf_opts, horizontal=True, key="wfa_bar_tf") if len(_wfa_tf_opts) > 1 else "5M"
+    _wfa_bar_tf = st.radio("Bar timeframe", _wfa_tf_opts, index=_wfa_tf_opts.index("5M"), horizontal=True, key="wfa_bar_tf") if len(_wfa_tf_opts) > 1 else "5M"
 
     if _wfa_bar_tf == "1M" and mas_cont_1m is not None:
         bars = mas_cont_1m.drop(columns=["Contract"], errors="ignore")
@@ -1314,9 +1314,10 @@ def show_wfa_tab() -> None:
         _esa_col1, _esa_col2, _esa_col3 = st.columns(3)
         _wfa_preset = _esa_col1.selectbox(
             "Execution preset", ["Custom", *EXECUTION_PRESETS.keys()],
+            index=(["Custom", *EXECUTION_PRESETS.keys()].index("Realistic")),
             key="wfa_exec_preset",
             help="Named presets (Optimistic…Brutal) override slip + delays. "
-                 "Custom = use the slip inputs below + no delay.")
+                 "Custom = use the slip inputs below + no delay. Default = Realistic.")
         wfa_entry_model = _esa_col2.radio(
             "Entry model", ["market", "stop"], horizontal=True,
             key="wfa_entry_model",
@@ -1432,34 +1433,6 @@ def show_wfa_tab() -> None:
             signals_filtered = signals_typed.copy()
 
         st.caption(f"{len(signals_filtered)} signals after filter")
-
-        # ── Date whitelist (optional CSV/TXT upload) ─────────────────────────
-        st.divider()
-        st.markdown("**Date Whitelist (optional)**")
-        _date_files = st.file_uploader(
-            "Upload date files (one YYYYMMDD per line)",
-            type=["csv", "txt"], accept_multiple_files=True,
-            key="wfa_date_whitelist")
-        if _date_files:
-            _wl_dates = set()
-            for _f in _date_files:
-                for _line in _f.read().decode("utf-8", errors="ignore").splitlines():
-                    _line = _line.strip()
-                    if _line and _line.isdigit() and len(_line) == 8:
-                        try:
-                            _wl_dates.add(datetime.strptime(_line, "%Y%m%d").date())
-                        except ValueError:
-                            pass
-            if _wl_dates and not signals_filtered.empty:
-                _before = len(signals_filtered)
-                signals_filtered = signals_filtered[signals_filtered["Date"].isin(_wl_dates)].copy()
-                st.caption(f"Date whitelist: **{len(signals_filtered)}** of {_before} signals "
-                           f"on **{len(_wl_dates)}** uploaded dates "
-                           f"({len(_date_files)} file{'s' if len(_date_files) > 1 else ''})")
-            elif _wl_dates:
-                st.warning("No signals match the uploaded dates.")
-            else:
-                st.warning("No valid YYYYMMDD dates found in uploaded files.")
 
         # ── Session filters (same as BA — applied to all folds) ────────────────
         st.divider()

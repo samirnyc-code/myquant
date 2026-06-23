@@ -191,6 +191,108 @@ def apply_zlo_filters(
     return df
 
 
+def merge_alwaysin_overlay(signals: pd.DataFrame) -> pd.DataFrame:
+    """Attach Always-In (AID) regime state to each signal from the flip-event CSV.
+
+    The CSV (NT AlwaysIn indicator) is FLIP-ONLY — one row per regime change, with
+    NewDir LONG/SHORT, close-stamped at the bar close (NT `Time[0]`). The per-bar
+    state is just the most recent flip's direction forward-filled. We backward as-of
+    join (the proven `searchsorted(side="right")-1`) on the signal DateTime, so each
+    signal inherits the regime established at or before its OWN bar's close — this is
+    look-ahead-safe and matches the S34 causal convention (signals are close-stamped,
+    so a flip on the signal bar is known at decision time and IS included).
+
+    Adds:
+      AID_State          +1 long-regime / -1 short-regime / 0 = before first flip
+      AID_FlipIdx        index of the governing flip (-1 if before the first flip)
+      AID_BarsSinceFlip  5M bars between the governing flip bar and the signal bar
+                         (NaN pre-first-flip; inflated across overnight gaps — fine,
+                         flips are intraday and ordering within a regime is unaffected)
+      AID_OnFlipBar      True when the signal bar IS the flip bar (BarsSinceFlip == 0)
+      AID_DirMatch       True when signal Direction agrees with AID_State (with-regime)
+      AID_FirstMatch     True for the FIRST with-regime signal strictly AFTER each flip
+                         ("first MC after a flip in the flip's direction")
+    """
+    ai = st.session_state.get("ba_alwaysin")
+    if ai is None or signals.empty:
+        return signals
+    ai = ai.sort_values("BarTime").reset_index(drop=True)
+    flip_dt = pd.to_datetime(ai["BarTime"])
+    flip_dir = (ai["NewDir"].astype(str).str.upper().str.startswith("L")
+                .map({True: 1, False: -1}).to_numpy())
+    sig_dt = pd.to_datetime(signals["DateTime"])
+
+    idx = flip_dt.searchsorted(sig_dt, side="right") - 1   # governing flip per signal (ndarray)
+    pre = idx < 0                                          # signals before the first flip
+    idx_c = idx.clip(0, len(ai) - 1)
+
+    state = flip_dir[idx_c].astype(float)
+    state[pre] = 0.0
+    signals["AID_State"] = state
+    signals["AID_FlipIdx"] = np.where(pre, -1, idx_c)
+
+    gov_dt = flip_dt.to_numpy()[idx_c]
+    bars = (sig_dt.to_numpy() - gov_dt) / np.timedelta64(5, "m")
+    bars = np.where(pre, np.nan, np.round(bars))
+    signals["AID_BarsSinceFlip"] = bars
+    signals["AID_OnFlipBar"] = (bars == 0)
+
+    is_long = signals["Direction"].astype(str).str.upper().str.startswith("L")
+    signals["AID_DirMatch"] = ((is_long & (signals["AID_State"] == 1))
+                               | (~is_long & (signals["AID_State"] == -1)))
+
+    # First with-regime signal strictly after each flip (one per flip index).
+    first = np.zeros(len(signals), dtype=bool)
+    cand = (signals["AID_DirMatch"].to_numpy()
+            & (np.nan_to_num(bars, nan=0.0) >= 1))
+    fidx = signals["AID_FlipIdx"].to_numpy()
+    seen = set()
+    for i in np.argsort(sig_dt.to_numpy(), kind="stable"):
+        if cand[i] and fidx[i] not in seen:
+            first[i] = True
+            seen.add(fidx[i])
+    signals["AID_FirstMatch"] = first
+    return signals
+
+
+def apply_alwaysin_filters(df: pd.DataFrame, mode: str, near_n: int = 1) -> pd.DataFrame:
+    """Mark FilterStatus for rows excluded by the Always-In gate (one mode at a time)."""
+    if mode == "Off" or "AID_State" not in df.columns:
+        return df
+    ok = df["FilterStatus"] == "ok"
+    if mode == "With AID (directional)":
+        keep = df["AID_DirMatch"]
+        df.loc[ok & ~keep, "FilterStatus"] = "ai_dir"
+    elif mode == "First MC after flip (flip dir)":
+        keep = df["AID_FirstMatch"]
+        df.loc[ok & ~keep, "FilterStatus"] = "ai_not_first"
+    elif mode == "MC on flip bar (flip dir)":
+        keep = df["AID_OnFlipBar"] & df["AID_DirMatch"]
+        df.loc[ok & ~keep, "FilterStatus"] = "ai_not_onflip"
+    elif mode == "Exclude near-flip (within N)":
+        keep = df["AID_BarsSinceFlip"] >= near_n
+        df.loc[ok & ~keep, "FilterStatus"] = "ai_near_flip"
+    return df
+
+
+def apply_fade(df: pd.DataFrame) -> pd.DataFrame:
+    """Fade every signal: trade the OPPOSITE direction at the same entry, with the
+    stop reflected across the entry price. At 1:1 R:R this makes the original stop
+    the new target and the original target the new stop. Entry/timing/selection are
+    untouched — call this AFTER all filters/gates so every other rule is intact.
+
+    newStop = 2*entry - oldStop   (mirror across SignalPrice). The engine re-derives
+    the target from |entry-stop|*target_r, so for target_r != 1 the geometry stays a
+    true reflection (stop↔target swap is exact only at 1:1, which is this setup)."""
+    if df.empty or "SignalPrice" not in df.columns or "StopPrice" not in df.columns:
+        return df
+    out = df.copy()
+    is_long = out["Direction"].astype(str).str.upper().str.startswith("L")
+    out["Direction"] = np.where(is_long, "Short", "Long")
+    out["StopPrice"] = 2.0 * out["SignalPrice"] - out["StopPrice"]
+    return out
+
+
 def _consecutive_run_pos(df: pd.DataFrame) -> pd.Series:
     """Run position of each signal within a same-direction consecutive-bar streak,
     per day. A signal on bar N gets position k when bars N-k+1 … N each carried a
@@ -1323,7 +1425,11 @@ def _run_ml_scalein_sweep(
         start  = int(np.searchsorted(dt_arr, np.datetime64(pd.Timestamp(row["DateTime"])), side="right"))
         if start >= len(dt_arr):
             continue
-        prices  = df["Price"].values[start:].astype(np.float64)
+        # float32 is LOSSLESS for ES here: tick-aligned prices (price/tick < 2**24) are
+        # exactly representable, and rmax/neg_rmin (running max/min) + every searchsorted
+        # query are on those exact values — so results are byte-identical to float64 while
+        # halving the per-trade cache footprint (this sweep caches a full path per trade).
+        prices  = df["Price"].values[start:].astype(np.float32)
         is_long = row["Direction"] == "Long"
         sgn     = 1.0 if is_long else -1.0
         entry   = float(prices[0]) + sgn * entry_slip * ts
@@ -4127,31 +4233,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         _tf_options.append("15M")
     if mas_cont_100s is not None and not mas_cont_100s.empty:
         _tf_options.append("100s")
-    _bar_tf = st.radio("Bar timeframe", _tf_options, horizontal=True, key="ba_bar_tf") if len(_tf_options) > 1 else "5M"
-
-    # ── Date whitelist (optional CSV/TXT upload) ─────────────────────────
-    from datetime import datetime as _dt_cls
-    _ba_date_files = st.file_uploader(
-        "Date whitelist (optional — upload YYYYMMDD files to restrict days)",
-        type=["csv", "txt"], accept_multiple_files=True,
-        key="ba_date_whitelist")
-    _ba_wl_dates = None
-    if _ba_date_files:
-        _ba_wl_dates = set()
-        for _f in _ba_date_files:
-            for _line in _f.read().decode("utf-8", errors="ignore").splitlines():
-                _line = _line.strip()
-                if _line and _line.isdigit() and len(_line) == 8:
-                    try:
-                        _ba_wl_dates.add(_dt_cls.strptime(_line, "%Y%m%d").date())
-                    except ValueError:
-                        pass
-        if _ba_wl_dates:
-            st.caption(f"Date whitelist active: **{len(_ba_wl_dates)}** dates from "
-                       f"{len(_ba_date_files)} file{'s' if len(_ba_date_files) > 1 else ''}")
-        else:
-            st.warning("No valid YYYYMMDD dates found in uploaded files.")
-            _ba_wl_dates = None
+    _bar_tf = st.radio("Bar timeframe", _tf_options, index=_tf_options.index("5M"), horizontal=True, key="ba_bar_tf") if len(_tf_options) > 1 else "5M"
 
     if _bar_tf == "1M" and mas_cont_1m is not None and not mas_cont_1m.empty:
         bars        = mas_cont_1m.drop(columns=["Contract"], errors="ignore")
@@ -4409,6 +4491,33 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
             zlo_ts_min = 3
             flt_zlo_osc_sign = False
 
+        # ── Always In Filter (only show if AID flip data is loaded) ──────────
+        _ai_loaded = st.session_state.get("ba_alwaysin") is not None
+        if _ai_loaded:
+            st.divider()
+            st.markdown("**Always In Filter** *(from AlwaysIn flip CSV)*")
+            _ai_modes = [
+                "Off",
+                "With AID (directional)",
+                "First MC after flip (flip dir)",
+                "MC on flip bar (flip dir)",
+                "Exclude near-flip (within N)",
+            ]
+            ai_mode = st.selectbox(
+                "AID gate", _ai_modes, key="ba_ai_mode",
+                help="Directional: longs only when always-in is long, shorts when short. "
+                     "First-after-flip: only the first with-regime MC following each flip. "
+                     "On-flip-bar: the MC fires on the very bar that flipped the regime. "
+                     "Near-flip: drop signals within N 5M bars of a flip (regime unsettled).")
+            ai_near_n = st.number_input(
+                "Near-flip N (bars)", 1, 20,
+                int(st.session_state.get("ba_ai_near_n", 1)),
+                key="ba_ai_near_n",
+                help="Used by 'Exclude near-flip': minimum 5M bars since the last flip.")
+        else:
+            ai_mode = "Off"
+            ai_near_n = 1
+
     # ── Signals ───────────────────────────────────────────────────────────────
     with st.expander("📶 Signals", expanded=False):
         # Signal-type filter — built dynamically from the loaded signals' own types,
@@ -4437,6 +4546,13 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
             "Direction", _dir_opts, horizontal=True, key="ba_direction_filter",
             index=_dir_opts.index(st.session_state.get("ba_direction_filter", "Both")),
         )
+        fade_signals = st.checkbox(
+            "🔄 Fade signals (reverse direction, stop↔target)", key="ba_fade_signals",
+            value=st.session_state.get("ba_fade_signals", False),
+            help="Trade the OPPOSITE side of every surviving signal at the same entry. "
+                 "The stop is mirrored across the entry, so at 1:1 the original stop "
+                 "becomes the target and the target becomes the stop. Applied AFTER all "
+                 "filters/gates — every other rule is unchanged.")
 
     # ── Trading Parameters expander ───────────────────────────────────────────
     with st.expander("⚙️ Trading Parameters", expanded=False):
@@ -4507,7 +4623,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                 )
                 _def_comm_sl = INSTRUMENTS.get(
                     st.session_state.get("ba_instrument_sl", "ES"), {}
-                ).get("default_commission", 3.0)
+                ).get("default_commission", 5.0)
                 st.number_input(
                     "Commission ($/contract)", min_value=0.0,
                     value=float(st.session_state.get("ba_commission_sl", _def_comm_sl)),
@@ -4634,7 +4750,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                 )
                 _def_comm_ml = INSTRUMENTS.get(
                     st.session_state.get("ba_instrument_ml", "ES"), {}
-                ).get("default_commission", 3.0)
+                ).get("default_commission", 5.0)
                 st.number_input(
                     "Commission ($/contract)", min_value=0.0,
                     value=float(st.session_state.get("ba_commission_ml", _def_comm_ml)),
@@ -4745,7 +4861,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                     key="ba_stop_offset_3l")
                 _def_comm_3l = INSTRUMENTS.get(
                     st.session_state.get("ba_instrument_3l", "ES"), {}
-                ).get("default_commission", 3.0)
+                ).get("default_commission", 5.0)
                 st.number_input("Commission ($/contract)", min_value=0.0,
                     value=float(st.session_state.get("ba_commission_3l", _def_comm_3l)),
                     step=0.5, format="%.2f", key="ba_commission_3l")
@@ -4901,6 +5017,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                 **{f"ba_incl_{t}": (t not in excluded_types) for t in _all_types},
                 "ba_first_trade": first_trade_only,
                 "ba_first_2_filled": first_2_filled_only,
+                "ba_fade_signals": fade_signals,
                 "ba_direction_filter": direction_filter,
                 "ba_excl_holidays": excl_holidays,
                 "ba_mon": incl_mon, "ba_tue": incl_tue, "ba_wed": incl_wed,
@@ -4969,15 +5086,17 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
     # ── Execution model (ESA) ──────────────────────────────────────────────────
     # Single-run execution controls (delay / entry model / preset). The full
     # preset-comparison ESA expander is separate; this just drives ONE main run so
-    # the engine can be tested on real data. Defaults (Custom / market / 0 ms) keep
-    # the run byte-identical to the pre-ESA baseline.
+    # the engine can be tested on real data. Defaults (Realistic / market) apply
+    # realistic slippage + delay; pick Custom for the pre-ESA byte-identical baseline.
     from simulation_engine import EXECUTION_PRESETS as _ESA_PRESETS
     with st.expander("⚙️ Execution model (ESA) — calc delay / wire / entry / preset", expanded=False):
         _ex = st.columns(3)
         _exec_preset = _ex[0].selectbox(
-            "Execution preset", ["Custom", *_ESA_PRESETS.keys()], key="ba_exec_preset",
+            "Execution preset", ["Custom", *_ESA_PRESETS.keys()],
+            index=(["Custom", *_ESA_PRESETS.keys()].index("Realistic")), key="ba_exec_preset",
             help="Custom = use Entry/Exit slip from Trading Parameters + the delays below. "
-                 "Named presets (Optimistic…Brutal) override slip + delays per the ESA spec.")
+                 "Named presets (Optimistic…Brutal) override slip + delays per the ESA spec. "
+                 "Default = Realistic.")
         exec_entry_model = _ex[1].radio(
             "Entry model", ["market", "stop"], horizontal=True, key="ba_exec_entry_model",
             help="market = fill at first tick after calc + wire delay. "
@@ -5062,17 +5181,6 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         direction_filter,
     )
 
-    # Apply date whitelist if uploaded
-    if _ba_wl_dates is not None:
-        _before_wl = (filtered_signals["FilterStatus"] == "ok").sum()
-        filtered_signals.loc[
-            (filtered_signals["FilterStatus"] == "ok") &
-            ~filtered_signals["Date"].isin(_ba_wl_dates),
-            "FilterStatus"
-        ] = "date_whitelist"
-        _after_wl = (filtered_signals["FilterStatus"] == "ok").sum()
-        st.caption(f"Date whitelist: **{_after_wl}** of {_before_wl} filtered signals on whitelisted dates")
-
     # Regime population gates (ER chop + S25 balance) — tag only when at least one
     # is active (the tag is cached, so it computes once per signal/bar set).
     if flt_er30 or flt_er10 or flt_balance or flt_inside or flt_skip_trend or flt_consec:
@@ -5096,6 +5204,17 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                 filtered_signals, flt_zlo_trend, flt_zlo_trendstate,
                 zlo_ts_min, flt_zlo_osc_sign)
 
+    # Always In overlay merge + filter
+    if _ai_loaded:
+        filtered_signals = merge_alwaysin_overlay(filtered_signals)
+        if ai_mode != "Off":
+            filtered_signals = apply_alwaysin_filters(
+                filtered_signals, ai_mode, int(ai_near_n))
+
+    # Fade (reverse direction + mirror stop) — last, so all gates stay intact
+    if fade_signals:
+        filtered_signals = apply_fade(filtered_signals)
+
     _sim_fp = hash((
         len(filtered_signals),
         int(filtered_signals["SignalNum"].sum()) if not filtered_signals.empty else 0,
@@ -5105,11 +5224,12 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         e1c_3l, e2c_3l, e3c_3l, pb1_r_val, pb2_r_val, pb1_ticks_v, pb2_ticks_v,
         t2_r_val, ratchet_r_v, ratchet_dest_v, ratchet_lock_r_v, scale_in_style_v, pb_round_v,
         str(st.session_state.get("ba_manual_overrides", {})),
-        first_trade_only, first_2_filled_only,
+        first_trade_only, first_2_filled_only, fade_signals,
         flt_er30, round(er_min, 4), flt_er10, round(er10_min, 4),
         flt_balance, flt_inside, flt_skip_trend,
         flt_consec, int(min_run),
         flt_zlo_trend, flt_zlo_trendstate, zlo_ts_min, flt_zlo_osc_sign,
+        ai_mode, int(ai_near_n),
         exec_entry_model, exec_calc_ms, exec_wire_ms, exec_max_fill_ms, str(exec_entry_slip), str(exec_exit_slip), exec_seed,
     ))
     _has_results = (st.session_state.get("ba_results_fp") == _sim_fp
@@ -5224,35 +5344,16 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         f"comm ${commission:.2f}"
     )
 
-    # ── Assumption ledger — frictionless gross → net (stacked conservatism visible) ─
-    _led = friction_ledger(results) if not results.empty else {}
-    if _led:
-        with st.expander("🧮 Assumption Ledger (frictionless → net)", expanded=False):
-            _ldf = pd.DataFrame([
-                {"Step": "Frictionless gross", "Amount $": _led["frictionless_gross"]},
-                {"Step": "− Slippage",          "Amount $": -_led["slippage"]},
-                {"Step": "− Commission",        "Amount $": -_led["commission"]},
-                {"Step": "= Net (modeled)",     "Amount $": _led["net"]},
-            ])
-            _lc1, _lc2 = st.columns([2, 1])
-            _lc1.dataframe(_ldf, use_container_width=True, hide_index=True)
-            _lc2.metric("Friction / trade", f"${_led['per_trade_friction']:,.0f}",
-                        help="Slippage+commission ÷ trades. Sanity-check vs real execution "
-                             "(ES ≈ $15.50/trade). A model haircut far above reality = under-optimizing.")
-            _lc2.metric("Net / trade", f"${_led['per_trade_net']:,.0f}")
-            st.caption("Slippage is embedded in fills, so frictionless = GrossPnL + slippage. "
-                       "Tick-snap & same-bar priority are baked into fills (bounded ~½ tick) and would "
-                       "need a counterfactual re-run to isolate.")
-
     # ── Summary — pre-compute shared derived values ───────────────────────────
     if summary:
         _pf_str    = f"{summary['pf']:.2f}" if summary['pf'] < 99 else "∞"
         _wl_str    = f"{summary['wl_ratio']:.2f}" if summary['wl_ratio'] < 99 else "∞"
         _slip_usd  = summary.get("slippage_total", 0.0)
-        if use_multileg:
-            _slip_tks = int(round(_slip_usd / tick_value)) if tick_value > 0 else 0
-        else:
-            _slip_tks = int((entry_slip + exit_slip) * summary["n_trades"] * contracts)
+        # Derive ticks from the realized $ slippage the engine actually applied, so the
+        # count is correct under named ESA presets too (their slip is a (min,max) tuple
+        # that overrides the manual Trading-Params slip — recomputing from the scalar
+        # fields would read 0). Works for single-leg and multileg alike.
+        _slip_tks = int(round(_slip_usd / tick_value)) if tick_value > 0 else 0
         _slip_str      = f"{_slip_tks} tks  /  ${_slip_usd:.0f}"
         # Actual commission = gross − net (slippage already embedded in gross prices)
         _actual_comm   = summary["gross_total"] - summary["net_total"]
@@ -5619,6 +5720,26 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         st.error(f"Execution Audit error: {_audit_err}")
         import traceback
         st.code(traceback.format_exc())
+
+    # ── Assumption ledger — frictionless gross → net (stacked conservatism visible) ─
+    _led = friction_ledger(results) if not results.empty else {}
+    if _led:
+        with st.expander("🧮 Assumption Ledger (frictionless → net)", expanded=False):
+            _ldf = pd.DataFrame([
+                {"Step": "Frictionless gross", "Amount $": _led["frictionless_gross"]},
+                {"Step": "− Slippage",          "Amount $": -_led["slippage"]},
+                {"Step": "− Commission",        "Amount $": -_led["commission"]},
+                {"Step": "= Net (modeled)",     "Amount $": _led["net"]},
+            ])
+            _lc1, _lc2 = st.columns([2, 1])
+            _lc1.dataframe(_ldf, use_container_width=True, hide_index=True)
+            _lc2.metric("Friction / trade", f"${_led['per_trade_friction']:,.0f}",
+                        help="Slippage+commission ÷ trades. Sanity-check vs real execution "
+                             "(ES ≈ $15.50/trade). A model haircut far above reality = under-optimizing.")
+            _lc2.metric("Net / trade", f"${_led['per_trade_net']:,.0f}")
+            st.caption("Slippage is embedded in fills, so frictionless = GrossPnL + slippage. "
+                       "Tick-snap & same-bar priority are baked into fills (bounded ~½ tick) and would "
+                       "need a counterfactual re-run to isolate.")
 
     # ── ESA Phase B — Execution Sensitivity Comparison ──────────────────────
     with st.expander("🔬 Execution Sensitivity Analysis (ESA)", expanded=False):

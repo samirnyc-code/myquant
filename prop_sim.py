@@ -617,7 +617,7 @@ def show_prop_sim_tab():
     max_contracts = s3.number_input(
         "Max contracts", value=10, min_value=1, step=1, key="ps_max_c")
     commission = s4.number_input(
-        "Commission RT ($/c)", value=4.36, step=0.50, key="ps_comm")
+        "Commission RT ($/c)", value=5.0, step=0.50, key="ps_comm")
 
     with st.expander("💸 Payouts, Costs & Conservatism", expanded=False):
         p1, p2, p3, p4 = st.columns(4)

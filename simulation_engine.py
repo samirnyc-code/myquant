@@ -4,7 +4,7 @@ import pandas as pd
 from data_loader import TICK_SIZE, bar_num_from_dt, RTH_START_MIN
 
 INSTRUMENTS = {
-    "ES":  {"tick_value": 12.50, "label": "ES  ($12.50/tick)", "default_commission": 4.36},
+    "ES":  {"tick_value": 12.50, "label": "ES  ($12.50/tick)", "default_commission": 5.0},
     "MES": {"tick_value":  1.25, "label": "MES ($1.25/tick)",  "default_commission": 1.30},
 }
 RTH_END_MIN = 15 * 60 + 15  # 915

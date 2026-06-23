@@ -550,6 +550,28 @@ def main():
                 if st.session_state.get("ba_zlo") is not None:
                     st.caption(f"✅ (auto-loaded from disk)  |  {len(st.session_state['ba_zlo'])} bars")
 
+        # Always In (AID) flip-state overlay
+        _AI_DISK = _SIGNALS_DIR / "ba_alwaysin_overlay.parquet"
+        with st.expander("🧭 Always In State (optional)", expanded=False):
+            ai_file = st.file_uploader(
+                "AlwaysIn flips (.csv)", type=["csv"], key="upload_alwaysin",
+                help="CSV from the NT AlwaysIn indicator: Event,BarTime,BarNum,NewDir,…  (flip rows)",
+            )
+            if ai_file is not None:
+                ai_key = f"{ai_file.name}_{ai_file.size}"
+                if st.session_state.get("ba_alwaysin_key") != ai_key:
+                    ai_df = pd.read_csv(ai_file, parse_dates=["BarTime"])
+                    st.session_state["ba_alwaysin"] = ai_df
+                    st.session_state["ba_alwaysin_key"] = ai_key
+                    ai_df.to_parquet(_AI_DISK, index=False)
+                if st.session_state.get("ba_alwaysin") is not None:
+                    st.caption(f"✅ {ai_file.name}  |  {len(st.session_state['ba_alwaysin'])} flips")
+            else:
+                if "ba_alwaysin" not in st.session_state and _AI_DISK.exists():
+                    st.session_state["ba_alwaysin"] = pd.read_parquet(_AI_DISK)
+                if st.session_state.get("ba_alwaysin") is not None:
+                    st.caption(f"✅ (auto-loaded from disk)  |  {len(st.session_state['ba_alwaysin'])} flips")
+
         active_set = st.radio(
             "Active Signal Set", ["MC Signals", "RevFTSignals"],
             key="ba_active_signal_set", horizontal=True,
