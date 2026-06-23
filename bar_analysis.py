@@ -139,6 +139,58 @@ def apply_signal_filters(
     return df
 
 
+def merge_zlo_overlay(signals: pd.DataFrame) -> pd.DataFrame:
+    """Left-join ZLO overlay data onto signals by nearest DateTime match."""
+    zlo = st.session_state.get("ba_zlo")
+    if zlo is None or signals.empty:
+        return signals
+    zlo_dt = pd.to_datetime(zlo["DateTime"])
+    sig_dt = pd.to_datetime(signals["DateTime"])
+    idx = zlo_dt.searchsorted(sig_dt, side="right") - 1
+    idx = idx.clip(0, len(zlo) - 1)
+    for col in ["Oscillator", "BaseTrend", "TrendState",
+                "LongMomSig", "ShortMomSig", "LongKeyRetSig",
+                "ShortKeyRetSig", "LongRetSig", "ShortRetSig"]:
+        if col in zlo.columns:
+            signals[f"ZLO_{col}"] = zlo[col].values[idx]
+    return signals
+
+
+def apply_zlo_filters(
+    df: pd.DataFrame,
+    want_trend: bool,
+    want_trendstate: bool,
+    ts_min: int,
+    want_osc_sign: bool,
+) -> pd.DataFrame:
+    """Mark FilterStatus for rows excluded by ZLO filters."""
+    if not (want_trend or want_trendstate or want_osc_sign):
+        return df
+    if "ZLO_BaseTrend" not in df.columns:
+        return df
+
+    if want_trend:
+        is_long = df["Direction"].str.upper().str.startswith("L")
+        trend_ok = ((is_long & (df["ZLO_BaseTrend"] == 1))
+                    | (~is_long & (df["ZLO_BaseTrend"] == -1)))
+        bad = (df["FilterStatus"] == "ok") & ~trend_ok
+        df.loc[bad, "FilterStatus"] = "zlo_trend"
+
+    if want_trendstate:
+        ts_ok = df["ZLO_TrendState"].abs() >= ts_min
+        bad = (df["FilterStatus"] == "ok") & ~ts_ok
+        df.loc[bad, "FilterStatus"] = "zlo_trendstate"
+
+    if want_osc_sign:
+        is_long = df["Direction"].str.upper().str.startswith("L")
+        osc_ok = ((is_long & (df["ZLO_Oscillator"] > 0))
+                  | (~is_long & (df["ZLO_Oscillator"] < 0)))
+        bad = (df["FilterStatus"] == "ok") & ~osc_ok
+        df.loc[bad, "FilterStatus"] = "zlo_osc_sign"
+
+    return df
+
+
 def apply_regime_population_filters(
     df: pd.DataFrame,
     tags: pd.DataFrame,
@@ -4275,6 +4327,35 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
             help="Drop signals whose prior day was a trend day (range > 1.6×ADR) "
                  "— the S25 clean hard-skip (breakout edge ≈ dead after a trend day).")
 
+        # ── ZLO Filters (only show if ZLO overlay data is loaded) ────────────
+        _zlo_loaded = st.session_state.get("ba_zlo") is not None
+        if _zlo_loaded:
+            st.divider()
+            st.markdown("**ZLO Filters** *(from ZerolagExporter)*")
+            zc1, zc2, zc3, zc4 = st.columns(4)
+            flt_zlo_trend = zc1.checkbox(
+                "BaseTrend = direction", key="ba_flt_zlo_trend",
+                value=st.session_state.get("ba_flt_zlo_trend", False),
+                help="Only take longs when BaseTrend=+1, shorts when BaseTrend=-1")
+            flt_zlo_trendstate = zc2.checkbox(
+                "TrendState ≥ threshold", key="ba_flt_zlo_trendstate",
+                value=st.session_state.get("ba_flt_zlo_trendstate", False),
+                help="Filter on absolute TrendState value (|TS| >= N)")
+            zlo_ts_min = zc3.number_input(
+                "TrendState min", 1, 4,
+                int(st.session_state.get("ba_flt_zlo_ts_min", 3)),
+                key="ba_flt_zlo_ts_min",
+                help="Min |TrendState| (3 = trending, 4 = trending with momentum)")
+            flt_zlo_osc_sign = zc4.checkbox(
+                "Oscillator on-side", key="ba_flt_zlo_osc_sign",
+                value=st.session_state.get("ba_flt_zlo_osc_sign", False),
+                help="Oscillator > 0 for longs, < 0 for shorts")
+        else:
+            flt_zlo_trend = False
+            flt_zlo_trendstate = False
+            zlo_ts_min = 3
+            flt_zlo_osc_sign = False
+
     # ── Signals ───────────────────────────────────────────────────────────────
     with st.expander("📶 Signals", expanded=False):
         # Signal-type filter — built dynamically from the loaded signals' own types,
@@ -4911,6 +4992,14 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
             flt_balance, flt_inside, flt_skip_trend,
             want_er10=flt_er10, er10_min=er10_min)
 
+    # ZLO overlay merge + filters
+    if _zlo_loaded:
+        filtered_signals = merge_zlo_overlay(filtered_signals)
+        if flt_zlo_trend or flt_zlo_trendstate or flt_zlo_osc_sign:
+            filtered_signals = apply_zlo_filters(
+                filtered_signals, flt_zlo_trend, flt_zlo_trendstate,
+                zlo_ts_min, flt_zlo_osc_sign)
+
     _sim_fp = hash((
         len(filtered_signals),
         int(filtered_signals["SignalNum"].sum()) if not filtered_signals.empty else 0,
@@ -4923,6 +5012,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         first_trade_only, first_2_filled_only,
         flt_er30, round(er_min, 4), flt_er10, round(er10_min, 4),
         flt_balance, flt_inside, flt_skip_trend,
+        flt_zlo_trend, flt_zlo_trendstate, zlo_ts_min, flt_zlo_osc_sign,
         exec_entry_model, exec_calc_ms, exec_wire_ms, exec_max_fill_ms, str(exec_entry_slip), str(exec_exit_slip), exec_seed,
     ))
     _has_results = (st.session_state.get("ba_results_fp") == _sim_fp

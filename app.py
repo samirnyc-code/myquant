@@ -18,6 +18,7 @@ import wfa as wfa_mod
 import continuous_chart
 import extras
 import prop_sim
+import auction_tab
 
 # ── Global display rule for st.dataframe (DISPLAY only — calc precision intact) ─
 # One wrapper instead of editing ~35 call sites (and it catches future ones).
@@ -448,8 +449,8 @@ def main():
     # Tab order: Bar Viewer first, Bar Analysis right after it (restored). st.tabs
     # always opens tab 0, so a one-time JS click below makes Bar Analysis the
     # default-active tab while keeping it in second position.
-    tab_massive, tab0, tab3, tab_wfa, tab1, tab_chart, tab4, tab_extras, tab_prop = st.tabs([
-        "📂 Massive", "🗂️ Data", "📈 Bar Analysis", "🔄 WFA", "📊 Bar Viewer", "📈 Chart", "📊 Portfolio", "🧩 Extras", "🏢 Prop Sim",
+    tab_massive, tab0, tab3, tab_wfa, tab1, tab_chart, tab4, tab_extras, tab_prop, tab_auction = st.tabs([
+        "📂 Massive", "🗂️ Data", "📈 Bar Analysis", "🔄 WFA", "📊 Bar Viewer", "📈 Chart", "📊 Portfolio", "🧩 Extras", "🏢 Prop Sim", "🏛️ Auction",
     ])
 
     # Auto-select Bar Analysis (index 1) once per browser session — guarded so it
@@ -526,6 +527,28 @@ def main():
         _signal_uploader("📊 MC Signals", "upload_signals", "ba_signals_mc")
         _signal_uploader("🔁 RevFTSignals", "upload_signals_revft", "ba_signals_revft")
 
+        # ZLO overlay data
+        _ZLO_DISK = _SIGNALS_DIR / "ba_zlo_overlay.parquet"
+        with st.expander("📈 ZLO Overlay (optional)", expanded=False):
+            zlo_file = st.file_uploader(
+                "ZLO Export (.csv)", type=["csv"], key="upload_zlo",
+                help="CSV from NT ZerolagExporter: DateTime,Open,High,Low,Close,Oscillator,BaseTrend,TrendState,signals…",
+            )
+            if zlo_file is not None:
+                zlo_key = f"{zlo_file.name}_{zlo_file.size}"
+                if st.session_state.get("ba_zlo_key") != zlo_key:
+                    zlo_df = pd.read_csv(zlo_file, parse_dates=["DateTime"])
+                    st.session_state["ba_zlo"] = zlo_df
+                    st.session_state["ba_zlo_key"] = zlo_key
+                    zlo_df.to_parquet(_ZLO_DISK, index=False)
+                if st.session_state.get("ba_zlo") is not None:
+                    st.caption(f"✅ {zlo_file.name}  |  {len(st.session_state['ba_zlo'])} bars")
+            else:
+                if "ba_zlo" not in st.session_state and _ZLO_DISK.exists():
+                    st.session_state["ba_zlo"] = pd.read_parquet(_ZLO_DISK)
+                if st.session_state.get("ba_zlo") is not None:
+                    st.caption(f"✅ (auto-loaded from disk)  |  {len(st.session_state['ba_zlo'])} bars")
+
         active_set = st.radio(
             "Active Signal Set", ["MC Signals", "RevFTSignals"],
             key="ba_active_signal_set", horizontal=True,
@@ -548,6 +571,9 @@ def main():
 
     with tab_prop:
         prop_sim.show_prop_sim_tab()
+
+    with tab_auction:
+        auction_tab.show_auction_tab()
 
     # Render the status strip now that all tabs have populated session state.
     with status_ph:

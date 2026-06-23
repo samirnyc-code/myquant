@@ -27,6 +27,7 @@ def _run_prop_sim(trades: pd.DataFrame, cfg: dict) -> dict:
     starting_bal   = cfg["starting_balance"]
     max_daily_loss = cfg["max_daily_loss"]
     max_trailing_dd = cfg["max_trailing_dd"]
+    dd_lock_at_start = cfg.get("dd_lock_at_start", True)
     base_contracts = cfg["base_contracts"]
     scale_interval = cfg["scale_interval"]
     max_contracts  = cfg["max_contracts"]
@@ -129,6 +130,8 @@ def _run_prop_sim(trades: pd.DataFrame, cfg: dict) -> dict:
 
         # Track peak and trailing DD
         peak_balance = max(peak_balance, balance)
+        if dd_lock_at_start and max_trailing_dd > 0:
+            peak_balance = min(peak_balance, starting_bal + max_trailing_dd)
         trailing_dd = balance - peak_balance
 
         # Check daily loss breach AFTER the trade
@@ -232,6 +235,12 @@ def show_prop_sim_tab():
     max_trades_day = c4.number_input(
         "Max trades/day", value=0, step=1, key="ps_max_trades",
         help="0 = unlimited")
+    dd_lock_at_start = st.checkbox(
+        "Lock DD at starting balance",
+        value=True, key="ps_dd_lock",
+        help="Trailing DD stops trailing once the threshold reaches the starting "
+             "balance. E.g. $50k start, $2k DD: threshold trails from $48k up to "
+             "$50k then locks there forever. If off, DD trails indefinitely.")
 
     st.subheader("Contract Scaling")
     s1, s2, s3, s4, s5, s6 = st.columns(6)
@@ -256,6 +265,7 @@ def show_prop_sim_tab():
             "starting_balance": starting_balance,
             "max_daily_loss": max_daily_loss,
             "max_trailing_dd": max_trailing_dd,
+            "dd_lock_at_start": dd_lock_at_start,
             "base_contracts": base_contracts,
             "scale_interval": scale_interval,
             "max_contracts": max_contracts,

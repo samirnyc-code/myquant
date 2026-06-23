@@ -1,10 +1,113 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** June 22, 2026 (session 30)
-**Current Versions:** SIM_v3.8 / GS_v4.5 / SHEET_v3.3 *(S30: Prop Sim tab, Extras tab, 1M bars, NT strategy, signal overlap, heatmap fix, multileg max_fill_ms fix. S29: ESA into WFA, session filters, multi-TF, ER10, UI reorg. S28: ESA v2. S27: ESA Phase A. S24: critical slippage off-tick bugfix.)*
+**Last Updated:** June 23, 2026 (session 31)
+**Current Versions:** SIM_v3.8 / GS_v4.5 / SHEET_v3.3 *(S31: ZLO exporter + filters, MCBreakout stop fix + ER filter, ZLO sweeps, Auction feature library + tab (Dalton day types), Prop Sim DD-lock. S30: Prop Sim tab, Extras tab, 1M bars, NT strategy. S29: ESA into WFA, session filters, multi-TF, ER10. S28: ESA v2. S27: ESA Phase A. S24: critical slippage off-tick bugfix.)*
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 **Handoff hygiene (S20):** A competing handoff had grown in the `.claude/.../memory/` auto-memory folder and a new chat read *that* instead of this file. Fixed: added repo `CLAUDE.md` + rewrote `.claude` `MEMORY.md` to point here; deleted the duplicate session-state memories. **There is now ONE handoff: this file.**
 **Onboarding (S22):** `docs/living/PROJECT_CHARTER.md` is the from-inception synthesis (the *arc* + locked decisions). Read the charter first for orientation, then this handoff for current state. The charter owns the arc/locked rails; **this handoff still wins on what's true today.**
+
+---
+
+## ⭐⭐ SESSION 31 — June 23, 2026 — ZLO Exporter + Filters, MCBreakout Fixes, Auction Feature Library (read FIRST)
+*Wired the LizardTrader Zerolag Oscillator (ZLO) into the research loop, swept it as
+a filter (verdict: only useful as MC confluence, not a standalone signal or gate),
+fixed two MCBreakout bugs + added an ER filter, and built the Auction Feature Library
++ tab with a Dalton day-type classifier grounded in the actual MOM book. Closed the
+ZLO thread; pivoted the AMT direction to developing-day structure.*
+
+### ZLO (LizardTrader Zerolag Oscillator) — explored & CLOSED
+- **`ZerolagExporter.cs`** (NT indicator, in NT Indicators folder, NOT repo) — exports
+  per-bar ZLO data (Oscillator, BaseTrend, TrendState, 6 signal series) to CSV. Exposes
+  Period/Smooth/Fractal/EfficiencyMult/TrendFilterType. Run on a 5M ES chart → overwrites
+  CSV each run. NOTE: NT stacks generated-code regions on failed compiles → if it errors,
+  delete the duplicate `#region NinjaScript generated code` blocks (keep one).
+- **ZLO upload + filters in BA** (`app.py` Data tab "📈 ZLO Overlay", `bar_analysis.py`
+  Regime Gates "ZLO Filters"): merge ZLO onto signals by nearest DateTime; filters for
+  BaseTrend=direction, |TrendState|≥N, Oscillator on-side. `merge_zlo_overlay` +
+  `apply_zlo_filters` + fingerprint wiring.
+- **Sweep (`scripts/zlo_filter_sweep.py` → `docs/living/zlo_filter_sweep.csv`)**: all
+  ZLO filters × ER10 0.1–0.9 slices, full metrics. **VERDICT: directional/trend filters
+  HURT (redundant with MC + ER10). Confluence (ZLO's own mom/key-ret signal fires same-bar
+  same-dir as MC CC) is the ONLY positive — SuperTrend variant best (ER10≥0.8 → 67% win,
+  PF 2.53, PnL/DD 18.6) but only ~200 trades/5yr → SIZING NUDGE, not a gate.**
+- **Standalone KeyRet backtest (`scripts/keyret_backtest.py`)**: forward-return probe
+  showed ZLO Key Retracement looked promising (+1.3pt/30min), BUT through the real tick
+  engine with the doc's retracement stop + costs → **NO edge (PF 0.97–1.04, exp ±$10).**
+  The forward-return was gross drift; the tight stop kills it. **KeyRet not tradeable alone.**
+- **Two ZLO CSVs**: EfficiencyRatio (BaseTrend has 0 neutral zone) vs SuperTrend (no neutral
+  → fires MORE signals). Ran separately, not combined. Trend filter GATES signal generation
+  (LongMom only fires when BaseTrend>0), which is why the populations differ.
+- **CLOSED the ZLO thread.** Confluence captured as a sizing candidate (see memory).
+
+### MCBreakout strategy (NT, in NT Strategies folder, NOT repo) — 2 fixes + ER filter
+- **STOP BUG FIXED**: was taking `High[lookback]`/`Low[lookback]` (one bar) instead of the
+  MC EXTREME. Now scans all bars 0..lookback for the true highest-high / lowest-low. Stop
+  now lands on the MCX level (the magenta line).
+- **ER10 filter added**: toggle (UseERFilter), ERPeriod (default 2 = ER10 on 5M), ERMinThreshold
+  (0.30). Inline Kaufman ER, skips signals below threshold. Off by default.
+- **Timing-column caveat**: CalcMs/FillMs are garbage in historical backtest (DateTime.Now −
+  historical bar time = huge). Only meaningful in LIVE/REPLAY. By design — for the future
+  NT-sim timing-calibration phase.
+
+### Prop Sim — DD lock toggle
+- **"Lock DD at starting balance"** checkbox (default ON): trailing DD threshold stops trailing
+  once it reaches the starting balance, then locks there forever (prop-firm rule). Off =
+  pure trailing. `peak_balance = min(peak, starting_bal + max_trailing_dd)`. (Max trades/day
+  already existed in Account Rules.)
+
+### ⭐ AUCTION FEATURE LIBRARY (`auction_features.py`) + tab (`auction_tab.py`) — NEW
+- **`build_session_features(bars, eth)`** → one row per RTH session, look-ahead-safe: IB
+  (first 60min) + extension each side + first-break, range/ADR/DR%, open/close location
+  (OLV/CLV), value area (POC/VAH/VAL/width/skew), volume-profile bimodality, gap (size in
+  ADR, bucket, same-session fill, open vs prior range/VA), VA migration, **Dalton day-type**.
+- **Day-type classifier grounded in *Mind Over Markets* Ch.2** (read from user's `MOM.pdf`):
+  Normal (27.9%) · Normal Variation (57.8%) · Trend (2.5%) · Double Distribution (5.5%,
+  via profile bimodality) · Neutral (4.4%, Center/Extreme split) · Nontrend (1.9% — the
+  quiet "TR day"). Stable across years. Tunable in `_classify_day_type`.
+- **Studies**: `day_type_transition_matrix` (yesterday→today), `gap_outcome_study`.
+- **Tab (new "🏛️ Auction")**: day-type distribution, transition heatmap, gap-bias table,
+  raw downloadable feature table. Run-button gated.
+- **Findings**: balance/Nontrend clusters; trend days don't repeat (3.9%); gap size scales
+  monotonically with prior-day energy (trend→0.57 ADR gap vs balance→0.29); large gaps fill
+  only ~32% vs ~90% flat (gap-and-go threshold).
+
+### STRATEGY POV (agreed direction for S32)
+- **Prior-day → today prediction is WEAK** (yesterday barely shifts today's distribution).
+  **Developing-day structure (real-time, look-ahead-safe at the signal bar) is where AMT pays.**
+- **The decisive test**: build a developing-day feature set at each MC signal bar (IB
+  formed/broken, one-timeframe-so-far, price vs developing POC/VWAP/IB) → conditional
+  outcome study: does MC breakout expectancy shift materially by developing day structure?
+  Edge → filter/sizer; no edge → shelve AMT honestly. Classification alone is worthless.
+- **Actionable day-type characteristics** (go-with vs fade for a breakout) documented in chat;
+  Trend=hold/go-with, Normal=fade extremes, Nontrend=don't trade breakouts, etc.
+
+### Files changed (REPO)
+- `app.py` — ZLO uploader (Data tab), new "🏛️ Auction" tab + import
+- `bar_analysis.py` — ZLO merge + filters (`merge_zlo_overlay`, `apply_zlo_filters`) + UI + fingerprint
+- `prop_sim.py` — DD lock-at-start toggle
+- `auction_features.py` — NEW (per-session auction feature library + Dalton classifier)
+- `auction_tab.py` — NEW (explorer tab)
+- `scripts/zlo_filter_sweep.py`, `scripts/keyret_backtest.py` — NEW
+- `docs/living/zlo_filter_sweep.csv`, `docs/living/keyret_backtest.csv` — NEW
+- **NT (NOT repo)**: `@@MCBreakout.cs` (stop fix + ER filter), `ZerolagExporter.cs` (NEW)
+
+### Memory updated
+- `sizing_candidates.md` — master "size, don't skip" list (balance, prior-inside, ZLO
+  confluence, ER10 gradient; size-down on trend-day; test design). Folded in old zlo_sizing_idea.
+- `auction_theory_refs.md` — 4 local PDF paths (Dalton MOM + Markets in Profile, Steidlmayer,
+  Volume Profile insider guide), all verified readable. Dalton day-type definitions.
+
+### NEXT (S32)
+0. **🔬 Compare MABreakout vs MCSignal CSVs** — user has an MABreakout strategy CSV trading
+   "the same logic" as the MCSignal producer, but results are VASTLY different. Diff
+   column-by-column (entry timing, stop reference, dedup, session window) to find the mismatch.
+1. **Developing-day feature set + conditional outcome study** (the decisive AMT test above).
+   Condition on full MC pop or ER10-filtered book (user to decide).
+2. **Sizing hypothesis test** — engine needs a per-row `Contracts` column to run variable
+   size; then flat vs conviction-scaled (balance/inside/confluence/ER10), judged on MAR/PnL-DD/SQN,
+   validated OOS + Prop Sim.
+3. **Compile + test MCBreakout in NT sim** (carried from S30/S31) — verify the stop fix +
+   ER filter, measure real timing.
 
 ---
 
