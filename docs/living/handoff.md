@@ -1,10 +1,99 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** June 23, 2026 (session 31)
-**Current Versions:** SIM_v3.8 / GS_v4.5 / SHEET_v3.3 *(S31: ZLO exporter + filters, MCBreakout stop fix + ER filter, ZLO sweeps, Auction feature library + tab (Dalton day types), Prop Sim DD-lock. S30: Prop Sim tab, Extras tab, 1M bars, NT strategy. S29: ESA into WFA, session filters, multi-TF, ER10. S28: ESA v2. S27: ESA Phase A. S24: critical slippage off-tick bugfix.)*
+**Last Updated:** June 23, 2026 (session 32)
+**Current Versions:** SIM_v3.9 / GS_v4.5 / SHEET_v3.3 *(S32: Prop Sim overhaul — MC-sized payout buffer, monthly 80/20 payouts, ES/MES margin, never-blow floor de-risk + shock model, richer dashboard; MCBreakout pyramiding (N concurrent/dir) + ratchet-lock fix. S31: ZLO exporter + filters, MCBreakout stop fix + ER filter, ZLO sweeps, Auction feature library + tab (Dalton day types), Prop Sim DD-lock. S30: Prop Sim tab, Extras tab, 1M bars, NT strategy. S29: ESA into WFA, session filters, multi-TF, ER10. S28: ESA v2. S27: ESA Phase A. S24: critical slippage off-tick bugfix.)*
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 **Handoff hygiene (S20):** A competing handoff had grown in the `.claude/.../memory/` auto-memory folder and a new chat read *that* instead of this file. Fixed: added repo `CLAUDE.md` + rewrote `.claude` `MEMORY.md` to point here; deleted the duplicate session-state memories. **There is now ONE handoff: this file.**
 **Onboarding (S22):** `docs/living/PROJECT_CHARTER.md` is the from-inception synthesis (the *arc* + locked decisions). Read the charter first for orientation, then this handoff for current state. The charter owns the arc/locked rails; **this handoff still wins on what's true today.**
+
+---
+
+## ⭐⭐ SESSION 32 — June 23, 2026 — Prop Sim Overhaul + MCBreakout Pyramiding (read FIRST)
+*Reworked the NT MCBreakout strategy to take multiple concurrent trades (it was
+refusing additional signals while in a position) and fixed a counter ratchet that
+silently locked it out after ~1 month. Then a major Prop Sim rebuild: Monte-Carlo
+risk sizing, monthly 80/20 payouts, ES/MES margin, and a "never-blow" floor de-risk
+driven by a user-specified shock model. User's stated #1 priority: never blow the
+account, EVER.*
+
+### MCBreakout (NT strategy, in NT Strategies folder, NOT repo) — pyramiding + bug fixes
+- **Now takes N concurrent entries per direction** (was 1 hard position). The old
+  `if Position != Flat: return` guard blocked every continuation signal while in a
+  trade — that's why the two flagged long signals on the chart were skipped.
+- **New property `Max Concurrent/Dir`** (default 1 = old behavior). Each entry uses a
+  **unique signal name** (`MCB_1`, `MCB_2`, …) with its **own SetStopLoss/SetProfitTarget**
+  keyed to that name (NT setting: Stop & target submission = *Per entry execution*,
+  EntryHandling = *UniqueEntries*, EntriesPerDirection = N). Exits matched back via
+  `Order.FromEntrySignal`. Never reverses / never holds both sides; one add per bar
+  (existing same-bar dedup). Per-entry state held in a `Dictionary<string,TradeState>`.
+- **⭐ RATCHET-LOCK BUG FIXED**: a hand-maintained `_openLongCount`/`_openShortCount`
+  incremented on entry fill but only decremented on a *matched* exit. The built-in
+  **"Exit on session close"** flattens with an exit whose `FromEntrySignal` doesn't map
+  → counter never came down → after ~a month it hit the cap and **locked out all new
+  entries for the rest of the 5yr backtest** ("takes trades for ~1 month then stops").
+  Fix: the concurrent cap now reads NT's **actual `Position.Quantity`** (+ unfilled
+  submitted entries), which can't leak; `_open.Clear()` at session start as a reset.
+  **ACTION: uncheck "Exit on session close" in NT** so the strategy's own matched
+  session-flatten handles EOD and every trade lands in the CSV. **NOT YET RECOMPILED/
+  TESTED by user.** Earlier CS0136 (duplicate local names) + scope fixes already applied.
+
+### ⭐ PROP SIM OVERHAUL (`prop_sim.py`, REPO) — full rebuild
+- **Fixed crash**: `Styler.applymap` (removed in pandas 2.1+) → `Styler.map`.
+- **ES/MES instrument selector** sets tick value + per-contract day-margin together
+  (ES $12.50 / $500; MES $1.25 / $50). Margin caps contracts at `floor(balance/margin)`.
+- **Direction filter** (Both/Long/Short).
+- **Monthly 80/20 payouts**: withdraw `max(0, account − (start + buffer))` at each month
+  end; split 80% take-home / 20% firm; gates = min trading days, min payout, **consistency
+  rule** (defer if any single day > X% of period profit). Subscription fee + reset fee
+  tracked. Reports realized take-home, unrealized (80% of in-account profit), and
+  **net-to-trader** (the real bottom line — *account equity is NOT your money*).
+- **Monte-Carlo (moving-block bootstrap)** computes: **payout buffer** = 99th-pct $ DD at
+  max contracts (the withdrawal floor), **suggested scale interval** = per-contract 99th-pct
+  DD × safety-mult (rounded $250), and **blow-up probability**.
+- **⭐ NEVER-BLOW FLOOR DE-RISK** (toggle, default off): before each trade, cap contracts so
+  **N worst-ever single-trade losses still fit in the headroom to the blow level**; sizes
+  *below base* near the floor, *skips* the trade if even 1c is unsafe. Asymmetric (cut fast
+  down, add only on the normal profit interval up). Re-sizing every trade makes a streak
+  self-throttle. **Verdict on asymmetric scale-down: it's a SURVIVAL lever, not an edge
+  lever** — EV-neutral on an IID curve (you under-participate in the recovery), but worth it
+  here because the binding constraint is the hard trailing-DD floor + reset cost.
+- **⭐ SHOCK MODEL** (user-specified): **shock size (points)** + **once per N trading days**.
+  Flows into: (1) de-risk unit = `max(historical worst trade, shock$/c)`; (2) MC buffer
+  (injected into bootstrap); (3) flat-max blow-up %; (4) suggested scale interval;
+  (5) a new **de-risk-aware blow-up %** (sequential sim with de-risk + scaling + injected
+  shocks per trade — the realistic "will I ever blow" figure). Does NOT rewrite historical
+  per-trade P&L, does NOT touch margin. Gap reality discussed: intraday + EOD-flat + event
+  filters removes the overnight/limit-down tail; residual = ~15–40pt unscheduled intraday
+  shock while in a trade. Recommend setting shock to ~20–30pt, not the calm backtest max.
+- **Conservative modelling locked in**: trailing DD measured on **trading equity** (start +
+  cum P&L), withdrawals are a separate cash flow (no phantom blow-ups); scaling keys off
+  **account balance** (so cashing out excess sizes you back down); live haircut is
+  **asymmetric** (wins ×(1−x), losses ×(1+x) — must worsen DD, not flatter it).
+- **Richer dashboard** (item 2): Quick View adds CAGR/Sharpe/MAR/payoff; new **🏦 Prop
+  Metrics** expander (take-home/firm/payouts/day# of max TDD/margin/buffer/blow-up/shock/
+  de-risk unit); **🎯 Setup Breakdown** (per-SignalType); **📆 Start-Date Sensitivity**
+  (rolling start months); **🎲 MC DD Distribution** histogram. All run-button gated.
+
+### Files changed (REPO)
+- `prop_sim.py` — full rewrite (MC sizing, payouts, margin, de-risk, shock, dashboard).
+- **NT (NOT repo)**: `MCBreakout.cs` — pyramiding rewrite + ratchet-lock fix.
+
+### Design decisions confirmed by user (AskUserQuestion)
+- Buffer = **Monte-Carlo 99th-pct DD**; payouts **monthly**; live haircut = **expectancy %**
+  (implemented asymmetric per the conservatism note); extras = consistency rule + MC blow-up
+  prob + start-date sensitivity + reset cost (ALL). Shock frequency = **once per N days**.
+- Pyramiding = **cap concurrent at N per direction**, each with its own stop/target.
+
+### NEXT (S33)
+0. **User recompiles + tests MCBreakout in NT** with `Max Concurrent/Dir` > 1 and "Exit on
+   session close" UNCHECKED; confirm the two flagged signals now fire and it trades through
+   the full 5yr (no month-1 stall).
+1. **User runs the new Prop Sim** (Run button) and tunes: set a realistic shock (~20–30pt),
+   turn on floor de-risk, A/B symmetric vs asymmetric on blow-up % / worst DD / net-to-trader.
+2. **Optional hardening**: de-risk-aware MC currently bounded by the specified shock only —
+   consider a second, larger "catastrophic" shock tier if desired.
+3. Carried from S31/S32: developing-day conditional outcome study; MABreakout vs MCSignal CSV
+   diff; per-row `Contracts` column for variable-size engine runs.
 
 ---
 
