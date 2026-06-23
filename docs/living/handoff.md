@@ -1,10 +1,121 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** June 23, 2026 (session 34)
+**Last Updated:** June 24, 2026 (session 36)
 **Current Versions:** SIM_v3.9 / GS_v4.5 / SHEET_v3.3 *(S32: Prop Sim overhaul — MC-sized payout buffer, monthly 80/20 payouts, ES/MES margin, never-blow floor de-risk + shock model, richer dashboard; MCBreakout pyramiding (N concurrent/dir) + ratchet-lock fix. S31: ZLO exporter + filters, MCBreakout stop fix + ER filter, ZLO sweeps, Auction feature library + tab (Dalton day types), Prop Sim DD-lock. S30: Prop Sim tab, Extras tab, 1M bars, NT strategy. S29: ESA into WFA, session filters, multi-TF, ER10. S28: ESA v2. S27: ESA Phase A. S24: critical slippage off-tick bugfix.)*
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 **Handoff hygiene (S20):** A competing handoff had grown in the `.claude/.../memory/` auto-memory folder and a new chat read *that* instead of this file. Fixed: added repo `CLAUDE.md` + rewrote `.claude` `MEMORY.md` to point here; deleted the duplicate session-state memories. **There is now ONE handoff: this file.**
 **Onboarding (S22):** `docs/living/PROJECT_CHARTER.md` is the from-inception synthesis (the *arc* + locked decisions). Read the charter first for orientation, then this handoff for current state. The charter owns the arc/locked rails; **this handoff still wins on what's true today.**
+
+---
+
+## ⭐ SESSION 36 — June 24, 2026 — "Always In" port + AID overlay (negative result) + Fade toggle (read FIRST)
+*Reverse-engineered a TradeStation "MyReversals/Logan" system from screenshots; built its
+"Always In" regime piece for NT8; wired an AID overlay into BA and tested it (subtractive —
+shelved); added a BA "fade signals" toggle. RevFT signal set = the MyReversals export.*
+
+### NT8 — `AlwaysIn.cs` indicator (NEW, in NT8 Indicators folder; not in repo)
+- Ports Logan's EL "Always In" regime: `AID=+1/-1` flips on (A) a ≥1σ-range bar whose
+  midpoint (HL2) crosses EMA(Close,20), or (B) two consecutive closes beyond that EMA.
+  Renders a green/red **subpanel ribbon** + **flip-bar racing stripes** (toggle + adjustable
+  opacity), exposes `AlwaysInDir`/`FlipBar` series, and **writes flip events to CSV**
+  (`MCVolumeExport\AlwaysIn_State.csv`: Event,BarTime,BarNum,NewDir,O,H,L,C,EmaFast,Mid,ZScore).
+- Two EL black boxes assumed (source not in screenshots): `GetMidPoint`→HL2 (param: OHLC4
+  toggle), `GetZScoreData`→z-score of bar RANGE over N (param ZScorePeriod, default 20).
+- **Day Summary classifier decoded** (Logan's, NOT built): `Value1 = Close−sessionOpen`;
+  `BL TR` if `Value1 > abr*4`, `BR TR` if `< -abr*4`, else `TR`. One-dimensional close−open
+  displacement in ABR units — path-blind, ignores range/close-location. NOT ported (weak).
+
+### BA — Always In overlay (REPO — uncommitted). Wired exactly like ZLO.
+- `app.py` Data tab: **🧭 Always In State** uploader (flip CSV → `ba_alwaysin`, parquet-persisted).
+- `bar_analysis.py`: `merge_alwaysin_overlay` (backward as-of on `BarTime` = causal, signal-bar
+  state; adds `AID_State / AID_FlipIdx / AID_BarsSinceFlip / AID_OnFlipBar / AID_DirMatch /
+  AID_FirstMatch`) + `apply_alwaysin_filters` (modes: With-AID / First-MC-after-flip /
+  On-flip-bar / Exclude-near-flip) + Regime-Gates UI + fingerprint wiring.
+- **TEST RESULT (headless `scripts/alwaysin_flip_test.py`, MC set, 1R) — AID is SUBTRACTIVE:**
+  baseline expR **0.048** PF1.16 (5,433t) → dir-match 0.045 → **first-after-flip 0.040** PF1.11
+  (2,036t) → on-flip 0.040. Every gate **drops trades AND lowers per-trade expectancy** =
+  negative selectivity (preferentially kills *better* trades). By year unstable (2024 PF0.98).
+  **Verdict: shelved as a gate** — it's a weak EMA/trend tag, redundant like ER10. Columns stay
+  attached for Edge-analysis bucketing. (Engine note: ticks can't all load at once → run
+  day-by-day; `massive.load_continuous_ticks` is NOT cached; subset = row-mask of one full run
+  since the sim scores trades independently — the unlimited-positions assumption.)
+
+### BA — "🔄 Fade signals" toggle (REPO — uncommitted)
+- New checkbox in BA **📶 Signals** expander. `apply_fade` (in `bar_analysis.py`) flips Direction
+  and mirrors stop across entry (`newStop = 2*entry − oldStop`) → at 1:1 the stop becomes the
+  target and vice-versa. Applied **AFTER all gates** (rules pick the same trades, you take the
+  other side). Fingerprint + Save-as-Default wired. Engine compares `direction=="Long"` exactly,
+  so fade emits canonical "Long"/"Short".
+- **Honest framing given the user's −$300k 1:1 RevFT curve:** fading is ONE trade/one set of
+  costs (NOT double commission). Correct accounting: strip costs → flip gross → pay costs once;
+  `Net_fade ≈ −Gross_orig − Costs`. A steady linear bleed is the signature of a cost-drag on a
+  ~coinflip → fading it **stays a loser**. Fade only wins if gross is genuinely negative beyond
+  costs. NOT yet run on `ba_signals_revft` (offered: report gross/costs/net original vs fade).
+
+### Open / next
+- Optional: run fade headless on RevFT set for the real gross/costs/net split.
+- Optional: AID as a *sizer* (size with/against regime, keep all trades) instead of a gate.
+- `AlwaysIn.cs` needs compiling in NT8 (F5); not under repo version control.
+
+---
+
+## ⭐ SESSION 35 — June 24, 2026 — App-settings cleanup + ER×CC filter study + scale-in OOM fix (read FIRST)
+*UI/default cleanup, a large ER×CC filter study saved to disk, confirmation that causal
+ER is genuinely informative (not residual look-ahead), and a memory fix for the scale-in
+sweep. Continues the S33 cluster-gate / S34 look-ahead thread.*
+
+### App settings / UX cleanup (REPO — uncommitted)
+- **5M is now the default timeframe everywhere** it's selectable. Bug: BA + WFA did
+  `_tf_options.insert(0,"1M")` when 1M data was loaded and `st.radio` defaults to index 0,
+  so **1M silently became the default**. Fixed via `index=_tf_options.index("5M")` on both
+  radios (`bar_analysis.py`, `wfa.py`). 1M/15M/100s still selectable.
+- **ES round-trip commission default = $5 everywhere.** Source: `simulation_engine.py`
+  `INSTRUMENTS["ES"]["default_commission"]` 4.36→**5.0** (feeds BA single/ML/3L, WFA,
+  Portfolio). Also hardcoded inputs: `prop_sim.py`, `extras.py` 4.36→5.0; BA `.get(...,3.0)`
+  fallbacks→5.0. MES unchanged ($1.30). `scripts/` left at 4.36 (regression baselines).
+- **Date whitelist REMOVED** from BA (uploader + `date_whitelist` filter path) and WFA.
+- **Assumption Ledger expander moved far down** in BA results (was right after the run
+  caption; now just before the ESA Phase B expander). WFA ledger left (already deep).
+- **ESA execution model default = Realistic preset + market entry** in BA + WFA (via
+  `index=...index("Realistic")`; market was already index 0). er_lookahead_tab inherits via
+  `ba_sim_params`. Updated the stale "Custom/market/0ms = byte-identical" comment.
+
+### ⭐ ER×CC filter study — SAVED to `docs/living/er_cc_survivor_filter_20260623.{md,csv}`
+- Causal **signal-bar** ER (post-S34 fix; verified 323/323 signal-bar, 0 leakage), spans
+  3/6/9/12 = **ER15/30/45/60**, both directions, 1R bar-resolver (~9% hot, no CAL),
+  in-sample 2021–26. CSV = 240 rows (6 pops × 4 TF × 10 thresholds). Two views computed:
+  isolated 0.1 buckets AND cumulative survivor (`keep ER > X`) — the saved file is the
+  **cumulative-survivor** view (8 metrics incl. ExpR + P/DD = Net/|MaxDD|).
+- **Findings:** ER15 degenerate (no spread — drop it). Edge is **per-CC**: **CC2 + CC5
+  reward high ER** (CC5 ER30>0.7 → ExpR 0.14, $137, keeps 40%, P/DD 6.5; CC2 ER60>0.8 →
+  ExpR 0.38); **CC3 flat, CC4 is an ANTI-ER setup** (every ER filter strictly hurts it).
+  No single global ER threshold serves the book. Small in R terms (base ExpR 0.049).
+
+### Causal-ER vs RIC — confirmed NOT a look-ahead leak
+- User saw ER still topping the "RIC Ranking" tab. Proven via headless (fixed `tag_signals`):
+  **ER10 look-ahead RIC 348% → causal 25%** (bug gone, collapses 14×). Longer ER (30/60/120m)
+  stay high *causally* (123–134%) because the 1-future-bar contamination is a small fraction
+  of a 6–24-bar window — i.e. genuine signal, not leak. RIC is also **inflated ~4–7× by the
+  50-bin scheme** (ER30 131%@50bins → 18%@5bins). RIC = dispersion ranking, NOT edge size.
+  RIC tab buckets only 30/60/120m (ER10 not shown). Tab uses fixed `tag_signals` (causal);
+  if it still shows pre-fix numbers, the Streamlit `@st.cache_data` is stale → restart app.
+
+### ⚠️ Scale-in sweep OOM fix (REPO — uncommitted, NOT YET VALIDATED)
+- Crash: `_run_ml_scalein_sweep` (`bar_analysis.py`) caches a **full remaining-session tick
+  path per filled trade × 3 arrays** (prices/rmax/neg_rmin) → tens of GB → `ArrayMemoryError`
+  (failed on a 1.31 MiB alloc = RAM already exhausted). **Fix:** cache `prices` as **float32**
+  (line ~1428) — lossless for ES (tick-aligned price/tick < 2²⁴ exact; rmax/neg_rmin + every
+  searchsorted query on those exact values), halves the cache footprint.
+- **⚠️ MUST RUN `scripts/validate_scalein_sweep.py`** to confirm byte-identical results — the
+  user redirected to docs before I ran it. If it still OOMs after float32: the deeper fix is
+  trimming each path to the RTH session / a level-based cut, but a naive level cut breaks the
+  `>= n` "never reached" semantics (verified buggy) — needs care + re-validation.
+
+### Files changed (REPO, S35) — UNCOMMITTED
+- `bar_analysis.py` (5M default, comm fallback, whitelist removal, ledger move, ESA default,
+  float32 cache), `wfa.py` (5M default, whitelist removal, ESA default), `simulation_engine.py`
+  (ES comm 5.0), `prop_sim.py` + `extras.py` (comm 5.0).
+- NEW: `docs/living/er_cc_survivor_filter_20260623.md` + `.csv`.
 
 ---
 
