@@ -1,3 +1,8 @@
+> # 🚨 INVALID — LOOK-AHEAD BUG (see docs/living/handoff.md, S34)
+> This study used ER/feature values that read the **entry bar** (one bar in the
+> future), not the signal bar. Its numbers are **not trustworthy**. Re-run on the
+> corrected `tag_signals` pipeline before citing anything here.
+
 # ER Open-Endpoint Study (2026-06-21)
 
 Open[T] endpoint removes signal-bar circularity. Compares Close[T] (standard) vs Open[T] (independent of signal bar).

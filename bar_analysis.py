@@ -191,6 +191,28 @@ def apply_zlo_filters(
     return df
 
 
+def _consecutive_run_pos(df: pd.DataFrame) -> pd.Series:
+    """Run position of each signal within a same-direction consecutive-bar streak,
+    per day. A signal on bar N gets position k when bars N-k+1 … N each carried a
+    same-direction signal — so run_pos >= 2 means "2-in-a-row": a same-direction
+    signal also fired on the immediately prior 5M bar.
+
+    Computed over the RAW signal stream (independent of every other gate) because
+    the prior-bar signal is known at the moment we'd decide on this one — this is
+    look-ahead-safe. Signals that share a BarNum (e.g. CC2/CC3 on one bar) collapse
+    to a single bar for the streak count, then map back to all rows on that bar.
+    """
+    out = pd.Series(1, index=df.index, dtype=int)
+    for _, g in df.groupby(["Date", "Direction"], sort=False):
+        pos, prev, p = {}, None, 0
+        for b in sorted(g["BarNum"].unique()):
+            p = p + 1 if (prev is not None and b - prev == 1) else 1
+            pos[b] = p
+            prev = b
+        out.loc[g.index] = g["BarNum"].map(pos).to_numpy()
+    return out
+
+
 def apply_regime_population_filters(
     df: pd.DataFrame,
     tags: pd.DataFrame,
@@ -201,6 +223,8 @@ def apply_regime_population_filters(
     skip_trend: bool,
     want_er10: bool = False,
     er10_min: float = 0.30,
+    want_consec: bool = False,
+    min_run: int = 2,
 ) -> pd.DataFrame:
     """Mark FilterStatus for rows excluded by the regime population gates.
 
@@ -211,8 +235,14 @@ def apply_regime_population_filters(
     keep gates (conservative, matching the research's fillna(0) on ER) and are NOT
     treated as trend days for the skip. ER gates run first (primary chop filters;
     balance/inside are secondary boosters on top).
+
+    The consecutive-signal cluster gate (`want_consec`, run_pos >= `min_run`) keeps
+    only the Nth-or-later breakout in a run of consecutive-bar signals — i.e. "take
+    the 2nd breakout, skip the first". It reads off the raw signal stream (Date +
+    Direction + BarNum on `df`), so it is look-ahead-safe.
     """
-    if not (want_er or want_er10 or want_balance or want_inside or skip_trend):
+    if not (want_er or want_er10 or want_balance or want_inside or skip_trend
+            or want_consec):
         return df
     t = tags.reindex(df.index)
     if want_er:
@@ -230,6 +260,10 @@ def apply_regime_population_filters(
     if skip_trend:
         bad = (df["FilterStatus"] == "ok") & t["prior_adr_ext"].fillna(False)
         df.loc[bad, "FilterStatus"] = "prior_trend"
+    if want_consec:
+        rp = _consecutive_run_pos(df)
+        bad = (df["FilterStatus"] == "ok") & ~(rp >= int(min_run))
+        df.loc[bad, "FilterStatus"] = "not_consec"
     return df
 
 
@@ -2530,6 +2564,7 @@ _FILTER_LABELS = {
     "not_balance":    "Not a balance-state day (S25)",
     "not_inside":     "Prior day not an inside day (S25)",
     "prior_trend":    "Prior day a trend day >1.6×ADR (S25)",
+    "not_consec":     "Not Nth+ consecutive-bar signal (cluster gate)",
 }
 
 _EXECUTION_STATUSES = {"no_fill", "no_next_bar", "no_tick_data", "zero_risk"}
@@ -4327,6 +4362,24 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
             help="Drop signals whose prior day was a trend day (range > 1.6×ADR) "
                  "— the S25 clean hard-skip (breakout edge ≈ dead after a trend day).")
 
+        st.markdown("**Consecutive-signal cluster (S33)**")
+        rc1, rc2 = st.columns(2)
+        flt_consec = rc1.checkbox(
+            "Cluster gate (Nth-in-a-row)", key="ba_flt_consec",
+            value=st.session_state.get("ba_flt_consec", False),
+            help="Keep only signals that are the Nth-or-later in a run of "
+                 "consecutive 5M bars each carrying a same-direction signal "
+                 "(N=2 = 'take the 2nd breakout, skip the first'). Look-ahead-safe: "
+                 "the prior bar's signal is known at decision time. S33 corrected-ER "
+                 "research: N=2 ~doubled expectancy (~$120 vs ~$59 baseline); N≥3 "
+                 "reverts toward baseline on thin samples.")
+        min_run = rc2.number_input(
+            "Min consecutive (N)", 2, 6,
+            int(st.session_state.get("ba_flt_min_run", 2)),
+            step=1, key="ba_flt_min_run",
+            help="N=2 keeps the 2nd+ of a consecutive-bar cluster. Research says 2 "
+                 "is the signal; 3+ just shrinks the sample.")
+
         # ── ZLO Filters (only show if ZLO overlay data is loaded) ────────────
         _zlo_loaded = st.session_state.get("ba_zlo") is not None
         if _zlo_loaded:
@@ -4859,6 +4912,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                 "ba_flt_er10": flt_er10, "ba_flt_er10_min": float(er10_min),
                 "ba_flt_balance": flt_balance, "ba_flt_inside": flt_inside,
                 "ba_flt_skip_trend": flt_skip_trend,
+                "ba_flt_consec": flt_consec, "ba_flt_min_run": int(min_run),
                 "ba_trade_mode": st.session_state.get("ba_trade_mode", "Single Leg"),
                 # Single-leg
                 "ba_instrument_sl": st.session_state.get("ba_instrument_sl", "ES"),
@@ -4951,6 +5005,47 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                  "0 = no timeout. Data shows fills >30 min are net losers.")
         exec_max_fill_ms = int(exec_max_fill_min * 60000)
 
+    # Expose the fully-resolved sim/exec config so the 🔬 ER10 Look-ahead tab can run
+    # the SAME ESA configuration (preset, entry model, slips, delays, leg structure)
+    # without duplicating this control panel. Additive — does not affect this run.
+    st.session_state["ba_sim_params"] = {
+        "er10_min": float(er10_min),
+        "commission": commission,
+        "sim_kwargs": dict(
+            target_r=target_r, entry_slip=exec_entry_slip, exit_slip=exec_exit_slip,
+            stop_offset=stop_offset, tick_value=tick_value, contracts=contracts,
+            commission=commission,
+            multileg=use_multileg, t1_r=t1_r, t1_action=t1_action,
+            contracts_t1=contracts_t1, contracts_t2=contracts_t2,
+            ratchet_r=ratchet_r_v, ratchet_dest=ratchet_dest_v, ratchet_lock_r=ratchet_lock_r_v,
+            ml_pb_r=ml_pb_r_v, scale_in_style=scale_in_style_v, pb_round=pb_round_v,
+            threeleg=use_threeleg,
+            contracts_e1=e1c_3l, contracts_e2=e2c_3l, contracts_e3=e3c_3l,
+            pb1_r=pb1_r_val, pb1_ticks=pb1_ticks_v, pb2_r=pb2_r_val, pb2_ticks=pb2_ticks_v,
+            t2_r=t2_r_val,
+            entry_model=exec_entry_model, calc_delay_ms=exec_calc_ms,
+            wire_delay_ms=exec_wire_ms, max_fill_ms=exec_max_fill_ms, exec_seed=exec_seed,
+        ),
+        "summary_kwargs": dict(
+            contracts=(e1c_3l + e2c_3l + e3c_3l) if use_threeleg else contracts,
+            is_multileg=(use_multileg or use_threeleg),
+            t1_action=t1_action, contracts_t1=contracts_t1, contracts_t2=contracts_t2,
+        ),
+        "display": {
+            "Leg mode": "3-leg" if use_threeleg else ("2-leg" if use_multileg else "single-leg"),
+            "Execution preset": _exec_preset,
+            "Entry model": exec_entry_model,
+            "Target R": f"{target_r:g}",
+            "Stop offset (ticks)": stop_offset,
+            "Entry/Exit slip (ticks)": f"{exec_entry_slip}/{exec_exit_slip}",
+            "Calc/Wire delay (ms)": f"{exec_calc_ms}/{exec_wire_ms}",
+            "Max fill (ms)": exec_max_fill_ms,
+            "Contracts": contracts,
+            "Commission $": f"{commission:g}",
+            "Tick value $": f"{tick_value:g}",
+        },
+    }
+
     # ── Run button ────────────────────────────────────────────────────────────
     st.divider()
     _rb_col, _ = st.columns([2, 5])
@@ -4980,7 +5075,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
 
     # Regime population gates (ER chop + S25 balance) — tag only when at least one
     # is active (the tag is cached, so it computes once per signal/bar set).
-    if flt_er30 or flt_er10 or flt_balance or flt_inside or flt_skip_trend:
+    if flt_er30 or flt_er10 or flt_balance or flt_inside or flt_skip_trend or flt_consec:
         _reg_fp = hash((
             len(signals_raw),
             int(signals_raw["SignalNum"].sum()) if not signals_raw.empty else 0,
@@ -4990,7 +5085,8 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         filtered_signals = apply_regime_population_filters(
             filtered_signals, _reg_tags, flt_er30, er_min,
             flt_balance, flt_inside, flt_skip_trend,
-            want_er10=flt_er10, er10_min=er10_min)
+            want_er10=flt_er10, er10_min=er10_min,
+            want_consec=flt_consec, min_run=int(min_run))
 
     # ZLO overlay merge + filters
     if _zlo_loaded:
@@ -5012,6 +5108,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         first_trade_only, first_2_filled_only,
         flt_er30, round(er_min, 4), flt_er10, round(er10_min, 4),
         flt_balance, flt_inside, flt_skip_trend,
+        flt_consec, int(min_run),
         flt_zlo_trend, flt_zlo_trendstate, zlo_ts_min, flt_zlo_osc_sign,
         exec_entry_model, exec_calc_ms, exec_wire_ms, exec_max_fill_ms, str(exec_entry_slip), str(exec_exit_slip), exec_seed,
     ))

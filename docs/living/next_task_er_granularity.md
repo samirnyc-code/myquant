@@ -1,3 +1,8 @@
+> # 🚨 INVALID — LOOK-AHEAD BUG (see docs/living/handoff.md, S34)
+> This study used ER/feature values that read the **entry bar** (one bar in the
+> future), not the signal bar. Its numbers are **not trustworthy**. Re-run on the
+> corrected `tag_signals` pipeline before citing anything here.
+
 # ER granularity — finer ER gate (OOS-TESTED, pending in-app reproduction)
 
 **Status (updated S26 night):** OOS-tested extensively — `ER_intra_2` (2-bar/10-min)

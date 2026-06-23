@@ -1,3 +1,8 @@
+> # 🚨 INVALID — LOOK-AHEAD BUG (see docs/living/handoff.md, S34)
+> This study used ER/feature values that read the **entry bar** (one bar in the
+> future), not the signal bar. Its numbers are **not trustworthy**. Re-run on the
+> corrected `tag_signals` pipeline before citing anything here.
+
 # Confirm ER Lookback — WFA OOS (2026-06-21)
 
 Pinned 1.0R single-leg, IS=252/OOS=63 signal-day folds. 15 folds, 5444 filled signals total.

@@ -543,6 +543,27 @@ def prior_period_levels(bars: pd.DataFrame, target_dt: pd.Series,
     }, index=target_dt.index)
 
 
+def _causal_at_signal_bar(frame: pd.DataFrame) -> pd.DataFrame:
+    """Shift a developing per-bar feature frame back one row so an as-of(backward)
+    merge on the signal's DateTime returns the value of the SIGNAL bar, not the
+    still-forming entry bar.
+
+    Bars are open-labeled (a bar labeled T spans [T, T+Δ) and closes at T+Δ). A
+    signal's DateTime is the signal bar's CLOSE, which equals the NEXT bar's
+    open-label. So `merge_asof(..., direction="backward")` on the signal DateTime
+    lands on the bar labeled sig_dt — the ENTRY bar, which has NOT closed yet
+    (its developing value uses a close one interval in the future = look-ahead).
+    Carrying each row's value forward to the next label makes that merge return the
+    last CLOSED bar's value (the signal bar) — the value actually known at decision
+    time. Builders that already compensate internally (e.g. developing_session_levels'
+    groupby(day).shift(1)) must NOT be passed through this.
+    """
+    f = frame.sort_values("DateTime").reset_index(drop=True)
+    val_cols = [c for c in f.columns if c != "DateTime"]
+    f[val_cols] = f[val_cols].shift(1)
+    return f
+
+
 def tag_signals(signals: pd.DataFrame, bars: pd.DataFrame,
                 periods: tuple = ("session", "weekly", "monthly",
                                   "quarterly", "yearly")) -> pd.DataFrame:
@@ -581,8 +602,16 @@ def tag_signals(signals: pd.DataFrame, bars: pd.DataFrame,
         bars = bars.copy()
         bars["DateTime"] = bars["DateTime"].astype("datetime64[ns]")
 
+    # All five frames below are DEVELOPING per-bar features with no internal
+    # current-bar shift, so each is routed through _causal_at_signal_bar() to read
+    # the value of the SIGNAL bar rather than the still-forming entry bar that a
+    # raw backward as-of merge would land on (open-labeled bars; signal DateTime =
+    # signal bar close = next bar's open-label). The balance block below is NOT
+    # shifted here — developing_session_levels already does groupby(day).shift(1).
+
     # ── VWAP deviation at the signal bar (as-of merge on DateTime) ────────────
-    vb = session_vwap_bands(bars)[["DateTime", "VWAP", "VWAP_sigma", "VWAP_dev"]]
+    vb = _causal_at_signal_bar(
+        session_vwap_bands(bars)[["DateTime", "VWAP", "VWAP_sigma", "VWAP_dev"]])
     sig = sig.sort_values("DateTime")
     sig = pd.merge_asof(
         sig, vb.sort_values("DateTime"),
@@ -590,21 +619,21 @@ def tag_signals(signals: pd.DataFrame, bars: pd.DataFrame,
     )
 
     # ── 20-bar EMA (as-of merge) ─────────────────────────────────────────────
-    ema_df = bar_ema(bars, span=20)
+    ema_df = _causal_at_signal_bar(bar_ema(bars, span=20))
     sig = pd.merge_asof(
         sig, ema_df.sort_values("DateTime"),
         on="DateTime", direction="backward",
     )
 
     # ── Intraday Kaufman ER (30m/60m/120m, causal) ───────────────────────────
-    eri = bar_kaufman_er(bars, spans=(2, 6, 12, 24))
+    eri = _causal_at_signal_bar(bar_kaufman_er(bars, spans=(2, 6, 12, 24)))
     sig = pd.merge_asof(
         sig, eri.sort_values("DateTime"),
         on="DateTime", direction="backward",
     )
 
     # ── Session levels (as-of merge) ─────────────────────────────────────────
-    sl = session_levels(bars)
+    sl = _causal_at_signal_bar(session_levels(bars))
     sig = pd.merge_asof(
         sig, sl.sort_values("DateTime"),
         on="DateTime", direction="backward",
@@ -614,8 +643,9 @@ def tag_signals(signals: pd.DataFrame, bars: pd.DataFrame,
     ms = calculate_market_structure(bars)
     ms_cols = ["DateTime", "structural_trend", "active_floor",
                "is_deep_pullback", "mss_event"]
+    ms = _causal_at_signal_bar(ms[ms_cols])
     sig = pd.merge_asof(
-        sig, ms[ms_cols].sort_values("DateTime"),
+        sig, ms.sort_values("DateTime"),
         on="DateTime", direction="backward",
     )
 

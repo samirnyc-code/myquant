@@ -1539,7 +1539,23 @@ def show_wfa_tab() -> None:
             help="Drop signals whose prior day was a trend day (range > 1.6×ADR) "
                  "— the S25 clean hard-skip (breakout edge ≈ dead after a trend day).")
 
-        if flt_er30 or flt_er10 or flt_balance or flt_inside or flt_skip_trend:
+        st.markdown("**Consecutive-signal cluster (S33)**")
+        rc1, rc2 = st.columns(2)
+        flt_consec = rc1.checkbox(
+            "Cluster gate (Nth-in-a-row)", key="wfa_flt_consec",
+            value=st.session_state.get("wfa_flt_consec", False),
+            help="Keep only signals that are the Nth-or-later in a run of "
+                 "consecutive 5M bars each carrying a same-direction signal "
+                 "(N=2 = 'take the 2nd breakout, skip the first'). Look-ahead-safe. "
+                 "S33 corrected-ER research: N=2 ~doubled expectancy; N≥3 reverts "
+                 "toward baseline on thin samples — validate fold stability here.")
+        min_run = rc2.number_input(
+            "Min consecutive (N)", 2, 6,
+            int(st.session_state.get("wfa_flt_min_run", 2)),
+            step=1, key="wfa_flt_min_run",
+            help="N=2 keeps the 2nd+ of a consecutive-bar cluster.")
+
+        if flt_er30 or flt_er10 or flt_balance or flt_inside or flt_skip_trend or flt_consec:
             from bar_analysis import _regime_tags_cached, apply_regime_population_filters
             _reg_fp = hash((
                 len(signals_filtered),
@@ -1552,7 +1568,8 @@ def show_wfa_tab() -> None:
             signals_filtered = apply_regime_population_filters(
                 signals_filtered, _reg_tags, flt_er30, er_min,
                 flt_balance, flt_inside, flt_skip_trend,
-                want_er10=flt_er10, er10_min=er10_min)
+                want_er10=flt_er10, er10_min=er10_min,
+                want_consec=flt_consec, min_run=int(min_run))
             _n_ok = (signals_filtered["FilterStatus"] == "ok").sum()
             _n_tot = len(signals_filtered)
             st.caption(f"Regime gates: **{_n_ok} of {_n_tot}** signals pass")
@@ -1690,6 +1707,8 @@ def show_wfa_tab() -> None:
                 _regime_gates.append("prior_inside")
             if flt_skip_trend:
                 _regime_gates.append("skip_trend")
+            if flt_consec:
+                _regime_gates.append(f"consec>={int(min_run)}")
             if _regime_gates:
                 _rg_desc = "regime_gates[LOCKED]: " + "+".join(_regime_gates)
                 _notes_full = (f"{_notes_full} | " if _notes_full else "") + _rg_desc

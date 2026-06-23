@@ -1,10 +1,119 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** June 23, 2026 (session 32)
+**Last Updated:** June 23, 2026 (session 34)
 **Current Versions:** SIM_v3.9 / GS_v4.5 / SHEET_v3.3 *(S32: Prop Sim overhaul — MC-sized payout buffer, monthly 80/20 payouts, ES/MES margin, never-blow floor de-risk + shock model, richer dashboard; MCBreakout pyramiding (N concurrent/dir) + ratchet-lock fix. S31: ZLO exporter + filters, MCBreakout stop fix + ER filter, ZLO sweeps, Auction feature library + tab (Dalton day types), Prop Sim DD-lock. S30: Prop Sim tab, Extras tab, 1M bars, NT strategy. S29: ESA into WFA, session filters, multi-TF, ER10. S28: ESA v2. S27: ESA Phase A. S24: critical slippage off-tick bugfix.)*
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 **Handoff hygiene (S20):** A competing handoff had grown in the `.claude/.../memory/` auto-memory folder and a new chat read *that* instead of this file. Fixed: added repo `CLAUDE.md` + rewrote `.claude` `MEMORY.md` to point here; deleted the duplicate session-state memories. **There is now ONE handoff: this file.**
 **Onboarding (S22):** `docs/living/PROJECT_CHARTER.md` is the from-inception synthesis (the *arc* + locked decisions). Read the charter first for orientation, then this handoff for current state. The charter owns the arc/locked rails; **this handoff still wins on what's true today.**
+
+---
+
+## 🚨🚨 SESSION 34 — June 23, 2026 — ER10 LOOK-AHEAD BUG **FIXED IN CODE** + ER10 audit tab (read FIRST)
+
+> # ⚠️ WARNING — ALL PRIOR BACKTESTS / WFA RESULTS / SAVED STUDIES ARE INVALID
+> Every result produced before this session used **look-ahead-tainted features**. The
+> `tag_signals` as-of merge silently used the **entry bar** (one bar in the future) for
+> ER, EMA, VWAP, session levels, and market structure. **Any conclusion, sweep, WFA fold,
+> or saved study that gated on those features must be RE-RUN before it is trusted.**
+> Specifically tainted: every `docs/living/er*` study, `zlo_filter_sweep*`, all `wfa_store`
+> results, and any handoff conclusion below S34 that cites ER/EMA/VWAP/MSS numbers.
+> The +$229k NT grid / +$303k sim "edges" were look-ahead (see S33). **Treat pre-S34
+> performance numbers as fiction until reproduced on the corrected pipeline.**
+
+### ✅ THE FIX (hard cutover — done & validated this session)
+- **One chokepoint:** `indicators.tag_signals`. Added helper `_causal_at_signal_bar(frame)`
+  that shifts a developing per-bar feature back one row before the backward as-of merge, so
+  the join returns the **signal bar's** value (last CLOSED bar at decision time) instead of
+  the still-forming **entry bar**. Open-labeled bars + close-stamped signals = the raw merge
+  landed one bar in the future; the shift undoes exactly that.
+- **Routed through the fix (were buggy):** `ER_intra_*` (ER10/ER30), `EMA_20`, VWAP bands
+  (VWAP/sigma/dev), `session_levels` (OOD/HOY/LOY/OR60), market structure
+  (structural_trend/active_floor/is_deep_pullback/mss_event).
+- **Deliberately NOT shifted (already causal):** `developing_session_levels`/`balance_state`
+  already does `groupby(day).shift(1)` — shifting again would have introduced a NEW bug.
+  Prior-day regime + prior-period value areas already use `shift(1)` by date. Verified untouched.
+- **Propagates app-wide:** `tag_signals` is the single source, so BA regime gates, WFA,
+  `regime_filter`, and the sweep scripts are all corrected by this one change.
+- **VALIDATION (full 5,385-signal population, all PASS):**
+  - ER10, ER30, EMA_20, VWAP, OOD == builder value at the **signal bar**: **100%**.
+  - `balance_state` unchanged (no double-shift): **100%**.
+  - OLD vs NEW ER10 differ on **50.5%** of signals (confirms the bug was real & removed).
+
+### 🔬 New audit tool — "ER10 Look-ahead" tab
+- New tab (`er_lookahead_tab.py`, wired in `app.py`) runs the **same sim twice** —
+  pre-fix look-ahead ER10 vs the causal value now live — using your **Bar Analysis ESA
+  settings verbatim** (inherits the resolved config via new `st.session_state["ba_sim_params"]`
+  published from `bar_analysis.py`; no fields to re-enter). Shows every metric side by side
+  + gate-flip diagnostics. Kept as a **historical-impact / regression view**.
+- Smoke (40-day slice, gate 0.30, single-leg): pre-fix net **$14,807** / exp **$127.64** vs
+  causal **$9,088** / **$60.99** — expectancy roughly **halved** once the cheat is removed.
+
+### Files changed (REPO, S34) — committed this session
+- `indicators.py` — `_causal_at_signal_bar` + routed 5 feature merges through it in `tag_signals`.
+- `er_lookahead_tab.py` (NEW) — ER10 look-ahead comparison/audit tab.
+- `app.py` — wire the new tab (import + tab + render).
+- `bar_analysis.py` — publish resolved ESA config to `ba_sim_params` for the audit tab.
+  *(Also carries the S33 cluster-gate wiring — see below; that part is NOT yet run/validated.)*
+- `wfa.py` — S33 cluster-gate wiring (bundled in this commit; NOT yet run/validated).
+
+### ⚠️ Bundled-but-unvalidated in this commit
+The S33 **consecutive-cluster gate** code (`bar_analysis.py` + `wfa.py`) was already in the
+working tree and is included here so the tree is clean. It has **NOT been run on the corrected
+pipeline** — re-validate before trusting the ~$120 expectancy claim.
+
+### NEXT
+1. **Re-run everything** that mattered on the corrected pipeline (WFA folds first).
+2. Re-validate the cluster gate on corrected ER (BA single run → WFA year-by-year).
+3. Optional: add stale-cache guard in `prop_sim.py` (`ps_result` missing-key crash).
+
+---
+
+## ⭐⭐ SESSION 33 — June 23, 2026 — ER10 LOOK-AHEAD BUG + Consecutive-Cluster Gate (read FIRST)
+> **S34 UPDATE:** the "NOT YET FIXED" status below is **superseded** — the fix is now
+> implemented & validated (see S34 block above).
+*Diagnosed a look-ahead bug in the Python sim's ER10 (and every other as-of-merged
+gate), quantified the damage, proved the base strategy has no tradeable edge once
+corrected, and wired the one surviving legitimate lever — a consecutive-signal
+cluster gate — into BOTH BA and WFA for validation.*
+
+### ⭐ THE BUG — ER10 (and all as-of-merged gates) looked into the future
+- **Root cause:** Massive 5M bars are **OPEN-stamped** (label = bar start); MC signals
+  are **CLOSE-stamped** (label = bar close = open+5min). `indicators.tag_signals` joins
+  signals onto bars with `pd.merge_asof(direction="backward")`, which lands the signal on
+  the bar AFTER it — the **entry bar**, whose close is 5 min in the future. So `ER_intra_2`
+  (=ER10) on every signal was the *entry-bar* ER, not the signal-bar ER.
+- **NT does it right:** positional indexing (`Close[0]` = the just-closed signal bar). NT's
+  ERPeriod=2 == Python's ER_intra_2 mathematically; the only difference was the timestamp join.
+- **Damage was via EXCLUSION:** the future ER silently DROPPED losing trades. Buggy sim:
+  1,757 trades, 61.6% win, ~$167/trade. **Corrected (engine, full MC): 5,439 trades, 51.2%
+  win, $34.82 exp, 0.029R, PF 1.12, PROM(target-hit) −0.96** → **no tradeable edge.** The
+  +$229k NT grid and +$303k sim were both look-ahead. Confirmed 3 independent ways + NT
+  real-fill cross-check (the excluded trades were 41.5% win, −$112/trade).
+- **NOT YET FIXED in code:** the one-line fix is to merge against `signal_time − 5min` in
+  `tag_signals`; it affects ER_intra_2, ER_intra_6, VWAP, EMA, session levels, structure,
+  deviation — ALL share this join. Must re-validate every gate after. **Paused pending user.**
+
+### ⭐ Consecutive-signal cluster gate — WIRED into BA + WFA (S33)
+- **Finding (corrected-ER scratch, longs):** taking only the **2nd-or-later** breakout in a
+  run of consecutive-bar signals ~**doubled expectancy (~$120 vs ~$59 baseline)**, ~658
+  trades. **N=2 is THE signal**; N≥3 reverts toward baseline on thin samples (118/6/0) — so
+  it reads structural, not a tune-an-N curve-fit. Look-ahead-safe (prior-bar signal known
+  at decision time). Management rules (early-exit / BE / 0.5R bracket) all FAILED — the edge
+  was in NOT ENTERING, unrecoverable post-entry.
+- **Implementation:** new helper `_consecutive_run_pos(df)` (per Date+Direction, run position
+  over unique consecutive BarNums) + `want_consec`/`min_run` params on the shared
+  `apply_regime_population_filters` (bar_analysis.py) → status `not_consec`. UI checkbox
+  "Cluster gate (Nth-in-a-row)" + "Min consecutive (N)" in BOTH BA (Regime Gates) and WFA;
+  wired into guards, fingerprint, save-defaults, and WFA locked-gate notes.
+- **NEXT:** user runs it (Run button) — BA single run for the headline number, then **WFA
+  year-by-year fold stability**. If $120 holds in the engine AND most individual years are
+  green (not carried by 2020), it's a small real edge; if lumpy, it's noise and base
+  MCBreakout is done. NOT yet run. No code committed.
+
+### Files changed (REPO, S33) — uncommitted
+- `bar_analysis.py` — `_consecutive_run_pos` + cluster gate in `apply_regime_population_filters`;
+  `not_consec` label; BA UI + guard + fingerprint + save-defaults.
+- `wfa.py` — cluster-gate UI + guard + call + locked-gate note.
 
 ---
 
