@@ -105,15 +105,59 @@ cluster gate — into BOTH BA and WFA for validation.*
   `apply_regime_population_filters` (bar_analysis.py) → status `not_consec`. UI checkbox
   "Cluster gate (Nth-in-a-row)" + "Min consecutive (N)" in BOTH BA (Regime Gates) and WFA;
   wired into guards, fingerprint, save-defaults, and WFA locked-gate notes.
-- **NEXT:** user runs it (Run button) — BA single run for the headline number, then **WFA
-  year-by-year fold stability**. If $120 holds in the engine AND most individual years are
-  green (not carried by 2020), it's a small real edge; if lumpy, it's noise and base
-  MCBreakout is done. NOT yet run. No code committed.
+### ⭐ Cluster gate — WFA RESULT (run this session) + headless robustness
+- **WFA (window-structures robustness report) PASSED 3/4 + every cell PnL-positive.**
+  Single run IS12m/OOS3m: **$72,136 OOS, 631 trades, 55.3% win, PF 1.32, maxDD −$16.8k,
+  5/6 folds green.** Window-anchor grid (15 cells): **Total OOS PnL positive in ALL 15
+  ($72k–$111k), median OOS PF >1 in all (1.16–1.36).** The 4-window verdict = "FRAGILE 3/4":
+  the only failing structure is **OOS=1m** (WFE 13–19%) — and with target pinned at 1R +
+  cluster gate fixed, **nothing is optimized**, so WFE here is just period-to-period regime
+  variance on a tiny 1m sample, NOT overfitting. Discard the OOS=1m column.
+- **Headless sweeps (corrected signal-bar ER, bar-resolver):** ER10 is **REDUNDANT** with the
+  cluster gate — gate cuts 5,580 signals → ~1,260 (715 unique days); ER10≥0.70 then removes
+  only ~48 more (~4%). So the real filter is the *clustering*, not ER10 — can drop ER10.
+  Other-TF ER (15/20/30/60m) all worse than native 10m. **2-in-a-row is green EVERY year
+  2021–2026** (survived 2023 when base died) and **works on SHORTS too** ($106 vs $37) →
+  symmetric, ~1,260 both-dir trades. Time-of-day open-boost ($327, n=63) and escalation
+  (n=8) = overfit traps, dropped. 3/4/5-in-a-row revert to baseline (N=2 is the signal).
+- **⚠️ THE WFA ABOVE PREDATES THE S34 tag_signals FIX (commit 8cbca3e).** It must be
+  **RE-RUN on the corrected pipeline.** The cluster gate itself is look-ahead-safe (signal
+  BarNum count), but any ER10/feature gating in that run was tainted — and per the S34
+  warning, no pre-fix WFA is trusted. Re-run with ER10 OFF (redundant) + calendar basis.
 
-### Files changed (REPO, S33) — uncommitted
+### ⭐ Calendar-day fold basis — NEW TOGGLE (wired this session, `wfa.py`)
+- **Why:** `build_folds` counted `is_days` in **signal-days** (days with ≥1 signal), not
+  calendar days. The cluster gate halves signal density (1,250→715 days), so a "252-signal-day"
+  (=12m) IS window stretched to ~20 calendar months → first OOS shoved to 2023-03, only 6
+  folds, 2021–2022 buried in warm-up. (Confirmed: gated 252nd signal-day = 2023-02-22 ≈ the
+  observed first OOS.) Signal-days is NOT a Pardo rule (Pardo uses calendar windows + a
+  min-trade floor); it was a local choice whose one virtue is constant trade-count/fold.
+- **Fix:** added `fold_basis` param ('signal' | 'calendar') threaded through
+  `run_wfa` / `run_window_grid` / `run_window_structures`, + a **"Fold window basis" radio**
+  in WFA config (default = Signal-days, to preserve existing behavior). Calendar basis cuts
+  folds on the real trading-day calendar (from `bars_by_date`), bounded to the signal span;
+  trades still come only from signals inside each window. Preview + 0-folds feasibility guard
+  now report the correct unit per basis. Closes S32-NEXT item "Calendar-day WFA folds".
+- **Trade-count validation (calendar basis, both-dir, gated):** IS12m/OOS3m = **15 folds,
+  IS 186–252–278 trades/fold, OOS 34–61–79, ZERO folds <30** (Pardo floor clears everywhere).
+  IS6m/OOS3m also clean. **OOS=1m too thin** (median 19, 42/47 folds <30 — junk). **Single
+  direction too thin** (short-only: 10/15 folds <30). → **Recommended config: calendar /
+  12m / 3m / BOTH directions / ER10 off.** Meaningful + Pardo-correct.
+
+### Files changed (REPO, S33/this session)
 - `bar_analysis.py` — `_consecutive_run_pos` + cluster gate in `apply_regime_population_filters`;
-  `not_consec` label; BA UI + guard + fingerprint + save-defaults.
-- `wfa.py` — cluster-gate UI + guard + call + locked-gate note.
+  `not_consec` label; BA UI + guard + fingerprint + save-defaults. **(committed in 8cbca3e.)**
+- `wfa.py` — cluster-gate UI/guard/call/locked-note **(in 8cbca3e)** + **`fold_basis` toggle
+  (signal vs calendar) — committed THIS commit.**
+
+### NEXT (cluster-gate thread)
+1. **RE-RUN the WFA on the corrected (post-8cbca3e) pipeline** with the recommended config
+   (calendar / 12m / 3m / both dir / ER10 off) — confirm the PF~1.3 / positive-every-window
+   result survives the look-ahead fix. This is the gating test before trusting the edge.
+2. Then: bucket OOS PnL by year to quantify how lean the non-2025 years are (the edge is
+   real but 2025-concentrated) and size for the lean version, 2025 as upside not baseline.
+3. Held thought (user said "hold that thought"): whether to set calendar/12m/3m/both as the
+   WFA defaults.
 
 ---
 

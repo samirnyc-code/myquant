@@ -212,10 +212,29 @@ def run_wfa(
     pin_pb: float | None = None,
     persist: bool = True,     # False = in-memory only (used by the window-anchor grid)
     objective: str = "prom",  # IS ranking: 'prom' or 'prom_tgt' (target-hit only)
+    fold_basis: str = "signal",  # 'signal' = count IS/OOS in signal-days (orig);
+                                 # 'calendar' = count in actual trading-days (from bars)
 ) -> list[dict]:
     """Run the full WFA. Returns list of fold result dicts.
     persist=True also writes folds, trade logs, sweep grids to the store and locks OOS."""
-    all_dates = sorted(signals["Date"].unique())
+    # Fold-window basis (see fold_basis):
+    #  • 'signal'   — slice IS/OOS over signal-days (the days that have ≥1 signal).
+    #                 Holds the TRADE COUNT per fold roughly constant (constant
+    #                 statistical power), but a sparse filter (e.g. the cluster gate,
+    #                 ~half the days) stretches each window across more calendar time
+    #                 and shifts the fold lines / buries early history in warm-up.
+    #  • 'calendar' — slice over the ACTUAL trading-day calendar (every day with bar
+    #                 data), bounded to the signal span. Fold lines stay fixed in
+    #                 wall-clock time regardless of the filter; trade count per fold
+    #                 then varies with activity. Trades still come only from signals
+    #                 falling inside each fold's date range.
+    if fold_basis == "calendar" and bars_by_date:
+        all_dates = sorted(bars_by_date.keys())
+        if signals is not None and not signals.empty:
+            _smin, _smax = signals["Date"].min(), signals["Date"].max()
+            all_dates = [d for d in all_dates if _smin <= d <= _smax]
+    else:
+        all_dates = sorted(signals["Date"].unique())
     folds     = build_folds(all_dates, is_days, oos_days)
 
     if not folds:
@@ -376,6 +395,7 @@ def run_window_grid(
     pin_t1: float | None = None, pin_t2: float | None = None, pin_pb: float | None = None,
     progress_cb=None,
     objective: str = "prom",
+    fold_basis: str = "signal",
 ) -> pd.DataFrame:
     """Run a full (non-persisted) WFA for each (IS months × OOS months) pair and
     aggregate one cell per pair. Proves the 12m/3m window choice isn't itself overfit."""
@@ -393,7 +413,7 @@ def run_window_grid(
                 "__grid__", "__grid__", signals, ticks_by_date, bars_by_date,
                 base_params, mode, is_days=isd, oos_days=oosd,
                 n_param_sets=n_param_sets, pin_t1=pin_t1, pin_t2=pin_t2, pin_pb=pin_pb,
-                persist=False, objective=objective,
+                persist=False, objective=objective, fold_basis=fold_basis,
             )
             cell = _aggregate_grid_cell(folds)
             cell.update({"is_months": im, "oos_months": om})
@@ -413,6 +433,7 @@ def run_window_structures(
     pin_t1: float | None = None, pin_t2: float | None = None, pin_pb: float | None = None,
     progress_cb=None,
     objective: str = "prom",
+    fold_basis: str = "signal",
 ) -> list[dict]:
     """For each (IS months, OOS months) structure, run a full non-persisted WFA and
     return its fold dicts + aggregate. Feeds the on-one-page Robustness Report."""
@@ -427,7 +448,7 @@ def run_window_structures(
             "__struct__", "__struct__", signals, ticks_by_date, bars_by_date,
             base_params, mode, is_days=isd, oos_days=oosd,
             n_param_sets=n_param_sets, pin_t1=pin_t1, pin_t2=pin_t2, pin_pb=pin_pb,
-            persist=False, objective=objective,
+            persist=False, objective=objective, fold_basis=fold_basis,
         )
         agg = _aggregate_grid_cell(folds)
         agg.update({"is_months": im, "oos_months": om})
@@ -1234,6 +1255,21 @@ def show_wfa_tab() -> None:
         n_sets     = wc3.number_input("Param sets (Kaufman avg)", min_value=1, max_value=10, value=3,
                                       key="wfa_n_sets", help=_METRIC_HELP["n_sets"])
 
+        _basis_opts = ["Signal-days (original)", "Calendar days"]
+        _basis_map  = {"Signal-days (original)": "signal", "Calendar days": "calendar"}
+        _basis_sel  = st.radio(
+            "Fold window basis", _basis_opts, horizontal=True, key="wfa_fold_basis",
+            help="How the IS/OOS window length is counted.\n\n"
+                 "• **Signal-days (original)** — counts days that have ≥1 signal, so each "
+                 "fold holds a roughly CONSTANT trade count (constant statistical power). "
+                 "But a sparse filter (e.g. the cluster gate, ~half the days) stretches each "
+                 "window across more calendar time → fewer folds, early history lost to warm-up.\n\n"
+                 "• **Calendar days** — counts actual trading days (from bars), so fold lines "
+                 "stay fixed in wall-clock time no matter the filter. Trade count per fold then "
+                 "varies with activity. Use this so a filter doesn't move the windows / bury "
+                 "2021–2022 in warm-up.")
+        fold_basis = _basis_map[_basis_sel]
+
         _obj_opts = ["PROM (standard)", "PROM-target (target-hit only)"]
         _obj_map  = {"PROM (standard)": "prom", "PROM-target (target-hit only)": "prom_tgt"}
         _obj_sel  = st.selectbox(
@@ -1250,7 +1286,14 @@ def show_wfa_tab() -> None:
         is_days  = int(is_months  * _TRADING_DAYS_PER_YEAR / 12)
         oos_days = int(oos_months * _TRADING_DAYS_PER_YEAR / 12)
 
-        all_dates  = sorted(signals_typed["Date"].unique()) if not signals_typed.empty else []
+        # Preview mirrors run_wfa's chosen basis. NOTE: this previews on signals_typed
+        # (pre-regime/cluster gate), so the calendar-basis count here is an upper bound;
+        # the actual run bounds the calendar to the GATED signal span.
+        if fold_basis == "calendar" and not signals_typed.empty and bars_by_date:
+            _smin, _smax = signals_typed["Date"].min(), signals_typed["Date"].max()
+            all_dates = [d for d in sorted(bars_by_date.keys()) if _smin <= d <= _smax]
+        else:
+            all_dates = sorted(signals_typed["Date"].unique()) if not signals_typed.empty else []
         folds_preview = build_folds(all_dates, is_days, oos_days) if all_dates else []
         if not all_dates:
             st.warning("No signals selected — check at least one SignalType above.")
@@ -1670,18 +1713,26 @@ def show_wfa_tab() -> None:
                     st.info("Regime indicators unavailable on this signal set "
                             "(missing Direction / price / indicator columns).")
 
-        # Fold-feasibility guard: surface WHY a run might yield 0 folds.
+        # Fold-feasibility guard: surface WHY a run might yield 0 folds. The unit that
+        # matters depends on the basis — signal-days (signal basis) vs calendar trading-
+        # days over the signal span (calendar basis), matching run_wfa's slicing.
         _n_into = len(signals_filtered)
-        _n_days = signals_filtered["Date"].nunique() if _n_into else 0
         _need_days = int(is_days + oos_days)
-        st.caption(f"{_n_into} signals into WFA across {_n_days} signal-days "
-                   f"(need ≥ ~{_need_days} trading-days of span to form 1 fold).")
+        if _n_into and fold_basis == "calendar" and bars_by_date:
+            _smin, _smax = signals_filtered["Date"].min(), signals_filtered["Date"].max()
+            _n_days = sum(1 for d in bars_by_date if _smin <= d <= _smax)
+            _unit = "calendar trading-days"
+        else:
+            _n_days = signals_filtered["Date"].nunique() if _n_into else 0
+            _unit = "signal-days"
+        st.caption(f"{_n_into} signals into WFA across {_n_days} {_unit} "
+                   f"(need ≥ ~{_need_days} to form 1 fold).")
         if _n_into and _n_days < _need_days:
             st.warning(
-                f"Only {_n_days} signal-days remain — fewer than the ~{_need_days} "
+                f"Only {_n_days} {_unit} remain — fewer than the ~{_need_days} "
                 f"(IS {is_days} + OOS {oos_days}) needed for a single fold, so the run "
-                "will produce **0 folds**. Disable/loosen the regime filter or widen the "
-                "date range / shorten the IS+OOS windows.")
+                "will produce **0 folds**. Switch the fold basis, loosen the filter, widen "
+                "the date range, or shorten the IS+OOS windows.")
 
         # ── Run button ────────────────────────────────────────────────────────
         st.divider()
@@ -1780,6 +1831,7 @@ def show_wfa_tab() -> None:
                     pin_t2=pin_t2,
                     pin_pb=pin_pb,
                     objective=wfa_objective,
+                    fold_basis=fold_basis,
                 )
 
             progress_bar.progress(1.0)
@@ -2177,6 +2229,7 @@ def show_wfa_tab() -> None:
                         n_param_sets=int(n_sets),
                         pin_t1=pin_t1, pin_t2=pin_t2, pin_pb=pin_pb,
                         progress_cb=_mcb, objective=wfa_objective,
+                        fold_basis=fold_basis,
                     )
                 pbar.progress(1.0)
                 stat.text("Done.")
@@ -2284,6 +2337,7 @@ def show_wfa_tab() -> None:
                         n_param_sets=int(n_sets),
                         pin_t1=pin_t1, pin_t2=pin_t2, pin_pb=pin_pb,
                         progress_cb=_rcb, objective=wfa_objective,
+                        fold_basis=fold_basis,
                     )
                 rbar.progress(1.0)
                 rstat.text("Done.")
