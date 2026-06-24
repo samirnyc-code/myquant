@@ -34,7 +34,8 @@ CONF = {  # confidence-level banner colours: (fill, text)
 
 
 _GLYPH = {"≫": ">>", "≪": "<<", "✅": " [+]", "❌": " [-]",
-          "⭐": "*", "⚠": "!", "️": ""}
+          "⭐": "*", "⚠": "!", "️": "",
+          "🟢": "[G]", "🟡": "[Y]", "🔴": "[R]"}
 
 
 def inline(t: str) -> str:
@@ -55,6 +56,14 @@ def parse(md: str):
         ln = lines[i]
         if not ln.strip():
             i += 1; continue
+        if ln.lstrip().startswith("```"):                    # fenced code block
+            i += 1
+            code = []
+            while i < n and not lines[i].lstrip().startswith("```"):
+                code.append(lines[i]); i += 1
+            i += 1                                            # skip closing fence
+            blocks.append(("code", "\n".join(code)))
+            continue
         if ln.lstrip().startswith("|"):                      # table
             tbl = []
             while i < n and lines[i].lstrip().startswith("|"):
@@ -84,7 +93,7 @@ def parse(md: str):
             blocks.append(("hr", None)); i += 1
         else:                                                # paragraph
             para = []
-            while i < n and lines[i].strip() and not lines[i].lstrip().startswith(("|", "#", ">", "---")) \
+            while i < n and lines[i].strip() and not lines[i].lstrip().startswith(("|", "#", ">", "---", "```")) \
                     and not re.match(r"\s*[-*] ", lines[i]):
                 para.append(lines[i].strip()); i += 1
             blocks.append(("p", " ".join(para)))
@@ -166,7 +175,9 @@ def render(md_path: Path, out_path: Path):
             aligns = tuple(["LEFT"] + ["CENTER"] * (ncols - 1))
             # weight each column by its longest cell so wide text columns get the
             # room and numeric columns stay tight (avoids "no space" overflow).
-            colw = [max(3, max(len(inline(r[c])) for r in rows)) for c in range(ncols)]
+            # Cap each column's weight so one very long cell can't starve the
+            # others below a renderable width (fpdf raises if a col < ~1 char).
+            colw = [min(32, max(3, max(len(inline(r[c])) for r in rows))) for c in range(ncols)]
             pdf.set_font("Arial", "", 7.4); pdf.set_text_color(*DARK)
             head_style = FontFace(emphasis="BOLD", color=(255, 255, 255), fill_color=BLUE)
             with pdf.table(width=190, col_widths=tuple(colw), text_align=aligns, markdown=True,
@@ -178,6 +189,18 @@ def render(md_path: Path, out_path: Path):
                     for c in r:
                         trow.cell(inline(c))
             pdf.ln(1)
+        elif kind == "code":                                 # monospace, literal
+            pdf.ln(0.5); pdf.set_font("Courier", "", 7.5)
+            pdf.set_fill_color(244, 244, 240); pdf.set_text_color(*DARK)
+            cmap = {"🟢": "[G]", "🟡": "[Y]", "🔴": "[R]"}
+            for cl in payload.split("\n"):
+                for k, v in cmap.items():
+                    cl = cl.replace(k, v)
+                # Courier is a latin-1 core font: drop anything it can't encode
+                cl = cl.encode("latin-1", "replace").decode("latin-1")
+                pdf.set_x(pdf.l_margin)
+                pdf.multi_cell(0, 3.7, cl if cl.strip() else " ", fill=True)
+            pdf.set_font("Arial", "", 9.5); pdf.ln(1)
         elif kind == "hr":
             pdf.ln(1)
 

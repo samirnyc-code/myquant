@@ -27,8 +27,9 @@ race the same number, the **earlier-merged** note keeps it; the later one takes 
 | 0001 | PB scale-in (`0001_pb_scalein_mc.md`) | DONE | s38 |
 | 0002 | ER10 look-ahead bug (`0002_er10_lookahead_bug.md`) | DONE | s39 |
 | 0003 | Keystone — IB-edge fade (`0003_keystone_ib_edge_fade.md`) | DONE | s40 |
+| 0004 | Logan "MyReversals" code decode (`0004_logan_myreversals_decode.md`) | IN PROGRESS | s41 (docs/s38-reversal branch) |
 
-**NEXT FREE NUMBER: 0004**
+**NEXT FREE NUMBER: 0005**
 
 ### Backlog — candidate notes (claim a number above before starting one)
 **Tier A — ALREADY RESEARCHED in `docs/living/`; convert to a note, do NOT redo:**
@@ -48,6 +49,46 @@ race the same number, the **earlier-merged** note keeps it; the later one takes 
 - **Consecutive-cluster gate** — does requiring N same-dir signals improve quality? (S33 + `dir_streak` 4+ lead from 0001)
 - **Always-In (AID) as a sizer** — negative as a gate (S36); size-with/against-regime untested
 - **Pyramiding (N concurrent same-dir)** — does it beat a single entry? (S32 MCBreakout pyramiding)
+
+---
+
+## ⭐ SESSION 41 — June 24, 2026 — Logan "MyReversals" code DECODE → research note 0004 (read FIRST)
+*Decoded Logan's TradeStation `!PROD_ES_5` reversal system from 14 screenshots (Google Drive
+"Logans system code", owner tdeutschmann@gmail.com) into research note **0004** — a pure
+code-translation note, NOT an edge study. Reserved 0004 in the registry above.*
+
+### Note 0004 — `docs/research_notes/0004_logan_myreversals_decode.md` (+ PDF, mirrored to Documents)
+- **What the system is (read from code):** intraday ES **5-minute** RTH reversal day-trade,
+  one position at a time, fixed `posSize`, next-bar **limit** entries, day-flat. Stop **2×ABR**,
+  target **5×ABR** (≈2.5:1). 78 bars/RTH session fixes the timeframe.
+- **NOT a scalp** (corrected mid-session): at current ES ABR (~7.7 pt, computed from
+  `data/bars/_continuous.parquet`) a 5×ABR target ≈ **30–40 pt ($1,500–2,000/contract)** ≈ half a
+  session range. Scalp-like *entries*, swing-sized *target*. ABR table by year in §1.1.
+- **17 entry setups** (13 long, 4 short) + a 6-rule **long** exit package, all translated to
+  readable NinjaScript. Session-window map, entry-aggressiveness (fill-prob) taxonomy, and a
+  one-position eval-order/priority analysis added (§4.1–4.3).
+- **The real gap = ~13 external EL `GetXxx()` functions** (source NOT provided): `GetCC`,
+  `GetZScoreData`, `GetCOLTally`, `GetAvgBOUp/Down`, `GetBarDir`, `GetEMASlope/GetAvgSlope`,
+  `GetABR`, `GetMidPoint`, `GetIBS`, `GetBarRange`, `GetBarNumber`. §3 gives 2–3 guesses + stubs
+  each; ABR/MidPoint/IBS implemented, the rest are `// TODO`.
+- **Verification pass (all 14 frames, several upscaled 2.6–3×) — confirmed findings (§6.1):**
+  (1) **timers never armed** → `stop*Timer<=0` gates are permanently true, NO post-loss cooldown
+  exists in this source; (2) **SHORT #3 is un-gated** (no flat/time guard) → can reverse an open
+  long; (3) **short-exit logic is BLOCKED** — last frame cuts off after a 1×ABR safety stop, so
+  shorts may have no target/time-exit at all (highest-value thing to get from Logan); (4) Opening-Gap
+  BGU/BGD labels look crossed (likely Logan bug); (5) LONG #5 `oneR` is dead code under ABR exits.
+- **Logan's own `//pf 1.92 / 1.52` annotations** captured but labeled UNVERIFIED (unknown data/costs).
+
+### Next steps (note §7)
+- **Ask Logan:** the short-exit block (one screenshot), the `GetXxx()` function sources, any timer-arming code.
+- **Do on our side:** re-derive `GetCC`/`GetZScoreData` (record assumptions), build the NinjaScript
+  skeleton from the confirmed pieces, collapse dup setups (L7≈L11, L8≈L12), encode the quirks deliberately.
+- Edge study only AFTER the above, in a SEPARATE note. This note asserts no edge.
+
+### Renderer (`scripts/render_note_pdf.py`) — two durable improvements this session
+- **Fenced code-block support** (monospace Courier, latin-1-safe; the series had none and 0004 is code-heavy).
+- **Column-width cap (32)** so one very long table cell can't starve another below fpdf's 1-char floor.
+- Both regression-checked: `--all` re-renders 0001–0004 clean.
 
 ---
 

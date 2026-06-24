@@ -15,6 +15,7 @@ collaborator who has *never* seen the codebase can follow it.
 | 0001 | [PB scale-in](0001_pb_scalein_mc.md) | Is adding a 2nd leg on a pullback worth it? | **No — don't scale in** |
 | 0002 | [ER10 look-ahead bug](0002_er10_lookahead_bug.md) | How big was the ER10 look-ahead, and can we salvage the trades it wrongly blocked? | **3.8× inflation; fix kept. Bleed is uncapturable by exit timing** |
 | 0003 | [Keystone — IB-edge fade](0003_keystone_ib_edge_fade.md) | Does an MC signal's origin location (vs structural levels) predict a tradeable edge? | **Yes, one: origin at the IB edge. Modest, audited, deep-DD — a cash COMPONENT, not a standalone system** |
+| 0004 | [Logan "MyReversals" decode](0004_logan_myreversals_decode.md) | What exactly is Logan's `!PROD_ES_5` reversal system — every variable, setup, and exit, translated to NinjaScript? | **Decode only (no edge claim): 17 entries + 6-rule exit faithfully translated; ~half gated on un-recovered EL functions** |
 
 ## ⚠️ Numbering is coordinated across chats — RESERVE FIRST
 
