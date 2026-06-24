@@ -8,6 +8,40 @@
 
 ---
 
+## 📓 RESEARCH NOTES REGISTRY — AUTHORITATIVE NUMBER LEDGER (all chats: read + reserve here FIRST)
+
+**Why this exists:** `docs/research_notes/` (the friend-facing MC Setup Research Notes
+series) was spun up by multiple chats independently and numbers collided by luck, not
+design. **This block is the single authority for note numbers — it wins over any
+per-branch `README.md` index.** Workflow standard lives in `docs/research_notes/README.md`;
+render with `scripts/render_note_pdf.py` (mirrors to `~/Documents/MC_Setup_Research_Notes/`).
+
+**RULE — before creating a note:** claim the next free number by adding its row to the
+CLAIMED table below *in the same edit*, with your session/branch in "By". If you can't
+commit, still write the claim here and call it out in your session block. If two chats
+race the same number, the **earlier-merged** note keeps it; the later one takes the next free.
+
+### Claimed (do not reuse)
+| # | Note | Status | By |
+|---|------|--------|----|
+| 0001 | PB scale-in (`0001_pb_scalein_mc.md`) | DONE | s38 |
+| 0002 | ER10 look-ahead bug (`0002_er10_lookahead_bug.md`) | DONE | s39 |
+| 0003 | Keystone — IB-edge fade (`0003_keystone_ib_edge_fade.md`) | DONE | s40 |
+
+**NEXT FREE NUMBER: 0004**
+
+### Backlog — candidate notes (most are ALREADY RESEARCHED in `docs/living/`; convert, don't redo)
+- **CC setup go/no-go** — CC5 real edge, CC4 NO-GO, CC2/CC3 unsound (S23, `pipeline_CC4_singleleg`)
+- **ER10 / ER×CC chop filter** — per-CC (S35, `er_cc_survivor_filter_20260623`)
+- **Is 1R the right target / exit mgmt** — flat 1R wins, mgmt all failed (S26/S28)
+- **Balance-state vs trend** — S25 balance suite
+- **Day structure → today's session** — NEW RUN (prior_inside_day/adr_ext/prior_ER/day-types)
+- **Afternoon filter on the BASE trade** — NEW RUN (follow-up from 0001)
+- **Trade location (chase vs pullback entry)** — NEW RUN (ext_ema lead from 0001)
+- Also: VA filter, origin/reversal-at-extreme, cluster gate, AID as sizer, fade-RevFT, ESA/execution-reality.
+
+---
+
 ## ⭐ SESSION 39 — June 24, 2026 — ER10 look-ahead: quantified the bug + exhausted the salvage (research note 0002) (read FIRST)
 *Deliberately reproduced the pre-S34 ER10 look-ahead headless (no production code touched —
 imported the reproduction helpers from `er_lookahead_tab.py` and drove the real engine), then
@@ -37,7 +71,7 @@ friend-facing research note **0002**. No engine change.*
   causal *entry* filter for these low-efficiency signals (general MC filter line, not an exit hack);
   and **RevFT OOS replication** would lift note 0002 from Medium→High.
 
-### Artifacts (committed)
+### Artifacts (S39 work committed `fc27d05` on `docs/s38-reversal-at-extreme`, pushed)
 - **Note:** `docs/research_notes/0002_er10_lookahead_bug.md` (+ rendered PDF, mirrored to
   `C:\Users\Admin\Documents\MC_Setup_Research_Notes\` per the series workflow; README index updated).
 - **Scripts:** `scripts/er10_{lookahead_rerun,block_exit_sweep,tp_control,scaled_tp_sweep,1m_leadlag}.py`
