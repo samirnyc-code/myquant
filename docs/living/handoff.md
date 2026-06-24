@@ -1,10 +1,85 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** June 24, 2026 (session 36)
+**Last Updated:** June 24, 2026 (session 39)
 **Current Versions:** SIM_v3.9 / GS_v4.5 / SHEET_v3.3 *(S32: Prop Sim overhaul — MC-sized payout buffer, monthly 80/20 payouts, ES/MES margin, never-blow floor de-risk + shock model, richer dashboard; MCBreakout pyramiding (N concurrent/dir) + ratchet-lock fix. S31: ZLO exporter + filters, MCBreakout stop fix + ER filter, ZLO sweeps, Auction feature library + tab (Dalton day types), Prop Sim DD-lock. S30: Prop Sim tab, Extras tab, 1M bars, NT strategy. S29: ESA into WFA, session filters, multi-TF, ER10. S28: ESA v2. S27: ESA Phase A. S24: critical slippage off-tick bugfix.)*
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 **Handoff hygiene (S20):** A competing handoff had grown in the `.claude/.../memory/` auto-memory folder and a new chat read *that* instead of this file. Fixed: added repo `CLAUDE.md` + rewrote `.claude` `MEMORY.md` to point here; deleted the duplicate session-state memories. **There is now ONE handoff: this file.**
 **Onboarding (S22):** `docs/living/PROJECT_CHARTER.md` is the from-inception synthesis (the *arc* + locked decisions). Read the charter first for orientation, then this handoff for current state. The charter owns the arc/locked rails; **this handoff still wins on what's true today.**
+
+---
+
+## ⭐ SESSION 39 — June 24, 2026 — ER10 look-ahead: quantified the bug + exhausted the salvage (research note 0002) (read FIRST)
+*Deliberately reproduced the pre-S34 ER10 look-ahead headless (no production code touched —
+imported the reproduction helpers from `er_lookahead_tab.py` and drove the real engine), then
+chased whether the trades it wrongly "phantom-blocked" can be salvaged. They can't. Wrote
+friend-facing research note **0002**. No engine change.*
+
+### What we found (all in-sample, MC = `ba_signals_mc.parquet`, gate ER10≥0.70, 1R single-leg)
+- **Bug impact (3.8×):** pre-fix look-ahead = 61.7% win / $192.21 exp / PF 1.78 / $629,692 net;
+  causal (live) = 52.4% / $50.91 / PF 1.17 / $269,863. The bug's "skill" was **phantom-BLOCKING
+  ~2,118 trades** (only 118 phantom-passes) — it read the *entry-bar* ER (5 min future) to toss
+  trades that hadn't yet turned choppy. Pure look-ahead *selection*, not execution.
+- **The wrongly-blocked trades are a real −$360k drag** (exp −$169.85/trade); unflagged book is
+  +$629,597. Flag = (causal ER≥gate) & (entry-bar ER<gate).
+- **Salvage by EXIT timing fails, for a structural reason:** at the 5M entry-bar close (when the
+  decayed ER is legitimately known) **97% are already underwater** (`flat@EBclose` win 3.3%).
+  Tightened stops are all *worse* than baseline. Best is a tight take-profit (+4pt / 0.05×ABR)
+  ≈ **+$30k** whole-book — and the **control passed** (TP helps flagged +$13.93/trade, HURTS
+  unflagged −$73.86 and random −$38.64 → genuinely ER10-specific), BUT **by-year it's fragile**
+  (carried by 2022 +$47/t; **negative 2024 −$10/t**, null 2025). Not deployable.
+- **1-minute drill-down = the decisive negative:** 1M-ER is <gate at min 1 for ~99% of ALL trades
+  (not discriminating); the shiny +$95.77/t "earlier exit" is **the same look-ahead** (it acts at
+  min 1 on the flag known only at min 5). Causal blend = **−$66.8/t** (murders the good trades).
+
+### Verdict & open threads
+- **Keep the causal fix; never reintroduce it.** The bug's gain (~$360k) was *not-trading* and is
+  **uncapturable causally**. The EXIT-mitigation question is **closed** (structural). **OPEN:** a
+  causal *entry* filter for these low-efficiency signals (general MC filter line, not an exit hack);
+  and **RevFT OOS replication** would lift note 0002 from Medium→High.
+
+### Artifacts (committed)
+- **Note:** `docs/research_notes/0002_er10_lookahead_bug.md` (+ rendered PDF, mirrored to
+  `C:\Users\Admin\Documents\MC_Setup_Research_Notes\` per the series workflow; README index updated).
+- **Scripts:** `scripts/er10_{lookahead_rerun,block_exit_sweep,tp_control,scaled_tp_sweep,1m_leadlag}.py`
+  (all headless, day-by-day tick replay; each now dumps a per-trade parquet for re-use without recompute).
+- **Result md + per-trade parquet:** `docs/living/er10_*_20260624.md` and `docs/living/er10_*pertrade*.parquet`
+  / `er10_block_{base,overlay}.parquet` / `er10_lookahead_tagged.parquet`.
+- Engine fix reference (S34): `indicators._causal_at_signal_bar()` in all 5 `tag_signals` merge paths (`8cbca3e`).
+
+---
+
+## ⭐ SESSION 38 — June 24, 2026 — PB scale-in = NO-GO + launched `docs/research_notes/` series (read FIRST)
+*Investigated whether the MC CC pullback scale-in (add leg 2 on a retrace, target original 1R)
+is worth it. Answer: NO. Built a friend-facing research-note series to house this and future
+findings. No engine change.*
+
+### Result — the PB scale-in does NOT add edge
+- Tick-by-tick path study, all MC signals (`ba_signals_mc.parquet`, 5,580 sigs, 5yr, real ticks).
+  At a 50% pullback: **54% pull back, but only 18% of those reach 1R** (resolved win 22.7% vs the
+  ~27% the leg-2 add needs). Biggest single outcome of any signal = **PB→stop (33%)**.
+- Apparent +$37k add (scale-in $306k vs single-leg $269k net) is an **EOD-marking artifact**.
+  Stress test (mark unresolved leg-2 at close / breakeven / stop): under *neutral* breakeven,
+  every depth×phase cell goes negative **except 0.25R + morning (+$19k/5yr, trivial)**.
+- **Depth sweep** (0.25–1.0R): shallower looks better but it's the same artifact amplified; add
+  value crosses negative beyond ~0.5R. **Per-CC:** negative CC1, ~0 CC5, only CC2/CC3 mildly +.
+- **Only durable, real finding is NEGATIVE & time-based (CME Central):** Late/Close (after 13:00)
+  pullbacks reach 1R ~½ as often — robust **6/6 years**. "Open+Mid is +EV" clears the bar only
+  2/6 years. Tell hunt (balance, EMA-location, 4+ streak, AID, ER) = all weak/overfit; AID even
+  points **counter-regime** (consistent with its S36 subtractive-gate shelving).
+- ⚠️ TZ note for future studies: these stamps are **CME Central Time**; phases =
+  `bar_analysis._SESSION_PHASES` (Open 08:30–11:30 · Mid 11:30–13:00 · Late 13:00–14:45 · Close 14:45–15:15).
+
+### NEW — `docs/research_notes/` (friend-facing setup studies; distinct from this handoff)
+- `README.md` = index + house template (Header → Confidence → TL;DR → Setup → Question → Methods →
+  Results → Why → Recommendation → Caveats → Reproduce) + conventions (costs, R, CT phases, CI).
+- `0001_pb_scalein_mc.md` = the full PB note (Confidence: High). All 8 tests with tables.
+- Scripts (headless, day-by-day): `scripts/pb_to_1r_path_study.py`, `pb_tell_hunt.py`,
+  `pb_level_compare.py`, `pb_eod_stress.py`. Artifacts: `docs/living/pb_*.parquet`.
+
+### Open / next
+- Does avoiding the afternoon improve the **base single-leg** MC trade (not just the scale-in)? Not isolated yet.
+- `with_trend` (structural-trend agreement) was broken in `pb_tell_hunt.py` (string match) — re-test clean if curious.
+- Nothing committed — awaiting user confirmation.
 
 ---
 
