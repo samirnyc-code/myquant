@@ -1535,9 +1535,9 @@ def _run_ml_scalein_sweep(
                     blended   = (entry * tv1 + e2 * tv2) / tv_tot
                     if scale_in_style == "blended":
                         _ref, _rr = blended, abs(blended - stop)
+                        t2_price  = _snap_level(_ref + sgn * t2_r * _rr, ts, _ref, pb_round)
                     else:
-                        _ref, _rr = e2, abs(e2 - stop)
-                    t2_price  = _snap_level(_ref + sgn * t2_r * _rr, ts, _ref, pb_round)
+                        t2_price  = entry   # E1 break-even: exit combined position at E1's price
 
                     suffix = prices[pb_i + 1:]                      # ticks strictly after PB
                     if suffix.size:
@@ -4682,7 +4682,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                     int(st.session_state.get("ba_contracts_t2", 1)),
                     key="ba_contracts_t2",
                 )
-                _pb_vals = [0.0, -0.25, -0.33, -0.50, -0.66, -0.75, -1.0, -1.25, -1.50, -2.0]
+                _pb_vals = [-0.25, -0.33, -0.50, -0.66, -0.75, -1.0, -1.25, -1.50, -2.0]
                 _pb_lbls = ["None (immediate)", "-0.25R", "-0.33R", "-0.50R",
                             "-0.66R", "-0.75R", "-1.0R", "-1.25R", "-1.50R", "-2.0R"]
                 _saved_pb = float(st.session_state.get("ba_ml_pb_r", -0.50))
@@ -4695,25 +4695,30 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                 )
                 ml_pb_r_v = _pb_vals[_pb_lbls.index(_pb_sel)]
 
+                # T2 is irrelevant in the E1 break-even style (exit is always E1's price),
+                # so grey it out there. Style renders below, so read it from session_state.
+                _t2_is_be = st.session_state.get("ba_scale_in_style",
+                                                 "E1 break-even (E2-based)") != "Blended position"
                 _saved_t2_lbl = st.session_state.get("ba_t2_r_sel", "2.00R")
                 _t2_idx    = _r_lbls.index(_saved_t2_lbl) if _saved_t2_lbl in _r_lbls else 4
                 _t2_sel    = st.selectbox(
                     "T2 (R after E2)", _r_lbls, index=_t2_idx,
-                    key="ba_t2_r_sel",
-                    help="Target for the position after E2 fills. Reference + risk unit "
-                         "depend on the scale-in style below.",
+                    key="ba_t2_r_sel", disabled=_t2_is_be,
+                    help="Target after E2 fills (Blended style only). IGNORED in E1 break-even "
+                         "style, where the whole position always exits at E1's entry price.",
                 )
                 target_r_ml = _r_opts[_r_lbls.index(_t2_sel)]
 
                 _si_style_lbls = ["E1 break-even (E2-based)", "Blended position"]
                 _si_style_map  = {"E1 break-even (E2-based)": "e2", "Blended position": "blended"}
-                _si_style_idx  = _si_style_lbls.index(
-                    st.session_state.get("ba_scale_in_style", _si_style_lbls[0]))
+                _si_saved_style = st.session_state.get("ba_scale_in_style", _si_style_lbls[0])
+                _si_style_idx  = (_si_style_lbls.index(_si_saved_style)
+                                  if _si_saved_style in _si_style_lbls else 0)
                 _si_style_sel  = st.selectbox(
                     "Scale-in style", _si_style_lbls, index=_si_style_idx,
                     key="ba_scale_in_style",
-                    help="E1 break-even: T2 = E2 entry + R × E2's own risk. At a 50% PB both "
-                         "legs exit at E1 entry (E1 scratches at BE, E2 banks R). "
+                    help="E1 break-even: the whole position ALWAYS exits at E1's entry price "
+                         "(E1 scratches, E2 banks the pullback) — at any PB%; T2 is ignored. "
                          "Blended: T2 = blended entry + R × blended risk (manage as one averaged position).",
                 )
                 scale_in_style_v = _si_style_map[_si_style_sel]
@@ -4950,7 +4955,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
             commission  = float(st.session_state.get("ba_commission_ml", 4.0))
             contracts   = 1
             # PB level: read from selectbox label → float
-            _pb_vals_ss = [0.0, -0.25, -0.33, -0.50, -0.66, -0.75, -1.0, -1.25, -1.50, -2.0]
+            _pb_vals_ss = [-0.25, -0.33, -0.50, -0.66, -0.75, -1.0, -1.25, -1.50, -2.0]
             _pb_lbls_ss = ["None (immediate)", "-0.25R", "-0.33R", "-0.50R",
                            "-0.66R", "-0.75R", "-1.0R", "-1.25R", "-1.50R", "-2.0R"]
             _pb_sel_ss  = st.session_state.get("ba_ml_pb_sel", "-0.50R")

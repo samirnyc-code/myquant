@@ -127,8 +127,9 @@ def oracle_multileg(after: pd.DataFrame, is_long: bool, cfg: dict, stop_csv: flo
     # PB add is a resting limit at the trigger → fills AT the level (pb_trigger is
     # already tick-snapped); no adverse slip. Matches the engine's E2 definition.
     e2 = pb_trigger
-    # Engine default scale_in_style="e2": T2 off E2's OWN risk (not the blended avg).
-    t2 = _round_tick(e2 + sgn * t2_r * abs(e2 - stop))
+    # scale_in_style="e2" = E1 break-even: the combined position exits at E1's entry
+    # price, always (any PB%). E1 scratches, E2 wins the pullback. target_r irrelevant.
+    t2 = entry
 
     post = np.arange(n) > pb_i
     stop_post = _first(stop_m & post)

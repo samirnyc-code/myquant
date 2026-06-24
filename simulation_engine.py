@@ -624,16 +624,16 @@ def _simulate_one_multileg(
             pb_trigger = round(float(np.floor(pb_raw / ts) if is_long else np.ceil(pb_raw / ts)) * ts, 10)
 
     def _t2_for(blended_entry, e2_entry):
-        # Post-E2 target — reference + R-unit depend on the scale-in style:
-        #   "blended" — average the legs, target R off the blended risk
-        #   "e2"      — E1 scratches at BE; target R off E2's own risk (at a 50%
-        #               PB this lands T2 exactly on E1's entry, sizing-independent)
+        # Post-E2 target — depends on the scale-in style:
+        #   "blended" — average the legs, target R off the blended risk (uses target_r)
+        #   "e2"      — E1 break-even: the WHOLE position exits at E1's entry price,
+        #               ALWAYS, at any PB% (E1 scratches, E2 wins the pullback). target_r
+        #               is irrelevant in this variant.
         if scale_in_style == "blended":
             ref, rr = blended_entry, abs(blended_entry - actual_stop)
-        else:
-            ref, rr = e2_entry, abs(e2_entry - actual_stop)
-        raw = ref + (target_r * rr if is_long else -target_r * rr)
-        return _snap_level(raw, ts, ref, pb_round)
+            raw = ref + (target_r * rr if is_long else -target_r * rr)
+            return _snap_level(raw, ts, ref, pb_round)
+        return actual_entry  # E1 break-even — exit the combined position at E1's price
 
     # E2 state (populated if PB fills)
     e2_entry      = actual_entry
@@ -1824,6 +1824,11 @@ def simulate_trades(
         _eff_exit = _t
 
     _t2_r = t2_r if t2_r > 0 else target_r
+    # Guard: a 2-leg trade is a scale-IN — the second contract only exists if price pulls
+    # back to the E2 level. ml_pb_r >= 0 means "no pullback", which is not a 2-leg trade at
+    # all → run it as a single leg (E1 only). Prevents the degenerate non-PB code path.
+    if multileg and ml_pb_r >= 0:
+        multileg = False
     tv    = tick_value * contracts
     tv1   = tick_value * contracts_t1
     tv2   = tick_value * contracts_t2

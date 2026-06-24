@@ -1,6 +1,6 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** June 24, 2026 (session 39)
+**Last Updated:** June 24, 2026 (session 40)
 **Current Versions:** SIM_v3.9 / GS_v4.5 / SHEET_v3.3 *(S32: Prop Sim overhaul — MC-sized payout buffer, monthly 80/20 payouts, ES/MES margin, never-blow floor de-risk + shock model, richer dashboard; MCBreakout pyramiding (N concurrent/dir) + ratchet-lock fix. S31: ZLO exporter + filters, MCBreakout stop fix + ER filter, ZLO sweeps, Auction feature library + tab (Dalton day types), Prop Sim DD-lock. S30: Prop Sim tab, Extras tab, 1M bars, NT strategy. S29: ESA into WFA, session filters, multi-TF, ER10. S28: ESA v2. S27: ESA Phase A. S24: critical slippage off-tick bugfix.)*
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 **Handoff hygiene (S20):** A competing handoff had grown in the `.claude/.../memory/` auto-memory folder and a new chat read *that* instead of this file. Fixed: added repo `CLAUDE.md` + rewrote `.claude` `MEMORY.md` to point here; deleted the duplicate session-state memories. **There is now ONE handoff: this file.**
@@ -48,6 +48,64 @@ race the same number, the **earlier-merged** note keeps it; the later one takes 
 - **Consecutive-cluster gate** — does requiring N same-dir signals improve quality? (S33 + `dir_streak` 4+ lead from 0001)
 - **Always-In (AID) as a sizer** — negative as a gate (S36); size-with/against-regime untested
 - **Pyramiding (N concurrent same-dir)** — does it beat a single entry? (S32 MCBreakout pyramiding)
+
+---
+
+## ⭐ SESSION 40 — June 24, 2026 — KEYSTONE (note 0003) discovered + audited; 2-leg engine design corrected (read FIRST)
+*Searched whether an MC signal's ORIGIN location predicts an edge; one survivor — the
+Initial-Balance edge fade ("Keystone") — passed a look-ahead audit and is written up as
+research note **0003**. Separately, untangled and CORRECTED the 2-leg scale-in engine's
+design with the user (the "P&L bug" was largely my misuse of a degenerate config).*
+
+### ⭐ KEYSTONE — Initial-Balance Edge Fade → research note 0003 (DONE)
+- **Gate (look-ahead-safe, never optimized):** keep MC signals whose origin (`StopPrice`/MCX)
+  sits within **0.10 ADR of the same-side IB edge** (`OR60_Low` long / `OR60_High` short);
+  `d=(origin−edge)/ADR`, keep `0≤d≤0.10`. Exit **fixed 2.0R single-leg, both directions**.
+- **Result (1 contract, 5yr, 2.0R):** 1,395 trades · **+0.159 R** · PF 1.38 · win 48.5% ·
+  net $232,593 · MAR 8.86. Selection value @2R: gate +0.159 vs **non-gate +0.026** (the
+  complement is inert → the filter concentrates the edge). Positive EVERY year.
+- **PASSED look-ahead audit (the gate to belief):** session-timing split shows the edge is
+  **STRONGER after the first hour** (+0.203R, where OR60 is indisputably past) than during it
+  (+0.126R) — the opposite of a leak. OR60 causal in code (`indicators.py:263-274`); no
+  entry-bar merge; StopPrice 100% correct side. Survives cost stress to 3-tick slip (+0.092R).
+- **Improvement attempts ALL failed to beat plain 2R single-leg** (threshold = structural cliff
+  at 0.10; target = plateau ~2R; BE/trail/scale-in/scale-out neutral-or-worse; both-dir for
+  symmetry; balance stacks to +0.168R but halves trades → kept standalone). Edge is in SELECTION.
+- **HONEST status:** in-sample + selected among ~85 buckets → forward ~**+0.09–0.12R**; deep
+  target-invariant drawdown (~$26k/contract) → a **cash-account COMPONENT (~$75–100k/contract),
+  NOT a standalone prop system.** Note 0003 says exactly this. Next: true OOS + prop/cash sim.
+- **What died (the breadth):** reversal-at-extreme (LOD/HOD, LOY/HOY), balance (regime-dep),
+  failed-breakout fade (canonical fade LOSES), HVN/LVN + single-prints (null), VA-edge (thin),
+  IB-width $-peak (a stop-size illusion — judge in R not $). Keystone was the lone survivor.
+
+### ⭐ 2-LEG SCALE-IN ENGINE — design corrected with the user (NOT the "bug" I first chased)
+- A suspicious multileg net led me to a degenerate **`ml_pb_r=0` "scale-out"** path; I mis-read
+  it as a real mode and started a wrong fix. **User clarified the actual design:** the 2-leg is
+  ALWAYS a scale-IN — E2 only exists if price ticks through the PB level; no "both at signal".
+- **Changes made (validated):** (1) **E1-break-even variant now ALWAYS exits at E1's entry
+  price** at any PB% (`_t2_for` "e2" branch → `actual_entry`); was only true at 50%PB/1R.
+  Mirrored in the fast-sweep (`bar_analysis`) + oracle (`validate_oracle`). (2) **Removed the
+  `0%` PB option** (both `_pb_vals` lists) + **engine guard**: `multileg & ml_pb_r≥0` → single-leg.
+  (3) **UI:** T2 greyed out in E1-BE style. (4) New `scripts/validate_multileg_invariant.py`
+  (the missing "2 legs = 2× single" / E1-scratch-E2-wins test).
+- **Validated:** oracle==engine (0 mismatches), fast==engine (64/64), invariant test all PASS.
+  E2 fills require a strict **tick-through** (not touch) and fill at the limit. Single-leg
+  (Keystone) is a different code path — untouched. See `BUG_multileg_pnl_scaling.md` (the net
+  over-count) + `multileg_bug_forensics.md` (note: forensics OVERSTATED impact — the defect is
+  the non-PB scale-out path only, now removed/guarded; the real scale-IN path was correct).
+
+### Files (this session)
+- `simulation_engine.py` (E1-BE `_t2_for` + multileg guard), `bar_analysis.py` (fast-sweep
+  mirror + UI grey-out + removed 0% PB), `scripts/validate_oracle.py` (E1-BE oracle).
+- NEW: `docs/research_notes/0003_keystone_ib_edge_fade.md`+`.pdf`, `scripts/{keystone_audit,
+  ib_edge_exits,ib_edge_scalein,validate_multileg_invariant}.py`,
+  `docs/living/{BUG_multileg_pnl_scaling,multileg_bug_forensics,keystone_audit_*,ib_edge_*}.md`.
+- Registry: 0003 claimed (next free **0004**); README index + backlog updated.
+
+### NEXT (S41)
+1. Keystone true OOS / held-out + prop-cash sim (drawdown path is the binding constraint).
+2. FULLY fix the multileg P&L if the non-PB path is ever needed (currently guarded off, not deep-fixed).
+3. Convert remaining backlog notes (CC go/no-go, ER×CC, etc.).
 
 ---
 
