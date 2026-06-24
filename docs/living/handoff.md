@@ -30,15 +30,24 @@ race the same number, the **earlier-merged** note keeps it; the later one takes 
 
 **NEXT FREE NUMBER: 0004**
 
-### Backlog — candidate notes (most are ALREADY RESEARCHED in `docs/living/`; convert, don't redo)
-- **CC setup go/no-go** — CC5 real edge, CC4 NO-GO, CC2/CC3 unsound (S23, `pipeline_CC4_singleleg`)
-- **ER10 / ER×CC chop filter** — per-CC (S35, `er_cc_survivor_filter_20260623`)
-- **Is 1R the right target / exit mgmt** — flat 1R wins, mgmt all failed (S26/S28)
-- **Balance-state vs trend** — S25 balance suite
-- **Day structure → today's session** — NEW RUN (prior_inside_day/adr_ext/prior_ER/day-types)
-- **Afternoon filter on the BASE trade** — NEW RUN (follow-up from 0001)
-- **Trade location (chase vs pullback entry)** — NEW RUN (ext_ema lead from 0001)
-- Also: VA filter, origin/reversal-at-extreme, cluster gate, AID as sizer, fade-RevFT, ESA/execution-reality.
+### Backlog — candidate notes (claim a number above before starting one)
+**Tier A — ALREADY RESEARCHED in `docs/living/`; convert to a note, do NOT redo:**
+- **CC setup go/no-go** — CC5 the real edge, CC4 NO-GO, CC2/CC3 unsound, CC1 untestable (S23, `pipeline_CC4_singleleg`)
+- **ER10 / ER×CC chop filter** — edge is per-CC (CC2/CC5 reward high ER, CC4 anti-ER, CC3 flat) (S35, `er_cc_survivor_filter_20260623`)
+- **Is 1R the right target? / exit management** — flat 1R wins; BE/trail/scale-out all failed; fill-time decay (S26/S28)
+- **Balance-state vs trend days** — MC edge by balance/rotation (S25: `balance_deepdive`, `mfe_by_balance`, `fade_by_state`)
+- **Value-area location filter** — composition effect, not per-setup edge (`va_filter_compare`, `va_per_setup_threshold`)
+- **Origin / reversal at extreme** — signals born at the day's extreme; both hypotheses negative (`origin_at_extreme`, `reversal_at_extreme`)
+- **Fade the signal (RevFT)** — negative; sub-cost edge at 1:1 (`fade_revft`)
+- **Execution reality / ESA** — slippage + the unlimited-positions assumption; how much edge survives realistic fills (S24, S27–28)
+
+**Tier B — NEW RUNS (genuinely unwritten):**
+- **Day structure → today's session** ⭐ (user-requested) — does the PRIOR day's type (inside day, ADR-ext/trend day, prior-ER, Dalton day type) predict today's MC edge? Features exist in `tag_signals` (`prior_inside_day`, `prior_adr_ext`, `prior_ER`, ATR/ADX pct); never assembled into one "yesterday → today" study.
+- **Afternoon filter on the BASE trade** — follow-up from 0001: is the 13:00 CT decay a scale-in thing or the whole setup? (cheap; reuse path-study machinery)
+- **Trade location: chase vs pullback entry** — does entry distance from EMA20/VWAP predict outcome? (`ext_ema` lead from 0001, base-trade version)
+- **Consecutive-cluster gate** — does requiring N same-dir signals improve quality? (S33 + `dir_streak` 4+ lead from 0001)
+- **Always-In (AID) as a sizer** — negative as a gate (S36); size-with/against-regime untested
+- **Pyramiding (N concurrent same-dir)** — does it beat a single entry? (S32 MCBreakout pyramiding)
 
 ---
 

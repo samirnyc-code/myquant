@@ -14,9 +14,19 @@ collaborator who has *never* seen the codebase can follow it.
 |---|------|----------|---------|
 | 0001 | [PB scale-in](0001_pb_scalein_mc.md) | Is adding a 2nd leg on a pullback worth it? | **No — don't scale in** |
 | 0002 | [ER10 look-ahead bug](0002_er10_lookahead_bug.md) | How big was the ER10 look-ahead, and can we salvage the trades it wrongly blocked? | **3.8× inflation; fix kept. Bleed is uncapturable by exit timing** |
+| 0003 | [Keystone — IB-edge fade](0003_keystone_ib_edge_fade.md) | Does an MC signal's origin location (vs structural levels) predict a tradeable edge? | **Yes, one: origin at the IB edge. Modest, audited, deep-DD — a cash COMPONENT, not a standalone system** |
+
+## ⚠️ Numbering is coordinated across chats — RESERVE FIRST
+
+Multiple chats write these notes in parallel. The **authoritative number ledger is the
+RESEARCH NOTES REGISTRY at the top of `docs/living/handoff.md`** — NOT this file. The
+Index table below is a convenience mirror and can lag. **Before creating a note: open the
+handoff registry, take the NEXT FREE NUMBER, and add your claim row there.** Do not infer
+the next number from this README.
 
 ## Workflow — how every note in this series is made (STANDARD, follow it)
 
+0. **Reserve your number** in the handoff registry (above rule).
 1. Write the study as `NNNN_topic.md` here, using the house template below.
 2. Render + export: `python scripts/render_note_pdf.py docs/research_notes/NNNN_topic.md`
    (or `--all` to rebuild every note). This produces the PDF next to the `.md`
