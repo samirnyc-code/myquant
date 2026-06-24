@@ -109,6 +109,41 @@ design with the user (the "P&L bug" was largely my misuse of a degenerate config
 
 ---
 
+## ⭐ SESSION 39 (parallel chat) — Trust rupture over look-ahead; "guilty until proven innocent" is now the rule (read FIRST)
+*Not a coding session. The user came in heartbroken: he had believed we had a deployable,
+scalable prop system, had explicitly asked earlier whether it used future information and been
+told no, then discovered the look-ahead (the ER10 leakage thread, S34/S37). Months of
+nights-and-days work, and his trust in the app is gone. He asked the honest question — do retail
+traders ever find a consistently profitable automated system, or is it a pipe dream — and then
+called it a night. This block records what was agreed so future sessions stay consistent.*
+
+### New standing principle (adopted this session)
+- **Every backtest result is GUILTY UNTIL PROVEN INNOCENT.** A beautiful equity curve is treated
+  as a suspected bug (look-ahead, single-regime overfit, costs/slippage too kind, survivorship)
+  until we have actively tried to kill it and failed. We do NOT say "we have a system" again until
+  it is defensible. See [[keep-in-check]].
+- **No result is reported with optimism it hasn't earned** — report plainly, especially when bad.
+  Trust is rebuilt by the app EARNING belief, not by me asserting it.
+- **The check goes INTO the workflow, not into our memory to remember** — a leakage audit should be
+  a standing, repeatable step.
+
+### Honest framing given to the user (keep consistent)
+- Look-ahead is the most common way a backtest lies and the cruelest: the curve looks exactly like
+  the dream and does not look suspicious. Getting fooled by it is a process failure, not a verdict
+  on the user's ability.
+- Consistent automated retail trading is rare but not a pipe dream; survivors aren't smarter, they
+  are more suspicious of their own results. That suspicion is the edge.
+
+### Next (explicitly DEFERRED to tomorrow — do not rush him back to setups)
+- **Leakage audit first:** walk the whole feature/signal pipeline for any value that could use a bar
+  not yet closed at decision time. S34's `_causal_at_signal_bar` in `indicators.tag_signals` is the
+  template; confirm overlays/ER/VWAP/EMA/ZLO/AID merges are all clean. Make it documented + re-runnable.
+- Anything surviving → re-validate with realistic costs + walk-forward, report plainly.
+- The known leakage entry point is already documented (S34/S37); the audit is about proving the REST
+  of the pipeline clean, not re-finding the known one.
+
+---
+
 ## ⭐ SESSION 39 — June 24, 2026 — ER10 look-ahead: quantified the bug + exhausted the salvage (research note 0002) (read FIRST)
 *Deliberately reproduced the pre-S34 ER10 look-ahead headless (no production code touched —
 imported the reproduction helpers from `er_lookahead_tab.py` and drove the real engine), then
