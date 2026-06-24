@@ -20,6 +20,8 @@ import extras
 import prop_sim
 import auction_tab
 import er_lookahead_tab
+import qs_tab
+import ui_controls as controls
 
 # ── Global display rule for st.dataframe (DISPLAY only — calc precision intact) ─
 # One wrapper instead of editing ~35 call sites (and it catches future ones).
@@ -243,7 +245,7 @@ def show_bar_viewer(sc_file: str = "", contract: str = "ES"):
         use_container_width=True,
     )
 
-    with st.expander("5-Minute Bar Table", expanded=False):
+    with controls.expander("data_bartable", "5-Minute Bar Table", expanded=False):
         display = day.copy()
         display["Time"] = display["DateTime"].dt.strftime("%H:%M")
         display = display[["Time", "Open", "High", "Low", "Close", "Volume"]]
@@ -311,7 +313,7 @@ def show_data_tab():
 
     # ── Manually excluded dates ───────────────────────────────────────────────
     st.divider()
-    with st.expander("🚫 Manually Excluded Dates", expanded=False):
+    with controls.expander("data_excluded", "🚫 Manually Excluded Dates", expanded=False):
         st.caption(
             "Dates flagged here are dropped everywhere in the app — comparisons, Bar Viewer, "
             "and trade simulation/WFA — because the underlying data for that day is known to be bad "
@@ -447,15 +449,20 @@ def main():
         st.session_state.clear()
         st.rerun()
 
-    # Tab order: Bar Viewer first, Bar Analysis right after it (restored). st.tabs
-    # always opens tab 0, so a one-time JS click below makes Bar Analysis the
-    # default-active tab while keeping it in second position.
-    tab_massive, tab0, tab3, tab_wfa, tab1, tab_chart, tab4, tab_extras, tab_prop, tab_auction, tab_erc = st.tabs([
-        "📂 Massive", "🗂️ Data", "📈 Bar Analysis", "🔄 WFA", "📊 Bar Viewer", "📈 Chart", "📊 Portfolio", "🧩 Extras", "🏢 Prop Sim", "🏛️ Auction", "🔬 ER10 Look-ahead",
-    ])
+    # Tab bar is built dynamically: the 🎛️ Master tab (first, never hideable) lets
+    # the user switch whole tabs on/off, so disabled tabs are simply omitted from
+    # the st.tabs() label list. Tabs are referenced by key via the T dict below.
+    # st.tabs always opens tab 0, so a one-time JS click further down makes Bar
+    # Analysis the default-active tab.
+    controls.load_state()
+    _visible_keys = ["master"] + [k for k in controls.TAB_ORDER[1:] if controls.tab_visible(k)]
+    _tab_objs = st.tabs([controls.TAB_LABELS[k] for k in _visible_keys])
+    T = dict(zip(_visible_keys, _tab_objs))
 
-    # Auto-select Bar Analysis (index 1) once per browser session — guarded so it
-    # does NOT re-fire on every rerun and yank you off a tab you navigated to.
+    # Auto-select Bar Analysis once per browser session — guarded so it does NOT
+    # re-fire on every rerun and yank you off a tab you navigated to. Tabs are now
+    # built dynamically (the Master tab can hide tabs), so we match the button by
+    # its label text rather than a fixed index.
     components.html(
         """
         <script>
@@ -463,9 +470,12 @@ def main():
           if (window.sessionStorage.getItem('ba_default_done')) return;
           const doc = window.parent.document;
           const tabs = doc.querySelectorAll('button[data-baseweb="tab"]');
-          if (tabs.length > 1) {
-            tabs[1].click();
-            window.sessionStorage.setItem('ba_default_done', '1');
+          for (const t of tabs) {
+            if (t.innerText && t.innerText.indexOf('Bar Analysis') !== -1) {
+              t.click();
+              window.sessionStorage.setItem('ba_default_done', '1');
+              break;
+            }
           }
         })();
         </script>
@@ -475,7 +485,10 @@ def main():
 
     contract_label = selected_key.split(" — ")[0] if selected_key else "ES"
 
-    with tab_massive:
+    with T["master"]:
+        controls.render_master_tab()
+
+    with controls.tab_ctx(T, "massive"):
         massive.show_massive_tab()
 
     if st.session_state.get("data_sc_5m") is None and st.session_state.get("mas_continuous") is not None:
@@ -483,23 +496,23 @@ def main():
         apply_data_slot("sc_5m", mas_cont.drop(columns=["Contract"], errors="ignore"),
                          "Massive Continuous (auto)", "mas_continuous_auto")
 
-    with tab0:
+    with controls.tab_ctx(T, "data"):
         show_data_tab()
 
-    with tab1:
+    with controls.tab_ctx(T, "bar_viewer"):
         show_bar_viewer(sc_file, contract=contract_label)
 
-    with tab_chart:
+    with controls.tab_ctx(T, "chart"):
         continuous_chart.show_continuous_chart_tab()
 
-    with tab3:
+    with controls.tab_ctx(T, "bar_analysis"):
         # Signals upload lives here (price data is in the Data tab)
         _SIGNALS_DIR = Path(__file__).parent / "saved_signals"
         _SIGNALS_DIR.mkdir(exist_ok=True)
 
         def _signal_uploader(label: str, upload_key: str, state_prefix: str):
             _disk_path = _SIGNALS_DIR / f"{state_prefix}.parquet"
-            with st.expander(label, expanded=False):
+            with controls.expander(state_prefix, label, expanded=False):
                 sig_file = st.file_uploader(
                     "Signals (.txt/.csv)", type=["txt", "csv"], key=upload_key,
                     help="Space-delimited: Num Type Dir DD/MM/YYYY HH:MM:SS BarNum Price Stop",
@@ -530,7 +543,7 @@ def main():
 
         # ZLO overlay data
         _ZLO_DISK = _SIGNALS_DIR / "ba_zlo_overlay.parquet"
-        with st.expander("📈 ZLO Overlay (optional)", expanded=False):
+        with controls.expander("ba_zlo", "📈 ZLO Overlay (optional)", expanded=False):
             zlo_file = st.file_uploader(
                 "ZLO Export (.csv)", type=["csv"], key="upload_zlo",
                 help="CSV from NT ZerolagExporter: DateTime,Open,High,Low,Close,Oscillator,BaseTrend,TrendState,signals…",
@@ -552,7 +565,7 @@ def main():
 
         # Always In (AID) flip-state overlay
         _AI_DISK = _SIGNALS_DIR / "ba_alwaysin_overlay.parquet"
-        with st.expander("🧭 Always In State (optional)", expanded=False):
+        with controls.expander("ba_alwaysin", "🧭 Always In State (optional)", expanded=False):
             ai_file = st.file_uploader(
                 "AlwaysIn flips (.csv)", type=["csv"], key="upload_alwaysin",
                 help="CSV from the NT AlwaysIn indicator: Event,BarTime,BarNum,NewDir,…  (flip rows)",
@@ -583,23 +596,26 @@ def main():
 
         bar_analysis.show_bar_analysis(sc_file=sc_file, contract=contract_label, nt_file=nt_file)
 
-    with tab4:
+    with controls.tab_ctx(T, "portfolio"):
         portfolio.show_portfolio()
 
-    with tab_wfa:
+    with controls.tab_ctx(T, "wfa"):
         wfa_mod.show_wfa_tab()
 
-    with tab_extras:
+    with controls.tab_ctx(T, "extras"):
         extras.show_extras_tab()
 
-    with tab_prop:
+    with controls.tab_ctx(T, "prop"):
         prop_sim.show_prop_sim_tab()
 
-    with tab_auction:
+    with controls.tab_ctx(T, "auction"):
         auction_tab.show_auction_tab()
 
-    with tab_erc:
+    with controls.tab_ctx(T, "erc"):
         er_lookahead_tab.show_er_lookahead_tab()
+
+    with controls.tab_ctx(T, "qs"):
+        qs_tab.show_qs_tab()
 
     # Render the status strip now that all tabs have populated session state.
     with status_ph:

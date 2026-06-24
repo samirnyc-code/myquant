@@ -15,6 +15,7 @@ from pathlib import Path
 import boto3
 import pandas as pd
 import streamlit as st
+import ui_controls as controls
 from botocore.config import Config
 
 from contracts import (
@@ -545,7 +546,7 @@ def show_massive_tab():
     # ═════════════════════════════════════════════════════════════════════════
     with mgr_tab:
         # ── Roll schedule + download ──────────────────────────────────────
-        with st.expander("📋 Roll Schedule & Downloads", expanded=False):
+        with controls.expander("mas_roll", "📋 Roll Schedule & Downloads", expanded=False):
             st.caption(
                 "Pre-populated from CME convention (expiry − 8 days). "
                 "Edit **Roll Date** and **Offset** to match what you enter in NT's Instrument Manager. "
@@ -630,7 +631,7 @@ def show_massive_tab():
 
         # ── NT import files ───────────────────────────────────────────────
         nt_files = sorted(_NT_IMPORT_DIR.glob("*.Last.txt")) if _NT_IMPORT_DIR.exists() else []
-        with st.expander(f"📂 NT Import Files ({len(nt_files)} ready)", expanded=False):
+        with controls.expander("mas_nt_files", f"📂 NT Import Files ({len(nt_files)} ready)", expanded=False):
             st.caption(
                 f"After downloading, one `.Last.txt` file is written per contract to:  \n"
                 f"`{_NT_IMPORT_DIR}`  \n\n"
@@ -648,7 +649,7 @@ def show_massive_tab():
         # ── Continuous series vs NT @ES ───────────────────────────────────
         downloaded = [c for c in CATALOG if _is_downloaded(c.ticker)]
         n_dl = len(downloaded)
-        with st.expander(f"📊 Continuous Series vs NT @ES  ({n_dl}/{len(CATALOG)} contracts downloaded)", expanded=False):
+        with controls.expander("mas_series_vs_nt", f"📊 Continuous Series vs NT @ES  ({n_dl}/{len(CATALOG)} contracts downloaded)", expanded=False):
             st.caption(
                 "Validates that the Massive back-adjusted continuous matches NT's `@ES` continuous contract. "
                 "This is a prerequisite for WFA — if they diverge, WFA signals from NT won't align with Massive data."
@@ -800,7 +801,7 @@ def show_massive_tab():
 
         # ── Continuous tick series (per-day cache, for Bar Analysis) ───────
         n_tick_days = len(list(_TICKS_CONT_DIR.glob("*.parquet"))) if _TICKS_CONT_DIR.exists() else 0
-        with st.expander(f"🧮 Continuous Tick Series  ({n_tick_days} day(s) cached)", expanded=False):
+        with controls.expander("mas_tick_series", f"🧮 Continuous Tick Series  ({n_tick_days} day(s) cached)", expanded=False):
             st.caption(
                 "Builds one small Parquet per trading day from the already-downloaded flat-file cache — "
                 "front-month ticker only, RTH-filtered, back-adjustment offset baked into price. "
@@ -842,7 +843,7 @@ def show_massive_tab():
             "Use the Contract Manager tab for bulk historical downloads."
         )
 
-        with st.expander("⚙️ Config", expanded=False):
+        with controls.expander("mas_config", "⚙️ Config", expanded=False):
             col_ticker, col_d1, col_d2 = st.columns([1, 1, 1])
             ticker = col_ticker.text_input(
                 "Ticker",

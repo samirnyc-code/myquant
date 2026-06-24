@@ -20,6 +20,7 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+import ui_controls as controls
 from plotly.subplots import make_subplots
 from scipy import stats as scipy_stats
 
@@ -1600,7 +1601,7 @@ def show_wfa_tab() -> None:
         # on/off state. The master toggle below is the on/off control.
         import regime_filter as _rf
         locked_spec: dict = {}
-        with st.expander("🧭 Regime Filter (optional — off by default)", expanded=False):
+        with controls.expander("wfa_regime", "🧭 Regime Filter (optional — off by default)", expanded=False):
             _rf_on = st.checkbox(
                 "Enable regime filter", value=False, key="wfa_rf_enable",
                 help="OFF = every signal passes through (default). ON = keep only "
@@ -1857,19 +1858,19 @@ def show_wfa_tab() -> None:
 
         # ── Compare two runs (side-by-side OOS metrics + overlaid equity) ──────
         if len(all_runs) >= 2:
-            with st.expander("⚖️ Compare Two Runs", expanded=False):
+            with controls.expander("wfa_compare", "⚖️ Compare Two Runs", expanded=False):
                 st.caption("Read-only side-by-side of any two persisted runs — OOS metrics "
                            "diff and overlaid equity. Loads stored results; never re-runs a sim.")
                 _compare_runs_ui(all_runs, run_labels, sel_run_id)
 
         # ── Guardrail summary ─────────────────────────────────────────────────
-        with st.expander("🔒 Kaufman / Pardo Guardrails", expanded=False):
+        with controls.expander("wfa_guardrails", "🔒 Kaufman / Pardo Guardrails", expanded=False):
             report = guardrail_report(folds_df)
             _guardrail_badges(report)
             _guardrail_breakdown(folds_df)
 
         # ── OOS equity curve ──────────────────────────────────────────────────
-        with st.expander("📈 Combined OOS Equity Curve", expanded=False):
+        with controls.expander("wfa_oos_equity", "📈 Combined OOS Equity Curve", expanded=False):
             oos_trades = load_all_oos_trades(sel_run_id, sel_setup)
             if not oos_trades.empty:
                 fig = _equity_chart(oos_trades, f"OOS Equity — {sel_setup} / {sel_run_id}")
@@ -1908,11 +1909,11 @@ def show_wfa_tab() -> None:
                 st.info("No OOS trade data found.")
 
         # ── Fold summary table ────────────────────────────────────────────────
-        with st.expander("📋 Fold Summary Table", expanded=False):
+        with controls.expander("wfa_fold_summary", "📋 Fold Summary Table", expanded=False):
             _fold_table(folds_df)
 
         # ── Per-fold charts (describes the run — no new strategy params) ───────
-        with st.expander("📊 Per-Fold Charts", expanded=False):
+        with controls.expander("wfa_per_fold_charts", "📊 Per-Fold Charts", expanded=False):
             _f      = folds_df.sort_values("fold_id")
             _fx     = _f["fold_id"].astype(str)
             wfe_pct = (_f["wfe"] * 100)
@@ -1934,7 +1935,7 @@ def show_wfa_tab() -> None:
                        "edge OOS (not necessarily durable). Watch for a few folds carrying the whole result.")
 
         # ── OOS trade distribution ─────────────────────────────────────────────
-        with st.expander("📉 OOS Trade Distribution", expanded=False):
+        with controls.expander("wfa_oos_dist", "📉 OOS Trade Distribution", expanded=False):
             _ft = oos_trades[oos_trades["Filled"] == True] if not oos_trades.empty else pd.DataFrame()
             if _ft.empty:
                 st.info("No OOS trades to plot.")
@@ -1953,7 +1954,7 @@ def show_wfa_tab() -> None:
                                 "negative = fat-tailed losses.")
 
         # ── Friction & robustness diagnostics (Pardo-safe; adds no strategy params) ─
-        with st.expander("🧪 Friction & Robustness Diagnostics", expanded=False):
+        with controls.expander("wfa_friction", "🧪 Friction & Robustness Diagnostics", expanded=False):
             _ft = oos_trades[oos_trades["Filled"] == True] if not oos_trades.empty else pd.DataFrame()
             if _ft.empty:
                 st.info("No OOS trades to analyse.")
@@ -2046,7 +2047,7 @@ def show_wfa_tab() -> None:
                                    else f"Edge reaches break-even at **{_be:.2f}×** modelled slippage.")
 
         # ── Metric glossary ────────────────────────────────────────────────────
-        with st.expander("ℹ️ Metric Glossary"):
+        with controls.expander("wfa_glossary", "ℹ️ Metric Glossary"):
             _glabels = {
                 "prom": "PROM", "pnl_dd": "PnL / DD", "pf": "Profit Factor",
                 "win_pct": "Win %", "max_dd": "Max Drawdown", "wfe": "Walk-Forward Efficiency",
@@ -2057,7 +2058,7 @@ def show_wfa_tab() -> None:
                 st.markdown(f"**{_lbl}** — {_METRIC_HELP[_k]}")
 
         # ── Per-fold drill-down ───────────────────────────────────────────────
-        with st.expander("🔍 Per-Fold Drill-Down"):
+        with controls.expander("wfa_drilldown", "🔍 Per-Fold Drill-Down"):
             fold_ids = folds_df["fold_id"].tolist()
             sel_fold = st.selectbox("Select fold", fold_ids, key="wfa_sel_fold")
 
@@ -2139,7 +2140,7 @@ def show_wfa_tab() -> None:
                     st.dataframe(oos_tr, use_container_width=True, hide_index=True)
 
         # ── Delete run ────────────────────────────────────────────────────────
-        with st.expander("🗑️ Delete Run"):
+        with controls.expander("wfa_delete", "🗑️ Delete Run"):
             st.warning(f"This permanently deletes run **{sel_run_id}** and all its trade logs.")
             if st.button("Delete this run", key="wfa_delete_run"):
                 delete_run(sel_run_id)

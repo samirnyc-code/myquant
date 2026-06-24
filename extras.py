@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import streamlit as st
+import ui_controls as controls
 
 
 def show_extras_tab():
@@ -554,7 +555,7 @@ def _show_prop_firm():
             use_container_width=True, hide_index=True)
 
     # ── Daily detail table ───────────────────────────────────────────────────
-    with st.expander("📋 Daily P&L Detail", expanded=False):
+    with controls.expander("ex_daily", "📋 Daily P&L Detail", expanded=False):
         display = daily[[
             "Date", "trades", "wins", "Win%", "daily_pnl",
             "eod_balance", "eod_dd", "Intraday DD",
@@ -584,7 +585,7 @@ def _show_prop_firm():
         st.dataframe(styled, use_container_width=True, hide_index=True)
 
     # ── Per-trade detail ─────────────────────────────────────────────────────
-    with st.expander("📋 Per-Trade Detail (with scaling)", expanded=False):
+    with controls.expander("ex_trades", "📋 Per-Trade Detail (with scaling)", expanded=False):
         trade_display = scaled[[
             "ExitTime", "Direction", "SignalType", "Contracts",
             "GrossPnLPts", "NetPnL", "Balance", "TrailingDD", "R_achieved",

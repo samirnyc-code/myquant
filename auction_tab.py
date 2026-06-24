@@ -16,6 +16,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 import auction_features as af
+import ui_controls as controls
 
 _ETH_PATH = Path(__file__).parent / "data" / "eth_levels.parquet"
 
@@ -53,7 +54,7 @@ def show_auction_tab():
                f"({f['Date'].min():%Y-%m-%d} → {f['Date'].max():%Y-%m-%d})")
 
     # ── Day-type distribution ────────────────────────────────────────────────
-    with st.expander("📊 Day-Type Distribution", expanded=True):
+    with controls.expander("auc_daytype", "📊 Day-Type Distribution", expanded=True):
         vc = f["day_type"].value_counts()
         c1, c2 = st.columns([2, 3])
         with c1:
@@ -72,7 +73,7 @@ def show_auction_tab():
                    "`auction_features._classify_day_type`.")
 
     # ── Transition matrix ────────────────────────────────────────────────────
-    with st.expander("🔁 Day-Type Transition (yesterday → today)", expanded=True):
+    with controls.expander("auc_transition", "🔁 Day-Type Transition (yesterday → today)", expanded=True):
         tm = af.day_type_transition_matrix(f)
         if tm.empty:
             st.info("Not enough data.")
@@ -90,7 +91,7 @@ def show_auction_tab():
                        "of each type today. Diagonal = persistence.")
 
     # ── Gap study ────────────────────────────────────────────────────────────
-    with st.expander("⛳ Gap Behavior (bias by size & direction)", expanded=True):
+    with controls.expander("auc_gap", "⛳ Gap Behavior (bias by size & direction)", expanded=True):
         gs = af.gap_outcome_study(f)
         if gs.empty:
             st.info("Not enough data.")
@@ -102,7 +103,7 @@ def show_auction_tab():
                        "'gap-and-go' threshold.")
 
     # ── Raw feature table ────────────────────────────────────────────────────
-    with st.expander("🔬 Per-Session Features (raw)", expanded=False):
+    with controls.expander("auc_features", "🔬 Per-Session Features (raw)", expanded=False):
         type_filter = st.multiselect(
             "Filter day type", sorted(f["day_type"].dropna().unique()),
             key="auc_type_filter")

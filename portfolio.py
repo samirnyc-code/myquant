@@ -5,6 +5,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 import streamlit.components.v1 as components
+import ui_controls as controls
 from pathlib import Path
 
 from bar_analysis import (
@@ -268,7 +269,7 @@ def _pdf_button(key: str):
 # ── Summary strips ────────────────────────────────────────────────────────────
 
 def _summary_strip(summary: dict, pnl_dd, pf_str, exp_r_help, starting_cap: float = 0.0):
-    with st.expander("📋 Quick View", expanded=False):
+    with controls.expander("pf_quick", "📋 Quick View", expanded=False):
         r1 = st.columns(6)
         r1[0].metric("Net PnL",  f"${summary['net_total']:,.0f}")
         r1[1].metric("Win %",    f"{summary['win_pct']:.1f}%",
@@ -292,7 +293,7 @@ def _summary_strip(summary: dict, pnl_dd, pf_str, exp_r_help, starting_cap: floa
 
 
 def _detail_strip(summary: dict, pf_str, starting_cap: float = 0.0):
-    with st.expander("📊 Detail", expanded=False):
+    with controls.expander("pf_detail", "📊 Detail", expanded=False):
         _actual_comm = summary["gross_total"] - summary["net_total"]
         _slip_usd    = summary.get("slippage_total", 0.0)
         _total_cost  = _slip_usd + _actual_comm
@@ -390,7 +391,7 @@ def show_portfolio():
     cc_types = sorted(signals_raw["SignalType"].unique())
 
     # ── Global settings ───────────────────────────────────────────────────────
-    with st.expander("⚙️ Global Settings", expanded=False):
+    with controls.expander("pf_global", "⚙️ Global Settings", expanded=False):
         g1, g2, g3, g4, g5, g6 = st.columns(6)
         instrument   = g1.selectbox("Instrument", list(INSTRUMENTS.keys()),
                                     index=0, key="pf_instrument")
@@ -431,7 +432,7 @@ def show_portfolio():
     _cfg_ver        = st.session_state.get("pf_cfg_ver", 0)
     _saved_defaults = _load_defaults()
 
-    with st.expander("⚙️ Setup Parameters (2-Leg Scale-In)", expanded=False):
+    with controls.expander("pf_setup_params", "⚙️ Setup Parameters (2-Leg Scale-In)", expanded=False):
         hdr = st.columns([0.6, 1.2, 1.5, 2.5, 2.5, 1.5, 2.5, 1.2])
         for col, lbl in zip(hdr, ["Run", "Setup", "E1 Contr.", "T1", "PB", "E2 Contr.", "T2", "Sigs"]):
             col.markdown(f"<small>**{lbl}**</small>", unsafe_allow_html=True)
@@ -507,7 +508,7 @@ def show_portfolio():
     enabled_ccs = [cc for cc, cfg in configs.items() if cfg["enabled"]]
 
     # ── Per-Setup Sweep ───────────────────────────────────────────────────────
-    with st.expander("🔍 Per-Setup Sweep", expanded=False):
+    with controls.expander("pf_sweep", "🔍 Per-Setup Sweep", expanded=False):
         sw1, sw2, sw3, sw4 = st.columns(4)
 
         with sw1:
@@ -697,7 +698,7 @@ def show_portfolio():
     _detail_strip(summary, _pf_str, starting_cap=float(starting_cap))
 
     # ── Equity curves ─────────────────────────────────────────────────────────
-    with st.expander("📈 Equity Curves", expanded=False):
+    with controls.expander("pf_equity", "📈 Equity Curves", expanded=False):
         fig = go.Figure()
         for cc, res in pf_results.items():
             filled = res[res["Filled"] == True].sort_values(["Date", "EntryTime"])
@@ -731,7 +732,7 @@ def show_portfolio():
         st.plotly_chart(fig, use_container_width=True)
 
     # ── Per-setup breakdown ───────────────────────────────────────────────────
-    with st.expander("📊 Per-Setup Breakdown", expanded=False):
+    with controls.expander("pf_setup_breakdown", "📊 Per-Setup Breakdown", expanded=False):
         rows = []
         for cc, res in pf_results.items():
             cfg  = run_configs.get(cc, {})
@@ -764,7 +765,7 @@ def show_portfolio():
             st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
     # ── Drawdown by setup ─────────────────────────────────────────────────────
-    with st.expander("📉 Drawdown by Setup", expanded=False):
+    with controls.expander("pf_drawdown", "📉 Drawdown by Setup", expanded=False):
         fig_dd = go.Figure()
         for cc, res in pf_results.items():
             filled = res[res["Filled"] == True].sort_values(["Date", "EntryTime"])
@@ -801,7 +802,7 @@ def show_portfolio():
 
     # ── Save this run ─────────────────────────────────────────────────────────
     st.markdown("---")
-    with st.expander("💾 Save This Run", expanded=False):
+    with controls.expander("pf_save", "💾 Save This Run", expanded=False):
         st.caption(
             "Convention: **`{scope} | {period} | {description}`**  "
             "e.g. `IS | 2026-01→2026-06 | CC2-5 sweep-opt PB-0.5`"

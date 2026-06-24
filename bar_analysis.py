@@ -4,6 +4,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import streamlit as st
+import ui_controls as controls
 from pathlib import Path
 
 from data_loader import load_sc_bars, load_sc_ticks, get_market_holidays, TICK_SIZE, bar_num_from_dt
@@ -1216,7 +1217,7 @@ def _show_entry_zoom_section(results: pd.DataFrame, ticks_by_date: dict) -> None
     if filled.empty or not ticks_by_date:
         return
 
-    with st.expander("🔍 Entry Zoom — tick-level view around trade entry", expanded=False):
+    with controls.expander("ba_entry_zoom", "🔍 Entry Zoom — tick-level view around trade entry", expanded=False):
         sig_opts = {
             f"#{int(r['SignalNum'])}  {r['Date']} {r['Direction']} "
             f"@ {pd.Timestamp(r['DateTime']).strftime('%H:%M')} "
@@ -1925,7 +1926,7 @@ def _show_stop_sweep(signals, ticks_by_date, entry_slip, exit_slip, stop_offset,
                      first_trade_only: bool = False, first_2_filled_only: bool = False):
     _METRIC_COLS = ["Win %", "PF", "Net PnL", "DD $", "PnL/DD", "Exp $"]
     _THRESHOLDS  = {"PF": 1.0, "Net PnL": 0, "PnL/DD": 0, "Exp $": 0}
-    with st.expander("🔍 Stop Multiplier Sweep", expanded=False):
+    with controls.expander("ba_stop_sweep", "🔍 Stop Multiplier Sweep", expanded=False):
         st.caption(
             "Runs simulation at multiple stop sizes "
             f"(multiplier of the original signal stop) at the current target R = {target_r:.2f}. "
@@ -2032,7 +2033,7 @@ def _show_stop_target_sweep(signals, ticks_by_date, entry_slip, exit_slip, stop_
                             first_trade_only=False, first_2_filled_only=False):
     _METRIC_COLS = ["Win %", "PF", "Net PnL", "DD $", "PnL/DD", "Exp $"]
     _THRESHOLDS  = {"PF": 1.0, "Net PnL": 0, "PnL/DD": 0, "Exp $": 0}
-    with st.expander("🔍 2-D Stop × Target Sweep", expanded=False):
+    with controls.expander("ba_stop_target_sweep", "🔍 2-D Stop × Target Sweep", expanded=False):
         st.caption(
             "Crosses stop size (× baseline stop) with target R. Because R is measured "
             "in stop units, these two interact — the joint optimum can differ from "
@@ -2784,7 +2785,7 @@ def _show_monthly_breakdown(results: pd.DataFrame, commission: float, expanded: 
     base_cols = ["Trades", "Win%", "PF", "Net PnL", "Avg R", "MAE R", "MFE R", "Best", "Worst"]
 
     # ── Monthly breakdown expander ────────────────────────────────────────────
-    with st.expander("📅 Monthly Breakdown", expanded=expanded):
+    with controls.expander("ba_monthly", "📅 Monthly Breakdown", expanded=expanded):
         disp = _fmt(monthly)
         for col in stype_pct_cols:
             if col in monthly.columns:
@@ -2865,7 +2866,7 @@ def _show_monthly_breakdown(results: pd.DataFrame, commission: float, expanded: 
             st.plotly_chart(fig_cc, use_container_width=True)
 
     # ── Setup analysis expander ───────────────────────────────────────────────
-    with st.expander("📊 Setup Analysis", expanded=expanded):
+    with controls.expander("ba_setup_analysis", "📊 Setup Analysis", expanded=expanded):
         sdisp = _fmt(setup_df)
         st.dataframe(
             sdisp[["SignalType"] + base_cols],
@@ -2948,7 +2949,7 @@ def _show_tod_dow_breakdown(results: pd.DataFrame):
         df[key] = pd.Categorical(df[key], categories=order, ordered=True)
         return df.sort_values(key)
 
-    with st.expander("🕐 Time-of-Day / Day-of-Week Breakdown", expanded=False):
+    with controls.expander("ba_tod_dow", "🕐 Time-of-Day / Day-of-Week Breakdown", expanded=False):
         st.caption(
             "Descriptive only — read this to form a *structural* hypothesis, not to "
             "pick the best cell. Thin cells (low Trades) are noise. Any filter you "
@@ -3511,7 +3512,7 @@ def _show_regime_expectancy(results: pd.DataFrame):
     if filled.empty:
         return
 
-    with st.expander("🌡️ Regime / Indicator Expectancy", expanded=False):
+    with controls.expander("ba_regime_exp", "🌡️ Regime / Indicator Expectancy", expanded=False):
         if bars is None or bars.empty:
             st.info("Build the continuous series in the **📂 Massive** tab to tag trades "
                     "with regime indicators.")
@@ -4349,7 +4350,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                                 min_value=data_min, max_value=data_max, key="ba_date_to")
 
     # ── Filters expander ──────────────────────────────────────────────────────
-    with st.expander("⚙️ Filters", expanded=False):
+    with controls.expander("ba_filters", "⚙️ Filters", expanded=False):
         st.markdown("**Session Filters**")
         sf1, sf2, sf3 = st.columns(3)
         excl_holidays = sf1.checkbox("Exclude NYSE holidays", key="ba_excl_holidays",
@@ -4519,7 +4520,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
             ai_near_n = 1
 
     # ── Signals ───────────────────────────────────────────────────────────────
-    with st.expander("📶 Signals", expanded=False):
+    with controls.expander("ba_signals_panel", "📶 Signals", expanded=False):
         # Signal-type filter — built dynamically from the loaded signals' own types,
         # so it adapts to MC (CC2/CC3/…), RevFT (OB/IB/Trap), or any future set.
         _all_types = (sorted(signals_raw["SignalType"].dropna().unique())
@@ -4555,7 +4556,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                  "filters/gates — every other rule is unchanged.")
 
     # ── Trading Parameters expander ───────────────────────────────────────────
-    with st.expander("⚙️ Trading Parameters", expanded=False):
+    with controls.expander("ba_trading_params", "⚙️ Trading Parameters", expanded=False):
         # 3-Leg hidden until tick data is available.
         _mode_opts = ["Single Leg", "2-Leg"]
         _saved_mode = st.session_state.get("ba_trade_mode", "Single Leg")
@@ -5094,7 +5095,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
     # the engine can be tested on real data. Defaults (Realistic / market) apply
     # realistic slippage + delay; pick Custom for the pre-ESA byte-identical baseline.
     from simulation_engine import EXECUTION_PRESETS as _ESA_PRESETS
-    with st.expander("⚙️ Execution model (ESA) — calc delay / wire / entry / preset", expanded=False):
+    with controls.expander("ba_exec_model", "⚙️ Execution model (ESA) — calc delay / wire / entry / preset", expanded=False):
         _ex = st.columns(3)
         _exec_preset = _ex[0].selectbox(
             "Execution preset", ["Custom", *_ESA_PRESETS.keys()],
@@ -5424,7 +5425,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
 
     # ── Quick View (expanded by default) ─────────────────────────────────────
     _auto_expand = run_btn or not _has_results  # expand after a sim run
-    with st.expander("📋 Quick View", expanded=_auto_expand):
+    with controls.expander("ba_quick_view", "📋 Quick View", expanded=_auto_expand):
         if summary:
             r1 = st.columns(7)
             r1[0].metric("Net PnL",   f"${summary['net_total']:,.0f}")
@@ -5450,7 +5451,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
             st.info("No filled trades in the selected range.")
 
     # ── Expectancy Stability (rolling R + per-period) ─────────────────────────
-    with st.expander("📈 Expectancy Stability (R)", expanded=False):
+    with controls.expander("ba_exp_stability", "📈 Expectancy Stability (R)", expanded=False):
         _fr = (results[results["Filled"] == True].copy()
                if results is not None and "Filled" in results.columns else pd.DataFrame())
         if _fr.empty or "R_achieved" not in _fr.columns:
@@ -5520,7 +5521,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                        f"R is contract-independent — identical for 1c, 2c or MES.")
 
     # ── Detail (collapsed) ────────────────────────────────────────────────────
-    with st.expander("📊 Detail", expanded=_auto_expand):
+    with controls.expander("ba_detail", "📊 Detail", expanded=_auto_expand):
         if summary:
             r1 = st.columns(6)
             r1[0].metric("Signals",       f"{summary['n_total']}")
@@ -5549,7 +5550,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
             st.info("No filled trades in the selected range.")
 
     # ── Execution Audit (main run) ───────────────────────────────────────────
-    with st.expander("🔍 Execution Audit — verify fills against tick data", expanded=False):
+    with controls.expander("ba_exec_audit", "🔍 Execution Audit — verify fills against tick data", expanded=False):
       try:
         if summary and not results.empty:
             _au = results[results["Filled"] == True].copy()
@@ -5729,7 +5730,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
     # ── Assumption ledger — frictionless gross → net (stacked conservatism visible) ─
     _led = friction_ledger(results) if not results.empty else {}
     if _led:
-        with st.expander("🧮 Assumption Ledger (frictionless → net)", expanded=False):
+        with controls.expander("ba_assumption_ledger", "🧮 Assumption Ledger (frictionless → net)", expanded=False):
             _ldf = pd.DataFrame([
                 {"Step": "Frictionless gross", "Amount $": _led["frictionless_gross"]},
                 {"Step": "− Slippage",          "Amount $": -_led["slippage"]},
@@ -5747,7 +5748,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                        "need a counterfactual re-run to isolate.")
 
     # ── ESA Phase B — Execution Sensitivity Comparison ──────────────────────
-    with st.expander("🔬 Execution Sensitivity Analysis (ESA)", expanded=False):
+    with controls.expander("ba_esa", "🔬 Execution Sensitivity Analysis (ESA)", expanded=False):
         if summary and not results.empty:
             _esa_all_presets = list(_ESA_PRESETS.keys())
             _esa_selected = st.multiselect(
@@ -6072,7 +6073,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
             st.info("Run the simulation first to enable ESA comparison.")
 
     # ── Edge Analysis ─────────────────────────────────────────────────────────
-    with st.expander("📊 Edge Analysis", expanded=False):
+    with controls.expander("ba_edge_analysis", "📊 Edge Analysis", expanded=False):
         if summary and not results.empty:
             _ea_filled = results[results["Filled"] == True].copy()
             _ea_wins   = _ea_filled[
@@ -6445,7 +6446,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
     in_range   = results[(results["Date"] >= date_from) & (results["Date"] <= date_to)]
     filled_all = in_range[in_range["Filled"]]
 
-    with st.expander("📈 Daily Chart", expanded=False):
+    with controls.expander("ba_daily_chart", "📈 Daily Chart", expanded=False):
         _trade_filter = st.radio(
             "Show dates with:", ["All signals", "Winners only", "Losers only"],
             horizontal=True, key="ba_trade_filter",
@@ -6618,5 +6619,5 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
     # ── Bar data mismatch analysis ────────────────────────────────────────────
     if nt_bars is not None and not nt_bars.empty:
         st.markdown("---")
-        with st.expander("🔍 Bar Data Mismatch Analysis", expanded=False):
+        with controls.expander("ba_mismatch", "🔍 Bar Data Mismatch Analysis", expanded=False):
             _show_mismatch_analysis(results, bars, nt_bars)

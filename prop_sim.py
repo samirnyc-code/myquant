@@ -26,6 +26,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import streamlit as st
+import ui_controls as controls
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -619,7 +620,7 @@ def show_prop_sim_tab():
     commission = s4.number_input(
         "Commission RT ($/c)", value=5.0, step=0.50, key="ps_comm")
 
-    with st.expander("💸 Payouts, Costs & Conservatism", expanded=False):
+    with controls.expander("prop_payouts", "💸 Payouts, Costs & Conservatism", expanded=False):
         p1, p2, p3, p4 = st.columns(4)
         profit_split = p1.number_input(
             "Your split (%)", value=80, min_value=0, max_value=100, step=5,
@@ -831,7 +832,7 @@ def show_prop_sim_tab():
     total_pnl = float(equity.iloc[-1])
 
     # ── Quick View (richer) ───────────────────────────────────────────────────
-    with st.expander("📋 Quick View", expanded=True):
+    with controls.expander("prop_quick", "📋 Quick View", expanded=True):
         losses = (trades_df["NetPnL"] <= 0).sum()
         avg_win = trades_df.loc[trades_df["NetPnL"] > 0, "NetPnL"].mean() if wins else 0
         avg_loss = trades_df.loc[trades_df["NetPnL"] <= 0, "NetPnL"].mean() if losses else 0
@@ -885,7 +886,7 @@ def show_prop_sim_tab():
         q18.metric("Days", f"{trading_days}")
 
     # ── Prop-specific metrics ─────────────────────────────────────────────────
-    with st.expander("🏦 Prop Metrics", expanded=True):
+    with controls.expander("prop_metrics", "🏦 Prop Metrics", expanded=True):
         pay_df = result["payouts"]
         n_paid = len(pay_df[pay_df["Paid"] > 0]) if not pay_df.empty else 0
         avg_payout = pay_df.loc[pay_df["Paid"] > 0, "Paid"].mean() if n_paid else 0
@@ -958,7 +959,7 @@ def show_prop_sim_tab():
                 use_container_width=True, hide_index=True)
 
     # ── Detail ───────────────────────────────────────────────────────────────
-    with st.expander("📊 Detail", expanded=False):
+    with controls.expander("prop_detail", "📊 Detail", expanded=False):
         dc1, dc2 = st.columns(2)
         with dc1:
             st.markdown("**Breakdown**")
@@ -1017,7 +1018,7 @@ def show_prop_sim_tab():
                 use_container_width=True, hide_index=True)
 
     # ── Monthly Breakdown ─────────────────────────────────────────────────────
-    with st.expander("📅 Monthly Breakdown", expanded=False):
+    with controls.expander("prop_monthly", "📅 Monthly Breakdown", expanded=False):
         trades_df["_month"] = pd.to_datetime(trades_df["ExitTime"]).dt.to_period("M")
         monthly = trades_df.groupby("_month").agg(
             trades=("NetPnL", "count"),
@@ -1218,7 +1219,7 @@ def show_prop_sim_tab():
             use_container_width=True, hide_index=True)
 
     # ── Daily detail ────────────────────────────────────────────────────────────
-    with st.expander("📋 Daily Detail", expanded=False):
+    with controls.expander("prop_daily", "📋 Daily Detail", expanded=False):
         dd = daily_df[["Date", "trades", "wins", "Win%", "daily_pnl", "eod_balance",
                        "eod_trailing_dd", "min_contracts", "max_contracts",
                        "daily_loss_breach"]].copy()
@@ -1240,7 +1241,7 @@ def show_prop_sim_tab():
             use_container_width=True, hide_index=True)
 
     # ── Trade detail ─────────────────────────────────────────────────────────────
-    with st.expander("📋 Trade Detail", expanded=False):
+    with controls.expander("prop_trades", "📋 Trade Detail", expanded=False):
         td = trades_df[["ExitTime", "Direction", "SignalType", "Contracts",
                         "GrossPnLPts", "NetPnL", "Balance", "TrailingDD",
                         "DayTradeNum", "R_achieved"]].copy()

@@ -1,0 +1,73 @@
+# ============================================================================
+# Ali Moin-Afshari — BO study worksheet ("Study: Take BO Signals"), ES.D 2020
+# Workbook: Dev_BO Detector_PB / indicator AMA_Breakout Detector_PB_X v11X
+# Transcribed from the mentoring-video frames + the high-res worksheet screenshot.
+# PURPOSE: ground-truth to validate detect_wp once we obtain 2020 ES data
+#          (our tick/bar set currently starts 2021-06-18 — no 2020 yet).
+#
+# RESOLUTION CAVEAT: the video frames are too low-res to read the dense per-trade
+# numeric cells reliably. The COLUMN SCHEMA, SUMMARY STATS, FILTER TABLE, and the
+# date/time/dir/leg/setup of the legible rows are captured below. The full numeric
+# per-trade matrix needs the actual .xlsx (or a zoomed screenshot per column block).
+# ============================================================================
+#
+# --- SAMPLE / PARAMETERS ---
+#   Instrument: ES.D    Tick: 0.25
+#   BO sample : 20 work days, 100 setups, 5.0 setups/day
+#   Rev sample: 65 work days (24-Aug -> 20-Nov-2020); 1306 Rev signal bars, 430 got FT (~33%)
+#
+# --- SUMMARY STATS (top-right blocks) ---
+#   Hold-for-1R (entry bar 2):  WinRate 76% | NetWin 60.10R | TotalWin 75.54R | TotalLoss -15.44R
+#                               SQN 6.3 | STDev 0.95 | MedianR 0.61 | Mode -1 | AvgR 0.6
+#   Scale-in (entry bar1+add):  WinRate 75% | NetWin 101.15R | TotalWin 109.15R | TotalLoss -8.00R
+#                               SQN 10.2 | STDev 0.99 | MedianR 1.11 | Mode 0 | AvgR 1.0
+#   a.Risk Dist (actual risk, pts): Avg 4.74 | Max 19.25 | Min 0  -> ~1x signal-bar range
+#
+# --- FILTER ABLATION ("BO-100 Take: Effect of Filters on Performance", frame 1370) ---
+#   Bare (take all signals) ........ Win 76% | SQN 6.3
+#   No Legs 3 & 4 .................. Win ~83% | SQN ~7.4
+#   + No 9:30-9:55 (time) ......... Win ~86% | SQN ~8.9
+#   + No Deep Entries ............. higher again
+#   (NB: "Legs 3 & 4" is Ali's HAND-LABELLED channel-leg column = discretionary, not mechanizable.)
+#
+# --- FULL PER-TRADE COLUMN SCHEMA (left -> right, from the high-res frame col letters) ---
+#   Date | Time(HHMM,ET) | Sig(+1/-1) | BarDir | BarSize | 1R | Body | IBS | BO_Size
+#   Context: DayType | SubType | Tone(BL/BR) | Leg | Phase(S/C/T) | Setup | IB/BO/OD | Pivot
+#   MIG: FT | Leg     CC: Signal | Sign | MA
+#   a.Risk: Dist | R     Follow-Through: Imm | Run | R     Total     Size of: Bars | BO+
+#   Immediate Pullback: PB | Range | i     Late PB: PB_Bars | Range | i
+#   PB/Pause Effect: Point | R     Immediate Pause: Imm.E | Range | i     Late Pause: Range | i
+#   Stop Run: Dist | %R     No_PB_or_Pause     1st Leg: Bars | Range
+#   2nd Leg: Bars | Range | R | Full_R | Symm | R     Late Big 2nd Leg: Bars | Range
+#
+# --- LEGIBLE TRADE ROWS (partial: ~Nov 6-17 2020; Dir from Sig; Leg pink=3/4=filtered) ---
+# Confidence: high/med/low per row. Times almost certainly EASTERN; for our CT data subtract 1h.
+Date,TimeET,Dir,Leg,Setup,Confidence
+2020-11-06,11:05,Short,2,Rev-BO,med
+2020-11-06,15:05,Short,3,BO,med
+2020-11-09,09:35,Short,1,Rev-BO/L1,med
+2020-11-09,10:05,Long,1,BO/Rev-BO,med
+2020-11-09,11:05,Short,3,BO/OD,med
+2020-11-10,11:30,Long,1,BO,high
+2020-11-10,11:45,Long,1,BO,high
+2020-11-10,12:05,Long,3,BO/OU,med
+2020-11-10,13:25,Short,2,BO,high
+2020-11-11,10:00,Short,2,BO,high
+2020-11-11,13:20,Short,4,Rev-BO/OU,med
+2020-11-11,13:30,Short,2,Rev-BO,med
+2020-11-11,14:30,Short,2,Rev-BO,med
+2020-11-11,14:50,Short,3,BO,med
+2020-11-12,12:50,Short,,BO (UTR-LTR),low
+2020-11-12,15:20,Long,1,Rev-BO,med
+2020-11-13,10:20,Short,,BO (SPB),low
+2020-11-13,11:00,Long,3,H3,low
+2020-11-13,14:20,Long,1,Rev-BO,med
+2020-11-13,14:25,Long,1,BO,med
+2020-11-13,15:35,Short,3,BO,med
+2020-11-16,09:35,Short,,L1,low
+2020-11-16,12:55,Short,2,BO,high
+2020-11-16,13:25,,,L1,low
+2020-11-16,13:30,Short,3,BO,med
+2020-11-16,14:50,,,L2/OD,low
+2020-11-16,15:05,Short,3,BO,med
+2020-11-17,09:55,Short,,BO,med
