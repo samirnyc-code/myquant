@@ -563,10 +563,9 @@ def main():
 
         # AMA Signals — generated directly from loaded bar data, no upload needed
         with st.expander("🔶 AMA Breakouts Signals", expanded=False):
-            _ama_bars = (
-                st.session_state.get("mas_continuous")
-                or st.session_state.get("data_sc_5m")
-            )
+            _cont = st.session_state.get("mas_continuous")
+            _sc   = st.session_state.get("data_sc_5m")
+            _ama_bars = _cont if (_cont is not None and not _cont.empty) else _sc
             if _ama_bars is None:
                 st.info("Load bar data first (Data tab or Massive tab).")
             else:
