@@ -356,20 +356,46 @@ def show_data_tab():
 # ── App entry point ───────────────────────────────────────────────────────────
 
 @st.cache_data(show_spinner="Detecting AMA signals…")
-def _run_ama(bars: pd.DataFrame,
-             stop_offset: int,
-             target_mode: str,
-             target_mult: float,
-             types_key: str) -> pd.DataFrame:
+def _run_ama(
+    bars: pd.DataFrame,
+    stop_offset: int,
+    target_mode: str,
+    target_mult: float,
+    types_key: str,
+    ob_requires_ft: bool,
+    # AMAConfig knobs (all cacheable scalars)
+    bl_signal_ibs: int,
+    br_signal_ibs: int,
+    bl_ft_ibs: int,
+    br_ft_ibs: int,
+    range_filter: float,
+    range_lookback: int,
+    ft_must_close_beyond: int,
+    show_bigbo: int,
+    big_bo_range_factor: float,
+    show_cx: int,
+    strict_ob: int,
+) -> pd.DataFrame:
     """Run AMA detect + to_signal_rows on `bars`. Cached by all params."""
-    cfg  = ama_setups.AMAConfig()
-    tp   = ama_setups.AMATradeParams(
+    cfg = ama_setups.AMAConfig(
+        bl_signal_ibs=bl_signal_ibs,
+        br_signal_ibs=br_signal_ibs,
+        bl_ft_bar_ibs=bl_ft_ibs,
+        br_ft_bar_ibs=br_ft_ibs,
+        range_filter=range_filter,
+        range_lookback=range_lookback,
+        ft_bar_must_close_beyond=ft_must_close_beyond,
+        show_bigbo=show_bigbo,
+        big_bo_range_factor=big_bo_range_factor,
+        show_cx=show_cx,
+        strict_ob=strict_ob,
+    )
+    tp = ama_setups.AMATradeParams(
         stop_offset_ticks=stop_offset,
         target_mode=target_mode,
         target_mult=target_mult,
     )
     types_set  = set(types_key.split(","))
-    # BO+FT is one setup — "BO" and "FT" both mean "include BO+FT setups"
     include_ft = "BO" in types_set or "FT" in types_set
     codes: list[int] = []
     if "BO" in types_set or "FT" in types_set: codes += [1, -1]
@@ -381,6 +407,7 @@ def _run_ama(bars: pd.DataFrame,
         detected, bars, tp,
         signal_types=tuple(set(codes)),
         include_ft=include_ft,
+        ob_requires_ft=ob_requires_ft,
         include_flip=False,
     )
 
@@ -570,26 +597,69 @@ def main():
             if _ama_bars is None:
                 st.info("Load bar data first (Data tab or Massive tab).")
             else:
-                _ac1, _ac2, _ac3 = st.columns(3)
-                _ama_stop_off  = _ac1.number_input("Stop offset (ticks)", min_value=0,
-                                                    max_value=10, value=1, step=1,
-                                                    key="ama_stop_offset")
-                _ama_tgt_mode  = _ac2.selectbox("Target mode",
-                                                 ["BarRange", "BodyRange"],
-                                                 key="ama_target_mode")
-                _ama_tgt_mult  = _ac3.number_input("Target mult", min_value=0.1,
-                                                    max_value=5.0, value=1.0, step=0.1,
-                                                    format="%.1f", key="ama_target_mult")
+                # ── 01. Signal types ──────────────────────────────────────────
+                st.markdown("**Signal types**")
                 _tc1, _tc2, _tc3 = st.columns(3)
-                _inc_boft  = _tc1.checkbox("BO+FT", value=True, key="ama_inc_boft")
-                _inc_ob    = _tc2.checkbox("OB",    value=True, key="ama_inc_ob")
-                _inc_bigbo = _tc3.checkbox("BigBO", value=True, key="ama_inc_bigbo")
-
+                _inc_boft  = _tc1.checkbox("BO+FT",  value=True,  key="ama_inc_boft")
+                _inc_ob    = _tc2.checkbox("OB+FT",  value=True,  key="ama_inc_ob")
+                _inc_bigbo = _tc3.checkbox("BigBO",  value=False, key="ama_inc_bigbo")
                 _selected_types = ",".join(t for t, on in [
-                    ("BO", _inc_boft),
-                    ("OB", _inc_ob), ("BigBO", _inc_bigbo),
+                    ("BO", _inc_boft), ("OB", _inc_ob), ("BigBO", _inc_bigbo),
                 ] if on)
 
+                # ── 02. Trade geometry ────────────────────────────────────────
+                st.markdown("**Trade geometry**")
+                _ag1, _ag2, _ag3 = st.columns(3)
+                _ama_stop_off = _ag1.number_input("Stop offset (ticks)", min_value=0,
+                                                   max_value=10, value=1, step=1,
+                                                   key="ama_stop_offset")
+                _ama_tgt_mode = _ag2.selectbox("Target mode", ["BarRange", "BodyRange"],
+                                                key="ama_target_mode")
+                _ama_tgt_mult = _ag3.number_input("Target mult", min_value=0.1,
+                                                   max_value=5.0, value=1.0, step=0.1,
+                                                   format="%.1f", key="ama_target_mult")
+
+                # ── 03. IBS Filters (–1 = off) ────────────────────────────────
+                st.markdown("**IBS filters** (−1 = off)")
+                _ib1, _ib2, _ib3, _ib4 = st.columns(4)
+                _bl_ibs  = _ib1.number_input("Bull BO min IBS",  min_value=-1, max_value=100,
+                                              value=60, step=1, key="ama_bl_ibs")
+                _br_ibs  = _ib2.number_input("Bear BO max IBS",  min_value=-1, max_value=100,
+                                              value=40, step=1, key="ama_br_ibs")
+                _bl_ft   = _ib3.number_input("Bull FT min IBS",  min_value=-1, max_value=100,
+                                              value=40, step=1, key="ama_bl_ft_ibs")
+                _br_ft   = _ib4.number_input("Bear FT max IBS",  min_value=-1, max_value=100,
+                                              value=60, step=1, key="ama_br_ft_ibs")
+
+                # ── 04. FT settings ───────────────────────────────────────────
+                st.markdown("**Follow-through**")
+                _ft1, _ft2, _ft3 = st.columns(3)
+                _ft_close = _ft1.selectbox("FT must close beyond", [1, 0],
+                                            format_func=lambda x: "Yes" if x else "No",
+                                            key="ama_ft_close_beyond")
+                _ob_ft    = _ft2.checkbox("OB requires FT", value=True, key="ama_ob_req_ft")
+                _strict   = _ft3.checkbox("Strict OB",      value=True, key="ama_strict_ob")
+
+                # ── 05. Range filter ──────────────────────────────────────────
+                st.markdown("**Range filter** (0 = off)")
+                _rf1, _rf2 = st.columns(2)
+                _rng_filt = _rf1.number_input("Range filter mult", min_value=0.0,
+                                               max_value=3.0, value=0.0, step=0.1,
+                                               format="%.1f", key="ama_range_filter")
+                _rng_lb   = _rf2.number_input("Range lookback",    min_value=2,
+                                               max_value=50, value=8, step=1,
+                                               key="ama_range_lookback")
+
+                # ── 06. BigBO / CX ────────────────────────────────────────────
+                st.markdown("**BigBO / CX**")
+                _bx1, _bx2, _bx3 = st.columns(3)
+                _show_bbo  = _bx1.checkbox("Show BigBO", value=False, key="ama_show_bigbo")
+                _bbo_fact  = _bx2.number_input("BigBO range factor", min_value=0.5,
+                                                max_value=5.0, value=1.05, step=0.05,
+                                                format="%.2f", key="ama_bbo_factor")
+                _show_cx   = _bx3.checkbox("Show CX",   value=False, key="ama_show_cx")
+
+                st.divider()
                 if st.button("Generate AMA Signals", key="ama_generate"):
                     if not _selected_types:
                         st.warning("Select at least one signal type.")
@@ -600,6 +670,18 @@ def main():
                             _ama_tgt_mode,
                             float(_ama_tgt_mult),
                             _selected_types,
+                            ob_requires_ft=bool(_ob_ft),
+                            bl_signal_ibs=int(_bl_ibs),
+                            br_signal_ibs=int(_br_ibs),
+                            bl_ft_ibs=int(_bl_ft),
+                            br_ft_ibs=int(_br_ft),
+                            range_filter=float(_rng_filt),
+                            range_lookback=int(_rng_lb),
+                            ft_must_close_beyond=int(_ft_close),
+                            show_bigbo=int(_show_bbo),
+                            big_bo_range_factor=float(_bbo_fact),
+                            show_cx=int(_show_cx),
+                            strict_ob=int(_strict),
                         )
                         st.session_state["ba_signals_ama"] = _ama_sig
                         st.success(f"Generated {len(_ama_sig):,} AMA signals.")

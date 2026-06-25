@@ -57,7 +57,7 @@ class AMAConfig:
     compare_body2body: int = 0   # compare body size vs avg body (Z-score mode)
     z_length: int = 20           # lookback for Z-score + ZScore plot
     # 03 — Range Filter
-    range_filter: int = 0        # minimum range multiplier (0 = off)
+    range_filter: float = 0.0    # minimum range multiplier (0 = off)
     range_lookback: int = 8      # SMA period for avg range used in filter
     do_not_range_limit_ob: int = 0  # exempt OB signals from range filter
     # 04 — IBS Filters (-1 = off)
@@ -751,6 +751,7 @@ def to_signal_rows(
     trade_params: AMATradeParams | None = None,
     signal_types: tuple[int, ...] = (1, -1, 5, -5, 3, -3, 4),
     include_ft: bool = True,
+    ob_requires_ft: bool = True,
     include_flip: bool = True,
 ) -> pd.DataFrame:
     """
@@ -805,44 +806,59 @@ def to_signal_rows(
         direction = 1 if sig > 0 else -1
 
         if sig != 0 and sig in signal_types:
-            # BO+FT is a two-bar setup: the BO bar initiates, the FT bar
-            # completes it. The TRADE fires at the first FT bar only.
-            # Chained FT bars (bar 3, 4, ... in the same trend) are NOT signals.
-            # OB / BigBO / CX are single-bar setups and always emit.
-            prior_ft = ft_arr[i - 1] if i > 0 else 0
-            is_first_ft = is_ft and prior_ft == 0   # FT immediately after a pure BO
-            if abs(sig) == 1 and not is_first_ft:
-                pass  # skip: pure BO bar, or chained FT bar
-            elif abs(sig) == 1 and not include_ft:
-                pass  # user excluded BO+FT setups
+            prior_sig = sig_arr[i - 1] if i > 0 else 0
+            prior_ft  = ft_arr[i - 1]  if i > 0 else 0
+            is_first_ft     = is_ft and prior_ft == 0
+            is_ft_after_ob  = is_first_ft and abs(prior_sig) in (3, 4)
+            is_ft_after_bo  = is_first_ft and abs(prior_sig) == 1
+
+            # ── Decide whether to emit ────────────────────────────────────────
+            # BO+FT: BO bar initiates (skipped), first FT bar is the trade.
+            #        Chained FT bars are part of the running trade — skipped.
+            # OB+FT: OB bar initiates (skipped when ob_requires_ft=True),
+            #        first FT bar after OB is the trade.
+            # BigBO / CX: single-bar setups, always emit.
+            emit = False
+            if abs(sig) == 1:
+                if is_ft_after_bo and include_ft:
+                    emit = True
+                elif is_ft_after_ob and ob_requires_ft and (3 in signal_types or -3 in signal_types or 4 in signal_types):
+                    emit = True
+                # else: pure BO bar, chained FT, or filtered → skip
+            elif abs(sig) in (3, 4):
+                if not ob_requires_ft:
+                    emit = True   # standalone OB — no FT required
+                # else: OB bar is setup-only; wait for FT bar
             else:
+                emit = True       # BigBO (±5), CX (±2) — standalone
+
+            if emit:
                 # ── Stop geometry ─────────────────────────────────────────────
-                # For BO+FT use combined extreme of both bars (BO bar at i-1, FT at i)
+                # For two-bar setups (FT bar) use combined extreme of both bars.
+                two_bar = is_ft and i > 0
                 if tp.stop_mode == "BarExtreme":
                     if direction == 1:
-                        bar_low  = min(L[i], L[i-1]) if (is_ft and i > 0) else L[i]
+                        bar_low  = min(L[i], L[i-1]) if two_bar else L[i]
                         stop_px  = bar_low - offset_pts
                     else:
-                        bar_high = max(H[i], H[i-1]) if (is_ft and i > 0) else H[i]
+                        bar_high = max(H[i], H[i-1]) if two_bar else H[i]
                         stop_px  = bar_high + offset_pts
                 else:
                     stop_px = 0.0
 
                 # ── Target geometry ───────────────────────────────────────────
                 if tp.target_mode == "BarRange":
-                    if is_ft and i > 0:
-                        tgt_pts = (max(H[i], H[i-1]) - min(L[i], L[i-1])) * tp.target_mult
-                    else:
-                        tgt_pts = (H[i] - L[i]) * tp.target_mult
+                    tgt_pts = ((max(H[i], H[i-1]) - min(L[i], L[i-1])) if two_bar
+                               else (H[i] - L[i])) * tp.target_mult
                 elif tp.target_mode == "BodyRange":
                     body_i  = abs(C[i] - O[i])
-                    body_i1 = abs(C[i-1] - O[i-1]) if (is_ft and i > 0) else 0.0
+                    body_i1 = abs(C[i-1] - O[i-1]) if two_bar else 0.0
                     tgt_pts = (body_i + body_i1) * tp.target_mult
                 else:
                     tgt_pts = 0.0
 
                 rows.append({
-                    "SignalType":    _signal_type(sig, is_ft),
+                    "SignalType":    _signal_type(sig, is_ft, prior_sig),
                     "Direction":     "Long" if direction == 1 else "Short",
                     "SignalBarNum":  i + 1,
                     "SignalDateTime": open_dt,
@@ -907,11 +923,12 @@ def to_signal_rows(
     return df
 
 
-def _signal_type(sig: int, is_ft: bool) -> str:
+def _signal_type(sig: int, is_ft: bool, prior_sig: int = 0) -> str:
     if abs(sig) == 5:  return "BigBO"
     if abs(sig) == 3:  return "OB"
     if abs(sig) == 4:  return "OB_Doji"
     if abs(sig) == 2:  return "CX"
+    if is_ft and abs(prior_sig) in (3, 4): return "OB+FT"
     return "BO+FT" if is_ft else "BO"
 
 
