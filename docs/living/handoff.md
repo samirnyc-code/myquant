@@ -1,6 +1,6 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** June 24, 2026 (session 40)
+**Last Updated:** June 25, 2026 (session 42)
 **Current Versions:** SIM_v3.9 / GS_v4.5 / SHEET_v3.3 *(S32: Prop Sim overhaul — MC-sized payout buffer, monthly 80/20 payouts, ES/MES margin, never-blow floor de-risk + shock model, richer dashboard; MCBreakout pyramiding (N concurrent/dir) + ratchet-lock fix. S31: ZLO exporter + filters, MCBreakout stop fix + ER filter, ZLO sweeps, Auction feature library + tab (Dalton day types), Prop Sim DD-lock. S30: Prop Sim tab, Extras tab, 1M bars, NT strategy. S29: ESA into WFA, session filters, multi-TF, ER10. S28: ESA v2. S27: ESA Phase A. S24: critical slippage off-tick bugfix.)*
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 **Handoff hygiene (S20):** A competing handoff had grown in the `.claude/.../memory/` auto-memory folder and a new chat read *that* instead of this file. Fixed: added repo `CLAUDE.md` + rewrote `.claude` `MEMORY.md` to point here; deleted the duplicate session-state memories. **There is now ONE handoff: this file.**
@@ -48,6 +48,79 @@ race the same number, the **earlier-merged** note keeps it; the later one takes 
 - **Consecutive-cluster gate** — does requiring N same-dir signals improve quality? (S33 + `dir_streak` 4+ lead from 0001)
 - **Always-In (AID) as a sizer** — negative as a gate (S36); size-with/against-regime untested
 - **Pyramiding (N concurrent same-dir)** — does it beat a single entry? (S32 MCBreakout pyramiding)
+
+---
+
+## ⭐ SESSION 42 — June 25, 2026 — AMA Breakouts Python port + BO+FT signal model fix
+
+### What was built
+- **`nt8/indicators/AMASignalOverlay.cs`** — NT8 indicator that overlays Python-generated
+  AMA signals on the chart. 23 plots in 6 groups (ID, Setup, Bars, Stop, Target, Result),
+  all togglable via property panel. Racing-stripe BackBrush coloring with chart legend.
+  Stop/target dashes via Draw.Line. Entry dot via Draw.Diamond. Data box via cursor tooltip
+  (mutual-exclusion plot trick: only active setup name gets value=1, others stay NaN).
+- **`scripts/ama_export_signals_nt.py`** — CLI exporter: generates AMA signals from
+  `_continuous.parquet` and writes `data/nt_import/ama_signals_{tag}.csv` for NT8 import.
+- **`app.py`** — AMA wired as third signal source in BA tab with Generate button, expander
+  (stop offset, target mode/mult, BO+FT / OB / BigBO checkboxes), and status strip count.
+  Bar source: `mas_continuous` → `data_sc_5m` fallback.
+
+### ⚠️ CRITICAL: BO+FT signal model (this was the main fix)
+The original detector was emitting ~50,727 signals (40/day) — completely wrong.
+
+**Root causes found and fixed:**
+1. **BO alone is not a setup.** A BO bar is setup detection only; the trade fires at the
+   FT (follow-through) bar close, entry at the next bar's open. The code was emitting signal
+   rows for both BO bars AND FT bars — effectively double-counting and generating a signal
+   for every bar in a trend leg.
+2. **Only the FIRST FT bar per setup chain emits a signal.** In a trend, NT8 paints bar 3,
+   4, 5... as chained FT bars (not new BOs) — that's preserved in `detect()`. But
+   `to_signal_rows()` only emits the FT bar that immediately follows a pure BO (`ft_prev==0`).
+   All chained FT bars are skipped — they are part of the running trade, not new entries.
+
+**After fix:** 10,886 BO+FT signals over 5 years (8.5/day). OB singles: 7,591 (5.9/day).
+
+**Code:** `ama_setups.py` `to_signal_rows()` — `is_first_ft = is_ft and ft_arr[i-1]==0`.
+`detect()` FT chaining preserved (matches NT8). `include_ft` logic: both "BO" and "FT"
+type selectors now mean "include BO+FT setups" (BO alone has no meaning as a trade).
+
+### Tick cache
+Downloaded: 45GB of raw gz files in `data/flatfiles_cache/` (1,297 days).
+Converted to per-day parquet: only 9 days in `data/ticks_continuous/` so far.
+**User is building the full tick cache now.** Once done: run proper sim with tick-accurate
+stop/target resolution via `simulate_trades()`.
+
+### ⚠️ Bar sim numbers are garbage — ignore
+Ran a quick bar-based sim (`_simulate_one_bars`) to get directional numbers while ticks
+were missing. Those results (48.8% WR, -$85k) are meaningless without intrabar resolution.
+Discard them. Wait for tick cache before drawing any conclusions.
+
+### NT8 defaults vs Python AMAConfig defaults
+NT8 ships with IBS filters OFF (-1), OB OFF, FT OFF, BigBO OFF. Our Python AMAConfig
+has IBS 60/40 ON, OB ON, FT ON — these are the user's custom settings, not NT8 stock.
+The IBS filter (60/40) is the main qualifier on BO bars: bull BO needs close in top 40%
+of bar range; bear BO needs close in bottom 40%.
+
+### Files committed this session
+- NEW: `nt8/indicators/AMASignalOverlay.cs`
+- NEW: `scripts/ama_export_signals_nt.py`
+- MODIFIED: `app.py` (AMA signal source + BO+FT fix)
+- MODIFIED: `ama_setups.py` (to_signal_rows signal model fix)
+- MODIFIED: `massive.py` (minor: wrong variable in 15M resample button)
+- MODIFIED: `nt8/README.md` (AMASignalOverlay.cs status row)
+
+### NEXT
+1. **Run proper sim** — once tick cache is built, run `simulate_trades()` with all
+   10,886 BO+FT signals and OB signals. Get real metrics: WR, avg R, expectancy by
+   direction/type/time-of-day.
+2. **NT8 indicator testing** — user needs to load AMASignalOverlay.cs, compile in NT8,
+   verify data box and racing stripes match exported CSV.
+3. **Research note 0008** — document AMA detector work (wait for backtest results first).
+4. **Recreate lost CS files** — ZerolagExporter.cs, AlwaysIn.cs, QSSignalOverlay.cs,
+   MCBreakout.cs (all marked ❌ LOST in `nt8/README.md`).
+5. **Sim engine: per-trade TargetPoints** — AMA has variable targets per bar (BarRange
+   mode). Engine currently takes a fixed `target_r`. Deferred — do NOT touch until
+   explicitly authorized.
 
 ---
 
