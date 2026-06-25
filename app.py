@@ -375,6 +375,7 @@ def _run_ama(bars: pd.DataFrame,
     if "FT"    in types_set and 1 not in codes: codes += [1, -1]
     if "OB"    in types_set: codes += [3, -3, 4]
     if "BigBO" in types_set: codes += [5, -5]
+    bars = bars.drop(columns=["Contract"], errors="ignore")
     detected = ama_setups.detect(bars, cfg)
     return ama_setups.to_signal_rows(
         detected, bars, tp,

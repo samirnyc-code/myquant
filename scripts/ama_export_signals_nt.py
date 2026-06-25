@@ -58,11 +58,24 @@ TYPE_CODES: dict[str, tuple[int, ...]] = {
 }
 
 
+CONT_PATH = BARS_DIR / "_continuous.parquet"
+
+
 def load_bars() -> pd.DataFrame:
-    files = sorted(BARS_DIR.glob("*.parquet"))
+    """Load the stitched continuous contract. Falls back to individual-file concat
+    only if _continuous.parquet hasn't been built yet."""
+    if CONT_PATH.exists():
+        bars = pd.read_parquet(CONT_PATH)
+        bars = bars.drop(columns=["Contract"], errors="ignore")
+        bars = bars.sort_values("DateTime").reset_index(drop=True)
+        return bars
+    # Fallback: concat individual contract files (pre-continuous-build state)
+    files = sorted(f for f in BARS_DIR.glob("*.parquet")
+                   if not f.name.startswith("_"))
     if not files:
-        raise FileNotFoundError(f"No .parquet files found in {BARS_DIR}")
+        raise FileNotFoundError(f"No bar files found in {BARS_DIR}")
     bars = pd.concat([pd.read_parquet(f) for f in files], ignore_index=True)
+    bars = bars.drop_duplicates("DateTime", keep="last")
     bars = bars.sort_values("DateTime").reset_index(drop=True)
     return bars
 
@@ -74,9 +87,8 @@ def add_bar_ranges(signals: pd.DataFrame, bars: pd.DataFrame) -> pd.DataFrame:
     SignalDateTime = bar open time (matches bars.DateTime).
     Entry bar open = SignalDateTime + 5 min (the bar that follows the signal bar).
     """
-    # Deduplicate on DateTime — keep last (most-recently-active contract at rollover)
-    bar_hl = (bars.drop_duplicates("DateTime", keep="last")
-                  .set_index("DateTime")[["High", "Low"]])
+    # Continuous contract has no duplicates; index directly
+    bar_hl = bars.set_index("DateTime")[["High", "Low"]]
 
     sig_dt   = pd.to_datetime(signals["SignalDateTime"])
     entry_dt = sig_dt + pd.Timedelta(minutes=5)
