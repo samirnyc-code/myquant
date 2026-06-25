@@ -11,6 +11,7 @@ from data_loader import (CONTRACTS, bar_num_from_dt,
                          apply_data_slot,
                          load_excluded_dates, save_excluded_dates)
 import bar_analysis
+import ama_setups
 import portfolio
 import massive
 import validation
@@ -354,6 +355,35 @@ def show_data_tab():
 
 # ── App entry point ───────────────────────────────────────────────────────────
 
+@st.cache_data(show_spinner="Detecting AMA signals…")
+def _run_ama(bars: pd.DataFrame,
+             stop_offset: int,
+             target_mode: str,
+             target_mult: float,
+             types_key: str) -> pd.DataFrame:
+    """Run AMA detect + to_signal_rows on `bars`. Cached by all params."""
+    cfg  = ama_setups.AMAConfig()
+    tp   = ama_setups.AMATradeParams(
+        stop_offset_ticks=stop_offset,
+        target_mode=target_mode,
+        target_mult=target_mult,
+    )
+    types_set  = set(types_key.split(","))
+    include_ft = "FT" in types_set
+    codes: list[int] = []
+    if "BO"    in types_set: codes += [1, -1]
+    if "FT"    in types_set and 1 not in codes: codes += [1, -1]
+    if "OB"    in types_set: codes += [3, -3, 4]
+    if "BigBO" in types_set: codes += [5, -5]
+    detected = ama_setups.detect(bars, cfg)
+    return ama_setups.to_signal_rows(
+        detected, bars, tp,
+        signal_types=tuple(set(codes)),
+        include_ft=include_ft,
+        include_flip=False,
+    )
+
+
 def _render_status_strip():
     """A compact load-status row: price, continuous series, and signal sets.
     Checkmarks reflect current session state (continuous self-corrects on the
@@ -368,8 +398,9 @@ def _render_status_strip():
     cont  = st.session_state.get("mas_continuous")
     mc    = st.session_state.get("ba_signals_mc")
     rev   = st.session_state.get("ba_signals_revft")
+    ama   = st.session_state.get("ba_signals_ama")
 
-    s1, s2, s3, s4 = st.columns(4)
+    s1, s2, s3, s4, s5 = st.columns(5)
     if _has(price):
         d0, d1 = price["DateTime"].min().date(), price["DateTime"].max().date()
         s1.markdown(f"{_chk(True)} **Price** · {len(price):,} bars · {d0} → {d1}")
@@ -381,6 +412,8 @@ def _render_status_strip():
                 + (f"· {len(mc)}" if _has(mc) else "— none"))
     s4.markdown(f"{_chk(_has(rev))} **RevFT signals** "
                 + (f"· {len(rev)}" if _has(rev) else "— none"))
+    s5.markdown(f"{_chk(_has(ama))} **AMA signals** "
+                + (f"· {len(ama)}" if _has(ama) else "— none"))
 
 
 def main():
@@ -525,8 +558,57 @@ def main():
                         n_sig = len(st.session_state[state_prefix])
                         st.caption(f"✅ (auto-loaded from disk)  |  {n_sig} signals")
 
-        _signal_uploader("📊 MC Signals", "upload_signals", "ba_signals_mc")
-        _signal_uploader("🔁 RevFTSignals", "upload_signals_revft", "ba_signals_revft")
+        _signal_uploader("📊 MC Signals",   "upload_signals",       "ba_signals_mc")
+        _signal_uploader("🔁 RevFT Signals", "upload_signals_revft", "ba_signals_revft")
+
+        # AMA Signals — generated directly from loaded bar data, no upload needed
+        with st.expander("🔶 AMA Breakouts Signals", expanded=False):
+            _ama_bars = (
+                st.session_state.get("mas_continuous")
+                or st.session_state.get("data_sc_5m")
+            )
+            if _ama_bars is None:
+                st.info("Load bar data first (Data tab or Massive tab).")
+            else:
+                _ac1, _ac2, _ac3 = st.columns(3)
+                _ama_stop_off  = _ac1.number_input("Stop offset (ticks)", min_value=0,
+                                                    max_value=10, value=1, step=1,
+                                                    key="ama_stop_offset")
+                _ama_tgt_mode  = _ac2.selectbox("Target mode",
+                                                 ["BarRange", "BodyRange"],
+                                                 key="ama_target_mode")
+                _ama_tgt_mult  = _ac3.number_input("Target mult", min_value=0.1,
+                                                    max_value=5.0, value=1.0, step=0.1,
+                                                    format="%.1f", key="ama_target_mult")
+                _tc1, _tc2, _tc3, _tc4 = st.columns(4)
+                _inc_bo    = _tc1.checkbox("BO",    value=True, key="ama_inc_bo")
+                _inc_ft    = _tc2.checkbox("BO+FT", value=True, key="ama_inc_ft")
+                _inc_ob    = _tc3.checkbox("OB",    value=True, key="ama_inc_ob")
+                _inc_bigbo = _tc4.checkbox("BigBO", value=True, key="ama_inc_bigbo")
+
+                _selected_types = ",".join(t for t, on in [
+                    ("BO", _inc_bo), ("FT", _inc_ft),
+                    ("OB", _inc_ob), ("BigBO", _inc_bigbo),
+                ] if on)
+
+                if st.button("Generate AMA Signals", key="ama_generate"):
+                    if not _selected_types:
+                        st.warning("Select at least one signal type.")
+                    else:
+                        _ama_sig = _run_ama(
+                            _ama_bars,
+                            int(_ama_stop_off),
+                            _ama_tgt_mode,
+                            float(_ama_tgt_mult),
+                            _selected_types,
+                        )
+                        st.session_state["ba_signals_ama"] = _ama_sig
+                        st.success(f"Generated {len(_ama_sig):,} AMA signals.")
+
+                if st.session_state.get("ba_signals_ama") is not None:
+                    _n = len(st.session_state["ba_signals_ama"])
+                    st.caption(f"✅ {_n:,} signals ready  "
+                               f"({_ama_stop_off}t offset · {_ama_tgt_mode} ×{_ama_tgt_mult:.1f})")
 
         # ZLO overlay data
         _ZLO_DISK = _SIGNALS_DIR / "ba_zlo_overlay.parquet"
@@ -573,13 +655,16 @@ def main():
                     st.caption(f"✅ (auto-loaded from disk)  |  {len(st.session_state['ba_alwaysin'])} flips")
 
         active_set = st.radio(
-            "Active Signal Set", ["MC Signals", "RevFTSignals"],
-            key="ba_active_signal_set", horizontal=True,
+            "Active Signal Set",
+            ["MC Signals", "RevFT Signals", "AMA Signals"],
+            key="ba_active_signal_set",
+            horizontal=True,
         )
-        st.session_state["ba_signals"] = (
-            st.session_state.get("ba_signals_mc") if active_set == "MC Signals"
-            else st.session_state.get("ba_signals_revft")
-        )
+        st.session_state["ba_signals"] = {
+            "MC Signals":   st.session_state.get("ba_signals_mc"),
+            "RevFT Signals": st.session_state.get("ba_signals_revft"),
+            "AMA Signals":  st.session_state.get("ba_signals_ama"),
+        }.get(active_set)
 
         bar_analysis.show_bar_analysis(sc_file=sc_file, contract=contract_label, nt_file=nt_file)
 
