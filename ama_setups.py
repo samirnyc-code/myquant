@@ -805,8 +805,16 @@ def to_signal_rows(
         direction = 1 if sig > 0 else -1
 
         if sig != 0 and sig in signal_types:
-            if not include_ft and is_ft:
-                pass
+            # BO+FT is a two-bar setup: the BO bar initiates, the FT bar
+            # completes it. The TRADE fires at the first FT bar only.
+            # Chained FT bars (bar 3, 4, ... in the same trend) are NOT signals.
+            # OB / BigBO / CX are single-bar setups and always emit.
+            prior_ft = ft_arr[i - 1] if i > 0 else 0
+            is_first_ft = is_ft and prior_ft == 0   # FT immediately after a pure BO
+            if abs(sig) == 1 and not is_first_ft:
+                pass  # skip: pure BO bar, or chained FT bar
+            elif abs(sig) == 1 and not include_ft:
+                pass  # user excluded BO+FT setups
             else:
                 # ── Stop geometry ─────────────────────────────────────────────
                 # For BO+FT use combined extreme of both bars (BO bar at i-1, FT at i)

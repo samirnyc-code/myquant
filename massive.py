@@ -721,11 +721,12 @@ def show_massive_tab():
             # 15M status/build
             with _tf_col2:
                 _c15 = st.session_state.get("mas_continuous_15m")
+                _mas_cont_5m = st.session_state.get("mas_continuous")
                 if _c15 is not None and not _c15.empty:
                     st.success(f"15M bars: **{len(_c15):,}** bars ready")
-                elif mas_cont is not None and not mas_cont.empty:
+                elif _mas_cont_5m is not None and not _mas_cont_5m.empty:
                     if st.button("Build 15M bars (from 5M)"):
-                        _c15 = _resample_5m_to_15m(mas_cont)
+                        _c15 = _resample_5m_to_15m(_mas_cont_5m)
                         st.session_state["mas_continuous_15m"] = _c15
                         _c15.to_parquet(_BARS_DIR / "_continuous_15m.parquet", index=False)
                         st.rerun()

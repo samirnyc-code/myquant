@@ -124,14 +124,15 @@ def join_pnl(signals: pd.DataFrame, results_path: str) -> pd.DataFrame:
 def build_signal_codes(types: list[str]) -> tuple[tuple[int, ...], bool]:
     """Convert CLI type list to (signal_codes_tuple, include_ft)."""
     codes: list[int] = []
-    include_ft = "FT" in types
+    # BO+FT is one setup — "BO" and "FT" both mean include BO+FT setups.
+    include_ft = "BO" in types or "FT" in types
     for t in types:
         codes.extend(TYPE_CODES.get(t, ()))
     if not codes and not include_ft:
         # Default: everything
         codes = [1, -1, 3, -3, 4, 5, -5]
         include_ft = True
-    # BO codes must be present if FT requested (FT is follow-through of BO)
+    # BO codes must be present when BO+FT setups are requested
     if include_ft and 1 not in codes:
         codes.extend([1, -1])
     return tuple(set(codes)), include_ft

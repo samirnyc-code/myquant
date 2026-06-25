@@ -369,10 +369,10 @@ def _run_ama(bars: pd.DataFrame,
         target_mult=target_mult,
     )
     types_set  = set(types_key.split(","))
-    include_ft = "FT" in types_set
+    # BO+FT is one setup — "BO" and "FT" both mean "include BO+FT setups"
+    include_ft = "BO" in types_set or "FT" in types_set
     codes: list[int] = []
-    if "BO"    in types_set: codes += [1, -1]
-    if "FT"    in types_set and 1 not in codes: codes += [1, -1]
+    if "BO" in types_set or "FT" in types_set: codes += [1, -1]
     if "OB"    in types_set: codes += [3, -3, 4]
     if "BigBO" in types_set: codes += [5, -5]
     bars = bars.drop(columns=["Contract"], errors="ignore")
@@ -580,14 +580,13 @@ def main():
                 _ama_tgt_mult  = _ac3.number_input("Target mult", min_value=0.1,
                                                     max_value=5.0, value=1.0, step=0.1,
                                                     format="%.1f", key="ama_target_mult")
-                _tc1, _tc2, _tc3, _tc4 = st.columns(4)
-                _inc_bo    = _tc1.checkbox("BO",    value=True, key="ama_inc_bo")
-                _inc_ft    = _tc2.checkbox("BO+FT", value=True, key="ama_inc_ft")
-                _inc_ob    = _tc3.checkbox("OB",    value=True, key="ama_inc_ob")
-                _inc_bigbo = _tc4.checkbox("BigBO", value=True, key="ama_inc_bigbo")
+                _tc1, _tc2, _tc3 = st.columns(3)
+                _inc_boft  = _tc1.checkbox("BO+FT", value=True, key="ama_inc_boft")
+                _inc_ob    = _tc2.checkbox("OB",    value=True, key="ama_inc_ob")
+                _inc_bigbo = _tc3.checkbox("BigBO", value=True, key="ama_inc_bigbo")
 
                 _selected_types = ",".join(t for t, on in [
-                    ("BO", _inc_bo), ("FT", _inc_ft),
+                    ("BO", _inc_boft),
                     ("OB", _inc_ob), ("BigBO", _inc_bigbo),
                 ] if on)
 
