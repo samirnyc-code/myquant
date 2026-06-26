@@ -186,9 +186,9 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
         df_day["DateTime"] = pd.to_datetime(df_day["DateTime"])
         df_day = df_day.sort_values("DateTime").reset_index(drop=True)
 
-        wins = losses = 0
+        wins = losses = i1r_total = 0
         net_pts = 0.0
-        type_stats: dict = {}   # {SignalType: {"w": int, "l": int, "pts": float}}
+        type_stats: dict = {}   # {SignalType: {"w": int, "l": int, "pts": float, "i1r": int}}
 
         for _, s in signals.iterrows():
             sig_dt      = pd.to_datetime(s["SignalDateTime"])   # FT bar open
@@ -304,11 +304,17 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
                             line=dict(color="#00c853", width=1, dash="dot"),
                             opacity=0.25, **row_kw)
 
+            # I1R: target filled on the entry bar itself
+            is_i1r = (exit_dt is not None
+                      and exit_dt == entry_dt
+                      and exit_px is not None
+                      and abs(exit_px - tgt_px) < 1e-6)
+
             # Accumulate day stats
             if result is not None:
                 stype = s["SignalType"]
                 if stype not in type_stats:
-                    type_stats[stype] = {"w": 0, "l": 0, "pts": 0.0}
+                    type_stats[stype] = {"w": 0, "l": 0, "pts": 0.0, "i1r": 0}
                 if result > 0:
                     wins += 1
                     type_stats[stype]["w"] += 1
@@ -317,6 +323,22 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
                     type_stats[stype]["l"] += 1
                 net_pts += result
                 type_stats[stype]["pts"] += result
+                if is_i1r:
+                    i1r_total += 1
+                    type_stats[stype]["i1r"] += 1
+
+            # I1R label — small tag below/above the setup marker at the entry bar
+            if is_i1r:
+                i1r_y = (y_pos - offset * 10 if is_long else y_pos + offset * 10)
+                fig.add_annotation(
+                    x=entry_dt, y=i1r_y,
+                    text="I1R",
+                    showarrow=False,
+                    font=dict(size=8, color="#FFD700", family="monospace"),
+                    xanchor="center",
+                    yanchor="top" if is_long else "bottom",
+                    **row_kw,
+                )
 
             # Result annotation at exit bar
             if result is not None:
@@ -349,9 +371,14 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
         for stype, st in sorted(type_stats.items()):
             if st["w"] + st["l"] == 0:
                 continue
-            box_lines.append(f"{stype}  {st['w']}W-{st['l']}L  {_fmt(st['pts'], st['pts']*50)}")
+            i1r_tag = f"  {st['i1r']}I1R" if st.get("i1r", 0) else ""
+            box_lines.append(f"{stype}  {st['w']}W-{st['l']}L  {_fmt(st['pts'], st['pts']*50)}{i1r_tag}")
         net_pnl = net_pts * 50
         box_lines.append(f"Total  {wins}W-{losses}L  {_fmt(net_pts, net_pnl)}")
+        total_traded = wins + losses
+        if i1r_total and total_traded:
+            pct = i1r_total / total_traded * 100
+            box_lines.append(f"I1R: {i1r_total}/{total_traded} ({pct:.0f}%)")
 
         fig.add_annotation(
             x=0.99, y=0.99,
