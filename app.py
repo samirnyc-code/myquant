@@ -187,15 +187,17 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
         df_day = df_day.sort_values("DateTime").reset_index(drop=True)
 
         for _, s in signals.iterrows():
-            sig_dt   = pd.to_datetime(s["SignalDateTime"])   # FT bar open
-            bo_start = sig_dt - pd.Timedelta(minutes=5)      # BO bar open
-            entry_dt = sig_dt + pd.Timedelta(minutes=5)      # entry bar open
-            is_long  = s["Direction"] == "Long"
-            color    = "#00c853" if is_long else "#d50000"
-            symbol   = "triangle-up" if is_long else "triangle-down"
-            stop_px  = s["StopPrice"]
-            tgt_px   = (s["SignalPrice"] + s["TargetPoints"] if is_long
-                        else s["SignalPrice"] - s["TargetPoints"])
+            sig_dt      = pd.to_datetime(s["SignalDateTime"])   # FT bar open
+            bo_start    = sig_dt - pd.Timedelta(minutes=5)      # BO bar open
+            setup_end   = sig_dt + pd.Timedelta(minutes=5)      # FT bar closes = entry bar open
+            entry_dt    = setup_end
+            is_long     = s["Direction"] == "Long"
+            dir_color   = "#00c853" if is_long else "#d50000"   # triangle only
+            symbol      = "triangle-up" if is_long else "triangle-down"
+            stop_px     = s["StopPrice"]
+            tgt_px      = (s["SignalPrice"] + s["TargetPoints"] if is_long
+                           else s["SignalPrice"] - s["TargetPoints"])
+            target_mode = s.get("TargetMode", "BarRange")
 
             # Triangle marker at FT bar
             ref_px = bar_lo.get(sig_dt, s["SignalPrice"]) if is_long else bar_hi.get(sig_dt, s["SignalPrice"])
@@ -208,11 +210,11 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
             fig.add_trace(go.Scatter(
                 x=[sig_dt], y=[y_pos],
                 mode="markers+text",
-                marker=dict(symbol=symbol, size=8, color=color,
+                marker=dict(symbol=symbol, size=8, color=dir_color,
                             line=dict(color="white", width=1)),
                 text=[label],
                 textposition="bottom center" if is_long else "top center",
-                textfont=dict(size=9, color=color),
+                textfont=dict(size=9, color=dir_color),
                 hovertext=[hover], hoverinfo="text",
                 showlegend=False, name=label,
             ), **row_kw)
@@ -221,12 +223,8 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
             fwd = df_day[df_day["DateTime"] >= entry_dt].reset_index(drop=True)
             entry_px = fwd.iloc[0]["Open"] if not fwd.empty else s["SignalPrice"]
             exit_dt = exit_px = result = None
-            path_dts: list = []
-            path_cls: list = []
 
             for _, bar in fwd.iterrows():
-                path_dts.append(bar["DateTime"])
-                path_cls.append(bar["Close"])
                 hit_tgt  = bar["High"] >= tgt_px  if is_long else bar["Low"]  <= tgt_px
                 hit_stop = bar["Low"]  <= stop_px if is_long else bar["High"] >= stop_px
                 if hit_stop and hit_tgt:
@@ -255,31 +253,52 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
                 exit_px = s["SignalPrice"]
                 result  = 0.0
 
-            # Stop line: BO bar → exit bar
+            # Stop line (always red): BO bar → exit bar
             fig.add_shape(type="line",
                 x0=bo_start, x1=exit_dt,
                 y0=stop_px, y1=stop_px,
-                line=dict(color=color, width=1, dash="dot"),
-                opacity=0.5, **row_kw)
+                line=dict(color="#d50000", width=1, dash="dot"),
+                opacity=0.7, **row_kw)
 
-            # Target line: BO bar → exit bar
+            # Target line (always green): BO bar → exit bar
             fig.add_shape(type="line",
                 x0=bo_start, x1=exit_dt,
                 y0=tgt_px, y1=tgt_px,
-                line=dict(color=color, width=1, dash="dash"),
-                opacity=0.5, **row_kw)
+                line=dict(color="#00c853", width=1, dash="dot"),
+                opacity=0.7, **row_kw)
 
-            # Price path: bar closes from entry to exit
-            if len(path_dts) > 1:
-                path_color = "#00c853" if result and result > 0 else "#d50000"
-                fig.add_trace(go.Scatter(
-                    x=path_dts, y=path_cls,
-                    mode="lines",
-                    line=dict(color=path_color, width=1.5),
-                    opacity=0.6,
-                    showlegend=False,
-                    hoverinfo="skip",
-                ), **row_kw)
+            # Price path: direct dotted line entry → exit (yellow)
+            fig.add_shape(type="line",
+                x0=entry_dt, x1=exit_dt,
+                y0=entry_px, y1=exit_px,
+                line=dict(color="#FFD600", width=1.5, dash="dot"),
+                opacity=0.8, **row_kw)
+
+            # Setup range lines across the 2 setup bars (BO + FT)
+            bo_row = df_day[df_day["DateTime"] == bo_start]
+            ft_row = df_day[df_day["DateTime"] == sig_dt]
+            if not bo_row.empty and not ft_row.empty:
+                bo_r = bo_row.iloc[0]
+                ft_r = ft_row.iloc[0]
+                # BarRange: H and L of combined setup bars
+                for y in (max(bo_r["High"], ft_r["High"]),
+                          min(bo_r["Low"],  ft_r["Low"])):
+                    fig.add_shape(type="line",
+                        x0=bo_start, x1=setup_end,
+                        y0=y, y1=y,
+                        line=dict(color="#00c853", width=1, dash="dot"),
+                        opacity=0.4, **row_kw)
+                if target_mode == "BodyRange":
+                    # Additional lines for combined body extents
+                    for y in (max(bo_r["Open"], bo_r["Close"],
+                                  ft_r["Open"], ft_r["Close"]),
+                              min(bo_r["Open"], bo_r["Close"],
+                                  ft_r["Open"], ft_r["Close"])):
+                        fig.add_shape(type="line",
+                            x0=bo_start, x1=setup_end,
+                            y0=y, y1=y,
+                            line=dict(color="#00c853", width=1, dash="dot"),
+                            opacity=0.25, **row_kw)
 
             # Result annotation at exit bar
             if result is not None:
@@ -294,6 +313,26 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
                     yanchor="bottom" if is_long else "top",
                     **row_kw,
                 )
+
+        # Info box: target and stop params (from first signal — all share same config)
+        s0 = signals.iloc[0]
+        tm   = s0.get("TargetMode",  "BarRange")
+        tmul = float(s0.get("TargetMult",  1.0))
+        sm   = s0.get("StopMode",    "BarExtreme")
+        soff = s0.get("StopOffset",  1)
+        fig.add_annotation(
+            x=0.01, y=0.02,
+            xref="paper", yref="paper",
+            text=f"Tgt: {tm} ×{tmul:.2f}    Stop: {sm} +{int(soff)}t",
+            showarrow=False,
+            bgcolor="rgba(20,20,20,0.7)",
+            bordercolor="#444",
+            borderwidth=1,
+            font=dict(size=9, color="#cccccc", family="monospace"),
+            align="left",
+            xanchor="left",
+            yanchor="bottom",
+        )
 
     return fig
 
