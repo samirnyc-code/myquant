@@ -338,7 +338,7 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
         tmul = float(s0.get("TargetMult", 1.0))
         sm   = s0.get("StopMode",   "BarExtreme")
         soff = s0.get("StopOffset", 1)
-        lime = "#00ff00"
+        lime = "#FFD700"
 
         def _fmt(pts: float, pnl: float) -> str:
             p = f"+{pts:.2f}" if pts >= 0 else f"{pts:.2f}"
@@ -358,9 +358,8 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
             xref="paper", yref="paper",
             text="<br> <br>".join(box_lines),
             showarrow=False,
-            bgcolor="rgba(15,15,15,0.8)",
-            bordercolor="#00ff00",
-            borderwidth=1,
+            bgcolor="rgba(15,15,15,0.75)",
+            borderwidth=0,
             font=dict(size=11, color=lime, family="monospace"),
             align="left",
             xanchor="right",
