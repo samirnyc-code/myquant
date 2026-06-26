@@ -212,11 +212,13 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
             ft_lo   = bar_lo.get(sig_dt, float("nan"))
             ft_cl   = bar_cl.get(sig_dt, float("nan"))
             ft_ibs  = round((ft_cl - ft_lo) / (ft_hi - ft_lo) * 100) if (ft_hi - ft_lo) > 0 else 0
+            ft_zscore = s.get("ZScore", float("nan"))
+            z_str     = f"{ft_zscore:.2f}" if not pd.isna(ft_zscore) else "n/a"
             hover   = (f"{label} {s['Direction']}<br>"
                        f"Entry: {s['SignalPrice']:.2f}<br>"
                        f"Stop: {stop_px:.2f}<br>"
                        f"Target: +{s['TargetPoints']:.2f} pts<br>"
-                       f"FT bar IBS: {ft_ibs}")
+                       f"FT bar IBS: {ft_ibs}  Z: {z_str}")
             fig.add_trace(go.Scatter(
                 x=[sig_dt], y=[y_pos],
                 mode="markers+text",
@@ -643,14 +645,18 @@ def _run_ama(
     if "OB"    in types_set: codes += [3, -3, 4]
     if "BigBO" in types_set: codes += [5, -5]
     bars = bars.drop(columns=["Contract"], errors="ignore")
-    detected = ama_setups.detect(bars, cfg)
-    return ama_setups.to_signal_rows(
+    detected  = ama_setups.detect(bars, cfg)
+    signals   = ama_setups.to_signal_rows(
         detected, bars, tp,
         signal_types=tuple(set(codes)),
         include_ft=include_ft,
         ob_requires_ft=ob_requires_ft,
         include_flip=False,
     )
+    # Join ZScore from detect() output so hover can show it
+    z_lookup = detected.set_index("DateTime")["ZScore"]
+    signals["ZScore"] = pd.to_datetime(signals["SignalDateTime"]).map(z_lookup).round(2)
+    return signals
 
 
 def _render_status_strip():
