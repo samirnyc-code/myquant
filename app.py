@@ -354,7 +354,7 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
         box_lines.append(f"Total  {wins}W-{losses}L  {_fmt(net_pts, net_pnl)}")
 
         fig.add_annotation(
-            x=0.01, y=0.99,
+            x=0.99, y=0.99,
             xref="paper", yref="paper",
             text="<br>".join(box_lines),
             showarrow=False,
@@ -363,7 +363,7 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
             borderwidth=1,
             font=dict(size=11, color=lime, family="monospace"),
             align="left",
-            xanchor="left",
+            xanchor="right",
             yanchor="top",
         )
 
