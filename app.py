@@ -198,7 +198,7 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
             fig.add_trace(go.Scatter(
                 x=[sig_dt], y=[y_pos],
                 mode="markers+text",
-                marker=dict(symbol=symbol, size=14, color=color,
+                marker=dict(symbol=symbol, size=10, color=color,
                             line=dict(color="white", width=1)),
                 text=[label],
                 textposition="bottom center" if is_long else "top center",
@@ -208,9 +208,9 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
                 name=label,
             ), **row_kw)
 
-            # stop line (dashed, muted)
+            # stop line spans SB + EB only (2 × 5-min bars = 10 min)
             fig.add_shape(type="line",
-                x0=sig_dt, x1=sig_dt + pd.Timedelta(minutes=25),
+                x0=sig_dt, x1=sig_dt + pd.Timedelta(minutes=10),
                 y0=s["StopPrice"], y1=s["StopPrice"],
                 line=dict(color=color, width=1, dash="dot"),
                 opacity=0.5,
