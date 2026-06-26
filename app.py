@@ -188,6 +188,7 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
 
         wins = losses = 0
         net_pts = 0.0
+        type_stats: dict = {}   # {SignalType: {"w": int, "l": int, "pts": float}}
 
         for _, s in signals.iterrows():
             sig_dt      = pd.to_datetime(s["SignalDateTime"])   # FT bar open
@@ -305,11 +306,17 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
 
             # Accumulate day stats
             if result is not None:
+                stype = s["SignalType"]
+                if stype not in type_stats:
+                    type_stats[stype] = {"w": 0, "l": 0, "pts": 0.0}
                 if result > 0:
                     wins += 1
+                    type_stats[stype]["w"] += 1
                 else:
                     losses += 1
+                    type_stats[stype]["l"] += 1
                 net_pts += result
+                type_stats[stype]["pts"] += result
 
             # Result annotation at exit bar
             if result is not None:
@@ -325,41 +332,38 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
                     **row_kw,
                 )
 
-        # Params box — top center
-        s0 = signals.iloc[0]
-        tm   = s0.get("TargetMode",  "BarRange")
-        tmul = float(s0.get("TargetMult",  1.0))
-        sm   = s0.get("StopMode",    "BarExtreme")
-        soff = s0.get("StopOffset",  1)
-        fig.add_annotation(
-            x=0.5, y=0.99,
-            xref="paper", yref="paper",
-            text=f"Tgt: {tm} ×{tmul:.2f}  |  Stop: {sm} +{int(soff)}t",
-            showarrow=False,
-            bgcolor="rgba(20,20,20,0.7)",
-            bordercolor="#444",
-            borderwidth=1,
-            font=dict(size=9, color="#cccccc", family="monospace"),
-            align="center",
-            xanchor="center",
-            yanchor="top",
-        )
+        # Combined info + stats box — top left, stacked
+        s0   = signals.iloc[0]
+        tm   = s0.get("TargetMode", "BarRange")
+        tmul = float(s0.get("TargetMult", 1.0))
+        sm   = s0.get("StopMode",   "BarExtreme")
+        soff = s0.get("StopOffset", 1)
+        lime = "#00ff00"
 
-        # Day stats box — top right
-        net_pnl = net_pts * 50  # ES $50/point
-        pnl_str = f"+${net_pnl:,.0f}" if net_pnl >= 0 else f"-${abs(net_pnl):,.0f}"
-        pts_str = f"+{net_pts:.2f}" if net_pts >= 0 else f"{net_pts:.2f}"
+        def _fmt(pts: float, pnl: float) -> str:
+            p = f"+{pts:.2f}" if pts >= 0 else f"{pts:.2f}"
+            d = f"+${pnl:,.0f}" if pnl >= 0 else f"-${abs(pnl):,.0f}"
+            return f"{p}pts  {d}"
+
+        box_lines = [f"Tgt: {tm} ×{tmul:.2f}  |  Stop: {sm} +{int(soff)}t"]
+        for stype, st in sorted(type_stats.items()):
+            if st["w"] + st["l"] == 0:
+                continue
+            box_lines.append(f"{stype}  {st['w']}W-{st['l']}L  {_fmt(st['pts'], st['pts']*50)}")
+        net_pnl = net_pts * 50
+        box_lines.append(f"Total  {wins}W-{losses}L  {_fmt(net_pts, net_pnl)}")
+
         fig.add_annotation(
-            x=0.99, y=0.99,
+            x=0.01, y=0.99,
             xref="paper", yref="paper",
-            text=f"{wins}W-{losses}L  Net: {pts_str}pts  {pnl_str}",
+            text="<br>".join(box_lines),
             showarrow=False,
-            bgcolor="rgba(20,20,20,0.7)",
-            bordercolor="#444",
+            bgcolor="rgba(15,15,15,0.8)",
+            bordercolor="#00ff00",
             borderwidth=1,
-            font=dict(size=9, color="#cccccc", family="monospace"),
-            align="right",
-            xanchor="right",
+            font=dict(size=11, color=lime, family="monospace"),
+            align="left",
+            xanchor="left",
             yanchor="top",
         )
 
