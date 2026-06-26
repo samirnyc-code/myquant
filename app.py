@@ -186,6 +186,9 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
         df_day["DateTime"] = pd.to_datetime(df_day["DateTime"])
         df_day = df_day.sort_values("DateTime").reset_index(drop=True)
 
+        wins = losses = 0
+        net_pts = 0.0
+
         for _, s in signals.iterrows():
             sig_dt      = pd.to_datetime(s["SignalDateTime"])   # FT bar open
             bo_start    = sig_dt - pd.Timedelta(minutes=5)      # BO bar open
@@ -271,7 +274,7 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
             fig.add_shape(type="line",
                 x0=entry_dt, x1=exit_dt,
                 y0=entry_px, y1=exit_px,
-                line=dict(color="#FFD600", width=1.5, dash="dot"),
+                line=dict(color="#FFD600", width=1.0, dash="dot"),
                 opacity=0.8, **row_kw)
 
             # Setup range lines across the 2 setup bars (BO + FT)
@@ -300,6 +303,14 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
                             line=dict(color="#00c853", width=1, dash="dot"),
                             opacity=0.25, **row_kw)
 
+            # Accumulate day stats
+            if result is not None:
+                if result > 0:
+                    wins += 1
+                else:
+                    losses += 1
+                net_pts += result
+
             # Result annotation at exit bar
             if result is not None:
                 sign      = "+" if result > 0 else ""
@@ -314,24 +325,42 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
                     **row_kw,
                 )
 
-        # Info box: target and stop params (from first signal — all share same config)
+        # Params box — top center
         s0 = signals.iloc[0]
         tm   = s0.get("TargetMode",  "BarRange")
         tmul = float(s0.get("TargetMult",  1.0))
         sm   = s0.get("StopMode",    "BarExtreme")
         soff = s0.get("StopOffset",  1)
         fig.add_annotation(
-            x=0.01, y=0.02,
+            x=0.5, y=0.99,
             xref="paper", yref="paper",
-            text=f"Tgt: {tm} ×{tmul:.2f}    Stop: {sm} +{int(soff)}t",
+            text=f"Tgt: {tm} ×{tmul:.2f}  |  Stop: {sm} +{int(soff)}t",
             showarrow=False,
             bgcolor="rgba(20,20,20,0.7)",
             bordercolor="#444",
             borderwidth=1,
             font=dict(size=9, color="#cccccc", family="monospace"),
-            align="left",
-            xanchor="left",
-            yanchor="bottom",
+            align="center",
+            xanchor="center",
+            yanchor="top",
+        )
+
+        # Day stats box — top right
+        net_pnl = net_pts * 50  # ES $50/point
+        pnl_str = f"+${net_pnl:,.0f}" if net_pnl >= 0 else f"-${abs(net_pnl):,.0f}"
+        pts_str = f"+{net_pts:.2f}" if net_pts >= 0 else f"{net_pts:.2f}"
+        fig.add_annotation(
+            x=0.99, y=0.99,
+            xref="paper", yref="paper",
+            text=f"{wins}W-{losses}L  Net: {pts_str}pts  {pnl_str}",
+            showarrow=False,
+            bgcolor="rgba(20,20,20,0.7)",
+            bordercolor="#444",
+            borderwidth=1,
+            font=dict(size=9, color="#cccccc", family="monospace"),
+            align="right",
+            xanchor="right",
+            yanchor="top",
         )
 
     return fig
