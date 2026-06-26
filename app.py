@@ -356,7 +356,7 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
         fig.add_annotation(
             x=0.99, y=0.99,
             xref="paper", yref="paper",
-            text="<br>".join(box_lines),
+            text="<br> <br>".join(box_lines),
             showarrow=False,
             bgcolor="rgba(15,15,15,0.8)",
             bordercolor="#00ff00",
