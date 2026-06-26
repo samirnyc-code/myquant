@@ -51,6 +51,36 @@ race the same number, the **earlier-merged** note keeps it; the later one takes 
 
 ---
 
+## ⭐ SESSION 43 — June 25, 2026 — Bar Viewer trade visualization (exit-anchored lines + price path + result)
+
+### What was built
+- **`app.py` `make_candlestick()` signal overlay** — rewrote stop/target lines and added
+  price path trace + result annotation. Replaces the fixed 10-min span with actual exit discovery.
+
+### How the new overlay works
+For each signal on the Bar Viewer chart:
+1. **Lines start at BO bar** — `bo_start = sig_dt - 5min` (the bar before the FT trigger).
+   Both stop (dotted) and target (dashed) lines extend from BO bar open to exit bar.
+2. **Exit discovery** — walks forward through day bars from entry bar (`entry_dt = sig_dt + 5min`).
+   First bar where `Low ≤ stop` (long) or `High ≥ target` hits ends the trade. If both hit on
+   the same bar, stop wins (conservative). EOD fallback: last bar close.
+3. **Price path** — `go.Scatter` line connecting bar closes from entry bar to exit bar.
+   Color = green if result > 0, red if result ≤ 0. Opacity 0.6, no legend.
+4. **Result annotation** — `"+X.XX"` or `"-X.XX"` at exit bar, monospace 9pt, green/red.
+   Positioned above exit price for long, below for short. Result measured from entry bar open.
+
+### Files committed this session
+- MODIFIED: `app.py` (signal overlay in `make_candlestick()`)
+
+### NEXT
+1. **Run proper sim** — once tick cache is built, run `simulate_trades()` with all
+   10,886 BO+FT signals. Get real metrics: WR, avg R, expectancy.
+2. **NT8 indicator testing** — load AMASignalOverlay.cs, compile, verify data box + racing stripes.
+3. **Research note 0008** — document AMA detector work after backtest results.
+4. **Recreate lost CS files** — ZerolagExporter.cs, AlwaysIn.cs, QSSignalOverlay.cs, MCBreakout.cs.
+
+---
+
 ## ⭐ SESSION 42 — June 25, 2026 — AMA Breakouts Python port + BO+FT signal model fix
 
 ### What was built

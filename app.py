@@ -179,50 +179,121 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
     if signals is not None and not signals.empty:
         bar_hi = df.set_index("DateTime")["High"]
         bar_lo = df.set_index("DateTime")["Low"]
-        tick   = 0.25
-        offset = df["High"].max() * 0.0003  # small visual offset
+        offset = df["High"].max() * 0.0003
+        row_kw = {"row": 1, "col": 1} if show_volume else {}
+
+        df_day = df.copy()
+        df_day["DateTime"] = pd.to_datetime(df_day["DateTime"])
+        df_day = df_day.sort_values("DateTime").reset_index(drop=True)
 
         for _, s in signals.iterrows():
-            sig_dt = pd.to_datetime(s["SignalDateTime"])
-            is_long = s["Direction"] == "Long"
-            color   = "#00c853" if is_long else "#d50000"
-            symbol  = "triangle-up" if is_long else "triangle-down"
-            ref_px  = bar_lo.get(sig_dt, s["SignalPrice"]) if is_long else bar_hi.get(sig_dt, s["SignalPrice"])
-            y_pos   = ref_px - offset if is_long else ref_px + offset
-            label   = s["SignalType"]
-            hover   = (f"{label} {s['Direction']}<br>"
-                       f"Entry: {s['SignalPrice']:.2f}<br>"
-                       f"Stop: {s['StopPrice']:.2f}<br>"
-                       f"Target: +{s['TargetPoints']:.2f} pts")
-            row_kw  = {"row": 1, "col": 1} if show_volume else {}
+            sig_dt   = pd.to_datetime(s["SignalDateTime"])   # FT bar open
+            bo_start = sig_dt - pd.Timedelta(minutes=5)      # BO bar open
+            entry_dt = sig_dt + pd.Timedelta(minutes=5)      # entry bar open
+            is_long  = s["Direction"] == "Long"
+            color    = "#00c853" if is_long else "#d50000"
+            symbol   = "triangle-up" if is_long else "triangle-down"
+            stop_px  = s["StopPrice"]
+            tgt_px   = (s["SignalPrice"] + s["TargetPoints"] if is_long
+                        else s["SignalPrice"] - s["TargetPoints"])
+
+            # Triangle marker at FT bar
+            ref_px = bar_lo.get(sig_dt, s["SignalPrice"]) if is_long else bar_hi.get(sig_dt, s["SignalPrice"])
+            y_pos  = ref_px - offset if is_long else ref_px + offset
+            label  = s["SignalType"]
+            hover  = (f"{label} {s['Direction']}<br>"
+                      f"Entry: {s['SignalPrice']:.2f}<br>"
+                      f"Stop: {stop_px:.2f}<br>"
+                      f"Target: +{s['TargetPoints']:.2f} pts")
             fig.add_trace(go.Scatter(
                 x=[sig_dt], y=[y_pos],
                 mode="markers+text",
-                marker=dict(symbol=symbol, size=10, color=color,
+                marker=dict(symbol=symbol, size=8, color=color,
                             line=dict(color="white", width=1)),
                 text=[label],
                 textposition="bottom center" if is_long else "top center",
                 textfont=dict(size=9, color=color),
                 hovertext=[hover], hoverinfo="text",
-                showlegend=False,
-                name=label,
+                showlegend=False, name=label,
             ), **row_kw)
 
-            tgt_px = (s["SignalPrice"] + s["TargetPoints"] if is_long
-                      else s["SignalPrice"] - s["TargetPoints"])
-            _line_kw = {"row": 1, "col": 1} if show_volume else {}
-            # stop line — SB + EB only (10 min)
+            # Walk forward from entry bar to find exit (stop or target hit)
+            fwd = df_day[df_day["DateTime"] >= entry_dt].reset_index(drop=True)
+            entry_px = fwd.iloc[0]["Open"] if not fwd.empty else s["SignalPrice"]
+            exit_dt = exit_px = result = None
+            path_dts: list = []
+            path_cls: list = []
+
+            for _, bar in fwd.iterrows():
+                path_dts.append(bar["DateTime"])
+                path_cls.append(bar["Close"])
+                hit_tgt  = bar["High"] >= tgt_px  if is_long else bar["Low"]  <= tgt_px
+                hit_stop = bar["Low"]  <= stop_px if is_long else bar["High"] >= stop_px
+                if hit_stop and hit_tgt:
+                    exit_dt = bar["DateTime"]
+                    exit_px = stop_px
+                    result  = stop_px - entry_px if is_long else entry_px - stop_px
+                    break
+                elif hit_tgt:
+                    exit_dt = bar["DateTime"]
+                    exit_px = tgt_px
+                    result  = tgt_px - entry_px if is_long else entry_px - tgt_px
+                    break
+                elif hit_stop:
+                    exit_dt = bar["DateTime"]
+                    exit_px = stop_px
+                    result  = stop_px - entry_px if is_long else entry_px - stop_px
+                    break
+
+            if exit_dt is None and not fwd.empty:
+                last    = fwd.iloc[-1]
+                exit_dt = last["DateTime"]
+                exit_px = last["Close"]
+                result  = (exit_px - entry_px) if is_long else (entry_px - exit_px)
+            elif exit_dt is None:
+                exit_dt = sig_dt + pd.Timedelta(minutes=10)
+                exit_px = s["SignalPrice"]
+                result  = 0.0
+
+            # Stop line: BO bar → exit bar
             fig.add_shape(type="line",
-                x0=sig_dt, x1=sig_dt + pd.Timedelta(minutes=10),
-                y0=s["StopPrice"], y1=s["StopPrice"],
+                x0=bo_start, x1=exit_dt,
+                y0=stop_px, y1=stop_px,
                 line=dict(color=color, width=1, dash="dot"),
-                opacity=0.5, **_line_kw)
-            # target line — same span
+                opacity=0.5, **row_kw)
+
+            # Target line: BO bar → exit bar
             fig.add_shape(type="line",
-                x0=sig_dt, x1=sig_dt + pd.Timedelta(minutes=10),
+                x0=bo_start, x1=exit_dt,
                 y0=tgt_px, y1=tgt_px,
                 line=dict(color=color, width=1, dash="dash"),
-                opacity=0.5, **_line_kw)
+                opacity=0.5, **row_kw)
+
+            # Price path: bar closes from entry to exit
+            if len(path_dts) > 1:
+                path_color = "#00c853" if result and result > 0 else "#d50000"
+                fig.add_trace(go.Scatter(
+                    x=path_dts, y=path_cls,
+                    mode="lines",
+                    line=dict(color=path_color, width=1.5),
+                    opacity=0.6,
+                    showlegend=False,
+                    hoverinfo="skip",
+                ), **row_kw)
+
+            # Result annotation at exit bar
+            if result is not None:
+                sign      = "+" if result > 0 else ""
+                ann_color = "#00c853" if result > 0 else "#d50000"
+                fig.add_annotation(
+                    x=exit_dt, y=exit_px,
+                    text=f"{sign}{result:.2f}",
+                    showarrow=False,
+                    font=dict(size=9, color=ann_color, family="monospace"),
+                    xanchor="left",
+                    yanchor="bottom" if is_long else "top",
+                    **row_kw,
+                )
 
     return fig
 
