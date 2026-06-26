@@ -208,13 +208,21 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
                 name=label,
             ), **row_kw)
 
-            # stop line spans SB + EB only (2 × 5-min bars = 10 min)
+            tgt_px = (s["SignalPrice"] + s["TargetPoints"] if is_long
+                      else s["SignalPrice"] - s["TargetPoints"])
+            _line_kw = {"row": 1, "col": 1} if show_volume else {}
+            # stop line — SB + EB only (10 min)
             fig.add_shape(type="line",
                 x0=sig_dt, x1=sig_dt + pd.Timedelta(minutes=10),
                 y0=s["StopPrice"], y1=s["StopPrice"],
                 line=dict(color=color, width=1, dash="dot"),
-                opacity=0.5,
-                **({"row": 1, "col": 1} if show_volume else {}))
+                opacity=0.5, **_line_kw)
+            # target line — same span
+            fig.add_shape(type="line",
+                x0=sig_dt, x1=sig_dt + pd.Timedelta(minutes=10),
+                y0=tgt_px, y1=tgt_px,
+                line=dict(color=color, width=1, dash="dash"),
+                opacity=0.5, **_line_kw)
 
     return fig
 
