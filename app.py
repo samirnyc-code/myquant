@@ -197,7 +197,8 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
             setup_end   = sig_dt + pd.Timedelta(minutes=5)      # FT bar closes = entry bar open
             entry_dt    = setup_end
             is_long     = s["Direction"] == "Long"
-            dir_color   = "#00c853" if is_long else "#d50000"   # triangle only
+            is_cx       = s["SignalType"] == "CX"
+            dir_color   = "#E040FB" if is_cx else ("#00c853" if is_long else "#d50000")
             symbol      = "triangle-up" if is_long else "triangle-down"
             stop_px     = s["StopPrice"]
             tgt_px      = (s["SignalPrice"] + s["TargetPoints"] if is_long
@@ -846,12 +847,13 @@ def main():
             else:
                 # ── 01. Signal types ──────────────────────────────────────────
                 st.markdown("**Signal types**")
-                _tc1, _tc2, _tc3 = st.columns(3)
+                _tc1, _tc2, _tc3, _tc4 = st.columns(4)
                 _inc_boft  = _tc1.checkbox("BO+FT",  value=True,  key="ama_inc_boft")
                 _inc_ob    = _tc2.checkbox("OB+FT",  value=True,  key="ama_inc_ob")
                 _inc_bigbo = _tc3.checkbox("BigBO",  value=False, key="ama_inc_bigbo")
+                _inc_cx    = _tc4.checkbox("CX",     value=True,  key="ama_inc_cx")
                 _selected_types = ",".join(t for t, on in [
-                    ("BO", _inc_boft), ("OB", _inc_ob), ("BigBO", _inc_bigbo),
+                    ("BO", _inc_boft), ("OB", _inc_ob), ("BigBO", _inc_bigbo), ("CX", _inc_cx),
                 ] if on)
 
                 # ── 02. Trade geometry ────────────────────────────────────────
@@ -906,7 +908,7 @@ def main():
                                                 max_value=5.0, value=1.05, step=0.05,
                                                 format="%.2f", key="ama_bbo_factor")
                 _cmp_r2r   = _bx3.checkbox("Range vs Range Z",   value=True,  key="ama_cmp_r2r")
-                _show_cx   = _bx4.checkbox("Show CX",            value=False, key="ama_show_cx")
+                _show_cx   = _bx4.checkbox("Show CX",            value=True,  key="ama_show_cx")
 
                 st.divider()
                 if st.button("Generate AMA Signals", key="ama_generate"):
