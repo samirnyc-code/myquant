@@ -606,6 +606,7 @@ def _run_ama(
     big_bo_range_factor: float,
     show_cx: int,
     strict_ob: int,
+    show_outside_bars: int,
 ) -> pd.DataFrame:
     """Run AMA detect + to_signal_rows on `bars`. Cached by all params."""
     cfg = ama_setups.AMAConfig(
@@ -620,6 +621,7 @@ def _run_ama(
         big_bo_range_factor=big_bo_range_factor,
         show_cx=show_cx,
         strict_ob=strict_ob,
+        show_outside_bars=show_outside_bars,
     )
     tp = ama_setups.AMATradeParams(
         stop_offset_ticks=stop_offset,
@@ -864,12 +866,13 @@ def main():
 
                 # ── 04. FT settings ───────────────────────────────────────────
                 st.markdown("**Follow-through**")
-                _ft1, _ft2, _ft3 = st.columns(3)
+                _ft1, _ft2, _ft3, _ft4 = st.columns(4)
                 _ft_close = _ft1.selectbox("FT must close beyond", [1, 0],
                                             format_func=lambda x: "Yes" if x else "No",
                                             key="ama_ft_close_beyond")
-                _ob_ft    = _ft2.checkbox("OB requires FT", value=True, key="ama_ob_req_ft")
-                _strict   = _ft3.checkbox("Strict OB",      value=True, key="ama_strict_ob")
+                _ob_ft    = _ft2.checkbox("OB requires FT",    value=True,  key="ama_ob_req_ft")
+                _strict   = _ft3.checkbox("Strict OB",         value=True,  key="ama_strict_ob")
+                _show_ob  = _ft4.checkbox("Show outside bars", value=False, key="ama_show_outside")
 
                 # ── 05. Range filter ──────────────────────────────────────────
                 st.markdown("**Range filter** (0 = off)")
@@ -913,6 +916,7 @@ def main():
                             big_bo_range_factor=float(_bbo_fact),
                             show_cx=int(_show_cx),
                             strict_ob=int(_strict),
+                            show_outside_bars=int(_show_ob),
                         )
                         st.session_state["ba_signals_ama"] = _ama_sig
                         st.success(f"Generated {len(_ama_sig):,} AMA signals.")
