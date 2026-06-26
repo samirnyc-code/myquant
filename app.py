@@ -604,6 +604,7 @@ def _run_ama(
     ft_must_close_beyond: int,
     show_bigbo: int,
     big_bo_range_factor: float,
+    compare_range2range: int,
     show_cx: int,
     strict_ob: int,
     show_outside_bars: int,
@@ -619,6 +620,7 @@ def _run_ama(
         ft_bar_must_close_beyond=ft_must_close_beyond,
         show_bigbo=show_bigbo,
         big_bo_range_factor=big_bo_range_factor,
+        compare_range2range=compare_range2range,
         show_cx=show_cx,
         strict_ob=strict_ob,
         show_outside_bars=show_outside_bars,
@@ -856,9 +858,9 @@ def main():
                 st.markdown("**IBS filters** (−1 = off)")
                 _ib1, _ib2, _ib3, _ib4 = st.columns(4)
                 _bl_ibs  = _ib1.number_input("Bull BO min IBS",  min_value=-1, max_value=100,
-                                              value=60, step=1, key="ama_bl_ibs")
+                                              value=69, step=1, key="ama_bl_ibs")
                 _br_ibs  = _ib2.number_input("Bear BO max IBS",  min_value=-1, max_value=100,
-                                              value=40, step=1, key="ama_br_ibs")
+                                              value=31, step=1, key="ama_br_ibs")
                 _bl_ft   = _ib3.number_input("Bull FT min IBS",  min_value=-1, max_value=100,
                                               value=40, step=1, key="ama_bl_ft_ibs")
                 _br_ft   = _ib4.number_input("Bear FT max IBS",  min_value=-1, max_value=100,
@@ -885,13 +887,14 @@ def main():
                                                key="ama_range_lookback")
 
                 # ── 06. BigBO / CX ────────────────────────────────────────────
-                st.markdown("**BigBO / CX**")
-                _bx1, _bx2, _bx3 = st.columns(3)
-                _show_bbo  = _bx1.checkbox("Show BigBO", value=False, key="ama_show_bigbo")
-                _bbo_fact  = _bx2.number_input("BigBO range factor", min_value=0.5,
+                st.markdown("**BigBO / CX** — BigBO detection always runs (suppresses climax bars); Show BigBO controls display only")
+                _bx1, _bx2, _bx3, _bx4 = st.columns(4)
+                _show_bbo  = _bx1.checkbox("Show BigBO",         value=False, key="ama_show_bigbo")
+                _bbo_fact  = _bx2.number_input("BigBO Z threshold", min_value=0.5,
                                                 max_value=5.0, value=1.05, step=0.05,
                                                 format="%.2f", key="ama_bbo_factor")
-                _show_cx   = _bx3.checkbox("Show CX",   value=False, key="ama_show_cx")
+                _cmp_r2r   = _bx3.checkbox("Range vs Range Z",   value=True,  key="ama_cmp_r2r")
+                _show_cx   = _bx4.checkbox("Show CX",            value=False, key="ama_show_cx")
 
                 st.divider()
                 if st.button("Generate AMA Signals", key="ama_generate"):
@@ -914,6 +917,7 @@ def main():
                             ft_must_close_beyond=int(_ft_close),
                             show_bigbo=int(_show_bbo),
                             big_bo_range_factor=float(_bbo_fact),
+                            compare_range2range=int(_cmp_r2r),
                             show_cx=int(_show_cx),
                             strict_ob=int(_strict),
                             show_outside_bars=int(_show_ob),

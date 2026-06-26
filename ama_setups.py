@@ -53,7 +53,7 @@ class AMAConfig:
     cx_factor: float = 1.8       # CX ratio threshold
     # 02 — Z-score (drives BigBO when enabled)
     big_bo_by_zscore: int = 1    # use range Z-score for BigBO detection
-    compare_range2range: int = 0 # compare bar range vs avg range (Z-score mode)
+    compare_range2range: int = 1 # compare bar range vs avg range (Z-score mode)
     compare_body2body: int = 0   # compare body size vs avg body (Z-score mode)
     z_length: int = 20           # lookback for Z-score + ZScore plot
     # 03 — Range Filter
@@ -61,8 +61,8 @@ class AMAConfig:
     range_lookback: int = 8      # SMA period for avg range used in filter
     do_not_range_limit_ob: int = 0  # exempt OB signals from range filter
     # 04 — IBS Filters (-1 = off)
-    bl_signal_ibs: int = 60      # bull BO: minimum IBS (non-FT)
-    br_signal_ibs: int = 40      # bear BO: maximum IBS (non-FT)
+    bl_signal_ibs: int = 69      # bull BO: minimum IBS (non-FT)
+    br_signal_ibs: int = 31      # bear BO: maximum IBS (non-FT)
     bl_ft_bar_ibs: int = 40      # bull FT: minimum IBS
     br_ft_bar_ibs: int = 60      # bear FT: maximum IBS
     do_not_ibs_filter_ob: int = 1  # exempt OB signals from IBS filter
@@ -344,7 +344,10 @@ def detect(bars: pd.DataFrame, config: AMAConfig | None = None) -> pd.DataFrame:
                     sig = 0; ft = 0
 
         # ── Big BO ────────────────────────────────────────────────────────────
-        if cfg.show_bigbo > 0 and sig != 0 and not ob:
+        # Detection always runs — large bars become sig=±5 (consumed).
+        # show_bigbo controls whether ±5 is emitted in to_signal_rows(); when
+        # off, these bars simply generate no signal at all (climax suppression).
+        if sig != 0 and not ob:
             z_big = 0.0
             if cfg.big_bo_by_zscore > 0:
                 if cfg.compare_range2range > 0 and cfg.compare_body2body <= 0:
