@@ -97,7 +97,8 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
                      show_bar_nums: bool = False,
                      show_volume: bool = False,
                      excl_first_n: int = 0, excl_last_min: int = 0,
-                     contract: str = "ES") -> go.Figure:
+                     contract: str = "ES",
+                     signals: "pd.DataFrame | None" = None) -> go.Figure:
     candle = go.Candlestick(
         x=df["DateTime"],
         open=df["Open"], high=df["High"],
@@ -174,6 +175,47 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
                 xanchor="center",
                 yanchor="top",
             )
+
+    if signals is not None and not signals.empty:
+        bar_hi = df.set_index("DateTime")["High"]
+        bar_lo = df.set_index("DateTime")["Low"]
+        tick   = 0.25
+        offset = df["High"].max() * 0.0003  # small visual offset
+
+        for _, s in signals.iterrows():
+            sig_dt = pd.to_datetime(s["SignalDateTime"])
+            is_long = s["Direction"] == "Long"
+            color   = "#00c853" if is_long else "#d50000"
+            symbol  = "triangle-up" if is_long else "triangle-down"
+            ref_px  = bar_lo.get(sig_dt, s["SignalPrice"]) if is_long else bar_hi.get(sig_dt, s["SignalPrice"])
+            y_pos   = ref_px - offset if is_long else ref_px + offset
+            label   = s["SignalType"]
+            hover   = (f"{label} {s['Direction']}<br>"
+                       f"Entry: {s['SignalPrice']:.2f}<br>"
+                       f"Stop: {s['StopPrice']:.2f}<br>"
+                       f"Target: +{s['TargetPoints']:.2f} pts")
+            row_kw  = {"row": 1, "col": 1} if show_volume else {}
+            fig.add_trace(go.Scatter(
+                x=[sig_dt], y=[y_pos],
+                mode="markers+text",
+                marker=dict(symbol=symbol, size=14, color=color,
+                            line=dict(color="white", width=1)),
+                text=[label],
+                textposition="bottom center" if is_long else "top center",
+                textfont=dict(size=9, color=color),
+                hovertext=[hover], hoverinfo="text",
+                showlegend=False,
+                name=label,
+            ), **row_kw)
+
+            # stop line (dashed, muted)
+            fig.add_shape(type="line",
+                x0=sig_dt, x1=sig_dt + pd.Timedelta(minutes=25),
+                y0=s["StopPrice"], y1=s["StopPrice"],
+                line=dict(color=color, width=1, dash="dot"),
+                opacity=0.5,
+                **({"row": 1, "col": 1} if show_volume else {}))
+
     return fig
 
 
@@ -235,12 +277,24 @@ def show_bar_viewer(sc_file: str = "", contract: str = "ES"):
                                   help="Adds a colour-coded volume panel below the price chart.")
     excl_first_n  = st.session_state.get("excl_first_n",  0)
     excl_last_min = st.session_state.get("excl_last_min", 0)
+
+    # Collect any active signal sets to overlay
+    _day_signals = []
+    for _sig_key in ("ba_signals_ama", "ba_signals_mc", "ba_signals_revft"):
+        _sigs = st.session_state.get(_sig_key)
+        if _sigs is not None and not _sigs.empty:
+            _day = _sigs[pd.to_datetime(_sigs["SignalDateTime"]).dt.date == selected_date]
+            if not _day.empty:
+                _day_signals.append(_day)
+    _overlay = pd.concat(_day_signals, ignore_index=True) if _day_signals else None
+
     st.plotly_chart(
         make_candlestick(day, selected_date.strftime("%B %d, %Y"),
                          show_bar_nums=show_bar_nums,
                          show_volume=show_volume,
                          excl_first_n=excl_first_n, excl_last_min=excl_last_min,
-                         contract=contract),
+                         contract=contract,
+                         signals=_overlay),
         use_container_width=True,
     )
 
