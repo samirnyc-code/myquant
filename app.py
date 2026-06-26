@@ -179,6 +179,7 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
     if signals is not None and not signals.empty:
         bar_hi = df.set_index("DateTime")["High"]
         bar_lo = df.set_index("DateTime")["Low"]
+        bar_cl = df.set_index("DateTime")["Close"]
         offset = df["High"].max() * 0.0003
         row_kw = {"row": 1, "col": 1} if show_volume else {}
 
@@ -204,13 +205,18 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
             target_mode = s.get("TargetMode", "BarRange")
 
             # Triangle marker at FT bar
-            ref_px = bar_lo.get(sig_dt, s["SignalPrice"]) if is_long else bar_hi.get(sig_dt, s["SignalPrice"])
-            y_pos  = ref_px - offset if is_long else ref_px + offset
-            label  = s["SignalType"]
-            hover  = (f"{label} {s['Direction']}<br>"
-                      f"Entry: {s['SignalPrice']:.2f}<br>"
-                      f"Stop: {stop_px:.2f}<br>"
-                      f"Target: +{s['TargetPoints']:.2f} pts")
+            ref_px  = bar_lo.get(sig_dt, s["SignalPrice"]) if is_long else bar_hi.get(sig_dt, s["SignalPrice"])
+            y_pos   = ref_px - offset if is_long else ref_px + offset
+            label   = s["SignalType"]
+            ft_hi   = bar_hi.get(sig_dt, float("nan"))
+            ft_lo   = bar_lo.get(sig_dt, float("nan"))
+            ft_cl   = bar_cl.get(sig_dt, float("nan"))
+            ft_ibs  = round((ft_cl - ft_lo) / (ft_hi - ft_lo) * 100) if (ft_hi - ft_lo) > 0 else 0
+            hover   = (f"{label} {s['Direction']}<br>"
+                       f"Entry: {s['SignalPrice']:.2f}<br>"
+                       f"Stop: {stop_px:.2f}<br>"
+                       f"Target: +{s['TargetPoints']:.2f} pts<br>"
+                       f"FT bar IBS: {ft_ibs}")
             fig.add_trace(go.Scatter(
                 x=[sig_dt], y=[y_pos],
                 mode="markers+text",
