@@ -1,6 +1,6 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** June 27, 2026 (session 44)
+**Last Updated:** June 27, 2026 (session 45)
 **Current Versions:** SIM_v3.9 / GS_v4.5 / SHEET_v3.3 *(S32: Prop Sim overhaul — MC-sized payout buffer, monthly 80/20 payouts, ES/MES margin, never-blow floor de-risk + shock model, richer dashboard; MCBreakout pyramiding (N concurrent/dir) + ratchet-lock fix. S31: ZLO exporter + filters, MCBreakout stop fix + ER filter, ZLO sweeps, Auction feature library + tab (Dalton day types), Prop Sim DD-lock. S30: Prop Sim tab, Extras tab, 1M bars, NT strategy. S29: ESA into WFA, session filters, multi-TF, ER10. S28: ESA v2. S27: ESA Phase A. S24: critical slippage off-tick bugfix.)*
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 **Handoff hygiene (S20):** A competing handoff had grown in the `.claude/.../memory/` auto-memory folder and a new chat read *that* instead of this file. Fixed: added repo `CLAUDE.md` + rewrote `.claude` `MEMORY.md` to point here; deleted the duplicate session-state memories. **There is now ONE handoff: this file.**
@@ -48,6 +48,38 @@ race the same number, the **earlier-merged** note keeps it; the later one takes 
 - **Consecutive-cluster gate** — does requiring N same-dir signals improve quality? (S33 + `dir_streak` 4+ lead from 0001)
 - **Always-In (AID) as a sizer** — negative as a gate (S36); size-with/against-regime untested
 - **Pyramiding (N concurrent same-dir)** — does it beat a single entry? (S32 MCBreakout pyramiding)
+
+---
+
+## ⭐ SESSION 45 — June 27, 2026 — AMA settings UI cleanup (incomplete; bar painting still wrong)
+
+### What was done
+- **Split AMA Signals expander** — indicator settings (§01–05) moved into a collapsed sub-expander "AMA indicator settings", leaving signal types + trade geometry + Generate button at the top level.
+- **Fixed §01 BO/OB/CX** — added "Show bull BO" and "Show bear BO" checkboxes (default on); moved BigBO range factor here from §02 (correct per NT8 properties panel).
+- **Fixed §02 Z score** — added "BigBO by Z-score" checkbox (default on, was hardcoded `1` before); removed misplaced BigBORangeFactor.
+- **Fixed §05 Signal/Output Control** — added "Paint FT bar" (default on) and "FT color same as BO" (default off) to complete NT8 property parity.
+- **Settings table comparison** — compared our app vs Ali's NT8 AMA_Breakouts_PB properties panel; all 7 discrepancies now fixed in code.
+
+### What did NOT go well
+User explicitly said "this did not go well at all." The fundamental problem is **AMA bar painting still does not match Ali's NT8 chart.** The code changes in this session are correct in terms of parameter parity, but the visual output (colored bars on the chart) is still wrong vs Ali's reference:
+- OB bars not showing or showing incorrectly
+- BO bars marked wrong
+- CX bars marked wrong
+
+**Root cause is not fully understood.** Possibilities:
+1. DateTime alignment — Ali's chart is Berlin time; our data is CT. RTH open is 15:30 CEST = 08:30 CT. May still be off-by-one bar.
+2. `sig_dt` vs `bo_start` — FT bar open_dt is `sig_dt`; BO bar is `sig_dt - 5min`. May be painting the wrong bars.
+3. NT8 paint logic differs from our Python port in subtle ways (CX/BigBO entry bar, OB detection).
+
+### Files changed this session
+- MODIFIED: `app.py` (all changes in S44 commit — this session re-confirmed they were already pushed)
+- MODIFIED: `docs/living/handoff.md` (this block)
+
+### NEXT
+1. **Fix AMA bar painting** — debug why colored bars don't match Ali's NT8 chart. Start by loading a specific date where Ali's chart is known (June 16, 2026) and comparing bar-by-bar which bars get painted vs what's expected. Add debug logging to the `_bar_paints` loop.
+2. **DateTime check** — print `sig_dt` and `bo_start` for a known signal and verify against Ali's chart timestamp.
+3. **Leg Labeler Phase 1** — start hand-labeling legs (see S44 NEXT).
+4. **Recreate lost CS files** — ZerolagExporter.cs, AlwaysIn.cs, QSSignalOverlay.cs, MCBreakout.cs.
 
 ---
 
