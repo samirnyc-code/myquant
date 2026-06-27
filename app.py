@@ -21,6 +21,7 @@ import extras
 import prop_sim
 import auction_tab
 import er_lookahead_tab
+import leg_labeler_tab
 
 # ── Global display rule for st.dataframe (DISPLAY only — calc precision intact) ─
 # One wrapper instead of editing ~35 call sites (and it catches future ones).
@@ -98,14 +99,17 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
                      show_volume: bool = False,
                      excl_first_n: int = 0, excl_last_min: int = 0,
                      contract: str = "ES",
-                     signals: "pd.DataFrame | None" = None) -> go.Figure:
+                     signals: "pd.DataFrame | None" = None,
+                     show_trades: bool = True) -> go.Figure:
+    # NT8 neutral: white body + black border/wicks (bull), solid black (bear)
     candle = go.Candlestick(
         x=df["DateTime"],
         open=df["Open"], high=df["High"],
         low=df["Low"],   close=df["Close"],
         name=contract,
-        increasing_line_color="#26a69a",
-        decreasing_line_color="#ef5350",
+        increasing=dict(line=dict(color="#000000", width=1), fillcolor="#FFFFFF"),
+        decreasing=dict(line=dict(color="#000000", width=1), fillcolor="#000000"),
+        showlegend=False,
     )
 
     if show_volume:
@@ -134,7 +138,9 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
             yaxis2=dict(tickformat=",d", title="Vol"),
             height=640,
             margin=dict(l=50, r=20, t=60, b=60),
-            template="plotly_white",
+            template="plotly_dark",
+            plot_bgcolor="#9E9E9E",
+            paper_bgcolor="#9E9E9E",
         )
     else:
         fig = go.Figure(candle)
@@ -147,7 +153,9 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
             yaxis=dict(autorange=True),
             height=520,
             margin=dict(l=50, r=20, t=60, b=60),
-            template="plotly_white",
+            template="plotly_dark",
+            plot_bgcolor="#9E9E9E",
+            paper_bgcolor="#9E9E9E",
         )
 
     half  = pd.Timedelta(minutes=2, seconds=30)
@@ -189,48 +197,93 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
 
         wins = losses = i1r_total = 0
         net_pts = 0.0
-        type_stats: dict = {}   # {SignalType: {"w": int, "l": int, "pts": float, "i1r": int}}
+        type_stats: dict = {}
+
+        # (fill_color, line_color) → set of bar DateTimes
+        _bar_paints: dict[tuple, set] = {}
+
+        def _paint(fill: str, line: str, dt) -> None:
+            _bar_paints.setdefault((fill, line), set()).add(pd.Timestamp(dt))
 
         for _, s in signals.iterrows():
-            sig_dt      = pd.to_datetime(s["SignalDateTime"])   # FT bar open
-            bo_start    = sig_dt - pd.Timedelta(minutes=5)      # BO bar open
-            setup_end   = sig_dt + pd.Timedelta(minutes=5)      # FT bar closes = entry bar open
+            sig_dt      = pd.to_datetime(s["SignalDateTime"])
+            bo_start    = sig_dt - pd.Timedelta(minutes=5)
+            setup_end   = sig_dt + pd.Timedelta(minutes=5)
             entry_dt    = setup_end
             is_long     = s["Direction"] == "Long"
             is_cx       = s["SignalType"] == "CX"
-            dir_color   = "#E040FB" if is_cx else ("#00c853" if is_long else "#d50000")
-            symbol      = "triangle-up" if is_long else "triangle-down"
+            is_bigbo    = s["SignalType"] == "BigBO"
+            is_ob       = s["SignalType"] in ("OB", "OB_Doji", "OB+FT")
+            stype       = s["SignalType"]
             stop_px     = s["StopPrice"]
             tgt_px      = (s["SignalPrice"] + s["TargetPoints"] if is_long
                            else s["SignalPrice"] - s["TargetPoints"])
             target_mode = s.get("TargetMode", "BarRange")
 
-            # Triangle marker at FT bar
-            ref_px  = bar_lo.get(sig_dt, s["SignalPrice"]) if is_long else bar_hi.get(sig_dt, s["SignalPrice"])
-            y_pos   = ref_px - offset if is_long else ref_px + offset
-            label   = s["SignalType"]
-            ft_hi   = bar_hi.get(sig_dt, float("nan"))
-            ft_lo   = bar_lo.get(sig_dt, float("nan"))
-            ft_cl   = bar_cl.get(sig_dt, float("nan"))
-            ft_ibs  = round((ft_cl - ft_lo) / (ft_hi - ft_lo) * 100) if (ft_hi - ft_lo) > 0 else 0
+            # Paint bars exactly as Ali's paintbar — fill + direction-aware outline
+            _long_ft  = "#00FFFF"; _bear_ft  = "#DC143C"   # Cyan / Crimson
+            _long_bo  = "#1E90FF"; _bear_bo  = "#8B0000"   # DodgerBlue / DarkRed
+            _long_ob  = "#008000"; _bear_ob  = "#FF8C00"   # Green / DarkOrange
+            _ft_c  = _long_ft  if is_long else _bear_ft
+            _bo_c  = _long_bo  if is_long else _bear_bo
+            _ob_c  = _long_ob  if is_long else _bear_ob
+
+            if stype == "CX":
+                # CX bar: DarkOrchid fill + direction-color lining; entry bar: FT color
+                _paint("#9932CC", _bo_c, sig_dt)
+                _paint(_ft_c, _ft_c, entry_dt)
+            elif stype == "BigBO":
+                # BigBO bar: Plum fill + direction-color lining; entry bar: FT color
+                _paint("#DDA0DD", _bo_c, sig_dt)
+                _paint(_ft_c, _ft_c, entry_dt)
+            elif stype in ("OB", "OB_Doji"):
+                _paint(_ob_c, _ob_c, sig_dt)
+            elif stype == "BO+FT":
+                _paint(_ft_c, _ft_c, sig_dt)     # FT bar: Cyan/Crimson
+                _paint(_bo_c, _bo_c, bo_start)   # BO bar: DodgerBlue/DarkRed
+            elif stype == "OB+FT":
+                _paint(_ft_c, _ft_c, sig_dt)     # FT bar: Cyan/Crimson
+                _paint(_ob_c, _ob_c, bo_start)   # OB bar: Green/DarkOrange
+            elif stype == "BO":
+                _paint(_bo_c, _bo_c, sig_dt)
+
+            # Hover data (used in the colored candlestick customdata)
+            ft_hi  = bar_hi.get(sig_dt, float("nan"))
+            ft_lo  = bar_lo.get(sig_dt, float("nan"))
+            ft_cl  = bar_cl.get(sig_dt, float("nan"))
+            ft_ibs = round((ft_cl - ft_lo) / (ft_hi - ft_lo) * 100) if (ft_hi - ft_lo) > 0 else 0
+            pr_hi  = bar_hi.get(bo_start, float("nan"))
+            pr_lo  = bar_lo.get(bo_start, float("nan"))
             ft_zscore = s.get("ZScore", float("nan"))
             z_str     = f"{ft_zscore:.2f}" if not pd.isna(ft_zscore) else "n/a"
-            hover   = (f"{label} {s['Direction']}<br>"
-                       f"Entry: {s['SignalPrice']:.2f}<br>"
-                       f"Stop: {stop_px:.2f}<br>"
-                       f"Target: +{s['TargetPoints']:.2f} pts<br>"
-                       f"FT bar IBS: {ft_ibs}  Z: {z_str}")
+
+            # Build hover text for this signal bar
+            if is_cx:
+                if is_long:
+                    bo_up = ft_hi - pr_hi
+                    bo_dn = ft_lo - pr_lo
+                    cx_ratio = bo_up / max(bo_dn, 0.01)
+                    _hover = (f"CX Long  HH:{bo_up:.2f} LL:{bo_dn:.2f}  ratio:{cx_ratio:.1f}x  IBS:{ft_ibs}")
+                else:
+                    bo_dn = pr_lo - ft_lo
+                    bo_up = ft_hi - pr_hi
+                    _hover = (f"CX Short  LL:{bo_dn:.2f} HH:{bo_up:+.2f}  pure bear  IBS:{ft_ibs}")
+            elif is_bigbo:
+                _hover = f"Big {'Long' if is_long else 'Short'}  Z:{z_str}  IBS:{ft_ibs}"
+            else:
+                _hover = (f"{stype} {s['Direction']}<br>"
+                          f"Entry:{s['SignalPrice']:.2f}  Stop:{stop_px:.2f}  Tgt:+{s['TargetPoints']:.2f}<br>"
+                          f"IBS:{ft_ibs}  Z:{z_str}")
+
+            # Invisible scatter for custom hover on signal bar
             fig.add_trace(go.Scatter(
-                x=[sig_dt], y=[y_pos],
-                mode="markers+text",
-                marker=dict(symbol=symbol, size=8, color=dir_color,
-                            line=dict(color="white", width=1)),
-                text=[label],
-                textposition="bottom center" if is_long else "top center",
-                textfont=dict(size=9, color=dir_color),
-                hovertext=[hover], hoverinfo="text",
-                showlegend=False, name=label,
+                x=[sig_dt], y=[(ft_hi + ft_lo) / 2],
+                mode="markers", marker=dict(size=1, opacity=0),
+                hovertext=[_hover], hoverinfo="text", showlegend=False,
             ), **row_kw)
+
+            if not show_trades:
+                continue
 
             # Walk forward from entry bar to find exit (stop or target hit)
             fwd = df_day[df_day["DateTime"] >= entry_dt].reset_index(drop=True)
@@ -266,18 +319,18 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
                 exit_px = s["SignalPrice"]
                 result  = 0.0
 
-            # Stop line (always red): BO bar → exit bar
+            # Stop line (red): BO bar → exit bar
             fig.add_shape(type="line",
                 x0=bo_start, x1=exit_dt,
                 y0=stop_px, y1=stop_px,
-                line=dict(color="#d50000", width=1, dash="dot"),
+                line=dict(color="#DC143C", width=1, dash="dot"),
                 opacity=0.7, **row_kw)
 
-            # Target line (always green): BO bar → exit bar
+            # Target line (cyan): BO bar → exit bar
             fig.add_shape(type="line",
                 x0=bo_start, x1=exit_dt,
                 y0=tgt_px, y1=tgt_px,
-                line=dict(color="#00c853", width=1, dash="dot"),
+                line=dict(color="#00FFFF", width=1, dash="dot"),
                 opacity=0.7, **row_kw)
 
             # Price path: direct dotted line entry → exit (yellow)
@@ -287,8 +340,9 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
                 line=dict(color="#FFD600", width=1.0, dash="dot"),
                 opacity=0.8, **row_kw)
 
-            # Setup range lines across the 2 setup bars (BO + FT)
-            bo_row = df_day[df_day["DateTime"] == bo_start]
+            # Setup range lines — single bar for CX/BigBO, two bars for BO+FT
+            _sb = sig_dt if (is_cx or is_bigbo) else bo_start
+            bo_row = df_day[df_day["DateTime"] == _sb]
             ft_row = df_day[df_day["DateTime"] == sig_dt]
             if not bo_row.empty and not ft_row.empty:
                 bo_r = bo_row.iloc[0]
@@ -299,7 +353,7 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
                     fig.add_shape(type="line",
                         x0=bo_start, x1=setup_end,
                         y0=y, y1=y,
-                        line=dict(color="#00c853", width=1, dash="dot"),
+                        line=dict(color="#00FFFF", width=1, dash="dot"),
                         opacity=0.4, **row_kw)
                 if target_mode == "BodyRange":
                     # Additional lines for combined body extents
@@ -310,7 +364,7 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
                         fig.add_shape(type="line",
                             x0=bo_start, x1=setup_end,
                             y0=y, y1=y,
-                            line=dict(color="#00c853", width=1, dash="dot"),
+                            line=dict(color="#00FFFF", width=1, dash="dot"),
                             opacity=0.25, **row_kw)
 
             # I1R: target filled on the entry bar itself
@@ -321,7 +375,6 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
 
             # Accumulate day stats
             if result is not None:
-                stype = s["SignalType"]
                 if stype not in type_stats:
                     type_stats[stype] = {"w": 0, "l": 0, "pts": 0.0, "i1r": 0}
                 if result > 0:
@@ -336,9 +389,10 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
                     i1r_total += 1
                     type_stats[stype]["i1r"] += 1
 
-            # I1R label — small tag below/above the setup marker at the entry bar
+            # I1R label — tight to the entry bar (EB), same offset style as the setup marker
             if is_i1r:
-                i1r_y = (y_pos - offset * 10 if is_long else y_pos + offset * 10)
+                eb_ref = bar_lo.get(entry_dt, exit_px) if is_long else bar_hi.get(entry_dt, exit_px)
+                i1r_y  = eb_ref - offset if is_long else eb_ref + offset
                 fig.add_annotation(
                     x=entry_dt, y=i1r_y,
                     text="I1R",
@@ -352,7 +406,7 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
             # Result annotation at exit bar
             if result is not None:
                 sign      = "+" if result > 0 else ""
-                ann_color = "#00c853" if result > 0 else "#d50000"
+                ann_color = "#00FFFF" if result > 0 else "#DC143C"
                 fig.add_annotation(
                     x=exit_dt, y=exit_px,
                     text=f"{sign}{result:.2f}",
@@ -362,6 +416,65 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
                     yanchor="bottom" if is_long else "top",
                     **row_kw,
                 )
+
+        # Paint signal bars — pass full datetime index with NaN for non-signal
+        # bars so Plotly uses identical bar width as the base candle trace.
+        for (fill, line), _dts in _bar_paints.items():
+            _mask = df_day["DateTime"].isin(_dts)
+            if not _mask.any():
+                continue
+            _nan = float("nan")
+            fig.add_trace(go.Candlestick(
+                x=df_day["DateTime"],
+                open=df_day["Open"].where(_mask, _nan),
+                high=df_day["High"].where(_mask, _nan),
+                low=df_day["Low"].where(_mask, _nan),
+                close=df_day["Close"].where(_mask, _nan),
+                increasing=dict(line=dict(color=line, width=1), fillcolor=fill),
+                decreasing=dict(line=dict(color=line, width=1), fillcolor=fill),
+                showlegend=False, name="",
+            ), **row_kw)
+
+        # Legend — colored squares matching bar paint colors
+        _seen_types  = {r["SignalType"] for _, r in signals.iterrows()}
+        _has_bo_long = any(r["Direction"] == "Long"  and r["SignalType"] in ("BO", "BO+FT") for _, r in signals.iterrows())
+        _has_bo_bear = any(r["Direction"] == "Short" and r["SignalType"] in ("BO", "BO+FT") for _, r in signals.iterrows())
+        _has_ft_long = any(r["Direction"] == "Long"  and r["SignalType"] in ("BO+FT", "OB+FT", "CX", "BigBO") for _, r in signals.iterrows())
+        _has_ft_bear = any(r["Direction"] == "Short" and r["SignalType"] in ("BO+FT", "OB+FT", "CX", "BigBO") for _, r in signals.iterrows())
+        _has_ob_long = any(r["Direction"] == "Long"  and r["SignalType"] in ("OB", "OB_Doji", "OB+FT") for _, r in signals.iterrows())
+        _has_ob_bear = any(r["Direction"] == "Short" and r["SignalType"] in ("OB", "OB_Doji", "OB+FT") for _, r in signals.iterrows())
+        _has_cx      = "CX"    in _seen_types
+        _has_bigbo   = "BigBO" in _seen_types
+        _legend_defs = [
+            ("BO long",  "square", "#1E90FF", _has_bo_long),
+            ("BO bear",  "square", "#8B0000", _has_bo_bear),
+            ("FT long",  "square", "#00FFFF", _has_ft_long),
+            ("FT bear",  "square", "#DC143C", _has_ft_bear),
+            ("OB long",  "square", "#008000", _has_ob_long),
+            ("OB bear",  "square", "#FF8C00", _has_ob_bear),
+            ("CX",       "square", "#9932CC", _has_cx),
+            ("BigBO",    "square", "#DDA0DD", _has_bigbo),
+        ]
+        for leg_name, leg_sym, leg_col, _show in _legend_defs:
+            if not _show:
+                continue
+            fig.add_trace(go.Scatter(
+                x=[None], y=[None],
+                mode="markers",
+                marker=dict(symbol=leg_sym, size=10, color=leg_col),
+                name=leg_name,
+                showlegend=True,
+            ), **row_kw)
+        fig.update_layout(
+            showlegend=True,
+            legend=dict(
+                x=0.01, y=0.01,
+                xanchor="left", yanchor="bottom",
+                bgcolor="rgba(15,15,15,0.65)",
+                borderwidth=0,
+                font=dict(size=10, color="#CCCCCC", family="monospace"),
+            ),
+        )
 
         # Combined info + stats box — top left, stacked
         s0   = signals.iloc[0]
@@ -456,15 +569,19 @@ def show_bar_viewer(sc_file: str = "", contract: str = "ES"):
     m5.metric("Change",       f"{chg:+.2f}", f"{chg_pct:+.2f}%")
     m6.metric("Total Volume", f"{day_vol:,.0f}")
 
-    cb1, cb2 = st.columns(2)
-    show_bar_nums = cb1.checkbox("Show bar numbers", value=False,
-                                  help="Labels every 3rd bar (1, 4, 7…) below the x-axis.")
-    show_volume   = cb2.checkbox("Show volume", value=False,
-                                  help="Adds a colour-coded volume panel below the price chart.")
+    cb1, cb2, cb3 = st.columns(3)
+    show_bar_nums  = cb1.checkbox("Show bar numbers", value=False,
+                                   help="Labels every 3rd bar (1, 4, 7…) below the x-axis.")
+    show_volume    = cb2.checkbox("Show volume", value=False,
+                                   help="Adds a colour-coded volume panel below the price chart.")
+    show_trades    = cb3.checkbox("Show trades/lines", value=True,
+                                   help="Toggle stop, target, price-path lines and result annotations.")
     excl_first_n  = st.session_state.get("excl_first_n",  0)
     excl_last_min = st.session_state.get("excl_last_min", 0)
 
-    # Collect any active signal sets to overlay
+    # Collect any active signal sets to overlay.
+    # ba_signals_ama contains the full set including CX/BigBO (chart markers).
+    # The BA simulator strips them internally — no separate key needed.
     _day_signals = []
     for _sig_key in ("ba_signals_ama", "ba_signals_mc", "ba_signals_revft"):
         _sigs = st.session_state.get(_sig_key)
@@ -480,7 +597,8 @@ def show_bar_viewer(sc_file: str = "", contract: str = "ES"):
                          show_volume=show_volume,
                          excl_first_n=excl_first_n, excl_last_min=excl_last_min,
                          contract=contract,
-                         signals=_overlay),
+                         signals=_overlay,
+                         show_trades=show_trades),
         use_container_width=True,
     )
 
@@ -603,36 +721,68 @@ def _run_ama(
     target_mult: float,
     types_key: str,
     ob_requires_ft: bool,
-    # AMAConfig knobs (all cacheable scalars)
+    # 01. BO, OB, CX
+    show_blbo: int,
+    show_brbo: int,
+    show_outside_bars: int,
+    strict_ob: int,
+    show_cx: int,
+    cx_factor: float,
+    show_bigbo: int,
+    big_bo_range_factor: float,
+    # 02. Z score
+    big_bo_by_zscore: int,
+    compare_range2range: int,
+    compare_body2body: int,
+    z_length: int,
+    # 03. Range Filter
+    range_filter: float,
+    range_lookback: int,
+    do_not_range_limit_ob: int,
+    # 04. IBS Filters
     bl_signal_ibs: int,
     br_signal_ibs: int,
     bl_ft_ibs: int,
     br_ft_ibs: int,
-    range_filter: float,
-    range_lookback: int,
+    do_not_ibs_filter_ob: int,
+    # 05. Signal/Output Control
+    paint_ft_bar: int,
+    ft_color_same_as_bo: int,
     ft_must_close_beyond: int,
-    show_bigbo: int,
-    big_bo_range_factor: float,
-    compare_range2range: int,
-    show_cx: int,
-    strict_ob: int,
-    show_outside_bars: int,
+    ft_bar_must_bo: int,
+    ft_bar_not_range_limited: int,
+    ft_after_ob: int,
+    ignore_open_gap: int,
 ) -> pd.DataFrame:
     """Run AMA detect + to_signal_rows on `bars`. Cached by all params."""
     cfg = ama_setups.AMAConfig(
+        show_blbo=show_blbo,
+        show_brbo=show_brbo,
+        show_outside_bars=show_outside_bars,
+        strict_ob=strict_ob,
+        show_cx=show_cx,
+        cx_factor=cx_factor,
+        show_bigbo=show_bigbo,
+        big_bo_range_factor=big_bo_range_factor,
+        big_bo_by_zscore=big_bo_by_zscore,
+        compare_range2range=compare_range2range,
+        compare_body2body=compare_body2body,
+        z_length=z_length,
+        range_filter=range_filter,
+        range_lookback=range_lookback,
+        do_not_range_limit_ob=do_not_range_limit_ob,
         bl_signal_ibs=bl_signal_ibs,
         br_signal_ibs=br_signal_ibs,
         bl_ft_bar_ibs=bl_ft_ibs,
         br_ft_bar_ibs=br_ft_ibs,
-        range_filter=range_filter,
-        range_lookback=range_lookback,
+        do_not_ibs_filter_ob=do_not_ibs_filter_ob,
+        paint_ft_bar=paint_ft_bar,
+        ft_color_same_as_bo=ft_color_same_as_bo,
         ft_bar_must_close_beyond=ft_must_close_beyond,
-        show_bigbo=show_bigbo,
-        big_bo_range_factor=big_bo_range_factor,
-        compare_range2range=compare_range2range,
-        show_cx=show_cx,
-        strict_ob=strict_ob,
-        show_outside_bars=show_outside_bars,
+        ft_bar_must_bo=ft_bar_must_bo,
+        ft_bar_not_range_limited=ft_bar_not_range_limited,
+        ft_after_ob=ft_after_ob,
+        ignore_open_gap=ignore_open_gap,
     )
     tp = ama_setups.AMATradeParams(
         stop_offset_ticks=stop_offset,
@@ -644,7 +794,8 @@ def _run_ama(
     codes: list[int] = []
     if "BO" in types_set or "FT" in types_set: codes += [1, -1]
     if "OB"    in types_set: codes += [3, -3, 4]
-    if "BigBO" in types_set: codes += [5, -5]
+    if show_bigbo: codes += [5, -5]   # display-only marker, always injected when show flag is on
+    if show_cx:    codes += [2, -2]   # display-only marker, always injected when show flag is on
     bars = bars.drop(columns=["Contract"], errors="ignore")
     detected  = ama_setups.detect(bars, cfg)
     signals   = ama_setups.to_signal_rows(
@@ -759,8 +910,8 @@ def main():
     # Tab order: Bar Viewer first, Bar Analysis right after it (restored). st.tabs
     # always opens tab 0, so a one-time JS click below makes Bar Analysis the
     # default-active tab while keeping it in second position.
-    tab_massive, tab0, tab3, tab_wfa, tab1, tab_chart, tab4, tab_extras, tab_prop, tab_auction, tab_erc = st.tabs([
-        "📂 Massive", "🗂️ Data", "📈 Bar Analysis", "🔄 WFA", "📊 Bar Viewer", "📈 Chart", "📊 Portfolio", "🧩 Extras", "🏢 Prop Sim", "🏛️ Auction", "🔬 ER10 Look-ahead",
+    tab_massive, tab0, tab3, tab_wfa, tab1, tab_chart, tab4, tab_extras, tab_prop, tab_auction, tab_erc, tab_legs = st.tabs([
+        "📂 Massive", "🗂️ Data", "📈 Bar Analysis", "🔄 WFA", "📊 Bar Viewer", "📈 Chart", "📊 Portfolio", "🧩 Extras", "🏢 Prop Sim", "🏛️ Auction", "🔬 ER10 Look-ahead", "🦵 Leg Labeler",
     ])
 
     # Auto-select Bar Analysis (index 1) once per browser session — guarded so it
@@ -845,18 +996,18 @@ def main():
             if _ama_bars is None:
                 st.info("Load bar data first (Data tab or Massive tab).")
             else:
-                # ── 01. Signal types ──────────────────────────────────────────
+                # ── Signal types ──────────────────────────────────────────────
                 st.markdown("**Signal types**")
                 _tc1, _tc2, _tc3, _tc4 = st.columns(4)
-                _inc_boft  = _tc1.checkbox("BO+FT",  value=True,  key="ama_inc_boft")
-                _inc_ob    = _tc2.checkbox("OB+FT",  value=True,  key="ama_inc_ob")
-                _inc_bigbo = _tc3.checkbox("BigBO",  value=False, key="ama_inc_bigbo")
-                _inc_cx    = _tc4.checkbox("CX",     value=True,  key="ama_inc_cx")
+                _inc_boft = _tc1.checkbox("BO+FT",  value=True,  key="ama_inc_boft")
+                _inc_ob   = _tc2.checkbox("OB+FT",  value=True,  key="ama_inc_ob")
+                _inc_cx   = _tc3.checkbox("CX",     value=False, key="ama_inc_cx")
+                _inc_bbo  = _tc4.checkbox("BigBO",  value=False, key="ama_inc_bigbo")
                 _selected_types = ",".join(t for t, on in [
-                    ("BO", _inc_boft), ("OB", _inc_ob), ("BigBO", _inc_bigbo), ("CX", _inc_cx),
+                    ("BO", _inc_boft), ("OB", _inc_ob),
                 ] if on)
 
-                # ── 02. Trade geometry ────────────────────────────────────────
+                # ── Trade geometry ─────────────────────────────────────────────
                 st.markdown("**Trade geometry**")
                 _ag1, _ag2, _ag3 = st.columns(3)
                 _ama_stop_off = _ag1.number_input("Stop offset (ticks)", min_value=0,
@@ -868,47 +1019,73 @@ def main():
                                                    max_value=5.0, value=1.0, step=0.1,
                                                    format="%.1f", key="ama_target_mult")
 
-                # ── 03. IBS Filters (–1 = off) ────────────────────────────────
-                st.markdown("**IBS filters** (−1 = off)")
-                _ib1, _ib2, _ib3, _ib4 = st.columns(4)
-                _bl_ibs  = _ib1.number_input("Bull BO min IBS",  min_value=-1, max_value=100,
-                                              value=69, step=1, key="ama_bl_ibs")
-                _br_ibs  = _ib2.number_input("Bear BO max IBS",  min_value=-1, max_value=100,
-                                              value=31, step=1, key="ama_br_ibs")
-                _bl_ft   = _ib3.number_input("Bull FT min IBS",  min_value=-1, max_value=100,
-                                              value=40, step=1, key="ama_bl_ft_ibs")
-                _br_ft   = _ib4.number_input("Bear FT max IBS",  min_value=-1, max_value=100,
-                                              value=60, step=1, key="ama_br_ft_ibs")
+                # ── Indicator settings (mirrors NT8 AMA_Breakouts_PB properties) ──
+                with st.expander("AMA indicator settings", expanded=False):
+                    # 01. BO, OB, CX
+                    st.markdown("**01. BO, OB, CX**")
+                    _a1, _a2, _a3, _a4 = st.columns(4)
+                    _show_blbo = _a1.checkbox("Show bull BO",      value=True,  key="ama_show_blbo")
+                    _show_brbo = _a2.checkbox("Show bear BO",      value=True,  key="ama_show_brbo")
+                    _show_ob   = _a3.checkbox("Show outside bars", value=True,  key="ama_show_outside")
+                    _strict    = _a4.checkbox("Strict OB",         value=True,  key="ama_strict_ob")
+                    _b1, _b2, _b3 = st.columns(3)
+                    _ob_ft     = _b1.checkbox("OB requires FT",    value=True,  key="ama_ob_req_ft")
+                    _cx_factor = _b2.number_input("CX factor",     min_value=0.5, max_value=5.0,
+                                                   value=1.8, step=0.1, format="%.1f",
+                                                   key="ama_cx_factor")
+                    _bbo_fact  = _b3.number_input("BigBO range factor", min_value=0.5, max_value=5.0,
+                                                   value=1.05, step=0.05, format="%.2f",
+                                                   key="ama_bbo_factor")
 
-                # ── 04. FT settings ───────────────────────────────────────────
-                st.markdown("**Follow-through**")
-                _ft1, _ft2, _ft3, _ft4 = st.columns(4)
-                _ft_close = _ft1.selectbox("FT must close beyond", [1, 0],
-                                            format_func=lambda x: "Yes" if x else "No",
-                                            key="ama_ft_close_beyond")
-                _ob_ft    = _ft2.checkbox("OB requires FT",    value=True,  key="ama_ob_req_ft")
-                _strict   = _ft3.checkbox("Strict OB",         value=True,  key="ama_strict_ob")
-                _show_ob  = _ft4.checkbox("Show outside bars", value=False, key="ama_show_outside")
+                    # 02. Z score
+                    st.markdown("**02. Z score**")
+                    _z1, _z2, _z3, _z4 = st.columns(4)
+                    _bbo_zscore = _z1.checkbox("BigBO by Z-score", value=True,  key="ama_bbo_zscore")
+                    _cmp_r2r   = _z2.checkbox("Range vs Range Z", value=True,  key="ama_cmp_r2r")
+                    _cmp_b2b   = _z3.checkbox("Body vs Body Z",   value=False, key="ama_cmp_b2b")
+                    _z_len     = _z4.number_input("Z length",     min_value=5,
+                                                   max_value=100, value=20, step=1,
+                                                   key="ama_z_length")
 
-                # ── 05. Range filter ──────────────────────────────────────────
-                st.markdown("**Range filter** (0 = off)")
-                _rf1, _rf2 = st.columns(2)
-                _rng_filt = _rf1.number_input("Range filter mult", min_value=0.0,
-                                               max_value=3.0, value=0.0, step=0.1,
-                                               format="%.1f", key="ama_range_filter")
-                _rng_lb   = _rf2.number_input("Range lookback",    min_value=2,
-                                               max_value=50, value=8, step=1,
-                                               key="ama_range_lookback")
+                    # 03. Range filter
+                    st.markdown("**03. Range filter** (0 = off)")
+                    _rf1, _rf2, _rf3 = st.columns(3)
+                    _rng_filt  = _rf1.number_input("Range filter mult", min_value=0.0,
+                                                    max_value=3.0, value=0.0, step=0.1,
+                                                    format="%.1f", key="ama_range_filter")
+                    _rng_lb    = _rf2.number_input("Range lookback",    min_value=2,
+                                                    max_value=50, value=8, step=1,
+                                                    key="ama_range_lookback")
+                    _no_rng_ob = _rf3.checkbox("Don't range-limit OB", value=False,
+                                                key="ama_no_rng_ob")
 
-                # ── 06. BigBO / CX ────────────────────────────────────────────
-                st.markdown("**BigBO / CX** — BigBO detection always runs (suppresses climax bars); Show BigBO controls display only")
-                _bx1, _bx2, _bx3, _bx4 = st.columns(4)
-                _show_bbo  = _bx1.checkbox("Show BigBO",         value=False, key="ama_show_bigbo")
-                _bbo_fact  = _bx2.number_input("BigBO Z threshold", min_value=0.5,
-                                                max_value=5.0, value=1.05, step=0.05,
-                                                format="%.2f", key="ama_bbo_factor")
-                _cmp_r2r   = _bx3.checkbox("Range vs Range Z",   value=True,  key="ama_cmp_r2r")
-                _show_cx   = _bx4.checkbox("Show CX",            value=True,  key="ama_show_cx")
+                    # 04. IBS Filters
+                    st.markdown("**04. IBS filters** (−1 = off)")
+                    _ib1, _ib2, _ib3, _ib4, _ib5 = st.columns(5)
+                    _bl_ibs    = _ib1.number_input("Bull BO min IBS",  min_value=-1, max_value=100,
+                                                    value=69, step=1, key="ama_bl_ibs")
+                    _br_ibs    = _ib2.number_input("Bear BO max IBS",  min_value=-1, max_value=100,
+                                                    value=31, step=1, key="ama_br_ibs")
+                    _bl_ft     = _ib3.number_input("Bull FT min IBS",  min_value=-1, max_value=100,
+                                                    value=40, step=1, key="ama_bl_ft_ibs")
+                    _br_ft     = _ib4.number_input("Bear FT max IBS",  min_value=-1, max_value=100,
+                                                    value=60, step=1, key="ama_br_ft_ibs")
+                    _no_ibs_ob = _ib5.checkbox("Don't IBS-filter OB", value=True,
+                                                key="ama_no_ibs_ob")
+
+                    # 05. Signal/Output Control
+                    st.markdown("**05. Signal/Output Control**")
+                    _s1, _s2, _s3, _s4 = st.columns(4)
+                    _paint_ft       = _s1.checkbox("Paint FT bar",        value=True,  key="ama_paint_ft")
+                    _ft_must_bo     = _s2.checkbox("FT must BO",          value=True,  key="ama_ft_must_bo")
+                    _ft_no_rng      = _s3.checkbox("FT not range-limited",value=True,  key="ama_ft_no_rng")
+                    _ft_after_ob    = _s4.checkbox("FT after OB",         value=False, key="ama_ft_after_ob")
+                    _s5, _s6, _s7   = st.columns(3)
+                    _ft_close       = _s5.selectbox("FT must close beyond", [1, 0],
+                                                     format_func=lambda x: "Yes" if x else "No",
+                                                     key="ama_ft_close_beyond")
+                    _ft_color_same  = _s6.checkbox("FT color same as BO", value=False, key="ama_ft_color_same")
+                    _ign_gap        = _s7.checkbox("Ignore open gap",      value=True,  key="ama_ign_gap")
 
                 st.divider()
                 if st.button("Generate AMA Signals", key="ama_generate"):
@@ -922,22 +1099,53 @@ def main():
                             float(_ama_tgt_mult),
                             _selected_types,
                             ob_requires_ft=bool(_ob_ft),
+                            # 01
+                            show_blbo=int(_show_blbo),
+                            show_brbo=int(_show_brbo),
+                            show_outside_bars=int(_show_ob),
+                            strict_ob=int(_strict),
+                            show_cx=int(_inc_cx),
+                            cx_factor=float(_cx_factor),
+                            show_bigbo=int(_inc_bbo),
+                            big_bo_range_factor=float(_bbo_fact),
+                            # 02
+                            big_bo_by_zscore=int(_bbo_zscore),
+                            compare_range2range=int(_cmp_r2r),
+                            compare_body2body=int(_cmp_b2b),
+                            z_length=int(_z_len),
+                            # 03
+                            range_filter=float(_rng_filt),
+                            range_lookback=int(_rng_lb),
+                            do_not_range_limit_ob=int(_no_rng_ob),
+                            # 04
                             bl_signal_ibs=int(_bl_ibs),
                             br_signal_ibs=int(_br_ibs),
                             bl_ft_ibs=int(_bl_ft),
                             br_ft_ibs=int(_br_ft),
-                            range_filter=float(_rng_filt),
-                            range_lookback=int(_rng_lb),
+                            do_not_ibs_filter_ob=int(_no_ibs_ob),
+                            # 05
+                            paint_ft_bar=int(_paint_ft),
+                            ft_color_same_as_bo=int(_ft_color_same),
                             ft_must_close_beyond=int(_ft_close),
-                            show_bigbo=int(_show_bbo),
-                            big_bo_range_factor=float(_bbo_fact),
-                            compare_range2range=int(_cmp_r2r),
-                            show_cx=int(_show_cx),
-                            strict_ob=int(_strict),
-                            show_outside_bars=int(_show_ob),
+                            ft_bar_must_bo=int(_ft_must_bo),
+                            ft_bar_not_range_limited=int(_ft_no_rng),
+                            ft_after_ob=int(_ft_after_ob),
+                            ignore_open_gap=int(_ign_gap),
                         )
+                        # Compute session-relative BarNum (1-based intra-day index).
+                        # bar_analysis.py expects BarNum in 1…81 range, not absolute position.
+                        _bn_bars = _ama_bars.copy()
+                        _bn_bars["_Date"] = pd.to_datetime(_bn_bars["DateTime"]).dt.date
+                        _bn_bars["BarNum"] = _bn_bars.groupby("_Date").cumcount() + 1
+                        _bn_lookup = _bn_bars.set_index("DateTime")["BarNum"]
+                        _ama_sig["BarNum"] = (
+                            pd.to_datetime(_ama_sig["SignalDateTime"])
+                            .map(_bn_lookup)
+                            .fillna(0).astype(int)
+                        )
+
                         st.session_state["ba_signals_ama"] = _ama_sig
-                        st.success(f"Generated {len(_ama_sig):,} AMA signals.")
+                        st.success(f"Generated {len(_ama_sig):,} signals.")
 
                 if st.session_state.get("ba_signals_ama") is not None:
                     _n = len(st.session_state["ba_signals_ama"])
@@ -1019,6 +1227,9 @@ def main():
 
     with tab_erc:
         er_lookahead_tab.show_er_lookahead_tab()
+
+    with tab_legs:
+        leg_labeler_tab.show_labeler_tab()
 
     # Render the status strip now that all tabs have populated session state.
     with status_ph:

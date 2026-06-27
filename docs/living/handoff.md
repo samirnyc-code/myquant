@@ -1,6 +1,6 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** June 25, 2026 (session 42)
+**Last Updated:** June 27, 2026 (session 44)
 **Current Versions:** SIM_v3.9 / GS_v4.5 / SHEET_v3.3 *(S32: Prop Sim overhaul — MC-sized payout buffer, monthly 80/20 payouts, ES/MES margin, never-blow floor de-risk + shock model, richer dashboard; MCBreakout pyramiding (N concurrent/dir) + ratchet-lock fix. S31: ZLO exporter + filters, MCBreakout stop fix + ER filter, ZLO sweeps, Auction feature library + tab (Dalton day types), Prop Sim DD-lock. S30: Prop Sim tab, Extras tab, 1M bars, NT strategy. S29: ESA into WFA, session filters, multi-TF, ER10. S28: ESA v2. S27: ESA Phase A. S24: critical slippage off-tick bugfix.)*
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 **Handoff hygiene (S20):** A competing handoff had grown in the `.claude/.../memory/` auto-memory folder and a new chat read *that* instead of this file. Fixed: added repo `CLAUDE.md` + rewrote `.claude` `MEMORY.md` to point here; deleted the duplicate session-state memories. **There is now ONE handoff: this file.**
@@ -48,6 +48,41 @@ race the same number, the **earlier-merged** note keeps it; the later one takes 
 - **Consecutive-cluster gate** — does requiring N same-dir signals improve quality? (S33 + `dir_streak` 4+ lead from 0001)
 - **Always-In (AID) as a sizer** — negative as a gate (S36); size-with/against-regime untested
 - **Pyramiding (N concurrent same-dir)** — does it beat a single entry? (S32 MCBreakout pyramiding)
+
+---
+
+## ⭐ SESSION 44 — June 27, 2026 — ES Leg Classifier Phase 0 infrastructure
+
+### What was built
+Full Phase 0 implementation of `ES_Leg_Classifier_Research_Spec.md`. Seven new modules:
+
+- **`leg_decomp.py`** — ATR-swing leg decomposition. `bar_labels(bars, threshold, atr_period)` → per-bar leg_id/direction/phase/run_extreme. `leg_table()` → one row per confirmed leg. `decompose()` = convenience wrapper. Default threshold 1.5 ATR. Smoke-tested on ESM6: 5469 bars → 600 legs.
+- **`leg_htf.py`** — 30M causal partial-bar HTF context builder. `build_htf_context(bars_5m)` → 15 columns per bar: htf_k (1–6 phase), htf_direction, htf_leg_id, htf_broke_struct, htf_has_pb, htf_retrace_pct. Strictly causal: only prior closed 30M bars feed HTF leg decomp; the forming bar uses only bars closed ≤ T.
+- **`leg_flow.py`** — Tick-rule order flow from per-day parquets (uses **polars** for memory safety). `build_bar_flow(date_range)` → polars DataFrame. `aggregate_flow_per_leg()` → per-leg delta, buy/sell vol, delta_slope, delta_divergence, effort_vs_result. Polars + scikit-learn installed into .venv.
+- **`leg_features.py`** — Full feature matrix (spec §5.1–5.4). `build_feature_matrix(bars, labels, legs, htf_ctx, flow_per_leg)` → ~37-column per-leg DataFrame. `FEATURE_COLS` registry.
+- **`leg_label_store.py`** — Two separate stores (spec §4.4): `ground_truth_labels.parquet` (hindsight, correctable) and `live_call_log.parquet` (frozen at call time, never altered). `upsert_ground_truth()`, `append_live_call()` (raises if leg_id exists), `compute_edge()` = GT vs live accuracy. `draft_from_decomp()` for bulk UNLABELED seed.
+- **`leg_labeler_tab.py`** — Streamlit labeling UI: candlestick chart with colored leg overlays, leg table with click-to-select, state dropdown, save button, bulk draft import, GT vs live edge summary.
+- **`leg_classifier.py`** — Stage 1 L1 logistic maturity scorer. `train(feature_df, gt_labels, C=0.1)` → `ClassifierResult` with walk-forward Brier/LogLoss/F1. `score()` → P(terminal_pb_leg) per leg. `to_rule_set()` / `rules_to_ninjascript_comment()` for NT8 export.
+
+### Wired into app.py
+New tab: **🦵 Leg Labeler** (last tab).
+
+### Data layer
+- `data/leg_labels/` directory auto-created on first label save.
+- Polars for tick pipeline; pandas for everything else.
+
+### Phase build status (spec)
+- [x] Phase 0 — Infrastructure
+- [ ] Phase 1 — Hand-label ~2 years of per-bar leg states (NEXT human task)
+- [ ] Phase 2 — Separability check (PCA/UMAP before any model)
+- [ ] Phase 3 — Logistic scorer training (needs labels)
+- [ ] Phase 4 — NinjaScript port
+- [ ] Phase 5 — HSMM (if Stage 1 plateaus)
+
+### NEXT
+1. **Start labeling** — load continuous bars in Leg Labeler tab, set ATR threshold (visual tuning), import drafts, assign states to legs. Target: ~500 labeled legs across varied market conditions before running Phase 2 separability check.
+2. **ATR threshold visual tuning** — open Leg Labeler, look at the chart with segments, adjust threshold until segments match Brooks micro-channel intuition. Lock the value before labeling any legs.
+3. **Tick flow pipeline** — run `leg_flow.build_bar_flow()` over the full tick archive (1,032 days) and cache the result. Will take ~minutes with polars.
 
 ---
 
