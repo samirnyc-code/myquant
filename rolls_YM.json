@@ -1,0 +1,122 @@
+{
+  "YMU1": {
+    "roll_date": "2021-06-19",
+    "offset": null
+  },
+  "YMZ1": {
+    "roll_date": "2021-09-10",
+    "offset": null
+  },
+  "YMH2": {
+    "roll_date": "2021-12-10",
+    "offset": null
+  },
+  "YMM2": {
+    "roll_date": "2022-03-11",
+    "offset": null
+  },
+  "YMU2": {
+    "roll_date": "2022-06-10",
+    "offset": null
+  },
+  "YMZ2": {
+    "roll_date": "2022-09-09",
+    "offset": null
+  },
+  "YMH3": {
+    "roll_date": "2022-12-09",
+    "offset": null
+  },
+  "YMM3": {
+    "roll_date": "2023-03-10",
+    "offset": null
+  },
+  "YMU3": {
+    "roll_date": "2023-06-09",
+    "offset": null
+  },
+  "YMZ3": {
+    "roll_date": "2023-09-08",
+    "offset": null
+  },
+  "YMH4": {
+    "roll_date": "2023-12-08",
+    "offset": null
+  },
+  "YMM4": {
+    "roll_date": "2024-03-08",
+    "offset": null
+  },
+  "YMU4": {
+    "roll_date": "2024-06-14",
+    "offset": null
+  },
+  "YMZ4": {
+    "roll_date": "2024-09-13",
+    "offset": null
+  },
+  "YMH5": {
+    "roll_date": "2024-12-13",
+    "offset": null
+  },
+  "YMM5": {
+    "roll_date": "2025-03-14",
+    "offset": null
+  },
+  "YMU5": {
+    "roll_date": "2025-06-13",
+    "offset": null
+  },
+  "YMZ5": {
+    "roll_date": "2025-09-12",
+    "offset": null
+  },
+  "YMH6": {
+    "roll_date": "2025-12-12",
+    "offset": null
+  },
+  "YMM6": {
+    "roll_date": "2026-03-13",
+    "offset": null
+  },
+  "YMU6": {
+    "roll_date": "2026-06-12",
+    "offset": null
+  },
+  "YMZ6": {
+    "roll_date": "2026-09-11",
+    "offset": null
+  },
+  "YMH7": {
+    "roll_date": "2026-12-11",
+    "offset": null
+  },
+  "YMM7": {
+    "roll_date": "2027-03-12",
+    "offset": null
+  },
+  "YMU7": {
+    "roll_date": "2027-06-11",
+    "offset": null
+  },
+  "YMZ7": {
+    "roll_date": "2027-09-10",
+    "offset": null
+  },
+  "YMH8": {
+    "roll_date": "2027-12-10",
+    "offset": null
+  },
+  "YMM8": {
+    "roll_date": "2028-03-10",
+    "offset": null
+  },
+  "YMU8": {
+    "roll_date": "2028-06-09",
+    "offset": null
+  },
+  "YMZ8": {
+    "roll_date": "2028-09-08",
+    "offset": null
+  }
+}

@@ -1,0 +1,122 @@
+{
+  "NQU1": {
+    "roll_date": "2021-06-19",
+    "offset": null
+  },
+  "NQZ1": {
+    "roll_date": "2021-09-10",
+    "offset": null
+  },
+  "NQH2": {
+    "roll_date": "2021-12-10",
+    "offset": null
+  },
+  "NQM2": {
+    "roll_date": "2022-03-11",
+    "offset": null
+  },
+  "NQU2": {
+    "roll_date": "2022-06-10",
+    "offset": null
+  },
+  "NQZ2": {
+    "roll_date": "2022-09-09",
+    "offset": null
+  },
+  "NQH3": {
+    "roll_date": "2022-12-09",
+    "offset": null
+  },
+  "NQM3": {
+    "roll_date": "2023-03-10",
+    "offset": null
+  },
+  "NQU3": {
+    "roll_date": "2023-06-09",
+    "offset": null
+  },
+  "NQZ3": {
+    "roll_date": "2023-09-08",
+    "offset": null
+  },
+  "NQH4": {
+    "roll_date": "2023-12-08",
+    "offset": null
+  },
+  "NQM4": {
+    "roll_date": "2024-03-08",
+    "offset": null
+  },
+  "NQU4": {
+    "roll_date": "2024-06-14",
+    "offset": null
+  },
+  "NQZ4": {
+    "roll_date": "2024-09-13",
+    "offset": null
+  },
+  "NQH5": {
+    "roll_date": "2024-12-13",
+    "offset": null
+  },
+  "NQM5": {
+    "roll_date": "2025-03-14",
+    "offset": null
+  },
+  "NQU5": {
+    "roll_date": "2025-06-13",
+    "offset": null
+  },
+  "NQZ5": {
+    "roll_date": "2025-09-12",
+    "offset": null
+  },
+  "NQH6": {
+    "roll_date": "2025-12-12",
+    "offset": null
+  },
+  "NQM6": {
+    "roll_date": "2026-03-13",
+    "offset": null
+  },
+  "NQU6": {
+    "roll_date": "2026-06-12",
+    "offset": null
+  },
+  "NQZ6": {
+    "roll_date": "2026-09-11",
+    "offset": null
+  },
+  "NQH7": {
+    "roll_date": "2026-12-11",
+    "offset": null
+  },
+  "NQM7": {
+    "roll_date": "2027-03-12",
+    "offset": null
+  },
+  "NQU7": {
+    "roll_date": "2027-06-11",
+    "offset": null
+  },
+  "NQZ7": {
+    "roll_date": "2027-09-10",
+    "offset": null
+  },
+  "NQH8": {
+    "roll_date": "2027-12-10",
+    "offset": null
+  },
+  "NQM8": {
+    "roll_date": "2028-03-10",
+    "offset": null
+  },
+  "NQU8": {
+    "roll_date": "2028-06-09",
+    "offset": null
+  },
+  "NQZ8": {
+    "roll_date": "2028-09-08",
+    "offset": null
+  }
+}

@@ -31,6 +31,16 @@ from data_loader import (
     MASSIVE_CACHE_DIR, apply_data_slot, filter_excluded_dates,
 )
 from validation import build_comparison, get_filters, show_gate_body
+from instruments import (
+    INSTRUMENTS, CATALOGS,
+    load_rolls as _instr_load_rolls,
+    save_rolls as _instr_save_rolls,
+    ensure_rolls_file as _instr_ensure_rolls,
+    get_roll_date as _instr_get_roll_date,
+    get_offset as _instr_get_offset,
+    apply_back_adjustment as _instr_back_adjust,
+    InstContract,
+)
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -497,6 +507,231 @@ def _show_comparison(comp: pd.DataFrame, label_a: str, label_b: str):
         st.dataframe(display, use_container_width=True, hide_index=True)
 
 
+# ── Multi-instrument helpers ───────────────────────────────────────────────────
+
+def _instr_gz_cache_dir(key: str) -> Path:
+    return _DATA_DIR / INSTRUMENTS[key].gz_subdir
+
+
+def _instr_continuous_path(key: str) -> Path:
+    return _BARS_DIR / f"_continuous_{key}.parquet"
+
+
+def _instr_s3_key(key: str, d: date) -> str:
+    spec = INSTRUMENTS[key]
+    return f"{spec.s3_prefix}/{d.year}/{d.month:02d}/{d.isoformat()}.csv.gz"
+
+
+def _instr_download_day(s3, key: str, d: date) -> Path | None:
+    """Download one day's gz from the exchange S3 bucket. Returns local path or None."""
+    cache_dir = _instr_gz_cache_dir(key)
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    local = cache_dir / f"{d.isoformat()}.csv.gz"
+    if local.exists():
+        return local
+    try:
+        s3.download_file(_S3_BUCKET, _instr_s3_key(key, d), str(local))
+        return local
+    except Exception as e:
+        if any(x in str(e) for x in ("404", "NoSuchKey", "403", "Forbidden")):
+            return None
+        raise
+
+
+def _instr_load_gz(local: Path, key: str, ticker: str) -> pd.DataFrame:
+    """Load a gz and filter for the contract, translating ticker to massive_root format."""
+    spec = INSTRUMENTS[key]
+    massive_ticker = spec.massive_root + ticker[len(spec.root):]  # "YM"→"0YM"+"U6"="0YMU6"
+    with gzip.open(local, "rb") as f:
+        raw = f.read()
+    df = pd.read_csv(io.BytesIO(raw))
+    return df[df["ticker"] == massive_ticker].copy()
+
+
+def _instr_build_contract_bars(key: str, contract: InstContract) -> bool:
+    """
+    Build 5M bar parquet for one contract from the gz cache.
+    For NQ, reads from the existing CME flatfiles_cache (no download needed).
+    For YM/GC/CL, downloads missing days from the exchange S3 bucket first.
+    Returns True if any bars were written.
+    """
+    cache_dir = _instr_gz_cache_dir(key)
+    from_date = date.fromisoformat(contract.active_from)
+    to_date   = min(date.fromisoformat(contract.last_trade), date.today())
+
+    s3 = _make_s3() if key != "NQ" else None
+
+    frames = []
+    d = from_date
+    while d <= to_date:
+        local = cache_dir / f"{d.isoformat()}.csv.gz"
+        if not local.exists() and s3 is not None:
+            local = _instr_download_day(s3, key, d) or local
+        if local.exists():
+            day_df = _instr_load_gz(local, key, contract.ticker)
+            if not day_df.empty:
+                bars = _ticks_to_5m_bars(day_df)
+                if not bars.empty:
+                    frames.append(bars)
+        d += timedelta(days=1)
+
+    if not frames:
+        return False
+
+    all_bars = pd.concat(frames, ignore_index=True)
+    all_bars.sort_values("DateTime", inplace=True, ignore_index=True)
+    all_bars.to_parquet(_bars_path(contract.ticker), index=False)
+    return True
+
+
+def build_instr_continuous(key: str, rolls: dict, status_placeholder=None) -> pd.DataFrame:
+    """
+    Build a back-adjusted continuous series for one instrument.
+    Reads per-contract bar parquets, applies Panama method, writes _continuous_{key}.parquet.
+    """
+    bars_by_ticker: dict = {}
+    for c in CATALOGS[key]:
+        p = _bars_path(c.ticker)
+        if p.exists():
+            bars_by_ticker[c.ticker] = pd.read_parquet(p)
+
+    if not bars_by_ticker:
+        if status_placeholder:
+            status_placeholder.warning(f"No bar files found for {key}")
+        return pd.DataFrame()
+
+    continuous = _instr_back_adjust(key, bars_by_ticker, rolls)
+    if continuous.empty:
+        return continuous
+
+    continuous.sort_values("DateTime", inplace=True, ignore_index=True)
+    continuous.to_parquet(_instr_continuous_path(key), index=False)
+    return continuous
+
+
+def _show_instrument_section(key: str) -> None:
+    """Generic Streamlit section for one instrument: roll schedule + build pipeline."""
+    spec    = INSTRUMENTS[key]
+    _instr_ensure_rolls(key)
+    rolls   = _instr_load_rolls(key)
+    catalog = CATALOGS[key]
+
+    # ── Roll schedule ─────────────────────────────────────────────────────────
+    with st.expander(f"📋 Roll Schedule — {spec.name}", expanded=False):
+        st.caption(
+            f"Exchange: **{spec.exchange.upper()}** · "
+            f"Delivery months: {list(spec.months)}  \n"
+            "Edit **Roll Date** and **Offset** to match NT's Instrument Manager, then save."
+        )
+        rows = []
+        for c in catalog:
+            rd  = _instr_get_roll_date(c.ticker, rolls, key)
+            off = _instr_get_offset(c.ticker, rolls)
+            rows.append({
+                "Contract":     c.ticker,
+                "Roll Date":    rd,
+                "Offset (pts)": off,
+                "Bars":         "✅" if _bars_path(c.ticker).exists() else "⬜",
+            })
+        edited = st.data_editor(
+            pd.DataFrame(rows),
+            column_config={
+                "Contract":     st.column_config.TextColumn(disabled=True),
+                "Roll Date":    st.column_config.TextColumn("Roll Date (YYYY-MM-DD)"),
+                "Offset (pts)": st.column_config.NumberColumn("Offset (pts)", format="%.4f"),
+                "Bars":         st.column_config.TextColumn(disabled=True, width="small"),
+            },
+            hide_index=True,
+            use_container_width=True,
+            num_rows="fixed",
+            key=f"rolls_editor_{key}",
+        )
+        if st.button(f"💾 Save {key} Rolls"):
+            new_rolls = {}
+            for _, row in edited.iterrows():
+                off_val = row["Offset (pts)"]
+                new_rolls[row["Contract"]] = {
+                    "roll_date": str(row["Roll Date"]).strip(),
+                    "offset":    float(off_val) if pd.notna(off_val) and off_val != "" else None,
+                }
+            _instr_save_rolls(key, new_rolls)
+            st.success(f"{key} roll schedule saved.")
+            st.rerun()
+
+    # ── Build bars + continuous ───────────────────────────────────────────────
+    rolls_fresh     = _instr_load_rolls(key)
+    available_bars  = [c for c in catalog if _bars_path(c.ticker).exists()]
+    missing_offsets = [
+        c.ticker for c in catalog[1:]
+        if _bars_path(c.ticker).exists() and _instr_get_offset(c.ticker, rolls_fresh) is None
+    ]
+
+    cont_path = _instr_continuous_path(key)
+    cont_info = ""
+    if cont_path.exists():
+        try:
+            _ct = pd.read_parquet(cont_path)
+            _dt = _ct["DateTime"].dt.date
+            cont_info = f" · {len(_ct):,} bars · {_dt.min()} → {_dt.max()}"
+        except Exception:
+            pass
+
+    with st.expander(f"📊 Build Continuous — {spec.name}{cont_info}", expanded=False):
+        col_a, col_b = st.columns(2)
+
+        dl_label = (
+            "🔨 Build Bars from CME Cache"
+            if key == "NQ"
+            else f"📥 Download + Build Bars ({spec.exchange.upper()})"
+        )
+        if col_a.button(dl_label, key=f"build_bars_{key}"):
+            status = st.empty()
+            built = 0
+            for c in catalog:
+                status.write(f"  {c.ticker}…")
+                if _instr_build_contract_bars(key, c):
+                    built += 1
+            status.empty()
+            st.success(f"Built bars: {built}/{len(catalog)} contracts")
+            st.rerun()
+
+        if missing_offsets:
+            col_b.warning(
+                f"Missing offsets: **{', '.join(missing_offsets[:5])}"
+                f"{'…' if len(missing_offsets) > 5 else ''}** — fill in Roll Schedule."
+            )
+        elif len(available_bars) == 0:
+            col_b.info("Build bar parquets first (button above).")
+        else:
+            if col_b.button(
+                f"🔗 Build {key} Continuous",
+                disabled=bool(missing_offsets),
+                key=f"build_cont_{key}",
+            ):
+                with st.spinner(f"Building {key} continuous…"):
+                    cont_df = build_instr_continuous(key, rolls_fresh)
+                if not cont_df.empty:
+                    st.session_state[f"mas_cont_{key}"] = cont_df
+                    _d = cont_df["DateTime"].dt.date
+                    st.success(
+                        f"✅ {key} continuous: **{len(cont_df):,} bars** · "
+                        f"{_d.min()} → {_d.max()}"
+                    )
+                    st.rerun()
+                else:
+                    st.error(f"No data found for {key}")
+
+        cont_session = st.session_state.get(f"mas_cont_{key}")
+        if cont_session is not None and not cont_session.empty:
+            _d = cont_session["DateTime"].dt.date
+            st.success(
+                f"**{key}** continuous ready: **{len(cont_session):,} bars** · "
+                f"{_d.min()} → {_d.max()} · {_d.nunique()} days"
+            )
+        elif cont_path.exists():
+            st.info(f"Persisted on disk{cont_info} — click 'Build {key} Continuous' to reload.")
+
+
 # ── Main tab ──────────────────────────────────────────────────────────────────
 
 def show_massive_tab():
@@ -538,9 +773,17 @@ def show_massive_tab():
                 st.session_state["nt_cont_bars"] = _df
                 st.session_state["nt_cont_key"]  = f"{_info['name']}_{_info['size']}"
 
+    for _ik in ("NQ", "YM", "GC", "CL"):
+        if f"mas_cont_{_ik}" not in st.session_state:
+            _cp = _instr_continuous_path(_ik)
+            if _cp.exists():
+                st.session_state[f"mas_cont_{_ik}"] = pd.read_parquet(_cp)
+
     st.markdown("### Massive — ES Contract Manager")
 
-    mgr_tab, quick_tab = st.tabs(["📋 Contracts & Rolls", "⚡ Quick Compare (API)"])
+    mgr_tab, instr_tab, quick_tab = st.tabs(
+        ["📋 ES Contracts & Rolls", "🔧 Other Instruments", "⚡ Quick Compare (API)"]
+    )
 
     # ═════════════════════════════════════════════════════════════════════════
     with mgr_tab:
@@ -834,6 +1077,23 @@ def show_massive_tab():
                           help="Of bars present in both, % where O/H/L/C all match exactly.")
                 v4.metric("Extra Resampled Bars", f"{val['extra_bars']:,}",
                           help="Bars from resampling ticks that have no corresponding Massive 5M bar.")
+
+    # ═════════════════════════════════════════════════════════════════════════
+    with instr_tab:
+        st.markdown("### Other Instruments — NQ · YM · GC · CL")
+        st.caption(
+            "NQ reads from the existing CME flatfiles cache (no new downloads needed). "
+            "YM, GC, and CL will download from CBOT/COMEX/NYMEX on first use."
+        )
+        nq_tab, ym_tab, gc_tab, cl_tab = st.tabs(["NQ — Nasdaq", "YM — Dow", "GC — Gold", "CL — Crude"])
+        with nq_tab:
+            _show_instrument_section("NQ")
+        with ym_tab:
+            _show_instrument_section("YM")
+        with gc_tab:
+            _show_instrument_section("GC")
+        with cl_tab:
+            _show_instrument_section("CL")
 
     # ═════════════════════════════════════════════════════════════════════════
     with quick_tab:

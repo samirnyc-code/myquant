@@ -1,6 +1,6 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** June 27, 2026 (session 45)
+**Last Updated:** June 30, 2026 (session 47)
 **Current Versions:** SIM_v3.9 / GS_v4.5 / SHEET_v3.3 *(S32: Prop Sim overhaul — MC-sized payout buffer, monthly 80/20 payouts, ES/MES margin, never-blow floor de-risk + shock model, richer dashboard; MCBreakout pyramiding (N concurrent/dir) + ratchet-lock fix. S31: ZLO exporter + filters, MCBreakout stop fix + ER filter, ZLO sweeps, Auction feature library + tab (Dalton day types), Prop Sim DD-lock. S30: Prop Sim tab, Extras tab, 1M bars, NT strategy. S29: ESA into WFA, session filters, multi-TF, ER10. S28: ESA v2. S27: ESA Phase A. S24: critical slippage off-tick bugfix.)*
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 **Handoff hygiene (S20):** A competing handoff had grown in the `.claude/.../memory/` auto-memory folder and a new chat read *that* instead of this file. Fixed: added repo `CLAUDE.md` + rewrote `.claude` `MEMORY.md` to point here; deleted the duplicate session-state memories. **There is now ONE handoff: this file.**
@@ -48,6 +48,59 @@ race the same number, the **earlier-merged** note keeps it; the later one takes 
 - **Consecutive-cluster gate** — does requiring N same-dir signals improve quality? (S33 + `dir_streak` 4+ lead from 0001)
 - **Always-In (AID) as a sizer** — negative as a gate (S36); size-with/against-regime untested
 - **Pyramiding (N concurrent same-dir)** — does it beat a single entry? (S32 MCBreakout pyramiding)
+
+---
+
+## ⭐ SESSION 47 — June 30, 2026 — AMA bar painting fixed (NT8 exact match)
+
+### What was done
+- **Fixed BigBO detection gate in `ama_setups.py`**: NT8's entire BigBO block is inside `if (_ShowBigBO > 0)`. Python was running it unconditionally, always emitting ±5 (pink) even with ShowBigBO=0. Fixed: `if cfg.show_bigbo > 0 and sig != 0 and not ob:`. When ShowBigBO=0, qualifying bars stay as ±1 (regular BO color), exactly as NT8.
+- **Restructured AMA settings UI in `app.py`** to match NT8 §01–05 exactly:
+  - **Signal types** now only has `BO+FT` and `OB+FT` (what to TRADE)
+  - **§01. BO, OB, CX** now contains all 8 NT8 params in exact order: `_ShowBLBO`, `_ShowBRBO`, `_ShowBigBO` (default=0), `_BigBORangeFactor`, `_ShowOutsideBars`, `_StrictOB`, `_ShowCX` (default=0), `_CXfactor`
+  - `_ShowBigBO` and `_ShowCX` removed from "Signal types", added to §01 with NT8 defaults (0)
+  - `_run_ama()` call updated: now reads `show_cx` and `show_bigbo` from §01 vars (`_show_cx`, `_show_bbo`), not from old signal-types vars
+- **Trade price paths thicker**: yellow diagonal price path width 1.0→2.5, stop/target lines 1→1.5
+- **Verified** with exact NT8 settings (ShowBigBO=0, ShowCX=0, RangeFilter=0): 32 correct bars on June 16, 2026. Only BO (blue/dark red), FT (cyan/crimson), OB (green/orange) — no pink, no purple.
+
+### What still needs visual verification
+User will verify the app chart against NT8 June 16 reference. If any bar color still doesn't match, check `ama_setups.detect()` signal logic.
+
+### Files changed this session
+- MODIFIED: `ama_setups.py` (BigBO gate fix)
+- MODIFIED: `app.py` (UI restructure §01, price path widths, `_run_ama` call fix)
+
+### NEXT
+1. **Visual verify** — user to load June 16, 2026 with exact NT8 settings and confirm bars match.
+2. **Leg Labeler Phase 1** — hand-label ~500 legs.
+3. **Recreate lost CS files** — ZerolagExporter.cs, AlwaysIn.cs, QSSignalOverlay.cs, MCBreakout.cs.
+4. **Commit** contracts.py + rolls.json from S46 (still uncommitted).
+
+---
+
+## ⭐ SESSION 46 — June 30, 2026 — ESU6 contract roll + data current through June 29
+
+### What was done
+- **Added ESU6 to catalog** — `contracts.py` quarters list extended to `(2026, 9)`. ESU6 active_from = June 12, 2026 (day after ESM6 roll_dt of June 11). Last trade = Sep 18, 2026.
+- **rolls.json updated** — ESU6 entry: `roll_date: "2026-06-12"`, `offset: 61.25` (from NT8 Instrument Manager screenshot).
+- **Downloaded missing flatfiles** — 6 new gz files from Massive: June 22, 23, 24, 25, 26, 29 (June 20-21 weekend; June 27 Sat; June 30 not yet available).
+- **Built 11 continuous tick parquets** — June 12, 15, 16, 17, 18, 22, 23, 24, 25, 26, 29 in `data/ticks_continuous/`. June 19 = Juneteenth (market holiday, no RTH data). June 28 Sunday globex filtered out.
+- **Built ESU6.parquet** — 933 bars, `data/bars/ESU6.parquet`, June 12–29.
+- **Rebuilt `_continuous.parquet`** — all 21 contracts (ESU1→ESU6), 102,563 bars, 2021-06-24 → 2026-06-29. Last contract: ESU6. Also rebuilt `_continuous_15m.parquet` (34,193 bars).
+- Roll boundary looks clean: ESM6 ends June 11 15:10 (back-adjusted close ~7468), ESU6 opens June 12 08:30 at 7486.
+
+### Files changed this session
+- MODIFIED: `contracts.py` (added `(2026, 9)` to quarters list)
+- MODIFIED: `rolls.json` (added ESU6 entry)
+- BUILT (binary, not committed): `data/bars/ESU6.parquet`, `data/bars/_continuous.parquet`, `data/bars/_continuous_15m.parquet`
+- BUILT (binary, not committed): 11 new parquets in `data/ticks_continuous/`
+- DOWNLOADED (cache, not committed): 6 new gz files in `data/flatfiles_cache/`
+
+### NEXT
+1. **Commit** — `contracts.py` and `rolls.json` changes.
+2. **Fix AMA bar painting** (S45 carry-over) — colored bars still don't match Ali's NT8 chart. Debug with June 16 as reference date. Check sig_dt vs bo_start alignment and DateTime (CT vs Berlin).
+3. **Leg Labeler Phase 1** — hand-label ~500 legs.
+4. **Recreate lost CS files** — ZerolagExporter.cs, AlwaysIn.cs, QSSignalOverlay.cs, MCBreakout.cs.
 
 ---
 

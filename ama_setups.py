@@ -344,10 +344,9 @@ def detect(bars: pd.DataFrame, config: AMAConfig | None = None) -> pd.DataFrame:
                     sig = 0; ft = 0
 
         # ── Big BO ────────────────────────────────────────────────────────────
-        # Detection always runs — large bars become sig=±5 (consumed).
-        # show_bigbo controls whether ±5 is emitted in to_signal_rows(); when
-        # off, these bars simply generate no signal at all (climax suppression).
-        if sig != 0 and not ob:
+        # NT8: entire block is inside if (_ShowBigBO > 0). When off, the bar
+        # stays as its original ±1 BO signal (it is NOT consumed/suppressed).
+        if cfg.show_bigbo > 0 and sig != 0 and not ob:
             z_big = 0.0
             if cfg.big_bo_by_zscore > 0:
                 if cfg.compare_range2range > 0 and cfg.compare_body2body <= 0:

@@ -100,7 +100,8 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
                      excl_first_n: int = 0, excl_last_min: int = 0,
                      contract: str = "ES",
                      signals: "pd.DataFrame | None" = None,
-                     show_trades: bool = True) -> go.Figure:
+                     show_trades: bool = True,
+                     ama_detected: "pd.DataFrame | None" = None) -> go.Figure:
     # NT8 neutral: white body + black border/wicks (bull), solid black (bear)
     candle = go.Candlestick(
         x=df["DateTime"],
@@ -184,7 +185,10 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
                 yanchor="top",
             )
 
-    if signals is not None and not signals.empty:
+    _has_sigs = signals is not None and not signals.empty
+    _has_ama  = ama_detected is not None and not ama_detected.empty
+
+    if _has_sigs or _has_ama:
         bar_hi = df.set_index("DateTime")["High"]
         bar_lo = df.set_index("DateTime")["Low"]
         bar_cl = df.set_index("DateTime")["Close"]
@@ -205,7 +209,42 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
         def _paint(fill: str, line: str, dt) -> None:
             _bar_paints.setdefault((fill, line), set()).add(pd.Timestamp(dt))
 
-        for _, s in signals.iterrows():
+        # --- AMA bar painting from raw detected — exact NT8 match ---
+        # Paint every bar whose Signal != 0, applying FT override exactly as NT8
+        # (NT8 line 1385: FT color is suppressed when abs(Signal) == 5 BigBO).
+        if _has_ama:
+            for _, _det in ama_detected.iterrows():
+                _sig = int(_det["Signal"])
+                _ft  = int(_det["FTflag"])
+                if _sig == 0:
+                    continue
+                _dt   = pd.to_datetime(_det["DateTime"])
+                _long = _sig > 0
+                _abs  = abs(_sig)
+                _ft_c = "#00FFFF" if _long else "#DC143C"   # Cyan / Crimson
+                _bo_c = "#1E90FF" if _long else "#8B0000"   # DodgerBlue / DarkRed
+                _ob_c = "#008000" if _long else "#FF8C00"   # Green / DarkOrange
+                if _ft != 0 and _abs != 5:
+                    # FT bar (not BigBO): Cyan / Crimson
+                    _paint(_ft_c, _ft_c, _dt)
+                elif _abs == 5:
+                    # BigBO: Plum fill + direction-colored outline
+                    _paint("#DDA0DD", _bo_c, _dt)
+                elif _abs == 4:
+                    # Doji OB: Magenta
+                    _paint("#FF00FF", "#FF00FF", _dt)
+                elif _abs == 3:
+                    # OB: Green (bull) / DarkOrange (bear)
+                    _paint(_ob_c, _ob_c, _dt)
+                elif _abs == 2:
+                    # CX: DarkOrchid fill + direction-colored outline
+                    _paint("#9932CC", _bo_c, _dt)
+                else:
+                    # BO (abs == 1): DodgerBlue / DarkRed
+                    _paint(_bo_c, _bo_c, _dt)
+
+        if _has_sigs:
+          for _, s in signals.iterrows():
             sig_dt      = pd.to_datetime(s["SignalDateTime"])
             bo_start    = sig_dt - pd.Timedelta(minutes=5)
             setup_end   = sig_dt + pd.Timedelta(minutes=5)
@@ -219,33 +258,6 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
             tgt_px      = (s["SignalPrice"] + s["TargetPoints"] if is_long
                            else s["SignalPrice"] - s["TargetPoints"])
             target_mode = s.get("TargetMode", "BarRange")
-
-            # Paint bars exactly as Ali's paintbar — fill + direction-aware outline
-            _long_ft  = "#00FFFF"; _bear_ft  = "#DC143C"   # Cyan / Crimson
-            _long_bo  = "#1E90FF"; _bear_bo  = "#8B0000"   # DodgerBlue / DarkRed
-            _long_ob  = "#008000"; _bear_ob  = "#FF8C00"   # Green / DarkOrange
-            _ft_c  = _long_ft  if is_long else _bear_ft
-            _bo_c  = _long_bo  if is_long else _bear_bo
-            _ob_c  = _long_ob  if is_long else _bear_ob
-
-            if stype == "CX":
-                # CX bar: DarkOrchid fill + direction-color lining; entry bar: FT color
-                _paint("#9932CC", _bo_c, sig_dt)
-                _paint(_ft_c, _ft_c, entry_dt)
-            elif stype == "BigBO":
-                # BigBO bar: Plum fill + direction-color lining; entry bar: FT color
-                _paint("#DDA0DD", _bo_c, sig_dt)
-                _paint(_ft_c, _ft_c, entry_dt)
-            elif stype in ("OB", "OB_Doji"):
-                _paint(_ob_c, _ob_c, sig_dt)
-            elif stype == "BO+FT":
-                _paint(_ft_c, _ft_c, sig_dt)     # FT bar: Cyan/Crimson
-                _paint(_bo_c, _bo_c, bo_start)   # BO bar: DodgerBlue/DarkRed
-            elif stype == "OB+FT":
-                _paint(_ft_c, _ft_c, sig_dt)     # FT bar: Cyan/Crimson
-                _paint(_ob_c, _ob_c, bo_start)   # OB bar: Green/DarkOrange
-            elif stype == "BO":
-                _paint(_bo_c, _bo_c, sig_dt)
 
             # Hover data (used in the colored candlestick customdata)
             ft_hi  = bar_hi.get(sig_dt, float("nan"))
@@ -323,22 +335,22 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
             fig.add_shape(type="line",
                 x0=bo_start, x1=exit_dt,
                 y0=stop_px, y1=stop_px,
-                line=dict(color="#DC143C", width=1, dash="dot"),
+                line=dict(color="#DC143C", width=1.5, dash="dot"),
                 opacity=0.7, **row_kw)
 
             # Target line (cyan): BO bar → exit bar
             fig.add_shape(type="line",
                 x0=bo_start, x1=exit_dt,
                 y0=tgt_px, y1=tgt_px,
-                line=dict(color="#00FFFF", width=1, dash="dot"),
+                line=dict(color="#00FFFF", width=1.5, dash="dot"),
                 opacity=0.7, **row_kw)
 
             # Price path: direct dotted line entry → exit (yellow)
             fig.add_shape(type="line",
                 x0=entry_dt, x1=exit_dt,
                 y0=entry_px, y1=exit_px,
-                line=dict(color="#FFD600", width=1.0, dash="dot"),
-                opacity=0.8, **row_kw)
+                line=dict(color="#FFD600", width=2.5, dash="dot"),
+                opacity=0.9, **row_kw)
 
             # Setup range lines — single bar for CX/BigBO, two bars for BO+FT
             _sb = sig_dt if (is_cx or is_bigbo) else bo_start
@@ -435,25 +447,40 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
                 showlegend=False, name="",
             ), **row_kw)
 
-        # Legend — colored squares matching bar paint colors
-        _seen_types  = {r["SignalType"] for _, r in signals.iterrows()}
-        _has_bo_long = any(r["Direction"] == "Long"  and r["SignalType"] in ("BO", "BO+FT") for _, r in signals.iterrows())
-        _has_bo_bear = any(r["Direction"] == "Short" and r["SignalType"] in ("BO", "BO+FT") for _, r in signals.iterrows())
-        _has_ft_long = any(r["Direction"] == "Long"  and r["SignalType"] in ("BO+FT", "OB+FT", "CX", "BigBO") for _, r in signals.iterrows())
-        _has_ft_bear = any(r["Direction"] == "Short" and r["SignalType"] in ("BO+FT", "OB+FT", "CX", "BigBO") for _, r in signals.iterrows())
-        _has_ob_long = any(r["Direction"] == "Long"  and r["SignalType"] in ("OB", "OB_Doji", "OB+FT") for _, r in signals.iterrows())
-        _has_ob_bear = any(r["Direction"] == "Short" and r["SignalType"] in ("OB", "OB_Doji", "OB+FT") for _, r in signals.iterrows())
-        _has_cx      = "CX"    in _seen_types
-        _has_bigbo   = "BigBO" in _seen_types
+        # Legend — derive from ama_detected when available (exact NT8 paint match),
+        # fall back to signals for non-AMA overlays.
+        if _has_ama:
+            _sigs_a = ama_detected["Signal"].to_numpy(int)
+            _ft_a   = ama_detected["FTflag"].to_numpy(int)
+            _lbo = bool((_sigs_a == 1).any())
+            _bbo = bool((_sigs_a == -1).any())
+            _lft = bool(((_ft_a == 1)  & (_sigs_a != 5)).any())
+            _bft = bool(((_ft_a == -1) & (_sigs_a != -5)).any())
+            _lob = bool((_sigs_a == 3).any())
+            _bob = bool((_sigs_a == -3).any())
+            _cx  = bool((abs(_sigs_a) == 2).any())
+            _bbo5 = bool((abs(_sigs_a) == 5).any())
+        elif _has_sigs:
+            _seen_types = {r["SignalType"] for _, r in signals.iterrows()}
+            _lbo  = any(r["Direction"] == "Long"  and r["SignalType"] in ("BO", "BO+FT") for _, r in signals.iterrows())
+            _bbo  = any(r["Direction"] == "Short" and r["SignalType"] in ("BO", "BO+FT") for _, r in signals.iterrows())
+            _lft  = any(r["Direction"] == "Long"  and r["SignalType"] in ("BO+FT", "OB+FT", "CX", "BigBO") for _, r in signals.iterrows())
+            _bft  = any(r["Direction"] == "Short" and r["SignalType"] in ("BO+FT", "OB+FT", "CX", "BigBO") for _, r in signals.iterrows())
+            _lob  = any(r["Direction"] == "Long"  and r["SignalType"] in ("OB", "OB_Doji", "OB+FT") for _, r in signals.iterrows())
+            _bob  = any(r["Direction"] == "Short" and r["SignalType"] in ("OB", "OB_Doji", "OB+FT") for _, r in signals.iterrows())
+            _cx   = "CX"    in _seen_types
+            _bbo5 = "BigBO" in _seen_types
+        else:
+            _lbo = _bbo = _lft = _bft = _lob = _bob = _cx = _bbo5 = False
         _legend_defs = [
-            ("BO long",  "square", "#1E90FF", _has_bo_long),
-            ("BO bear",  "square", "#8B0000", _has_bo_bear),
-            ("FT long",  "square", "#00FFFF", _has_ft_long),
-            ("FT bear",  "square", "#DC143C", _has_ft_bear),
-            ("OB long",  "square", "#008000", _has_ob_long),
-            ("OB bear",  "square", "#FF8C00", _has_ob_bear),
-            ("CX",       "square", "#9932CC", _has_cx),
-            ("BigBO",    "square", "#DDA0DD", _has_bigbo),
+            ("BO long",  "square", "#1E90FF", _lbo),
+            ("BO bear",  "square", "#8B0000", _bbo),
+            ("FT long",  "square", "#00FFFF", _lft),
+            ("FT bear",  "square", "#DC143C", _bft),
+            ("OB long",  "square", "#008000", _lob),
+            ("OB bear",  "square", "#FF8C00", _bob),
+            ("CX",       "square", "#9932CC", _cx),
+            ("BigBO",    "square", "#DDA0DD", _bbo5),
         ]
         for leg_name, leg_sym, leg_col, _show in _legend_defs:
             if not _show:
@@ -476,44 +503,45 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
             ),
         )
 
-        # Combined info + stats box — top left, stacked
-        s0   = signals.iloc[0]
-        tm   = s0.get("TargetMode", "BarRange")
-        tmul = float(s0.get("TargetMult", 1.0))
-        sm   = s0.get("StopMode",   "BarExtreme")
-        soff = s0.get("StopOffset", 1)
-        lime = "#FFD700"
+        # Combined info + stats box — only shown when tradeable signals are present
+        if _has_sigs:
+            s0   = signals.iloc[0]
+            tm   = s0.get("TargetMode", "BarRange")
+            tmul = float(s0.get("TargetMult", 1.0))
+            sm   = s0.get("StopMode",   "BarExtreme")
+            soff = s0.get("StopOffset", 1)
+            lime = "#FFD700"
 
-        def _fmt(pts: float, pnl: float) -> str:
-            p = f"+{pts:.2f}" if pts >= 0 else f"{pts:.2f}"
-            d = f"+${pnl:,.0f}" if pnl >= 0 else f"-${abs(pnl):,.0f}"
-            return f"{p}pts  {d}"
+            def _fmt(pts: float, pnl: float) -> str:
+                p = f"+{pts:.2f}" if pts >= 0 else f"{pts:.2f}"
+                d = f"+${pnl:,.0f}" if pnl >= 0 else f"-${abs(pnl):,.0f}"
+                return f"{p}pts  {d}"
 
-        box_lines = [f"Tgt: {tm} ×{tmul:.2f}  |  Stop: {sm} +{int(soff)}t"]
-        for stype, st in sorted(type_stats.items()):
-            if st["w"] + st["l"] == 0:
-                continue
-            i1r_tag = f"  {st['i1r']}I1R" if st.get("i1r", 0) else ""
-            box_lines.append(f"{stype}  {st['w']}W-{st['l']}L  {_fmt(st['pts'], st['pts']*50)}{i1r_tag}")
-        net_pnl = net_pts * 50
-        box_lines.append(f"Total  {wins}W-{losses}L  {_fmt(net_pts, net_pnl)}")
-        total_traded = wins + losses
-        if i1r_total and total_traded:
-            pct = i1r_total / total_traded * 100
-            box_lines.append(f"I1R: {i1r_total}/{total_traded} ({pct:.0f}%)")
+            box_lines = [f"Tgt: {tm} ×{tmul:.2f}  |  Stop: {sm} +{int(soff)}t"]
+            for stype, st in sorted(type_stats.items()):
+                if st["w"] + st["l"] == 0:
+                    continue
+                i1r_tag = f"  {st['i1r']}I1R" if st.get("i1r", 0) else ""
+                box_lines.append(f"{stype}  {st['w']}W-{st['l']}L  {_fmt(st['pts'], st['pts']*50)}{i1r_tag}")
+            net_pnl = net_pts * 50
+            box_lines.append(f"Total  {wins}W-{losses}L  {_fmt(net_pts, net_pnl)}")
+            total_traded = wins + losses
+            if i1r_total and total_traded:
+                pct = i1r_total / total_traded * 100
+                box_lines.append(f"I1R: {i1r_total}/{total_traded} ({pct:.0f}%)")
 
-        fig.add_annotation(
-            x=0.99, y=0.99,
-            xref="paper", yref="paper",
-            text="<br> <br>".join(box_lines),
-            showarrow=False,
-            bgcolor="rgba(15,15,15,0.75)",
-            borderwidth=0,
-            font=dict(size=11, color=lime, family="monospace"),
-            align="left",
-            xanchor="right",
-            yanchor="top",
-        )
+            fig.add_annotation(
+                x=0.99, y=0.99,
+                xref="paper", yref="paper",
+                text="<br> <br>".join(box_lines),
+                showarrow=False,
+                bgcolor="rgba(15,15,15,0.75)",
+                borderwidth=0,
+                font=dict(size=11, color=lime, family="monospace"),
+                align="left",
+                xanchor="right",
+                yanchor="top",
+            )
 
     return fig
 
@@ -591,6 +619,15 @@ def show_bar_viewer(sc_file: str = "", contract: str = "ES"):
                 _day_signals.append(_day)
     _overlay = pd.concat(_day_signals, ignore_index=True) if _day_signals else None
 
+    # AMA raw detected for bar painting (exact NT8 match)
+    _ama_det_day = None
+    _ama_det_full = st.session_state.get("ba_ama_detected")
+    if _ama_det_full is not None:
+        _det_mask = pd.to_datetime(_ama_det_full["DateTime"]).dt.date == selected_date
+        _ama_det_day = _ama_det_full[_det_mask].reset_index(drop=True)
+        if _ama_det_day.empty:
+            _ama_det_day = None
+
     st.plotly_chart(
         make_candlestick(day, selected_date.strftime("%B %d, %Y"),
                          show_bar_nums=show_bar_nums,
@@ -598,7 +635,8 @@ def show_bar_viewer(sc_file: str = "", contract: str = "ES"):
                          excl_first_n=excl_first_n, excl_last_min=excl_last_min,
                          contract=contract,
                          signals=_overlay,
-                         show_trades=show_trades),
+                         show_trades=show_trades,
+                         ama_detected=_ama_det_day),
         use_container_width=True,
     )
 
@@ -808,7 +846,7 @@ def _run_ama(
     # Join ZScore from detect() output so hover can show it
     z_lookup = detected.set_index("DateTime")["ZScore"]
     signals["ZScore"] = pd.to_datetime(signals["SignalDateTime"]).map(z_lookup).round(2)
-    return signals
+    return signals, detected
 
 
 def _render_status_strip():
@@ -996,13 +1034,11 @@ def main():
             if _ama_bars is None:
                 st.info("Load bar data first (Data tab or Massive tab).")
             else:
-                # ── Signal types ──────────────────────────────────────────────
+                # ── Signal types (what to TRADE) ──────────────────────────────
                 st.markdown("**Signal types**")
-                _tc1, _tc2, _tc3, _tc4 = st.columns(4)
-                _inc_boft = _tc1.checkbox("BO+FT",  value=True,  key="ama_inc_boft")
-                _inc_ob   = _tc2.checkbox("OB+FT",  value=True,  key="ama_inc_ob")
-                _inc_cx   = _tc3.checkbox("CX",     value=False, key="ama_inc_cx")
-                _inc_bbo  = _tc4.checkbox("BigBO",  value=False, key="ama_inc_bigbo")
+                _tc1, _tc2 = st.columns(2)
+                _inc_boft = _tc1.checkbox("BO+FT", value=True, key="ama_inc_boft")
+                _inc_ob   = _tc2.checkbox("OB+FT", value=True, key="ama_inc_ob")
                 _selected_types = ",".join(t for t, on in [
                     ("BO", _inc_boft), ("OB", _inc_ob),
                 ] if on)
@@ -1019,23 +1055,26 @@ def main():
                                                    max_value=5.0, value=1.0, step=0.1,
                                                    format="%.1f", key="ama_target_mult")
 
-                # ── Indicator settings (mirrors NT8 AMA_Breakouts_PB properties) ──
+                # ── Indicator settings (exact NT8 AMA_Breakouts_PB §01–05 parity) ──
                 with st.expander("AMA indicator settings", expanded=False):
-                    # 01. BO, OB, CX
+                    # 01. BO, OB, CX  — identical to NT8 §01 order
                     st.markdown("**01. BO, OB, CX**")
-                    _a1, _a2, _a3, _a4 = st.columns(4)
-                    _show_blbo = _a1.checkbox("Show bull BO",      value=True,  key="ama_show_blbo")
-                    _show_brbo = _a2.checkbox("Show bear BO",      value=True,  key="ama_show_brbo")
-                    _show_ob   = _a3.checkbox("Show outside bars", value=True,  key="ama_show_outside")
-                    _strict    = _a4.checkbox("Strict OB",         value=True,  key="ama_strict_ob")
-                    _b1, _b2, _b3 = st.columns(3)
-                    _ob_ft     = _b1.checkbox("OB requires FT",    value=True,  key="ama_ob_req_ft")
-                    _cx_factor = _b2.number_input("CX factor",     min_value=0.5, max_value=5.0,
-                                                   value=1.8, step=0.1, format="%.1f",
-                                                   key="ama_cx_factor")
-                    _bbo_fact  = _b3.number_input("BigBO range factor", min_value=0.5, max_value=5.0,
-                                                   value=1.05, step=0.05, format="%.2f",
-                                                   key="ama_bbo_factor")
+                    _r1a, _r1b, _r1c, _r1d = st.columns(4)
+                    _show_blbo = _r1a.checkbox("_ShowBLBO",          value=True,  key="ama_show_blbo")
+                    _show_brbo = _r1b.checkbox("_ShowBRBO",          value=True,  key="ama_show_brbo")
+                    _show_bbo  = _r1c.checkbox("_ShowBigBO",         value=False, key="ama_show_bigbo")
+                    _bbo_fact  = _r1d.number_input("_BigBORangeFactor", min_value=0.5, max_value=5.0,
+                                                    value=1.05, step=0.05, format="%.2f",
+                                                    key="ama_bbo_factor")
+                    _r2a, _r2b, _r2c, _r2d = st.columns(4)
+                    _show_ob   = _r2a.checkbox("_ShowOutsideBars",   value=True,  key="ama_show_outside")
+                    _strict    = _r2b.checkbox("_StrictOB",          value=True,  key="ama_strict_ob")
+                    _show_cx   = _r2c.checkbox("_ShowCX",            value=False, key="ama_show_cx")
+                    _cx_factor = _r2d.number_input("_CXfactor",      min_value=0.5, max_value=5.0,
+                                                    value=1.8, step=0.1, format="%.1f",
+                                                    key="ama_cx_factor")
+                    _ob_ft     = st.checkbox("OB requires FT  (app-only, not in NT8)",
+                                              value=True, key="ama_ob_req_ft")
 
                     # 02. Z score
                     st.markdown("**02. Z score**")
@@ -1089,10 +1128,10 @@ def main():
 
                 st.divider()
                 if st.button("Generate AMA Signals", key="ama_generate"):
-                    if not _selected_types:
-                        st.warning("Select at least one signal type.")
+                    if not _selected_types and not _show_bbo and not _show_cx:
+                        st.warning("Select at least one signal type (BO+FT / OB+FT) or enable BigBO/CX in §01.")
                     else:
-                        _ama_sig = _run_ama(
+                        _ama_sig, _ama_det = _run_ama(
                             _ama_bars,
                             int(_ama_stop_off),
                             _ama_tgt_mode,
@@ -1104,9 +1143,9 @@ def main():
                             show_brbo=int(_show_brbo),
                             show_outside_bars=int(_show_ob),
                             strict_ob=int(_strict),
-                            show_cx=int(_inc_cx),
+                            show_cx=int(_show_cx),
                             cx_factor=float(_cx_factor),
-                            show_bigbo=int(_inc_bbo),
+                            show_bigbo=int(_show_bbo),
                             big_bo_range_factor=float(_bbo_fact),
                             # 02
                             big_bo_by_zscore=int(_bbo_zscore),
@@ -1144,7 +1183,8 @@ def main():
                             .fillna(0).astype(int)
                         )
 
-                        st.session_state["ba_signals_ama"] = _ama_sig
+                        st.session_state["ba_signals_ama"]    = _ama_sig
+                        st.session_state["ba_ama_detected"]   = _ama_det
                         st.success(f"Generated {len(_ama_sig):,} signals.")
 
                 if st.session_state.get("ba_signals_ama") is not None:
