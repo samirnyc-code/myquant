@@ -1,6 +1,6 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** June 30, 2026 (session 47)
+**Last Updated:** June 30, 2026 (session 48)
 **Current Versions:** SIM_v3.9 / GS_v4.5 / SHEET_v3.3 *(S32: Prop Sim overhaul — MC-sized payout buffer, monthly 80/20 payouts, ES/MES margin, never-blow floor de-risk + shock model, richer dashboard; MCBreakout pyramiding (N concurrent/dir) + ratchet-lock fix. S31: ZLO exporter + filters, MCBreakout stop fix + ER filter, ZLO sweeps, Auction feature library + tab (Dalton day types), Prop Sim DD-lock. S30: Prop Sim tab, Extras tab, 1M bars, NT strategy. S29: ESA into WFA, session filters, multi-TF, ER10. S28: ESA v2. S27: ESA Phase A. S24: critical slippage off-tick bugfix.)*
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 **Handoff hygiene (S20):** A competing handoff had grown in the `.claude/.../memory/` auto-memory folder and a new chat read *that* instead of this file. Fixed: added repo `CLAUDE.md` + rewrote `.claude` `MEMORY.md` to point here; deleted the duplicate session-state memories. **There is now ONE handoff: this file.**
@@ -48,6 +48,57 @@ race the same number, the **earlier-merged** note keeps it; the later one takes 
 - **Consecutive-cluster gate** — does requiring N same-dir signals improve quality? (S33 + `dir_streak` 4+ lead from 0001)
 - **Always-In (AID) as a sizer** — negative as a gate (S36); size-with/against-regime untested
 - **Pyramiding (N concurrent same-dir)** — does it beat a single entry? (S32 MCBreakout pyramiding)
+
+---
+
+## ⭐ SESSION 48 — June 30, 2026 — Multi-instrument infrastructure (NQ/YM/GC/CL)
+
+### What was done
+- **Created `instruments.py`** — generic multi-instrument catalog system for NQ, YM, GC, CL. Contains:
+  - `InstrumentSpec` dataclass: key, root, massive_root (e.g. `"0YM"` for CBOT YM), exchange, S3 prefix, gz subdir, delivery months, roll_days, start year/month
+  - `INSTRUMENTS` dict: NQ (CME, quarterly), YM (CBOT, quarterly), GC (COMEX, bimonthly), CL (NYMEX, monthly)
+  - Per-instrument expiry calculators: `_third_friday` (NQ/YM), `_gc_expiry` (3rd-to-last BD of delivery month), `_cl_expiry` (BD before 25th of preceding month)
+  - `build_catalog(key)` → `list[InstContract]`, auto-builds 2+ years ahead
+  - Per-instrument rolls JSON: `rolls_{key}.json` (NQ/YM/GC/CL each have their own file)
+  - `ensure_rolls_file`, `load_rolls`, `save_rolls`, `get_roll_date`, `get_offset`
+  - `apply_back_adjustment(key, bars_by_ticker, rolls)` — Panama method, same logic as `contracts.py`
+  - Catalog sizes: NQ 30, YM 30, GC 45, CL 89 contracts
+
+- **Updated `massive.py`** — added multi-instrument backend + UI:
+  - Imports `instruments.py` at top
+  - `_instr_gz_cache_dir(key)` → exchange-specific gz cache dir
+  - `_instr_continuous_path(key)` → `_continuous_{key}.parquet`
+  - `_instr_s3_key(key, d)` → correct S3 path per exchange
+  - `_instr_download_day(s3, key, d)` → downloads from CBOT/COMEX/NYMEX; NQ skips download (uses existing CME cache)
+  - `_instr_load_gz(local, key, ticker)` → translates ticker to massive_root format (YMU6→0YMU6 for CBOT)
+  - `_instr_build_contract_bars(key, contract)` → builds 5M bar parquet from gz cache
+  - `build_instr_continuous(key, rolls)` → Panama back-adjustment → `_continuous_{key}.parquet`
+  - `_show_instrument_section(key)` → generic Streamlit UI with Roll Schedule expander + Build Continuous expander
+  - `show_massive_tab()` now has 3 tabs: "📋 ES Contracts & Rolls", "🔧 Other Instruments", "⚡ Quick Compare"
+  - Other Instruments tab has sub-tabs: NQ / YM / GC / CL, each calling `_show_instrument_section`
+  - Session state auto-loads each `_continuous_{key}.parquet` on startup
+
+- **NQU6 smoke-test passed** — 933 bars built from existing CME gz files (same window as ESU6: June 12–29). YM/GC/CL ticker mapping verified correct. All syntax clean.
+
+### Key facts to remember
+- NQ uses the **same CME gz files** already on disk — zero new downloads needed for 5 years of NQ data
+- YM in CBOT gz files uses `0YM` ticker prefix (e.g. `0YMU6`); internally we always use `YM` prefix
+- YM/GC/CL will download on first use into: `flatfiles_cache_cbot/`, `flatfiles_cache_comex/`, `flatfiles_cache_nymex/`
+- Per-instrument rolls files: `rolls_NQ.json`, `rolls_YM.json`, `rolls_GC.json`, `rolls_CL.json` (auto-created from catalog defaults on first use; user fills in offsets from NT)
+- All bar parquets share `data/bars/` dir; continuous parquets are `_continuous_NQ.parquet` etc.
+
+### Files changed this session
+- NEW: `instruments.py` (full multi-instrument catalog + back-adjustment)
+- MODIFIED: `massive.py` (multi-instrument backend functions + UI tabs)
+- **Added in S48 continuation:** `6E` (Euro FX) and `6J` (Japanese Yen FX) to `instruments.py` — both CME quarterly, expiry = 3rd Wednesday (`_third_wednesday`). Already in existing CME gz files (25,837 / 14,089 rows/day), zero new downloads needed. UI tabs added: "6E — Euro FX", "6J — Yen FX".
+
+### NEXT
+1. **Commit** — `contracts.py`, `rolls.json` (S46, still uncommitted), `instruments.py`, `massive.py`
+2. **Build NQ bars + continuous** — click "Build Bars from CME Cache" then "Build NQ Continuous" in the app (NQU1→NQU6)
+3. **Enter NQ roll offsets** — look up each quarterly roll in NT Instrument Manager, same as ES
+4. **Download YM/GC/CL** — use "Download + Build Bars" buttons; will need some time to pull years of CBOT/COMEX/NYMEX data
+5. **Visual verify S47 AMA work** — user to confirm bars match NT8 June 16
+6. **Recreate lost CS files** — ZerolagExporter.cs, AlwaysIn.cs, QSSignalOverlay.cs, MCBreakout.cs
 
 ---
 

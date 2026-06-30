@@ -88,6 +88,22 @@ INSTRUMENTS: dict[str, InstrumentSpec] = {
         roll_days=5,
         start_year=2021, start_month=8,     # CLQ1 (Aug 2021; CLN1 Jul rolled ~Jun 22)
     ),
+    "6E": InstrumentSpec(
+        key="6E", name="Euro FX",
+        root="6E", massive_root="6E",
+        exchange="cme", s3_prefix="us_futures_cme/trades_v1",
+        gz_subdir="flatfiles_cache",        # same CME files already on disk
+        months=(3, 6, 9, 12), roll_days=8,
+        start_year=2021, start_month=9,     # 6EU1
+    ),
+    "6J": InstrumentSpec(
+        key="6J", name="Japanese Yen FX",
+        root="6J", massive_root="6J",
+        exchange="cme", s3_prefix="us_futures_cme/trades_v1",
+        gz_subdir="flatfiles_cache",        # same CME files already on disk
+        months=(3, 6, 9, 12), roll_days=8,
+        start_year=2021, start_month=9,     # 6JU1
+    ),
 }
 
 
@@ -127,6 +143,12 @@ def _prev_n_business_days(d: date, n: int) -> date:
     return d
 
 
+def _third_wednesday(year: int, month: int) -> date:
+    """3rd Wednesday of contract month (CME FX futures settlement date)."""
+    d = date(year, month, 1)
+    return d + timedelta(days=(2 - d.weekday()) % 7 + 14)
+
+
 def _gc_expiry(year: int, month: int) -> date:
     """GC: third-to-last business day of delivery month."""
     return _prev_n_business_days(_last_business_day(year, month), 2)
@@ -144,6 +166,8 @@ def _cl_expiry(year: int, month: int) -> date:
 _EXPIRY_FN = {
     "NQ": _third_friday,
     "YM": _third_friday,
+    "6E": _third_wednesday,
+    "6J": _third_wednesday,
     "GC": _gc_expiry,
     "CL": _cl_expiry,
 }

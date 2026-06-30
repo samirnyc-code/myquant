@@ -773,7 +773,7 @@ def show_massive_tab():
                 st.session_state["nt_cont_bars"] = _df
                 st.session_state["nt_cont_key"]  = f"{_info['name']}_{_info['size']}"
 
-    for _ik in ("NQ", "YM", "GC", "CL"):
+    for _ik in ("NQ", "YM", "GC", "CL", "6E", "6J"):
         if f"mas_cont_{_ik}" not in st.session_state:
             _cp = _instr_continuous_path(_ik)
             if _cp.exists():
@@ -1085,7 +1085,9 @@ def show_massive_tab():
             "NQ reads from the existing CME flatfiles cache (no new downloads needed). "
             "YM, GC, and CL will download from CBOT/COMEX/NYMEX on first use."
         )
-        nq_tab, ym_tab, gc_tab, cl_tab = st.tabs(["NQ — Nasdaq", "YM — Dow", "GC — Gold", "CL — Crude"])
+        nq_tab, ym_tab, gc_tab, cl_tab, fx_6e_tab, fx_6j_tab = st.tabs(
+            ["NQ — Nasdaq", "YM — Dow", "GC — Gold", "CL — Crude", "6E — Euro FX", "6J — Yen FX"]
+        )
         with nq_tab:
             _show_instrument_section("NQ")
         with ym_tab:
@@ -1094,6 +1096,10 @@ def show_massive_tab():
             _show_instrument_section("GC")
         with cl_tab:
             _show_instrument_section("CL")
+        with fx_6e_tab:
+            _show_instrument_section("6E")
+        with fx_6j_tab:
+            _show_instrument_section("6J")
 
     # ═════════════════════════════════════════════════════════════════════════
     with quick_tab:
