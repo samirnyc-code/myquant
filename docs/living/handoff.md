@@ -1,6 +1,6 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** June 24, 2026 (session 40)
+**Last Updated:** June 30, 2026 (session 48)
 **Current Versions:** SIM_v3.9 / GS_v4.5 / SHEET_v3.3 *(S32: Prop Sim overhaul — MC-sized payout buffer, monthly 80/20 payouts, ES/MES margin, never-blow floor de-risk + shock model, richer dashboard; MCBreakout pyramiding (N concurrent/dir) + ratchet-lock fix. S31: ZLO exporter + filters, MCBreakout stop fix + ER filter, ZLO sweeps, Auction feature library + tab (Dalton day types), Prop Sim DD-lock. S30: Prop Sim tab, Extras tab, 1M bars, NT strategy. S29: ESA into WFA, session filters, multi-TF, ER10. S28: ESA v2. S27: ESA Phase A. S24: critical slippage off-tick bugfix.)*
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 **Handoff hygiene (S20):** A competing handoff had grown in the `.claude/.../memory/` auto-memory folder and a new chat read *that* instead of this file. Fixed: added repo `CLAUDE.md` + rewrote `.claude` `MEMORY.md` to point here; deleted the duplicate session-state memories. **There is now ONE handoff: this file.**
@@ -53,6 +53,280 @@ race the same number, the **earlier-merged** note keeps it; the later one takes 
 - **Consecutive-cluster gate** — does requiring N same-dir signals improve quality? (S33 + `dir_streak` 4+ lead from 0001)
 - **Always-In (AID) as a sizer** — negative as a gate (S36); size-with/against-regime untested
 - **Pyramiding (N concurrent same-dir)** — does it beat a single entry? (S32 MCBreakout pyramiding)
+
+---
+
+## ⭐ SESSION 48 — June 30, 2026 — Multi-instrument infrastructure (NQ/YM/GC/CL)
+
+### What was done
+- **Created `instruments.py`** — generic multi-instrument catalog system for NQ, YM, GC, CL. Contains:
+  - `InstrumentSpec` dataclass: key, root, massive_root (e.g. `"0YM"` for CBOT YM), exchange, S3 prefix, gz subdir, delivery months, roll_days, start year/month
+  - `INSTRUMENTS` dict: NQ (CME, quarterly), YM (CBOT, quarterly), GC (COMEX, bimonthly), CL (NYMEX, monthly)
+  - Per-instrument expiry calculators: `_third_friday` (NQ/YM), `_gc_expiry` (3rd-to-last BD of delivery month), `_cl_expiry` (BD before 25th of preceding month)
+  - `build_catalog(key)` → `list[InstContract]`, auto-builds 2+ years ahead
+  - Per-instrument rolls JSON: `rolls_{key}.json` (NQ/YM/GC/CL each have their own file)
+  - `ensure_rolls_file`, `load_rolls`, `save_rolls`, `get_roll_date`, `get_offset`
+  - `apply_back_adjustment(key, bars_by_ticker, rolls)` — Panama method, same logic as `contracts.py`
+  - Catalog sizes: NQ 30, YM 30, GC 45, CL 89 contracts
+
+- **Updated `massive.py`** — added multi-instrument backend + UI:
+  - Imports `instruments.py` at top
+  - `_instr_gz_cache_dir(key)` → exchange-specific gz cache dir
+  - `_instr_continuous_path(key)` → `_continuous_{key}.parquet`
+  - `_instr_s3_key(key, d)` → correct S3 path per exchange
+  - `_instr_download_day(s3, key, d)` → downloads from CBOT/COMEX/NYMEX; NQ skips download (uses existing CME cache)
+  - `_instr_load_gz(local, key, ticker)` → translates ticker to massive_root format (YMU6→0YMU6 for CBOT)
+  - `_instr_build_contract_bars(key, contract)` → builds 5M bar parquet from gz cache
+  - `build_instr_continuous(key, rolls)` → Panama back-adjustment → `_continuous_{key}.parquet`
+  - `_show_instrument_section(key)` → generic Streamlit UI with Roll Schedule expander + Build Continuous expander
+  - `show_massive_tab()` now has 3 tabs: "📋 ES Contracts & Rolls", "🔧 Other Instruments", "⚡ Quick Compare"
+  - Other Instruments tab has sub-tabs: NQ / YM / GC / CL, each calling `_show_instrument_section`
+  - Session state auto-loads each `_continuous_{key}.parquet` on startup
+
+- **NQU6 smoke-test passed** — 933 bars built from existing CME gz files (same window as ESU6: June 12–29). YM/GC/CL ticker mapping verified correct. All syntax clean.
+
+### Key facts to remember
+- NQ uses the **same CME gz files** already on disk — zero new downloads needed for 5 years of NQ data
+- YM in CBOT gz files uses `0YM` ticker prefix (e.g. `0YMU6`); internally we always use `YM` prefix
+- YM/GC/CL will download on first use into: `flatfiles_cache_cbot/`, `flatfiles_cache_comex/`, `flatfiles_cache_nymex/`
+- Per-instrument rolls files: `rolls_NQ.json`, `rolls_YM.json`, `rolls_GC.json`, `rolls_CL.json` (auto-created from catalog defaults on first use; user fills in offsets from NT)
+- All bar parquets share `data/bars/` dir; continuous parquets are `_continuous_NQ.parquet` etc.
+
+### Files changed this session
+- NEW: `instruments.py` (full multi-instrument catalog + back-adjustment)
+- MODIFIED: `massive.py` (multi-instrument backend functions + UI tabs)
+- **Added in S48 continuation:** `6E` (Euro FX) and `6J` (Japanese Yen FX) to `instruments.py` — both CME quarterly, expiry = 3rd Wednesday (`_third_wednesday`). Already in existing CME gz files (25,837 / 14,089 rows/day), zero new downloads needed. UI tabs added: "6E — Euro FX", "6J — Yen FX".
+
+### NEXT
+1. **Commit** — `contracts.py`, `rolls.json` (S46, still uncommitted), `instruments.py`, `massive.py`
+2. **Build NQ bars + continuous** — click "Build Bars from CME Cache" then "Build NQ Continuous" in the app (NQU1→NQU6)
+3. **Enter NQ roll offsets** — look up each quarterly roll in NT Instrument Manager, same as ES
+4. **Download YM/GC/CL** — use "Download + Build Bars" buttons; will need some time to pull years of CBOT/COMEX/NYMEX data
+5. **Visual verify S47 AMA work** — user to confirm bars match NT8 June 16
+6. **Recreate lost CS files** — ZerolagExporter.cs, AlwaysIn.cs, QSSignalOverlay.cs, MCBreakout.cs
+
+---
+
+## ⭐ SESSION 47 — June 30, 2026 — AMA bar painting fixed (NT8 exact match)
+
+### What was done
+- **Fixed BigBO detection gate in `ama_setups.py`**: NT8's entire BigBO block is inside `if (_ShowBigBO > 0)`. Python was running it unconditionally, always emitting ±5 (pink) even with ShowBigBO=0. Fixed: `if cfg.show_bigbo > 0 and sig != 0 and not ob:`. When ShowBigBO=0, qualifying bars stay as ±1 (regular BO color), exactly as NT8.
+- **Restructured AMA settings UI in `app.py`** to match NT8 §01–05 exactly:
+  - **Signal types** now only has `BO+FT` and `OB+FT` (what to TRADE)
+  - **§01. BO, OB, CX** now contains all 8 NT8 params in exact order: `_ShowBLBO`, `_ShowBRBO`, `_ShowBigBO` (default=0), `_BigBORangeFactor`, `_ShowOutsideBars`, `_StrictOB`, `_ShowCX` (default=0), `_CXfactor`
+  - `_ShowBigBO` and `_ShowCX` removed from "Signal types", added to §01 with NT8 defaults (0)
+  - `_run_ama()` call updated: now reads `show_cx` and `show_bigbo` from §01 vars (`_show_cx`, `_show_bbo`), not from old signal-types vars
+- **Trade price paths thicker**: yellow diagonal price path width 1.0→2.5, stop/target lines 1→1.5
+- **Verified** with exact NT8 settings (ShowBigBO=0, ShowCX=0, RangeFilter=0): 32 correct bars on June 16, 2026. Only BO (blue/dark red), FT (cyan/crimson), OB (green/orange) — no pink, no purple.
+
+### What still needs visual verification
+User will verify the app chart against NT8 June 16 reference. If any bar color still doesn't match, check `ama_setups.detect()` signal logic.
+
+### Files changed this session
+- MODIFIED: `ama_setups.py` (BigBO gate fix)
+- MODIFIED: `app.py` (UI restructure §01, price path widths, `_run_ama` call fix)
+
+### NEXT
+1. **Visual verify** — user to load June 16, 2026 with exact NT8 settings and confirm bars match.
+2. **Leg Labeler Phase 1** — hand-label ~500 legs.
+3. **Recreate lost CS files** — ZerolagExporter.cs, AlwaysIn.cs, QSSignalOverlay.cs, MCBreakout.cs.
+4. **Commit** contracts.py + rolls.json from S46 (still uncommitted).
+
+---
+
+## ⭐ SESSION 46 — June 30, 2026 — ESU6 contract roll + data current through June 29
+
+### What was done
+- **Added ESU6 to catalog** — `contracts.py` quarters list extended to `(2026, 9)`. ESU6 active_from = June 12, 2026 (day after ESM6 roll_dt of June 11). Last trade = Sep 18, 2026.
+- **rolls.json updated** — ESU6 entry: `roll_date: "2026-06-12"`, `offset: 61.25` (from NT8 Instrument Manager screenshot).
+- **Downloaded missing flatfiles** — 6 new gz files from Massive: June 22, 23, 24, 25, 26, 29 (June 20-21 weekend; June 27 Sat; June 30 not yet available).
+- **Built 11 continuous tick parquets** — June 12, 15, 16, 17, 18, 22, 23, 24, 25, 26, 29 in `data/ticks_continuous/`. June 19 = Juneteenth (market holiday, no RTH data). June 28 Sunday globex filtered out.
+- **Built ESU6.parquet** — 933 bars, `data/bars/ESU6.parquet`, June 12–29.
+- **Rebuilt `_continuous.parquet`** — all 21 contracts (ESU1→ESU6), 102,563 bars, 2021-06-24 → 2026-06-29. Last contract: ESU6. Also rebuilt `_continuous_15m.parquet` (34,193 bars).
+- Roll boundary looks clean: ESM6 ends June 11 15:10 (back-adjusted close ~7468), ESU6 opens June 12 08:30 at 7486.
+
+### Files changed this session
+- MODIFIED: `contracts.py` (added `(2026, 9)` to quarters list)
+- MODIFIED: `rolls.json` (added ESU6 entry)
+- BUILT (binary, not committed): `data/bars/ESU6.parquet`, `data/bars/_continuous.parquet`, `data/bars/_continuous_15m.parquet`
+- BUILT (binary, not committed): 11 new parquets in `data/ticks_continuous/`
+- DOWNLOADED (cache, not committed): 6 new gz files in `data/flatfiles_cache/`
+
+### NEXT
+1. **Commit** — `contracts.py` and `rolls.json` changes.
+2. **Fix AMA bar painting** (S45 carry-over) — colored bars still don't match Ali's NT8 chart. Debug with June 16 as reference date. Check sig_dt vs bo_start alignment and DateTime (CT vs Berlin).
+3. **Leg Labeler Phase 1** — hand-label ~500 legs.
+4. **Recreate lost CS files** — ZerolagExporter.cs, AlwaysIn.cs, QSSignalOverlay.cs, MCBreakout.cs.
+
+---
+
+## ⭐ SESSION 45 — June 27, 2026 — AMA settings UI cleanup (incomplete; bar painting still wrong)
+
+### What was done
+- **Split AMA Signals expander** — indicator settings (§01–05) moved into a collapsed sub-expander "AMA indicator settings", leaving signal types + trade geometry + Generate button at the top level.
+- **Fixed §01 BO/OB/CX** — added "Show bull BO" and "Show bear BO" checkboxes (default on); moved BigBO range factor here from §02 (correct per NT8 properties panel).
+- **Fixed §02 Z score** — added "BigBO by Z-score" checkbox (default on, was hardcoded `1` before); removed misplaced BigBORangeFactor.
+- **Fixed §05 Signal/Output Control** — added "Paint FT bar" (default on) and "FT color same as BO" (default off) to complete NT8 property parity.
+- **Settings table comparison** — compared our app vs Ali's NT8 AMA_Breakouts_PB properties panel; all 7 discrepancies now fixed in code.
+
+### What did NOT go well
+User explicitly said "this did not go well at all." The fundamental problem is **AMA bar painting still does not match Ali's NT8 chart.** The code changes in this session are correct in terms of parameter parity, but the visual output (colored bars on the chart) is still wrong vs Ali's reference:
+- OB bars not showing or showing incorrectly
+- BO bars marked wrong
+- CX bars marked wrong
+
+**Root cause is not fully understood.** Possibilities:
+1. DateTime alignment — Ali's chart is Berlin time; our data is CT. RTH open is 15:30 CEST = 08:30 CT. May still be off-by-one bar.
+2. `sig_dt` vs `bo_start` — FT bar open_dt is `sig_dt`; BO bar is `sig_dt - 5min`. May be painting the wrong bars.
+3. NT8 paint logic differs from our Python port in subtle ways (CX/BigBO entry bar, OB detection).
+
+### Files changed this session
+- MODIFIED: `app.py` (all changes in S44 commit — this session re-confirmed they were already pushed)
+- MODIFIED: `docs/living/handoff.md` (this block)
+
+### NEXT
+1. **Fix AMA bar painting** — debug why colored bars don't match Ali's NT8 chart. Start by loading a specific date where Ali's chart is known (June 16, 2026) and comparing bar-by-bar which bars get painted vs what's expected. Add debug logging to the `_bar_paints` loop.
+2. **DateTime check** — print `sig_dt` and `bo_start` for a known signal and verify against Ali's chart timestamp.
+3. **Leg Labeler Phase 1** — start hand-labeling legs (see S44 NEXT).
+4. **Recreate lost CS files** — ZerolagExporter.cs, AlwaysIn.cs, QSSignalOverlay.cs, MCBreakout.cs.
+
+---
+
+## ⭐ SESSION 44 — June 27, 2026 — ES Leg Classifier Phase 0 infrastructure
+
+### What was built
+Full Phase 0 implementation of `ES_Leg_Classifier_Research_Spec.md`. Seven new modules:
+
+- **`leg_decomp.py`** — ATR-swing leg decomposition. `bar_labels(bars, threshold, atr_period)` → per-bar leg_id/direction/phase/run_extreme. `leg_table()` → one row per confirmed leg. `decompose()` = convenience wrapper. Default threshold 1.5 ATR. Smoke-tested on ESM6: 5469 bars → 600 legs.
+- **`leg_htf.py`** — 30M causal partial-bar HTF context builder. `build_htf_context(bars_5m)` → 15 columns per bar: htf_k (1–6 phase), htf_direction, htf_leg_id, htf_broke_struct, htf_has_pb, htf_retrace_pct. Strictly causal: only prior closed 30M bars feed HTF leg decomp; the forming bar uses only bars closed ≤ T.
+- **`leg_flow.py`** — Tick-rule order flow from per-day parquets (uses **polars** for memory safety). `build_bar_flow(date_range)` → polars DataFrame. `aggregate_flow_per_leg()` → per-leg delta, buy/sell vol, delta_slope, delta_divergence, effort_vs_result. Polars + scikit-learn installed into .venv.
+- **`leg_features.py`** — Full feature matrix (spec §5.1–5.4). `build_feature_matrix(bars, labels, legs, htf_ctx, flow_per_leg)` → ~37-column per-leg DataFrame. `FEATURE_COLS` registry.
+- **`leg_label_store.py`** — Two separate stores (spec §4.4): `ground_truth_labels.parquet` (hindsight, correctable) and `live_call_log.parquet` (frozen at call time, never altered). `upsert_ground_truth()`, `append_live_call()` (raises if leg_id exists), `compute_edge()` = GT vs live accuracy. `draft_from_decomp()` for bulk UNLABELED seed.
+- **`leg_labeler_tab.py`** — Streamlit labeling UI: candlestick chart with colored leg overlays, leg table with click-to-select, state dropdown, save button, bulk draft import, GT vs live edge summary.
+- **`leg_classifier.py`** — Stage 1 L1 logistic maturity scorer. `train(feature_df, gt_labels, C=0.1)` → `ClassifierResult` with walk-forward Brier/LogLoss/F1. `score()` → P(terminal_pb_leg) per leg. `to_rule_set()` / `rules_to_ninjascript_comment()` for NT8 export.
+
+### Wired into app.py
+New tab: **🦵 Leg Labeler** (last tab).
+
+### Data layer
+- `data/leg_labels/` directory auto-created on first label save.
+- Polars for tick pipeline; pandas for everything else.
+
+### Phase build status (spec)
+- [x] Phase 0 — Infrastructure
+- [ ] Phase 1 — Hand-label ~2 years of per-bar leg states (NEXT human task)
+- [ ] Phase 2 — Separability check (PCA/UMAP before any model)
+- [ ] Phase 3 — Logistic scorer training (needs labels)
+- [ ] Phase 4 — NinjaScript port
+- [ ] Phase 5 — HSMM (if Stage 1 plateaus)
+
+### NEXT
+1. **Start labeling** — load continuous bars in Leg Labeler tab, set ATR threshold (visual tuning), import drafts, assign states to legs. Target: ~500 labeled legs across varied market conditions before running Phase 2 separability check.
+2. **ATR threshold visual tuning** — open Leg Labeler, look at the chart with segments, adjust threshold until segments match Brooks micro-channel intuition. Lock the value before labeling any legs.
+3. **Tick flow pipeline** — run `leg_flow.build_bar_flow()` over the full tick archive (1,032 days) and cache the result. Will take ~minutes with polars.
+
+---
+
+## ⭐ SESSION 43 — June 25, 2026 — Bar Viewer trade visualization (exit-anchored lines + price path + result)
+
+### What was built
+- **`app.py` `make_candlestick()` signal overlay** — rewrote stop/target lines and added
+  price path trace + result annotation. Replaces the fixed 10-min span with actual exit discovery.
+
+### How the new overlay works
+For each signal on the Bar Viewer chart:
+1. **Lines start at BO bar** — `bo_start = sig_dt - 5min` (the bar before the FT trigger).
+   Both stop (dotted) and target (dashed) lines extend from BO bar open to exit bar.
+2. **Exit discovery** — walks forward through day bars from entry bar (`entry_dt = sig_dt + 5min`).
+   First bar where `Low ≤ stop` (long) or `High ≥ target` hits ends the trade. If both hit on
+   the same bar, stop wins (conservative). EOD fallback: last bar close.
+3. **Price path** — `go.Scatter` line connecting bar closes from entry bar to exit bar.
+   Color = green if result > 0, red if result ≤ 0. Opacity 0.6, no legend.
+4. **Result annotation** — `"+X.XX"` or `"-X.XX"` at exit bar, monospace 9pt, green/red.
+   Positioned above exit price for long, below for short. Result measured from entry bar open.
+
+### Files committed this session
+- MODIFIED: `app.py` (signal overlay in `make_candlestick()`)
+
+### NEXT
+1. **Run proper sim** — once tick cache is built, run `simulate_trades()` with all
+   10,886 BO+FT signals. Get real metrics: WR, avg R, expectancy.
+2. **NT8 indicator testing** — load AMASignalOverlay.cs, compile, verify data box + racing stripes.
+3. **Research note 0008** — document AMA detector work after backtest results.
+4. **Recreate lost CS files** — ZerolagExporter.cs, AlwaysIn.cs, QSSignalOverlay.cs, MCBreakout.cs.
+
+---
+
+## ⭐ SESSION 42 — June 25, 2026 — AMA Breakouts Python port + BO+FT signal model fix
+
+### What was built
+- **`nt8/indicators/AMASignalOverlay.cs`** — NT8 indicator that overlays Python-generated
+  AMA signals on the chart. 23 plots in 6 groups (ID, Setup, Bars, Stop, Target, Result),
+  all togglable via property panel. Racing-stripe BackBrush coloring with chart legend.
+  Stop/target dashes via Draw.Line. Entry dot via Draw.Diamond. Data box via cursor tooltip
+  (mutual-exclusion plot trick: only active setup name gets value=1, others stay NaN).
+- **`scripts/ama_export_signals_nt.py`** — CLI exporter: generates AMA signals from
+  `_continuous.parquet` and writes `data/nt_import/ama_signals_{tag}.csv` for NT8 import.
+- **`app.py`** — AMA wired as third signal source in BA tab with Generate button, expander
+  (stop offset, target mode/mult, BO+FT / OB / BigBO checkboxes), and status strip count.
+  Bar source: `mas_continuous` → `data_sc_5m` fallback.
+
+### ⚠️ CRITICAL: BO+FT signal model (this was the main fix)
+The original detector was emitting ~50,727 signals (40/day) — completely wrong.
+
+**Root causes found and fixed:**
+1. **BO alone is not a setup.** A BO bar is setup detection only; the trade fires at the
+   FT (follow-through) bar close, entry at the next bar's open. The code was emitting signal
+   rows for both BO bars AND FT bars — effectively double-counting and generating a signal
+   for every bar in a trend leg.
+2. **Only the FIRST FT bar per setup chain emits a signal.** In a trend, NT8 paints bar 3,
+   4, 5... as chained FT bars (not new BOs) — that's preserved in `detect()`. But
+   `to_signal_rows()` only emits the FT bar that immediately follows a pure BO (`ft_prev==0`).
+   All chained FT bars are skipped — they are part of the running trade, not new entries.
+
+**After fix:** 10,886 BO+FT signals over 5 years (8.5/day). OB singles: 7,591 (5.9/day).
+
+**Code:** `ama_setups.py` `to_signal_rows()` — `is_first_ft = is_ft and ft_arr[i-1]==0`.
+`detect()` FT chaining preserved (matches NT8). `include_ft` logic: both "BO" and "FT"
+type selectors now mean "include BO+FT setups" (BO alone has no meaning as a trade).
+
+### Tick cache
+Downloaded: 45GB of raw gz files in `data/flatfiles_cache/` (1,297 days).
+Converted to per-day parquet: only 9 days in `data/ticks_continuous/` so far.
+**User is building the full tick cache now.** Once done: run proper sim with tick-accurate
+stop/target resolution via `simulate_trades()`.
+
+### ⚠️ Bar sim numbers are garbage — ignore
+Ran a quick bar-based sim (`_simulate_one_bars`) to get directional numbers while ticks
+were missing. Those results (48.8% WR, -$85k) are meaningless without intrabar resolution.
+Discard them. Wait for tick cache before drawing any conclusions.
+
+### NT8 defaults vs Python AMAConfig defaults
+NT8 ships with IBS filters OFF (-1), OB OFF, FT OFF, BigBO OFF. Our Python AMAConfig
+has IBS 60/40 ON, OB ON, FT ON — these are the user's custom settings, not NT8 stock.
+The IBS filter (60/40) is the main qualifier on BO bars: bull BO needs close in top 40%
+of bar range; bear BO needs close in bottom 40%.
+
+### Files committed this session
+- NEW: `nt8/indicators/AMASignalOverlay.cs`
+- NEW: `scripts/ama_export_signals_nt.py`
+- MODIFIED: `app.py` (AMA signal source + BO+FT fix)
+- MODIFIED: `ama_setups.py` (to_signal_rows signal model fix)
+- MODIFIED: `massive.py` (minor: wrong variable in 15M resample button)
+- MODIFIED: `nt8/README.md` (AMASignalOverlay.cs status row)
+
+### NEXT
+1. **Run proper sim** — once tick cache is built, run `simulate_trades()` with all
+   10,886 BO+FT signals and OB signals. Get real metrics: WR, avg R, expectancy by
+   direction/type/time-of-day.
+2. **NT8 indicator testing** — user needs to load AMASignalOverlay.cs, compile in NT8,
+   verify data box and racing stripes match exported CSV.
+3. **Research note 0008** — document AMA detector work (wait for backtest results first).
+4. **Recreate lost CS files** — ZerolagExporter.cs, AlwaysIn.cs, QSSignalOverlay.cs,
+   MCBreakout.cs (all marked ❌ LOST in `nt8/README.md`).
+5. **Sim engine: per-trade TargetPoints** — AMA has variable targets per bar (BarRange
+   mode). Engine currently takes a fixed `target_r`. Deferred — do NOT touch until
+   explicitly authorized.
 
 ---
 

@@ -33,7 +33,7 @@ _STATE_PATH = Path(__file__).parent / "saved_signals" / "ui_visibility.json"
 # Order here drives the tab bar. "master" is always first and never hideable.
 TAB_ORDER = [
     "master", "massive", "data", "bar_analysis", "wfa", "bar_viewer",
-    "chart", "portfolio", "extras", "prop", "auction", "erc", "qs",
+    "chart", "portfolio", "extras", "prop", "auction", "erc", "qs", "legs",
 ]
 
 TAB_LABELS = {
@@ -50,6 +50,7 @@ TAB_LABELS = {
     "auction":      "🏛️ Auction",
     "erc":          "🔬 ER10 Look-ahead",
     "qs":           "🎯 QS Breakouts",
+    "legs":         "🦵 Leg Labeler",
 }
 
 # ── Expander catalog ──────────────────────────────────────────────────────────

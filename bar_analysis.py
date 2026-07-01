@@ -4525,7 +4525,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         # so it adapts to MC (CC2/CC3/…), RevFT (OB/IB/Trap), or any future set.
         _all_types = (sorted(signals_raw["SignalType"].dropna().unique())
                       if not signals_raw.empty else [])
-        excluded_types = set()
+        excluded_types: set[str] = set()
         if _all_types:
             _cc_cols = st.columns(min(len(_all_types), 6))
             for _i, _stype in enumerate(_all_types):
