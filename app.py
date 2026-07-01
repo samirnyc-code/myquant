@@ -609,17 +609,16 @@ def show_bar_viewer(sc_file: str = "", contract: str = "ES"):
     excl_first_n  = st.session_state.get("excl_first_n",  0)
     excl_last_min = st.session_state.get("excl_last_min", 0)
 
-    # Collect any active signal sets to overlay.
-    # ba_signals_ama contains the full set including CX/BigBO (chart markers).
-    # The BA simulator strips them internally — no separate key needed.
-    _day_signals = []
-    for _sig_key in ("ba_signals_ama", "ba_signals_mc", "ba_signals_revft"):
-        _sigs = st.session_state.get(_sig_key)
-        if _sigs is not None and not _sigs.empty:
-            _day = _sigs[pd.to_datetime(_sigs["SignalDateTime"]).dt.date == selected_date]
-            if not _day.empty:
-                _day_signals.append(_day)
-    _overlay = pd.concat(_day_signals, ignore_index=True) if _day_signals else None
+    # Signal overlay for the Bar Viewer. The make_candlestick() renderer below is
+    # AMA-schema throughout (SignalDateTime, TargetPoints, and CX/BigBO/OB
+    # SignalTypes) — it can only draw the AMA breakout set. MC/RevFT signals
+    # (from parse_signals) have a different schema ("DateTime", no TargetPoints)
+    # and live in the Bar Analysis tab, so they are NOT overlaid here.
+    _overlay = None
+    _ama_sigs = st.session_state.get("ba_signals_ama")
+    if _ama_sigs is not None and not _ama_sigs.empty:
+        _day = _ama_sigs[pd.to_datetime(_ama_sigs["SignalDateTime"]).dt.date == selected_date]
+        _overlay = _day if not _day.empty else None
 
     # AMA raw detected for bar painting (exact NT8 match)
     _ama_det_day = None
