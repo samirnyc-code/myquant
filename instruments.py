@@ -64,7 +64,7 @@ INSTRUMENTS: dict[str, InstrumentSpec] = {
     ),
     "YM": InstrumentSpec(
         key="YM", name="E-mini Dow Jones",
-        root="YM", massive_root="0YM",      # CBOT gz files use leading-zero prefix
+        root="YM", massive_root="YM",       # CBOT outright is plain "YMU6" (0YMU6 is a junk/settlement symbol)
         exchange="cbot", s3_prefix="us_futures_cbot/trades_v1",
         gz_subdir="flatfiles_cache_cbot",
         months=(3, 6, 9, 12), roll_days=8,

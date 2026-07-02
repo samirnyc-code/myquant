@@ -56,6 +56,65 @@ race the same number, the **earlier-merged** note keeps it; the later one takes 
 
 ---
 
+## ⭐ SESSION 49 — July 1–2, 2026 — Merge S48 into research branch + 5yr multi-instrument bar build + continuous-tick builder (read FIRST)
+*Merged `origin/main` (S42→S48 laptop work: AMA, Leg Labeler, multi-instrument) into
+`docs/s38-reversal-at-extreme`, fixed two post-merge crashes, bulk-built 5M bars for all
+six instruments over 5 years, and generalized the continuous-tick pipeline to non-ES
+instruments. All uncommitted-at-write items committed at end of session.*
+
+### Merge (commit `0c8013a`)
+- Resolved 3 conflicts. Kept this branch's **dynamic Master-tab UI** (`ui_controls`) and
+  **registered main's Leg Labeler** into it (`TAB_ORDER`/`TAB_LABELS` += `"legs"`, `tab_ctx(T,"legs")`).
+- README notes ordered 0004→0007; handoff kept both S48 + S41 blocks (newest-first).
+
+### Post-merge crash fixes
+- **Bar Viewer `SignalDateTime`/`TargetPoints` KeyError** (commit `0603745`) — `make_candlestick`
+  overlay renderer is AMA-schema only (SignalDateTime, TargetPoints, CX/BigBO/OB). MC/RevFT sets
+  (parse_signals → `DateTime`, no TargetPoints) crashed it when auto-loaded from `saved_signals/`.
+  Fix: Bar Viewer overlays **only** `ba_signals_ama`. Latent bug on main too (never fired there
+  because MC/RevFT aren't loaded on the laptop).
+
+### ⚠️ YM mapping bug — FIXED (`instruments.py`)
+- S48 set YM `massive_root="0YM"` ("CBOT leading-zero prefix"). **WRONG** — `0YMU6` is a junk
+  settlement symbol (24 rows, price=100). Real CBOT outright is plain **`YMU6`** (~78k ticks/day,
+  ~52000). Fixed to `"YM"`. Verified post-build: YM close ~35,792 (real). GC (`GC`) and CL (`CL`)
+  mappings confirmed correct.
+
+### 5-year 5M bar build (all six instruments) — DONE
+Script `scripts/download_instruments_5y.py` (resume-capable). Downloads YM/GC/CL raw tick gz from
+CBOT/COMEX/NYMEX S3, builds NQ/6E/6J from existing CME cache. **~8 hrs, 159/164 contracts.**
+Final coverage (RTH 5M bars, `data/bars/{ticker}.parquet`, gitignored):
+
+| Inst | Contracts | Bars | Range | Sanity |
+|---|---|---|---|---|
+| NQ | 21 | 107,860 | 2021-06 → 2026-06 | ~16,310 ✓ |
+| YM | 21 | 110,627 | 2021-07 → 2026-07 | ~35,792 ✓ (fix works) |
+| GC | 31 | 67,985 | 2021-07 → 2026-07 | ~1,808 ✓ |
+| CL | 61 | 108,391 | 2021-07 → 2026-07 | ~76 ✓ |
+| 6E | 16 | 78,066 | **2022-10** → 2026-06 | ~1.07 ✓ |
+| 6J | 21 | 105,974 | 2021-06 → 2026-06 | ~0.01 ✓ |
+
+- **6E only ~3.7 yr**: Massive's CME feed has **no 6E before ~Oct 2022** (confirmed: zero 6E tickers
+  in 2021 gz; 6J present). Source gap, not a bug.
+- Raw tick gz caches (~34 GB): `data/flatfiles_cache_{cbot,comex,nymex}/` (gitignored). NQ/6E/6J
+  reuse `data/flatfiles_cache/`.
+
+### Continuous-tick pipeline generalized (`massive.py`) — NEW, for tick-granularity entries/exits
+- `build_continuous_ticks_for_date()` was **ES-only** (imports `contracts`, single `ticks_continuous/`
+  dir with no instrument key). Added generic `build_instr_continuous_ticks_for_date(key,d,rolls)` +
+  `build_all_instr_continuous_ticks(key,rolls)` → per-instrument `data/ticks_continuous_{key}/{date}.parquet`,
+  same RTH window + back-adjustment as ES. UI: "🎯 Build Continuous Ticks" button per instrument
+  (gated on roll offsets, like ES).
+
+### NEXT (needs user)
+1. **Enter roll offsets + roll dates** per instrument in the Massive tab (NT Instrument Manager),
+   exactly like ES. Bars have ✅ but continuous is gated on offsets.
+2. **Then build continuous** per instrument: 5M bars (`build_instr_continuous`, "🔗 Build Continuous")
+   **and** tick series ("🎯 Build Continuous Ticks") — yields back-adjusted continuous contracts with
+   tick granularity. Tick build is long-running for YM/GC/CL (re-filters cached gz, no re-download).
+
+---
+
 ## ⭐ SESSION 48 — June 30, 2026 — Multi-instrument infrastructure (NQ/YM/GC/CL)
 
 ### What was done

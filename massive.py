@@ -40,6 +40,7 @@ from instruments import (
     get_roll_date as _instr_get_roll_date,
     get_offset as _instr_get_offset,
     apply_back_adjustment as _instr_back_adjust,
+    get_active_contract as _instr_get_active_contract,
     InstContract,
 )
 
@@ -610,6 +611,102 @@ def build_instr_continuous(key: str, rolls: dict, status_placeholder=None) -> pd
     return continuous
 
 
+# ── Multi-instrument continuous back-adjusted TICK series (per-day cache) ──────
+# Generalization of build_continuous_ticks_for_date() (which is ES-only) to any
+# instrument. Same design: one small Parquet per day, front-month ticker only,
+# RTH-filtered (same 08:30–15:15 CT window the 5M bars use), back-adjustment
+# offset already applied to price. Output lives in a PER-INSTRUMENT directory
+# (data/ticks_continuous_{key}/) so instruments never collide on {date}.parquet.
+# Requires roll offsets to be entered first (same gate as the ES tick series).
+
+def _instr_ticks_cont_dir(key: str) -> Path:
+    return _DATA_DIR / f"ticks_continuous_{key}"
+
+
+def _instr_ticks_continuous_path(key: str, d: date) -> Path:
+    return _instr_ticks_cont_dir(key) / f"{d.isoformat()}.parquet"
+
+
+def build_instr_continuous_ticks_for_date(
+    key: str, d: date, rolls: dict, s3=None,
+) -> pd.DataFrame | None:
+    """Build (and cache) one day's back-adjusted, RTH-filtered, front-month ticks
+    for instrument `key`. Downloads the day's gz if missing (YM/GC/CL); NQ/6E/6J
+    reuse the existing CME cache. Returns None if there's no active contract or no
+    data for that date."""
+    from data_loader import RTH_START, RTH_END
+
+    out_path = _instr_ticks_continuous_path(key, d)
+    if out_path.exists():
+        return pd.read_parquet(out_path)
+
+    active = _instr_get_active_contract(key, d, rolls)
+    if active is None:
+        return None
+
+    cache_dir = _instr_gz_cache_dir(key)
+    gz_path   = cache_dir / f"{d.isoformat()}.csv.gz"
+    if not gz_path.exists():
+        if key == "NQ":  # NQ/6E/6J share the CME cache and are never downloaded here
+            return None
+        if s3 is None:
+            s3 = _make_s3()
+        got = _instr_download_day(s3, key, d)
+        if got is None:
+            return None
+        gz_path = got
+
+    raw = _instr_load_gz(gz_path, key, active["ticker"])
+    if "correction" in raw.columns:
+        raw = raw[raw["correction"] == 0]
+    if raw.empty:
+        return None
+
+    dt_ct = (
+        pd.to_datetime(raw["timestamp"], unit="ns", utc=True)
+        .dt.tz_convert("America/Chicago")
+        .dt.tz_localize(None)
+    )
+    ticks = pd.DataFrame({
+        "DateTime": dt_ct,
+        "Price":    raw["price"].astype(float).values + active["cum_offset"],
+        "Volume":   raw["size"].astype(int).values,
+    }).sort_values("DateTime")
+
+    t   = ticks["DateTime"].dt.time
+    rth = (t >= pd.Timestamp(RTH_START).time()) & (t < pd.Timestamp(RTH_END).time())
+    ticks = ticks[rth].reset_index(drop=True)
+    if ticks.empty:
+        return None
+
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    ticks.to_parquet(out_path, index=False)
+    return ticks
+
+
+def build_all_instr_continuous_ticks(
+    key: str, rolls: dict, status_placeholder=None,
+) -> int:
+    """Build the per-day continuous tick cache for every date in instrument `key`'s
+    active window that doesn't already have one. Returns count of days built.
+    Roll offsets must be entered first — the back-adjustment reads them."""
+    catalog = CATALOGS[key]
+    start = date.fromisoformat(min(c.active_from for c in catalog))
+    end   = min(date.fromisoformat(max(c.last_trade for c in catalog)), date.today())
+
+    s3 = None if key == "NQ" else _make_s3()
+    built = 0
+    d = start
+    while d <= end:
+        if not _instr_ticks_continuous_path(key, d).exists():
+            if status_placeholder:
+                status_placeholder.write(f"  {key} {d.isoformat()} …")
+            if build_instr_continuous_ticks_for_date(key, d, rolls, s3=s3) is not None:
+                built += 1
+        d += timedelta(days=1)
+    return built
+
+
 def _show_instrument_section(key: str) -> None:
     """Generic Streamlit section for one instrument: roll schedule + build pipeline."""
     spec    = INSTRUMENTS[key]
@@ -721,6 +818,34 @@ def _show_instrument_section(key: str) -> None:
                     st.rerun()
                 else:
                     st.error(f"No data found for {key}")
+
+        # ── Continuous TICK cache (tick-granularity entries/exits) ─────────────
+        _tick_dir  = _instr_ticks_cont_dir(key)
+        _n_tickday = len(list(_tick_dir.glob("*.parquet"))) if _tick_dir.exists() else 0
+        st.divider()
+        st.caption(
+            f"**Tick-granularity series** — back-adjusted front-month ticks, "
+            f"RTH-filtered, one Parquet/day in `{_tick_dir.name}/`. "
+            f"Cached days: **{_n_tickday}**. Needs roll offsets (same as bars)."
+        )
+        if missing_offsets:
+            st.warning("Fill in roll offsets above before building the tick series.")
+        elif len(available_bars) == 0:
+            st.info("Build bar parquets first.")
+        else:
+            if st.button(
+                f"🎯 Build {key} Continuous Ticks (5-yr)",
+                disabled=bool(missing_offsets),
+                key=f"build_cont_ticks_{key}",
+                help="Downloads any missing daily gz and writes back-adjusted RTH "
+                     "tick parquets. Long-running for YM/GC/CL.",
+            ):
+                status = st.empty()
+                with st.spinner(f"Building {key} continuous ticks… (this can take a while)"):
+                    n = build_all_instr_continuous_ticks(key, rolls_fresh, status)
+                status.empty()
+                st.success(f"✅ {key} continuous ticks: **{n}** day(s) built/added.")
+                st.rerun()
 
         cont_session = st.session_state.get(f"mas_cont_{key}")
         if cont_session is not None and not cont_session.empty:
