@@ -1,114 +1,114 @@
 {
   "6EU1": {
-    "roll_date": "2021-06-17",
-    "offset": null
+    "roll_date": "2021-06-11",
+    "offset": 0.00215
   },
   "6EZ1": {
-    "roll_date": "2021-09-08",
-    "offset": null
+    "roll_date": "2021-09-10",
+    "offset": 0.00225
   },
   "6EH2": {
-    "roll_date": "2021-12-08",
-    "offset": null
+    "roll_date": "2021-12-10",
+    "offset": 0.0026
   },
   "6EM2": {
-    "roll_date": "2022-03-09",
-    "offset": null
+    "roll_date": "2022-03-11",
+    "offset": 0.00365
   },
   "6EU2": {
-    "roll_date": "2022-06-08",
-    "offset": null
+    "roll_date": "2022-06-10",
+    "offset": 0.0061
   },
   "6EZ2": {
-    "roll_date": "2022-09-14",
-    "offset": null
+    "roll_date": "2022-09-16",
+    "offset": 0.00655
   },
   "6EH3": {
-    "roll_date": "2022-12-14",
-    "offset": null
+    "roll_date": "2022-12-16",
+    "offset": 0.00695
   },
   "6EM3": {
-    "roll_date": "2023-03-08",
-    "offset": null
+    "roll_date": "2023-03-09",
+    "offset": 0.00635
   },
   "6EU3": {
-    "roll_date": "2023-06-14",
-    "offset": null
+    "roll_date": "2023-06-15",
+    "offset": 0.00525
   },
   "6EZ3": {
-    "roll_date": "2023-09-13",
-    "offset": null
+    "roll_date": "2023-09-15",
+    "offset": 0.00425
   },
   "6EH4": {
-    "roll_date": "2023-12-13",
-    "offset": null
+    "roll_date": "2023-12-15",
+    "offset": 0.0043
   },
   "6EM4": {
-    "roll_date": "2024-03-13",
-    "offset": null
+    "roll_date": "2024-03-15",
+    "offset": 0.00405
   },
   "6EU4": {
-    "roll_date": "2024-06-12",
-    "offset": null
+    "roll_date": "2024-06-14",
+    "offset": 0.00465
   },
   "6EZ4": {
-    "roll_date": "2024-09-11",
-    "offset": null
+    "roll_date": "2024-09-13",
+    "offset": 0.00415
   },
   "6EH5": {
     "roll_date": "2024-12-11",
-    "offset": null
+    "offset": 0.0045
   },
   "6EM5": {
-    "roll_date": "2025-03-12",
-    "offset": null
+    "roll_date": "2025-03-14",
+    "offset": 0.0054
   },
   "6EU5": {
-    "roll_date": "2025-06-11",
-    "offset": null
+    "roll_date": "2025-06-13",
+    "offset": 0.00695
   },
   "6EZ5": {
-    "roll_date": "2025-09-10",
-    "offset": null
+    "roll_date": "2025-09-12",
+    "offset": 0.00615
   },
   "6EH6": {
-    "roll_date": "2025-12-10",
-    "offset": null
+    "roll_date": "2025-12-12",
+    "offset": 0.0054
   },
   "6EM6": {
-    "roll_date": "2026-03-11",
-    "offset": null
+    "roll_date": "2026-03-13",
+    "offset": 0.0049
   },
   "6EU6": {
-    "roll_date": "2026-06-10",
-    "offset": null
+    "roll_date": "2026-06-12",
+    "offset": 0.0042
   },
   "6EZ6": {
-    "roll_date": "2026-09-09",
+    "roll_date": "2026-09-11",
     "offset": null
   },
   "6EH7": {
-    "roll_date": "2026-12-09",
+    "roll_date": "2026-12-11",
     "offset": null
   },
   "6EM7": {
-    "roll_date": "2027-03-10",
+    "roll_date": "2027-03-12",
     "offset": null
   },
   "6EU7": {
-    "roll_date": "2027-06-09",
+    "roll_date": "2027-06-11",
     "offset": null
   },
   "6EZ7": {
-    "roll_date": "2027-09-08",
+    "roll_date": "2027-09-13",
     "offset": null
   },
   "6EH8": {
-    "roll_date": "2027-12-08",
+    "roll_date": "2027-12-10",
     "offset": null
   },
   "6EM8": {
-    "roll_date": "2028-03-08",
+    "roll_date": "2028-03-10",
     "offset": null
   },
   "6EU8": {

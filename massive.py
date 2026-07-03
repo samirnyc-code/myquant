@@ -558,7 +558,18 @@ def _instr_build_contract_bars(key: str, contract: InstContract) -> bool:
     Returns True if any bars were written.
     """
     cache_dir = _instr_gz_cache_dir(key)
-    from_date = date.fromisoformat(contract.active_from)
+    # Start from the EARLIER of the catalog default and the actual NT roll date.
+    # Some instruments (esp. GC) roll ~a month before expiry, so the catalog's
+    # expiry-minus-roll_days default starts a contract's bars well after it has
+    # already become front — leaving holes the thin expiring contract can't fill.
+    from_dates = [date.fromisoformat(contract.active_from)]
+    _roll_str = _instr_get_roll_date(contract.ticker, _instr_load_rolls(key), key)
+    if _roll_str:
+        try:
+            from_dates.append(date.fromisoformat(_roll_str))
+        except ValueError:
+            pass
+    from_date = min(from_dates)
     to_date   = min(date.fromisoformat(contract.last_trade), date.today())
 
     s3 = _make_s3() if key != "NQ" else None
@@ -705,6 +716,21 @@ def build_all_instr_continuous_ticks(
                 built += 1
         d += timedelta(days=1)
     return built
+
+
+def load_instr_continuous_ticks(key: str, d: date) -> pd.DataFrame:
+    """Read a previously-built day's back-adjusted continuous ticks for `key`.
+    Mirror of load_continuous_ticks(d) for ES. Empty frame if not built."""
+    p = _instr_ticks_continuous_path(key, d)
+    if p.exists():
+        return pd.read_parquet(p)
+    return pd.DataFrame(columns=["DateTime", "Price", "Volume"])
+
+
+def instr_tick_days(key: str) -> list[str]:
+    """ISO dates that have a cached continuous-tick file for `key`."""
+    d = _instr_ticks_cont_dir(key)
+    return sorted(f.stem for f in d.glob("*.parquet")) if d.exists() else []
 
 
 def _show_instrument_section(key: str) -> None:

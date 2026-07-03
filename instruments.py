@@ -75,7 +75,7 @@ INSTRUMENTS: dict[str, InstrumentSpec] = {
         root="GC", massive_root="GC",
         exchange="comex", s3_prefix="us_futures_comex/trades_v1",
         gz_subdir="flatfiles_cache_comex",
-        months=(2, 4, 6, 8, 10, 12),        # bimonthly delivery months
+        months=(2, 4, 6, 8, 12),            # G,J,M,Q,Z — NT rolls Aug→Dec, SKIPS Oct(V)
         roll_days=5,
         start_year=2021, start_month=8,     # GCQ1 (Aug 2021)
     ),
@@ -306,27 +306,41 @@ def apply_back_adjustment(
     """
     Panama back-adjustment for any instrument.
     Newest contract is the anchor (no shift); older contracts are shifted up/down.
+
+    Priority-stitch (not hard window-slicing): every contract contributes its bars
+    from its roll date onward (offset already applied). For each timestamp we keep
+    the row from the front-most contract that actually HAS data — i.e. the one with
+    the latest roll date present. This fills roll-boundary gaps where the incoming
+    contract's bars start a day or two after its roll: the still-trading outgoing
+    contract (already back-adjusted, so price-continuous) seamlessly covers them.
     """
-    windows  = get_contract_windows(key, rolls)
-    segments = []
+    windows = get_contract_windows(key, rolls)
+    frames  = []
 
     for w in windows:
-        if w["ticker"] not in bars_by_ticker:
+        tk = w["ticker"]
+        if tk not in bars_by_ticker:
             continue
-        df = bars_by_ticker[w["ticker"]].copy()
+        df = bars_by_ticker[tk].copy()
+        # A contract only contributes once it has become front (its roll date);
+        # earlier ticks still belong to the previous front month.
         df = df[df["DateTime"].dt.date >= w["start"]]
-        if w["end"] is not None:
-            df = df[df["DateTime"].dt.date < w["end"]]
+        if df.empty:
+            continue
         if w["cum_offset"] != 0.0:
             for col in ("Open", "High", "Low", "Close"):
                 if col in df.columns:
                     df[col] = (df[col] + w["cum_offset"]).round(4)
-        df["Contract"] = w["ticker"]
-        segments.append(df)
+        df["Contract"]   = tk
+        df["_roll_rank"] = w["start"]   # later roll date = higher priority
+        frames.append(df)
 
-    if not segments:
+    if not frames:
         return pd.DataFrame()
 
-    result = pd.concat(segments, ignore_index=True)
+    result = pd.concat(frames, ignore_index=True)
+    # Per timestamp: keep the highest-priority contract that has a bar there.
+    result.sort_values(["DateTime", "_roll_rank"], inplace=True)
+    result = result.drop_duplicates("DateTime", keep="last").drop(columns="_roll_rank")
     result.sort_values("DateTime", inplace=True, ignore_index=True)
     return result

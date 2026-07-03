@@ -10,6 +10,8 @@ data/nt_import/
 data/ticks_continuous/
 data/ticks_continuous_*/
 data/_instr_download.log
+data/_*.log
+data/_tmp_probe/
 data/massive_cache/
 data/wfa_store/
 saved_signals/

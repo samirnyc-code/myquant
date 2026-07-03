@@ -1,98 +1,98 @@
 {
   "YMU1": {
-    "roll_date": "2021-06-19",
-    "offset": null
+    "roll_date": "2021-06-10",
+    "offset": -107.0
   },
   "YMZ1": {
-    "roll_date": "2021-09-10",
-    "offset": null
+    "roll_date": "2021-09-09",
+    "offset": -108.0
   },
   "YMH2": {
-    "roll_date": "2021-12-10",
-    "offset": null
+    "roll_date": "2021-12-09",
+    "offset": -87.0
   },
   "YMM2": {
-    "roll_date": "2022-03-11",
-    "offset": null
+    "roll_date": "2022-03-10",
+    "offset": -106.0
   },
   "YMU2": {
-    "roll_date": "2022-06-10",
-    "offset": null
+    "roll_date": "2022-06-09",
+    "offset": -10.0
   },
   "YMZ2": {
-    "roll_date": "2022-09-09",
-    "offset": null
+    "roll_date": "2022-09-08",
+    "offset": 92.0
   },
   "YMH3": {
-    "roll_date": "2022-12-09",
-    "offset": null
+    "roll_date": "2022-12-12",
+    "offset": 235.0
   },
   "YMM3": {
-    "roll_date": "2023-03-10",
-    "offset": null
+    "roll_date": "2023-03-13",
+    "offset": 238.0
   },
   "YMU3": {
-    "roll_date": "2023-06-09",
-    "offset": null
+    "roll_date": "2023-06-12",
+    "offset": 303.0
   },
   "YMZ3": {
-    "roll_date": "2023-09-08",
-    "offset": null
+    "roll_date": "2023-09-11",
+    "offset": 327.0
   },
   "YMH4": {
-    "roll_date": "2023-12-08",
-    "offset": null
+    "roll_date": "2023-12-11",
+    "offset": 360.0
   },
   "YMM4": {
-    "roll_date": "2024-03-08",
-    "offset": null
+    "roll_date": "2024-03-11",
+    "offset": 443.0
   },
   "YMU4": {
-    "roll_date": "2024-06-14",
-    "offset": null
+    "roll_date": "2024-06-17",
+    "offset": 400.0
   },
   "YMZ4": {
-    "roll_date": "2024-09-13",
-    "offset": null
+    "roll_date": "2024-09-16",
+    "offset": 391.0
   },
   "YMH5": {
-    "roll_date": "2024-12-13",
-    "offset": null
+    "roll_date": "2024-12-16",
+    "offset": 473.0
   },
   "YMM5": {
-    "roll_date": "2025-03-14",
-    "offset": null
+    "roll_date": "2025-03-17",
+    "offset": 338.0
   },
   "YMU5": {
-    "roll_date": "2025-06-13",
-    "offset": null
+    "roll_date": "2025-06-16",
+    "offset": 313.0
   },
   "YMZ5": {
-    "roll_date": "2025-09-12",
-    "offset": null
+    "roll_date": "2025-09-15",
+    "offset": 339.0
   },
   "YMH6": {
-    "roll_date": "2025-12-12",
-    "offset": null
+    "roll_date": "2025-12-15",
+    "offset": 391.0
   },
   "YMM6": {
-    "roll_date": "2026-03-13",
-    "offset": null
+    "roll_date": "2026-03-16",
+    "offset": 290.0
   },
   "YMU6": {
     "roll_date": "2026-06-12",
-    "offset": null
+    "offset": 378.0
   },
   "YMZ6": {
-    "roll_date": "2026-09-11",
+    "roll_date": "2026-09-18",
     "offset": null
   },
   "YMH7": {
-    "roll_date": "2026-12-11",
+    "roll_date": "2026-12-18",
     "offset": null
   },
   "YMM7": {
-    "roll_date": "2027-03-12",
+    "roll_date": "2027-03-19",
     "offset": null
   },
   "YMU7": {

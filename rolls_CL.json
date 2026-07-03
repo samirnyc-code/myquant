@@ -1,298 +1,298 @@
 {
   "CLQ1": {
-    "roll_date": "2021-04-24",
-    "offset": null
+    "roll_date": "2021-06-17",
+    "offset": -0.21
   },
   "CLU1": {
-    "roll_date": "2021-07-19",
-    "offset": null
+    "roll_date": "2021-07-15",
+    "offset": -0.5
   },
   "CLV1": {
-    "roll_date": "2021-08-20",
-    "offset": null
+    "roll_date": "2021-08-17",
+    "offset": -0.26
   },
   "CLX1": {
-    "roll_date": "2021-09-20",
-    "offset": null
+    "roll_date": "2021-09-16",
+    "offset": -0.31
   },
   "CLZ1": {
-    "roll_date": "2021-10-18",
-    "offset": null
+    "roll_date": "2021-10-15",
+    "offset": -0.52
   },
   "CLF2": {
-    "roll_date": "2021-11-20",
-    "offset": null
+    "roll_date": "2021-11-16",
+    "offset": -1.15
   },
   "CLG2": {
-    "roll_date": "2021-12-20",
-    "offset": null
+    "roll_date": "2021-12-15",
+    "offset": -0.21
   },
   "CLH2": {
-    "roll_date": "2022-01-20",
-    "offset": null
+    "roll_date": "2022-01-17",
+    "offset": -0.64
   },
   "CLJ2": {
-    "roll_date": "2022-02-20",
-    "offset": null
+    "roll_date": "2022-02-17",
+    "offset": -1.76
   },
   "CLK2": {
-    "roll_date": "2022-03-20",
-    "offset": null
+    "roll_date": "2022-03-17",
+    "offset": -1.43
   },
   "CLM2": {
-    "roll_date": "2022-04-18",
-    "offset": null
+    "roll_date": "2022-04-15",
+    "offset": -0.49
   },
   "CLN2": {
-    "roll_date": "2022-05-20",
-    "offset": null
+    "roll_date": "2022-05-17",
+    "offset": -2.32
   },
   "CLQ2": {
-    "roll_date": "2022-06-20",
-    "offset": null
+    "roll_date": "2022-06-16",
+    "offset": -2.25
   },
   "CLU2": {
-    "roll_date": "2022-07-18",
-    "offset": null
+    "roll_date": "2022-07-15",
+    "offset": -2.92
   },
   "CLV2": {
-    "roll_date": "2022-08-20",
-    "offset": null
+    "roll_date": "2022-08-17",
+    "offset": -0.47
   },
   "CLX2": {
-    "roll_date": "2022-09-19",
-    "offset": null
+    "roll_date": "2022-09-15",
+    "offset": -0.48
   },
   "CLZ2": {
-    "roll_date": "2022-10-20",
-    "offset": null
+    "roll_date": "2022-10-17",
+    "offset": -1.01
   },
   "CLF3": {
-    "roll_date": "2022-11-20",
-    "offset": null
+    "roll_date": "2022-11-16",
+    "offset": -0.64
   },
   "CLG3": {
-    "roll_date": "2022-12-19",
-    "offset": null
+    "roll_date": "2022-12-15",
+    "offset": 0.03
   },
   "CLH3": {
-    "roll_date": "2023-01-20",
-    "offset": null
+    "roll_date": "2023-01-17",
+    "offset": 0.25
   },
   "CLJ3": {
-    "roll_date": "2023-02-20",
-    "offset": null
+    "roll_date": "2023-02-16",
+    "offset": 0.21
   },
   "CLK3": {
-    "roll_date": "2023-03-20",
-    "offset": null
+    "roll_date": "2023-03-16",
+    "offset": 0.15
   },
   "CLM3": {
-    "roll_date": "2023-04-20",
-    "offset": null
+    "roll_date": "2023-04-17",
+    "offset": -0.09
   },
   "CLN3": {
-    "roll_date": "2023-05-20",
-    "offset": null
+    "roll_date": "2023-05-17",
+    "offset": 0.0
   },
   "CLQ3": {
-    "roll_date": "2023-06-19",
-    "offset": null
+    "roll_date": "2023-06-15",
+    "offset": 0.19
   },
   "CLU3": {
-    "roll_date": "2023-07-20",
-    "offset": null
+    "roll_date": "2023-07-17",
+    "offset": -0.07
   },
   "CLV3": {
-    "roll_date": "2023-08-20",
-    "offset": null
+    "roll_date": "2023-08-17",
+    "offset": -0.36
   },
   "CLX3": {
-    "roll_date": "2023-09-18",
-    "offset": null
+    "roll_date": "2023-09-15",
+    "offset": -0.57
   },
   "CLZ3": {
-    "roll_date": "2023-10-20",
-    "offset": null
+    "roll_date": "2023-10-17",
+    "offset": -1.4
   },
   "CLF4": {
-    "roll_date": "2023-11-20",
-    "offset": null
+    "roll_date": "2023-11-16",
+    "offset": 0.09
   },
   "CLG4": {
-    "roll_date": "2023-12-18",
-    "offset": null
+    "roll_date": "2023-12-15",
+    "offset": 0.33
   },
   "CLH4": {
-    "roll_date": "2024-01-20",
-    "offset": null
+    "roll_date": "2024-01-17",
+    "offset": 0.1
   },
   "CLJ4": {
-    "roll_date": "2024-02-19",
-    "offset": null
+    "roll_date": "2024-02-15",
+    "offset": -0.28
   },
   "CLK4": {
-    "roll_date": "2024-03-18",
-    "offset": null
+    "roll_date": "2024-03-15",
+    "offset": -0.59
   },
   "CLM4": {
-    "roll_date": "2024-04-20",
-    "offset": null
+    "roll_date": "2024-04-17",
+    "offset": -0.53
   },
   "CLN4": {
-    "roll_date": "2024-05-20",
-    "offset": null
+    "roll_date": "2024-05-16",
+    "offset": -0.48
   },
   "CLQ4": {
-    "roll_date": "2024-06-20",
-    "offset": null
+    "roll_date": "2024-06-17",
+    "offset": -0.42
   },
   "CLU4": {
-    "roll_date": "2024-07-20",
-    "offset": null
+    "roll_date": "2024-07-17",
+    "offset": -1.06
   },
   "CLV4": {
-    "roll_date": "2024-08-19",
-    "offset": null
+    "roll_date": "2024-08-15",
+    "offset": -1.24
   },
   "CLX4": {
-    "roll_date": "2024-09-20",
-    "offset": null
+    "roll_date": "2024-09-17",
+    "offset": -1.18
   },
   "CLZ4": {
-    "roll_date": "2024-10-20",
-    "offset": null
+    "roll_date": "2024-10-17",
+    "offset": -0.61
   },
   "CLF5": {
-    "roll_date": "2024-11-18",
-    "offset": null
+    "roll_date": "2024-11-15",
+    "offset": -0.19
   },
   "CLG5": {
-    "roll_date": "2024-12-20",
-    "offset": null
+    "roll_date": "2024-12-17",
+    "offset": -0.42
   },
   "CLH5": {
-    "roll_date": "2025-01-20",
-    "offset": null
+    "roll_date": "2025-01-16",
+    "offset": -1.35
   },
   "CLJ5": {
-    "roll_date": "2025-02-20",
-    "offset": null
+    "roll_date": "2025-02-17",
+    "offset": -0.01
   },
   "CLK5": {
-    "roll_date": "2025-03-20",
-    "offset": null
+    "roll_date": "2025-03-17",
+    "offset": -0.26
   },
   "CLM5": {
-    "roll_date": "2025-04-20",
-    "offset": null
+    "roll_date": "2025-04-17",
+    "offset": -0.66
   },
   "CLN5": {
-    "roll_date": "2025-05-19",
-    "offset": null
+    "roll_date": "2025-05-15",
+    "offset": -0.46
   },
   "CLQ5": {
-    "roll_date": "2025-06-20",
-    "offset": null
+    "roll_date": "2025-06-17",
+    "offset": -1.43
   },
   "CLU5": {
-    "roll_date": "2025-07-20",
-    "offset": null
+    "roll_date": "2025-07-17",
+    "offset": -1.25
   },
   "CLV5": {
-    "roll_date": "2025-08-18",
-    "offset": null
+    "roll_date": "2025-08-15",
+    "offset": -0.91
   },
   "CLX5": {
-    "roll_date": "2025-09-20",
-    "offset": null
+    "roll_date": "2025-09-17",
+    "offset": -0.37
   },
   "CLZ5": {
-    "roll_date": "2025-10-20",
-    "offset": null
+    "roll_date": "2025-10-16",
+    "offset": -0.45
   },
   "CLF6": {
-    "roll_date": "2025-11-20",
-    "offset": null
+    "roll_date": "2025-11-17",
+    "offset": -0.14
   },
   "CLG6": {
-    "roll_date": "2025-12-20",
-    "offset": null
+    "roll_date": "2025-12-16",
+    "offset": -0.15
   },
   "CLH6": {
-    "roll_date": "2026-01-19",
-    "offset": null
+    "roll_date": "2026-01-15",
+    "offset": -0.14
   },
   "CLJ6": {
-    "roll_date": "2026-02-20",
-    "offset": null
+    "roll_date": "2026-02-17",
+    "offset": -0.17
   },
   "CLK6": {
-    "roll_date": "2026-03-20",
-    "offset": null
+    "roll_date": "2026-03-17",
+    "offset": -0.99
   },
   "CLM6": {
-    "roll_date": "2026-04-20",
-    "offset": null
+    "roll_date": "2026-04-16",
+    "offset": -3.27
   },
   "CLN6": {
-    "roll_date": "2026-05-18",
-    "offset": null
+    "roll_date": "2026-05-14",
+    "offset": -4.24
   },
   "CLQ6": {
-    "roll_date": "2026-06-20",
-    "offset": null
+    "roll_date": "2026-06-17",
+    "offset": -0.79
   },
   "CLU6": {
-    "roll_date": "2026-07-20",
+    "roll_date": "2026-07-16",
     "offset": null
   },
   "CLV6": {
-    "roll_date": "2026-08-20",
+    "roll_date": "2026-08-17",
     "offset": null
   },
   "CLX6": {
-    "roll_date": "2026-09-20",
+    "roll_date": "2026-09-17",
     "offset": null
   },
   "CLZ6": {
-    "roll_date": "2026-10-19",
+    "roll_date": "2026-10-15",
     "offset": null
   },
   "CLF7": {
-    "roll_date": "2026-11-20",
+    "roll_date": "2026-11-17",
     "offset": null
   },
   "CLG7": {
-    "roll_date": "2026-12-20",
+    "roll_date": "2026-12-16",
     "offset": null
   },
   "CLH7": {
-    "roll_date": "2027-01-18",
+    "roll_date": "2027-01-15",
     "offset": null
   },
   "CLJ7": {
-    "roll_date": "2027-02-20",
+    "roll_date": "2027-02-17",
     "offset": null
   },
   "CLK7": {
-    "roll_date": "2027-03-20",
+    "roll_date": "2027-03-17",
     "offset": null
   },
   "CLM7": {
-    "roll_date": "2027-04-19",
+    "roll_date": "2027-04-15",
     "offset": null
   },
   "CLN7": {
-    "roll_date": "2027-05-20",
+    "roll_date": "2027-05-17",
     "offset": null
   },
   "CLQ7": {
-    "roll_date": "2027-06-20",
+    "roll_date": "2027-06-17",
     "offset": null
   },
   "CLU7": {
-    "roll_date": "2027-07-19",
+    "roll_date": "2027-07-15",
     "offset": null
   },
   "CLV7": {
@@ -300,35 +300,35 @@
     "offset": null
   },
   "CLX7": {
-    "roll_date": "2027-09-20",
+    "roll_date": "2027-09-21",
     "offset": null
   },
   "CLZ7": {
-    "roll_date": "2027-10-18",
+    "roll_date": "2027-10-20",
     "offset": null
   },
   "CLF8": {
-    "roll_date": "2027-11-20",
+    "roll_date": "2027-11-16",
     "offset": null
   },
   "CLG8": {
-    "roll_date": "2027-12-20",
+    "roll_date": "2027-12-15",
     "offset": null
   },
   "CLH8": {
-    "roll_date": "2028-01-20",
+    "roll_date": "2028-01-17",
     "offset": null
   },
   "CLJ8": {
-    "roll_date": "2028-02-20",
+    "roll_date": "2028-02-17",
     "offset": null
   },
   "CLK8": {
-    "roll_date": "2028-03-20",
+    "roll_date": "2028-03-16",
     "offset": null
   },
   "CLM8": {
-    "roll_date": "2028-04-20",
+    "roll_date": "2028-04-17",
     "offset": null
   },
   "CLN8": {

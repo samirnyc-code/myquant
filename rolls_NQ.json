@@ -1,114 +1,114 @@
 {
   "NQU1": {
-    "roll_date": "2021-06-19",
-    "offset": null
+    "roll_date": "2021-06-10",
+    "offset": -11.0
   },
   "NQZ1": {
-    "roll_date": "2021-09-10",
-    "offset": null
+    "roll_date": "2021-09-09",
+    "offset": -11.25
   },
   "NQH2": {
-    "roll_date": "2021-12-10",
-    "offset": null
+    "roll_date": "2021-12-09",
+    "offset": 0.5
   },
   "NQM2": {
-    "roll_date": "2022-03-11",
-    "offset": null
+    "roll_date": "2022-03-10",
+    "offset": -4.0
   },
   "NQU2": {
-    "roll_date": "2022-06-10",
-    "offset": null
+    "roll_date": "2022-06-09",
+    "offset": 34.75
   },
   "NQZ2": {
-    "roll_date": "2022-09-09",
-    "offset": null
+    "roll_date": "2022-09-08",
+    "offset": 76.5
   },
   "NQH3": {
-    "roll_date": "2022-12-09",
-    "offset": null
+    "roll_date": "2022-12-12",
+    "offset": 111.25
   },
   "NQM3": {
-    "roll_date": "2023-03-10",
-    "offset": null
+    "roll_date": "2023-03-13",
+    "offset": 130.25
   },
   "NQU3": {
-    "roll_date": "2023-06-09",
-    "offset": null
+    "roll_date": "2023-06-12",
+    "offset": 176.5
   },
   "NQZ3": {
-    "roll_date": "2023-09-08",
-    "offset": null
+    "roll_date": "2023-09-11",
+    "offset": 197.25
   },
   "NQH4": {
-    "roll_date": "2023-12-08",
-    "offset": null
+    "roll_date": "2023-12-11",
+    "offset": 209.75
   },
   "NQM4": {
-    "roll_date": "2024-03-08",
-    "offset": null
+    "roll_date": "2024-03-11",
+    "offset": 247.5
   },
   "NQU4": {
-    "roll_date": "2024-06-14",
-    "offset": null
+    "roll_date": "2024-06-17",
+    "offset": 260.75
   },
   "NQZ4": {
-    "roll_date": "2024-09-13",
-    "offset": null
+    "roll_date": "2024-09-16",
+    "offset": 235.0
   },
   "NQH5": {
-    "roll_date": "2024-12-13",
-    "offset": null
+    "roll_date": "2024-12-16",
+    "offset": 286.0
   },
   "NQM5": {
-    "roll_date": "2025-03-14",
-    "offset": null
+    "roll_date": "2025-03-17",
+    "offset": 203.5
   },
   "NQU5": {
-    "roll_date": "2025-06-13",
-    "offset": null
+    "roll_date": "2025-06-16",
+    "offset": 214.5
   },
   "NQZ5": {
-    "roll_date": "2025-09-12",
-    "offset": null
+    "roll_date": "2025-09-15",
+    "offset": 237.5
   },
   "NQH6": {
-    "roll_date": "2025-12-12",
-    "offset": null
+    "roll_date": "2025-12-15",
+    "offset": 256.5
   },
   "NQM6": {
-    "roll_date": "2026-03-13",
-    "offset": null
+    "roll_date": "2026-03-16",
+    "offset": 208.75
   },
   "NQU6": {
     "roll_date": "2026-06-12",
-    "offset": null
+    "offset": 282.25
   },
   "NQZ6": {
-    "roll_date": "2026-09-11",
+    "roll_date": "2026-09-16",
     "offset": null
   },
   "NQH7": {
-    "roll_date": "2026-12-11",
+    "roll_date": "2026-12-18",
     "offset": null
   },
   "NQM7": {
-    "roll_date": "2027-03-12",
+    "roll_date": "2027-03-09",
     "offset": null
   },
   "NQU7": {
-    "roll_date": "2027-06-11",
+    "roll_date": "2027-06-07",
     "offset": null
   },
   "NQZ7": {
-    "roll_date": "2027-09-10",
+    "roll_date": "2027-09-15",
+    "offset": null
+  },
+  "NQM8": {
+    "roll_date": "2028-03-16",
     "offset": null
   },
   "NQH8": {
     "roll_date": "2027-12-10",
-    "offset": null
-  },
-  "NQM8": {
-    "roll_date": "2028-03-10",
     "offset": null
   },
   "NQU8": {
