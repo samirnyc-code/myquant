@@ -276,6 +276,123 @@ def apply_alwaysin_filters(df: pd.DataFrame, mode: str, near_n: int = 1) -> pd.D
     return df
 
 
+def merge_stoch_overlay(signals: pd.DataFrame) -> pd.DataFrame:
+    """Attach the stochastic (%K/%D) reading to each signal from the MyStochasticExporter CSV.
+
+    The CSV is one row per 5M bar (DateTime close-stamped in CT), columns
+    DateTime,Open,High,Low,Close,K,D,KSignalUp,KSignalDn,ZoneSignal. We do the
+    proven backward as-of join (`searchsorted(side="right")-1`) so each signal
+    inherits the reading known AT its own bar's close — look-ahead-safe, same
+    convention as merge_zlo_overlay / merge_alwaysin_overlay.
+
+    Adds, at the ENTRY bar (all look-ahead-safe, usable as entry filters):
+      STO_K, STO_D                 %K / %D at the signal bar
+      STO_KSignalUp, STO_KSignalDn OB/OS zone flags (1/0) from the indicator
+      STO_ZoneSignal               +1 bull / -1 bear filtered reversal bar / 0
+      STO_Zone                     "OB" (K>=OB) / "OS" (K<=OS) / "mid"
+      STO_KoverD                   True when K >= D at entry (bull cross state)
+      STO_KslopeUp                 True when K rose from the prior bar
+
+    Trajectory — the run-up leading INTO the trade (still <= entry bar, safe):
+      STO_K_lag1..3, STO_D_lag1..3 %K/%D on the 1/2/3 prior 5M bars
+
+    Failure-ID — the bar AFTER entry (⚠️ LOOK-AHEAD; diagnostic / exit-rule only,
+    never an entry filter):
+      STO_K_next, STO_D_next       %K/%D on the bar after the signal bar
+
+    Thresholds for STO_Zone come from the exporter's own OS/OB (20/80) reproduced
+    here as constants; the raw K/D are exported so any threshold can be swept.
+    """
+    sto = st.session_state.get("ba_stoch")
+    if sto is None or signals.empty:
+        return signals
+    sto = sto.sort_values("DateTime").reset_index(drop=True)
+    sto_dt = pd.to_datetime(sto["DateTime"])
+    sig_dt = pd.to_datetime(signals["DateTime"])
+
+    idx = sto_dt.searchsorted(sig_dt, side="right") - 1   # governing bar per signal (ndarray)
+    pre = idx < 0                                          # signals before the overlay starts
+    n = len(sto)
+    idx_c = np.clip(idx, 0, n - 1)
+
+    def _col(name, offset=0):
+        j = np.clip(idx_c + offset, 0, n - 1)
+        vals = sto[name].to_numpy()[j].astype(float)
+        vals[pre] = np.nan
+        # out-of-range lags/leads (before first / after last bar) -> NaN
+        if offset < 0:
+            vals[(idx_c + offset) < 0] = np.nan
+        elif offset > 0:
+            vals[(idx_c + offset) > (n - 1)] = np.nan
+        return vals
+
+    signals = signals.copy()
+    signals["STO_K"] = _col("K")
+    signals["STO_D"] = _col("D")
+    signals["STO_KSignalUp"] = _col("KSignalUp")
+    signals["STO_KSignalDn"] = _col("KSignalDn")
+    signals["STO_ZoneSignal"] = _col("ZoneSignal")
+    for lag in (1, 2, 3):
+        signals[f"STO_K_lag{lag}"] = _col("K", -lag)
+        signals[f"STO_D_lag{lag}"] = _col("D", -lag)
+    signals["STO_K_next"] = _col("K", 1)      # ⚠️ look-ahead — diagnostic only
+    signals["STO_D_next"] = _col("D", 1)      # ⚠️ look-ahead — diagnostic only
+
+    _OS, _OB = 20.0, 80.0
+    k = signals["STO_K"]
+    signals["STO_Zone"] = np.where(k >= _OB, "OB",
+                            np.where(k <= _OS, "OS", "mid"))
+    signals.loc[k.isna(), "STO_Zone"] = np.nan
+    signals["STO_KoverD"] = signals["STO_K"] >= signals["STO_D"]
+    signals["STO_KslopeUp"] = signals["STO_K"] > signals["STO_K_lag1"]
+    return signals
+
+
+def apply_stoch_filters(
+    df: pd.DataFrame,
+    mode: str,
+    os_level: float,
+    ob_level: float,
+) -> pd.DataFrame:
+    """Mark FilterStatus for rows excluded by the stochastic gate (one mode at a time).
+
+    Modes (direction-aware; RevFT longs vs shorts treated symmetrically):
+      "Off"                    no gate
+      "Mean-reversion (fade extreme)"
+                               keep longs only when OVERSOLD (K <= os_level),
+                               shorts only when OVERBOUGHT (K >= ob_level)
+      "Momentum (with extreme)"
+                               keep longs only when OVERBOUGHT, shorts only when OVERSOLD
+      "K/D cross (with dir)"   keep longs when K >= D, shorts when K < D
+      "Reversal bar (ZoneSignal)"
+                               keep only bars the indicator flagged as a filtered
+                               reversal bar in the signal's direction (+1 long / -1 short)
+
+    All modes read entry-bar columns only (look-ahead-safe). The `_next` columns
+    are never consulted here.
+    """
+    if mode == "Off" or "STO_K" not in df.columns:
+        return df
+    ok = df["FilterStatus"] == "ok"
+    is_long = df["Direction"].astype(str).str.upper().str.startswith("L")
+    k = df["STO_K"]
+
+    if mode == "Mean-reversion (fade extreme)":
+        keep = ((is_long & (k <= os_level)) | (~is_long & (k >= ob_level)))
+        df.loc[ok & ~keep.fillna(False), "FilterStatus"] = "stoch_mr"
+    elif mode == "Momentum (with extreme)":
+        keep = ((is_long & (k >= ob_level)) | (~is_long & (k <= os_level)))
+        df.loc[ok & ~keep.fillna(False), "FilterStatus"] = "stoch_mom"
+    elif mode == "K/D cross (with dir)":
+        keep = ((is_long & df["STO_KoverD"]) | (~is_long & ~df["STO_KoverD"]))
+        df.loc[ok & ~keep.fillna(False), "FilterStatus"] = "stoch_cross"
+    elif mode == "Reversal bar (ZoneSignal)":
+        z = df["STO_ZoneSignal"]
+        keep = ((is_long & (z == 1)) | (~is_long & (z == -1)))
+        df.loc[ok & ~keep.fillna(False), "FilterStatus"] = "stoch_zone"
+    return df
+
+
 def apply_fade(df: pd.DataFrame) -> pd.DataFrame:
     """Fade every signal: trade the OPPOSITE direction at the same entry, with the
     stop reflected across the entry price. At 1:1 R:R this makes the original stop
@@ -4519,6 +4636,40 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
             ai_mode = "Off"
             ai_near_n = 1
 
+        # ── Stochastic Filter (only show if stoch overlay data is loaded) ────
+        _stoch_loaded = st.session_state.get("ba_stoch") is not None
+        if _stoch_loaded:
+            st.divider()
+            st.markdown("**Stochastic Filter** *(from MyStochasticExporter)*")
+            _stoch_modes = [
+                "Off",
+                "Mean-reversion (fade extreme)",
+                "Momentum (with extreme)",
+                "K/D cross (with dir)",
+                "Reversal bar (ZoneSignal)",
+            ]
+            stoch_mode = st.selectbox(
+                "Stoch gate", _stoch_modes, key="ba_stoch_mode",
+                help="Mean-reversion: longs only when oversold (K≤OS), shorts when overbought (K≥OB) "
+                     "— the RevFT reversal thesis. Momentum: the opposite. K/D cross: longs when K≥D, "
+                     "shorts when K<D. Reversal bar: only bars the indicator flagged (ZoneSignal ±1) "
+                     "in the signal's direction. All look-ahead-safe (entry bar only).")
+            sc1, sc2 = st.columns(2)
+            stoch_os = sc1.number_input(
+                "OS level", 0, 100,
+                int(st.session_state.get("ba_stoch_os", 20)),
+                key="ba_stoch_os",
+                help="Oversold threshold for the K level gates.")
+            stoch_ob = sc2.number_input(
+                "OB level", 0, 100,
+                int(st.session_state.get("ba_stoch_ob", 80)),
+                key="ba_stoch_ob",
+                help="Overbought threshold for the K level gates.")
+        else:
+            stoch_mode = "Off"
+            stoch_os = 20
+            stoch_ob = 80
+
     # ── Signals ───────────────────────────────────────────────────────────────
     with controls.expander("ba_signals_panel", "📶 Signals", expanded=False):
         # Signal-type filter — built dynamically from the loaded signals' own types,
@@ -5216,6 +5367,13 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         if ai_mode != "Off":
             filtered_signals = apply_alwaysin_filters(
                 filtered_signals, ai_mode, int(ai_near_n))
+
+    # Stochastic overlay merge + filter
+    if _stoch_loaded:
+        filtered_signals = merge_stoch_overlay(filtered_signals)
+        if stoch_mode != "Off":
+            filtered_signals = apply_stoch_filters(
+                filtered_signals, stoch_mode, float(stoch_os), float(stoch_ob))
 
     # Fade (reverse direction + mirror stop) — last, so all gates stay intact
     if fade_signals:

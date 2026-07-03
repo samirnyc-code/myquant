@@ -1248,6 +1248,28 @@ def main():
                 if st.session_state.get("ba_alwaysin") is not None:
                     st.caption(f"✅ (auto-loaded from disk)  |  {len(st.session_state['ba_alwaysin'])} flips")
 
+        # Stochastic (%K/%D) overlay
+        _STOCH_DISK = _SIGNALS_DIR / "ba_stoch_overlay.parquet"
+        with controls.expander("ba_stoch", "📊 Stochastic Overlay (optional)", expanded=False):
+            stoch_file = st.file_uploader(
+                "Stochastic export (.csv)", type=["csv"], key="upload_stoch",
+                help="CSV from NT MyStochasticExporter: DateTime,Open,High,Low,Close,K,D,KSignalUp,KSignalDn,ZoneSignal",
+            )
+            if stoch_file is not None:
+                stoch_key = f"{stoch_file.name}_{stoch_file.size}"
+                if st.session_state.get("ba_stoch_key") != stoch_key:
+                    stoch_df = pd.read_csv(stoch_file, parse_dates=["DateTime"])
+                    st.session_state["ba_stoch"] = stoch_df
+                    st.session_state["ba_stoch_key"] = stoch_key
+                    stoch_df.to_parquet(_STOCH_DISK, index=False)
+                if st.session_state.get("ba_stoch") is not None:
+                    st.caption(f"✅ {stoch_file.name}  |  {len(st.session_state['ba_stoch'])} bars")
+            else:
+                if "ba_stoch" not in st.session_state and _STOCH_DISK.exists():
+                    st.session_state["ba_stoch"] = pd.read_parquet(_STOCH_DISK)
+                if st.session_state.get("ba_stoch") is not None:
+                    st.caption(f"✅ (auto-loaded from disk)  |  {len(st.session_state['ba_stoch'])} bars")
+
         active_set = st.radio(
             "Active Signal Set",
             ["MC Signals", "RevFT Signals", "AMA Signals"],

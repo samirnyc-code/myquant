@@ -1,6 +1,6 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** June 30, 2026 (session 48)
+**Last Updated:** July 3, 2026 (session 50)
 **Current Versions:** SIM_v3.9 / GS_v4.5 / SHEET_v3.3 *(S32: Prop Sim overhaul — MC-sized payout buffer, monthly 80/20 payouts, ES/MES margin, never-blow floor de-risk + shock model, richer dashboard; MCBreakout pyramiding (N concurrent/dir) + ratchet-lock fix. S31: ZLO exporter + filters, MCBreakout stop fix + ER filter, ZLO sweeps, Auction feature library + tab (Dalton day types), Prop Sim DD-lock. S30: Prop Sim tab, Extras tab, 1M bars, NT strategy. S29: ESA into WFA, session filters, multi-TF, ER10. S28: ESA v2. S27: ESA Phase A. S24: critical slippage off-tick bugfix.)*
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 **Handoff hygiene (S20):** A competing handoff had grown in the `.claude/.../memory/` auto-memory folder and a new chat read *that* instead of this file. Fixed: added repo `CLAUDE.md` + rewrote `.claude` `MEMORY.md` to point here; deleted the duplicate session-state memories. **There is now ONE handoff: this file.**
@@ -53,6 +53,66 @@ race the same number, the **earlier-merged** note keeps it; the later one takes 
 - **Consecutive-cluster gate** — does requiring N same-dir signals improve quality? (S33 + `dir_streak` 4+ lead from 0001)
 - **Always-In (AID) as a sizer** — negative as a gate (S36); size-with/against-regime untested
 - **Pyramiding (N concurrent same-dir)** — does it beat a single entry? (S32 MCBreakout pyramiding)
+
+---
+
+## ⭐ SESSION 50 — July 3, 2026 — Stochastic (%K/%D) overlay: NT exporter + BA filter/discovery infra (read FIRST)
+*Goal (user): introduce a new stochastic indicator, join its %K/%D reading (from a CSV)
+onto RevFT signals, and hunt for an edge — as a filter AND as a winners-vs-losers
+discovery layer. Built the full ingest infra this session; the discovery script is the
+next step, pending a full-range CSV.*
+
+### NinjaScript (`nt8/indicators/`) — both committed
+- **NEW `MyStochasticExporter.cs`** — self-contained exporter. Recomputes %K/%D with the
+  EXACT math of `MyStochasticsColorwithSignal` (`nom=Close−MIN(Low,K)`, `den=MAX(High,K)−MIN(Low,K)`,
+  `K=100·SUM(nom,Smooth)/SUM(den,Smooth)`, `D=SMA(K,PeriodD)`) so it doesn't depend on that
+  indicator being on the chart. Also reproduces the two zone flags (`KSignalUp`=OS/long-ctx,
+  `KSignalDn`=OB/short-ctx) and the IBS+body-filtered reversal-bar signal (`ZoneSignal` +1 bull /
+  −1 bear). Writes one row per bar, **CT close-stamped**, header:
+  `DateTime,Open,High,Low,Close,K,D,KSignalUp,KSignalDn,ZoneSignal`. Accumulate + atomic write
+  on `Terminated` (ETHLevelsExporter pattern). **No `showLast200`; RTH filter optional (default off).**
+  Copied to NT8 Custom Indicators dir for compiling.
+- **COMMITTED `MyStochasticsColorwithSignal.cs`** — the source indicator (was only on the NT
+  machine → CLAUDE.md rule). `nt8/README.md` updated (both ✅ current).
+
+### App infra (Bar Analysis overlay — cloned from the ZLO/AlwaysIn pattern)
+- `app.py`: **📊 Stochastic Overlay** uploader → `ba_stoch` session key + auto-load
+  `saved_signals/ba_stoch_overlay.parquet`.
+- `bar_analysis.py` **`merge_stoch_overlay()`** — look-ahead-safe as-of join (`searchsorted(right)−1`).
+  Adds: entry-bar `STO_K/STO_D`, zone flags, `STO_Zone`, `STO_KoverD`, `STO_KslopeUp`; **trajectory**
+  `STO_K_lag1..3` / `STO_D_lag1..3`; **failure-ID** `STO_K_next`/`STO_D_next` (⚠️ LOOK-AHEAD —
+  diagnostic/exit-rule only, HARD-EXCLUDED from entry filters).
+- `bar_analysis.py` **`apply_stoch_filters()`** — modes: Mean-reversion (fade extreme),
+  Momentum (with extreme), K/D cross, Reversal bar (ZoneSignal); direction-aware; configurable OS/OB.
+- UI panel + pipeline wiring after the AID stage; `ui_controls` registers `ba_stoch`.
+
+### Indicator params + the K==D gotcha
+- Defaults: `PeriodK=8, Smooth=1, PeriodD=1, OS/OB=20/80, IBS=60, BodyDivisor=2.7`. Fast/noisy stoch.
+- ⚠️ **With `PeriodD=1`, D == K in every row** → `STO_D`, `STO_D_lag*`, and the "K/D cross" mode are
+  degenerate. For a real signal line + cross analysis, **re-export with `PeriodD=3`**.
+  **PENDING USER DECISION:** distinct %D (PeriodD=3) vs K-only first pass.
+
+### First real CSV (`ES_stoch.csv`) — findings
+- Schema + timezone correct (CT RTH grid 08:35→15:15); zone logic verified. **BOM present but pandas'
+  C-parser auto-strips it** — `parse_dates=["DateTime"]` works, no code fix needed.
+- ⚠️ **Coverage gap: June 1–15, then June 29 – July 3; June 16–26 MISSING.** Root cause: **NT's local
+  historical DB is a separate store from the myquant/Massive pipeline** — repo data work doesn't touch
+  the NT export. User is re-downloading **ES 09-26 (ESU6)** + rebuilding the continuous chart to fill it,
+  then re-exporting.
+- **Consistency rule reaffirmed (ties to Gate 2):** NT chart and app chart must match on **roll dates,
+  RTH definition, and signal price levels**. Useful slack: **stochastic K/D is invariant to Panama
+  back-adjust offset within a contract** (it's a normalized range position) — only the ~`PeriodK` bars
+  straddling each roll are sensitive to NT-vs-app offset differences. Absolute signal entry/stop levels
+  are NOT offset-invariant and must match exactly for the sim.
+
+### NEXT
+1. **User:** fill the June 16–26 gap in NT (download ES 09-26, reload historical, rebuild continuous),
+   decide `PeriodD` (1 vs 3), re-export full-range `ES_stoch.csv`.
+2. Upload in **📊 Stochastic Overlay**; sanity-check K/D at the roll boundaries.
+3. **Build `scripts/revft_stoch_study.py`** — winners-vs-losers discovery: entry K/D distributions,
+   lead-in slope (`lag1..3`), K–D cross state, `ZoneSignal` hit-rate, and `STO_K_next` roll-over as a
+   failure signal — joined to the sim's per-trade outcomes. Start with RevFT (per user).
+4. If an edge holds up, promote the winning cut into the stochastic filter panel.
 
 ---
 

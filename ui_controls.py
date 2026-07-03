@@ -66,6 +66,7 @@ EXPANDER_CATALOG: dict[str, list[tuple[str, str, str]]] = {
         ("ba_signals_revft",    "RevFTSignals (upload)",     "Upload / auto-load the RevFT signal set."),
         ("ba_zlo",              "ZLO Overlay",               "Optional ZeroLag oscillator overlay export (NT)."),
         ("ba_alwaysin",         "Always In State",           "Optional NT AlwaysIn flip-state overlay."),
+        ("ba_stoch",            "Stochastic Overlay",        "Optional NT stochastic %K/%D overlay export (MyStochasticExporter)."),
         ("ba_filters",          "Filters",                   "Date / session / setup filters applied to the signal set."),
         ("ba_signals_panel",    "Signals",                   "Active signal-set summary and selection."),
         ("ba_trading_params",   "Trading Parameters",        "Stop / target / scale-in parameters for the backtest."),
