@@ -1,33 +1,26 @@
-"""revft_stoch_study.py — winners-vs-losers discovery: RevFT signals vs Stochastic %K/%D.
+"""revft_stoch_study.py — RevFT signals × Stochastic discovery (v2).
 
-Source files:
-  • RevFT signals  : MyReversals Signal Export txt (DD/MM/YYYY, tab-delimited, comma prices)
-  • Stochastic CSV : ES_stoch.csv  (K/D from MyStochasticExporter, PeriodK=8, Smooth=1,
-                      PeriodD=1 -> D == K every bar; K/D-cross mode is degenerate)
+Analysis axes:
+  A. Filter mode x target matrix   (Off / MeanRev / Momentum / ZoneSignal / LocationEdge)
+  B. HOD/LOD location               (where in day's range signal fires, Long vs Short)
+  C. Time of day                    (Opening / Mid / Lunch / Afternoon)
+  D. K slope x Direction            (rising/falling K split within Longs vs Shorts)
+  E. Year x Direction               (2021 / 2022 / 2023 separately)
+  F. Location + Zone combos         (near-extreme + OS/OB zone intersection)
+  G. Standard stoch cuts            (K bins, zone x dir, ZoneSignal)
+  H. Year stability for best combos
 
-Join method: causal as-of join (searchsorted right-1) — same math as
-  `merge_stoch_overlay()` in bar_analysis.py.  STO_K_next is look-ahead / diagnostic only.
+Causal join: stoch bar T attached to signal at bar T (searchsorted right-1).
+Price basis: verified stop < entry for Longs, all ticks back-adjusted.
 
-Analysis cuts:
-  • STO_K binned in 10-point bands (0-10, 10-20, … 90-100)
-  • STO_Zone  (OS < 20 / mid / OB > 80)  × Direction
-  • STO_KoverD  (K > D at signal bar)      — degenerate when PeriodD=1, shown for future use
-  • STO_KslopeUp  (K rising over last bar)
-  • Lead-in slope  (K − K_lag3, quintile split)
-  • ZoneSignal hit-rate
-  • Signal type  (Sneaky / Trap / IB / OB / BO)  × STO_Zone
-  • Year-by-year stability on best zone cuts
-
-Run (MAIN venv):
+Run:
   c:/Users/Admin/myquant/.venv/Scripts/python.exe scripts/revft_stoch_study.py
-
-Out: docs/living/revft_stoch_study_<date>.md
 """
 from __future__ import annotations
 
 import re
 import sys
-from datetime import datetime
+from datetime import datetime, time as dtime
 from pathlib import Path
 
 import numpy as np
@@ -37,9 +30,9 @@ _ROOT = Path(__file__).resolve().parents[1]
 _MAIN = Path("c:/Users/Admin/myquant")
 sys.path.insert(0, str(_ROOT))
 
-import massive                                                        # noqa: E402
-massive._TICKS_CONT_DIR = _MAIN / "data" / "ticks_continuous"         # noqa: E402
-from simulation_engine import simulate_trades                         # noqa: E402
+import massive                                                         # noqa: E402
+massive._TICKS_CONT_DIR = _MAIN / "data" / "ticks_continuous"          # noqa: E402
+from simulation_engine import simulate_trades                          # noqa: E402
 
 # ── paths ──────────────────────────────────────────────────────────────────────
 _SIGNALS_TXT = Path(
@@ -49,11 +42,12 @@ _SIGNALS_TXT = Path(
 _STOCH_CSV = Path(
     r"C:\Users\Admin\Desktop\NT Code Versions\ChartMarker_Files\Data\Stoch\ES_stoch.csv"
 )
-_BARS      = _MAIN / "data" / "bars" / "_continuous.parquet"
-_OUT       = _ROOT / "docs" / "living"
+_BARS = _MAIN / "data" / "bars" / "_continuous.parquet"
+_OUT  = _ROOT / "docs" / "living"
 
 OS_LEVEL = 20.0
 OB_LEVEL = 80.0
+DATE_CAP = "2024-01-01"   # 2021-2023 only (tick cache fully clean for this range)
 
 BASE = dict(
     entry_slip=1, exit_slip=0, stop_offset=1, tick_value=12.5,
@@ -61,42 +55,33 @@ BASE = dict(
     ratchet_r=0.0, pb_round="nearest",
     multileg=False, threeleg=False, overrides=None,
 )
-TARGETS = [1.0, 2.0, 3.0]
+TARGETS = [0.5, 1.0, 1.5, 2.0, 3.0]
 
 
 def log(m: str) -> None:
     print(f"[stoch_study] {datetime.now():%H:%M:%S} {m}", flush=True)
 
 
-# ── parse RevFT signals text file ─────────────────────────────────────────────
+# ── parse RevFT signals ────────────────────────────────────────────────────────
 def parse_signals(path: Path) -> pd.DataFrame:
-    """Parse the MyReversals Signal Export text file.
-
-    Format (after 2-line header):
-        N  SignalType  Direction  DD/MM/YYYY HH:MM:SS  BarNum  Price  StopPx
-    Fields are separated by whitespace / tabs; prices may have comma thousands separators.
-    """
     rows = []
     with open(path, encoding="utf-8", errors="ignore") as fh:
         for line in fh:
             line = line.rstrip()
             if not line or line.startswith("-") or not line[0].isdigit():
                 continue
-            # Remove commas inside numbers (thousands separators)
             line = re.sub(r"(\d),(\d)", r"\1\2", line)
             parts = line.split()
             if len(parts) < 8:
                 continue
-            # parts: [N, Type, Dir, DD/MM/YYYY, HH:MM:SS, BarNum, SignalPx, StopPx]
             try:
-                sig_num  = int(parts[0])
-                sig_type = parts[1]
+                sig_num   = int(parts[0])
+                sig_type  = parts[1]
                 direction = parts[2]
-                dt_str   = f"{parts[3]} {parts[4]}"
-                dt       = datetime.strptime(dt_str, "%d/%m/%Y %H:%M:%S")
-                bar_num  = int(parts[5])
-                sig_px   = float(parts[6])
-                stop_px  = float(parts[7])
+                dt        = datetime.strptime(f"{parts[3]} {parts[4]}", "%d/%m/%Y %H:%M:%S")
+                bar_num   = int(parts[5])
+                sig_px    = float(parts[6])
+                stop_px   = float(parts[7])
             except (ValueError, IndexError):
                 continue
             rows.append(dict(
@@ -110,111 +95,171 @@ def parse_signals(path: Path) -> pd.DataFrame:
     return df.sort_values("DateTime").reset_index(drop=True)
 
 
-# ── load stochastic CSV ────────────────────────────────────────────────────────
+# ── load / join stoch ──────────────────────────────────────────────────────────
 def load_stoch(path: Path) -> pd.DataFrame:
-    stoch = pd.read_csv(path, parse_dates=["DateTime"])
-    stoch = stoch.sort_values("DateTime").reset_index(drop=True)
-    return stoch
+    return pd.read_csv(path, parse_dates=["DateTime"]).sort_values("DateTime").reset_index(drop=True)
 
 
-# ── as-of join (look-ahead-safe) ───────────────────────────────────────────────
 def join_stoch(signals: pd.DataFrame, stoch: pd.DataFrame) -> pd.DataFrame:
-    """Attach the stochastic reading active at each signal bar (bar T, not T+1)."""
-    sto_dt  = stoch["DateTime"].values.astype("datetime64[ns]")
-    sig_dt  = signals["DateTime"].values.astype("datetime64[ns]")
+    sto_dt = stoch["DateTime"].values.astype("datetime64[ns]")
+    sig_dt = signals["DateTime"].values.astype("datetime64[ns]")
+    idx    = np.searchsorted(sto_dt, sig_dt, side="right") - 1
+    valid  = idx >= 0
 
-    # idx[i] = last stoch bar index whose DateTime <= signal DateTime
-    # (side="right" gives first index > sig_dt, minus 1 = last index <= sig_dt)
-    idx     = np.searchsorted(sto_dt, sig_dt, side="right") - 1
-    valid   = idx >= 0
-
-    k_arr   = stoch["K"].values
-    d_arr   = stoch["D"].values
-    ks_arr  = stoch["KSignalUp"].values.astype(float)
-    kd_arr  = stoch["KSignalDn"].values.astype(float)
-    zs_arr  = stoch["ZoneSignal"].values.astype(float)
-
-    n = len(signals)
-    sto_k      = np.where(valid, k_arr[np.clip(idx, 0, len(k_arr)-1)], np.nan)
-    sto_d      = np.where(valid, d_arr[np.clip(idx, 0, len(d_arr)-1)], np.nan)
-    sto_ksup   = np.where(valid, ks_arr[np.clip(idx, 0, len(ks_arr)-1)], np.nan)
-    sto_ksdwn  = np.where(valid, kd_arr[np.clip(idx, 0, len(kd_arr)-1)], np.nan)
-    sto_zs     = np.where(valid, zs_arr[np.clip(idx, 0, len(zs_arr)-1)], np.nan)
-
-    def lag(arr, shift):
-        lagged_idx = np.clip(idx - shift, 0, len(arr)-1)
-        return np.where(valid & (idx - shift >= 0), arr[lagged_idx], np.nan)
-
-    def lead(arr, shift):
-        ahead_idx = np.clip(idx + shift, 0, len(arr)-1)
-        return np.where(valid & (idx + shift < len(arr)), arr[ahead_idx], np.nan)
+    def _col(col, shift=0):
+        i = np.clip(idx + shift, 0, len(stoch) - 1)
+        ok = valid & (idx + shift >= 0) & (idx + shift < len(stoch))
+        return np.where(ok, stoch[col].values[i], np.nan)
 
     out = signals.copy()
-    out["STO_K"]        = sto_k
-    out["STO_D"]        = sto_d
-    out["STO_KSignalUp"] = sto_ksup
-    out["STO_KSignalDn"] = sto_ksdwn
-    out["STO_ZoneSignal"]= sto_zs
-    out["STO_K_lag1"]   = lag(k_arr, 1)
-    out["STO_K_lag2"]   = lag(k_arr, 2)
-    out["STO_K_lag3"]   = lag(k_arr, 3)
-    out["STO_D_lag1"]   = lag(d_arr, 1)
-    out["STO_D_lag2"]   = lag(d_arr, 2)
-    out["STO_D_lag3"]   = lag(d_arr, 3)
-    out["STO_K_next"]   = lead(k_arr, 1)   # (!) LOOK-AHEAD — diagnostic only
+    out["STO_K"]         = _col("K")
+    out["STO_D"]         = _col("D")
+    out["STO_KSignalUp"] = _col("KSignalUp")
+    out["STO_KSignalDn"] = _col("KSignalDn")
+    out["STO_ZoneSignal"]= _col("ZoneSignal")
+    for lag in (1, 2, 3):
+        out[f"STO_K_lag{lag}"] = _col("K", -lag)
+    out["STO_K_next"] = _col("K", 1)   # look-ahead — diagnostic only
 
-    # derived features
-    out["STO_Zone"]     = pd.cut(
-        out["STO_K"], bins=[-0.001, OS_LEVEL, OB_LEVEL, 100.001],
-        labels=["OS", "mid", "OB"], right=True,
-    ).astype(str)
-    out["STO_KoverD"]   = out["STO_K"] > out["STO_D"]   # degenerate when D==K
+    k = out["STO_K"]
+    out["STO_Zone"]     = np.where(k >= OB_LEVEL, "OB", np.where(k <= OS_LEVEL, "OS", "mid"))
+    out.loc[k.isna(), "STO_Zone"] = np.nan
+    out["STO_KoverD"]   = out["STO_K"] > out["STO_D"]
     out["STO_KslopeUp"] = out["STO_K"] > out["STO_K_lag1"]
-    out["STO_lead_in"]  = out["STO_K"] - out["STO_K_lag3"]  # 3-bar lead-in slope
+    out["STO_lead_in"]  = out["STO_K"] - out["STO_K_lag3"]
     return out
 
 
-# ── stats helper ──────────────────────────────────────────────────────────────
+# ── location features (HOD/LOD proximity) ─────────────────────────────────────
+def add_location_features(signals: pd.DataFrame, bars_by_date: dict) -> pd.DataFrame:
+    """Add DayPctRange (0=at LOD, 1=at HOD) and TimeOfDay bucket to each signal.
+
+    DayPctRange: (signal_price - session_low_so_far) / (session_high_so_far - session_low_so_far)
+    Uses bars with close time <= signal close time on the same RTH session.
+    """
+    pct  = np.full(len(signals), np.nan)
+    tod  = [""] * len(signals)
+
+    for i, (_, row) in enumerate(signals.iterrows()):
+        d = row["DateTime"].date()
+        t = row["DateTime"]
+
+        # Time of day bucket (bar CLOSE time is CT)
+        hm = t.hour * 60 + t.minute
+        if hm <= 570:        # <= 09:30
+            tod[i] = "Opening (08:35-09:30)"
+        elif hm <= 660:      # <= 11:00
+            tod[i] = "Mid-morning (09:35-11:00)"
+        elif hm <= 780:      # <= 13:00
+            tod[i] = "Lunch (11:05-13:00)"
+        else:
+            tod[i] = "Afternoon (13:05-15:15)"
+
+        # HOD/LOD position
+        if d not in bars_by_date:
+            continue
+        day_bars = bars_by_date[d]
+        prior = day_bars[day_bars["DateTime"] <= t]
+        if prior.empty:
+            continue
+        h   = prior["High"].max()
+        l   = prior["Low"].min()
+        rng = h - l
+        if rng < 0.25:
+            pct[i] = 0.5
+            continue
+        pct[i] = float(np.clip((row["SignalPrice"] - l) / rng, 0.0, 1.0))
+
+    out = signals.copy()
+    out["DayPctRange"] = pct
+    out["TimeOfDay"]   = tod
+    return out
+
+
+# ── stats / table helpers ──────────────────────────────────────────────────────
 def stats(pnl: np.ndarray, risk: np.ndarray | None = None) -> dict:
     n = len(pnl)
     if n == 0:
         return dict(n=0, net=0, exp=0, pf=0, wr=0, expR=np.nan, ci=np.nan, rci=np.nan)
-    net  = float(pnl.sum())
-    gw   = float(pnl[pnl > 0].sum()) if (pnl > 0).any() else 0.0
-    gl   = float(abs(pnl[pnl < 0].sum())) if (pnl < 0).any() else 0.0
-    pf   = gw / gl if gl > 0 else float("inf")
-    wr   = float((pnl > 0).sum() / n * 100)
-    exp  = net / n
-    ci   = float(1.96 * pnl.std(ddof=1) / np.sqrt(n)) if n > 1 else np.nan
+    net = float(pnl.sum())
+    gw  = float(pnl[pnl > 0].sum()) if (pnl > 0).any() else 0.0
+    gl  = float(abs(pnl[pnl < 0].sum())) if (pnl < 0).any() else 0.0
+    pf  = gw / gl if gl > 0 else float("inf")
+    wr  = float((pnl > 0).mean() * 100)
+    exp = net / n
+    ci  = float(1.96 * pnl.std(ddof=1) / np.sqrt(n)) if n > 1 else np.nan
     if risk is not None:
-        rmult = pnl / risk
-        rr    = rmult[np.isfinite(rmult)]
-        expR  = float(rr.mean()) if len(rr) else np.nan
-        rci   = float(1.96 * rr.std(ddof=1) / np.sqrt(len(rr))) if len(rr) > 1 else np.nan
+        rm   = pnl / risk
+        rr   = rm[np.isfinite(rm)]
+        expR = float(rr.mean()) if len(rr) else np.nan
+        rci  = float(1.96 * rr.std(ddof=1) / np.sqrt(len(rr))) if len(rr) > 1 else np.nan
     else:
         expR = rci = np.nan
     return dict(n=n, net=net, exp=exp, pf=pf, wr=wr, expR=expR, ci=ci, rci=rci)
 
 
-HDR = "| group | n | net $ | exp $/trade | exp R | ±R CI | R 95% interval | PF | win% |"
-SEP = "|---|---|---|---|---|---|---|---|---|"
+HDR = "| group | n | net $ | exp R | ±CI | 95% interval | PF | win% |"
+SEP = "|---|---|---|---|---|---|---|---|"
 
 
 def row(label: str, pnl: np.ndarray, risk: np.ndarray | None = None) -> str:
     s = stats(pnl, risk)
     if s["n"] == 0:
-        return f"| {label} | 0 | — | — | — | — | — | — | — |"
+        return f"| {label} | 0 | — | — | — | — | — | — |"
     pf  = "∞" if s["pf"] == float("inf") else f"{s['pf']:.2f}"
-    er  = "—" if np.isnan(s["expR"])  else f"{s['expR']:+.3f}"
-    rci = "—" if np.isnan(s["rci"])   else f"±{s['rci']:.3f}"
+    er  = "—" if np.isnan(s["expR"]) else f"{s['expR']:+.3f}"
+    rci = "—" if np.isnan(s["rci"])  else f"±{s['rci']:.3f}"
     if not np.isnan(s["expR"]) and not np.isnan(s["rci"]):
-        lo, hi    = s["expR"] - s["rci"], s["expR"] + s["rci"]
-        excl      = "" if (lo > 0 or hi < 0) else "  (∋0)"
-        interval  = f"[{lo:+.3f}, {hi:+.3f}]{excl}"
+        lo, hi   = s["expR"] - s["rci"], s["expR"] + s["rci"]
+        excl     = "" if (lo > 0 or hi < 0) else "  (∋0)"
+        interval = f"[{lo:+.3f}, {hi:+.3f}]{excl}"
     else:
-        interval  = "—"
-    return (f"| {label} | {s['n']} | ${s['net']:,.0f} | ${s['exp']:+.0f} | "
-            f"{er} | {rci} | {interval} | {pf} | {s['wr']:.1f}% |")
+        interval = "—"
+    return (f"| {label} | {s['n']:,} | ${s['net']:,.0f} | {er} | {rci} | {interval} | {pf} | {s['wr']:.1f}% |")
+
+
+def row_short(label: str, pnl: np.ndarray, risk: np.ndarray | None = None) -> str:
+    """One-liner for the mode×target matrix: n, expR±CI only."""
+    s = stats(pnl, risk)
+    if s["n"] == 0:
+        return f"| {label} | — |"
+    er  = "—" if np.isnan(s["expR"]) else f"{s['expR']:+.3f}"
+    rci = "—" if np.isnan(s["rci"])  else f"±{s['rci']:.3f}"
+    sig = "" if np.isnan(s["expR"]) or np.isnan(s["rci"]) else (
+        " *" if abs(s["expR"]) > s["rci"] else ""
+    )
+    return f"{er}{rci}{sig} (n={s['n']:,})"
+
+
+# ── filter mode masks ──────────────────────────────────────────────────────────
+def mode_mask(name: str, f: pd.DataFrame) -> np.ndarray:
+    """Boolean mask over filled signals for each filter mode."""
+    isL = f["Direction"].str.upper().str.startswith("L").values
+    k   = f["STO_K"].values
+    zs  = f["STO_ZoneSignal"].values
+    pct = f["DayPctRange"].values if "DayPctRange" in f.columns else np.full(len(f), np.nan)
+
+    if name == "Off":
+        return np.ones(len(f), bool)
+    if name == "MeanRev":          # Long when OS, Short when OB
+        return ((isL & (k <= OS_LEVEL)) | (~isL & (k >= OB_LEVEL)))
+    if name == "Momentum":         # Long when OB, Short when OS
+        return ((isL & (k >= OB_LEVEL)) | (~isL & (k <= OS_LEVEL)))
+    if name == "ZoneSignal":       # ZS=-1=OS zone (pairs w/ Long reversal); ZS=+1=OB zone (pairs w/ Short)
+        return ((isL & (zs == -1)) | (~isL & (zs == 1)))
+    if name == "LocationEdge":     # Long in bottom 33% of day's range, Short in top 33%
+        return ((isL & (pct <= 0.33)) | (~isL & (pct >= 0.67)))
+    return np.ones(len(f), bool)
+
+
+MODES = ["Off", "MeanRev", "Momentum", "ZoneSignal", "LocationEdge"]
+MODE_LABELS = {
+    "Off":          "Off (baseline)",
+    "MeanRev":      "MeanRev (Long OS / Short OB)",
+    "Momentum":     "Momentum (Long OB / Short OS)",
+    "ZoneSignal":   "ZoneSignal (reversal bar flag)",
+    "LocationEdge": "LocationEdge (Long near LOD / Short near HOD)",
+}
 
 
 # ── main ──────────────────────────────────────────────────────────────────────
@@ -226,18 +271,17 @@ def main() -> int:
     log("loading stochastic CSV...")
     stoch = load_stoch(_STOCH_CSV)
     log(f"  {len(stoch):,} bars  {stoch['DateTime'].min():%Y-%m-%d} -> {stoch['DateTime'].max():%Y-%m-%d}")
-    log(f"  (!)  PeriodD=1 -> D==K in every row; STO_KoverD will be always-False (degenerate)")
 
-    log("joining stochastic features (as-of, look-ahead-safe)...")
+    sig = sig[sig["DateTime"] < DATE_CAP].reset_index(drop=True)
+    log(f"  date-capped to {DATE_CAP}: {len(sig)} signals")
+
+    log("joining stochastic features...")
     tagged = join_stoch(sig, stoch)
-    na_k   = tagged["STO_K"].isna().sum()
-    if na_k:
-        log(f"  {na_k} signals have no prior stoch bar (before stoch series start) — excluded from analysis")
 
-    log("loading bars...")
+    log("loading bars & computing location features...")
     bars = pd.read_parquet(_BARS).drop(columns=["Contract"], errors="ignore")
-    bars_by_date = {d: g.reset_index(drop=True)
-                    for d, g in bars.groupby(bars["DateTime"].dt.date)}
+    bars_by_date = {d: g.reset_index(drop=True) for d, g in bars.groupby(bars["DateTime"].dt.date)}
+    tagged = add_location_features(tagged, bars_by_date)
 
     log("loading ticks...")
     dates = sorted(tagged["DateTime"].dt.date.unique())
@@ -245,169 +289,327 @@ def main() -> int:
     ticks_by_date = {d: t for d, t in ticks_by_date.items() if not t.empty}
     log(f"  tick data for {len(ticks_by_date)} / {len(dates)} dates")
 
-    md = [
-        f"# RevFT × Stochastic discovery study ({datetime.now():%Y-%m-%d})\n",
-        "**Source:** `MyReversals Signal Export - ES SEP26 - 5 Minute from 02.07.2026 - 1850 Days.txt`  \n"
-        "**Stochastic:** `ES_stoch.csv`  PeriodK=8, Smooth=1, PeriodD=**1**  \n"
-        "**Join:** causal as-of (bar T, not T+1) — `searchsorted(side='right') - 1`  \n"
-        "**(!) PeriodD=1:** D == K in every row. K/D-cross rows are all False and should be ignored "
-        "until re-exported with PeriodD=3.  \n"
-        "**STO_K_next** is look-ahead (bar T+1) — diagnostic/ceiling only, not tradeable.  \n"
-        f"Signals: {len(sig):,}   OS < {OS_LEVEL:.0f} / OB > {OB_LEVEL:.0f}  \n",
-    ]
-
-    results_by_target: dict = {}
-
+    # ── simulate once per target ───────────────────────────────────────────────
+    sim_results: dict[float, tuple] = {}
     for tr in TARGETS:
-        log(f"simulating at {tr:.0f}R...")
-        res = simulate_trades(
+        log(f"simulating {tr}R...")
+        res     = simulate_trades(
             signals=tagged, ticks_by_date=ticks_by_date,
             bars_by_date=bars_by_date, target_r=tr, **BASE,
         ).reset_index(drop=True)
-
         filled  = res["Filled"].values == True
         f       = tagged.loc[filled].reset_index(drop=True)
         rf      = res.loc[filled].reset_index(drop=True)
         pnl     = rf["NetPnL"].values
         risk    = rf["RiskDollar"].values if "RiskDollar" in rf.columns else None
-        isL     = f["Direction"].str.lower().str.startswith("l").values
+        sim_results[tr] = (f, pnl, risk)
 
-        results_by_target[tr] = (f, pnl, risk, isL)
-        has_stoch = f["STO_K"].notna().values
-        pnl_s     = pnl[has_stoch]
-        risk_s    = risk[has_stoch] if risk is not None else None
-        f_s       = f[has_stoch].reset_index(drop=True)
-        isL_s     = isL[has_stoch]
+    md = [
+        f"# RevFT x Stochastic study v2 — {datetime.now():%Y-%m-%d}  (2021–2023)\n",
+        "**Signals:** 2021-2023 only (tick cache verified clean — 0/20 inverted Long stops)  \n"
+        "**Stoch:** PeriodK=8 Smooth=1 PeriodD=1 (D==K; K/D-cross mode degenerate)  \n"
+        "**Targets:** 0.5R / 1R / 1.5R / 2R / 3R  \n"
+        "**`*`** = 95% CI excludes zero (statistically significant)  \n\n",
+    ]
 
-        md.append(f"\n---\n\n# Target {tr:.0f}R  (filled={filled.sum():,}, with-stoch={has_stoch.sum():,})\n")
+    # ═══════════════════════════════════════════════════════════════════════════
+    # A. FILTER MODE × TARGET MATRIX
+    # ═══════════════════════════════════════════════════════════════════════════
+    md.append("---\n\n# A. Filter Mode × Target (exp R ± CI)\n")
+    md.append(
+        "| Mode | 0.5R | 1R | 1.5R | 2R | 3R |\n"
+        "|---|---|---|---|---|---|\n"
+    )
+    for mode in MODES:
+        cols = [f"**{MODE_LABELS[mode]}**"]
+        for tr in TARGETS:
+            f, pnl, risk = sim_results[tr]
+            m = mode_mask(mode, f)
+            cols.append(row_short(mode, pnl[m], risk[m] if risk is not None else None))
+        md.append("| " + " | ".join(cols) + " |")
+    md.append("\n_\\* = CI excludes zero. LocationEdge = Long in bottom third of day's range / Short in top third._\n")
 
-        # ── 1. K-level bins ────────────────────────────────────────────────────
-        md.append("\n## 1. STO_K level (10-point bins)\n")
+    # ═══════════════════════════════════════════════════════════════════════════
+    # B. HOD/LOD LOCATION
+    # ═══════════════════════════════════════════════════════════════════════════
+    md.append("\n---\n\n# B. HOD/LOD Location (where in day's range signal fires)\n")
+    md.append("_DayPctRange: 0 = at session LOD so far, 1 = at session HOD so far. "
+              "Favorable = Long near LOD (pct < 0.33) or Short near HOD (pct > 0.67)._\n")
+
+    for tr in [1.0, 2.0]:
+        f, pnl, risk = sim_results[tr]
+        isL  = f["Direction"].str.upper().str.startswith("L").values
+        pct  = f["DayPctRange"].values
+        valid_pct = ~np.isnan(pct)
+        md.append(f"\n## Location at {tr:.0f}R\n")
         md += [HDR, SEP]
-        md.append(row("BASELINE (all filled)", pnl, risk))
-        md.append(row("with-stoch (baseline)", pnl_s, risk_s))
+        md.append(row("ALL signals", pnl, risk))
+        md.append(row("  Long (all)", pnl[isL], risk[isL] if risk is not None else None))
+        md.append(row("  Short (all)", pnl[~isL], risk[~isL] if risk is not None else None))
+        md.append("")
+
+        # Quartile breakdown × direction
+        bins = [(0.00, 0.25, "Bottom Q (near LOD)"),
+                (0.25, 0.50, "Lower mid"),
+                (0.50, 0.75, "Upper mid"),
+                (0.75, 1.01, "Top Q (near HOD)")]
+        for lo, hi, label in bins:
+            m = valid_pct & (pct >= lo) & (pct < hi)
+            md.append(row(f"{label}",        pnl[m],          risk[m] if risk is not None else None))
+            md.append(row(f"  {label} Long", pnl[m & isL],    risk[m & isL] if risk is not None else None))
+            md.append(row(f"  {label} Short",pnl[m & ~isL],   risk[m & ~isL] if risk is not None else None))
+        md.append("")
+
+        # Favorable vs unfavorable location
+        fav   = valid_pct & ((isL & (pct <= 0.33)) | (~isL & (pct >= 0.67)))
+        unfav = valid_pct & ((isL & (pct >= 0.67)) | (~isL & (pct <= 0.33)))
+        mid_loc = valid_pct & ~fav & ~unfav
+        md.append(row("Favorable location (Long near LOD / Short near HOD)", pnl[fav],    risk[fav] if risk is not None else None))
+        md.append(row("  Favorable Long",  pnl[fav & isL],   risk[fav & isL] if risk is not None else None))
+        md.append(row("  Favorable Short", pnl[fav & ~isL],  risk[fav & ~isL] if risk is not None else None))
+        md.append(row("Neutral location",  pnl[mid_loc],     risk[mid_loc] if risk is not None else None))
+        md.append(row("Unfavorable location",pnl[unfav],     risk[unfav] if risk is not None else None))
+        md.append("")
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # C. TIME OF DAY
+    # ═══════════════════════════════════════════════════════════════════════════
+    md.append("\n---\n\n# C. Time of Day\n")
+    tod_order = ["Opening (08:35-09:30)", "Mid-morning (09:35-11:00)",
+                 "Lunch (11:05-13:00)",   "Afternoon (13:05-15:15)"]
+
+    for tr in [1.0, 2.0]:
+        f, pnl, risk = sim_results[tr]
+        isL  = f["Direction"].str.upper().str.startswith("L").values
+        tod  = f["TimeOfDay"].values
+        md.append(f"\n## Time of Day at {tr:.0f}R\n")
+        md += [HDR, SEP]
+        for bucket in tod_order:
+            m = tod == bucket
+            md.append(row(bucket, pnl[m], risk[m] if risk is not None else None))
+            md.append(row(f"  {bucket[:10]}... Long",  pnl[m & isL],  risk[m & isL] if risk is not None else None))
+            md.append(row(f"  {bucket[:10]}... Short", pnl[m & ~isL], risk[m & ~isL] if risk is not None else None))
+        md.append("")
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # D. K SLOPE × DIRECTION
+    # ═══════════════════════════════════════════════════════════════════════════
+    md.append("\n---\n\n# D. K Slope x Direction\n")
+    md.append("_Key cross-cut: K slope (momentum) split within direction._\n")
+
+    for tr in [1.0, 2.0]:
+        f, pnl, risk = sim_results[tr]
+        isL    = f["Direction"].str.upper().str.startswith("L").values
+        up     = f["STO_KslopeUp"].values
+        valid  = ~f["STO_K_lag1"].isna().values
+        k      = f["STO_K"].values
+
+        md.append(f"\n## K Slope x Direction at {tr:.0f}R\n")
+        md += [HDR, SEP]
+        for is_long, dir_label in [(True, "Long"), (False, "Short")]:
+            dm = (isL if is_long else ~isL) & valid
+            md.append(row(f"{dir_label} — K rising",  pnl[dm & up],  risk[dm & up] if risk is not None else None))
+            md.append(row(f"{dir_label} — K falling", pnl[dm & ~up], risk[dm & ~up] if risk is not None else None))
+            # Also OB/OS within slope
+            for zone in ["OS", "mid", "OB"]:
+                zm = dm & (f["STO_Zone"].values == zone)
+                if zm.sum() >= 15:
+                    md.append(row(f"  {dir_label} K-rising + {zone}",  pnl[zm & up],  risk[zm & up] if risk is not None else None))
+                    md.append(row(f"  {dir_label} K-falling + {zone}", pnl[zm & ~up], risk[zm & ~up] if risk is not None else None))
+        md.append("")
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # E. YEAR × DIRECTION
+    # ═══════════════════════════════════════════════════════════════════════════
+    md.append("\n---\n\n# E. Year x Direction\n")
+    md.append("_2022 was a bear market — Longs and Shorts behave differently by year._\n")
+
+    for tr in [1.0, 2.0]:
+        f, pnl, risk = sim_results[tr]
+        isL = f["Direction"].str.upper().str.startswith("L").values
+        yr  = f["DateTime"].dt.year.values
+        md.append(f"\n## Year x Direction at {tr:.0f}R\n")
+        md += [HDR, SEP]
+        for y in sorted(np.unique(yr)):
+            my = yr == y
+            md.append(row(f"{y} (all)",  pnl[my],          risk[my] if risk is not None else None))
+            md.append(row(f"  {y} Long", pnl[my & isL],    risk[my & isL] if risk is not None else None))
+            md.append(row(f"  {y} Short",pnl[my & ~isL],   risk[my & ~isL] if risk is not None else None))
+        md.append("")
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # F. LOCATION + ZONE COMBOS (key intersections)
+    # ═══════════════════════════════════════════════════════════════════════════
+    md.append("\n---\n\n# F. Location + Zone Combinations\n")
+    md.append("_Near-extreme location AND stoch zone alignment — the most selective filter._\n")
+
+    for tr in [1.0, 2.0]:
+        f, pnl, risk = sim_results[tr]
+        isL  = f["Direction"].str.upper().str.startswith("L").values
+        pct  = f["DayPctRange"].values
+        k    = f["STO_K"].values
+        zone = f["STO_Zone"].values
+        valid_pct = ~np.isnan(pct)
+
+        fav_L  = valid_pct & isL  & (pct <= 0.33)     # Long near LOD
+        fav_S  = valid_pct & ~isL & (pct >= 0.67)     # Short near HOD
+        unfav_L= valid_pct & isL  & (pct >= 0.67)     # Long near HOD (bad)
+        unfav_S= valid_pct & ~isL & (pct <= 0.33)     # Short near LOD (bad)
+
+        md.append(f"\n## Location + Zone at {tr:.0f}R\n")
+        md += [HDR, SEP]
+
+        # Favorable Longs (near LOD) by zone
+        md.append(row("Favorable Long (near LOD) — all zones", pnl[fav_L], risk[fav_L] if risk is not None else None))
+        for z in ["OS", "mid", "OB"]:
+            m = fav_L & (zone == z)
+            if m.sum() >= 10:
+                md.append(row(f"  Fav Long + {z}", pnl[m], risk[m] if risk is not None else None))
+
+        # Favorable Shorts (near HOD) by zone
+        md.append(row("Favorable Short (near HOD) — all zones", pnl[fav_S], risk[fav_S] if risk is not None else None))
+        for z in ["OS", "mid", "OB"]:
+            m = fav_S & (zone == z)
+            if m.sum() >= 10:
+                md.append(row(f"  Fav Short + {z}", pnl[m], risk[m] if risk is not None else None))
+
+        # Unfavorable (contra-location) for contrast
+        md.append(row("Unfavorable Long (near HOD)", pnl[unfav_L], risk[unfav_L] if risk is not None else None))
+        md.append(row("Unfavorable Short (near LOD)", pnl[unfav_S], risk[unfav_S] if risk is not None else None))
+        md.append("")
+
+        # Triple filter: favorable location + zone + K slope
+        up   = f["STO_KslopeUp"].values
+        valid_slope = ~f["STO_K_lag1"].isna().values
+        md.append(row("Fav Long + K rising",           pnl[fav_L & up & valid_slope],
+                      risk[fav_L & up & valid_slope] if risk is not None else None))
+        md.append(row("Fav Long + OS + K rising",      pnl[fav_L & (zone=="OS") & up & valid_slope],
+                      risk[fav_L & (zone=="OS") & up & valid_slope] if risk is not None else None))
+        md.append(row("Fav Short + K falling",         pnl[fav_S & ~up & valid_slope],
+                      risk[fav_S & ~up & valid_slope] if risk is not None else None))
+        md.append(row("Fav Short + OB + K falling",    pnl[fav_S & (zone=="OB") & ~up & valid_slope],
+                      risk[fav_S & (zone=="OB") & ~up & valid_slope] if risk is not None else None))
+        md.append("")
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # G. STANDARD STOCH CUTS (K bins, zone × dir, ZoneSignal)
+    # ═══════════════════════════════════════════════════════════════════════════
+    md.append("\n---\n\n# G. Standard Stoch Cuts\n")
+
+    for tr in [1.0, 2.0]:
+        f, pnl, risk = sim_results[tr]
+        isL  = f["Direction"].str.upper().str.startswith("L").values
+        k    = f["STO_K"].values
+        zone = f["STO_Zone"].values
+        zs   = f["STO_ZoneSignal"].values
+        has_k = ~np.isnan(k)
+
+        pnl_k  = pnl[has_k];   risk_k = risk[has_k] if risk is not None else None
+        f_k    = f[has_k].reset_index(drop=True)
+        isL_k  = isL[has_k]; k_k = k[has_k]; zone_k = zone[has_k]; zs_k = zs[has_k]
+
+        md.append(f"\n## G1. K bins at {tr:.0f}R\n")
+        md += [HDR, SEP]
+        md.append(row("BASELINE", pnl, risk))
         edges = list(range(0, 101, 10))
         labels_k = [f"{lo}-{lo+10}" for lo in edges[:-1]]
-        k_bin = pd.cut(f_s["STO_K"], bins=edges, labels=labels_k, right=False, include_lowest=True)
+        k_bin = pd.cut(pd.Series(k_k), bins=edges, labels=labels_k, right=False, include_lowest=True)
         for lab in labels_k:
             m = (k_bin == lab).values
-            md.append(row(f"  K={lab}", pnl_s[m], risk_s[m] if risk_s is not None else None))
+            md.append(row(f"  K={lab}", pnl_k[m], risk_k[m] if risk_k is not None else None))
         md.append("")
 
-        # ── 2. Zone × Direction ───────────────────────────────────────────────
-        md.append("\n## 2. STO_Zone × Direction\n")
+        md.append(f"\n## G2. Zone x Direction at {tr:.0f}R\n")
         md += [HDR, SEP]
-        for zone in ["OS", "mid", "OB"]:
-            mz = (f_s["STO_Zone"] == zone).values
-            md.append(row(f"Zone={zone} (all)", pnl_s[mz], risk_s[mz] if risk_s is not None else None))
-            mzL = mz & isL_s
-            mzS = mz & ~isL_s
-            md.append(row(f"  {zone} Long",  pnl_s[mzL], risk_s[mzL] if risk_s is not None else None))
-            md.append(row(f"  {zone} Short", pnl_s[mzS], risk_s[mzS] if risk_s is not None else None))
+        for z in ["OS", "mid", "OB"]:
+            mz = zone_k == z
+            md.append(row(f"Zone={z} (all)", pnl_k[mz], risk_k[mz] if risk_k is not None else None))
+            md.append(row(f"  {z} Long",  pnl_k[mz & isL_k], risk_k[mz & isL_k] if risk_k is not None else None))
+            md.append(row(f"  {z} Short", pnl_k[mz & ~isL_k], risk_k[mz & ~isL_k] if risk_k is not None else None))
         md.append("")
 
-        # ── 3. K slope (KslopeUp) ─────────────────────────────────────────────
-        md.append("\n## 3. K slope (rising vs falling)\n")
+        md.append(f"\n## G3. ZoneSignal at {tr:.0f}R\n")
         md += [HDR, SEP]
-        slope_up = f_s["STO_KslopeUp"].values
-        valid_slope = ~f_s["STO_K_lag1"].isna().values
-        md.append(row("K rising  (K > K_lag1)", pnl_s[slope_up & valid_slope],
-                       risk_s[slope_up & valid_slope] if risk_s is not None else None))
-        md.append(row("K falling (K <= K_lag1)", pnl_s[~slope_up & valid_slope],
-                       risk_s[~slope_up & valid_slope] if risk_s is not None else None))
+        md.append(row("ZoneSignal=-1 Long (OS zone reversal)",  pnl_k[isL_k  & (zs_k==-1)], risk_k[isL_k  & (zs_k==-1)] if risk_k is not None else None))
+        md.append(row("ZoneSignal=+1 Short (OB zone reversal)", pnl_k[~isL_k & (zs_k==1)],  risk_k[~isL_k & (zs_k==1)]  if risk_k is not None else None))
+        md.append(row("ZoneSignal=0 (no flag)",                 pnl_k[zs_k==0],              risk_k[zs_k==0]              if risk_k is not None else None))
         md.append("")
 
-        # ── 4. Lead-in slope quintiles (K - K_lag3) ───────────────────────────
-        md.append("\n## 4. Lead-in slope quintiles (K - K_lag3, 3-bar momentum)\n")
-        valid_li = ~f_s["STO_K_lag3"].isna().values
-        lead_in  = f_s["STO_lead_in"].values
-        if valid_li.sum() > 5:
-            li_ser   = pd.Series(lead_in, dtype=float)
-            qcuts_s  = pd.qcut(li_ser.where(pd.Series(valid_li)), q=5, duplicates="drop")
-            cats     = qcuts_s.cat.categories
-            bins     = [-np.inf] + [c.right for c in cats]
-            bins[-1] = np.inf
-            cut_all  = pd.cut(li_ser, bins=bins, labels=[f"[{c.left:+.1f},{c.right:+.1f}]" for c in cats],
-                               include_lowest=True, duplicates="drop")
-            md += [HDR, SEP]
-            for lab in cut_all.cat.categories:
-                m_li = valid_li & (cut_all == lab).values
-                md.append(row(f"lead_in {lab}", pnl_s[m_li],
-                               risk_s[m_li] if risk_s is not None else None))
-        else:
-            md.append("_No valid lag-3 data._")
-        md.append("")
+    # ═══════════════════════════════════════════════════════════════════════════
+    # H. YEAR STABILITY FOR BEST COMBOS
+    # ═══════════════════════════════════════════════════════════════════════════
+    md.append("\n---\n\n# H. Year Stability — Best Combos\n")
 
-        # ── 5. ZoneSignal hit-rate ─────────────────────────────────────────────
-        md.append("\n## 5. ZoneSignal from exporter (signal bar)\n")
-        md += [HDR, SEP]
-        zs = f_s["STO_ZoneSignal"].values
-        md.append(row("ZoneSignal = 1 (bar)", pnl_s[zs == 1], risk_s[zs == 1] if risk_s is not None else None))
-        md.append(row("ZoneSignal = 0",       pnl_s[zs == 0], risk_s[zs == 0] if risk_s is not None else None))
-        md.append("")
+    for tr in [1.0, 2.0]:
+        f, pnl, risk = sim_results[tr]
+        isL  = f["Direction"].str.upper().str.startswith("L").values
+        pct  = f["DayPctRange"].values
+        k    = f["STO_K"].values
+        zone = f["STO_Zone"].values
+        up   = f["STO_KslopeUp"].values
+        yr   = f["DateTime"].dt.year.values
+        valid_pct   = ~np.isnan(pct)
+        valid_slope = ~f["STO_K_lag1"].isna().values
 
-        # ── 6. Signal type × Zone ─────────────────────────────────────────────
-        md.append("\n## 6. Signal type × STO_Zone\n")
-        md += [HDR, SEP]
-        for stype in ["Sneaky", "Trap", "IB", "OB", "BO"]:
-            mt = (f_s["SignalType"] == stype).values
-            if mt.sum() == 0:
-                continue
-            md.append(row(f"{stype} (all zones)", pnl_s[mt], risk_s[mt] if risk_s is not None else None))
-            for zone in ["OS", "mid", "OB"]:
-                mtz = mt & (f_s["STO_Zone"] == zone).values
-                if mtz.sum() >= 10:
-                    md.append(row(f"  {stype} + {zone}", pnl_s[mtz],
-                                   risk_s[mtz] if risk_s is not None else None))
-        md.append("")
+        fav_L = valid_pct & isL  & (pct <= 0.33)
+        fav_S = valid_pct & ~isL & (pct >= 0.67)
 
-        # ── 7. STO_K_next diagnostic (look-ahead ceiling) ─────────────────────
-        md.append("\n## 7. STO_K_next direction ((!) look-ahead — ceiling only)\n")
-        md += [HDR, SEP]
-        kn       = f_s["STO_K_next"].values
-        kc       = f_s["STO_K"].values
-        valid_kn = ~np.isnan(kn)
-        k_next_up = valid_kn & (kn > kc)
-        k_next_dn = valid_kn & (kn < kc)
-        md.append(row("K_next > K (rising next bar)", pnl_s[k_next_up],
-                       risk_s[k_next_up] if risk_s is not None else None))
-        md.append(row("K_next < K (falling next bar)", pnl_s[k_next_dn],
-                       risk_s[k_next_dn] if risk_s is not None else None))
-        md.append(f"\n_If the next-bar split is strong, there is a tradeable K-slope signal — "
-                   f"verify with STO_KslopeUp (causal, section 3) to confirm._\n")
-
-    # ── year-by-year for best zone cuts ───────────────────────────────────────
-    md.append("\n---\n\n# Year-by-year stability — STO_Zone × Direction\n")
-    md.append("_Best zone filter applied at each target; each year must hold up independently._\n")
-    for tr in TARGETS:
-        f, pnl, risk, isL = results_by_target[tr]
-        has_stoch = f["STO_K"].notna().values
-        f_s   = f[has_stoch].reset_index(drop=True)
-        pnl_s = pnl[has_stoch]
-        risk_s = risk[has_stoch] if risk is not None else None
-        isL_s = isL[has_stoch]
-        yr    = f_s["DateTime"].dt.year.values
-
-        md.append(f"\n### {tr:.0f}R — year-by-year\n")
-        for zone in ["OS", "mid", "OB"]:
-            mz = (f_s["STO_Zone"] == zone).values
-            md.append(f"\n#### Zone={zone}\n")
-            md += [HDR, SEP]
+        md.append(f"\n## H. Year stability at {tr:.0f}R\n")
+        combos = [
+            ("Fav Long (near LOD)",          fav_L),
+            ("Fav Short (near HOD)",         fav_S),
+            ("MeanRev (Long OS / Short OB)", mode_mask("MeanRev", f)),
+            ("Momentum (Long OB / Short OS)",mode_mask("Momentum", f)),
+        ]
+        for label, mask in combos:
+            md += [f"\n### {label}\n", HDR, SEP]
             for y in sorted(np.unique(yr)):
-                my = mz & (yr == y)
+                my = mask & (yr == y)
                 if my.sum() >= 5:
-                    md.append(row(str(y), pnl_s[my], risk_s[my] if risk_s is not None else None))
+                    md.append(row(str(y), pnl[my], risk[my] if risk is not None else None))
             md.append("")
 
-    # ── meta / caveats ─────────────────────────────────────────────────────────
-    md.append("\n---\n\n# Methodology notes\n")
+    # ═══════════════════════════════════════════════════════════════════════════
+    # I. SIGNAL TYPE BREAKDOWN (Trap / Sneaky / IB / OB / BO)
+    # ═══════════════════════════════════════════════════════════════════════════
+    md.append("\n---\n\n# I. Signal Type Breakdown\n")
+    md.append("_Each signal type × direction, with ZoneSignal sub-cut (corrected polarity)._\n")
+
+    for tr in [1.0, 2.0]:
+        f, pnl, risk = sim_results[tr]
+        isL  = f["Direction"].str.upper().str.startswith("L").values
+        zs   = f["STO_ZoneSignal"].values
+        stype = f["SignalType"].values
+
+        md.append(f"\n## I. Signal Types at {tr:.0f}R\n")
+        md += [HDR, SEP]
+        md.append(row("ALL", pnl, risk))
+
+        for st in ["Trap", "Sneaky", "IB", "OB", "BO"]:
+            ms = stype == st
+            if ms.sum() < 5:
+                continue
+            md.append(row(f"{st} (all)", pnl[ms], risk[ms] if risk is not None else None))
+            # Direction split
+            for is_long, dl in [(True, "Long"), (False, "Short")]:
+                dm = ms & (isL if is_long else ~isL)
+                if dm.sum() < 5:
+                    continue
+                md.append(row(f"  {st} {dl}", pnl[dm], risk[dm] if risk is not None else None))
+                # ZoneSignal sub-cut (correct polarity: Long=ZS-1, Short=ZS+1)
+                zs_match = (zs == -1) if is_long else (zs == 1)
+                zm = dm & zs_match
+                if zm.sum() >= 5:
+                    md.append(row(f"    {st} {dl} + ZoneSignal", pnl[zm], risk[zm] if risk is not None else None))
+        md.append("")
+
+    md.append("\n---\n\n# Notes\n")
     md.append(
-        "- **In-sample:** all analysis uses the same 5yr set — findings are hypotheses, not out-of-sample results.\n"
-        "- **PeriodD=1:** D ≡ K; K/D-cross features are degenerate. Re-export stoch with PeriodD=3 for a real signal line.\n"
-        "- **Minimum threshold for a 'finding':** R 95%-interval must exclude zero AND hold year-by-year.\n"
-        "- **STO_K_next** is shown as a ceiling for what a future-informed K-slope could achieve.\n"
-        "- **Roll sensitivity:** ~PeriodK bars (8 bars = 40 min) around each roll may have a spurious K spike "
-        "due to price discontinuity from Panama back-adjustment. Estimated <1% of all bars affected.\n"
+        "- In-sample 2021-2023 only; all findings are hypotheses.\n"
+        "- PeriodD=1: D==K always; K/D cross is degenerate until re-exported with PeriodD>=3.\n"
+        "- LocationEdge / DayPctRange uses bars up to and including the signal bar.\n"
+        "- `*` in matrix = 95% CI excludes zero.\n"
+        "- Roll sensitivity: ~8 bars around each roll may have spurious K spikes.\n"
     )
 
     out = _OUT / f"revft_stoch_study_{datetime.now():%Y%m%d}.md"

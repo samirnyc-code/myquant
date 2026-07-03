@@ -609,16 +609,40 @@ def show_bar_viewer(sc_file: str = "", contract: str = "ES"):
     excl_first_n  = st.session_state.get("excl_first_n",  0)
     excl_last_min = st.session_state.get("excl_last_min", 0)
 
-    # Signal overlay for the Bar Viewer. The make_candlestick() renderer below is
-    # AMA-schema throughout (SignalDateTime, TargetPoints, and CX/BigBO/OB
-    # SignalTypes) — it can only draw the AMA breakout set. MC/RevFT signals
-    # (from parse_signals) have a different schema ("DateTime", no TargetPoints)
-    # and live in the Bar Analysis tab, so they are NOT overlaid here.
+    # Signal overlay selector
+    _ama_sigs   = st.session_state.get("ba_signals_ama")
+    _revft_sigs = st.session_state.get("ba_signals_revft")
+    _mc_sigs    = st.session_state.get("ba_signals_mc")
+    _overlay_opts = ["None"]
+    if _ama_sigs   is not None and not _ama_sigs.empty:   _overlay_opts.append("AMA")
+    if _revft_sigs is not None and not _revft_sigs.empty: _overlay_opts.append("RevFT")
+    if _mc_sigs    is not None and not _mc_sigs.empty:    _overlay_opts.append("MC")
+    _overlay_choice = st.selectbox(
+        "Signal overlay", _overlay_opts,
+        index=min(1, len(_overlay_opts) - 1),
+        key="bar_viewer_overlay",
+    ) if len(_overlay_opts) > 1 else "None"
+
+    def _adapt_parse_signals(sigs, date):
+        """Convert parse_signals() schema (DateTime=close) to AMA schema (SignalDateTime=open)."""
+        day = sigs[pd.to_datetime(sigs["DateTime"]).dt.date == date].copy()
+        if day.empty:
+            return None
+        day = day.rename(columns={"DateTime": "_close_dt"})
+        day["SignalDateTime"] = pd.to_datetime(day["_close_dt"]) - pd.Timedelta(minutes=5)
+        day["TargetPoints"]   = (day["SignalPrice"] - day["StopPrice"]).abs()
+        day["TargetMode"]     = "1R"
+        day["ZScore"]         = float("nan")
+        return day
+
     _overlay = None
-    _ama_sigs = st.session_state.get("ba_signals_ama")
-    if _ama_sigs is not None and not _ama_sigs.empty:
+    if _overlay_choice == "AMA" and _ama_sigs is not None:
         _day = _ama_sigs[pd.to_datetime(_ama_sigs["SignalDateTime"]).dt.date == selected_date]
         _overlay = _day if not _day.empty else None
+    elif _overlay_choice == "RevFT" and _revft_sigs is not None:
+        _overlay = _adapt_parse_signals(_revft_sigs, selected_date)
+    elif _overlay_choice == "MC" and _mc_sigs is not None:
+        _overlay = _adapt_parse_signals(_mc_sigs, selected_date)
 
     # AMA raw detected for bar painting (exact NT8 match)
     _ama_det_day = None
