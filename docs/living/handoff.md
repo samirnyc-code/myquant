@@ -56,6 +56,38 @@ race the same number, the **earlier-merged** note keeps it; the later one takes 
 
 ---
 
+## ⭐ SESSION 52 — July 3, 2026 — Multi-instrument NT comparison + tick cache build (read FIRST)
+*Goal: build NT OHLC comparison panels for NQ/YM/GC/CL/6E/6J (matching ES Gate 2 pattern), build all 6 continuous contracts, diagnose NQ match rate, kick off full 5-yr tick cache build for all instruments.*
+
+### What was built
+- **`massive.py`** — `_show_instrument_section(key)` now has a **"📐 NT Comparison"** expander per instrument (identical to ES). Upload NT `@{key}` continuous 5M TXT → `parse_ohlc_from_upload` → `show_gate_body`. Saves to CSV cache for persistence. Startup auto-loads all 6 instruments' NT bars from cache. Roll editor now hides future contracts with no bars (cleaner UI); saves merge back into full rolls JSON.
+- **All 6 continuous contracts built** (`data/bars/_continuous_{key}.parquet`): NQ 103,109 bars, YM 102,695, GC 103,491, CL 103,221, 6E 76,312, 6J 104,749.
+- **`scripts/build_tick_caches.py`** — CLI script to build per-day tick parquets for all 5 non-ES instruments (YM/GC/CL/6E/6J). Running in background at end of session.
+
+### NQ comparison findings (S52 deep-dive)
+- **Wrong session template** caused 18,714 "Massive Only" bars — NT @NQ chart was cutting off at 13:30 CT. Fixed by re-exporting with correct session (same as ES: 08:30–15:15 CT). After fix: Massive Only = 31, NT Only = 181.
+- **90% OHLC match** — NOT a Panama offset problem. Delta distribution symmetric around zero (no bias). Breakdown:
+  - ±1–4 tick noise (feed latency at bar boundaries): 8.3% of core-session bars — inherent, unfixable
+  - Roll-date contract switch (entire days): 0.4% — 5 roll dates × 81 bars
+  - Volatility event days (Apr 2025 tariffs, Aug 2024 carry unwind): 0.3%
+  - True data outliers in Massive (336-tick, 224-tick single bars): 0.2%
+- **Excluding bar#1 (08:30) + last 45 min (14:30–15:15)**: 92.2% exact, **99% within 4 ticks (1 NQ point)**
+- **Architecture clarity**: signals come from NT closes, Massive provides tick-granularity price path. 1-point (4-tick) tolerance = 99% agreement on core session bars — sufficient for simulation.
+- **Holiday bars (1,470)**: correct — 34 half-session days (Labor Day, July 4th etc.) × 42 bars each.
+
+### Tick cache status at session end
+- NQ: ✅ 1,265 days complete
+- YM: 461/~1,260 days (build running)
+- GC/CL/6E/6J: ~1 day each → full build running in background (`scripts/build_tick_caches.py`)
+- GC needs ~36 gz downloads, CL ~24, 6E ~12, 6J ~14 — rest already cached from bar build
+
+### NEXT
+1. **Wait for tick build to finish** — check day counts for YM/GC/CL/6E/6J in app
+2. **Upload remaining NT exports** — GC/CL/6E/6J comparison panels are ready in the app; grab OHLCExporter exports from NT for each
+3. **NQ: investigate roll-date mismatches** — on roll dates our system stays on old contract 1 day longer than NT; might need to shift roll dates +1 day for the 5 affected contracts (2021-2022 era)
+
+---
+
 ## ⭐ SESSION 51 — July 3, 2026 — RevFT × Stochastic discovery study (read FIRST)
 *Goal (user): "check the RevFT signals against the Stochastic CSV and see if you can find a pattern."
 Built `scripts/revft_stoch_study.py` — standalone winners-vs-losers discovery script (no Streamlit),
