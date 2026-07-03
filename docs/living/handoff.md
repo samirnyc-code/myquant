@@ -1,6 +1,6 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 3, 2026 (session 50)
+**Last Updated:** July 4, 2026 (session 53)
 **Current Versions:** SIM_v3.9 / GS_v4.5 / SHEET_v3.3 *(S32: Prop Sim overhaul — MC-sized payout buffer, monthly 80/20 payouts, ES/MES margin, never-blow floor de-risk + shock model, richer dashboard; MCBreakout pyramiding (N concurrent/dir) + ratchet-lock fix. S31: ZLO exporter + filters, MCBreakout stop fix + ER filter, ZLO sweeps, Auction feature library + tab (Dalton day types), Prop Sim DD-lock. S30: Prop Sim tab, Extras tab, 1M bars, NT strategy. S29: ESA into WFA, session filters, multi-TF, ER10. S28: ESA v2. S27: ESA Phase A. S24: critical slippage off-tick bugfix.)*
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 **Handoff hygiene (S20):** A competing handoff had grown in the `.claude/.../memory/` auto-memory folder and a new chat read *that* instead of this file. Fixed: added repo `CLAUDE.md` + rewrote `.claude` `MEMORY.md` to point here; deleted the duplicate session-state memories. **There is now ONE handoff: this file.**
@@ -53,6 +53,67 @@ race the same number, the **earlier-merged** note keeps it; the later one takes 
 - **Consecutive-cluster gate** — does requiring N same-dir signals improve quality? (S33 + `dir_streak` 4+ lead from 0001)
 - **Always-In (AID) as a sizer** — negative as a gate (S36); size-with/against-regime untested
 - **Pyramiding (N concurrent same-dir)** — does it beat a single entry? (S32 MCBreakout pyramiding)
+
+---
+
+## ⭐ SESSION 53 — July 3–4, 2026 — MC edge found: Stack v2 + sizing + 3R/BE exit ($609K config) (read FIRST)
+*Goal arc: fix ZoneSignal polarity in the RevFT stoch study → Bar Viewer signal overlays → exhaustive ES RevFT×stoch discovery (dead) → raw-bar discovery (ORB only positive) → MC signals + Fable 5 autonomous research agent (2 rounds) → strongest finding of the project so far.*
+
+### Part 1 — fixes + groundwork (Sonnet session)
+- **`scripts/revft_stoch_study.py`** — ZoneSignal polarity FIXED (ZS=−1 = OS zone pairs with Long reversal; ZS=+1 = OB pairs with Short; was inverted → Longs got 0 trades). Added signal-type × ZoneSignal section, lags to 12 bars. Study doc updated (`revft_stoch_study_20260703.md`).
+- **`app.py` Bar Viewer** — signal overlay selectbox (None/AMA/RevFT/MC) via `_adapt_parse_signals()` adapter (parse_signals schema → AMA schema: SignalDateTime = DateTime−5min, TargetPoints = |Signal−Stop|). Committed + pushed.
+- **RevFT × stoch verdict:** after ZoneSignal fix, lookback OS-dip sweep, K bins, trajectory, discovery sweep — **no positive edge on ES RevFT** (re-confirmed −0.116R standalone in Part 2). K>85 momentum Longs were the least-bad, confirming ES 5M is momentum, not mean-reversion.
+- **Raw-bar discovery:** ORB (30-min opening range, trade first-break direction) is the only positive raw setup. Applying ORB to MC signals looked strong but the "ORB agree" version has LOOKAHEAD (pre-break signals filtered by future break direction); causal after-break version is only +0.050R.
+- **⚠️ Realistic-execution baseline correction:** with exit_slip=1 (not 0), all-MC baseline is **+0.021R, PF 1.10, $184K, CI includes 0** — earlier $253K baseline used optimistic exits. All Part 2 numbers use realistic params (entry_slip=1, exit_slip=1, stop_offset=1, comm 4.36).
+
+### Part 2 — Fable 5 agent research (brief: `fable5_mc_research_brief.md`, findings: `fable5_mc_findings.md`)
+**Round 1 — "Stack v2" (3 causal skip rules):** skip counter-IB-break signals (break = close of first post-IB breaking bar), skip days after prior trend day (`prior_adr_ext`), skip ≥14:00 CT.
+- @1R: n=2,925, **+0.091R [+0.058,+0.125], WR 56%, PF 1.25, $+253K — 6/6 years positive**; @2R +0.120R, $+319K, 6/6.
+- Excluded complement −0.057R CI<0 (1/6 years) — rules separate poison, not overfit. Sub-periods 2021–22 vs 2023–26 identical. Shorts work inside stack (+0.103R); all 5 CC types CI>0 (even CC4).
+- Size-up pockets: balance_state∧stack +0.159R; Long-below-weekly-VA +0.108R 6/6 (Longs ABOVE weekly VA dead); mss_event +0.169R 6/6.
+- Dead: stoch on MC (re-confirmed), tight-stop hypothesis REFUTED (largest stop quartile is the only CI>0 bin), relvol, gap, POC distance, clusters.
+
+**Round 2 — quant-shop improvements on the stack:**
+1. **Sizing beats skipping:** 1/2 tiering (double on balance_state / L-below-wVA / mss_event) → +0.110R/ctr, PF 1.31, **$+407,948**, maxDD $−32,770, net/DD 12.5 (beats risk-matched flat by ~$83K). 1/2/3 adds nothing, worsens DD.
+2. **Fade the poison: DEAD** (flipped counter-IB-break −0.054R, $−77K — costs kill it). Skip, don't fade.
+3. **⚠️ 1R is NOT optimal inside the stack** — the S26/S28 "flat 1R wins" lock was measured on the dirty population. **3R + BE-after-1R: +0.135R, WR 40%, PF 1.33, $+332,910, net/DD 14.3, 6/6 years** (2024: +$29.7K vs 1R's +$7.9K). ATR-scaled targets uniformly worse. RE-OPEN the 1R lock for the stacked subset.
+4. **RevFT × MC: mild, not a rule.** MC after resolved RevFT winner (causal) +0.173R n=715, but after losers also positive; conflict-skip REJECTED (opp-dir +0.139R). Minor sizing input at most.
+5. **Distance-from-extreme (user hypothesis) CONFIRMED:** in-stack pullback ≥0.86× avg-bar-range from session extreme → **+0.163R, WR 60%, PF 1.62, $+120K, 6/6**. Early-in-day's-travel beats late (+0.164R vs +0.071R). Washes out unfiltered — needs stack context.
+6. **Bar-close tells:** entry-bar close hugely prognostic (>50% against → 19% WR) but bailing there doesn't beat holding (loss sunk). Bail at the NEXT bar close if >50% against: $+267,884 vs $253,072 hold, better DD, ≥ every year.
+
+**Combined best config — Stack v2 + 3R/BE@1R + 1/2 tiering (bal/bwva/mss/pull≥0.86abr): +0.162R/ctr, PF 1.42, $+609,118, maxDD $−38,809, net/DD 15.7, 6/6 years (min year +$59K).**
+
+**Round 3 — validation PASSES:**
+- **Walk-forward survives**: expanding-train re-selection of tier features + exit, OOS 2023–26: +0.139R, PF 1.39, $+367K, 4/4 test years positive, only **−4.7% degradation** vs in-sample. 3R+BE won the exit in all 4 train windows; bal+pull selected 4/4. (Honest caveat: the 3 stack rules themselves were discovered full-sample; only tiering/exit passed true OOS re-selection.)
+- **Overlap**: uncapped concurrency max 18 / p95 7; cap=6 keeps 92% of net ($563K); all caps 6/6-years+. Worst day uncapped −$14.3K.
+- **6c bail still adds under 3R+BE** → **best book: tiered+bail +0.164R/ctr, PF 1.44, $+622,830, maxDD $−38,372, net/DD 16.2**.
+- **2026 holdout independently CI>0**: +0.180R, PF 1.53, $+93.6K YTD (monthly lumpy — 40%-WR trend-capture book).
+
+**Round 4 — deployment:**
+- **CC types: keep all 5** — each independently CI>0 inside the book, incl. CC4 (+0.139R, $143K, 6/6). Dropping CC4 lifts net/DD 16.2→19.9 but costs 23% of net; DD gain is a 2021–22 artifact.
+- **EOD verified realistic**: engine exits at session-last-tick +1 slip; RTH-only ticks = no overnight possible. Exit mix @3R+BE: Target 7.4%, Stop 49.4%, **EOD 38.9% (carries the profit: +$1.23M)**, Bail 4.2%. Flat-by-15:00 vs 15:15: identical ($627K vs $623K) — early prop flat is free.
+- **MES prop $4.5K trailing DD: only flat 1 MES survives** (~7–9% 1-yr breach, median $7.7K/yr, worst month −$1.3K). Tiered 1x survived historically but with only $639 room. N≥2 breaches 60–100%. Tier belongs in a non-trailing account.
+- **FROZEN SPEC written** (end of findings doc): F1 no counter-IB-break (IB=first 12 bars; break=close of first breaking post-IB bar; skip Long after down-only / Short after up-only) + F2 skip after prior trend day (>1.6×ADR14) + F3 skip ≥14:00 CT; entry next-bar-open; 3R target, BE@+1R, bail at bar-after-entry close if >50% against, flat 15:00; 2 units on any of bal/bwva(Long<weekly VAL)/mss/pull≥0.86×ABR20.
+
+### ⭐ App: one-click Stack v2 filter (NEW `stack_filter.py`)
+- **`stack_filter.py`** — shared frozen-spec module (regime_filter.py pattern): `compute_stack_columns()` / `apply_stack_filter()`. Computes IB-break state (causal, break at breaking-bar close), prior_adr_ext, 14:00 cutoff, and the 4 tier features; attaches `stack_tier` (1/2) + `stack_bal/bwva/mss/pull` to results.
+- **Bar Analyzer**: "⭐ Stack v2" checkbox (top of filter section, key `ba_flt_stack`); marks FilterStatus `stack_ib_counter/stack_prior_trend/stack_late`; in sim fingerprint. **Prop tab gets it free via `ba_results`.**
+- **Verified vs research**: 2,972 of 5,640 signals pass (research: 2,925 *filled*), tier-2 on 1,353 (research ~1,340), skip mix 1,442/718/508.
+- **To reproduce the flat researched book in-app**: Stack v2 ON + Target 3R + ratchet→BE@+1R + slips 1/1/1 + comm 4.36 → expect n≈2,925, WR≈39–40%, ~$333K, PF 1.33. (At 1R sanity check: WR≈56%, ~$253K.) **A ~25% WR means the BE ratchet isn't set.**
+- **NOT in-app yet**: 6c bail rule (needs engine extension), native per-signal 2x tier sizing (tier columns attached for Prop-tab weighting).
+
+**Round 5 — prop operating structure (final):**
+- **Cushion-gated tier works**: start 1 MES, enable 2x tier at cushion ≥ $4,500 above trailing floor → 2.4% breach (floor freezes at BE — user-confirmed rule), $13.9K median/yr. Always-on tier = ~25% breach: gate is mandatory.
+- **ES in a prop: NO at any realistic budget** — flat 1 ES breaches historically at $4.5K–$20K trailing; <10% breach needs ~$30K+. MES only.
+- **No-hedge compliance is mandatory**: 6.9% of entries would create long+short. **Net-direction cap=3** keeps 81% of edge ($309K ES-equiv, PF 1.36, 6/6 yrs, 3.7–5.2% breach). Two-account long/short split keeps only 39% — not worth two eval fees.
+- **Combined final structure** (net-dir cap 3 + tier gate $4.5K): breach 2.7%, median $10.5K/yr MES, historical +$46.6K/5.5y.
+- **Max risk**: median stop 15.75 pts, max 97.75 pts ($489 MES) — untested refinement flagged: ~40-pt stop cap. Worst single loss MES $−316; worst day (one-at-a-time) −$4,796 ES-equiv.
+- **Prop operating rules frozen in findings doc**: MES only · frozen-spec entries/exits, flat 15:00 · net-dir max 3 · tier gate $4,500 · expect ~$9–12K/yr, breach 3–6%/yr · no two-account split.
+
+### Caveats / open
+- Stack rules discovered full-sample (walk-forward covered tiering/exit only) — treat 2026H2 as live-forward test
+- Engine bail-rule extension + per-signal contract sizing = next implementation steps
+- Fable agent scripts in scratchpad only (session temp) — promote keepers to `scripts/` if needed for reruns
 
 ---
 

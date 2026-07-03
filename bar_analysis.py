@@ -10,6 +10,7 @@ from pathlib import Path
 from data_loader import load_sc_bars, load_sc_ticks, get_market_holidays, TICK_SIZE, bar_num_from_dt
 from economic_calendar import get_economic_events, fred_key_configured, EVENT_COLOR
 import indicators as ind
+from stack_filter import apply_stack_filter
 from simulation_engine import (
     INSTRUMENTS, RTH_END_MIN, _EMPTY_TRADE,
     simulate_trades, compute_summary, friction_ledger,
@@ -4543,6 +4544,27 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
             step=0.02, format="%.2f", key="ba_flt_er10_min",
             help="ER10 threshold (default 0.30).")
 
+        st.markdown("**⭐ Stack v2 (S53 frozen spec — the researched MC book)**")
+        sv1, sv2 = st.columns([1, 2])
+        flt_stack = sv1.checkbox(
+            "Stack v2 filter", key="ba_flt_stack",
+            value=st.session_state.get("ba_flt_stack", False),
+            help="One-click S53 frozen spec: skip counter-IB-break signals "
+                 "(Long after a down-only IB break / Short after up-only; IB = "
+                 "first 60 min, break known at the breaking bar's close), skip "
+                 "the day after a prior trend day (range > 1.6×ADR), skip "
+                 "signals closing ≥ 14:00 CT. All causal. Researched book: "
+                 "+0.091R @1R flat / +0.135R @3R+BE, PF 1.25-1.44, 6/6 years. "
+                 "For the full book set Target=3R and ratchet stop→BE at +1R. "
+                 "Adds stack_tier (1/2) + feature columns to results for "
+                 "sizing analysis in the Prop tab.")
+        sv2.caption(
+            "Skips: counter-IB-break · prior trend day · ≥14:00 CT.  Tier-2x "
+            "flags attached: balance state, Long<weekly VAL, MSS event, "
+            "pullback ≥0.86×ABR20. Exits are sim settings (3R + BE@1R "
+            "reproduces the researched $342K flat book; bail rule not yet in "
+            "engine). Spec: docs/living/fable5_mc_findings.md.")
+
         st.markdown("**Balance State (S25, secondary boosters on top of ER)**")
         rb1, rb2, rb3 = st.columns(3)
         flt_balance = rb1.checkbox(
@@ -5338,6 +5360,11 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         direction_filter,
     )
 
+    # ⭐ Stack v2 (S53) — one-click frozen spec; marks FilterStatus and attaches
+    # stack_tier / stack_* feature columns (carried into results for Prop tab).
+    if flt_stack:
+        filtered_signals = apply_stack_filter(filtered_signals, bars)
+
     # Regime population gates (ER chop + S25 balance) — tag only when at least one
     # is active (the tag is cached, so it computes once per signal/bar set).
     if flt_er30 or flt_er10 or flt_balance or flt_inside or flt_skip_trend or flt_consec:
@@ -5390,6 +5417,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         str(st.session_state.get("ba_manual_overrides", {})),
         first_trade_only, first_2_filled_only, fade_signals,
         flt_er30, round(er_min, 4), flt_er10, round(er10_min, 4),
+        flt_stack,
         flt_balance, flt_inside, flt_skip_trend,
         flt_consec, int(min_run),
         flt_zlo_trend, flt_zlo_trendstate, zlo_ts_min, flt_zlo_osc_sign,
