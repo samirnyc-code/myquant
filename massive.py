@@ -749,13 +749,14 @@ def _show_instrument_section(key: str) -> None:
         )
         rows = []
         for c in catalog:
+            if not _bars_path(c.ticker).exists():
+                continue   # hide future contracts with no data
             rd  = _instr_get_roll_date(c.ticker, rolls, key)
             off = _instr_get_offset(c.ticker, rolls)
             rows.append({
                 "Contract":     c.ticker,
                 "Roll Date":    rd,
                 "Offset (pts)": off,
-                "Bars":         "✅" if _bars_path(c.ticker).exists() else "⬜",
             })
         edited = st.data_editor(
             pd.DataFrame(rows),
@@ -763,7 +764,6 @@ def _show_instrument_section(key: str) -> None:
                 "Contract":     st.column_config.TextColumn(disabled=True),
                 "Roll Date":    st.column_config.TextColumn("Roll Date (YYYY-MM-DD)"),
                 "Offset (pts)": st.column_config.NumberColumn("Offset (pts)", format="%.4f"),
-                "Bars":         st.column_config.TextColumn(disabled=True, width="small"),
             },
             hide_index=True,
             use_container_width=True,
@@ -771,7 +771,8 @@ def _show_instrument_section(key: str) -> None:
             key=f"rolls_editor_{key}",
         )
         if st.button(f"💾 Save {key} Rolls"):
-            new_rolls = {}
+            # merge edits back into full rolls dict (preserve future contracts not shown)
+            new_rolls = dict(rolls)
             for _, row in edited.iterrows():
                 off_val = row["Offset (pts)"]
                 new_rolls[row["Contract"]] = {
@@ -883,6 +884,65 @@ def _show_instrument_section(key: str) -> None:
         elif cont_path.exists():
             st.info(f"Persisted on disk{cont_info} — click 'Build {key} Continuous' to reload.")
 
+    # ── NT continuous comparison ──────────────────────────────────────────────
+    nt_key      = f"nt_cont_{key}_bars"
+    nt_ckey     = f"nt_cont_{key}_cache_key"
+    nt_sess_key = f"nt_cont_{key}_upload"
+
+    with st.expander(f"📐 NT Comparison — {spec.name}", expanded=False):
+        st.markdown(f"**Upload NT `@{key}` continuous 5M export**")
+        st.caption(
+            f"In NT: add **OHLCExporter** to an `@{key}` continuous chart (5M, RTH), "
+            f"reload the chart to export, then upload the `.txt` file here. "
+            f"Drop the file in `data/` or upload directly below."
+        )
+
+        nt_upload = st.file_uploader(
+            f"NT @{key} continuous export (.txt)", type=["txt"], key=nt_sess_key,
+        )
+        if nt_upload:
+            _ukey = f"{nt_upload.name}_{nt_upload.size}"
+            if st.session_state.get(nt_ckey) != _ukey:
+                with st.spinner("Parsing NT export…"):
+                    df_nt = parse_ohlc_from_upload(nt_upload)
+                df_nt = filter_excluded_dates(df_nt)
+                st.session_state[nt_key]  = df_nt
+                st.session_state[nt_ckey] = _ukey
+                from data_loader import save_csv_cache, load_csv_manifest, save_csv_manifest
+                save_csv_cache(df_nt, f"nt_cont_{key}", nt_upload.name, nt_upload.size)
+                _mf = load_csv_manifest()
+                _mf[f"nt_cont_{key}"] = {"name": nt_upload.name, "size": nt_upload.size}
+                save_csv_manifest(_mf)
+                st.rerun()
+
+        nt_bars  = st.session_state.get(nt_key)
+        mas_cont = st.session_state.get(f"mas_cont_{key}")
+        # fall back to persisted parquet if session was lost
+        if mas_cont is None and cont_path.exists():
+            try:
+                mas_cont = pd.read_parquet(cont_path)
+            except Exception:
+                pass
+
+        if nt_bars is not None:
+            _d = nt_bars["DateTime"].dt.date
+            st.success(f"NT @{key} loaded: **{len(nt_bars):,} bars** · {_d.min()} → {_d.max()}")
+
+        if mas_cont is not None and nt_bars is not None:
+            st.divider()
+            st.markdown(f"#### Comparison — Massive {key} Continuous vs NT @{key}")
+            st.caption("Filters are set once in the 🗂️ Data tab and shared with Bar Analysis.")
+            cont_filter_kwargs = get_filters("shared")
+            show_gate_body(
+                mas_cont.drop(columns=["Contract"], errors="ignore"), nt_bars,
+                left_label=f"Massive {key} Continuous", right_label=f"NT @{key}",
+                gate_key=f"g_cont_{key}", **cont_filter_kwargs,
+            )
+        elif mas_cont is None and nt_bars is not None:
+            st.info(f"Build the {key} continuous series above to run the comparison.")
+        elif mas_cont is not None and nt_bars is None:
+            st.info(f"Upload the NT @{key} export above to run the comparison.")
+
 
 # ── Main tab ──────────────────────────────────────────────────────────────────
 
@@ -915,10 +975,11 @@ def show_massive_tab():
         if cont_100s_path.exists():
             st.session_state["mas_continuous_100s"] = pd.read_parquet(cont_100s_path)
 
+    from data_loader import load_csv_cache, load_csv_manifest
+    _mf_startup = load_csv_manifest()
+
     if "nt_cont_bars" not in st.session_state:
-        from data_loader import load_csv_cache, load_csv_manifest
-        _mf = load_csv_manifest()
-        _info = _mf.get("nt_cont")
+        _info = _mf_startup.get("nt_cont")
         if _info:
             _df = load_csv_cache("nt_cont", _info["name"], _info["size"])
             if _df is not None:
@@ -930,6 +991,18 @@ def show_massive_tab():
             _cp = _instr_continuous_path(_ik)
             if _cp.exists():
                 st.session_state[f"mas_cont_{_ik}"] = pd.read_parquet(_cp)
+
+    # auto-load persisted NT continuous bars for each instrument
+    _mf_instr = _mf_startup
+    for _ik in ("NQ", "YM", "GC", "CL", "6E", "6J"):
+        _nt_key = f"nt_cont_{_ik}_bars"
+        if _nt_key not in st.session_state:
+            _info = _mf_instr.get(f"nt_cont_{_ik}")
+            if _info:
+                _df = load_csv_cache(f"nt_cont_{_ik}", _info["name"], _info["size"])
+                if _df is not None:
+                    st.session_state[_nt_key]              = _df
+                    st.session_state[f"nt_cont_{_ik}_cache_key"] = f"{_info['name']}_{_info['size']}"
 
     st.markdown("### Massive — ES Contract Manager")
 

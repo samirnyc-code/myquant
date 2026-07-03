@@ -659,12 +659,30 @@ def parse_ohlc_from_upload(uploaded_file) -> pd.DataFrame:
             on_bad_lines="skip",
         )
         df.columns = df.columns.str.strip()
+        # Normalize common NT column name variations (case-insensitive)
+        _norm = {c.lower(): c for c in df.columns}
+        _aliases = {
+            "time": "DateTime", "datetime": "DateTime",
+            "last": "Close", "close": "Close",
+            "open": "Open", "high": "High", "low": "Low",
+            "volume": "Volume", "totalvolume": "Volume", "vol": "Volume",
+        }
+        df = df.rename(columns={
+            orig: _aliases[orig.lower()]
+            for orig in df.columns
+            if orig.lower() in _aliases and _aliases[orig.lower()] != orig
+        })
+        # If Date and Time are separate columns, combine them
+        if "DateTime" not in df.columns and "Date" in df.columns and "Time" in df.columns:
+            df["DateTime"] = df["Date"].str.strip() + " " + df["Time"].str.strip()
+            df = df.drop(columns=["Date", "Time"], errors="ignore")
         if "DateTime" not in df.columns:
-            raise ValueError("NT CSV is missing a DateTime column.")
+            raise ValueError(f"NT CSV is missing a DateTime column. Found: {list(df.columns)}")
         for col in ["Open", "High", "Low", "Close"]:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors="coerce")
-        df["Volume"]  = pd.to_numeric(df.get("Volume", 0), errors="coerce").fillna(0)
+        _vol_src = df["Volume"] if "Volume" in df.columns else pd.Series(0, index=df.index)
+        df["Volume"]  = pd.to_numeric(_vol_src, errors="coerce").fillna(0)
         df["NullVol"] = df["Volume"].isna()
         dt_parsed = pd.to_datetime(df["DateTime"], format="%Y-%m-%d %H:%M:%S", errors="coerce")
         if dt_parsed.isna().mean() > 0.5:
