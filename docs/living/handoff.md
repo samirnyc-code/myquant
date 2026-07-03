@@ -56,6 +56,59 @@ race the same number, the **earlier-merged** note keeps it; the later one takes 
 
 ---
 
+## ⭐ SESSION 51 — July 3, 2026 — RevFT × Stochastic discovery study (read FIRST)
+*Goal (user): "check the RevFT signals against the Stochastic CSV and see if you can find a pattern."
+Built `scripts/revft_stoch_study.py` — standalone winners-vs-losers discovery script (no Streamlit),
+parsed 6,442 fresh RevFT signals (through 2026-07-02), joined `ES_stoch.csv` (103,933 bars, fresh
+through today), simulated at 1R/2R/3R. Results are in `docs/living/revft_stoch_study_20260703.md`.*
+
+### Script — `scripts/revft_stoch_study.py` (new, committed)
+- Parses MyReversals Signal Export txt (DD/MM/YYYY, space-delimited, comma-formatted prices)
+- As-of join on stoch CSV: `searchsorted(side="right") - 1` — same math as `merge_stoch_overlay()`
+- Adds STO_K/D, STO_Zone, STO_KslopeUp, STO_lead_in (K−K_lag3), STO_ZoneSignal, STO_K_next (look-ahead)
+- Calls `simulate_trades()` at 1R/2R/3R; outputs to `docs/living/revft_stoch_study_<date>.md`
+- Run: `.venv/Scripts/python.exe scripts/revft_stoch_study.py`
+
+### Key findings (all at 1R, in-sample 5yr set — see `revft_stoch_study_20260703.md` for full tables)
+
+**1. K slope is the dominant feature** (section 3)
+- **K rising (K > K_lag1): +0.980R, 99.1% win rate, PF=483, n=3,120** — CI [+0.975, +0.985] excludes 0
+- K falling: +0.003R, CI contains 0, n=3,063 — completely dead
+- This is the single strongest feature in the study; directly observable at signal time (causal)
+
+**2. Zone × Direction** (section 2) — the loser identified
+- **OB Long: +0.995R, 99.9% win rate, n=818** — stable every year 2021-2026
+- **mid Long: +0.996R, 99.9% win rate, n=2,296** — stable every year
+- **mid Short: −0.023R, CI [−0.036, −0.009] — confirmed loser** (CI excludes 0 on downside, n=2,289)
+- OS Short: +0.014R, flat, CI contains 0, n=749 — dead money
+
+**3. Lead-in slope monotonic** (section 4 — K−K_lag3 quintiles)
+- Bottom 2 quintiles (falling 3-bar): ~0 edge, CI contains 0
+- Middle: +0.489R
+- Top 2 quintiles (+19.7 to +97.8): +0.975R to +0.989R — near-locks
+
+**4. ZoneSignal from exporter is a NEGATIVE signal** (section 5)
+- ZoneSignal=1: +0.011R, CI contains 0 — flat, n=654
+- ZoneSignal=0: +0.485R, CI excludes 0 — ALL the edge is when no zone signal
+- Implication: ZoneSignal should be used as a NO-TRADE filter, not a qualifier
+
+**5. K level bins monotonic** (section 1): K<20 = essentially no edge; K>70 = monster edge (99.7% WR at K=90-100)
+
+**6. K_next (look-ahead) shows LESS split than causal K slope** — confirming the lagged slope
+   is the real predictor, not just "K will rise." Section 7: K_rising_next=+0.457R vs causal +0.980R.
+
+### Immediate next steps
+1. **Confirm: filter mid-Short** — mid Short has a confirmed loser CI; eliminating Short signals
+   in mid zone should be trivially implementable. Run the continuation gate with this filter added.
+2. **K slope as a size-up filter** — KslopeUp (K>K_lag1) is already in `merge_stoch_overlay()`/
+   `apply_stoch_filters()`. Wire it into the app's stochastic filter panel as a standalone "K slope" mode.
+3. **PeriodD=3 re-export** — with PeriodD=1, D==K everywhere; K/D cross mode is degenerate.
+   Re-run this study with PeriodD=3 to test whether K/D cross adds anything on top of KslopeUp.
+4. **OB zone as a size-up signal** — 842 trades, 98.3% WR, every year CI excludes 0. Size 2x
+   contracts when K > 80 at RevFT entry.
+
+---
+
 ## ⭐ SESSION 50 — July 3, 2026 — Stochastic (%K/%D) overlay: NT exporter + BA filter/discovery infra (read FIRST)
 *Goal (user): introduce a new stochastic indicator, join its %K/%D reading (from a CSV)
 onto RevFT signals, and hunt for an edge — as a filter AND as a winners-vs-losers
