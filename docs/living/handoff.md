@@ -28,7 +28,7 @@ race the same number, the **earlier-merged** note keeps it; the later one takes 
 | 0002 | ER10 look-ahead bug (`0002_er10_lookahead_bug.md`) | DONE | s39 |
 | 0003 | Keystone — IB-edge fade (`0003_keystone_ib_edge_fade.md`) | DONE | s40 |
 | 0004 | Logan "MyReversals" code decode (`0004_logan_myreversals_decode.md`) | IN PROGRESS | s41 (docs/s38-reversal branch) |
-| 0005 | *(claimed in another chat — reserved)* | RESERVED | (other chat) |
+| 0005 | RevFT trade location — VWAP deviation + value area (negative) | DONE — on branch `docs/revft-tradelocation` (pushed S54, unmerged) | (other chat) |
 | 0006 | QuantSystems Breakouts — reproduction & edge study (`0006_quantsystems_breakouts_blueprint.md`) | DONE — detection reproduces; NO mechanical edge; rewritten from full sources (code+video+worksheet) | s41 (docs/s38-reversal branch) |
 | 0007 | QS Breakouts build & test mechanism (`0007_quantsystems_breakouts_build.md`) | LIVING/IN PROGRESS | s41 (docs/s38-reversal branch) |
 | 0008 | QS Breakouts — EDGE STUDY (BO+FT reproduction results) | RESERVED (write when config locked) | s41 (docs/s38-reversal branch) |
