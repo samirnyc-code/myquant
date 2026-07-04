@@ -406,17 +406,35 @@ def show_menthorq_tab():
     show_gex        = t9.checkbox("GEX Strikes",  value=True,  key="mq_gex")
     show_gamma_wall = st.checkbox("Gamma Wall 0DTE", value=False, key="mq_gwall")
 
-    # ── load 5M bars for the selected date from session state / disk cache ───
+    # ── load 5M bars for the selected date ───────────────────────────────────
     bars_day = None
+    _bar_status = ""
     try:
         from data_loader import load_csv_cache, load_csv_manifest
         mf = load_csv_manifest()
-        bars_all = st.session_state.get("data_sc_5m") or st.session_state.get("data_nt_cont")
-        if bars_all is None and "nt_cont" in mf:
-            info = mf["nt_cont"]
-            bars_all = load_csv_cache("nt_cont", info["name"], info["size"])
+
+        # priority: SC 5M upload → NT 5M upload → nt_cont manifest cache
+        bars_all = (
+            st.session_state.get("data_sc_5m")
+            or st.session_state.get("data_nt_5m")
+        )
+        _bar_source = "session"
+        if bars_all is None:
+            for slot in ("nt_cont", "sc_5m", "nt_5m"):
+                if slot in mf:
+                    info = mf[slot]
+                    bars_all = load_csv_cache(slot, info["name"], info["size"])
+                    _bar_source = f"cache:{slot}"
+                    if bars_all is not None:
+                        break
+
         if bars_all is not None:
-            import datetime
+            # ensure DateTime column exists
+            dt_col = next((c for c in bars_all.columns if "datetime" in c.lower() or c.lower() == "time"), None)
+            if dt_col and dt_col != "DateTime":
+                bars_all = bars_all.rename(columns={dt_col: "DateTime"})
+            bars_all["DateTime"] = pd.to_datetime(bars_all["DateTime"])
+
             d_start = pd.Timestamp(selected_date)
             d_end   = d_start + pd.Timedelta(days=1)
             bars_day = bars_all[
@@ -424,16 +442,22 @@ def show_menthorq_tab():
                 (bars_all["DateTime"] <  d_end)
             ].copy()
             if bars_day.empty:
+                _bar_status = f"No bars for {selected_date} in {_bar_source} (data spans {bars_all['DateTime'].min().date()} – {bars_all['DateTime'].max().date()})"
                 bars_day = None
-    except Exception:
+        else:
+            _bar_status = "No bar data found in session state or manifest cache"
+    except Exception as e:
+        _bar_status = f"Bar load error: {e}"
         bars_day = None
 
     # ── chart + tables ────────────────────────────────────────────────────────
     col_chart, col_tables = st.columns([2, 1])
 
     with col_chart:
-        title = "5M Bars + Gamma Levels" if bars_day is not None else "Gamma Level Ladder (no bars loaded)"
+        title = "5M Bars + Gamma Levels" if bars_day is not None else "Gamma Level Ladder"
         st.subheader(title)
+        if bars_day is None and _bar_status:
+            st.caption(f"Bars not shown — {_bar_status}")
         fig = _build_chart(
             row, bars_day,
             show_call, show_call_0dte,
