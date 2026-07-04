@@ -167,16 +167,13 @@ User asked "are we overoptimizing?" — honest layer-by-layer grading:
 - **Architecture clarity**: signals come from NT closes, Massive provides tick-granularity price path. 1-point (4-tick) tolerance = 99% agreement on core session bars — sufficient for simulation.
 - **Holiday bars (1,470)**: correct — 34 half-session days (Labor Day, July 4th etc.) × 42 bars each.
 
-### Tick cache status at session end
-- NQ: ✅ 1,265 days complete
-- YM: 461/~1,260 days (build running)
-- GC/CL/6E/6J: ~1 day each → full build running in background (`scripts/build_tick_caches.py`)
-- GC needs ~36 gz downloads, CL ~24, 6E ~12, 6J ~14 — rest already cached from bar build
+### Tick cache status — COMPLETE (July 4, 2026)
+- NQ: ✅ 1,265 days  |  YM: ✅ 1,257  |  GC: ✅ 1,258  |  CL: ✅ 1,258  |  6J: ✅ 1,277
+- 6E: ✅ 932 days (short = Massive has no 6E before Oct 2022 — known source gap)
 
 ### NEXT
-1. **Wait for tick build to finish** — check day counts for YM/GC/CL/6E/6J in app
-2. **Upload remaining NT exports** — GC/CL/6E/6J comparison panels are ready in the app; grab OHLCExporter exports from NT for each
-3. **NQ: investigate roll-date mismatches** — on roll dates our system stays on old contract 1 day longer than NT; might need to shift roll dates +1 day for the 5 affected contracts (2021-2022 era)
+1. **Upload remaining NT exports** — GC/CL/6E/6J comparison panels ready in app; grab OHLCExporter TXTs from NT for each
+2. **NQ: investigate roll-date mismatches** — on roll dates our system stays on old contract 1 day longer than NT; 5 affected roll dates (2021-2022 era) have ~81 large-delta bars each
 
 ---
 
