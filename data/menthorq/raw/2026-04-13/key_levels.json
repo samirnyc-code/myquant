@@ -1,0 +1,36 @@
+{
+  "success": true,
+  "data": {
+    "date": "2026-04-13",
+    "resource": {
+      "ticker": "es1!",
+      "image_url": "",
+      "data": {
+        "Call Resistance": 7000,
+        "Call Resistance 0DTE": 6950,
+        "High Vol Level": 6715,
+        "Put Support": 6500,
+        "Put Support 0DTE": 6825,
+        "1D Max.": 6987,
+        "1D Min.": 6858.5,
+        "Distance to HVL %": "3.00%",
+        "Implied Vol 30D": 14.73,
+        "Total GEX": "489.53M",
+        "Net GEX": "151.76M",
+        "Expiring GEX": "20.74M",
+        "Put/Call GEX": 0.53,
+        "Total DEX": "188.26B",
+        "Net DEX": "100.6B",
+        "Put/Call DEX": 0.3
+      },
+      "text_data": "",
+      "table_data": [],
+      "date": "2026-04-13",
+      "run_id": null,
+      "run_timestamp": null,
+      "previous_run_id": null,
+      "next_run_id": null,
+      "quin_url_template": null
+    }
+  }
+}

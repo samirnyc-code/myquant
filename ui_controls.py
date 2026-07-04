@@ -34,6 +34,7 @@ _STATE_PATH = Path(__file__).parent / "saved_signals" / "ui_visibility.json"
 TAB_ORDER = [
     "master", "massive", "data", "bar_analysis", "wfa", "bar_viewer",
     "chart", "portfolio", "extras", "prop", "auction", "erc", "qs", "legs",
+    "menthorq",
 ]
 
 TAB_LABELS = {
@@ -51,6 +52,7 @@ TAB_LABELS = {
     "erc":          "🔬 ER10 Look-ahead",
     "qs":           "🎯 QS Breakouts",
     "legs":         "🦵 Leg Labeler",
+    "menthorq":     "📡 MenthorQ",
 }
 
 # ── Expander catalog ──────────────────────────────────────────────────────────

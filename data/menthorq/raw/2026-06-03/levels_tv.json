@@ -1,0 +1,19 @@
+{
+  "success": true,
+  "data": {
+    "date": "2026-06-03",
+    "resource": {
+      "ticker": "es1!",
+      "image_url": "",
+      "data": [],
+      "text_data": "$ES1!: Call Resistance, 7600, Put Support, 7500, HVL, 7575, 1D Min, 7512.8, 1D Max, 7630.7, Call Resistance 0DTE, 7600, Put Support 0DTE, 7550, HVL 0DTE, 7575, Gamma Wall 0DTE, 7600, GEX 1, 7625, GEX 2, 7525, GEX 3, 7620, GEX 4, 7630, GEX 5, 7545, GEX 6, 7650, GEX 7, 7675, GEX 8, 7475, GEX 9, 7480, GEX 10, 7660",
+      "table_data": [],
+      "date": "2026-06-03",
+      "run_id": null,
+      "run_timestamp": null,
+      "previous_run_id": null,
+      "next_run_id": null,
+      "quin_url_template": "/en/chats?template=levels_tv&ticker=es1!&date=2026-06-04"
+    }
+  }
+}

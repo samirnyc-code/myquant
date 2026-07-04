@@ -1,0 +1,19 @@
+{
+  "success": true,
+  "data": {
+    "date": "2026-04-06",
+    "resource": {
+      "ticker": "es1!",
+      "image_url": "",
+      "data": [],
+      "text_data": "$ES1!: BL 1, 6732.06, BL 2, 6613.22, BL 3, 6642.64, BL 4, 6739.66, BL 5, 6662.43, BL 6, 6721.86, BL 7, 6486.14, BL 8, 6874.21, BL 9, 6563.16, BL 10, 6762.55",
+      "table_data": [],
+      "date": "2026-04-06",
+      "run_id": null,
+      "run_timestamp": null,
+      "previous_run_id": null,
+      "next_run_id": null,
+      "quin_url_template": "/en/chats?template=bl_levels&ticker=es1!&date=2026-04-07"
+    }
+  }
+}

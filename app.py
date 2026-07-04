@@ -23,6 +23,7 @@ import auction_tab
 import er_lookahead_tab
 import qs_tab
 import leg_labeler_tab
+import menthorq_tab
 import ui_controls as controls
 
 # ── Global display rule for st.dataframe (DISPLAY only — calc precision intact) ─
@@ -1331,6 +1332,9 @@ def main():
 
     with controls.tab_ctx(T, "legs"):
         leg_labeler_tab.show_labeler_tab()
+
+    with controls.tab_ctx(T, "menthorq"):
+        menthorq_tab.show_menthorq_tab()
 
     # Render the status strip now that all tabs have populated session state.
     with status_ph:
