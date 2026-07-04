@@ -123,6 +123,21 @@ race the same number, the **earlier-merged** note keeps it; the later one takes 
 - **Unlimited simultaneous Combines; trade copier across own accounts ALLOWED; max 5 XFAs, 1 LFA** → parallel-account scaling play is viable
 - Memory file `prop_account_terms.md` updated with all of the above
 
+### ⚠️ OVERFITTING ASSESSMENT + LIVE EXPECTATIONS (S53 close — READ BEFORE ANY NEW RESEARCH)
+User asked "are we overoptimizing?" — honest layer-by-layer grading:
+- **Low risk:** baseline MC edge (one test, no selection).
+- **Medium risk:** the 3 Stack v2 skip rules — **discovered FULL-SAMPLE, never OOS-validated** (walk-forward covered tiering/exit only). Armor: structural priors predate the data, complement is NEGATIVE (−0.057R), sub-periods identical. The "2026 holdout" is NOT a true holdout for the stack rules (2026 was in the R1 discovery sample).
+- **Lower risk:** 3R+BE exit + 1/2 tiering (passed true walk-forward, −4.7% OOS).
+- **Highest risk:** precise thresholds — pull≥0.86×ABR20 (an in-sample quartile boundary, no structural meaning; gradient monotone so the DIRECTION is trustworthy, the number isn't — treat 0.7–1.0 as equivalent), 6c bail 50% trigger, $4,500 cushion gate. Reported CIs do NOT account for 5 rounds of search.
+- **LIVE EXPECTATION: 50–67% of backtest expectancy.** ~$4K/yr/MES backtest → budget $2–3K. Prop plan still survives at that level (worst DD never near limit).
+- **DIRECTION AGREED: freeze the spec, stop adding rules.** Live-forward 1 MES 2–3 months scored against sim predictions is the only test that adds information. Any new idea (GEX etc.): pre-registered hypothesis, ONE test, tail thresholds only, on the stacked subset.
+- **Feedback rule added to memory** (user was rightly angry the haircut arrived after prop planning, not with Round 2 headlines): every future reported result leads with the discounted live estimate; backtest number is the upside case; validated vs unvalidated layers separated in every summary.
+
+### Prop sim CSV audit (user export, 2,728 trades, $2.50 RT, $200/mo, 1→3 MES scaling)
+- Verified internally consistent: balance reconciles with trade P&L; sudden balance drops = monthly auto-payouts (not losses); scaling 1→2→3 matches base+profit/$4.5K rule; entries pre-14:00, exits ≤15:14, losers −1R / winners 3R / scratches = BE ratchet ✓.
+- **2026 H1 is a real drawdown** (~$14K off the late-April peak incl. payouts; losing streaks at 3 lots in late May/June 2026) — the "wins by year, not by month" texture at scale. Budget for living through one of these.
+- Run was conservative vs verified Topstep terms ($2.50 vs $1.24 RT; $200/mo forever vs fee stopping at funding) — real-world ~$2–4K better over the period.
+
 ### Caveats / open — NEXT SESSION
 - **User wants to improve ENTRY edge next.** Announced ideas: **GEX levels from MentorQ** (dealer gamma exposure S/R — needs data ingestion), plus equity-curve smoothing via risk-shape rules.
 - **Dynamic-target / stop-size research (user hypothesis)**: skip or resize 3R trades with huge stops (e.g. 40pt); targets dynamic on stop size / ADR / ABR / extension. ⚠️ Tension with R2 finding: LARGEST stop quartile was the only CI>0 bin, smallest the worst — so "skip big stops" likely costs edge; the prop-relevant version is a **dollar-risk cap / extreme-tail cap (~40pt ≈ top 2%)** for DD control, + Round 2 found early-in-move > late (+0.164R vs +0.071R) — extension-conditional targets are the promising variant. ATR-scaled targets already tested UNIFORMLY WORSE (R2) — don't redo naively.
