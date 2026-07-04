@@ -97,7 +97,16 @@ def load_mq() -> pd.DataFrame:
             s = (df[c].astype(str).str.replace("%", "", regex=False)
                  .str.replace("M", "e6").str.replace("B", "e9"))
             df[c] = pd.to_numeric(s, errors="coerce")
-    return df.sort_values("date").reset_index(drop=True)
+    df = df.sort_values("date").reset_index(drop=True)
+    # Row d is generated at EOD of day d (verified: 1d-band centered on close(d),
+    # distance_to_hvl uses close(d)); its tradeable session is the NEXT day.
+    # MQ_APPLY_NEXT_DAY=1 re-dates each row to the next trading day (correct,
+    # causal join). Unset = as-archived same-day join (lookahead for levels).
+    import os
+    if os.environ.get("MQ_APPLY_NEXT_DAY") == "1":
+        df["date"] = df["date"].shift(-1)
+        df = df.dropna(subset=["date"]).reset_index(drop=True)
+    return df
 
 
 # ── stage 0 ──────────────────────────────────────────────────────────────────

@@ -1,0 +1,36 @@
+{
+  "success": true,
+  "data": {
+    "date": "2026-03-16",
+    "resource": {
+      "ticker": "6JU2026",
+      "image_url": "",
+      "data": {
+        "Call Resistance": 0.0068,
+        "Call Resistance 0DTE": 0.0068,
+        "High Vol Level": 0.00645,
+        "Put Support": 0.0062,
+        "Put Support 0DTE": 0.0062,
+        "1D Max.": 0.00642,
+        "1D Min.": 0.00635,
+        "Distance to HVL %": "1.02%",
+        "Implied Vol 30D": 9.68,
+        "Total GEX": "3710.04M",
+        "Net GEX": "-245.84M",
+        "Expiring GEX": "-11.97M",
+        "Put/Call GEX": 1.14193,
+        "Total DEX": "1.62M",
+        "Net DEX": "-502.2K",
+        "Put/Call DEX": 1.89672
+      },
+      "text_data": "",
+      "table_data": [],
+      "date": "2026-03-16",
+      "run_id": null,
+      "run_timestamp": null,
+      "previous_run_id": null,
+      "next_run_id": null,
+      "quin_url_template": null
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "success": true,
+  "data": {
+    "date": "2026-06-10",
+    "resource": {
+      "ticker": "CLQ2026",
+      "image_url": "",
+      "data": [],
+      "text_data": "$CLQ2026: BL 1, 85.66, BL 2, 91, BL 3, 90.74, BL 4, 91.54, BL 5, 92.53, BL 6, 93.4, BL 7, 92.8, BL 8, 81.03, BL 9, 89.46, BL 10, 85.94",
+      "table_data": [],
+      "date": "2026-06-10",
+      "run_id": null,
+      "run_timestamp": null,
+      "previous_run_id": null,
+      "next_run_id": null,
+      "quin_url_template": "/en/chats?template=bl_levels&ticker=CLQ2026&date=2026-06-11"
+    }
+  }
+}

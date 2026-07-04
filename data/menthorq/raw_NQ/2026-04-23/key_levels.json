@@ -1,0 +1,36 @@
+{
+  "success": true,
+  "data": {
+    "date": "2026-04-23",
+    "resource": {
+      "ticker": "nq1!",
+      "image_url": "",
+      "data": {
+        "Call Resistance": 27000,
+        "Call Resistance 0DTE": 27000,
+        "High Vol Level": 26490,
+        "Put Support": 25000,
+        "Put Support 0DTE": 26800,
+        "1D Max.": 27274.9,
+        "1D Min.": 26593.1,
+        "Distance to HVL %": "1.65%",
+        "Implied Vol 30D": 20.09,
+        "Total GEX": "14.46M",
+        "Net GEX": "4.30M",
+        "Expiring GEX": "0.89M",
+        "Put/Call GEX": 0.54,
+        "Total DEX": "20.98B",
+        "Net DEX": "12.62B",
+        "Put/Call DEX": 0.25
+      },
+      "text_data": "",
+      "table_data": [],
+      "date": "2026-04-23",
+      "run_id": null,
+      "run_timestamp": null,
+      "previous_run_id": null,
+      "next_run_id": null,
+      "quin_url_template": null
+    }
+  }
+}

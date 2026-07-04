@@ -1,0 +1,36 @@
+{
+  "success": true,
+  "data": {
+    "date": "2026-05-22",
+    "resource": {
+      "ticker": "GCQ2026",
+      "image_url": "",
+      "data": {
+        "Call Resistance": 4700,
+        "Call Resistance 0DTE": 4560,
+        "High Vol Level": 4555,
+        "Put Support": 4500,
+        "Put Support 0DTE": 4450,
+        "1D Max.": 4615.82,
+        "1D Min.": 4496.98,
+        "Distance to HVL %": "0.03%",
+        "Implied Vol 30D": 20.7,
+        "Total GEX": "67.72M",
+        "Net GEX": "-0.32M",
+        "Expiring GEX": "-0.05M",
+        "Put/Call GEX": 1.01,
+        "Total DEX": "26.67B",
+        "Net DEX": "-564.4M",
+        "Put/Call DEX": 1.04
+      },
+      "text_data": "",
+      "table_data": [],
+      "date": "2026-05-22",
+      "run_id": null,
+      "run_timestamp": null,
+      "previous_run_id": null,
+      "next_run_id": null,
+      "quin_url_template": null
+    }
+  }
+}

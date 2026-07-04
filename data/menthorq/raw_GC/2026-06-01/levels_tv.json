@@ -1,0 +1,19 @@
+{
+  "success": true,
+  "data": {
+    "date": "2026-06-01",
+    "resource": {
+      "ticker": "GCQ2026",
+      "image_url": "",
+      "data": [],
+      "text_data": "$GCQ2026: Call Resistance, 4700, Put Support, 4500, HVL, 4505, 1D Min, 4442.02, 1D Max, 4570.58, Call Resistance 0DTE, 4550, Put Support 0DTE, 4500, HVL 0DTE, 4525, Gamma Wall 0DTE, 4550, GEX 1, 4450, GEX 2, 4475, GEX 3, 4470, GEX 4, 4455, GEX 5, 4460, GEX 6, 4600, GEX 7, 4425, GEX 8, 4400, GEX 9, 4625, GEX 10, 4410",
+      "table_data": [],
+      "date": "2026-06-01",
+      "run_id": null,
+      "run_timestamp": null,
+      "previous_run_id": null,
+      "next_run_id": null,
+      "quin_url_template": "/en/chats?template=levels_tv&ticker=GCQ2026&date=2026-06-02"
+    }
+  }
+}

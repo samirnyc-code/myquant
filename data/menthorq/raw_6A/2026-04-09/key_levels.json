@@ -1,0 +1,36 @@
+{
+  "success": true,
+  "data": {
+    "date": "2026-04-09",
+    "resource": {
+      "ticker": "6AU2026",
+      "image_url": "",
+      "data": {
+        "Call Resistance": 0.75,
+        "Call Resistance 0DTE": 0.78,
+        "High Vol Level": 0.715,
+        "Put Support": 0.715,
+        "Put Support 0DTE": 0.715,
+        "1D Max.": 0.71025,
+        "1D Min.": 0.70155,
+        "Distance to HVL %": "1.29%",
+        "Implied Vol 30D": 9.77,
+        "Total GEX": "9611.46M",
+        "Net GEX": "-124.30M",
+        "Expiring GEX": "-1954.27M",
+        "Put/Call GEX": 1.0262,
+        "Total DEX": "376.5M",
+        "Net DEX": "1.52M",
+        "Put/Call DEX": 0.99196
+      },
+      "text_data": "",
+      "table_data": [],
+      "date": "2026-04-09",
+      "run_id": null,
+      "run_timestamp": null,
+      "previous_run_id": null,
+      "next_run_id": null,
+      "quin_url_template": null
+    }
+  }
+}

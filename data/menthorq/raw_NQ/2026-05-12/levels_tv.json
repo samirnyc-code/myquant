@@ -1,0 +1,19 @@
+{
+  "success": true,
+  "data": {
+    "date": "2026-05-12",
+    "resource": {
+      "ticker": "nq1!",
+      "image_url": "",
+      "data": [],
+      "text_data": "$NQ1!: Call Resistance, 29000, Put Support, 28850, HVL, 28990, 1D Min, 28783.61, 1D Max, 29556.39, Call Resistance 0DTE, 29400, Put Support 0DTE, 28900, HVL 0DTE, 29110, Gamma Wall 0DTE, 29400, GEX 1, 29250, GEX 2, 29500, GEX 3, 29300, GEX 4, 29100, GEX 5, 28800, GEX 6, 28500, GEX 7, 29750, GEX 8, 29600, GEX 9, 29900, GEX 10, 28475",
+      "table_data": [],
+      "date": "2026-05-12",
+      "run_id": null,
+      "run_timestamp": null,
+      "previous_run_id": null,
+      "next_run_id": null,
+      "quin_url_template": "/en/chats?template=levels_tv&ticker=nq1!&date=2026-05-13"
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "success": true,
+  "data": {
+    "date": "2026-06-22",
+    "resource": {
+      "ticker": "6AU2026",
+      "image_url": "",
+      "data": [],
+      "text_data": "$6AU2026: Call Resistance, 0.7125, Put Support, 0.7, HVL, 0.7, 1D Min, 0.69551, 1D Max, 0.70239, Call Resistance 0DTE, 0.705, Put Support 0DTE, 0.6975, HVL 0DTE, 0.6975, Gamma Wall 0DTE, 0.705, GEX 1, 0.695, GEX 2, 0.6925, GEX 3, 0.7025, GEX 4, 0.74, GEX 5, 0.73, GEX 6, 0.715, GEX 7, 0.69, GEX 8, 0.71, GEX 9, 0.68, GEX 10, 0.7075",
+      "table_data": [],
+      "date": "2026-06-22",
+      "run_id": null,
+      "run_timestamp": null,
+      "previous_run_id": null,
+      "next_run_id": null,
+      "quin_url_template": "/en/chats?template=levels_tv&ticker=6AU2026&date=2026-06-23"
+    }
+  }
+}

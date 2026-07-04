@@ -32,8 +32,9 @@ race the same number, the **earlier-merged** note keeps it; the later one takes 
 | 0006 | QuantSystems Breakouts — reproduction & edge study (`0006_quantsystems_breakouts_blueprint.md`) | DONE — detection reproduces; NO mechanical edge; rewritten from full sources (code+video+worksheet) | s41 (docs/s38-reversal branch) |
 | 0007 | QS Breakouts build & test mechanism (`0007_quantsystems_breakouts_build.md`) | LIVING/IN PROGRESS | s41 (docs/s38-reversal branch) |
 | 0008 | QS Breakouts — EDGE STUDY (BO+FT reproduction results) | RESERVED (write when config locked) | s41 (docs/s38-reversal branch) |
+| 0009 | MenthorQ gamma data × MC edge (`0009_menthorq_gamma_mc.md`) | ⚠️ NEEDS REWRITE — pre-correction numbers (correction banner added); do not share PDF | s54 (docs/s38-reversal branch) |
 
-**NEXT FREE NUMBER: 0009**
+**NEXT FREE NUMBER: 0010**
 
 ### Backlog — candidate notes (claim a number above before starting one)
 **Tier A — ALREADY RESEARCHED in `docs/living/`; convert to a note, do NOT redo:**
@@ -56,11 +57,55 @@ race the same number, the **earlier-merged** note keeps it; the later one takes 
 
 ---
 
-## SESSION 54 — July 4, 2026 — MenthorQ × MC edge study: NULL, spec stays frozen
+## SESSION 54 — July 4, 2026 — MenthorQ study: levels are NOT S/R, but the ⭐ MAGNET lead survived a full battery
 
 **Goal:** improve MC entry edge with the 3 months of MenthorQ data (S53 announced idea).
 Run under the S53 discipline: pre-registered hypotheses, one test each, coarse bins,
 frozen exec (Stack v2, 3R+BE@1R, slips 1/1/1, comm 4.36).
+
+### ⚠️ FINAL STATE AFTER CAUSAL-JOIN CORRECTION — supersedes any conflicting bullet below
+Mid-session the user caught that **MQ rows are EOD levels applied to the NEXT trading
+day**; the original same-day join was LOOKAHEAD. Everything re-run with a d→d+1 causal
+join (`MQ_APPLY_NEXT_DAY=1` env flag in `load_mq()`); `*_lookahead_join.md` files are the
+pre-correction archives. Post-correction final verdicts:
+- **RETRACTED after correction:** Call-Res containment edge (+9.4pp → −0.9pp); the ≥3-level
+  cluster watch item (flipped: into-cluster +0.283 vs +0.131 — no longer a skip candidate);
+  D1 significance (causal variant +0.12 n.s., direction only). Seasonality ≥2 stays a weak
+  watch item. Level-bounce S/R null for ALL families (incl. pdH/L/C, VWAP, VA, IB) stands.
+- **⭐ THE MAGNET (the one survivor, pre-registered forward hypothesis):** stacked MC trade
+  whose direction points at a main MQ level (CallRes/PutSup/HVL/GW0 ± 0DTE) **within 1R of
+  entry: +0.52 ExpR, PF 2.75, n=43** vs ≈$0 rest-of-stack. Deep-dive PASSED
+  (`menthorq_magnet_deepdive_20260704.md`): 24 days, survives dropping best trade/3/day,
+  longs & shorts, all CC types, smooth robustness grid (AM condition unnecessary — all-day
+  is the definition), monthly-steady; mechanism confirmed (winners reach level 100%,
+  losers 46%, non-magnet 16%).
+- **Magnet mechanics** (`menthorq_magnet_continuation_20260704.md`): the level is an
+  attractor, NOT a wall — 79% reach it, **82% of those continue >0.5R beyond** (9% pin);
+  median MFE 1.38R vs 0.45R distance. Target ladder monotone 1R→5R but n.s. → **keep
+  3R+BE, don't resize on 43 trades**. **Goldilocks bands:** peak 0.25–0.75R (~5–15 pts,
+  ExpR ~+0.85); **1.5–2R (~25–35 pts) is the WORST band (−0.21, PF 0.31)**; >30 pts
+  loses money (−$17.8K n=111). Chart plan: shade ~5–20 pts approach side of main levels;
+  registered rule stays "≤1R toward". Band edges are post-hoc — forward test decides.
+- **RevFT × MQ (rounds 5–6):** first export (408 sigs, `menthorq_revft_tests_20260704.md`):
+  baseline −0.086; toward-magnet +0.09 vs −0.10 ❌; backstop looked good (+0.17).
+  **Nymex-RTH "All" export (836 sigs, `menthorq_revft_nymexRTH_20260704.md`) = 2× sample
+  replication: baseline −0.107 ❌; BACKSTOP FAILED to replicate (−0.15) → noise; toward
+  survives only at 3R+BE (+0.06 vs −0.07, 3rd directional consistency, never significant);
+  GEX1–3 proximity cuts (user ask): nothing.** RevFT stays retired as a book.
+- **AVOID LIST (evidence-ranked):** IB-type reversals (−0.26 ❌ twice); MC signals
+  25–35 pts short of a main level; unfiltered RevFT; IV band-edge fades (refuted 2×);
+  gamma-regime flags as filters (4 tests, 4 signs).
+- **Decisions:** frozen spec unchanged; magnet = pre-registered 2×-tier candidate, decision
+  ~Oct 2026 on accumulated pre-market captures. **Next data moves:** (1) daily capture
+  continues, (2) ask MenthorQ for historical export, (3) ⭐ prototype FREE proxy gamma
+  levels from options OI (CBOE/yfinance snapshot + DoltHub `options` repo backfill):
+  validate proxy vs the 82 MQ days, and if tight, backfill 2021–2026 and test the magnet
+  on the full 5.5y of MC signals.
+- **⚠️ Note 0009 (`docs/research_notes/0009_menthorq_gamma_mc.md` + PDF) still carries
+  PRE-correction numbers — needs rewrite + re-render before sharing.**
+- Scripts promoted to `scripts/`: `menthorq_sr_followup.py`, `menthorq_userrules.py`,
+  `menthorq_dayregime.py`, `menthorq_magnet_deepdive.py`, `menthorq_magnet_continuation.py`,
+  `menthorq_revft_tests.py` (takes optional argv: signal-txt path + output-md name).
 
 **Full study: `docs/living/menthorq_edge_study_20260704.md`** (method + every cut). Headlines:
 - **Stage 0 (data hygiene):** levels are front-contract prices — converted to continuous
@@ -79,6 +124,33 @@ frozen exec (Stack v2, 3R+BE@1R, slips 1/1/1, comm 4.36).
   non-monotone. Only consistent pocket: **seasonality_score ≥2 negative** (−0.42R n=32
   stacked / −0.31R n=49 all; but only 12 calendar days, 1 of ~35 cuts) → **watch item,
   pre-registered as a skip re-test at 6–12 months of data. NOT a rule.**
+- **Follow-up (user challenged the null — "main levels must have merit"):**
+  `docs/living/menthorq_sr_followup_20260704.md` + `scripts/menthorq_sr_followup.py`.
+  Call Res DOES cap the day 95% of days (Put Sup 94%) — the observation is real — but
+  the pure IV expected-move band (`1d_max/min`, no strike info) contains as well or
+  better (+15.5pp excess vs +9.4pp); main levels touched only 4–6 days of 81 (untradeable
+  event rate); when touched, no bounce vs random (Put Sup broke 89% of touches).
+  **Containment = distance + implied vol, not gamma.** Candidate future test:
+  3R-target feasibility vs the IV band, not gamma S/R.
+- **Round 3 (user rules + expanded universe):** `docs/living/menthorq_userrules_20260704.md`
+  + `scripts/menthorq_userrules.py`. **U4 anchor: NO level family — prior-day H/L/C,
+  VWAP, VA, IB, or any MQ family — beats random controls at the 5M/6-bar bounce scale**
+  (all CIs span 0 vs 3,263 control touches) → the MQ null is not special; the lens
+  finds no 5M S/R for anything on 81 days. **"Never trade into a main level": REFUTED**
+  (into-level +0.26 vs not +0.12 stacked; clear-air was the WORST bucket, PF 0.88).
+  **Break-and-retest: untestable** (0 stacked events). **⭐ Clusters (user's idea): only
+  registered-direction hit** — into a ≥3-level cluster (4-pt chain, MQ+struct) within
+  1R: +0.005 PF 0.76 vs +0.186 PF 1.43 not-into (both scopes agree) → **TOP watch item;
+  pre-registered re-test at 6–12 months: skip/downsize stacked trades with a ≥3-level
+  cluster within 1R.**
+- **Round 4 (day-regime, unit = day, n=81):** `docs/living/menthorq_dayregime_20260704.md`
+  + `scripts/menthorq_dayregime.py`. **D1 CONFIRMED (as-published): negative-gamma days
+  realize 1.18× expected move vs 0.96× positive (CI>0) — first MQ claim to pass**, but
+  label is EOD-stamped/partly circular; causal prev-day variant +0.13 same direction n.s.
+  → top re-test with clean pre-market labels at ~6 months. **D2 refuted:** neg-gamma days
+  NOT more directional (amplitude, not direction). D3 corridor / D4 pinning: null.
+  **D5:** book earns on days realizing > implied (+$1,006 vs −$386/day, CI>0 — book is
+  long realized vol; diagnostic, needs a causal vol forecast to monetize).
 - **Decisions:** frozen spec unchanged; keep daily MenthorQ ingestion (pre-market);
   if GEX revisited, test at daily/coarser horizons, not 5M touches.
 - Study script in session scratchpad (regenerable); results doc is the durable record.

@@ -1,0 +1,66 @@
+{
+  "success": true,
+  "data": {
+    "ticker_data": {
+      "ticker": "6AU2026",
+      "quoteType": "FUTURE",
+      "bid": null,
+      "ask": null,
+      "shortName": "Australian Dollar Futures Futures Sep 2026",
+      "currency": "USD",
+      "exchange": "CME",
+      "currentPrice": null,
+      "previousClose": null,
+      "dayHigh": null,
+      "dayLow": null,
+      "volume": 4,
+      "averageVolume": 283600000,
+      "fiftyTwoWeekHigh": null,
+      "fiftyTwoWeekLow": null,
+      "fiftyDayAverage": null,
+      "twoHundredDayAverage": null,
+      "expireDate": null,
+      "openInterest": 13,
+      "liq_snapshot": {
+        "Contract": "6AU2026",
+        "P/C OI": "0.66",
+        "1D Exp Move %": "\u00b1 0.69%",
+        "Gamma Condition": "Positive",
+        "Implied Vol 30D": "10.93%"
+      },
+      "qscore_data": null,
+      "quin_url_template": "/en/chats?template=daily-summary&ticker=6AU2026&date=2026-03-24"
+    },
+    "meta": {
+      "requested_date": "2026-03-24",
+      "actual_data_date": "2026-03-24",
+      "last_eod_date": "2026-07-02",
+      "last_intraday_date": null,
+      "missing_dates": [
+        "2026-03-07",
+        "2026-03-14",
+        "2026-03-21",
+        "2026-03-28",
+        "2026-04-04",
+        "2026-04-11",
+        "2026-04-18",
+        "2026-04-25",
+        "2026-05-02",
+        "2026-05-09",
+        "2026-05-16",
+        "2026-05-23",
+        "2026-05-25",
+        "2026-05-30",
+        "2026-06-06",
+        "2026-06-13",
+        "2026-06-19",
+        "2026-06-20",
+        "2026-06-27",
+        "2026-07-03",
+        "2026-07-04"
+      ],
+      "first_date": "2026-03-06",
+      "is_date_adjusted": false
+    }
+  }
+}

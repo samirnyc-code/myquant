@@ -1,0 +1,19 @@
+{
+  "success": true,
+  "data": {
+    "date": "2026-05-15",
+    "resource": {
+      "ticker": "CLQ2026",
+      "image_url": "",
+      "data": [],
+      "text_data": "$CLQ2026: Call Resistance, 115, Put Support, 75, HVL, 84, 1D Min, 92.1, 1D Max, 100.18, Call Resistance 0DTE, 115, Put Support 0DTE, 75, HVL 0DTE, 84, Gamma Wall 0DTE, 115, GEX 1, 95, GEX 2, 100, GEX 3, 94, GEX 4, 98, GEX 5, 93.5, GEX 6, 103, GEX 7, 101, GEX 8, 102.5, GEX 9, 103.5, GEX 10, 90",
+      "table_data": [],
+      "date": "2026-05-15",
+      "run_id": null,
+      "run_timestamp": null,
+      "previous_run_id": null,
+      "next_run_id": null,
+      "quin_url_template": "/en/chats?template=levels_tv&ticker=CLQ2026&date=2026-05-16"
+    }
+  }
+}

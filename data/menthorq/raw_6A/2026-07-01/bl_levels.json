@@ -1,0 +1,19 @@
+{
+  "success": true,
+  "data": {
+    "date": "2026-07-01",
+    "resource": {
+      "ticker": "6AU2026",
+      "image_url": "",
+      "data": [],
+      "text_data": "$6AU2026: BL 1, 0.6846916932642381, BL 2, 0.6880057319454272, BL 3, 0.6857984662522956, BL 4, 0.6914415966369933, BL 5, 0.6924844680987687, BL 6, 0.6899454314247316, BL 7, 0.6920083220564623, BL 8, 0.6906744718965202, BL 9, 0.6902843297903908, BL 10, 0.685004810913365",
+      "table_data": [],
+      "date": "2026-07-01",
+      "run_id": null,
+      "run_timestamp": null,
+      "previous_run_id": null,
+      "next_run_id": null,
+      "quin_url_template": "/en/chats?template=bl_levels&ticker=6AU2026&date=2026-07-02"
+    }
+  }
+}

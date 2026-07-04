@@ -1,0 +1,105 @@
+{
+  "success": true,
+  "data": {
+    "ticker_data": {
+      "ticker": "CLQ2026",
+      "quoteType": "FUTURE",
+      "bid": null,
+      "ask": null,
+      "shortName": "Crude Oil Futures Aug 2026",
+      "currency": "USD",
+      "exchange": "CME",
+      "currentPrice": null,
+      "previousClose": null,
+      "dayHigh": null,
+      "dayLow": null,
+      "volume": 0,
+      "averageVolume": 0,
+      "fiftyTwoWeekHigh": null,
+      "fiftyTwoWeekLow": null,
+      "fiftyDayAverage": null,
+      "twoHundredDayAverage": null,
+      "expireDate": null,
+      "openInterest": 0,
+      "liq_snapshot": {
+        "Contract": "CLQ2026",
+        "P/C OI": "1.39",
+        "1D Exp Move %": "\u00b1 3.87%",
+        "Gamma Condition": "Positive",
+        "Implied Vol 30D": "61.36%"
+      },
+      "qscore_data": {
+        "ticker": "uso",
+        "date": "2026-04-30",
+        "option_score": {
+          "option_score": 4,
+          "option_score_txt": "Option score is High and we are in a Bullish Option Positioning environment.",
+          "gex_above_zero": 2,
+          "gex_percentile_above_50": 1,
+          "dex_percentile_above_50": 1,
+          "oi_pc_ratio_percentile_below_50": 0,
+          "qscore_image": "https://mq-inf-main-bot-bucket.s3.amazonaws.com/2026-04-30/cboe_json/uso/score/Option_score.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=ASIAZT7TO2D2ZGJ2LAKY%2F20260704%2Fus-east-2%2Fs3%2Faws4_request&X-Amz-Date=20260704T163431Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Security-Token=IQoJb3JpZ2luX2VjEGEaCXVzLWVhc3QtMiJIMEYCIQChL1rW0lPKet8f6GmC1yI4BJE4DwLM9mN%2BjLGEZsC1cwIhAOVSyLHfB8CpDzZSfrWe9FtxKefxPqGC15rOSNm1M8hnKqUCCCoQAhoMNjYxMzk4NjcxNjA1IgxqJNpVbV6GWPlg8aAqggL3GmOMhp964jED8Hj%2BbJpjSLbhJyi9C%2B6IkLlV0SQ3CMH9de8ryoceIxNeG2NRtRNi3mjU%2FlJuyEYRb2y6YzQVaQ5%2F9sTrV3hKe7E5pkig1a95JRd8bxCvx3FIvpcrsNsliS009G5jRld7fBgrtsR0Dx78IvoDlazE5Qj5OcgH%2BgAFEvCPPsVFoLBCQ%2FrqwXvPwN8Sss%2BPomvmu%2B88FbdeTMx5nChPRYp38DcmAz8dPng%2BzmcK3mVXViMrzoIoVuywWi8bQihwBH7ADOljybaGEKP2j1047A%2F7s9wZ%2BtIopiqroskLCquyncLrpCR1X%2FG2kZfmISklHYqjmXyRCuSDIzQw2euk0gY6nAHehgtX9aub7L7o%2FltjwJi0E%2FbHv2hPR%2BkJsH%2BwgzBhSvrjUF2E8mzW7K%2B48egzzXUtSxrZhS53vB0FudBH7cSrVF%2BAoJuk3CVCxGjLu1oSlNaYNLFWRNZUCJXcWwB%2F0eZTCYOxMNtEFhcz68Zmz5W8m9PDaws8IrAUcqOWB%2FQo2qRdhe4Ul4ZBXoqkshiS744gpWFajYILzfuG52M%3D&X-Amz-Signature=82a8e10348e24cfc968a39532f284bc1f7565e6b6a8ae5de0e9547a03536ea86"
+        },
+        "volatility_score": {
+          "volatility_score": 2,
+          "volatility_score_txt": "Volatility score is Neutral and we are in a Stable environment.",
+          "volatility risk premium_score": 0,
+          "term_structure_1m_3m_score": 1,
+          "hv_percentile_score": 1,
+          "iv_percentile_score": 0,
+          "iv_rank_score": 0,
+          "qscore_image": "https://mq-inf-main-bot-bucket.s3.amazonaws.com/2026-04-30/cboe_json/uso/score/Volatility_score.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=ASIAZT7TO2D2ZGJ2LAKY%2F20260704%2Fus-east-2%2Fs3%2Faws4_request&X-Amz-Date=20260704T163431Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Security-Token=IQoJb3JpZ2luX2VjEGEaCXVzLWVhc3QtMiJIMEYCIQChL1rW0lPKet8f6GmC1yI4BJE4DwLM9mN%2BjLGEZsC1cwIhAOVSyLHfB8CpDzZSfrWe9FtxKefxPqGC15rOSNm1M8hnKqUCCCoQAhoMNjYxMzk4NjcxNjA1IgxqJNpVbV6GWPlg8aAqggL3GmOMhp964jED8Hj%2BbJpjSLbhJyi9C%2B6IkLlV0SQ3CMH9de8ryoceIxNeG2NRtRNi3mjU%2FlJuyEYRb2y6YzQVaQ5%2F9sTrV3hKe7E5pkig1a95JRd8bxCvx3FIvpcrsNsliS009G5jRld7fBgrtsR0Dx78IvoDlazE5Qj5OcgH%2BgAFEvCPPsVFoLBCQ%2FrqwXvPwN8Sss%2BPomvmu%2B88FbdeTMx5nChPRYp38DcmAz8dPng%2BzmcK3mVXViMrzoIoVuywWi8bQihwBH7ADOljybaGEKP2j1047A%2F7s9wZ%2BtIopiqroskLCquyncLrpCR1X%2FG2kZfmISklHYqjmXyRCuSDIzQw2euk0gY6nAHehgtX9aub7L7o%2FltjwJi0E%2FbHv2hPR%2BkJsH%2BwgzBhSvrjUF2E8mzW7K%2B48egzzXUtSxrZhS53vB0FudBH7cSrVF%2BAoJuk3CVCxGjLu1oSlNaYNLFWRNZUCJXcWwB%2F0eZTCYOxMNtEFhcz68Zmz5W8m9PDaws8IrAUcqOWB%2FQo2qRdhe4Ul4ZBXoqkshiS744gpWFajYILzfuG52M%3D&X-Amz-Signature=ed0413a24c778cdd1bf3206525a6cc369a19a10659f4afc5699fe9aad14cad7d"
+        },
+        "momentum_score": {
+          "momentum_score": 5,
+          "momentum_score_txt": "Momentum score is Very High and we are in a Bullish Momentum environment.",
+          "macd_score": 1,
+          "rsi_score": 1,
+          "sma_50_200_score": 1,
+          "ema_21_above_close": 1,
+          "3_month_return": 1,
+          "qscore_image": "https://mq-inf-main-bot-bucket.s3.amazonaws.com/2026-04-30/cboe_json/uso/score/Momentum_score.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=ASIAZT7TO2D2ZGJ2LAKY%2F20260704%2Fus-east-2%2Fs3%2Faws4_request&X-Amz-Date=20260704T163431Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Security-Token=IQoJb3JpZ2luX2VjEGEaCXVzLWVhc3QtMiJIMEYCIQChL1rW0lPKet8f6GmC1yI4BJE4DwLM9mN%2BjLGEZsC1cwIhAOVSyLHfB8CpDzZSfrWe9FtxKefxPqGC15rOSNm1M8hnKqUCCCoQAhoMNjYxMzk4NjcxNjA1IgxqJNpVbV6GWPlg8aAqggL3GmOMhp964jED8Hj%2BbJpjSLbhJyi9C%2B6IkLlV0SQ3CMH9de8ryoceIxNeG2NRtRNi3mjU%2FlJuyEYRb2y6YzQVaQ5%2F9sTrV3hKe7E5pkig1a95JRd8bxCvx3FIvpcrsNsliS009G5jRld7fBgrtsR0Dx78IvoDlazE5Qj5OcgH%2BgAFEvCPPsVFoLBCQ%2FrqwXvPwN8Sss%2BPomvmu%2B88FbdeTMx5nChPRYp38DcmAz8dPng%2BzmcK3mVXViMrzoIoVuywWi8bQihwBH7ADOljybaGEKP2j1047A%2F7s9wZ%2BtIopiqroskLCquyncLrpCR1X%2FG2kZfmISklHYqjmXyRCuSDIzQw2euk0gY6nAHehgtX9aub7L7o%2FltjwJi0E%2FbHv2hPR%2BkJsH%2BwgzBhSvrjUF2E8mzW7K%2B48egzzXUtSxrZhS53vB0FudBH7cSrVF%2BAoJuk3CVCxGjLu1oSlNaYNLFWRNZUCJXcWwB%2F0eZTCYOxMNtEFhcz68Zmz5W8m9PDaws8IrAUcqOWB%2FQo2qRdhe4Ul4ZBXoqkshiS744gpWFajYILzfuG52M%3D&X-Amz-Signature=83530b961f1252537cb2bd2c9f1db54d1136002e3d8cf6f2b8a70023f44cc220"
+        },
+        "seasonality_score": {
+          "seasonality_score": 0,
+          "seasonality_label": "Neutral",
+          "seasonality_score_txt": "Seasonality score is Neutral and we foresee a Neutral Seasonality environment for the next 5 days.",
+          "qscore_image": "https://mq-inf-main-bot-bucket.s3.amazonaws.com/2026-04-30/cboe_json/uso/score/Seasonality_score.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=ASIAZT7TO2D2ZGJ2LAKY%2F20260704%2Fus-east-2%2Fs3%2Faws4_request&X-Amz-Date=20260704T163431Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Security-Token=IQoJb3JpZ2luX2VjEGEaCXVzLWVhc3QtMiJIMEYCIQChL1rW0lPKet8f6GmC1yI4BJE4DwLM9mN%2BjLGEZsC1cwIhAOVSyLHfB8CpDzZSfrWe9FtxKefxPqGC15rOSNm1M8hnKqUCCCoQAhoMNjYxMzk4NjcxNjA1IgxqJNpVbV6GWPlg8aAqggL3GmOMhp964jED8Hj%2BbJpjSLbhJyi9C%2B6IkLlV0SQ3CMH9de8ryoceIxNeG2NRtRNi3mjU%2FlJuyEYRb2y6YzQVaQ5%2F9sTrV3hKe7E5pkig1a95JRd8bxCvx3FIvpcrsNsliS009G5jRld7fBgrtsR0Dx78IvoDlazE5Qj5OcgH%2BgAFEvCPPsVFoLBCQ%2FrqwXvPwN8Sss%2BPomvmu%2B88FbdeTMx5nChPRYp38DcmAz8dPng%2BzmcK3mVXViMrzoIoVuywWi8bQihwBH7ADOljybaGEKP2j1047A%2F7s9wZ%2BtIopiqroskLCquyncLrpCR1X%2FG2kZfmISklHYqjmXyRCuSDIzQw2euk0gY6nAHehgtX9aub7L7o%2FltjwJi0E%2FbHv2hPR%2BkJsH%2BwgzBhSvrjUF2E8mzW7K%2B48egzzXUtSxrZhS53vB0FudBH7cSrVF%2BAoJuk3CVCxGjLu1oSlNaYNLFWRNZUCJXcWwB%2F0eZTCYOxMNtEFhcz68Zmz5W8m9PDaws8IrAUcqOWB%2FQo2qRdhe4Ul4ZBXoqkshiS744gpWFajYILzfuG52M%3D&X-Amz-Signature=db772e443c6fd0ee5e7540f3c044c9fe2a06cf781e28b746b83fde07ea7014a5"
+        }
+      },
+      "quin_url_template": "/en/chats?template=daily-summary&ticker=CLQ2026&date=2026-04-30"
+    },
+    "meta": {
+      "requested_date": "2026-04-30",
+      "actual_data_date": "2026-04-30",
+      "last_eod_date": "2026-07-02",
+      "last_intraday_date": null,
+      "missing_dates": [
+        "2026-03-07",
+        "2026-03-14",
+        "2026-03-21",
+        "2026-03-28",
+        "2026-04-03",
+        "2026-04-04",
+        "2026-04-11",
+        "2026-04-18",
+        "2026-04-25",
+        "2026-05-02",
+        "2026-05-09",
+        "2026-05-16",
+        "2026-05-23",
+        "2026-05-25",
+        "2026-05-30",
+        "2026-06-06",
+        "2026-06-13",
+        "2026-06-19",
+        "2026-06-20",
+        "2026-06-27",
+        "2026-07-03",
+        "2026-07-04"
+      ],
+      "first_date": "2026-03-06",
+      "is_date_adjusted": false
+    }
+  }
+}

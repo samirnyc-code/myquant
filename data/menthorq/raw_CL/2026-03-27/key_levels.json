@@ -1,0 +1,36 @@
+{
+  "success": true,
+  "data": {
+    "date": "2026-03-27",
+    "resource": {
+      "ticker": "CLQ2026",
+      "image_url": "",
+      "data": {
+        "Call Resistance": 71,
+        "Call Resistance 0DTE": 71,
+        "High Vol Level": 80.5,
+        "Put Support": 67,
+        "Put Support 0DTE": 67,
+        "1D Max.": 89.17,
+        "1D Min.": 82.61,
+        "Distance to HVL %": "6.28%",
+        "Implied Vol 30D": 60.56,
+        "Total GEX": "74.77M",
+        "Net GEX": "-5.79M",
+        "Expiring GEX": "-5.79M",
+        "Put/Call GEX": 1.17,
+        "Total DEX": "2.85B",
+        "Net DEX": "1.17B",
+        "Put/Call DEX": 0.42
+      },
+      "text_data": "",
+      "table_data": [],
+      "date": "2026-03-27",
+      "run_id": null,
+      "run_timestamp": null,
+      "previous_run_id": null,
+      "next_run_id": null,
+      "quin_url_template": null
+    }
+  }
+}

@@ -19,6 +19,7 @@ collaborator who has *never* seen the codebase can follow it.
 | 0005 | [RevFT trade location](0005_revft_trade_location.md) | Is there a *where* (VWAP deviation / value area) that rescues the RevFT reversal set? | **No. Fade-into-extension is the worst; RevFT is weak continuation, not reversion — break-even, one-regime. Retire it** |
 | 0006 | [QuantSystems Breakouts — reproduction & edge study](0006_quantsystems_breakouts_blueprint.md) | Can Ali Moin-Afshari's breakout/reversal setups be reproduced from his actual code, and do they carry a mechanical edge? | **Detection reproduces (freqs match paper); NO mechanical edge (~0/neg, 5yr, look-ahead-audited). His SQN 6–15 = 100 hand-picked 2020 trades + discretionary 2nd-leg/scale-in — not mechanizable** |
 | 0007 | [QS Breakouts build & test mechanism](0007_quantsystems_breakouts_build.md) | How do we reproduce & test the QS setups (architecture, schema, sweep, gates)? | **Living methods note (no edge claim): detection→sim→view/sweep pipeline; G1 frequency gate PASSES (~6.3 BO/day vs ~5)** |
+| 0009 | [MenthorQ gamma data × MC edge](0009_menthorq_gamma_mc.md) | Does 3 months of dealer-gamma data (levels, GEX, regime, QScores) improve the MC/Stack-v2 entry edge? | **No — levels are not intraday S/R (nor are pdH/L/C, VWAP, VA, IB); "don't trade into levels" refuted. Real: neg-gamma days realize 1.18× implied (amplitude, not direction) + cluster-skip watch item. Spec stays frozen** |
 
 ## ⚠️ Numbering is coordinated across chats — RESERVE FIRST
 

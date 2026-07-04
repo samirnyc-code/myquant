@@ -1,0 +1,28 @@
+{
+  "success": true,
+  "data": {
+    "date": "2026-05-07",
+    "resource": {
+      "ticker": "6AU2026",
+      "image_url": "https://mq-inf-main-bot-bucket.s3.amazonaws.com/2026-05-07/cboe_json/6au2026/all_exp_profile.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=ASIAZT7TO2D24COLX3AJ%2F20260704%2Fus-east-2%2Fs3%2Faws4_request&X-Amz-Date=20260704T170719Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Security-Token=IQoJb3JpZ2luX2VjEGEaCXVzLWVhc3QtMiJIMEYCIQDyVaHSEI4Hy2ChlGeTj7zASU390BUBvrXO%2ByN84y64GQIhANu10TXqiupF1YJdX%2F5TIvmEKxDpfS0ffo4PqfFwJYbdKqUCCCoQAhoMNjYxMzk4NjcxNjA1IgxT9PlCT7yRDdW0gV8qggLwtwkk7U3KWiOluaO8AYyKc%2BfPzsYqaIpIH%2FnrigOmU98XJKnmgn4S5DNOjDRjJizicVfGukwPuyz12qlkKze2XfVABwINk3zOtCCTSfT3Y%2BQLC4lRy2hjk%2BybOFQtPHDagniQIgMcWm1fVbuFJ0CFzJvALx11R14REFbTi6hPMfoKrUTDv%2BB4MMV0gbowhUEHWGqCezq4OrgktHFWrxM%2BdxLnoNP686NtkqBTgSpjlyFwRnqQrNJbQigK%2BxAjoMLa55zYhYAfXT5Gtffq42BiUBomnriPheSPWQdqgjXisrZyBjqk%2Bvr2JqMaPU9a4J3w8CsaIto7RIMIY%2F%2F6WXmNanAwsfqk0gY6nAE3Eu6QwANKOF0GIsteziDjRdAREG9lTrVyLbGojuMjfZcU7KPOMpGAtTPsqzcjStKI1UJI6%2BJJ56qKYaZDd98H4sQOEPq%2Bu89PtJ%2FUGvH%2BnH6RcwKLoJJ0BUiLkzDgV2MFO7AZpWd8e27lLgh0NCpHxZvdwbXZsFSe3mA3RIGYNaUMjEH2giiMcTXXv1PJ3HiDfOUf3bUm4jpSvrQ%3D&X-Amz-Signature=ef593180cafc687c8226f45f889f58211d63f7fb4808c0a02e6d2db79e24d510",
+      "data": {
+        "Call Resistance": 0.72,
+        "Put Support": 0.695,
+        "HVL": 0.7175,
+        "Top Net GEX Strikes": [
+          0.725,
+          0.73,
+          0.75
+        ]
+      },
+      "text_data": "",
+      "table_data": [],
+      "date": "2026-05-07",
+      "run_id": null,
+      "run_timestamp": null,
+      "previous_run_id": null,
+      "next_run_id": null,
+      "quin_url_template": "/en/chats?template=netgex&ticker=6AU2026&date=2026-05-08"
+    }
+  }
+}
