@@ -443,10 +443,12 @@ def show_menthorq_tab():
         mf = load_csv_manifest()
 
         # priority: SC 5M upload → NT 5M upload → nt_cont manifest cache
-        bars_all = (
-            st.session_state.get("data_sc_5m")
-            or st.session_state.get("data_nt_5m")
-        )
+        # (explicit None checks — `or` on a DataFrame raises "truth value is ambiguous")
+        bars_all = st.session_state.get("data_sc_5m")
+        if bars_all is None:
+            bars_all = st.session_state.get("data_nt_5m")
+        if bars_all is not None and getattr(bars_all, "empty", False):
+            bars_all = None
         _bar_source = "session"
         if bars_all is None:
             for slot in ("nt_cont", "sc_5m", "nt_5m"):
