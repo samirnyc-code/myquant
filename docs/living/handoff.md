@@ -110,7 +110,23 @@ race the same number, the **earlier-merged** note keeps it; the later one takes 
 - **Max risk**: median stop 15.75 pts, max 97.75 pts ($489 MES) — untested refinement flagged: ~40-pt stop cap. Worst single loss MES $−316; worst day (one-at-a-time) −$4,796 ES-equiv.
 - **Prop operating rules frozen in findings doc**: MES only · frozen-spec entries/exits, flat 15:00 · net-dir max 3 · tier gate $4,500 · expect ~$9–12K/yr, breach 3–6%/yr · no two-account split.
 
-### Caveats / open
+### App: prop reconciliation + no-hedge filter (post-commit d314856)
+- **Pipeline verified end-to-end in-app**: Stack v2 @1R Realistic exec → n=2,903, WR 55.6%, $244.5K, PF 1.26 (research: 2,925/56%/$253K/1.25 ✓). @3R+BE → WR 39.5%, $306.5K, PF 1.32, maxDD −$23.9K (research: 40%/$333K/1.33/−$23.3K ✓). Earlier "25% WR disaster" = BE ratchet not set, NOT a dead edge.
+- **NEW `_apply_no_hedge()` + "🚫 No hedge" checkbox** (bar_analysis.py, post-sim pass like first-trade-only, in sim fingerprint, flows to Prop tab via ba_results). Chronological walk by EntryTime; skips trades opening against a still-open opposite position; skipped trades don't block later ones. Cost measured in-app: 2,903→2,728 trades (6%), edge intact (ExpR 0.13, PF 1.31).
+- **MES 1-lot compliant book (BA, $2.50 RT, no-hedge)**: $22.6K/5.5y ≈ $4.1K/yr/contract, worst DD $2,861 — unit economics; plan = cushion-scaled 1→3.
+- **Prop Sim tab (prop_sim.py) reconciled**: "Lock DD at starting balance" = freeze-at-BE ✓ exists. MC blow-up label reads "flat max contracts" = worst-case stress (flat 3 from day one, 55.9%), NOT the cushion-scaled plan (agent bootstrap of the gated plan: ~3–6% breach). Scaled run (1→3 per $4.5K, $200/mo, $2.50 RT): net-to-trader $37.5K, worst trail −$2,345. Sim charges subscription every month of the backtest — overstates Topstep costs (see below).
+
+### Topstep terms (VERIFIED on help.topstep.com, S53)
+- **Commissions ALL-IN RT: MES $1.24, ES $3.80** (TopstepX, incl. exchange+NFA)
+- **150K Combine $199/mo, $9K profit target**, 15 minis/150 micros max
+- **"No monthly subscription fee after passing"** — one-time $149 XFA activation ($0 on no-activation-fee path); optional $38/mo L2 data; LFA pays professional data fees later
+- **Unlimited simultaneous Combines; trade copier across own accounts ALLOWED; max 5 XFAs, 1 LFA** → parallel-account scaling play is viable
+- Memory file `prop_account_terms.md` updated with all of the above
+
+### Caveats / open — NEXT SESSION
+- **User wants to improve ENTRY edge next.** Announced ideas: **GEX levels from MentorQ** (dealer gamma exposure S/R — needs data ingestion), plus equity-curve smoothing via risk-shape rules.
+- **Dynamic-target / stop-size research (user hypothesis)**: skip or resize 3R trades with huge stops (e.g. 40pt); targets dynamic on stop size / ADR / ABR / extension. ⚠️ Tension with R2 finding: LARGEST stop quartile was the only CI>0 bin, smallest the worst — so "skip big stops" likely costs edge; the prop-relevant version is a **dollar-risk cap / extreme-tail cap (~40pt ≈ top 2%)** for DD control, + Round 2 found early-in-move > late (+0.164R vs +0.071R) — extension-conditional targets are the promising variant. ATR-scaled targets already tested UNIFORMLY WORSE (R2) — don't redo naively.
+- **Round 6 candidate (agent, everything cached)**: eval-phase optimization — minimize expected cost/time to pass $9K Combine target under $4.5K trailing (aggression is cheap in eval: blow-up = $199 reset); K-parallel-Combine economics with copier.
 - Stack rules discovered full-sample (walk-forward covered tiering/exit only) — treat 2026H2 as live-forward test
 - Engine bail-rule extension + per-signal contract sizing = next implementation steps
 - Fable agent scripts in scratchpad only (session temp) — promote keepers to `scripts/` if needed for reruns

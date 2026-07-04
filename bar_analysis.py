@@ -1371,6 +1371,34 @@ def _apply_day_trade_filters(
     return results
 
 
+def _apply_no_hedge(results: pd.DataFrame) -> pd.DataFrame:
+    """Drop filled trades that would hold long + short simultaneously (prop
+    firm no-hedge rule). Chronological walk by EntryTime: a trade is kept only
+    if no KEPT opposite-direction trade is still open at its entry; skipped
+    trades never block later ones (they were never entered). Exact post-sim
+    because engine trades are independent of each other.
+    """
+    if results.empty or "EntryTime" not in results.columns:
+        return results
+    f = results[results["Filled"] == True].sort_values("EntryTime")
+    open_trades: list[tuple] = []  # (exit_time, is_long)
+    drop = []
+    for idx, t in f.iterrows():
+        et = t["EntryTime"]
+        if pd.isna(et):
+            continue
+        xt = t["ExitTime"]
+        if pd.isna(xt):  # no recorded exit — hold blocks until end of that day
+            xt = pd.Timestamp(et).normalize() + pd.Timedelta(hours=23)
+        is_long = str(t["Direction"]).upper().startswith("L")
+        open_trades = [(x, l) for x, l in open_trades if x > et]
+        if any(l != is_long for _, l in open_trades):
+            drop.append(idx)
+        else:
+            open_trades.append((xt, is_long))
+    return results.drop(drop).reset_index(drop=True)
+
+
 def _win_breakdown(res: pd.DataFrame):
     """Decompose filled trades into target hits vs EOD-only wins, using the exact
     same buckets as compute_summary(). Returns (tgt_pct, eod_win_pct, eod_win_avg_r).
@@ -4715,6 +4743,14 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         first_2_filled_only = _sf_cols[1].checkbox("First 2 of day", key="ba_first_2_filled",
                                                     value=st.session_state.get("ba_first_2_filled", False),
                                                     on_change=_on_first_2_change)
+        no_hedge = st.checkbox(
+            "🚫 No hedge (prop rule: never long + short at once)", key="ba_no_hedge",
+            value=st.session_state.get("ba_no_hedge", False),
+            help="Post-simulation compliance rule: walk trades chronologically by "
+                 "entry time and skip any trade that would open against a "
+                 "still-open opposite-direction position (Topstep-style no-hedge "
+                 "rule). Skipped trades never block later ones. ~7% of Stack v2 "
+                 "entries are affected (S53 Round 5).")
         _dir_opts = ["Both", "Long", "Short"]
         direction_filter = _sf_cols[2].radio(
             "Direction", _dir_opts, horizontal=True, key="ba_direction_filter",
@@ -5415,7 +5451,7 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
         e1c_3l, e2c_3l, e3c_3l, pb1_r_val, pb2_r_val, pb1_ticks_v, pb2_ticks_v,
         t2_r_val, ratchet_r_v, ratchet_dest_v, ratchet_lock_r_v, scale_in_style_v, pb_round_v,
         str(st.session_state.get("ba_manual_overrides", {})),
-        first_trade_only, first_2_filled_only, fade_signals,
+        first_trade_only, first_2_filled_only, no_hedge, fade_signals,
         flt_er30, round(er_min, 4), flt_er10, round(er10_min, 4),
         flt_stack,
         flt_balance, flt_inside, flt_skip_trend,
@@ -5485,6 +5521,9 @@ def show_bar_analysis(sc_file: str = "", contract: str = "ES", nt_file: str = ""
                 _keep_idx = _filled_sorted.groupby("Date").head(2).index
                 _beyond_idx = results[_filled_mask & ~results.index.isin(_keep_idx)].index
                 results = results.drop(_beyond_idx).reset_index(drop=True)
+
+            if no_hedge and not results.empty:
+                results = _apply_no_hedge(results)
 
             _summary_contracts = e1c_3l + e2c_3l + e3c_3l if use_threeleg else contracts
             summary = compute_summary(results, commission,
