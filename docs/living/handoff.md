@@ -56,6 +56,35 @@ race the same number, the **earlier-merged** note keeps it; the later one takes 
 
 ---
 
+## SESSION 54 — July 4, 2026 — MenthorQ × MC edge study: NULL, spec stays frozen
+
+**Goal:** improve MC entry edge with the 3 months of MenthorQ data (S53 announced idea).
+Run under the S53 discipline: pre-registered hypotheses, one test each, coarse bins,
+frozen exec (Stack v2, 3R+BE@1R, slips 1/1/1, comm 4.36).
+
+**Full study: `docs/living/menthorq_edge_study_20260704.md`** (method + every cut). Headlines:
+- **Stage 0 (data hygiene):** levels are front-contract prices — converted to continuous
+  space via measured roll offsets (ESH6 +111.00 / ESM6 +61.25 / ESU6 0). `1d_max/min` =
+  expected-move band (causal, not realized). **⚠️ archive rows are EOD-stamped**
+  (`distance_to_hvl_%` matches same-day close) → backfilled `gamma_condition`/QScores may
+  embed same-day info; causal prev-day variants run for all regime/score tests; live
+  capture must be pre-market (app Refresh button is fine).
+- **Stage 1 (high-powered): MenthorQ levels are NOT intraday S/R.** ~2,000 touch events
+  vs matched controls (random prices / other 25-pt strikes): bounce rates
+  indistinguishable (KEY diff CI [−5.4pp,+1.4pp]; BL null; GEX +3.7pp CI spans 0).
+- **Stage 2 (208 stacked trades): every pre-registered hypothesis null or refuted.**
+  Headwind/tailwind (level in 3R path): no effect. Gamma regime: null as-published,
+  wrong-sign in the causal variant → noise. Vol score: null (low +0.18 vs high +0.18).
+  **User combo high-vol∧neg-gamma: REFUTED** (+0.05 vs rest +0.18). IV tertiles
+  non-monotone. Only consistent pocket: **seasonality_score ≥2 negative** (−0.42R n=32
+  stacked / −0.31R n=49 all; but only 12 calendar days, 1 of ~35 cuts) → **watch item,
+  pre-registered as a skip re-test at 6–12 months of data. NOT a rule.**
+- **Decisions:** frozen spec unchanged; keep daily MenthorQ ingestion (pre-market);
+  if GEX revisited, test at daily/coarser horizons, not 5M touches.
+- Study script in session scratchpad (regenerable); results doc is the durable record.
+
+---
+
 ## ⭐ SESSION 53 — July 3–4, 2026 — MC edge found: Stack v2 + sizing + 3R/BE exit ($609K config) (read FIRST)
 *Goal arc: fix ZoneSignal polarity in the RevFT stoch study → Bar Viewer signal overlays → exhaustive ES RevFT×stoch discovery (dead) → raw-bar discovery (ORB only positive) → MC signals + Fable 5 autonomous research agent (2 rounds) → strongest finding of the project so far.*
 
