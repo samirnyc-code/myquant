@@ -12,6 +12,8 @@ import streamlit as st
 
 CSV_PATH  = Path("data/menthorq/menthorq_levels.csv")
 RAW_DIR   = Path("data/menthorq/raw")
+BARS_PQ   = Path("data/bars/_continuous.parquet")
+ROLLS_CSV = Path("data/nt_rollovers_export.csv")
 CRED_FILE = Path.home() / ".menthorq" / "session.txt"
 NONCE_FILE = Path.home() / ".menthorq" / "nonce.txt"
 
@@ -38,6 +40,33 @@ C_1D       = "#607D8B"   # grey  — 1D max/min
 
 
 # ── helpers ──────────────────────────────────────────────────────────────────
+
+@st.cache_data(show_spinner=False)
+def _load_bars_parquet() -> pd.DataFrame | None:
+    """Fallback bar source: back-adjusted continuous 5M parquet."""
+    if not BARS_PQ.exists():
+        return None
+    b = pd.read_parquet(BARS_PQ)
+    b["DateTime"] = pd.to_datetime(b["DateTime"])
+    return b
+
+
+@st.cache_data(show_spinner=False)
+def _front_offset(date_str: str) -> float:
+    """Back-adjusted-continuous minus front-contract price on `date`.
+
+    MQ levels are front-contract prices; the continuous parquet is back-adjusted
+    to the CURRENT front, so bars on dates before a roll sit higher by the sum
+    of all roll offsets after that date (e.g. ESH6 period +111.00, ESM6 +61.25).
+    Subtract this from bars to plot them in MQ price space.
+    """
+    if not ROLLS_CSV.exists():
+        return 0.0
+    r = pd.read_csv(ROLLS_CSV, parse_dates=["rollover_date"])
+    r = r[(r["instrument"] == "ES") & r["offset"].notna()]
+    d = pd.Timestamp(date_str)
+    return float(r.loc[r["rollover_date"] > d, "offset"].sum())
+
 
 def _load_df() -> pd.DataFrame | None:
     if not CSV_PATH.exists():
@@ -428,6 +457,15 @@ def show_menthorq_tab():
                     if bars_all is not None:
                         break
 
+        _roll_adjust = False
+        if bars_all is None:
+            # final fallback: repo continuous parquet (back-adjusted -> needs
+            # roll-offset correction into MQ front-contract price space)
+            bars_all = _load_bars_parquet()
+            if bars_all is not None:
+                _bar_source = "parquet:_continuous"
+                _roll_adjust = True
+
         if bars_all is not None:
             # ensure DateTime column exists
             dt_col = next((c for c in bars_all.columns if "datetime" in c.lower() or c.lower() == "time"), None)
@@ -444,6 +482,14 @@ def show_menthorq_tab():
             if bars_day.empty:
                 _bar_status = f"No bars for {selected_date} in {_bar_source} (data spans {bars_all['DateTime'].min().date()} – {bars_all['DateTime'].max().date()})"
                 bars_day = None
+            elif _roll_adjust:
+                off = _front_offset(str(selected_date))
+                if off:
+                    for c in ("Open", "High", "Low", "Close"):
+                        bars_day[c] = bars_day[c] - off
+                    _bar_status = f"bars from {_bar_source}, roll-adjusted −{off:g} pts to front-contract (MQ) prices"
+                else:
+                    _bar_status = f"bars from {_bar_source} (current front, no adjustment)"
         else:
             _bar_status = "No bar data found in session state or manifest cache"
     except Exception as e:
@@ -458,6 +504,8 @@ def show_menthorq_tab():
         st.subheader(title)
         if bars_day is None and _bar_status:
             st.caption(f"Bars not shown — {_bar_status}")
+        elif bars_day is not None and _bar_status:
+            st.caption(_bar_status)
         fig = _build_chart(
             row, bars_day,
             show_call, show_call_0dte,
