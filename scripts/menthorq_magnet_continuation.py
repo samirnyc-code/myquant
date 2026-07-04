@@ -16,7 +16,7 @@ import pandas as pd
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 os.environ["MQ_APPLY_NEXT_DAY"] = "1"
-ROOT = Path(r"c:\Users\Admin\myquant")
+ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT)); sys.path.insert(0, str(ROOT / "scripts"))
 
 import massive                                                  # noqa: E402

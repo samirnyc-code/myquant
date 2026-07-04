@@ -20,7 +20,7 @@ import pandas as pd
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 os.environ["MQ_APPLY_NEXT_DAY"] = "1"
-ROOT = Path(r"c:\Users\Admin\myquant")
+ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT)); sys.path.insert(0, str(ROOT / "scripts"))
 
 import massive                                                      # noqa: E402
@@ -34,7 +34,10 @@ if len(sys.argv) > 2:
     REV_TXT = Path(sys.argv[1])
     OUT = ROOT / "docs" / "living" / sys.argv[2]
 else:
-    REV_TXT = Path(r"C:\Users\Admin\Desktop\MyReversals Signal Export - ES SEP26 - 5 Minute from 02.07.2026 - 1850 Days.txt")
+    REV_TXT = Path(os.environ.get(
+        "REVFT_SIGNAL_TXT",
+        ROOT / "data" / "signals" /
+        "MyReversals Signal Export - ES SEP26 - 5 Minute from 02.07.2026 - 1850 Days.txt"))
     OUT = ROOT / "docs" / "living" / "menthorq_revft_tests_20260704.md"
 MAIN = ["call_resistance", "call_resistance_0dte", "put_support",
         "put_support_0dte", "high_vol_level", "gamma_wall_0dte"]

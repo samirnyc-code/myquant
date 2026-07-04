@@ -17,6 +17,7 @@ Fixed a-priori Stage-1 params: horizon 6 bars (30 min), bounce/break threshold
 """
 from __future__ import annotations
 
+import os
 import sys
 import re
 from datetime import datetime
@@ -27,7 +28,7 @@ import pandas as pd
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-ROOT = Path(r"c:\Users\Admin\myquant")
+ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 import massive                                              # noqa: E402
@@ -35,7 +36,12 @@ massive._TICKS_CONT_DIR = ROOT / "data" / "ticks_continuous"
 from simulation_engine import simulate_trades               # noqa: E402
 from stack_filter import compute_stack_columns, _abr20      # noqa: E402
 
-SIG_TXT = Path(r"C:\Users\Admin\Desktop\MyMicroChannel Signal Export - ES SEP26 - 5 Minute from 02.07.2026 - 1850 Days.txt")
+# External NT8 export — not committed to the repo. Override with MC_SIGNAL_TXT,
+# else drop the file under data/signals/ with the default name below.
+SIG_TXT = Path(os.environ.get(
+    "MC_SIGNAL_TXT",
+    ROOT / "data" / "signals" /
+    "MyMicroChannel Signal Export - ES SEP26 - 5 Minute from 02.07.2026 - 1850 Days.txt"))
 MQ_CSV  = ROOT / "data" / "menthorq" / "menthorq_levels.csv"
 BARS_PQ = ROOT / "data" / "bars" / "_continuous.parquet"
 OUT_MD  = ROOT / "docs" / "living" / "menthorq_edge_study_20260704_tables.md"

@@ -22,7 +22,7 @@ import numpy as np
 import pandas as pd
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-ROOT = Path(r"c:\Users\Admin\myquant")
+ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "scripts"))
 

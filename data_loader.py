@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 import json
 import re
 import struct
@@ -387,7 +388,9 @@ def parse_scid_ticks_from_upload(uploaded_file) -> pd.DataFrame:
     return df.sort_values("DateTime").reset_index(drop=True)
 
 
-SCID_DATA_DIR  = Path(r"C:\Users\Admin\Desktop\NT Code Versions\ChartMarker_Files\Data")
+# Raw Sierra Chart .scid source dir — external to the repo. Override with the
+# SCID_DATA_DIR env var (e.g. the SC "Data" folder); defaults to data/scid/.
+SCID_DATA_DIR  = Path(os.environ.get("SCID_DATA_DIR", Path(__file__).parent / "data" / "scid"))
 SCID_CACHE_DIR = SCID_DATA_DIR / "_scid_cache"
 
 _SCID_CHUNK_RECS = 2_097_152  # ~80 MB per chunk (2M * 40 bytes)
