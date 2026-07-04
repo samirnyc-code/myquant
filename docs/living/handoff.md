@@ -106,6 +106,18 @@ pre-correction archives. Post-correction final verdicts:
 - Scripts promoted to `scripts/`: `menthorq_sr_followup.py`, `menthorq_userrules.py`,
   `menthorq_dayregime.py`, `menthorq_magnet_deepdive.py`, `menthorq_magnet_continuation.py`,
   `menthorq_revft_tests.py` (takes optional argv: signal-txt path + output-md name).
+- **Two-machine setup (S54 close):** Mac laptop fully synced (code via git, bars/ticks
+  through 2026-07-02 transferred, pipeline reproduces S54 numbers). All MQ scripts +
+  `data_loader.py` now use **portable paths** (`ROOT = Path(__file__).resolve().parent.parent`);
+  signal exports live in **`data/signals/` (committed to git)** with env overrides
+  `MC_SIGNAL_TXT` / `REVFT_SIGNAL_TXT` — no more Desktop dependencies. Rule: `git pull`
+  when sitting down at either machine, push when done.
+- **Proxy-gamma prototype (free data):** DoltHub options repo = dead end (no OI, no 2026
+  coverage). **CBOE delayed `_SPX.json` = viable: free, has OI+greeks**; first snapshot
+  vs MQ Jul 2 row: HVL within 9 pts (dist-from-spot), top-GEX strike menu matches, but
+  CallRes/PutSup label a different strike (weighting calibration needed). Script:
+  `scripts/cboe_gex_snapshot.py`. No free historical backfill found — OptionsDX manual
+  downloads or paid DataShop if wanted.
 
 **Full study: `docs/living/menthorq_edge_study_20260704.md`** (method + every cut). Headlines:
 - **Stage 0 (data hygiene):** levels are front-contract prices — converted to continuous
