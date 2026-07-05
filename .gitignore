@@ -36,3 +36,8 @@ pipeline_run.log
 .streamlit_err.txt
 .streamlit_log.txt
 .claude/
+
+# S55 transient run outputs + sim caches
+scripts/_*.out
+data/signals/_mc_baseline_filled_*.parquet
+data/signals/_mc_trendday_3R.parquet

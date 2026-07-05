@@ -109,6 +109,16 @@ Cache: `data/signals/_mc_trendday_3R.parquet` (full book @3R ES, day/IB features
 Report net R (not gross), per-trade edge vs execution cost (not lifetime $), caveat FIRST,
 discounted live estimate leads, no hype/oscillation, separate validated vs exploratory.
 
+### S55 close — state of the project (read before proposing ANYTHING)
+User reviewed the retail base-rate evidence (Brazil futures 97%/300d, Taiwan <1% net) and the
+full session record; verdict stands: **S3_early13@3R is real but not worth his fees/time.**
+Session ended with the user exhausted and undecided on direction. Next session: do NOT open
+with new research ideas or optimism. Options left on the table, all his to choose, none urgent:
+(a) nothing — spec + kill list are committed and complete; (b) forward-test 1 MES as a bounded
+experiment scored monthly vs the spec's expectations; (c) score his own discretionary track
+record with the same metrics if he ever exports it; (d) trading as capped hobby + boring
+index investing as the wealth engine. The honest deliverable of S55 was the verdict itself.
+
 ---
 
 ## SESSION 54 — July 4, 2026 — MenthorQ study: levels are NOT S/R, but the ⭐ MAGNET lead survived a full battery
