@@ -1,6 +1,6 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 4, 2026 (session 53)
+**Last Updated:** July 5, 2026 (session 55)
 **Current Versions:** SIM_v3.9 / GS_v4.5 / SHEET_v3.3 *(S32: Prop Sim overhaul — MC-sized payout buffer, monthly 80/20 payouts, ES/MES margin, never-blow floor de-risk + shock model, richer dashboard; MCBreakout pyramiding (N concurrent/dir) + ratchet-lock fix. S31: ZLO exporter + filters, MCBreakout stop fix + ER filter, ZLO sweeps, Auction feature library + tab (Dalton day types), Prop Sim DD-lock. S30: Prop Sim tab, Extras tab, 1M bars, NT strategy. S29: ESA into WFA, session filters, multi-TF, ER10. S28: ESA v2. S27: ESA Phase A. S24: critical slippage off-tick bugfix.)*
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 **Handoff hygiene (S20):** A competing handoff had grown in the `.claude/.../memory/` auto-memory folder and a new chat read *that* instead of this file. Fixed: added repo `CLAUDE.md` + rewrote `.claude` `MEMORY.md` to point here; deleted the duplicate session-state memories. **There is now ONE handoff: this file.**
@@ -54,6 +54,60 @@ race the same number, the **earlier-merged** note keeps it; the later one takes 
 - **Consecutive-cluster gate** — does requiring N same-dir signals improve quality? (S33 + `dir_streak` 4+ lead from 0001)
 - **Always-In (AID) as a sizer** — negative as a gate (S36); size-with/against-regime untested
 - **Pyramiding (N concurrent same-dir)** — does it beat a single entry? (S32 MCBreakout pyramiding)
+
+---
+
+## SESSION 55 — July 5, 2026 — Honest walk-forward: S3_early13@3R survives (thin); everything else killed; USER VERDICT: not trading it
+
+**Arc:** revisit unfiltered MC → baseline reproduced byte-identical ($184,296; NOTE: engine
+`exp_r`/`R_achieved` is GROSS of commission — Fable's +0.021 is NET (`NetPnL/RiskDollar`);
+always quote net) → wide-target sweep (1R→4R lifts raw book $184K→$291K, BE ratchet HURTS
+unfiltered) → exit mix shows the raw book is EOD-carried (at 3R: 55% EOD exits carry +$1.32M;
+target hit only 6%) → IB/Dalton/gamma theory threads → from-scratch walk-forward search →
+S3_early13@3R = the one survivor. **User's final call: economics don't clear his bar; system
+judged not tradeable by him. Session closed with tone/process feedback (see memory).**
+
+### Validated (dev = first 12 months 2021-06-18..2022-06-17 ONLY; OOS = rest, untouched)
+- **S3_early13@3R** (spec of record: `docs/living/s3_early13_spec_20260705.md`): MC signals
+  + no-counter-IB-break + no-prior-trend-day + before-13:00 CT, 3R target, no BE, flat 15:14,
+  no-hedge first-in-wins. Dev-selected by pre-specified rule; **OOS (MES $1.25/tick, $2 RT):
+  n=1,858, +0.107R [+0.049,+0.166], PF 1.24, $19.3K/4y/1MES, maxDD −$2.8K, 4/5 yrs (2024 −$388)**.
+  Caveat: filter MENU derives from S53 full-sample work (rules were re-derivable from yr 1 and
+  held 4y — robustness evidence, not clean discovery). Fails user bar PF≥1.3 at MES costs.
+  Conflict rate verified with timestamps: 105/1,963 entries (5.3%) skip on opposite-open;
+  same-direction stacking max 10 concurrent. Cash sizing ~$10K per 1-MES unit.
+- **Time-of-day fine structure is NOISE** — dev vs OOS hourly buckets FLIP (dev: 11–13 best,
+  9:30–11 worst; OOS: reverse). Only the 13:00 boundary is stable. Do NOT slice further.
+
+### Killed this session (do not re-mine)
+- **From-scratch menus on raw ES bars, 44 configs total, all dead OOS:** ORB/Donchian/VWAP-fade
+  (menu 1); PDHL/PMDRIFT/NR7ORB/DON15/GAPGO (menu 2). Dev winners inverted OOS (DON15 dev PF
+  1.5 → OOS 0.86) — textbook overfit demo. Naive 5M entries don't clear ~2.5 ticks of costs.
+- **NR-ORB** (only OOS-positive from-scratch cell): full battery = neighborhood smooth, both
+  dirs, no stop cliff, BUT avg MES risk $41 → ~$1K/yr, drop-best-5 → CI spans 0, and
+  **+0.54 same-day P&L corr with the MC book (85% day overlap) = redundant leverage, not a
+  second edge.** Closed.
+- **IB causal proxies for the trend day:** IB width/ADR terciles flat; broken-at-entry worse
+  than unbroken; narrow∧aligned nothing. Dalton IB structure does NOT yield a pre-close signal.
+- **day_type × edge split** (+0.18R ext / −0.32R bal, 6/6 vs 0/6): REAL but CIRCULAR — EOD
+  label ≈ "day that trended". Oracle diagnostic only; explains why wide targets work.
+- **Gamma regime:** `gamma_condition` = **sign(net_gex), 100% match** (positioning), NOT
+  spot-vs-flip. User's `sign(open − HVL_prev)` def diverges from it 41% of days; 3-arm causal
+  test (HVL / GW0 / net_gex) on 80 MQ days: HVL arm points right (+0.131 vs +0.032) but n.s.;
+  no arm predicts day type. Parked pending more MQ data.
+- **IB-edge-as-target:** refuted ($213K vs $291K plain 4R — MC signals fire inside the IB,
+  median edge distance 0.81R = capped winners).
+
+### Docs/scripts added
+`docs/living/s3_early13_spec_20260705.md` (spec + kill list), `docs/living/dalton_ib_tenets_20260705.md`
+(Mind Over Markets extraction + H0–H6 hypotheses, mostly now tested/dead), scripts:
+`mc_baseline_confirm`, `mc_ib_target_study`, `mc_gamma_regime_causal`, `mc_causal_trendday`,
+`wf_search`, `wf_search2`, `mc_wf_hybrid`, `wf_diagnostics`, `mc_s3_mes_real`, `nrorb_battery`.
+Cache: `data/signals/_mc_trendday_3R.parquet` (full book @3R ES, day/IB features attached).
+
+### Process feedback (recorded in memory, applies to ALL future sessions)
+Report net R (not gross), per-trade edge vs execution cost (not lifetime $), caveat FIRST,
+discounted live estimate leads, no hype/oscillation, separate validated vs exploratory.
 
 ---
 
