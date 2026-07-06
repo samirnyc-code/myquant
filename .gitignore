@@ -45,3 +45,4 @@ data/signals/_mc_trendday_3R.parquet
 # OR12 matcher galleries - regenerable via scripts/or12_render_pairs*.py
 docs/living/or12_pairs/
 docs/living/or12_pairs_fullday/
+docs/living/or12_query/
