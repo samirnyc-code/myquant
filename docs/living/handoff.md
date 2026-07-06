@@ -57,6 +57,23 @@ race the same number, the **earlier-merged** note keeps it; the later one takes 
 
 ---
 
+## SESSION 58 — July 6, 2026 — Multi-instrument MenthorQ backfill (NQ, CL, GC, 6A, 6J)
+
+**Goal:** scrape MenthorQ historical gamma/options levels for all supported instruments beyond ES.
+
+**Results:**
+- **NQ (`nq1!`):** ✅ 82 days → `data/menthorq/menthorq_levels_NQ.csv`
+- **CL (`CLQ2026`):** ✅ 71 days → `menthorq_levels_CL.csv` (early days unavailable — not front month until ~Mar 23)
+- **GC (`GCQ2026`):** ✅ 57 days → `menthorq_levels_GC.csv` (same front-month gap)
+- **6A (`6AU2026`):** ✅ 83 days → `menthorq_levels_6A.csv`
+- **6J (`6JU2026`):** ⚠️ **INCOMPLETE** — 20 days raw-cached in `data/menthorq/raw_6J/`; nonce expired mid-run. Resume with fresh nonce.
+
+**Technical notes:** YM excluded (no options chain). CL/GC/6A/6J have no bl_levels (non-fatal). Continuous tickers rejected — must use front-month codes. Script: `scripts/menthorq_backfill_multi.py`.
+
+**⚠️ TODO: finish 6J** — fresh nonce from DevTools (`security=`), update `NONCE` in script, run with `INSTRUMENTS = [("6J", "6JU2026")]`.
+
+---
+
 ## SESSION 57-BATCH — July 6, 2026 — Brooks walkthroughs batch completion
 
 **Status:** ✅ COMPLETE
@@ -244,6 +261,23 @@ with new research ideas or optimism. Options left on the table, all his to choos
 experiment scored monthly vs the spec's expectations; (c) score his own discretionary track
 record with the same metrics if he ever exports it; (d) trading as capped hobby + boring
 index investing as the wealth engine. The honest deliverable of S55 was the verdict itself.
+
+---
+
+## SESSION 55b — July 6, 2026 — Gamma-levels theory discussion (no code, no runs)
+
+*(Parallel session; S55 number was already taken by the July 5 walk-forward.)*
+
+**Goal:** conceptual Q&A — is there a universally accepted formula for the main gamma levels (ES/SPY/SPX), and how to use gamma profitably. No code changed, no studies run.
+
+**Conclusions (context for future gamma work):**
+
+- **No universal formula.** Naive dealer GEX baseline: `Σ gamma × OI × mult × spot × (+1 call / −1 put)`; every vendor layers proprietary assumptions on top (sign inference, chain aggregation, expiry weighting, OI vs volume, IV surface).
+- **Walls (max-OI/gamma strikes) are robust** — reproducible from public OCC/CBOE OI; vendors mostly agree. **Zero gamma / flip is fragile** — vendors routinely disagree by 20–40 ES pts. Treat flip as a regime indicator with ambiguity band (~±0.5% of spot), never a precise price.
+- **How to use gamma:** (1) Regime filter — deep positive → range/mean-revert; deep negative → trend. (2) Walls as exits/invalidation, not entries. (3) Late-day/OPEX pinning minor; user flat by 15:00 CT.
+- **Keep-in-check:** after S54 null, do NOT iterate gamma variants. One regime-conditioning study max; if null, gamma goes in the drawer.
+
+**Next steps:** 0009 rewrite pending; magnet forward-tracking. Tier B backlog: gamma regime (naive public-OI GEX sign/distance) as conditioning variable on best MC setup.
 
 ---
 
