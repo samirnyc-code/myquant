@@ -41,3 +41,7 @@ pipeline_run.log
 scripts/_*.out
 data/signals/_mc_baseline_filled_*.parquet
 data/signals/_mc_trendday_3R.parquet
+
+# OR12 matcher galleries - regenerable via scripts/or12_render_pairs*.py
+docs/living/or12_pairs/
+docs/living/or12_pairs_fullday/

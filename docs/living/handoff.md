@@ -1,6 +1,6 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 6, 2026 (session 58)
+**Last Updated:** July 6, 2026 (session 60)
 **Current Versions:** SIM_v3.9 / GS_v4.5 / SHEET_v3.3 *(S32: Prop Sim overhaul — MC-sized payout buffer, monthly 80/20 payouts, ES/MES margin, never-blow floor de-risk + shock model, richer dashboard; MCBreakout pyramiding (N concurrent/dir) + ratchet-lock fix. S31: ZLO exporter + filters, MCBreakout stop fix + ER filter, ZLO sweeps, Auction feature library + tab (Dalton day types), Prop Sim DD-lock. S30: Prop Sim tab, Extras tab, 1M bars, NT strategy. S29: ESA into WFA, session filters, multi-TF, ER10. S28: ESA v2. S27: ESA Phase A. S24: critical slippage off-tick bugfix.)*
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 **Handoff hygiene (S20):** A competing handoff had grown in the `.claude/.../memory/` auto-memory folder and a new chat read *that* instead of this file. Fixed: added repo `CLAUDE.md` + rewrote `.claude` `MEMORY.md` to point here; deleted the duplicate session-state memories. **There is now ONE handoff: this file.**
@@ -54,6 +54,117 @@ race the same number, the **earlier-merged** note keeps it; the later one takes 
 - **Consecutive-cluster gate** — does requiring N same-dir signals improve quality? (S33 + `dir_streak` 4+ lead from 0001)
 - **Always-In (AID) as a sizer** — negative as a gate (S36); size-with/against-regime untested
 - **Pyramiding (N concurrent same-dir)** — does it beat a single entry? (S32 MCBreakout pyramiding)
+
+---
+
+## SESSION 60 — July 6, 2026 (PC) — ⭐ OR12 PATTERN MATCHER (user: "single most important tool we will ever build") + close-time migration scoped-not-executed
+
+### A. OR12 matcher — match days by their first 12 bars (IB) + prior-day context
+
+**Idea (user):** fingerprint each day's first 60 min (bars 1–12) + open context vs
+yesterday, find historical twins, test whether twins resolve alike. Strictly causal:
+NOTHING after bar 12 enters the fingerprint.
+
+**Built (all committed, this session):**
+
+- `scripts/or12_pattern_groups.py` — the matcher. v3 fingerprint per day:
+  - *Shape*: normalized close path (12 pts), per-bar IBS/body/sign, flips, bar-overlap,
+    BO/fBO (acceptance vs poke-and-fail vs developing extreme), DT/DB flags, hi/lo
+    timing, close loc in IB
+  - *Context*: **hard bucket gate on open location vs yesterday** (above_yH 280 /
+    upper_half 440 / lower_half 330 / below_yL 204 days — matches never cross buckets),
+    gap_norm, prng_adr, pclose_loc
+  - *Brooks trend/range diagnostics (user-specified)*: bull/bear STOP-entry P&L vs
+    bull/bear BB-SA LIMIT P&L inside the IB (stop-profits=trending, limit-profits=TR),
+    EMA20 location (% above, dist, slope; EMA on continuous closes = causal), AID proxy
+  - Outputs: `docs/living/or12_pattern_groups_<date>.csv` — per day: bucket, cluster,
+    **nn1–nn5 = 5 most similar days in history (same bucket)**. Use: find a day's row,
+    read nn1–nn5, pull those days up. + KMeans archetype clusters printed.
+- `scripts/or12_render_pairs.py` — side-by-side 12-bar candle charts of tightest pairs
+  → `docs/living/or12_pairs/index.html` (gitignored, regenerable)
+- `scripts/or12_render_pairs_fullday.py` — FULL-day side-by-sides: IB shaded, IB H/L
+  extended, yH/yL/yC dashed, label = context + IB characteristics
+  → `docs/living/or12_pairs_fullday/index.html` (gitignored)
+- `scripts/or12_outcome_agreement.py` — the payoff test (full-sample kNN, NOT
+  walk-forward — signal test only, caveat printed).
+
+**RESULTS (n=1,254 days, K=5 same-bucket NNs, 500 perms):**
+
+- Day-close-vs-IB (above/inside/below): kNN **39.8%** vs random-same-bucket 33.9%±1.2
+  (p<0.001), bucket-mode baseline 38.0%. Twins predict day CHARACTER — real, modest.
+- Rest-of-day DIRECTION: **50.0%, p=0.47, corr≈0 — NO directional edge.** Brooks-consistent:
+  context tells day type, not direction. Do not oversell.
+- v1 shape-only → v2 +context-gate → v3 +Brooks diagnostics improved 39.0→39.8.
+
+**Next (user-agreed queue):** (1) swing-strength-2 push counting via `leg_decomp.py` —
+wedge=3 pushes, 2-legged PBs; (2) relative IB volume; (3) ON range context; (4) **query
+mode** (day/live bars at 9:30 → its 5 twins rendered) — user: "later"; (5) walk-forward
+version of the outcome test before believing anything tradable.
+
+### B. Close-time bar-label migration — SCOPED, NOT EXECUTED (user directive stands)
+
+**User directive: bar CLOSE time becomes the label convention everywhere.** Full
+dependency inventory DONE this session; **zero code changed yet**. Key findings for
+whoever executes:
+
+- Builders to flip (`label="right"`): `massive.py` `_ticks_to_5m_bars` (202), generic
+  `_resample_ticks_to_bars` (171), `_resample_5m_to_15m` (134, needs closed="right" too
+  — input is close-labeled 5M), gate-audit resample (323); `data_loader.py` resamples
+  (116/164/183/312) + label-range filters flip to `(>start, <=end]`.
+- `bar_num_from_dt` (data_loader:85): tick→containing-bar — KEEP for tick/signal times;
+  bar LABELS need a new close-label variant ((mins−510)//5). Chart annotations
+  (app:184, bar_analysis:669) use the label variant.
+- ⚠️ `simulation_engine.py` bars-mode joins (457/1080/1525): `day_bars[DateTime >= sig_dt]`
+  must become `>` — else bars-mode fills at the SIGNAL bar's own open (look-ahead!).
+- ⚠️ `indicators.py:546 _causal_at_signal_bar` shift(1) becomes an OFF-BY-ONE under close
+  labels — remove it (backward as-of then lands on signal bar naturally). Balance block:
+  `developing_session_levels` internal groupby-shift must also be removed to preserve
+  identical values (old behavior = cummax THROUGH signal bar).
+- Shims to delete: validation.py:48 (−5m NT shift), bar_analysis 692/887/4186/4231,
+  app 633, qs_setups 386 (+5 emit) + RTH consts→"08:35"/"15:15" + BarNum (mins//5)−1,
+  ama_setups 804-806 (open_dt/close_dt = same label now), stack_filter 72-74,
+  leg_htf window math (−5), leg_features buckets (−5), leg_flow truncate+5m,
+  load_nt_bars 1059, parse_ohlc CSV branch +5, parse_sc_ohlc +5.
+- Data: one-time label shift of existing parquets — per-contract 5M +5m,
+  `_continuous(_KEY)` +5m, `_continuous_15m` +15m, `_continuous_1m` +1m. No rebuild needed.
+- **Validation invariant:** physical trades/features IDENTICAL pre/post. Golden baseline
+  = tag_signals output + tick-sim trades (ba_signals_mc + SIM_KW from er10_block_exit_sweep)
+  captured BEFORE edits, diffed after. Old one-off study scripts are NOT being migrated
+  (flag: they assume open labels if re-run).
+- NT8 note: exported SignalDateTime values shift +5m to true close times — NT8 overlay
+  indicators must expect close-stamped times (the lost QSSignalOverlay/AMASignalOverlay
+  CS files did — verify on recreation).
+
+---
+
+## SESSION 59 — July 6, 2026 (Mac) — RevFT SB-extreme entry study — NO EDGE
+
+**Verdict: no edge.** New entry = limit 1 tick inside the signal-bar extreme (must tick
+to the extreme to fill); scalp target (signal price) + full target (orig 1R). Full
+5-year sample: **−0.093R / −$200K**, significantly negative. Every fill-time cap is
+negative and flips sign year-to-year (noise). Same conclusion as all prior RevFT work —
+the problem is directional/structural; no overlay fixes it.
+
+**Files (commit `d133d8a`):** `scripts/revft_sb_entry_test.py` / `revft_sb_entry_full.py`
+/ `revft_sb_capsweep.py`; results in `docs/living/revft_sb_*_20260706.md` + audit CSV.
+
+**Engine bugs fixed (matter for ANY future signal test):**
+
+- Signal bar = `iloc[BarNum−1]` (NT 1-indexed vs pandas 0-indexed; verified 15/15 by close==SignalPrice)
+- Stop = CSV extreme ∓1t (long −1t, short +1t) — CSV `StopPrice` is the setup extreme, NOT the stop
+- Scalp/full resolved as independent strategies
+- Constant-risk sizing ($500/trade) so R and $ agree
+
+**⚠️ Bars convention (open→close time):** the +5min shift applied on the Mac was
+local-only, gitignored, and non-durable (`daily_data_update.py` rebuilds the parquet).
+PC still has open-time bars — RevFT numbers unaffected (scripts read OHLC by index,
+filter ticks by signal time). **Durable fix (TODO, not done):** bake close-time into the
+`daily_data_update.py` / `massive.py` build, then regenerate.
+
+**Not synced (still uncommitted on Mac):** `rolls_GC.json`, S57 Brooks `site/` pile.
+
+**Mac `.claude/settings.json` allowlist (gitignored, recreate on Mac if lost):**
+`{"permissions":{"allow":["Bash(./.venv/bin/python scripts/*)","Bash(./.venv/bin/python3 scripts/*)","Bash(.venv/bin/python scripts/*)","Bash(.venv/bin/python3 scripts/*)","Bash(source .venv/bin/activate)"]}}`
 
 ---
 
