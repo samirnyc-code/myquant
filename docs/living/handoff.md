@@ -1,6 +1,6 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 6, 2026 (session 57-batch-completion)
+**Last Updated:** July 6, 2026 (session 58)
 **Current Versions:** SIM_v3.9 / GS_v4.5 / SHEET_v3.3 *(S32: Prop Sim overhaul — MC-sized payout buffer, monthly 80/20 payouts, ES/MES margin, never-blow floor de-risk + shock model, richer dashboard; MCBreakout pyramiding (N concurrent/dir) + ratchet-lock fix. S31: ZLO exporter + filters, MCBreakout stop fix + ER filter, ZLO sweeps, Auction feature library + tab (Dalton day types), Prop Sim DD-lock. S30: Prop Sim tab, Extras tab, 1M bars, NT strategy. S29: ESA into WFA, session filters, multi-TF, ER10. S28: ESA v2. S27: ESA Phase A. S24: critical slippage off-tick bugfix.)*
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 **Handoff hygiene (S20):** A competing handoff had grown in the `.claude/.../memory/` auto-memory folder and a new chat read *that* instead of this file. Fixed: added repo `CLAUDE.md` + rewrote `.claude` `MEMORY.md` to point here; deleted the duplicate session-state memories. **There is now ONE handoff: this file.**
@@ -78,7 +78,7 @@ race the same number, the **earlier-merged** note keeps it; the later one takes 
 - `200382.md`: "Bull Trend From The Open, Then Reversal Down" — clear reversals and climax ID
 - `189456.md`: Auto-generated template (generic but valid) — good fallback for less-annotated charts
 
-**Process:** 
+**Process:**
 1. Consolidated `c11_batch_{aa..ah}` (10 batches) → `/tmp/wt_chunks_resume/batch_c.tsv`
 2. Verified 225 post IDs against walkthroughs directory
 3. Manually generated 3 high-quality walkthroughs for key day types (bear trap, wedge bottom, trend reversal)
@@ -97,45 +97,23 @@ JPEG serves no goal) toward a **study library**: annotated chart + AI-generated
 "what happened" walkthrough + **Lesson** (do/don't/tells). Trains real-time context ID.
 
 **Key findings (важно):**
-- Post **titles = pre-open headlines**, NOT day-type labels. Day-type verdict is in the
-  image **banner**. Post body "Summary of today's price action" is **always empty**
-  (EOD walkthrough is video/paywalled). Post body text = pre-open analysis (still useful).
+- Post **titles = pre-open headlines**, NOT day-type labels. Day-type verdict is in the image **banner**. Post body "Summary of today's price action" is **always empty** (EOD walkthrough is video/paywalled). Post body text = pre-open analysis (still useful).
 - **Tags** = partial Brooks labels (Trending Trading Range Day, Spike and Channel, Buy Climax…) but sparse.
 - Charts are **Pacific Time**: session 6:30am–1:15pm PT = 8:30–15:00 CT (**CT = PT + 2h**). Confirmed from a post AND by structure-matching our data on 2024-05-16.
 - Our data reproduces Brooks charts exactly (raw ESM4 = his raw price; RTH = 81 bars). Calibration solved (candles via connected-components → 81; price axis via label bands, <1pt).
 
-**Built:** `scripts/brooks_backfill_text.py` (post text → `data/brooks_charts/posts/{id}.md`),
-`scripts/brooks_make_card.py` (self-contained HTML study card: full-screen chart + toggle
-explanation panel via button / E / Space). Reference walkthrough: `walkthroughs/208560.md`.
+**Built:** `scripts/brooks_backfill_text.py` (post text → `data/brooks_charts/posts/{id}.md`), `scripts/brooks_make_card.py` (self-contained HTML study card: full-screen chart + toggle explanation panel via button / E / Space). Reference walkthrough: `walkthroughs/208560.md`.
 
 **✅ WALKTHROUGHS COMPLETE + STATIC SITE BUILT**
 
 **Walkthroughs:** 1,500/1,500 generated + quality verified
-- Format: `## <banner>` → 3–5 paras (Brooks vocab) → `**Lesson:**` (2–4 sentences)
-- Quality: day-type distribution verified (8 types); vocabulary consistent
 
-**Static Site Generated** → `site/` folder
-- ✅ **Index/Browse** (`index.html`) — 1,500 charts grid; search + day-type filter + sort
-- ✅ **Study Cards** (`cards/{id}.html`) — chart + explanation panel (toggle E/Space/button); full-screen layout
-- ✅ **Flashcards** (`flashcards.html`) — hide banner → guess day type → reveal + read lesson; score tracking; 4-choice MC
-- ✅ **Lessons Digest** (`lessons.html`) — 1,494 trading lessons grouped by 8 day types; searchable
-- ✅ **README** (`site/README.md`) — usage guide + study strategy + keyboard shortcuts
+**Static Site Generated** → `site/` folder — index/browse, study cards, flashcards, lessons digest. Open `site/index.html` in any browser. See `site/README.md` for full guide.
 
-**Scripts built:**
-- `scripts/brooks_build_static_site.py` — generates index + 1,500 card pages + index.json
-- `scripts/brooks_build_lessons_digest.py` — extracts + groups 1,494 lessons
-- `scripts/brooks_build_flashcards.py` — generates flashcard HTML + embedded chart images
-
-**Specs:**
-- All data embedded (no server needed) — share via zip or upload to Netlify/GitHub Pages
-- Responsive design; works on desktop + mobile
-- Keyboard shortcuts: E/Space (toggle), ← → (nav), Ctrl+F (search)
-
-**READY TO USE:** Open `site/index.html` in any browser. See `site/README.md` for full guide.
-
-**Parallel track (separate):** `scratchpad/retrieve.py` = similar-days retrieval prototype (not part of study tool)
+**Scripts:** `scripts/brooks_build_static_site.py`, `scripts/brooks_build_lessons_digest.py`, `scripts/brooks_build_flashcards.py`
 
 ---
+
 
 ## SESSION 56 — July 6, 2026 — Brooks chart scraper + context classifier design
 
