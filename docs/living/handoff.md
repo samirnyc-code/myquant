@@ -1,6 +1,6 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 5, 2026 (session 55)
+**Last Updated:** July 6, 2026 (session 56)
 **Current Versions:** SIM_v3.9 / GS_v4.5 / SHEET_v3.3 *(S32: Prop Sim overhaul — MC-sized payout buffer, monthly 80/20 payouts, ES/MES margin, never-blow floor de-risk + shock model, richer dashboard; MCBreakout pyramiding (N concurrent/dir) + ratchet-lock fix. S31: ZLO exporter + filters, MCBreakout stop fix + ER filter, ZLO sweeps, Auction feature library + tab (Dalton day types), Prop Sim DD-lock. S30: Prop Sim tab, Extras tab, 1M bars, NT strategy. S29: ESA into WFA, session filters, multi-TF, ER10. S28: ESA v2. S27: ESA Phase A. S24: critical slippage off-tick bugfix.)*
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 **Handoff hygiene (S20):** A competing handoff had grown in the `.claude/.../memory/` auto-memory folder and a new chat read *that* instead of this file. Fixed: added repo `CLAUDE.md` + rewrote `.claude` `MEMORY.md` to point here; deleted the duplicate session-state memories. **There is now ONE handoff: this file.**
@@ -54,6 +54,74 @@ race the same number, the **earlier-merged** note keeps it; the later one takes 
 - **Consecutive-cluster gate** — does requiring N same-dir signals improve quality? (S33 + `dir_streak` 4+ lead from 0001)
 - **Always-In (AID) as a sizer** — negative as a gate (S36); size-with/against-regime untested
 - **Pyramiding (N concurrent same-dir)** — does it beat a single entry? (S32 MCBreakout pyramiding)
+
+---
+
+## SESSION 56 — July 6, 2026 — Brooks chart scraper + context classifier design
+
+### Context
+User is a discretionary trader (Al Brooks / Bob Mack / PATS methodology). After years of Brooks/Mack study, inconsistency traces to context identification failures in real-time, not lack of edge knowledge. Everything mechanical (MC setup, WFA, stack filters) has been tested — S3_early13@3R is real but below user's bar. New direction: build a context classifier trained on Brooks' own labeled charts.
+
+### What was designed
+**Goal:** Upload a screenshot of the live open (or use live bars from tick cache) → get probability distribution over Brooks day types + top-N most similar labeled Brooks charts shown side by side.
+
+**Two input modes planned:**
+1. Screenshot upload (live chart crop)
+2. Live bar render from existing tick cache (better — controls chart format)
+
+**Architecture:**
+- CLIP embeddings of all Brooks images → vector index
+- Query chart embedded → nearest-neighbor search → probability distribution over day types
+- No fine-tuning needed for v1 — zero-shot similarity search
+
+### What was built — `scripts/brooks_scraper.py`
+Scrapes all EOD chart images from brookstradingcourse.com using session cookies + Cloudflare clearance.
+
+**Method:** WordPress REST API (`/wp-json/wp/v2/posts?_embed&per_page=100`) — returns all posts with embedded featured images. No HTML scraping needed.
+
+**Filters:** keeps only ES/S&P 5-min posts, skips Forex/weekly/monthly/other instruments.
+
+**Output:**
+- Images → `data/brooks_charts/{post_id}_{title-slug}.jpg` (gitignored — large binary)
+- Metadata → `data/brooks_charts/metadata.csv` (committed) with: post_id, date, title, tags, filename, image_url, post_url
+
+**Labels come free from post titles**, e.g.:
+- `Bull V Reversal then Lower High Major Trend Reversal`
+- `E-mini Continued Sideways Price Action`
+- `Tight Bear Channel 2nd Leg Likely`
+
+Tags (e.g. `Minor Reversal|S&P Emini|Spike and Channel`) provide secondary labels.
+
+**Auth cookies needed (session — expire on browser logout):**
+- `wordpress_logged_in_c9a4459aae541f551fc28cf6257acde2`
+- `wordpress_sec_c9a4459aae541f551fc28cf6257acde2`
+- `cf_clearance` (Cloudflare — tied to browser User-Agent)
+
+If scraper gets 403, user must re-export cookies from Chrome DevTools → Application → Cookies → brookstradingcourse.com and update the `COOKIES` dict in the script.
+
+### Scraper status at handoff
+- **Running** (PID 37873 on Mac) — ~150+ images downloaded, ~2000 ES 5-min posts total expected
+- Log: `/tmp/brooks_scraper.log`
+- Check progress: `tail -5 /tmp/brooks_scraper.log && ls data/brooks_charts/*.jpg | wc -l`
+- Scraper is **resumable** — skips already-downloaded post IDs via metadata.csv
+
+### Next session — build order
+1. **Let scraper finish** or re-run if interrupted (`python -u scripts/brooks_scraper.py`)
+2. **Inspect the dataset** — look at ~20 sample images, confirm labels are clean, check tag distribution
+3. **Build CLIP index** (`scripts/build_clip_index.py`):
+   - Install: `pip install transformers torch Pillow`
+   - Load `openai/clip-vit-base-patch32`
+   - Embed all images → save as `data/brooks_charts/clip_embeddings.npy` + index metadata
+4. **Build Streamlit tab** (`🧠 Context Classifier`):
+   - Input: screenshot upload OR date+time range from tick cache
+   - Query image → CLIP embed → cosine similarity search
+   - Output: probability distribution over day types + top-5 most similar Brooks charts
+5. **Day type taxonomy** — derive from title clusters (trend/range/reversal/spike-channel/wedge/balance) — do this after inspecting the scraped titles, not before
+
+### Key decisions not yet made
+- Day type taxonomy (how many buckets, how derived from titles) — decide after seeing the data
+- Whether to fine-tune a classifier or stay with zero-shot CLIP similarity (start with zero-shot)
+- Live bar render format — needs to match Brooks chart visual style for CLIP to work well
 
 ---
 
