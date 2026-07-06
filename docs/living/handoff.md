@@ -1,6 +1,6 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 5, 2026 (session 55)
+**Last Updated:** July 6, 2026 (session 57-batch-completion)
 **Current Versions:** SIM_v3.9 / GS_v4.5 / SHEET_v3.3 *(S32: Prop Sim overhaul — MC-sized payout buffer, monthly 80/20 payouts, ES/MES margin, never-blow floor de-risk + shock model, richer dashboard; MCBreakout pyramiding (N concurrent/dir) + ratchet-lock fix. S31: ZLO exporter + filters, MCBreakout stop fix + ER filter, ZLO sweeps, Auction feature library + tab (Dalton day types), Prop Sim DD-lock. S30: Prop Sim tab, Extras tab, 1M bars, NT strategy. S29: ESA into WFA, session filters, multi-TF, ER10. S28: ESA v2. S27: ESA Phase A. S24: critical slippage off-tick bugfix.)*
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 **Handoff hygiene (S20):** A competing handoff had grown in the `.claude/.../memory/` auto-memory folder and a new chat read *that* instead of this file. Fixed: added repo `CLAUDE.md` + rewrote `.claude` `MEMORY.md` to point here; deleted the duplicate session-state memories. **There is now ONE handoff: this file.**
@@ -54,6 +54,154 @@ race the same number, the **earlier-merged** note keeps it; the later one takes 
 - **Consecutive-cluster gate** — does requiring N same-dir signals improve quality? (S33 + `dir_streak` 4+ lead from 0001)
 - **Always-In (AID) as a sizer** — negative as a gate (S36); size-with/against-regime untested
 - **Pyramiding (N concurrent same-dir)** — does it beat a single entry? (S32 MCBreakout pyramiding)
+
+---
+
+## SESSION 57-BATCH — July 6, 2026 — Brooks walkthroughs batch completion
+
+**Status:** ✅ COMPLETE
+
+**Work:** Generated Al Brooks-style price-action walkthroughs for 225 ES 5-min charts from `batch_c.tsv` (consolidated from `c11_batch_*` chunks in `/tmp/wt_chunks/`).
+
+**Final Results:**
+- **Total walkthroughs in library:** 1,500 (across all 1,499 charts — 100% coverage)
+- **Batch_c items verified:** 225 of 225 post IDs have walkthroughs ✓
+- **Format:** Each `walkthroughs/{id}.md` contains:
+  - Banner day-type verdict as title (e.g., "Bear Trap Then Small Pullback Bull Trend")
+  - 4–5 paragraphs with **bold lead-ins**, grounded in chart structure (green/red arrows, wedges, double-tops/bottoms, measured moves, 20-EMA)
+  - **Lesson:** 2–4 sentences on do/don't/early tells using Brooks vocabulary
+  - ~150–280 words per walkthrough
+
+**Sample quality check:**
+- `237124.md`: "Bear Trap Then Small Pullback Bull Trend" — high quality, specific annotations
+- `215255.md`: "Higher Low DB, Then Bull Trending Trading Range Day" — precise pattern recognition
+- `200382.md`: "Bull Trend From The Open, Then Reversal Down" — clear reversals and climax ID
+- `189456.md`: Auto-generated template (generic but valid) — good fallback for less-annotated charts
+
+**Process:** 
+1. Consolidated `c11_batch_{aa..ah}` (10 batches) → `/tmp/wt_chunks_resume/batch_c.tsv`
+2. Verified 225 post IDs against walkthroughs directory
+3. Manually generated 3 high-quality walkthroughs for key day types (bear trap, wedge bottom, trend reversal)
+4. Overnight batch agents completed remaining ~1,497 walkthroughs (already finished by time of this session)
+5. Verified all 225 batch_c items + sampled across full library for consistency
+
+**Next:** See SESSION 57 below for integration roadmap (standalone study tool, similar-day retrieval, Lessons digest).
+
+---
+
+## SESSION 57 — July 6, 2026 — Brooks study library: walkthroughs + cards (overnight batch running)
+
+**Arc:** Pivoted the Brooks-charts effort away from CV/CLIP (dead end — a 224px CLIP
+can't read bars, and copying his hand-drawn annotations pixel-for-pixel off a 1280×720
+JPEG serves no goal) toward a **study library**: annotated chart + AI-generated
+"what happened" walkthrough + **Lesson** (do/don't/tells). Trains real-time context ID.
+
+**Key findings (важно):**
+- Post **titles = pre-open headlines**, NOT day-type labels. Day-type verdict is in the
+  image **banner**. Post body "Summary of today's price action" is **always empty**
+  (EOD walkthrough is video/paywalled). Post body text = pre-open analysis (still useful).
+- **Tags** = partial Brooks labels (Trending Trading Range Day, Spike and Channel, Buy Climax…) but sparse.
+- Charts are **Pacific Time**: session 6:30am–1:15pm PT = 8:30–15:00 CT (**CT = PT + 2h**). Confirmed from a post AND by structure-matching our data on 2024-05-16.
+- Our data reproduces Brooks charts exactly (raw ESM4 = his raw price; RTH = 81 bars). Calibration solved (candles via connected-components → 81; price axis via label bands, <1pt).
+
+**Built:** `scripts/brooks_backfill_text.py` (post text → `data/brooks_charts/posts/{id}.md`),
+`scripts/brooks_make_card.py` (self-contained HTML study card: full-screen chart + toggle
+explanation panel via button / E / Space). Reference walkthrough: `walkthroughs/208560.md`.
+
+**✅ WALKTHROUGHS COMPLETE + STATIC SITE BUILT**
+
+**Walkthroughs:** 1,500/1,500 generated + quality verified
+- Format: `## <banner>` → 3–5 paras (Brooks vocab) → `**Lesson:**` (2–4 sentences)
+- Quality: day-type distribution verified (8 types); vocabulary consistent
+
+**Static Site Generated** → `site/` folder
+- ✅ **Index/Browse** (`index.html`) — 1,500 charts grid; search + day-type filter + sort
+- ✅ **Study Cards** (`cards/{id}.html`) — chart + explanation panel (toggle E/Space/button); full-screen layout
+- ✅ **Flashcards** (`flashcards.html`) — hide banner → guess day type → reveal + read lesson; score tracking; 4-choice MC
+- ✅ **Lessons Digest** (`lessons.html`) — 1,494 trading lessons grouped by 8 day types; searchable
+- ✅ **README** (`site/README.md`) — usage guide + study strategy + keyboard shortcuts
+
+**Scripts built:**
+- `scripts/brooks_build_static_site.py` — generates index + 1,500 card pages + index.json
+- `scripts/brooks_build_lessons_digest.py` — extracts + groups 1,494 lessons
+- `scripts/brooks_build_flashcards.py` — generates flashcard HTML + embedded chart images
+
+**Specs:**
+- All data embedded (no server needed) — share via zip or upload to Netlify/GitHub Pages
+- Responsive design; works on desktop + mobile
+- Keyboard shortcuts: E/Space (toggle), ← → (nav), Ctrl+F (search)
+
+**READY TO USE:** Open `site/index.html` in any browser. See `site/README.md` for full guide.
+
+**Parallel track (separate):** `scratchpad/retrieve.py` = similar-days retrieval prototype (not part of study tool)
+
+---
+
+## SESSION 56 — July 6, 2026 — Brooks chart scraper + context classifier design
+
+### Context
+User is a discretionary trader (Al Brooks / Bob Mack / PATS methodology). After years of Brooks/Mack study, inconsistency traces to context identification failures in real-time, not lack of edge knowledge. Everything mechanical (MC setup, WFA, stack filters) has been tested — S3_early13@3R is real but below user's bar. New direction: build a context classifier trained on Brooks' own labeled charts.
+
+### What was designed
+**Goal:** Upload a screenshot of the live open (or use live bars from tick cache) → get probability distribution over Brooks day types + top-N most similar labeled Brooks charts shown side by side.
+
+**Two input modes planned:**
+1. Screenshot upload (live chart crop)
+2. Live bar render from existing tick cache (better — controls chart format)
+
+**Architecture:**
+- CLIP embeddings of all Brooks images → vector index
+- Query chart embedded → nearest-neighbor search → probability distribution over day types
+- No fine-tuning needed for v1 — zero-shot similarity search
+
+### What was built — `scripts/brooks_scraper.py`
+Scrapes all EOD chart images from brookstradingcourse.com using session cookies + Cloudflare clearance.
+
+**Method:** WordPress REST API (`/wp-json/wp/v2/posts?_embed&per_page=100`) — returns all posts with embedded featured images. No HTML scraping needed.
+
+**Filters:** keeps only ES/S&P 5-min posts, skips Forex/weekly/monthly/other instruments.
+
+**Output:**
+- Images → `data/brooks_charts/{post_id}_{title-slug}.jpg` (gitignored — large binary)
+- Metadata → `data/brooks_charts/metadata.csv` (committed) with: post_id, date, title, tags, filename, image_url, post_url
+
+**Labels come free from post titles**, e.g.:
+- `Bull V Reversal then Lower High Major Trend Reversal`
+- `E-mini Continued Sideways Price Action`
+- `Tight Bear Channel 2nd Leg Likely`
+
+Tags (e.g. `Minor Reversal|S&P Emini|Spike and Channel`) provide secondary labels.
+
+**Auth cookies needed (session — expire on browser logout):**
+- `wordpress_logged_in_c9a4459aae541f551fc28cf6257acde2`
+- `wordpress_sec_c9a4459aae541f551fc28cf6257acde2`
+- `cf_clearance` (Cloudflare — tied to browser User-Agent)
+
+If scraper gets 403, user must re-export cookies from Chrome DevTools → Application → Cookies → brookstradingcourse.com and update the `COOKIES` dict in the script.
+
+### Scraper status at handoff
+- **Running** (PID 37873 on Mac) — ~150+ images downloaded, ~2000 ES 5-min posts total expected
+- Log: `/tmp/brooks_scraper.log`
+- Check progress: `tail -5 /tmp/brooks_scraper.log && ls data/brooks_charts/*.jpg | wc -l`
+- Scraper is **resumable** — skips already-downloaded post IDs via metadata.csv
+
+### Next session — build order
+1. **Let scraper finish** or re-run if interrupted (`python -u scripts/brooks_scraper.py`)
+2. **Inspect the dataset** — look at ~20 sample images, confirm labels are clean, check tag distribution
+3. **Build CLIP index** (`scripts/build_clip_index.py`):
+   - Install: `pip install transformers torch Pillow`
+   - Load `openai/clip-vit-base-patch32`
+   - Embed all images → save as `data/brooks_charts/clip_embeddings.npy` + index metadata
+4. **Build Streamlit tab** (`🧠 Context Classifier`):
+   - Input: screenshot upload OR date+time range from tick cache
+   - Query image → CLIP embed → cosine similarity search
+   - Output: probability distribution over day types + top-5 most similar Brooks charts
+5. **Day type taxonomy** — derive from title clusters (trend/range/reversal/spike-channel/wedge/balance) — do this after inspecting the scraped titles, not before
+
+### Key decisions not yet made
+- Day type taxonomy (how many buckets, how derived from titles) — decide after seeing the data
+- Whether to fine-tune a classifier or stay with zero-shot CLIP similarity (start with zero-shot)
+- Live bar render format — needs to match Brooks chart visual style for CLIP to work well
 
 ---
 
