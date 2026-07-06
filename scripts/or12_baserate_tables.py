@@ -63,6 +63,13 @@ def main() -> None:
     t["ext_any"] = (np.maximum(out_df["ext_up"], out_df["ext_dn"]) > 0.5).to_numpy()
     t["both_brk"] = ((out_df["ext_up"] > 0) & (out_df["ext_dn"] > 0)).to_numpy()
     t["first_break"] = out_df["first_break"].to_numpy()
+    # ADR-denominated post-IB outcomes (tautology control: IB multiples favor
+    # narrow IBs, raw-trend-vs-ADR favors wide IBs since IB is inside day range)
+    t["post_rng_adr"] = (out_df["post_rng_pts"] / adr20).to_numpy()
+    t["fthru_adr"] = (out_df["abs_ret_pts"] / adr20).to_numpy()
+    # bar-12 close location within IB (proximity control for formation order)
+    t["c12_loc"] = pd.cut(df["close_loc"], [-0.01, 1/3, 2/3, 1.01],
+                          labels=["low3rd", "mid3rd", "high3rd"])
     t = t[adr20.notna().to_numpy()]
 
     print(f"n = {len(t)} days ({t.index.min()} - {t.index.max()})")
@@ -77,6 +84,8 @@ def main() -> None:
             "n": len(g),
             "P_trend": g.trend.mean(),
             "P_ext": g.ext_any.mean(),
+            "P_postADR50": (g.post_rng_adr > 0.5).mean(),
+            "med_fthru_adr": g.fthru_adr.median(),
             "P_both": g.both_brk.mean(),
             "P_close_above": (g.cls == "above").mean(),
             "P_close_inside": (g.cls == "inside").mean(),
@@ -101,6 +110,21 @@ def main() -> None:
           .value_counts(normalize=True).unstack().fillna(0) * 100).round(1)
     fo["n"] = t.groupby("hi_first").size()
     print(fo.to_string(), "\n")
+
+    # proximity control: formation-order skew WITHIN bar-12 close-location bands
+    print("== formation order x bar-12 close location (proximity control) ==")
+    fo_c = (t.groupby(["c12_loc", "hi_first"], observed=True)["first_break"]
+            .value_counts(normalize=True).unstack().fillna(0) * 100).round(1)
+    fo_c["n"] = t.groupby(["c12_loc", "hi_first"], observed=True).size()
+    print(fo_c.to_string(), "\n")
+
+    # does 10:30 close location predict the day CLOSE (not just first break)?
+    print("== bar-12 close location -> day close vs IB + trend rate ==")
+    cl = (t.groupby("c12_loc", observed=True)["cls"]
+          .value_counts(normalize=True).unstack().fillna(0) * 100).round(1)
+    cl["P_trend"] = (t.groupby("c12_loc", observed=True)["trend"].mean() * 100).round(1)
+    cl["n"] = t.groupby("c12_loc", observed=True).size()
+    print(cl.to_string(), "\n")
 
     # same check but conditional on bucket (does context change the skew?)
     fo_b = (t.groupby(["bucket", "hi_first"])["first_break"]

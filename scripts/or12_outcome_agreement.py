@@ -73,6 +73,8 @@ def day_outcome(g: pd.DataFrame) -> dict | None:
         day_rng=day_hi - day_lo,
         close_pos=(day_close - day_lo) / (day_hi - day_lo)
                   if day_hi > day_lo else 0.5,
+        post_rng_pts=float(post["High"].max()) - float(post["Low"].min()),
+        abs_ret_pts=abs(day_close - c12),
     )
 
 
