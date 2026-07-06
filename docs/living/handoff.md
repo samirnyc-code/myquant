@@ -33,8 +33,9 @@ race the same number, the **earlier-merged** note keeps it; the later one takes 
 | 0007 | QS Breakouts build & test mechanism (`0007_quantsystems_breakouts_build.md`) | LIVING/IN PROGRESS | s41 (docs/s38-reversal branch) |
 | 0008 | QS Breakouts — EDGE STUDY (BO+FT reproduction results) | RESERVED (write when config locked) | s41 (docs/s38-reversal branch) |
 | 0009 | MenthorQ gamma data × MC edge (`0009_menthorq_gamma_mc.md`) | ⚠️ NEEDS REWRITE — pre-correction numbers (correction banner added); do not share PDF | s54 (docs/s38-reversal branch) |
+| 0010 | OR12 first-hour fingerprint → day character (`0010_or12_fingerprint_daytype.md`) | DONE — twins predict character (40.5% vs 34%), NOT direction; + day-type research synthesis | s60 (main) |
 
-**NEXT FREE NUMBER: 0010**
+**NEXT FREE NUMBER: 0011**
 
 ### Backlog — candidate notes (claim a number above before starting one)
 **Tier A — ALREADY RESEARCHED in `docs/living/`; convert to a note, do NOT redo:**

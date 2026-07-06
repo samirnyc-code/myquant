@@ -117,6 +117,10 @@ def day_features(g: pd.DataFrame, ema: np.ndarray | None = None) -> dict | None:
     hi_pos = float(np.argmax(h)) / (N_BARS - 1)
     lo_pos = float(np.argmin(l)) / (N_BARS - 1)
     close_loc = (c[-1] - or_lo) / or_rng
+    # IB extreme formation order — documented ~2:1 skew on later break
+    # direction (IB high formed first → break down 44.8% vs up 24.0%, and
+    # vice versa; TradingStats ES 2015-25)
+    ib_high_first = float(np.argmax(h) < np.argmin(l))
 
     # ── Brooks trend-vs-range diagnostics ────────────────────────────────────
     # Stop-entry traders: buy 1 tick above prior bar high / sell below prior
@@ -133,6 +137,54 @@ def day_features(g: pd.DataFrame, ema: np.ndarray | None = None) -> dict | None:
             bull_limit += c[i] - l[i-1]
     bull_stop /= or_rng; bear_stop /= or_rng
     bull_limit /= or_rng; bear_limit /= or_rng
+
+    # ── Swing structure (strength-2 pivots, user-specified) ─────────────────
+    # Pivot high at i: higher than the 2 bars each side (>= on the right so a
+    # flat retest still counts). Pushes = successively higher swing highs in an
+    # up move / lower swing lows in a down move. Wedge = 3 pushes (Brooks).
+    # Two-legged pullback = the counter-move off the window extreme contains
+    # exactly 2 legs (pullback low, bounce, second pullback low).
+    ph = [i for i in range(2, N_BARS - 2)
+          if h[i] > h[i-1] and h[i] > h[i-2] and h[i] >= h[i+1] and h[i] >= h[i+2]]
+    pl = [i for i in range(2, N_BARS - 2)
+          if l[i] < l[i-1] and l[i] < l[i-2] and l[i] <= l[i+1] and l[i] <= l[i+2]]
+    pushes_up = 1 + sum(1 for a, b_ in zip(ph, ph[1:]) if h[b_] > h[a]) if ph else 0
+    pushes_dn = 1 + sum(1 for a, b_ in zip(pl, pl[1:]) if l[b_] < l[a]) if pl else 0
+    wedge_up = int(pushes_up >= 3)
+    wedge_dn = int(pushes_dn >= 3)
+
+    # two-legged pullback against the dominant drive (after the window extreme)
+    twoleg_pb = 0
+    if net_drive > 0.15:
+        k0 = int(np.argmax(h))
+        seg_l = l[k0:]
+        if len(seg_l) >= 4:
+            sw = [j for j in range(1, len(seg_l) - 1)
+                  if seg_l[j] < seg_l[j-1] and seg_l[j] <= seg_l[j+1]]
+            twoleg_pb = int(len(sw) >= 2 and seg_l[sw[1]] < seg_l[sw[0]])
+    elif net_drive < -0.15:
+        k0 = int(np.argmin(l))
+        seg_h = h[k0:]
+        if len(seg_h) >= 4:
+            sw = [j for j in range(1, len(seg_h) - 1)
+                  if seg_h[j] > seg_h[j-1] and seg_h[j] >= seg_h[j+1]]
+            twoleg_pb = int(len(sw) >= 2 and seg_h[sw[1]] > seg_h[sw[0]])
+
+    # ── Open-type diagnostics (Dalton open classification, programmatic) ─────
+    # open_revisit: did price re-trade the session open after bar 1? 0 = pure
+    # open drive (highest-conviction open). drive_eff: |net move| / path length
+    # (1.0 = perfectly one-sided auction).
+    open_px = o[0]
+    open_revisit = float(any((l[i] <= open_px <= h[i]) for i in range(1, N_BARS)))
+    path_len = float(np.sum(np.abs(np.diff(c)))) + abs(c[0] - o[0])
+    drive_eff = abs(c[-1] - open_px) / path_len if path_len > 0 else 0.0
+
+    # ── One-time-framing on 15M aggregates of the IB (4 windows of 3 bars) ───
+    # OTF-up = every 15M low > prior 15M low (trend-day state machine)
+    h15 = [h[i:i+3].max() for i in range(0, N_BARS, 3)]
+    l15 = [l[i:i+3].min() for i in range(0, N_BARS, 3)]
+    otf_up = float(all(l15[k] > l15[k-1] for k in range(1, len(l15))))
+    otf_dn = float(all(h15[k] < h15[k-1] for k in range(1, len(h15))))
 
     # ── EMA20 location + Always-In proxy at bar 12 ───────────────────────────
     if ema is not None and len(ema) >= N_BARS and np.isfinite(ema[:N_BARS]).all():
@@ -158,6 +210,12 @@ def day_features(g: pd.DataFrame, ema: np.ndarray | None = None) -> dict | None:
                       bull_limit=bull_limit, bear_limit=bear_limit,
                       ema_above=ema_above, ema_dist=ema_dist,
                       ema_slope=ema_slope, aid=aid,
+                      pushes_up=float(pushes_up), pushes_dn=float(pushes_dn),
+                      wedge_up=float(wedge_up), wedge_dn=float(wedge_dn),
+                      twoleg_pb=float(twoleg_pb),
+                      ib_high_first=ib_high_first,
+                      open_revisit=open_revisit, drive_eff=drive_eff,
+                      otf_up=otf_up, otf_dn=otf_dn,
                       or_rng_pts=or_rng))
     return feats
 
@@ -186,6 +244,7 @@ def context_features(bars: pd.DataFrame) -> pd.DataFrame:
     ctx["open_loc"]   = (daily["O"] - p["L"]) / p["rng"]
     ctx["prng_adr"]   = p["rng"] / daily["adr14"]
     ctx["pclose_loc"] = (p["C"] - p["L"]) / p["rng"]
+    ctx["adr14"]      = daily["adr14"]      # for IB-width-vs-ATR (joined later)
     ctx["bucket"]     = ctx["open_loc"].map(
         lambda x: _bucket(x) if np.isfinite(x) else None)
     return ctx
@@ -206,8 +265,13 @@ def _weights(cols: list[str]) -> np.ndarray:
         elif cname in ("dt", "db", "hi_pos", "lo_pos", "close_loc"):
             w[j] = 1.0
         elif cname in ("bull_stop", "bear_stop", "bull_limit", "bear_limit",
-                       "ema_above", "ema_dist", "ema_slope", "aid"):
-            w[j] = 1.5          # Brooks trend/range diagnostics
+                       "ema_above", "ema_dist", "ema_slope", "aid",
+                       "pushes_up", "pushes_dn", "wedge_up", "wedge_dn",
+                       "twoleg_pb", "rvol_ib", "ib_high_first",
+                       "open_revisit", "drive_eff", "otf_up", "otf_dn"):
+            w[j] = 1.5          # Brooks trend/range + swing + volume diagnostics
+        elif cname == "ib_atr":
+            w[j] = 2.0          # strongest documented character conditioner
         elif cname in CTX_COLS:
             w[j] = CTX_WEIGHT
     return w
@@ -223,15 +287,33 @@ def build_features() -> tuple[pd.DataFrame, np.ndarray, list[str]]:
     # bar i only (carries over from the prior session: causal at the open)
     bars["_ema20"] = bars["Close"].ewm(span=20, adjust=False).mean()
     rows = {}
+    ib_vol = {}
+    has_vol = "Volume" in bars.columns
     for d, g in bars.groupby(bars["DateTime"].dt.date):
         f = day_features(g, ema=g["_ema20"].to_numpy(float))
         if f is not None:
             rows[d] = f
+            if has_vol:
+                ib_vol[d] = float(g.sort_values("DateTime")
+                                  .head(N_BARS)["Volume"].sum())
     df = pd.DataFrame.from_dict(rows, orient="index").sort_index()
+
+    # relative IB volume: today's IB volume vs median of prior 20 days (causal)
+    if ib_vol:
+        ibv = pd.Series(ib_vol).sort_index()
+        df["rvol_ib"] = (ibv / ibv.rolling(20, min_periods=10)
+                         .median().shift(1)).clip(0.0, 4.0)
+    else:
+        df["rvol_ib"] = 1.0
 
     ctx = context_features(bars)
     df = df.join(ctx, how="inner")
-    df = df.dropna(subset=CTX_COLS + ["bucket"])
+    # IB width vs 14-day ADR — strongest documented day-character conditioner
+    # on ES (narrow IB → 98.7% break / 74.8% median extension; wide IB →
+    # 66.7% / 22.3%; TradingStats 2015-25)
+    df["ib_atr"] = (df["or_rng_pts"] / df["adr14"]).clip(0.0, 3.0)
+    df = df.drop(columns=["adr14"])
+    df = df.dropna(subset=CTX_COLS + ["bucket", "rvol_ib", "ib_atr"])
     # clip context outliers so one -8x gap doesn't own the z-scale
     for c_ in CTX_COLS:
         df[c_] = df[c_].clip(-3.0, 4.0)
@@ -244,17 +326,42 @@ def build_features() -> tuple[pd.DataFrame, np.ndarray, list[str]]:
     return df, Xz, feat_cols
 
 
+import os as _os
+DIST_METRIC = _os.environ.get("OR12_METRIC", "euclidean")
+# A/B on v6 features (S60): euclidean 40.5% vs lorentzian 38.4% on
+# close-vs-IB — log-compression flattens ~80 z-scored dims; euclidean wins.
+
+
+def pairwise_dist(X: np.ndarray, metric: str | None = None,
+                  chunk: int = 128) -> np.ndarray:
+    """Full pairwise distance matrix, row-chunked to bound memory.
+    lorentzian = sum_j log(1+|dx_j|) — compresses event-day (CPI/FOMC)
+    outliers so one wild feature can't own the similarity (LuxAlgo/jdehorty
+    convention). euclidean = squared distance (legacy)."""
+    metric = metric or DIST_METRIC
+    n = len(X)
+    D = np.empty((n, n), dtype=np.float32)
+    for s in range(0, n, chunk):
+        e = min(s + chunk, n)
+        diff = np.abs(X[s:e, None, :] - X[None, :, :])
+        if metric == "lorentzian":
+            D[s:e] = np.log1p(diff).sum(-1)
+        else:
+            D[s:e] = (diff ** 2).sum(-1)
+    return D
+
+
 def same_bucket_pairs(df: pd.DataFrame, Xz: np.ndarray, n_pairs: int
                       ) -> list[tuple]:
     """Tightest (dateA, dateB, dist) pairs, same open-location bucket only."""
-    d2 = ((Xz[:, None, :] - Xz[None, :, :]) ** 2).sum(-1)
+    d2 = pairwise_dist(Xz)
     b = df["bucket"].to_numpy()
     d2[b[:, None] != b[None, :]] = np.inf
     iu = np.triu_indices(len(Xz), 1)
     flat = d2[iu]
     order = np.argsort(flat)[:n_pairs]
     dates = df.index.to_numpy()
-    return [(dates[iu[0][k]], dates[iu[1][k]], float(np.sqrt(flat[k])))
+    return [(dates[iu[0][k]], dates[iu[1][k]], float(flat[k]))
             for k in order if np.isfinite(flat[k])]
 
 
@@ -281,7 +388,7 @@ def main() -> None:
     df["cluster"] = lab
 
     # nearest neighbours per day — same bucket only
-    d2 = ((Xz[:, None, :] - Xz[None, :, :]) ** 2).sum(-1)
+    d2 = pairwise_dist(Xz)
     b = df["bucket"].to_numpy()
     d2[b[:, None] != b[None, :]] = np.inf
     np.fill_diagonal(d2, np.inf)
