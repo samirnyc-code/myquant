@@ -56,7 +56,16 @@ def day_outcome(g: pd.DataFrame) -> dict | None:
     cls = ("above" if day_close > ib_hi else
            "below" if day_close < ib_lo else "inside")
     day_hi = float(g["High"].max()); day_lo = float(g["Low"].min())
+    up_idx = post.index[post["High"] > ib_hi]
+    dn_idx = post.index[post["Low"] < ib_lo]
+    if len(up_idx) and (not len(dn_idx) or up_idx[0] < dn_idx[0]):
+        first_break = "up"
+    elif len(dn_idx):
+        first_break = "down"
+    else:
+        first_break = "none"
     return dict(
+        first_break=first_break,
         class3=cls,
         ret=(day_close - c12) / ib_rng,
         ext_up=max(float(post["High"].max()) - ib_hi, 0.0) / ib_rng,
