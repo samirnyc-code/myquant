@@ -59,6 +59,53 @@ race the same number, the **earlier-merged** note keeps it; the later one takes 
 
 ---
 
+## SESSION 60-CONT — July 6–7, 2026 (PC) — OR12 verdict locked (notes 0010+0011) + TDU/PATS exporter thread opened
+
+**All committed & pushed through `c2cecaf`. Read notes 0010 + 0011 before continuing the OR12 thread.**
+
+### OR12 — walk-forward verdict (note 0010, FINAL)
+
+- Character signal survives walk-forward (1,001 OOS days, past-only twins): 40.1% vs 37.3%
+  bucket prior vs 36.7% bucket×IB-width prior; log-loss edge +0.0249, 95% CI [+0.0004,+0.0483]
+  — REAL but THIN. Confident subset (vote ≥55%, 13% of days): 49.6% OOS.
+- Direction: 50% always. Trend-day gradient (18.8%→32%) mostly reproduced by the FREE
+  conditional prior (18.1%→37.3%) — kNN adds ~nothing there.
+- **VERDICT (user asked, note 0010 §6): keep going as a context DISPLAY, stop chasing
+  prediction accuracy.** Stop-loss rule: if functional partial-curve classification +
+  era-split weight calibration can't push WF accuracy >~45% (or confident share >~25%),
+  freeze matcher, keep base-rate tables + twin display.
+- v6 fingerprint final adds: ib_atr (w=2.0), ib_high_first, open_revisit, drive_eff,
+  otf_up/dn, swing pushes/wedges/2-leg PB, rvol_ib. Euclidean beats Lorentzian (A/B).
+
+### Research notes shipped
+
+- **0010** OR12 fingerprint study (walk-forward §4.6 is the load-bearing section).
+- **0011** internet-sweep survey (two agents): ES effect sizes (IB-width-vs-ATR,
+  formation order 2:1, C-period confirm), mechanical taxonomies (MWG86, open types,
+  RVOL per-slot, OTF), failures ledger (brooks-pa-failure −59%…−211% after costs).
+  Digest: `docs/living/or12_research_daytype_20260706.md`. **NEXT FREE NOTE: 0012.**
+
+### Queue for next session (user-agreed order)
+
+1. **0012 = base-rate card replication**: run `scripts/or12_baserate_tables.py` (staged,
+   committed, NOT yet run) — bucket × IB-width tiers × formation order on OUR data,
+   era-split stability; replicates the third-party §4.1 numbers before any screen shows them.
+2. **9:35 context screen (query mode)**: Streamlit tab — today's cell from the card,
+   5 twins as full-day charts, twin distribution only when vote ≥55%.
+3. **TDU/PATS thread**: user owns TradeDevils "TDU Price Action" (PATS 2EL/2ES detector,
+   closed DLL `TDUPATSWaveBox.dll` — no source, we do NOT decompile).
+   `nt8/indicators/TDUSecondEntryExporter.cs` (committed + copied to NT8 Custom\Indicators)
+   hosts it via its DOCUMENTED plots (3/4/6 long, 7/8/10 short, 11/12 traps; docs:
+   tradedevils-indicators.com/pages/tdu-price-action-docs). **User must: F5 compile in NT8
+   → apply to ES 5M RTH chart (max days loaded) → remove indicator → CSV lands in
+   Documents\tdu_signals_ES.csv.** Compile caveats: vendor enum casts are int-backed
+   (paste compile error if any); verify export rows match chart 2EL/2ES labels.
+   Then: tick-sim the CSV (close-stamped SignalTime; StopPrice = ACTUAL stop, do not
+   offset) → does PATS 2nd-entry carry an edge net of $5 RT? (Note 0011 prior: doubt it.)
+4. Parked: close-time migration (fully scoped in SESSION 60 block below).
+
+---
+
 ## SESSION 60 — July 6, 2026 (PC) — ⭐ OR12 PATTERN MATCHER (user: "single most important tool we will ever build") + close-time migration scoped-not-executed
 
 ### A. OR12 matcher — match days by their first 12 bars (IB) + prior-day context
