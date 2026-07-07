@@ -7,7 +7,8 @@ import streamlit as st
 import ui_controls as controls
 from pathlib import Path
 
-from data_loader import load_sc_bars, load_sc_ticks, get_market_holidays, TICK_SIZE, bar_num_from_dt
+from data_loader import (load_sc_bars, load_sc_ticks, get_market_holidays,
+                         TICK_SIZE, bar_num_from_dt, bar_num_from_close_label)
 from economic_calendar import get_economic_events, fred_key_configured, EVENT_COLOR
 import indicators as ind
 from stack_filter import apply_stack_filter
@@ -666,7 +667,7 @@ def make_analysis_chart(
         for i in labeled:
             fig.add_annotation(
                 x=df.iloc[i]["DateTime"], y=df.iloc[i]["Low"],
-                yshift=-6, text=str(bar_num_from_dt(df.iloc[i]["DateTime"])),
+                yshift=-6, text=str(bar_num_from_close_label(df.iloc[i]["DateTime"])),
                 showarrow=False, font=dict(size=12),
                 xanchor="center", yanchor="top",
             )
@@ -688,9 +689,8 @@ def make_analysis_chart(
             is_long  = row["Direction"] == "Long"
             filtered = row["FilterStatus"] != "ok"
 
-            # Signal bar open = sig_dt - 5min (bars use label="left")
-            bar_open = sig_dt - pd.Timedelta(minutes=5)
-            bar_rows = df[df["DateTime"] == bar_open]
+            # S60 close labels: the signal bar's label == sig_dt directly
+            bar_rows = df[df["DateTime"] == sig_dt]
             if bar_rows.empty:
                 continue
             bar_row = bar_rows.iloc[0]
@@ -882,9 +882,9 @@ def make_analysis_chart(
         pad = (y_hi - y_lo) * 0.06
         fig.update_layout(yaxis=dict(range=[y_lo - pad, y_hi + pad]))
 
-    # x-axis: bar DateTimes are open times; label ticks as close time (+5 min)
+    # x-axis: bar DateTimes are close-labelled (S60) — show them as-is
     _tick_vals = [t for t in df["DateTime"] if t.minute % 15 == 0]
-    _tick_text = [(t + pd.Timedelta(minutes=5)).strftime("%H:%M") for t in _tick_vals]
+    _tick_text = [t.strftime("%H:%M") for t in _tick_vals]
     spike = dict(showspikes=True, spikethickness=1, spikedash="dot",
                  spikecolor="rgba(128,128,128,0.40)", spikesnap="cursor")
     fig.update_layout(
@@ -4183,7 +4183,7 @@ def compute_alt_path_outcomes(results: pd.DataFrame, sc_bars: pd.DataFrame, nt_b
     nt_by_date = {d: g for d, g in nt_bars.groupby(nt_bars["DateTime"].dt.date)}
 
     for idx, row in filled.iterrows():
-        sig_bar_dt = row["DateTime"] - pd.Timedelta(minutes=5)
+        sig_bar_dt = row["DateTime"]   # S60 close labels: signal bar label == signal time
         d_close = comp_close_delta.get(sig_bar_dt)
         if d_close is None or pd.isna(d_close) or d_close == 0:
             continue  # NT close at the signal bar matches Massive — nothing to re-check
@@ -4227,8 +4227,8 @@ def _show_mismatch_analysis(results: pd.DataFrame, sc_bars: pd.DataFrame, nt_bar
         st.info("No filled trades to analyse.")
         return
 
-    # Signal bar open = signal fire time (bar close) − 5 min
-    filled["_SigBarDT"] = filled["DateTime"] - pd.Timedelta(minutes=5)
+    # S60 close labels: signal bar label == signal fire time
+    filled["_SigBarDT"] = filled["DateTime"]
     filled = filled.join(comp_idx, on="_SigBarDT", how="left")
 
     # Impact: does the mismatch help or hurt the trade direction?

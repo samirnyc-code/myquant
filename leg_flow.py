@@ -110,9 +110,10 @@ def _process_day(d: date) -> pl.DataFrame | None:
         (pl.col("Volume") * pl.when(pl.col("side") == -1).then(1).otherwise(0)).alias("sell_vol"),
     ])
 
-    # Truncate to 5M bars (left-label, closed left)
+    # Truncate to 5M bars — S60 close labels: bin ticks by [open, close) then
+    # label with the bin CLOSE (truncate gives the open; +5m = close)
     df = df.with_columns(
-        pl.col("DateTime").dt.truncate("5m").alias("bar_dt")
+        (pl.col("DateTime").dt.truncate("5m") + pl.duration(minutes=5)).alias("bar_dt")
     )
 
     # Per-bar aggregation

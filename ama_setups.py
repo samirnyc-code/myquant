@@ -801,9 +801,12 @@ def to_signal_rows(
     for i in range(n):
         sig = sig_arr[i]
         ft  = ft_arr[i]
-        open_dt  = DT.iloc[i]
-        close_dt = open_dt + pd.Timedelta(minutes=5)
-        date     = open_dt.date()
+        # S60 close labels: the bar's label IS its close (= when the signal is
+        # actionable), and it's also the chart x-position — one timestamp now.
+        bar_dt   = DT.iloc[i]
+        open_dt  = bar_dt          # kept name: used as SignalDateTime (chart label)
+        close_dt = bar_dt          # kept name: used as DateTime (actionable time)
+        date     = bar_dt.date()
         is_ft    = ft != 0
         direction = 1 if sig > 0 else -1
 

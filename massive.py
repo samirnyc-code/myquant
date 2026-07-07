@@ -121,7 +121,9 @@ def _load_gz(local: Path, ticker: str) -> pd.DataFrame:
 
 
 def _resample_5m_to_15m(bars_5m: pd.DataFrame) -> pd.DataFrame:
-    """Resample 5M continuous bars to 15M. Groups by date to avoid cross-session bars."""
+    """Resample 5M continuous bars to 15M. Groups by date to avoid cross-session bars.
+    Input 5M bars are CLOSE-labelled (S60), so bins are closed/labelled RIGHT:
+    5M closes 08:35+08:40+08:45 -> the 15M bar closing (and labelled) 08:45."""
     if bars_5m.empty:
         return pd.DataFrame()
     df = bars_5m.copy()
@@ -131,7 +133,7 @@ def _resample_5m_to_15m(bars_5m: pd.DataFrame) -> pd.DataFrame:
     df["_date"] = df.index.date
     chunks = []
     for _, day in df.groupby("_date"):
-        r = day[["Open", "High", "Low", "Close"]].resample("15min", label="left", closed="left")
+        r = day[["Open", "High", "Low", "Close"]].resample("15min", label="right", closed="right")
         b = pd.DataFrame({
             "Open": r["Open"].first(),
             "High": r["High"].max(),
@@ -139,9 +141,9 @@ def _resample_5m_to_15m(bars_5m: pd.DataFrame) -> pd.DataFrame:
             "Close": r["Close"].last(),
         }).dropna(subset=["Open"])
         if "Volume" in day.columns:
-            b["Volume"] = day["Volume"].resample("15min", label="left", closed="left").sum()
+            b["Volume"] = day["Volume"].resample("15min", label="right", closed="right").sum()
         if "Contract" in day.columns:
-            b["Contract"] = day["Contract"].resample("15min", label="left", closed="left").first()
+            b["Contract"] = day["Contract"].resample("15min", label="right", closed="right").first()
         chunks.append(b)
     if not chunks:
         return pd.DataFrame()
@@ -168,9 +170,9 @@ def _resample_ticks_to_bars(freq: str, status_placeholder=None) -> pd.DataFrame:
         ticks = ticks[rth]
         if ticks.empty:
             continue
-        r = ticks["Price"].resample(freq, label="left", closed="left")
+        r = ticks["Price"].resample(freq, label="right", closed="left")
         b = r.ohlc().dropna(subset=["open"])
-        b["Volume"] = ticks["Volume"].resample(freq, label="left", closed="left").sum() if "Volume" in ticks.columns else 0
+        b["Volume"] = ticks["Volume"].resample(freq, label="right", closed="left").sum() if "Volume" in ticks.columns else 0
         b = b.rename(columns={"open": "Open", "high": "High", "low": "Low", "close": "Close"})
         b.index.name = "DateTime"
         chunks.append(b.reset_index())
@@ -180,7 +182,9 @@ def _resample_ticks_to_bars(freq: str, status_placeholder=None) -> pd.DataFrame:
 
 
 def _ticks_to_5m_bars(df: pd.DataFrame) -> pd.DataFrame:
-    """Convert raw tick DataFrame → 5M RTH OHLCV bars (open times, CT naive)."""
+    """Convert raw tick DataFrame → 5M RTH OHLCV bars (CLOSE times, CT naive).
+    Label convention (S60 migration): every bar is stamped with its CLOSE time,
+    matching NT8 and the signal CSVs. A bar labelled 09:05 spans [09:00, 09:05)."""
     from data_loader import RTH_START, RTH_END
 
     dt_ct = (
@@ -199,8 +203,8 @@ def _ticks_to_5m_bars(df: pd.DataFrame) -> pd.DataFrame:
     if ticks.empty:
         return pd.DataFrame()
 
-    bars = ticks["Price"].resample("5min", label="left", closed="left").ohlc()
-    bars["Volume"] = ticks["Volume"].resample("5min", label="left", closed="left").sum()
+    bars = ticks["Price"].resample("5min", label="right", closed="left").ohlc()
+    bars["Volume"] = ticks["Volume"].resample("5min", label="right", closed="left").sum()
     bars = bars.dropna(subset=["open"])
     bars = bars.rename(columns={"open": "Open", "high": "High", "low": "Low", "close": "Close"})
     bars.index.name = "DateTime"
@@ -320,7 +324,7 @@ def validate_ticks_vs_bars(rolls: dict) -> dict:
         total_ticks += len(day_ticks)
 
         day_ticks = day_ticks.set_index("DateTime").sort_index()
-        resampled = day_ticks["Price"].resample("5min", label="left", closed="left").ohlc()
+        resampled = day_ticks["Price"].resample("5min", label="right", closed="left").ohlc()
         resampled = resampled.dropna(subset=["open"]).rename(
             columns={"open": "Open", "high": "High", "low": "Low", "close": "Close"})
         if resampled.empty:

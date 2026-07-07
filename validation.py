@@ -40,13 +40,8 @@ def build_comparison(sc: pd.DataFrame, nt: pd.DataFrame) -> pd.DataFrame:
     nt_m = nt[[c for c in _keep if c in nt.columns]].rename(
         columns={c: f"{c}_nt" for c in ALL_FIELDS}).set_index("DateTime")
 
-    # sc bars are timestamped at bar OPEN (resample label="left" in massive.py);
-    # nt TXT uploads are timestamped at bar CLOSE (parse_ohlc_from_upload keeps
-    # NT's close-time label as-is). Shift nt back one bar period (5 min) here,
-    # at comparison time only, so both sides align on open time without
-    # touching either source's own timestamp convention.
-    nt_m.index = nt_m.index - pd.Timedelta(minutes=5)
-
+    # S60: both sides are CLOSE-labelled now (massive.py resamples label="right";
+    # NT TXT uploads keep NT's native close labels) — join directly, no shift.
     m = sc_m.join(nt_m, how="outer")
     matched = m["Open_sc"].notna() & m["Open_nt"].notna()
 

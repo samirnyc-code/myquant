@@ -84,8 +84,9 @@ def add_bar_ranges(signals: pd.DataFrame, bars: pd.DataFrame) -> pd.DataFrame:
     """
     Add SBRange (signal bar High-Low) and EBRange (entry/fill bar High-Low).
 
-    SignalDateTime = bar open time (matches bars.DateTime).
-    Entry bar open = SignalDateTime + 5 min (the bar that follows the signal bar).
+    SignalDateTime = the signal bar's label (S60: close-labelled; matches
+    bars.DateTime). Entry bar label = SignalDateTime + 5 min (the next bar) —
+    relative arithmetic between labels is convention-invariant.
     """
     # Continuous contract has no duplicates; index directly
     bar_hl = bars.set_index("DateTime")[["High", "Low"]]

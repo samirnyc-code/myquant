@@ -34,8 +34,11 @@ def _minutes_from_midnight(dt_series: pd.Series) -> pd.Series:
 
 
 def _htf_window_start(dt_series: pd.Series) -> pd.Series:
-    """Return the start timestamp of the 30M window each 5M bar belongs to."""
-    mins = _minutes_from_midnight(dt_series)
+    """Return the start timestamp of the 30M window each 5M bar belongs to.
+    S60: 5M bars are CLOSE-labelled, so the bar's open = label − 5 min; window
+    membership is decided by the open (a bar closing 09:00 belongs to the
+    08:30–09:00 window)."""
+    mins = _minutes_from_midnight(dt_series) - 5
     offset_from_rth = mins - RTH_START_MIN
     window_offset = (offset_from_rth // HTF_PERIOD_MIN) * HTF_PERIOD_MIN
     base_date = dt_series.dt.normalize()

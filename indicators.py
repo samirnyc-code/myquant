@@ -284,27 +284,25 @@ def session_levels(bars: pd.DataFrame) -> pd.DataFrame:
 
 
 def developing_session_levels(bars: pd.DataFrame) -> pd.DataFrame:
-    """Developing intraday High/Low *strictly before* each bar (causal, S25).
+    """Developing intraday High/Low THROUGH each bar (causal, S25/S60).
 
-    Within each session, dev_High / dev_Low at bar T are the running max/min over
-    bars [0 .. T-1] — cummax/cummin shifted one bar so the signal bar's own
-    High/Low is excluded (look-ahead-safe). The first bar of a session has no
-    prior bar, so it falls back to that session's Open. This is the
-    "developing range" used to test whether price is still rotating inside the
-    prior day's range (balance) or has already broken out (discovery).
+    Within each session, dev_High / dev_Low at bar T are the running max/min
+    over bars [0 .. T] — including bar T itself. Under the S60 close-label
+    convention a bar's own High/Low is fully known at its label (= its close),
+    and a backward as-of merge on a close-stamped signal DateTime lands on the
+    signal bar, so including the current bar is look-ahead-safe and preserves
+    the pre-migration merged values exactly (the old version excluded the
+    current row internally and relied on the merge landing one bar later).
+    This is the "developing range" used to test whether price is still rotating
+    inside the prior day's range (balance) or has broken out (discovery).
     """
     df  = bars.sort_values("DateTime").reset_index(drop=True)
     day = df["DateTime"].dt.normalize()
     g   = df.groupby(day)
-    cmax = g["High"].cummax()
-    cmin = g["Low"].cummin()
-    dev_hi = cmax.groupby(day).shift(1)
-    dev_lo = cmin.groupby(day).shift(1)
-    ood = g["Open"].transform("first")
     return pd.DataFrame({
         "DateTime": df["DateTime"],
-        "dev_High": dev_hi.fillna(ood).values,
-        "dev_Low":  dev_lo.fillna(ood).values,
+        "dev_High": g["High"].cummax().values,
+        "dev_Low":  g["Low"].cummin().values,
     })
 
 
@@ -544,24 +542,16 @@ def prior_period_levels(bars: pd.DataFrame, target_dt: pd.Series,
 
 
 def _causal_at_signal_bar(frame: pd.DataFrame) -> pd.DataFrame:
-    """Shift a developing per-bar feature frame back one row so an as-of(backward)
-    merge on the signal's DateTime returns the value of the SIGNAL bar, not the
-    still-forming entry bar.
-
-    Bars are open-labeled (a bar labeled T spans [T, T+Δ) and closes at T+Δ). A
-    signal's DateTime is the signal bar's CLOSE, which equals the NEXT bar's
-    open-label. So `merge_asof(..., direction="backward")` on the signal DateTime
-    lands on the bar labeled sig_dt — the ENTRY bar, which has NOT closed yet
-    (its developing value uses a close one interval in the future = look-ahead).
-    Carrying each row's value forward to the next label makes that merge return the
-    last CLOSED bar's value (the signal bar) — the value actually known at decision
-    time. Builders that already compensate internally (e.g. developing_session_levels'
-    groupby(day).shift(1)) must NOT be passed through this.
+    """S60 close-label convention: bars are CLOSE-labelled, and a signal's
+    DateTime equals its own bar's label. `merge_asof(..., direction="backward")`
+    on the signal DateTime therefore lands directly on the SIGNAL bar — the last
+    CLOSED bar, whose developing value is fully known at decision time. No shift
+    is needed anymore; this is now a pass-through kept only so the call sites
+    document where causality matters. (Pre-migration, open labels made the raw
+    merge land on the still-forming entry bar, and this function shifted values
+    one row to compensate.)
     """
-    f = frame.sort_values("DateTime").reset_index(drop=True)
-    val_cols = [c for c in f.columns if c != "DateTime"]
-    f[val_cols] = f[val_cols].shift(1)
-    return f
+    return frame.sort_values("DateTime").reset_index(drop=True)
 
 
 def tag_signals(signals: pd.DataFrame, bars: pd.DataFrame,
@@ -602,12 +592,10 @@ def tag_signals(signals: pd.DataFrame, bars: pd.DataFrame,
         bars = bars.copy()
         bars["DateTime"] = bars["DateTime"].astype("datetime64[ns]")
 
-    # All five frames below are DEVELOPING per-bar features with no internal
-    # current-bar shift, so each is routed through _causal_at_signal_bar() to read
-    # the value of the SIGNAL bar rather than the still-forming entry bar that a
-    # raw backward as-of merge would land on (open-labeled bars; signal DateTime =
-    # signal bar close = next bar's open-label). The balance block below is NOT
-    # shifted here — developing_session_levels already does groupby(day).shift(1).
+    # S60 close labels: signal DateTime == its bar's label, so a backward as-of
+    # merge lands on the signal bar (last CLOSED bar) naturally. The
+    # _causal_at_signal_bar() wrappers are now pass-throughs kept as causality
+    # markers. The balance block keeps its own semantics (see below).
 
     # ── VWAP deviation at the signal bar (as-of merge on DateTime) ────────────
     vb = _causal_at_signal_bar(
@@ -666,7 +654,8 @@ def tag_signals(signals: pd.DataFrame, bars: pd.DataFrame,
     sig["prior_RangeATR"] = s_day.map(reg["RangeATR"]).values
 
     # ── Balance-state context (S25) — look-ahead-safe ────────────────────────
-    # Developing range strictly before the signal bar (causal cummax/cummin -1).
+    # Developing range through the signal bar (known at its close; the backward
+    # as-of merge lands on the signal bar under S60 close labels).
     dev = developing_session_levels(bars)
     sig = pd.merge_asof(sig, dev.sort_values("DateTime"),
                         on="DateTime", direction="backward")

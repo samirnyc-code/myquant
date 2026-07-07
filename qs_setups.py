@@ -29,8 +29,8 @@ from dataclasses import dataclass, asdict
 import numpy as np
 import pandas as pd
 
-RTH_START = "08:30"
-RTH_END   = "15:10"
+RTH_START = "08:35"   # S60 close labels: first RTH bar is labelled 08:35
+RTH_END   = "15:15"   # last bar's close label
 SESSION_OPEN_MIN = 8 * 60 + 30
 
 
@@ -207,8 +207,9 @@ def _prep_session(g: pd.DataFrame, cfg: QSConfig) -> pd.DataFrame:
     g["AvgRange"] = _avg_range(g["Range"].to_numpy(), cfg.range_lookback)
     g["OB"]       = _outside_bar(h, l, cfg.strict_ob)
     g["IB"]       = _inside_bar(h, l)
+    # S60 close labels: label minutes are +5 vs the old open labels
     mins = g["DateTime"].dt.hour * 60 + g["DateTime"].dt.minute - SESSION_OPEN_MIN
-    g["BarNum"] = (mins // 5).astype(int)
+    g["BarNum"] = (mins // 5).astype(int) - 1
     return g
 
 
@@ -379,11 +380,9 @@ def _emit(rows, cfg, stype, direction, i, H, L, C, RNG, AVG, BN, DT, date,
     rows.append({
         "SignalType": stype,
         "Direction": "Long" if direction == 1 else "Short",
-        # The signal is only actionable at the bar CLOSE (open + 5m). Emit the
-        # CLOSE time so the tick engine fills AFTER the signal bar — matching the
-        # MC convention. (Emitting the open time caused an intrabar look-ahead:
-        # fills landed at the signal bar's own open, ~5m before the signal exists.)
-        "DateTime": pd.Timestamp(DT[i]) + pd.Timedelta(minutes=5),
+        # S60 close labels: the bar label IS the close time — emit it directly
+        # (the tick engine fills strictly after it; no look-ahead).
+        "DateTime": pd.Timestamp(DT[i]),
         "BarNum": int(BN[i]) + 1,
         "SignalPrice": float(entry),
         "StopPrice": float(stop),
@@ -467,7 +466,7 @@ def detect_wp(bars: pd.DataFrame, cfg: QSConfig | None = None) -> pd.DataFrame:
         # ABR(N) over the N bars PRIOR to each bar (causal, excludes current)
         ABR = pd.Series(RNG).shift(1).rolling(cfg.abr_period, min_periods=cfg.abr_period).mean().to_numpy()
         mins = g["DateTime"].dt.hour * 60 + g["DateTime"].dt.minute - SESSION_OPEN_MIN
-        BN = (mins // 5).to_numpy()
+        BN = (mins // 5).to_numpy() - 1   # S60 close labels: +5m vs open labels
         DT = g["DateTime"].to_numpy()
         n = len(g)
 

@@ -4,7 +4,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 import pandas as pd
 import plotly.graph_objects as go
-from data_loader import (CONTRACTS, bar_num_from_dt,
+from data_loader import (CONTRACTS, bar_num_from_dt, bar_num_from_close_label,
                          parse_ohlc_from_upload,
                          load_csv_cache, save_csv_cache,
                          load_csv_manifest, save_csv_manifest, clear_csv_cache,
@@ -181,7 +181,7 @@ def make_candlestick(df: pd.DataFrame, date_str: str,
                 x=df.iloc[i]["DateTime"], xref="x",
                 y=df.iloc[i]["Low"], yref="y",
                 yshift=-6,
-                text=str(bar_num_from_dt(df.iloc[i]["DateTime"])),
+                text=str(bar_num_from_close_label(df.iloc[i]["DateTime"])),
                 showarrow=False,
                 font=dict(size=12),
                 xanchor="center",
@@ -625,12 +625,14 @@ def show_bar_viewer(sc_file: str = "", contract: str = "ES"):
     ) if len(_overlay_opts) > 1 else "None"
 
     def _adapt_parse_signals(sigs, date):
-        """Convert parse_signals() schema (DateTime=close) to AMA schema (SignalDateTime=open)."""
+        """Convert parse_signals() schema (DateTime=close) to AMA schema.
+        S60 close labels: the signal bar's chart label == the close time, so
+        SignalDateTime is the close time directly (no shift)."""
         day = sigs[pd.to_datetime(sigs["DateTime"]).dt.date == date].copy()
         if day.empty:
             return None
         day = day.rename(columns={"DateTime": "_close_dt"})
-        day["SignalDateTime"] = pd.to_datetime(day["_close_dt"]) - pd.Timedelta(minutes=5)
+        day["SignalDateTime"] = pd.to_datetime(day["_close_dt"])
         day["TargetPoints"]   = (day["SignalPrice"] - day["StopPrice"]).abs()
         day["TargetMode"]     = "1R"
         day["ZScore"]         = float("nan")

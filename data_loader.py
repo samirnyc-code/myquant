@@ -83,10 +83,20 @@ NT_FILE = CONTRACTS["ESM6 — 2026"]["nt_file"]
 
 
 def bar_num_from_dt(dt) -> int:
-    """Return 1-indexed RTH bar number for any timestamp.
-    Bar N opens at RTH_START + (N-1)*5 min. Uses hour+minute only."""
+    """Return 1-indexed RTH bar number for a TICK-LIKE timestamp (a moment in
+    time): the bar CONTAINING it. Bar N spans [RTH_START+(N-1)*5, RTH_START+N*5).
+    A signal fired at a bar close (e.g. 09:05) therefore maps to the NEXT bar
+    (the entry bar) — unchanged, pre-migration behaviour.
+    For CLOSE-LABELLED BAR TIMESTAMPS use bar_num_from_close_label() instead."""
     ts = pd.Timestamp(dt)
     return int((ts.hour * 60 + ts.minute - RTH_START_MIN) // 5) + 1
+
+
+def bar_num_from_close_label(dt) -> int:
+    """Return 1-indexed RTH bar number for a CLOSE-LABELLED bar timestamp
+    (S60 convention: a bar labelled 08:35 is bar 1, 15:15 is bar 81)."""
+    ts = pd.Timestamp(dt)
+    return int((ts.hour * 60 + ts.minute - RTH_START_MIN) // 5)
 
 
 @st.cache_data(show_spinner="Loading SC bars…")
@@ -113,7 +123,7 @@ def load_sc_bars(sc_file_path: str = str(SC_FILE)) -> pd.DataFrame:
     df.set_index("datetime", inplace=True)
 
     bars = (
-        df.resample("5min", closed="left", label="left")
+        df.resample("5min", closed="left", label="right")
         .agg(
             Open=("Last", "first"),
             High=("Last", "max"),
@@ -124,8 +134,8 @@ def load_sc_bars(sc_file_path: str = str(SC_FILE)) -> pd.DataFrame:
         .dropna(subset=["Open"])
     )
     bars = bars[
-        (bars.index.time >= pd.Timestamp(RTH_START).time()) &
-        (bars.index.time <  pd.Timestamp(RTH_END).time())
+        (bars.index.time >  pd.Timestamp(RTH_START).time()) &
+        (bars.index.time <= pd.Timestamp(RTH_END).time())
     ]
     return bars.reset_index().rename(columns={"datetime": "DateTime"})
 
@@ -161,14 +171,14 @@ def resample_ticks_to_bars(ticks: pd.DataFrame) -> pd.DataFrame:
         return pd.DataFrame(columns=["DateTime", "Open", "High", "Low", "Close", "Volume"])
     df = ticks.set_index("DateTime").rename(columns={"Price": "Last"})
     bars = (
-        df.resample("5min", closed="left", label="left")
+        df.resample("5min", closed="left", label="right")
         .agg(Open=("Last", "first"), High=("Last", "max"),
              Low=("Last", "min"),  Close=("Last", "last"), Volume=("Volume", "sum"))
         .dropna(subset=["Open"])
     )
     bars = bars[
-        (bars.index.time >= pd.Timestamp(RTH_START).time()) &
-        (bars.index.time <  pd.Timestamp(RTH_END).time())
+        (bars.index.time >  pd.Timestamp(RTH_START).time()) &
+        (bars.index.time <= pd.Timestamp(RTH_END).time())
     ]
     return bars.reset_index()
 
@@ -180,14 +190,14 @@ def resample_1s_ohlcv_to_5m(df: pd.DataFrame) -> pd.DataFrame:
         return pd.DataFrame(columns=["DateTime", "Open", "High", "Low", "Close", "Volume"])
     d = df.set_index("DateTime")
     bars = (
-        d.resample("5min", closed="left", label="left")
+        d.resample("5min", closed="left", label="right")
         .agg(Open=("Open", "first"), High=("High", "max"),
              Low=("Low", "min"), Close=("Close", "last"), Volume=("Volume", "sum"))
         .dropna(subset=["Open"])
     )
     bars = bars[
-        (bars.index.time >= pd.Timestamp(RTH_START).time()) &
-        (bars.index.time <  pd.Timestamp(RTH_END).time())
+        (bars.index.time >  pd.Timestamp(RTH_START).time()) &
+        (bars.index.time <= pd.Timestamp(RTH_END).time())
     ]
     return bars.reset_index()
 
@@ -309,14 +319,14 @@ def parse_sc_bars_from_upload(uploaded_file) -> pd.DataFrame:
     df = pd.concat(chunks, ignore_index=True).sort_values("datetime")
     df.set_index("datetime", inplace=True)
     bars = (
-        df.resample("5min", closed="left", label="left")
+        df.resample("5min", closed="left", label="right")
         .agg(Open=("Last","first"), High=("Last","max"),
              Low=("Last","min"), Close=("Last","last"), Volume=("Volume","sum"))
         .dropna(subset=["Open"])
     )
     bars = bars[
-        (bars.index.time >= pd.Timestamp(RTH_START).time()) &
-        (bars.index.time <  pd.Timestamp(RTH_END).time())
+        (bars.index.time >  pd.Timestamp(RTH_START).time()) &
+        (bars.index.time <= pd.Timestamp(RTH_END).time())
     ]
     return bars.reset_index().rename(columns={"datetime": "DateTime"})
 
@@ -725,19 +735,15 @@ def parse_ohlc_from_upload(uploaded_file) -> pd.DataFrame:
             df["DateTime"] = dt_parsed
 
     df = df.dropna(subset=["DateTime", "Open"])
-    t = df["DateTime"].dt.time
     if is_csv:
-        # CSV has open times: include 08:30, exclude 15:15
-        df = df[
-            (t >= pd.Timestamp(RTH_START).time()) &
-            (t <  pd.Timestamp(RTH_END).time())
-        ]
-    else:
-        # TXT has close times: exclude 08:30 (no partial bar), include 15:15 (last bar)
-        df = df[
-            (t >  pd.Timestamp(RTH_START).time()) &
-            (t <= pd.Timestamp(RTH_END).time())
-        ]
+        # CSV is open-stamped: shift +5m to the S60 close-label convention
+        df["DateTime"] = df["DateTime"] + pd.Timedelta(minutes=5)
+    # both sources now close-labelled: exclude 08:30, include 15:15 (last bar)
+    t = df["DateTime"].dt.time
+    df = df[
+        (t >  pd.Timestamp(RTH_START).time()) &
+        (t <= pd.Timestamp(RTH_END).time())
+    ]
     return df[["DateTime", "Open", "High", "Low", "Close", "Volume", "NullVol"]]\
         .sort_values("DateTime").reset_index(drop=True)
 
@@ -746,7 +752,8 @@ def parse_sc_ohlc_from_upload(uploaded_file) -> pd.DataFrame:
     """Parse SC 'Analysis → Export Chart Data' 5M bar CSV.
     Columns: Date (MM/DD/YYYY), Time (HH:MM), Open, High, Low, Close,
              then one of: Volume | UpVolume + DownVolume.
-    Timestamps are CT bar OPEN times — no shift needed.
+    Timestamps in the file are CT bar OPEN times; shifted +5m on load to the
+    S60 close-label convention.
     Returns: DateTime, Open, High, Low, Close, Volume, NullVol"""
     sep = _sc_detect_sep(uploaded_file)
     uploaded_file.seek(0)
@@ -797,10 +804,12 @@ def parse_sc_ohlc_from_upload(uploaded_file) -> pd.DataFrame:
 
     df["NullVol"] = df["Volume"].isna()
     df = df.dropna(subset=["DateTime", "Open"])
+    # SC exports open-stamped bars: shift +5m to the S60 close-label convention
+    df["DateTime"] = df["DateTime"] + pd.Timedelta(minutes=5)
     t = df["DateTime"].dt.time
     df = df[
-        (t >= pd.Timestamp(RTH_START).time()) &
-        (t <  pd.Timestamp(RTH_END).time())
+        (t >  pd.Timestamp(RTH_START).time()) &
+        (t <= pd.Timestamp(RTH_END).time())
     ]
     return (
         df[["DateTime", "Open", "High", "Low", "Close", "Volume", "NullVol"]]
@@ -1049,20 +1058,19 @@ def load_nt_bars(nt_file_path: str = str(NT_FILE)) -> pd.DataFrame:
     for col in ["Open", "High", "Low", "Close", "Volume"]:
         df[col] = pd.to_numeric(df[col], errors="coerce")
 
-    # Berlin close times → Chicago open times
-    # CEST (UTC+2) → CDT (UTC-5) = −7 h, then −5 min close→open
+    # Berlin close times → Chicago close times (S60: close labels kept as-is)
+    # CEST (UTC+2) → CDT (UTC-5) = −7 h
     df["DateTime"] = (
         pd.to_datetime(df["DateTime"], format="%d/%m/%Y %H:%M:%S")
         .dt.tz_localize("Europe/Berlin")
         .dt.tz_convert("America/Chicago")
         .dt.tz_localize(None)
-        - pd.Timedelta(minutes=5)
     )
     df["NullVol"] = df["Volume"].isna()
     df["Volume"]  = df["Volume"].fillna(0)
     t = df["DateTime"].dt.time
     df = df[
-        (t >= pd.Timestamp(RTH_START).time()) &
-        (t <  pd.Timestamp(RTH_END).time())
+        (t >  pd.Timestamp(RTH_START).time()) &
+        (t <= pd.Timestamp(RTH_END).time())
     ]
     return df.sort_values("DateTime").reset_index(drop=True)

@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from data_loader import TICK_SIZE, bar_num_from_dt, RTH_START_MIN
+from data_loader import TICK_SIZE, bar_num_from_dt, bar_num_from_close_label, RTH_START_MIN
 
 INSTRUMENTS = {
     "ES":  {"tick_value": 12.50, "label": "ES  ($12.50/tick)", "default_commission": 5.0},
@@ -454,7 +454,10 @@ def _simulate_one_bars(
     ts      = TICK_SIZE
     is_long = direction == "Long"
 
-    next_bars = day_bars[day_bars["DateTime"] >= sig_dt].reset_index(drop=True)
+    # S60 close labels: the signal bar's own label == sig_dt, so entry must
+    # start at the FIRST bar labelled AFTER the signal (strict '>'); '>=' would
+    # fill at the signal bar's own open — a look-ahead.
+    next_bars = day_bars[day_bars["DateTime"] > sig_dt].reset_index(drop=True)
     if next_bars.empty:
         return {"ok": False, "FilterStatus": "no_next_bar"}
 
@@ -468,7 +471,7 @@ def _simulate_one_bars(
 
     target_price     = _snap_level(actual_entry + (target_r * risk_pts if is_long else -target_r * risk_pts),
                                     ts, actual_entry, "nearest")
-    entry_bar        = bar_num_from_dt(nb["DateTime"])
+    entry_bar        = bar_num_from_close_label(nb["DateTime"])
     entry_dt         = nb["DateTime"]
     exit_px_raw      = float(next_bars.iloc[-1]["Close"])
     exit_dt_raw      = next_bars.iloc[-1]["DateTime"]
@@ -509,7 +512,7 @@ def _simulate_one_bars(
 
     actual_exit     = exit_px_raw + (-exit_slip * ts if is_long else exit_slip * ts)
     exit_dt_ts      = pd.Timestamp(exit_dt_raw)
-    exit_bar        = bar_num_from_dt(exit_dt_ts)
+    exit_bar        = bar_num_from_close_label(exit_dt_ts)   # bars-mode: label
     gross_pts       = (actual_exit - actual_entry) if is_long else (actual_entry - actual_exit)
     gross_pnl       = gross_pts / ts * tv
     r_achieved      = gross_pts / risk_pts
@@ -1077,7 +1080,10 @@ def _simulate_one_bars_multileg(
     is_long  = direction == "Long"
     tv_total = tv1 + tv2
 
-    next_bars = day_bars[day_bars["DateTime"] >= sig_dt].reset_index(drop=True)
+    # S60 close labels: the signal bar's own label == sig_dt, so entry must
+    # start at the FIRST bar labelled AFTER the signal (strict '>'); '>=' would
+    # fill at the signal bar's own open — a look-ahead.
+    next_bars = day_bars[day_bars["DateTime"] > sig_dt].reset_index(drop=True)
     if next_bars.empty:
         return {"ok": False, "FilterStatus": "no_next_bar"}
 
@@ -1093,7 +1099,7 @@ def _simulate_one_bars_multileg(
     t1_price  = _snap_level(actual_entry + (t1_r * risk_pts if is_long else -t1_r * risk_pts),
                             ts, actual_entry, "nearest")
     t2_price  = t1_price  # overwritten after E2 fills
-    entry_bar = bar_num_from_dt(nb["DateTime"])
+    entry_bar = bar_num_from_close_label(nb["DateTime"])
     entry_dt  = nb["DateTime"]
     mae = mfe = 0.0
 
@@ -1138,7 +1144,7 @@ def _simulate_one_bars_multileg(
             "EntryPrice": actual_entry, "ActualStop": actual_stop,
             "Target": t2_price, "Target1": t1_price,
             "RiskPts": risk_pts, "RiskDollar": _risk_dollar,
-            "ExitTime": edt, "ExitBarNum": bar_num_from_dt(edt),
+            "ExitTime": edt, "ExitBarNum": bar_num_from_close_label(edt),
             "ExitPrice": exit_price, "ExitReason": exit_reason,
             "GrossPnLPts": g_pts, "GrossPnL": g_pnl,
             "R_achieved": r_ach,
@@ -1522,7 +1528,10 @@ def _simulate_one_bars_3leg(
     ts      = TICK_SIZE
     is_long = direction == "Long"
 
-    next_bars = day_bars[day_bars["DateTime"] >= sig_dt].reset_index(drop=True)
+    # S60 close labels: the signal bar's own label == sig_dt, so entry must
+    # start at the FIRST bar labelled AFTER the signal (strict '>'); '>=' would
+    # fill at the signal bar's own open — a look-ahead.
+    next_bars = day_bars[day_bars["DateTime"] > sig_dt].reset_index(drop=True)
     if next_bars.empty:
         return {"ok": False, "FilterStatus": "no_next_bar"}
 
@@ -1537,7 +1546,7 @@ def _simulate_one_bars_3leg(
     t1_price  = e1_entry + (t1_r     * risk_pts if is_long else -t1_r     * risk_pts)
     t2_price  = e1_entry + (t2_r     * risk_pts if is_long else -t2_r     * risk_pts)
     t3_price  = e1_entry + (target_r * risk_pts if is_long else -target_r * risk_pts)
-    entry_bar = bar_num_from_dt(nb["DateTime"])
+    entry_bar = bar_num_from_close_label(nb["DateTime"])
     entry_dt  = nb["DateTime"]
 
     if is_long:
@@ -1597,7 +1606,7 @@ def _simulate_one_bars_3leg(
             "EntryPrice": e1_entry, "ActualStop": actual_stop,
             "Target": t3_price, "Target1": t1_price,
             "RiskPts": risk_pts, "RiskDollar": risk_pts / ts * tv1,
-            "ExitTime": pd.Timestamp(exit_dt), "ExitBarNum": bar_num_from_dt(pd.Timestamp(exit_dt)),
+            "ExitTime": pd.Timestamp(exit_dt), "ExitBarNum": bar_num_from_close_label(pd.Timestamp(exit_dt)),
             "ExitPrice": exit_px, "ExitReason": exit_reason,
             "GrossPnLPts": g_pts, "GrossPnL": g_pnl,
             "R_achieved": r_ach,

@@ -51,7 +51,9 @@ def _time_bucket(dt: pd.Timestamp) -> int:
     2 = lunch       (11:30–13:00)
     3 = afternoon   (13:00–15:15)
     """
-    mins = dt.hour * 60 + dt.minute - RTH_START_MIN
+    # S60 close labels: measure by the bar's OPEN (label − 5m) so the physical
+    # bucketing matches the pre-migration convention
+    mins = dt.hour * 60 + dt.minute - 5 - RTH_START_MIN
     if mins < 60:  return 0
     if mins < 180: return 1
     if mins < 270: return 2
@@ -59,7 +61,8 @@ def _time_bucket(dt: pd.Timestamp) -> int:
 
 
 def _minutes_into_session(dt: pd.Timestamp) -> int:
-    return dt.hour * 60 + dt.minute - RTH_START_MIN
+    # S60 close labels: bar open = label − 5m (keeps pre-migration values)
+    return dt.hour * 60 + dt.minute - 5 - RTH_START_MIN
 
 
 def _linear_slope(arr: np.ndarray) -> float:

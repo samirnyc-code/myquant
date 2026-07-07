@@ -53,9 +53,9 @@ TIER_FEATURES = ("bal", "bwva", "mss", "pull")
 def _ib_break_state(signals: pd.DataFrame, bars: pd.DataFrame) -> pd.Series:
     """Per-signal IB break state at the signal's DateTime: none/up/down/both.
 
-    Break time = label of the first post-IB bar whose High/Low exceeds the IB
-    extreme, + 5 min (the bar's close — when the break is knowable). A signal
-    is 'after' a break when its close-stamped DateTime >= that break close.
+    Break time = close label of the first post-IB bar whose High/Low exceeds
+    the IB extreme (S60: labels are closes — when the break is knowable). A
+    signal is 'after' a break when its close-stamped DateTime >= that break close.
     """
     b = bars.sort_values("DateTime").reset_index(drop=True)
     day = b["DateTime"].dt.normalize()
@@ -68,10 +68,10 @@ def _ib_break_state(signals: pd.DataFrame, bars: pd.DataFrame) -> pd.Series:
     post = b[b["_i"] >= IB_BARS].copy()
     post["_ibH"] = post["_d"].map(ib_hi)
     post["_ibL"] = post["_d"].map(ib_lo)
-    up_t = (post.loc[post["High"] > post["_ibH"]].groupby("_d")["DateTime"].min()
-            + pd.Timedelta(minutes=5))
-    dn_t = (post.loc[post["Low"] < post["_ibL"]].groupby("_d")["DateTime"].min()
-            + pd.Timedelta(minutes=5))
+    # S60 close labels: the break bar's label already IS its close (when the
+    # break is knowable) — no +5m shift needed.
+    up_t = post.loc[post["High"] > post["_ibH"]].groupby("_d")["DateTime"].min()
+    dn_t = post.loc[post["Low"] < post["_ibL"]].groupby("_d")["DateTime"].min()
 
     s_day = signals["DateTime"].dt.normalize()
     s_up = s_day.map(up_t)
