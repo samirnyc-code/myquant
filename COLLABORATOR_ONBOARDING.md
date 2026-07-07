@@ -1,6 +1,6 @@
 # myquant — Collaborator Onboarding
 **For:** Thomas  
-**Last Updated:** June 16, 2026 (Session 12)
+**Last Updated:** July 7, 2026
 
 ---
 
@@ -74,6 +74,47 @@ Either way, once the data is in place:
 - **📊 Portfolio** — combine and compare multiple parameter configs.
 
 You shouldn't need to touch any code — everything is adjustable through the app's UI.
+
+## Alternative workflow — Claude Code instead of the app (no Streamlit)
+
+You don't have to use the Streamlit app at all. The app is just a UI layer —
+the actual simulation engine is plain Python (`simulation_engine.py` +
+`massive.py`), and every research script in `scripts/` calls it directly. If
+you prefer, you can drive everything through **Claude Code** in VS Code and
+skip the app entirely.
+
+What you need for this route:
+
+1. **Steps 1–2 above** (clone + Python environment). Skip Step 3 — you never
+   need `streamlit run app.py`.
+2. **The `data/` folder from Samir** (Option A in Step 4). This is strongly
+   recommended over downloading fresh: the download/stitch/cache-build steps
+   live in the app UI, so without the app they'd have to be driven from
+   `massive.py` by hand. Samir's copy already includes the built
+   `_continuous.parquet` and the tick cache — nothing to build.
+3. **The `saved_signals/` folder** — the signal parquets
+   (`ba_signals_revft.parquet` etc.) are **not in git**, so make sure they're
+   included with the data copy. It sits next to `app.py` in the project root.
+4. **Claude Code** ([claude.com/claude-code](https://claude.com/claude-code)) —
+   install the VS Code extension or CLI, then open the `myquant` folder.
+
+From there you can ask things like *"run a 1R sim on the RevFT signals with $5
+commission"* and Claude Code will write and run a script the same way the
+existing ones in `scripts/` work (see `scripts/fade_revft_test.py` for the
+pattern). The repo's `CLAUDE.md` will automatically steer its sessions —
+including reading `docs/living/handoff.md` first.
+
+Two caveats:
+
+- **Tick sims are slow and RAM-hungry.** Scripts replay ticks day-by-day
+  specifically to bound memory — keep that pattern. A full multi-year sweep
+  can take a long time depending on your hardware.
+- **House rules still apply** (see Rules below): no code until agreed, pull
+  before push, read the four docs in Step 6 first. Since we'll both be
+  updating `docs/living/handoff.md` and the research-note number ledger,
+  always claim your note number in the same edit that adds your note.
+
+---
 
 ## Step 6 — Read these first, in this order
 1. `docs/README.md` — what every file is

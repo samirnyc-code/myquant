@@ -60,6 +60,19 @@ race the same number, the **earlier-merged** note keeps it; the later one takes 
 
 ---
 
+## ⚠️ SESSION 60 FINAL USER VERDICT (July 7, 2026) — OR12/day-type thread PARKED
+
+**User: "dead end" for edge-finding — no directional edge found (direction = coin flip in
+every test; character signal real but thin, context-only). Thread parked, to be revisited.**
+What remains usable: the 3-factor base-rate card (note 0012), query mode
+(`scripts/or12_query.py`), the twin galleries, notes 0010–0012. Open loose ends when
+revisiting: (1) TDU/PATS exporter awaits NT8 compile + CSV → tick-sim (the one untested
+candidate; 0011 prior says likely no edge); (2) close-time migration branch
+`close-time-migration` awaits review + merge (golden PASS; merge procedure below);
+(3) Streamlit context-screen tab was next in queue — build only if the thread revives.
+
+---
+
 ## SESSION 60-OVERNIGHT — July 7, 2026 (PC, autonomous) — note 0012 + query mode + ⭐ CLOSE-TIME MIGRATION DONE ON BRANCH (golden PASS)
 
 **Main is at `c933b30`+ (notes/query committed); migration is on branch `close-time-migration` (`456fffb`, pushed) awaiting user review+merge.**
