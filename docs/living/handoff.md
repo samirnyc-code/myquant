@@ -60,6 +60,51 @@ race the same number, the **earlier-merged** note keeps it; the later one takes 
 
 ---
 
+## SESSION 60-OVERNIGHT — July 7, 2026 (PC, autonomous) — note 0012 + query mode + ⭐ CLOSE-TIME MIGRATION DONE ON BRANCH (golden PASS)
+
+**Main is at `c933b30`+ (notes/query committed); migration is on branch `close-time-migration` (`456fffb`, pushed) awaiting user review+merge.**
+
+### 1. Note 0012 — base-rate card replicated & DISSECTED (main)
+
+- Formation-order "2:1 skew" = mostly a **proximity artifact**. Real variable = **bar-12
+  close location within IB**: low third → ~85% first break down AND 2.6:1 odds day closes
+  below IB (mirrored at high). Position persistence, NOT forward return (that stays 50/50).
+- "Narrow IB → extension" **inverts in ADR units**: post-IB range >0.5×ADR ~60% narrow vs
+  90–99% wide. IB width = realized-vol nowcast → afternoon RANGE. Trend days live on WIDE
+  IBs (38–41% vs 9–12%).
+- **3-factor card adopted for the context screen: bucket × IB-width tier × 10:30 location.**
+  Drop formation order from display (redundant). `scripts/or12_baserate_tables.py`,
+  note 0012 + PDF, card CSV in docs/living.
+
+### 2. Query mode CLI (main) — `scripts/or12_query.py`
+
+`--date YYYY-MM-DD [--k 5] [--reveal]` → docs/living/or12_query/<date>/index.html:
+9:35 IB view + past-only card rows (trailing tier cuts) + K past-only twins as full-day
+charts + confidence-gated twin read (≥55% else "no read"). This is the engine for the
+Streamlit tab.
+
+### 3. ⭐ Close-time migration — EXECUTED on branch `close-time-migration`, GOLDEN PASS
+
+- All S60-scoped code migrated (builders label="right", filters (start,end], sim-engine
+  bars joins strict '>', indicators shift machinery removed, all ±5m shims deleted,
+  `bar_num_from_close_label` added; 15 files).
+- `scripts/migrate_bar_labels.py` (idempotent, `--undo`) shifts the 201 bar parquets.
+- `scripts/migration_golden.py`: **PASS** — 151 tick-sim trades byte-identical; entry-bar
+  joins physically identical; tagged features identical except **180/5,640 boundary rows
+  where the OLD code was one bar STALE** (23 at 15:15, 144 on days missing from bars,
+  13 before gaps) — migrated values are the correct last-closed bar. Bonus bug fix.
+- ⚠️ **Parquets on this PC were REVERTED to open labels** so main keeps working.
+  **MERGE PROCEDURE:** (1) merge branch → main; (2) run
+  `python scripts/migrate_bar_labels.py` on EACH machine; (3) optionally re-run
+  `migration_golden.py candidate` + `diff`; (4) Mac note: its `_continuous.parquet`
+  was already hand-shifted (S59) — the idempotency guard handles it, but its
+  per-contract files still need the shift.
+- Untouched by design: one-off study scripts (assume open labels if re-run) and
+  `COLLABORATOR_ONBOARDING.md` (found modified-uncommitted in the tree, not mine —
+  left for user review).
+
+---
+
 ## SESSION 60-CONT — July 6–7, 2026 (PC) — OR12 verdict locked (notes 0010+0011) + TDU/PATS exporter thread opened
 
 **All committed & pushed through `c2cecaf`. Read notes 0010 + 0011 before continuing the OR12 thread.**
