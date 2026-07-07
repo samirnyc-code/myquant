@@ -161,24 +161,44 @@ namespace NinjaTrader.NinjaScript.Indicators
 				}
 				foreach (var s in FlagSeries.Concat(StopSeries))
 				{
-					var pi = _src.GetType().GetProperty(s);
+					var pi = _src.GetType().GetProperty(s,
+						BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
 					if (pi == null)
 					{
-						Print("LTReversalCandidateExporter: series missing on source: " + s);
+						Print("LTReversalCandidateExporter: MISSING property: " + s);
 						continue;
 					}
-					var ser = pi.GetValue(_src);
+					object ser = null;
+					try { ser = pi.GetValue(_src); } catch (Exception gx)
+					{ Print("LTReversalCandidateExporter: getter threw for " + s + ": " + gx.Message); }
 					if (ser == null)
+					{
+						Print(string.Format("LTReversalCandidateExporter: {0} is NULL (type {1}) — will retry.",
+							s, pi.PropertyType.Name));
 						continue;
+					}
 					var gm = ser.GetType().GetMethod("GetValueAt", new[] { typeof(int) });
 					if (gm == null)
+					{
+						Print(string.Format("LTReversalCandidateExporter: {0} resolved (type {1}) but has no GetValueAt(int).",
+							s, ser.GetType().Name));
 						continue;
+					}
 					_series[s]  = ser;
 					_getters[s] = gm;
 				}
 				Print(string.Format("LTReversalCandidateExporter: hooked '{0}', {1}/{2} series resolved.",
 					(_src as IndicatorBase)?.Name ?? _src.GetType().Name, _series.Count,
 					FlagSeries.Length + StopSeries.Length));
+				if (_series.Count == 0)
+				{
+					// dump what the source actually exposes, so we can adapt names
+					var props = _src.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)
+						.Where(p => p.PropertyType.Name.Contains("Series") || p.Name.ToLower().Contains("reversal")
+							|| p.Name.ToLower().Contains("candidate") || p.Name.ToLower().Contains("stop"))
+						.Select(p => p.Name + ":" + p.PropertyType.Name);
+					Print("LTReversalCandidateExporter: source exposes -> " + string.Join(" | ", props));
+				}
 			}
 			catch (Exception ex)
 			{
@@ -210,8 +230,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
 			if (CurrentBar < 1)
 				return;
-			if (!_searched)
+			// retry resolution every 200 bars until the series appear (the source
+			// indicator may initialize its series after our first probe)
+			if (_series.Count == 0 && (!_searched || CurrentBar % 200 == 0))
+			{
+				_searched = true;
+				_src = null; _series.Clear(); _getters.Clear();
 				FindSource();
+			}
 			if (_src == null || _series.Count == 0)
 				return;
 
