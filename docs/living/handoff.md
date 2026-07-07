@@ -36,8 +36,9 @@ race the same number, the **earlier-merged** note keeps it; the later one takes 
 | 0010 | OR12 first-hour fingerprint → day character (`0010_or12_fingerprint_daytype.md`) | DONE — twins predict character (40.5% vs 34%), NOT direction; walk-forward verdict: context display, not predictor | s60 (main) |
 | 0011 | Programmatic day-type & context ID — research survey (`0011_daytype_context_survey.md`) | DONE — two-agent internet sweep (academic + practitioner): methods, ES effect sizes, failures ledger | s60 (main) |
 | 0012 | OR12 base-rate card — replication & dissection (`0012_or12_baserate_card.md`) | DONE — formation-order skew = proximity artifact; c12-location is the real conditioner (85/15 first break, 2.6:1 day close); IB width = vol nowcast (folklore inverts in ADR units) | s60-overnight (main) |
+| 0013 | RevFT i1R/PB retest trade — grid study + why it fails (`0013_revft_pb_retest.md`) | DONE — 1,148 PB trades (6k) + 2,852 (12k) all ≈flat net of costs; dose-response: cleaner arming → worse retest; rev-bar stop-entry survivorship trap quantified (92.8% vs 44.3%) | s61 (main) |
 
-**NEXT FREE NUMBER: 0013**
+**NEXT FREE NUMBER: 0014**
 
 ### Backlog — candidate notes (claim a number above before starting one)
 **Tier A — ALREADY RESEARCHED in `docs/living/`; convert to a note, do NOT redo:**
