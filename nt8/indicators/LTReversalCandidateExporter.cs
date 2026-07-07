@@ -41,7 +41,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 	//      the chart's indicator list, substring match, case-insensitive).
 	//   4. It reads the series via reflection each closed bar — no reference
 	//      to the vendor assembly is needed, so this compiles standalone.
-	//   5. Remove the exporter (or close the chart) -> CSV lands in
+	//   5. The CSV is written AUTOMATICALLY when the historical load finishes
+	//      (and re-written at every new session while live). No need to remove
+	//      the indicator or close the chart. Output:
 	//      Documents\lt_revcand_<instrument>.csv.
 	//
 	// Conventions (match the myquant sim engine):
@@ -91,27 +93,37 @@ namespace NinjaTrader.NinjaScript.Indicators
 						string.Format("lt_revcand_{0}.csv", Instrument.MasterInstrument.Name))
 					: ExportFileName;
 			}
+			else if (State == State.Realtime)
+			{
+				// historical processing is complete -> write the file NOW
+				Flush("historical load complete");
+			}
 			else if (State == State.Terminated)
 			{
-				if (_rows == null || _rows.Count == 0)
-					return;
-				try
-				{
-					var sb = new StringBuilder();
-					sb.AppendLine("Date,SignalTime,BarNum,EventType,Direction,StopLevel,Open,High,Low,Close,Volume");
-					foreach (var r in _rows)
-						sb.AppendLine(r);
-					var tmp = _outPath + ".tmp";
-					File.WriteAllText(tmp, sb.ToString());
-					if (File.Exists(_outPath))
-						File.Delete(_outPath);
-					File.Move(tmp, _outPath);
-					Print(string.Format("LTReversalCandidateExporter: {0} rows -> {1}", _rows.Count, _outPath));
-				}
-				catch (Exception ex)
-				{
-					Print("LTReversalCandidateExporter write failed: " + ex.Message);
-				}
+				Flush("terminated");   // fallback / final flush
+			}
+		}
+
+		private void Flush(string why)
+		{
+			if (_rows == null || _rows.Count == 0)
+				return;
+			try
+			{
+				var sb = new StringBuilder();
+				sb.AppendLine("Date,SignalTime,BarNum,EventType,Direction,StopLevel,Open,High,Low,Close,Volume");
+				foreach (var r in _rows)
+					sb.AppendLine(r);
+				var tmp = _outPath + ".tmp";
+				File.WriteAllText(tmp, sb.ToString());
+				if (File.Exists(_outPath))
+					File.Delete(_outPath);
+				File.Move(tmp, _outPath);
+				Print(string.Format("LTReversalCandidateExporter: {0} rows -> {1} ({2})", _rows.Count, _outPath, why));
+			}
+			catch (Exception ex)
+			{
+				Print("LTReversalCandidateExporter write failed: " + ex.Message);
 			}
 		}
 
@@ -202,6 +214,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 				FindSource();
 			if (_src == null || _series.Count == 0)
 				return;
+
+			// while live: re-write the file at each new session so it stays current
+			if (State == State.Realtime && Bars.IsFirstBarOfSession)
+				Flush("new session");
 
 			int i = CurrentBar;   // GetValueAt uses absolute bar index
 
