@@ -59,7 +59,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private object       _src;          // the LT Auction Bars instance on the chart
 		private bool         _searched;
 		private List<string> _rows;
+		private List<string> _plotRows;     // unconditional per-bar dump of ALL source plots
 		private string       _outPath;
+		private string       _plotPath;
+		private string       _plotHeader;
 		private readonly Dictionary<string, MethodInfo> _getters = new Dictionary<string, MethodInfo>();
 		private readonly Dictionary<string, object>     _series  = new Dictionary<string, object>();
 
@@ -88,10 +91,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 			else if (State == State.DataLoaded)
 			{
 				_rows = new List<string>();
+				_plotRows = new List<string>();
 				_outPath = string.IsNullOrWhiteSpace(ExportFileName)
 					? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
 						string.Format("lt_revcand_{0}.csv", Instrument.MasterInstrument.Name))
 					: ExportFileName;
+				_plotPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+					string.Format("lt_plots_{0}.csv", Instrument.MasterInstrument.Name));
 			}
 			else if (State == State.Realtime)
 			{
@@ -104,8 +110,62 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 		}
 
+		private void DumpPlots()
+		{
+			try
+			{
+				var ib = _src as IndicatorBase;
+				if (ib == null || ib.Values == null || ib.Values.Length == 0)
+					return;
+				var ci = CultureInfo.InvariantCulture;
+				if (_plotHeader == null)
+				{
+					var names = new List<string>();
+					for (int p = 0; p < ib.Values.Length; p++)
+					{
+						string nm = "P" + p;
+						try { if (ib.Plots != null && p < ib.Plots.Length && !string.IsNullOrEmpty(ib.Plots[p].Name)) nm = ib.Plots[p].Name.Replace(",", "_"); }
+						catch { }
+						names.Add(nm);
+					}
+					_plotHeader = "Date,SignalTime,BarNum,Open,High,Low,Close,Volume," + string.Join(",", names);
+					Print("LTReversalCandidateExporter: dumping " + ib.Values.Length + " plots -> " + _plotPath);
+				}
+				var vals = new List<string>();
+				for (int p = 0; p < ib.Values.Length; p++)
+				{
+					double v = double.NaN;
+					try { if (ib.Values[p].IsValidDataPointAt(CurrentBar)) v = ib.Values[p].GetValueAt(CurrentBar); }
+					catch { }
+					vals.Add(double.IsNaN(v) ? "" : v.ToString("F2", ci));
+				}
+				_plotRows.Add(string.Join(",",
+					Time[0].ToString("yyyy-MM-dd", ci),
+					Time[0].ToString("yyyy-MM-dd HH:mm:ss", ci),
+					(Bars.BarsSinceNewTradingDay + 1).ToString(ci),
+					Open[0].ToString("F2", ci), High[0].ToString("F2", ci),
+					Low[0].ToString("F2", ci), Close[0].ToString("F2", ci),
+					Volume[0].ToString("F0", ci), string.Join(",", vals)));
+			}
+			catch { }
+		}
+
 		private void Flush(string why)
 		{
+			if (_plotRows != null && _plotRows.Count > 0 && _plotHeader != null)
+			{
+				try
+				{
+					var sbp = new StringBuilder();
+					sbp.AppendLine(_plotHeader);
+					foreach (var r in _plotRows) sbp.AppendLine(r);
+					File.WriteAllText(_plotPath + ".tmp", sbp.ToString());
+					if (File.Exists(_plotPath)) File.Delete(_plotPath);
+					File.Move(_plotPath + ".tmp", _plotPath);
+					Print(string.Format("LTReversalCandidateExporter: {0} plot rows -> {1} ({2})", _plotRows.Count, _plotPath, why));
+				}
+				catch (Exception ex) { Print("plot dump write failed: " + ex.Message); }
+			}
 			if (_rows == null || _rows.Count == 0)
 				return;
 			try
@@ -238,12 +298,17 @@ namespace NinjaTrader.NinjaScript.Indicators
 				_src = null; _series.Clear(); _getters.Clear();
 				FindSource();
 			}
-			if (_src == null || _series.Count == 0)
+			if (_src == null)
 				return;
 
-			// while live: re-write the file at each new session so it stays current
+			DumpPlots();   // unconditional: every plot of the source, every bar
+
+			// while live: re-write the files at each new session so they stay current
 			if (State == State.Realtime && Bars.IsFirstBarOfSession)
 				Flush("new session");
+
+			if (_series.Count == 0)
+				return;
 
 			int i = CurrentBar;   // GetValueAt uses absolute bar index
 
