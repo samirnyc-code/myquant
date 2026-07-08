@@ -137,6 +137,9 @@ Streamlit tab.
   - "Trade after flip until first loser": +0.09…+0.22R across configs — LOOKS great but DOUBLE-suspect: broken regime + look-ahead (stand-down uses outcomes of trades still open when next entry fires). Re-test only after regime fixed, with resolved-trades-only sequencing.
   - ER12 tercile: high-ER (trend) −0.00 vs low-ER (chop) −0.16 → real trend/chop signal, keep for later.
   - Zerolag TrendState/BaseTrend gate: no help (WITH −0.07 vs AGAINST −0.04).
+- **Chop filters CONFIRMED (last result of S61, on best config A1.5/A1 count<=2, base -0.064R):** |EMA-slope|/ABR, ADX14, ER12 all monotone; ADX top tercile **+0.019R 61% win** (first no-lookahead positive cell); steep-slope+high-ER combo +0.025R n=457 ~breakeven net. "Stop trading when the EMA is flat" is quantifiably right - flat terciles are -0.14..-0.18R.
+- **mDB regime-flip mechanism identified (user, on 2026-01-22):** b6/b7 micro-DB (7037.25/7036.50, 1t apart) at the day low, then all-day grind up while regime stayed stranded BEAR -> propose DB-neckline flip: DB at extreme + CLOSE above neckline = BULL (mirror DT). Spec open: mDB tolerance (1-2t? ADR-scaled?), must-be-at-extreme?
+- **Chart directives (user, locked):** always draw structure labels; always draw the dotted line from the structure level to the flip bar for every close-beyond-level regime change.
 - **⭐ NEXT SESSION #1 TASK: redesign the regime FLIP rule with the user.** One close above the nearest confirmed LH is far too weak evidence to end a trend. Candidates to discuss: require subsequent HH (structure sequence, not single close), major-trendline break + test, strength/size of the breakout bar, Mack EMA-close as *component*. Adoption (first-entry) seemed fine; the FLIPS are the bug. User's b0-H/L seed idea also still unimplemented.
 
 ### B. RevFT i1R/PB retest thread — CLOSED (note 0013, DONE, pushed)
