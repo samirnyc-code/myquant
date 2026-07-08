@@ -109,3 +109,24 @@ So your instinct is well-founded and *pointed at the data*:
 We are not close to profitable *yet*, but for the first time we know exactly which three things are broken, we have measured filters that turn the trend tercile positive, a runner that harvests 88% more, and a validated daily/swing lead as a fallback. The path is: **fix → gate → manage → judge**, with a reversion mode and a swing/MES track as live hedges against ES being what the data says it is — a mean-reverting market where trading 1 day in 5 (or holding for days) beats trading every 5-minute wiggle.
 
 *Sources: internal notes 0010/0011/0013, `docs/living/` studies (94 handoff revisions, ~40 research docs); external — Mack PATS (21-EMA break+close), TradingView ADX/Regime, arXiv 2605.11423 (MNQ VVG regime classifier), Unger Academy ES mean-reversion, brooks-pa-failure postmortem.*
+
+---
+
+## 7. OVERNIGHT MEAN-REVERSION TESTS (run while you slept — the key new result)
+
+**5M mean-reversion FAILS (5yr, tick-costed):** VWAP-z fade −0.41R, Bollinger −0.36R, RSI2 −0.34R — all deeply negative, all 6 years, worse in trends but losing in chop too. Confirms note 0005: on 5M an extension is the *start* of momentum, not exhaustion. **Do not fade 5M extremes.**
+
+**Daily mean-reversion WORKS, long-only (5yr RTH daily bars, $5 RT negligible):**
+
+| system | n | pts/trade | win% | net$ |
+|---|---|---|---|---|
+| Bollinger LONG | 57 | +86.2 | 75% | +245k |
+| Z-score LONG | 106 | +32.7 | 69% | +173k |
+| Connors RSI2 LONG | 70 | +12.0 | 76% | +42k |
+| Connors RSI2 SHORT | 32 | +16.2 | 69% | +26k |
+| **ALL LONGS** | **233** | **+39.6** | **73%** | **+460k** |
+| ALL SHORTS | 233 | −1.0 | 60% | −13k |
+
+**Buying ES oversold on the daily works across 3 independent constructions; fading overbought does not.** Equity-index asymmetry (upward drift + oversold reversion). This is the swing/MES-overnight system — 4–13 day holds, overnight risk, cash/eval account (not trailing-DD prop). Per-trade +40 pts is the clean metric; net-$ assumes concurrent signals (portfolio Q). Connors_L: 2023 +19k, 2024 +47k, 2025 −45k, 2026 +21k (3/4 yrs). Files: `mr_test_trades.parquet` (5M), `mr_daily_trades.parquet` (daily).
+
+**REVISED RECOMMENDATION:** the daily long-MR is the strongest, most robust edge in the entire project — stronger than the trend engine we spent S61 on. **Two parallel tracks for next session:** (1) harden the daily long-MR into a real swing system (position sizing, drawdown, MES overnight, true 24h bars from Massive, ensemble of the 3 constructions, the 2025 drawdown); (2) keep fixing the intraday trend engine (regime/count/exits) as the *day-trade* complement for the ~20% trend days. The mean-reversion answer to "what do we do" is: **trade it on the daily, long-biased, as a swing.**
