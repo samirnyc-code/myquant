@@ -119,6 +119,37 @@ Streamlit tab.
 
 ---
 
+## SESSION 61 — July 7–8, 2026 (PC) — ⭐ BROOKS ENTRY ENGINE (user-built spec, the new main thread) + RevFT/PB closed (note 0013) + LT reversals negative + daily-long lead
+
+### A. ⭐ Brooks entry engine — built bar-by-bar WITH the user; this is the active thread
+
+**Files: `scripts/brooks_entry_engine_day.py` (single-day, chart) + `scripts/brooks_entry_sim.py` (first sim harness). Chart: `docs/living/legs_engine_20260609.png`. All rules below were dictated/validated by the user on 2026-06-09; do NOT "improve" them without asking.**
+
+- **Legs:** strict 1t-break (bull leg dies 1t below prior bar's low); INSIDE BARS ignored entirely; OUTSIDE BARS tick-resolved — cont-first = real reversal pivot; break-first = trap (leg ends at prior extreme, trap pivot at OB far extreme, leg continues).
+- **Structure:** LH exists ONLY when price travels from that swing high DIRECTLY to a new LL (retro-labeled = highest swing high since previous swing low, when the LL prints; must be LOWER than last labeled high; never overwrite). HH/LL measured vs last LABELED extreme, not last wiggle (fake micro-HHs inside bear = the b67/b75 bug, fixed). Labels numbered per-type (LH1, LH2… HL1…), reset each regime change.
+- **Regime:** NEUTRAL at open (both entry sides counted); **first triggered entry adopts the regime** (user rule; adoption resets counter, defining entry keeps its mark); structure confirmation = fallback adoption; flips on CLOSE through confirmed LH/HL. Open-of-day still officially "unsolved" but first-entry rule worked on the test day. b0-H/L-as-seed idea discussed, not implemented.
+- **Entries:** pullback bar (higher-high OR higher/equal low = micro-DB; mirrored) arms low-to-break; 1t break = entry, count 1ES/2ES/3ES=wedge (mirrored 1EL/2EL/3EL). ORIGIN = swing base of the flag; count resets when origin taken out. OB can fill 1ES and become 2ES signal in the same bar (b28 validated) or pop-first (b36 validated). Validated marks 2026-06-09: 1ES 3,7,11,18,27,30,32,35,39 · 2ES 13,20,28,36 (user-graded, engine reproduces exactly).
+- **OPEN ISSUES (user: "we are close"):** long side NEVER validated; wedge/count>2 semantics; afternoon flip-flop filter; b43 2ES; micro-DB/DT tolerance (exact-tick now); DT/DB-as-leg-break parked; pivot-knowledge timing must be re-timed for causal sim; IB arming audit.
+- **First sim** (stop entries at break level, stop 1t beyond signal-bar extreme, 1R/2R targets, $5 RT): launched on last 12 months at session end — results in `docs/living/brooks_sim_trades.parquet` + next session block.
+
+### B. RevFT i1R/PB retest thread — CLOSED (note 0013, DONE, pushed)
+
+1,148 PB trades (6k file) + 2,852 (12k) all ≈flat net of costs across 72-cell stop×target grids; dose-response: stricter arming → worse (0.00 → −0.09 → −0.3R); rev-bar stop-entry unmeasurable from confirmed exports (survivorship: 92.8% vs 44.3% close-beyond-break; +0.39R fake head start); causal limit-at-E also flat. PDFs shipped (`0013_revft_pb_retest.pdf`, `pb_verify_charts.pdf` — GitHub links sent to Thomas). Artifacts: `pb_grid_trades*.parquet`, `limitE_grid_trades.parquet`, `revbar_grid_trades.parquet`, `i1r_flags.parquet`, `docs/living/pb_trade_library/`.
+
+### C. LizardTrader Auction Bars — vendor dead end, own rebuild negative
+
+Vendor NT8 DLL exposes the manual's series but they're NULL; plot dump empty (custom rendering). `nt8/indicators/LTReversalCandidateExporter.cs` (committed) has diagnostics + plot-dump if user toggles settings. **Own reimplementation of all 10 reversal types** (`docs/living/lt_reversals_ours.parquet`, 69k signal-rows): confirmation-entry study = **all 10 types lose −0.14…−0.18R** (CIs exclude 0) — `lt_entry_trades.parquet`. 35-cut conditioning sweep (VWAP/EMA/open/VA/ER/balance/zerolag/structural): nothing survives; MC-confluence cut (+0.68R) is look-ahead, ignore.
+
+### D. Daily-long washout — the one surviving lead (parked)
+
+Reversal trade improves monotonically with timeframe (5M −0.059R → daily +0.12R). LONGS ONLY carry it: union of bullish daily reversal types = 60 fills, **+0.32R ±0.24, 65% win, +$67k**, positive 5/6 years but 2026 −0.50 (n=6) and RTH-only daily bars (no Globex data in repo). Needs: true 24h bars from Massive, more types, context. Not tradeable on prop (overnight swing).
+
+### E. Housekeeping
+
+ZerolagExporter.cs rescued from NT8 machine into repo (was lost-file-registry item). New memory hard rule: paste every result inline in chat + auto-open every chart (user was furious — deserved). Registry: **0013 claimed+DONE, next free 0014.**
+
+---
+
 ## SESSION 60-CONT — July 6–7, 2026 (PC) — OR12 verdict locked (notes 0010+0011) + TDU/PATS exporter thread opened
 
 **All committed & pushed through `c2cecaf`. Read notes 0010 + 0011 before continuing the OR12 thread.**
