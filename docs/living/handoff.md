@@ -1,6 +1,55 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 8, 2026 (session 61)
+**Last Updated:** July 9, 2026 (session 62)
+
+---
+
+## S62 (2026-07-09) — ⭐ Brooks engine: regime FLIP rule redesigned + FIRST POSITIVE SIM SIGNAL
+
+**Thread: the S61 Brooks entry engine (`scripts/brooks_entry_engine_day_ticks.py`).**
+Rebuilt the regime model bar-by-bar WITH the user; then sim-tested. All rules below
+were dictated/validated by the user 2026-07-09. Do NOT "improve" without asking.
+
+### A. New engine rules (all toggles, in `brooks_entry_engine_day_ticks.py`)
+- **IGNORE_IB** (True): legs/structure ignore inside bars; entries arm off the bar
+  BEFORE the IB (the "triangle" — mother-bar extreme). This auto-covers single-IB,
+  **ii** (two IBs → bar before pair), and **ioi** (IB-OB-IB → the OB). Chart draws a
+  box around mother+IB (tan single / gold ii / blue ioi).
+- **ALLOW_LOOSE** (True): a bar equal to prior on ONE side (mDT=equal high / mDB=equal
+  low) + the other side inside→loose IB, or out→loose OB. Both-equal = IB. `btype()`.
+  Examples: `docs/living/ib_ob_examples.pdf` (strict vs loose IB/OB, 6 categories).
+- **REGIME_END_MODE** (1): a regime ENDS into NEUTRAL when the confirmed LH/HL breaks —
+  mode 1 = 1t break / 2 = 1 close / 3 = 2 closes. **Regimes do NOT flip directly; they
+  go neutral, then re-confirm.** `FLIP_BAR_NOT_OB` (True): a flip bar may not be an OB.
+- **THE FLIP (neutral→trend), user's exact spec:** arm on the level break, then confirm
+  3 ways: (1) **pullback** — a post-arm swing high forms (a higher low exists) and price
+  breaks it → flip (the b44 case on 6/9); (2) **BO+FT** — 2 strong directional-IBS bars
+  (IBS≥69/≤31), breakout bar breaks prior, ≥1 bar > ABR(10) → flip (runaway/no-pullback);
+  (3) **failed-flip revert** — a counter-direction 1ES/1EL fires while armed → snap back
+  to the original regime (kills phantom trends, e.g. 2/23 stays bear all day).
+- **OPEN is separate & LEFT ALONE:** first-entry (1ES/1EL) adoption, structure fallback.
+  The flip logic only runs AFTER a regime exists. (User was emphatic: do not touch open.)
+- Validated days: 6/9 (b4 open, b44 bull flip), 2/23 (bear all day), 12/14 (BO+FT+pullback+revert).
+
+### B. ⭐ SIM — first positive configuration in this whole thread
+Harness `scripts/brooks_entry_sim_v3.py` (12mo 2025-07-08→2026-07-07, tick-sim, $5 RT,
+1 ES, **no 3rd entries**). v1=old regime/entries, v2=new regime, v3=new regime+new entries.
+- **Fixed R targets all lose and worsen with size** (1R −0.10 → 3R −0.27). Regime redesign
+  alone did NOT create edge (v2 ≈ v1, both ~−0.1R). **The EXITS were the problem.**
+- **HOLD-TO-EOD flips it:** ALL −0.003R; **IB+OB setups +0.130R, PF 1.11, +$42.5k** (IB
+  +0.145, OB +0.093). **N (normal pullback) entries are pure bleed** (−0.12R) — drop them.
+- **Filter sweep (`sim_v3_filters.py`) — the edge is layered & real:**
+  **MORNING (<1/3 day) +0.289R PF 1.20** (midday dead, PF 0.92); skip **low-ER chop**
+  (PF 0.99); **regime-age early/mid** (+0.21) beats late >10 (+0.05); **skip days after a
+  strong trend day** (PF 1.15 vs 1.03); best clean combo **IB + with-day + EOD = +0.217R
+  PF 1.22 $40.6k (n=590)**. Tables: `sim_v3_tables.py`, `sim_v3_filters.py`.
+- ⚠️ **CAVEATS (not a system yet):** wide CIs (IB EOD +0.145 ±0.160 includes 0);
+  **overlapping/pyramided positions — NOT 1-lot realistic** (4.6 IB+OB trades/day all held
+  to EOD); structural stop not built; first-after-flip does NOT help (weaker subset).
+- **NEXT:** (1) true **hold-until-regime-flip** exit + **one-position-per-regime** +
+  **structural stop** (this is a day-trend/swing-hold system, flat by close = prop-legal);
+  (2) re-run on **2000t / 4000t / 6500-vol** bars (user request, not yet done);
+  (3) stop-mode sweep. Artifacts: `brooks_sim_trades_v2/v3.parquet`, `sim_v3_*.txt`.
 
 ---
 

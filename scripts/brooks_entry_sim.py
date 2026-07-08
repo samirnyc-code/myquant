@@ -184,6 +184,8 @@ def run_day(g, tP, tbar):
     # ---- trade the fired entries on ticks ----
     out = []
     for (fb, sb, dr, cnt, trig) in entries:
+        if cnt >= 3:                       # do not trade 3rd+ entries
+            continue
         short = dr == "S"
         a, z = tick_slice(fb)
         s = tP[a:z]

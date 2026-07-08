@@ -1,0 +1,134 @@
+[50/254] rows=2400 (4s)
+[100/254] rows=5245 (9s)
+[150/254] rows=7675 (13s)
+[200/254] rows=10100 (17s)
+[250/254] rows=12330 (22s)
+
+DONE 22s  days=254  trades=2516
+
+================ TARGET 1R ================
+  ALL                        n= 2516  meanR -0.100 ±0.039  win 45.0%  net $  -135,380
+ -- by count --
+  count 1                    n= 1917  meanR -0.084 ±0.045  win 45.8%  net $   -98,448
+  count 2                    n=  599  meanR -0.152 ±0.079  win 42.4%  net $   -36,932
+ -- by setup (arm bar) --
+  setup IB                   n=  831  meanR -0.076 ±0.068  win 46.2%  net $   -40,680
+  setup OB                   n=  338  meanR -0.107 ±0.106  win 44.7%  net $   -19,940
+  setup N                    n= 1347  meanR -0.114 ±0.053  win 44.3%  net $   -74,760
+ -- first entry after a flip --
+  post-flip (1st only)       n=  364  meanR -0.082 ±0.103  win 45.9%  net $   -11,720
+  not post-flip              n= 2152  meanR -0.103 ±0.042  win 44.8%  net $  -123,660
+ -- dir x count --
+  L1                         n= 1014  meanR -0.091 ±0.061  win 45.5%  net $   -49,682
+  L2                         n=  304  meanR -0.151 ±0.111  win 42.4%  net $   -21,858
+  S1                         n=  903  meanR -0.076 ±0.065  win 46.2%  net $   -48,765
+  S2                         n=  295  meanR -0.153 ±0.113  win 42.4%  net $   -15,075
+ -- count x setup --
+  1 x IB                     n=  676  meanR -0.068 ±0.075  win 46.6%  net $   -35,580
+  1 x OB                     n=  210  meanR -0.105 ±0.135  win 44.8%  net $   -13,838
+  1 x N                      n= 1031  meanR -0.090 ±0.061  win 45.5%  net $   -49,030
+  2 x IB                     n=  155  meanR -0.110 ±0.157  win 44.5%  net $    -5,100
+  2 x OB                     n=  128  meanR -0.109 ±0.173  win 44.5%  net $    -6,102
+  2 x N                      n=  316  meanR -0.190 ±0.108  win 40.5%  net $   -25,730
+
+================ TARGET 1.5R ================
+  ALL                        n= 2516  meanR -0.114 ±0.047  win 35.5%  net $  -154,392
+ -- by count --
+  count 1                    n= 1917  meanR -0.108 ±0.054  win 35.7%  net $  -122,829
+  count 2                    n=  599  meanR -0.132 ±0.095  win 34.7%  net $   -31,564
+ -- by setup (arm bar) --
+  setup IB                   n=  831  meanR -0.055 ±0.082  win 37.8%  net $   -40,280
+  setup OB                   n=  338  meanR -0.142 ±0.127  win 34.3%  net $   -29,028
+  setup N                    n= 1347  meanR -0.143 ±0.063  win 34.3%  net $   -85,085
+ -- first entry after a flip --
+  post-flip (1st only)       n=  364  meanR -0.107 ±0.123  win 35.7%  net $   -17,989
+  not post-flip              n= 2152  meanR -0.115 ±0.051  win 35.4%  net $  -136,404
+ -- dir x count --
+  L1                         n= 1014  meanR -0.120 ±0.074  win 35.2%  net $   -64,195
+  L2                         n=  304  meanR -0.145 ±0.134  win 34.2%  net $   -22,632
+  S1                         n=  903  meanR -0.095 ±0.078  win 36.2%  net $   -58,634
+  S2                         n=  295  meanR -0.119 ±0.137  win 35.3%  net $    -8,931
+ -- count x setup --
+  1 x IB                     n=  676  meanR -0.061 ±0.091  win 37.6%  net $   -42,542
+  1 x OB                     n=  210  meanR -0.143 ±0.161  win 34.3%  net $   -17,856
+  1 x N                      n= 1031  meanR -0.132 ±0.073  win 34.7%  net $   -62,430
+  2 x IB                     n=  155  meanR -0.032 ±0.192  win 38.7%  net $     2,262
+  2 x OB                     n=  128  meanR -0.141 ±0.207  win 34.4%  net $   -11,171
+  2 x N                      n=  316  meanR -0.177 ±0.130  win 32.9%  net $   -22,655
+
+================ TARGET 2R ================
+  ALL                        n= 2516  meanR -0.145 ±0.053  win 28.5%  net $  -213,230
+ -- by count --
+  count 1                    n= 1917  meanR -0.128 ±0.061  win 29.1%  net $  -162,485
+  count 2                    n=  599  meanR -0.199 ±0.106  win 26.7%  net $   -50,745
+ -- by setup (arm bar) --
+  setup IB                   n=  831  meanR -0.087 ±0.094  win 30.4%  net $   -68,892
+  setup OB                   n=  338  meanR -0.201 ±0.142  win 26.6%  net $   -41,152
+  setup N                    n= 1347  meanR -0.167 ±0.072  win 27.8%  net $  -103,185
+ -- first entry after a flip --
+  post-flip (1st only)       n=  364  meanR -0.184 ±0.137  win 27.2%  net $   -35,670
+  not post-flip              n= 2152  meanR -0.138 ±0.057  win 28.7%  net $  -177,560
+ -- dir x count --
+  L1                         n= 1014  meanR -0.160 ±0.083  win 28.0%  net $  -102,320
+  L2                         n=  304  meanR -0.220 ±0.148  win 26.0%  net $   -33,432
+  S1                         n=  903  meanR -0.093 ±0.090  win 30.2%  net $   -60,165
+  S2                         n=  295  meanR -0.176 ±0.153  win 27.5%  net $   -17,312
+ -- count x setup --
+  1 x IB                     n=  676  meanR -0.090 ±0.104  win 30.3%  net $   -65,130
+  1 x OB                     n=  210  meanR -0.200 ±0.180  win 26.7%  net $   -26,275
+  1 x N                      n= 1031  meanR -0.139 ±0.083  win 28.7%  net $   -71,080
+  2 x IB                     n=  155  meanR -0.071 ±0.219  win 31.0%  net $    -3,762
+  2 x OB                     n=  128  meanR -0.203 ±0.230  win 26.6%  net $   -14,878
+  2 x N                      n=  316  meanR -0.259 ±0.143  win 24.7%  net $   -32,105
+
+================ TARGET 3R ================
+  ALL                        n= 2516  meanR -0.273 ±0.060  win 18.2%  net $  -371,355
+ -- by count --
+  count 1                    n= 1917  meanR -0.247 ±0.070  win 18.8%  net $  -275,322
+  count 2                    n=  599  meanR -0.359 ±0.118  win 16.0%  net $   -96,032
+ -- by setup (arm bar) --
+  setup IB                   n=  831  meanR -0.220 ±0.108  win 19.5%  net $  -134,630
+  setup OB                   n=  338  meanR -0.349 ±0.158  win 16.3%  net $   -71,840
+  setup N                    n= 1347  meanR -0.287 ±0.082  win 17.8%  net $  -164,885
+ -- first entry after a flip --
+  post-flip (1st only)       n=  364  meanR -0.330 ±0.154  win 16.8%  net $   -55,320
+  not post-flip              n= 2152  meanR -0.264 ±0.066  win 18.4%  net $  -316,035
+ -- dir x count --
+  L1                         n= 1014  meanR -0.262 ±0.096  win 18.4%  net $  -153,958
+  L2                         n=  304  meanR -0.421 ±0.158  win 14.5%  net $   -58,832
+  S1                         n=  903  meanR -0.229 ±0.103  win 19.3%  net $  -121,365
+  S2                         n=  295  meanR -0.295 ±0.174  win 17.6%  net $   -37,200
+ -- count x setup --
+  1 x IB                     n=  676  meanR -0.201 ±0.121  win 20.0%  net $  -112,730
+  1 x OB                     n=  210  meanR -0.333 ±0.202  win 16.7%  net $   -45,338
+  1 x N                      n= 1031  meanR -0.259 ±0.095  win 18.5%  net $  -117,255
+  2 x IB                     n=  155  meanR -0.303 ±0.240  win 17.4%  net $   -21,900
+  2 x OB                     n=  128  meanR -0.375 ±0.253  win 15.6%  net $   -26,502
+  2 x N                      n=  316  meanR -0.380 ±0.160  win 15.5%  net $   -47,630
+
+================ TARGET EOD ================
+  ALL                        n= 2516  meanR -0.003 ±0.090  win 25.4%  net $   -29,218
+ -- by count --
+  count 1                    n= 1917  meanR +0.012 ±0.101  win 26.1%  net $   -11,360
+  count 2                    n=  599  meanR -0.051 ±0.199  win 23.0%  net $   -17,858
+ -- by setup (arm bar) --
+  setup IB                   n=  831  meanR +0.145 ±0.160  win 30.1%  net $    33,608
+  setup OB                   n=  338  meanR +0.093 ±0.256  win 28.1%  net $     8,898
+  setup N                    n= 1347  meanR -0.119 ±0.121  win 21.8%  net $   -71,722
+ -- first entry after a flip --
+  post-flip (1st only)       n=  364  meanR -0.041 ±0.192  win 27.5%  net $    -8,295
+  not post-flip              n= 2152  meanR +0.003 ±0.101  win 25.0%  net $   -20,922
+ -- dir x count --
+  L1                         n= 1014  meanR -0.014 ±0.115  win 28.5%  net $   -16,682
+  L2                         n=  304  meanR -0.103 ±0.192  win 26.0%  net $   -15,745
+  S1                         n=  903  meanR +0.041 ±0.172  win 23.5%  net $     5,322
+  S2                         n=  295  meanR +0.002 ±0.353  win 20.0%  net $    -2,112
+ -- count x setup --
+  1 x IB                     n=  676  meanR +0.132 ±0.164  win 30.5%  net $    23,695
+  1 x OB                     n=  210  meanR +0.114 ±0.311  win 29.5%  net $    13,750
+  1 x N                      n= 1031  meanR -0.088 ±0.140  win 22.6%  net $   -48,805
+  2 x IB                     n=  155  meanR +0.202 ±0.473  win 28.4%  net $     9,912
+  2 x OB                     n=  128  meanR +0.059 ±0.442  win 25.8%  net $    -4,852
+  2 x N                      n=  316  meanR -0.220 ±0.237  win 19.3%  net $   -22,918
+
+MFE (median R reached): IB=1.71  OB=1.59  N=2.00
