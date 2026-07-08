@@ -130,7 +130,14 @@ Streamlit tab.
 - **Regime:** NEUTRAL at open (both entry sides counted); **first triggered entry adopts the regime** (user rule; adoption resets counter, defining entry keeps its mark); structure confirmation = fallback adoption; flips on CLOSE through confirmed LH/HL. Open-of-day still officially "unsolved" but first-entry rule worked on the test day. b0-H/L-as-seed idea discussed, not implemented.
 - **Entries:** pullback bar (higher-high OR higher/equal low = micro-DB; mirrored) arms low-to-break; 1t break = entry, count 1ES/2ES/3ES=wedge (mirrored 1EL/2EL/3EL). ORIGIN = swing base of the flag; count resets when origin taken out. OB can fill 1ES and become 2ES signal in the same bar (b28 validated) or pop-first (b36 validated). Validated marks 2026-06-09: 1ES 3,7,11,18,27,30,32,35,39 · 2ES 13,20,28,36 (user-graded, engine reproduces exactly).
 - **OPEN ISSUES (user: "we are close"):** long side NEVER validated; wedge/count>2 semantics; afternoon flip-flop filter; b43 2ES; micro-DB/DT tolerance (exact-tick now); DT/DB-as-leg-break parked; pivot-knowledge timing must be re-timed for causal sim; IB arming audit.
-- **First sim** (stop entries at break level, stop 1t beyond signal-bar extreme, 1R/2R targets, $5 RT): launched on last 12 months at session end — results in `docs/living/brooks_sim_trades.parquet` + next session block.
+- **First sims (12mo) — ALL INVALIDATED by user's final verdict: "the regime is wrong so the entries are wrong."** The close-through-one-confirmed-LH flip fires far too easily — charts show regime flipping BULL inside 50-bar bear trends (see `legs_engine_20260122.png`, 14 junk wedge marks). Everything below is recorded for reference only, on the broken regime:
+  - stop×target grid (SB/1-1.5-2×ABR × 1R/2R/1-2-3×ABR, count≤2): best cell 1.5×ABR stop / 1×ABR tgt = −0.054R; nothing positive.
+  - Mack EMA-confirmed flips (close beyond EMA too): ≈ no change (−0.060 best).
+  - EMA-side regime instead of structure: worse everywhere (−0.083 best).
+  - "Trade after flip until first loser": +0.09…+0.22R across configs — LOOKS great but DOUBLE-suspect: broken regime + look-ahead (stand-down uses outcomes of trades still open when next entry fires). Re-test only after regime fixed, with resolved-trades-only sequencing.
+  - ER12 tercile: high-ER (trend) −0.00 vs low-ER (chop) −0.16 → real trend/chop signal, keep for later.
+  - Zerolag TrendState/BaseTrend gate: no help (WITH −0.07 vs AGAINST −0.04).
+- **⭐ NEXT SESSION #1 TASK: redesign the regime FLIP rule with the user.** One close above the nearest confirmed LH is far too weak evidence to end a trend. Candidates to discuss: require subsequent HH (structure sequence, not single close), major-trendline break + test, strength/size of the breakout bar, Mack EMA-close as *component*. Adoption (first-entry) seemed fine; the FLIPS are the bug. User's b0-H/L seed idea also still unimplemented.
 
 ### B. RevFT i1R/PB retest thread — CLOSED (note 0013, DONE, pushed)
 
