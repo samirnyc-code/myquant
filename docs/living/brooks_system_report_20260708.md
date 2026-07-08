@@ -130,3 +130,21 @@ We are not close to profitable *yet*, but for the first time we know exactly whi
 **Buying ES oversold on the daily works across 3 independent constructions; fading overbought does not.** Equity-index asymmetry (upward drift + oversold reversion). This is the swing/MES-overnight system — 4–13 day holds, overnight risk, cash/eval account (not trailing-DD prop). Per-trade +40 pts is the clean metric; net-$ assumes concurrent signals (portfolio Q). Connors_L: 2023 +19k, 2024 +47k, 2025 −45k, 2026 +21k (3/4 yrs). Files: `mr_test_trades.parquet` (5M), `mr_daily_trades.parquet` (daily).
 
 **REVISED RECOMMENDATION:** the daily long-MR is the strongest, most robust edge in the entire project — stronger than the trend engine we spent S61 on. **Two parallel tracks for next session:** (1) harden the daily long-MR into a real swing system (position sizing, drawdown, MES overnight, true 24h bars from Massive, ensemble of the 3 constructions, the 2025 drawdown); (2) keep fixing the intraday trend engine (regime/count/exits) as the *day-trade* complement for the ~20% trend days. The mean-reversion answer to "what do we do" is: **trade it on the daily, long-biased, as a swing.**
+
+---
+
+## 8. OPTIONS MODEL + DATA STATUS (overnight cont.)
+
+**Account sizing (daily long-MR ensemble, MES, 1 lot/signal):** exp +$196/trade (CI ±$90), PF 2.24, 72% win, 5/5 positive years. BUT no hard stop → worst trade −$2,119; peak 20 concurrent positions → $26k margin; max DD −$18.8k. Recommended account ~$88k. Return ~10%/yr — scales linearly (full ES = ~$92k/yr on ~$880k). Fixes: cap concurrency, add stop, OR use options.
+
+**Options model (VIX as IV proxy, validated r=0.96 vs MentorQ ES IV):** BULL PUT SPREAD (30pt) on the 233 long signals = **PF 2.94, 75% win, defined ~$82 max risk, worst −$84, +every year.** Kills the −$2.7k tail and the 20-lot margin stack (margin ≈ max risk). Naked short put matches futures profit (89% win) but undefined risk. **The put spread is the disciplined vehicle for this edge.** Caveats: VIX proxy (no skew/bid-ask), needs real chain confirmation.
+
+**STRATEGIC PIVOT (user's insight): move this to STOCKS/ETFs.** The daily-MR-long IS the canonical Connors equity strategy (designed for stocks, not futures). SPY = same S&P underlying, world's most liquid options, free-ish chain history. Recommend prototyping on SPY, then a diversified stock basket.
+
+**Chart-ready settings (LONG only, ensemble = any fires):**
+- Connors: RSI(2)<10 AND Close>SMA200; exit Close>SMA5.
+- Bollinger: Close<lower BB(20,2); exit Close>=SMA20.
+- Z-score: (Close-SMA10)/Std10 < -1.5; exit Close>=SMA10.
+- Entry next-day open; 15-bar time stop. Shorts weak (Connors/Z-short mild +, Boll-short −) → longs only.
+
+**DATA STATUS:** VIX ✓ (data/VIX_History.csv). SPY options: the `philippdubach/options-data` GitHub lead was a SEARCH HALLUCINATION (repo does not exist). Real free-ish sources = OptionsDX (signup) or DoltHub post-no-preference/options (user must grab). **⭐ NEEDED FROM USER: 20yr DAILY OHLC (ES ETH + SPY) for multi-decade robustness test — the #1 validation before trusting this edge.** MentorQ levels file only covers 2026-03→07 (4mo) — forward-collect for put_support entry filter.
