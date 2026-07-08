@@ -1,6 +1,35 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 6, 2026 (session 60)
+**Last Updated:** July 8, 2026 (session 61)
+
+---
+
+## S61 (2026-07-08) — Trend-filtered STMR on the user's colored stochastic → tradeable, WFA-validated
+**Deliverable committed:** `docs/living/stmr_stoch_system_20260708.md` (full writeup),
+`scripts/mr_stoch_system.py` (reproduce), `data/ES_stoch_daily.csv` (daily colored-stoch
+export 2009-2026), charts `mr_stoch_system/equity/wfa/bothsides.png`.
+
+**System (final, ES daily, $50/pt; MES = ÷10):** LONG `%K(8)<15 & Close>SMA100`, exit
+`Close>SMA5`, **entry MOC/close (last minutes — beats next-open ~11%)**. Optional regime
+SHORT hedge `%K(8)>85 & SMA50<SMA200 & Close<SMA50`.
+- LONG core: **PF 4.45, +$196k, maxDD −$8.1k, R/DD 24.3, 16/17 yrs**.
+- LONG+SHORT all-weather: **+$228k, R/DD 13.1, 16/17 yrs** (2022 hedge pays).
+
+**Key verdicts (challenge-overfitting held):** (1) the user's 8/1/1 green-zone is a real
+edge; a self-rolled 14/3/3 was garbage. (2) One sensible knob: OS 20→15 on K=8. (3) **WFA
+(12mo IS/4mo OOS): re-optimizing K/OS/trend-length HURTS OOS — fixed SMA100 wins (PF 3.77,
+R/DD 20.2). Lock params, stop tuning.** (4) SMA100 gate turns 2011/2018/2022 (bear whipsaws)
+positive; exit must stay `>SMA5`. (5) Naive symmetric short blows up (−$85k in 2026 rally);
+must gate to confirmed downtrend. (6) z-score adds nothing (redundant with stoch).
+
+**Open next:** multi-timeframe test (in progress); vol-scaled sizing (ATR) = top upgrade;
+VIX/term-structure + breadth filters; diversify across NQ/RTY/ZN/GC; options expression
+(bull-put-spread, PF 2.94) — SPX options trade to 15:15 CT so MOC entry works for both.
+Parked: Brooks intraday engine (regime flip + count WIP); earlier daily-MR ensemble
+superseded by this stochastic build.
+
+---
+
 **Current Versions:** SIM_v3.9 / GS_v4.5 / SHEET_v3.3 *(S32: Prop Sim overhaul — MC-sized payout buffer, monthly 80/20 payouts, ES/MES margin, never-blow floor de-risk + shock model, richer dashboard; MCBreakout pyramiding (N concurrent/dir) + ratchet-lock fix. S31: ZLO exporter + filters, MCBreakout stop fix + ER filter, ZLO sweeps, Auction feature library + tab (Dalton day types), Prop Sim DD-lock. S30: Prop Sim tab, Extras tab, 1M bars, NT strategy. S29: ESA into WFA, session filters, multi-TF, ER10. S28: ESA v2. S27: ESA Phase A. S24: critical slippage off-tick bugfix.)*
 **Rule:** Read this file first every session. It is the only source of truth for current state.
 **Handoff hygiene (S20):** A competing handoff had grown in the `.claude/.../memory/` auto-memory folder and a new chat read *that* instead of this file. Fixed: added repo `CLAUDE.md` + rewrote `.claude` `MEMORY.md` to point here; deleted the duplicate session-state memories. **There is now ONE handoff: this file.**
