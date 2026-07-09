@@ -49,3 +49,6 @@ docs/living/or12_query/
 
 # PB per-trade chart library - regenerable, ~120MB of binaries (do not commit)
 docs/living/pb_trade_library/
+
+# OptionsDX raw SPX chains (4.9GB, local only)
+data/optionsdx/

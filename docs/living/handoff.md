@@ -1,6 +1,47 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 9, 2026 (session 63)
+**Last Updated:** July 10, 2026 (session 64)
+
+---
+
+## S64 (2026-07-10) — Options expression of the STMR signal, validated on REAL SPX chains
+**Data:** OptionsDX SPX EOD chains 2010-2023 extracted to `data/optionsdx/` (4.9GB, **git-ignored**;
+re-extract the `.7z` on Desktop\OptionsDX with 7-Zip). Real bid/ask/IV/delta/greeks.
+
+**Scripts (committed):** `mr_options_strategies.py` (structure bake-off + fill-quality sweep + ADX
+context), `mr_bull_put_spread.py` (full 2010-2023 bull-put run), `mr_options_allweather.py`
+(bull put + regime bear call), `mr_options_real.py` (generic real-options bt). `scratchpad/`
+has the per-year clean chart + compare scripts.
+
+**Key findings (real fills, slip 0.25 = quarter of half-spread, EOD close-to-close):**
+- On the oversold signal, **short-vega credit structures WIN, long-vega LOSE**: 2010 bull put
+  spread +$3.1k / 78% win vs long call **−$8.5k / −40% RoC** (buy spiked IV that crushes on bounce).
+- **Fill quality is the whole ballgame** for spreads (bull-call-spread flips from PF 2.3 at mid to
+  0.7 at full-cross). The old Black-Scholes PF-2.94 was fake (mid, no spread).
+- **Fast SMA5 exit = a stop-loss**: holding to overbought/expiry lets losers hit full max loss
+  (−$4.3k) vs −$232 fast. Rolling = "hold the loser" = worse. Don't.
+- **BULL PUT SPREAD full run 2010-2023:** 146 trades, **84% win, PF 3.78, +$39,383, maxDD −$2,951**,
+  +3.6% RoC/trade, 13/14 yrs green (only 2018, 1 trade, max loss).
+- **COMBINED all-weather (add regime BEAR CALL spread):** 197 trades, 80% win, **+$54,149**, maxDD
+  −$4,406; bear call carries the down-regimes (2022 +$11.8k combined vs +$1.7k bull-only).
+- **Short-put delta sweep:** ~0.30-0.35 is the sweet spot (RoC rises to 0.35, tail blows up at 0.40+).
+- **Settings are conventions, NOT optimized** (30Δ/15Δ/30DTE/SMA5). Optimize later w/ WFA, not now.
+
+**Reality check (honest):** 1 SPX contract needs **~$128k** (peak concurrent collateral $64k @50%).
+**XSP (1/10) is the small-account vehicle:** $10k compounds to ~$22k over 14y = **~5.8%/yr, −11% DD**
+(moderate sizing; aggressive 8.2%/−16%). **Below buy-hold's 9.4% on return, well below on drawdown.**
+XSP's real drag: ~9% fees (vs 1% SPX) + thinner liquidity than SPX/10 assumes. Defined-risk spread
+CANNOT be margin-levered (broker holds max loss). **The 6% ceiling is idleness** — signal fires ~14×/yr,
+deployed ~20% of the time. Real path to more: **T-bill idle cash (+~3%) and/or same engine across
+5-8 uncorrelated instruments** (NQ/RTY/sectors) — not a better single strategy.
+
+**RETRACTED this session:** an earlier "$10k→$89k / +17%/yr" figure — bug: sized each trade vs full
+equity ignoring open collateral (fantasy-stacked concurrency). Correct = ~5.8-8.2%/yr.
+
+**Open next:** (a) T-bill carry on idle cash (honest uplift), (b) multi-instrument portfolio (the real
+lever), (c) MentorQ gamma-regime filter to dodge the max-loss trades, (d) fixed-width spread to cut
+collateral / enable smaller SPX. Playbook (bear call/condor/long-call by ADX+VIX) sketched, only bull
+put + bear call backtested.
 
 ---
 
