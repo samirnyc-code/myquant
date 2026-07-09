@@ -1,6 +1,59 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 10, 2026 (session 64)
+**Last Updated:** July 10, 2026 (session 65)
+
+---
+
+## S65 (2026-07-10) — PA day, BB/SA discovery, instrument compare, CL MicroChannel study
+
+Long, messy session (price-action thread, separate from S64 options). Net: one real
+discovery, several of my own bugs caught by the user, and an honest "not fundable
+standalone" verdict on CL-MC. **Quality was poor today — read the bug list before trusting
+any number that isn't re-run.**
+
+**THE ONE DISCOVERY (validated direction, numbers still soft):**
+- **LIMIT (pullback) entries win; STOP (breakout) entries lose.** On ES, every
+  *buy-below-bull / sell-above-bear* variant with a tight 4t stop is **positive
+  (+0.39–0.45 pt/trade)**; the with-trend breakout **stop-entry is −1.11 pt/trade
+  (−$122k/yr)**. The entry mechanic was the whole prior failure. See
+  `docs/living/intraday_setup_scorecard.md`.
+- **BUT** a RANDOM control (user's idea) exposed a **bar-fill sim artifact**: 5-min
+  bar fills over-count tight-stop winners (~+0.22 pt/trade), and random entries "profit"
+  (impossible). So the real BB/SA edge over random is only **~+0.19 pt/trade** — thin,
+  **MES ≈ breakeven net of $2 costs, ES marginal.** *Everything needs a tick-accurate
+  fill engine before it's believable.* NOT built yet.
+
+**CL MicroChannel (MyMicroChannel CC2–CC5 signal export) — CORRECTED results:**
+- Export format: `idx CCtype Short/Long DD/MM/YYYY HH:MM:SS num p1 p2`. **p1 = entry,
+  p2 = stop** (100% consistent: long p1>p2, short p1<p2). **num = bar-of-session index
+  (max 66 = the 66-bar Nymex-Energy-RTH session 08:00–13:30 CT).** Date is **DD/MM/YYYY**.
+- **Session mismatch:** `data/bars/_continuous_CL.parquet` is the **81-bar equity RTH
+  grid (08:30–15:10)**, NOT the signal's 66-bar Nymex session. Overlap 08:30–13:30 →
+  3,784 of 4,203 signals testable; ~348 pre-08:30 CL-open signals unusable. **Consider
+  rebuilding CL bars on the Nymex Energy RTH session.**
+- **Verdict (risk-relative sim, entry≈signal-bar close, stop=p2, net $2 RT):** marginally
+  positive, **PF 1.13–1.17, thin.** Best cell **CC3 @3R: +0.083R, PF 1.17, ~+$456/yr per
+  MCL, maxDD ~$2k.** CC5 is dead (−$1,532). **Not a fundable standalone.** Most trades
+  never reach the wide (~0.54pt) p2 stop OR the far target — they **expire at EOD near
+  flat**, so exit design (not the signal) is where money would come from.
+- **STILL OPEN (approved, not run):** the 2×2 — entry {p1-breakout vs limit-pullback} ×
+  stop {p2-channel vs 1t-beyond-bar}, target sweep, per CC type. Script ready:
+  `scratchpad/mc_cl4.py`. Also: CC3 as a **confluence gate on ES BB/SA** (where the
+  trade-count lives), and attack the CC3 **exit** (time-stop / scalp-and-hold vs far 3R).
+
+**MY BUGS THIS SESSION (do not repeat):**
+1. **Date parsed as MM/DD/YYYY when file is DD/MM/YYYY** → dropped ~60% of signals and
+   swapped month/day on the rest. Produced a **fake "+0.229R CC3"** that is INVALID.
+   Always confirm date order against a day>12 sample.
+2. **Points vs ticks** — mixed target-in-points with stop-in-ticks → fake 4:1 RR (+$283k
+   fantasy). CL point=$1000/MCL=$100; tick=0.01. Keep units explicit.
+3. **Claimed "NQ trends more than ES"** — WRONG; ES/NQ/CL all ~0.11 ER (identical
+   trendiness), NQ just more volatile. Don't assert without a chart.
+4. **Trendline replication** — repeated failures; **SHELVED entirely** per user. Do not
+   reopen without a hard rule set (Thomas/Cadaver method) and explicit ask.
+
+**Charts:** `docs/living/cc3_cl_trade.png` (illustrative CC3 winner — cherry-picked, NOT
+representative). Structure/regime work from earlier is in S63 block below.
 
 ---
 
