@@ -147,6 +147,7 @@ def run_day(g, tP, tbar):
 
     # ---- one pass: new regime + TRIANGLE entries (IGNORE_IB) ----
     entries = []
+    reg = np.zeros(n, dtype=int)          # regime timeline (for exit-at-flip)
     regime = 0; opened = False
     conf_LH = conf_HL = None
     ecS = 0; refS = None; refSb = None; orgS = None
@@ -263,48 +264,44 @@ def run_day(g, tP, tbar):
         if regime != _pr:                              # regime age tracking
             if regime != 0: regime_start_bar = i
             _pr = regime
+        reg[i] = regime
 
-    # ---- trade (identical; skip 3rd entries) ----
+    # ==== REALISTIC: one position per regime, exit at the regime flip ==========
+    # Enter on the FIRST IB/OB signal of a regime; hold until the regime leaves our
+    # direction (flip to neutral/opposite) or a swing stop (2xABR); flat by EOD.
+    STOPMULT = 2.0
     out = []
+    traded_ep = set()
     for (fb, sb, dr, cnt, trig, setup, pf, frac, er, withday, regage) in entries:
-        if NO_3RD and cnt >= 3:
+        if setup not in ("IB", "OB"):          # N is confirmed bleed
             continue
+        ep = fb - regage                        # regime episode id (its start bar)
+        if ep in traded_ep:
+            continue                            # already one position for this regime
         short = dr == "S"
         a, z = tick_slice(fb); s = tP[a:z]
         hit = np.nonzero(s <= trig)[0] if short else np.nonzero(s >= trig)[0]
         if not len(hit):
-            continue
+            continue                            # not filled this bar; allow a later signal
+        traded_ep.add(ep)
         jf = a + int(hit[0])
         fill = trig - TICK if short else trig + TICK
-        stop = H[sb] + TICK if short else L[sb] - TICK
-        R = (stop - fill) if short else (fill - stop)
-        if R <= 0:
-            continue
-        seg = tP[jf:]
-        js_ = np.nonzero(seg >= stop)[0] if short else np.nonzero(seg <= stop)[0]
-        js = js_[0] if len(js_) else np.inf
-        fav = (fill - seg.min()) if short else (seg.max() - fill)
-        mfe = fav / R                                       # max favorable excursion in R
-        mae = (seg.max() - fill) if short else (fill - seg.min())   # adverse excursion (pts)
-        fin = (fill - seg[-1]) if short else (seg[-1] - fill)       # EOD pnl (pts, signed)
-        sbibs = IBS[sb] if not short else (100 - IBS[sb])           # SB IBS in trade dir
-        abr_e = ABR[fb]                                             # ABR at entry bar
-        ctx = (mae, fin, sbibs, abr_e)
-        for k, book in ((1.0, "1R"), (1.5, "1.5R"), (2.0, "2R"), (3.0, "3R")):
-            tgt = fill - k * R if short else fill + k * R
-            jt_ = np.nonzero(seg <= tgt)[0] if short else np.nonzero(seg >= tgt)[0]
-            jt = jt_[0] if len(jt_) else np.inf
-            if js <= jt: ex = stop
-            elif np.isfinite(jt): ex = tgt
-            else: ex = tP[-1]
-            pnl = (fill - ex) if short else (ex - fill)
-            out.append((dr, cnt, setup, int(pf), book, pnl / R, pnl * PT - COMM, R, mfe,
-                        frac, er, withday, regage) + ctx)
-        # hold to EOD (exit at last tick unless stopped first)
-        ex = stop if np.isfinite(js) else tP[-1]
-        pnl = (fill - ex) if short else (ex - fill)
-        out.append((dr, cnt, setup, int(pf), "EOD", pnl / R, pnl * PT - COMM, R, mfe,
-                    frac, er, withday, regage) + ctx)
+        swing = STOPMULT * max(ABR[fb], TICK)
+        dsign = -1 if short else 1
+        ex_bar = n - 1                          # default: trend holds to EOD
+        for bb in range(fb + 1, n):
+            if reg[bb] != dsign:                # regime left our direction -> exit here
+                ex_bar = bb; break
+        z_ex = np.searchsorted(tbar, ex_bar, "right")
+        seg = tP[jf:max(z_ex, jf + 1)]
+        adv = (seg >= fill + swing) if short else (seg <= fill - swing)
+        if adv.any():
+            expx = -swing; kind = "stop"
+        else:
+            expx = (fill - seg[-1]) if short else (seg[-1] - fill); kind = ("flip" if ex_bar < n-1 else "eod")
+        sbibs = IBS[sb] if not short else (100 - IBS[sb])
+        out.append((dr, setup, round(frac, 3), round(sbibs, 1), int(withday),
+                    expx / swing, expx * PT - COMM, swing, ex_bar - fb, kind))
     return out
 
 
@@ -326,38 +323,29 @@ for di, d in enumerate(days):
         print(d, "ERR", e)
     del tk, tP, tbar; gc.collect()
     if (di + 1) % 50 == 0:
-        print(f"[{di+1}/{len(days)}] rows={len(rows)} ({time.time()-t0:.0f}s)", flush=True)
+        print(f"[{di+1}/{len(days)}] trades={len(rows)} ({time.time()-t0:.0f}s)", flush=True)
 
-df = pd.DataFrame(rows, columns=["Date", "dir", "count", "setup", "pf", "book", "R", "net", "Rpts", "mfe",
-                                 "frac", "er", "withday", "regage", "mae", "fin", "sbibs", "abr_e"])
-df.to_parquet(ROOT / "docs" / "living" / "brooks_sim_trades_v3.parquet")
-ntr = len(df[df.book == "1R"])
-print(f"\nDONE {time.time()-t0:.0f}s  days={len(days)}  trades={ntr}")
+df = pd.DataFrame(rows, columns=["Date", "dir", "setup", "frac", "sbibs", "withday",
+                                 "R", "net", "swing", "hold", "kind"])
+df.to_parquet(ROOT / "docs" / "living" / "brooks_sim_regime.parquet")
+print(f"\nDONE {time.time()-t0:.0f}s  days={len(days)}  trades={len(df)}  (~{len(df)/254:.1f}/day)")
 
 
 def blk(sub, label):
-    if not len(sub): return
-    ci = 1.96 * sub["R"].std() / np.sqrt(len(sub))
-    print(f"  {label:26s} n={len(sub):5d}  meanR {sub['R'].mean():+.3f} ±{ci:.3f}  "
-          f"win {(sub['R']>0).mean()*100:4.1f}%  net ${sub['net'].sum():>10,.0f}")
+    if len(sub) < 10:
+        print(f"  {label:28s} n={len(sub):4d}  (few)"); return
+    gp = sub.net[sub.net > 0].sum(); gl = -sub.net[sub.net < 0].sum(); pf = gp/gl if gl else 9
+    eq = sub.groupby("Date")["net"].sum().sort_index().cumsum(); dd = (eq.cummax()-eq).max()
+    print(f"  {label:28s} n={len(sub):4d}  avgR{sub['R'].mean():+.3f}  win{(sub['R']>0).mean()*100:4.1f}%  "
+          f"PF{pf:.2f}  net${sub['net'].sum():>8,.0f}  DD${dd:>7,.0f}  hold{sub['hold'].mean():4.1f}b")
 
 
-for book in ["1R", "1.5R", "2R", "3R", "EOD"]:
-    d2 = df[df.book == book]
-    print(f"\n================ TARGET {book} ================")
-    blk(d2, "ALL")
-    print(" -- by count --")
-    for c in (1, 2): blk(d2[d2["count"] == c], f"count {c}")
-    print(" -- by setup (arm bar) --")
-    for st in ("IB", "OB", "N"): blk(d2[d2["setup"] == st], f"setup {st}")
-    print(" -- first entry after a flip --")
-    blk(d2[d2["pf"] == 1], "post-flip (1st only)")
-    blk(d2[d2["pf"] == 0], "not post-flip")
-    print(" -- dir x count --")
-    for dr in ("L", "S"):
-        for c in (1, 2): blk(d2[(d2["dir"] == dr) & (d2["count"] == c)], f"{dr}{c}")
-    print(" -- count x setup --")
-    for c in (1, 2):
-        for st in ("IB", "OB", "N"): blk(d2[(d2["count"] == c) & (d2["setup"] == st)], f"{c} x {st}")
-print("\nMFE (median R reached): "
-      + "  ".join(f"{st}={df[(df.book=='1R')&(df.setup==st)]['mfe'].median():.2f}" for st in ("IB", "OB", "N")))
+print("\n=== ONE POSITION / REGIME, EXIT AT FLIP (swing 2xABR stop, flat EOD) ===")
+blk(df, "ALL (IB+OB)")
+for st in ("IB", "OB"): blk(df[df.setup == st], f"setup {st}")
+blk(df[df.frac < 0.33], "MORNING")
+blk(df[df.sbibs >= 60], "SB-IBS>=60")
+blk(df[df.withday == 1], "with-day")
+blk(df[(df.frac < 0.33) & (df.sbibs >= 60)], "morning + IBS>=60")
+blk(df[(df.frac < 0.33) & (df.sbibs >= 60) & (df.setup == "IB")], "morning + IBS>=60 + IB")
+print("  exit mix:", df["kind"].value_counts().to_dict())

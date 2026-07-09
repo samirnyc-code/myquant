@@ -34,6 +34,11 @@ def run_day(g, tP, tbar):
         if i >= K:
             den = np.abs(np.diff(C[i-K:i+1])).sum()
             ER[i] = abs(C[i] - C[i-K]) / den if den > 0 else 0.0
+    ema = pd.Series(C).ewm(span=20, adjust=False).mean().values      # EMA20 on closes
+    eslope = np.zeros(n)                                             # signed slope in ABR units/bar
+    for i in range(n):
+        if i >= 3:
+            eslope[i] = (ema[i] - ema[i-3]) / 3.0 / max(ABR[i], TICK)
 
     def btype(i, p):
         eqH = H[i] == H[p]; eqL = L[i] == L[p]
@@ -199,7 +204,7 @@ def run_day(g, tP, tbar):
                 if refS is not None and L[i] < refS - TICK/2:
                     ecS += 1; es_fired = True
                     entries.append((i, refSb, "S", min(ecS, 3), refS - TICK, refS_kind, int(flip_pending),
-                                    i/n, ER[i], int(C[i] < O[0]), i - regime_start_bar))
+                                    i/n, ER[i], int(C[i] < O[0]), i - regime_start_bar, eslope[i]))
                     flip_pending = False
                     if regime == 0 and not opened:
                         regime = -1; opened = True; ecL = 0; refLo = refLb = orgL = None; ecS = 0
@@ -220,7 +225,7 @@ def run_day(g, tP, tbar):
                 if refLo is not None and H[i] > refLo + TICK/2:
                     ecL += 1; el_fired = True
                     entries.append((i, refLb, "L", min(ecL, 3), refLo + TICK, refL_kind, int(flip_pending),
-                                    i/n, ER[i], int(C[i] > O[0]), i - regime_start_bar))
+                                    i/n, ER[i], int(C[i] > O[0]), i - regime_start_bar, eslope[i]))
                     flip_pending = False
                     if regime == 0 and not opened:
                         regime = 1; opened = True; ecS = 0; refS = refSb = orgS = None; ecL = 0
@@ -264,9 +269,15 @@ def run_day(g, tP, tbar):
             if regime != 0: regime_start_bar = i
             _pr = regime
 
-    # ---- trade (identical; skip 3rd entries) ----
+    # ---- STOP x TARGET matrix (exact tick order) ----
+    STOPS = [("SB", None), ("A1", 1.0), ("A1.5", 1.5), ("A2", 2.0)]   # None=signal bar; else xABR
+    TGTS = [("t3", 3.0), ("t5", 5.0), ("t8", 8.0), ("t12", 12.0), ("EOD", None)]
+
+    def first(cond):
+        return int(np.argmax(cond)) if cond.any() else 10**9
+
     out = []
-    for (fb, sb, dr, cnt, trig, setup, pf, frac, er, withday, regage) in entries:
+    for (fb, sb, dr, cnt, trig, setup, pf, frac, er, withday, regage, eslp) in entries:
         if NO_3RD and cnt >= 3:
             continue
         short = dr == "S"
@@ -276,35 +287,61 @@ def run_day(g, tP, tbar):
             continue
         jf = a + int(hit[0])
         fill = trig - TICK if short else trig + TICK
-        stop = H[sb] + TICK if short else L[sb] - TICK
-        R = (stop - fill) if short else (fill - stop)
-        if R <= 0:
+        sbR = (H[sb] + TICK - fill) if short else (fill - (L[sb] - TICK))
+        if sbR <= 0:
             continue
         seg = tP[jf:]
-        js_ = np.nonzero(seg >= stop)[0] if short else np.nonzero(seg <= stop)[0]
-        js = js_[0] if len(js_) else np.inf
-        fav = (fill - seg.min()) if short else (seg.max() - fill)
-        mfe = fav / R                                       # max favorable excursion in R
-        mae = (seg.max() - fill) if short else (fill - seg.min())   # adverse excursion (pts)
-        fin = (fill - seg[-1]) if short else (seg[-1] - fill)       # EOD pnl (pts, signed)
-        sbibs = IBS[sb] if not short else (100 - IBS[sb])           # SB IBS in trade dir
-        abr_e = ABR[fb]                                             # ABR at entry bar
-        ctx = (mae, fin, sbibs, abr_e)
-        for k, book in ((1.0, "1R"), (1.5, "1.5R"), (2.0, "2R"), (3.0, "3R")):
-            tgt = fill - k * R if short else fill + k * R
-            jt_ = np.nonzero(seg <= tgt)[0] if short else np.nonzero(seg >= tgt)[0]
-            jt = jt_[0] if len(jt_) else np.inf
-            if js <= jt: ex = stop
-            elif np.isfinite(jt): ex = tgt
-            else: ex = tP[-1]
-            pnl = (fill - ex) if short else (ex - fill)
-            out.append((dr, cnt, setup, int(pf), book, pnl / R, pnl * PT - COMM, R, mfe,
-                        frac, er, withday, regage) + ctx)
-        # hold to EOD (exit at last tick unless stopped first)
-        ex = stop if np.isfinite(js) else tP[-1]
-        pnl = (fill - ex) if short else (ex - fill)
-        out.append((dr, cnt, setup, int(pf), "EOD", pnl / R, pnl * PT - COMM, R, mfe,
-                    frac, er, withday, regage) + ctx)
+        abr_e = max(ABR[fb], TICK)
+        sbibs = IBS[sb] if not short else (100 - IBS[sb])
+        wslope = int((eslp < 0) if short else (eslp > 0))          # trade agrees with EMA slope
+        aslope = round(abs(eslp), 3)
+
+        def adv_first(x):    # adverse move of x pts from fill
+            return first((seg >= fill + x) if short else (seg <= fill - x))
+
+        def fav_first(x):    # favorable move of x pts from fill
+            return first((seg <= fill - x) if short else (seg >= fill + x))
+
+        jstop = {}
+        for sn, mult in STOPS:
+            sd = sbR if mult is None else mult * abr_e
+            jstop[sn] = (adv_first(sd), sd)
+        jtgt = {}
+        for tn, td in TGTS:
+            jtgt[tn] = ((10**9, None) if td is None else (fav_first(td), td))
+        finpts = (fill - seg[-1]) if short else (seg[-1] - fill)
+        for sn, (js, sd) in jstop.items():
+            for tn, (jt, td) in jtgt.items():
+                if js < jt:
+                    exp = -sd
+                elif td is not None and jt < 10**9:
+                    exp = td
+                else:
+                    exp = finpts
+                out.append((dr, cnt, setup, int(withday), round(frac, 3), round(sbibs, 1),
+                            wslope, aslope, sn, tn, exp / sd, exp * PT - COMM))
+            for rk in (1.0, 2.0, 3.0):                 # R-multiple targets (RR relative to THIS stop)
+                jr = fav_first(rk * sd)
+                if js < jr:
+                    exp = -sd
+                elif jr < 10**9:
+                    exp = rk * sd
+                else:
+                    exp = finpts
+                out.append((dr, cnt, setup, int(withday), round(frac, 3), round(sbibs, 1),
+                            wslope, aslope, sn, f"{int(rk)}R", exp / sd, exp * PT - COMM))
+        # BE management on the swing (A2) stop: move stop to fill after +be pts, hold to EOD
+        swing = 2.0 * abr_e; t_sw = adv_first(swing)
+        for be in (1.0, 2.0):
+            t_tr = fav_first(be)
+            if t_sw < t_tr:
+                exp = -swing
+            else:
+                after = seg[t_tr:]
+                back = first((after >= fill) if short else (after <= fill))   # return to BE
+                exp = 0.0 if back < 10**9 else finpts
+            out.append((dr, cnt, setup, int(withday), round(frac, 3), round(sbibs, 1),
+                        wslope, aslope, "A2", f"BE{int(be)}", exp / swing, exp * PT - COMM))
     return out
 
 
@@ -328,36 +365,33 @@ for di, d in enumerate(days):
     if (di + 1) % 50 == 0:
         print(f"[{di+1}/{len(days)}] rows={len(rows)} ({time.time()-t0:.0f}s)", flush=True)
 
-df = pd.DataFrame(rows, columns=["Date", "dir", "count", "setup", "pf", "book", "R", "net", "Rpts", "mfe",
-                                 "frac", "er", "withday", "regage", "mae", "fin", "sbibs", "abr_e"])
-df.to_parquet(ROOT / "docs" / "living" / "brooks_sim_trades_v3.parquet")
-ntr = len(df[df.book == "1R"])
+df = pd.DataFrame(rows, columns=["Date", "dir", "count", "setup", "withday", "frac", "sbibs",
+                                 "wslope", "aslope", "stop", "target", "R", "net"])
+df.to_parquet(ROOT / "docs" / "living" / "brooks_sim_matrix.parquet")
+ntr = len(df[(df.stop == "SB") & (df.target == "EOD")])
 print(f"\nDONE {time.time()-t0:.0f}s  days={len(days)}  trades={ntr}")
+STOPS = ["SB", "A1", "A1.5", "A2"]; TGTS = ["1R", "2R", "3R", "t8", "EOD", "BE1", "BE2"]
 
 
-def blk(sub, label):
-    if not len(sub): return
-    ci = 1.96 * sub["R"].std() / np.sqrt(len(sub))
-    print(f"  {label:26s} n={len(sub):5d}  meanR {sub['R'].mean():+.3f} ±{ci:.3f}  "
-          f"win {(sub['R']>0).mean()*100:4.1f}%  net ${sub['net'].sum():>10,.0f}")
+def matrix(sub, title):
+    print(f"\n===== {title}  (n={len(sub)//(len(STOPS)*len(TGTS))}) =====")
+    for metric in ("win%", "avgR", "net$", "PF"):
+        print(f"  [{metric}]   " + "  ".join(f"{t:>7}" for t in TGTS))
+        for sn in STOPS:
+            cells = []
+            for tn in TGTS:
+                c = sub[(sub.stop == sn) & (sub.target == tn)]
+                if metric == "win%": v = f"{(c.R>0).mean()*100:6.1f}"
+                elif metric == "avgR": v = f"{c.R.mean():+6.3f}"
+                elif metric == "net$": v = f"{c.net.sum():7.0f}"
+                else:
+                    gp = c.net[c.net > 0].sum(); gl = -c.net[c.net < 0].sum()
+                    v = f"{(gp/gl if gl else 9):6.2f}"
+                cells.append(f"{v:>7}")
+            print(f"  {sn:5s}      " + "  ".join(cells))
 
 
-for book in ["1R", "1.5R", "2R", "3R", "EOD"]:
-    d2 = df[df.book == book]
-    print(f"\n================ TARGET {book} ================")
-    blk(d2, "ALL")
-    print(" -- by count --")
-    for c in (1, 2): blk(d2[d2["count"] == c], f"count {c}")
-    print(" -- by setup (arm bar) --")
-    for st in ("IB", "OB", "N"): blk(d2[d2["setup"] == st], f"setup {st}")
-    print(" -- first entry after a flip --")
-    blk(d2[d2["pf"] == 1], "post-flip (1st only)")
-    blk(d2[d2["pf"] == 0], "not post-flip")
-    print(" -- dir x count --")
-    for dr in ("L", "S"):
-        for c in (1, 2): blk(d2[(d2["dir"] == dr) & (d2["count"] == c)], f"{dr}{c}")
-    print(" -- count x setup --")
-    for c in (1, 2):
-        for st in ("IB", "OB", "N"): blk(d2[(d2["count"] == c) & (d2["setup"] == st)], f"{c} x {st}")
-print("\nMFE (median R reached): "
-      + "  ".join(f"{st}={df[(df.book=='1R')&(df.setup==st)]['mfe'].median():.2f}" for st in ("IB", "OB", "N")))
+IBOB = df[df.setup.isin(["IB", "OB"])]
+matrix(IBOB, "IB+OB (all day)")
+matrix(IBOB[IBOB.frac < 0.33], "IB+OB MORNING")
+matrix(IBOB[(IBOB.frac < 0.33) & (IBOB.sbibs >= 60)], "IB+OB MORNING + SB-IBS>=60")

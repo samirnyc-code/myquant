@@ -4,11 +4,27 @@
 
 ---
 
-## S62 (2026-07-09) — ⭐ Brooks engine: regime FLIP rule redesigned + FIRST POSITIVE SIM SIGNAL
+## S62 (2026-07-09) — Brooks engine regime redesign — ⛔ REGIME IS BROKEN; ALL SIM RESULTS INVALID
+
+> ⛔ **CORRECTION (end of session, user-caught): THE REGIME STATE MACHINE DOES NOT
+> TRACK TREND.** On a clean UPTREND (2022-02-24: HH1→HH10) it painted **bear all day**;
+> on a clean DOWNTREND (2022-04-12: LH1→LH9, LL1→LL7) it painted **bull all day** — it
+> fails in BOTH directions. Root cause (2/24 trace): the **failed-flip revert** (+ flip
+> machinery) FREEZES the regime on the wrong side — once mis-set, a single counter-entry
+> reverts it right back, and in a grind counter-entries fire constantly, so it never
+> recovers. **Because the regime is inverted/frozen, EVERY sim result below (PF 1.54,
+> the morning/IBS/EOD/one-position numbers, all of it) is WORTHLESS — it was trading an
+> inverted regime.** Do not trust or share any S62 sim number. **NEXT SESSION: fix the
+> regime FIRST — a clean HH/HL sequence must hold BULL, a clean LH/LL sequence must hold
+> BEAR — using 2022-04-12 (must read bear) and 2022-02-24 (must read bull) as the test
+> cases. No sim means anything until those two days read correctly.** The revert/flip
+> logic almost certainly needs to be scrapped or gated so it cannot lock against obvious
+> structure. Charts that exposed it: `regime_day_20220224.png`, `regime_day_20220412.png`.
 
 **Thread: the S61 Brooks entry engine (`scripts/brooks_entry_engine_day_ticks.py`).**
 Rebuilt the regime model bar-by-bar WITH the user; then sim-tested. All rules below
 were dictated/validated by the user 2026-07-09. Do NOT "improve" without asking.
+**⚠️ The A/B numbers below are recorded for reference only and are INVALID (broken regime).**
 
 ### A. New engine rules (all toggles, in `brooks_entry_engine_day_ticks.py`)
 - **IGNORE_IB** (True): legs/structure ignore inside bars; entries arm off the bar
