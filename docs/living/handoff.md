@@ -1,6 +1,52 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 9, 2026 (session 62)
+**Last Updated:** July 9, 2026 (session 63)
+
+---
+
+## S63 (2026-07-09) — Brooks STRUCTURE engine rebuilt bar-by-bar with user (pivots + triangles + TTR)
+
+**New file: `scripts/brooks_structure_engine.py`** — a clean, from-scratch structure
+layer built interactively WITH the user (do NOT "improve" without asking). This is a
+detour from the S62 regime bug: instead of patching the broken regime state machine,
+we rebuilt the underlying structure primitives the regime should stand on. Regime
+wiring (bull=HH+HL, bear=LH+LL, triangles/TTR=neutral) is the NEXT step, not done yet.
+
+**Layers (all bar-close labeled, 1-indexed: bar 1 = first bar's close):**
+1. **Two-bar labels** — each bar vs prior: H (broke prior high only), L (broke prior
+   low only), OB (both), IB (neither), equal→both. 5 outcomes, user-validated.
+2. **Swing pivots** — legs from the two-bar rule; **OB bars decomposed by FIRST-BREAK
+   TICK ORDER** (down-first→low then high; up-first→high then low; needs ticks — the one
+   place bar data can't resolve). Turning points tagged HH/LH (vs prior swing high) /
+   HL/LL (vs prior swing low); **bar 1 seeds the first labels** (→ b5 HH, b8 HL on 2/24).
+3. **Triangles** (state = which of HH/LH × HL/LL is current):
+   - **CONTRACTING** = LH + HL converging; 2 straight boundary lines (first→last high,
+     first→last low); breakout ends it.
+   - **EXPANDING** = **5-point broadening** P1..P5, highs rising + lows falling. Scan ALL
+     valid 5-windows; **reject window whose final leg is a disproportionate breakout
+     (>2.2× prior legs); keep latest-starting on overlap.** (2/24→[69,69,71,72,72];
+     4/1→[32,34,34,36,38] — both user-confirmed.)
+4. **TTR (tight range)** — bar-level, NO pivots (pivots lag; bar micro-features lead).
+   Trigger = **EMA20 "flat"** (≥2 direction-changes / 8 bars — the whipsaw — OR 4-bar
+   drift < 0.20 ATR) **AND contained band < 2.5 ATR.** Key lesson: compression alone
+   (small bars, overlap, low penetration) can't separate a TTR from a tight *channel* —
+   **EMA direction-change is the discriminator** (channel/opening hold one EMA direction;
+   TTR whipsaws). Boundaries drawn as **ZONES**: bottom = lowest low→lowest close,
+   top = highest close→highest high (**bodies contained; wick pokes & fBOs allowed** —
+   a body may poke out only if it snaps right back = failed breakout).
+
+**User's TTR-by-eye feature list (captured for future refinement):** bar overlap %,
+penetration past prior extreme (fails in TR), lack of consecutive same-dir bars, small
+bars, IB/OB density (hallmark, but OB-heavy trends also score high — IBs more TR-specific),
+EMA slope flatness, EMA direction-change, EMA slope-delta (barely-visible drift = still
+flat), 2 parallel flat lines best-fit to extremes + O/C with bodies inside.
+
+**Charts:** `docs/living/tri_<YYYYMMDD>.png` (run `python scripts/brooks_structure_engine.py
+[YYYY-MM-DD|rand]`). Validated 2/24 (build day), spot-checked 4/1, 4/2, 12/6, others.
+
+**NEXT:** (1) user has an extensive PA manual to study for this structure/TTR work;
+(2) wire structure → regime (the actual S62 fix); (3) more TTR edge cases (4/2 b58-66
+was a clean TTR the detector should catch — verify/tune).
 
 ---
 
