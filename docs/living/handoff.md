@@ -44,9 +44,29 @@ flat), 2 parallel flat lines best-fit to extremes + O/C with bodies inside.
 **Charts:** `docs/living/tri_<YYYYMMDD>.png` (run `python scripts/brooks_structure_engine.py
 [YYYY-MM-DD|rand]`). Validated 2/24 (build day), spot-checked 4/1, 4/2, 12/6, others.
 
-**NEXT:** (1) user has an extensive PA manual to study for this structure/TTR work;
-(2) wire structure → regime (the actual S62 fix); (3) more TTR edge cases (4/2 b58-66
-was a clean TTR the detector should catch — verify/tune).
+**PA manual studied → `docs/living/ninetrans_study.md`:** deep extraction of *Nine Transitions*
+(Cadaver, 405pp Emini PA) via 9 parallel reader-agents. Categorized actionable master table
+(TREND / TR / TRANSITION / BREAKOUT / EXECUTION / CONTEXT), the 9-transitions setup chart, MM
+number card, day-type taxonomy, and a **mapping to our infra** (what's testable now). His framework
+IS our regime/triangle/TTR work in discretionary form. **Two claims ground-truthed on our 1,260-day
+ES set:** day range ≈ **5.19× first-bar range** (verified nowcast); gap → **range not direction**
+(ER flat ~0.11 across gap quartiles — matches S60 IB-width lesson). Study is uncommitted (offer to commit).
+
+**⛔ CADAVER TRENDLINE THREAD — SHELVED (user call, end of S63).** Attempted to build Thomas/Cadaver's
+trendline method (anchored shallowest hull on swing pivots + mTL on every bar, open-adoption regime,
+accelerated lines, bar-by-bar causal replay PDF). Deliverables preserved but shelved:
+`scripts/experimental/cad_trendlines_SHELVED.py`, `cad_tl_backtest_SHELVED.py`, `docs/living/tl_*.png`,
+`docs/living/tl_replay_20220224.pdf`. **VERDICT: no regime alpha.** The naive causal TL-poke backtest
+(all 1,260 days, R=2) came out **dead breakeven — 33.3% win, +0.00R, and steepness did NOT help**
+(Q3 best +0.026R, steepest quartile −0.010R). The discretionary drawing (anchor/2nd-touch/side-switch
+rules) never converged to something faithful AND tradeable; not worth further effort per user. The
+`ninetrans_study.md` extraction is still a useful reference ledger — keep it, mine specific setups
+later if ever, but the TL-as-regime-primitive idea is dead.
+
+**NEXT (regime work continues WITHOUT the Cad TL detour):** (1) wire the S63 structure engine
+(pivots/HH-HL-LH-LL, OB tick-order, triangles, TTR) → regime, per the S62 invariant (clean HH/HL holds
+BULL, clean LH/LL holds BEAR); (2) other testable edges from the study if wanted (deep-PB/MAE→5t-stop,
+tick-failure fades); (3) TTR edge cases (4/2 b58-66).
 
 ---
 
