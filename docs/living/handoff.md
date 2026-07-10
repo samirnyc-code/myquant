@@ -28,21 +28,26 @@ of days is ideal). For a **fade-on-touch entry there's ~no edge** (~50%); only C
 0DTE is even actionable (touched ~half of days). Decomposition math validated — every
 level's `never_reached + comeback == positive_outcomes` self-check passes.
 
-**What's built (`gamma_tracker/`, all committed):**
+**What's built (`gamma_tracker/`, all committed — AUTO-SCRAPER FULLY WORKING):**
 - `ingest.py` — morning/evening JSON → `gamma.db`, decomposition self-check
 - `report.py` — `drift` (positive-count over time → is the 3yr window rolling?),
   `decomp`, `calib` (advertised vs. logged-real hold rate)
-- `scrape.py` — Playwright: login + session persist, click each level, `parse_detail()`
-  regex extraction (**self-tested offline: `scrape.py parse-test` = OK**), auto-ingest
-- `schema.sql` — `daily_levels` + `v_decomposition` view. `.env`/`gamma.db` gitignored.
+- `scrape.py` — Playwright, **verified E2E headless**: loads saved session
+  (`auth_state.json`), clicks each level, scrapes detail, auto-ingests. Selectors
+  pinned from live DOM: level = `button` with exact-text name span (exact matters:
+  "Call Res." ⊂ "Call Res. 0DTE"); detail = `div:has(> p:has-text("positive
+  outcomes"))`. Parser normalizes **Unicode minus (U+2212)** — TradingView renders
+  Put-side negatives with it (they were coming back null). `parse-test` covers +/−.
+- `schema.sql` — `daily_levels` + `v_decomposition` view. `.env`/`gamma.db`/
+  `auth_state.json`/`discover_page.html` gitignored.
 
-**NEXT — one-time discover run on the PC to finish automation:**
-Tile is a TradingView widget at `dashboard.menthorq.io/.../indicators=levelsBacktesting`;
-requires adding the **"Gamma Levels | Backtesting"** indicator to the chart first (saves
-to layout). Run `pip install -r requirements.txt && playwright install chromium`, fill
-`.env`, `python scrape.py discover` → sends back `discover_page.html` +
-`screenshots/discover_full.png` so the 2 click selectors (`SEL_LEVEL_ITEM`,
-`SEL_DETAIL_PANEL`) can be pinned, then wrap `scrape.py run --date` in Task Scheduler.
+**Daily use:** `cd gamma_tracker && python scrape.py run` (defaults to today) — pulls all
+6 SPX levels headlessly and ingests. One-time setup done (playwright+dotenv installed,
+`.env` has creds, session saved, Backtesting indicator added to chart layout).
+
+**NOT scheduled yet (user's call):** deferred the Windows Task Scheduler entry until the
+MenthorQ stats-refresh time is confirmed with Fabio (D11–12 in note 0010). Wrap
+`python scrape.py run` in schtasks when ready.
 
 **STILL OPEN:** (1) position-sizing model — user parked it; needs conditional-vs-headline
 prob choice + bet model (fixed-fractional / Kelly / tiered). (2) "Two-number suggestion"
