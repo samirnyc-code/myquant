@@ -52,3 +52,5 @@ docs/living/pb_trade_library/
 
 # OptionsDX raw SPX chains (4.9GB, local only)
 data/optionsdx/
+
+data/massive_options/

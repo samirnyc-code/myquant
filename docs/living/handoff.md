@@ -1,6 +1,81 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 10, 2026 (session 67)
+**Last Updated:** July 11, 2026 (session 68)
+
+---
+
+## S68 (2026-07-11, PC) — Ran the S67 condor/DTE/width sweep; Massive options data scoped
+
+Executed the S67 iron-condor spec end-to-end on the PC (data + scripts live here; the S67
+"MISSING FROM GIT" warning was a Mac artifact — all 4 options scripts were committed here).
+Then spent the session scoping options data sources for the next phase.
+
+**⭐ OPTIONS STRUCTURE SWEEP (`scripts/mr_options_condor.py`)** — same 146 STMR bull-put
+entries, same fill model (mid ± 0.25·half-spread, $4/spread), baseline reproduced to the
+dollar (146 / 84% / PF 3.78 / +$39,383 / maxDD −$2,951). One comparison table, not a joint fit.
+- **Iron condor LOSES to plain BPS.** Adding a bear-call leg *lowers* total return
+  ($28–31k vs $39k) AND lowers RoC-on-peak-capital (51–53% vs 61.5%) — the STMR *bounce*
+  runs into the short calls, so the call credit doesn't pay for itself. It only helps tail
+  (maxDD −$1.4k vs −$2.9k). Condor hypothesis-to-beat FAILED.
+- **Exit rule settled: close BOTH sides.** Letting the call ride the fade (put-only) is a
+  disaster — breach 34–45%, PF ≈1, maxDD to −$41k. Confirms S67 prior.
+- **DTE sweep: 14DTE is the sweet spot** (matches S67 prior): highest total of the sweep
+  (+$40,480), ⅔ the peak capital ($43k vs $64k), RoC/pk 93% vs 61.5%. 7DTE "breaks the loss
+  profile" as predicted (avg loser −$2,445, maxDD −$9,632). Coverage: aDTE matched cleanly
+  even 2010–11 in this run.
+- **Fixed-width 50pt** kills the $22k tail collateral: peak cap $21k (⅓ of baseline),
+  RoC/pk 102%, ~half the return. Directly answers "ties up a lot to earn little."
+
+**⭐ PROPER 14DTE/50pt BPS TEST (`scripts/mr_bps_14d50_proper.py`)** — user asked for
+**bid/ask fill** (sell bid / buy ask, both legs both ends) + **realistic per-contract SPX
+fees** ($1.30/contract, entry 2 + exit 2 legs; cash-settle expiry = 0 close fee).
+- **Bid/ask headline: 146 trades, 85% win, PF 1.93, +$18,249 (14yr, ~$1.3k/yr/lot), maxDD
+  −$6,321, peak cap $21.9k, RoC/pk +83%.** Fees over 14yr = $741 (a rounding error).
+- **Fill assumption is the whole story:** mid +$36,266 → mid±0.5 +$27k → bid/ask +$18,249.
+  Crossing the spread eats ~$18k; commissions eat $741. Executable truth is between mid±0.5
+  and bid/ask (~$25k if you work limits). PF 1.93 is THIN vs 30DTE's 3.78 — DTE reduction
+  buys capital efficiency at the cost of PF/tail (2012 & 2018 drive the −$6.3k DD; 2018 is a
+  single −76% trade). Live haircut on top: plan ~½–⅔ → ~$650–900/yr/lot.
+- **Price provenance (user Q):** OptionsDX SPX **EOD** chains `data/optionsdx/*.txt`, real
+  P_BID/P_ASK/P_DELTA (BS-computed delta — exchange publishes none). Exit source over 146:
+  **90% real EOD quote, 5% intrinsic fallback (NaN quote), 5% held-past-expiry settle.**
+  Loose DTE match only in 2010–11 (no weeklies; 1–28 DTE); tight 13–15 from 2012.
+
+**MASSIVE OPTIONS DATA — scoped, entitlement CONFIRMED, but capped & OI-less:**
+- Existing key `4aTW6…` **has options entitlement** (probed live). SPX = `underlying_ticker=SPX`,
+  tickers `O:SPX…` (monthly/AM) + `O:SPXW…` (weekly/daily/EOM/0DTE), **European, CBOE, 100×**
+  (European ⇒ exact BS greeks). Active chain alone = **29,364 contracts**; daily expiries present.
+- **HISTORY FLOOR 2022-03-07.** Cannot extend the 2010–2023 backtest backward; overlaps only
+  the 2022+ tail. Intraday value is **forward validation + 0DTE**, not re-pricing old trades.
+- **NO historical OI anywhere** (REST or flat files) — OI only in the real-time snapshot
+  (current-only, no `as_of`). Greeks/IV likewise real-time only ⇒ **compute BS ourselves**.
+  ⇒ **Gamma levels (GEX/flip/walls) CANNOT be built from Massive OR OptionsDX** (neither has
+  OI; OptionsDX has volume, not OI). Confirmed both column lists.
+- Pricing source for backtests = **`GET /v3/quotes/{ticker}`** (intraday NBBO bid/ask). NOT
+  `/v2/aggs` or `/v1/open-close` — those are **trade-derived** (empty on illiquid strikes, no
+  bid/ask). Massive is Polygon-shaped (O: tickers, `next_url`, `?apiKey=`).
+- `scripts/fetch_massive_spx_contracts.py` = manifest puller (active+expired SPX). **User
+  stopped it mid-run**; `data/massive_options/` gitignored. Not needed for the validation plan.
+
+**DATA-SOURCE DECISIONS:**
+- **ThetaData** (the tier screenshot was ThetaData, not ORATS): intraday quotes + **OI** + OHLC,
+  VALUE **$40/mo** back to 2020 (1-min NBBO), STANDARD $80 (tick, 2016), PRO $160 (2012).
+  Could be a single source for spreads+0DTE+gamma — **deferred**, not bought.
+- **Gamma = next week, via ORATS** (has historical OI + greeks to 2007). Get exact ORATS tier/
+  price then (don't assume ThetaData's tiers). Still owe a real hypothesis first — S66 had
+  MenthorQ levels ~coin-flip once touched.
+
+**PLAN — THIS WEEK: Massive↔OptionsDX validation (agreed, not yet started).** Signal-driven,
+no mirror, no new spend (~few hundred REST calls on existing key):
+1. Pull 2022-03→2023 SPX quotes for our trade strikes (+ selection band) via `/v3/quotes`.
+2. **Micro:** Massive EOD bid/ask vs OptionsDX bid/ask, same strikes/dates — do the *quotes* match?
+3. **Macro:** run 14DTE/50pt EOD-vs-EOD on both datasets — do PF/win/total match?
+4. Then **intraday vs EOD** on Massive to quantify how much EOD-fill flattered the numbers.
+   Controls: sample Massive at OptionsDX's snapshot time (`QUOTE_TIME_HOURS`); fix strikes from
+   OptionsDX and price on both to isolate quote-diff from selection-diff. Step N gates N+1.
+
+**Uncommitted→committed this session:** `mr_options_condor.py`, `mr_bps_14d50_proper.py`,
+`fetch_massive_spx_contracts.py`, their PNGs/parquets, this handoff.
 
 ---
 
