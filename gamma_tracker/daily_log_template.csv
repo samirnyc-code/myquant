@@ -1,0 +1,7 @@
+date,level_name,level_price,regime_label,regime_hold_rate_pct,positive_outcomes,broke_at_close_pct,comeback_rate_pct,avg_move_intraday,worst_move_intraday,median_close_beyond,avg_close_beyond,worst_close_beyond,session_high,session_low,session_close,touched,broke_intraday,max_excursion_beyond,closed_beyond,dist_beyond_at_close,held,notes
+2026-07-10,1D Max,7602.02,,89.07,348,10.9,43,22.01,108.70,19.74,23.29,86.53,,,,,,,,,,
+2026-07-10,Call Res. 0DTE,,,72.9,,,,,,,,,,,,,,,,,,
+2026-07-10,Call Res.,,,89.8,,,,,,,,,,,,,,,,,,
+2026-07-10,Put Support,,,98.6,,,,,,,,,,,,,,,,,,
+2026-07-10,Put Sup. 0DTE,,,87.2,,,,,,,,,,,,,,,,,,
+2026-07-10,1D Min,7482.54,,91.3,,,,,,,,,,,,,,,,,,
