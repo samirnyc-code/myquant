@@ -1,6 +1,53 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 10, 2026 (session 65)
+**Last Updated:** July 10, 2026 (session 66)
+
+---
+
+## S66 (2026-07-10) — MenthorQ backtest tracker: decomposition + auto-scraper
+
+Built `gamma_tracker/` into a working tool (committed `883898d`). MenthorQ's Backtest
+tile shows only *today's* per-level hold rate with no history; this logs it daily and
+deduces the numbers the panel hides.
+
+**THE KEY FINDING — headline hold rates are mostly "the level rarely gets touched":**
+Decomposed all six SPX levels for 2026-07-10. Every headline (73–99%) collapses to a
+**coin flip once price actually reaches the level:**
+
+| Level | Headline | Reached % | Hold-when-reached |
+|---|---|---|---|
+| 1D Max | 89.1% | 19% | **42.7%** |
+| 1D Min | 91.3% | 20% | **55.7%** |
+| Call Res. | 89.8% | 18% | **43.3%** |
+| Call Res. 0DTE | 72.9% | 49% | **45.1%** |
+| Put Sup. 0DTE | 87.2% | 24% | **45.9%** |
+| Put Support | 98.6% | **3%** | **50.0%** |
+
+Read: the high headlines suit a **boundary/premium-seller** (Put Support touched only 3%
+of days is ideal). For a **fade-on-touch entry there's ~no edge** (~50%); only Call Res.
+0DTE is even actionable (touched ~half of days). Decomposition math validated — every
+level's `never_reached + comeback == positive_outcomes` self-check passes.
+
+**What's built (`gamma_tracker/`, all committed):**
+- `ingest.py` — morning/evening JSON → `gamma.db`, decomposition self-check
+- `report.py` — `drift` (positive-count over time → is the 3yr window rolling?),
+  `decomp`, `calib` (advertised vs. logged-real hold rate)
+- `scrape.py` — Playwright: login + session persist, click each level, `parse_detail()`
+  regex extraction (**self-tested offline: `scrape.py parse-test` = OK**), auto-ingest
+- `schema.sql` — `daily_levels` + `v_decomposition` view. `.env`/`gamma.db` gitignored.
+
+**NEXT — one-time discover run on the PC to finish automation:**
+Tile is a TradingView widget at `dashboard.menthorq.io/.../indicators=levelsBacktesting`;
+requires adding the **"Gamma Levels | Backtesting"** indicator to the chart first (saves
+to layout). Run `pip install -r requirements.txt && playwright install chromium`, fill
+`.env`, `python scrape.py discover` → sends back `discover_page.html` +
+`screenshots/discover_full.png` so the 2 click selectors (`SEL_LEVEL_ITEM`,
+`SEL_DETAIL_PANEL`) can be pinned, then wrap `scrape.py run --date` in Task Scheduler.
+
+**STILL OPEN:** (1) position-sizing model — user parked it; needs conditional-vs-headline
+prob choice + bet model (fixed-fractional / Kelly / tiered). (2) "Two-number suggestion"
+for Fabio meet (ask MenthorQ to show hold-when-reached alongside the headline). Full
+vendor Q-list + decomposition writeup in `docs/research_notes/0010_menthorq_backtest_questions.md`.
 
 ---
 
