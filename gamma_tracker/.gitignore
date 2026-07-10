@@ -1,0 +1,9 @@
+# local database — regenerable from the screenshots/*.json
+gamma.db
+
+# credentials — never commit
+.env
+
+# raw screenshots / auth state
+screenshots/*.png
+auth_state.json
