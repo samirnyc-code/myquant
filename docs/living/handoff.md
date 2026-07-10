@@ -6,6 +6,33 @@
 
 ## S68 (2026-07-11, PC) — Ran the S67 condor/DTE/width sweep; Massive options data scoped
 
+**⚠️ S68 ADDENDUM (evening) — MASSIVE CANCELLED, ES data updated, options-quote verdict**
+
+- **MASSIVE SUBSCRIPTION CANCELLED, effective 2026-07-14 (user).** This ends BOTH options
+  AND the **futures** data pipeline. After Jul 14: `daily_data_update.py` + S3 flatfiles
+  STOP WORKING — **no new ES/NQ/GC/CL bars.** Futures data freezes unless moved to another
+  source. TOP ITEM for tomorrow's re-eval. (Today's ES update below is the last Massive can give.)
+- **ES DATA UPDATED through 2026-07-09** — 5m `_continuous.parquet` (100,636 bars), 15m
+  `_continuous_15m.parquet` (33,547), 1m `_continuous_1m.parquet` (519,070). All in
+  `data/bars/` (gitignored). Jul 10 (Fri) not yet on Massive server (flatfile ~1-day lag).
+  **Fixed a real bug in `daily_data_update.py`:** `f.stem` on `*.csv.gz` leaves `2026-07-02.csv`
+  → `date.fromisoformat` crashed (script never worked as-is); now `f.name.split(".")[0]`. Committed.
+- **Massive options QUOTES verdict — not reachable on current plan:** REST `/v3/quotes` =
+  `NOT_AUTHORIZED`; S3 `us_options_opra/quotes_v1/` is *listable* but GET = **403** (not
+  entitled) — and the files are **~120 GB/day** (all-OPRA), impractical to mirror regardless.
+  Unlocking quotes needs **"Options Advanced" (~$199/mo, top individual tier)**; Starter/
+  Developer exclude options NBBO. One key per account (Polygon-style) — **regenerating the key
+  does NOT help** (it's an entitlement gap, not a key problem). Reference/trades/aggs work; not quotes.
+- **ThetaData VERIFIED (not bought):** endpoint-access table grants **Quote + OI + OHLC on
+  VALUE ($40/mo), 1-min, from 2020-01-01**. Marketing copy is ambiguous about bid/ask at VALUE
+  → **probe the free tier to confirm quote=bid/ask BEFORE paying** (lesson from Massive's
+  "confirmed-then-blocked"). 5× cheaper than Massive-Advanced, deeper history, and has the OI.
+- **Gamma still = ORATS next week** (neither Massive nor OptionsDX has historical OI).
+- **The Massive↔OptionsDX intraday validation plan is DEAD via Massive** (quotes not entitled +
+  sub cancelled). If pursued, it's on ThetaData now. **Re-evaluate everything tomorrow.**
+
+---
+
 Executed the S67 iron-condor spec end-to-end on the PC (data + scripts live here; the S67
 "MISSING FROM GIT" warning was a Mac artifact — all 4 options scripts were committed here).
 Then spent the session scoping options data sources for the next phase.

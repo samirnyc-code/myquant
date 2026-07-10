@@ -81,7 +81,7 @@ def main() -> None:
     today = date.today()
 
     # ── 1. Download any missing gz files (from last cached date to yesterday) ──
-    existing = sorted(f.stem for f in _GZ_CACHE_DIR.glob("*.csv.gz"))
+    existing = sorted(f.name.split(".")[0] for f in _GZ_CACHE_DIR.glob("*.csv.gz"))
     last_cached = date.fromisoformat(existing[-1]) if existing else date(2021, 6, 1)
     start_dl = last_cached + timedelta(days=1)
     end_dl   = today - timedelta(days=1)  # yesterday (today not yet on server)
@@ -104,7 +104,7 @@ def main() -> None:
         log.info("Downloaded %d new file(s).", len(downloaded))
 
     # ── 2. Build missing continuous tick parquets ──────────────────────────────
-    all_gz = sorted(f.stem for f in _GZ_CACHE_DIR.glob("*.csv.gz"))
+    all_gz = sorted(f.name.split(".")[0] for f in _GZ_CACHE_DIR.glob("*.csv.gz"))
     built = 0
     for day_str in all_gz:
         d = date.fromisoformat(day_str)
