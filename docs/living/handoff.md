@@ -1,6 +1,51 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 10, 2026 (session 66)
+**Last Updated:** July 10, 2026 (session 67)
+
+---
+
+## S67 (2026-07-10, Mac) — BPS capital efficiency, 0DTE feasibility, IRON CONDOR SPEC (run on PC)
+
+Mac session (no optionsdx data here). Analyzed the S64 bull-put run from the committed
+trades parquet; answered "why $128k"; spec'd the condor test for the PC to execute.
+
+**⚠️ MISSING FROM GIT:** `mr_options_strategies.py`, `mr_bull_put_spread.py`,
+`mr_options_allweather.py`, `mr_options_real.py` are NOT in the repo despite S64 saying
+"committed" — only the PNGs/parquets are. Same failure mode as the lost NT8 files.
+**PC: commit them before anything else.**
+
+**Why 1 SPX BPS "needs $128k" (from `mr_bull_put_spread_trades.parquet`, 146 trades):**
+- 30Δ/15Δ widths range 30–260 pts (median 60) → max-loss collateral $2.5k–**$22.2k**
+  per spread (median $5.2k). Wide widths come from spiked IV at the oversold entries.
+- Peak concurrency **5 spreads open**, summed max-loss **$64,011** (actual worst day).
+- $128k = $64k ÷ 50% sizing buffer. So it's concurrency in high-IV clusters, not one trade.
+- Median credit $935 on $5,217 median collateral (~$5.60 posted per $1 earned) — user's
+  "ties up a lot to earn little" is confirmed; the drag is idleness + collateral, not win rate.
+
+**Delta gap (user Q):** 30Δ/15Δ is convention, not requirement. Narrower/fixed-width →
+much less collateral, better credit-per-collateral, but losers hit ~100% of max loss more
+often (long strike nearby). Net effect = empirical = open item (d), still untested.
+
+**0DTE BPS (user Q):** tradeable (SPX/XSP daily expiries since May 2022) but (a) it's a
+different strategy from the validated multi-day hold (median 4 days), closer to MenthorQ's
+Put Sup. 0DTE stat — which per S66 is ~46% once touched; (b) **not testable on OptionsDX
+EOD chains** — needs intraday quotes (ThetaData/CBOE/Polygon options) and only ~4yrs of
+0DTE history exists. Parked unless intraday data is bought.
+
+**IRON CONDOR TEST — SPEC FOR PC (user asked for this; data+scripts live there):**
+Extend local `mr_bull_put_spread.py`. Same 146 entries (dates in the trades parquet),
+same fill model (mid ± 0.25 slip), same SMA5 fast exit, same 30DTE:
+1. Baseline: reproduce BPS full run (146 trades, 84%, PF 3.78, +$39,383, maxDD −$2,951).
+2. Condor = BPS + bear call spread same expiry. Call-side delta sweep: {30Δ/15Δ,
+   25Δ/10Δ, 20Δ/10Δ} — the bounce runs through near calls, so nearer = more credit
+   but fights the signal.
+3. Collateral = max(put width, call width) × 100 − total credit (brokers margin one
+   side) → condor adds credit on ~zero extra collateral; score by RoC on peak
+   concurrent collateral, PF, maxDD, and call-side breach rate on the big bounces.
+4. Exit rule question to test explicitly: SMA5 exit closes BOTH sides vs put side only
+   (let the call side ride the fade after the bounce).
+Hypothesis to beat: condor improves RoC/collateral but the 2010/2020-style violent
+recoveries blow the call side; if call-side losses > added credit on those, BPS wins.
 
 ---
 
