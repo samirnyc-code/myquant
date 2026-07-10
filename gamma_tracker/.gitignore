@@ -7,3 +7,7 @@ gamma.db
 # raw screenshots / auth state
 screenshots/*.png
 auth_state.json
+
+# one-time discover artifacts
+discover_page.html
+.discover_ready

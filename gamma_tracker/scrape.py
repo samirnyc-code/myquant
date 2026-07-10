@@ -44,9 +44,13 @@ LEVELS = [
     {"level_name": "1D Min", "label": "1D Min"},
 ]
 
-# --- selectors: confirmed during `discover`, then pasted here -------------------
-SEL_LEVEL_ITEM = "text={label}"   # TODO: refine to the exact clickable row for a level
-SEL_DETAIL_PANEL = "TODO"          # TODO: container holding the '... positive outcomes / BROKE ...' block
+# --- selectors: confirmed from the discover DOM dump (2026-07-10) ---------------
+# A level row is a <button> whose descendant span text EXACTLY equals the level
+# name. Exact match matters: "Call Res." is a prefix of "Call Res. 0DTE".
+# The detail block is the <div> whose DIRECT-CHILD <p> reads "... positive
+# outcomes ...". Its innerText holds the header %, positive count, and both the
+# BROKE-DURING-DAY / BROKE-AT-CLOSE grids — exactly what parse_detail() expects.
+SEL_DETAIL_PANEL = 'div:has(> p:has-text("positive outcomes"))'
 SEL_LOGIN_EMAIL = "input[type=email]"
 SEL_LOGIN_PASSWORD = "input[type=password]"
 SEL_LOGIN_SUBMIT = "button[type=submit]"
@@ -59,6 +63,11 @@ def parse_detail(text: str) -> dict:
     Robust to whitespace/newlines — matches on the on-screen labels, not layout.
     Signed values (Put-side moves are negative) are preserved.
     """
+    # TradingView renders negatives with a Unicode minus (U+2212) and uses
+    # non-breaking spaces; normalize to ASCII so [+-] and \s match Put-side moves.
+    text = (text.replace("−", "-").replace("–", "-").replace("—", "-")
+                .replace(" ", " ").replace(" ", " "))
+
     def num(pat, s=text, cast=float):
         m = re.search(pat, s, re.I)
         return cast(m.group(1).replace(",", "")) if m else None
@@ -82,24 +91,41 @@ def parse_detail(text: str) -> dict:
     }
 
 
-_SAMPLE = (
-    "CALL RES. 0DTE 72.9% 196 positive outcomes over the past 3 years "
-    "BROKE DURING DAY comeback rate 45% avg move +26.51 worst +104.48 "
-    "BROKE AT CLOSE 27.1% median +20.98 avg close +26.97 worst +83.48"
-)
+# Call-side (positive, ASCII +) and Put-side (negative, Unicode minus U+2212 as
+# TradingView actually renders it) — the second guards the sign-normalization.
+_SAMPLES = [
+    ("CALL RES. 0DTE 72.9% 196 positive outcomes over the past 3 years "
+     "BROKE DURING DAY comeback rate 45% avg move +26.51 worst +104.48 "
+     "BROKE AT CLOSE 27.1% median +20.98 avg close +26.97 worst +83.48",
+     {"regime_hold_rate_pct": 72.9, "positive_outcomes": 196,
+      "broke_at_close_pct": 27.1, "comeback_rate_pct": 45.0,
+      "avg_move_intraday": 26.51, "worst_move_intraday": 104.48,
+      "median_close_beyond": 20.98, "avg_close_beyond": 26.97,
+      "worst_close_beyond": 83.48}),
+    ("PUT SUPPORT 98.63% 425 positive outcomes over the past 3 years "
+     "BROKE DURING DAY comeback rate 50% avg move −44.16 worst −116.65 "
+     "BROKE AT CLOSE 1.4% median −36.65 avg close −49.86 worst −94.31",
+     {"regime_hold_rate_pct": 98.63, "positive_outcomes": 425,
+      "broke_at_close_pct": 1.4, "comeback_rate_pct": 50.0,
+      "avg_move_intraday": -44.16, "worst_move_intraday": -116.65,
+      "median_close_beyond": -36.65, "avg_close_beyond": -49.86,
+      "worst_close_beyond": -94.31}),
+]
 
 
 def cmd_parse_test() -> None:
-    got = parse_detail(_SAMPLE)
-    print(json.dumps(got, indent=2))
-    expect = {"regime_hold_rate_pct": 72.9, "positive_outcomes": 196,
-              "broke_at_close_pct": 27.1, "comeback_rate_pct": 45.0,
-              "avg_move_intraday": 26.51, "worst_move_intraday": 104.48,
-              "median_close_beyond": 20.98, "avg_close_beyond": 26.97,
-              "worst_close_beyond": 83.48}
-    ok = all(got.get(k) == v for k, v in expect.items())
-    print("\nPARSE", "OK" if ok else "MISMATCH")
-    if not ok:
+    all_ok = True
+    for sample, expect in _SAMPLES:
+        got = parse_detail(sample)
+        ok = all(got.get(k) == v for k, v in expect.items())
+        all_ok &= ok
+        print(f"{'OK ' if ok else 'FAIL'}  {sample[:24]}...")
+        if not ok:
+            for k, v in expect.items():
+                if got.get(k) != v:
+                    print(f"      {k}: got {got.get(k)!r} expected {v!r}")
+    print("\nPARSE", "OK" if all_ok else "MISMATCH")
+    if not all_ok:
         sys.exit(1)
 
 
@@ -136,7 +162,20 @@ def cmd_discover() -> None:
         print("       -> click it so the floating Backtest tile appears on the chart.")
         print("    3. Leave the tile visible.")
         print("    (Adding it saves to your chart layout, so daily runs won't need to re-add it.)")
-        input(">>> When the Backtest tile is visible, press Enter here...")
+        # Wait for a signal file instead of a keypress, so this can be driven
+        # from a non-interactive/background launch. Poll up to 15 min.
+        ready = HERE / ".discover_ready"
+        if ready.exists():
+            ready.unlink()
+        print(f">>> Browser is open. When the Backtest tile is visible, create {ready.name}")
+        print("    (the assistant does this for you when you say 'done'). Waiting...")
+        for _ in range(450):  # 450 * 2s = 15 min
+            if ready.exists():
+                ready.unlink()
+                break
+            page.wait_for_timeout(2000)
+        else:
+            print("Timed out waiting for the ready signal.")
         ctx.storage_state(path=str(AUTH_STATE))
         SHOTS.mkdir(exist_ok=True)
         (HERE / "discover_page.html").write_text(page.content(), encoding="utf-8")
@@ -162,8 +201,11 @@ def cmd_run(date: str | None) -> None:
         ctx = browser.new_context(storage_state=str(AUTH_STATE))
         page = ctx.new_page()
         page.goto(cfg["MENTORQ_URL"], wait_until="networkidle")
+        page.wait_for_selector(SEL_DETAIL_PANEL, timeout=30000)  # tile ready
         for lv in LEVELS:
-            page.click(SEL_LEVEL_ITEM.format(label=lv["label"]))
+            # exact-text button so "Call Res." doesn't match "Call Res. 0DTE"
+            row = page.locator("button", has=page.get_by_text(lv["label"], exact=True))
+            row.first.click()
             page.wait_for_timeout(600)  # let the detail panel repaint
             text = page.inner_text(SEL_DETAIL_PANEL)
             rec = {"level_name": lv["level_name"], **parse_detail(text)}
@@ -173,7 +215,8 @@ def cmd_run(date: str | None) -> None:
         browser.close()
 
     if date is None:
-        sys.exit("Pass --date YYYY-MM-DD (Date.now() is intentionally not used).")
+        from datetime import date as _d
+        date = _d.today().isoformat()
     out = SHOTS / f"{date}_am.json"
     out.write_text(json.dumps({"date": date, "levels": records}, indent=2))
     print(f"\nWrote {out.name}; ingesting...")
