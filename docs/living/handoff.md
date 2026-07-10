@@ -44,8 +44,25 @@ same fill model (mid ± 0.25 slip), same SMA5 fast exit, same 30DTE:
    concurrent collateral, PF, maxDD, and call-side breach rate on the big bounces.
 4. Exit rule question to test explicitly: SMA5 exit closes BOTH sides vs put side only
    (let the call side ride the fade after the bounce).
+5. **DTE sweep (added per user, S67): {7, 14, 21, 30, 45} on the BPS baseline** (and the
+   best condor variant if one survives). Mechanics at stake: median hold is 4 days, so
+   7DTE holds into the gamma zone — expect the −$232 avg fast-exit loser to blow out
+   toward max loss (that small-loser profile is a *30DTE* property, not an SMA5
+   property); vega ∝ √T so short DTE captures less of the IV crush that is part of the
+   edge. In exchange: ~half the collateral at same deltas (√(7/30)≈0.48 strike
+   distance) and faster capital recycling. Score each DTE on: avg loser $, PF, RoC on
+   peak concurrent collateral, and $/day-of-capital-deployed. Prior: 30–45 wins
+   risk-adjusted, 14–21 possible sweet spot, 7 breaks the loss profile. Prior stated
+   so the result can beat it.
+6. **Fixed-width variant (open item d, fold in here): width ∈ {25, 50} pts** instead of
+   15Δ long leg, same short strike — kills the $22k tail collateral, tests user's
+   capital-efficiency complaint directly.
 Hypothesis to beat: condor improves RoC/collateral but the 2010/2020-style violent
 recoveries blow the call side; if call-side losses > added credit on those, BPS wins.
+NOTE: sweep is {condor structure} + {DTE} + {width} on the SAME 146 entries with the
+SAME fill model — one job, one comparison table, baseline reproduced first. Don't
+optimize jointly and report the best cell as "the result" (that's WFA's job later);
+this is a structure comparison, not a fit.
 
 ---
 
