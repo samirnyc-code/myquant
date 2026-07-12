@@ -1,0 +1,12 @@
+{
+  "_comment": "Fill in MenthorQ $SPX published levels each morning, then run mq_logger.py. Use null if unknown.",
+  "date_note": "levels are struck on prior EOD; enter the session date they are SHOWN for",
+  "cr":  7550,
+  "ps":  7300,
+  "hvl": 7485,
+  "cr0": 7550,
+  "ps0": 7450,
+  "hvl0": 7485,
+  "gw0": 7550,
+  "gex": [7500, 7600, 7575, 7525, 7545, 7650, 7620, 7625, 7425, 7475]
+}
