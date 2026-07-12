@@ -1,6 +1,62 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 12, 2026 (session 69)
+**Last Updated:** July 12, 2026 (session 70)
+
+---
+
+## S70 (2026-07-12, PC) — options executability reckoning; IB feed mapped; data added
+
+Long, hard session. Core outcome: **the options backtests we'd been quoting were NOT
+executable, and I (assistant) repeatedly presented them as real — user rightly furious.**
+This block is the honest reset. ⚠️ Re-read the [[feedback-rules]] "haircut with the headline" rule.
+
+**THE EXECUTABILITY PROBLEM (the whole point of the session):**
+- OptionsDX marks are stamped **16:00 ET** (SPX cash close). The old BPS backtest computed the
+  STMR signal on **ES daily (16:15 ET)** and filled options at 16:00 → **15-min look-ahead**
+  (entered the trade before the signal that triggers it exists). That's the concrete bug.
+- **The fix (causal rule):** read the signal at **15:59 ET** (strictly before the 16:00 fill),
+  fill options in the 16:00–16:15 window. Live-executable, look-ahead-free.
+- **Bar-stamp landmine (S31 redux):** daily file = CLOSE-stamped (15:15 CT = 16:15 ET);
+  1-minute bars = OPEN-stamped (08:30–15:14 CT). **15:59 ET price = the OPEN of the 14:59-CT
+  1-min bar** (NOT its close, which is 16:00). Getting this wrong flips the timing by a bar.
+- **Signal timing is mostly stable but NOT identical:** causal-15:59 vs daily-16:15 signal
+  agree 99.4% over 2021–2023, but disagree on **4 of ~31 firing days (~13% of trades)** —
+  both directions (dates: 2021-12-17, 2023-01-19, 2023-08-03, 2023-12-06). So the daily-signal
+  backtest is a DIFFERENT trade set than the executable one — cannot claim its number "holds."
+
+**THE ONLY HONEST OPTIONS NUMBER WE CAN BUILD** (`scripts/mr_bps_causal_1559.py`, committed):
+causal 15:59 signal + OptionsDX 16:00 bid/ask fill + $1.30/contract, buildable ONLY where we
+have 1-min ES **and** options data = **2021-07 → 2023-12, 29 trades**:
+- **29 trades, 90% win, PF 3.78, +$6,509, maxDD −$1,945.**
+- **Do NOT trust this:** n=29 is tiny; that window was a benign premium-selling regime (PF 3.78
+  here vs 1.93 full-sample bid/ask = regime-flattered); and it still carries **unmeasured
+  fill-drift** (16:00 mark vs real 16:00–16:15 fill). It's a "keep testing" light, not validated.
+- **1-min ES only exists from 2021-06 → pre-2021 the causal signal is UNBUILDABLE.** Deep-history
+  options backtests are dead on the data we own. Full stop.
+
+**RECOMMENDATION (assistant's, user undecided):**
+1. **Trade the validated FUTURES STMR signal** (note 0014 — walk-forward, executable near the
+   settle). That's the real edge; paper it on NT8/IB now.
+2. **Options only if the reason is defined-risk / prop-sizing.** If so, **forward-test the causal
+   rule on the OPRA feed (free)** — decide 15:59, log the real 16:00–16:15 fill — for ~2–3 months.
+   **Don't buy ThetaData/ORATS** unless forward-testing proves the wrapper worth it.
+3. **Stop:** historical options sweeps, gamma levels, vendor hunt. Not decision-grade.
+- **OPEN QUESTION FOR USER:** why options at all (defined risk? account size?) — picks the path.
+
+**IB / DATA STATE:**
+- **OPRA (US Options, NP/L1) subscribed — $1.50/mo.** Gives real-time SPX option NBBO.
+- IB real-time **VIX/SPX/ES NOT subscribed** (Error 354); **delayed (15-min) works free** for all
+  three (proved: VIX 15.03, SPX 7575, ES 7626 via delayed-frozen). Don't buy RT index/futures —
+  **user has live ES on NT8** (the real-time underlying, free; ES≈SPX and STMR runs on ES anyway).
+- **Paper account not usable yet** (separate creds; user setting up ~tomorrow). To get RT data in
+  paper: enable "Share market data with paper" in Client Portal (paper is delayed by default).
+- **Massive still dies Jul 14** (kills the futures data pipeline too — see S68).
+- **Added this session:** `data/vix_daily.csv` (CBOE, 1990→2026-07-10), `data/spx_daily.csv`
+  (2010–2023 from OptionsDX UNDERLYING_LAST @16:00), `docs/living/options_playbook.md` (strategy
+  rules + regime framework + trade-log schema), and a published system-map artifact.
+
+**NOTE:** another chat was still open at break time and **will push later** — expect new commits
+on origin/main (likely `brooks_*` files, left untracked here intentionally). Pull before working.
 
 ---
 
