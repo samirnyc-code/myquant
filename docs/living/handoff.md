@@ -1,6 +1,45 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 11, 2026 (session 68)
+**Last Updated:** July 12, 2026 (session 69)
+
+---
+
+## S69 (2026-07-12, Mac) — merged IB Gateway branch; paper-account automation scoped for PC
+
+**Merged `chat/myoptionsdatapull` (de619b9) into `main`.** It was an orphaned branch from
+a separate PC chat session (Jul 10) — never merged, invisible to a normal `main`-only
+search. Brings in `scratchpad/ib_test.py`, `mq_logger.py`, `spx_walls.py`,
+`spx_oi_profile.py`, `gamma_walls.py` + the `data/menthorq/` calibration outputs. No
+conflicts (touches only new paths).
+
+**Context for whoever reads this: these scripts hardcode `PORT = 4001` — LIVE IB
+Gateway, not paper.** They are read-only market-data pulls (`reqMktData`, no order
+placement anywhere), so it was safe, but going forward paper (4002) is the target for
+anything beyond pure read-only probing.
+
+**Decision: separate options-strategy scanner project (`options-drills` course +
+scanner, different repo) will reuse this same `ib_async` → IB Gateway connection layer**
+rather than build a new one — this branch already proved live SPX OI/greeks pull works.
+
+**Paper-trading automation — scoped, not yet built:**
+- User confirmed: **no 2FA** on the IBKR account → IBC (IB Controller) can fully automate
+  Gateway login, no push-approval blocker.
+- User will set this up **on the PC** (this Mac has no IB Gateway/IBC installed at all —
+  `~/Jts` here is stale leftover config, app itself not present).
+- **PC TODO tomorrow:**
+  1. `git pull` (this merge + handoff entry).
+  2. Install IBC (IbcAlpha/IBC) matching the installed Gateway version.
+  3. Configure `config.ini` with paper `IbLoginId`/`IbPassword`, `TradingMode=paper` —
+     store this file OUTSIDE any git repo (e.g. IBC's own install dir), never commit it.
+  4. Point IBC/Gateway at the paper port (4002 for Gateway; 7497 would be TWS paper, not
+     used here since it's Gateway).
+  5. Update `ib_test.py` (and any script that will run against paper) from `PORT = 4001`
+     to `PORT = 4002`, then actually run it and confirm OI/greeks still populate on paper
+     — **do not assume paper carries the same real-time options data entitlement as
+     live; this needs to be verified, not assumed.**
+  6. Only after that verification passes: resume the CR/PS/HVL calibration work
+     (blockers noted in de619b9: PS level needs multi-day fit, HVL formula wrong,
+     greeks only 52–100% populated on delayed feed).
 
 ---
 
