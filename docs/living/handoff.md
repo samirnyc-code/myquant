@@ -1,6 +1,67 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 12, 2026 (session 70)
+**Last Updated:** July 13, 2026 (session 71)
+
+---
+
+## S71 (2026-07-13) — THE BROOKS CODEX (study system) + daily-chart scraping
+
+Big new direction: built a **"Brooks Codex"** study system from Al Brooks' material. All
+heavy output lives in **`docs/living/brooks_codex/`** (547MB — **gitignored**, deployed to
+**Google Drive `G:\My Drive\Brooks Codex`**; open `index.html` from the *synced* Drive
+folder in a browser, NOT the drive.google.com web viewer).
+
+**⚠️ SECURITY — ROTATE CREDENTIALS:** this session used live logins that are in the chat +
+session scratchpad (`Temp/.../scratchpad/bpa_login.json`, `bpa_cookies.json`,
+`brooks_cookies.json` — NOT committed). Change the **brookspriceaction.com** forum password
+(user `samirnyc`) and re-login; re-export the **brookstradingcourse.com** WP cookies.
+
+**Built & on Drive (working):**
+- **Hub** (`index.html`) + **Setups/Rules trainer** (`app.html`, artifact) + **Figure Explorer**
+  (`explorer.html`, 459 book figures + full text + zoom + favorites + 📖 page-jump to the 4 PDFs)
+  + **cheat-sheet** + the **4 book PDFs**. Also published as claude.ai artifacts.
+- Mined 4 books → **91 canonical setups, 78 tiered rules (Core-15), 1,390 teachings**, 459 figures
+  (classified conservatively, no image/text mismatch). Builders: `scripts/brooks_build_*.py`,
+  `brooks_prep_data.py`, `brooks_render_explorer.py`, `brooks_extract_*.py`. Data in
+  `docs/living/brooks_final.json` + scratchpad JSONs.
+
+**⛔ Mechanical backtest KILLED (no hopium):** `scripts/brooks_bt_*.py` build a regime-FREE
+EMA20 engine (reused fill/structure, banned the broken regime — see
+[[brooks_regime_engine_broken]]). Honest result: **H2/L2 mechanized ≈ breakeven-to-negative
+net of $5 MES RT**; the "A+" is Brooks' *discretionary* grade. Numbers are NOT tradeable;
+trend-continuation-hold setups looked least-bad on full ES only. Detectors mislabel — user
+saw the charts and rejected them. Do not resurrect these numbers.
+
+**Daily charts (data recovered):**
+- **Blog EOD** (`brookstradingcourse.com`, WP REST API + user cookies): re-scraped the 1,500
+  post-ids → **1,221 correct Emini 5-min EOD charts + Brooks' real typed analysis** in
+  `brooks_codex/daily2/` (279 were news/promo, dropped). `scripts/brooks_rescrape.py`. The
+  old zip-sourced daily set had **wrong images** (scrape grabbed featured/decorative image)
+  and **AI-generated filler** commentary — replaced by this.
+- **Forum bar-by-bar** (`brookspriceaction.com` phpBB/IntegraMOD, login `samirnyc`): forum
+  **f=1 "Trading Updates from Al Brooks" = ~949 daily threads 2020-06→2023-03**. Each = the
+  day's chart (`album_picm.php?pic_id=N`) + **full spelled-out bar-by-bar text** via
+  `files/barbybar/brooksbars.php?pic_id=N&...` (abbr `title=` attrs → "H2(Two legged pullback…)").
+  `scripts/brooks_forum_scrape.py` (STOPPED — it was grabbing a *tutorial* brooksbars link
+  (pic_id 7214 = a 2010 example) on anomalous threads; correct method verified on t=6042/pic
+  7160 = right 2022 chart+text). Live tool needs login.
+
+**WIP / UNRESOLVED — interactive bar-by-bar view:** `scratchpad/codex_bbb_view.html` +
+`build_bbb_view.py` (single day 6042). Layout user likes: big chart, hover→ that bar's text
+in a panel under the chart, yellow low-opacity "racing stripe", zoom, live-tool link.
+**BLOCKER: stripe↔bar alignment.** Geometry from the tool: `left=80 width=1131 bars=81`, and
+its JS `the_left = InitLeft + (BarNum-1)*IncAmt`. Calib overlay (`scratchpad/calib.png`) showed
+the geom formula ~close but drifts; current fractions L=0.042 R=0.911 still off per user.
+**User frustrated — needs exact calibration** (measure printed bar-number x-positions, or
+replicate the tool JS exactly) before building the full ~949-day section.
+
+**Ideas doc:** `docs/living/brooks_codex_ideas.md` — centerpiece = **Replay Trainer** (step
+his real days bar-by-bar, predict, reveal his note). Plus interlink everything, shorthand
+mastery, real base-rate stats from 2,000+ labeled days, NT-CSV trade-journal loop.
+
+**Scraped-charts note:** the earlier "1,500 scraped charts" are recoverable in
+`G:\My Drive\MC Setup Research Notes\brooks_study_library.zip` (study cards) but their images
+are the mis-scraped ones + AI walkthroughs — the blog re-scrape supersedes them.
 
 ---
 

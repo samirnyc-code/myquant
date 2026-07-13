@@ -54,3 +54,9 @@ docs/living/pb_trade_library/
 data/optionsdx/
 
 data/massive_options/
+
+# Brooks Codex — large hosted binaries (live on Google Drive, not git)
+docs/living/brooks_codex/
+docs/living/brooks_explorer/
+docs/living/charts_brooks/
+docs/living/*.parquet
