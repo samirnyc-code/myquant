@@ -26,7 +26,7 @@ from pathlib import Path
 from datetime import date
 import numpy as np, pandas as pd
 import matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt
-ROOT = Path(r"c:\Users\Admin\myquant"); sys.path.insert(0, str(ROOT)); import massive
+ROOT = Path(__file__).resolve().parent.parent; sys.path.insert(0, str(ROOT)); import massive
 
 B = pd.read_parquet(ROOT/"data"/"bars"/"_continuous.parquet"); B["Date"] = B["DateTime"].dt.date.astype(str)
 ALL = sorted(B["Date"].unique())
