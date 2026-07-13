@@ -1,6 +1,39 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 13, 2026 (session 71)
+**Last Updated:** July 13, 2026 (session 72)
+
+---
+
+## S72 (2026-07-13, SECOND PC) — machine onboarded, data in, smoke test green
+
+Short session: executed `docs/living/second_pc_setup.md` end-to-end on the second PC.
+**No regime code written yet** — the design questions in §3.3 are still open and unanswered.
+
+**Machine is ready:**
+- Clone at `C:\Users\Thomas Deutschmann\myquant`, git identity `tdeutschmann-byte`.
+- Branch **`regime/v2-multistate`** created and pushed (tracking origin).
+- Python 3.12 + pandas / pyarrow / numpy / matplotlib / streamlit.
+- Data copied in: `data/bars/` (3 files) + `data/ticks_continuous/` (1,270 files), **3.37 GB**.
+- **Smoke test PASSES:** `python scripts/brooks_structure_engine.py 2022-02-24` →
+  `docs/living/tri_20220224.png`, `contracting=1 expanding=1 ttr=2`. Chart eyeballed:
+  pivots, both triangles, TTR zones, OB tick-dots all render correctly (ticks read fine).
+
+**One code change (`7b2edc8`):** `scripts/brooks_structure_engine.py` hard-coded
+`ROOT = Path(r"c:\Users\Admin\myquant")` (main-PC path) → now `__file__`-relative, same
+convention as the `fix/portable-script-paths` work on `scripts/menthorq_*.py`. **Engine
+logic untouched.** Without this the script cannot run on any machine but the main PC.
+
+**Data-transfer gotcha (for any future third machine):** the Drive folder canNOT be pulled
+with anonymous `gdown` — Google throttles anonymous link access hard (~8 files then blocks;
+got 77/1,270 files across 3 attempts). Use Drive Desktop sync ("Add shortcut to Drive" →
+copy from the synced mirror) as `second_pc_setup.md` §1.3 already prescribes.
+
+**NEXT (unchanged from S72 PREP):** build the NEW multi-state regime layer
+(`scripts/brooks_regime_v2.py`) — BULL / BULL_ATTEMPT / NEUTRAL / BEAR_ATTEMPT / BEAR —
+on top of the structure engine, chart overlay FIRST on 2022-02-24, eyeball before any sim.
+**Open question to settle with user before coding transitions:** the exact ATTEMPT→TREND
+promotion rule (S62 candidates: subsequent-HH requirement, breakout-bar strength,
+follow-through bar, EMA-close component, major-TL break + test). Branch not yet merged to main.
 
 ---
 
