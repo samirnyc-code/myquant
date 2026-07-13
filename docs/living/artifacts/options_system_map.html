@@ -1,0 +1,281 @@
+<title>Options System Map</title>
+<style>
+  :root{
+    --bg:#F3F5F7; --surface:#FFFFFF; --surface2:#EAEEF1; --ink:#172029; --muted:#586470;
+    --hair:#D7DCE2; --accent:#12657A; --accent-soft:#E0EDF0;
+    --have:#2C7F55; --have-soft:#E1F0E8; --partial:#A6741A; --partial-soft:#F4EAD6;
+    --need:#B8463A; --need-soft:#F6E2DE;
+    --shadow:0 1px 2px rgba(20,40,55,.06),0 6px 20px rgba(20,40,55,.05);
+    --mono:ui-monospace,"SF Mono","Cascadia Mono","Segoe UI Mono",Consolas,monospace;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#0D1218; --surface:#141B23; --surface2:#1A232D; --ink:#E7EDF2; --muted:#93A1AE;
+      --hair:#25303A; --accent:#4EB2C3; --accent-soft:#123039;
+      --have:#4FBE8B; --have-soft:#12271E; --partial:#E0A94A; --partial-soft:#2A2213;
+      --need:#E26E5D; --need-soft:#2C1815;
+      --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25);
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#F3F5F7; --surface:#FFFFFF; --surface2:#EAEEF1; --ink:#172029; --muted:#586470;
+    --hair:#D7DCE2; --accent:#12657A; --accent-soft:#E0EDF0;
+    --have:#2C7F55; --have-soft:#E1F0E8; --partial:#A6741A; --partial-soft:#F4EAD6;
+    --need:#B8463A; --need-soft:#F6E2DE; --shadow:0 1px 2px rgba(20,40,55,.06),0 6px 20px rgba(20,40,55,.05);
+  }
+  :root[data-theme="dark"]{
+    --bg:#0D1218; --surface:#141B23; --surface2:#1A232D; --ink:#E7EDF2; --muted:#93A1AE;
+    --hair:#25303A; --accent:#4EB2C3; --accent-soft:#123039;
+    --have:#4FBE8B; --have-soft:#12271E; --partial:#E0A94A; --partial-soft:#2A2213;
+    --need:#E26E5D; --need-soft:#2C1815; --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25);
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0}
+  .wrap{background:var(--bg);color:var(--ink);font-family:var(--sans);
+    line-height:1.5;-webkit-font-smoothing:antialiased;padding:clamp(20px,5vw,56px) 20px 64px;}
+  .page{max-width:1120px;margin:0 auto}
+
+  /* ---- header ---- */
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--accent);margin:0 0 14px}
+  h1{font-size:clamp(28px,4.6vw,46px);line-height:1.04;letter-spacing:-.02em;margin:0 0 16px;
+    text-wrap:balance;font-weight:650}
+  .lede{font-size:clamp(15px,1.9vw,18px);color:var(--muted);max-width:60ch;margin:0 0 26px}
+  .lede b{color:var(--ink);font-weight:600}
+
+  .legend{display:flex;flex-wrap:wrap;gap:8px 10px;padding:14px 16px;background:var(--surface);
+    border:1px solid var(--hair);border-radius:12px;box-shadow:var(--shadow);margin-bottom:8px}
+  .legend .lg{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11.5px;
+    letter-spacing:.03em;color:var(--muted)}
+  .dot{width:9px;height:9px;border-radius:3px;flex:none}
+  .d-have{background:var(--have)} .d-partial{background:var(--partial)}
+  .d-need{background:var(--need)} .d-accent{background:var(--accent)}
+
+  /* ---- layer band ---- */
+  .flow{display:flex;flex-direction:column;gap:0;margin-top:26px}
+  .layer{display:grid;grid-template-columns:132px 1fr;gap:20px;padding:22px 0}
+  .rail{display:flex;flex-direction:column;gap:6px;padding-top:2px}
+  .rail .num{font-family:var(--mono);font-size:13px;color:var(--accent);letter-spacing:.05em}
+  .rail .name{font-size:15px;font-weight:640;letter-spacing:-.01em;line-height:1.2}
+  .rail .sub{font-size:12.5px;color:var(--muted);line-height:1.35}
+
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+  .card{position:relative;background:var(--surface);border:1px solid var(--hair);border-radius:12px;
+    padding:14px 15px 14px 17px;box-shadow:var(--shadow);overflow:hidden}
+  .card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--stripe,var(--accent))}
+  .card.have{--stripe:var(--have)} .card.partial{--stripe:var(--partial)}
+  .card.need{--stripe:var(--need)} .card.core{--stripe:var(--accent)}
+  .card h3{margin:0 0 3px;font-size:14.5px;font-weight:640;letter-spacing:-.01em}
+  .card p{margin:0;font-size:12.5px;color:var(--muted);line-height:1.42}
+  .card .note{margin-top:8px;font-family:var(--mono);font-size:10.5px;letter-spacing:.02em;
+    color:var(--accent);display:flex;gap:5px;align-items:baseline}
+  .chip{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.08em;
+    text-transform:uppercase;padding:3px 7px;border-radius:999px;margin-bottom:9px;font-weight:600}
+  .chip.have{background:var(--have-soft);color:var(--have)}
+  .chip.partial{background:var(--partial-soft);color:var(--partial)}
+  .chip.need{background:var(--need-soft);color:var(--need)}
+  .chip.core{background:var(--accent-soft);color:var(--accent)}
+
+  /* connector */
+  .connector{display:flex;justify-content:center;height:26px}
+  .connector span{width:2px;height:100%;background:linear-gradient(var(--hair),var(--accent));
+    position:relative;opacity:.9}
+  .connector span::after{content:"";position:absolute;bottom:-1px;left:50%;transform:translateX(-50%);
+    border:5px solid transparent;border-top-color:var(--accent)}
+
+  .band-sep{height:1px;background:var(--hair);margin:0}
+
+  /* cross-cutting rail note */
+  .xcut{display:grid;grid-template-columns:132px 1fr;gap:20px;margin:8px 0}
+  .xcut .tag{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted);padding-top:4px}
+  .xbar{background:var(--accent-soft);border:1px dashed var(--accent);border-radius:10px;
+    padding:11px 15px;font-size:13px;color:var(--ink)}
+  .xbar b{color:var(--accent);font-weight:640}
+
+  /* footer decisions */
+  .foot{margin-top:40px;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+  .fcol{background:var(--surface);border:1px solid var(--hair);border-radius:12px;padding:18px 18px;
+    box-shadow:var(--shadow)}
+  .fcol h4{margin:0 0 12px;font-size:12px;font-family:var(--mono);letter-spacing:.1em;
+    text-transform:uppercase;color:var(--accent)}
+  .fcol ol,.fcol ul{margin:0;padding-left:18px;font-size:13.5px;color:var(--ink)}
+  .fcol li{margin:0 0 8px;line-height:1.4}
+  .fcol li span{color:var(--muted)}
+  .kbd{font-family:var(--mono);font-size:11.5px;background:var(--surface2);border:1px solid var(--hair);
+    border-radius:5px;padding:1px 5px;color:var(--muted)}
+
+  @media (max-width:640px){
+    .layer,.xcut{grid-template-columns:1fr;gap:12px}
+    .rail{flex-direction:row;align-items:baseline;gap:10px;flex-wrap:wrap}
+    .connector{height:20px}
+  }
+  @media (prefers-reduced-motion:no-preference){
+    .layer,.xcut,.foot{animation:rise .5s cubic-bezier(.2,.7,.3,1) both}
+    .flow>*:nth-child(2){animation-delay:.04s}.flow>*:nth-child(4){animation-delay:.08s}
+    .flow>*:nth-child(6){animation-delay:.12s}.flow>*:nth-child(8){animation-delay:.16s}
+    .flow>*:nth-child(10){animation-delay:.2s}.flow>*:nth-child(12){animation-delay:.24s}
+    @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  }
+</style>
+
+<div class="wrap">
+<div class="page">
+
+  <p class="eyebrow">Options Program · System Map · S70</p>
+  <h1>How the pieces fit: from data to a tradeable, logged edge</h1>
+  <p class="lede">Six layers turn raw data into rules we can trust. The spine is real:
+    each layer feeds the next. Color says what's <b>built</b>, what's <b>live-only</b>,
+    and what's a <b>gap or decision</b> — so we spend effort where it moves the program forward.</p>
+
+  <div class="legend">
+    <span class="lg"><span class="dot d-have"></span>HAVE — built / owned</span>
+    <span class="lg"><span class="dot d-partial"></span>PARTIAL — live-only or in progress</span>
+    <span class="lg"><span class="dot d-need"></span>NEED / DECISION — gap or spend call</span>
+    <span class="lg"><span class="dot d-accent"></span>CORE ENGINE</span>
+  </div>
+
+  <div class="flow">
+
+    <!-- L1 -->
+    <section class="layer">
+      <div class="rail"><span class="num">01</span><span class="name">Data sources</span>
+        <span class="sub">Raw feeds in</span></div>
+      <div class="cards">
+        <article class="card have"><span class="chip have">Have</span>
+          <h3>OptionsDX SPX EOD</h3><p>2010–2023 bid/ask, greeks, IV. End-of-day. <b>No OI.</b></p>
+          <div class="note">→ backtest multi-day spreads</div></article>
+        <article class="card partial"><span class="chip partial">Freezing</span>
+          <h3>ES futures bars</h3><p>5m / 15m / 1m / daily → 2026-07-09. Underlying proxy.</p>
+          <div class="note">⚠ Massive ends Jul 14</div></article>
+        <article class="card have"><span class="chip have">Live</span>
+          <h3>IB — OPRA feed</h3><p>Real-time NBBO + OI + greeks. ~$1.50/mo. Read-only.</p>
+          <div class="note">→ scanner + sim quotes</div></article>
+        <article class="card have"><span class="chip have">Have</span>
+          <h3>MenthorQ levels</h3><p>CR / PS / HVL scraped daily → <span class="kbd">gamma.db</span>.</p>
+          <div class="note">→ calibrates IB gamma</div></article>
+        <article class="card need"><span class="chip need">Need · free</span>
+          <h3>VIX + term structure</h3><p>No VIX anywhere on disk. Gate for all regime work.</p>
+          <div class="note">→ pull first (CBOE/FRED)</div></article>
+        <article class="card need"><span class="chip need">Decision · $40</span>
+          <h3>ThetaData</h3><p>Intraday NBBO + OI, 2020+. Only way to <em>backtest</em> 0DTE / gamma.</p>
+          <div class="note">→ or forward-test only</div></article>
+      </div>
+    </section>
+    <div class="connector"><span></span></div>
+
+    <!-- L2 -->
+    <section class="layer">
+      <div class="rail"><span class="num">02</span><span class="name">Underlying &amp; indicators</span>
+        <span class="sub">Signals + regime tags</span></div>
+      <div class="cards">
+        <article class="card have"><span class="chip have">Have</span>
+          <h3>Indicator library</h3><p>ATR, ADX, Kaufman ER, VWAP bands, value areas, <span class="kbd">daily_regime</span>.</p></article>
+        <article class="card have"><span class="chip have">Derive</span>
+          <h3>SPX underlying</h3><p>From OptionsDX <span class="kbd">UNDERLYING_LAST</span> or ES proxy; live SPX from IB.</p></article>
+        <article class="card partial"><span class="chip partial">Build</span>
+          <h3>Regime tagger</h3><p>IV-rank, trend/range, GEX side, DOW/event → one tag row per day.</p>
+          <div class="note">needs VIX (L1)</div></article>
+      </div>
+    </section>
+    <div class="connector"><span></span></div>
+
+    <!-- L3 core -->
+    <section class="layer">
+      <div class="rail"><span class="num">03</span><span class="name">Gamma engine</span>
+        <span class="sub">IB scanner</span></div>
+      <div class="cards">
+        <article class="card core"><span class="chip core">Core · Live</span>
+          <h3>SPX wall scanner</h3><p><span class="kbd">spx_walls.py</span>: OI × gamma → Call Resistance / Put Support / HVL.</p>
+          <div class="note">✓ OI + greeks verified</div></article>
+        <article class="card partial"><span class="chip partial">Live-only</span>
+          <h3>MenthorQ calibration</h3><p>Our walls vs MenthorQ's → <span class="kbd">spx_calibration.csv</span>. No OI history.</p></article>
+      </div>
+    </section>
+    <div class="connector"><span></span></div>
+
+    <!-- L4 -->
+    <section class="layer">
+      <div class="rail"><span class="num">04</span><span class="name">Strategies · playbook</span>
+        <span class="sub">Fixed rule sets</span></div>
+      <div class="cards">
+        <article class="card have"><span class="chip have">Supported</span>
+          <h3>BPS · STMR</h3><p>30Δ / 50pt / 14DTE. PF 1.93 bid/ask (in-sample, thin).</p></article>
+        <article class="card partial"><span class="chip partial">Deprecated</span>
+          <h3>Iron condor</h3><p>Tested — <b>loses to BPS</b> (bounce hits short calls).</p></article>
+        <article class="card need"><span class="chip need">Hypothesis</span>
+          <h3>0DTE gamma sell</h3><p>Premium at CR/PS on positive-GEX days. Needs intraday data.</p></article>
+        <article class="card need"><span class="chip need">Hypothesis</span>
+          <h3>Gamma-level fade</h3><p>⚠ S66: levels ~coin-flip once touched. Needs a conditioner.</p></article>
+      </div>
+    </section>
+    <div class="connector"><span></span></div>
+
+    <!-- L5 -->
+    <section class="layer">
+      <div class="rail"><span class="num">05</span><span class="name">Sim engine</span>
+        <span class="sub">Where rules get run</span></div>
+      <div class="cards">
+        <article class="card partial"><span class="chip partial">Build</span>
+          <h3>Our fill sim</h3><p>Bid/ask ± slippage on the real feed. <b>The honest P&amp;L number.</b></p></article>
+        <article class="card need"><span class="chip need">Pending paper</span>
+          <h3>IB paper execution</h3><p>DU-guarded combo orders. Proves plumbing — fills are optimistic.</p>
+          <div class="note">available ~tomorrow</div></article>
+      </div>
+    </section>
+    <div class="connector"><span></span></div>
+
+    <!-- L6 -->
+    <section class="layer">
+      <div class="rail"><span class="num">06</span><span class="name">Log &amp; decision</span>
+        <span class="sub">Measure → decide</span></div>
+      <div class="cards">
+        <article class="card need"><span class="chip need">Build first</span>
+          <h3>Unified trade log</h3><p>One schema, split by <span class="kbd">strategy_id</span>, sliced by every regime tag.</p></article>
+        <article class="card have"><span class="chip have">Have</span>
+          <h3>Metrics + walk-forward</h3><p>PF, win%, RoC, expectancy, maxDD — per strategy, per regime.</p></article>
+        <article class="card core"><span class="chip core">Goal</span>
+          <h3>Go / No-Go</h3><p>Favorable-environment table → size, or shelve.</p></article>
+      </div>
+    </section>
+
+  </div><!-- /flow -->
+
+  <!-- cross-cutting -->
+  <div class="xcut">
+    <div class="tag">Cross-cut</div>
+    <div class="xbar"><b>VIX / regime</b> conditions every strategy in Layer 04 — "favorable
+      environment" is a slice of the trade log, not a separate study. &nbsp;·&nbsp;
+      <b>MenthorQ ⇄ IB gamma</b> is a calibration loop: if our walls match theirs, we trust
+      ours and pay no vendor for live levels.</div>
+  </div>
+
+  <div class="foot">
+    <div class="fcol">
+      <h4>Start here (no paper, no spend)</h4>
+      <ol>
+        <li>Pull <b>VIX</b> + term structure <span>(free) — unblocks all regime work</span></li>
+        <li>Build the <b>unified trade log</b> <span>writer before any sim runs</span></li>
+        <li>Draft complete → <b>refine playbook rules</b> <span>(<span class="kbd">options_playbook.md</span>)</span></li>
+      </ol>
+    </div>
+    <div class="fcol">
+      <h4>Optimize now vs forward-test</h4>
+      <ul>
+        <li><b>BPS family</b> — optimize on OptionsDX now <span>(+ VIX regime, then walk-forward)</span></li>
+        <li><b>0DTE + gamma</b> — no owned history <span>→ ThetaData $40, or OPRA forward-test</span></li>
+      </ul>
+    </div>
+    <div class="fcol">
+      <h4>Open spend decision</h4>
+      <ul>
+        <li><b>ThetaData $40/mo</b> <span>— buy only to backtest 0DTE/gamma historically; verify entitlement on free tier first</span></li>
+        <li><b>ORATS</b> <span>— later, only for deep historical OI</span></li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+</div>

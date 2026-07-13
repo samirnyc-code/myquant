@@ -1,0 +1,570 @@
+
+<!--
+  OPTIONS-DRILL FRAMEWORK — read this comment, then edit only the CONFIG
+  object inside <script id="config">. Everything else (CSS "series style",
+  rendering engine, drill logic) is generic and should not need to change
+  per topic.
+
+  TO MAKE A NEW DRILL:
+    1. Copy this file to NN-topic-name.html (NN = series number).
+    2. Edit CONFIG below: title, the one-rule block, 2-3 personas,
+       the drill's fields/answers/generate/judge functions, the cheat
+       table rows, and the footnote.
+    3. Open the file in a browser to test the drill logic before
+       publishing it as an Artifact.
+
+  CONTENT SKELETON (why these six blocks, not something else):
+    - RULE       the one sentence that removes the need to think
+    - PERSONAS   2-4 named archetypes that make the sign/regime distinction
+                 physical and memorable (tone: 'water' calm/stabilizing,
+                 'fire' hot/destabilizing, 'copper' neutral/transitional,
+                 'ash' muted/decaying — pick per persona, don't reuse a tone
+                 for two personas on the same page)
+    - DRILL      a scenario generator + judge function → forces recall
+                 instead of recognition, which is what makes it reflexive
+    - CHEAT      a flat reference table for when the drill isn't enough
+    - CHEAT2     optional second reference table for adjacent terms that
+                 don't belong in the drill itself — delete the CONFIG.cheat2
+                 key entirely if the topic doesn't need one
+    - FOOTNOTE   the real-world caveat that keeps the mental model honest
+-->
+<title>Options Drill — Template</title>
+<style>
+  :root {
+    --paper: #f3efe6;
+    --paper-line: #d9d2c1;
+    --ink: #201c16;
+    --ink-dim: #6b6455;
+    --copper: #a8672b;
+    --copper-ink: #7d4a1c;
+    --water: #2f6e69;
+    --water-soft: #e2ede9;
+    --fire: #a8402a;
+    --fire-soft: #f2e0d8;
+    --card-bg: #ffffff;
+    --shadow: 0 1px 0 rgba(32,28,22,0.06);
+  }
+  :root[data-theme="dark"] {
+    --paper: #14110d;
+    --paper-line: #322c22;
+    --ink: #ece5d6;
+    --ink-dim: #9c9280;
+    --copper: #d99a53;
+    --copper-ink: #f0b878;
+    --water: #6fb3ab;
+    --water-soft: #1c2f2c;
+    --fire: #d97a5f;
+    --fire-soft: #2f201a;
+    --card-bg: #1c1712;
+    --shadow: 0 1px 0 rgba(0,0,0,0.3);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #14110d;
+      --paper-line: #322c22;
+      --ink: #ece5d6;
+      --ink-dim: #9c9280;
+      --copper: #d99a53;
+      --copper-ink: #f0b878;
+      --water: #6fb3ab;
+      --water-soft: #1c2f2c;
+      --fire: #d97a5f;
+      --fire-soft: #2f201a;
+      --card-bg: #1c1712;
+      --shadow: 0 1px 0 rgba(0,0,0,0.3);
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem 5rem;
+    line-height: 1.55;
+  }
+
+  .mono {
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  h1, h2, h3 {
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    text-wrap: balance;
+    font-weight: 600;
+  }
+
+  header.masthead {
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 1.1rem;
+    margin-bottom: 2.2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  header.masthead .title { font-size: 1.9rem; letter-spacing: -0.01em; margin: 0; }
+  header.masthead .kicker {
+    font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--copper-ink); font-weight: 600;
+  }
+  header.masthead .date { font-size: 0.78rem; color: var(--ink-dim); text-align: right; }
+
+  section { margin-bottom: 2.8rem; }
+
+  .rule-block {
+    background: var(--card-bg);
+    border: 1px solid var(--paper-line);
+    border-left: 3px solid var(--copper);
+    padding: 1.3rem 1.5rem;
+    box-shadow: var(--shadow);
+  }
+  .rule-block p { margin: 0.4rem 0; }
+  .rule-block .big {
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-size: 1.15rem; font-weight: 600;
+  }
+  .rule-block .derivation {
+    font-size: 0.85rem; color: var(--ink-dim);
+    margin-top: 0.7rem; padding-top: 0.7rem;
+    border-top: 1px dashed var(--paper-line);
+  }
+
+  h2.section-title {
+    font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--ink-dim);
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-weight: 600; margin: 0 0 0.9rem;
+    border-bottom: 1px solid var(--paper-line); padding-bottom: 0.5rem;
+  }
+
+  .duo {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 1rem;
+  }
+  .persona {
+    border: 1px solid var(--paper-line);
+    background: var(--card-bg);
+    padding: 1.1rem 1.2rem 1.3rem;
+  }
+  .persona.water { border-top: 3px solid var(--water); }
+  .persona.fire { border-top: 3px solid var(--fire); }
+  .persona.copper { border-top: 3px solid var(--copper); }
+  .persona.ash { border-top: 3px solid var(--ink-dim); }
+  .persona .role {
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-size: 1.15rem; font-weight: 600; margin: 0 0 0.15rem;
+  }
+  .persona.water .role { color: var(--water); }
+  .persona.fire .role { color: var(--fire); }
+  .persona.copper .role { color: var(--copper-ink); }
+  .persona.ash .role { color: var(--ink-dim); }
+  .persona .sub { font-size: 0.78rem; color: var(--ink-dim); margin-bottom: 0.9rem; }
+  .persona dl { margin: 0; font-size: 0.88rem; }
+  .persona dt {
+    color: var(--ink-dim); font-size: 0.72rem; letter-spacing: 0.05em;
+    text-transform: uppercase; margin-top: 0.7rem;
+  }
+  .persona dt:first-child { margin-top: 0; }
+  .persona dd { margin: 0.15rem 0 0; }
+
+  .drill { border: 1px solid var(--paper-line); background: var(--card-bg); box-shadow: var(--shadow); }
+  .drill-head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0.8rem 1.2rem; border-bottom: 1px solid var(--paper-line);
+    font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-dim);
+  }
+  .drill-head .score { font-size: 0.95rem; letter-spacing: 0; text-transform: none; color: var(--ink); }
+  .drill-body { padding: 1.6rem 1.5rem; }
+  .ticket {
+    display: grid; grid-template-columns: auto 1fr; gap: 0.4rem 1rem;
+    font-size: 0.95rem; margin-bottom: 1.4rem;
+  }
+  .ticket dt {
+    color: var(--ink-dim); font-size: 0.72rem; letter-spacing: 0.06em;
+    text-transform: uppercase; align-self: center;
+  }
+  .ticket dd { margin: 0; font-size: 1.15rem; font-weight: 600; }
+  .tone-up { color: var(--fire); }
+  .tone-down { color: var(--water); }
+  .tone-neutral { color: var(--copper-ink); }
+
+  .answers { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-bottom: 1.2rem; }
+  button.ans {
+    font: inherit; font-weight: 600; font-size: 0.95rem;
+    padding: 0.85rem 1rem; border: 1px solid var(--paper-line);
+    background: transparent; color: var(--ink); cursor: pointer; letter-spacing: 0.02em;
+  }
+  button.ans:hover:not(:disabled) { border-color: var(--copper); }
+  button.ans:focus-visible { outline: 2px solid var(--copper); outline-offset: 2px; }
+  button.ans:disabled { cursor: default; }
+  button.ans.correct { background: var(--water-soft); border-color: var(--water); color: var(--water); }
+  button.ans.wrong { background: var(--fire-soft); border-color: var(--fire); color: var(--fire); }
+
+  .feedback {
+    min-height: 3.6rem; font-size: 0.92rem; padding: 0.9rem 1rem;
+    background: var(--paper); border: 1px dashed var(--paper-line); margin-bottom: 1.1rem;
+  }
+  .feedback .verdict { font-weight: 700; }
+  .feedback.correct .verdict { color: var(--water); }
+  .feedback.wrong .verdict { color: var(--fire); }
+  .feedback.empty { color: var(--ink-dim); }
+
+  button.next {
+    font: inherit; font-size: 0.82rem; letter-spacing: 0.05em; text-transform: uppercase;
+    font-weight: 600; padding: 0.6rem 1.1rem; background: var(--ink); color: var(--paper);
+    border: none; cursor: pointer;
+  }
+  button.next:focus-visible { outline: 2px solid var(--copper); outline-offset: 2px; }
+  button.next:disabled { opacity: 0.35; cursor: default; }
+
+  table.cheat { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+  table.cheat th, table.cheat td {
+    text-align: left; padding: 0.55rem 0.6rem; border-bottom: 1px solid var(--paper-line); vertical-align: top;
+  }
+  table.cheat th {
+    font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-dim); font-weight: 600;
+  }
+  table.cheat td.mnem { font-weight: 600; white-space: nowrap; }
+
+  .footnote { font-size: 0.85rem; color: var(--ink-dim); border-top: 1px solid var(--paper-line); padding-top: 1.1rem; }
+  .footnote strong { color: var(--ink); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    button.ans.correct, button.ans.wrong { transition: background 0.15s ease, border-color 0.15s ease; }
+  }
+</style>
+
+<header class="masthead">
+  <div>
+    <div class="kicker" id="out-kicker"></div>
+    <h1 class="title" id="out-title"></h1>
+  </div>
+  <div class="date mono" id="out-tagline"></div>
+</header>
+
+<section><div class="rule-block" id="out-rule"></div></section>
+<section><h2 class="section-title">Personas</h2><div class="duo" id="out-personas"></div></section>
+
+<section>
+  <h2 class="section-title">The Drill</h2>
+  <div class="drill">
+    <div class="drill-head">
+      <span id="out-ticket-label">ticket</span>
+      <span class="score mono" id="score">0 / 0 · streak 0</span>
+    </div>
+    <div class="drill-body">
+      <dl class="ticket" id="out-ticket-fields"></dl>
+      <div class="answers" id="out-answers"></div>
+      <div class="feedback empty" id="feedback">Pick an answer for the ticket above.</div>
+      <button class="next" id="btn-next" type="button">Next ticket →</button>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title">Cheat Sheet</h2>
+  <table class="cheat">
+    <thead><tr><th>Mnemonic</th><th>Meaning</th></tr></thead>
+    <tbody id="out-cheat"></tbody>
+  </table>
+</section>
+
+<section id="sec-cheat2" style="display:none">
+  <h2 class="section-title" id="out-cheat2-title">Reference</h2>
+  <table class="cheat">
+    <thead><tr><th id="out-cheat2-col1">Term</th><th id="out-cheat2-col2">Meaning</th></tr></thead>
+    <tbody id="out-cheat2"></tbody>
+  </table>
+</section>
+
+<p class="footnote" id="out-footnote"></p>
+
+<script id="config">
+  /* ============================================================
+     EDIT ONLY THIS OBJECT FOR A NEW TOPIC.
+     ============================================================ */
+  const CONFIG = {
+    kicker: "Field Manual · No. 2",
+    title: "The Big Four",
+    tagline: "Greeks,\nby reflex",
+
+    rule: {
+      big: "Long/short alone sets gamma, theta, and vega. Delta is the only Greek that also cares whether you're a call or a put.",
+      sub: "Every position reduces to four dials — direction, convexity, time, and volatility — and three of the four only ask one question: long or short?",
+      derivation: "long options → gamma&gt;0, vega&gt;0, theta&lt;0 (you pay rent)<br>" +
+        "short options → gamma&lt;0, vega&lt;0, theta&gt;0 (you collect rent) · delta needs call/put too"
+    },
+
+    // Delta = odd one out (copper). Gamma = hot/convex (fire).
+    // Theta = decaying/muted (ash). Vega = atmospheric (water).
+    personas: [
+      {
+        tone: "copper",
+        role: "Delta — The Compass",
+        sub: "1st derivative w.r.t. price · the only Greek where call vs. put matters",
+        facts: [
+          ["Measures", "Δ option price per $1 move in the underlying"],
+          ["Range", "0 to 1 (calls) · −1 to 0 (puts)"],
+          ["Positive delta", "long call, short put"],
+          ["Negative delta", "long put, short call"]
+        ]
+      },
+      {
+        tone: "fire",
+        role: "Gamma — The Accelerant",
+        sub: "2nd derivative w.r.t. price · the rate of change of delta itself",
+        facts: [
+          ["Measures", "Δ delta per $1 move in the underlying"],
+          ["Sign rule", "long options = long gamma; short = short gamma"],
+          ["Peaks", "at-the-money, close to expiry"],
+          ["Trade-off", "rented with theta — see below"]
+        ]
+      },
+      {
+        tone: "ash",
+        role: "Theta — The Rent",
+        sub: "1st derivative w.r.t. time · the cost of holding gamma",
+        facts: [
+          ["Measures", "Δ option price per day that passes"],
+          ["Sign rule", "long options pay theta; short options collect it"],
+          ["Relationship", "always opposite sign to gamma, same position"],
+          ["Accelerates", "into expiry, at-the-money"]
+        ]
+      },
+      {
+        tone: "water",
+        role: "Vega — The Weatherman",
+        sub: "1st derivative w.r.t. implied vol · sensitivity to the market's forecast",
+        facts: [
+          ["Measures", "Δ option price per 1pt move in IV"],
+          ["Sign rule", "long options = long vega; short = short vega"],
+          ["Peaks", "at-the-money, longer-dated"],
+          ["Watch for", "vol crush after earnings or events"]
+        ]
+      }
+    ],
+
+    drill: {
+      ticketLabel: "greek check",
+      fields: [
+        { key: "greek", label: "Testing", tone: () => "tone-neutral" },
+        { key: "position", label: "Position", tone: () => "" },
+        { key: "event", label: "Event", tone: (s) => s.eventTone }
+      ],
+      answers: ["HELPS YOU (+P&L)", "HURTS YOU (−P&L)"],
+
+      generate: () => {
+        const POSITIONS = [
+          { label: "LONG CALL", delta: 1, gamma: 1, theta: -1, vega: 1 },
+          { label: "SHORT CALL", delta: -1, gamma: -1, theta: 1, vega: -1 },
+          { label: "LONG PUT", delta: -1, gamma: 1, theta: -1, vega: 1 },
+          { label: "SHORT PUT", delta: 1, gamma: -1, theta: 1, vega: -1 }
+        ];
+        const GREEKS = ["delta", "gamma", "theta", "vega"];
+        const position = POSITIONS[Math.floor(Math.random() * POSITIONS.length)];
+        const greek = GREEKS[Math.floor(Math.random() * GREEKS.length)];
+
+        let event, eventLabel, eventTone;
+        if (greek === "delta") {
+          event = Math.random() < 0.5;
+          eventLabel = event ? "▲ SPOT RISES" : "▼ SPOT FALLS";
+          eventTone = event ? "tone-up" : "tone-down";
+        } else if (greek === "gamma") {
+          event = Math.random() < 0.5;
+          eventLabel = event ? "BIG REALIZED MOVE" : "PINNED / NO MOVE";
+          eventTone = event ? "tone-up" : "tone-down";
+        } else if (greek === "theta") {
+          event = true;
+          eventLabel = "ONE DAY PASSES";
+          eventTone = "tone-neutral";
+        } else {
+          event = Math.random() < 0.5;
+          eventLabel = event ? "▲ IV RISES" : "▼ IV FALLS";
+          eventTone = event ? "tone-up" : "tone-down";
+        }
+        return { position, greek, event, eventLabel, eventTone };
+      },
+
+      render: (s) => ({
+        greek: s.greek.toUpperCase(),
+        position: s.position.label,
+        event: s.eventLabel
+      }),
+
+      judge: (s) => {
+        const p = s.position;
+        let sign, name;
+        if (s.greek === "delta") {
+          sign = p.delta * (s.event ? 1 : -1);
+          name = "Compass";
+        } else if (s.greek === "gamma") {
+          sign = p.gamma * (s.event ? 1 : -1);
+          name = "Accelerant";
+        } else if (s.greek === "theta") {
+          sign = p.theta;
+          name = "Rent";
+        } else {
+          sign = p.vega * (s.event ? 1 : -1);
+          name = "Weatherman";
+        }
+        const correctIndex = sign > 0 ? 0 : 1;
+        const why = `${p.label} — ${s.greek} (the ${name}) turns "${s.eventLabel}" into ${sign > 0 ? "a gain" : "a loss"}.`;
+        return { correctIndex, why };
+      }
+    },
+
+    cheat: [
+      ["Rent for gamma", "Theta and gamma are always opposite in sign for the same position — you pay theta to own gamma, and collect it when you're short."],
+      ["Long = long gamma & vega, short theta", "Being long any option, call or put, makes you long gamma, long vega, and short (paying) theta. Symmetric for short."],
+      ["Delta's the odd one out", "Only delta's sign depends on call vs. put. Gamma, theta, and vega only depend on long vs. short."],
+      ["ATM is Greek central", "Gamma, theta, and vega are all maximized at-the-money. Delta is most decisive far from the money (near 0 or ±1)."],
+      ["Gamma and vega trade off with time", "Gamma is largest with days left; vega is largest with months left — they pull in opposite directions across an option's life."]
+    ],
+
+    cheat2: {
+      title: "Beyond the Big Four",
+      columns: ["Greek", "Meaning"],
+      rows: [
+        ["Vanna", "∂delta/∂vol (= ∂vega/∂spot). How much your delta shifts when IV moves — drives dealer hedging flows around vol spikes."],
+        ["Charm", "∂delta/∂time. How much your delta decays overnight even with no price move — matters most into weekends and expiry."],
+        ["Volga / Vomma", "∂vega/∂vol. Convexity of vega itself — why long-vol positions (like straddles) gain extra from vol-of-vol."],
+        ["Veta", "∂vega/∂time. How vega itself erodes as time passes, independent of IV changing."],
+        ["Speed", "∂gamma/∂spot (3rd order). Rate of change of gamma — relevant when gamma itself is moving fast, e.g. near a pin."],
+        ["Color", "∂gamma/∂time (3rd order). How gamma decays day to day — why gamma scalping desks watch it into expiry week."],
+        ["Zomma", "∂gamma/∂vol (3rd order). How gamma responds to IV changes — thin edge case, rarely hedged directly."],
+        ["Ultima", "∂vomma/∂vol (3rd order). Sensitivity of vega convexity to vol itself — exotic-desk territory."]
+      ]
+    },
+
+    footnoteHTML: "<strong>Real-world wrinkle:</strong> vanna and charm are the two second-order Greeks that actually move markets — vanna-charm hedging flows around large IV moves and into monthly/quarterly expiries are a big part of the \"gamma exposure\" narrative you see in dealer-positioning commentary. Speed, color, zomma, and ultima are mostly textbook completeness: real desks track them, but they rarely change what you'd actually trade. Vanna and charm are strong candidates for their own drill next in this series."
+  };
+</script>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+
+  // ---- static chrome ----
+  $("out-kicker").textContent = CONFIG.kicker;
+  $("out-title").textContent = CONFIG.title;
+  $("out-tagline").innerHTML = CONFIG.tagline.replace("\n", "<br>");
+
+  // ---- rule block ----
+  {
+    const r = CONFIG.rule;
+    let html = `<p class="big">${r.big}</p><p>${r.sub}</p>`;
+    if (r.derivation) html += `<div class="derivation mono">${r.derivation}</div>`;
+    $("out-rule").innerHTML = html;
+  }
+
+  // ---- personas ----
+  {
+    const html = CONFIG.personas.map((p) => {
+      const facts = p.facts.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
+      return `<div class="persona ${p.tone}">
+        <p class="role">${p.role}</p>
+        <p class="sub">${p.sub}</p>
+        <dl>${facts}</dl>
+      </div>`;
+    }).join("");
+    $("out-personas").innerHTML = html;
+  }
+
+  // ---- cheat table ----
+  {
+    const rows = CONFIG.cheat.map(([m, meaning]) =>
+      `<tr><td class="mnem">${m}</td><td>${meaning}</td></tr>`
+    ).join("");
+    $("out-cheat").innerHTML = rows;
+  }
+
+  // ---- optional second reference table ----
+  if (CONFIG.cheat2) {
+    $("sec-cheat2").style.display = "";
+    $("out-cheat2-title").textContent = CONFIG.cheat2.title;
+    $("out-cheat2-col1").textContent = CONFIG.cheat2.columns[0];
+    $("out-cheat2-col2").textContent = CONFIG.cheat2.columns[1];
+    $("out-cheat2").innerHTML = CONFIG.cheat2.rows.map(([m, meaning]) =>
+      `<tr><td class="mnem">${m}</td><td>${meaning}</td></tr>`
+    ).join("");
+  }
+
+  // ---- footnote ----
+  $("out-footnote").innerHTML = CONFIG.footnoteHTML;
+
+  // ---- drill engine (generic — do not edit per topic) ----
+  const d = CONFIG.drill;
+  $("out-ticket-label").textContent = d.ticketLabel;
+
+  const ticketFieldsEl = $("out-ticket-fields");
+  const answersEl = $("out-answers");
+  const feedback = $("feedback");
+  const scoreEl = $("score");
+  const btnNext = $("btn-next");
+
+  let current = null;
+  let correctCount = 0, totalCount = 0, streak = 0;
+  let answered = false;
+  let answerButtons = [];
+
+  function renderTicket(scenario) {
+    const values = d.render(scenario);
+    ticketFieldsEl.innerHTML = d.fields.map((f) => {
+      const cls = "mono " + (f.tone ? f.tone(scenario) : "");
+      return `<dt>${f.label}</dt><dd class="${cls}">${values[f.key]}</dd>`;
+    }).join("");
+  }
+
+  function renderAnswers() {
+    answersEl.innerHTML = d.answers.map((label, i) =>
+      `<button class="ans" data-idx="${i}" type="button">${label}</button>`
+    ).join("");
+    answerButtons = Array.from(answersEl.querySelectorAll("button.ans"));
+    answerButtons.forEach((btn) => btn.addEventListener("click", () => answer(Number(btn.dataset.idx))));
+  }
+
+  function newTicket() {
+    current = d.generate();
+    renderTicket(current);
+    renderAnswers();
+    answered = false;
+    feedback.textContent = "Pick an answer for the ticket above.";
+    feedback.className = "feedback empty";
+    btnNext.disabled = true;
+  }
+
+  function answer(idx) {
+    if (answered || !current) return;
+    answered = true;
+    totalCount++;
+
+    const { correctIndex, why } = d.judge(current);
+    const isCorrect = idx === correctIndex;
+    if (isCorrect) { correctCount++; streak++; } else { streak = 0; }
+    scoreEl.textContent = correctCount + " / " + totalCount + " · streak " + streak;
+
+    answerButtons.forEach((btn, i) => {
+      btn.disabled = true;
+      if (i === correctIndex) btn.classList.add("correct");
+      else if (i === idx) btn.classList.add("wrong");
+    });
+
+    feedback.className = "feedback " + (isCorrect ? "correct" : "wrong");
+    feedback.innerHTML = '<span class="verdict">' + (isCorrect ? "Correct." : "Not quite.") +
+      "</span> " + why;
+
+    btnNext.disabled = false;
+  }
+
+  btnNext.addEventListener("click", newTicket);
+  newTicket();
+})();
+</script>
+
