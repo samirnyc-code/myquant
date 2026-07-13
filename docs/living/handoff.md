@@ -4,6 +4,26 @@
 
 ---
 
+## S72 PREP (2026-07-13, main PC) — second-PC onboarding + regime v2 kickoff
+
+Next session runs on the **second PC** (GitHub `tdeutschmann-byte`, already a collaborator).
+Everything needed is in **`docs/living/second_pc_setup.md`** — machine setup, data transfer,
+branch, and the regime-v2 design brief. Short version:
+
+- **Data:** `data/bars/` + `data/ticks_continuous/` (3.4 GB, needed for the structure
+  engine's OB tick-order rule) are gitignored → staged on Drive at
+  `G:\My Drive\myquant_transfer\`. Copy into the clone, then smoke-test:
+  `python scripts/brooks_structure_engine.py 2022-02-24` must render the triangle chart.
+- **Branch:** work on `regime/v2-multistate`; merge to main at session end with the
+  handoff update. Pull before editing handoff.md (two machines now).
+- **Task:** wire `brooks_structure_engine.py` → a NEW multi-state regime layer
+  (`BULL / BULL_ATTEMPT / NEUTRAL / BEAR_ATTEMPT / BEAR`) per the S62 invariant. The
+  ATTEMPT states replace the fatally-weak single-close flip. Old regime engine stays
+  banned ([[brooks_regime_engine_broken]]). Regime shading is the goal; setups secondary.
+  Chart overlay + eyeball validation on 2022-02-24 / 04-12 / 01-22 BEFORE any sim.
+
+---
+
 ## S71 (2026-07-13) — THE BROOKS CODEX (study system) + daily-chart scraping
 
 Big new direction: built a **"Brooks Codex"** study system from Al Brooks' material. All
