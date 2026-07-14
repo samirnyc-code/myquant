@@ -1,6 +1,121 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 14, 2026 (session 72)
+**Last Updated:** July 14, 2026 (sessions 73 + 73B)
+
+---
+
+## S73B (2026-07-14) — BROOKS CODEX FINALIZED & SHIPPED (parallel session to S73 options)
+
+Codex reviewed end-to-end with the user, polished per his live feedback, **synced to
+`G:\My Drive\Brooks Codex`** (open `index.html` from the synced folder). Second-PC use:
+Drive for Desktop → sync folder → open index.html; or send the single **`codex_portable.html`
+(12.4 MB)** — self-contained Trainer + cheat sheet + 1,467 day texts + encyclopedia.
+
+**Cross-Codex chrome** (`scripts/brooks_font_ctl.py` — idempotent injector, run automatically
+by `brooks_sync_drive.ps1` before every sync, so rebuilds can't lose it): gold **⌂ Home**
+button + **A−/A+ global font zoom** (default 120% "large", localStorage `cxZoom`, shared
+across pages) placed in every page's header; old "← Codex hub" links hidden; Home hides
+itself inside the portable's iframes; index.html gets fonts only; daily.html gets Home only
+(its own S/M/L stays — page zoom breaks its vh snap layout).
+
+**daily.html** (`brooks_build_daily2.py`): default paged view = chart fits screen with the
+FULL "Today's Chart" text in a scrollable strip below (wheel over text scrolls text, over
+chart pages days); focus mode top-aligned with expander, wider (1.65fr chart, 14px gutters);
+**🔎 Lens** (364px, wheel = magnification 1.5–6×, click-to-focus disabled while on).
+
+**Trainer** (`brooks_build_full.py`, app.html = brooks_app_standalone.html copy): header Home;
+**grade filter chips** on Setups; **Library theme chips**; ALL rule/tell/library tiles pop to
+center + flip to Brooks' verbatim words (`zoomFlip`); figure zoom rebuilt explorer-style —
+**full-res file from figures/ (base64 fallback), scrollable full explanation panel, deep zoom
+(wheel/drag/dblclick), opt-in 🔎 lens toggle**; quiz prompts clarified (theme + why-vs-quote
+cue). **MTR setup now has 6 caption-verified Reversals figures** (RVPI_5, RV1_1, RV3_1/2/3,
+RV9_12), embedded.
+
+**📖 page-jump links** on every cited tile/pop-out (trainer + cheatsheet) → `books/*.pdf#page=N`;
+verified printed page == pdf page for Trends/Ranges/RPCBB (assumed for Reversals).
+
+**Cheat sheet** (`brooks_build_study.py` → wrapped copy in codex): every line = pop-out flip
+tile with Brooks' verbatim quote (100% coverage in brooks_golden.json); dark body bg fixed;
+mem-banner contrast fixed. NOTE: codex/cheatsheet.html = brooks_cheatsheet.html + doctype
+wrapper (wrap step is manual in the session log — candidate to script).
+
+**slides.html** (`brooks_build_slides.py`): auto-probes drive letters D–L (+"My Drive"
+variants) for the shared Slides shortcut — second PC works regardless of drive letter.
+
+**KNOWN GAPS / NEXT:**
+- **figure_index.json has explanations for 0/175 Reversals figures** (S71 extraction gap) —
+  extract them so Reversals figure zooms get text panels like the other books.
+- Daily junk-purge pending: user flags 🗑 → "⤓ Export delete list" → `brooks_purge_daily.py`;
+  after purging also mirror daily2/ to Drive (normal sync never deletes remote files).
+- "AI read (not Al)" expander still awaiting go/no-go; password rotation still pending
+  (brookspriceaction.com, user samirnyc).
+- Rebuild order matters: build_full/build_study → copy/wrap into codex → font_ctl → portable
+  → sync (portable embeds the injected app+cheat).
+
+---
+
+## S73 (2026-07-14, PC) — OPTIONS GOES LIVE: paper pipeline, 8 strategies traded, sim daemon, dashboard, journal
+
+**THE BIG DAY: the whole options forward-test pipeline is LIVE on the IB paper account
+(`DUQ159823`, Gateway port 4002).** Everything below ran for real today.
+
+**IB layer (all verified working):**
+- `scripts/ib_conn.py` — connection layer; PAPER 4002 default, refuses live 4001 without
+  `allow_live=True`, verifies `DU…` account prefix. Per-process clientIds (no collisions).
+- **OPRA realtime NBBO works on paper** (14/14 strikes quoting). `modelGreeks.undPrice` is
+  None on paper (no index sub) → **realtime SPX spot = put-call parity on 0DTE ATM pairs**
+  (`SpotRig` in the daemon; 5-cent agreement across strikes). Delta greeks DO populate.
+- **Orders:** limit must be AT NBBO (IB rejects aggressive limits, err 202) + explicit
+  `tif="DAY"` (else insta-cancel) + BUY wings BEFORE selling (naked-short margin rejects).
+  Round-trip test filled+flat. Fixes live in `scripts/ib_order_test.py::marketable`.
+- **Gateway kickouts:** one session per username — logging into IBKR mobile/portal AS THE
+  PAPER USER kills the Gateway session. IBC auto-relogin = next-session task (user has no 2FA).
+
+**The causal 15:59 BPS forward-sim** (`scripts/options_sim_daemon.py`, S70 plan built+run):
+samples parity spot 1/min (session H/L), decides at 15:59:00 ET (K8/SMA100/SMA5 on SPX —
+**SPX variant, not ES**: Massive died today, IB ES delayed, no NT8 bridge yet), logs the
+16:00–16:15 NBBO tape, executes at NBBO, settles expiries, regenerates the report. First live
+day: no entry (K8 79.5), SMA5 exit CLOSED the test BPS +$155; **first fill-drift datapoint:
+8.40 paid vs 8.00 mid**. ⚠️ FIXED after day 1: fills now gated to ≥16:00 (day-1 exit executed
+15:59:08). SPX daily from Yahoo (Stooq is JS-walled now); VIX daily auto-refreshes.
+
+**8 strategies executed + logged** (`scripts/options_strategy_sampler.py`, one per family;
+unified log `data/options_log/trades.parquet`, §B schema + commentary/grade/max_gain/max_loss/pop):
+Day result **−$920 realized (6 closed)** — but regime-aligned trades won +$1,406 (fly@GW
++$949, condor +$175, PS0 spread +$127, BPS +$155), counter-regime lost (straddle on a pin
+day −$2,324; zero-credit bear call graded F −$3). Grades predicted P&L ordering. Open: weekly
+bull call + put calendar (long leg). ⚠️ Log-vs-IB drift: daemon closed the BPS in the LOG;
+the real paper legs (7435/7385P 7/28) are still open at IB — close/reconcile next session.
+
+**Dashboards:** Streamlit `scripts/options_app.py` (port 8511) — flip-card trade wall
+(`options_build_cards.py`, payoff SVGs, grade chips), professional journal
+(`options_journal.py`: plan/context/execution/lifecycle auto + MFE/MAE in $ and R from the
+5-min marks + editable process-grade review), performance, decisions/fill tapes, market
+data (VIX, MenthorQ calibration, live IB margin via `options_mark.py --watch 300` →
+`marks.csv` + `account.csv`). Static fallback `options_sim_report.py`.
+
+**Research — VIX conditioning REJECTED** (`scripts/mr_bps_regime_wf.py`, 139 trades 2010–23):
+OOS walk-forward filtered PF 2.13 < unfiltered 2.24; "elevated-but-falling IV" prior
+unsupported (n≤13); LOW VIX-rank was the best tercile. **Trade BPS unconditioned.**
+Playbook rewritten with fixed DEFAULT params + test grids for all 8 families + daily
+forward-test protocol (`docs/living/options_playbook.md`).
+
+**MenthorQ daily calibration:** levels hand-pasted each morning → `scratchpad/mq_levels_today.json`
+→ `mq_logger.py` (now paper port). Today: CR 7600 + CR0 7550 = EXACT IB match; PS/HVL
+formulas still wrong (known de619b9 blockers). No scraper — manual paste is the workflow.
+
+**NT8 ES bridge:** `nt8/QSBarExporter.cs` (committed per CLAUDE.md rule) — copied to NT8
+Custom\Indicators; user must compile (F5) + add to 1-min ES chart → streams to
+`data/nt8_es_1m.csv` → app shows it. Unblocks true-ES signals later.
+
+**OPEN / NEXT:**
+- Morning: reconcile BPS legs at IB vs log; run the §D daily loop (MQ levels → gamma trades
+  → daemon → marks). Start daemon before 15:59 ET; keep Gateway logged in.
+- Proposed portfolio risk rules AWAITING USER: max 3 concurrent / $10K total risk / $2.5K
+  per trade / no 0DTE entries after 14:00 ET.
+- IBC auto-login install; event calendar into daemon; VIX3M term structure; ThetaData
+  decision after ~2 weeks of forward samples.
+- User /loop directive: continuous strategy work (backtest, hypotheses, web research).
 
 ---
 

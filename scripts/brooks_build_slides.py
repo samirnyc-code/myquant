@@ -101,6 +101,20 @@ const PARTS=__PARTS__;
 let BASE=localStorage.slBase||__BASE__;
 const side=document.getElementById("side"),main=document.getElementById("main"),q=document.getElementById("q");
 let cur=null,drill=false;
+// The shared Slides folder can mount on a different drive letter (or under
+// "My Drive") on other machines — probe candidates and keep the first that loads.
+(function(){
+ const probe=PARTS[0]&&PARTS[0].topics[0];if(!probe||!probe.ann.length)return;
+ const rel="/"+encodeURI(probe.dir+"/"+probe.ann[0]);
+ const test=b=>new Promise(res=>{const im=new Image();im.onload=()=>res(true);im.onerror=()=>res(false);im.src=b+rel;});
+ test(BASE).then(async ok=>{
+  if(ok)return;
+  const tail=".shortcut-targets-by-id/1oanmO7XO-brbZThAYjV6t6hZdzRyy9rE/Slides";
+  const cands=[];
+  for(const L of "GHIJKLDEF")cands.push("file:///"+L+":/"+tail,"file:///"+L+":/My Drive/"+tail);
+  for(const b of cands){if(b===BASE)continue;if(await test(b)){BASE=b;localStorage.slBase=b;if(cur)show(cur);return;}}
+ });
+})();
 document.getElementById("setbase").onclick=()=>{const v=prompt("Slides folder base URL:",BASE);if(v){BASE=v;localStorage.slBase=v;if(cur)show(cur);}};
 document.getElementById("drill").onclick=function(){drill=!drill;this.textContent="🎯 Drill mode: "+(drill?"ON":"OFF");this.classList.toggle("on",drill);if(cur)show(cur);};
 function url(t,f){return BASE+"/"+encodeURI(t.dir+"/"+f);}

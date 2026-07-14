@@ -147,7 +147,12 @@ button.on{background:var(--gold);color:#0c1016;font-weight:700}
 .wrap{height:calc(100vh - 57px);overflow-y:auto;scroll-snap-type:y mandatory;padding:0 48px}
 .snap{min-height:calc(100vh - 57px);display:flex;align-items:center;justify-content:center;scroll-snap-align:start;scroll-snap-stop:always}
 .card{width:100%;max-width:min(100%,148vh);margin:0 auto}
-body.focus .wrap{scroll-snap-type:none}
+.snap .card:not(.open){display:flex;flex-direction:column;max-height:calc(100vh - 80px)}
+.card:not(.open) .cimg{flex:0 0 auto}
+.card:not(.open) .cimg img{max-height:calc(100vh - 300px);object-fit:contain}
+.card:not(.open) .cright{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.card:not(.open) .chead,.card:not(.open) .more{flex:0 0 auto}
+body.focus .wrap{scroll-snap-type:none;padding:0 14px}
 body.focus .snap{display:none}
 body.focus .snap.cur{display:flex}
 body.focus .card.open{max-width:none}
@@ -163,6 +168,7 @@ body[data-fs=s]{--fs:13.5px}body[data-fs=m]{--fs:15.5px}body[data-fs=l]{--fs:18.
 .chead .date{font-family:var(--mono);font-size:12px;color:var(--dim)}
 .chead .act{margin-left:auto;display:flex;gap:6px}
 .ctext{padding:8px 16px 14px;color:var(--dim);font-size:var(--fs,15.5px);line-height:1.65;white-space:pre-line;max-height:120px;overflow:hidden;cursor:pointer}
+.card:not(.open) .ctext.preview{max-height:none;flex:1 1 auto;min-height:40px;overflow-y:auto;overscroll-behavior:contain}
 .more{font-family:var(--mono);font-size:11px;color:var(--gold);padding:0 16px 12px;cursor:pointer}
 .bref{color:var(--gold);font-weight:600}
 details.sec{border:1px solid var(--line);border-radius:9px;margin:10px 16px;background:var(--panel2)}
@@ -170,9 +176,9 @@ details.sec summary{font-family:var(--mono);font-size:12.5px;color:var(--gold);p
 details.sec summary::before{content:"▸ "}details.sec[open] summary::before{content:"▾ "}
 details.sec .secbody{padding:2px 16px 12px;font-size:var(--fs,15.5px);line-height:1.65;white-space:pre-line;color:var(--ink)}
 body.focus .card:not(.open){display:none}
-.card.open{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(320px,1fr);gap:6px;align-items:center;height:calc(100vh - 88px);overflow:hidden;margin:16px 0}
-.card.open .cimg{background:transparent;padding:14px}
-.card.open .cimg img{max-height:calc(100vh - 130px);width:100%;object-fit:contain}
+.card.open{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(320px,1fr);gap:6px;align-items:start;height:calc(100vh - 88px);overflow:hidden;margin:16px 0}
+.card.open .cimg{background:transparent;padding:54px 8px 8px}
+.card.open .cimg img{max-height:calc(100vh - 160px);width:100%;object-fit:contain}
 .card.open .chead{padding-top:14px}
 .card .full{display:none}
 .card.open .full{display:block}
@@ -185,12 +191,14 @@ body.focus .card:not(.open){display:none}
 .zbar{position:fixed;top:14px;right:16px;z-index:61;display:none;gap:8px}.zbar.on{display:flex}
 .zbtn{font-family:var(--mono);background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:9px;width:42px;height:42px;cursor:pointer}
 .count{font-family:var(--mono);font-size:12px;color:var(--dim)}
+.lens{position:fixed;z-index:50;width:364px;height:364px;border-radius:50%;border:2px solid var(--gold);box-shadow:0 6px 28px rgba(0,0,0,.55);background-repeat:no-repeat;background-color:#fff;pointer-events:none;display:none}
 </style></head><body>
 <header><b>Brooks <span>Daily Charts</span></b>
 <input id=q placeholder="search title / text / date..." style="width:240px">
 <select id=tf><option value="">— all day types —</option></select>
 <button id=favb>★ Favorites</button><button id=trash>🗑 <span id=tn>0</span></button><button id=exportdel title="Download the delete list, then run brooks_purge_daily.py to remove these files permanently">⤓ Export delete list</button>
 <select id=fsz title="Commentary font size"><option value=s>A small</option><option value=m selected>A medium</option><option value=l>A large</option></select>
+<button id=lensb title="Hover a chart to magnify a few bars; mouse wheel changes magnification">🔎 Lens</button>
 <span class=count id=cnt></span>
 <a href="index.html">← Codex hub</a></header>
 <div class=wrap id=lst></div>
@@ -203,6 +211,30 @@ let favs=new Set(JSON.parse(localStorage.getItem(FLS)||"[]"));
 let hidden=new Set(JSON.parse(localStorage.getItem(HLS)||"[]"));
 let favOnly=false,showTrash=false;
 const lst=document.getElementById("lst"),q=document.getElementById("q"),tf=document.getElementById("tf");
+let lensOn=false,lz=2.5;
+const lens=document.createElement("div");lens.className="lens";document.body.appendChild(lens);
+document.getElementById("lensb").onclick=function(){lensOn=!lensOn;this.classList.toggle("on",lensOn);if(!lensOn)lens.style.display="none";};
+function lensMove(e,img){
+ if(!lensOn||!img.naturalWidth){lens.style.display="none";return;}
+ const r=img.getBoundingClientRect();
+ const s=Math.min(r.width/img.naturalWidth,r.height/img.naturalHeight);
+ const dw=img.naturalWidth*s,dh=img.naturalHeight*s;
+ const ox=r.left+(r.width-dw)/2,oy=r.top+(r.height-dh)/2;
+ const x=e.clientX-ox,y=e.clientY-oy;
+ if(x<0||y<0||x>dw||y>dh){lens.style.display="none";return;}
+ const R=182;
+ lens.style.display="block";
+ lens.style.left=(e.clientX-R)+"px";lens.style.top=(e.clientY-R)+"px";
+ lens.style.backgroundImage='url("'+img.src+'")';
+ lens.style.backgroundSize=(dw*lz)+"px "+(dh*lz)+"px";
+ lens.style.backgroundPosition=(R-x*lz)+"px "+(R-y*lz)+"px";
+}
+function lensBind(img){
+ img.addEventListener("mousemove",e=>lensMove(e,img));
+ img.addEventListener("mouseleave",()=>{lens.style.display="none";});
+ img.addEventListener("wheel",e=>{if(!lensOn)return;e.preventDefault();
+  lz=Math.min(6,Math.max(1.5,lz*(e.deltaY<0?1.15:1/1.15)));lensMove(e,img);},{passive:false});
+}
 [...new Set(CARDS.map(c=>c.dt))].sort().forEach(t=>{const o=document.createElement("option");o.value=t;o.textContent=t;tf.appendChild(o);});
 function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;");}
 function saveF(){localStorage.setItem(FLS,JSON.stringify([...favs]));}
@@ -218,7 +250,8 @@ function render(){
  a.slice(0,120).forEach(c=>{
   const el=document.createElement("div");el.className="card";
   const mk=s=>esc(s).replace(/\b([Bb]ars?)\s+(\d{1,3})\b/g,'<span class=bref>$1 $2</span>');
-  const preview=(c.pre||(c.secs[0]?c.secs[0][1]:"")).slice(0,600);
+  const tod=c.secs.find(s=>s[0].startsWith("Today"));
+  const preview=((c.pre?c.pre+"\n\n":"")+(tod?tod[1]:(c.secs[0]?c.secs[0][1]:""))).slice(0,6000);
   let full=c.pre?'<div class=ctext>'+mk(c.pre)+'</div>':"";
   c.secs.forEach(s=>{const today=s[0].startsWith("Today");const ttl=today?s[0]+" — "+c.date:s[0];
    full+='<details class=sec'+(today?' open':'')+'><summary>'+esc(ttl)+'</summary><div class=secbody>'+mk(s[1])+'</div></details>';});
@@ -229,7 +262,8 @@ function render(){
    +'<div class="ctext preview">'+mk(preview)+'</div><div class=full>'+full+'</div>'
    +'<div class=more>▾ full analysis</div></div>';
   const img=el.querySelector("img"),stripe=el.querySelector(".dstripe");
-  img.onclick=()=>tgl();
+  lensBind(img);
+  img.onclick=()=>{if(!lensOn)tgl();};
   el.querySelector(".fv").onclick=()=>{favs.has(c.id)?favs.delete(c.id):favs.add(c.id);saveF();render();};
   el.querySelector(".hd").onclick=()=>{showTrash?hidden.delete(c.id):hidden.add(c.id);saveH();render();};
   const tgl=()=>{const opening=!el.classList.contains("open");

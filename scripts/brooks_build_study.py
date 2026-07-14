@@ -335,6 +335,7 @@ CHEAT = r"""<style>
 :root[data-theme="light"]{--bg:#fff;--ink:#12181f;--dim:#5a6875;--line:#d8dee6;--gold:#a8760a;--red:#c0322c;--green:#1f8f48;}
 :root[data-theme="dark"]{--bg:#0e1319;--ink:#e7edf4;--dim:#94a2b2;--line:#28323d;--gold:#e6b23a;--red:#ec5b5b;--green:#45c26a;}
 *{box-sizing:border-box}
+body{background:var(--bg)}
 #cs{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.42;padding:26px;max-width:1000px;margin:0 auto}
 #cs .hd{display:flex;align-items:baseline;gap:14px;border-bottom:2px solid var(--ink);padding-bottom:10px;margin-bottom:16px;flex-wrap:wrap}
 #cs h1{font-size:22px;letter-spacing:.12em;text-transform:uppercase;margin:0;font-weight:800}
@@ -344,14 +345,31 @@ CHEAT = r"""<style>
 @media (max-width:720px){#cs .cols{column-count:1}}
 #cs section{break-inside:avoid;margin-bottom:16px;border:1px solid var(--line);border-radius:8px;overflow:hidden}
 #cs h2{font-size:12px;letter-spacing:.1em;text-transform:uppercase;margin:0;padding:8px 12px;font-weight:800;color:#fff}
-#cs section.red h2{background:var(--red)}#cs section.gold h2{background:var(--gold)}#cs section.mem h2{background:var(--ink)}
+#cs section.red h2{background:var(--red)}#cs section.gold h2{background:var(--gold)}#cs section.mem h2{background:var(--ink);color:var(--bg)}
 #cs ol,#cs ul{margin:0;padding:8px 12px 10px 30px}
 #cs li{font-size:12.5px;margin:0 0 7px;line-height:1.4}
 #cs li b{color:var(--red)}
 #cs .mem li{font-size:13.5px;font-weight:600;margin-bottom:9px}
 #cs .pg{font-family:var(--mono);font-size:10px;color:var(--dim)}
 #cs .foot{font-family:var(--mono);font-size:10px;color:var(--dim);margin-top:12px;border-top:1px solid var(--line);padding-top:8px}
-@media print{#cs{padding:0;font-size:11px}@page{margin:12mm}#cs .hd small,#cs .foot{display:block}}
+#cs li{cursor:pointer;border-radius:6px;padding:2px 4px;margin-left:-4px;transition:background .12s}
+#cs li:hover{background:rgba(230,178,58,.12)}
+.csov{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:rgba(4,7,11,.84);opacity:0;transition:opacity .25s}
+.csov.show{opacity:1}
+.cscard{width:min(640px,92vw);perspective:1400px;cursor:pointer}
+.cscard .in{position:relative;min-height:min(60vh,380px);transform-style:preserve-3d;transition:transform .5s}
+.cscard.flip .in{transform:rotateY(180deg)}
+.cscard .f{position:absolute;inset:0;backface-visibility:hidden;border:1px solid var(--line);border-radius:14px;background:var(--bg);color:var(--ink);padding:28px;display:flex;flex-direction:column;gap:16px;overflow:auto;font-family:var(--sans)}
+.cscard .f.b{transform:rotateY(180deg)}
+.cscard .kk{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold)}
+.cscard .kk.r{color:var(--red)}
+.cscard .t{font-size:21px;font-weight:700;line-height:1.45}
+.cscard .qq{font-size:15.5px;line-height:1.6;border-left:3px solid var(--gold);padding-left:13px;font-style:italic}
+.cscard .ii{font-size:15px;border-left:3px solid var(--green);padding-left:13px}
+.cscard .ct{font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:auto}
+.cscard .hint{font-family:var(--mono);font-size:10.5px;color:var(--dim);margin-top:auto}
+.csx{position:fixed;top:16px;right:20px;z-index:101;font-size:18px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:10px;width:44px;height:44px;cursor:pointer}
+@media print{#cs{padding:0;font-size:11px}@page{margin:12mm}#cs .hd small,#cs .foot{display:block}.csov,.csx{display:none}}
 </style>
 <div id="cs">
  <div class="hd"><h1>The Brooks <span>Codex</span> — Desk Card</h1>
@@ -366,10 +384,38 @@ CHEAT = r"""<style>
 <script>
 const D=__DATA__;const esc=s=>(s||"").replace(/[&<>]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[m]));
 const pg=x=>x?` <span class="pg">p.${esc(x)}</span>`:"";
-document.getElementById("mem").innerHTML=D.memorize.map(m=>`<li>${esc(m.line)}${pg(m.pages)}</li>`).join("");
-document.getElementById("nt").innerHTML=D.notrade.map(n=>`<li><b>${esc(n.situation)}</b>${n.instead?" — "+esc(n.instead):""}${pg(n.pages)}</li>`).join("");
-document.getElementById("gr").innerHTML=D.golden.slice().sort((a,b)=>a.rank-b.rank).map(g=>`<li>${esc(g.rule)}${pg(g.pages)}</li>`).join("");
-document.getElementById("ft").innerHTML=`${D.counts.golden} golden rules · ${D.counts.notrade} red-flags · distilled from 1,390 cited teachings. Study aid, not trading advice.`;
+const BOOKPDF={"Trends":"trends.pdf","Trading Ranges":"ranges.pdf","Reversals":"reversals.pdf","Reading Price Charts":"rpcbb.pdf","RPCBB":"rpcbb.pdf"};
+const pdfLink=(book,pages)=>{const f=BOOKPDF[book];if(!f||!pages)return"";
+ const m=String(pages).match(/\d+/);if(!m)return"";
+ return ' <a href="books/'+f+'#page='+m[0]+'" target="_blank" title="Open this page in the book PDF" style="text-decoration:none">📖</a>';};
+const GS=D.golden.slice().sort((a,b)=>a.rank-b.rank);
+document.getElementById("mem").innerHTML=D.memorize.map((m,i)=>`<li data-i="${i}">${esc(m.line)}${pg(m.pages)}</li>`).join("");
+document.getElementById("nt").innerHTML=D.notrade.map((n,i)=>`<li data-i="${i}"><b>${esc(n.situation)}</b>${n.instead?" — "+esc(n.instead):""}${pg(n.pages)}</li>`).join("");
+document.getElementById("gr").innerHTML=GS.map((g,i)=>`<li data-i="${i}">${esc(g.rule)}${pg(g.pages)}</li>`).join("");
+document.getElementById("ft").innerHTML=`${D.counts.golden} golden rules · ${D.counts.notrade} red-flags · distilled from 1,390 cited teachings. Study aid, not trading advice. Click any line for Brooks' own words.`;
+/* pop a line to the center; click flips to Brooks' verbatim words, ✕/Esc/backdrop sends it back */
+function pop(item,kind){
+ const front=kind==="mem"?item.line:kind==="nt"?item.situation:item.rule;
+ const label=kind==="mem"?"★ Memorize":kind==="nt"?"✕ When NOT to trade":"◆ Golden rule";
+ const extra=(kind==="nt"&&item.instead)?`<div class="ii"><b>Instead:</b> ${esc(item.instead)}</div>`:
+  (kind==="gr"&&item.why)?`<div class="ii">${esc(item.why)}</div>`:"";
+ const quote=item.quote?`<div class="qq">&ldquo;${esc(item.quote)}&rdquo;</div>`:`<div class="qq">(no verbatim quote captured)</div>`;
+ const cite=[item.book,item.pages?("p."+item.pages):""].filter(Boolean).join(" · ");
+ const ov=document.createElement("div");ov.className="csov";
+ const card=document.createElement("div");card.className="cscard";
+ card.innerHTML=`<div class="in"><div class="f"><div class="kk${kind==="nt"?" r":""}">${label}</div><div class="t">${esc(front)}</div>${extra}<div class="hint">click for Brooks' words ↦</div></div>`+
+  `<div class="f b"><div class="kk${kind==="nt"?" r":""}">${label} · Brooks' words</div>${quote}<div class="ct">${esc(cite)}${pdfLink(item.book,item.pages)}</div></div></div>`;
+ const x=document.createElement("button");x.className="csx";x.textContent="✕";
+ ov.appendChild(card);ov.appendChild(x);document.body.appendChild(ov);
+ requestAnimationFrame(()=>ov.classList.add("show"));
+ card.onclick=e=>{e.stopPropagation();if(e.target.closest&&e.target.closest("a"))return;card.classList.toggle("flip");};
+ const k=e=>{if(e.key==="Escape")close();};
+ const close=()=>{ov.classList.remove("show");setTimeout(()=>ov.remove(),250);document.removeEventListener("keydown",k);};
+ ov.onclick=close;x.onclick=close;document.addEventListener("keydown",k);
+}
+document.querySelectorAll("#mem li").forEach(li=>li.onclick=()=>pop(D.memorize[+li.dataset.i],"mem"));
+document.querySelectorAll("#nt li").forEach(li=>li.onclick=()=>pop(D.notrade[+li.dataset.i],"nt"));
+document.querySelectorAll("#gr li").forEach(li=>li.onclick=()=>pop(GS[+li.dataset.i],"gr"));
 </script>"""
 
 app_html = APP.replace("__DATA__", data_js)

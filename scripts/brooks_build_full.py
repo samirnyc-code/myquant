@@ -4,11 +4,40 @@ Don't Trade · Library (1390) · Quiz (Name-that-chart / Recall / Core-15).
 Fly-to-center zoom on every card & figure. Captions always shown (no mismatch).
 Output: docs/living/brooks_app.html  + brooks_app_standalone.html
 """
+import base64
 import json
 from pathlib import Path
 ROOT = Path(r"c:\Users\Admin\myquant")
 SCR = Path(r"C:\Users\Admin\AppData\Local\Temp\claude\c--Users-Admin-myquant\f04593f3-53f8-4ab9-9690-dd0509e339a3\scratchpad")
 D = json.load(open(SCR / "brooks_app_data.json", encoding="utf-8"))
+
+# enrich setup figures with the Figure Explorer's full explanation + full-res file
+fidx = {x['id']: x for x in json.load(open(ROOT / 'docs' / 'living' / 'brooks_codex' / 'figure_index.json', encoding='utf-8'))}
+for s in D['setups']:
+    for f in (s.get('figures') or []):
+        e = fidx.get(f['id'])
+        if e:
+            f['text'] = e.get('explanation', '')
+            f['file'] = e.get('file', '')
+
+# the MTR setup had no matched figures; attach the Reversals book's MTR sequence
+# (caption-verified: setup, trading it, LH/HL structure, TL-break caveat, test of extreme)
+MTR_FIGS = ['RVPI_5', 'RV1_1', 'RV3_1', 'RV3_2', 'RV3_3', 'RV9_12']
+for s in D['setups']:
+    if s['name'].startswith('Major Trend Reversal') and not (s.get('figures') or []):
+        figs = []
+        for fid in MTR_FIGS:
+            e = fidx.get(fid)
+            if not e:
+                continue
+            figs.append({'id': fid, 'caption': e['caption'], 'fig_num': e['fig_num'],
+                         'book': e['book'], 'page': str(e.get('printed_page') or e.get('pdf_page') or ''),
+                         'text': e.get('explanation', ''), 'file': e.get('file', '')})
+            if fid not in D['images']:
+                raw = (ROOT / 'docs' / 'living' / 'brooks_codex' / e['file']).read_bytes()
+                D['images'][fid] = base64.b64encode(raw).decode()
+        s['figures'] = figs
+
 data_js = json.dumps(D, ensure_ascii=False)
 
 APP = r"""<style>
@@ -77,8 +106,10 @@ APP = r"""<style>
 #bx .sh{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);margin:0 0 10px;font-weight:800}
 #bx .sh.red{color:var(--red)}
 #bx ul.rl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:11px}
-#bx ul.rl li{border-left:3px solid var(--gold);padding-left:12px}
+#bx ul.rl li{border-left:3px solid var(--gold);padding-left:12px;cursor:pointer;border-radius:0 6px 6px 0;transition:background .12s}
+#bx ul.rl li:hover{background:rgba(230,178,58,.08)}
 #bx ul.rl li.tell{border-color:var(--red)}
+#bx ul.rl li.tell:hover{background:rgba(236,91,91,.08)}
 #bx ul.rl .rt{font-size:14px;font-weight:600}
 #bx ul.rl .qt{font-size:12px;color:var(--dim);font-style:italic;margin-top:3px}
 #bx ul.rl .pg{font-family:var(--mono);font-style:normal;color:var(--faint);font-size:10.5px}
@@ -123,11 +154,29 @@ APP = r"""<style>
 /* zoom */
 #bx .zov{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:rgba(4,7,11,.82);backdrop-filter:blur(3px);opacity:0;transition:opacity .32s}
 #bx .zov.show{opacity:1}
-#bx .zwrap{max-width:94vw;max-height:90vh;transition:transform .42s cubic-bezier(.22,1,.36,1);will-change:transform}
-#bx .zwrap img{max-width:94vw;max-height:78vh;border-radius:12px;border:1px solid var(--line);box-shadow:0 30px 80px rgba(0,0,0,.6);display:block}
+#bx .zwrap{display:flex;gap:16px;align-items:flex-start;justify-content:center;max-width:96vw;max-height:90vh;transition:transform .42s cubic-bezier(.22,1,.36,1);will-change:transform}
+#bx .zimgbox{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;align-items:center}
+#bx .zwrap img{max-width:100%;max-height:82vh;object-fit:contain;border-radius:12px;border:1px solid var(--line);box-shadow:0 30px 80px rgba(0,0,0,.6);display:block}
+#bx .zpan{flex:0 0 420px;max-width:36vw;max-height:82vh;overflow-y:auto;overscroll-behavior:contain;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px;text-align:left}
+#bx .zpan h4{margin:0 0 10px;font-size:16px;color:var(--gold);line-height:1.4}
+#bx .zpan .ztext{font-size:14.5px;line-height:1.68;white-space:pre-line;color:var(--ink)}
+#bx .zpan .zcite{font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:12px}
+@media(max-width:980px){#bx .zwrap{flex-direction:column;align-items:center}#bx .zpan{flex:0 0 auto;max-width:92vw;max-height:30vh}}
 #bx .zcap{font-family:var(--mono);font-size:12px;color:#cfd8e3;margin-top:12px;text-align:center;max-width:760px}
 #bx .zcap b{color:var(--blue)}
 #bx .zx{position:fixed;top:16px;right:20px;z-index:101;font-size:18px;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:10px;width:44px;height:44px;cursor:pointer}
+#bx .zlens{right:72px}
+#bx .zlens.on{background:var(--gold);color:#0c1016}
+#bx .lens{position:fixed;z-index:120;width:364px;height:364px;border-radius:50%;border:2px solid var(--gold);box-shadow:0 6px 28px rgba(0,0,0,.55);background-repeat:no-repeat;background-color:#fff;pointer-events:none;display:none}
+#bx .zbig{width:min(660px,92vw);perspective:1400px;cursor:pointer}
+#bx .zbig .inner{min-height:min(72vh,440px)}
+#bx .zbig .face{padding:26px}
+#bx .zbig .rulet{font-size:22px}
+#bx .zbig .rulet.lib{font-size:19px}
+#bx .zbig .q{font-size:15.5px}
+#bx .zbig .why,#bx .zbig .instead{font-size:15px}
+#bx .hublink{font-family:var(--mono);font-size:12px;color:var(--dim);text-decoration:none;border:1px solid var(--line);border-radius:8px;padding:9px 11px}
+#bx .hublink:hover{color:var(--ink);border-color:var(--dim)}
 #bx .disc{font-family:var(--mono);font-size:11px;color:var(--faint);text-align:center;padding:28px 20px 0;border-top:1px solid var(--line);margin-top:36px;line-height:1.7}
 @media(prefers-reduced-motion:reduce){#bx .inner,#bx .zwrap,#bx .zov{transition:opacity .2s}}
 </style>
@@ -136,6 +185,7 @@ APP = r"""<style>
  <div class="top">
   <div class="brand"><b>THE BROOKS <span>CODEX</span></b><small>Al Brooks price action · four books · cited · no simulation</small></div>
   <div class="prog" id="prog"></div>
+  <a class="hublink" id="hubLink" href="index.html" target="_top">← Codex hub</a>
   <button class="icon" id="themeBtn" title="theme">◑</button>
  </div>
  <div class="tabs" id="tabs"></div>
@@ -149,10 +199,14 @@ const IMG=DATA.images;
 const TABS=[["setups","Setups"],["rules","Golden Rules"],["notrade","When NOT to Trade"],["library","Library"],["quiz","Quiz"]];
 const LS="brooks_codex_v2";
 let mastered=new Set(JSON.parse(localStorage.getItem(LS)||"[]"));
-let view="setups",rfilter="core",q="",quiz=null;
+let view="setups",rfilter="core",gfilter="ALL",libTheme="ALL",q="",quiz=null;
 const $=s=>document.querySelector(s),el=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e;};
 const esc=s=>(s||"").replace(/[&<>]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[m]));
 const src=id=>IMG[id]?("data:image/jpeg;base64,"+IMG[id]):"";
+const BOOKPDF={"Trends":"trends.pdf","Trading Ranges":"ranges.pdf","Reversals":"reversals.pdf","Reading Price Charts":"rpcbb.pdf","RPCBB":"rpcbb.pdf"};
+function pdfLink(book,pages){const f=BOOKPDF[book];if(!f||!pages)return"";
+ const m=String(pages).match(/\d+/);if(!m)return"";
+ return ' <a class="pdfjump" href="books/'+f+'#page='+m[0]+'" target="_blank" title="Open this page in the book PDF">📖</a>';}
 function saveM(){localStorage.setItem(LS,JSON.stringify([...mastered]));drawProg();}
 function drawProg(){const tot=DATA.rules.length+DATA.notrade.length;
  $("#prog").innerHTML=`<b>${mastered.size}</b>/${tot} mastered · ${DATA.counts.figures_embedded} figures`;}
@@ -163,13 +217,59 @@ function themeInit(){$("#themeBtn").onclick=()=>{const c=document.documentElemen
 function updateStars(id){document.querySelectorAll('.star[data-id="'+id+'"]').forEach(s=>{const on=mastered.has(id);s.classList.toggle("on",on);s.innerHTML=on?"★":"☆";});}
 /* ---- image zoom (fly to center) ---- */
 let zoomOn=false;
-function zoomImg(imgEl,caption){
+function zoomImg(imgEl,caption,extra){
  if(zoomOn)return;zoomOn=true;
  const ov=el("div","zov");const wrap=el("div","zwrap");
- const big=new Image();big.src=imgEl.src;wrap.appendChild(big);
- if(caption)wrap.appendChild(el("div","zcap",caption));
+ const box=el("div","zimgbox");
+ const big=new Image();
+ if(extra&&extra.file){big.onerror=()=>{big.onerror=null;big.src=imgEl.src;};big.src=extra.file;}
+ else big.src=imgEl.src;
+ box.appendChild(big);wrap.appendChild(box);
+ if(extra&&extra.text){
+  const p=el("div","zpan");
+  if(caption)p.appendChild(el("h4",null,caption));
+  p.appendChild(el("div","ztext",esc(extra.text)));
+  if(extra.cite)p.appendChild(el("div","zcite",esc(extra.cite)+pdfLink(extra.book,extra.pages)));
+  wrap.appendChild(p);
+ }else if(caption)box.appendChild(el("div","zcap",caption));
  const x=el("button","zx","✕");
  ov.appendChild(wrap);ov.appendChild(x);document.getElementById("bx").appendChild(ov);
+ const lens=el("div","lens");ov.appendChild(lens);let lzz=2.5,lon=false;
+ const lb=el("button","zx zlens","🔎");lb.title="Lens — hover to magnify, wheel to adjust";
+ lb.onclick=e=>{e.stopPropagation();lon=!lon;lb.classList.toggle("on",lon);if(!lon)lens.style.display="none";};
+ ov.appendChild(lb);
+ const mv=e=>{if(!lon||!big.naturalWidth){lens.style.display="none";return;}
+  const r=big.getBoundingClientRect();
+  const s=Math.min(r.width/big.naturalWidth,r.height/big.naturalHeight);
+  const dw=big.naturalWidth*s,dh=big.naturalHeight*s;
+  const ox=r.left+(r.width-dw)/2,oy=r.top+(r.height-dh)/2;
+  const lx=e.clientX-ox,ly=e.clientY-oy;
+  if(lx<0||ly<0||lx>dw||ly>dh){lens.style.display="none";return;}
+  const R=182;lens.style.display="block";
+  lens.style.left=(e.clientX-R)+"px";lens.style.top=(e.clientY-R)+"px";
+  lens.style.backgroundImage='url("'+big.src+'")';
+  lens.style.backgroundSize=(dw*lzz)+"px "+(dh*lzz)+"px";
+  lens.style.backgroundPosition=(R-lx*lzz)+"px "+(R-ly*lzz)+"px";};
+ big.addEventListener("mousemove",mv);
+ big.addEventListener("mouseleave",()=>{lens.style.display="none";});
+ /* deep zoom + pan (lens off): wheel zooms toward the cursor, drag pans, dblclick resets */
+ let sc=1,tx=0,ty=0,drag=null;
+ big.style.transformOrigin="0 0";
+ const apt=()=>{big.style.transform=(sc===1&&!tx&&!ty)?"":`translate(${tx}px,${ty}px) scale(${sc})`;
+  big.style.cursor=sc>1?(drag?"grabbing":"grab"):"auto";};
+ ov.addEventListener("wheel",e=>{e.preventDefault();
+  if(lon){lzz=Math.min(6,Math.max(1.5,lzz*(e.deltaY<0?1.15:1/1.15)));mv(e);return;}
+  const r=big.getBoundingClientRect();
+  if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)return;
+  const ns=Math.min(8,Math.max(1,sc*(e.deltaY<0?1.2:1/1.2)));
+  const px=(e.clientX-r.left)/sc,py=(e.clientY-r.top)/sc;
+  tx=e.clientX-(r.left-tx)-px*ns;ty=e.clientY-(r.top-ty)-py*ns;sc=ns;
+  if(sc===1){tx=0;ty=0;}
+  apt();},{passive:false});
+ big.addEventListener("mousedown",e=>{if(lon||sc===1)return;e.preventDefault();drag={x:e.clientX,y:e.clientY,tx,ty};apt();});
+ window.addEventListener("mousemove",e=>{if(!drag)return;tx=drag.tx+e.clientX-drag.x;ty=drag.ty+e.clientY-drag.y;apt();});
+ window.addEventListener("mouseup",()=>{if(drag){drag=null;apt();}});
+ big.addEventListener("dblclick",e=>{e.preventDefault();sc=1;tx=0;ty=0;apt();});
  const from=()=>{const r=imgEl.getBoundingClientRect(),b=wrap.getBoundingClientRect();
   return `translate(${r.left+r.width/2-(b.left+b.width/2)}px,${r.top+r.height/2-(b.top+b.height/2)}px) scale(${Math.max(0.05,r.width/b.width)})`;};
  wrap.style.transform=from();
@@ -178,7 +278,7 @@ function zoomImg(imgEl,caption){
  const close=()=>{if(closing)return;closing=true;requestAnimationFrame(()=>{wrap.style.transform=from();ov.classList.remove("show");});
   setTimeout(()=>{ov.remove();zoomOn=false;document.removeEventListener("keydown",k);},460);};
  const k=e=>{if(e.key==="Escape"||e.key===" "){e.preventDefault();close();}};
- ov.onclick=e=>{if(e.target!==x&&e.target!==big)close();else if(e.target===x)close();};
+ ov.onclick=e=>{if(e.target===ov||e.target===x)close();};
  x.onclick=close;document.addEventListener("keydown",k);
 }
 function figThumb(f){
@@ -186,7 +286,8 @@ function figThumb(f){
  if(src(f.id)){const im=new Image();im.src=src(f.id);im.alt=esc(f.caption);fig.appendChild(im);}
  const cap=`Fig ${esc(f.fig_num)} — ${esc(f.caption)}`;
  fig.appendChild(el("figcaption",null,`<b>${cap}</b><br>${esc(f.book)}${f.page?" · p."+esc(f.page):""}`));
- fig.onclick=()=>zoomImg(fig.querySelector("img"),`Figure ${esc(f.fig_num)} — ${esc(f.caption)} · Brooks, ${esc(f.book)}${f.page?", p."+esc(f.page):""}`);
+ fig.onclick=()=>zoomImg(fig.querySelector("img"),`Figure ${esc(f.fig_num)} — ${esc(f.caption)}`,
+  {text:f.text||"",file:f.file||"",book:f.book,pages:f.page,cite:`Brooks, ${f.book||""}${f.page?", p."+f.page:""}`});
  return fig;
 }
 /* ---- flip card zoom (rules/teachings) ---- */
@@ -197,7 +298,7 @@ function fillFaces(front,back,item,kind){
  const core=gold&&item.tier==="core";
  top.appendChild(el("span","badge "+(core?"core":red?"r":"g"),esc(core?"CORE":(item.theme||(gold?"RULE":red?"AVOID":"TEACHING")))));
  if(gold&&item.theme&&!core)top.appendChild(el("span","tier",esc(item.tier||"")));
- if(!lib){const st=el("button","star"+(mastered.has(item.id)?" on":""),mastered.has(item.id)?"★":"☆");st.dataset.id=item.id;
+ if(!lib&&item.id){const st=el("button","star"+(mastered.has(item.id)?" on":""),mastered.has(item.id)?"★":"☆");st.dataset.id=item.id;
   st.onclick=e=>{e.stopPropagation();mastered.has(item.id)?mastered.delete(item.id):mastered.add(item.id);updateStars(item.id);saveM();};top.appendChild(st);}
  front.appendChild(top);
  front.appendChild(el("div","rulet"+(lib?" lib":""),esc(gold?item.rule:red?item.situation:item.teaching)));
@@ -205,25 +306,47 @@ function fillFaces(front,back,item,kind){
  else if(red&&item.what_instead)front.appendChild(el("div","instead","<b>Instead:</b> "+esc(item.what_instead)));
  front.appendChild(el("div","fliphint","click for Brooks' words ↦"));
  back.appendChild(el("div","q","&ldquo;"+esc(item.quote)+"&rdquo;"));
- back.appendChild(el("div","cite",[item.book,item.pages?("p."+item.pages):""].filter(Boolean).join(" · ")));
+ back.appendChild(el("div","cite",esc([item.book,item.pages?("p."+item.pages):""].filter(Boolean).join(" · "))+pdfLink(item.book,item.pages)));
 }
-function flipCard(item,kind){
+function flipCard(item,kind,inPlace){
  const card=el("div","card "+kind);const inner=el("div","inner");
  const f=el("div","face front"),b=el("div","face back");
  fillFaces(f,b,item,kind);inner.appendChild(f);inner.appendChild(b);card.appendChild(inner);
- card.onclick=()=>card.classList.toggle("flip");
+ card.onclick=e=>{if(e.target.closest&&e.target.closest("a"))return;
+  if(inPlace)card.classList.toggle("flip");else zoomFlip(item,kind);};
  return card;
+}
+/* pop a tile to the center of the screen; click flips it, ✕/Esc/backdrop sends it back */
+function zoomFlip(item,kind){
+ const ov=el("div","zov");const w=el("div","zwrap");
+ const card=flipCard(item,kind,true);card.className+=" zbig";
+ w.appendChild(card);const x=el("button","zx","✕");
+ ov.appendChild(w);ov.appendChild(x);document.getElementById("bx").appendChild(ov);
+ requestAnimationFrame(()=>ov.classList.add("show"));
+ const close=()=>{ov.classList.remove("show");setTimeout(()=>ov.remove(),300);document.removeEventListener("keydown",k);};
+ const k=e=>{if(e.key==="Escape")close();};
+ ov.onclick=e=>{if(e.target===ov||e.target===w||e.target===x)close();};
+ x.onclick=close;document.addEventListener("keydown",k);
 }
 /* ---- views ---- */
 function ruleList(items,cls){return items.map(it=>{
  const rule=esc(it.rule||it.tell||"");const q=esc(it.quote||"");
  const cite=[it.book,it.pages?("p."+it.pages):""].filter(Boolean).join(" · ");
- return `<li class="${cls}"><div class="rt">${rule}</div><div class="qt">&ldquo;${q}&rdquo; <span class="pg">${esc(cite)}</span></div></li>`;
+ return `<li class="${cls}"><div class="rt">${rule}</div><div class="qt">&ldquo;${q}&rdquo; <span class="pg">${esc(cite)}</span>${pdfLink(it.book,it.pages)}</div></li>`;
 }).join("");}
 function viewSetups(){const m=$("#main");m.innerHTML="";
  m.appendChild(el("h2","vh","The setups · context, entry, stop, management, traps + Brooks' own charts"));
  m.appendChild(el("p","lead","Every setup with its must-know rules, its don't-trade tells, and Brooks' actual book figures — click any chart to enlarge. Grades are Brooks' own emphasis."));
- DATA.setups.forEach(s=>{
+ const gorder=["A+","A","A-","B+","B","C"];
+ const grades=[...new Set(DATA.setups.map(s=>s.grade||"?"))].sort((a,b)=>{
+  const ia=gorder.indexOf(a),ib=gorder.indexOf(b);
+  return (ia<0?99:ia)-(ib<0?99:ib)||a.localeCompare(b);});
+ const gch=el("div","chips");
+ [["ALL","All grades"],...grades.map(g=>[g,g])].forEach(([k,l])=>{
+  const c=el("div","chip"+(gfilter===k?" on":""),esc(l));
+  c.onclick=()=>{gfilter=k;viewSetups();};gch.appendChild(c);});
+ m.appendChild(gch);
+ DATA.setups.filter(s=>gfilter==="ALL"||(s.grade||"?")===gfilter).forEach(s=>{
   const card=el("div","setup");
   const h=el("div","shead");
   h.innerHTML=`<span class="grade ${s.grade==='A'?'a':''}">${esc(s.grade||'')}</span>`+
@@ -234,8 +357,14 @@ function viewSetups(){const m=$("#main");m.innerHTML="";
   [["Context",s.context],["Entry",s.entry],["Stop",s.stop],["Manage",s.management]].forEach(([k,v])=>{
    if(v){cxt.appendChild(el("div","k",k));cxt.appendChild(el("div","v",esc(v)));}});
   bd.appendChild(cxt);
-  if(s.must_know_rules&&s.must_know_rules.length){const d=el("div");d.innerHTML=`<div class="sh">Must-know rules</div><ul class="rl">${ruleList(s.must_know_rules,'rule')}</ul>`;bd.appendChild(d);}
-  if(s.dont_trade_tells&&s.dont_trade_tells.length){const d=el("div");d.innerHTML=`<div class="sh red">Don't trade it when…</div><ul class="rl">${ruleList(s.dont_trade_tells,'tell')}</ul>`;bd.appendChild(d);}
+  if(s.must_know_rules&&s.must_know_rules.length){const d=el("div");d.innerHTML=`<div class="sh">Must-know rules</div><ul class="rl">${ruleList(s.must_know_rules,'rule')}</ul>`;
+   d.querySelectorAll("li").forEach((li,i)=>{const it=s.must_know_rules[i];
+    li.onclick=e=>{if(e.target.closest("a"))return;zoomFlip({rule:it.rule||it.tell,why:it.why,quote:it.quote,book:it.book,pages:it.pages,theme:"MUST-KNOW"},"gold");};});
+   bd.appendChild(d);}
+  if(s.dont_trade_tells&&s.dont_trade_tells.length){const d=el("div");d.innerHTML=`<div class="sh red">Don't trade it when…</div><ul class="rl">${ruleList(s.dont_trade_tells,'tell')}</ul>`;
+   d.querySelectorAll("li").forEach((li,i)=>{const it=s.dont_trade_tells[i];
+    li.onclick=e=>{if(e.target.closest("a"))return;zoomFlip({situation:it.tell||it.rule,what_instead:it.what_instead,quote:it.quote,book:it.book,pages:it.pages},"red");};});
+   bd.appendChild(d);}
   const fd=el("div");fd.innerHTML=`<div class="sh">Brooks' own charts</div>`;
   if(s.figures&&s.figures.length){const fg=el("div","figs");s.figures.forEach(f=>fg.appendChild(figThumb(f)));fd.appendChild(fg);}
   else fd.appendChild(el("div","nofig","(no clearly-matching book figure — none shown rather than risk a mismatch)"));
@@ -259,25 +388,19 @@ function viewLibrary(){const m=$("#main");m.innerHTML="";
  const nTh=Object.keys(DATA.teachings).length;
  m.appendChild(el("h2","vh",`Library · ${DATA.counts.teachings.toLocaleString()} teachings · ${nTh} themes`));
  const s=el("input","search");s.placeholder="search teachings, quotes…";s.value=q;s.oninput=e=>{q=e.target.value.toLowerCase();renderLib();};m.appendChild(s);
+ const themes=Object.keys(DATA.teachings).sort();
+ const ch=el("div","chips");[["ALL","All themes"],...themes.map(t=>[t,t])].forEach(([k,l])=>{
+  const c=el("div","chip"+(libTheme===k?" on":""),esc(l));c.onclick=()=>{libTheme=k;viewLibrary();};ch.appendChild(c);});
+ m.appendChild(ch);
  const host=el("div");host.id="libhost";m.appendChild(host);renderLib();}
 function renderLib(){const host=$("#libhost");if(!host)return;host.innerHTML="";
- Object.keys(DATA.teachings).forEach(th=>{const items=DATA.teachings[th].filter(t=>!q||(t.teaching+" "+(t.quote||"")).toLowerCase().includes(q));
+ Object.keys(DATA.teachings).filter(th=>libTheme==="ALL"||th===libTheme).forEach(th=>{const items=DATA.teachings[th].filter(t=>!q||(t.teaching+" "+(t.quote||"")).toLowerCase().includes(q));
   if(!items.length)return;host.appendChild(el("div","lib-theme",esc(th)+` <span class="n">${items.length}</span>`));
   items.forEach(t=>{const c=el("div","litem");c.appendChild(el("p",null,esc(t.teaching)));
    if(t.quote)c.appendChild(el("div","q","&ldquo;"+esc(t.quote)+"&rdquo;"));
-   c.appendChild(el("div","cite",[t.book,t.pages?("p."+t.pages):""].filter(Boolean).join(" · ")));
-   c.onclick=()=>{const it={rule:t.teaching,quote:t.quote,book:t.book,pages:t.pages,theme:th};
-    const tmp=document.createElement("div");zoomTeach(it);};host.appendChild(c);});});}
-function zoomTeach(it){ // reuse flip: build a transient enlarged card
- const ov=el("div","zov");const w=el("div","zwrap");
- const box=el("div","face");box.style.position="static";box.style.maxWidth="560px";box.style.minHeight="0";
- box.innerHTML=`<div class="rulet">${esc(it.rule)}</div><div class="q">&ldquo;${esc(it.quote)}&rdquo;</div>`+
-  `<div class="cite">${esc([it.book,it.pages?("p."+it.pages):""].filter(Boolean).join(" · "))}</div>`;
- w.appendChild(box);const x=el("button","zx","✕");ov.appendChild(w);ov.appendChild(x);document.getElementById("bx").appendChild(ov);
- requestAnimationFrame(()=>ov.classList.add("show"));
- const close=()=>{ov.classList.remove("show");setTimeout(()=>ov.remove(),300);document.removeEventListener("keydown",k);};
- const k=e=>{if(e.key==="Escape"||e.key===" ")close();};ov.onclick=e=>{if(e.target===ov||e.target===x)close();};x.onclick=close;document.addEventListener("keydown",k);
-}
+   c.appendChild(el("div","cite",esc([t.book,t.pages?("p."+t.pages):""].filter(Boolean).join(" · "))+pdfLink(t.book,t.pages)));
+   c.onclick=e=>{if(e.target.closest("a"))return;zoomFlip({teaching:t.teaching,quote:t.quote,book:t.book,pages:t.pages,theme:th},"lib");};
+   host.appendChild(c);});});}
 /* ---- quiz ---- */
 function viewQuiz(){const m=$("#main");m.innerHTML="";
  m.appendChild(el("h2","vh","Quiz · test yourself"));
@@ -292,7 +415,9 @@ function startQuiz(mode){
  let items=[];
  if(mode==="chart"){items=DATA.quiz_pool.map(x=>({type:"chart",id:x.id,answer:x.answer,cite:x.cite,caption:x.caption}));}
  else{const pool=(mode==="core")?DATA.rules.filter(r=>r.tier==="core"):DATA.rules;
-  items=pool.map(r=>({type:"recall",prompt:r.why||"Recall the rule",ans:r.rule,q:r.quote,cite:[r.book,r.pages?("p."+r.pages):""].filter(Boolean).join(" · "),id:r.id||("r"+Math.round(r.rank))}));}
+  items=pool.map(r=>({type:"recall",theme:r.theme||"",cueKind:r.why?"why":"quote",
+   prompt:r.why||("“"+(r.quote||"").slice(0,180)+((r.quote||"").length>180?"…":"")+"”"),
+   ans:r.rule,q:r.quote,cite:[r.book,r.pages?("p."+r.pages):""].filter(Boolean).join(" · "),id:r.id||("r"+Math.round(r.rank))}));}
  items=items.slice().sort(()=>Math.random()-0.5);
  quiz={mode,items,i:0,score:0,seen:0,revealed:false,picked:null};renderQuiz();
 }
@@ -301,7 +426,7 @@ function renderQuiz(){const host=$("#qhost");if(!host)return;host.innerHTML="";
   const b=el("button","big reveal","Go again");b.onclick=()=>startQuiz(quiz.mode);const bb=el("div","qbtns");bb.appendChild(b);host.appendChild(bb);return;}
  const it=quiz.items[quiz.i];const c=el("div","qcard");
  if(it.type==="chart"){
-  c.appendChild(el("div","qprompt","Which setup / concept is this?"));
+  c.appendChild(el("div","qprompt","A real Brooks book chart — which setup / concept does it illustrate?"));
   if(src(it.id)){const im=new Image();im.src=src(it.id);c.appendChild(im);}
   const opts=el("div","opts");
   let choices=[it.answer];const others=DATA.quiz_answers.filter(a=>a!==it.answer).sort(()=>Math.random()-0.5).slice(0,3);
@@ -315,7 +440,8 @@ function renderQuiz(){const host=$("#qhost");if(!host)return;host.innerHTML="";
   host.appendChild(c);
   const bb=el("div","qbtns");if(quiz.picked){const n=el("button","big reveal","Next →");n.onclick=()=>{quiz.i++;quiz.picked=null;renderQuiz();};bb.appendChild(n);}host.appendChild(bb);
  }else{
-  c.appendChild(el("div","qprompt","Cue"));c.appendChild(el("div","qwhy",esc(it.prompt)));
+  c.appendChild(el("div","qprompt",(it.theme?esc(it.theme)+" · ":"")+(it.cueKind==="why"?"This is WHY a rule exists — say the rule, then reveal":"These are Brooks' words — say the rule they belong to, then reveal")));
+  c.appendChild(el("div","qwhy",esc(it.prompt)));
   if(quiz.revealed){c.appendChild(el("div","qans",esc(it.ans)));c.appendChild(el("div","q","&ldquo;"+esc(it.q)+"&rdquo;"));c.appendChild(el("div","cite",esc(it.cite)));}
   host.appendChild(c);const bb=el("div","qbtns");
   if(!quiz.revealed){const r=el("button","big reveal","Reveal");r.onclick=()=>{quiz.revealed=true;renderQuiz();};bb.appendChild(r);}
@@ -329,6 +455,7 @@ function render(){tabs();
  if(view==="setups")viewSetups();else if(view==="rules")viewRules();else if(view==="notrade")viewNotrade();
  else if(view==="library")viewLibrary();else viewQuiz();window.scrollTo(0,0);}
 $("#disc").innerHTML="Every rule, tell, teaching and figure is a verbatim excerpt or chart from Al Brooks' four books (Trends · Trading Ranges · Reversals · Reading Price Charts Bar by Bar), page-cited. Study aid, not trading advice.";
+if(window.self!==window.top){const hl=document.getElementById("hubLink");if(hl)hl.style.display="none";}
 drawProg();themeInit();render();
 </script>"""
 
