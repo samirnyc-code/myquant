@@ -1,0 +1,125 @@
+Back to Dashboard
+Getting Started
+QUIN
+Products
+Knowledge Base
+Trading Strategies
+Bullish Strategies
+8
+Bearish Strategies
+6
+Hedging Strategies
+8
+Income Strategies
+5
+Neutral Strategies
+25
+Technical Analysis and Momentum
+9
+Futures Trading
+2
+Commodity Trading
+23
+Case Studies
+42
+Weekly Edge
+5
+Live Sessions
+5
+Integrations
+Trader
+Partners
+Backtesting
+Affiliation
+What Strategy can Futures and Options Traders use when Price Stalls at Put Support?
+CASE STUDIES
+
+How Futures and Options Traders Use Put Support
+
+Most support levels traders focus on are based on the past. A previous swing low, a moving average, or a trendline becomes important because the market reacted there before. But some of the most powerful support levels in modern markets are not built from historical price action at all. They are created in real time by the options market and the hedging behavior tied to it. This is where Put Support becomes extremely important.
+
+Put Support is not simply a line on a chart where buyers might appear. It is a structural level formed by concentrated put positioning and the dealer hedging flows connected to that positioning. In many cases, the market is not bouncing because traders “believe” in support. It is bouncing because dealers are actively unwinding hedges and buying futures as options positioning shifts. That distinction changes how traders should interpret market behavior.
+
+When Put Support holds, it can create fast reversals and sharp intraday rallies driven by mechanical buying pressure underneath the market. But when that support fails, the same dealer hedging flows that once stabilized price can quickly flip into aggressive downside acceleration.
+
+Understand what happens when the Put Support breaks.
+
+Understanding this dynamic helps traders move beyond traditional technical analysis and start viewing markets through the lens of positioning, gamma exposure, and liquidity flows. Instead of reacting to price after the move happens, traders can begin identifying where structural pressure is likely to appear before the market even reaches those levels.
+
+What Put Support Actually Represents
+
+Put Support is typically the strike where the market has the largest concentration of put gamma exposure.
+
+When traders buy puts, dealers often take the opposite side of the trade. This leaves dealers short puts and exposed to downside market movement. To hedge that exposure, dealers use futures or shares to remain delta neutral. As price approaches major put strikes, dealer hedging activity becomes increasingly important.
+
+Initially, as the market declines toward Put Support, dealers often need to sell futures to hedge growing downside exposure. This hedging pressure can accelerate the move lower into the support zone. But eventually, an important inflection point appears.
+
+As the market reaches Put Support, many put holders begin monetizing profits by closing their positions. Once those puts are closed, dealers no longer need the same downside hedge. Instead of selling futures, they begin buying futures back to unwind their short hedges. That shift in dealer flow can create powerful buying pressure.
+
+This is why Put Support often acts as a structural floor. The reversal is not simply driven by traders “seeing support” on a chart. It is driven by real mechanical hedging flows reversing direction underneath the market.
+
+Why Put Support Is Dynamic
+
+One of the biggest mistakes traders make is assuming Put Support is fixed. Unlike a traditional chart level, Put Support depends entirely on where options positioning exists. If traders maintain their put exposure at the same strike, the support level remains stable. Dealer hedging continues focusing around that zone, reinforcing the floor. But in weaker market environments, traders often roll their puts lower.
+
+Instead of holding downside protection at the old support level, they buy new puts at lower strikes to maintain bearish exposure. When this happens, the center of dealer hedging activity shifts downward as well. The original Put Support level loses importance because the options positioning that created the support has moved.
+
+Put Support is not guaranteed to bounce simply because price reaches it. The level only remains effective if the underlying options positioning stays intact. Once positioning migrates lower, dealer hedging flows shift with it, and the old support can fail quickly.
+
+The Put Support Bounce Strategy
+
+One of the highest probability setups occurs when Put Support holds and dealer hedging begins reversing from selling into buying.
+
+The process usually begins with a market decline into a major put gamma strike. Dealers who are short puts sell futures as price approaches the level in order to remain hedged. This creates additional downside pressure into the support area.
+
+At the same time, traders who bought puts earlier often begin taking profits near the level. This is especially common among investors using puts as downside protection during market weakness. As those puts are closed, dealers no longer need the same short futures hedge. They begin buying futures back to unwind their exposure. This creates a powerful flow reversal.
+
+Instead of hedging weakness with more selling, dealers suddenly become buyers into weakness. That mechanical buying pressure can trigger sharp intraday reversals and fast short-covering rallies.
+
+These moves can become even stronger when the broader options flow remains neutral or bullish and when gamma exposure stays positive overall.
+
+For futures traders, this environment can create attractive long opportunities near Put Support, particularly when dealer flow confirms hedge unwinds are occurring.
+
+Source: QUIN
+
+For options traders, the setup may favor selling puts or put spreads near support. Volatility often expands during the decline into the level and contracts once the bounce begins, allowing premium sellers to benefit from both directional stabilization and volatility compression.
+
+Source: QUIN
+
+The key point is that the setup is driven by dealer hedging mechanics, not by hope that a chart level will magically hold.
+
+Using Put Support with Gamma Exposure
+
+Put Support becomes even more useful when combined with broader options positioning tools such as Gamma Exposure (GEX) and High Volatility Levels (HVL).
+
+When Put Support aligns with positive GEX, dealer hedging tends to dampen volatility and reinforce stabilization. In these environments, support levels are more likely to hold and mean reversion becomes more common.
+
+When Put Support exists within negative GEX conditions, breakdown risk increases significantly. Dealers hedge with the move rather than against it, creating a much more unstable market environment.
+
+If Put Support breaks near a High Volatility Level, traders should expect larger directional moves and faster volatility expansion. These environments often produce the most aggressive intraday price action because dealer hedging flows amplify momentum rather than suppress it.
+
+Using these tools together allows traders to build a much clearer picture of market structure instead of relying solely on traditional technical analysis.
+
+Conclusion
+
+Put Support is one of the clearest examples of how modern market structure is increasingly driven by options positioning and dealer hedging flows rather than simple chart patterns.
+
+The level acts as a structural floor because of how dealers hedge short put exposure. As price approaches Put Support, dealer hedging initially pressures the market lower. But once put holders begin monetizing positions, dealers reverse course and buy futures to unwind hedges, creating real buying pressure underneath the market.
+
+That flow reversal is what often produces sharp bounces from Put Support.
+
+But the level is not permanent. If traders roll puts lower and create new downside positioning beneath the market, the support zone can fail quickly. Once dealer hedging shifts lower, the old Put Support level loses its structural importance and may become a source of further downside acceleration instead.
+
+This is why Put Support trading is not about predicting reversals based on emotion or hope. It is about understanding how dealer hedging flows change as options positioning evolves.
+
+In modern markets, those hidden mechanical flows increasingly determine where markets stabilize, where they accelerate, and where volatility expands. Traders who understand Put Support are not simply watching price action. They are watching the structure underneath the market itself.
+
+Finally use QUIN to get a better understanding if the Put Support will act like a Support or may be broken. 
+
+On this page
+ How Futures and Options Traders Use Put Support
+ What Put Support Actually Represents
+ Why Put Support Is Dynamic
+ The Put Support Bounce Strategy
+ Using Put Support with Gamma Exposure
+ Conclusion

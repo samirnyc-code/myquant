@@ -1,0 +1,24 @@
+In this lesson, you’ll learn about quantitative trading in the oil market from Ilia Bouchouev, former president of Koch Global Partners for 20 years and author of Virtual Barrels: Quantitative Trading in the Oil Market. This session covers the massive scale of oil trading, fundamental economic theories that drive commodity markets, and how institutional investors entered the energy space.
+
+The oil market operates at an extraordinary scale that most traders don’t realize. While the world consumes roughly 100 million barrels of oil per day, the market actually trades approximately 6 billion barrels per day—meaning we trade 60 times more than we physically consume. This explosive growth in financial trading began around 2004-2005, transforming oil from a physical commodity into a major financial asset class. When Ilia started his career in 1996, the industry traded only 1 financial barrel for every physical barrel, but that ratio has expanded dramatically.
+
+A key concept driving institutional participation is Keynesian normal backwardation, developed by John Maynard Keynes in the 1930s. This theory suggests that producers must sell futures at a discount because they hold concentrated, undiversified risk in their commodity. This creates a risk premium opportunity for financial investors. Historical backtesting from 1983 to 2004 showed that buying oil in the forward market and rolling positions monthly generated 10% annualized returns, with nearly all profits coming from roll return rather than spot price changes. The spot return remained close to zero as prices mean-reverted over time.
+
+The second major wave of institutional participation came from risk parity funds, pioneered by Ray Dalio and Bridgewater. The risk parity framework identifies growth and inflation as the two main factors driving all asset classes. While stocks and bonds naturally diversify each other with respect to growth, both suffer during periods of unexpected inflation. Historical analysis shows oil performs exceptionally well during high inflation periods, making it an essential hedge. Risk parity funds allocate based on equal risk rather than equal notional amounts, requiring highly leveraged positions in bond futures that must be hedged against inflation exposure.
+
+Video Chapters
+00:00 – Introduction to Ilia Bouchouev and his trading career
+02:06 – Disclaimer and session overview
+03:59 – Scale of oil trading: physical vs financial barrels
+05:39 – History of financial investors entering commodity markets
+07:15 – Keynesian normal backwardation and risk premium theory
+10:24 – Roll return vs spot return analysis
+11:50 – Risk parity framework and inflation hedging
+Key Takeaways
+The oil market trades 6 billion barrels per day compared to consuming only 100 million barrels, creating massive financial market opportunities
+Keynesian normal backwardation suggests producers sell futures at a discount, creating a risk premium that generated 10% annual returns from 1983-2004 primarily through roll return
+Risk parity funds use oil as an inflation hedge because it performs well when both stocks and bonds suffer during unexpected inflation
+Understanding the difference between spot return and roll return is critical for commodity trading success
+ Video Transcription
+ Previous Lesson
+Next 

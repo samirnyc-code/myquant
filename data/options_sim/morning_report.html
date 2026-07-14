@@ -1,0 +1,98 @@
+<!doctype html><html><head><meta charset="utf-8"><title>S73 Overnight Research</title>
+<style>
+body{background:#0d0f14;color:#e6e9ef;font:15px/1.6 system-ui,Segoe UI,sans-serif;margin:0;padding:32px}
+.wrap{max-width:920px;margin:0 auto}
+h1{font-size:26px;margin:0 0 4px} h2{font-size:18px;color:#8ab4f8;margin:30px 0 10px;border-bottom:1px solid #2a3040;padding-bottom:6px}
+.mut{color:#8a91a0} .pos{color:#1baf7a;font-weight:700} .neg{color:#e34948;font-weight:700}
+.hero{background:linear-gradient(160deg,#1a2740,#141821);border:1px solid #2a4060;border-radius:16px;padding:22px 26px;margin:18px 0}
+.hero h2{border:0;color:#5fa8ff;margin-top:0}
+.big{font-size:34px;font-weight:800;color:#1baf7a}
+table{border-collapse:collapse;width:100%;margin:10px 0;font-size:14px}
+th,td{padding:7px 12px;text-align:right;border-bottom:1px solid #23262d} th{color:#9aa0a6}
+td:first-child,th:first-child{text-align:left}
+.card{background:#161a22;border:1px solid #23262d;border-radius:12px;padding:16px 20px;margin:12px 0}
+.caveat{background:#2a1e14;border-left:3px solid #eda100;border-radius:8px;padding:12px 16px;margin:12px 0;font-size:14px}
+ul{margin:6px 0} li{margin:3px 0} code{background:#23262d;padding:1px 6px;border-radius:4px;font-size:13px}
+</style></head><body><div class="wrap">
+<h1>🌙 Overnight Research Report — Session 73</h1>
+<div class="mut">Generated 2026-07-15 01:27 · goal: find a tradeable edge (ES futures or SPX options)</div>
+
+<div class="hero">
+<h2>★ Lead finding — a conditioned edge in ES</h2>
+<div class="big">+$104/trade</div>
+<div>Fading <b>Call Resistance</b> on the first touch before 10:30&nbsp;CT, <b>only on days where
+prior-EOD GEX was negative</b>. 1yr ES 5m data, real stops/targets/costs (5pt stop, 10pt target,
+1.25pt friction, ES $50/pt).</div>
+<p><b>The filter is the edge.</b> Unfiltered, fading CR is a coin flip (~$0/trade). Split by the
+prior day's GEX sign, negative-GEX mornings make money and positive-GEX mornings lose it — a
+~$180/trade spread from one bit known at the open. The losing bucket implies a mirror trade:
+on positive-GEX mornings, CR tends to <i>break</i> → breakout-long.</p>
+</div>
+
+<h2>The trade, by bucket (fade CR, real costs)</h2>
+<table><tr><th>bucket</th><th>n</th><th>win%</th><th>E/trade</th><th>total/yr</th></tr><tr><td>neg morning</td><td>18</td><td>55.6%</td><td><span class='pos'>$+104</span></td><td><span class='pos'>$+1,875</span></td></tr><tr><td>pos morning</td><td>25</td><td>32.0%</td><td><span class='neg'>$-72</span></td><td><span class='neg'>$-1,812</span></td></tr><tr><td>all morning</td><td>43</td><td>41.9%</td><td><span class='pos'>$+1</span></td><td><span class='pos'>$+62</span></td></tr><tr><td>neg allday</td><td>23</td><td>43.5%</td><td><span class='pos'>$+14</span></td><td><span class='pos'>$+312</span></td></tr></table>
+<div class="caveat"><b>Honest caveats:</b> n=18 for the winning bucket (~18 trades/yr) — a strong
+<i>lead</i>, not a validated system. One year of data. Stop/target (5/10) not yet swept → overfit
+risk. ES-only. Needs: parameter sweep, out-of-sample split, NQ/YM replication, and an SPX-options
+expression of the same signal (buy puts / put debit spread on neg-GEX mornings).</div>
+
+<h2>Why it works: GEX regime conditioning</h2>
+<div class="card">Call-Resistance hold-rate (my def: price retraces MOVE before breaking MOVE):
+<table>
+<tr><th>GEX regime (prior EOD)</th><th></th><th>hold-rate</th></tr>
+<tr><td>positive GEX days</td><td>95</td><td>49.5% (coin flip)</td></tr>
+<tr><td>negative GEX days</td><td>67</td><td><span class='pos'>64.2%</span></td></tr>
+</table>
+Textbook says positive gamma = dealers stabilize = levels pin. <b>The data says the opposite</b> —
+neg-gamma days reject the level more, especially in the morning.</div>
+
+<h2>Time-of-day × GEX (where the edge concentrates)</h2>
+<div class="card"><b>Negative-GEX days — hold by hour:</b>
+<table><tr><th>hour</th><th>n</th><th>hold</th></tr><tr><td>08:00 CT</td><td>14</td><td><span class='pos'>85.7%</span></td></tr><tr><td>09:00 CT</td><td>9</td><td><span class='pos'>77.8%</span></td></tr><tr><td>10:00 CT</td><td>11</td><td><span class='pos'>63.6%</span></td></tr><tr><td>11:00 CT</td><td>11</td><td><span class=''>54.5%</span></td></tr><tr><td>12:00 CT</td><td>6</td><td><span class='neg'>33.3%</span></td></tr><tr><td>13:00 CT</td><td>8</td><td><span class='pos'>62.5%</span></td></tr><tr><td>14:00 CT</td><td>8</td><td><span class=''>50.0%</span></td></tr></table>
+Mornings on neg-GEX days reject 80%+. Midday (12:00 CT) flips to breaks across all regimes
+(lunch-lull breakouts).</div>
+
+<h2>Robustness — parameter sweep</h2>
+<div class="card">Base hold-rate across MOVE/LOOK settings (shows the absolute number is
+definition-sensitive; the neg-vs-pos GEX <i>spread</i> is what's robust):
+<table><tr><th>setting</th><th>n</th><th>hold</th></tr><tr><td>MOVE 2 / LOOK 6</td><td>194</td><td>62.9%</td></tr><tr><td>MOVE 2 / LOOK 12</td><td>138</td><td>68.1%</td></tr><tr><td>MOVE 4 / LOOK 6</td><td>188</td><td>54.3%</td></tr><tr><td>MOVE 4 / LOOK 12</td><td>137</td><td>59.1%</td></tr><tr><td>MOVE 6 / LOOK 6</td><td>176</td><td>52.3%</td></tr><tr><td>MOVE 6 / LOOK 12</td><td>134</td><td>56.0%</td></tr><tr><td>MOVE 8 / LOOK 6</td><td>160</td><td>52.5%</td></tr><tr><td>MOVE 8 / LOOK 12</td><td>129</td><td>52.7%</td></tr></table></div>
+
+<h2>Other results tonight</h2>
+<ul>
+<li><b>BPS exit-rule shootout (142 trades):</b> the SMA5 signal-exit IS the edge (PF 1.74).
+Hold-to-expiry loses (PF 0.95, −$28K maxDD); tastylive "manage at 50%" ≈ flat (0.97); price stops
+are poison (0.71). <b>No profit targets, no stops, exit on signal only.</b></li>
+<li><b>VIX-rank filter on BPS: REJECTED</b> out-of-sample (filtered PF 2.13 &lt; unfiltered 2.24).
+Trade it unconditioned.</li>
+<li><b>Put Support untouchable:</b> price reached PS only 3×/yr — confirms S66 "levels rarely reached."</li>
+</ul>
+
+<h2>Data assets acquired (the machine)</h2>
+<ul>
+<li><b>Direct MenthorQ REST API</b> (<code>scripts/mq_api.py</code>) — the endpoints QUIN reads from;
+no scraping, no quota. gamma-levels, matrix (net/abs GEX·DEX·OI), per-strike surface, 365d GEX+percentile,
+skew, QScore, candles.</li>
+<li><b>365 days</b> of ES+SPX aggregate GEX + 1y-percentile + QScore, pulled clean.</li>
+<li><b>~12 months</b> daily ES+SPX levels (CR/PS/HVL) via QUIN backfill (480 rows).</li>
+<li><b>Historical OI:</b> aggregate call/put OI IS available via QUIN (your instinct was right);
+per-strike is today-only via API. Parked as marginal for current strategies.</li>
+<li><b>240 KB pages</b> ingested (guides + financial wiki) + 32 academy pages — hypothesis fuel;
+deep lesson bodies (behind "Start") are a follow-up crawl.</li>
+<li>Nightly harvest + history pull scheduled (Task Scheduler).</li>
+</ul>
+
+<h2>Next steps (ranked)</h2>
+<ol>
+<li>Sweep stop/target on the CR-fade edge; out-of-sample split (first 8mo vs last 4mo).</li>
+<li>Replicate on NQ + YM (we have the bars + can pull their GEX) — does the edge generalize?</li>
+<li>Test the mirror: CR-breakout-long on positive-GEX mornings.</li>
+<li><b>SPX-options version:</b> buy a put / put debit spread on neg-GEX mornings — turns the futures
+edge into a defined-risk options trade (your two goals converge here).</li>
+<li>Verify vs MenthorQ's OWN backtest definition (directive #2) — extract their hold/break rule
+from the deep academy lessons, re-test apples-to-apples.</li>
+<li>Extract testable claims from the 240 KB pages into the hypothesis queue.</li>
+</ol>
+
+<div class="mut" style="margin-top:30px">Full detail: <code>docs/living/night_queue_s73.md</code> ·
+scripts: <code>mr_es_gamma_levels_v2.py</code>, <code>mr_es_cr_fade.py</code>, <code>mq_api.py</code></div>
+</div></body></html>

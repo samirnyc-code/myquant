@@ -1,0 +1,256 @@
+Back to Dashboard
+Getting Started
+QUIN
+Screeners Prompts
+Request Levels
+Usecases
+12
+Products
+Knowledge Base
+Trading Strategies
+Integrations
+Trader
+Partners
+Backtesting
+Affiliation
+How to Find High-Probability Options Selling Strategies Using Quin AI 
+USECASES
+CASE STUDIES
+
+This Volatility Corner session demonstrates how traders can use QUIN AI, MenthorQ’s AI-powered research engine, to create a structured and repeatable options trading process. Rather than providing trade alerts, QUIN helps traders screen opportunities, evaluate volatility, and manage risk using institutional-grade data. The workflow combines metrics such as VRP, NVRP, IV Rank, gamma levels, market regime, and swing bias to identify high-conviction premium-selling opportunities like iron condors, credit spreads, and short strangles.
+
+The session also highlights the importance of trade management, including profit targets, position adjustments, and monitoring changing market conditions. A key takeaway is that successful options trading comes from disciplined research and process-driven decision-making, not blindly following trade ideas. QUIN acts as a research desk, helping traders move from idea generation to execution with greater confidence and consistency.
+
+Step-by-Step Quin AI Workflow
+
+This live session focused on how options traders can use Quin, MenthorQ’s AI-powered quant engine, to research trade ideas, screen opportunities, and build structured options strategies.
+
+Fabio was joined by an experienced options trader who focuses heavily on credit spreads, iron condors, short premium strategies, volatility selling, and trade management. The goal was not to provide copy-and-paste trades, but to show how QUIN can help traders build a repeatable research process.
+
+The session covered liquidity, volatility risk premium, NVRP, neutral premium strategies, macro context, cross-asset screening, and live trade management.
+
+Building an Options Framework With Quin
+
+[0:42 – 6:15]
+
+Dan opened by explaining that the biggest challenge with options trading is knowing where to start.
+
+Quin helps traders organize the research process by acting like a trading desk. Instead of manually jumping between screeners, charts, volatility data, and notes, traders can ask Quin to combine multiple data points into one structured framework.
+
+Dan’s process begins with several core filters:
+
+Liquidity
+Market regime
+Swing bias
+Breakout conditions
+Positioning
+Key levels
+Volatility metrics
+Trade structure
+Trade management
+
+The main message was clear: Quin is not designed to simply “give trades.” It is designed to help traders research better, challenge their ideas, and build a plan before entering a position.
+
+Why Quin Is Different From Generic AI Tools
+
+[6:24 – 8:15]
+
+Fabio explained why Quin is different from a standard AI chatbot. Most AI tools are good at processing unstructured text. They can summarize, explain, and write. But they often struggle with structured financial data, especially large datasets filled with numbers, options metrics, volatility readings, and positioning signals.
+
+Quin was built around MenthorQ’s internal data, trading research, market structure work, and institutional experience.
+
+The key advantage is that Quin can access structured data directly, which reduces hallucination risk and allows users to cross-reference outputs with the MenthorQ dashboard.
+
+This matters because options trading depends on precision. A wrong volatility metric or incorrect gamma level can completely change the quality of a trade idea.
+
+Using Quin to Research Volatility and Premium Selling
+
+[8:22 – 12:12]
+
+Dan then moved into one of his core areas: volatility selling. He explained that many traders look only at high implied volatility or IV rank when searching for premium-selling opportunities. That is not enough.
+
+For volatility sellers, the real question is whether volatility is rich relative to realized volatility. This is where VRP, or volatility risk premium, becomes important.
+
+Dan also highlighted NVRP, which helps traders compare volatility richness across different names, sectors, and environments.
+
+The key lesson:
+
+Traders should not simply sell high IV.
+They should look for tradable richness.
+
+Quin helps by comparing volatility metrics across names and identifying where premium may be statistically more attractive.
+
+Learning Before Trading
+
+[12:25 – 14:41]
+
+Dan emphasized that new users should begin with Quin’s built-in documentation and prompts.
+
+For traders coming from stocks, futures, or basic technical analysis, Quin can explain how to use options data, volatility metrics, expected moves, gamma levels, and swing models.
+
+The important point is that Quin can be used first as an educational tool, then as a research assistant, and finally as a trading workflow engine.
+
+This helps reduce one of the biggest risks in options trading: jumping into complex structures without understanding the mechanics behind them.
+
+Finding High-Conviction Neutral Option Setups
+
+[14:50 – 19:20]
+
+Dan demonstrated how Quin can screen for potential premium-selling ideas by combining swing bias, VRP, IV percentile, NVRP, and other metrics. In one example, he looked at Visa as a potential premium-selling candidate.
+
+Quin showed that while Visa initially looked interesting, the volatility metrics did not support a high-conviction short premium trade. The setup was classified as moderate rather than compelling. That was the value of the process. Instead of forcing a trade because one metric looked attractive, Quin helped challenge the idea. Dan summarized the process into three parts:
+
+Good data
+A clear plan
+The right mindset
+
+Once those pieces are in place, the trader can move from idea generation to execution with less emotion and more structure.
+
+Why Neutral Strategies Matter
+
+[19:20 – 24:50]
+
+Dan explained why he prefers nondirectional options strategies when the regime allows it.
+
+Neutral premium strategies, such as iron condors and short strangles, allow traders to focus on volatility and time rather than pure direction. The goal is not to predict every move, but to collect premium when the market structure supports it. Quin helped Dan narrow a broad universe into a smaller group of candidates.
+
+One example was Intel, where Quin identified:
+
+Strong gamma structure
+Elevated VRP
+High NVRP
+High IV rank
+Good expected move characteristics
+Solid options volume
+
+The key point was that traders do not need dozens of trade ideas. They need a few quality setups that can be repeated over time.
+
+Trade Management, Profit Targets, and Adjustments
+
+[24:58 – 34:45]
+
+Dan then focused on one of the most important parts of options trading: management. He explained that many traders selling premium try to hold positions until expiration. In his view, that is usually unnecessary and often risky.
+
+For iron condors, Dan often looks to take profits around 25%, with 50% as a stronger profit target in some cases. The reason is simple, there is no need to risk a large existing gain just to squeeze out the final portion of premium.
+
+Dan also explained that he may scale out of trades. For example, he might take most of the position off at 25%, remove more at 50%, and leave only a small runner if the remaining risk is acceptable.
+
+Quin can help by mapping:
+
+Profit targets
+Risk-reward profile
+Adjustment points
+Expiration selection
+Gamma risk
+Vega exposure
+Decision trees
+
+The most important management rule Dan highlighted was “Do not chase losers”. Adjustments should be planned, not emotional.
+
+Using Quin for Macro and Cross-Asset Context
+
+[34:59 – 41:40]
+
+Fabio then highlighted one of Quin’s most powerful features: three-dimensional screening.
+
+Quin can screen not only by current metrics, but also by how those metrics have changed over time. For example, users can ask for:
+
+The top assets with the largest NVRP increase over the last 10 days
+The assets with the largest IV percentile increase over the last 10 days
+Names where volatility has moved sharply from cheap to expensive
+
+This helps traders identify where conditions are changing.
+
+Dan added that this is especially useful because trades require context. If a stock suddenly shows a major volatility change, traders need to understand why. Is there news? A sector shift? Earnings? Macro stress? A positioning event? Quin helps users connect the data to the story.
+
+This is where it becomes more than a screener. It becomes a research desk.
+
+Community Prompts and Full Asset Research
+
+[41:40 – 45:15]
+
+Fabio also showed how users in the MenthorQ community are beginning to share their own Quin prompts.
+
+One example involved asking Quin to generate a complete research report on a specific asset, including:
+
+Current positioning
+Q Score
+IV rank
+VRP
+Gamma levels
+Options activity
+Put-call ratio
+Skew
+Term structure
+Swing model
+Recent news
+Narrative structure
+
+Fabio explained that this type of report could take an analyst hours or days to assemble manually. Quin can generate a structured first pass in seconds.
+
+The value is not that the trader blindly follows the output. The value is that the trader can begin from a much more informed starting point.
+
+Directional Setups and Conflict Detection
+
+[45:28 – 48:21]
+
+Dan showed how Quin can also help with directional options setups. He noted that Quin does not simply identify bullish or bearish names. It also flags conflicting data, low liquidity, unusual movement, or risks that may weaken a setup. This is important because traders often focus only on the attractive part of a trade.
+
+Quin can help identify what might be wrong with the idea before the trader commits capital. This turns the research process into a more balanced decision-making framework.
+
+Building Cross-Asset Premium Portfolios
+
+[48:27 – 52:06]
+
+Dan then discussed how he uses macro and cross-asset information. He likes to scan markets such as gold, energy, bonds, equities, and volatility to understand the broader environment before building trades.
+
+This helps when constructing a small portfolio of premium-selling trades across ETFs or asset classes. Instead of selling volatility in one isolated name, traders can think about how different assets interact. One asset may rise while another falls, allowing the trader to structure premium exposure more intelligently. Dan emphasized that macro context should come before trade entry.
+
+Before placing options trades, traders should understand what the broader market is saying.
+
+Monitoring Open Trades With Live Data and Levels
+
+[52:46 – 55:47]
+
+The final practical section focused on monitoring trades after entry.
+
+Dan explained that once a trade is opened, traders can continue using Quin in the same chat to monitor live levels, gamma changes, swing bias, volatility shifts, and expected move changes.
+
+In the example discussed, Quin tracked whether the bullish structure remained intact, whether call resistance had moved, whether the HVL remained stable, and whether momentum continued to improve. This is valuable because options trades are dynamic.
+
+A good entry can become a weak trade if volatility shifts, gamma levels migrate, or price moves into a risk zone. Quin helps traders monitor those changes without rebuilding the analysis from scratch every day.
+
+Final Takeaways
+
+[56:00 – End]
+
+The session ended with Fabio and Dan emphasizing the same core idea, Quin is not about replacing the trader. It is about giving traders a structured research process.
+
+For options traders, that means being able to move from idea generation to screening, from screening to structure selection, and from structure selection to management.
+
+The biggest benefits are:
+
+Better research
+Faster screening
+More disciplined trade selection
+Clearer volatility context
+Improved trade management
+Better use of MenthorQ’s options data
+
+Dan’s message was especially important for newer traders. Do not copy someone else’s trades. Use QUIN to build your own process. That is where the real edge begins.
+
+On this page
+ Step-by-Step Quin AI Workflow
+ Building an Options Framework With Quin
+ Why Quin Is Different From Generic AI Tools
+ Using Quin to Research Volatility and Premium Selling
+ Learning Before Trading
+ Finding High-Conviction Neutral Option Setups
+ Why Neutral Strategies Matter
+ Trade Management, Profit Targets, and Adjustments
+ Using Quin for Macro and Cross-Asset Context
+ Community Prompts and Full Asset Research
+ Directional Setups and Conflict Detection
+ Building Cross-Asset Premium Portfolios
+ Monitoring Open Trades With Live Data and Levels
+ Final Takeaways

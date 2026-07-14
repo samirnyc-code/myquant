@@ -1,0 +1,24 @@
+Understanding how to build an effective trading routine is essential for finding your edge in today’s crowded markets. In this lesson, we explore how to use data-driven tools to identify potential trade opportunities and construct a systematic approach to trading. You’ll learn how to leverage scoring systems and screeners to spot meaningful shifts in market positioning that could signal potential trading setups.
+
+At the core of this approach is the Q Score, a rating system that ranges from 0 to 5, where 0 indicates bearish bias and 5 indicates bullish bias. The system analyzes four key factors: option positioning, volatility, momentum, and seasonality. Notably, the seasonality score uses a different scale, ranging from minus 5 to plus 5. Each asset displays all four scores on the dashboard, and historical charts are available for every score to help you backtest and understand how scores evolved over time.
+
+The lesson demonstrates how to interpret these scores together rather than in isolation. For example, an asset might show a very high option score of 5 while simultaneously displaying a neutral momentum score of 3 and negative seasonality. These divergences can reveal important insights about potential market corrections or continuations. We examine Tesla’s journey from around 400 down to 225 during the tariff situation from February to April, showing how the option score shifted from very bearish to very bullish at a 4 score level as price began recovering.
+
+The screeners provide powerful filtering capabilities to find trading opportunities. Four screeners exist for each score type: highest option score, lowest option score, one day option score increase, and one day option score decrease. The most valuable screeners are the change-based ones, which measure how much the option score changed from one day to the next. For example, Netflix showed an option score of 3, meaning it increased three points from the previous day, shifting from very bearish to neutral positioning.
+
+We walk through a practical backtesting example using the screeners’ historical data feature. By looking back at previous Mondays and tracking assets that appeared on the one day option score increase screener, you can see actual performance results. The example tracks trades taken at the open on Tuesday (after Memorial Day when Monday was closed) and held until the close of the week, with no trade management or stop losses. Assets like CVS showed a 5% return that week, while Tesla demonstrated a 14% gain from its Monday entry point to current levels around 325.
+
+All screeners display the top 50 assets meeting the criteria, and you can access historical screener data by selecting previous dates. The platform includes dedicated guides with video explanations, pre-built quant strategies based on the Q Score, and all features are accessible with a free account. You can copy data to Excel or use it with tools like Chat GPT for further analysis, though download capabilities and APIs are currently in development.
+
+Video Chapters
+00:00 – Introduction to building trading routines and finding your edge
+02:10 – Understanding the Q Score rating system and its four factors
+04:34 – Historical Q Score charts and Tesla case study example
+05:36 – Using screeners to find trade opportunities
+09:02 – Analyzing specific stocks with score changes
+10:18 – Backtesting screener results with historical data
+Key Takeaways
+T…
+ Video Transcription
+ Previous Lesson
+Next 

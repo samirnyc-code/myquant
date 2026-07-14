@@ -1,0 +1,22 @@
+This lesson provides a comprehensive walkthrough of the new NinjaTrader indicator and its powerful features for accessing institutional-grade quantitative data directly in your trading platform. You’ll learn how this indicator differs from other integrations and discover the exclusive capabilities that make it a game-changer for active traders.
+
+The NinjaTrader indicator integrates via API, allowing you to receive levels as soon as they’re calculated on our end. Unlike file-based systems, this API integration provides automatic updates and gives you access to historical levels up to 30 days back. You can fully customize each level’s plots and labels, and save your configurations as templates that work across any tickers or futures you trade. This means you can set up your chart once with your preferred technical indicators and MenthorQ levels, then instantly apply that same setup to ES, NQ, or any other instrument.
+
+The indicator provides access to multiple level types including gamma levels, intraday levels, gamma scalping models, blind spots, and swing levels. You can choose between gamma levels and gamma scalping models—the key difference being that gamma scalping uses a narrower range for calculating the top 10 strikes, making it ideal for scalpers who need tighter support and resistance zones. The primary levels remain the same between both models. Note that swing levels are only available for indices, ETFs, and stocks, not futures.
+
+One of the most powerful new features is the Trading Roadmap, previously only available on TradingView. This feature connects areas with big clustering of gamma levels, creating clear boxes on your chart that help you build your daily trading plan. You can customize the box size using either points (fixed intervals like 10 or 20 points) or a dynamic ratio from 1 to 4 that adjusts based on price action. You can even hide individual levels to create an uncluttered view showing only the key zones where you want to trade breakouts or stay out of the market.
+
+The indicator also includes levels conversion functionality, allowing you to convert levels from one asset to another—such as SPX to ES or QQQ to NQ. This is particularly useful since intraday data is not yet available for futures, but you can convert and display intraday levels from SPX or QQQ onto your futures charts. You can also set up real-time alerts directly in NinjaTrader, just like in the TradingView indicator.
+
+To get started, access the dashboard and navigate to Integration, then select NinjaTrader. You’ll need to provide your machine ID (found in your NinjaTrader platform), and our team will enable it within 24 hours. Download the indicator version v6.1 and retrieve your API key from the dashboard. Installation is straightforward—click Tools, then Import NinjaScript Add-on, and follow the step-by-step guide. Once installed, find the MenthorQ levels indicator in your available list, enter your API key, and select API mode with daily for current levels or historical levels to access up to 30 days of past data.
+
+Video Chapters
+00:15 – Introduction to NinjaTrader indicator differences
+01:14 – Historical levels feature (up to 30 days)
+02:04 – Roadmap feature and levels conversion
+02:31 – Setting up the indicator and machine ID
+04:26 – API settings and historical level options
+05:41<...
+ Video Transcription
+Previous
+Next 

@@ -1,0 +1,25 @@
+In this lesson, you’ll learn how to set up and configure the Bookmap integration with MenthorQ, including the powerful new features like auto-update and level conversion. The integration allows you to display institutional-grade levels directly on your Bookmap heat map for enhanced trading visualization.
+
+To get started, you’ll need the Priceline Add On from the Bookmap Marketplace, developed by Fintech Visual and Luis. We provide a coupon code for a discount. Once you download the JAR file to your computer, navigate to the configure add ons icon in Bookmap, click add, locate the file, and enable it by checking the checkbox. From your MenthorQ dashboard under integrations, you’ll find your API key which you paste into the add on’s Turkey integration panel.
+
+The add on offers extensive customization options. You can select which level types to display including end of day, intraday, gamma levels, gamma sculpting, blind spots, and swing levels. The new auto update feature is particularly valuable since intraday levels update every 30 minutes. You can set the frequency to 30 minutes, 6 minutes, or 2 hours, and the system automatically refreshes your levels without manual intervention. You can also customize line sizes, opacity, label position, font size, text color, and background for each level type.
+
+The highly requested conversion settings allow you to plot levels from any asset onto the futures you’re trading. You can display SPX or SPY levels on ES, QQQ and NDX on NQ, GLD on gold futures, or even individual stocks like Nvidia, Amazon, or Meta on NQ. You can choose to plot only converted levels or display both the original and converted levels simultaneously. The system shows converted levels with the source ticker in parentheses on the heat map.
+
+The conversion feature uses manual ratios that you need to update once per day. While the ratio can change throughout the day, the level differences remain minimal, so daily updates are sufficient. We provide separate documentation and video guides on level conversion and calculating ratios, and the process takes less than 30 seconds each day.
+
+Video Chapters
+00:14 – Introduction to Bookmap integration setup
+01:32 – Installing and enabling the Priceline Add On
+02:54 – Configuring level types and customization options
+04:06 – Using conversion settings for multiple assets
+05:29 – Adjusting visual settings and label displays
+07:04 – Auto update feature and conversion examples
+Key Takeaways
+The Priceline Add On from the Bookmap Marketplace connects MenthorQ levels directly to your Bookmap heat map
+The auto update feature refreshes intraday levels automatically every 30 minutes, 6 minutes, or 2 hours
+Conversion settings allow you to plot any asset’s levels onto futures contracts using manual ratios updated once daily
+Extensive customization options include line opacity, label position, font size, and individual colors for each level type
+ Video Transcription
+Previous
+Next 

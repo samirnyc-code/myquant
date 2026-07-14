@@ -1,0 +1,26 @@
+In this lesson, you’ll learn how to display gamma levels and other indicators from one asset on a different asset’s chart by using ratio conversion—even without a data feed on your trading platform. This powerful technique allows you to access SPX intraday levels on ES futures, or QQQ levels on NQ, expanding your analytical capabilities across different instruments.
+
+Within TradingView, you can enable conversion by going into your indicator settings and scrolling down to the levels conversion settings. You have two options: auto ratio, which automatically calculates the conversion ratio using end-of-day prices from the platform’s infrastructure, or manual ratio, which lets you input your own ratio value. Many users prefer manual ratio because it allows them to update the ratio multiple times per day for greater accuracy.
+
+On NinjaTrader and other platforms, the process is similar—you activate conversion in your indicator settings and enter the ticker you want to convert from (such as SPX or QQQ). However, auto ratio requires a data feed for the asset you’re converting from. If you don’t have that data feed, you’ll receive an error message. The solution is simple: switch to manual ratio and enter the ratio value directly, which immediately displays your converted levels.
+
+To calculate accurate ratios, you can use TradingView’s free platform to create custom securities using formulas. Simply divide the futures ticker by the index or ETF ticker (for example, ES1! divided by SPX). You can save these ratios in a watch list for quick daily access. For proper conversion accuracy, ensure your chart displays at least 5 or 6 decimals in the precision settings, and choose ratio values during trading hours when both assets are active—typically averaging values from the 9:30 AM to 4:00 PM Eastern window.
+
+This conversion technique works across multiple asset classes demonstrated in the lesson: you can convert SPY to ES, QQQ to NQ, DIA to YM, GLD to GC futures, and even convert individual stocks like Nvidia to NQ. The same conversion settings apply to different level types, including gamma levels, intraday levels, blind spot levels, and swing trading levels—once you set up the ratio, you can switch between level types without reconfiguring the conversion.
+
+To get started, create your custom ratio formulas in TradingView by adding a symbol through the plus sign in your watch list, then input your division formula (futures ticker divided by index/ETF ticker). Save these ratios for daily reference, and when using platforms like NinjaTrader that lack the necessary data feed, simply input the manual ratio value with 4-5 decimal places to accurately convert and display your levels within 20-30 seconds each day.
+
+Video Chapters
+00:00 – Converting SPX levels to ES in TradingView using auto and manual ratio
+02:14 – Setting up level conversion in NinjaTrader without a data feed
+04:40 – How to calculate and access conversion ratios effectively
+05:11 – Creating custom securities and ratio formulas in TradingView
+08:51 – Best practices for decimal precision and timing
+11:04 – Converting QQQ levels to NQ using manual ratio
+12:19 – Converting DIA levels to YM example
+13:06 – Converting blind spot and swing trading levels to ES
+Key Takeaways
+Use manual ratio instead of auto ratio when your platform lacks a data feed…
+ Video Transcription
+ Previous Lesson
+Next Section 

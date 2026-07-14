@@ -1,0 +1,27 @@
+In this lesson, you’ll learn how to set up and customize the MenthorQ indicator in Tick Blaze, from initial installation through advanced customization options. This step-by-step guide walks you through the entire integration process so you can start plotting institutional-grade price levels on your charts.
+
+After downloading the indicator from the MenthorQ dashboard, you’ll import it into Tick Blaze by navigating to Menu Tools, Import Resource. Once imported, you add the indicator to your chart and configure your API key to connect with MenthorQ’s data. The indicator automatically adds a Refresh price levels button to your toolbar, which you’ll click to plot levels onto your chart.
+
+You can fully customize the visual appearance of your price levels through the indicator settings. The label formatting options allow you to adjust font size, alignment, and other display properties to make levels easier to read. Under parameters, you’ll find controls for each individual level where you can modify colors, line styles (solid, dashed, etc.), and line thickness to match your charting preferences.
+
+The platform offers powerful flexibility through level types and level conversions. You can toggle different level types like blind spots on or off depending on your trading strategy. For example, if you want to plot SPX levels on top of your ES chart, you can use the level conversion options by specifying the ticker symbol and ratio. This allows you to analyze relationships between correlated instruments.
+
+Each level can be individually enabled or disabled, giving you complete control over chart clutter. Whether you’re monitoring HVL0DTE levels or other MenthorQ metrics, you can turn specific levels on and off without affecting your other settings. Simply access the parameters, find the level you want to modify, and toggle it as needed.
+
+To get started with Tick Blaze integration, download the indicator from your MenthorQ dashboard, import it using the Tools menu, add your API key, and click the Refresh button to begin plotting price levels immediately.
+
+Video Chapters
+00:00 – Importing the MenthorQ indicator into Tick Blaze
+00:27 – Adding the indicator to your chart and configuring API key
+01:30 – Customizing label formatting and size
+01:48 – Enabling different level types like blind spots
+02:11 – Customizing individual level colors and line styles
+03:11 – Setting up level conversions for different instruments
+Key Takeaways
+Import the MenthorQ indicator through Menu Tools, Import Resource and configure your API key to connect
+Use the Refresh price levels button to plot levels and customize label formatting for better visibility
+Toggle level types like blind spots and customize each level’s color, style, and thickness individually
+Enable level conversions to plot levels from one instrument (like SPX) onto another chart (like ES)
+ Video Transcription
+Previous
+Next Section 

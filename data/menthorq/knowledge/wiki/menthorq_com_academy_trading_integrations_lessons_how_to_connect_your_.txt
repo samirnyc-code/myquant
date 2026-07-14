@@ -1,0 +1,23 @@
+In this lesson, you’ll learn the step-by-step process to connect your TradingView account to access all of MenthorQ’s proprietary indicators. We’ve developed a series of indicators specifically for the platform, and this connection is essential to unlock them within your TradingView workspace.
+
+To begin the connection process, navigate to the Getting Started section in your MenthorQ dashboard and click on Connect your TradingView account. Alternatively, you can access this feature by going to the App section and selecting TradingView. The critical detail here is that you must use your TradingView user ID, not your email address—using your email will prevent the connection from working.
+
+To locate your user ID, go into TradingView and click on your account icon at the top left of the screen. Select the first option showing your account name and click on Profile. You’ll find your user ID displayed as text on this page—simply copy it. Return to the MenthorQ dashboard, paste your user ID into the connection field, and click Save and connect. After a few moments, you’ll receive a confirmation that your account is connected.
+
+Once connected, all MenthorQ indicators become accessible in TradingView under the Indicators Invite Only section. Simply click on Indicators, navigate to Invite Only, and you’ll see all the MenthorQ indicators you’ve been enabled to use. Click on any indicator to add it to your chart, where you can access settings and customize it for your trading needs.
+
+If you ever need to switch accounts, you can disconnect your current TradingView account from the MenthorQ dashboard and reconnect a different one. This flexibility ensures you can manage multiple accounts or update your connection as needed.
+
+Video Chapters
+00:00 – Introduction to connecting TradingView account
+00:30 – Navigating to the TradingView connection section
+00:54 – Finding your TradingView user ID in your profile
+01:42 – Connecting and saving your account
+02:15 – Accessing indicators in the Invite Only section
+Key Takeaways
+You must use your TradingView user ID, not your email address, to successfully connect your account
+Your user ID is found by clicking your account icon in TradingView and selecting Profile
+Once connected, all MenthorQ indicators appear under the Indicators Invite Only section in TradingView
+You can disconnect and reconnect different TradingView accounts at any time from the MenthorQ dashboard
+ Video Transcription
+Next 

@@ -1,0 +1,40 @@
+{
+ "neg_morning": {
+  "n": 18,
+  "win_pct": 55.6,
+  "E_pts": 2.08,
+  "E_usd": 104,
+  "total_usd": 1875,
+  "avg_win": 8.8
+ },
+ "pos_morning": {
+  "n": 25,
+  "win_pct": 32.0,
+  "E_pts": -1.45,
+  "E_usd": -72,
+  "total_usd": -1812,
+  "avg_win": 8.8
+ },
+ "all_morning": {
+  "n": 43,
+  "win_pct": 41.9,
+  "E_pts": 0.03,
+  "E_usd": 1,
+  "total_usd": 62,
+  "avg_win": 8.8
+ },
+ "neg_allday": {
+  "n": 23,
+  "win_pct": 43.5,
+  "E_pts": 0.27,
+  "E_usd": 14,
+  "total_usd": 312,
+  "avg_win": 8.8
+ },
+ "params": {
+  "stop": 5.0,
+  "tgt": 10.0,
+  "friction": 1.25,
+  "cutoff": "10:30"
+ }
+}

@@ -1,0 +1,31 @@
+In this lesson, you’ll learn how to navigate and use QUIN, MenthorQ’s AI-powered chat and screening tool that provides institutional-grade quantitative data with accuracy that surpasses other AI platforms. We’ll show you exactly how to access pre-made prompts, create custom screeners, and leverage real-time data comparisons that eliminate the hallucinations common in tools like Gemini, Claude, and Perplexity.
+
+When you first access QUIN, you’ll find two main interface modes—dark and light—with light mode set as default for easier reading. The left-hand side features a chat interface where you can type any question, but if you’re unsure where to start, the Inspire me section organizes pre-made prompts by category: learning, futures trading, swing trading, options trading, 0DTS trading for SPX traders, and general financial research. You can also access the screeners section where you can create, save, and run custom screens that update daily with fresh data.
+
+What sets QUIN apart is data accuracy. We demonstrate this by comparing results across platforms—when asked to show stocks with largest market cap in negative gamma, Gemini returned Tesla and Nvidia as negative gamma stocks, but our dashboard data shows both are actually in positive gamma. QUIN delivers verified results you can cross-reference directly with your MenthorQ dashboard, showing J.P. Morgan at -90 million net jacks that matches exactly across both systems.
+
+QUIN enables powerful multi-ticker comparisons and historical analysis. You can compare IV rank across multiple stocks over 30 days to identify which are cheapest or most expensive historically, track VRP changes over specific timeframes (like Nvidia’s shift from 11.6 seven days ago to positive 4.6 after earnings), and screen for temporal changes like stocks that switched from bearish to bullish bias using our swing trading model (5-day or 20-day). You can also screen for distance to key levels, finding stocks within certain percentages of their core resistance, put support, or 52-week highs.
+
+The Explore section offers curated screeners for specific strategies including swing trading, extreme positioning, gamma squeeze candidates, iron condor setups, option sellers, option buyers, sector rotation, and directional trades. Each screener shows the filters used, and you can modify them by adding your own criteria. For example, one pre-made screener finds the top 25 stocks with IV rank above 70%, positive gamma, and market cap over 20 billion—perfect for option sellers.
+
+To get started with QUIN, access it through the “start the chat” button if you’re a new user. Begin by exploring the Inspire me section to familiarize yourself with available prompts, then try creating your first screener by clicking Create in the screeners section. You can save any screener for daily updates, and all results can be cross-referenced with your MenthorQ dashboard data to verify accuracy.
+
+Video Chapters
+00:16 – Accessing QUIN and interface overview
+01:21 – Inspire me section and pre-made prompts by category
+02:29 – Creating and saving custom screeners
+04:00 – Exploring curated screeners for different trading strategies
+05:19 – Comparing QUIN accuracy vs other AI platforms
+08:33 – Screening for option sellers with specific criteria
+10:28 – Finding stocks that changed from bearish to bullish bias
+12:03 – Multi-ticker IV rank comparison over 30 days
+13:55 – Historical VRP data and changes over time
+16:06 – Screening for distance to key levels
+Key Takeaways
+QUIN provides accurate, verifiable quantitative data that eliminates the hallucinations found in other AI platforms like Gemini, Claude, and Perplexity
+The Inspire me section offers organized pre-made prompts for learning, futures, swing trading, options, 0DTS trading, and financial research
+You can create custom screeners with filters like IV rank above 70%, positive/negative gamma, and market cap thresholds, then save them for daily updates
+QUIN enables temporal analysis including stocks that changed from bearish to bullish bias and historical comparisons of IV rank and VRP over specific timeframes
+ Video Transcription
+ Previous Lesson
+Next Section 

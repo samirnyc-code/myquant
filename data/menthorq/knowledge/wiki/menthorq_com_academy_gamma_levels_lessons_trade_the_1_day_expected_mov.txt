@@ -1,0 +1,24 @@
+In this lesson, you’ll discover one of our most powerful trading tools: the one day expected move indicator. This volatility-based indicator provides you with an estimated range showing how far an asset is likely to move in either direction during the trading day, giving you clearly defined one day max and one day min levels.
+
+What makes this indicator particularly valuable is that it’s based on option positioning and forward looking volatility, not guesswork. The one day expected move helps you identify potential trading zones and serves as an effective trade management tool. You can use these levels to set profit targets, identify reversal zones, place stop losses, or spot potential breakout areas. When price breaks outside this range, we often see explosive moves that create significant trading opportunities.
+
+Our backtesting data from four years of history on SPX demonstrates the indicator’s reliability. The price closed above the one day minimum on 87% of trading days and below the one day max on 85% of days. This statistical edge gives you confidence when planning your trades around these levels.
+
+The lesson shows practical examples from April 2, 2025 trading on both NQ and ES. In these examples, the market opened lower, touched the one day min level, reversed upward to reach the one day max, and then reversed back. You could have entered at the one day minimum using the one day max as your take profit target, or if you missed the initial move, entered a reversal trade at the one day max using other levels for profit targets.
+
+All backtesting results and historical data are available on our website, giving you full transparency into how these levels have performed across different market conditions. This indicator works particularly well on very strong trending days when breaks of the one day max or one day min can signal explosive continuation moves, providing interesting entry opportunities for breakout traders.
+
+Video Chapters
+00:15 – Introduction to one day expected move indicator
+00:39 – Why volatility indicators matter for trading
+01:10 – How to use the indicator for profit targets and stop losses
+01:44 – Four years of backtesting results on SPX
+02:27 – Live trade examples on NQ and ES
+Key Takeaways
+The one day expected move indicator provides estimated price range based on option positioning and forward looking volatility
+Backtesting shows price closed above the one day min 87% of the time and below the one day max 85% of the time over four years
+Use these levels for profit targets, reversal zones, stop losses, or breakout entries
+Breaks outside the expected move range often signal explosive trending moves
+ Video Transcription
+ Previous Lesson
+Next 

@@ -1,0 +1,163 @@
+Back to Dashboard
+Getting Started
+QUIN
+Products
+Knowledge Base
+Trading Strategies
+Bullish Strategies
+8
+Bearish Strategies
+6
+Hedging Strategies
+8
+Income Strategies
+5
+Neutral Strategies
+25
+Technical Analysis and Momentum
+9
+Futures Trading
+2
+Commodity Trading
+23
+Case Studies
+42
+Weekly Edge
+5
+Live Sessions
+5
+Integrations
+Trader
+Partners
+Backtesting
+Affiliation
+How to Interpret Net GEX Versus Total GEX
+NET GAMMA EXPOSURE
+CASE STUDIES
+
+Net GEX Versus Total GEX
+
+Understanding Hidden Dealer Positioning Risk
+
+Options positioning can look simple at first glance. Traders often look at Net GEX and quickly label the market as either long gamma or short gamma. If Net GEX is positive, the assumption is that dealer hedging should dampen volatility. If Net GEX is negative, the assumption is that dealer hedging should amplify volatility. That is a useful starting point, but it is not the full story.
+
+The complication appears when Net GEX and Total GEX send different messages. A market can have negative Net GEX, suggesting a fragile and volatility-amplifying regime, while also showing very large Total GEX, suggesting that major strikes still contain powerful areas of support, resistance, and dealer re-hedging pressure.
+
+This is where many traders get confused. They see a negative gamma environment and expect clean downside acceleration, but price keeps reacting around specific strikes. Or they see a large Total GEX number and assume the market is stable, even though intraday moves are expanding. Both interpretations miss the point.
+
+When Net GEX is negative but Total GEX is high, the market is not simply weak or stable. It is bifurcated. There are large pockets of gamma sitting at different strikes, and those pockets can pull price in different directions depending on where spot trades.
+
+What Net GEX Tells You
+
+Net GEX measures the balance of gamma exposure across the option chain. In simple terms, it compares the gamma coming from calls with the gamma coming from puts.
+
+The practical purpose of Net GEX is to identify the broader hedging regime. It tells traders whether dealers are likely to dampen volatility or amplify it.
+
+When Net GEX is positive, dealers are generally positioned in a way that encourages stabilizing hedging flows. In a long gamma regime, market makers tend to sell into rallies and buy into declines. Their hedging activity leans against price movement, which can compress volatility and keep the market contained inside a range.
+
+When Net GEX is negative, the opposite dynamic tends to dominate. Dealers are short gamma overall. In that regime, hedging becomes pro-cyclical. Dealers may need to buy as the market rises and sell as the market falls. Instead of absorbing volatility, their hedging can add fuel to intraday swings.
+
+This is why negative Net GEX is often associated with larger ranges, faster directional moves, and weaker intraday stability.
+
+But Net GEX is still only a net number. It compresses the entire option chain into one reading. That is useful, but it can hide the internal structure of the market.
+
+What Total GEX Tells You
+
+Total GEX measures the absolute amount of gamma exposure across the option chain, regardless of whether that exposure is positive or negative.
+
+This matters because large gamma does not disappear simply because opposing exposures offset each other in the net calculation. A market can have large positive gamma at one strike and large negative gamma at another strike. The net number may look moderate, but the actual hedging obligations around those strikes can still be enormous. Total GEX tells you how much raw gamma is embedded in the market.
+
+A high Total GEX reading means there are large dealer obligations tied to specific strikes. These strikes can act like magnets, walls, or pressure points. Price may stall around them, reject from them, accelerate through them, or become pinned near them into expiration. This is why traders should not only ask, “Is Net GEX positive or negative?” They should also ask, “Where is the gamma concentrated?” That second question is often more important for intraday trading.
+
+Why Negative Net GEX and High Total GEX Can Coexist
+
+A negative Net GEX reading with a high Total GEX reading usually means the options market is split. There may be a large amount of negative gamma coming from put positioning, especially if investors are buying downside protection. When funds, institutions, or retail traders buy puts, dealers are often on the other side selling those puts. That can leave dealers short put gamma. If enough put gamma builds, Net GEX can turn negative.
+
+At the same time, the market may also have large call gamma at higher strikes. This can happen when investors sell upside calls, write covered calls, or structure income trades. Dealers may end up with meaningful positive gamma exposure around those call strikes.
+
+The broader regime may be unstable because Net GEX is negative. But specific strikes can still contain large pockets of gamma that influence price action. Those pockets can create strong support and resistance zones even inside a market that is otherwise vulnerable to volatility expansion. This is why the same market can feel both fragile and sticky.
+
+It can sell off aggressively once a level breaks, then suddenly stabilize near a major Put Support. It can rally sharply through a gamma-light zone, then stall below a Call Resistance. The behavior is not random. It reflects the uneven distribution of gamma across the chain.
+
+The Put Support Effect
+
+The Put Support is one of the most important areas to watch in a negative gamma environment.
+
+A Put Support forms when significant put gamma is concentrated at a specific strike. This often happens when investors buy downside protection at the same levels. Dealers who sell those puts must hedge dynamically as price moves closer to the strike.
+
+In a negative gamma regime, this can make downside moves more unstable. As spot falls, dealer hedging may require additional selling. That selling can pressure the market lower, which then forces more hedging.
+
+But the Put Support can also become a major reference level. If price reaches the area and put demand is already heavily concentrated, the market may slow, pause, or temporarily stabilize. Traders often treat these zones as important downside magnets or support areas, depending on the broader regime and flow backdrop.
+
+The key is not to assume a Put Support always works the same way. In one environment, it can attract price. In another, it can break and create acceleration.
+
+The Call Resistance Effect
+
+The Call Resistance works in the opposite direction. A Call Resistance forms when large call gamma is concentrated at a higher strike. This level often acts as resistance because dealer hedging and investor behavior can reduce the market’s ability to move cleanly above it. In a positive gamma environment, a Call Resistance can cap rallies and keep price contained.
+
+In a negative Net GEX environment, the Call Resistance still matters, but its behavior may become more unstable. If price rallies toward the Call Resistance, dealers may need to adjust hedges aggressively. If the market breaks through that zone, the move can become sharper because hedging flows may shift quickly.
+
+This is why Call Resistances should not be viewed as simple resistance lines. They are areas where dealer exposure is concentrated. The reaction depends on how spot approaches the level, how much gamma is sitting there, and whether the broader market is in a stabilizing or amplifying regime.
+
+Why DEX Matters Too
+
+Gamma explains how hedging changes as price moves. Delta explains the directional inventory dealers are carrying.
+
+Net DEX shows whether dealers are net long or short delta. If dealers are net short delta, they may need to buy the underlying or futures as price rises. If they are net long delta, they may need to sell into strength or reduce exposure.
+
+Total DEX shows the gross amount of directional exposure across the chain. This is important because a market can have a small Net DEX reading but a very large Total DEX reading. That means directional exposures are offsetting at the aggregate level, but dealers are still managing large inventories beneath the surface.
+
+In practice, large Total DEX can mean more re-hedging, more sensitivity to volatility changes, and more flow around specific strikes. It tells you the market may be busy underneath the surface even when the net directional number looks calm.
+
+GEX tells you how hedging changes as price moves. DEX tells you how much directional exposure needs to be managed. Together, they give traders a better picture of dealer positioning.
+
+How Traders Should Read the Divergence
+
+When Net GEX is negative and Total GEX is high, traders should avoid simple conclusions. The correct interpretation is that the market is structurally unstable, but not evenly unstable.
+
+Negative Net GEX tells you that the broader hedging regime can amplify movement. High Total GEX tells you that specific strikes still matter. The market may move quickly between those strikes, but react strongly once it reaches them. This creates a more tactical trading environment.
+
+Instead of assuming the entire market is trending freely, traders should map the major gamma zones. Where is the Put Support? Where is the Call Resistance? Where is the High Volatility Level? Where are the largest pockets of strike-level exposure?
+
+Those levels help explain where volatility may expand, where price may pin, and where dealer hedging flows may change character.
+
+Practical Trading Implications
+
+For intraday traders, the most important lesson is that Net GEX defines the regime, while strike-level GEX defines the battlefield.
+
+If Net GEX is negative, traders should expect wider ranges, sharper reversals, and more momentum once key levels break. But if Total GEX is high, they should also respect the large strike levels where price may pause or reject.
+
+A negative Net GEX reading does not mean every move will trend cleanly. It means the market is more sensitive to movement. The actual path still depends on where gamma is concentrated.
+
+This is where tools like MenthorQ can help traders turn abstract gamma data into practical trading levels. By looking at Net GEX, Total GEX, Net DEX, Total DEX, High Volatility level, Put Supports, and Call Resistances, traders can build a more complete view of the market structure.
+
+The goal is not to predict every tick. The goal is to understand where hedging flows are likely to change.
+
+Conclusion
+
+Net GEX and Total GEX answer different questions.
+
+Net GEX tells you the overall gamma regime. It helps determine whether dealer hedging is more likely to dampen volatility or amplify it.
+
+Total GEX tells you how much raw gamma exists across the option chain. It shows whether large strike-level exposures are present, even if the net number looks simple.
+
+When Net GEX is negative but Total GEX is high, the market is bifurcated. It can be fragile at the regime level but still highly reactive around major strike zones. That is why traders need to look beyond the headline gamma number.
+
+The best approach is to combine the regime view with the strike map. Net GEX tells you the market’s broader personality. Total GEX and strike-level gamma tell you where that personality is likely to express itself.
+
+That distinction is what separates surface-level options analysis from a practical understanding of dealer positioning.
+
+Ask QUIN for more.
+
+On this page
+ Net GEX Versus Total GEX
+ Understanding Hidden Dealer Positioning Risk
+ What Net GEX Tells You
+ What Total GEX Tells You
+ Why Negative Net GEX and High Total GEX Can Coexist
+ The Put Support Effect
+ The Call Resistance Effect
+ Why DEX Matters Too
+ How Traders Should Read the Divergence
+ Practical Trading Implications
+ Conclusion

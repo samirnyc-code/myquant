@@ -1,0 +1,20 @@
+In this lesson, you’ll discover how to use the TradingView Scanner indicator to receive real-time alerts on gamma levels and access critical trading data directly on your charts. This powerful tool enables you to monitor up to 40 tickers simultaneously—20 default tickers that we upload daily and 20 custom tickers that you can configure yourself.
+
+The TradingView Scanner displays essential data including gamma conditions (whether an asset is in positive or negative gamma), implied volatility, and various Q scores that help you understand market sentiment throughout the trading day. You can set up alerts for breakouts (when price touches a level from below) or breakdowns (when price touches a level from above) on different gamma levels. The default tickers include the Mag Seven, major ETFs like QQQ and SPY, indices such as SPX, NDX, and the VIX, plus Bitcoin and major futures like ES, NQ, CL, and GZ.
+
+To access the indicator, find it in your invite only section on TradingView. If you don’t see it, simply disconnect and reconnect your TradingView username within the MenthorQ dashboard. You can customize which levels trigger alerts by selecting from Jax 1 to 5, Jax 6 to 10, and other level groups. The indicator also allows you to add custom tickers by copying levels from your dashboard (either end of day or intraday levels) and pasting them into the custom ticker input fields.
+
+For custom tickers and intraday levels, navigate to your dashboard, select the asset you want (like Tesla), go to the TradingView levels section, copy the levels, and paste them into the TV scanner section under custom tickers. You can choose to display only custom tickers or view both default and custom tickers simultaneously. The indicator lets you toggle various Q scores including the 2Q score option and 5Q score momentum to quickly assess whether option activity and momentum are bullish, bearish, or neutral.
+
+Customization options include selecting light mode for the table display, adjusting text size, and choosing table position (right, left, middle, top, or bottom). You can configure notification preferences to receive alerts via the TradingView app, email, toast notification, or sound. The time frame you select determines when alerts trigger—use a one minute candle for immediate alerts when price touches a level, or longer time frames like five or ten minutes depending on your trading strategy.
+
+To set up daily alerts, remove and re-add the indicator each morning to get updated levels, configure your alert settings (selecting which levels and whether you want breakout or breakdown alerts), then click the alert section in TradingView, select set up a new alert, reference the scanner indicator, and choose any alert on function call. Configure your notification preferences and click create. The alert will then monitor your selected levels throughout the trading day, and when triggered, it will display an upward or downward arrow on your chart along with your chosen notifications.
+
+Video Chapters
+00:16 – Introduction to TradingView Scanner features and capabilities
+01:43 – Accessing and adding the indicator to your chart
+02:40 – Default tickers and custom ticker setup
+04:37 -…
+ Video Transcription
+ Previous Lesson
+Next Section 

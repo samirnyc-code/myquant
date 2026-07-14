@@ -1,0 +1,159 @@
+Back to Dashboard
+Getting Started
+QUIN
+Screeners Prompts
+Request Levels
+Usecases
+12
+Products
+Knowledge Base
+Trading Strategies
+Integrations
+Trader
+Partners
+Backtesting
+Affiliation
+The GEX Percentile Screener: A Trader’s Guide to Historical Gamma Context
+USECASES
+OPTIONS SCREENERS
+
+What is GEX Percentile?
+
+GEX (Gamma Exposure) tells you whether dealers are long or short gamma. A positive GEX means dealers are long gamma, they stabilize prices by selling rallies and buying dips (pinning effect). A negative GEX means dealers are short gamma, price trends amplify as dealers hedge along with the market.
+
+But raw GEX alone is incomplete. A GEX of -$500K tells you dealers are short gamma right now, but is that extreme historically, or normal for this stock?
+
+Enter GEX Percentile (1-Year). This tells you where today’s GEX ranks against all readings from the past year (0–100%).
+
+High percentile (70–100%): Today’s GEX is exceptionally positive/bullish historically
+
+Low percentile (0–30%): Today’s GEX is exceptionally negative/bearish historically
+
+Mid-range (40–60%): Today’s GEX is neutral — no historical extreme
+
+How Traders Should Use GEX Percentile
+
+Identify Pinning Conditions (Positive GEX + High Percentile)
+
+When GEX > 0 and GEX Percentile (1-Year) > 70%, dealers are in an unusually strong long-gamma state. This is ideal for:
+
+Iron condors & credit spreads: price gravitates toward dealer short strikes, limiting downside risk
+
+Short strangles: gamma clustering creates a “sticky” price zone
+
+Earnings adjustments: less expected gamma shock if dealers can absorb moves
+
+Action: Look for stocks with GEX Percentile (1-Year) > 75% as prime candidates for premium-selling strategies. Pair with IV Rank > 0.5 for maximum edge.
+
+Spot Volatility Regime Changes (Negative GEX + Low Percentile)
+
+When GEX < 0 and GEX Percentile (1-Year) < 30%, dealers are in an exceptionally short-gamma state. This signals:
+
+Price trends amplify: dealers hedge into the move, adding momentum
+
+Wide breakouts possible: tight stops fail; trends persist longer than normal
+
+Mean reversion fades: don’t expect a quick snap-back
+
+Action: Shift from range-bound strategies to directional plays. Use wider stops, add long-dated hedges, or scale into breakouts rather than fade them.
+
+Use 1-Year vs 3-Month for Regime Confirmation
+
+Compare GEX Percentile (1-Year) and GEX Percentile (3-Month):
+
+If both are high (>70%): strong, sustained pinning environment
+
+If 1-Year is high but 3-Month is mid-range: positive GEX is returning to normal after a recent spike
+
+If 1-Year is low but 3-Month is high: recent shift toward long gamma (possible reversal brewing)
+
+This reveals regime momentum — not just today’s snapshot.
+
+Screen for Extremes (Anomalies)
+
+Stocks with GEX Percentile (1-Year) in the top 5% or bottom 5% are statistical outliers:
+
+Top 5%: rare, powerful pinning — ideal for defined-risk sellers if IV Rank is also high
+
+Bottom 5%: extreme short-gamma — breakout conditions, trend-following setups win
+
+Use these as starting points for deeper analysis, not standalone signals.
+
+Combine with Q-Scores for Confirmation
+
+Don’t rely on GEX percentile alone. Align with other factors:
+
+Ask QUIN to generate the Screener.
+
+Practical Screening Workflow
+
+For Premium Sellers (Iron Condors)
+
+Filter: GEX Percentile (1-Year) > 70% and GEX > 0
+
+Filter: Volatility Score ≤ 2 (calm market)
+
+Filter: IV30 Rank > 0.5 (expensive options)
+
+Sort: By GEX Percentile (1-Year) descending
+
+Result: Stocks with maximum pinning potential and high IV environment
+
+For Trend Traders (Directional)
+
+Filter: GEX Percentile (1-Year) < 30% and GEX < 0
+
+Filter: Momentum Score ≥ 4 (strong uptrend or downtrend)
+
+Filter: Volatility Score ≥ 4 (swinging market)
+
+Sort: By GEX Percentile (1-Year) ascending
+
+Result: Stocks with dealer-amplified trends and strong momentum
+
+For Breakout Hunters
+
+Filter: GEX Percentile (1-Year) < 25%
+
+Filter: VRP < 0 (IV cheap vs realized volatility)
+
+Filter: Monitor Expiring GEX (1-Week) and Expiring GEX (1-Month) for weekly and monthly expirations
+
+Result: Gamma shocks possible; wide moves rewarded
+
+Use the Q-Scores like a Fund Manager.
+
+Cheatsheet: GEX Percentile Quick Reference:
+
+Key Takeaways
+
+GEX Percentile contextualizes raw gamma: High percentile = strong pinning historically; low percentile = strong amplification historically
+
+Combine with volatility and IV: Positive GEX + low volatility + high IV = premium-selling environment
+
+Watch for regime shifts: When percentiles cross key thresholds (30%, 70%), strategy effectiveness changes
+
+Use 1-Year and 3-Month together: Reveals both current state and recent momentum
+
+Pair with Q-Scores: GEX Percentile is a filter, not a standalone signal
+
+Ask QUIN to generate this Cheatsheet.
+
+Conclusion
+
+GEX Percentile transforms gamma exposure from a binary (positive/negative) observation into a contextual edge tool. By screening for historical extremes and pairing with volatility regime and IV rank, traders can systematically identify high-probability setups: premium-selling in pinning environments, or trend-following in breakout conditions.
+
+Use the cheatsheet above as your daily reference when scanning the MenthorQ screener.
+
+On this page
+ What is GEX Percentile?
+ Identify Pinning Conditions (Positive GEX + High Percentile)
+ Spot Volatility Regime Changes (Negative GEX + Low Percentile)
+ Use 1-Year vs 3-Month for Regime Confirmation
+ Screen for Extremes (Anomalies)
+ Combine with Q-Scores for Confirmation
+ Practical Screening Workflow
+ For Trend Traders (Directional)
+ For Breakout Hunters
+ Key Takeaways
+ Conclusion

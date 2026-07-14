@@ -1,0 +1,22 @@
+In this essential lesson, you’ll learn when to use end of day (EOD) versus intraday data and understand the key differences between these two approaches. This knowledge will help you choose the right data type for your trading strategy and time horizon.
+
+We provide intraday Gamma models on stocks, ETFs, and indices that update 14 times per day, approximately every 30 minutes. These frequent updates are crucial for active traders who need real-time market insights throughout the trading session.
+
+The intraday levels are particularly valuable because they help predict support and resistance or breakout levels. Unlike traditional price-based indicators, these models track flow changes rather than just historical price movements, giving you a forward-looking edge in the market.
+
+A practical example from the lesson demonstrates how intraday models can be used to track morning market activity, showing real-time shifts in market dynamics. We also highlight the zero DTE option where gamma is the highest, which is particularly important for understanding immediate market pressure and potential volatility.
+
+To get started with these tools, you’ll access the platform directly where you can explore live examples and see how intraday versus EOD data applies to your specific trading needs.
+
+Video Chapters
+00:16 – Introduction to intraday vs EOD data
+00:29 – Intraday Gamma models explained
+00:52 – Zero DTE option and platform demonstration
+Key Takeaways
+Intraday Gamma models update 14 times per day (every 30 minutes) for stocks, ETFs, and indices
+Intraday levels help predict support and resistance or breakout levels by tracking flow changes rather than price
+The zero DTE option shows where gamma is highest for immediate market pressure analysis
+Choose intraday data for active trading and EOD for longer-term strategies
+ Video Transcription
+ Previous Lesson
+Next 

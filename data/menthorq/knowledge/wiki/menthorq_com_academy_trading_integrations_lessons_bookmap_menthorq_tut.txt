@@ -1,0 +1,23 @@
+This lesson introduces you to the powerful integration between Bookmap and MenthorQ, showing you how to combine institutional-grade options flow data with advanced order flow visualization. You’ll learn how Bookmap displays market liquidity in ways that traditional charts cannot, and how to leverage this with MenthorQ’s GEX levels for higher probability trades.
+
+Bookmap is a liquidity software platform that extends beyond traditional depth of market displays. It’s described as a real-time market order visualization tool that shows you the past, present, and future of market liquidity through its liquidity heat map. These levels represent resting limit orders in the market, and unlike standard depth of market tools, Bookmap shows you how long orders have been in the books, whether they’ve been pulled and replaced, and tracks everything by the nanosecond using market by order data from the CME through a data provider called Rhythmic.
+
+The platform tracks two critical types of orders: resting limit orders (shown in the heat map) and aggressive orders (displayed as red and green balls). The aggressive orders, which can be stop orders or market orders, are what actually move price from one liquidity level to another. Bookmap calculates volume delta (buy minus sell) through these volume dots, giving you insight into buying and selling pressure. The Liquidity Marker tool pulls numbers directly from the dome, showing you exactly how many orders are sitting at each level in real-time.
+
+When you combine Bookmap’s order flow data with MenthorQ’s GEX levels like call gamma walls, you gain powerful confirmation for trade entries. Peter demonstrates how additional indicators like the stops and icebergs indicator and the absorption indicator reveal exactly what’s happening at key levels. For example, you can see when stops are hit into a call gamma wall (like the 44 stops, 11 stops sequence shown), followed by strong delta buyers, while the absorption indicator shows sellers being absorbed (29 sellers in the example). This combination helps you identify high probability trades rather than guessing about market manipulation.
+
+Integrating MenthorQ with Bookmap is straightforward through the Pricelines add-on. Premium members can access integration guides for multiple platforms including TradingView, Ninja, One Tower, ATAS, Bookmap, Sierra, Tinkorswim, and MetaTrader. Using the MenthorQ coupon code gets you a discount on the Pricelines add-on, which is necessary to plot levels on Bookmap. Once installed, you simply enter your API key through the configure add-ons menu, select your gamma levels or scalping system, and your GEX levels appear directly on your charts.
+
+Video Chapters
+00:00 – Introduction to Bookmap and MenthorQ integration
+02:11 – Understanding the liquidity heat map and resting orders
+04:19 – Tracking aggressive orders and volume delta
+06:41 – Visualizing charts differently from candlesticks
+08:35 – Using stops, icebergs, and absorption indicators with GEX levels
+11:02 – How to integrate MenthorQ with Bookmap using Pricelines
+Key Takeaways
+Bookmap is a real-time market order visualization tool that tracks liquidity by the nanosecond, showing the past, present, and future of order placement
+…
+ Video Transcription
+ Previous Lesson
+Next Section 

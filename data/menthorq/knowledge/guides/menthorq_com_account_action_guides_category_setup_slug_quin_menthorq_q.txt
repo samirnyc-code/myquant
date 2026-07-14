@@ -1,0 +1,131 @@
+Back to Dashboard
+Getting Started
+Trader Type
+5
+Resources
+5
+Onboarding
+7
+QUIN
+Products
+Knowledge Base
+Trading Strategies
+Integrations
+Trader
+Partners
+Backtesting
+Affiliation
+QUIN: MenthorQ Quantitative Intelligence
+ONBOARDING
+
+Hello! I’m QUIN – the MenthorQ AI Assistant. Welcome to Quantitative Intelligence.
+
+As your digital guide, I help you navigate the MenthorQ platform, which specializes in advanced options market analytics. Here’s what I can do for you as a new MenthorQ user:
+
+Explain MenthorQ’s models, tools, and indicators (like GEX, DEX, Q-Score, proprietary levels, and more).
+
+Answer questions about how to use the platform, interpret data, and access features.
+
+Provide educational resources and direct you to relevant courses in the MenthorQ Learning Academy.
+
+Fetch and summarize real-time financial data, news, and proprietary MenthorQ indicators for specific tickers or the broader market.
+
+Help troubleshoot platform issues or guide you to support resources.
+
+What I don’t do:
+
+I don’t provide financial advice or explicit trading recommendations.
+
+I don’t give formulas or numerical trading examples.
+
+What can you ask QUIN?
+
+Here are some examples of the types of questions you can ask me as QUIN – the MenthorQ AI Assistant:
+
+Market Data & Asset-Specific Questions
+
+“What are the latest news and key levels for AAPL?”
+
+“Can you provide the current Q-Score and Momentum Score for TSLA?”
+
+“What is the implied volatility and gamma exposure for SPY today?”
+
+“Which stocks have the highest 1-day increase in Momentum Score?”
+
+“What are the top 5 tickers by Q-Score right now?”
+
+“Can you show me the swing levels for NVDA?”
+
+MenthorQ Models, Tools, and Indicators
+
+“How does the Gamma Exposure (GEX) model work?”
+
+“What is the difference between DEX and GEX?”
+
+“How do I interpret the 0DTE Levels indicator?”
+
+“What does a negative Gamma Condition mean for a stock?”
+
+Platform & Account Support
+
+“Where can I find tutorials for using MenthorQ?”
+
+“I have an issue with my MenthorQ account—can you help?”
+
+“How do I integrate MenthorQ with my trading platform?”
+
+Learning & Education
+
+“Do you have any courses about options trading?”
+
+“Where can I learn more about volatility strategies?”
+
+“Are there educational resources for understanding Q-Score?”
+
+General Financial Concepts (MenthorQ Focus)
+
+“What is implied volatility and why does it matter?”
+
+“How do support and resistance levels work in options trading?”
+
+“What is a put/call ratio and how is it used?”
+
+Multi-Ticker or Comparative Analysis
+
+“Compare the Q-Score and Momentum Score for MSFT, AMZN, and GOOGL.”
+
+“Which of these: NFLX, META, or AMD, has the strongest options activity today?”
+
+A few tips:
+
+You can ask for real-time or historical data (just specify the date).
+
+You can request summaries, detailed breakdowns, or explanations of any MenthorQ metric.
+
+If you’re unsure how to phrase your question, just ask for guidance!
+
+How to use Quin to Spot Opportunities.
+
+Access Charts, Data and Models via QUIN
+
+As QUIN – the MenthorQ AI Assistant – I can access and interpret a wide range of proprietary MenthorQ models and data, including:
+
+Q-Score, Momentum Score, Option Score, Volatility Score, and Seasonality Score
+
+Gamma Exposure (GEX), Option Matrix, and related options analytics
+
+MenthorQ Levels (such as swing levels, 0DTE levels, Blind Spot levels, etc.)
+
+Real-time and historical financial data, news, and key market indicators
+
+What I do is provide you with detailed, text-based analyses and summaries of these models and data points.
+
+On this page
+ What can you ask QUIN?
+ Market Data & Asset-Specific Questions
+ MenthorQ Models, Tools, and Indicators
+ Platform & Account Support
+ Learning & Education
+ General Financial Concepts (MenthorQ Focus)
+ Multi-Ticker or Comparative Analysis
+ Access Charts, Data and Models via QUIN

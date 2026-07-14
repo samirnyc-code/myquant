@@ -1,0 +1,142 @@
+Back to Dashboard
+Getting Started
+QUIN
+Products
+Knowledge Base
+Trading Strategies
+Bullish Strategies
+8
+Bearish Strategies
+6
+Hedging Strategies
+8
+Income Strategies
+5
+Neutral Strategies
+25
+Technical Analysis and Momentum
+9
+Futures Trading
+2
+Commodity Trading
+23
+Case Studies
+42
+Weekly Edge
+5
+Live Sessions
+5
+Integrations
+Trader
+Partners
+Backtesting
+Affiliation
+Understanding Trading Below the Put Support: What does that mean for traders? 
+GAMMA LEVELS USECASES
+CASE STUDIES
+
+Trading Below the Put Support
+
+Most traders think of support levels as areas where buyers previously stepped into the market. Traditional technical analysis focuses on historical lows, moving averages, trendlines, or chart patterns to identify where price may stabilize during a selloff.
+
+Understanding Technical Analysis.
+
+But in today’s markets, some of the most important support levels do not come from charts at all. They come from options positioning. One of the most important of these levels is Put Support. Unlike traditional support, Put Support is created by dealer gamma exposure. It represents the strike where dealers are holding the largest concentration of short put gamma exposure and where hedging flows can help stabilize price action.
+
+As long as the market remains above this level, dealer hedging activity can create a natural floor underneath price. But when the market trades below Put Support, the entire market structure changes. The same hedging flows that once acted as support can quickly transform into aggressive downside pressure.
+
+Understanding this shift is critical because markets often accelerate once Put Support breaks. The move is not driven purely by fear or sentiment. It is driven by the mechanics of dealer hedging and options positioning. Let’s break this down.
+
+What Put Support Actually Represents
+
+Put Support exists because of the way dealers hedge options exposure. When traders buy puts, dealers often take the opposite side of the trade. This leaves dealers short puts and exposed to downside risk. To remain delta neutral, dealers hedge that exposure using futures or shares.
+
+As markets fall toward large put positioning, dealer hedging flows can create stabilizing effects. Dealers buy futures into weakness to offset changing delta exposure, helping create support around major put strikes.
+
+This is why Put Support often acts as a structural floor. It is not simply a chart level traders happen to be watching. It is an area where mechanical hedging activity can influence market direction. But this support only exists while the positioning structure remains intact.
+
+What Happens When Put Support Breaks
+
+When price trades below Put Support, it signals that selling pressure has overwhelmed the dealer hedging flows that were previously supporting the market, this is a major shift.
+
+Once the level breaks, traders who already own puts often begin rolling their positions lower to maintain downside exposure. Instead of keeping puts at the old support strike, they buy new puts at lower strikes where they expect the market may head next. This creates fresh put open interest beneath the broken support level.
+
+Dealers who sell these new puts must hedge the new exposure. Since dealers are short gamma on these positions, they typically hedge by selling futures as the market moves lower. This creates a reflexive feedback loop. 
+
+How do Dealers Hedge Options a Beginners Guide.
+
+As price declines further, dealer delta exposure changes more rapidly. To remain hedged, dealers must continue selling into weakness. The lower the market moves, the more futures dealers may need to sell. This creates a negative gamma environment where downside momentum feeds additional downside hedging activity. The market structure has now shifted from stabilization to acceleration.
+
+Why Negative Gamma Creates Faster Moves
+
+In positive gamma environments, dealer hedging tends to dampen volatility. Dealers buy weakness and sell strength, helping absorb market swings. Below Put Support, the opposite can happen. Once dealers move into negative gamma positioning, their hedging behavior becomes procyclical. Instead of slowing the move, their hedging reinforces it.
+
+This is why markets can suddenly feel heavy after major support levels fail. Every bounce becomes weaker because dealer hedging no longer acts as support. Instead, rallies may be sold as dealers rebalance exposure.
+
+The result is often an environment where volatility expands, intraday swings become more violent, and downside momentum accelerates far faster than traders expect.
+
+This is especially important in modern index markets where options positioning now plays a major role in overall liquidity and short-term market behavior.
+
+The Importance of the Retest
+
+One of the most important moments after Put Support breaks is the retest of the level. Markets rarely move in straight lines. After an initial breakdown, price often rallies back toward the former support area. This is where traders can determine whether the breakdown was temporary or structurally important.
+
+If price quickly reclaims Put Support and stabilizes above it, the breakdown may have been a false move. Dealer hedging dynamics can begin shifting back toward stabilization.
+
+But if price retests the broken Put Support level and fails to reclaim it, that failure becomes extremely important. A failed retest confirms that the old support has now become resistance. More importantly, it confirms that dealer positioning has likely shifted lower and that downside hedging pressure remains active. This is often where trend continuation begins.
+
+The market is no longer fighting against stabilizing dealer flows. Instead, this dynamic is now reinforcing downside momentum.
+
+Why This Is Different From Traditional Technical Analysis
+
+Many traders misunderstand gamma-based support because they treat it like normal chart support. Traditional technical support often relies on psychology. Traders believe buyers may step in because price reacted there previously. The logic is largely behavioral.
+
+Put Support is different because it is tied to actual positioning and hedging mechanics. The flows behind the level are mechanical, not emotional.
+
+When Put Support breaks, it does not simply mean traders lost confidence in a chart level. It means the dealer hedging flows that once helped support the market have potentially disappeared or reversed.
+
+That distinction matters because it changes how traders should interpret market behavior after the break.
+
+A failed technical support level might still recover quickly if sentiment improves. But a failed Put Support level can continue creating downside pressure because the underlying options structure has shifted.
+
+Learn how to use the Put Support and Gamma Levels.
+
+What Traders Should Monitor Next
+
+Once Put Support breaks, traders should focus on a few key factors.
+
+The first is whether put open interest continues building lower. If traders aggressively add downside protection beneath the market, dealers may remain trapped in negative gamma positioning. You can use the MenthorQ Dashboard for that.
+
+The second is whether implied volatility begins rising sharply. Higher implied volatility can increase hedge sensitivity and amplify dealer flows during large market moves.
+
+The third is whether the market successfully reclaims the broken support level. Failed bounces often signal that downside positioning remains dominant and that further weakness may follow.
+
+Finally, traders should identify the next major gamma support zone below the market. Once one Put Support level fails, price often moves toward the next significant area of dealer positioning.
+
+These levels can become critical targets during volatility events.
+
+Conclusion
+
+Trading below Put Support is far more important than simply breaking a normal chart level. It represents a structural shift in options positioning and dealer hedging behavior.
+
+Above Put Support, dealer hedging can help stabilize markets by creating natural buying flows during weakness. But once that level fails, the mechanics can reverse completely.
+
+As traders roll puts lower and dealers hedge new downside exposure, markets can enter negative gamma conditions where selling pressure accelerates instead of stabilizing. This creates reflexive downside moves where volatility expands and every decline generates additional hedging activity.
+
+The most important signal often comes during the retest. If price cannot reclaim the broken Put Support level, it confirms that the structural floor has failed and that dealer flows may continue reinforcing downside momentum.
+
+In modern markets, understanding these positioning dynamics has become increasingly important. Price action is no longer driven solely by fundamentals, sentiment, or technical patterns. Options positioning and dealer hedging now play a major role in determining how markets behave during both stability and stress.
+
+Put Support is one of the clearest examples of how those hidden mechanics can shape market direction.
+
+Finally, you can use QUIN to get a better understanding of end of day positioning as well as intraday. 
+
+On this page
+ Trading Below the Put Support
+ What Put Support Actually Represents
+ What Happens When Put Support Breaks
+ Why Negative Gamma Creates Faster Moves
+ The Importance of the Retest
+ Why This Is Different From Traditional Technical Analysis
+ What Traders Should Monitor Next
+ Conclusion

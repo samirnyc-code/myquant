@@ -1,0 +1,25 @@
+In this lesson, you’ll learn how to leverage volatility analysis to identify compelling options trading opportunities in the current market environment. Ryan walks through his systematic approach to evaluating market conditions and demonstrates how to use Quinn to accelerate your research and find tradable setups across multiple assets.
+
+The lesson begins with an overview of key market indicators including SPX, QQQ, and GLT to assess overall market volatility. Ryan emphasizes that after months of quiet markets, current conditions present real opportunities for options traders. He highlights that SPX has jumped into 20% plus implied volatility territory with volumes reaching 10-13% ranges, creating favorable conditions for selling options after a period of caution.
+
+A critical component covered is the VRP cross asset (volatility risk premium) analysis. Ryan explains that when implied volatility is significantly higher than realized volatility, it creates an attractive volatility risk premium for option sellers. He demonstrates how to identify stocks with both high VRP (greater than 10%) and elevated implied volatility (above the 60th percentile), which signal prime selling opportunities.
+
+Ryan showcases Quinn’s screening capabilities, demonstrating how to create custom filters that combine multiple volatility metrics. He shows a practical example using CYTK, which displays an 80th percentile implied volatility, huge volatility risk premium, and put support at 60. By examining the volatility term structure, he identifies an upcoming earnings event and explains how to structure trades around call resistance and put support levels.
+
+The lesson covers how to use Quinn to aggregate volatility data including term structure, SKU, smile, and VRP into single queries. You can create saved screens to quickly identify stocks meeting your specific criteria, then drill down into individual opportunities to structure trades around key support and resistance levels identified through options flow.
+
+Video Chapters
+00:38 – Introduction and session overview
+02:33 – Market volatility overview and SPX analysis
+03:41 – VRP cross asset analysis and selling opportunities
+06:13 – Using Quinn screeners to find high VRP stocks
+08:54 – Creating custom volatility screens in Quinn
+12:37 – CYTK case study and term structure analysis
+Key Takeaways
+Current market conditions show SPX in 20% plus implied volatility territory, creating favorable conditions for selling options after months of quiet markets
+Use Quinn screeners to filter for stocks with VRP greater than 10% and volatility rank above the 60th percentile to identify prime selling opportunities
+Analyze volatility term structure to identify upcoming events like earnings, and structure trades around call resistance and put support levels
+Combine implied volatility analysis with realized volatility to ensure you’re selling options when volatility risk premium is genuinely attractive
+ Video Transcription
+ Previous Lesson
+Course Overview

@@ -1,0 +1,25 @@
+This lesson walks you through the new ATAS integration that gives you access to MenthorQ’s institutional-grade levels directly on your ATAS platform. You’ll learn how to set up the integration, customize your level displays, and use powerful new features that make trading with our data even more efficient.
+
+To get started, you’ll need to become a premium member and navigate to the integration section where you can download the indicator. You’ll need to send us your ATAS email address by clicking Request activation, and once we enable your account, you can download your API key. After following the integration guide to install the indicator, you’ll find it by searching for mentor queue levels in your ATAS platform.
+
+Once installed, you have complete control over which levels display on your charts. You can toggle on gamma levels, swing levels, intraday gamma levels, intraday gamma scalping, and your blind spot. The indicator includes powerful customization options: you can shorten level names (for example, core resistance becomes CR), choose your text size, select colors, change line styles (dashed or dotted), and adjust line width. You can also enable alerts that notify you whenever price reaches a specific level, with customizable sound and timeout settings.
+
+One of the most powerful new features is the level filter system. Instead of manually toggling dozens of levels on and off, you can simply type filter keywords to remove specific levels from your chart. For example, typing JAX5 and JAX10 removes only those levels, or you can type JAX to remove all JAX-related levels at once. You can also filter out one day indicator, core resistance, put support, or any other level type, giving you precise control over your chart display.
+
+The indicator also includes conversion settings that let you display levels from one instrument on another instrument’s chart. By clicking the plus button and adding a conversion, you can convert levels from SPX and display them on your current chart using a ratio. For example, you can convert QQQ to ENQ using a ratio of 41.25, or convert SPX to Apple. After entering your conversion settings and clicking toggle the update, you’ll see the converted levels appear on your chart, such as 1D Max SPX, JAX2SPX, or QQ levels on your NQ chart.
+
+Video Chapters
+00:00 – ATAS integration overview and account setup
+00:33 – Finding and installing the mentor queue levels indicator
+01:14 – Available level types and customization options
+01:40 – Alert settings and level name shortening features
+02:43 – Using level filters to control chart display
+03:33 – Conversion settings for cross-instrument level display
+Key Takeaways
+The ATAS integration requires premium membership, your ATAS email address for activation, and an API key download
+You can customize every aspect of level display including text size, colors, line styles, and enable alerts when price reaches levels
+The level filter system lets you type keywords to quickly remove specific levels like JAX5 or core resistance without manual toggling
+Conversion settings allow y…
+ Video Transcription
+Previous
+Next Section 

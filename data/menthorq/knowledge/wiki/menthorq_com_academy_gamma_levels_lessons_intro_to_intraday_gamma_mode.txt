@@ -1,0 +1,25 @@
+In this lesson, you’ll discover how intraday gamma models can help you track real-time shifts in options market positioning throughout the trading day. We’ll explore the specific data feeds and models that make up our intraday analysis toolkit, explaining why monitoring these intraday changes is crucial for your trading decisions.
+
+We deliver several key components with intraday models: JAX data, JAX change, intraday gamma levels, and our liquidity summary. These tools are designed to simplify your daily market analysis. Understanding intraday gamma models matters for several reasons: they reveal market sentiment by showing shifts in the option market that affect underlying prices, with metrics like Gamma Flip and NetJax helping you understand behavior as markets transition from positive to negative gamma.
+
+You’ll gain actionable insights by tracking primary levels or zero DT levels to see how market maker hedges shift throughout the day, helping you identify market reaction zones and support and resistance areas. For risk management, understanding gamma exposure helps you anticipate sharp intraday moves, while looking at zero release flows and knowing when the market is in a call-dominated environment helps you understand potential shifts in market trend.
+
+We provide six intraday snapshots capturing activity at critical times: pre-market, opening, 1045, 1215 (when institutions typically trade between 10 o’clock and 12), and the rush hour of 2:45 to 3:30 when you see heavy activity from zero T’s options and institutional flows. The net gamma exposure chart helps you access intraday jacks for all expirations across the full option chain, plus net jax0dtes for indices and next weekly options for stocks. You can track volume changes on both call and put sides.
+
+We provide two JAX difference charts: one showing current JAX difference versus the previous snapshot (like comparing 1045 snapshot versus the 935) to understand negative or bullish sentiment, and another showing JAX difference versus the end of day (previous day) to see if bullish movement continues with increasing JAX. The liquidity summary and intraday gamma levels will be integrated via APIs in trading platforms and accessible via the bot for trading view indicators, summarizing any change in jacks, gamma levels, volume change, and switches from positive to negative gamma.
+
+Video Chapters
+00:00 – Introduction to intraday models overview
+00:44 – Market sentiment and gamma models importance
+02:06 – Six intraday snapshot timing and structure
+02:48 – Intraday jacks and volume analysis
+03:43 – JAX difference charts explained
+04:38 – Liquidity summary and gamma levels integration
+Key Takeaways
+Six intraday snapshots capture critical market activity from pre-market through the 2:45 to 3:30 rush hour
+JAX difference charts compare current gamma versus previous snapshots and end of day to reveal bullish or negative sentiment shifts
+Understanding positive to negative gamma transitions and zero DT levels helps identify market maker hedging behavior and reaction zones
+The liquidity summary consolidates all intraday changes for easy daily analysis and will be accessible via APIs and trading view indicators
+ Video Transcription
+Previous
+Next 

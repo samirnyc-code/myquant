@@ -1,0 +1,192 @@
+Back to Dashboard
+Getting Started
+Trader Type
+5
+Resources
+5
+Onboarding
+7
+QUIN
+Products
+Knowledge Base
+Trading Strategies
+Integrations
+Trader
+Partners
+Backtesting
+Affiliation
+MenthorQ Quant Models
+ONBOARDING
+
+MenthorQ applies the same quantitative approach used by large institutions—dealer positioning, options‑derived levels, and liquidity analytics—to help retail traders build a repeatable edge.
+
+Market makers and systematic flows often set the playing field. By mapping their hedging pressures and liquidity, you can anticipate where price is likely to magnetize, repel, or accelerate.
+
+MenthorQ provides a comprehensive suite of models designed to help traders and investors understand market dynamics across various asset classes such as Stocks, ETFs, Indices, Futures, and Crypto. These models leverage options data, quantitative analysis, market liquidity insights, and volatility metrics to offer actionable market intelligence. Check out All our Models
+
+Gamma Levels
+
+Gamma Levels are key price zones derived from options market positioning, specifically from gamma exposure. They represent price areas where market makers and dealers are likely to hedge their options positions aggressively. These levels act as “sticky” price points that can influence market liquidity, volatility, and price movements.
+
+MenthorQ offers Gamma Levels for a wide range of assets including Stocks, ETFs, Indices, Futures, and Crypto, with updates available both at the end of the day and intraday multiple times per trading session.
+
+Check out the Gamma Levels Documentation
+
+Check out the Gamma Levels Tutorial Video
+
+Who it’s for: Retail and professional traders—options, swing/intraday, futures/FX, crypto—and risk managers across stocks, ETFs, indices, futures, FX, and crypto who want an institutional read on where price may slow, accelerate, or reverse.
+
+Blind Spots Levels
+
+Blind Spots are hidden market signals that traditional analysis often misses. They represent specific price zones where the market is likely to react sharply due to the influence of correlated assets—such as stocks, bonds, commodities, or currencies—that impact the price action of a trader’s target asset. These levels highlight areas of liquidity voids or hedging pressure zones where market makers may need to adjust positions, potentially triggering sharp moves.
+
+Blind Spots provide a unique, data-driven view of market correlations, helping traders:
+
+Identify key reaction zones that are not obvious on standard charts.
+
+Anticipate broader market movements by observing how correlated assets interact.
+
+Enhance risk management by understanding interconnected market dynamics.
+
+Avoid trading traps and position themselves where the market is most likely to react.
+
+Who Can Use Blind Spots?
+
+Day Traders: To capitalize on short-term price movements influenced by correlated assets.
+
+Swing Traders: To identify broader market trends and potential reversals.
+
+Options Traders: To adjust strike prices and hedging strategies based on signals from correlated markets.
+
+Any Trader Seeking a Broader Market Perspective: Blind Spots help avoid trading in isolation by providing insights into how different markets interact.
+
+Blind Spots are available on various asset classes including Futures, Indices, ETFs, Forex pairs, and major stocks.
+
+Check out the Blind Spots Levels Documentation
+
+Check out the Blind Spots Levels Tutorial Video
+
+Swing Trading Models
+
+The MenthorQ Swing Trading Model provide a structured, data-driven framework to help traders position themselves beyond the noise of intraday price fluctuations. These models offer a directional bias and highlight critical price zones that act as support, resistance, or volatility triggers over a medium-term horizon, typically 5 to 20 days.
+
+Key Features of Swing Trading Models:
+
+Directional Bias: The model gives a clear daily directional bias—bullish when a lower band is present and bearish when an upper band is present.
+
+Critical Levels: It forecasts key price levels such as an upper band (potential resistance), a lower band (potential support), and a risk trigger level (a key inflection point for momentum shifts).
+
+Risk Management: These levels help traders set entry, exit, and stop-loss points based on statistically validated zones.
+
+Application: Options sellers can use these levels to select strike prices for strategies like Iron Condors and Credit Spreads, while directional traders can plan their trading roadmap and manage risk accordingly.
+
+Who Can Use Swing Trading Models?
+
+Options Sellers: To place strikes and manage options strategies with better precision.
+
+Directional Traders: To anticipate momentum continuation or reversals and plan trades with a clear roadmap.
+
+Swing Traders: To identify medium-term trends and key price zones for holding positions over several days or weeks.
+
+Traders Across Asset Classes: The model covers Stocks, ETFs, Indices, and Crypto, and can be adapted for Futures by converting relevant levels.
+
+Check out the Swing Models Documentation
+
+Check out the Swing Models Tutorial Video
+
+Q-Score
+
+The Q-Score is a proprietary quantitative metric designed to provide a comprehensive, data-driven assessment of an asset’s market conditions. It combines four key factors—Momentum, Seasonality, Volatility, and Options Flow—to give traders a structured framework for evaluating the quality of trading setups. Each factor is scored on a scale, offering insights into trend strength, historical price behavior, risk levels, and market sentiment from options activity.
+
+Key Uses of the Q-Score:
+
+Trend Confirmation: Validates bullish or bearish trends using momentum and options scores.
+
+Seasonal Patterns: Identifies historically strong or weak periods for an asset.
+
+Volatility-Based Strategy Adjustment: Helps tailor strategies based on current volatility and options market conditions.
+
+Options Market Sentiment: Gauges positioning and sentiment to anticipate potential market shifts.
+
+Who Can Use the Q-Score?
+
+Swing Traders: To identify favorable entry points aligned with momentum and seasonality.
+
+Options Traders: To assess market sentiment and positioning for better strategy planning.
+
+Futures Traders: To manage risk by avoiding unfavorable conditions and setting tighter stops.
+
+Position Traders: To find assets with strong trends and favorable historical performance over medium to long timeframes.
+
+The Q-Score is accessible on the MenthorQ platform’s dashboard and is designed to enhance traders’ decision-making by providing a holistic, institutional-grade quantitative perspective.
+
+Check out the Q-Score Documentation
+
+Check out the Q-Score Tutorial Video
+
+Volatility Models
+
+The MenthorQ Volatility Models are designed to provide professional, structured, and analytical insights into market volatility, helping traders and investors make informed decisions when trading options, futures, and other derivatives. These models analyze implied volatility relative to realized volatility, volatility skew, term structure, and other volatility-related metrics to identify whether volatility is cheap or rich, and to assess risk and market sentiment.
+
+How to Use MenthorQ Volatility Models:
+
+Volatility Analytics: Compare implied volatility to realized volatility to decide whether to buy or sell premium.
+
+Volatility Skew and Term Structure: Understand how volatility changes across strike prices and time horizons to gauge market sentiment and risk.
+
+Volatility Risk Premium: Compare Historical and Implied Volatility to understand if volatility is relatively cheap or expensive.
+
+Volatility Surface and Smile: Analyze how volatility behaves as the underlying price moves, which affects options pricing and risk.
+
+Volatility Control Fund Model: Track systematic funds’ influence on volatility and market dynamics.
+
+Integration with Other Models: Use volatility insights alongside gamma exposure, momentum, and options flow data to build a comprehensive trading roadmap.
+
+Who Can Use MenthorQ Volatility Models?
+
+Options Traders: To optimize strike selection, detect volatility regimes, and construct strategies based on volatility conditions.
+
+Futures Traders: To understand volatility dynamics affecting futures contracts and manage risk accordingly.
+
+Professional and Institutional Traders: Who require advanced volatility analytics for systematic trading and risk management.
+
+Any Trader Seeking a Data-Driven Framework: To remove guesswork from volatility assessment and improve decision-making.
+
+By combining insights from Skew (fear across strikes), Term Structure (risk across time), Volatility Smile (tail-event pricing), and the Volatility Risk Premium – VRP (is IV cheap or expensive versus its history), traders gain a multidimensional view of sentiment and positioning.
+
+With these models, you can identify hidden stress signals, spot mispricings, and structure trades that align with the true risk environment. Whether you trade futures, options, or macro strategies, MenthorQ’s volatility framework provides a forward-looking, probability-based roadmap to sharpen timing, manage risk, and capture edge in dynamic markets.
+
+Check out the Volatility Models Documentation
+
+Check out the Volatility Models Tutorial Video
+
+Crypto Quant and Options Models
+
+MenthorQ’s crypto models primarily include the Crypto Gamma Models and the Crypto Technical Models, designed to provide traders with advanced market structure insights and quantitative signals tailored for the unique dynamics of crypto markets.
+
+The models are designed for traders who want to leverage institutional-level tools and insights.
+
+They are suitable for those trading delta-one products, options, or structured volatility strategies in crypto markets.
+
+Users benefit from real-time and end-of-day gamma data and technical signals to enhance their market understanding and trading precision.
+
+Access to these models is typically through the MenthorQ platform, which provides a clean, actionable interface for these complex analytics.
+
+Check out the Crypto Models Documentation
+
+Check out the Crypto Models Tutorial Video
+
+Other Quant Models
+
+MenthorQ models turn complex market structure into a simple, repeatable playbook. By reading Gamma, Liquidity, Positioning, and Volatility together, you get an institutional map of where price is most likely to pause, accelerate, or reverse—across stocks, ETFs, indices, futures, FX, and crypto. Use the maps to plan, the scenarios to act, and the invalidations to protect risk.
+
+Check out the full list of models available for our members.
+
+On this page
+ Gamma Levels
+ Blind Spots Levels
+ Swing Trading Models
+ Q-Score
+ Volatility Models
+ Crypto Quant and Options Models
+ Other Quant Models

@@ -1,0 +1,25 @@
+In this lesson, you’ll discover how to overcome the most common challenges futures traders face by using data-driven insights instead of relying solely on lagging technical indicators. We’ll show you how to trade futures like institutional professionals by understanding positioning, volatility regimes, and real-time market structure.
+
+Most futures traders fail for three main reasons: they rely on lagging indicators like moving averages, MACD, and RSI that everyone else uses, they lack risk awareness in highly leveraged markets, and they don’t understand volatility and positioning. The lesson explains how even prop firm traders struggle with these issues, because access to capital doesn’t solve the fundamental problem of trading without understanding where real positioning sits and what happens when market conditions shift.
+
+You’ll learn how to identify three critical pain points before entering trades: finding meaningful price levels instead of chasing candles, recognizing trend exhaustion signals, and calculating proper risk management in leveraged environments. We walk through a real scenario trading ES futures where technical signals show a breakout, but our data reveals a big call wall with gamma expiring today, negative gamma accumulation creating potential whipsaws, and CTA positioning decreasing, which signals the long trade may be fragile.
+
+Another practical example demonstrates trading NASDAQ futures with a 30 to 40 points stop loss that worked in a positive gamma regime, but becomes inadequate when the market shifts to a negative gamma environment with a Q volatility score of 5. In negative gamma conditions, market makers amplify volatility by selling on the way down and buying on the way up, making your static risk rules outdated and potentially dangerous.
+
+By understanding gamma walls, positive or negative gamma conditions, CTA positioning, and volatility regimes, you can trade with the same context professionals use. Instead of blindly following chart patterns, you’ll see the positioning landscape and adjust your entries, sizing, and stops based on real market structure, helping you avoid bad trades and execute with more confidence.
+
+Video Chapters
+00:00 – Introduction to futures trading challenges
+01:14 – Why most futures traders fail
+02:48 – The prop trading firm reality
+04:52 – Leading data signals versus lagging indicators
+05:30 – ES futures trade scenario with gamma walls
+09:36 – NASDAQ futures volatility regime example
+Key Takeaways
+Traditional lagging indicators like moving averages, MACD, and RSI don’t provide an edge because everyone uses the same signals
+Understanding gamma walls, negative gamma conditions, and CTA positioning reveals invisible forces shaping futures markets
+A shift from positive gamma to negative gamma increases your risk even with unchanged position sizing and stops
+Professional traders focus on positioning, flow, and risk rather than chart patterns alone
+ Video Transcription
+ Previous Lesson
+Next 

@@ -1,0 +1,25 @@
+In this lesson, you’ll discover the fundamental differences between institutional and retail trading, and learn how to bridge that gap using quantitative models and options data. We explain why institutions don’t rely on candlestick charts and technical patterns like retail traders do, but instead focus on data-driven approaches, risk management, and position management to make probabilistic trading decisions.
+
+We break down how institutional traders ask critical questions that charts cannot answer: who is positioned at key levels, where are market makers hedged, and what is the implied volatility of an asset. The problem isn’t lack of knowledge—it’s the access to proper tools and systematic processes. Retail traders often rely on lagging indicators and social media signals that provide no real edge, which is why 70 to 90% of traders eventually lose money.
+
+You’ll learn what quant models are and how they work as structured systems that turn data into decisions, removing emotional bias from your trading. We introduce the Mentor Q score as an example of a quant model that analyzes assets using four different factors to determine whether you’re in a bullish or bearish regime. These models simplify complex data into actionable insights without requiring coding skills or expensive terminals like Bloomberg.
+
+We explain why options are the X-ray of financial markets—they reveal where big players are positioned, where market makers are forced to hedge, and how the market is pricing fear or aggression. Understanding gamma exposure, put skew, and option expirations gives you forward-looking information rather than just past price action. When a stock sits on a major gamma wall, it creates predictable zones of support and resistance that you can trade around.
+
+At MenthorQ, we’ve built our platform on three pillars: creating quant models from institutional-grade data, providing an intuitive trading dashboard, and offering integrations with 10+ trading applications so you can act on insights quickly. We map gamma exposure intraday and end of day, show you how skew shifts, and deliver models that interpret complex data into actionable trading zones, especially important during earnings season.
+
+Video Chapters
+00:52 – Welcome and session overview
+02:18 – How institutional trading differs from retail trading
+04:34 – The gap between retail and institutional approaches
+07:00 – Understanding quant models and their importance
+08:35 – Introduction to the Mentor Q score
+11:10 – Why options are the X-ray of financial markets
+Key Takeaways
+Institutions trade using data, risk management, and position management rather than candlestick charts and technical patterns
+Quant models turn complex data into structured decisions, removing emotional bias and providing better odds
+Options data reveals where big players are positioned and where market makers must hedge, providing forward-looking insights
+MenthorQ provides institutional-grade data through accessible models, a trading dashboard, and integrations with 10+ trading platforms
+ Video Transcription
+Previous
+Next 

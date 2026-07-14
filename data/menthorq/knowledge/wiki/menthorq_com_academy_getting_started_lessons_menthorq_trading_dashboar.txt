@@ -1,0 +1,19 @@
+In this comprehensive lesson, you’ll discover how to navigate and customize the Trading Dashboard, your central workspace at MenthorQ designed to bring clarity, speed, and confidence to your trading decisions. The Dashboard consolidates your key levels, quant models, and trading tools into one organized platform, transforming complex institutional-grade data into actionable insights.
+
+The Dashboard provides access to approximately 60 different quant models covering stocks, futures, and advanced models like CTA’s models and Volatility Control Fund models. Key models include the Q Score, Intraday Gamma models, NET Gamma and NET Delta exposure, blind spots level, and swing trading model. You can customize your workspace by using the Load default commands feature to pre-populate your screen, or manually add specific models using the Add command section. Components can be easily dragged and dropped to arrange your preferred layout, and your configuration is automatically saved for future sessions.
+
+Creating a personalized watchlist is straightforward—simply click the plus button at the top to add tickers, which are automatically organized by equity, ETF, and index categories. You can customize the order, remove tickers, and switch between assets with a single click to instantly update all dashboard models for that specific ticker. The platform also includes a calendar feature that allows you to access historical information for backtesting, examining past levels, and analyzing historical charts on any date you select.
+
+The Intraday section offers real-time market tracking with models updating via 14+ snapshots throughout the day at approximately half-hour intervals. You can play back the entire trading day using keyboard arrows to see how models like NetJax 0DT evolved from market open. The JAX difference models show gamma shifts from pre-market to current snapshot, helping you identify potential price action based on option data. The liquidity summary displays gamma conditions (negative or positive), net JAX and net DAX increases or decreases, top five volume strikes, and top jack strikes change across snapshots.
+
+Beyond stocks and indices, you can access futures data across multiple asset classes including commodities, metals, Forex, and crypto, using either generic or monthly tickers. The platform features specialized screeners divided by category including gamma screeners, gamma levels, open interest, volatility, and volume. You can also integrate your TradingView account and other trading platforms to access gamma levels and indicators in real-time within your favorite tools.
+
+To get started, subscribe to a Premium or Pro plan, log into your account, and click the Launch app button or access it through the Account section. The left-hand menu provides navigation to the Dashboard, Academy, webinars, guides, Discord community, and subscription management. Documentation for each model is readily available by clicking the three dots on any component and selecting read the guide, ensuring you understand how to apply each tool to your trading strategy.
+
+Video Chapters
+00:00 – Introduction to MenthorQ mission and Trading Dashboard overview
+00:54 – Accessing the Dashboard and platform navigation
+02:04 – Setting up the workspace and exploring quant models
+ Video Transcription
+ Previous Lesson
+Next 

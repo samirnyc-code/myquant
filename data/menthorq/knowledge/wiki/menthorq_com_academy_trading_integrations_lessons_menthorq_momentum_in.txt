@@ -1,0 +1,24 @@
+In this lesson, you’ll discover how to use the Momentum Indicator on MenthorQ, a powerful all-in-one tool that combines three indicators into a single solution. This comprehensive indicator helps you identify key price levels and trading opportunities across any asset and timeframe.
+
+The Momentum Indicator includes support and resistance levels, Fibonacci automatic levels, and a volume profile. To access it, simply click on your indicator settings under invite only and select Momentum Indicator. The indicator will immediately start plotting support and resistance levels on your chart, giving you instant visual guidance for potential entry and exit points.
+
+Each component is fully customizable to match your trading style. For the support and resistance feature, you can adjust the lookback bars, apply filtering (with higher values creating stronger filters), and customize line width. The Fibonacci levels can be extended across the chart, with customizable label sizes and selectable levels including 0.236, 0.382, 0.5, 0.618, 0.786, and 1. The system automatically draws Fibonacci retracement levels based on price action, adapting as you change assets or timeframes.
+
+The volume profile component provides additional market context by showing where trading activity has concentrated. You can enable it by clicking show volume profile, then customize the number of rows (set to 24 by default), adjust POC line colors and width, modify value area colors, and choose whether to display up volume, down volume, and POC labels. The volume profile draws based on a lookback window defined by the indicator.
+
+The beauty of this indicator is its flexibility—you can enable all three components simultaneously or toggle them on and off individually depending on your analysis needs. Simply go to the indicator section to add or remove the support and resistance area, Fibonacci area, or volume profile as needed for your current trading strategy.
+
+Video Chapters
+00:04 – Introduction to the Momentum Indicator
+00:16 – Overview of three indicators in one
+01:01 – Support and resistance customization
+01:46 – Fibonacci levels configuration
+02:55 – Volume profile setup and options
+Key Takeaways
+The Momentum Indicator combines three tools: support and resistance, Fibonacci automatic levels, and volume profile
+Each component can be individually enabled or disabled and fully customized to your preferences
+The indicator automatically adapts to any asset and timeframe you select
+Fibonacci levels include 0.236, 0.382, 0.5, 0.618, 0.786, and 1 with customizable colors and labels
+ Video Transcription
+ Previous Lesson
+Next 

@@ -1,0 +1,26 @@
+In this lesson, you’ll learn how to set up and configure the MenthorQ levels indicator for MetaTrader 5. As a Premium membership benefit, you can access MenthorQ data directly within your MetaTrader platform by installing a custom indicator that plots Q levels onto your charts.
+
+To get started, navigate to your account dashboard and locate the Integrations menu on the left side. Look for MetaTrader and click the button to access the documentation link and download link for the indicator. You’ll need to download the indicator file and save it to your computer. The guide also includes a sample text file that you’ll need to create for uploading the levels.
+
+Before using the indicator, you must set up your data file properly. Open the data folder by clicking File then Open Data Folder, navigate to MQL5, then go to Files. In this location, you’ll create text files for each symbol you want to trade. The critical step is customizing the string to match your broker’s exact symbol format. For example, if you trade the NQ and the string shows ES$ES1, you need to rename it to match your broker’s symbol exactly—whether that’s ES/U 2024 or esu24. Check your watch list to find the precise symbol or ticker your broker uses.
+
+The instructor demonstrates trading the S&P 500 and shows how to rename the SPX index data to SP500 for easier management. When using blind spots levels, create a separate file renamed as S&P 500BL. To apply the indicator to your chart, drag the MenthorQ levels indicator onto your chart and set the file name to match your text file (like SP500.TXT). You can customize the display by toggling levels between true or false and changing colors—the instructor prefers setting all lines to black.
+
+On the one minute time frame, you can see how the indicator displays levels like blind spot six and one name Max, creating perfect setups for your trading strategies. The indicator works seamlessly across different timeframes, giving you everything you need for institutional-grade trading data directly in MetaTrader 5.
+
+Video Chapters
+00:00 – Introduction to MenthorQ levels indicator for MetaTrader 5
+00:26 – Downloading the indicator from account dashboard
+00:59 – Setting up the data file and folder structure
+01:33 – Customizing symbol strings to match your broker
+04:44 – Installing and applying the indicator to charts
+06:13 – Customizing level display and colors
+07:01 – Viewing levels on one minute timeframe
+Key Takeaways
+The MenthorQ levels indicator is available exclusively for Premium membership users and integrates directly with MetaTrader 5
+You must customize the symbol string in your text file to match your broker’s exact format for the indicator to work properly
+Create separate files for different data types like regular levels and blind spots using renamed symbols like SP500.TXT and SP500BL.TXT
+The indicator is fully customizable, allowing you to toggle individual levels and change colors to suit your trading preferences
+ Video Transcription
+Previous
+Course Overview

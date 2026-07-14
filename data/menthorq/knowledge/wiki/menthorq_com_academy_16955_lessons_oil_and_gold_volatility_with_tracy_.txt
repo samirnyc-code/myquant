@@ -1,0 +1,27 @@
+In this lesson, you’ll discover how to leverage institutional-grade options data to identify critical market reaction zones in commodities trading, specifically focusing on oil and gold futures. We introduce you to how Mentor Q brings quantitative models previously available only to large institutions directly to retail traders.
+
+We explain how option volumes have dramatically increased, with option volume actually surpassing equity volumes in 2021. Even if you’re a futures trader who doesn’t trade options directly, understanding option flows is essential because these flows help you identify market reaction zones that improve trade selection and risk management. The futures option chain data reveals where large concentrations of outstanding option positions exist, which can trigger significant market behavior.
+
+You’ll learn how we’ve become the first company to deliver gamma levels on futures options, covering commodities including gold futures and oil, plus metals, fixed income, forex, and soft commodities. Our data is delivered through Discord channels where you access specific asset information, plus we’ve integrated our data into Trading View using a bot that allows you to access data on any asset you care about—from stocks and ETFs to futures—and plot gamma levels as reaction zones directly on your charts.
+
+The practical benefit comes from understanding how market makers hedge their positions. When market makers are short call options at a specific level, they may need to buy aggressively as price approaches that zone, potentially triggering momentum. These reaction zones appear as stacked histograms on the right side of our charts, showing where concentrated option positions exist. For example, a key gamma level on gold futures this morning provided an interesting reaction point before a break to the downside, demonstrating how these zones help you anticipate market behavior.
+
+We cover futures options across indices, commodities, metals like gold, fixed income, forex, and soft commodities. You can use our bot to request any ticker and receive a string text to plot into the indicator, accessing real-time information for smarter decision-making. The system allows you to go back in time to see how positioning has changed, which is particularly valuable for understanding market reactions to earnings or other events.
+
+To get started, access our membership through Discord where you’ll find channels for specific assets, six professional traders in trading rooms working with the community daily, and our bot for requesting data. You can integrate the data into Trading View by requesting your ticker from the bot, receiving a string text, and plotting our gamma levels directly onto the charts you’re already using for technical analysis.
+
+Video Chapters
+00:00 – Introduction to Mentor Q and team backgrounds
+02:40 – Why Mentor Q was created and the retail trading gap
+04:47 – Increasing option volumes and why options matter for all traders
+05:48 – Product demonstration and Discord platform overview
+06:59 – Futures options coverage across commodities and metals
+08:10 – Trading View integration and bot functionality
+09:47 – Why options are important for understanding market mechanics
+10:44 – Understanding reaction zones and market maker hedging
+Key Takeaways
+Option volumes surpassed equity volumes in 2021, making option flows essential for understanding market behavior even if you don’t trade options directly
+Gamma levels identify market reaction zones where co…
+ Video Transcription
+ Previous Lesson
+Next 
