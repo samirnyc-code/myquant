@@ -36,7 +36,7 @@ def collect_threads(s):
             break
         out.extend(new)
         start += 50
-        if start > 900:
+        if start > 2000:
             break
         time.sleep(0.3)
     # dedup keep first
@@ -51,25 +51,66 @@ def expand_and_clean(h):
     h2 = re.sub(r'<script.*?</script>', ' ', h2, flags=re.S | re.I)
     t = re.sub(r'<[^>]+>', ' ', h2); t = H.unescape(t)
     t = re.sub(r'[ \t]+', ' ', t); t = re.sub(r'\n\s*\n+', '\n', t)
-    # lock onto the real analysis start: "1 - <Capital>" (skips the "pushed to the LEFT" template header)
-    m = re.search(r'(?:^|\n|\s)1\s*[-–]\s+[A-Z]', t)
+    # skip the template header. Two known shapes: an instruction block ending
+    # in "White Out!", and/or analysis starting at "1 - <Cap>" or "1 <ABBR>(".
+    w = re.search(r'White Out!\s*', t)
+    if w:
+        t = t[w.end():].lstrip()
+    m = re.search(r'(?:^|\n|\s)1\s*[-–]\s+[A-Z]', t) or re.search(r'(?:^|\n)\s*1\s+[A-Z]{2,}', t)
     if m:
         t = t[m.start():].lstrip()
     t = re.split(r'(Powered by|phpBB|Select a forum|Display posts from previous)', t)[0]
     return t.strip()
 
-def process(s, t, date, title):
-    th = s.get(f"{BASE}/viewtopic.php?t={t}", timeout=25).text
-    bb = re.search(r'(files/barbybar/brooksbars\.php\?[^"\'&]*pic_id=\d+[^"\']*)', th)
+def logged_in(html):
+    return 'mode=logout' in html or 'Log out' in html
+
+class SessionBox:
+    """Holds the live session; re-logins transparently when it dies."""
+    def __init__(self):
+        self.s = login()
+        self.relogins = 0
+
+    def get_page(self, url, check=None, **kw):
+        ok = check or logged_in
+        h = self.s.get(url, timeout=25, **kw).text
+        if not ok(h):
+            self.s = login(); self.relogins += 1
+            h = self.s.get(url, timeout=25, **kw).text
+            if not ok(h):
+                raise RuntimeError("relogin failed")
+        return h
+
+def process(sb, t, date, title):
+    s = sb.s
+    th = sb.get_page(f"{BASE}/viewtopic.php?t={t}")
+    s = sb.s  # may have been replaced by a relogin
     pic = re.search(r'album_picm\.php\?pic_id=(\d+)', th)
     rec = {"id": t, "date": date, "title": title, "has_text": False, "has_chart": False}
+    # bar-by-bar link: threads can also contain Al's TUTORIAL link (pic_id 7214,
+    # a 2010 example) — only trust a brooksbars link whose pic_id matches the
+    # thread's own chart. If the thread has no chart of its own, take the link
+    # only if it's not the known tutorial, and flag it for review.
+    bbs = re.findall(r'(files/barbybar/brooksbars\.php\?[^"\'\s]*pic_id=\d+[^"\'\s]*)', th)
+    bb = None
+    for cand in bbs:
+        m = re.search(r'pic_id=(\d+)', cand)
+        if pic and m and m.group(1) == pic.group(1):
+            bb = cand; break
+    if bb is None and bbs:
+        m = re.search(r'pic_id=(\d+)', bbs[0])
+        if pic is None and m and m.group(1) != "7214":
+            bb = bbs[0]; rec["bb_unverified"] = True
+        else:
+            rec["bb_mismatch"] = [re.search(r'pic_id=(\d+)', x).group(1) for x in bbs]
     # bar-by-bar text
     if bb:
-        url = BASE + "/" + H.unescape(bb.group(1)).replace("&amp;", "&")
+        url = BASE + "/" + H.unescape(bb).replace("&amp;", "&")
         rec["tool_url"] = url                       # live interactive tool link (needs login)
         q = dict(re.findall(r'(\w+)=(\d+)', url))    # bars/left/width/top/height geometry
         rec["geom"] = {k: int(v) for k, v in q.items() if k in ("pic_id", "bars", "left", "width", "top", "height")}
-        bh = s.get(url, timeout=30).text
+        # tool pages have no Log-out link; valid ones contain the bar viewer JS
+        bh = sb.get_page(url, check=lambda h: 'MyDiv' in h or 'BarNum' in h)
         txt = expand_and_clean(bh)
         if len(txt) > 200:
             rec["text"] = txt[:60000]; rec["has_text"] = True
@@ -78,7 +119,7 @@ def process(s, t, date, title):
             pic = pm
     # chart
     if pic:
-        ir = s.get(f"{BASE}/album_picm.php?pic_id={pic.group(1)}", timeout=30)
+        ir = sb.s.get(f"{BASE}/album_picm.php?pic_id={pic.group(1)}", timeout=30)
         if "image" in (ir.headers.get("content-type") or ""):
             try:
                 im = Image.open(io.BytesIO(ir.content)).convert("RGB")
@@ -92,22 +133,32 @@ def process(s, t, date, title):
     return rec
 
 if __name__ == "__main__":
-    s = login()
-    threads = collect_threads(s)
+    sb = SessionBox()
+    threads = collect_threads(sb.s)
     print(f"collected {len(threads)} daily threads")
     if "--test" in sys.argv:
         n = int(sys.argv[sys.argv.index("--test") + 1]); threads = threads[:n]
-    out = []; t0 = time.time()
-    for i, (t, date, title) in enumerate(threads):
+    dest = SCR / ("forum_test.json" if "--test" in sys.argv else "forum_index.json")
+    # resume: keep previously-complete records, redo the rest
+    done = {}
+    if "--resume" in sys.argv and dest.exists():
+        for x in json.load(open(dest, encoding="utf-8")):
+            if x.get("has_chart") and (x.get("has_text") or x.get("bb_mismatch") is not None
+                                       or "err" not in x and not x.get("tool_url")):
+                done[x["id"]] = x
+        print(f"resume: keeping {len(done)} complete records")
+    out = list(done.values()); t0 = time.time()
+    todo = [(t, d, ttl) for (t, d, ttl) in threads if t not in done]
+    for i, (t, date, title) in enumerate(todo):
         try:
-            out.append(process(s, t, date, title))
+            out.append(process(sb, t, date, title))
         except Exception as e:
             out.append({"id": t, "date": date, "title": title, "err": str(e)})
-        time.sleep(0.6)
+        time.sleep(0.5)
         if (i + 1) % 50 == 0:
             txt = sum(1 for x in out if x.get("has_text")); ch = sum(1 for x in out if x.get("has_chart"))
-            print(f"[{i+1}/{len(threads)}] text={txt} chart={ch} ({time.time()-t0:.0f}s)", flush=True)
-    dest = SCR / ("forum_test.json" if "--test" in sys.argv else "forum_index.json")
+            print(f"[{i+1}/{len(todo)}] text={txt} chart={ch} relogins={sb.relogins} ({time.time()-t0:.0f}s)", flush=True)
+            json.dump(out, open(dest, "w", encoding="utf-8"), ensure_ascii=False)  # checkpoint
     json.dump(out, open(dest, "w", encoding="utf-8"), ensure_ascii=False)
     txt = sum(1 for x in out if x.get("has_text")); ch = sum(1 for x in out if x.get("has_chart"))
     print(f"\nDONE {len(out)} threads | with text: {txt} | with chart: {ch} -> {dest}")

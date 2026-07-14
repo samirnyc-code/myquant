@@ -1,0 +1,2982 @@
+[
+ {
+  "part": 1,
+  "section": "Introduction",
+  "abbr": "Introduction"
+ },
+ {
+  "part": 1,
+  "section": "Always In Long",
+  "abbr": "AIL"
+ },
+ {
+  "part": 1,
+  "section": "Always In Long, 3 Bear Bars Were Bull Flag",
+  "abbr": "AIL 3 BRB"
+ },
+ {
+  "part": 1,
+  "section": "Always In Short",
+  "abbr": "AIS"
+ },
+ {
+  "part": 1,
+  "section": "Always In Short, 3 Bull Bars Were Bear Flag",
+  "abbr": "AIS 3 BRB"
+ },
+ {
+  "part": 1,
+  "section": "All Time High Buy Climax",
+  "abbr": "ATH BX"
+ },
+ {
+  "part": 1,
+  "section": "Bankruptcy",
+  "abbr": "Bankruptcy"
+ },
+ {
+  "part": 1,
+  "section": "Bar Counting",
+  "abbr": "Bar Counting"
+ },
+ {
+  "part": 1,
+  "section": "Bar Numbers",
+  "abbr": "Bar Numbers"
+ },
+ {
+  "part": 1,
+  "section": "Big Down, Big Up",
+  "abbr": "BDBU"
+ },
+ {
+  "part": 1,
+  "section": "Big Down, Big Up, Big Down",
+  "abbr": "BDUD"
+ },
+ {
+  "part": 1,
+  "section": "Big Round Number",
+  "abbr": "Big Round Number"
+ },
+ {
+  "part": 1,
+  "section": "Bull Trend Began before Bear Trend Ended",
+  "abbr": "BL Began before BR ended"
+ },
+ {
+  "part": 1,
+  "section": "Bear BO of 18 Bar Range",
+  "abbr": "BO 18 D"
+ },
+ {
+  "part": 1,
+  "section": "Failed Bear BO of 18 Bar Range",
+  "abbr": "BO 18 D F"
+ },
+ {
+  "part": 1,
+  "section": "BO below Then above 18 Bar Range",
+  "abbr": "BO 18 D U"
+ },
+ {
+  "part": 1,
+  "section": "BO of 18 Bar Range, below, above, and Back Below",
+  "abbr": "BO 18 D U D"
+ },
+ {
+  "part": 1,
+  "section": "Bull BO of 18 Bar Range",
+  "abbr": "BO 18 U"
+ },
+ {
+  "part": 1,
+  "section": "Failed Bull BO of 18 Bar Range",
+  "abbr": "BO 18 U F"
+ },
+ {
+  "part": 1,
+  "section": "BO above Then below 18 Bar Range",
+  "abbr": "BO 18 U D"
+ },
+ {
+  "part": 1,
+  "section": "BO of 18 Bar Range, above, below, and Back Above",
+  "abbr": "BO 18 U D U"
+ },
+ {
+  "part": 1,
+  "section": "No BO of 18 Bar Range",
+  "abbr": "BO 18 No BO"
+ },
+ {
+  "part": 1,
+  "section": "Breakout and Channel Bull Trend",
+  "abbr": "BO and CH BL"
+ },
+ {
+  "part": 1,
+  "section": "Breakout and Channel Bear Trend",
+  "abbr": "BO and CH BR"
+ },
+ {
+  "part": 1,
+  "section": "Failed Bull Breakout",
+  "abbr": "BO BL F"
+ },
+ {
+  "part": 1,
+  "section": "Bull Breakout (Major) -- New and modified sections now include all \"Surprise\" slides",
+  "abbr": "BO BL Major"
+ },
+ {
+  "part": 1,
+  "section": "Bull Breakout (Major) Failed",
+  "abbr": "BO BL Major F"
+ },
+ {
+  "part": 1,
+  "section": "Bull Breakout (Minor)",
+  "abbr": "BO BL Minor"
+ },
+ {
+  "part": 1,
+  "section": "Failed Bear Breakout",
+  "abbr": "BO BR F"
+ },
+ {
+  "part": 1,
+  "section": "Bear Breakout (Major)",
+  "abbr": "BO BR Major"
+ },
+ {
+  "part": 1,
+  "section": "Bear Breakout (Major) Failed",
+  "abbr": "BO BR Major F"
+ },
+ {
+  "part": 1,
+  "section": "Bear Breakout (Minor)",
+  "abbr": "BO BR Minor"
+ },
+ {
+  "part": 1,
+  "section": "Bear BO, Then 2 Legs Down",
+  "abbr": "BO D 2LD"
+ },
+ {
+  "part": 1,
+  "section": "Breakout: Small Bear Breakout below a Small Bear Breakout so Wedge Bottom",
+  "abbr": "BO SBO2 D"
+ },
+ {
+  "part": 1,
+  "section": "Breakout: Small Bear Breakout below a Small Bear Breakout, but Wedge Bottom Failed",
+  "abbr": "BO SBO2 D F"
+ },
+ {
+  "part": 1,
+  "section": "Breakout: Small Bull Breakout above a Small Bull Breakout so Wedge Top",
+  "abbr": "BO SBO2 U"
+ },
+ {
+  "part": 1,
+  "section": "Breakout: Small Bull Breakout above a Small Bull Breakout, but Wedge Top Failed",
+  "abbr": "BO SBO2 U F"
+ },
+ {
+  "part": 1,
+  "section": "BO Test in Bull Trend (PB to BO Point)",
+  "abbr": "BO Test BL"
+ },
+ {
+  "part": 1,
+  "section": "BO Test in Bull Trend (PB to BO Point), Failed And Reversed Down",
+  "abbr": "BO Test BL F"
+ },
+ {
+  "part": 1,
+  "section": "BO Test in Bear Trend (Rally to BO Point)",
+  "abbr": "BO Test BR"
+ },
+ {
+  "part": 1,
+  "section": "BO Test in Bear Trend (Rally to BO Point), Failed And Reversed Up",
+  "abbr": "BO Test BR F"
+ },
+ {
+  "part": 1,
+  "section": "BO of TR, but it Failed",
+  "abbr": "BO TR F"
+ },
+ {
+  "part": 1,
+  "section": "Bull BO",
+  "abbr": "BO U"
+ },
+ {
+  "part": 1,
+  "section": "Bull BO, Then 2 Legs Up",
+  "abbr": "BO U 2LU"
+ },
+ {
+  "part": 1,
+  "section": "Breakout Mode",
+  "abbr": "BOM"
+ },
+ {
+  "part": 1,
+  "section": "Bear Trend Began before Bull Trend Ended",
+  "abbr": "BR Began before BL ended"
+ },
+ {
+  "part": 1,
+  "section": "Buy The Close rally",
+  "abbr": "BTC"
+ },
+ {
+  "part": 1,
+  "section": "Buy The Close, but Disappointed Bulls",
+  "abbr": "BTC DBL"
+ },
+ {
+  "part": 1,
+  "section": "Buy The Close, but Disappointed Bulls, then Bull Resumed",
+  "abbr": "BTC DBL F"
+ },
+ {
+  "part": 1,
+  "section": "Buy The Close, but Disappointed Bulls Lost Money",
+  "abbr": "BTC DBL Lose"
+ },
+ {
+  "part": 1,
+  "section": "Buy The Close, then Deep PB",
+  "abbr": "BTC Deep PB"
+ },
+ {
+  "part": 1,
+  "section": "Buy The Close Failed and Became Exhaustion Gap",
+  "abbr": "BTC EG"
+ },
+ {
+  "part": 1,
+  "section": "Buy The Close at End Of Day",
+  "abbr": "BTC EOD"
+ },
+ {
+  "part": 1,
+  "section": "Buy The Close at End Of Day, but Started Too Early",
+  "abbr": "BTC EOD Too Early"
+ },
+ {
+  "part": 1,
+  "section": "Buy The Close in TR so Better to S Close of Bull Bars",
+  "abbr": "BTC TR so STC"
+ },
+ {
+  "part": 1,
+  "section": "Big Up, Big Down so Big Confusion and Likely TR",
+  "abbr": "BUDC"
+ },
+ {
+  "part": 1,
+  "section": "Big Up, Big Down, Big Up",
+  "abbr": "BUDU"
+ },
+ {
+  "part": 1,
+  "section": "Buy Climaxes",
+  "abbr": "BX"
+ },
+ {
+  "part": 1,
+  "section": "Consecutive Buy Climaxes",
+  "abbr": "BX CC"
+ },
+ {
+  "part": 1,
+  "section": "Buy Climax, Then Deep Pullback",
+  "abbr": "BX Deep PB"
+ },
+ {
+  "part": 1,
+  "section": "Exhaustive Buy Climax",
+  "abbr": "BX E"
+ },
+ {
+  "part": 1,
+  "section": "Buy Climax but Failed Reversal",
+  "abbr": "BX F"
+ },
+ {
+  "part": 1,
+  "section": "Buy Climax and Measured Move Down",
+  "abbr": "BX MMD"
+ },
+ {
+  "part": 1,
+  "section": "Buy Climax Yesterday",
+  "abbr": "BX Y"
+ },
+ {
+  "part": 2,
+  "section": "Consecutive Complex Bottoms",
+  "abbr": "CC Bottoms Complex"
+ },
+ {
+  "part": 2,
+  "section": "Consecutive Complex Bottoms that Failed",
+  "abbr": "CC Bottoms F"
+ },
+ {
+  "part": 2,
+  "section": "Consecutive Complex Tops",
+  "abbr": "CC Tops Complex"
+ },
+ {
+  "part": 2,
+  "section": "Consecutive Complex Tops that Failed",
+  "abbr": "CC Tops F"
+ },
+ {
+  "part": 2,
+  "section": "Bear Channel: 4 Types",
+  "abbr": "CH D 4 Types"
+ },
+ {
+  "part": 2,
+  "section": "Bear Channel",
+  "abbr": "CH D"
+ },
+ {
+  "part": 2,
+  "section": "Bear Channel, Bull BO",
+  "abbr": "CH D BL BO"
+ },
+ {
+  "part": 2,
+  "section": "Broad Bear Channel",
+  "abbr": "CH D Broad"
+ },
+ {
+  "part": 2,
+  "section": "Bear BO below Bear Channel",
+  "abbr": "CH D BR BO"
+ },
+ {
+  "part": 2,
+  "section": "Failed BO below Bear Channel",
+  "abbr": "CH D BR BO F"
+ },
+ {
+  "part": 2,
+  "section": "Bear Micro Channel",
+  "abbr": "CH D MC"
+ },
+ {
+  "part": 2,
+  "section": "Bear Micro Channel Reversed Up",
+  "abbr": "CH D MC F"
+ },
+ {
+  "part": 2,
+  "section": "Tight Bear Channel",
+  "abbr": "CH D Tight"
+ },
+ {
+  "part": 2,
+  "section": "Bull Channel: 4 Types",
+  "abbr": "CH U 4 Types"
+ },
+ {
+  "part": 2,
+  "section": "Bull Channel",
+  "abbr": "CH U"
+ },
+ {
+  "part": 2,
+  "section": "Bull BO above Bull Channel",
+  "abbr": "CH U BL BO"
+ },
+ {
+  "part": 2,
+  "section": "Failed BO above Bull Channel",
+  "abbr": "CH U BL BO F"
+ },
+ {
+  "part": 2,
+  "section": "Bull Channel, Bear BO",
+  "abbr": "CH U BR BO"
+ },
+ {
+  "part": 2,
+  "section": "Broad Bull Channel",
+  "abbr": "CH U Broad"
+ },
+ {
+  "part": 2,
+  "section": "Bull Micro Channel",
+  "abbr": "CH U MC"
+ },
+ {
+  "part": 2,
+  "section": "Bull Micro Channel Reversed Down",
+  "abbr": "CH U MC F"
+ },
+ {
+  "part": 2,
+  "section": "Tight Bull Channel",
+  "abbr": "CH U Tight"
+ },
+ {
+  "part": 2,
+  "section": "Charts: Yearly",
+  "abbr": "Charts Yearly"
+ },
+ {
+  "part": 2,
+  "section": "Crash on 5 min Chart",
+  "abbr": "Crash 5 min"
+ },
+ {
+  "part": 2,
+  "section": "Crash Up on 5 min Chart, Extreme Buy Climax",
+  "abbr": "Crash Up 5 min"
+ },
+ {
+  "part": 2,
+  "section": "Crash on Daily, Weekly, and Monthly Charts",
+  "abbr": "Crash D W M"
+ },
+ {
+  "part": 2,
+  "section": "Cup and Handle Top",
+  "abbr": "CupH D"
+ },
+ {
+  "part": 2,
+  "section": "Cup and Handle Top that Failed",
+  "abbr": "CupH D F"
+ },
+ {
+  "part": 2,
+  "section": "Cup and Handle Bottom",
+  "abbr": "CupH U"
+ },
+ {
+  "part": 2,
+  "section": "Cup and Handle Bottom That Failed",
+  "abbr": "CupH U F"
+ },
+ {
+  "part": 3,
+  "section": "Data: Adjusted",
+  "abbr": "Data Adjusted"
+ },
+ {
+  "part": 3,
+  "section": "Data: Sampled",
+  "abbr": "Data Sampled"
+ },
+ {
+  "part": 3,
+  "section": "Double Bottom",
+  "abbr": "DB"
+ },
+ {
+  "part": 3,
+  "section": "Failed Double Bottom",
+  "abbr": "DB F"
+ },
+ {
+  "part": 3,
+  "section": "Double Bottom Bull Flag",
+  "abbr": "DB BLF"
+ },
+ {
+  "part": 3,
+  "section": "Double Bottom Bull Flag, 2nd Buy Signal",
+  "abbr": "DB BLF 2BS"
+ },
+ {
+  "part": 3,
+  "section": "Double Bottom Bull Flag, but Bear BO",
+  "abbr": "DB BLF F"
+ },
+ {
+  "part": 3,
+  "section": "Failed BO Below Double Bottom so Wedge Bottom",
+  "abbr": "DB F BO Below"
+ },
+ {
+  "part": 3,
+  "section": "Micro Double Bottom",
+  "abbr": "DB Micro"
+ },
+ {
+  "part": 3,
+  "section": "Double Bottom Pullback",
+  "abbr": "DB PB"
+ },
+ {
+  "part": 3,
+  "section": "Failed Double Bottom Pullback",
+  "abbr": "DB PB F"
+ },
+ {
+  "part": 3,
+  "section": "Disappointed Bulls",
+  "abbr": "Disappointed BL"
+ },
+ {
+  "part": 3,
+  "section": "Disappointed Bears",
+  "abbr": "Disappointed BR"
+ },
+ {
+  "part": 3,
+  "section": "Doji Bar",
+  "abbr": "Doji"
+ },
+ {
+  "part": 3,
+  "section": "Doji Day",
+  "abbr": "Doji Day"
+ },
+ {
+  "part": 3,
+  "section": "Double Top",
+  "abbr": "DT"
+ },
+ {
+  "part": 3,
+  "section": "Failed Double Top",
+  "abbr": "DT F"
+ },
+ {
+  "part": 3,
+  "section": "Double Top Bear Flag",
+  "abbr": "DT BRF"
+ },
+ {
+  "part": 3,
+  "section": "Double Top Bear Flag, 2nd Sell Signal",
+  "abbr": "DT BRF 2SS"
+ },
+ {
+  "part": 3,
+  "section": "Double Top Bear Flag, but Bull BO",
+  "abbr": "DT BRF F"
+ },
+ {
+  "part": 3,
+  "section": "Failed BO above Double Top So Wedge Top",
+  "abbr": "DT F BO Above"
+ },
+ {
+  "part": 3,
+  "section": "Micro Double Top",
+  "abbr": "DT Micro"
+ },
+ {
+  "part": 3,
+  "section": "Double Top Pullback",
+  "abbr": "DT PB"
+ },
+ {
+  "part": 3,
+  "section": "Failed Double Top Pullback",
+  "abbr": "DT PB F"
+ },
+ {
+  "part": 3,
+  "section": "Early Close (holiday trading)",
+  "abbr": "Early C"
+ },
+ {
+  "part": 3,
+  "section": "EOD Bull Breakout",
+  "abbr": "EOD BL BO"
+ },
+ {
+  "part": 3,
+  "section": "EOD Profit Taking in Bull Trend",
+  "abbr": "EOD BL Profit Taking"
+ },
+ {
+  "part": 3,
+  "section": "EOD Bear Breakout",
+  "abbr": "EOD BR BO"
+ },
+ {
+  "part": 3,
+  "section": "EOD Profit Taking in Bear Trend",
+  "abbr": "EOD BR Profit Taking"
+ },
+ {
+  "part": 3,
+  "section": "End of Day Close in Middle of Day",
+  "abbr": "EOD C in Middle of Day"
+ },
+ {
+  "part": 3,
+  "section": "End of Day Trend Resumption or Trend Reversal",
+  "abbr": "EOD TRES TREV"
+ },
+ {
+  "part": 3,
+  "section": "End Of Day Tight Trading Range",
+  "abbr": "EOD TTR"
+ },
+ {
+  "part": 3,
+  "section": "End Of Day and End of Month, Quarter, or Year",
+  "abbr": "EOD M Qtr Y"
+ },
+ {
+  "part": 3,
+  "section": "End of Week Support and Resistance",
+  "abbr": "EOD Week S/R"
+ },
+ {
+  "part": 3,
+  "section": "Exit Losing Trade",
+  "abbr": "Exit Losing Trade"
+ },
+ {
+  "part": 3,
+  "section": "Final Bull Flag",
+  "abbr": "FF BL"
+ },
+ {
+  "part": 3,
+  "section": "Final Bull Flag Failed, and Bull Trend Resumed",
+  "abbr": "FF BL F"
+ },
+ {
+  "part": 3,
+  "section": "Final Bear Flag",
+  "abbr": "FF BR"
+ },
+ {
+  "part": 3,
+  "section": "Final Bear Flag Failed, and Bear Trend Resumed",
+  "abbr": "FF BR F"
+ },
+ {
+  "part": 3,
+  "section": "Flag: Bear",
+  "abbr": "Flag BR"
+ },
+ {
+  "part": 3,
+  "section": "Failed Bear Flag",
+  "abbr": "Flag BR F"
+ },
+ {
+  "part": 3,
+  "section": "Flag: Bull",
+  "abbr": "Flag BL"
+ },
+ {
+  "part": 3,
+  "section": "Failed Bull Flag",
+  "abbr": "Flag BL F"
+ },
+ {
+  "part": 3,
+  "section": "Flag, but Looks Bad",
+  "abbr": "Flag Bad"
+ },
+ {
+  "part": 3,
+  "section": "FOMC Possible Outcomes",
+  "abbr": "FOMC Possible Outcomes"
+ },
+ {
+  "part": 3,
+  "section": "FOMC Bear BO",
+  "abbr": "FOMC BO D"
+ },
+ {
+  "part": 3,
+  "section": "FOMC Bear BO Failed",
+  "abbr": "FOMC BO D F"
+ },
+ {
+  "part": 3,
+  "section": "FOMC Bull BO",
+  "abbr": "FOMC BO U"
+ },
+ {
+  "part": 3,
+  "section": "FOMC Bull BO Failed",
+  "abbr": "FOMC BO U F"
+ },
+ {
+  "part": 3,
+  "section": "FOMC then Trading Range",
+  "abbr": "FOMC TR"
+ },
+ {
+  "part": 3,
+  "section": "Follow-Through Selling in Bear Trend",
+  "abbr": "FT D"
+ },
+ {
+  "part": 3,
+  "section": "No Follow-Through Selling in Bear Trend",
+  "abbr": "FT D F"
+ },
+ {
+  "part": 3,
+  "section": "Follow-Through Buying in Bull Trend",
+  "abbr": "FT U"
+ },
+ {
+  "part": 3,
+  "section": "No Follow-Through Buying in Bull Trend",
+  "abbr": "FT U F"
+ },
+ {
+  "part": 4,
+  "section": "Gap on 5 Minute Chart",
+  "abbr": "G 5 Min"
+ },
+ {
+  "part": 4,
+  "section": "Body Gap in Bear",
+  "abbr": "G Body D"
+ },
+ {
+  "part": 4,
+  "section": "Closure of Body Gap in Bear",
+  "abbr": "G Body D F"
+ },
+ {
+  "part": 4,
+  "section": "Body Gap in Bull",
+  "abbr": "G Body U"
+ },
+ {
+  "part": 4,
+  "section": "Closure of Body Gap in Bull",
+  "abbr": "G Body U F"
+ },
+ {
+  "part": 4,
+  "section": "Gap Down",
+  "abbr": "G D"
+ },
+ {
+  "part": 4,
+  "section": "Gap on Daily Chart",
+  "abbr": "G Daily"
+ },
+ {
+  "part": 4,
+  "section": "Exhaustion Gap Down",
+  "abbr": "G E D"
+ },
+ {
+  "part": 4,
+  "section": "Exhaustion Gap Down on Daily , Weekly, and Monthly Charts",
+  "abbr": "G E D DWM"
+ },
+ {
+  "part": 4,
+  "section": "Exhaustion Gap Down Failed and Became Measuring Gap",
+  "abbr": "G E D F so MG"
+ },
+ {
+  "part": 4,
+  "section": "Exhaustion Gap Up",
+  "abbr": "G E U"
+ },
+ {
+  "part": 4,
+  "section": "Exhaustion Gap Up on Daily, Weekly, and Monthly Charts",
+  "abbr": "G E U DWM"
+ },
+ {
+  "part": 4,
+  "section": "Exhaustion Gap Up Failed and Became Measuring Gap",
+  "abbr": "G E U F so MG"
+ },
+ {
+  "part": 4,
+  "section": "Micro Gaps",
+  "abbr": "G Micro"
+ },
+ {
+  "part": 4,
+  "section": "Gap Based on Open of Bar and Close of Prior Bar",
+  "abbr": "G Open Bar"
+ },
+ {
+  "part": 4,
+  "section": "Gap Up",
+  "abbr": "G U"
+ },
+ {
+  "part": 5,
+  "section": "Gap Down, 4 Common Outcomes",
+  "abbr": "GD 4 Common Outcomes"
+ },
+ {
+  "part": 5,
+  "section": "Gap Down and Rally to a Buy Climax",
+  "abbr": "GD BX"
+ },
+ {
+  "part": 5,
+  "section": "Gap Down and Rally to a Buy Climax, but Became Bull Flag",
+  "abbr": "GD BX F"
+ },
+ {
+  "part": 5,
+  "section": "Gap Down and Then Double Bottom",
+  "abbr": "GD DB"
+ },
+ {
+  "part": 5,
+  "section": "Gap Down, Double Bottom Failed",
+  "abbr": "GD DB F"
+ },
+ {
+  "part": 5,
+  "section": "Gap Down and Then Rally to Double Top Bear Flag",
+  "abbr": "GD DT"
+ },
+ {
+  "part": 5,
+  "section": "Gap Down and Double Top Bear Flag, but Failed and Reversed Up",
+  "abbr": "GD DT F"
+ },
+ {
+  "part": 5,
+  "section": "Gap Down and High 2 Buy Setup",
+  "abbr": "GD H2"
+ },
+ {
+  "part": 5,
+  "section": "Gap Down and High 2 Buy Setup Failed, and Bear Trend Resumed",
+  "abbr": "GD H2 F"
+ },
+ {
+  "part": 5,
+  "section": "Gap Down and Low 2 Bear Flag",
+  "abbr": "GD L2"
+ },
+ {
+  "part": 5,
+  "section": "Gap Down and Low 2 Top, but Failed and Reversed Up",
+  "abbr": "GD L2 F"
+ },
+ {
+  "part": 6,
+  "section": "Gap Down and Opening Reversal Down From 60 min EMA",
+  "abbr": "GD ORD 60ma"
+ },
+ {
+  "part": 6,
+  "section": "Gap Down and Failed Opening Reversal Down From 60 min EMA",
+  "abbr": "GD ORD 60ma F"
+ },
+ {
+  "part": 6,
+  "section": "Big Gap Down in Stocks",
+  "abbr": "GD Stocks"
+ },
+ {
+  "part": 6,
+  "section": "Gap Down and Sell Climax, Then Reversal Up",
+  "abbr": "GD SX"
+ },
+ {
+  "part": 6,
+  "section": "Gap Down and Sell Climax, Then Reversal Up Failed",
+  "abbr": "GD SX F"
+ },
+ {
+  "part": 6,
+  "section": "Gap Down and Bear Trend From The Open",
+  "abbr": "GD T1B D"
+ },
+ {
+  "part": 6,
+  "section": "Gap Down and Bear Trend From The Open, Then Reversal",
+  "abbr": "GD T1B D Rev"
+ },
+ {
+  "part": 6,
+  "section": "Gap Down and Bear Trend From The Open, Then Trading Range",
+  "abbr": "GD T1B D TR"
+ },
+ {
+  "part": 6,
+  "section": "Gap Down and Bull Trend From The Open",
+  "abbr": "GD T1B U"
+ },
+ {
+  "part": 6,
+  "section": "Gap Down and Bull Trend From The Open, Then Reversal",
+  "abbr": "GD T1B U Rev"
+ },
+ {
+  "part": 6,
+  "section": "Gap Down and Bull Trend From The Open, Then Trading Range",
+  "abbr": "GD T1B U TR"
+ },
+ {
+  "part": 6,
+  "section": "Gap Down and Bull Trap",
+  "abbr": "GD Trap BL"
+ },
+ {
+  "part": 6,
+  "section": "Gap Down and Bear Trap",
+  "abbr": "GD Trap BR"
+ },
+ {
+  "part": 6,
+  "section": "Gap Down and TR Open, and Trading Range Day",
+  "abbr": "GD TRO and TR Day"
+ },
+ {
+  "part": 6,
+  "section": "Gap Down, TR Open and Bull BO",
+  "abbr": "GD TRO BL BO"
+ },
+ {
+  "part": 6,
+  "section": "Gap Down, TR Open and Failed Bull BO",
+  "abbr": "GD TRO BL BO F"
+ },
+ {
+  "part": 6,
+  "section": "Gap Down, TR Open and Bear BO",
+  "abbr": "GD TRO BR BO"
+ },
+ {
+  "part": 6,
+  "section": "Gap Down, TR Open and Failed Bear BO",
+  "abbr": "GD TRO BR BO F"
+ },
+ {
+  "part": 6,
+  "section": "Gap Down and TR Open, Triangle, Bull Breakout",
+  "abbr": "GD TRO Tri BL BO"
+ },
+ {
+  "part": 6,
+  "section": "Gap Down and TR Open, Triangle, Failed Bull Breakout",
+  "abbr": "GD TRO Tri BL BO F"
+ },
+ {
+  "part": 6,
+  "section": "Gap Down and TR Open, Triangle, Bear Breakout",
+  "abbr": "GD TRO Tri BR BO"
+ },
+ {
+  "part": 6,
+  "section": "Gap Down and TR Open, Triangle, Failed Bear Breakout",
+  "abbr": "GD TRO Tri BR BO F"
+ },
+ {
+  "part": 6,
+  "section": "Gap Down and Wedge Bottom",
+  "abbr": "GD W D BL BO"
+ },
+ {
+  "part": 6,
+  "section": "Gap Down and Wedge Bottom, but Bull BO Failed",
+  "abbr": "GD W D BL BO F"
+ },
+ {
+  "part": 6,
+  "section": "Gap Down and Wedge Bottom, but Bear BO, and Bear Trend Resumed",
+  "abbr": "GD W D BR BO"
+ },
+ {
+  "part": 6,
+  "section": "Gap Down and Wedge Bottom, but Bear BO Failed, and Reversed Up",
+  "abbr": "GD W D BR BO F"
+ },
+ {
+  "part": 6,
+  "section": "Gap Down and Parabolic Wedge Bottom",
+  "abbr": "GD W D P"
+ },
+ {
+  "part": 6,
+  "section": "Gap Down and Failed Parabolic Wedge Bottom",
+  "abbr": "GD W D P F"
+ },
+ {
+  "part": 6,
+  "section": "Gap Down and Rally to Wedge Top",
+  "abbr": "GD W U BR BO"
+ },
+ {
+  "part": 6,
+  "section": "Gap Down and Rally to Wedge Top, but Bull BO, and Bull Trend Resumed",
+  "abbr": "GD W U BL BO"
+ },
+ {
+  "part": 6,
+  "section": "Gap Down and Rally to Wedge Top, but Bull BO Failed, and Reversed Down",
+  "abbr": "GD W U BL BO F"
+ },
+ {
+  "part": 6,
+  "section": "Gap Down and Rally to Wedge Top, but Bear BO Failed",
+  "abbr": "GD W U BR BO F"
+ },
+ {
+  "part": 6,
+  "section": "Gap Down and Parabolic Wedge Top",
+  "abbr": "GD W U P"
+ },
+ {
+  "part": 6,
+  "section": "Gap Down and Failed Parabolic Wedge Top",
+  "abbr": "GD W U P F"
+ },
+ {
+  "part": 6,
+  "section": "Globex Range: Breakout",
+  "abbr": "Globex Range BO"
+ },
+ {
+  "part": 6,
+  "section": "Globex Range: No Breakout",
+  "abbr": "Globex Range No BO"
+ },
+ {
+  "part": 7,
+  "section": "Gap Up, 4 Common Outcomes",
+  "abbr": "GU 4 Common Outcomes"
+ },
+ {
+  "part": 7,
+  "section": "Gap Up and Reversal Down from Buy Climax",
+  "abbr": "GU BX"
+ },
+ {
+  "part": 7,
+  "section": "Gap Up and Reversal Down from Buy Climax, but Became Bull Flag",
+  "abbr": "GU BX F"
+ },
+ {
+  "part": 7,
+  "section": "Gap Up and Double Bottom",
+  "abbr": "GU DB"
+ },
+ {
+  "part": 7,
+  "section": "Gap Up and Double Bottom Failed",
+  "abbr": "GU DB F"
+ },
+ {
+  "part": 7,
+  "section": "Gap Up, Then Double Top",
+  "abbr": "GU DT"
+ },
+ {
+  "part": 7,
+  "section": "Gap Up, Double Top Failed",
+  "abbr": "GU DT F"
+ },
+ {
+  "part": 7,
+  "section": "Gap Up, Then High 2 Bull Flag",
+  "abbr": "GU H2"
+ },
+ {
+  "part": 7,
+  "section": "Gap Up and Failed High 2 Bull Flag",
+  "abbr": "GU H2 F"
+ },
+ {
+  "part": 7,
+  "section": "Gap Up and Low 2 Top",
+  "abbr": "GU L2"
+ },
+ {
+  "part": 7,
+  "section": "Gap Up and Failed Low 2 Top, Then Bull Trend Resumed",
+  "abbr": "GU L2 F"
+ },
+ {
+  "part": 8,
+  "section": "Gap Up and Opening Reversal Up From 60 min EMA",
+  "abbr": "GU ORU 60ma"
+ },
+ {
+  "part": 8,
+  "section": "Gap Up and Failed Opening Reversal Up From 60 min EMA",
+  "abbr": "GU ORU 60ma F"
+ },
+ {
+  "part": 8,
+  "section": "Gap Up and Sell Climax, Then Reversal Up",
+  "abbr": "GU SX"
+ },
+ {
+  "part": 8,
+  "section": "Gap Up and Sell Climax, Then Reversal Up, Failed",
+  "abbr": "GU SX F"
+ },
+ {
+  "part": 8,
+  "section": "Gap Up and Bear Trend From The Open",
+  "abbr": "GU T1B D"
+ },
+ {
+  "part": 8,
+  "section": "Gap Up and Bear Trend From The Open, Then Reversal",
+  "abbr": "GU T1B D Rev"
+ },
+ {
+  "part": 8,
+  "section": "Gap Up and Bear Trend From The Open Then Trading Range",
+  "abbr": "GU T1B D TR"
+ },
+ {
+  "part": 8,
+  "section": "Gap Up and Bull Trend From The Open",
+  "abbr": "GU T1B U"
+ },
+ {
+  "part": 8,
+  "section": "Gap Up and Bull Trend From The Open, Then Reversal",
+  "abbr": "GU T1B U Rev"
+ },
+ {
+  "part": 8,
+  "section": "Gap Up and Bull Trend From The Open, Then Trading Range",
+  "abbr": "GU T1B U TR"
+ },
+ {
+  "part": 8,
+  "section": "Gap Up and Bull Trap",
+  "abbr": "GU Trap BL"
+ },
+ {
+  "part": 8,
+  "section": "Gap Up and Bear Trap",
+  "abbr": "GU Trap BR"
+ },
+ {
+  "part": 8,
+  "section": "Gap Up and TR Open, and Trading Range Day",
+  "abbr": "GU TRO and TR Day"
+ },
+ {
+  "part": 8,
+  "section": "Gap Up, TR Open and Bull BO",
+  "abbr": "GU TRO BL BO"
+ },
+ {
+  "part": 8,
+  "section": "Gap Up, TR Open and Failed Bull BO",
+  "abbr": "GU TRO BL BO F"
+ },
+ {
+  "part": 8,
+  "section": "Gap Up, TR Open and Bear BO",
+  "abbr": "GU TRO BR BO"
+ },
+ {
+  "part": 8,
+  "section": "Gap Up, TR Open and Failed Bear BO",
+  "abbr": "GU TRO BR BO F"
+ },
+ {
+  "part": 8,
+  "section": "Gap Up and TR Open, Triangle, Bull Breakout",
+  "abbr": "GU TRO Tri BL BO"
+ },
+ {
+  "part": 8,
+  "section": "Gap Up and TR Open, Triangle, Failed Bull Breakout",
+  "abbr": "GU TRO Tri BL BO F"
+ },
+ {
+  "part": 8,
+  "section": "Gap Up and TR Open, Triangle, Bear Breakout",
+  "abbr": "GU TRO Tri BR BO"
+ },
+ {
+  "part": 8,
+  "section": "Gap Up and TR Open, Triangle, Failed Bear Breakout",
+  "abbr": "GU TRO Tri BR BO F"
+ },
+ {
+  "part": 8,
+  "section": "Gap Up and Selloff to Wedge Bottom",
+  "abbr": "GU W D BL BO"
+ },
+ {
+  "part": 8,
+  "section": "Gap Up and Selloff to Wedge Bottom, but Bull BO Failed",
+  "abbr": "GU W D BL BO F"
+ },
+ {
+  "part": 8,
+  "section": "Gap Up and Selloff to Wedge Bottom, but Bear BO",
+  "abbr": "GU W D BR BO"
+ },
+ {
+  "part": 8,
+  "section": "Gap Up and Selloff to Wedge Bottom, but Bear BO Failed, and Bull Trend Resumed",
+  "abbr": "GU W D BR BO F"
+ },
+ {
+  "part": 8,
+  "section": "Gap Up and Parabolic Wedge Bottom",
+  "abbr": "GU W D P"
+ },
+ {
+  "part": 8,
+  "section": "Gap Up and Failed Parabolic Wedge Bottom",
+  "abbr": "GU W D P F"
+ },
+ {
+  "part": 8,
+  "section": "Gap Up and Wedge Top",
+  "abbr": "GU W U BR BO"
+ },
+ {
+  "part": 8,
+  "section": "Gap Up and Wedge Top, but Bull BO and Bull Trend Resumed",
+  "abbr": "GU W U BL BO"
+ },
+ {
+  "part": 8,
+  "section": "Gap Up and Wedge Top, but Bull BO Failed, and Reversed Down",
+  "abbr": "GU W U BL BO F"
+ },
+ {
+  "part": 8,
+  "section": "Gap Up and Rally to Wedge Top, but Bear BO Failed",
+  "abbr": "GD W U BR BO F"
+ },
+ {
+  "part": 8,
+  "section": "Gap Up and Parabolic Wedge Top",
+  "abbr": "GU W U P"
+ },
+ {
+  "part": 8,
+  "section": "Gap Up and Failed Parabolic Wedge Top",
+  "abbr": "GU W U P F"
+ },
+ {
+  "part": 9,
+  "section": "High 1 Bull Flag",
+  "abbr": "H1"
+ },
+ {
+  "part": 9,
+  "section": "High 2 and 3 Bull Flags and Bottoms",
+  "abbr": "H2 and 3"
+ },
+ {
+  "part": 9,
+  "section": "High 4 Bull Flags and Bottoms",
+  "abbr": "H4"
+ },
+ {
+  "part": 9,
+  "section": "Head and Shoulders Bottom",
+  "abbr": "HSB"
+ },
+ {
+  "part": 9,
+  "section": "Failed Head and Shoulders Bottom",
+  "abbr": "HSB F"
+ },
+ {
+  "part": 9,
+  "section": "Head and Shoulders Top",
+  "abbr": "HST"
+ },
+ {
+  "part": 9,
+  "section": "Failed Head and Shoulders Top",
+  "abbr": "HST F"
+ },
+ {
+  "part": 9,
+  "section": "Higher Time Frame Buy and Sell Signals",
+  "abbr": "HTF B and S Signals"
+ },
+ {
+  "part": 9,
+  "section": "Higher Time Frame Charts",
+  "abbr": "HTF Charts"
+ },
+ {
+  "part": 9,
+  "section": "ii Consecutive Inside Bars, Bull Trend, Bull Breakout",
+  "abbr": "ii BLT BL BO"
+ },
+ {
+  "part": 9,
+  "section": "ii Consecutive Inside Bars, Bull Trend, Failed Bull Breakout",
+  "abbr": "ii BLT BL BO F"
+ },
+ {
+  "part": 9,
+  "section": "ii Consecutive Inside Bars, Bull Trend, Bear Breakout",
+  "abbr": "ii BLT BR BO"
+ },
+ {
+  "part": 9,
+  "section": "ii Consecutive Inside Bars, Bull Trend, Failed Bear Breakout",
+  "abbr": "ii BLT BR BO F"
+ },
+ {
+  "part": 9,
+  "section": "ii Consecutive Inside Bars, Bear Trend, Bull Breakout",
+  "abbr": "ii BRT BL BO"
+ },
+ {
+  "part": 9,
+  "section": "ii Consecutive Inside Bars, Bear Trend, Failed Bull Breakout",
+  "abbr": "ii BRT BL BO F"
+ },
+ {
+  "part": 9,
+  "section": "ii Consecutive Inside Bars, Bear Trend, Bear Breakout",
+  "abbr": "ii BRT BR BO"
+ },
+ {
+  "part": 9,
+  "section": "ii Consecutive Inside Bars, Bear Trend, Failed Bear Breakout",
+  "abbr": "ii BRT BR BO F"
+ },
+ {
+  "part": 9,
+  "section": "ioi Inside, Outside, Inside Sell Signal",
+  "abbr": "ioi D"
+ },
+ {
+  "part": 9,
+  "section": "ioi Inside, Outside, Inside Sell Signal, but Failed",
+  "abbr": "ioi D F"
+ },
+ {
+  "part": 9,
+  "section": "ioi Inside, Outside, Inside Buy Signal",
+  "abbr": "ioi U"
+ },
+ {
+  "part": 9,
+  "section": "ioi Inside, Outside, Inside Buy Signal, but Failed",
+  "abbr": "ioi U F"
+ },
+ {
+  "part": 9,
+  "section": "Inside Day",
+  "abbr": "Inside Day"
+ },
+ {
+  "part": 9,
+  "section": "Inside Day But Late Breakout",
+  "abbr": "Inside Day F"
+ },
+ {
+  "part": 9,
+  "section": "Island Bottom",
+  "abbr": "Island Bottom"
+ },
+ {
+  "part": 9,
+  "section": "Island Bottom, but Gap Up Closed",
+  "abbr": "Island Bottom F"
+ },
+ {
+  "part": 9,
+  "section": "Island Top",
+  "abbr": "Island Top"
+ },
+ {
+  "part": 9,
+  "section": "Island Top but Gap Down Closed",
+  "abbr": "Island Top F"
+ },
+ {
+  "part": 9,
+  "section": "Low 1 Bear Flag",
+  "abbr": "L1"
+ },
+ {
+  "part": 9,
+  "section": "Low 2 and 3 Bear Flags and Tops",
+  "abbr": "L2 and 3"
+ },
+ {
+  "part": 9,
+  "section": "Low 4 Bear Flags and Tops",
+  "abbr": "L4"
+ },
+ {
+  "part": 9,
+  "section": "Ledge Bottom",
+  "abbr": "Ledge Bottom"
+ },
+ {
+  "part": 9,
+  "section": "Ledge Top",
+  "abbr": "Ledge Top"
+ },
+ {
+  "part": 9,
+  "section": "Limit Down",
+  "abbr": "Limit Down"
+ },
+ {
+  "part": 9,
+  "section": "Limit Order Bears",
+  "abbr": "Limit Order Bears"
+ },
+ {
+  "part": 9,
+  "section": "Limit Order Bulls",
+  "abbr": "Limit Order Bulls"
+ },
+ {
+  "part": 9,
+  "section": "Limit Order Market",
+  "abbr": "Limit Order Market"
+ },
+ {
+  "part": 9,
+  "section": "Limit Up",
+  "abbr": "Limit Up"
+ },
+ {
+  "part": 9,
+  "section": "Line Overshoot and Undershoot",
+  "abbr": "Line Overshoot and Undershoot"
+ },
+ {
+  "part": 9,
+  "section": "Long Liquidation",
+  "abbr": "Long Liquidation"
+ },
+ {
+  "part": 10,
+  "section": "Moving Average 20 Gap Bar Buy",
+  "abbr": "MA 20 GB B"
+ },
+ {
+  "part": 10,
+  "section": "Moving Average 20 Gap Bar Buy, Failed",
+  "abbr": "MA 20 GB B F"
+ },
+ {
+  "part": 10,
+  "section": "Moving Average 20 Gap Bar Sell",
+  "abbr": "MA 20 GB S"
+ },
+ {
+  "part": 10,
+  "section": "Moving Average 20 Gap Bar Sell, Failed",
+  "abbr": "MA 20 GB S F"
+ },
+ {
+  "part": 10,
+  "section": "Moving Average Pullback in Bull Trend",
+  "abbr": "MA B in BL"
+ },
+ {
+  "part": 10,
+  "section": "Moving Average Pullback in Bear Trend",
+  "abbr": "MA S in BR"
+ },
+ {
+  "part": 10,
+  "section": "Moving Average Gap Bars in Bull Trend",
+  "abbr": "MAG BL"
+ },
+ {
+  "part": 10,
+  "section": "Moving Average Gap Bars in Bull Trend, but Became Bear Trend",
+  "abbr": "MAG BL F"
+ },
+ {
+  "part": 10,
+  "section": "Moving Average Gap Bars in Bear Trend",
+  "abbr": "MAG BR"
+ },
+ {
+  "part": 10,
+  "section": "Moving Average Gap Bars in Bear Trend, but Became Bull Trend",
+  "abbr": "MAG BR F"
+ },
+ {
+  "part": 10,
+  "section": "Micro Emini",
+  "abbr": "Micro Emini"
+ },
+ {
+  "part": 10,
+  "section": "Micro Patterns",
+  "abbr": "Micro Patterns"
+ },
+ {
+  "part": 10,
+  "section": "Midday Reversal Up",
+  "abbr": "Midday Rev BL"
+ },
+ {
+  "part": 10,
+  "section": "Failed Midday Reversal Up",
+  "abbr": "Midday Rev BL F"
+ },
+ {
+  "part": 10,
+  "section": "Midday Reversal Up Then Trading Range",
+  "abbr": "Midday Rev BL TR"
+ },
+ {
+  "part": 10,
+  "section": "Midday Reversal Down",
+  "abbr": "Midday Rev BR"
+ },
+ {
+  "part": 10,
+  "section": "Failed Midday Reversal Down",
+  "abbr": "Midday Rev BR F"
+ },
+ {
+  "part": 10,
+  "section": "Midday Reversal Down Then Trading Range",
+  "abbr": "Midday Rev BR TR"
+ },
+ {
+  "part": 10,
+  "section": "Midpoint of Day's Range",
+  "abbr": "Midpoint Range"
+ },
+ {
+  "part": 10,
+  "section": "Minor Bottoms",
+  "abbr": "Minor Bottoms"
+ },
+ {
+  "part": 10,
+  "section": "Minor Bottoms Become Major",
+  "abbr": "Minor Bottoms Become Major"
+ },
+ {
+  "part": 10,
+  "section": "Minor Tops",
+  "abbr": "Minor Tops"
+ },
+ {
+  "part": 10,
+  "section": "Minor Tops Become Major",
+  "abbr": "Minor Tops Become Major"
+ },
+ {
+  "part": 10,
+  "section": "Measured Move Down",
+  "abbr": "MM D"
+ },
+ {
+  "part": 10,
+  "section": "Measured Move from High or Low to Open",
+  "abbr": "MM from H or L to open"
+ },
+ {
+  "part": 10,
+  "section": "Leg 1 = Leg 2 Measured Move",
+  "abbr": "MM L1 = L2"
+ },
+ {
+  "part": 10,
+  "section": "Measured Move up",
+  "abbr": "MM U"
+ },
+ {
+  "part": 10,
+  "section": "Measured Move Based on Actual Risk and Implied Risk",
+  "abbr": "MM AR and IR"
+ },
+ {
+  "part": 10,
+  "section": "Minor Reversal Down so Bull Flag or Bear Leg in Trading Range",
+  "abbr": "MRV D"
+ },
+ {
+  "part": 10,
+  "section": "Minor Reversal Up so Bear Flag or Bull Leg in Trading Range",
+  "abbr": "MRV U"
+ },
+ {
+  "part": 10,
+  "section": "Major Trend Reversal Up from Double Bottom",
+  "abbr": "MTR DB"
+ },
+ {
+  "part": 10,
+  "section": "Major Trend Reversal Up from Double Bottom, but Failed",
+  "abbr": "MTR DB F"
+ },
+ {
+  "part": 10,
+  "section": "Major Trend Reversal Down from Double Top",
+  "abbr": "MTR DT"
+ },
+ {
+  "part": 10,
+  "section": "Major Trend Reversal Down from Double Top, but Failed",
+  "abbr": "MTR DT F"
+ },
+ {
+  "part": 10,
+  "section": "Major Trend Reversal Down from Higher High",
+  "abbr": "MTR HH"
+ },
+ {
+  "part": 10,
+  "section": "Major Trend Reversal Down From Higher High, but Failed",
+  "abbr": "MTR HH F"
+ },
+ {
+  "part": 10,
+  "section": "Major Trend Reversal Up From Higher Low",
+  "abbr": "MTR HL"
+ },
+ {
+  "part": 10,
+  "section": "Major Trend Reversal Up From Higher Low That Was a Double Bottom",
+  "abbr": "MTR HL DB"
+ },
+ {
+  "part": 10,
+  "section": "Major Trend Reversal Up From Double Bottom Higher Low, but Failed",
+  "abbr": "MTR HL DB F"
+ },
+ {
+  "part": 10,
+  "section": "Major Trend Reversal Higher Low, Failed",
+  "abbr": "MTR HL F"
+ },
+ {
+  "part": 10,
+  "section": "Major Trend Reversal Up From Higher Low and Head And Shoulders Bottom",
+  "abbr": "MTR HL HSB"
+ },
+ {
+  "part": 10,
+  "section": "Major Trend Reversal Down From Lower High",
+  "abbr": "MTR LH"
+ },
+ {
+  "part": 10,
+  "section": "Major Trend Reversal Down From Lower High, but Failed",
+  "abbr": "MTR LH F"
+ },
+ {
+  "part": 10,
+  "section": "Major Trend Reversal Down From Lower High That Was a Double Top",
+  "abbr": "MTR LH DT"
+ },
+ {
+  "part": 10,
+  "section": "Major Trend Reversal Down From Double Top Lower High, but Failed",
+  "abbr": "MTR LH DT F"
+ },
+ {
+  "part": 10,
+  "section": "Major Trend Reversal Down From Lower High and Head And Shoulders Top",
+  "abbr": "MTR LH HST"
+ },
+ {
+  "part": 10,
+  "section": "Major Trend Reversal Up From Lower Low",
+  "abbr": "MTR LL"
+ },
+ {
+  "part": 10,
+  "section": "Major Trend Reversal Up From Lower Low, but Failed",
+  "abbr": "MTR LL F"
+ },
+ {
+  "part": 11,
+  "section": "Nested Pattern",
+  "abbr": "Nested"
+ },
+ {
+  "part": 11,
+  "section": "Next X Points",
+  "abbr": "Next X Points"
+ },
+ {
+  "part": 11,
+  "section": "Open Was the High of the Day",
+  "abbr": "O = H"
+ },
+ {
+  "part": 11,
+  "section": "Open Was the High of the Day, Failed",
+  "abbr": "O = H F"
+ },
+ {
+  "part": 11,
+  "section": "Open Was the Low of the Day",
+  "abbr": "O = L"
+ },
+ {
+  "part": 11,
+  "section": "Open Was the Low of the Day, Failed",
+  "abbr": "O = L F"
+ },
+ {
+  "part": 11,
+  "section": "Open Had Many Bull Bars",
+  "abbr": "O BLB"
+ },
+ {
+  "part": 11,
+  "section": "Open Had Many Bear Bars",
+  "abbr": "O BRB"
+ },
+ {
+  "part": 11,
+  "section": "Open Was Limit Order Market",
+  "abbr": "O LOM"
+ },
+ {
+  "part": 11,
+  "section": "Outside Down Day",
+  "abbr": "OD"
+ },
+ {
+  "part": 11,
+  "section": "Outside Down Day Almost Formed or Test of Yesterday's Low",
+  "abbr": "OD Almost or Test LOY"
+ },
+ {
+  "part": 11,
+  "section": "Outside Down Day Almost, but Failed and Got Outside Down",
+  "abbr": "OD Almost, Failed"
+ },
+ {
+  "part": 11,
+  "section": "Outside Down Bar",
+  "abbr": "OD Bar"
+ },
+ {
+  "part": 11,
+  "section": "Outside Down and Then Outside Up",
+  "abbr": "ODU"
+ },
+ {
+  "part": 11,
+  "section": "Consecutive Outside Bars, Bull Flag",
+  "abbr": "OO BL Flag"
+ },
+ {
+  "part": 11,
+  "section": "Consecutive Outside Bars, Bull Flag but Failed",
+  "abbr": "OO BL Flag F"
+ },
+ {
+  "part": 11,
+  "section": "Consecutive Outside Bars, Bottom",
+  "abbr": "OO Bottom"
+ },
+ {
+  "part": 11,
+  "section": "Consecutive Outside Bars, Failed Bottom",
+  "abbr": "OO Bottom F"
+ },
+ {
+  "part": 11,
+  "section": "Consecutive Outside Bars, Bear Flag",
+  "abbr": "OO BR Flag"
+ },
+ {
+  "part": 11,
+  "section": "Consecutive Outside Bars, Bear Flag but Failed",
+  "abbr": "OO BR Flag F"
+ },
+ {
+  "part": 11,
+  "section": "Consecutive Outside Bars on Daily Chart",
+  "abbr": "OO Day"
+ },
+ {
+  "part": 11,
+  "section": "Consecutive Outside Bars, Top",
+  "abbr": "OO Top"
+ },
+ {
+  "part": 11,
+  "section": "Consecutive Outside Bars, Failed Top",
+  "abbr": "OO Top F"
+ },
+ {
+  "part": 11,
+  "section": "Consecutive Outside Bars in Tight Trading Range",
+  "abbr": "OO TTR"
+ },
+ {
+  "part": 11,
+  "section": "3 or More Consecutive Outside Bars",
+  "abbr": "OOO and OOOO"
+ },
+ {
+  "part": 11,
+  "section": "OOO and OOOO Day",
+  "abbr": "OOO and OOOO Day"
+ },
+ {
+  "part": 11,
+  "section": "Options",
+  "abbr": "Options"
+ },
+ {
+  "part": 11,
+  "section": "Stop and Limit Order Entries",
+  "abbr": "Orders Stop and Limit"
+ },
+ {
+  "part": 11,
+  "section": "Outside Up Day",
+  "abbr": "OU"
+ },
+ {
+  "part": 11,
+  "section": "Outside Up Day Almost Formed or Test of Yesterday's High",
+  "abbr": "OU Almost or Test HOY"
+ },
+ {
+  "part": 11,
+  "section": "Outside Up Day Almost, but Failed and Got Outside Up",
+  "abbr": "OU Almost, Failed"
+ },
+ {
+  "part": 11,
+  "section": "Outside Up Bar",
+  "abbr": "OU Bar"
+ },
+ {
+  "part": 11,
+  "section": "Outside Up Day and Then Outside Down",
+  "abbr": "OUD"
+ },
+ {
+  "part": 11,
+  "section": "Probability Is Low So Risk/Reward is Good",
+  "abbr": "P L so Big Reward"
+ },
+ {
+  "part": 11,
+  "section": "Pullback",
+  "abbr": "PB"
+ },
+ {
+  "part": 11,
+  "section": "Pullback to 5%, 10%, or 20% from all-time high",
+  "abbr": "PB 5, 10, or 20%"
+ },
+ {
+  "part": 11,
+  "section": "Pullback 50%",
+  "abbr": "PB 50%"
+ },
+ {
+  "part": 11,
+  "section": "Pullback to above Bear Breakout",
+  "abbr": "PB Above BR BO"
+ },
+ {
+  "part": 11,
+  "section": "Pullback to above Bear Breakout Failed and Became Measuring Gap",
+  "abbr": "PB Above BR BO F"
+ },
+ {
+  "part": 11,
+  "section": "Pullback to below Bull Breakout",
+  "abbr": "PB Below BL BO"
+ },
+ {
+  "part": 11,
+  "section": "Pullback to below Bull Breakout Failed and Became Measuring Gap",
+  "abbr": "PB Below BL BO F"
+ },
+ {
+  "part": 11,
+  "section": "Deep PB in Bull Trend",
+  "abbr": "PB Deep BL"
+ },
+ {
+  "part": 11,
+  "section": "Deep PB in Bear Trend",
+  "abbr": "PB Deep BR"
+ },
+ {
+  "part": 11,
+  "section": "Pullback Down In Bull Trend That Is Endless",
+  "abbr": "PB Endless D"
+ },
+ {
+  "part": 11,
+  "section": "Pullback Down In Bull Trend that Is Endless, but Bull Trend Resumed",
+  "abbr": "PB Endless D F"
+ },
+ {
+  "part": 11,
+  "section": "Pullback Up In Bear Trend That is Endless",
+  "abbr": "PB Endless U"
+ },
+ {
+  "part": 11,
+  "section": "Pullback Up In Bear Trend That is Endless, but Bear Trend Resumed",
+  "abbr": "PB Endless U F"
+ },
+ {
+  "part": 11,
+  "section": "Pullback to Bull Trend Line",
+  "abbr": "PB TL BL"
+ },
+ {
+  "part": 11,
+  "section": "Pullback to Bear Trend Line",
+  "abbr": "PB TL BR"
+ },
+ {
+  "part": 11,
+  "section": "Buying Pressure",
+  "abbr": "Pressure Buying"
+ },
+ {
+  "part": 11,
+  "section": "Buying Pressure, Failed, Got Bear BO",
+  "abbr": "Pressure Buying F"
+ },
+ {
+  "part": 11,
+  "section": "Selling Pressure",
+  "abbr": "Pressure Selling"
+ },
+ {
+  "part": 11,
+  "section": "Selling Pressure, Failed, Got Bull BO",
+  "abbr": "Pressure Selling F"
+ },
+ {
+  "part": 12,
+  "section": "Reversal Down",
+  "abbr": "Rev D"
+ },
+ {
+  "part": 12,
+  "section": "Reversal Down Failed and Bull Trend Resumed",
+  "abbr": "Rev D F"
+ },
+ {
+  "part": 12,
+  "section": "Reversal Down and then Reversal Up",
+  "abbr": "Rev D U"
+ },
+ {
+  "part": 12,
+  "section": "Many Abrupt Reversals",
+  "abbr": "Rev Many"
+ },
+ {
+  "part": 12,
+  "section": "Reversal Up",
+  "abbr": "Rev U"
+ },
+ {
+  "part": 12,
+  "section": "Reversal Up and then Reversal Down",
+  "abbr": "Rev U D"
+ },
+ {
+  "part": 12,
+  "section": "Reversal Up Failed and Bear Trend Resumed",
+  "abbr": "Rev U F"
+ },
+ {
+  "part": 12,
+  "section": "Reversing Position",
+  "abbr": "Reversing Position"
+ },
+ {
+  "part": 12,
+  "section": "Risk Happens Fast (Type of Fast Reversal)",
+  "abbr": "Risk Happens Fast"
+ },
+ {
+  "part": 12,
+  "section": "Rollover",
+  "abbr": "Rollover"
+ },
+ {
+  "part": 12,
+  "section": "Bull BO above Tight TR Bear Flag (Rounding Bottom)",
+  "abbr": "Rounding Bottom"
+ },
+ {
+  "part": 12,
+  "section": "Bear BO below Tight TR Bull Flag (Rounding Top)",
+  "abbr": "Rounding Top"
+ },
+ {
+  "part": 12,
+  "section": "Bad Buy Signal Bar",
+  "abbr": "SB B Bad"
+ },
+ {
+  "part": 12,
+  "section": "Buy Signal Bar, but Bad Context",
+  "abbr": "SB B Bad Context"
+ },
+ {
+  "part": 12,
+  "section": "Big Buy Signal Bar",
+  "abbr": "SB B Big"
+ },
+ {
+  "part": 12,
+  "section": "Good Buy Signal Bar",
+  "abbr": "SB B Good"
+ },
+ {
+  "part": 12,
+  "section": "Buy Signal Bar on Higher Time Frame",
+  "abbr": "SB B HTF"
+ },
+ {
+  "part": 12,
+  "section": "Small Buy Signal Bar",
+  "abbr": "SB B Small"
+ },
+ {
+  "part": 12,
+  "section": "Signal Bar, 2nd Buy Signal",
+  "abbr": "SB B2"
+ },
+ {
+  "part": 12,
+  "section": "Signal Bar, Failed 2nd Buy Signal",
+  "abbr": "SB B2 F"
+ },
+ {
+  "part": 12,
+  "section": "Signal Bar, Avoid 3rd Buy Signal",
+  "abbr": "SB B3 Avoid"
+ },
+ {
+  "part": 12,
+  "section": "Outside Down Sell Signal Bar",
+  "abbr": "SB OD"
+ },
+ {
+  "part": 12,
+  "section": "Outside Up Buy Signal Bar",
+  "abbr": "SB OU"
+ },
+ {
+  "part": 12,
+  "section": "Bad Sell Signal Bar",
+  "abbr": "SB S Bad"
+ },
+ {
+  "part": 12,
+  "section": "Sell Signal Bar, but Bad Context",
+  "abbr": "SB S Bad Context"
+ },
+ {
+  "part": 12,
+  "section": "Big Sell Signal Bar",
+  "abbr": "SB S Big"
+ },
+ {
+  "part": 12,
+  "section": "Good Sell Signal Bar",
+  "abbr": "SB S Good"
+ },
+ {
+  "part": 12,
+  "section": "Sell Signal Bar on Higher Time Frame",
+  "abbr": "SB S HTF"
+ },
+ {
+  "part": 12,
+  "section": "Small Sell Signal Bar",
+  "abbr": "SB S Small"
+ },
+ {
+  "part": 12,
+  "section": "Signal Bar, 2nd Sell Signal",
+  "abbr": "SB S2"
+ },
+ {
+  "part": 12,
+  "section": "Signal Bar, Failed 2nd Sell Signal",
+  "abbr": "SB S2 F"
+ },
+ {
+  "part": 12,
+  "section": "Signal Bar, Avoid 3rd Sell Signal",
+  "abbr": "SB S3 Avoid"
+ },
+ {
+  "part": 12,
+  "section": "Strong Signal Bar",
+  "abbr": "SB Strong"
+ },
+ {
+  "part": 12,
+  "section": "Weak Signal Bar",
+  "abbr": "SB Weak"
+ },
+ {
+  "part": 12,
+  "section": "Scaling Into Longs",
+  "abbr": "Scale in BL"
+ },
+ {
+  "part": 12,
+  "section": "Scaling Into Longs, but Lost Money",
+  "abbr": "Scale in BL Lose"
+ },
+ {
+  "part": 12,
+  "section": "Scaling Into Shorts",
+  "abbr": "Scale In BR"
+ },
+ {
+  "part": 12,
+  "section": "Scaling Into Shorts, but Lost Money",
+  "abbr": "Scale in BR Lose"
+ },
+ {
+  "part": 12,
+  "section": "Short Covering",
+  "abbr": "Short Covering"
+ },
+ {
+  "part": 13,
+  "section": "Small Pullback Bull Trend",
+  "abbr": "SPBL"
+ },
+ {
+  "part": 13,
+  "section": "Small Pullback Bull Trend That Reversed Down",
+  "abbr": "SPBL F"
+ },
+ {
+  "part": 13,
+  "section": "Small Pullback Bull Trend in Trading Range Day",
+  "abbr": "SPBL TRD"
+ },
+ {
+  "part": 13,
+  "section": "Small Pullback Bear Trend",
+  "abbr": "SPBR"
+ },
+ {
+  "part": 13,
+  "section": "Small Pullback Bear Trend That Reversed Up",
+  "abbr": "SPBR F"
+ },
+ {
+  "part": 13,
+  "section": "Small Pullback Bear Leg in Trading Range Day",
+  "abbr": "SPBR TRD"
+ },
+ {
+  "part": 13,
+  "section": "Support and Resistance",
+  "abbr": "SR"
+ },
+ {
+  "part": 13,
+  "section": "Support and Resistance on Daily, Weekly, and Monthly Charts",
+  "abbr": "SR DWM"
+ },
+ {
+  "part": 13,
+  "section": "Stairs in Bear Trend",
+  "abbr": "Stairs D"
+ },
+ {
+  "part": 13,
+  "section": "Stairs in Bull Trend and then in Bear Trend",
+  "abbr": "Stairs U then D"
+ },
+ {
+  "part": 13,
+  "section": "Sell The Close Bear Trend",
+  "abbr": "STC"
+ },
+ {
+  "part": 13,
+  "section": "Sell The Close Bear Trend, but Disappointment Bears",
+  "abbr": "STC DBR"
+ },
+ {
+  "part": 13,
+  "section": "Sell The Close Bear Trend, Disappointment Bar, but Bear Trend Continued",
+  "abbr": "STC DBR F"
+ },
+ {
+  "part": 13,
+  "section": "Sell The Close, but Disappointed Bears Lost Money",
+  "abbr": "STC DBR Lose"
+ },
+ {
+  "part": 13,
+  "section": "Sell The Close Bear Trend With Deep Pullback",
+  "abbr": "STC Deep PB"
+ },
+ {
+  "part": 13,
+  "section": "Sell The Close Failed and Became Exhaustion Gap",
+  "abbr": "STC EG"
+ },
+ {
+  "part": 13,
+  "section": "Sell The Close Selloff at the End Of The Day",
+  "abbr": "STC EOD"
+ },
+ {
+  "part": 13,
+  "section": "Sell The Close Selloff at the End, but started Too Early",
+  "abbr": "STC EOD Too Early"
+ },
+ {
+  "part": 13,
+  "section": "Sell The Close in TR so Better to B Close of Bear Bars",
+  "abbr": "STC TR so BTC"
+ },
+ {
+  "part": 13,
+  "section": "Stopped Out of a Trade",
+  "abbr": "Stopped Out"
+ },
+ {
+  "part": 13,
+  "section": "Stopped Out of a Trade and then Reverse",
+  "abbr": "Stopped Out and Reverse"
+ },
+ {
+  "part": 13,
+  "section": "Stop, Breakeven",
+  "abbr": "Stop Breakeven"
+ },
+ {
+  "part": 13,
+  "section": "In B The Close, Stop 4 - 8 Ticks below Bull Bar",
+  "abbr": "Stop 4t BTC"
+ },
+ {
+  "part": 13,
+  "section": "In S The Close, Stop 4 - 8 Ticks above Bear Bar",
+  "abbr": "Stop 4t STC"
+ },
+ {
+  "part": 13,
+  "section": "Stop Slippage",
+  "abbr": "Stop Slippage"
+ },
+ {
+  "part": 13,
+  "section": "Stop that is Wider than Usual",
+  "abbr": "Stop Wide"
+ },
+ {
+  "part": 13,
+  "section": "Bull Streak (Bullish Behavior That Repeats for a Long Time)",
+  "abbr": "Streak BL"
+ },
+ {
+  "part": 13,
+  "section": "Bull Streak on Higher Time Frames",
+  "abbr": "Streak BL HTF"
+ },
+ {
+  "part": 13,
+  "section": "Bear Streak (Bearish Behavior That Repeats for a Long Time)",
+  "abbr": "Streak BR"
+ },
+ {
+  "part": 13,
+  "section": "Bear Streak on Higher Time Frames",
+  "abbr": "Streak BR HTF"
+ },
+ {
+  "part": 13,
+  "section": "Swing Trading",
+  "abbr": "Swing Trading"
+ },
+ {
+  "part": 13,
+  "section": "Sell Climax",
+  "abbr": "SX"
+ },
+ {
+  "part": 13,
+  "section": "Consecutive Sell Climaxes",
+  "abbr": "SX CC"
+ },
+ {
+  "part": 13,
+  "section": "Sell Climax, Then Deep Pullback (bounce)",
+  "abbr": "SX Deep PB"
+ },
+ {
+  "part": 13,
+  "section": "Exhaustive Sell Climax",
+  "abbr": "SX E"
+ },
+ {
+  "part": 13,
+  "section": "Sell Climax but Failed Reversal",
+  "abbr": "SX F"
+ },
+ {
+  "part": 13,
+  "section": "Sell Climax that Led to Measured Move Up",
+  "abbr": "SX MMU"
+ },
+ {
+  "part": 13,
+  "section": "Sell Climax Yesterday",
+  "abbr": "SX Y"
+ },
+ {
+  "part": 14,
+  "section": "Takeover",
+  "abbr": "Takeover"
+ },
+ {
+  "part": 14,
+  "section": "Time Frames",
+  "abbr": "TF"
+ },
+ {
+  "part": 14,
+  "section": "Ticks During Stock Market Crashes",
+  "abbr": "Ticks Crash"
+ },
+ {
+  "part": 14,
+  "section": "Ticks Below -1,000 in Bear Trend",
+  "abbr": "Ticks D"
+ },
+ {
+  "part": 14,
+  "section": "Ticks Below -1,000 and Reversal Up Without Divergence",
+  "abbr": "Ticks D F"
+ },
+ {
+  "part": 14,
+  "section": "Ticks Reaching 1,000 During Bull Trend",
+  "abbr": "Ticks U"
+ },
+ {
+  "part": 14,
+  "section": "Ticks Reaching 1,000 and Reversal Down Without Divergence",
+  "abbr": "Ticks U F"
+ },
+ {
+  "part": 14,
+  "section": "Early Bear BO Based on Time (Many Bear Bars)",
+  "abbr": "Time BO D"
+ },
+ {
+  "part": 14,
+  "section": "Early Bull BO Based on Time (Many Bull Bars)",
+  "abbr": "Time BO U"
+ },
+ {
+  "part": 14,
+  "section": "Buy Climax Based on Many Small Bull Bars",
+  "abbr": "Time BX"
+ },
+ {
+  "part": 14,
+  "section": "Sell Climax based Based on Many Small Bear Bars",
+  "abbr": "Time SX"
+ },
+ {
+  "part": 14,
+  "section": "Breakout above Bear Trend Line",
+  "abbr": "TL BO above BR TL"
+ },
+ {
+  "part": 14,
+  "section": "Breakout below Bull Trend Line",
+  "abbr": "TL BO below BL TL"
+ },
+ {
+  "part": 14,
+  "section": "Trend Lines Not The Same On Different Time Frames",
+  "abbr": "TL Different TF"
+ },
+ {
+  "part": 14,
+  "section": "Trend Line on Monthly Chart",
+  "abbr": "TL Month"
+ },
+ {
+  "part": 14,
+  "section": "Trend Line Overshoots",
+  "abbr": "TL Overshoots"
+ },
+ {
+  "part": 14,
+  "section": "Trading Range Reversals, 2nd B and S Signals",
+  "abbr": "TR 2BS 2SS"
+ },
+ {
+  "part": 14,
+  "section": "Trading Range Then Bull BO",
+  "abbr": "TR BL BO"
+ },
+ {
+  "part": 14,
+  "section": "Trading Range Bull Swing and Then Bear Swing",
+  "abbr": "TR BL then BR"
+ },
+ {
+  "part": 14,
+  "section": "Trading Range Then Bear BO",
+  "abbr": "TR BR BO"
+ },
+ {
+  "part": 14,
+  "section": "Trading Range Bear Swing and Then Bull Swing",
+  "abbr": "TR BR then BL"
+ },
+ {
+  "part": 14,
+  "section": "Tight Trading Range",
+  "abbr": "TR Tight"
+ },
+ {
+  "part": 14,
+  "section": "Tight Trading Range at 12:45 pm PST",
+  "abbr": "TT Tight 12:45"
+ },
+ {
+  "part": 14,
+  "section": "Trader's Equation",
+  "abbr": "Trader's Equation"
+ },
+ {
+  "part": 14,
+  "section": "Trap Is a Failed BO or Failed Signal",
+  "abbr": "Trap"
+ },
+ {
+  "part": 14,
+  "section": "2nd Leg Bull Trap (Failed Bull BO)",
+  "abbr": "Trap 2LT BL"
+ },
+ {
+  "part": 14,
+  "section": "2nd Leg Bull Trap, Failed",
+  "abbr": "Trap 2LT BL F"
+ },
+ {
+  "part": 14,
+  "section": "2nd Leg Bear Trap (Failed Bear BO)",
+  "abbr": "Trap 2LT BR"
+ },
+ {
+  "part": 14,
+  "section": "2nd Leg Bear Trap, Failed",
+  "abbr": "Trap 2LT BR F"
+ },
+ {
+  "part": 14,
+  "section": "Traps, 5 Ticks, 9 Ticks, 17 Ticks, 21 ticks, 41 ticks, and 81 Ticks",
+  "abbr": "Trap 5t 9t 17t 21t 41t 81t"
+ },
+ {
+  "part": 14,
+  "section": "Bull Trap",
+  "abbr": "Trap BL"
+ },
+ {
+  "part": 14,
+  "section": "Bull Trap Early in Bear Trend",
+  "abbr": "Trap BL Early BR Trend"
+ },
+ {
+  "part": 14,
+  "section": "Bull Trap, but Failed and Bull Continued",
+  "abbr": "Trap BL F"
+ },
+ {
+  "part": 14,
+  "section": "Bear Trap",
+  "abbr": "Trap BR"
+ },
+ {
+  "part": 14,
+  "section": "Bear Trap Early in Bull Trend",
+  "abbr": "Trap BR Early BL Trend"
+ },
+ {
+  "part": 14,
+  "section": "Bear Trap, but Failed and Bear Continued",
+  "abbr": "Trap BR F"
+ },
+ {
+  "part": 15,
+  "section": "Trading Range Day",
+  "abbr": "TRD"
+ },
+ {
+  "part": 15,
+  "section": "Trading Range Day with Late Bull Breakout",
+  "abbr": "TRD BL BO"
+ },
+ {
+  "part": 15,
+  "section": "Trading Range Day with Failed Late Bull Breakout",
+  "abbr": "TRD BL BO F"
+ },
+ {
+  "part": 15,
+  "section": "Trading Range Day with Failed Bull and Bear Breakouts",
+  "abbr": "TRD BL BR BO F"
+ },
+ {
+  "part": 15,
+  "section": "Bull Leg In Trading Range Day",
+  "abbr": "TRD BL Leg"
+ },
+ {
+  "part": 15,
+  "section": "Trading Range Day with Late Bear Breakout",
+  "abbr": "TRD BR BO"
+ },
+ {
+  "part": 15,
+  "section": "Trading Range Day with Failed Late Bear Breakout",
+  "abbr": "TRD BR BO F"
+ },
+ {
+  "part": 15,
+  "section": "Bear Leg In Trading Range Day",
+  "abbr": "TRD BR Leg"
+ },
+ {
+  "part": 15,
+  "section": "Trading Range with Midday Breakout Down",
+  "abbr": "TRD Midday BO D"
+ },
+ {
+  "part": 15,
+  "section": "Trading Range with Midday Breakout Up",
+  "abbr": "TRD Midday BO U"
+ },
+ {
+  "part": 15,
+  "section": "Trading Range Day, Close near Open so Doji Day",
+  "abbr": "TRD O Doji"
+ },
+ {
+  "part": 15,
+  "section": "Trading Range Day, Open in Exact Middle of Day's Range",
+  "abbr": "TRD O Middle"
+ },
+ {
+  "part": 15,
+  "section": "Trading Range Day, Late Rally Up to Test Open",
+  "abbr": "TRD O Test BL"
+ },
+ {
+  "part": 15,
+  "section": "Trading Range Day, Late Selloff Down to Test Open",
+  "abbr": "TRD O Test BR"
+ },
+ {
+  "part": 15,
+  "section": "Trading Range Doji on Weekly Chart",
+  "abbr": "TRD OOW Doji"
+ },
+ {
+  "part": 15,
+  "section": "Trading Range with 2 Support Levels below or 2 Resistance Levels Above",
+  "abbr": "TRD S/R x2"
+ },
+ {
+  "part": 15,
+  "section": "Small Day",
+  "abbr": "TRD Small Day"
+ },
+ {
+  "part": 15,
+  "section": "TR Day, Small Day Then Breakout and MM",
+  "abbr": "TRD Small Then MM"
+ },
+ {
+  "part": 15,
+  "section": "Trend: Bull",
+  "abbr": "Trend BL"
+ },
+ {
+  "part": 15,
+  "section": "Bull Trend on Daily Chart",
+  "abbr": "Trend BL Daily"
+ },
+ {
+  "part": 15,
+  "section": "Trend: Bear",
+  "abbr": "Trend BR"
+ },
+ {
+  "part": 15,
+  "section": "Bear Trend on Daily Chart",
+  "abbr": "Trend BR Daily"
+ },
+ {
+  "part": 15,
+  "section": "Trending Bull Closes",
+  "abbr": "Trending BL C"
+ },
+ {
+  "part": 15,
+  "section": "Trending Bear Closes",
+  "abbr": "Trending BR C"
+ },
+ {
+  "part": 15,
+  "section": "Trend Resumption Down",
+  "abbr": "TRES D"
+ },
+ {
+  "part": 15,
+  "section": "Trend Resumption Down Failed and Reversed Up",
+  "abbr": "TRES D F"
+ },
+ {
+  "part": 15,
+  "section": "Trend Resumption Up",
+  "abbr": "TRES U"
+ },
+ {
+  "part": 15,
+  "section": "Trend Resumption Up Failed and Reversed Down",
+  "abbr": "TRES U F"
+ },
+ {
+  "part": 15,
+  "section": "Trend Reversal Down",
+  "abbr": "TREV D"
+ },
+ {
+  "part": 15,
+  "section": "Trend Reversal Down Failed",
+  "abbr": "TREV D F"
+ },
+ {
+  "part": 15,
+  "section": "Trend Reversal Up",
+  "abbr": "TREV U"
+ },
+ {
+  "part": 15,
+  "section": "Trend Reversal Up Failed and Reversed Down",
+  "abbr": "TREV U F"
+ },
+ {
+  "part": 15,
+  "section": "Triangle, Bear Breakout",
+  "abbr": "Tri BR BO"
+ },
+ {
+  "part": 15,
+  "section": "Triangle, Failed Bear Breakout",
+  "abbr": "Tri BR BO F"
+ },
+ {
+  "part": 15,
+  "section": "Triangle, Bull Breakout",
+  "abbr": "Tri BL BO"
+ },
+ {
+  "part": 15,
+  "section": "Triangle, Failed Bull Breakout",
+  "abbr": "Tri BL BO F"
+ },
+ {
+  "part": 15,
+  "section": "Expanding Triangle",
+  "abbr": "Tri Expanding"
+ },
+ {
+  "part": 15,
+  "section": "Failed Expanding Triangle",
+  "abbr": "Tri Expanding F"
+ },
+ {
+  "part": 15,
+  "section": "Triple Bottom",
+  "abbr": "Triple Bottom"
+ },
+ {
+  "part": 15,
+  "section": "Triple Top",
+  "abbr": "Triple Top"
+ },
+ {
+  "part": 15,
+  "section": "Trending Trading Range Day Down",
+  "abbr": "TTRD D"
+ },
+ {
+  "part": 15,
+  "section": "Trending Trading Range Day Down, Then Bull Breakout",
+  "abbr": "TTRD D BL BO"
+ },
+ {
+  "part": 15,
+  "section": "Trending Trading Range Day Down, Then Bear Breakout",
+  "abbr": "TTRD D BR BO"
+ },
+ {
+  "part": 15,
+  "section": "Trending Trading Range Day Up",
+  "abbr": "TTRD U"
+ },
+ {
+  "part": 15,
+  "section": "Trending Trading Range Day Up, Then Bull Breakout",
+  "abbr": "TTRD U BL BO"
+ },
+ {
+  "part": 15,
+  "section": "Trend Trading Range Up, Then Bear Breakout",
+  "abbr": "TTRD U BR BO"
+ },
+ {
+  "part": 15,
+  "section": "V-Bottom",
+  "abbr": "V-Bottom"
+ },
+ {
+  "part": 15,
+  "section": "V-Bottom Failed",
+  "abbr": "V-Bottom F"
+ },
+ {
+  "part": 15,
+  "section": "V-Top",
+  "abbr": "V-Top"
+ },
+ {
+  "part": 15,
+  "section": "V-Top Failed",
+  "abbr": "V-Top F"
+ },
+ {
+  "part": 15,
+  "section": "Vacuum Test Selloff To Support",
+  "abbr": "Vacuum Test D"
+ },
+ {
+  "part": 15,
+  "section": "Vacuum Test Rally To Resistance",
+  "abbr": "Vacuum Test U"
+ },
+ {
+  "part": 16,
+  "section": "Wedge Bottom, 2nd Buy Signal",
+  "abbr": "W D 2BS"
+ },
+ {
+  "part": 16,
+  "section": "Wedge Bottom, Bad Shape",
+  "abbr": "W D Bad Shape"
+ },
+ {
+  "part": 16,
+  "section": "Wedge Bottom",
+  "abbr": "W D BL BO"
+ },
+ {
+  "part": 16,
+  "section": "Wedge Bottom, but Bull Breakout Failed",
+  "abbr": "W D BL BO F"
+ },
+ {
+  "part": 16,
+  "section": "Wedge Bottom but Bear BO or TR",
+  "abbr": "W D BR BO or TR"
+ },
+ {
+  "part": 16,
+  "section": "Wedge Bottom, but Bear BO Failed, Reversed Up",
+  "abbr": "W D BR BO F"
+ },
+ {
+  "part": 16,
+  "section": "Wedge Bottom With Double Bottom",
+  "abbr": "W D DB"
+ },
+ {
+  "part": 16,
+  "section": "Wedge Bottom With Double Bottom, but Bear Breakout",
+  "abbr": "W D DB F"
+ },
+ {
+  "part": 16,
+  "section": "Wedge Bottom Nested in Bigger Wedge Bottom",
+  "abbr": "W D Nested"
+ },
+ {
+  "part": 16,
+  "section": "Parabolic Wedge Bottom",
+  "abbr": "W D P"
+ },
+ {
+  "part": 16,
+  "section": "Parabolic Wedge Bottom, 2nd Buy Signal",
+  "abbr": "W D P 2BS"
+ },
+ {
+  "part": 16,
+  "section": "Parabolic Wedge Bottom, but Bear Breakout",
+  "abbr": "W D P F"
+ },
+ {
+  "part": 16,
+  "section": "Wedge Bottom, but Tight Bear Channel",
+  "abbr": "W D TC"
+ },
+ {
+  "part": 16,
+  "section": "Wedge Bottom, but Truncated",
+  "abbr": "W D Truncated"
+ },
+ {
+  "part": 16,
+  "section": "Wedge Bottom, Truncated, but Failed",
+  "abbr": "W D Truncated F"
+ },
+ {
+  "part": 16,
+  "section": "Wedge Top, 2nd Sell Signal",
+  "abbr": "W U 2SS"
+ },
+ {
+  "part": 16,
+  "section": "Wedge Top, Bad Shape",
+  "abbr": "W U Bad Shape"
+ },
+ {
+  "part": 16,
+  "section": "Wedge Top but Bull BO or TR",
+  "abbr": "W U BL BO or TR"
+ },
+ {
+  "part": 16,
+  "section": "Wedge Top, but Bull Breakout Failed, Reversed Down",
+  "abbr": "W U BL BO F"
+ },
+ {
+  "part": 16,
+  "section": "Wedge Top",
+  "abbr": "W U BR BO"
+ },
+ {
+  "part": 16,
+  "section": "Wedge Top, but Bear Breakout Failed",
+  "abbr": "W U BR BO F"
+ },
+ {
+  "part": 16,
+  "section": "Wedge Top With Double Top",
+  "abbr": "W U DT"
+ },
+ {
+  "part": 16,
+  "section": "Wedge Top With Double Top, but Bull Breakout",
+  "abbr": "W U DT F"
+ },
+ {
+  "part": 16,
+  "section": "Wedge Top Nested in Bigger Wedge Top",
+  "abbr": "W U Nested"
+ },
+ {
+  "part": 16,
+  "section": "Parabolic Wedge Top",
+  "abbr": "W U P"
+ },
+ {
+  "part": 16,
+  "section": "Parabolic Wedge Top, 2nd Sell Signal",
+  "abbr": "W U P 2SS"
+ },
+ {
+  "part": 16,
+  "section": "Parabolic Wedge Top, but Bull Breakout",
+  "abbr": "W U P F"
+ },
+ {
+  "part": 16,
+  "section": "Wedge Top, but Tight Bull Channel",
+  "abbr": "W U TC"
+ },
+ {
+  "part": 16,
+  "section": "Wedge Top, but Truncated",
+  "abbr": "W U Truncated"
+ },
+ {
+  "part": 16,
+  "section": "Wedge Top, Truncated, but Failed",
+  "abbr": "W U Truncated F"
+ },
+ {
+  "part": 16,
+  "section": "Walmart Buy Signal",
+  "abbr": "Walmart B"
+ },
+ {
+  "part": 16,
+  "section": "Walmart Sell Signal",
+  "abbr": "Walmart S"
+ },
+ {
+  "part": 16,
+  "section": "Window Dressing",
+  "abbr": "Window Dressing"
+ },
+ {
+  "part": 16,
+  "section": "Workshops",
+  "abbr": "Workshops"
+ },
+ {
+  "part": 16,
+  "section": "Yearly Charts",
+  "abbr": "Yearly Charts"
+ },
+ {
+  "part": 16,
+  "section": "Yesterday Was Similar",
+  "abbr": "Yesterday was similar"
+ }
+]

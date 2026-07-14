@@ -1,6 +1,82 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 13, 2026 (session 71)
+**Last Updated:** July 14, 2026 (session 72)
+
+---
+
+## S72 (2026-07-13→14) — Codex goes big: 1,530 forum days, 6,322 slides, corrected dailies, portable file
+
+All synced to **`G:\My Drive\Brooks Codex`** (`scripts/brooks_sync_drive.ps1` — run after every
+rebuild). Hub `index.html` now has 7 live sections.
+
+**RACING STRIPE — SOLVED.** The tool (brooksbars.php) displays album_picm images CSS-stretched
+to height **780px**; URL params (bars/left/width) live in that space, and `the_left` is the
+**right edge** of bar N (cover-the-future replay). Final method: detect candle wicks inside the
+geometric slots, **Theil-Sen fit** x(n)=a+b·n per image (per-bar snapping is noisy on
+dojis/small bodies — don't use it). Math + verification in `scripts/brooks_build_bbb_view.py`
+docstring. Stripe has an on/off toggle per user request.
+
+**Forum scrape (brookspriceaction.com f=1) — COMPLETE: 2,049 daily threads (2015→2023),
+1,579 with Al's full bar-by-bar text, 1,530 with charts.** The forum has 2,049 daily threads,
+NOT ~949 (S71's number came from a pagination cap in the scraper). Scraper
+(`scripts/brooks_forum_scrape.py`) fixes: (1) sessions die mid-run → SessionBox auto-relogin
+(fired 6×); brooksbars pages have no logout link — validity check is `MyDiv`/`BarNum`;
+(2) only trust a brooksbars link whose pic_id matches the thread's own chart (tutorial-link
+bug; note pic 7214 is ALSO a legit day chart for t=6118 — match, don't blacklist);
+(3) `--resume` + checkpoint every 50. Data: scratchpad `forum_index.json` (old-session
+scratchpad f04593f3...), charts in `brooks_codex/forum_charts/`.
+
+**Official Encyclopedia index** (user-shared xlsx, Oct 2025, Parts 1–16) →
+`docs/living/brooks_encyc_index.json` (**596 sections, abbr↔name**; parser
+`scripts/brooks_parse_encyc_index.py`). This is the tag vocabulary:
+`scripts/brooks_tag_days.py` scans day texts for the codes (generic 1-token codes need ≥3
+hits). User challenged its value — agreed use = tagging only.
+
+**forum.html** (`scripts/brooks_build_forum.py`): 1,530 days, 1,467 bar-by-bar, tags+filter,
+search, per-day fitted stripe, in-place wheel zoom (stripe stays visible), Split/Stack layout
+toggle, ☰ collapsible day list, Aa expand-abbreviations toggle (texts stored compact as
+shorthand + one shared 975-abbr dictionary from the tooltip expansions), monotone bar-number
+guard (scrape sometimes splits "36: 20GBS…" wrong).
+
+**Course slides** (user's shared Drive folder, synced at
+`G:\.shortcut-targets-by-id\1oanmO7XO-brbZThAYjV6t6hZdzRyy9rE\Slides`): **6,322 slides, 465
+topics**, Parts 1–5 (2019 snapshot of the course; the xlsx index is the current 16-part map).
+`slides.html` (`scripts/brooks_build_slides.py`): topic sidebar, 396 topics auto-mapped to
+encyclopedia abbrs, deep zoom, **🎯 Drill mode** (M-*.png = un-annotated twins → read bare
+chart, Reveal annotated). Slides are REFERENCED at the shortcut path (not copied; 📁 button
+overrides base path). ⚠️ Paid course content on a third party's Drive — private study only,
+never redistribute. Inventory artifact: claude.ai/code/artifact/4f0bb85a (drive_slides_report).
+
+**daily.html REBUILT on the corrected S71 re-scrape** (`scripts/brooks_build_daily2.py`,
+1,221 days from `daily2/` + `rescrape_full.json` in old scratchpad): the old AI-filler
+"lessons" + wrong-image set is RETIRED. Verbatim Al only (his blog posts through 2026-07);
+boilerplate paragraphs stripped (BOILER list in script); sections split into expanders —
+**"Today's Chart — date" first/open, "Daily chart" collapsed**; "Trading Update:" line
+dropped. UI per user: large font default (S/M/L selector), bar numbers highlighted gold (NO
+links/underline — user dropped that), click chart toggles focus mode (chart left, only
+commentary scrolls, all other cards hidden), **one chart per screen with scroll-snap paging**,
+card width capped ~148vh centered. **Permanent delete pipeline:** 🗑 → "⤓ Export delete list"
+→ `scripts/brooks_purge_daily.py` (deletes jpgs + permanent exclusion list
+`docs/living/brooks_daily_excluded.json` + rebuild).
+
+**codex_portable.html (10.4 MB, one file)** (`scripts/brooks_build_portable.py`): Trainer
+(app.html) + cheat sheet embedded as srcdoc iframes, all 1,467 day texts + tags + dictionary,
+596-section encyclopedia — for machines without Drive sync. Charts NOT embedded (browser
+memory physics; user accepted folder=master + portable=travel).
+
+**OPEN / TOMORROW:**
+- **User signed off mid-UI-iteration on daily.html** ("we finish tomorrow"): verify snap-paging
+  + centered card + focus-mode behavior match his screenshots; he's picky (rightly) — iterate live.
+- **🤖 "AI read (not Al)" expander proposal AWAITING USER GO/NO-GO** — clearly-badged optional
+  AI bar-by-bar for days Al skips bars. NEVER blend AI text into Al's (that's how S71's daily
+  set went bad). Start with ★-favorited days if approved.
+- **ROTATE brookspriceaction.com password NOW** (user samirnyc; exposed in S71 chat; scrape done
+  so safe to rotate). Also re-export brookstradingcourse cookies eventually.
+- Feature roadmap discussed: Replay Trainer (mask future bars — we have the geometry), base-rate
+  stats from tags (e.g. GD H2 vs GD H2 F frequencies), similar-days by tag overlap, bookmarks/
+  notes, auto-screen daily2 for non-chart junk (offered, not yet approved).
+- 209 old blog posts don't split into sections (different structure) — fine, shown as plain text.
+- Scripts all uncommitted — user must confirm before any commit (standing rule).
 
 ---
 
