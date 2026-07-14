@@ -1,0 +1,67 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+AFTER-HOURS
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the SPX Call Resistance, Put Support, and HVL levels for each trading day from 2026-01-01 through 2026-01-31, one row per day, columns: Date, Call Resistance, Put Support, HVL.
+
+I'll retrieve the SPX gamma levels (Call Resistance, Put Support, and High Vol Level) for January 2026.
+
+1 step completed
+
+SPX gamma levels for January 2026. (Data as of Jan 30, 2026)
+
+Date	Call Resistance	Put Support	HVL
+2026-01-02	$7,000.00	$6,800.00	$6,895.00
+2026-01-05	$7,000.00	$6,700.00	$6,895.00
+2026-01-06	$7,000.00	$6,700.00	$6,895.00
+2026-01-07	$7,000.00	$6,700.00	$6,900.00
+2026-01-08	$7,000.00	$6,700.00	$6,900.00
+2026-01-09	$7,000.00	$6,700.00	$6,900.00
+2026-01-12	$7,000.00	$6,700.00	$6,925.00
+2026-01-13	$7,000.00	$6,700.00	$6,945.00
+2026-01-14	$7,000.00	$6,800.00	$6,945.00
+2026-01-15	$7,000.00	$6,800.00	$6,935.00
+2026-01-16	$7,100.00	$6,900.00	$6,945.00
+2026-01-20	$7,100.00	$6,800.00	$6,940.00
+2026-01-21	$7,100.00	$6,800.00	$6,925.00
+2026-01-22	$7,000.00	$6,800.00	$6,925.00
+2026-01-23	$7,100.00	$6,800.00	$6,925.00
+2026-01-26	$7,000.00	$6,800.00	$6,925.00
+2026-01-27	$7,000.00	$6,800.00	$6,940.00
+2026-01-28	$7,100.00	$6,900.00	$6,940.00
+2026-01-29	$7,100.00	$6,900.00	$6,940.00
+2026-01-30	$7,100.00	$6,800.00	$6,940.00
+
+Note: Data reflects trading days only (weekends and holidays excluded). Call Resistance ranged $7,000–$7,100, Put Support $6,700–$6,900, and HVL $6,895–$6,945 throughout the month.
+
+Keep exploring
+Options
+How can I use the SPX Call Resistance and Put Support levels to improve my options trading strategies?
+Options
+What is the relationship between HVL (High Vol Level) and Gamma Levels in MenthorQ's market structure analysis?
+Options
+Are there MenthorQ Academy courses that explain how to interpret and apply Call Resistance and Put Support levels in trading?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

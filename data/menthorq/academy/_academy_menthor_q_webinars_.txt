@@ -1,0 +1,46 @@
+ACADEMY
+Subscribe
+MenthorQ Product Releases
+Description
+
+Stay ahead of the curve with exclusive access to MenthorQ’s latest product developments. This course is designed as a dynamic, evolving learning experience that brings you behind the scenes of every major release—from concept to execution.
+
+You won’t just learn how our tools work—you’ll understand why they were built, what problems they solve, and how to apply them immediately in live market conditions. Each module is built around our most recent innovations—covering everything from volatility modeling to flow analysis, directional signals, and multi-asset risk tools.
+
+This is not a traditional course. It’s your direct line to MenthorQ’s evolving quant stack, built for traders who want to understand and leverage the most advanced tools in the retail market today.
+
+Course Objectives
+How each new MenthorQ product was developed, with insights into the data, models, and market needs that shaped them
+Real-world applications of our tools—such as Gamma Levels, Swing Trading Indicators, Q-RSI, Q-Risk, and Options Flow—through live walkthroughs
+Strategy integration tips to help you fit new tools into your current trading framework
+Market interpretation using new releases, including volatility regimes, positioning shifts, and sentiment transitions
+How to navigate product dashboards and interpret signals like a pro
+What Next?
+
+MenthorQ 3.0 Launch
+
+Start Next Lesson
+Course Progress
+Menthor Q Webinars and Podcast
+MenthorQ 3.0 Launch
+Start
+MenthorQ Crypto Intelligence Launch
+Start
+MenthorQ + TrendSpider Official Launch
+Start
+May 2025 Product Launch - Key Levels on Forex
+Start
+March 2025 Product Launch - New Dashboard
+Start
+Intraday Gamma Models Presentation
+Start
+Trading Gamma Levels on Futures
+Start
+Gamma Levels on Futures Options with Menthor Q CEO Fabio
+Start
+July Product Launch: New Models and New Integrations
+Start
+Mastering Gamma Levels to trade Futures with Anthony Crudele
+Start
+Live Session with Methor Q users
+Start

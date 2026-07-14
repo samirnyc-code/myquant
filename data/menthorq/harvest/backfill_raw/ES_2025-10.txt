@@ -1,0 +1,73 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+AFTER-HOURS
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the ES Call Resistance, Put Support, and HVL levels for each trading day from 2025-10-01 through 2025-10-31, one row per day, columns: Date, Call Resistance, Put Support, HVL.
+
+I'll route this to the Data Expert, as it's a historical time-series request across multiple dates (October 2025) for ES futures.I'll retrieve the ES gamma levels (Call Resistance, Put Support, and High Vol Level) for October 2025.
+
+1 step completed
+
+ES gamma levels for October 2025 — Call Resistance held steady at $6,800 through mid-month, then jumped to $7,125 late month. (Data as of October 2025)
+
+Date	Call Resistance	Put Support	HVL
+2025-10-01	$6,800.00	$6,300.00	$6,745.00
+2025-10-02	$6,800.00	$6,300.00	$6,745.00
+2025-10-03	$6,800.00	$6,300.00	$6,695.00
+2025-10-06	$6,800.00	$6,300.00	$6,780.00
+2025-10-07	$6,800.00	$6,400.00	$6,760.00
+2025-10-08	$6,800.00	$6,400.00	$6,785.00
+2025-10-09	$6,800.00	$6,400.00	$6,770.00
+2025-10-10	$6,800.00	$6,400.00	$6,720.00
+2025-10-13	$6,800.00	$6,400.00	$6,695.00
+2025-10-14	$6,800.00	$6,400.00	$6,700.00
+2025-10-15	$6,800.00	$6,400.00	$6,700.00
+2025-10-16	$6,800.00	$6,400.00	$6,700.00
+2025-10-17	$6,800.00	$6,400.00	$6,710.00
+2025-10-20	$6,800.00	$6,500.00	$6,745.00
+2025-10-21	$6,800.00	$6,500.00	$6,745.00
+2025-10-22	$6,800.00	$6,500.00	$6,725.00
+2025-10-23	$6,800.00	$6,500.00	$6,745.00
+2025-10-24	$6,800.00	$6,500.00	$6,740.00
+2025-10-27	$7,125.00	$6,500.00	$6,755.00
+2025-10-28	$7,125.00	$6,875.00	$6,785.00
+2025-10-29	$7,125.00	$6,700.00	$6,845.00
+2025-10-30	$7,125.00	$6,700.00	$6,905.00
+2025-10-31	$7,125.00	$6,700.00	$6,845.00
+
+Notable shifts:
+
+Call Resistance: Stable at $6,800 through Oct 24, then jumped +$325 to $7,125 on Oct 27 — significant upside gamma cluster shift
+Put Support: Gradual rise from $6,300 (early month) → $6,400 (mid-month) → $6,500 (late month) → $6,875 (Oct 28 spike) → $6,700 (final days)
+HVL: Ranged $6,695–$6,905, with highest levels at month-end (Oct 30: $6,905)
+Keep exploring
+Options
+How can I use the ES Call Resistance and Put Support levels to improve my intraday trading strategies?
+Options
+What is the relationship between HVL (High Vol Level) and Gamma Levels in MenthorQ's analysis?
+Options
+Are there MenthorQ Academy courses that explain how to interpret and trade using ES options market structure indicators like Call Resistance and Put Support?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

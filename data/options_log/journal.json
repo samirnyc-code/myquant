@@ -1,0 +1,712 @@
+{
+ "paper_20260714_0953": {
+  "auto": {
+   "strategy": "sell_0dte_gamma",
+   "structure": "P-spread 25pt x1",
+   "legs": [
+    {
+     "side": "sell",
+     "right": "P",
+     "strike": 7475.0,
+     "expiry": "20260714",
+     "qty": 1
+    },
+    {
+     "side": "buy",
+     "right": "P",
+     "strike": 7450.0,
+     "expiry": "20260714",
+     "qty": 1
+    }
+   ],
+   "entry_dt": "2026-07-14 09:53",
+   "exit_dt": "2026-07-14",
+   "dte": 0,
+   "state": "closed",
+   "context": {
+    "vix": null,
+    "vix_rank": null,
+    "er10": null,
+    "dow": "Tue",
+    "gamma_regime": "positive (spot>HVL)",
+    "mq_levels": {
+     "mq_cr": 7600,
+     "mq_ps": 7300,
+     "mq_hvl": 7495,
+     "mq_cr0": 7550,
+     "mq_ps0": 7475,
+     "mq_hvl0": 7530,
+     "mq_gw0": 7550
+    }
+   },
+   "plan": {
+    "thesis": "First-ever logged trade (plumbing proof). Playbook 3 hypothesis: 0DTE put credit spread with short strike AT the MenthorQ PS0 wall 7475, ~65pts OTM on a positive-gamma day. Expectation: pins/decays, settles worthless at 16:00. POP estimated from entry delta (~0.06 short).",
+    "entry_grade": "B",
+    "pop": 0.94,
+    "max_gain": 130.0,
+    "max_loss": -2370.0,
+    "planned_exit": "hold to cash settlement (grid alt: 50% credit / 2x stop)"
+   },
+   "execution": {
+    "net_credit": 1.3,
+    "fill_model": "settlement",
+    "slippage_vs_mid": null,
+    "collateral": 2370.0
+   },
+   "lifecycle": {
+    "mfe": 130,
+    "mae": 125,
+    "mfe_R": 0.05,
+    "mae_R": 0.05,
+    "n_marks": 24,
+    "best_ts": "2026-07-14 14:48:13",
+    "worst_ts": "2026-07-14 14:26:18"
+   },
+   "result": {
+    "pnl": 127.4,
+    "win": true,
+    "r_multiple": 0.05,
+    "exit_cost": 0.0,
+    "hold_days": -1.0
+   }
+  },
+  "review": {
+   "outcome_grade": "",
+   "followed_plan": "",
+   "exit_reason": "",
+   "mistakes": "",
+   "lesson": "",
+   "do_differently": ""
+  },
+  "meta": {
+   "created": "2026-07-14T14:55:59-04:00",
+   "updated": "2026-07-14T18:13:30-04:00"
+  }
+ },
+ "bps_stmr_20260714_1030": {
+  "auto": {
+   "strategy": "bps_stmr",
+   "structure": "bull put spread 50pt 14DTE",
+   "legs": [
+    {
+     "side": "sell",
+     "right": "P",
+     "strike": 7435.0,
+     "expiry": "20260728",
+     "qty": 1,
+     "fill": 38.2
+    },
+    {
+     "side": "buy",
+     "right": "P",
+     "strike": 7385.0,
+     "expiry": "20260728",
+     "qty": 1,
+     "fill": 28.2
+    }
+   ],
+   "entry_dt": "2026-07-14 10:30",
+   "exit_dt": "2026-07-14",
+   "dte": 14,
+   "state": "closed",
+   "context": {
+    "vix": null,
+    "vix_rank": null,
+    "er10": null,
+    "dow": "Tue",
+    "gamma_regime": "positive (spot>HVL)",
+    "mq_levels": {
+     "mq_cr": 7600,
+     "mq_ps": 7300,
+     "mq_hvl": 7495,
+     "mq_cr0": 7550,
+     "mq_ps0": 7475,
+     "mq_hvl0": 7530,
+     "mq_gw0": 7550
+    }
+   },
+   "plan": {
+    "thesis": "Flagship BPS structure WITHOUT its STMR trigger (K8~59 at entry, not oversold; C>SMA100 ok). Pure execution/labeling test. Expectation: theta decay while SPX holds above the short put; high POP but NO validated edge off-signal. NOTE: long leg filled ~4min after short (IB limit-band reject taught us the marketable-limit cap).",
+    "entry_grade": "C",
+    "pop": 0.683,
+    "max_gain": 1000.0000000000003,
+    "max_loss": -4000.0000000000014,
+    "planned_exit": "spot(15:59) > SMA5 -> buy back 16:00+; else settle at expiry"
+   },
+   "execution": {
+    "net_credit": 10.000000000000004,
+    "fill_model": "opra_nbbo_1600",
+    "slippage_vs_mid": 40.00000000000021,
+    "collateral": 4000.0000000000014
+   },
+   "lifecycle": {
+    "mfe": 210,
+    "mae": 170,
+    "mfe_R": 0.05,
+    "mae_R": 0.04,
+    "n_marks": 22,
+    "best_ts": "2026-07-14 15:25:08",
+    "worst_ts": "2026-07-14 15:30:25"
+   },
+   "result": {
+    "pnl": 154.80000000000015,
+    "win": true,
+    "r_multiple": 0.04,
+    "exit_cost": 8.400000000000002,
+    "hold_days": -1.0
+   }
+  },
+  "review": {
+   "outcome_grade": "",
+   "followed_plan": "",
+   "exit_reason": "",
+   "mistakes": "",
+   "lesson": "",
+   "do_differently": ""
+  },
+  "meta": {
+   "created": "2026-07-14T14:55:59-04:00",
+   "updated": "2026-07-14T18:13:30-04:00"
+  }
+ },
+ "condor_0dte_20260714_1036": {
+  "auto": {
+   "strategy": "condor_0dte",
+   "structure": "iron condor 25pt wings 0DTE",
+   "legs": [
+    {
+     "side": "sell",
+     "right": "P",
+     "strike": 7470.0,
+     "expiry": "20260714",
+     "qty": 1,
+     "fill": 1.4
+    },
+    {
+     "side": "buy",
+     "right": "P",
+     "strike": 7445.0,
+     "expiry": "20260714",
+     "qty": 1,
+     "fill": 0.6
+    },
+    {
+     "side": "sell",
+     "right": "C",
+     "strike": 7585.0,
+     "expiry": "20260714",
+     "qty": 1,
+     "fill": 1.2
+    },
+    {
+     "side": "buy",
+     "right": "C",
+     "strike": 7610.0,
+     "expiry": "20260714",
+     "qty": 1,
+     "fill": 0.2
+    }
+   ],
+   "entry_dt": "2026-07-14 10:36",
+   "exit_dt": "2026-07-14",
+   "dte": 0,
+   "state": "closed",
+   "context": {
+    "vix": null,
+    "vix_rank": null,
+    "er10": null,
+    "dow": "Tue",
+    "gamma_regime": "positive (spot>HVL)",
+    "mq_levels": {
+     "mq_cr": 7600,
+     "mq_ps": 7300,
+     "mq_hvl": 7495,
+     "mq_cr0": 7550,
+     "mq_ps0": 7475,
+     "mq_hvl0": 7530,
+     "mq_gw0": 7550
+    }
+   },
+   "plan": {
+    "thesis": "Positive-gamma day (spot above HVL 7495) favors pinning; short strikes inside the PS0 7475 / CR0 7550-7600 walls. Expectation: both sides decay to worthless by 16:00. Playbook 2 warns condors underperform plain BPS on STMR days - but today is a pin test. NOTE: call side filled ~15min after put side (two IB limit-band lessons learned mid-build); short call 7585 is only ~50pts OTM with SPX rallying - the risky side.",
+    "entry_grade": "B-",
+    "pop": 0.961,
+    "max_gain": 180.0,
+    "max_loss": -2320.0000000000045,
+    "planned_exit": "hold to cash settlement"
+   },
+   "execution": {
+    "net_credit": 1.8,
+    "fill_model": "settlement",
+    "slippage_vs_mid": null,
+    "collateral": 2320.0000000000045
+   },
+   "lifecycle": {
+    "mfe": 180,
+    "mae": 120,
+    "mfe_R": 0.08,
+    "mae_R": 0.05,
+    "n_marks": 24,
+    "best_ts": "2026-07-14 15:04:02",
+    "worst_ts": "2026-07-14 14:42:57"
+   },
+   "result": {
+    "pnl": 174.8,
+    "win": true,
+    "r_multiple": 0.08,
+    "exit_cost": 0.0,
+    "hold_days": -1.0
+   }
+  },
+  "review": {
+   "outcome_grade": "",
+   "followed_plan": "",
+   "exit_reason": "",
+   "mistakes": "",
+   "lesson": "",
+   "do_differently": ""
+  },
+  "meta": {
+   "created": "2026-07-14T14:55:59-04:00",
+   "updated": "2026-07-14T18:13:30-04:00"
+  }
+ },
+ "straddle_0dte_20260714_1039": {
+  "auto": {
+   "strategy": "straddle_0dte",
+   "structure": "long ATM straddle 0DTE",
+   "legs": [
+    {
+     "side": "buy",
+     "right": "C",
+     "strike": 7540.0,
+     "expiry": "20260714",
+     "qty": 1,
+     "fill": 15.7
+    },
+    {
+     "side": "buy",
+     "right": "P",
+     "strike": 7540.0,
+     "expiry": "20260714",
+     "qty": 1,
+     "fill": 11.1
+    }
+   ],
+   "entry_dt": "2026-07-14 10:39",
+   "exit_dt": "2026-07-14",
+   "dte": 0,
+   "state": "closed",
+   "context": {
+    "vix": null,
+    "vix_rank": null,
+    "er10": null,
+    "dow": "Tue",
+    "gamma_regime": "positive (spot>HVL)",
+    "mq_levels": {
+     "mq_cr": 7600,
+     "mq_ps": 7300,
+     "mq_hvl": 7495,
+     "mq_cr0": 7550,
+     "mq_ps0": 7475,
+     "mq_hvl0": 7530,
+     "mq_gw0": 7550
+    }
+   },
+   "plan": {
+    "thesis": "Long vol on a VIX-15, positive-gamma pin day is COUNTER-regime \u2014 taken to test debit/two-right execution. Expectation: needs a move beyond the breakevens by 16:00; unlikely; this is the trade the regime framework says NOT to take.",
+    "entry_grade": "C-",
+    "pop": 0.422,
+    "max_gain": null,
+    "max_loss": -2679.9999999999995,
+    "planned_exit": "hold to close (counter-regime test)"
+   },
+   "execution": {
+    "net_credit": -26.799999999999997,
+    "fill_model": "settlement",
+    "slippage_vs_mid": null,
+    "collateral": 2679.9999999999995
+   },
+   "lifecycle": {
+    "mfe": -1268,
+    "mae": -2308,
+    "mfe_R": -0.47,
+    "mae_R": -0.86,
+    "n_marks": 24,
+    "best_ts": "2026-07-14 14:27:08",
+    "worst_ts": "2026-07-14 16:02:03"
+   },
+   "result": {
+    "pnl": -2323.6156249999995,
+    "win": false,
+    "r_multiple": -0.87,
+    "exit_cost": -3.58984375,
+    "hold_days": -1.0
+   }
+  },
+  "review": {
+   "outcome_grade": "",
+   "followed_plan": "",
+   "exit_reason": "",
+   "mistakes": "",
+   "lesson": "",
+   "do_differently": ""
+  },
+  "meta": {
+   "created": "2026-07-14T14:55:59-04:00",
+   "updated": "2026-07-14T18:13:30-04:00"
+  }
+ },
+ "fly_gw_0dte_20260714_1056": {
+  "auto": {
+   "strategy": "fly_gw_0dte",
+   "structure": "call butterfly 25pt @ GW 7550",
+   "legs": [
+    {
+     "side": "buy",
+     "right": "C",
+     "strike": 7525.0,
+     "expiry": "20260714",
+     "qty": 1,
+     "fill": 24.1
+    },
+    {
+     "side": "buy",
+     "right": "C",
+     "strike": 7575.0,
+     "expiry": "20260714",
+     "qty": 1,
+     "fill": 1.55
+    },
+    {
+     "side": "sell",
+     "right": "C",
+     "strike": 7550.0,
+     "expiry": "20260714",
+     "qty": 2,
+     "fill": 8.3
+    }
+   ],
+   "entry_dt": "2026-07-14 10:56",
+   "exit_dt": "2026-07-14",
+   "dte": 0,
+   "state": "closed",
+   "context": {
+    "vix": null,
+    "vix_rank": null,
+    "er10": null,
+    "dow": "Tue",
+    "gamma_regime": "positive (spot>HVL)",
+    "mq_levels": {
+     "mq_cr": 7600,
+     "mq_ps": 7300,
+     "mq_hvl": 7495,
+     "mq_cr0": 7550,
+     "mq_ps0": 7475,
+     "mq_hvl0": 7530,
+     "mq_gw0": 7550
+    }
+   },
+   "plan": {
+    "thesis": "Pin play centered EXACTLY on the MenthorQ 0DTE Gamma Wall 7550 (our IB calc: 7525 \u2014 1 strike off). Expectation: max value if SPX settles near 7550 at 16:00; cheap defined risk. The most regime-aligned trade of the batch.",
+    "entry_grade": "B",
+    "pop": 0.405,
+    "max_gain": 1595.0,
+    "max_loss": -905.0000000000182,
+    "planned_exit": "hold to settlement at the pin"
+   },
+   "execution": {
+    "net_credit": -9.05,
+    "fill_model": "settlement",
+    "slippage_vs_mid": null,
+    "collateral": 905.0000000000182
+   },
+   "lifecycle": {
+    "mfe": 1242,
+    "mae": 722,
+    "mfe_R": 1.37,
+    "mae_R": 0.8,
+    "n_marks": 24,
+    "best_ts": "2026-07-14 15:56:47",
+    "worst_ts": "2026-07-14 14:42:57"
+   },
+   "result": {
+    "pnl": 948.7843749999998,
+    "win": true,
+    "r_multiple": 1.05,
+    "exit_cost": -18.58984375,
+    "hold_days": -1.0
+   }
+  },
+  "review": {
+   "outcome_grade": "",
+   "followed_plan": "",
+   "exit_reason": "",
+   "mistakes": "",
+   "lesson": "",
+   "do_differently": ""
+  },
+  "meta": {
+   "created": "2026-07-14T14:55:59-04:00",
+   "updated": "2026-07-14T18:13:30-04:00"
+  }
+ },
+ "bcs_cr_0dte_20260714_1220": {
+  "auto": {
+   "strategy": "bcs_cr_0dte",
+   "structure": "bear call spread 25pt @ CR 7600",
+   "legs": [
+    {
+     "side": "buy",
+     "right": "C",
+     "strike": 7625.0,
+     "expiry": "20260714",
+     "qty": 1,
+     "fill": 0.1
+    },
+    {
+     "side": "sell",
+     "right": "C",
+     "strike": 7600.0,
+     "expiry": "20260714",
+     "qty": 1,
+     "fill": 0.1
+    }
+   ],
+   "entry_dt": "2026-07-14 12:20",
+   "exit_dt": "2026-07-14",
+   "dte": 0,
+   "state": "closed",
+   "context": {
+    "vix": null,
+    "vix_rank": null,
+    "er10": null,
+    "dow": "Tue",
+    "gamma_regime": "positive (spot>HVL)",
+    "mq_levels": {
+     "mq_cr": 7600,
+     "mq_ps": 7300,
+     "mq_hvl": 7495,
+     "mq_cr0": 7550,
+     "mq_ps0": 7475,
+     "mq_hvl0": 7530,
+     "mq_gw0": 7550
+    }
+   },
+   "plan": {
+    "thesis": "DEGENERATE FILL - textbook lesson: planned as short call spread at CR 7600, but by execution time (12:20) SPX had faded to 7531 and the 7600C bid collapsed to 0.10 = the 7625C ask. Net credit 0.00 -> max gain \\, can only lose. A real system must check min-credit BEFORE placing (sim daemon does: rejects credit<=0). Graded F and kept as the example.",
+    "entry_grade": "F",
+    "pop": 0.0,
+    "max_gain": 0.0,
+    "max_loss": -2500.0000000000114,
+    "planned_exit": "hold to settlement"
+   },
+   "execution": {
+    "net_credit": 0.0,
+    "fill_model": "settlement",
+    "slippage_vs_mid": null,
+    "collateral": 2500.0000000000114
+   },
+   "lifecycle": {
+    "mfe": 0,
+    "mae": -55,
+    "mfe_R": 0.0,
+    "mae_R": -0.02,
+    "n_marks": 24,
+    "best_ts": "2026-07-14 14:42:57",
+    "worst_ts": "2026-07-14 14:26:18"
+   },
+   "result": {
+    "pnl": -2.6,
+    "win": false,
+    "r_multiple": -0.0,
+    "exit_cost": 0.0,
+    "hold_days": -1.0
+   }
+  },
+  "review": {
+   "outcome_grade": "",
+   "followed_plan": "",
+   "exit_reason": "",
+   "mistakes": "",
+   "lesson": "",
+   "do_differently": ""
+  },
+  "meta": {
+   "created": "2026-07-14T14:55:59-04:00",
+   "updated": "2026-07-14T18:13:30-04:00"
+  }
+ },
+ "bull_cs_wk_20260714_1221": {
+  "auto": {
+   "strategy": "bull_cs_wk",
+   "structure": "bull call spread 50pt 20260717",
+   "legs": [
+    {
+     "side": "buy",
+     "right": "C",
+     "strike": 7530.0,
+     "expiry": "20260717",
+     "qty": 1,
+     "fill": 38.8
+    },
+    {
+     "side": "sell",
+     "right": "C",
+     "strike": 7580.0,
+     "expiry": "20260717",
+     "qty": 1,
+     "fill": 14.8
+    }
+   ],
+   "entry_dt": "2026-07-14 12:21",
+   "exit_dt": null,
+   "dte": 3,
+   "state": "open",
+   "context": {
+    "vix": null,
+    "vix_rank": null,
+    "er10": null,
+    "dow": "Tue",
+    "gamma_regime": "positive (spot>HVL)",
+    "mq_levels": {
+     "mq_cr": 7600,
+     "mq_ps": 7300,
+     "mq_hvl": 7495,
+     "mq_cr0": 7550,
+     "mq_ps0": 7475,
+     "mq_hvl0": 7530,
+     "mq_gw0": 7550
+    }
+   },
+   "plan": {
+    "thesis": "Momentum continuation: SPX +20 today, buying the weekly 50pt call spread. No validated signal \u2014 chasing strength, which the playbook has never tested. Expectation: SPX above the long strike by expiry.",
+    "entry_grade": "C+",
+    "pop": 0.394,
+    "max_gain": 2600.0000000000055,
+    "max_loss": -2399.9999999999995,
+    "planned_exit": "hold to expiry or signal reversal"
+   },
+   "execution": {
+    "net_credit": -23.999999999999996,
+    "fill_model": "paper_fill",
+    "slippage_vs_mid": null,
+    "collateral": 2399.9999999999995
+   },
+   "lifecycle": {
+    "mfe": 420,
+    "mae": 145,
+    "mfe_R": 0.18,
+    "mae_R": 0.06,
+    "n_marks": 25,
+    "best_ts": "2026-07-14 14:26:18",
+    "worst_ts": "2026-07-14 16:23:08"
+   },
+   "result": {
+    "pnl": null,
+    "win": null,
+    "r_multiple": null,
+    "exit_cost": null,
+    "hold_days": null
+   }
+  },
+  "review": {
+   "outcome_grade": "",
+   "followed_plan": "",
+   "exit_reason": "",
+   "mistakes": "",
+   "lesson": "",
+   "do_differently": ""
+  },
+  "meta": {
+   "created": "2026-07-14T14:55:59-04:00",
+   "updated": "2026-07-14T18:13:30-04:00"
+  }
+ },
+ "put_cal_wk_20260714_1221": {
+  "auto": {
+   "strategy": "put_cal_wk",
+   "structure": "put calendar 20260714/20260717",
+   "legs": [
+    {
+     "side": "buy",
+     "right": "P",
+     "strike": 7530.0,
+     "expiry": "20260717",
+     "qty": 1,
+     "fill": 36.1
+    },
+    {
+     "side": "sell",
+     "right": "P",
+     "strike": 7530.0,
+     "expiry": "20260714",
+     "qty": 1,
+     "fill": 11.6
+    }
+   ],
+   "entry_dt": "2026-07-14 12:21",
+   "exit_dt": null,
+   "dte": 0,
+   "state": "open",
+   "context": {
+    "vix": null,
+    "vix_rank": null,
+    "er10": null,
+    "dow": "Tue",
+    "gamma_regime": "positive (spot>HVL)",
+    "mq_levels": {
+     "mq_cr": 7600,
+     "mq_ps": 7300,
+     "mq_hvl": 7495,
+     "mq_cr0": 7550,
+     "mq_ps0": 7475,
+     "mq_hvl0": 7530,
+     "mq_gw0": 7550
+    }
+   },
+   "plan": {
+    "thesis": "ATM put calendar: short 0DTE leg decays fastest; long weekly retains vega. Tests multi-expiry legs in the log (payoff/POP not defined at a single expiry \u2014 risk = net debit). Expectation: small gain if SPX sits near the strike at 16:00.",
+    "entry_grade": "C",
+    "pop": null,
+    "max_gain": null,
+    "max_loss": -2450.0,
+    "planned_exit": "close at 0DTE-leg expiry"
+   },
+   "execution": {
+    "net_credit": -24.5,
+    "fill_model": "paper_fill",
+    "slippage_vs_mid": null,
+    "collateral": 2450.0
+   },
+   "lifecycle": {
+    "mfe": 292,
+    "mae": -112,
+    "mfe_R": 0.12,
+    "mae_R": -0.05,
+    "n_marks": 25,
+    "best_ts": "2026-07-14 16:23:08",
+    "worst_ts": "2026-07-14 14:27:08"
+   },
+   "result": {
+    "pnl": null,
+    "win": null,
+    "r_multiple": null,
+    "exit_cost": null,
+    "hold_days": null
+   }
+  },
+  "review": {
+   "outcome_grade": "",
+   "followed_plan": "",
+   "exit_reason": "",
+   "mistakes": "",
+   "lesson": "",
+   "do_differently": ""
+  },
+  "meta": {
+   "created": "2026-07-14T14:55:59-04:00",
+   "updated": "2026-07-14T18:13:30-04:00"
+  }
+ }
+}

@@ -1,0 +1,2 @@
+date,ts,spot,sma100,sma5,k8,fire,exit_sig,sess_h,sess_l,open_trades,sampled_from,note
+2026-07-14,15:59:00,7547.575,7131.02,7532.93,79.54,False,True,7555.35,7517.9,1,,

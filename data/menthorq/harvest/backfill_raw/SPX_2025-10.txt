@@ -1,0 +1,73 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+AFTER-HOURS
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the SPX Call Resistance, Put Support, and HVL levels for each trading day from 2025-10-01 through 2025-10-31, one row per day, columns: Date, Call Resistance, Put Support, HVL.
+
+I'll route this to the Data Expert, as you're requesting historical daily levels data across a time range (October 2025), which requires time-series retrieval beyond a single-date validation.I'll retrieve the SPX gamma levels (Call Resistance, Put Support, and High Vol Level) for October 2025.
+
+1 step completed
+
+SPX gamma levels for October 2025. (Data as of October 2025)
+
+Date	Call Resistance	Put Support	HVL
+2025-10-01	$6,800.00	$6,400.00	$6,640.00
+2025-10-02	$6,800.00	$6,500.00	$6,640.00
+2025-10-03	$6,800.00	$6,500.00	$6,670.00
+2025-10-06	$6,800.00	$6,500.00	$6,695.00
+2025-10-07	$6,800.00	$6,500.00	$6,695.00
+2025-10-08	$6,800.00	$6,500.00	$6,695.00
+2025-10-09	$6,800.00	$6,500.00	$6,695.00
+2025-10-10	$7,000.00	$6,400.00	$6,695.00
+2025-10-13	$7,000.00	$6,500.00	$6,690.00
+2025-10-14	$7,000.00	$6,500.00	$6,680.00
+2025-10-15	$7,000.00	$6,500.00	$6,680.00
+2025-10-16	$7,000.00	$6,500.00	$6,680.00
+2025-10-17	$7,000.00	$6,500.00	$6,680.00
+2025-10-20	$7,000.00	$6,400.00	$6,680.00
+2025-10-21	$7,000.00	$6,500.00	$6,715.00
+2025-10-22	$7,000.00	$6,500.00	$6,720.00
+2025-10-23	$7,000.00	$6,500.00	$6,695.00
+2025-10-24	$7,000.00	$6,500.00	$6,730.00
+2025-10-27	$7,000.00	$6,400.00	$6,745.00
+2025-10-28	$7,000.00	$6,500.00	$6,745.00
+2025-10-29	$7,000.00	$6,500.00	$6,745.00
+2025-10-30	$7,000.00	$6,820.00	$6,825.00
+2025-10-31	$7,000.00	$6,500.00	$6,825.00
+
+Key observations:
+
+Call Resistance stepped up from $6,800 to $7,000 on Oct 10 and remained there through month-end
+Put Support held steady at $6,500 for most of the month, with occasional dips to $6,400 (Oct 1, 10, 20, 27)
+HVL trended upward from $6,640 early month to $6,825 by month-end, suggesting rising volatility expectations
+Keep exploring
+Options
+How can I use the SPX Call Resistance and Put Support levels to inform my options trading strategies?
+Options
+What other MenthorQ indicators, like NetGex or Q-Score, complement the analysis of Call Resistance and Put Support levels?
+Learn
+Can you explain how the High Vol Level (HVL) is calculated and its significance in identifying key market turning points?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

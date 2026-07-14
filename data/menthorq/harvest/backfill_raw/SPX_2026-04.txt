@@ -1,0 +1,71 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+AFTER-HOURS
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the SPX Call Resistance, Put Support, and HVL levels for each trading day from 2026-04-01 through 2026-04-30, one row per day, columns: Date, Call Resistance, Put Support, HVL.
+
+I'll retrieve the SPX gamma levels (Call Resistance, Put Support, and High Vol Level) for April 2026.
+
+1 step completed
+
+SPX gamma levels for April 2026 — call resistance drifted higher mid-month, put support held steady. (Data as of April 1–30, 2026)
+
+Date	Call Resistance	Put Support	HVL
+2026-04-01	$7,000.00	$6,500.00	$6,525.00
+2026-04-02	$7,000.00	$6,500.00	$6,535.00
+2026-04-06	$6,700.00	$6,500.00	$6,575.00
+2026-04-07	$7,000.00	$6,400.00	$6,600.00
+2026-04-08	$6,800.00	$6,500.00	$6,600.00
+2026-04-09	$6,900.00	$6,500.00	$6,640.00
+2026-04-10	$6,900.00	$6,500.00	$6,730.00
+2026-04-13	$7,000.00	$6,500.00	$6,765.00
+2026-04-14	$7,000.00	$6,500.00	$6,800.00
+2026-04-15	$7,000.00	$6,500.00	$6,830.00
+2026-04-16	$7,050.00	$6,500.00	$6,830.00
+2026-04-17	$7,200.00	$6,800.00	$6,860.00
+2026-04-20	$7,200.00	$6,800.00	$6,860.00
+2026-04-21	$7,200.00	$6,800.00	$6,995.00
+2026-04-22	$7,200.00	$6,800.00	$6,995.00
+2026-04-23	$7,200.00	$6,800.00	$6,995.00
+2026-04-24	$7,200.00	$6,800.00	$6,995.00
+2026-04-27	$7,200.00	$6,800.00	$7,005.00
+2026-04-28	$7,200.00	$6,800.00	$7,045.00
+2026-04-29	$7,200.00	$6,800.00	$7,045.00
+2026-04-30	$7,200.00	$6,800.00	$7,045.00
+
+Key observations:
+
+Call Resistance stepped up from $7,000 to $7,200 on April 17 and held through month-end
+Put Support remained stable at $6,500 until April 17, then shifted to $6,800 for the final two weeks
+HVL trended higher throughout the month, rising from $6,525 to $7,045 — a $520 move reflecting increasing realized volatility
+Keep exploring
+Options
+How can I use the SPX Call Resistance and Put Support levels together to identify key market turning points?
+Explore
+What other MenthorQ indicators complement the HVL (High Vol Level) for a comprehensive options market analysis?
+Options
+Are there MenthorQ Academy courses that explain how to interpret and trade using Call Resistance, Put Support, and HVL levels?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

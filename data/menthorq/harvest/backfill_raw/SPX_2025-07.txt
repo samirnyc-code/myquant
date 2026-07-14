@@ -1,0 +1,69 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+AFTER-HOURS
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the SPX Call Resistance, Put Support, and HVL levels for each trading day from 2025-07-01 through 2025-07-31, one row per day, columns: Date, Call Resistance, Put Support, HVL.
+
+I'll route this to the Data Expert, as it's a historical time-series request across multiple dates—which requires their stateful screener capabilities.I'll retrieve the SPX gamma levels (Call Resistance, Put Support, and High Vol Level) for July 2025.
+
+1 step completed
+
+SPX gamma levels for July 2025 — call resistance drifted higher through mid-month, put support consolidated in the $6,100–$6,300 range by month-end. (Data as of July 2025)
+
+Date	Call Resistance	Put Support	HVL
+2025-07-01	$6,200.00	$5,500.00	$6,095.00
+2025-07-02	$6,300.00	$5,600.00	$6,095.00
+2025-07-03	$6,300.00	$5,600.00	$6,040.00
+2025-07-07	$6,500.00	$5,500.00	$6,145.00
+2025-07-08	$6,300.00	$5,500.00	$6,170.00
+2025-07-09	$6,300.00	$5,700.00	$6,145.00
+2025-07-10	$6,300.00	$5,700.00	$6,145.00
+2025-07-11	$6,300.00	$5,700.00	$6,195.00
+2025-07-14	$6,300.00	$5,500.00	$6,195.00
+2025-07-15	$6,300.00	$5,700.00	$6,195.00
+2025-07-16	$6,300.00	$5,700.00	$6,195.00
+2025-07-17	$6,300.00	$6,050.00	$6,195.00
+2025-07-18	$6,400.00	$6,050.00	$6,265.00
+2025-07-21	$6,500.00	$6,100.00	$6,270.00
+2025-07-22	$6,500.00	$6,100.00	$6,270.00
+2025-07-23	$6,400.00	$6,100.00	$6,270.00
+2025-07-24	$6,400.00	$6,100.00	$6,290.00
+2025-07-25	$6,500.00	$5,800.00	$6,285.00
+2025-07-28	$6,500.00	$5,800.00	$6,290.00
+2025-07-29	$6,500.00	$6,100.00	$6,345.00
+2025-07-30	$6,500.00	$6,300.00	$6,345.00
+2025-07-31	$6,500.00	$6,300.00	$6,345.00
+
+Notable trend: Call resistance climbed from $6,200 early month to $6,500 by late July. Put support rose sharply from $5,500–$5,700 mid-month to $6,100–$6,300 by month-end, indicating upward gamma cluster migration. HVL drifted higher from $6,040 to $6,345 over the period.
+
+Keep exploring
+Options
+How can I use the SPX Call Resistance and Put Support levels together to improve my options trading strategies?
+Learn
+Are there MenthorQ Academy courses that explain how to interpret and trade using HVL (High Vol Level) signals?
+Options
+Can you show how the SPX HVL levels correlate with other MenthorQ indicators like Gamma Levels or NetGex during the same period?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

@@ -1,0 +1,34 @@
+ACADEMY
+Subscribe
+How to Trade Crude Oil and Gold
+Description
+
+Master Gold (GC) and Crude Oil (CL) futures with MenthorQ—using a professional, data-driven framework built for traders who want clarity, structure, and repeatable execution.
+
+In this course, you’ll learn how to trade the two most actively followed commodity contracts by combining MenthorQ’s proprietary models with futures-specific market mechanics: volatility shifts, session behavior, inventory/macro catalysts, and the way positioning can reshape intraday levels. We’ll show you how to read risk regimes, map key levels, and build a pre-market and in-session routine that turns information into actionable decisions.
+
+Whether you’re transitioning from stocks/crypto to commodities or tightening up your futures process, this course is designed to help you trade Gold and Oil with a consistent plan—rooted in data, not noise.
+
+Course Objectives
+Understand the core mechanics of trading GC and CL futures (sessions, volatility, contract behavior)
+Use MenthorQ models to identify risk regimes and directional bias for commodities
+Map high-impact levels and build trade plans around them (entries, targets, invalidation)
+Develop a repeatable pre-market routine for Gold and Crude Oil
+Adapt to event-driven volatility (CPI, Fed, inventories, geopolitics) with a rules-based approach
+Improve execution and risk management using structured scenarios and post-trade review
+What Next?
+
+How to use Options Levels to Trade Crude Oil
+
+Start Next Lesson
+Course Progress
+How to Trade Crude Oil
+How to use Options Levels to Trade Crude Oil
+Start
+Trading Commodities and Futures using Gamma Levels
+Start
+How to Trade Gold Futures
+Gold Playbook. How to create a Roadmap on GC
+Start
+Trading GC during European Session
+Start

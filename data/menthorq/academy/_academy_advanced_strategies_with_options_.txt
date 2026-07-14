@@ -1,0 +1,48 @@
+ACADEMY
+Subscribe
+Advanced Strategies with Options
+Description
+
+Dive deep into the world of advanced options trading strategies with this comprehensive course. Designed for experienced traders and financial professionals, this course covers a wide range of strategies from bullish and bearish positions to hedging and market-neutral approaches. By leveraging Q-Models, you will learn how to identify opportunities, manage risks, and optimize your trading outcomes in various market conditions.
+
+Course Objectives
+Understand advanced options trading strategies
+Identify and learn bullish and bearish strategies
+Master hedging techniques to protect your portfolio
+Explore market-neutral strategies to capitalize on market inefficiencies
+Utilize Q-Models for strategy analysis and execution
+What Next?
+
+Intro to Advanced Strategies
+
+Start Next Lesson
+Course Progress
+Advanced Strategies with Options
+Intro to Advanced Strategies
+Start
+Bullish Strategies
+Start
+Bearish Strategies
+Start
+Market Neutral Strategies
+Start
+Hedging Strategies
+Start
+How to use Net DEX to trade Options
+Start
+Earnings Strategies
+Options Strategies during Earnings
+Start
+Trading Credit Spreads
+Selling Premium on Stocks
+Start
+How to use MenthorQ Data to create Options Spreads
+Start
+Using Net GEX and DEX to Trade Options
+Start
+How to Trade Credit Spreads using the MenthorQ Swing Model
+Start
+Trading Calendar Spreads using MenthorQ
+Start
+How to use Theta for Trading Options
+Start

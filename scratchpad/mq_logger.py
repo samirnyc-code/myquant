@@ -16,7 +16,7 @@ import os, csv, json, time, datetime
 from collections import defaultdict
 from ib_async import IB, Index, Option
 
-HOST, PORT, CID = "127.0.0.1", 4001, 25
+HOST, PORT, CID = "127.0.0.1", int(os.environ.get("IB_PORT", 4002)), 25  # 4002 = PAPER (S73)
 LO, HI = 0.92, 1.05
 STEP = 25
 N_WEEKLY, N_MONTHLY = 10, 6
