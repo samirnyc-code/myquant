@@ -1,6 +1,62 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 15, 2026 (session 75)
+**Last Updated:** July 16, 2026 (session 75)
+
+---
+
+## S75 (2026-07-16) — hypothesis triage, QUIN hard-capped, ODX GEX plan RETRACTED, ORATS spec locked
+
+Session was research-planning + data-reality-checking, not new backtests. Key outcomes:
+
+**Hypothesis backlog reviewed** (`mq_claims_backlog.md` + `gex_ideas_web.md`): ~50 ideas but really
+~4 distinct mechanisms (regime-conditioned momentum, level fade, pin/OPEX-calendar, vol-forecast
+filter) restated by different vendors. Only ~4 tested; BPS/STMR still the ONLY validated edge.
+Cheapest shovel-ready test = **B1–B3** (MenthorQ's own 1D-Max/Min/range hit-rates) — needs only
+`levels0_history.csv` (ES, 340 days, 2025-07→2026-06) + `_continuous_unadj.parquet`. NOT YET RUN.
+
+**⚠️ ODX self-GEX plan RETRACTED (data-integrity hole, S73-flavor).** `gex_ideas_web.md` claimed
+OptionsDX 2010-2023 chains let us self-compute 13yr of GEX. FALSE: `data/optionsdx/spx_eod_*.txt`
+(162 monthly files, SPX only, H1-2021 missing) has C_VOLUME/P_VOLUME but **NO open-interest column**.
+GEX needs gamma×OI×spot² — without OI you cannot build real GEX. Do not build on ODX. The only
+GEX-from-chains code (`cboe_gex_snapshot.py`) uses LIVE CBOE quotes (which DO have OI), today-only,
+and was never validated-to-pass vs MenthorQ. So there is still NO confirmed self-compute method.
+
+**QUIN is HARD-CAPPED.** Probed live (`scratchpad/quin_probe.py` / `quin_state.py`): composer
+`disabled=True`, page shows **"Messages exhausted!" + "Upgrade / Limited 40% discount"**. Not a daily
+reset — it's the plan message allotment (monthly). Yesterday's 100+ backfill queries (SPX/ES/NQ/YM/
+CL/GC × ~13mo each) burned it; that's why the Mag7 daily-level backfills failed (`backfill_aapl*.log`
+= 0 rows, same disabled-composer error). The **direct gateway API (`mq_api.py`) is a SEPARATE working
+channel** — use it, skip QUIN for anything it can serve (levels/GEX/matrix/insights).
+
+**AAPL request → what's possible.** Historical daily CR/PS/HVL *price levels* = QUIN-only = BLOCKED
+(nothing cached; `levels_history.csv` has only CL/ES/GC/NQ/SPX). But pulled a full year+ of AAPL
+**NetGEX + 1y percentile** via gateway API → **`data/menthorq/aapl_gex_history.csv`** (365 trading
+days, 2025-01-29→2026-07-14; NetGEX −107M..+813M, flips negative at lows) + today's full level set
+**`data/menthorq/aapl_levels_today.json`** (CR 325 / PS 240 / HVL 277.5 / gex_1-10, today-only).
+
+**ORATS spec LOCKED (the real unlock for historical levels).** 8 datapoints needed per option/day:
+tradeDate, expirDate/dte, strike, stockPrice(spot), **callOpenInterest + putOpenInterest** (the field
+ODX lacked — THE unlock), gamma (ORATS supplies it, no BS recompute), callMidIv/putMidIv (→1D
+expected move). `scripts/orats_pull.py` already targets exactly these (`/datav2/hist/strikes`, $99
+Delayed tier, 20k req/mo). Two UNKNOWNS to calibrate — not pull — against our stored MQ year (251 SPX
+days): (a) which expirations MQ aggregates for CR/PS/HVL, (b) dealer sign convention. Validation loop
+= compute ORATS levels on overlap year → fit until they reproduce MQ → then extend to 2007 + 13 tickers.
+**User is emailing ORATS contact "Sean"** to confirm the 8 fields (esp. OI) go back to 2010+ before buying.
+
+**Built this session (small):** `expected_move_explainer.html` artifact — visual decomposition of the
+87/85/73 claim (published: claude.ai/code/artifact/fc14f55e-4e86-4c51-b41d-a4cb2eb79793). Key insight
+corrected: 85→73 drop is NOT intraday-poke-recover (~1pt at daily scale); it's the cost of requiring
+BOTH walls (one-sided close 85% → two-sided ~72% ≈ their 73%). Source verbatim in
+`data/menthorq/knowledge/lessons/academy_getting_started_lessons_spx_0dte_trader_.txt:7` (SPX, Nov
+2019–Aug 2023). Our test would be OOS on ES 2025-26, NOT a replication.
+
+**⚠️ Gmail connector needs re-auth** (token expired) — couldn't pull the Sean/ORATS thread or create
+the draft. User is sending the ORATS email manually. Re-authorize via claude.ai → Connectors.
+
+**FRESH-SESSION PICK-UP:** (1) run B1–B3 (safe, cheap, real); (2) decide ORATS $99 pending Sean's
+reply — if yes, write the level-compute + calibration script against the stored MQ year FIRST; (3)
+QUIN levels backfills blocked until plan resets/upgrade. RULE still: real fills, chart-audit before
+reporting, treat PF>3 as a bug.
 
 ---
 
