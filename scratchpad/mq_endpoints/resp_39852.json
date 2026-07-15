@@ -1,0 +1,4 @@
+{
+ "url": "https://gateway.menthorq.io/clickhouse-api/api/web/v1/gamma-levels/SPX/eod",
+ "body": "{\"ticker\":\"SPX\",\"timestamp\":\"2026-07-14T20:00:00\",\"frequency\":\"eod\",\"gex_1\":7500.0,\"gex_2\":7550.0,\"gex_3\":7575.0,\"gex_4\":7580.0,\"gex_5\":7590.0,\"gex_6\":7650.0,\"gex_7\":7620.0,\"gex_8\":7450.0,\"gex_9\":7625.0,\"gex_10\":7425.0,\"call_resistance\":7600.0,\"call_resistance_0dte\":7600.0,\"put_support\":7300.0,\"put_support_0dte\":7535.0,\"gamma_wall_0dte\":7600.0,\"hvl\":7535.0,\"hvl_0dte\":7535.0,\"max_1d\":7606.26,\"min_1d\":7483.0}"
+}

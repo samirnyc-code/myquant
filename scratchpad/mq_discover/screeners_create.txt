@@ -1,0 +1,30 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+AFTER-HOURS
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+Create Screener
+
+Create your own custom screener using prompts. Define the criteria and let Quin find the best trading opportunities for you.
+
+Intraday summary
+Watchlist
+Net Gex
+Chats

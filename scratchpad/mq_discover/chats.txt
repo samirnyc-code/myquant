@@ -1,0 +1,53 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+AFTER-HOURS
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+HI SAMIR
+I'm Quin, your personal
+Quant Engine
+Financial Research
+
+Show me how Implied Volatility for TSLA, AAPL and NVDA changed over the past 10 days in a table
+
+Learning
+
+Which Models does MenthorQ provide?
+
+Futures Trader
+
+Research the correlation between DEX changes and next-day price moves for QQQ over the past 10 days
+
+0DTE Trader
+
+Where is the largest gamma concentration relative to current price for SPX, and what are the next most important strikes?
+
+Financial Research
+
+Compare Total Gamma Exposure for Tech vs Financial sector (XLK vs XLF) over the past month
+
+0DTE Trader
+
+Show me the strongest pinning zones on 0DTEs for SPX
+
+Intraday summary
+Watchlist
+Net Gex
+Chats

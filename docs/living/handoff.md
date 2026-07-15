@@ -54,6 +54,40 @@ variants) for the shared Slides shortcut — second PC works regardless of drive
 
 ---
 
+## S73 NIGHT 2 ADDENDUM (2026-07-15, overnight) — bar-repair invalidation + CR-0DTE survivor + MQ data machine
+
+**⚠ DATA LANDMINE FIXED: `data/bars/_continuous*.parquet` are BACK-ADJUSTED** (older
+bars shifted by cumulative roll gaps, +465pts at 2024-07). Any bar-vs-absolute-price-level
+study MUST use **`_continuous_unadj.parquet`** (built by `scripts/es_unadjust.py`, per-day
+offsets from Yahoo ES=F actuals in `data/bars/es_offsets.csv`). This invalidated night-1's
+"CR fade edge" (+$1,875 = artifact; RETRACTED) and the 1D-Max fade. User's chart review
+caught it.
+
+**Survivor edge candidate — CR-0DTE first-touch fade (ES):** short the first
+approach-from-below touch of Call Resistance 0DTE, any regime. Repaired data: 60 trades/yr
+spread evenly across 12 months, hold 81.6% (103 touches), **36/36 stop/tgt cells positive,
+OOS last-1/3 still +$29/trade** (IS +$170), ref cell stop8/tgt10: +$123/trade, +$7.4K/yr,
+maxDD −$1K. Next: NQ replication, MQ-definition cross-check, paper-trade it.
+Scripts: `es_cr0_sweep.py`, `mr_es_all_levels.py`. PS-0DTE (+$68, n115) = candidate #2.
+
+**MenthorQ data machine (big):** direct REST client `scripts/mq_api.py` (endpoints QUIN
+reads; gateway Bearer captured live) + `mq_pull_history.py` → 365d GEX+percentile/skew/
+QScore for SPX+ES. QUIN backfills: 12mo daily levels (480 rows `levels_history.csv`) +
+0DTE/1DMinMax (216 rows `levels0_history.csv`) + aggregate OI history (works). Snapshot
+endpoints are today-only (date param ignored — tested 11 names); per-strike OI accrues
+forward via nightly harvest. menthorq.com CTA/Vol models = S3 PNGs by date (2nd login
+captured, `auth_state_mqcom.json` gitignored). Knowledge: ~70 testable claims in
+`docs/living/mq_claims_backlog.md`(pending write), 26 web ideas `gex_ideas_web.md`,
+240 KB pages + 32 academy pages archived; academy LESSON bodies still unscraped
+(`mq_lessons_crawl.py` ran — check output). Learning log started (`learning_log.md`).
+
+**Also:** BPS exit shootout (SMA5 exit IS the edge; TP50/stops/expiry-hold all rejected);
+orders.csv audit trail; scheduled tasks (feed/daemon/marks 9:26-9:35 ET, harvests 16:45/17:00);
+morning_report.html v2. **Morning TODO: BPS leg reconciliation at IB (log-vs-IB drift),
+regenerate setup-chart artifact from repaired bars, BO-PB entry logic with user.**
+
+---
+
 ## S73 (2026-07-14, PC) — OPTIONS GOES LIVE: paper pipeline, 8 strategies traded, sim daemon, dashboard, journal
 
 **THE BIG DAY: the whole options forward-test pipeline is LIVE on the IB paper account

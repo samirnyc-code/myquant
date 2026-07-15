@@ -11,3 +11,4 @@ auth_state.json
 # one-time discover artifacts
 discover_page.html
 .discover_ready
+auth_state_mqcom.json

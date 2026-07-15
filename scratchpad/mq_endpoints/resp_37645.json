@@ -1,0 +1,4 @@
+{
+ "url": "https://cf.menthorq.io/clickhouse-api/api/web/v1/prices?tickers=SPX",
+ "body": "[{\"ticker\":\"SPX\",\"current\":7543.64,\"open\":7538.83,\"high\":7556.41,\"low\":7513.63,\"previous_close\":7543.59}]"
+}

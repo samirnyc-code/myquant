@@ -1,0 +1,56 @@
+[
+ {
+  "label": "",
+  "url": "https://dashboard.menthorq.io/en/chats",
+  "title": "MenthorQ | QUIN",
+  "chars": 851,
+  "shot": "chats.png"
+ },
+ {
+  "label": "Levels",
+  "url": "https://dashboard.menthorq.io/en/levels",
+  "title": "MenthorQ | QUIN",
+  "chars": 594,
+  "shot": "levels.png"
+ },
+ {
+  "label": "Watchlists",
+  "url": "https://dashboard.menthorq.io/en/watchlists",
+  "title": "MenthorQ | QUIN",
+  "chars": 321,
+  "shot": "watchlists.png"
+ },
+ {
+  "label": "Summary",
+  "url": "https://dashboard.menthorq.io/en/tickers/SPX",
+  "title": "MenthorQ | QUIN",
+  "chars": 1337,
+  "shot": "tickers_.png"
+ },
+ {
+  "label": "Chart",
+  "url": "https://dashboard.menthorq.io/en/charts/price?symbol=SPX&interval=1&indicators=levels",
+  "error": "Page.goto: Timeout 45000ms exceeded.\nCall log:\n  - navigating to \"https://dashboard.menthorq.io/en/charts/price?symbol=S"
+ },
+ {
+  "label": "Explore",
+  "url": "https://dashboard.menthorq.io/en/screeners",
+  "title": "MenthorQ | QUIN",
+  "chars": 2144,
+  "shot": "screeners.png"
+ },
+ {
+  "label": "Create",
+  "url": "https://dashboard.menthorq.io/en/screeners/create",
+  "title": "MenthorQ | QUIN",
+  "chars": 352,
+  "shot": "screeners_create.png"
+ },
+ {
+  "label": "Saved",
+  "url": "https://dashboard.menthorq.io/en/screeners/saved",
+  "title": "MenthorQ | QUIN",
+  "chars": 329,
+  "shot": "screeners_saved.png"
+ }
+]

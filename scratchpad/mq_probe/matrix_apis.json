@@ -1,0 +1,74 @@
+[
+ {
+  "url": "https://dashboard.menthorq.io/api/auth/session",
+  "status": 200,
+  "bytes": 2897,
+  "preview": "{\"user\":{\"email\":\"samirnyc@gmail.com\",\"id\":\"3e615e28-4efc-40a1-a114-97ce600d2010\"},\"expires\":\"2026-08-13T21:54:50.915Z\",\"accessToken\":\"eyJraWQiOiJFMVpDcDdtTHZOVWNFQkxROURSU3ZWZEVSdFVIZWtUYmRmVWJMeURZdk1BPSIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiI1MTZiOTVkMC02MGMxLTcwY2UtYmQwNy03MTc5ODcyZGE4YWIiLCJjb2duaXRvOmdyb3VwcyI6WyJwcmVtaXVtIiwicHJlbWl1bS1tb250aGx5IiwidXMtZWFzdC0yX1ljUzliV0FQUl93b3JkcHJlc3MiXSwiaXNzI"
+ },
+ {
+  "url": "https://dashboard.menthorq.io/api/auth/session",
+  "status": 200,
+  "bytes": 2897,
+  "preview": "{\"user\":{\"email\":\"samirnyc@gmail.com\",\"id\":\"3e615e28-4efc-40a1-a114-97ce600d2010\"},\"expires\":\"2026-08-13T21:54:51.330Z\",\"accessToken\":\"eyJraWQiOiJFMVpDcDdtTHZOVWNFQkxROURSU3ZWZEVSdFVIZWtUYmRmVWJMeURZdk1BPSIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiI1MTZiOTVkMC02MGMxLTcwY2UtYmQwNy03MTc5ODcyZGE4YWIiLCJjb2duaXRvOmdyb3VwcyI6WyJwcmVtaXVtIiwicHJlbWl1bS1tb250aGx5IiwidXMtZWFzdC0yX1ljUzliV0FQUl93b3JkcHJlc3MiXSwiaXNzI"
+ },
+ {
+  "url": "https://gateway.menthorq.io/user-service/api/web/v1/users/me",
+  "status": 200,
+  "bytes": 1210,
+  "preview": "{\"id\":\"516b95d0-60c1-70ce-bd07-7179872da8ab\",\"wordpress_id\":30309,\"email\":\"samirnyc@gmail.com\",\"phone\":\"+491745420818\",\"first_name\":\"Samir\",\"last_name\":\"Abdo\",\"is_affiliate\":false,\"discord_user_id\":\"652143319903764480\",\"discord_username\":\"samironthemove\",\"registered_at\":\"2026-03-27T20:34:55\",\"last_login_at\":\"2026-07-10T16:21:21.916596\",\"subscriptions\":[{\"id\":16418,\"membership_id\":12112,\"name\":\"Pre"
+ },
+ {
+  "url": "https://gateway.menthorq.io/chat-service/api/web/v1/profile",
+  "status": 200,
+  "bytes": 452,
+  "preview": "{\"id\":\"cdc94c72-1a8f-4013-bd83-743f947421c7\",\"cognito_id\":\"516b95d0-60c1-70ce-bd07-7179872da8ab\",\"email\":\"samirnyc@gmail.com\",\"phone\":\"+491745420818\",\"first_name\":\"Samir\",\"last_name\":\"Abdo\",\"can_send_messages\":true,\"role\":\"premium\",\"billing_period\":\"months\",\"last_role\":\"premium\",\"ai_assistant\":{\"id\":\"mrq-premium-app\"},\"subscription_status\":\"active\",\"subscription_expires_at\":\"2026-08-04 23:59:59\",\""
+ },
+ {
+  "url": "https://gateway.menthorq.io/user-service/api/web/v1/watchlists",
+  "status": 200,
+  "bytes": 2,
+  "preview": "[]"
+ },
+ {
+  "url": "https://gateway.menthorq.io/chat-service/api/web/v1/screeners",
+  "status": 200,
+  "bytes": 29,
+  "preview": "{\"items\":[],\"next_page\":null}"
+ },
+ {
+  "url": "https://gateway.menthorq.io/chat-service/api/web/v1/chats",
+  "status": 200,
+  "bytes": 2265,
+  "preview": "{\"items\":[{\"id\":\"b2e1ae04-3d4d-4a38-b43b-0fdd4e3f2558\",\"title\":\"i am mainly interested in selling volatility in the options mark\",\"assistant_id\":\"mrq-premium-app\",\"user_id\":\"cdc94c72-1a8f-4013-bd83-743f947421c7\",\"created_at\":\"2026-07-10T15:17:19.123959\",\"updated_at\":\"2026-07-10T15:32:09.471791\"},{\"id\":\"bf29ab25-304a-490d-a9ae-2760f8d3f2cb\",\"title\":\"where can i run a backtest\",\"assistant_id\":\"mrq-p"
+ },
+ {
+  "url": "https://cf.menthorq.io/clickhouse-api/api/web/v1/market-status/NYSE",
+  "status": 200,
+  "bytes": 376,
+  "preview": "{\"exchange\":\"NYSE\",\"asset_type\":\"STOCK\",\"date\":\"2026-07-14\",\"status\":\"OPEN\",\"is_open\":true,\"open_time_utc\":\"13:30\",\"close_time_utc\":\"20:00\",\"open_time_local\":\"09:30\",\"close_time_local\":\"16:00\",\"pre_open_time_utc\":\"08:00\",\"post_close_time_utc\":\"00:00\",\"pre_open_time_local\":\"04:00\",\"post_close_time_local\":\"20:00\",\"tz_exchange\":\"America/New_York\",\"next_open_date\":\"2026-07-15\"}"
+ },
+ {
+  "url": "https://cf.menthorq.io/clickhouse-api/api/web/v1/tickers",
+  "status": 200,
+  "bytes": 285308,
+  "preview": "[{\"ticker\":\"DATABENTO#6A\",\"symbol\":\"6A\",\"provider\":\"DATABENTO\",\"name\":\"Australian Dollar Futures\",\"exchange\":\"CME\",\"asset_type\":\"FUTURE\",\"category\":\"FOREX\",\"calendar_code\":\"CME_FX\",\"free_visible\":false,\"contracts\":[{\"contract\":\"6A1!\",\"name\":null,\"expiration\":null},{\"contract\":\"6A2!\",\"name\":null,\"expiration\":null},{\"contract\":\"6AQ2026\",\"name\":null,\"expiration\":\"2026-08-17T14:16:00\"},{\"contract\":\"6A"
+ },
+ {
+  "url": "https://gateway.menthorq.io/clickhouse-api/api/web/v1/options/matrix/SPX?frequency=intraday",
+  "status": 200,
+  "bytes": 29367,
+  "preview": "{\"ticker\":\"SPX\",\"timestamp\":\"2026-07-14T19:30:00\",\"frequency\":\"intraday\",\"spot_price\":7545.45,\"totals\":{\"net_gex\":713293003.8953992,\"abs_gex\":5624268028.209042,\"net_dex\":1705520018666.0364,\"abs_dex\":4178220301465.9653,\"net_oi\":-2635026.0,\"abs_oi\":19401310.0},\"expirations\":[{\"expiration_date\":\"2026-07-14\",\"dte\":0,\"net_gex\":150250787.52241117,\"abs_gex\":460944703.94031996,\"net_dex\":6627489047.193374,"
+ },
+ {
+  "url": "https://gateway.menthorq.io/clickhouse-api/api/web/v1/tickers/SPX/last-updated",
+  "status": 200,
+  "bytes": 49,
+  "preview": "{\"timestamp\":\"2026-07-14T20:00:00Z\",\"kind\":\"eod\"}"
+ },
+ {
+  "url": "https://gateway.menthorq.io/clickhouse-api/api/web/v1/options/matrix/SPX?frequency=eod",
+  "status": 200,
+  "bytes": 27288,
+  "preview": "{\"ticker\":\"SPX\",\"timestamp\":\"2026-07-14T20:00:00\",\"frequency\":\"eod\",\"spot_price\":7544.63,\"totals\":{\"net_gex\":487832755.5817924,\"abs_gex\":3879006444.346054,\"net_dex\":1669717278813.3018,\"abs_dex\":3314378720886.0825,\"net_oi\":-2546162.0,\"abs_oi\":15879482.0},\"expirations\":[{\"expiration_date\":\"2026-07-15\",\"dte\":1,\"net_gex\":19325991.296497107,\"abs_gex\":182808540.36057127,\"net_dex\":2674546184.669405,\"abs_"
+ }
+]
