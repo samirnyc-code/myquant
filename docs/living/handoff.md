@@ -1,6 +1,24 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 14, 2026 (sessions 73 + 73B)
+**Last Updated:** July 15, 2026 (session 74)
+
+---
+
+## S74 (2026-07-15) — portable Codex script-escape fix + Massive key leak scrubbed
+
+**codex_portable.html was broken** (Trainer/Cheat payloads spilling as raw text): the S73B
+Trainer rebuild put `</script>` inside app.html, which terminated the portable's inline
+`<script>` because `json.dumps` doesn't escape it. Fixed in `brooks_build_portable.py`
+(`js()` helper escapes `</` → `<\/` and `<!--` → `<\!--` on every embedded blob), rebuilt
+(12.4 MB, node-verified: script parses, APP/CHEAT decode intact with injected chrome).
+**Drive sync PENDING** — `G:\My Drive` not mounted / GoogleDriveFS not running on this
+machine; rerun `scripts\brooks_sync_drive.ps1` once Drive for Desktop is up.
+
+**Massive.io API key leaked on GitHub (alert received).** Sub already cancelled. Key
+scrubbed from massive.py + scripts/fetch_massive_spx_contracts.py + fetch_for_nt.py +
+fetch_for_nt_flatfiles.py — all now read `MASSIVE_API_KEY` / `MASSIVE_S3_KEY_ID` env vars.
+Old key stays in git history (accepted; no history rewrite). **User TODO: confirm key is
+deactivated on the Massive dashboard, then close the GitHub alert as Revoked.**
 
 ---
 

@@ -100,11 +100,17 @@ function renderEnc(){const q=document.getElementById("eq").value.toLowerCase();
 document.getElementById("eq").oninput=renderEnc;renderEnc();
 </script></body></html>'''
 
-out = (TMPL.replace('__DAYS__', json.dumps(days, ensure_ascii=False))
-           .replace('__DICT__', json.dumps(fd['dict'], ensure_ascii=False))
-           .replace('__ENC__', json.dumps(enc, ensure_ascii=False))
-           .replace('__APP__', json.dumps(app))
-           .replace('__CHEAT__', json.dumps(cheat)))
+def js(v, **kw):
+    # JSON destined for an inline <script>: a literal </script> (or <!--) inside
+    # the string ends the script element and spills everything after it into the
+    # page as text. <\/ and <\!-- are the same strings to the JS engine.
+    return json.dumps(v, **kw).replace('</', r'<\/').replace('<!--', r'<\!--')
+
+out = (TMPL.replace('__DAYS__', js(days, ensure_ascii=False))
+           .replace('__DICT__', js(fd['dict'], ensure_ascii=False))
+           .replace('__ENC__', js(enc, ensure_ascii=False))
+           .replace('__APP__', js(app))
+           .replace('__CHEAT__', js(cheat)))
 dst = HUB / 'codex_portable.html'
 dst.write_text(out, encoding='utf-8')
 print(f'codex_portable.html: {len(days)} text days, {dst.stat().st_size/1e6:.1f} MB')

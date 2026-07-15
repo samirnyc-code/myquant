@@ -34,8 +34,8 @@ import pandas as pd
 from botocore.config import Config
 
 # ── Config ────────────────────────────────────────────────────────────────────
-AWS_ACCESS_KEY_ID     = "d0e1191e-61c3-454b-adcb-5bea8e9e9c6a"
-AWS_SECRET_ACCESS_KEY = "4aTW6AdSEwulL86_kJnNupQppKxSgwXw"
+AWS_ACCESS_KEY_ID     = os.environ.get("MASSIVE_S3_KEY_ID", "")
+AWS_SECRET_ACCESS_KEY = os.environ.get("MASSIVE_API_KEY", "")
 ENDPOINT_URL          = "https://files.massive.com"
 BUCKET                = "flatfiles"
 PREFIX                = "us_futures_cme/trades_v1"

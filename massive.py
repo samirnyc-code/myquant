@@ -46,8 +46,8 @@ from instruments import (
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
-_API_KEY              = "4aTW6AdSEwulL86_kJnNupQppKxSgwXw"
-_S3_ACCESS_KEY_ID     = "d0e1191e-61c3-454b-adcb-5bea8e9e9c6a"
+_API_KEY              = os.environ.get("MASSIVE_API_KEY", "")
+_S3_ACCESS_KEY_ID     = os.environ.get("MASSIVE_S3_KEY_ID", "")
 _S3_SECRET_KEY        = _API_KEY
 _S3_ENDPOINT          = "https://files.massive.com"
 _S3_BUCKET            = "flatfiles"

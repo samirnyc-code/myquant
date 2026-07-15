@@ -5,12 +5,12 @@ checkpoint to parquet. This is the manifest; price-history pulls key off it.
 Robust: paginates via next_url, backs off on 429/5xx, checkpoints every CKPT pages so
 a timeout/kill loses nothing (resume-safe via the saved parquet + a saved cursor).
 """
-import time, sys, json
+import os, time, sys, json
 from pathlib import Path
 import requests
 import pandas as pd
 
-KEY = "4aTW6AdSEwulL86_kJnNupQppKxSgwXw"
+KEY = os.environ.get("MASSIVE_API_KEY", "")
 BASE = "https://api.massive.com/v3/reference/options/contracts"
 OUT = Path(r"c:\Users\Admin\myquant\data\massive_options")
 OUT.mkdir(parents=True, exist_ok=True)
