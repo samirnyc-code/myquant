@@ -44,7 +44,7 @@ def _watch_files():
     import datetime as _dt
     from zoneinfo import ZoneInfo
     date = _dt.datetime.now(ZoneInfo("America/New_York")).strftime("%Y%m%d")
-    return WATCH + [SIM / f"gameplan_{date}.json"]
+    return WATCH + [SIM / f"gameplan_{date}.json", SIM / f"postmortem_{date}.json"]
 
 _lock = threading.Lock()
 _last_gen = [None]

@@ -338,6 +338,75 @@ def setups_html():
     return scale + "".join(cards)
 
 
+def load_postmortem():
+    import datetime as _dt
+    from zoneinfo import ZoneInfo
+    date = _dt.datetime.now(ZoneInfo("America/New_York")).strftime("%Y%m%d")
+    f = SIM / f"postmortem_{date}.json"
+    if not f.exists():
+        return None
+    try:
+        return json.loads(f.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+
+def postmortem_html(pm):
+    if not pm:
+        return ("<p class='muted'>No postmortem yet for today. It runs automatically at "
+                "16:15 ET (<code>options_postmortem.py</code>) once the day closes.</p>")
+    reg = pm.get("regime_preopen", "")
+    regcls = "pos" if reg == "positive_gamma" else "neg"
+    o = pm.get("ohlc")
+    ohlc = (f"<span class='muted'>day &nbsp; O {o['open']:.0f} &nbsp; H {o['high']:.0f} &nbsp; "
+            f"L {o['low']:.0f} &nbsp; C {o['close']:.0f}</span>") if o else ""
+    head = (f"<div class='gp-head'><span class='rlabel {regcls}'>{reg.replace('_',' ').upper()}</span>"
+            f"<span class='muted'>{pm.get('date','')} · preopen {pm.get('spot_preopen','—')}</span>"
+            f"<span style='margin-left:auto'>{ohlc}</span></div>")
+    # paths
+    pchips = "".join(
+        f"<div class='path'><div class='path-h'><b>Path {pid}</b></div>"
+        f"<div class='muted'>{why}</div></div>"
+        for pid, why in pm.get("paths_materialized", []))
+    paths = (f"<h2 style='margin:16px 0 8px'>What played out</h2><div class='paths'>{pchips}</div>"
+             if pchips else "")
+    # outcomes
+    rows = ""
+    for t in pm.get("triggers", []):
+        if t.get("fired") and "pnl" in t:
+            pnl = t["pnl"]
+            m = money(pnl) if pnl is not None else "open/unsettled"
+            oc = t.get("outcome", "")
+            rows += (f"<tr><td><span class='stpill pos'>fired</span></td>"
+                     f"<td class='gcell'>{t['projected_grade']} → <b>{t.get('final_grade','?')}</b></td>"
+                     f"<td><b>{t['name']}</b></td>"
+                     f"<td class='r {_pnl_cls(m)}'>{m}</td><td class='muted'>{oc}</td></tr>")
+        elif "counterfactual" in t:
+            occurred = "DID" in t["counterfactual"]
+            rows += (f"<tr><td><span class='stpill {'warn' if occurred else 'mut'}'>"
+                     f"{'would-fire' if occurred else 'no-signal'}</span></td>"
+                     f"<td class='gcell'>{t['projected_grade']}</td>"
+                     f"<td><b>{t['name']}</b></td><td></td>"
+                     f"<td class='muted'>{t['counterfactual']}</td></tr>")
+        elif "outcome" in t:
+            rows += (f"<tr><td><span class='stpill warn'>{t.get('status','')}</span></td>"
+                     f"<td class='gcell'>{t['projected_grade']}</td><td><b>{t['name']}</b></td>"
+                     f"<td></td><td class='muted'>{t['outcome']}</td></tr>")
+        else:
+            rows += (f"<tr><td><span class='stpill mut'>{t.get('status','')}</span></td>"
+                     f"<td class='gcell'>{t['projected_grade']}</td><td><b>{t['name']}</b></td>"
+                     f"<td></td><td></td></tr>")
+    nfired = sum(1 for t in pm.get("triggers", []) if t.get("fired"))
+    note = ("<p class='muted' style='margin:14px 0 4px'>Plan vs actual. <b>Projected → final</b> grade "
+            "and P&amp;L for fired trades; <b>counterfactual</b> (did the condition occur?) for unfired. "
+            "This is <b>observe-only</b> — criteria never change here; the weekly review proposes changes "
+            "for sign-off.</p>")
+    table = (f"<h2 style='margin:18px 0 8px'>Trigger outcomes · {nfired} fired</h2>"
+             f"<table class='gptable'><tr><th>Result</th><th>Grade</th><th>Setup</th>"
+             f"<th>P&amp;L</th><th>Notes</th></tr>{rows}</table>")
+    return head + paths + table + note
+
+
 def load_gameplan():
     import datetime as _dt
     from zoneinfo import ZoneInfo
@@ -544,6 +613,7 @@ def main():
 
     lr = levels_regime()
     gp = load_gameplan()
+    pm = load_postmortem()
     gp_trades = tlog.load()
     gp_marks = None
     _mf = SIM / "marks.csv"
@@ -718,6 +788,7 @@ h2{{font-size:15px;color:var(--acc);margin:24px 0 8px}}
 <div class="tabs">
   <div class="tab on" data-p="trades">Trades</div>
   <div class="tab" data-p="gameplan">Game Plan</div>
+  <div class="tab" data-p="postmortem">Postmortem</div>
   <div class="tab" data-p="setups">Setups &amp; Grades</div>
   <div class="tab" data-p="journal">Journal</div>
   <div class="tab" data-p="playbook">Playbook</div>
@@ -726,6 +797,7 @@ h2{{font-size:15px;color:var(--acc);margin:24px 0 8px}}
 
 <div class="page on" id="p-trades">{card_body}</div>
 <div class="page" id="p-gameplan">{gameplan_html(gp, gp_trades, gp_marks)}</div>
+<div class="page" id="p-postmortem">{postmortem_html(pm)}</div>
 <div class="page" id="p-setups">{setups_html()}</div>
 <div class="page" id="p-journal">{journal_html(jn)}</div>
 <div class="page prose" id="p-playbook">{playbook_html}</div>
