@@ -115,7 +115,28 @@ OOS: in-sample (first ⅔) +$170/trade → **out-of-sample (last ⅓) +$29/trade
 Surface structure is coherent: wider stops lift win% 42→88% (rejections are wicky), consistent
 with dealer-hedging mechanics at 0DTE strikes (high gamma → aggressive defense on first test).
 
-### 4.4 Comparison sweep for the retracted CR fade (repaired) — the artifact autopsy
+### 4.4 Full gauntlet on ALL levels (first-touch fades, any regime) — user-prompted extension
+
+Every level given the identical treatment: 36-cell sweep, reference cell (stop8/tgt10),
+chronological ⅔/⅓ OOS split, monthly spread:
+
+| Level | Dir | n/yr | Months | Cells+ | Ref E$/tr | Ref win | Total/yr | maxDD | IS E$ | OOS E$ | Verdict |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| **CR (major)** | short | 18 | 10/12 | **36/36** | **+$318** | 83% | +$5,725 | −$462 | +$333 | **+$288** | **SURVIVES** |
+| **CR 0DTE** | short | 60 | 11/12 | **36/36** | +$123 | 63% | +$7,400 | −$1,000 | +$170 | +$29 | **SURVIVES** |
+| **PS 0DTE** | long | 68 | 11/12 | **36/36** | +$130 | 66% | +$8,862 | −$2,825 | +$158 | **+$77** | **SURVIVES** |
+| 1D Min | long | 37 | 10/12 | 31/36 | +$73 | 59% | +$2,688 | −$1,850 | +$150 | −$88 | fragile |
+| PS (major) | long | 12 | 6/12 | 25/36 | −$12 | 50% | −$150 | −$950 | −$12 | −$12 | fragile |
+| 1D Max | short | 11 | 7/12 | 5/36 | −$160 | 36% | −$1,764 | −$2,338 | −$47 | −$462 | REJECT |
+
+**Three survivors, symmetric structure:** fade the first test of the call walls (CR major:
+rare but the strongest per-trade at +$318 with OOS +$288 and tiny DD; CR-0DTE: the volume
+producer), and BUY the first test of the 0DTE put wall (PS-0DTE, the long side). Combined
+≈146 trades/yr, ≈+$19K/yr gross per lot **before overlap dedup** (CR and CR-0DTE sometimes
+coincide at the same strike → same-day double entry needs a rule). d1_min's in-sample
++$150 collapsing to −$88 OOS is a textbook fragility read; 1D-Max fade confirmed dead.
+
+### 4.5 Comparison sweep for the retracted CR fade (repaired) — the artifact autopsy
 
 Same construction on the *major* CR with the neg-GEX filter produces 1 entry in the year
 (the signal effectively never fires with true prices) — the pre-repair 18 "touches" were
@@ -134,11 +155,14 @@ resistance breaks.
 
 ## 6. Recommendation
 
-**Advance the CR-0DTE first-touch fade to live paper trading** (1 MES/ES lot, stop 8 /
-target 10, first from-below touch only, journal every trade), running parallel with the
-BPS. **Do not size up until:** (a) NQ replication passes, (b) ≥20 live paper samples
-roughly match the backtest, (c) MenthorQ-definition cross-check done. Treat 4.2's PS-0DTE
-and neg-GEX PS-major rows as the next two candidates to sweep.
+**Advance the THREE surviving first-touch fades to live paper trading as one suite**
+(1 MES/ES lot each, stop 8 / target 10, first correct-side touch per level per day,
+journal every trade): **short CR-major, short CR-0DTE, long PS-0DTE.** Dedup rule needed
+before go-live: if CR and CR-0DTE coincide within ~5 pts, take ONE entry (treat as CR-major,
+the stronger edge). **Do not size up until:** (a) NQ replication passes, (b) ≥20 live paper
+samples per rule roughly match backtest, (c) MenthorQ-definition cross-check done.
+1D-Min stays on the watchlist (fragile, OOS-negative); 1D-Max fade and PS-major are rejected
+as standalone trades.
 
 ## 7. Caveats
 
