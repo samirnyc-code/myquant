@@ -5,6 +5,39 @@ Ask "explain X" anytime and it lands here. Newest lessons at the top of each sec
 
 ---
 
+## Lesson 5 (2026-07-15) — who actually HAS data: platforms vs vendors vs brokers
+
+Three kinds of players, often confused:
+- **Charting platforms (TradingView)** license data IN to display it; they sell you the
+  chart, not the feed. No official export API; scraping your own account (tvDatafeed) is
+  gray-area and shallow (~5–20k bars). MenthorQ uses TV's *widget* but bought its data
+  from a vendor and built its own backend — that's the standard fintech pattern.
+- **Data vendors (Databento, Polygon, ThetaData, ORATS)** sell the raw feed/history —
+  the only place deep history is truly "for sale."
+- **Brokers (IB)** give account holders real data access as a side effect:
+  `reqHistoricalData` serves YEARS of intraday bars (rate-limited, not bulk-priced) and
+  even expired futures contracts — often the best free deep-history source you already own.
+
+Rule of thumb: before paying anyone, inventory what your broker + existing subs already
+expose via API. We found 6mo×1,400 assets (MQ) + years-deep (IB) hiding behind logins we
+already had.
+
+## Lesson 4 (2026-07-15) — replication: why we test the same rule on NQ
+
+A result from one market + one year has two live explanations: real mechanism, or lucky
+sample. **Replication** on an independent-but-comparable market (NQ: own options chain,
+own dealer book, correlated underlying) is the cheapest way to separate them — the price
+noise is fresh, but the mechanism (dealer 0DTE hedging) should carry over. A **panel test**
+(same rule, many markets) is the stronger version: surviving 4–6 independent panels is
+worth more than doubling the years on one market. Related trap: **survivorship/selection** —
+if you test 6 markets and only report the ones that worked, you've re-created the
+multiple-comparisons problem at the market level. Report the whole panel, always.
+
+Practical constraint lesson: the *levels* exist for 1,400 assets (MenthorQ), but the
+*bars* to test against are the scarce resource — intraday history is what costs money
+(free tier: our own futures parquets + ~60 days of stock intraday from Yahoo). Match the
+test's granularity to the data you own: daily-close tests scale to any ticker for free.
+
 ## Lesson 1 (2026-07-15) — "the data behind something": scraping vs APIs
 
 Your question "can u get the actual data behind the vol and cta models?" in correct lingo:

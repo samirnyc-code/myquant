@@ -1,0 +1,76 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+CLOSED
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the NQ gamma levels for each trading day from 2026-03-01 through 2026-03-31, one row per day, EXACTLY these columns in this order: Date, Call Resistance 0DTE, Put Support 0DTE, HVL 0DTE, Gamma Wall 0DTE, 1D Min, 1D Max. ISO dates, numbers only.
+
+I'll route this to the Data Expert for historical gamma levels data across the March 2026 timeframe.I'll retrieve the NQ gamma levels for March 2026 with the exact columns and format you specified.
+
+1 step completed
+
+No data returned for NQ in March 2026. This could mean:
+
+NQ ticker not found — The continuous futures contract may be stored under a different identifier (e.g., NQ1! for continuous, or a dated contract like NQZ2026)
+Date range outside available data — The screener may not have data for March 2026
+0DTE gamma columns unavailable — The specific 0DTE gamma fields may not be populated for futures
+
+Let me try with the continuous futures ticker:
+
+1 step completed
+Date	Call Resistance 0DTE	Put Support 0DTE	HVL 0DTE	Gamma Wall 0DTE	1D Min	1D Max
+2026-03-02	25200.00	24750.00	24960.00	—	24644.60	25346.90
+2026-03-03	24900.00	24450.00	24800.00	—	24323.15	25096.35
+2026-03-04	25400.00	25000.00	25110.00	—	24799.98	25476.02
+2026-03-05	25200.00	24500.00	24975.00	—	24647.46	25373.54
+2026-03-06	24800.00	24000.00	25100.00	—	24217.30	25105.20
+2026-03-09	25100.00	24940.00	24810.00	—	24554.44	25361.56
+2026-03-10	25250.00	24990.00	25100.00	—	24611.26	25409.74
+2026-03-11	25000.00	24600.00	24950.00	—	24550.82	25340.18
+2026-03-12	24600.00	24400.00	24550.00	—	24134.14	25002.86
+2026-03-13	25100.00	24250.00	24550.00	—	24146.06	24941.94
+2026-03-16	25100.00	24250.00	24725.00	—	24520.53	25223.97
+2026-03-17	25100.00	24250.00	24700.00	—	24700.24	25354.76
+2026-03-18	25100.00	24250.00	24720.00	—	24231.47	24981.03
+2026-03-19	24550.00	24420.00	24520.00	—	24266.45	24967.55
+2026-03-20	24530.00	24000.00	24700.00	—	23850.53	24583.97
+2026-03-23	24700.00	24200.00	24460.00	—	24034.28	24765.72
+2026-03-24	24300.00	24100.00	24250.00	—	24046.82	24760.68
+2026-03-25	24250.00	24370.00	24450.00	—	24004.45	24731.05
+2026-03-26	24300.00	23500.00	24050.00	—	23427.84	24216.16
+2026-03-27	23940.00	23500.00	24500.00	—	22822.26	23686.24
+2026-03-30	23600.00	23050.00	23325.00	—	22679.14	23533.36
+2026-03-31	24000.00	23800.00	23520.00	—	23540.93	24270.07
+
+Note: "Gamma Wall 0DTE" column is not available in the database. The table shows the 6 available gamma-related 0DTE columns as requested. Data covers all trading days in March 2026 (weekends/holidays excluded).
+
+Keep exploring
+Options
+How can I use the NQ Gamma Levels data to improve my intraday trading strategies?
+0DTE
+What is the relationship between 0DTE Gamma Levels and other MenthorQ indicators like NetGex or Q-Score?
+0DTE
+Can you explain how the High Vol Level (HVL) 0DTE is calculated and its significance in identifying market turning points?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

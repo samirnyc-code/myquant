@@ -1,0 +1,72 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+CLOSED
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the NQ Call Resistance, Put Support, and HVL levels for each trading day from 2026-05-01 through 2026-05-31, one row per day, columns: Date, Call Resistance, Put Support, HVL.
+
+I'll retrieve the NQ gamma levels (Call Resistance, Put Support, and High Vol Level) for May 2026.
+
+1 step completed
+
+No data found for NQ during May 1–31, 2026. This could mean:
+
+Ticker symbol issue: NQ may refer to the continuous futures contract NQ1! rather than NQ alone. Let me retry with the continuous contract:
+1 step completed
+
+NQ gamma levels for May 2026 — 20 trading days captured. (Data as of May 29, 2026)
+
+Date	Call Resistance	Put Support	HVL
+2026-05-01	$27,800.00	$25,000.00	$26,490.00
+2026-05-04	$28,000.00	$27,000.00	$27,620.00
+2026-05-05	$28,500.00	$26,000.00	$27,970.00
+2026-05-06	$30,000.00	$28,325.00	$27,870.00
+2026-05-07	$29,000.00	$26,000.00	$27,880.00
+2026-05-08	$29,000.00	$27,000.00	$27,740.00
+2026-05-11	$30,000.00	$29,100.00	$29,190.00
+2026-05-12	$29,000.00	$28,850.00	$28,990.00
+2026-05-13	$30,000.00	$29,300.00	$28,990.00
+2026-05-14	$30,000.00	$29,300.00	$28,990.00
+2026-05-15	$30,000.00	$28,600.00	$29,230.00
+2026-05-18	$29,250.00	$29,010.00	$29,080.00
+2026-05-19	$29,110.00	$28,600.00	$28,910.00
+2026-05-20	$30,000.00	$28,890.00	$29,100.00
+2026-05-21	$29,330.00	$29,000.00	$29,240.00
+2026-05-22	$30,000.00	$28,000.00	$28,960.00
+2026-05-26	$30,000.00	$29,840.00	$29,840.00
+2026-05-27	$30,000.00	$29,400.00	$29,940.00
+2026-05-28	$30,300.00	$29,950.00	$29,980.00
+2026-05-29	$30,500.00	$29,400.00	$29,225.00
+
+Note: Data ends at May 29 (last trading day before Memorial Day weekend). May 30-31 were non-trading days.
+
+Keep exploring
+Options
+How can I use the NQ Call Resistance and Put Support levels together to improve my intraday trading strategies?
+Options
+What other MenthorQ indicators, like Q-Score or NetGex, complement the analysis of HVL and option levels for the NQ?
+Learn
+Can you explain how the High Vol Level (HVL) is calculated and how it signals potential market reversals or volatility shifts?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

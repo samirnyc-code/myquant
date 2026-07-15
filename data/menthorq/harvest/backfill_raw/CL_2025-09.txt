@@ -1,0 +1,72 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+CLOSED
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the CL Call Resistance, Put Support, and HVL levels for each trading day from 2025-09-01 through 2025-09-30, one row per day, columns: Date, Call Resistance, Put Support, HVL.
+
+I'll route this to the Data Expert, as it's a historical time-series request across multiple dates.I'll retrieve the gamma levels for CL (crude oil futures) for September 2025.
+
+1 step completed
+
+CL crude oil gamma levels for September 2025. (Data as of Sep 30, 2025)
+
+Date	Call Resistance	Put Support	HVL
+2025-09-02	$66.00	$60.00	$63.50
+2025-09-03	$66.00	$60.00	$63.50
+2025-09-04	$66.00	$60.00	$63.50
+2025-09-05	$66.00	$60.00	$63.25
+2025-09-08	$64.00	$60.00	$63.00
+2025-09-09	$64.00	$60.00	$63.00
+2025-09-10	$64.00	$60.00	$63.00
+2025-09-11	$64.00	$60.00	$62.00
+2025-09-12	$64.00	$60.00	$62.25
+2025-09-15	$70.00	$60.00	$62.75
+2025-09-16	$70.00	$60.00	$62.75
+2025-09-17	$70.00	$60.00	$63.75
+2025-09-18	$67.00	$60.00	$63.50
+2025-09-19	$70.00	$60.00	$62.75
+2025-09-22	$67.00	$60.00	$62.25
+2025-09-23	$65.00	$60.00	$62.50
+2025-09-24	$65.00	$60.00	$63.25
+2025-09-25	$65.00	$60.00	$63.25
+2025-09-26	$70.00	$60.00	$63.25
+2025-09-29	$70.00	$60.00	$63.50
+2025-09-30	$70.00	$60.00	$63.00
+
+Key observations:
+
+Put Support remained flat at $60.00 throughout the entire month — strong structural support level
+Call Resistance ranged from $64–$70, with notable jumps on Sep 15 ($70) and Sep 26 ($70)
+HVL (High Vol Level) ranged $62.00–$63.75, showing relatively tight clustering around $63.00–$63.50
+Early September (Sep 2–4) showed tighter call resistance ($66), which expanded mid-month
+Keep exploring
+Options
+How can I use the Call Resistance and Put Support levels to make more informed trading decisions on crude oil futures?
+Options
+What other MenthorQ indicators, like NetGex or Q-Score, can complement the analysis of CL Call Resistance and Put Support levels?
+Futures
+Can you explain how the High Vol Level (HVL) is calculated and how it impacts intraday trading strategies for CL futures?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

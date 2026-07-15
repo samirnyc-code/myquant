@@ -1,0 +1,56 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+CLOSED
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the GC Call Resistance, Put Support, and HVL levels for each trading day from 2026-07-01 through 2026-07-15, one row per day, columns: Date, Call Resistance, Put Support, HVL.
+
+I'll retrieve the gamma levels for GC (gold futures) for the specified date range.
+
+1 step completed
+
+Gold (GC) gamma levels for July 1–15, 2026. Call Resistance held steady at $4,250 through July 10, then dropped to $4,100 on July 14. (Data as of Jul 15, 2026)
+
+Date	Call Resistance	Put Support	HVL
+Jul 1	$4,250.00	$4,000.00	$4,105.00
+Jul 2	$4,250.00	$4,000.00	$4,120.00
+Jul 6	$4,250.00	$4,000.00	$4,195.00
+Jul 7	$4,250.00	$4,000.00	$4,145.00
+Jul 8	$4,250.00	$4,000.00	$4,095.00
+Jul 9	$4,250.00	$4,000.00	$4,095.00
+Jul 10	$4,250.00	$4,000.00	$4,095.00
+Jul 13	$4,250.00	$4,000.00	$4,095.00
+Jul 14	$4,100.00	$4,000.00	$4,095.00
+
+Note: Data covers only trading days within the period (weekends and market holidays excluded). Call Resistance shifted down $150 on July 14, while Put Support remained anchored at $4,000 throughout. HVL peaked at $4,195 on July 6, then settled at $4,095 from July 8 onward.
+
+Keep exploring
+Options
+How can I use the GC Call Resistance and Put Support levels to improve my trading strategies?
+Options
+What other MenthorQ indicators, like Swing Levels or NetGex, complement the analysis of GC Call Resistance and Put Support?
+Learn
+Can you explain how the High Vol Level (HVL) is calculated and its significance in intraday trading decisions?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

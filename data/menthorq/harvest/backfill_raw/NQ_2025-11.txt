@@ -1,0 +1,71 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+CLOSED
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the NQ Call Resistance, Put Support, and HVL levels for each trading day from 2025-11-01 through 2025-11-30, one row per day, columns: Date, Call Resistance, Put Support, HVL.
+
+I'll route this to the Data Expert, as it's a historical time-series request across multiple dates (November 2025) for specific levels.I'll retrieve the gamma levels for NQ (Nasdaq-100 E-mini futures) for November 2025.
+
+1 step completed
+
+No data found for NQ in November 2025. This could mean:
+
+NQ ticker symbol issue: The continuous futures contract is typically NQ1! (not NQ). Let me retry with the correct symbol:
+1 step completed
+
+NQ gamma levels for November 2025 — 19 trading days with data. (Data as of November 2025)
+
+Date	Call Resistance	Put Support	HVL
+2025-11-03	$27,500.00	$25,850.00	$25,990.00
+2025-11-04	$27,500.00	$24,000.00	$25,650.00
+2025-11-05	$26,000.00	$25,530.00	$25,725.00
+2025-11-06	$27,500.00	$24,000.00	$25,380.00
+2025-11-07	$27,500.00	$24,000.00	$25,280.00
+2025-11-10	$26,000.00	$25,610.00	$25,650.00
+2025-11-11	$26,000.00	$24,000.00	$25,480.00
+2025-11-12	$26,000.00	$24,000.00	$25,490.00
+2025-11-13	$26,000.00	$24,800.00	$25,170.00
+2025-11-14	$26,000.00	$24,000.00	$24,980.00
+2025-11-17	$26,000.00	$24,000.00	$24,875.00
+2025-11-18	$25,000.00	$24,000.00	$24,800.00
+2025-11-19	$25,000.00	$24,000.00	$24,860.00
+2025-11-20	$25,000.00	$24,000.00	$24,900.00
+2025-11-21	$25,000.00	$24,000.00	$24,900.00
+2025-11-24	$25,000.00	$24,700.00	$24,800.00
+2025-11-25	$25,100.00	$24,800.00	$24,890.00
+2025-11-26	$25,500.00	$25,225.00	$25,230.00
+2025-11-28	$25,500.00	$24,700.00	$25,190.00
+
+Note: Data covers 19 trading days in November 2025 (weekends and holidays excluded). Call Resistance levels ranged from $25,000–$27,500, Put Support from $24,000–$25,850, and HVL from $24,800–$25,990.
+
+Keep exploring
+Options
+How can I use the NQ Call Resistance and Put Support levels together to improve my intraday trading strategies?
+Explore
+What other MenthorQ indicators complement the HVL (High Vol Level) for a comprehensive market structure analysis?
+Learn
+Can you explain how the HVL (High Vol Level) is calculated and its significance in identifying key market turning points?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

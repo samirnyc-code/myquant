@@ -1,0 +1,68 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+CLOSED
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the GC Call Resistance, Put Support, and HVL levels for each trading day from 2026-04-01 through 2026-04-30, one row per day, columns: Date, Call Resistance, Put Support, HVL.
+
+I'll retrieve the gamma levels for GC (Gold Futures) for April 2026.
+
+1 step completed
+
+Gold (GC) gamma levels for April 2026. Call Resistance ranged from $4,510–$5,250; Put Support held steady around $4,400–$4,700. (Data as of Apr 30, 2026)
+
+Date	Call Resistance	Put Support	HVL
+2026-04-01	$5,250.00	$4,400.00	$4,675.00
+2026-04-02	$5,250.00	$4,400.00	$4,675.00
+2026-04-06	$4,750.00	$4,400.00	$4,650.00
+2026-04-07	$4,750.00	$4,400.00	$4,695.00
+2026-04-08	$5,250.00	$4,650.00	$4,735.00
+2026-04-09	$5,250.00	$4,400.00	$4,735.00
+2026-04-10	$5,250.00	$4,400.00	$4,735.00
+2026-04-13	$5,250.00	$4,400.00	$4,735.00
+2026-04-14	$4,900.00	$4,400.00	$4,745.00
+2026-04-15	$4,850.00	$4,400.00	$4,805.00
+2026-04-16	$4,850.00	$4,400.00	$4,805.00
+2026-04-17	$4,950.00	$4,400.00	$4,745.00
+2026-04-20	$4,950.00	$4,400.00	$4,805.00
+2026-04-21	$4,850.00	$4,700.00	$4,795.00
+2026-04-22	$4,850.00	$4,650.00	$4,745.00
+2026-04-23	$4,850.00	$4,650.00	$4,745.00
+2026-04-24	$4,750.00	$4,650.00	$4,735.00
+2026-04-27	$4,750.00	$4,650.00	$4,715.00
+2026-04-28	$4,510.00	$4,465.00	$4,705.00
+2026-04-29	$4,750.00	$4,500.00	$4,670.00
+2026-04-30	$4,750.00	$4,465.00	$4,645.00
+
+Notable: Call Resistance dropped sharply on Apr 28 ($4,510), the lowest of the month, before recovering slightly. Put Support remained anchored around $4,400 for most of the month, then tightened to $4,465–$4,700 in the final week.
+
+Keep exploring
+Options
+How can I use the Call Resistance and Put Support levels to plan entry and exit points in my trading strategy?
+Options
+What other MenthorQ indicators, like NetGex or Q-Score, can complement the analysis of GC Call Resistance and Put Support levels?
+Learn
+Can you explain how the High Vol Level (HVL) is calculated and its significance in identifying market volatility during the trading day?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

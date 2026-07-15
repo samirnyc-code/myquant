@@ -1,0 +1,66 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+CLOSED
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the GC Call Resistance, Put Support, and HVL levels for each trading day from 2026-05-01 through 2026-05-31, one row per day, columns: Date, Call Resistance, Put Support, HVL.
+
+I'll retrieve the gamma levels for GC (Gold Futures) for May 2026.
+
+1 step completed
+
+Gold (GC) gamma levels for May 2026. (Data as of May 29, 2026 — last trading day in the requested range)
+
+Date	Call Resistance	Put Support	HVL
+2026-05-01	$4,750.00	$4,465.00	$4,675.00
+2026-05-04	$4,750.00	$4,465.00	$4,630.00
+2026-05-05	$4,750.00	$4,465.00	$4,580.00
+2026-05-06	$4,750.00	$4,465.00	$4,645.00
+2026-05-07	$4,750.00	$4,465.00	$4,645.00
+2026-05-08	$4,750.00	$4,465.00	$4,645.00
+2026-05-11	$4,750.00	$4,625.00	$4,645.00
+2026-05-12	$4,750.00	$4,625.00	$4,670.00
+2026-05-13	$4,750.00	$4,625.00	$4,675.00
+2026-05-14	$4,750.00	$4,625.00	$4,675.00
+2026-05-15	$4,510.00	$4,465.00	$4,645.00
+2026-05-18	$4,650.00	$4,465.00	$4,580.00
+2026-05-19	$4,510.00	$4,465.00	$4,630.00
+2026-05-20	$4,510.00	$4,465.00	$4,505.00
+2026-05-21	$4,650.00	$4,465.00	$4,505.00
+2026-05-22	$4,510.00	$4,465.00	$4,645.00
+2026-05-27	$4,600.00	$4,400.00	$4,550.00
+2026-05-28	$4,600.00	$4,450.00	$4,505.00
+2026-05-29	$4,650.00	$4,450.00	$4,505.00
+
+Note: Data covers 19 trading days in May 2026 (weekends and holidays excluded). Call Resistance remained stable at $4,750 through mid-month before shifting lower mid-May. Put Support showed a notable jump from $4,465 to $4,625 on May 11, then retreated. HVL ranged between $4,505–$4,675 throughout the month.
+
+Keep exploring
+Options
+How can I use the GC Call Resistance, Put Support, and HVL levels together to improve my intraday trading decisions?
+Learn
+Are there MenthorQ Academy courses that explain how to interpret and apply HVL levels in futures trading?
+Options
+Can you show how the GC Call Resistance and Put Support levels relate to other MenthorQ indicators like Swing Levels or NetGex for a comprehensive market analysis?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

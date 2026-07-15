@@ -1,0 +1,67 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+CLOSED
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the NQ Call Resistance, Put Support, and HVL levels for each trading day from 2026-01-01 through 2026-01-31, one row per day, columns: Date, Call Resistance, Put Support, HVL.
+
+I'll route this to the Data Expert, as it's a historical time-series request across multiple dates.I'll retrieve the NQ gamma levels (Call Resistance, Put Support, and High Vol Level) for January 2026.
+
+1 step completed
+
+NQ gamma levels for January 2026 — call resistance drifted higher through month-end. (Data as of Jan 30, 2026)
+
+Date	Call Resistance	Put Support	HVL
+Jan 2	$26,000.00	$24,500.00	$25,550.00
+Jan 5	$25,700.00	$24,000.00	$25,640.00
+Jan 6	$26,000.00	$24,500.00	$25,725.00
+Jan 7	$26,000.00	$24,500.00	$25,775.00
+Jan 8	$25,900.00	$24,500.00	$25,690.00
+Jan 9	$26,000.00	$24,500.00	$25,625.00
+Jan 12	$26,000.00	$24,500.00	$25,850.00
+Jan 13	$26,000.00	$24,500.00	$25,890.00
+Jan 14	$26,000.00	$24,500.00	$25,580.00
+Jan 15	$26,000.00	$24,500.00	$25,775.00
+Jan 16	$26,000.00	$24,500.00	$25,770.00
+Jan 20	$25,400.00	$25,000.00	$25,275.00
+Jan 21	$25,800.00	$25,000.00	$25,390.00
+Jan 22	$26,000.00	$25,000.00	$25,590.00
+Jan 23	$26,000.00	$25,000.00	$25,660.00
+Jan 26	$26,000.00	$25,825.00	$25,850.00
+Jan 27	$26,500.00	$25,000.00	$25,780.00
+Jan 28	$26,700.00	$25,000.00	$25,990.00
+Jan 29	$26,700.00	$25,000.00	$25,790.00
+Jan 30	$27,000.00	$25,000.00	$25,770.00
+
+Notable: Call resistance climbed $1,000 from Jan 2 ($26,000) to Jan 30 ($27,000), while put support remained stable at $24,500–$25,000 through mid-month, then tightened to $25,000–$25,825 in the final week. HVL ranged $25,275–$25,990 with no clear trend.
+
+Keep exploring
+Options
+How can I use the NQ Call Resistance and Put Support levels to improve my intraday trading strategies?
+Options
+What other MenthorQ indicators, like NetGex or Q-Score, can complement the analysis of Call Resistance and Put Support levels?
+Learn
+Can you explain how the High Vol Level (HVL) is calculated and how it impacts market volatility assessments?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

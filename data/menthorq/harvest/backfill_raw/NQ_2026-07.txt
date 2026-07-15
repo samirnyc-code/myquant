@@ -1,0 +1,65 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+CLOSED
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the NQ Call Resistance, Put Support, and HVL levels for each trading day from 2026-07-01 through 2026-07-15, one row per day, columns: Date, Call Resistance, Put Support, HVL.
+
+I'll retrieve the NQ gamma levels (Call Resistance, Put Support, and High Vol Level) for the specified date range.
+
+1 step completed
+
+Let me try with the continuous futures contract ticker:
+
+1 step completed
+
+NQ1! gamma levels for July 1–15, 2026. (Data as of Jul 15, 2026)
+
+Date	Call Resistance	Put Support	HVL
+Jul 1	$31,000.00	$29,000.00	$30,080.00
+Jul 2	$31,000.00	$29,000.00	$29,810.00
+Jul 6	$31,000.00	$29,000.00	$30,020.00
+Jul 7	$30,000.00	$29,000.00	$29,550.00
+Jul 8	$30,000.00	$29,000.00	$29,500.00
+Jul 9	$30,000.00	$29,000.00	$29,720.00
+Jul 10	$31,000.00	$29,000.00	$29,740.00
+Jul 13	$30,000.00	$29,000.00	$29,540.00
+Jul 14	$31,000.00	$28,500.00	$29,750.00
+
+Note: Data covers 9 trading days (Jul 1–2, 6–10, 13–14). Jul 3–5 and Jul 11–12 were non-trading days (weekend/holiday). Jul 15 data is not yet available (today's session is still in progress).
+
+Key observations:
+
+Call Resistance oscillated between $30,000 and $31,000 throughout the period
+Put Support held steady at $29,000 until Jul 14, when it dropped to $28,500
+HVL ranged narrowly between $29,500–$30,080, suggesting relatively stable volatility clustering
+Keep exploring
+Options
+How can I use the NQ Call Resistance and Put Support levels to plan my entry and exit points in trading?
+Options
+What is the relationship between HVL (High Vol Level) and Gamma Levels in MenthorQ's market structure analysis?
+Options
+Are there MenthorQ Academy courses that explain how to interpret and trade using Call Resistance and Put Support levels effectively?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

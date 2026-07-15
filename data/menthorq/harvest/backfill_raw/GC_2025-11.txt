@@ -1,0 +1,73 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+CLOSED
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the GC Call Resistance, Put Support, and HVL levels for each trading day from 2025-11-01 through 2025-11-30, one row per day, columns: Date, Call Resistance, Put Support, HVL.
+
+I'll route this to the Data Expert, as it's a historical time-series request across multiple dates (November 2025) for a specific ticker (GC - Gold Futures).I'll retrieve the gamma levels for GC (Gold Futures) for November 2025.
+
+1 step completed
+
+Gold (GC) gamma levels for November 2025. 17 trading days returned. (Data as of Nov 28, 2025)
+
+Note: GC was interpreted as continuous futures GC1!. Data covers all available trading days in November 2025 (weekends and holidays excluded).
+
+Date	Call Resistance	Put Support	HVL
+2025-11-03	$3,960.00	$4,000.00	$4,005.00
+2025-11-04	$3,960.00	$3,900.00	$3,955.00
+2025-11-05	$3,960.00	$3,950.00	$3,995.00
+2025-11-06	$4,020.00	$3,950.00	$3,995.00
+2025-11-07	$3,960.00	$3,925.00	$3,955.00
+2025-11-10	$4,120.00	$4,050.00	$4,050.00
+2025-11-11	$4,120.00	$3,975.00	$4,005.00
+2025-11-12	$4,120.00	$4,130.00	$4,070.00
+2025-11-13	$4,120.00	$4,130.00	$4,070.00
+2025-11-14	$4,120.00	$4,040.00	$4,115.00
+2025-11-17	$3,960.00	$4,000.00	$4,070.00
+2025-11-18	$4,120.00	$4,030.00	$4,070.00
+2025-11-19	$4,120.00	$3,970.00	$4,070.00
+2025-11-20	$4,120.00	$4,025.00	$4,065.00
+2025-11-21	$4,120.00	$4,025.00	$4,045.00
+2025-11-26	$4,250.00	$4,195.00	$4,120.00
+2025-11-28	$4,250.00	$4,195.00	$4,120.00
+
+Key observations:
+
+Call Resistance shifted higher mid-month (Nov 10 onward, mostly $4,120), then jumped to $4,250 by late month
+Put Support ranged $3,900–$4,195, with a notable spike to $4,130 on Nov 12–13
+HVL remained relatively stable in the $3,955–$4,115 range through mid-month, then settled at $4,120 by month-end
+Keep exploring
+Options
+How can I use the Call Resistance and Put Support levels together to improve my trading decisions?
+Explore
+Are there MenthorQ indicators that complement the High Vol Level (HVL) for intraday trading analysis?
+Options
+What MenthorQ Academy courses cover the interpretation and application of Gamma Levels and HVL in market structure analysis?
+You're nearing your limit!
+Upgrade to a better plan for more messages and features.
+Dismiss
+Upgrade Now
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

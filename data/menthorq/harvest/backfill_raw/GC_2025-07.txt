@@ -1,0 +1,69 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+CLOSED
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the GC Call Resistance, Put Support, and HVL levels for each trading day from 2025-07-01 through 2025-07-31, one row per day, columns: Date, Call Resistance, Put Support, HVL.
+
+I'll route this to the Data Expert, as it's a historical time-series request across multiple dates.I'll retrieve the gamma levels for GC (Gold Futures) for July 2025.
+
+1 step completed
+
+Gold (GC) gamma levels for July 2025 — 22 trading days. (Data as of July 2025)
+
+Date	Call Resistance	Put Support	HVL
+2025-07-01	$3,400.00	$3,250.00	$3,345.00
+2025-07-02	$3,400.00	$3,250.00	$3,345.00
+2025-07-03	$3,400.00	$3,250.00	$3,345.00
+2025-07-07	$3,400.00	$3,250.00	$3,345.00
+2025-07-08	$3,350.00	$3,250.00	$3,335.00
+2025-07-09	$3,350.00	$3,250.00	$3,335.00
+2025-07-10	$3,350.00	$3,250.00	$3,335.00
+2025-07-11	$3,400.00	$3,250.00	$3,325.00
+2025-07-14	$3,400.00	$3,250.00	$3,345.00
+2025-07-15	$3,400.00	$3,250.00	$3,345.00
+2025-07-16	$3,450.00	$3,250.00	$3,345.00
+2025-07-17	$3,400.00	$3,300.00	$3,345.00
+2025-07-18	$3,400.00	$3,250.00	$3,330.00
+2025-07-21	$3,450.00	$3,345.00	$3,345.00
+2025-07-22	$3,450.00	$3,250.00	$3,370.00
+2025-07-23	$3,450.00	$3,370.00	$3,370.00
+2025-07-24	$3,400.00	$3,250.00	$3,370.00
+2025-07-25	$3,400.00	$3,325.00	$3,370.00
+2025-07-28	$3,100.00	$3,410.00	$3,070.00
+2025-07-29	$3,400.00	$3,410.00	$3,070.00
+2025-07-30	$3,100.00	$3,275.00	$3,070.00
+2025-07-31	$3,100.00	$3,275.00	$3,070.00
+
+Notable: Call Resistance and Put Support remained stable through mid-July (~$3,400 and $3,250), then shifted sharply on July 28–31, with Call Resistance dropping to $3,100 and Put Support rising to $3,275–$3,410. HVL also compressed significantly in the final days (from $3,345 to $3,070), suggesting a major gamma structure shift at month-end.
+
+Keep exploring
+Options
+How can I use the GC Call Resistance and Put Support levels to plan intraday trading strategies?
+Options
+What is the relationship between HVL (High Vol Level) and Gamma Flip signals in MenthorQ's market structure analysis?
+Options
+Are there MenthorQ Academy courses that explain how to interpret and apply Call Resistance and Put Support levels in options trading?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

@@ -1,0 +1,72 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+CLOSED
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the NQ Call Resistance, Put Support, and HVL levels for each trading day from 2026-03-01 through 2026-03-31, one row per day, columns: Date, Call Resistance, Put Support, HVL.
+
+I'll route this to the Data Expert since you're requesting historical/time-series data across multiple dates (March 1-31, 2026).I'll retrieve the NQ (Nasdaq-100 E-mini futures) gamma levels for March 2026.
+
+1 step completed
+
+NQ gamma levels for March 2026 — 22 trading days captured. (Data as of Mar 31, 2026)
+
+Date	Call Resistance	Put Support	HVL
+Mar 2	$25,200.00	$24,000.00	$24,960.00
+Mar 3	$25,000.00	$23,500.00	$24,800.00
+Mar 4	$25,400.00	$23,500.00	$25,110.00
+Mar 5	$25,200.00	$23,500.00	$24,975.00
+Mar 6	$26,000.00	$23,500.00	$25,100.00
+Mar 9	$25,500.00	$24,000.00	$24,810.00
+Mar 10	$25,500.00	$24,500.00	$25,100.00
+Mar 11	$25,500.00	$24,000.00	$24,950.00
+Mar 12	$24,600.00	$24,000.00	$24,550.00
+Mar 13	$26,000.00	$23,000.00	$24,550.00
+Mar 16	$24,750.00	$24,000.00	$24,725.00
+Mar 17	$26,000.00	$24,000.00	$24,700.00
+Mar 18	$24,750.00	$24,000.00	$24,720.00
+Mar 19	$24,750.00	$24,000.00	$24,520.00
+Mar 20	$24,750.00	$24,000.00	$24,700.00
+Mar 23	$24,700.00	$24,000.00	$24,460.00
+Mar 24	$24,750.00	$24,000.00	$24,250.00
+Mar 25	$24,750.00	$24,000.00	$24,450.00
+Mar 26	$24,750.00	$24,000.00	$24,050.00
+Mar 27	$24,750.00	$24,000.00	$24,500.00
+Mar 30	$24,750.00	$23,000.00	$23,325.00
+Mar 31	$24,750.00	$23,000.00	$23,520.00
+
+Notable patterns:
+
+Call Resistance stabilized around $24,750 from mid-March onward (Mar 18–31), after ranging $25,000–$26,000 in early March
+Put Support held steady at $24,000 for most of the month, with two drops to $23,500 (Mar 3–6) and $23,000 (Mar 30–31)
+HVL declined from ~$25,100 early month to ~$23,325 by month-end, tracking the downtrend in NQ price action
+Keep exploring
+Options
+How can I use the Call Resistance and Put Support levels to plan my intraday trading strategies?
+Options
+What is the relationship between HVL (High Vol Level) and Gamma Levels in assessing market volatility?
+Futures
+Are there MenthorQ Academy courses that explain how to interpret and apply NQ options data for trading decisions?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

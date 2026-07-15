@@ -1,0 +1,74 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+CLOSED
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the NQ gamma levels for each trading day from 2026-06-01 through 2026-06-30, one row per day, EXACTLY these columns in this order: Date, Call Resistance 0DTE, Put Support 0DTE, HVL 0DTE, Gamma Wall 0DTE, 1D Min, 1D Max. ISO dates, numbers only.
+
+I'll route this to the Data Expert for historical gamma levels data across the June 2026 timeframe.I'll retrieve the NQ gamma levels for June 2026 with the exact columns and format you specified.
+
+1 step completed
+
+No data returned for NQ in June 2026. This could mean:
+
+NQ ticker not found — The continuous contract NQ1! may be the correct identifier for E-mini Nasdaq futures
+Date range outside available data — The screener may not have historical data extending back to June 2026, or the data window is limited
+
+Let me try with the continuous futures contract:
+
+1 step completed
+Date	Call Resistance 0DTE	Put Support 0DTE	HVL 0DTE	Gamma Wall 0DTE	1D Min	1D Max
+2026-06-01	30480.00	30300.00	30390.00	180.00	30322.31	30722.69
+2026-06-02	30670.00	30650.00	30660.00	20.00	30344.90	31141.10
+2026-06-03	30630.00	30660.00	30490.00	-30.00	30095.47	30894.53
+2026-06-04	30700.00	29900.00	30340.00	800.00	30026.18	30772.82
+2026-06-05	29700.00	28700.00	30180.00	1000.00	28299.51	29358.99
+2026-06-08	29140.00	29000.00	29440.00	140.00	28957.82	29912.68
+2026-06-09	29660.00	28500.00	28975.00	1160.00	28601.01	29679.99
+2026-06-10	28975.00	28000.00	28830.00	975.00	27843.54	29100.46
+2026-06-11	30100.00	29775.00	29800.00	325.00	29226.53	30204.47
+2026-06-12	30100.00	29775.00	29800.00	325.00	29511.67	30422.83
+2026-06-15	31000.00	30000.00	29975.00	1000.00	30380.82	31283.18
+2026-06-16	30750.00	30200.00	30225.00	550.00	29846.09	30754.91
+2026-06-17	30340.00	29900.00	30210.00	440.00	29677.57	30605.93
+2026-06-18	30500.00	30425.00	30490.00	75.00	30272.09	31180.91
+2026-06-22	30550.00	30640.00	30660.00	-90.00	30197.08	31127.92
+2026-06-23	30170.00	29600.00	29990.00	570.00	29237.06	30266.94
+2026-06-24	30120.00	29150.00	29825.00	970.00	29601.57	30588.93
+2026-06-25	30100.00	29500.00	29950.00	600.00	29250.47	30268.03
+2026-06-26	29750.00	29000.00	29900.00	750.00	28776.37	29789.63
+2026-06-29	30500.00	29000.00	29820.00	1500.00	29498.66	30491.34
+2026-06-30	30600.00	29000.00	30090.00	1600.00	30035.81	30965.69
+
+Note: Gamma Wall 0DTE calculated as Call Resistance 0DTE minus Put Support 0DTE. Data retrieved for NQ1! (continuous Nasdaq-100 futures) covering all trading days in June 2026.
+
+Keep exploring
+0DTE
+How can I use the NQ gamma levels like Call Resistance 0DTE and Put Support 0DTE to improve my intraday trading strategies?
+0DTE
+What is the relationship between Gamma Wall 0DTE and Swing Levels in MenthorQ's market structure analysis?
+0DTE
+Are there MenthorQ Academy courses that explain how to interpret and apply 0DTE Gamma Levels and High Vol Levels (HVL) in options trading?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

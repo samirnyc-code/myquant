@@ -1,0 +1,74 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+CLOSED
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the NQ gamma levels for each trading day from 2025-09-01 through 2025-09-30, one row per day, EXACTLY these columns in this order: Date, Call Resistance 0DTE, Put Support 0DTE, HVL 0DTE, Gamma Wall 0DTE, 1D Min, 1D Max. ISO dates, numbers only.
+
+I'll route this to the Data Expert for historical gamma levels data across the September 2025 timeframe.I'll retrieve the NQ gamma levels for September 2025 with the exact columns and format you specified.
+
+1 step completed
+
+No data returned for NQ during September 1-30, 2025. This could indicate:
+
+Historical data limitation: The screener database may not contain data from September 2025 (that date is in the past relative to today's context of July 15, 2026, but may be outside the available historical window)
+Ticker format issue: NQ may need to be specified as NQ1! (continuous futures) or a specific contract (e.g., NQU2025 for September 2025)
+
+Let me retry with the continuous futures format:
+
+1 step completed
+Date	Call Resistance 0DTE	Put Support 0DTE	HVL 0DTE	Gamma Wall 0DTE	1D Min	1D Max
+2025-09-02	23510.00	23050.00	23270.00	460.00	23117.19	23641.81
+2025-09-03	23500.00	23200.00	23360.00	300.00	23205.68	23705.82
+2025-09-04	23850.00	23425.00	23475.00	425.00	23453.22	23914.78
+2025-09-05	23700.00	23380.00	23480.00	320.00	23452.18	23894.32
+2025-09-08	23850.00	23700.00	23740.00	150.00	23573.78	24023.22
+2025-09-09	23900.00	23800.00	23490.00	100.00	23664.83	24114.67
+2025-09-10	24000.00	23630.00	23830.00	370.00	23624.55	24091.45
+2025-09-11	24250.00	23800.00	23890.00	450.00	23800.04	24213.46
+2025-09-12	24200.00	23000.00	23725.00	1200.00	24090.64	24614.86
+2025-09-15	25000.00	24000.00	23725.00	1000.00	24268.49	24807.51
+2025-09-16	25000.00	24000.00	23990.00	1000.00	24256.94	24803.56
+2025-09-17	24200.00	24400.00	23990.00	-200.00	24232.08	24771.92
+2025-09-18	24800.00	24550.00	24490.00	250.00	24439.24	24988.26
+2025-09-19	25000.00	24600.00	23990.00	400.00	24583.84	25138.16
+2025-09-22	25000.00	24920.00	24940.00	80.00	24711.40	25281.10
+2025-09-23	25000.00	24850.00	24740.00	150.00	24542.12	25125.38
+2025-09-24	24700.00	24650.00	24690.00	50.00	24633.55	24861.45
+2025-09-25	24825.00	24500.00	24625.00	325.00	24345.52	24925.48
+2025-09-26	24750.00	24700.00	24490.00	50.00	24446.03	25006.97
+2025-09-29	25000.00	24725.00	24740.00	275.00	24527.69	25094.81
+2025-09-30	25000.00	24650.00	24790.00	350.00	24553.78	25122.72
+
+Note: "Gamma Wall 0DTE" is calculated as Call Resistance 0DTE minus Put Support 0DTE. September 1 was Labor Day (market closed); data begins September 2, 2025.
+
+Keep exploring
+0DTE
+How can I use the NQ 0DTE Gamma Levels to anticipate intraday price movements?
+Options
+What other MenthorQ indicators can complement the analysis of NQ Gamma Levels for a fuller market structure view?
+0DTE
+Can you explain how the HVL 0DTE and Gamma Wall 0DTE levels are calculated and their significance in trading decisions?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

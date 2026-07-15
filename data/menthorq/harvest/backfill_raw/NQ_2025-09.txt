@@ -1,0 +1,55 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+CLOSED
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the NQ Call Resistance, Put Support, and HVL levels for each trading day from 2025-09-01 through 2025-09-30, one row per day, columns: Date, Call Resistance, Put Support, HVL.
+
+I'll retrieve the NQ gamma levels (Call Resistance, Put Support, and High Vol Level) for September 2025.
+
+1 step completed
+
+No data found for NQ in September 2025. This could mean:
+
+NQ ticker not in database — The screener may use a different ticker symbol for the E-mini Nasdaq futures (e.g., NQ1! for continuous, or a dated contract like NQU2025 for September 2025)
+Date range outside available data — The database may not contain historical data from September 2025
+
+Suggestions:
+
+Try NQ1! (continuous E-mini Nasdaq futures)
+Try NQU2025 (September 2025 contract)
+Verify the exact ticker symbol used in the screener
+Check if data for that date range is available in the database
+
+Would you like me to search for NQ using a different ticker format, or do you have the exact futures contract symbol you'd like me to query?
+
+Keep exploring
+Options
+How can I use the Call Resistance and Put Support levels to plan my intraday trading strategies on NQ?
+Options
+What is the relationship between HVL (High Vol Level) and Gamma Levels in assessing market volatility?
+Options
+Are there MenthorQ Academy courses that explain how to interpret and trade using Call Resistance, Put Support, and HVL indicators?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

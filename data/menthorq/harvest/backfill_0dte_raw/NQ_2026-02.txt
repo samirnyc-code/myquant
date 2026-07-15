@@ -1,0 +1,56 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+CLOSED
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the NQ gamma levels for each trading day from 2026-02-01 through 2026-02-28, one row per day, EXACTLY these columns in this order: Date, Call Resistance 0DTE, Put Support 0DTE, HVL 0DTE, Gamma Wall 0DTE, 1D Min, 1D Max. ISO dates, numbers only.
+
+I'll retrieve the NQ gamma levels for February 2026 with the exact columns and format you specified.
+
+1 step completed
+
+No data returned for NQ in February 2026. This could indicate:
+
+NQ ticker not in database — The screener may use a different identifier (e.g., NQ1! for continuous futures, or a dated contract like NQZ2026)
+Date range outside available data — February 2026 may predate the database or fall outside the loaded historical range
+0DTE columns sparse — The call_resistance_0dte, put_support_0dte, and related 0DTE fields may not be populated for all dates
+
+Suggestions:
+
+Confirm the correct NQ ticker format (continuous NQ1! vs. dated contract)
+Verify the date range is within the database's historical coverage
+Try a more recent date range to test if the data exists
+Clarify if you need the standard gamma levels (call_resistance, put_support, high_vol_level) instead of 0DTE-specific variants
+
+Would you like me to retry with a different ticker format or date range?
+
+Keep exploring
+0DTE
+How can I use the 0DTE Gamma Levels like Call Resistance and Put Support to improve my intraday trading strategies?
+Options
+What other MenthorQ indicators, such as NetGex or Swing Levels, can complement the analysis of NQ gamma levels for a more comprehensive market view?
+Options
+Can you explain how the High Vol Level (HVL) and Gamma Wall are calculated and what their significance is in options market structure analysis?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

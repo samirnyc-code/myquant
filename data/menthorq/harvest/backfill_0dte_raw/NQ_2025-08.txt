@@ -1,0 +1,58 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+CLOSED
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the NQ gamma levels for each trading day from 2025-08-01 through 2025-08-31, one row per day, EXACTLY these columns in this order: Date, Call Resistance 0DTE, Put Support 0DTE, HVL 0DTE, Gamma Wall 0DTE, 1D Min, 1D Max. ISO dates, numbers only.
+
+I'll route this to the Data Expert for historical gamma levels data across the August 2025 timeframe.I'll retrieve the NQ gamma levels for August 2025 with the exact columns and format you specified.
+
+1 step completed
+
+No data returned for NQ during August 1-31, 2025. This could indicate:
+
+Data availability: The screener database may not contain historical data from August 2025 (the current date is July 15, 2026 — that data is ~11 months old and may have been archived or purged)
+Ticker format: NQ might need to be specified as NQ1! (continuous futures) or a specific contract (e.g., NQU2025 for September 2025)
+Date range: The exact trading days in that range may not all be present in the database
+
+Suggestions:
+
+Try a more recent date range (e.g., last 30 days from today, July 15, 2026)
+Confirm the exact NQ contract ticker (continuous NQ1! vs. dated contract)
+Check if the data exists for a different month in 2025
+
+Would you like me to:
+
+Search for NQ gamma levels for a recent date range instead?
+Try with NQ1! (continuous futures) for August 2025?
+Look for a different futures contract?
+Keep exploring
+0DTE
+How can I use the NQ gamma levels like Call Resistance and Put Support 0DTE to improve my intraday trading strategies?
+0DTE
+What other MenthorQ indicators, such as NetGex or Q-Score, can complement the analysis of 0DTE gamma levels for the NQ?
+0DTE
+Can you explain how the High Vol Level (HVL) 0DTE is calculated and its significance in interpreting gamma walls and market maker positioning?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

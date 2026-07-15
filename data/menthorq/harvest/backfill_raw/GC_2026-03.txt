@@ -1,0 +1,53 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+CLOSED
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the GC Call Resistance, Put Support, and HVL levels for each trading day from 2026-03-01 through 2026-03-31, one row per day, columns: Date, Call Resistance, Put Support, HVL.
+
+I'll retrieve the gamma levels for GC (Gold Futures) for the month of March 2026.
+
+1 step completed
+
+No data found for GC (Gold Futures) during March 1-31, 2026.
+
+This could mean:
+
+GC data not available for that period — The screener database may not have historical data extending back to March 2026, or GC records for that specific month may not be populated.
+Ticker symbol issue — Confirm the ticker. For gold futures, the continuous contract is typically GC1! (front-month). Would you like me to try:
+GC1! (continuous gold futures)?
+A different date range (e.g., recent dates)?
+A different futures contract?
+
+Please clarify the ticker or date range, and I'll retry the query.
+
+Keep exploring
+Options
+How can I use the GC Call Resistance and Put Support levels to inform my trading decisions during volatile market conditions?
+Learn
+Are there MenthorQ Academy courses that explain how to interpret and trade using HVL (High Volatility Level) indicators?
+Options
+How do the GC Call Resistance and Put Support levels interact with other MenthorQ indicators like NetGex and Q-Score for a comprehensive market analysis?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

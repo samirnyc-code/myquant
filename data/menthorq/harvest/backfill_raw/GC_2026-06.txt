@@ -1,0 +1,68 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+CLOSED
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the GC Call Resistance, Put Support, and HVL levels for each trading day from 2026-06-01 through 2026-06-30, one row per day, columns: Date, Call Resistance, Put Support, HVL.
+
+I'll retrieve the gamma levels for GC (gold futures) for June 2026.
+
+1 step completed
+
+Gold (GC) gamma levels for June 2026. (Data as of Jun 30, 2026)
+
+Date	Call Resistance	Put Support	HVL
+2026-06-01	$4,600.00	$4,450.00	$4,505.00
+2026-06-02	$4,600.00	$4,450.00	$4,505.00
+2026-06-03	$4,650.00	$4,450.00	$4,505.00
+2026-06-04	$4,575.00	$4,450.00	$4,505.00
+2026-06-05	$4,650.00	$4,350.00	$4,505.00
+2026-06-08	$4,650.00	$4,250.00	$4,480.00
+2026-06-09	$4,550.00	$4,250.00	$4,495.00
+2026-06-10	$5,350.00	$4,000.00	$4,475.00
+2026-06-11	$4,350.00	$4,000.00	$4,340.00
+2026-06-12	$4,350.00	$4,000.00	$4,345.00
+2026-06-15	$4,450.00	$4,000.00	$4,345.00
+2026-06-16	$4,450.00	$4,000.00	$4,345.00
+2026-06-17	$4,400.00	$4,000.00	$4,345.00
+2026-06-18	$4,400.00	$4,000.00	$4,340.00
+2026-06-22	$4,350.00	$4,000.00	$4,345.00
+2026-06-23	$4,400.00	$4,100.00	$4,325.00
+2026-06-24	$4,300.00	$4,000.00	$4,285.00
+2026-06-25	$4,250.00	$4,000.00	$4,195.00
+2026-06-26	$4,250.00	$4,000.00	$4,195.00
+2026-06-29	$4,250.00	$4,000.00	$4,195.00
+2026-06-30	$4,250.00	$4,000.00	$4,100.00
+
+Note: Data reflects trading days only (weekends and market holidays excluded). Call Resistance declined from $4,650 early June to $4,250 by month-end. Put Support compressed from $4,450 to $4,000 mid-month and remained stable. HVL trended lower from $4,505 to $4,100 over the period.
+
+Keep exploring
+Options
+How can I use the GC Call Resistance and Put Support levels together to improve my trading decisions?
+Learn
+Are there MenthorQ Academy courses that explain how to interpret and trade using HVL (High Vol Level) indicators?
+Options
+Can you show how the GC HVL levels correlate with other MenthorQ indicators like Gamma Levels or NetGex for a more comprehensive market analysis?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

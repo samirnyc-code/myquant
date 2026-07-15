@@ -1,0 +1,67 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+CLOSED
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the CL Call Resistance, Put Support, and HVL levels for each trading day from 2026-05-01 through 2026-05-31, one row per day, columns: Date, Call Resistance, Put Support, HVL.
+
+I'll retrieve the gamma levels for CL (crude oil futures) for May 2026.
+
+1 step completed
+
+CL crude oil gamma levels for May 2026. (Data as of May 1–29, 2026)
+
+Date	Call Resistance	Put Support	HVL
+2026-05-01	$110.00	$85.00	$89.25
+2026-05-04	$110.00	$85.00	$94.50
+2026-05-05	$110.00	$85.00	$97.75
+2026-05-06	$100.00	$85.00	$94.50
+2026-05-07	$100.00	$85.00	$94.50
+2026-05-08	$100.00	$85.00	$94.50
+2026-05-11	$100.00	$92.00	$97.00
+2026-05-12	$105.00	$80.00	$88.00
+2026-05-13	$105.00	$80.00	$88.25
+2026-05-14	$105.00	$80.00	$94.75
+2026-05-15	$105.00	$80.00	$88.25
+2026-05-18	$105.00	$80.00	$88.75
+2026-05-19	$105.00	$80.00	$88.75
+2026-05-20	$105.00	$80.00	$97.75
+2026-05-21	$105.00	$80.00	$99.50
+2026-05-22	$105.00	$80.00	$94.75
+2026-05-26	$105.00	$80.00	$94.75
+2026-05-27	$105.00	$80.00	$91.75
+2026-05-28	$105.00	$80.00	$91.75
+2026-05-29	$105.00	$80.00	$91.75
+
+Notable: Call Resistance shifted down from $110 to $100 on May 6, then stabilized at $105 from May 12 onward. Put Support tightened from $85 to $80 on May 12 and remained there through month-end. HVL ranged $88–$99.50, with the highest level on May 21.
+
+Keep exploring
+Options
+How can I use the Call Resistance and Put Support levels to improve my intraday trading strategies on MenthorQ?
+Options
+What other MenthorQ indicators like NetGex or Q-Score can complement the analysis of Call Resistance and Put Support levels?
+Futures
+Can you explain how the High Vol Level (HVL) is calculated and its significance in identifying key market turning points for crude oil futures?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

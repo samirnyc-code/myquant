@@ -1,0 +1,74 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+CLOSED
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the CL Call Resistance, Put Support, and HVL levels for each trading day from 2025-07-01 through 2025-07-31, one row per day, columns: Date, Call Resistance, Put Support, HVL.
+
+I'll route this to the Data Expert, as it's a historical time-series request across multiple dates (July 1-31, 2025) — which requires data retrieval across a date range rather than a single-date validation.I'll retrieve the gamma levels for CL (crude oil futures) for July 2025.
+
+1 step completed
+
+CL crude oil gamma levels for July 2025. (Data as of Jul 31, 2025)
+
+Note: CL was interpreted as continuous front-month futures (CL1!). Weekends and holidays have no trading data.
+
+Date	Call Resistance	Put Support	HVL
+2025-07-01	$65.00	$60.00	$64.75
+2025-07-02	$70.00	$60.00	$64.75
+2025-07-03	$70.00	$60.00	$64.75
+2025-07-07	$70.00	$60.00	$67.25
+2025-07-08	$70.00	$60.00	$67.25
+2025-07-09	$70.00	$66.00	$67.00
+2025-07-10	$70.00	$66.00	$66.75
+2025-07-11	$70.00	$64.00	$64.75
+2025-07-14	$71.00	$64.00	$66.75
+2025-07-15	$70.00	$65.00	$66.00
+2025-07-16	$70.00	$65.00	$66.00
+2025-07-17	$70.00	$65.00	$66.00
+2025-07-18	$70.00	$65.00	$65.25
+2025-07-21	$70.00	$65.00	$65.75
+2025-07-22	$70.00	$65.00	$65.00
+2025-07-23	$70.00	$60.00	$65.50
+2025-07-24	$70.00	$60.00	$65.75
+2025-07-25	$70.00	$60.00	$65.50
+2025-07-28	$70.00	$65.00	$65.75
+2025-07-29	$70.00	$65.00	$65.50
+2025-07-30	$70.00	$65.00	$65.50
+2025-07-31	$70.00	$65.00	$65.75
+
+Key observations:
+
+Call Resistance remained stable at $70.00 for most of the month (except Jul 1 at $65.00 and Jul 14 at $71.00)
+Put Support fluctuated between $60.00 and $66.00, with a tightening trend mid-month (Jul 9-10 at $66.00) before widening again
+HVL ranged from $64.75 to $67.25, with the highest levels early in the month (Jul 7-8) and a general downtrend through late July
+Keep exploring
+Options
+How can I use the CL Call Resistance and Put Support levels to improve my options trading strategies?
+Options
+What other MenthorQ indicators complement the Call Resistance and Put Support levels for a more comprehensive market analysis?
+Learn
+Can you explain how the High Vol Level (HVL) is calculated and its significance in identifying potential market reversals?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

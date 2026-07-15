@@ -25,7 +25,7 @@ ET = ZoneInfo("America/New_York")
 
 def yahoo_es_daily():
     req = urllib.request.Request(
-        "https://query1.finance.yahoo.com/v8/finance/chart/ES%3DF?range=2y&interval=1d",
+        "https://query1.finance.yahoo.com/v8/finance/chart/ES%3DF?range=10y&interval=1d",
         headers={"User-Agent": "Mozilla/5.0"})
     r = json.loads(urllib.request.urlopen(req, timeout=30).read())["chart"]["result"][0]
     q = r["indicators"]["quote"][0]

@@ -1,0 +1,75 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+CLOSED
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the NQ gamma levels for each trading day from 2025-12-01 through 2025-12-31, one row per day, EXACTLY these columns in this order: Date, Call Resistance 0DTE, Put Support 0DTE, HVL 0DTE, Gamma Wall 0DTE, 1D Min, 1D Max. ISO dates, numbers only.
+
+I need to route this to the Data Expert, as you're requesting historical time-series data across multiple dates (December 1-31, 2025) with specific metrics.I'll retrieve the NQ gamma levels for December 2025 with the exact columns and format you specified.
+
+1 step completed
+
+No data returned for NQ in December 2025. This could mean:
+
+Date range issue: The database may not contain data for December 2025 (future date relative to the system's data collection cutoff)
+Ticker format: NQ might need to be specified as NQ1! (continuous futures) or a specific contract (e.g., NQZ2025)
+
+Let me try with the continuous futures format:
+
+1 step completed
+Date	Call Resistance 0DTE	Put Support 0DTE	HVL 0DTE	Gamma Wall 0DTE	1D Min	1D Max
+2025-12-01	25500.00	25190.00	25275.00	—	25082.89	25716.61
+2025-12-02	25700.00	25440.00	25440.00	—	25287.34	25920.16
+2025-12-03	25700.00	25550.00	25440.00	—	25350.89	25940.61
+2025-12-04	25700.00	25400.00	25440.00	—	25346.04	25918.96
+2025-12-05	25680.00	25150.00	25370.00	—	25459.65	26010.35
+2025-12-08	25725.00	25480.00	25550.00	—	25405.65	26007.85
+2025-12-09	25900.00	25500.00	25660.00	—	25372.92	25979.58
+2025-12-10	26000.00	25550.00	25660.00	—	25521.60	26079.40
+2025-12-11	25850.00	25500.00	25675.00	—	25583.53	26085.97
+2025-12-12	25900.00	25000.00	25450.00	—	25149.43	25768.57
+2025-12-15	25900.00	25250.00	25475.00	—	25061.53	25635.97
+2025-12-16	25900.00	25150.00	25475.00	—	25043.64	25599.36
+2025-12-17	24400.00	24500.00	25450.00	—	24661.85	25241.65
+2025-12-18	25500.00	25000.00	25300.00	—	24929.78	25508.22
+2025-12-19	25750.00	25600.00	25260.00	—	25330.95	25864.05
+2025-12-22	25800.00	25680.00	25690.00	—	25444.67	25955.83
+2025-12-23	25800.00	25750.00	25750.00	—	25557.85	26065.15
+2025-12-24	25850.00	25700.00	25730.00	—	25612.36	26123.64
+2025-12-26	25850.00	25500.00	25575.00	—	25604.69	26107.31
+2025-12-29	25750.00	25650.00	25690.00	—	25487.32	26001.68
+2025-12-30	25790.00	25500.00	25725.00	—	25410.99	25941.01
+2025-12-31	25550.00	25600.00	25625.00	—	25149.15	25720.35
+
+Note: "Gamma Wall 0DTE" column is not available in the database; the "—" entries indicate no data for that metric. The table includes all available 0DTE gamma levels for NQ1! (Nasdaq-100 continuous futures) throughout December 2025.
+
+Keep exploring
+0DTE
+How can I use the NQ gamma levels, such as Call Resistance and Put Support 0DTE, to inform my intraday trading decisions?
+0DTE
+What other MenthorQ indicators, like NetGex or Q-Score, complement the analysis of 0DTE Gamma Levels for a more comprehensive market view?
+0DTE
+Can you explain how the High Vol Level (HVL) 0DTE is calculated and its significance in identifying potential market turning points?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats
