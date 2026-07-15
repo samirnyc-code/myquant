@@ -1,7 +1,39 @@
-<!doctype html><html><head><meta charset="utf-8"><title>Trade Cards</title><style>
-:root{--bg:#0d0f14;--card:#171b23;--card2:#1b202b;--ink:#e6e9ef;--mut:#8a91a0;--line:#2a3040;
---blue:#3987e5;--good:#1baf7a;--warn:#eda100;--crit:#e34948;--orange:#eb6834;--vio:#9085e9}
-@media (prefers-color-scheme: light){:root{--bg:#eef0f3;--card:#fff;--card2:#fafbfc;--ink:#151821;--mut:#68707f;--line:#dde1e8}}
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Options — Forward Sim</title>
+<style>
+:root{--bg:#0b0d12;--panel:#12151c;--panel2:#171b23;--line:#232833;--ink:#e8ebf0;
+--mut:#7d8697;--acc:#5b9bff;--pos:#2fbf8f;--neg:#f0555f;--warn:#e6a84b;--chip:#1c212b}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(1200px 600px at 70% -10%,#151b28 0,var(--bg) 60%);
+color:var(--ink);font:14px/1.5 -apple-system,Segoe UI,Inter,system-ui,sans-serif;
+-webkit-font-smoothing:antialiased;padding:26px 30px 60px}
+.wrap{max-width:1180px;margin:0 auto}
+.top{display:flex;align-items:center;gap:14px;margin-bottom:4px}
+h1{font-size:21px;font-weight:700;letter-spacing:-.01em;margin:0}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--mut)}
+.sub{color:var(--mut);font-size:12.5px;margin:2px 0 20px}
+.sub code{background:var(--chip);padding:1px 6px;border-radius:5px;color:var(--ink)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:10px;margin-bottom:22px}
+.tile{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);
+border-radius:13px;padding:13px 15px}
+.tl{color:var(--mut);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.tv{font-size:21px;font-weight:750;margin-top:5px;letter-spacing:-.02em}
+.pos{color:var(--pos)}.neg{color:var(--neg)}.muted{color:var(--mut)}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:18px}
+.tab{padding:9px 16px;color:var(--mut);cursor:pointer;font-weight:600;font-size:13.5px;
+border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab.on{color:var(--ink);border-bottom-color:var(--acc)}
+.page{display:none} .page.on{display:block}
+.jrow{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 16px;margin:10px 0}
+.jhead{display:flex;align-items:center;gap:9px}
+.badge{font-size:9.5px;letter-spacing:.1em;padding:2px 7px;border-radius:6px;background:var(--chip);color:var(--mut)}
+.badge.open{color:var(--pos)} .jmeta{color:var(--mut);font-size:12px;margin:5px 0}
+.jthesis{font-size:13px;line-height:1.55}
+h2{font-size:15px;color:var(--acc);margin:24px 0 8px}
+
+
+
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);
 font:14px/1.45 system-ui,'Segoe UI',sans-serif;padding:16px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
@@ -58,7 +90,41 @@ h2{margin:0 0 1px;font-size:21px}.mut{color:var(--mut)}
 letter-spacing:.14em;color:var(--mut);font-weight:700}
 .sechead::after{content:'';flex:1;height:1px;background:var(--line)}
 .sechead .cnt{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:1px 8px}
-</style></head><body>
+
+.grid{margin-top:0}
+</style></head><body><div class="wrap">
+<div class="top"><span class="dot"></span><h1>Options — Forward Sim</h1></div>
+<div class="sub">causal 15:59 BPS + paper strategies · live feed <b>closed</b>
+· start <code>scripts/spot_feed.py</code></div>
+
+<div class="kpis"><div class="kpi">
+          <div class="kl">Net Liq</div>
+          <div class="kv ">$999,139</div></div><div class="kpi">
+          <div class="kl">Realized P&L</div>
+          <div class="kv neg">−$920</div></div><div class="kpi">
+          <div class="kl">Running (open)</div>
+          <div class="kv pos">+$715</div></div><div class="kpi">
+          <div class="kl">Win rate</div>
+          <div class="kv ">67%</div></div><div class="kpi">
+          <div class="kl">Profit factor</div>
+          <div class="kv ">0.60</div></div><div class="kpi">
+          <div class="kl">Open / Closed</div>
+          <div class="kv ">4 / 6</div></div><div class="kpi">
+          <div class="kl">Collateral at risk</div>
+          <div class="kv ">$9,225</div></div><div class="kpi">
+          <div class="kl">IB maint margin</div>
+          <div class="kv ">$7,500</div></div><div class="kpi">
+          <div class="kl">VIX</div>
+          <div class="kv ">16.2</div></div></div>
+
+<div class="tabs">
+  <div class="tab on" data-p="trades">Trades</div>
+  <div class="tab" data-p="journal">Journal</div>
+  <div class="tab" data-p="playbook">Playbook</div>
+  <div class="tab" data-p="results">Sim Results</div>
+</div>
+
+<div class="page on" id="p-trades">
 <div class="sechead" id="oh">● OPEN POSITIONS <span class="cnt" id="oc"></span></div>
 <div class="grid" id="grid_open"></div>
 <div class="sechead" id="ch">CLOSED TRADES <span class="cnt" id="cc"></span></div>
@@ -192,4 +258,228 @@ $('#grid_closed').innerHTML = closedIdx.map(([t,i])=>tile(t,i)).join('');
 $('#oc').textContent = openIdx.length; $('#cc').textContent = closedIdx.length;
 if(!openIdx.length){$('#oh').style.display='none';$('#grid_open').style.display='none';}
 if(!closedIdx.length){$('#ch').style.display='none';$('#grid_closed').style.display='none';}
+</script></div>
+<div class="page" id="p-journal"><div class="jrow">
+          <div class="jhead"><b>put_cal_wk</b>
+            <span class="badge open">OPEN</span>
+            <span class="pos" style="margin-left:auto;font-weight:700">—</span></div>
+          <div class="jmeta">put calendar 20260714/20260717 · entered 2026-07-14 12:21 · R None
+            · MFE +$292 / MAE −$112</div>
+          <div class="jthesis">ATM put calendar: short 0DTE leg decays fastest; long weekly retains vega. Tests multi-expiry legs in the log (payoff/POP not defined at a single expiry — risk = net debit). Expectation: small gain if SPX sits near the strike at 16:00.</div></div><div class="jrow">
+          <div class="jhead"><b>bull_cs_wk</b>
+            <span class="badge open">OPEN</span>
+            <span class="pos" style="margin-left:auto;font-weight:700">—</span></div>
+          <div class="jmeta">bull call spread 50pt 20260717 · entered 2026-07-14 12:21 · R None
+            · MFE +$420 / MAE +$145</div>
+          <div class="jthesis">Momentum continuation: SPX +20 today, buying the weekly 50pt call spread. No validated signal — chasing strength, which the playbook has never tested. Expectation: SPX above the long strike by expiry.</div></div><div class="jrow">
+          <div class="jhead"><b>bcs_cr_0dte</b>
+            <span class="badge closed">CLOSED</span>
+            <span class="neg" style="margin-left:auto;font-weight:700">−$3</span></div>
+          <div class="jmeta">bear call spread 25pt @ CR 7600 · entered 2026-07-14 12:20 · R -0.0
+            · MFE +$0 / MAE −$55</div>
+          <div class="jthesis">DEGENERATE FILL - textbook lesson: planned as short call spread at CR 7600, but by execution time (12:20) SPX had faded to 7531 and the 7600C bid collapsed to 0.10 = the 7625C ask. Net credit 0.00 -> max gain \, can only lose. A real system must check min-credit BEFORE placing (s</div></div><div class="jrow">
+          <div class="jhead"><b>fly_gw_0dte</b>
+            <span class="badge closed">CLOSED</span>
+            <span class="pos" style="margin-left:auto;font-weight:700">+$949</span></div>
+          <div class="jmeta">call butterfly 25pt @ GW 7550 · entered 2026-07-14 10:56 · R 1.05
+            · MFE +$1,242 / MAE +$722</div>
+          <div class="jthesis">Pin play centered EXACTLY on the MenthorQ 0DTE Gamma Wall 7550 (our IB calc: 7525 — 1 strike off). Expectation: max value if SPX settles near 7550 at 16:00; cheap defined risk. The most regime-aligned trade of the batch.</div></div><div class="jrow">
+          <div class="jhead"><b>straddle_0dte</b>
+            <span class="badge closed">CLOSED</span>
+            <span class="neg" style="margin-left:auto;font-weight:700">−$2,324</span></div>
+          <div class="jmeta">long ATM straddle 0DTE · entered 2026-07-14 10:39 · R -0.87
+            · MFE −$1,268 / MAE −$2,308</div>
+          <div class="jthesis">Long vol on a VIX-15, positive-gamma pin day is COUNTER-regime — taken to test debit/two-right execution. Expectation: needs a move beyond the breakevens by 16:00; unlikely; this is the trade the regime framework says NOT to take.</div></div><div class="jrow">
+          <div class="jhead"><b>condor_0dte</b>
+            <span class="badge closed">CLOSED</span>
+            <span class="pos" style="margin-left:auto;font-weight:700">+$175</span></div>
+          <div class="jmeta">iron condor 25pt wings 0DTE · entered 2026-07-14 10:36 · R 0.08
+            · MFE +$180 / MAE +$120</div>
+          <div class="jthesis">Positive-gamma day (spot above HVL 7495) favors pinning; short strikes inside the PS0 7475 / CR0 7550-7600 walls. Expectation: both sides decay to worthless by 16:00. Playbook 2 warns condors underperform plain BPS on STMR days - but today is a pin test. NOTE: call side filled ~1</div></div><div class="jrow">
+          <div class="jhead"><b>bps_stmr</b>
+            <span class="badge closed">CLOSED</span>
+            <span class="pos" style="margin-left:auto;font-weight:700">+$155</span></div>
+          <div class="jmeta">bull put spread 50pt 14DTE · entered 2026-07-14 10:30 · R 0.04
+            · MFE +$210 / MAE +$170</div>
+          <div class="jthesis">Flagship BPS structure WITHOUT its STMR trigger (K8~59 at entry, not oversold; C>SMA100 ok). Pure execution/labeling test. Expectation: theta decay while SPX holds above the short put; high POP but NO validated edge off-signal. NOTE: long leg filled ~4min after short (IB limit-ba</div></div><div class="jrow">
+          <div class="jhead"><b>sell_0dte_gamma</b>
+            <span class="badge closed">CLOSED</span>
+            <span class="pos" style="margin-left:auto;font-weight:700">+$127</span></div>
+          <div class="jmeta">P-spread 25pt x1 · entered 2026-07-14 09:53 · R 0.05
+            · MFE +$130 / MAE +$125</div>
+          <div class="jthesis">First-ever logged trade (plumbing proof). Playbook 3 hypothesis: 0DTE put credit spread with short strike AT the MenthorQ PS0 wall 7475, ~65pts OTM on a positive-gamma day. Expectation: pins/decays, settles worthless at 16:00. POP estimated from entry delta (~0.06 short).</div></div></div>
+<div class="page prose" id="p-playbook"><h1>Options Strategy Playbook — rules, parameters, regimes, and how we test them</h1>
+<p><b>Status:</b> Living. Started S70 (2026-07-12); S73 (2026-07-14) major expansion: every</p>
+<p>strategy family now has a FIXED parameter set + a test grid, after all 8 structures were</p>
+<p>executed and logged on the paper account (first live-pipeline day).</p>
+<p>One entry per strategy so results are testable, consistent, and comparable.</p>
+<p>Every strategy carries an honest <b>backtest-status</b> tag and a <b>data-needed</b> tag so we</p>
+<p>never confuse a validated edge with a hypothesis.</p>
+<p>> Companion source of truth: <code>docs/living/handoff.md</code>. Infrastructure: the sim daemon</p>
+<p>> (<code>scripts/options_sim_daemon.py</code>), manual trades (<code>scripts/options_manual_trade.py</code>),</p>
+<p>> sampler (<code>scripts/options_strategy_sampler.py</code>), marks (<code>scripts/options_mark.py</code>),</p>
+<p>> dashboard (<code>scripts/options_app.py</code>, Streamlit :8511). All trades land in ONE log:</p>
+<p>> <code>data/options_log/trades.parquet</code> (§B schema).</p>
+<p>---</p>
+<h2>0. How to read a strategy entry</h2>
+<li><b>Thesis</b> — why an edge should exist</li>
+<li><b>Entry trigger</b> — the signal; must be readable at a defined time (causality!)</li>
+<li><b>Structure & DEFAULT params</b> — the ONE parameter set forward-tests run with</li>
+<li><b>Test grid</b> — the parameter sweep we'd optimize over once data allows</li>
+<li><b>Exit</b> — profit target / signal exit / time stop / settlement</li>
+<li><b>Sizing</b> — contracts, collateral, max concurrent</li>
+<li><b>Favorable regime</b> — where it should work (§A framework)</li>
+<li><b>Status</b> — VALIDATED (walk-forward) / SUPPORTED (in-sample) / HYPOTHESIS / ANTI (evidence against)</li>
+<li><b>Verdict</b> — current call</li>
+<p><b>Grading scale for individual trades</b> (logged per trade): A+ = trigger + regime +</p>
+<p>level all aligned; A/B = most aligned; C = structure test or off-signal; F = broken</p>
+<p>execution (e.g. zero-credit fill — see 2026-07-14 bcs example).</p>
+<p>---</p>
+<h2>1. STMR Bull Put Spread  <code>bps_stmr</code>  — THE FLAGSHIP</h2>
+<li><b>Thesis:</b> oversold-but-uptrend mean reversion; sell put premium into the bounce.</li>
+<li><b>Entry trigger (CAUSAL):</b> at 15:59 ET, stoch <code>%K8 < 15 AND spot > SMA100</code></li>
+<p>  (daily series + today's session H/L + 15:59 spot). Fill 16:00–16:15.</p>
+<li><b>Structure & DEFAULT:</b> SPXW put spread, sell <b>~30Δ</b> put / buy <b>50pt</b> lower, <b>14 DTE</b>.</li>
+<li><b>Test grid:</b> DTE {7, 14, 21, 30} × width {25, 50, 100} × short-delta {20, 30, 40}</li>
+<p>  — S67/S68 swept this on EOD marks: 14DTE/50pt was the capital-efficiency winner.</p>
+<li><b>Exit:</b> first day spot(15:59) > SMA5 → buy back 16:00+; else settle at expiry.</li>
+<p>  **S73 exit shootout (<code>scripts/mr_bps_exit_rules.py</code>, 142 trades): the SMA5 exit IS the</p>
+<p>  edge** — hold-to-expiry is NEGATIVE (PF 0.95, maxDD −$27.7K), tastylive TP-50% ≈ flat</p>
+<p>  (0.97), price stops are poison (0.71–0.84; they sell the pre-bounce low). SMA5: PF 1.74,</p>
+<p>  +$14.7K, maxDD −$6.3K. This is a mean-reversion TIMING play, not a theta play. NO price</p>
+<p>  stops, NO expiry holds, NO profit targets — exit on the signal only.</p>
+<li><b>Sizing:</b> 1-lot; collateral = width − credit (~$4.0–4.9K); max 3 concurrent.</li>
+<li><b>Regime:</b> elevated-but-falling IV; non-crash uptrend. Worst: gap-down clusters.</li>
+<li><b>Status:</b> SUPPORTED in-sample (146 trades 2010–23, PF 1.93 bid/ask, +$18.2K, maxDD −$6.3K).</li>
+<p>  Causal executable subset (2021-07→2023-12): 29 trades, PF 3.78 — n too small, regime-flattered.</p>
+<li><b>Verdict:</b> the ONLY strategy with real support. Forward-test is LIVE as of 2026-07-14</li>
+<p>  (daemon). **S73 walk-forward result (<code>scripts/mr_bps_regime_wf.py</code>): VIX-rank filters DO</p>
+<p>  NOT help — OOS filtered PF 2.13 < unfiltered 2.24 (2014-23); the "elevated-but-falling"</p>
+<p>  prior is unsupported (falling-VIX buckets n≤13; LOW VIX-rank was actually the best</p>
+<p>  tercile, PF 6.15 n=31). Trade it UNCONDITIONED.** Trades: <code>data/options_sim/bps_regime_trades.csv</code>.</p>
+<h2>2. Iron Condor on STMR  <code>condor_stmr</code>  — ANTI (as an STMR variant)</h2>
+<li><b>Thesis:</b> add call-side credit on ~zero extra collateral.</li>
+<li><b>Status:</b> SUPPORTED-NEGATIVE — S68 sweep: LOSES to plain BPS (the bounce runs into the</li>
+<p>  short calls). Only helps tail/maxDD.</p>
+<li><b>Verdict:</b> DEPRECATED on the STMR signal. Condor lives on as <code>condor_0dte</code> (§3b).</li>
+<h2>3. 0DTE premium sell at gamma level  <code>sell_0dte_gamma</code>  *(HYPOTHESIS — forward-test live)*</h2>
+<li><b>Thesis:</b> positive-gamma days pin; sell defined-risk premium at the walls.</li>
+<li><b>Entry trigger:</b> morning (9:45–10:30 ET), positive-gamma day (spot > HVL), short strike</li>
+<p>  AT the MenthorQ PS0 (puts) or CR0 (calls); require spot ≥ 40pts from the short strike</p>
+<p>  AND net credit ≥ 0.80.</p>
+<li><b>Structure & DEFAULT:</b> 0DTE credit spread, <b>25pt width</b>, short AT the wall.</li>
+<li><b>Test grid:</b> entry time {9:45, 11:00, 13:00} × width {10, 25, 50} × wall {PS0, CR0, GW}</li>
+<p>  × min-distance {25, 50, 75}.</p>
+<li><b>Exit:</b> hold to settlement (cash) by default; test grid adds 50%-credit target and 2×-credit stop.</li>
+<li><b>Sizing:</b> 1-lot; collateral = width − credit (~$2.4K).</li>
+<li><b>Regime:</b> positive GEX, VIX < 20, no FOMC/CPI.</li>
+<li><b>Status:</b> HYPOTHESIS. No historical intraday data owned → forward-only.</li>
+<p>  First live sample 2026-07-14 (7475/7450 P, $130 credit, settled — see log).</p>
+<li><b>Verdict:</b> the daily forward-test workhorse — cheap, fast feedback, one per day max.</li>
+<h3>3b. 0DTE iron condor inside the walls  <code>condor_0dte</code>  *(HYPOTHESIS)*</h3>
+<li><b>Structure & DEFAULT:</b> short put AT/inside PS0 + short call AT/inside CR0, <b>25pt wings</b>,</li>
+<p>  entered 9:45–10:30 on a positive-gamma day; both strikes ≥ 40pts OTM, total credit ≥ 1.50.</p>
+<li><b>Exit:</b> settlement; grid adds close-both at 50% credit.</li>
+<li><b>Status:</b> HYPOTHESIS (2026-07-14 sample: $180 credit, POP 96% at entry).</li>
+<li><b>Caveat:</b> asymmetric risk on trend days — skip when |spot − HVL| < 15 (regime ambiguity).</li>
+<h2>4. Gamma-level fade / HVL  <code>gamma_level_fade</code>  — ANTI (naive)</h2>
+<li>S66: MenthorQ levels hold ~50% once touched. Do NOT trade naively. Only revisit with a</li>
+<p>  conditioned trigger (GEX magnitude + distance + time-of-day). Calibration continues daily</p>
+<p>  (<code>mq_logger.py</code>); our CR matches MenthorQ exactly, PS/HVL formulas still wrong.</p>
+<h2>5. Long ATM straddle  <code>straddle_0dte</code> / <code>straddle_event</code>  *(HYPOTHESIS, counter-regime by default)*</h2>
+<li><b>Thesis:</b> buy vol when realized > implied is likely: event days, negative-gamma days.</li>
+<li><b>Entry trigger:</b> ONLY on (a) scheduled events (FOMC/CPI before 16:00) or (b) negative-gamma</li>
+<p>  (spot < HVL) mornings with VIX term inverted. NEVER on a positive-gamma pin day</p>
+<p>  (2026-07-14 sample bought at VIX 15 on a pin day = −$1.3K unrealized within hours — the</p>
+<p>  textbook counter-example, grade C−).</p>
+<li><b>Structure & DEFAULT:</b> buy ATM C + P, 0DTE (event day) or nearest-weekly.</li>
+<li><b>Test grid:</b> trigger {event, neg-gamma, both} × DTE {0, 2–4} × exit {close-before-event-fade,</li>
+<p>  fixed 2× debit target / 50% stop, hold-to-close}.</p>
+<li><b>Sizing:</b> risk = full debit (~$2.5–2.7K ATM 0DTE); 1-lot.</li>
+<li><b>Status:</b> HYPOTHESIS with a skeptical prior (theta on 0DTE is brutal).</li>
+<li><b>Verdict:</b> forward-test ONLY on trigger days; expect few samples/month.</li>
+<h2>6. Butterfly at the pin  <code>fly_gw_0dte</code>  *(HYPOTHESIS — most regime-aligned 0DTE long)*</h2>
+<li><b>Thesis:</b> positive-gamma days settle near the Gamma Wall; a cheap fly centered there has</li>
+<p>  convex payoff into the pin.</p>
+<li><b>Entry trigger:</b> positive-gamma day, enter 10:00–12:00, center = GW0 (fallback: max-GEX</li>
+<p>  strike); require debit ≤ 40% of wing width.</p>
+<li><b>Structure & DEFAULT:</b> call butterfly, <b>25pt wings</b>, centered ON the wall, 0DTE.</li>
+<li><b>Test grid:</b> wings {10, 25, 50} × center {GW0, CR0, spot-rounded} × entry time.</li>
+<li><b>Exit:</b> settlement (max value AT the pin); grid adds 2× debit target intraday.</li>
+<li><b>Sizing:</b> risk = debit (~$0.9K on 25pt). Defined, small.</li>
+<li><b>Status:</b> HYPOTHESIS. 2026-07-14 sample: $9.05 debit, peaked +$742 unrealized mid-day</li>
+<p>  (SPX hovering 7540s vs 7550 wall) — encouraging single sample, means nothing yet.</p>
+<li><b>Verdict:</b> alongside §3, the second daily forward-test candidate.</li>
+<h2>7. Directional verticals  <code>bull_cs_wk</code> / <code>bear_cs_wk</code>  *(HYPOTHESIS — needs a signal)*</h2>
+<li><b>Thesis:</b> none yet — a debit vertical is a delta bet; without a validated directional</li>
+<p>  signal it's a coin flip minus spread. 2026-07-14 sample = momentum chase, grade C+.</p>
+<li><b>Only sanctioned use:</b> expressing an EXISTING validated futures signal (STMR long) in</li>
+<p>  defined-risk form: buy 50Δ / sell 25Δ, 7–14 DTE, on signal days, exit with the signal.</p>
+<li><b>Test grid:</b> deferred until a signal is chosen. Do not sweep blind.</li>
+<li><b>Status:</b> HYPOTHESIS.</li>
+<h2>8. Calendars  <code>put_cal_wk</code>  *(structure-test only)*</h2>
+<li><b>Thesis:</b> short-leg theta > long-leg theta near ATM; vega hedge.</li>
+<li><b>Status:</b> logged once (2026-07-14) to prove multi-expiry handling. No thesis we can</li>
+<p>  test with owned data (needs term-structure history). PARKED.</p>
+<p>---</p>
+<h2>A. Regime framework (unchanged, now partially LIVE)</h2>
+<table>
+<tr><td>Dimension</td><td>Source</td><td>Have?</td></tr>
+<tr><td>IV level / rank</td><td>VIX daily (auto-refreshed by <code>options_mark.py</code>) + live IB delayed</td><td><b>LIVE</b> ✓</td></tr>
+<tr><td>VIX term structure</td><td>VIX/VIX3M</td><td>NEED (free) — next</td></tr>
+<tr><td>Trend vs range</td><td>ER/ADX on SPX daily (Yahoo, auto)</td><td>LIVE ✓</td></tr>
+<tr><td>Dealer gamma regime</td><td>MenthorQ manual AM + IB scanner (<code>mq_logger.py</code>)</td><td>LIVE ✓ (CR exact; PS/HVL formulas wrong)</td></tr>
+<tr><td>Session position vs walls</td><td>parity-spot rig vs levels</td><td>LIVE ✓</td></tr>
+<tr><td>Calendar events</td><td>manual</td><td>easy, add to daemon</td></tr>
+</table>
+<p><b>Premium-selling prior:</b> best in elevated-but-falling IV + positive-gamma range days;</p>
+<p>worst in IV spikes and negative-gamma trends. 2026-07-14 was the archetypal positive-gamma</p>
+<p>pin day and behaved exactly to type (credit structures +, straddle −).</p>
+<h2>B. Trade log — unified schema (S73: extended)</h2>
+<p><code>data/options_log/trades.parquet</code>: trade_id, strategy_id, source(backtest|sim|paper),</p>
+<p>symbol, entry_dt, exit_dt, dte, structure, legs(json), credit, exit_cost, fill_model,</p>
+<p>slippage, pnl, roc, collateral, hold_days, win, regime tags (vix, vix_rank, er10, adx,</p>
+<p>gex_regime, hvl_side, dow, event), <b>commentary, grade, max_gain, max_loss, pop</b>.</p>
+<p>Marks (running PnL + VIX) in <code>data/options_sim/marks.csv</code> every ~5 min.</p>
+<h2>C. Data inventory</h2>
+<table>
+<tr><td>Data</td><td>Status</td></tr>
+<tr><td>OptionsDX SPX EOD 2010–2023</td><td>HAVE</td></tr>
+<tr><td>SPX daily (Yahoo ^GSPC, auto-refresh)</td><td>LIVE ✓</td></tr>
+<tr><td>VIX daily (auto-refresh) + live delayed</td><td>LIVE ✓</td></tr>
+<tr><td>OPRA realtime NBBO on paper acct</td><td>LIVE ✓ (verified 2026-07-14)</td></tr>
+<tr><td>Realtime SPX spot</td><td>LIVE ✓ via 0DTE put-call parity rig (no index sub needed)</td></tr>
+<tr><td>ES realtime</td><td>NT8 only (no bridge yet — see handoff S73 open items)</td></tr>
+<tr><td>Historical intraday NBBO + OI</td><td>NEED (ThetaData $40) — the gate for backtesting §3/3b/6</td></tr>
+</table>
+<h2>D. Forward-test protocol (the daily loop)</h2>
+<p>1. <b>Morning (9:30–10:30 ET):</b> paste MenthorQ levels → <code>scratchpad/mq_levels_today.json</code>;</p>
+<p>   run <code>mq_logger.py</code> (calibration row). If regime qualifies: place §3 and/or §6 (one each,</p>
+<p>   1-lot, DEFAULT params ONLY — no improvising strikes), commentary + grade at entry.</p>
+<p>2. <b>All day:</b> <code>options_mark.py --watch 300</code> (running PnL + VIX), daemon sampling spot.</p>
+<p>3. <b>15:59 ET:</b> daemon decides <code>bps_stmr</code> causally; 16:00–16:15 fill tape logged.</p>
+<p>4. <b>After close:</b> settle 0DTE trades at SPX settle, book realized PnL, review in the app.</p>
+<p>5. <b>Rule:</b> every trade gets commentary + grade AT ENTRY. Parameters are FIXED per §s</p>
+<p>   above — a param change = a NEW strategy_id (e.g. <code>fly_gw_0dte_w50</code>).</p>
+<p>6. <b>Sample-size honesty:</b> nothing graduates from HYPOTHESIS until ≥30 forward samples</p>
+<p>   AND the equivalent backtest (once ThetaData decision is made).</p>
+<h2>E. Where MenthorQ fits — unchanged (calibration ground truth + regime tag, not a signal)</h2>
+<h2>F. Open decisions</h2>
+<li>[ ] ThetaData $40/mo — the gate for backtesting all 0DTE strategies. Decide after ~2 weeks</li>
+<p>      of forward samples show which strategy deserves the spend.</p>
+<li>[x] ~~VIX daily~~ — LIVE (auto-refresh, S73)</li>
+<li>[x] ~~unified trade-log writer~~ — LIVE (S73)</li>
+<li>[ ] VIX term structure (VIX3M) — free, next data add</li>
+<li>[x] ~~Walk-forward the BPS family with VIX-rank conditioning~~ — DONE S73: filters don't</li>
+<p>      help OOS (2.13 vs 2.24 PF); trade unconditioned. Prior §A "elevated-but-falling" demoted.</p>
+<li>[ ] NT8→repo ES bridge (exporter indicator) if ES-based signals return to the sim</li>
+<li>[ ] Event calendar (FOMC/CPI) into the daemon for §5 triggers + §3 skips</li></div>
+<div class="page" id="p-results"><p class='muted'>Level-fade sim results (VIRGIN_FIRST_TOUCH, real fills). Thin: 1yr data, small n. Not validated.</p><table><tr><th>market</th><th>level</th><th>n</th><th>win_pct</th><th>pf</th><th>expectancy</th><th>total</th><th>maxdd</th><th>cells_pos</th><th>oos_exp</th><th>verdict</th></tr><tr><td>ES</td><td>cr</td><td>11</td><td>72.7</td><td>4.74</td><td>242</td><td>2662</td><td>-462</td><td>27</td><td>138</td><td>fragile</td></tr><tr><td>ES</td><td>cr0</td><td>29</td><td>62.1</td><td>1.99</td><td>133</td><td>3862</td><td>-1388</td><td>28</td><td>31</td><td>fragile</td></tr><tr><td>ES</td><td>ps0</td><td>44</td><td>54.5</td><td>1.14</td><td>28</td><td>1250</td><td>-3238</td><td>28</td><td>-77</td><td>fragile</td></tr><tr><td>NQ</td><td>cr</td><td>25</td><td>48.0</td><td>0.82</td><td>-83</td><td>-2065</td><td>-4026</td><td>8</td><td>-214</td><td>REJECT</td></tr><tr><td>NQ</td><td>ps</td><td>15</td><td>66.7</td><td>1.89</td><td>316</td><td>4747</td><td>-3251</td><td>33</td><td>593</td><td>SURVIVES</td></tr><tr><td>NQ</td><td>cr0</td><td>24</td><td>50.0</td><td>1.19</td><td>75</td><td>1805</td><td>-5430</td><td>18</td><td>-553</td><td>REJECT</td></tr><tr><td>NQ</td><td>ps0</td><td>33</td><td>45.5</td><td>0.79</td><td>-123</td><td>-4056</td><td>-7796</td><td>2</td><td>-500</td><td>REJECT</td></tr><tr><td>GC</td><td>cr</td><td>13</td><td>69.2</td><td>2.13</td><td>206</td><td>2674</td><td>-592</td><td>32</td><td>272</td><td>SURVIVES</td></tr><tr><td>GC</td><td>ps</td><td>24</td><td>54.2</td><td>1.12</td><td>32</td><td>768</td><td>-2962</td><td>23</td><td>-16</td><td>fragile</td></tr><tr><td>CL</td><td>cr</td><td>11</td><td>36.4</td><td>0.54</td><td>-70</td><td>-768</td><td>-981</td><td>7</td><td>-239</td><td>REJECT</td></tr></table></div>
+</div>
+<script>
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('on'));
+  t.classList.add('on'); document.getElementById('p-'+t.dataset.p).classList.add('on');
+});
 </script></body></html>

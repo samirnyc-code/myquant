@@ -4,6 +4,68 @@
 
 ---
 
+## S73-OPTIONS DAY 2 (2026-07-15) — gamma-level research: 2 fill bugs, edge RETRACTED, honest reset
+
+**⚠️ READ THIS BEFORE TRUSTING ANY LEVEL-FADE RESULT.** A long, messy session. The
+"multi-market gamma-level fade edge" ($19K/yr, PF 29, 9 survivors) was an ARTIFACT of two
+fill-realism bugs (both user-caught). Corrected, almost nothing survives. Honest state below.
+
+**THE TWO BUGS (memory: [[backtest-fill-realism]]):**
+1. LOOSE FILL — entry detector used a price-scaled ~3pt tolerance (reused from a hold-rate
+   REACTION study) → "filled" shorts at levels price never reached (15 of 19 ES-CR entries
+   topped 0.5–2.8pt BELOW CR). Entry price = the level, applied even when price didn't get there.
+2. GAP/RE-APPROACH — weak 3-bar approach check counted gap-above and re-approach days as
+   from-below touches.
+Fix: VIRGIN first-touch from correct side + real limit fill (price must TRADE at level).
+`scripts/sim_run.py` corrected. Buggy ledgers quarantined:
+`sim_ledger_BUGGED_loosefill.csv`, `_v2_strict_nogapfix.csv`. Current `sim_ledger.csv` = honest.
+
+**HONEST corrected result (1yr, real fills, VIRGIN_FIRST_TOUCH):** only thin survivors —
+ES-CR PF 4.74 n11 (proven trade-by-trade, all Hi>=CR); GC-CR PF 2.1 n13; NQ-PS PF 1.9 n15;
+0DTE fades collapsed to PF ~1.1 (fragile). ES-CR trades are 9/11 POSITIVE gamma (NOT neg —
+the earlier "neg-GEX morning" finding was from the buggy+misaligned-bars era, RETRACTED).
+**Conclusion: 1yr + honest fills is INCONCLUSIVE.** 3pt-approach fade also TESTED & REJECTED
+(`approach_fade.py`: touch beats approach on every market — entering early = worse fill + junk trades).
+
+**Charts to review:** `data/options_sim/es_cr11.html` (11 ES-CR trades, $ breakdown, GEX regime).
+Old `cr_setups_artifact.html` = buggy, disregard.
+
+**NOTE 0016 IS STILL WRONG** — contains the inflated panel. NEEDS rewrite to the honest 3-survivor→
+actually-thin reality. Not done.
+
+**REAL & VALIDATED (unaffected by bugs):** BPS/STMR (notes 0014/0015) — the ONLY validated edge.
+Daemon RUNNING for today's 15:59 ET decision (`daemon_20260715.log`).
+
+**TODAY'S LIVE PAPER TRADE:** 0DTE SPX iron condor (positive-gamma pin play off the walls):
+put spread 7505/7485 (+$50) + call spread 7590/7615 (+$75) = +$125 credit, in trades.parquet
+(`condor_0dte_pin`, paper_20260715_1052 & _1055). Note: manual_trade.py fixed to buy wings first.
+
+**DATA (10yr level plan): ORATS $99/mo "Delayed" tier VERIFIED first-hand at orats.com/data-api**
+— 20k req/mo, Strikes+Near-EOD-History to 2007 WITH OI. Mag7×10yr ≈17.6k req = fits one month.
+`scripts/orats_pull.py` ready. This is the unlock: self-compute levels 10yr, no QUIN. (QUIN quota
+exhausted this session — that's why AAPL/Mag7 level backfills failed; bars are on disk, levels aren't.)
+
+**BUILT THIS SESSION (real, reusable):** direct MQ API client (`mq_api.py`); IB deep bars
+(stocks 15yr 1m verified, `ib_stock_bars.py`); MQ candles puller (6mo all assets); `sim_run.py`
+(metrics ledger); `futures_unadjust.py`/`panel_gauntlet.py`; new standalone `options_dashboard.py`
+(replaces cheap Streamlit — Trades/Journal/Playbook/Results tabs; NOT live-ticking yet);
+`notify.py` (desktop toast + optional email via scratchpad/email_cfg.json); Mag7+NQ/GC/CL/YM
+level backfills; `es_cr11_charts.py`.
+
+**UNTOUCHED BACKLOG (the real next work):** ~30 claims `mq_claims_backlog.md`, 26 ideas
+`gex_ideas_web.md` — only ~4 tested. User's **NQ Daily Brief** template (options-positioning
+briefing) is HIGH-VALUE + buildable: API covers nearly all fields (gamma-levels, matrix,
+net-gex-by-expiration, Q-Score, swing-levels, skew) EXCEPT Blind Spots (API 404 — QUIN only).
+
+**FRESH-SESSION PRIORITIES (pick ONE, do it right, chart-audit before reporting):**
+1. Build the NQ Daily Brief generator (concrete, data-ready, user-requested).
+2. OR buy ORATS $99 → self-compute 10yr levels → re-run gauntlet across regimes (the real validity test).
+3. OR make the dashboard genuinely live (start spot_feed + JS auto-refresh).
+4. Rewrite note 0016 honestly. Test backlog hypotheses (1D-Max close-rate, JFE last-30min momentum).
+RULE going forward: real fills only, audit trades on charts BEFORE reporting, treat PF>3 as a bug.
+
+---
+
 ## S74B (2026-07-15) — Brooks Codex on iPhone (private claude.ai artifacts)
 
 Cheat sheet + Trainer published as **private claude.ai artifacts** so the user can use the

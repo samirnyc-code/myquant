@@ -75,6 +75,8 @@ def cmd_open(a):
             legs_spec.append((qualify(ib, a.exp, a.long, a.right), "BUY", "buy", a.long))
         if not legs_spec:
             raise SystemExit("give --short and/or --long")
+        # BUY wings BEFORE selling shorts (naked-short-first triggers IB margin reject / Inactive)
+        legs_spec.sort(key=lambda x: 0 if x[1] == "BUY" else 1)
         net = exec_legs(ib, [(c, act) for c, act, _, _ in legs_spec], a.qty)
         tid = f"paper_{now():%Y%m%d_%H%M}"
         width = abs(a.short - a.long) if (a.short and a.long) else None
