@@ -31,8 +31,35 @@ MODERATE conviction (Mom 4.0 / Opt 1.0 / Vol 2.0 / Seas 2.6), pin 29,750–30,15
 price below the band, biggest week expiry Fri 7/17 (31% of chain).
 
 **NEXT:** (a) run it each morning (cron/loop candidate, ~60s incl. Playwright token
-grab); (b) ORATS $99 purchase still the real regime-test unlock; (c) note 0016 honest
-rewrite still owed; (d) backlog claims still ~26 untested.
+grab); (b) note 0016 honest rewrite still owed; (c) backlog claims still ~26 untested.
+
+### Data-sourcing for historical gamma levels — RESOLVED (see memory [[options-data-vendors]])
+
+Long vendor hunt this session. Conclusion: to compute gamma levels historically you need
+per-strike **open interest + greeks**, and only options-*analytics* vendors have it
+(OPRA resellers = prices only, no OI).
+- **Massive ($79/$199) and OptionsDX = OUT** — no historical OI at any tier (OptionsDX EOD
+  on disk lacks an OI column entirely; Massive flat files are trades/quotes/aggs only).
+- **ORATS = the pick.** Sean@ORATS confirmed the **$99/mo Delayed API** pulls full
+  2007→present strikes history WITH OI+greeks; ~5,000 requests per ticker, 20,000/mo cap
+  → ~4 tickers full-depth per $99 month. Cheaper + deeper than the $599 bulk. Sample file
+  (`~/Desktop/OptionsDX/ORATS_SMV_Strikes_20240103.csv`) proves fields (`cOi`/`pOi`/`gamma`/IV).
+- Cheaper alts if budget-tight: **ThetaData Value $40/mo** (4yr, incl. 2022) or **FirstRateData**
+  one-time (2010→, own it). All in [[options-data-vendors]].
+- **PLAN (agreed):** SPX first — it's priority #1 AND the methodologically correct place to
+  test if the level-fade edge is even real (S73 lesson). Rule of thumb: 1 request ≈ 1
+  ticker-day. In one $99 month can fit ~SPX full + NDX full + Mag7×~5yr (~18k req). NQ levels
+  = pull **NDX** (not "NQ"). TODO: build budget-aware resumable ORATS strikes puller +
+  GEX/levels computation. NOT purchased yet (user budget).
+
+### Daily MQ harvest EXPANDED (`scripts/mq_harvest.py`)
+
+Was SPX+ES1! only. Now **16 symbols**: SPX + 8 futures (ES,NQ,YM,RTY,CL,GC,6A,6Y all as
+`…1!`) + Mag 7 (AAPL,MSFT,NVDA,AMZN,GOOGL,META,TSLA). Nightly task "MyQuant MQ Harvest"
+(22:45) auto-runs it → per-symbol levels/matrix/exposure/heatmap + `*_ws.json` raw surface.
+Verified all resolve on MQ (2026-07-15 capture). **Caveat: 6Y returns near-empty data**
+(~278ch matrix) — MQ likely has no real chain for it; harmless but no useful levels there.
+This is our own FORWARD history accrual (free), independent of the ORATS backfill.
 
 ---
 

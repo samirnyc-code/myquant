@@ -26,7 +26,11 @@ from playwright.sync_api import sync_playwright
 ROOT = Path(__file__).resolve().parents[1]
 AUTH = ROOT / "gamma_tracker" / "auth_state.json"
 
-SYMBOLS = ["SPX", "ES1!"]  # ES1! = front ES future; bare "ES" resolves to Eversource stock!
+# "1!" = front continuous future in MenthorQ/TradingView convention; bare "ES"
+# resolves to Eversource stock, so futures MUST carry the 1! suffix.
+FUTURES = ["ES1!", "NQ1!", "YM1!", "RTY1!", "CL1!", "GC1!", "6A1!", "6Y1!"]  # 8 tracked
+STOCKS = ["AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA"]           # Mag 7
+SYMBOLS = ["SPX"] + FUTURES + STOCKS
 if "--symbols" in sys.argv:
     SYMBOLS = sys.argv[sys.argv.index("--symbols") + 1].split(",")
 
