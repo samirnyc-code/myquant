@@ -1,6 +1,67 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 15, 2026 (session 74)
+**Last Updated:** July 15, 2026 (session 75)
+
+---
+
+## S75B (2026-07-15) — NQ Daily Brief generator BUILT & WORKING (parallel to S75)
+
+Picked priority #1 from S73's list. **`scripts/nq_daily_brief.py`** renders the user's
+brief template with live MQ API data → `data/briefs/NQ1_brief_<date>.md` (+ raw JSON
+snapshot for audit). First real brief generated for 2026-07-15 and every number
+cross-checked against the raw pull. NOT committed — awaiting user OK.
+
+**The template was rescued:** it only existed as a PDF attached in the S73-day2 chat
+("Fetch Net GEX, OI, IV..."). Extracted from the session transcript and saved as
+**`docs/living/nq_daily_brief_template.md`** (structure + language rules + mode
+decision tree + implementation notes).
+
+Key design decisions:
+- **Deterministic, no LLM at runtime** — every number is an API field; sentences are
+  rule-composed and position-aware (e.g. today spot was BELOW the 0DTE put wall, and
+  the brief says so instead of pretending price is pinned inside the band).
+- **Blind Spots printed as explicitly unavailable** (API 404s, QUIN-only) — never filled.
+- **Swing Levels endpoint FOUND: `swing-levels/{sym}`** (trigger/band/direction daily
+  history) — new API surface, works for NQ1!; added to the brief.
+- Gravity level = gamma-weighted mean strike of next expiry (max-OI midpoint rejected —
+  lands on far-OTM lottery strikes).
+
+Today's brief said: Negative GEX (-1.9M intraday, 31st pctile), FOLLOW MOMENTUM,
+MODERATE conviction (Mom 4.0 / Opt 1.0 / Vol 2.0 / Seas 2.6), pin 29,750–30,150 with
+price below the band, biggest week expiry Fri 7/17 (31% of chain).
+
+**NEXT:** (a) run it each morning (cron/loop candidate, ~60s incl. Playwright token
+grab); (b) ORATS $99 purchase still the real regime-test unlock; (c) note 0016 honest
+rewrite still owed; (d) backlog claims still ~26 untested.
+
+---
+
+## S75 (2026-07-15) — options dashboard made GENUINELY LIVE (branch `s75-live-dashboard`)
+
+Built handoff priority #3: the standalone options dashboard now ticks live instead of
+being a one-shot static file. **Branch: `s75-live-dashboard` (NOT merged, NOT committed —
+awaiting user OK).**
+
+**What changed:**
+- `scripts/options_dashboard.py` — KPI tiles now carry stable ids (`k-netliq` etc.) via a
+  single `tile_specs()` source of truth (shared by initial render + JSON endpoint); switched
+  tiles from the unstyled `.kpi/.kl/.kv` classes to the styled `.tile/.tl/.tv` (pre-existing
+  bug: tiles had no bg/border). Added a live **SPX/ES/VIX/basis ticker**, a pulsing live-dot,
+  a "refreshed …" stamp, and a `poll()` script that fetches `state.json` every 5s to update
+  the tiles + ticker, and **soft-reloads** the page when trades/journal/ledger change.
+  Fetches fail silently over `file://`, so the file still works as a static page.
+- `scripts/options_dashboard_live.py` (NEW) — stdlib `http.server` (no Flask/deps). Serves
+  `/` (regenerates dashboard.html only when `trades.parquet`/`journal.json`/`sim_ledger.csv`
+  change, via an mtime `gen` stamp), `/state.json` (fresh KPIs + live.json + gen), `/live.json`.
+
+**Running now:** `.venv/Scripts/python.exe scripts/options_dashboard_live.py --port 8600 --open`
+(background task this session). Verified: HTTP 200, state.json returns live tiles, gen bumps on
+data change → soft reload. **For real-time spot** the user must also run `scripts/spot_feed.py`
+(needs Gateway logged in); right now the feed is `closed` so the ticker shows "feed offline"
+and KPIs update from marks/account only — as designed.
+
+**Next:** user review → commit/merge; optional Task Scheduler entry to auto-start feed+server
+at RTH. Everything else in the S73-OPTIONS DAY 2 block below still stands.
 
 ---
 
