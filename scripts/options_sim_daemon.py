@@ -124,17 +124,32 @@ def regime_tags(daily, spot, today):
 # ---------- IB market data ----------
 
 def rough_spot(ib):
-    """Delayed SPX index quote — bootstrap only (no RT index sub)."""
-    ib.reqMarketDataType(4)
+    """Rough SPX seed for centering ATM strikes — bootstrap only (no RT index sub).
+    Prefers the delayed index quote, but that intermittently 322s on the paper
+    feed; when it does, fall back to today's underlying tape so the daemon (and
+    the 15:59 BPS decision) never dies on a missing seed. Real spot comes from
+    OPRA put-call parity either way."""
     spx = Index("SPX", "CBOE", "USD")
     ib.qualifyContracts(spx)
+    ib.reqMarketDataType(4)
     t = ib.reqMktData(spx, "", snapshot=False)
     ib.sleep(4)
     ib.cancelMktData(spx)
     px = next((x for x in (t.last, t.close) if x == x and x), None)
-    if not px:
-        raise SystemExit("No delayed SPX quote — check Gateway login / entitlements.")
-    return spx, float(px)
+    if px:
+        return spx, float(px)
+    import csv
+    import glob as _glob
+    sim = Path(__file__).resolve().parents[1] / "data" / "options_sim"
+    for f in reversed(sorted(_glob.glob(str(sim / "underlying_*.csv")))):
+        with open(f, newline="") as fh:
+            rows = list(csv.DictReader(fh))
+        if rows:
+            seed = float(rows[-1]["und"])
+            print(f"rough_spot: delayed index unavailable — seeding {seed:.1f} "
+                  f"from {Path(f).name}")
+            return spx, seed
+    raise SystemExit("No delayed SPX quote AND no underlying tape — check Gateway login.")
 
 
 def get_chain(ib, spx):

@@ -8,12 +8,25 @@ Both fail silently (never crash the daemon).
 
 Usage: from notify import notify;  notify("BPS FIRED", "short 7450/7400P, credit 1.30")
 """
+import datetime as dt
 import json
 import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CFG = ROOT / "scratchpad" / "email_cfg.json"
+LOG = ROOT / "data" / "options_log" / "notifications.log"
+
+
+def _log(title, msg):
+    """Append every notification so there's always a record to check."""
+    try:
+        LOG.parent.mkdir(parents=True, exist_ok=True)
+        stamp = dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        with open(LOG, "a", encoding="utf-8") as f:
+            f.write(f"{stamp}\t{title}\t{msg}\n")
+    except Exception:
+        pass
 
 
 def desktop(title, msg):
@@ -47,6 +60,7 @@ def email(title, msg):
 
 
 def notify(title, msg):
+    _log(title, msg)
     desktop(title, msg)
     email(title, msg)
 

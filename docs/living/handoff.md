@@ -36,32 +36,78 @@ rewrite still owed; (d) backlog claims still ~26 untested.
 
 ---
 
-## S75 (2026-07-15) — options dashboard made GENUINELY LIVE (branch `s75-live-dashboard`)
+## S75 (2026-07-15) — LIVE dashboard + autonomous premarket→intraday→postmortem trading loop (branch `s75-live-dashboard`)
 
-Built handoff priority #3: the standalone options dashboard now ticks live instead of
-being a one-shot static file. **Branch: `s75-live-dashboard` (NOT merged, NOT committed —
-awaiting user OK).**
+Big build. The options desk is now a systematic, self-running loop: premarket gameplan →
+intraday auto-execution on conditions → postmortem → (weekly review, deferred). **Branch
+`s75-live-dashboard` — committed on the branch, NOT merged to main.** Full agreed design in
+this session's transcript. Everything paper (DUQ159823, 4002).
 
-**What changed:**
-- `scripts/options_dashboard.py` — KPI tiles now carry stable ids (`k-netliq` etc.) via a
-  single `tile_specs()` source of truth (shared by initial render + JSON endpoint); switched
-  tiles from the unstyled `.kpi/.kl/.kv` classes to the styled `.tile/.tl/.tv` (pre-existing
-  bug: tiles had no bg/border). Added a live **SPX/ES/VIX/basis ticker**, a pulsing live-dot,
-  a "refreshed …" stamp, and a `poll()` script that fetches `state.json` every 5s to update
-  the tiles + ticker, and **soft-reloads** the page when trades/journal/ledger change.
-  Fetches fail silently over `file://`, so the file still works as a static page.
-- `scripts/options_dashboard_live.py` (NEW) — stdlib `http.server` (no Flask/deps). Serves
-  `/` (regenerates dashboard.html only when `trades.parquet`/`journal.json`/`sim_ledger.csv`
-  change, via an mtime `gen` stamp), `/state.json` (fresh KPIs + live.json + gen), `/live.json`.
+**1. Dashboard made genuinely live** (`options_dashboard.py` + NEW `options_dashboard_live.py`):
+stdlib `http.server` (no deps) on :8600 serves `/`, `/state.json` (fresh KPIs + live.json +
+`gen` stamp), `/live.json`. Page `poll()`s state.json every 5s → updates KPI tiles + a live
+**SPX/VIX** ticker + levels/regime panel WITHOUT reload; soft-reloads only when trades/journal/
+gameplan change. Fixed: KPI tiles used unstyled `.kpi/.kl/.kv` → now styled `.tile/.tl/.tv`;
+the embedded flip-cards lost their colors/grades because the dashboard stripped the cards'
+`:root` (re-added `--good/--crit/--card` etc.); **dead tabs** = a `const fmt` vs `function fmt`
+JS collision (renamed to `dfv`); the **long-running server caches the imported module** — MUST
+restart it after editing options_dashboard.py or it regenerates stale HTML (this bit twice).
 
-**Running now:** `.venv/Scripts/python.exe scripts/options_dashboard_live.py --port 8600 --open`
-(background task this session). Verified: HTTP 200, state.json returns live tiles, gen bumps on
-data change → soft reload. **For real-time spot** the user must also run `scripts/spot_feed.py`
-(needs Gateway logged in); right now the feed is `closed` so the ticker shows "feed offline"
-and KPIs update from marks/account only — as designed.
+**2. Live feed hardened** (`spot_feed.py`): the delayed SPX **index** quote 322s on paper — it
+was only a seed, so `seed_spot()` now falls back to the underlying tape (real spot = OPRA
+put-call parity, which works). Disabled the ES-basis calc (it hit the same 322 and stalled the
+loop → spot lagged 10–30s; now ticks clean at 5s). Same seed fix applied to `options_sim_daemon.py`
+`rough_spot` (the 15:59 BPS was dying on it). Feed now also **logs the day tape**
+(`underlying_YYYYMMDD.csv`, 1/min) so the postmortem has a full price path.
 
-**Next:** user review → commit/merge; optional Task Scheduler entry to auto-start feed+server
-at RTH. Everything else in the S73-OPTIONS DAY 2 block below still stands.
+**3. Premarket gameplan** (`options_gameplan.py`): EOD MenthorQ levels + pre-open spot →
+**price paths A–D** + **condition-driven triggers** (fades fire on touch; premium-sells on
+`first_of{wall-tag OR 10:00 confirm}`; straddle arms only if spot breaks HVL; BPS = 15:59 signal,
+run by the sim daemon). **Deduped: two one-sided spreads, NO condor** (condor = their sum;
+per-side data is finer). Grades are PROJECTED premarket, FINAL at fill. Writes
+`gameplan_YYYYMMDD.json`.
+
+**4. Intraday trigger daemon** (`options_trigger_daemon.py`): watches live.json, auto-executes
+each trigger when its condition materializes — **1 lot, no cap, all grades** (data collection),
+notify after, grade at fill, skip only broken fills (zero/neg credit). Persists fired/expired
+back to the gameplan (resume-safe, never double-fires). `--dry-run` tested; unit-tested crossing/
+legs/grading. **Went LIVE today ~13:07 ET and auto-fired its first trade**: CR0 touch-fade at
+7550 (`auto_20260715_132024`, $6.40 credit, graded **D**).
+
+**5. Lifecycle board** = the Game Plan dashboard tab: tiles flow **💡 Idea → 🟢 Open → ⚪ Closed
+→ ✕ Never triggered**, each with strikes/path/fire-condition/grade/reasoning. Plus a **Positions
+detail** expander under the KPIs and `<details>` expanders across tabs (Setups, Journal, buckets);
+active tab + scroll + open-expanders persist across reloads (sessionStorage) so auto-refresh
+never kicks you off a tab.
+
+**6. Postmortem** (`options_postmortem.py`): plan vs actual — which path materialized, fired
+trades' projected-vs-final grade + P&L, **structural counterfactuals** for unfired ("did the
+condition occur?"). OBSERVE-ONLY. Today: path A (high 7580 tagged CR0); CR0 fade fired B→D.
+
+**7. Scheduling** (`schedule_options_tasks.ps1`, idempotent, DST-aware ET→local): registered
+daily **Gameplan 09:28 ET · Spot Feed 09:26 ET (all-day) · Trigger Daemon 09:33 ET · Postmortem
+16:15 ET** (existing Sim Daemon 15:28-ET-local / Marks 15:35 untouched). ⚠️ Machine LOCAL = ET+6
+(CEST); the PS1 converts, don't hardcode. Prereq each morning: **IB Gateway logged in**.
+
+**⚠️ OPEN / KNOWN ISSUES:**
+- **Fade grading is a category error** — fades graded by "distance OTM" (short sits AT the level
+  by design → always D). Needs fade-specific grading (first-touch + regime + credit richness).
+  User FLAGGED it; agreed it's a bug, not tuning. FIX PENDING (user was deciding fix-now vs
+  let-data-show).
+- **0DTE auto-trades don't auto-settle** — CR0 fade shows open/unsettled at EOD; wire cash
+  settlement at 16:00 for `auto_*`/0DTE.
+- Today's tape has a 10:50→close GAP (morning sim daemon died before the tape-logging fix) →
+  today's postmortem close/hi-lo partial. Fixed forward (feed logs tape).
+- **DEFERRED per agreement:** weekly-review script (proposes rule changes for sign-off; the
+  anti-overfit gate — criteria stay FROZEN daily/intraday) + a historical date-browser for past
+  gameplans. Do after we've watched a full clean day.
+
+**Learning cadence (agreed):** daily postmortem OBSERVES only; weekly review PROPOSES changes for
+user sign-off, gated on out-of-sample. Take ALL grades now to test whether the grading predicts P&L.
+
+**Test paper trade also placed** at user request to prove the notify pipeline: `notify.py` now
+logs to `data/options_log/notifications.log` + is wired into `options_manual_trade.py` open/close
+(was never called before — that's why no toast on prior trades).
 
 ---
 

@@ -24,6 +24,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ib_conn
 import options_trade_log as tlog
 from ib_order_test import marketable
+from notify import notify
 
 ET = ZoneInfo("America/New_York")
 FEE = 1.30  # $/contract, matches the sim/backtests
@@ -92,7 +93,11 @@ def cmd_open(a):
             "credit": net, "collateral": coll, "dow": now().strftime("%a"),
         })
         kind = "credit" if net > 0 else "debit"
+        struct = f"{a.right}-spread {width:.0f}pt x{a.qty}" if width else f"long {a.right} x{a.qty}"
         print(f"\nLOGGED {tid}: net {kind} {abs(net):.2f}/contract, collateral ${coll:,.0f}")
+        notify(f"TRADE OPENED · {a.strategy}",
+               f"{struct} {a.exp[4:6]}/{a.exp[6:]} · net {kind} {abs(net):.2f} · "
+               f"collateral ${coll:,.0f} · {tid}")
         print(tlog.summary())
     finally:
         ib.disconnect()
@@ -119,6 +124,7 @@ def cmd_close(a):
         r = tlog.update_exit(a.id, now().strftime("%Y-%m-%d %H:%M"), exit_cost, fees,
                              fill_model="paper_fill")
         print(f"\nCLOSED {a.id}: pnl ${r['pnl']:+,.2f}")
+        notify(f"TRADE CLOSED · {r['pnl']:+,.0f}", f"{a.id} · pnl ${r['pnl']:+,.2f}")
         print(tlog.summary())
     finally:
         ib.disconnect()
