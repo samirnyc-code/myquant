@@ -18,7 +18,7 @@ narrative. This job only OBSERVES — it never edits the criteria. Rule changes
 are proposed weekly (options_weekly_review.py) and require sign-off. That
 separation is the anti-overfitting guardrail.
 
-Run after the close (Task Scheduler ~16:15 ET) or any time:
+Run after the close (Task Scheduler ~15:15 CT) or any time:
   .venv/Scripts/python.exe scripts/options_postmortem.py [--date YYYYMMDD]
 Writes data/options_sim/postmortem_YYYYMMDD.json and prints the report.
 """
@@ -41,7 +41,7 @@ except Exception:
 
 ROOT = Path(__file__).resolve().parents[1]
 SIM = ROOT / "data" / "options_sim"
-ET = ZoneInfo("America/New_York")
+CT = ZoneInfo("America/Chicago")  # exchange time (Chicago / Central)
 
 
 def load_plan(date):
@@ -95,9 +95,9 @@ def classify_path(ohlc, L):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--date", help="YYYYMMDD (default today ET)")
+    ap.add_argument("--date", help="YYYYMMDD (default today CT)")
     args = ap.parse_args()
-    date = args.date or dt.datetime.now(ET).strftime("%Y%m%d")
+    date = args.date or dt.datetime.now(CT).strftime("%Y%m%d")
 
     plan = load_plan(date)
     L = plan["levels"]

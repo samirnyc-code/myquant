@@ -24,7 +24,7 @@ LEVELS_FILE = ROOT / "scratchpad" / "mq_levels_today.json"
 
 def last_spot():
     """Last observed SPX from today's underlying tape (delayed fallback when the
-    live feed is offline). Returns (value, 'HH:MM ET') or (None, None)."""
+    live feed is offline). Returns (value, 'HH:MM CT') or (None, None)."""
     fs = sorted(glob.glob(str(SIM / "underlying_*.csv")))
     if fs:
         try:
@@ -261,7 +261,7 @@ SETUPS = [
      ]},
     {"name": "0DTE Premium Sell @ Wall", "id": "sell_0dte_gamma", "tag": "HYPOTHESIS (live)",
      "tagcls": "warn", "thesis": "Positive-gamma days pin; sell defined-risk premium at the walls.",
-     "default": "0DTE 25pt credit spread, short AT PS0 (puts) / CR0 (calls), 9:45–10:30 ET.",
+     "default": "0DTE 25pt credit spread, short AT PS0 (puts) / CR0 (calls), 8:45–9:30 CT.",
      "grades": [
         ("A+", "Positive gamma (spot>HVL), VIX<20, no FOMC/CPI, spot ≥40pt from short strike, credit ≥0.80."),
         ("A / B", "Positive gamma but closer to the wall (25–40pt) or credit 0.60–0.80."),
@@ -341,7 +341,7 @@ def setups_html():
 def load_postmortem():
     import datetime as _dt
     from zoneinfo import ZoneInfo
-    date = _dt.datetime.now(ZoneInfo("America/New_York")).strftime("%Y%m%d")
+    date = _dt.datetime.now(ZoneInfo("America/Chicago")).strftime("%Y%m%d")
     f = SIM / f"postmortem_{date}.json"
     if not f.exists():
         return None
@@ -354,7 +354,7 @@ def load_postmortem():
 def postmortem_html(pm):
     if not pm:
         return ("<p class='muted'>No postmortem yet for today. It runs automatically at "
-                "16:15 ET (<code>options_postmortem.py</code>) once the day closes.</p>")
+                "15:15 CT (<code>options_postmortem.py</code>) once the day closes.</p>")
     reg = pm.get("regime_preopen", "")
     regcls = "pos" if reg == "positive_gamma" else "neg"
     o = pm.get("ohlc")
@@ -410,7 +410,7 @@ def postmortem_html(pm):
 def load_gameplan():
     import datetime as _dt
     from zoneinfo import ZoneInfo
-    date = _dt.datetime.now(ZoneInfo("America/New_York")).strftime("%Y%m%d")
+    date = _dt.datetime.now(ZoneInfo("America/Chicago")).strftime("%Y%m%d")
     f = SIM / f"gameplan_{date}.json"
     if not f.exists():
         return None
@@ -476,7 +476,7 @@ def _bucket(title, tiles, bid, is_open=True):
 def gameplan_html(gp, trades=None, marks_last=None):
     if not gp:
         return ("<p class='muted'>No gameplan generated yet. Run "
-                "<code>scripts/options_gameplan.py</code> (auto ~9:25 ET).</p>")
+                "<code>scripts/options_gameplan.py</code> (auto ~8:25 CT).</p>")
     regcls = "pos" if gp.get("regime") == "positive_gamma" else "neg"
     head = (f"<div class='gp-head'><span class='rlabel {regcls}'>"
             f"{gp.get('regime','').replace('_',' ').upper()}</span>"
@@ -875,7 +875,7 @@ async function poll(){{
     const rd = document.getElementById('lv-regdetail'); if(rd) rd.textContent = lr.regime.detail;
   }}
   const up = document.getElementById('updated');
-  if(up) up.textContent = (L.ts_et? 'feed '+L.ts_et+' ET · ':'') + 'refreshed '
+  if(up) up.textContent = (L.ts_et? 'feed '+L.ts_et+' CT · ':'') + 'refreshed '
     + new Date().toLocaleTimeString();
   // soft reload when trades/journal change (card wall + journal refresh) —
   // save UI first so the reload lands you back on the same tab/scroll/expanders

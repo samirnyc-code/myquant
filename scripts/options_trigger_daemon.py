@@ -39,17 +39,17 @@ from notify import notify
 
 ROOT = Path(__file__).resolve().parents[1]
 SIM = ROOT / "data" / "options_sim"
-ET = ZoneInfo("America/New_York")
+CT = ZoneInfo("America/Chicago")  # exchange time (Chicago / Central)
 FEE = 1.30
 POLL = 3  # seconds between spot evaluations
 
 
-def now_et():
-    return dt.datetime.now(ET)
+def now_ct():
+    return dt.datetime.now(CT)
 
 
 def hhmm(t):
-    return now_et().replace(hour=int(t[:2]), minute=int(t[3:]), second=0, microsecond=0)
+    return now_ct().replace(hour=int(t[:2]), minute=int(t[3:]), second=0, microsecond=0)
 
 
 # ---------- gameplan I/O ----------
@@ -119,14 +119,14 @@ def should_fire(trig, prev, spot, reg):
             return True, f"broke {f['dir']} {f['level']} (regime flip)"
         return False, ""
     if ty == "time_at":
-        if now_et() >= hhmm(f["not_before"]):
+        if now_ct() >= hhmm(f["not_before"]):
             return True, f"reached {f['not_before']}, regime {reg}"
         return False, ""
     if ty == "first_of":
         tc = f.get("touch")
         if tc and crossed(prev, spot, tc["level"], tc["dir"]):
             return True, f"tagged {tc['level']} {tc['dir'].replace('from_','')}"
-        if now_et() >= hhmm(f["not_before"]):
+        if now_ct() >= hhmm(f["not_before"]):
             return True, f"reached {f['not_before']} (no tag), regime {reg}"
         return False, ""
     return False, ""  # signal_1559 etc. handled elsewhere
@@ -191,7 +191,7 @@ def grade_at_fill(trig, net, spot, plan):
     reg = regime(spot, plan["levels"].get("hvl"))
     positive = reg == "positive_gamma"
     st = trig["structure"]
-    late = now_et().time() > dt.time(11, 0)
+    late = now_ct().time() > dt.time(10, 0)  # after 10:00 CT
     if setup in ("sell_0dte_gamma", "cr0_fade", "ps0_fade"):
         short = st.get("short")
         dist = abs(spot - short) if short else 0
@@ -256,7 +256,7 @@ def fire(ib, trig, spot, plan, reason, dry):
         notify(f"TRIGGER SKIPPED · {trig['setup']}", f"{label}: {why}")
         return
     grade, gbasis = grade_at_fill(trig, net, spot, plan)
-    tid = f"auto_{now_et():%Y%m%d_%H%M%S}"
+    tid = f"auto_{now_ct():%Y%m%d_%H%M%S}"
     strikes = [l["strike"] for l in filled]
     width = (max(strikes) - min(strikes)) if len(strikes) > 1 else None
     kind = "credit" if net > 0 else "debit"
@@ -264,14 +264,14 @@ def fire(ib, trig, spot, plan, reason, dry):
     struct_txt = trig["structure"]["kind"] + (f" {width:.0f}pt" if width else "")
     tlog.append_entry({
         "trade_id": tid, "strategy_id": trig["setup"], "source": "auto_trigger",
-        "symbol": "SPXW", "entry_dt": now_et().strftime("%Y-%m-%d %H:%M"),
+        "symbol": "SPXW", "entry_dt": now_ct().strftime("%Y-%m-%d %H:%M"),
         "dte": 0, "structure": struct_txt, "fill_model": "paper_fill",
-        "legs": filled, "credit": net, "collateral": coll, "dow": now_et().strftime("%a"),
+        "legs": filled, "credit": net, "collateral": coll, "dow": now_ct().strftime("%a"),
         "grade": grade, "commentary": f"AUTO-TRIGGER [{trig['id']}] fired: {reason}. {gbasis}. "
                                       f"Projected {trig['projected_grade']} premarket. Path {trig.get('path','—')}.",
     })
     trig["fired"], trig["status"], trig["trade_id"] = True, "fired", tid
-    trig["fill"] = {"net": round(net, 2), "grade": grade, "at": now_et().strftime("%H:%M:%S")}
+    trig["fill"] = {"net": round(net, 2), "grade": grade, "at": now_ct().strftime("%H:%M:%S")}
     print(f"  FIRED {trig['id']} -> {tid}: {struct_txt} net {kind} {abs(net):.2f} grade {grade}")
     notify(f"TRADE OPENED · {trig['setup']} ({grade})",
            f"{label}: {struct_txt}, net {kind} {abs(net):.2f}, coll ${coll:,.0f} — {reason}")
@@ -279,11 +279,11 @@ def fire(ib, trig, spot, plan, reason, dry):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--date", help="YYYYMMDD (default today ET)")
+    ap.add_argument("--date", help="YYYYMMDD (default today CT)")
     ap.add_argument("--dry-run", action="store_true", help="evaluate + log, place nothing")
-    ap.add_argument("--until", default="16:00", help="stop time ET (default 16:00)")
+    ap.add_argument("--until", default="15:00", help="stop time CT (default 15:00 = 16:00 ET)")
     args = ap.parse_args()
-    date = args.date or now_et().strftime("%Y%m%d")
+    date = args.date or now_ct().strftime("%Y%m%d")
     plan = load_plan(date)
     hvl = plan["levels"].get("hvl")
     end = hhmm(args.until)
@@ -293,11 +293,11 @@ def main():
         ib = ib_conn.connect()
     mode = "DRY-RUN" if args.dry_run else "LIVE (auto-execute)"
     armed = [t for t in plan["triggers"] if t["fire"]["type"] != "signal_1559"]
-    print(f"trigger daemon [{mode}] {date}: {len(armed)} triggers, watching until {args.until} ET")
+    print(f"trigger daemon [{mode}] {date}: {len(armed)} triggers, watching until {args.until} CT")
 
     prev = None
     try:
-        while now_et() < end:
+        while now_ct() < end:
             spot = read_live()
             if spot is None:
                 time.sleep(POLL)
@@ -308,8 +308,8 @@ def main():
                 if trig.get("fired") or trig["fire"]["type"] == "signal_1559":
                     continue
                 w = trig.get("window")
-                if w and not (hhmm(w[0]) <= now_et() <= hhmm(w[1])):
-                    if now_et() > hhmm(w[1]) and trig["status"] != "expired":
+                if w and not (hhmm(w[0]) <= now_ct() <= hhmm(w[1])):
+                    if now_ct() > hhmm(w[1]) and trig["status"] != "expired":
                         trig["status"] = "expired"
                         dirty = True
                     continue

@@ -20,7 +20,7 @@ Design principles:
 Regime (dealer gamma, NOT the Brooks engine): spot >= HVL => positive gamma
 (pin / fade-the-extremes); spot < HVL => negative gamma (moves amplify).
 
-Run premarket (Task Scheduler ~09:25 ET) or any time to (re)generate:
+Run premarket (Task Scheduler ~08:25 CT) or any time to (re)generate:
   .venv/Scripts/python.exe scripts/options_gameplan.py [--date YYYYMMDD] [--spot 7543]
 Writes data/options_sim/gameplan_YYYYMMDD.json and prints the plan.
 """
@@ -39,13 +39,13 @@ except Exception:
 ROOT = Path(__file__).resolve().parents[1]
 SIM = ROOT / "data" / "options_sim"
 LEVELS_FILE = ROOT / "scratchpad" / "mq_levels_today.json"
-ET = ZoneInfo("America/New_York")
+CT = ZoneInfo("America/Chicago")  # exchange time (Chicago / Central); market opens 08:30 CT
 
 STRIKE_STEP = 5  # SPXW strikes are 5pt apart near ATM
 
 
-def now_et():
-    return dt.datetime.now(ET)
+def now_ct():
+    return dt.datetime.now(CT)
 
 
 def rnd(x, step=STRIKE_STEP):
@@ -141,8 +141,8 @@ def build_triggers(spot, lv, reg):
     L = {k: lv.get(k) for k in ("ps", "ps0", "hvl", "gw0", "cr0", "cr")}
     T = []
 
-    # 1. Put credit spread @ PS0 — first of {price tags PS0 from above, or 10:00
-    #    regime-confirmation}, within 09:45–11:00. Condition-driven with a
+    # 1. Put credit spread @ PS0 — first of {price tags PS0 from above, or 09:00
+    #    regime-confirmation}, within 08:45–10:00. Condition-driven with a
     #    theta-capture backstop so we don't miss the day if price never tags.
     if L["ps0"]:
         short = rnd(L["ps0"])
@@ -153,13 +153,13 @@ def build_triggers(spot, lv, reg):
             "name": "0DTE Put Credit Spread @ PS0",
             "arm": {"regime": "positive_gamma"},
             "fire": {"type": "first_of", "touch": {"level": short, "dir": "from_above"},
-                     "not_before": "10:00"},
-            "window": ["09:45", "11:00"],
+                     "not_before": "09:00"},
+            "window": ["08:45", "10:00"],
             "structure": {"kind": "vertical", "right": "P", "short": short, "long": short - 25, "width": 25},
             "projected_grade": g, "grade_basis": basis,
         })
 
-    # 2. Call credit spread @ CR0 — first of {price tags CR0 from below, or 10:00}.
+    # 2. Call credit spread @ CR0 — first of {price tags CR0 from below, or 09:00}.
     if L["cr0"]:
         short = rnd(L["cr0"])
         dist = abs(spot - short) if spot else None
@@ -169,8 +169,8 @@ def build_triggers(spot, lv, reg):
             "name": "0DTE Call Credit Spread @ CR0",
             "arm": {"regime": "positive_gamma"},
             "fire": {"type": "first_of", "touch": {"level": short, "dir": "from_below"},
-                     "not_before": "10:00"},
-            "window": ["09:45", "11:00"],
+                     "not_before": "09:00"},
+            "window": ["08:45", "10:00"],
             "structure": {"kind": "vertical", "right": "C", "short": short, "long": short + 25, "width": 25},
             "projected_grade": g, "grade_basis": basis,
         })
@@ -191,8 +191,8 @@ def build_triggers(spot, lv, reg):
             "id": "fly_gw_0dte", "setup": "fly_gw_0dte", "path": "A/C",
             "name": "0DTE Call Butterfly @ GW0",
             "arm": {"regime": "positive_gamma"},
-            "fire": {"type": "time_at", "not_before": "10:00"},
-            "window": ["10:00", "12:00"],
+            "fire": {"type": "time_at", "not_before": "09:00"},
+            "window": ["09:00", "11:00"],
             "structure": {"kind": "butterfly", "right": "C", "center": c,
                           "lower": c - 25, "upper": c + 25, "width": 25},
             "projected_grade": g, "grade_basis": basis,
@@ -207,7 +207,7 @@ def build_triggers(spot, lv, reg):
             "name": "CR0 first-touch fade (short call spread)",
             "arm": {"regime": "any", "spot_side": {"level": short, "side": "below"}},
             "fire": {"type": "touch", "level": short, "dir": "from_below", "first_only": True},
-            "window": ["09:45", "15:30"],
+            "window": ["08:45", "14:30"],
             "structure": {"kind": "vertical", "right": "C", "short": short, "long": short + 25, "width": 25},
             "projected_grade": "B" if below else "C",
             "grade_basis": ("armed: spot below CR0, waiting for first touch from below"
@@ -223,7 +223,7 @@ def build_triggers(spot, lv, reg):
             "name": "PS0 first-touch fade (short put spread)",
             "arm": {"regime": "any", "spot_side": {"level": short, "side": "above"}},
             "fire": {"type": "touch", "level": short, "dir": "from_above", "first_only": True},
-            "window": ["09:45", "15:30"],
+            "window": ["08:45", "14:30"],
             "structure": {"kind": "vertical", "right": "P", "short": short, "long": short - 25, "width": 25},
             "projected_grade": "C",
             "grade_basis": ("armed: spot above PS0, waiting for first touch from above"
@@ -239,7 +239,7 @@ def build_triggers(spot, lv, reg):
             "name": "Long ATM Straddle (0DTE)",
             "arm": {"regime": "any"},
             "fire": {"type": "regime_break", "level": rnd(L["hvl"]), "dir": "below"},
-            "window": ["09:45", "14:00"],
+            "window": ["08:45", "13:00"],
             "structure": {"kind": "straddle", "center": "atm"},
             "projected_grade": "B if it fires",
             "grade_basis": ("dormant on a positive-gamma pin day; ARMS if spot breaks below "
@@ -252,10 +252,10 @@ def build_triggers(spot, lv, reg):
         "name": "STMR Bull Put Spread (15:59 signal)",
         "arm": {"regime": "any"},
         "fire": {"type": "signal_1559", "cond": "%K8<15 AND spot>SMA100"},
-        "window": ["15:59", "15:59"],
+        "window": ["14:59", "14:59"],
         "structure": {"kind": "vertical", "right": "P", "short": "~30Δ", "width": 50, "dte": 14},
         "projected_grade": "A/B if signal fires",
-        "grade_basis": "the only validated edge; executed by options_sim_daemon at 15:59 ET",
+        "grade_basis": "the only validated edge; executed by options_sim_daemon at 14:59 CT",
         "note": "run by options_sim_daemon.py, NOT the trigger daemon",
     })
     return T
@@ -263,11 +263,11 @@ def build_triggers(spot, lv, reg):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--date", help="YYYYMMDD (default today ET)")
+    ap.add_argument("--date", help="YYYYMMDD (default today CT)")
     ap.add_argument("--spot", type=float, help="override pre-open spot")
     args = ap.parse_args()
 
-    date = args.date or now_et().strftime("%Y%m%d")
+    date = args.date or now_ct().strftime("%Y%m%d")
     lv = load_levels()
     if args.spot is not None:
         spot, spot_src = args.spot, "manual"
@@ -280,7 +280,7 @@ def main():
 
     plan = {
         "date": date,
-        "generated_at": now_et().strftime("%Y-%m-%d %H:%M:%S ET"),
+        "generated_at": now_ct().strftime("%Y-%m-%d %H:%M:%S CT"),
         "spot_preopen": spot, "spot_source": spot_src,
         "regime": reg, "regime_detail": reg_detail,
         "levels": L, "d1_min": lv.get("d1_min"), "d1_max": lv.get("d1_max"),

@@ -14,7 +14,7 @@ Sources (all covered by existing subscriptions, $0 incremental):
 
 Run all day (Task Scheduler or manually, after Gateway login):
   .venv/Scripts/python.exe scripts/spot_feed.py
-Exits ~16:20 ET; writes state:"closed" on exit. The app polls live.json.
+Exits ~15:20 CT; writes state:"closed" on exit. The app polls live.json.
 """
 import datetime as dt
 import glob
@@ -28,7 +28,7 @@ import ib_conn
 from ib_async import ContFuture, Index
 from options_sim_daemon import SpotRig, get_chain, rough_spot
 
-ET = ZoneInfo("America/New_York")
+CT = ZoneInfo("America/Chicago")  # exchange time (Chicago / Central)
 SIM = Path(__file__).resolve().parents[1] / "data" / "options_sim"
 OUT = SIM / "live.json"
 
@@ -57,7 +57,7 @@ def seed_spot(ib):
 
 
 def now():
-    return dt.datetime.now(ET)
+    return dt.datetime.now(CT)
 
 
 def write(payload):
@@ -106,12 +106,12 @@ def main():
         # clean tick matters for catching level touches. Re-enable later only
         # if a working index/basis source appears.
         vix = None
-        vix_ts = tape_ts = dt.datetime(2000, 1, 1, tzinfo=ET)
+        vix_ts = tape_ts = dt.datetime(2000, 1, 1, tzinfo=CT)
         tape = SIM / f"underlying_{now():%Y%m%d}.csv"
         if not tape.exists():
             tape.write_text("ts_et,und\n", encoding="utf-8")
-        end = now().replace(hour=16, minute=20, second=0, microsecond=0)
-        print(f"feed running until {end:%H:%M} ET -> {OUT}")
+        end = now().replace(hour=15, minute=20, second=0, microsecond=0)
+        print(f"feed running until {end:%H:%M} CT -> {OUT}")
         while now() < end:
             spx = rig.spot()
             if (now() - vix_ts).total_seconds() > 60:
