@@ -1,0 +1,27 @@
+In this lesson, you’ll learn how to identify and trade stocks using volatility analysis, specifically focusing on screening for high put-call open interest ratios and understanding how options data can inform stock trading decisions. Ryan Darnell, founder of Cynical Capital and managing partner of a multi-strategy hedge fund, walks through his professional thought process for developing trades using the screeners available on the MenthorQ dashboard.
+
+When analyzing potential trades, Ryan focuses on the highest put call open interest ratio screener to find stocks showing significant bearishness. Using HTZ (Hertz Global Holdings) as an example, he examines several key metrics: implied volatility at 111%, call resistance at $4.50, put support at $2.50, and a spot price of $4.05. The significant gap between the current price and put support level, combined with close call resistance, creates an attractive risk-reward profile for a short position.
+
+Ryan emphasizes the importance of risk-reward ratios when structuring trades. With an entry at $4.05 and a stop loss at $4.60 (about 55 cents risk), a 2-to-1 risk-reward would target approximately $3.00, which remains well above the put support level. He notes this requires only about two down moves based on the one-day expected range, making it a technically sound setup when volatility is elevated.
+
+To improve the trade structure, Ryan demonstrates how to monetize the fear in the market by selling options. With implied volatility at 200% on the $3 put, he shows how selling this put collects approximately 35 cents in premium for a single month—nearly 10% of the stock price. This premium can either improve your effective entry price or allow you to widen your stop loss to $4.95, creating additional cushion. This approach transforms a simple short position into a covered put strategy, the opposite of the more familiar covered call.
+
+This lesson covers stock trading and does not require specific asset class selections, but focuses on using the screeners and volatility metrics available on the dashboard. Ryan stresses that while he demonstrates the technical and volatility analysis, you should always combine this with your own fundamental research to ensure your view aligns with the technical setup before entering any position.
+
+To get started with these strategies, navigate to the screeners section on the MenthorQ dashboard and select the highest put call open interest ratio screener. Look for stocks with high implied volatility, favorable call resistance and put support levels, and clear risk-reward profiles that align with your market view and trading timeframe.
+
+Video Chapters
+00:36 – Introduction and Ryan’s background
+02:35 – Using the highest put call open interest ratio screener
+03:39 – Analyzing HTZ with call resistance and put support levels
+06:36 – Risk-reward analysis and trade structure
+09:00 – Adding options to improve the trade with covered puts
+10:16 – Monetizing high implied volatility with put selling
+Key Takeaways
+The highest put call open interest ratio screener helps identify stocks with significant bearish positioning that may present shorting opportunities
+Call resistance and put support levels provide clear parameters for setting stop losses and profit targets with favorable risk-reward ratios
+Selling puts against a short stock position creates a covered put strategy that collects premium from elevated implied volatility while reducing downside risk
+When implied volatility is elevated (like the 200% seen on HTZ), selling options allows you to monetize market fear and improve your trade economics
+ Video Transcription
+ Previous Lesson
+Complete 

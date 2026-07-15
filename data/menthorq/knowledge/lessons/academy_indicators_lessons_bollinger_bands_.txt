@@ -1,0 +1,25 @@
+Bollinger Bands are one of the most widely used technical analysis indicators, created by John Bollinger in the 1980s. This lesson walks you through the structure of Bollinger Bands, how they measure price volatility, and multiple practical strategies for incorporating them into your trading decisions.
+
+Bollinger Bands consist of three key elements: a middle band (typically a 20-day simple moving average), an upper band, and a lower band. The outer bands are positioned two standard deviations away from the middle band, which statistically means that 95% of price action develops within these bands. You can adjust both the standard deviation and moving average parameters in the indicator settings to suit your trading style.
+
+The bands dynamically respond to market conditions. When bands are narrow or close together, volatility is low, often indicating a period of consolidation. Conversely, when bands are wide or expanding, volatility is high, potentially signaling the start of a new price trend. The Bollinger band squeeze strategy focuses on these contraction periods as “the calm before the storm”—historically, low volatility periods often precede significant price movements or breakouts.
+
+You can use Bollinger Bands to identify efficient entry points by trading in the direction of the trend. During an uptrend, the lower band can serve as an entry signal during pullbacks, while in a downtrend, the upper band acts as confirmation for potential short positions. A common mistake traders make is going short when price leaves the upper band or going long when it leaves the lower band, expecting reversals—but as demonstrated with examples on Amazon and Johnson and Johnson stocks, the bands work best when aligned with the existing trend direction.
+
+Bollinger Bands also function as trailing stops or take profit targets. During an uptrend, if price crosses the lower band downward, it can signal an exit point. In horizontal or range-bound markets, the bands provide confirmation of support and resistance levels, working effectively with channel trading strategies. However, the indicator has limitations during volatile periods, as breaks aren’t always followed by continuation moves, so you should use Bollinger Bands in conjunction with other indicators to support your overall strategy.
+
+Video Chapters
+00:00 – Introduction to Bollinger Bands and their structure
+00:57 – Understanding band width and volatility measurement
+01:49 – Using Bollinger Bands to ride the trend and find entry points
+02:47 – The Bollinger band squeeze strategy
+04:31 – Using bands as trailing stops and take profit targets
+05:36 – Trading with Bollinger Bands in horizontal trending markets
+Key Takeaways
+Bollinger Bands consist of a 20-day moving average with bands set two standard deviations away, capturing 95% of price action
+Narrow bands signal low volatility and potential upcoming breakouts, while wide bands indicate high volatility and active trends
+Trade in the direction of the trend using the lower band for uptrends and upper band for downtrends as entry confirmation
+Bollinger Bands work best when combined with other indicators, as they are not always reliable during volatile periods
+ Video Transcription
+ Previous Lesson
+Complete 

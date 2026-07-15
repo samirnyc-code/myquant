@@ -1,0 +1,27 @@
+In this lesson, you’ll discover how to leverage MenthorQ’s institutional-grade data to navigate earnings season with confidence. We walk through real examples from recent earnings reports including Chipotle, Google, and Tesla, showing you exactly how to read the signals before and after major announcements.
+
+The Q score provides a comprehensive snapshot by analyzing four key factors: option activity, momentum, volatility, and seasonality. When examining Chipotle before its earnings on the 23rd of July, the platform showed negative gamma conditions with very bearish readings on both the option side and momentum side. What’s particularly revealing is how the Q score shifted from very bullish to suddenly bearish just days before earnings, serving as an early warning signal. The skew was also very put bias, indicating the market was willing to pay higher premium for out of the money puts versus calls, suggesting traders anticipated a significant price drop.
+
+You can also track negative gamma accumulation in the days leading up to earnings. For Chipotle, we saw negative gamma increase by 7.95 million on the 23rd, showing the market was actively protecting itself. After the earnings resulted in a 14-15% drop, the platform revealed a major put support level at the 45 area, helping you identify where significant hedging activity would occur.
+
+For Google’s earnings, the analysis showed very bullish readings on both option and momentum sides, with a big 200 level core resistance visible on the Netgam exposure chart. The skew was very call buyer side, meaning the market paid higher premium for out of the money calls. The five day swing model provides upper and lower levels for the next five days, which proved valuable for setting up directional trades. Tesla showed similar patterns, starting very bullish before earnings but shifting to very bearish after results, with a strong put support level at 300 that acted as a pinning level.
+
+When trading around earnings, timing matters significantly due to the IV rush where implied volatility increases in the final hours before announcement, especially during power hour. If you’re selling premium, waiting until late in the trading day helps you capture maximum value from elevated IV levels.
+
+To get started analyzing earnings with MenthorQ, access the Q score, Netgam exposure chart, skew indicator, five day swing model, and gamma levels for any stock reporting earnings. Monitor changes in option activity from bearish to bullish or vice versa, as this reveals where big money is flowing.
+
+Video Chapters
+00:00 – Introduction to earnings season trading
+01:32 – Overview of upcoming big tech earnings
+02:42 – Chipotle earnings analysis with Q score and negative gamma
+06:33 – Google earnings preparation and trade setup
+09:38 – Tesla earnings analysis and swing levels
+12:59 – Using the five day swing model for directional trades
+Key Takeaways
+The Q score analyzes four factors—option activity, momentum, volatility, and seasonality—to provide an earnings preparation snapshot
+Monitor sudden shifts from bullish to bearish in the Q score days before earnings as early warning signals
+Skew reveals market sentiment: put bias suggests anticipated drops while call buyer side indicates bullish expectations
+The IV…
+ Video Transcription
+ Previous Lesson
+Complete 

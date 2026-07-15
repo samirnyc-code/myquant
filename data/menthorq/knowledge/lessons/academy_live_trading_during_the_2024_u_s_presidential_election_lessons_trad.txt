@@ -1,0 +1,25 @@
+In this live trading session, we gather to analyze the market during a major FOMC meeting following the recent election. This lesson captures real-time market analysis and trading considerations during a high-impact economic event, with our team discussing volatility, rate cuts, and positioning strategies.
+
+The session begins with a macro overview highlighting that the red sweep election outcome has already been priced in, with the Russell shooting through the roof and the VIX falling 22% yesterday and 5% today. The market expects a 25 basis point cut with 97% probability, and our analysis suggests this should bring no surprises since Powell historically avoids unexpected moves. We discuss how traders are unwinding hedges and piling into new longs following the election results.
+
+We explore key technical levels including call resistance areas on the four-hour timeframe and track the Russell (RTY) as a leading indicator for small caps. The focus is on whether the VIX will crush below 15, which would signal potential long opportunities in ES. We note the challenge of trading during these “melt up” days where every dip gets bought immediately, with prices hovering around time-weighted averages and heavy iceberg orders visible on footprint charts.
+
+During the live event, we monitor real-time price action across NQ, ES, and SPX, looking for key levels like the 6000 level on ES and tracking how small caps perform relative to yesterday’s open. We discuss the importance of looking left on charts to identify call resistance UDT and other key areas that could act as support or resistance during the volatility of the press conference.
+
+To participate in future live trading sessions during major economic events, join our community where we analyze real-time market movements and share trading setups as they develop during FOMC meetings and other high-impact announcements.
+
+Video Chapters
+00:00 – Welcome and session introduction
+02:37 – Macro analysis ahead of FOMC event
+06:27 – VIX levels and trading strategy discussion
+08:05 – Russell tracking and bull bias outlook
+14:01 – Live FOMC announcement reaction
+20:47 – Technical analysis and key resistance levels
+Key Takeaways
+The 25 basis point cut was priced in at 97% probability with no surprises expected from Powell
+VIX crushing below 15 would signal potential long opportunities in ES during the session
+Call resistance levels and looking left on charts helps identify key support and resistance during volatile events
+Melt-up days with constant buying make pullback trading difficult, requiring patience for lower prices during press conferences
+ Video Transcription
+ Previous Lesson
+Complete 

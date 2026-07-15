@@ -1,0 +1,25 @@
+In this lesson, you’ll learn how to use theta for trading options, focusing on the critical role that time decay plays in options strategies. Understanding theta burn and how time value decreases consistently every day is essential for both buying and selling options effectively.
+
+Options trading involves three key dimensions: volatility, price, and time. Unlike price movements or implied volatility changes, time decay is constant and predictable. The theta burn occurs regardless of market conditions, making it one of the most reliable factors in options trading. When you sell options, time works in your favor as the option loses value each day. However, when you buy options, time works against you, requiring either implied volatility or price movement to overcome the guaranteed time decay loss.
+
+Options have two types of value: intrinsic value and extrinsic value. Intrinsic value refers to how much an option is in the money, representing its actual exercisable value. Extrinsic value is determined by time and implied volatility. A critical concept to understand is that extrinsic value decays faster as you get closer to the option’s expiration. This acceleration of time decay creates opportunities for strategies like the short strangle, where theta burn works from both sides of the position.
+
+The calculation of time decay is based on trading days, not calendar days, which means the weekend effect that some traders believe in doesn’t actually exist. The lesson also covers the expected move, which shows what the market anticipates a stock or ETF will move within a certain timeframe. This metric, available in the MenthorQ dashboard, rarely gets breached and provides valuable guidance for options strategies. You’ll see how to use the one day max and one day minimum expected moves alongside other indicators.
+
+To get started with using theta in your options trading, you can access the MenthorQ dashboard and explore the data feeds available. The platform provides expected move calculations for both daily and weekly timeframes, helping you identify potential support and resistance levels. You can find backtesting results and use cases under the guides section, specifically within the quant strategies area.
+
+Video Chapters
+00:00 – Introduction to theta and time decay in options
+02:26 – Understanding theta burn and the three dimensions of options
+05:01 – Intrinsic value versus extrinsic value explained
+09:24 – Trading days calculation and weekend effect myth
+12:13 – Expected move and its importance in options strategies
+14:54 – Finding backtesting data in the MenthorQ dashboard
+Key Takeaways
+Theta burn is constant and predictable, decreasing option value every day regardless of market conditions
+Extrinsic value decays faster as options approach expiration, creating opportunities for time-based strategies
+Time decay is calculated based on trading days only, not calendar days, so the weekend effect doesn’t exist
+The expected move indicator provides reliable support and resistance levels that are rarely breached
+ Video Transcription
+ Previous Lesson
+Complete 

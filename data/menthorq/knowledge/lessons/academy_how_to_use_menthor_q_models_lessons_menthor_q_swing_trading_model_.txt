@@ -1,0 +1,26 @@
+In this lesson, you’ll learn how to use the swing trading model and swing trading model indicator to forecast expected price movements over 5 days and 20 days. This machine learning driven tool integrates momentum, option flow, market positioning, gamma, and delta to calculate where price will likely move and where risk is most likely to emerge, providing you with a data-driven roadmap for navigating short to medium-term volatility.
+
+The model has three key components that update daily. The lower band represents the lowest price the model expects over the next 5 or 20 days and acts as a strong support level, ideal for bounce setups or long exposure. The upper band is the highest price level expected, functioning as a resistance zone that’s great for fading strength or exiting long positions. The risk trigger is a pivotal level where momentum could flip, acting as support, resistance, or an inflection point to help you define risk, time entries, and set profit targets.
+
+The model provides one directional bias each day—either bullish or bearish. If you see a lower band (highlighted in green), the model is bullish. If you see an upper band (highlighted in red), the model is bearish. Success is measured by whether the closing price in 5 or 20 days is above the lower band (for bullish bias) or below the upper band (for bearish bias). The dashboard displays back testing results including risk trigger success rate, upper band success rate, lower band success rate, and overall swing model success rate.
+
+This model is valuable for swing traders, option traders (particularly option sellers), future traders, and position traders. When viewing the chart, the right side shows current levels relevant for the next 5 or 20 days, while the left side displays historical performance of these levels for back testing analysis. For example, with Nvidia showing a lower band at 162.94 and risk trigger at 184.5 on the 5-day model, the forecast suggests the price has room to move higher with the lower band acting as support.
+
+The swing model is available on stocks, ETFs, indices, and crypto. Future traders can convert swing levels to future contracts—for instance, using SPX swing trading levels for ES, or QQQ/NDX levels for NQ. The model levels are accessible through the dashboard and via indicators, refreshing daily to provide you with predictive levels and quantified probability rather than relying on lagging indicators.
+
+To get started with the model, access it via the dashboard where you’ll find current levels on the right side of the chart and historical performance on the left side. Use the upper band as resistance for profit targets or reversal trades, the lower band as support for long entries or stop loss levels, and the risk trigger as a breakout point or momentum shift level to time your entries and manage risk.
+
+Video Chapters
+00:00 – Introduction to swing trading model session
+01:14 – What is the swing model indicator and how it forecasts price movement
+03:56 – Three components: lower band, upper band, and risk trigger
+06:04 – Understanding directional bias and visual indicators
+06:50 – How the model appears on the dashboard
+09:45 – Who can use the model and available asset classes
+10:32 – How to trade using upper band, lower band, and risk trigger
+Key Takeaways
+The swing trading model is a machine learning driven tool that forecasts price movement over 5 days and 20 days by integrating momentum, option flow, and market positioning
+…
+ Video Transcription
+ Previous Lesson
+Complete 

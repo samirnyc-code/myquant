@@ -25,7 +25,7 @@ def load():
     lv = pd.read_csv(ROOT / "data" / "menthorq" / "levels_history.csv")
     lv = lv[lv.symbol == "ES"].copy()
     lv["date"] = lv.date.astype(str)
-    b = pd.read_parquet(ROOT / "data" / "bars" / "_continuous.parquet")
+    b = pd.read_parquet(ROOT / "data" / "bars" / "_continuous_unadj.parquet")
     b["DateTime"] = pd.to_datetime(b["DateTime"])
     b["date"] = b.DateTime.dt.strftime("%Y-%m-%d")
     b["hm"] = b.DateTime.dt.strftime("%H:%M")

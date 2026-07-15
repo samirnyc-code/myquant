@@ -1,0 +1,25 @@
+This lesson walks you through a comprehensive morning trading analysis for GC (gold futures) during the European session, with special attention to currency movements affecting the markets. You’ll learn how to interpret our institutional-grade positioning models and gamma exposure data to identify key support and resistance levels for both metals and currencies.
+
+We begin by analyzing our CTA models and positioning model, which show big sellers still adding long positions on gold, silver, palladium, and aluminum. For the GCG February 2026 contract, the biggest gamma exposure strikes are at 44,000, 45,150, and 4350 (the current price level). Critical support levels include 42,000 and 41,000 if price drops. For today’s expiration (December 17), the main strikes are 4355, 4400, and 4420 as a median price, with less than 2% gamma expiring over two days.
+
+The analysis reveals GC is currently in consolidation, sitting in a positive gamma condition with one day max at approximately 4383. The core resistance and gamma wall cluster around 44, while downside targets include put support 0DTE with GEX4, followed by one day mean and blind spot 2. Crossing below HVL 0DTE would trigger a negative gamma regime with extended moves expected. The lesson demonstrates how to identify triangular consolidation patterns and anticipate breakout acceleration.
+
+For GLD, the biggest volume strike is 400, with key levels at 395, 405, 410, 415, and 420. Today’s gamma exposure shows 2.6% expiring Wednesday and nearly 3% on Friday, with the current price between 395 and 400. The GVC (gold volatility index) reads 20.2, predicting around a sixty dollar normal move for the day.
+
+The currency analysis focuses on US Dollar with Japanese Yen, highlighting significant news about Warren Buffett and Japanese Yen. After crossing the yellow trend line, acceleration to the upside occurred, reaching one day max with core resistance. Key levels include HVL at 156.6, one day mean with blind spot 7 at 154, put support 0DTE with gamma wall, and upside targets at blind spot 3 with one day max and GEX 3. The lesson shows how to identify double bottom patterns and trend line breaks for anticipating major currency moves.
+
+Video Chapters
+00:00 – Introduction and disclaimer
+00:22 – CTA models and positioning model analysis for metals
+00:41 – GCG gamma exposure and key strike levels
+01:33 – Today’s and tomorrow’s gamma expiration analysis
+02:45 – GC consolidation and chart mapping with support/resistance zones
+06:32 – GLD volume strikes and gamma exposure analysis
+09:54 – Currency analysis: US Dollar and Japanese Yen with Warren Buffett news
+11:21 – Japanese Yen double bottom pattern and trend line analysis
+Key Takeaways
+The CTA models show big sellers adding long positions across all metals including gold, silver, palladium, and aluminum
+GC is in consolidation with positive gamma conditions, key resistance at 4383 and 44, and critical support at 42 and 41…
+ Video Transcription
+ Previous Lesson
+Complete 

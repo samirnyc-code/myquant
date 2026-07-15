@@ -1,0 +1,65 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+CLOSED
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the ES gamma levels for each trading day from 2026-06-01 through 2026-06-30, one row per day, EXACTLY these columns in this order: Date, Call Resistance 0DTE, Put Support 0DTE, HVL 0DTE, Gamma Wall 0DTE, 1D Min, 1D Max. ISO dates, numbers only.
+
+I'll route this to the Data Expert for historical gamma levels data across the June 2026 timeframe.I'll retrieve the ES gamma levels for June 2026 with the exact columns and format you specified.
+
+1 step completed
+Date	Call Resistance 0DTE	Put Support 0DTE	HVL 0DTE	Gamma Wall 0DTE	1D Min	1D Max
+2026-06-01	7650.00	7550.00	7595.00	—	7547.66	7669.34
+2026-06-02	7650.00	7620.00	7595.00	—	7569.56	7686.94
+2026-06-03	7600.00	7550.00	7575.00	—	7486.12	7608.88
+2026-06-04	7650.00	7575.00	7585.00	—	7530.97	7644.53
+2026-06-05	7600.00	7480.00	7545.00	—	7283.42	7452.58
+2026-06-08	7485.00	7400.00	7450.00	—	7334.75	7489.75
+2026-06-09	7450.00	7300.00	7410.00	—	7304.85	7475.15
+2026-06-10	7375.00	7380.00	7400.00	—	7164.25	7369.75
+2026-06-11	7400.00	7275.00	7450.00	—	7384.13	7534.87
+2026-06-12	7400.00	7275.00	7450.00	—	7428.89	7568.11
+2026-06-15	7700.00	7570.00	7515.00	—	7560.78	7687.72
+2026-06-16	7700.00	7490.00	7515.00	—	7518.48	7647.52
+2026-06-17	7470.00	7490.00	7545.00	—	7440.86	7581.14
+2026-06-18	7560.00	7500.00	7545.00	—	7507.81	7641.69
+2026-06-22	7580.00	7540.00	7545.00	—	7471.60	7609.90
+2026-06-23	7475.00	7400.00	7510.00	—	7370.77	7520.23
+2026-06-24	7500.00	7450.00	7490.00	—	7405.53	7549.47
+2026-06-25	7540.00	7450.00	7475.00	—	7359.52	7507.98
+2026-06-26	7460.00	7400.00	7490.00	—	7324.25	7470.25
+2026-06-29	7525.00	7400.00	7460.00	—	7428.94	7558.06
+2026-06-30	7600.00	7475.00	7505.00	—	7472.61	7611.39
+
+Note: "Gamma Wall 0DTE" column contains no data in the source (marked "—"). The database does not include a separate gamma wall metric; the available 0DTE gamma levels are Call Resistance, Put Support, and High Vol Level as shown.
+
+Keep exploring
+Options
+How can I use the ES Gamma Levels data to anticipate intraday market movements and adjust my trading strategy?
+0DTE
+What is the relationship between the 0DTE Gamma Levels like Call Resistance and Put Support and other MenthorQ indicators such as NetGex or Q-Score?
+0DTE
+Can you explain how the High Vol Level (HVL) 0DTE is calculated and its significance in identifying potential Gamma Flips or market inflection points?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

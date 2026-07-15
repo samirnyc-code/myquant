@@ -1,0 +1,26 @@
+In this lesson, you’ll learn how to build a comprehensive trading roadmap and identify A+ setups before entering the market. Patrick walks you through his personal preparation process, demonstrating how to use multiple gamma level sources to create a strategic trading plan rather than chasing the market.
+
+The roadmap-building process starts with plotting the Blind Spots Version 2 indicator to identify ranges based on highly correlated assets with strong overlaps to the NQ. Next comes the Blind Spots Version 1, which copies gamma levels from QQQ into the NQ chart using a fixed conversion ratio of 41.26. Patrick emphasizes he never changes this ratio because it consistently works. Key levels to map include the one day expected move max (blue color), one day expected move minimum (blue), call resistance (red), put support (green), and high volume (orange).
+
+After mapping QQQ levels, the same process applies to NQ futures from MentorQ, plotting the same critical gamma levels with the same color coding system. Once all levels are mapped, you hide the raw data and view your completed roadmap. Patrick stresses a fundamental principle: “We don’t trade the market, the market comes to us.” This means setting alerts at key levels rather than forcing trades.
+
+In the practical example shown, Patrick demonstrates his A+ setup: shorting below two call resistance levels during a strong uptrend. He explains why he doesn’t trade the first test of strong gamma levels like call resistance, put support, high volume, or one day expected moves—because these typically result in pullbacks that can hit stop losses. Instead, he waits for the second or third test before entry. He set an alert at the call resistance area, waited for the market to come to him, let the first test pull back, then entered on the second test and exited when the market showed rejection.
+
+The lesson concludes with an important mindset: trading based on your rules in real-time is completely different from analyzing past market action. Patrick emphasizes that winning traders both win and learn from every trade, constantly asking what lessons can be extracted from each trading decision.
+
+Video Chapters
+00:00 – Introduction and building your trading roadmap
+01:21 – Plotting Blind Spots Version 2 to identify ranges
+02:29 – Using Blind Spots Version 1 with the 41.26 ratio
+04:13 – Mapping key gamma levels with color coding
+08:37 – A+ setup: shorting below call resistance levels
+10:58 – Why not to trade the first test of strong levels
+12:41 – Letting the market come to you, not trading the market
+Key Takeaways
+Build your trading roadmap before entering the market by plotting multiple gamma level sources including Blind Spots Version 1 and Version 2
+Use a fixed ratio of 41.26 to convert QQQ gamma levels into NQ chart values, and map call resistance, put support, high volume, and one day expected moves
+Don’t trade the market—let the market come to you by setting alerts and waiting for the second or third test of strong gamma levels
+Trade only your A+ setups based on your roadmap and experience, not by forcing entries in unfavorable conditions
+ Video Transcription
+ Previous Lesson
+Complete 

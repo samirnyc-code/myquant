@@ -1,0 +1,25 @@
+In this lesson, you’ll learn how to use gamma levels as a powerful tool to trade with institutional-grade data. We’ll show you exactly what gamma levels are, why they matter in today’s option-driven market, and how you can use them to improve your trading strategy just like hedge funds do.
+
+Since Covid, the market has fundamentally changed. Option volumes are at all-time highs, and zero DTE options now dominate intraday movement. If you’re not looking at flow data or understanding how options drive prices, you’re trading blind. At MenthorQ, we analyze the entire option chain for each underlying asset and compute our gamma exposure models across all strikes, including zero DTE options. We then map out key levels that show where market flow is likely to react.
+
+Gamma levels are price zones derived from option positioning, specifically from gamma exposure. They reflect where dealers and market makers are likely to hedge aggressively based on their option exposure. Unlike technical indicators that look at historical price action, gamma levels are forward-looking and based on where the market is structurally positioned from a dealer perspective. When you see these levels on your chart, they’re not simple support and resistance—they’re reaction areas where institutions are more likely to act.
+
+Think of trading like strategic betting with better math. Your job isn’t to be right 100% of the time, but to pick strategies with strong odds of success and improve those odds by adding filters and data. Hedge funds constantly buy alternative data, flow data, and option models to improve their alpha by even 2-3% per year. You can do the same—use your existing strategy (whether you’re a scalper trading futures or an option trader), and let MenthorQ be your confirmation tool to avoid bad entries, reduce false signals, and time better entries.
+
+You need to start by defining what works for you—your trading style, timeframe, and risk profile. MenthorQ provides the institutional tools to support your strategy, but we’re not providing signals or predicting the future. Trading is one of the hardest professions, requiring continuous learning and adaptation. Our gamma levels help you understand where flow is likely to stall or accelerate, where dealers are hedging, and what levels you should pay attention to based on institutional positioning.
+
+Video Chapters
+00:00 – Introduction to gamma levels product session
+00:39 – How retailers can build an edge with gamma levels
+02:27 – Why option flow now drives prices more than fundamentals
+04:21 – Reframing trading as strategic betting with math
+05:52 – How institutions improve strategy with alternative data
+10:31 – What gamma levels are and why they’re important
+Key Takeaways
+Gamma levels are derived from option positioning and show where dealers and market makers are likely to hedge aggressively
+Unlike technical indicators, gamma levels are forward-looking and based on structural positioning rather than historical price action
+We analyze the entire option chain and compute gamma exposure models across all strikes, including zero DTE options
+Use gamma levels as a confirmation tool to improve your existing strategy, reduce false signals, and time better entries like institutions do
+ Video Transcription
+Previous
+Complete 

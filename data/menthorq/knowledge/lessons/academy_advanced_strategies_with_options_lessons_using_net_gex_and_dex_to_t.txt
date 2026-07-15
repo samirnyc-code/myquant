@@ -1,0 +1,27 @@
+In this lesson, you’ll learn how to use Net GEX and DEX to enhance your options trading strategy, with a focus on vertical spreads and high-probability setups. Dan shares his systematic approach to identifying trading opportunities using the MenthorQ dashboard and explains how to evaluate trades based on probability, liquidity, and risk-reward ratios.
+
+The lesson begins with using the MenthorQ dashboard to screen for trade ideas. Dan demonstrates how to review the put support screeners and call resistance screeners to identify potential trading opportunities. In the examples shown, Starbucks is spotted just 8 pennies above put support and Netflix is trading just $1 above support levels, providing actionable trade ideas. Dan emphasizes selecting highly liquid options from large market capitalization companies to minimize the bid-ask spread, which directly impacts your premium or debit.
+
+Dan explains his trading style focuses on theta and volatility, using tools like GEX (gamma exposure) and especially DEX, which he calls one of his two or three most important indicators. When setting up vertical spreads, he emphasizes understanding whether to use debit spreads (where you pay money to enter) or credit spreads (where you receive money upfront). The choice depends on the volatility environment and your trading objectives.
+
+The practical benefits focus on high-probability trading with proper risk management. Dan targets trades with around 70% probability of profit and aims for risk-reward ratios of 1 to 2, 1 to 3, or sometimes 1 to 4. He emphasizes that losing $300 on two trades out of 10 while making $400 or $350 on the others creates a statistical advantage over the long run. Dan prefers longer-dated spreads because gamma doesn’t kick in as fast, giving more control over the short leg of the position.
+
+The lesson covers various asset classes including individual stocks like Starbucks and Netflix, with emphasis on selecting highly liquid options. Dan also references SPX trading done by other community members. He mentions using the 5 and 20 day swing model available on the platform and stresses the importance of liquidity, preferring monthly options over weekly options for better liquidity.
+
+To get started, Dan recommends opening the MenthorQ dashboard each morning and reviewing the put screeners and call resistance screeners for initial trade ideas. He emphasizes doing your due diligence by writing things down and maintaining documentation before taking any trade. Dan shares actionable trades daily and correlates MenthorQ data with his own screeners to find confluence and better trade setups.
+
+Video Chapters
+00:00 – Introduction and Happy New Year
+00:21 – Overview of options strategy and vertical spreads
+01:21 – Dan’s trading style and approach
+03:05 – Using the MenthorQ dashboard
+05:14 – Reviewing put support and call resistance screeners
+08:42 – Introduction to vertical spreads, Gamma, and DEX
+10:08 – Risk and reward in options trading
+11:26 – Probability of profit and trade setup
+Key Takeaways
+Use the MenthorQ dashboard with put support screeners and call resistance screeners to identify high-probability trade opportunities each morning
+DEX is one of the most important indicators for setting up trades, while GEX and the expected move …
+ Video Transcription
+ Previous Lesson
+Complete 

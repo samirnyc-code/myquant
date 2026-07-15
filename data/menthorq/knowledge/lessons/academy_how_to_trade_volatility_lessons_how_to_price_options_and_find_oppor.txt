@@ -1,0 +1,29 @@
+This lesson walks you through the fundamentals of options pricing and how to identify trading opportunities using implied volatility analysis. You’ll learn how to properly calculate returns based on capital at risk rather than just dollar gains, and discover why call spreads and put spreads are essential tools for simplifying risk management in options trading.
+
+We start with a systematic market review process, checking key instruments like the S&P, QQQ, Nvidia, and gold. The most critical screens include the volatility risk premiums for initial screening, the option score, the term structure, the volatility surface 2D for selecting strikes, and the key levels and swing model for positioning trades. Understanding these tools helps you stay on the right side of the market and make informed decisions about strike selection.
+
+The lesson emphasizes that the biggest mistake retail traders make is calculating returns based on premium gains rather than capital at risk. When trading options, you’re always using leverage, meaning you’re borrowing money whether you realize it or not. If you sell a call option and get assigned, you become short the underlying at that strike price. If you sell a put option and get assigned, you must buy the underlying at that strike price, putting substantial capital at risk.
+
+Using a practical example with SPY, the lesson demonstrates how a 694/693 put spread expiring next week trades at approximately 33 cents. By buying the 694 put at $2.25 and selling the 693 put at $1.92, your maximum risk becomes exactly $1 (the width of the spread) minus the 33 cent premium collected. This makes calculating your true return straightforward: divide your profit by your actual capital at risk, not just the premium paid.
+
+The session covers how professional traders use stress testing and value at risk (VAR) models to measure potential losses, but explains that retail traders can achieve the same risk control simply by using spreads. With spreads, your maximum gain or loss is always the width of the spread, making risk management far more accessible without complex modeling.
+
+You can follow along by setting up screens with your favorite instruments and using the key levels and five day swing model to determine directional bias. Questions can be submitted in chat during live sessions or emailed directly to the team for detailed analysis of specific trade ideas.
+
+Video Chapters
+00:40 – Welcome and session overview for the volatility corner
+01:00 – Market roundup process and essential screening tools
+02:15 – Key instruments to monitor including Nvidia and the Mag 7
+03:21 – Important screens: volatility risk premiums, option score, and term structure
+04:34 – Calculating true returns based on capital at risk
+06:51 – Understanding leverage and assignment risk in options
+08:58 – Practical example: SPY 694/693 put spread mechanics
+10:22 – How spreads simplify maximum risk and gain calculations
+Key Takeaways
+Always calculate returns based on capital at risk, not just premium gains, because options involve leverage
+Use call spreads and put spreads to clearly define risk—your maximum gain or loss equals the width of the spread
+The volatility risk premiums, term structure, and key levels are essential screens for identifying opportunities and positioning trades
+When selling options, assignment means buying or selling the underlying at the strike price, putting significant capital at risk
+ Video Transcription
+ Previous Lesson
+Complete 

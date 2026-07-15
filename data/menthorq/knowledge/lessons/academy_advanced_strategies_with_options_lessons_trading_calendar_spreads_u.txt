@@ -1,0 +1,28 @@
+In this lesson, you’ll discover how to use the MenthorQ dashboard to analyze options data and plan longer-dated option strategies like credit spreads and calendar spreads. This goes beyond day trading to help you understand the broader market environment and set up trades with time decay and volatility on your side.
+
+The lesson emphasizes starting with the option score on the dashboard, which provides an immediate view of the market environment. You’ll learn to identify whether conditions are bearish or bullish, assess high volatility or low volatility, and understand momentum levels. The daily expected move helps gauge potential price movement—for example, a 1% expected move can guide whether you’re within normal trading ranges. These metrics work together to help you decide what type of options strategy fits current conditions.
+
+When trading options, you’ll learn to combine theta (time decay) and volatility to your advantage. In high volatility environments, selling premium through credit spreads makes sense because time and volatility work in your favor. Conversely, in low volatility environments when you anticipate movement, buying debit spreads can benefit from rising volatility despite time decay working against you. The dashboard’s volatility metrics show you exactly which regime you’re in, making these critical decisions clearer.
+
+Practical trading benefits include knowing when to enter or exit positions based on support levels like the put support. For example, if put support holds, you might maintain bullish positions, but if it’s breached, you can adjust to bearish strategies. The lesson also covers using seasonality data and market cycles to time your trades effectively, helping you decide whether to use directional or non-directional trades.
+
+The lesson includes analysis of earnings trades on stocks like Broadcom and Costco, demonstrating how to apply these concepts to real trading opportunities. You’ll see how the positive gamma environment during earnings can make certain setups more favorable and how the dashboard’s neutral readings provide context for trade decisions.
+
+To get started, open the MenthorQ dashboard and review the metrics at the top for an immediate market assessment. Read the daily newsletter, then dive into specific models for theta, volatility, and seasonality to plan your longer-dated trades—whether 7 day, 21 day, or 45 day strategies.
+
+Video Chapters
+00:00 – Introduction to options strategies and credit spreads
+01:15 – Overview of the new MenthorQ dashboard
+02:42 – Reading market metrics and option score
+06:17 – Using put support levels for trade setup
+08:32 – Trading theta and volatility concepts
+11:11 – Seasonality and market cycles
+13:53 – Earnings trade examples with Broadcom and Costco
+Key Takeaways
+The option score gives you an immediate view of market environment including bearish or bullish conditions, volatility levels, and momentum
+Combine theta (time decay) and volatility analysis to determine whether to sell premium in high volatility or buy debit spreads in low volatility environments
+Use put support levels and the daily expected move to guide both day trades and longer-dated option strategies
+The dashboard simplifies complex options analysis so you can spend more time executing trades rather than researching market conditions
+ Video Transcription
+ Previous Lesson
+Complete 

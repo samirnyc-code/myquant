@@ -1,0 +1,28 @@
+In this lesson, you’ll learn how to use the Relative Strength Index (RSI), a powerful momentum oscillator that measures the speed and change of price movements to identify potential buy and sell opportunities in the market.
+
+The RSI is calculated using average gains and losses over a specified period, typically 14 periods. The formula transforms these values into an oscillating index between 0 and 100. The most used reference levels are level 70 and level 30. When the RSI reads above 70, it suggests an overbought market condition, indicating that prices might reverse its trend. A reading below 30 suggests an oversold condition, hinting that prices might rise.
+
+The classic RSI strategy involves buying on oversold and selling on overbought conditions. However, we don’t use the RSI by itself, but as a confirmation tool in analysis. The effectiveness of RSI signals can vary depending on market conditions—in a strong trending market, the RSI might remain in overbought or oversold territories for extended periods, which can lead to false signals.
+
+The lesson demonstrates practical examples of combining RSI with other tools for better accuracy. These include using RSI with the 200 period simple moving average on Amazon stock to confirm entry points during pullbacks, combining RSI with support and resistance analysis on Under Armor stock, and using RSI to confirm trendline touches on Salesforce stock. Examples also include Baba and ExxonMobil stocks showing basic RSI signals.
+
+You’ll also learn about RSI divergence, which occurs when price action and RSI reading move in opposite directions. Bullish divergence happens when price creates a new lower low but RSI forms a higher low, signaling potential upward reversal. Bearish divergence occurs when price hits a higher high but RSI charts a lower high, hinting at possible downward trend reversal.
+
+To apply these strategies, you can access the RSI indicator in Trading view and adjust the period within the indicator settings. Always look for confirmation and consider the overall market context before making trading decisions.
+
+Video Chapters
+00:00 – Introduction to RSI and momentum oscillators
+00:21 – RSI formula and calculation method
+01:39 – Understanding the RSI scale and key levels 70 and 30
+02:33 – Classic RSI strategy and using it with other tools
+04:23 – Practical examples of RSI signals and false signals
+05:32 – Combining RSI with moving averages and support/resistance
+07:09 – RSI divergence: bullish and bearish signals
+Key Takeaways
+The RSI ranges from 0 to 100, with readings above 70 indicating overbought conditions and below 30 indicating oversold conditions
+Always use RSI as a confirmation tool in conjunction with other technical analysis tools like moving averages, support and resistance, or trendlines
+RSI divergence occurs when price and RSI move in opposite directions, signaling potential market reversals
+False signals can occur in strong trending markets where RSI remains in extreme territories for extended periods
+ Video Transcription
+ Previous Lesson
+Complete 

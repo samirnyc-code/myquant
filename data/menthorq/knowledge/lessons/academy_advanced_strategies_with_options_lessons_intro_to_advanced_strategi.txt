@@ -1,0 +1,24 @@
+In this lesson, you’ll explore the fundamental framework of options strategies, learning how to categorize them from simple to complex structures and understand when to apply each type based on market conditions and your trading objectives.
+
+Option strategies are divided into two main types: single leg and multi leg strategies. Single leg strategies involve buying or selling a single option contract, such as buying or selling a call option or buying or selling a put option. Multi leg strategies involve buying or selling multiple options to create a position with a specific risk reward profile, like buying a call option and selling a call option with a different strike and the same expiration to create a bull call spread strategy.
+
+All option strategies fall into four main categories based on market outlook: bullish strategies for a bullish view on the underlying asset, bearish strategies for a bearish view, neutral strategies when you don’t have a directional view and want to trade volatility or benefit from moves within a range, and hedging strategies to protect your exposure to the underlying asset. Understanding risk is critical—strategies can have either defined risk (where buying and selling options limits your maximum exposure at execution) or unlimited risk depending on the payoff structure.
+
+When building complex strategies, you’ll encounter credit strategies (option selling strategies with the goal of collecting premium) and debit strategies (option buying strategies where you pay the cost of the premium). The terms refer to net credit and net debit, representing the difference between premiums collected and premiums paid. Debit spreads are long premium positions that benefit from environments of rising implied volatility, while credit spreads are short premium positions that benefit from lower implied volatility environments.
+
+Choosing the right strategy depends on your expectations of price movements, your risk tolerance, and your investment objectives. We use the IV rank levels to help determine whether to implement credit or debit strategies based on bullish or bearish market views, allowing you to exploit market opportunities, protect your portfolio, or generate income.
+
+Video Chapters
+00:00 – Introduction to options strategies from simple to complex
+00:21 – Single leg vs multi leg strategies
+01:19 – Four main strategy categories: bullish, bearish, neutral, and hedging
+01:40 – Understanding defined risk vs unlimited risk
+02:05 – Credit strategies vs debit strategies
+02:37 – Using IV rank to determine strategy selection
+Key Takeaways
+Single leg strategies involve one option contract while multi leg strategies combine multiple options to create specific risk reward profiles
+The four strategy categories are bullish, bearish, neutral, and hedging, each serving different market outlooks and objectives
+Credit spreads collect premium and benefit from lower implied volatility, while debit spreads pay premium and benefit from rising implied volatility
+Understanding whether a strategy has defined risk or unlimited risk is essential before execution
+ Video Transcription
+Complete 

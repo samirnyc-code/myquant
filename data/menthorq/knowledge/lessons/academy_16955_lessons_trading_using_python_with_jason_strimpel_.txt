@@ -1,0 +1,27 @@
+In this lesson, you’ll learn how to combine Python programming with institutional-grade options data to build algorithmic trading strategies. Jason Strimpel from Piquant News demonstrates how to use Python to backtest trading strategies using MenthorQ’s quantitative data, moving beyond traditional technical analysis to capture real market edge.
+
+We provide gamma levels on your charts that help identify where the market could bounce or reverse. For example, the SPX bounced perfectly on a one day minimum level derived from options data. These levels aren’t random technical indicators—they’re generated based on the options market, where sophisticated traders provide powerful information about potential price movements. Unlike equity traders, options traders are extremely sophisticated, and their collective intelligence is consolidated into actionable trading levels on your charts.
+
+Our new Q score is a rating system that shows if an asset is bullish or bearish, ranging from 1 (lowest) to 5 (highest). The system analyzes multiple factors including gamma exposure, volatility environment, momentum, and seasonality. When the seasonality score dropped from a positive 3 to negative 3, it preceded a market drop by several days, demonstrating the predictive power of this approach.
+
+Jason explains why Python and algorithmic trading are superior to manual trading: you eliminate emotional control and psychology problems. Instead of making decisions when your account is “flashing red,” you build a system that captures market edge consistently. The goal is finding that market mispricing or inefficiency that allows continuous profit capture—not a 50/50 coin flip. Jason demonstrates a simple backtest using zero GTE gamma exposure levels that showed improvement over the S&P in the testing window.
+
+The complexity of options data is staggering—48 million contracts trade daily in U.S. equity options, with 1.2 billion contracts traded monthly. We process this massive amount of information and convert it into actionable levels and scores. When Tesla showed spikes moving from a balanced market to a put market (put bias), it preceded a strong downward movement, demonstrating how options market sentiment acts as a leading indicator.
+
+This lesson prepares you to receive Jason’s Piquant News newsletter, which provides free Python tutorials you can copy and paste to backtest strategies. The upcoming Saturday newsletter will walk through the complete Python code to backtest a strategy using MenthorQ’s gamma exposure data, available through pro subscriptions as CSV files.
+
+Video Chapters
+00:38 – Introduction to Jason Strimpel and Piquant News
+02:05 – Overview of MenthorQ gamma levels and trading platform
+04:25 – Understanding the Q score rating system
+06:52 – Why Python and algorithmic trading beat manual trading
+10:05 – Backtesting strategy performance using zero GTE gamma exposure
+11:42 – Options market sentiment as a leading indicator
+Key Takeaways
+Gamma levels derived from options data provide powerful support and resistance zones that predict where markets could bounce or reverse
+The Q score ranges from 1 to 5 and combines multiple factors including gamma exposure, volatility, momentum, and seasonality to indicate bullish or bearish conditions
+Python-based algorithmic trading eliminates emotional decision-making and captures consistent market edge rather than relying on 50/50 chance outcomes
+The options market processes 48 million daily contracts containing sophisticated tr…
+ Video Transcription
+ Previous Lesson
+Complete 

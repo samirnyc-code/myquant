@@ -1,0 +1,28 @@
+In this lesson, you’ll discover how to use the swing trading model and swing trading levels indicator on TradingView to forecast where price could be in five days and 20 days in the future. This powerful tool replicates the success of the one day expected move indicator, helping you quantify risk and reward zones based on options data rather than just past price action.
+
+The swing model consists of three key components: the upper band, lower band, and risk trigger. When you see an upper band, the model has a bearish bias, suggesting resistance levels. When you see a lower band, the model is bullish, indicating support levels. The risk trigger appears on the opposite side and represents a volatility zone or inflection point. Importantly, the model generates only one key level per day—either an upper band or lower band, plus the risk trigger.
+
+The model is considered successful when price closes above the lower band (in bullish scenarios) or below the upper band (in bearish scenarios) within the forecast timeframe. You’ll see the success rate displayed at the top right of your screen, showing historical performance. For example, one asset demonstrated an 88.24% success rate over 119 days of data.
+
+We cover over 1200 plus stocks, ETFs and indices with swing levels. The indicator is available under the invite only section in TradingView as mentor queue swing levels. You can customize label positions, screen size, and add a training roadmap feature that allows you to build your trading plan using the swing levels. The roadmap ratio can be adjusted to control spacing between levels.
+
+The indicator displays the last five days of levels because the model forecasts the next five trading days of price action. Levels are calculated after market close at around 6pm Eastern time. You can enable or disable specific days using the T minus 1 through T minus 5 settings, where T minus 1 represents today’s current level calculated from yesterday’s close.
+
+For futures trading, you can use the levels conversion setting to plot levels from one asset onto another. Common conversions include plotting SPX swing levels on es, QQQ levels on nq, GLD levels on gc, USO levels on crude oil, and IBIT levels on Bitcoin. The conversion feature offers both auto ratio (which automatically calculates based on end of day pricing) and manual ratio options for customization.
+
+Video Chapters
+00:00 – Introduction to swing trading model and levels
+00:18 – Understanding the swing model components and bias
+02:41 – Reading upper bands and lower bands
+04:47 – Adding the indicator to TradingView
+06:35 – Indicator settings and customization options
+07:12 – Creating and using the training roadmap
+09:56 – Levels conversion for futures trading
+Key Takeaways
+The swing trading model forecasts price levels for five days and 20 days in the future using options data and machine learning
+An upper band indicates bearish bias while a lower band signals bullish bias, with only one key level generated per day
+The indicator covers 1200 plus stocks, ETFs and indices with levels calculated daily at 6pm Eastern time
+Use the levels conversion setting to plot swing levels from indices or ETFs onto…
+ Video Transcription
+ Previous Lesson
+Complete 

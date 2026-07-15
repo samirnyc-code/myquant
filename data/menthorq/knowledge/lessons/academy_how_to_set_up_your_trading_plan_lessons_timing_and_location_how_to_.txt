@@ -1,0 +1,13 @@
+In this lesson, you’ll learn a powerful three-question framework for evaluating every trade opportunity before execution. This systematic approach helps you avoid common trading mistakes like chasing the wrong direction and entering trades with poor risk-reward ratios.
+
+The framework consists of three critical questions you must answer before taking any trade. First, ask yourself: “Is this the setup I really like?” You should only trade your A+ setups where you historically make the most profit. If the answer is no, don’t take the trade. Second, evaluate the timing: consider whether current market conditions suit your trading style. For example, if there’s an FOMC announcement causing high volatility with crazy pullbacks and spikes, assess whether you’re comfortable trading in that environment or if you’d prefer calmer conditions.
+
+The third question focuses on location, which is described as the most important factor. You need to find the right entry point that offers a great risk-reward ratio. The ideal setup example provided is trading the NQ where you might risk 10 points to make 50-100 points, or risk 5 points to make 30 points, achieving a risk-reward ratio of 1:3 to 1:5 or better. Entering trades in ranges or areas requiring big risk for big profits makes no sense.
+
+To implement this framework practically, use alerts at key levels to improve your timing and location precision. Rather than relying solely on past candlestick patterns from one-hour or four-hour charts, combine your levels with institutional data to set meaningful alerts. When an alert triggers, evaluate the overall market by checking confluences like the S&P, VIX, or DXY, observe price action patterns like lower highs or lower lows, and then build your probabilistic prediction.
+
+For quality trade journaling, review any losing trades by honestly answering the three questions about setup, timing, and location. You’ll find that at least one question will have a “no” answer, helping you identify exactly what went wrong and improve your decision-making process for future trades.
+
+ Video Transcription
+Previous
+Complete 

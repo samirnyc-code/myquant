@@ -1,0 +1,24 @@
+In this lesson, you’ll discover how to use the VWAP (Volume Weighted Average Price) as a key indicator for intraday trading. We’ll show you how VWAP combines price and volume data to provide more accurate market insights than simple price averages, and how it serves as a dynamic support and resistance level throughout the trading day.
+
+The VWAP is calculated using the cumulative total of the price of each trade multiplied by the volume of that trade, then divided by total volume traded for the day. Unlike simple moving averages, VWAP assigns more weight to periods with higher volume, making it a more accurate reflection of market sentiment. When a stock trades above the VWAP, it’s considered bullish or in an uptrend, while trading below the VWAP indicates bearish conditions. An important trading signal occurs at the price cross on the VWAP line.
+
+The VWAP serves multiple important functions for traders. Large institutional traders use it to execute orders with minimal market impact, aiming to achieve prices close to the VWAP. For retail traders, buying below the VWAP or selling above it generally indicates better than average execution. The indicator also acts as potential support or resistance levels, where price may bounce off or break through the VWAP line.
+
+We demonstrate practical trading applications using examples on the TradingView platform with five minute candles. For long positions, you’ll look for a crossover from bottom to top as a buy signal, as shown in examples on Netflix and SPX stocks where VWAP then acts as support. For short positions, you’ll watch for a crossover from top to bottom, illustrated with a Costco trade. From a risk management perspective, you can use the VWAP as your stop loss level to define your risk reward profile.
+
+It’s important to understand that VWAP is most effective in day trading and is not recommended for longer timeframes like daily or four hour charts. Like any indicator, VWAP does not always work perfectly, so you should combine it with other analysis methods and understand the overall market context.
+
+Video Chapters
+00:00 – Introduction to VWAP and its calculation
+01:13 – Why VWAP is important for traders
+02:32 – Adding VWAP on TradingView platform
+03:42 – Using VWAP as support and resistance
+04:49 – VWAP limitations and best practices
+Key Takeaways
+The VWAP combines price and volume to provide more accurate market sentiment than simple price averages
+Price trading above VWAP indicates bullish conditions, while below VWAP signals bearish trends
+VWAP crossovers provide entry signals: bottom to top for longs, top to bottom for shorts
+VWAP is most effective for intraday trading and not recommended for longer timeframes
+ Video Transcription
+ Previous Lesson
+Complete 

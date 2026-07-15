@@ -1,0 +1,25 @@
+In this lesson, you’ll discover how to leverage our powerful new Q-Score Screeners to quickly identify high-probability trading opportunities across hundreds of assets. These screeners help you filter stocks, ETFs, and indices based on four critical factors that we track in our rating system.
+
+Our Q-Score is the MenthorQ rating system that appears at the top of your dashboard for every asset we cover. It analyzes four key factors: option, volatility, momentum, and seasonality. Most scores range from 0 to 5, where 0 indicates bearish bias and 5 indicates bullish bias. The seasonality score is unique, ranging from minus 5 to plus 5, where minus 5 represents very negative seasonality based on 20 years of historical data. All scores are backdated so you can analyze historical patterns and identify trend changes.
+
+Each Q-Score screener comes in four versions to give you maximum flexibility. The highest score screeners show assets with the strongest bullish readings in each factor, while the lowest score screeners identify assets with bearish bias. The one day increase screeners reveal assets experiencing rapid positive or negative changes compared to the previous day. For example, if an asset shows a four-point increase in option score (going from zero to four), this could signal the start of a significant trend move.
+
+When you combine multiple filters, you can find extremely targeted opportunities. The lesson demonstrates how Cloudflare appeared with both a very high option score and very strong momentum score while showing low volatility—creating a compelling setup. You can also identify bearish setups, like when Pepsi showed very low option and momentum scores with negative gamma conditions. When Norwegian’s option score dropped by three points in a single day, this dramatic shift provided an immediate alert for potential bearish trades.
+
+You can access these screeners under the screeners section, where you’ll also find our gamma level screener, open interest, and volatility screeners. Each screener provides the top 50 assets matching your criteria, along with additional data like gamma conditions, implied volatility, and IV rank. Simply click on any ticker to jump directly into the full dashboard where you can analyze all our models and the sku for that asset, allowing you to go from screening to full analysis in about 30 seconds.
+
+Video Chapters
+00:00 – Introduction to new screeners
+00:50 – Understanding the Q-Score rating system
+02:21 – Analyzing Nvidia’s Q-Score example
+03:50 – Using the highest and lowest score screeners
+06:04 – Finding assets with one day score increases
+07:24 – Identifying negative score changes for bearish setups
+Key Takeaways
+The Q-Score combines four factors—option, volatility, momentum, and seasonality—with most scores ranging from 0 to 5 to indicate bearish to bullish bias
+Each Q-Score screener provides four views: highest score, lowest score, highest one day increase, and highest one day decrease for targeted opportunity identification
+Combining multiple score filters helps you find high-probability setups, like assets showing both strong option and momentum scores simultaneously
+You can click directly from any screener result into the full dashboard to analyze all models and complete your trade analysis in approximately 30 seconds
+ Video Transcription
+ Previous Lesson
+Complete 

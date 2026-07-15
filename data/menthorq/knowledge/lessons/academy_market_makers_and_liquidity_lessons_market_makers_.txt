@@ -1,0 +1,29 @@
+In this lesson, you’ll discover who market makers are and why their activity is fundamental for the transparency of regulated markets. Understanding market makers and their role in providing liquidity is essential for anyone looking to navigate the financial markets more effectively.
+
+Market makers are financial companies or individuals who provide liquidity to markets by buying and selling large quantities of securities. They act as intermediaries between buyers and sellers and help facilitate trading by posting bid and ask prices for securities. Unlike directional traders, market makers profit from the bid-ask spread—the difference between the purchase price and the sell price. Their risks are associated with price movements and imbalances of their inventory, which they manage through hedging strategies and delta hedging.
+
+The lesson covers major market makers including Citadel, founded by Ken Griffin, which reported $16 billion in earnings in 2022, making it the most profitable hedge fund or market maker in the world. We also examine Two Sigma, which does market making for approximately 300 million shares per day, and Hudson River Trading, which handles approximately 5% of the U.S. market. These funds guarantee daily liquidity to the market and handle enormous volumes.
+
+You’ll learn about the market ecosystem divided into four main quadrants: capital markets, investment, efficiency, and liquidity. The lesson explains how orders flow from your broker to liquidity providers, exchanges, market makers, or an ATS (Alternative Trading System). You’ll understand the difference between market orders and limit orders, and how to use the order book (also called time and sales) to see all executed orders.
+
+The lesson concludes with insights into general market maker positioning. Institutional funds tend to be long puts to hedge against market crashes, and often sell options by going short calls to collect premium that reduces hedge costs. This means market makers are typically short put and long call, a positioning that creates specific delta hedging activity that can help you better understand short-term market trends.
+
+You can access this foundational knowledge on any broker platform such as Robinhood, Interactive Brokers, or E Trade, and view order books directly from platforms like the Interactive Brokers TWS platform.
+
+Video Chapters
+00:00 – Introduction to market makers and their activity
+01:04 – How market makers make money through bid-ask spread
+02:02 – Market makers in the option market
+02:48 – Largest market makers: Citadel, Two Sigma, and Hudson River Trading
+03:38 – The market ecosystem: capital markets, investment, efficiency, and liquidity
+06:05 – Order execution workflow from broker to settlement
+07:21 – Types of orders: market order vs limit order
+08:39 – Understanding the order book and time and sales
+09:29 – General positioning of market makers
+Key Takeaways
+Market makers provide liquidity by acting as intermediaries and profit from the bid-ask spread, not from directional price movements
+Major market makers like Citadel, Two Sigma, and Hudson River Trading handle billions in volume daily and guarantee market liquidity
+The order book (time and sales) provides transparent access to all executed orders with time, price, quantities, and exchange information
+Market makers are typically short put and long call due to institutional funds hedging with long puts, creating delta hedging activity that reveals short-term market trends
+ Video Transcription
+Complete 

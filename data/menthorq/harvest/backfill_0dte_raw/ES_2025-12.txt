@@ -1,0 +1,71 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+AFTER-HOURS
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the ES gamma levels for each trading day from 2025-12-01 through 2025-12-31, one row per day, EXACTLY these columns in this order: Date, Call Resistance 0DTE, Put Support 0DTE, HVL 0DTE, Gamma Wall 0DTE, 1D Min, 1D Max. ISO dates, numbers only.
+
+I'll route this to the Data Expert, as it's a historical time-series request for ES (a futures contract) across multiple dates.I'll retrieve the ES gamma levels for December 2025 with the exact columns and format you specified.
+
+1 step completed
+
+I need to clarify: the data returned does not include a "Gamma Wall 0DTE" column. The available 0DTE gamma-related columns are call_resistance_0dte, put_support_0dte, and high_vol_level.
+
+Here's the table with the columns that exist:
+
+Date	Call Resistance 0DTE	Put Support 0DTE	HVL 0DTE	1D Min	1D Max
+2025-12-01	6850.00	6775.00	6795.00	6764.91	6888.59
+2025-12-02	6870.00	6850.00	6805.00	6783.19	6902.31
+2025-12-03	6900.00	6800.00	6810.00	6807.40	6922.10
+2025-12-04	6875.00	6800.00	6845.00	6810.07	6921.43
+2025-12-05	6925.00	6835.00	6745.00	6825.58	6933.42
+2025-12-08	6900.00	6800.00	6845.00	6804.55	6924.45
+2025-12-09	6875.00	6780.00	6845.00	6784.73	6907.77
+2025-12-10	6950.00	6850.00	6875.00	6837.70	6948.80
+2025-12-11	6950.00	6850.00	6845.00	6876.93	6973.07
+2025-12-12	7000.00	6800.00	6910.00	6838.85	6947.65
+2025-12-15	7000.00	6800.00	6910.00	6825.96	6937.04
+2025-12-16	7000.00	6800.00	6880.00	6792.06	6903.94
+2025-12-17	7000.00	6700.00	6875.00	6725.81	6847.19
+2025-12-18	6850.00	6800.00	6840.00	6764.42	6881.08
+2025-12-19	6905.00	6750.00	6860.00	6840.64	6946.36
+2025-12-22	6930.00	6850.00	6880.00	6879.94	6981.56
+2025-12-23	6965.00	6850.00	6915.00	6907.37	7008.63
+2025-12-24	6985.00	6960.00	6935.00	6933.00	7026.50
+2025-12-26	7000.00	6900.00	6935.00	6926.72	7027.28
+2025-12-29	6990.00	6935.00	6950.00	6905.15	7007.85
+2025-12-30	7000.00	6915.00	6950.00	6893.93	6997.07
+2025-12-31	6950.00	6850.00	6940.00	6839.43	6948.07
+
+Note: "Gamma Wall 0DTE" is not a standard column in the database. The available gamma-related levels are Call Resistance, Put Support, and High Vol Level. If you need a different metric, please clarify.
+
+Keep exploring
+Options
+How can I use the ES Gamma Levels data to improve my intraday trading strategies?
+Options
+What other MenthorQ indicators like NetGex or Q-Score complement the Gamma Levels for analyzing market maker positioning?
+0DTE
+Can you explain how the High Vol Level (HVL) 0DTE is calculated and its significance in options market structure?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

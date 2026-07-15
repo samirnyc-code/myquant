@@ -1,0 +1,32 @@
+In this lesson, you’ll discover QUIN, MenthorQ’s new AI trading assistant that we’ve been developing for the past seven to nine months. This powerful tool is designed to be your companion in your trading journey, helping you understand the complexities of the option market and navigate our advanced financial data sets.
+
+QUIN serves multiple essential functions for traders. It explains how our models work, including Jax Dax, our Q score, and our swing trading model. With over 450 plus guides on our website, QUIN helps you navigate this wealth of information by providing curated insights from our experts. The assistant delivers real time market intelligence and data, explaining key concepts like net gamma exposure, swing levels, and the Q score.
+
+QUIN also guides you through platform features, helping you understand key levels and support and resistance areas coming from option data. It helps you understand the importance of volatility and shows you how to combine multiple models together to be actionable. Importantly, QUIN does not provide investment advice—it won’t tell you to buy or sell a stock. Instead, it helps you with data and clarity in the market.
+
+The practical benefits are demonstrated through real-world examples. For instance, if you’re trading Nvidia, QUIN can provide a full analysis including swing levels, stock price, financial information, and news. It explains gamma exposure data, showing you put support, high val level, 1D max core resistance, and gamma levels in an easy-to-understand table format. QUIN can even align Nvidia’s Jax data with swing levels and Q scores to give you comprehensive insights.
+
+QUIN covers gamma levels on multiple asset classes including stocks, ETFs, indices and futures, and crypto. The platform offers both dark mode and light mode for user preference. You can also access charts and review the steps taken by our AI agents to understand how answers are generated.
+
+To get started, you can create a free account or access QUIN through your existing account. We’ve opened up our dashboard for free users, giving you a preview of our data directly on your dashboard. Some modules will be under a paywall, but many features are available to start using immediately. Click on start a new chat to begin using QUIN, though free accounts have some limits on the number of queries you can make.
+
+Video Chapters
+00:45 – Introduction to QUIN official launch
+01:17 – What is QUIN and what it can do for you
+02:14 – Why we developed QUIN
+03:15 – QUIN’s capabilities and features
+06:06 – Accessing QUIN on the platform
+07:20 – Learning mode demonstration
+09:35 – Trading mode and stock trader examples
+10:55 – Nvidia analysis walkthrough
+12:25 – Understanding gamma exposure data
+Key Takeaways
+QUIN is MenthorQ’s AI trading assistant that helps you understand complex option market data and navigate over 450 plus guides
+The assistant provides real time market intelligence and explains models like Jax Dax, Q score, and swing trading model without giving investment advice
+QUIN covers gamma levels across multiple asset classes including stocks, ETFs, i…
+Additional Resources
+Quin Documentation
+Quin Full Course
+ Video Transcription
+ Previous Lesson
+Complete 

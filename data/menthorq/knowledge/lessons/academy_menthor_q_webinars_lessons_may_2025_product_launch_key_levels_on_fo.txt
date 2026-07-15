@@ -1,0 +1,28 @@
+In this lesson, you’ll discover how we’re expanding MenthorQ’s institutional-grade quantitative data into the forex market. We’re introducing two powerful new models designed specifically to help you navigate the world’s largest and most opaque financial market with greater precision and confidence.
+
+We’re releasing gamma levels for forex pairs, leveraging our forex futures options data to identify market reaction zones where market makers and dealers are most likely to respond. Unlike traditional technical indicators that rely on past price action, our gamma levels provide forward-looking analysis that helps you anticipate where significant price movements may occur. This approach fills a critical gap in forex trading, where the lack of centralized exchange data and transparency makes it difficult to understand liquidity and institutional positioning.
+
+Alongside gamma levels, we’re introducing our new blind spots indicator for forex. This model identifies areas in the chart where volatility is likely to expand and price reactions are probable due to lack of liquidity. You don’t need to predict exact market direction—when blind spot areas are touched, you can anticipate potential reactions and use this information for better trade management. This is the same blind spots technology we’ve used for futures and indices, now enhanced with a new model we’ll roll out to other assets including stocks.
+
+The forex market presents unique challenges for retail traders. With $7.5 trillion in average daily trading volume as of 2024, it’s the world’s largest financial market, yet it’s also one of the most opaque. Because forex is traded over the counter without a centralized exchange, you cannot see open interest, dark pool prints, or clear volume data like you can with stocks. This makes it easy to miss large moves and fall victim to the fake outs forex is notorious for, where price sticks around key levels before reversing suddenly.
+
+We’re also unveiling our newest integration with trendspider, allowing you to access MenthorQ’s gamma levels directly within the trendspider platform. This integration combines our quantitative data with trendspider’s powerful charting capabilities, giving you institutional-level insights wherever you trade. We’ll have additional launches with the trendspider team throughout June.
+
+To get started with these new forex features, access your MenthorQ trading dashboard where you can view both gamma levels and blind spots for major forex pairs. We’re covering forex futures data and applying our quant models to turn complex options data into actionable insights. You can also take advantage of our special promotion announced during this session, and join our upcoming live sessions for more detailed demonstrations.
+
+Video Chapters
+00:00 – Welcome and session agenda overview
+01:01 – May product release introduction
+01:26 – Gamma levels and blind spots on forex announcement
+01:50 – Trendspider integration reveal
+07:24 – Why forex market and its challenges
+10:06 – Limitations of conventional forex indicators
+11:00 – Gamma levels and blind spots indicators explained
+Key Takeaways
+MenthorQ is releasing gamma levels and blind spots indicators specifically for forex pairs, using forex futures options data to identify market reaction zones
+The forex market’s over the counter structure makes it opaque compared to stocks, creating challenges that our forward-looking analysis helps overcome
+Blind spots identify areas where volatility is likely to expand and liquidity gaps exist, helping you anticipate reactions without predicting exact direction
+New trendspider integration allows you to access MenthorQ’s quantitative data directly within the trendspider platform
+ Video Transcription
+ Previous Lesson
+Complete 

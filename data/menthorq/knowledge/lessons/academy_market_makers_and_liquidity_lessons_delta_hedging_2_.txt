@@ -1,0 +1,25 @@
+Understanding how to manage risk when trading options is crucial for protecting your capital. This lesson covers delta hedging, a fundamental technique that allows you to neutralize directional risk by calculating the precise amount of underlying asset needed to offset your option positions.
+
+The hedge ratio is the key coefficient that quantifies how much underlying asset you need to hedge your option exposure. To calculate it, you divide 100 (which represents exposure to one unit of underlying) by the delta value of your option. For example, an at the money call option has a delta of 50, so the hedge ratio becomes 2 to 1—meaning for every two call options you buy, you need to sell one unit of underlying or 100 shares to become delta neutral.
+
+The mechanics differ between calls and puts due to their delta characteristics. Call options always have positive delta from 0 to 100, while put options have negative delta. An at the money put also has a delta of 50 (or minus 50), giving the same 2 to 1 hedge ratio, but unlike calls, if you buy puts, you need to buy the underlying to hedge, not sell it.
+
+You’ll see practical examples throughout the lesson, including a portfolio with two long calls at delta 50 and five long puts at delta minus 20. By multiplying positions by their deltas, you discover calls have 100 exposure while puts have minus 100 exposure, making the overall position delta neutral with a net delta of zero. The lesson also demonstrates rebalancing: when an SPX index call moves from a spot price of 3,800 to 3,900, the delta shifts from 50 to 70, requiring you to sell an additional 20 shares to restore delta neutrality.
+
+Understanding delta hedging connects directly to how market makers manage their exposure throughout the trading day. This activity affects liquidity and price movements, which the Q models track every morning. Remember that Greeks aren’t linear—delta responds to spot price, volatility, time passage, and interest rates.
+
+Video Chapters
+00:00 – Introduction to options investing and risk management
+00:26 – Understanding the hedge ratio concept
+01:17 – Calculating hedge ratios for call and put options
+02:47 – Portfolio delta neutrality with multiple positions
+05:00 – Delta hedging example with SPX index
+06:29 – Connection to market maker activity and Q models
+Key Takeaways
+The hedge ratio is calculated by dividing 100 by the delta value of your option to determine how much underlying asset is needed for hedging
+A delta neutral position has a net delta of zero, achieved by offsetting option deltas with underlying shares or other options
+Call options have positive delta (0 to 100) and require selling underlying to hedge, while put options have negative delta and require buying underlying
+Delta hedging requires continuous rebalancing as the spot price changes, which is why market makers constantly adjust their positions throughout the day
+ Video Transcription
+ Previous Lesson
+Complete 

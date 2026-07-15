@@ -1,0 +1,27 @@
+In this lesson, you’ll learn how to strategically place stop loss and take profit targets using gamma levels and support and resistance areas. We walk you through real-world examples across multiple futures markets to show you exactly where to enter trades and how to protect your capital.
+
+The lesson begins by identifying Gamma areas where you have range on the GEX one and one day max. These areas provide strong support and resistance levels along with the core resistance, unity, and high volume 0dte levels. Once you map out these key levels, you can develop strategies for entries and exits. For example, on the 15-minute chart, you can identify short opportunities if the market breaks below certain gamma levels, or long opportunities if it breaks above. The key is avoiding risky middle zones and waiting for confirmation in areas with strong support and resistance.
+
+When placing your stop loss, you should position it at strong support or resistance areas that protect your trade from normal market pullbacks. For instance, if you go short at 9914, you might target 19,822 or 19,727, but place your stop loss above a strong resistance level that won’t be easily broken. The same principle applies for long trades—place your stop loss below the range to give your trade enough room to develop. Once your trade moves into profit, you can move your stop loss to break even or slightly in profit, which protects your capital while letting the trade run.
+
+A practical example from crude oil demonstrates this approach. By identifying gamma levels like one day max and GEX one, you can enter a short position when the market rejects at the top of the range, place your stop loss at the strong resistance area (risking around $380 per contract), and target the one day minimum for potential gains of $1,200 or more. In the actual trade shown, profits were taken at $500 per contract after moving the stop loss to protect gains. This same scanning method works across NQ (NASDAQ futures), CL (crude oil), GC (gold), and ES (S&P 500 futures).
+
+You’ll also learn to use the Fibonacci tool to find the 0.5 level (50% retracement) within your identified range, which often provides excellent entry points that align with rejection areas. For gold, you can identify two main opportunity areas using levels like put support, one day minimum, and high volatility. On ES, combining core resistance with one day max creates powerful short setups, while high volatility put support and one day minimum define long opportunities, though the risk-reward may favor short positions depending on the range.
+
+The most important concept is that you don’t need complex tools—once you understand where your gamma levels create strong support and resistance zones, you can scan multiple markets for high-probability trade setups with clearly defined stop loss placement and profit targets.
+
+Video Chapters
+00:00 – Finding good entries using Gamma areas and ranges
+02:37 – Strategic stop loss placement at support and resistance
+05:27 – Crude oil trading example with risk-reward calculation
+07:15 – Using Fibonacci tool to find 50% entry points
+09:18 – Analyzing gold opportunities with gamma levels
+11:24 – ES (S&P 500 futures) setup analysis
+Key Takeaways
+Place your stop loss at strong support and resistance areas created by gamma levels like GEX one, one day max, and core resistance to protect against normal pullbacks
+Once your trade moves into profit, move your stop loss to break even or better to protect your capital while letting the trade develop
+Use the Fibonacci 0.5 level within your identified range to find high-probability entry points that align with rejection areas
+Apply this gamma level scanning method across multiple markets including NQ, CL, GC, and ES to find the best risk-reward opportunities
+ Video Transcription
+ Previous Lesson
+Complete 

@@ -1,0 +1,25 @@
+In this comprehensive session, you’ll learn how to navigate options trading during earnings season, one of the most volatile periods in the market. Dan, an experienced community member and options trader, shares his approach to using platform data and tools to prepare for earnings events and capitalize on volatility.
+
+Dan explains why he gravitates toward options trading, emphasizing that you can trade without needing a directional bias and can position yourself on both sides simultaneously. He highlights that earnings represent prime volatility events occurring four times a year, where the market inflates and deflates around company reports. His strategy focuses on selling theta and trading volatility, aiming to maintain a market neutral position while using risk-defined trades that limit potential losses.
+
+The lesson demonstrates how to prepare for earnings using multiple data sources. Dan emphasizes starting with SPX, QQQ, and VIX analysis to understand the broader market context. He explains using the GEX stacked structure and DEX structure to identify call and put reaction zones and high volatility levels. The swing model helps identify directional bias for closer ranges, while the multi-exploration tool shows market drift and helps determine optimal trade placement for both day trades and longer-term positions.
+
+Dan emphasizes the importance of the expected move metric and how the matrix provides a comprehensive view with one look, showing GEX structure, DEX structure, and money flow. He discusses DEX (Delta hedging) activity from market makers and how breaching certain levels triggers hedging that can catalyze price movements or hold support levels. For risk management, he recommends risking only 1-2% of your account on single trades and even less on speculative positions.
+
+The session covers practical examples including Ford’s earnings drop and a TSM Bear Call Spread with 65% probability. Dan clarifies that probability metrics indicate the mathematical chance of making at least one cent profit, helping traders understand the speculative environment. The lesson emphasizes that earnings week, combined with upcoming events like elections, creates significant opportunities for options traders who understand volatility dynamics.
+
+Video Chapters
+00:00 – Introduction to options and earnings
+01:03 – Dan’s background and why he trades options
+03:20 – Preparing for big earnings week
+05:28 – Using platform data for trade preparation
+08:00 – Multi-exploration and swing model analysis
+11:25 – How to use DEX for trading decisions
+Key Takeaways
+Earnings represent volatility events four times a year where you can trade by selling theta and maintaining market neutral positions
+Always start analysis by checking SPX, QQQ, and VIX to understand broader market context before placing trades
+The matrix provides comprehensive information including GEX structure, DEX structure, expected move, and money flow in a single view
+Practice proper risk management by risking only 1-2% of account on single trades and using risk-defined strategies
+ Video Transcription
+Previous
+Complete 

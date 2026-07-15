@@ -1,0 +1,30 @@
+In this lesson, we explore how volatility serves as the language of the market, revealing trader expectations, fear levels, and bullish sentiment before price action actually moves. Whether you’re a day trader, swing trader, or long-term portfolio manager, understanding volatility models helps you anticipate market shifts and make more informed trading decisions.
+
+We cover the SKU model, which measures the difference in implied volatility between calls and puts. At MenthorQ, we focus on the 25 Delta skew, also known as the risk reversal, because that’s where hedgers and speculators most often trade out of the money protection. When puts are more expensive than calls, the market shows a put bias or fear of downside moves. When calls are more expensive, you see a call bias indicating bullish sentiment or traders chasing upside moves. The SKU also reveals how market participants are positioned, which drives behavior in many cases.
+
+You’ll see three expirations in our SKU dashboard: zero DTE skew, one month skew, and three month skew. The chart displays the underlying asset price at the top and the skew chart at the bottom, along with analytics showing the three month maximum and minimum and percentile information. This visualization helps you understand whether skew movements are predictive (anticipating future moves) or reactive (responding to price action that already happened).
+
+Practical examples include Tesla showing a call bias environment where implied volatility of calls is much higher than puts, while Netflix demonstrates a put bias environment. By comparing skew versus price action, you can identify whether moves are driven by market makers getting caught short or traders repositioning, especially during outside move days that exceed expected daily ranges by more than one or two standard deviations.
+
+We also introduce additional volatility models including volatility smile, which shows how the market prices risk, term structure that maps when volatility is expected today versus next week or next month, and the new volatility risk premium (VRP) model that reveals whether volatility is cheap or expensive compared to the past. Our cross asset monitor helps you connect the dots across equities, bonds, FX, and crypto to find potential trade ideas.
+
+These volatility models work across all trading styles and help you understand market positioning and anticipate shifts. The lesson includes detailed use cases examining gold and other market assets, demonstrating how to read volatility as a signal rather than just another variable.
+
+Video Chapters
+00:00 – Introduction to volatility models and why volatility matters
+01:45 – Overview of SKU, term structure, smile, and VRP models
+04:38 – Understanding skew and market positioning
+07:20 – Reading the 25 Delta skew and three expirations
+08:21 – Analyzing Tesla and Netflix skew examples
+09:51 – Distinguishing predictive versus reactive skew movements
+Key Takeaways
+The 25 Delta skew (risk reversal) measures the difference between 25 delta puts and 25 delta calls, revealing whether traders are paying more for downside protection or upside exposure
+Call bias indicates bullish sentiment where calls are more expensive, while put bias signals fear of downside moves where puts command higher premiums
+Comparing skew movements against price action helps determine whether volatility shifts are predictive (anticipating moves) or reactive (responding to moves already mad…
+Additional Resources
+Skew Documentation
+Volatility Models Documentation
+Volatility Risk Premium Documentation
+ Video Transcription
+ Previous Lesson
+Complete 

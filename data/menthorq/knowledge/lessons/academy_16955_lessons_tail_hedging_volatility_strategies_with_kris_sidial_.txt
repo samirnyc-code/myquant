@@ -1,0 +1,25 @@
+In this comprehensive session, you’ll learn about tail risk hedging and volatility trading strategies from industry experts Chris Sidial, co-CIO of Ambers Group, and Ryan Darnell, founder of Senegal Capital. This lesson explores how institutional traders protect portfolios against extreme market events while minimizing the cost of insurance through proprietary trading techniques.
+
+Chris explains that tail risk refers to outlier events in the distribution that become very hazardous to investors, which can exist in any capital market including commodities, US equities, and rates. Ambers Group specializes in carry neutral tail risk hedging, focusing specifically on the S&P 500 since the majority of the world is correlated to this index. Their goal is to remain flat during normal markets but generate large explosive returns when volatility arises, creating what can be described as free insurance.
+
+The strategy involves buying tail options that profit when markets go down and volatility goes up, while using short term proprietary trading to minimize the carry cost. This approach is common among derivative prop trading firms in Chicago, where traders structure books to capture edge from price insensitive flows in names like Tesla, Nvidia, Google, and Amazon throughout the trading day. Chris emphasizes this is primarily an institutional strategy designed for investors like $10 billion pension plans that cannot easily pivot in and out of positions during market crashes.
+
+Ryan adds his perspective by defining tail risk as a regime change, when markets stop moving continuously and you experience massive moves in standard deviation or implied volatility. He references jump diffusion models as more complex alternatives to Black Scholes, noting that in commodities markets, volatility can jump from 15% to 250% overnight, with markets experiencing limit moves where you literally cannot hedge your delta for multiple days.
+
+For individual investors, Chris recommends a different approach than institutional tail hedging. If you have the luxury of pivoting in and out of positions, you can focus on your core money-making strategies while buying tail protection as a fixed cost, rather than trying to offset the carry through ultra-creative institutional strategies. This distinction is critical for understanding how tail risk hedging differs between hedge fund vehicles managing institutional products versus independent investor accounts.
+
+Video Chapters
+00:00 – Introduction and disclaimer
+00:59 – Guest introductions: Chris Sidial and Ryan Darnell
+02:48 – Defining tail risk and outlier events
+04:18 – Carry neutral hedging and free insurance concept
+07:02 – Regime changes and correlation shifts
+08:32 – How to achieve theta neutral trading
+10:59 – Institutional vs. individual investor approaches
+Key Takeaways
+Tail risk refers to outlier events in the distribution that become hazardous to investors, particularly when markets experience regime changes with non-continuous trading
+Carry neutral tail risk hedging combines buying tail options with short term proprietary trading to offset costs and remain flat during normal markets while generating large returns during volatility spikes
+Institutional strategies differ significantly from individual investor approaches—if you can pivot positions easily, buy tail protection as a fixed cost rather than attempting comple…
+ Video Transcription
+ Previous Lesson
+Complete 

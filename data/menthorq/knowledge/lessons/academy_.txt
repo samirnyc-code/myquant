@@ -1,0 +1,169 @@
+MenthorQ Onboarding
+
+Welcome to MenthorQ Onboarding—your first step toward building a smarter, data-driven trading process. In this course, you’ll learn how to set up your MenthorQ account, connect to your favorite trading platforms and navigate our powerful Trading Dashboard.
+
+Course Progress
+21%
+PRODUCT TRAINING
+Trading Integrations
+
+MenthorQ is now Live on 10+ Trading Applications. Learn how to seamlessly integrate MenthorQ’s proprietary data and indicators with leading trading platforms—including TradingView, NinjaTrader, TrendSpider, Sierra Chart, and more. We’ll guide you step by step through platform-specific setups, and how to visualize and act on MenthorQ Levels in your preferred trading environment.
+
+PRODUCT TRAINING
+Gamma Levels
+
+Explore Gamma Levels: master how option prices react to market shifts, optimize strategies, and enhance trading precision with MentorQ’s advanced models.
+
+Course Progress
+7%
+PRODUCT TRAINING
+FUTURES
+OPTIONS
+QUIN AI – MenthorQ Quant Engine
+
+Step into the future of trading research with Quin AI, MenthorQ’s AI Quant Engine built specifically for traders. This course is designed to help you understand how Quin works, how it differs from generic AI tools, and how to use it to turn fragmented information into clear, data-backed decisions.
+
+QUANT TRADING
+MenthorQ: Find the Edge – Guest Series
+
+Welcome to the MenthorQ Special Guests Podcast Series—a show where we sit down with experienced traders, analysts, investors, and builders to unpack how real market participants think, prepare, and execute.
+
+PODCAST
+How to use MenthorQ Models
+
+Master Menthor Q’s models: Net DEX, Net GEX, Skew, Term Structure, and Swing Trading. Enhance your trading strategies with expert insights and examples.
+
+PRODUCT TRAINING
+Swing Trading Model
+
+Master swing trading with our 5D & 20D models. Learn to spot trades, manage risk, and optimize your short to medium-term trading strategies.
+
+PRODUCT TRAINING
+Blind Spots Levels
+
+Unlock the power of Blind Spot Levels with Mentor Q’s expert insights. Learn advanced asset correlation strategies for precise trading decisions.
+
+PRODUCT TRAINING
+Trading with MenthorQ
+
+This course will guide you through MenthorQ’s powerful models and data, showing you how to decode market signals, leverage skew analysis, and identify key trading opportunities. Through practical examples, you’ll learn to turn these insights into actionable strategies.
+
+LIVE TRADING
+How to Trade Futures
+
+Unlock the power of the Trading Roadmap by leveraging MenthorQ Gamma Levels, Blind Spots, and key Technical Analysis principles.
+
+FUTURES
+TECHNICAL ANALYSIS
+How to Trade Options
+
+Volatility drives market movement, shaping opportunities and risks for traders. This course unpacks key volatility concepts—implied vs. historical volatility, market reactions, and strategy optimization, leveraging the Menthor Q Volatility Indicators.
+
+OPTIONS
+How to Trade Stocks
+
+Get up and running with MenthorQ for stock trading. This streamlined onboarding course walks you through everything you need to start trading equities using our data-driven platform.
+
+STOCKS
+How to Trade Crude Oil and Gold
+
+Master Gold (GC) and Crude Oil (CL) futures with MenthorQ—using a professional, data-driven framework built for traders who want clarity, structure, and repeatable execution.
+
+FUTURES
+How to Trade Forex
+
+Explore the evolving Forex market, mastering Gamma Levels and option flows to optimize trading strategies and enhance market analysis.
+
+FOREX
+How to Trade Crypto
+
+Welcome to Trading Crypto with MenthorQ — a professional-grade course built to give you the same tools, models, and decision-making framework used by serious market participants.
+
+CRYPTO
+Live Trading Sessions: Futures Trading
+
+Join our Live Trading Sessions and look at how Professional Traders Set up their Roadmap for the day and use the MenthorQ Models and Levels to trade LIVE.
+
+FUTURES
+LIVE TRADING
+Live Trading During the 2024 U.S. Presidential Election
+
+Trade one of the most volatile and headline-driven events in global markets with MenthorQ’s expert-led live session: Live Trading During the 2024 U.S. Presidential Election.
+
+LIVE TRADING
+From 0 to Trader
+
+Join us on an inspiring journey with Nicola, a former Menthor Q student who started with zero trading experience and learned to navigate the financial markets. This course is perfect for absolute beginners looking to understand the basics of trading and how to leverage Menthor Q’s cutting-edge tools to make decisions.
+
+STOCKS
+Technical Analysis
+
+Transform your trading approach with our Technical Analysis course. Learn to analyze market trends, identify key trading opportunities, and make decisions using technical indicators and chart patterns.
+
+TECHNICAL ANALYSIS
+Technical Indicators and Chart Patterns
+
+Join our comprehensive course on technical indicators. Master tools like RSI, MACD, Volume Profile, and more to enhance your trading strategies. Whether you’re a novice or experienced trader, gain in-depth insights and real-world applications to leverage technical indicators effectively.
+
+TECHNICAL ANALYSIS
+Trading Strategies using Technical Analysis
+
+Transform your trading skills with our Trading Examples course. Dive into real-world scenarios to see how technical analysis tools and strategies are applied in actual market conditions. Recognize patterns, develop trading plans, and implement risk management techniques with detailed examples.
+
+TECHNICAL ANALYSIS
+How to set up your Trading Plan
+
+Create a trading plan and simplify trading. Define clear goals, develop effective strategies, manage risks, and maintain discipline. Learn market analysis and performance evaluation for consistent success.
+
+TECHNICAL ANALYSIS
+Trading Psychology and Risk Management
+
+Unlock the potential of visual market analysis with our chart patterns course. Learn to recognize and interpret patterns like head and shoulders, double tops and bottoms, and triangles to predict future price movements and enhance your trading strategy.
+
+TECHNICAL ANALYSIS
+The Derivatives Market
+
+Understanding the derivatives market, particularly options, is crucial for any serious investor. Options offer unique opportunities to manage risk, leverage positions, and capitalize on market movements. Our course simplifies the options market to help you leverage its full potential.
+
+OPTIONS
+Market Makers and Liquidity
+
+This course leverages Q-Models to provide advanced tools and insights for market making, liquidity management, and delta hedging. Learn to analyze market positioning and effectively use Q-Models to enhance your trading strategies and decision-making skills.
+
+OPTIONS
+Options Greeks
+
+Menthor Q’s Advanced Options Trading Masterclass, drawing on over two decades of expertise, provides essential tools and insights to enhance your trading skills. Learn to navigate options data, master the Greeks, analyze volatility, and construct advanced strategies using Big Data and AI with Q Models.
+
+OPTIONS
+Term Structure, SKEW and Tail Risk
+
+Unlock advanced options trading strategies with our course on Term Structure, Skew, and Tail Risk. Gain insights into volatility term structure, analyze skew patterns, and learn to manage tail risk to enhance your trading strategies and improve risk management skills.
+
+OPTIONS
+Advanced Strategies with Options
+
+With the Advanced Strategies with Options course, you’ll learn to leverage options data to create bullish, bearish, hedging, and market-neutral strategies. Enhance your trading skills and make informed decisions in any market condition.
+
+OPTIONS
+Systematic Strategies and CTAs
+
+In dynamic financial markets, Commodity Trading Advisors (CTAs) and Volatility Control Funds are vital for risk management and returns. This course uses Q-Models to deepen your understanding of CTAs, Volatility Control Funds, and systematic flows, focusing on trend following and mean reversion strategies.
+
+QUANT TRADING
+FUTURES
+Weekly Macro Update
+
+Markets move based on big-picture factors like interest rates, inflation, and economic growth. This course simplifies macroeconomics, showing you how to use key data and MenthorQ’s tools to spot market opportunities and make smarter trades.
+
+MACRO
+Product Training
+
+Master Menthor Q data for effective trading. Learn to navigate the platform, interpret actionable insights, and apply them to real-world scenarios. Enhance your strategies, manage risks, and customize your experience to achieve your investment goals with data-driven decisions.
+
+PRODUCT TRAINING
+MenthorQ Product Releases
+
+Welcome to MenthorQ Product Releases—your insider’s guide to our latest trading tools and innovations. This course is designed as a dynamic, evolving learning experience that brings you behind the scenes of every major release—from concept to execution.
+
+PRODUCT TRAINING

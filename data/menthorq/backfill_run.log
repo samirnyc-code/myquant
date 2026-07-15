@@ -1,0 +1,28 @@
+  SPX 2025-07: 22 rows parsed, 22 new
+  SPX 2025-08: 21 rows parsed, 21 new
+  SPX 2025-09: 21 rows parsed, 21 new
+  SPX 2025-10: 23 rows parsed, 23 new
+  SPX 2025-11: 19 rows parsed, 19 new
+  SPX 2025-12: 22 rows parsed, 22 new
+  SPX 2026-01: 20 rows parsed, 20 new
+  SPX 2026-02: 19 rows parsed, 19 new
+  SPX 2026-03: 22 rows parsed, 22 new
+  SPX 2026-04: 21 rows parsed, 21 new
+  SPX 2026-05: 20 rows parsed, 20 new
+  SPX 2026-06: 21 rows parsed, 21 new
+  SPX 2026-07: 0 rows parsed, 0 new
+  ES 2025-07: 22 rows parsed, 22 new
+  ES 2025-08: 21 rows parsed, 21 new
+  ES 2025-09: 21 rows parsed, 21 new
+  ES 2025-10: 23 rows parsed, 23 new
+  ES 2025-11: 19 rows parsed, 19 new
+  ES 2025-12: 22 rows parsed, 22 new
+  ES 2026-01: 20 rows parsed, 20 new
+  ES 2026-02: 19 rows parsed, 19 new
+  ES 2026-03: 0 rows parsed, 0 new
+  ES 2026-04: 21 rows parsed, 21 new
+  ES 2026-05: 20 rows parsed, 20 new
+  ES 2026-06: 21 rows parsed, 21 new
+  ES 2026-07: 0 rows parsed, 0 new
+
+backfill added 480 rows -> C:\Users\Admin\myquant\data\menthorq\levels_history.csv

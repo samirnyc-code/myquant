@@ -1,0 +1,25 @@
+In this lesson, you’ll explore the essential reversal patterns in technical analysis that signal when a trend may be ending. Understanding these formations helps you make better decisions about entering new trades or managing existing positions with appropriate exits and stop losses.
+
+The head and shoulders pattern is one of the most significant reversal formations, consisting of three distinct phases. The pattern begins with the left shoulder forming during strong trading volumes followed by a correction. Next, the head develops as prices surpass previous highs but with noticeably lower volumes before retracing. Finally, the right shoulder forms with even lower price and volume values. You complete the pattern by drawing a neckline connecting where the left shoulder begins to form the head with where the right shoulder starts. When prices break through this neckline with increasing volumes, it signals a strong bearish reversal. This pattern can also occur in downtrends, where it’s called an inverted head and shoulders.
+
+Double tops and double bottoms represent another key reversal pattern type. A double top occurs when prices test a resistance level twice during an uptrend without breaking through. This requires four steps: a first high, a relative low that becomes the neckline support level, a second high in the same price zone, and finally a breakout below the neckline as a potential entry point. The double bottom works inversely, testing a support level twice during a downtrend. Volume analysis is critical here—the first high or low typically shows high volumes, followed by retracement with lower volumes, then a second attempt with even lower volume indicating dropping momentum and potential reversal.
+
+The triple tops and triple bottoms are evolved versions of the double patterns. Triple tops feature three high points around a resistance zone, while triple bottoms show three lows around a support zone. In both cases, the breakout of the neckline represents a possible entry point for your trades.
+
+These reversal patterns provide actionable signals for both entering new positions when trends change and protecting existing trades. By recognizing these formations and confirming them with volume analysis, you can identify high-probability reversal zones and time your trading decisions more effectively.
+
+Video Chapters
+00:00 – Introduction to reversal patterns
+00:33 – Head and shoulders pattern phases
+01:33 – Forming the head and neckline
+02:07 – Completing the pattern and inverted head and shoulders
+02:43 – Double tops and double bottoms formation
+03:57 – Volume analysis and triple tops/bottoms
+Key Takeaways
+The head and shoulders pattern consists of three phases with the neckline serving as the critical breakout level for reversal confirmation
+Double tops and double bottoms require four steps to complete, with volume analysis crucial for identifying dropping momentum
+Triple tops and triple bottoms are evolved versions featuring three price tests around resistance or support zones
+Reversal patterns help you determine optimal entry points for new trades and exit strategies for existing positions
+ Video Transcription
+ Previous Lesson
+Complete 

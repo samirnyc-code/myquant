@@ -1,0 +1,25 @@
+This lesson explores how to use term structure to build calendar spreads, specifically focusing on trading strategies during periods of elevated volatility. You’ll learn how to identify opportunities when the volatility curve becomes inverted and how to structure trades that take advantage of these market conditions.
+
+The term structure shows the implied volatility for different option expiries at the money. During the recent tariff announcements, short-dated volatility spiked significantly, with the VIX jumping to 55-57%. This spike was likely a short covering rally rather than a true reflection of expected realized volatility. You can calculate the required daily move by dividing implied volatility by the square root of 252 (approximately 15.8). At 56% volatility, the market would need to move 3.5% every day to justify that premium, which is unrealistic.
+
+When the volatility curve becomes inverted or shows backwardation (downward sloping), it creates opportunities to sell short-dated options and buy longer-dated ones. The instructor demonstrates a calendar call spread example: buying the 5300 SPX call with 43 days to expiry for $17.60 while selling the 5350 call with 11 days to expiry for $5, resulting in a net cost of $12.50.
+
+This strategy works well if you’re medium-term bullish but short-term bearish. If the market remains flat, the short-dated call expires worthless and you can sell another call, potentially repeating this two, three, or four times over 43 days to cover your initial cost. If the market rallies, you lock in at least $5 on the spread plus retain the long call with remaining extrinsic value. Options decay exponentially, with professionals preferring to buy long-dated options that hold value and sell short-dated options that decay rapidly.
+
+The lesson can be applied to SPX, SPY, SPX minis, or XSP, allowing flexibility based on your account size and trading preferences.
+
+Video Chapters
+00:00 – Introduction to Volatility Corner
+02:20 – Understanding term structure and implied volatility curves
+04:45 – Calculating break-even daily moves
+07:05 – Identifying trading opportunities in inverted curves
+09:56 – Building a calendar call spread example
+13:18 – Understanding options decay and professional thinking
+Key Takeaways
+Term structure shows implied volatility across different option expiries and helps identify when short-dated options are overpriced
+Calculate required daily moves by dividing implied volatility by 15.8 (square root of 252) to assess if volatility levels are realistic
+Calendar call spreads allow you to sell expensive short-dated options while maintaining long-term bullish exposure
+Options decay exponentially, with professionals preferring to buy long-dated options that hold value and sell short-dated options that decay quickly
+ Video Transcription
+ Previous Lesson
+Complete 

@@ -1,0 +1,25 @@
+In this live trading session, you’ll learn how to navigate volatile market conditions using MenthorQ’s proprietary levels and execute disciplined trades with clear entry and exit strategies. The session takes place on May 19th, 2025, as markets react to significant news events affecting the Euro and US dollar.
+
+We focus extensively on the one day min and one day max levels, which are MenthorQ’s proprietary volatility indicators calculated based on end-of-day option positioning. These levels provide accurate volatility ranges where price should stay within the day, serving as effective targets, stop loss levels, and reversal points. The levels are updated twice daily—at the end of the previous day and at market open—giving you precise reference points for intraday trading.
+
+The session demonstrates practical trading on the NQ (NASDAQ futures) and NDX indices, emphasizing patience and waiting for price to reach key levels before entering positions. You’ll see a live example of taking a long position anticipating a break above the one day min, then taking profits at $500 once the trading idea executes successfully. The emphasis is on trading your plan rather than chasing price in the middle of nowhere.
+
+Additional market coverage includes analysis of the Magnificent Seven stocks, the 6E (Euro FX futures), gold using GZ and IAU levels, and crude oil. We discuss how combining high vol, 0DTE, and core resistance levels with the one day max can identify high-probability reversal zones, as demonstrated with a gold trade setup at the 2230 level.
+
+The session also covers using high gamma levels for scalping opportunities and how positive gamma environment readings on SPX and futures help assess market positioning. You’ll understand the importance of waiting for the intraday opening snapshot, which provides updated levels approximately 20 minutes after market open, before making trading decisions.
+
+Video Chapters
+00:18 – Welcome and disclaimer
+02:56 – Market positioning and gamma environment discussion
+05:50 – Explanation of one day min and one day max levels
+10:31 – Live NQ trade execution and profit taking
+13:55 – Importance of having a clear trading plan
+16:02 – Gold analysis using IAU levels and core resistance
+Key Takeaways
+The one day min and one day max are proprietary volatility indicators updated at end of day and market open
+Wait for price to reach your planned levels rather than entering trades in the middle of nowhere
+Take profits when your trading idea executes successfully, even if it means leaving money on the table
+Use the intraday opening snapshot approximately 20 minutes after open for updated level accuracy
+ Video Transcription
+Previous
+Complete 

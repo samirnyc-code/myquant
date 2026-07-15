@@ -1,0 +1,29 @@
+In this live trading session, we explore real-time market analysis and position management during a volatile trading day influenced by tariff news and Trump’s press conference. You’ll learn how to navigate uncertain market conditions using a patient, disciplined approach while leveraging key price levels and options flow data.
+
+The session focuses on trading SPX using core resistance levels as key decision points. We identify 5800 as a critical core resistance area and discuss building positions with buy stop orders at 5815 and 5810. The instructor emphasizes waiting for market confirmation rather than entering too early, referencing Friday’s lesson about premature entries leading to trouble. Trading with small size initially—using 0.5 lots on CFDs (equivalent to 1 MES)—allows for safe position building.
+
+You’ll see practical risk management through scaling techniques. After entering long at 5810 SPX, the position is managed by taking partial profits and moving the stop to break even, ensuring no loss on the trade. The session demonstrates monitoring the VIX for market sentiment, noting that when VIX declines, markets typically rally. We also discuss using options order flow data to confirm directional bias—observing strong selling volume being absorbed while delta increases provides confidence in long positions.
+
+The discussion covers advantages of trading SPX over ES due to better options data availability. We examine VWAP and Blind Spot 8 levels as support references, with emphasis on protecting positions by maintaining stops above 5790. Footprint charts are introduced as a tool for identifying trapped buyers and sellers at MenthorQ levels for scalping opportunities.
+
+To follow along with this live session, access your trading platform and load the MenthorQ indicators to identify the core resistance levels discussed. Practice patient trade entry, build positions gradually with small size, and implement proper risk management by taking partials and moving stops to break even.
+
+Video Chapters
+00:00 – Session introduction and risk disclaimer
+03:01 – Market discussion on tariff news and Trump announcements
+06:43 – Patience in trading and avoiding premature entries
+11:14 – Analyzing MenthorQ levels and core resistance at 5800
+15:28 – VIX analysis and correlation with market direction
+17:32 – Building long positions at buy stop orders
+18:25 – Using footprint charts for trapped traders at MenthorQ levels
+20:10 – Options flow analysis and delta observations
+24:13 – Understanding seller absorption through options data
+29:23 – Taking partial profits and moving to break even
+Key Takeaways
+Patient trade entry prevents getting caught in premature moves, especially during high-volatility news events like tariff announcements
+Building positions with small size at core resistance levels like 5800 SPX allows for safer scaling as the trade develops
+Taking partial profits and moving stops to break even eliminates risk while keeping upside potential
+Options flow data showing sellers being absorbed while delta increases confirms directional bias for long positions
+ Video Transcription
+ Previous Lesson
+Complete 

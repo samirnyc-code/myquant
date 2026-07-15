@@ -1,0 +1,26 @@
+In this lesson, you’ll learn how to apply the MenthorQ Swing Model to trade credit spreads, with detailed backtesting results from actual earnings week performance. We examine how liquid names like Google, Amazon, and Palantir performed using the swing model’s predictions during a high-volatility period.
+
+The swing model provides three key components: the upper band (the highest forecasted price level over the next 5 or 20 days), the lower band (the lowest forecasted price level), and the risk trigger (a white line indicating potential support, resistance, or inflection points). When you see an upper band in red, the bias is bearish; when you see a lower band in green, the bias is bullish. The model uses machine learning based on options data, momentum, and other factors to forecast both volatility ranges and directional bias.
+
+We demonstrate two backtesting strategies across 865 companies using data from Friday, January 31st. Strategy one involves pure long-short trades (entry at Monday open, exit at Friday close) which achieved a 65.78% win rate with a 2.39% return. Strategy two focuses on selling credit spreads: put spreads for bullish bias and call spreads for bearish bias, using the swing levels as strike prices. This options strategy delivered an impressive 92.49% win rate across all covered assets.
+
+For the 22 earnings stocks that reported during the week (including Palantir, Google, AMD, PayPal, and Amazon), the results were even more compelling. The long-short strategy achieved a 63.64% win rate with a 5.41% return, while the credit spread strategy reached an 81.82% success rate. On major indices like SPX, QQQ, SPY, gold, and IWM, the credit spread approach achieved a 100% win rate, even though the long-short strategy only had a 40% win rate, demonstrating how the swing levels help options strategies perform during volatile market conditions.
+
+You can access all backtesting documentation and Excel files through your MenthorQ account by navigating to the guides section, then products, then swing trading model. The backtesting document is also available under the backtesting section within guides. All strategies shown use no risk management or filtering—just straightforward application of the swing model levels as entry and exit points.
+
+Video Chapters
+00:21 – Introduction to swing model backtesting for earnings week
+01:35 – Understanding the three components of the swing model
+04:03 – How success rates are calculated and historical performance
+06:34 – Backtesting methodology: long-short vs credit spreads
+09:59 – Results analysis across 865 companies
+11:38 – Earnings stocks performance and segmentation results
+13:14 – Indices backtesting with 100% win rate on credit spreads
+Key Takeaways
+The swing model provides upper band, lower band, and risk trigger levels with 5-day and 20-day time windows for forecasting
+Selling credit spreads using swing levels as strikes achieved a 92.49% win rate across 865 companies with no filtering or risk management
+During earnings week, the credit spread strategy on 22 stocks delivered an 81.82% success rate compared to 63.64% for long-short trades
+On major indices, credit spreads achieved 100% win rate even when long-short strategies underperformed at 40%
+ Video Transcription
+ Previous Lesson
+Complete 

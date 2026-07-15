@@ -1,0 +1,25 @@
+This lesson demonstrates how to apply the swing model for selling premium on stocks through credit spread strategies. You’ll learn how to use backtested results from weekly trades, understand win rates across different asset baskets, and discover a systematic approach to options trading that doesn’t require complex analysis of the Greeks.
+
+We explored comprehensive backtesting results using the swing model over a four-week period. The approach tested two strategies: a long-short strategy trading from Monday open to Friday close, and a credit spread strategy. For the full coverage basket of 125 companies, the credit spread strategy achieved an 80% win rate, while the long-short approach returned 6.9%. The MAX 7 basket performed even better with an 89% win rate on credit spreads and 9.95% overall return.
+
+The indices basket (including SPX, SPY, QQQ, NDX, and VIX) delivered the strongest results with a 95% win rate on credit spreads and 14% return on the long-short strategy. These results covered diverse market conditions including election volatility and major earnings announcements. The key advantage is the model’s simplicity—you don’t need to optimize or analyze complex option Greeks to achieve consistent results.
+
+The practical benefit of this approach is creating a diversified basket and trading it mechanically throughout the week. By following the swing model bias, you can build a robust, understandable system that statistically positions you as a winner. Whether you’re new to options or an experienced trader, you can implement this into your existing strategy or use it as your main approach. The model combines multiple data layers into one simple signal, making decision-making straightforward.
+
+You can start by accessing the complete documentation and backtesting results through a free account. The guides section contains the swing trading model with detailed videos and data from both the earnings week analysis and the comprehensive three-basket backtest. You can review the methodical approach used and apply it to your favorite stocks, ETFs, or indices to build your own diversified portfolio.
+
+Video Chapters
+00:00 – Introduction and speaker background in options trading
+02:16 – Overview of swing model backtesting results
+05:11 – Discussion of methodology and robust returns
+08:15 – Creating simple baskets with ETFs and indices
+11:09 – Accessing documentation and getting started
+11:59 – Analyzing earnings week with options data
+Key Takeaways
+The swing model achieved an 80% win rate on credit spreads across 125 companies and 95% win rate on indices over a four-week period
+You can trade mechanically from Monday open to Friday close without analyzing complex Greeks or over-optimizing your approach
+Building a diversified basket of stocks, ETFs, or indices and following the swing model bias provides a robust foundation for consistent results
+All backtesting results, guides, and videos are available in the documentation section with a free account
+ Video Transcription
+Previous
+Complete 

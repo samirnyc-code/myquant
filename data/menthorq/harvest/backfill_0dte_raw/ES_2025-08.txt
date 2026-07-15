@@ -1,0 +1,65 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+AFTER-HOURS
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the ES gamma levels for each trading day from 2025-08-01 through 2025-08-31, one row per day, EXACTLY these columns in this order: Date, Call Resistance 0DTE, Put Support 0DTE, HVL 0DTE, Gamma Wall 0DTE, 1D Min, 1D Max. ISO dates, numbers only.
+
+I'll retrieve the ES gamma levels for August 2025 with the exact columns and format you specified.
+
+1 step completed
+Date	Call Resistance 0DTE	Put Support 0DTE	HVL 0DTE	Gamma Wall 0DTE	1D Min	1D Max
+2025-08-01	6275.00	6250.00	6395.00	—	6203.44	6323.06
+2025-08-04	6400.00	6300.00	6350.00	—	6316.39	6422.61
+2025-08-05	6350.00	6300.00	6345.00	—	6268.89	6380.11
+2025-08-06	6400.00	6300.00	6355.00	—	6318.02	6423.48
+2025-08-07	6400.00	6350.00	6350.00	—	6321.56	6425.94
+2025-08-08	6450.00	6310.00	6370.00	—	6376.60	6473.90
+2025-08-11	6450.00	6350.00	6395.00	—	6345.10	6447.90
+2025-08-12	6475.00	6400.00	6415.00	—	6421.03	6515.97
+2025-08-13	6500.00	6465.00	6420.00	—	6437.25	6530.75
+2025-08-14	6500.00	6350.00	6445.00	—	6443.11	6536.39
+2025-08-15	6480.00	6425.00	6445.00	—	6419.73	6514.77
+2025-08-18	6500.00	6440.00	6445.00	—	6419.89	6514.11
+2025-08-19	6465.00	6410.00	6435.00	—	6386.52	6483.48
+2025-08-20	6430.00	6400.00	6415.00	—	6364.52	6464.48
+2025-08-21	6450.00	6300.00	6410.00	—	6337.33	6444.17
+2025-08-22	6500.00	6210.00	6410.00	—	6439.67	6529.83
+2025-08-25	6475.00	6445.00	6445.00	—	6413.26	6505.74
+2025-08-26	6515.00	6500.00	6445.00	—	6441.82	6532.18
+2025-08-27	6500.00	6470.00	6470.00	—	6439.33	6531.17
+2025-08-28	6500.00	6480.00	6485.00	—	6471.99	6560.51
+2025-08-29	6510.00	6500.00	6470.00	—	6426.44	6521.56
+
+Note: "Gamma Wall 0DTE" column is marked "—" because the database does not contain a distinct gamma wall metric separate from call resistance and put support. Call Resistance 0DTE and Put Support 0DTE represent the primary gamma cluster levels for the day.
+
+Keep exploring
+Options
+How can I use the ES Gamma Levels data to improve my intraday trading strategies?
+Options
+What is the relationship between Gamma Levels and other MenthorQ indicators like NetGex and Q-Score for ES futures?
+0DTE
+Can you explain how the High Vol Level (HVL) and Gamma Wall are calculated for 0DTE options on the ES?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

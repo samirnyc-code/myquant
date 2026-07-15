@@ -1,0 +1,29 @@
+In this live session, we introduce the 6am Futures Morning Club and demonstrate how to prepare your trading day using gamma levels from MenthorQ on futures. You’ll learn how to create trading roadmaps for crude oil, NQ, and gold using both manual methods and our upcoming automated indicator.
+
+We start by previewing our new indicator releasing at the end of February, specifically the MenthorQ Gamma Levels End of the Day indicator. The key advantage is that all the levels are already updated automatically – you won’t need to input levels anymore. The indicator can automatically draw your trading roadmap based on gamma levels, not price data, and you can modify how wide you want the boxes to be.
+
+For crude oil, we demonstrate identifying blind spots as support and resistance areas, adding futures gamma levels from crude oil futures options sources, and using converted levels from UZO (the ETF) to see the bigger picture. We look for high concentration areas by connecting levels like the high wall 0dte, put support 0dte, GEX 4, core resistance, and gamma wall. When drawing roadmap rectangles, the middle line is highly recommended as it provides powerful price action areas.
+
+The practical benefit is immediate: the new indicator does automatically what previously required manual work. You can set a roadmap ratio (like 2 for crude oil) and the indicator draws your trading roadmap instantly. You can also create roadmaps based on blind spots in addition to gamma levels, and even combine both roadmaps together. When gaps appear in your roadmap, you can fill them using the Fibonacci principle to find additional areas of interest.
+
+For premium members, all recordings of previous sessions are available in the academy, including about 27 live sessions from last August and sessions from December. The new MenthorQ Gamma Levels End of the Day indicator will be released the week of February 26th, and pro users will get early access to test the indicator in beta.
+
+Video Chapters
+00:00 – Introduction to 6am Futures Morning Club
+01:45 – Preview of new MenthorQ indicator releasing end of February
+02:58 – Automatic trading roadmap creation feature
+04:01 – Starting with crude oil analysis
+05:31 – Using blind spots for support and resistance
+07:05 – Identifying high concentration areas with gamma levels
+09:54 – Creating roadmaps with blind spots indicator
+12:32 – NQ trading roadmap demonstration
+15:06 – Combining gamma levels and blind spots roadmaps
+Key Takeaways
+The new MenthorQ Gamma Levels End of the Day indicator automatically updates all levels and creates trading roadmaps without manual input
+Trading roadmaps are based on gamma levels, not price data, and help identify key price action areas for futures trading
+The middle line in roadmap rectangles provides powerful price action reference points
+You can create roadmaps using gamma levels, blind spots, or combine both for comprehensive market analysis
+Use the Fibonacci principle to fill gaps in roadmaps and discover additional areas of interest
+ Video Transcription
+ Previous Lesson
+Complete 

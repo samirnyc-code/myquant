@@ -1,0 +1,25 @@
+In this lesson, you’ll learn how to navigate and interpret the swing trading models in the MenthorQ dashboard, specifically focusing on the 5 days and 20 days models. We’ll walk through a practical example using Nvidia to show you exactly how to read the model outputs and understand their predictive performance.
+
+The dashboard displays three critical levels for each model: the risk trigger, the lower band, and the upper band. For the 5 days model, you’ll see next five days’ levels on the right side, while the left side shows historical price behavior around these levels. In the Nvidia example, the risk trigger shows 190.84, with a lower band at 169.16, allowing you to see how price interacted with these levels five days prior.
+
+Each model provides detailed backtesting results that reveal success rates over specific time periods. For Nvidia’s 5 days model, the risk trigger achieved a 75% success rate over 119 days, while the lower band reached 87% success over 100 days. The upper band appeared only 19 days with a 57% success rate, indicating Nvidia was bearish for limited periods. Similarly, the 20 days model showed an 85.58% success rate over 104 days, with the lower band achieving 89% success and the upper band at 68.42%.
+
+The primary goal of these models is to provide you with a directional bias for your trading decisions. When price breaks the risk trigger, it can become a strong inflection point, helping you identify potential trend changes and key price levels where reversals or continuations may occur.
+
+You can access these swing model levels on any stocks, ETFs, and indices that you save in your dashboard. The levels are calculated at the end of the day and remain accessible for your review. You can also combine these swing models with other MenthorQ tools like the Q score for more comprehensive analysis.
+
+Video Chapters
+00:00 – Introduction to dashboard and swing models
+00:38 – Understanding 5 days model levels and structure
+01:02 – Reading historical price behavior and backtesting results
+01:55 – Analyzing 20 days model success rates
+02:33 – Understanding risk trigger as inflection point
+03:01 – Accessing levels across different assets
+Key Takeaways
+The swing model 5 days and 20 days provide three key levels: risk trigger, lower band, and upper band with historical success rates
+Backtesting results show success percentages over specific time periods, helping you evaluate model reliability
+The risk trigger serves as a directional bias tool and can identify strong inflection points when price breaks through
+Swing model levels are available for stocks, ETFs, and indices and can be combined with the Q score for enhanced analysis
+ Video Transcription
+ Previous Lesson
+Complete 

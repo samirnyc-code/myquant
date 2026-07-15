@@ -1,0 +1,27 @@
+In this special product launch event, we unveil exciting new features released this morning that will transform the way you analyze markets and trade. You’ll discover how to leverage a data-driven approach to invest like institutions, understand why options and alternative data have become critical in modern trading, and get an exclusive first look at our new dashboard designed to deliver institutional-grade insights to retail traders.
+
+The lesson begins by explaining how finance has fundamentally changed over the past 20 years. We explore how 75% of trading volume is now driven by algorithms, and how in 2021, for the first time in history, option volume surpassed equity volume. Understanding that market makers and hedging strategies are influencing price movements like never before is essential for modern traders. The presentation emphasizes that 2024 saw the highest option volume in the past 20 years, making options data crucial for anyone serious about trading.
+
+You’ll learn about the rise of alternative data and how institutions are no longer relying solely on earnings reports or traditional technical indicators. We provide concrete examples of how institutional investors use geolocation data to track foot traffic to Starbucks locations, or app usage data to monitor engagement metrics for companies like Snapchat and Netflix ahead of earnings announcements. These insights allow institutions to forecast revenue shifts and identify investment opportunities that retail traders typically miss.
+
+The core challenge for retail traders is the lack of access to institutional-grade data and the continued reliance on traditional technical indicators that no longer provide a competitive edge. Our platform solves this problem by identifying important key reaction zones, using gamma levels to predict volatility shifts, and leveraging quantum models to define trading setups in just minutes per day.
+
+Our mission at Mentor Q is to bring institutional-grade insights to individual traders at a fraction of the cost that institutions pay. We simplify complex data using AI and machine learning models to make it actionable, helping you make smarter trading decisions in less time. Our philosophy relies on three main principles: leveraging a data-driven approach, ingesting vast amounts of market data, and using advanced tools to transform complexity into clarity.
+
+Video Chapters
+00:00 – Introduction and agenda overview
+01:48 – Value proposition and mission of Mentor Q
+02:52 – Background working at Bloomberg and in alternative data
+05:37 – How finance has changed since 2007
+06:47 – The rise of option volume and 2024 records
+07:59 – Understanding alternative data and institutional strategies
+09:19 – Real-world examples: geolocation and app usage data
+11:52 – Solving the retail trader problem with data-driven insights
+Key Takeaways
+75% of trading volume is now algorithm-driven, and 2024 recorded the highest option volume in 20 years
+Institutions leverage alternative data like geolocation and app usage to forecast earnings and revenue shifts ahead of announcements
+Retail traders face challenges due to lack of institutional-grade data and over-reliance on traditional technical indicators
+Mentor Q provides data-driven insights using gamma levels, quantum models, and AI to help you trade like institutions at a fraction of the cost
+ Video Transcription
+ Previous Lesson
+Complete 

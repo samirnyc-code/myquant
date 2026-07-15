@@ -1,0 +1,63 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+AFTER-HOURS
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the ES gamma levels for each trading day from 2025-11-01 through 2025-11-30, one row per day, EXACTLY these columns in this order: Date, Call Resistance 0DTE, Put Support 0DTE, HVL 0DTE, Gamma Wall 0DTE, 1D Min, 1D Max. ISO dates, numbers only.
+
+I'll route this to the Data Expert for historical gamma levels data across the November 2025 timeframe.I'll retrieve the ES gamma levels for November 2025 with the exact columns and format you specified.
+
+1 step completed
+Date	Call Resistance 0DTE	Put Support 0DTE	HVL 0DTE	Gamma Wall 0DTE	1D Min	1D Max
+2025-11-03	6900.00	6865.00	6865.00	—	6820.14	6947.86
+2025-11-04	6850.00	6700.00	6815.00	—	6739.33	6873.17
+2025-11-05	6850.00	6700.00	6825.00	—	6763.75	6891.25
+2025-11-06	6790.00	6750.00	6780.00	—	6697.28	6832.22
+2025-11-07	6850.00	6800.00	6810.00	—	6698.57	6831.43
+2025-11-10	6885.00	6800.00	6810.00	—	6795.76	6919.74
+2025-11-11	6890.00	6825.00	6845.00	—	6812.79	6935.21
+2025-11-12	6900.00	6850.00	6845.00	—	6811.31	6935.19
+2025-11-13	6820.00	6800.00	6800.00	—	6693.65	6831.35
+2025-11-14	6850.00	6700.00	6795.00	—	6697.49	6833.01
+2025-11-17	6770.00	6650.00	6780.00	—	6622.10	6772.40
+2025-11-18	6710.00	6600.00	6725.00	—	6546.25	6709.25
+2025-11-19	6720.00	6500.00	6710.00	—	6621.24	6770.76
+2025-11-20	6800.00	6500.00	6710.00	—	6464.59	6639.41
+2025-11-21	6670.00	6700.00	6710.00	—	6553.69	6709.31
+2025-11-24	6750.00	6725.00	6725.00	—	6655.58	6794.42
+2025-11-25	6800.00	6750.00	6725.00	—	6717.41	6844.09
+2025-11-26	6850.00	6700.00	6745.00	—	6770.55	6889.95
+2025-11-28	6865.00	6600.00	6735.00	—	6801.42	6917.58
+
+Note: "Gamma Wall 0DTE" column not available in database — no direct gamma wall metric exists. The table shows Call Resistance 0DTE, Put Support 0DTE (gamma support/resistance levels), and High Vol Level as proxies for gamma clustering. Weekends and market holidays (Nov 1-2, Nov 27, Nov 29-30) have no trading data.
+
+Keep exploring
+Options
+How can I use the ES gamma levels like Call Resistance and Put Support to improve my intraday trading strategies?
+0DTE
+What other MenthorQ indicators complement the 0DTE Gamma Levels for a comprehensive options market analysis?
+0DTE
+Can you explain how the High Vol Level (HVL) and Gamma Wall are calculated and what their significance is in the context of 0DTE options?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

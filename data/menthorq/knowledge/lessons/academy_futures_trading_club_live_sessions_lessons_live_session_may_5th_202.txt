@@ -1,0 +1,24 @@
+In this live trading session, you’ll learn how to use MenthorQ’s dashboard and option data to analyze market conditions in real-time and make informed trading decisions. The team demonstrates their complete workflow from analyzing end-of-day data through live market execution, showing you exactly how to interpret the metrics that matter most.
+
+We walk through the Q score, which ranges from 0 to 5 and helps you understand asset positioning within seconds. The session shows how SPX moved from a very bearish zero option score two weeks ago back to a bullish five option score, indicating heavy positive gamma positioning. You’ll see how to identify key levels like the core resistance at 5800 and HY level at 5575, and how the swing model turning bullish provides lower band targets for the next 20-30 days.
+
+The team analyzes upcoming earnings using AMD as an example, demonstrating how a high option score and bullish swing model can indicate potential market direction. The swing model shows a lower band at 84 with an 85% success rate over the past 100 days, along with a risk trigger of 113 to the upside. You’ll understand how to use the smile and term structure to see how the market prices forward-looking volatility and downside versus upside moves.
+
+For live trading execution, you’ll see how put support 0DTE levels on Russell and NQ provide critical entry and exit signals. The session demonstrates real trades where struggling at put support indicates when to enter long positions, and breaking below put support signals potential shorts. The team emphasizes why 0DTE levels are increasingly important because their delta changes very rapidly and is extremely sensitive to price changes, especially during high-volume periods.
+
+Video Chapters
+00:00 – Dashboard overview and option score analysis
+01:20 – SPX positioning and swing model signals
+02:20 – Analyzing AMD earnings with option data
+04:37 – Understanding the smile and volatility models
+07:37 – Live trading setup and execution strategy
+09:16 – Using gamma levels for risk-reward management
+10:59 – Put support 0DTE trading examples
+Key Takeaways
+The Q score (0 to 5) quickly shows market positioning, with SPX moving from bearish zero to bullish five in two weeks
+The swing model provides lower band targets with historical success rates, helping identify key support levels for 20-30 day timeframes
+Put support 0DTE levels are critical for intraday trading because their delta changes rapidly and they’re highly sensitive to price movements
+The smile shows how markets price forward volatility, helping both options and futures traders understand where downside or upside moves are expected
+ Video Transcription
+ Previous Lesson
+Complete 

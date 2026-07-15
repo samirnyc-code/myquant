@@ -1,0 +1,29 @@
+In this lesson, you’ll discover how MenthorQ is expanding institutional-grade quantitative data into the Forex market with two powerful new indicators designed to overcome the unique challenges of trading the world’s largest and most opaque financial market. We’re excited to show you our gamma levels and blind spots indicators specifically built for Forex pairs, plus our latest integration with Transpider.
+
+The Forex market presents unique challenges for retail traders. With an average trading volume of $7.5 trillion as of 2024, it’s the largest financial market in the world, yet unlike equities, there’s no centralized exchange, no clear order book, and limited transparency. You can’t see open interest or dark pool prints like you can with stocks, making it easy to miss large moves that seem to come out of nowhere. Forex is also notorious for fake outs, where price sticks around key levels and then reverses immediately, leaving traders behind.
+
+We’re introducing two new indicators to help you navigate these challenges. Our gamma levels indicator for Forex leverages Forex futures options data to identify key market reaction zones where market makers and dealers are most likely to react. The second indicator, blind spots, uses a new model we developed to identify areas in the chart where volatility is likely to expand, price is likely to react, and there may be a lack of liquidity. When blind spot areas are touched, you can anticipate a potential reaction.
+
+Most Forex traders rely heavily on technical analysis and conventional indicators like MACD and trends, but these tools are widely used and derived from past price data without forward looking insights. In a market as opaque as Forex, this doesn’t provide a real edge. Our new indicators give you forward looking analysis based on quantitative models, helping you anticipate volatility and understand where price could move rather than just reacting to past movements.
+
+We’re also excited to announce our newest integration with Transpider, allowing you to access our gamma levels directly within the Transpider platform. This integration combines the power of our quantitative data with Transpider’s charting capabilities. We have additional sessions planned with the Transpider team during June to showcase more features.
+
+You can access these new Forex indicators through our trading dashboard, where we now cover approximately 1300 assets including stocks, ETFs, indices, and futures. We’re also planning to release gamma levels on crypto next month by analyzing spot crypto options, followed by European futures and stocks later this year.
+
+Video Chapters
+00:00 – Introduction and session agenda
+01:01 – Product release announcement for Forex
+01:26 – Gamma levels and blind spots on Forex
+01:50 – Transpider integration announcement
+07:24 – Why Forex and market characteristics
+08:32 – Challenges in the Forex market
+10:06 – Limitations of conventional technical indicators
+11:00 – New gamma levels and blind spots indicators
+Key Takeaways
+The gamma levels indicator for Forex uses futures options data to identify market reaction zones where market makers and dealers are likely to react
+The blind spots indicator identifies areas where volatility is likely to expand and price is likely to react due to lack of liquidity
+Forex is the largest financial market with $7.5 trillion in daily volume but lacks transparency due to being over the counter without a centralized exchange
+Conventional technical indicators don’t provide an edge in Forex because they’re widely used and based on past pri…
+ Video Transcription
+ Previous Lesson
+Complete 

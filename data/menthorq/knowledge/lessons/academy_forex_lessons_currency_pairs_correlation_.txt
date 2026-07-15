@@ -1,0 +1,24 @@
+In this lesson, you’ll explore critical correlations between currency pairs, commodities, and major indices that every forex and metals trader should understand. These relationships are driven by fundamental economic factors like export revenues and production capabilities that directly impact currency valuations.
+
+We start with the Australian dollar (AUD) and its strong correlation with metals like copper, gold, and silver. Because Australia is a major producer of these commodities, the Australian economy is closely tied to metal price fluctuations. When gold prices rise, Australia benefits from increased export revenue, strengthening the AUD. When metal prices decline, the AUD weakens due to decreased export earnings. The chart demonstrates this relationship with gold in yellow and Australian dollar in red, showing correlation values sometimes close to one, indicating perfect correlation.
+
+Next, you’ll learn about the Canadian dollar (CAD) and its relationship with oil prices. Canada is one of the largest oil producers, making the Canadian economy closely linked to oil market performance. Rising oil prices increase the value of Canadian oil exports, leading to stronger economic growth and currency appreciation. Falling oil prices reduce export revenue, weakening the economy and putting pressure on the CAD. The lesson also covers the Japanese yen (JPY) correlation with global stock indices like the DAX, Nikkei, and S&P 500. As a safe haven currency, the JPY shows an inverse correlation with major stock indices during market volatility, as investors seek safer assets when markets drop.
+
+The lesson concludes with the relationship between the S&P 500 (SPX) and Bitcoin. In recent years, Bitcoin has evolved from being viewed solely as a digital alternative to gold, with its correlation to the S&P 500 growing during periods of market stress like COVID and recent turmoil. In a risk on environment with positive investor sentiment and SPX rallies, Bitcoin tends to follow the same pattern, with the opposite occurring during downturns.
+
+Understanding these macroeconomic correlations helps you anticipate currency movements based on commodity prices and market sentiment. You can use these relationships to make more informed trading decisions by monitoring the performance of correlated assets alongside your primary currency pairs.
+
+Video Chapters
+00:00 – Introduction to forex and metals correlation
+00:31 – Australian dollar and metals correlation
+01:17 – Canadian dollar and oil relationship
+02:04 – Japanese yen and stock market indices
+02:50 – S&P 500 and Bitcoin correlation
+Key Takeaways
+The Australian dollar (AUD) has a strong correlation with metals like copper, gold, and silver due to Australia’s major production role
+The Canadian dollar (CAD) is closely linked to oil prices because Canada is one of the largest oil producers
+The Japanese yen (JPY) shows an inverse correlation with global stock indices as a safe haven currency during market volatility
+Bitcoin’s correlation to the S&P 500 has grown during periods of market stress, moving together in risk on environments
+ Video Transcription
+Previous
+Complete 

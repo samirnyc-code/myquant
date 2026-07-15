@@ -1,0 +1,25 @@
+In this live session, you’ll discover the powerful new features coming to the MenthorQ indicator, including automated level population and an integrated trading roadmap that eliminates manual charting work. This lesson walks through real-time examples across multiple asset classes, showing you exactly how these tools streamline your trading preparation.
+
+The updated indicator automatically calculates and populates gamma levels for you—no more manual input required. You can now seamlessly switch between futures, stocks, ETFs, and indices with levels instantly appearing on your charts. The most exciting addition is the integrated trading roadmap feature, which automatically identifies and displays key areas directly on your chart by analyzing gamma levels—not traditional support and resistance. By clicking the roadmap option in settings, the system populates your areas immediately, and you can toggle levels on or off for a clean chart view.
+
+The lesson demonstrates the trading roadmap across numerous assets including VIX, MES, MNQ, ES, NQ, gold, crude oil, SPX, NDX, SPY, QQQ, and individual stocks like Apple, Microsoft, Tesla, and Meta. For each asset, the roadmap identifies critical levels such as call resistance, put support, one day max, one day min, high wall, and GEX 5. When gaps appear between roadmap levels, you can use the Fibonacci retracement tool with levels 0.038, 0.5, 0.618, and 1 to identify additional reaction points within those ranges.
+
+This automated approach transforms what previously took 30-40 minutes of manual mapping into just a few minutes of work. The roadmap helps you practice better patience and risk management by providing an immediate visual overview of where to place orders and where to wait. The data-driven approach based on gamma levels proves remarkably accurate, as demonstrated across all the assets reviewed, with price consistently respecting the identified zones.
+
+The same roadmap functionality works with the blind spots indicator—simply enable “create your roadmap” in settings and remove levels for a clean view. Additionally, intraday levels are coming on the 27th of the month, which will update throughout the trading day without requiring manual uploads to Trading View, solving a major challenge for traders dealing with levels that update hourly.
+
+Video Chapters
+00:23 – Welcome and session overview
+01:45 – New indicator features and automated level population
+03:00 – Integrated trading roadmap demonstration
+04:27 – Using Fibonacci tool with roadmap gaps
+09:32 – Trading roadmap for stocks and Magnificent Seven
+14:00 – Applying roadmap to blind spots indicator
+Key Takeaways
+The new indicator automatically calculates and populates gamma levels across all asset classes without manual input
+The integrated trading roadmap identifies key areas based on gamma levels rather than traditional support and resistance
+Use the Fibonacci retracement tool with levels 0.038, 0.5, 0.618, and 1 to find reaction points in gaps between roadmap areas
+What previously took 30-40 minutes of manual mapping now takes just minutes with the automated roadmap feature
+ Video Transcription
+Previous
+Complete 

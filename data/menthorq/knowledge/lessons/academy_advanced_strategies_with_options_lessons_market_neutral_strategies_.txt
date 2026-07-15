@@ -1,0 +1,25 @@
+In this lesson, you’ll discover how to profit from market movements in both directions using market neutral strategies. Unlike directional strategies that rely on price increases or decreases, these approaches allow you to benefit from volatility or price movements within a defined range.
+
+We’ll start with the long strangle, which involves buying an out of the money call and an out of the money put with the same expiration date. This strategy helps keep premium costs down while positioning you to profit from strong movements in either direction. The long straddle works similarly but uses at the money options with the same strike and expiration, requiring higher premiums but offering similar profit potential from increased volatility. Both strategies are ideal around macro events like central bank interest rate decisions or quarterly earnings releases that can drive up volatility.
+
+The Iron Condor takes a different approach by profiting from decreased volatility and the passage of time. This strategy involves buying and selling two calls and two puts with four strike prices and the same expiration date. You sell options with strikes closer to the spot price to collect premium, then buy options with strikes further away to protect against losses. The maximum profit occurs when the underlying price stays within the range of your sold strikes, making this a credit strategy with defined risk and return.
+
+For the long strangle and straddle, you’ll want to see a bearish jax, bearish cumulative jax, bullish vex, price below the ivor level, and bullish vega. For Iron Condor setups, look for positive jacks, bullish Net Jacks, bearish VAX, and the market in positive gamma. You can use the one day expected move for 0DTE options or daily Iron Condor trades, along with the Net JAX chart to identify stickier strikes with more gamma.
+
+We provide specific guidance on using the Q models to select your strike prices: for strangles, use the call resistance level as the long call strike and the high volume level or put support level as the long put strike. For straddles, use the ivor level for both strikes. For Iron Condors, use the first core resistance as the short call strike, second core resistance as the long call strike, put support as the short put strike, and second put support as the long put strike.
+
+Video Chapters
+00:00 – Introduction to market neutral strategies
+01:23 – Long strangle strategy explained
+03:40 – Long straddle strategy breakdown
+05:08 – Iron Condor strategy and setup
+07:30 – Using indicators and Q models for Iron Condor
+08:29 – Strategy checklist and next steps
+Key Takeaways
+Long strangles and long straddles profit from high volatility and strong price movements in either direction, ideal for trading around macro events
+The Iron Condor is a credit strategy with defined risk that profits when the underlying stays within a price range and volatility decreases
+Use the Net JAX chart to identify stickier strikes with high gamma and the one day expected move for 0DTE or daily Iron Condor setups
+Apply Q models including call resistance, put support, core resistance, and ivor level to select optimal strike prices for each strategy
+ Video Transcription
+ Previous Lesson
+Complete 

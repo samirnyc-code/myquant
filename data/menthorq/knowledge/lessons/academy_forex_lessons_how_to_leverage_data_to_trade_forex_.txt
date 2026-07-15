@@ -1,0 +1,25 @@
+In this lesson, you’ll discover how a professional trader transitions from Forex CFDs to futures markets while maintaining a data-driven, patient approach to trading. Kieran Duff shares his journey from data analyst to managing investor capital, revealing how his analytical background shapes his trading strategy and mindset.
+
+Kieran explains that his transition from CFD trading to futures markets wasn’t as complex as expected from a technical execution perspective. The main challenge was adapting to different platforms rather than changing his core trading approach. He notes that while opening a CFD broker account with Metatrader takes about 10 minutes, futures platforms require more setup time. However, since he only uses limit orders with stops and targets, the learning curve was manageable.
+
+The most striking aspect of Kieran’s approach is his remarkably low trading frequency – he averages just 2.5 trades per week. This discipline stems from his data analyst background and years of experience managing investor capital through an FCA regulated company. He emphasizes that he performs the same analysis and journaling today that he did three years ago when learning to trade.
+
+Kieran’s patient mindset was shaped by his early exposure to crypto markets in 2016-17, where he watched parabolic moves without feeling compelled to chase them. He focuses on being on the right side of the market from a probabilities perspective, explaining that if data shows a 72% chance of something happening and it doesn’t, he still made the correct decision because seven times out of ten, that setup should work. This logic-based approach helps him accept losses without emotional turmoil.
+
+He’s now expanding from traditional Forex pairs into futures contracts for assets like platinum and palladium, which aren’t always available as CFDs. His goal is to maintain his low-frequency trading routine while diversifying across different asset classes. Kieran currently trades every day, works for Darwin X and Darwin X0, and is also on SIM for a hedge fund, which prompted his transition to futures trading.
+
+Video Chapters
+00:00 – Introduction and disclaimer
+01:27 – Kieran’s background as data analyst and FX trader
+02:38 – Experience with Elysium Capital and professional asset management
+06:23 – Transitioning from CFD Forex to futures markets
+09:06 – Trading frequency and platform setup differences
+11:00 – Developing patience and data-driven mindset
+Key Takeaways
+Transitioning from CFD trading to futures primarily requires platform adaptation rather than strategy changes
+A data-backed approach with only 2.5 trades per week can be more effective than high-frequency trading
+Being on the right side of probabilities matters more than individual trade outcomes
+Patience developed through early market exposure helps maintain discipline in low-frequency trading
+ Video Transcription
+Previous
+Complete 

@@ -1,0 +1,26 @@
+In this lesson, you’ll learn how to leverage MenthorQ data to construct sophisticated options spreads strategies, with a special focus on earnings season trading. The instructors walk through live examples using real-time dashboard data to demonstrate how institutional-grade metrics can guide your spread construction decisions.
+
+The lesson centers on analyzing Palantir as an earnings play example. You’ll see how to examine the snapshot metrics first, looking for green (stable) versus red (volatile) indicators across expirations. With Palantir showing an average earnings move of 19%, the instructors demonstrate building an iron condor around this expected range. Key support and resistance levels are identified at 60 and 100, providing the foundation for spread construction with a credit of $23 and max loss of $76.
+
+The five day swing model provides directional bias insights, revealing Palantir’s recent bullish positioning with lower band signals. This data allows you to adjust your spreads asymmetrically—moving strikes higher if you believe in continued bullish momentum, or keeping them balanced for a neutral approach. The example shows how unbalancing the trade can improve your credit to max loss ratio, though it reduces probability of success.
+
+Understanding DAX levels versus GEX levels is critical for spread trading. When important DAX levels like 85 or 75 are breached, market makers must cover their positions, potentially causing squeezes or flushes. This knowledge helps you position your spread strikes strategically to avoid getting caught in these moves.
+
+The lesson also covers an advanced IV rush strategy—buying a long straddle or long strangle mid-day before earnings to profit from rising implied volatility, then closing before the event and potentially flipping to sell premium afterward. This approach capitalizes on volatility expansion while managing theta decay risk.
+
+Video Chapters
+00:00 – Introduction to earnings season options strategies
+02:12 – Approaching earnings trades and mathematics
+04:15 – Analyzing Palantir snapshot metrics
+06:20 – Building iron condors around average move
+09:14 – Using the five day swing model for directional bias
+11:44 – Understanding DAX levels and market maker behavior
+14:12 – IV rush strategy with long straddles and strangles
+Key Takeaways
+Use snapshot metrics to assess volatility environment before constructing spreads, with green indicating stability and red showing potential changes
+Build iron condors around the average earnings move percentage using support and resistance levels from the dashboard
+The five day swing model reveals directional bias, allowing you to unbalance spreads for higher credit when bullish or bearish positioning is evident
+Monitor DAX levels carefully as breaches force market maker covering, potentially causing squeezes that impact your spread positions
+ Video Transcription
+ Previous Lesson
+Complete 

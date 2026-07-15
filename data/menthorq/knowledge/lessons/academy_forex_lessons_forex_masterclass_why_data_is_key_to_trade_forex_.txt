@@ -1,0 +1,23 @@
+In this comprehensive forex masterclass, you’ll learn why institutional-grade data is essential for successful currency trading and how understanding global capital flows can give you a significant edge in the market. Our special guest Jay Medro, who brings over 30 years of experience from the institutional side including roles at Lehman Brothers, Nomura, and as global head for Pimco, shares real-world insights that go far beyond retail technical analysis.
+
+Jay explains that in the institutional world, trading decisions are based on macroeconomic modeling, data, and understanding changes in economic growth and inflation. Unlike retail traders who rely heavily on chart patterns, portfolio managers at firms like Pimco make decisions based on how different economies are developing and how capital flows between them. Currency pairs like dollar yen are essentially a picture of interest rate differentials between countries—currently the US at 4.25% versus Japan at 0.5%—which drives the price movement you see on charts.
+
+The lesson demonstrates how to view currencies as stocks of economies, with pairs like Aussie vs Yen showing complete business cycles where market participants vote on which economy is performing better. Jay emphasizes that before looking at levels and trading signals, you must understand what you’re actually trading. He reveals that the smartest participants on trading floors are bond traders, followed by option traders, and that implied volatility from the options market can tell you where an asset is expected to move with 68% probability based on real market pricing.
+
+You’ll discover why asset classification matters—gold is actually a currency based on its volatility profile, while bitcoin is a commodity because it requires significant energy to produce. Jay also addresses practical trading considerations like using ATR for stop losses, explaining that institutional traders base stops on the actual volatility of the asset, not arbitrary chart levels. The most liquid trading occurs during the London and New York intersection, when maximum participants create the most effective price discovery.
+
+Video Chapters
+00:00 – Introduction and welcoming Jay Medro
+01:23 – Jay’s 30-year institutional trading background
+06:41 – How institutional data drives trading decisions
+09:28 – Understanding currency pairs as economic indicators
+12:18 – Volatility, ATR, and institutional stop loss strategies
+13:40 – Options market and implied volatility insights
+Key Takeaways
+Institutional trading is based on macroeconomic modeling and data, not just technical chart patterns
+Currency pairs like dollar yen reflect interest rate differentials between countries’ central banks
+The options market provides implied volatility data showing where assets are expected to move with 68% probability
+Stop losses should be based on actual asset volatility rather than arbitrary levels, with ATR being a smarter approach
+ Video Transcription
+ Previous Lesson
+Complete 

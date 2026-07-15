@@ -1,0 +1,68 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+AFTER-HOURS
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the ES gamma levels for each trading day from 2025-09-01 through 2025-09-30, one row per day, EXACTLY these columns in this order: Date, Call Resistance 0DTE, Put Support 0DTE, HVL 0DTE, Gamma Wall 0DTE, 1D Min, 1D Max. ISO dates, numbers only.
+
+I'll retrieve the ES gamma levels for September 2025 with the exact columns and format you specified.
+
+1 step completed
+
+I notice the data starts from 2025-09-02 (September 1 was Labor Day, a market holiday). Also, I see that the dataset doesn't include a "Gamma Wall 0DTE" column — the available 0DTE gamma levels are Call Resistance 0DTE, Put Support 0DTE, and High Vol Level. I'll provide the table with the columns that are available, removing the "Gamma Wall 0DTE" column you requested since it doesn't exist in the data:
+
+Date	Call Resistance 0DTE	Put Support 0DTE	HVL 0DTE	1D Min	1D Max
+2025-09-02	6425.00	6450.00	6450.00	6394.35	6500.15
+2025-09-03	6470.00	6450.00	6455.00	6409.82	6511.18
+2025-09-04	6525.00	6450.00	6480.00	6466.25	6558.75
+2025-09-05	6485.00	6450.00	6470.00	6444.03	6533.47
+2025-09-08	6525.00	6475.00	6495.00	6461.09	6552.91
+2025-09-09	6560.00	6500.00	6495.00	6484.67	6575.83
+2025-09-10	6550.00	6460.00	6535.00	6489.12	6584.38
+2025-09-11	6600.00	6525.00	6535.00	6549.00	6634.50
+2025-09-12	6675.00	6500.00	6545.00	6596.90	6693.60
+2025-09-15	6700.00	4550.00	6545.00	6623.20	6725.30
+2025-09-16	6725.00	6550.00	6620.00	6616.68	6722.82
+2025-09-17	6700.00	4550.00	6620.00	6614.39	6717.11
+2025-09-18	6725.00	6660.00	6665.00	6648.12	6749.38
+2025-09-19	6725.00	6600.00	6665.00	6663.06	6776.44
+2025-09-22	6750.00	6730.00	6730.00	6691.12	6808.38
+2025-09-23	6735.00	6675.00	6715.00	6656.73	6776.27
+2025-09-24	6730.00	6685.00	6695.00	6637.69	6756.31
+2025-09-25	6690.00	6600.00	6665.00	6602.31	6721.69
+2025-09-26	6700.00	6650.00	6665.00	6640.83	6754.67
+2025-09-29	6710.00	6660.00	6695.00	6650.45	6766.55
+2025-09-30	6725.00	6675.00	6695.00	6665.78	6782.22
+
+Note: September 1, 2025 was Labor Day (market closed). Data begins 2025-09-02. The "Gamma Wall 0DTE" column does not exist in the database; the available 0DTE gamma levels are Call Resistance, Put Support, and High Vol Level (HVL).
+
+Keep exploring
+Options
+How can I use the ES Gamma Levels data to anticipate potential price reversals or support and resistance zones during the trading day?
+0DTE
+What is the relationship between 0DTE Gamma Levels like Call Resistance and Put Support and other MenthorQ indicators such as NetGex or Q-Score for a comprehensive market analysis?
+0DTE
+Can you explain how the High Vol Level (HVL) and Gamma Wall are calculated for 0DTE options and their significance in intraday trading strategies?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

@@ -1,0 +1,25 @@
+Understanding why you should look at correlated option chains when trading futures can significantly enhance your trading analysis. While you might trade ES or NQ futures, examining the option chains from related assets like SPX, SPY, NDX, and QQQ provides critical insights into dealer positioning across different market participants.
+
+Each asset attracts different types of traders, which matters for your analysis. SPX options are primarily traded by institutions due to tax, size, and settlement reasons. SPY options appeal to asset managers and retail traders, plus SPY goes into 401k accounts where investors hold positions long-term. Futures attract CTAs, retail investors, and institutions. Because these three assets move in the same direction but have completely different option chains, analyzing all three together reveals valuable confluence zones and potential conflicts.
+
+When all three assets show support or resistance at the same level, that creates a high conviction area where you can expect stronger price reactions. For example, if SPX, SPY, and ES all show put support at the same level, that’s a much stronger support zone than just one asset showing it. Conversely, if SPX and SPY are in a positive gamma environment but ES shows negative gamma, you’ve identified a flow conflict that signals different market participant positioning.
+
+In the demonstration, converting SPX and SPY levels to ES revealed multiple important areas. The price stopped at the HVL levels from multiple assets, and resistance zones appeared where core resistance zero DTE and gamma wall levels converged from different chains. Similarly, on NQ, adding QQQ and NDX levels showed the morning price stopped exactly at the HVL of QQQ and HVL zero DTE of NDX, confirming the importance of these confluence zones.
+
+Within the indicator, you can convert levels using either an automatic ratio or manual ratio. The platform provides videos and documentation explaining the conversion process. By mapping out these high conviction areas from correlated assets, you can build a complete trading roadmap in less than 30 seconds, identifying where put support, resistance zones, and key reaction levels align across multiple option chains.
+
+Video Chapters
+00:00 – Why convert levels when trading futures
+00:22 – Understanding different option chains and market participants
+02:21 – High conviction areas and flow conflicts
+03:52 – Converting SPX and SPY levels to ES
+06:12 – Adding QQQ and NDX levels to NQ
+07:48 – Building a complete trading roadmap
+Key Takeaways
+SPX, SPY, and ES have completely different option chains traded by different market participants, providing unique insights when analyzed together
+When all three correlated assets show support or resistance at the same level, it creates a high conviction area with stronger expected price reactions
+Flow conflicts occur when some assets show positive gamma while correlated assets show negative gamma, revealing disagreement between different trader types
+You can convert levels using automatic ratio or manual ratio to map dealer positioning from multiple option chains onto your futures chart
+ Video Transcription
+ Previous Lesson
+Complete 

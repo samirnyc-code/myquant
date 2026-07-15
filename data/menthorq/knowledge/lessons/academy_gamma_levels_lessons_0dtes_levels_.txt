@@ -1,0 +1,24 @@
+In this lesson, you’ll learn how to use 0DTEs levels to enhance your intraday trading by focusing on options that expire today. Understanding these levels helps you identify where price action will be most reactive during the trading day.
+
+We isolate the 0DTEs flow and 0DT options from the full option chain to filter out long-dated noise and focus on where intraday hedging flow will be most reactive. This separation allows you to identify high conviction support and resistance and potential breakout zones with greater accuracy.
+
+The power of 0DTEs options comes from their extremely high gamma, especially near the money. This means even a small price move can cause a big shift in delta, which forces dealers to hedge rapidly using futures or the underlying asset. This hedging activity creates predictable price behavior around key levels.
+
+We’ve developed several tools to help you track these levels, including core resistance, put support, and high volume level 0 DTES to identify intraday zones and how price can react. These levels often act as magnets throughout the day, with examples showing how core resistance gamma wall and put support levels served as structural barriers that influenced market movement.
+
+You can use 0DTEs levels in multiple ways: within the indicator, as standalone levels, or by isolating just the gamma exposure for zero dts by looking at the intraday models. The dashboard provides additional tools for tracking these levels throughout the trading session.
+
+Video Chapters
+00:15 – Introduction to zero DTEs levels
+00:40 – Filtering out long-dated noise from the option chain
+01:04 – Why 0DTEs options have extremely high gamma
+01:25 – Core resistance, put support, and high volume levels
+02:08 – Real examples of 0DTEs levels acting as magnets
+Key Takeaways
+0DTEs levels help you focus on where intraday hedging flow will be most reactive by isolating options expiring today
+0DTEs options have extremely high gamma near the money, forcing dealers to hedge rapidly and creating predictable price behavior
+You can use core resistance, put support, and high volume level 0 DTES as structural barriers that act as magnets throughout the trading day
+Access these levels through the indicator, standalone, or by isolating gamma exposure in the intraday models
+ Video Transcription
+ Previous Lesson
+Complete 

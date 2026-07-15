@@ -1,0 +1,21 @@
+In this lesson, you’ll explore the volume dynamics across Forex futures and cryptocurrency markets, understanding how these metrics reflect market activity and institutional adoption. We examine real trading data and recent milestones that demonstrate the evolution of these markets.
+
+The Forex futures market typically sees trading volume of around 90 billion to 100 billion. While this is significantly lower than spot trading volume, we’re witnessing increasing Forex futures trading activity. On June 12, 2024, FX futures reached an all-time high single-day volume record of 3.26 million contracts, equivalent to 314 billion in notional value. The growth chart also reveals that options volume, shown in purple, is becoming increasingly important despite not being the main volume driver.
+
+In the crypto space, we examine how traded volume has changed over time with the latest data showing Bitcoin averaging a daily volume of 30 billion and Ethereum at 17 billion. Bitcoin’s on-chain daily volume is estimated at approximately 46 billion, which surpasses credit card giants like Visa and MasterCard in daily processed activity.
+
+The lesson also covers the impact of recently approved Bitcoin ETFs. Before ETF approval, Grayscale was the major fund providing Bitcoin exposure. Now, the BlackRock iShares fund has overtaken Grayscale, holding approximately 22 billion compared to Grayscale’s 20.7 billion, with clear growth visible over recent months.
+
+Video Chapters
+00:00 – Forex futures market volume overview and records
+00:38 – Growth of Forex volume and options trading
+01:03 – Cryptocurrency daily trading volume statistics
+01:20 – Bitcoin on-chain volume vs credit card processors
+01:44 – Bitcoin ETFs and institutional fund comparison
+Key Takeaways
+The Forex futures market reached a record 314 billion in notional value on a single day in June 2024
+Bitcoin’s on-chain daily volume of 46 billion exceeds the daily processing volume of Visa and MasterCard combined
+BlackRock iShares has overtaken Grayscale as the largest Bitcoin ETF with 22 billion in assets
+Options volume is becoming an increasingly important component of Forex futures trading activity
+ Video Transcription
+Complete 

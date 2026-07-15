@@ -1,0 +1,25 @@
+In this lesson, you’ll learn how to prepare for the trading day like a professional, following Steve’s pre-market routine as he demonstrates his specific approach to analyzing markets before the opening bell. Steve, who leads the futures trading floor at MenthorQ, shares the same preparation process he uses daily to manage his own portfolio.
+
+Steve emphasizes the importance of thinking like a portfolio manager rather than just a trader, comparing market preparation to how elite sports managers plan before every match. He explains that even hedge funds are less than 50% right with their trades, but they manage their margin efficiently to recover quickly from losses. The key is always having enough capital to unemotionally recover when your first or second idea is incorrect.
+
+The preparation process starts with checking what’s happening pre-market globally during the Asian and London sessions, looking for major news affecting indices or individual stocks. Steve reviews his list of high, medium, and low impactful news events, noting that even medium and low impact news can shift momentum. He specifically watches for the one hour close after New York open as this often triggers momentum shifts with algorithms.
+
+After assessing the news, Steve inputs the MenthorQ levels that are recalculated daily, focusing on the most important ones: the call resistance 0dt, one day min, and one day max. He demonstrates analyzing both SPY and ESU (the new ticker after the S&P rollover), using 5 minute and 30 minute charts to identify whether the day will be a trending day, consolidation day, or a trappy reversal day. In the example shown, after yesterday’s strong trend that broke all daily and weekly levels, he anticipates a consolidation day.
+
+Steve sets alerts at key levels rather than placing orders pre-market, preferring to wait 15 minutes after New York open for better positioning. He trades through his MT5 or TradingView account through ACAP using CFD brokers, explaining that he prefers the customization and lot sizing capabilities despite paying the spread as his fee structure.
+
+Video Chapters
+00:00 – Introduction to pre-market preparation process
+01:59 – Professional mindset and portfolio manager approach
+04:31 – Checking global pre-market news and events
+06:31 – Inputting daily levels and analyzing price location
+08:35 – Identifying consolidation versus trending days
+10:49 – Trading platform setup and broker preferences
+Key Takeaways
+Professional traders prepare like elite managers, always having a plan and enough margin to recover from incorrect trades unemotionally
+Check pre-market global news and watch for the one hour close after New York open for potential momentum shifts
+Input MenthorQ levels daily, focusing on call resistance 0dt, one day min, and one day max to identify key zones
+Markets typically show three types of days: trappy reversal days, pure trending days, or consolidation days (often after strong trends)
+ Video Transcription
+ Previous Lesson
+Complete 

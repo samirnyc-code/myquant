@@ -1,0 +1,25 @@
+In this lesson, you’ll learn how to trade futures markets using MenthorQ gamma levels alongside traditional price action and market structure analysis. Diana Angelo, a 17-year veteran futures trader specializing in crude oil and metals, demonstrates a live trading example that integrates GEX 3, HVL, and intraday market dynamics.
+
+The practical example focuses on a crude oil trade during the post NY cut session, where forex option expiries in the Canadian dollar create ripple effects in the crude market. Diana identifies a four-hour supply zone coinciding with the GEX 3 and HVL levels near the same price area, creating strong confluence. She explains how crude oil opened above the previous day’s distribution curve but failed to maintain momentum during the initial balance period (the first hour of NYMEX trading), signaling a potential failed auction.
+
+The trade setup crystallizes when price struggles to break above the 30-minute TPO and repeatedly returns to the initial balance range. Diana stalks the GEX 3 level with the hypothesis that a breakdown will target the HVL, which typically shows reaction on first test but breaks through on the second attempt. Her entry comes at 69.45, and the trade proceeds exactly as anticipated, with price breaking through HVL and rotating into the previous day’s value area, eventually reaching GEX 4.
+
+We discuss the significant platform integrations that make using these levels seamless for futures traders. The MenthorQ API now connects directly to Ninja Trader, Quantower, ATAS, BookMap, and Sierra Chart, automatically updating levels throughout the trading day. An automatic update for TradingView is coming in December, with Transpider integration planned as the next project. Diana emphasizes how these automated integrations eliminate the time-consuming process of manually extracting data from options chains, which previously created information overload.
+
+The lesson also introduces MenthorQ’s new intraday levels feature, which provides updated gamma positioning when volatility causes levels to break at the open. This addresses a critical limitation of end-of-day data on high-volatility days. Diana notes that having simplified, single-line representations of complex options data gives her confidence to enter trades that align with her technical setups, particularly her preferred short-side trades in crude oil which historically produce her best returns.
+
+Video Chapters
+00:00 – Introduction and guest welcome from Top Step TV
+02:26 – Platform integrations and API developments
+03:48 – Intraday levels feature overview
+06:50 – Live crude oil trade breakdown using GEX 3 and HVL
+08:02 – Failed auction setup and initial balance analysis
+10:23 – Trade execution and level confirmation
+Key Takeaways
+The GEX 3 and HVL levels provide confluence zones that increase confidence in technical setups like failed auctions
+MenthorQ now integrates via API with Ninja Trader, Quantower, ATAS, BookMap, and Sierra Chart for automatic level updates
+The new intraday levels feature provides updated gamma positioning when high volatility breaks end-of-day levels
+Combining gamma levels with market structure elements like initial balance and TPO creates high-probability trade setups in futures markets
+ Video Transcription
+ Previous Lesson
+Complete 

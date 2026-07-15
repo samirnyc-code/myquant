@@ -1,0 +1,25 @@
+In this lesson, you’ll learn how to identify and trade trend continuation patterns, which are powerful chart formations that help you stay in profitable trades during periods of market consolidation. When trends pause, these patterns emerge as moments of uncertainty between buyers and sellers, and understanding them allows you to anticipate when the trend will resume its original direction.
+
+The lesson covers five main continuation patterns: triangles, flags, pennants, wedges, and rectangles. We begin with triangles, which are drawn by joining support and resistance lines and are considered one of the most reliable formations in technical analysis. You’ll learn about three types: the symmetrical triangle (which forms when the market creates higher lows and lower highs simultaneously with converging trend lines), the ascending triangle (characterized by higher lows and higher highs with a horizontal resistance level), and the descending triangle (featuring lower highs and lower lows at approximately the same level with a horizontal support floor). Each pattern can last from a few days to several weeks or months.
+
+The lesson then explores flag patterns, which have a rectangular structure where price moves between two parallel trend lines that can be horizontal or slant in the opposite direction of the prevailing trend. You’ll understand the difference between a bull flag (which occurs after a powerful upward movement followed by consolidation) and a bear flag (which forms during a downtrend after a notable downward move). Similarly, you’ll learn about pennants, which form triangular structures with converging trend lines—the bull pennant follows strong upward movement while the bear pennant appears after significant downward movement.
+
+A critical concept emphasized throughout is that breakout points must be confirmed by volume. For example, when analyzing a bull flag on Apple, you would watch for the price to break above the upper trend line of the flag, which signals potential continuation of the uptrend and presents a bullish opportunity. The lesson demonstrates how proper identification of these breakout points allows you to enter positions with confidence and manage risk by placing stop-loss orders just beyond the pattern’s boundaries.
+
+The lesson concludes with the rectangle pattern, represented by price oscillations contained between two parallel lines where the upper line acts as static resistance and the lower line serves as support. This pattern reflects a period of accumulation with a significant clash between supply and demand forces, and can persist for an extended period. Whether you’re observing a bullish rectangle (during an uptrend) or a bearish rectangle (during a downtrend), the breakout from these consolidation zones signals the continuation of the prevailing trend.
+
+Video Chapters
+00:00 – Introduction to trend continuation patterns
+00:48 – Understanding triangles and their three types
+02:03 – Ascending triangle pattern explained
+03:10 – Descending triangle pattern explained
+04:51 – Flag patterns: bull flag and bear flag
+07:15 – Pennant patterns and their characteristics
+09:24 – Wedges and rectangle patterns
+10:14 – Bullish and bearish rectangle examples
+Key Takeaways
+Continuation patterns form during periods of uncertainty between buyers and sellers and help evaluate the future movement of trends
+The five main continuation patterns are triangles, flags, pennants,
+ Video Transcription
+ Previous Lesson
+Complete 

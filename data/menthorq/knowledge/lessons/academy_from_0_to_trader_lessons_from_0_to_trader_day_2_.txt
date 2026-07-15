@@ -1,0 +1,25 @@
+In this second session of the trading journey, we dive into practical trading preparation and how to use MenthorQ’s screeners and tools to identify high-probability trade opportunities. This lesson focuses on the critical steps every trader should take before entering the market, including monitoring economic events, earnings reports, and understanding how gamma exposure changes can signal market sentiment shifts.
+
+We emphasize the importance of morning preparation by checking the MenthorQ daily newsletter, which takes less than five minutes to read and provides key market themes, economic events, and VIX expiration data. The lesson demonstrates how to avoid common pitfalls like entering trades right before Fed speakers or major announcements that can invalidate your setups. This preparation phase is essential whether you’re trading stocks, ETFs, or futures.
+
+The session introduces MenthorQ’s option screeners, specifically the highest change in gamma screener and highest put open interest screener. We show how these screeners are updated daily after market close (7pm Eastern time) and help identify stocks with significant options activity. Using Nvidia as an example, we demonstrate how to cross-reference the screener data with the net gamma exposure chart and the gamma matrix.
+
+Through the Nvidia example, you’ll learn how to interpret a 178 million increase in gamma exposure, with 100 million concentrated in Friday’s expiration. This type of analysis reveals bullish sentiment heading into earnings events. The lesson shows how connecting the option screener with the Discord charts and gamma matrix creates a comprehensive view of market positioning for directional stock trading.
+
+The training is tailored for traders who can dedicate 4-6 hours once or twice per week rather than full-time daily trading. We also discuss future topics including options strategies that allow limited time commitment while still defining risk parameters and profit potential across different market directions.
+
+Video Chapters
+00:00 – Welcome and session overview
+01:42 – Trading schedule and time commitment discussion
+04:54 – Morning preparation and event awareness
+07:39 – MenthorQ daily newsletter walkthrough
+10:32 – Option screeners and finding trade ideas
+12:09 – Analyzing gamma exposure changes with Nvidia example
+Key Takeaways
+Always check the MenthorQ newsletter and economic calendar before trading to avoid being caught by Fed speakers, earnings, or other market-moving events
+The option screeners update at 7pm Eastern time daily and help identify stocks with significant gamma exposure changes
+Use the gamma matrix alongside the net gamma exposure chart to understand sentiment shifts, like Nvidia’s 178 million gamma increase signaling bullish positioning
+Morning preparation takes only 5 minutes but is critical for avoiding costly trading mistakes
+ Video Transcription
+Previous
+Complete 

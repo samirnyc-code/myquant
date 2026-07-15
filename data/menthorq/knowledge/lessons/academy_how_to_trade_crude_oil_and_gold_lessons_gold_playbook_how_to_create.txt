@@ -1,0 +1,26 @@
+In this lesson, you’ll learn how to create a comprehensive trading roadmap for gold (GC) by combining multiple institutional-grade data layers to identify key support and resistance zones, helping you anticipate price movements with greater confidence.
+
+We begin by analyzing the current market structure, where gold sits near the median line of a mapped channel, creating a 50/50 probability scenario for both upward and downward moves. The CTA models show metals including gold, silver, palladium, and aluminum all adding long positions, providing a directional bias. For the GCG February 2026 contract, the main gamma strike sits at 4,400, with additional levels at 4,350, 4,260, and support around 4,100.
+
+The lesson emphasizes understanding gamma regimes across different expirations. For today’s expiration (less than 2% of gamma), the main strike is 4,350, with the market sitting at 4,230 in a negative gamma regime below 4,300. Tomorrow’s data shows 4,200 as put support, while crossing 4,330 moves into positive gamma regime with reduced volatility. Key magnetic zones include call resistance gamma walls, put supports, 0DTE levels, and HVL clusters between 4,240 to 4,252, along with GEX levels marking important zones.
+
+For GLD (the gold ETF), the main volume strike is 410, with current positioning at 394.2. Key levels include 395 and 400 as immediate targets, with Friday’s expiration representing 45% of gamma concentrated at strikes 390, 395, 400, 405, and 410. The GVC (Gold Volatility Index) at 21.2 predicts a $16 move for the day, though significant economic data could extend this range.
+
+The analysis also covers correlated markets, particularly the Dollar Index where CTA models show reduction of longs, and the Dollar/Japanese Yen pair sitting at a critical support zone near 153.4. A double bottom pattern on the Dollar Index with key levels at 97.9 (one day mean and blind spot 4) suggests that dollar weakness could support gold’s upside move.
+
+To implement this roadmap approach, map your trend lines, identify gamma regime transitions, mark magnetic zones using strike clusters, and monitor GEX levels alongside blind spots and HVL to anticipate where price is likely to move and where acceleration may occur.
+
+Video Chapters
+00:00 – Introduction and previous day’s plan review
+00:25 – Current market position and channel analysis
+01:00 – CTA models and gamma exposure for GCG contract
+04:22 – Magnetic zones, HVL clusters, and GEX levels
+07:08 – GLD analysis with volume and open interest strikes
+10:12 – Dollar Index correlation and support zones
+11:41 – Dollar/Japanese Yen positioning and key levels
+Key Takeaways
+Gold currently sits at the median line creating a 50/50 probability scenario, with CTA models showing metals adding long positions
+Understanding gamma regimes is critical: below 4,300 is negative gamma (choppy, extended moves), while above 4,330 is positive gamma (reduced…
+ Video Transcription
+Previous
+Complete 

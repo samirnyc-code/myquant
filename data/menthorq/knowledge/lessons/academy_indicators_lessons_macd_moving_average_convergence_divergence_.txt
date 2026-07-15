@@ -1,0 +1,25 @@
+In this lesson, you’ll discover how to use the MACD (Moving Average Convergence Divergence) indicator, a powerful trend-following momentum tool that combines two different types of indicators to analyze trend changes, confirmation, and duration in your trading.
+
+The MACD is constructed using three exponential moving averages, though only two lines appear on your chart. The MACD line is calculated by subtracting the 26-period EMA from the 12-period EMA. The signal line is the nine-period EMA of the MACD itself. The third component, the MACD histogram, represents the difference between the MACD line and the signal line, making divergences easily identifiable and showing the momentum strength in a stock.
+
+You can use the MACD in several practical ways. The first method involves watching for crossovers with the signal line—a bottom-up crossover is called a bullish crossover, while a top-down crossover is a bearish crossover. When the MACD line crosses the signal line, it can signal the start of a new trend. The histogram value is positive when MACD is above the signal line and negative when below. If the histogram is above zero but approaches the zero line, this may represent a weakening trend.
+
+The most powerful application combines the histogram analysis with market structure and support/resistance levels. The width of histogram bars represents strong momentum in the market. By identifying periods of strong bullish or bearish momentum and observing how price reacts at support or resistance levels, you can find excellent entry points. Examples using Boeing and Amazon stocks demonstrate how strong momentum movements shown in the histogram interact with key price barriers—supports can bring new buyers pushing prices up, while resistance can bring new sellers pushing prices down.
+
+To add the MACD to your charts, go to TradingView under Indicators and add it. By double clicking, you can change the colors and settings. Remember that as a lagging indicator based on past prices, the MACD should always be used in conjunction with other indicators to confirm signals from market structure and the clash between supply and demand.
+
+Video Chapters
+00:00 – Introduction to MACD indicator
+00:22 – Components of MACD: MACD line, signal line, and histogram
+01:24 – How MACD histogram works and momentum indication
+02:31 – Adding MACD on TradingView and crossover signals
+03:34 – Using histogram with support and resistance analysis
+04:25 – Boeing and Amazon stock examples
+Key Takeaways
+The MACD combines three exponential moving averages (12-period, 26-period, and 9-period) to identify trend direction, momentum, and duration
+Bullish crossovers occur when the MACD line crosses above the signal line, while bearish crossovers occur when it crosses below
+The histogram width represents momentum strength, and analyzing it alongside support/resistance levels helps identify excellent entry points
+Always use MACD in conjunction with other indicators and market structure analysis, as it is a lagging indicator based on past prices
+ Video Transcription
+ Previous Lesson
+Complete 

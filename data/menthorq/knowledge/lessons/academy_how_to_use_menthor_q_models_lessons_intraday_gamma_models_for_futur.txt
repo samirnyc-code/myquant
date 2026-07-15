@@ -1,0 +1,26 @@
+In this lesson, you’ll discover how to use blind spots, one of MenthorQ’s most powerful tools for identifying hidden risk and opportunities in the market. Unlike typical support and resistance levels, blind spots are price zones where the market is likely to react sharply based on advanced proprietary models that reveal areas not obvious from standard charts.
+
+Blind spots are derived from three critical data inputs that work together to create a comprehensive market view. First, option positioning provides forward-looking insights by analyzing net buying and selling pressure from the options market, revealing where large players are positioning themselves. Second, momentum measures the strength and direction of price movements, helping identify when price may be vulnerable for sharp moves even without traditional technical patterns. Third, cross asset correlation captures how price movements in one asset influence others, uncovering hidden signals from correlated assets that can impact your trades.
+
+Understanding cross asset correlations is essential because markets are interconnected and rarely move in isolation. For example, the Max 7 companies account for the majority of the top 10 holdings in SPX, representing about 38% of the index. When Nvidia hits a strong gamma level where market makers have significant hedging exposure, this action can spill over to correlated assets like NQ or NDX. This means if you’re trading indices, you need awareness of what’s happening in major stocks that drive those moves.
+
+You can use blind spots in multiple practical ways to enhance your trading. They work as target zones for taking partial profits or setting stop losses, as entry points when price approaches them in line with your bias, for risk management by identifying strong levels against your direction, and for confluence by combining them with gamma levels, Q score data, and your own technical zones to increase conviction and profitability.
+
+Blind spots are available across many different assets to support your trading needs. We built them initially for futures indices and ETFs like SPY and QQQ, released Forex blind spots in May, and now offer them on major stocks including our Max 7 coverage. This wide asset coverage ensures you have access to hidden market signals across the instruments you trade, giving you a true edge that retail traders typically cannot see.
+
+Video Chapters
+00:15 – Introduction to blind spots levels
+01:08 – Definition and what blind spots are
+02:21 – Why blind spots are relevant
+03:24 – Asset coverage across futures, ETFs, Forex and stocks
+04:39 – Option positioning methodology
+05:58 – Cross asset correlation explained
+08:29 – Correlation examples and Max 7 impact
+11:13 – How to use blind spots in trading
+Key Takeaways
+Blind spots are price zones based on option positioning, momentum, and cross asset correlation, not typical support and resistance levels
+Markets are interconnected, so moves in assets like Nvidia can impact correlated assets like NQ through gamma level interactions
+Use blind spots as target zones, entry points, risk management tools, or for confluence with other indicat…
+ Video Transcription
+ Previous Lesson
+Complete 

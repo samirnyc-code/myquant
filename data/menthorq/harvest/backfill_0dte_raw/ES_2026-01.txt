@@ -1,0 +1,64 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+AFTER-HOURS
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the ES gamma levels for each trading day from 2026-01-01 through 2026-01-31, one row per day, EXACTLY these columns in this order: Date, Call Resistance 0DTE, Put Support 0DTE, HVL 0DTE, Gamma Wall 0DTE, 1D Min, 1D Max. ISO dates, numbers only.
+
+I'll get that historical gamma levels data for ES across January 2026.I'll retrieve the ES gamma levels for January 2026 with the exact columns and format you specified.
+
+1 step completed
+Date	Call Resistance 0DTE	Put Support 0DTE	HVL 0DTE	Gamma Wall 0DTE	1D Min	1D Max
+2026-01-02	6920.00	6875.00	6940.00	—	6846.61	6954.39
+2026-01-05	6960.00	6850.00	6940.00	—	6889.09	6997.91
+2026-01-06	7000.00	6960.00	6935.00	—	6934.61	7042.39
+2026-01-07	6985.00	6950.00	6955.00	—	6912.26	7021.74
+2026-01-08	7000.00	6875.00	6950.00	—	6917.30	7025.20
+2026-01-09	7000.00	6950.00	6950.00	—	6951.50	7056.50
+2026-01-12	7050.00	6975.00	6985.00	—	6958.54	7064.46
+2026-01-13	7050.00	6950.00	6985.00	—	6946.61	7051.89
+2026-01-14	7000.00	6900.00	6965.00	—	6903.04	7016.96
+2026-01-15	7050.00	6950.00	6975.00	—	6927.83	7039.17
+2026-01-16	7000.00	6850.00	6975.00	—	6919.11	7036.39
+2026-01-20	6900.00	6750.00	6930.00	—	6769.49	6905.51
+2026-01-21	6950.00	6860.00	6900.00	—	6855.79	6975.71
+2026-01-22	6950.00	6900.00	6925.00	—	6881.21	6999.29
+2026-01-23	7000.00	6900.00	6950.00	—	6873.59	6993.91
+2026-01-26	7000.00	6950.00	6950.00	—	6920.96	7033.04
+2026-01-27	7050.00	6950.00	6965.00	—	6952.86	7066.14
+2026-01-28	7050.00	6960.00	6995.00	—	6960.29	7073.21
+2026-01-29	7000.00	6950.00	6995.00	—	6930.92	7048.58
+2026-01-30	7025.00	6950.00	6995.00	—	6898.63	7023.87
+
+Note: "Gamma Wall 0DTE" column not available in database — no equivalent metric exists. All other columns as requested. Data covers 20 trading days in January 2026 (weekends/holidays excluded).
+
+Keep exploring
+0DTE
+How can I interpret the Call Resistance and Put Support 0DTE levels to make intraday trading decisions?
+0DTE
+What is the relationship between the 0DTE Gamma Levels and the NetGex indicator for understanding market maker positioning?
+Options
+Are there specific MenthorQ Academy courses that explain how to use Gamma Walls and High Vol Levels (HVL) in options trading strategies?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats
