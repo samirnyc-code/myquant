@@ -4,6 +4,30 @@
 
 ---
 
+## S74B (2026-07-15) — Brooks Codex on iPhone (private claude.ai artifacts)
+
+Cheat sheet + Trainer published as **private claude.ai artifacts** so the user can use the
+rule/tell tiles on his iPhone (Safari → signed in as samirnyc@gmail.com → Add to Home Screen):
+- Cheat sheet: https://claude.ai/code/artifact/db34ea8f-d6ca-4e87-a06d-2b97727fcd97
+- Trainer (full 6.4 MB, figures embedded): https://claude.ai/code/artifact/e009617b-6b5e-421a-ba2e-7236db4b72ef
+- Gallery on phone: claude.ai/code/artifacts
+
+How it was built: codex copies (`docs/living/brooks_codex/cheatsheet.html` + `app.html`) had
+their outer `<!doctype…<body>` / `</body></html>` skeleton stripped (artifact host adds its
+own) + a `<title>` prepended, then published via the Artifact tool. Both scanned first: no
+external URLs, no embedded secrets (regex hits were base64 image noise). **To refresh after a
+codex rebuild:** redo the strip + republish passing the SAME artifact URLs (`url` param) —
+otherwise new URLs are minted and the home-screen icons go stale.
+
+Known phone caveats (accepted): 📖 `books/*.pdf` page-jump links and ⌂ Home 404 (PC-only
+relative paths); wheel-driven lens/deep-zoom is mouse-only; tile flips/chips/A± work.
+NOT published: codex_portable.html (12.4 MB hub), daily.html (desktop snap layout) — if
+daily/encyclopedia wanted on phone, build a mobile page from the JSON instead.
+Parallel session note: MQ backfill (CL/GC/NQ/YM monthly txts) was running during this
+session — its files + learning_log.md deliberately left uncommitted for that session.
+
+---
+
 ## S74 (2026-07-15) — portable Codex script-escape fix + Massive key leak scrubbed
 
 **codex_portable.html was broken** (Trainer/Cheat payloads spilling as raw text): the S73B
