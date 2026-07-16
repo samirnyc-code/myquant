@@ -28,7 +28,7 @@ AUTH = ROOT / "gamma_tracker" / "auth_state.json"
 
 # "1!" = front continuous future in MenthorQ/TradingView convention; bare "ES"
 # resolves to Eversource stock, so futures MUST carry the 1! suffix.
-FUTURES = ["ES1!", "NQ1!", "YM1!", "RTY1!", "CL1!", "GC1!", "6A1!", "6Y1!"]  # 8 tracked
+FUTURES = ["ES1!", "NQ1!", "RTY1!", "CL1!", "GC1!"]  # 5 tracked (YM/6Y/6A dropped — no usable MQ data)
 STOCKS = ["AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA"]           # Mag 7
 SYMBOLS = ["SPX"] + FUTURES + STOCKS
 if "--symbols" in sys.argv:

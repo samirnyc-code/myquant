@@ -108,14 +108,27 @@ per-strike **open interest + greeks**, and only options-*analytics* vendors have
   = pull **NDX** (not "NQ"). TODO: build budget-aware resumable ORATS strikes puller +
   GEX/levels computation. NOT purchased yet (user budget).
 
-### Daily MQ harvest EXPANDED (`scripts/mq_harvest.py`)
+### Daily MQ harvest EXPANDED (`scripts/mq_harvest.py`) + levels DB & visual viewer
 
-Was SPX+ES1! only. Now **16 symbols**: SPX + 8 futures (ES,NQ,YM,RTY,CL,GC,6A,6Y all as
-`…1!`) + Mag 7 (AAPL,MSFT,NVDA,AMZN,GOOGL,META,TSLA). Nightly task "MyQuant MQ Harvest"
-(22:45) auto-runs it → per-symbol levels/matrix/exposure/heatmap + `*_ws.json` raw surface.
-Verified all resolve on MQ (2026-07-15 capture). **Caveat: 6Y returns near-empty data**
-(~278ch matrix) — MQ likely has no real chain for it; harmless but no useful levels there.
-This is our own FORWARD history accrual (free), independent of the ORATS backfill.
+**Harvest** was SPX+ES1! only. Now **13 symbols**: SPX + 5 futures (ES,NQ,RTY,CL,GC as
+`…1!`) + Mag 7 (AAPL,MSFT,NVDA,AMZN,GOOGL,META,TSLA). (YM, 6Y, 6A dropped — YM/6Y 404 on
+the levels API, 6A renders as junk decimals; user said drop all three permanently.) Nightly
+task "MyQuant MQ Harvest" (22:45) auto-runs it → per-symbol levels/matrix/exposure/heatmap +
+`*_ws.json` raw surface. Our own FORWARD history accrual (free), independent of ORATS.
+
+**NEW `scripts/mq_levels_db.py`** — QUIN-free clean-levels capture + **visual database**:
+- CAPTURE: pulls the FULL level set per instrument via the direct `gamma-levels/eod` API
+  (NOT QUIN-gated — works during the QUIN lock) → appends one row per (date,symbol) to
+  `data/menthorq/levels_db.csv`. Stores cr/ps, cr0/ps0, hvl/hvl0, gw0, 1-day range, AND all
+  10 gamma walls (gex_1..10). Also back-ingests old `quin_*.json`. Replaces the locked
+  `mq_quin_harvest.py` as the clean feed.
+- VIEW: renders `data/menthorq/levels_db.html` — one card per instrument = level "ladder"
+  (put/call walls, flip, 0DTE pin band shaded, all gamma walls as ticks, spot dot) + full
+  numeric level list + a day-by-day **history** expander. Screenshot → `levels_db.png`.
+- Run: `.venv/Scripts/python.exe scripts/mq_levels_db.py [--no-pull] [--open]`. ~2min
+  (Playwright token grab dominates; TODO: cache token for fast interactive refresh).
+- **NOT scheduled yet** — CSV only grows when run by hand. TODO: add to the nightly 22:45
+  task so history actually accrues (and QUIN feed is fully retired).
 
 ---
 
