@@ -20,8 +20,10 @@ Run the dashboard server:
 """
 import argparse
 import json
+import secrets
 import sys
 import threading
+import urllib.parse
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -34,6 +36,21 @@ SIM = ROOT / "data" / "options_sim"
 LOG = ROOT / "data" / "options_log"
 DASH = SIM / "dashboard.html"
 LIVE = SIM / "live.json"
+TOKEN_FILE = Path.home() / ".myquant_dashboard_token.txt"  # OUTSIDE the repo — never committed
+
+
+def load_token():
+    """Access token for remote viewers (localhost is exempt). Persisted in a
+    gitignored file so it stays stable across restarts; generated on first run."""
+    if TOKEN_FILE.exists() and TOKEN_FILE.read_text(encoding="utf-8").strip():
+        return TOKEN_FILE.read_text(encoding="utf-8").strip()
+    tok = secrets.token_urlsafe(16)
+    TOKEN_FILE.parent.mkdir(parents=True, exist_ok=True)
+    TOKEN_FILE.write_text(tok, encoding="utf-8")
+    return tok
+
+
+TOKEN = load_token()
 
 # Files that, when they change, mean the page needs a rebuild (cards / journal /
 # results / game-plan status). Today's gameplan is resolved lazily in gen_stamp.
@@ -82,12 +99,15 @@ def state():
 
 
 class Handler(BaseHTTPRequestHandler):
-    def _send(self, body, ctype):
+    def _send(self, body, ctype, set_cookie=False):
         if isinstance(body, str):
             body = body.encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", ctype)
         self.send_header("Cache-Control", "no-store")
+        if set_cookie:
+            self.send_header("Set-Cookie",
+                             f"dash={TOKEN}; Path=/; Max-Age=86400; SameSite=Lax")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         try:
@@ -95,15 +115,37 @@ class Handler(BaseHTTPRequestHandler):
         except (BrokenPipeError, ConnectionResetError):
             pass
 
+    def _authed(self, query):
+        # the owner on this machine is always allowed
+        if self.client_address[0] in ("127.0.0.1", "::1"):
+            return True, False
+        # a valid session cookie
+        for part in self.headers.get("Cookie", "").split(";"):
+            if part.strip().startswith("dash=") and part.strip()[5:] == TOKEN:
+                return True, False
+        # a valid ?key= (first entry) — set the cookie so poll/refresh keep working
+        if urllib.parse.parse_qs(query).get("key", [None])[0] == TOKEN:
+            return True, True
+        return False, False
+
     def do_GET(self):
-        path = self.path.split("?", 1)[0]
-        if path in ("/", "/index.html", "/dashboard.html"):
+        u = urllib.parse.urlparse(self.path)
+        ok, set_cookie = self._authed(u.query)
+        if not ok:
+            self.send_response(401)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(b"<body style='font:15px system-ui;background:#0b0d12;color:#e8ebf0;"
+                             b"padding:40px'><h3>401 &mdash; access key required</h3>"
+                             b"<p>Append <code>?key=YOUR_KEY</code> to the URL.</p></body>")
+            return
+        if u.path in ("/", "/index.html", "/dashboard.html"):
             ensure_html()
-            self._send(DASH.read_bytes(), "text/html; charset=utf-8")
-        elif path == "/state.json":
-            self._send(json.dumps(state()), "application/json")
-        elif path == "/live.json":
-            self._send(json.dumps(live_json()), "application/json")
+            self._send(DASH.read_bytes(), "text/html; charset=utf-8", set_cookie)
+        elif u.path == "/state.json":
+            self._send(json.dumps(state()), "application/json", set_cookie)
+        elif u.path == "/live.json":
+            self._send(json.dumps(live_json()), "application/json", set_cookie)
         else:
             self.send_error(404)
 
@@ -120,9 +162,20 @@ def main():
 
     ensure_html(force=True)  # build once up front so the first GET is instant
     srv = ThreadingHTTPServer((args.host, args.port), Handler)
-    url = f"http://{args.host}:{args.port}/"
+    url = f"http://127.0.0.1:{args.port}/"
     print(f"live options dashboard -> {url}  (Ctrl-C to stop)")
     print("  polling /state.json every 5s; regenerates on trade/journal change.")
+    print(f"  ACCESS TOKEN: {TOKEN}   (localhost exempt; remote needs ?key=)")
+    # Tailscale share URL for remote viewers (e.g. Thomas), if tailscale is up
+    try:
+        import subprocess
+        tsip = subprocess.run(["tailscale", "ip", "-4"], capture_output=True, text=True,
+                              timeout=5).stdout.strip().splitlines()
+        if tsip:
+            print(f"  SHARE (Tailscale): http://{tsip[0]}:{args.port}/?key={TOKEN}")
+    except Exception:
+        print("  (Tailscale not detected — install it, then share http://<your-tailscale-ip>:"
+              f"{args.port}/?key={TOKEN})")
     if not LIVE.exists() or live_json().get("state") != "live":
         print("  NOTE: live feed offline — run scripts/spot_feed.py for real-time SPX/ES/VIX.")
     if args.open:
