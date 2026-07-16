@@ -4,6 +4,64 @@
 
 ---
 
+## S75C (2026-07-16) — OPTIONS DESK GOES FULLY AUTONOMOUS + analytics/journal (branch `s75-live-dashboard`)
+
+Big build session. The options desk now runs itself Mon–Fri and has a full analytics layer.
+**Committed** on `s75-live-dashboard` (commits 2c3df2c…d08e688). NOT merged to main yet.
+
+**⏰ AUTONOMOUS DAILY CHAIN (Task Scheduler, all times CT = exchange/Central time):**
+`schedule_options_tasks.ps1` + `schedule_gateway_login.ps1` register:
+- 08:00 Gateway login (IBC) · 08:25 Dashboard server · 08:26 Feed · 08:27 Levels fetch ·
+  08:28 Gameplan · 08:33 Trigger daemon (→15:00) · 08:35 Scanner · 08:40 Health-check ·
+  14:28/14:35 Sim daemon(BPS)/Marks · 15:15 Postmortem. All Weekly Mon–Fri.
+- **Prereq: PC on + logged into Windows** (GUI apps in the user session). Re-run either PS1 to (re)register.
+
+**GATEWAY AUTO-LOGIN — IBC installed at `C:\IBC`** (3.24.1). Credentials in `C:\IBC\config.ini`
+(paper, port 4002, OUTSIDE the repo, never committed). Patched an IBC bug (`StartIBC.bat` empty
+java_version → "set was unexpected"). `scripts/gateway_ensure.py` brings Gateway up on demand
+(idempotent) — I use it before any IB action. IBC renames `ibgateway.exe`↔`ibgateway1.exe` on
+launch; on a FAILED launch restore it (`mv ibgateway1.exe ibgateway.exe`).
+
+**REMOTE ACCESS for Thomas (2nd PC user, remote): Tailscale + token.** Dashboard server
+(`options_dashboard_live.py`) now binds `0.0.0.0` + requires `?key=<token>` for non-localhost
+(cookie-persisted; localhost exempt). Token in `~/.myquant_dashboard_token.txt` (outside repo).
+This PC's tailscale IP `100.120.208.126`. Thomas's URL:
+`http://100.120.208.126:8600/?key=Tp3xCWzVnG3_6KeDsvkzUA`. Guide on the Desktop
+(`Thomas_Dashboard_Access.html`/`.md`). USER TODO: Tailscale admin → Machines → ⋯ → Share the
+node to Thomas + send him the guide.
+
+**QUIN IS DEAD (user: "not available anymore"). Levels now come from the DIRECT MenthorQ API**
+(`mq_api.py` → `gamma-levels/SPX/eod`). `mq_levels_fetch.py` writes `mq_levels_today.json` (the
+gameplan's input) each morning — replaces the dead `mq_quin_harvest.py`. Auth = captured Bearer;
+if it expires, re-login via Playwright. Health-check flags stale levels.
+
+**NEW DASHBOARD TABS (open http://127.0.0.1:8600 — localhost no key):**
+- **Analytics** — equity curve + drawdown, **grade-calibration** (avg P&L by grade; watch if it
+  slopes A→F), flexible **Break-down-by** pivot (grade/strategy/gamma-regime/bias/DoW/hour/…) with
+  n/win/total/avg/PF/ROI. Data via `analytics_payload()`; bias derived by `options_tags.py`.
+- **Calendar** — monthly P&L calendar (day cells colored by net), click a day → that day's trades as
+  **tiles**. This is the HISTORICAL closed-trade log.
+- **Trades tab is now TODAY-ONLY** (open + closed-today, resets daily; history lives in Calendar).
+- **Game Plan / Postmortem** each have a **History** section (expander per logged day; premarket
+  **price paths A–D are saved** in every `gameplan_*.json` and shown here).
+- Gamma **scanner** (`options_gamma_scanner.py`) — cross-symbol net-GEX screener (AAPL/META/NVDA =
+  strongest pins; IWM leans momentum). NFLX $73 is CORRECT (post-split), not bad data.
+
+**FIXES:** fade grading no longer uses OTM-distance (category error) — fades graded on regime
+(positive-γ fade = B, neg-γ = D); 0DTE trades **cash-settle** to the close in the postmortem;
+trigger daemon records `gex_regime`; **7/15 gameplan/postmortem RECONSTRUCTED** (a test regen had
+wiped the CR0-fade fired status + stamped 7/16 levels) + an **overwrite-guard** now refuses to
+clobber a plan with fired triggers.
+
+**STANDING RULES ADDED:** [[always-show-me-visually]] — after any UI change, OPEN it in the user's
+browser (`explorer http://127.0.0.1:8600/`), don't just screenshot. Everything in Exchange Time (CT).
+
+**OPEN / NEXT:** merge branch when ready; weekly review script (grade-vs-outcome, propose criteria
+changes for sign-off — criteria stay FROZEN daily); optional viewer-mode (`&view=1`) to hide account
+$ from Thomas; the desk is DATA-COLLECTION mode (unvalidated, 1 auto-fire so far = the −$1,663 fade).
+
+---
+
 ## S75 (2026-07-16) — hypothesis triage, QUIN hard-capped, ODX GEX plan RETRACTED, ORATS spec locked
 
 Session was research-planning + data-reality-checking, not new backtests. Key outcomes:
