@@ -166,16 +166,26 @@ def ladder(r):
 
 
 def levels_text(r):
-    walls = [fmtL(num(getattr(r, g, None))) for g in GEXN if num(getattr(r, g, None)) is not None]
-    bits = [
-        f'<b>Call wall</b> {fmtL(num(r.cr))} <span class=d>(0DTE {fmtL(num(r.cr0))})</span>',
-        f'<b>Flip</b> {fmtL(num(r.hvl))} <span class=d>(0DTE {fmtL(num(r.hvl0))})</span>',
-        f'<b>Put wall</b> {fmtL(num(r.ps))} <span class=d>(0DTE {fmtL(num(r.ps0))})</span>',
-        f'<b>0DTE gamma wall</b> {fmtL(num(r.gw0))}',
-        f'<b>1-day range</b> {fmtL(num(r.d1_min))} – {fmtL(num(r.d1_max))}',
-        f'<b>Gamma walls</b> {", ".join(walls) if walls else "—"}',
-    ]
-    return '<div class="lv">' + " · ".join(bits) + "</div>"
+    walls = [num(getattr(r, g, None)) for g in GEXN]
+    walls = [w for w in walls if w is not None]
+    wstr = " · ".join(f'<i>{i+1}</i> {fmtL(w)}' for i, w in enumerate(walls)) or "—"
+
+    def c(cls, label, v):                       # colored label+value chip
+        return f'<span class="{cls}">{label} {fmtL(v)}</span>'
+
+    def row(k, v):
+        return f'<div class="row"><span class="k">{k}</span><span class="v">{v}</span></div>'
+    allexp = " · ".join([c("cc", "call", num(r.cr)), c("cf", "gamma flip", num(r.hvl)),
+                         c("cp", "put", num(r.ps))])
+    odte = " · ".join([c("cc", "call", num(r.cr0)), c("cf", "gamma flip", num(r.hvl0)),
+                       c("cp", "put", num(r.ps0)), c("cg", "gamma-wall", num(r.gw0))])
+    rng = " · ".join([c("ce", "1D min", num(r.d1_min)), c("ce", "1D max", num(r.d1_max))])
+    return ('<div class="mlv">'
+            + row("All-exp", allexp)
+            + row("0DTE", odte)
+            + row("GEX walls", wstr)
+            + row("1-day", rng)
+            + '</div>')
 
 
 def history_text(hist):
@@ -191,7 +201,55 @@ def history_text(hist):
             f'{rows}</table></details>')
 
 
-def render(db):
+# scoped under .mqlv so it can embed inside the options dashboard without clashing
+_CSS = """
+/* palette matches MenthorQ: call=red, put=green, HVL(gamma flip)=orange,
+   1D expected move=blue, GEX walls=grey (secondary, no documented color) */
+.mqlv{--lvcard:#171b22;--lvink:#e6e9ef;--lvdim:#8b93a1;--lvline:#2a2f3a;--res:#e5484d;
+ --sup:#30a46c;--flip:#f76b15;--spot:#3b82f6;--band:#3b82f622;--wall:#8a92a6;--exp:#3b82f6;
+ text-align:left;color:var(--lvink);font:14px/1.45 -apple-system,Segoe UI,Roboto,sans-serif}
+.mqlv .mlv,.mqlv .ch,.mqlv h2,.mqlv .sub{text-align:left}
+.mqlv h2{margin:26px 0 8px;font-size:13px;color:var(--lvdim);text-transform:uppercase;letter-spacing:.06em}
+.mqlv .sub{color:var(--lvdim);margin-bottom:8px;font-size:13px}
+.mqlv .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:14px}
+.mqlv .card{background:var(--lvcard);border:1px solid var(--lvline);border-radius:10px;padding:14px 18px}
+.mqlv .ch{display:flex;align-items:center;gap:8px;margin-bottom:34px}
+.mqlv .ch .sym{color:var(--lvdim);font-size:12px}
+.mqlv .ch .days{margin-left:auto;color:var(--lvdim);font-size:11px;border:1px solid var(--lvline);border-radius:6px;padding:1px 6px}
+.mqlv .reg{font-size:11px;padding:1px 7px;border-radius:6px}
+.mqlv .reg.pos{background:#22c55e22;color:#4ade80}.mqlv .reg.neg{background:#ef444422;color:#f87171}
+.mqlv .ladder{position:relative;height:6px;background:var(--lvline);border-radius:3px;margin:40px 8px 30px}
+.mqlv .ladder.empty{background:none;color:var(--lvdim);font-size:12px;height:auto;margin:6px 0}
+.mqlv .band{position:absolute;top:-4px;height:14px;background:var(--band);border-radius:3px}
+.mqlv .wall{position:absolute;top:-2px;width:1.5px;height:10px;background:var(--wall);opacity:.7;transform:translateX(-.75px)}
+.mqlv .mk{position:absolute;top:-5px;width:2px;height:16px;transform:translateX(-1px)}
+.mqlv .mk.res{background:var(--res)}.mqlv .mk.sup{background:var(--sup)}.mqlv .mk.flip{background:var(--flip)}
+.mqlv .spot{position:absolute;top:-6px;width:11px;height:11px;background:var(--spot);border:2px solid #fff;
+ border-radius:50%;transform:translateX(-5.5px);box-shadow:0 0 6px var(--spot)}
+.mqlv .lbl{position:absolute;top:16px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:10px;color:var(--lvdim)}
+.mqlv .lbl.up{top:-20px}.mqlv .spot .lbl.up{color:var(--spot);font-weight:600}
+.mqlv .mlv{font-size:12px;color:var(--lvink);border-top:1px solid var(--lvline);padding-top:8px}
+.mqlv .mlv .row{display:flex;gap:8px;align-items:baseline;margin:3px 0;line-height:1.5}
+.mqlv .mlv .k{flex:0 0 78px;color:var(--lvdim);font-weight:600;font-size:10px;
+ text-transform:uppercase;letter-spacing:.04em}
+.mqlv .mlv .v{flex:1}.mqlv .mlv .v i{color:var(--wall);font-style:normal;font-size:10px;font-weight:700}
+.mqlv .mlv .cc{color:var(--res)}.mqlv .mlv .cf{color:var(--flip)}.mqlv .mlv .cp{color:var(--sup)}
+.mqlv .mlv .cg{color:var(--wall)}.mqlv .mlv .ce{color:var(--exp)}.mqlv .mlv .v i{color:var(--wall)}
+.mqlv .hist{margin-top:8px;font-size:12px}.mqlv .hist summary{cursor:pointer;color:var(--lvdim)}
+.mqlv .hist table{border-collapse:collapse;margin-top:6px;width:100%}
+.mqlv .hist td,.mqlv .hist th{text-align:right;padding:2px 8px;border-bottom:1px solid var(--lvline)}
+.mqlv .hist th{color:var(--lvdim);font-weight:500}.mqlv .hist td:first-child,.mqlv .hist th:first-child{text-align:left}
+"""
+
+
+def load_db():
+    if not CSV.exists():
+        return pd.DataFrame(columns=COLS)
+    df = pd.read_csv(CSV)
+    return df[df["symbol"].isin(SYMBOLS)] if len(df) else df
+
+
+def cards_html(db):
     latest = db["date"].max()
     today = db[db["date"] == latest].set_index("symbol")
     groups = {"Index": [], "Future": [], "Stock": []}
@@ -217,46 +275,31 @@ def render(db):
     for g, title in (("Index", "Index"), ("Future", "Futures"), ("Stock", "Stocks — Mag 7")):
         if groups[g]:
             sections += f'<h2>{title}</h2><div class="grid">{"".join(groups[g])}</div>'
-    html = f"""<!doctype html><html><head><meta charset="utf-8">
-<title>MenthorQ Levels DB</title><style>
-:root{{--bg:#0e1116;--card:#171b22;--ink:#e6e9ef;--dim:#8b93a1;--line:#2a2f3a;
- --res:#ef4444;--sup:#22c55e;--flip:#eab308;--spot:#3b82f6;--band:#3b82f622;--wall:#6b7280}}
-*{{box-sizing:border-box}}body{{margin:0;background:var(--bg);color:var(--ink);
- font:14px/1.45 -apple-system,Segoe UI,Roboto,sans-serif;padding:20px}}
-h1{{margin:0 0 2px;font-size:20px}}h2{{margin:26px 0 8px;font-size:13px;color:var(--dim);
- text-transform:uppercase;letter-spacing:.06em}}.sub{{color:var(--dim);margin-bottom:8px}}
-.grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:14px}}
-.card{{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 18px 14px}}
-.ch{{display:flex;align-items:center;gap:8px;margin-bottom:34px}}
-.ch .sym{{color:var(--dim);font-size:12px}}.ch .days{{margin-left:auto;color:var(--dim);
- font-size:11px;border:1px solid var(--line);border-radius:6px;padding:1px 6px}}
-.reg{{font-size:11px;padding:1px 7px;border-radius:6px}}
-.reg.pos{{background:#22c55e22;color:#4ade80}}.reg.neg{{background:#ef444422;color:#f87171}}
-.ladder{{position:relative;height:6px;background:var(--line);border-radius:3px;margin:40px 8px 30px}}
-.ladder.empty{{background:none;color:var(--dim);font-size:12px;height:auto;margin:6px 0}}
-.band{{position:absolute;top:-4px;height:14px;background:var(--band);border-radius:3px}}
-.wall{{position:absolute;top:-2px;width:1px;height:10px;background:var(--wall);opacity:.5;transform:translateX(-.5px)}}
-.mk{{position:absolute;top:-5px;width:2px;height:16px;transform:translateX(-1px)}}
-.mk.res{{background:var(--res)}}.mk.sup{{background:var(--sup)}}.mk.flip{{background:var(--flip)}}
-.spot{{position:absolute;top:-6px;width:11px;height:11px;background:var(--spot);
- border:2px solid #fff;border-radius:50%;transform:translateX(-5.5px);box-shadow:0 0 6px var(--spot)}}
-.lbl{{position:absolute;top:16px;left:50%;transform:translateX(-50%);white-space:nowrap;
- font-size:10px;color:var(--dim)}}.lbl.up{{top:-20px}}.spot .lbl.up{{color:var(--spot);font-weight:600}}
-.lv{{font-size:12px;color:var(--ink);line-height:1.7;border-top:1px solid var(--line);padding-top:8px}}
-.lv b{{color:var(--dim);font-weight:600}}.lv .d{{color:var(--dim);font-size:11px}}
-.hist{{margin-top:8px;font-size:12px}}.hist summary{{cursor:pointer;color:var(--dim)}}
-.hist table{{border-collapse:collapse;margin-top:6px;width:100%}}
-.hist td,.hist th{{text-align:right;padding:2px 8px;border-bottom:1px solid var(--line)}}
-.hist th{{color:var(--dim);font-weight:500}}.hist td:first-child,.hist th:first-child{{text-align:left}}
-@media(prefers-color-scheme:light){{:root{{--bg:#f6f7f9;--card:#fff;--ink:#111;--dim:#666;--line:#e3e6ea}}}}
-</style></head><body>
-<h1>MenthorQ Levels — visual database</h1>
-<div class="sub">snapshot <b>{latest}</b> · {len(today)} instruments · {db['date'].nunique()} day(s) stored ·
- <span style="color:var(--sup)">▏</span>put <span style="color:var(--flip)">▏</span>flip
- <span style="color:var(--res)">▏</span>call <span style="color:var(--spot)">●</span>spot
- <span style="color:var(--wall)">▏</span>gamma walls · shaded = 0DTE pin · numbers + history under each</div>
-{sections}
-</body></html>"""
+    return sections
+
+
+def panel_html(db):
+    """Embeddable panel (used by both the standalone page and the dashboard tab)."""
+    if db is None or db.empty:
+        return ('<div class="mqlv"><div class="sub">No levels captured yet — the nightly '
+                'job (23:15) writes the first rows tonight.</div></div>')
+    latest = db["date"].max()
+    n_sym = db[db["date"] == latest]["symbol"].nunique()
+    sub = (f'<div class="sub">snapshot <b>{latest}</b> · {n_sym} instruments · '
+           f'{db["date"].nunique()} day(s) stored · '
+           '<span style="color:var(--sup)">▏</span>put <span style="color:var(--flip)">▏</span>gamma flip (HVL) '
+           '<span style="color:var(--res)">▏</span>call <span style="color:var(--spot)">●</span>spot '
+           '<span style="color:var(--wall)">▏</span>GEX walls '
+           '<span style="color:var(--exp)">▏</span>1D move · shaded = 0DTE pin (MenthorQ colors)</div>')
+    return f'<style>{_CSS}</style><div class="mqlv">{sub}{cards_html(db)}</div>'
+
+
+def render(db):
+    html = (f'<!doctype html><html><head><meta charset="utf-8"><title>MenthorQ Levels DB</title>'
+            f'<style>body{{margin:0;background:#0e1116;padding:20px}}'
+            f'h1{{color:#e6e9ef;font:600 20px -apple-system,Segoe UI,Roboto,sans-serif;margin:0 0 6px}}'
+            f'</style></head><body><h1>MenthorQ Levels — visual database</h1>'
+            f'{panel_html(db)}</body></html>')
     HTML.write_text(html, encoding="utf-8")
     return HTML
 
