@@ -265,6 +265,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--date", help="YYYYMMDD (default today CT)")
     ap.add_argument("--spot", type=float, help="override pre-open spot")
+    ap.add_argument("--force", action="store_true",
+                    help="overwrite even if the day's plan already has fired triggers")
     args = ap.parse_args()
 
     date = args.date or now_ct().strftime("%Y%m%d")
@@ -291,6 +293,15 @@ def main():
         "triggers": [dict(t, status="armed", fired=False, trade_id=None) for t in triggers],
     }
     out = SIM / f"gameplan_{date}.json"
+    if out.exists() and not args.force:
+        try:
+            prev = json.loads(out.read_text(encoding="utf-8"))
+            if any(t.get("fired") for t in prev.get("triggers", [])):
+                raise SystemExit(
+                    f"REFUSING to overwrite {out.name}: it already has fired triggers "
+                    f"(would wipe the day's live record). Use --force only if you mean it.")
+        except (ValueError, OSError):
+            pass
     out.write_text(json.dumps(plan, indent=2), encoding="utf-8")
 
     def fire_str(fire):

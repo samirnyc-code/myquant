@@ -192,10 +192,27 @@ def grade_at_fill(trig, net, spot, plan):
     positive = reg == "positive_gamma"
     st = trig["structure"]
     late = now_ct().time() > dt.time(10, 0)  # after 10:00 CT
-    if setup in ("sell_0dte_gamma", "cr0_fade", "ps0_fade"):
+    if setup in ("cr0_fade", "ps0_fade"):
+        # FADE grading (fixed): the short sits AT the level BY DESIGN, so
+        # OTM-distance is meaningless here (the old code graded every fade D for
+        # being at-the-money — a category error). A fade's ex-ante quality is
+        # about REGIME (does the wall hold?) + credit richness. Positive gamma =
+        # dealers mean-revert = wall likely holds = aligned fade. Negative gamma
+        # = momentum = wall likely breaks = bad fade.
+        width = st.get("width", 25)
+        rich = net >= 0.25 * width
+        if positive:
+            return "B", (f"positive-gamma first-touch fade at the wall (trigger+regime+level "
+                         f"aligned); credit {net:.2f}{' (rich)' if rich else ''}")
+        if reg == "negative_gamma":
+            return "D", f"NEG-gamma fade — fading into momentum, wall likely breaks; credit {net:.2f}"
+        return "C", f"neutral-regime fade; credit {net:.2f}"
+    if setup == "sell_0dte_gamma":
+        # PREMIUM-SELL grading: here you WANT the short far OTM, so distance IS
+        # the right axis (unlike a fade).
         short = st.get("short")
         dist = abs(spot - short) if short else 0
-        if not positive and setup == "sell_0dte_gamma":
+        if not positive:
             g = "C"
         elif dist >= 40 and net >= 0.80:
             g = "A"
@@ -267,6 +284,7 @@ def fire(ib, trig, spot, plan, reason, dry):
         "symbol": "SPXW", "entry_dt": now_ct().strftime("%Y-%m-%d %H:%M"),
         "dte": 0, "structure": struct_txt, "fill_model": "paper_fill",
         "legs": filled, "credit": net, "collateral": coll, "dow": now_ct().strftime("%a"),
+        "gex_regime": regime(spot, plan["levels"].get("hvl")),  # for analytics slicing
         "grade": grade, "commentary": f"AUTO-TRIGGER [{trig['id']}] fired: {reason}. {gbasis}. "
                                       f"Projected {trig['projected_grade']} premarket. Path {trig.get('path','—')}.",
     })

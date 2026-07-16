@@ -44,6 +44,39 @@ SIM = ROOT / "data" / "options_sim"
 CT = ZoneInfo("America/Chicago")  # exchange time (Chicago / Central)
 
 
+FEE = 1.30  # $/contract, matches the sim/backtests
+
+
+def settle_0dte(date, close):
+    """Cash-settle any still-open trades whose legs ALL expire `date` (0DTE),
+    to the SPX close. exit_cost = per-contract net intrinsic to close the spread
+    (Σ short-leg intrinsic − Σ long-leg intrinsic). Lets the postmortem show real
+    P&L instead of 'open/unsettled'."""
+    if close is None:
+        return []
+    df = tlog.load()
+    settled = []
+    for _, r in df.iterrows():
+        if pd.notna(r.exit_dt):
+            continue
+        try:
+            legs = json.loads(r.legs)
+        except Exception:
+            continue
+        if not legs or {l.get("expiry") for l in legs} != {date}:
+            continue  # only pure 0DTE expiring today
+        cost = 0.0
+        for l in legs:
+            k, q = float(l["strike"]), int(l.get("qty", 1))
+            intr = max(0.0, close - k) if l["right"] == "C" else max(0.0, k - close)
+            cost += (intr * q) if l["side"] == "sell" else (-intr * q)
+        fees = len(legs) * int(legs[0].get("qty", 1)) * FEE
+        exit_dt = f"{date[:4]}-{date[4:6]}-{date[6:]} 16:00"
+        rr = tlog.update_exit(r.trade_id, exit_dt, round(cost, 2), fees, fill_model="cash_settle")
+        settled.append((r.trade_id, rr["pnl"]))
+    return settled
+
+
 def load_plan(date):
     p = SIM / f"gameplan_{date}.json"
     if not p.exists():
@@ -102,19 +135,24 @@ def main():
     plan = load_plan(date)
     L = plan["levels"]
     tape = load_tape(date)
+    ohlc = tape_ohlc(tape) if tape is not None else None
+
+    # cash-settle 0DTE trades to the close BEFORE reading P&L
+    settled = settle_0dte(date, ohlc["close"]) if ohlc else []
+
     trades = tlog.load()
     day_trades = trades[trades.entry_dt.astype(str).str.startswith(
         f"{date[:4]}-{date[4:6]}-{date[6:]}")] if len(trades) else trades
 
     report = {"date": date, "regime_preopen": plan.get("regime"),
-              "spot_preopen": plan.get("spot_preopen"), "levels": L, "triggers": []}
+              "spot_preopen": plan.get("spot_preopen"), "levels": L,
+              "settled_0dte": [{"trade_id": t, "pnl": round(p)} for t, p in settled],
+              "triggers": []}
 
-    if tape is not None:
-        ohlc = tape_ohlc(tape)
+    if ohlc is not None:
         report["ohlc"] = ohlc
         report["paths_materialized"] = classify_path(ohlc, L)
     else:
-        ohlc = None
         report["ohlc"] = None
         report["paths_materialized"] = [("?", "no tape for this date")]
 
@@ -150,6 +188,8 @@ def main():
     print(f"\nPOSTMORTEM {date}   preopen {report['spot_preopen']} ({report['regime_preopen']})")
     if ohlc:
         print(f"  day  O {ohlc['open']:.0f}  H {ohlc['high']:.0f}  L {ohlc['low']:.0f}  C {ohlc['close']:.0f}")
+    if settled:
+        print("  settled 0DTE at close: " + ", ".join(f"{t} ${p:+,.0f}" for t, p in settled))
     print("  path(s) materialized:")
     for pid, why in report["paths_materialized"]:
         print(f"    {pid}: {why}")
