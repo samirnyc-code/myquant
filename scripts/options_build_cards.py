@@ -118,7 +118,9 @@ def trade_payload(r, last_marks, spot):
         "name": NAMES.get(r.strategy_id, r.strategy_id.replace("_", " ").title()),
         "exp": exp_str, "structure": r.structure or "",
         "grade": r.grade if isinstance(r.grade, str) else "?",
-        "state": "OPEN" if is_open else "CLOSED", "pnl": None if pnl is None else round(pnl),
+        "state": "OPEN" if is_open else "CLOSED",
+        "exitd": (str(r.exit_dt)[:10] if (not is_open and pd.notna(r.exit_dt)) else None),
+        "pnl": None if pnl is None else round(pnl),
         "legs": [f"{l['side'][0].upper()}{l.get('qty', 1)} {l['strike']:.0f}{l['right']} {l['expiry'][4:6]}/{l['expiry'][6:]}" for l in legs],
         "credit": round(float(r.credit), 2) if pd.notna(r.credit) else None,
         "collateral": round(float(r.collateral)) if pd.notna(r.collateral) else None,
@@ -194,10 +196,11 @@ letter-spacing:.14em;color:var(--mut);font-weight:700}
 .sechead::after{content:'';flex:1;height:1px;background:var(--line)}
 .sechead .cnt{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:1px 8px}
 </style></head><body>
-<div class="sechead" id="oh">● OPEN POSITIONS <span class="cnt" id="oc"></span></div>
-<div class="grid" id="grid_open"></div>
-<div class="sechead" id="ch">CLOSED TRADES <span class="cnt" id="cc"></span></div>
-<div class="grid" id="grid_closed"></div>
+<details class="ex ex-sec" id="oh" open><summary>● OPEN POSITIONS <span class="cnt" id="oc"></span></summary>
+<div class="grid" id="grid_open"></div></details>
+<details class="ex ex-sec" id="ch" open><summary>CLOSED TODAY <span class="cnt" id="cc"></span>
+<span class="muted" style="font-weight:400;margin-left:6px">· history in the Calendar tab</span></summary>
+<div class="grid" id="grid_closed"></div></details>
 <div id="ovl"><div class="big" id="big"><div class="inner" id="inner"></div></div></div>
 <script>
 const T = __DATA__;
@@ -320,13 +323,14 @@ function openCard(i){
 $('#big').addEventListener('click', e=>{e.stopPropagation();$('#big').classList.toggle('flip');});
 $('#ovl').addEventListener('click', ()=>$('#ovl').classList.remove('on'));
 document.addEventListener('keydown', e=>{if(e.key=='Escape')$('#ovl').classList.remove('on');});
+const TODAY = '__TODAY__';  // CT date — closed section shows only today's, resets daily
 const openIdx = T.map((t,i)=>[t,i]).filter(([t])=>t.state=='OPEN');
-const closedIdx = T.map((t,i)=>[t,i]).filter(([t])=>t.state!='OPEN');
+const closedIdx = T.map((t,i)=>[t,i]).filter(([t])=>t.state!='OPEN' && t.exitd==TODAY);
 $('#grid_open').innerHTML = openIdx.map(([t,i])=>tile(t,i)).join('');
-$('#grid_closed').innerHTML = closedIdx.map(([t,i])=>tile(t,i)).join('');
+$('#grid_closed').innerHTML = closedIdx.length ? closedIdx.map(([t,i])=>tile(t,i)).join('')
+  : '<div class="sub" style="padding:6px 2px">no trades closed today — see the Calendar tab for history</div>';
 $('#oc').textContent = openIdx.length; $('#cc').textContent = closedIdx.length;
-if(!openIdx.length){$('#oh').style.display='none';$('#grid_open').style.display='none';}
-if(!closedIdx.length){$('#ch').style.display='none';$('#grid_closed').style.display='none';}
+if(!openIdx.length){$('#oh').style.display='none';}
 </script></body></html>"""
 
 
@@ -340,8 +344,10 @@ def main():
             last_marks = mk.groupby("trade_id").last()
     spot = latest_spot()
     data = [trade_payload(r, last_marks, spot) for _, r in trades.iloc[::-1].iterrows()]
+    today = dt.datetime.now(ZoneInfo("America/Chicago")).strftime("%Y-%m-%d")
     out = SIM / "cards.html"
-    out.write_text(HTML.replace("__DATA__", json.dumps(data)), encoding="utf-8")
+    out.write_text(HTML.replace("__DATA__", json.dumps(data)).replace("__TODAY__", today),
+                   encoding="utf-8")
     print(f"wrote {out} ({len(data)} cards, spot={spot})")
     return out
 

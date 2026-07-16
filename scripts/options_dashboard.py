@@ -16,6 +16,7 @@ import pandas as pd
 
 import options_build_cards as obc
 import options_trade_log as tlog
+import mq_levels_db as mqdb
 
 ROOT = Path(__file__).resolve().parents[1]
 SIM = ROOT / "data" / "options_sim"
@@ -407,6 +408,44 @@ def postmortem_html(pm):
     return head + paths + table + note
 
 
+def analytics_payload(trades, marks_last):
+    """One record per trade with every analytic dimension we slice by — consumed
+    by the Journal calendar and the Analytics tab (rendered client-side)."""
+    import options_tags as tags
+    rows = []
+    if trades is None or not len(trades):
+        return rows
+    for _, r in trades.iterrows():
+        is_open = pd.isna(r.exit_dt)
+        if is_open:
+            pnl = marks_last.unreal_pnl.get(r.trade_id) if marks_last is not None else None
+        else:
+            pnl = float(r.pnl) if pd.notna(r.pnl) else None
+        coll = float(r.collateral) if pd.notna(r.collateral) else None
+        entry = str(r.entry_dt) if pd.notna(r.entry_dt) else ""
+        try:
+            dow = pd.to_datetime(entry).strftime("%a") if entry else ""
+        except Exception:
+            dow = ""
+        rows.append({
+            "id": r.trade_id, "strategy": r.strategy_id,
+            "date": entry[:10], "entry": entry, "dow": dow,
+            "hour": entry[11:13] + ":00" if len(entry) >= 13 else "?",
+            "grade": r.grade if isinstance(r.grade, str) else "?",
+            "regime": r.gex_regime if isinstance(r.gex_regime, str) else "unknown",
+            "bias": tags.bias_of_row(r),
+            "source": r.source if isinstance(r.source, str) else "?",
+            "dte": int(r.dte) if pd.notna(r.dte) else None,
+            "pnl": None if pnl is None else round(float(pnl)),
+            "collateral": None if coll is None else round(coll),
+            "roi": None if (pnl is None or not coll) else round(float(pnl) / coll * 100, 1),
+            "open": bool(is_open),
+            "win": None if pnl is None else bool(pnl >= 0),
+            "structure": r.structure if isinstance(r.structure, str) else "",
+        })
+    return rows
+
+
 def load_gameplan():
     import datetime as _dt
     from zoneinfo import ZoneInfo
@@ -594,6 +633,233 @@ def results_html():
     return note + f"<table><tr>{head}</tr>{rows}</table>"
 
 
+def levels_html():
+    """MenthorQ levels visual DB, embedded from mq_levels_db (nightly capture)."""
+    try:
+        return mqdb.panel_html(mqdb.load_db())
+    except Exception as e:
+        return f"<p class='muted'>Levels unavailable: {e}</p>"
+
+
+def _history_dates(prefix):
+    import datetime as _dt
+    import glob
+    from zoneinfo import ZoneInfo
+    today = _dt.datetime.now(ZoneInfo("America/Chicago")).strftime("%Y%m%d")
+    ds = []
+    for f in glob.glob(str(SIM / f"{prefix}_*.json")):
+        d = Path(f).stem.split("_")[-1]
+        if len(d) == 8 and d.isdigit():
+            ds.append(d)
+    return sorted(set(ds), reverse=True), today
+
+
+def gameplan_history_html():
+    dates, today = _history_dates("gameplan")
+    past = [d for d in dates if d != today]
+    if not past:
+        return ("<h2 style='margin:24px 0 8px'>History</h2><p class='muted'>No prior gameplans "
+                "logged yet — they accumulate one per trading day.</p>")
+    out = [f"<h2 style='margin:24px 0 8px'>History — {len(past)} logged gameplan(s)</h2>"]
+    for d in past:
+        try:
+            gp = json.loads((SIM / f"gameplan_{d}.json").read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        trigs = gp.get("triggers", [])
+        fired = [t for t in trigs if t.get("fired")]
+        reg = (gp.get("regime") or "").replace("_", " ")
+        ds = f"{d[:4]}-{d[4:6]}-{d[6:]}"
+        lv = gp.get("levels") or {}
+        lv_txt = " · ".join(f"{k.upper()} {v:.0f}" for k, v in lv.items() if v is not None)
+        scen = "".join(
+            f"<div style='margin:3px 0'><b style='color:var(--acc)'>{p['id']}. {p['name']}</b> "
+            f"<code>{p.get('path','')}</code> <span class='muted'>→ {p['acts']}</span></div>"
+            for p in gp.get("scenarios", []))
+        scen_block = (f"<div style='margin:2px 0 12px'><div class='muted' style='font-size:11px;"
+                      f"text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px'>Premarket price paths</div>"
+                      f"{scen}</div>") if scen else ""
+        rows = "".join(
+            f"<tr><td><b>{t['name']}</b></td><td class='muted'>{t.get('status', '')}</td>"
+            f"<td style='color:{_grade_color((t.get('fill') or {}).get('grade') or t.get('projected_grade'))};"
+            f"font-weight:800'>{(t.get('fill') or {}).get('grade') or t.get('projected_grade')}</td></tr>"
+            for t in trigs)
+        out.append(
+            f"<details id='ex-gph-{d}' class='ex'><summary>{ds} · <span class='muted'>{reg}</span> · "
+            f"{len(trigs)} triggers · <b>{len(fired)} fired</b></summary>"
+            f"<div class='ex-body'><div class='muted' style='font-size:11.5px;margin-bottom:8px'>{lv_txt}</div>"
+            f"{scen_block}<table class='antable'><tr><th>Setup</th><th>Status</th>"
+            f"<th>Grade</th></tr>{rows}</table></div></details>")
+    return "".join(out)
+
+
+def postmortem_history_html():
+    dates, today = _history_dates("postmortem")
+    past = [d for d in dates if d != today]
+    if not past:
+        return ("<h2 style='margin:24px 0 8px'>History</h2><p class='muted'>No prior postmortems "
+                "logged yet.</p>")
+    out = [f"<h2 style='margin:24px 0 8px'>History — {len(past)} logged postmortem(s)</h2>"]
+    for d in past:
+        try:
+            pm = json.loads((SIM / f"postmortem_{d}.json").read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        o = pm.get("ohlc") or {}
+        ds = f"{d[:4]}-{d[4:6]}-{d[6:]}"
+        ohlc = (f"O {o['open']:.0f} H {o['high']:.0f} L {o['low']:.0f} C {o['close']:.0f}"
+                if o else "no tape")
+        paths = ", ".join(str(p[0]) for p in pm.get("paths_materialized", []))
+        nfired = sum(1 for t in pm.get("triggers", []) if t.get("fired"))
+        rows = ""
+        for t in pm.get("triggers", []):
+            res = ("fired" if t.get("fired") else t.get("status", ""))
+            extra = t.get("counterfactual") or t.get("outcome") or ""
+            pnl = t.get("pnl")
+            pcell = money(pnl) if pnl is not None else ""
+            rows += (f"<tr><td><b>{t['name']}</b></td><td class='muted'>{res}</td>"
+                     f"<td class='{_pnl_cls(pcell)}' style='text-align:right'>{pcell}</td>"
+                     f"<td class='muted'>{extra}</td></tr>")
+        out.append(
+            f"<details id='ex-pmh-{d}' class='ex'><summary>{ds} · <span class='muted'>{ohlc}</span> · "
+            f"path {paths} · <b>{nfired} fired</b></summary>"
+            f"<div class='ex-body'><table class='antable'><tr><th>Setup</th><th>Result</th>"
+            f"<th>P&amp;L</th><th>Notes</th></tr>{rows}</table></div></details>")
+    return "".join(out)
+
+
+ANALYTICS_CSS = r"""
+.an-charts{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+@media(max-width:820px){.an-charts{grid-template-columns:1fr}}
+.an-card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:13px;padding:14px 16px}
+.an-h{font-size:13px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.an-h select{background:var(--chip);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:4px 8px;font-size:13px;font-weight:600}
+.bar{display:flex;align-items:center;gap:8px;margin:5px 0;font-size:12.5px}
+.bar .lab{width:118px;text-align:right;flex:none}
+.bar .track{flex:1;height:16px;background:var(--chip);border-radius:5px;position:relative;overflow:hidden}
+.bar .fill{position:absolute;top:0;bottom:0;border-radius:5px}
+.bar .val{width:74px;font-variant-numeric:tabular-nums;font-weight:700;text-align:right}
+.antable{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:8px}
+.antable th{color:var(--mut);text-align:right;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;padding:5px 8px;border-bottom:1px solid var(--line)}
+.antable th:first-child,.antable td:first-child{text-align:left}
+.antable td{text-align:right;padding:6px 8px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+.cal-top{display:flex;align-items:center;gap:12px;margin-bottom:12px;font-size:15px}
+.cal-top button{background:var(--chip);color:var(--ink);border:1px solid var(--line);border-radius:8px;width:32px;height:32px;font-size:16px;cursor:pointer}
+#cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.cal-dow{color:var(--mut);font-size:11px;text-align:center;padding:4px;font-weight:600}
+.cal-cell{background:var(--panel);border:1px solid var(--line);border-radius:9px;min-height:66px;padding:6px 8px;font-size:12px;position:relative}
+.cal-cell.empty{background:transparent;border:0}
+.cal-cell.has{cursor:pointer} .cal-cell.has:hover{border-color:var(--acc)}
+.cal-cell .d{color:var(--mut);font-size:11px}
+.cal-cell .p{font-weight:800;font-size:14px;margin-top:6px}
+.cal-cell .n{color:var(--mut);font-size:10px;position:absolute;bottom:5px;right:8px}
+.cal-cell.pos{background:rgba(47,191,143,.12);border-color:rgba(47,191,143,.35)}
+.cal-cell.neg{background:rgba(240,85,95,.12);border-color:rgba(240,85,95,.35)}
+#cal-day{margin-top:16px}
+"""
+
+ANALYTICS_JS = r"""
+(function(){
+  const T = window.__T || [];
+  const $ = s=>document.querySelector(s);
+  const money=v=>v==null?'—':(v<0?'−':'+')+'$'+Math.abs(Math.round(v)).toLocaleString();
+  const pctf=v=>v==null?'—':(v>=0?'+':'')+v.toFixed(1)+'%';
+  const gcol=g=>({A:'var(--pos)',B:'var(--acc)',C:'var(--warn)',D:'var(--orange)',F:'var(--neg)'}[(g||'?')[0]]||'var(--mut)');
+  const closed=T.filter(t=>t.pnl!=null);
+  function statAll(rows){
+    const p=rows.filter(t=>t.pnl!=null).map(t=>t.pnl);
+    const w=p.filter(x=>x>=0),l=p.filter(x=>x<0),tot=p.reduce((a,b)=>a+b,0);
+    const pf=l.length?w.reduce((a,b)=>a+b,0)/-l.reduce((a,b)=>a+b,0):null;
+    const rois=rows.filter(t=>t.roi!=null).map(t=>t.roi);
+    const avgroi=rois.length?rois.reduce((a,b)=>a+b,0)/rois.length:null;
+    let eq=0,peak=0,dd=0;[...rows].filter(t=>t.pnl!=null).sort((a,b)=>(a.entry||'').localeCompare(b.entry||''))
+      .forEach(t=>{eq+=t.pnl;peak=Math.max(peak,eq);dd=Math.min(dd,eq-peak);});
+    return {n:p.length,tot,win:p.length?w.length/p.length*100:null,pf,exp:p.length?tot/p.length:null,avgroi,dd};
+  }
+  function tile(l,v,c){return '<div class="tile"><div class="tl">'+l+'</div><div class="tv '+(c||'')+'">'+v+'</div></div>';}
+  function renderTiles(){const s=statAll(T),el=$('#an-tiles');if(!el)return;
+    el.innerHTML=tile('Total P&L',money(s.tot),s.tot>=0?'pos':'neg')+tile('Trades',s.n,'')+
+      tile('Win rate',s.win==null?'—':s.win.toFixed(0)+'%','')+tile('Profit factor',s.pf==null?'—':s.pf.toFixed(2),'')+
+      tile('Expectancy',money(s.exp),(s.exp||0)>=0?'pos':'neg')+tile('Avg ROI',pctf(s.avgroi),(s.avgroi||0)>=0?'pos':'neg')+
+      tile('Max drawdown',money(s.dd),'neg');}
+  function renderEquity(){const el=$('#an-equity');if(!el)return;
+    const rows=[...T].filter(t=>t.pnl!=null).sort((a,b)=>(a.entry||'').localeCompare(b.entry||''));
+    if(!rows.length){el.innerHTML='<div class="muted">no closed trades yet</div>';return;}
+    let eq=0;const pts=rows.map((t,i)=>{eq+=t.pnl;return{y:eq,d:t.date};});
+    const W=440,H=170,ml=52,mb=16,mt=8,mr=8;
+    const ys=pts.map(p=>p.y).concat([0]),ymin=Math.min.apply(0,ys),ymax=Math.max.apply(0,ys);
+    const pad=(ymax-ymin)*.12||100,lo=ymin-pad,hi=ymax+pad;
+    const X=i=>ml+(pts.length<2?(W-ml-mr)/2:i/(pts.length-1)*(W-ml-mr));
+    const Y=v=>mt+(1-(v-lo)/(hi-lo))*(H-mt-mb),zero=Y(0);
+    const line=pts.map((p,i)=>X(i).toFixed(1)+','+Y(p.y).toFixed(1)).join(' ');
+    if($('#an-eqsub'))$('#an-eqsub').textContent='cum '+money(eq);
+    el.innerHTML='<svg width="100%" viewBox="0 0 '+W+' '+H+'">'+
+      '<line x1="'+ml+'" y1="'+zero+'" x2="'+(W-mr)+'" y2="'+zero+'" stroke="var(--line)"/>'+
+      '<text x="4" y="'+(Y(hi)+9)+'" fill="var(--mut)" font-size="10">'+money(hi)+'</text>'+
+      '<text x="4" y="'+(zero+3)+'" fill="var(--mut)" font-size="10">$0</text>'+
+      '<text x="4" y="'+Y(lo)+'" fill="var(--mut)" font-size="10">'+money(lo)+'</text>'+
+      '<polyline points="'+line+'" fill="none" stroke="var(--acc)" stroke-width="2"/>'+
+      pts.map((p,i)=>'<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(p.y).toFixed(1)+'" r="2.5" fill="'+(p.y>=0?'var(--pos)':'var(--neg)')+'"/>').join('')+'</svg>';}
+  function grp(rows,key){const m={};rows.forEach(t=>{let k=t[key];if(k===true)k='win';if(k===false)k='loss';if(k==null||k==='')k='?';(m[k]=m[k]||[]).push(t);});return m;}
+  function bstat(rows){const p=rows.filter(t=>t.pnl!=null).map(t=>t.pnl),w=p.filter(x=>x>=0),l=p.filter(x=>x<0);
+    const rois=rows.filter(t=>t.roi!=null).map(t=>t.roi);
+    return {n:p.length,tot:p.reduce((a,b)=>a+b,0),win:p.length?w.length/p.length*100:null,
+      avg:p.length?p.reduce((a,b)=>a+b,0)/p.length:null,pf:l.length?w.reduce((a,b)=>a+b,0)/-l.reduce((a,b)=>a+b,0):null,
+      roi:rois.length?rois.reduce((a,b)=>a+b,0)/rois.length:null};}
+  const GO=['A+','A','B+','B','B-','C+','C','C-','D','F','?'];
+  function renderGrade(){const el=$('#an-grade');if(!el)return;const g=grp(closed,'grade');
+    const keys=Object.keys(g).sort((a,b)=>GO.indexOf(a)-GO.indexOf(b));
+    const mx=Math.max.apply(0,[1].concat(keys.map(k=>Math.abs(bstat(g[k]).avg||0))));
+    el.innerHTML=keys.map(k=>{const s=bstat(g[k]),a=s.avg||0,w=Math.abs(a)/mx*100;
+      return '<div class="bar"><span class="lab" style="color:'+gcol(k)+';font-weight:800">'+k+' <span style="color:var(--mut);font-weight:400">n'+s.n+'</span></span>'+
+        '<span class="track"><span class="fill" style="width:'+w+'%;background:'+(a>=0?'var(--pos)':'var(--neg)')+';'+(a>=0?'left:50%':'right:50%')+'"></span></span>'+
+        '<span class="val '+(a>=0?'pos':'neg')+'">'+money(a)+'</span></div>';}).join('')+
+      '<div class="muted" style="font-size:11px;margin-top:6px">avg P&L per trade by grade · should slope A→F if the grading works</div>';}
+  function renderPivot(){const el=$('#an-pivot'),dim=$('#an-dim').value;if(!el)return;
+    const g=grp(closed,dim),keys=Object.keys(g).sort((a,b)=>bstat(g[b]).tot-bstat(g[a]).tot);
+    const rows=keys.map(k=>{const s=bstat(g[k]);return '<tr><td><b>'+k+'</b></td><td>'+s.n+'</td>'+
+      '<td>'+(s.win==null?'—':s.win.toFixed(0)+'%')+'</td><td class="'+(s.tot>=0?'pos':'neg')+'">'+money(s.tot)+'</td>'+
+      '<td class="'+((s.avg||0)>=0?'pos':'neg')+'">'+money(s.avg)+'</td><td>'+(s.pf==null?'—':s.pf.toFixed(2))+'</td>'+
+      '<td class="'+((s.roi||0)>=0?'pos':'neg')+'">'+pctf(s.roi)+'</td></tr>';}).join('');
+    el.innerHTML='<table class="antable"><tr><th>'+dim+'</th><th>n</th><th>win</th><th>total</th><th>avg</th><th>PF</th><th>ROI</th></tr>'+rows+'</table>';
+    if($('#an-note'))$('#an-note').textContent=closed.length<20?'· only '+closed.length+' closed — small sample, read as noise':'';}
+  const byDay={};T.forEach(t=>{if(!t.date)return;(byDay[t.date]=byDay[t.date]||{pnl:0,n:0,rows:[]});
+    byDay[t.date].n++;if(t.pnl!=null)byDay[t.date].pnl+=t.pnl;byDay[t.date].rows.push(t);});
+  const allDates=Object.keys(byDay).sort();
+  let calM=allDates.length?new Date(allDates[allDates.length-1]+'T12:00:00'):new Date();
+  function renderCal(){const grid=$('#cal-grid');if(!grid)return;const y=calM.getFullYear(),m=calM.getMonth();
+    $('#cal-title').textContent=calM.toLocaleString('en',{month:'long',year:'numeric'});
+    const start=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate();let mtot=0;
+    let html=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>'<div class="cal-dow">'+d+'</div>').join('');
+    for(let i=0;i<start;i++)html+='<div class="cal-cell empty"></div>';
+    for(let d=1;d<=days;d++){const ds=y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0'),e=byDay[ds];
+      if(e){mtot+=e.pnl;const cls=e.pnl>=0?'pos':'neg';
+        html+='<div class="cal-cell has '+cls+'" data-d="'+ds+'"><div class="d">'+d+'</div><div class="p '+cls+'">'+money(e.pnl)+'</div><div class="n">'+e.n+' trd</div></div>';}
+      else html+='<div class="cal-cell"><div class="d">'+d+'</div></div>';}
+    grid.innerHTML=html;
+    $('#cal-month-tot').innerHTML='month <b class="'+(mtot>=0?'pos':'neg')+'">'+money(mtot)+'</b>';
+    grid.querySelectorAll('.cal-cell.has').forEach(c=>c.onclick=()=>showDay(c.dataset.d));}
+  function showDay(ds){const e=byDay[ds],el=$('#cal-day');if(!e){el.innerHTML='';return;}
+    const tiles=e.rows.map(t=>{const c=gcol(t.grade);
+      return '<div class="itile" style="--gc:'+c+'"><div class="itile-h"><div class="itile-name">'+t.strategy+'</div>'+
+        '<span class="ichip" style="background:'+c+'">'+t.grade+'</span></div>'+
+        '<div class="itile-sub">'+t.structure+' · '+String(t.regime).replace('_gamma','')+' · '+t.bias+(t.dte!=null?' · '+t.dte+'DTE':'')+'</div>'+
+        '<div class="itile-foot"><span class="'+((t.pnl||0)>=0?'pos':'neg')+'">'+money(t.pnl)+'</span>'+
+        (t.roi!=null?' <span class="muted" style="font-weight:400">· ROI '+pctf(t.roi)+'</span>':'')+
+        (t.open?' <span class="muted" style="font-weight:400">· open</span>':'')+'</div></div>';}).join('');
+    el.innerHTML='<div class="an-h" style="margin:16px 2px 10px;font-size:15px">'+ds+
+      ' — <span class="'+(e.pnl>=0?'pos':'neg')+'">'+money(e.pnl)+'</span> · '+e.n+' trades</div>'+
+      '<div class="iboard">'+tiles+'</div>';}
+  function initAn(){renderTiles();renderEquity();renderGrade();renderPivot();renderCal();
+    const dim=$('#an-dim');if(dim)dim.onchange=renderPivot;
+    const pv=$('#cal-prev'),nx=$('#cal-next');
+    if(pv)pv.onclick=()=>{calM.setMonth(calM.getMonth()-1);renderCal();$('#cal-day').innerHTML='';};
+    if(nx)nx.onclick=()=>{calM.setMonth(calM.getMonth()+1);renderCal();$('#cal-day').innerHTML='';};}
+  if(document.readyState!=='loading')initAn();else document.addEventListener('DOMContentLoaded',initAn);
+})();
+"""
+
+
 def main():
     s = load_stats()
     obc.main()  # refresh cards.html
@@ -616,11 +882,16 @@ def main():
     pm = load_postmortem()
     gp_trades = tlog.load()
     gp_marks = None
+    an_json = "[]"
     _mf = SIM / "marks.csv"
     if _mf.exists():
         _mk = pd.read_csv(_mf)
         if len(_mk):
             gp_marks = _mk.groupby("trade_id").last()
+    try:
+        an_json = json.dumps(analytics_payload(gp_trades, gp_marks))
+    except Exception:
+        an_json = "[]"
     jf = ROOT / "data" / "options_log" / "journal.json"
     jn = json.loads(jf.read_text(encoding="utf-8")) if jf.exists() else {}
     pbf = ROOT / "docs" / "living" / "options_playbook.md"
@@ -788,20 +1059,50 @@ h2{{font-size:15px;color:var(--acc);margin:24px 0 8px}}
 <div class="tabs">
   <div class="tab on" data-p="trades">Trades</div>
   <div class="tab" data-p="gameplan">Game Plan</div>
+  <div class="tab" data-p="analytics">Analytics</div>
+  <div class="tab" data-p="calendar">Calendar</div>
   <div class="tab" data-p="postmortem">Postmortem</div>
   <div class="tab" data-p="setups">Setups &amp; Grades</div>
   <div class="tab" data-p="journal">Journal</div>
   <div class="tab" data-p="playbook">Playbook</div>
   <div class="tab" data-p="results">Sim Results</div>
+  <div class="tab" data-p="levels">Levels</div>
 </div>
 
 <div class="page on" id="p-trades">{card_body}</div>
-<div class="page" id="p-gameplan">{gameplan_html(gp, gp_trades, gp_marks)}</div>
-<div class="page" id="p-postmortem">{postmortem_html(pm)}</div>
+<div class="page" id="p-analytics">
+  <div class="kpis" id="an-tiles"></div>
+  <div class="an-charts">
+    <div class="an-card"><div class="an-h">Equity curve <span class="muted" id="an-eqsub"></span></div><div id="an-equity"></div></div>
+    <div class="an-card"><div class="an-h">Grade calibration <span class="muted">— does grade predict P&amp;L?</span></div><div id="an-grade"></div></div>
+  </div>
+  <div class="an-card" style="margin-top:14px">
+    <div class="an-h">Break down by
+      <select id="an-dim">
+        <option value="grade">Grade</option><option value="strategy">Strategy</option>
+        <option value="regime">Gamma regime</option><option value="bias">Directional bias</option>
+        <option value="dow">Day of week</option><option value="hour">Entry hour</option>
+        <option value="source">Source</option><option value="win">Win/Loss</option>
+      </select>
+      <span class="muted" id="an-note"></span>
+    </div>
+    <div id="an-pivot"></div>
+  </div>
+</div>
+<div class="page" id="p-calendar">
+  <div class="cal-top"><button id="cal-prev">‹</button>
+    <b id="cal-title"></b><button id="cal-next">›</button>
+    <span class="muted" id="cal-month-tot" style="margin-left:auto"></span></div>
+  <div id="cal-grid"></div>
+  <div id="cal-day"></div>
+</div>
+<div class="page" id="p-gameplan">{gameplan_html(gp, gp_trades, gp_marks)}{gameplan_history_html()}</div>
+<div class="page" id="p-postmortem">{postmortem_html(pm)}{postmortem_history_html()}</div>
 <div class="page" id="p-setups">{setups_html()}</div>
 <div class="page" id="p-journal">{journal_html(jn)}</div>
 <div class="page prose" id="p-playbook">{playbook_html}</div>
 <div class="page" id="p-results">{results_html()}</div>
+<div class="page" id="p-levels">{levels_html()}</div>
 </div>
 <script>
 // ---- UI state: keep the active tab / scroll / open expanders across the
@@ -883,6 +1184,11 @@ async function poll(){{
   __dashGen = d.gen;
 }}
 poll(); setInterval(poll, 5000);
+</script>
+<style>{ANALYTICS_CSS}</style>
+<script>
+window.__T = {an_json};
+{ANALYTICS_JS}
 </script></body></html>"""
     out = SIM / "dashboard.html"
     out.write_text(html, encoding="utf-8")
