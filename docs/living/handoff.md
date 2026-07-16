@@ -1,6 +1,52 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 16, 2026 (session 75D)
+**Last Updated:** July 16, 2026 (session 75E)
+
+---
+
+## S75E (2026-07-16) — MENTHORQ GAMMA-LEVELS DATABASE (~5yr, 13 tickers) + command center (branch `s75-live-dashboard`)
+
+**THE UNLOCK: found MQ's own historical-levels endpoint — no ORATS needed for the answer key.**
+The `/en/levels` "Request Levels" page (Prev/Next Date) fires:
+`GET https://cf.menthorq.io/qbot-service/api/web/v1/levels?tickers=SPX&level_types=gamma_levels&dates=YYYY-MM-DD`
+— returns the FULL labeled set for ANY past session: cr/ps/hvl, **0DTE (cr0/ps0/hvl0/gw0)**, 1D
+min/max, **all 10 GEX walls, AND the signed GEX magnitude at each level**. Accepts ≤5 tickers/req
+(batchable) + `level_types=blind_spots|swing_levels` (not yet pulled). Auth = the existing
+`mq_api.MQ` Bearer/cookie. (The gateway `gamma-levels/{sym}/eod` is TODAY-only; `/eod/history` caps
+at 10 days — this qbot endpoint is the real history source. QUIN is dead; it only ever had cr/ps/hvl.)
+
+**PULLED & ON DISK — `data/menthorq/<TKR>_mq_levels_history.csv` (+ `_raw.jsonl` audit):**
+- **SPX + Mag 7** (AAPL/MSFT/NVDA/AMZN/GOOGL/META/TSLA): ~1,200 sessions each, **2021-09-28→2026-07-15
+  (~4.8yr)**; META from 2022-06. Carry spot.
+- **Futures ES1!/NQ1!/RTY1!/CL1!/GC1!**: **524 sessions, 2024-07-01→2026-07-15 (~2yr — hard MQ
+  retention boundary for the `1!` continuous contracts, confirmed)**. **No spot** (endpoint returns
+  `price:null` for futures; join local bars if needed). ~10,300 ticker-sessions, 3,762 requests, free.
+- Scripts: `mq_levels_backfill.py` (single), **`mq_levels_backfill_batch.py`** (5/req batched;
+  `--recent N` = incremental daily mode; `--tickers`, `--from`). Keys rows on the levels' EOD date;
+  writes a `levels_db_status.json` freshness marker. Two junk MQ days (2023-01-20/23, placeholder
+  `100.0`) are filtered by a plausibility check.
+
+**SPOT↔LEVELS SAME-SESSION ALIGNMENT — PROVEN** (user asked): row E's spot = `price.eod.date==E`
+close; levels = `data.date==E` (kind=eod); cross-checked vs the IB spot-feed tape
+(`underlying_20260714.csv` 15:59 = 7547.57 vs MQ 7543.59, normal SPX-proxy spread). eod == the 15:59
+close print. The puller joins on E so they can't drift.
+
+**COMMAND CENTER — `scripts/mq_levels_command_center.py` (serves :8610).** Status/freshness per
+ticker (grouped Index/Mag7/Futures) + **"Update now"** button (runs `--recent 10`) + ticker switcher.
+Per-day view: **KPIs, a single-day price-action chart (5m candles from the MQ `tickers/{sym}/candles`
+endpoint — interval=5m, from/to in epoch-ms, countBack; server route `/candles`), levels drawn as
+lines, and the levels table sorted by price with SPOT inserted (green=above HVL flip / red=below).**
+Chart iterated a lot this session (user rejected: a GEX ladder, absolute overlay, distance-from-spot);
+**final = PA-first, y-axis auto-fits the intraday range, only in-view levels shown, NO GEX $, with
+scroll/±/fit/drag vertical zoom.** Prev/Next/date-pick/←→ navigate days.
+
+**⚠️ NOT DONE (user wrapped the session — "not a great session"):** (1) **daily auto-update Task
+Scheduler task is NOT registered** — the puller has `--recent` + the UI has Update-now, but no
+scheduled job yet (user asked for it; wire a "MyQuant Levels History" task calling
+`mq_levels_backfill_batch.py --recent 10`, ~7:00 CT). (2) Futures/other tickers' blind_spots &
+swing_levels not pulled. (3) SPX file was re-pulled via the batch script for uniform keying (1183
+rows now vs the earlier single-script 1203 — the ~20-row delta is the eod-date vs session-date keying
++ boundary; both valid, batch version is canonical). Committed on `s75-live-dashboard`, NOT merged.
 
 ---
 

@@ -1,0 +1,19 @@
+{
+ "finished_utc": "2026-07-16T16:00:59Z",
+ "tickers": [
+  "ES1!",
+  "NQ1!",
+  "RTY1!",
+  "CL1!",
+  "GC1!",
+  "AAPL",
+  "MSFT",
+  "NVDA",
+  "AMZN",
+  "GOOGL",
+  "META",
+  "TSLA"
+ ],
+ "requests": 30,
+ "mode": "recent"
+}
