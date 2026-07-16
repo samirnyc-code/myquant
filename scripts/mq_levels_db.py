@@ -192,13 +192,14 @@ def history_text(hist):
     if len(hist) < 2:
         return ""
     rows = ""
-    for _, h in hist.sort_values("date", ascending=False).head(6).iterrows():
+    for _, h in hist.sort_values("date", ascending=False).head(250).iterrows():
         rows += (f'<tr><td>{h["date"]}</td><td>{fmtL(num(h.ps))}</td>'
                  f'<td>{fmtL(num(h.hvl))}</td><td>{fmtL(num(h.cr))}</td>'
                  f'<td>{fmtL(num(h.spot))}</td></tr>')
     return (f'<details class="hist"><summary>history ({len(hist)} days)</summary>'
+            f'<div style="max-height:340px;overflow-y:auto">'
             f'<table><tr><th>date</th><th>put</th><th>flip</th><th>call</th><th>spot</th></tr>'
-            f'{rows}</table></details>')
+            f'{rows}</table></div></details>')
 
 
 # scoped under .mqlv so it can embed inside the options dashboard without clashing
