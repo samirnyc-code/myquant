@@ -72,9 +72,32 @@ def settle_0dte(date, close):
             cost += (intr * q) if l["side"] == "sell" else (-intr * q)
         fees = len(legs) * int(legs[0].get("qty", 1)) * FEE
         exit_dt = f"{date[:4]}-{date[4:6]}-{date[6:]} 16:00"
-        rr = tlog.update_exit(r.trade_id, exit_dt, round(cost, 2), fees, fill_model="cash_settle")
+        # still open at settlement ⇒ we did NOT trade it to close ⇒ it EXPIRED.
+        rr = tlog.update_exit(r.trade_id, exit_dt, round(cost, 2), fees,
+                              fill_model="cash_settle", close_reason="expired")
         settled.append((r.trade_id, rr["pnl"]))
     return settled
+
+
+def flag_partial_expiry(today):
+    """Mark still-open trades that have SOME (not all) legs already expired — e.g. a
+    calendar whose near leg settled. These can't be cleanly cash-settled (a live leg
+    remains), so we flag them close_reason='partial_expiry' for a human decision
+    rather than silently leaving them 'open'. Returns the flagged trade_ids."""
+    df = tlog.load()
+    flagged = []
+    for _, r in df.iterrows():
+        if pd.notna(r.exit_dt):
+            continue
+        try:
+            exps = {l.get("expiry") for l in json.loads(r.legs)}
+        except Exception:
+            continue
+        expired = {e for e in exps if e and e < today}
+        if expired and expired != exps:            # some expired, some still live
+            tlog.annotate(r.trade_id, close_reason="partial_expiry")
+            flagged.append((r.trade_id, sorted(expired)))
+    return flagged
 
 
 def load_plan(date):
@@ -139,6 +162,9 @@ def main():
 
     # cash-settle 0DTE trades to the close BEFORE reading P&L
     settled = settle_0dte(date, ohlc["close"]) if ohlc else []
+    flagged = flag_partial_expiry(date)
+    if flagged:
+        print(f"  flagged partial-expiry (needs decision): {[t for t, _ in flagged]}")
 
     trades = tlog.load()
     day_trades = trades[trades.entry_dt.astype(str).str.startswith(

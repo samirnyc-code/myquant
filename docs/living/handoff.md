@@ -1,6 +1,81 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 16, 2026 (session 75)
+**Last Updated:** July 16, 2026 (session 75D)
+
+---
+
+## S75D (2026-07-16) — LIVE dashboard data + trade cards + expired-leg lifecycle + entry-criteria findings (branch `s75-live-dashboard`)
+
+Long working session. **Committed** on `s75-live-dashboard` (code + this handoff; live
+CSVs/cards left uncommitted as ephemeral). NOT merged to main.
+
+**⚠️ DATA-PIPELINE TRUTH (settled a long confusion):** the desk trades on a **realtime
+synthetic SPX** = put-call parity on live 0DTE SPXW ATM pairs (OPRA realtime sub), written
+to `live.json` and sampled to `underlying_<date>.csv`. It is **NOT** the delayed index (index/
+ES are delayed, used only for basis/overnight context). So delay never drove a trade. The
+only place delayed data crept in was the trade-card's *historical bars* — now replaced by the
+realtime parity tape.
+
+**LIVE MARKS FIXED (tiles were showing 1–2 day-STALE marks).** Root cause: `options_mark.py`
+(Marks Watch) was scheduled to start **14:35 CT**, so all morning open tiles fell back to the
+prior session's last mark, and it also **crashed** on an expired leg (`NoneType.conId`).
+Fixes: crash-guard (skip un-quotable/expired legs), **rescheduled Marks Watch to 08:26 CT**
+(live from the open), `--watch 120`. It now also logs a rich time series →
+`data/options_sim/trade_metrics.csv` (spot, net_mid, spread, unreal_pnl, POP, EV, p_maxloss, σ,
+maxG/L). marks.csv added to the dashboard `WATCH` list so tiles auto-refresh.
+
+**NEW: general metrics engine `options_metrics.py`** — POP / EV / P(max loss) / max G-L for ANY
+structure (vertical/fly/straddle) from legs+credit. σ = today's MQ 1-day expected-move half-range
+scaled by √(sessions-to-expiry) (approximate, labeled; IV-from-live-quotes is the future upgrade).
+
+**Position TILES now show live** POP · EV · net bid–ask (to close) · live P&L · **close-reason
+badge** (`positions_html` reads `_metrics_last()` from trade_metrics.csv). **Per-trade live metrics
+chart** `trade_metrics_chart.py` — 2 stacked panels ($ P&L+EV, % POP+P(maxloss)) over the trade's
+life (snapshot; not yet auto-embedded with live reload).
+
+**NEW: annotated trade-card chart `trade_chart.py`** (PNG for the log + interactive Plotly HTML).
+Shows intraday price (realtime parity tape + basis-adj ES overnight), MQ level colors (CR=red PS=green
+HVL=blue GW0=gold 1D-range=amber — PROPOSED, no color codes in the MQ API/scrape; **confirm hexes**),
+our strikes/breakevens, shaded P/L zones, projected EOD paths A/C, intended exit, a payoff-tent side
+panel with $ increments, a **"WHY THIS TRADE" reasoning box with green checks built from the gameplan
+trigger**, and **outcome probabilities**. Fixed a real bug: the FILL marker/probabilities used the
+*last* tape point (7566) instead of the price **at fill time** (interpolated → 7550) — now correct.
+
+**EXPIRED-LEG LIFECYCLE (new `close_reason` field: expired | traded_to_close | partial_expiry).**
+Clean logic: still-open-at-settlement ⇒ we didn't trade it to close ⇒ **expired** (`settle_0dte`
+tags it). `flag_partial_expiry()` marks trades with SOME legs expired (the put-calendar: 7/14 leg
+settled, 7/17 leg live) — flagged, not silently stuck; wired into the postmortem + shown as a tile
+badge. `tlog.annotate()` sets fields without closing. **Still TODO:** resolve the partial-expiry
+calendar (settle expired leg + keep marking the residual).
+
+**GATEWAY AUTO-RECOVERY (the 7/16 morning incident).** Gateway *logged in* but API port 4002
+never came up → the whole chain silently no-op'd until manual restart. Fix: `ib_conn.connect()`
+now self-heals (runs `gateway_ensure` + retries once on a dead paper port) — covers feed/daemon/
+sim/marks in one place. New scheduled task **Gateway Ensure @ 08:20 CT** verifies 4002 before the
+08:26 feed. Lesson: **login ≠ API-ready**; the trigger daemon runs as a **venv-parent + system-python
+worker PAIR** (2 procs = 1 daemon — don't kill the "duplicate").
+
+**NEW: EOD desk report `eod_report.py`** (scheduled 15:20 CT) — full ✓/✗ checklist of the daily chain
++ P&L, rendered to `eod_report_<date>.html` + toast + optional HTML email (`notify.email_html`; needs
+`scratchpad/email_cfg.json` Gmail app-pw — user to add). **LIVE pill** added to the dashboard header.
+
+**⚠️ ENTRY-CRITERIA FINDINGS (review requested for after-close).** The GW0 butterfly fires on
+`time_at 09:00` + regime>HVL only — **NO price-proximity gate**. It fired at spot **7550, 50pt below
+the 7600 pin** (POP 21%), and by 14:45 spot fell to 7511 → **max loss −$255** (live POP curve decayed
+21%→0%). Worse, the **fly grade ignores distance-to-center** (`grade_at_fill` grades on regime+debit
+only) → stamped "B" on a 21%-POP entry — the SAME category error already fixed for fades. Also the
+fly's code comment says "confirm at 10:00" but the code fires 09:00. **Pattern:** fades + straddle are
+properly price-gated; credit spreads + fly carry a 09:00 time-backstop (tolerable for far-OTM premium
+sells, WRONG for a proximity-dependent fly). **Proposed structural fixes (need sign-off, criteria
+FROZEN daily):** (1) add a proximity gate to the fly, (2) grade the fly by POP/distance not debit-only,
+(3) reconcile 09:00/10:00, (4) min-credit floor on the credit-spread time-backstop. Do NOT outcome-tune
+on 1–2 days of live trades — structural/logic fixes only until N days collected. Open design question
+for the user: fly **center-on-wall (bet return)** vs **center-on-spot (pin where price is)**.
+
+**OPEN / NEXT:** auto-embed the metrics chart in the dashboard w/ live reload; resolve the partial-
+expiry calendar; IV-from-quotes σ upgrade; after-close entry-criteria review + draft the structural
+fixes as a diff for sign-off; add spot-at-fill stamping to the daemon; user to add Gmail app-pw +
+confirm MQ color hexes.
 
 ---
 

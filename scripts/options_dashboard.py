@@ -130,37 +130,85 @@ def _pnl_cls(v):
     return "neg" if str(v).startswith("−") else "pos"
 
 
+def _metrics_last():
+    """Last live-metrics row per trade (POP/EV/net_mid/net_spread) from trade_metrics.csv."""
+    f = ROOT / "data" / "options_sim" / "trade_metrics.csv"
+    if not f.exists():
+        return None
+    try:
+        m = pd.read_csv(f)
+        return m.groupby("trade_id").last()
+    except Exception:
+        return None
+
+
+def _reason_badge(cr):
+    if not isinstance(cr, str) or not cr:
+        return ""
+    col = {"expired": "#8a91a0", "traded_to_close": "#2fbf8f",
+           "partial_expiry": "#eda100"}.get(cr, "#8a91a0")
+    return (f"<span style='background:{col}22;color:{col};border:1px solid {col}66;"
+            f"border-radius:5px;padding:1px 6px;font-size:10px;font-weight:700'>{cr}</span>")
+
+
 def positions_html(trades, marks_last):
     """Collapsible Open / Closed positions detail behind the KPI tiles."""
     if trades is None or not len(trades):
         return ""
     openp = trades[trades.exit_dt.isna()]
     closedp = trades[trades.exit_dt.notna()]
+    met = _metrics_last()
 
-    def rows(df, running):
-        out = []
+    def mval(tid, col):
+        if met is None or tid not in met.index:
+            return None
+        v = met.at[tid, col]
+        return v if pd.notna(v) else None
+
+    def open_rows(df):
+        out = ["<tr class='ph'><td>strategy</td><td>structure</td><td>grade</td>"
+               "<td class='r'>POP</td><td class='r'>EV</td><td class='r'>bid–ask (close)</td>"
+               "<td class='r'>P&amp;L now</td></tr>"]
         for _, r in df.iloc[::-1].iterrows():
-            if running:
-                pnl = marks_last.unreal_pnl.get(r.trade_id) if marks_last is not None else None
-            else:
-                pnl = float(r.pnl) if pd.notna(r.pnl) else None
+            pnl = marks_last.unreal_pnl.get(r.trade_id) if marks_last is not None else None
             gr = r.grade if isinstance(r.grade, str) else "—"
-            m = money(pnl)
+            pop = mval(r.trade_id, "pop"); ev = mval(r.trade_id, "ev")
+            nm = mval(r.trade_id, "net_mid"); sp = mval(r.trade_id, "net_spread")
+            ba = (f"{nm - sp/2:.2f}–{nm + sp/2:.2f}" if nm is not None and sp is not None else "—")
+            reason = _reason_badge(r.close_reason if "close_reason" in df.columns else None)
+            out.append(
+                f"<tr><td><b>{r.strategy_id}</b> {reason}</td>"
+                f"<td class='muted'>{r.structure or ''}</td>"
+                f"<td style='color:{_grade_color(gr)};font-weight:800'>{gr}</td>"
+                f"<td class='r'>{f'{pop*100:.0f}%' if pop is not None else '—'}</td>"
+                f"<td class='r {_pnl_cls(money(ev))}'>{money(ev) if ev is not None else '—'}</td>"
+                f"<td class='r muted'>{ba}</td>"
+                f"<td class='r {_pnl_cls(money(pnl))}'>{money(pnl)}</td></tr>")
+        return "".join(out)
+
+    def closed_rows(df):
+        out = ["<tr class='ph'><td>strategy</td><td>structure</td><td>grade</td>"
+               "<td>close</td><td class='r'>realized</td></tr>"]
+        for _, r in df.iloc[::-1].iterrows():
+            pnl = float(r.pnl) if pd.notna(r.pnl) else None
+            gr = r.grade if isinstance(r.grade, str) else "—"
+            reason = _reason_badge(r.close_reason if "close_reason" in df.columns else None)
             out.append(
                 f"<tr><td><b>{r.strategy_id}</b></td>"
                 f"<td class='muted'>{r.structure or ''}</td>"
                 f"<td style='color:{_grade_color(gr)};font-weight:800'>{gr}</td>"
-                f"<td class='r {_pnl_cls(m)}'>{m}</td></tr>")
-        return "".join(out) or "<tr><td class='muted'>none</td></tr>"
+                f"<td>{reason or '—'}</td>"
+                f"<td class='r {_pnl_cls(money(pnl))}'>{money(pnl)}</td></tr>")
+        return "".join(out)
 
     return (f"<details id='ex-positions' class='ex'>"
             f"<summary>Positions detail <span class='cnt'>{len(openp)} open · {len(closedp)} closed</span>"
             f"<span class='sp'>click to expand</span></summary>"
             f"<div class='ex-body'>"
-            f"<h4>Open — running P&amp;L (mark-to-market)</h4>"
-            f"<table class='ptable'>{rows(openp, True)}</table>"
+            f"<h4>Open — live P&amp;L · POP · EV (mark-to-market)</h4>"
+            f"<table class='ptable'>{open_rows(openp)}</table>"
             f"<h4>Closed — realized</h4>"
-            f"<table class='ptable'>{rows(closedp, False)}</table></div></details>")
+            f"<table class='ptable'>{closed_rows(closedp)}</table></div></details>")
 
 
 def tile_specs(s):
@@ -938,6 +986,13 @@ text-transform:uppercase;margin-right:6px}}
 .dot.pulse{{box-shadow:0 0 0 0 var(--pos);animation:pulse 2s infinite}}
 @keyframes pulse{{0%{{box-shadow:0 0 0 0 rgba(47,191,143,.5)}}
 70%{{box-shadow:0 0 0 7px rgba(47,191,143,0)}}100%{{box-shadow:0 0 0 0 rgba(47,191,143,0)}}}}
+/* LIVE status pill */
+.livebadge{{display:inline-flex;align-items:center;gap:7px;padding:5px 12px 5px 10px;
+border-radius:999px;font-size:11.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;
+border:1px solid var(--line);background:var(--chip);color:var(--mut);transition:color .3s,background .3s,border-color .3s;user-select:none}}
+.livebadge .lb-dot{{width:9px;height:9px;border-radius:50%;background:var(--mut)}}
+.livebadge.on{{color:var(--pos);border-color:rgba(47,191,143,.45);background:rgba(47,191,143,.10)}}
+.livebadge.on .lb-dot{{background:var(--pos);box-shadow:0 0 0 0 var(--pos);animation:pulse 2s infinite}}
 .acc{{color:var(--acc)}}
 /* levels + regime panel */
 .lvpanel{{background:linear-gradient(180deg,var(--panel2),var(--panel));
@@ -1027,6 +1082,7 @@ padding:1px 9px;font-size:11px;color:var(--mut);font-weight:600}}
 .ptable{{width:100%;border-collapse:collapse;font-size:12.5px}}
 .ptable td{{padding:6px 8px;border-top:1px solid var(--line)}}
 .ptable td.r{{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}}
+.ptable tr.ph td{{color:var(--mut);font-size:10.5px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;border-top:0}}
 .ptable h4,.ex-body h4{{margin:12px 0 4px;font-size:11px;color:var(--mut);letter-spacing:.06em;text-transform:uppercase}}
 .tabs{{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:18px}}
 .tab{{padding:9px 16px;color:var(--mut);cursor:pointer;font-weight:600;font-size:13.5px;
@@ -1042,7 +1098,7 @@ h2{{font-size:15px;color:var(--acc);margin:24px 0 8px}}
 {card_css}
 .grid{{margin-top:0}}
 </style></head><body><div class="wrap">
-<div class="top"><span class="dot" id="livedot"></span><h1>Options — Forward Sim</h1>
+<div class="top"><span class="livebadge{' on' if live_state=='live' else ''}" id="livebadge" title="Live feed status"><span class="lb-dot"></span><span id="livebadge-txt">{'LIVE' if live_state=='live' else 'OFFLINE'}</span></span><h1>Options — Forward Sim</h1>
   <span class="sub" id="updated" style="margin-left:auto"></span></div>
 <div class="sub">causal 15:59 BPS + paper strategies · live feed
   <b id="feedstate">{live_state}</b>
@@ -1152,9 +1208,9 @@ async function poll(){{
   }}
   // live ticker + feed state
   const L = d.live||{{}}, live = L.state==='live';
-  const dot = document.getElementById('livedot');
-  if(dot) dot.className = 'dot'+(live?' pulse':'');
-  dot && (dot.style.background = live ? 'var(--pos)' : 'var(--mut)');
+  const lb = document.getElementById('livebadge');
+  if(lb){{ lb.className = 'livebadge'+(live?' on':'');
+    const lt = document.getElementById('livebadge-txt'); if(lt) lt.textContent = live?'LIVE':'OFFLINE'; }}
   const fs = document.getElementById('feedstate'); if(fs) fs.textContent = L.state||'offline';
   const fh = document.getElementById('feedhint');
   if(fh) fh.innerHTML = live ? '' : '· start <code>scripts/spot_feed.py</code>';

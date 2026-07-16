@@ -54,7 +54,7 @@ TOKEN = load_token()
 
 # Files that, when they change, mean the page needs a rebuild (cards / journal /
 # results / game-plan status). Today's gameplan is resolved lazily in gen_stamp.
-WATCH = [LOG / "trades.parquet", LOG / "journal.json", SIM / "sim_ledger.csv"]
+WATCH = [LOG / "trades.parquet", LOG / "journal.json", SIM / "sim_ledger.csv", SIM / "marks.csv"]
 
 
 def _watch_files():

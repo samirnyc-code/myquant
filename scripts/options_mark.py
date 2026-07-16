@@ -23,12 +23,24 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ib_conn
+import options_metrics as omx
 import options_trade_log as tlog
 from options_manual_trade import qualify
 
 ET = ZoneInfo("America/New_York")
+CT = ZoneInfo("America/Chicago")
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "data" / "options_sim" / "marks.csv"
+MET = ROOT / "data" / "options_sim" / "trade_metrics.csv"   # richer live time series
+
+
+def live_spot():
+    """Realtime option-parity SPX from the feed (data/options_sim/live.json)."""
+    f = ROOT / "data" / "options_sim" / "live.json"
+    try:
+        return float(json.loads(f.read_text()).get("spx"))
+    except Exception:
+        return None
 
 
 def now():
@@ -97,32 +109,55 @@ def mark_once(ib, vix):
         print("no open trades")
         return
     ib.reqMarketDataType(1)
+    today = now().strftime("%Y%m%d")
     tickers = {}
     for _, tr in opens.iterrows():
         for l in json.loads(tr.legs):
             key = (l["expiry"], l["strike"], l["right"])
-            if key not in tickers:
+            if key in tickers:
+                continue
+            if l["expiry"] < today:            # expired leg — can't qualify/quote
+                tickers[key] = None
+                continue
+            try:
                 c = qualify(ib, *key)
+                if c is None or not getattr(c, "conId", None):
+                    tickers[key] = None
+                    continue
                 tickers[key] = ib.reqMktData(c, "", snapshot=False)
+            except Exception as e:              # never let one bad leg kill the whole mark
+                print(f"  qualify failed {key}: {type(e).__name__}")
+                tickers[key] = None
     ib.sleep(8)
     OUT.parent.mkdir(parents=True, exist_ok=True)
+    spot = live_spot()
+    now_ct = dt.datetime.now(CT)
+    date = now_ct.strftime("%Y%m%d")
     new = not OUT.exists()
+    mnew = not MET.exists()
     ts = now().strftime("%Y-%m-%d %H:%M:%S")
-    with open(OUT, "a", newline="") as fh:
+    with open(OUT, "a", newline="") as fh, open(MET, "a", newline="") as mfh:
         w = csv.writer(fh)
+        mw = csv.writer(mfh)
         if new:
             w.writerow(["ts_et", "trade_id", "mark_value", "unreal_pnl", "vix"])
+        if mnew:
+            mw.writerow(["ts_et", "trade_id", "spot", "net_mid", "net_spread", "unreal_pnl",
+                         "pop", "ev", "p_maxloss", "sigma", "max_gain", "max_loss"])
         total = 0.0
         for _, tr in opens.iterrows():
             cost = 0.0
+            spread = 0.0
             ok = True
-            for l in json.loads(tr.legs):
+            legs = json.loads(tr.legs)
+            for l in legs:
                 t = tickers[(l["expiry"], l["strike"], l["right"])]
-                if not (t.bid == t.bid and t.ask == t.ask and t.ask > 0):
+                if t is None or not (t.bid == t.bid and t.ask == t.ask and t.ask > 0):
                     ok = False
                     break
                 mid = (t.bid + t.ask) / 2
                 cost += l["qty"] * (mid if l["side"] == "sell" else -mid)  # cost to close
+                spread += l["qty"] * (t.ask - t.bid)
             if not ok:
                 print(f"  {tr.trade_id}: incomplete quotes, skipped")
                 continue
@@ -130,7 +165,14 @@ def mark_once(ib, vix):
             total += unreal
             w.writerow([ts, tr.trade_id, round(-cost, 2), round(unreal, 2),
                         round(vix, 2) if vix else ""])
-            print(f"  {tr.trade_id:34s} unreal ${unreal:+8,.0f}")
+            # live probabilities/EV at current spot + time-to-expiry
+            m = omx.live_metrics(legs, tr.credit, spot, date, now_ct) if spot else None
+            if m:
+                mw.writerow([ts, tr.trade_id, round(spot, 2), round(-cost, 2), round(spread, 2),
+                             round(unreal, 2), round(m["pop"], 4), round(m["ev"]), round(m["p_maxloss"], 4),
+                             m["sigma"], m["max_gain"], m["max_loss"]])
+            pop_s = f" POP {m['pop']*100:4.0f}%  EV ${m['ev']:+6,.0f}" if m else ""
+            print(f"  {tr.trade_id:34s} unreal ${unreal:+8,.0f}{pop_s}")
         print(f"  {'TOTAL':34s} unreal ${total:+8,.0f}   VIX {vix}")
 
 

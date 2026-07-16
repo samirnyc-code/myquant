@@ -24,6 +24,10 @@ COLUMNS = [
     "vix", "vix_rank", "er10", "adx", "gex_regime", "hvl_side", "dow", "event",
     # S73 additions — per-trade thesis & risk metrics
     "commentary", "grade", "max_gain", "max_loss", "pop",
+    # S75 — how the trade closed: "expired" (held to cash-settlement) |
+    # "traded_to_close" (we placed offsetting orders) | "partial_expiry" (some legs
+    # expired, position residual — needs attention). Tracked as an outcome stat.
+    "close_reason",
 ]
 
 
@@ -78,6 +82,21 @@ def update_exit(trade_id, exit_dt, exit_cost, fees_total, **extra):
         df.at[i, "roc"] = pnl / coll
     df.at[i, "hold_days"] = (pd.to_datetime(exit_dt) - pd.to_datetime(df.at[i, "entry_dt"])).days
     for k, v in extra.items():
+        if k in COLUMNS:
+            df.at[i, k] = v
+    _save(df)
+    return df.loc[i].to_dict()
+
+
+def annotate(trade_id, **fields):
+    """Set arbitrary columns on a trade WITHOUT closing it (e.g. a close_reason flag
+    on a still-open partial-expiry trade). Only writes keys that exist in COLUMNS."""
+    df = load()
+    m = df.trade_id == trade_id
+    if not m.any():
+        raise ValueError(f"trade_id {trade_id} not found")
+    i = df.index[m][0]
+    for k, v in fields.items():
         if k in COLUMNS:
             df.at[i, k] = v
     _save(df)

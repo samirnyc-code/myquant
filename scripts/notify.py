@@ -59,6 +59,28 @@ def email(title, msg):
         pass
 
 
+def email_html(title, html, text_fallback=""):
+    """Send an HTML email (used by the EOD report). No-op if email_cfg.json absent."""
+    if not CFG.exists():
+        return False
+    try:
+        import smtplib
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.text import MIMEText
+        c = json.loads(CFG.read_text())
+        m = MIMEMultipart("alternative")
+        m["Subject"] = f"[myquant] {title}"
+        m["From"] = c["user"]; m["To"] = c["to"]
+        m.attach(MIMEText(text_fallback or "See HTML version.", "plain"))
+        m.attach(MIMEText(html, "html"))
+        s = smtplib.SMTP(c["host"], c.get("port", 587), timeout=15)
+        s.starttls(); s.login(c["user"], c["password"])
+        s.sendmail(c["user"], [c["to"]], m.as_string()); s.quit()
+        return True
+    except Exception:
+        return False
+
+
 def notify(title, msg):
     _log(title, msg)
     desktop(title, msg)

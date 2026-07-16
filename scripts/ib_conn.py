@@ -27,7 +27,22 @@ def connect(port=None, client_id=None, timeout=15, market_data_type=None, allow_
     if port == LIVE_PORT and not allow_live:
         raise SystemExit("Refusing LIVE port 4001 — pass allow_live=True if you really mean it.")
     ib = IB()
-    ib.connect(HOST, port, clientId=cid, timeout=timeout)
+    try:
+        ib.connect(HOST, port, clientId=cid, timeout=timeout)
+    except Exception as e:
+        # S75 auto-recovery: a "logged-in" Gateway whose API port never came up
+        # (the 2026-07-16 silent-morning failure) — bring it up and retry ONCE.
+        # Paper port only; never auto-launch anything for live.
+        if port != PAPER_PORT:
+            raise
+        print(f"IB connect failed ({type(e).__name__}: {e}) — running gateway_ensure "
+              f"to bring paper {PAPER_PORT} up, then retrying once...")
+        try:
+            import gateway_ensure
+            gateway_ensure.main()
+        except Exception as ge:
+            print(f"gateway_ensure could not run: {type(ge).__name__}: {ge}")
+        ib.connect(HOST, port, clientId=cid, timeout=timeout)  # retry; let it raise if still down
     accts = ib.managedAccounts()
     paper = all(a.startswith("D") for a in accts) if accts else False
     mode = {PAPER_PORT: "PAPER", LIVE_PORT: "LIVE"}.get(port, f"port {port}")
