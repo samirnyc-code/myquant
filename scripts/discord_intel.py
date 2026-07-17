@@ -391,7 +391,8 @@ pre{background:#0c0e13;border:1px solid var(--border);border-radius:7px;padding:
 
   <div class="panel" style="padding:8px 16px">
     <div style="display:flex;gap:2px">
-      <button class="tabbtn active" data-t="setups">Setups</button>
+      <button class="tabbtn active" data-t="traders">⭐ Traders to Watch</button>
+      <button class="tabbtn" data-t="setups">Setups</button>
       <button class="tabbtn" data-t="nuggets">Nuggets</button>
       <button class="tabbtn" data-t="links">Links</button>
       <button class="tabbtn" data-t="log">Log</button>
@@ -401,7 +402,7 @@ pre{background:#0c0e13;border:1px solid var(--border);border-radius:7px;padding:
 </div>
 <script>
 const $=s=>document.querySelector(s);
-let REP=null, CFG=null, TAB='setups';
+let REP=null, CFG=null, TAB='traders';
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 async function j(u,o){return (await fetch(u,o)).json();}
 
@@ -466,6 +467,26 @@ document.querySelectorAll('.tabbtn').forEach(b=>b.onclick=()=>{TAB=b.dataset.t;d
 async function renderReport(){
   const el=$('#report');
   if(TAB==='log'){const l=await j('/log');el.innerHTML=`<pre>${esc(l.log||'(empty)')}</pre>`;return;}
+  if(TAB==='traders'){
+    const A=REP.authors||[];
+    if(!A.length){el.innerHTML='<div class="card">No leaderboard yet — scrape first.</div>';return;}
+    const max=A[0].score||1;
+    let h=`<div class="panel" style="margin-top:12px"><h2>Traders to Watch — ranked by signal (substance + posted P&L + setups/nuggets, not chatter)</h2>
+      <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">
+      <tr style="text-align:left;color:var(--muted)"><th>#</th><th>Trader</th><th>Signal</th><th>Subst.</th><th>P&L posts</th><th>Setups</th><th>Avg len</th><th>Active</th><th>Top channels</th></tr>`;
+    A.forEach((a,i)=>{
+      const bar=Math.round(100*a.score/max);
+      const chans=(a.channels||[]).map(c=>esc(c[0].replace(/[^\x00-\x7F]/g,''))+'·'+c[1]).join(', ');
+      h+=`<tr style="border-top:1px solid var(--border)">
+        <td>${i+1}</td>
+        <td><b>${esc(a.author)}</b></td>
+        <td><div style="display:flex;align-items:center;gap:6px"><div style="width:${bar}px;max-width:90px;height:8px;background:var(--accent);border-radius:4px"></div>${a.score}</div></td>
+        <td>${a.substantive}</td><td>${a.pnl_posts}</td><td>${a.setups}</td><td>${a.avg_len}</td>
+        <td class="meta">${esc(a.active||'')}</td><td class="meta">${chans}</td></tr>`;
+    });
+    h+='</table></div><div class="meta" style="margin-top:8px">Score = substantive posts×2 + P&L-mentions×1.5 + setups×1.2 + nuggets + avg-length weight. Min 20 posts to rank.</div></div>';
+    el.innerHTML=h;return;
+  }
   const chans=(REP.channels||[]).slice().sort((a,b)=>(b.n_setups+b.n_nuggets)-(a.n_setups+a.n_nuggets));
   if(!chans.length){el.innerHTML='<div class="card">No report yet — add channels and hit “Scrape new”.</div>';return;}
   let h='';

@@ -165,10 +165,19 @@ def _merged_channels():
         yield guild, chan, b["msgs"]
 
 
+# P&L / results talk — a proxy for a trader who actually posts outcomes
+PNL_RE = re.compile(r"([+\-]?\$\s?\d[\d,]*(?:\.\d+)?|[+\-]\d[\d,]*\s?(?:pts|ticks|R\b)"
+                    r"|\bP&?L\b|profit|\bwin(?:ning)?\b|\bloss\b|filled|entry|stopped out)", re.I)
+
+
 def analyze():
     report = {"channels": [], "totals": {}}
     tick_total = Counter()
     kind_total = Counter()
+    # per-author signal accumulation (for the Traders-to-Watch leaderboard)
+    A = defaultdict(lambda: {"msgs": 0, "subst": 0, "chars": 0, "setups": 0,
+                             "nuggets": 0, "pnl": 0, "links": 0,
+                             "chans": Counter(), "first": "", "last": ""})
     for guild, chan, msgs in _merged_channels():
         p = type("P", (), {"name": f"{chan}"})()  # lightweight shim for existing refs
         links, setups, nuggets = [], [], []
@@ -178,12 +187,25 @@ def analyze():
             content = (m.get("content") or "").strip()
             author = (m.get("author") or {}).get("name", "?")
             ts = m.get("timestamp", "")
+            a = A[author]
+            a["msgs"] += 1
+            a["chars"] += len(content)
+            a["chans"][chan] += 1
+            if len(content) >= 120:
+                a["subst"] += 1
+            if PNL_RE.search(content):
+                a["pnl"] += 1
+            if ts and (not a["first"] or ts < a["first"]):
+                a["first"] = ts
+            if ts > a["last"]:
+                a["last"] = ts
             # links (message content + attachments)
             urls = URL_RE.findall(content)
             urls += [a.get("url", "") for a in m.get("attachments", []) if a.get("url")]
             for u in urls:
                 kind = classify_link(u)
                 kind_total[kind] += 1
+                a["links"] += 1
                 links.append({"url": u, "kind": kind, "author": author,
                               "ts": ts, "ctx": content[:160]})
             # tickers
@@ -197,11 +219,13 @@ def analyze():
             if has_ticker and has_price and SETUP_VOCAB.search(content):
                 setups.append({"author": author, "ts": ts, "text": content[:400]})
                 voice_signal[author] += 1
+                a["setups"] += 1
             # nuggets: insight vocab, reasonable length, not a pure link
             if (NUGGET_VOCAB.search(content) and len(content) > 40
                     and not content.startswith("http")):
                 nuggets.append({"author": author, "ts": ts, "text": content[:400]})
                 voice_signal[author] += 1
+                a["nuggets"] += 1
         report["channels"].append({
             "guild": guild, "channel": chan, "file": p.name,
             "n_messages": len(msgs),
@@ -219,6 +243,26 @@ def analyze():
         "top_tickers": tick_total.most_common(25),
         "link_kinds": kind_total.most_common(),
     }
+    # ---- Traders to Watch: rank authors by a signal score ------------------
+    # Score rewards SUBSTANCE (long posts), demonstrated OUTCOMES (P&L talk),
+    # and teaching (setups+nuggets) — not raw chatter volume. Requires a
+    # minimum footprint so one-off posters don't rank.
+    authors = []
+    for name, a in A.items():
+        if a["msgs"] < 20 or name in ("?", "Deleted User"):
+            continue
+        avg = a["chars"] / max(a["msgs"], 1)
+        score = (a["subst"] * 2.0 + a["pnl"] * 1.5 + a["setups"] * 1.2
+                 + a["nuggets"] * 1.0 + min(avg, 300) * 0.15)
+        authors.append({
+            "author": name, "score": round(score),
+            "msgs": a["msgs"], "substantive": a["subst"], "avg_len": round(avg),
+            "pnl_posts": a["pnl"], "setups": a["setups"], "nuggets": a["nuggets"],
+            "links": a["links"], "channels": a["chans"].most_common(4),
+            "active": f"{(a['first'] or '')[:10]} → {(a['last'] or '')[:10]}",
+        })
+    authors.sort(key=lambda x: -x["score"])
+    report["authors"] = authors[:60]
     return report
 
 
