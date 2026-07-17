@@ -77,6 +77,17 @@ MenthorQ actual-price levels; gotchas call this out on both cards.
 `data_catalog.py scan`. Registered directly via `Register-ScheduledTask` (NOT in the market-time
 `schedule_options_tasks.ps1` — it's maintenance, runs every day, no DST/CT sensitivity).
 
+**MISSION CONTROL — `scripts/launcher.py` (:8590).** One page to start / open / stop every
+dashboard we've built (a plain HTML can't spawn local servers, so it's a stdlib launcher like
+the command center). Cards: Options Desk :8600, Gamma Command Center :8610, Data Catalog :8620,
+WFA Streamlit :8501, Options Forward-Sim Streamlit :8502. Start = detached subprocess (survives
+closing the launcher; logs → `data/_catalog/logs/<key>.log`), Stop = `taskkill /T /F` by tracked
+PID (netstat fallback), plus Restart / Start-all / Stop-all / Open-running. Live up/down dot via
+port probe (detects externally-started servers too); per-card uptime + memory + response-ms;
+Reload button, auto-refresh toggle, theme toggle, copy-URL, inline log tail. PIDs persist to
+`data/_catalog/launcher_pids.json`. Run: `.venv/Scripts/python.exe scripts/launcher.py --open`.
+Committed + pushed (`3b2a527`).
+
 **⚠ Still open / TODO in registry:** `vix_ib_daily` producer (who writes vix_daily.*) marked
 `produced_by: TODO` — not guessed. **NOT committed** (user's standing rule: no commit without
 explicit "yes"); `catalog.yaml`, `scripts/data_catalog.py`, `data/_catalog/manifest.json`,
