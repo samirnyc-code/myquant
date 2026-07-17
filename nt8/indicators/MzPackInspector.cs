@@ -44,8 +44,8 @@ namespace NinjaTrader.NinjaScript.Indicators
         {
             if (done || CurrentBar < 0) return;
             done = true;
-            try { Dump(); Log("MzPackInspector wrote " + ExportPath, LogLevel.Information); }
-            catch (Exception e) { Log("MzPackInspector failed: " + e.Message, LogLevel.Error); }
+            try { Dump(); Print("MzPackInspector wrote " + ExportPath); }
+            catch (Exception e) { Print("MzPackInspector failed: " + e.Message); }
         }
 
         private void Dump()
