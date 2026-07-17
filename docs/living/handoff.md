@@ -1,6 +1,44 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 17, 2026 (session 75F)
+**Last Updated:** July 17, 2026 (session 75G)
+
+---
+
+## S75G (2026-07-17) — DEEP HISTORICAL ORDER-FLOW DATA: vendor research → Databento (branch `s75-live-dashboard`)
+
+Research-only session (no code). Question: does ATAS or any order-flow **software** sell
+**deep historical** order-flow / depth-of-book data for research? **Conclusion: no — software
+keeps only days-to-weeks of DOM history; deep history is a raw-data-vendor problem, and
+Databento is the answer.**
+
+- **Hard split found:** trades/tick history goes back years in several tools, but
+  depth-of-book history (bid/ask liquidity per level over time) is TB/year, so platforms
+  retain only days-to-weeks. Shallow-DOM software: **ATAS** (Ticks+DOM = 1 day; Big Trades
+  7d/30d), **Bookmap** (~24–96 hrs backfill, 28d if you beg), **Sierra Chart/Denali** (ticks
+  from 2011 but market-depth only last **15 days** downloadable / 180d retention — best
+  software compromise, cheap, scriptable, still shallow).
+- **Databento = the deep-history vendor:** full MBO (L3) + MBP-10 (L2) back to **June 2010**
+  on CME/CBOT/NYMEX/COMEX, nanosecond ts, dataset `GLBX.MDP3`, DBN → Python/parquet. For ES
+  order-flow research use **`mbp-10`** (sweet spot); `mbo` is 10–50× bigger, overkill.
+- **Pricing:** pay-as-you-go **$/GB is the right model** for one-off historical pulls.
+  Subscriptions: Standard $179–199/mo (only **1 month** of L2/L3 — the trap), Plus $1,500/mo,
+  Unlimited $4,000/mo. **$125 new-user credit** (6-mo expiry). **Card required at signup**
+  (fraud verification) but **not charged** unless you exceed the credit. Cost estimator =
+  batch-download widget in the data catalog, or `Historical.metadata.get_cost` via API.
+- **User data point:** ~3 months of ES `mbp-10` ≈ **$145** (so ~$580/yr pay-as-you-go).
+- **⚠ Flagged & rejected:** user floated 5 accounts × 5 cards to farm 5× the $125 credit for a
+  "free year." Pushed back — that's the exact multi-account abuse the card check defeats;
+  likely credit-void / account-close / clawback, and it burns the one vendor that solves this.
+  ~$580/yr is a rounding error next to the ORATS sub; recommended one legit account.
+
+**Email sent** by user to sales@databento.com requesting GB+$ estimate for 1 month ES
+front-month `mbp-10` RTH (08:30–15:00 CT), incl. `trades`/`mbp-1` comparison + credit confirm.
+**Status: PAUSED, awaiting reply.** Full detail in memory `orderflow-historical-data-databento.md`.
+
+**Next when resumed:** review Databento quote (or self-serve the catalog estimator); use the
+**one** legit $125 credit to validate data quality + wire ES `mbp-10` into the parquet pipeline
+(offered a `get_cost`-gated pull script); if useful, buy the rest pay-as-you-go. Related to the
+same gap as ORATS (front-ends have viz; nobody resells deep raw cheaply).
 
 ---
 
