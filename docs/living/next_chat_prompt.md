@@ -1,99 +1,65 @@
-# New-chat prompt — Data Catalog, MQ-data research, and de-fragmenting the project
+# Next-chat prompt — chart-marking workflow + touch-band exploration (from S75J)
 
-> Paste everything below the line into a fresh chat. It assumes you've read
-> `docs/living/handoff.md` first (S75E block at the top).
+Copy-paste from here down into the new chat.
 
 ---
 
-Read `docs/living/handoff.md` FIRST (source of truth), then work the plan below. The
-theme this session: **stop the fragmentation.** We have a huge amount of data and
-several dashboards that don't know about each other. Before building anything new,
-we get *visibility* into what we have and a clear architecture. Challenge my
-direction, flag overfitting/redundancy, and keep the S73 fill-realism rules (real
-fills, chart-audit before reporting, treat PF>3 as a bug).
+Read `docs/living/handoff.md` FIRST — the S75J block (2026-07-17) at the top is current
+state. Also skim `docs/living/orderflow_edge_backlog.md` and memory (`free-footprint-pipeline`,
+`backtest_fill_realism`, `keep_in_check`).
 
-## The goal (north star — don't lose sight of it)
-Systematically **find, validate, and trade real edges** in ES futures (the WFA
-engine) and SPX/0DTE options (the live desk), with honest fill realism. Everything
-else — ticks, bars, MQ levels, VIX, educational data — is **fuel** for those two
-execution arms. Any new tool must serve that, not add surface area.
+**Where we are:** `scripts/orderflow_at_levels.py` runs the first touch/signature/outcome
+study of ES order flow at MenthorQ levels (75 episodes over 7/13–7/16, chart-audited —
+an episode-detection bug was found and fixed BY the audit; the per-day audit chart is now
+mandatory before trusting any table). 4-day readout: H2 (HVN≡level) soft-positive; H5
+(absorption) mis-defined — the day's best fades all showed heavy counter-delta into the
+level with ~1pt heat, so absorption should be **delta-per-point-of-progress**, not a range
+cap; H1 untestable at n=2. Data: `data/footprint/ES_footprint.csv` (ladder, dedupe on
+load — exporter APPENDS on re-run), `ES_bars.csv` (2000-lot volume bars + tick-order
+fields), `ES_metrics.csv`, `level_touches.csv`; ES1! MQ levels through 7/16 (native ES
+points — no basis adjust needed within the 2-yr futures-levels window).
 
-## Phase 1 (DO FIRST) — build the DATA CATALOG
-The #1 ask: **one place to see everything we've collected.** We have ~**108 GB**
-across ~13 families and no index. Build a **Data Catalog** = a generated inventory
-page + a hand-maintained registry.
+**THIS SESSION — two workstreams, in order:**
 
-**What's on disk today (seed the catalog with this):**
-- `data/flatfiles_cache/` 46 G, `flatfiles_cache_cbot/` 15 G, `_nymex/` 14 G,
-  `_comex/` 5.6 G — Databento/Massive flat files (raw vendor)
-- `data/nt_import/` 15 G — NinjaTrader import data
-- `data/optionsdx/` 4.9 G — OptionsDX EOD chains (SPX, NO open-interest — see handoff)
-- `data/ticks_continuous/` (ES) 3.4 G, `_NQ/` 3.1 G, `_YM/` 816 M, `_CL/` 744 M,
-  `_GC/` 468 M, `_6E/` 189 M, `_6J/` 168 M — continuous tick series
-- `data/bars/` 62 M — continuous + per-contract bar parquets (incl. `_continuous_unadj.parquet`)
-- `data/wfa_store/` 257 M — walk-forward results
-- `data/menthorq/` 152 M — **the MQ mined data** (levels history CSVs, harvest tiles,
-  ws.json surfaces, gamma.db backtest stats, `knowledge/` = 392 educational files)
-- `data/signals/` — NinjaTrader signal exports (MyReversals, MyMicroChannel txt)
-- `data/options_sim/` 2.4 M — the live options desk (trades, gameplans, postmortems, eod_status)
-- `data/briefs/`, `data/options_log/`, `data/massive_options/`, `data/cache/`, …
-- Educational: `data/menthorq/knowledge/{guides,lessons,wiki}` (392 files) + any `books/`
+**1. Chart-marking workflow (design carefully with me before building — I'm not yet clear
+on the best way to do this).** The idea: I mark great trade setups on charts (BOPB /
+breakout-pullbacks, second-entry fades at levels), you find what they have in common in
+the footprint/level data. Agreed guardrails (hold me to them): I mark the SETUP by my
+rules — including ones that then failed — NOT the outcome (hindsight leak); analysis =
+marked setups vs **matched controls** (unmarked touches, same days/levels); whatever
+discriminates becomes a pre-registered rule tested on unmarked history — marks are
+hypothesis generation only. Proposed build: a local click-to-annotate page (stdlib
+http.server, command-center pattern — NO Streamlit) showing per-day ES bars + MQ levels;
+click a bar → tag setup type (BOPB / 2nd-entry fade / other), direction, optional A/B
+grade → append to `data/annotations/marks.csv` with the exact bar timestamp. Day picker +
+keyboard shortcuts so a mark takes seconds. Open design questions to work through with me:
+what context I need on the marking chart (footprint delta? CVD? or deliberately price-only
+to avoid anchoring me on the features we're testing?), one-sided vs graded labels, how
+many days before first feature-ranking pass, and how to randomize/blind day order.
+Calibrate the whole loop on 7/13–7/16 first (footprint already on disk) before I invest
+hours of marking.
 
-**Build it as:**
-1. `catalog.yaml` (or `data/DATA_CATALOG.md`) — **hand-maintained metadata** per data
-   family: description, producing script, update cadence, **what it's useful for**,
-   how to access (path + loader snippet), gotchas.
-2. A **scanner** (`scripts/data_catalog.py`) that fills the **live metrics**: total
-   size, file count, newest-file timestamp (→ "last updated" + staleness), a basic
-   **health check** (expected files present? recent? not zero-byte?), row counts for
-   key parquets/CSVs.
-3. A rendered **page** (reuse the command-center pattern; stdlib http.server, no deps)
-   grouped by family, with the metrics above + search/filter. This is "the place."
+**2. Touch-band size exploration.** The ±4-tick band was arbitrary-but-pre-committed.
+Run the sensitivity pass (±2 / ±4 / ±8 ticks — an effect that only exists at one width is
+not real) AND explore a **volatility-normalized band**: fixed points mean different things
+in different regimes, so test band = k × ABR (avg bar range) or k × ADR% (avg daily
+range) — pick the definition and k BEFORE looking at outcome tables, and say explicitly
+which normalization is used for the 5-yr run. The 5-yr window includes 2022 vol — a
+1-pt band there is a different instrument than in 2026.
 
-Design the metrics you'd want on such a tool (freshness, size, health, usefulness,
-schema/columns, provenance). Keep it a **scanner + registry**, not a DB.
+**WHY (both goals, keep them in view):** (a) find actual ES setups worth trading; (b) find
+better ways to trade the OPTIONS strategies — level-hold/break signatures should condition
+0DTE structure choice, entry timing, and the fly proximity gate (S75H finding: fly fired
+50pts off-center; criteria FROZEN, changes need backtest + sign-off).
 
-## Phase 2 — what to actually DO with the MQ data (prove it's useful)
-We now have (see handoff): **~5 yr SPX + Mag7 gamma levels**, **~2 yr futures**, the
-**signed GEX per level**, **1D expected-move band**, the **backtest-tile stats**
-(SPX 6 levels, MQ's own hold-rate claims — accruing daily now), and **5m intraday
-candles** on demand (MQ candles endpoint). Run, chart-audited, honest haircuts:
-1. **Validate MQ's own backtest claims** — independently recompute real hold/fade
-   rates for CR/PS/HVL/0DTE/1D-Max/Min vs the tile's claimed % (98.6% PS, 89% 1D Max…).
-   Are they calibrated or marketing? (Confirm intraday source first: MQ 5m candles vs
-   our own bars.)
-2. **Fade/level-respect edge, conditioned on gamma regime** (pos vs neg γ per day)
-   and **wall strength** (signed GEX magnitude). This is the desk's core auto-fire.
-3. **Expected-move accuracy** — did the next session stay inside 1D min/max? (the
-   87/85/73 claim on 5 yr real data).
-4. Does any edge **generalize to Mag7** or is it SPX-only?
-Lead with the discounted/live expectation, not the backtest number.
+**Blocked/parked:** 5-yr NT8 footprint export needs the exporter truncate-on-start fix
+first (else chunks append into a mess) — bundle with `BidVolLarge/AskVolLarge` ≥10-lot
+columns (unlocks a real H5 test) into ONE recompile for me. MzPack 14-day trial running
+(extract VolumeProfile/VolumeDelta). ORATS calibration owed when data lands. Databento
+paused awaiting sales reply.
 
-## Phase 3 — architecture (de-fragment; my recommended vision, challenge it)
-Don't build five disconnected apps. **Hub-and-spoke:**
-- **Spokes (purpose-built, keep):** Options Desk `:8600` (live cockpit) · Levels
-  Command Center `:8610` (MQ levels/research) · **Data Catalog** (new, Phase 1) · the
-  **ES Streamlit WFA app** (backtest research — decide: keep standalone or link in).
-- **Hub (future):** one lightweight home page linking the spokes + a **unified PnL
-  rollup** (options desk + any futures sim). Build only when it reduces friction.
-- **Future dashboards** the user floated: Mag7, Futures, master-PnL — treat these as
-  *views/tabs within the levels command center or the hub*, NOT new servers, unless
-  there's a real reason. Consolidate; every new port is maintenance debt.
-- Decide the **registry pattern** once and reuse it (catalog, dashboards all read the
-  same metadata source of truth).
-
-## Phase 0 — ORATS (only if the user still wants it)
-The calculus CHANGED (handoff): we have MQ's ~5 yr labeled levels + backtest stats
-**free**. ORATS is now ONLY for (a) pre-2021 depth (→2007) and (b) independent GEX
-computation. If the user proceeds: read the ORATS Data-API docs to confirm the
-`/datav2/hist/strikes` download mechanics (token, quota, pagination), then use the
-ready `scripts/orats_pull.py` — start with **SPX-only overlap-year (~252 req)** to
-validate our GEX→levels formula against the MQ answer key BEFORE any big pull. Do NOT
-buy it for data we already have.
-
-## Definition of done for this session
-- Data Catalog page live, listing all families with size/freshness/health/usefulness
-  (educational data included).
-- At least one real, chart-audited MQ-data analysis with an honest verdict.
-- A written architecture decision (hub-and-spoke or alternative) in the handoff, so
-  we stop fragmenting.
+**Hard rules:** real fills only; chart-audit before reporting any result; treat PF>3 as a
+bug until proven; `_continuous_UNADJ` bars for anything price-level; day-clustered stats
+(one choppy day gave 26/75 episodes — independent-sample stats are fake precision);
+present all results inline as tables (I can't see tool output); every PNG gets `code`-opened;
+challenge my research direction and flag overfitting/fishing explicitly.

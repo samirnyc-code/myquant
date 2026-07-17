@@ -73,11 +73,23 @@ def bar_metrics(g):
     )
 
 
-def main():
-    day = sys.argv[1] if len(sys.argv) > 1 else None
+def load_ladder():
+    """Load the raw ladder, deduped. The exporter APPENDS on every (re)run, so the same
+    session can be written multiple times; rows are full-row identical except a re-run's
+    final partial bar, where the LAST write is the complete one — keep='last'."""
     d = pd.read_csv(CSV)
     if "BarIdx" not in d.columns:
         raise SystemExit("CSV missing BarIdx — re-run the fixed FootprintExporter")
+    n = len(d)
+    d = d[~d.duplicated(subset=["BarIdx", "BarTime", "Price"], keep="last")]
+    if len(d) < n:
+        print(f"ladder: dropped {n - len(d)} duplicate rows (exporter re-run appends)")
+    return d
+
+
+def main():
+    day = sys.argv[1] if len(sys.argv) > 1 else None
+    d = load_ladder()
     if day:
         d = d[d.BarTime.str.startswith(day)]
     rows = []

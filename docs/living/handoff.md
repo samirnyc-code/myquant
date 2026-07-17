@@ -1,6 +1,53 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 17, 2026 (session 75I)
+**Last Updated:** July 17, 2026 (session 75J)
+
+---
+
+## S75J (2026-07-17) — orderflow_at_levels.py v1: touch/signature/outcome study + chart-marking plan (branch `s75-live-dashboard`)
+
+**➡️ NEXT SESSION: start from `docs/living/next_chat_prompt.md`** (chart-marking workflow +
+touch-band exploration).
+
+Built the first order-flow-at-MQ-levels study on the validated footprint pipeline.
+4 sessions of data (7/13–7/16), everything chart-audited. Committed.
+
+- **Exporter re-run verified, TWO data bugs caught:** (1) `FootprintExporter` **appends**
+  on every (re)run — the recompile wrote the ladder 3× (identical rows; volume/delta silently
+  tripled). `footprint_metrics.py` now dedupes on load (keep-last per BarIdx/BarTime/Price);
+  the .cs still needs a truncate-on-start fix at the next recompile. (2) The ladder's final
+  partial bar is junk (no `ES_bars.csv` row) — excluded by joining on ES_bars. `ES_bars.csv`
+  confirmed good: Open/Close/High/Low/MinDelta/MaxDelta/Delta/DurationSec/DeltaRate/UnfHigh/
+  UnfLow, 1,928 bars (2000-lot **volume bars**), 7/13–7/16. ES1! MQ levels backfilled through
+  7/16 (`--recent 4`).
+- **`scripts/orderflow_at_levels.py`** — touch-episode study vs ES1! MQ levels (native ES
+  points, **no basis needed** for the 2yr futures-levels window). Pre-registered: ±4-tick
+  touch band, 3-pt reset buffer OR 30-min out-of-band for a new episode, 10-bar approach
+  window, signature strictly ≤ touch-bar close, outcomes from next bar (+5/15/30/60m ret,
+  MFE/MAE, held = ≥3pts fade-side for 15m). Levels sharing a price (cr0≡gw0 all 4 days)
+  deduped. Output `data/footprint/level_touches.csv`.
+- **⚠️ Episode-detection bug found BY chart audit** (`scratchpad/touch_audit.png`,
+  `touch_zoom_716.png`): v1 required buffer-leave **AND** 30-min (doc said OR) and only reset
+  the clock on recorded touches → swallowed >half of genuine re-tests. Fix: 29 → **75 episodes**.
+  Lesson recorded: the episode definition IS the study; the undercount had *flattered* H2.
+  Standard practice going forward: per-day audit chart before trusting any table.
+- **4-day readout (hypothesis-generation only, N tiny):** H2 (HVN≡level → holds): 7/10 vs
+  26/65 held — directionally supportive, softer after the fix. H5 (absorption → holds): v2
+  definition fires 7×, points the WRONG way (2/7 vs 31/68) — but 7/16's three cleanest
+  winners (hvl 08:48 −1514Δ MAE 0, hvl 13:07 −942Δ, ps 14:47 −1170Δ +23pts) all share
+  *heavy counter-delta into the level, ~1pt heat* → absorption should be redefined as
+  **delta-per-point-of-progress**, not a ≤2-pt range cap (which only fires at the open on
+  volume bars). H1 (POC-below-PS magnet): n=2, no read. cr0+gw0 touches: 11/16 held.
+- **CHART-MARKING PLAN AGREED** (user proposal, refined): user marks great setups (BOPB,
+  second-entry fades) → feature-discovery vs **matched controls** (unmarked touches, same
+  days/levels). Guardrails: mark the SETUP by rules (including failures), not the outcome
+  (hindsight leak); marks = hypothesis generation, surviving rule gets pre-registered and
+  tested on unmarked 5-yr history. Build: local click-to-annotate page (stdlib server) →
+  `data/annotations/marks.csv`. Calibrate on 7/13–7/16 first (footprint already on disk).
+- **OPEN / NEXT:** annotation tool; touch-band sensitivity (±2/4/8 ticks + ABR/ADR%-normalized
+  band); 5-yr NT8 footprint export plan (chunked; blocked on exporter truncate fix);
+  exporter v3 = truncate + `BidVolLarge/AskVolLarge` (≥10-lot) columns → unlocks real H5;
+  day-clustered stats for the 5-yr run (26 of 75 episodes came from one choppy day).
 
 ---
 
