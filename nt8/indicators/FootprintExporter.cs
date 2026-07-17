@@ -110,8 +110,8 @@ namespace NinjaTrader.NinjaScript.Indicators
             try
             {
                 foreach (var kv in book)
-                    writer.WriteLine(string.Format("{0:yyyy-MM-dd HH:mm:ss},{1},{2},{3}",
-                        accumTime, kv.Key, kv.Value[0], kv.Value[1]));
+                    writer.WriteLine(string.Format("{0},{1:yyyy-MM-dd HH:mm:ss},{2},{3},{4}",
+                        accumBar, accumTime, kv.Key, kv.Value[0], kv.Value[1]));
                 writer.Flush();
             }
             catch (Exception e) { Log("FootprintExporter write failed: " + e.Message, LogLevel.Warning); }
