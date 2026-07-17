@@ -111,6 +111,17 @@ DASHBOARDS = [
              "filled in. The raw material for all the level studies.",
      "cmd": _st("mq_levels_command_center.py") + ["--port", "8610"]},
 
+    {"key": "discord_intel", "group": "Discord",
+     "title": "Discord Intel", "port": 8640,
+     "desc": "Scrapes tracked Discord channels (MenthorQ / MZpack / Quant Systems) for "
+             "testable setups, nuggets & links. Add a channel or server ID and it "
+             "auto-resolves the name and pulls everything; auto-refreshes hourly.",
+     "info": "Turns trading-Discord chatter into an intel feed: paste a channel or "
+             "server ID, it finds the name and scrapes the history, then extracts "
+             "testable setups, insight nuggets and important links. Runs an hourly "
+             "incremental pull so it stays current. Data in data/discord/.",
+     "cmd": _st("discord_intel.py") + ["--port", "8640"]},
+
     {"key": "data_catalog", "group": "Reference",
      "title": "Data Catalog", "port": 8620,
      "desc": "Index of every data family (~116 GB): size, freshness, health, "
@@ -382,6 +393,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(json.dumps(load_artifacts()))
             if p == "/tour":
                 return self._send_tour()
+            if p == "/library":
+                return self._send_library()
             if p == "/catalog" or p.startswith("/catalog/"):
                 return self._proxy_catalog(p[len("/catalog"):])
             return self._send("<h1>403</h1><p>read-only viewer: not available</p>",
@@ -394,6 +407,8 @@ class Handler(BaseHTTPRequestHandler):
                               "text/html; charset=utf-8")
         if p == "/tour":
             return self._send_tour()
+        if p == "/library":
+            return self._send_library()
         if p in ("/favicon.svg", "/favicon.ico"):
             return self._send(FAVICON, "image/svg+xml")
         if p == "/status.json":
@@ -437,6 +452,17 @@ class Handler(BaseHTTPRequestHandler):
         if f.exists():
             return self._send(f.read_text(encoding="utf-8"), "text/html; charset=utf-8")
         return self._send("<h1>tour not found</h1><p>docs/options_desk_tour.html missing.</p>",
+                          "text/html; charset=utf-8")
+
+    def _send_library(self):
+        # MZpack Insights knowledge base (S75N) — built from docs/mzpack_insights/notes/
+        # by scripts/mzpack_library_build.py; self-contained HTML, safe for the remote
+        # viewer too (static educational content, no controls).
+        f = ROOT / "docs" / "mzpack_insights" / "library.html"
+        if f.exists():
+            return self._send(f.read_text(encoding="utf-8"), "text/html; charset=utf-8")
+        return self._send("<h1>library not built</h1><p>run scripts/mzpack_library_build.py "
+                          "to generate docs/mzpack_insights/library.html.</p>",
                           "text/html; charset=utf-8")
 
     def do_POST(self):
@@ -566,6 +592,7 @@ pre{background:var(--chip);border-radius:7px;padding:8px 10px;font-size:11px;ove
   <span class="pill" id="summary">…</span>
   <span style="margin-left:auto"></span>
   <a href="/tour" target="_blank" rel="noopener"><button title="how the options desk automation works — shareable explainer">📖 Desk Tour</button></a>
+  <a href="/library" target="_blank" rel="noopener"><button title="MZpack Insights knowledge base — order-flow education organized by topic">📚 MZpack Library</button></a>
   <button id="reload" title="refresh status now">↻ Reload</button>
   <button class="primary" id="startall">▶ Start all</button>
   <button id="openall" title="open every running dashboard">↗ Open running</button>
@@ -755,7 +782,8 @@ button:disabled{opacity:.4;cursor:default}
   <p class="hint">Live view of Samir's research &amp; trading stack. You can <b>start the Options
   Desk</b> and <b>browse the Data Catalog</b>; everything else is status-only. The desk itself
   opens with the keyed :8600 link Samir gave you.</p>
-  <p class="tour" style="margin:0 0 10px;font-size:13px">📖 <a id="tourlink" href="/tour" target="_blank" rel="noopener">How the Options Desk works</a></p>
+  <p class="tour" style="margin:0 0 10px;font-size:13px">📖 <a id="tourlink" href="/tour" target="_blank" rel="noopener">How the Options Desk works</a>
+  &nbsp;·&nbsp; 📚 <a id="liblink" href="/library" target="_blank" rel="noopener">MZpack order-flow library</a></p>
   <div id="groups"></div>
   <div class="arthead"><span style="font-size:13px;font-weight:600">Claude Artifacts — research &amp; learning pages built along the way</span>
     <span class="info" title="Interactive pages generated with Claude during the research: courses, data dictionaries, cheat sheets, trade-audit reports. They live in Samir's Claude account, so the cards aren't clickable here — ask him to share any you want to read.">i</span>
@@ -766,6 +794,7 @@ button:disabled{opacity:.4;cursor:default}
 const KEY=new URLSearchParams(location.search).get('key')||'';
 const k=u=>u+(u.includes('?')?'&':'?')+'key='+encodeURIComponent(KEY);
 document.getElementById('tourlink').href=k('/tour');
+document.getElementById('liblink').href=k('/library');
 function fmtup(s){if(s==null)return '';const h=Math.floor(s/3600),m=Math.floor(s%3600/60);
   if(h)return h+'h '+m+'m';if(m)return m+'m';return s+'s';}
 async function load(){

@@ -1,0 +1,438 @@
+{
+ "generated": "2026-07-17 15:17",
+ "count": 54,
+ "articles": [
+  {
+   "slug": "02-07-2019-breakeven-e-mini-sp500-trade",
+   "title": "02/07/2019. Breakeven E-mini SP500 Trade",
+   "url": "https://www.mzpack.pro/02-07-2019-breakeven-e-mini-sp500-trade/",
+   "date": "2019-02-08",
+   "topic": "trade-examples",
+   "relevance": "high"
+  },
+  {
+   "slug": "02-11-2019-mirror-level-trade",
+   "title": "02/11/2019 Mirror Level Trade",
+   "url": "https://www.mzpack.pro/02-11-2019-mirror-level-trade/",
+   "date": "2019-02-11",
+   "topic": "trade-examples",
+   "relevance": "medium"
+  },
+  {
+   "slug": "02-12-2019-e-mini-sp500-trade-by-the-trend",
+   "title": "02/12/2019. E-mini SP500 \u2013 Trade by The Trend",
+   "url": "https://www.mzpack.pro/02-12-2019-e-mini-sp500-trade-by-the-trend/",
+   "date": "2019-02-12",
+   "topic": "trade-examples",
+   "relevance": "medium"
+  },
+  {
+   "slug": "6e-03-19-trading",
+   "title": "6E Futures Trade With mzVolumeDelta, mzVolumeProfile and mzFootprint Indicators",
+   "url": "https://www.mzpack.pro/6e-03-19-trading/",
+   "date": "2019-01-19",
+   "topic": "trade-examples",
+   "relevance": "high"
+  },
+  {
+   "slug": "6e-reversal-pattern-footprint-and-volumedelta-indicators",
+   "title": "6E Reversal Pattern: Footprint and VolumeDelta Indicators",
+   "url": "https://www.mzpack.pro/6e-reversal-pattern-footprint-and-volumedelta-indicators/",
+   "date": "2018-12-19",
+   "topic": "footprint",
+   "relevance": "high"
+  },
+  {
+   "slug": "a-question-on-overall-liquidity-migration",
+   "title": "A Question On Overall Liquidity Migration",
+   "url": "https://www.mzpack.pro/a-question-on-overall-liquidity-migration/",
+   "date": "2019-01-28",
+   "topic": "core-concepts",
+   "relevance": "high"
+  },
+  {
+   "slug": "aggressivetrade-and-marketdepth-on-zn-futures",
+   "title": "AggressiveTrade and MarketDepth on ZN futures",
+   "url": "https://www.mzpack.pro/aggressivetrade-and-marketdepth-on-zn-futures/",
+   "date": "unknown",
+   "topic": "trade-examples",
+   "relevance": "low"
+  },
+  {
+   "slug": "backtesting-mzpack-strategies-two-paths-to-validating-your-edge",
+   "title": "Backtesting MZpack Strategies: Two Paths to Validating Your Edge",
+   "url": "https://www.mzpack.pro/backtesting-mzpack-strategies-two-paths-to-validating-your-edge/",
+   "date": "2026-07-15",
+   "topic": "strategies-backtesting",
+   "relevance": "medium"
+  },
+  {
+   "slug": "cl-reversal-pattern",
+   "title": "CL Reversal Pattern",
+   "url": "https://www.mzpack.pro/cl-reversal-pattern/",
+   "date": "2018-12-28",
+   "topic": "trade-examples",
+   "relevance": "high"
+  },
+  {
+   "slug": "cl-trade-on-reversal",
+   "title": "CL. Trade On Reversal",
+   "url": "https://www.mzpack.pro/cl-trade-on-reversal/",
+   "date": "2017-01-20",
+   "topic": "trade-examples",
+   "relevance": "low"
+  },
+  {
+   "slug": "cl-trading-via-big-trades",
+   "title": "Crude Oil (CL) Trade With mzBigTrade and mzFootprint Indicators",
+   "url": "https://www.mzpack.pro/cl-trading-via-big-trades/",
+   "date": "2019-01-17",
+   "topic": "trade-examples",
+   "relevance": "high"
+  },
+  {
+   "slug": "crude-oil-cl-trade-with-3-indicators",
+   "title": "Crude Oil (CL) Trade With 3 Indicators",
+   "url": "https://www.mzpack.pro/crude-oil-cl-trade-with-3-indicators/",
+   "date": "2019-01-22",
+   "topic": "trade-examples",
+   "relevance": "high"
+  },
+  {
+   "slug": "defended-levels-seeing-who-is-holding-the-price",
+   "title": "Defended Levels: Seeing Who is Holding the Price",
+   "url": "https://www.mzpack.pro/defended-levels-seeing-who-is-holding-the-price/",
+   "date": "2026-07-06",
+   "topic": "core-concepts",
+   "relevance": "high"
+  },
+  {
+   "slug": "dividing-and-merging-tpo-profiles",
+   "title": "Dividing and Merging TPO Profiles",
+   "url": "https://www.mzpack.pro/dividing-and-merging-tpo-profiles/",
+   "date": "2024-09-23",
+   "topic": "volume-profile-tpo",
+   "relevance": "medium"
+  },
+  {
+   "slug": "e-mini-sp500-scalping-by-the-trend",
+   "title": "E-mini SP500 \u2013 Scalping by The Trend",
+   "url": "https://www.mzpack.pro/e-mini-sp500-scalping-by-the-trend/",
+   "date": "2018-12-20",
+   "topic": "trade-examples",
+   "relevance": "medium"
+  },
+  {
+   "slug": "es-03-19-scalping-using-mzpack-indicators",
+   "title": "ES 03-19 Scalping using MZpack Indicators",
+   "url": "https://www.mzpack.pro/es-03-19-scalping-using-mzpack-indicators/",
+   "date": "2019-02-07",
+   "topic": "trade-examples",
+   "relevance": "medium"
+  },
+  {
+   "slug": "es-03-19-trade-using-mzpack-indicators",
+   "title": "ES 03-19 Trade using MZpack Indicators",
+   "url": "https://www.mzpack.pro/es-03-19-trade-using-mzpack-indicators/",
+   "date": "2019-02-03",
+   "topic": "trade-examples",
+   "relevance": "medium"
+  },
+  {
+   "slug": "es-m1-pullback-pattern",
+   "title": "ES. M1 Pullback Pattern",
+   "url": "https://www.mzpack.pro/es-m1-pullback-pattern/",
+   "date": "2019-01-10",
+   "topic": "trade-examples",
+   "relevance": "high"
+  },
+  {
+   "slug": "es-pullback-pattern-profile-delta-bar-delta",
+   "title": "ES. Pullback Pattern \u2013 Profile Delta, Bar Delta",
+   "url": "https://www.mzpack.pro/es-pullback-pattern-profile-delta-bar-delta/",
+   "date": "2018-12-29",
+   "topic": "trade-examples",
+   "relevance": "high"
+  },
+  {
+   "slug": "es-scalping",
+   "title": "ES Scalping",
+   "url": "https://www.mzpack.pro/es-scalping/",
+   "date": "2019-01-16",
+   "topic": "trade-examples",
+   "relevance": "medium"
+  },
+  {
+   "slug": "exchange-order-types-and-how-mzpack-helps-you-see-whats-really-happening",
+   "title": "Exchange Order Types (and How MZpack Helps You See What's Really Happening)",
+   "url": "https://www.mzpack.pro/exchange-order-types-and-how-mzpack-helps-you-see-whats-really-happening/",
+   "date": "2026-01-06",
+   "topic": "core-concepts",
+   "relevance": "medium"
+  },
+  {
+   "slug": "gc-continuation-pattern",
+   "title": "GC. Continuation Pattern",
+   "url": "https://www.mzpack.pro/gc-continuation-pattern/",
+   "date": "2018-07-24",
+   "topic": "trade-examples",
+   "relevance": "medium"
+  },
+  {
+   "slug": "gold-gc-scalping-using-mzpack-and-atr-indicators",
+   "title": "GOLD (GC) Scalping using MZpack and ATR Indicators",
+   "url": "https://www.mzpack.pro/gold-gc-scalping-using-mzpack-and-atr-indicators/",
+   "date": "2019-02-01",
+   "topic": "trade-examples",
+   "relevance": "low"
+  },
+  {
+   "slug": "gold-gc-trade-with-4-indicators",
+   "title": "Gold (GC) Trade With 4 MZpack Indicators",
+   "url": "https://www.mzpack.pro/gold-gc-trade-with-4-indicators/",
+   "date": "2019-01-24",
+   "topic": "trade-examples",
+   "relevance": "medium"
+  },
+  {
+   "slug": "gold-gc-trade-with-mzpack-indicators",
+   "title": "Gold (GC) Trade With MZpack Indicators",
+   "url": "https://www.mzpack.pro/gold-gc-trade-with-mzpack-indicators/",
+   "date": "2019-01-27",
+   "topic": "trade-examples",
+   "relevance": "high"
+  },
+  {
+   "slug": "how-to-create-custom-indicator-using-mzpack-api",
+   "title": "How to Create Custom Indicator Using MZpack API",
+   "url": "https://www.mzpack.pro/how-to-create-custom-indicator-using-mzpack-api/",
+   "date": "2023-03-04",
+   "topic": "platform-misc",
+   "relevance": "low"
+  },
+  {
+   "slug": "how-to-get-ninjatrader-8-free",
+   "title": "How To Get NinjaTrader 8 Free",
+   "url": "https://www.mzpack.pro/how-to-get-ninjatrader-8-free/",
+   "date": "2019-02-26",
+   "topic": "platform-misc",
+   "relevance": "low"
+  },
+  {
+   "slug": "how-to-use-order-book-in-scalping",
+   "title": "How to use order book in scalping?",
+   "url": "https://www.mzpack.pro/how-to-use-order-book-in-scalping/",
+   "date": "2023-09-24",
+   "topic": "core-concepts",
+   "relevance": "low"
+  },
+  {
+   "slug": "imbalancemomentum-strategy",
+   "title": "ImbalanceMomentum Strategy",
+   "url": "https://www.mzpack.pro/imbalancemomentum-strategy/",
+   "date": "2022-09-24",
+   "topic": "strategies-backtesting",
+   "relevance": "low"
+  },
+  {
+   "slug": "interpretations-for-some-of-mzbigtrade-indicator-order-flow-patterns",
+   "title": "Interpretations for Some of mzBigTrade Indicator Order Flow Patterns",
+   "url": "https://www.mzpack.pro/interpretations-for-some-of-mzbigtrade-indicator-order-flow-patterns/",
+   "date": "2020-11-25",
+   "topic": "core-concepts",
+   "relevance": "high"
+  },
+  {
+   "slug": "mirror-levels-trading-order-flow-polarity-flips-on-the-footprin",
+   "title": "Mirror Levels: Trading Order-Flow Polarity Flips on the Footprint",
+   "url": "https://www.mzpack.pro/mirror-levels-trading-order-flow-polarity-flips-on-the-footprin/",
+   "date": "2026-06-25",
+   "topic": "core-concepts",
+   "relevance": "high"
+  },
+  {
+   "slug": "mzpack-bookmap-style-w-dom-pressure-and-migration-delta",
+   "title": "MZpack Bookmap Style w DOM Pressure and Migration Delta",
+   "url": "https://www.mzpack.pro/mzpack-bookmap-style-w-dom-pressure-and-migration-delta/",
+   "date": "2019-08-30",
+   "topic": "core-concepts",
+   "relevance": "medium"
+  },
+  {
+   "slug": "mzpack-deltadivergence-indicator-for-ninjatrader-8-settings-es-10-min",
+   "title": "MZpack DeltaDivergence Indicator for NinjaTrader 8 Settings ES 10 Min",
+   "url": "https://www.mzpack.pro/mzpack-deltadivergence-indicator-for-ninjatrader-8-settings-es-10-min/",
+   "date": "2022-02-02",
+   "topic": "footprint",
+   "relevance": "low"
+  },
+  {
+   "slug": "mzpack-footprint-reversal-pattern",
+   "title": "MZpack Footprint Reversal Pattern",
+   "url": "https://www.mzpack.pro/mzpack-footprint-reversal-pattern/",
+   "date": "2021-03-31",
+   "topic": "footprint",
+   "relevance": "high"
+  },
+  {
+   "slug": "mzpack-for-forex-market",
+   "title": "MZpack for Forex market",
+   "url": "https://www.mzpack.pro/mzpack-for-forex-market/",
+   "date": "2018-04-12",
+   "topic": "platform-misc",
+   "relevance": "low"
+  },
+  {
+   "slug": "mzpack-settings-for-indian-market",
+   "title": "MZpack Settings for Indian Market (NSE)",
+   "url": "https://www.mzpack.pro/mzpack-settings-for-indian-market/",
+   "date": "2020-05-27 (updated 2021-03-05)",
+   "topic": "platform-misc",
+   "relevance": "low"
+  },
+  {
+   "slug": "mzpack-tpo-for-ninjatrader-cme-index-futures-rth-eth",
+   "title": "MZpack TPO for NinjaTrader \u2013 CME Index Futures RTH \u2013 ETH",
+   "url": "https://www.mzpack.pro/mzpack-tpo-for-ninjatrader-cme-index-futures-rth-eth/",
+   "date": "2019-08-21",
+   "topic": "volume-profile-tpo",
+   "relevance": "low"
+  },
+  {
+   "slug": "nasdaq-nq-trades-using-mzpack-workspace",
+   "title": "NASDAQ (NQ) Trades using MZpack Workspace",
+   "url": "https://www.mzpack.pro/nasdaq-nq-trades-using-mzpack-workspace/",
+   "date": "2019-01-31",
+   "topic": "trade-examples",
+   "relevance": "low"
+  },
+  {
+   "slug": "nq-03-19-trade-with-mzpack-indicators",
+   "title": "NQ 03-19 Trade with MZpack Indicators",
+   "url": "https://www.mzpack.pro/nq-03-19-trade-with-mzpack-indicators/",
+   "date": "2019-02-06",
+   "topic": "trade-examples",
+   "relevance": "medium"
+  },
+  {
+   "slug": "optimizing-volumeprofile-and-tpo-charts-in-mzpack",
+   "title": "Optimizing VolumeProfile and TPO Charts in MZpack",
+   "url": "https://www.mzpack.pro/optimizing-volumeprofile-and-tpo-charts-in-mzpack/",
+   "date": "2020-10-28",
+   "topic": "volume-profile-tpo",
+   "relevance": "low"
+  },
+  {
+   "slug": "order-flow-reading-and-day-trading-strategy",
+   "title": "Order flow reading and day trading strategy",
+   "url": "https://www.mzpack.pro/order-flow-reading-and-day-trading-strategy/",
+   "date": "2016-02-11",
+   "topic": "strategies-backtesting",
+   "relevance": "high"
+  },
+  {
+   "slug": "overall-liquidity-migration-feature-in-mzmarketdepth-indicator",
+   "title": "Overall Liquidity Migration Feature In mzMarketDepth Indicator",
+   "url": "https://www.mzpack.pro/overall-liquidity-migration-feature-in-mzmarketdepth-indicator/",
+   "date": "2019-01-17",
+   "topic": "core-concepts",
+   "relevance": "medium"
+  },
+  {
+   "slug": "poc-retest-trading-a-volume-point-of-control-with-order-flow-confirmation",
+   "title": "POC Retest: trading a volume Point of Control with order-flow confirmation",
+   "url": "https://www.mzpack.pro/poc-retest-trading-a-volume-point-of-control-with-order-flow-confirmation/",
+   "date": "2026-07-01",
+   "topic": "volume-profile-tpo",
+   "relevance": "high"
+  },
+  {
+   "slug": "scalping-es-e-mini-sp500",
+   "title": "Scalping ES E-mini SP500 video",
+   "url": "https://www.mzpack.pro/scalping-es-e-mini-sp500/",
+   "date": "2016-02-17",
+   "topic": "trade-examples",
+   "relevance": "high"
+  },
+  {
+   "slug": "simple-approach-to-trading",
+   "title": "Simple Approach to Trading",
+   "url": "https://www.mzpack.pro/simple-approach-to-trading/",
+   "date": "2019-08-17",
+   "topic": "core-concepts",
+   "relevance": "low"
+  },
+  {
+   "slug": "simple-e-mini-sp500-futures-scalpingstrategy",
+   "title": "Simple E-mini SP500 futures scalping strategy",
+   "url": "https://www.mzpack.pro/simple-e-mini-sp500-futures-scalpingstrategy/",
+   "date": "2018-02-17",
+   "topic": "strategies-backtesting",
+   "relevance": "high"
+  },
+  {
+   "slug": "tape-iceberg-detection-finding-refilling-icebergs-on-historical-charts",
+   "title": "Tape Iceberg Detection: Finding Refilling Icebergs on Historical Charts",
+   "url": "https://www.mzpack.pro/tape-iceberg-detection-finding-refilling-icebergs-on-historical-charts/",
+   "date": "2026-07-16",
+   "topic": "core-concepts",
+   "relevance": "high"
+  },
+  {
+   "slug": "using-footprint-chart-in-your-trading",
+   "title": "Video",
+   "url": "https://www.mzpack.pro/using-footprint-chart-in-your-trading/",
+   "date": "2019-07-17",
+   "topic": "footprint",
+   "relevance": "low"
+  },
+  {
+   "slug": "using-iceberg-orders-and-dom-pressure-pattern-in-day-trading",
+   "title": "Using Iceberg Orders and DOM Pressure Pattern In Day Trading",
+   "url": "https://www.mzpack.pro/using-iceberg-orders-and-dom-pressure-pattern-in-day-trading/",
+   "date": "2021-10-01",
+   "topic": "core-concepts",
+   "relevance": "high"
+  },
+  {
+   "slug": "veritas-orderflow-chart-template",
+   "title": "Veritas OrderFlow Chart Template",
+   "url": "https://www.mzpack.pro/veritas-orderflow-chart-template/",
+   "date": "2021-04-09",
+   "topic": "platform-misc",
+   "relevance": "low"
+  },
+  {
+   "slug": "video-2-using-footprint-chart-in-your-trading",
+   "title": "Video",
+   "url": "https://www.mzpack.pro/video-2-using-footprint-chart-in-your-trading/",
+   "date": "2019-07-26",
+   "topic": "footprint",
+   "relevance": "low"
+  },
+  {
+   "slug": "video-tutorial-mzfootprint-indicator-for-ninjatrader-left-and-right-footprint",
+   "title": "Video Tutorial: mzFootprint Indicator for NinjaTrader \u2013 Left and Right Footprint",
+   "url": "https://www.mzpack.pro/video-tutorial-mzfootprint-indicator-for-ninjatrader-left-and-right-footprint/",
+   "date": "2025-02-15",
+   "topic": "footprint",
+   "relevance": "low"
+  },
+  {
+   "slug": "what-is-cot-and-how-to-use-it-in-day-trading",
+   "title": "What Is COT And How To Use It In Day Trading?",
+   "url": "https://www.mzpack.pro/what-is-cot-and-how-to-use-it-in-day-trading/",
+   "date": "2018-06-14",
+   "topic": "core-concepts",
+   "relevance": "high"
+  },
+  {
+   "slug": "what-is-delta-rate-in-mzfootprint-indicator",
+   "title": "What is DELTA RATE in mzFootprint Indicator?",
+   "url": "https://www.mzpack.pro/what-is-delta-rate-in-mzfootprint-indicator/",
+   "date": "2023-02-26",
+   "topic": "footprint",
+   "relevance": "medium"
+  }
+ ]
+}
