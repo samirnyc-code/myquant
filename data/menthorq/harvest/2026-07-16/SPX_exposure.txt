@@ -1,0 +1,192 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+AFTER-HOURS
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+Net GEX Exposure
+Levels
+3/7
+Net GEX
+10 Strikes +/-
+Intraday
+All
+Expirations
+Jul 16
+0d
+Jul 17
+1d
+Jul 20
+4d
+Jul 21
+5d
+Jul 22
+6d
+Jul 23
+7d
+Jul 24
+8d
+Jul 27
+11d
+Jul 28
+12d
+Jul 29
+13d
+Jul 30
+14d
+Jul 31
+15d
+Aug 03
+18d
+Aug 04
+19d
+Aug 05
+20d
+Aug 06
+21d
+Aug 07
+22d
+Aug 10
+25d
+Aug 11
+26d
+Aug 12
+27d
+Aug 13
+28d
+Aug 14
+29d
+Aug 17
+32d
+Aug 18
+33d
+Aug 19
+34d
+Aug 20
+35d
+Aug 21
+36d
+Aug 24
+39d
+Aug 28
+43d
+Aug 31
+46d
+Sep 04
+50d
+Sep 18
+64d
+Sep 30
+76d
+Oct 16
+92d
+Oct 30
+106d
+Nov 20
+127d
+Nov 30
+137d
+Dec 18
+155d
+Dec 31
+168d
+Jan 15
+183d
+Feb 19
+218d
+Mar 19
+246d
+Mar 31
+258d
+Apr 16
+274d
+May 21
+309d
+Jun 17
+336d
+Jun 30
+349d
+Jul 16
+365d
+Aug 20
+400d
+Sep 17
+428d
+Dec 17
+519d
+Jun 16
+701d
+Dec 15
+883d
+Dec 21
+1254d
+Dec 20
+1618d
+Dec 19
+1982d
+Strike
+Net GEX
+Put / Call OI
+7,565.00
+5.09M
+7,560.00
+5.45M
+7,555.00
+6.23M
+7,550.00
+18.26M
+7,545.00
+315.22K
+7,540.00
+-9.5M
+7,535.00
+HVL
+-12.22M
+7,530.00
+-26.76M
+7,525.00
+-48.14M
+7,520.00
+-117.98M
+7,515.00
+-128.74M
+7,510.00
+-78.84M
+7,505.00
+-54.04M
+7,500.00
+-62.45M
+7,495.00
+-25.63M
+7,490.00
+-16.61M
+7,485.00
+-14.67M
+7,480.00
+-18.77M
+7,475.00
+-21.37M
+7,470.00
+-8.14M
+7,465.00
+-8.78M
+Intraday summary
+Watchlist
+Net Gex
+Chats

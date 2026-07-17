@@ -1,2 +1,15 @@
 2026-07-15 18:12:05	TRADE OPENED · sell_0dte_gamma	P-spread 25pt x1 07/15 · net credit 0.65 · collateral $2,435 · paper_20260715_1212
 2026-07-15 19:20:24	TRADE OPENED · cr0_fade (D)	CR0 first-touch fade (short call spread): vertical 25pt, net credit 6.40, coll $1,860 — touched 7550 below
+2026-07-16 08:19:33	⚠ OPTIONS DESK — GATEWAY, FEED, GAMEPLAN, DAEMON DOWN	GATEWAY: NO CONNECT (ConnectionRefusedError) · FEED: state=closed · GAMEPLAN: no gameplan_20260716.json · DAEMON: NOT running
+2026-07-16 08:53:43	⚠ OPTIONS DESK — FEED, GAMEPLAN, DAEMON DOWN	FEED: state=closed · GAMEPLAN: no gameplan_20260716.json · DAEMON: NOT running
+2026-07-16 15:30:19	⚠ OPTIONS DESK — DAEMON DOWN	DAEMON: NOT running
+2026-07-16 15:40:01	✓ Options desk healthy	FEED spx 7542.45 @ 08:39:57 (4s old) · LEVELS CR 7600.0 PS0 7555.0 · src 2026-07-15T20:00 · GAMEPLAN 7 triggers armed
+2026-07-16 15:47:16	✓ Options desk healthy	FEED spx 7540.05 @ 08:47:16 (0s old) · LEVELS CR 7600.0 PS0 7555.0 · src 2026-07-15T20:00 · GAMEPLAN 7 triggers armed
+2026-07-16 15:48:37	TRADE OPENED · straddle_0dte (B)	Long ATM Straddle (0DTE): straddle, net debit 31.70, coll $3,170 — broke below 7535 (regime flip)
+2026-07-16 15:59:53	⚠ Options desk — attention needed	6/8 steps green · 0 fired · 2 NEED ATTENTION
+2026-07-16 16:00:19	TRADE OPENED · sell_0dte_gamma (D)	0DTE Put Credit Spread @ PS0: vertical 25pt, net credit 9.90, coll $1,510 — reached 09:00 (no tag), regime positive_gamma
+2026-07-16 16:00:44	TRADE OPENED · sell_0dte_gamma (B-)	0DTE Call Credit Spread @ CR0: vertical 25pt, net credit 0.35, coll $2,465 — reached 09:00 (no tag), regime positive_gamma
+2026-07-16 16:01:06	✓ Options desk healthy	FEED spx 7549.6 @ 09:01:04 (2s old) · LEVELS CR 7600.0 PS0 7555.0 · src 2026-07-15T20:00 · GAMEPLAN 7 triggers armed
+2026-07-16 16:01:22	TRADE OPENED · fly_gw_0dte (B)	0DTE Call Butterfly @ GW0: butterfly 50pt, net debit 2.55, coll $255 — reached 09:00, regime positive_gamma
+2026-07-16 16:06:26	TRADE OPENED · ps0_fade (B)	PS0 first-touch fade (short put spread): vertical 25pt, net credit 7.90, coll $1,710 — touched 7555 above
+2026-07-16 22:20:02	⚠ Options desk — attention needed	7/8 steps green · 5 fired · 1 NEED ATTENTION

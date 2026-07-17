@@ -1,0 +1,9 @@
+# launched 2026-07-17T04:16:51
+# C:\Users\Admin\myquant\.venv\Scripts\python.exe -m streamlit run C:\Users\Admin\myquant\app.py --server.port 8501 --server.address 127.0.0.1 --server.headless true --browser.gatherUsageStats false
+
+2026-07-17 04:16:56.298 Uvicorn server started on 127.0.0.1:8501
+
+  You can now view your Streamlit app in your browser.
+
+  URL: http://127.0.0.1:8501
+

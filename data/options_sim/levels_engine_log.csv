@@ -1,0 +1,4 @@
+ts_et,msg,detail
+2026-07-16 09:32:16,levels loaded,"{""cr"": 7700.0, ""cr0"": 7625.0, ""ps0"": 7575.0, ""ps"": 7550.0, ""hvl"": 7575.0}"
+2026-07-16 09:32:16,engine armed,"{""rules"": [[""lvlfade_cr_ES"", 7700.0], [""lvlfade_cr0_ES"", 7625.0], [""lvlfade_ps0_ES"", 7575.0]]}"
+2026-07-16 16:00:02,engine done,"{""states"": {""lvlfade_cr_ES"": ""armed"", ""lvlfade_cr0_ES"": ""armed"", ""lvlfade_ps0_ES"": ""armed""}}"

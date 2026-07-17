@@ -1,0 +1,45 @@
+Error 10090, reqId 4: Part of requested market data is not subscribed. Subscription-independent ticks are still active.Delayed market data is available.SPX S&P 500 Stock Index/TOP/ALL, contract: Option(conId=897604796, symbol='SPX', lastTradeDateOrContractMonth='20260716', strike=7535.0, right='C', multiplier='100', exchange='SMART', currency='USD', localSymbol='SPXW  260716C07535000', tradingClass='SPXW')
+IB connected 127.0.0.1:4002 (PAPER)  accounts=['DUQ159823']  serverVersion=178
+trigger daemon [LIVE (auto-execute)] 20260716: 6 triggers, watching until 15:00 CT
+  BUY 1 @ lim 15.30 -> orderId 5
+Error 10090, reqId 7: Part of requested market data is not subscribed. Subscription-independent ticks are still active.Delayed market data is available.SPX S&P 500 Stock Index/TOP/ALL, contract: Option(conId=897605006, symbol='SPX', lastTradeDateOrContractMonth='20260716', strike=7535.0, right='P', multiplier='100', exchange='SMART', currency='USD', localSymbol='SPXW  260716P07535000', tradingClass='SPXW')
+  status=Filled filled=1.0 avgPrice=15.3
+  BUY 1 @ lim 16.40 -> orderId 8
+Error 10090, reqId 10: Part of requested market data is not subscribed. Subscription-independent ticks are still active.Delayed market data is available.SPX S&P 500 Stock Index/TOP/ALL, contract: Option(conId=892680601, symbol='SPX', lastTradeDateOrContractMonth='20260716', strike=7530.0, right='P', multiplier='100', exchange='SMART', currency='USD', localSymbol='SPXW  260716P07530000', tradingClass='SPXW')
+  status=Filled filled=1.0 avgPrice=16.4
+  FIRED straddle_0dte -> auto_20260716_084837: straddle net debit 31.70 grade B
+  BUY 1 @ lim 7.20 -> orderId 11
+Error 10090, reqId 13: Part of requested market data is not subscribed. Subscription-independent ticks are still active.Delayed market data is available.SPX S&P 500 Stock Index/TOP/ALL, contract: Option(conId=897605056, symbol='SPX', lastTradeDateOrContractMonth='20260716', strike=7555.0, right='P', multiplier='100', exchange='SMART', currency='USD', localSymbol='SPXW  260716P07555000', tradingClass='SPXW')
+  status=Filled filled=1.0 avgPrice=7.2
+  SELL 1 @ lim 16.70 -> orderId 14
+Error 10090, reqId 16: Part of requested market data is not subscribed. Subscription-independent ticks are still active.Delayed market data is available.SPX S&P 500 Stock Index/TOP/ALL, contract: Option(conId=888652867, symbol='SPX', lastTradeDateOrContractMonth='20260716', strike=7625.0, right='C', multiplier='100', exchange='SMART', currency='USD', localSymbol='SPXW  260716C07625000', tradingClass='SPXW')
+  status=Filled filled=1.0 avgPrice=17.1
+  FIRED sell_0dte_put -> auto_20260716_090019: vertical 25pt net credit 9.90 grade D
+  BUY 1 @ lim 0.20 -> orderId 17
+Error 10090, reqId 19: Part of requested market data is not subscribed. Subscription-independent ticks are still active.Delayed market data is available.SPX S&P 500 Stock Index/TOP/ALL, contract: Option(conId=888652852, symbol='SPX', lastTradeDateOrContractMonth='20260716', strike=7600.0, right='C', multiplier='100', exchange='SMART', currency='USD', localSymbol='SPXW  260716C07600000', tradingClass='SPXW')
+  status=Filled filled=1.0 avgPrice=0.2
+  SELL 1 @ lim 0.55 -> orderId 20
+Error 10090, reqId 22: Part of requested market data is not subscribed. Subscription-independent ticks are still active.Delayed market data is available.SPX S&P 500 Stock Index/TOP/ALL, contract: Option(conId=888652842, symbol='SPX', lastTradeDateOrContractMonth='20260716', strike=7575.0, right='C', multiplier='100', exchange='SMART', currency='USD', localSymbol='SPXW  260716C07575000', tradingClass='SPXW')
+  status=Filled filled=1.0 avgPrice=0.55
+  FIRED sell_0dte_call -> auto_20260716_090044: vertical 25pt net credit 0.35 grade B-
+  BUY 1 @ lim 3.50 -> orderId 23
+Error 10090, reqId 25: Part of requested market data is not subscribed. Subscription-independent ticks are still active.Delayed market data is available.SPX S&P 500 Stock Index/TOP/ALL, contract: Option(conId=888652867, symbol='SPX', lastTradeDateOrContractMonth='20260716', strike=7625.0, right='C', multiplier='100', exchange='SMART', currency='USD', localSymbol='SPXW  260716C07625000', tradingClass='SPXW')
+  status=Filled filled=1.0 avgPrice=3.5
+  BUY 1 @ lim 0.20 -> orderId 26
+Error 10090, reqId 28: Part of requested market data is not subscribed. Subscription-independent ticks are still active.Delayed market data is available.SPX S&P 500 Stock Index/TOP/ALL, contract: Option(conId=888652852, symbol='SPX', lastTradeDateOrContractMonth='20260716', strike=7600.0, right='C', multiplier='100', exchange='SMART', currency='USD', localSymbol='SPXW  260716C07600000', tradingClass='SPXW')
+  status=Filled filled=1.0 avgPrice=0.2
+  SELL 1 @ lim 0.60 -> orderId 29
+Error 10090, reqId 31: Part of requested market data is not subscribed. Subscription-independent ticks are still active.Delayed market data is available.SPX S&P 500 Stock Index/TOP/ALL, contract: Option(conId=888652852, symbol='SPX', lastTradeDateOrContractMonth='20260716', strike=7600.0, right='C', multiplier='100', exchange='SMART', currency='USD', localSymbol='SPXW  260716C07600000', tradingClass='SPXW')
+  status=Filled filled=1.0 avgPrice=0.6
+  SELL 1 @ lim 0.55 -> orderId 32
+Error 10090, reqId 34: Part of requested market data is not subscribed. Subscription-independent ticks are still active.Delayed market data is available.SPX S&P 500 Stock Index/TOP/ALL, contract: Option(conId=892680601, symbol='SPX', lastTradeDateOrContractMonth='20260716', strike=7530.0, right='P', multiplier='100', exchange='SMART', currency='USD', localSymbol='SPXW  260716P07530000', tradingClass='SPXW')
+  status=Filled filled=1.0 avgPrice=0.55
+  FIRED fly_gw_0dte -> auto_20260716_090122: butterfly 50pt net debit 2.55 grade B
+  BUY 1 @ lim 5.30 -> orderId 35
+Error 10090, reqId 37: Part of requested market data is not subscribed. Subscription-independent ticks are still active.Delayed market data is available.SPX S&P 500 Stock Index/TOP/ALL, contract: Option(conId=897605056, symbol='SPX', lastTradeDateOrContractMonth='20260716', strike=7555.0, right='P', multiplier='100', exchange='SMART', currency='USD', localSymbol='SPXW  260716P07555000', tradingClass='SPXW')
+  status=Filled filled=1.0 avgPrice=5.3
+  SELL 1 @ lim 13.20 -> orderId 38
+  status=Filled filled=1.0 avgPrice=13.2
+  FIRED ps0_touch_fade -> auto_20260716_090626: vertical 25pt net credit 7.90 grade B
+
+done. 5 triggers fired: sell_0dte_put(D), sell_0dte_call(B-), fly_gw_0dte(B), ps0_touch_fade(B), straddle_0dte(B)

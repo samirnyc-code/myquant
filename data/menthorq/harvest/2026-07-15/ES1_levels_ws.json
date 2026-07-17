@@ -1,25 +1,5 @@
 [
  {
-  "url": "https://cf.menthorq.io/clickhouse-api/api/web/v1/market-status/NYSE",
-  "body": {
-   "exchange": "NYSE",
-   "asset_type": "STOCK",
-   "date": "2026-07-14",
-   "status": "OPEN",
-   "is_open": true,
-   "open_time_utc": "13:30",
-   "close_time_utc": "20:00",
-   "open_time_local": "09:30",
-   "close_time_local": "16:00",
-   "pre_open_time_utc": "08:00",
-   "post_close_time_utc": "00:00",
-   "pre_open_time_local": "04:00",
-   "post_close_time_local": "20:00",
-   "tz_exchange": "America/New_York",
-   "next_open_date": "2026-07-15"
-  }
- },
- {
   "url": "https://cf.menthorq.io/qbot-service/api/web/v1/assets",
   "body": [
    {
@@ -38,7 +18,7 @@
     "category": "FOREX",
     "isGeneric": false,
     "oiPerc": 58,
-    "volumePerc": 79
+    "volumePerc": 89
    },
    {
     "ticker": "6AZ2026",
@@ -47,7 +27,7 @@
     "category": "FOREX",
     "isGeneric": false,
     "oiPerc": 19,
-    "volumePerc": 17
+    "volumePerc": 9
    },
    {
     "ticker": "6BH2027",
@@ -55,8 +35,8 @@
     "shortName": "British Pound Futures Futures Mar 2027",
     "category": "FOREX",
     "isGeneric": false,
-    "oiPerc": 3,
-    "volumePerc": 0
+    "oiPerc": 4,
+    "volumePerc": 6
    },
    {
     "ticker": "6BU2026",
@@ -65,7 +45,7 @@
     "category": "FOREX",
     "isGeneric": false,
     "oiPerc": 58,
-    "volumePerc": 94
+    "volumePerc": 72
    },
    {
     "ticker": "6BZ2026",
@@ -74,7 +54,7 @@
     "category": "FOREX",
     "isGeneric": false,
     "oiPerc": 35,
-    "volumePerc": 4
+    "volumePerc": 21
    },
    {
     "ticker": "6CH2027",
@@ -92,7 +72,7 @@
     "category": "FOREX",
     "isGeneric": false,
     "oiPerc": 59,
-    "volumePerc": 95
+    "volumePerc": 81
    },
    {
     "ticker": "6CZ2026",
@@ -101,7 +81,7 @@
     "category": "FOREX",
     "isGeneric": false,
     "oiPerc": 31,
-    "volumePerc": 4
+    "volumePerc": 18
    },
    {
     "ticker": "6EH2027",
@@ -109,8 +89,8 @@
     "shortName": "Euro FX Futures Futures Mar 2027",
     "category": "FOREX",
     "isGeneric": false,
-    "oiPerc": 12,
-    "volumePerc": 0
+    "oiPerc": 11,
+    "volumePerc": 1
    },
    {
     "ticker": "6EU2026",
@@ -119,7 +99,7 @@
     "category": "FOREX",
     "isGeneric": false,
     "oiPerc": 53,
-    "volumePerc": 71
+    "volumePerc": 68
    },
    {
     "ticker": "6EZ2026",
@@ -128,7 +108,7 @@
     "category": "FOREX",
     "isGeneric": false,
     "oiPerc": 26,
-    "volumePerc": 20
+    "volumePerc": 17
    },
    {
     "ticker": "6JH2027",
@@ -137,7 +117,7 @@
     "category": "FOREX",
     "isGeneric": false,
     "oiPerc": 3,
-    "volumePerc": 0
+    "volumePerc": 5
    },
    {
     "ticker": "6JU2026",
@@ -146,7 +126,7 @@
     "category": "FOREX",
     "isGeneric": false,
     "oiPerc": 71,
-    "volumePerc": 75
+    "volumePerc": 79
    },
    {
     "ticker": "6JZ2026",
@@ -155,7 +135,7 @@
     "category": "FOREX",
     "isGeneric": false,
     "oiPerc": 24,
-    "volumePerc": 23
+    "volumePerc": 14
    },
    {
     "ticker": "6SH2027",
@@ -182,7 +162,7 @@
     "category": "FOREX",
     "isGeneric": false,
     "oiPerc": 23,
-    "volumePerc": 4
+    "volumePerc": 2
    },
    {
     "ticker": "A",
@@ -1680,7 +1660,7 @@
     "category": "SOFT COMMODITIES",
     "isGeneric": false,
     "oiPerc": 20,
-    "volumePerc": 0
+    "volumePerc": 25
    },
    {
     "ticker": "CBRE",
@@ -1696,7 +1676,7 @@
     "category": "SOFT COMMODITIES",
     "isGeneric": false,
     "oiPerc": 16,
-    "volumePerc": 11
+    "volumePerc": 22
    },
    {
     "ticker": "CCCC",
@@ -1941,7 +1921,7 @@
     "category": "COMMODITIES",
     "isGeneric": false,
     "oiPerc": 20,
-    "volumePerc": 48
+    "volumePerc": 50
    },
    {
     "ticker": "CLS",
@@ -1980,7 +1960,7 @@
     "category": "COMMODITIES",
     "isGeneric": false,
     "oiPerc": 22,
-    "volumePerc": 6
+    "volumePerc": 8
    },
    {
     "ticker": "CMA",
@@ -2283,7 +2263,7 @@
     "category": "SOFT COMMODITIES",
     "isGeneric": false,
     "oiPerc": 23,
-    "volumePerc": 5
+    "volumePerc": 0
    },
    {
     "ticker": "CSCO",
@@ -2299,7 +2279,7 @@
     "category": "SOFT COMMODITIES",
     "isGeneric": false,
     "oiPerc": 21,
-    "volumePerc": 72
+    "volumePerc": 55
    },
    {
     "ticker": "CSCU2026",
@@ -2308,7 +2288,7 @@
     "category": "SOFT COMMODITIES",
     "isGeneric": false,
     "oiPerc": 16,
-    "volumePerc": 11
+    "volumePerc": 35
    },
    {
     "ticker": "CSGP",
@@ -2470,8 +2450,8 @@
     "shortName": "Class III Milk Futures Futures Jul 2026",
     "category": "SOFT COMMODITIES",
     "isGeneric": false,
-    "oiPerc": 14,
-    "volumePerc": 6
+    "oiPerc": 13,
+    "volumePerc": 0
    },
    {
     "ticker": "DCQ2026",
@@ -2480,7 +2460,7 @@
     "category": "SOFT COMMODITIES",
     "isGeneric": false,
     "oiPerc": 14,
-    "volumePerc": 17
+    "volumePerc": 65
    },
    {
     "ticker": "DCU2026",
@@ -2488,8 +2468,8 @@
     "shortName": "Class III Milk Futures Futures Sep 2026",
     "category": "SOFT COMMODITIES",
     "isGeneric": false,
-    "oiPerc": 13,
-    "volumePerc": 15
+    "oiPerc": 12,
+    "volumePerc": 1
    },
    {
     "ticker": "DD",
@@ -3097,7 +3077,7 @@
     "category": "INDEXES",
     "isGeneric": true,
     "oiPerc": 67,
-    "volumePerc": 95
+    "volumePerc": 96
    },
    {
     "ticker": "ESZ2026",
@@ -3629,7 +3609,7 @@
     "category": "COMMODITIES",
     "isGeneric": false,
     "oiPerc": 31,
-    "volumePerc": 56
+    "volumePerc": 57
    },
    {
     "ticker": "GCT",
@@ -3644,8 +3624,8 @@
     "shortName": "Gold Futures Oct 2026",
     "category": "COMMODITIES",
     "isGeneric": false,
-    "oiPerc": 26,
-    "volumePerc": 28
+    "oiPerc": 27,
+    "volumePerc": 27
    },
    {
     "ticker": "GCZ2026",
@@ -3654,7 +3634,7 @@
     "category": "COMMODITIES",
     "isGeneric": false,
     "oiPerc": 35,
-    "volumePerc": 13
+    "volumePerc": 10
    },
    {
     "ticker": "GD",
@@ -3677,7 +3657,7 @@
     "category": "SOFT COMMODITIES",
     "isGeneric": false,
     "oiPerc": 14,
-    "volumePerc": 0
+    "volumePerc": 4
    },
    {
     "ticker": "GDKQ2026",
@@ -3686,7 +3666,7 @@
     "category": "SOFT COMMODITIES",
     "isGeneric": false,
     "oiPerc": 13,
-    "volumePerc": 23
+    "volumePerc": 18
    },
    {
     "ticker": "GDKU2026",
@@ -3695,7 +3675,7 @@
     "category": "SOFT COMMODITIES",
     "isGeneric": false,
     "oiPerc": 13,
-    "volumePerc": 17
+    "volumePerc": 0
    },
    {
     "ticker": "GDX",
@@ -3864,7 +3844,7 @@
     "shortName": "Nonfat Dry Milk Futures Futures Jul 2026",
     "category": "SOFT COMMODITIES",
     "isGeneric": false,
-    "oiPerc": 38,
+    "oiPerc": 37,
     "volumePerc": 0
    },
    {
@@ -3873,8 +3853,8 @@
     "shortName": "Nonfat Dry Milk Futures Futures Aug 2026",
     "category": "SOFT COMMODITIES",
     "isGeneric": false,
-    "oiPerc": 20,
-    "volumePerc": 55
+    "oiPerc": 19,
+    "volumePerc": 15
    },
    {
     "ticker": "GNFU2026",
@@ -3883,7 +3863,7 @@
     "category": "SOFT COMMODITIES",
     "isGeneric": false,
     "oiPerc": 17,
-    "volumePerc": 37
+    "volumePerc": 10
    },
    {
     "ticker": "GNRC",
@@ -4074,7 +4054,7 @@
     "category": "SOFT COMMODITIES",
     "isGeneric": false,
     "oiPerc": 20,
-    "volumePerc": 65
+    "volumePerc": 27
    },
    {
     "ticker": "HEV2026",
@@ -4083,7 +4063,7 @@
     "category": "SOFT COMMODITIES",
     "isGeneric": false,
     "oiPerc": 26,
-    "volumePerc": 13
+    "volumePerc": 31
    },
    {
     "ticker": "HEWJ",
@@ -4099,7 +4079,7 @@
     "category": "SOFT COMMODITIES",
     "isGeneric": false,
     "oiPerc": 18,
-    "volumePerc": 5
+    "volumePerc": 11
    },
    {
     "ticker": "HEZU",
@@ -4115,7 +4095,7 @@
     "category": "COMMODITIES",
     "isGeneric": false,
     "oiPerc": 0,
-    "volumePerc": 2
+    "volumePerc": 0
    },
    {
     "ticker": "HGU2026",
@@ -4123,8 +4103,8 @@
     "shortName": "Copper Futures Sep 2026",
     "category": "COMMODITIES",
     "isGeneric": false,
-    "oiPerc": 86,
-    "volumePerc": 72
+    "oiPerc": 85,
+    "volumePerc": 82
    },
    {
     "ticker": "HGZ2026",
@@ -4132,8 +4112,8 @@
     "shortName": "Copper Futures Dec 2026",
     "category": "COMMODITIES",
     "isGeneric": false,
-    "oiPerc": 12,
-    "volumePerc": 25
+    "oiPerc": 13,
+    "volumePerc": 17
    },
    {
     "ticker": "HIG",
@@ -4916,8 +4896,8 @@
     "shortName": "KC HRW Wheat Futures Futures Mar 2027",
     "category": "SOFT COMMODITIES",
     "isGeneric": false,
-    "oiPerc": 10,
-    "volumePerc": 4
+    "oiPerc": 11,
+    "volumePerc": 0
    },
    {
     "ticker": "KEU2026",
@@ -4925,8 +4905,8 @@
     "shortName": "KC HRW Wheat Futures Futures Sep 2026",
     "category": "SOFT COMMODITIES",
     "isGeneric": false,
-    "oiPerc": 60,
-    "volumePerc": 68
+    "oiPerc": 59,
+    "volumePerc": 69
    },
    {
     "ticker": "KEY",
@@ -4949,7 +4929,7 @@
     "category": "SOFT COMMODITIES",
     "isGeneric": false,
     "oiPerc": 27,
-    "volumePerc": 27
+    "volumePerc": 30
    },
    {
     "ticker": "KGC",
@@ -5161,7 +5141,7 @@
     "category": "SOFT COMMODITIES",
     "isGeneric": false,
     "oiPerc": 34,
-    "volumePerc": 60
+    "volumePerc": 39
    },
    {
     "ticker": "LEU",
@@ -5176,8 +5156,8 @@
     "shortName": "Live Cattle Futures Futures Oct 2026",
     "category": "SOFT COMMODITIES",
     "isGeneric": false,
-    "oiPerc": 27,
-    "volumePerc": 25
+    "oiPerc": 26,
+    "volumePerc": 26
    },
    {
     "ticker": "LEZ2026",
@@ -5186,7 +5166,7 @@
     "category": "SOFT COMMODITIES",
     "isGeneric": false,
     "oiPerc": 24,
-    "volumePerc": 5
+    "volumePerc": 16
    },
    {
     "ticker": "LH",
@@ -5497,8 +5477,8 @@
     "shortName": "Micro Bitcoin Futures Futures Jul 2026",
     "category": "CRYPTO",
     "isGeneric": true,
-    "oiPerc": 32,
-    "volumePerc": 37
+    "oiPerc": 36,
+    "volumePerc": 95
    },
    {
     "ticker": "MBTQ2026",
@@ -5506,8 +5486,8 @@
     "shortName": "Micro Bitcoin Futures Futures Aug 2026",
     "category": "CRYPTO",
     "isGeneric": true,
-    "oiPerc": 17,
-    "volumePerc": 49
+    "oiPerc": 16,
+    "volumePerc": 3
    },
    {
     "ticker": "MBTU2026",
@@ -5515,7 +5495,7 @@
     "shortName": "Micro Bitcoin Futures Futures Sep 2026",
     "category": "CRYPTO",
     "isGeneric": true,
-    "oiPerc": 33,
+    "oiPerc": 31,
     "volumePerc": 0
    },
    {
@@ -6007,8 +5987,8 @@
     "shortName": "Natural Gas Futures Aug 2026",
     "category": "COMMODITIES",
     "isGeneric": false,
-    "oiPerc": 21,
-    "volumePerc": 43
+    "oiPerc": 20,
+    "volumePerc": 42
    },
    {
     "ticker": "NGU2026",
@@ -6017,7 +5997,7 @@
     "category": "COMMODITIES",
     "isGeneric": false,
     "oiPerc": 15,
-    "volumePerc": 17
+    "volumePerc": 18
    },
    {
     "ticker": "NGV2026",
@@ -6026,7 +6006,7 @@
     "category": "COMMODITIES",
     "isGeneric": false,
     "oiPerc": 18,
-    "volumePerc": 18
+    "volumePerc": 11
    },
    {
     "ticker": "NI",
@@ -6130,7 +6110,7 @@
     "category": "INDEXES",
     "isGeneric": true,
     "oiPerc": 85,
-    "volumePerc": 98
+    "volumePerc": 95
    },
    {
     "ticker": "NQZ2026",
@@ -6139,7 +6119,7 @@
     "category": "INDEXES",
     "isGeneric": true,
     "oiPerc": 11,
-    "volumePerc": 1
+    "volumePerc": 4
    },
    {
     "ticker": "NRG",
@@ -7021,8 +7001,8 @@
     "shortName": "RBOB Gasoline Futures Futures Aug 2026",
     "category": "COMMODITIES",
     "isGeneric": false,
-    "oiPerc": 9,
-    "volumePerc": 91
+    "oiPerc": 11,
+    "volumePerc": 17
    },
    {
     "ticker": "RBRK",
@@ -7038,7 +7018,7 @@
     "category": "COMMODITIES",
     "isGeneric": false,
     "oiPerc": 31,
-    "volumePerc": 8
+    "volumePerc": 4
    },
    {
     "ticker": "RBV2026",
@@ -7046,8 +7026,8 @@
     "shortName": "RBOB Gasoline Futures Futures Oct 2026",
     "category": "COMMODITIES",
     "isGeneric": false,
-    "oiPerc": 53,
-    "volumePerc": 0
+    "oiPerc": 52,
+    "volumePerc": 77
    },
    {
     "ticker": "RCL",
@@ -7574,8 +7554,8 @@
     "shortName": "Silver Futures Mar 2027",
     "category": "COMMODITIES",
     "isGeneric": false,
-    "oiPerc": 4,
-    "volumePerc": 2
+    "oiPerc": 3,
+    "volumePerc": 0
    },
    {
     "ticker": "SIL",
@@ -7628,7 +7608,7 @@
     "category": "COMMODITIES",
     "isGeneric": false,
     "oiPerc": 24,
-    "volumePerc": 4
+    "volumePerc": 6
    },
    {
     "ticker": "SJM",
@@ -9751,7 +9731,7 @@
     "category": "RATES",
     "isGeneric": true,
     "oiPerc": 93,
-    "volumePerc": 95
+    "volumePerc": 96
    },
    {
     "ticker": "ZBZ2026",
@@ -9760,7 +9740,7 @@
     "category": "RATES",
     "isGeneric": true,
     "oiPerc": 6,
-    "volumePerc": 4
+    "volumePerc": 3
    },
    {
     "ticker": "ZCH2027",
@@ -9769,7 +9749,7 @@
     "category": "SOFT COMMODITIES",
     "isGeneric": false,
     "oiPerc": 6,
-    "volumePerc": 3
+    "volumePerc": 2
    },
    {
     "ticker": "ZCU2026",
@@ -9778,7 +9758,7 @@
     "category": "SOFT COMMODITIES",
     "isGeneric": false,
     "oiPerc": 38,
-    "volumePerc": 46
+    "volumePerc": 60
    },
    {
     "ticker": "ZCZ2026",
@@ -9787,7 +9767,7 @@
     "category": "SOFT COMMODITIES",
     "isGeneric": false,
     "oiPerc": 50,
-    "volumePerc": 49
+    "volumePerc": 35
    },
    {
     "ticker": "ZF1!",
@@ -9813,8 +9793,8 @@
     "shortName": "Five-Year US Treasury Note Futures Futures Sep 2026",
     "category": "RATES",
     "isGeneric": true,
-    "oiPerc": 92,
-    "volumePerc": 95
+    "oiPerc": 91,
+    "volumePerc": 96
    },
    {
     "ticker": "ZFZ2026",
@@ -9822,8 +9802,8 @@
     "shortName": "Five-Year US Treasury Note Futures Futures Dec 2026",
     "category": "RATES",
     "isGeneric": true,
-    "oiPerc": 7,
-    "volumePerc": 4
+    "oiPerc": 8,
+    "volumePerc": 3
    },
    {
     "ticker": "ZIM",
@@ -9846,7 +9826,7 @@
     "category": "SOFT COMMODITIES",
     "isGeneric": false,
     "oiPerc": 28,
-    "volumePerc": 32
+    "volumePerc": 22
    },
    {
     "ticker": "ZLU2026",
@@ -9854,8 +9834,8 @@
     "shortName": "Soybean Oil Futures Futures Sep 2026",
     "category": "SOFT COMMODITIES",
     "isGeneric": false,
-    "oiPerc": 29,
-    "volumePerc": 21
+    "oiPerc": 30,
+    "volumePerc": 41
    },
    {
     "ticker": "ZLZ2026",
@@ -9863,8 +9843,8 @@
     "shortName": "Soybean Oil Futures Futures Dec 2026",
     "category": "SOFT COMMODITIES",
     "isGeneric": false,
-    "oiPerc": 25,
-    "volumePerc": 23
+    "oiPerc": 24,
+    "volumePerc": 7
    },
    {
     "ticker": "ZM",
@@ -9879,8 +9859,8 @@
     "shortName": "Soybean Meal Futures Futures Aug 2026",
     "category": "SOFT COMMODITIES",
     "isGeneric": false,
-    "oiPerc": 26,
-    "volumePerc": 19
+    "oiPerc": 25,
+    "volumePerc": 37
    },
    {
     "ticker": "ZMU2026",
@@ -9889,7 +9869,7 @@
     "category": "SOFT COMMODITIES",
     "isGeneric": false,
     "oiPerc": 18,
-    "volumePerc": 35
+    "volumePerc": 17
    },
    {
     "ticker": "ZMZ2026",
@@ -9898,7 +9878,7 @@
     "category": "SOFT COMMODITIES",
     "isGeneric": false,
     "oiPerc": 34,
-    "volumePerc": 35
+    "volumePerc": 25
    },
    {
     "ticker": "ZN1!",
@@ -9925,7 +9905,7 @@
     "category": "RATES",
     "isGeneric": true,
     "oiPerc": 97,
-    "volumePerc": 98
+    "volumePerc": 97
    },
    {
     "ticker": "ZNZ2026",
@@ -9934,7 +9914,7 @@
     "category": "RATES",
     "isGeneric": true,
     "oiPerc": 2,
-    "volumePerc": 1
+    "volumePerc": 2
    },
    {
     "ticker": "ZROZ",
@@ -9957,7 +9937,7 @@
     "category": "SOFT COMMODITIES",
     "isGeneric": false,
     "oiPerc": 18,
-    "volumePerc": 27
+    "volumePerc": 28
    },
    {
     "ticker": "ZSU2026",
@@ -9966,7 +9946,7 @@
     "category": "SOFT COMMODITIES",
     "isGeneric": false,
     "oiPerc": 17,
-    "volumePerc": 16
+    "volumePerc": 18
    },
    {
     "ticker": "ZSX2026",
@@ -9974,8 +9954,8 @@
     "shortName": "Soybean Futures Futures Nov 2026",
     "category": "SOFT COMMODITIES",
     "isGeneric": false,
-    "oiPerc": 51,
-    "volumePerc": 51
+    "oiPerc": 52,
+    "volumePerc": 49
    },
    {
     "ticker": "ZT1!",
@@ -10027,7 +10007,7 @@
     "category": "SOFT COMMODITIES",
     "isGeneric": false,
     "oiPerc": 6,
-    "volumePerc": 9
+    "volumePerc": 2
    },
    {
     "ticker": "ZWU2026",
@@ -10036,7 +10016,7 @@
     "category": "SOFT COMMODITIES",
     "isGeneric": false,
     "oiPerc": 66,
-    "volumePerc": 80
+    "volumePerc": 84
    },
    {
     "ticker": "ZWZ2026",
@@ -10045,9 +10025,29 @@
     "category": "SOFT COMMODITIES",
     "isGeneric": false,
     "oiPerc": 25,
-    "volumePerc": 10
+    "volumePerc": 13
    }
   ]
+ },
+ {
+  "url": "https://cf.menthorq.io/clickhouse-api/api/web/v1/market-status/NYSE",
+  "body": {
+   "exchange": "NYSE",
+   "asset_type": "STOCK",
+   "date": "2026-07-15",
+   "status": "OPEN",
+   "is_open": true,
+   "open_time_utc": "13:30",
+   "close_time_utc": "20:00",
+   "open_time_local": "09:30",
+   "close_time_local": "16:00",
+   "pre_open_time_utc": "08:00",
+   "post_close_time_utc": "00:00",
+   "pre_open_time_local": "04:00",
+   "post_close_time_local": "20:00",
+   "tz_exchange": "America/New_York",
+   "next_open_date": "2026-07-16"
+  }
  },
  {
   "url": "https://cf.menthorq.io/clickhouse-api/api/web/v1/tickers",
@@ -16648,11 +16648,6 @@
       "expiration": null
      },
      {
-      "contract": "HEN2026",
-      "name": null,
-      "expiration": "2026-07-15T17:00:00"
-     },
-     {
       "contract": "HEQ2026",
       "name": null,
       "expiration": "2026-08-14T17:00:00"
@@ -16676,6 +16671,11 @@
       "contract": "HEJ2027",
       "name": null,
       "expiration": "2027-04-14T17:00:00"
+     },
+     {
+      "contract": "HEK2027",
+      "name": null,
+      "expiration": "2027-05-14T17:00:00"
      }
     ]
    },
@@ -26464,55 +26464,34 @@
   "url": "https://gateway.menthorq.io/clickhouse-api/api/web/v1/options/matrix/ES1!?frequency=intraday",
   "body": {
    "ticker": "ES1!",
-   "timestamp": "2026-07-14T20:55:00",
+   "timestamp": "2026-07-15T20:30:00",
    "frequency": "intraday",
    "spot_price": null,
    "totals": {
-    "net_gex": 72795840.91428939,
-    "abs_gex": 500578623.9030977,
-    "net_dex": 30689813605.0026,
-    "abs_dex": 117600508675.26053,
-    "net_oi": -1058138.0,
-    "abs_oi": 2761348.0
+    "net_gex": 134435810.0108371,
+    "abs_gex": 523805209.0374496,
+    "net_dex": 38189480908.10519,
+    "abs_dex": 123163788757.11302,
+    "net_oi": -1087509.0,
+    "abs_oi": 2820581.0
    },
    "expirations": [
     {
-     "expiration_date": "2026-07-15",
-     "dte": 1,
-     "net_gex": 9580063.24670087,
-     "abs_gex": 40997995.46600415,
-     "net_dex": 709322758.5561687,
-     "abs_dex": 2335984097.2844195,
-     "net_oi": -94190.0,
-     "abs_oi": 158652.0,
-     "gex_normalized": 10.350846461552718,
-     "dex_normalized": 2.0561855424181243,
-     "oi_normalized": -8.90148543951734,
-     "gex_change_1h": -870540.5178659149,
-     "dex_change_1h": 370803271.28151584,
-     "gex_change_1d": 8227453.791919605,
-     "dex_change_1d": 286115944.8035406,
-     "call_resistance": null,
-     "put_support": null,
-     "hvl": null,
-     "implied_expected_move": null
-    },
-    {
      "expiration_date": "2026-07-16",
-     "dte": 2,
-     "net_gex": 7069957.180504685,
-     "abs_gex": 22296578.559105508,
-     "net_dex": 812840174.7027731,
-     "abs_dex": 1841515015.7109594,
-     "net_oi": -16484.0,
-     "abs_oi": 70692.0,
-     "gex_normalized": 7.638784774240139,
-     "dex_normalized": 2.356261934866589,
-     "oi_normalized": -1.5578308311392275,
-     "gex_change_1h": -996875.5448595835,
-     "dex_change_1h": 174434868.66196942,
-     "gex_change_1d": 6906526.547086224,
-     "dex_change_1d": 363433282.5792165,
+     "dte": 1,
+     "net_gex": 17031144.120390773,
+     "abs_gex": 37508252.680322096,
+     "net_dex": 1375552851.6461723,
+     "abs_dex": 2679943406.435044,
+     "net_oi": -45289.0,
+     "abs_oi": 108015.0,
+     "gex_normalized": 11.495933407587545,
+     "dex_normalized": 3.273457092936913,
+     "oi_normalized": -4.144038957937396,
+     "gex_change_1h": 2954480.9778877385,
+     "dex_change_1h": 171202111.31709385,
+     "gex_change_1d": 10100995.040677927,
+     "dex_change_1d": 802372221.1109004,
      "call_resistance": null,
      "put_support": null,
      "hvl": null,
@@ -26520,20 +26499,20 @@
     },
     {
      "expiration_date": "2026-07-17",
-     "dte": 3,
-     "net_gex": 38019095.12284239,
-     "abs_gex": 157684719.13775155,
-     "net_dex": 12205477378.748785,
-     "abs_dex": 24398131029.951954,
-     "net_oi": -422039.0,
-     "abs_oi": 937381.0,
-     "gex_normalized": 41.07799772190763,
-     "dex_normalized": 35.38125038533837,
-     "oi_normalized": -39.88506225085953,
-     "gex_change_1h": -1455986.8169698268,
-     "dex_change_1h": 1285459878.1840687,
-     "gex_change_1d": 21098291.177195657,
-     "dex_change_1d": 1095057690.8677979,
+     "dte": 2,
+     "net_gex": 63824991.15466842,
+     "abs_gex": 167889787.8339208,
+     "net_dex": 15078079644.398903,
+     "abs_dex": 25649751334.939213,
+     "net_oi": -482966.0,
+     "abs_oi": 1007128.0,
+     "gex_normalized": 43.08153597123675,
+     "dex_normalized": 35.881897740793804,
+     "oi_normalized": -44.1924069720946,
+     "gex_change_1h": 7883518.0660602525,
+     "dex_change_1h": 761113864.6990166,
+     "gex_change_1d": 29275979.956038192,
+     "dex_change_1d": 4694417313.572454,
      "call_resistance": null,
      "put_support": null,
      "hvl": null,
@@ -26541,20 +26520,20 @@
     },
     {
      "expiration_date": "2026-07-20",
-     "dte": 6,
-     "net_gex": -2373554.553069396,
-     "abs_gex": 17562246.322014816,
-     "net_dex": -142222277.56233665,
-     "abs_dex": 1674131211.7730136,
-     "net_oi": -18267.0,
-     "abs_oi": 43881.0,
-     "gex_normalized": -2.5645236481503813,
-     "dex_normalized": -0.41227408454891323,
-     "oi_normalized": -1.7263343722652431,
-     "gex_change_1h": -507474.02952499385,
-     "dex_change_1h": 119572509.85530493,
-     "gex_change_1d": -1866735.3324926617,
-     "dex_change_1d": -205859292.92070854,
+     "dte": 5,
+     "net_gex": 6161199.082753954,
+     "abs_gex": 22381366.06772831,
+     "net_dex": 741560218.7933849,
+     "abs_dex": 2236088237.9306583,
+     "net_oi": -17714.0,
+     "abs_oi": 52454.0,
+     "gex_normalized": 4.158777229853175,
+     "dex_normalized": 1.7647199488874756,
+     "oi_normalized": -1.620868336702136,
+     "gex_change_1h": 1217735.7071358766,
+     "dex_change_1h": 102033079.64240241,
+     "gex_change_1d": 8704145.511874698,
+     "dex_change_1d": 1076503096.419111,
      "call_resistance": null,
      "put_support": null,
      "hvl": null,
@@ -26562,20 +26541,20 @@
     },
     {
      "expiration_date": "2026-07-21",
-     "dte": 7,
-     "net_gex": -1040963.8304460882,
-     "abs_gex": 7671166.750176586,
-     "net_dex": -48526077.04104719,
-     "abs_dex": 836609778.9369134,
-     "net_oi": -45414.0,
-     "abs_oi": 53056.0,
-     "gex_normalized": -1.1247166645468487,
-     "dex_normalized": -0.14066744206145224,
-     "oi_normalized": -4.2918787530548945,
-     "gex_change_1h": 319611.362392962,
-     "dex_change_1h": 160226410.1332358,
-     "gex_change_1d": 1486294.1342293825,
-     "dex_change_1d": 119246414.38510045,
+     "dte": 6,
+     "net_gex": 3304807.265314588,
+     "abs_gex": 14643407.424809778,
+     "net_dex": 215967282.89521575,
+     "abs_dex": 1405858290.5433805,
+     "net_oi": -48099.0,
+     "abs_oi": 67341.0,
+     "gex_normalized": 2.23072765860056,
+     "dex_normalized": 0.5139458169052635,
+     "oi_normalized": -4.401159880717852,
+     "gex_change_1h": 838207.5329452534,
+     "dex_change_1h": 58118698.07730508,
+     "gex_change_1d": 4911007.194656283,
+     "dex_change_1d": 446368469.86886954,
      "call_resistance": null,
      "put_support": null,
      "hvl": null,
@@ -26583,20 +26562,20 @@
     },
     {
      "expiration_date": "2026-07-22",
-     "dte": 8,
-     "net_gex": 1484222.248453,
-     "abs_gex": 8216733.944663798,
-     "net_dex": 20779688.74872161,
-     "abs_dex": 860485581.2341307,
-     "net_oi": -2756.0,
-     "abs_oi": 15768.0,
-     "gex_normalized": 1.603638328154897,
-     "dex_normalized": 0.06023618312774968,
-     "oi_normalized": -0.26045752066365635,
-     "gex_change_1h": -490233.8257043285,
-     "dex_change_1h": 62788787.66535075,
-     "gex_change_1d": 357530.50442632823,
-     "dex_change_1d": -160988488.04595375,
+     "dte": 7,
+     "net_gex": 8901449.95129405,
+     "abs_gex": 16855964.44487311,
+     "net_dex": 465353174.67086065,
+     "abs_dex": 1473175753.2050705,
+     "net_oi": 2681.0,
+     "abs_oi": 30263.0,
+     "gex_normalized": 6.008432266657483,
+     "dex_normalized": 1.1074192085924113,
+     "oi_normalized": 0.24531715088057054,
+     "gex_change_1h": 1159192.5363755021,
+     "dex_change_1h": 64169617.196879864,
+     "gex_change_1d": 7394831.242137427,
+     "dex_change_1d": 530007834.81842196,
      "call_resistance": null,
      "put_support": null,
      "hvl": null,
@@ -26604,20 +26583,20 @@
     },
     {
      "expiration_date": "2026-07-23",
-     "dte": 9,
-     "net_gex": 268318.5840732545,
-     "abs_gex": 5499964.101039651,
-     "net_dex": 92750790.34053667,
-     "abs_dex": 769960585.4002542,
-     "net_oi": -4401.0,
-     "abs_oi": 15821.0,
-     "gex_normalized": 0.2899066942465043,
-     "dex_normalized": 0.2688660864826379,
-     "oi_normalized": -0.4159192846301711,
-     "gex_change_1h": -87153.65303436882,
-     "dex_change_1h": 56843034.01844743,
-     "gex_change_1d": 474898.0077188962,
-     "dex_change_1d": -1574379.1342073232,
+     "dte": 8,
+     "net_gex": 959666.7972291189,
+     "abs_gex": 6141096.068443639,
+     "net_dex": 225301625.74167737,
+     "abs_dex": 901690323.600251,
+     "net_oi": -4733.0,
+     "abs_oi": 16981.0,
+     "gex_normalized": 0.6477700802972031,
+     "dex_normalized": 0.5361591188238977,
+     "oi_normalized": -0.4330794759857293,
+     "gex_change_1h": 172780.88937643915,
+     "dex_change_1h": 32460177.40085727,
+     "gex_change_1d": 748320.7147339084,
+     "dex_change_1d": 208728080.302184,
      "call_resistance": null,
      "put_support": null,
      "hvl": null,
@@ -26625,20 +26604,20 @@
     },
     {
      "expiration_date": "2026-07-24",
-     "dte": 10,
-     "net_gex": 2393563.7010376872,
-     "abs_gex": 41313412.74386234,
-     "net_dex": 143608005.93764853,
-     "abs_dex": 5627703799.3468275,
-     "net_oi": -112060.0,
-     "abs_oi": 204378.0,
-     "gex_normalized": 2.5861426722750496,
-     "dex_normalized": 0.41629103538922557,
-     "oi_normalized": -10.590301076041122,
-     "gex_change_1h": 498219.44929122087,
-     "dex_change_1h": 545141944.4309009,
-     "gex_change_1d": 6248088.229716134,
-     "dex_change_1d": 279089191.97629523,
+     "dte": 9,
+     "net_gex": 8229327.568589754,
+     "abs_gex": 46051098.7402467,
+     "net_dex": 825392499.4733407,
+     "abs_dex": 6237366836.143539,
+     "net_oi": -120682.0,
+     "abs_oi": 222334.0,
+     "gex_normalized": 5.554753165670557,
+     "dex_normalized": 1.9642189165065458,
+     "oi_normalized": -11.042657367612463,
+     "gex_change_1h": 1727096.1045318823,
+     "dex_change_1h": 199912434.5240345,
+     "gex_change_1d": 7343887.950803371,
+     "dex_change_1d": 1356070553.0383525,
      "call_resistance": null,
      "put_support": null,
      "hvl": null,
@@ -26646,20 +26625,20 @@
     },
     {
      "expiration_date": "2026-07-27",
-     "dte": 13,
-     "net_gex": 375473.174646785,
-     "abs_gex": 3053447.6929435865,
-     "net_dex": 48106271.73222814,
-     "abs_dex": 462331541.0076456,
-     "net_oi": -13728.0,
-     "abs_oi": 18822.0,
-     "gex_normalized": 0.4056826224544019,
-     "dex_normalized": 0.13945051000025463,
-     "oi_normalized": -1.2973733104755711,
-     "gex_change_1h": -81163.57908729324,
-     "dex_change_1h": 28458339.40897025,
-     "gex_change_1d": 282386.47426453035,
-     "dex_change_1d": -15630944.694487728,
+     "dte": 12,
+     "net_gex": 1064890.675146275,
+     "abs_gex": 3628475.2037679814,
+     "net_dex": 137419959.61382622,
+     "abs_dex": 532247978.8722534,
+     "net_oi": -16615.0,
+     "abs_oi": 22291.0,
+     "gex_normalized": 0.71879564880117,
+     "dex_normalized": 0.32702366977077335,
+     "oi_normalized": -1.5203075202837297,
+     "gex_change_1h": 140955.14715503855,
+     "dex_change_1h": 20586477.417097554,
+     "gex_change_1d": 686836.7128200933,
+     "dex_change_1d": 128561867.57525353,
      "call_resistance": null,
      "put_support": null,
      "hvl": null,
@@ -26667,20 +26646,20 @@
     },
     {
      "expiration_date": "2026-07-28",
-     "dte": 14,
-     "net_gex": -215089.135874255,
-     "abs_gex": 1289498.613939428,
-     "net_dex": -25557838.67361691,
-     "abs_dex": 211548456.243435,
-     "net_oi": -3263.0,
-     "abs_oi": 5335.0,
-     "gex_normalized": -0.23239456396586572,
-     "dex_normalized": -0.07408708904690323,
-     "oi_normalized": -0.3083718758800837,
-     "gex_change_1h": -25248.31013424974,
-     "dex_change_1h": 20438666.382333107,
-     "gex_change_1d": 53406.09751535309,
-     "dex_change_1d": -6514951.425336737,
+     "dte": 13,
+     "net_gex": 61543.94330721501,
+     "abs_gex": 1556660.1075146035,
+     "net_dex": 14410153.911774531,
+     "abs_dex": 257332628.98883307,
+     "net_oi": -3493.0,
+     "abs_oi": 6535.0,
+     "gex_normalized": 0.041541840577405294,
+     "dex_normalized": 0.034292408667801984,
+     "oi_normalized": -0.31961686237442477,
+     "gex_change_1h": 56811.303066217944,
+     "dex_change_1h": 6448217.840870382,
+     "gex_change_1d": 270567.91946335137,
+     "dex_change_1d": 64168028.24902639,
      "call_resistance": null,
      "put_support": null,
      "hvl": null,
@@ -26688,20 +26667,20 @@
     },
     {
      "expiration_date": "2026-07-29",
-     "dte": 15,
-     "net_gex": 426866.83542623394,
-     "abs_gex": 1251024.125487302,
-     "net_dex": 79291942.72643816,
-     "abs_dex": 229649995.08397576,
-     "net_oi": -661.0,
-     "abs_oi": 3451.0,
-     "gex_normalized": 0.46121126335438717,
-     "dex_normalized": 0.22985156516931024,
-     "oi_normalized": -0.062468222481377664,
-     "gex_change_1h": -26341.118966568843,
-     "dex_change_1h": 6867139.460424483,
-     "gex_change_1d": 186070.8227565991,
-     "dex_change_1d": 7941847.165187776,
+     "dte": 14,
+     "net_gex": 400100.8527603608,
+     "abs_gex": 1858463.0485307893,
+     "net_dex": 83216701.49328248,
+     "abs_dex": 354150492.55795544,
+     "net_oi": -1385.0,
+     "abs_oi": 4667.0,
+     "gex_normalized": 0.27006598776562774,
+     "dex_normalized": 0.19803404967537316,
+     "oi_normalized": -0.1267304192352071,
+     "gex_change_1h": 42364.12621517037,
+     "dex_change_1h": 12415016.11629109,
+     "gex_change_1d": -36048.51410379453,
+     "dex_change_1d": 16109618.815825336,
      "call_resistance": null,
      "put_support": null,
      "hvl": null,
@@ -26709,20 +26688,20 @@
     },
     {
      "expiration_date": "2026-07-30",
-     "dte": 16,
-     "net_gex": -591035.9742330477,
-     "abs_gex": 1758641.9531277507,
-     "net_dex": -114599761.6710584,
-     "abs_dex": 354511356.0264218,
-     "net_oi": -2587.0,
-     "abs_oi": 4551.0,
-     "gex_normalized": -0.638588959696826,
-     "dex_normalized": -0.3322019070588353,
-     "oi_normalized": -0.24448606892484723,
-     "gex_change_1h": -114778.90779960109,
-     "dex_change_1h": 19374645.073449105,
-     "gex_change_1d": -21706.756023721537,
-     "dex_change_1d": -28668958.23315847,
+     "dte": 15,
+     "net_gex": -214122.4084525253,
+     "abs_gex": 1682025.513223242,
+     "net_dex": -44701361.99002821,
+     "abs_dex": 346007837.764943,
+     "net_oi": -2673.0,
+     "abs_oi": 5021.0,
+     "gex_normalized": -0.14453150834977563,
+     "dex_normalized": -0.10637758505249909,
+     "oi_normalized": -0.2445851340185621,
+     "gex_change_1h": 54450.08383660394,
+     "dex_change_1h": 8646735.605060324,
+     "gex_change_1d": 282992.7806046563,
+     "dex_change_1d": 95172322.84572122,
      "call_resistance": null,
      "put_support": null,
      "hvl": null,
@@ -26730,20 +26709,20 @@
     },
     {
      "expiration_date": "2026-07-31",
-     "dte": 17,
-     "net_gex": 11649860.824428137,
-     "abs_gex": 57739192.888550535,
-     "net_dex": 4446570805.886686,
-     "abs_dex": 14723562899.948038,
-     "net_oi": -58900.0,
-     "abs_oi": 296358.0,
-     "gex_normalized": 12.58717375729647,
-     "dex_normalized": 12.889724027766006,
-     "oi_normalized": -5.566381700685544,
-     "gex_change_1h": -158235.78651276603,
-     "dex_change_1h": 656804187.9647727,
-     "gex_change_1d": 2940175.056874281,
-     "dex_change_1d": -54013234.07464695,
+     "dte": 16,
+     "net_gex": 16023837.552701665,
+     "abs_gex": 62857178.35283583,
+     "net_dex": 5230599956.427083,
+     "abs_dex": 15646053338.775656,
+     "net_oi": -65368.0,
+     "abs_oi": 313776.0,
+     "gex_normalized": 10.816006730828622,
+     "dex_normalized": 12.447463946725907,
+     "oi_normalized": -5.98130977947077,
+     "gex_change_1h": 1479844.3621547576,
+     "dex_change_1h": 285470500.88517666,
+     "gex_change_1d": 5123833.811276939,
+     "dex_change_1d": 1628544118.6803045,
      "call_resistance": null,
      "put_support": null,
      "hvl": null,
@@ -26751,20 +26730,20 @@
     },
     {
      "expiration_date": "2026-08-03",
-     "dte": 20,
-     "net_gex": 72084.96766266924,
-     "abs_gex": 1142296.6878454397,
-     "net_dex": 30927055.26966487,
-     "abs_dex": 255117582.42306125,
-     "net_oi": -2003.0,
-     "abs_oi": 4865.0,
-     "gex_normalized": 0.07788470840411559,
-     "dex_normalized": 0.08965137964062037,
-     "oi_normalized": -0.18929478007594475,
-     "gex_change_1h": -23435.94857163832,
-     "dex_change_1h": 15557031.72342791,
-     "gex_change_1d": 127080.89425132057,
-     "dex_change_1d": 329600.6745862253,
+     "dte": 19,
+     "net_gex": -31430.894058178037,
+     "abs_gex": 1431891.6687542754,
+     "net_dex": -8596720.78814769,
+     "abs_dex": 336479736.31092966,
+     "net_oi": -2604.0,
+     "abs_oi": 5586.0,
+     "gex_normalized": -0.02121568947333077,
+     "dex_normalized": -0.02045795376475934,
+     "oi_normalized": -0.23827148858373953,
+     "gex_change_1h": 43178.691103917154,
+     "dex_change_1h": 7198426.6665250715,
+     "gex_change_1d": -107484.58582930105,
+     "dex_change_1d": -20554127.78639799,
      "call_resistance": null,
      "put_support": null,
      "hvl": null,
@@ -26772,20 +26751,20 @@
     },
     {
      "expiration_date": "2026-08-04",
-     "dte": 21,
-     "net_gex": 98916.84033865981,
-     "abs_gex": 621516.5588261097,
-     "net_dex": 22472122.782739162,
-     "abs_dex": 136392576.55906472,
-     "net_oi": -1158.0,
-     "abs_oi": 2640.0,
-     "gex_normalized": 0.10687539324544522,
-     "dex_normalized": 0.06514221264712779,
-     "oi_normalized": -0.10943752138189915,
-     "gex_change_1h": -17418.619831567674,
-     "dex_change_1h": 6492568.584199421,
-     "gex_change_1d": 51018.99916075475,
-     "dex_change_1d": -5276632.980742123,
+     "dte": 20,
+     "net_gex": -25130.633271352344,
+     "abs_gex": 973658.6425910175,
+     "net_dex": -9533325.912233928,
+     "abs_dex": 206625823.08640835,
+     "net_oi": -3536.0,
+     "abs_oi": 5226.0,
+     "gex_normalized": -0.016963046318895326,
+     "dex_normalized": -0.02268682972765095,
+     "oi_normalized": -0.32355145300772004,
+     "gex_change_1h": 24018.65746989307,
+     "dex_change_1h": 4500778.430311434,
+     "gex_change_1d": -128840.64958187935,
+     "dex_change_1d": -23487460.433900405,
      "call_resistance": null,
      "put_support": null,
      "hvl": null,
@@ -26793,20 +26772,20 @@
     },
     {
      "expiration_date": "2026-08-05",
-     "dte": 22,
-     "net_gex": -165289.46692210707,
-     "abs_gex": 842371.5648592694,
-     "net_dex": -17811886.930499006,
-     "abs_dex": 224125660.89880136,
-     "net_oi": -1146.0,
-     "abs_oi": 2556.0,
-     "gex_normalized": -0.17858816270464736,
-     "dex_normalized": -0.051633116163124264,
-     "oi_normalized": -0.1083034538028121,
-     "gex_change_1h": -22576.826742304693,
-     "dex_change_1h": 10282168.227521192,
-     "gex_change_1d": -207515.8687237716,
-     "dex_change_1d": -49470028.58373334,
+     "dte": 21,
+     "net_gex": 18078.902215844373,
+     "abs_gex": 961216.3344205029,
+     "net_dex": 20080888.41405613,
+     "abs_dex": 255028929.79781565,
+     "net_oi": -1056.0,
+     "abs_oi": 2880.0,
+     "gex_normalized": 0.012203164654499157,
+     "dex_normalized": 0.047787278062635406,
+     "oi_normalized": -0.09662622578511096,
+     "gex_change_1h": 23147.59693496026,
+     "dex_change_1h": 5208639.270217996,
+     "gex_change_1d": 170176.68297925568,
+     "dex_change_1d": 50915806.67096717,
      "call_resistance": null,
      "put_support": null,
      "hvl": null,
@@ -26814,20 +26793,20 @@
     },
     {
      "expiration_date": "2026-08-06",
-     "dte": 23,
-     "net_gex": -120244.96724524297,
-     "abs_gex": 522307.1879827993,
-     "net_dex": -32362083.195362553,
-     "abs_dex": 129266974.27778946,
-     "net_oi": -1217.0,
-     "abs_oi": 2193.0,
-     "gex_normalized": -0.12991951740595942,
-     "dex_normalized": -0.09381124006832184,
-     "oi_normalized": -0.11501335364574375,
-     "gex_change_1h": -6741.652962441149,
-     "dex_change_1h": 6375255.638234809,
-     "gex_change_1d": 68231.58028515626,
-     "dex_change_1d": 8677090.254140958,
+     "dte": 22,
+     "net_gex": -940.3558549938643,
+     "abs_gex": 618982.2613929759,
+     "net_dex": -15268187.033632744,
+     "abs_dex": 139673327.81601122,
+     "net_oi": -977.0,
+     "abs_oi": 2521.0,
+     "gex_normalized": -0.0006347352950587606,
+     "dex_normalized": -0.036334303754101474,
+     "oi_normalized": -0.08939755927277786,
+     "gex_change_1h": 14059.316204182249,
+     "dex_change_1h": 2805475.876084257,
+     "gex_change_1d": 119090.39881675501,
+     "dex_change_1d": 25110698.95649116,
      "call_resistance": null,
      "put_support": null,
      "hvl": null,
@@ -26835,20 +26814,20 @@
     },
     {
      "expiration_date": "2026-08-07",
-     "dte": 24,
-     "net_gex": -3021257.6353132725,
-     "abs_gex": 9316352.492230097,
-     "net_dex": -796863711.1582989,
-     "abs_dex": 2299644282.7058415,
-     "net_oi": -23838.0,
-     "abs_oi": 43742.0,
-     "gex_normalized": -3.264338981758915,
-     "dex_normalized": -2.3099493459035823,
-     "oi_normalized": -2.2528252458564006,
-     "gex_change_1h": -213274.89672607975,
-     "dex_change_1h": 119768788.97476637,
-     "gex_change_1d": 818579.0109135611,
-     "dex_change_1d": 114374154.46239209,
+     "dte": 23,
+     "net_gex": -3832633.053385432,
+     "abs_gex": 11365465.39854353,
+     "net_dex": -1017280371.8131429,
+     "abs_dex": 2771573481.8284554,
+     "net_oi": -33873.0,
+     "abs_oi": 55201.0,
+     "gex_normalized": -2.587007311193308,
+     "dex_normalized": -2.420862015321386,
+     "oi_normalized": -3.099450895851386,
+     "gex_change_1h": 274914.1257337467,
+     "dex_change_1h": 54483995.853881836,
+     "gex_change_1d": -886642.7577225985,
+     "dex_change_1d": -70351523.20629096,
      "call_resistance": null,
      "put_support": null,
      "hvl": null,
@@ -26856,20 +26835,20 @@
     },
     {
      "expiration_date": "2026-08-10",
-     "dte": 27,
-     "net_gex": -442189.6051794565,
-     "abs_gex": 1095236.809526532,
-     "net_dex": -81669827.70337221,
-     "abs_dex": 308882389.61892056,
-     "net_oi": -2186.0,
-     "abs_oi": 3768.0,
-     "gex_normalized": -0.4777668572995472,
-     "dex_normalized": -0.2367445805873653,
-     "oi_normalized": -0.20658931065702207,
-     "gex_change_1h": -22510.75614509685,
-     "dex_change_1h": 16752905.947740823,
-     "gex_change_1d": -4460.722111266281,
-     "dex_change_1d": -9209037.357097805,
+     "dte": 26,
+     "net_gex": -401217.42410941544,
+     "abs_gex": 1031667.7329412235,
+     "net_dex": -74248356.70912196,
+     "abs_dex": 303591945.5945401,
+     "net_oi": -2254.0,
+     "abs_oi": 3806.0,
+     "gex_normalized": -0.2708196675996316,
+     "dex_normalized": -0.1766917277060785,
+     "oi_normalized": -0.2062457508708713,
+     "gex_change_1h": 19851.15031352028,
+     "dex_change_1h": 4557012.801012993,
+     "gex_change_1d": 31035.21927447192,
+     "dex_change_1d": 27407371.925873086,
      "call_resistance": null,
      "put_support": null,
      "hvl": null,
@@ -26877,20 +26856,20 @@
     },
     {
      "expiration_date": "2026-08-11",
-     "dte": 28,
-     "net_gex": -205209.88184197116,
-     "abs_gex": 246723.07923852713,
-     "net_dex": -51698505.68177881,
-     "abs_dex": 59616611.905249484,
-     "net_oi": -1520.0,
-     "abs_oi": 1666.0,
-     "gex_normalized": -0.22172045472362653,
-     "dex_normalized": -0.14986368146973422,
-     "oi_normalized": -0.14364856001769147,
-     "gex_change_1h": -4161.080239930918,
-     "dex_change_1h": 5644186.939995907,
-     "gex_change_1d": 27061.185603400314,
-     "dex_change_1d": -363359.1644407138,
+     "dte": 27,
+     "net_gex": -186022.15659052006,
+     "abs_gex": 259110.43142414134,
+     "net_dex": -49392004.29968445,
+     "abs_dex": 64722796.88380381,
+     "net_oi": -1529.0,
+     "abs_oi": 1721.0,
+     "gex_normalized": -0.12556398497856022,
+     "dex_normalized": -0.11754009060115815,
+     "oi_normalized": -0.13990672275135857,
+     "gex_change_1h": 6360.629940391256,
+     "dex_change_1h": 894260.0774701089,
+     "gex_change_1d": 18595.406202044775,
+     "dex_change_1d": 8477633.231098399,
      "call_resistance": null,
      "put_support": null,
      "hvl": null,
@@ -26898,20 +26877,20 @@
     },
     {
      "expiration_date": "2026-08-12",
-     "dte": 29,
-     "net_gex": -149980.19427695076,
-     "abs_gex": 449636.1893741374,
-     "net_dex": -41760941.33361581,
-     "abs_dex": 112742897.8624081,
-     "net_oi": -1770.0,
-     "abs_oi": 2508.0,
-     "gex_normalized": -0.16204715180447057,
-     "dex_normalized": -0.12105665971121199,
-     "oi_normalized": -0.16727496791533808,
-     "gex_change_1h": -5878.462658704695,
-     "dex_change_1h": 7326260.943910465,
-     "gex_change_1d": -170301.01971302007,
-     "dex_change_1d": -47457518.216942444,
+     "dte": 28,
+     "net_gex": -147633.14463063548,
+     "abs_gex": 538528.2948069787,
+     "net_dex": -44956800.92144836,
+     "abs_dex": 137189793.54786325,
+     "net_oi": -1966.0,
+     "abs_oi": 2794.0,
+     "gex_normalized": -0.09965160223114741,
+     "dex_normalized": -0.10698546310012833,
+     "oi_normalized": -0.1798931438385683,
+     "gex_change_1h": 12031.31853735706,
+     "dex_change_1h": 2659713.8219676763,
+     "gex_change_1d": 3625.134241547057,
+     "dex_change_1d": 5233010.437325396,
      "call_resistance": null,
      "put_support": null,
      "hvl": null,
@@ -26919,20 +26898,20 @@
     },
     {
      "expiration_date": "2026-08-13",
-     "dte": 30,
-     "net_gex": 5973.580612740865,
-     "abs_gex": 11510.909053633097,
-     "net_dex": 478566.5340053035,
-     "abs_dex": 2136509.105739898,
-     "net_oi": -91.0,
-     "abs_oi": 569.0,
-     "gex_normalized": 0.006454197029386204,
-     "dex_normalized": 0.0013872691612346396,
-     "oi_normalized": -0.00860001247474337,
-     "gex_change_1h": 6677.466378929263,
-     "dex_change_1h": 6911780.905850347,
-     "gex_change_1d": 38303.10484681089,
-     "dex_change_1d": 8845596.543430958,
+     "dte": 29,
+     "net_gex": 21736.446460049476,
+     "abs_gex": 176501.17202885268,
+     "net_dex": -3845317.6857795324,
+     "abs_dex": 39070526.20035255,
+     "net_oi": -206.0,
+     "abs_oi": 896.0,
+     "gex_normalized": 0.014671987933162262,
+     "dex_normalized": -0.009150853373643101,
+     "oi_normalized": -0.01884943419671672,
+     "gex_change_1h": 4672.04051928339,
+     "dex_change_1h": 657786.6505533047,
+     "gex_change_1d": 24469.9321272286,
+     "dex_change_1d": 2895566.881950261,
      "call_resistance": null,
      "put_support": null,
      "hvl": null,
@@ -26940,20 +26919,20 @@
     },
     {
      "expiration_date": "2026-08-14",
-     "dte": 31,
-     "net_gex": -1184917.9842997205,
-     "abs_gex": 3084389.9929900696,
-     "net_dex": -321447599.0088149,
-     "abs_dex": 936377826.2196819,
-     "net_oi": -10758.0,
-     "abs_oi": 15668.0,
-     "gex_normalized": -1.2802529387520132,
-     "dex_normalized": -0.9318126307864759,
-     "oi_normalized": -1.0166915846515294,
-     "gex_change_1h": -46259.40196014382,
-     "dex_change_1h": 38409462.28371364,
-     "gex_change_1d": -16707.30685312883,
-     "dex_change_1d": -45669505.55947244,
+     "dte": 30,
+     "net_gex": -1692631.0915500666,
+     "abs_gex": 3856011.276846817,
+     "net_dex": -455055761.8813697,
+     "abs_dex": 1168742717.5255845,
+     "net_oi": -14330.0,
+     "abs_oi": 19616.0,
+     "gex_normalized": -1.1425171541338186,
+     "dex_normalized": -1.08291405134286,
+     "oi_normalized": -1.3112252040725758,
+     "gex_change_1h": 66617.44256500504,
+     "dex_change_1h": 18414329.528021157,
+     "gex_change_1d": -523940.6292062781,
+     "dex_change_1d": -84732493.16048676,
      "call_resistance": null,
      "put_support": null,
      "hvl": null,
@@ -26961,20 +26940,20 @@
     },
     {
      "expiration_date": "2026-08-17",
-     "dte": 34,
-     "net_gex": -1995.6029377663049,
-     "abs_gex": 123035.00247159092,
-     "net_dex": -4420922.442270707,
-     "abs_dex": 33953751.47603627,
-     "net_oi": -236.0,
-     "abs_oi": 538.0,
-     "gex_normalized": -0.0021561631771226594,
-     "dex_normalized": -0.012815374524923031,
-     "oi_normalized": -0.02230332905537841,
-     "gex_change_1h": -5499.306762020995,
-     "dex_change_1h": 1290835.1199231697,
-     "gex_change_1d": -11984.486577645306,
-     "dex_change_1d": -5850586.8781920485,
+     "dte": 33,
+     "net_gex": 54185.94213775759,
+     "abs_gex": 211984.66858264926,
+     "net_dex": 5418287.293227118,
+     "abs_dex": 55515457.28156365,
+     "net_oi": -208.0,
+     "abs_oi": 804.0,
+     "gex_normalized": 0.03657522818430361,
+     "dex_normalized": 0.012894110866302466,
+     "oi_normalized": -0.019032438412218827,
+     "gex_change_1h": 6689.586287281432,
+     "dex_change_1h": 1036283.8470567567,
+     "gex_change_1d": 52932.85779049983,
+     "dex_change_1d": 11505248.799661947,
      "call_resistance": null,
      "put_support": null,
      "hvl": null,
@@ -26982,20 +26961,20 @@
     },
     {
      "expiration_date": "2026-08-18",
-     "dte": 35,
-     "net_gex": 29853.01177099654,
-     "abs_gex": 78417.50321262317,
-     "net_dex": 5982513.724360527,
-     "abs_dex": 21248179.523405977,
-     "net_oi": -42.0,
-     "abs_oi": 274.0,
-     "gex_normalized": 0.03225489574538293,
-     "dex_normalized": 0.017342116940371705,
-     "oi_normalized": -0.003969236526804632,
-     "gex_change_1h": -3427.7165769021667,
-     "dex_change_1h": 473622.914416912,
-     "gex_change_1d": 29853.01177099654,
-     "dex_change_1d": 5982513.724360527,
+     "dte": 34,
+     "net_gex": 28610.437015646086,
+     "abs_gex": 101488.95650947875,
+     "net_dex": 4215445.078065094,
+     "abs_dex": 26580135.444364026,
+     "net_oi": -186.0,
+     "abs_oi": 444.0,
+     "gex_normalized": 0.019311895687622108,
+     "dex_normalized": 0.010031660051567148,
+     "oi_normalized": -0.01701939204169568,
+     "gex_change_1h": 3017.1250471536187,
+     "dex_change_1h": 555758.3824959295,
+     "gex_change_1d": -3153.0166798542923,
+     "dex_change_1d": -991016.889766641,
      "call_resistance": null,
      "put_support": null,
      "hvl": null,
@@ -27003,6 +26982,27 @@
     },
     {
      "expiration_date": "2026-08-19",
+     "dte": 35,
+     "net_gex": -124990.80701129042,
+     "abs_gex": 125762.83479461216,
+     "net_dex": -37461129.625189304,
+     "abs_dex": 37554881.70745869,
+     "net_oi": -680.0,
+     "abs_oi": 684.0,
+     "gex_normalized": -0.08436814249267549,
+     "dex_normalized": -0.08914772001254079,
+     "oi_normalized": -0.06222143327071539,
+     "gex_change_1h": 2590.8346910482505,
+     "dex_change_1h": 404718.110759303,
+     "gex_change_1d": -124990.80701129042,
+     "dex_change_1d": -37461129.625189304,
+     "call_resistance": null,
+     "put_support": null,
+     "hvl": null,
+     "implied_expected_move": null
+    },
+    {
+     "expiration_date": "2026-08-20",
      "dte": 36,
      "net_gex": 0.0,
      "abs_gex": 0.0,
@@ -27024,20 +27024,20 @@
     },
     {
      "expiration_date": "2026-08-21",
-     "dte": 38,
-     "net_gex": 2368828.102121509,
-     "abs_gex": 35866951.04606857,
-     "net_dex": 1825382816.9828784,
-     "abs_dex": 13555335475.408281,
-     "net_oi": -78293.0,
-     "abs_oi": 274397.0,
-     "gex_normalized": 2.559416921105914,
-     "dex_normalized": 5.29142158824649,
-     "oi_normalized": -7.399129414121787,
-     "gex_change_1h": -367334.479481942,
-     "dex_change_1h": 371479773.3390043,
-     "gex_change_1d": 2558585.7267732383,
-     "dex_change_1d": 333090762.05203223,
+     "dte": 37,
+     "net_gex": 4439442.086135583,
+     "abs_gex": 36533308.64403259,
+     "net_dex": 2391101885.8326297,
+     "abs_dex": 13760743879.501534,
+     "net_oi": -78591.0,
+     "abs_oi": 276281.0,
+     "gex_normalized": 2.996600241786058,
+     "dex_normalized": 5.690198976176452,
+     "oi_normalized": -7.191242150262932,
+     "gex_change_1h": 643320.1754234112,
+     "dex_change_1h": 168015300.59712029,
+     "gex_change_1d": 2114832.6630905,
+     "dex_change_1d": 1056287119.0725591,
      "call_resistance": null,
      "put_support": null,
      "hvl": null,
@@ -27045,20 +27045,20 @@
     },
     {
      "expiration_date": "2026-08-28",
-     "dte": 45,
-     "net_gex": -25410.887455122836,
-     "abs_gex": 1030106.3949881402,
-     "net_dex": -45048337.917546,
-     "abs_dex": 379021993.6815429,
-     "net_oi": -3056.0,
-     "abs_oi": 6630.0,
-     "gex_normalized": -0.027455371402725488,
-     "dex_normalized": -0.13058616831154363,
-     "oi_normalized": -0.2888092101408323,
-     "gex_change_1h": -8119.6721420549475,
-     "dex_change_1h": 6181998.441950381,
-     "gex_change_1d": 67492.37191421977,
-     "dex_change_1d": 7322640.072653592,
+     "dte": 44,
+     "net_gex": 12206.892394930503,
+     "abs_gex": 1147436.3249172925,
+     "net_dex": -37791554.77519671,
+     "abs_dex": 417616816.137556,
+     "net_oi": -3349.0,
+     "abs_oi": 7357.0,
+     "gex_normalized": 0.008239588667310747,
+     "dex_normalized": -0.08993404570673862,
+     "oi_normalized": -0.3064405588582733,
+     "gex_change_1h": 13187.071114439526,
+     "dex_change_1h": 6545940.9930470735,
+     "gex_change_1d": 36554.80298930581,
+     "dex_change_1d": 17556096.152401254,
      "call_resistance": null,
      "put_support": null,
      "hvl": null,
@@ -27066,20 +27066,20 @@
     },
     {
      "expiration_date": "2026-08-31",
-     "dte": 48,
-     "net_gex": 1031500.1982382,
-     "abs_gex": 18865851.272832923,
-     "net_dex": 1826078127.2918992,
-     "abs_dex": 9251458026.416151,
-     "net_oi": -24813.0,
-     "abs_oi": 112521.0,
-     "gex_normalized": 1.1144916168170032,
-     "dex_normalized": 5.293437154485776,
-     "oi_normalized": -2.3449682366572224,
-     "gex_change_1h": -131081.09067502082,
-     "dex_change_1h": 116520338.61137724,
-     "gex_change_1d": 585554.6787356671,
-     "dex_change_1d": 218852990.42548513,
+     "dte": 47,
+     "net_gex": 1801761.1453638766,
+     "abs_gex": 19395371.919615306,
+     "net_dex": 2240029256.237822,
+     "abs_dex": 9379779697.706543,
+     "net_oi": -24510.0,
+     "abs_oi": 113402.0,
+     "gex_normalized": 1.2161793709844162,
+     "dex_normalized": 5.330685511969,
+     "oi_normalized": -2.2427166609782856,
+     "gex_change_1h": 194234.01597891608,
+     "dex_change_1h": 120050258.9827013,
+     "gex_change_1d": 758654.7275253672,
+     "dex_change_1d": 609302513.8210881,
      "call_resistance": null,
      "put_support": null,
      "hvl": null,
@@ -27087,20 +27087,20 @@
     },
     {
      "expiration_date": "2026-09-04",
-     "dte": 52,
-     "net_gex": -23274.453576171632,
-     "abs_gex": 782863.6002427071,
-     "net_dex": -29840167.37939699,
-     "abs_dex": 325689211.04185265,
-     "net_oi": -2469.0,
-     "abs_oi": 4827.0,
-     "gex_normalized": -0.025147046448409677,
-     "dex_normalized": -0.08650070790586989,
-     "oi_normalized": -0.233334404397158,
-     "gex_change_1h": -9741.917055183583,
-     "dex_change_1h": 6352319.648559555,
-     "gex_change_1d": 45968.231224159994,
-     "dex_change_1d": 3450839.8763029017,
+     "dte": 51,
+     "net_gex": 1809.520456915649,
+     "abs_gex": 782223.7727358191,
+     "net_dex": -19239380.215546004,
+     "abs_dex": 328006177.81686383,
+     "net_oi": -2509.0,
+     "abs_oi": 4875.0,
+     "gex_normalized": 0.001221416865791421,
+     "dex_normalized": -0.04578470798480746,
+     "oi_normalized": -0.22957878834738957,
+     "gex_change_1h": 10171.587864085559,
+     "dex_change_1h": 4177373.522660475,
+     "gex_change_1d": 21509.97908499167,
+     "dex_change_1d": 19672684.515542798,
      "call_resistance": null,
      "put_support": null,
      "hvl": null,
@@ -27108,20 +27108,20 @@
     },
     {
      "expiration_date": "2026-09-11",
-     "dte": 59,
-     "net_gex": -318379.4644626635,
-     "abs_gex": 401714.2269379183,
-     "net_dex": -149773764.40102804,
-     "abs_dex": 171102340.93886775,
-     "net_oi": -2265.0,
-     "abs_oi": 2741.0,
-     "gex_normalized": -0.3439953232353968,
-     "dex_normalized": -0.4341643423676301,
-     "oi_normalized": -0.21405525555267838,
-     "gex_change_1h": -9222.167357220664,
-     "dex_change_1h": 3433417.3019173145,
-     "gex_change_1d": -76290.31107507189,
-     "dex_change_1d": -48368574.32682799,
+     "dte": 58,
+     "net_gex": -199989.7574838574,
+     "abs_gex": 301436.9340320793,
+     "net_dex": -98594661.01545393,
+     "abs_dex": 129779020.06800638,
+     "net_oi": -1980.0,
+     "abs_oi": 2496.0,
+     "gex_normalized": -0.13499204269438453,
+     "dex_normalized": -0.23462958332753805,
+     "oi_normalized": -0.18117417334708305,
+     "gex_change_1h": 4882.723590062815,
+     "dex_change_1h": 1788653.72242181,
+     "gex_change_1d": 112062.62632019463,
+     "dex_change_1d": 56101734.04037017,
      "call_resistance": null,
      "put_support": null,
      "hvl": null,
@@ -27129,20 +27129,20 @@
     },
     {
      "expiration_date": "2026-09-18",
-     "dte": 66,
-     "net_gex": 7800056.932564798,
-     "abs_gex": 59762721.0857496,
-     "net_dex": 10323348287.137112,
-     "abs_dex": 35072271037.24984,
-     "net_oi": -106527.0,
-     "abs_oi": 451099.0,
-     "gex_normalized": 8.427626167097793,
-     "dex_normalized": 29.92533263780422,
-     "oi_normalized": -10.067401416450407,
-     "gex_change_1h": -201401.5925327083,
-     "dex_change_1h": 455320554.2146454,
-     "gex_change_1d": 1482041.522303789,
-     "dex_change_1d": 683284718.8923683,
+     "dte": 65,
+     "net_gex": 8951761.400898611,
+     "abs_gex": 60939386.282262586,
+     "net_dex": 11051746010.849844,
+     "abs_dex": 35885847153.10058,
+     "net_oi": -106829.0,
+     "abs_oi": 457185.0,
+     "gex_normalized": 6.0423922326001565,
+     "dex_normalized": 26.30027361381198,
+     "oi_normalized": -9.77507866893714,
+     "gex_change_1h": 562910.855138747,
+     "dex_change_1h": 338783439.6108856,
+     "gex_change_1d": 1291253.8494714918,
+     "dex_change_1d": 1409604873.7510815,
      "call_resistance": null,
      "put_support": null,
      "hvl": null,
@@ -27156,7 +27156,7 @@
   "body": {
    "exchange": "CME",
    "asset_type": "FUTURES",
-   "date": "2026-07-14",
+   "date": "2026-07-15",
    "status": "OPEN",
    "is_open": true,
    "open_time_utc": "22:00",
@@ -27168,7 +27168,7 @@
    "pre_open_time_local": "17:00",
    "post_close_time_local": "16:00",
    "tz_exchange": "America/Chicago",
-   "next_open_date": "2026-07-15"
+   "next_open_date": "2026-07-16"
   }
  }
 ]

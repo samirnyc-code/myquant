@@ -49,6 +49,7 @@ Set-QTask "MyQuant Trigger Daemon" "options_trigger_daemon.py" "08:33" "--until 
 Set-QTask "MyQuant Gamma Scanner"  "options_gamma_scanner.py"  "08:35"
 Set-QTask "MyQuant Health Check"   "options_healthcheck.py"    "08:40"
 Set-QTask "MyQuant Marks Watch"    "options_mark.py"           "08:26" "--watch 120"
+Set-QTask "MyQuant MQ Mine"        "mq_mine.py"                "07:30"
 Set-QTask "MyQuant Postmortem"     "options_postmortem.py"     "15:15"
 Set-QTask "MyQuant EOD Report"     "eod_report.py"             "15:20"
 

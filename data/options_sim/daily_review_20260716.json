@@ -1,0 +1,122 @@
+{
+  "date": "20260716",
+  "scenario": {
+    "actual": "D",
+    "actual_desc": "break below HVL (closed below)",
+    "mapped_paths": [
+      "A",
+      "B",
+      "C",
+      "D"
+    ],
+    "had_scenario": true,
+    "open": 7557.8,
+    "high": 7570.8,
+    "low": 7506.0,
+    "close": 7528.0
+  },
+  "level_action": [
+    {
+      "level": "HVL",
+      "value": 7535.0,
+      "behavior": "breakout",
+      "approached_from": "above",
+      "first_touch_i": 17,
+      "note": "absorption/aggression needs order-flow (footprint) \u2014 not visible in OHLC"
+    },
+    {
+      "level": "CR0",
+      "value": 7600.0,
+      "behavior": "not_tested",
+      "close_side": "below"
+    },
+    {
+      "level": "PS0",
+      "value": 7555.0,
+      "behavior": "acceptance",
+      "approached_from": "above",
+      "first_touch_i": 0,
+      "note": "absorption/aggression needs order-flow (footprint) \u2014 not visible in OHLC"
+    },
+    {
+      "level": "GW0",
+      "value": 7600.0,
+      "behavior": "not_tested",
+      "close_side": "below"
+    },
+    {
+      "level": "1D_max",
+      "value": 7631.6,
+      "behavior": "not_tested",
+      "close_side": "below"
+    },
+    {
+      "level": "1D_min",
+      "value": 7512.8,
+      "behavior": "failed_break",
+      "approached_from": "above",
+      "first_touch_i": 338,
+      "note": "absorption/aggression needs order-flow (footprint) \u2014 not visible in OHLC"
+    }
+  ],
+  "behavior": {
+    "n_trades": 5,
+    "distinct_scenario_bets": [
+      "A/C",
+      "B",
+      "C",
+      "D"
+    ],
+    "contradiction": true,
+    "overtraded": true,
+    "day_pnl": -5638,
+    "trades": [
+      {
+        "strategy": "straddle_0dte",
+        "structure": "straddle",
+        "entry": "08:48",
+        "scenario_bet": "D (break/expand)",
+        "pnl": -2488
+      },
+      {
+        "strategy": "sell_0dte_gamma",
+        "structure": "vertical 25pt",
+        "entry": "09:00",
+        "scenario_bet": "C (pin/chop)",
+        "pnl": -1365
+      },
+      {
+        "strategy": "sell_0dte_gamma",
+        "structure": "vertical 25pt",
+        "entry": "09:00",
+        "scenario_bet": "C (pin/chop)",
+        "pnl": 35
+      },
+      {
+        "strategy": "fly_gw_0dte",
+        "structure": "butterfly 50pt",
+        "entry": "09:01",
+        "scenario_bet": "A/C (pin at wall)",
+        "pnl": -255
+      },
+      {
+        "strategy": "ps0_fade",
+        "structure": "vertical 25pt",
+        "entry": "09:06",
+        "scenario_bet": "B (PS holds)",
+        "pnl": -1565
+      }
+    ]
+  },
+  "counterfactual": {
+    "actual_path": "D",
+    "right_structure": "directional DOWN \u2014 put debit spread or SELL call premium above; long straddle ONLY on momentum/vol-expansion",
+    "what_we_did": [
+      "A/C (pin at wall)",
+      "B (PS holds)",
+      "C (pin/chop)",
+      "D (break/expand)"
+    ],
+    "aligned": true
+  }
+}

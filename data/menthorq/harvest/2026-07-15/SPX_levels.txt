@@ -1,0 +1,39 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+AFTER-HOURS
+Unlock full access!
+Limited 40% discount
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+Request Levels
+
+Get Gamma Levels, Blind Spots, and Swing Levels for Stocks, ETFs, Indices, Futures or Crypto. Return the TradingView code ready to plot on your charts. Up to 5 tickers per request.
+
+Search Tickers
+Paste Tickers
+Select Tickers
+Maximum of 5 tickers can be selected
+Gamma Levels EOD
+Search
+No results to display. Use the search bar to find the tickers you're looking for.
+Intraday summary
+Watchlist
+Net Gex
+Chats

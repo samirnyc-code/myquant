@@ -1,0 +1,488 @@
+{
+ "generated": "2026-07-17T04:02:55",
+ "families": {
+  "vendor_flatfiles": {
+   "n": 5222,
+   "size": 84776272861,
+   "zero_byte": 0,
+   "newest": 1783724499.4250884,
+   "exists_any": true,
+   "health": "ok",
+   "reasons": [],
+   "per_path": {
+    "data/flatfiles_cache": {
+     "exists": true,
+     "n": 1316,
+     "size": 49252005186,
+     "newest": 1783724499.4250884,
+     "zero_byte": 0
+    },
+    "data/flatfiles_cache_cbot": {
+     "exists": true,
+     "n": 1302,
+     "size": 15532661902,
+     "newest": 1783108437.1222544,
+     "zero_byte": 0
+    },
+    "data/flatfiles_cache_nymex": {
+     "exists": true,
+     "n": 1302,
+     "size": 14008842173,
+     "newest": 1783111156.7836108,
+     "zero_byte": 0
+    },
+    "data/flatfiles_cache_comex": {
+     "exists": true,
+     "n": 1302,
+     "size": 5982763600,
+     "newest": 1783058315.545882,
+     "zero_byte": 0
+    }
+   },
+   "rows": null
+  },
+  "nt_import": {
+   "n": 26,
+   "size": 15852483984,
+   "zero_byte": 0,
+   "newest": 1783090853.8538074,
+   "exists_any": true,
+   "health": "ok",
+   "reasons": [],
+   "per_path": {
+    "data/nt_import": {
+     "exists": true,
+     "n": 26,
+     "size": 15852483984,
+     "newest": 1783090853.8538074,
+     "zero_byte": 0
+    }
+   },
+   "rows": null
+  },
+  "optionsdx": {
+   "n": 162,
+   "size": 5189665557,
+   "zero_byte": 0,
+   "newest": 1704468775.5809746,
+   "exists_any": true,
+   "health": "ok",
+   "reasons": [],
+   "per_path": {
+    "data/optionsdx": {
+     "exists": true,
+     "n": 162,
+     "size": 5189665557,
+     "newest": 1704468775.5809746,
+     "zero_byte": 0
+    }
+   },
+   "rows": null
+  },
+  "ticks_continuous": {
+   "n": 8517,
+   "size": 9314757798,
+   "zero_byte": 0,
+   "newest": 1783724529.831879,
+   "exists_any": true,
+   "health": "ok",
+   "reasons": [],
+   "per_path": {
+    "data/ticks_continuous": {
+     "exists": true,
+     "n": 1270,
+     "size": 3604227829,
+     "newest": 1783724529.831879,
+     "zero_byte": 0
+    },
+    "data/ticks_continuous_NQ": {
+     "exists": true,
+     "n": 1265,
+     "size": 3226690987,
+     "newest": 1783091743.383753,
+     "zero_byte": 0
+    },
+    "data/ticks_continuous_YM": {
+     "exists": true,
+     "n": 1257,
+     "size": 852544189,
+     "newest": 1783108438.3808348,
+     "zero_byte": 0
+    },
+    "data/ticks_continuous_CL": {
+     "exists": true,
+     "n": 1258,
+     "size": 776230723,
+     "newest": 1783111157.7600543,
+     "zero_byte": 0
+    },
+    "data/ticks_continuous_GC": {
+     "exists": true,
+     "n": 1258,
+     "size": 487343446,
+     "newest": 1783109358.9924555,
+     "zero_byte": 0
+    },
+    "data/ticks_continuous_6E": {
+     "exists": true,
+     "n": 932,
+     "size": 195387716,
+     "newest": 1783116849.1535895,
+     "zero_byte": 0
+    },
+    "data/ticks_continuous_6J": {
+     "exists": true,
+     "n": 1277,
+     "size": 172332908,
+     "newest": 1783122565.9091375,
+     "zero_byte": 0
+    }
+   },
+   "rows": null
+  },
+  "bars": {
+   "n": 225,
+   "size": 64046295,
+   "zero_byte": 0,
+   "newest": 1784121423.9402983,
+   "exists_any": true,
+   "health": "ok",
+   "reasons": [],
+   "per_path": {
+    "data/bars": {
+     "exists": true,
+     "n": 225,
+     "size": 64046295,
+     "newest": 1784121423.9402983,
+     "zero_byte": 0
+    }
+   },
+   "rows": null
+  },
+  "mq_levels_history": {
+   "n": 3173,
+   "size": 150384763,
+   "zero_byte": 1,
+   "newest": 1784249035.1887224,
+   "exists_any": true,
+   "health": "ok",
+   "reasons": [
+    "1 zero-byte file(s)"
+   ],
+   "per_path": {
+    "data/menthorq": {
+     "exists": true,
+     "n": 3173,
+     "size": 150384763,
+     "newest": 1784249035.1887224,
+     "zero_byte": 1
+    }
+   },
+   "rows": {
+    "aapl_gex_history.csv": {
+     "rows": 365,
+     "cols": 3,
+     "schema": [
+      "date",
+      "net_gex",
+      "gex_percentile_1y"
+     ]
+    }
+   }
+  },
+  "mq_harvest": {
+   "n": 512,
+   "size": 108411250,
+   "zero_byte": 0,
+   "newest": 1784235932.2189128,
+   "exists_any": true,
+   "health": "ok",
+   "reasons": [],
+   "per_path": {
+    "data/menthorq/harvest": {
+     "exists": true,
+     "n": 512,
+     "size": 108411250,
+     "newest": 1784235932.2189128,
+     "zero_byte": 0
+    }
+   },
+   "rows": null
+  },
+  "mq_gamma_db": {
+   "n": 1,
+   "size": 12288,
+   "zero_byte": 0,
+   "newest": 1784232384.54877,
+   "exists_any": true,
+   "health": "ok",
+   "reasons": [],
+   "per_path": {
+    "gamma_tracker/gamma.db": {
+     "exists": true,
+     "n": 1,
+     "size": 12288,
+     "newest": 1784232384.54877,
+     "zero_byte": 0
+    }
+   },
+   "rows": null
+  },
+  "mq_mine": {
+   "n": 227,
+   "size": 7674234,
+   "zero_byte": 0,
+   "newest": 1784249035.1887224,
+   "exists_any": true,
+   "health": "ok",
+   "reasons": [],
+   "per_path": {
+    "data/menthorq/mine": {
+     "exists": true,
+     "n": 194,
+     "size": 7613631,
+     "newest": 1784249035.1887224,
+     "zero_byte": 0
+    },
+    "data/menthorq/academy": {
+     "exists": true,
+     "n": 33,
+     "size": 60603,
+     "newest": 1784068261.8748224,
+     "zero_byte": 0
+    }
+   },
+   "rows": null
+  },
+  "options_sim": {
+   "n": 45,
+   "size": 2320783,
+   "zero_byte": 0,
+   "newest": 1784250745.1335998,
+   "exists_any": true,
+   "health": "ok",
+   "reasons": [],
+   "per_path": {
+    "data/options_sim": {
+     "exists": true,
+     "n": 45,
+     "size": 2320783,
+     "newest": 1784250745.1335998,
+     "zero_byte": 0
+    }
+   },
+   "rows": null
+  },
+  "options_log": {
+   "n": 7,
+   "size": 253923,
+   "zero_byte": 0,
+   "newest": 1784233202.134833,
+   "exists_any": true,
+   "health": "ok",
+   "reasons": [],
+   "per_path": {
+    "data/options_log": {
+     "exists": true,
+     "n": 7,
+     "size": 253923,
+     "newest": 1784233202.134833,
+     "zero_byte": 0
+    }
+   },
+   "rows": null
+  },
+  "massive_options": {
+   "n": 2,
+   "size": 217445,
+   "zero_byte": 0,
+   "newest": 1783722314.396381,
+   "exists_any": true,
+   "health": "ok",
+   "reasons": [],
+   "per_path": {
+    "data/massive_options": {
+     "exists": true,
+     "n": 2,
+     "size": 217445,
+     "newest": 1783722314.396381,
+     "zero_byte": 0
+    },
+    "data/massive_cache": {
+     "exists": true,
+     "n": 0,
+     "size": 0,
+     "newest": null,
+     "zero_byte": 0
+    }
+   },
+   "rows": null
+  },
+  "wfa_store": {
+   "n": 3344,
+   "size": 261183488,
+   "zero_byte": 0,
+   "newest": 1782254893.5487335,
+   "exists_any": true,
+   "health": "ok",
+   "reasons": [],
+   "per_path": {
+    "data/wfa_store": {
+     "exists": true,
+     "n": 3344,
+     "size": 261183488,
+     "newest": 1782254893.5487335,
+     "zero_byte": 0
+    }
+   },
+   "rows": null
+  },
+  "mq_knowledge": {
+   "n": 392,
+   "size": 1253146,
+   "zero_byte": 0,
+   "newest": 1784082030.5199294,
+   "exists_any": true,
+   "health": "ok",
+   "reasons": [],
+   "per_path": {
+    "data/menthorq/knowledge": {
+     "exists": true,
+     "n": 392,
+     "size": 1253146,
+     "newest": 1784082030.5199294,
+     "zero_byte": 0
+    }
+   },
+   "rows": null
+  },
+  "vix_ib_daily": {
+   "n": 6,
+   "size": 1395461,
+   "zero_byte": 0,
+   "newest": 1784208903.139259,
+   "exists_any": true,
+   "health": "ok",
+   "reasons": [],
+   "per_path": {
+    "data/vix_daily.csv": {
+     "exists": true,
+     "n": 1,
+     "size": 328545,
+     "newest": 1784208903.139259,
+     "zero_byte": 0
+    },
+    "data/vix_daily.parquet": {
+     "exists": true,
+     "n": 1,
+     "size": 154887,
+     "newest": 1783880449.1096702,
+     "zero_byte": 0
+    },
+    "data/VIX_History.csv": {
+     "exists": true,
+     "n": 1,
+     "size": 470116,
+     "newest": 1783490837.7725987,
+     "zero_byte": 0
+    },
+    "data/spx_daily.csv": {
+     "exists": true,
+     "n": 1,
+     "size": 67220,
+     "newest": 1783880497.6290166,
+     "zero_byte": 0
+    },
+    "data/spx_daily.parquet": {
+     "exists": true,
+     "n": 1,
+     "size": 41239,
+     "newest": 1783880497.621575,
+     "zero_byte": 0
+    },
+    "data/ES_stoch_daily.csv": {
+     "exists": true,
+     "n": 1,
+     "size": 333454,
+     "newest": 1783492310.8235693,
+     "zero_byte": 0
+    }
+   },
+   "rows": null
+  },
+  "signals": {
+   "n": 7,
+   "size": 3822698,
+   "zero_byte": 0,
+   "newest": 1783351762.9703033,
+   "exists_any": true,
+   "health": "ok",
+   "reasons": [],
+   "per_path": {
+    "data/signals": {
+     "exists": true,
+     "n": 7,
+     "size": 3822698,
+     "newest": 1783351762.9703033,
+     "zero_byte": 0
+    }
+   },
+   "rows": null
+  },
+  "briefs": {
+   "n": 2,
+   "size": 504645,
+   "zero_byte": 0,
+   "newest": 1784129671.75377,
+   "exists_any": true,
+   "health": "ok",
+   "reasons": [],
+   "per_path": {
+    "data/briefs": {
+     "exists": true,
+     "n": 2,
+     "size": 504645,
+     "newest": 1784129671.75377,
+     "zero_byte": 0
+    }
+   },
+   "rows": null
+  },
+  "misc_cache": {
+   "n": 7,
+   "size": 11414011,
+   "zero_byte": 0,
+   "newest": 1783105640.7045789,
+   "exists_any": true,
+   "health": "ok",
+   "reasons": [],
+   "per_path": {
+    "data/cache": {
+     "exists": true,
+     "n": 7,
+     "size": 11414011,
+     "newest": 1783105640.7045789,
+     "zero_byte": 0
+    },
+    "data/raw": {
+     "exists": true,
+     "n": 0,
+     "size": 0,
+     "newest": null,
+     "zero_byte": 0
+    },
+    "data/leg_labels": {
+     "exists": true,
+     "n": 0,
+     "size": 0,
+     "newest": null,
+     "zero_byte": 0
+    }
+   },
+   "rows": null
+  }
+ },
+ "total_size": 115746074630,
+ "total_files": 21877,
+ "scan_seconds": 0.18236
+}
