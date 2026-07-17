@@ -19,21 +19,26 @@ import socket
 import subprocess
 import sys
 import threading
+import time
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PY = ROOT / ".venv" / "Scripts" / "python.exe"
+# pythonw.exe = the GUI-subsystem interpreter: it NEVER allocates a console window,
+# so detached dashboards don't spawn stray black console windows on the desktop.
+PY = ROOT / ".venv" / "Scripts" / "pythonw.exe"
 SD = ROOT / "scripts"
 LOGDIR = ROOT / "data" / "_catalog" / "logs"
 PIDFILE = ROOT / "data" / "_catalog" / "launcher_pids.json"
 
-# Windows process-creation flags: detach so dashboards outlive this launcher.
-DETACHED_PROCESS = 0x00000008
+# Windows process-creation flags. Note: DETACHED_PROCESS and CREATE_NO_WINDOW are
+# mutually exclusive — combining them (the old bug) is why consoles still flashed.
+# CREATE_NO_WINDOW alone gives the child no console window; CREATE_NEW_PROCESS_GROUP
+# detaches it from this launcher's Ctrl-C group so it survives the launcher closing.
 CREATE_NEW_PROCESS_GROUP = 0x00000200
 CREATE_NO_WINDOW = 0x08000000
-_FLAGS = DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW
+_FLAGS = CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW
 
 
 def _st(script):
@@ -176,6 +181,27 @@ def restart(key):
     return start(key)
 
 
+def open_when_up(key, timeout=25.0):
+    """Open the dashboard in the user's default browser once its port is LISTENING.
+    Runs in a background thread so slow (Streamlit) apps open when actually ready and
+    fast (stdlib) apps open near-instantly — no blank/placeholder tabs, no popup blocker
+    (the launcher runs locally, so webbrowser.open() gets a real user-desktop context)."""
+    d = BYKEY.get(key)
+    if not d:
+        return
+    url = f"http://127.0.0.1:{d['port']}/"
+
+    def _wait():
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            if port_up(d["port"]):
+                break
+            time.sleep(0.4)
+        webbrowser.open(url)
+
+    threading.Thread(target=_wait, daemon=True).start()
+
+
 def _mem_map(pids):
     """One tasklist call -> {pid: mem_bytes} for the given pids (best-effort)."""
     if not pids:
@@ -291,13 +317,28 @@ class Handler(BaseHTTPRequestHandler):
         q = parse_qs(urlparse(self.path).query)
         key = q.get("key", [""])[0]
         if self.path.startswith("/startall"):
-            return self._send(json.dumps({d["key"]: start(d["key"]) for d in DASHBOARDS}))
+            res = {d["key"]: start(d["key"]) for d in DASHBOARDS}
+            for d in DASHBOARDS:
+                open_when_up(d["key"])
+            return self._send(json.dumps(res))
+        if self.path.startswith("/openall"):
+            for d in DASHBOARDS:
+                if port_up(d["port"]):
+                    open_when_up(d["key"])
+            return self._send(json.dumps({"ok": True}))
         if self.path.startswith("/stopall"):
             return self._send(json.dumps({d["key"]: stop(d["key"]) for d in DASHBOARDS}))
         if self.path.startswith("/restart"):
-            return self._send(json.dumps(restart(key)))
+            r = restart(key)
+            open_when_up(key)
+            return self._send(json.dumps(r))
+        if self.path.startswith("/open"):
+            open_when_up(key)
+            return self._send(json.dumps({"ok": True}))
         if self.path.startswith("/start"):
-            return self._send(json.dumps(start(key)))
+            r = start(key)
+            open_when_up(key)
+            return self._send(json.dumps(r))
         if self.path.startswith("/stop"):
             return self._send(json.dumps(stop(key)))
         self.send_response(404)
@@ -468,9 +509,13 @@ async function bulk(kind,label){const map={startall:'starting all…',stopall:'s
   await fetch('/'+kind,{method:'POST'});
   for(let i=0;i<11;i++){await new Promise(r=>setTimeout(r,800));await load();}
   b.disabled=false;b.textContent=t;}
+// Start all: POST /startall — the launcher spawns each server AND opens its tab
+// (server-side webbrowser.open once the port is up), so there are no blank tabs and
+// no popup blocker. We just poll to refresh the dots.
 document.getElementById('startall').onclick=()=>bulk('startall');
 document.getElementById('stopall').onclick=()=>bulk('stopall');
-document.getElementById('openall').onclick=()=>{(ST?.dashboards||[]).filter(d=>d.up).forEach(d=>window.open(d.url,'_blank','noopener'));};
+// Open running: let the launcher open the tabs server-side (reliable; no popup block).
+document.getElementById('openall').onclick=()=>fetch('/openall',{method:'POST'});
 document.getElementById('reload').onclick=load;
 const auto=document.getElementById('autochk');
 function setAuto(){if(timer)clearInterval(timer);timer=null;if(auto.checked)timer=setInterval(load,5000);}
