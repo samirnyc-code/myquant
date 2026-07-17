@@ -200,8 +200,8 @@ def cmd_run(date: str | None) -> None:
         browser = p.chromium.launch(headless=True)
         ctx = browser.new_context(storage_state=str(AUTH_STATE))
         page = ctx.new_page()
-        page.goto(cfg["MENTORQ_URL"], wait_until="networkidle")
-        page.wait_for_selector(SEL_DETAIL_PANEL, timeout=30000)  # tile ready
+        page.goto(cfg["MENTORQ_URL"], wait_until="domcontentloaded")  # live chart never goes networkidle
+        page.wait_for_selector(SEL_DETAIL_PANEL, timeout=45000)  # tile ready
         for lv in LEVELS:
             # exact-text button so "Call Res." doesn't match "Call Res. 0DTE"
             row = page.locator("button", has=page.get_by_text(lv["label"], exact=True))

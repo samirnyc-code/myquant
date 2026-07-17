@@ -40,13 +40,38 @@ Chart iterated a lot this session (user rejected: a GEX ladder, absolute overlay
 **final = PA-first, y-axis auto-fits the intraday range, only in-view levels shown, NO GEX $, with
 scroll/±/fit/drag vertical zoom.** Prev/Next/date-pick/←→ navigate days.
 
-**⚠️ NOT DONE (user wrapped the session — "not a great session"):** (1) **daily auto-update Task
-Scheduler task is NOT registered** — the puller has `--recent` + the UI has Update-now, but no
-scheduled job yet (user asked for it; wire a "MyQuant Levels History" task calling
-`mq_levels_backfill_batch.py --recent 10`, ~7:00 CT). (2) Futures/other tickers' blind_spots &
-swing_levels not pulled. (3) SPX file was re-pulled via the batch script for uniform keying (1183
-rows now vs the earlier single-script 1203 — the ~20-row delta is the eod-date vs session-date keying
-+ boundary; both valid, batch version is canonical). Committed on `s75-live-dashboard`, NOT merged.
+**BACKTEST-TILE SCRAPER FIXED + SCHEDULED (the tool the user actually meant).**
+`gamma_tracker/scrape.py` (S66 "Levels Backtesting" indicator scraper) reads the **6 main levels +
+their backtest stats** (hold rate, positive-outcomes count, broke-at-close, comeback, decomposition)
+into `gamma.db`. It was **dead** on a `page.goto(..., wait_until="networkidle")` — a live TradingView
+chart never goes idle → fixed to `domcontentloaded` + the existing tile `wait_for_selector`. Now runs
+clean. **⚠️ TIMING (user-confirmed): the backtest tile does NOT update right after RTH close — post-
+close you get the PRIOR EOD levels.** So both scrapers are scheduled **pre-open**: `MyQuant Backtest
+Levels` (scrape.py) and `MyQuant Levels History` (batch `--recent 10`) at **09:15/09:17 ET (15:15/15:17
+CEST local)**, ahead of the 09:28-ET gameplan. Two caveats: (a) **awaiting Fabio (MenthorQ)** to
+**datestamp the Levels Backtesting indicator with the as-of EOD date** + confirm recompute timing —
+until then the tile has NO as-of date and we can't prove which session it reflects; (b) tasks use a
+FIXED local time via `schtasks`, so the US/EU DST-mismatch weeks drift them ~1h → fold into the DST-
+aware `schedule_options_tasks.ps1` for a permanent fix. Add a `session_eod_date` field to scrape.py
+once Fabio confirms.
+
+**DESK REPORT TAB FIXED.** The :8600 dashboard "Desk Report" tab was **partial** (only the Daily-chain
+checklist) because `eod_report_html()` re-rendered from `eod_status_*.json`, which stores only steps —
+not the P&L tiles or fired-trigger details. Now it **embeds the full standalone `eod_report_<date>.html`**
+(Daily chain + P&L snapshot + Fired triggers) `eod_report.py` already generates → single source of
+truth, can't drift. Also added `eod_status_<date>.json` to the live-server soft-reload watch list (the
+report grows through the day and the tab never refreshed), and removed a duplicate "Fired triggers" h2.
+
+**⚠️ STILL OPEN:** (1) Fabio's datestamp/timing answer (above). (2) blind_spots & swing_levels not
+pulled (same endpoint, `level_types=`). (3) SPX file re-pulled via batch for uniform keying (1183 rows
+vs earlier 1203 — eod-date vs session-date keying; batch is canonical). (4) **ORATS decision point —
+see below.** Committed + pushed on `s75-live-dashboard`, NOT merged to main.
+
+**ORATS — the calculus CHANGED this session.** We now have **MQ's own ~5yr labeled levels for free**
+(the qbot endpoint) AND the **backtest-stat panel** (scrape.py). So ORATS is **no longer needed for the
+answer key / the levels themselves** — its only remaining value is (a) depth **before 2021-09** (→2007)
+and (b) **independent GEX computation** (so we're not hostage to MQ). Decide if that's worth $99 NOW or
+defer — don't buy it for data we already have free.
 
 ---
 

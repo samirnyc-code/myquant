@@ -130,7 +130,7 @@ def render_html(date, steps, fired, tiles):
         for lbl, val, cls in tiles)
     fired_html = ""
     if fired:
-        fired_html = '<h2>Fired triggers</h2><table style="width:100%;border-collapse:collapse">' + "".join(
+        fired_html = '<table style="width:100%;border-collapse:collapse">' + "".join(
             f'<tr><td style="padding:5px 0;border-bottom:1px solid #23262d">{t.get("name","?")}</td>'
             f'<td style="padding:5px 0;border-bottom:1px solid #23262d;color:#8a91a0">'
             f'grade {t.get("projected_grade","?")} · {t.get("status","?")}</td></tr>'

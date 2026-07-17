@@ -456,6 +456,64 @@ def postmortem_html(pm):
     return head + paths + table + note
 
 
+def _eod_status_files():
+    return sorted((ROOT / "data" / "options_sim").glob("eod_status_*.json"), reverse=True)
+
+
+def _render_eod(st):
+    """Render one EOD desk-report ledger (eod_status_<date>.json) as a checklist."""
+    icon = {"ok": "✓", "warn": "✗", "info": "•"}
+    col = {"ok": "#1baf7a", "warn": "#e34948", "info": "#8a91a0"}
+    rows = "".join(
+        f"<tr><td style='color:{col.get(s['status'], '#8a91a0')};font-weight:800;width:24px'>"
+        f"{icon.get(s['status'], '•')}</td><td style='font-weight:600'>{s['label']}</td>"
+        f"<td class='muted'>{s.get('detail', '')}</td></tr>" for s in st.get("steps", []))
+    nb = st.get("n_bad", 0)
+    ok = nb == 0
+    bcol = "#1baf7a" if ok else "#e34948"
+    banner = (f"<span style='display:inline-block;padding:4px 12px;border-radius:999px;"
+              f"font-weight:800;font-size:11px;letter-spacing:.05em;background:{bcol}22;"
+              f"color:{bcol};border:1px solid {bcol}66'>"
+              f"{'✓ DESK RAN CLEAN' if ok else '✗ ATTENTION NEEDED'}</span>")
+    sub = (f"<span class='muted' style='margin-left:10px;font-size:12px'>{st.get('generated_ct', '')[:16]} · "
+           f"{st.get('n_ok', 0)}/{len(st.get('steps', []))} green · {st.get('fired', 0)} fired</span>")
+    return (f"<div style='margin:6px 0 10px'>{banner}{sub}</div>"
+            f"<table class='ptable'>{rows}</table>")
+
+
+def eod_report_html():
+    """Today's EOD desk report (checkmarked chain + P&L) for the dashboard tab."""
+    fs = _eod_status_files()
+    if not fs:
+        return ("<p class='muted'>No desk report yet — it runs at <code>15:20 CT</code> "
+                "(<code>eod_report.py</code>). It also writes <code>eod_report_&lt;date&gt;.html</code> "
+                "+ a desktop toast (+ email if configured).</p>")
+    st = json.loads(fs[0].read_text(encoding="utf-8"))
+    date = st.get("date")
+    # prefer the full standalone report (Daily chain + P&L snapshot + Fired triggers);
+    # the eod_status JSON only carries the checklist, so embedding it kept the tab partial.
+    full = ROOT / "data" / "options_sim" / f"eod_report_{date}.html"
+    if full.exists():
+        import re
+        m = re.search(r"<body[^>]*>(.*)</body>", full.read_text(encoding="utf-8"), re.S)
+        if m:
+            return m.group(1)
+    return f"<h2 style='margin:4px 0 8px'>Desk Report — {date}</h2>{_render_eod(st)}"
+
+
+def eod_report_history_html():
+    """Prior days' desk reports as expanders (the logged history)."""
+    fs = _eod_status_files()[1:]
+    if not fs:
+        return ""
+    exp = "".join(
+        f"<details class='ex'><summary>{json.loads(f.read_text(encoding='utf-8')).get('date')}"
+        f"<span class='sp'>expand</span></summary><div class='ex-body'>"
+        f"{_render_eod(json.loads(f.read_text(encoding='utf-8')))}</div></details>"
+        for f in fs[:40])
+    return f"<h3 style='margin:20px 0 8px'>History (logged daily)</h3>{exp}"
+
+
 def analytics_payload(trades, marks_last):
     """One record per trade with every analytic dimension we slice by — consumed
     by the Journal calendar and the Analytics tab (rendered client-side)."""
@@ -1118,6 +1176,7 @@ h2{{font-size:15px;color:var(--acc);margin:24px 0 8px}}
   <div class="tab" data-p="analytics">Analytics</div>
   <div class="tab" data-p="calendar">Calendar</div>
   <div class="tab" data-p="postmortem">Postmortem</div>
+  <div class="tab" data-p="eodreport">Desk Report</div>
   <div class="tab" data-p="setups">Setups &amp; Grades</div>
   <div class="tab" data-p="journal">Journal</div>
   <div class="tab" data-p="playbook">Playbook</div>
@@ -1154,6 +1213,7 @@ h2{{font-size:15px;color:var(--acc);margin:24px 0 8px}}
 </div>
 <div class="page" id="p-gameplan">{gameplan_html(gp, gp_trades, gp_marks)}{gameplan_history_html()}</div>
 <div class="page" id="p-postmortem">{postmortem_html(pm)}{postmortem_history_html()}</div>
+<div class="page" id="p-eodreport">{eod_report_html()}{eod_report_history_html()}</div>
 <div class="page" id="p-setups">{setups_html()}</div>
 <div class="page" id="p-journal">{journal_html(jn)}</div>
 <div class="page prose" id="p-playbook">{playbook_html}</div>
