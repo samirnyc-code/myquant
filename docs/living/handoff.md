@@ -1,6 +1,38 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 17, 2026 (session 75H)
+**Last Updated:** July 17, 2026 (session 75I)
+
+---
+
+## S75I (2026-07-17) — Mission Control fixes + Forward-Sim retired (branch `s75-live-dashboard`)
+
+Small maintenance session on `scripts/launcher.py` (Mission Control, :8590). Three fixes,
+all committed.
+
+- **Start all now opens the dashboards in the browser** (commit `b2217cf`). Was doing
+  nothing visible. Tab-opening had been client-side `window.open`, which fought popup
+  rules/timing and left `about:blank` tabs (the `noopener` arg also makes `window.open`
+  return `null`). Moved it **server-side**: new `open_when_up(key)` waits for the port to
+  listen then `webbrowser.open()`s the real URL — no blank tabs, no popup blocker (the
+  launcher runs locally). Wired into `/startall`, `/start`, `/restart`, plus new
+  `/openall` + `/open` endpoints; client JS just refreshes status dots.
+- **No more stray black console windows** (same commit). Dashboards were launched under
+  console-subsystem `python.exe` with the contradictory `DETACHED_PROCESS | CREATE_NO_WINDOW`
+  flag combo. Switched to **`pythonw.exe`** (GUI subsystem, never allocates a console) and
+  dropped `DETACHED_PROCESS`. Verified all dashboards now run as `pythonw.exe`.
+  ⚠️ Gotcha hit during the fix: killing + relaunching the launcher too fast left a **stale
+  old-code launcher** bound to :8590 (verified via the `# launched … python.exe` header the
+  launcher writes into each `data/_catalog/logs/<key>.log`). Always confirm :8590 is *free*
+  before relaunching.
+- **Options Forward-Sim (:8502) removed** (commit `ea19a1f`). Dropped the card from
+  Mission Control (now **4 dashboards**) and deleted `scripts/options_app.py` (redundant
+  S73 viewer). Its Trades/Journal/Perf tabs duplicated the S75 Options Desk; its only
+  unique tabs (Decisions/fill-tapes, MenthorQ calibration) were fed by **`options_sim_daemon`
+  — a retired SMA-crossover paper-sim that stopped 7/14 and is no longer scheduled**, so
+  that data is frozen. Nothing live to integrate. Data files (`decisions.csv`,
+  `spx_calibration.csv`, `marks.csv`) kept as a 7/14 historical archive. NB:
+  `data/options_sim/` is **NOT** wound down — it's the shared live data dir (dashboard.html,
+  cards, gameplan, account, eod all current); only the sim-daemon outputs are frozen.
 
 ---
 
