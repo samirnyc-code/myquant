@@ -145,17 +145,24 @@ nothing promoted to `scripts/` yet, nothing committed.
 - **Both .cs copied to `Documents\NinjaTrader 8\bin\Custom\Indicators\`** — ⚠️ NT8 compile
   (F5) NOT yet confirmed done; MarketDepthLogger must then be applied to the live ES chart
   and left running (needs CME depth on the feed — SuperDOM shows 10 levels = OK).
-- **MzPack status answer (asked + settled):** NO live MzPack→CSV reader exists.
-  MzPackInspector = one-time reflection probe; MzFootprintExtractor = dead without €599
-  API; FootprintExporter reads ticks, not MzPack. `MzPollExporter.cs` (plot-polling
-  wrapper) still NOT written — study `data/mzpack_inspect.csv` for indicator class/plot
-  names first.
+- **✅ MzPack Data Export CONFIRMED (Mikhail Zhelnov email 2026-07-17) — `MzPollExporter.cs`
+  now OBSOLETE, do NOT build it.** Full Suite `Data_Export` strategy exports historical
+  (Tick Replay) footprint to CSV over a date range, L1 only (no L2 needed for absorption/
+  imbalance; only mzMarketDepth is un-exportable). Schema: per-price Bids/Asks/Deltas/Volumes
+  (= our free ladder) + per-bar imbalance counts + **AbsorptionCount (stacked, MaxConsec)** +
+  UnfinishedAuction + **COTHigh/Low**. **Only new-vs-free = absorption counts + COT.**
+  **€599 GATE:** historical depth = the feed's tick history (IQFeed/Rithmic ES ≈ months); our
+  5yr = imported Massive flat files. Decisive test on trial: run Data_Export Historical over a
+  months/years-back ES date, confirm AbsorptionCount+COT populate over OUR imported ticks →
+  buy; else skip. Follow-up email drafted `docs/mzpack_followup_email.md`. Bid/ask gate
+  already RESOLVED (0-error validation). Details in `orderflow_edge_backlog.md` + memory
+  `[[free-footprint-pipeline]]`.
 - **NEXT (user: "revisit all this"):** (1) confirm NT8 compile + depth logger running live;
   (2) promote session-VP + `delta_per_point` + `two_test_dcvd` + rejection grade into
   `footprint_metrics.py`/`orderflow_at_levels.py`; (3) 4-day matched-control pass vs his
-  marks; (4) `MzPollExporter.cs` + verify MzPack plot pollability before the trial lapses
-  (started ~7/16); (5) prior-day VP levels as level types in the touch study (7/10
-  evidence supports); (6) 5-yr replay once, per-contract native, with the frozen
+  marks; (4) send the MzPack follow-up + on trial run the €599 GATE test (Data_Export
+  Historical over deep ES date); (5) prior-day VP levels as level types in the touch study
+  (7/10 evidence supports); (6) 5-yr replay once, per-contract native, with the frozen
   definitions (abr0.35 band, ONE pre-registered divergence definition, day-clustered).
 
 ---

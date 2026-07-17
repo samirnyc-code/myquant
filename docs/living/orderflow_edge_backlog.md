@@ -59,10 +59,22 @@ Legend: ★ likely-real core · ◐ conditional · ☂ best idea / least testabl
   documented microstructure). #8 is the best idea but least testable. Deprioritize raw
   mzMarketDepth signals (noisiest, un-backtestable).
 
-## Verify on the 14-day MzPack trial
-- Exact public event/property API for mzBigTrade (iceberg/big-trade object) & mzDeltaDivergence signal.
-- Whether mzVolumeProfile exposes HVN/LVN/naked flags + the per-price volume array publicly (else recompute).
-- Whether our historical ES ticks are full bid/ask or timestamps-only (sets iceberg-CD fidelity).
+## ✅ MzPack Data Export API — confirmed by Mikhail Zhelnov (email 2026-07-17)
+The plot-polling wrapper (`MzPollExporter.cs`) is **OBSOLETE** — the Full Suite `Data_Export`
+strategy exports historical (Tick Replay) footprint to CSV over a date range, L1 only. Schema
+(docs.mzpack.pro/api/data-export/value-descriptor): per-price `Bids/Asks/Deltas/Volumes/
+TradesNumbers/Ticks` (= our free ladder) + per-bar `Buy/SellImbalanceCount`, **`Buy/Sell
+AbsorptionCount`** (+ stacked, MaxConsec), `UnfinishedAuctionHigh/Low`, **`COTHigh/Low`**.
+**Only new-vs-free fields = ABSORPTION counts + COT.** Only mzMarketDepth (L2) is un-exportable.
+- **€599 GATE (the one test that decides the buy):** Mikhail says historical depth = *the
+  feed's tick history* (IQFeed/Rithmic ES ≈ months). Our 5yr = Massive flat files imported to
+  NT8. On the trial, run `Data_Export` Historical over a **months/years-back ES date** and
+  confirm `BuyAbsorptionCount`/`COTHigh` populate over OUR imported ticks. If yes → buy; if it
+  caps at the live-feed window → skip. Follow-up email drafted: `docs/mzpack_followup_email.md`.
+- Bid/ask-in-ticks question: **RESOLVED** — our 0-error validation proved e.Bid/e.Ask embedded.
+- If bought, MzPack absorption/COT enter as **additional pre-registered signatures / a cross-
+  check of our own delta-per-point absorption** — NOT a feature buffet (survives matched-control
+  or it's noise, same as everything else).
 
 ## Next build steps
 1. Re-run the upgraded `FootprintExporter` (emits `ES_bars.csv` MinDelta/MaxDelta/Open/Close/DeltaRate/UnfAuction).
