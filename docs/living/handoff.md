@@ -33,6 +33,14 @@ all committed.
   `spx_calibration.csv`, `marks.csv`) kept as a 7/14 historical archive. NB:
   `data/options_sim/` is **NOT** wound down — it's the shared live data dir (dashboard.html,
   cards, gameplan, account, eod all current); only the sim-daemon outputs are frozen.
+- **Permission prompts turned OFF globally** (config, not repo). User was losing whole
+  away-sessions to permission prompts firing mid-task. Set `permissions.defaultMode:
+  "bypassPermissions"` + `skipDangerousModePermissionPrompt: true` in **`~/.claude/settings.json`**
+  (global, persistent, all projects). No tool permission prompt interrupts anymore. The old
+  ~200 exact-command allow rules are now redundant (kept, harmless). Carve-out honored via a
+  separate mechanism: `AskUserQuestion` is NOT a permission prompt, so genuine design/feature
+  decisions are still surfaced; `git commit`/push confirmation + irreversible-action judgment
+  still apply (see memory `[[auto-approve-permissions]]`, `[[feedback_rules]]`).
 
 ---
 
