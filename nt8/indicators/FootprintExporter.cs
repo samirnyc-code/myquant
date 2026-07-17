@@ -41,8 +41,6 @@ namespace NinjaTrader.NinjaScript.Indicators
         private Dictionary<double, long[]> book;   // price -> [bidVol, askVol]
         private int accumBar = -1;
         private DateTime accumTime;
-        private double lastBid = 0.0;
-        private double lastAsk = double.MaxValue;
 
         protected override void OnStateChange()
         {
@@ -66,7 +64,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                     Directory.CreateDirectory(Path.GetDirectoryName(ExportPath));
                     bool fresh = !File.Exists(ExportPath);
                     writer = new StreamWriter(ExportPath, true);
-                    if (fresh) writer.WriteLine("BarTime,Price,BidVol,AskVol");
+                    if (fresh) writer.WriteLine("BarIdx,BarTime,Price,BidVol,AskVol");
                 }
                 catch (Exception e) { Log("FootprintExporter open failed: " + e.Message, LogLevel.Error); }
             }
@@ -80,8 +78,6 @@ namespace NinjaTrader.NinjaScript.Indicators
         // classify each trade against the resting bid/ask -> footprint
         protected override void OnMarketData(MarketDataEventArgs e)
         {
-            if (e.MarketDataType == MarketDataType.Ask) { lastAsk = e.Price; return; }
-            if (e.MarketDataType == MarketDataType.Bid) { lastBid = e.Price; return; }
             if (e.MarketDataType != MarketDataType.Last || CurrentBar < 0) return;
 
             if (accumBar != CurrentBar)            // bar rolled -> flush the finished bar
@@ -96,9 +92,16 @@ namespace NinjaTrader.NinjaScript.Indicators
             long v = (long)e.Volume;
             long[] cell;
             if (!book.TryGetValue(key, out cell)) { cell = new long[2]; book[key] = cell; }
-            if (e.Price >= lastAsk) cell[1] += v;        // traded at/above ask = aggressive BUY
-            else if (e.Price <= lastBid) cell[0] += v;   // traded at/below bid = aggressive SELL
-            else cell[1] += v;                            // between (rare on Tick Replay) -> buy
+            // classify against the quote that came WITH this trade (Tick Replay embeds it in e)
+            double ask = e.Ask, bid = e.Bid;
+            if (ask > 0 && bid > 0)
+            {
+                if (e.Price >= ask) cell[1] += v;                 // at/above ask = aggressive BUY
+                else if (e.Price <= bid) cell[0] += v;            // at/below bid = aggressive SELL
+                else if (e.Price >= (ask + bid) / 2.0) cell[1] += v;  // upper half -> buy
+                else cell[0] += v;                                // lower half -> sell
+            }
+            else cell[1] += v;                                    // no quote context -> park as buy
         }
 
         private void FlushBar()
