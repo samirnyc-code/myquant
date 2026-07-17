@@ -59,6 +59,22 @@ Header: total footprint, family count, worst-staleness, last scan time.
 Fill `produced_by` / `update_cadence` by grepping which scripts write each path (many map
 to the scheduled MyQuant tasks). Where unknown, mark TODO — don't guess.
 
+**Design the registry WITH the user (don't autofill silently).** The scanner fills the
+mechanical fields (size/freshness/health). But two fields need the user's knowledge, so
+**ask** rather than guess: `useful_for` and `access`/gotchas — the user knows things the
+filesystem doesn't (e.g. OptionsDX has no OI; which continuous series are backadjusted;
+which signals are stale/superseded; which ticks are canonical). Draft your best guess per
+family, then confirm the useful-for + gotchas with the user in one pass.
+
+## Build order (prove the risky part FIRST)
+Do NOT build the pretty page first. Sequence:
+1. Write `catalog.yaml` for a few families + the `scan` mode, and **prove the scan
+   completes in reasonable time and writes `manifest.json`** across the big dirs (46G
+   flatfiles, 12k+ parquet) — per-family `os.scandir`, cached, no blind walk. This is the
+   only real risk; verify it before anything visual.
+2. Then flesh out the full registry (with the user, per above).
+3. Then build the `serve` page + Rescan button on top of the cached manifest.
+
 ## Definition of done
 - `scripts/data_catalog.py` (scan + serve), `catalog.yaml`, cached manifest.
 - Catalog page live on its own port, every family listed with size/freshness/health/
