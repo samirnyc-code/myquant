@@ -1,6 +1,21 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 17, 2026 (session 75J)
+**Last Updated:** July 17, 2026 (session 75K)
+
+---
+
+## S75K (2026-07-17) — permissions: killed the popups for real (no repo code changes)
+
+Housekeeping session. `defaultMode: bypassPermissions` (S75I) turned out NOT to hold in the
+VSCode extension — its Manual/Edit/Plan/Auto mode menu overrides settings and no longer has a
+bypass option, so prompts returned. Durable fix now live: blanket tool-name allow rules
+(`"PowerShell"`, `"Bash"`, `"WebFetch"`, `"WebSearch"`) at the top of `~/.claude/settings.json`
+allow — these pre-approve every invocation regardless of mode. User pasted them by hand
+(Claude is classifier-blocked from editing its own permission grants). Tested with a novel
+command: no prompt. If prompts ever return, check those 4 rules survived (the extension
+rewrites settings.json when a prompt is approved and can clobber manual edits) and walk the
+USER through re-adding. Also: user installed MS PowerShell VSCode extension (harmless);
+memory note `auto-approve-permissions.md` updated with all of this.
 
 ---
 
