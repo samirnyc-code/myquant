@@ -6,6 +6,13 @@
 
 ## S75E (2026-07-16) — MENTHORQ GAMMA-LEVELS DATABASE (~5yr, 13 tickers) + command center (branch `s75-live-dashboard`)
 
+**➡️ NEXT SESSION: start from `docs/living/next_chat_prompt.md`.** Priorities: (1) build a
+**Data Catalog** — one place to see all ~108 GB across ~13 families (sizes, freshness, health,
+usefulness, access); (2) run the first chart-audited MQ-data analysis (validate MQ's backtest
+claims / fade edge by gamma regime); (3) write down the **hub-and-spoke architecture** decision to
+stop dashboard fragmentation. ORATS only if user still wants pre-2021 depth / independent compute.
+
+
 **THE UNLOCK: found MQ's own historical-levels endpoint — no ORATS needed for the answer key.**
 The `/en/levels` "Request Levels" page (Prev/Next Date) fires:
 `GET https://cf.menthorq.io/qbot-service/api/web/v1/levels?tickers=SPX&level_types=gamma_levels&dates=YYYY-MM-DD`
