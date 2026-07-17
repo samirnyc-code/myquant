@@ -26,6 +26,7 @@ nt8/
 | `AMASignalOverlay.cs` | Overlays Python-generated AMA Breakouts signals on chart (S42) | ✅ current |
 | `MyStochasticsColorwithSignal.cs` | Stochastic %K/%D with OB/OS zone + filtered reversal-bar coloring (source indicator) | ✅ current |
 | `MyStochasticExporter.cs` | Exports per-bar %K/%D + zone/reversal signals to CSV for BA stochastic overlay (S50) | ✅ current |
+| `FootprintExporter.cs` | Reconstructs bid/ask footprint + delta from ticks (Tick Replay) to CSV — free order-flow, no MzPack. Fallback/validation vs a paid MzPack `StrategyFootprintIndicator` extractor (S75) | ✅ current |
 | `ZerolagExporter.cs` | Exports ZLO state to CSV for BA overlay (S31) | ❌ LOST — not committed |
 | `AlwaysIn.cs` | Exports AlwaysIn regime state to CSV (S36) | ❌ LOST — not committed |
 | `QSSignalOverlay.cs` | Overlays Python-generated QS signals on chart (S41) | ❌ LOST — not committed |
