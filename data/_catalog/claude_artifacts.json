@@ -2,6 +2,8 @@
  "generated": "2026-07-17",
  "note": "Snapshot of published Claude Artifacts (claude.ai). Ask Claude to 'refresh the artifacts list' to regenerate via Artifact action:list.",
  "artifacts": [
+  {"title": "Patrick Petersson — Trader Dossier", "url": "https://claude.ai/code/artifact/c015e39a-7a5a-4e4e-b9e1-0dbbcc41d19f", "updated": "2026-07-17", "group": "Intel",
+   "info": "Behavioral profile + timeline of Patrick Petersson (MenthorQ partner) from his two Chat With Traders interviews, CROSS-CHECKED against 91 of his own MenthorQ Discord posts (2026). Headline: the hedge-fund/all-in origin story doesn't match the 2026 footprint (tiny $540/$1,229 accounts, systematic gamma-levels method, implausible/inconsistent P&L). Psych traits + risk markers included."},
   {"title": "ES 7/13 — Prior-Session Volume Profile Read", "url": "https://claude.ai/code/artifact/4e9fe91c-5a4a-4abe-a67b-52f1fa627ee0", "updated": "2026-07-17", "group": "Footprint",
    "info": "The marked 7/13 trading chart with Friday's VPOC/VAH/VAL and shaded value area overlaid — how each of the 6 setups read against prior value (failed VPOC reclaim, VAL/HVL confluence, acceptance-below-VAL regime turn), plus 3 pre-registered hypotheses for the 5-yr run."},
   {"title": "ES 7/13 — CVD Divergence at the 6 Marked Setups", "url": "https://claude.ai/code/artifact/a969a1c5-7f7a-41a0-9a49-703f7bb240fc", "updated": "2026-07-17", "group": "Footprint",

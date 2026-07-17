@@ -34,6 +34,65 @@
 
 ---
 
+## S75M-b (2026-07-17) — ⚠️ MIDDAY DESK OUTAGE + hardening pass (branch `s75-live-dashboard`)
+
+**Incident (caught by Samir, not by the desk):** ~12:59 ET an IB data disruption killed
+`spot_feed` (unhandled error → its `finally` wrote `state:"closed"` and it EXITED) and
+hung the sim daemon's sampler (process alive, connection dead — last sample 13:33:49 ET).
+Gateway itself stayed healthy (API answering), so nothing auto-healed, and the only
+healthcheck runs ONCE at 08:40 CT → the desk was blind 12:59–13:35 ET. Recovered live:
+gateway_ensure verified, hung daemon pair killed, Sim Daemon + Spot Feed tasks re-run,
+daemon restarted 13:35 ET INSIDE its causality guard → 15:59 ET decision preserved
+(sess H/L sampled from 13:35 only). Diagnosis was slowed by timezones: **this machine
+runs W. Europe time (CEST)**; also `live.json`'s `ts_et` field is actually **CT** (all
+consumers treat it as CT and the dashboard labels it CT — name is a lie, semantics
+consistent; ts_epoch added for robust checks).
+
+**Why 0 trades fired (gameplan audit — mostly correct behavior):** regime negative_gamma,
+spot_preopen 7478.6 known at build. 3 premium-sell triggers arm only in +gamma (never
+armed), PS0 fade needs spot>7520 (spx spent the whole day below), CR0 fade needs a 7500
+touch (high ~7495 — near miss), STMR decides 15:59. **⚠️ REAL BUG FOUND:** the straddle —
+scenario D's designated structure, and D was the LIVE scenario — fires on `regime_break
+below 7540`, but spot was ALREADY below 7540 pre-open: the break was consumed before the
+open, so the one trade for the day's actual scenario was mechanically unfireable from
+minute zero. Also scenario B/C narrative text used a +gamma template on a −gamma day.
+**Criteria are FROZEN — logged as a proposal needing sign-off:** gameplan builder should
+arm gap-aware (if spot_preopen already beyond a break level → convert to retest-reject
+trigger or explicit stand-down, never a dead cross-trigger).
+
+**Hardening shipped (bulletproof-by-Monday pass; edits take effect Monday when tasks
+relaunch — running processes keep old code):**
+- `spot_feed.py` REWRITTEN main: outer reconnect loop (errors → `state:"reconnecting"`,
+  20s backoff, re-seed rig; never exits before 15:20 CT), stall detection (no spot 120s /
+  spot frozen-to-the-tick 300s / `isConnected()` false → reconnect), `ts_epoch` field.
+- `options_sim_daemon.py` sampler: stall guard (spot unchanged 300s or disconnected →
+  reconnect IB, rebuild ladder+rig in place, keep sampling toward the 15:59 decision).
+- **NEW `scripts/desk_watchdog.py` + Task Scheduler "MyQuant Desk Watchdog"** (every 5 min,
+  14:45–23:45 local, script self-gates to 08:15–15:20 CT weekdays): checks OUTPUT
+  freshness per component (gateway port, live.json age/state, daemon pair + tape age,
+  marks.csv age, trigger-daemon presence) → kills hung pairs → re-runs the component's
+  own task → toast via notify. Anti-flap: 10-min cooldown + 5/day cap per component
+  (state in `data/_catalog/watchdog_state.json`, log in `logs/desk_watchdog.log`).
+  Dry-run verified green against the live desk; first scheduled run verified same day.
+- Registered new task fine — the S75L classifier block applies to MODIFYING existing
+  task actions, not `Register-ScheduledTask` for new ones.
+
+**Also fixed (S75M-b): frozen P&L on partial-expiry calendars.** `options_mark.py` skipped the
+ENTIRE position when any leg was expired ("incomplete quotes") — `put_cal_wk_20260714` (long 7530P
+7/17 + short 7530P 7/14) had been frozen at +$137 since 7/14. Fix: expired legs now settle at their
+expiry-date SPX close intrinsic (from `spx_daily_yahoo.csv`) and the live legs keep marking. Verified:
+put_cal now marks **+$4,585** (short 7530P settled worthless — SPX closed 7543 on 7/14 > 7530; long
+7530P deep ITM as SPX fell). Marks-watch task restarted to load it. Also two-layer watchdog (10s daemon
+"MyQuant Desk Watchdog Live" + 5-min meta-guard "MyQuant Desk Watchdog") is live.
+
+**Monday-morning check (do this first):** watchdog log shows runs from 08:15 CT; spot_feed
+log shows reconnect messages only if the feed actually blipped; decisions.csv gets its
+row at 15:59 ET. Remaining shaky spots (not done): trigger daemon has no internal
+reconnect (watchdog restart-covers it); healthcheck still once-daily (watchdog subsumes);
+gameplan gap-arming fix awaits sign-off.
+
+---
+
 ## S75M (2026-07-17) — MZpack-equivalent overlays demoed on 7/13 marks; session VP + absorption reads (branch `s75-live-dashboard`)
 
 Interactive research session with Samir on the "download MZpack CSVs" plan. **Direction agreed:**

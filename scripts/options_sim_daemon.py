@@ -366,6 +366,11 @@ def main():
             if now_et() >= decide_at + dt.timedelta(minutes=1):
                 raise SystemExit(f"Past {DECIDE_T} ET — too late to decide causally today.")
             print(f"sampling until {decide_at:%H:%M} ET ({(decide_at - now_et()).seconds // 60} min)...")
+            # S75M stall guard: on 7/17 the IB connection died mid-session and this
+            # loop hung silently until past decide_at — the decision was missed.
+            # A parity spot frozen to the tick for 5 min = dead tickers, not a
+            # quiet tape; reconnect and rebuild the rig instead of waiting.
+            last_change = now_et()
             with open(uf, "a", newline="") as fh:
                 w = csv.writer(fh)
                 if fh.tell() == 0:
@@ -373,11 +378,23 @@ def main():
                 while now_et() < decide_at:
                     ib.sleep(min(60, max(1, (decide_at - now_et()).total_seconds())))
                     s = rig.spot()
+                    if s and s != spot:
+                        last_change = now_et()
                     if s:
                         spot = s
                         sess_h, sess_l = max(sess_h, s), min(sess_l, s)
                         w.writerow([now_et().strftime("%H:%M:%S"), f"{s:.2f}"])
                         fh.flush()
+                    if (now_et() - last_change).total_seconds() > 300 or not ib.isConnected():
+                        print(f"! sampler stalled (connected={ib.isConnected()}) — reconnecting IB")
+                        try:
+                            ib.disconnect()
+                        except Exception:
+                            pass
+                        ib = ib_conn.connect(port=a.port)
+                        tickers = open_put_ladder(ib, chain, expiry, spot)
+                        rig = SpotRig(ib, chain, spot)
+                        last_change = now_et()
 
         # --- 15:59 decision ---
         sig = signal_1559(daily, spot, sess_h, sess_l, today)

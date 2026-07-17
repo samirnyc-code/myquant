@@ -43,6 +43,16 @@ def live_spot():
         return None
 
 
+def spx_close_on(date_iso):
+    """SPX (^GSPC) close for a past calendar date, from the daily cache. None if absent."""
+    try:
+        d = pd.read_csv(ROOT / "data" / "options_sim" / "spx_daily_yahoo.csv")
+        row = d[d.Date == date_iso]
+        return float(row.Close.iloc[0]) if len(row) else None
+    except Exception:
+        return None
+
+
 def now():
     return dt.datetime.now(ET)
 
@@ -111,13 +121,20 @@ def mark_once(ib, vix):
     ib.reqMarketDataType(1)
     today = now().strftime("%Y%m%d")
     tickers = {}
+    settled = {}                               # expired legs -> settled intrinsic value
     for _, tr in opens.iterrows():
         for l in json.loads(tr.legs):
             key = (l["expiry"], l["strike"], l["right"])
-            if key in tickers:
+            if key in tickers or key in settled:
                 continue
-            if l["expiry"] < today:            # expired leg — can't qualify/quote
-                tickers[key] = None
+            if l["expiry"] < today:            # expired leg — settle at expiry-date SPX close
+                exp_iso = dt.datetime.strptime(l["expiry"], "%Y%m%d").date().isoformat()
+                S = spx_close_on(exp_iso)
+                if S is None:                  # no close on file — fall back to skip-the-leg
+                    tickers[key] = None
+                else:                          # intrinsic; a partial-expiry calendar keeps marking
+                    settled[key] = max(0.0, (l["strike"] - S) if l["right"] == "P"
+                                       else (S - l["strike"]))
                 continue
             try:
                 c = qualify(ib, *key)
@@ -151,7 +168,12 @@ def mark_once(ib, vix):
             ok = True
             legs = json.loads(tr.legs)
             for l in legs:
-                t = tickers[(l["expiry"], l["strike"], l["right"])]
+                key = (l["expiry"], l["strike"], l["right"])
+                if key in settled:             # already-expired leg: fixed intrinsic, no spread
+                    mid = settled[key]
+                    cost += l["qty"] * (mid if l["side"] == "sell" else -mid)
+                    continue
+                t = tickers[key]
                 if t is None or not (t.bid == t.bid and t.ask == t.ask and t.ask > 0):
                     ok = False
                     break

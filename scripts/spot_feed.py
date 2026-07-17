@@ -147,52 +147,83 @@ def delayed_vix(ib, vix):
     return float(v) if v else None
 
 
-def main():
-    ib = ib_conn.connect()
-    try:
-        spx_idx, rough = seed_spot(ib)
-        chain = get_chain(ib, spx_idx)
-        rig = SpotRig(ib, chain, rough)
-        vix_idx = Index("VIX", "CBOE", "USD")
-        ib.qualifyContracts(vix_idx)
-        ib.reqMarketDataType(1)
+def run_session(ib, end, tape):
+    """One connected feed session. Returns normally at `end`; raises on any
+    error or stall so the outer loop can reconnect (S75M — on 7/17 a midday IB
+    drop made the old single-shot main() crash out at 12:59 ET and the desk ran
+    blind for 36 min)."""
+    spx_idx, rough = seed_spot(ib)
+    chain = get_chain(ib, spx_idx)
+    rig = SpotRig(ib, chain, rough)
+    vix_idx = Index("VIX", "CBOE", "USD")
+    ib.qualifyContracts(vix_idx)
+    ib.reqMarketDataType(1)
+    vix = None
+    vix_ts = tape_ts = dt.datetime(2000, 1, 1, tzinfo=CT)
+    last_spx, last_change = None, now()
+    while now() < end:
+        spx = rig.spot()
+        if spx and spx != last_spx:
+            last_spx, last_change = spx, now()
+        # a parity mid frozen to the tick for 5 min = dead tickers, not a quiet
+        # tape; no spot at all for 2 min = same. Either way: reconnect.
+        stalled_s = (now() - last_change).total_seconds()
+        if not ib.isConnected() or stalled_s > (300 if spx else 120):
+            raise ConnectionError(
+                f"feed stalled (connected={ib.isConnected()}, {stalled_s:.0f}s no change)")
+        if (now() - vix_ts).total_seconds() > 60:
+            v = delayed_vix(ib, vix_idx)
+            if v:
+                vix, vix_ts = v, now()
+            ib.reqMarketDataType(1)
+        # log the day tape (1/min) so the postmortem has a full price path
+        if spx and (now() - tape_ts).total_seconds() > 60:
+            with open(tape, "a", encoding="utf-8") as fh:
+                fh.write(f"{now():%H:%M:%S},{spx:.2f}\n")
+            tape_ts = now()
+        b = _basis["basis"]
+        es_est = round(spx + b, 2) if (spx and b is not None) else None
+        # NB "ts_et" is historically CT (every consumer treats it as CT and the
+        # dashboard labels it CT) — kept for compat; ts_epoch is the robust field.
+        write({"ts_et": now().strftime("%H:%M:%S"), "ts_epoch": int(time.time()),
+               "spx": round(spx, 2) if spx else None,
+               "vix": vix,
+               "es_est": es_est, "basis": b, "ratio": _basis["ratio"],
+               "basis_ts": _basis["ts"],
+               "state": "live" if spx else "no-quotes"})
+        ib.sleep(5)
 
-        # ES-est/basis now comes from MenthorQ's candle feed on a background
-        # thread (see basis_worker) — decoupled from this fast loop so it can't
-        # stall the SPX tick the way the old IB delayed-index path did.
-        threading.Thread(target=basis_worker, daemon=True).start()
-        vix = None
-        vix_ts = tape_ts = dt.datetime(2000, 1, 1, tzinfo=CT)
-        tape = SIM / f"underlying_{now():%Y%m%d}.csv"
-        if not tape.exists():
-            tape.write_text("ts_et,und\n", encoding="utf-8")
-        end = now().replace(hour=15, minute=20, second=0, microsecond=0)
-        print(f"feed running until {end:%H:%M} CT -> {OUT}")
+
+def main():
+    # ES-est/basis comes from MenthorQ's candle feed on a background thread
+    # (see basis_worker) — decoupled from the fast loop so it can't stall it.
+    threading.Thread(target=basis_worker, daemon=True).start()
+    tape = SIM / f"underlying_{now():%Y%m%d}.csv"
+    if not tape.exists():
+        tape.write_text("ts_et,und\n", encoding="utf-8")
+    end = now().replace(hour=15, minute=20, second=0, microsecond=0)
+    print(f"feed running until {end:%H:%M} CT -> {OUT}")
+    try:
         while now() < end:
-            spx = rig.spot()
-            if (now() - vix_ts).total_seconds() > 60:
-                v = delayed_vix(ib, vix_idx)
-                if v:
-                    vix, vix_ts = v, now()
-                ib.reqMarketDataType(1)
-            # log the day tape (1/min) so the postmortem has a full price path
-            if spx and (now() - tape_ts).total_seconds() > 60:
-                with open(tape, "a", encoding="utf-8") as fh:
-                    fh.write(f"{now():%H:%M:%S},{spx:.2f}\n")
-                tape_ts = now()
-            b = _basis["basis"]
-            es_est = round(spx + b, 2) if (spx and b is not None) else None
-            write({"ts_et": now().strftime("%H:%M:%S"),
-                   "spx": round(spx, 2) if spx else None,
-                   "vix": vix,
-                   "es_est": es_est, "basis": b, "ratio": _basis["ratio"],
-                   "basis_ts": _basis["ts"],
-                   "state": "live" if spx else "no-quotes"})
-            ib.sleep(5)
+            ib = None
+            try:
+                ib = ib_conn.connect()
+                run_session(ib, end, tape)          # returns only at `end`
+            except Exception as e:
+                print(f"feed error: {str(e)[:150]} — reconnecting in 20s")
+                write({"ts_et": now().strftime("%H:%M:%S"), "ts_epoch": int(time.time()),
+                       "state": "reconnecting", "spx": None, "vix": None,
+                       "es_est": None, "basis": None})
+                time.sleep(20)
+            finally:
+                if ib is not None:
+                    try:
+                        ib.disconnect()
+                    except Exception:
+                        pass
     finally:
-        write({"ts_et": now().strftime("%H:%M:%S"), "state": "closed",
-               "spx": None, "vix": None, "es_est": None, "basis": None})
-        ib.disconnect()
+        write({"ts_et": now().strftime("%H:%M:%S"), "ts_epoch": int(time.time()),
+               "state": "closed", "spx": None, "vix": None, "es_est": None, "basis": None})
 
 
 if __name__ == "__main__":
