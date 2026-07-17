@@ -258,6 +258,8 @@ class Handler(BaseHTTPRequestHandler):
         p = self.path.split("?")[0]
         if p == "/":
             return self._send(HTML, "text/html; charset=utf-8")
+        if p in ("/favicon.svg", "/favicon.ico"):
+            return self._send(FAVICON, "image/svg+xml")
         if p == "/status.json":
             return self._send(json.dumps(status()))
         if p.startswith("/log/"):
@@ -283,9 +285,29 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
 
 
+FAVICON = r"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#bef264"/><stop offset="1" stop-color="#65a30d"/>
+    </linearGradient>
+    <linearGradient id="fl" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fbbf24"/><stop offset="1" stop-color="#f97316"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="15" fill="url(#bg)"/>
+  <path d="M40 54 L32 58 L24 54 Q23 46 24 42 L40 42 Q41 46 40 54 Z" fill="url(#fl)"/>
+  <path d="M32 8 Q43 20 42 38 Q42 44 40 47 L24 47 Q22 44 22 38 Q21 20 32 8 Z" fill="#ffffff"/>
+  <path d="M24 40 L15 49 Q14 50 15 50 L24 47 Z" fill="#c7d2fe"/>
+  <path d="M40 40 L49 49 Q50 50 49 50 L40 47 Z" fill="#c7d2fe"/>
+  <circle cx="32" cy="26" r="5.5" fill="#1e3a8a"/>
+  <circle cx="32" cy="26" r="3" fill="#60a5fa"/>
+</svg>"""
+
 HTML = r"""<!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mission Control</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="apple-touch-icon" href="/favicon.svg">
 <style>
 :root{--surface:#fcfcfb;--plane:#f9f9f7;--ink:#0b0b0b;--ink2:#52514e;--muted:#898781;
   --border:rgba(11,11,11,.10);--pos:#2a78d6;--card:#fff;--good:#0ca30c;--bad:#e34948;--chip:#f0efea}
@@ -299,7 +321,7 @@ HTML = r"""<!doctype html><html lang="en"><head>
 body{margin:0;background:var(--plane);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:14px}
 header{padding:13px 20px;border-bottom:1px solid var(--border);background:var(--surface);display:flex;gap:16px;align-items:baseline;flex-wrap:wrap;position:sticky;top:0;z-index:5}
 h1{font-size:16px;margin:0;font-weight:650}
-.wrap{max-width:1180px;margin:0 auto;padding:18px 20px 80px}
+.wrap{max-width:none;margin:0;padding:18px 20px 80px;overflow-x:auto}
 button{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--border);border-radius:8px;padding:6px 13px;cursor:pointer}
 button:hover{border-color:var(--muted)}
 button.primary{background:var(--pos);color:#fff;border-color:var(--pos)}
@@ -309,8 +331,9 @@ button.ic{padding:6px 9px}
 .auto{font-size:12px;color:var(--ink2);display:flex;align-items:center;gap:4px;cursor:pointer}
 .pill{font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--chip);color:var(--muted)}
 .pill.on{background:rgba(12,163,12,.14);color:var(--good)}
-.grp{margin:20px 0 8px;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink2);border-bottom:1px solid var(--border);padding-bottom:5px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px}
+#groups{display:flex;gap:16px;align-items:flex-start}
+.col{flex:1 1 0;min-width:250px;display:flex;flex-direction:column;gap:12px}
+.grp{margin:0 0 2px;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink2);border-bottom:1px solid var(--border);padding-bottom:6px}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:9px}
 .top{display:flex;align-items:center;gap:9px}
 .dot{width:10px;height:10px;border-radius:50%;flex:0 0 auto;background:var(--muted)}
@@ -318,7 +341,9 @@ button.ic{padding:6px 9px}
 .title{font-weight:650;font-size:14.5px}
 .port{margin-left:auto;font-family:ui-monospace,monospace;font-size:12px;color:var(--muted)}
 .desc{font-size:12.5px;color:var(--ink2);line-height:1.45;min-height:34px}
-.actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.actions button{padding:5px 9px;font-size:12.5px}
+.state{width:100%}
 .state{font-size:12px;color:var(--muted);margin-left:auto}
 .state.up{color:var(--good)}
 a.open{text-decoration:none}
@@ -359,7 +384,7 @@ async function load(){
   const openDetails=new Set([...document.querySelectorAll('details[open]')].map(e=>e.dataset.k));
   let h='';
   for(const g of Object.keys(groups)){
-    h+=`<div class="grp">${g}</div><div class="grid">`;
+    h+=`<div class="col"><div class="grp">${g}</div>`;
     for(const d of groups[g]){
       const meta=d.up?[d.pid?('pid '+d.pid):'', d.started?('up '+uptime(d.started)):'', mem(d.mem), d.ms+'ms'].filter(Boolean).join(' · '):'stopped';
       h+=`<div class="card" id="card-${d.key}">
