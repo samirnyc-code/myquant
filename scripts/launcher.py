@@ -76,12 +76,10 @@ DASHBOARDS = [
      "desc": "The main Streamlit app — bar analyzer, WFA/PROM, auction & regime tabs. "
              "Heavy: first load imports scipy (~3-4s).",
      "cmd": _streamlit("app.py", 8501)},
-
-    {"key": "options_sim_app", "group": "Research (Streamlit)",
-     "title": "Options Forward-Sim", "port": 8502,
-     "desc": "Read-only Streamlit over the options pipeline files (trades, grades, POP). "
-             "No IB connection.",
-     "cmd": _streamlit("scripts/options_app.py", 8502)},
+    # Options Forward-Sim (:8502) removed S75: its live tabs (Trades/Journal/Perf)
+    # duplicated the Options Desk, and its unique tabs (Decisions/fill-tapes/calibration)
+    # were driven by the retired options_sim_daemon (frozen 7/14). Viewer deleted;
+    # data files kept as historical archive.
 ]
 BYKEY = {d["key"]: d for d in DASHBOARDS}
 
