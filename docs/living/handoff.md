@@ -1,6 +1,103 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 17, 2026 (session 75L)
+**Last Updated:** July 17, 2026 (session 75N)
+
+---
+
+## S75N (2026-07-17) — MZpack Insights knowledge base in Mission Control + divergence artifact re-layout (branch `s75-live-dashboard`)
+
+- **MZpack Insights library scraped & wired.** All 54 articles from
+  https://www.mzpack.pro/category/mzpack-insights/ (9 pages, 2016→2026) read via 4 parallel
+  agents into structured study notes at `docs/mzpack_insights/notes/*.md` (frontmatter:
+  topic + research_relevance; fixed sections: summary / concepts / rules-thresholds /
+  order-flow signature / relevance-to-our-research). 21 notes flagged research-relevant.
+  Standouts for the level-touch study: **Defended Levels** (defense = absorption + who
+  (big prints/icebergs) + an INITIATIVE phase; absorption WITHOUT initiative → break —
+  a testable negative signature), **Tape Iceberg Detection**, **POC Retest**,
+  **Mirror Levels**, iceberg+DOM-pressure pattern. One article is gone from the site
+  (ZN futures post, HTTP 410; stub note kept).
+- **Build + panel:** `scripts/mzpack_library_build.py` renders the notes into one
+  self-contained `docs/mzpack_insights/library.html` (+ `index.json`) — topic sections
+  (core concepts / footprint / VP-TPO / strategies / trade examples / platform), search
+  box, "★ research-relevant only" filter. Mission Control (`launcher.py`) serves it at
+  **`/library`** (📚 header button; also linked in Thomas's keyed /view). Launcher
+  restarted (same args, :8590 0.0.0.0) — route verified 200. Re-run the build script
+  after editing notes.
+- **Divergence artifact re-laid-out (user request):** "ES 7/13 — CVD Divergence at the
+  6 Marked Setups" republished at the same URL — now one LARGE chart per setup with its
+  explanation directly beneath (was one 2×3 composite + all text below). New renderer
+  `scratchpad/render_div_at_marks_single.py` → `div_mark_1..6.png`; page builder
+  `scratchpad/build_div_artifact.py`. Analysis/text unchanged.
+- **UNCOMMITTED (needs Samir's confirmation):** `docs/mzpack_insights/` (54 notes +
+  library.html + index.json), `scripts/mzpack_library_build.py`, `launcher.py` /library
+  wiring — plus S75L's options_dashboard_live.py port-probe fix still pending commit.
+
+---
+
+## S75M (2026-07-17) — MZpack-equivalent overlays demoed on 7/13 marks; session VP + absorption reads (branch `s75-live-dashboard`)
+
+Interactive research session with Samir on the "download MZpack CSVs" plan. **Direction agreed:**
+the 5-yr replay is the real work (our validated free exporter); MzPack joins only as a
+plot-polling passenger IF trial verification works; catalog per indicator in Mission Control;
+score ONLY the 8 pre-registered hypotheses (no open-buffet feature fishing). All artifacts
+this session are **scratchpad-only** (charts + render scripts, `scratchpad/render_*.py`) —
+nothing promoted to `scripts/` yet, nothing committed.
+
+- **Session VP layer written (scratchpad):** developing VPOC/VAH/VAL + prior-session profile
+  from our footprint ladder (`render_session_vp.py`). 7/13 final: VPOC 7563.5 / VAH 7592.5 /
+  VAL 7553.75. 7/14 magnet case: opened above prior VPOC, 09:16 flush tagged it, rejected to
+  prior VAH (H1 mechanism, n=1). **Belongs in `footprint_metrics.py` — not yet moved.**
+- **Prior-session levels on the trading chart** (`chart_prior_vp_20260713.png`, VA shaded):
+  Fri 7/10 profile VPOC 7600.5 / VAH 7615.5 / VAL 7581.5 — computed NATIVE from IB 1-min
+  (ESU6, approx VP) because: (a) `ticks_continuous` is BACK-ADJUSTED (`massive.py` adds
+  `cum_offset`) → never use it for price-level work; (b) **Massive archive ends 2026-07-09,
+  sub cancelled** — 7/10+ has no tick source; IB Gateway fills gaps (delayed hist OK).
+  Readout: Samir's 09:15 fade = failed reclaim of prior VPOC; prior VAL 7581.5 ≈ hvl0 7585
+  confluence held both morning longs; downtrend started on acceptance below prior VAL.
+- **⭐ Divergence reframe (Samir's correction did the work):** classic swing/retest CVD
+  divergence fit only 2/6 of his 7/13 marks. The signature at his fades is
+  **EFFORT-VS-RESULT (absorption at the extreme)**: 08:35 fade = CVD +558 into a lower high;
+  09:15 = +1358 into a failing high (strongest of day); 14:38 = −654 selling, price gives
+  1 tick. 5/6 marks carry absorption-or-classic. **This is H5 v2 (delta-per-point,
+  pre-registered S75K) showing up at his hand-marked winners.** Full table in
+  `div_at_marks_20260713.png` (+ `render_div_at_marks.py`).
+  ⚠️ NOT validated: no control count yet — signature frequency at unmarked touches unknown.
+  Three divergence definitions now exist (trend-swing / extreme-retest / marks-anchored
+  two-test) — **must pre-register ONE before the 5-yr run**, no post-hoc picking.
+- **Rejection metric proposed** (not built): touch + close ≥X ticks back within N bars +
+  wick ≥Y% of range; calibrate X/N/Y on 7/13–7/16 in-sample, freeze for 5-yr.
+- **Artifacts published + registered in Mission Control** (`data/_catalog/claude_artifacts.json`,
+  group "Footprint"): *Prior-Session Volume Profile Read*
+  (claude.ai/code/artifact/4e9fe91c-5a4a-4abe-a67b-52f1fa627ee0) and *CVD Divergence at the
+  6 Marked Setups* (claude.ai/code/artifact/a969a1c5-7f7a-41a0-9a49-703f7bb240fc) — chart +
+  per-trade numbers + hypotheses baked into each page.
+  **⚠️ Port correction to S75L: Mission Control = :8590 (0.0.0.0); :8600 is the OPTIONS DESK.**
+- **`nt8/indicators/MarketDepthLogger.cs` — NEW (live-only L2 archive).** Logs raw DOM
+  events (A/U/R, side, level 0–9, price, size) + interleaved aggressor-classified trades
+  (T rows) to `data/depth/<sym>_depth_<date>.csv`, daily roll, buffered. Rationale: book
+  data is unrecoverable after the session (hypothesis #8 needs it; Databento = paid
+  backfill). `data/depth/` gitignored (firehose — never commit). Strictly live-only
+  (`State.Realtime` guard on trades; OnMarketDepth never fires historically).
+- **`FootprintExporter.cs` — both queued fixes applied:** (1) truncate-on-start (kills the
+  S75J triple-append; NOTE each run now REWRITES the CSVs — old 7/13–7/16 export is safe
+  in git history); (2) `BidVolLarge`/`AskVolLarge` per-price columns (trades ≥ `LargeLotMin`,
+  default 10, chart param) — the filtered-CD input H5 needs. `footprint_metrics.py` reads
+  by column name → backward compatible.
+- **Both .cs copied to `Documents\NinjaTrader 8\bin\Custom\Indicators\`** — ⚠️ NT8 compile
+  (F5) NOT yet confirmed done; MarketDepthLogger must then be applied to the live ES chart
+  and left running (needs CME depth on the feed — SuperDOM shows 10 levels = OK).
+- **MzPack status answer (asked + settled):** NO live MzPack→CSV reader exists.
+  MzPackInspector = one-time reflection probe; MzFootprintExtractor = dead without €599
+  API; FootprintExporter reads ticks, not MzPack. `MzPollExporter.cs` (plot-polling
+  wrapper) still NOT written — study `data/mzpack_inspect.csv` for indicator class/plot
+  names first.
+- **NEXT (user: "revisit all this"):** (1) confirm NT8 compile + depth logger running live;
+  (2) promote session-VP + `delta_per_point` + `two_test_dcvd` + rejection grade into
+  `footprint_metrics.py`/`orderflow_at_levels.py`; (3) 4-day matched-control pass vs his
+  marks; (4) `MzPollExporter.cs` + verify MzPack plot pollability before the trial lapses
+  (started ~7/16); (5) prior-day VP levels as level types in the touch study (7/10
+  evidence supports); (6) 5-yr replay once, per-contract native, with the frozen
+  definitions (abr0.35 band, ONE pre-registered divergence definition, day-clustered).
 
 ---
 

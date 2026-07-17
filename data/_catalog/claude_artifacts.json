@@ -2,6 +2,10 @@
  "generated": "2026-07-17",
  "note": "Snapshot of published Claude Artifacts (claude.ai). Ask Claude to 'refresh the artifacts list' to regenerate via Artifact action:list.",
  "artifacts": [
+  {"title": "ES 7/13 — Prior-Session Volume Profile Read", "url": "https://claude.ai/code/artifact/4e9fe91c-5a4a-4abe-a67b-52f1fa627ee0", "updated": "2026-07-17", "group": "Footprint",
+   "info": "The marked 7/13 trading chart with Friday's VPOC/VAH/VAL and shaded value area overlaid — how each of the 6 setups read against prior value (failed VPOC reclaim, VAL/HVL confluence, acceptance-below-VAL regime turn), plus 3 pre-registered hypotheses for the 5-yr run."},
+  {"title": "ES 7/13 — CVD Divergence at the 6 Marked Setups", "url": "https://claude.ai/code/artifact/a969a1c5-7f7a-41a0-9a49-703f7bb240fc", "updated": "2026-07-17", "group": "Footprint",
+   "info": "Zoomed price+CVD panels at each hand-marked setup comparing cumulative delta at the two tests of the extreme: 2 classic divergences, 3 absorptions (effort without result = the H5 delta-per-point signature), 1 trapped-shorts. Full numbers per trade, caveats, and the matched-control question to settle before the 5-yr run."},
   {"title": "How the Options Desk Runs Itself (Thomas tour — local copy at /tour)", "url": "https://claude.ai/code/artifact/685d96e3-dee2-491d-a931-7f2a0fa1fe62", "updated": "2026-07-17", "group": "Options",
    "info": "Plain-language walkthrough of the automated trading day: the schedule, every component, and how the pipeline heals itself."},
   {"title": "The 1-Day Expected Move — 87 / 85 / 73 decoded", "url": "https://claude.ai/code/artifact/fc14f55e-4e86-4c51-b41d-a4cb2eb79793", "updated": "2026-07-15", "group": "Expected Move",

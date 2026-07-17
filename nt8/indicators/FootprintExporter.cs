@@ -11,7 +11,9 @@
 // full history. Calculate MUST be OnEachTick.
 //
 // Output CSV (one row per bar x price):
-//   BarTime,Price,BidVol,AskVol      (delta = AskVol-BidVol, computed in Python)
+//   BarIdx,BarTime,Price,BidVol,AskVol,BidVolLarge,AskVolLarge
+//   (delta = AskVol-BidVol; *Large = only trades >= LargeLotMin contracts — the
+//   filtered-CD / absorption inputs; computed offline in Python)
 //
 // VALIDATION PLAN: apply this AND MzPack's free mzFootprint to the SAME ES chart for one
 // session, then compare our CSV per-price bid/ask volume to MzPack's display. If they
@@ -58,6 +60,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 IsOverlay = true;
                 DisplayInDataBox = false;
                 ExportPath = @"C:\Users\Admin\myquant\data\footprint\ES_footprint.csv";
+                LargeLotMin = 10;
             }
             else if (State == State.Configure)
             {
@@ -68,13 +71,15 @@ namespace NinjaTrader.NinjaScript.Indicators
                 try
                 {
                     Directory.CreateDirectory(Path.GetDirectoryName(ExportPath));
-                    bool fresh = !File.Exists(ExportPath);
-                    writer = new StreamWriter(ExportPath, true);
-                    if (fresh) writer.WriteLine("BarIdx,BarTime,Price,BidVol,AskVol");
+                    // TRUNCATE on start (S75J bug: appending on every (re)run wrote the
+                    // ladder 3x — identical rows, volume/delta silently tripled). Each run
+                    // now produces a clean file; footprint_metrics.py dedupe stays as a
+                    // belt-and-braces guard.
+                    writer = new StreamWriter(ExportPath, false);
+                    writer.WriteLine("BarIdx,BarTime,Price,BidVol,AskVol,BidVolLarge,AskVolLarge");
                     string barsPath = Path.Combine(Path.GetDirectoryName(ExportPath), "ES_bars.csv");
-                    bool bfresh = !File.Exists(barsPath);
-                    barsWriter = new StreamWriter(barsPath, true);
-                    if (bfresh) barsWriter.WriteLine(
+                    barsWriter = new StreamWriter(barsPath, false);
+                    barsWriter.WriteLine(
                         "BarIdx,BarTime,Open,Close,High,Low,MinDelta,MaxDelta,Delta,DurationSec,DeltaRate,UnfHigh,UnfLow");
                 }
                 catch (Exception e) { Log("FootprintExporter open failed: " + e.Message, LogLevel.Error); }
@@ -103,7 +108,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             double key = Instrument.MasterInstrument.RoundToTickSize(e.Price);
             long v = (long)e.Volume;
             long[] cell;
-            if (!book.TryGetValue(key, out cell)) { cell = new long[2]; book[key] = cell; }
+            if (!book.TryGetValue(key, out cell)) { cell = new long[4]; book[key] = cell; }
             // classify against the quote that came WITH this trade (Tick Replay embeds it in e)
             double ask = e.Ask, bid = e.Bid;
             bool buy;
@@ -115,6 +120,9 @@ namespace NinjaTrader.NinjaScript.Indicators
             }
             else buy = true;                                      // no quote context -> buy
             if (buy) cell[1] += v; else cell[0] += v;
+            // large-lot slice (>= LargeLotMin contracts per trade) — the filtered-CD /
+            // absorption inputs for H5 (mzVolumeDelta's TradeFilterMin equivalent)
+            if (v >= LargeLotMin) { if (buy) cell[3] += v; else cell[2] += v; }
 
             // intrabar tick-order tracking (for Min/Max delta, Open/Close, delta rate)
             if (!barSeeded)
@@ -136,8 +144,8 @@ namespace NinjaTrader.NinjaScript.Indicators
             try
             {
                 foreach (var kv in book)
-                    writer.WriteLine(string.Format("{0},{1:yyyy-MM-dd HH:mm:ss},{2},{3},{4}",
-                        accumBar, accumTime, kv.Key, kv.Value[0], kv.Value[1]));
+                    writer.WriteLine(string.Format("{0},{1:yyyy-MM-dd HH:mm:ss},{2},{3},{4},{5},{6}",
+                        accumBar, accumTime, kv.Key, kv.Value[0], kv.Value[1], kv.Value[2], kv.Value[3]));
                 writer.Flush();
 
                 if (barsWriter != null && barSeeded)   // per-bar tick-order summary
@@ -164,5 +172,10 @@ namespace NinjaTrader.NinjaScript.Indicators
         [NinjaScriptProperty]
         [Display(Name = "ExportPath", GroupName = "Parameters", Order = 0)]
         public string ExportPath { get; set; }
+
+        [NinjaScriptProperty]
+        [Display(Name = "LargeLotMin", Description = "Min contracts per trade to count as large-lot",
+                 GroupName = "Parameters", Order = 1)]
+        public int LargeLotMin { get; set; }
     }
 }
