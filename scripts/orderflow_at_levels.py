@@ -16,14 +16,25 @@ Hypotheses under test (docs/living/orderflow_edge_backlog.md — #1, #2, #5 only
   #2 session HVN coinciding (±2 pts) with HVL -> first touch mean-reverts
   #5 absorption into HVL (aggressive delta, no price progress) -> level holds
 
+Band variants (S75K sensitivity pass — definitions pre-registered BEFORE any
+outcome table was produced; see docs/living/handoff.md S75K):
+  --band-ticks N   fixed band of N ticks (default 4 = the original pre-commit)
+  --band-abr K     volatility-normalized: band(t) = K * ABR20(t), ABR20 = median
+                   High-Low of the PRIOR 20 bars (shift(1), causal, min 5 bars;
+                   session-start fallback 1.0 pt), clipped to [0.5, 3.0] pts.
+                   Pre-registered K = 0.35 (matches the 4-tick band at 2026 vol).
+HOLD_PTS / RESET_PTS stay fixed across variants; only the touch band moves.
+
 Inputs : data/footprint/ES_footprint.csv (ladder, deduped on load)
          data/footprint/ES_bars.csv      (tick-order fields; defines valid bars)
          data/menthorq/ES1!_mq_levels_history.csv (levels in ES points — no basis)
-Outputs: data/footprint/level_touches.csv (one row per touch episode)
+Outputs: data/footprint/level_touches{_tag}.csv (one row per touch episode)
          inline summary tables
 
   .venv/Scripts/python.exe scripts/orderflow_at_levels.py [YYYY-MM-DD ...]
+                           [--band-ticks 4 | --band-abr 0.35] [--quiet]
 """
+import argparse
 import sys
 from pathlib import Path
 
@@ -39,8 +50,8 @@ ROOT = Path(__file__).resolve().parents[1]
 FP = ROOT / "data" / "footprint"
 
 TICK = 0.25
-TOUCH_TICKS = 4
-TOUCH_PTS = TOUCH_TICKS * TICK
+ABR_CLIP = (0.5, 3.0)   # pts; floor = 2 ticks, cap keeps 2022-vol bands sane
+ABR_FALLBACK = 1.0      # pts; session-start bars before ABR20 exists
 RESET_PTS = 3.0
 RESET_MIN = 30
 APPROACH_N = 10
@@ -69,6 +80,21 @@ def load_bars():
     bars = bars.sort_values("BarIdx").reset_index(drop=True)
     bars["cvd"] = bars.groupby("day").delta.cumsum()  # reset CVD per session
     return bars
+
+
+def assign_band(bars, band_ticks=None, band_abr=None):
+    """Per-bar touch band in pts. Fixed (N ticks) or K*ABR20 (causal, clipped)."""
+    if band_abr is not None:
+        rng = bars.High - bars.Low
+        abr = (rng.groupby(bars.day)
+                  .apply(lambda s: s.shift(1).rolling(20, min_periods=5).median())
+                  .reset_index(level=0, drop=True))
+        bars["band"] = (band_abr * abr).clip(*ABR_CLIP).fillna(ABR_FALLBACK)
+        tag = f"abr{band_abr:g}"
+    else:
+        bars["band"] = band_ticks * TICK
+        tag = f"t{band_ticks}"
+    return bars, tag
 
 
 def session_profile(ladder_day, upto_baridx):
@@ -116,7 +142,7 @@ def touch_episodes(bars_day, level, ltype):
     prev_near = False
     armed = False         # price has been beyond the reset buffer since last touch
     for _, r in bars_day.iterrows():
-        near = (r.Low - TOUCH_PTS) <= level <= (r.High + TOUCH_PTS)
+        near = (r.Low - r.band) <= level <= (r.High + r.band)
         if near:
             if not prev_near and (
                 last_near_ts is None or armed
@@ -196,9 +222,10 @@ def outcomes(bars_day, touch, level, approach):
     return out
 
 
-def main():
-    days = sys.argv[1:] or None
+def run(days=None, band_ticks=4, band_abr=None, quiet=False):
+    """Run the touch study for one band config; returns the episodes DataFrame."""
     bars = load_bars()
+    bars, tag = assign_band(bars, band_ticks=band_ticks, band_abr=band_abr)
     ladder = load_ladder()
     lv = pd.read_csv(ROOT / "data" / "menthorq" / "ES1!_mq_levels_history.csv")
     if days:
@@ -233,8 +260,10 @@ def main():
     t = pd.DataFrame(rows)
     if t.empty:
         raise SystemExit("no touches found")
-    out_csv = FP / "level_touches.csv"
+    out_csv = FP / ("level_touches.csv" if tag == "t4" else f"level_touches_{tag}.csv")
     t.to_csv(out_csv, index=False)
+    if quiet:
+        return t
 
     print(f"=== {len(t)} touch episodes, {t.day.nunique()} sessions -> {out_csv} ===\n")
     print("-- touches by level type --")
@@ -252,6 +281,19 @@ def main():
     print(h1.groupby("poc_just_below").agg(n=("held", "size"), ret5=("ret_5m", "mean"),
                                            ret15=("ret_15m", "mean"),
                                            ret30=("ret_30m", "mean")).round(3).to_string())
+    return t
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("days", nargs="*", help="YYYY-MM-DD filter")
+    g = ap.add_mutually_exclusive_group()
+    g.add_argument("--band-ticks", type=int, default=4)
+    g.add_argument("--band-abr", type=float, default=None)
+    ap.add_argument("--quiet", action="store_true")
+    a = ap.parse_args()
+    run(days=a.days or None, band_ticks=a.band_ticks, band_abr=a.band_abr,
+        quiet=a.quiet)
 
 
 if __name__ == "__main__":
