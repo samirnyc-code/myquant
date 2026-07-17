@@ -1,6 +1,48 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 16, 2026 (session 75E)
+**Last Updated:** July 17, 2026 (session 75F)
+
+---
+
+## S75F (2026-07-17) — DATA CATALOG (Phase 1: catalog only) (branch `s75-live-dashboard`)
+
+Built **one thing** per the Phase-1 prompt: a **Data Catalog** — a single index of every
+data family (no research, no ORATS). Three decoupled parts so `data/` (115.7 GB) is **never
+blind-walked** on page load:
+
+- **Registry** — `catalog.yaml` (hand-maintained), one entry per family: paths, category,
+  produced_by, update_cadence, expected_freshness_days, useful_for, access snippet, gotchas.
+  18 families across 8 categories. Parsed by a tiny stdlib block-YAML loader inside
+  `data_catalog.py` (**PyYAML is not installed anywhere** — venv or system — so no dep).
+- **Scanner** — `scripts/data_catalog.py scan`: per-registered-path `os.scandir` only →
+  size / file_count / newest-mtime / zero-byte / health verdict → `data/_catalog/manifest.json`
+  (cached). Row/schema counts only for `count_rows: true` families (mq_levels_history).
+  **Proven fast: full scan = 0.17s, 115.7 GB / 21,877 files** (the 85 GB flatfiles dir alone
+  measures in <0.1s — the "blind walk hangs" risk is fully retired).
+- **Server** — `scripts/data_catalog.py serve` (:8620, stdlib http.server, command-center
+  pattern): reads registry + cached manifest, renders instantly; **Rescan** button runs the
+  scanner in a background thread (never synchronously in the handler). Header = footprint /
+  files / family count / worst-health / last-scan time; each family = a card with size + %disk
+  bar, freshness dot, health reasons, useful-for, gotchas, access snippet, produced_by, paths.
+
+**Registry designed WITH the user (confirmed, not guessed):** signals = **current/keep**;
+mine+academy+massive = **keep as-is**; ticks/bars adjustment = **investigated from code** →
+**`data/ticks_continuous*` are BACK-ADJUSTED** (`Price = raw + cum_offset`, RTH-filtered
+08:30–15:15 CT, front-month) and **`bars/_continuous*.parquet` are back-adjusted too** — the
+**`*_unadj.parquet`** variants (es_unadjust.py vs Yahoo ES=F) are the ones that line up with
+MenthorQ actual-price levels; gotchas call this out on both cards.
+
+**Corrections found while cataloging:** `gamma.db` is at **`gamma_tracker/gamma.db`**, NOT
+`data/menthorq/` as the S75E seed said (registered at the real path).
+
+**Nightly task registered:** `MyQuant Data Catalog Scan` (daily 03:30 local, State=Ready) runs
+`data_catalog.py scan`. Registered directly via `Register-ScheduledTask` (NOT in the market-time
+`schedule_options_tasks.ps1` — it's maintenance, runs every day, no DST/CT sensitivity).
+
+**⚠ Still open / TODO in registry:** `vix_ib_daily` producer (who writes vix_daily.*) marked
+`produced_by: TODO` — not guessed. **NOT committed** (user's standing rule: no commit without
+explicit "yes"); `catalog.yaml`, `scripts/data_catalog.py`, `data/_catalog/manifest.json`,
+handoff line are staged-in-tree, awaiting go-ahead.
 
 ---
 

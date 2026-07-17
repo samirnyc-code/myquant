@@ -1,0 +1,289 @@
+# Data Catalog registry — hand-maintained index of every data family in this project.
+#
+# ONE entry per data family. The scanner (scripts/data_catalog.py scan) fills the
+# MECHANICAL fields (size, file_count, newest mtime, health) from disk — never edit
+# those here. The fields below are the human knowledge the filesystem can't infer.
+#
+# Parsed by a tiny stdlib loader in data_catalog.py (no PyYAML dependency), so keep to
+# this simple shape: a `families:` list of mappings; scalar values may be quoted;
+# list values (paths:) are `- item` lines. Free-text values that contain a colon MUST
+# be quoted.
+#
+# Fields per family:
+#   key                       stable slug (used in URLs / manifest keys)
+#   title                     human name
+#   category                  one of the page groups (see CATEGORIES below)
+#   paths                     one or more dirs/globs the scanner measures (repo-relative)
+#   produced_by               script/task that writes it ("manual" / "TODO" if unknown)
+#   update_cadence            how often it should change (manual/daily/nightly/weekly/static)
+#   expected_freshness_days   staleness budget; newest file older than this => red dot
+#   count_rows                true only for small key datasets we want row/schema counts on
+#   useful_for                what it's actually good for (USER knowledge — confirm)
+#   access                    a python loader snippet to read it
+#   gotchas                   traps/caveats (USER knowledge — confirm)
+#
+# CATEGORIES (page groups, in order):
+#   Raw vendor · Ticks · Bars/continuous · MenthorQ · Options desk ·
+#   Research/WFA · Educational · Misc
+
+families:
+
+  # ---------------------------------------------------------------- Raw vendor
+  - key: vendor_flatfiles
+    title: "Databento / Massive vendor flat files (GLBX + CBOT + NYMEX + COMEX)"
+    category: Raw vendor
+    paths:
+      - data/flatfiles_cache
+      - data/flatfiles_cache_cbot
+      - data/flatfiles_cache_nymex
+      - data/flatfiles_cache_comex
+    produced_by: "massive.py / scripts/download_instruments_5y.py / refresh_stale_flatfiles.py"
+    update_cadence: manual
+    expected_freshness_days: 999
+    count_rows: false
+    useful_for: "Raw daily CME-complex flat files (per-day .csv.gz) — the source Databento/Massive pulls that continuous ticks & bars are BUILT from. Cold archive; not queried directly in studies."
+    access: "import pandas as pd; pd.read_csv('data/flatfiles_cache/2026-07-15.csv.gz')  # gzip auto-detected"
+    gotchas: "Biggest footprint on disk (~85 GB across the 4 exchange dirs). One file per session per exchange root. Raw, unadjusted, not roll-stitched — rebuild ticks/bars from these, don't analyse directly."
+
+  - key: nt_import
+    title: "NinjaTrader import data (raw tick text)"
+    category: Raw vendor
+    paths:
+      - data/nt_import
+    produced_by: "scripts/fetch_for_nt_flatfiles.py (export for NT8 import)"
+    update_cadence: manual
+    expected_freshness_days: 999
+    count_rows: false
+    useful_for: "Last-trade tick text files staged to import bars into NinjaTrader 8."
+    access: "open('data/nt_import/ES_MAS 03-22.Last.txt')  # ';'-delimited tick text"
+    gotchas: "Per-contract (not continuous). Consumed by NT8 on import, not by analysis code. 15.9 GB in only 26 files — each is a full multi-year tick dump."
+
+  - key: optionsdx
+    title: "OptionsDX — SPX EOD option chains"
+    category: Raw vendor
+    paths:
+      - data/optionsdx
+    produced_by: "manual download (OptionsDX)"
+    update_cadence: manual
+    expected_freshness_days: 999
+    count_rows: false
+    useful_for: "Historical SPX EOD option chains (quotes + greeks), one file per month back to 2010, for options studies."
+    access: "pd.read_csv('data/optionsdx/spx_eod_202601.txt')"
+    gotchas: "⚠ NO open-interest column (OPRA reseller) — cannot compute true GEX. See handoff / options_data_vendors memory."
+
+  # -------------------------------------------------------------------- Ticks
+  - key: ticks_continuous
+    title: "Continuous tick series (ES/NQ/YM/CL/GC/6E/6J)"
+    category: Ticks
+    paths:
+      - data/ticks_continuous
+      - data/ticks_continuous_NQ
+      - data/ticks_continuous_YM
+      - data/ticks_continuous_CL
+      - data/ticks_continuous_GC
+      - data/ticks_continuous_6E
+      - data/ticks_continuous_6J
+    produced_by: "massive.py build_instr_continuous_ticks (from vendor_flatfiles) via rebuild_refreshed.py"
+    update_cadence: manual
+    expected_freshness_days: 30
+    count_rows: false
+    useful_for: "Canonical continuous tick source for backtests — one parquet per session, front-month, RTH-filtered (08:30–15:15 CT). Bare data/ticks_continuous = ES; suffixed dirs = NQ/YM/CL/GC/6E/6J."
+    access: "pd.read_parquet('data/ticks_continuous/2026-07-15.parquet')  # one file per session"
+    gotchas: "⚠ BACK-ADJUSTED (roll offset already added to Price = raw + cum_offset) — so prices are NOT struck in actual front-contract terms and do NOT line up with MenthorQ levels. For any bar-vs-level study use the UNADJUSTED bars (see `bars`), not these."
+
+  # --------------------------------------------------------- Bars / continuous
+  - key: bars
+    title: "Bar parquets (continuous + per-contract)"
+    category: Bars/continuous
+    paths:
+      - data/bars
+    produced_by: "scripts/es_unadjust.py + futures_unadjust.py (from the continuous bars)"
+    update_cadence: manual
+    expected_freshness_days: 30
+    count_rows: false
+    useful_for: "Continuous + per-contract bar parquets — fast load for studies that don't need ticks. TWO flavours of the continuous series: back-adjusted (_continuous*.parquet) and UNADJUSTED (_continuous*_unadj.parquet)."
+    access: "pd.read_parquet('data/bars/_continuous_unadj.parquet')  # unadjusted ES; drop _unadj for back-adjusted"
+    gotchas: "⚠ _continuous.parquet is BACK-ADJUSTED (older bars shifted by cumulative roll gaps, e.g. +263pt). MenthorQ levels are struck in ACTUAL prices, so any bar-vs-level study MUST use the *_unadj.parquet variant (built by es_unadjust.py against Yahoo ES=F closes; es_offsets.csv audits the per-session offset). Dir also mixes per-contract bars (e.g. 6EH3)."
+
+  # ----------------------------------------------------------------- MenthorQ
+  - key: mq_levels_history
+    title: "MenthorQ mined levels history (~5yr, 13 tickers)"
+    category: MenthorQ
+    paths:
+      - data/menthorq
+    produced_by: "scripts/mq_levels_backfill_batch.py (task: MyQuant Levels History)"
+    update_cadence: daily
+    expected_freshness_days: 4
+    count_rows: true
+    useful_for: "The answer key: labeled EOD gamma levels (cr/ps/hvl, 0DTE, 1D range, 10 GEX walls + signed GEX) per session per ticker. Drives the command center + edge studies."
+    access: "pd.read_csv('data/menthorq/SPX_mq_levels_history.csv')  # + _raw.jsonl audit"
+    gotchas: "Futures (1!) only go back ~2yr (MQ retention) and have NO spot. This dir also holds harvest/ knowledge/ mine/ (registered separately)."
+
+  - key: mq_harvest
+    title: "MenthorQ indicator harvest (tiles / ws.json / PNG)"
+    category: MenthorQ
+    paths:
+      - data/menthorq/harvest
+    produced_by: "gamma_tracker/scrape.py + harvest scripts"
+    update_cadence: daily
+    expected_freshness_days: 4
+    count_rows: false
+    useful_for: "Per-day scraped MQ indicator tiles (levels/heatmap/exposure/matrix) as PNG + text + raw websocket JSON — the audit trail behind the live scrape and the mined levels."
+    access: "open('data/menthorq/harvest/2026-07-15/ES1_levels_ws.json')  # one dated dir per session"
+    gotchas: "Many small files; grows daily per ticker (~12 files/ticker/day). Also has backfill_*_raw/ staging dirs."
+
+  - key: mq_gamma_db
+    title: "MenthorQ Levels-Backtesting stats DB"
+    category: MenthorQ
+    paths:
+      - gamma_tracker/gamma.db
+    produced_by: "gamma_tracker/scrape.py (task: MyQuant Backtest Levels)"
+    update_cadence: daily
+    expected_freshness_days: 4
+    count_rows: false
+    useful_for: "The 6 main levels + their backtest stats (hold rate, positive-outcomes, broke-at-close, comeback, decomposition) — MQ's own edge claims to validate."
+    access: "import sqlite3; sqlite3.connect('gamma_tracker/gamma.db')"
+    gotchas: "⚠ Real path is gamma_tracker/gamma.db, NOT data/menthorq/ (handoff seed was wrong). No as-of EOD datestamp yet (awaiting Fabio)."
+
+  - key: mq_mine
+    title: "MenthorQ mine / academy scratch"
+    category: MenthorQ
+    paths:
+      - data/menthorq/mine
+      - data/menthorq/academy
+    produced_by: "scripts/mq_quin_harvest.py + academy fetch"
+    update_cadence: manual
+    expected_freshness_days: 999
+    count_rows: false
+    useful_for: "Exploratory mined MQ data (mine/) + academy content pulls (academy/). Secondary to mq_levels_history + mq_harvest, kept as-is."
+    access: "browse the dir"
+    gotchas: "Scratch/exploratory — the canonical levels live in mq_levels_history; use this only for one-off mined pulls."
+
+  # -------------------------------------------------------------- Options desk
+  - key: options_sim
+    title: "Live options desk state (trades / gameplans / postmortems)"
+    category: Options desk
+    paths:
+      - data/options_sim
+    produced_by: "options desk chain (eod_report.py, levels_live_engine.py, options_mark.py, …)"
+    update_cadence: daily
+    expected_freshness_days: 3
+    count_rows: false
+    useful_for: "Live desk: account.csv, trades, marks.csv, trade_metrics.csv, gameplans, eod_status_*, dashboard.html. The running P&L + trade lifecycle."
+    access: "pd.read_csv('data/options_sim/marks.csv')  # also account.csv, trade_metrics.csv"
+    gotchas: "Small but hot — many files rewrite intraday. Also holds the realtime synthetic-SPX tape (underlying_<date>.csv)."
+
+  - key: options_log
+    title: "Options desk logs (orders / trades / notifications)"
+    category: Options desk
+    paths:
+      - data/options_log
+    produced_by: "options desk chain (order/trade logging)"
+    update_cadence: daily
+    expected_freshness_days: 3
+    count_rows: false
+    useful_for: "Append-only order/trade log (orders.csv, trades.parquet) + notifications.log — the audit trail for the options desk."
+    access: "pd.read_parquet('data/options_log/trades.parquet'); pd.read_csv('data/options_log/orders.csv')"
+    gotchas: "Append-only ledger — distinct from options_sim (live mutable state). Read, don't rewrite."
+
+  - key: massive_options
+    title: "Massive SPX option contracts cache"
+    category: Options desk
+    paths:
+      - data/massive_options
+      - data/massive_cache
+    produced_by: "scripts/fetch_massive_spx_contracts.py"
+    update_cadence: manual
+    expected_freshness_days: 999
+    count_rows: false
+    useful_for: "Cached Massive.io SPX contract pulls (fetch_massive_spx_contracts.py). Kept as-is."
+    access: "browse the dir"
+    gotchas: "⚠ Massive has NO open-interest (OPRA reseller — see options_data_vendors memory), so cannot compute true GEX from it. Currently near-empty (2 files)."
+
+  # --------------------------------------------------------------- Research/WFA
+  - key: wfa_store
+    title: "Walk-forward analysis results store"
+    category: Research/WFA
+    paths:
+      - data/wfa_store
+    produced_by: "results_store.py (WFA engine)"
+    update_cadence: manual
+    expected_freshness_days: 999
+    count_rows: false
+    useful_for: "WFA sweeps/, trades/, wfa_results.db — fold results + PROM outputs from the ES WFA engine."
+    access: "import sqlite3; sqlite3.connect('data/wfa_store/wfa_results.db')"
+    gotchas: "⚠ _contaminated_pre_S34/ is quarantined bad data — do NOT use."
+
+  # ---------------------------------------------------------------- Educational
+  - key: mq_knowledge
+    title: "MenthorQ educational corpus (guides / lessons / wiki)"
+    category: Educational
+    paths:
+      - data/menthorq/knowledge
+    produced_by: "menthorq knowledge fetch"
+    update_cadence: static
+    expected_freshness_days: 999
+    count_rows: false
+    useful_for: "392 educational files (guides/lessons/wiki) — reference for how MQ levels are defined & meant to be traded."
+    access: "open a file under data/menthorq/knowledge/{guides,lessons,wiki}/"
+    gotchas: "Text/markdown reference corpus, not a queryable dataset. Static."
+
+  # ----------------------------------------------------------------------- Misc
+  - key: vix_ib_daily
+    title: "VIX / daily index reference series"
+    category: Misc
+    paths:
+      - data/vix_daily.csv
+      - data/vix_daily.parquet
+      - data/VIX_History.csv
+      - data/spx_daily.csv
+      - data/spx_daily.parquet
+      - data/ES_stoch_daily.csv
+    produced_by: "TODO — grep confirms consumers (options_app.py, mr_bps_regime_wf.py); find writer"
+    update_cadence: daily
+    expected_freshness_days: 5
+    count_rows: false
+    useful_for: "Daily VIX + SPX/ES reference series for regime/basis context (consumed by options_app.py, mr_bps_regime_wf.py)."
+    access: "pd.read_csv('data/vix_daily.csv'); pd.read_csv('data/spx_daily.csv')"
+    gotchas: "Loose top-level files (csv + parquet twins). VIX_History.csv is the raw CBOE download; vix_daily.* is the derived series. ⚠ writer not yet pinned down (produced_by = TODO)."
+
+  - key: signals
+    title: "NinjaTrader signal exports (MyReversals / MyMicroChannel)"
+    category: Misc
+    paths:
+      - data/signals
+    produced_by: "scripts/ama_export_signals_nt.py / qs_export_signals_nt.py"
+    update_cadence: manual
+    expected_freshness_days: 999
+    count_rows: false
+    useful_for: "CURRENT (user-confirmed) — exported NT8 indicator signals (MyReversals, MyMicroChannel) used for overlap studies. Keep."
+    access: "pd.read_csv('data/signals/<export>.txt', sep=';')"
+    gotchas: "Filenames carry contract+timeframe+as-of+lookback (e.g. 'ES SEP26 5 Minute … 1850 Days'). Regenerate via ama_export_signals_nt.py / qs_export_signals_nt.py when a fresh NT8 export is available."
+
+  - key: briefs
+    title: "Morning / daily briefs"
+    category: Misc
+    paths:
+      - data/briefs
+    produced_by: "scripts/nq_daily_brief.py / build_morning_report.py"
+    update_cadence: daily
+    expected_freshness_days: 3
+    count_rows: false
+    useful_for: "Generated morning/daily brief artifacts (nq_daily_brief.py / build_morning_report.py)."
+    access: "browse the dir"
+    gotchas: "Regenerated each morning; ephemeral output, not a source dataset."
+
+  - key: misc_cache
+    title: "Assorted caches / scratch (cache, raw, leg_labels)"
+    category: Misc
+    paths:
+      - data/cache
+      - data/raw
+      - data/leg_labels
+    produced_by: "various"
+    update_cadence: manual
+    expected_freshness_days: 999
+    count_rows: false
+    useful_for: "Transient caches / staging (cache/, raw/, leg_labels/); safe to ignore for analysis."
+    access: "n/a"
+    gotchas: "May be empty/stale; candidates for cleanup. Grouped here so they show up in the footprint rather than hiding."
