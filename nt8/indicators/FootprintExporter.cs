@@ -38,9 +38,15 @@ namespace NinjaTrader.NinjaScript.Indicators
     public class FootprintExporter : Indicator
     {
         private StreamWriter writer;
+        private StreamWriter barsWriter;           // per-bar tick-order summary
         private Dictionary<double, long[]> book;   // price -> [bidVol, askVol]
         private int accumBar = -1;
         private DateTime accumTime;
+        // per-bar running trackers (need intrabar tick ORDER — lost in the ladder)
+        private double barOpen, barClose, barHi, barLo;
+        private long curCum, curMin, curMax;
+        private DateTime barStart, barEnd;
+        private bool barSeeded;
 
         protected override void OnStateChange()
         {
@@ -65,6 +71,11 @@ namespace NinjaTrader.NinjaScript.Indicators
                     bool fresh = !File.Exists(ExportPath);
                     writer = new StreamWriter(ExportPath, true);
                     if (fresh) writer.WriteLine("BarIdx,BarTime,Price,BidVol,AskVol");
+                    string barsPath = Path.Combine(Path.GetDirectoryName(ExportPath), "ES_bars.csv");
+                    bool bfresh = !File.Exists(barsPath);
+                    barsWriter = new StreamWriter(barsPath, true);
+                    if (bfresh) barsWriter.WriteLine(
+                        "BarIdx,BarTime,Open,Close,High,Low,MinDelta,MaxDelta,Delta,DurationSec,DeltaRate,UnfHigh,UnfLow");
                 }
                 catch (Exception e) { Log("FootprintExporter open failed: " + e.Message, LogLevel.Error); }
             }
@@ -72,6 +83,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             {
                 if (accumBar >= 0) FlushBar();     // last bar
                 if (writer != null) { writer.Flush(); writer.Close(); writer = null; }
+                if (barsWriter != null) { barsWriter.Flush(); barsWriter.Close(); barsWriter = null; }
             }
         }
 
@@ -94,14 +106,28 @@ namespace NinjaTrader.NinjaScript.Indicators
             if (!book.TryGetValue(key, out cell)) { cell = new long[2]; book[key] = cell; }
             // classify against the quote that came WITH this trade (Tick Replay embeds it in e)
             double ask = e.Ask, bid = e.Bid;
+            bool buy;
             if (ask > 0 && bid > 0)
             {
-                if (e.Price >= ask) cell[1] += v;                 // at/above ask = aggressive BUY
-                else if (e.Price <= bid) cell[0] += v;            // at/below bid = aggressive SELL
-                else if (e.Price >= (ask + bid) / 2.0) cell[1] += v;  // upper half -> buy
-                else cell[0] += v;                                // lower half -> sell
+                if (e.Price >= ask) buy = true;                   // at/above ask = aggressive BUY
+                else if (e.Price <= bid) buy = false;             // at/below bid = aggressive SELL
+                else buy = e.Price >= (ask + bid) / 2.0;          // mid split
             }
-            else cell[1] += v;                                    // no quote context -> park as buy
+            else buy = true;                                      // no quote context -> buy
+            if (buy) cell[1] += v; else cell[0] += v;
+
+            // intrabar tick-order tracking (for Min/Max delta, Open/Close, delta rate)
+            if (!barSeeded)
+            {
+                barOpen = barHi = barLo = e.Price; curCum = curMin = curMax = 0;
+                barStart = e.Time; barSeeded = true;
+            }
+            barClose = e.Price; barEnd = e.Time;
+            if (e.Price > barHi) barHi = e.Price;
+            if (e.Price < barLo) barLo = e.Price;
+            curCum += buy ? v : -v;
+            if (curCum < curMin) curMin = curCum;
+            if (curCum > curMax) curMax = curCum;
         }
 
         private void FlushBar()
@@ -113,6 +139,22 @@ namespace NinjaTrader.NinjaScript.Indicators
                     writer.WriteLine(string.Format("{0},{1:yyyy-MM-dd HH:mm:ss},{2},{3},{4}",
                         accumBar, accumTime, kv.Key, kv.Value[0], kv.Value[1]));
                 writer.Flush();
+
+                if (barsWriter != null && barSeeded)   // per-bar tick-order summary
+                {
+                    double dur = Math.Max(0.001, (barEnd - barStart).TotalSeconds);
+                    double unfHi = 0, unfLo = 0; long[] hc, lc;
+                    if (book.TryGetValue(Instrument.MasterInstrument.RoundToTickSize(barHi), out hc)
+                        && hc[0] > 0 && hc[1] > 0) unfHi = barHi;   // both sides at the high = unfinished
+                    if (book.TryGetValue(Instrument.MasterInstrument.RoundToTickSize(barLo), out lc)
+                        && lc[0] > 0 && lc[1] > 0) unfLo = barLo;
+                    barsWriter.WriteLine(string.Format(
+                        "{0},{1:yyyy-MM-dd HH:mm:ss},{2},{3},{4},{5},{6},{7},{8},{9:F1},{10:F2},{11},{12}",
+                        accumBar, accumTime, barOpen, barClose, barHi, barLo, curMin, curMax,
+                        curCum, dur, curCum / dur, unfHi, unfLo));
+                    barsWriter.Flush();
+                }
+                barSeeded = false;   // reset trackers for the next bar
             }
             catch (Exception e) { Log("FootprintExporter write failed: " + e.Message, LogLevel.Warning); }
         }
