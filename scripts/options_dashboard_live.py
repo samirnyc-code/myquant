@@ -21,6 +21,7 @@ Run the dashboard server:
 import argparse
 import json
 import secrets
+import socket
 import sys
 import threading
 import urllib.parse
@@ -160,6 +161,18 @@ def main():
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--open", action="store_true", help="open a browser tab")
     args = ap.parse_args()
+
+    # Windows lets 0.0.0.0:PORT bind alongside an existing 127.0.0.1:PORT, so a
+    # bind-error check is NOT reliable — probe the port explicitly. Another
+    # instance (e.g. Mission Control's) already serving is a healthy state for
+    # the scheduled backstop task, not a failure.
+    probe = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    probe.settimeout(2)
+    already = probe.connect_ex(("127.0.0.1", args.port)) == 0
+    probe.close()
+    if already:
+        print(f"port {args.port} already serving — dashboard already running, exiting clean.")
+        return 0
 
     ensure_html(force=True)  # build once up front so the first GET is instant
     srv = ThreadingHTTPServer((args.host, args.port), Handler)

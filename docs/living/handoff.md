@@ -38,14 +38,21 @@ All 21 `MyQuant *` Task Scheduler jobs enumerated, all options-desk stages exerc
   repo — file lives in C:\IBC): if the API is already listening it exits 0 without launching.
   Verified live (ran the bat with gateway up → "already up", 1 java process). Task Scheduler
   action changes are blocked by the permission classifier, so the guard lives in the bat.
-- **Thomas explainer + read-only Mission Control viewer.** New `docs/options_desk_tour.html`
+- **Thomas explainer + Mission Control viewer (`/view`).** New `docs/options_desk_tour.html`
   (self-contained, inline-SVG diagram — email-able; copy on Desktop) + published as Claude
-  artifact. Mission Control (`launcher.py`): serves the tour at `/tour` (📖 header button),
-  artifact added to `claude_artifacts.json`, and a **token-gated read-only `/view`** for
-  remote (Tailscale) visitors — status dots/uptime/artifacts/tour only; ALL control routes
-  (POST start/stop/restart, `/log/`) are localhost-only regardless of key (verified 403 from
-  the Tailscale IP). Token persists in `data/_catalog/launcher_viewer_token.txt`; launcher
-  now runs `--host 0.0.0.0` and prints the share link at startup. UNCOMMITTED with the rest.
+  artifact. Mission Control (`launcher.py`) additions: serves the tour at `/tour` (📖 button),
+  **token-gated `/view` for Thomas** (token persists in `data/_catalog/launcher_viewer_token.txt`;
+  launcher runs `--host 0.0.0.0`, prints the share link at startup). Viewer surface: status
+  cards with ⓘ plain-language tooltips (`info` field per dashboard), **flat non-clickable
+  artifacts list** (per-artifact `info` in `claude_artifacts.json` — they're private to
+  Samir's account), **read-only Data Catalog browse** (GET-only proxy at `/catalog`, Rescan
+  neutered), and desk controls: **Open desk** (key baked from `~/.myquant_dashboard_token.txt`,
+  host-relative so it works over Tailscale), **Start desk**, **Reload desk** (restart). Remote
+  POST allows ONLY start/restart of options_desk with the viewer token; stop + all other apps
+  + `/log/` stay localhost-only (verified 403 from the Tailscale IP). Also: **ES Setup Marker
+  (:8630) card added** (mark_setups.py was never in Mission Control), **desk now launches on
+  0.0.0.0** (was 127.0.0.1 — Thomas couldn't reach :8600), and an uptime-display fix (server
+  sends `up_secs`; browsers mis-parsed the timezone-less timestamps as UTC → "up 0s").
 - **❌ BROKEN, flagged (evening job, not protocol-critical):** `mq_quin_harvest.py` (16:00 CT)
   — QUIN chat textarea stays `disabled` (likely logged-out MenthorQ session); Playwright click
   times out, exit 1. Needs a session refresh / login-state fix.

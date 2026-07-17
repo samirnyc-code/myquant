@@ -25,6 +25,37 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+
+# ---- read-only viewer token (S75L) --------------------------------------
+# Remote visitors (Thomas over Tailscale) may ONLY see /view + its JSON, and
+# only with ?key=<token>. Control endpoints stay localhost-only regardless.
+# The token persists across restarts so the shared link stays stable.
+_TOKEN_FILE = ROOT / "data" / "_catalog" / "launcher_viewer_token.txt"
+
+
+def _viewer_token():
+    if _TOKEN_FILE.exists():
+        t = _TOKEN_FILE.read_text(encoding="utf-8").strip()
+        if t:
+            return t
+    import secrets
+    t = secrets.token_urlsafe(18)
+    _TOKEN_FILE.parent.mkdir(parents=True, exist_ok=True)
+    _TOKEN_FILE.write_text(t, encoding="utf-8")
+    return t
+
+
+VIEWER_TOKEN = _viewer_token()
+
+
+def _desk_token():
+    """The Options Desk dashboard's own access token (persistent, outside repo) —
+    baked into the viewer so its 'Open desk' button works for the remote viewer."""
+    try:
+        return (Path.home() / ".myquant_dashboard_token.txt").read_text(
+            encoding="utf-8").strip()
+    except Exception:
+        return ""
 # pythonw.exe = the GUI-subsystem interpreter: it NEVER allocates a console window,
 # so detached dashboards don't spawn stray black console windows on the desktop.
 PY = ROOT / ".venv" / "Scripts" / "pythonw.exe"
@@ -57,24 +88,45 @@ DASHBOARDS = [
      "title": "Options Desk — Live", "port": 8600,
      "desc": "The daily options desk: live P&L tiles, position cards, gameplan/trigger "
              "state, Desk Report tab. Needs IB Gateway (paper 4002) for live marks.",
-     "cmd": _st("options_dashboard_live.py") + ["--host", "127.0.0.1", "--port", "8600"]},
+     "info": "Live view of the paper-trading day: open positions with live P&L from IB "
+             "quotes, the auto-generated gameplan, which triggers are armed or fired, and "
+             "the end-of-day report. The keyed :8600 link opens this page.",
+     "cmd": _st("options_dashboard_live.py") + ["--host", "0.0.0.0", "--port", "8600"]},
+
+    {"key": "mark_setups", "group": "Live desk",
+     "title": "ES Setup Marker", "port": 8630,
+     "desc": "Forward-reveal ES volume-bar chart annotator (S75J/K): play/step bars, "
+             "mark BOPB / second-entry setups vs MQ levels -> data/annotations/marks.csv.",
+     "info": "Chart annotator: ES bars replay one at a time (no peeking ahead) and good "
+             "trade setups get hand-marked. The marks become labeled data for finding "
+             "which order-flow features the good setups share.",
+     "cmd": _st("mark_setups.py") + ["--port", "8630"]},
 
     {"key": "command_center", "group": "MenthorQ",
      "title": "Gamma Levels — Command Center", "port": 8610,
      "desc": "Hub for the ~5yr MenthorQ levels DB (13 tickers): freshness/status, "
              "per-day price-action chart + levels table, Update-now backfill.",
+     "info": "A ~5-year database of daily MenthorQ dealer-gamma levels for 13 tickers, "
+             "with per-day charts of price vs the levels and tools to keep the history "
+             "filled in. The raw material for all the level studies.",
      "cmd": _st("mq_levels_command_center.py") + ["--port", "8610"]},
 
     {"key": "data_catalog", "group": "Reference",
      "title": "Data Catalog", "port": 8620,
      "desc": "Index of every data family (~116 GB): size, freshness, health, "
              "useful-for, access snippet, gotchas. Rescan button.",
+     "info": "Index of every dataset on the machine (~116 GB) — futures ticks, options "
+             "chains, gamma levels, footprint ladders — with size, freshness and what each "
+             "is useful for. Browse it read-only to see what data exists.",
      "cmd": _st("data_catalog.py") + ["serve", "--port", "8620"]},
 
     {"key": "wfa_app", "group": "Research (Streamlit)",
      "title": "WFA Research App", "port": 8501,
      "desc": "The main Streamlit app — bar analyzer, WFA/PROM, auction & regime tabs. "
              "Heavy: first load imports scipy (~3-4s).",
+     "info": "The original research workbench — walk-forward analysis of ES futures "
+             "strategies (train on one period, verify on the next), bar analyzers, "
+             "auction/regime studies. Where strategies get validated or killed.",
      "cmd": _streamlit("app.py", 8501)},
     # Options Forward-Sim (:8502) removed S75: its live tabs (Trades/Journal/Perf)
     # duplicated the Options Desk, and its unique tabs (Decisions/fill-tapes/calibration)
@@ -244,9 +296,18 @@ def status():
     for d in DASHBOARDS:
         up, ms, rec = probe[d["key"]]
         pid = (rec or {}).get("pid")
+        started = (rec or {}).get("started")
+        up_secs = None
+        if started:
+            try:  # computed here so clients never parse timezone-less timestamps
+                up_secs = max(0, int((dt.datetime.now()
+                                      - dt.datetime.fromisoformat(started)).total_seconds()))
+            except ValueError:
+                pass
         rows.append({"key": d["key"], "title": d["title"], "desc": d["desc"],
+                     "info": d.get("info", ""), "up_secs": up_secs,
                      "port": d["port"], "group": d["group"], "up": up,
-                     "pid": pid, "started": (rec or {}).get("started"),
+                     "pid": pid, "started": started,
                      "mem": mem.get(pid) if pid else None, "ms": ms,
                      "url": f"http://127.0.0.1:{d['port']}/"})
     running = sum(1 for r in rows if r["up"])
@@ -286,19 +347,53 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
 
-    def _send(self, body, ctype="application/json"):
+    def _send(self, body, ctype="application/json", code=200):
         if isinstance(body, str):
             body = body.encode("utf-8")
-        self.send_response(200)
+        self.send_response(code)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
 
+    def _is_local(self):
+        return self.client_address[0] in ("127.0.0.1", "::1")
+
+    def _has_key(self):
+        from urllib.parse import parse_qs, urlparse
+        q = parse_qs(urlparse(self.path).query)
+        return q.get("key", [""])[0] == VIEWER_TOKEN
+
     def do_GET(self):
         p = self.path.split("?")[0]
+        # ---- remote (Tailscale) visitors: read-only surface, token required ----
+        if not self._is_local():
+            if p in ("/favicon.svg", "/favicon.ico"):
+                return self._send(FAVICON, "image/svg+xml")
+            if not self._has_key():
+                return self._send("<h1>403</h1><p>viewer key required (?key=...)</p>",
+                                  "text/html; charset=utf-8", 403)
+            if p in ("/", "/view"):
+                return self._send(VIEW_HTML.replace("__DESKKEY__", _desk_token()),
+                                  "text/html; charset=utf-8")
+            if p == "/status.json":
+                return self._send(json.dumps(status()))
+            if p == "/artifacts.json":
+                return self._send(json.dumps(load_artifacts()))
+            if p == "/tour":
+                return self._send_tour()
+            if p == "/catalog" or p.startswith("/catalog/"):
+                return self._proxy_catalog(p[len("/catalog"):])
+            return self._send("<h1>403</h1><p>read-only viewer: not available</p>",
+                              "text/html; charset=utf-8", 403)
+        # ---- localhost: full Mission Control ----
         if p == "/":
             return self._send(HTML, "text/html; charset=utf-8")
+        if p == "/view":
+            return self._send(VIEW_HTML.replace("__DESKKEY__", _desk_token()),
+                              "text/html; charset=utf-8")
+        if p == "/tour":
+            return self._send_tour()
         if p in ("/favicon.svg", "/favicon.ico"):
             return self._send(FAVICON, "image/svg+xml")
         if p == "/status.json":
@@ -307,13 +402,58 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(json.dumps(load_artifacts()))
         if p.startswith("/log/"):
             return self._send(json.dumps({"log": tail_log(p[len("/log/"):])}))
+        if p == "/catalog" or p.startswith("/catalog/"):
+            return self._proxy_catalog(p[len("/catalog"):])
         self.send_response(404)
         self.end_headers()
+
+    def _proxy_catalog(self, sub):
+        """GET-only proxy to the Data Catalog (:8620) so remote viewers can browse
+        what data exists without reaching the catalog server (which stays on
+        127.0.0.1 and keeps its Rescan POST). The catalog page's absolute-path
+        fetches are rewritten to come back through this proxy with the key."""
+        import urllib.request
+        url = f"http://127.0.0.1:8620{sub or '/'}"
+        try:
+            with urllib.request.urlopen(url, timeout=5) as r:
+                body = r.read()
+                ctype = r.headers.get("Content-Type", "text/html; charset=utf-8")
+        except Exception:
+            return self._send("<h1>Data Catalog offline</h1><p>the :8620 server isn't "
+                              "running right now.</p>", "text/html; charset=utf-8")
+        if "html" in ctype:
+            txt = body.decode("utf-8", "replace")
+            txt = txt.replace("fetch('/view.json')",
+                              f"fetch('/catalog/view.json?key={VIEWER_TOKEN}')")
+            txt = txt.replace("fetch('/scan_log')",
+                              f"fetch('/catalog/scan_log?key={VIEWER_TOKEN}')")
+            # read-only: the Rescan button becomes a no-op
+            txt = txt.replace("fetch('/rescan',{method:'POST'})", "Promise.resolve()")
+            body = txt.encode("utf-8")
+        return self._send(body, ctype)
+
+    def _send_tour(self):
+        f = ROOT / "docs" / "options_desk_tour.html"
+        if f.exists():
+            return self._send(f.read_text(encoding="utf-8"), "text/html; charset=utf-8")
+        return self._send("<h1>tour not found</h1><p>docs/options_desk_tour.html missing.</p>",
+                          "text/html; charset=utf-8")
 
     def do_POST(self):
         from urllib.parse import parse_qs, urlparse
         q = parse_qs(urlparse(self.path).query)
         key = q.get("key", [""])[0]
+        if not self._is_local():
+            # Remote exceptions: a keyed viewer may START or RESTART the Options
+            # Desk (so Thomas can bring the dashboard up / reload it himself).
+            # No stop, nothing else. Auth via `token` (`key` carries the
+            # dashboard key).
+            act = self.path.split("?")[0]
+            if (act in ("/start", "/restart") and key == "options_desk"
+                    and q.get("token", [""])[0] == VIEWER_TOKEN):
+                fn = start if act == "/start" else restart
+                return self._send(json.dumps(fn("options_desk")))
+            return self._send(json.dumps({"ok": False, "err": "read-only viewer"}), code=403)
         if self.path.startswith("/startall"):
             res = {d["key"]: start(d["key"]) for d in DASHBOARDS}
             for d in DASHBOARDS:
@@ -425,6 +565,7 @@ pre{background:var(--chip);border-radius:7px;padding:8px 10px;font-size:11px;ove
   <h1>🚀 Mission Control</h1>
   <span class="pill" id="summary">…</span>
   <span style="margin-left:auto"></span>
+  <a href="/tour" target="_blank" rel="noopener"><button title="how the options desk automation works — shareable explainer">📖 Desk Tour</button></a>
   <button id="reload" title="refresh status now">↻ Reload</button>
   <button class="primary" id="startall">▶ Start all</button>
   <button id="openall" title="open every running dashboard">↗ Open running</button>
@@ -448,9 +589,8 @@ pre{background:var(--chip);border-radius:7px;padding:8px 10px;font-size:11px;ove
 const css=k=>getComputedStyle(document.documentElement).getPropertyValue(k).trim();
 let ST=null, timer=null;
 const mem=b=>b==null?'':(b>=1e9?(b/1e9).toFixed(2)+' GB':(b/1e6).toFixed(0)+' MB');
-function uptime(iso){if(!iso)return '';let s=(Date.now()-new Date(iso))/1000;if(s<0)s=0;
-  const h=Math.floor(s/3600),m=Math.floor(s%3600/60);
-  if(h)return h+'h '+m+'m';if(m)return m+'m';return Math.floor(s)+'s';}
+function uptime(s){if(s==null)return '';const h=Math.floor(s/3600),m=Math.floor(s%3600/60);
+  if(h)return h+'h '+m+'m';if(m)return m+'m';return s+'s';}
 
 async function load(){
   ST=await(await fetch('/status.json')).json();
@@ -464,7 +604,7 @@ async function load(){
   for(const g of Object.keys(groups)){
     h+=`<div class="col"><div class="grp">${g}</div>`;
     for(const d of groups[g]){
-      const meta=d.up?[d.pid?('pid '+d.pid):'', d.started?('up '+uptime(d.started)):'', mem(d.mem), d.ms+'ms'].filter(Boolean).join(' · '):'stopped';
+      const meta=d.up?[d.pid?('pid '+d.pid):'', d.up_secs!=null?('up '+uptime(d.up_secs)):'', mem(d.mem), d.ms+'ms'].filter(Boolean).join(' · '):'stopped';
       h+=`<div class="card" id="card-${d.key}">
         <div class="top"><span class="dot ${d.up?'up':''}"></span>
           <span class="title">${d.title}</span><span class="port">:${d.port}</span></div>
@@ -557,6 +697,134 @@ load();setAuto();loadArtifacts();
 </script></body></html>"""
 
 
+VIEW_HTML = r"""<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mission Control — Viewer</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<style>
+:root{--surface:#fcfcfb;--plane:#f9f9f7;--ink:#0b0b0b;--ink2:#52514e;--muted:#898781;
+  --border:rgba(11,11,11,.10);--pos:#2a78d6;--card:#fff;--good:#0ca30c;--bad:#e34948;--chip:#f0efea}
+@media(prefers-color-scheme:dark){:root{--surface:#1a1a19;--plane:#0d0d0d;--ink:#fff;--ink2:#c3c2b7;
+  --muted:#898781;--border:rgba(255,255,255,.10);--pos:#3987e5;--card:#1f1f1e;--bad:#e66767;--chip:#26261f}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--plane);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:14px}
+header{padding:13px 20px;border-bottom:1px solid var(--border);background:var(--surface);display:flex;gap:14px;align-items:baseline;flex-wrap:wrap;position:sticky;top:0;z-index:5}
+h1{font-size:16px;margin:0;font-weight:650}
+.ro{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--bad);border:1px solid var(--bad);border-radius:20px;padding:2px 9px}
+.pill{font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--chip);color:var(--muted)}
+.pill.on{background:rgba(12,163,12,.14);color:var(--good)}
+.wrap{max-width:1100px;margin:0 auto;padding:18px 20px 80px}
+.hint{font-size:12.5px;color:var(--ink2);margin:0 0 16px}
+a{color:var(--pos)}
+#groups{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
+.col{flex:1 1 250px;min-width:250px;display:flex;flex-direction:column;gap:12px}
+.grp{margin:0 0 2px;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink2);border-bottom:1px solid var(--border);padding-bottom:6px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.top{display:flex;align-items:center;gap:9px}
+.dot{width:10px;height:10px;border-radius:50%;flex:0 0 auto;background:var(--muted)}
+.dot.up{background:var(--good);box-shadow:0 0 0 3px rgba(12,163,12,.18)}
+.title{font-weight:650;font-size:14.5px}
+.port{margin-left:auto;font-family:ui-monospace,monospace;font-size:12px;color:var(--muted)}
+.desc{font-size:12.5px;color:var(--ink2);line-height:1.45}
+.state{font-size:12px;color:var(--muted)}
+.state.up{color:var(--good)}
+.arthead{display:flex;gap:12px;align-items:center;margin:34px 0 12px;border-bottom:1px solid var(--border);padding-bottom:8px}
+.artgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.agrp{margin:6px 0 4px;font-size:11px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:var(--muted)}
+.acard{display:block;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 13px}
+.acard .at{font-weight:600;font-size:13.5px}
+.acard .am{font-size:11.5px;color:var(--muted);margin-top:3px}
+button{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--border);border-radius:8px;padding:5px 11px;cursor:pointer;font-size:12.5px}
+button.primary{background:var(--pos);color:#fff;border-color:var(--pos)}
+button:disabled{opacity:.4;cursor:default}
+.muted{color:var(--muted)}
+.tour{font-size:12.5px;margin:0 0 6px}
+.info{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;
+  border:1px solid var(--muted);color:var(--muted);font-size:10.5px;font-weight:600;cursor:help;flex:0 0 auto;
+  font-family:Georgia,serif;font-style:italic;user-select:none}
+.info:hover{border-color:var(--pos);color:var(--pos)}
+</style></head><body>
+<header>
+  <h1>🚀 Mission Control</h1><span class="ro">viewer</span>
+  <span class="pill" id="summary">…</span>
+  <span style="margin-left:auto"></span>
+  <button id="reload" onclick="load()" title="refresh status now">↻ Reload</button>
+  <span class="muted" id="gen"></span>
+</header>
+<div class="wrap">
+  <p class="hint">Live view of Samir's research &amp; trading stack. You can <b>start the Options
+  Desk</b> and <b>browse the Data Catalog</b>; everything else is status-only. The desk itself
+  opens with the keyed :8600 link Samir gave you.</p>
+  <p class="tour" style="margin:0 0 10px;font-size:13px">📖 <a id="tourlink" href="/tour" target="_blank" rel="noopener">How the Options Desk works</a></p>
+  <div id="groups"></div>
+  <div class="arthead"><span style="font-size:13px;font-weight:600">Claude Artifacts — research &amp; learning pages built along the way</span>
+    <span class="info" title="Interactive pages generated with Claude during the research: courses, data dictionaries, cheat sheets, trade-audit reports. They live in Samir's Claude account, so the cards aren't clickable here — ask him to share any you want to read.">i</span>
+    <span class="pill" id="art-count">…</span></div>
+  <div id="artifacts"></div>
+</div>
+<script>
+const KEY=new URLSearchParams(location.search).get('key')||'';
+const k=u=>u+(u.includes('?')?'&':'?')+'key='+encodeURIComponent(KEY);
+document.getElementById('tourlink').href=k('/tour');
+function fmtup(s){if(s==null)return '';const h=Math.floor(s/3600),m=Math.floor(s%3600/60);
+  if(h)return h+'h '+m+'m';if(m)return m+'m';return s+'s';}
+async function load(){
+  const ST=await(await fetch(k('/status.json'))).json();
+  document.getElementById('gen').textContent='checked '+ST.generated;
+  const s=document.getElementById('summary');
+  s.textContent=ST.running+' / '+ST.total+' running';
+  s.className='pill '+(ST.running?'on':'');
+  const groups={};ST.dashboards.forEach(d=>{(groups[d.group]=groups[d.group]||[]).push(d);});
+  let h='';
+  for(const g of Object.keys(groups)){
+    h+=`<div class="col"><div class="grp">${g}</div>`;
+    for(const d of groups[g]){
+      let extra='';
+      if(d.key==='options_desk')
+        extra=d.up?`<a href="http://${location.hostname}:8600/?key=__DESKKEY__" target="_blank" rel="noopener"><button class="primary">↗ Open desk</button></a>
+                    <button onclick="deskAct(this,'restart','reloading…')" title="restart the desk server if it looks stuck">⟳ Reload desk</button>`
+                  :`<button class="primary" onclick="deskAct(this,'start','starting…')">▶ Start desk</button>`;
+      if(d.key==='data_catalog'&&d.up)
+        extra=`<a href="${k('/catalog')}" target="_blank" rel="noopener"><button>↗ Browse (read-only)</button></a>`;
+      const inf=d.info?`<span class="info" title="${d.info.replace(/"/g,'&quot;')}">i</span>`:'';
+      h+=`<div class="card">
+        <div class="top"><span class="dot ${d.up?'up':''}"></span>
+          <span class="title">${d.title}</span>${inf}<span class="port">:${d.port}</span></div>
+        <div class="desc">${d.desc}</div>
+        <div style="display:flex;gap:8px;align-items:center">${extra}
+          <span class="state ${d.up?'up':''}">${d.up?('running'+(d.up_secs!=null?' · up '+fmtup(d.up_secs):'')):'stopped'}</span></div>
+      </div>`;
+    }
+    h+='</div>';
+  }
+  document.getElementById('groups').innerHTML=h;
+}
+async function deskAct(btn,act,label){
+  btn.disabled=true;btn.textContent=label;
+  await fetch('/'+act+'?key=options_desk&token='+encodeURIComponent(KEY),{method:'POST'});
+  for(let i=0;i<10;i++){await new Promise(r=>setTimeout(r,800));await load();}
+}
+async function loadArtifacts(){
+  const j=await(await fetch(k('/artifacts.json'))).json();
+  const arts=j.artifacts||[];
+  document.getElementById('art-count').textContent=arts.length+' pages';
+  const groups={};arts.forEach(a=>{(groups[a.group||'Other']=groups[a.group||'Other']||[]).push(a);});
+  let h='';
+  for(const g of Object.keys(groups)){
+    h+=`<div class="agrp">${g} · ${groups[g].length}</div><div class="artgrid">`;
+    for(const a of groups[g]){
+      const inf=a.info?`<span class="info" title="${a.info.replace(/"/g,'&quot;')}">i</span>`:'';
+      h+=`<div class="acard"><div class="at" style="display:flex;gap:6px;align-items:center">${a.title}${inf}</div>
+        <div class="am">updated ${a.updated||'—'}</div></div>`;
+    }
+    h+='</div>';
+  }
+  document.getElementById('artifacts').innerHTML=h||'<div class="muted">none listed.</div>';
+}
+load();loadArtifacts();setInterval(load,5000);
+</script></body></html>"""
+
+
 def main():
     ap = argparse.ArgumentParser(description="Mission Control — dashboard launcher")
     ap.add_argument("--port", type=int, default=8590)
@@ -567,6 +835,17 @@ def main():
     srv = ThreadingHTTPServer((args.host, args.port), Handler)
     url = f"http://{args.host}:{args.port}/"
     print(f"Mission Control at {url}  (Ctrl-C to stop)")
+    # Read-only share link for remote viewers (Thomas) — needs --host 0.0.0.0
+    try:
+        tsip = subprocess.run(["tailscale", "ip", "-4"], capture_output=True, text=True,
+                              timeout=5).stdout.strip().splitlines()
+        if tsip:
+            print(f"  VIEWER (Tailscale, read-only): "
+                  f"http://{tsip[0]}:{args.port}/view?key={VIEWER_TOKEN}")
+            if args.host == "127.0.0.1":
+                print("  (viewer unreachable remotely — relaunch with --host 0.0.0.0)")
+    except Exception:
+        pass
     if args.open:
         webbrowser.open(url)
     try:
