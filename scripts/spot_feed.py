@@ -20,6 +20,8 @@ import datetime as dt
 import glob
 import json
 import sys
+import threading
+import time
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -31,6 +33,62 @@ from options_sim_daemon import SpotRig, get_chain, rough_spot
 CT = ZoneInfo("America/Chicago")  # exchange time (Chicago / Central)
 SIM = Path(__file__).resolve().parents[1] / "data" / "options_sim"
 OUT = SIM / "live.json"
+
+# ── ES basis, sourced from MenthorQ's own candle feed ────────────────────────
+# es_est = spx_live (fast OPRA parity) + basis, where basis = ES1! − SPX taken
+# CONTEMPORANEOUSLY from MenthorQ's candles (same source MQ's Conversion
+# indicator uses). Runs on a BACKGROUND thread refreshed every few minutes so a
+# slow MQ call (or a Playwright re-auth) can never stall the fast SPX tick —
+# that stall was exactly why the old IB-based basis was disabled. The basis
+# drifts only fractions of a point per minute, so a few-min-old value is plenty
+# fresh; es_est itself re-derives every ~5s off the live parity spot.
+BASIS_REFRESH_S = 180                 # how often to re-measure ES1!−SPX
+BASIS_STALE_S = 300                   # reject basis if SPX bar is older than this
+BASIS_BAND = (-100.0, 200.0)          # sanity clamp; reject garbage measurements
+_basis = {"basis": None, "ratio": None, "ts": None}   # shared, updated by worker
+
+
+def _mq_pair():
+    """Latest contemporaneous (SPX, ES1!, spx_bar_ms) from MenthorQ 1m candles.
+    spx_bar_ms is the SPX bar's own timestamp so the caller can reject a stale
+    index print (pre/post-market the index freezes while ES keeps trading — a
+    basis off that mismatch is meaningless)."""
+    from mq_api import MQ, GW
+    mq = MQ()
+    while True:
+        now_ms = int(time.time() * 1000)
+        frm = now_ms - 30 * 60 * 1000
+        h = {"accept": "application/json", "authorization": mq.token}
+        bars = {}
+        for sym in ("SPX", "ES1!"):
+            r = mq.s.get(f"{GW}/tickers/{sym}/candles", headers=h,
+                         params={"interval": "1m", "from": frm, "to": now_ms,
+                                 "countBack": 40}, timeout=30)
+            r.raise_for_status()
+            bars[sym] = r.json()[-1]
+        yield float(bars["SPX"]["c"]), float(bars["ES1!"]["c"]), int(bars["SPX"]["t"])
+
+
+def basis_worker():
+    """Refresh the shared basis/ratio every BASIS_REFRESH_S. Never raises."""
+    while True:
+        try:
+            gen = _mq_pair()          # (re)builds the MQ session/token on entry
+            for spx_mq, es_mq, spx_ms in gen:
+                stale_s = time.time() - spx_ms / 1000
+                b = round(es_mq - spx_mq, 2)
+                if stale_s > BASIS_STALE_S:
+                    print(f"basis: SPX bar {stale_s / 60:.0f}m stale "
+                          f"(index not printing) — hold {_basis['basis']}")
+                elif BASIS_BAND[0] <= b <= BASIS_BAND[1]:
+                    _basis.update(basis=b, ratio=round(es_mq / spx_mq, 6),
+                                  ts=now().strftime("%H:%M:%S"))
+                    print(f"basis {b:+.2f} (ES1! {es_mq:.2f} / SPX {spx_mq:.2f}, "
+                          f"ratio {es_mq / spx_mq:.5f})")
+                time.sleep(BASIS_REFRESH_S)
+        except Exception as e:
+            print(f"basis worker: {str(e)[:120]} — retry in {BASIS_REFRESH_S}s")
+            time.sleep(BASIS_REFRESH_S)
 
 
 def seed_spot(ib):
@@ -99,12 +157,10 @@ def main():
         ib.qualifyContracts(vix_idx)
         ib.reqMarketDataType(1)
 
-        # ES-est/basis is DISABLED: it needs a delayed SPX index quote, which
-        # 322s on this paper feed — the failed request both spams errors and
-        # STALLS the loop (spot updates were lagging 10-30s). SPX parity + VIX
-        # are all the dashboard and the trigger daemon actually need; a fast,
-        # clean tick matters for catching level touches. Re-enable later only
-        # if a working index/basis source appears.
+        # ES-est/basis now comes from MenthorQ's candle feed on a background
+        # thread (see basis_worker) — decoupled from this fast loop so it can't
+        # stall the SPX tick the way the old IB delayed-index path did.
+        threading.Thread(target=basis_worker, daemon=True).start()
         vix = None
         vix_ts = tape_ts = dt.datetime(2000, 1, 1, tzinfo=CT)
         tape = SIM / f"underlying_{now():%Y%m%d}.csv"
@@ -124,10 +180,13 @@ def main():
                 with open(tape, "a", encoding="utf-8") as fh:
                     fh.write(f"{now():%H:%M:%S},{spx:.2f}\n")
                 tape_ts = now()
+            b = _basis["basis"]
+            es_est = round(spx + b, 2) if (spx and b is not None) else None
             write({"ts_et": now().strftime("%H:%M:%S"),
                    "spx": round(spx, 2) if spx else None,
                    "vix": vix,
-                   "es_est": None, "basis": None, "ratio": None, "basis_ts": None,
+                   "es_est": es_est, "basis": b, "ratio": _basis["ratio"],
+                   "basis_ts": _basis["ts"],
                    "state": "live" if spx else "no-quotes"})
             ib.sleep(5)
     finally:
