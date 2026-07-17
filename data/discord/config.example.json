@@ -1,0 +1,8 @@
+{
+  "dce_exe": "C:/tools/DiscordChatExporter/DiscordChatExporter.Cli.exe",
+  "token": "PASTE_YOUR_DISCORD_USER_TOKEN_HERE",
+  "channels": {
+    "levels": "PASTE_CHANNEL_ID",
+    "chat": "PASTE_ANOTHER_CHANNEL_ID"
+  }
+}
