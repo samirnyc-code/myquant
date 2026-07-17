@@ -27,6 +27,16 @@ SIM = ROOT / "data" / "options_sim"
 ET = ZoneInfo("America/New_York")
 
 
+def spx_close_on(date_iso):
+    """SPX (^GSPC) close for a past calendar date, from the daily cache. None if absent."""
+    try:
+        d = pd.read_csv(SIM / "spx_daily_yahoo.csv")
+        row = d[d.Date == date_iso]
+        return float(row.Close.iloc[0]) if len(row) else None
+    except Exception:
+        return None
+
+
 def _phi(x):
     return math.exp(-x * x / 2) / math.sqrt(2 * math.pi)
 
@@ -68,26 +78,53 @@ def latest_spot():
     return None
 
 
-def trade_payload(r, last_marks, spot):
+def _series_for(hist):
+    """Downsample a trade's metrics history to <=120 points for the inline card chart.
+    Returns {t:[HH:MM...], pnl:[...], pop:[...%]} or None if too few points."""
+    if hist is None or len(hist) < 2:
+        return None
+    h = hist
+    if len(h) > 120:                       # even stride keeps first+last
+        h = h.iloc[:: max(1, len(h) // 120)]
+    t = pd.to_datetime(h.ts_et)
+    return {"t": [x.strftime("%H:%M") for x in t],
+            "pnl": [None if pd.isna(x) else round(float(x)) for x in h.unreal_pnl],
+            "pop": [None if pd.isna(x) else round(float(x) * 100) for x in h["pop"]]}
+
+
+def trade_payload(r, last_marks, spot, metrics_hist=None):
     legs = json.loads(r.legs) if isinstance(r.legs, str) else []
     is_open = pd.isna(r.exit_dt)
     un = last_marks.unreal_pnl.get(r.trade_id) if last_marks is not None and is_open else None
     pnl = un if is_open else (float(r.pnl) if pd.notna(r.pnl) else None)
-    multi_exp = len({l["expiry"] for l in legs}) > 1
+    # multi-expiry only counts LIVE legs: once a calendar's near leg expires, the
+    # position collapses to its surviving single-expiry legs and DOES have a payoff.
+    today = dt.datetime.now(ET).strftime("%Y%m%d")
+    live_legs = [l for l in legs if l["expiry"] >= today]
+    expired_close = {l["expiry"]: spx_close_on(dt.datetime.strptime(l["expiry"], "%Y%m%d").date().isoformat())
+                     for l in legs if l["expiry"] < today}
+    multi_exp = len({l["expiry"] for l in live_legs}) > 1
     S0 = spot or (legs[0]["strike"] if legs else 7500)
     payoff, bes = None, []
-    if legs and not multi_exp:
-        ks = [l["strike"] for l in legs]
+    if live_legs and not multi_exp:
+        ks = [l["strike"] for l in live_legs]
         grid = np.unique(np.concatenate([np.linspace(min(ks) - 120, max(ks) + 120, 220), ks, [S0]]))
 
         credit = float(r.credit) if pd.notna(r.credit) else 0.0
 
         def pv(S):
-            # P&L at expiry = net entry credit − settlement cost (works with or
-            # without per-leg fills: credit already folds the fills in)
+            # P&L at the surviving legs' expiry = net entry credit − settlement cost.
+            # Already-expired legs settle at their OWN expiry-date SPX close (a fixed
+            # constant), surviving legs at the terminal S being swept.
             v = credit
             for l in legs:
-                intr = max(0.0, (S - l["strike"]) if l["right"] == "C" else (l["strike"] - S))
+                if l["expiry"] < today:
+                    base = expired_close.get(l["expiry"])
+                    if base is None:
+                        base = S               # fallback if that close isn't cached
+                else:
+                    base = S
+                intr = max(0.0, (base - l["strike"]) if l["right"] == "C" else (l["strike"] - base))
                 v += l.get("qty", 1) * (-intr if l["side"] == "sell" else intr)
             return v * 100
         vals = np.array([pv(S) for S in grid])
@@ -132,6 +169,7 @@ def trade_payload(r, last_marks, spot):
         "commentary": r.commentary if isinstance(r.commentary, str) else "",
         "payoff": payoff, "breakevens": bes, "spot": None if spot is None else round(spot, 1),
         "greeks": greeks, "multi": multi_exp,
+        "series": _series_for(metrics_hist),
     }
 
 
@@ -164,13 +202,14 @@ box-shadow:0 2px 10px rgba(0,0,0,.35)}
 #ovl{position:fixed;inset:0;background:rgba(5,6,10,.72);backdrop-filter:blur(4px);
 display:none;align-items:center;justify-content:center;z-index:9}
 #ovl.on{display:flex}
-.big{width:min(760px,95vw);height:min(560px,92vh);perspective:1500px;cursor:pointer;
+.big{width:min(1000px,96vw);height:min(760px,94vh);perspective:1500px;cursor:pointer;
 animation:zoomin .22s ease-out}
 @keyframes zoomin{from{transform:scale(.6);opacity:.2}to{transform:scale(1);opacity:1}}
 .inner{position:relative;width:100%;height:100%;transition:transform .6s cubic-bezier(.4,.1,.2,1);transform-style:preserve-3d}
 .big.flip .inner{transform:rotateY(180deg)}
 .face{position:absolute;inset:0;backface-visibility:hidden;background:linear-gradient(165deg,var(--card2),var(--card) 60%);
-border:1px solid var(--line);border-radius:20px;padding:24px;overflow:auto;box-shadow:0 24px 70px rgba(0,0,0,.5)}
+border:1px solid var(--line);border-radius:20px;padding:24px;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.5);
+display:flex;flex-direction:column}
 .face::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:var(--gc,#777);border-radius:20px 20px 0 0}
 .back{transform:rotateY(180deg)}
 .kv{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
@@ -184,7 +223,7 @@ position:relative;margin:6px 0 2px}
 .glabel{display:flex;justify-content:space-between;font-size:10px;color:var(--mut)}
 .hint{position:absolute;bottom:12px;right:18px;font-size:11px;color:var(--mut)}
 .comm{background:var(--card);border-left:3px solid var(--blue);border-radius:9px;padding:11px 13px;
-margin-top:10px;font-size:13px;line-height:1.5}
+margin-top:10px;font-size:13px;line-height:1.5;max-height:82px;overflow:hidden}
 .legchips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
 .legchip{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:3px 9px;
 font-size:12px;font-weight:600}
@@ -255,6 +294,88 @@ function payoffSVG(t, w, h, mini){
       fill="none" stroke="var(--ink)" stroke-width="2.4" stroke-linejoin="round"/>${extras}</svg>`;
 }
 
+const MW=900, MH=214;                 // metrics-chart viewBox (fixed → hover math is exact)
+function mgeom(S){
+  const n=S.pnl.length, ml=44, mr=56, gap=16;
+  const hP=Math.round((MH-gap)*0.6), oy=hP+gap, hQ=MH-oy;
+  const pv=S.pnl.map(x=>x==null?0:x);
+  const pmin=Math.min(...pv,0), pmax=Math.max(...pv,0), pad=(pmax-pmin)*.12||1;
+  const X=i=> ml+(n<=1?0:i/(n-1))*(MW-ml-mr);
+  const YP=y=> (1-(y-(pmin-pad))/((pmax+pad)-(pmin-pad)))*hP;
+  const YQ=y=> oy+(1-y/100)*hQ;
+  return {n,ml,mr,hP,oy,hQ,pv,X,YP,YQ};
+}
+function metricsSVG(t){
+  // two stacked sparklines (never dual-axis): P&L($) area + POP(%) line, over the
+  // trade's life from trade_metrics.csv. Rebuilds every card-wall refresh = live.
+  // Hover crosshair + tooltip wired in wireMetricsHover().
+  const S=t.series;
+  if(!S || !S.pnl || S.pnl.length<2)
+    return `<div class="sub" style="height:${MH}px;display:flex;align-items:center">no live metrics history yet — the marker logs one point per cycle</div>`;
+  const G=mgeom(S), n=G.n, w=MW, h=MH, zP=G.YP(0).toFixed(1), last=G.pv[n-1];
+  let up='',dn='';
+  for(let i=0;i<n;i++){const c=`${G.X(i).toFixed(1)},${G.YP(G.pv[i]).toFixed(1)} `;
+    up+=(G.pv[i]>=0?c:`${G.X(i).toFixed(1)},${zP} `); dn+=(G.pv[i]<0?c:`${G.X(i).toFixed(1)},${zP} `);}
+  const pl=S.pnl.map((x,i)=>G.X(i).toFixed(1)+','+G.YP(x==null?0:x).toFixed(1)).join(' ');
+  const lastPop=S.pop[n-1];
+  const pop=S.pop.map((x,i)=>x==null?null:G.X(i).toFixed(1)+','+G.YQ(x).toFixed(1)).filter(Boolean).join(' ');
+  return `<svg id="msvg" class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="cursor:crosshair;max-width:100%">
+    <defs>
+     <linearGradient id="mup" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--good)" stop-opacity=".4"/><stop offset="1" stop-color="var(--good)" stop-opacity=".03"/></linearGradient>
+     <linearGradient id="mdn" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="var(--crit)" stop-opacity=".4"/><stop offset="1" stop-color="var(--crit)" stop-opacity=".03"/></linearGradient>
+    </defs>
+    <text x="0" y="10" fill="var(--mut)" font-size="10" font-weight="700">P&amp;L $</text>
+    <line x1="${G.ml}" y1="${zP}" x2="${w-G.mr}" y2="${zP}" stroke="var(--line)" stroke-width="1.4"/>
+    <polygon points="${G.X(0)},${zP} ${up}${G.X(n-1)},${zP}" fill="url(#mup)"/>
+    <polygon points="${G.X(0)},${zP} ${dn}${G.X(n-1)},${zP}" fill="url(#mdn)"/>
+    <polyline points="${pl}" fill="none" stroke="var(--blue)" stroke-width="2.4" stroke-linejoin="round"/>
+    <text x="2" y="${+zP+3}" fill="var(--mut)" font-size="9">$0</text>
+    <text x="${w-G.mr+5}" y="${G.YP(last)+4}" fill="${last>=0?'var(--good)':'var(--crit)'}" font-size="12" font-weight="700">${fmt(last)}</text>
+    <text x="0" y="${G.oy+9}" fill="var(--mut)" font-size="10" font-weight="700">POP %</text>
+    <line x1="${G.ml}" y1="${G.YQ(0).toFixed(1)}" x2="${w-G.mr}" y2="${G.YQ(0).toFixed(1)}" stroke="var(--line)" stroke-width="1"/>
+    <line x1="${G.ml}" y1="${G.YQ(50).toFixed(1)}" x2="${w-G.mr}" y2="${G.YQ(50).toFixed(1)}" stroke="var(--line)" stroke-width=".6" stroke-dasharray="3 4"/>
+    <polyline points="${pop}" fill="none" stroke="var(--good)" stroke-width="2.4" stroke-linejoin="round"/>
+    <text x="${w-G.mr+5}" y="${G.YQ(lastPop==null?0:lastPop)+4}" fill="var(--good)" font-size="12" font-weight="700">${lastPop==null?'—':lastPop+'%'}</text>
+    <text x="${G.ml}" y="${h-1}" fill="var(--mut)" font-size="9">${S.t[0]}</text>
+    <text x="${w-G.mr}" y="${h-1}" fill="var(--mut)" font-size="9" text-anchor="end">${S.t[n-1]}</text>
+    <line id="mcx" x1="0" y1="0" x2="0" y2="${h}" stroke="var(--ink)" stroke-width="1" stroke-dasharray="3 3" opacity="0"/>
+    <circle id="mcd1" r="4.5" fill="var(--blue)" stroke="var(--bg)" stroke-width="1.5" opacity="0"/>
+    <circle id="mcd2" r="4.5" fill="var(--good)" stroke="var(--bg)" stroke-width="1.5" opacity="0"/>
+    <g id="mtt" opacity="0">
+      <rect id="mttb" width="112" height="52" rx="7" fill="var(--card)" stroke="var(--line)"/>
+      <text id="mtt0" x="10" y="17" fill="var(--ink)" font-size="11.5" font-weight="700"></text>
+      <text id="mtt1" x="10" y="33" fill="var(--blue)" font-size="11.5" font-weight="700"></text>
+      <text id="mtt2" x="10" y="47" fill="var(--good)" font-size="11.5" font-weight="700"></text>
+    </g>
+  </svg>`;
+}
+function wireMetricsHover(t){
+  const svg=document.getElementById('msvg');
+  if(!svg || !t.series || t.series.pnl.length<2) return;
+  const S=t.series, G=mgeom(S);
+  const cx=document.getElementById('mcx'), d1=document.getElementById('mcd1'), d2=document.getElementById('mcd2'),
+        tt=document.getElementById('mtt'), l0=document.getElementById('mtt0'),
+        l1=document.getElementById('mtt1'), l2=document.getElementById('mtt2');
+  const setOp=o=>[cx,d1,d2,tt].forEach(e=>e.setAttribute('opacity',o));
+  svg.addEventListener('mousemove', e=>{
+    const r=svg.getBoundingClientRect();           // back face renders un-mirrored → 1:1 map
+    const lx=(e.clientX-r.left)*(MW/r.width);
+    let i=Math.round((lx-G.ml)/(MW-G.ml-G.mr)*(G.n-1));
+    i=Math.max(0, Math.min(G.n-1, i));
+    const x=G.X(i), py=G.YP(G.pv[i]), qy=(S.pop[i]==null?G.oy:G.YQ(S.pop[i]));
+    cx.setAttribute('x1',x); cx.setAttribute('x2',x);
+    d1.setAttribute('cx',x); d1.setAttribute('cy',py);
+    d2.setAttribute('cx',x); d2.setAttribute('cy',qy);
+    l0.textContent=S.t[i];
+    l1.textContent='P&L '+fmt(S.pnl[i]);
+    l2.textContent='POP '+(S.pop[i]==null?'—':S.pop[i]+'%');
+    let tx=x+13; if(tx+112>MW-2) tx=x-13-112; if(tx<2) tx=2;
+    tt.setAttribute('transform',`translate(${tx},6)`);
+    setOp(1);
+  });
+  svg.addEventListener('mouseleave', ()=>setOp(0));
+}
+
 function tile(t,i){
   const pc = t.pnl==null?'':(t.pnl>=0?'pos':'neg');
   const gc = GC[t.grade[0]]||'#777';
@@ -299,7 +420,7 @@ function openCard(i){
        <span class="mut" style="font-size:13px;font-weight:400">${t.state=='OPEN'?'running (mark-to-market now — includes time value)':'final'}</span></div>
      ${expAtSpot(t)}
      ${gauge(t)}
-     ${payoffSVG(t, 700, 300, false)}
+     ${payoffSVG(t, 900, 340, false)}
      <div class="hint">click to flip for details ⟲</div></div>
    <div class="face back" style="--gc:${gc}">
      <div class="trow"><div><h2>${t.name} — details</h2>
@@ -316,8 +437,11 @@ function openCard(i){
        <div style="--kc:${g&&g.delta>=0?'var(--good)':'var(--crit)'}"><b>DELTA (est)</b><span>${g?g.delta:'—'}</span></div>
        <div style="--kc:${g&&g.theta>=0?'var(--good)':'var(--crit)'}"><b>THETA/DAY (est)</b><span style="color:${g&&g.theta>=0?'var(--good)':'var(--crit)'}">${g?fmt(g.theta):'—'}</span></div>
        <div style="--kc:${g&&g.vega>=0?'var(--good)':'var(--crit)'}"><b>VEGA (est)</b><span>${g?fmt(g.vega):'—'}</span></div></div>
+     <div class="sechead" style="margin-top:10px">Live metrics over the trade's life · hover to read any point<span class="cnt">${t.series?t.series.pnl.length+' pts':'—'}</span></div>
+     ${metricsSVG(t)}
      <div class="comm"><b>Why this trade:</b> ${t.commentary||'<i>none recorded</i>'}</div>
-     <div class="hint">greeks = BS estimate from entry VIX · click to flip back · Esc closes</div></div>`;
+     <div class="hint">P&L/POP series from the marker (every ~2 min) · greeks = BS est. from entry VIX · Esc closes</div></div>`;
+  wireMetricsHover(t);
   $('#ovl').classList.add('on');
 }
 $('#big').addEventListener('click', e=>{e.stopPropagation();$('#big').classList.toggle('flip');});
@@ -342,8 +466,16 @@ def main():
         mk = pd.read_csv(marks_f)
         if len(mk):
             last_marks = mk.groupby("trade_id").last()
+    # per-trade metrics time series for the inline live-metrics card chart
+    met_f = SIM / "trade_metrics.csv"
+    hist_by_id = {}
+    if met_f.exists():
+        mt = pd.read_csv(met_f)
+        if len(mt):
+            hist_by_id = {tid: g for tid, g in mt.groupby("trade_id")}
     spot = latest_spot()
-    data = [trade_payload(r, last_marks, spot) for _, r in trades.iloc[::-1].iterrows()]
+    data = [trade_payload(r, last_marks, spot, hist_by_id.get(r.trade_id))
+            for _, r in trades.iloc[::-1].iterrows()]
     today = dt.datetime.now(ZoneInfo("America/Chicago")).strftime("%Y-%m-%d")
     out = SIM / "cards.html"
     out.write_text(HTML.replace("__DATA__", json.dumps(data)).replace("__TODAY__", today),
