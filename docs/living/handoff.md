@@ -1,6 +1,71 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 17, 2026 (session 75G)
+**Last Updated:** July 17, 2026 (session 75H)
+
+---
+
+## S75H (2026-07-17) — FREE FOOTPRINT PIPELINE **VALIDATED** + order-flow edge backlog + live desk data (branch `s75-live-dashboard`)
+
+Massive session. Built and **validated a free order-flow pipeline**, wired live P&L/POP/EV
+onto the desk, and mapped the edge-finding plan. Committed on `s75-live-dashboard`.
+
+**⭐ FREE FOOTPRINT — VALIDATED EXACT vs MzPack (no €599 needed for the core data).**
+`nt8/indicators/FootprintExporter.cs` reconstructs the ES bid/ask footprint from ticks
+(**needs Tick Replay ON**; classifies each trade via the quote embedded in it — `e.Bid/e.Ask`,
+NOT separate quote events — that was the 100%-buy bug). Writes `data/footprint/ES_footprint.csv`
+(BarIdx,BarTime,Price,BidVol,AskVol) **+** `ES_bars.csv` (Open/Close/MinDelta/MaxDelta/DeltaRate/
+UnfinishedAuction — the tick-ORDER fields the ladder can't hold). **Validation: our delta/buy%/
+sell%/POC matched MzPack's on-chart values with ZERO error** (7/16 14:38–14:44 bars; our
+imbalance cells match their bold highlights too). `scripts/footprint_metrics.py` derives POC/VA/
+imbalance(3×diagonal)/absorption/CVD from the ladder. **We reproduce MzPack's numbers free.**
+
+**MzPack access truth** (`nt8/MzPackInspector.cs` reflection dump → `data/mzpack_inspect.csv`,
+108 footprint settings in `docs/mzpack_footprint_params.md`): the DATA classes (IFootprintBar,
+ISRZone, FootprintBars) are **public**, but the access PATH from the chart indicator is
+**obfuscated/nonpublic** → their tuned absorption/COT analytics need the **€599 Full Suite**
+(`StrategyFootprintIndicator` API; `nt8/strategies/MzFootprintExtractor.cs` written, needs the
+license + assembly ref, kept OUT of NT8 so it doesn't block compile). Support email drafted
+(`docs/mzpack_support_email.md`). **Recommendation: our free exporter covers footprint/delta;
+buy €599 only if we want their exact absorption labels.**
+
+**ORDER-FLOW EDGE BACKLOG** (`docs/living/orderflow_edge_backlog.md`) — 8 **pre-registered**
+gamma-level × order-flow hypotheses from the MzPack 5-indicator research. Extraction priority:
+**mzVolumeProfile** (naked VPOC/HVN/LVN vs MQ levels — backtestable, best fit) · **mzVolumeDelta**
+(CD, DeltaHi/Lo, large-trade-filtered CD — backtestable) · **mzBigTrade** (tape icebergs/sweeps
+backtestable; DOM-refill + DOM-pressure LIVE-ONLY) · **mzDeltaDivergence** (backtestable, ZigZag
+repaints — timestamp at swing-confirm) · **mzMarketDepth** (LIVE-ONLY L2, un-backtestable).
+Core likely-real: naked-VPOC≈PS magnet, HVN≡HVL holds, large-CD absorption at HVL. User trialing
+the 5 indicators 14 days. Databento (S75G) is the deep-L2 alternative if we go that route.
+
+**LEARNING ARTIFACTS (published):** Footprint **Data Dictionary** (every ~90 IFootprintBar field
++ examples) `claude.ai/code/artifact/f4a463b5-612c-4fb0-9355-4ac622646c3f`; interactive **Course**
+(patterns, signal-stacking, fade-vs-follow at levels, full 108-setting setup guide)
+`claude.ai/code/artifact/30a18c46-2e4c-4820-8ba1-09e903548450`.
+
+**LIVE DESK DATA (this session):** `options_mark.py` fixed (crash on expired legs) + rescheduled
+**08:26 CT** (was 14:35 → tiles were dead all morning) + logs `trade_metrics.csv` (live POP/EV/
+P&L via `options_metrics.py`). Position tiles show **live P&L · POP · EV · bid-ask · close-reason**.
+New **Desk Report tab** + `eod_report.py` (15:20 CT). `close_reason` lifecycle (expired/traded_to_
+close/partial_expiry). **`daily_review.py`** — the reflective postmortem (scenario reconciliation
+A–D, level-action taxonomy rejection/acceptance/breakout, over/undertrade + contradiction flag,
+playbook counterfactual). **`mq_mine.py`** — nightly full MQ-surface archive (levels/matrix/
+per-strike/gamma-insights/vol/qscore/swing) for ~25 tickers, **07:30 CT**. `ib_conn` gateway
+auto-recovery (login≠API-port). LIVE pill on dashboard.
+
+**⚠️ KEY FINDINGS:** (1) **naive 1D-band 0DTE condor LOSES** — 77% win but **−$24k / PF 0.85**
+over 1,183 days (OptionsDX prices); the HVL/+gamma regime filter does NOT rescue it (2022 vol
+regime is the killer). High win-rate ≠ edge. (2) **Entry criteria too coarse** — the GW0 fly fires
+on `time_at 09:00` + regime>HVL only, **no price-proximity gate**; fired 7/16 at spot 7550 (50pt
+below the 7600 pin), lost. Fly grade ignores distance-to-center (same category error already fixed
+for fades). (3) **7/16 was a −$5.6k paper day** — right scenario (D, break below HVL) but fired 5
+contradictory structures (pin fly + breakdown straddle + support-hold fade) = zero conviction;
+straddle was wrong vehicle for an orderly drift. (4) `[[orats-accountability]]` memory: ORATS Tier-1
+data guaranteed, NOT any edge.
+
+**OPEN / NEXT:** re-run upgraded FootprintExporter → build `orderflow_at_levels.py` (tag each
+MQ-level touch with its footprint signature → forward-return study), test hypotheses #1/#2/#5 on
+7/16 then 5yr; add fly **proximity gate** + fix fly grade (needs sign-off, criteria FROZEN);
+user's 14-day MzPack trial → extract VolumeProfile/VolumeDelta; ORATS calibration when it lands.
 
 ---
 
