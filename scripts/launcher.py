@@ -241,6 +241,23 @@ def tail_log(key, n=60):
         return f"(log read failed: {e})"
 
 
+# ---------------------------------------------------------------- artifacts
+# Published Claude Artifacts (claude.ai-hosted pages we've built over the project).
+# The launcher (plain Python) can't call the Artifact tool, so the list is kept as a
+# snapshot in data/_catalog/claude_artifacts.json — ask Claude to "refresh the
+# artifacts list" to regenerate it (Artifact action:list -> this file).
+ARTIFACTS_FILE = ROOT / "data" / "_catalog" / "claude_artifacts.json"
+
+
+def load_artifacts():
+    if ARTIFACTS_FILE.exists():
+        try:
+            return json.loads(ARTIFACTS_FILE.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    return {"artifacts": [], "generated": None}
+
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
@@ -262,6 +279,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(FAVICON, "image/svg+xml")
         if p == "/status.json":
             return self._send(json.dumps(status()))
+        if p == "/artifacts.json":
+            return self._send(json.dumps(load_artifacts()))
         if p.startswith("/log/"):
             return self._send(json.dumps({"log": tail_log(p[len("/log/"):])}))
         self.send_response(404)
@@ -331,6 +350,16 @@ button.ic{padding:6px 9px}
 .auto{font-size:12px;color:var(--ink2);display:flex;align-items:center;gap:4px;cursor:pointer}
 .pill{font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--chip);color:var(--muted)}
 .pill.on{background:rgba(12,163,12,.14);color:var(--good)}
+.arthead{display:flex;gap:12px;align-items:center;margin:34px 0 12px;border-bottom:1px solid var(--border);padding-bottom:8px}
+.arthead .grp{font-size:13px}
+#art-filter{padding:5px 10px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--ink);font:inherit;width:150px}
+.artgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.agrp{margin:6px 0 4px;font-size:11px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:var(--muted)}
+.acard{display:block;text-decoration:none;color:inherit;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 13px;transition:border-color .12s,transform .12s}
+.acard:hover{border-color:var(--pos);transform:translateY(-1px)}
+.acard .at{font-weight:600;font-size:13.5px;display:flex;align-items:center;gap:6px}
+.acard .am{font-size:11.5px;color:var(--muted);margin-top:3px;font-variant-numeric:tabular-nums}
+.acard .ext{font-size:14px;opacity:.85}
 #groups{display:flex;gap:16px;align-items:flex-start}
 .col{flex:1 1 0;min-width:250px;display:flex;flex-direction:column;gap:12px}
 .grp{margin:0 0 2px;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink2);border-bottom:1px solid var(--border);padding-bottom:6px}
@@ -365,7 +394,17 @@ pre{background:var(--chip);border-radius:7px;padding:8px 10px;font-size:11px;ove
   <button id="theme" title="toggle light/dark">◐</button>
   <span class="muted" id="gen"></span>
 </header>
-<div class="wrap"><div id="groups"></div></div>
+<div class="wrap">
+  <div id="groups"></div>
+  <div class="arthead">
+    <span class="grp" style="border:0;margin:0;padding:0">Claude Artifacts</span>
+    <span class="pill" id="art-count">…</span>
+    <input id="art-filter" placeholder="filter…" autocomplete="off">
+    <span style="margin-left:auto"></span>
+    <span class="muted" id="art-gen"></span>
+  </div>
+  <div id="artifacts"></div>
+</div>
 <script>
 const css=k=>getComputedStyle(document.documentElement).getPropertyValue(k).trim();
 let ST=null, timer=null;
@@ -441,7 +480,37 @@ const root=document.documentElement;
 document.getElementById('theme').onclick=()=>{
   const cur=root.getAttribute('data-theme')||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
   root.setAttribute('data-theme',cur==='dark'?'light':'dark');};
-load();setAuto();
+// ---- Claude Artifacts section ----
+const GEMOJI={Brooks:'📘',Options:'🎯',Signals:'📈',MenthorQ:'⬡','Expected Move':'📐',Footprint:'👣',Other:'🧩'};
+let ARTS=null;
+async function loadArtifacts(){
+  const j=await(await fetch('/artifacts.json')).json();
+  ARTS=j.artifacts||[];
+  document.getElementById('art-count').textContent=ARTS.length+' artifacts';
+  document.getElementById('art-gen').textContent=j.generated?('snapshot '+j.generated+' · ask Claude to refresh'):'no snapshot — ask Claude to refresh';
+  renderArtifacts();
+}
+function renderArtifacts(){
+  const q=(document.getElementById('art-filter').value||'').toLowerCase();
+  const items=ARTS.filter(a=>!q||a.title.toLowerCase().includes(q)||(a.group||'').toLowerCase().includes(q));
+  const groups={};items.forEach(a=>{(groups[a.group||'Other']=groups[a.group||'Other']||[]).push(a);});
+  // order groups by most-recent update inside
+  const order=Object.keys(groups).sort((a,b)=>Math.max(...groups[b].map(x=>+new Date(x.updated)))-Math.max(...groups[a].map(x=>+new Date(x.updated))));
+  let h='';
+  for(const g of order){
+    h+=`<div class="agrp">${GEMOJI[g]||'🧩'} ${g} · ${groups[g].length}</div><div class="artgrid">`;
+    for(const a of groups[g].sort((x,y)=>+new Date(y.updated)-+new Date(x.updated))){
+      h+=`<a class="acard" href="${a.url}" target="_blank" rel="noopener">
+        <div class="at"><span class="ext">${GEMOJI[a.group]||'🧩'}</span>${a.title} <span style="margin-left:auto;opacity:.5">↗</span></div>
+        <div class="am">updated ${a.updated||'—'}</div></a>`;
+    }
+    h+='</div>';
+  }
+  document.getElementById('artifacts').innerHTML=h||'<div class="muted" style="padding:10px">no artifacts match.</div>';
+}
+document.getElementById('art-filter').oninput=renderArtifacts;
+
+load();setAuto();loadArtifacts();
 </script></body></html>"""
 
 
