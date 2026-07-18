@@ -68,3 +68,7 @@ data/discord/*
 !data/discord/config.example.json
 
 data/depth/
+
+# ORATS API token (paid credential — never commit)
+scratchpad/orats_token.txt
+data/orats/

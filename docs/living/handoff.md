@@ -1,6 +1,114 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 17, 2026 (session 75N)
+**Last Updated:** July 18, 2026 (session 75P)
+
+---
+
+## S75P (2026-07-18) — ORATS LIVE: SPX chains pulled, MenthorQ levels reverse-engineered, levels validated against price (branch `s75-live-dashboard`)
+
+**Bottom line:** ORATS delivered the Tier-1 data as promised. We reverse-engineered
+MenthorQ's level formulas and reproduce them at ~90%. **But the price tests say CR/PS
+have NO tradeable repulsion (for our levels OR MenthorQ's), while the HVL gamma-regime
+signal is real and strong.** Build on HVL/regime; stop optimizing CR/PS.
+
+### ORATS subscription verified (token in `scratchpad/orats_token.txt`, GITIGNORED)
+- `/datav2/hist/strikes`, Delayed tier, 20,000 req/month, 1,000/min. **1 request = 1
+  ticker-date** (returns that day's full chain). `tradeDate` is single-date only — no
+  ranges — so quota math is 1 req/day/ticker.
+- Confirmed present: `callOpenInterest`/`putOpenInterest` + `gamma`/`delta`/IVs, **back
+  to 2007** (SPY 2007-06-01 returned real OI). This is the field OptionsDX/Massive lack.
+- SPX pull returns **SPXW too** — split by `expiryTod` (am=monthly, pm=weekly/0DTE).
+  0DTE reads `dte=1` (ORATS dte = calendar+1). Use **`spotPrice`, NOT `stockPrice`**.
+
+### Pulled: SPX full MQ overlap
+- **1,183 sessions 2021-09-27 → 2026-07-15**, holiday-free (sourced from MQ's own
+  session dates), **340 MB, 13.39M rows, 1,165 requests (5.8% of monthly quota)**.
+- `scripts/orats_pull.py` REWRITTEN: instrument registry (ORATS↔MQ mapping + match
+  confidence), per-ticker-year parquet `data/orats/<TKR>/<TKR>_<YEAR>.parquet`, pruned
+  16-col + float32/int32 + zstd (**366 KB/SPX-day, 5.6× smaller than raw**),
+  **checkpoint every 100 dates** (crash-safe; do NOT revert — the first version buffered
+  everything in RAM and would have wasted the whole pull's quota on a crash), coverage in
+  `data/orats/_coverage.json`, `--dry-run` prints request/quota/disk estimates.
+- `catalog.yaml`: new **`orats_chains`** family (Raw vendor, `count_rows: false` so the
+  scanner never loads the parquet). `data/orats/` is gitignored.
+
+### ⭐ MenthorQ level formulas (reverse-engineered, CONFIRMED by MQ's own docs)
+`NetGEX_strike = gamma × (callOI − putOI) × 100 × spot`, dealers long-call/short-put,
+**excluding the expiring-today 0DTE (dte>1)** — that exclusion was the single biggest unlock.
+- **cr** = argmax per-strike NetGEX · **ps** = argmin
+- **hvl** = **argmin of the CUMULATIVE NetGEX curve** near spot. MQ's own lesson says
+  *"derived from the inflection point in the slope of the cumulative gamma exposure curve"*
+  — exactly this. Bakeoff: 88% vs <20% for zero-crossing / put-wall / sign-flip.
+- **d1_min/max** = spot ± spot·IV₃₀·√(1/252) (30-day CMT ATM IV)
+- **cr0 = gw0 = cr** (MQ byte-copies them). **ps0/hvl0** = 0DTE cumsum-min (weakest family)
+- **gex_1..10** = top |NetGEX| walls after cr/ps
+- **HVL = "High VOL Level"** (volatility, not volume) — the negative-gamma regime boundary.
+
+### Match quality vs MQ (SPX), by year — regime-dependent
+| yr | cr% | ps% | hvl% | d1 err | walls/10 |
+|----|----|----|----|----|----|
+|2021| 64 | 53 | 18 | 98.6 | 2.6 |
+|2022| 76 | 65 | 59 | 14.2 | 3.8 |
+|2023| 84 | 82 | 84 | 5.1 | 6.0 |
+|2024| 88 | 84 | 90 | 5.4 | 6.3 |
+|2025| 88 | 82 | 87 | 7.2 | 6.0 |
+|2026| 98 | 95 | 92 | 10.8 | 6.1 |
+
+Climbs as daily-0DTE + near-money strike density filled in. **2021 is not matchable** (no
+daily 0DTE until ~May 2022; MQ's early `d1` has different semantics and no spot).
+**+corrupt-greek filter (`|gamma|<0.1`) → cr 90.5 / ps 86.0 / hvl 88.2** on 2023-26.
+
+### Things ELIMINATED (do not re-try — all scored WORSE)
+dte horizon caps · strike-weighting (×K, ×K²) · call-only/put-only · **BS-recomputed
+gamma** (82.9%) · including 0DTE (69%). **ORATS supplied gamma + net OI + dte>1 is optimal.**
+**No date bug** — lag sweep peaks sharply at lag 0 (88.4 vs 77/75 at ±1).
+
+### 🔴 CRITICAL: futures levels are NOT reproducible from ORATS
+MQ lesson: *"the first platform to provide gamma levels by looking at **the futures option
+chain**… vs platforms that use index options as a proxy."* **ES1!/NQ1! levels come from
+native CME futures options, which ORATS does not carry at all.** NDX and QQQ attempts both
+scored 4/10 — structurally doomed, not mis-tuned. **Stop trying to reproduce ES/NQ levels.**
+(MQ's published QQQ→NQ ratio 41.26 ≈ our computed 41.15, but that's a user-side charting
+convenience, not their method.) NDX is also genuinely illiquid — MQ's own NQ GEX is ~$0.3M
+vs SPX $106M, i.e. their NQ levels are noise-dominated.
+
+### ⭐⭐ PRICE VALIDATION — the actual answer
+- **CR/PS: NO EDGE.** Intraday 5-min ES first-touch race, **conditioned on the level being
+  reachable** (58% of days CR is >1.5% away and literally never touched — median CR
+  distance 1.80%, PS **3.42%**). Reject rate rises to 51–64%, **but a distance-matched
+  PERMUTATION control scores the same** (edges +0.4 to +5.4pp vs ±7pp SE). The ~60%
+  reversal is a mean-reversion property of *distance from spot*, not gamma-wall repulsion.
+  **MenthorQ's own CR/PS show the identical null** → matching MQ perfectly would have
+  bought nothing. (n=34–62/cell; can't exclude a <5pp edge.)
+- **HVL REGIME: REAL.** Next-session realized range, split by close above/below HVL:
+  **0.72% vs 1.28% = 1.78×, p=2e-38, n=499.** Survives the down-day confound (naive
+  up/down-day split gives only 1.28×). **Ours 1.78× ≡ MQ's 1.79×** — our HVL is as good
+  as theirs. **This is the asset worth extending to 2007.**
+- Our GEX **is** MQ's quantity: **Spearman 0.976**, median ratio 0.988 (Pearson was
+  destroyed by ONE corrupt row with gamma 5.9e17 — always outlier-guard before correlating).
+
+### Data quality (13.39M rows)
+99.997% clean. 391 corrupt-gamma rows (nulled inf) + 22 impossible-delta — **concentrated
+in 2021-22 (298 in 2022), ZERO by 2026**. ORATS cleaned up over time. **Always apply
+`|gamma|<0.1 & |delta|<=1.01` in the compute layer** — one bad row poisons a day's argmax.
+
+### UNCOMMITTED (needs Samir's confirmation)
+`scripts/orats_pull.py` (rewrite), `catalog.yaml` (orats_chains), `.gitignore`
+(orats token + data/orats), plus scratchpad research: `orats_mq_match.py`,
+`orats_hvl_bakeoff.py`, `orats_def_bakeoff.py`, `orats_gamma_bakeoff.py`,
+`orats_dte_sweep.py`, `orats_miss_diag.py`, `mq_align_check.py`, `level_price_test.py`,
+`level_zone_test.py`, `level_intraday_test.py`, `level_conditional_test.py`,
+`plot_levels_10d.py` (+ `levels_10d.png`).
+
+### NEXT
+1. **Build the regime work on HVL** — extend to 2007 (SPX 2007→2021 ≈ 3,843 req, 19% quota)
+   and test the negative-gamma/vol relationship across 2008/2011/2015/2018/2020.
+2. Promote the validated level math out of scratchpad into a real module + bake the
+   corrupt-greek filter in.
+3. Remaining unknown: **ps0/hvl0 (0DTE) rule** — 2-3% match even in the liquid era. Only
+   worth solving if 0DTE levels matter.
+4. MQ knowledge corpus is local: `data/menthorq/knowledge/lessons/*.txt` (the real prose;
+   `guides/*` are truncated index teasers) + `academy/*`.
 
 ---
 

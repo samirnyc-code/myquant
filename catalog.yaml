@@ -71,6 +71,19 @@ families:
     access: "pd.read_csv('data/optionsdx/spx_eod_202601.txt')"
     gotchas: "⚠ NO open-interest column (OPRA reseller) — cannot compute true GEX. See handoff / options_data_vendors memory."
 
+  - key: orats_chains
+    title: "ORATS historical option chains (per-strike OI+greeks, 2007→)"
+    category: Raw vendor
+    paths:
+      - data/orats
+    produced_by: "scripts/orats_pull.py (manual; token in scratchpad/orats_token.txt)"
+    update_cadence: manual
+    expected_freshness_days: 999
+    count_rows: false
+    useful_for: "The OI unlock OptionsDX lacks: per-strike callOpenInterest/putOpenInterest + gamma/delta/IV back to 2007. Raw material for self-computed GEX (Σ gamma·OI·spot) — reproduces MenthorQ cr/ps/hvl/walls on the overlap, then extends dealer-positioning pre-2021 (pre-MQ). Also a real per-strike fill surface for option-P&L backtests."
+    access: "pd.read_parquet('data/orats/SPX/SPX_2024.parquet')  # per ticker-year; coverage in data/orats/_coverage.json"
+    gotchas: "Gitignored firehose (per ticker-year parquet, pruned+zstd). OI = prior-session SETTLED (one value/day). SPX pull includes SPXW — split by expiryTod. Use spotPrice NOT stockPrice. Exclude dte==1 (expiring-today) for next-session GEX. ORATS has NO futures options: NQ/RTY are illiquid-index proxies (noisy), CL/GC are ETF proxies (USO/GLD, weak). Clean matches = SPX + 7 mega-cap equities."
+
   # -------------------------------------------------------------------- Ticks
   - key: ticks_continuous
     title: "Continuous tick series (ES/NQ/YM/CL/GC/6E/6J)"
