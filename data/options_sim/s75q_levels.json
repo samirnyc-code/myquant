@@ -1,0 +1,102 @@
+{
+  "meta": {
+    "sessions": 1153,
+    "R_pts": 10.0,
+    "N_bars": 24,
+    "start": "2021-09-28",
+    "end": "2026-07-09"
+  },
+  "H1_cr": {
+    "level_rate": 0.6212121212121212,
+    "diff": 0.20903605592878985,
+    "n": 66,
+    "ci": [
+      0.07992847913321495,
+      0.34093925818607024
+    ],
+    "sessions": 87,
+    "control_n": 169
+  },
+  "E1_ps": {
+    "level_rate": 0.6506024096385542,
+    "diff": 0.05639473481380664,
+    "n": 83,
+    "ci": [
+      -0.058608194973515645,
+      0.1735047243380088
+    ],
+    "sessions": 90,
+    "control_n": 326
+  },
+  "E2_hvl": {
+    "open_above": {
+      "n": 616,
+      "range_pct": 0.95,
+      "ret_pct": -0.0003,
+      "up_pct": 53.6
+    },
+    "open_below": {
+      "n": 336,
+      "range_pct": 1.348,
+      "ret_pct": -0.0043,
+      "up_pct": 52.4
+    }
+  },
+  "E3_extremes": {
+    "n": 2276,
+    "median_dist_gex": 11.22,
+    "median_dist_ctl": 11.93,
+    "mean_dist_gex": 20.65,
+    "mean_dist_ctl": 21.28
+  },
+  "H1_vix": {
+    "low VIX": {
+      "level_rate": 0.6774193548387096,
+      "diff": 0.3046010718980685,
+      "n": 31
+    },
+    "mid VIX": {
+      "level_rate": 0.5652173913043478,
+      "diff": 0.01029314888010536,
+      "n": 23
+    },
+    "high VIX": {
+      "level_rate": 1.0,
+      "diff": 0.8,
+      "n": 1
+    }
+  },
+  "H1_time": {
+    "early": {
+      "level_rate": 0.6666666666666666,
+      "diff": 0.23254830917874397,
+      "n": 27
+    },
+    "late": {
+      "level_rate": 0.5675675675675675,
+      "diff": 0.20788764713714003,
+      "n": 37
+    },
+    "split_at": "2024-04-01"
+  },
+  "E2_vix": {
+    "low VIX": {
+      "above": 0.716,
+      "below": 0.949,
+      "n_above": 269,
+      "n_below": 48
+    },
+    "mid VIX": {
+      "above": 0.928,
+      "below": 1.171,
+      "n_above": 219,
+      "n_below": 96
+    },
+    "high VIX": {
+      "above": 1.48,
+      "below": 1.536,
+      "n_above": 128,
+      "n_below": 192
+    }
+  }
+}

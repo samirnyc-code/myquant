@@ -407,6 +407,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send_mqmethod()
             if p == "/gexlab":
                 return self._send_gexlab()
+            if p == "/flowlab":
+                return self._send_flowlab()
             if p == "/slides" or p.startswith("/slides/"):
                 return self._send_slides(p)
             if p == "/catalog" or p.startswith("/catalog/"):
@@ -429,6 +431,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._send_mqmethod()
         if p == "/gexlab":
             return self._send_gexlab()
+        if p == "/flowlab":
+            return self._send_flowlab()
         if p == "/slides" or p.startswith("/slides/"):
             return self._send_slides(p)
         if p in ("/favicon.svg", "/favicon.ico"):
@@ -537,6 +541,18 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(f.read_text(encoding="utf-8"), "text/html; charset=utf-8")
         return self._send("<h1>slides not built</h1><p>run scripts/orats_levels_slides.py "
                           "to generate docs/levels_slides/levels.html.</p>",
+                          "text/html; charset=utf-8")
+
+    def _send_flowlab(self):
+        # S75R — ES 1M order-flow reading, two complete swings of 2026-07-17
+        # (08:45-09:21, 37 bars). Ladder + delta arithmetic + commentary per bar.
+        # Rebuild: scripts/flowlab_1m.py -> render_1m_bars.py -> flowlab_report.py.
+        # ~3.7MB, images embedded base64 so it works from any route.
+        f = ROOT / "docs" / "gexlab" / "flow1m.html"
+        if f.exists():
+            return self._send(f.read_text(encoding="utf-8"), "text/html; charset=utf-8")
+        return self._send("<h1>report not built</h1><p>run scripts/flowlab_1m.py, "
+                          "scripts/render_1m_bars.py, then scripts/flowlab_report.py.</p>",
                           "text/html; charset=utf-8")
 
     def _send_gexlab(self):
@@ -684,6 +700,7 @@ pre{background:var(--chip);border-radius:7px;padding:8px 10px;font-size:11px;ove
   <a href="/levels" target="_blank" rel="noopener"><button title="Gamma Levels slide deck — 10 sessions per slide, MenthorQ + our CR/PS/HVL over intraday price">📈 Gamma Levels</button></a>
   <a href="/mqmethod" target="_blank" rel="noopener"><button title="MenthorQ Method — the framework extracted from 7 Academy video transcripts, with every claim tested">🔬 MQ Method</button></a>
   <a href="/gexlab" target="_blank" rel="noopener"><button title="S75Q — do MenthorQ gamma levels help the Brooks method? Pre-registered study: regime axis dead, one weak CR result at n=66">🧪 GEX Lab</button></a>
+  <a href="/flowlab" target="_blank" rel="noopener"><button title="S75R — ES 1M order-flow reading: two complete swings of 7/17 bar by bar, ladder + delta arithmetic + absorption/trap commentary">🕯 Flow Lab</button></a>
   <button id="reload" title="refresh status now">↻ Reload</button>
   <button class="primary" id="startall">▶ Start all</button>
   <button id="openall" title="open every running dashboard">↗ Open running</button>

@@ -1,0 +1,47 @@
+[
+ {
+  "price": 7470.0,
+  "label": "MQ Put Support",
+  "kind": "mq"
+ },
+ {
+  "price": 7800.0,
+  "label": "MQ Call Resist",
+  "kind": "mq"
+ },
+ {
+  "price": 7575.0,
+  "label": "MQ HVL",
+  "kind": "mq"
+ },
+ {
+  "price": 7425.89,
+  "label": "MQ d1 min",
+  "kind": "mq"
+ },
+ {
+  "price": 7563.61,
+  "label": "MQ d1 max",
+  "kind": "mq"
+ },
+ {
+  "price": 7550.0,
+  "label": "MQ GEX-1",
+  "kind": "mq"
+ },
+ {
+  "price": 7615.0,
+  "label": "prior day HIGH",
+  "kind": "pd"
+ },
+ {
+  "price": 7548.25,
+  "label": "prior day LOW",
+  "kind": "pd"
+ },
+ {
+  "price": 7567.25,
+  "label": "prior day CLOSE",
+  "kind": "pd"
+ }
+]
