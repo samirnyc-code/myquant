@@ -1,6 +1,101 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 12, 2026 (session 69)
+**Last Updated:** July 19, 2026 (session 70, Mac)
+
+---
+
+## S70 (2026-07-19, Mac) — MenthorQ Swing Levels: found the real API, built a puller, PC TODO
+
+**Investigating a Patrick Petersson/MenthorQ dossier (unrelated side project) surfaced their
+public Swing Trading Model marketing backtests (credit-spread-on-swing-band strategy, MAG7 +
+indices, ~89-95% published win rates over 4 test weeks). User wants to actually test/paper-trade
+this — starting Monday, on SPX + MAG7, per MenthorQ's own rule.**
+
+**⚠️ CORRECTING S66: nothing was ever scheduled anywhere for MenthorQ scraping** — not this Mac,
+not the PC. Re-read S66 itself: it explicitly says "NOT scheduled yet (user's call): deferred the
+Windows Task Scheduler entry." This machine had no `playwright` installed and no `auth_state.json`
+before today, so the 6-level gamma "Backtest tile" scraper (`gamma_tracker/scrape.py`) has never
+actually run as a recurring job despite S66's "AUTO-SCRAPER FULLY WORKING" framing — that referred
+to the scraper *working when run manually*, not to it being live/scheduled. Confirm before
+assuming any gamma-level history has been accumulating anywhere.
+
+**FOUND: Swing Levels live on a completely different, newer product surface.**
+`gamma_tracker`/`menthorq_backfill*.py` all hit `menthorq.com/wp-admin/admin-ajax.php` (the
+WordPress marketing-site backend). The Swing Trading Model indicator instead lives on
+`dashboard.menthorq.io` — a separate Next.js app with its own clean REST API:
+
+    GET https://gateway.menthorq.io/clickhouse-api/api/web/v1/swing-levels/{TICKER}
+    Auth: `Authorization: Bearer <Cognito JWT>` (~12h lifetime), minted client-side by the
+          app's own JS from NextAuth session cookies -- capture it live off a real request,
+          never hardcode it (it expires). Same MenthorQ login as gamma_tracker, different app.
+
+Response per ticker = last 5 trading days: `[{date, trigger, band, direction}, ...]`.
+`direction` = "lower" (bullish, sell PUT spread @ `band`) or "upper" (bearish, sell CALL spread @
+`band`) — MenthorQ's own rule. `trigger` = the "Risk Trigger" third level; sits on the *opposite*
+side from `band` in every row seen so far, semantics still unconfirmed, not part of MenthorQ's
+published strategy (treat as an optional stop to test, not given).
+
+**⚠️ CONFIRMED HARD CAP: exactly 5 trading days, no more, no matter how it's queried.** Tried
+`days=`, `limit=`, `from`/`to`, `start`/`end`, `range=`, `period=` — every variant returns the
+byte-identical 5-row payload. There is no deeper history available through this endpoint, full
+stop. The only way to get more than 5 days is to run this daily ourselves and accumulate it,
+exact same rationale as the gamma tracker.
+
+**Built:** `gamma_tracker/swing_levels.py` — headless puller for SPX + MAG7 (AAPL/MSFT/GOOGL/
+AMZN/META/NVDA/TSLA), reuses the SAME `gamma_tracker/auth_state.json` session as `scrape.py`
+(same login, same dashboard app). Captures a fresh bearer token live off a real request each run
+(not hardcoded/stored), then hits the REST endpoint directly per ticker. Appends new
+`(ticker, date)` rows to `data/menthorq/swing_levels/swing_levels_history.csv` (dedup'd).
+**Not yet tested end-to-end with a fresh `auth_state.json`** — today's data was pulled by hand
+via a throwaway discovery script (`scratchpad/`, not committed — had a live token from a manual
+headed login). `swing_levels.py`'s headless bearer-token capture is written but unverified;
+first real run may need the `headless=True` fallback noted in its docstring flipped to `False`.
+
+**Today's pull (2026-07-17 close, sets the Mon 07/20 → Fri 07/24 trade), already in the CSV:**
+
+| Ticker | Direction | Band (strike) | Trigger |
+|---|---|---|---|
+| SPX | **upper** (bearish) | 7,604.65 | 7,310.73 |
+| AAPL | lower (bullish) | 319.97 | 347.51 |
+| AMZN | lower (bullish) | 232.85 | 261.61 |
+| GOOGL | lower (bullish) | 328.17 | 365.37 |
+| META | lower (bullish) | 598.23 | 693.79 |
+| MSFT | lower (bullish) | 370.03 | 417.61 |
+| NVDA | lower (bullish) | 189.64 | 215.98 |
+| TSLA | lower (bullish) | 355.40 | 406.28 |
+
+Note SPX flipped bearish only on the Friday snapshot; all 4 prior days and all 7 MAG7 names were
+bullish/lower all week — SPX is the outlier, worth double-checking rather than assuming a data
+glitch.
+
+**Open decisions from user (for the live sim build), not yet implemented:**
+1. **Spread width** — MenthorQ never systematizes this (their own credit-spread lesson has two
+   inconsistent one-off worked examples, numbers don't even reconcile). User said "find some info
+   before we decide" — outside convention found: ~20Δ short strike, width targeting ~16Δ average /
+   25-33% credit-to-width ratio. Recommended as the default but user hasn't confirmed; make it a
+   config parameter, not hardcoded.
+2. **DTE** — user said test **both** weekly (expires same Friday as exit) and next-week-out.
+3. **Risk Trigger as stop** — user said test **both** ignore-it/hold-to-Friday and use-it-as-an-
+   intraweek-stop-out. Semantics of `trigger` still not nailed down (see above) — worth resolving
+   before over-trusting a stop rule built on it.
+4. **ES was explicitly dropped from scope** (user's call) — MenthorQ's own tested universe is
+   SPX/SPY/NDX/QQQ/VIX + MAG7, not ES; only SPX + MAG7 in scope now.
+
+**PC TODO tomorrow:**
+1. `git pull` (this commit + `gamma_tracker/swing_levels.py` + today's CSV row).
+2. `pip install playwright python-dotenv` in whatever env runs this, then
+   `python -m playwright install chromium`.
+3. Copy `gamma_tracker/.env.example` → `.env`, fill in MenthorQ creds (or reuse existing Mac
+   creds — same account).
+4. Run `python scrape.py discover` once (headed, one-time manual login + add the "Gamma Levels |
+   Backtesting" indicator like before) to create `auth_state.json` on the PC.
+5. Run `python swing_levels.py run` — first real end-to-end test of the headless bearer-token
+   capture. If it fails to auto-capture the token headlessly, flip `headless=True` → `False` in
+   `get_bearer_token()` and retry (see docstring).
+6. Once confirmed working: decide whether to actually schedule it now (Windows Task Scheduler,
+   same deferred item from S66) — **still not done, don't assume it happens automatically.**
+7. Resolve the 4 open decisions above with the user before wiring this into an actual live-sim
+   options strategy runner.
 
 ---
 
