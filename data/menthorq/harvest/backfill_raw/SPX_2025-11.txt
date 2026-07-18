@@ -1,0 +1,69 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+AFTER-HOURS
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the SPX Call Resistance, Put Support, and HVL levels for each trading day from 2025-11-01 through 2025-11-30, one row per day, columns: Date, Call Resistance, Put Support, HVL.
+
+I need to route this to the Data Expert, as you're requesting historical/time-series data across multiple dates (November 2025), which requires the screener's historical capabilities rather than a single-date validation.I'll search for SPX gamma levels (Call Resistance, Put Support, and High Vol Level) for November 2025.
+
+1 step completed
+
+SPX gamma levels for November 2025 — Call Resistance held steady at $7,000 through most of the month, with a slight pullback late month. (Data as of November 2025)
+
+Date	Call Resistance	Put Support	HVL
+2025-11-03	$7,000.00	$6,500.00	$6,820.00
+2025-11-04	$7,000.00	$6,500.00	$6,820.00
+2025-11-05	$7,000.00	$6,700.00	$6,795.00
+2025-11-06	$7,000.00	$6,700.00	$6,795.00
+2025-11-07	$7,000.00	$6,500.00	$6,785.00
+2025-11-10	$7,000.00	$6,500.00	$6,750.00
+2025-11-11	$7,000.00	$6,500.00	$6,785.00
+2025-11-12	$7,000.00	$6,500.00	$6,785.00
+2025-11-13	$7,000.00	$6,500.00	$6,785.00
+2025-11-14	$7,000.00	$6,500.00	$6,785.00
+2025-11-17	$7,000.00	$6,500.00	$6,745.00
+2025-11-18	$7,000.00	$6,500.00	$6,735.00
+2025-11-19	$7,000.00	$6,500.00	$6,735.00
+2025-11-20	$7,000.00	$6,500.00	$6,730.00
+2025-11-21	$7,000.00	$6,500.00	$6,730.00
+2025-11-24	$7,000.00	$6,500.00	$6,680.00
+2025-11-25	$7,000.00	$6,500.00	$6,710.00
+2025-11-26	$6,800.00	$6,500.00	$6,720.00
+2025-11-28	$6,900.00	$6,500.00	$6,745.00
+
+Key observations:
+
+Call Resistance: Remained anchored at $7,000 from Nov 3–25, then declined to $6,800 on Nov 26 and $6,900 on Nov 28 — suggesting upside resistance weakened late month
+Put Support: Held steady at $6,500 throughout, with a brief move to $6,700 on Nov 5–6
+HVL: Trended lower from $6,820 (early month) to $6,680 (Nov 24), indicating declining volatility clustering levels
+Keep exploring
+Options
+How can I use the SPX Call Resistance and Put Support levels to improve my options trading strategies?
+Options
+What other MenthorQ indicators, like NetGex or Q-Score, can complement the analysis of Call Resistance and Put Support levels?
+Learn
+Can you explain how the High Vol Level (HVL) is calculated and what insights it provides for intraday trading decisions?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

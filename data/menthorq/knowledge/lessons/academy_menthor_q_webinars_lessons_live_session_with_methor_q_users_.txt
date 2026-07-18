@@ -1,0 +1,31 @@
+In this live session, we bring MenthorQ users together to share their real-world trading experiences and demonstrate how they use our quantitative data in their daily trading routines. You’ll hear directly from community members about their trading journeys, strategies, and practical applications of MenthorQ tools.
+
+Barry, a pharmacist-turned-trader since 2016, walks through his comprehensive daily preparation process. He uses a Google document to organize his levels each morning, utilizing the bot and trading view list command to quickly pull data for multiple tickers including Gold, RTY, CL, Natural Gas, and Copper. Barry charts three distinct types of levels: regular MenthorQ levels, blind spots, and VIX blind spots (provided daily by community member Killa Pips). He finds significant value in tracking VIX levels as they relate to price movement, including the VIX Call Resistance Gamma Wall and VIX One Day Move Max.
+
+Barry’s charting technique involves using a highlighter tool to create shaded zones marking areas of interest, such as VIX Put Support levels. He demonstrates his approach on NQ, layering different level types to build a complete roadmap. Coming from a volume profile background, he keeps volume profile indicators on his screen and finds it interesting how MenthorQ levels predict the buildout of these volume profile levels. To simplify his charts, Barry hides GEX levels since he follows many tickers and finds too many strike price levels cluttering his view.
+
+Other community members share their backgrounds: Patrick, based in Dubai, focuses on futures trading for over 20 years and hosts the 6am Club daily meeting at 6am Eastern time. Omar, relocating from Georgia to the Dominican Republic, is newer to structured trading and joined to learn disciplined approaches. Mike from Puerto Rico shares his journey from crypto gains to learning futures with help from GEX data and community guidance. Mauro from Italy started with Iron Condor strategies and is now learning futures trading from Patrick.
+
+To participate in similar live sessions and connect with experienced traders like Barry, Patrick, and others, join the MenthorQ community where members share strategies and meet daily in groups like the 6am Club.
+
+Video Chapters
+00:00 – Welcome and introduction to live session
+01:45 – Patrick introduces himself and the 6am Club
+02:37 – Barry shares his trading background
+03:14 – Omar’s introduction to the community
+04:16 – Mike discusses his trading journey
+06:25 – Mauro’s experience from Iron Condor to futures
+10:19 – Barry demonstrates his daily preparation process
+11:33 – Charting blind spots and VIX levels
+12:14 – Barry’s NQ chart setup and VIX level analysis
+13:46 – Highlighting blind spot levels
+15:07 – Volume profile integration with MenthorQ levels
+Key Takeaways
+Barry uses the bot with pre-filled trading view list commands to quickly retrieve levels for multiple tickers each morning
+Layering three types of levels—MenthorQ levels, blind spots, and VIX blind spots—creates a comprehensive daily roadmap
+The VIX Call Resistance Gamma Wall and VIX Put Support levels provide valuable context for price movement predictions
+Community members like Killa Pips share daily VIX blind spots that enhance trading analysis
+The 6am Club meets daily at 6am Eastern time for futures traders to collaborate and share knowledge
+ Video Transcription
+ Previous Lesson
+Complete 

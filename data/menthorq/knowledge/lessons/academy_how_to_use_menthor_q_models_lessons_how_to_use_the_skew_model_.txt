@@ -1,0 +1,23 @@
+In this lesson, you’ll learn how to leverage the SKEW Model alongside term structure charts to identify where options are relatively cheap or expensive—a critical skill for making smarter trading decisions. We’ve introduced new tools including a term structure chart that displays current data versus yesterday, five days ago, and 30 days ago, giving you insight into market shifts like contango and backwardation.
+
+The term structure reveals how implied volatility changes across different expiration dates. When markets experience low realized volatility but market makers expect potential spikes, you’ll see an upward sloping term structure (contango). For example, the recent term structure showed low short-term implied volatilities rising over time, signaling that if you’re buying options, shorter-dated options are typically cheaper, while longer-dated options command higher prices for sellers.
+
+The SKEW Model helps you understand relative pricing between puts and calls at different strike prices. Using Nvidia as an example, when put skew reaches the top of its range, puts become relatively expensive compared to calls. If you’re bullish, this creates opportunities to sell expensive puts for income or combine selling puts with buying calls for leveraged exposure. For bearish traders, you can buy in-the-money puts and sell out-of-the-money puts to create a put spread that benefits from the skew.
+
+Even if you’re purely a technical trader not focused on options, the SKEW Model provides valuable signals. When Nvidia’s put skew elevated, it suggested the market was pricing more symmetrical risk rather than explosive upside moves. This insight can help you adjust take profit targets, tightening them when skew indicates increased downside probability rather than expecting continued rallies.
+
+Video Chapters
+00:00 – Introduction to term structure charts and past comparisons
+00:32 – How term structure and skew identify cheap vs expensive options
+02:46 – Combining term structure with the three-month skew model
+03:12 – Nvidia skew example and bullish trading strategies
+04:27 – Advanced bearish strategies using put spreads
+05:34 – Using skew signals for technical trading and profit targets
+Key Takeaways
+The term structure chart shows implied volatility across expirations, helping identify contango patterns where short-dated options are cheaper
+The SKEW Model reveals when puts or calls are relatively expensive, enabling strategies like selling expensive puts or creating favorable put spreads
+Elevated put skew signals increased downside pricing, suggesting tighter take profit targets even for non-options traders
+Combining both tools gives you a complete view of the volatility surface to find optimal entry and exit points
+ Video Transcription
+ Previous Lesson
+Complete 

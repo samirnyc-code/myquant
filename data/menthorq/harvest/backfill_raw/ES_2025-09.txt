@@ -1,0 +1,71 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+AFTER-HOURS
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the ES Call Resistance, Put Support, and HVL levels for each trading day from 2025-09-01 through 2025-09-30, one row per day, columns: Date, Call Resistance, Put Support, HVL.
+
+I'll route this to the Data Expert, as it's a historical time-series request across multiple dates.I'll retrieve the ES gamma levels (Call Resistance, Put Support, and High Vol Level) for September 2025.
+
+1 step completed
+
+ES gamma levels for September 2025. Call resistance drifted higher through mid-month, then stabilized; put support showed a sharp drop mid-month before recovering. (Data as of Sep 30, 2025)
+
+Date	Call Resistance	Put Support	HVL
+2025-09-02	$6,500.00	$6,450.00	$6,450.00
+2025-09-03	$6,500.00	$6,450.00	$6,455.00
+2025-09-04	$6,550.00	$6,425.00	$6,480.00
+2025-09-05	$6,600.00	$6,425.00	$6,470.00
+2025-09-08	$6,550.00	$6,470.00	$6,495.00
+2025-09-09	$6,550.00	$6,470.00	$6,495.00
+2025-09-10	$6,600.00	$6,470.00	$6,535.00
+2025-09-11	$6,600.00	$6,300.00	$6,535.00
+2025-09-12	$6,700.00	$6,400.00	$6,545.00
+2025-09-15	$6,700.00	$6,200.00	$6,545.00
+2025-09-16	$6,700.00	$6,200.00	$6,620.00
+2025-09-17	$6,700.00	$6,200.00	$6,620.00
+2025-09-18	$6,700.00	$6,500.00	$6,665.00
+2025-09-19	$6,800.00	$6,500.00	$6,665.00
+2025-09-22	$6,750.00	$6,500.00	$6,730.00
+2025-09-23	$6,800.00	$6,500.00	$6,715.00
+2025-09-24	$6,800.00	$6,500.00	$6,695.00
+2025-09-25	$6,800.00	$6,500.00	$6,665.00
+2025-09-26	$6,750.00	$6,300.00	$6,665.00
+2025-09-29	$6,750.00	$6,300.00	$6,695.00
+2025-09-30	$6,800.00	$6,300.00	$6,695.00
+
+Notable moves:
+
+Call Resistance: Climbed from $6,500 (early Sept) to $6,800 (mid-month), then held $6,750–$6,800 through month-end
+Put Support: Sharp 270-point drop from $6,470 (Sep 10) to $6,200 (Sep 15–17), then recovered to $6,500 (Sep 18–25), before dropping again to $6,300 (Sep 26–30)
+HVL: Steady uptrend from $6,450 to $6,730 (Sep 22), then consolidated $6,665–$6,695 through month-end
+Keep exploring
+Options
+How can I use the ES Call Resistance and Put Support levels together to improve my options trading strategy?
+Explore
+What other MenthorQ indicators complement the HVL (High Vol Level) for analyzing market volatility?
+Learn
+Can you explain how the HVL is calculated and how it signals potential market reversals or continuations?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

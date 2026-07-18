@@ -1,0 +1,26 @@
+In this lesson, you’ll learn how to use swing trading models to identify key price levels and directional bias over multiple trading days, with practical examples from the FOMC rate cut day. We’ll show you how these institutional-grade levels can help you plan entries, exits, and manage risk for both stock and option trading.
+
+Our swing trading model provides levels for two time periods: five days and 20 days. The model analyzes gamma, delta, and other option Greeks to generate three critical levels: an upper band or lower band (depending on directional bias), and a risk trigger. When you see an upper band with red color, the model indicates a bearish bias. Conversely, a lower band with green color signals a bullish bias.
+
+The upper band represents the highest predicted price level in the period and acts as potential resistance, while the lower band indicates support levels where you might find entry points or set stop losses. The risk trigger is particularly important—it can signal increased volatility when broken or act as a resistance level. Each level includes backtesting data showing historical success rates; for example, the 20-day lower band showed a 95% success rate over 22 days.
+
+During the FOMC session demonstrated in this lesson, SPX moved sharply up to the one day max immediately after the rate cut announcement, then rejected at the risk trigger of 5666.27 that was posted five trading days earlier on 9/11. This level, which remained valid throughout the period, acted as a rejection area causing downside movement toward the close. The one day expected move of 0.85% helped determine whether the trading opportunity made sense from a risk perspective.
+
+You can access swing levels through our Discord bot using commands like swing 5d or swing 20d followed by your ticker symbol. The model is currently available for all our coverage of stocks, ETFs, and indices (not yet available on futures). You can also request levels directly for TradingView import using the swing levels command, and our indicator allows you to convert levels between related instruments, such as converting SPX swing levels to ES for futures trading.
+
+Video Chapters
+00:00 – Introduction to swing trading after FOMC
+01:20 – Understanding the swing trading model structure
+02:36 – Upper band, lower band, and risk trigger explained
+05:08 – Directional bias and how to use the levels
+07:41 – Accessing swing levels through Discord commands
+10:22 – Live FOMC price action analysis with swing levels
+12:48 – One day expected move and risk sizing considerations
+Key Takeaways
+The swing trading model provides upper band or lower band levels with a risk trigger for five-day and 20-day periods based on option Greeks
+Red color with an upper band indicates bearish bias, while green color with a lower band signals bullish bias
+The risk trigger can act as resistance or signal increased volatility when broken, as demonstrated at 5666.27 during FOMC
+Access levels via Discord using swing 5d or swing 20d commands, w…
+ Video Transcription
+Previous
+Complete 

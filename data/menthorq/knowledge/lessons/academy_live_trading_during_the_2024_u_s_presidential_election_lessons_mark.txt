@@ -1,0 +1,27 @@
+In this market preparation session for election night, you’ll learn how to use institutional-grade quantitative data to prepare for high-volatility events like Election Day and FOMC announcements. We walk you through analyzing option market data, identifying critical support and resistance levels, and understanding how dealer positioning can impact price action during major market events.
+
+We begin by examining the term structure for the S&P 500, which shows extreme volatility spikes in the immediate term with inverted market structure. The analysis reveals how volume and open interest distribution confirms a defensive stance, with traders leaning towards downside protection through put-heavy positioning. We demonstrate how to use our option matrix to identify high negative jacks, particularly at November 5th (minus 13% of Jax), November 6th (minus 6.6% Jax), and November 15th (minus 22% of Jax).
+
+The session covers how negative gamma environments can accentuate price swings and directional moves. We show you how to interpret the net gamma exposure chart to understand market positioning across different strike prices, with strong positioning at the put side around 5,700 levels. We also analyze the VIX, noting increased call open interest for the $20 strike, signaling heightened volatility expectations.
+
+You’ll see practical applications using our swing trading model, which reveals not only volatility bands but also market bias. The example demonstrates how the market shifted from bullish bias on October 30th to bearish bias by the next session, with the model showing upper band, lower band, and risk trigger levels. We also examine the CTA’s model to understand how systematic funds are reacting, with recent data showing potential selling pressure.
+
+We analyze specific assets like QQQ, identifying put support at 465 and swing levels including an upper band at 501.65 and risk trigger of 470.37. The analysis emphasizes using the full power of the platform beyond just gamma levels, including multi-expiring levels and swing trading bands for comprehensive market understanding.
+
+Video Chapters
+00:00 – Introduction and market opening volatility
+02:04 – Term structure analysis and volatility spikes
+03:25 – Volume, open interest, and defensive positioning
+04:47 – Gamma and delta positioning across expirations
+07:40 – Swing trading model and bias shifts
+08:48 – CTA’s model and systematic fund reactions
+09:10 – Stock analysis and swing trading levels
+12:32 – QQQ swing level analysis and volatility bands
+Key Takeaways
+The term structure shows extreme volatility spikes in the immediate term with inverted market structure during major events like Election Day
+High negative jacks at key expirations (minus 13%, minus 6.6%, and minus 22%) indicate increased potential for price swings and dealer hedging activity
+The swing trading model provides upper band, lower band, and risk trigger levels while showing market bias shifts from bullish to bearish
+Using the full data suite including option matrix, net gamma exposure, and swing levels provides comprehensive analysis beyond just gamma levels
+ Video Transcription
+ Previous Lesson
+Complete 

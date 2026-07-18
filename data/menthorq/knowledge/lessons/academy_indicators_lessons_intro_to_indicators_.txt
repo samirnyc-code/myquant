@@ -1,0 +1,24 @@
+In this foundational lesson, you’ll discover the essential categories of trading indicators and learn how technical analysis tools can help you forecast price movements and make informed trading decisions. Understanding these indicators is crucial for developing effective trading strategies across any market.
+
+We explore five main types of indicators used in technical analysis. Trend indicators like moving averages, MACD, and parabolic SAR help identify the direction and strength of a trend, though they are lagging indicators that provide signals after a trend has already started. Momentum indicators such as the RSI, stochastic oscillator, and CCI signal the strength of price movements and identify overbought or oversold conditions, but must be combined with other indicators to determine direction.
+
+Volume indicators like On Balance Volume (OBV) and volume profile analyze trading volume to confirm trend validity and identify when trends may lose momentum. Volatility indicators including Bollinger Bands, Average True Range (ATR), and Keltner channels measure the rate of price changes. Finally, support and resistance indicators such as pivot points and Fibonacci retracement levels help identify price levels where securities tend to reverse.
+
+While combining multiple indicators can enhance trading accuracy, one critical mistake is using too many indicators or multiple indicators of the same type. For example, combining RSI and stochastics—both momentum indicators—can lead to missed signals or false signals since they move similarly. The key is understanding that no perfect combination exists as market conditions change daily.
+
+In the upcoming lessons, we’ll demonstrate practical applications of these indicators and share our proven approach based on real market experience, showing you exactly what to look for when analyzing price movements.
+
+Video Chapters
+00:00 – Introduction to trading indicators and technical analysis
+00:28 – Trend indicators and lagging signals
+00:54 – Momentum indicators and price strength
+01:27 – Volume indicators and trend confirmation
+01:51 – Volatility and support/resistance indicators
+02:44 – Common mistakes when combining indicators
+Key Takeaways
+Trading indicators are mathematical calculations based on price, volume, or open interest used to forecast future price movements
+The five main indicator types are trend, momentum, volume, volatility, and support/resistance, each serving different analysis purposes
+Avoid combining too many indicators or multiple indicators of the same type, as this can generate false signals or cause you to miss important opportunities
+No perfect indicator combination exists since market conditions change daily, requiring flexible strategy adaptation
+ Video Transcription
+Complete 

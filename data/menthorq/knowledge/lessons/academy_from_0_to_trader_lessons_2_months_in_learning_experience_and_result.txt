@@ -1,0 +1,27 @@
+In this session, you’ll discover how a trader went from zero trading experience to actively trading using MenthorQ data over a two-month period. Nick, a long-term investor and entrepreneur, shares his complete learning journey and the specific strategies he developed using our platform’s tools and data.
+
+Nick started his journey by focusing on the screeners, specifically the gamma levels and core resistance screeners. He ordered stocks by market cap to find familiar names, then looked for opportunities when the spot price was near the core resistance or put support levels. His initial trades were simple directional trades with a five-day time frame, buying or selling stocks based on these key levels.
+
+After the first week, Nick progressed to using the liquidity snapshot and option matrix data. He learned to read gamma conditions (positive gamma indicates less volatility risk), check if momentum was bullish, and compare implied volatility to historical volatility. He specifically focused on understanding Jacks and Dex in the option matrix, using the net Jacks to identify major support and resistance levels. He also examined multi-expiration data, not just the first expiration, to better understand price movements.
+
+By the second week, Nick transitioned from trading stocks to trading options with the same directional approach. He combined multiple data points: positive gamma, bullish momentum, low IV rank, and implied volatility below historical volatility to make his trading decisions. He would buy calls or puts based on his directional bias, always checking the key levels and net Jacks to confirm his expectations. For example, with a stock at 130 and a core resistance at 140, he would consider buying a call with a 140 strike for the next Friday expiration.
+
+In his fourth week, Nick expanded his analysis to include volume and open interest data, which provided different insights than net Jacks for identifying key price levels. He looks for high levels of both volume and open interest to confirm significant support or resistance zones, requiring multiple confirmations before entering trades. This comprehensive approach using our dashboard data helped him develop confidence in his trading decisions.
+
+To follow Nick’s learning path, access our free course by creating a free account at mentorQ.com/free. The course includes approximately 12 hours of instruction covering what MenthorQ is, different strategies, live trading examples, and results analysis—the same training Nick used to develop his trading skills over these two months.
+
+Video Chapters
+00:00 – Introduction and Nick’s background
+02:58 – Starting from zero with screeners and gamma levels
+06:28 – Learning liquidity snapshot and option matrix
+10:25 – Reading Baba dashboard example
+13:59 – Interpreting expiration dates and strike prices
+17:36 – Understanding volume and open interest
+Key Takeaways
+Start with the gamma levels and core resistance screeners to identify stocks near key support or resistance levels
+Use liquidity snapshot data to check gamma conditions, momentum, and compare implied volatility to historical volatility
+The option matrix and net Jacks help identify major price levels and confirm directional expectations
+Combining volume and open interest with other indicators provides mul…
+ Video Transcription
+ Previous Lesson
+Complete 

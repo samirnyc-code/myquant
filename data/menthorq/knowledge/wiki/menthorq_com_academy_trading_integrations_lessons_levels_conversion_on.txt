@@ -1,0 +1,23 @@
+This lesson demonstrates how to use the advanced levels conversion feature on NinjaTrader, allowing you to convert gamma and swing levels from one asset to another directly on your chart. You’ll learn how to transform levels from instruments like SPX, Nvidia, or other assets onto the futures or stocks you’re actively trading.
+
+The conversion process offers two methods: auto ratio and manual ratio. With auto ratio, the system automatically converts levels using live price data if you have the appropriate data feed. If you don’t have access to the price feed for the source asset, you can use manual ratio by entering the conversion ratio yourself (for example, 1.00652 for SPX to ES conversion). Once applied, you’ll see the converted levels displayed on your chart alongside your original instrument’s levels.
+
+You have complete control over which levels appear on your chart. For instance, you can display intraday gamma levels from SPX on your ES chart, or convert Nvidia intraday gamma levels onto NQ. The lesson shows how changing your selection from standard gamma levels to gamma levels intraday instantly updates the conversion. You can also manage swing levels visibility, including the risk trigger, by selecting show or hide options.
+
+A major advantage highlighted in this lesson is that everything is available via API, making the conversion process seamless. You can view multiple converted levels simultaneously—for example, displaying both Nvidia levels and NQ gamma levels on the same chart. This powerful functionality enables you to analyze key institutional levels from correlated assets while trading your preferred instrument, all accomplished in just a few simple steps.
+
+Video Chapters
+00:15 – Introduction to levels conversion feature
+00:35 – Auto ratio vs manual ratio conversion methods
+01:16 – Converting SPX intraday gamma levels to ES
+02:06 – Managing swing levels visibility
+02:38 – API advantages and converting Nvidia to NQ
+03:38 – Displaying multiple converted levels simultaneously
+Key Takeaways
+The levels conversion feature allows you to convert gamma and swing levels from any asset onto your trading chart using auto ratio or manual ratio methods
+You can display intraday gamma levels from correlated assets like SPX or Nvidia directly on your ES or NQ charts for enhanced market context
+All conversion functionality is available via API, enabling seamless integration and the ability to view multiple converted levels simultaneously
+Control which levels appear by toggling between gamma levels, intraday gamma levels, and swing levels including the risk trigger
+ Video Transcription
+ Previous Lesson
+Next Section 

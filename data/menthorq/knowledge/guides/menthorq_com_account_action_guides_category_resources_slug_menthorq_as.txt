@@ -1,0 +1,70 @@
+Back to Dashboard
+Getting Started
+Trader Type
+5
+Resources
+5
+Onboarding
+7
+QUIN
+Products
+Knowledge Base
+Trading Strategies
+Integrations
+Trader
+Partners
+Backtesting
+Affiliation
+MenthorQ Asset Coverage
+RESOURCES
+
+MenthorQ provides Quant Models and Data and we have End of Day and Intraday Updates with multiple snapshots throughout the trading day. This ensures users have access to regularly refreshed market information. Here is a breakdown on when Key Levels and Data updates: End of Day Levels, Data and Models.
+
+End of Day
+
+Gamma Levels on Indices, Stocks and ETFs: 6pm EST
+
+Quant Models on Indices, Stocks and ETFs: 6pm EST
+
+Q-Score: 6pm EST
+
+Options Screeners: 6pm EST
+
+Swing Levels on Indices, Stocks, Crypto and ETFs: 6pm EST
+
+Gamma Levels and Models on Futures: 11pm EST
+
+Quant Models on Futures: 11pm EST
+
+Blind Spots Levels: 11pm EST
+
+Crypto Models: 8pm EST
+
+Forex Gamma Levels and Blind Spots: 11pm EST
+
+Intraday Levels, Data and Models
+
+Stocks, ETFs, and Indices: Gamma levels update every five minutes from 9:35 AM to 4:00 PM ET. The first daily snapshot, including updated Open Interest data, is available at 8:00 AM ET.
+
+Futures: Gamma levels update every five minutes from 10:30 PM to 5:00 PM ET the following day. Updates are paused between 6:00 PM and 10:00 PM ET while we wait for the exchanges to publish the latest Open Interest data.
+
+Asset Coverage
+
+MenthorQ covers over 1400+ Assets including Stocks, ETFs, Indices, Futures, Forex and Crypto.
+
+Assets Covered: Stocks, ETFs, Indices, Futures, Crypto (1400+ assets)
+
+Futures Coverage: ES, NQ, RTY, CL, NG, GC, SI, PL, HG, ZB, ZN, ZT, ZF, MBT, 6A, 6B, 6C, 6E, 6J, 6S, ZS, ZC, ZW
+
+Forex Coverage: AUD, CHF, GBP, EUR, JPY, CAD, XAU
+
+Crypto Coverage: BTCUSDT, ETHUSDT, SOLUSDT, XRPUSDT, BNBUSDT, BTCUSD, ETHUSD, SOLUSDC, XRPUSDC, BNBUSDC, DOGEUSDT, ADAUSDT, TRXUSDT, LINKUSDT, AVAXUSDT, XLMUSDT, HBARUSDT, DOTUSDT, LTCUSDT, BCHUSDT
+
+Update: Monday to Friday for Stocks, ETFs and Indices, Monday to Friday and Sundays for Futures and Monday through Sunday for Crypto.
+
+End of Day Levels update: End of Day Levels will be available at 6pm EST for Stocks, Indices, ETFs, 8pm and at 11pm EST for Futures and Crypto. Intraday Levels are available for Stocks, ETFs and Indices and update multiple times during the session. Check out Intraday Levels update here.
+
+Check Full Coverage
+
+On this page
+ Asset Coverage

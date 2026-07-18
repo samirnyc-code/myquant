@@ -1,0 +1,26 @@
+In this lesson, you’ll learn how to leverage Trend Spider’s market scanner to find real-time trading opportunities using MenthorQ levels. We’ve built pre-made scanner templates that automatically identify stocks trading at key support and resistance levels throughout the trading day.
+
+We’ve created several ready-to-use templates available on the Trend Spider store, including the Put Support scan, Call Resistance scan, and scans for one day min and max and HVL. These templates scan for stocks trading within 0.5% range of MenthorQ levels like put support, making it easy to spot potential trade setups. To use these scanners effectively, you’ll need to enter your API key into the parameters and save your own version of the template.
+
+Building a custom scanner is straightforward. You’ll select the MenthorQ watchlist which covers all assets including stocks, crypto, and futures. Then add conditions using the 30 minute timeframe (the lowest recommended for these indicators), select your desired MenthorQ level like put support or 0DTE, and set it to scan within range of the closing price on the 5 minute chart. The critical step is checking the current candle box so you get real-time results instead of just previous candle data.
+
+You can enhance your scans by combining MenthorQ levels with other technical indicators or fundamental criteria. For example, you might add a condition that the RSI is under 30 when price reaches put support for additional confirmation. You can also toggle between scanning for regular put support or zero DTE levels by using the eyeball icon to show or hide specific conditions. Once your scanner is built and saved, you can add it as a watchlist column on your chart and simply click the refresh button to rescan anytime throughout the trading day.
+
+This scanning capability is powerful for intraday trading because you cannot manually monitor hundreds or thousands of stocks simultaneously. The scanner continuously updates throughout the day, delivering fresh trade ideas based on stocks hitting MenthorQ levels. Our support team is available to help you build custom scans for your specific trading strategies.
+
+Video Chapters
+00:00 – Introduction to MenthorQ scanner templates on Trend Spider
+01:10 – How to enter API keys and use pre-made templates
+02:19 – Building a custom Put Support scanner from scratch
+03:30 – Adding 0DTE levels and scanning current candles
+04:48 – Combining MenthorQ levels with other indicators like RSI
+06:24 – Using scanners for real-time intraday monitoring
+07:28 – Adding scanner results as watchlist columns
+Key Takeaways
+Pre-made MenthorQ scanner templates are available on the Trend Spider store for put support, call resistance, and other key levels
+Custom scanners should use the 30 minute timeframe for MenthorQ indicators and scan within 0.5% range of closing price with the current candle box checked
+You can combine MenthorQ levels with other technical indicators or fundamentals for additional trade confirmation
+Scanners provide real-time intraday updates by clicking the refresh button, making it possible to monitor hundreds of stocks simultaneously
+ Video Transcription
+ Previous Lesson
+Next Section 

@@ -1,0 +1,22 @@
+In this lesson, you’ll discover how to leverage MenthorQ’s options screeners to filter companies and assets based on powerful quantitative parameters. We’ll walk you through the new enhancements to our screener tools and show you how to identify interesting trading opportunities using gamma levels, option volumes, and other critical metrics that can signal potential price movements.
+
+To access the screeners, create a free or premium account at mentorque.com/account. Free accounts get access to one screener, while premium subscribers unlock the full suite of tools. Our screeners are organized by category: gamma screeners (including change in jacks, change in DAX, negative change in jacks, and jacks expiring in two weeks), gamma levels (showing companies approaching put support levels or core resistance levels), open interest screeners, volatility screeners (featuring IV rank and implied volatility metrics), and volume screeners (tracking unusual option activity).
+
+Each screener displays the top 20 stocks or assets with sortable columns and filtering options. You can sort by spot price, gamma, company name, and view critical data like IV Rank, implied volatility, and distance to key levels. For example, the highest change in jacks screener revealed significant increases in companies like TLT, Pepsi, Under Armour, and Clove (which moved up 15% that day). The negative change in jacks screener showed SPY lost 1.8 billion in jacks, along with major repositioning in SPX, IWM, QQQ, and Nvidia.
+
+Once you identify assets from the screeners, you can analyze them using our net jacks chart, which displays net gamma exposure at different strike prices across all expirations. For SPY, the analysis revealed red bars at the 539 strike (near the put support level at 540) and a core resistance level at 570. Using the back arrow feature, you can compare gamma positioning day-over-day to spot major market repositioning. The multi expiration view and option matrix help you see which specific expirations were affected, such as the monthly September contracts and the weekly expiration on the sixth. You can also use the swing trading model with the command “swing five days” to view upper and lower bands that indicate bearish or bullish bias.
+
+The screeners work across multiple asset classes including individual stocks, indices like SPY and QQQ, and other instruments. All documentation is available in your account dashboard, with links to guides and videos explaining each screener’s functionality. Premium members also gain access to the Discord community where market specialists share insights that help you connect the dots between screener data and market events.
+
+Start by logging into your account at mentorque.com/account, navigate to the screener section, and select the category that matches your trading focus. Review the top 20 results, sort and filter by your preferred metrics, then use our charting tools to conduct deeper analysis on the assets that meet your criteria.
+
+Video Chapters
+00:42 – Introduction to options screeners and session overview
+03:07 – Accessing screeners and account dashboard navigation
+04:24 – Screener categories: gamma, open interest, volatility, and volume
+05:28 – Understanding highest change in jacks screener
+07:50 – Using net jacks chart to analyze SPY positioning
+11:3…
+ Video Transcription
+Previous
+Complete 

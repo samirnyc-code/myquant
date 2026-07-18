@@ -1,0 +1,136 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+AFTER-HOURS
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+Explore
+
+Discover screener prompts and see what Quin can find for you
+
+Swing Trader
+Extreme Positioning
+Iron Condor
+More...
+Top 20 Stocks by Market Cap with Bearish Swing Bias
+Data as of 2026-07-14
+Use
+Ticker
+	
+Swing Bias
+	
+Market Cap
+	
+Close Price
+
+TSM	bearish	$2.25T	$420.39
+SPCX	bearish	$1.91T	$136.08
+ASML	bearish	$684.36B	$1,775.64
+LRCX	bearish	$432.82B	$346.10
+COST	bearish	$408.78B	$921.75
+Top 20 Stocks by Market Cap with Bullish Swing Bias
+Data as of 2026-07-14
+Use
+Ticker
+	
+Swing Bias
+	
+Market Cap
+	
+Close Price
+
+NVDA	bullish	$5.11T	$211.80
+AAPL	bullish	$4.62T	$314.86
+GOOGL	bullish	$4.39T	$359.51
+GOOG	bullish	$4.36T	$357.33
+MSFT	bullish	$2.86T	$384.93
+Top 50 Stocks Trading Within 10% Above 5-Day Swing Lower Band
+Data as of 2026-07-14
+Use
+Ticker
+	
+5D Swing Lower Band
+	
+Close Price
+	
+Distance Above Band %
+
+BND	$72.32	$72.70	0.53%
+TIP	$107.27	$108.01	0.69%
+FXF	$108.09	$108.87	0.73%
+GOVT	$22.36	$22.57	0.96%
+JEPI	$55.91	$56.58	1.20%
+Top 50 Stocks Trading Within 10% Below Upper Band (5D)
+Data as of 2026-07-14
+Use
+Ticker
+	
+Upper Band 5D
+	
+Distance to Band %
+	
+Market Cap
+	
+Close Price
+
+BIL	$91.75	0.26%		$91.51
+SHY	$82.14	0.26%		$81.93
+AGG	$98.57	0.58%		$98.00
+HYG	$80.19	0.63%		$79.68
+FXE	$106.10	0.67%		$105.39
+Top 50 Stocks with Swing Bias Change: Bullish to Bearish (Last Week)
+Data as of 2026-07-14
+Use
+Ticker
+	
+Current Swing Bias
+	
+Prior Week Swing Bias
+	
+Market Cap
+	
+Close Price
+
+NFLX	bearish	bullish	$309.62B	$73.53
+PM	bearish	bullish	$274.23B	$175.95
+AZN	bearish	bullish	$255.12B	$164.50
+IBM	bearish	bullish	$204.02B	$217.07
+MCD	bearish	bullish	$191.08B	$268.94
+Top 50 Stocks Changed from Bearish to Bullish Bias (Last Week)
+Comparing 2026-07-14 with 2026-07-07
+Use
+Ticker
+	
+Bias 7D Ago
+	
+Current Bias
+	
+Market Cap
+	
+Close Price
+
+MU	bearish	bullish	$1.11T	$983.12
+WMT	bearish	bullish	$906.43B	$113.70
+CAT	bearish	bullish	$429.89B	$933.34
+ADI	bearish	bullish	$191.30B	$392.75
+STX	bearish	bullish	$185.56B	$878.31
+Intraday summary
+Watchlist
+Net Gex
+Chats

@@ -1,0 +1,61 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+AFTER-HOURS
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me today's SPX gamma levels as a plain table: Call Resistance, Put Support, HVL, the 0DTE levels (Call Resistance 0DTE, Put Support 0DTE, HVL 0DTE, Gamma Wall 0DTE), 1D Min, 1D Max, and the top 10 GEX strikes with their values.
+
+Now I'll route this to the Financial Expert to retrieve the data and format it as a table:
+
+2 steps completed
+Level	Value
+Call Resistance	7600.00
+Put Support	7300.00
+HVL	7495.00
+Call Resistance 0DTE	7550.00
+Put Support 0DTE	7475.00
+HVL 0DTE	7530.00
+Gamma Wall 0DTE	7550.00
+1D Min	7451.62
+1D Max	7580.18
+Rank	Strike	GEX Value
+1	7600	66,005,762
+2	7700	58,798,904
+3	7800	54,277,240
+4	7650	51,143,968
+5	7550	40,931,335
+6	7575	37,299,236
+7	7900	36,259,679
+8	8000	35,407,954
+9	7620	32,361,809
+10	8100	33,657,202
+Keep exploring
+0DTE
+How can I use the SPX gamma levels and 0DTE levels together to improve my intraday trading decisions?
+Options
+What is the relationship between Gamma Levels and NetGex, and how can analyzing both enhance my understanding of market maker positioning?
+0DTE
+Can you explain how the High Vol Level (HVL) and Gamma Wall 0DTE are calculated and what their significance is in SPX options trading?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

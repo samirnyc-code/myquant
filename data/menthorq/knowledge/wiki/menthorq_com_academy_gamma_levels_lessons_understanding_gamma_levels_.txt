@@ -1,0 +1,27 @@
+In this lesson, you’ll learn how Gamma levels work and why they matter for futures traders who want to understand the real forces moving price beyond what shows up on charts or in the news.
+
+Fabio, founder of MenthorQ, explains that Gamma measures how fast Delta changes as the price of the underlying asset moves. While Delta shows how much an option moves when price changes, Gamma shows how fast that reaction is speeding up or slowing down. When Gamma is high, dealers must constantly adjust their hedges by buying or selling futures or the underlying, which creates more flow and can amplify price movement. When Gamma is low, dealers don’t need to hedge as aggressively, leading to calmer market behavior and more stable price action.
+
+Options that are at the money (ATM) have the highest Gamma because they are most sensitive to small price changes. As expiration approaches, Gamma increases sharply, especially for at the money options, which is why we often see more volatility and sharper price reactions around major strikes near expiration. The lesson also covers 0DTE options (options that expire on the same day), which have very high gamma and can create intraday support, resistance, or sharp directional moves—even explaining why price gets pinned intraday or why breakouts accelerate without news.
+
+The concept of net gamma exposure is critical for understanding market behavior. In a positive gamma environment, the market is net long options, and market makers hedge by buying when the market drops and selling when it rises, which dampens volatility. In a negative gamma environment, the market is net short options, and market makers hedge by selling when price drops and buying when it rises, which amplifies moves and creates more volatility and faster swings. Knowing which regime you’re in helps you anticipate how flow will behave and adjust your trading accordingly.
+
+We at MenthorQ have developed a proprietary quant model to track gamma exposure and gamma levels across 1300 assets including stocks, ETFs, indices, crypto, and futures. We cover 25 different futures contracts including index futures like ES and NQ, Dow and Russell, commodities like crude oil and natural gas, metals like gold and silver and copper, REITs, forex, soft commodities, and crypto. MenthorQ is the only company we are aware of that provides gamma levels on futures by looking at futures options. These levels help you identify where market makers may need to hedge aggressively and spot hidden support and resistance calculated using forward looking option data, not past price action.
+
+The MenthorQ gamma levels are divided into primary levels and secondary levels. The core resistance level is the strike with the highest net call gamma exposure, representing the price level where there is the most call gamma exposure concentration.
+
+Video Chapters
+00:00 – Introduction and MenthorQ mission
+01:07 – What is Gamma and why it matters for futures traders
+02:37 – Understanding Gamma and Delta relationship
+04:18 – How traders can use Gamma in their strategies
+05:06 – Gamma behavior around strike prices and expiration
+06:11 – Understanding 0DTE options and their impact
+07:18 – Net gamma exposure explained
+08:28 – Positive vs negative gamma environments
+10:26 – MenthorQ gamma levels and coverage
+Key Takeaways
+Gamma measures how fast Delta changes and determines how ag…
+ Video Transcription
+ Previous Lesson
+Next 

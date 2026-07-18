@@ -1,0 +1,57 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+CLOSED
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the NQ Call Resistance, Put Support, and HVL levels for each trading day from 2026-06-01 through 2026-06-30, one row per day, columns: Date, Call Resistance, Put Support, HVL.
+
+I'll retrieve the NQ gamma levels (Call Resistance, Put Support, and High Vol Level) for June 2026.
+
+1 step completed
+
+No data returned for NQ during June 1-30, 2026. This could mean:
+
+Ticker symbol issue: "NQ" may not be the correct identifier in the database. NQ futures are typically represented as:
+
+NQ1! (continuous front-month contract)
+NQU2026 or similar (dated contract for specific expiration)
+
+Date range: The requested period (June 1-30, 2026) may not have trading data available yet, or the data may not be populated for that historical range.
+
+Can you clarify:
+
+Did you mean the continuous NQ contract (NQ1!), or a specific dated contract (e.g., NQU2026 for June expiration)?
+Should I search for a different date range, or would you like me to check the latest available NQ data instead?
+
+Once you confirm the ticker format, I can retrieve the gamma levels you're looking for.
+
+Keep exploring
+Options
+How can I use the NQ Call Resistance and Put Support levels together to improve my options trading strategies?
+Explore
+What other MenthorQ indicators complement the HVL (High Vol Level) for a more comprehensive market analysis?
+Options
+Are there specific MenthorQ Academy courses that teach how to interpret and apply Call Resistance and Put Support levels in trading?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

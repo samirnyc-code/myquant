@@ -1,0 +1,54 @@
+ACADEMY
+Subscribe
+How to use MenthorQ Models
+Course Description
+
+In this course, you will learn how to utilize the various models developed by MenthorQ, including Net Dex and GEX, Skew, Term Structure, and the new Swing Trading Model. This course is designed to provide you with a comprehensive understanding of these models and how to apply them to make more informed trading decisions.
+
+Course Objectives
+Understand MenthorQ Models. Gain a comprehensive understanding of the models developed by MenthorQ.
+Master Net DEX and GEX. Learn how to use Net Dex and Gex to gauge market sentiment and predict potential market movements.
+Utilize Skew and Term Structure. Understand the importance of Skew and Term Structure in analyzing market dynamics.
+Implement the Swing Trading Model. Discover the new Swing Trading Model developed by MenthorQ and learn how to apply this model to your trading to capture market swings effectively.
+Leverage MenthorQ Gamma Levels, Blind Spots and Swing Levels
+Understanding the power of the Q-Score to spot trading opportunity
+What Next?
+
+How to build a daily routine and find the Edge
+
+Start Next Lesson
+Course Progress
+Building a Routine
+How to build a daily routine and find the Edge
+Start
+Gamma Levels and Blind Spots
+MenthorQ Gamma Levels
+Start
+Blind Spots Levels
+Start
+Menthor Q Models
+How to use Gamma Levels on Bitcoin
+Start
+Net DEX (Delta Exposure)
+Start
+MenthorQ Swing Trading Model
+Start
+Q-Score
+Start
+How to use MenthorQ during Earnings
+Start
+How to use the SKEW Model
+Start
+How to use Term Structure and SKEW
+Start
+Crypto Quant Models
+Start
+Volatility Models
+Start
+Options Screeners
+How to use MenthorQ Options Screeners
+Start
+Q-Score Screeners
+Start
+Create Baskets of Stocks using the Options Screeners
+Start

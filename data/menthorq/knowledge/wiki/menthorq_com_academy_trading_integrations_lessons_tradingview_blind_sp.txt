@@ -1,0 +1,25 @@
+In this lesson, you’ll learn how to add and customize the Blind Spots Levels indicator on your trading charts. This powerful tool helps you identify key levels across multiple asset classes, giving you institutional-grade data to enhance your trading decisions.
+
+To get started, simply click on Indicators, then invite only, and select Blind Spots Levels. The indicator will display the levels along with timestamps directly on your chart. You can find detailed information about blind spots by navigating to the guides section within your account dashboard, then going to products and clicking on Blind Spots Level. We also offer a dedicated course within the academy that explains what blind spots are, their importance, and exactly how to use them in your trading.
+
+The Blind Spots Levels are available on ETFs, indices, futures and crypto, updating Monday to Friday at around 11pm Eastern. To check which assets are covered, go to Models and data, click on Mentor Queue asset coverage, and open the asset coverage list. You’ll find blind spots available for all different contracts on futures, various indices, and select ETFs including popular tickers like Russell and NQ.
+
+The indicator offers extensive customization options to fit your trading style. You can manage your label position and offset to move levels right or left, adjust text size, and add a table that shows how far each blind spot level is from the spot price. This table feature allows you to monitor levels intraday and see when certain levels are reached. Within the color settings, you can either choose a single color setting for all lines or customize the color of each individual line.
+
+A standout feature is the roadmap capability, which you can enable by clicking Create a roadmap and modifying the ratio. The roadmap ratio is based on the distance between blind spots levels, and the smaller the ratio (minimum of one), the smaller the boxes. You can hide the levels using the show level section to display just the roadmap, or plot the levels back as needed. The indicator also supports level conversion, allowing you to convert levels from one asset (like SPX) to another chart (like Nvidia) using either an auto ratio or manual ratio.
+
+Video Chapters
+00:00 – Adding the Blind Spots Levels indicator to your chart
+00:55 – Finding asset coverage and update schedule
+02:32 – Customization settings and table features
+03:39 – Color customization options
+04:10 – Creating and customizing roadmaps
+05:10 – Converting levels between different assets
+Key Takeaways
+Blind Spots Levels are available on ETFs, indices, futures and crypto, updating Monday to Friday at 11pm Eastern
+The table feature displays the distance between blind spot levels and spot price for easy intraday monitoring
+The roadmap feature allows you to visualize levels as boxes with customizable ratios based on distance between levels
+You can convert blind spots levels from one asset to another using auto or manual ratio settings
+ Video Transcription
+ Previous Lesson
+Next 

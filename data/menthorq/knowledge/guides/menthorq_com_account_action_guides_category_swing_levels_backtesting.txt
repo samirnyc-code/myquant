@@ -1,0 +1,50 @@
+Back to Dashboard
+Getting Started
+QUIN
+Products
+Knowledge Base
+Trading Strategies
+Integrations
+Trader
+Partners
+Backtesting
+Q-Score Strategies
+6
+Crypto Strategies
+Gamma Levels Backtesting
+2
+Swing Levels Backtesting
+6
+Affiliation
+Swing Levels Backtesting
+Trading Like a Quant – Baseline Strategy + Alpha Factors
+
+In this post we’re going to uncover how institutions — quant funds — actually trade, and more importantly, how you...
+
+Q-SCORE STRATEGIES
+SWING LEVELS BACKTESTING
+Swing Model and Q-Score Backtesting August 2025
+
+In trading, having a powerful model is only half the battle—the real proof comes when you put it to the...
+
+SWING LEVELS BACKTESTING
+Swing Model during Reciprocal Tariffs
+
+In this guide we will go over a backtesting result of our Swing Model during one of the most volatile...
+
+SWING LEVELS BACKTESTING
+Swing Model Backtesting February 2025
+
+In this Guide we want to share the Swing Model Backtesting February 2025 Results during the beginning of the earning...
+
+SWING LEVELS BACKTESTING
+Swing Trading Model October Backtest
+
+Swing Trading Model October Backtest is the focus of this guide, where we share the model’s performance during October 2024....
+
+SWING LEVELS BACKTESTING
+Swing Model Backtesting during Earnings
+
+In this Guide we want to share the Swing Model Backtesting Results during one of the busiest earnings release week....
+
+SWING LEVELS BACKTESTING

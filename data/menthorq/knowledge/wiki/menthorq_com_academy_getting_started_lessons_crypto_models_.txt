@@ -1,0 +1,28 @@
+In this lesson, you’ll discover how to navigate and utilize MenthorQ’s comprehensive crypto analysis tools through our dashboard. We walk you through the complete crypto menu structure, including the market summary, quant models, and option data sections that bring together all the coins we cover with their performance metrics and proprietary indicators.
+
+The Q scores are our proprietary indicators that merge momentum, volatility, and option data into an easy-to-read format ranging from 0 to 5. The momentum score shows trend strength where 0 is bearish and 5 is bullish. The volatility score measures market stability, with 0 indicating low volatility (favorable for trend following) and 5 indicating high volatility (suitable for mean reversion or option selling). The option score reflects sentiment from the options market, where values greater than 3 signal bullish sentiment.
+
+You can combine these scores strategically by looking for an option score greater than 3 to identify bullish sentiment, confirming with a momentum score greater than 3 for trend validation, and checking for a volatility score less than 2 or 3 to ensure market stability. Our dashboard also includes the RSI indicator, direction, and risk sentiment indicator to provide a complete view of the crypto environment. For example, Bitcoin currently shows a momentum score of 5 indicating a very strong uptrend, an option score of 4 suggesting strong bullish sentiment, but the risk indicator has moved close to zero, signaling entry into a risk off environment.
+
+The swing model forecasts the closing price in the next five days or 20 days, providing a lower band and risk trigger level. For Bitcoin, the model showed a 90% success rate where price closed above the lower band and an 82% success rate where price closed below the risk trigger over the past 124 days. Additional tools include our net gum exposure chart, volatility surface, volatility smile curve, and SKU chart for understanding out of the money option pricing bias.
+
+To get started, access the crypto menu on the left side of your dashboard where you’ll find the market summary, quant models, and option data. These levels and indicators are also available through your trading platform and TradingView for seamless integration into your trading workflow.
+
+Video Chapters
+00:00 – Introduction to the crypto dashboard and market summary
+01:05 – Q scores overview and proprietary indicator explanation
+02:07 – Understanding momentum, volatility, and option scores
+04:46 – Analyzing risk on, directional bias, and QRSI charts
+06:54 – Net gum exposure and option positioning
+07:47 – Swing model forecasting and success rates
+Key Takeaways
+The Q scores range from 0 to 5 and combine momentum, volatility, and option data for comprehensive crypto analysis
+Look for an option score greater than 3, momentum score greater than 3, and volatility score less than 3 for aligned directional trade setups
+The swing model provides lower band and risk trigger levels with historical success rates of 90% and 82% respectively
+Monitor the risk sentiment indicator to identify risk on or risk off environments that impact crypto performance
+Additional Resources
+Crypto Models Documentation
+Crypto Models Full Course
+ Video Transcription
+ Previous Lesson
+Next 

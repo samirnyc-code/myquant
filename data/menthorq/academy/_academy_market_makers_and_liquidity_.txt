@@ -1,0 +1,26 @@
+ACADEMY
+Subscribe
+Market Makers and Liquidity
+Description
+
+This advanced course is designed for traders and financial professionals who wish to deepen their understanding of market making, liquidity management, and delta hedging. Through a combination of theoretical knowledge and practical applications, participants will learn how to utilize Q-Models to optimize their trading strategies and manage risk effectively. This course covers essential concepts and techniques used by institutional investors to ensure market stability and profitability.
+
+Course Objectives
+Gain a comprehensive understanding of market making and its role in financial markets
+Learn the principles of liquidity management and its impact on trading
+Master the techniques of delta hedging to mitigate risk in options trading
+Utilize Q-Models to understand market making, liquidity management, and delta hedging
+Apply these concepts to real-world scenarios and trading strategies
+What Next?
+
+Market Makers
+
+Start Next Lesson
+Course Progress
+Market Makers and Liquidity
+Market Makers
+Start
+Delta Hedging
+Start
+Liquidity
+Start

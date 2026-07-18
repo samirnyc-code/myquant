@@ -1,0 +1,66 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+AFTER-HOURS
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the ES Call Resistance, Put Support, and HVL levels for each trading day from 2026-02-01 through 2026-02-28, one row per day, columns: Date, Call Resistance, Put Support, HVL.
+
+I'll retrieve the ES gamma levels (Call Resistance, Put Support, and High Vol Level) for each trading day in February 2026.
+
+1 step completed
+
+ES gamma levels for February 2026. (Data as of Feb 27, 2026 — latest available trading day in the requested period)
+
+Date	Call Resistance	Put Support	HVL
+2026-02-02	$7,050.00	$6,600.00	$6,985.00
+2026-02-03	$7,050.00	$6,600.00	$6,950.00
+2026-02-04	$7,050.00	$6,600.00	$6,950.00
+2026-02-05	$7,000.00	$6,800.00	$6,925.00
+2026-02-06	$7,000.00	$6,600.00	$6,920.00
+2026-02-09	$7,000.00	$6,600.00	$6,925.00
+2026-02-10	$7,050.00	$6,600.00	$6,945.00
+2026-02-11	$7,000.00	$6,800.00	$6,955.00
+2026-02-12	$7,000.00	$6,800.00	$6,930.00
+2026-02-13	$7,000.00	$6,800.00	$6,930.00
+2026-02-17	$7,000.00	$6,600.00	$6,875.00
+2026-02-18	$7,000.00	$6,800.00	$6,900.00
+2026-02-19	$7,000.00	$6,800.00	$6,900.00
+2026-02-20	$7,000.00	$6,800.00	$6,900.00
+2026-02-23	$6,950.00	$6,800.00	$6,875.00
+2026-02-24	$6,950.00	$6,800.00	$6,900.00
+2026-02-25	$7,000.00	$6,800.00	$6,900.00
+2026-02-26	$6,950.00	$6,800.00	$6,925.00
+2026-02-27	$6,950.00	$6,600.00	$6,900.00
+
+Note: Data includes only trading days (weekends and holidays excluded). Call Resistance ranged $6,950–$7,050, Put Support clustered at $6,600–$6,800, and HVL remained tight in the $6,875–$6,985 band throughout the month.
+
+Keep exploring
+Options
+How can I use the ES Call Resistance and Put Support levels to improve my intraday trading strategies?
+Options
+What is the relationship between HVL (High Vol Level) and the Gamma Flip signal in MenthorQ's market structure analysis?
+Options
+Are there MenthorQ Academy courses that explain how to interpret and apply ES options levels like Call Resistance and Put Support in trading?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

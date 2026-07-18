@@ -1,0 +1,39 @@
+ACADEMY
+Subscribe
+QUIN AI – MenthorQ Quant Engine
+Description
+
+Step into the future of trading research with Quin AI, MenthorQ’s AI Quant Engine built specifically for traders. This course is designed to help you understand how Quin works, how it differs from generic AI tools, and how to use it to turn fragmented information into clear, data-backed decisions.
+
+Throughout the course, you’ll learn how Quin combines MenthorQ’s proprietary knowledge, live market data, and quantitative models into one research engine that helps you learn faster, screen smarter, and validate trade ideas with greater confidence. From understanding key concepts like Q-Score, Gamma, and volatility, to running multi-factor screens and analyzing real market conditions, this course shows you how to make Quin part of your daily workflow.
+
+Whether your goal is to learn, research, screen, or validate setups more efficiently, this course will help you use Quin as your personal research desk, rebuilt for retail.
+
+Course Objectives
+Understand what Quin AI is and how it differs from generic AI and traditional trading tools
+Learn how Quin combines MenthorQ knowledge, live market data, and quant models into one research engine
+Use Quin to understand trading concepts through the MenthorQ framework
+Apply Quin to analyze live market conditions, sector positioning, volatility, and options structure
+Run natural-language screens to find trade candidates using multiple quantitative factors
+Compare tickers, validate setups, and assess historical analogs with more confidence
+Build a faster, more consistent research process using Quin in your daily and weekly routine
+Integrate Quin into your workflow to move from idea generation to trade-ready analysis in minutes
+What Next?
+
+What is Quin?
+
+Start Next Lesson
+Course Progress
+Quin - The Quant Engine for Retail Traders
+What is Quin?
+Start
+Demo of Quin
+Start
+Stocks and Swing Trading with Quin
+How to find Stocks and Swing Trading Idea using our Quant Engine
+Start
+Trading Options using AI
+How to find options ideas using Quant Metrics in Quin
+Start
+How to analyze Volatility to find Options Opportunities
+Start

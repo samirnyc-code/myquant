@@ -1,0 +1,71 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+AFTER-HOURS
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+For SPX, give me a table with one row per trading day for June 2026: Date, Total Net GEX, Net DEX, and 0DTE Skew.
+
+I'll retrieve SPX data for June 2026 with the metrics you requested.
+
+1 step completed
+
+SPX showed volatile dealer positioning and elevated put skew throughout June 2026. (Data as of June 30, 2026)
+
+Date	Total Net GEX	Net DEX	0DTE Skew
+Jun 1	$1.20B	$3.67T	6.4%
+Jun 2	$1.21B	$3.71T	16.2%
+Jun 3	$724.27M	$3.37T	15.1%
+Jun 4	$964.93M	$3.54T	17.2%
+Jun 5	-$126.51M	$2.19T	45.2%
+Jun 8	-$142.08M	$2.38T	23.5%
+Jun 9	-$216.12M	$2.21T	39.8%
+Jun 10	-$560.21M	$1.49T	19.5%
+Jun 11	$61.16M	$2.38T	13.5%
+Jun 12	$290.52M	$2.69T	21.5%
+Jun 15	$1.11B	$3.55T	10.6%
+Jun 16	$700.52M	$3.24T	17.3%
+Jun 17	-$63.88M	$2.53T	-12.5%
+Jun 18	$326.58M	$1.86T	28.3%
+Jun 22	$172.90M	$1.76T	9.9%
+Jun 23	-$417.44M	$1.20T	13.7%
+Jun 24	-$435.81M	$1.21T	-5.1%
+Jun 25	-$481.73M	$1.23T	-34.5%
+Jun 26	-$393.60M	$1.11T	17.8%
+Jun 29	$287.59M	$1.64T	40.0%
+Jun 30	$658.07M	$1.87T	23.1%
+
+Key observations:
+
+GEX regime shift: Early June (Jun 1-4) showed strong positive GEX ($700M–$1.2B), indicating dealer long gamma and price stabilization. Mid-month (Jun 5-10) turned sharply negative (down to -$560M on Jun 10), suggesting dealers short gamma and trend amplification. Late month recovered to positive.
+0DTE Skew volatility: Extreme put bias on Jun 5 (45.2%) and Jun 29 (40.0%), with rare call bias on Jun 17 (-12.5%) and Jun 24 (-34.5%), indicating shifting directional sentiment.
+DEX compression: Dealer short exposure compressed significantly mid-month (Jun 10: $1.49T) before recovering, suggesting reduced hedging demand or position unwinding.
+Keep exploring
+Analyze
+How can I use Total Net GEX and Net DEX together to anticipate SPX price movements during June 2026?
+0DTE
+What insights can 0DTE Skew provide when combined with Gamma Levels and Swing Levels for intraday SPX trading?
+0DTE
+Are there MenthorQ Academy courses that cover advanced options data analysis techniques like interpreting Net GEX and 0DTE Skew for index trading?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

@@ -1,0 +1,543 @@
+<!--
+  OPTIONS-DRILL FRAMEWORK — read this comment, then edit only the CONFIG
+  object inside <script id="config">. Everything else (CSS "series style",
+  rendering engine, drill logic) is generic and should not need to change
+  per topic.
+
+  TO MAKE A NEW DRILL:
+    1. Copy this file to NN-topic-name.html (NN = series number).
+    2. Edit CONFIG below: title, the one-rule block, 2-3 personas,
+       the drill's fields/answers/generate/judge functions, the cheat
+       table rows, and the footnote.
+    3. Open the file in a browser to test the drill logic before
+       publishing it as an Artifact.
+
+  CONTENT SKELETON (why these six blocks, not something else):
+    - RULE       the one sentence that removes the need to think
+    - PERSONAS   2-4 named archetypes that make the sign/regime distinction
+                 physical and memorable (tone: 'water' calm/stabilizing,
+                 'fire' hot/destabilizing, 'copper' neutral/transitional,
+                 'ash' muted/decaying — pick per persona, don't reuse a tone
+                 for two personas on the same page)
+    - DRILL      a scenario generator + judge function → forces recall
+                 instead of recognition, which is what makes it reflexive
+    - CHEAT      a flat reference table for when the drill isn't enough
+    - CHEAT2     optional second reference table for adjacent terms that
+                 don't belong in the drill itself — delete the CONFIG.cheat2
+                 key entirely if the topic doesn't need one
+    - FOOTNOTE   the real-world caveat that keeps the mental model honest
+-->
+<title>Options Drill — Template</title>
+<style>
+  :root {
+    --paper: #f3efe6;
+    --paper-line: #d9d2c1;
+    --ink: #201c16;
+    --ink-dim: #6b6455;
+    --copper: #a8672b;
+    --copper-ink: #7d4a1c;
+    --water: #2f6e69;
+    --water-soft: #e2ede9;
+    --fire: #a8402a;
+    --fire-soft: #f2e0d8;
+    --card-bg: #ffffff;
+    --shadow: 0 1px 0 rgba(32,28,22,0.06);
+  }
+  :root[data-theme="dark"] {
+    --paper: #14110d;
+    --paper-line: #322c22;
+    --ink: #ece5d6;
+    --ink-dim: #9c9280;
+    --copper: #d99a53;
+    --copper-ink: #f0b878;
+    --water: #6fb3ab;
+    --water-soft: #1c2f2c;
+    --fire: #d97a5f;
+    --fire-soft: #2f201a;
+    --card-bg: #1c1712;
+    --shadow: 0 1px 0 rgba(0,0,0,0.3);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #14110d;
+      --paper-line: #322c22;
+      --ink: #ece5d6;
+      --ink-dim: #9c9280;
+      --copper: #d99a53;
+      --copper-ink: #f0b878;
+      --water: #6fb3ab;
+      --water-soft: #1c2f2c;
+      --fire: #d97a5f;
+      --fire-soft: #2f201a;
+      --card-bg: #1c1712;
+      --shadow: 0 1px 0 rgba(0,0,0,0.3);
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem 5rem;
+    line-height: 1.55;
+  }
+
+  .mono {
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  h1, h2, h3 {
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    text-wrap: balance;
+    font-weight: 600;
+  }
+
+  header.masthead {
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 1.1rem;
+    margin-bottom: 2.2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  header.masthead .title { font-size: 1.9rem; letter-spacing: -0.01em; margin: 0; }
+  header.masthead .kicker {
+    font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--copper-ink); font-weight: 600;
+  }
+  header.masthead .date { font-size: 0.78rem; color: var(--ink-dim); text-align: right; }
+
+  section { margin-bottom: 2.8rem; }
+
+  .rule-block {
+    background: var(--card-bg);
+    border: 1px solid var(--paper-line);
+    border-left: 3px solid var(--copper);
+    padding: 1.3rem 1.5rem;
+    box-shadow: var(--shadow);
+  }
+  .rule-block p { margin: 0.4rem 0; }
+  .rule-block .big {
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-size: 1.15rem; font-weight: 600;
+  }
+  .rule-block .derivation {
+    font-size: 0.85rem; color: var(--ink-dim);
+    margin-top: 0.7rem; padding-top: 0.7rem;
+    border-top: 1px dashed var(--paper-line);
+  }
+
+  h2.section-title {
+    font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--ink-dim);
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-weight: 600; margin: 0 0 0.9rem;
+    border-bottom: 1px solid var(--paper-line); padding-bottom: 0.5rem;
+  }
+
+  .duo {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 1rem;
+  }
+  .persona {
+    border: 1px solid var(--paper-line);
+    background: var(--card-bg);
+    padding: 1.1rem 1.2rem 1.3rem;
+  }
+  .persona.water { border-top: 3px solid var(--water); }
+  .persona.fire { border-top: 3px solid var(--fire); }
+  .persona.copper { border-top: 3px solid var(--copper); }
+  .persona.ash { border-top: 3px solid var(--ink-dim); }
+  .persona .role {
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-size: 1.15rem; font-weight: 600; margin: 0 0 0.15rem;
+  }
+  .persona.water .role { color: var(--water); }
+  .persona.fire .role { color: var(--fire); }
+  .persona.copper .role { color: var(--copper-ink); }
+  .persona.ash .role { color: var(--ink-dim); }
+  .persona .sub { font-size: 0.78rem; color: var(--ink-dim); margin-bottom: 0.9rem; }
+  .persona dl { margin: 0; font-size: 0.88rem; }
+  .persona dt {
+    color: var(--ink-dim); font-size: 0.72rem; letter-spacing: 0.05em;
+    text-transform: uppercase; margin-top: 0.7rem;
+  }
+  .persona dt:first-child { margin-top: 0; }
+  .persona dd { margin: 0.15rem 0 0; }
+
+  .drill { border: 1px solid var(--paper-line); background: var(--card-bg); box-shadow: var(--shadow); }
+  .drill-head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0.8rem 1.2rem; border-bottom: 1px solid var(--paper-line);
+    font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-dim);
+  }
+  .drill-head .score { font-size: 0.95rem; letter-spacing: 0; text-transform: none; color: var(--ink); }
+  .drill-body { padding: 1.6rem 1.5rem; }
+  .ticket {
+    display: grid; grid-template-columns: auto 1fr; gap: 0.4rem 1rem;
+    font-size: 0.95rem; margin-bottom: 1.4rem;
+  }
+  .ticket dt {
+    color: var(--ink-dim); font-size: 0.72rem; letter-spacing: 0.06em;
+    text-transform: uppercase; align-self: center;
+  }
+  .ticket dd { margin: 0; font-size: 1.15rem; font-weight: 600; }
+  .tone-up { color: var(--fire); }
+  .tone-down { color: var(--water); }
+  .tone-neutral { color: var(--copper-ink); }
+
+  .answers { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-bottom: 1.2rem; }
+  button.ans {
+    font: inherit; font-weight: 600; font-size: 0.95rem;
+    padding: 0.85rem 1rem; border: 1px solid var(--paper-line);
+    background: transparent; color: var(--ink); cursor: pointer; letter-spacing: 0.02em;
+  }
+  button.ans:hover:not(:disabled) { border-color: var(--copper); }
+  button.ans:focus-visible { outline: 2px solid var(--copper); outline-offset: 2px; }
+  button.ans:disabled { cursor: default; }
+  button.ans.correct { background: var(--water-soft); border-color: var(--water); color: var(--water); }
+  button.ans.wrong { background: var(--fire-soft); border-color: var(--fire); color: var(--fire); }
+
+  .feedback {
+    min-height: 3.6rem; font-size: 0.92rem; padding: 0.9rem 1rem;
+    background: var(--paper); border: 1px dashed var(--paper-line); margin-bottom: 1.1rem;
+  }
+  .feedback .verdict { font-weight: 700; }
+  .feedback.correct .verdict { color: var(--water); }
+  .feedback.wrong .verdict { color: var(--fire); }
+  .feedback.empty { color: var(--ink-dim); }
+
+  button.next {
+    font: inherit; font-size: 0.82rem; letter-spacing: 0.05em; text-transform: uppercase;
+    font-weight: 600; padding: 0.6rem 1.1rem; background: var(--ink); color: var(--paper);
+    border: none; cursor: pointer;
+  }
+  button.next:focus-visible { outline: 2px solid var(--copper); outline-offset: 2px; }
+  button.next:disabled { opacity: 0.35; cursor: default; }
+
+  table.cheat { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+  table.cheat th, table.cheat td {
+    text-align: left; padding: 0.55rem 0.6rem; border-bottom: 1px solid var(--paper-line); vertical-align: top;
+  }
+  table.cheat th {
+    font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-dim); font-weight: 600;
+  }
+  table.cheat td.mnem { font-weight: 600; white-space: nowrap; }
+
+  .footnote { font-size: 0.85rem; color: var(--ink-dim); border-top: 1px solid var(--paper-line); padding-top: 1.1rem; }
+  .footnote strong { color: var(--ink); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    button.ans.correct, button.ans.wrong { transition: background 0.15s ease, border-color 0.15s ease; }
+  }
+</style>
+
+<header class="masthead">
+  <div>
+    <div class="kicker" id="out-kicker"></div>
+    <h1 class="title" id="out-title"></h1>
+  </div>
+  <div class="date mono" id="out-tagline"></div>
+</header>
+
+<section><div class="rule-block" id="out-rule"></div></section>
+<section><h2 class="section-title">Personas</h2><div class="duo" id="out-personas"></div></section>
+
+<section>
+  <h2 class="section-title">The Drill</h2>
+  <div class="drill">
+    <div class="drill-head">
+      <span id="out-ticket-label">ticket</span>
+      <span class="score mono" id="score">0 / 0 · streak 0</span>
+    </div>
+    <div class="drill-body">
+      <dl class="ticket" id="out-ticket-fields"></dl>
+      <div class="answers" id="out-answers"></div>
+      <div class="feedback empty" id="feedback">Pick an answer for the ticket above.</div>
+      <button class="next" id="btn-next" type="button">Next ticket →</button>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title">Cheat Sheet</h2>
+  <table class="cheat">
+    <thead><tr><th>Mnemonic</th><th>Meaning</th></tr></thead>
+    <tbody id="out-cheat"></tbody>
+  </table>
+</section>
+
+<section id="sec-cheat2" style="display:none">
+  <h2 class="section-title" id="out-cheat2-title">Reference</h2>
+  <table class="cheat">
+    <thead><tr><th id="out-cheat2-col1">Term</th><th id="out-cheat2-col2">Meaning</th></tr></thead>
+    <tbody id="out-cheat2"></tbody>
+  </table>
+</section>
+
+<p class="footnote" id="out-footnote"></p>
+
+<script id="config">
+  /* ============================================================
+     EDIT ONLY THIS OBJECT FOR A NEW TOPIC.
+     ============================================================ */
+  const CONFIG = {
+    kicker: "Foundations · Unit 0, Lesson 1",
+    title: "What Is an Option?",
+    tagline: "rights, not\nobligations",
+
+    rule: {
+      big: "An option is a reserved right — never an obligation for the buyer — and somebody always sells you that right for a price.",
+      sub: "Pay the premium and you're LONG: you hold a right, free to use it or not. Collect the premium and you're SHORT: you took on an obligation.",
+      derivation: "CALL = the right to BUY at a fixed price &nbsp;·&nbsp; PUT = the right to SELL at a fixed price<br>" +
+        "long call = paid to buy &nbsp;·&nbsp; long put = paid to sell &nbsp;·&nbsp; short call = paid me, must sell &nbsp;·&nbsp; short put = paid me, must buy"
+    },
+
+    personas: [
+      {
+        tone: "water",
+        role: "Long Call — The Raincheck Holder",
+        sub: "paid a premium for the right to buy at a fixed price",
+        facts: [
+          ["Right or obligation?", "Right — you choose"],
+          ["You want the price to", "rise"],
+          ["Max loss", "the premium you paid"],
+          ["Max gain", "unlimited, in theory"]
+        ]
+      },
+      {
+        tone: "copper",
+        role: "Long Put — The Insurance Holder",
+        sub: "paid a premium for the right to sell at a fixed price",
+        facts: [
+          ["Right or obligation?", "Right — you choose"],
+          ["You want the price to", "fall"],
+          ["Max loss", "the premium you paid"],
+          ["Max gain", "large — capped only because price floors at zero"]
+        ]
+      },
+      {
+        tone: "fire",
+        role: "Short Call — The Landlord",
+        sub: "collected a premium, obligated to sell if called on it",
+        facts: [
+          ["Right or obligation?", "Obligation — if assigned"],
+          ["You want the price to", "stay flat or fall"],
+          ["Max loss", "unlimited, in theory"],
+          ["Max gain", "the premium you collected"]
+        ]
+      },
+      {
+        tone: "ash",
+        role: "Short Put — The Guarantor",
+        sub: "collected a premium, obligated to buy if put to you",
+        facts: [
+          ["Right or obligation?", "Obligation — if assigned"],
+          ["You want the price to", "stay flat or rise"],
+          ["Max loss", "large — down to zero"],
+          ["Max gain", "the premium you collected"]
+        ]
+      }
+    ],
+
+    drill: {
+      ticketLabel: "identify the position",
+      fields: [
+        { key: "scenario", label: "Scenario", tone: () => "" }
+      ],
+      answers: ["LONG CALL", "LONG PUT", "SHORT CALL", "SHORT PUT"],
+
+      generate: () => {
+        const BANK = [
+          { text: "You pay $200 to lock in today's $400,000 price on a house for the next 90 days — if it appraises higher, you buy cheap; if not, you walk away and lose the $200.", correct: "LONG CALL" },
+          { text: "A $10 raincheck lets you buy a TV at this week's $300 sale price anytime in the next 60 days, even if it climbs back to $500.", correct: "LONG CALL" },
+          { text: "A trader in ancient Miletus pays olive-press owners a small fee now for the right to rent their presses at today's rate come harvest — betting a bumper crop sends rental prices soaring.", correct: "LONG CALL" },
+          { text: "You pay $5 for a raincheck locking in today's $80 concert-ticket price for a month, even if scalpers later ask $500.", correct: "LONG CALL" },
+          { text: "$1,200 a year buys you the right to 'sell' your fire-damaged house to the insurer at its full pre-damage value, even though it's now worthless.", correct: "LONG PUT" },
+          { text: "A $50 fee buys you the right to return a couch for its full $2,000 price within 90 days, even if it's damaged and worth nothing by then.", correct: "LONG PUT" },
+          { text: "A vineyard owner pays a broker for the right to sell this year's harvest at today's price, insuring against an early frost crashing grape prices.", correct: "LONG PUT" },
+          { text: "A ticket reseller pays for the right to sell their tickets back at face value even if the headliner cancels and resale prices collapse.", correct: "LONG PUT" },
+          { text: "You sell someone a $10 coupon letting them buy your sneakers for $200 anytime in the next two months — however high resale climbs, you must hand them over at $200.", correct: "SHORT CALL" },
+          { text: "A landlord collects a fee for a tenant's option to renew at this year's rent — if market rents spike, the landlord must still honor the old rate.", correct: "SHORT CALL" },
+          { text: "A gallery takes a deposit for a collector's right to buy a rising artist's painting at today's price within a year — if the artist gets famous, the gallery must still sell at the old price.", correct: "SHORT CALL" },
+          { text: "A club collects a fee for granting a rival the option to sign their star player at a fixed transfer fee — if he becomes a superstar, they must still let him go at that price.", correct: "SHORT CALL" },
+          { text: "You sell a friend a guarantee that you'll buy their car for $10,000 anytime this year, no matter how beat up it gets or how low used-car prices fall.", correct: "SHORT PUT" },
+          { text: "An insurer collects premiums promising to pay full value for a totaled car, even if the car's actual resale value has cratered.", correct: "SHORT PUT" },
+          { text: "You collect a fee for promising to buy a neighbor's crop at today's price no matter how far prices crash by harvest.", correct: "SHORT PUT" },
+          { text: "A bank collects a fee for guaranteeing to buy back a bond at face value no matter how far its market price falls before maturity.", correct: "SHORT PUT" }
+        ];
+        return BANK[Math.floor(Math.random() * BANK.length)];
+      },
+
+      render: (s) => ({ scenario: s.text }),
+
+      judge: (s) => {
+        const ANSWERS = ["LONG CALL", "LONG PUT", "SHORT CALL", "SHORT PUT"];
+        const WHY = {
+          "LONG CALL": "You paid a premium for the right to BUY at a fixed price — paid (long) + buy (call) = Long Call.",
+          "LONG PUT": "You paid a premium for the right to SELL at a fixed price — paid (long) + sell (put) = Long Put.",
+          "SHORT CALL": "You collected a premium and are obligated to SELL if called on it — collected (short) + buy-right granted (call) = Short Call.",
+          "SHORT PUT": "You collected a premium and are obligated to BUY if it's put to you — collected (short) + sell-right granted (put) = Short Put."
+        };
+        return {
+          correctIndex: ANSWERS.indexOf(s.correct),
+          why: WHY[s.correct]
+        };
+      }
+    },
+
+    cheat: [
+      ["Long pays, short collects", "Whoever's long the option paid the premium upfront; whoever's short collected it — and carries the obligation."],
+      ["Call = right to buy, Put = right to sell", "The classic pairing to memorize first — everything else in this lesson builds on it."],
+      ["Buyers can only lose the premium", "Long call or long put, your max loss is capped at what you paid, no matter what happens next."],
+      ["Sellers get paid to take on risk", "Short call or short put, your max gain is capped at the premium collected — but the downside is much larger."],
+      ["4 positions = 2 rights × 2 directions", "Long call, long put, short call, short put — every combination of (pay/collect) × (buy-right/sell-right)."]
+    ],
+
+    cheat2: {
+      title: "Vocabulary",
+      columns: ["Term", "Meaning"],
+      rows: [
+        ["Premium", "The price of the option itself — what the long side pays and the short side collects."],
+        ["Strike price", "The fixed price written into the contract — what you get to buy or sell at."],
+        ["Expiration", "The last date the option can be exercised. After that, it's worthless."],
+        ["Underlying", "The actual stock, index, or asset the option is based on and settles against."],
+        ["Exercise", "The long holder invoking their right — buying (call) or selling (put) at the strike."],
+        ["Assignment", "What happens to the short seller when the long holder exercises — they must fulfill the obligation."],
+        ["ITM / ATM / OTM", "Moneyness: whether exercising right now would profit (in-the-money), break even (at-the-money), or be worthless (out-of-the-money)."],
+        ["Writer", "Another name for the short seller of an option — the one who 'writes' the contract."]
+      ]
+    },
+
+    footnoteHTML: "<strong>Real-world wrinkle:</strong> most equity options are American-style, meaning the long holder can exercise anytime before expiry, not just on the last day (index options are usually European-style — exercise only at expiry). If you're short, assignment can happen early — most often right before a dividend on a short call, or deep in-the-money near expiry — so being short always carries a little more uncertainty than being long, beyond just the raw math of max loss."
+  };
+</script>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+
+  // ---- static chrome ----
+  $("out-kicker").textContent = CONFIG.kicker;
+  $("out-title").textContent = CONFIG.title;
+  $("out-tagline").innerHTML = CONFIG.tagline.replace("\n", "<br>");
+
+  // ---- rule block ----
+  {
+    const r = CONFIG.rule;
+    let html = `<p class="big">${r.big}</p><p>${r.sub}</p>`;
+    if (r.derivation) html += `<div class="derivation mono">${r.derivation}</div>`;
+    $("out-rule").innerHTML = html;
+  }
+
+  // ---- personas ----
+  {
+    const html = CONFIG.personas.map((p) => {
+      const facts = p.facts.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
+      return `<div class="persona ${p.tone}">
+        <p class="role">${p.role}</p>
+        <p class="sub">${p.sub}</p>
+        <dl>${facts}</dl>
+      </div>`;
+    }).join("");
+    $("out-personas").innerHTML = html;
+  }
+
+  // ---- cheat table ----
+  {
+    const rows = CONFIG.cheat.map(([m, meaning]) =>
+      `<tr><td class="mnem">${m}</td><td>${meaning}</td></tr>`
+    ).join("");
+    $("out-cheat").innerHTML = rows;
+  }
+
+  // ---- optional second reference table ----
+  if (CONFIG.cheat2) {
+    $("sec-cheat2").style.display = "";
+    $("out-cheat2-title").textContent = CONFIG.cheat2.title;
+    $("out-cheat2-col1").textContent = CONFIG.cheat2.columns[0];
+    $("out-cheat2-col2").textContent = CONFIG.cheat2.columns[1];
+    $("out-cheat2").innerHTML = CONFIG.cheat2.rows.map(([m, meaning]) =>
+      `<tr><td class="mnem">${m}</td><td>${meaning}</td></tr>`
+    ).join("");
+  }
+
+  // ---- footnote ----
+  $("out-footnote").innerHTML = CONFIG.footnoteHTML;
+
+  // ---- drill engine (generic — do not edit per topic) ----
+  const d = CONFIG.drill;
+  $("out-ticket-label").textContent = d.ticketLabel;
+
+  const ticketFieldsEl = $("out-ticket-fields");
+  const answersEl = $("out-answers");
+  const feedback = $("feedback");
+  const scoreEl = $("score");
+  const btnNext = $("btn-next");
+
+  let current = null;
+  let correctCount = 0, totalCount = 0, streak = 0;
+  let answered = false;
+  let answerButtons = [];
+
+  function renderTicket(scenario) {
+    const values = d.render(scenario);
+    ticketFieldsEl.innerHTML = d.fields.map((f) => {
+      const cls = "mono " + (f.tone ? f.tone(scenario) : "");
+      return `<dt>${f.label}</dt><dd class="${cls}">${values[f.key]}</dd>`;
+    }).join("");
+  }
+
+  function renderAnswers() {
+    answersEl.innerHTML = d.answers.map((label, i) =>
+      `<button class="ans" data-idx="${i}" type="button">${label}</button>`
+    ).join("");
+    answerButtons = Array.from(answersEl.querySelectorAll("button.ans"));
+    answerButtons.forEach((btn) => btn.addEventListener("click", () => answer(Number(btn.dataset.idx))));
+  }
+
+  function newTicket() {
+    current = d.generate();
+    renderTicket(current);
+    renderAnswers();
+    answered = false;
+    feedback.textContent = "Pick an answer for the ticket above.";
+    feedback.className = "feedback empty";
+    btnNext.disabled = true;
+  }
+
+  function answer(idx) {
+    if (answered || !current) return;
+    answered = true;
+    totalCount++;
+
+    const { correctIndex, why } = d.judge(current);
+    const isCorrect = idx === correctIndex;
+    if (isCorrect) { correctCount++; streak++; } else { streak = 0; }
+    scoreEl.textContent = correctCount + " / " + totalCount + " · streak " + streak;
+
+    answerButtons.forEach((btn, i) => {
+      btn.disabled = true;
+      if (i === correctIndex) btn.classList.add("correct");
+      else if (i === idx) btn.classList.add("wrong");
+    });
+
+    feedback.className = "feedback " + (isCorrect ? "correct" : "wrong");
+    feedback.innerHTML = '<span class="verdict">' + (isCorrect ? "Correct." : "Not quite.") +
+      "</span> " + why;
+
+    btnNext.disabled = false;
+  }
+
+  btnNext.addEventListener("click", newTicket);
+  newTicket();
+})();
+</script>

@@ -1,0 +1,27 @@
+In this lesson, you’ll discover how MenthorQ’s trading integrations bring institutional-grade quantitative data directly into your execution platform, eliminating the friction of switching between multiple screens and helping you act faster on trading opportunities.
+
+We provide 10+ trading integrations including TradingView, NinjaTrader, Transpider, ATAS, Sierra Chart, Quantower, MultiWave, Bookmap, TickBlaze, MetaTrader, and Tinker Swimming. These integrations give you access to powerful trading models including gamma levels, blind spots levels, swing trading levels, and converted levels—all within your preferred trading environment.
+
+Most integrations update via API for real-time data accuracy and speed. Platforms with API connectivity include NinjaTrader, Sierra Chart, Quantower, Bookmap, Transpider, TickBlaze, ATAS, and Motivate. For platforms without API availability like TradingView, we use alternative update methods. You’ll have full customization of levels, plots, and labels, allowing you to define your setups, choose colors, and enable or disable specific levels to match your trading style.
+
+The integrations provide both end of day and intraday gamma levels—futures gamma levels update end of day, while stocks, ETFs, and indices update 14 times per day. You can access the powerful levels conversion feature to convert levels from one asset to another using either auto ratio or manual ratio. For example, if you trade futures and want intraday gamma levels, you can use the index or ETF (like SPX, SPY, QQQ, or NDX) and automatically update your NQ or ES chart with intraday levels.
+
+Setting up is simple: log into your dashboard, navigate to the integration section on the left menu, and select your platform. For TradingView, activate your TradingView user ID (not your email) to unlock an invite-only section with all MenthorQ indicators. For NinjaTrader, provide your machine ID and download the indicator file along with your API key. For ATAS, simply enter your ATAS email address. Complete setup guides, video tutorials, and documentation are available in the dashboard under the guides section and in the academy’s Trading Integration course.
+
+Video Chapters
+00:15 – Introduction to trading integrations
+01:35 – Why integrate MenthorQ into your workflow
+02:27 – Available integrations and features
+04:28 – Multiple level types and conversion features
+05:54 – API versus non-API indicators
+07:15 – End of day versus intraday levels
+08:51 – Setup and demo walkthrough
+09:37 – TradingView setup process
+12:14 – NinjaTrader and ATAS setup
+Key Takeaways
+MenthorQ provides 10+ trading integrations covering over 90% of platforms used by traders, including TradingView, NinjaTrader, Transpider, and ATAS
+Most integrations use API connections for real-time automatic updates of gamma levels, blind spots, and swing levels
+The levels conversion feature allows you to convert levels between assets, enabling intraday gamma levels on futures c…
+ Video Transcription
+ Previous Lesson
+Next Section 

@@ -1,0 +1,71 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+CLOSED
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the CL Call Resistance, Put Support, and HVL levels for each trading day from 2026-04-01 through 2026-04-30, one row per day, columns: Date, Call Resistance, Put Support, HVL.
+
+I'll retrieve the gamma levels for CL (crude oil futures) for April 2026.
+
+1 step completed
+
+CL crude oil gamma levels for April 2026 — 21 trading days captured. (Data as of April 1–30, 2026)
+
+Date	Call Resistance	Put Support	HVL
+2026-04-01	$110.00	$90.00	$77.00
+2026-04-02	$110.00	$90.00	$77.00
+2026-04-06	$110.00	$90.00	$77.00
+2026-04-07	$120.00	$90.00	$77.00
+2026-04-08	$100.00	$90.00	$79.25
+2026-04-09	$100.00	$90.00	$79.25
+2026-04-10	$100.00	$90.00	$79.00
+2026-04-13	$100.00	$90.00	$77.00
+2026-04-14	$100.00	$85.00	$85.25
+2026-04-15	$100.00	$85.00	$85.25
+2026-04-16	$90.00	$85.00	$89.25
+2026-04-17	$100.00	$85.00	$89.00
+2026-04-20	$100.00	$85.00	$86.25
+2026-04-21	$100.00	$85.00	$85.25
+2026-04-22	$100.00	$85.00	$89.25
+2026-04-23	$100.00	$85.00	$89.25
+2026-04-24	$100.00	$85.00	$88.00
+2026-04-27	$110.00	$85.00	$96.75
+2026-04-28	$110.00	$85.00	$99.00
+2026-04-29	$110.00	$85.00	$94.50
+2026-04-30	$110.00	$85.00	$99.75
+
+Notable shifts:
+
+Call Resistance moved from $110 (early month) → $100 (mid-month) → $110 (late month), with a brief dip to $90 on Apr 16
+Put Support shifted down from $90 to $85 starting Apr 14, stabilizing there through month-end
+HVL ranged $77–$99.75, with the highest levels late month ($96.75–$99.75)
+Keep exploring
+Options
+How can I use the Call Resistance, Put Support, and HVL levels together to improve my intraday trading strategies?
+Learn
+Are there MenthorQ Academy courses that explain how to interpret and apply HVL (High Vol Level) in options trading?
+Options
+Can you show how the Call Resistance and Put Support levels correlate with NetGex and Q-Score indicators for a comprehensive market analysis?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

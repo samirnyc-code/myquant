@@ -1,0 +1,35 @@
+daily STMR signals 2010-2023: 151
+priced + VIX-tagged trades: 139
+
+=== A. REGIME CONDITIONING (full sample, IN-SAMPLE — descriptive only) ===
+none             n 139  win  84%  PF  1.75  avg $   +105  total $  +14,627
+rank>33          n 108  win  84%  PF  1.44  avg $    +75  total $   +8,143
+rank>50          n  82  win  83%  PF  1.76  avg $   +106  total $   +8,672
+falling          n  13  win 100%  PF   inf  avg $   +335  total $   +4,352
+rank>33&falling  n   8  win 100%  PF   inf  avg $   +366  total $   +2,931
+rank<33          n  31  win  84%  PF  6.15  avg $   +209  total $   +6,484
+
+by VIX-rank tercile:
+rank low        n  31  win  84%  PF  6.15  avg $   +209  total $   +6,484
+rank mid        n  51  win  84%  PF  1.27  avg $    +54  total $   +2,745
+rank high       n  57  win  84%  PF  1.67  avg $    +95  total $   +5,398
+
+=== B. YEARLY WALK-FORWARD (train 4y -> trade next year OOS) ===
+2014: filter 'rank>50         ' (train exp $+187)  OOS n  17  win  76%  PF  6.88  avg $   +132  total $   +2,244
+2015: filter 'rank>50         ' (train exp $+192)  OOS n   7  win  71%  PF  6.78  avg $   +202  total $   +1,413
+2016: filter 'rank>50         ' (train exp $+197)  OOS n   3  win 100%  PF   inf  avg $   +312  total $     +937
+2017: filter 'rank>33         ' (train exp $+202)  OOS n   8  win 100%  PF   inf  avg $   +395  total $   +3,163
+2018: filter 'rank>33         ' (train exp $+219)  OOS n   1  win   0%  PF  0.00  avg $  -3355  total $   -3,355
+2019: filter 'none            ' (train exp $+136)  OOS n   7  win 100%  PF   inf  avg $   +276  total $   +1,929
+2020: filter 'none            ' (train exp $+158)  OOS n   9  win  78%  PF  0.85  avg $    -67  total $     -599
+2021: filter 'none            ' (train exp $+57)  OOS n   6  win 100%  PF   inf  avg $   +103  total $     +619
+2022: filter 'none            ' (train exp $-61)  OOS n   6  win  83%  PF  0.97  avg $    -10  total $      -61
+2023: filter 'none            ' (train exp $+67)  OOS n  17  win  88%  PF 14.62  avg $   +321  total $   +5,452
+
+OOS filtered   : n  81  win  85%  PF  2.13  avg $   +145  total $  +11,741
+unfiltered 14+ : n  87  win  86%  PF  2.24  avg $   +149  total $  +12,948
+OOS maxDD $-3,355
+
+trade file -> data/options_sim/bps_regime_trades.csv
+CAVEATS: daily-close signal set (research view, NOT the executable causal set);
+filter selection in-sample per fold is only as good as ~30 trades/fold allows.

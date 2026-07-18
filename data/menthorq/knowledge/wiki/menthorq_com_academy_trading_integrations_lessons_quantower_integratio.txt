@@ -1,0 +1,26 @@
+In this lesson, you’ll learn how to install and configure the Quantower integration with MenthorQ, allowing you to display institutional-grade price levels directly on your Quantower charts with full customization options.
+
+After signing up for MenthorQ, you can access your dashboard to download the Mentor Q Levels Premium indicator file. Installation is straightforward: extract the downloaded file and copy it into your Quantower Settings Scripts Indicators folder (typically found at C1 Tower Settings Scripts, Indicators). Once installed, the indicator appears under the custom category when you add indicators to your chart.
+
+To activate the indicator, you’ll need to enter your API key from your MenthorQ dashboard into the settings page. This immediately plots all available levels on your chart, including GEX, blind spots, swing levels, and game of scalping levels. The indicator works seamlessly across both futures (like ES and NQ) and equities (like Apple), automatically refreshing levels when you switch between instruments.
+
+One powerful feature is level conversions, which allows you to display levels from one instrument on another instrument’s chart. You can use auto mode for automatic ratio calculations or manual mode to specify your own conversion ratio. For example, you can convert SPX levels to ES using auto mode, or use a manual ratio of 41.26 to convert QQQ levels to NQ. This enables advanced strategies like viewing SPX levels on Apple or QQQ levels on Nvidia using a ratio of 3.63.
+
+The indicator offers extensive customization options for visual presentation. You can modify text size, label alignment, and offset positioning for all levels. Each level type has individual styling controls, allowing you to customize colors, line styles (solid, dashed, dash-dot), and thickness. When multiple levels overlap at the same price, the indicator applies a special other style setting. You can save all your preferences, including your API key, as a template in Quantower for quick reapplication across different charts.
+
+Video Chapters
+00:00 – Introduction and downloading the Quantower indicator
+00:42 – Installing the indicator in Quantower Settings Scripts folder
+01:42 – Adding API key and activating MenthorQ levels
+03:38 – Using level conversions with manual and auto ratios
+06:34 – Customizing colors, styles, and label settings
+09:23 – Saving templates for quick settings reapplication
+10:00 – Converting SPX levels to Apple and QQQ to Nvidia
+Key Takeaways
+The Mentor Q Levels Premium indicator installs directly into your Quantower Settings Scripts Indicators folder and requires an API key from your dashboard
+Level conversions support both auto mode for automatic calculations and manual mode for custom ratios, enabling cross-instrument analysis
+Full customization is available for all level styles, including colors, line types, text size, and alignment preferences
+Save your complete configuration as a template in Quantower to quickly apply settings across multiple charts
+ Video Transcription
+Previous
+Next Section 

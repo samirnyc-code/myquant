@@ -1,0 +1,471 @@
+[
+ {
+  "phase": "exposure",
+  "method": "GET",
+  "url": "https://dashboard.menthorq.io/en/options/exposure?symbol=SPX",
+  "post": "",
+  "auth": ""
+ },
+ {
+  "phase": "exposure",
+  "method": "GET",
+  "url": "blob:https://dashboard.menthorq.io/d6af8a6a-0c20-4d05-94e9-2534eeb56ca0",
+  "post": "",
+  "auth": ""
+ },
+ {
+  "phase": "exposure",
+  "method": "GET",
+  "url": "https://uct.service.usercentrics.eu/uct?v=2&sid=oSxGQcwWkcs3Za&t=24&abv=&r=https%3A%2F%2Fdashboard.menthorq.io%2Fen%2Foptions%2Fexposure%3Fsymbol%3DSPX&cb=1784068937783",
+  "post": "",
+  "auth": ""
+ },
+ {
+  "phase": "exposure",
+  "method": "GET",
+  "url": "https://cf.menthorq.io/clickhouse-api/api/web/v1/tickers",
+  "post": "",
+  "auth": "Bearer eyJraWQiOiJFMVpDcDdtTHZOVWNFQkxRO"
+ },
+ {
+  "phase": "exposure",
+  "method": "GET",
+  "url": "https://cf.menthorq.io/clickhouse-api/api/web/v1/market-status/NYSE",
+  "post": "",
+  "auth": "Bearer eyJraWQiOiJFMVpDcDdtTHZOVWNFQkxRO"
+ },
+ {
+  "phase": "exposure",
+  "method": "GET",
+  "url": "https://dashboard.menthorq.io/en/levels?_rsc=1y47c",
+  "post": "",
+  "auth": ""
+ },
+ {
+  "phase": "exposure",
+  "method": "GET",
+  "url": "https://dashboard.menthorq.io/en/tickers?_rsc=1y47c",
+  "post": "",
+  "auth": ""
+ },
+ {
+  "phase": "exposure",
+  "method": "GET",
+  "url": "https://dashboard.menthorq.io/en/charts/price?symbol=&interval=1&indicators=levels&_rsc=1y47c",
+  "post": "",
+  "auth": ""
+ },
+ {
+  "phase": "exposure",
+  "method": "GET",
+  "url": "https://gateway.menthorq.io/clickhouse-api/api/web/v1/options/net-gex-by-expiration/SPX?frequency=intraday",
+  "post": "",
+  "auth": "Bearer eyJraWQiOiJFMVpDcDdtTHZOVWNFQkxRO"
+ },
+ {
+  "phase": "exposure",
+  "method": "GET",
+  "url": "https://gateway.menthorq.io/clickhouse-api/api/web/v1/gamma-levels/SPX/eod",
+  "post": "",
+  "auth": "Bearer eyJraWQiOiJFMVpDcDdtTHZOVWNFQkxRO"
+ },
+ {
+  "phase": "exposure",
+  "method": "GET",
+  "url": "https://cf.menthorq.io/clickhouse-api/api/web/v1/prices?tickers=SPX",
+  "post": "",
+  "auth": "Bearer eyJraWQiOiJFMVpDcDdtTHZOVWNFQkxRO"
+ },
+ {
+  "phase": "exposure",
+  "method": "GET",
+  "url": "https://gateway.menthorq.io/clickhouse-api/api/web/v1/tickers/SPX/last-updated",
+  "post": "",
+  "auth": "Bearer eyJraWQiOiJFMVpDcDdtTHZOVWNFQkxRO"
+ },
+ {
+  "phase": "exposure",
+  "method": "GET",
+  "url": "https://gateway.menthorq.io/clickhouse-api/api/web/v1/options/matrix/SPX?frequency=intraday",
+  "post": "",
+  "auth": "Bearer eyJraWQiOiJFMVpDcDdtTHZOVWNFQkxRO"
+ },
+ {
+  "phase": "exposure",
+  "method": "GET",
+  "url": "https://dashboard.menthorq.io/en/tickers/SPX?_rsc=1y47c",
+  "post": "",
+  "auth": ""
+ },
+ {
+  "phase": "exposure",
+  "method": "GET",
+  "url": "https://gateway.menthorq.io/clickhouse-api/api/web/v1/options/net-gex-by-expiration/SPX?frequency=eod",
+  "post": "",
+  "auth": "Bearer eyJraWQiOiJFMVpDcDdtTHZOVWNFQkxRO"
+ },
+ {
+  "phase": "matrix",
+  "method": "GET",
+  "url": "https://dashboard.menthorq.io/en/options/matrix?symbol=SPX",
+  "post": "",
+  "auth": ""
+ },
+ {
+  "phase": "matrix",
+  "method": "POST",
+  "url": "https://dashboard.menthorq.io/vr6rnlto?o=4508403756498944&p=4510030024802304&r=us",
+  "post": "{\"dsn\":\"https://a4864b1b84c38a8c782f2e855b73a6df@o4508403756498944.ingest.us.sentry.io/4510030024802304\"}\n{\"type\":\"client_report\"}\n{\"timestamp\":1784068948.61,\"discarded_events\":[{\"reason\":\"sample_rate\",\"category\":\"transaction\",\"quantity\":1}]}",
+  "auth": ""
+ },
+ {
+  "phase": "matrix",
+  "method": "GET",
+  "url": "blob:https://dashboard.menthorq.io/ac3d9095-1af7-4a35-a20f-3ce7117a95d8",
+  "post": "",
+  "auth": ""
+ },
+ {
+  "phase": "matrix",
+  "method": "GET",
+  "url": "https://uct.service.usercentrics.eu/uct?v=2&sid=oSxGQcwWkcs3Za&t=24&abv=&r=https%3A%2F%2Fdashboard.menthorq.io%2Fen%2Foptions%2Fmatrix%3Fsymbol%3DSPX&cb=1784068948771",
+  "post": "",
+  "auth": ""
+ },
+ {
+  "phase": "matrix",
+  "method": "GET",
+  "url": "https://cf.menthorq.io/clickhouse-api/api/web/v1/tickers",
+  "post": "",
+  "auth": "Bearer eyJraWQiOiJFMVpDcDdtTHZOVWNFQkxRO"
+ },
+ {
+  "phase": "matrix",
+  "method": "GET",
+  "url": "https://cf.menthorq.io/clickhouse-api/api/web/v1/market-status/NYSE",
+  "post": "",
+  "auth": "Bearer eyJraWQiOiJFMVpDcDdtTHZOVWNFQkxRO"
+ },
+ {
+  "phase": "matrix",
+  "method": "GET",
+  "url": "https://dashboard.menthorq.io/en/levels?_rsc=1bsdp",
+  "post": "",
+  "auth": ""
+ },
+ {
+  "phase": "matrix",
+  "method": "GET",
+  "url": "https://dashboard.menthorq.io/en/tickers?_rsc=1bsdp",
+  "post": "",
+  "auth": ""
+ },
+ {
+  "phase": "matrix",
+  "method": "GET",
+  "url": "https://dashboard.menthorq.io/en/charts/price?symbol=&interval=1&indicators=levels&_rsc=1bsdp",
+  "post": "",
+  "auth": ""
+ },
+ {
+  "phase": "matrix",
+  "method": "GET",
+  "url": "https://gateway.menthorq.io/clickhouse-api/api/web/v1/options/matrix/SPX?frequency=intraday",
+  "post": "",
+  "auth": "Bearer eyJraWQiOiJFMVpDcDdtTHZOVWNFQkxRO"
+ },
+ {
+  "phase": "matrix",
+  "method": "GET",
+  "url": "https://gateway.menthorq.io/clickhouse-api/api/web/v1/tickers/SPX/last-updated",
+  "post": "",
+  "auth": "Bearer eyJraWQiOiJFMVpDcDdtTHZOVWNFQkxRO"
+ },
+ {
+  "phase": "matrix",
+  "method": "GET",
+  "url": "https://dashboard.menthorq.io/en/tickers/SPX?_rsc=1bsdp",
+  "post": "",
+  "auth": ""
+ },
+ {
+  "phase": "matrix",
+  "method": "GET",
+  "url": "https://gateway.menthorq.io/clickhouse-api/api/web/v1/options/matrix/SPX?frequency=eod",
+  "post": "",
+  "auth": "Bearer eyJraWQiOiJFMVpDcDdtTHZOVWNFQkxRO"
+ },
+ {
+  "phase": "heatmap",
+  "method": "GET",
+  "url": "https://dashboard.menthorq.io/en/options/heatmap?symbol=SPX",
+  "post": "",
+  "auth": ""
+ },
+ {
+  "phase": "heatmap",
+  "method": "POST",
+  "url": "https://dashboard.menthorq.io/vr6rnlto?o=4508403756498944&p=4510030024802304&r=us",
+  "post": "{\"dsn\":\"https://a4864b1b84c38a8c782f2e855b73a6df@o4508403756498944.ingest.us.sentry.io/4510030024802304\"}\n{\"type\":\"client_report\"}\n{\"timestamp\":1784068958.529,\"discarded_events\":[{\"reason\":\"sample_rate\",\"category\":\"transaction\",\"quantity\":1}]}",
+  "auth": ""
+ },
+ {
+  "phase": "heatmap",
+  "method": "GET",
+  "url": "blob:https://dashboard.menthorq.io/7fdb38d0-3a5f-4237-96e4-4e7285dd318e",
+  "post": "",
+  "auth": ""
+ },
+ {
+  "phase": "heatmap",
+  "method": "GET",
+  "url": "https://uct.service.usercentrics.eu/uct?v=2&sid=oSxGQcwWkcs3Za&t=24&abv=&r=https%3A%2F%2Fdashboard.menthorq.io%2Fen%2Foptions%2Fheatmap%3Fsymbol%3DSPX&cb=1784068958620",
+  "post": "",
+  "auth": ""
+ },
+ {
+  "phase": "heatmap",
+  "method": "GET",
+  "url": "https://cf.menthorq.io/clickhouse-api/api/web/v1/tickers",
+  "post": "",
+  "auth": "Bearer eyJraWQiOiJFMVpDcDdtTHZOVWNFQkxRO"
+ },
+ {
+  "phase": "heatmap",
+  "method": "GET",
+  "url": "https://cf.menthorq.io/clickhouse-api/api/web/v1/market-status/NYSE",
+  "post": "",
+  "auth": "Bearer eyJraWQiOiJFMVpDcDdtTHZOVWNFQkxRO"
+ },
+ {
+  "phase": "heatmap",
+  "method": "GET",
+  "url": "https://dashboard.menthorq.io/en/levels?_rsc=vrwho",
+  "post": "",
+  "auth": ""
+ },
+ {
+  "phase": "heatmap",
+  "method": "GET",
+  "url": "https://dashboard.menthorq.io/en/tickers?_rsc=vrwho",
+  "post": "",
+  "auth": ""
+ },
+ {
+  "phase": "heatmap",
+  "method": "GET",
+  "url": "https://dashboard.menthorq.io/en/charts/price?symbol=&interval=1&indicators=levels&_rsc=vrwho",
+  "post": "",
+  "auth": ""
+ },
+ {
+  "phase": "heatmap",
+  "method": "GET",
+  "url": "https://gateway.menthorq.io/clickhouse-api/api/web/v1/options/net-gex-by-expiration/SPX?frequency=intraday",
+  "post": "",
+  "auth": "Bearer eyJraWQiOiJFMVpDcDdtTHZOVWNFQkxRO"
+ },
+ {
+  "phase": "heatmap",
+  "method": "GET",
+  "url": "https://cf.menthorq.io/clickhouse-api/api/web/v1/prices?tickers=SPX",
+  "post": "",
+  "auth": "Bearer eyJraWQiOiJFMVpDcDdtTHZOVWNFQkxRO"
+ },
+ {
+  "phase": "heatmap",
+  "method": "GET",
+  "url": "https://gateway.menthorq.io/clickhouse-api/api/web/v1/tickers/SPX/last-updated",
+  "post": "",
+  "auth": "Bearer eyJraWQiOiJFMVpDcDdtTHZOVWNFQkxRO"
+ },
+ {
+  "phase": "heatmap",
+  "method": "GET",
+  "url": "https://gateway.menthorq.io/clickhouse-api/api/web/v1/options/matrix/SPX?frequency=intraday",
+  "post": "",
+  "auth": "Bearer eyJraWQiOiJFMVpDcDdtTHZOVWNFQkxRO"
+ },
+ {
+  "phase": "heatmap",
+  "method": "GET",
+  "url": "https://dashboard.menthorq.io/en/tickers/SPX?_rsc=vrwho",
+  "post": "",
+  "auth": ""
+ },
+ {
+  "phase": "heatmap",
+  "method": "GET",
+  "url": "https://gateway.menthorq.io/clickhouse-api/api/web/v1/options/net-gex-by-expiration/SPX?frequency=eod",
+  "post": "",
+  "auth": "Bearer eyJraWQiOiJFMVpDcDdtTHZOVWNFQkxRO"
+ },
+ {
+  "phase": "summary",
+  "method": "GET",
+  "url": "https://dashboard.menthorq.io/en/tickers/SPX",
+  "post": "",
+  "auth": ""
+ },
+ {
+  "phase": "summary",
+  "method": "POST",
+  "url": "https://dashboard.menthorq.io/vr6rnlto?o=4508403756498944&p=4510030024802304&r=us",
+  "post": "{\"dsn\":\"https://a4864b1b84c38a8c782f2e855b73a6df@o4508403756498944.ingest.us.sentry.io/4510030024802304\"}\n{\"type\":\"client_report\"}\n{\"timestamp\":1784068969.343,\"discarded_events\":[{\"reason\":\"sample_rate\",\"category\":\"transaction\",\"quantity\":1}]}",
+  "auth": ""
+ },
+ {
+  "phase": "summary",
+  "method": "GET",
+  "url": "https://dashboard.menthorq.io/en/tickers/SPX",
+  "post": "",
+  "auth": ""
+ },
+ {
+  "phase": "summary",
+  "method": "GET",
+  "url": "blob:https://dashboard.menthorq.io/6b315d2c-4f0a-4c11-a921-516d3bfdfec0",
+  "post": "",
+  "auth": ""
+ },
+ {
+  "phase": "summary",
+  "method": "GET",
+  "url": "https://uct.service.usercentrics.eu/uct?v=2&sid=oSxGQcwWkcs3Za&t=24&abv=&r=https%3A%2F%2Fdashboard.menthorq.io%2Fen%2Ftickers%2FSPX&cb=1784068970672",
+  "post": "",
+  "auth": ""
+ },
+ {
+  "phase": "summary",
+  "method": "GET",
+  "url": "https://cf.menthorq.io/clickhouse-api/api/web/v1/tickers",
+  "post": "",
+  "auth": "Bearer eyJraWQiOiJFMVpDcDdtTHZOVWNFQkxRO"
+ },
+ {
+  "phase": "summary",
+  "method": "GET",
+  "url": "https://cf.menthorq.io/clickhouse-api/api/web/v1/market-status/NYSE",
+  "post": "",
+  "auth": "Bearer eyJraWQiOiJFMVpDcDdtTHZOVWNFQkxRO"
+ },
+ {
+  "phase": "summary",
+  "method": "GET",
+  "url": "https://cf.menthorq.io/clickhouse-api/api/web/v1/prices?tickers=SPX",
+  "post": "",
+  "auth": "Bearer eyJraWQiOiJFMVpDcDdtTHZOVWNFQkxRO"
+ },
+ {
+  "phase": "summary",
+  "method": "GET",
+  "url": "https://gateway.menthorq.io/clickhouse-api/api/web/v1/gamma-levels/SPX/eod",
+  "post": "",
+  "auth": "Bearer eyJraWQiOiJFMVpDcDdtTHZOVWNFQkxRO"
+ },
+ {
+  "phase": "summary",
+  "method": "GET",
+  "url": "https://gateway.menthorq.io/clickhouse-api/api/web/v1/metrics/SPX/eod?fields=option&fields=momentum&fields=volatility&fields=seasonality&limit=30",
+  "post": "",
+  "auth": "Bearer eyJraWQiOiJFMVpDcDdtTHZOVWNFQkxRO"
+ },
+ {
+  "phase": "summary",
+  "method": "GET",
+  "url": "https://gateway.menthorq.io/qbot-service/api/web/v1/events?ticker=SPX&kind=news_significant&start_date=2026-06-30&end_date=2026-07-14",
+  "post": "",
+  "auth": "Bearer eyJraWQiOiJFMVpDcDdtTHZOVWNFQkxRO"
+ },
+ {
+  "phase": "summary",
+  "method": "GET",
+  "url": "https://gateway.menthorq.io/qbot-service/api/web/v1/company-news?ticker=SPX&date=2026-07-14&number=12",
+  "post": "",
+  "auth": "Bearer eyJraWQiOiJFMVpDcDdtTHZOVWNFQkxRO"
+ },
+ {
+  "phase": "summary",
+  "method": "GET",
+  "url": "https://gateway.menthorq.io/clickhouse-api/api/web/v1/gamma-insights/SPX?limit=20",
+  "post": "",
+  "auth": "Bearer eyJraWQiOiJFMVpDcDdtTHZOVWNFQkxRO"
+ },
+ {
+  "phase": "summary",
+  "method": "GET",
+  "url": "https://gateway.menthorq.io/clickhouse-api/api/web/v1/gamma-insights/SPX?limit=252",
+  "post": "",
+  "auth": "Bearer eyJraWQiOiJFMVpDcDdtTHZOVWNFQkxRO"
+ },
+ {
+  "phase": "summary",
+  "method": "GET",
+  "url": "https://gateway.menthorq.io/clickhouse-api/api/web/v1/gamma-insights/SPX/expirations?frequency=eod",
+  "post": "",
+  "auth": "Bearer eyJraWQiOiJFMVpDcDdtTHZOVWNFQkxRO"
+ },
+ {
+  "phase": "summary",
+  "method": "GET",
+  "url": "https://cf.menthorq.io/clickhouse-api/api/web/v1/volatility-insights/SPX",
+  "post": "",
+  "auth": "Bearer eyJraWQiOiJFMVpDcDdtTHZOVWNFQkxRO"
+ },
+ {
+  "phase": "summary",
+  "method": "GET",
+  "url": "https://gateway.menthorq.io/clickhouse-api/api/web/v1/tickers/SPX/candles?interval=5m&from=1783982572000&to=1784068972000&countBack=288",
+  "post": "",
+  "auth": "Bearer eyJraWQiOiJFMVpDcDdtTHZOVWNFQkxRO"
+ },
+ {
+  "phase": "summary",
+  "method": "GET",
+  "url": "https://cf.menthorq.io/clickhouse-api/api/web/v1/prices?tickers=SPX",
+  "post": "",
+  "auth": "Bearer eyJraWQiOiJFMVpDcDdtTHZOVWNFQkxRO"
+ },
+ {
+  "phase": "summary",
+  "method": "GET",
+  "url": "https://dashboard.menthorq.io/en/charts/price?symbol=SPX&indicators=levels&_rsc=ula7g",
+  "post": "",
+  "auth": ""
+ },
+ {
+  "phase": "summary",
+  "method": "GET",
+  "url": "https://dashboard.menthorq.io/en/levels?_rsc=ula7g",
+  "post": "",
+  "auth": ""
+ },
+ {
+  "phase": "summary",
+  "method": "GET",
+  "url": "https://dashboard.menthorq.io/en/tickers?_rsc=ula7g",
+  "post": "",
+  "auth": ""
+ },
+ {
+  "phase": "summary",
+  "method": "GET",
+  "url": "https://gateway.menthorq.io/qbot-service/api/web/v1/events?ticker=SPX&kind=news_significant&start_date=2026-07-14&end_date=2026-07-14",
+  "post": "",
+  "auth": "Bearer eyJraWQiOiJFMVpDcDdtTHZOVWNFQkxRO"
+ },
+ {
+  "phase": "summary",
+  "method": "GET",
+  "url": "https://gateway.menthorq.io/qbot-service/api/web/v1/events?ticker=SPX&kind=earnings&start_date=2026-07-14&end_date=2026-07-14",
+  "post": "",
+  "auth": "Bearer eyJraWQiOiJFMVpDcDdtTHZOVWNFQkxRO"
+ },
+ {
+  "phase": "summary",
+  "method": "GET",
+  "url": "https://gateway.menthorq.io/clickhouse-api/api/web/v1/options/matrix/SPX?frequency=intraday",
+  "post": "",
+  "auth": "Bearer eyJraWQiOiJFMVpDcDdtTHZOVWNFQkxRO"
+ }
+]

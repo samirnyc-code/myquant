@@ -1,0 +1,28 @@
+In this lesson, you’ll discover how gamma levels on futures options can help you better manage market volatility and improve your trading precision. We at MenthorQ are thrilled to introduce the first platform to provide gamma levels by looking at the futures option chain, making the data cleaner and more accurate than platforms that use index options as a proxy.
+
+Futures options are financial derivatives that grant you the right, but not the obligation, to buy or sell one futures contract at a predetermined price within a specified time frame. These options come in two types: calls and puts, each with a strike price and expiration date. When exercised, one futures options contract gives you exposure to one futures contract. Unlike regular futures where losses can be substantial, as an option buyer your risk is limited to the premium paid for the option.
+
+The biggest challenge for futures traders is managing market volatility, as futures carry significant leverage that can lead to large gains or losses. Gamma levels on futures options help you better identify market reaction zones, increasing your precision in identifying trend reversal areas and take profit targets. These reaction zones not only help you identify when to take a trade, but also when to stop and better manage your risk.
+
+Consider the practical advantage of 24/5 trading capability. When key economic indicators like CPI data are released at 8:30am Eastern Time before the market opens at 9:30am, you can react immediately. For example, on April 10, CPI data caused the market to drop almost 2% on the news. Futures and futures options allow you to respond to this information almost immediately, capturing opportunities created by market reactions. The same applies to after-market trading when companies like Apple or Microsoft release earnings after the market closes.
+
+We provide futures levels on multiple asset classes including index futures like ES and NQ and Russell, commodities like oil and natural gas, metals like gold, silver, platinum and copper, soft commodities, as well as rates and forex. This coverage allows you to leverage various strategies from bullish to bearish and even neutral approaches.
+
+Options volume surpassed equity volumes for the first time in 2001, and this trend is here to stay. Even if you don’t trade options, you need to be aware of how options can affect the underlying price, as options volume may become the key flow responsible for certain price action.
+
+Video Chapters
+00:00 – Introduction to gamma levels on futures options
+01:12 – Background and expertise behind MenthorQ
+02:18 – Why futures options are becoming more important
+03:29 – Who uses futures: hedgers and speculators
+04:33 – How futures options work and their advantages
+06:29 – 24/5 trading capability and reacting to market events
+07:53 – Futures coverage including indices, commodities, and metals
+Key Takeaways
+MenthorQ is the first platform to provide gamma levels on futures options by looking at the futures option chain for cleaner, more accurate data
+Gamma levels help identify market reaction zones for better precision in spotting trend reversals and take profit targets
+Futures options offer 24/5 trading capability, allowing you to react immediately to economic data releases and after-hours earnings announcements
+Options buyers have limited risk to only the premium…
+ Video Transcription
+ Previous Lesson
+Complete 

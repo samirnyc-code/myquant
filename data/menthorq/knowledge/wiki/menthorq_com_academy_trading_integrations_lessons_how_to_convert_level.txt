@@ -1,0 +1,30 @@
+In this lesson, you’ll discover how to use the level conversion tool to translate critical option levels from one asset to another, such as overlapping SPX gamma levels onto ES future charts or QQQ levels onto NQ. Since futures and spot prices rarely match due to spread, ratio, or fair value differences, without conversion your levels may be misaligned, leading to missed opportunities.
+
+Within MenthorQ, you can access the full option chain across futures, indices, and ETFs, which means you can extract the most relevant levels no matter where the liquidity is and overlay them directly into your chart. This is especially powerful for futures traders, ETF traders, or anyone trading correlated assets. The challenge is that you might analyze gamma levels on SPX option chain but trade ES futures, or spot key zones on QQQ but execute on NQ. Without conversion, these levels won’t line up on your chart because the spot and future prices rarely match.
+
+Understanding different option chains of correlated assets is crucial. SPX is most active for institutional flows, SPY is traded by retail asset managers with longer term horizons and 401k plans, while ES is traded by futures market makers, prop firms, CTAs, and retail investors. This results in three different option chains that reflect different positioning and risk. By comparing levels across the index, ETF, and future, you can spot hidden consensus zones, confirm high conviction strikes, and detect unusual divergences between flows.
+
+The level conversion tool uses two methods: spread (calculated as future price minus index price) or ratio (calculated as future price divided by index price). For example, when converting QQQ levels to NQ, you divide the NQ price by the QQQ price to get a ratio, then multiply each QQQ level by this ratio to get the equivalent NQ level. Common conversions include plotting SPX intraday or end of day gamma levels onto ES, QQQ and NDX gamma levels onto NQ, GLD levels into GC, USO levels into CL, DIA levels into YM, and even IBIT levels onto Bitcoin.
+
+Within the indicators, you have two options: manual ratio (where you calculate the spread or ratio yourself) or auto ratio (where the indicator automatically uses end of day prices). The auto ratio is available for some integrations like TradingView, NinjaTrader, and Transpider. The auto ratio updates at 9:31 Eastern and uses the previous official closing price of the future and the index, though manual ratio may provide better accuracy as it accounts for after-market volatility.
+
+To get started, open your settings in the indicator and scroll down to the level conversion settings. You’ll find default settings already configured, such as SPX to ES. Tick the box and select either auto ratio, manual ratio, or spread. The converted levels will appear in brackets with the ticker you’re converting from. You can also select converted levels only to remove the original asset levels and only plot the converted levels on your chart.
+
+Video Chapters
+00:00 – Introduction to the level conversion tool
+00:32 – Why converting levels between assets is important
+01:47 – Understanding different option chains of correlated assets
+03:29 – Typical conversion use cases for traders
+05:16 – How conversion is calculated using spread and ratio
+07:07 – Manual ratio vs auto ratio methods
+08:37 – Converting levels in TradingView indicators
+Key Takeaways
+The level conversion tool ensures your analysis is aligned with real market structure by translating option levels from one asset to another
+Conversion uses either spread (future price minus index price) or ratio (future price divided by index price) calculations
+You can use manual ratio for better accuracy or auto ratio which updates at 9:31 Eastern using previous day closing prices
+Converted levels appear in brackets and you can choose to display both original and converted levels or converted levels only
+Check the Full Guide on Levels Conversion
+Access the Levels Conversion Indicator on TradingView
+ Video Transcription
+Previous
+Next 

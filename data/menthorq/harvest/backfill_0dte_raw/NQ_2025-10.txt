@@ -1,0 +1,53 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+CLOSED
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the NQ gamma levels for each trading day from 2025-10-01 through 2025-10-31, one row per day, EXACTLY these columns in this order: Date, Call Resistance 0DTE, Put Support 0DTE, HVL 0DTE, Gamma Wall 0DTE, 1D Min, 1D Max. ISO dates, numbers only.
+
+I'll route this to the Data Expert, as it's a historical time-series request for multiple dates (October 2025) with specific metrics.I'll retrieve the NQ gamma levels for October 2025 with the exact columns and format you specified.
+
+1 step completed
+
+No data available for NQ during October 1-31, 2025. The screener database contains end-of-day data only, and October 2025 is in the past relative to today (July 15, 2026).
+
+Possible reasons:
+
+Historical data gap: The database may not retain EOD records from October 2025
+Ticker mismatch: NQ typically refers to the continuous futures contract NQ1! — let me retry with that ticker
+
+Would you like me to:
+
+Try NQ1! (continuous Nasdaq-100 futures) instead of NQ?
+Query a different date range that's within the available data window?
+Check what date range is available for NQ/NQ1!?
+Keep exploring
+Options
+How can I use the NQ gamma levels data to improve my intraday trading strategies?
+Options
+How do the Gamma Levels interact with other MenthorQ indicators like NetGex and Q-Score for a comprehensive market analysis?
+0DTE
+What is the methodology behind calculating the High Vol Level (HVL) and Gamma Wall levels in the 0DTE data for NQ?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

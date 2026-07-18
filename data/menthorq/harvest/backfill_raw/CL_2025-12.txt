@@ -1,0 +1,72 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+CLOSED
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the CL Call Resistance, Put Support, and HVL levels for each trading day from 2025-12-01 through 2025-12-31, one row per day, columns: Date, Call Resistance, Put Support, HVL.
+
+I'll route this to the Data Expert, as you're requesting historical time-series data across multiple dates—a capability that requires their stateful screener and historical data access.I'll retrieve the gamma levels for CL (crude oil futures) for December 2025.
+
+1 step completed
+
+CL crude oil gamma levels held relatively stable through December 2025, with call resistance anchored at $60-61 and put support at $55-58. (Data as of Dec 31, 2025)
+
+Date	Call Resistance	Put Support	HVL
+2025-12-01	$60.00	$58.00	$59.25
+2025-12-02	$60.00	$58.00	$59.00
+2025-12-03	$60.00	$58.00	$59.00
+2025-12-04	$60.00	$58.00	$59.25
+2025-12-05	$60.00	$58.00	$59.00
+2025-12-08	$60.00	$58.00	$59.00
+2025-12-09	$60.00	$58.00	$59.00
+2025-12-10	$60.00	$58.00	$58.50
+2025-12-11	$60.00	$55.00	$58.50
+2025-12-12	$65.00	$55.00	$58.50
+2025-12-15	$61.00	$55.00	$57.00
+2025-12-16	$61.00	$55.00	$57.00
+2025-12-17	$61.00	$55.00	$55.75
+2025-12-18	$61.00	$55.00	$55.75
+2025-12-19	$61.00	$55.00	$57.00
+2025-12-22	$61.00	$55.00	$57.00
+2025-12-23	$61.00	$55.00	$57.25
+2025-12-24	$58.00	$55.00	$57.75
+2025-12-26	$61.00	$55.00	$57.75
+2025-12-29	$61.00	$55.00	$57.50
+2025-12-30	$61.00	$55.00	$57.75
+2025-12-31	$61.00	$55.00	$57.50
+
+Notable shifts:
+
+Dec 11: Put support dropped from $58 to $55 — significant downside gamma cluster shift
+Dec 12: Call resistance spiked to $65 (single-day outlier), then normalized to $61
+Dec 24: Call resistance dipped to $58 (holiday trading), then returned to $61
+Keep exploring
+Options
+How can I use the Call Resistance and Put Support levels to make more informed trading decisions in crude oil futures?
+Options
+What other MenthorQ indicators, like NetGex or Q-Score, complement the analysis of Call Resistance and Put Support levels?
+Futures
+Can you explain how the High Vol Level (HVL) is calculated and its significance in identifying key market turning points for CL futures?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

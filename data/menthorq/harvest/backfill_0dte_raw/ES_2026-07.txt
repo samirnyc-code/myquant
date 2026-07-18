@@ -1,0 +1,52 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+CLOSED
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the ES gamma levels for each trading day from 2026-07-01 through 2026-07-15, one row per day, EXACTLY these columns in this order: Date, Call Resistance 0DTE, Put Support 0DTE, HVL 0DTE, Gamma Wall 0DTE, 1D Min, 1D Max. ISO dates, numbers only.
+1 step completed
+
+The data returned covers 8 trading days (market was closed July 3-5 and July 11-12). Here's the table with the exact columns and format you requested:
+
+Date	Call Resistance 0DTE	Put Support 0DTE	HVL 0DTE	Gamma Wall 0DTE	1D Min	1D Max
+2026-07-01	7610.00	7525.00	7525.00	—	7462.13	7603.37
+2026-07-02	7600.00	7525.00	7525.00	—	7462.24	7583.76
+2026-07-06	7600.00	7500.00	7515.00	—	7535.52	7657.98
+2026-07-07	7550.00	7525.00	7545.00	—	7488.47	7615.03
+2026-07-08	7575.00	7500.00	7520.00	—	7447.65	7583.35
+2026-07-09	7600.00	7500.00	7520.00	—	7523.78	7648.72
+2026-07-10	7600.00	7410.00	7545.00	—	7564.35	7687.65
+2026-07-13	7630.00	7540.00	7545.00	—	7487.97	7620.53
+
+Note: The database does not contain a "Gamma Wall 0DTE" column. The 6 columns you requested map to available data as shown. July 3-5 and July 11-12 were non-trading days (weekend/holiday). July 14-15 data is not yet available in the EOD database.
+
+Keep exploring
+0DTE
+How can I use the ES Gamma Levels data to anticipate market maker behavior during 0DTE trading days?
+Options
+What other MenthorQ indicators, like NetGex or Q-Score, complement the analysis of Gamma Levels for ES futures?
+0DTE
+Can you explain how the High Vol Level (HVL) 0DTE is calculated and its significance in intraday trading decisions?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

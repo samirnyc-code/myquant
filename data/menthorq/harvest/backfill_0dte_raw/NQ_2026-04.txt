@@ -1,0 +1,69 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+CLOSED
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the NQ gamma levels for each trading day from 2026-04-01 through 2026-04-30, one row per day, EXACTLY these columns in this order: Date, Call Resistance 0DTE, Put Support 0DTE, HVL 0DTE, Gamma Wall 0DTE, 1D Min, 1D Max. ISO dates, numbers only.
+
+I'll retrieve the NQ gamma levels for April 2026 with the exact columns and format you specified.
+
+1 step completed
+
+No data returned for ticker "NQ" in April 2026. Let me try with the continuous futures contract NQ1!:
+
+1 step completed
+Date	Call Resistance 0DTE	Put Support 0DTE	HVL 0DTE	Gamma Wall 0DTE	1D Min	1D Max
+2026-04-01	24400.00	24150.00	24060.00	—	23827.58	24546.92
+2026-04-02	24200.00	23880.00	24060.00	—	23867.01	24571.99
+2026-04-06	24500.00	24000.00	24290.00	—	23995.71	24703.79
+2026-04-07	24500.00	23500.00	24175.00	—	24030.01	24768.49
+2026-04-08	25100.00	25020.00	24390.00	—	24705.58	25372.42
+2026-04-09	25250.00	24750.00	24740.00	—	24931.40	25558.10
+2026-04-10	25450.00	24875.00	24390.00	—	25022.60	25643.40
+2026-04-13	25450.00	25200.00	24740.00	—	25283.76	25887.24
+2026-04-14	26000.00	25660.00	24740.00	—	25681.26	26298.74
+2026-04-15	26350.00	25850.00	25290.00	—	26036.73	26682.27
+2026-04-16	26500.00	26325.00	25290.00	—	26146.56	26781.94
+2026-04-17	26650.00	26075.00	25290.00	—	26516.74	27164.76
+2026-04-20	26800.00	26650.00	25490.00	—	26449.19	27099.31
+2026-04-21	26960.00	26600.00	26490.00	—	26384.56	27057.94
+2026-04-22	27150.00	26900.00	25740.00	—	26765.51	27447.49
+2026-04-23	27000.00	26800.00	26490.00	—	26601.75	27283.75
+2026-04-24	27700.00	26600.00	25730.00	—	27092.36	27788.14
+2026-04-27	27440.00	27200.00	26490.00	—	27076.19	27760.81
+2026-04-28	27375.00	27000.00	27040.00	—	26850.87	27532.13
+2026-04-29	27500.00	26775.00	27190.00	—	26792.41	27505.09
+2026-04-30	27700.00	27400.00	27240.00	—	27267.53	27929.47
+
+Note: "Gamma Wall 0DTE" column not available in database — substituted with "—". The database does not contain a distinct gamma wall metric; call resistance and put support serve as gamma cluster proxies. All values are for NQ1! (continuous E-mini Nasdaq futures). Weekend dates (Apr 3-5, 11-12, 18-19, 25-26) excluded (no trading).
+
+Keep exploring
+0DTE
+How can I use the NQ gamma levels like Call Resistance 0DTE and Put Support 0DTE to improve my intraday trading strategies?
+0DTE
+What other MenthorQ indicators, such as NetGex or Swing Levels, complement the analysis of 0DTE Gamma Levels for futures like NQ?
+0DTE
+Can you explain how the High Vol Level (HVL) 0DTE is calculated and what its significance is in identifying market maker positioning?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

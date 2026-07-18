@@ -1,0 +1,65 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+AFTER-HOURS
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the SPX Call Resistance, Put Support, and HVL levels for each trading day from 2026-06-01 through 2026-06-30, one row per day, columns: Date, Call Resistance, Put Support, HVL.
+1 step completed
+
+SPX gamma levels for June 2026. (Data as of Jun 30, 2026)
+
+Date	Call Resistance	Put Support	HVL
+2026-06-01	$7,600.00	$7,100.00	$7,395.00
+2026-06-02	$7,700.00	$7,300.00	$7,420.00
+2026-06-03	$7,700.00	$7,300.00	$7,495.00
+2026-06-04	$7,600.00	$7,300.00	$7,495.00
+2026-06-05	$7,700.00	$7,300.00	$7,495.00
+2026-06-08	$7,600.00	$7,300.00	$7,495.00
+2026-06-09	$7,600.00	$7,300.00	$7,490.00
+2026-06-10	$8,000.00	$7,200.00	$7,420.00
+2026-06-11	$7,500.00	$7,300.00	$7,420.00
+2026-06-12	$7,500.00	$7,200.00	$7,415.00
+2026-06-15	$7,600.00	$7,200.00	$7,420.00
+2026-06-16	$7,600.00	$7,300.00	$7,420.00
+2026-06-17	$7,700.00	$7,200.00	$7,495.00
+2026-06-18	$7,700.00	$7,300.00	$7,495.00
+2026-06-22	$7,700.00	$7,400.00	$7,495.00
+2026-06-23	$7,800.00	$7,200.00	$7,495.00
+2026-06-24	$7,800.00	$7,200.00	$7,490.00
+2026-06-25	$7,800.00	$7,300.00	$7,445.00
+2026-06-26	$7,800.00	$7,300.00	$7,445.00
+2026-06-29	$7,500.00	$7,300.00	$7,405.00
+2026-06-30	$7,500.00	$7,300.00	$7,425.00
+
+Notable: Call Resistance climbed from $7,600–$7,700 early month to $7,800 mid-to-late June (Jun 23–26), then dropped back to $7,500 by month-end. Put Support remained relatively stable in the $7,200–$7,300 range throughout, with a brief dip to $7,100 on Jun 1. HVL clustered around $7,420–$7,495 for most of the month.
+
+Keep exploring
+Options
+How can I use the SPX Call Resistance and Put Support levels to improve my options trading strategies?
+Options
+What other MenthorQ indicators, like NetGex or Q-Score, complement the analysis of Call Resistance and Put Support levels?
+Learn
+Can you explain how the High Vol Level (HVL) is calculated and what market conditions it typically signals?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

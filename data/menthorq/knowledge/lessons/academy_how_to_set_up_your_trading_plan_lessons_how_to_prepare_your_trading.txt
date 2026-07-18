@@ -1,0 +1,25 @@
+In this lesson, you’ll discover how to use the VIX (Volatility Index) as a powerful tool to prepare your trading plan and make better decisions when trading S&P 500 and NQ futures. We break down a simple yet effective approach to reading the VIX that any trader can implement immediately.
+
+The VIX is a volatility index for the S&P 500, and understanding its relationship with the market is straightforward: when the VIX goes up, the market typically goes down, and when the VIX goes down, the market usually goes up. This correlation exists because institutions and wealthy traders often hedge their positions with the VIX, making it a reliable indicator for your trading decisions.
+
+We show you how to map out the VIX by identifying a good range from recent days and marking the high and low with a blue line and a middle black line. This creates an RSI-style indicator based on the VIX that displays overbought and oversold signals. What makes this approach even more powerful is combining it with gamma levels from MenthorQ, including the one day expected move max, GEX zero, put support, GEX Level 1, GEX Level 5, and one day move minimum.
+
+In practical trading examples shown in the futures trading room, when the VIX made lower highs in the overbought area, the market fell down consistently. At one critical moment, when put support broke, price dropped all the way to GEX Level 1, which then acted as support—demonstrating how gamma levels often react as strong magnets for price action.
+
+Whether you’re trading futures contracts or ETFs like QQQ or SPY, this simple VIX reading method provides overbought and oversold signals combined with gamma levels. The golden rule: never fight the VIX. Keep it simple rather than overcomplicating what should be easy.
+
+Video Chapters
+00:00 – Introduction to reading the VIX
+00:30 – Understanding what the VIX is and market correlation
+01:38 – Mapping out the VIX as an RSI indicator
+03:08 – Adding MenthorQ gamma levels to VIX analysis
+03:27 – Real trading room example with lower highs pattern
+05:18 – How gamma levels act as magnets and support
+Key Takeaways
+The VIX typically moves inverse to the market: VIX up means market down, VIX down means market up
+Map the VIX with high and low ranges to create an RSI-style indicator showing overbought and oversold conditions
+Combine VIX analysis with MenthorQ gamma levels like GEX Level 1, put support, and one day expected move for powerful trading signals
+Always remember: never fight the VIX when trading futures or ETFs
+ Video Transcription
+ Previous Lesson
+Complete 

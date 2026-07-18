@@ -1,0 +1,25 @@
+Understanding how to effectively use the Blind Spots Levels indicator can transform your trading by consolidating critical cross-asset information directly onto your chart. In this lesson, you’ll learn what the Blind Spots indicator is, why it was created, which assets it covers, and how to use it both standalone and in combination with gamma levels for more effective trading decisions.
+
+The Blind Spots indicator was born from a day trader’s challenge of monitoring multiple correlated assets simultaneously. When trading NQ, you typically watch SPX, QQQ, Nvidia, Tesla, and other assets across different chart windows, making it difficult to stay focused on your primary execution chart. The Blind Spots indicator solves this by placing all the levels from highly correlated assets into one area on your chart, eliminating the need to switch between multiple windows.
+
+The indicator displays the power of cross-asset correlation, volatility changes, and option positioning on correlated assets that could trigger strong price reactions. For example, if you trade NQ without paying attention to the Max 7 or Nvidia, you’re missing critical information that could significantly impact your trades. We cover assets including futures, ETFs, major sector ETFs like gold and USO, and Forex pairs. The indicator is particularly valuable for assets like the Dow Jones future (YM), which has no direct option activity, providing crucial option positioning data through blind spots.
+
+The numbering system differs from gamma levels: while GEX1 represents the highest net gamma exposure and is stronger than GEX10, Blind Spots numbering reflects overlapping areas or correlation rather than strength. BL1 has the most correlation, while BL10 has less, but a BL8 level can still produce very strong reactions if it aligns with a key option level from the underlying asset. The real power emerges when you combine Blind Spots with gamma levels—when a Blind Spot supports a gamma level, it acts as a strong magnet for price action, creating high-probability areas of interest for your trades.
+
+You can use the Blind Spots indicator standalone or overlay it with gamma levels on your chart. Use your drawing tools to mark these reaction areas with rectangles, creating clear zones for risk management, profit targets, and potential reversal trades. Focus on where Blind Spots align with gamma levels rather than the specific number assigned to each level.
+
+Video Chapters
+00:00 – Introduction and session overview
+01:28 – Background on why Blind Spots was created
+04:16 – Understanding cross-asset correlation and option positioning
+07:09 – Asset coverage and Dow Jones example
+11:23 – Blind Spots numbering system explained
+14:19 – Understanding overlapping as correlation
+Key Takeaways
+The Blind Spots indicator consolidates levels from highly correlated assets onto one chart, eliminating the need to monitor multiple windows
+Blind Spots are available on futures, ETFs, major sector ETFs, and Forex pairs, providing option positioning data even for assets without direct option activity
+When a Blind Spot supports a gamma level, it creates a strong magnet for price action, marking high-probability areas for trade planning
+The numbering system reflects correlation
+ Video Transcription
+Previous
+Complete 

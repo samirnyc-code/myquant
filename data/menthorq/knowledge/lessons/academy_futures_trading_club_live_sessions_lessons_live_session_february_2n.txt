@@ -1,0 +1,27 @@
+Welcome to our 6am morning club live trading session where we walk you through building a comprehensive futures trading roadmap using MenthorQ levels. This session demonstrates the exact process of combining multiple MenthorQ indicators and models to create actionable trading zones for the day ahead, with practical examples shown on live market conditions.
+
+When drawing a trading roadmap manually, the setup includes several key components: MenthorQ blind spots, MenthorQ gamma levels for futures, conversions from the most liquid instruments (SPX to ES, QQQ to NQ, IWM to RTY, GLD to GZ, and OUZ to crude), and importantly, the swing trading levels. The swing trading levels use the same conversions and provide critical context, especially on volatile market days.
+
+The upper bands and lower bands from the swing trading model provide forecasted price boundaries within the next five days, along with a risk trigger level. When you see all blind spots positioned entirely above or below price (like BL7 and BL1 all above), this is a strong signal that something significant has happened in the market and presents an opportunity to become active. Understanding the differences between NQ futures, QQQ ETF options, and NDX option chains is crucial because each attracts different types of traders—QQQ is favored by long-term investors like pension funds and asset managers, while NQ may be used more by hedge funds for hedging.
+
+The practical demonstration showed how put support levels worked perfectly during the session, providing clear entry zones. To fill gaps between clustered levels, a Fibonacci retracement tool is applied with specific settings: 0, 0.382, 0.5, 0.618, and 1. These Fibonacci levels can be drawn from top to bottom or bottom to top without difference, and they often work like magic to identify additional support and resistance within larger zones. Rectangle boxes are drawn around these clusters and Fibonacci levels to create the visual trading roadmap.
+
+The session covers futures trading across multiple instruments including NQ, ES, RTY, GZ, and CL. The approach integrates high wall levels, weekly levels (interpreted as risk triggers), one day min and max levels, call resistance, and put support from various timeframes. The roadmap method identifies where big clusters form, mapping out key zones where multiple indicators converge.
+
+To access these live sessions, premium members can find recordings in the academy section with approximately 28 days of previous sessions from earlier periods, plus additional December sessions. The new TradingView indicator mentioned will automate this roadmap drawing process, making it easier to visualize all these levels together without manual plotting.
+
+Video Chapters
+00:00 – Introduction to 6am morning club and futures trading roadmap
+01:21 – Essential indicators for drawing a trading roadmap
+02:56 – Starting with swing trading levels on NQ
+04:54 – Understanding upper bands and lower bands
+06:55 – Interpreting blind spots and what they signal
+09:07 – Differences between NQ, QQQ, and NDX option chains
+11:00 – Identifying clusters and mapping key levels
+12:19 – Using Fibonacci retracement to fill gaps
+14:28 – How the roadmap integrates option data with price action
+Key Takeaways
+The tradin…
+ Video Transcription
+ Previous Lesson
+Complete 

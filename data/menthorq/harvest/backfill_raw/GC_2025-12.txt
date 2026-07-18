@@ -1,0 +1,73 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+CLOSED
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the GC Call Resistance, Put Support, and HVL levels for each trading day from 2025-12-01 through 2025-12-31, one row per day, columns: Date, Call Resistance, Put Support, HVL.
+
+I'll route this to the Data Expert, as you're requesting historical time-series data across multiple dates—a capability that requires their stateful screener and historical data access.I'll retrieve the gamma levels for GC (Gold Futures) for December 2025.
+
+1 step completed
+
+Gold (GC) gamma levels for December 2025 show significant upside resistance shift mid-month. (Data as of Dec 31, 2025)
+
+Date	Call Resistance	Put Support	HVL
+2025-12-01	$4,250.00	$4,195.00	$4,195.00
+2025-12-02	$4,250.00	$4,195.00	$4,195.00
+2025-12-03	$4,250.00	$4,195.00	$4,220.00
+2025-12-04	$4,250.00	$4,195.00	$4,220.00
+2025-12-05	$4,250.00	$4,195.00	$4,215.00
+2025-12-08	$4,250.00	$4,175.00	$4,205.00
+2025-12-09	$4,250.00	$4,175.00	$4,220.00
+2025-12-10	$4,250.00	$4,195.00	$4,220.00
+2025-12-11	$4,350.00	$4,195.00	$4,205.00
+2025-12-12	$4,350.00	$4,195.00	$4,205.00
+2025-12-15	$4,350.00	$4,200.00	$4,205.00
+2025-12-16	$4,350.00	$4,195.00	$4,205.00
+2025-12-17	$4,450.00	$4,365.00	$4,205.00
+2025-12-18	$4,450.00	$4,365.00	$4,205.00
+2025-12-19	$4,450.00	$4,200.00	$4,205.00
+2025-12-22	$4,450.00	$4,200.00	$4,245.00
+2025-12-23	$4,750.00	$4,200.00	$4,245.00
+2025-12-24	$4,500.00	$4,200.00	$4,300.00
+2025-12-26	$4,750.00	$4,195.00	$4,245.00
+2025-12-29	$4,750.00	$4,300.00	$4,390.00
+2025-12-30	$4,750.00	$4,200.00	$4,390.00
+2025-12-31	$4,410.00	$4,200.00	$4,365.00
+
+Key observations:
+
+Early month (Dec 1-10): Call resistance stable at $4,250, put support around $4,195 — tight range
+Mid-month shift (Dec 11-12): Call resistance jumps to $4,350 — dealers shift long gamma upside
+Late month surge (Dec 17-26): Call resistance peaks at $4,750 (Dec 23, 26) — strong upside gamma clustering
+Year-end (Dec 29-31): Put support rises to $4,300 (Dec 29), HVL climbs to $4,390 — volatility levels elevated into close
+Keep exploring
+Options
+How can I use the GC Call Resistance and Put Support levels to improve my intraday trading strategies?
+Options
+What is the relationship between HVL (High Vol Level) and Gamma Exposure in MenthorQ's market structure analysis?
+Options
+Are there MenthorQ Academy courses that explain how to interpret and apply Call Resistance and Put Support levels effectively?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

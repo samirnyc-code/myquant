@@ -1,0 +1,28 @@
+In this lesson, you’ll learn how to use Fibonacci retracements to identify support and resistance areas in trending markets. This powerful tool, based on the mathematical Fibonacci sequence discovered by Leonardo Pisano around 1200, helps you find optimal entry points during temporary price corrections within established trends.
+
+The lesson explains that price movements are never vertical—they tend to retrace or pull back temporarily before continuing in the trend direction. These retracements are temporary price corrections that occur in both uptrends and downtrends and typically don’t represent trend changes. The most commonly used retracement levels are 23.6%, 38.2%, 50%, and 61.8%, with the 0.618 level being particularly significant as the last level before a potential trend reversal.
+
+To apply Fibonacci retracements, you need to identify a swing high (the highest price value in a given period) and a swing low (the lowest price value in a given period). Using Trading view, you can draw the Fibonacci retracement tool by connecting these points. In an uptrend, draw from the swing low to the swing high to find potential long entry points. In a downtrend, draw from the swing high to the swing low to identify potential short entry opportunities.
+
+The practical application shows how different levels offer varying entry signals: the 38.2% level provides the first potential support, the 50% level acts as a psychological support point where prices often retrace about half their previous move, and the 61.8% level represents the most significant retracement level and the last major stand for trend continuation. When setting stop loss orders, focus on areas or zones around these levels rather than exact numerical values, allowing your trade enough room to evolve.
+
+The lesson demonstrates how combining Fibonacci retracements with other indicators increases trading effectiveness. Examples include aligning Fibonacci levels with support and resistance areas, using a 200 day moving average to confirm trend direction, and combining with RSI to identify oversold or overbought conditions. The lesson also introduces Fibonacci extensions as a tool for setting take profit targets.
+
+Video Chapters
+00:00 – Introduction to Fibonacci retracements and what retracements are
+01:06 – The Fibonacci sequence and golden ratio explained
+01:50 – How to use Fibonacci in trading strategy
+02:55 – Drawing Fibonacci on charts using Trading view
+04:37 – Step-by-step guide to drawing Fibonacci levels
+06:45 – Practical examples: Fibonacci in bullish and bearish trends
+08:18 – Understanding the different retracement levels
+11:14 – Combining Fibonacci with other indicators
+12:54 – Using Fibonacci extensions for take profit targets
+Key Takeaways
+The most significant Fibonacci retracement levels are 23.6%, 38.2%, 50%, and 61.8%, with the 61.8% level being the last major level before potential trend reversal
+Draw Fibonacci by connecting a swing low to swing high in uptrends, or swing high to swing low in downtrends to identify optimal entry points
+Set stop loss orders using areas or zones around Fibonacci levels rather than exact values to allow trades room to evolve
+Combining Fibonacci with other tools like support and resistance, moving averages, and RSI increases the probability of identi…
+ Video Transcription
+ Previous Lesson
+Complete 

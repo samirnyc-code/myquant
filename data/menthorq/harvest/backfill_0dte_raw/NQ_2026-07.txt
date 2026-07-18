@@ -1,0 +1,56 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+CLOSED
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the NQ gamma levels for each trading day from 2026-07-01 through 2026-07-15, one row per day, EXACTLY these columns in this order: Date, Call Resistance 0DTE, Put Support 0DTE, HVL 0DTE, Gamma Wall 0DTE, 1D Min, 1D Max. ISO dates, numbers only.
+
+I'll retrieve the NQ gamma levels for the specified date range.
+
+1 step completed
+Date	Call Resistance 0DTE	Put Support 0DTE	HVL 0DTE	Gamma Wall 0DTE	1D Min	1D Max
+2026-07-01	30325.00	29750.00	30080.00	-1.57M	29605.81	30522.69
+2026-07-02	29900.00	29500.00	29810.00	-2.58M	29092.15	30011.35
+2026-07-06	30100.00	29500.00	30020.00	-79.44K	29508.15	30387.35
+2026-07-07	29750.00	29000.00	29550.00	-2.52M	28977.77	29861.23
+2026-07-08	29700.00	29000.00	29500.00	-2.09M	28926.86	29855.64
+2026-07-09	30000.00	29400.00	29720.00	2.02M	29489.05	30373.45
+2026-07-10	30500.00	30050.00	29740.00	872.22K	29660.52	30476.48
+2026-07-13	30000.00	29000.00	29540.00	-2.16M	28976.36	29881.14
+2026-07-14	30150.00	29750.00	29750.00	-559	29366.63	30220.37
+
+Note: Data covers 9 trading days (2026-07-01 through 2026-07-14). July 3–5 and July 11–12 were non-trading days (weekends/holidays). July 15 data is not yet available (today's session is still in progress).
+
+Keep exploring
+0DTE
+How can I use the NQ gamma levels like Call Resistance and Put Support 0DTE to improve my intraday trading strategies?
+Options
+What is the relationship between Gamma Levels and other MenthorQ indicators such as NetGex and Q-Score for analyzing market maker positioning?
+0DTE
+Can you explain how the High Vol Level (HVL) 0DTE is calculated and how it influences the identification of Gamma Walls and potential price reversals?
+Messages exhausted!
+Get access to advanced features and priority support.
+Upgrade Now
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

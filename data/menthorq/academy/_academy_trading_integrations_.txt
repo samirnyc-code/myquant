@@ -1,0 +1,79 @@
+ACADEMY
+Subscribe
+Trading Integrations
+Course Description
+
+In this course, you will learn how to integrate the Menthor Q Data with various platforms. We can now integrate into TradingView, NinjaTrader, Sierra Chart and more We will show you the power of our new indicator.
+
+Course Objectives
+
+Learn how to use the indicators for the different trading platforms:
+
+TradingView
+NinjaTrader
+Quantower
+TrendSpider
+Bookmap
+ATAS
+Motivewave
+Tickblaze
+Sierra Chart
+MetaTrader 5
+What Next?
+
+How to connect your TradingView Account
+
+Start Next Lesson
+Course Progress
+TradingView
+How to connect your TradingView Account
+Start
+MenthorQ Gamma Levels Indicator
+Start
+MenthorQ Custom Levels
+Start
+MenthorQ Blind Spots Levels
+Start
+MenthorQ Swing Trading Levels
+Start
+MenthorQ Momentum Indicator
+Start
+TradingView Scanner
+Start
+Levels Conversion
+What Levels Conversion is and why it matters
+Start
+How to convert Levels with Ratio without the need of a Data Feed
+Start
+NinjaTrader
+NinjaTrader Indicator
+Start
+Levels Conversion on NinjaTrader
+Start
+TrendSpider
+TrendSpider Integration
+Start
+Historical Gamma and Blind Spot Levels
+Start
+Real Time Scanning with MenthorQ Levels
+Start
+Bookmap
+Bookmap Integration
+Start
+Bookmap + MenthorQ Tutorial
+Start
+Quantower
+Quantower Integration
+Start
+ATAS
+ATAS Integration
+Start
+MotiveWave
+MotiveWave Integration
+Start
+Tickblaze
+Tickblaze Integration
+Start
+MetaTrader 5
+MetaTrader 5 Indicator
+Start

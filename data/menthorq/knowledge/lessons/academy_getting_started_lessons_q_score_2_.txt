@@ -1,0 +1,30 @@
+In this lesson, you’ll discover how to leverage factor investing—the same quantitative approach used by hedge funds—through the Q-Score, a comprehensive scoring system that combines multiple data-driven signals to help you assess trade conviction and identify high-probability setups across different market conditions.
+
+The Q-Score is built on four key factors that institutional traders rely on. The Momentum Score ranges from 0 (bearish momentum) to 5 (bullish momentum), with 3 indicating neutral conditions. The Options Score also ranges from 0 to 5, reflecting market sentiment from option flow and activity, where 0 indicates strong bearish sentiment and 5 indicates strong bullish sentiment. The Seasonality Score ranges from -5 (bearish seasonality) to +5 (bullish seasonality) by analyzing the last 20 years of data to predict the next five days of price action. Finally, the Volatility Score ranges from 0 (low volatility) to 5 (high volatility), helping you understand whether you’re in a calm market or experiencing large price swings.
+
+You can use the Q-Score to enhance your existing strategy rather than replace it. If you have a high Q-Score, you might consider sizing up or acting with confidence, while a low Q-Score suggests avoiding forced trades when conditions are unclear. For example, if your chart looks great but the Q-Score disagrees, you can take a second look before entering the position. Momentum traders can filter out choppy setups, while reversal traders can wait for high scores to reach exhaustion points.
+
+The Q-Score supports various trading styles across multiple asset classes including crypto, stocks, and indices. Swing traders can identify favorable entry points, options traders can understand market sentiment and positioning, futures traders can adjust stops and manage risk in volatile markets, and position traders can identify assets with strong trends while managing active portfolios based on Q-Score changes.
+
+When you log into the dashboard, you’ll immediately see the Q-Score for each asset, giving you a complete view in less than 30 seconds of where the asset stands. This quantitative framework helps you avoid trading with emotions by providing clear, data-backed analysis using the same approach leveraged by institutions, so you’re not chasing price or jumping on news without a real framework.
+
+Video Chapters
+00:15 – Introduction to Q-Score and factor investing
+01:21 – Why professional traders rely on factors vs emotions
+03:28 – How traders can use the Q-Score in their workflow
+06:46 – Momentum Score explained (0 to 5 range)
+08:31 – Options Score and market sentiment
+09:18 – Seasonality Score and predicting next five days
+11:01 – Volatility Score for different market environments
+12:27 – Who can use the Q-Score and trading applications
+Key Takeaways
+The Q-Score combines four factors—momentum, options, seasonality, and volatility—into a single quantitative framework used by institutional traders
+Each factor score ranges from 0 to 5 (or -5 to +5 for seasonality), providing clear signals about trend strength, sentiment, and market conditions
+Use the Q-Score to confirm your existing strategy, filter trade ideas, and avoid trading when conditions disagree with your setup
+The Seasonality Score analyzes 20 years of historical data to predict the
+Additional Resources
+Q-Score Documentation
+Q-Score Backtesting
+ Video Transcription
+ Previous Lesson
+Complete 

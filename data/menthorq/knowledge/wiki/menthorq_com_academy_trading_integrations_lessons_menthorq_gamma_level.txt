@@ -1,0 +1,33 @@
+In this lesson, you’ll learn how to use the gamma levels end of day indicator and gamma levels intraday indicator on TradingView. These indicators automatically calculate and update gamma levels for you, eliminating the need for manual input and making it easy to monitor key support and resistance levels across your watchlist.
+
+The end of day indicator updates twice daily: at 6pm Eastern time for indices, stocks, and ETFs, and at 11pm Eastern time for futures. The intraday indicator updates 14 plus times per day, providing real-time level adjustments. Both indicators come with pre-calculated levels for tier 1, 2, and 3 assets from the coverage list available in the guide section under models and data.
+
+You can customize the indicator extensively through the settings menu. Position labels left, center, or right with offset options, enable short names to reduce label text, and add a table that shows how far each level is from the current spot price. The table can be synchronized with chart level colors and positioned anywhere on your screen. Color customization allows you to modify individual levels or use the group level color section to apply single colors to all levels or specific groups like primary levels, Jax 1 to 5, or Jax 6 to 10.
+
+The trading roadmap feature automatically draws areas on your chart based on gamma levels, helping you define trading zones where you want to be in or out of the market. You can enable this by clicking Create Roadmap and adjust the ratio setting to control how close and wide the boxes appear—typically using ratios of 3 or 4. The roadmap can be displayed with or without the underlying levels visible.
+
+The indicator also includes level conversion settings that allow you to convert levels from one asset to another, such as SPX to ES, QQQ to NQ, or any custom conversion you need. You can use an auto ratio that calculates automatically or input a manual ratio for precise control. This feature is particularly useful for traders who want to apply levels from one instrument to correlating assets.
+
+To get started, connect your TradingView account and find the indicators in the invite only section. Check the Mentor Queue Asset Coverage file in the guide section to see which assets have pre-calculated levels—covering around 500 plus assets across 1200 total coverage.
+
+Video Chapters
+00:00 – Introduction to gamma levels indicators
+00:42 – Update schedule for end of day and intraday indicators
+01:33 – Accessing asset coverage and tier information
+03:31 – Customizing indicator settings and labels
+04:47 – Using the table feature to monitor levels
+06:27 – Color customization and group level settings
+09:03 – Trading roadmap feature for defining trading zones
+12:08 – Level conversion settings between assets
+Key Takeaways
+The end of day indicator updates at 6pm Eastern time for indices, stocks, and ETFs, and at 11pm for futures
+The intraday indicator updates 14 plus times per day for real-time level adjustments
+The trading roadmap automatically draws areas based on gamma levels using a customizable ratio setting
+Level conversion settings allow you to convert gamma levels from one asset to another using auto or manual ratios
+Resources:
+TradingView Indicator Guide
+MenthorQ Asset Coverage
+MenthorQ Levels Conversion Indicator
+ Video Transcription
+ Previous Lesson
+Next 

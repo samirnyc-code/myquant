@@ -1,0 +1,25 @@
+In this lesson, you’ll discover how chart patterns provide valuable insights into market behavior by revealing the ongoing battle between buyers and sellers. Understanding these patterns helps you anticipate potential price movements and identify key trading opportunities.
+
+You’ll learn about three fundamental types of candlesticks that form the basis of pattern recognition. High volatility candles (also called big candles) show significant price movements with a substantial gap between opening and closing prices, signaling strong conviction from either buyers or sellers. Low volatility candles (or small candles) represent periods of indecision where neither side has a clear advantage. Finally, doji candles feature equal opening and closing prices with a small or non-existent body, indicating a strong struggle between buyers and sellers where neither side gained dominance.
+
+The lesson introduces two main categories of chart patterns that traders use to predict future price movements. Continuation patterns represent a pause in the dominant trend where the market takes a breath before continuing with new momentum, including triangles, rectangles, flags, wedges, and pennants. Reversal patterns appear during ongoing trends and signal trend reversal points, such as head and shoulder, double tops and double bottoms, and triple tops and triple bottoms.
+
+These patterns help you identify breakout points and understand the concept of market structure. By recognizing these formations throughout different periods on your charts, you can make better trading decisions and identify key support and resistance levels. The lesson emphasizes using candlestick analysis in conjunction with other technical indicators to increase your probability of success.
+
+Using the candlestick chart, you gain access to four pieces of information within the same timeframe: open, high, low, and close. This works whether you use a daily time frame or 5-minute candlesticks, as charts continuously bring back patterns that help you understand or anticipate possible price movements.
+
+Video Chapters
+00:00 – Introduction to chart patterns and candlestick basics
+00:45 – High volatility candles and big candles explained
+01:19 – Low volatility candles and small candles
+01:47 – Doji candles and market indecision
+03:04 – Understanding chart patterns and price movements
+04:01 – Continuation patterns versus reversal patterns
+Key Takeaways
+Candlesticks provide four pieces of information (open, high, low, close) that reveal the battle between buyers and sellers
+Continuation patterns (triangles, rectangles, flags, wedges, pennants) signal trend pauses, while reversal patterns (head and shoulder, double tops/bottoms, triple tops/bottoms) indicate trend changes
+Doji candles with equal opening and closing prices represent strong market indecision
+Identifying breakout points and using chart patterns with other technical indicators increases your probability of trading success
+ Video Transcription
+Previous
+Complete 

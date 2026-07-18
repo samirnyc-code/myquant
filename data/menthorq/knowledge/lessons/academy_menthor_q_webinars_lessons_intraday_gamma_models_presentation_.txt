@@ -1,0 +1,23 @@
+In this comprehensive product launch session, we introduce MenthorQ’s revolutionary new dashboard and intraday trading tools designed to bridge the gap between institutional-grade data and retail traders. You’ll discover how to access complex quantitative models in less than five minutes each day, helping you understand market conditions, identify key levels, and assess daily risks.
+
+We’re releasing a new app and dashboard that provides free access to all our models and data until December 2nd. Simply create a free account on our website to preview the complete platform. The dashboard features a seamless interface where you can save your preferred tickers by clicking the heart icon, access all previously Discord-only data directly on the website, and view TradingView commands, swing models, charts, and matrices all in one place.
+
+This launch represents a major milestone in our mission that began in early 2023 with SPX gamma levels delivered via newsletter and Twitter. Throughout 2024, we achieved significant breakthroughs: launching our Discord membership serving thousands of customers, integrating with TradingView in our first platform partnership, and introducing gamma levels on futures options in May 2024. We’re the only company providing insights on futures option chains across index futures, commodities, precious metals like gold, fixed income, forex, soft commodities, and crypto. In July, we released new quant models, string models, and integrations with NinjaTrader and CRChart, plus launched our academy with over 400 lessons covering technical analysis, advanced option data, trading journals, and psychology.
+
+Our 2025 roadmap focuses on four key areas: continuous app development with products that don’t exist in the market, new quantum order models to simplify complex options data, expanded platform integrations including BookMap, ATAS, Quantower, and Thinkorswim with automatic API integration, and the introduction of AI and machine learning models. We’re building scalable infrastructure to handle real-time data and introducing intraday gamma levels that integrate directly into your trading platforms. The new dashboard eliminates the need for Discord, providing all data, integration access, academy content, guides, and documentation in one central location.
+
+Video Chapters
+00:00 – Welcome and session introduction
+01:29 – MenthorQ’s mission and Thanksgiving gratitude
+03:36 – Session agenda and new product overview
+04:50 – 2024 achievements and platform evolution
+07:19 – 2025 roadmap and strategic focus areas
+10:12 – New dashboard demo and features walkthrough
+Key Takeaways
+The new MenthorQ dashboard provides free access to all models and data until December 2nd with a simple account creation
+MenthorQ is the only company providing futures option chain gamma levels across multiple asset classes including index futures, commodities, and crypto
+The 2025 roadmap introduces real-time intraday data, automatic API integrations with platforms like BookMap and Thinkorswim, and AI-powered machine learning models
+Over 400 academy lessons and comprehensive guides are now accessible directly through the dashboard for complete trading education
+ Video Transcription
+ Previous Lesson
+Complete 

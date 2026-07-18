@@ -1,0 +1,27 @@
+In this lesson, you’ll discover the powerful new features we’ve added to our gamma levels and blind spots indicators on Transpider, including the game-changing historical mode that lets you analyze how key levels performed in the past.
+
+We’ve enhanced the customization options for both gamma levels and blind spots, giving you more control over your chart display. You can now add timestamps to confirm levels on your charts, show or hide labels as needed, and customize the color of labels to match your preferences. The shortened label option is particularly useful—core resistance becomes CR and put support becomes PS—which helps keep your charts clean when using multiple historical levels.
+
+The standout feature is the historical mode, which allows you to see historical levels directly on your chart and play back time to understand how levels performed. You can analyze past price action, like major rejections at core resistance levels or drops through support, giving you valuable context for current trading decisions. This historical functionality works for both gamma levels and blind spots, providing comprehensive analysis capabilities.
+
+For practical application, you can scroll back through time to see examples like major rejections at core resistance from days prior, observe how price dropped and reacted at various levels, and build confidence in understanding level behavior. This historical perspective helps you validate the effectiveness of these key levels across different market conditions.
+
+These indicators are available for use on stocks, indices, futures, and crypto, giving you flexibility across multiple asset classes. You have extensive customization options including the ability to hide specific levels, color code according to your preferences, and adjust label visibility to create the exact chart setup that works for your trading style.
+
+To get started, if you already have the indicators, check your Transpider notifications for the update message. New users with Transpider can set up integration through the Transpider section by sending their Transpider email, and our team will enable access within 24 hours. Once enabled with your API key, you’ll have access to all three indicators: blind spot, conversion, and gamma levels.
+
+Video Chapters
+00:15 – Introduction to Transpider updates and new features
+00:51 – Customization options and historical mode overview
+01:29 – Using historical levels to analyze past price action
+02:16 – Historical blind spots functionality
+02:49 – Setting up Transpider integration and accessing indicators
+03:32 – Advanced customization and chart display options
+Key Takeaways
+The new historical mode allows you to see how gamma levels and blind spots performed in the past
+Shortened labels (CR for core resistance, PS for put support) keep charts clean when viewing multiple historical levels
+Integration requires your Transpider email and our team enables access within 24 hours
+All indicators work across stocks, indices, futures, and crypto with extensive customization options
+ Video Transcription
+ Previous Lesson
+Next 

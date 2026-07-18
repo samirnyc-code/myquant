@@ -1,0 +1,25 @@
+Ready to start trading with MenthorQ in less than 30 minutes? This lesson walks you through the complete setup process, from connecting your accounts to building your first morning routine. You’ll learn exactly how to get your Discord, TradingView, and dashboard configured so you can start trading with institutional-grade data immediately.
+
+We begin by showing you how to connect your Discord account directly from your profile’s community section, giving you instant access to over 7,000 plus traders in our community. Next, you’ll learn how to connect TradingView by copying your account name from your TradingView profile and pasting it into the MenthorQ app. Once connected, you’ll see our invite only section with all indicators, including gamma levels end of day and gamma levels intraday. The entire connection process takes less than 5 minutes.
+
+Setting up your dashboard is equally straightforward. You can click Load defaults commands to automatically populate your workspace with pre-configured modules for both stocks and futures. Then simply add tickers to your watchlist by clicking the plus button—whether you’re tracking the Max 7 companies, SPX, QQQ, SPY, VIX, or futures like ES, NQ, and GC. You’ll have access to approximately 1200 different assets including ETFs, stocks, and indices, plus 25 plus different future contracts.
+
+Understanding the data types is critical for your trading success. We provide end of day data and intraday snapshot data. The intraday data updates every 30 minutes from 9:35 all the way to 3:30, giving you 14 plus snapshots throughout the trading day. You can access the 7:45 snapshot for pre-market analysis with updated open interest, and the levels automatically update on the backend—though you may need to manually refresh your TradingView indicators by clicking the update icon or removing and re-adding the indicator.
+
+For futures traders, the conversion feature is essential. If you’re trading NQ but want to use QQQ levels, you can convert using either auto ratio (which updates daily at 9:31 Eastern Time) or manual ratio. To set up manual ratio, create a custom security on TradingView by typing your futures contract (like NQ1) divided by the stock or ETF (like QQQ), which calculates the differential between assets trading at different price levels—for example, QQQ at around $500 versus NQ at about $19,000.
+
+Video Chapters
+00:00 – Introduction and session overview
+02:03 – Five minute setup challenge begins
+02:52 – Connecting Discord and TradingView accounts
+05:19 – Setting up the dashboard and adding tickers to watchlist
+09:28 – Understanding end of day versus intraday snapshot data
+10:56 – Troubleshooting TradingView indicator updates
+12:42 – Converting levels from indices to futures contracts
+Key Takeaways
+You can complete your entire MenthorQ setup—including Discord, TradingView, and dashboard configuration—in less than 5 minutes
+The platform provides intraday snapshot data that updates every 30 minutes with 14 plus snapshots per trading day, plus end of day data for overnight analysis
+Access approximately 1200 different assets
+ Video Transcription
+Previous
+Complete 

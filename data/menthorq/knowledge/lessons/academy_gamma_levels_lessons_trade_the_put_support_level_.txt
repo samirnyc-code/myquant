@@ -1,0 +1,22 @@
+In this lesson, you’ll learn how to identify and interpret the put support level, a critical zone where dealers face maximum put gamma exposure and implement heavy hedging strategies. Understanding this level helps you anticipate potential price bounces or breakdown scenarios based on options market mechanics rather than traditional price history.
+
+The put support represents the strike with the highest net put gamma exposure, appearing as the widest red bar in our net gamma exposure chart. As price moves down toward this level, dealers who are short gamma must sell the underlying asset or futures to stay delta neutral. When price approaches these strikes, put holders may monetize their positions by closing puts and taking profits, which forces dealers to unwind their hedges by buying back the underlying asset, creating significant buying pressure.
+
+This hedging behavior creates a structural floor where prices often bounce because dealer buying pressure counteracts the downward momentum. When puts are closed at the support level, dealers release their short positions by buying, which reduces selling pressure and can trigger a reversal to the upside. The lesson includes a practical example showing how price dropped to put support, retested the level, and then bounced back upward.
+
+However, put support can also become an inflection point during strong breakdowns. In bearish markets, traders may roll their put contracts to lower strikes instead of closing them, creating new put open interest below the current support level. This forces dealers to hedge new put exposure by selling more of the underlying, adding mechanical selling pressure. When the market enters a negative gamma environment without buying flow at put support, prices can move down very fast, and the broken put support becomes resistance rather than support.
+
+Video Chapters
+00:15 – Introduction to put support and net put gamma exposure
+00:46 – How dealers hedge at put support levels
+02:20 – Scenario one: Price bounce at put support
+04:31 – Scenario two: Strong breakdown of put support
+05:40 – Negative gamma environment and selling pressure
+Key Takeaways
+Put support is the strike with the highest net put gamma exposure, shown as the widest red bar in the net gamma exposure chart
+When price approaches put support, dealers unwind short hedges by buying, creating a structural floor where prices often bounce
+In bearish markets, traders may roll puts to lower strikes, causing put support to break and become resistance
+Breakdown of put support in a negative gamma environment can trigger fast downward moves due to mechanical selling pressure
+ Video Transcription
+ Previous Lesson
+Complete 

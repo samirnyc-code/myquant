@@ -1,0 +1,27 @@
+In this lesson, you’ll learn how to build a profitable options trading business by mastering the essential rules for analyzing volatility. We focus on teaching you when to be a buyer versus a seller of options based on volatility levels, and how to use specific screening tools to make informed trading decisions.
+
+Understanding implied volatility is crucial for options trading success. You need to distinguish between directional strategies (which benefit from price movements) and market neutral strategies (which profit from volatility direction regardless of price movement). We explain that when implied volatility is high, it’s better to be option sellers benefiting from premium and positive theta while being short gamma. Conversely, when implied volatility is low, you should consider being option buyers with long gamma positioning, though theta works against you.
+
+To determine if volatility is relatively high or low, you can’t just look at raw implied volatility numbers. We introduce two critical screening tools available on barchart.com and in our morning reports: IV Rank and IV Percentile. IV Rank represents the average at-the-money implied volatility of the last year in relation to the high and low of that period, calculated on a scale of 1 to 100%. An IV Rank of 100% means current implied volatility is at its highest level in the last year, while a value close to zero indicates it’s near the low. IV Percentile calculates the percentage of days in the last year when implied volatility was less than the present value—for example, an IV Percentile of 70% means that on 70% of days in the last year, implied volatility was lower than today.
+
+You can create a practical checklist using IV Rank levels to guide your strategy selection. For underlyings with IV Rank between 70 and 100, implied volatility is very high, making option selling strategies more favorable—you can use higher-risk strategies like Stratos, Strangos, and Butterflies. For IV Rank between 50 and 70, option selling still offers better odds, but you should limit risk with less aggressive strategies like call and put spreads or iron condors. When IV Rank is below 50, implied volatility is low, so you should avoid or limit selling options and instead focus on buying options, perhaps using spreads to limit risk.
+
+You can use IV Rank and IV Percentile in conjunction with our Q models for confirmation. We recommend using JAX to confirm the direction of volatility—when selling options, you want JAX going higher, with accumulation of JAX above the eyeball level and more sticky strikes from the top of the screen in the red box, confirming that investors are becoming more bullish and volatility is coming down. The option matrix is another excellent tool for understanding how investors position themselves at different expirations, allowing you to see how Gamma builds up across different expiration dates.
+
+Video Chapters
+00:00 – Introduction to operational options trading
+00:31 – Directional vs market neutral strategies
+01:52 – When to buy vs sell options based on volatility
+02:25 – Introduction to IV Rank and IV Percentile on barchart.com
+03:11 – Understanding IV Rank calculation and interpretation
+03:32 – Understanding IV Percentile calculation
+04:01 – Using IV Rank levels for strategy selection
+04:57 – Combining IV Rank with Q models and JAX
+Key Takeaways
+IV Rank ranges from 1 to 100% and shows where current implied volatility sits relative to the last year’s high and low, helping you compare different underlyings
+When IV Rank is above 70, focus on option selling strategies; when below 50, focus on option buying strategies
+Use JAX from the Q models to confirm volatility direction—rising JAX with accumulation above the eyeball level indicates bullish positioning and declining volatility
+The option matrix helps you understand how Gamma builds across different expirations for better timing of your strategies
+ Video Transcription
+ Previous Lesson
+Complete 

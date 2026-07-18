@@ -1,0 +1,25 @@
+In this lesson, you’ll explore three powerful quantitative models specifically designed for crypto trading that help you understand market sentiment, identify reversals, and determine directional bias in highly volatile digital assets like Bitcoin and Ethereum.
+
+We start with the risk on and off indicator, a regime sentiment tool that analyzes traditional financial market data to determine whether the market environment favors aggressive or defensive positioning. This composite signal tracks momentum, volatility, and cross-asset flows to help you understand global risk appetite. The interpretation is straightforward: values greater than zero indicate a risk on environment with positive crypto bias, while values lower than zero signal a risk off environment with potential downside pressure. This matters because cryptocurrencies behave like high beta, high risk assets that react quickly to shifts in investor sentiment.
+
+The second model is the QRSI, an advanced version of the traditional relative strength index enhanced with machine learning and proprietary methodology. Unlike the standard RSI that relies solely on price momentum over a fixed window, the QRSI is a multi-factor evolution combining signals from momentum, volatility, and other models. It’s normalized between 0 and 100, with readings above 90 indicating overbought conditions and readings below 20 signaling oversold conditions. The QRSI addresses the alpha decay problem where traditional RSI setups at 30 or 70 levels no longer provide statistical edge because everyone uses the same signals.
+
+The third indicator is the Q crypto direction, a forward-looking signal that predicts short to medium term market direction using advanced technical data, trend modeling, and volatility measures. This directional bias indicator provides a simplified output score ranging from minus one to two: minus one represents very bearish bias, zero is neutral, while one and two indicate strong and bullish bias. The score moves in whole numbers only with no decimals, eliminating ambiguity in interpretation.
+
+For best results, use these indicators together rather than in isolation. Combine the risk on and off indicator with market structure, gamma models, and flow analytics. Pair the QRSI with price structure confirmation like support and resistance zones, volume, and option data. The direction indicator works well alongside the QRSI, gamma models, and option flow to formulate complete trading strategies.
+
+Video Chapters
+00:00 – Introduction to regime sentiment indicator
+00:32 – Risk on and off indicator explained
+03:06 – How to read the signal
+04:44 – QRSI advanced RSI indicator
+07:00 – What QRSI provides and how it works
+08:59 – Q crypto direction indicator
+Key Takeaways
+The risk on and off indicator helps determine whether to be aggressive or defensive by tracking global risk appetite with values above or below zero
+The QRSI overcomes alpha decay in traditional RSI by using multi-factor analysis, with overbought above 90 and oversold below 20
+The Q crypto direction provides a simple directional score from minus one to two that reflects collective market strength or weakness
+All three indicators work best when combined with market structure, gamma models, option flow, and other confirmation tools
+ Video Transcription
+ Previous Lesson
+Complete 

@@ -1,0 +1,27 @@
+In this lesson, you’ll learn how to install and configure the MotiveWave study to access your MenthorQ data directly within your trading platform. We’ll walk you through the complete setup process, from installation to customization of price levels and visual settings.
+
+The setup begins by downloading the study file from your MenthorQ dashboard and extracting it into the MotiveWave extensions directory. This creates the necessary lib and ext directories that allow MotiveWave to load the study. Once installed, you can add the mentherq study from the Custom section of the Study menu and authenticate using your API key from your dashboard.
+
+The study offers extensive customization options for displaying price levels. You can choose which level types to display, including gamma levels and blind spots, which are shown by default and can be toggled on or off. The label formatting settings let you adjust font size, alignment (left, right, or center), and precise positioning to match your chart preferences.
+
+Each individual level can be fully customized with different colors, line sizes, and styles like dashed or dotted lines. When multiple levels overlap at the same price, the study applies a separate overlapping levels style to ensure clarity and prevent visual conflicts. This allows you to distinguish between coinciding support and resistance zones at a glance.
+
+The study also supports conversions, enabling you to plot levels from one instrument (like SPX) on another instrument’s chart (like ES) by specifying a conversion ratio. This feature is particularly useful for comparing related instruments and understanding how their key price levels interact.
+
+To get started, download the MotiveWave study from your dashboard, extract it to your MotiveWave extensions directory, and launch the platform. Add the mentherq study from the Custom studies menu, enter your API key, and click Refresh price levels to display your data.
+
+Video Chapters
+00:00 – Installing the MotiveWave study from dashboard
+00:45 – Adding the study and entering API key
+01:34 – Customizing level types and label formatting
+02:29 – Adjusting individual level colors and styles
+03:19 – Managing overlapping levels styling
+03:44 – Setting up conversions between instruments
+Key Takeaways
+The MotiveWave study requires extraction to the extensions directory with proper lib and ext folder structure
+You can customize which levels display, including gamma levels and blind spots, along with their colors, sizes, and line styles
+Overlapping levels have a separate styling option to prevent visual conflicts when multiple levels coincide
+The conversions feature allows you to plot levels from one instrument onto another instrument’s chart using a conversion ratio
+ Video Transcription
+Previous
+Next Section 

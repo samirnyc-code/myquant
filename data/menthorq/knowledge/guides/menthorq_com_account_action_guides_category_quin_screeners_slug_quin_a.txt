@@ -1,0 +1,452 @@
+Back to Dashboard
+Getting Started
+QUIN
+Screeners Prompts
+Request Levels
+Usecases
+12
+Products
+Knowledge Base
+Trading Strategies
+Integrations
+Trader
+Partners
+Backtesting
+Affiliation
+QUIN AI Screeners Documentation and Prompts
+SCREENERS PROMPTS
+
+QUIN just got a powerful upgrade. You can now screen, rank, compare, and explore market data using natural language and create AI Screeners. No filter menus. No dropdowns. No “where is that column again?” Just ask.
+
+This guide walks you through everything you can do with QUIN’s new Conversational Screener, with real prompts you can copy and try immediately.
+
+What’s New in QUIN
+
+Until now, QUIN specialized in deep single-ticker analysis: Q-Score breakdowns, Net GEX profiles, Gamma Levels, the Option Matrix, and more. That hasn’t changed.
+
+What’s new is QUIN’s Conversational Screener: a market-wide data engine with 97+ metrics per ticker, across every name in our coverage universe.
+
+You ask questions in plain English, and QUIN translates them into precise queries behind the scenes — then returns clean tables, comparisons, or historical trends.
+
+What can QUIN do?
+
+Want to see QUIN in action? Watch the full demo.
+
+QUIN is your personal quant engine, built to sharpen your research, speed up analysis, and level up your screening. Here are some of the things QUIN can do for you.
+
+1. Screening & Rankings
+
+This is the most common use case: “Find me the best/worst names by X.”
+
+Try these prompts:
+
+“Top 10 stocks by momentum score”
+
+“Technology stocks with momentum score >= 4”
+
+“Show me tier 1 stocks sorted by volatility score”
+
+“Stocks with IV rank above 0.5 and positive VRP”
+
+“ETFs with the highest option score”
+
+What QUIN returns:
+A ranked table with relevant columns, plus highlights of anything unusual (outliers, sector clustering, conflicting signals).
+
+2. Multi-Ticker Comparisons
+
+Compare specific tickers side-by-side on any metric — including history.
+
+Try these prompts:
+
+“Compare momentum score of AAPL vs MSFT”
+
+“Compare VRP of TSLA and NVDA for the past 10 days”
+
+“What’s the skew for SPY, QQQ, and IWM?”
+
+“Show IV rank and HV30 for tier 1 stocks”
+
+Why it matters:
+Comparisons are perfect for spotting divergences between correlated names, or identifying which ticker is “moving first” in volatility or positioning.
+
+3. Historical Data & Trends
+
+Ask QUIN for time-series history across multiple trading days.
+
+Try these prompts:
+
+“VRP of NVDA for the last 10 trading days”
+
+“Momentum Score of AAPL last 5 days”
+
+“Show IV rank history for TSLA over the past 20 days”
+
+“How has the 1-month skew changed for SPY this week?”
+
+4. Changes Over Time
+
+Instead of “show me the data,” ask “what changed?”
+
+QUIN calculates shifts vs prior periods and automatically handles weekends and market holidays (so you don’t need to specify “trading days”).
+
+Try these prompts:
+
+“Biggest momentum score increases vs yesterday”
+
+“Which stocks had the largest IV rank change this week?”
+
+“Stocks with price increase > 20% in the last 30 days”
+
+Best for:
+Finding regime shifts and names where momentum, volatility, or options pricing is changing fast.
+
+5. Distance from Key Levels
+
+Search by proximity to key levels: gamma levels, 52-week extremes, swing levels, and more.
+
+Try these prompts:
+
+“Stocks closest to call resistance”
+
+“Tickers within 2% of their high vol level”
+
+“Which stocks are near their 52-week high?”
+
+“Stocks furthest below their 52-week high”
+
+“How far is NVDA from put support?”
+
+Why it’s powerful:
+Proximity screens help you find tickers at potential inflection points, where levels + positioning can matter more than headlines.
+
+6. Screening for Changes Over Time (Not Just Today’s Snapshot)
+
+QUIN doesn’t only screen the market based on current values — it can also screen for changes in any metric over time. That means you can ask QUIN to find tickers where a field has moved meaningfully versus a prior point in time (yesterday, last week, last month), without worrying about weekends or holidays.
+
+Example prompt:
+
+“Stocks that have seen an increase in open interest vs 1 week ago > 40%”
+
+“Stocks that have seen an increase in IV Rank vs 1 month ago > 20%”
+
+Why this is valuable:
+Change-based screens help you spot regime shifts early, like rising participation, positioning build-ups, or fast-changing volatility conditions. A sharp increase in open interest, for example, can signal fresh positioning and growing trader attention, which often shows up before it becomes obvious in price action. Instead of searching for “what’s popular,” you’re screening for what’s actively changing.
+
+7. Screening for Extreme Positioning with Percentiles
+
+QUIN’s percentile metrics make it easy to screen for extreme positioning by showing where today’s value sits relative to its own history. Many key fields — including GEX, DEX, IV, VRP, skew, and open interest. Include 1-year and 3-month percentiles, so you can quickly identify tickers where positioning or volatility is unusually stretched versus normal conditions.
+
+Example prompts:
+
+“Stocks with GEX percentile (3M) above 90”
+
+“Tickers with DEX percentile (1Y) below 10”
+
+“Stocks with skew percentile (1Y) above 95”
+
+“Names with VRP percentile (3M) below 5”
+
+Why this is valuable:
+Percentiles help you focus on true outliers instead of raw numbers. A ticker at the 95th percentile in skew, for example, signals protection is being priced at an extreme compared to its typical range — which can reflect elevated hedging demand or stress. In short, percentile screens help you spot where positioning and volatility are at historical extremes, so you can prioritize the names where market structure is most likely to matter.
+
+8. Premade Prompts
+
+Check out the Explore and Inspire Me section to access ready-to-use Screeners and Prompts built around your trading strategy. Whether you trade stocks, options, or futures, QUIN helps you find the right setups faster.
+
+What Metrics Can You Query?
+
+QUIN’s Conversational Screener covers 97+ data points per ticker, so you can screen by scores, volatility, options positioning, gamma/swing levels, skew, percentiles, and more.
+
+You don’t need to memorize these, plain English works. But if you want the exact metric names, the full list is below.
+
+Identifiers
+
+Ticker Symbol
+
+Tier (1-4)
+
+Ticker Type (Stocks, ETFs, Futures, Indices)
+
+Sector
+
+Industry
+
+Company and Price
+
+Company Name
+
+Market Cap
+
+Close Price
+
+Open Price
+
+High Price
+
+Low Price
+
+Volume
+
+52-Week High
+
+52-Week Low
+
+Volatility
+
+Implied Volatility 30-Day
+
+IV Rank
+
+IV Percentile 1-Year
+
+IV Percentile 3-Month
+
+Historical Volatility 30-Day
+
+Expected 1-Day Move (%)
+
+Options Flow
+
+Call Volume
+
+Put Volume
+
+Total Option Volume
+
+Total Open Interest
+
+Call Open Interest
+
+Put Open Interest
+
+Put/Call OI Ratio
+
+Greeks
+
+Net Gamma Exposure (GEX)
+
+Total Gamma Exposure
+
+GEX Put/Call Ratio
+
+Net Delta Exposure (DEX)
+
+Total Delta Exposure
+
+DEX Put/Call Ratio
+
+Expiring GEX and DEX
+
+Expiring GEX (Today)
+
+Expiring DEX (Today)
+
+Expiring GEX (1 Week)
+
+Expiring DEX (1 Week)
+
+Expiring GEX (2 Weeks)
+
+Expiring DEX (2 Weeks)
+
+Expiring GEX (1 Month)
+
+Expiring DEX (1 Month)
+
+IV by Tenor
+
+0DTE 50-Delta IV
+
+1-Month 50-Delta IV
+
+3-Month 50-Delta IV
+
+Skew
+
+0DTE Skew
+
+1-Month Skew
+
+3-Month Skew
+
+Volatility Risk Premium (VRP)
+
+VRP
+
+VRP 3 Months
+
+Normalized VRP (NVRP)
+
+Normalized VRP (NVRP)
+
+Normalized VRP (3 months)
+
+Term Structure
+
+Term Structure Slope (Contango or Backwardation)
+
+Percentiles (1Y)
+
+DEX 1-Year Percentile
+
+GEX 1-Year Percentile
+
+IV 0DTE 1-Year Percentile
+
+IV 1-Month 1-Year Percentile
+
+IV 3-Month 1-Year Percentile
+
+Call OI 1-Year Percentile
+
+Put OI 1-Year Percentile
+
+VRP 1-Year Percentile
+
+VRP 3M 1-Year Percentile
+
+Skew 0DTE 1-Year Percentile
+
+Skew 1-Month 1-Year Percentile
+
+Skew 3-Month 1-Year Percentile
+
+Percentiles (3M)
+
+DEX 3-Month Percentile
+
+GEX 3-Month Percentile
+
+IV 0DTE 3-Month Percentile
+
+IV 1-Month 3-Month Percentile
+
+IV 3-Month 3-Month Percentile
+
+Call OI 3-Month Percentile
+
+Put OI 3-Month Percentile
+
+VRP 3-Month Percentile
+
+VRP 3M 3-Month Percentile
+
+Skew 0DTE 3-Month Percentile
+
+Skew 1-Month 3-Month Percentile
+
+Skew 3-Month 3-Month Percentile
+
+Q-Scores
+
+Option Score
+
+Momentum Score
+
+Volatility Score
+
+Seasonality Score
+
+Gamma Levels
+
+Call Resistance
+
+Put Support
+
+High Volatility Level (HVL)
+
+Call Resistance 0DTE
+
+Put Support 0DTE
+
+1-Day Min
+
+1-Day Max
+
+Swing Levels
+
+Swing Bias (Bullish or Bearish)
+
+5-Day Swing Lower Band
+
+20-Day Swing Lower Band
+
+5-Day Swing Upper Band
+
+20-Day Swing Upper Band
+
+5-Day Risk Trigger
+
+20-Day Risk Trigger
+
+Prompts Examples
+
+Here are some prompts examples that can also be found in the Explore or Inspire Me section:
+
+Show the top 20 stocks by market cap with Swing Model Bias = Bullish
+
+Show me the top 20 Stocks with Momentum Score above 4, IV Rank below 30%, and Positive GEX
+
+Show me ETFs that are within 5% of Put Support
+
+Show me Stocks near Call Resistance with high IV Rank and Positive GEX
+
+Show me stocks with term structure slope = Contango
+
+Show me the top 20 stocks with the highest skew 1m percentile 1y and market cap > 10 billions
+
+Show me stocks that are in the 90% OI Calls Percentile 3m
+
+Show me the strongest pinning zones on 0DTEs for SPX
+
+Compare Call OI vs Put OI buildup for NVDA over the past 10 days. Which side is accumulating faster?
+
+Compare Total Gamma Exposure for Tech vs Financial sector (XLK vs XLF) over the past month
+
+Compare the Option Matrix of NVDA of today with 7 days ago
+
+Show me the VRP trend for SPY over the past 2 weeks. Is Implied Vol consistently overpricing or underpricing?
+
+How to Spot Opportunities with QUIN and AI Screeners.
+
+What QUIN Tells You (and What It Doesn’t)
+
+QUIN will:
+
+Return clean, formatted tables with relevant data
+
+Highlight outliers and anomalies
+
+Flag conflicting signals (ex: high momentum but bearish options score)
+
+Note sector concentrations in results
+
+Suggest ways to refine your search
+
+QUIN won’t:
+
+Tell you what to do with the data
+
+Recommend trades or strategies
+
+Give buy/sell signals
+
+Predict price direction
+
+Want to get access to QUIN? Try for Free.
+
+On this page
+ What’s New in QUIN
+ What can QUIN do?
+ 1. Screening & Rankings
+ 2. Multi-Ticker Comparisons
+ 3. Historical Data & Trends
+ 4. Changes Over Time
+ 5. Distance from Key Levels
+ 6. Screening for Changes Over Time (Not Just Today’s Snapshot)
+ 7. Screening for Extreme Positioning with Percentiles
+ 8. Premade Prompts
+ What Metrics Can You Query?
+ Prompts Examples
+ What QUIN Tells You (and What It Doesn’t)

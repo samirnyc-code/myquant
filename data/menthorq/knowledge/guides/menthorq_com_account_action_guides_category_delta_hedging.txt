@@ -1,0 +1,117 @@
+Back to Dashboard
+Getting Started
+QUIN
+Products
+Knowledge Base
+Macro
+15
+Bonds
+5
+Futures
+38
+Options Basic
+29
+Technical Analysis
+33
+Gamma Levels Usecases
+7
+0DTE Options
+11
+The Option Market and Market Makers
+49
+Delta Hedging
+31
+Risk Management
+29
+Greeks
+57
+Volatility
+79
+Quant Trading
+19
+Forex
+13
+Commodities
+31
+Options Pricing
+8
+Crypto
+12
+Trading for Beginners
+24
+Trading Strategies
+Integrations
+Trader
+Partners
+Backtesting
+Affiliation
+Delta Hedging
+JPM Collar Mechanics Near Expiration
+
+Why Dealer Hedging Drives Volatility Few options structures attract as much attention as the JPMorgan put spread collar. Every quarter,...
+
+THE OPTION MARKET AND MARKET MAKERS
+DELTA HEDGING
+GREEKS
+Dealer Hedging Flow And Put Volatility
+
+Put Volatility And Market Impact Put options and volatility are tightly connected. When demand for downside protection increases, implied volatility...
+
+DELTA HEDGING
+SPX Net GEX: Market Makers & Gamma
+
+Understanding Gamma Exposure in the S&P 500 The S&P 500 index sits at the core of global financial markets. It...
+
+DELTA HEDGING
+GREEKS
+NET GAMMA EXPOSURE
+Advanced Hedging Tactics in Volatility Strategies
+
+Hedging Frequency: Less Can Be More In this article we will discuss about advanced hedging tactics. A common belief in...
+
+DELTA HEDGING
+COMMODITIES
+HEDGING STRATEGIES
+Dealer Hedging Mechanics Unpacked
+
+Action at Inception: How the Trade Begins Every option trade starts with one simple truth: someone buys, and someone sells....
+
+DELTA HEDGING
+How Dealers React to Rising Volatility in Puts
+
+Understanding Delta Shifts and Dealer Hedging When Vol Goes Up This guide is focused specifically on put options — and...
+
+DELTA HEDGING
+VOLATILITY
+Dealer Behavior When Call Volatility Drops
+
+The Big Picture: What Happens When Call Vol Drops? Call options are positively sensitive to price. When you buy a...
+
+DELTA HEDGING
+VOLATILITY
+How Dealers Hedge Options: A Beginner’s Guide
+
+Understanding the Basics First Before diving into dealer flows, let’s cover a few core ideas. Delta is a measure of...
+
+DELTA HEDGING
+TRADING FOR BEGINNERS
+Quant Data Shapes Dealer Flow
+
+What is Gamma Exposure (GEX)? Gamma Exposure (GEX) is a quantitative measure of how much gamma dealers are holding at...
+
+DELTA HEDGING
+Gamma Scalping and Delta Hedging
+
+Gamma Scalping and Delta Hedging are key concepts when trading options. Gamma Creates Changing Delta Let’s start with the premise:...
+
+DELTA HEDGING
+Hedging Spread Risk
+
+In this guide we will discuss the how to hedge spread risk. The Nature of Option Spreads An option spread...
+
+DELTA HEDGING
+Embrace Summer Dealer Flow Edge
+
+Low Intraday Volumes: Predictable Flows Stand Out Most intraday order flow is unpredictable. It comes from macro news, big institutions,...
+
+DELTA HEDGING

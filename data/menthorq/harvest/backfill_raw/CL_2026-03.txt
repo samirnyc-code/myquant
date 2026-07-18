@@ -1,0 +1,72 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+CLOSED
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the CL Call Resistance, Put Support, and HVL levels for each trading day from 2026-03-01 through 2026-03-31, one row per day, columns: Date, Call Resistance, Put Support, HVL.
+
+I'll route this to the Data Expert, as it's a historical time-series request across multiple dates.I'll retrieve the gamma levels for CL (crude oil futures) for the March 2026 period.
+
+1 step completed
+
+CL crude oil gamma levels for March 2026. (Data as of Mar 31, 2026)
+
+Date	Call Resistance	Put Support	HVL
+Mar 2	$80.00	$60.00	$62.25
+Mar 3	$80.00	$60.00	$62.00
+Mar 4	$80.00	$60.00	$62.25
+Mar 5	$85.00	$60.00	$62.25
+Mar 6	$85.00	$60.00	$61.25
+Mar 9	$85.00	$60.00	$61.25
+Mar 10	$85.00	$60.00	$61.00
+Mar 11	$85.00	$60.00	$61.00
+Mar 12	$100.00	$55.00	$61.25
+Mar 13	$100.00	$54.00	$67.00
+Mar 16	$80.00	$54.00	$67.00
+Mar 17	$100.00	$54.00	$67.00
+Mar 18	$100.00	$54.00	$67.00
+Mar 19	$100.00	$54.00	$67.00
+Mar 20	$100.00	$54.00	$67.00
+Mar 23	$80.00	$54.00	$71.25
+Mar 24	$80.00	$54.00	$71.25
+Mar 25	$80.00	$54.00	$71.75
+Mar 26	$100.00	$54.00	$77.00
+Mar 27	$100.00	$54.00	$71.75
+Mar 30	$110.00	$90.00	$77.00
+Mar 31	$110.00	$90.00	$77.00
+
+Notable shifts:
+
+Mar 12-13: Call Resistance jumped from $85 to $100, Put Support dropped from $60 to $54 — significant gamma cluster shift upward
+Mar 30-31: Call Resistance spiked to $110, Put Support surged to $90 — largest range expansion of the month, coinciding with month-end positioning
+HVL trend: Gradually drifted higher from $61–$62 early month to $71–$77 by month-end, reflecting increased volatility regime
+Keep exploring
+Options
+How can I use the Call Resistance and Put Support levels to inform my trading decisions on crude oil futures?
+Analyze
+Are there MenthorQ indicators that complement HVL levels, such as Swing Levels or NetGex, for a more comprehensive market analysis?
+Futures
+What methodology does MenthorQ use to calculate the High Volatility Level (HVL) for CL futures on a daily basis?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

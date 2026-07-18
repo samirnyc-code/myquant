@@ -1,0 +1,68 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+CLOSED
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the CL Call Resistance, Put Support, and HVL levels for each trading day from 2026-06-01 through 2026-06-30, one row per day, columns: Date, Call Resistance, Put Support, HVL.
+
+I'll retrieve the gamma levels for CL (crude oil futures) for June 2026.
+
+1 step completed
+
+CL crude oil showed significant downward pressure through June 2026, with call resistance declining from $105 to $76 and put support falling from $80 to $65. (Data as of June 1–30, 2026)
+
+Date	Call Resistance	Put Support	HVL
+2026-06-01	$105.00	$80.00	$91.25
+2026-06-02	$105.00	$80.00	$91.25
+2026-06-03	$105.00	$90.00	$93.50
+2026-06-04	$105.00	$90.00	$91.25
+2026-06-05	$105.00	$85.00	$91.00
+2026-06-08	$105.00	$86.00	$91.75
+2026-06-09	$105.00	$80.00	$91.00
+2026-06-10	$105.00	$80.00	$91.25
+2026-06-11	$100.00	$85.00	$91.25
+2026-06-12	$105.00	$80.00	$91.25
+2026-06-15	$100.00	$75.00	$83.75
+2026-06-16	$100.00	$75.00	$83.75
+2026-06-17	$100.00	$75.00	$82.50
+2026-06-18	$100.00	$70.00	$80.00
+2026-06-22	$90.00	$70.00	$80.00
+2026-06-23	$85.00	$70.00	$80.00
+2026-06-24	$90.00	$70.00	$76.00
+2026-06-25	$71.75	$70.00	$79.00
+2026-06-26	$90.00	$65.00	$79.00
+2026-06-29	$80.00	$65.00	$70.25
+2026-06-30	$76.00	$65.00	$70.00
+
+Notable trend: Call resistance collapsed from $105 (early June) to $76 (month-end), while put support declined from $80–$90 to $65–$70. High Vol Level compressed from $91–$93 to $70, reflecting a sharp contraction in expected volatility range as crude oil declined through the month.
+
+Keep exploring
+Options
+How can I use the CL Call Resistance and Put Support levels to improve my intraday trading strategies?
+Options
+What is the relationship between HVL (High Vol Level) and the Gamma Exposure indicators on MenthorQ?
+Options
+Are there MenthorQ Academy courses that explain how to interpret and apply Call Resistance and Put Support levels in options trading?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

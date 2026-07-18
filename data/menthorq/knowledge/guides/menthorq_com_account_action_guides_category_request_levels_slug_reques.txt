@@ -1,0 +1,155 @@
+Back to Dashboard
+Getting Started
+QUIN
+Screeners Prompts
+Request Levels
+Usecases
+12
+Products
+Knowledge Base
+Trading Strategies
+Integrations
+Trader
+Partners
+Backtesting
+Affiliation
+Request Levels via Quin
+QUIN
+REQUEST LEVELS
+TRADINGVIEW
+
+Introducing “Request Levels” – the fastest way to load MenthorQ levels into TradingView
+
+The new Request Levels tool in Quin makes it effortless to pull MenthorQ levels for your favorite asset and load them straight into your TradingView Custom Levels Indicator.
+
+Instead of jumping between dashboards, copying single tickers one by one, or rebuilding levels from scratch, you can now request everything you need in a couple of clicks, directly inside Quin.
+
+What is the Request Levels tool?
+
+Request Levels is a Quin-powered tool that lets you:
+
+Choose the asset type (Stock, ETF, Index, Futures, Crypto)
+
+Select up to 5 tickers per request
+
+Pick which type of levels you want (Gamma Levels EOD, Gamma Levels Intraday, Blind Spots, Swing Levels)
+
+Go back in time to a previous day or snapshot
+
+Instantly generate the TradingView-ready code to paste into your MenthorQ Custom Levels Indicator
+
+It turns MenthorQ’s options-driven levels into a simple “request → copy → paste” flow.
+
+1. Request levels for multiple tickers at once
+
+Markets move quickly. Manually pulling levels for SPX, NDX, VIX, and your top single-name positions one by one can cost you time and focus.
+
+With Request Levels you can:
+
+Select up to 5 tickers in a single request
+
+Get all the levels bundled together
+
+Keep your prep tight before the open or before a major event
+
+This is especially useful if you:
+
+Track a core index basket (SPX, NDX, RUT, VIX, etc.)
+
+Run a watchlist of favorite stocks or ETFs
+
+Trade futures and crypto alongside equities
+
+Update Intraday Levels faster on your favorite assets
+
+2. Multiple Level Types
+
+Different trades require different information. Sometimes you care about where dealers are pinned at the close (Gamma EOD). Other times intraday reflexivity, blind spots, or swing structure matters more.
+
+From a single request you can choose any combination of:
+
+Gamma Levels EOD – end-of-day gamma positioning and key inflection levels
+
+Gamma Levels Intraday – intraday shifts in dealer positioning and support/resistance. Intraday Levels Update multiple times per day.
+
+Blind Spots – confluence areas coming from correlated assets
+
+Swing Levels – higher-timeframe levels useful for swing trades and bigger structural moves
+
+That means one Request Levels call can give you both your intraday map and your swing framework.
+
+3. One-click export to TradingView Custom Levels
+
+The whole point of Request Levels is to get clean, ready-to-use levels into TradingView with minimal friction.
+
+Once you’ve:
+
+Chosen the asset type
+
+Selected your tickers
+
+Picked level types
+
+…Quin returns the code snippet for the MenthorQ Custom Levels Indicator.
+
+All you do is:
+
+Copy the generated code
+
+Paste it into the input field of your Custom Levels indicator on TradingView
+
+Hit OK and the levels appear on your chart
+
+No manual data entry. No transcription errors. Just accurate, consistent levels where you’re actually making trading decisions.
+
+4. Go back in time to previous days or snapshots
+
+Sometimes the best way to understand today’s move is to see what the levels looked like yesterday (or a few days ago):
+
+Compare today’s gamma structure vs. last week’s
+
+Check for previous intraday levels
+
+Study how price reacted around Blind Spots on prior sessions
+
+Build playbooks around how levels shift across FOMC, CPI, expiry, etc.
+
+Request Levels lets you select a previous day or snapshot and pull the levels as they were then. Perfect for:
+
+Post-trade reviews
+
+Backtesting ideas
+
+Building case studies and playbooks
+
+How to use the Request Levels tool (step-by-step)
+
+Open Quin and navigate to the Request Levels panel.
+
+Select the asset type from the first dropdown (e.g., Stock, Futures, Crypto).
+
+Click “Select Tickers”:
+
+Use Search if you know the ticker, or
+
+Expand Watchlist and pick from your saved symbols.
+
+Choose which level types you want (Gamma EOD, Gamma Intraday, Blind Spots, Swing Levels).
+
+(Optional) Set the date or snapshot if you want historical levels instead of today’s.
+
+Click Request. Quin will generate your levels and show you the TradingView code.
+
+Copy that code and paste it into your MenthorQ Custom Levels Indicator on TradingView.
+
+You’re done—your chart now reflects the exact levels you requested.
+
+Chat with QUIN now.
+
+On this page
+ What is the Request Levels tool?
+ 1. Request levels for multiple tickers at once
+ 2. Multiple Level Types
+ 3. One-click export to TradingView Custom Levels
+ 4. Go back in time to previous days or snapshots
+ How to use the Request Levels tool (step-by-step)

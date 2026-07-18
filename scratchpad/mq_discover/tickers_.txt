@@ -1,0 +1,189 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+AFTER-HOURS
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+S
+SPX
+Index
+
+S&P 500 Index
+
+$7,543.64
++0.05
++0.00%
+PRICE
+Open Chart
+1D
+5D
+1M
+3M
+6M
+YTD
+1Y
+5Y
+All
+CR
+7600
+HVL
+7535
+PS
+7300
+7546.76
+OPEN
+13:40
+13:55
+14:10
+14:25
+14:40
+14:55
+15:10
+15:25
+15:40
+15:55
+QSCORE
+NEWS
+12
+BACKTEST
+QSCORE
+30-DAY TREND
+OPTION
+3
+Positive
+MOMENTUM
+5
+Very Positive
+VOLATILITY
+1
+Slightly Negative
+SEASONALITY
+1
+Slightly Positive
+GAMMA INSIGHT EOD
+Historical Total GEX trend and forward expirations breakdown.
+7D
+1M
+3M
+6M
+1Y
+POSITIVE
+7D
+1M
+3M
+6M
+1Y
+TOTAL NET GEX
+443.36M
+GEX CHANGE 1D
+-657.95M
+EXPIRING NET GEX
+152.11M
+Jun 12
+Jun 22
+Jun 26
+Jul 2
+Today
+3.2%
+0.5%
+5.4%
+1.9%
+2.1%
+0.9%
+-0.1%
+-3.6%
+0.2%
+0.8%
+-2.5%
+0.7%
+14.8%
+-0.8%
+-0.1%
+0.1%
+0%
+1%
+0.3%
+0%
+0.1%
+0.1%
+Tomorrow
+Jul 17
+Jul 21
+Jul 23
+Jul 27
+Jul 29
+Jul 31
+Aug 4
+Aug 6
+Aug 10
+Aug 13
+VOLATILITY INSIGHT
+Implied volatility, skew, VRP and term structure overview.
+IMPLIED VOLATILITY
+0DTE
+1M
+3M
+Fair
+13.5%
+LOW
+FAIR
+HIGH
+HV 1M
+13.3%
+IV Percentile 1Y
+50.0%
+IV Rank
+23.8%
+SKEW
+0DTE
+1M
+3M
+Put Bias
++37.2%
+Thu
+Fri
+Sat
+Sun
+Mon
+Tue
+Today
+VRP
+1M
+3M
+Compressed
++0.2%
+COMPRESSED
+NORMAL
+ELEVATED
+IV 1M
+13.5%
+HV 1M
+13.3%
+NVRP 1M
++1.3%
+TERM STRUCTURE
+Flat
+Front
+1M
+3M
+Intraday summary
+Watchlist
+Net Gex
+Chats
+13:40

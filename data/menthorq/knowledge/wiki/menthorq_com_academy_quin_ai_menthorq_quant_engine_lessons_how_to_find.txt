@@ -1,0 +1,25 @@
+In this lesson, you’ll discover how to leverage Quinn, MenthorQ’s quantitative engine, to identify and research potential options trading opportunities. Rather than simply generating trade ideas, Quinn empowers you to conduct institutional-grade due diligence and research, just like professional traders do.
+
+The lesson emphasizes a comprehensive framework for options trading that focuses on several critical elements: liquidity, regime analysis, positioning, key levels, and volatility metrics. We demonstrate how Quinn has been trained with over 20 years of institutional trading experience and MenthorQ’s proprietary data, eliminating the need to manually build data structures or train AI tools from scratch. Unlike general AI platforms that struggle with structured numerical data and hallucinations, Quinn delivers accurate, cross-referenced quantitative data.
+
+A key concept introduced is NVRP (Normalized Volatility Risk Premium), which goes beyond simple IV rank checks. NVRP helps you identify tradable richness by showing the relationship between implied and realized volatility across different stocks and sectors. This allows you to compare opportunities meaningfully and find where you have a true statistical edge, rather than just trading high IV blindly.
+
+You’ll see how Quinn can handle complex prompts to filter and analyze options opportunities based on multiple criteria simultaneously, including market cap, VRP, liquidity requirements, and volatility metrics. The lesson demonstrates using the “Inspire Me” feature for learning about options trading with MenthorQ, exploring pre-built prompts for swing trading, breakout trades, and Iron Condors, and customizing filters to match your specific trading style.
+
+The framework presented covers structure, selection, and management of options trades, with particular emphasis on credit spread selling and premium selling strategies. You’ll learn how to use Quinn to cross-reference opportunities, conduct research before entering trades, and make data-driven decisions based on quantitative metrics rather than intuition.
+
+Video Chapters
+00:00 – Introduction and session overview
+00:48 – Overview of Quinn and today’s focus on options ideas
+01:49 – Trading framework: liquidity, regime, positioning, key levels, and volatility
+08:15 – How Quinn solves AI data structure and hallucination problems
+09:35 – Understanding NVRP and tradable volatility richness
+13:35 – Using the Inspire Me feature and pre-built prompts
+Key Takeaways
+Quinn is trained with 20+ years of institutional trading experience and MenthorQ’s proprietary data, providing accurate structured quantitative analysis
+NVRP helps identify tradable volatility richness by normalizing the relationship between implied and realized volatility across different assets
+The core framework for options research includes liquidity, regime analysis, positioning, key levels, and volatility metrics
+Use the “Inspire Me” feature and pre-built prompts to learn about options trading and research opportunities based on your specific strategy
+ Video Transcription
+Previous
+Next 

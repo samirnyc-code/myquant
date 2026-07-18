@@ -1,0 +1,27 @@
+In this lesson, you’ll learn how to implement four essential bullish options strategies that allow you to profit from upward price movements while managing risk and leveraging your capital. We’ll walk you through each strategy’s structure, payoff characteristics, and how to use our Q models to identify optimal entry points.
+
+The long call is the foundational bullish strategy where you purchase a call option, granting you the right to buy 100 shares of the underlying at a specified strike price. Your maximum loss is limited to the premium paid, while your profit potential is theoretically unlimited. The breakeven price equals the strike price plus the premium. When implementing this strategy, you benefit from rising implied volatility (positive vega) but face negative theta as time decay erodes the option’s value.
+
+The short put strategy involves selling a put option, obligating you to purchase 100 shares at the strike price if exercised. Your maximum profit is the premium received ($500 in the example with a $5 premium), and your breakeven is the strike price minus the premium. This strategy benefits from decreasing implied volatility and positive theta, as time decay works in your favor. However, selling options requires margin held by your broker as collateral, which varies based on volatility and underlying price.
+
+The bull call spread and bull put spread are multi-leg strategies that define both risk and profit potential at trade entry. The bull call spread involves buying a call and selling a call at a higher strike with the same expiration, creating a debit spread that reduces the cost compared to buying a call alone. Your maximum profit is the difference between the two strikes minus the premium paid, while your maximum loss is limited to the premium paid. The bull put spread consists of selling a put and buying a put at a lower strike price with the same expiration date.
+
+When using our Q models to implement these strategies, look for positive JACKS, bullish cumulative net JACKS, and sticky strikes at your target levels. Use the VAX and DEX indicators to assess Greek exposure—you want a bullish VAX for long call strategies and a bearish VAX for short put strategies. Check implied versus historical volatility to time your entries optimally, entering long option strategies when implied volatility is low.
+
+To get started, examine the main chart for price action, then analyze the JACKS and DAX indicators for Greek positioning. Use the NJAX chart to identify sticky strikes and increasing call volumes. Set your strike prices using call resistance, put support, or high volume levels from the Q models, and monitor for IVOL levels to optimize your strategy execution.
+
+Video Chapters
+00:00 – Introduction to bullish options strategies
+00:43 – Long call strategy structure and payoff
+02:14 – Greeks impact on long call positions
+04:25 – Short put strategy and selling options
+06:30 – Margin requirements for option sellers
+07:42 – Bull call spread and bull put spread overview
+Key Takeaways
+The long call provides unlimited profit potential with risk limited to the premium paid, and each contract controls 100 shares
+Short put strategies generate income through premiums and benefit from time decay and decreasing implied volatility
+Bull call spreads reduce the cost of buying calls by selling a higher strike call, creating defined risk and reward
+Use JACKS, VAX, and sticky strikes from Q models to identify optimal entry points and strike selection for each strategy
+ Video Transcription
+ Previous Lesson
+Complete 

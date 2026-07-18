@@ -1,0 +1,27 @@
+If you’re trading SPX 0DTE options or selling Iron Condors, this lesson reveals why most traders blow up their accounts and how you can use institutional-grade data to avoid becoming a statistic. We’ll show you the exact positioning data and volatility models that can transform 0DTE trading from a casino into a structured opportunity with daily income potential.
+
+The harsh reality is that 0DTE trading is a double-edged sword. While it offers daily income from selling premium and multiple opportunities throughout the day, most traders get chopped out because they trade blind. Iron Condor sellers think premium is safe until one move wipes out weeks of income, while breakout traders lose money fast when they hit gamma walls and premium decays rapidly. The biggest mistake is focusing only on charts without understanding the real forces shaping SPX intraday flow: gamma flows, volatility changes, and dealer positioning.
+
+We provide intraday gamma levels that update 14 times per day showing you where SPX will pin, stall, or break. Our Q score tells you if today is safe, fragile, or dangerous for trading. You’ll learn to read warning signs like when dealers move into negative gamma, when the volatility score hits 5 (high volatility regime), and when implied volatility is growing—all signals that your Condor could get destroyed by one headline.
+
+Practical scenarios covered include: waking up to see negative gamma piling up before you sell your daily Condor, buying calls at 11am only to hit a gamma wall where SPX chops sideways and your calls decay to zero, and Friday opex (the biggest 0DTE day) when dealer positioning changes and the pinning effect weakens. Our one day expected move indicators show an 87% success rate for the minimum and 85% for the maximum based on four years of backtesting, though the price only stayed within range 73% of the time—proving you must actively manage your structures.
+
+You can access 0DTE levels and net gamma exposures through our dashboard and integrations. Use our matrix to see how much gamma, delta, and open interest expires at each expiration, and check our screeners for assets showing the highest positive or negative change in gamma. The gamma difference snapshots every 30 minutes reveal real-time shifts from strong positive gamma to negative gamma environments, helping you understand when trends change and when SPX approaches big put support levels.
+
+Video Chapters
+00:00 – Introduction to SPX 0DTE trading style
+00:38 – Why most 0DTE traders blow up their accounts
+02:10 – Intraday gamma levels and Q score overview
+03:00 – Iron Condor seller scenario with volatility warnings
+04:00 – Breakout trader scenario hitting gamma walls
+04:41 – Friday opex pinning effect example
+06:03 – Dashboard walkthrough of 0DTE data and levels
+07:08 – One day expected move backtesting results
+08:07 – Using the matrix for expiration analysis
+10:10 – Intraday positioning and gamma difference snapshots
+Key Takeaways
+0DTE trading requires understanding gamma flows, volatility changes, and dealer positioning—not just chart patterns
+Our intraday gamma levels update 14 times per …
+ Video Transcription
+ Previous Lesson
+Complete 

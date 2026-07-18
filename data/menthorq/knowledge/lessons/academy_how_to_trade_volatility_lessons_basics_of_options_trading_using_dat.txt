@@ -1,0 +1,26 @@
+In this comprehensive session, you’ll learn the fundamentals of options trading and how to leverage options data to enhance your trading decisions across any asset class. Whether you’re trading options, futures, or stocks, understanding options data has become essential as 2024 marked the year with the largest average daily option volume in history.
+
+Options have gained massive popularity due to two critical factors: leverage and flexibility. With leverage, traders can control 100 shares of a stock for every contact they buy or sell while paying only a fraction of the cost, making options accessible even for smaller accounts. This creates higher return potential and enables better risk management through structured strategies. The flexibility of options allows you to make profit in any market condition—whether bullish, bearish, or range-bound—unlike stocks where you only profit from one directional outcome.
+
+The price of an option is determined by five key factors that you must understand. The stock price or underlying asset price is the primary driver, followed by the strike price which determines whether options are in the money (having intrinsic value and more expensive) or out of the money (no intrinsic value and cheaper). Time to expiration is crucial as options lose value through time decay, especially for 0dte’s options which expire the same day. Implied volatility measures expected price swings—higher volatility makes options more expensive while lower volatility makes them cheaper. Interest rates and dividends have less impact but still factor into pricing.
+
+Understanding the Greeks is essential for options trading success. Delta measures the change in option price due to underlying price changes, Gamma tracks the change in delta, Theta represents time decay, and Vega measures volatility impact. The GameStop saga of 2020-2021 perfectly illustrates why Greeks matter—many investors lost money even as the stock price rose because they bought options when implied volatility was at its highest, and the subsequent drop in volatility caused option prices to decrease despite the underlying moving favorably.
+
+When you are long a call option, your delta is positive, Gamma is positive, theta is negative (time decay works against you), and Vega is positive (increasing implied volatility benefits you). Understanding these relationships helps you select the right strategies and manage risk effectively using the data available within Mentor Q.
+
+Video Chapters
+00:00 – Introduction and session overview
+01:13 – Goals for using basic and advanced options strategies
+02:52 – Growth of option volume and why options matter
+04:01 – Leverage, flexibility and profit in any market condition
+06:23 – Five factors determining option prices
+10:00 – Understanding the Greeks and their impact
+11:29 – GameStop case study on volatility impact
+12:42 – Greeks effect when long or short options
+Key Takeaways
+2024 had the largest average daily option volume in history, making options data essential for all traders
+Options are determined by five factors: stock price, strike price, time to expiration, implied volatility, and interest rates
+The Greeks (Delta, Gamma, Theta, Vega) explain how option prices change and are critical for strategy selection
+Understanding implied volatility is crucial—the GameStop example showed traders lost money despite price increases due to volatility collapse
+ Video Transcription
+Complete 

@@ -1,0 +1,1410 @@
+  YM 2025-07: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  YM 2025-08: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  YM 2025-09: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  YM 2025-10: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  YM 2025-11: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  YM 2025-12: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  YM 2026-01: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  YM 2026-02: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  YM 2026-03: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    53 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  YM 2026-04: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    53 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+    - waiting for element to be visible, enabled and stable
+
+  YM 2026-05: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  YM 2026-06: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    53 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+    - waiting for element to be visible, enabled and stable
+
+  YM 2026-07: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  NQ 2025-07: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  NQ 2025-08: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  NQ 2025-09: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  NQ 2025-10: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  NQ 2025-11: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  NQ 2025-12: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  NQ 2026-01: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  NQ 2026-02: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  NQ 2026-03: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  NQ 2026-04: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  NQ 2026-05: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  NQ 2026-06: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  NQ 2026-07: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+
+backfill added 0 rows -> C:\Users\Admin\myquant\data\menthorq\levels_history.csv
+  NQ 2025-07: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  NQ 2025-08: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  NQ 2025-09: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  NQ 2025-10: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  NQ 2025-11: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  NQ 2025-12: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  NQ 2026-01: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  NQ 2026-02: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  NQ 2026-03: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  NQ 2026-04: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  NQ 2026-05: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  NQ 2026-06: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  NQ 2026-07: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  YM 2025-07: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  YM 2025-08: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    53 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  YM 2025-09: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  YM 2025-10: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  YM 2025-11: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  YM 2025-12: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  YM 2026-01: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  YM 2026-02: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  YM 2026-03: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  YM 2026-04: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  YM 2026-05: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  YM 2026-06: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  YM 2026-07: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  CL 2025-07: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  CL 2025-08: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  CL 2025-09: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  CL 2025-10: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  CL 2025-11: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  CL 2025-12: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  CL 2026-01: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  CL 2026-02: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  CL 2026-03: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  CL 2026-04: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  CL 2026-05: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  CL 2026-06: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  CL 2026-07: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  GC 2025-07: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  GC 2025-08: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  GC 2025-09: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  GC 2025-10: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  GC 2025-11: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  GC 2025-12: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  GC 2026-01: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  GC 2026-02: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  GC 2026-03: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  GC 2026-04: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  GC 2026-05: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  GC 2026-06: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+  GC 2026-07: ask failed Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea, input[placeholder*='assist' i], [contenteditable='true']").first
+    - locator resolved to <textarea disabled name="message" placeholder="How can I assist you today?" class="w-full border border-none bg-transparent p-0 focus:ring-0 outline-none resize-none h-[24px]"></textarea>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    54 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms
+
+
+0DTE backfill added 0 rows -> C:\Users\Admin\myquant\data\menthorq\levels0_history.csv

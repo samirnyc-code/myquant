@@ -1,0 +1,13 @@
+entries priced: 142
+daily marks collected: 12312 strike-days, 2588 sessions
+
+=== BPS 14DTE/50pt EXIT-RULE SHOOTOUT (2010-2023, bid/ask, $1.30/ct) ===
+sma5       n 142  win  84%  PF  1.74  avg $   +103  total $  +14,668  maxDD $  -6,321
+expiry     n 142  win  82%  PF  0.95  avg $    -29  total $   -4,164  maxDD $ -27,740
+tp50       n 142  win  87%  PF  0.97  avg $    -12  total $   -1,757  maxDD $ -18,056
+tp50_sl2   n 142  win  63%  PF  0.71  avg $   -116  total $  -16,495  maxDD $ -16,586
+sl2        n 142  win  58%  PF  0.84  avg $    -77  total $  -10,904  maxDD $ -18,239
+tp50_sma5  n 142  win  84%  PF  1.72  avg $   +101  total $  +14,298  maxDD $  -6,321
+
+Note: 'sma5' here re-prices the exit at the SIGNAL day's EOD marks — matches the
+playbook rule. tp50* = tastylive 'manage at 50%' variants. Same entries throughout.

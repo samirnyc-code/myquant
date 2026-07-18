@@ -1,0 +1,602 @@
+[
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=trading-strategies",
+  "title": "Account - MenthorQ",
+  "chars": 2833
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=trader-type",
+  "title": "Account - MenthorQ",
+  "chars": 1246
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=resources",
+  "title": "Account - MenthorQ",
+  "chars": 1014
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=setup",
+  "title": "Account - MenthorQ",
+  "chars": 1379
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=quin-screeners",
+  "title": "Account - MenthorQ",
+  "chars": 384
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=request-levels",
+  "title": "Account - MenthorQ",
+  "chars": 379
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=quin-usecases",
+  "title": "Account - MenthorQ",
+  "chars": 2546
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=futures-options",
+  "title": "Account - MenthorQ",
+  "chars": 1459
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=gamma-levels",
+  "title": "Account - MenthorQ",
+  "chars": 2029
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=intraday-gamma-models",
+  "title": "Account - MenthorQ",
+  "chars": 845
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=momentum-models",
+  "title": "Account - MenthorQ",
+  "chars": 884
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=qscore",
+  "title": "Account - MenthorQ",
+  "chars": 2636
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=skew",
+  "title": "Account - MenthorQ",
+  "chars": 1219
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=options-screeners",
+  "title": "Account - MenthorQ",
+  "chars": 1486
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=net-gamma-exposure",
+  "title": "Account - MenthorQ",
+  "chars": 2949
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=option-matrix",
+  "title": "Account - MenthorQ",
+  "chars": 1864
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=volume-oi",
+  "title": "Account - MenthorQ",
+  "chars": 922
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=blind-spots-levels",
+  "title": "Account - MenthorQ",
+  "chars": 1100
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=crypto-models",
+  "title": "Account - MenthorQ",
+  "chars": 1411
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=forex",
+  "title": "Account - MenthorQ",
+  "chars": 908
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=volatility",
+  "title": "Account - MenthorQ",
+  "chars": 1435
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=0dte-levels",
+  "title": "Account - MenthorQ",
+  "chars": 1025
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=implied-vol-and-open-interest",
+  "title": "Account - MenthorQ",
+  "chars": 956
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=swing-trading",
+  "title": "Account - MenthorQ",
+  "chars": 1087
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=vrp",
+  "title": "Account - MenthorQ",
+  "chars": 2055
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=quant-models",
+  "title": "Account - MenthorQ",
+  "chars": 1627
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=net-delta-exposure",
+  "title": "Account - MenthorQ",
+  "chars": 551
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=macro",
+  "title": "Account - MenthorQ",
+  "chars": 2641
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=bonds",
+  "title": "Account - MenthorQ",
+  "chars": 1376
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=futures-trading-knowledge-base",
+  "title": "Account - MenthorQ",
+  "chars": 2634
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=options-basic",
+  "title": "Account - MenthorQ",
+  "chars": 2830
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=technical-analysis",
+  "title": "Account - MenthorQ",
+  "chars": 2936
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=gamma-levels-usecases",
+  "title": "Account - MenthorQ",
+  "chars": 1863
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=0dte-options",
+  "title": "Account - MenthorQ",
+  "chars": 2413
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=option-market",
+  "title": "Account - MenthorQ",
+  "chars": 3112
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=delta-hedging",
+  "title": "Account - MenthorQ",
+  "chars": 2746
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=risk-management",
+  "title": "Account - MenthorQ",
+  "chars": 2922
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=greeks",
+  "title": "Account - MenthorQ",
+  "chars": 2695
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=volatility-knowledge-base",
+  "title": "Account - MenthorQ",
+  "chars": 2833
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=quant-trading",
+  "title": "Account - MenthorQ",
+  "chars": 2784
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=forex-knowledge-base",
+  "title": "Account - MenthorQ",
+  "chars": 2631
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=commodities",
+  "title": "Account - MenthorQ",
+  "chars": 2741
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=options-pricing",
+  "title": "Account - MenthorQ",
+  "chars": 2030
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=crypto",
+  "title": "Account - MenthorQ",
+  "chars": 2532
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=trading-beginners",
+  "title": "Account - MenthorQ",
+  "chars": 2877
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=bullish-strategies",
+  "title": "Account - MenthorQ",
+  "chars": 1677
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=bearish-strategies",
+  "title": "Account - MenthorQ",
+  "chars": 1336
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=hedging-strategies",
+  "title": "Account - MenthorQ",
+  "chars": 1882
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=income-strategies",
+  "title": "Account - MenthorQ",
+  "chars": 1328
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=neutral-strategies",
+  "title": "Account - MenthorQ",
+  "chars": 2630
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=momentum",
+  "title": "Account - MenthorQ",
+  "chars": 2248
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=futures-trading",
+  "title": "Account - MenthorQ",
+  "chars": 803
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=commodity-trading",
+  "title": "Account - MenthorQ",
+  "chars": 2688
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=case-studies-examples",
+  "title": "Account - MenthorQ",
+  "chars": 2827
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=weekly-edge",
+  "title": "Account - MenthorQ",
+  "chars": 1225
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=live-sessions",
+  "title": "Account - MenthorQ",
+  "chars": 1344
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=levels-conversion",
+  "title": "Account - MenthorQ",
+  "chars": 460
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=tradingview",
+  "title": "Account - MenthorQ",
+  "chars": 1341
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=ninjatrader",
+  "title": "Account - MenthorQ",
+  "chars": 664
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=trendspider",
+  "title": "Account - MenthorQ",
+  "chars": 628
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=tickblaze",
+  "title": "Account - MenthorQ",
+  "chars": 439
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=quantower",
+  "title": "Account - MenthorQ",
+  "chars": 454
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=sierra-chart",
+  "title": "Account - MenthorQ",
+  "chars": 434
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=metatrader",
+  "title": "Account - MenthorQ",
+  "chars": 443
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=motivewave",
+  "title": "Account - MenthorQ",
+  "chars": 448
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=edgeclear",
+  "title": "Account - MenthorQ",
+  "chars": 444
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=bookmap",
+  "title": "Account - MenthorQ",
+  "chars": 431
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=atas",
+  "title": "Account - MenthorQ",
+  "chars": 640
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=forex-trader",
+  "title": "Account - MenthorQ",
+  "chars": 1079
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=futures-trader",
+  "title": "Account - MenthorQ",
+  "chars": 1047
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=stock-trader",
+  "title": "Account - MenthorQ",
+  "chars": 714
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=bond-trader",
+  "title": "Account - MenthorQ",
+  "chars": 852
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=swing-trader",
+  "title": "Account - MenthorQ",
+  "chars": 525
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=options-trader",
+  "title": "Account - MenthorQ",
+  "chars": 1610
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=0dte-trader",
+  "title": "Account - MenthorQ",
+  "chars": 672
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=partners",
+  "title": "Account - MenthorQ",
+  "chars": 567
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=strategies",
+  "title": "Account - MenthorQ",
+  "chars": 1423
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=crypto-strategies",
+  "title": "Account - MenthorQ",
+  "chars": 453
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=gamma-levels-backtesting",
+  "title": "Account - MenthorQ",
+  "chars": 603
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=swing-levels-backtesting",
+  "title": "Account - MenthorQ",
+  "chars": 1388
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=affiliation-setup",
+  "title": "Account - MenthorQ",
+  "chars": 641
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=affiliate-case-studies",
+  "title": "Account - MenthorQ",
+  "chars": 1251
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=trading-strategies&slug=how-option-positioning-reveals-crowded-trades",
+  "title": "Account - MenthorQ",
+  "chars": 12879
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=trading-strategies&slug=how-to-interpret-net-gex-versus-total-gex",
+  "title": "Account - MenthorQ",
+  "chars": 11857
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=trading-strategies&slug=understanding-gex-and-dex-rate-of-change",
+  "title": "Account - MenthorQ",
+  "chars": 9438
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=trading-strategies&slug=the-four-option-matrix-regimes",
+  "title": "Account - MenthorQ",
+  "chars": 9066
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=trading-strategies&slug=what-strategy-can-futures-and-options-traders-use-when-price-stalls-at-put-support",
+  "title": "Account - MenthorQ",
+  "chars": 8864
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=trading-strategies&slug=understanding-the-1d-min-in-trading",
+  "title": "Account - MenthorQ",
+  "chars": 9823
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=trading-strategies&slug=trading-above-and-below-the-1-day-max-level",
+  "title": "Account - MenthorQ",
+  "chars": 10707
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=trading-strategies&slug=understanding-trading-below-the-put-support-what-does-that-mean-for-traders",
+  "title": "Account - MenthorQ",
+  "chars": 9449
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=trading-strategies&slug=exotic-options",
+  "title": "Account - MenthorQ",
+  "chars": 9276
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=trading-strategies&slug=using-options-to-trade-futures-reversals",
+  "title": "Account - MenthorQ",
+  "chars": 10863
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=trading-strategies&slug=gap-ups-above-call-resistance",
+  "title": "Account - MenthorQ",
+  "chars": 9251
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=trading-strategies&slug=breaking-call-resistance",
+  "title": "Account - MenthorQ",
+  "chars": 9206
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=trader-type&slug=how-to-trade-options-with-menthorq",
+  "title": "Account - MenthorQ",
+  "chars": 4215
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=trader-type&slug=trade-stocks-with-menthorq",
+  "title": "Account - MenthorQ",
+  "chars": 10468
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=trader-type&slug=0dte-spx-traders",
+  "title": "Account - MenthorQ",
+  "chars": 5199
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=trader-type&slug=futures-trading-with-menthorq",
+  "title": "Account - MenthorQ",
+  "chars": 12430
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=trader-type&slug=gamma-levels-on-forex-crypto",
+  "title": "Account - MenthorQ",
+  "chars": 3098
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=resources&slug=best-trading-software-2025-top-reviews",
+  "title": "Account - MenthorQ",
+  "chars": 6256
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=resources&slug=menthorq-asset-coverage",
+  "title": "Account - MenthorQ",
+  "chars": 2372
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=resources&slug=links-and-resources",
+  "title": "Account - MenthorQ",
+  "chars": 1666
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=resources&slug=menthor-q-academy",
+  "title": "Account - MenthorQ",
+  "chars": 3102
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=resources&slug=menthor-q-set-up-guide",
+  "title": "Account - MenthorQ",
+  "chars": 4527
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=setup&slug=menthorq-quant-models",
+  "title": "Account - MenthorQ",
+  "chars": 10706
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=setup&slug=menthorq-live-sessions",
+  "title": "Account - MenthorQ",
+  "chars": 2029
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=setup&slug=menthorq-trading-integrations",
+  "title": "Account - MenthorQ",
+  "chars": 1247
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=setup&slug=menthorq-subscriptions-plans",
+  "title": "Account - MenthorQ",
+  "chars": 3848
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=setup&slug=quin-menthorq-quantitative-intelligence",
+  "title": "Account - MenthorQ",
+  "chars": 3823
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=setup&slug=membership-product-demo",
+  "title": "Account - MenthorQ",
+  "chars": 1407
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=setup&slug=menthorq-account-setup",
+  "title": "Account - MenthorQ",
+  "chars": 1196
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=quin-screeners&slug=quin-ai-screeners-documentation-and-prompts",
+  "title": "Account - MenthorQ",
+  "chars": 10438
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=request-levels&slug=request-levels-via-quin",
+  "title": "Account - MenthorQ",
+  "chars": 4754
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=quin-usecases&slug=find-options-selling-strategies-using-quin-ai",
+  "title": "Account - MenthorQ",
+  "chars": 12553
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=quin-usecases&slug=how-to-use-quin-prompts-to-analyse-gamma-levels",
+  "title": "Account - MenthorQ",
+  "chars": 9366
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=quin-usecases&slug=how-to-find-market-movers-pre-market",
+  "title": "Account - MenthorQ",
+  "chars": 8816
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=quin-usecases&slug=iv-0dte-1-year-percentile-understanding-the-metric",
+  "title": "Account - MenthorQ",
+  "chars": 10090
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=quin-usecases&slug=the-gex-percentile-screener",
+  "title": "Account - MenthorQ",
+  "chars": 5581
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=quin-usecases&slug=top-5-ai-prompts-for-better-stocks-day-trading-using-options-data-and-ai",
+  "title": "Account - MenthorQ",
+  "chars": 9902
+ },
+ {
+  "url": "https://menthorq.com/account/?action=guides&category=quin-usecases&slug=best-ai-tools-for-futures-trading-in-2025",
+  "title": "Account - MenthorQ",
+  "chars": 9627
+ }
+]

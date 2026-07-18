@@ -1,0 +1,25 @@
+Welcome to this live trading session where we walk you through how to navigate current market conditions using MenthorQ’s gamma levels and trading strategies. This session is designed to support premium members with practical, real-time analysis and help you leverage the data and models during volatile market periods.
+
+In this lesson, we demonstrate how end of day data returned to normal performance after recent volatile weeks. The NQ one day max held perfectly at market open, and we saw the market fall down to the high wall area and one day min from QQQ. This classic setup shows trading from the high wall level to the one day min or one day max, which is a core strategy for the trading approach shown.
+
+We address a key question about combining end of day data and intraday data for ES traders. The recommendation is to always use end of day data as the foundation because most big institutions trade at market close, making these levels very strong. For intraday data, the 9:35 snapshot is highlighted as the most valuable because it’s the last calculation time for the one day min and one day max. For European traders, the 3:30 snapshot works perfectly for the London and Asia sessions combined with end of day levels.
+
+The practical example shown demonstrates using primary levels only (not GEX 1 to 5) to reduce noise on the chart. By combining levels from both NQ and QQQ, you can identify supply and demand areas where the call resistance 0DTE from both assets created perfect resistance zones. We also see how options volume data on SPY can provide insight into potential range-bound trading.
+
+This session emphasizes building your trading roadmap based on data by mapping out key levels like put support, call resistance, and high wall areas. You can then add tools like Fibonacci levels to find precise entry points within these data-driven zones, creating a complete systematic approach to trading.
+
+Video Chapters
+00:00 – Welcome and session introduction for premium members
+02:43 – Why markets returned to normal and NQ one day max performance
+04:08 – Reading SPY options volume data for range expectations
+06:47 – How to use end of day data versus intraday data for ES trading
+10:03 – Using the 9:35 snapshot and primary levels only
+12:36 – Reducing chart noise by filtering to primary levels
+Key Takeaways
+Always use end of day data as your foundation since institutions trade primarily at market close, making these levels very strong
+The 9:35 snapshot is the most valuable intraday data point because it’s the last calculation for one day min and one day max
+Using primary levels only reduces chart noise while combining NQ and QQQ levels creates powerful supply and demand zones
+Build your trading roadmap by mapping high wall areas, call resistance, and put support levels, then add technical tools like Fibonacci for entry points
+ Video Transcription
+ Previous Lesson
+Complete 

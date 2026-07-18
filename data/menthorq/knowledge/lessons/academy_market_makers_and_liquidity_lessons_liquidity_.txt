@@ -1,0 +1,26 @@
+Understanding market liquidity and how to track it through positioning is crucial for improving your trading returns. In this lesson, you’ll learn what drives markets up and down, why liquidity matters for efficient trade execution, price stability, and risk management, and how our Q models help you follow the positioning of market makers to invest better.
+
+Liquidity is essentially the capital that pushes markets in either direction. By tracking liquidity levels, you can monitor volatility, position your portfolio for tail risk events, and benefit from technical movements. For example, before major events, participants build up protection through put or bearish spread strategies, causing excessive put accumulation that drives volatility up. After the event, these positions close, volatility collapses, and the underlying price increases.
+
+Market makers hedge their directional risk through delta hedging. When you buy a not the money call option, the market maker sells about 50% of the nominal value because the option has a delta of 50. As the spot price changes, market makers must buy or sell the underlying to remain delta neutral. This activity either adds or removes liquidity from the market—selling an option adds liquidity, while buying removes it.
+
+Three key factors condition liquidity: spot and strike, implied volatility, and time. These factors are quantified by the Greeks. Gamma tracks spot price movement speed, Vega and Vanna focus on implied volatility changes, and time affects option value daily. In our daily report, the Q models show you this simply: if price is in the green box, you’re in positive Gamma with low volatility; in negative Gamma, markets become very volatile. The jax indicator (shown in yellow) tells you if Gamma is increasing or decreasing.
+
+The Q models display three main levels every morning: the call resistance, the eyeball level, and the put support. The put support level is particularly important because when volatility rises and price falls toward out of the money puts, market makers must short the market to remain delta neutral, potentially creating market crashes. Understanding these mechanics prepares you for the practical section where you’ll apply these concepts.
+
+Video Chapters
+00:00 – Introduction to market liquidity and Q models
+00:41 – Why liquidity matters for trading
+01:26 – How tracking liquidity improves returns
+02:38 – Delta hedging and market maker positioning
+04:55 – How investor positioning changes liquidity
+07:13 – Volatility, moneyness, and out of the money options
+08:24 – Q models levels and put support
+Key Takeaways
+Market makers use delta hedging to remain delta neutral, which either adds or removes liquidity from markets
+Positive Gamma creates low volatility and stable markets, while negative Gamma leads to sharp intraday movements
+The jax indicator tracks whether Gamma is increasing or decreasing, helping you anticipate volatility changes
+The put support level in Q models is critical for identifying potential downside breaks when volatility rises
+ Video Transcription
+ Previous Lesson
+Complete 

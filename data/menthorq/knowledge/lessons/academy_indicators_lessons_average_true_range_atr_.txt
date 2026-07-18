@@ -1,0 +1,27 @@
+In this lesson, you’ll learn how to use the Average True Range (ATR), a powerful volatility indicator that measures how much an asset moves during a given time frame. Created by J. Wells Wilder Jr., ATR helps traders confirm when to initiate trades and where to place stop losses by analyzing price movement rather than predicting trend direction.
+
+The ATR is calculated by finding the average of the true ranges over a set number of periods, typically 14 days. The true range for each period is determined by taking the greatest of three values: the difference between the current high and low, the absolute value between the current high and previous close, or the absolute value between the current low and previous close. Higher ATR values indicate greater volatility, often seen during market tops and downtrends, while lower ATR values suggest decreased volatility during market bottoms or consolidating phases.
+
+You can leverage ATR to identify periods of low volatility before explosive movements, as volatility tends to be mean reverting. During consolidation phases, ATR decreases, signaling potential breakout opportunities when combined with support and resistance levels. Another application involves predicting market reversals by monitoring when price moves more than the daily true range—for example, using a 1.5 ATR level to identify potential overextension and exhaustion points.
+
+One of the most practical uses of ATR is setting dynamic stop losses that account for each security’s unique volatility. Instead of using fixed stop losses at obvious support or resistance levels, you can create a buffer based on ATR. For instance, if you enter a trade at $100 with an ATR of $3, you might set your stop loss at $94 rather than $97, giving the trade room to breathe. You can also use a multiple of ATR, such as 5x ATR, as a trailing stop to ride big trends while allowing for normal pullbacks.
+
+On TradingView, you can display ATR at the bottom of your chart and even use indicators that overlay ATR on the price chart. Keep in mind that ATR is a lagging indicator that measures volatility in absolute price units, making cross-asset comparisons difficult, and it doesn’t indicate price direction.
+
+Video Chapters
+00:00 – Introduction to ATR and its purpose
+01:40 – How to display ATR on the chart
+02:08 – Reading ATR: high vs low volatility
+03:12 – Using ATR to identify low volatility periods
+04:47 – Predicting market reversals with ATR
+05:17 – Placing stop losses using ATR
+06:54 – Trailing stops with ATR multiples
+07:26 – Limitations of the ATR indicator
+Key Takeaways
+ATR measures volatility, not price direction, with higher values indicating greater market volatility
+The indicator is calculated using true ranges averaged over a period, typically 14 days
+Use ATR to set dynamic stop losses that account for each security’s unique volatility, avoiding premature exits
+Combine ATR with support and resistance levels to identify breakout opportunities during low volatility periods
+ Video Transcription
+ Previous Lesson
+Complete 

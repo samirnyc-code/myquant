@@ -1,0 +1,24 @@
+This lesson walks you through establishing an effective morning routine for market analysis using MenthorQ’s tools and data. Whether you’re new to the platform or looking to streamline your pre-market preparation, you’ll learn the exact steps to get fully informed about your chosen asset in just a few minutes.
+
+Your morning routine starts with building your trading view levels directly from the bot. Simply copy the text and paste it into your chart to instantly see your key levels for the day. The second critical step is checking the liquidity regime to understand whether you’re in a positive or negative gamma condition, which determines how volatile the day is likely to be. This is essential because you always want to trade on the right side of volatility—if your strategy benefits from volatility, you need different conditions than if you’re selling options and want low volatility.
+
+Next, you’ll examine the key level table to identify primary levels including the core resistance, put support, and the ivory level, which represents the volatility shift between positive and negative gamma. You’ll also want to monitor your distance from these levels. Then review the net gamma exposure to understand whether the market is positioned more on the call side or put side, followed by analyzing volume and open interest to identify where big open interest nodes are located.
+
+The matrix simplifies the complex option chain by showing you exactly what matters for your time frame. For example, if you’re planning a seven-day trade, the matrix shows how much gamma is expiring, how much delta is expiring, what the ratios are, and importantly, the levels for that expiration and the expected move. Based on forward-looking volatility, the model can forecast that price will stay within a specific range—such as plus or minus nine points on the SPY from now to a given expiration date.
+
+We provide a mentor queue setup guide and a get set up with mentor queue in less than five minutes documentation to walk you through each step. The channels follow a specific order for a reason, so following that sequence helps you build a comprehensive view. Additional documentation is available on our blog under option data, including guides on positive and negative gamma. Once you practice this routine, it takes only one to three minutes to get the complete big picture before the market opens.
+
+Video Chapters
+00:00 – Introduction to morning routine questions
+01:26 – Step one: Building trading view levels
+02:06 – Step two: Understanding liquidity regime and gamma conditions
+04:27 – Reviewing net gamma exposure and key levels
+05:32 – Using the matrix to simplify option chain data
+07:45 – Building your two-minute morning homework routine
+Key Takeaways
+Start your routine by copying trading view levels from the bot directly into your chart to see key levels instantly
+Understanding the liquidity regime (positive vs negative gamma) is critical for knowing if the day will be volatile or calm
+The matrix simplifies the option chain and forecasts expected price ranges based on forward-looking volatility for specific expirations
+Following the channel order and using MenthorQ documentation helps you complete your morning analysis in just one to three minutes
+ Video Transcription
+Complete 

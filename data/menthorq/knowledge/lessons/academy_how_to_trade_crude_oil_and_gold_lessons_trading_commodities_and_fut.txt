@@ -1,0 +1,25 @@
+In this lesson, you’ll learn how to apply gamma levels and hedging value levels (HVL) to trade crude oil futures, featuring insights from experienced futures traders Diana Angelo and Anne Marie Band from Top Step TV. Diana walks through a live trading example, demonstrating how she combines MenthorQ levels with time-based setups and market structure analysis.
+
+Diana specializes in trading crude oil and precious metals, focusing on what she calls the post NY cut setup—a time of day when forex option expiries in the Canadian dollar create knock-on effects in crude oil. In her example, she identified a four hour supply zone coinciding with the GEX 3 and HVL levels around the same area, creating strong confluence. She watched for a failed auction after crude opened above the previous day’s distribution curve but couldn’t sustain higher prices during the initial balance (the first hour of NYMEX trading).
+
+The trade setup involved stalking the GEX 3 level with two hypotheses: either a breakdown would occur, or a 30-minute close above both GEX 3 and the initial balance would signal a bullish move. The breakdown scenario played out, with Diana entering around 69.45. She then used the HVL as her next orientation point, expecting a reaction on the first test but a momentum run-through on the second test. The trade moved into full value acceptance and reached the GEX 4 level.
+
+Both guests emphasized the value of having crude oil options levels and other alternative markets available, noting that many platforms only offer SPX and ES data. Diana highlighted how MenthorQ simplifies what used to require manually dragging data from options chains—a time-consuming process with information overload. The new intraday levels feature was praised as a complete game changer, especially on volatile days when end-of-day levels get broken at the open, providing updated positioning and advanced analytics throughout the trading session.
+
+The lesson also covers MenthorQ’s expanded integration capabilities, now offering API connections for platforms including Ninja Trader, Quantower, ATAS, BookMap, and Sierra. Automatic updates are coming to TradingView in December and Transpider shortly after, making it much easier to access real-time gamma and hedging levels without manual updates. These integrations represent a massive step forward for traders using these platforms across multiple asset classes including futures and commodities.
+
+Video Chapters
+00:00 – Introduction with Top Step TV guests Diana and Anne Marie
+02:26 – Platform integrations and alternative markets coverage
+03:48 – Intraday levels as a game changer
+04:43 – API automation and platform updates
+06:50 – Live crude oil trade example using GEX and HVL levels
+08:02 – Failed auction setup and confluence analysis
+Key Takeaways
+The GEX 3 and HVL levels provide critical confluence zones for identifying high-probability trade setups in crude oil futures
+Intraday levels solve the problem of broken levels on volatile days by providing updated positioning throughout the trading session
+MenthorQ now offers API integrations for platforms like Ninja Trader, Quantower, BookMap, ATAS, and Sierra, with TradingView and Transpider coming soon
+Combin…
+ Video Transcription
+ Previous Lesson
+Complete 

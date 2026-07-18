@@ -1,0 +1,23 @@
+In this lesson, you’ll learn how to interpret two critical options market indicators: term structure and skew. These tools help you understand what the market is expecting in terms of price movement and volatility, even if you never trade options yourself.
+
+Term structure shows at the money volatility across different time periods to expiration. You’ll see how implied volatility can range dramatically—in the example shown, it moves from 55 down to 45, then back up to 60—revealing how the market expects movement to vary over time. When markets are calm and rallying, you’ll typically see an upward sloping structure, which tells you that while things are quiet now, market makers expect volatility to eventually return to normal levels.
+
+The term structure also reveals important events on the horizon. In the lesson example, you can see a spike around the one-month mark indicating the market is pricing in potential volatility from an upcoming earnings announcement. The front end of the curve provides the most actionable information about near-term expectations, while the long end (60 to 80 days) shows more permanent shifts in market sentiment. When you see that longer-dated portion moving significantly up or down, it signals the market expects a more seismic shift rather than temporary conditions.
+
+Skew demonstrates how implied volatility changes across different strike prices. Rather than being a fixed number, volatility gets much higher as you move further from the current price—what the lesson calls “the wings.” Using Nvidia trading around 888 as an example, implied volatility increases substantially at strikes way down at 600 or way up at 1200. This happens because nobody wants to sell “lottery tickets” or extreme bets against crazy events, since those events can and do happen. The shape of skew also tells you what the market expects at different price levels—for instance, continued volatility during a bull run, declining volatility if prices settle to a lower range, or dramatically increased volatility in a collapse scenario.
+
+Video Chapters
+00:00 – Introduction to at the money volatility and term structure
+00:40 – Reading market conditions from the term structure curve
+01:30 – Identifying earnings events and short-term volatility spikes
+02:29 – Understanding long-term versus front-end curve movements
+03:38 – Introduction to skew and fat tails
+04:49 – How skew changes across strike prices and market scenarios
+Key Takeaways
+Term structure shows at the money implied volatility across different expiration dates, revealing how market expectations change over time
+An upward sloping structure typically indicates calm current conditions with expectations of returning to normal volatility levels
+Skew demonstrates that implied volatility isn’t constant but increases substantially at strike prices far from current levels
+The front end of the curve provides actionable near-term information, while the long end (60 to 80 days) signals more permanent market sentiment shifts
+ Video Transcription
+ Previous Lesson
+Complete 

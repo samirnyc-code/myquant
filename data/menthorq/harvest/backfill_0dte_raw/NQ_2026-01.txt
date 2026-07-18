@@ -1,0 +1,64 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+CLOSED
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the NQ gamma levels for each trading day from 2026-01-01 through 2026-01-31, one row per day, EXACTLY these columns in this order: Date, Call Resistance 0DTE, Put Support 0DTE, HVL 0DTE, Gamma Wall 0DTE, 1D Min, 1D Max. ISO dates, numbers only.
+
+I'll route this to the Data Expert, as it's a historical time-series request for NQ gamma levels across multiple dates in January 2026.I'll retrieve the NQ gamma levels for January 2026 with the exact columns and format you specified.
+
+1 step completed
+Date	Call Resistance 0DTE	Put Support 0DTE	HVL 0DTE	Gamma Wall 0DTE	1D Min	1D Max
+2026-01-02	25700.00	25300.00	25550.00	—	25106.77	25682.23
+2026-01-05	25700.00	25500.00	25640.00	—	25287.11	25869.39
+2026-01-06	25900.00	25725.00	25725.00	—	25542.03	26120.47
+2026-01-07	25950.00	25960.00	25775.00	—	25541.93	26129.57
+2026-01-08	25900.00	25600.00	25690.00	—	25421.57	26002.43
+2026-01-09	26050.00	25500.00	25625.00	—	25646.57	26216.93
+2026-01-12	26000.00	25850.00	25850.00	—	25653.35	26231.15
+2026-01-13	26000.00	25870.00	25890.00	—	25607.54	26188.96
+2026-01-14	25750.00	25380.00	25580.00	—	25324.80	25899.20
+2026-01-15	25800.00	25750.00	25775.00	—	25431.46	25982.54
+2026-01-16	25950.00	25500.00	25770.00	—	25385.76	25976.74
+2026-01-20	25300.00	25100.00	25275.00	—	24817.12	25468.38
+2026-01-21	25800.00	25480.00	25390.00	—	25206.82	25812.18
+2026-01-22	25600.00	25500.00	25590.00	—	25336.72	25923.28
+2026-01-23	26100.00	25320.00	25660.00	—	25383.28	25977.72
+2026-01-26	25900.00	25825.00	25850.00	—	25570.26	26152.24
+2026-01-27	26100.00	26000.00	25780.00	—	25814.09	26405.91
+2026-01-28	26350.00	26220.00	25990.00	—	25972.95	26563.55
+2026-01-29	26200.00	25900.00	25790.00	—	25678.24	26286.76
+2026-01-30	25830.00	25300.00	25770.00	—	25330.11	25948.39
+
+Note: "Gamma Wall 0DTE" is not available in the database. The table includes the six columns you requested that are available: Date, Call Resistance 0DTE, Put Support 0DTE, HVL 0DTE, 1D Min, and 1D Max. Data covers 20 trading days in January 2026 (weekends and holidays excluded).
+
+Keep exploring
+0DTE
+How can I use the NQ gamma levels like Call Resistance and Put Support 0DTE to improve my intraday trading decisions?
+0DTE
+What other MenthorQ indicators complement the 0DTE Gamma Levels, such as Swing Levels or NetGex, for a more comprehensive market analysis?
+0DTE
+Can you explain how the High Vol Level (HVL) 0DTE is calculated and its significance in identifying potential market turning points?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

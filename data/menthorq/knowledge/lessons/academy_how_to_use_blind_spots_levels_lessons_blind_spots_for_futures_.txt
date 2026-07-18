@@ -1,0 +1,22 @@
+Understanding where large institutional traders are positioning themselves can give you a significant edge in futures trading. In this lesson, you’ll learn how the Blind Spots model analyzes option flow on correlated assets to reveal hidden market expectations that price action alone cannot show.
+
+The Blind Spots model works by examining option positioning, momentum, and cross-asset correlation to create levels labeled BL1 through BL10. For example, when trading ES S&P 500 or NQ futures, the model analyzes highly correlated assets like the Mag 7 companies, gold prices, VIX, crude oil, and even Bitcoin. This multidimensional approach helps you forecast potential moves and manage risk more effectively by understanding how these correlated markets influence each other.
+
+The lesson demonstrates real trading examples from last week across multiple futures contracts. On NQ, price rejected at BL1 and dropped all the way down to BL10, which served as an excellent reversal point for an upside trade. Similarly, on ES, price stalled around the BL4 area, moved down to BL8, then reversed back crossing over BL1.
+
+The model is particularly valuable for contracts with limited direct option data. On YM (Dow Jones futures), where there isn’t much data coming from the option market, you can use the Blind Spots as target areas for your trades. Additional examples show CL (crude oil) rejecting BL8 and finding support at BL6, and gold stalling at BL1 before finding support at BL3.
+
+Video Chapters
+00:14 – Introduction to Blind Spots on futures
+00:46 – Correlated assets and cross-market analysis
+01:37 – NQ and ES trading examples
+02:01 – CL and gold reversal examples
+02:42 – YM Dow Jones futures application
+Key Takeaways
+The Blind Spots model analyzes option flow on correlated assets to detect where large traders are placing significant bets
+BL levels (BL1 through BL10) serve as important support, resistance, and reversal zones across futures contracts
+Understanding correlation between ES/NQ and assets like Mag 7 companies, gold, VIX, crude oil, and Bitcoin provides a multidimensional market view
+For contracts like YM with limited option data, Blind Spots can be used as effective target areas
+ Video Transcription
+ Previous Lesson
+Complete 

@@ -1,0 +1,70 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+AFTER-HOURS
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+For SPX, can you give historical open interest? Show total call OI and total put OI at end of day for each trading day from 2026-06-15 through 2026-07-14, one row per day: Date, Call OI, Put OI.
+
+I'll route this to the Data Expert, as it's a historical time-series request for SPX open interest data across multiple dates.
+
+1 step completed
+
+SPX open interest over the past month shows a notable drop on June 18 (post-expiration), then steady rebuilding through mid-July. (Data as of Jul 14, 2026)
+
+Date	Call OI	Put OI
+2026-06-15	10.69M	14.72M
+2026-06-16	10.82M	14.88M
+2026-06-17	10.94M	15.19M
+2026-06-18	8.41M	11.47M
+2026-06-22	8.60M	11.82M
+2026-06-23	8.73M	12.03M
+2026-06-24	8.83M	12.19M
+2026-06-25	8.96M	12.36M
+2026-06-26	9.02M	12.13M
+2026-06-29	9.17M	12.41M
+2026-06-30	9.00M	12.02M
+2026-07-01	9.16M	12.26M
+2026-07-02	9.17M	12.20M
+2026-07-06	9.26M	12.36M
+2026-07-07	9.33M	12.45M
+2026-07-08	9.39M	12.69M
+2026-07-09	9.47M	12.79M
+2026-07-10	9.49M	12.55M
+2026-07-13	9.61M	12.75M
+2026-07-14	9.66M	12.92M
+
+Key observations:
+
+Expiration drop (Jun 18): Call OI fell ~23% (10.94M → 8.41M) and put OI fell ~24% (15.19M → 11.47M) — typical post-expiration roll-off
+Steady recovery: Both call and put OI rebuilt consistently from late June through mid-July, suggesting new positions being established ahead of the next expiration cycle
+Put/Call ratio: Put OI consistently exceeds call OI by ~30-35% throughout the period, indicating net hedging bias in the market
+Keep exploring
+Explore
+How can I use historical open interest data for SPX options to identify market sentiment trends?
+Options
+Are there MenthorQ indicators that combine open interest data with Gamma Exposure or Delta Exposure for deeper market insights?
+Explore
+Does MenthorQ Academy offer courses on interpreting open interest and its impact on options trading strategies?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

@@ -1,0 +1,72 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+AFTER-HOURS
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the SPX Call Resistance, Put Support, and HVL levels for each trading day from 2026-03-01 through 2026-03-31, one row per day, columns: Date, Call Resistance, Put Support, HVL.
+
+I'll route this to the Data Expert, as it's a historical time-series request across multiple dates.I'll retrieve the SPX gamma levels (Call Resistance, Put Support, and High Vol Level) for March 2026.
+
+1 step completed
+
+SPX gamma levels for March 2026 — Call Resistance stable at $7,100 through mid-month, then declined to $7,000 late month. Put Support weakened from $6,800 to $6,300 by month-end. (Data as of March 1–31, 2026)
+
+Date	Call Resistance	Put Support	HVL
+2026-03-02	$7,100.00	$6,800.00	$6,890.00
+2026-03-03	$7,100.00	$6,800.00	$6,905.00
+2026-03-04	$7,100.00	$6,800.00	$6,890.00
+2026-03-05	$7,100.00	$6,800.00	$6,890.00
+2026-03-06	$7,100.00	$6,700.00	$6,890.00
+2026-03-09	$7,100.00	$6,700.00	$6,875.00
+2026-03-10	$7,100.00	$6,700.00	$6,850.00
+2026-03-11	$7,100.00	$6,700.00	$6,850.00
+2026-03-12	$7,100.00	$6,700.00	$6,850.00
+2026-03-13	$7,100.00	$6,600.00	$6,850.00
+2026-03-16	$7,100.00	$6,500.00	$6,820.00
+2026-03-17	$7,100.00	$6,600.00	$6,800.00
+2026-03-18	$7,100.00	$6,500.00	$6,800.00
+2026-03-19	$7,100.00	$6,600.00	$6,800.00
+2026-03-20	$7,100.00	$6,500.00	$6,800.00
+2026-03-23	$7,100.00	$6,500.00	$6,800.00
+2026-03-24	$7,100.00	$6,500.00	$6,800.00
+2026-03-25	$7,100.00	$6,500.00	$6,800.00
+2026-03-26	$7,000.00	$6,500.00	$6,800.00
+2026-03-27	$7,000.00	$6,400.00	$6,800.00
+2026-03-30	$7,000.00	$6,400.00	$6,800.00
+2026-03-31	$7,000.00	$6,300.00	$6,550.00
+
+Key observations:
+
+Call Resistance: Held firm at $7,100 from Mar 2–25, then dropped $100 to $7,000 on Mar 26 and remained there through month-end.
+Put Support: Declined steadily from $6,800 (early month) to $6,300 (Mar 31) — a $500 deterioration, suggesting weakening downside protection.
+HVL: Relatively stable around $6,800–$6,890 through most of the month, then compressed sharply to $6,550 on the final day.
+Keep exploring
+Options
+How can I use the SPX Call Resistance and Put Support levels together to identify potential price reversal zones?
+Options
+Are there MenthorQ indicators that complement Call Resistance and Put Support levels, such as Swing Levels or NetGex, for a more comprehensive market analysis?
+Learn
+What is the methodology behind calculating the High Vol Level (HVL) and how does it impact intraday trading decisions?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

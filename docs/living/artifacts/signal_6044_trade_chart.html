@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Signal 6044 Trade Chart</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #1a1a1a; color: #fff; }
+        .container { max-width: 1400px; margin: 0 auto; background: #2a2a2a; padding: 20px; border-radius: 8px; }
+        h1 { color: #fff; margin-top: 0; }
+        .status { font-size: 18px; padding: 15px; margin: 20px 0; border-radius: 4px; }
+        .no-fill { background: #8b0000; color: #ffcccc; border-left: 4px solid #ff4444; }
+        .legend { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 20px 0; }
+        .legend-item { padding: 10px; background: #333; border-radius: 4px; font-size: 13px; }
+        img { max-width: 100%; height: auto; border: 2px solid #444; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Signal #6044 - Corrected Chart</h1>
+
+        <div class="status no-fill">
+            <strong>❌ NO ENTRY</strong> - Price never retraces to SB low (6757.00) after signal bar closes at 09:20:00
+        </div>
+
+        <div class="legend">
+            <div class="legend-item"><strong>Signal Bar:</strong> Bar 9 (closes 09:20:00)</div>
+            <div class="legend-item"><strong>SB Low:</strong> 6757.00</div>
+            <div class="legend-item"><strong>Entry Limit:</strong> 6757.25 (1 tick above)</div>
+            <div class="legend-item"><strong>Signal Price:</strong> 6767.25</div>
+            <div class="legend-item"><strong>Target 1R:</strong> 6782.50</div>
+            <div class="legend-item"><strong>Stop:</strong> 6752.00</div>
+            <div class="legend-item"><strong>Status:</strong> DOES NOT FILL</div>
+            <div class="legend-item"><strong>Reason:</strong> Price gaps above SB low, never retraces</div>
+        </div>
+
+        <img src="file:///private/tmp/claude-501/-Users-nuy/9439c39c-c3ac-49e0-9d1e-0d77ec21b4c9/scratchpad/correct_chart_6044.png" alt="Signal 6044 Chart">
+
+        <div style="margin-top: 30px; padding: 15px; background: #333; border-radius: 4px;">
+            <h3>What Happened:</h3>
+            <ol>
+                <li><strong>09:20:00</strong> - Signal bar (Bar 9) closes. Low was 6757.00, Close was 6767.25</li>
+                <li><strong>After 09:20:00</strong> - Limit order placed at 6757.25 (1 tick above low)</li>
+                <li><strong>Next bars</strong> - Price moves UP from 6767.25, never retraces back to 6757.00</li>
+                <li><strong>Result:</strong> Limit order never fills - price gaps above the level</li>
+            </ol>
+        </div>
+    </div>
+</body>
+</html>

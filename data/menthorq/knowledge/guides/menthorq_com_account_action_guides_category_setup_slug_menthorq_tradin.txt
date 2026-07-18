@@ -1,0 +1,71 @@
+Back to Dashboard
+Getting Started
+Trader Type
+5
+Resources
+5
+Onboarding
+7
+QUIN
+Products
+Knowledge Base
+Trading Strategies
+Integrations
+Trader
+Partners
+Backtesting
+Affiliation
+MenthorQ Trading Integrations
+ONBOARDING
+
+MenthorQ plugs into the tools traders already use so your models, levels, and alerts show up where work happens. This guide explains each integration, what it’s best for, how to set it up, and typical workflows.
+
+You can check the full list of Active Integrations here
+
+Access the Video Tutorials of each integrations
+
+Indicator Features
+
+Each Integration and Indicator you have the following features:
+
+Integration via API if platforms allows
+
+Full Customization of Levels Plots and Labels
+
+Daily Levels + Historical Levels
+
+Access Multiple Levels Type: Gamma Levels EOD and Intraday, Swing Levels and Blind Spots
+
+Real Time Alerts
+
+Trading Roadmap
+
+Levels Conversion. You can convert all Levels Type from one asset to the other using Auto or Manual Ratio
+
+MenthorQ Integrations Setup Guide
+
+Check out the Setup Guide for each of the integrations:
+
+TradingView
+
+NinjaTrader
+
+TrendSpider
+
+ATAS
+
+Sierra Chart
+
+Quantower
+
+Bookmap
+
+Motivewave
+
+MetaTrader
+
+Tickblaze
+
+On this page
+ Indicator Features
+ MenthorQ Integrations Setup Guide

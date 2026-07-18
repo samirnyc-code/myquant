@@ -1,0 +1,25 @@
+Understanding how Bitcoin correlation works across different instruments is essential for accurate trading analysis. In this lesson, you’ll discover how to apply gamma levels to both Bitcoin USD spot and Bitcoin futures, and learn why the same levels appear at slightly different price points depending on which instrument you’re analyzing.
+
+The key difference between spot and futures comes down to the ratio settings you use. For MBT futures, a manual ratio of 10.86942 is used, while the Bitcoin USD spot can utilize the auto ratio feature. The auto ratio works well and provides reliable levels, but calculating your own manual ratio using the methods taught on YouTube, the MenthorQ Academy, or through the support community can give you even more precise level placement.
+
+A powerful technique demonstrated in this lesson involves applying futures levels directly to spot price charts. By loading the 6e6b6j futures levels onto the USD/JPY spot chart, you can see all the gamma levels appear on the spot instrument. This cross-application works because the underlying correlation principles remain consistent across related instruments.
+
+When levels show one day max, gamma wall 0DTE, and call resistance 0DTE clustered together, these areas tend to be highly respected by price action. By looking to the left side of your chart, you can verify historical respect at these levels – if a level was respected multiple times in the past, it will most likely be respected again in the future.
+
+This approach eliminates the need for multiple tools when finding entry and exit points. Whether you’re trading Bitcoin spot or futures, understanding how to properly apply and interpret these gamma levels across different instruments gives you a significant analytical advantage.
+
+Video Chapters
+00:00 – Comparing Bitcoin USD spot and futures levels
+00:22 – Understanding manual ratio vs auto ratio settings
+01:00 – Calculating ratios using MenthorQ Academy resources
+01:40 – Applying futures levels to spot price charts
+02:06 – Loading 6e6b6j futures levels on USD/JPY spot
+02:35 – Using left-side analysis to verify level respect
+Key Takeaways
+The auto ratio works well for Bitcoin USD spot, while manual ratios like 10.86942 provide precise levels for futures
+You can apply futures levels (like 6e6b6j) directly onto spot price charts to see all gamma levels
+When one day max, gamma wall 0DTE, and call resistance 0DTE cluster together, these levels are typically highly respected
+Looking to the left side of your chart helps verify historical respect at key levels for future trading decisions
+ Video Transcription
+ Previous Lesson
+Complete 

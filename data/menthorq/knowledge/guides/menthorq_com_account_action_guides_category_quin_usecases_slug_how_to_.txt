@@ -1,0 +1,147 @@
+Back to Dashboard
+Getting Started
+QUIN
+Screeners Prompts
+Request Levels
+Usecases
+12
+Products
+Knowledge Base
+Trading Strategies
+Integrations
+Trader
+Partners
+Backtesting
+Affiliation
+How to Find Market Movers Pre-Market
+USECASES
+
+Using Data and Positioning Before Open
+
+The pre-market session is one of the most important yet misunderstood parts of the trading day. It is where the first reactions to overnight news, earnings, macro data, and global market movements begin to show up in price. For traders, this period offers a critical edge.
+
+If you can identify which stocks are moving before the open, you gain insight into where liquidity, momentum, and attention are building. That allows you to prepare rather than react once the market opens.
+
+But not all pre-market moves are equal. Some fade within minutes of the open. Others develop into sustained trends that define the entire session. The challenge is not just finding movers. It is understanding which ones actually matter.
+
+What Is Pre-Market Trading?
+
+Pre-market trading refers to buying and selling activity that takes place before the official stock market open. This typically occurs in the early morning hours, where institutions, hedge funds, and active traders begin positioning ahead of the day.
+
+During this time, liquidity is thinner than during regular trading hours. That means price can move more easily, sometimes exaggerating reactions to news or events. Despite this, pre-market activity often provides a preview of what is coming.
+
+Stocks that show strong volume, clear directional movement, or significant gaps tend to attract attention once the market opens. This makes pre-market analysis a key part of any structured trading routine.
+
+Why Pre-Market Movers Matter
+
+Pre-market movers are stocks that show meaningful price changes before the open. These moves are usually driven by catalysts such as earnings releases, guidance updates, analyst ratings, macro news, or sector-wide developments. Tracking these movers helps traders in several ways.
+
+First, it provides a read on market sentiment. If most movers are to the upside, it may indicate risk-on conditions. If downside movers dominate, it can signal caution.
+
+Second, it highlights where liquidity and attention are likely to concentrate. Stocks with high pre-market volume often become the most actively traded names during the session.
+
+Third, it creates potential trading opportunities. Breakouts, gap fills, and volatility expansions often originate from pre-market setups.
+
+But identifying these opportunities requires more than just scanning for price changes.
+
+Traditional Ways to Find Pre-Market Movers
+
+Most traders rely on a combination of tools and methods to identify pre-market activity.
+
+Premarket screeners are the most common starting point. These tools allow traders to filter stocks based on percentage change, volume, price, and other criteria. They help quickly identify which names are moving the most.
+
+News feeds are another important input. Earnings reports, mergers, guidance updates, and macro headlines often drive pre-market movement. Monitoring financial news and social sentiment helps explain why a stock is moving.
+
+Trading platforms also provide pre-market data and watchlists. These allow traders to track specific names in real time and observe how price evolves as liquidity builds. While these tools are useful, they have a limitation.
+
+They show what is moving, but not necessarily what has real follow-through potential.
+
+The Problem With Basic Pre-Market Scanning
+
+Many traders fall into the trap of chasing the biggest movers.
+
+A stock that is up 10 percent pre-market looks attractive, but without context, that move can be misleading. It may be driven by low liquidity, short covering, or temporary reactions that fade quickly after the open.
+
+What matters more is the structure behind the move.
+
+Is there real positioning supporting it?
+Is options flow aligned with the direction?
+Is the move part of a broader sector rotation?
+Are key levels likely to hold or fail?
+
+This is where a more advanced, data-driven approach becomes essential.
+
+How QUIN Helps Identify Pre-Market Movers
+
+QUIN transforms how traders approach pre-market analysis by shifting the focus from raw price movement to structured decision-making. Instead of simply scanning for movers, it helps identify which setups actually have edge.
+
+One of the most powerful features are its ai screeners. Traders can filter for stocks with high momentum scores, strong volatility, or unusual options activity. This allows you to quickly identify names that are building energy before the open.
+
+For example, instead of looking at a generic pre-market list, you can ask for the top stocks ranked by momentum or filter for specific sectors such as technology or semiconductors. This immediately narrows the focus to higher-quality setups.
+
+Analyzing Individual Tickers With Context
+
+Once you identify potential movers, QUIN allows you to analyze them in depth. Each stock can be evaluated using multiple data layers.
+
+The Q-Score provides a combined view of sentiment and momentum, giving a clearer picture of whether the move is supported by underlying strength.
+
+Net GEX and gamma levels show options positioning and potential support or resistance zones. These are critical for understanding how dealer hedging flows may influence price after the open.
+
+Implied volatility and open interest offer insight into options flow. Rising volatility or concentrated positioning can indicate that larger players are involved. News integration adds another layer, helping explain the catalyst behind the move.
+
+This combination allows traders to move beyond surface-level analysis and understand the structure driving each setup.
+
+Identifying Sector and Market-Wide Moves
+
+Pre-market activity is not always isolated to individual stocks. Often, it reflects broader sector rotations. QUIN makes it easier to identify these patterns.
+
+By comparing momentum scores across multiple stocks or filtering by sector, traders can quickly see where capital is flowing. If multiple semiconductor stocks are showing strong momentum, it may indicate a sector-wide move rather than a single-stock event. This is important because sector moves tend to have more follow-through than isolated names.
+
+Understanding whether a move is part of a broader trend helps traders position more effectively.
+
+Refining Your Pre-Market Process
+
+One of the key advantages of QUIN is its flexibility.
+
+You can start with a broad scan and then refine it based on specific criteria. For example, you might begin by looking at the top 20 movers by momentum, then narrow the list to a specific sector, and finally add filters such as implied volatility or options activity. This iterative process helps eliminate noise and focus on the most relevant opportunities.
+
+Instead of reacting to every pre-market move, you build a structured workflow that prioritizes quality over quantity.
+
+Turning Pre-Market Insight Into Strategy
+
+Finding pre-market movers is only the first step. The next step is translating that information into a trading plan.
+
+If a stock is breaking out pre-market with strong momentum and supportive options positioning, it may set up for continuation after the open.
+
+If a stock is gapping on news but lacks supporting flows, it may be more likely to fade.
+
+If multiple stocks in a sector are moving together, it may create a broader thematic trade.
+
+By combining pre-market data with positioning and flow analysis, traders can approach the open with a clear framework rather than reacting to price in real time.
+
+Conclusion
+
+Pre-market trading provides a valuable window into how the day may unfold. It reveals early positioning, highlights key catalysts, and identifies where attention is building.
+
+But raw price movement alone is not enough.
+
+To consistently find high-quality setups, traders need to understand the structure behind those moves. That means combining momentum, positioning, volatility, and sector context.
+
+QUIN brings these elements together into a single decision framework.
+
+It helps traders move from simply spotting movers to understanding which ones matter and why. In a market where speed and information are critical, that shift can make a meaningful difference in performance.
+
+The edge is no longer just about being early. It is about being prepared.
+
+On this page
+ Using Data and Positioning Before Open
+ What Is Pre-Market Trading?
+ Why Pre-Market Movers Matter
+ Traditional Ways to Find Pre-Market Movers
+ The Problem With Basic Pre-Market Scanning
+ How QUIN Helps Identify Pre-Market Movers
+ Analyzing Individual Tickers With Context
+ Identifying Sector and Market-Wide Moves
+ Refining Your Pre-Market Process
+ Turning Pre-Market Insight Into Strategy
+ Conclusion

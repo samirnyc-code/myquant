@@ -1,0 +1,26 @@
+This lesson explores how to use Net Delta exposure data to analyze market sentiment and build better options trades. You’ll learn how Dan and Doc, experienced traders in the MenthorQ community, interpret Net Delta charts to identify bullish or bearish positioning and make informed trading decisions based on what market makers are hedging.
+
+The Net Delta represents the difference between long and short positions in the market. When you see positive Net Delta, there are more long positions than short, indicating bullish sentiment. Conversely, negative Net Delta shows more short positions, suggesting bearish sentiment. Market makers must hedge against these positions, and understanding this dynamic helps you anticipate potential support and resistance levels in the underlying asset.
+
+The lesson demonstrates practical analysis using real examples from the dashboard. When examining AMD, the instructors identify heavy negative delta above and below the current price, indicating significant bearish positioning that bulls must battle through. In contrast, Micron shows staggered calls throughout the chain with in-the-money calls acting as support levels, creating a more bullish setup that makes selling puts more attractive.
+
+For SPX analysis, the lesson reveals how an indecisive market looks on the Net Delta exposure chart. When Delta shows balanced positioning with participants long and short across the chain, it indicates market uncertainty. This contrasts with Nvidia’s chart showing significant positive deltas at key levels like 130, while heavy call positioning at 140 acts as a ceiling. These insights help you identify where market makers will support or resist price movement.
+
+You can access the Net Delta exposure chart and Net Delta model through your MenthorQ account. The platform provides guides under the products section with detailed documentation and videos explaining how to interpret and apply this data to your trading strategies.
+
+Video Chapters
+00:00 – Introduction and disclaimer
+01:37 – Dan’s introduction to Net Delta concept
+05:02 – Doc explains Delta basics and methodology
+06:26 – Analyzing AMD Net Delta structure
+09:32 – Comparing Micron’s bullish Delta setup
+12:37 – SPX indecisive market analysis
+14:10 – Nvidia Delta positioning and trading levels
+Key Takeaways
+Net Delta reveals market sentiment by showing the balance between long and short positions that market makers must hedge
+In-the-money calls create support levels as market makers buy to hedge their short positions
+Indecisive markets show balanced Net Delta exposure with participants positioned both long and short across the chain
+Compare Net Delta structures across different tickers to identify which setups favor bullish or bearish strategies
+ Video Transcription
+ Previous Lesson
+Complete 

@@ -1,0 +1,24 @@
+This lesson introduces how options flow and gamma levels can dramatically improve your futures trading execution, even if you’ve never traded options before. You’ll learn why the massive growth in zero-dated options (zero DTEs) is creating predictable price reactions at key levels, and how institutional-grade data from Menthor Q helps you identify these critical zones on your charts.
+
+The options market has fundamentally changed how prices move, especially near market closes. Since 2021, option volume has surpassed equity volume for the first time in history, and this trend continues to accelerate. Understanding that 75% of US trading volume is driven by computers and that 90% of options expire worthless helps explain why markets are increasingly drawn to specific price levels as expiration approaches. For futures traders, this means the E-mini S&P and other contracts now respond predictably to these gamma levels, particularly during the final hours of trading.
+
+Market makers execute the majority of option transactions across thousands of strike prices and expirations. Their hedging activity creates measurable forces that push or pull prices toward specific levels. Even if you trade futures directionally and have no interest in options themselves, these levels act as reaction zones and potential turning points that you can mark on your charts. You’ll notice the strongest responses during morning sessions may be minimal, but as you approach closes or key gamma levels, the market’s behavior becomes increasingly predictable.
+
+Menthor Q builds quantitative models using institutional-level data and converts complex options flow into actionable signals. The platform originally covered SPX and now provides gamma levels for stocks, ETFs, indices, and has recently expanded to include futures markets and options on futures. This data-driven approach mirrors what large institutions use but simplifies it for retail traders through their Discord and membership site.
+
+The platform is launching futures-specific data, making it the first to provide this type of analysis for the growing zero DTE futures options market at CME Group and CBOE. By integrating these gamma levels with your existing technical analysis, you can better anticipate where the market will react, where it might reverse, and how options expiration will influence price action throughout the trading day.
+
+Video Chapters
+00:00 – Introduction to the podcast and guest Fabio Ruggeri
+02:31 – What is Menthor Q and its mission
+04:24 – How zero-dated options influence E-mini S&P trading
+06:45 – Why options data matters for futures traders
+07:53 – Statistics showing the growth of options volume
+09:59 – Understanding market makers and market structure
+Key Takeaways
+Option volume surpassed equity volume in 2021 and continues growing, making options flow essential for understanding price action
+Gamma levels act as predictable reaction zones and turning points, especially near market closes and during zero DTE expirations
+Menthor Q translates complex institutional options data into actionable signals for futures traders through quantitative models
+You don’t need to trade options to benefit from tracking gamma levels on your futures charts
+ Video Transcription
+Next 

@@ -1,0 +1,41 @@
+NEW
+New Dashboard
+Real-time prices, QScore, gamma & volatility insights in one place.
+Open Dashboard
+For You
+CTAs & Vol Models
+Crypto
+Integrations
+Academy
+Financial Wiki
+Community
+Live
+Affiliate
+Samir Abdo
+PREMIUM
+Add Command
+Vol Models
+Idle
+Volatility Control Fund
+
+Returns the Volatility Funds Control Model
+
+Long / Short Volatility Barometer
+
+Returns the Long / Short Volatility Barometer Model
+
+Market Breadth Indicator
+
+Returns the MenthorQ Market Breadth Indicator
+
+RSI Bollinger Indicator
+
+Returns the MenthorQ RSI and Bollinger Bands Indicator
+
+Moving Averages Indicator
+
+Returns the MenthorQ Moving Averages Indicator
+
+MACD Indicator
+
+Returns the MenthorQ MACD Indicator

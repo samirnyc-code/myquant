@@ -1,0 +1,25 @@
+In this comprehensive lesson, you’ll discover how gamma levels on futures options can transform your approach to trading futures. We at MenthorQ are thrilled to be the first in the market to introduce this groundbreaking tool by looking at the futures option chain rather than using index options as a proxy, making the data cleaner and more accurate.
+
+Futures carry significant leverage and can experience dramatic price swings that lead to large gains or losses. The gamma and liquidity levels on futures options help you better identify market reaction zones that increase your precision in identifying trend reversal areas and take profit targets. These reaction zones not only help you identify when to take a trade, but also when to stop and better manage your risk.
+
+Understanding options flow is critical because since 2001, options volumes have surpassed equity volumes. Options have become one of the key flows responsible for certain price action, and understanding this will make you a better risk manager and more successful trader. The lesson explores how futures options grant the holder the right, but not the obligation, to buy or sell one futures contract at a predetermined price within a specified time frame, combining features of futures contracts and standard options.
+
+A major advantage of futures options is 24/5 trading capability, allowing you to respond immediately to global events and economic news like CPI data released at 8:30am Eastern Time before market opens. When companies like Apple or Microsoft release earnings after market close, futures options enable you to trade on this information before the next day’s market opening, avoiding the risk associated with price gaps. Microsoft, Google, Apple and Tesla account for about 18% of the S&P 500 and about 25% of the NASDAQ, making futures options crucial for capitalizing on major market moves.
+
+The Mentor Q net gamma exposure chart shows market positioning, with red bars highlighting large amounts of put positioning. Understanding how market makers operate is essential—they don’t make money from trading but from executing trading volumes and charging a bid-ask spread. When investors buy put options, market makers are forced to buy stocks at higher prices if the market drops, creating the reaction zones that gamma levels help you identify.
+
+Video Chapters
+00:00 – Introduction to gamma levels on futures options
+01:05 – Background and team expertise at Mentor Q
+02:13 – Why futures options are important for traders
+04:29 – How futures options work
+06:55 – 24/5 trading capability and reacting to economic news
+08:02 – Introducing gamma and liquidity levels product
+Key Takeaways
+MenthorQ is the first in the market to provide gamma levels by looking at the futures option chain rather than using index options as a proxy
+Gamma and liquidity levels help identify market reaction zones for better precision in finding trend reversals and take profit targets
+24/5 trading allows immediate response to global events like CPI data releases and after-hours earnings announcements
+Understanding market maker positioning through net gamma exposure charts helps you avoid revenge trading and identify when markets will react
+ Video Transcription
+ Previous Lesson
+Complete 

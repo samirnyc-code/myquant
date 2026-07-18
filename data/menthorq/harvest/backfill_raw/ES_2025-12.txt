@@ -1,0 +1,72 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+AFTER-HOURS
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the ES Call Resistance, Put Support, and HVL levels for each trading day from 2025-12-01 through 2025-12-31, one row per day, columns: Date, Call Resistance, Put Support, HVL.
+
+I need to route this to the Data Expert, as you're requesting historical/time-series data across multiple dates (December 2025) — this falls outside the single-date validation scope of the Financial Expert.I'll retrieve the ES gamma levels (Call Resistance, Put Support, and High Vol Level) for December 2025.
+
+1 step completed
+
+ES gamma levels for December 2025. (Data as of Dec 31, 2025)
+
+Date	Call Resistance	Put Support	HVL
+2025-12-01	$6,850.00	$6,775.00	$6,795.00
+2025-12-02	$6,900.00	$6,700.00	$6,805.00
+2025-12-03	$7,000.00	$6,800.00	$6,810.00
+2025-12-04	$7,000.00	$6,800.00	$6,845.00
+2025-12-05	$7,000.00	$6,700.00	$6,745.00
+2025-12-08	$7,000.00	$6,700.00	$6,845.00
+2025-12-09	$7,000.00	$6,700.00	$6,845.00
+2025-12-10	$7,000.00	$6,850.00	$6,875.00
+2025-12-11	$7,000.00	$6,550.00	$6,845.00
+2025-12-12	$7,000.00	$6,700.00	$6,910.00
+2025-12-15	$7,000.00	$6,700.00	$6,910.00
+2025-12-16	$7,000.00	$6,700.00	$6,880.00
+2025-12-17	$7,000.00	$6,700.00	$6,875.00
+2025-12-18	$7,000.00	$6,750.00	$6,840.00
+2025-12-19	$7,000.00	$6,700.00	$6,860.00
+2025-12-22	$7,000.00	$6,850.00	$6,880.00
+2025-12-23	$7,000.00	$6,700.00	$6,915.00
+2025-12-24	$7,000.00	$6,850.00	$6,935.00
+2025-12-26	$7,000.00	$6,850.00	$6,935.00
+2025-12-29	$7,000.00	$6,850.00	$6,950.00
+2025-12-30	$7,000.00	$6,750.00	$6,950.00
+2025-12-31	$7,000.00	$6,800.00	$6,940.00
+
+Key observations:
+
+Call Resistance pinned at $7,000 from Dec 3 onward — strong dealer resistance level throughout the month
+Put Support ranged $6,550–$6,850, with notable dip to $6,550 on Dec 11 (potential volatility event)
+HVL trended upward late month ($6,935–$6,950 Dec 22–30), suggesting rising volatility expectations into year-end
+Keep exploring
+Options
+How can I use the ES Call Resistance and Put Support levels to plan my intraday trading strategies?
+Options
+What other MenthorQ indicators complement the ES Call Resistance and Put Support levels for a comprehensive market analysis?
+Explore
+How is the High Vol Level (HVL) calculated and what does it indicate about market volatility during the trading day?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

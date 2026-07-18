@@ -1,0 +1,602 @@
+[
+ {
+  "url": "https://dashboard.menthorq.io/en/wiki",
+  "title": "MenthorQ | QUIN",
+  "chars": 33
+ },
+ {
+  "url": "https://dashboard.menthorq.io/en/financial-wiki",
+  "title": "MenthorQ | QUIN",
+  "chars": 33
+ },
+ {
+  "url": "https://menthorq.com/academy/",
+  "title": "Courses - MenthorQ",
+  "chars": 8767
+ },
+ {
+  "url": "https://menthorq.com/academy/getting-started/",
+  "title": "MenthorQ Onboarding Course - MenthorQ Academy",
+  "chars": 2063
+ },
+ {
+  "url": "https://menthorq.com/academy/trading-integrations/",
+  "title": "Trading Integrations Course - MenthorQ Academy",
+  "chars": 1416
+ },
+ {
+  "url": "https://menthorq.com/academy/gamma-levels/",
+  "title": "Gamma Levels Course - MenthorQ Academy",
+  "chars": 1848
+ },
+ {
+  "url": "https://menthorq.com/academy/quin-ai-menthorq-quant-engine/",
+  "title": "QUIN AI - MenthorQ Quant Engine Course - MenthorQ Academy",
+  "chars": 2141
+ },
+ {
+  "url": "https://menthorq.com/academy/16955/",
+  "title": "MenthorQ: Find the Edge - Guest Series Course - MenthorQ Academy",
+  "chars": 2275
+ },
+ {
+  "url": "https://menthorq.com/academy/how-to-use-menthor-q-models/",
+  "title": "How to use MenthorQ Models Course - MenthorQ Academy",
+  "chars": 1751
+ },
+ {
+  "url": "https://menthorq.com/academy/menthorq-swing-trading-model/",
+  "title": "Swing Trading Model Course - MenthorQ Academy",
+  "chars": 1724
+ },
+ {
+  "url": "https://menthorq.com/academy/how-to-use-blind-spots-levels/",
+  "title": "Blind Spots Levels Course - MenthorQ Academy",
+  "chars": 1394
+ },
+ {
+  "url": "https://menthorq.com/academy/trading-with-menthorq/",
+  "title": "Trading with MenthorQ Course - MenthorQ Academy",
+  "chars": 1502
+ },
+ {
+  "url": "https://menthorq.com/academy/trade-futures-with-menthorq/",
+  "title": "How to Trade Futures Course - MenthorQ Academy",
+  "chars": 2885
+ },
+ {
+  "url": "https://menthorq.com/academy/how-to-trade-volatility/",
+  "title": "How to Trade Options Course - MenthorQ Academy",
+  "chars": 1871
+ },
+ {
+  "url": "https://menthorq.com/academy/trading-stocks-with-menthorq/",
+  "title": "How to Trade Stocks Course - MenthorQ Academy",
+  "chars": 1490
+ },
+ {
+  "url": "https://menthorq.com/academy/how-to-trade-crude-oil-and-gold/",
+  "title": "How to Trade Crude Oil and Gold Course - MenthorQ Academy",
+  "chars": 1773
+ },
+ {
+  "url": "https://menthorq.com/academy/forex/",
+  "title": "How to Trade Forex Course - MenthorQ Academy",
+  "chars": 2039
+ },
+ {
+  "url": "https://menthorq.com/academy/trading-crypto-with-menthorq/",
+  "title": "How to Trade Crypto Course - MenthorQ Academy",
+  "chars": 1478
+ },
+ {
+  "url": "https://menthorq.com/academy/futures-trading-club-live-sessions/",
+  "title": "Live Trading Sessions: Futures Trading Course - MenthorQ Academy",
+  "chars": 1963
+ },
+ {
+  "url": "https://menthorq.com/academy/live-trading-during-the-2024-u-s-presidential-election/",
+  "title": "Live Trading During the 2024 U.S. Presidential Election Course - MenthorQ Academy",
+  "chars": 2165
+ },
+ {
+  "url": "https://menthorq.com/academy/from-0-to-trader/",
+  "title": "From 0 to Trader Course - MenthorQ Academy",
+  "chars": 1700
+ },
+ {
+  "url": "https://menthorq.com/academy/technical-analysis/",
+  "title": "Technical Analysis Course - MenthorQ Academy",
+  "chars": 1287
+ },
+ {
+  "url": "https://menthorq.com/academy/indicators/",
+  "title": "Technical Indicators and Chart Patterns Course - MenthorQ Academy",
+  "chars": 1727
+ },
+ {
+  "url": "https://menthorq.com/academy/trading-examples/",
+  "title": "Trading Strategies using Technical Analysis Course - MenthorQ Academy",
+  "chars": 1472
+ },
+ {
+  "url": "https://menthorq.com/academy/how-to-set-up-your-trading-plan/",
+  "title": "How to set up your Trading Plan Course - MenthorQ Academy",
+  "chars": 1059
+ },
+ {
+  "url": "https://menthorq.com/academy/trading-psychology-and-risk-management/",
+  "title": "Trading Psychology and Risk Management Course - MenthorQ Academy",
+  "chars": 1601
+ },
+ {
+  "url": "https://menthorq.com/academy/the-derivatives-market/",
+  "title": "The Derivatives Market Course - MenthorQ Academy",
+  "chars": 1589
+ },
+ {
+  "url": "https://menthorq.com/academy/market-makers-and-liquidity/",
+  "title": "Market Makers and Liquidity Course - MenthorQ Academy",
+  "chars": 1099
+ },
+ {
+  "url": "https://menthorq.com/academy/options-greeks/",
+  "title": "Options Greeks Course - MenthorQ Academy",
+  "chars": 1928
+ },
+ {
+  "url": "https://menthorq.com/academy/term-structure-skew-and-tail-risk/",
+  "title": "Term Structure, SKEW and Tail Risk Course - MenthorQ Academy",
+  "chars": 950
+ },
+ {
+  "url": "https://menthorq.com/academy/advanced-strategies-with-options/",
+  "title": "Advanced Strategies with Options Course - MenthorQ Academy",
+  "chars": 1452
+ },
+ {
+  "url": "https://menthorq.com/academy/systematic-funds-and-ctas/",
+  "title": "Systematic Strategies and CTAs Course - MenthorQ Academy",
+  "chars": 1478
+ },
+ {
+  "url": "https://menthorq.com/academy/weekly-macro-update/",
+  "title": "Weekly Macro Update Course - MenthorQ Academy",
+  "chars": 1761
+ },
+ {
+  "url": "https://menthorq.com/academy/product-training/",
+  "title": "Product Training Course - MenthorQ Academy",
+  "chars": 1015
+ },
+ {
+  "url": "https://menthorq.com/academy/menthor-q-webinars/",
+  "title": "MenthorQ Product Releases Course - MenthorQ Academy",
+  "chars": 2000
+ },
+ {
+  "url": "https://menthorq.com/academy/getting-started/lessons/how-to-connect-your-discord-account/",
+  "title": "Account Setup Lesson - MenthorQ Academy",
+  "chars": 2883
+ },
+ {
+  "url": "https://menthorq.com/academy/getting-started/lessons/menthorq-trading-dashboard/",
+  "title": "Trading Dashboard Demo Lesson - MenthorQ Academy",
+  "chars": 3349
+ },
+ {
+  "url": "https://menthorq.com/academy/getting-started/lessons/menthorq-integrations/",
+  "title": "Trading Integrations Lesson - MenthorQ Academy",
+  "chars": 3022
+ },
+ {
+  "url": "https://menthorq.com/academy/getting-started/lessons/new-app-overview/",
+  "title": "New App Overview Lesson - MenthorQ Academy",
+  "chars": 14
+ },
+ {
+  "url": "https://menthorq.com/academy/getting-started/lessons/gamma-and-volatility-insight/",
+  "title": "Gamma and Volatility Insight Lesson - MenthorQ Academy",
+  "chars": 22
+ },
+ {
+  "url": "https://menthorq.com/academy/getting-started/lessons/create-your-watchlists/",
+  "title": "Create Your Watchlists Lesson - MenthorQ Academy",
+  "chars": 22
+ },
+ {
+  "url": "https://menthorq.com/academy/getting-started/lessons/options-models-matrix-positioning-and-splitting/",
+  "title": "Options Models: Matrix, Heatmap and Exposure Lesson - MenthorQ Academy",
+  "chars": 22
+ },
+ {
+  "url": "https://menthorq.com/academy/getting-started/lessons/intraday-summary/",
+  "title": "Intraday Summary Lesson - MenthorQ Academy",
+  "chars": 22
+ },
+ {
+  "url": "https://menthorq.com/academy/getting-started/lessons/real-time-chart-and-levels/",
+  "title": "Real-Time Chart and Levels Lesson - MenthorQ Academy",
+  "chars": 22
+ },
+ {
+  "url": "https://menthorq.com/academy/getting-started/lessons/levels-conversion-indicator/",
+  "title": "Levels Conversion Indicator Lesson - MenthorQ Academy",
+  "chars": 22
+ },
+ {
+  "url": "https://menthorq.com/academy/getting-started/lessons/other-indicators-iv-q-score-and-skew/",
+  "title": "Other Indicators: IV, Q-Score and Skew Lesson - MenthorQ Academy",
+  "chars": 22
+ },
+ {
+  "url": "https://menthorq.com/academy/getting-started/lessons/gamma-levels-backtesting/",
+  "title": "Gamma Levels Backtesting Lesson - MenthorQ Academy",
+  "chars": 30
+ },
+ {
+  "url": "https://menthorq.com/academy/getting-started/lessons/how-to-use-menthorq/",
+  "title": "How to use MenthorQ Lesson - MenthorQ Academy",
+  "chars": 3091
+ },
+ {
+  "url": "https://menthorq.com/academy/getting-started/lessons/gamma-levels/",
+  "title": "Gamma Levels Lesson - MenthorQ Academy",
+  "chars": 3224
+ },
+ {
+  "url": "https://menthorq.com/academy/getting-started/lessons/blind-spots-levels/",
+  "title": "Blind Spots Levels Lesson - MenthorQ Academy",
+  "chars": 3069
+ },
+ {
+  "url": "https://menthorq.com/academy/getting-started/lessons/swing-trading-models/",
+  "title": "Swing Trading Models Lesson - MenthorQ Academy",
+  "chars": 3517
+ },
+ {
+  "url": "https://menthorq.com/academy/getting-started/lessons/q-score-2/",
+  "title": "Q-Score Lesson - MenthorQ Academy",
+  "chars": 3426
+ },
+ {
+  "url": "https://menthorq.com/academy/getting-started/lessons/volatility-models-skew-term-structure-smile-vrp/",
+  "title": "Volatility Models (Skew, Term Structure, Smile, VRP) Lesson - MenthorQ Academy",
+  "chars": 3617
+ },
+ {
+  "url": "https://menthorq.com/academy/getting-started/lessons/crypto-models/",
+  "title": "Crypto Models Lesson - MenthorQ Academy",
+  "chars": 3291
+ },
+ {
+  "url": "https://menthorq.com/academy/getting-started/lessons/quin-menthorq-trading-assistant/",
+  "title": "QUIN - MenthorQ Quant Engine Lesson - MenthorQ Academy",
+  "chars": 3224
+ },
+ {
+  "url": "https://menthorq.com/academy/getting-started/lessons/get-started-with-menthorq-in-less-than-30-minutes/",
+  "title": "Get Started in less than 30 minutes Lesson - MenthorQ Academy",
+  "chars": 3146
+ },
+ {
+  "url": "https://menthorq.com/academy/getting-started/lessons/building-a-trading-routine-with-menthorq/",
+  "title": "Building a Trading Routine Lesson - MenthorQ Academy",
+  "chars": 3477
+ },
+ {
+  "url": "https://menthorq.com/academy/getting-started/lessons/futures-trading-with-menthorq-2/",
+  "title": "Futures Trader Lesson - MenthorQ Academy",
+  "chars": 2993
+ },
+ {
+  "url": "https://menthorq.com/academy/getting-started/lessons/stocks-trading/",
+  "title": "Stocks Trader Lesson - MenthorQ Academy",
+  "chars": 3361
+ },
+ {
+  "url": "https://menthorq.com/academy/getting-started/lessons/options-trader/",
+  "title": "Options Trader Lesson - MenthorQ Academy",
+  "chars": 3337
+ },
+ {
+  "url": "https://menthorq.com/academy/getting-started/lessons/spx-0dte-trader/",
+  "title": "SPX 0DTE Trader Lesson - MenthorQ Academy",
+  "chars": 3178
+ },
+ {
+  "url": "https://menthorq.com/academy/getting-started/lessons/swing-position-trader/",
+  "title": "Swing / Position Trader Lesson - MenthorQ Academy",
+  "chars": 3386
+ },
+ {
+  "url": "https://menthorq.com/academy/getting-started/lessons/menthorq-links-and-guides/",
+  "title": "MenthorQ Links and Guides Lesson - MenthorQ Academy",
+  "chars": 1400
+ },
+ {
+  "url": "https://menthorq.com/academy/trading-integrations/lessons/how-to-connect-your-tradingview-account-2/",
+  "title": "How to connect your TradingView Account Lesson - MenthorQ Academy",
+  "chars": 2460
+ },
+ {
+  "url": "https://menthorq.com/academy/trading-integrations/lessons/menthorq-gamma-levels-indicator/",
+  "title": "MenthorQ Gamma Levels Indicator Lesson - MenthorQ Academy",
+  "chars": 3340
+ },
+ {
+  "url": "https://menthorq.com/academy/trading-integrations/lessons/tradingview-custom-levels/",
+  "title": "MenthorQ Custom Levels Lesson - MenthorQ Academy",
+  "chars": 3798
+ },
+ {
+  "url": "https://menthorq.com/academy/trading-integrations/lessons/tradingview-blind-spots-levels/",
+  "title": "MenthorQ Blind Spots Levels Lesson - MenthorQ Academy",
+  "chars": 3024
+ },
+ {
+  "url": "https://menthorq.com/academy/trading-integrations/lessons/how-to-add-swing-trading-levels-to-tradingview/",
+  "title": "MenthorQ Swing Trading Levels Lesson - MenthorQ Academy",
+  "chars": 3259
+ },
+ {
+  "url": "https://menthorq.com/academy/trading-integrations/lessons/menthorq-momentum-indicator/",
+  "title": "MenthorQ Momentum Indicator Lesson - MenthorQ Academy",
+  "chars": 2625
+ },
+ {
+  "url": "https://menthorq.com/academy/trading-integrations/lessons/tradingview-scanner/",
+  "title": "TradingView Scanner Lesson - MenthorQ Academy",
+  "chars": 3259
+ },
+ {
+  "url": "https://menthorq.com/academy/trading-integrations/lessons/how-to-convert-levels-using-the-premium-indicator/",
+  "title": "What Levels Conversion is and why it matters Lesson - MenthorQ Academy",
+  "chars": 4045
+ },
+ {
+  "url": "https://menthorq.com/academy/trading-integrations/lessons/how-to-convert-swing-trading-levels/",
+  "title": "How to convert Levels with Ratio without the need of a Data Feed Lesson - MenthorQ Academy",
+  "chars": 3400
+ },
+ {
+  "url": "https://menthorq.com/academy/trading-integrations/lessons/ninjatrader-q-levels-indicator/",
+  "title": "NinjaTrader Indicator Lesson - MenthorQ Academy",
+  "chars": 3373
+ },
+ {
+  "url": "https://menthorq.com/academy/trading-integrations/lessons/levels-conversion-on-ninjatrader/",
+  "title": "Levels Conversion on NinjaTrader Lesson - MenthorQ Academy",
+  "chars": 2657
+ },
+ {
+  "url": "https://menthorq.com/academy/trading-integrations/lessons/trendspider-integration/",
+  "title": "TrendSpider Integration Lesson - MenthorQ Academy",
+  "chars": 3276
+ },
+ {
+  "url": "https://menthorq.com/academy/trading-integrations/lessons/historical-gamma-and-blind-spot-levels/",
+  "title": "Historical Gamma and Blind Spot Levels Lesson - MenthorQ Academy",
+  "chars": 3102
+ },
+ {
+  "url": "https://menthorq.com/academy/trading-integrations/lessons/real-time-scanning-with-menthorq-levels/",
+  "title": "Real Time Scanning with MenthorQ Levels Lesson - MenthorQ Academy",
+  "chars": 3191
+ },
+ {
+  "url": "https://menthorq.com/academy/trading-integrations/lessons/bookmap-integration/",
+  "title": "Bookmap Integration Lesson - MenthorQ Academy",
+  "chars": 2965
+ },
+ {
+  "url": "https://menthorq.com/academy/trading-integrations/lessons/bookmap-menthorq-tutorial/",
+  "title": "Bookmap + MenthorQ Tutorial Lesson - MenthorQ Academy",
+  "chars": 3298
+ },
+ {
+  "url": "https://menthorq.com/academy/trading-integrations/lessons/quantower-integration/",
+  "title": "Quantower Integration Lesson - MenthorQ Academy",
+  "chars": 3060
+ },
+ {
+  "url": "https://menthorq.com/academy/trading-integrations/lessons/menthorq-indicator-for-atas/",
+  "title": "ATAS Integration Lesson - MenthorQ Academy",
+  "chars": 3131
+ },
+ {
+  "url": "https://menthorq.com/academy/trading-integrations/lessons/motivewave-integration/",
+  "title": "MotiveWave Integration Lesson - MenthorQ Academy",
+  "chars": 2794
+ },
+ {
+  "url": "https://menthorq.com/academy/trading-integrations/lessons/tickblaze-integration/",
+  "title": "Tickblaze Integration Lesson - MenthorQ Academy",
+  "chars": 2911
+ },
+ {
+  "url": "https://menthorq.com/academy/trading-integrations/lessons/metatrader-5-indicator/",
+  "title": "MetaTrader 5 Indicator Lesson - MenthorQ Academy",
+  "chars": 3020
+ },
+ {
+  "url": "https://menthorq.com/academy/gamma-levels/lessons/menthor-q-gamma-levels/",
+  "title": "Why Gamma Matters: MenthorQ Gamma Levels Lesson - MenthorQ Academy",
+  "chars": 3369
+ },
+ {
+  "url": "https://menthorq.com/academy/gamma-levels/lessons/how-options-affect-the-futures-market/",
+  "title": "How Options Affect the Futures Market Lesson - MenthorQ Academy",
+  "chars": 3641
+ },
+ {
+  "url": "https://menthorq.com/academy/gamma-levels/lessons/understanding-gamma-levels/",
+  "title": "Understanding Gamma Levels Lesson - MenthorQ Academy",
+  "chars": 3427
+ },
+ {
+  "url": "https://menthorq.com/academy/gamma-levels/lessons/gamma-levels-on-futures-options/",
+  "title": "Gamma Levels on Futures Options Lesson - MenthorQ Academy",
+  "chars": 3420
+ },
+ {
+  "url": "https://menthorq.com/academy/gamma-levels/lessons/why-looking-at-spx-and-spy-options-chain-when-trading-es-futures/",
+  "title": "Why Looking at Correlated Option Chains when Trading Futures Lesson - MenthorQ Academy",
+  "chars": 3201
+ },
+ {
+  "url": "https://menthorq.com/academy/gamma-levels/lessons/trade-the-call-resistance-level/",
+  "title": "Call Resistance Level Lesson - MenthorQ Academy",
+  "chars": 3001
+ },
+ {
+  "url": "https://menthorq.com/academy/gamma-levels/lessons/trade-the-put-support-level/",
+  "title": "Put Support Level Lesson - MenthorQ Academy",
+  "chars": 2684
+ },
+ {
+  "url": "https://menthorq.com/academy/gamma-levels/lessons/trade-the-high-vol-level/",
+  "title": "High Vol Level Lesson - MenthorQ Academy",
+  "chars": 3044
+ },
+ {
+  "url": "https://menthorq.com/academy/gamma-levels/lessons/0dtes-levels/",
+  "title": "0DTEs Levels Lesson - MenthorQ Academy",
+  "chars": 2339
+ },
+ {
+  "url": "https://menthorq.com/academy/gamma-levels/lessons/trade-the-1-day-expected-move-indicator/",
+  "title": "1 Day Expected Move Indicator Lesson - MenthorQ Academy",
+  "chars": 2710
+ },
+ {
+  "url": "https://menthorq.com/academy/gamma-levels/lessons/trade-gex-levels-1-to-10/",
+  "title": "GEX Levels 1 to 10 Lesson - MenthorQ Academy",
+  "chars": 2776
+ },
+ {
+  "url": "https://menthorq.com/academy/gamma-levels/lessons/intro-to-intraday-gamma-models/",
+  "title": "Intro to Intraday Gamma Models Lesson - MenthorQ Academy",
+  "chars": 3244
+ },
+ {
+  "url": "https://menthorq.com/academy/gamma-levels/lessons/intraday-vs-eod-when-to-use-them/",
+  "title": "Intraday vs EOD: When to Use Them Lesson - MenthorQ Academy",
+  "chars": 1878
+ },
+ {
+  "url": "https://menthorq.com/academy/gamma-levels/lessons/intraday-gamma-levels-and-the-importance-of-flow/",
+  "title": "Trading Examples: Intraday Levels and the importance of Flow Lesson - MenthorQ Academy",
+  "chars": 2553
+ },
+ {
+  "url": "https://menthorq.com/academy/gamma-levels/lessons/frequent-questions-when-using-gamma-levels/",
+  "title": "Common Questions when Using Gamma Levels Lesson - MenthorQ Academy",
+  "chars": 3118
+ },
+ {
+  "url": "https://menthorq.com/academy/quin-ai-menthorq-quant-engine/lessons/what-is-quin/",
+  "title": "What is Quin? Lesson - MenthorQ Academy",
+  "chars": 3778
+ },
+ {
+  "url": "https://menthorq.com/academy/quin-ai-menthorq-quant-engine/lessons/demo-of-quin/",
+  "title": "Demo of Quin Lesson - MenthorQ Academy",
+  "chars": 4172
+ },
+ {
+  "url": "https://menthorq.com/academy/quin-ai-menthorq-quant-engine/lessons/how-to-find-stocks-and-swing-trading-idea-using-our-quant-engine/",
+  "title": "How to find Stocks and Swing Trading Idea using our Quant Engine Lesson - MenthorQ Academy",
+  "chars": 3570
+ },
+ {
+  "url": "https://menthorq.com/academy/quin-ai-menthorq-quant-engine/lessons/how-to-find-options-ideas-using-quant-metrics-in-quin/",
+  "title": "How to find options ideas using Quant Metrics in Quin Lesson - MenthorQ Academy",
+  "chars": 3100
+ },
+ {
+  "url": "https://menthorq.com/academy/quin-ai-menthorq-quant-engine/lessons/how-to-analyze-volatility-to-find-options-opportunities/",
+  "title": "How to analyze Volatility to find Options Opportunities Lesson - MenthorQ Academy",
+  "chars": 3011
+ },
+ {
+  "url": "https://menthorq.com/academy/16955/lessons/mastering-gamma-levels-with-anthony-crudele/",
+  "title": "Mastering Gamma Levels with Anthony Crudele Lesson - MenthorQ Academy",
+  "chars": 3261
+ },
+ {
+  "url": "https://menthorq.com/academy/16955/lessons/how-positioning-moves-markets-with-cem-karsan-cio-of-kai-wealth/",
+  "title": "How Positioning Moves Markets with Cem Karsan, CIO of Kai Wealth Lesson - MenthorQ Academy",
+  "chars": 3100
+ },
+ {
+  "url": "https://menthorq.com/academy/16955/lessons/quantitative-trading-in-the-oil-market-with-ilia-bouchouev/",
+  "title": "Quantitative Trading in the Oil Market with Ilia Bouchouev Lesson - MenthorQ Academy",
+  "chars": 3301
+ },
+ {
+  "url": "https://menthorq.com/academy/16955/lessons/q4-macro-update-with-vincent-deluard-director-of-global-macro-strategy-at-stonex-group/",
+  "title": "Q4 Macro Update with Vincent Deluard, Director of Global Macro Strategy at StoneX Group Lesson - MenthorQ Academy",
+  "chars": 2830
+ },
+ {
+  "url": "https://menthorq.com/academy/16955/lessons/oil-and-gold-volatility-with-tracy-schuchart-chigrl/",
+  "title": "Oil and Gold Volatility with Tracy Schuchart @chigrl Lesson - MenthorQ Academy",
+  "chars": 3560
+ },
+ {
+  "url": "https://menthorq.com/academy/16955/lessons/tail-hedging-volatility-strategies-with-kris-sidial/",
+  "title": "Tail Hedging Volatility Strategies with Kris Sidial Lesson - MenthorQ Academy",
+  "chars": 3439
+ },
+ {
+  "url": "https://menthorq.com/academy/16955/lessons/gold-and-the-monetary-system-with-luke-gromen-forest-for-the-trees/",
+  "title": "Gold and The Monetary System with Luke Gromen - Forest for the Trees Lesson - MenthorQ Academy",
+  "chars": 3240
+ },
+ {
+  "url": "https://menthorq.com/academy/16955/lessons/navigating-forex-and-macro-with-brent-johnson-ceo-of-santiago-capital/",
+  "title": "Navigating Forex and Macro with Brent Johnson, CEO of Santiago Capital Lesson - MenthorQ Academy",
+  "chars": 3319
+ },
+ {
+  "url": "https://menthorq.com/academy/16955/lessons/quant-trading-strategies-with-tharsis-souza/",
+  "title": "Quant Trading Strategies with Tharsis Souza Lesson - MenthorQ Academy",
+  "chars": 3524
+ },
+ {
+  "url": "https://menthorq.com/academy/16955/lessons/trading-using-python-with-jason-strimpel/",
+  "title": "Trading using Python with Jason Strimpel - PyQuant News Lesson - MenthorQ Academy",
+  "chars": 3556
+ },
+ {
+  "url": "https://menthorq.com/academy/16955/lessons/making-sense-of-tariff-chaos-between-us-and-china-with-larry-cheung/",
+  "title": "Making Sense of Tariff Chaos between US and China with Larry Cheung Lesson - MenthorQ Academy",
+  "chars": 3306
+ },
+ {
+  "url": "https://menthorq.com/academy/16955/lessons/navigating-volatility-with-jim-carroll/",
+  "title": "Navigating Volatility with Jim Carroll Lesson - MenthorQ Academy",
+  "chars": 3190
+ },
+ {
+  "url": "https://menthorq.com/academy/16955/lessons/macro-week-with-craig-shapiro/",
+  "title": "Macro Week with Craig Shapiro Lesson - MenthorQ Academy",
+  "chars": 3179
+ },
+ {
+  "url": "https://menthorq.com/academy/how-to-use-menthor-q-models/lessons/how-to-build-a-daily-routine-and-find-the-edge/",
+  "title": "How to build a daily routine and find the Edge Lesson - MenthorQ Academy",
+  "chars": 3226
+ },
+ {
+  "url": "https://menthorq.com/academy/how-to-use-menthor-q-models/lessons/intraday-gamma-models-in-the-menthorq-dashboard-2/",
+  "title": "MenthorQ Gamma Levels Lesson - MenthorQ Academy",
+  "chars": 3293
+ },
+ {
+  "url": "https://menthorq.com/academy/how-to-use-menthor-q-models/lessons/intraday-gamma-models-for-futures-trading-2/",
+  "title": "Blind Spots Levels Lesson - MenthorQ Academy",
+  "chars": 3209
+ }
+]

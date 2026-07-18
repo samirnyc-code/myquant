@@ -1,0 +1,67 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+AFTER-HOURS
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the ES gamma levels for each trading day from 2025-10-01 through 2025-10-31, one row per day, EXACTLY these columns in this order: Date, Call Resistance 0DTE, Put Support 0DTE, HVL 0DTE, Gamma Wall 0DTE, 1D Min, 1D Max. ISO dates, numbers only.
+
+I'll get that historical gamma levels data for ES across October 2025.I'll retrieve the ES gamma levels for October 2025 with the exact columns and format you specified.
+
+1 step completed
+Date	Call Resistance 0DTE	Put Support 0DTE	HVL 0DTE	Gamma Wall 0DTE	1D Min	1D Max
+2025-10-01	6770.00	6745.00	6745.00	25.00	6698.75	6815.25
+2025-10-02	6800.00	6740.00	6745.00	60.00	6706.03	6823.97
+2025-10-03	6780.00	6600.00	6695.00	180.00	6704.30	6821.70
+2025-10-06	6800.00	6740.00	6780.00	60.00	6731.33	6849.17
+2025-10-07	6800.00	6760.00	6760.00	40.00	6704.42	6825.58
+2025-10-08	6825.00	6775.00	6785.00	50.00	6744.16	6862.34
+2025-10-09	6800.00	6750.00	6770.00	50.00	6720.23	6839.27
+2025-10-10	7100.00	6475.00	6720.00	625.00	6477.62	6626.38
+2025-10-13	6700.00	6640.00	6695.00	60.00	6626.50	6753.00
+2025-10-14	6740.00	6600.00	6700.00	140.00	6617.74	6752.26
+2025-10-15	6755.00	6645.00	6700.00	110.00	6645.68	6781.32
+2025-10-16	6705.00	6600.00	6700.00	105.00	6579.82	6738.68
+2025-10-17	6740.00	6680.00	6710.00	60.00	6644.43	6777.57
+2025-10-20	6800.00	6755.00	6745.00	45.00	6719.66	6840.84
+2025-10-21	6800.00	6700.00	6745.00	100.00	6712.65	6832.35
+2025-10-22	6755.00	6720.00	6725.00	35.00	6676.15	6798.85
+2025-10-23	6800.00	6700.00	6745.00	100.00	6718.77	6836.73
+2025-10-24	6800.00	6720.00	6740.00	80.00	6767.89	6882.61
+2025-10-27	6925.00	6875.00	6755.00	50.00	6855.65	6972.35
+2025-10-28	6950.00	6875.00	6785.00	75.00	6866.22	6988.78
+2025-10-29	6950.00	6830.00	6845.00	120.00	6854.70	6981.30
+2025-10-30	6950.00	6900.00	6905.00	50.00	6831.60	6956.40
+2025-10-31	6950.00	6850.00	6845.00	100.00	6807.68	6936.82
+
+Note: Gamma Wall 0DTE calculated as Call Resistance 0DTE minus Put Support 0DTE. Data covers all trading days in October 2025 (weekends/holidays excluded).
+
+Keep exploring
+0DTE
+How can I use the ES 0DTE Gamma Levels like Call Resistance and Put Support to improve my intraday trading strategies?
+0DTE
+What is the relationship between the 0DTE Gamma Levels and other MenthorQ indicators such as NetGex and Q-Score for a comprehensive market analysis?
+Options
+Can you explain how the High Vol Level (HVL) and Gamma Wall are calculated and what market signals they typically indicate in the ES futures?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

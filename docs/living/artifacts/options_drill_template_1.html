@@ -1,0 +1,475 @@
+
+<!--
+  OPTIONS-DRILL FRAMEWORK — read this comment, then edit only the CONFIG
+  object inside <script id="config">. Everything else (CSS "series style",
+  rendering engine, drill logic) is generic and should not need to change
+  per topic.
+
+  TO MAKE A NEW DRILL:
+    1. Copy this file to NN-topic-name.html (NN = series number).
+    2. Edit CONFIG below: title, the one-rule block, 2-3 personas,
+       the drill's fields/answers/generate/judge functions, the cheat
+       table rows, and the footnote.
+    3. Open the file in a browser to test the drill logic before
+       publishing it as an Artifact.
+
+  CONTENT SKELETON (why these six blocks, not something else):
+    - RULE       the one sentence that removes the need to think
+    - PERSONAS   2-3 named archetypes that make the sign/regime distinction
+                 physical and memorable (tone: 'water' calm/stabilizing,
+                 'fire' hot/destabilizing, 'copper' neutral/transitional)
+    - DRILL      a scenario generator + judge function → forces recall
+                 instead of recognition, which is what makes it reflexive
+    - CHEAT      a flat reference table for when the drill isn't enough
+    - FOOTNOTE   the real-world caveat that keeps the mental model honest
+-->
+<title>Options Drill — Template</title>
+<style>
+  :root {
+    --paper: #f3efe6;
+    --paper-line: #d9d2c1;
+    --ink: #201c16;
+    --ink-dim: #6b6455;
+    --copper: #a8672b;
+    --copper-ink: #7d4a1c;
+    --water: #2f6e69;
+    --water-soft: #e2ede9;
+    --fire: #a8402a;
+    --fire-soft: #f2e0d8;
+    --card-bg: #ffffff;
+    --shadow: 0 1px 0 rgba(32,28,22,0.06);
+  }
+  :root[data-theme="dark"] {
+    --paper: #14110d;
+    --paper-line: #322c22;
+    --ink: #ece5d6;
+    --ink-dim: #9c9280;
+    --copper: #d99a53;
+    --copper-ink: #f0b878;
+    --water: #6fb3ab;
+    --water-soft: #1c2f2c;
+    --fire: #d97a5f;
+    --fire-soft: #2f201a;
+    --card-bg: #1c1712;
+    --shadow: 0 1px 0 rgba(0,0,0,0.3);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #14110d;
+      --paper-line: #322c22;
+      --ink: #ece5d6;
+      --ink-dim: #9c9280;
+      --copper: #d99a53;
+      --copper-ink: #f0b878;
+      --water: #6fb3ab;
+      --water-soft: #1c2f2c;
+      --fire: #d97a5f;
+      --fire-soft: #2f201a;
+      --card-bg: #1c1712;
+      --shadow: 0 1px 0 rgba(0,0,0,0.3);
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem 5rem;
+    line-height: 1.55;
+  }
+
+  .mono {
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  h1, h2, h3 {
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    text-wrap: balance;
+    font-weight: 600;
+  }
+
+  header.masthead {
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 1.1rem;
+    margin-bottom: 2.2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  header.masthead .title { font-size: 1.9rem; letter-spacing: -0.01em; margin: 0; }
+  header.masthead .kicker {
+    font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--copper-ink); font-weight: 600;
+  }
+  header.masthead .date { font-size: 0.78rem; color: var(--ink-dim); text-align: right; }
+
+  section { margin-bottom: 2.8rem; }
+
+  .rule-block {
+    background: var(--card-bg);
+    border: 1px solid var(--paper-line);
+    border-left: 3px solid var(--copper);
+    padding: 1.3rem 1.5rem;
+    box-shadow: var(--shadow);
+  }
+  .rule-block p { margin: 0.4rem 0; }
+  .rule-block .big {
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-size: 1.15rem; font-weight: 600;
+  }
+  .rule-block .derivation {
+    font-size: 0.85rem; color: var(--ink-dim);
+    margin-top: 0.7rem; padding-top: 0.7rem;
+    border-top: 1px dashed var(--paper-line);
+  }
+
+  h2.section-title {
+    font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--ink-dim);
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-weight: 600; margin: 0 0 0.9rem;
+    border-bottom: 1px solid var(--paper-line); padding-bottom: 0.5rem;
+  }
+
+  .duo {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 1rem;
+  }
+  .persona {
+    border: 1px solid var(--paper-line);
+    background: var(--card-bg);
+    padding: 1.1rem 1.2rem 1.3rem;
+  }
+  .persona.water { border-top: 3px solid var(--water); }
+  .persona.fire { border-top: 3px solid var(--fire); }
+  .persona.copper { border-top: 3px solid var(--copper); }
+  .persona .role {
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-size: 1.15rem; font-weight: 600; margin: 0 0 0.15rem;
+  }
+  .persona.water .role { color: var(--water); }
+  .persona.fire .role { color: var(--fire); }
+  .persona.copper .role { color: var(--copper-ink); }
+  .persona .sub { font-size: 0.78rem; color: var(--ink-dim); margin-bottom: 0.9rem; }
+  .persona dl { margin: 0; font-size: 0.88rem; }
+  .persona dt {
+    color: var(--ink-dim); font-size: 0.72rem; letter-spacing: 0.05em;
+    text-transform: uppercase; margin-top: 0.7rem;
+  }
+  .persona dt:first-child { margin-top: 0; }
+  .persona dd { margin: 0.15rem 0 0; }
+
+  .drill { border: 1px solid var(--paper-line); background: var(--card-bg); box-shadow: var(--shadow); }
+  .drill-head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0.8rem 1.2rem; border-bottom: 1px solid var(--paper-line);
+    font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-dim);
+  }
+  .drill-head .score { font-size: 0.95rem; letter-spacing: 0; text-transform: none; color: var(--ink); }
+  .drill-body { padding: 1.6rem 1.5rem; }
+  .ticket {
+    display: grid; grid-template-columns: auto 1fr; gap: 0.4rem 1rem;
+    font-size: 0.95rem; margin-bottom: 1.4rem;
+  }
+  .ticket dt {
+    color: var(--ink-dim); font-size: 0.72rem; letter-spacing: 0.06em;
+    text-transform: uppercase; align-self: center;
+  }
+  .ticket dd { margin: 0; font-size: 1.15rem; font-weight: 600; }
+  .tone-up { color: var(--fire); }
+  .tone-down { color: var(--water); }
+  .tone-neutral { color: var(--copper-ink); }
+
+  .answers { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-bottom: 1.2rem; }
+  button.ans {
+    font: inherit; font-weight: 600; font-size: 0.95rem;
+    padding: 0.85rem 1rem; border: 1px solid var(--paper-line);
+    background: transparent; color: var(--ink); cursor: pointer; letter-spacing: 0.02em;
+  }
+  button.ans:hover:not(:disabled) { border-color: var(--copper); }
+  button.ans:focus-visible { outline: 2px solid var(--copper); outline-offset: 2px; }
+  button.ans:disabled { cursor: default; }
+  button.ans.correct { background: var(--water-soft); border-color: var(--water); color: var(--water); }
+  button.ans.wrong { background: var(--fire-soft); border-color: var(--fire); color: var(--fire); }
+
+  .feedback {
+    min-height: 3.6rem; font-size: 0.92rem; padding: 0.9rem 1rem;
+    background: var(--paper); border: 1px dashed var(--paper-line); margin-bottom: 1.1rem;
+  }
+  .feedback .verdict { font-weight: 700; }
+  .feedback.correct .verdict { color: var(--water); }
+  .feedback.wrong .verdict { color: var(--fire); }
+  .feedback.empty { color: var(--ink-dim); }
+
+  button.next {
+    font: inherit; font-size: 0.82rem; letter-spacing: 0.05em; text-transform: uppercase;
+    font-weight: 600; padding: 0.6rem 1.1rem; background: var(--ink); color: var(--paper);
+    border: none; cursor: pointer;
+  }
+  button.next:focus-visible { outline: 2px solid var(--copper); outline-offset: 2px; }
+  button.next:disabled { opacity: 0.35; cursor: default; }
+
+  table.cheat { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+  table.cheat th, table.cheat td {
+    text-align: left; padding: 0.55rem 0.6rem; border-bottom: 1px solid var(--paper-line); vertical-align: top;
+  }
+  table.cheat th {
+    font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-dim); font-weight: 600;
+  }
+  table.cheat td.mnem { font-weight: 600; white-space: nowrap; }
+
+  .footnote { font-size: 0.85rem; color: var(--ink-dim); border-top: 1px solid var(--paper-line); padding-top: 1.1rem; }
+  .footnote strong { color: var(--ink); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    button.ans.correct, button.ans.wrong { transition: background 0.15s ease, border-color 0.15s ease; }
+  }
+</style>
+
+<header class="masthead">
+  <div>
+    <div class="kicker" id="out-kicker"></div>
+    <h1 class="title" id="out-title"></h1>
+  </div>
+  <div class="date mono" id="out-tagline"></div>
+</header>
+
+<section><div class="rule-block" id="out-rule"></div></section>
+<section><h2 class="section-title">Personas</h2><div class="duo" id="out-personas"></div></section>
+
+<section>
+  <h2 class="section-title">The Drill</h2>
+  <div class="drill">
+    <div class="drill-head">
+      <span id="out-ticket-label">ticket</span>
+      <span class="score mono" id="score">0 / 0 · streak 0</span>
+    </div>
+    <div class="drill-body">
+      <dl class="ticket" id="out-ticket-fields"></dl>
+      <div class="answers" id="out-answers"></div>
+      <div class="feedback empty" id="feedback">Pick an answer for the ticket above.</div>
+      <button class="next" id="btn-next" type="button">Next ticket →</button>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title">Cheat Sheet</h2>
+  <table class="cheat">
+    <thead><tr><th>Mnemonic</th><th>Meaning</th></tr></thead>
+    <tbody id="out-cheat"></tbody>
+  </table>
+</section>
+
+<p class="footnote" id="out-footnote"></p>
+
+<script id="config">
+  /* ============================================================
+     EDIT ONLY THIS OBJECT FOR A NEW TOPIC.
+     ============================================================ */
+  const CONFIG = {
+    kicker: "Field Manual · No. 1",
+    title: "Dealer Gamma",
+    tagline: "Δ-hedging\nuntil it's reflex",
+
+    rule: {
+      big: "Long anything = long gamma. Short anything = short gamma. Call or put never enters into it.",
+      sub: "Gamma sign — not option type — decides which way the dealer trades stock when the tape moves.",
+      derivation: "excess Δ = gamma × ΔS  →  hedge trade = −(excess Δ)<br>" +
+        "short gamma, S↑ → excess Δ &lt; 0 → dealer BUYS · long gamma, S↑ → excess Δ &gt; 0 → dealer SELLS"
+    },
+
+    personas: [
+      {
+        tone: "water",
+        role: "Firefighter",
+        sub: "net long options → long gamma",
+        facts: [
+          ["On a rally", "sells into it"],
+          ["On a selloff", "buys into it"],
+          ["Market effect", "dampens realized vol, fades trends"],
+          ["Near expiry", "pins price toward the heavy strike — a magnet"]
+        ]
+      },
+      {
+        tone: "fire",
+        role: "Arsonist",
+        sub: "net short options → short gamma",
+        facts: [
+          ["On a rally", "buys into it"],
+          ["On a selloff", "sells into it"],
+          ["Market effect", "amplifies realized vol, chases trends"],
+          ["Near expiry", "price rips through the strike once it breaks — no magnet"]
+        ]
+      }
+    ],
+
+    drill: {
+      ticketLabel: "dealer trade ticket",
+      fields: [
+        { key: "position", label: "Position", tone: () => "" },
+        { key: "move", label: "Tape prints", tone: (s) => (s.up ? "tone-up" : "tone-down") }
+      ],
+      answers: ["DEALER BUYS", "DEALER SELLS"],
+      generate: () => {
+        const POSITIONS = [
+          { label: "LONG CALL", gamma: 1 },
+          { label: "SHORT CALL", gamma: -1 },
+          { label: "LONG PUT", gamma: 1 },
+          { label: "SHORT PUT", gamma: -1 }
+        ];
+        const position = POSITIONS[Math.floor(Math.random() * POSITIONS.length)];
+        const up = Math.random() < 0.5;
+        return { position, up };
+      },
+      render: (s) => ({
+        position: s.position.label,
+        move: s.up ? "▲ UP" : "▼ DOWN"
+      }),
+      judge: (s) => {
+        const dScale = s.up ? 1 : -1;
+        const excessSign = s.position.gamma * dScale;
+        const correctIndex = excessSign > 0 ? 1 : 0; // 0 = BUYS, 1 = SELLS
+        const persona = s.position.gamma > 0 ? "Firefighter (long gamma)" : "Arsonist (short gamma)";
+        const dirWord = s.up ? "rallies" : "sells off";
+        const action = correctIndex === 0 ? "BUYS" : "SELLS";
+        const why = s.position.gamma > 0
+          ? "long gamma fades the tape — sells strength, buys weakness"
+          : "short gamma chases the tape — buys strength, sells weakness";
+        return {
+          correctIndex,
+          why: `${persona}, tape ${dirWord} → dealer ${action} stock. (${why})`
+        };
+      }
+    },
+
+    cheat: [
+      ["Long = Firefighter", "Long calls or long puts, doesn't matter — long gamma always sells rallies and buys dips."],
+      ["Short = Arsonist", "Short calls or short puts — short gamma always buys rallies and sells dips."],
+      ["Call vs put ≠ direction of hedge", "Type only sets the starting delta sign. The *reaction* to further moves is pure gamma sign."],
+      ["The house is usually short", "Customers are structural net buyers of options (upside calls, downside puts) → dealers who sell to them are structurally short gamma most of the time."],
+      ["Magnet vs missile", "Long gamma pins price to a strike; short gamma turns a broken strike into a launchpad."]
+    ],
+
+    footnoteHTML: "<strong>Real-world wrinkle:</strong> the \"house is short\" default flips in practice when heavy premium-selling flow shows up — covered-call and cash-secured-put programs, or dense 0DTE call/put selling — which can leave dealers net <em>long</em> gamma in a given name or index for a stretch. When that happens, expect the Firefighter regime: low realized vol, mean-reversion, pinning. When dealers are net short, expect the Arsonist regime: trending, air-pockety, squeeze-prone. Reading which regime you're in is a separate skill from this drill — this page only fixes the mechanical direction once you know the sign."
+  };
+</script>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+
+  // ---- static chrome ----
+  $("out-kicker").textContent = CONFIG.kicker;
+  $("out-title").textContent = CONFIG.title;
+  $("out-tagline").innerHTML = CONFIG.tagline.replace("\n", "<br>");
+
+  // ---- rule block ----
+  {
+    const r = CONFIG.rule;
+    let html = `<p class="big">${r.big}</p><p>${r.sub}</p>`;
+    if (r.derivation) html += `<div class="derivation mono">${r.derivation}</div>`;
+    $("out-rule").innerHTML = html;
+  }
+
+  // ---- personas ----
+  {
+    const html = CONFIG.personas.map((p) => {
+      const facts = p.facts.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
+      return `<div class="persona ${p.tone}">
+        <p class="role">${p.role}</p>
+        <p class="sub">${p.sub}</p>
+        <dl>${facts}</dl>
+      </div>`;
+    }).join("");
+    $("out-personas").innerHTML = html;
+  }
+
+  // ---- cheat table ----
+  {
+    const rows = CONFIG.cheat.map(([m, meaning]) =>
+      `<tr><td class="mnem">${m}</td><td>${meaning}</td></tr>`
+    ).join("");
+    $("out-cheat").innerHTML = rows;
+  }
+
+  // ---- footnote ----
+  $("out-footnote").innerHTML = CONFIG.footnoteHTML;
+
+  // ---- drill engine (generic — do not edit per topic) ----
+  const d = CONFIG.drill;
+  $("out-ticket-label").textContent = d.ticketLabel;
+
+  const ticketFieldsEl = $("out-ticket-fields");
+  const answersEl = $("out-answers");
+  const feedback = $("feedback");
+  const scoreEl = $("score");
+  const btnNext = $("btn-next");
+
+  let current = null;
+  let correctCount = 0, totalCount = 0, streak = 0;
+  let answered = false;
+  let answerButtons = [];
+
+  function renderTicket(scenario) {
+    const values = d.render(scenario);
+    ticketFieldsEl.innerHTML = d.fields.map((f) => {
+      const cls = "mono " + (f.tone ? f.tone(scenario) : "");
+      return `<dt>${f.label}</dt><dd class="${cls}">${values[f.key]}</dd>`;
+    }).join("");
+  }
+
+  function renderAnswers() {
+    answersEl.innerHTML = d.answers.map((label, i) =>
+      `<button class="ans" data-idx="${i}" type="button">${label}</button>`
+    ).join("");
+    answerButtons = Array.from(answersEl.querySelectorAll("button.ans"));
+    answerButtons.forEach((btn) => btn.addEventListener("click", () => answer(Number(btn.dataset.idx))));
+  }
+
+  function newTicket() {
+    current = d.generate();
+    renderTicket(current);
+    renderAnswers();
+    answered = false;
+    feedback.textContent = "Pick an answer for the ticket above.";
+    feedback.className = "feedback empty";
+    btnNext.disabled = true;
+  }
+
+  function answer(idx) {
+    if (answered || !current) return;
+    answered = true;
+    totalCount++;
+
+    const { correctIndex, why } = d.judge(current);
+    const isCorrect = idx === correctIndex;
+    if (isCorrect) { correctCount++; streak++; } else { streak = 0; }
+    scoreEl.textContent = correctCount + " / " + totalCount + " · streak " + streak;
+
+    answerButtons.forEach((btn, i) => {
+      btn.disabled = true;
+      if (i === correctIndex) btn.classList.add("correct");
+      else if (i === idx) btn.classList.add("wrong");
+    });
+
+    feedback.className = "feedback " + (isCorrect ? "correct" : "wrong");
+    feedback.innerHTML = '<span class="verdict">' + (isCorrect ? "Correct." : "Not quite.") +
+      "</span> " + why;
+
+    btnNext.disabled = false;
+  }
+
+  btnNext.addEventListener("click", newTicket);
+  newTicket();
+})();
+</script>
+

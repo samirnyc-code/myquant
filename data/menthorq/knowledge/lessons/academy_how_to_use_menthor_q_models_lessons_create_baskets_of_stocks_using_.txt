@@ -1,0 +1,25 @@
+In this lesson, guest user Simon shares his proven approach to creating custom stock baskets using MenthorQ’s powerful screener tools. You’ll discover how to identify high-probability trading opportunities by combining stocks trading at put support, showing unusual options activity, and experiencing significant gamma changes—then grouping them into diversified baskets through platforms like Fidelity.
+
+Simon explains his screening process using the Put Screener, which updates daily in the evening and displays the spot price, distance to put support, and IV rank for each stock. He looks for stocks where the price is approaching or sitting directly on put support levels, particularly those with positive IV (shown in green color coding). The screener shows a spectrum from stocks approaching put support from below to those trading right on top of it, helping you identify optimal entry points.
+
+The Unusual Options Activity screener reveals stocks trading with unusual volume compared to their normal patterns. Simon demonstrates how he filters through tech-heavy results to find non-correlated opportunities in different sectors, like Victoria’s Secrets and Kohl’s among predominantly technology names. He emphasizes selecting stocks from different industries to reduce correlation risk within your basket—for example, combining Coursera, Bank of America, and Energy Transfer rather than multiple similar financial stocks.
+
+Simon uses a “rich man, poor man” portfolio management strategy: he creates an initial basket of six stocks with equal weighting (Fidelity handles the fractional shares automatically), waits for a 5% gain, then sells the entire basket but withdraws only his original capital plus half the profit. This leaves him with shares at half cost while freeing capital to build another basket. One of his baskets created 10 weeks ago—before major breakouts in China stocks, financials, and Bitcoin-related names—has gained over 20% total return.
+
+He integrates MenthorQ levels directly into Trading View, his main charting platform, to analyze how stocks interact with put support and 0 DTE put support. Using the example of ALB, Simon shows how the stock touched and bounced cleanly off put support levels, then continued higher—demonstrating the institutional significance of these levels for both weekly and intraday positioning.
+
+Video Chapters
+00:00 – Introduction and guest welcome
+01:04 – Simon’s background and institutional levels approach
+03:47 – Creating baskets using MenthorQ screeners
+05:51 – Building equal-weight portfolios with Fidelity
+09:00 – Using the Put Screener to find opportunities
+13:31 – Screening for unusual options activity
+Key Takeaways
+The Put Screener updates daily in the evening and shows spot price, distance to put support, and IV rank to help identify entry points
+Create diversified baskets by selecting stocks from different industries trading at put support to reduce correlation risk
+Use the 5% gain strategy: sell the entire basket after it gains 5%, withdraw original capital plus half the profit, and reinvest in new baskets
+MenthorQ integrates with Trading View and provides institutional levels including put support and 0 DTE put support for both weekly and intraday positioning
+ Video Transcription
+ Previous Lesson
+Complete 

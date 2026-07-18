@@ -1,0 +1,27 @@
+If you’re trading SPX 0DTEs or selling Iron Condors, this lesson reveals how to stop trading blind and start using institutional data to protect your account. You’ll discover why most 0DTE traders blow up their accounts after a few good months and how to avoid becoming part of that statistic.
+
+The core problem with 0DTE trading is that you’re focusing on charts while ignoring the real forces shaping intraday SPX flow: gamma flows, volatility changes, and dealer positioning. We show you how to access both end of day and intraday gamma levels that reveal where SPX will pin, stall, or break. You’ll also learn to use the Q Score to determine if today’s market is safe, fragile, or dangerous before placing your trades.
+
+The lesson walks through real scenarios like selling Iron Condors when dealers move into negative gamma and the volatility score hits 5 (high volatility regime). In these conditions, one headline can rip through your short strikes and wipe out weeks of income in a single session. We also cover how gamma walls can stop breakouts dead, causing your calls to decay to zero while SPX chops sideways.
+
+Practical tools include 14 intraday snapshots per day updating every 30 minutes, plus the one day expected move indicators. Our backtesting shows the one day minimum had an 87% success rate and the one day max hit 85% over four years of SPX history, with prices staying within range 73% of the time. This means you must actively manage Iron Condors rather than letting them sit.
+
+You’ll also discover how to use the matrix to track gamma and delta expiring at different expirations, plus screeners showing assets with the highest positive or negative gamma changes. For Friday OPEX, the biggest 0DTE day of the week, you’ll learn to watch for changing dealer positioning and weakening pinning effects to adjust your strike range and position size.
+
+Video Chapters
+00:00 – Why SPX 0DTE traders blow up their accounts
+02:10 – Intraday gamma levels and Q Score introduction
+03:00 – Iron Condor seller scenario with negative gamma
+04:00 – Gamma walls stopping breakouts
+04:41 – Friday OPEX pinning effect
+06:03 – Accessing 0DTE data and one day expected move
+07:08 – Backtesting success rates for gamma levels
+10:10 – Intraday positioning with 14 snapshots per day
+Key Takeaways
+Use intraday gamma levels and the Q Score to identify if market conditions are safe, fragile, or dangerous before trading 0DTEs
+The one day expected move has an 87% success rate for minimum and 85% for maximum, but only stays within range 73% of the time, requiring active management
+Watch for negative gamma increases and volatility score of 5 to avoid selling Iron Condors when one move can wipe out weeks of income
+Access 14 intraday snapshots updating every 30 minutes to track gamma changes and dealer positioning throughout the trading day
+ Video Transcription
+ Previous Lesson
+Complete 

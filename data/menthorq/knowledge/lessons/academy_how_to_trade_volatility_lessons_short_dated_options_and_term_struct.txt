@@ -1,0 +1,25 @@
+In this session, you’ll explore advanced volatility analysis tools, focusing on short dated options and term structure. Ryan Darnell, an options market maker with 17-18 years of experience, walks through how to read volatility markets and understand what market expectations reveal about potential underlying moves. This lesson emphasizes that the team does not provide individual trading recommendations but rather teaches you how market makers and traders think about the market so you can apply these concepts to your own thesis and research.
+
+The lesson examines the at the money term structure for SPX, revealing that short dated options in the zero to five day window currently look “really rich” compared to the rest of the options market. Meanwhile, options become remarkably cheap as you move out 15 to 20 days, with implied volatility dropping as low as 15% before gradually building back up. Ryan notes that while short-term volatility appears elevated, it’s still quite low compared to levels seen a couple months ago when the VIX reached 40-50%. As implied volatility approaches 14%, the risk-reward becomes favorable for being long options as a general rule.
+
+A key concept covered is vega, which measures how much an option’s price changes for a 1% increase in implied volatility. Ryan demonstrates that long dated options have exponentially larger vega compared to short dated options, meaning they’re much more sensitive to volatility changes. For example, using a 580 put on SPY with an underlying price of 590 at 20% implied volatility, he shows how an option priced at around $18-19 could jump to $25 if volatility increased by 6 points to 26%—a $7 gain even without the underlying moving.
+
+The practical trading application discussed involves selling short dated options to finance long dated options. This strategy could provide significant value now that short dated options are expensive relative to longer-dated ones. This approach also positions you as long vega, meaning if implied volatility jumps back up to higher levels, you’d capture substantial gains on your long-dated options. Ryan demonstrates how you could hold a 30 or 60 day option for a month and still profit even if the market doesn’t move, as long as volatility increases during that period.
+
+The same patterns observed in SPX are consistent across QQQ and big tech single stocks, with expensive short dated volatility and cheaper longer-dated options. This suggests the market is pricing in potential near-term events but expects things to quiet down if those catalysts don’t materialize, likely related to ongoing trade war concerns.
+
+Video Chapters
+00:00 – Welcome and introduction to Volatility Corner
+02:21 – Overview of SPX at the money term structure
+04:55 – Short dated versus long dated options value analysis
+07:13 – Understanding vega and option price sensitivity
+09:55 – Vega demonstration with implied volatility changes
+12:40 – Strategy for selling short dated and buying long dated options
+Key Takeaways
+Short dated options in the zero to five day window are trading at a premium relative to longer-dated options, making them attractive to sell
+Vega measures sensitivity to implied volatility changes, with long dated options having exponentially larger vega than short dated options
+Selling short dated options to finance long dated options creates a long vega position that profits if volatility increases
+With implied volatility near 14-16%, the risk-reward favors being long options rather than selling them
+ Video Transcription
+ Previous Lesson
+Complete 

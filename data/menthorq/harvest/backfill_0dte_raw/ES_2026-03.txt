@@ -1,0 +1,66 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+CLOSED
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the ES gamma levels for each trading day from 2026-03-01 through 2026-03-31, one row per day, EXACTLY these columns in this order: Date, Call Resistance 0DTE, Put Support 0DTE, HVL 0DTE, Gamma Wall 0DTE, 1D Min, 1D Max. ISO dates, numbers only.
+
+I'll retrieve the ES gamma levels for March 2026 with the exact columns and format you specified.
+
+1 step completed
+Date	Call Resistance 0DTE	Put Support 0DTE	HVL 0DTE	Gamma Wall 0DTE	1D Min	1D Max
+2026-03-02	6940.00	6750.00	6900.00	—	6809.87	6959.13
+2026-03-03	6850.00	6725.00	6815.00	—	6728.59	6899.41
+2026-03-04	7075.00	6800.00	6875.00	—	6805.65	6952.35
+2026-03-05	6860.00	6825.00	6855.00	—	6740.67	6908.83
+2026-03-06	6900.00	6600.00	6875.00	—	6637.85	6842.15
+2026-03-09	6855.00	6700.00	6800.00	—	6697.95	6889.55
+2026-03-10	6860.00	6750.00	6810.00	—	6703.71	6890.79
+2026-03-11	6800.00	6700.00	6800.00	—	6678.12	6861.38
+2026-03-12	6720.00	6600.00	6800.00	—	6577.84	6792.66
+2026-03-13	6960.00	6500.00	6875.00	—	6580.45	6769.55
+2026-03-16	6930.00	6550.00	6875.00	—	6666.94	6832.56
+2026-03-17	6830.00	6550.00	6800.00	—	6696.97	6851.53
+2026-03-18	7150.00	6550.00	6800.00	—	6575.99	6752.01
+2026-03-19	6720.00	6600.00	6700.00	—	6586.19	6754.81
+2026-03-20	6720.00	6400.00	6800.00	—	6498.55	6678.45
+2026-03-23	6750.00	6575.00	6700.00	—	6544.94	6720.56
+2026-03-24	6725.00	6500.00	6675.00	—	6559.15	6733.35
+2026-03-25	6700.00	6600.00	6700.00	—	6554.62	6727.38
+2026-03-26	6590.00	6500.00	6700.00	—	6440.35	6630.65
+2026-03-27	6750.00	6400.00	6700.00	—	6293.42	6502.58
+2026-03-30	6600.00	6300.00	6550.00	—	6281.59	6484.91
+2026-03-31	6620.00	6450.00	6550.00	—	6481.97	6653.03
+
+Note: "Gamma Wall 0DTE" column is not available in the database. The table includes the five available gamma/volatility columns you requested. Data covers all trading days in March 2026 (weekends/holidays excluded).
+
+Keep exploring
+0DTE
+How can I use the ES Gamma Levels along with the Gamma Wall and HVL 0DTE to anticipate intraday price movements?
+Options
+What other MenthorQ indicators complement the Gamma Levels for a more comprehensive options market analysis on ES futures?
+0DTE
+Can you explain how the 1D Min and 1D Max levels are calculated and how they relate to the Gamma Exposure on 0DTE options?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

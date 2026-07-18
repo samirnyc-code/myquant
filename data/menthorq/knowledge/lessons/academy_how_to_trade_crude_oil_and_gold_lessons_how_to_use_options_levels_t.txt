@@ -1,0 +1,23 @@
+In this comprehensive lesson, you’ll learn how to trade crude oil futures using options levels and market structure analysis from a veteran prop trader with 12 years of crude oil trading experience. Diana Angelo shares her complete framework for navigating the crude oil market, including time-based behavior patterns, key reversal zones, and how to integrate options GEX levels into your trading decisions.
+
+Crude oil has what Diana describes as time-based behavior that creates specific reversal opportunities throughout the day. The market experiences major turning points around 10am Eastern (options expiry), the euro close, and approximately 90 minutes before settlement at 2:30pm Eastern (7:30pm UK time). Understanding these time windows is critical because crude oil can reverse 70 ticks in seconds, especially when options activity increases volume. Diana emphasizes that crude oil has undergone a “personality transplant” over the past year, moving from three to four dollar ranges daily to much tighter ranges due to economic uncertainty, tariffs, and OPEC supply decisions.
+
+Diana uses a four-part analysis framework combining profile trading, Globex VWAP, exhaustion levels, and options GEX levels. She starts by examining where price opens relative to the previous day’s value area, then monitors distance from Globex VWAP to gauge continuation probability. Her exhaustion points are simple averages across the previous 10 days, with separate calculations for full 24-hour periods and individual trading sessions (London, Tokyo, Nymex). When price extends beyond the first hour range leaving a gap, she avoids counter-trend trades as this signals larger institutional participation.
+
+For practical application, Diana watches specific price levels where crude oil tends to reverse: quarter cents (0.24) and three-quarter cents (0.74), along with round numbers like 0.50 evens where options activity concentrates. She avoids placing stops at these reversal zones. When price approaches major GEX levels, she observes the reaction—if price reverses sharply, she considers fading back the other direction; if price bleeds through, she positions on the retest from the opposite side. Diana also monitors gasoline futures and Canadian dollar movements, as crude oil connects strongly to Canadian dollar options expiries.
+
+Diana trades energies markets and precious metals from her remote prop trading desk, having transitioned from office-based trading during COVID. She specializes in crude oil, gasoline futures, and copper, applying her framework across these correlated energy products. Her approach emphasizes that massive trending days only occur about 8% of the time in crude oil, so traders should expect double-sided action rather than chase continuation trades every session.
+
+Video Chapters
+00:00 – Introduction and guest welcome
+01:25 – Diana’s trading background and experience
+02:51 – Time-based behavior patterns in crude oil
+06:45 – Four-part analysis framework and indicators
+10:19 – Exhaustion levels and reversal zones
+12:44 – Integrating options GEX levels with price action
+Key Takeaways
+Crude oil exhibits time-based reversals at 10am Eastern (options expiry), euro close, and 90 minutes before settlement
+Massive trending days occur only about 8% of the time—expect double-sided price action in crude oil
+Watch for reversals at quarter cents (0.24) and t…
+ Video Transcription
+Complete 

@@ -1,0 +1,85 @@
+ACADEMY
+Subscribe
+MenthorQ Onboarding
+Description
+
+Get up and running with MenthorQ in minutes. This streamlined onboarding course walks you through everything you need to start trading with confidence using our data-driven platform.
+
+You’ll learn how to set up your account, connect your favorite tools—like TradingView—and navigate the MenthorQ Trading Dashboard with ease. More importantly, we’ll show you how to apply our proprietary models to build a high-conviction trading plan and create a consistent, data-backed routine.
+
+Whether you’re new to the platform or looking to sharpen your setup, this course is your fast-track to making the most of MenthorQ.
+
+Course Objectives
+Activate and customize your MenthorQ account
+Navigate the MenthorQ Trading Dashboard and unlock key insights
+Connect your TradingView account to stream MenthorQ signals into your charts
+Apply MenthorQ models to structure your daily and weekly trading plans
+Build a consistent trading routine rooted in data, not noise
+Access and engage with the MenthorQ Community for ongoing support and strategy exchange
+What Next?
+
+Account Setup
+
+Start Next Lesson
+Course Progress
+Set Up
+Account Setup
+Start
+Trading Dashboard Demo
+Start
+Trading Integrations
+Start
+MenthorQ 3.0 Walkthrough
+New App Overview
+Start
+Gamma and Volatility Insight
+Start
+Create Your Watchlists
+Start
+Options Models: Matrix, Heatmap and Exposure
+Start
+Intraday Summary
+Start
+Real-Time Chart and Levels
+Start
+Levels Conversion Indicator
+Start
+Other Indicators: IV, Q-Score and Skew
+Start
+Gamma Levels Backtesting
+Start
+MenthorQ Products
+How to use MenthorQ
+Start
+Gamma Levels
+Start
+Blind Spots Levels
+Start
+Swing Trading Models
+Start
+Q-Score
+Start
+Volatility Models (Skew, Term Structure, Smile, VRP)
+Start
+Crypto Models
+Start
+QUIN - MenthorQ Quant Engine
+Start
+Start Trading with MenthorQ
+Get Started in less than 30 minutes
+Start
+Building a Trading Routine
+Start
+Futures Trader
+Start
+Stocks Trader
+Start
+Options Trader
+Start
+SPX 0DTE Trader
+Start
+Swing / Position Trader
+Start
+Resources
+MenthorQ Links and Guides
+Start

@@ -1,0 +1,27 @@
+Understanding volume is fundamental to technical analysis, and in this lesson, you’ll learn how to interpret volume data and use the volume profile indicator to enhance your trading decisions. Volume represents the total number of shares or contracts traded in a given period, providing crucial insights into the strength and conviction behind price movements.
+
+In charts, volume appears as a histogram below the price, with each bar representing the number of shares traded within each candle. High trading volume often suggests strong interest and commitment to a price direction, while low volume might indicate uncertainty or lack of consensus. Volume can validate or undermine the prevailing trend—in a rising market, increasing volume confirms the uptrend, while declining volume may imply the trend is losing steam and a reversal could be imminent.
+
+We explore how volume behaves during different market conditions, including trending periods and breakout points. For example, if the breakout is done with high volume, then there could be a trend change or trend confirmation. In a downtrend, increasing volume indicates strong selling pressure, while decreasing volume could signal a potential reversal or pause.
+
+Beyond standard volume, you’ll learn about the volume profile on TradingView, which shows the number of traded shares for a specific price range. The blue histogram bars represent the buy volume while the yellow bars represent the sell volume. The point of control (highlighted by the red line) represents where the majority of volume was traded and can act as a support or resistance zone.
+
+You can find different volume profile options on TradingView, including session volume (for intraday timeframes, representing volume from 9:30am to 4pm Eastern Time for stocks), visible range volume profile, and fixed range volume profile. The fixed range option allows you to select a specific range and plot the volume in that range, similar to Fibonacci retracements.
+
+To get started, search for volume within the indicator list on TradingView and add it to your chart. For volume profile analysis, type “volume profile” in the indicators section and select the option that matches your analysis needs, whether session volume, visible range, or fixed range.
+
+Video Chapters
+00:00 – Introduction to volume and its importance in technical analysis
+00:28 – How volume appears in charts and validates trends
+01:35 – Volume behavior in breakouts and trend changes
+03:25 – Introduction to volume profile on TradingView
+03:57 – Different volume profile options and settings
+04:54 – Using volume profile as support and resistance
+Key Takeaways
+Volume provides crucial insights into the strength and conviction behind price movements, with high volume suggesting strong interest and low volume indicating uncertainty
+Increasing volume during an uptrend confirms bullish sentiment, while declining volume may signal the trend is losing steam
+The volume profile on TradingView shows traded shares at specific price levels, with the point of control acting as potential support or resistance zones
+The fixed range volume profile allows you to select specific ranges for analysis and can be combined with other indicators for trade confirmation
+ Video Transcription
+ Previous Lesson
+Complete 

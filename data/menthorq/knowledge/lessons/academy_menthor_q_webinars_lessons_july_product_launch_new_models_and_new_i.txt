@@ -1,0 +1,26 @@
+In this comprehensive product launch session, you’ll discover the major updates and new features coming to MenthorQ in July. This lesson walks you through the expansion of our platform, including new quantitative models, educational resources, asset coverage, and platform integrations that bring institutional-grade data directly into your trading workflow.
+
+We’ve completed a year-long infrastructure build that now supports 1,000+ assets including stocks, ETFs, indices, and futures. The new release introduces critical models like our swing trading model, net delta exposure, blind spot levels, and advanced options screeners. We’re also launching options queues and completing our term structure analysis. Notably, we’re the only company providing gamma levels on future options covering energy, metal, forex, rates, and indices markets.
+
+Our brand new academy platform launches today with 18+ courses designed to combine actionable data with financial education. The redesigned website at mentor q.com features simplified navigation with sections for products, features, and integrations. Your user account portal now includes getting started guides, free video lessons, webinar episodes, and a new daily newsletter. Free users gain access to our core resistance screener, while premium members unlock the complete course library.
+
+Today we’re delivering three major platform integrations: NinjaTrader, MetaTrader, and CRHOP, joining our existing TradingView integration. These integrations allow you to leverage MenthorQ data directly in your preferred trading platform. We’ll demonstrate how to create a trading roadmap in less than 10 minutes a day using our quantitative models and gamma levels.
+
+Our data-driven approach simplifies institutional-grade quantitative analysis into actionable insights. The first machine learning model—our swing trading model—represents our move toward more AI-integrated investment processes. Throughout July, we’re hosting multiple live sessions covering option trading strategies, zero DTE options, gamma levels, blind spot levels, and technical analysis integration.
+
+Video Chapters
+00:00 – Welcome and introduction
+02:31 – MenthorQ mission and infrastructure completion
+04:59 – Why this product launch is important
+06:07 – New asset coverage and futures integration
+07:24 – Session agenda and July events calendar
+09:38 – MenthorQ vision and data-driven approach
+12:05 – New website navigation and portal walkthrough
+Key Takeaways
+MenthorQ now covers 1,000+ assets including stocks, ETFs, indices, and futures with new models like swing trading, net delta exposure, and blind spot levels
+The new academy launches with 18+ courses combining quantitative data with financial education, accessible through the redesigned user portal
+Three new integrations—NinjaTrader, MetaTrader, and CRHOP—bring MenthorQ data into your preferred trading platforms
+You can create actionable trading roadmaps in less than 10 minutes a day using our quantitative models and gamma levels
+ Video Transcription
+ Previous Lesson
+Complete 

@@ -1,0 +1,29 @@
+In this lesson, you’ll learn how to use the volatility smile (also called the smirk) to understand what’s happening in options markets and gain insights into market sentiment. This session features Ryan Darnell, founder and portfolio manager of Cyndical Capital, who brings 16-17 years of options trading experience from Deutsche Bank and commodity derivatives trading.
+
+The volatility smile chart is an implied volatility slice that shows what implied volatility is for options at different strikes. For SPX, you’ll notice that out of the money puts are significantly more expensive in volatility terms than out of the money calls. At the money options typically show implied volatility in the sub 20% range, while far out of the money puts see volatility scale up considerably. This means if you sell a put and buy an equidistant call, you’d actually receive premium for that trade.
+
+There are three key drivers for option pricing: how close to the money the strike is, how volatile the underlying is (implied volatility), and how much time remains until expiry. Since the underlying price and time are known quantities, implied volatility is the missing piece you look up on the smile chart. Understanding why puts are more expensive involves two factors: supply and demand (most people are long stocks and want protection) and empirical market behavior (sell-offs tend to be more volatile with daily movements, while rallies are steadier).
+
+The practical trading benefit is identifying opportunities like buying puts in areas where they’ve gotten relatively cheaper and selling further out puts to recoup premium, creating more cost-effective put spreads for portfolio protection. For example, if 5800 is at the money, selling the 5600 put and buying the 6000 call would net you premium. Individual stocks like Nvidia may show more symmetrical smiles around earnings, but at the market level, correlations go to one during major sell-offs.
+
+This dashboard represents the same institutional-grade tools that hedge funds use, and it’s being continuously upgraded with guidance from professional traders. The session is part of the Volatility Corner series that will cover SPX, QQQ, and potentially futures markets like gold and crude oil every couple of weeks.
+
+To get started, focus on the smile chart as your first tool for understanding what’s going on in a market and what the options market can tell you about sentiment and positioning.
+
+Video Chapters
+00:00 – Introduction and welcome with Ryan Darnell
+01:13 – Ryan’s background in options trading and Cyndical Capital
+02:41 – Overview of Volatility Corner series and dashboard demo
+03:50 – Introduction to the volatility smile chart for SPX
+05:00 – Why out of the money puts are more expensive than calls
+07:08 – Identifying trading opportunities in put spreads
+09:29 – Supply and demand factors driving put premiums
+10:40 – Empirical market behavior during rallies versus sell-offs
+Key Takeaways
+The volatility smile chart shows implied volatility across different strikes, with out of the money puts typically more expensive than calls for equity indices
+Three key drivers of option pricing are strike proximity to underlying price, implied volatility, and time to expiry
+Put spreads can be cost-effective for portfolio protection by buying puts and selling further out puts to recoup premium
+Individual stocks may show symmetrical smiles, but market indices show put bias due to supply and demand and the empirical tendency for sell-offs to be more volatile than rallies
+ Video Transcription
+Previous
+Complete 

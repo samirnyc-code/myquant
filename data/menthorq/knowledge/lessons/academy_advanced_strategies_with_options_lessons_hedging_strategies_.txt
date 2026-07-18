@@ -1,0 +1,23 @@
+In this lesson, you’ll learn how to use options to protect your portfolio or specific stock positions through hedging strategies. We cover three main approaches: the collar, the covered call, and the risk reversal, each designed to manage risk while maintaining potential for gains.
+
+The collar strategy combines a long position on an underlying (at least 100 shares of a stock like Tesla or an ETF like SPY) with a protective put and a short out of the money call. The put protects you if the price collapses, while selling the call generates a premium that fully or partially pays for the cost of the put. You remain protected in a crash scenario while still benefiting from price increases up to the strike price of the sold call. The call and put should typically have the same maturity, though this isn’t always necessary.
+
+The risk reversal strategy, also known as synthetic long, involves buying an out of the money call and selling an out of the money put. By selling the put, you receive a premium that can finance the call purchase, creating either a debit or credit strategy depending on premium differences. This approach is useful when you’re bullish on a stock but don’t want to use all your capital or pay the full call premium. Out of the money puts typically have higher implied volatility than out of the money calls due to higher demand for protective puts.
+
+For the collar setup using the Q models, you could use the core resistance as the short call strike and the high volume level or closest put support level as the long put strike. For risk reversal, use core resistance as the long call strike and high volume level or closest put support level as the short put strike. The collar works best with stable JAX, stable cumulative JAX, and stable VAX, while risk reversal favors stable or bullish JAX, bullish cumulative JAX, and stable VAX.
+
+Video Chapters
+00:00 – Introduction to hedging strategies
+00:40 – Understanding the collar strategy
+02:06 – Collar payoff and profit/loss calculations
+03:22 – Collar checklist and setup with Q models
+03:52 – Risk reversal strategy explained
+05:30 – Risk reversal payoff and checklist
+Key Takeaways
+The collar protects your long stock position by combining a protective put with a covered call that finances the put cost
+The risk reversal creates a bullish position by buying an out of the money call and selling an out of the money put to offset costs
+Use core resistance for call strikes and high volume levels or put support levels for put strikes when setting up these strategies
+Both strategies require understanding of JAX, cumulative JAX, and VAX conditions for optimal implementation
+ Video Transcription
+ Previous Lesson
+Complete 

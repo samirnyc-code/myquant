@@ -1,0 +1,26 @@
+In this bi-weekly roundup of options markets and implied volatility, you’ll learn how to read market expectations for the short and medium-term outlook of the S&P 500 and broader markets using volatility analysis. This session focuses on current market conditions and what they mean for options trading strategies.
+
+Right now, the markets are showing high prices and smooth sailing, with the at-the-money term structure for the S&P 500 revealing very low implied volatility—some tenors are at just 11% implied volatility. This creates a challenging environment for option sellers, as option premiums are extremely cheap. For traders with option selling strategies, the recommendation is to be very cautious, save your bullets, and keep powder dry by reducing risk exposure.
+
+The key insight is managing your vega, which is your exposure to moves in the implied volatility market. If implied volatility goes up by 1%, vega determines whether you make or lose money, as opposed to delta, which measures exposure to underlying price movements. In the current environment, you should look for strategies that are long volatility or at least volatility neutral. If you do sell options, consider selling option spreads to provide coverage and reduce outright vega exposure.
+
+Looking at practical examples, the QQQ (the queues) shows a similar story with very little implied volatility, though you can get slightly better long-term volume if you look further out on the curve—beyond 60 days the pricing improves somewhat, though it remains sub-20 for this more volatile index. Understanding term structure helps you figure out what the market is telling you about short and long-term implied volatility expectations.
+
+The session also covers how to read backwardation and contango in commodities markets like crude oil and gold. In crude oil’s current backwardation, front-month contracts are higher than back-month contracts, signaling tight near-term supply. In gold’s typical contango structure, deferred contracts trade at a premium, creating a carry trade opportunity where you can earn the carry by storing gold and selling futures.
+
+Video Chapters
+00:00 – Introduction to Volatility Corner
+00:55 – Current market conditions and implied volatility overview
+02:15 – At-the-money term structure for S&P 500
+03:25 – Managing vega exposure and option selling strategies
+06:12 – Understanding term structure curves and mean reversion
+09:08 – Commodities backwardation in crude oil markets
+11:39 – Gold contango and carry trade opportunities
+Key Takeaways
+Current implied volatility is extremely low at around 11% for some tenors, making it a poor environment for option sellers
+Focus on long volatility or volatility neutral strategies, and if selling options, use option spreads to reduce vega exposure
+Backwardation in commodities like crude oil signals tight near-term supply, while contango in gold creates carry trade opportunities
+Understanding term structure helps distinguish between short-term market moves and longer-term stability in both volatility and commodities markets
+ Video Transcription
+ Previous Lesson
+Complete 

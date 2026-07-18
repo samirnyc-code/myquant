@@ -1,0 +1,55 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+CLOSED
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the NQ gamma levels for each trading day from 2026-05-01 through 2026-05-31, one row per day, EXACTLY these columns in this order: Date, Call Resistance 0DTE, Put Support 0DTE, HVL 0DTE, Gamma Wall 0DTE, 1D Min, 1D Max. ISO dates, numbers only.
+
+I'll retrieve the NQ gamma levels for May 2026 with the exact columns and format you specified.
+
+1 step completed
+
+No data returned for NQ during May 1-31, 2026. This could indicate:
+
+NQ ticker not found — The continuous futures contract NQ may not be in the database. The correct identifier might be NQ1! (continuous) or a dated contract like NQU2026 (September 2026).
+Date range outside available data — May 2026 may predate the database or fall outside the available historical range.
+0DTE columns sparse — The call_resistance_0dte, put_support_0dte, and related 0DTE fields may not be populated for all dates or asset types.
+
+Please clarify:
+
+Should I search for NQ1! (continuous Nasdaq-100 futures) instead of NQ?
+Or a specific dated contract (e.g., NQU2026 for September 2026)?
+Is May 2026 within your available data range, or would you prefer a different month?
+
+Once confirmed, I'll retrieve the exact columns and format you requested.
+
+Keep exploring
+0DTE
+How can I use the NQ gamma levels like Call Resistance 0DTE and Put Support 0DTE to improve my intraday trading strategies?
+Options
+What other MenthorQ indicators complement the Gamma Levels, such as NetGex or Q-Score, for a more comprehensive market analysis?
+Options
+Can you explain how the High Vol Level (HVL) and Gamma Wall are calculated and their significance in identifying key market turning points?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

@@ -1,0 +1,25 @@
+In this lesson, you’ll discover the key bearish options strategies that allow you to profit when you expect the underlying asset’s price to decline. We cover four essential approaches: the long put, the short call, the bear call spread, and the bear put spread, along with how to use MenthorQ’s Q models to optimize each strategy.
+
+The long put is one of the simplest strategies, granting you the right but not the obligation to sell the underlying at a specified strike price. By purchasing a put option, you gain bearish exposure with defined risk limited to the premium paid, unlike short selling which carries unlimited risk. For example, buying a put with a $40 strike for a $3 premium gives you a breakeven of $37 and maximum loss of $300. Key considerations include implied volatility (rising IV benefits the strategy), moneyness, and time decay which works against you as the buyer.
+
+The short call strategy involves selling a call option to collect premium, with limited profit potential equal to the premium received but unlimited risk if the price rises. Selling a call with a $40 strike for a $5 premium yields a breakeven of $45 and maximum profit of $500. Here, decreasing implied volatility and positive theta (time decay) work in your favor, though you’ll need to maintain margin requirements with your broker.
+
+The bear call spread and bear put spread are multi-leg strategies that limit both risk and reward. The bear call spread involves selling a call and buying a call at a higher strike, creating a credit spread. The bear put spread involves buying a put and selling a put at a lower strike, creating a debit spread. For instance, a bear call spread with strikes at $60 and $65 for a $1 net credit offers maximum profit of $100 and maximum loss of $400.
+
+For all bearish strategies, we recommend checking specific conditions: negative Jax, bearish cumulative Jax, and appropriate relationships between price and the high volume level or eyeball level. You can use MenthorQ’s Q models to identify optimal strikes, such as the eyeball level or put support level for long puts, the high volume level or first call resistance for short calls, and combinations of these levels for the spread strategies.
+
+Video Chapters
+00:00 – Introduction to bearish strategies
+00:38 – Long put strategy explained
+03:18 – Short call strategy and risks
+06:12 – Bear call spread mechanics
+08:00 – Bear put spread setup
+09:28 – Lesson conclusion
+Key Takeaways
+The long put provides bearish exposure with defined risk limited to the premium paid, unlike unlimited risk in short selling
+Short call strategies offer limited profit from premium collection but carry unlimited risk as prices rise
+Bear call spreads and bear put spreads limit both maximum profit and maximum loss through multi-leg option combinations
+Use MenthorQ’s Q models including the eyeball level, high volume level, and put support levels to select optimal strike prices for each strategy
+ Video Transcription
+ Previous Lesson
+Complete 

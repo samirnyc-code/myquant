@@ -1,0 +1,4 @@
+{
+ "url": "https://cf.menthorq.io/clickhouse-api/api/web/v1/market-status/NYSE",
+ "body": "{\"exchange\":\"NYSE\",\"asset_type\":\"STOCK\",\"date\":\"2026-07-14\",\"status\":\"OPEN\",\"is_open\":true,\"open_time_utc\":\"13:30\",\"close_time_utc\":\"20:00\",\"open_time_local\":\"09:30\",\"close_time_local\":\"16:00\",\"pre_open_time_utc\":\"08:00\",\"post_close_time_utc\":\"00:00\",\"pre_open_time_local\":\"04:00\",\"post_close_time_local\":\"20:00\",\"tz_exchange\":\"America/New_York\",\"next_open_date\":\"2026-07-15\"}"
+}

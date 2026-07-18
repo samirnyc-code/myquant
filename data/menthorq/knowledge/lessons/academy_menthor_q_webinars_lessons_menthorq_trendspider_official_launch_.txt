@@ -1,0 +1,25 @@
+Ready to supercharge your trading with institutional-grade options data? In this lesson, we’re announcing the official launch of our TrendSpider integration (referred to as Transpider in the session), bringing MenthorQ’s gamma levels, blind spots, and conversions indicators directly to your charts with live API updates throughout the trading day.
+
+We’ll walk you through exactly how to subscribe and connect. Simply log into your MenthorQ dashboard, click on integrations on the left side, enter your Transpider email, and our team will enable you within 24 hours. You’ll receive your API key right in the dashboard, which you paste into the indicator settings on the Transpider platform. Once connected, you’ll access three powerful indicators from the Transpider Trading tool store: gamma levels, blind spots, and MenthorQ conversions, plus custom scanners.
+
+Our gamma levels indicator reveals critical market structure derived from options data that impacts futures, stocks, ETFs, indices, and crypto. These levels show where dealer flows create support and resistance, helping you identify whether price may break or stall at specific levels. The indicator includes primary levels (core resistance, put support, hybrid level, one day mean, and one day max) and secondary levels (JAX 1 through 10, representing gamma exposure ranked from highest to lowest). You also get dedicated zero DTE levels for same-day expiration options, which have grown dramatically in volume since COVID.
+
+We provide intraday levels with 14 updates throughout the day (every 30 minutes) for stocks, ETFs, and indices, automatically delivered via API to your Transpider charts. This is especially valuable during volatile sessions when markets reposition at the open—like the example shown where markets dumped overnight, making intraday levels wildly different from end-of-day levels. We cover approximately 1,300 assets including stocks, ETFs, indices, futures, and Forex, with crypto gamma levels launching at the end of June and European futures and stocks (like DAX and Euro Stoxx) coming later in the year.
+
+Understanding options flow is essential because average daily options volume has increased dramatically from the early 2000s through 2024, especially post-COVID. Market makers hedge large option positions by trading the underlying futures, so option flow becomes futures flow. Whether you’re in a high gamma environment (fast-moving, volatile market) or low gamma environment (calm and stable), these levels help you manage entries, exits, and identify where smart money is positioned beyond just surface-level price action.
+
+Video Chapters
+00:00 – Welcome and introduction to official launch
+01:10 – How to access indicators on Transpider platform
+04:04 – Dashboard integration and API key setup
+05:25 – What are gamma levels and why they matter
+07:45 – Growth of options volume since COVID
+10:06 – Primary and secondary levels explained
+Key Takeaways
+Subscribe through the MenthorQ dashboard integrations section using your Transpider email to receive your API key within 24 hours
+Gamma levels reveal dealer flows and support/resistance from options data, showing where price may break or stall at specific strike prices
+Intraday levels update 14 times daily (every 30 minutes), providing critical repositioning data during volatile sessions
+Coverage includes 1,300 assets with crypto launching end of June and European markets coming later this year
+ Video Transcription
+ Previous Lesson
+Complete 

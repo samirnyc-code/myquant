@@ -1,0 +1,73 @@
+NEW
+New Dashboard
+Real-time prices, QScore, gamma & volatility insights in one place.
+Open Dashboard
+For You
+CTAs & Vol Models
+Crypto
+Integrations
+Academy
+Financial Wiki
+Community
+Live
+Affiliate
+Samir Abdo
+PREMIUM
+Add Command
+CTA Models
+Idle
+CTAs Main Table
+
+Returns the CTAs Main Table
+
+CTAs Index Table
+
+Returns the CTAs Index Table
+
+CTAs Currency Table
+
+Returns the CTAs Currency Table
+
+CTAs Commodity Table
+
+Returns the CTAs Commodity Table
+
+CTAs Chart: SPX
+
+Returns the CTAs Chart for the SPX Index
+
+CTAs Chart: Nasdaq
+
+Returns the CTAs Chart for Nasdaq
+
+CTAs Chart: Crude Oil
+
+Returns the CTAs Chart for Crude Oil
+
+CTAs Chart: Brent Oil
+
+Returns the CTAs Chart for Brent Oil
+
+CTAs Chart: Gold
+
+Returns the CTAs Chart for Gold
+
+CTAs Chart: Silver
+
+Returns the CTAs Chart for Silver
+
+CTAs Chart: Copper
+
+Returns the CTAs Chart for Copper
+
+CTAs Chart: Natural Gas
+
+Returns the CTAs Chart for Natural Gas
+
+CTAs Chart: 2Y Treasury
+
+Returns the CTAs Chart for the 2Y Treasury
+
+CTAs Chart: 10Y Treasury
+
+Returns the CTAs Chart for the 10Y Treasury

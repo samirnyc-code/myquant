@@ -1,0 +1,27 @@
+In this lesson, you’ll learn how to use Net Delta to analyze market sentiment and build options trading strategies. Dan and Doc walk through practical examples using real market data, showing you how to interpret Net Delta exposure and apply it to your trading decisions.
+
+Understanding Net Delta starts with knowing that it represents the balance between long and short positions in the market. When you see positive Net Delta, there are more long positions than short, indicating bullish sentiment. Conversely, negative Net Delta shows more short positions, reflecting bearish sentiment. Market makers are always on the other side of your trades, and they hedge their positions based on these Delta exposures, which can create support and resistance levels in the underlying asset.
+
+Doc demonstrates how to analyze different stocks using the Net Delta exposure chart on the MenthorQ platform. When examining AMD, he found it “buried in puts” with significant negative Delta above and below the current price, indicating bearish pressure. In contrast, Micron showed staggered calls throughout the chain with in the money calls acting as support levels, presenting a more bullish setup where he felt comfortable selling puts.
+
+The practical trading application becomes clear when Doc explains how in the money calls create support because market makers will buy to support the stock price as it moves. He uses his dashboard to monitor multiple assets including SPX, Nvidia, Tesla, and various semiconductors. For Nvidia, he identified 140 as a key level with lots of calls creating resistance, while positive Delta at lower levels like 130 provided support where he sold puts.
+
+When Net Delta appears balanced or indecisive, like in the SPX example shown, this indicates market uncertainty with participants hedged for both upside and downside moves. This “right and left tail hedging” reflects periods where traders aren’t sure of direction, which requires different trading strategies than clear bullish or bearish setups.
+
+To get started, log into your MenthorQ account and navigate to the guides under products where you’ll find dedicated Net Delta resources. Access the Net Delta exposure chart and Net Delta model to begin analyzing the assets you trade, looking for patterns of positive or negative delta that indicate market maker positioning and potential support or resistance levels.
+
+Video Chapters
+00:00 – Introduction and disclaimer
+01:37 – What is Net Delta and market maker hedging
+05:02 – Understanding Delta and sentiment indicators
+07:52 – Analyzing AMD Net Delta structure
+09:32 – Micron bullish setup example
+11:01 – SPX Delta exposure and market indecision
+Key Takeaways
+Net Delta shows the balance between long and short positions, with positive indicating bullish sentiment and negative indicating bearish sentiment
+In the money calls act as support levels because market makers buy to support the stock price as it moves
+When Net Delta exposure appears balanced across strikes, it indicates market indecision and requires different trading strategies
+Use the Net Delta exposure chart in your MenthorQ dashboard to identify potential support and resistance levels before entering trades
+ Video Transcription
+ Previous Lesson
+Complete 

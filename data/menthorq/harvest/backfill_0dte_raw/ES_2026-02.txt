@@ -1,0 +1,63 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+AFTER-HOURS
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the ES gamma levels for each trading day from 2026-02-01 through 2026-02-28, one row per day, EXACTLY these columns in this order: Date, Call Resistance 0DTE, Put Support 0DTE, HVL 0DTE, Gamma Wall 0DTE, 1D Min, 1D Max. ISO dates, numbers only.
+
+I need to route this to the Data Expert, as this is a historical time-series request across multiple dates (February 2026) for ES futures.I'll retrieve the ES gamma levels for February 2026 with the exact columns and format you specified.
+
+1 step completed
+Date	Call Resistance 0DTE	Put Support 0DTE	HVL 0DTE	Gamma Wall 0DTE	1D Min	1D Max
+2026-02-02	7025.00	6970.00	6985.00	—	6944.14	7062.36
+2026-02-03	7000.00	6900.00	6950.00	—	6875.06	7002.44
+2026-02-04	7000.00	6900.00	6950.00	—	6862.61	6994.39
+2026-02-05	6920.00	6800.00	6925.00	—	6711.65	6865.85
+2026-02-06	7000.00	6850.00	6920.00	—	6882.13	7009.37
+2026-02-09	7000.00	6970.00	6925.00	—	6922.67	7045.33
+2026-02-10	6990.00	6925.00	6945.00	—	6908.66	7032.34
+2026-02-11	7000.00	6900.00	6955.00	—	6900.99	7025.01
+2026-02-12	6940.00	6800.00	6930.00	—	6790.67	6932.83
+2026-02-13	6905.00	6850.00	6930.00	—	6773.40	6917.10
+2026-02-17	6900.00	6800.00	6875.00	—	6791.52	6932.98
+2026-02-18	6900.00	6875.00	6900.00	—	6822.92	6961.08
+2026-02-19	6895.00	6800.00	6900.00	—	6786.05	6958.45
+2026-02-20	6950.00	6800.00	6900.00	—	6858.96	6990.54
+2026-02-23	6900.00	6850.00	6875.00	—	6783.65	6932.85
+2026-02-24	6925.00	6870.00	6900.00	—	6831.07	6968.93
+2026-02-25	7000.00	6850.00	6900.00	—	6916.33	7034.67
+2026-02-26	6950.00	6925.00	6925.00	—	6838.13	6969.37
+2026-02-27	6950.00	6800.00	6900.00	—	6805.58	6944.92
+
+Note: "Gamma Wall 0DTE" column is not available in the database. The table includes all available 0DTE gamma levels: Call Resistance 0DTE, Put Support 0DTE, and High Vol Level (HVL). Data covers 19 trading days in February 2026 (weekends/holidays excluded).
+
+Keep exploring
+Options
+How can I use the ES Gamma Levels data to improve my intraday trading strategies?
+Options
+What is the relationship between Gamma Levels and other MenthorQ indicators like NetGex and Q-Score for analyzing market maker positioning?
+Options
+Can you explain how the High Vol Level (HVL) and Gamma Wall are calculated and their significance in options market analysis?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

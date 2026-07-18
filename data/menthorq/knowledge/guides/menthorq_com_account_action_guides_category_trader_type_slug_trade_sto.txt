@@ -1,0 +1,179 @@
+Back to Dashboard
+Getting Started
+Trader Type
+5
+Resources
+5
+Onboarding
+7
+QUIN
+Products
+Knowledge Base
+Trading Strategies
+Integrations
+Trader
+Partners
+Backtesting
+Affiliation
+How to Trade Stocks with MenthorQ
+TRADER TYPE
+STOCK TRADER
+SWING / POSITION TRADER
+AFFILIATE CASE STUDIES
+
+For most traders, stocks are the starting point. They’re accessible, familiar, and exciting. But for many, stocks are also where progress stalls. Why? Because trading stocks without context often leads to the same painful mistakes:
+
+Chasing price moves — buying breakouts that fade, or selling into false breakdowns.
+
+Following headlines and hype — mistaking news or social media buzz for actual tradeable signals.
+
+Ignoring positioning and flows — forgetting that stocks don’t move on fundamentals alone, but also on hedging and institutional flows.
+
+Bad timing — buying the highs, selling the lows, and missing the invisible dynamics that drive price.
+
+The truth is simple: most retail traders look only at charts. Institutions, meanwhile, look at flows, positioning, and risk regimes. That’s the gap MenthorQ fills.
+
+To succeed in stock trading, you need more than technical indicators:
+
+Clarity on key levels – real support and resistance shaped by positioning, not just chart lines.
+
+Awareness of risk regimes – knowing when the market environment is calm vs. when it’s fragile and volatile.
+
+Insight into flows – understanding whether dealers and funds are absorbing risk or amplifying it.
+
+Without this context, you’re trading price — not the forces behind price.
+
+How MenthorQ Gives Stock Traders an Edge
+
+MenthorQ brings the institutional playbook into retail hands:
+
+Options Positioning & Gamma Levels – uncover where hedging flows may pin or break stocks.
+
+Q-Score – quickly assess whether the environment is stable or dangerous.
+
+Swing Trading Levels – high-probability support and resistance zones based on flows, not just charts.
+
+Volatility Models (Smile, VRP, Skew) – decode whether volatility is cheap, expensive, or likely to expand.
+
+Check out our Video Tutorial:
+
+Stock Trading
+
+Swing Trading / Position Trading
+
+Case Study 1: The Overhyped Breakout
+
+Apple reports strong earnings. Headlines scream “bullish.” Social media is buzzing. Price action looks like a breakout. Every chart-based indicator says momentum is here.
+
+But MenthorQ shows the hidden reality:
+
+A call wall just overhead — dealer positioning acting as resistance.
+
+Implied volatility overpriced — making calls expensive to chase.
+
+Q-Score shifting bearish — fragility is building under the surface.
+
+Instead of buying the hype, you size down, structure a defined-risk spread, or wait for a clean break. The result: you’re not chasing blindly — you’re trading with flow context.
+
+Case Study 2: The Quiet Before the Storm
+
+Microsoft’s chart looks boring. Tight range. Low realized volatility. Most traders ignore it.
+
+But MenthorQ reveals what the chart can’t:
+
+Implied volatility creeping higher, even while realized vol looks calm.
+
+Dealers shifting into negative gamma, a setup for amplified moves.
+
+Q-Score flashing caution, warning of fragility.
+
+Retail traders get lulled into complacency and blindsided by sudden moves. MenthorQ traders see the buildup and prepare — hedging, positioning early, or simply staying alert.
+
+Most retail stock traders rely on a top-down approach: market news, earnings buzz, or broad technicals. MenthorQ flips this into a bottom-up approach, grounded in flows, positioning, and volatility. You see the invisible forces shaping each stock — and trade with the same context institutions use.
+
+How to find the Edge Trading Stocks
+
+Now let’s look at how to build an edge with MenthorQ and how Stock Traders can use our platform.
+
+We are going to start by using a bottom up approach vs a top down approach. Let’s begin with your watchlist of companies. For each stock you can leverage these models.
+
+Q-Score
+
+The Q-Score isn’t just a market-wide gauge — it can also be applied at the single-stock level to spot where real alpha hides. A bullish Q-Score signals supportive positioning, where dealer hedging flows and volatility conditions create a tailwind for upside moves. A bearish Q-Score, on the other hand, highlights fragility — negative gamma, expensive options, or skew that signals risk of sharp downside.
+
+By scanning for stocks with extreme Q-Scores, traders can filter the noise, zero in on names with asymmetric setups, and position ahead of the crowd. Instead of chasing headlines, you’re targeting stocks where flows and volatility regimes align with directional opportunity. Learn more about Q-Score here.
+
+Now let’s look at some examples:
+
+TSLA: From Fragility to Momentum. Tesla’s Option Score dipped to 0, reflecting fragile positioning and bearish flow pressure. Soon after, the score flipped sharply higher, climbing to 4–5 and holding steady. That transition marked the start of a strong uptrend, with price breaking out and sustaining momentum.
+
+LYFT: Quiet Build, Explosive Move. Lyft’s score started at 0, but within days surged to 4–5 and stayed elevated. While the chart looked quiet at first, the bullish score was a signal that dealer positioning was shifting in favor of upside. The result: a powerful breakout rally that caught most traders off guard.
+
+BABA: The Turnaround Signal. Alibaba showed the same pattern — a bearish 0 score during a period of weakness, followed by a sustained move to 5. That sharp improvement in flow conditions foreshadowed a major trend reversal, with price ripping higher in the weeks that followed.
+
+Net Gamma Exposure (GEX)
+
+We can use Gamma Exposure (GEX) to identify key strike prices where market makers have significant hedging exposure, which often act as support/resistance zones. Here we want to see if we are in positive or negative gamma, the IV vs HV, IV Rank and the key levels. We want to monitor All Expiration and also Multi Expiry Net GEX.
+
+Swing Trading Models
+
+The Swing Trading Models provide a structured framework for positioning beyond the intraday noise. They define the directional bias, highlight historical backtest performance, and map out critical zones to watch for support, resistance, or risk triggers. Instead of guessing whether a rally has legs or a pullback is just noise, these models ground your decisions in data-driven levels tested over time. By combining bias with statistically validated levels, traders can anticipate where momentum is likely to continue, where reversals may occur, and how to size risk appropriately.
+
+Learn more about the Swing Trading Model
+
+Check the Swing Trading Model Backtesting Results
+
+Volatility Models
+
+Analyzing multiple volatility models within MenthorQ is valuable because each model offers a unique lens on market sentiment, risk, and opportunity, enabling a richer, more nuanced understanding.
+
+SKEW
+
+Skew measures the difference in implied volatility across strike prices, revealing market biases toward puts or calls. For example, elevated put skew can indicate demand for downside protection, reflecting bearish sentiment or hedging activity. Learn more about the MenthorQ Skew here.
+
+Volatility Risk Premium (VRP)
+
+The Volatility Risk Premium (VRP) model measures the difference between implied volatility (market’s expected future volatility) and historical volatility (actual past moves).
+
+VRP bars above zero indicate implied volatility is rich (overvalued), while bars below zero show it is cheap (undervalued). Percentile ranks contextualize current VRP relative to recent history.
+
+Traders use VRP to assess whether volatility is priced attractively for premium selling (when VRP is high) or premium buying (when VRP is low).
+
+Learn more about our VRP Model here.
+
+Term Structure
+
+Term Structure shows how implied volatility varies across option expirations, highlighting expectations for volatility over different time horizons. This helps identify if near-term volatility is expected to spike or calm relative to longer-term expectations.
+
+The chart shows the ATM term structure of implied volatility for GLD, comparing today’s curve (green) with prior snapshots. Implied volatility is not only higher across the curve compared to one month ago (yellow), but especially elevated in the front end, where short-dated options are pricing above 20%.
+
+This steep front-end premium signals that the market is expecting a potential move in the near term, even as longer-dated expiries remain more anchored. In other words, traders are paying up for short-term protection and directional bets, reflecting heightened uncertainty or event risk in the immediate horizon.
+
+Gamma Levels and Blind Spots
+
+Next, we can move to our Gamma Levels charts to see where positioning may create intraday support, resistance, or breakout zones on individual stocks. For broader market context, we also leverage our Blind Spots Levels on the MAG7 names, which highlight areas where dealer positioning is thin and the market is more vulnerable to outsized moves. By combining stock-specific Gamma Levels with Blind Spots across the biggest tech leaders, traders can anticipate both localized setups and systemic risks that often drive the broader indices.
+
+Options Screeners
+
+Now that we’ve worked through a bottom-up view, we can shift to a top-down analysis using our Screeners. The screeners give us a market-wide perspective, highlighting where positioning and volatility are shifting most aggressively.
+
+We start with Gamma changes — spotting where a surge or drop in gamma exposure could alter dealer hedging flows. Next, we look at Gamma Levels, using both end-of-day and intraday TrendSpider screeners to identify key strikes driving price behavior. We then scan Volatility and Open Interest, uncovering where option activity is clustering and signaling potential catalysts.
+
+Finally, we apply the Q-Score, filtering for names where positioning creates either supportive or fragile conditions. This layered process helps traders quickly surface high-probability setups across the entire market, before drilling down into individual opportunities.
+
+Learn more about our Screeners here.
+
+On this page
+ How MenthorQ Gives Stock Traders an Edge
+ Case Study 1: The Overhyped Breakout
+ Case Study 2: The Quiet Before the Storm
+ How to find the Edge Trading Stocks
+ Q-Score
+ Net Gamma Exposure (GEX)
+ Swing Trading Models
+ Volatility Models
+ SKEW
+ Volatility Risk Premium (VRP)
+ Term Structure
+ Gamma Levels and Blind Spots
+ Options Screeners

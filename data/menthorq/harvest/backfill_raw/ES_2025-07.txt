@@ -1,0 +1,72 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+AFTER-HOURS
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the ES Call Resistance, Put Support, and HVL levels for each trading day from 2025-07-01 through 2025-07-31, one row per day, columns: Date, Call Resistance, Put Support, HVL.
+
+I'll route this to the Data Expert, as it's a historical time-series request across multiple dates.I'll retrieve the ES gamma levels (Call Resistance, Put Support, and High Vol Level) for July 2025.
+
+1 step completed
+
+ES gamma levels for July 2025. Call Resistance ranged from $6,280–$6,450, Put Support from $6,000–$6,300, and HVL from $6,145–$6,405. (Data as of July 2025)
+
+Date	Call Resistance	Put Support	HVL
+2025-07-01	$6,300.00	$6,000.00	$6,145.00
+2025-07-02	$6,400.00	$6,000.00	$6,195.00
+2025-07-03	$6,400.00	$6,000.00	$6,195.00
+2025-07-07	$6,400.00	$6,000.00	$6,265.00
+2025-07-08	$6,400.00	$6,000.00	$6,245.00
+2025-07-09	$6,400.00	$6,000.00	$6,270.00
+2025-07-10	$6,400.00	$6,000.00	$6,270.00
+2025-07-11	$6,280.00	$6,000.00	$6,270.00
+2025-07-14	$6,400.00	$6,000.00	$6,295.00
+2025-07-15	$6,400.00	$6,100.00	$6,300.00
+2025-07-16	$6,350.00	$6,100.00	$6,290.00
+2025-07-17	$6,350.00	$6,100.00	$6,320.00
+2025-07-18	$6,400.00	$6,100.00	$6,315.00
+2025-07-21	$6,375.00	$6,100.00	$6,345.00
+2025-07-22	$6,450.00	$6,100.00	$6,340.00
+2025-07-23	$6,400.00	$6,300.00	$6,370.00
+2025-07-24	$6,450.00	$6,100.00	$6,370.00
+2025-07-25	$6,450.00	$6,100.00	$6,345.00
+2025-07-28	$6,450.00	$6,300.00	$6,395.00
+2025-07-29	$6,450.00	$6,300.00	$6,395.00
+2025-07-30	$6,450.00	$6,300.00	$6,395.00
+2025-07-31	$6,450.00	$6,300.00	$6,405.00
+
+Notable patterns:
+
+Call Resistance stabilized at $6,400–$6,450 from mid-July onward (previously $6,280–$6,400)
+Put Support shifted upward from $6,000 (early July) to $6,100 (mid-July) to $6,300 (late July)
+HVL trended higher throughout the month, from $6,145 to $6,405, reflecting rising price levels
+Keep exploring
+Options
+How can I use the ES Call Resistance and Put Support levels together to improve my intraday trading strategies?
+Options
+What is the relationship between HVL (High Vol Level) and Gamma Levels in the MenthorQ platform?
+Options
+Are there MenthorQ Academy courses that explain how to interpret and trade using Call Resistance and Put Support levels effectively?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

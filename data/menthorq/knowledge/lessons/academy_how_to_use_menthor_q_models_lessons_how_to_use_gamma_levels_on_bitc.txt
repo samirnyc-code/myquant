@@ -1,0 +1,25 @@
+In this lesson, you’ll discover a creative workaround for analyzing Bitcoin using our gamma levels indicator, even before dedicated Bitcoin futures levels are officially available. We demonstrate how to leverage correlated assets to generate actionable trading data for BTC right now.
+
+The core technique involves using gamma levels from assets that correlate with Bitcoin and plotting them directly onto your BTC chart. As demonstrated in the lesson, you simply find the right ticker that correlates with Bitcoin, apply our indicator, and the levels automatically populate on your chart. The key is not to overcomplicate the process—if a specific dataset isn’t available yet, there’s always a solution using our flexible indicator system.
+
+During the live demonstration, we successfully plot gamma levels on Bitcoin by selecting a correlated ticker. The indicator displays critical zones including put support levels and 0DTE (zero days to expiration) data. You can quickly map out important areas using the 1 day minimum setting combined with put support 0DTE, giving you actionable zones to monitor for potential support and resistance.
+
+While dedicated crypto futures don’t currently have substantial options activity to derive levels directly, we’re actively working on integrating cash options data for cryptocurrency. This feature is on our roadmap and will be delivered soon, providing you with native Bitcoin gamma levels in the future.
+
+The indicator’s flexibility allows you to analyze Bitcoin immediately by mapping correlated asset levels onto BTC charts. You can identify key support zones and create a roadmap of critical price areas where options activity suggests institutional positioning, giving you an edge in your cryptocurrency trading decisions.
+
+Video Chapters
+00:00 – Question about Bitcoin futures levels availability
+00:22 – Using correlated gamma levels for BTC analysis
+00:42 – Live demonstration of plotting levels on Bitcoin
+01:38 – Successfully applying the indicator to Bitcoin
+02:19 – Future crypto options development roadmap
+02:43 – Mapping out support zones and 0DTE levels
+Key Takeaways
+You can plot gamma levels from correlated assets directly onto Bitcoin charts for immediate analysis
+The indicator displays put support and 0DTE data that helps identify critical price zones
+Use the 1 day minimum setting combined with put support 0DTE to map out key areas to monitor
+Native Bitcoin cash options data is currently in development and coming soon to the platform
+ Video Transcription
+Previous
+Complete 

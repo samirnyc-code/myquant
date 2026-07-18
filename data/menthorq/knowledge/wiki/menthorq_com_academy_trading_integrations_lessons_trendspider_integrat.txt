@@ -1,0 +1,25 @@
+In this lesson, you’ll discover how to leverage the powerful integration between MenthorQ and Transpider, our newest partner platform. We’ve been developing this integration for several months, and it combines the strength of our institutional-grade data with Transpider’s advanced charting and screening capabilities to help you identify trading opportunities across 1300 assets.
+
+Setting up the integration is straightforward. First, you’ll activate your Transpider account by entering your email address under the Transpider integration section on the MenthorQ platform. Our team will enable the indicator and share it with your Transpider account via email. Once you receive access, you’ll find three custom indicators: blind spots, conversion, and gamma levels. Simply copy your API key and paste it into the indicator settings to activate the connection.
+
+The gamma levels indicator offers both end of day and intraday options, with full customization of colors, thickness, opacity, and label visibility. Because the connection runs via API, levels update automatically across all assets including stocks, ETFs, and indices. The blind spots indicator works the same way, displaying our proprietary blind spot levels that update automatically. The conversion indicator is particularly powerful for traders who need to convert levels from one ticker to another, such as converting SPY levels onto YES, SPX levels into YES, or QQQ levels onto NQ. You can choose between manual ratio or auto ratio, and even define specific times for the auto ratio calculation to account for the fact that futures trade 24/5 while ETFs don’t.
+
+The real power of this integration lies in the ability to create intraday and real time screeners using MenthorQ data across all 1300 assets. For example, you can screen the entire S&P 500 to find companies within 0.5% of the core resistance or put support level. You can also combine our data with technical analysis and chart patterns to build more advanced screeners, and even create custom watch lists based on your scanner results.
+
+The integration works across multiple asset classes including stocks, ETFs, indices, and futures. All customization settings are saved automatically unless you remove the indicator, so you only need to configure your preferences once. The setup takes less than two minutes, and then you’re ready to start trading with automatic level updates.
+
+Video Chapters
+00:00 – Introduction to Transpider integration
+00:40 – Account activation and setup process
+01:05 – Accessing and configuring gamma levels indicator
+03:26 – Setting up blind spots indicator
+04:20 – Using the conversion indicator for ticker-to-ticker conversion
+07:00 – Building intraday and real time screeners with MenthorQ data
+Key Takeaways
+The Transpider integration provides three custom indicators: gamma levels, blind spots, and conversion, all connected via API for automatic updates
+The conversion indicator allows you to convert levels between tickers with auto ratio settings that can be timed to match futures trading hours
+You can build real time screeners across 1300 assets using MenthorQ data combined with technical analysis
+Setup takes less than two minutes and all settings are saved automatic…
+ Video Transcription
+Previous
+Next 

@@ -1,0 +1,108 @@
+Back to Dashboard
+Getting Started
+Trader Type
+5
+Resources
+5
+Onboarding
+7
+QUIN
+Products
+Knowledge Base
+Trading Strategies
+Integrations
+Trader
+Partners
+Backtesting
+Affiliation
+MenthorQ Setup Guide
+RESOURCES
+
+This Setup Guide is designed to help you get acquainted with our products, content, and data, so you can start leveraging them to become a more profitable trader. We’ll walk you through everything step by step, providing the relevant documentation along the way.
+
+MenthorQ Documentation
+
+Explore our comprehensive resources, including guides, tutorial videos, articles, and more.
+
+Access the Menthor Q Guides
+
+What Data do we Provide?
+
+At Menthor Q, we develop cutting-edge Quantitative Models and Data that are available daily. With our Free and Premium Memberships, you can access:
+
+Gamma Levels on Stocks, ETFs, Indices, Futures
+
+Advanced Quantitative Models
+
+Community and Trading Rooms
+
+These models are available within our Membership. Additionally, our Menthor Q Academy is here to help you master the theory and application of our models. Join our Academy.
+
+Why Options and Quantitative Models Matter?
+
+Whether you trade Stocks, Futures, or Options, understanding Options is crucial due to their significant impact on price action.
+
+Options volumes have surpassed equity volumes in 2021 for the first time, making them an essential flow to monitor for better risk management and trading success. Ignoring these flows is no longer an option. Options volumes have become one if not the key flow that is responsible for certain price action. Understanding it will make you a better risk manager and a more successful trader.  
+
+In this Podcast together with Anthony Crudele we go over Gamma Levels and how Stock, Options and Futures Traders can leverage them to their advantage.
+
+Learn about the Menthor Q Data
+
+We provide daily charts, tables, and models on a variety of assets. We also have tutorial videos and Webinars available for you to learn more about our Data:
+
+Setup Menthor Q in 5 Minutes
+
+Getting Started with Menthor Q
+
+Academy. How to use the Menthor Q Models
+
+Menthor Q Product Training Videos
+
+Understanding the importance of Market Makers Flow
+
+Then we need to understand the importance of Market Makers and how their flow can impact the price action of any asset.
+
+The Market Maker is a key player to ensure liquidity in the market. They provide bids and ask prices that we can use to buy or sell our options. By providing Liquidity they take on a risk. The first step is to understand how Market Makers make money. They do not make money from the direction of the trade. They make money by charging a spread on volumes executed.
+
+To protect themselves from losing money, Market Makers use a strategy called Delta Hedging. It is a complicated concept that involves the understanding of how Options Greeks works and today we are not going to go into the details of it.  In the simplest form, that means that the market maker is always hedging its portfolio making trades that offset their risk. They buy or sell the underlying asset based on the change of the price, volatility and time to expiration. This activity is like their own protection. It helps them not lose money when the market falls. 
+
+Because the Market Makers are buying and selling the underlying, this affects liquidity of the asset and can affect the price action. You can learn more about Delta Hedging using the link below:
+
+Delta Hedging
+
+Delta Hedging Cheatsheet
+
+Positive and Negative Gamma
+
+MenthorQ Gamma Levels
+
+Now we can move to the exciting part which is use the Menthor Q Gamma Levels. They can be integrated directly into TradingView and other platforms.
+
+The Gamma Levels are the core of our offering and can be integrated directly into TradingView.
+
+Primary Levels: Guides on Call Resistance, Put Support, High Vol Level (HVL), and the 1D Expected Move Indicator. Learn More.
+
+Backtesting Results: See the success of our 1D Exp Move Indicator.
+
+Secondary Levels: Understand and trade using GEX Levels. Learn More.
+
+MenthorQ Quant Models
+
+We have also developed a series of advanced Quantitative Models to help you better understand Liquidity and Momentum:
+
+Menthor Q CTAs Model
+
+Menthor Q Volatility Control Fund Model
+
+Menthor Q Momentum Models
+
+Menthor Q Liquidity Barometer
+
+On this page
+ MenthorQ Documentation
+ What Data do we Provide?
+ Why Options and Quantitative Models Matter?
+ Learn about the Menthor Q Data
+ Understanding the importance of Market Makers Flow
+ MenthorQ Gamma Levels
+ MenthorQ Quant Models

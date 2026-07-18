@@ -1,0 +1,61 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+CLOSED
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the CL Call Resistance, Put Support, and HVL levels for each trading day from 2026-07-01 through 2026-07-15, one row per day, columns: Date, Call Resistance, Put Support, HVL.
+
+I'll retrieve the gamma levels for CL (crude oil futures) for the specified date range.
+
+1 step completed
+
+CL gamma levels for July 1-15, 2026. (Data as of Jul 15, 2026)
+
+Date	Call Resistance	Put Support	HVL
+2026-07-01	$76.00	$67.00	$70.25
+2026-07-02	$76.00	$67.00	$70.00
+2026-07-06	$76.00	$67.00	$70.00
+2026-07-07	$73.00	$67.00	$70.00
+2026-07-08	$76.00	$70.00	$70.75
+2026-07-09	$76.00	$70.00	$70.50
+2026-07-10	$76.00	$70.00	$72.25
+2026-07-13	$78.00	$70.00	$72.00
+2026-07-14	$85.00	$65.00	$72.50
+
+Note: No data available for Jul 3-5 (weekend) or Jul 11-12 (weekend). Jul 15 data not yet available (today's session still in progress).
+
+Key observations:
+
+Call Resistance rose sharply on Jul 14 to $85.00 (from $78.00 on Jul 13)
+Put Support dropped to $65.00 on Jul 14 (widest range of the period)
+HVL remained relatively stable in the $70-72 range through Jul 13, then ticked up to $72.50 on Jul 14
+Keep exploring
+Options
+How can I use the CL Call Resistance and Put Support levels to improve my options trading strategies?
+Options
+What is the relationship between HVL levels and Gamma Exposure (GEX) in MenthorQ's market structure analysis?
+Options
+Are there MenthorQ Academy courses that explain how to interpret and apply Call Resistance and Put Support levels in futures trading?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

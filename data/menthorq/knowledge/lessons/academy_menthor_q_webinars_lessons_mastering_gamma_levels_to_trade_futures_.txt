@@ -1,0 +1,24 @@
+In this lesson, you’ll learn how options flow influences market price action in the futures markets and how to leverage institutional-level data to enhance your trading execution. Fabio Ruggeri, founder of MenthorQ, explains how retail traders can access the same data-driven approach that large institutions use, specifically focusing on gamma levels and their impact on futures trading.
+
+We explore the massive growth in options volume, particularly zero DTE options (zero dated options), which are increasingly moving markets toward closes. A key statistic revealed is that 75% of US trading volume is driven by computers and algorithms. For the first time in history, option volume surpassed equity volume in 2021, and this trend continues to grow. Understanding this shift is critical because 90% of options expire worthless, and the majority of option transactions are executed by market makers, which significantly impacts price movement.
+
+The practical benefits for futures traders are substantial. Even if you don’t trade options directly, understanding key gamma levels helps you identify reaction zones and potential turning points in the market. Anthony shares his experience noting that while mornings and mid-day trading may not show dramatic changes, the responses near key price levels toward closes act like magnets, either pulling price toward them or pushing it away.
+
+MenthorQ provides quantitative models and data on a daily basis through their Discord and membership site. The platform originally covered SPX and now includes gamma levels on stocks, ETFs, indices, and has recently expanded to futures and options on futures. The goal is to simplify complex data and create actionable signals that improve your trading strategy.
+
+The launch of futures data at MenthorQ represents the first platform to offer this type of data for the futures markets. By integrating these gamma levels with your technical analysis, you can significantly elevate your execution when trading futures, especially understanding how market makers provide bid and ask prices across thousands of options contracts with dozens of expirations and hundreds of strike prices.
+
+Video Chapters
+00:00 – Introduction to options flow and futures trading
+02:43 – What is MenthorQ and Fabio’s background
+05:30 – Impact of zero DTE options on market movement
+07:53 – Statistics on options volume growth and market trends
+09:01 – Market structure and the role of market makers
+Key Takeaways
+Options volume surpassed equity volume in 2021 and continues to grow, with 75% of US trading volume driven by algorithms
+Zero DTE options are increasingly moving futures markets, especially toward closes and at key gamma levels
+Understanding gamma levels helps identify reaction zones and turning points even if you only trade futures directionally
+MenthorQ provides institutional-level data through their Discord and membership site, now including futures and options on futures
+ Video Transcription
+ Previous Lesson
+Complete 

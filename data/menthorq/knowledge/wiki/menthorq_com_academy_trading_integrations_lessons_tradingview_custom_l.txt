@@ -1,0 +1,28 @@
+In this lesson, you’ll learn how to use MenthorQ’s Custom Levels indicator on TradingView, which allows you to manually import and update trading levels directly from the MenthorQ dashboard. Since TradingView doesn’t support an API connection, this custom levels approach gives you more control and flexibility over your level management.
+
+The Custom Levels indicator is found in the Invite only section of TradingView. It uses a copy-paste function built within the MenthorQ dashboard, allowing you to grab levels directly and paste them into the indicator. The indicator includes five input level boxes, with each box supporting approximately five tickers due to a 4,000 character limit per box. This means you can load a total of 20 tickers per indicator, and if you need more, you can simply add multiple indicators and repeat the process.
+
+There are several compelling reasons to use custom levels. First, you get faster updates because you can copy and paste new levels the moment they appear on the dashboard. Second, you can use custom levels for backtesting by uploading historical levels to review and test past scenarios going back five to six months. This is particularly valuable since the gamma levels end of day and intraday do not update automatically—you need to either remove and re-add the indicator or update the code manually, making the copy-paste method more convenient for many users.
+
+To find and import levels, go to the dashboard’s End of Day or Intraday section where you’ll find the TradingView level command. If you don’t see it, click Add Command and select TradingView levels to position it in your dashboard. For managing multiple assets efficiently, MenthorQ provides a request level tool within Quinn where you can select up to five tickers per request and customize different level types including gamma levels end of day, gamma levels intraday, blind spots, and swing levels. You can search by typing ticker symbols separated by commas, or even create a pre-populated document for faster access.
+
+The indicator settings mirror the end of day and intraday indicators, allowing you to choose label position (left, center, right), adjust offset, modify text size, and customize table settings including size, sorting (alphabetically descending or ascending), layout (horizontal or vertical), and position. You can also convert levels from one asset to another and customize colors for each level or group them into primary jacks one to five with color modifications.
+
+To get started, add the Custom Levels indicator from the Invite only section in TradingView, then navigate to the MenthorQ dashboard or the Quinn levels request tool to copy your desired levels. Paste them into the input boxes in the indicator settings, and you’ll see the levels appear immediately on your chart—the entire process takes less than 20 seconds.
+
+Video Chapters
+00:00 – Introduction to Custom Levels indicator
+00:31 – When and why to use custom levels
+01:27 – Finding levels in the dashboard
+02:17 – Using the Quinn request level tool
+05:23 – Settings and customization options
+07:13 – Use cases and updating intraday levels
+08:38 – Backtesting with historical levels
+Key Takeaways
+The Custom Levels indicator supports up to 20 tickers through five input boxes with a 4,000 character limit each
+You get faster updates by manually copying levels from the dashboard and can perform backtesting with historical data going back five to six months
+Use the Quinn request level tool to efficiently manage multiple tickers and level types including gamma levels, blind spots, and swing levels
+Each custom level indicator supports one type of level per ticker, so you’ll need multiple indicators to display different level types for the same asset
+ Video Transcription
+ Previous Lesson
+Next 

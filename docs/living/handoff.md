@@ -1,10 +1,14 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 19, 2026 (session 70, Mac)
+**Last Updated:** July 19, 2026 (session 76, Mac)
 
 ---
 
-## S70 (2026-07-19, Mac) — MenthorQ Swing Levels: found the real API, built a puller, PC TODO
+## S76 (2026-07-19, Mac) — MenthorQ Swing Levels: found the real API, folded into mq_api.py, PC TODO
+
+**This Mac checkout was stale by ~35 commits (S70-S75, the whole autonomous options desk) before
+this session — pulled and merged before pushing. Below is Mac-side work done before discovering
+that; it complements S73's `mq_api.py` rather than duplicating it.**
 
 **Investigating a Patrick Petersson/MenthorQ dossier (unrelated side project) surfaced their
 public Swing Trading Model marketing backtests (credit-spread-on-swing-band strategy, MAG7 +
@@ -13,21 +17,17 @@ this — starting Monday, on SPX + MAG7, per MenthorQ's own rule.**
 
 **⚠️ CORRECTING S66: nothing was ever scheduled anywhere for MenthorQ scraping** — not this Mac,
 not the PC. Re-read S66 itself: it explicitly says "NOT scheduled yet (user's call): deferred the
-Windows Task Scheduler entry." This machine had no `playwright` installed and no `auth_state.json`
-before today, so the 6-level gamma "Backtest tile" scraper (`gamma_tracker/scrape.py`) has never
-actually run as a recurring job despite S66's "AUTO-SCRAPER FULLY WORKING" framing — that referred
-to the scraper *working when run manually*, not to it being live/scheduled. Confirm before
-assuming any gamma-level history has been accumulating anywhere.
+Windows Task Scheduler entry." Turned out moot anyway — **S73/S75 superseded the whole DOM-click
+scraper approach with `mq_api.py`'s direct REST + Bearer-token method**, which IS what's live now
+per S75C's Task Scheduler chain. (At the time this correction was written, this Mac genuinely had
+no `playwright`/`auth_state.json` and I hadn't yet seen S70-75 — worth flagging that gap in my own
+process: I read the handoff from a fixed offset and missed the newest entries at the top on first
+pass. Re-read from the top before trusting "nothing exists yet.")
 
-**FOUND: Swing Levels live on a completely different, newer product surface.**
-`gamma_tracker`/`menthorq_backfill*.py` all hit `menthorq.com/wp-admin/admin-ajax.php` (the
-WordPress marketing-site backend). The Swing Trading Model indicator instead lives on
-`dashboard.menthorq.io` — a separate Next.js app with its own clean REST API:
+**FOUND: Swing Levels live on the same `dashboard.menthorq.io` / `gateway.menthorq.io` app
+`mq_api.py` already talks to** — just an endpoint it didn't have yet:
 
     GET https://gateway.menthorq.io/clickhouse-api/api/web/v1/swing-levels/{TICKER}
-    Auth: `Authorization: Bearer <Cognito JWT>` (~12h lifetime), minted client-side by the
-          app's own JS from NextAuth session cookies -- capture it live off a real request,
-          never hardcode it (it expires). Same MenthorQ login as gamma_tracker, different app.
 
 Response per ticker = last 5 trading days: `[{date, trigger, band, direction}, ...]`.
 `direction` = "lower" (bullish, sell PUT spread @ `band`) or "upper" (bearish, sell CALL spread @
@@ -35,21 +35,31 @@ Response per ticker = last 5 trading days: `[{date, trigger, band, direction}, .
 side from `band` in every row seen so far, semantics still unconfirmed, not part of MenthorQ's
 published strategy (treat as an optional stop to test, not given).
 
-**⚠️ CONFIRMED HARD CAP: exactly 5 trading days, no more, no matter how it's queried.** Tried
-`days=`, `limit=`, `from`/`to`, `start`/`end`, `range=`, `period=` — every variant returns the
-byte-identical 5-row payload. There is no deeper history available through this endpoint, full
-stop. The only way to get more than 5 days is to run this daily ourselves and accumulate it,
-exact same rationale as the gamma tracker.
+**⚠️ CONFIRMED HARD CAP: exactly 5 trading days, no more — verified two ways, not just guessed.**
+(1) Empirically: every query-param variant tried (`days=`, `limit=`, `from`/`to`, `start`/`end`,
+`range=`, `period=`) returns the byte-identical 5-row payload. (2) From the app's own minified JS
+(pulled + grepped all 35 chunks across 4 pages): the client builds the request as literally
+`swing-levels/{ticker}` with **zero query params, ever** — the app itself never asks for more.
+`swing-levels` is also the *only* swing-related path anywhere in the entire bundle set — no
+sibling `swing-insights`/`swing-history` the way gamma has `gamma-levels` (today) + `gamma-insights`
+(365d history). This is a real, structural cap, not a client-trimming artifact. Only way to get
+more than 5 days is to run this daily ourselves and accumulate it — same rationale as `gamma_tracker`.
 
-**Built:** `gamma_tracker/swing_levels.py` — headless puller for SPX + MAG7 (AAPL/MSFT/GOOGL/
-AMZN/META/NVDA/TSLA), reuses the SAME `gamma_tracker/auth_state.json` session as `scrape.py`
-(same login, same dashboard app). Captures a fresh bearer token live off a real request each run
-(not hardcoded/stored), then hits the REST endpoint directly per ticker. Appends new
-`(ticker, date)` rows to `data/menthorq/swing_levels/swing_levels_history.csv` (dedup'd).
-**Not yet tested end-to-end with a fresh `auth_state.json`** — today's data was pulled by hand
-via a throwaway discovery script (`scratchpad/`, not committed — had a live token from a manual
-headed login). `swing_levels.py`'s headless bearer-token capture is written but unverified;
-first real run may need the `headless=True` fallback noted in its docstring flipped to `False`.
+**Bonus find from the same JS-bundle dig — two more clean endpoints, added to `mq_api.py`:**
+- `levels-report/{sym}` — the exact regime hold-rate/positive-outcomes/comeback-rate numbers
+  `gamma_tracker/scrape.py` DOM-scrapes off the Backtest tile. **Should replace that scraper
+  entirely** if it's not already superseded by S73's work — worth checking against whatever S75's
+  automation chain currently uses for this.
+- `blindspot-levels/{sym}` — `bl_1`..`bl_10` (today only), clean replacement for the `bl_levels`
+  wp-admin-ajax parsing in `menthorq_backfill*.py`.
+
+**Built (`scripts/mq_api.py` + `scripts/mq_swing_pull.py`, following S73's existing convention
+rather than the standalone script I wrote before seeing `mq_api.py` — deleted that duplicate):**
+- `MQ.swing_levels(sym)`, `MQ.levels_report(sym)`, `MQ.blindspot_levels(sym)` added to the class.
+- `mq_swing_pull.py` — pulls SPX + MAG7 (AAPL/MSFT/GOOGL/AMZN/META/NVDA/TSLA), appends new
+  `(ticker, date)` rows to `data/menthorq/swing_levels/swing_levels_history.csv` (dedup'd).
+  **Tested end-to-end on the Mac, works** (reuses `gamma_tracker/auth_state.json`, same as
+  `mq_api.py` expects).
 
 **Today's pull (2026-07-17 close, sets the Mon 07/20 → Fri 07/24 trade), already in the CSV:**
 
@@ -81,21 +91,750 @@ glitch.
 4. **ES was explicitly dropped from scope** (user's call) — MenthorQ's own tested universe is
    SPX/SPY/NDX/QQQ/VIX + MAG7, not ES; only SPX + MAG7 in scope now.
 
-**PC TODO tomorrow:**
-1. `git pull` (this commit + `gamma_tracker/swing_levels.py` + today's CSV row).
-2. `pip install playwright python-dotenv` in whatever env runs this, then
-   `python -m playwright install chromium`.
-3. Copy `gamma_tracker/.env.example` → `.env`, fill in MenthorQ creds (or reuse existing Mac
-   creds — same account).
-4. Run `python scrape.py discover` once (headed, one-time manual login + add the "Gamma Levels |
-   Backtesting" indicator like before) to create `auth_state.json` on the PC.
-5. Run `python swing_levels.py run` — first real end-to-end test of the headless bearer-token
-   capture. If it fails to auto-capture the token headlessly, flip `headless=True` → `False` in
-   `get_bearer_token()` and retry (see docstring).
-6. Once confirmed working: decide whether to actually schedule it now (Windows Task Scheduler,
-   same deferred item from S66) — **still not done, don't assume it happens automatically.**
-7. Resolve the 4 open decisions above with the user before wiring this into an actual live-sim
+**Also started this session (in progress, not written up yet): reverse-engineering what
+`blindspot-levels`' `bl_1`..`bl_10` actually are** — user's hypothesis is they're derived from
+sector ETFs or MAG7 names via a ratio-projection, same mechanism as the "Blind Spots" system in
+the separate Patrick Petersson dossier work (SPX/QQQ/NDX levels projected onto NQ via fixed
+multipliers like `SPX×3.509`). If confirmed, next session should find the actual ratios per bl_N
+slot and check whether they're static or recomputed daily.
+
+**PC TODO (re-check against what S73/S75 already built before redoing anything):**
+1. `git pull` (this commit).
+2. Check whether `mq_api.py`'s new `levels_report`/`blindspot_levels` methods duplicate anything
+   S75's automation chain already gets some other way — if `gamma_tracker/scrape.py` is still the
+   live source for Backtest-tile data, switch it to `levels_report()` instead.
+3. Confirm `scripts/mq_swing_pull.py` runs cleanly on the PC's existing `auth_state.json`/env, then
+   fold it into the S75C Task Scheduler chain (daily, alongside the existing 08:27 levels fetch)
+   if the user wants swing-band history accumulating going forward.
+4. Resolve the 4 open decisions above with the user before wiring this into an actual live-sim
    options strategy runner.
+
+---
+
+## S75C (2026-07-16) — OPTIONS DESK GOES FULLY AUTONOMOUS + analytics/journal (branch `s75-live-dashboard`)
+
+Big build session. The options desk now runs itself Mon–Fri and has a full analytics layer.
+**Committed** on `s75-live-dashboard` (commits 2c3df2c…d08e688). NOT merged to main yet.
+
+**⏰ AUTONOMOUS DAILY CHAIN (Task Scheduler, all times CT = exchange/Central time):**
+`schedule_options_tasks.ps1` + `schedule_gateway_login.ps1` register:
+- 08:00 Gateway login (IBC) · 08:25 Dashboard server · 08:26 Feed · 08:27 Levels fetch ·
+  08:28 Gameplan · 08:33 Trigger daemon (→15:00) · 08:35 Scanner · 08:40 Health-check ·
+  14:28/14:35 Sim daemon(BPS)/Marks · 15:15 Postmortem. All Weekly Mon–Fri.
+- **Prereq: PC on + logged into Windows** (GUI apps in the user session). Re-run either PS1 to (re)register.
+
+**GATEWAY AUTO-LOGIN — IBC installed at `C:\IBC`** (3.24.1). Credentials in `C:\IBC\config.ini`
+(paper, port 4002, OUTSIDE the repo, never committed). Patched an IBC bug (`StartIBC.bat` empty
+java_version → "set was unexpected"). `scripts/gateway_ensure.py` brings Gateway up on demand
+(idempotent) — I use it before any IB action. IBC renames `ibgateway.exe`↔`ibgateway1.exe` on
+launch; on a FAILED launch restore it (`mv ibgateway1.exe ibgateway.exe`).
+
+**REMOTE ACCESS for Thomas (2nd PC user, remote): Tailscale + token.** Dashboard server
+(`options_dashboard_live.py`) now binds `0.0.0.0` + requires `?key=<token>` for non-localhost
+(cookie-persisted; localhost exempt). Token in `~/.myquant_dashboard_token.txt` (outside repo).
+This PC's tailscale IP `100.120.208.126`. Thomas's URL:
+`http://100.120.208.126:8600/?key=Tp3xCWzVnG3_6KeDsvkzUA`. Guide on the Desktop
+(`Thomas_Dashboard_Access.html`/`.md`). USER TODO: Tailscale admin → Machines → ⋯ → Share the
+node to Thomas + send him the guide.
+
+**QUIN IS DEAD (user: "not available anymore"). Levels now come from the DIRECT MenthorQ API**
+(`mq_api.py` → `gamma-levels/SPX/eod`). `mq_levels_fetch.py` writes `mq_levels_today.json` (the
+gameplan's input) each morning — replaces the dead `mq_quin_harvest.py`. Auth = captured Bearer;
+if it expires, re-login via Playwright. Health-check flags stale levels.
+
+**NEW DASHBOARD TABS (open http://127.0.0.1:8600 — localhost no key):**
+- **Analytics** — equity curve + drawdown, **grade-calibration** (avg P&L by grade; watch if it
+  slopes A→F), flexible **Break-down-by** pivot (grade/strategy/gamma-regime/bias/DoW/hour/…) with
+  n/win/total/avg/PF/ROI. Data via `analytics_payload()`; bias derived by `options_tags.py`.
+- **Calendar** — monthly P&L calendar (day cells colored by net), click a day → that day's trades as
+  **tiles**. This is the HISTORICAL closed-trade log.
+- **Trades tab is now TODAY-ONLY** (open + closed-today, resets daily; history lives in Calendar).
+- **Game Plan / Postmortem** each have a **History** section (expander per logged day; premarket
+  **price paths A–D are saved** in every `gameplan_*.json` and shown here).
+- Gamma **scanner** (`options_gamma_scanner.py`) — cross-symbol net-GEX screener (AAPL/META/NVDA =
+  strongest pins; IWM leans momentum). NFLX $73 is CORRECT (post-split), not bad data.
+
+**FIXES:** fade grading no longer uses OTM-distance (category error) — fades graded on regime
+(positive-γ fade = B, neg-γ = D); 0DTE trades **cash-settle** to the close in the postmortem;
+trigger daemon records `gex_regime`; **7/15 gameplan/postmortem RECONSTRUCTED** (a test regen had
+wiped the CR0-fade fired status + stamped 7/16 levels) + an **overwrite-guard** now refuses to
+clobber a plan with fired triggers.
+
+**STANDING RULES ADDED:** [[always-show-me-visually]] — after any UI change, OPEN it in the user's
+browser (`explorer http://127.0.0.1:8600/`), don't just screenshot. Everything in Exchange Time (CT).
+
+**OPEN / NEXT:** merge branch when ready; weekly review script (grade-vs-outcome, propose criteria
+changes for sign-off — criteria stay FROZEN daily); optional viewer-mode (`&view=1`) to hide account
+$ from Thomas; the desk is DATA-COLLECTION mode (unvalidated, 1 auto-fire so far = the −$1,663 fade).
+
+---
+
+## S75 (2026-07-16) — hypothesis triage, QUIN hard-capped, ODX GEX plan RETRACTED, ORATS spec locked
+
+Session was research-planning + data-reality-checking, not new backtests. Key outcomes:
+
+**Hypothesis backlog reviewed** (`mq_claims_backlog.md` + `gex_ideas_web.md`): ~50 ideas but really
+~4 distinct mechanisms (regime-conditioned momentum, level fade, pin/OPEX-calendar, vol-forecast
+filter) restated by different vendors. Only ~4 tested; BPS/STMR still the ONLY validated edge.
+Cheapest shovel-ready test = **B1–B3** (MenthorQ's own 1D-Max/Min/range hit-rates) — needs only
+`levels0_history.csv` (ES, 340 days, 2025-07→2026-06) + `_continuous_unadj.parquet`. NOT YET RUN.
+
+**⚠️ ODX self-GEX plan RETRACTED (data-integrity hole, S73-flavor).** `gex_ideas_web.md` claimed
+OptionsDX 2010-2023 chains let us self-compute 13yr of GEX. FALSE: `data/optionsdx/spx_eod_*.txt`
+(162 monthly files, SPX only, H1-2021 missing) has C_VOLUME/P_VOLUME but **NO open-interest column**.
+GEX needs gamma×OI×spot² — without OI you cannot build real GEX. Do not build on ODX. The only
+GEX-from-chains code (`cboe_gex_snapshot.py`) uses LIVE CBOE quotes (which DO have OI), today-only,
+and was never validated-to-pass vs MenthorQ. So there is still NO confirmed self-compute method.
+
+**QUIN is HARD-CAPPED.** Probed live (`scratchpad/quin_probe.py` / `quin_state.py`): composer
+`disabled=True`, page shows **"Messages exhausted!" + "Upgrade / Limited 40% discount"**. Not a daily
+reset — it's the plan message allotment (monthly). Yesterday's 100+ backfill queries (SPX/ES/NQ/YM/
+CL/GC × ~13mo each) burned it; that's why the Mag7 daily-level backfills failed (`backfill_aapl*.log`
+= 0 rows, same disabled-composer error). The **direct gateway API (`mq_api.py`) is a SEPARATE working
+channel** — use it, skip QUIN for anything it can serve (levels/GEX/matrix/insights).
+
+**AAPL request → what's possible.** Historical daily CR/PS/HVL *price levels* = QUIN-only = BLOCKED
+(nothing cached; `levels_history.csv` has only CL/ES/GC/NQ/SPX). But pulled a full year+ of AAPL
+**NetGEX + 1y percentile** via gateway API → **`data/menthorq/aapl_gex_history.csv`** (365 trading
+days, 2025-01-29→2026-07-14; NetGEX −107M..+813M, flips negative at lows) + today's full level set
+**`data/menthorq/aapl_levels_today.json`** (CR 325 / PS 240 / HVL 277.5 / gex_1-10, today-only).
+
+**ORATS spec LOCKED (the real unlock for historical levels).** 8 datapoints needed per option/day:
+tradeDate, expirDate/dte, strike, stockPrice(spot), **callOpenInterest + putOpenInterest** (the field
+ODX lacked — THE unlock), gamma (ORATS supplies it, no BS recompute), callMidIv/putMidIv (→1D
+expected move). `scripts/orats_pull.py` already targets exactly these (`/datav2/hist/strikes`, $99
+Delayed tier, 20k req/mo). Two UNKNOWNS to calibrate — not pull — against our stored MQ year (251 SPX
+days): (a) which expirations MQ aggregates for CR/PS/HVL, (b) dealer sign convention. Validation loop
+= compute ORATS levels on overlap year → fit until they reproduce MQ → then extend to 2007 + 13 tickers.
+**User is emailing ORATS contact "Sean"** to confirm the 8 fields (esp. OI) go back to 2010+ before buying.
+
+**Built this session (small):** `expected_move_explainer.html` artifact — visual decomposition of the
+87/85/73 claim (published: claude.ai/code/artifact/fc14f55e-4e86-4c51-b41d-a4cb2eb79793). Key insight
+corrected: 85→73 drop is NOT intraday-poke-recover (~1pt at daily scale); it's the cost of requiring
+BOTH walls (one-sided close 85% → two-sided ~72% ≈ their 73%). Source verbatim in
+`data/menthorq/knowledge/lessons/academy_getting_started_lessons_spx_0dte_trader_.txt:7` (SPX, Nov
+2019–Aug 2023). Our test would be OOS on ES 2025-26, NOT a replication.
+
+**⚠️ Gmail connector needs re-auth** (token expired) — couldn't pull the Sean/ORATS thread or create
+the draft. User is sending the ORATS email manually. Re-authorize via claude.ai → Connectors.
+
+**FRESH-SESSION PICK-UP:** (1) run B1–B3 (safe, cheap, real); (2) decide ORATS $99 pending Sean's
+reply — if yes, write the level-compute + calibration script against the stored MQ year FIRST; (3)
+QUIN levels backfills blocked until plan resets/upgrade. RULE still: real fills, chart-audit before
+reporting, treat PF>3 as a bug.
+
+---
+
+## S75B (2026-07-15) — NQ Daily Brief generator BUILT & WORKING (parallel to S75)
+
+Picked priority #1 from S73's list. **`scripts/nq_daily_brief.py`** renders the user's
+brief template with live MQ API data → `data/briefs/NQ1_brief_<date>.md` (+ raw JSON
+snapshot for audit). First real brief generated for 2026-07-15 and every number
+cross-checked against the raw pull. NOT committed — awaiting user OK.
+
+**The template was rescued:** it only existed as a PDF attached in the S73-day2 chat
+("Fetch Net GEX, OI, IV..."). Extracted from the session transcript and saved as
+**`docs/living/nq_daily_brief_template.md`** (structure + language rules + mode
+decision tree + implementation notes).
+
+Key design decisions:
+- **Deterministic, no LLM at runtime** — every number is an API field; sentences are
+  rule-composed and position-aware (e.g. today spot was BELOW the 0DTE put wall, and
+  the brief says so instead of pretending price is pinned inside the band).
+- **Blind Spots printed as explicitly unavailable** (API 404s, QUIN-only) — never filled.
+- **Swing Levels endpoint FOUND: `swing-levels/{sym}`** (trigger/band/direction daily
+  history) — new API surface, works for NQ1!; added to the brief.
+- Gravity level = gamma-weighted mean strike of next expiry (max-OI midpoint rejected —
+  lands on far-OTM lottery strikes).
+
+Today's brief said: Negative GEX (-1.9M intraday, 31st pctile), FOLLOW MOMENTUM,
+MODERATE conviction (Mom 4.0 / Opt 1.0 / Vol 2.0 / Seas 2.6), pin 29,750–30,150 with
+price below the band, biggest week expiry Fri 7/17 (31% of chain).
+
+**NEXT:** (a) run it each morning (cron/loop candidate, ~60s incl. Playwright token
+grab); (b) note 0016 honest rewrite still owed; (c) backlog claims still ~26 untested.
+
+### Data-sourcing for historical gamma levels — RESOLVED (see memory [[options-data-vendors]])
+
+Long vendor hunt this session. Conclusion: to compute gamma levels historically you need
+per-strike **open interest + greeks**, and only options-*analytics* vendors have it
+(OPRA resellers = prices only, no OI).
+- **Massive ($79/$199) and OptionsDX = OUT** — no historical OI at any tier (OptionsDX EOD
+  on disk lacks an OI column entirely; Massive flat files are trades/quotes/aggs only).
+- **ORATS = the pick.** Sean@ORATS confirmed the **$99/mo Delayed API** pulls full
+  2007→present strikes history WITH OI+greeks; ~5,000 requests per ticker, 20,000/mo cap
+  → ~4 tickers full-depth per $99 month. Cheaper + deeper than the $599 bulk. Sample file
+  (`~/Desktop/OptionsDX/ORATS_SMV_Strikes_20240103.csv`) proves fields (`cOi`/`pOi`/`gamma`/IV).
+- Cheaper alts if budget-tight: **ThetaData Value $40/mo** (4yr, incl. 2022) or **FirstRateData**
+  one-time (2010→, own it). All in [[options-data-vendors]].
+- **PLAN (agreed):** SPX first — it's priority #1 AND the methodologically correct place to
+  test if the level-fade edge is even real (S73 lesson). Rule of thumb: 1 request ≈ 1
+  ticker-day. In one $99 month can fit ~SPX full + NDX full + Mag7×~5yr (~18k req). NQ levels
+  = pull **NDX** (not "NQ"). TODO: build budget-aware resumable ORATS strikes puller +
+  GEX/levels computation. NOT purchased yet (user budget).
+
+### Daily MQ harvest EXPANDED (`scripts/mq_harvest.py`) + levels DB & visual viewer
+
+**Harvest** was SPX+ES1! only. Now **13 symbols**: SPX + 5 futures (ES,NQ,RTY,CL,GC as
+`…1!`) + Mag 7 (AAPL,MSFT,NVDA,AMZN,GOOGL,META,TSLA). (YM, 6Y, 6A dropped — YM/6Y 404 on
+the levels API, 6A renders as junk decimals; user said drop all three permanently.) Nightly
+task "MyQuant MQ Harvest" (22:45) auto-runs it → per-symbol levels/matrix/exposure/heatmap +
+`*_ws.json` raw surface. Our own FORWARD history accrual (free), independent of ORATS.
+
+**NEW `scripts/mq_levels_db.py`** — QUIN-free clean-levels capture + **visual database**:
+- CAPTURE: pulls the FULL level set per instrument via the direct `gamma-levels/eod` API
+  (NOT QUIN-gated — works during the QUIN lock) → appends one row per (date,symbol) to
+  `data/menthorq/levels_db.csv`. Stores cr/ps, cr0/ps0, hvl/hvl0, gw0, 1-day range, AND all
+  10 gamma walls (gex_1..10). Also back-ingests old `quin_*.json`. Replaces the locked
+  `mq_quin_harvest.py` as the clean feed.
+- VIEW: renders `data/menthorq/levels_db.html` — one card per instrument = level "ladder"
+  (put/call walls, flip, 0DTE pin band shaded, all gamma walls as ticks, spot dot) + full
+  numeric level list + a day-by-day **history** expander. Screenshot → `levels_db.png`.
+- Run: `.venv/Scripts/python.exe scripts/mq_levels_db.py [--no-pull] [--open]`. ~2min
+  (Playwright token grab dominates; TODO: cache token for fast interactive refresh).
+- **NOT scheduled yet** — CSV only grows when run by hand. TODO: add to the nightly 22:45
+  task so history actually accrues (and QUIN feed is fully retired).
+
+---
+
+## S75 (2026-07-15) — LIVE dashboard + autonomous premarket→intraday→postmortem trading loop (branch `s75-live-dashboard`)
+
+Big build. The options desk is now a systematic, self-running loop: premarket gameplan →
+intraday auto-execution on conditions → postmortem → (weekly review, deferred). **Branch
+`s75-live-dashboard` — committed on the branch, NOT merged to main.** Full agreed design in
+this session's transcript. Everything paper (DUQ159823, 4002).
+
+**1. Dashboard made genuinely live** (`options_dashboard.py` + NEW `options_dashboard_live.py`):
+stdlib `http.server` (no deps) on :8600 serves `/`, `/state.json` (fresh KPIs + live.json +
+`gen` stamp), `/live.json`. Page `poll()`s state.json every 5s → updates KPI tiles + a live
+**SPX/VIX** ticker + levels/regime panel WITHOUT reload; soft-reloads only when trades/journal/
+gameplan change. Fixed: KPI tiles used unstyled `.kpi/.kl/.kv` → now styled `.tile/.tl/.tv`;
+the embedded flip-cards lost their colors/grades because the dashboard stripped the cards'
+`:root` (re-added `--good/--crit/--card` etc.); **dead tabs** = a `const fmt` vs `function fmt`
+JS collision (renamed to `dfv`); the **long-running server caches the imported module** — MUST
+restart it after editing options_dashboard.py or it regenerates stale HTML (this bit twice).
+
+**2. Live feed hardened** (`spot_feed.py`): the delayed SPX **index** quote 322s on paper — it
+was only a seed, so `seed_spot()` now falls back to the underlying tape (real spot = OPRA
+put-call parity, which works). Disabled the ES-basis calc (it hit the same 322 and stalled the
+loop → spot lagged 10–30s; now ticks clean at 5s). Same seed fix applied to `options_sim_daemon.py`
+`rough_spot` (the 15:59 BPS was dying on it). Feed now also **logs the day tape**
+(`underlying_YYYYMMDD.csv`, 1/min) so the postmortem has a full price path.
+
+**3. Premarket gameplan** (`options_gameplan.py`): EOD MenthorQ levels + pre-open spot →
+**price paths A–D** + **condition-driven triggers** (fades fire on touch; premium-sells on
+`first_of{wall-tag OR 10:00 confirm}`; straddle arms only if spot breaks HVL; BPS = 15:59 signal,
+run by the sim daemon). **Deduped: two one-sided spreads, NO condor** (condor = their sum;
+per-side data is finer). Grades are PROJECTED premarket, FINAL at fill. Writes
+`gameplan_YYYYMMDD.json`.
+
+**4. Intraday trigger daemon** (`options_trigger_daemon.py`): watches live.json, auto-executes
+each trigger when its condition materializes — **1 lot, no cap, all grades** (data collection),
+notify after, grade at fill, skip only broken fills (zero/neg credit). Persists fired/expired
+back to the gameplan (resume-safe, never double-fires). `--dry-run` tested; unit-tested crossing/
+legs/grading. **Went LIVE today ~13:07 ET and auto-fired its first trade**: CR0 touch-fade at
+7550 (`auto_20260715_132024`, $6.40 credit, graded **D**).
+
+**5. Lifecycle board** = the Game Plan dashboard tab: tiles flow **💡 Idea → 🟢 Open → ⚪ Closed
+→ ✕ Never triggered**, each with strikes/path/fire-condition/grade/reasoning. Plus a **Positions
+detail** expander under the KPIs and `<details>` expanders across tabs (Setups, Journal, buckets);
+active tab + scroll + open-expanders persist across reloads (sessionStorage) so auto-refresh
+never kicks you off a tab.
+
+**6. Postmortem** (`options_postmortem.py`): plan vs actual — which path materialized, fired
+trades' projected-vs-final grade + P&L, **structural counterfactuals** for unfired ("did the
+condition occur?"). OBSERVE-ONLY. Today: path A (high 7580 tagged CR0); CR0 fade fired B→D.
+
+**7. Scheduling** (`schedule_options_tasks.ps1`, idempotent, DST-aware ET→local): registered
+daily **Gameplan 09:28 ET · Spot Feed 09:26 ET (all-day) · Trigger Daemon 09:33 ET · Postmortem
+16:15 ET** (existing Sim Daemon 15:28-ET-local / Marks 15:35 untouched). ⚠️ Machine LOCAL = ET+6
+(CEST); the PS1 converts, don't hardcode. Prereq each morning: **IB Gateway logged in**.
+
+**⚠️ OPEN / KNOWN ISSUES:**
+- **Fade grading is a category error** — fades graded by "distance OTM" (short sits AT the level
+  by design → always D). Needs fade-specific grading (first-touch + regime + credit richness).
+  User FLAGGED it; agreed it's a bug, not tuning. FIX PENDING (user was deciding fix-now vs
+  let-data-show).
+- **0DTE auto-trades don't auto-settle** — CR0 fade shows open/unsettled at EOD; wire cash
+  settlement at 16:00 for `auto_*`/0DTE.
+- Today's tape has a 10:50→close GAP (morning sim daemon died before the tape-logging fix) →
+  today's postmortem close/hi-lo partial. Fixed forward (feed logs tape).
+- **DEFERRED per agreement:** weekly-review script (proposes rule changes for sign-off; the
+  anti-overfit gate — criteria stay FROZEN daily/intraday) + a historical date-browser for past
+  gameplans. Do after we've watched a full clean day.
+
+**Learning cadence (agreed):** daily postmortem OBSERVES only; weekly review PROPOSES changes for
+user sign-off, gated on out-of-sample. Take ALL grades now to test whether the grading predicts P&L.
+
+**Test paper trade also placed** at user request to prove the notify pipeline: `notify.py` now
+logs to `data/options_log/notifications.log` + is wired into `options_manual_trade.py` open/close
+(was never called before — that's why no toast on prior trades).
+
+---
+
+## S73-OPTIONS DAY 2 (2026-07-15) — gamma-level research: 2 fill bugs, edge RETRACTED, honest reset
+
+**⚠️ READ THIS BEFORE TRUSTING ANY LEVEL-FADE RESULT.** A long, messy session. The
+"multi-market gamma-level fade edge" ($19K/yr, PF 29, 9 survivors) was an ARTIFACT of two
+fill-realism bugs (both user-caught). Corrected, almost nothing survives. Honest state below.
+
+**THE TWO BUGS (memory: [[backtest-fill-realism]]):**
+1. LOOSE FILL — entry detector used a price-scaled ~3pt tolerance (reused from a hold-rate
+   REACTION study) → "filled" shorts at levels price never reached (15 of 19 ES-CR entries
+   topped 0.5–2.8pt BELOW CR). Entry price = the level, applied even when price didn't get there.
+2. GAP/RE-APPROACH — weak 3-bar approach check counted gap-above and re-approach days as
+   from-below touches.
+Fix: VIRGIN first-touch from correct side + real limit fill (price must TRADE at level).
+`scripts/sim_run.py` corrected. Buggy ledgers quarantined:
+`sim_ledger_BUGGED_loosefill.csv`, `_v2_strict_nogapfix.csv`. Current `sim_ledger.csv` = honest.
+
+**HONEST corrected result (1yr, real fills, VIRGIN_FIRST_TOUCH):** only thin survivors —
+ES-CR PF 4.74 n11 (proven trade-by-trade, all Hi>=CR); GC-CR PF 2.1 n13; NQ-PS PF 1.9 n15;
+0DTE fades collapsed to PF ~1.1 (fragile). ES-CR trades are 9/11 POSITIVE gamma (NOT neg —
+the earlier "neg-GEX morning" finding was from the buggy+misaligned-bars era, RETRACTED).
+**Conclusion: 1yr + honest fills is INCONCLUSIVE.** 3pt-approach fade also TESTED & REJECTED
+(`approach_fade.py`: touch beats approach on every market — entering early = worse fill + junk trades).
+
+**Charts to review:** `data/options_sim/es_cr11.html` (11 ES-CR trades, $ breakdown, GEX regime).
+Old `cr_setups_artifact.html` = buggy, disregard.
+
+**NOTE 0016 IS STILL WRONG** — contains the inflated panel. NEEDS rewrite to the honest 3-survivor→
+actually-thin reality. Not done.
+
+**REAL & VALIDATED (unaffected by bugs):** BPS/STMR (notes 0014/0015) — the ONLY validated edge.
+Daemon RUNNING for today's 15:59 ET decision (`daemon_20260715.log`).
+
+**TODAY'S LIVE PAPER TRADE:** 0DTE SPX iron condor (positive-gamma pin play off the walls):
+put spread 7505/7485 (+$50) + call spread 7590/7615 (+$75) = +$125 credit, in trades.parquet
+(`condor_0dte_pin`, paper_20260715_1052 & _1055). Note: manual_trade.py fixed to buy wings first.
+
+**DATA (10yr level plan): ORATS $99/mo "Delayed" tier VERIFIED first-hand at orats.com/data-api**
+— 20k req/mo, Strikes+Near-EOD-History to 2007 WITH OI. Mag7×10yr ≈17.6k req = fits one month.
+`scripts/orats_pull.py` ready. This is the unlock: self-compute levels 10yr, no QUIN. (QUIN quota
+exhausted this session — that's why AAPL/Mag7 level backfills failed; bars are on disk, levels aren't.)
+
+**BUILT THIS SESSION (real, reusable):** direct MQ API client (`mq_api.py`); IB deep bars
+(stocks 15yr 1m verified, `ib_stock_bars.py`); MQ candles puller (6mo all assets); `sim_run.py`
+(metrics ledger); `futures_unadjust.py`/`panel_gauntlet.py`; new standalone `options_dashboard.py`
+(replaces cheap Streamlit — Trades/Journal/Playbook/Results tabs; NOT live-ticking yet);
+`notify.py` (desktop toast + optional email via scratchpad/email_cfg.json); Mag7+NQ/GC/CL/YM
+level backfills; `es_cr11_charts.py`.
+
+**UNTOUCHED BACKLOG (the real next work):** ~30 claims `mq_claims_backlog.md`, 26 ideas
+`gex_ideas_web.md` — only ~4 tested. User's **NQ Daily Brief** template (options-positioning
+briefing) is HIGH-VALUE + buildable: API covers nearly all fields (gamma-levels, matrix,
+net-gex-by-expiration, Q-Score, swing-levels, skew) EXCEPT Blind Spots (API 404 — QUIN only).
+
+**FRESH-SESSION PRIORITIES (pick ONE, do it right, chart-audit before reporting):**
+1. Build the NQ Daily Brief generator (concrete, data-ready, user-requested).
+2. OR buy ORATS $99 → self-compute 10yr levels → re-run gauntlet across regimes (the real validity test).
+3. OR make the dashboard genuinely live (start spot_feed + JS auto-refresh).
+4. Rewrite note 0016 honestly. Test backlog hypotheses (1D-Max close-rate, JFE last-30min momentum).
+RULE going forward: real fills only, audit trades on charts BEFORE reporting, treat PF>3 as a bug.
+
+---
+
+## S74B (2026-07-15) — Brooks Codex on iPhone (private claude.ai artifacts)
+
+Cheat sheet + Trainer published as **private claude.ai artifacts** so the user can use the
+rule/tell tiles on his iPhone (Safari → signed in as samirnyc@gmail.com → Add to Home Screen):
+- Cheat sheet: https://claude.ai/code/artifact/db34ea8f-d6ca-4e87-a06d-2b97727fcd97
+- Trainer (full 6.4 MB, figures embedded): https://claude.ai/code/artifact/e009617b-6b5e-421a-ba2e-7236db4b72ef
+- Gallery on phone: claude.ai/code/artifacts
+
+How it was built: codex copies (`docs/living/brooks_codex/cheatsheet.html` + `app.html`) had
+their outer `<!doctype…<body>` / `</body></html>` skeleton stripped (artifact host adds its
+own) + a `<title>` prepended, then published via the Artifact tool. Both scanned first: no
+external URLs, no embedded secrets (regex hits were base64 image noise). **To refresh after a
+codex rebuild:** redo the strip + republish passing the SAME artifact URLs (`url` param) —
+otherwise new URLs are minted and the home-screen icons go stale.
+
+Known phone caveats (accepted): 📖 `books/*.pdf` page-jump links and ⌂ Home 404 (PC-only
+relative paths); wheel-driven lens/deep-zoom is mouse-only; tile flips/chips/A± work.
+NOT published: codex_portable.html (12.4 MB hub), daily.html (desktop snap layout) — if
+daily/encyclopedia wanted on phone, build a mobile page from the JSON instead.
+Parallel session note: MQ backfill (CL/GC/NQ/YM monthly txts) was running during this
+session — its files + learning_log.md deliberately left uncommitted for that session.
+
+---
+
+## S74 (2026-07-15) — portable Codex script-escape fix + Massive key leak scrubbed
+
+**codex_portable.html was broken** (Trainer/Cheat payloads spilling as raw text): the S73B
+Trainer rebuild put `</script>` inside app.html, which terminated the portable's inline
+`<script>` because `json.dumps` doesn't escape it. Fixed in `brooks_build_portable.py`
+(`js()` helper escapes `</` → `<\/` and `<!--` → `<\!--` on every embedded blob), rebuilt
+(12.4 MB, node-verified: script parses, APP/CHEAT decode intact with injected chrome).
+**Drive sync PENDING** — `G:\My Drive` not mounted / GoogleDriveFS not running on this
+machine; rerun `scripts\brooks_sync_drive.ps1` once Drive for Desktop is up.
+
+**Massive.io API key leaked on GitHub (alert received).** Sub already cancelled. Key
+scrubbed from massive.py + scripts/fetch_massive_spx_contracts.py + fetch_for_nt.py +
+fetch_for_nt_flatfiles.py — all now read `MASSIVE_API_KEY` / `MASSIVE_S3_KEY_ID` env vars.
+Old key stays in git history (accepted; no history rewrite). **User TODO: confirm key is
+deactivated on the Massive dashboard, then close the GitHub alert as Revoked.**
+
+---
+
+## S73B (2026-07-14) — BROOKS CODEX FINALIZED & SHIPPED (parallel session to S73 options)
+
+Codex reviewed end-to-end with the user, polished per his live feedback, **synced to
+`G:\My Drive\Brooks Codex`** (open `index.html` from the synced folder). Second-PC use:
+Drive for Desktop → sync folder → open index.html; or send the single **`codex_portable.html`
+(12.4 MB)** — self-contained Trainer + cheat sheet + 1,467 day texts + encyclopedia.
+
+**Cross-Codex chrome** (`scripts/brooks_font_ctl.py` — idempotent injector, run automatically
+by `brooks_sync_drive.ps1` before every sync, so rebuilds can't lose it): gold **⌂ Home**
+button + **A−/A+ global font zoom** (default 120% "large", localStorage `cxZoom`, shared
+across pages) placed in every page's header; old "← Codex hub" links hidden; Home hides
+itself inside the portable's iframes; index.html gets fonts only; daily.html gets Home only
+(its own S/M/L stays — page zoom breaks its vh snap layout).
+
+**daily.html** (`brooks_build_daily2.py`): default paged view = chart fits screen with the
+FULL "Today's Chart" text in a scrollable strip below (wheel over text scrolls text, over
+chart pages days); focus mode top-aligned with expander, wider (1.65fr chart, 14px gutters);
+**🔎 Lens** (364px, wheel = magnification 1.5–6×, click-to-focus disabled while on).
+
+**Trainer** (`brooks_build_full.py`, app.html = brooks_app_standalone.html copy): header Home;
+**grade filter chips** on Setups; **Library theme chips**; ALL rule/tell/library tiles pop to
+center + flip to Brooks' verbatim words (`zoomFlip`); figure zoom rebuilt explorer-style —
+**full-res file from figures/ (base64 fallback), scrollable full explanation panel, deep zoom
+(wheel/drag/dblclick), opt-in 🔎 lens toggle**; quiz prompts clarified (theme + why-vs-quote
+cue). **MTR setup now has 6 caption-verified Reversals figures** (RVPI_5, RV1_1, RV3_1/2/3,
+RV9_12), embedded.
+
+**📖 page-jump links** on every cited tile/pop-out (trainer + cheatsheet) → `books/*.pdf#page=N`;
+verified printed page == pdf page for Trends/Ranges/RPCBB (assumed for Reversals).
+
+**Cheat sheet** (`brooks_build_study.py` → wrapped copy in codex): every line = pop-out flip
+tile with Brooks' verbatim quote (100% coverage in brooks_golden.json); dark body bg fixed;
+mem-banner contrast fixed. NOTE: codex/cheatsheet.html = brooks_cheatsheet.html + doctype
+wrapper (wrap step is manual in the session log — candidate to script).
+
+**slides.html** (`brooks_build_slides.py`): auto-probes drive letters D–L (+"My Drive"
+variants) for the shared Slides shortcut — second PC works regardless of drive letter.
+
+**KNOWN GAPS / NEXT:**
+- **figure_index.json has explanations for 0/175 Reversals figures** (S71 extraction gap) —
+  extract them so Reversals figure zooms get text panels like the other books.
+- Daily junk-purge pending: user flags 🗑 → "⤓ Export delete list" → `brooks_purge_daily.py`;
+  after purging also mirror daily2/ to Drive (normal sync never deletes remote files).
+- "AI read (not Al)" expander still awaiting go/no-go; password rotation still pending
+  (brookspriceaction.com, user samirnyc).
+- Rebuild order matters: build_full/build_study → copy/wrap into codex → font_ctl → portable
+  → sync (portable embeds the injected app+cheat).
+
+---
+
+## S73 NIGHT 2 ADDENDUM (2026-07-15, overnight) — bar-repair invalidation + CR-0DTE survivor + MQ data machine
+
+**⚠ DATA LANDMINE FIXED: `data/bars/_continuous*.parquet` are BACK-ADJUSTED** (older
+bars shifted by cumulative roll gaps, +465pts at 2024-07). Any bar-vs-absolute-price-level
+study MUST use **`_continuous_unadj.parquet`** (built by `scripts/es_unadjust.py`, per-day
+offsets from Yahoo ES=F actuals in `data/bars/es_offsets.csv`). This invalidated night-1's
+"CR fade edge" (+$1,875 = artifact; RETRACTED) and the 1D-Max fade. User's chart review
+caught it.
+
+**Survivor edge candidate — CR-0DTE first-touch fade (ES):** short the first
+approach-from-below touch of Call Resistance 0DTE, any regime. Repaired data: 60 trades/yr
+spread evenly across 12 months, hold 81.6% (103 touches), **36/36 stop/tgt cells positive,
+OOS last-1/3 still +$29/trade** (IS +$170), ref cell stop8/tgt10: +$123/trade, +$7.4K/yr,
+maxDD −$1K. Next: NQ replication, MQ-definition cross-check, paper-trade it.
+Scripts: `es_cr0_sweep.py`, `mr_es_all_levels.py`. PS-0DTE (+$68, n115) = candidate #2.
+
+**MenthorQ data machine (big):** direct REST client `scripts/mq_api.py` (endpoints QUIN
+reads; gateway Bearer captured live) + `mq_pull_history.py` → 365d GEX+percentile/skew/
+QScore for SPX+ES. QUIN backfills: 12mo daily levels (480 rows `levels_history.csv`) +
+0DTE/1DMinMax (216 rows `levels0_history.csv`) + aggregate OI history (works). Snapshot
+endpoints are today-only (date param ignored — tested 11 names); per-strike OI accrues
+forward via nightly harvest. menthorq.com CTA/Vol models = S3 PNGs by date (2nd login
+captured, `auth_state_mqcom.json` gitignored). Knowledge: ~70 testable claims in
+`docs/living/mq_claims_backlog.md`(pending write), 26 web ideas `gex_ideas_web.md`,
+240 KB pages + 32 academy pages archived; academy LESSON bodies still unscraped
+(`mq_lessons_crawl.py` ran — check output). Learning log started (`learning_log.md`).
+
+**Also:** BPS exit shootout (SMA5 exit IS the edge; TP50/stops/expiry-hold all rejected);
+orders.csv audit trail; scheduled tasks (feed/daemon/marks 9:26-9:35 ET, harvests 16:45/17:00);
+morning_report.html v2. **Morning TODO: BPS leg reconciliation at IB (log-vs-IB drift),
+regenerate setup-chart artifact from repaired bars, BO-PB entry logic with user.**
+
+---
+
+## S73 (2026-07-14, PC) — OPTIONS GOES LIVE: paper pipeline, 8 strategies traded, sim daemon, dashboard, journal
+
+**THE BIG DAY: the whole options forward-test pipeline is LIVE on the IB paper account
+(`DUQ159823`, Gateway port 4002).** Everything below ran for real today.
+
+**IB layer (all verified working):**
+- `scripts/ib_conn.py` — connection layer; PAPER 4002 default, refuses live 4001 without
+  `allow_live=True`, verifies `DU…` account prefix. Per-process clientIds (no collisions).
+- **OPRA realtime NBBO works on paper** (14/14 strikes quoting). `modelGreeks.undPrice` is
+  None on paper (no index sub) → **realtime SPX spot = put-call parity on 0DTE ATM pairs**
+  (`SpotRig` in the daemon; 5-cent agreement across strikes). Delta greeks DO populate.
+- **Orders:** limit must be AT NBBO (IB rejects aggressive limits, err 202) + explicit
+  `tif="DAY"` (else insta-cancel) + BUY wings BEFORE selling (naked-short margin rejects).
+  Round-trip test filled+flat. Fixes live in `scripts/ib_order_test.py::marketable`.
+- **Gateway kickouts:** one session per username — logging into IBKR mobile/portal AS THE
+  PAPER USER kills the Gateway session. IBC auto-relogin = next-session task (user has no 2FA).
+
+**The causal 15:59 BPS forward-sim** (`scripts/options_sim_daemon.py`, S70 plan built+run):
+samples parity spot 1/min (session H/L), decides at 15:59:00 ET (K8/SMA100/SMA5 on SPX —
+**SPX variant, not ES**: Massive died today, IB ES delayed, no NT8 bridge yet), logs the
+16:00–16:15 NBBO tape, executes at NBBO, settles expiries, regenerates the report. First live
+day: no entry (K8 79.5), SMA5 exit CLOSED the test BPS +$155; **first fill-drift datapoint:
+8.40 paid vs 8.00 mid**. ⚠️ FIXED after day 1: fills now gated to ≥16:00 (day-1 exit executed
+15:59:08). SPX daily from Yahoo (Stooq is JS-walled now); VIX daily auto-refreshes.
+
+**8 strategies executed + logged** (`scripts/options_strategy_sampler.py`, one per family;
+unified log `data/options_log/trades.parquet`, §B schema + commentary/grade/max_gain/max_loss/pop):
+Day result **−$920 realized (6 closed)** — but regime-aligned trades won +$1,406 (fly@GW
++$949, condor +$175, PS0 spread +$127, BPS +$155), counter-regime lost (straddle on a pin
+day −$2,324; zero-credit bear call graded F −$3). Grades predicted P&L ordering. Open: weekly
+bull call + put calendar (long leg). ⚠️ Log-vs-IB drift: daemon closed the BPS in the LOG;
+the real paper legs (7435/7385P 7/28) are still open at IB — close/reconcile next session.
+
+**Dashboards:** Streamlit `scripts/options_app.py` (port 8511) — flip-card trade wall
+(`options_build_cards.py`, payoff SVGs, grade chips), professional journal
+(`options_journal.py`: plan/context/execution/lifecycle auto + MFE/MAE in $ and R from the
+5-min marks + editable process-grade review), performance, decisions/fill tapes, market
+data (VIX, MenthorQ calibration, live IB margin via `options_mark.py --watch 300` →
+`marks.csv` + `account.csv`). Static fallback `options_sim_report.py`.
+
+**Research — VIX conditioning REJECTED** (`scripts/mr_bps_regime_wf.py`, 139 trades 2010–23):
+OOS walk-forward filtered PF 2.13 < unfiltered 2.24; "elevated-but-falling IV" prior
+unsupported (n≤13); LOW VIX-rank was the best tercile. **Trade BPS unconditioned.**
+Playbook rewritten with fixed DEFAULT params + test grids for all 8 families + daily
+forward-test protocol (`docs/living/options_playbook.md`).
+
+**MenthorQ daily calibration:** levels hand-pasted each morning → `scratchpad/mq_levels_today.json`
+→ `mq_logger.py` (now paper port). Today: CR 7600 + CR0 7550 = EXACT IB match; PS/HVL
+formulas still wrong (known de619b9 blockers). No scraper — manual paste is the workflow.
+
+**NT8 ES bridge:** `nt8/QSBarExporter.cs` (committed per CLAUDE.md rule) — copied to NT8
+Custom\Indicators; user must compile (F5) + add to 1-min ES chart → streams to
+`data/nt8_es_1m.csv` → app shows it. Unblocks true-ES signals later.
+
+**OPEN / NEXT:**
+- Morning: reconcile BPS legs at IB vs log; run the §D daily loop (MQ levels → gamma trades
+  → daemon → marks). Start daemon before 15:59 ET; keep Gateway logged in.
+- Proposed portfolio risk rules AWAITING USER: max 3 concurrent / $10K total risk / $2.5K
+  per trade / no 0DTE entries after 14:00 ET.
+- IBC auto-login install; event calendar into daemon; VIX3M term structure; ThetaData
+  decision after ~2 weeks of forward samples.
+- User /loop directive: continuous strategy work (backtest, hypotheses, web research).
+
+---
+
+## S72 (2026-07-13→14) — Codex goes big: 1,530 forum days, 6,322 slides, corrected dailies, portable file
+
+All synced to **`G:\My Drive\Brooks Codex`** (`scripts/brooks_sync_drive.ps1` — run after every
+rebuild). Hub `index.html` now has 7 live sections.
+
+**RACING STRIPE — SOLVED.** The tool (brooksbars.php) displays album_picm images CSS-stretched
+to height **780px**; URL params (bars/left/width) live in that space, and `the_left` is the
+**right edge** of bar N (cover-the-future replay). Final method: detect candle wicks inside the
+geometric slots, **Theil-Sen fit** x(n)=a+b·n per image (per-bar snapping is noisy on
+dojis/small bodies — don't use it). Math + verification in `scripts/brooks_build_bbb_view.py`
+docstring. Stripe has an on/off toggle per user request.
+
+**Forum scrape (brookspriceaction.com f=1) — COMPLETE: 2,049 daily threads (2015→2023),
+1,579 with Al's full bar-by-bar text, 1,530 with charts.** The forum has 2,049 daily threads,
+NOT ~949 (S71's number came from a pagination cap in the scraper). Scraper
+(`scripts/brooks_forum_scrape.py`) fixes: (1) sessions die mid-run → SessionBox auto-relogin
+(fired 6×); brooksbars pages have no logout link — validity check is `MyDiv`/`BarNum`;
+(2) only trust a brooksbars link whose pic_id matches the thread's own chart (tutorial-link
+bug; note pic 7214 is ALSO a legit day chart for t=6118 — match, don't blacklist);
+(3) `--resume` + checkpoint every 50. Data: scratchpad `forum_index.json` (old-session
+scratchpad f04593f3...), charts in `brooks_codex/forum_charts/`.
+
+**Official Encyclopedia index** (user-shared xlsx, Oct 2025, Parts 1–16) →
+`docs/living/brooks_encyc_index.json` (**596 sections, abbr↔name**; parser
+`scripts/brooks_parse_encyc_index.py`). This is the tag vocabulary:
+`scripts/brooks_tag_days.py` scans day texts for the codes (generic 1-token codes need ≥3
+hits). User challenged its value — agreed use = tagging only.
+
+**forum.html** (`scripts/brooks_build_forum.py`): 1,530 days, 1,467 bar-by-bar, tags+filter,
+search, per-day fitted stripe, in-place wheel zoom (stripe stays visible), Split/Stack layout
+toggle, ☰ collapsible day list, Aa expand-abbreviations toggle (texts stored compact as
+shorthand + one shared 975-abbr dictionary from the tooltip expansions), monotone bar-number
+guard (scrape sometimes splits "36: 20GBS…" wrong).
+
+**Course slides** (user's shared Drive folder, synced at
+`G:\.shortcut-targets-by-id\1oanmO7XO-brbZThAYjV6t6hZdzRyy9rE\Slides`): **6,322 slides, 465
+topics**, Parts 1–5 (2019 snapshot of the course; the xlsx index is the current 16-part map).
+`slides.html` (`scripts/brooks_build_slides.py`): topic sidebar, 396 topics auto-mapped to
+encyclopedia abbrs, deep zoom, **🎯 Drill mode** (M-*.png = un-annotated twins → read bare
+chart, Reveal annotated). Slides are REFERENCED at the shortcut path (not copied; 📁 button
+overrides base path). ⚠️ Paid course content on a third party's Drive — private study only,
+never redistribute. Inventory artifact: claude.ai/code/artifact/4f0bb85a (drive_slides_report).
+
+**daily.html REBUILT on the corrected S71 re-scrape** (`scripts/brooks_build_daily2.py`,
+1,221 days from `daily2/` + `rescrape_full.json` in old scratchpad): the old AI-filler
+"lessons" + wrong-image set is RETIRED. Verbatim Al only (his blog posts through 2026-07);
+boilerplate paragraphs stripped (BOILER list in script); sections split into expanders —
+**"Today's Chart — date" first/open, "Daily chart" collapsed**; "Trading Update:" line
+dropped. UI per user: large font default (S/M/L selector), bar numbers highlighted gold (NO
+links/underline — user dropped that), click chart toggles focus mode (chart left, only
+commentary scrolls, all other cards hidden), **one chart per screen with scroll-snap paging**,
+card width capped ~148vh centered. **Permanent delete pipeline:** 🗑 → "⤓ Export delete list"
+→ `scripts/brooks_purge_daily.py` (deletes jpgs + permanent exclusion list
+`docs/living/brooks_daily_excluded.json` + rebuild).
+
+**codex_portable.html (10.4 MB, one file)** (`scripts/brooks_build_portable.py`): Trainer
+(app.html) + cheat sheet embedded as srcdoc iframes, all 1,467 day texts + tags + dictionary,
+596-section encyclopedia — for machines without Drive sync. Charts NOT embedded (browser
+memory physics; user accepted folder=master + portable=travel).
+
+**OPEN / TOMORROW:**
+- **User signed off mid-UI-iteration on daily.html** ("we finish tomorrow"): verify snap-paging
+  + centered card + focus-mode behavior match his screenshots; he's picky (rightly) — iterate live.
+- **🤖 "AI read (not Al)" expander proposal AWAITING USER GO/NO-GO** — clearly-badged optional
+  AI bar-by-bar for days Al skips bars. NEVER blend AI text into Al's (that's how S71's daily
+  set went bad). Start with ★-favorited days if approved.
+- **ROTATE brookspriceaction.com password NOW** (user samirnyc; exposed in S71 chat; scrape done
+  so safe to rotate). Also re-export brookstradingcourse cookies eventually.
+- Feature roadmap discussed: Replay Trainer (mask future bars — we have the geometry), base-rate
+  stats from tags (e.g. GD H2 vs GD H2 F frequencies), similar-days by tag overlap, bookmarks/
+  notes, auto-screen daily2 for non-chart junk (offered, not yet approved).
+- 209 old blog posts don't split into sections (different structure) — fine, shown as plain text.
+- Scripts all uncommitted — user must confirm before any commit (standing rule).
+
+---
+
+## S72 PREP (2026-07-13, main PC) — second-PC onboarding + regime v2 kickoff
+
+Next session runs on the **second PC** (GitHub `tdeutschmann-byte`, already a collaborator).
+Everything needed is in **`docs/living/second_pc_setup.md`** — machine setup, data transfer,
+branch, and the regime-v2 design brief. Short version:
+
+- **Data:** `data/bars/` + `data/ticks_continuous/` (3.4 GB, needed for the structure
+  engine's OB tick-order rule) are gitignored → staged on Drive at
+  `G:\My Drive\myquant_transfer\`. Copy into the clone, then smoke-test:
+  `python scripts/brooks_structure_engine.py 2022-02-24` must render the triangle chart.
+- **Branch:** work on `regime/v2-multistate`; merge to main at session end with the
+  handoff update. Pull before editing handoff.md (two machines now).
+- **Task:** wire `brooks_structure_engine.py` → a NEW multi-state regime layer
+  (`BULL / BULL_ATTEMPT / NEUTRAL / BEAR_ATTEMPT / BEAR`) per the S62 invariant. The
+  ATTEMPT states replace the fatally-weak single-close flip. Old regime engine stays
+  banned ([[brooks_regime_engine_broken]]). Regime shading is the goal; setups secondary.
+  Chart overlay + eyeball validation on 2022-02-24 / 04-12 / 01-22 BEFORE any sim.
+
+---
+
+## S71 (2026-07-13) — THE BROOKS CODEX (study system) + daily-chart scraping
+
+Big new direction: built a **"Brooks Codex"** study system from Al Brooks' material. All
+heavy output lives in **`docs/living/brooks_codex/`** (547MB — **gitignored**, deployed to
+**Google Drive `G:\My Drive\Brooks Codex`**; open `index.html` from the *synced* Drive
+folder in a browser, NOT the drive.google.com web viewer).
+
+**⚠️ SECURITY — ROTATE CREDENTIALS:** this session used live logins that are in the chat +
+session scratchpad (`Temp/.../scratchpad/bpa_login.json`, `bpa_cookies.json`,
+`brooks_cookies.json` — NOT committed). Change the **brookspriceaction.com** forum password
+(user `samirnyc`) and re-login; re-export the **brookstradingcourse.com** WP cookies.
+
+**Built & on Drive (working):**
+- **Hub** (`index.html`) + **Setups/Rules trainer** (`app.html`, artifact) + **Figure Explorer**
+  (`explorer.html`, 459 book figures + full text + zoom + favorites + 📖 page-jump to the 4 PDFs)
+  + **cheat-sheet** + the **4 book PDFs**. Also published as claude.ai artifacts.
+- Mined 4 books → **91 canonical setups, 78 tiered rules (Core-15), 1,390 teachings**, 459 figures
+  (classified conservatively, no image/text mismatch). Builders: `scripts/brooks_build_*.py`,
+  `brooks_prep_data.py`, `brooks_render_explorer.py`, `brooks_extract_*.py`. Data in
+  `docs/living/brooks_final.json` + scratchpad JSONs.
+
+**⛔ Mechanical backtest KILLED (no hopium):** `scripts/brooks_bt_*.py` build a regime-FREE
+EMA20 engine (reused fill/structure, banned the broken regime — see
+[[brooks_regime_engine_broken]]). Honest result: **H2/L2 mechanized ≈ breakeven-to-negative
+net of $5 MES RT**; the "A+" is Brooks' *discretionary* grade. Numbers are NOT tradeable;
+trend-continuation-hold setups looked least-bad on full ES only. Detectors mislabel — user
+saw the charts and rejected them. Do not resurrect these numbers.
+
+**Daily charts (data recovered):**
+- **Blog EOD** (`brookstradingcourse.com`, WP REST API + user cookies): re-scraped the 1,500
+  post-ids → **1,221 correct Emini 5-min EOD charts + Brooks' real typed analysis** in
+  `brooks_codex/daily2/` (279 were news/promo, dropped). `scripts/brooks_rescrape.py`. The
+  old zip-sourced daily set had **wrong images** (scrape grabbed featured/decorative image)
+  and **AI-generated filler** commentary — replaced by this.
+- **Forum bar-by-bar** (`brookspriceaction.com` phpBB/IntegraMOD, login `samirnyc`): forum
+  **f=1 "Trading Updates from Al Brooks" = ~949 daily threads 2020-06→2023-03**. Each = the
+  day's chart (`album_picm.php?pic_id=N`) + **full spelled-out bar-by-bar text** via
+  `files/barbybar/brooksbars.php?pic_id=N&...` (abbr `title=` attrs → "H2(Two legged pullback…)").
+  `scripts/brooks_forum_scrape.py` (STOPPED — it was grabbing a *tutorial* brooksbars link
+  (pic_id 7214 = a 2010 example) on anomalous threads; correct method verified on t=6042/pic
+  7160 = right 2022 chart+text). Live tool needs login.
+
+**WIP / UNRESOLVED — interactive bar-by-bar view:** `scratchpad/codex_bbb_view.html` +
+`build_bbb_view.py` (single day 6042). Layout user likes: big chart, hover→ that bar's text
+in a panel under the chart, yellow low-opacity "racing stripe", zoom, live-tool link.
+**BLOCKER: stripe↔bar alignment.** Geometry from the tool: `left=80 width=1131 bars=81`, and
+its JS `the_left = InitLeft + (BarNum-1)*IncAmt`. Calib overlay (`scratchpad/calib.png`) showed
+the geom formula ~close but drifts; current fractions L=0.042 R=0.911 still off per user.
+**User frustrated — needs exact calibration** (measure printed bar-number x-positions, or
+replicate the tool JS exactly) before building the full ~949-day section.
+
+**Ideas doc:** `docs/living/brooks_codex_ideas.md` — centerpiece = **Replay Trainer** (step
+his real days bar-by-bar, predict, reveal his note). Plus interlink everything, shorthand
+mastery, real base-rate stats from 2,000+ labeled days, NT-CSV trade-journal loop.
+
+**Scraped-charts note:** the earlier "1,500 scraped charts" are recoverable in
+`G:\My Drive\MC Setup Research Notes\brooks_study_library.zip` (study cards) but their images
+are the mis-scraped ones + AI walkthroughs — the blog re-scrape supersedes them.
+
+---
+
+## S70 (2026-07-12, PC) — options executability reckoning; IB feed mapped; data added
+
+Long, hard session. Core outcome: **the options backtests we'd been quoting were NOT
+executable, and I (assistant) repeatedly presented them as real — user rightly furious.**
+This block is the honest reset. ⚠️ Re-read the [[feedback-rules]] "haircut with the headline" rule.
+
+**THE EXECUTABILITY PROBLEM (the whole point of the session):**
+- OptionsDX marks are stamped **16:00 ET** (SPX cash close). The old BPS backtest computed the
+  STMR signal on **ES daily (16:15 ET)** and filled options at 16:00 → **15-min look-ahead**
+  (entered the trade before the signal that triggers it exists). That's the concrete bug.
+- **The fix (causal rule):** read the signal at **15:59 ET** (strictly before the 16:00 fill),
+  fill options in the 16:00–16:15 window. Live-executable, look-ahead-free.
+- **Bar-stamp landmine (S31 redux):** daily file = CLOSE-stamped (15:15 CT = 16:15 ET);
+  1-minute bars = OPEN-stamped (08:30–15:14 CT). **15:59 ET price = the OPEN of the 14:59-CT
+  1-min bar** (NOT its close, which is 16:00). Getting this wrong flips the timing by a bar.
+- **Signal timing is mostly stable but NOT identical:** causal-15:59 vs daily-16:15 signal
+  agree 99.4% over 2021–2023, but disagree on **4 of ~31 firing days (~13% of trades)** —
+  both directions (dates: 2021-12-17, 2023-01-19, 2023-08-03, 2023-12-06). So the daily-signal
+  backtest is a DIFFERENT trade set than the executable one — cannot claim its number "holds."
+
+**THE ONLY HONEST OPTIONS NUMBER WE CAN BUILD** (`scripts/mr_bps_causal_1559.py`, committed):
+causal 15:59 signal + OptionsDX 16:00 bid/ask fill + $1.30/contract, buildable ONLY where we
+have 1-min ES **and** options data = **2021-07 → 2023-12, 29 trades**:
+- **29 trades, 90% win, PF 3.78, +$6,509, maxDD −$1,945.**
+- **Do NOT trust this:** n=29 is tiny; that window was a benign premium-selling regime (PF 3.78
+  here vs 1.93 full-sample bid/ask = regime-flattered); and it still carries **unmeasured
+  fill-drift** (16:00 mark vs real 16:00–16:15 fill). It's a "keep testing" light, not validated.
+- **1-min ES only exists from 2021-06 → pre-2021 the causal signal is UNBUILDABLE.** Deep-history
+  options backtests are dead on the data we own. Full stop.
+
+**RECOMMENDATION (assistant's, user undecided):**
+1. **Trade the validated FUTURES STMR signal** (note 0014 — walk-forward, executable near the
+   settle). That's the real edge; paper it on NT8/IB now.
+2. **Options only if the reason is defined-risk / prop-sizing.** If so, **forward-test the causal
+   rule on the OPRA feed (free)** — decide 15:59, log the real 16:00–16:15 fill — for ~2–3 months.
+   **Don't buy ThetaData/ORATS** unless forward-testing proves the wrapper worth it.
+3. **Stop:** historical options sweeps, gamma levels, vendor hunt. Not decision-grade.
+- **OPEN QUESTION FOR USER:** why options at all (defined risk? account size?) — picks the path.
+
+**IB / DATA STATE:**
+- **OPRA (US Options, NP/L1) subscribed — $1.50/mo.** Gives real-time SPX option NBBO.
+- IB real-time **VIX/SPX/ES NOT subscribed** (Error 354); **delayed (15-min) works free** for all
+  three (proved: VIX 15.03, SPX 7575, ES 7626 via delayed-frozen). Don't buy RT index/futures —
+  **user has live ES on NT8** (the real-time underlying, free; ES≈SPX and STMR runs on ES anyway).
+- **Paper account not usable yet** (separate creds; user setting up ~tomorrow). To get RT data in
+  paper: enable "Share market data with paper" in Client Portal (paper is delayed by default).
+- **Massive still dies Jul 14** (kills the futures data pipeline too — see S68).
+- **Added this session:** `data/vix_daily.csv` (CBOE, 1990→2026-07-10), `data/spx_daily.csv`
+  (2010–2023 from OptionsDX UNDERLYING_LAST @16:00), `docs/living/options_playbook.md` (strategy
+  rules + regime framework + trade-log schema), and a published system-map artifact.
+
+**NOTE:** another chat was still open at break time and **will push later** — expect new commits
+on origin/main (likely `brooks_*` files, left untracked here intentionally). Pull before working.
 
 ---
 
@@ -642,8 +1381,10 @@ race the same number, the **earlier-merged** note keeps it; the later one takes 
 | 0012 | OR12 base-rate card — replication & dissection (`0012_or12_baserate_card.md`) | DONE — formation-order skew = proximity artifact; c12-location is the real conditioner (85/15 first break, 2.6:1 day close); IB width = vol nowcast (folklore inverts in ADR units) | s60-overnight (main) |
 | 0013 | RevFT i1R/PB retest trade — grid study + why it fails (`0013_revft_pb_retest.md`) | DONE — 1,148 PB trades (6k) + 2,852 (12k) all ≈flat net of costs; dose-response: cleaner arming → worse retest; rev-bar stop-entry survivorship trap quantified (92.8% vs 44.3%) | s61 (main) |
 | 0014 | Trend-filtered STMR on the colored stochastic (`0014_stmr_stochastic_system.md`) | DONE — POSITIVE. Daily ES, %K8<15 & C>SMA100, MOC entry, exit>SMA5: PF 4.45, 80% win, 16/17 yrs, WFA-validated. Realistic: 1-lot MES +$19k/17y on ~$10k acct (maxDD −$808); unlevered ×2.58 / −4.8% DD. Regime short = bear hedge | s61 (main) |
+| 0015 | BPS/STMR exit-rule study (`0015_bps_exit_rules.md`) | DONE — the SMA5 exit IS the edge (PF 1.74); expiry-hold negative, tastylive TP50 flat, price stops poison; VIX filters rejected OOS (2.13<2.24). Trade unconditioned, exit on signal only | s73 (main) |
+| 0016 | ES × MenthorQ gamma levels + CR-0DTE fade (`0016_es_gamma_levels.md`) | DONE — back-adjusted-bars incident documented (retracts pre-repair CR-fade/1D-Max results); on repaired bars: CR-0DTE first-touch fade +$123/tr, 60/yr, 36/36 sweep cells +, OOS +. CANDIDATE, pending NQ + live paper | s73 (main) |
 
-**NEXT FREE NUMBER: 0014**
+**NEXT FREE NUMBER: 0017**
 
 ### Backlog — candidate notes (claim a number above before starting one)
 **Tier A — ALREADY RESEARCHED in `docs/living/`; convert to a note, do NOT redo:**

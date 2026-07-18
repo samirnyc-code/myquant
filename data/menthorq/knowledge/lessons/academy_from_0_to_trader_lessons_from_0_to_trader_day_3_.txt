@@ -1,0 +1,25 @@
+In this lesson, you’ll see how to build a complete trading roadmap from scratch using MenthorQ’s institutional-grade tools. We follow along as Nick demonstrates his systematic approach to identifying trading opportunities and preparing for live market action.
+
+Nick presents his nine golden rules that form the foundation of his trading process. These include checking the economic calendar daily, using MenthorQ screeners each morning to identify opportunities, and analyzing metrics like open interest changes and volatility. He emphasizes using the call resistance and put support screeners to narrow down the best tickers, then analyzing those selections using QBOT commands in Discord including Swing 5D, levels, netjacks, and matrix.
+
+The critical step involves choosing your area before selecting your strategy. Nick demonstrates how he plots levels on his charts, focusing on areas with multiple confluent levels that suggest high-probability opportunities. He selects tickers like Nvidia, AMD, Adobe, and Disney based on screener data showing negative gamma and proximity to put supports. For each ticker, he identifies specific zones using risk trigger and risk event levels from the Swing 5D model.
+
+Patrick adds the tenth golden rule: trust the levels and trust the process. He demonstrates practical setup tips like enabling extended hours in TradingView to monitor pre-market prices, and suggests using QQQ with its simpler round numbers instead of complex index values. He recommends keeping the Magnificent Seven stocks in your watchlist as market leaders.
+
+Nick’s complete process shows how combining screeners, QBOT commands, and level analysis creates a systematic trading plan. By defining areas of opportunity first, setting daily goals, following your rules, and reviewing every trade, you build a repeatable process that grows your trading skills day by day.
+
+Video Chapters
+00:00 – Introduction and Nvidia earnings discussion
+01:00 – Nick presents his nine golden trading rules
+06:11 – Patrick reveals the tenth rule: trust the levels
+07:27 – Nick’s morning screener analysis process
+12:43 – Viewing extended hours and pre-market data
+16:33 – Setting up QQQ for easier market tracking
+Key Takeaways
+Use MenthorQ screeners every morning to identify opportunities by analyzing netjacks, open interest, call resistance, and put support data
+Choose your area of potential opportunity first using QBOT commands like Swing 5D, levels, and matrix before deciding on strategy
+Follow your golden rules systematically, set daily goals, and review every trade to build consistency
+Trust the levels and trust the process to grow as a trader through disciplined repetition
+ Video Transcription
+Previous
+Complete 

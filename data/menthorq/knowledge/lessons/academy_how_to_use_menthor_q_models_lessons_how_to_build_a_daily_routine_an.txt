@@ -1,0 +1,24 @@
+In this lesson, you’ll discover how to build a systematic trading routine using MenthorQ’s Q Score system to find your edge in today’s competitive trading environment. Rather than relying on the same indicators and strategies everyone else uses, you’ll learn how to leverage institutional-grade quantitative data to identify opportunities that others might miss.
+
+The Q Score is a data-driven rating system that ranges from 0 to 5, where 0 indicates bearish bias and 5 indicates bullish bias. This score analyzes four key factors: options positioning, volatility, momentum, and seasonality. The seasonality score uniquely ranges from minus 5 to plus 5. We provide historical charts for every score, allowing you to backtest and see how scores evolved during major market events, such as when Tesla dropped from over 400 to 225 during the tariff situation from February to April.
+
+Our screeners help you identify specific trading opportunities by filtering assets based on score criteria. The most powerful screeners are the one day option score increase and one day option score decrease, which measure end-of-day changes compared to the previous day. For example, when Netflix showed an option score of 3, it had jumped three points from the day before, signaling a shift from very bearish to neutral positioning. The lesson demonstrates backtesting this approach by examining top screener results from previous Mondays and tracking their performance through week’s end—showing returns like the 14% gain on Tesla from the most recent Monday.
+
+Understanding divergences between different scores provides critical trading insights. When SPX showed a 5 option score but had a 3 momentum score, negative seasonality, and very low volatility, this divergence suggested potential short-term correction risk despite the bullish options positioning. Looking at how multiple scores interact together helps you make more informed trading decisions.
+
+All these tools are accessible through a free MenthorQ account, including our quant strategies section where we’ve built complete trading strategies using the Q Score. We also provide dedicated guides with video explanations for each score component, and you can use the historical date feature on screeners to analyze past performance and refine your trading routine.
+
+Video Chapters
+00:00 – Introduction and session overview
+02:10 – Understanding the Q Score rating system
+04:34 – Historical score analysis and Tesla example
+06:08 – Highest option score screener and interpreting peaks
+09:02 – One day option score increase and decrease screeners
+11:27 – Backtesting screener results with Monday trading routine
+Key Takeaways
+The Q Score rates assets from 0 to 5 based on options, volatility, momentum, and seasonality to help you find your trading edge
+The one day option score increase and decrease screeners identify assets with the biggest positioning shifts, signaling potential opportunities
+Divergences between scores (like high option score but negative seasonality) can reveal potential reversals or corrections
+Historical screener data allows you to backtest strategies by reviewing previous Monday results and tracking weekly performance
+ Video Transcription
+Complete 

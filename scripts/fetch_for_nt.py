@@ -29,7 +29,7 @@ import requests
 import pandas as pd
 
 # ── Config ───────────────────────────────────────────────────────────────────
-API_KEY    = "4aTW6AdSEwulL86_kJnNupQppKxSgwXw"
+API_KEY    = os.environ.get("MASSIVE_API_KEY", "")
 TICKER     = "ESM6"                # Massive.io ticker (confirm exact format with API)
 DATE_START = "2026-06-12"          # narrow range for first test — expand after confirming format
 DATE_END   = "2026-06-13"

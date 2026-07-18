@@ -1,0 +1,26 @@
+In this lesson, Ryan returns to analyze the current volatility landscape and explain how to structure trades when markets are neither extremely expensive nor extremely cheap. He emphasizes the importance of understanding what’s rich and what’s cheap in the options market, particularly focusing on the term structure of volatility on SPX as the first place to assess market conditions.
+
+Ryan explains that short-dated options are currently neutral—neither expensive nor cheap—while long-term implied volatility above 20% appears relatively expensive compared to historical periods. He notes that puts have stayed bid (remained expensive) while calls have gotten much cheaper, especially around the 6,000 level on SPY (specifically the 610-620 calls). This creates specific opportunities for traders willing to take directional positions. The same patterns appear on the Qs (QQQ), making these observations applicable across major indices.
+
+For neutral traders, Ryan discusses a simple covered call strategy using the end of July 565 call on SPY, which collects about 20 bucks in premium and delivers approximately a 14% annualized rate of return. He emphasizes selling options at least 30-40 days out to take advantage of the elevated longer-term volatility. For bullish traders, he recommends taking advantage of how cheap short-dated options have become, particularly in the 10-15 day timeframe, by selling expensive long-dated options to finance short-dated option purchases.
+
+Ryan provides context-specific volatility guidelines: when implied volatility is in the low to mid-teens, consider buying or staying neutral; in the 20s, start selling with tail protection; and in the 30s, 40s, or 50s, aggressively sell volatility. These thresholds should be adjusted higher for Qs and significantly higher for individual stocks. He stresses the importance of marrying your fundamental market view with your options strategy rather than trading volatility signals in isolation.
+
+This lesson applies to traders working with SPY, SPX, and Qs options, with the strategies adaptable to different market conditions. Ryan cautions that current market conditions require careful trading since we’re in a middle zone where volatility could spike again or continue declining. To get started, traders should first examine the term structure to identify where volatility is expensive or cheap, then align trade structures with both their directional view and the volatility landscape.
+
+Video Chapters
+00:00 – Welcome to Volatility Corner
+01:02 – Current term structure and market overview
+03:08 – Trading caution in middle-range volatility
+05:26 – Identifying expensive long-term volatility
+08:49 – Cheap calls versus expensive puts analysis
+10:08 – Covered call strategy for neutral traders
+11:29 – Bullish trade structures using term structure
+Key Takeaways
+The term structure of volatility on SPX is the first place to look when assessing market conditions and identifying trading opportunities
+Long-term implied volatility above 20% is relatively expensive while calls around 610-620 on SPY have gotten cheap compared to puts
+A covered call strategy selling the end of July 565 call offers approximately 14% annualized returns for neutral traders
+Always marry your fundamental market view with volatility signals rather than trading options strategies in isolation
+ Video Transcription
+ Previous Lesson
+Complete 

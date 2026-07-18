@@ -1,0 +1,78 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+CLOSED
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+You
+Give me a table of the NQ Call Resistance, Put Support, and HVL levels for each trading day from 2025-10-01 through 2025-10-31, one row per day, columns: Date, Call Resistance, Put Support, HVL.
+
+I'll retrieve the NQ gamma levels (Call Resistance, Put Support, and High Vol Level) for October 2025.
+
+1 step completed
+
+No data available for NQ in October 2025. The screener database contains end-of-day data only, and the date range you requested (October 1–31, 2025) is in the past relative to today's date (July 15, 2026).
+
+Possible reasons:
+
+Historical data retention: The database may not retain EOD records beyond a certain lookback window (typically 1–2 years for most market data systems)
+NQ ticker format: If you meant the continuous futures contract, the ticker should be NQ1! rather than NQ. Let me retry with that:
+1 step completed
+
+NQ gamma levels for October 2025 — call resistance climbed from $25K to $26.5K by month-end. (Data as of Oct 31, 2025)
+
+Date	Call Resistance	Put Support	HVL
+2025-10-01	$25,000.00	$23,500.00	$24,790.00
+2025-10-02	$25,500.00	$25,080.00	$25,100.00
+2025-10-03	$25,500.00	$23,500.00	$24,490.00
+2025-10-06	$25,250.00	$25,080.00	$25,090.00
+2025-10-07	$25,500.00	$24,700.00	$25,030.00
+2025-10-08	$25,300.00	$25,330.00	$25,170.00
+2025-10-09	$25,400.00	$24,700.00	$25,190.00
+2025-10-10	$24,500.00	$23,750.00	$24,990.00
+2025-10-13	$25,500.00	$24,700.00	$24,890.00
+2025-10-14	$25,000.00	$23,750.00	$24,710.00
+2025-10-15	$25,100.00	$23,750.00	$24,870.00
+2025-10-16	$25,000.00	$24,000.00	$24,870.00
+2025-10-17	$25,000.00	$23,750.00	$24,850.00
+2025-10-20	$25,350.00	$23,750.00	$24,990.00
+2025-10-21	$25,400.00	$23,750.00	$25,230.00
+2025-10-22	$25,000.00	$24,800.00	$24,990.00
+2025-10-23	$25,500.00	$24,800.00	$24,990.00
+2025-10-24	$26,000.00	$23,750.00	$24,990.00
+2025-10-27	$26,000.00	$25,890.00	$24,990.00
+2025-10-28	$26,300.00	$26,180.00	$24,990.00
+2025-10-29	$26,500.00	$24,800.00	$25,390.00
+2025-10-30	$26,500.00	$24,800.00	$25,490.00
+2025-10-31	$26,000.00	$24,800.00	$25,490.00
+
+Notable: Call resistance rose $1.5K (6%) from early to late October, suggesting upside gamma clustering shifted higher. Put support remained relatively stable around $23.75K–$24.8K for most of the month, with a spike to $26.18K on Oct 28.
+
+Keep exploring
+Options
+How can I use the Call Resistance and Put Support levels to plan my intraday trading strategies on the NQ?
+Options
+What is the relationship between HVL (High Vol Level) and the Gamma Levels indicator for understanding market volatility?
+Analyze
+Are there MenthorQ Academy courses that cover interpreting and applying resistance and support levels in options market analysis?
+QUIN may make mistakes. Not financial advice. Verify before investing.
+Intraday summary
+Watchlist
+Net Gex
+Chats

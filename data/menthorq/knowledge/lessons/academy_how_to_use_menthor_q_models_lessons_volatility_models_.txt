@@ -1,0 +1,25 @@
+In this lesson, we explore how volatility serves as the language of the market and why understanding it is critical whether you’re a day trader, swing trader, options trader, or long-term portfolio manager. Volatility reflects what traders are expecting, where there is fear in the market, and where there is bullishness. Learning to read volatility correctly allows you to anticipate shifts before actual price action moves.
+
+We cover several volatility models that help transform raw volatility data into actionable insights. The SKEW model shows whether traders are more fearful of a downside or big upside move, while the volatility smile reveals how the market prices risk. The term structure maps when volatility is expected—today, next week, or next month—helping you understand if the market is waiting for a big event and how they’re pricing volatility at that event. We also introduce the new volatility risk premium (VRP) model that tells you if volatility is cheap or expensive right now compared to the past.
+
+The Skew measures the difference in implied volatility between calls and puts. In most markets, puts are more expensive than calls, reflecting fear of a downside move. However, sometimes the opposite occurs when implied volatility of calls is much higher, signaling strong bullish sentiment. At MenthorQ, we focus on the 25 Delta skew, also known as the risk reversal, because that’s where hedgers and speculators most often trade out of the money protection. You can view the zero DTE skew, one month skew, and three month skew within the dashboard.
+
+Practical examples demonstrate how to interpret skew patterns. For instance, Tesla showed a cold bias environment where implied volatility of calls was much higher than puts, while Netflix displayed a put bias environment. The key is distinguishing whether skew is predictive—building up ahead of reports or market expectations—or reactive, responding to moves that already happened. Understanding how market makers or traders get caught off sides through gamma hedging can reveal what’s driving big outside move days.
+
+The lesson includes real-time chart analysis showing how skew versus price helps identify whether moves have already happened or are anticipated. By understanding positioning and how it drives behavior, you gain insight into market dynamics that go beyond simple price action. These models help you connect the dots across equities, bonds, FX, and crypto to find trading opportunities.
+
+Video Chapters
+00:00 – Introduction to volatility models and why volatility matters
+01:45 – Overview of Skew term structure, volatility smile, and new VRP models
+04:38 – How Skew reveals market positioning and directional bias
+07:20 – Understanding the 25 Delta skew and chart interpretation
+08:21 – Reading bullish versus bearish skew with Tesla and Netflix examples
+09:51 – Distinguishing predictive versus reactive skew patterns
+Key Takeaways
+The Skew model reveals whether traders are paying more for downside protection or upside participation, indicating market positioning and sentiment
+The 25 Delta skew (risk reversal) is where hedgers and speculators most often trade out of the money options
+Cold bias environment means calls are more expensive than puts (bullish), while put bias environment means puts are more expensive (bearish)
+Distinguishing between predictive skew (building before events) and reactive skew (responding to completed moves) is critical for finding trading opportunities
+ Video Transcription
+ Previous Lesson
+Complete 

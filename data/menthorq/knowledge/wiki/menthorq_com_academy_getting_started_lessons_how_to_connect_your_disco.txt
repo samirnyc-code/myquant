@@ -1,0 +1,24 @@
+Welcome to your complete account setup guide for MenthorQ! Whether you’re brand new to the platform or looking to maximize your access to our institutional-grade quantitative trading data, this lesson walks you through everything you need to get organized and start trading with confidence.
+
+The first step is logging into your account by visiting mentorq.com and clicking the login button. Once logged in, you’ll access your account profile section and account dashboard, where you can explore all the tools, models, and data available based on your membership level. The Getting Started section provides essential links including the dashboard demo video, TradingView connection instructions, and access to our From Zero to Trader or Getting Started course.
+
+Our platform offers extensive learning resources through the Academy and Guides sections. The Academy covers everything from basic technical analysis and options trading to advanced strategies and futures trading. You’ll find dedicated courses on using MenthorQ data, including gamma level scores, blind spots levels, and our swing trading model. The Guides section provides detailed documentation on all our products, including core resistance, put support, HIVAL level, one day expected move indicator, and JAX levels.
+
+Connecting your trading applications is straightforward through our trading integration section at the bottom of the dashboard. For TradingView, you’ll need to copy your TradingView user ID from your profile page and paste it into the connection field. Once connected, you’ll see MenthorQ indicators appear in an invite only section within TradingView’s indicators menu. We also support other platforms like NinjaTrader, which requires your machine ID and uses our API key system.
+
+Joining our community is easy through Discord. Simply click the Community button or the “Enter your Discord community” link in the Start section. You’ll see whether your account is connected or not connected, and can authorize the connection with just a few clicks. Our community hosts weekly live events where you can engage with other traders and our team.
+
+Video Chapters
+00:05 – Introduction and login process
+00:50 – Getting Started section overview
+02:08 – Academy courses and learning resources
+03:15 – Guides section and backtesting results
+05:20 – Connecting your Discord account
+06:42 – Trading platform integrations and TradingView setup
+Key Takeaways
+Access your dashboard at mentorq.com to explore all tools, models, and data based on your membership
+The Academy and Guides sections provide comprehensive documentation on all MenthorQ products and trading strategies
+Connect TradingView by entering your user ID from your profile page to access invite-only indicators
+Join the Discord community and attend weekly live events to engage with traders and maximize platform benefits
+ Video Transcription
+Next 
