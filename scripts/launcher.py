@@ -395,6 +395,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send_tour()
             if p == "/library":
                 return self._send_library()
+            if p == "/levels":
+                return self._send_levels()
             if p == "/catalog" or p.startswith("/catalog/"):
                 return self._proxy_catalog(p[len("/catalog"):])
             return self._send("<h1>403</h1><p>read-only viewer: not available</p>",
@@ -409,6 +411,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._send_tour()
         if p == "/library":
             return self._send_library()
+        if p == "/levels":
+            return self._send_levels()
         if p in ("/favicon.svg", "/favicon.ico"):
             return self._send(FAVICON, "image/svg+xml")
         if p == "/status.json":
@@ -463,6 +467,18 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(f.read_text(encoding="utf-8"), "text/html; charset=utf-8")
         return self._send("<h1>library not built</h1><p>run scripts/mzpack_library_build.py "
                           "to generate docs/mzpack_insights/library.html.</p>",
+                          "text/html; charset=utf-8")
+
+    def _send_levels(self):
+        # Gamma Levels slide deck (S75P) — 10 sessions/slide across every session we
+        # have ORATS chains + ES bars for, with MenthorQ and our own CR/PS/HVL overlaid,
+        # plus the SPX daily navigator. Built by scripts/orats_levels_slides.py.
+        # Self-contained HTML (data embedded), static — safe for the remote viewer.
+        f = ROOT / "docs" / "levels_slides" / "levels.html"
+        if f.exists():
+            return self._send(f.read_text(encoding="utf-8"), "text/html; charset=utf-8")
+        return self._send("<h1>slides not built</h1><p>run scripts/orats_levels_slides.py "
+                          "to generate docs/levels_slides/levels.html.</p>",
                           "text/html; charset=utf-8")
 
     def do_POST(self):
@@ -593,6 +609,7 @@ pre{background:var(--chip);border-radius:7px;padding:8px 10px;font-size:11px;ove
   <span style="margin-left:auto"></span>
   <a href="/tour" target="_blank" rel="noopener"><button title="how the options desk automation works — shareable explainer">📖 Desk Tour</button></a>
   <a href="/library" target="_blank" rel="noopener"><button title="MZpack Insights knowledge base — order-flow education organized by topic">📚 MZpack Library</button></a>
+  <a href="/levels" target="_blank" rel="noopener"><button title="Gamma Levels slide deck — 10 sessions per slide, MenthorQ + our CR/PS/HVL over intraday price">📈 Gamma Levels</button></a>
   <button id="reload" title="refresh status now">↻ Reload</button>
   <button class="primary" id="startall">▶ Start all</button>
   <button id="openall" title="open every running dashboard">↗ Open running</button>
