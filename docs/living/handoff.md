@@ -1,6 +1,67 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 18, 2026 (sessions 75N cont. + 75P)
+**Last Updated:** July 18, 2026 (sessions 75N cont. + 75P + 75S)
+
+---
+
+## S75S (2026-07-18) — options desk EXECUTION LAYER rebuilt after the 7/14–7/17 post-mortem (branch `s75-live-dashboard`)
+
+**Week reviewed trade-by-trade against each day's gameplan. Auto-desk P&L was −$7,586
+over 6 trades** (the −$10,727 book total includes 10 manual paper trades — do not
+attribute those to the desk). Win rate 50%, avg win +$203 vs avg loss −$1,543.
+
+### What the review found (each fix verified against the real conditions)
+| problem | cost | fix |
+|---|---|---|
+| PS0 was 3pt BELOW spot and called "support"; fired 09:00 | −$1,513 | level-stack sanity; playbook's ≥40pt rule now enforced |
+| `ps0_fade` fired the SAME 7555 strike 6min later | −$1,713 | no-approach check + exact-strike dedupe |
+| `cr0_fade` rode through its level to expiry | −$1,663 | thesis exit (level acceptance) |
+| straddle held to expiry after regime reclaimed | −$2,471 | thesis exit (regime reclaim) |
+| sold 25pt spread for $0.35 | +$32 | playbook's $0.80 credit minimum enforced |
+| 7/17 straddle trigger dead pre-open → 0 trades | opportunity | gap-aware arming (A7) |
+| 7/17 plan used +gamma text on a −gamma day | — | regime-correct scenario templates |
+| **NO exits existed at all** (17 trades, all `expired`/blank) | root cause | thesis-based exit engine |
+| 🐛 gates ran AFTER fills → untracked live positions | latent | quote → gate → place |
+
+### ⭐ EXITS ARE THESIS-BASED, NOT P&L-BASED
+Driven by the playbook's own §1 exit shootout (142 trades): signal exit PF 1.74 ·
+hold-to-expiry PF 0.95 · **TP-50% PF 0.97 (flat)** · **price stops PF 0.71–0.84 (poison —
+they sell the pre-bounce low)**. A price stop on a level trade fires exactly when the level
+is being TESTED, i.e. when the thesis is working. A position now dies ONLY when:
+its **level is accepted** (spot beyond the SHORT STRIKE, held `level_accept_mins`),
+its **regime flips** (spot crosses HVL), or the **14:45 CT clock**. No targets, no P&L stops.
+
+### Tunable surface is deliberately TWO numbers (both marked ⚠ in code)
+`level_accept_mins=10` (wick filter) and `time_stop=14:45`. Everything else is structural:
+"support" above spot isn't support; the short strike IS the thesis boundary; HVL IS the
+regime boundary; same strike twice is the same trade twice; SPXW strikes are 5pt apart.
+**Grade gate built but set to "F" (OFF) — Samir's call.** The ladder has never been
+validated and on the only 16 trades B is the WORST bucket (mean −$614) while B− is
+positive. Do not enable until a backtest says it predicts anything.
+
+### 🔴 DATA LESSON — ORATS EOD snapshots CANNOT price intraday 0DTE entries
+Claude measured "40pt-OTM 0DTE pays $0.00, so the playbook's ≥40pt + ≥$0.80 rules are
+unsatisfiable" and nearly had the playbook rewritten. **It was an artifact**: `hist/strikes`
+is an END-OF-DAY snapshot, and an option expiring that day is worth ~0 at the close. The
+decay curve proves it — 40pt-OTM put value by dte: **1→$0.00, 2→$9.45, 3→$17.76, 5→$25.17,
+8→$37.29**. Claim RETRACTED. **Nothing in the 0DTE book can be validated from owned data**
+(the playbook already said "forward-only"); the dry run + forward test are the only judges.
+Always run the dte-decay check before drawing intraday conclusions from ORATS.
+
+### Also shipped
+- **Manual CLOSE button on every open trade card** (`options_build_cards.py`) + `POST /close`
+  on the live dashboard. The page NEVER places orders — it queues to
+  `data/options_sim/close_requests.json` and the trigger daemon (sole owner of the IB
+  connection) executes within ~3s. Round-trip tested end-to-end.
+- Fade grade ladders unified (`_fade_grade`) — the plan hardcoded PS0 fades "C" while the
+  fill grader called the identical trade "B".
+- Sizing stays 1 lot (Samir's call).
+
+### NEXT
+1. **DRY RUN the full chain with Gateway up (Sunday/Monday premarket) — not yet done.**
+2. Watch whether ≥40pt + ≥$0.80 is satisfiable at 09:00 CT live; if the desk never fires,
+   that is the answer about the strategy, not a bug.
+3. Calibrate `level_accept_mins` once intraday data exists.
 
 ---
 

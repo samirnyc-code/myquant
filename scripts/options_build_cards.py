@@ -408,6 +408,30 @@ function gauge(t){
     <div class="glabel"><span>max loss ${fmtu(t.maxl)}</span><span>P&L position</span><span>max gain ${fmtu(t.maxg)}</span></div>`;
 }
 
+// Manual close. The page NEVER places an order itself — it posts a request and
+// the trigger daemon (the one process holding the IB connection) executes it on
+// its next poll (~3s). Single writer of orders, by design.
+function closeBtn(t){
+  if(t.state!='OPEN') return '';
+  return `<div style="margin:14px 0 4px">
+    <button id="cb_${t.id}" onclick="reqClose(event,'${t.id}')"
+      style="background:#c0392b;color:#fff;border:0;border-radius:10px;padding:11px 20px;
+             font:600 15px system-ui;cursor:pointer">✕ CLOSE THIS TRADE</button>
+    <span id="cs_${t.id}" class="mut" style="margin-left:12px;font-size:13px"></span></div>`;
+}
+async function reqClose(e,id){
+  e.stopPropagation();
+  const btn=document.getElementById('cb_'+id), st=document.getElementById('cs_'+id);
+  if(!confirm('Close '+id+' at market now?')) return;
+  btn.disabled=true; btn.style.opacity=.5; st.textContent='sending…';
+  try{
+    const r=await fetch('/close',{method:'POST',headers:{'Content-Type':'application/json'},
+                                  body:JSON.stringify({trade_id:id})});
+    const j=await r.json();
+    st.textContent = r.ok ? 'queued — daemon closes it within ~3s' : ('failed: '+(j.error||r.status));
+    if(!r.ok){ btn.disabled=false; btn.style.opacity=1; }
+  }catch(err){ st.textContent='failed: '+err; btn.disabled=false; btn.style.opacity=1; }
+}
 function openCard(i){
   const t=T[i], big=$('#big'), gc=GC[t.grade[0]]||'#777', g=t.greeks;
   big.classList.remove('flip');
@@ -421,6 +445,7 @@ function openCard(i){
      ${expAtSpot(t)}
      ${gauge(t)}
      ${payoffSVG(t, 900, 340, false)}
+     ${closeBtn(t)}
      <div class="hint">click to flip for details ⟲</div></div>
    <div class="face back" style="--gc:${gc}">
      <div class="trow"><div><h2>${t.name} — details</h2>

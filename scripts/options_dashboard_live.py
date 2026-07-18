@@ -19,6 +19,7 @@ Run the dashboard server:
   .venv/Scripts/python.exe scripts/options_dashboard_live.py [--port 8600] [--open]
 """
 import argparse
+import datetime as dt
 import json
 import secrets
 import socket
@@ -150,6 +151,39 @@ class Handler(BaseHTTPRequestHandler):
             self._send(json.dumps(live_json()), "application/json", set_cookie)
         else:
             self.send_error(404)
+
+    def do_POST(self):
+        """POST /close {"trade_id": ...} — queue a manual close.
+
+        This server does NOT place orders. It appends a request to
+        close_requests.json; options_trigger_daemon.py (the single process that
+        owns the IB connection) picks it up on its next poll and executes it.
+        Two processes placing orders on one account is how you get double fills.
+        """
+        u = urllib.parse.urlparse(self.path)
+        ok, _ = self._authed(u.query)
+        if not ok or u.path != "/close":
+            self.send_error(401 if not ok else 404)
+            return
+        try:
+            n = int(self.headers.get("Content-Length", 0))
+            req = json.loads(self.rfile.read(n) or b"{}")
+            tid = str(req.get("trade_id", "")).strip()
+            if not tid:
+                raise ValueError("trade_id required")
+        except Exception as e:
+            self._send(json.dumps({"error": str(e)}), "application/json")
+            return
+        f = SIM / "close_requests.json"
+        try:
+            d = json.loads(f.read_text()) if f.exists() else {"requests": []}
+        except Exception:
+            d = {"requests": []}
+        if not any(r["trade_id"] == tid and not r.get("done") for r in d["requests"]):
+            d["requests"].append({"trade_id": tid, "requested_at": dt.datetime.now().isoformat(),
+                                  "source": "dashboard", "done": False})
+            f.write_text(json.dumps(d, indent=2))
+        self._send(json.dumps({"ok": True, "trade_id": tid, "queued": True}), "application/json")
 
     def log_message(self, *args):  # keep the console quiet
         pass
