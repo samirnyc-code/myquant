@@ -1,6 +1,31 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 18, 2026 (session 75P)
+**Last Updated:** July 18, 2026 (sessions 75N cont. + 75P)
+
+---
+
+## S75N cont. (2026-07-18) — footprint education day: calc-mode bug found, Slide Library in Mission Control (branch `s75-live-dashboard`)
+
+- **⭐ User's NT footprint was on "hybrid" calc mode** — its b1 ladder disagreed wholesale
+  with our validated BidAsk export (chart said +852; truth −2339). **Now switched to
+  BidAsk.** Lesson recorded: any MzPack/NT footprint numbers from before 7/18 screenshots
+  are suspect; our exporter was always BidAsk and is the reference.
+- **Filter semantics settled from the official user guide PDF** (scratchpad/mzpack_guide.pdf):
+  imbalance/absorption **Filter = volume on the WINNING side only** (not level total);
+  imbalance % = (win/lose −1)×100; **Absorption Depth = bounce distance in ticks** (it's
+  literally our S75M rejection-distance knob). `docs/mzpack_footprint_settings.md` corrected.
+  Imbalance filter calibrated on 7/17 5M data: **100 ≈ 1 flag/bar RTH** (150 = strict);
+  ideal drifts intraday ~65–135 (275 in fast tape) → research pipeline must use rolling
+  percentile, not fixed contracts.
+- **🎞 Slide Library** — `docs/slides/<topic>/NN_name.png` (+ sidecar .md captions,
+  render scripts in src/, README has the how-to). `scripts/slides_build.py` → gallery at
+  Mission Control **`/slides`** (header button; keyed remote OK). Seeded: footprint-reading
+  (imbalance-vs-delta explainer; b1 7/17 chronological ladder read) + cvd-divergence-20260713
+  (6 per-setup charts). Divergence artifact also re-laid-out chart→explanation (same URL).
+- **Recording status:** NT8 Market Replay recording ON (checkbox, ~15:56 7/17) — first
+  full DOM day will be Monday; four full replay days from April (ES 06-26) already exist
+  in `db\replay\` for trial Playback. MZpack library (S75N) committed a91d5ce; slide
+  library + settings-doc corrections UNCOMMITTED.
 
 ---
 

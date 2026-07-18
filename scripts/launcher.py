@@ -367,6 +367,12 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _redirect(self, loc):
+        self.send_response(301)
+        self.send_header("Location", loc)
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
     def _is_local(self):
         return self.client_address[0] in ("127.0.0.1", "::1")
 
@@ -397,6 +403,12 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send_library()
             if p == "/levels":
                 return self._send_levels()
+            if p == "/mqmethod":
+                return self._send_mqmethod()
+            if p == "/gexlab":
+                return self._send_gexlab()
+            if p == "/slides" or p.startswith("/slides/"):
+                return self._send_slides(p)
             if p == "/catalog" or p.startswith("/catalog/"):
                 return self._proxy_catalog(p[len("/catalog"):])
             return self._send("<h1>403</h1><p>read-only viewer: not available</p>",
@@ -413,6 +425,12 @@ class Handler(BaseHTTPRequestHandler):
             return self._send_library()
         if p == "/levels":
             return self._send_levels()
+        if p == "/mqmethod":
+            return self._send_mqmethod()
+        if p == "/gexlab":
+            return self._send_gexlab()
+        if p == "/slides" or p.startswith("/slides/"):
+            return self._send_slides(p)
         if p in ("/favicon.svg", "/favicon.ico"):
             return self._send(FAVICON, "image/svg+xml")
         if p == "/status.json":
@@ -458,6 +476,36 @@ class Handler(BaseHTTPRequestHandler):
         return self._send("<h1>tour not found</h1><p>docs/options_desk_tour.html missing.</p>",
                           "text/html; charset=utf-8")
 
+    def _send_slides(self, p):
+        # Slide Library (S75N): /slides -> gallery (docs/slides/index.html, built by
+        # scripts/slides_build.py); /slides/<topic>/<file> -> static file. Read-only,
+        # path-traversal-safe, so the keyed remote viewer may browse it too.
+        base = (ROOT / "docs" / "slides").resolve()
+        # The gallery's links are RELATIVE ("footprint-reading/01_x.png"). Served at
+        # "/slides" with no trailing slash a browser resolves them against "/", so it
+        # asks for "/footprint-reading/01_x.png" and every slide 404s. Redirecting to
+        # "/slides/" makes relative resolution land inside the gallery. Query string is
+        # preserved so the keyed remote viewer keeps its ?key= across the hop.
+        if p == "/slides":
+            from urllib.parse import urlsplit
+            q = urlsplit(self.path).query
+            return self._redirect("/slides/" + (("?" + q) if q else ""))
+        if p == "/slides/":
+            f = base / "index.html"
+            if f.exists():
+                return self._send(f.read_text(encoding="utf-8"), "text/html; charset=utf-8")
+            return self._send("<h1>no gallery yet</h1><p>run scripts/slides_build.py.</p>",
+                              "text/html; charset=utf-8")
+        from urllib.parse import unquote
+        target = (base / unquote(p[len("/slides/"):])).resolve()
+        if base not in target.parents or not target.is_file():
+            return self._send("not found", "text/plain", 404)
+        ctype = {"png": "image/png", "md": "text/plain; charset=utf-8",
+                 "html": "text/html; charset=utf-8", "py": "text/plain; charset=utf-8",
+                 "jpg": "image/jpeg", "svg": "image/svg+xml"}.get(
+            target.suffix.lstrip(".").lower(), "application/octet-stream")
+        return self._send(target.read_bytes(), ctype)
+
     def _send_library(self):
         # MZpack Insights knowledge base (S75N) — built from docs/mzpack_insights/notes/
         # by scripts/mzpack_library_build.py; self-contained HTML, safe for the remote
@@ -467,6 +515,16 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(f.read_text(encoding="utf-8"), "text/html; charset=utf-8")
         return self._send("<h1>library not built</h1><p>run scripts/mzpack_library_build.py "
                           "to generate docs/mzpack_insights/library.html.</p>",
+                          "text/html; charset=utf-8")
+
+    def _send_mqmethod(self):
+        # MenthorQ Method research dossier (S75P) - the trading method extracted from
+        # 7 Academy video transcripts, with every mechanical claim tested against
+        # 1,159 sessions of ES. Static self-contained HTML, safe for the remote viewer.
+        f = ROOT / "docs" / "mq_method" / "index.html"
+        if f.exists():
+            return self._send(f.read_text(encoding="utf-8"), "text/html; charset=utf-8")
+        return self._send("<h1>dossier missing</h1><p>docs/mq_method/index.html not found.</p>",
                           "text/html; charset=utf-8")
 
     def _send_levels(self):
@@ -479,6 +537,19 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(f.read_text(encoding="utf-8"), "text/html; charset=utf-8")
         return self._send("<h1>slides not built</h1><p>run scripts/orats_levels_slides.py "
                           "to generate docs/levels_slides/levels.html.</p>",
+                          "text/html; charset=utf-8")
+
+    def _send_gexlab(self):
+        # S75Q research report — does MenthorQ gamma positioning help the Brooks
+        # method? Regime axis: dead. Level axis: one weak CR result (n=66) plus
+        # three nulls. Pre-reg in docs/living/s75q_prereg.md; rebuild with
+        # scripts/gex_levels_brooks.py then scripts/s75q_report.py.
+        # Self-contained HTML, static — safe for the remote viewer.
+        f = ROOT / "docs" / "gexlab" / "s75q.html"
+        if f.exists():
+            return self._send(f.read_text(encoding="utf-8"), "text/html; charset=utf-8")
+        return self._send("<h1>report not built</h1><p>run scripts/gex_levels_brooks.py "
+                          "then scripts/s75q_report.py to generate docs/gexlab/s75q.html.</p>",
                           "text/html; charset=utf-8")
 
     def do_POST(self):
@@ -609,7 +680,10 @@ pre{background:var(--chip);border-radius:7px;padding:8px 10px;font-size:11px;ove
   <span style="margin-left:auto"></span>
   <a href="/tour" target="_blank" rel="noopener"><button title="how the options desk automation works — shareable explainer">📖 Desk Tour</button></a>
   <a href="/library" target="_blank" rel="noopener"><button title="MZpack Insights knowledge base — order-flow education organized by topic">📚 MZpack Library</button></a>
+  <a href="/slides" target="_blank" rel="noopener"><button title="study-material slides by topic (docs/slides/) — presentation raw material">🎞 Slides</button></a>
   <a href="/levels" target="_blank" rel="noopener"><button title="Gamma Levels slide deck — 10 sessions per slide, MenthorQ + our CR/PS/HVL over intraday price">📈 Gamma Levels</button></a>
+  <a href="/mqmethod" target="_blank" rel="noopener"><button title="MenthorQ Method — the framework extracted from 7 Academy video transcripts, with every claim tested">🔬 MQ Method</button></a>
+  <a href="/gexlab" target="_blank" rel="noopener"><button title="S75Q — do MenthorQ gamma levels help the Brooks method? Pre-registered study: regime axis dead, one weak CR result at n=66">🧪 GEX Lab</button></a>
   <button id="reload" title="refresh status now">↻ Reload</button>
   <button class="primary" id="startall">▶ Start all</button>
   <button id="openall" title="open every running dashboard">↗ Open running</button>

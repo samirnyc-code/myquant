@@ -22,8 +22,8 @@ Filter first, then Absorption %.* If half the chart flags, raise Filter first.
 | ShowAbsorption | ✔ true | A | the whole point |
 | AbsorptionParams (slots #1–#5) | only **#2 Show ✔**; #1/#3/#4/#5 off | R | one calibrated tier; multi-tier later |
 | AbsorptionPercentage (#2) | **100** | A | = 2:1 diagonal minimum |
-| AbsorptionDepth (#2) | **8** | A | 8 ticks = 2 ES pts diagonal window |
-| AbsorptionFilter (#2) | **80** | A | min contracts on absorbing side |
+| AbsorptionDepth (#2) | **8** | A | REJECTION distance: "how far the price bounces from the level of absorption, in ticks" (user guide p.17) — 8 ticks = 2 ES pts; this is the vendor's version of our S75M rejection metric |
+| AbsorptionFilter (#2) | **80** | A | min contracts **on the absorbing side** (guide p.17: "filter by traded volume on absorption side" — NOT level total) |
 | ShowAbsorptionSRZones | ✔ true | A | absorption prints → persistent defended-level zones |
 | AbsorptionSRZonesConsecutiveLevels | 2 | A | their default in the panel |
 | AbsorptionSRZonesVolumeFilter | 0 | A | raise only if zones spam |
@@ -39,8 +39,8 @@ Filter first, then Absorption %.* If half the chart flags, raise Filter first.
 | Parameter | Set to | Src | Why |
 |---|---|---|---|
 | ShowImbalance | ✔ true | C | core diagonal read |
-| ImbalancePercentage | **200** | C | = 3:1 diagonal, the classic footprint convention (100=2:1, 300=4:1); no MZpack ES number published |
-| ImbalanceFilter | **40** | C | min contracts per imbalance cell (~half the absorption filter; single-cell vs zone) |
+| ImbalancePercentage | **200** | C | = 3:1 diagonal (guide formula: (winner/loser − 1)×100, so 100=2:1, 200=3:1, 300=4:1); no MZpack ES number published |
+| ImbalanceFilter | **100** (RTH 5M) / 150 strict | C | min contracts **on the imbalance side** (guide p.17 — NOT level total). Calibrated on 2026-07-17 5M data: median winning side of 3:1 diagonals = 64; 100 → ~1 flag/bar, 150 → ~0.6. Ideal drifts intraday (~65–135 RTH, ~275 in fast tape) — for the research pipeline use a rolling percentile, not a fixed count. Overnight charts need ~20–30 |
 | ImbalanceHighlightValues | ✔ true | V | bold the imbalanced cells |
 | ImbalanceMarker / MarkerType / MarkerPosition | defaults | V | cosmetic |
 | ImbalanceMarkerMinWidthPx | 0 | V | |

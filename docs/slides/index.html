@@ -1,0 +1,62 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Slide Library</title>
+<style>
+:root{--plane:#f9f9f7;--surface:#fff;--ink:#0b0b0b;--ink2:#52514e;--muted:#898781;
+  --border:rgba(11,11,11,.10);--pos:#2a78d6;--chip:#f0efea}
+@media(prefers-color-scheme:dark){:root{--plane:#0d0d0d;--surface:#1f1f1e;--ink:#fff;
+  --ink2:#c3c2b7;--border:rgba(255,255,255,.10);--pos:#3987e5;--chip:#26261f}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--plane);color:var(--ink);
+  font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:14px;line-height:1.5}
+header{position:sticky;top:0;z-index:5;background:var(--surface);
+  border-bottom:1px solid var(--border);padding:12px 20px;display:flex;gap:12px;align-items:center}
+h1{font-size:16px;margin:0;font-weight:650}
+.pill{font-size:12px;padding:3px 10px;border-radius:20px;background:var(--chip);color:var(--muted)}
+.wrap{max-width:1200px;margin:0 auto;padding:16px 20px 90px}
+h2{font-size:15px;margin:30px 0 6px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.cnt{color:var(--muted);font-weight:400;font-size:12px}
+.blurb{color:var(--ink2);font-size:12.5px;margin:4px 0 10px;max-width:75ch}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
+.slide{margin:0;background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:10px;display:flex;flex-direction:column;gap:8px}
+.slide img{width:100%;height:auto;border-radius:6px;display:block}
+.slide a:hover img{outline:2px solid var(--pos)}
+figcaption{font-size:12.5px;color:var(--ink2)}
+figcaption b{color:var(--ink);font-size:13px}
+details{margin-top:3px}summary{cursor:pointer;font-size:11.5px;color:var(--muted)}
+details p{margin:4px 0 0;font-size:12px}
+.hint{color:var(--muted);font-size:12px;margin-left:auto}
+</style></head><body>
+<header><h1>🎞 Slide Library</h1><span class="pill">8 slides · built 2026-07-18 16:32</span>
+<span class="hint">click a slide to open full-size · add slides: docs/slides/README.md</span></header>
+<div class="wrap"><section><h2>Cvd Divergence 20260713 <span class="cnt">6</span></h2><p class="blurb">CVD at the two tests of the extreme — Samir&#x27;s 6 hand-marked setups, 7/13.
+Scoreboard: 2 classic divergences, 3 absorptions, 1 trapped-trader. The
+signature at the fades is effort-vs-result (H5 v2), not momentum divergence.
+NOT validated: no control count yet. Companion artifact: &quot;ES 7/13 — CVD
+Divergence at the 6 Marked Setups&quot;.</p><div class="grid"><figure class="slide">
+<a href="cvd-divergence-20260713/01_0835_fade_absorption.png" target="_blank" rel="noopener"><img src="cvd-divergence-20260713/01_0835_fade_absorption.png" loading="lazy" alt="0835 fade absorption"></a>
+<figcaption><b>0835 fade absorption</b></figcaption>
+</figure><figure class="slide">
+<a href="cvd-divergence-20260713/02_0915_fade_absorption_strongest.png" target="_blank" rel="noopener"><img src="cvd-divergence-20260713/02_0915_fade_absorption_strongest.png" loading="lazy" alt="0915 fade absorption strongest"></a>
+<figcaption><b>0915 fade absorption strongest</b></figcaption>
+</figure><figure class="slide">
+<a href="cvd-divergence-20260713/03_0923_bopb_trapped_shorts.png" target="_blank" rel="noopener"><img src="cvd-divergence-20260713/03_0923_bopb_trapped_shorts.png" loading="lazy" alt="0923 bopb trapped shorts"></a>
+<figcaption><b>0923 bopb trapped shorts</b></figcaption>
+</figure><figure class="slide">
+<a href="cvd-divergence-20260713/04_0955_fade_classic_divergence.png" target="_blank" rel="noopener"><img src="cvd-divergence-20260713/04_0955_fade_classic_divergence.png" loading="lazy" alt="0955 fade classic divergence"></a>
+<figcaption><b>0955 fade classic divergence</b></figcaption>
+</figure><figure class="slide">
+<a href="cvd-divergence-20260713/05_1104_bopb_classic_divergence.png" target="_blank" rel="noopener"><img src="cvd-divergence-20260713/05_1104_bopb_classic_divergence.png" loading="lazy" alt="1104 bopb classic divergence"></a>
+<figcaption><b>1104 bopb classic divergence</b></figcaption>
+</figure><figure class="slide">
+<a href="cvd-divergence-20260713/06_1438_fade_absorption.png" target="_blank" rel="noopener"><img src="cvd-divergence-20260713/06_1438_fade_absorption.png" loading="lazy" alt="1438 fade absorption"></a>
+<figcaption><b>1438 fade absorption</b></figcaption>
+</figure></div></section><section><h2>Footprint Reading <span class="cnt">2</span></h2><div class="grid"><figure class="slide">
+<a href="footprint-reading/01_imbalance_vs_delta.png" target="_blank" rel="noopener"><img src="footprint-reading/01_imbalance_vs_delta.png" loading="lazy" alt="Delta vs diagonal imbalance vs the Filter — one bar, three reads"></a>
+<figcaption><b>Delta vs diagonal imbalance vs the Filter — one bar, three reads</b><details><summary>notes</summary><p>Why the delta-per-level display can&#x27;t show imbalances: delta is vertical (Ask − Bid, same price), imbalance is diagonal (Ask at p vs Bid at p−1 tick, guide formula (win/lose − 1)×100). The Filter tests ONLY the winning side&#x27;s contracts (MZpack user guide p.17) — not the level total. Uses the guide&#x27;s own 71×19 = 274% example.</p></details></figcaption>
+</figure><figure class="slide">
+<a href="footprint-reading/02_b1_rth_20260717_ladder_read.png" target="_blank" rel="noopener"><img src="footprint-reading/02_b1_rth_20260717_ladder_read.png" loading="lazy" alt="b1 RTH 7/17 decoded — a full BidAsk ladder read, in formation order"></a>
+<figcaption><b>b1 RTH 7/17 decoded — a full BidAsk ladder read, in formation order</b><details><summary>notes</summary><p>Real recorded data (delta −2339 on 49.2k). Chronological ①–⑨: open, probe up, rejection at 7488, open run over, the 7484.50 battleground (710×709), the liquidity-vacuum trapdoor, no defense at 7480, weak pushback, one-sided low. Verdict: plain initiative selling — the &quot;no signal&quot; reference bar, opposite character to the 7/13 fade setups. Formation sequence evidenced by MaxDelta +244 printing before MinDelta −2586.</p></details></figcaption>
+</figure></div></section></div>
+</body></html>
