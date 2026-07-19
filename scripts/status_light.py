@@ -24,6 +24,7 @@ import argparse
 import datetime as dt
 import json
 import os
+import socket
 import sys
 import webbrowser
 from pathlib import Path
@@ -182,8 +183,27 @@ def _probe_depth_only() -> dict:
 
 
 # --------------------------------------------------------------------------- ui
+def _single_instance() -> bool:
+    """One widget only. Five copies were running at once on 2026-07-19 (relaunch without a
+    working kill), each polling every 10s - that is what made console windows strobe.
+    A bound socket is the cheapest cross-process lock and dies with the process."""
+    global _LOCK
+    try:
+        _LOCK = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        _LOCK.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 0)
+        _LOCK.bind(("127.0.0.1", 49731))
+        _LOCK.listen(1)
+        return True
+    except OSError:
+        return False
+
+
 def run_widget(corner: str) -> None:
     import tkinter as tk
+
+    if not _single_instance():
+        print("status_light already running - exiting")
+        return
 
     st = _load_state()
     root = tk.Tk()
