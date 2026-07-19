@@ -1,0 +1,32 @@
+ACADEMY
+Subscribe
+ How to Trade Futures
+How to use Fibonacci Levels to create a Trading Roadmap
+
+In this lesson, you’ll learn how to use the Fibonacci retracement tool to create a powerful trading roadmap that works for any trading style, whether you’re a scalper, day trader, swing trader, or position trader. The key insight is that there’s no single “correct” way to draw your roadmap—the market must confirm your levels.
+
+The Fibonacci tool uses specific levels: 0, 1, 0.5, 0.382, and 0.618. The critical advantage of using these three middle levels (0.382, 0.5, 0.618) is that they always represent the same price level regardless of whether you draw from top to bottom or bottom to top. This eliminates the confusion many traders face about which direction to draw their Fibonacci.
+
+When building your roadmap, you look for high correlation and high concentration of levels, then map out your liquidity areas. You can connect any levels that make sense for your trading style—for example, connecting BL7 to call resistance, or BL7 to GEX3, or put support 0dte to BL4. The only rule is that the market must confirm your roadmap by respecting these levels when you look to the left side at historical price action.
+
+For practical application, the instructor demonstrates mapping out the CPI move by connecting call resistance to GEX3, which captured the CPI candle and showed clear market respect on the four-hour timeframe. By checking the four-hour timeframe and looking left at price history, you can verify if your mapped levels are being respected—providing confirmation that your roadmap is valid and can be used for targeting liquidity areas.
+
+The flexibility of this approach means your roadmap doesn’t need to look like anyone else’s. A scalper might focus on smaller areas between closer levels, while a swing trader might map larger zones covering 66 points or more. You can map multiple Fibonacci levels to cover different scenarios—the CPI candle, potential breakout areas, and swing trading zones—all on the same chart.
+
+To get started, access the Fibonacci retracement tool in trading view, configure your settings to use the five key levels mentioned, then practice connecting different concentration areas from the indicator and validating them against historical price action on the four-hour timeframe.
+
+Video Chapters
+00:00 – Introduction to Fibonacci tool and settings
+01:48 – Why price levels stay the same regardless of drawing direction
+04:34 – How to connect levels for your trading style
+06:57 – Mapping the CPI move and market confirmation
+11:07 – Creating multiple roadmap scenarios for different targets
+16:16 – Scalper vs swing trader approach to Fibonacci levels
+Key Takeaways
+The Fibonacci levels 0.382, 0.5, and 0.618 always show the same price levels whether drawn top-to-bottom or bottom-to-top
+Look for high correlation and high concentration of levels, then map liquidity areas—there’s no fixed rule about which levels to connect
+Always validate your roadmap by checking the four-hour timeframe and looking left to see if the market respects your mapped levels
+Your roadmap should match your trading style—scalpers use tighter areas while swing traders map larger zones
+ Video Transcription
+ Previous Lesson
+Next 

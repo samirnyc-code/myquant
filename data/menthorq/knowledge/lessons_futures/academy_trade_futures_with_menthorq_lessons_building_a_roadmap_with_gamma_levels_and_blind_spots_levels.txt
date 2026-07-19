@@ -1,0 +1,29 @@
+ACADEMY
+Subscribe
+ How to Trade Futures
+Building a Roadmap with Gamma Levels and Blind Spots Levels
+
+In this lesson, you’ll learn how to build a comprehensive trading roadmap using gamma levels and blind spots levels to identify key market areas. This approach helped accurately map market movements on CPI day across multiple indices including the NQ, ES, Russell, and Dow Jones.
+
+The roadmap concept is built on three core principles. First, you look for high correlation using blind spots. Second, you identify high concentration areas where gamma levels and blind spots align. Third, you draw your liquid targets, liquid areas, and market shift points based on these concentrations. By combining the blind spots indicator with gamma levels from MenthorQ, you can map out critical liquidity zones that the market respects.
+
+Roadmap Principle Version 1 involves connecting levels with high concentration using the rectangle tool from Trading View. The most important feature is the middle line, which represents the 50% area or equilibrium—similar to Fibonacci levels. You’ll want to enable extended right and extended left settings on the rectangle tool. For example, you might connect Call Resistance to GEX5, or GEX3 to BL4, or GEX1 to Put Support. There’s no strict rule about which levels to connect; you simply look for areas where correlation and concentration align.
+
+To validate your roadmap, switch to the four hour time frame, remove the indicator, and zoom out. You’ll see that the market frequently respects the 50% level, with candle wicks rejecting at this equilibrium point repeatedly. This validation step confirms whether your mapped areas are historically respected by the market. The lesson also introduces Roadmap Principle Version 2, which uses the Fibonacci tool for even more accurate mapping, making the approach easier and more precise.
+
+Video Chapters
+00:00 – Introduction and lesson overview
+01:25 – CPI day roadmap results across indices
+02:55 – The three principles of roadmap concept
+04:10 – Using the rectangle tool and 50% area
+05:17 – Connecting high concentration levels
+06:53 – Validating roadmaps on four hour time frame
+08:30 – Introduction to Roadmap Principle Version 2
+Key Takeaways
+The roadmap combines blind spots for correlation and gamma levels for concentration to identify liquid targets and market shift points
+Use the rectangle tool from Trading View with the middle line enabled to mark the critical 50% equilibrium area
+Validate your roadmap on the four hour time frame to confirm the market historically respects your mapped levels
+Roadmap Principle Version 2 uses Fibonacci tools for enhanced accuracy beyond basic level connections
+ Video Transcription
+Previous
+Next 

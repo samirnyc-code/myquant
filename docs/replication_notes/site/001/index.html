@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Replication Note #001 - checking the 1D Expected Move against 36 years of SPX and VIX data.">
+<meta property="og:title" content="Replication Note #001 - The 1D Expected Move, Checked Against 36 Years">
+<meta property="og:description" content="A plain VIX-based expected-move band tested on 9,201 SPX sessions back to 1990.">
+<meta property="og:type" content="article">
+<title>The 1D Expected Move, Checked Against 36 Years</title>
+<style>
+  :root{
+    --paper:#f6f5f1; --ink:#10141a; --slate:#5d6672; --rule:#d9d7d0;
+    --panel:#ffffff; --band:#c8890f; --hold:#2d6f62; --breach:#a8473c;
+    --mono: ui-monospace,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+    --sans: system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --paper:#0f1216; --ink:#e8e6e0; --slate:#98a1ad; --rule:#262b33;
+           --panel:#161a20; --band:#e0a634; --hold:#4f9d8c; --breach:#c8635a; }
+  }
+  :root[data-theme="dark"]{ --paper:#0f1216; --ink:#e8e6e0; --slate:#98a1ad; --rule:#262b33;
+           --panel:#161a20; --band:#e0a634; --hold:#4f9d8c; --breach:#c8635a; }
+  :root[data-theme="light"]{ --paper:#f6f5f1; --ink:#10141a; --slate:#5d6672; --rule:#d9d7d0;
+           --panel:#ffffff; --band:#c8890f; --hold:#2d6f62; --breach:#a8473c; }
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+       font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:960px;margin:0 auto;padding:56px 24px 96px;
+        display:flex;flex-direction:column;gap:44px}
+  .col{max-width:68ch}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+           color:var(--slate);margin:0 0 10px}
+  .masthead{display:flex;justify-content:space-between;align-items:baseline;gap:16px;
+            padding-bottom:12px;border-bottom:2px solid var(--ink);
+            font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase}
+  .masthead .series{color:var(--ink);font-weight:600}
+  .masthead .series b{color:var(--band);font-weight:700}
+  .masthead .date{color:var(--slate);font-variant-numeric:tabular-nums}
+  h1{font-family:var(--mono);font-weight:700;letter-spacing:-.03em;line-height:1.1;
+     font-size:clamp(30px,5vw,46px);margin:0 0 14px;text-wrap:balance}
+  h2{font-family:var(--mono);font-weight:700;letter-spacing:-.02em;font-size:19px;
+     margin:0 0 12px;text-wrap:balance}
+  p{margin:0 0 14px}
+  .lede{font-size:18px;color:var(--slate)}
+  strong{font-weight:650}
+
+  .face{display:grid;grid-template-columns:1fr auto 1fr;gap:18px;align-items:center;
+        background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:26px 22px}
+  .face .side{text-align:center}
+  .face .big{font-family:var(--mono);font-size:clamp(34px,6vw,52px);font-weight:700;
+             letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
+  .face .cap{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+             color:var(--slate);margin-top:8px}
+  .face .vs{font-family:var(--mono);font-size:12px;color:var(--slate);letter-spacing:.1em}
+  .face .side.ours .big{color:var(--band)}
+
+  .formula{background:var(--panel);border:1px solid var(--rule);border-left:3px solid var(--band);
+           border-radius:3px;padding:20px 22px;font-family:var(--mono);font-size:15px;
+           overflow-x:auto;line-height:1.9}
+  .formula .c{color:var(--slate)}
+
+  table{border-collapse:collapse;width:100%;font-size:14.5px}
+  .scroll{overflow-x:auto}
+  th,td{padding:9px 12px;text-align:right;border-bottom:1px solid var(--rule);
+        font-variant-numeric:tabular-nums;font-family:var(--mono);white-space:nowrap}
+  th:first-child,td:first-child{text-align:left}
+  thead th{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--slate);
+           font-weight:600;border-bottom:1px solid var(--ink)}
+  tbody tr:last-child td{border-bottom:none}
+  .match{color:var(--hold);font-weight:700}
+
+  .chart{display:flex;flex-direction:column;gap:9px;margin-top:6px}
+  .row{display:grid;grid-template-columns:76px 1fr 62px;gap:12px;align-items:center;font-size:13.5px}
+  .row .lab{font-family:var(--mono);color:var(--slate);text-align:right}
+  .row .val{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:650}
+  .track{position:relative;height:26px;background:color-mix(in srgb,var(--slate) 12%,transparent);
+         border-radius:2px;overflow:hidden}
+  .fill{position:absolute;inset:0 auto 0 0;border-radius:2px}
+  .fill.inside{background:var(--band)}
+  .fill.unt{background:var(--hold)}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--slate);
+          font-family:var(--mono);margin-bottom:4px}
+  .key{display:inline-flex;align-items:center;gap:6px}
+  .key i{width:14px;height:10px;border-radius:2px;display:inline-block}
+
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
+  .card{background:var(--panel);border:1px solid var(--rule);border-radius:3px;padding:16px 18px}
+  .card .n{font-family:var(--mono);font-size:26px;font-weight:700;letter-spacing:-.02em;
+           font-variant-numeric:tabular-nums}
+  .card .l{font-size:12.5px;color:var(--slate);margin-top:4px}
+
+  .warn{background:color-mix(in srgb,var(--breach) 9%,transparent);
+        border:1px solid color-mix(in srgb,var(--breach) 38%,transparent);
+        border-radius:3px;padding:18px 20px}
+  .warn h2{color:var(--breach)}
+
+  .quote{background:var(--panel);border:1px solid var(--rule);border-left:3px solid var(--slate);
+         border-radius:3px;padding:20px 22px;margin-top:20px}
+  .quote p{font-size:15px;margin:0}
+  .quote em{color:var(--ink)}
+  .src{font-family:var(--mono);font-size:11.5px;letter-spacing:.02em;margin-top:6px !important}
+  .src a{color:var(--band);text-decoration:none;
+         border-bottom:1px solid color-mix(in srgb,var(--band) 45%,transparent)}
+  .src a:hover,.src a:focus-visible{border-bottom-color:var(--band)}
+  a:focus-visible{outline:2px solid var(--band);outline-offset:2px}
+
+  ul{margin:0;padding-left:20px} li{margin-bottom:7px}
+  hr{border:none;border-top:1px solid var(--rule);margin:0}
+  .foot{font-size:13px;color:var(--slate)}
+  code{font-family:var(--mono);font-size:.92em;background:color-mix(in srgb,var(--slate) 13%,transparent);
+       padding:1px 5px;border-radius:3px}
+</style>
+
+<script data-goatcounter="https://samironthemove.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="masthead">
+    <span class="series">Replication Note <b>#001</b></span>
+    <span class="date">18 July 2026</span>
+  </div>
+
+  <header class="col">
+    <p class="eyebrow">SPX &middot; 1-day expected move &middot; a weekend curiosity</p>
+    <h1>I checked the 1D Expected Move against 36 years</h1>
+    <p class="lede">MenthorQ publishes hit-rates for their 1D Expected Move indicator, measured
+      over four years of SPX. I got curious whether those numbers hold up over a much longer
+      history, so I built a simple expected-move band from free data and ran it on
+      <strong>9,201 sessions back to 1990</strong> &mdash; through 2000, 2008 and 2020.</p>
+    <p class="lede">Short version: their published numbers hold up well.</p>
+  </header>
+
+  <section class="col">
+    <div class="face">
+      <div class="side ours">
+        <div class="big">74.1%</div>
+        <div class="cap">my test &middot; 36 yrs &middot; n=9,201</div>
+      </div>
+      <div class="vs">VS</div>
+      <div class="side">
+        <div class="big">73%</div>
+        <div class="cap">MenthorQ published &middot; 4 yrs</div>
+      </div>
+    </div>
+    <p class="foot" style="margin-top:10px">Share of sessions where the next close finished
+      inside the band.</p>
+  </section>
+
+  <section class="col">
+    <p class="eyebrow">The published claims I was testing</p>
+    <h2>All three land close</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Measure</th><th>MenthorQ</th><th>My test (36 yrs)</th></tr></thead>
+        <tbody>
+          <tr><td>Close above 1D Min</td><td>87%</td><td class="match">87.6%</td></tr>
+          <tr><td>Close below 1D Max</td><td>85%</td><td class="match">86.5%</td></tr>
+          <tr><td>Close inside the band</td><td>73%</td><td class="match">74.1%</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="quote">
+      <p><em>&ldquo;Our backtesting shows the one day minimum had an 87% success rate and the one
+        day max hit 85% over four years of SPX history, with prices staying within range 73% of
+        the time. This means you must actively manage Iron Condors rather than letting them
+        sit.&rdquo;</em></p>
+      <p class="src"><a href="https://menthorq.com/academy/how-to-trade-volatility/lessons/menthorq-models-for-spx-0dtes-trading/" target="_blank" rel="noopener">Academy &rarr; How to Trade Volatility &rarr; MenthorQ Models for SPX 0DTEs Trading</a></p>
+
+      <p style="margin-top:16px"><em>&ldquo;Our backtesting data from four years of history on SPX
+        demonstrates the indicator&rsquo;s reliability. The price closed above the one day minimum
+        on 87% of trading days and below the one day max on 85% of days.&rdquo;</em></p>
+      <p class="src"><a href="https://menthorq.com/academy/gamma-levels/lessons/trade-the-1-day-expected-move-indicator/" target="_blank" rel="noopener">Academy &rarr; Gamma Levels &rarr; Trade the 1 Day Expected Move Indicator</a></p>
+
+      <p style="margin-top:16px"><em>&ldquo;&hellip;87% success rate for the minimum and 85% for the
+        maximum based on four years of backtesting, though the price only stayed within range 73%
+        of the time&mdash;proving you must actively manage your structures.&rdquo;</em></p>
+      <p class="src"><a href="https://menthorq.com/academy/getting-started/lessons/spx-0dte-trader/" target="_blank" rel="noopener">Academy &rarr; Getting Started &rarr; SPX 0DTE Trader</a></p>
+    </div>
+  </section>
+
+  <section class="col">
+    <p class="eyebrow">What I did</p>
+    <h2>The band</h2>
+    <div class="formula">
+<span class="c"># textbook 1-day expected move</span>
+move   = spot &times; (VIX / 100) &times; &radic;(1/365)
+d1_max = spot + move
+d1_min = spot &minus; move
+    </div>
+    <p style="margin-top:14px">That&rsquo;s the standard &ldquo;VIX implies a daily move of
+      VIX/&radic;365&rdquo; convention &mdash; <strong>no fitted parameters, nothing tuned.</strong>
+      Yesterday&rsquo;s SPX close and yesterday&rsquo;s VIX close, both known before the session
+      opens. Everything is close-to-close on SPX, no lookahead.</p>
+    <p><strong>Data:</strong> SPX daily OHLC and VIX daily close, both from Yahoo Finance
+      (<code>^GSPC</code> and <code>^VIX</code>), 1990-01-02 to 2026-07-17. Free and reproducible
+      by anyone. VIX only starts in 1990, which is the only reason the test doesn&rsquo;t go
+      back further.</p>
+    <p class="foot">To be clear about what this is and isn&rsquo;t: I have no idea how MenthorQ
+      actually calculates their levels, and I&rsquo;m not claiming this is their method. I just
+      built a plain vanilla expected-move band and checked whether the published hit-rates were
+      in the right ballpark over a longer history. They were.</p>
+  </section>
+
+  <section>
+    <div class="col">
+      <p class="eyebrow">The bit I found most interesting</p>
+      <h2>The band gets less reliable as VIX rises</h2>
+      <p>The hit-rate isn&rsquo;t constant. A vol-scaled band is well behaved in calm markets and
+        gets noticeably leakier when volatility is already elevated &mdash; which is exactly when
+        you&rsquo;re most likely to be leaning on it.</p>
+    </div>
+    <div class="legend" style="margin-top:16px">
+      <span class="key"><i style="background:var(--band)"></i>close finished inside</span>
+      <span class="key"><i style="background:var(--hold)"></i>band never touched all day</span>
+    </div>
+    <div class="chart">
+      <div class="row"><span class="lab">VIX &lt;13</span><span class="track"><span class="fill inside" style="width:79.9%"></span></span><span class="val">79.9%</span></div>
+      <div class="row"><span class="lab"></span><span class="track"><span class="fill unt" style="width:64.5%"></span></span><span class="val">64.5%</span></div>
+      <div class="row"><span class="lab">13&ndash;17</span><span class="track"><span class="fill inside" style="width:77.2%"></span></span><span class="val">77.2%</span></div>
+      <div class="row"><span class="lab"></span><span class="track"><span class="fill unt" style="width:61.5%"></span></span><span class="val">61.5%</span></div>
+      <div class="row"><span class="lab">17&ndash;22</span><span class="track"><span class="fill inside" style="width:72.7%"></span></span><span class="val">72.7%</span></div>
+      <div class="row"><span class="lab"></span><span class="track"><span class="fill unt" style="width:56.0%"></span></span><span class="val">56.0%</span></div>
+      <div class="row"><span class="lab">22&ndash;30</span><span class="track"><span class="fill inside" style="width:70.4%"></span></span><span class="val">70.4%</span></div>
+      <div class="row"><span class="lab"></span><span class="track"><span class="fill unt" style="width:51.5%"></span></span><span class="val">51.5%</span></div>
+      <div class="row"><span class="lab">30+</span><span class="track"><span class="fill inside" style="width:63.5%"></span></span><span class="val">63.5%</span></div>
+      <div class="row"><span class="lab"></span><span class="track"><span class="fill unt" style="width:43.1%"></span></span><span class="val">43.1%</span></div>
+    </div>
+    <p class="foot col" style="margin-top:14px">n = 1,590 / 2,671 / 2,372 / 1,834 / 734 sessions
+      per bucket. From VIX&nbsp;&lt;13 to VIX&nbsp;30+, close-inside falls about 16 points and
+      never-touched falls about 21.</p>
+  </section>
+
+  <section>
+    <div class="col">
+      <p class="eyebrow">Stability</p>
+      <h2>It holds up across eras</h2>
+    </div>
+    <div class="chart" style="margin-top:14px">
+      <div class="row"><span class="lab">1990&ndash;99</span><span class="track"><span class="fill inside" style="width:78.3%"></span></span><span class="val">78.3%</span></div>
+      <div class="row"><span class="lab">2000&ndash;07</span><span class="track"><span class="fill inside" style="width:70.4%"></span></span><span class="val">70.4%</span></div>
+      <div class="row"><span class="lab">2008&ndash;12</span><span class="track"><span class="fill inside" style="width:71.6%"></span></span><span class="val">71.6%</span></div>
+      <div class="row"><span class="lab">2013&ndash;19</span><span class="track"><span class="fill inside" style="width:74.7%"></span></span><span class="val">74.7%</span></div>
+      <div class="row"><span class="lab">2020&ndash;26</span><span class="track"><span class="fill inside" style="width:73.3%"></span></span><span class="val">73.3%</span></div>
+    </div>
+    <p class="foot col" style="margin-top:14px">Close-inside rate by era. Weakest stretch
+      2000&ndash;07 at 70.4%, strongest the low-vol 1990s at 78.3% &mdash; roughly an 8-point
+      spread across 36 years that included three crashes.</p>
+  </section>
+
+  <section class="col">
+    <p class="eyebrow">Why I think this is worth knowing</p>
+    <h2>The gap between 74% and 57%</h2>
+    <div class="cards" style="margin-bottom:16px">
+      <div class="card"><div class="n">74.1%</div><div class="l">next close finished inside the band</div></div>
+      <div class="card"><div class="n">57.1%</div><div class="l">band never touched at all</div></div>
+      <div class="card"><div class="n">17.0%</div><div class="l">traded through a side, then came back</div></div>
+    </div>
+    <p>Across 36 years the next close lands inside the band about <strong>74%</strong> of the
+      time &mdash; but the band is <strong>never touched at all</strong> on only
+      <strong>57%</strong> of sessions. That 17-point gap is sessions that traded through a
+      boundary and recovered.</p>
+    <p>If you sell premium at these boundaries &mdash; condors, strangles, 0DTE spreads &mdash;
+      that gap seems like the whole ballgame. Held to settlement, the number that matters is 74%.
+      But if you have a stop, a delta band, or just a limited appetite for sitting underwater,
+      you get tested a lot more often than the headline suggests. And in a VIX 30+ tape,
+      &ldquo;never touched&rdquo; drops to 43% &mdash; you should probably expect to be tested
+      most days.</p>
+    <p>Which is really just an independent confirmation of what MenthorQ already tells people in
+      that first quote: <em>actively manage them, don&rsquo;t let them sit.</em></p>
+  </section>
+
+  <section class="col">
+    <div class="warn">
+      <h2>A high win rate is not an edge</h2>
+      <p style="margin-bottom:0">Worth stating plainly, because a 74% number invites exactly the
+        wrong conclusion. I backtested a naive 0DTE iron condor with the shorts parked at the band
+        edges. It won <strong>77%</strong> of the time and <strong>still lost money</strong>
+        (profit factor 0.85) &mdash; the losers were bigger than the win rate could pay for. A band
+        that contains price 74% of the time is a description of volatility, not a strategy.</p>
+    </div>
+  </section>
+
+  <section class="col">
+    <p class="eyebrow">Caveats</p>
+    <h2>What this is and isn&rsquo;t</h2>
+    <ul>
+      <li>A roughly 1&sigma; vol band containing price ~74% of the time is close to what theory
+        predicts anyway. The interesting part to me was the <em>stability</em> across 36 years,
+        not the level itself.</li>
+      <li>I don&rsquo;t know MenthorQ&rsquo;s actual methodology and I&rsquo;m not guessing at it.
+        This is just a vanilla band compared against their public numbers.</li>
+      <li>SPX only, close-to-close, daily bars. Intraday path is not modelled beyond the
+        touched/not-touched split.</li>
+      <li>Yahoo Finance is a free, unofficial source. Index history does get revised occasionally.</li>
+      <li><strong>None of this is financial advice.</strong> I did it for fun on a weekend because
+        I wanted to know if the numbers held up. Do your own work before risking money on any of it.</li>
+    </ul>
+  </section>
+
+  <hr class="col">
+  <p class="foot col">Independent analysis, shared in good faith. I&rsquo;d genuinely welcome
+    corrections &mdash; if I&rsquo;ve made an error in the method or the data, please tell me.</p>
+
+</div>
+
+</body>
+</html>

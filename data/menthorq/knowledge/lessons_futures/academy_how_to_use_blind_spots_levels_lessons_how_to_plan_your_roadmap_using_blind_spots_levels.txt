@@ -1,0 +1,31 @@
+ACADEMY
+Subscribe
+ Blind Spots Levels
+How to plan your Roadmap using Blind Spots Levels
+
+In this lesson, you’ll learn how to effectively use blind spots levels to plan your trading roadmap and identify high-probability trade setups. This practical session demonstrates how to map key zones on your charts and utilize them for both scalping and intraday swing trading strategies.
+
+When working with blind spots, start by looking to the left side of your chart to review historical price action. Zoom out on your timeframe (such as the 15-minute chart) to get a clear overview of where blind spots are matching significant support and resistance areas. Map out these zones by connecting levels that show strong historical reactions. Once you’ve identified major areas on the higher timeframe, zoom back into the 5-minute chart to see more detailed structure and plan your specific entries.
+
+The trading approach depends on your style: scalpers can trade from level to level within the range, while intraday swing traders can trade the full range from top to bottom or focus on breakout opportunities. Always seek second or third confirmations before entering trades. Key confirmations include checking the wicks for strength in either direction, monitoring the Magnificent Seven stocks (like Tesla and Nvidia) in extended hours, and observing NQ levels including call resistance, high volume zero DTE, one day max, and one day min.
+
+For short trading setups, look for areas where price has previously rejected multiple times—three touches at a resistance zone can indicate a strong level. Combine this with call resistance and high volume zero DTE areas, which represent the shift from positive to negative gamma. Your target could be high volatility put support zero DTE levels. However, always consider market timing and conditions, such as holiday schedules or upcoming economic releases like FOMC papers, as these factors significantly impact volatility and trade viability.
+
+Additional tools mentioned include using Fibonacci retracements to identify re-entry points after large candles or when you’re in a ranging market. The instructor emphasizes that while he learns options concepts to understand market dynamics better, he remains primarily a futures trader who uses options data like zero DTE levels for confirmation rather than trading options directly.
+
+Video Chapters
+00:14 – How to draw blind spots zones on your chart
+02:03 – Mapping support and resistance areas using blind spots
+03:17 – Identifying critical points for short trades
+05:53 – Using second confirmations and NQ levels
+10:43 – Checking wicks and Magnificent Seven for confirmation
+12:13 – Using Fibonacci for entry points
+13:39 – Understanding options data as a futures trader
+Key Takeaways
+Always look to the left side of your chart to identify where blind spots match historical support and resistance areas
+Use second and third confirmations including wicks, Magnificent Seven movement, and NQ levels before entering trades
+High volume zero DTE and call resistance areas represent gamma shifts that can signal potential reversal zones
+Adapt your strategy to market conditions—patience is critical, and you don’t have to take every setup
+ Video Transcription
+ Previous Lesson
+Next 

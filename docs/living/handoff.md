@@ -1,6 +1,101 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 19, 2026 (sessions 75Q + 75R + Setup Marker rebuild + 75T)
+**Last Updated:** July 19, 2026 (sessions 75Q + 75R + Setup Marker rebuild + 75T + 75U)
+
+---
+
+## S75U (2026-07-18/19) — MenthorQ's ACTUAL method extracted from video; 1D indicator replaced with free VIX; ATR rule tested (branch `s75-live-dashboard`)
+
+**⚠️ This session ran in PARALLEL with S75Q/S75R and substantially duplicated S75Q's
+gamma testing.** Read S75Q first — it is the pre-registered version. S75U reached the same
+conclusions independently (levels show no edge in 8 framings), which is corroboration, not
+new ground. What IS new is below.
+
+### ⭐ The method, from source — 7 video transcripts (Samir supplied them)
+The two most operational Academy lessons are **video-only** — their web pages are 129/145
+bytes of nav + "Subscribe", which is why every scrape (incl. `mq_lessons_crawl.py`) missed
+the actual rules. Full dossier at **`/mqmethod`** (`docs/mq_method/index.html`).
+
+- **Levels are explicitly NOT support/resistance and NOT entries.** *"this is not support
+  and not resistance… see it more as what the levels mean in different conditions."*
+  They are **take-profit targets** (*"call resistance is a take profit target"*),
+  stop-protection anchors (*"that's my team"*), and state classifiers.
+- **Three states, three playbooks:** below CR (it's your target) / pinning around it
+  (ATR scalping) / breaking it (momentum, entering **with the volume**).
+- **Framework = Timing → Location → Setup.** Three yeses or no trade.
+- **Hit rate is explicitly the WRONG metric.** *"if you have a win rate of 90, 80, 70%…
+  you're doing the wrong job… sometimes you have only a win rate of 30%."* Every earlier
+  test (ours and S75Q's) optimised hit-rate, which is not what they claim.
+- **Requires a discretionary "second confirmation"** that they deliberately leave undefined
+  → **the method is not mechanically falsifiable as taught.**
+- **Their presenters contradict each other on first-vs-second touch** (one says the first
+  touch is strongest; Patrick says skip it). There is no single house rule to test.
+- Scraped bodies now in `data/menthorq/knowledge/lessons_futures/` (35 lessons).
+
+### ⭐ 1D Expected Move REPLACED with free data — no MenthorQ needed
+Reverse-engineered from their published levels, then de-calibrated to the plain convention:
+```
+move = spot × (VIX/100) × √(1/365)      # zero fitted parameters
+```
+Tested on **9,201 sessions back to 1990** (Yahoo `^GSPC` + `^VIX`, now in
+`data/spx_daily_full.csv` / `data/vix_daily_full.csv`):
+
+| | ours, 36 yrs | MQ published, 4 yrs |
+|---|---|---|
+| close above 1D Min | **87.6%** | 87% |
+| close below 1D Max | **86.5%** | 85% |
+| close inside band | **74.1%** | 73% |
+
+Stable across every era (69–78%). **Published as Replication Note #001** —
+`docs/replication_notes/` + Netlify (`replication-notes-spx-1d-extremes.netlify.app`),
+GoatCounter analytics wired. Deliberately contains no MQ API data, only their public
+Academy quotes.
+
+### The ATR(14) rule — the only hard number in ~7 hours of video
+`zone = level ± 1 × ATR(14) on 5-min bars` (full ATR **each side**, verified against
+Patrick's own arithmetic: level 75, ATR 6 → 69/81). Median ES ATR **5.43 pts** (p5 2.4,
+p95 13.4), so the band is typically ~11 pts wide.
+
+- **Real statistic:** clearing the band → **2.47× more follow-through** (3.47 vs 1.40 ATR,
+  **9.1 se**, n=142/70).
+- **Not gamma-specific:** random levels give +2.32 vs gamma's +2.81 → advantage **+0.50 ATR
+  (~1.4 se)**, not significant.
+- **Not tradeable:** entered at the clearing close, stop back at the level, costs 1.25 ES
+  pts → **every** target (1/1.5/2/3R) has **negative expectancy** at gamma AND random levels.
+- Slide deck: `claude.ai/code/artifact/360343a8-dfa7-4970-94b7-7d0b774c2265` (8 slides,
+  6 real ES examples spanning ATR 2.5–12.3).
+- Second-touch fade at the zone edge (Samir's front-running hypothesis) also tested:
+  touch 1 = **−0.44R**, touch 2 = **−0.03R** — a genuine +0.4R improvement, but the random
+  control moves identically, so it is the **selection effect**, not gamma.
+
+### 🔴 BUG FOUND — ATR is gap-inflated on RTH-only data (affects `mark_setups.py`)
+Our ES bars are RTH-only (08:30–15:10 CT), so the first bar of a session computes true
+range against the **previous session's close** and swallows the overnight gap:
+**median gap 15.0 pts; bar-0 TR 20.25 vs 5.00 on other bars = 4× inflated.** One such bar
+in a 14-bar mean widens the ATR ~20% for the first 14 bars of every session.
+- Fixed in `orats_levels_slides.py` (bar 0 uses High−Low).
+- **`scripts/mark_setups.py` still has it** — line ~144 carries `prev_close` across the
+  session boundary. Its CR/PS ATR zones are too wide early in the session. **Not fixed.**
+
+### Tooling
+- **`/levels`** — new **ATR zone toggle**: `CR ± 1 ATR`, gap-adjusted, on all 1,158 sessions.
+- **`/mqmethod`** — new route + 🔬 header button (dossier).
+- **`/flowlab`** — was capped at `max-width:1040px` so the ladder was unreadable on a wide
+  monitor; now `min(1760px,97vw)` **plus a persistent zoom control** (A−/A+/fit, +/−/0 keys,
+  localStorage). It is an artifact-style fragment with no `</body>` — append, don't inject.
+- **Gotcha:** a 404 on a route that exists in `launcher.py` means the **running process is
+  stale**. HTML files are read from disk per request (edits appear on reload), but route
+  changes need a restart. The watchdog also restarts the launcher, so the live process is
+  not always the one you started.
+
+### Not done / open
+- **Blind spots are untested and we have no data for them** — the traders in these
+  transcripts are mostly trading BL1/BL3, not gamma levels. Possibly the wrong instrument
+  was tested all along, by both S75Q and S75U.
+- Everything tested uses **EOD** levels; MQ say intraday is the better version and are
+  building it for futures.
+- Untested from the transcripts: confluence-with-blind-spots, level migration as a
+  directional signal, the impulse→correction→impulse pattern.
 
 ---
 

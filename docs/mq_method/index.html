@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MenthorQ Method — Extracted &amp; Tested</title>
+<meta name="description" content="Complete extraction of MenthorQ's trading method from 7 video transcripts, with every claim tested against 1,159 sessions of ES data.">
+<style>
+:root{
+  --paper:#f7f7f5; --ink:#14171c; --ink2:#4a5058; --muted:#878d95; --rule:#dcdbd6;
+  --panel:#fff; --panel2:#f1f1ee;
+  --ok:#0f7a4a; --no:#c0392b; --warn:#c98500; --info:#2a78d6; --vio:#4a3aa7;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root{
+  --paper:#101317; --ink:#e7e6e2; --ink2:#a8afb8; --muted:#7b828b; --rule:#272b31;
+  --panel:#171b20; --panel2:#1d2228;
+  --ok:#4caf80; --no:#e66767; --warn:#d9a038; --info:#3987e5; --vio:#9085e9;}}
+:root[data-theme=dark]{
+  --paper:#101317; --ink:#e7e6e2; --ink2:#a8afb8; --muted:#7b828b; --rule:#272b31;
+  --panel:#171b20; --panel2:#1d2228;
+  --ok:#4caf80; --no:#e66767; --warn:#d9a038; --info:#3987e5; --vio:#9085e9;}
+:root[data-theme=light]{
+  --paper:#f7f7f5; --ink:#14171c; --ink2:#4a5058; --muted:#878d95; --rule:#dcdbd6;
+  --panel:#fff; --panel2:#f1f1ee;
+  --ok:#0f7a4a; --no:#c0392b; --warn:#c98500; --info:#2a78d6; --vio:#4a3aa7;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.62 var(--sans);
+ -webkit-font-smoothing:antialiased}
+.wrap{max-width:1120px;margin:0 auto;padding:40px 22px 90px;display:flex;flex-direction:column;gap:34px}
+.col{max-width:76ch}
+.mast{display:flex;justify-content:space-between;align-items:baseline;gap:14px;flex-wrap:wrap;
+ padding-bottom:11px;border-bottom:2px solid var(--ink);font-family:var(--mono);font-size:11.5px;
+ letter-spacing:.13em;text-transform:uppercase}
+.mast b{color:var(--info)}
+.mast .r{color:var(--muted)}
+h1{font-family:var(--mono);font-size:clamp(25px,3.6vw,36px);letter-spacing:-.03em;line-height:1.12;
+ margin:20px 0 12px;font-weight:700;text-wrap:balance}
+h2{font-family:var(--mono);font-size:17px;letter-spacing:-.02em;margin:0 0 12px;font-weight:700}
+h3{font-size:14px;margin:20px 0 7px;font-weight:670;color:var(--ink)}
+p{margin:0 0 12px}
+.lede{font-size:16.5px;color:var(--ink2)}
+.eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;
+ color:var(--muted);margin:0 0 9px}
+section{scroll-margin-top:20px}
+.sec-rule{border:none;border-top:1px solid var(--rule);margin:0}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+th,td{padding:8px 11px;text-align:left;border-bottom:1px solid var(--rule);vertical-align:top}
+td.n,th.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+thead th{font-family:var(--mono);font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;
+ color:var(--muted);font-weight:600;border-bottom:1px solid var(--ink)}
+tbody tr:last-child td{border-bottom:none}
+.pill{display:inline-block;font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;
+ padding:2px 7px;border-radius:3px;white-space:nowrap;font-weight:600}
+.p-ok{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}
+.p-no{background:color-mix(in srgb,var(--no) 15%,transparent);color:var(--no)}
+.p-warn{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+.p-info{background:color-mix(in srgb,var(--info) 15%,transparent);color:var(--info)}
+blockquote{margin:0 0 12px;padding:13px 16px;background:var(--panel);border:1px solid var(--rule);
+ border-left:3px solid var(--info);border-radius:3px;font-size:14px}
+blockquote p:last-child{margin-bottom:0}
+blockquote cite{display:block;margin-top:7px;font-family:var(--mono);font-size:10.5px;
+ color:var(--muted);font-style:normal;letter-spacing:.03em}
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:15px 17px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:13px}
+.rule-box{background:var(--panel2);border:1px solid var(--rule);border-radius:3px;
+ padding:13px 15px;font-family:var(--mono);font-size:12.5px;line-height:1.75;overflow-x:auto}
+.rule-box b{color:var(--info)}
+ul{margin:0 0 12px;padding-left:19px}li{margin-bottom:6px}
+.toc{display:flex;flex-wrap:wrap;gap:7px}
+.toc a{font-family:var(--mono);font-size:11.5px;text-decoration:none;color:var(--ink2);
+ border:1px solid var(--rule);border-radius:20px;padding:4px 11px;background:var(--panel)}
+.toc a:hover{border-color:var(--info);color:var(--info)}
+a{color:var(--info)}
+a:focus-visible{outline:2px solid var(--info);outline-offset:2px}
+.foot{font-size:12.5px;color:var(--muted)}
+code{font-family:var(--mono);font-size:.9em;background:var(--panel2);padding:1px 5px;border-radius:3px}
+.warnbox{background:color-mix(in srgb,var(--warn) 9%,transparent);
+ border:1px solid color-mix(in srgb,var(--warn) 40%,transparent);border-radius:4px;padding:15px 17px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="mast">
+    <span>Research Dossier — <b>MenthorQ Method</b></span>
+    <span class="r">18 July 2026 · internal</span>
+  </div>
+
+  <header class="col">
+    <h1>The MenthorQ method, extracted from source — and tested</h1>
+    <p class="lede">Seven video transcripts from the MenthorQ Academy, transcribed and mined for
+      every operational rule they state. Then every mechanically testable claim run against
+      <strong>1,159 sessions</strong> of 5-minute ES data (2021-06 → 2026-07) with our own
+      ORATS-computed gamma levels and MenthorQ's published levels.</p>
+    <p class="lede">Two things this document separates carefully: <strong>what they teach</strong>
+      (Part 1, quoted verbatim) and <strong>what survived testing</strong> (Part 2). They are
+      not the same, and the gap is the interesting part.</p>
+  </header>
+
+  <nav class="toc">
+    <a href="#tldr">TL;DR</a><a href="#sources">Sources</a><a href="#framework">The framework</a>
+    <a href="#levels">What levels are</a><a href="#rules">Mechanical rules</a>
+    <a href="#contra">Contradictions</a><a href="#tests">Test results</a>
+    <a href="#validated">What validated</a><a href="#gaps">Gaps</a>
+  </nav>
+
+  <hr class="sec-rule">
+
+  <!-- ================= TLDR ================= -->
+  <section id="tldr" class="col">
+    <p class="eyebrow">The short version</p>
+    <h2>TL;DR</h2>
+    <ul>
+      <li><strong>Their levels are explicitly NOT support/resistance and NOT entry signals.</strong>
+        They are take-profit targets, stop-placement anchors, and state classifiers. Every test
+        that treats them as barriers is testing something they tell you not to do.</li>
+      <li><strong>Their generic market craft validates well.</strong> The 1D expected-move band,
+        the coin-flip open, the ATR breakout filter, volume confirmation — all measurable and real.</li>
+      <li><strong>The gamma levels themselves showed no edge in eight independent framings.</strong>
+        Including the two framings they actually advocate (expectancy over hit-rate; levels as
+        targets not entries).</li>
+      <li><strong>The method is not fully falsifiable as taught.</strong> It requires a
+        discretionary "second confirmation" that they explicitly leave to the individual trader.</li>
+      <li><strong>Major caveat:</strong> their traders in these transcripts are mostly trading
+        <em>blind spots</em>, a separate product we have no data for. We may be testing the wrong tool.</li>
+    </ul>
+  </section>
+
+  <hr class="sec-rule">
+
+  <!-- ================= SOURCES ================= -->
+  <section id="sources" class="col">
+    <p class="eyebrow">Provenance</p>
+    <h2>Sources</h2>
+    <p>Seven transcripts, all from MenthorQ Academy / live sessions. The two most operationally
+      specific lessons are <strong>video-only</strong> — their web pages contain nothing but a title
+      and a "Subscribe" prompt (129 and 145 bytes), which is why automated scraping of the written
+      corpus missed the actual rules entirely.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Transcript</th><th>Contains</th></tr></thead>
+        <tbody>
+          <tr><td>Strategies to trade levels: first &amp; second touch and Pinning Effect</td>
+              <td>The ATR pinning rule; touch-decay claim</td></tr>
+          <tr><td>How to trade during high volatile days when levels get broken</td>
+              <td>Levels ≠ S/R; three states; take-profit framing; level chaining</td></tr>
+          <tr><td>Timing (Timing/Location/Setup course)</td>
+              <td>Open is a coin flip; 10:00 ET; equilibrium stand-aside</td></tr>
+          <tr><td>Timing — worked example</td>
+              <td>Wait for the reaction; volume confirmation</td></tr>
+          <tr><td>Location</td>
+              <td>Protection concept; R:R; "no man's land"; impulse→correction→impulse</td></tr>
+          <tr><td>Location — level taxonomy (Fabio)</td>
+              <td>Primary vs 0DTE vs GEX 1–10; confluence; level migration</td></tr>
+          <tr><td>Setup</td>
+              <td>Wick rejection + confirmation candle; <strong>win-rate philosophy</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <hr class="sec-rule">
+
+  <!-- ================= FRAMEWORK ================= -->
+  <section id="framework" class="col">
+    <p class="eyebrow">Part 1 — as taught</p>
+    <h2>The framework: Timing → Location → Setup</h2>
+    <p>The organising structure of the whole method. Three questions, all must be yes.</p>
+    <div class="rule-box">
+<b>1. TIMING</b>   — is this the right time to be in the market?
+<b>2. LOCATION</b> — is this a place with good risk:reward AND protection?
+<b>3. SETUP</b>    — is my setup present, with a second confirmation?
+
+if any answer is NO -> no trade.
+    </div>
+    <blockquote><p>"ask the three questions on any freaking trade you take… if you get three yeses,
+      take it. If you get only one single no, don't do it."</p><cite>Setup</cite></blockquote>
+
+    <h3>Timing</h3>
+    <ul>
+      <li>The first 30 minutes after 9:30 ET is <em>"like flipping a coin"</em> — high volatility,
+        no directional information.</li>
+      <li>The <strong>10:00 ET hourly close</strong> is said to give "much clearer direction".</li>
+      <li>Stand aside when price sits at the <strong>50% equilibrium</strong> of a consolidation
+        range with strong levels above <em>and</em> below — "supply and demand is equal".</li>
+      <li>Beware session overlaps (London/Europe close) — mechanical volatility.</li>
+      <li>Map volatility events first: economic calendar, earnings, expirations.</li>
+      <li>Timing can itself <em>be</em> the second confirmation.</li>
+    </ul>
+
+    <h3>Location</h3>
+    <blockquote><p>"Location means where we can place our trades with a good risk and reward…
+      where the risk is first and where the reward is, and <strong>both</strong> have to make sense.
+      If one makes sense and the other you're clueless — you shouldn't be entering."</p><cite>Location</cite></blockquote>
+    <p>The distinctive idea here is <strong>protection</strong> — you want a level just beyond your
+      stop, so the level defends the position:</p>
+    <blockquote><p>"I have the one day max and call resistance protection… <strong>that's my team</strong>.
+      If we go below this then I know my short is no more valid… if you have no strong areas where
+      you can place your stop loss, then your stop loss is worthless."</p><cite>Location</cite></blockquote>
+    <p>Target R:R quoted as <strong>2:1 to 4:1</strong>. Look for extremes — highs and lows — not
+      the middle.</p>
+
+    <h3>Setup</h3>
+    <blockquote><p>"I see a strong rejection off a reaction zone… you get that <strong>hard wick
+      rejection</strong> and then I'll <strong>wait for a confirmation candle</strong>. The next
+      candle's formed, I jump in."</p><cite>Setup — Dean</cite></blockquote>
+    <p>Setups are either a <strong>rejection</strong> at a reaction zone or a <strong>break</strong>
+      of one. Always plus a personal second confirmation (order flow, wicks, VIX, moving averages —
+      explicitly left to the individual).</p>
+  </section>
+
+  <hr class="sec-rule">
+
+  <!-- ================= WHAT LEVELS ARE ================= -->
+  <section id="levels" class="col">
+    <p class="eyebrow">Part 1 — as taught</p>
+    <h2>What the levels actually are (and are not)</h2>
+    <blockquote><p>"if you plot the levels on your chart — <strong>this is not support and not
+      resistance</strong> and it's not labels on your chart… see it more as what the levels mean in
+      <strong>different conditions</strong>."</p><cite>High volatile days</cite></blockquote>
+
+    <h3>Three states, three playbooks</h3>
+    <div class="rule-box">
+price <b>BELOW</b> call resistance  -> CR is your upside take-profit target
+price <b>PINNING</b> around it      -> range/ATR scalping
+price <b>BREAKING</b> it            -> momentum long, entering <b>with the volume</b>
+    </div>
+
+    <h3>They are take-profit targets, not entries</h3>
+    <blockquote><p>"how I personally interpret call resistance and put support… for me
+      <strong>call resistance is a take profit target</strong> and put support is a take profit
+      target. If I'm short, put support is a take profit target for the downside."</p>
+      <cite>High volatile days — Patrick</cite></blockquote>
+
+    <h3>Level chaining</h3>
+    <blockquote><p>"if we have call resistance below one day max, <strong>the next target is one
+      day max</strong>… if you break through one day max then you will very often see call
+      resistance there."</p><cite>High volatile days</cite></blockquote>
+
+    <h3>Taxonomy</h3>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Tier</th><th>Levels</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Primary</strong></td><td>Call Resistance, Put Support, HVL, 1D Max, 1D Min</td>
+              <td>The core set</td></tr>
+          <tr><td><strong>0DTE</strong></td><td>CR 0DTE, PS 0DTE, Gamma Wall</td>
+              <td>"increasingly relevant"; move very fast in the final hour</td></tr>
+          <tr><td><strong>GEX 1–10</strong></td><td>ranked by net gamma exposure</td>
+              <td>GEX 1 = highest; 10 still relevant, just smaller</td></tr>
+          <tr><td><strong>Blind spots</strong></td><td>BL 1..n</td>
+              <td>Overlap/correlation zones — <em>separate product, we have no data</em></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><strong>HVL is singled out</strong> as the regime boundary: it "dictates the shift between
+      positive and negative gamma", changing how market makers hedge.</p>
+
+    <h3>Confluence is their most-repeated claim</h3>
+    <blockquote><p>"combining gamma levels, blind spots — <strong>when there is overlapping
+      areas</strong>, especially around the primary level — those become really important reaction
+      zones."</p><cite>Location — Fabio</cite></blockquote>
+    <blockquote><p>"we're not looking into price areas, we're looking more into <strong>zones, in
+      clusters</strong>."</p><cite>First &amp; second touch</cite></blockquote>
+  </section>
+
+  <hr class="sec-rule">
+
+  <!-- ================= MECHANICAL RULES ================= -->
+  <section id="rules" class="col">
+    <p class="eyebrow">Part 1 — as taught</p>
+    <h2>The mechanical rules</h2>
+    <p>Everything in the transcripts that is specified precisely enough to code.</p>
+
+    <h3>1. The pinning zone — the only fully-specified number in the corpus</h3>
+    <blockquote><p>"use the <strong>five minute ATR… length 14</strong>… pinning effect on SPX at
+      the moment based on the ATR <strong>six points plus and minus</strong>… for GEX 3 I always
+      respect one ATR — <strong>no matter what gamma level, ATR is respected</strong>."</p>
+      <cite>First &amp; second touch</cite></blockquote>
+    <div class="rule-box">
+pinning zone = level <b>± 1 × ATR(14)</b> on 5-minute bars
+breakout is only actionable once price clears the zone
+    </div>
+    <blockquote><p>"If you want to take a breakout trade on call resistance, <strong>wait for the
+      ATR</strong>. It's much more likely that you have follow-through if you're above the pinning
+      area."</p><cite>First &amp; second touch</cite></blockquote>
+
+    <h3>2. Risk philosophy — hit rate is explicitly the wrong metric</h3>
+    <blockquote><p>"if you have a win rate from 90%, 80%, 70%… they will say to you
+      <strong>you're doing the wrong job</strong>… cut your losses very fast. Sometimes you have
+      only a <strong>win rate of 30%</strong>… you need only a few times but sometimes a very huge
+      trade."</p><cite>Setup — Patrick</cite></blockquote>
+    <blockquote><p>"the goal is really <strong>not to make you all the successful trade</strong>
+      but to help you manage the risk. If you take away the bad trades, then suddenly the good ones
+      become more relevant."</p><cite>Setup — Fabio</cite></blockquote>
+
+    <h3>3. Wait for the reaction</h3>
+    <blockquote><p>"don't be adding shorts right away just because price comes up to a strong area.
+      <strong>Wait for the reaction.</strong> Let price, let <strong>volume</strong> enter that
+      level, then make a decision."</p><cite>Timing — Steve</cite></blockquote>
+
+    <h3>4. Impulse → correction → second impulse</h3>
+    <div class="rule-box">
+1. strong impulse move
+2. technical correction (must stay <b>below the 50% range</b> — a lower high)
+3. enter on the <b>second impulse</b> in the trend direction
+    </div>
+
+    <h3>5. Level migration as a directional signal</h3>
+    <blockquote><p>"if the core resistance is <strong>shifting above</strong> versus the previous
+      day, there has been an increase in option activity at higher strikes — that becomes a
+      <strong>bullish force</strong>."</p><cite>Location — Fabio</cite></blockquote>
+  </section>
+
+  <hr class="sec-rule">
+
+  <!-- ================= CONTRADICTIONS ================= -->
+  <section id="contra" class="col">
+    <p class="eyebrow">Part 1 — as taught</p>
+    <h2>Contradictions in their own material</h2>
+    <p>Worth knowing, because they mean there is no single "house rule" to test.</p>
+    <div class="grid2">
+      <div class="card">
+        <p><span class="pill p-warn">CONFLICT</span></p>
+        <h3 style="margin-top:8px">First touch vs second touch</h3>
+        <p style="font-size:13.5px"><strong>Presenter A:</strong> "the <strong>first touch is the
+          strongest</strong> one… with every next touch it becomes weaker and weaker."</p>
+        <p style="font-size:13.5px;margin-bottom:0"><strong>Patrick:</strong> "he <strong>avoided
+          trading the first test</strong>… waits for the second or third test."</p>
+      </div>
+      <div class="card">
+        <p><span class="pill p-warn">UNFALSIFIABLE</span></p>
+        <h3 style="margin-top:8px">The second confirmation</h3>
+        <p style="font-size:13.5px;margin-bottom:0">Required on every trade, but explicitly
+          undefined: "Every trader is individual. Someone likes the order flow, someone likes the
+          wicks, someone likes SMAs… <strong>there's no right, there's no wrong.</strong>" A method
+          with a free discretionary term cannot be mechanically falsified.</p>
+      </div>
+    </div>
+  </section>
+
+  <hr class="sec-rule">
+
+  <!-- ================= TESTS ================= -->
+  <section id="tests">
+    <div class="col">
+      <p class="eyebrow">Part 2 — measured</p>
+      <h2>Test results</h2>
+      <p>Every mechanically testable claim, run on 1,159 sessions of 5-min ES (2021-06 → 2026-07),
+        SPX-equivalent via daily basis, with prior-session levels only (no lookahead). Where a
+        control is quoted it is <strong>distance-matched</strong> — the same geometry at a price
+        with no level, which is the only way to isolate what the level adds.</p>
+    </div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>#</th><th>Claim tested</th><th>Result</th><th class="n">n</th><th>Verdict</th></tr></thead>
+        <tbody>
+          <tr><td class="n">A</td><td>CR/PS repel price on first touch<br><span class="foot">pre-registered</span></td>
+            <td>CR 62.7% reject vs <strong>59.5% control</strong> (+3.2, se 4.3)<br>PS 55.8% vs 58.1% control</td>
+            <td class="n">134 / 77</td><td><span class="pill p-no">no edge</span></td></tr>
+          <tr><td class="n">B</td><td>Gamma features predict next-day realized range</td>
+            <td>baseline R² <strong>+0.305</strong> → with gamma <strong>+0.224</strong></td>
+            <td class="n">383</td><td><span class="pill p-no">degrades</span></td></tr>
+          <tr><td class="n">C</td><td>HVL regime separates outcomes (fade above / momentum below)</td>
+            <td>CR above HVL 73.3%, below 91.3% — significant but <em>backwards</em>, and structurally confounded</td>
+            <td class="n">255 / 23</td><td><span class="pill p-warn">confounded</span></td></tr>
+          <tr><td class="n">C2</td><td>Second touch is better than first</td>
+            <td>Untestable as posed — 2nd touch follows a <em>rejecting</em> 1st touch 64.3% of the time vs 34.0% after a break. Later touches are pre-selected for mean reversion.</td>
+            <td class="n">134</td><td><span class="pill p-warn">artifact</span></td></tr>
+          <tr><td class="n">D</td><td>Clearing level ± 1 ATR predicts follow-through</td>
+            <td>gamma <strong>+2.08 ATR</strong> (se .33) · random <strong>+1.67</strong> (se .13) → gamma advantage +0.41 (~1.2 se)</td>
+            <td class="n">135 / 80</td><td><span class="pill p-info">real, not gamma</span></td></tr>
+          <tr><td class="n">D2</td><td>Volume confirms breakouts</td>
+            <td>with volume <strong>2.69 ATR</strong> vs without <strong>1.99</strong></td>
+            <td class="n">71 / 19</td><td><span class="pill p-warn">suggestive</span></td></tr>
+          <tr><td class="n">E</td><td>Moves originating at a level continue better ("no man's land")</td>
+            <td>at level <strong>3.03 ATR</strong> vs no man's land <strong>3.10</strong> (+0.03, 0.1 sd). Distance gradient perfectly flat.</td>
+            <td class="n">1,122</td><td><span class="pill p-no">no edge</span></td></tr>
+          <tr><td class="n">F</td><td>Confluence — clustered levels react more</td>
+            <td>reject % by cluster size: <strong>48.9 / 50.5 / 48.0 / 43.3</strong> for 1/2/3/4+ levels</td>
+            <td class="n">3,039</td><td><span class="pill p-no">no edge</span></td></tr>
+          <tr><td class="n">G</td><td>Expectancy (their metric, not hit rate)</td>
+            <td>at 2R: gamma <strong>+0.021</strong> ±.026 vs random <strong>+0.034</strong> ±.010</td>
+            <td class="n">2,925</td><td><span class="pill p-no">no edge</span></td></tr>
+          <tr><td class="n">H</td><td>Level chaining — clearing A leads to next level B</td>
+            <td>reached next level <strong>58.9%</strong> vs distance-matched control <strong>59.2%</strong></td>
+            <td class="n">937</td><td><span class="pill p-no">no edge</span></td></tr>
+          <tr><td class="n">I</td><td>1D Min/Max containment (published 87 / 85 / 73)</td>
+            <td>measured <strong>87.6 / 86.5 / 74.1</strong> over 36 years</td>
+            <td class="n">9,201</td><td><span class="pill p-ok">validated</span></td></tr>
+          <tr><td class="n">J</td><td>Open is a coin flip; 10:00 ET gives clearer direction</td>
+            <td>first 30min persistence <strong>51.9%</strong> (coin flip ✓) · 10:00–10:30 <strong>50.8%</strong> (also a coin flip ✗)</td>
+            <td class="n">1,268</td><td><span class="pill p-warn">half</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="col" style="margin-top:16px">
+      <div class="warnbox">
+        <p style="margin-bottom:0"><strong>Two apparent findings were killed by our own error, not by the data.</strong>
+          A "second touch rejects 97.6% of the time" result turned out to be survivorship (a 2nd
+          touch only exists if the 1st didn't run away). A "+5.6pp level-chaining edge" turned out
+          to be a control placed farther away than the real target. Both were caught before being
+          reported as findings — but they are a warning about how easily this material generates
+          false positives.</p>
+      </div>
+    </div>
+  </section>
+
+  <hr class="sec-rule">
+
+  <!-- ================= VALIDATED ================= -->
+  <section id="validated" class="col">
+    <p class="eyebrow">Part 2 — measured</p>
+    <h2>What actually validated</h2>
+    <p>The pattern across eight framings is consistent and worth stating plainly: <strong>their
+      market craft holds up; their levels don't add measurable value over an arbitrary price at the
+      same distance.</strong></p>
+    <div class="grid2">
+      <div class="card">
+        <p><span class="pill p-ok">HOLDS</span></p>
+        <ul style="margin:10px 0 0">
+          <li><strong>1D expected-move band</strong> — 87.6 / 86.5 / 74.1 over 36 years, matching
+            their published 87 / 85 / 73. Reproducible free from VIX.</li>
+          <li><strong>The open is a high-volatility coin flip</strong> — 51.9% persistence, with
+            the largest median move of the day (9.25 pts vs 6.75 later).</li>
+          <li><strong>Clearing ±1 ATR predicts follow-through</strong> — roughly doubles median
+            continuation (1.2 → 2.3 ATR). Sound trading logic.</li>
+          <li><strong>Volume confirmation</strong> — points the right way (2.69 vs 1.99 ATR).</li>
+        </ul>
+      </div>
+      <div class="card">
+        <p><span class="pill p-no">DIDN'T</span></p>
+        <ul style="margin:10px 0 0">
+          <li>Levels as barriers / repulsion</li>
+          <li>Levels as volatility predictors</li>
+          <li>Levels as move origins</li>
+          <li>Confluence / clustering</li>
+          <li>Level chaining as targets</li>
+          <li>Payoff-geometry advantage (expectancy)</li>
+          <li>The ATR rule being <em>gamma-specific</em> — it works at any price</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <hr class="sec-rule">
+
+  <!-- ================= GAPS ================= -->
+  <section id="gaps" class="col">
+    <p class="eyebrow">Part 3</p>
+    <h2>Gaps — what this does NOT settle</h2>
+    <ul>
+      <li><strong>Blind spots.</strong> The traders in these transcripts mostly trade blind spots,
+        not gamma levels — Dean's losing trade was at BL3, Steve's rejection at BL1. Blind spots are
+        a separate MenthorQ product (overlap/correlation zones) and <strong>we have no data for
+        them</strong>. It is entirely possible the wrong instrument was tested.</li>
+      <li><strong>Intraday levels.</strong> Everything tested uses <em>end-of-day</em> levels — which
+        MenthorQ themselves flag as the weaker version: "we're using end of the day levels…
+        the condition during the day has changed". They are adding intraday futures levels.</li>
+      <li><strong>The discretionary second confirmation.</strong> Required on every trade,
+        deliberately undefined. Not falsifiable by construction.</li>
+      <li><strong>Native futures-option levels.</strong> MenthorQ compute ES/NQ levels from CME
+        futures options. ORATS carries none — so our ES/NQ levels are index-derived proxies and are
+        not the same object.</li>
+      <li><strong>Multiple comparisons.</strong> Eight-plus framings were tested. Any single
+        marginal positive should be treated with suspicion on that basis alone.</li>
+    </ul>
+  </section>
+
+  <hr class="sec-rule">
+  <p class="foot col">Compiled from seven MenthorQ Academy transcripts, 18 July 2026. Tests run on
+    ORATS SPX chains (1,183 sessions), MenthorQ published levels, ES 5-min bars, SPX &amp; VIX daily
+    (Yahoo). All level data is prior-session end-of-day — known before the tested session opens.
+    Internal research document; not investment advice.</p>
+
+</div>
+</body>
+</html>

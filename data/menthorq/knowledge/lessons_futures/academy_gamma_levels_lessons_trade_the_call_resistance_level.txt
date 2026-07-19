@@ -1,0 +1,30 @@
+ACADEMY
+Subscribe
+ Gamma Levels
+Call Resistance Level
+
+In this lesson, you’ll learn how to identify and trade the Core Resistance Level, which represents the strike price with the highest net call gamma exposure. Unlike traditional technical resistance, this is a structural ceiling driven by option positions and dealer flows, making it a powerful forward-looking tool for anticipating price behavior.
+
+The Core Resistance appears as the widest green bar on the Net Gamma Exposure chart. This zone represents where dealers have significant exposure to call options and are likely to hedge more actively as price approaches. As price nears this level, dealers who are long gamma begin to sell the underlying asset or futures to stay delta neutral, creating selling pressure that can halt upward momentum. Additionally, many traders take profit or close positions at these levels, reinforcing the potential for a pullback or pause in price.
+
+You’ll discover two primary scenarios when price approaches Core Resistance. The first is rejection, where dealer hedging pressure and profit-taking create mechanical selling that causes price to stall, reject, or reverse—even without news or fundamental catalysts. The second scenario is breakout, which occurs when call buyers step in and roll positions to higher strikes. This causes dealers to shift from selling to buying, and the Core Resistance can actually become a new support zone after the breakout.
+
+The lesson includes real-world examples demonstrating both scenarios. You’ll see how Palantir rejected at Core Resistance and reversed lower, while Amazon broke through its Core Resistance with strong bullish activity, turning that level into new support. The SPX approaching the 6000 level is also discussed as an example where Core Resistance coincided with a psychological level.
+
+Understanding Core Resistance gives you insight into dealer hedging behavior, flow imbalances, and potential inflection points. Because this level is based on forward-looking option positioning rather than past price action, it provides a unique edge for anticipating where price may encounter resistance or break into new territory.
+
+Video Chapters
+00:15 – Introduction to Core Resistance Level
+00:39 – Why Core Resistance matters for dealer hedging
+02:19 – Rejection scenario at Core Resistance
+05:18 – Palantir rejection example
+05:33 – Breakout scenario at Core Resistance
+07:03 – Amazon breakout example
+Key Takeaways
+Core Resistance is the strike price with the highest net call gamma exposure, appearing as the widest green bar on the Net Gamma Exposure chart
+Dealers who are long gamma sell the underlying or futures to stay delta neutral, creating selling pressure that can cause price rejection
+When call buyers roll positions to higher strikes during a breakout, Core Resistance can shift higher and become new support
+This level is based on forward-looking option positioning rather than technical analysis, providing unique insight into potential price inflection points
+ Video Transcription
+Previous
+Next 

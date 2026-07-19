@@ -1,0 +1,30 @@
+ACADEMY
+Subscribe
+ Gamma Levels
+How Options Affect the Futures Market
+
+Understanding how options affect the futures market is essential for any futures trader looking to develop a long-term strategy. In this lesson, we explore why options data gives futures traders an edge by revealing what the smart money is doing, allowing you to spot market moves early, identify key price levels that act as support and resistance, and manage risk more effectively by understanding market sentiment and where large players are positioning.
+
+We begin by examining implied volatility (IV), one of the most important factors the option market provides. Implied volatility reflects the market’s expectations for future price movement—not direction, but magnitude. When IV increases, it suggests the market is pricing in greater uncertainty or potential for large moves, typically ahead of major events. When IV decreases, the market signals stability or reduced uncertainty. A spike in IV can precede breakouts or trend acceleration, while a drop in IV can signal consolidation or lower volatility regimes.
+
+Next, we dive into delta hedging, where option theory turns into real-world price movement. Market makers or dealers provide liquidity by continuously offering to buy or sell options, and they hedge their positions using futures to stay delta neutral. When traders buy large numbers of calls, dealers need to buy futures to hedge their short delta exposure. Conversely, when traders buy large numbers of puts, dealers need to sell futures to hedge their long delta exposure. As we get closer to expiration, especially with zero DTE options (zero days to expiration), this hedging becomes more aggressive and can amplify market moves.
+
+We also cover how options positioning creates key price levels that act as support and resistance. Volume and open interest tend to cluster around key strike prices—often round numbers—attracting attention from traders and market makers. Market makers hedge their exposure at these strikes by buying or selling futures, creating a magnetic effect that pulls price towards high open interest strikes, especially as expiration approaches. To understand how these levels impact price movement, we introduce gamma, which measures how much an option’s delta changes as price moves. When gamma is high, dealers must hedge dynamically, causing price to accelerate or stall around certain levels.
+
+The lesson emphasizes that option flows often create future flows, and if you’re only watching future charts without paying attention to the option market, you’re trading blind. In 2021, for the first time ever, option volume surpassed equity volume and continues to grow, making options a major force behind price action. Understanding option flow allows you to anticipate movement rather than just react to it, helping you trade with more confidence and manage risk better.
+
+Video Chapters
+00:00 – Introduction to options and futures market relationship
+01:13 – Why option flows create future flows
+02:16 – Understanding implied volatility (IV)
+04:39 – Delta hedging and market maker behavior
+07:12 – How options create key price levels
+08:45 – Volume, open interest, and gamma exposure
+Key Takeaways
+Implied volatility (IV) reflects market expectations for future price movement magnitude and helps you spot big moves early before they happen
+Market makers hedge their option positions using futures to stay delta neutral, creating real buying or selling pressure that can amplify market moves
+High open interest at key strike prices creates support and resistance zones due to dealer hedging activity, especially near expiration
+Gamma measures h…
+ Video Transcription
+ Previous Lesson
+Next 

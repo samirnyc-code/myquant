@@ -1,0 +1,34 @@
+ACADEMY
+Subscribe
+ Blind Spots Levels
+What are Blind Spots Levels?
+
+In this lesson, you’ll discover how blind spots levels work and why they’re one of our most powerful tools for identifying hidden risk and opportunities in the market. Unlike typical support and resistance levels, these are price zones where the market is likely to react sharply based on advanced models that aren’t always visible on standard charts.
+
+We built blind spots using three critical data inputs: option positioning, momentum, and cross asset correlation. Option positioning reflects what advanced traders are doing and is forward-looking, unlike traditional technical indicators that look at the past. Momentum measures the strength and direction of price movements, helping identify when price may be vulnerable to sharp moves. Cross asset correlation captures how price movement in one asset influences others, because markets are interconnected and rarely move in isolation.
+
+The lesson demonstrates how understanding correlations is essential for trading success. For example, the Max 7 companies account for the majority of the top holdings in SPX, meaning moves in stocks like Nvidia or Tesla directly impact the index. When Nvidia hits a strong gamma level, that action can spill over to correlated assets like NQ. Having blind spots together with gamma levels gives you a true edge when confirming trades.
+
+You can use blind spots in multiple ways: as target zones for taking partial profits, for entries when price approaches a blind spot aligned with your bias, for risk management to avoid trades against strong blind spots, and for confluence by combining them with gamma levels, Q score data, and your own technical zones to increase conviction.
+
+Blind spots are available on futures indices and ETFs like SPY and QQQ, on Forex (released in May), and on major stocks including our Max 7 coverage. This wide asset coverage means you can apply this methodology across your entire trading portfolio.
+
+We originally created blind spots to help futures traders who wanted to use gamma levels on futures like ES or NQ before we had direct coverage. Traders were converting levels from closely moving assets like SPX to ES or QQQ to NQ, but blind spots take this concept a step further by revealing hidden signals from correlated assets that can impact the price action of the asset you’re trading.
+
+Video Chapters
+00:00 – Introduction to blind spots
+01:08 – Definition and what blind spots are
+02:21 – Why blind spots are relevant
+03:24 – Asset coverage overview
+03:53 – Methodology: three critical data inputs
+05:58 – Cross asset correlation explained
+08:29 – Understanding market correlations
+09:50 – Example: Nvidia and NQ correlation
+11:13 – How to use blind spots in trading
+Key Takeaways
+Blind spots are price zones where markets react sharply based on option positioning, momentum, and cross asset correlation, not visible on standard charts
+They are forward-looking unlike traditional support and resistance, revealing where large players are positioning and areas the market is targeting
+Use blind spots as target zones, entry points, risk management tools, or for confluence with gamma levels and other technical zones
+Available on futures indices and…
+ Video Transcription
+Next 

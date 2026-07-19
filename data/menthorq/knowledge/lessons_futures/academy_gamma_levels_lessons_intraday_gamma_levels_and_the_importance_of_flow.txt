@@ -1,0 +1,30 @@
+ACADEMY
+Subscribe
+ Gamma Levels
+Trading Examples: Intraday Levels and the importance of Flow
+
+In this lesson, you’ll learn how to leverage both end of day and intraday indicators on TradingView, and discover how to convert levels between different assets to create powerful confluence zones for your trading decisions.
+
+We demonstrate how our TradingView indicator features auto-updating levels that refresh every morning in the code. While TradingView doesn’t have an API, the levels are automatically available once you remove and re-add the indicator daily. You’ll see how the intraday indicator captures critical support and resistance zones, such as when price dropped to the HVL put support 0D from the 10:30 intraday snapshot before reversing.
+
+One of the most powerful features covered is the conversion settings, which allow you to convert levels from any asset to any asset. For example, you can convert QQQ to NQ, SPX to ES, or even Nvidia to NQ and IWM to RTY. This creates confluence areas where multiple indicators align, providing stronger reaction zones. You’ll see real examples of how the put support HVL0DT from QQQ converted to NQ marked the perfect bottom for the day.
+
+By combining end of day futures levels from the futures option chain with converted intraday levels from related assets, you can identify high-probability zones. The lesson shows the pinning effect around core resistance levels and how price action respects these calculated barriers, giving you a comprehensive roadmap for intraday trading.
+
+To implement this approach, simply open the indicator settings, navigate to the conversion settings, change the ticker to your desired asset, select the appropriate ratio, and the levels will plot automatically on your futures or equity chart.
+
+Video Chapters
+00:00 – Introduction to auto-updating levels on TradingView
+00:55 – Comparing end of day and intraday indicators
+02:11 – Using conversion settings to convert levels between assets
+02:46 – Understanding the pinning effect and core resistance
+03:25 – Creating confluence areas with multiple indicators
+05:39 – Converting Nvidia and IWM levels to futures
+Key Takeaways
+The auto-updating levels refresh daily but require removing and re-adding the indicator on TradingView due to API limitations
+Conversion settings allow you to convert levels from any asset to any other asset, creating powerful confluence zones
+Combining end of day futures levels with intraday converted levels provides a comprehensive trading roadmap
+The HVL put support 0D from intraday snapshots often marks critical reversal points
+ Video Transcription
+ Previous Lesson
+Next Section 

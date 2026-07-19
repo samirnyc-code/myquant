@@ -1,0 +1,29 @@
+ACADEMY
+Subscribe
+ How to Trade Futures
+How to use the Swing Trading Model to build a Roadmap
+
+In this lesson, you’ll discover how to apply the Swing Trading Model to create a trading roadmap for any equity, including options and futures. We demonstrate how to leverage the five-day levels from the Swing Trading Model to identify key trading zones on your charts.
+
+The Swing Trading Model provides upper and lower bands that define critical price areas for your roadmap. We show you how to plot these five-day levels on your chart to create clear zones between the bands. These levels are coded with dates (like August 02), but the specific code isn’t as important as understanding how to use the zones they create.
+
+You can apply this roadmap technique to any ticker symbol, whether you’re trading options strategies like Iron Condor or futures contracts. We demonstrate the process using SPX, showing how to take the levels from the Swing Trading Model and plot them as reference areas on your chart. You can also combine these zones with Fibonacci tools to identify middle points and additional areas of interest within your defined range.
+
+The practical benefit is having clearly defined areas where you should pay attention to potential trading opportunities. For options traders specifically, these zones help identify where to structure trades like Iron Condors. We emphasize that you should test this approach before implementing it in your live trading.
+
+You can use this technique with any charting platform you prefer, including Trading View and Sierra Shot. Simply transfer the five-day levels from the Swing Trading Model into your platform, and then draw your zones or apply Fibonacci mapping to refine your roadmap areas.
+
+Video Chapters
+00:00 – Introduction and roadmap technique overview
+00:32 – Applying roadmap to any equity or ticker
+02:13 – Understanding five-day levels from Swing Trading Model
+03:21 – Using roadmap for options strategies like Iron Condor
+04:38 – Combining levels with Fibonacci tools
+Key Takeaways
+The Swing Trading Model roadmap technique works for any equity, including options and futures trading
+Five-day levels create upper and lower bands that define key trading zones on your chart
+You can enhance the roadmap by combining Swing Trading Model levels with Fibonacci tools to identify middle points and additional areas of interest
+Always test the roadmap technique before implementing it in live trading
+ Video Transcription
+ Previous Lesson
+Next 

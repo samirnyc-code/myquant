@@ -1,0 +1,32 @@
+ACADEMY
+Subscribe
+ How to Trade Futures
+How to use Location
+
+In this lesson, you’ll discover how to identify optimal trading locations by combining multiple MenthorQ models to find high-probability entry and exit points. Understanding location is about finding areas where you feel confident entering trades based on strong technical confluences.
+
+When analyzing location, focus on extremes—highs and lows where price action shows clear reactions. The key is watching reaction zones and how price behaves around these critical levels. Location trading should give you a sense of confidence where you feel “common and secure” rather than jittery about your entries. By combining gamma levels and blind spots, you can identify overlapping areas that become highly significant reaction zones.
+
+For gamma analysis, pay special attention to primary levels including the core resistance, put support, hival level, one day max, and one day minimum. Additionally, zero DTE levels have become increasingly relevant due to significant growth in short-dated option volume. The core resistance zero DTE and put support zero DTE can create important reaction zones, especially in the hour before expiration when these options move very fast and impact the underlying asset.
+
+The hival level is particularly critical because it dictates the shift between positive and negative gamma, which changes how market makers hedge their positions. This can bring significant volatility and create powerful reaction zones. Use the net gamma exposure chart (net JAX) to identify the largest gamma levels and monitor how levels change from day to day. When the core resistance shifts higher, it indicates increased option activity at higher strikes, representing bullish force pushing the market upward.
+
+Understand that GEX1 represents the highest net gamma exposure, making it stronger than GEX2 through GEX10. We provide 10 GEX levels ranked by their total net gamma value. For blind spots, while blind spot 1 has more overlapping than blind spot 2, don’t focus too heavily on the numbers themselves—sometimes blind spot 2 and blind spot 3 may have equal overlapping strength. Instead, view blind spots as areas with strong correlation and overlapping, regardless of their numerical ranking.
+
+Access the option matrix to monitor changes in gamma and open interest, which helps you understand shifting market dynamics. Combine these gamma tools with blind spots to find the highest conviction trading locations where multiple models confirm the same zones.
+
+Video Chapters
+00:00 – Introduction to using location in trading
+01:30 – Identifying optimal locations using gamma levels
+03:16 – Understanding zero DTE levels and their impact
+04:20 – How to use GAGS levels for location analysis
+06:00 – Understanding GEX level rankings and strength
+08:08 – How to interpret blind spot numbers versus levels
+Key Takeaways
+Look for extremes at highs and lows where multiple models overlap to identify the strongest reaction zones
+Zero DTE levels have become increasingly important due to explosive growth in short-dated option volume
+The hival level marks the shift between positive and negative gamma, creating potential volatility zones
+Focus on blind spot levels as areas of high correlation rather than worrying about whether blind spot 2 or 3 is stronger
+ Video Transcription
+ Previous Lesson
+Next 

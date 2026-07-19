@@ -1,0 +1,28 @@
+ACADEMY
+Subscribe
+ Blind Spots Levels
+Blind Spots Levels for Stocks
+
+This lesson introduces an exciting new feature from MenthorQ: blind spots for stocks. Currently available for the Mag Seven companies, this tool brings option-driven risk mapping to equity traders, with plans to expand coverage in the future.
+
+The blind spots model for stocks works by revealing what the option floor is telling us, going beyond traditional price and volume analysis. The model identifies high liquidity zones where price could potentially flip or reverse. This approach allows you to see where significant option positioning creates natural support or resistance areas that may not be visible through conventional technical analysis.
+
+One of the key advantages of this model is its adaptability. The system calculates levels daily, which means it can account for major events like earnings announcements and other market-moving catalysts. Since every asset behaves differently, the model adjusts its calculations accordingly to provide the most relevant zones for each specific stock.
+
+The lesson demonstrates practical applications using real examples from the Mag Seven stocks, including Nvidia and Apple. You’ll see how to combine blind spots with other MenthorQ tools like JAX levels to create a more comprehensive trading picture. These combined indicators help you identify key zones where institutional option activity suggests potential price reactions.
+
+The ultimate goal of this model is to turn complex option positioning into clear zones on your chart, making institutional-level data accessible and actionable for your trading decisions. By understanding where option dealers and large players have positioned themselves, you gain insight into potential inflection points before they become obvious to the broader market.
+
+Video Chapters
+00:15 – Introduction to blind spots for stocks
+00:44 – Option-driven risk mapping explained
+01:22 – Current Mag Seven coverage
+01:43 – Combining blind spots with JAX levels
+Key Takeaways
+MenthorQ now offers blind spots for stocks, starting with the Mag Seven companies
+The model uses option-driven risk mapping to identify high liquidity zones where price could flip
+Levels are calculated daily to account for events like earnings and adapt to each asset
+Combine blind spots with JAX levels for comprehensive institutional positioning insights
+ Video Transcription
+ Previous Lesson
+Next Section 

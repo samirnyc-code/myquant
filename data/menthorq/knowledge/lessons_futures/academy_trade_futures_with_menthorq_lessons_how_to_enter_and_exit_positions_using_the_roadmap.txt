@@ -1,0 +1,28 @@
+ACADEMY
+Subscribe
+ How to Trade Futures
+How to enter and exit positions using the Roadmap
+
+In this lesson, you’ll learn how to effectively use the Roadmap in combination with other confirmation tools to make better trading decisions. The key insight is that the Roadmap should not be used as a standalone signal, but rather as a powerful tool to identify liquidity areas that enhance your existing trading strategy.
+
+The Roadmap provides valuable information about liquid points in the market by showing you where price is likely to react. However, the most important principle covered is that you should never execute trades based solely on the Roadmap. Instead, you need a second confirmation from other tools like price action, the VIX (volatility index), or other indicators you prefer. The levels shown on the Roadmap are highly respected when looking to the left side of your chart, but they work best when combined with your personal trading approach.
+
+A practical example demonstrates using the ES (E-mini S&P) with the VIX as confirmation. When the VIX moves down, the market typically moves up due to their inverse relationship. The lesson shows how to identify key moments like the CPI candle, map it out using Fibonacci levels, and look for breakouts from these areas. You can also use the candle high and candle low as reference points, and pay attention to timing factors like the hourly close where market shifts often occur.
+
+The core trading philosophy emphasized is to use the Roadmap to get a better overview of the market and find liquidity areas to target, but always execute according to your own trading style and strategy. The Roadmap is described as a “nice add-on” that helps you understand market structure better and control risk, not as a magic solution that dictates exactly when to enter and exit.
+
+Video Chapters
+00:00 – Introduction and question about entering and exiting with the Roadmap
+01:48 – Understanding Roadmap levels and why second confirmation is needed
+03:56 – Using the VIX as second confirmation with ES example
+09:30 – Analyzing the CPI candle with Fibonacci and price action
+13:26 – Identifying breakout areas and liquidity zones
+16:20 – How to integrate the Roadmap with your personal trading strategy
+Key Takeaways
+The Roadmap should never be used alone but always with a second confirmation like price action or the VIX
+The VIX has an inverse relationship with the market—when VIX goes down, markets typically go up
+Use Fibonacci to map the CPI candle and identify candle high and candle low as key reference points
+The Roadmap helps identify liquidity areas to enhance your existing trading strategy and control risk
+ Video Transcription
+ Previous Lesson
+Next 

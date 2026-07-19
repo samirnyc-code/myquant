@@ -1,0 +1,29 @@
+ACADEMY
+Subscribe
+ How to Trade Futures
+How to use Timing as your Trading Indicator
+
+In this lesson, you’ll discover how to use timing as a critical trading indicator by mapping out key market areas and identifying the optimal moments to enter and exit trades. Rather than relying solely on traditional indicators, you’ll learn how to leverage time-based analysis to avoid blind spots and improve your trading precision.
+
+We walk through a live example from crude oil and the ES chart with NASDAQ, demonstrating how to identify blind spots in the market. The key concept covered is understanding when price sits at the 50% equilibrium of a consolidation zone, which means supply and demand are equal. When you see price at this level, especially before New York open, it’s often better to wait rather than gamble on direction since there’s no clear imbalance in the market.
+
+The lesson emphasizes waiting for reaction and volume confirmation before entering trades. Even when price approaches strong areas like the call resistance 0dt or put support 0dt, you shouldn’t immediately enter positions. Instead, watch for volume changes and momentum shifts—if bullish momentum starts to fade and sell-side volume increases, that’s when you consider your trade setup.
+
+We also cover the importance of understanding market sessions and their overlaps. Trading during the first 30 minutes after 9:30 can be like flipping a coin due to high volatility, while waiting until the 10 Eastern hourly close often provides much clearer direction. Be particularly careful during session overlaps, such as when the London or European markets are closing, as these transitions create additional volatility that can trigger unnecessary losses.
+
+Timing can serve as your second confirmation instead of always relying on additional indicators. The advanced trading roadmap course in the Mentor Queue Academy provides further training on mapping out your trading areas and understanding when to enter the market. This approach is also practiced in the 6am morning club, where these concepts are applied in real-time.
+
+Video Chapters
+00:00 – Introduction to trading roadmap and crude oil examples
+01:49 – ES and NQ chart analysis with blind spots
+03:00 – Waiting for volume reaction before entering trades
+03:30 – Understanding timing around market opens
+04:46 – Trading session overlaps and volatility considerations
+Key Takeaways
+When price sits at 50% equilibrium in a consolidation zone, supply and demand are equal, making it risky to enter before volatility events
+Always wait for volume and reaction confirmation rather than entering trades immediately at resistance or support levels
+Trading during the first 30 minutes after 9:30 carries high volatility risk, while the 10 Eastern hourly close often provides clearer direction
+Timing can serve as your second confirmation rather than always requiring additional indicators
+ Video Transcription
+ Previous Lesson
+Next 

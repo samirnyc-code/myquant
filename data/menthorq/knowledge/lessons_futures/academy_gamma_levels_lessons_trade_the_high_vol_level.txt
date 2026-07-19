@@ -1,0 +1,30 @@
+ACADEMY
+Subscribe
+ Gamma Levels
+High Vol Level
+
+In this lesson, you’ll learn about the High Volatility Level (HVL), our third gamma level that acts as a critical transition zone signaling shifts in gamma regime from positive to negative or vice versa. The HVL is derived from the inflection point in the slope of the cumulative gamma exposure curve, which appears as a yellow curve on your charts.
+
+Understanding the HVL is essential because it defines two distinct trading environments. Above the HVL, you’re in a positive gamma environment where dealers hedge against price movement, which helps stabilize price action and creates mean-reverting conditions. Below the HVL, you enter a negative gamma environment where dealers hedge with price movement, amplifying volatility and creating momentum-driven setups and breakout strategies.
+
+The HVL functions as more than just a price level—it’s a sentiment indicator that tells you how price is likely to behave in the current gamma regime. When price trades above the HVL in a positive gamma regime, dealers are long gamma and their delta exposure changes slower. They sell as price rises and buy as price falls, creating a dampening effect that makes the HVL act as a magnet where price tends to pin. This environment is ideal for scalping and expecting short-term reversals with choppy market conditions.
+
+When price breaks below the HVL, gamma flips negative and dealer behavior changes dramatically. In this short gamma regime, dealers sell when price falls and buy when price rises, creating a feedback loop that amplifies volatility. The HVL transforms from a pinning zone into a launchpad for directional moves, making momentum and trend-following setups dominate the market. Real examples from SPX show price chopping around the HVL during positive gamma days, and strong momentum breakdowns after breaking below the HVL.
+
+You can use the HVL to adapt your strategy in real time, understand whether flow is likely to stabilize or accelerate, and apply it as a risk management tool. If you’re trading futures and see a flip from positive to negative gamma, this helps you adjust your strategy, adjust your hedges, and manage risk better with real-time movement.
+
+Video Chapters
+00:00 – Introduction to High Volatility Level (HVL)
+00:52 – Positive vs negative gamma environments
+01:55 – Why HVL is important as a sentiment indicator
+02:38 – Positive gamma scenario: price pinning at HVL
+03:37 – Breakdown scenario: volatility spike at HVL
+05:27 – Using HVL as a regime compass
+Key Takeaways
+The HVL marks the transition between positive and negative gamma regimes, derived from the inflection point in the cumulative gamma exposure curve
+Above the HVL, expect mean-reverting environments where price tends to pin, ideal for scalping strategies
+Below the HVL, dealers create a feedback loop that amplifies volatility, making momentum and breakout strategies more effective
+The HVL acts as both a sentiment indicator and risk management tool to help you adapt your trading strategy in real time
+ Video Transcription
+ Previous Lesson
+Next 

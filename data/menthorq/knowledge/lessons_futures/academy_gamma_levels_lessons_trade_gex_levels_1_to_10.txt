@@ -1,0 +1,29 @@
+ACADEMY
+Subscribe
+ Gamma Levels
+GEX Levels 1 to 10
+
+Understanding how to interpret and trade the GEX Levels 1 to 10 can significantly enhance your ability to identify key reaction zones in the market. This lesson focuses on our secondary gamma levels and how they complement the core gamma levels you’ve already learned about.
+
+Beyond the core gamma levels—core resistance, put support, IVO level, and one day max/min—we have our GEX levels. These levels are derived from our net gamma exposure chart, which displays the widest green and red bars showing the most significant concentration of call and put gamma across the option chain. The numbering system is straightforward: GEX 1 is the second level after core resistance and put support with the highest gamma exposure, followed by GEX 2 all the way to GEX 10. This means GEX 1 has higher gamma exposure than GEX 2, which has more than GEX 10, helping you understand the relative importance of each level.
+
+GEX 1 and GEX 2 are typically very strong levels, while levels like GEX 8, 9, and 10 represent smaller concentrations. These become strong reaction areas that price tends to interact with repeatedly. In practice, you can observe price moving from one level to another—for example, from GEX 1 to IVO level, back to GEX 1, targeting all these levels along the way.
+
+Traders use these levels in different ways depending on their strategy. Many users are scalping these levels for quick trades, while others use them as take profit targets for longer positions. The key advantage is that these are not just standard support and resistance—they are structural levels coming from the option market, providing institutional-grade insights into where significant gamma positioning exists.
+
+To clarify a common question: GEX 1 is not equal to put support or core resistance. Put support and core resistance represent the levels with the absolute highest green or red bars on the net gamma exposure chart, while GEX 1 is the second highest level, whether positive or negative gamma.
+
+Video Chapters
+00:16 – Introduction to GEX Levels 1 to 10
+00:55 – Understanding the GEX numbering system
+01:33 – How to trade GEX levels as reaction areas
+01:54 – Scalping and take profit strategies
+02:16 – Clarifying GEX 1 versus core levels
+Key Takeaways
+GEX levels are derived from the widest bars on the net gamma exposure chart, showing concentrations of call and put gamma
+GEX 1 has the highest gamma exposure after core resistance and put support, with decreasing exposure through GEX 10
+These structural levels from the option market serve as strong reaction areas for scalping and take profit targets
+GEX 1 is the second highest gamma level, distinct from put support and core resistance which represent the absolute highest levels
+ Video Transcription
+ Previous Lesson
+Next Section 

@@ -1,0 +1,31 @@
+ACADEMY
+Subscribe
+ How to Trade Futures
+The importance of Location in Trading
+
+In this lesson, you’ll learn how to identify optimal location for trade entries and exits—a critical concept that works hand-in-hand with timing to improve your trading outcomes. Understanding where to place your trades with favorable risk-to-reward ratios can make the difference between consistent profits and unnecessary losses.
+
+When evaluating location, you need to analyze where your risk is and where your reward is, and both must make sense before entering a trade. This means identifying strong support and resistance areas that can protect your position. For example, when trading NQ, you want to look for entry points near strong gamma levels, blind spot levels, or the one day max and call resistance. These levels act as your “team” that protects your position—if price moves beyond these areas, your trade thesis becomes invalid.
+
+The instructors emphasize avoiding 50% areas where you have no clear protection, which they compare to flipping a coin. Instead, look for rejection zones with your confluence checklist marked off, considering factors like volume and whether price has consolidated long enough to generate power for a move. They recommend aiming for at least 2 to 1 or 3 to 1 risk-to-reward ratios. A practical example shows how entering at blind spot three without waiting for a second retest led to a loss, demonstrating the importance of combining proper location with technical correction and follow through confirmation.
+
+If your preferred location doesn’t provide enough space for your risk tolerance on NQ, consider reducing position size by switching to MNQ contracts—perhaps using 2 or 4 MNQ contracts instead. Never go all-in with your full buying power on a single position. The instructors compare entering trades to testing ocean water with your feet first—you test the position gradually rather than diving in completely.
+
+To implement these concepts, zoom out on your charts to identify strong supply and demand areas from the left side of the chart. Look for consolidation zones where price has built enough power to move through resistance or support levels. Check how much exposure or volume areas exist in your anticipated direction before committing to a trade.
+
+Video Chapters
+00:00 – Introduction to location in trading
+00:26 – Understanding risk and reward at specific locations
+02:10 – Analyzing supply, demand, and consolidation power
+04:53 – Using one day max and gamma levels for protection
+07:32 – Avoiding 50% areas and protecting positions
+09:03 – Real trading example: the importance of second retests
+11:34 – Technical correction and follow through concepts
+Key Takeaways
+Location means finding entry points with favorable risk-to-reward ratios near strong support or resistance that protects your position
+Always verify that both your risk and reward make sense before entering, avoiding 50% areas with no clear protection
+Wait for technical correction and second retests of key levels like blind spot levels before entering trend-following trades
+Use MNQ contracts to reduce position size when location is good but risk tolerance is limited on NQ
+ Video Transcription
+ Previous Lesson
+Next 

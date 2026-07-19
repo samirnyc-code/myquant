@@ -1,0 +1,30 @@
+ACADEMY
+Subscribe
+ How to Trade Futures
+How to create a Roadmap for Swing Trading
+
+In this lesson, you’ll learn how to create a comprehensive roadmap specifically designed for swing trading and position trading. Unlike scalping roadmaps that require frequent updates, swing trading roadmaps can often be used for multiple days when market conditions remain stable, giving you a wider perspective on key trading levels.
+
+We start by switching to larger timeframes to identify bigger trading opportunities. The process begins on the 30 minute timeframe, where you look for areas of high concentration, high volatility, and put support. From there, you’ll use the Fibonacci tool to connect significant levels, such as connecting high volatility to put support or mapping levels between different BL (level) points like BL3 to BL4 or BL5 to BL10.
+
+A critical step involves confirming your identified areas on higher timeframes. After mapping levels on the 30 minute chart, you’ll switch to the four hour timeframe and one hour timeframe to verify that these areas were respected historically. When you see confirmation across multiple timeframes—like the 50 level being respected or areas showing strong historical reactions—you’ve found what’s called a golden bullseye for your swing trades.
+
+The practical benefit of this approach is that you create wider areas suitable for holding positions for multiple days rather than quick scalps. By connecting anchor points and using Fibonacci rectangles to mark zones, you build a clear visual roadmap that shows exactly where to look for entry and exit opportunities. The roadmap only needs updating when the market moves significantly outside your mapped areas.
+
+This technique works by first mapping the downside areas, then systematically working through upside levels by connecting various BL points with candle tops and bottoms. You’ll fill gaps between areas to create a complete picture, ensuring you have defined zones across the entire price range for your swing trading strategy.
+
+Video Chapters
+00:00 – Introduction to swing trading roadmaps and when to update them
+01:23 – Starting the swing trader roadmap creation process
+01:48 – Identifying high concentration areas and using Fibonacci
+04:43 – Mapping BL4 and confirming on higher timeframes
+06:13 – Creating additional areas from BL5 to BL10
+08:07 – Mapping upside levels and finding golden bullseyes
+Key Takeaways
+Swing trading roadmaps use larger timeframes like 30 minute, one hour, and four hour charts to identify wider trading areas
+Always confirm your mapped areas on higher timeframes to ensure they were historically respected by the market
+Connect BL levels using Fibonacci tools to create zones, looking for golden bullseye areas with multiple confirmations
+Swing trading roadmaps can be used for multiple days and only need updating when markets move significantly outside your mapped zones
+ Video Transcription
+ Previous Lesson
+Next 

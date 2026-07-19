@@ -1,0 +1,31 @@
+ACADEMY
+Subscribe
+ How to Trade Futures
+Trading Setup
+
+This lesson dives deep into the critical concept of trading setups and introduces you to a powerful three-question framework that can transform your trading decisions. You’ll learn how to systematically evaluate every trade opportunity using the TLS principle – Timing, Location, and Setup – to dramatically reduce mistakes and increase confidence in your trades.
+
+The TLS principle works as a mental risk manager by requiring you to answer three questions before entering any trade: Is this the right time to go into the market? Is this the right location? Is this the right setup? If you can answer yes to all three questions, you take the trade. If you get even one no, you stay out. This simple framework helps eliminate emotional decision-making and analysis paralysis.
+
+Traders in this lesson share their personal setup definitions, focusing on identifying extremes and looking for rejections at high reaction zones (like resistance levels or GEX levels). The key is watching for hard wick rejections followed by confirmation candles before entering trades. One particularly effective pattern involves waiting for price to emerge from consolidation zones at reaction areas, which often signals strong directional moves.
+
+The lesson emphasizes that setup identification is individual to each trader – whether you prefer order flow, wicks, golden crosses, SMAs, MACD, or RSI, there’s no single right answer. What matters is finding a second confirmation method that works for you and proves itself through consistent profitability. The institutional approach shared here focuses on cutting losses very fast (sometimes achieving only 30% win rates) while letting winners run large, rather than chasing high win rates with poor risk management.
+
+As a Mentor Q user, you have access to institutional-grade tools including gamma levels and blind spots that help identify high-correlation areas for your setups. These tools, previously accessible mainly to institutions with teams of analysts, are now available directly on your charts to give you extra confidence in managing risk and filtering out bad trades.
+
+Video Chapters
+00:00 – Introduction to trading setups and the TLS principle
+01:32 – Identifying extremes and rejections at reaction zones
+02:38 – Waiting for confirmation candles and setup validation
+05:29 – Why the three-question process is essential
+07:44 – Importance of second confirmation signals
+10:34 – Risk management and the one good trade philosophy
+Key Takeaways
+The TLS principle (Timing, Location, Setup) acts as your mental risk manager by requiring three yes answers before entering any trade
+Look for hard wick rejections at reaction zones followed by confirmation candles, especially when price breaks out of consolidation
+Every trader needs individualized second confirmation methods, and success is measured by consistent profitability, not win rate percentage
+Institutional traders focus on cutting losses fast (achieving sometimes only 30% win rates) while capturing few large winning trades
+Mentor Q provides gamma levels and blind spots that reveal institutional-grade data for better setup identification
+ Video Transcription
+ Previous Lesson
+Course Overview

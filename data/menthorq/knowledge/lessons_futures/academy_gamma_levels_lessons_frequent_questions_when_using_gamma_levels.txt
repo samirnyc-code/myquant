@@ -1,0 +1,30 @@
+ACADEMY
+Subscribe
+ Gamma Levels
+Common Questions when Using Gamma Levels
+
+In this lesson, you’ll learn answers to common questions about using gamma levels, including when data updates, which assets to monitor, and how to convert levels for futures trading. Understanding these practical details helps you access the right data at the right time to make better trading decisions.
+
+We provide different update schedules depending on the asset type. Stocks, ETFs, and indices update with end of day data at around 5:30 to 6:00pm Eastern Time after market close. We also offer intraday data that updates 14 times per day, with the first snapshot at 8am for pre-market and then every 30 minutes starting at 9:50am. Futures data updates once a day with end of day information, while crypto data updates at 8pm Eastern.
+
+You might wonder why we provide levels on SPX, SPY, and ES when they track similar markets. The key insight is that these three assets have completely different option chains and different market participants. SPX is cash-settled and primarily traded by large institutions in big blocks, SPY attracts more retail traders and long-term asset managers using 401k accounts, and ES is used by futures market makers and CTAs. By comparing levels across all three, you can spot hidden areas, confirm high conviction strikes, and detect unusual divergence.
+
+If you trade futures and want to use intraday data, you have conversion options available. For ES traders, monitor SPX or SPY. For NQ, watch QQQ and NDX (with QQQ having far more option volume). You can even convert individual stock levels like Apple, Amazon, or Nvidia onto NQ during earnings. For Russell futures, use IWM. For YM (Dow), which has no option activity, use DIA. For Bitcoin futures, you can use our Bitcoin gamma levels or convert IBIT levels. Gold traders can use GLD, crude oil traders can use USO, and bond traders can use TLT.
+
+To start applying these concepts, identify which futures contracts you trade and determine the corresponding ETF or index with active options. Monitor multiple related assets to gain comprehensive market insights and confirm your trading decisions with data from different market participant groups.
+
+Video Chapters
+00:15 – When gamma levels update for different assets
+01:38 – Why to monitor ETF and index levels when trading futures
+02:31 – Understanding different option chains for SPX, SPY, and ES
+03:57 – Comparing levels across assets to spot divergence
+05:05 – Converting intraday data for futures trading
+06:03 – Asset conversion options for different futures contracts
+Key Takeaways
+Intraday data updates 14 times per day starting at 8am, while end of day data updates at 5:30 to 6:00pm Eastern
+SPX, SPY, and ES have three different option chains serving different market participants, making it valuable to monitor all three even if you only trade one
+You can convert ETF and index levels to futures by monitoring corresponding assets like SPX/SPY for ES, QQQ/NDX for NQ, or IBIT for Bitcoin
+Comparing levels across related assets helps you spot hidden areas, confirm high conviction strikes, and detect unusual divergence
+ Video Transcription
+Previous
+Course Overview
