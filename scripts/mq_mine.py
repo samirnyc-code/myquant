@@ -60,6 +60,9 @@ SURFACES = [
 ]
 
 
+MIN_COVERAGE_PCT = 90.0   # below this the archive is FAILED, not "partial"
+
+
 def _now():
     return dt.datetime.now(ET)
 
@@ -82,13 +85,16 @@ def main():
 
     MINE.mkdir(parents=True, exist_ok=True)
     mq = MQ()
-    ok = fail = 0
+    ok = fail = empty = 0
     log = []
+    missing = []          # (sym, surface, why) — what did NOT get archived
     for sym in syms:
         for name, fn, _hist in SURFACES:
             try:
                 obj = fn(mq, sym)
                 if obj is None or (isinstance(obj, (list, dict)) and not obj):
+                    empty += 1
+                    missing.append((sym, name, "empty"))
                     log.append(f"  --  {sym:7} {name:18} empty")
                     continue
                 save_raw(name, sym, obj)
@@ -97,6 +103,7 @@ def main():
                 log.append(f"  OK  {sym:7} {name:18} ({n})")
             except Exception as e:
                 fail += 1
+                missing.append((sym, name, f"{type(e).__name__}: {str(e)[:50]}"))
                 log.append(f"  XX  {sym:7} {name:18} {type(e).__name__}: {str(e)[:60]}")
 
     stamp = _now().strftime("%Y-%m-%d %H:%M ET")
@@ -104,10 +111,34 @@ def main():
     with open(manifest, "a", encoding="utf-8") as f:
         f.write(f"\n=== {stamp} · {len(syms)} tickers × {len(SURFACES)} surfaces "
                 f"· {ok} ok / {fail} fail ===\n" + "\n".join(log) + "\n")
+    # ---- COMPLETION CHECK (S75V) ----------------------------------------------
+    # This used to `return 0 if ok else 1`: ONE success out of 175 exited clean, and
+    # "empty" responses counted as neither ok nor fail, so they vanished. A half-empty
+    # archive looked identical to a full one — and these surfaces are TODAY-ONLY, so a
+    # silent gap is permanent and unbackfillable. Coverage is measured against EXPECTED.
+    expected = len(syms) * len(SURFACES)
+    coverage = 100.0 * ok / expected if expected else 0.0
+
+    (MINE / "mine_status.json").write_text(json.dumps({
+        "ts": stamp, "date": _now().strftime("%Y-%m-%d"),
+        "expected": expected, "ok": ok, "fail": fail, "empty": empty,
+        "coverage_pct": round(coverage, 1),
+        "missing": [{"sym": s, "surface": su, "why": w} for s, su, w in missing][:80],
+    }, indent=2), encoding="utf-8")
+
     print(f"=== MQ mine {stamp} ===")
     print("\n".join(log))
-    print(f"\n{ok} ok / {fail} fail · raw -> {RAW} · log -> {manifest}")
-    return 0 if ok else 1
+    print(f"\n{ok} ok / {fail} fail / {empty} empty of {expected} expected"
+          f"  ·  coverage {coverage:.1f}%")
+    print(f"raw -> {RAW}  ·  log -> {manifest}")
+
+    if coverage < MIN_COVERAGE_PCT:
+        print(f"\n*** INCOMPLETE ARCHIVE: {coverage:.1f}% < {MIN_COVERAGE_PCT}% required.")
+        print("    These surfaces are TODAY-ONLY — the gap cannot be backfilled.")
+        for s_, su_, w_ in missing[:12]:
+            print(f"      {s_:8} {su_:18} {w_}")
+        return 1
+    return 0
 
 
 if __name__ == "__main__":

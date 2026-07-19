@@ -1,0 +1,10 @@
+{
+  "ts": "2026-07-19 14:28 ET",
+  "date": "2026-07-19",
+  "expected": 16,
+  "ok": 16,
+  "fail": 0,
+  "empty": 0,
+  "coverage_pct": 100.0,
+  "missing": []
+}

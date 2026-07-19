@@ -1,0 +1,284 @@
+<!doctype html><html><head>
+<!-- claude.ai frame-runtime preamble omitted (hosting boilerplate, not artifact content) -->
+<meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><title>footprint_dictionary</title><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}</style></head><body>
+<style>
+  :root{
+    --bg:#0d1016; --surface:#141922; --surface2:#1b212c; --line:#262e3a;
+    --ink:#e7ebf2; --ink2:#9aa4b4; --muted:#6b7686;
+    --accent:#e6a94a; --buy:#23b98a; --sell:#e0574f; --neutral:#8b7fe0;
+    --chip:#1f2732;
+    --sans:system-ui,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:"Cascadia Code",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:light){
+    :root{
+      --bg:#f6f7f9; --surface:#ffffff; --surface2:#f0f2f6; --line:#e2e6ee;
+      --ink:#161b24; --ink2:#4c5666; --muted:#8791a0;
+      --accent:#b3801f; --buy:#0f9d74; --sell:#cf3f38; --neutral:#6a5fd0; --chip:#eef1f6;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0d1016; --surface:#141922; --surface2:#1b212c; --line:#262e3a;
+    --ink:#e7ebf2; --ink2:#9aa4b4; --muted:#6b7686;
+    --accent:#e6a94a; --buy:#23b98a; --sell:#e0574f; --neutral:#8b7fe0; --chip:#1f2732;
+  }
+  :root[data-theme="light"]{
+    --bg:#f6f7f9; --surface:#ffffff; --surface2:#f0f2f6; --line:#e2e6ee;
+    --ink:#161b24; --ink2:#4c5666; --muted:#8791a0;
+    --accent:#b3801f; --buy:#0f9d74; --sell:#cf3f38; --neutral:#6a5fd0; --chip:#eef1f6;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+    line-height:1.6;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1060px;margin:0 auto;padding:0 24px}
+
+  header.top{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);
+    backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+  header.top .wrap{display:flex;align-items:center;gap:14px;padding:12px 24px}
+  .brand{font-family:var(--mono);font-size:13px;letter-spacing:.02em;color:var(--accent);font-weight:700}
+  .brand span{color:var(--muted)}
+  .toggle{margin-left:auto;background:var(--surface2);border:1px solid var(--line);color:var(--ink2);
+    font-family:var(--mono);font-size:11px;padding:6px 11px;border-radius:7px;cursor:pointer}
+  .toggle:hover{color:var(--ink);border-color:var(--accent)}
+  .toggle:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  .hero{padding:64px 0 34px}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--accent);margin:0 0 14px}
+  h1{font-size:clamp(30px,5vw,46px);line-height:1.08;margin:0 0 16px;letter-spacing:-.02em;
+    font-weight:800;text-wrap:balance;max-width:18ch}
+  .lede{font-size:18px;color:var(--ink2);max-width:66ch;margin:0}
+  .lede b{color:var(--ink)}
+
+  .prose{max-width:70ch}
+  h2{font-size:13px;font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase;
+    color:var(--accent);margin:0 0 6px;font-weight:700}
+  .group{border-top:1px solid var(--line);padding:40px 0 8px;scroll-margin-top:70px}
+  .group-h{display:flex;align-items:baseline;gap:14px;margin:0 0 6px}
+  .group-h h3{font-size:25px;margin:0;letter-spacing:-.01em;font-weight:750}
+  .group-num{font-family:var(--mono);font-size:13px;color:var(--muted);font-weight:700}
+  .group-intro{color:var(--ink2);max-width:70ch;margin:8px 0 22px}
+  .group-intro b{color:var(--ink)}
+
+  .fields{display:flex;flex-direction:column;gap:1px;background:var(--line);
+    border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .field{background:var(--surface);padding:15px 18px;display:grid;
+    grid-template-columns:minmax(180px,230px) 1fr;gap:6px 22px}
+  .field:hover{background:var(--surface2)}
+  .fname{font-family:var(--mono);font-size:13.5px;color:var(--ink);font-weight:600;word-break:break-word}
+  .ftype{display:inline-block;font-family:var(--mono);font-size:10.5px;color:var(--muted);
+    background:var(--chip);border:1px solid var(--line);border-radius:5px;padding:1px 6px;margin-top:5px}
+  .fbody .tells{margin:0;color:var(--ink)}
+  .fbody .ex{margin:8px 0 0;padding:9px 12px;border-left:2px solid var(--accent);
+    background:var(--surface2);border-radius:0 7px 7px 0;color:var(--ink2);font-size:14px}
+  .fbody .ex b{color:var(--ink)}
+  .buy{color:var(--buy);font-weight:700} .sell{color:var(--sell);font-weight:700}
+  .neu{color:var(--neutral);font-weight:700}
+  .star{color:var(--accent);font-family:var(--mono);font-size:11px;margin-left:6px;vertical-align:2px}
+
+  /* footprint primer diagram */
+  .primer{display:grid;grid-template-columns:1fr;gap:26px;margin:26px 0 6px;
+    background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:24px}
+  @media(min-width:760px){.primer{grid-template-columns:300px 1fr}}
+  .ladder{font-family:var(--mono);font-size:12.5px;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .lrow{display:grid;grid-template-columns:52px 1fr 1fr;align-items:center;border-top:1px solid var(--line)}
+  .lrow:first-child{border-top:0}
+  .lrow .px{text-align:center;color:var(--ink2);background:var(--surface2);padding:7px 0;font-weight:700}
+  .cell{padding:7px 10px;text-align:center;position:relative}
+  .cell.b{color:var(--sell)} .cell.a{color:var(--buy)}
+  .lrow.poc{background:color-mix(in srgb,var(--accent) 15%,transparent)}
+  .lrow.poc .px{color:var(--accent)}
+  .cell.imb{background:color-mix(in srgb,var(--buy) 22%,transparent);font-weight:700;border-radius:5px}
+  .cell.abs{background:color-mix(in srgb,var(--sell) 22%,transparent);font-weight:700;border-radius:5px}
+  .lhead{display:grid;grid-template-columns:52px 1fr 1fr;font-size:10px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--muted);background:var(--surface2)}
+  .lhead div{padding:6px 0;text-align:center}
+  .pkey{font-size:13.5px;color:var(--ink2)}
+  .pkey p{margin:0 0 12px} .pkey b{color:var(--ink)}
+  .pkey .k{display:inline-block;width:11px;height:11px;border-radius:3px;vertical-align:-1px;margin-right:6px}
+
+  .callout{border:1px solid var(--line);background:var(--surface);border-radius:14px;
+    padding:26px 28px;margin:14px 0}
+  .callout h4{margin:0 0 10px;font-size:19px;letter-spacing:-.01em}
+  .callout p{margin:0 0 12px;color:var(--ink2);max-width:72ch}
+  .callout p:last-child{margin-bottom:0}
+  .callout b{color:var(--ink)}
+  .path{display:grid;gap:10px;margin:16px 0 4px}
+  @media(min-width:680px){.path{grid-template-columns:1fr 1fr}}
+  .pcard{border:1px solid var(--line);border-radius:11px;padding:15px 17px;background:var(--surface2)}
+  .pcard .t{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;margin:0 0 7px}
+  .pcard.win .t{color:var(--buy)} .pcard.lose .t{color:var(--sell)}
+  .pcard p{margin:0;font-size:14px;color:var(--ink2)}
+
+  footer{border-top:1px solid var(--line);margin-top:46px;padding:26px 0 60px;color:var(--muted);
+    font-size:13px;font-family:var(--mono)}
+  a{color:var(--accent)}
+</style>
+
+<header class="top"><div class="wrap">
+  <div class="brand">MZpack&nbsp;Footprint <span>· data dictionary</span></div>
+  <button class="toggle" id="tg" aria-label="Toggle theme">◐ theme</button>
+</div></header>
+
+<div class="wrap">
+  <section class="hero">
+    <p class="eyebrow">Order flow · what OHLC can't see</p>
+    <h1>Every number a footprint bar knows about the fight for price.</h1>
+    <p class="lede">A candle tells you where price <b>went</b>. A footprint tells you <b>who did the work</b> to get it there — how much volume hit the bid vs the ask at <b>every single price</b>, who was aggressive, who got absorbed, and where the auction was left unfinished. Below is every field we can read straight out of the mzFootprint indicator on your chart — <b>~90 data points, all public, all free</b> — grouped, explained, and shown with a worked example.</p>
+  </section>
+
+  <section class="prose">
+    <h2>The mental model</h2>
+    <p style="color:var(--ink2);max-width:70ch">One bar is a <b>ladder of prices</b>. At each price sit two numbers: volume that traded at the <b class="sell">bid</b> (aggressive sellers) and at the <b class="buy">ask</b> (aggressive buyers). Everything else — delta, POC, imbalance, absorption — is just a pattern read off that ladder. Learn to see the ladder and the 90 fields become obvious.</p>
+  </section>
+
+  <div class="primer">
+    <div>
+      <div class="ladder">
+        <div class="lhead"><div>price</div><div>bid ▽</div><div>ask △</div></div>
+        <div class="lrow"><div class="px">7540</div><div class="cell b">120</div><div class="cell a">180</div></div>
+        <div class="lrow"><div class="px">7539</div><div class="cell b">210</div><div class="cell a imb">640</div></div>
+        <div class="lrow poc"><div class="px">7538</div><div class="cell b">905</div><div class="cell a">870</div></div>
+        <div class="lrow"><div class="px">7537</div><div class="cell b abs">1180</div><div class="cell a">240</div></div>
+        <div class="lrow"><div class="px">7536</div><div class="cell b">160</div><div class="cell a">90</div></div>
+      </div>
+    </div>
+    <div class="pkey">
+      <p><b>Read it row by row.</b> This bar traded 7536–7540.</p>
+      <p><span class="k" style="background:var(--accent)"></span><b>POC = 7538</b> — the most-traded price (905+870). Fair value for the bar; price gravitates back to it.</p>
+      <p><span class="k" style="background:var(--buy)"></span><b>Ask imbalance at 7539</b> — 640 bought vs the 210 sold one row below: aggressive buyers stacking. Real upward intent.</p>
+      <p><span class="k" style="background:var(--sell)"></span><b>Absorption at 7537</b> — 1180 hit the bid but price didn't fall: a passive buyer <b>absorbed</b> the selling. Sellers trapped → bounce risk.</p>
+      <p style="margin:0"><b>Delta</b> = total ask − bid = (180+640+870+240+90) − (120+210+905+1180+160) = <b class="sell">−555</b>. Net sellers, even though buyers were loud at 7539. That tension is the edge.</p>
+    </div>
+  </div>
+
+  <div id="groups"></div>
+
+  <section class="group" style="border-top:1px solid var(--line)">
+    <div class="group-h"><span class="group-num">▶</span><h3>Reading 7/16 with this</h3></div>
+    <p class="group-intro">The whole point. On 7/16 price broke <b>HVL 7535</b> and we bought a <b>straddle</b> (needs a big move) — it lost, because the break was an orderly <b>drift</b>, not a violent one. OHLC couldn't tell those apart <em>at the moment of the break</em>. The footprint can. Here's exactly what we'd check on the bars that broke 7535:</p>
+    <div class="callout">
+      <h4>The one question: was the HVL break real or hollow?</h4>
+      <div class="path">
+        <div class="pcard win"><p class="t">Real break → straddle / put debit</p><p>Stacked <b class="buy">sell-side imbalances</b> punching down through 7535, <b class="sell">negative delta</b> confirming, a <b>new orderflow low</b>, no absorption catching it. Momentum is real → long vol pays.</p></div>
+        <div class="pcard lose"><p class="t">Hollow break → put credit / condor</p><p><b class="sell">Absorption</b> at 7535 (big bid volume, price won't progress), <b>delta divergence</b> (price lower, delta higher), <b>unfinished-auction</b> magnets above. Drift, not crash → the straddle was the wrong vehicle; sell premium instead.</p></div>
+      </div>
+      <p style="margin-top:16px">Every bold term above is a field in this dictionary — <code style="font-family:var(--mono);font-size:13px;background:var(--chip);padding:1px 6px;border-radius:5px">Absorptions</code>, <code style="font-family:var(--mono);font-size:13px;background:var(--chip);padding:1px 6px;border-radius:5px">Imbalances</code>, <code style="font-family:var(--mono);font-size:13px;background:var(--chip);padding:1px 6px;border-radius:5px">IsSellDeltaDivergence</code>, <code style="font-family:var(--mono);font-size:13px;background:var(--chip);padding:1px 6px;border-radius:5px">UnfinishedAuctionLow</code>, <code style="font-family:var(--mono);font-size:13px;background:var(--chip);padding:1px 6px;border-radius:5px">Delta</code>. To run it on the real 7/16 bars I need the extractor output (or your footprint screenshot of the 7535 break) — then we do this for real, bar by bar.</p>
+    </div>
+  </section>
+
+  <footer>~90 fields · all public on IFootprintBar / ISRZone · extractable free via NinjaScript over 5yr Tick Replay · times Exchange/Central</footer>
+</div>
+
+<script>
+  // theme toggle
+  var root=document.documentElement, tg=document.getElementById('tg');
+  tg.addEventListener('click',function(){
+    var cur=root.getAttribute('data-theme')
+      || (matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+    root.setAttribute('data-theme', cur==='dark'?'light':'dark');
+  });
+
+  // field data — every public data point, grouped
+  var GROUPS=[
+    {n:"A", t:"The bar frame", intro:"Where and when the bar happened, and how hard the market worked to make it. On volume/range bars, <b>duration</b> is a live speed gauge — a bar that prints in 4 seconds is a very different animal from one that took 4 minutes.",
+     f:[
+      {k:"Open, Close",ty:"Double",d:"Bar open/close price — same as a candle."},
+      {k:"Hi, Lo",ty:"Double",d:"Bar high/low (actual traded extremes)."},
+      {k:"SyntHigh, SyntLow",ty:"Double",d:"Synthetic high/low from the bid/ask extremes — the true reachable range including quotes."},
+      {k:"OpenTime, Time",ty:"DateTime",d:"Bar open and close timestamps."},
+      {k:"DurationMs, GetDurationSeconds",ty:"Double",d:"How long the bar took to form.",ex:"On a 2,000-lot volume bar: 5s to print = frantic, one-sided flow; 3min = quiet grind. Speed = conviction."},
+      {k:"RangeTicks, RangeLevels",ty:"Int32",d:"Bar height in ticks / distinct price levels traded."},
+      {k:"VolumePerSecond",ty:"Double",d:"Trade intensity — volume ÷ duration.",ex:"A spike in VolumePerSecond into a level = a burst of aggression; the level is being attacked, not drifted into."},
+      {k:"BarIdx",ty:"Int32",d:"Bar index (join key back to your price bars)."},
+      {k:"IsFirstBarOfSession",ty:"Boolean",d:"True on the session's opening bar (RTH open — where the day's auction resets)."},
+      {k:"Session",ty:"ISession",d:"The session object this bar belongs to."},
+     ]},
+    {n:"B", t:"Volume — total, sided, and per price", intro:"Volume split by <b>who was aggressive</b>. Total volume is a candle's; the footprint adds the split — <b class='buy'>buy</b> (traded at the ask) vs <b class='sell'>sell</b> (traded at the bid) — and gives you the full <b>per-price ladder</b>, which is the raw material for everything else.",
+     f:[
+      {k:"Volume",ty:"Int64",d:"Total contracts traded in the bar."},
+      {k:"BuyVolume, SellVolume",ty:"Int64",d:"Aggressive buy (lifted the ask) vs aggressive sell (hit the bid).",star:1,ex:"Bar closes green but SellVolume ≫ BuyVolume → buyers nudged price up while sellers did the heavy lifting → weak rally, fade candidate."},
+      {k:"BuyPercentage, SellPercentage",ty:"Double",d:"Buy/sell share of volume (0–1). Quick read of who dominated."},
+      {k:"Volumes",ty:"SortedDict",d:"Total volume at each price — the volume profile of the bar.",star:1},
+      {k:"BuyVolumes, SellVolumes",ty:"SortedDict",d:"Aggressive buy / sell volume at each price — the two-sided footprint ladder itself.",star:1,ex:"This is the ladder in the diagram above. Imbalance and absorption are computed from these two columns."},
+      {k:"TradesNumber",ty:"Int64",d:"Count of individual trades (prints) in the bar."},
+      {k:"TradesNumbers",ty:"SortedDict",d:"Trade count at each price — many small vs few large at a level."},
+      {k:"MaxTradesNumber",ty:"Int32",d:"Most trades at any single price in the bar."},
+     ]},
+    {n:"C", t:"Delta — the core signal", intro:"<b>Delta = BuyVolume − SellVolume</b>: who won the aggression battle. The single most-used order-flow number. Its real power is in the <b>relationship to price</b> — when delta and price disagree, someone is being trapped.",
+     f:[
+      {k:"Delta",ty:"Int64",d:"Net aggressor for the bar (buy − sell volume).",star:1,ex:"Price makes a higher high but Delta = −4,200 → the high was sold into. Distribution, not strength."},
+      {k:"Deltas",ty:"SortedDict",d:"Delta at each price — where in the bar buyers/sellers dominated.",star:1,ex:"Big +delta stacked at the top of the bar = buyers most aggressive at the highs → either breakout fuel or buying-climax exhaustion."},
+      {k:"DeltaPercentage",ty:"Double",d:"Delta as a share of volume — normalizes across bar sizes."},
+      {k:"DeltaCumulative",ty:"Int64",d:"Running sum of delta across bars — the CVD (cumulative volume delta).",star:1,ex:"Price flat but CVD trending down for 20 bars → steady hidden selling → a break is being loaded."},
+      {k:"DeltaChange",ty:"Int64",d:"Change in delta vs the prior bar — acceleration of flow."},
+      {k:"MaxDelta, MinDelta",ty:"Int64",d:"The delta's high-water and low-water mark *within* the bar (its intrabar excursion).",star:1,ex:"Bar closes Delta +300 but MinDelta hit −2,800 → sellers pressed hard, then got overpowered → aggressive absorption / reversal signature."},
+      {k:"MaxAbsDelta",ty:"Int64",d:"Largest absolute delta swing inside the bar."},
+      {k:"AbsoluteDeltaTotal, AbsoluteDeltaAverage",ty:"Int64",d:"Total / average |delta| — raw effort, direction-agnostic. High effort + no price gain = absorption."},
+      {k:"DeltaRate, DeltaRateHigh, DeltaRateLow",ty:"Int64/Double",d:"Rate-of-change of delta — the momentum of order flow (and its intrabar extremes)."},
+      {k:"IsBuyDeltaDivergence, IsSellDeltaDivergence",ty:"Boolean",d:"Flag: price and delta disagree (new price high on falling delta, or vice-versa).",star:1,ex:"IsSellDeltaDivergence at a new low = price fell but sellers weren't really there → hollow break, snap-back risk. Exactly the 7/16 tell."},
+     ]},
+    {n:"D", t:"Value & profile", intro:"Where the bar found <b>fair value</b>. POC and the value area are how auction traders define acceptance vs rejection — and they double as magnets and targets.",
+     f:[
+      {k:"POC",ty:"Double",d:"Point of Control — the price with the most total volume.",star:1,ex:"POC printing right at HVL 7535 = the market is accepting value there → the level is being absorbed, not respected."},
+      {k:"POCVolume",ty:"Int64",d:"Volume traded at the POC (how dominant it is)."},
+      {k:"POCVolumes, MultiplePOC",ty:"Int64[]/List",d:"Secondary high-volume nodes — split POCs signal a two-distribution (indecisive) bar."},
+      {k:"VAH, VAL",ty:"Double",d:"Value Area High / Low — the band holding ~70% of volume.",star:1,ex:"A 0DTE iron condor's short strikes want to sit *outside* the developing value area; VAH/VAL show you where that is in real time."},
+      {k:"ClusterZones, EndedClusterZones",ty:"Array",d:"High/low-volume node clusters (HVN = acceptance shelves, LVN = fast gaps price rips through)."},
+      {k:"GetClusterHigh, GetClusterLow",ty:"Double",d:"Bounds of the bar's main trade cluster."},
+     ]},
+    {n:"E", t:"Imbalance & absorption — the bells & whistles", intro:"The two patterns that separate a <b>real</b> move from a <b>fake</b> one. <b class='buy'>Imbalance</b> = one side overwhelming the diagonal (aggression driving). <b class='sell'>Absorption</b> = huge volume hitting a price that <em>won't move</em> (a passive giant soaking it up). These are the signals that would have called 7/16.",
+     f:[
+      {k:"Imbalances",ty:"SortedDict[]",d:"The diagonal-imbalance cells — where ask volume dwarfs the bid one tick below (or vice-versa), beyond your filter.",star:1,ex:"A stack of 3+ ask-imbalances punching up through a level = genuine buyer aggression → the breakout is real."},
+      {k:"BuyImbalanceCount, SellImbalanceCount",ty:"Int32",d:"How many buy / sell imbalance cells fired in the bar — a one-number aggression tally."},
+      {k:"Absorptions",ty:"SortedDict[]",d:"Absorption cells — prices where large volume traded but price failed to advance.",star:1,ex:"5,000 lots hit the bid at 7535 and price holds → a passive buyer absorbed the sellers → sellers now trapped, bounce likely."},
+      {k:"BuyAbsorptionCount, SellAbsorptionCount",ty:"Int32",d:"Count of buy-side / sell-side absorption events in the bar."},
+      {k:"ImbalanceSRZones, AbsorptionSRZones, SRZones",ty:"IBarSRZones",d:"Auto-built support/resistance zones generated *from* the imbalance & absorption clusters — the tradeable output.",star:1},
+      {k:"UnfinishedAuctionHigh, UnfinishedAuctionLow",ty:"Double",d:"A high/low that printed with volume on both bid & ask (no single-print rejection) — an auction left 'open'.",star:1,ex:"An unfinished low below price is a magnet — the market tends to return to finish it. Great for target/continuation reads."},
+      {k:"OnImbalance, OnAbsorption",ty:"Event",d:"Fire the instant an imbalance / absorption is detected — for live alerts & automation."},
+     ]},
+    {n:"F", t:"Bar character flags", intro:"Pre-computed booleans that classify the bar so you don't have to. Cheap to read, powerful to filter on.",
+     f:[
+      {k:"IsBullish, IsBearish, IsDoji",ty:"Boolean",d:"Bar direction / indecision by order-flow definition (not just close vs open)."},
+      {k:"IsNewOrderflowHigh, IsNewOrderflowLow",ty:"Boolean",d:"Bar set a new extreme in order-flow terms.",ex:"IsNewOrderflowLow without IsSellDeltaDivergence = a clean, committed new low → trend continuation."},
+      {k:"RatioNumbers",ty:"Double",d:"The bid/ask ratio value MzPack renders per cell (imbalance strength as a number)."},
+     ]},
+    {n:"G", t:"COT — commitment of traders", intro:"Not the weekly CFTC report — MzPack's <b>Cluster-of-Trades</b>: the price band inside the bar where the heaviest committed activity sat. A finer 'where's the real interest' than POC.",
+     f:[
+      {k:"COTHigh, COTLow",ty:"Int64",d:"Upper / lower bound of the bar's commitment-of-trades cluster.",ex:"COT sitting at the *bottom* of a down bar = sellers committed low (weak, chasing); COT at the top = they sold strength (strong, patient)."},
+     ]},
+    {n:"H", t:"S/R zones — the ISRZone object", intro:"Each imbalance/absorption zone is a first-class object you can query — price band, side, strength, and <b>distance from current price</b>. This is how you turn footprint into a level map that talks to your MQ levels.",
+     f:[
+      {k:"Hi, Lo",ty:"Double",d:"The zone's price band."},
+      {k:"Side",ty:"TradeSide",d:"Bid (support) or Ask (resistance) — which way it defends.",star:1},
+      {k:"Volume",ty:"Int64",d:"Total volume in the zone — its strength / conviction."},
+      {k:"Levels",ty:"SortedDict",d:"Per-price breakdown inside the zone."},
+      {k:"BeginBar, EndBar",ty:"IFootprintBar",d:"When the zone formed and (if) it was broken."},
+      {k:"Distance()",ty:"Int32",d:"Ticks from current price to the zone.",star:1,ex:"Filter to zones within N ticks of an MQ level → 'is there real order-flow backing this gamma level right now?'"},
+      {k:"Intersects()",ty:"Boolean",d:"Does a price / range fall inside the zone — clean test for 'price is at the zone'."},
+     ]},
+    {n:"I", t:"Predicted values (live only)", intro:"In real time, MzPack projects where a *forming* bar's stats will land at close (based on pace so far). Every core stat has a <code>…Predicted</code> twin. Useful live; ignore for historical backtests (they resolve to the actuals).",
+     f:[
+      {k:"VolumePredicted, DeltaPredicted, TradesNumberPredicted",ty:"Int64",d:"Projected end-of-bar volume / delta / trade count."},
+      {k:"COTHighPredicted, COTLowPredicted",ty:"Int64",d:"Projected commitment band."},
+      {k:"DeltaRatePredicted, DeltaChangePredicted, DeltaCumulativePredicted",ty:"Int64",d:"Projected delta dynamics."},
+      {k:"AbsoluteDeltaTotalPredicted, AbsoluteDeltaAveragePredicted, VolumePerSecondPredicted",ty:"Int64/Double",d:"Projected effort & intensity."},
+     ]},
+  ];
+
+  var host=document.getElementById('groups');
+  GROUPS.forEach(function(g){
+    var sec=document.createElement('section'); sec.className='group'; sec.id='g'+g.n;
+    var rows=g.f.map(function(x){
+      return '<div class="field"><div><div class="fname">'+x.k
+        + (x.star?'<span class="star">★ key</span>':'') + '</div><span class="ftype">'+x.ty+'</span></div>'
+        + '<div class="fbody"><p class="tells">'+x.d+'</p>'
+        + (x.ex?'<p class="ex">'+x.ex+'</p>':'') + '</div></div>';
+    }).join('');
+    sec.innerHTML='<div class="group-h"><span class="group-num">'+g.n+'</span><h3>'+g.t+'</h3></div>'
+      +'<p class="group-intro">'+g.intro+'</p><div class="fields">'+rows+'</div>';
+    host.appendChild(sec);
+  });
+</script>
+
+</body></html>

@@ -1,0 +1,571 @@
+<!doctype html><html><head><!-- frame-runtime --><script>window.__FRAME_PREAMBLE={"capabilities":{"downloads":"downloads.BABDwU1K.js","mcp":"mcp.hoz5jxDa.js","permissions":"permissions.kVGugkJh.js","self":"self.D3u1zjZe.js"},"transforms":"_transforms.DYk1Ltlh.js","comments":"_comments.Dp6RDy7J.js","translate":"_translate.DHzvAjkZ.js"}</script><script>(function(){"use strict";const de="modulepreload",fe=function(e){return"/"+e},pe={},J=function(t,r,u){let o=Promise.resolve();function i(d){const c=new Event("vite:preloadError",{cancelable:!0});if(c.payload=d,window.dispatchEvent(c),!c.defaultPrevented)throw d}return o.then(d=>{for(const c of d||[])c.status==="rejected"&&i(c.reason);return t().catch(i)})},V=["light","dark","system"];function Y(e){if(e===null||typeof e!="object")return!1;const t=e.__frame_init;return t!==null&&typeof t=="object"}function Q(e){return e!==null&&typeof e=="object"&&e.__frame_size_poke===!0}function X(e){if(e===null||typeof e!="object")return!1;const t=e.__frame_theme;if(t===null||typeof t!="object")return!1;const r=t.theme;return typeof r=="string"&&V.includes(r)}function Z(e){try{typeof reportError=="function"?reportError(e):setTimeout(()=>{throw e},0)}catch{}}function D(e){if(window===top||e.type==="auxclick"&&e.button!==1)return;const t=e.composedPath?e.composedPath():[e.target];let r=null;for(let d=0;d<t.length;d++){const c=t[d];if(c&&c.matches&&c.matches("a[href],area[href]")){r=c;break}}if(!r&&e.target&&e.target.closest&&(r=e.target.closest("a[href],area[href]")),!r)return;const u=r.getAttribute("href");if(!u)return;let o,i;try{o=new URL(u,document.baseURI),i=new URL(document.baseURI).origin}catch{return}(o.protocol==="http:"||o.protocol==="https:")&&o.origin!==i&&(e.preventDefault(),parent.postMessage({__frame_nav:!0,url:o.href},"*"))}const U={};function T(e){if(window===top)return;const t=Date.now();t-(U[e]||0)<500||(U[e]=t,parent.postMessage({__frame_engaged:!0,kind:e},"*"))}const ee=2e3,F=["wheel","touchstart","touchmove","keydown","pointerdown"];let H=0;function te(e){e.isTrusted&&(H=Date.now())}function ne(){addEventListener("click",D,!0),addEventListener("auxclick",D,!0)}function re(){for(let e=0;e<F.length;e++)addEventListener(F[e],te,{capture:!0,passive:!0});addEventListener("scroll",e=>{e.isTrusted&&Date.now()-H<ee&&T("scroll")},{capture:!0,passive:!0}),addEventListener("pointermove",e=>{e.isTrusted&&T("pointer")},{capture:!0,passive:!0}),addEventListener("click",e=>{e.isTrusted&&T("click")},{capture:!0,passive:!0})}function oe(e,t,r){const u=[...t.values()].filter(o=>o.targets.some(i=>i.startsWith(e+".")));return{wrap(o,i){const d=`${e}.${o}`,c=u.filter(s=>s.targets.includes(d));return c.length===0?(...s)=>{try{return i(...s)}catch(p){return Promise.reject(p)}}:(...s)=>{let p=s;for(const a of c){const l=a.module.parameters;if(l)try{p=l(p)}catch{return Promise.reject({code:"transform_error",id:a.id,scope:e,message:"parameters transform failed"})}}let g;try{g=i(...p)}catch(a){g=Promise.reject(a)}return g.then(a=>{for(let l=c.length-1;l>=0;l--){const m=c[l],f=m.module.returns;if(f)try{a=f(a)}catch{return r({id:m.id,scope:e,leg:"returns"}),a}}return a},a=>{for(let l=c.length-1;l>=0;l--){const m=c[l],f=m.module.throws;if(f)try{a=f(a)}catch{return r({id:m.id,scope:e,leg:"throws"}),Promise.reject(a)}}return Promise.reject(a)})}}}}function se(e,t,r,u=()=>{}){const o=new Set(e.changes??[]),i=new Map;for(const d of o){const c=t[d];c&&i.set(d,c)}return{contract:e.contract,changes:o,flags:new Set(e.flags??[]),capabilities:e.capabilities??{},capBudgets:e.capBudgets??{},transforms:i,shellOrigin:r.shellOrigin,mount:r.mount,pipe:d=>oe(d,i,u)}}(function(){const e=Object.defineProperty,t=globalThis,r=["RTCPeerConnection","webkitRTCPeerConnection","RTCDataChannel","RTCIceCandidate","RTCSessionDescription","RTCRtpSender","RTCRtpReceiver"];let u=0;for(let o=0;o<r.length;o++){const i=r[o];try{e(t,i,{value:void 0,writable:!1,configurable:!1})}catch{try{delete t[i]}catch{}try{e(t,i,{value:void 0,writable:!1,configurable:!0})}catch{}}typeof t[i]=="function"&&u++}if(u&&window!==top)try{parent.postMessage({__frame_rtc_lockdown_failed:u},"*")}catch{}})();const ie=1e4,ae=Object.freeze([...window.__FRAME_PREAMBLE?.origins??["https://claude.ai","https://preview.claude.ai"]]);function ce(e){for(const t of ae)if(t.endsWith(":*"))try{const r=new URL(e);if(`${r.protocol}//${r.hostname}:*`===t)return!0}catch{}else if(e===t)return!0;return!1}const j=Object.freeze({...window.__FRAME_PREAMBLE?.capabilities}),k=window.__FRAME_PREAMBLE?.transforms,C=window.__FRAME_PREAMBLE?.comments,N=window.__FRAME_PREAMBLE?.translate,O=/^[\w.-]+\.js$/,le=/^[a-z][a-z0-9_-]{0,63}$/;let W=null,P=null;function I(e,t,r){try{Object.defineProperty(e,t,{value:r,writable:!1,configurable:!1,enumerable:!0})}catch{try{Object.defineProperty(e,t,{value:r,writable:!1,configurable:!0,enumerable:!0})}catch{}}}let $=!1;function x(e){const t=document.documentElement;e==="light"||e==="dark"?(t.dataset.theme=e,t.style.colorScheme=e,$=!0):$&&(delete t.dataset.theme,t.style.colorScheme="",$=!1)}const M={mcp:{watchTool:{handlerArg:3}}},S=new Map;function ue(e,t){const r=S.get(e);if(!r)return;Object.assign(r.impl,t),r.impl.__settled=()=>Promise.reject({code:"capability_removed",message:`${e}: method not in this runtime`});const u=r.queue;r.queue=[];for(const o of u){const i=t[o.method];if(i)if(M[e]?.[o.method])try{o.resolve(i(...o.args))}catch{A(o,M[e][o.method].handlerArg,{code:"transform_error",message:`${e}.${o.method} rejected its arguments`})}else i(...o.args).then(o.resolve,o.reject);else{const d={code:"capability_removed",message:`${e}.${o.method} is not in this runtime`},c=M[e]?.[o.method];if(c){A(o,c.handlerArg,d);continue}o.reject(d)}}}function q(e,t){const r=S.get(e);if(!r)return;r.impl.__settled=()=>Promise.reject(t);const u=r.queue;r.queue=[];for(const o of u){const i=M[e]?.[o.method];if(i){A(o,i.handlerArg,t);continue}o.reject(t)}}function A(e,t,r){if(e.syncState?.dead)return;const u=e.args[t];typeof u=="function"&&queueMicrotask(()=>{if(!e.syncState?.dead)try{u({type:"error",error:r})}catch(o){Z(o)}})}const z=Object.getOwnPropertyDescriptor(window,"claude");if(window!==top&&!(z&&z.writable===!1)){ne(),re();const e=z?.value??{};I(window,"claude",e);const t=s=>{const p={impl:Object.create(null),queue:[]};S.set(s,p);const g=new Proxy(p.impl,{get:(a,l)=>{if(typeof l!="string"||l==="then"||l==="toJSON"||l==="valueOf")return;if(l==="toString")return Object.prototype.toString;const m=M[s]?.[l];return m?(...f)=>{if(typeof f[m.handlerArg]!="function")throw new TypeError(`${s}.${l} requires a handler function`);const b=a[l];if(b)return b(...f);if(a.__settled){const w={dead:!1},v={args:[...f],syncState:w};return a.__settled().catch(R=>A(v,m.handlerArg,R)),()=>{w.dead=!0}}let h=null;const _={dead:!1};return p.queue.push({method:l,args:f,resolve:w=>{h=typeof w=="function"?w:null,_.dead&&h?.()},reject:()=>{},syncState:_}),()=>{_.dead=!0,h?.()}}:(...f)=>{const b=a[l]??a.__settled;return b?b(...f):new Promise((h,_)=>{p.queue.push({method:l,args:f,resolve:h,reject:_})})}},set:()=>!1});I(e,s,g)};for(const s of Object.keys(j)){if(e[s]!==void 0){I(e,s,e[s]);continue}t(s)}let r=null,u=null,o=0;const i=s=>{s.source!==parent||!ce(s.origin)||Y(s.data)&&(r=s.data.__frame_init,P=s.origin,removeEventListener("message",i),clearTimeout(o),u?.())};addEventListener("message",i),parent.postMessage({__frame_connect:!0},"*");const d=new Promise(s=>{u=s,o=setTimeout(()=>{removeEventListener("message",i),s()},ie)}),c=document.readyState==="loading"?new Promise(s=>document.addEventListener("DOMContentLoaded",()=>s(),{once:!0})):Promise.resolve();d.then(async()=>{if(!r||!P){for(const n of S.keys())q(n,{code:"not_granted",message:"frame initialization did not arrive - capability unavailable"});return}x(r.theme);const s=P;let p=!1,g=!1;addEventListener("message",n=>{if(n.source!==parent||n.origin!==s)return;X(n.data)&&x(n.data.__frame_theme.theme);const y=n.data?.__fc_mode;y&&typeof y=="object"&&!p&&C&&O.test(C)&&(p=!0,a(C).then(B=>B.install?.(s,y.on===!0)).catch(()=>{}));const E=n.data?.__ft_cmd;E&&typeof E=="object"&&!g&&N&&O.test(N)&&(g=!0,a(N).then(B=>B.install?.(s,E)).catch(()=>{}))});const a=n=>J(()=>import("/_runtime/"+n),void 0),l=Object.keys(r.capabilities??{});for(const n of l)Object.hasOwn(j,n)||le.test(n)&&e[n]===void 0&&(t(n),q(n,{code:"capability_disabled",message:"capability not in this runtime generation"}));const m=l.filter(n=>Object.hasOwn(j,n)).map(n=>[n,j[n]]).filter(n=>typeof n[1]=="string"&&O.test(n[1])),[f,...b]=await Promise.allSettled([k&&O.test(k)?a(k):Promise.resolve({}),...m.map(([,n])=>a(n))]),h=P;W=se(r,f.status==="fulfilled"&&f.value?.TRANSFORMS||{},{shellOrigin:h,mount:ue},n=>parent.postMessage({__frame_cap_telemetry:n},h));const _=n=>parent.postMessage({__frame_cap_telemetry:{kind:"cap-load-error",cap:n}},h),w=W;b.forEach((n,y)=>{const E=m[y][0];if(n.status!=="fulfilled"){_(E);return}try{n.value?.install?.(w)}catch{_(E)}});for(const[n,y]of S)y.queue.length===0&&Object.keys(y.impl).length>0||q(n,{code:l.includes(n)?"capability_disabled":"not_granted",message:"capability not available in this session"});await c,parent.postMessage({__frame_ready:!0},P);let v=-1,R=0;const K=()=>{R=0;const n=Math.max(document.documentElement.scrollHeight,document.body?document.body.scrollHeight:0);n!==v&&(v=n,parent.postMessage({__frame_size:!0,h:n},h))},L=()=>{R||(R=setTimeout(K,200))},G=new ResizeObserver(L);G.observe(document.documentElement),document.body&&G.observe(document.body),document.addEventListener("load",L,!0),document.fonts?.ready.then(L,()=>{}),addEventListener("beforeprint",()=>{v=-1,K()}),L(),addEventListener("message",n=>{n.source!==parent||n.origin!==h||Q(n.data)&&(v=-1,L())})})}})();</script><!-- /frame-runtime --><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}</style></head><body>
+<!--
+  OPTIONS-DRILL FRAMEWORK — read this comment, then edit only the CONFIG
+  object inside <script id="config">. Everything else (CSS "series style",
+  rendering engine, drill logic) is generic and should not need to change
+  per topic.
+
+  TO MAKE A NEW DRILL:
+    1. Copy this file to NN-topic-name.html (NN = series number).
+    2. Edit CONFIG below: title, the one-rule block, 2-3 personas,
+       the drill's fields/answers/generate/judge functions, the cheat
+       table rows, and the footnote.
+    3. Open the file in a browser to test the drill logic before
+       publishing it as an Artifact.
+
+  CONTENT SKELETON (why these six blocks, not something else):
+    - RULE       the one sentence that removes the need to think
+    - PERSONAS   2-4 named archetypes that make the sign/regime distinction
+                 physical and memorable (tone: 'water' calm/stabilizing,
+                 'fire' hot/destabilizing, 'copper' neutral/transitional,
+                 'ash' muted/decaying — pick per persona, don't reuse a tone
+                 for two personas on the same page)
+    - DRILL      a scenario generator + judge function → forces recall
+                 instead of recognition, which is what makes it reflexive
+    - CHEAT      a flat reference table for when the drill isn't enough
+    - CHEAT2     optional second reference table for adjacent terms that
+                 don't belong in the drill itself — delete the CONFIG.cheat2
+                 key entirely if the topic doesn't need one
+    - FOOTNOTE   the real-world caveat that keeps the mental model honest
+-->
+<title>Options Drill — Template</title>
+<style>
+  :root {
+    --paper: #f3efe6;
+    --paper-line: #d9d2c1;
+    --ink: #201c16;
+    --ink-dim: #6b6455;
+    --copper: #a8672b;
+    --copper-ink: #7d4a1c;
+    --water: #2f6e69;
+    --water-soft: #e2ede9;
+    --fire: #a8402a;
+    --fire-soft: #f2e0d8;
+    --card-bg: #ffffff;
+    --shadow: 0 1px 0 rgba(32,28,22,0.06);
+  }
+  :root[data-theme="dark"] {
+    --paper: #14110d;
+    --paper-line: #322c22;
+    --ink: #ece5d6;
+    --ink-dim: #9c9280;
+    --copper: #d99a53;
+    --copper-ink: #f0b878;
+    --water: #6fb3ab;
+    --water-soft: #1c2f2c;
+    --fire: #d97a5f;
+    --fire-soft: #2f201a;
+    --card-bg: #1c1712;
+    --shadow: 0 1px 0 rgba(0,0,0,0.3);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #14110d;
+      --paper-line: #322c22;
+      --ink: #ece5d6;
+      --ink-dim: #9c9280;
+      --copper: #d99a53;
+      --copper-ink: #f0b878;
+      --water: #6fb3ab;
+      --water-soft: #1c2f2c;
+      --fire: #d97a5f;
+      --fire-soft: #2f201a;
+      --card-bg: #1c1712;
+      --shadow: 0 1px 0 rgba(0,0,0,0.3);
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem 5rem;
+    line-height: 1.55;
+  }
+
+  .mono {
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  h1, h2, h3 {
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    text-wrap: balance;
+    font-weight: 600;
+  }
+
+  header.masthead {
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 1.1rem;
+    margin-bottom: 2.2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  header.masthead .title { font-size: 1.9rem; letter-spacing: -0.01em; margin: 0; }
+  header.masthead .kicker {
+    font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--copper-ink); font-weight: 600;
+  }
+  header.masthead .date { font-size: 0.78rem; color: var(--ink-dim); text-align: right; }
+
+  section { margin-bottom: 2.8rem; }
+
+  .rule-block {
+    background: var(--card-bg);
+    border: 1px solid var(--paper-line);
+    border-left: 3px solid var(--copper);
+    padding: 1.3rem 1.5rem;
+    box-shadow: var(--shadow);
+  }
+  .rule-block p { margin: 0.4rem 0; }
+  .rule-block .big {
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-size: 1.15rem; font-weight: 600;
+  }
+  .rule-block .derivation {
+    font-size: 0.85rem; color: var(--ink-dim);
+    margin-top: 0.7rem; padding-top: 0.7rem;
+    border-top: 1px dashed var(--paper-line);
+  }
+
+  h2.section-title {
+    font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--ink-dim);
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-weight: 600; margin: 0 0 0.9rem;
+    border-bottom: 1px solid var(--paper-line); padding-bottom: 0.5rem;
+  }
+
+  .duo {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 1rem;
+  }
+  .persona {
+    border: 1px solid var(--paper-line);
+    background: var(--card-bg);
+    padding: 1.1rem 1.2rem 1.3rem;
+  }
+  .persona.water { border-top: 3px solid var(--water); }
+  .persona.fire { border-top: 3px solid var(--fire); }
+  .persona.copper { border-top: 3px solid var(--copper); }
+  .persona.ash { border-top: 3px solid var(--ink-dim); }
+  .persona .role {
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-size: 1.15rem; font-weight: 600; margin: 0 0 0.15rem;
+  }
+  .persona.water .role { color: var(--water); }
+  .persona.fire .role { color: var(--fire); }
+  .persona.copper .role { color: var(--copper-ink); }
+  .persona.ash .role { color: var(--ink-dim); }
+  .persona .sub { font-size: 0.78rem; color: var(--ink-dim); margin-bottom: 0.9rem; }
+  .persona dl { margin: 0; font-size: 0.88rem; }
+  .persona dt {
+    color: var(--ink-dim); font-size: 0.72rem; letter-spacing: 0.05em;
+    text-transform: uppercase; margin-top: 0.7rem;
+  }
+  .persona dt:first-child { margin-top: 0; }
+  .persona dd { margin: 0.15rem 0 0; }
+
+  .drill { border: 1px solid var(--paper-line); background: var(--card-bg); box-shadow: var(--shadow); }
+  .drill-head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0.8rem 1.2rem; border-bottom: 1px solid var(--paper-line);
+    font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-dim);
+  }
+  .drill-head .score { font-size: 0.95rem; letter-spacing: 0; text-transform: none; color: var(--ink); }
+  .drill-body { padding: 1.6rem 1.5rem; }
+  .ticket {
+    display: grid; grid-template-columns: auto 1fr; gap: 0.4rem 1rem;
+    font-size: 0.95rem; margin-bottom: 1.4rem;
+  }
+  .ticket dt {
+    color: var(--ink-dim); font-size: 0.72rem; letter-spacing: 0.06em;
+    text-transform: uppercase; align-self: center;
+  }
+  .ticket dd { margin: 0; font-size: 1.15rem; font-weight: 600; }
+  .tone-up { color: var(--fire); }
+  .tone-down { color: var(--water); }
+  .tone-neutral { color: var(--copper-ink); }
+
+  .answers { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-bottom: 1.2rem; }
+  button.ans {
+    font: inherit; font-weight: 600; font-size: 0.95rem;
+    padding: 0.85rem 1rem; border: 1px solid var(--paper-line);
+    background: transparent; color: var(--ink); cursor: pointer; letter-spacing: 0.02em;
+  }
+  button.ans:hover:not(:disabled) { border-color: var(--copper); }
+  button.ans:focus-visible { outline: 2px solid var(--copper); outline-offset: 2px; }
+  button.ans:disabled { cursor: default; }
+  button.ans.correct { background: var(--water-soft); border-color: var(--water); color: var(--water); }
+  button.ans.wrong { background: var(--fire-soft); border-color: var(--fire); color: var(--fire); }
+
+  .feedback {
+    min-height: 3.6rem; font-size: 0.92rem; padding: 0.9rem 1rem;
+    background: var(--paper); border: 1px dashed var(--paper-line); margin-bottom: 1.1rem;
+  }
+  .feedback .verdict { font-weight: 700; }
+  .feedback.correct .verdict { color: var(--water); }
+  .feedback.wrong .verdict { color: var(--fire); }
+  .feedback.empty { color: var(--ink-dim); }
+
+  button.next {
+    font: inherit; font-size: 0.82rem; letter-spacing: 0.05em; text-transform: uppercase;
+    font-weight: 600; padding: 0.6rem 1.1rem; background: var(--ink); color: var(--paper);
+    border: none; cursor: pointer;
+  }
+  button.next:focus-visible { outline: 2px solid var(--copper); outline-offset: 2px; }
+  button.next:disabled { opacity: 0.35; cursor: default; }
+
+  table.cheat { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+  table.cheat th, table.cheat td {
+    text-align: left; padding: 0.55rem 0.6rem; border-bottom: 1px solid var(--paper-line); vertical-align: top;
+  }
+  table.cheat th {
+    font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-dim); font-weight: 600;
+  }
+  table.cheat td.mnem { font-weight: 600; white-space: nowrap; }
+
+  .footnote { font-size: 0.85rem; color: var(--ink-dim); border-top: 1px solid var(--paper-line); padding-top: 1.1rem; }
+  .footnote strong { color: var(--ink); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    button.ans.correct, button.ans.wrong { transition: background 0.15s ease, border-color 0.15s ease; }
+  }
+</style>
+
+<header class="masthead">
+  <div>
+    <div class="kicker" id="out-kicker"></div>
+    <h1 class="title" id="out-title"></h1>
+  </div>
+  <div class="date mono" id="out-tagline"></div>
+</header>
+
+<section><div class="rule-block" id="out-rule"></div></section>
+<section><h2 class="section-title">Personas</h2><div class="duo" id="out-personas"></div></section>
+
+<section>
+  <h2 class="section-title">The Drill</h2>
+  <div class="drill">
+    <div class="drill-head">
+      <span id="out-ticket-label">ticket</span>
+      <span class="score mono" id="score">0 / 0 · streak 0</span>
+    </div>
+    <div class="drill-body">
+      <dl class="ticket" id="out-ticket-fields"></dl>
+      <div class="answers" id="out-answers"></div>
+      <div class="feedback empty" id="feedback">Pick an answer for the ticket above.</div>
+      <button class="next" id="btn-next" type="button">Next ticket →</button>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title">Cheat Sheet</h2>
+  <table class="cheat">
+    <thead><tr><th>Mnemonic</th><th>Meaning</th></tr></thead>
+    <tbody id="out-cheat"></tbody>
+  </table>
+</section>
+
+<section id="sec-cheat2" style="display:none">
+  <h2 class="section-title" id="out-cheat2-title">Reference</h2>
+  <table class="cheat">
+    <thead><tr><th id="out-cheat2-col1">Term</th><th id="out-cheat2-col2">Meaning</th></tr></thead>
+    <tbody id="out-cheat2"></tbody>
+  </table>
+</section>
+
+<p class="footnote" id="out-footnote"></p>
+
+<script id="config">
+  /* ============================================================
+     EDIT ONLY THIS OBJECT FOR A NEW TOPIC.
+     ============================================================ */
+  const CONFIG = {
+    kicker: "Field Manual · No. 2",
+    title: "The Big Four",
+    tagline: "Greeks,\nby reflex",
+
+    rule: {
+      big: "Long/short alone sets gamma, theta, and vega. Delta is the only Greek that also cares whether you're a call or a put.",
+      sub: "Every position reduces to four dials — direction, convexity, time, and volatility — and three of the four only ask one question: long or short?",
+      derivation: "long options → gamma&gt;0, vega&gt;0, theta&lt;0 (you pay rent)<br>" +
+        "short options → gamma&lt;0, vega&lt;0, theta&gt;0 (you collect rent) · delta needs call/put too"
+    },
+
+    // Delta = odd one out (copper). Gamma = hot/convex (fire).
+    // Theta = decaying/muted (ash). Vega = atmospheric (water).
+    personas: [
+      {
+        tone: "copper",
+        role: "Delta — The Compass",
+        sub: "1st derivative w.r.t. price · the only Greek where call vs. put matters",
+        facts: [
+          ["Measures", "Δ option price per $1 move in the underlying"],
+          ["Range", "0 to 1 (calls) · −1 to 0 (puts)"],
+          ["Positive delta", "long call, short put"],
+          ["Negative delta", "long put, short call"]
+        ]
+      },
+      {
+        tone: "fire",
+        role: "Gamma — The Accelerant",
+        sub: "2nd derivative w.r.t. price · the rate of change of delta itself",
+        facts: [
+          ["Measures", "Δ delta per $1 move in the underlying"],
+          ["Sign rule", "long options = long gamma; short = short gamma"],
+          ["Peaks", "at-the-money, close to expiry"],
+          ["Trade-off", "rented with theta — see below"]
+        ]
+      },
+      {
+        tone: "ash",
+        role: "Theta — The Rent",
+        sub: "1st derivative w.r.t. time · the cost of holding gamma",
+        facts: [
+          ["Measures", "Δ option price per day that passes"],
+          ["Sign rule", "long options pay theta; short options collect it"],
+          ["Relationship", "always opposite sign to gamma, same position"],
+          ["Accelerates", "into expiry, at-the-money"]
+        ]
+      },
+      {
+        tone: "water",
+        role: "Vega — The Weatherman",
+        sub: "1st derivative w.r.t. implied vol · sensitivity to the market's forecast",
+        facts: [
+          ["Measures", "Δ option price per 1pt move in IV"],
+          ["Sign rule", "long options = long vega; short = short vega"],
+          ["Peaks", "at-the-money, longer-dated"],
+          ["Watch for", "vol crush after earnings or events"]
+        ]
+      }
+    ],
+
+    drill: {
+      ticketLabel: "greek check",
+      fields: [
+        { key: "greek", label: "Testing", tone: () => "tone-neutral" },
+        { key: "position", label: "Position", tone: () => "" },
+        { key: "event", label: "Event", tone: (s) => s.eventTone }
+      ],
+      answers: ["HELPS YOU (+P&L)", "HURTS YOU (−P&L)"],
+
+      generate: () => {
+        const POSITIONS = [
+          { label: "LONG CALL", delta: 1, gamma: 1, theta: -1, vega: 1 },
+          { label: "SHORT CALL", delta: -1, gamma: -1, theta: 1, vega: -1 },
+          { label: "LONG PUT", delta: -1, gamma: 1, theta: -1, vega: 1 },
+          { label: "SHORT PUT", delta: 1, gamma: -1, theta: 1, vega: -1 }
+        ];
+        const GREEKS = ["delta", "gamma", "theta", "vega"];
+        const position = POSITIONS[Math.floor(Math.random() * POSITIONS.length)];
+        const greek = GREEKS[Math.floor(Math.random() * GREEKS.length)];
+
+        let event, eventLabel, eventTone;
+        if (greek === "delta") {
+          event = Math.random() < 0.5;
+          eventLabel = event ? "▲ SPOT RISES" : "▼ SPOT FALLS";
+          eventTone = event ? "tone-up" : "tone-down";
+        } else if (greek === "gamma") {
+          event = Math.random() < 0.5;
+          eventLabel = event ? "BIG REALIZED MOVE" : "PINNED / NO MOVE";
+          eventTone = event ? "tone-up" : "tone-down";
+        } else if (greek === "theta") {
+          event = true;
+          eventLabel = "ONE DAY PASSES";
+          eventTone = "tone-neutral";
+        } else {
+          event = Math.random() < 0.5;
+          eventLabel = event ? "▲ IV RISES" : "▼ IV FALLS";
+          eventTone = event ? "tone-up" : "tone-down";
+        }
+        return { position, greek, event, eventLabel, eventTone };
+      },
+
+      render: (s) => ({
+        greek: s.greek.toUpperCase(),
+        position: s.position.label,
+        event: s.eventLabel
+      }),
+
+      judge: (s) => {
+        const p = s.position;
+        let sign, name;
+        if (s.greek === "delta") {
+          sign = p.delta * (s.event ? 1 : -1);
+          name = "Compass";
+        } else if (s.greek === "gamma") {
+          sign = p.gamma * (s.event ? 1 : -1);
+          name = "Accelerant";
+        } else if (s.greek === "theta") {
+          sign = p.theta;
+          name = "Rent";
+        } else {
+          sign = p.vega * (s.event ? 1 : -1);
+          name = "Weatherman";
+        }
+        const correctIndex = sign > 0 ? 0 : 1;
+        const why = `${p.label} — ${s.greek} (the ${name}) turns "${s.eventLabel}" into ${sign > 0 ? "a gain" : "a loss"}.`;
+        return { correctIndex, why };
+      }
+    },
+
+    cheat: [
+      ["Rent for gamma", "Theta and gamma are always opposite in sign for the same position — you pay theta to own gamma, and collect it when you're short."],
+      ["Long = long gamma & vega, short theta", "Being long any option, call or put, makes you long gamma, long vega, and short (paying) theta. Symmetric for short."],
+      ["Delta's the odd one out", "Only delta's sign depends on call vs. put. Gamma, theta, and vega only depend on long vs. short."],
+      ["ATM is Greek central", "Gamma, theta, and vega are all maximized at-the-money. Delta is most decisive far from the money (near 0 or ±1)."],
+      ["Gamma and vega trade off with time", "Gamma is largest with days left; vega is largest with months left — they pull in opposite directions across an option's life."]
+    ],
+
+    cheat2: {
+      title: "Beyond the Big Four",
+      columns: ["Greek", "Meaning"],
+      rows: [
+        ["Vanna", "∂delta/∂vol (= ∂vega/∂spot). How much your delta shifts when IV moves — drives dealer hedging flows around vol spikes."],
+        ["Charm", "∂delta/∂time. How much your delta decays overnight even with no price move — matters most into weekends and expiry."],
+        ["Volga / Vomma", "∂vega/∂vol. Convexity of vega itself — why long-vol positions (like straddles) gain extra from vol-of-vol."],
+        ["Veta", "∂vega/∂time. How vega itself erodes as time passes, independent of IV changing."],
+        ["Speed", "∂gamma/∂spot (3rd order). Rate of change of gamma — relevant when gamma itself is moving fast, e.g. near a pin."],
+        ["Color", "∂gamma/∂time (3rd order). How gamma decays day to day — why gamma scalping desks watch it into expiry week."],
+        ["Zomma", "∂gamma/∂vol (3rd order). How gamma responds to IV changes — thin edge case, rarely hedged directly."],
+        ["Ultima", "∂vomma/∂vol (3rd order). Sensitivity of vega convexity to vol itself — exotic-desk territory."]
+      ]
+    },
+
+    footnoteHTML: "<strong>Real-world wrinkle:</strong> vanna and charm are the two second-order Greeks that actually move markets — vanna-charm hedging flows around large IV moves and into monthly/quarterly expiries are a big part of the \"gamma exposure\" narrative you see in dealer-positioning commentary. Speed, color, zomma, and ultima are mostly textbook completeness: real desks track them, but they rarely change what you'd actually trade. Vanna and charm are strong candidates for their own drill next in this series."
+  };
+</script>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+
+  // ---- static chrome ----
+  $("out-kicker").textContent = CONFIG.kicker;
+  $("out-title").textContent = CONFIG.title;
+  $("out-tagline").innerHTML = CONFIG.tagline.replace("\n", "<br>");
+
+  // ---- rule block ----
+  {
+    const r = CONFIG.rule;
+    let html = `<p class="big">${r.big}</p><p>${r.sub}</p>`;
+    if (r.derivation) html += `<div class="derivation mono">${r.derivation}</div>`;
+    $("out-rule").innerHTML = html;
+  }
+
+  // ---- personas ----
+  {
+    const html = CONFIG.personas.map((p) => {
+      const facts = p.facts.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
+      return `<div class="persona ${p.tone}">
+        <p class="role">${p.role}</p>
+        <p class="sub">${p.sub}</p>
+        <dl>${facts}</dl>
+      </div>`;
+    }).join("");
+    $("out-personas").innerHTML = html;
+  }
+
+  // ---- cheat table ----
+  {
+    const rows = CONFIG.cheat.map(([m, meaning]) =>
+      `<tr><td class="mnem">${m}</td><td>${meaning}</td></tr>`
+    ).join("");
+    $("out-cheat").innerHTML = rows;
+  }
+
+  // ---- optional second reference table ----
+  if (CONFIG.cheat2) {
+    $("sec-cheat2").style.display = "";
+    $("out-cheat2-title").textContent = CONFIG.cheat2.title;
+    $("out-cheat2-col1").textContent = CONFIG.cheat2.columns[0];
+    $("out-cheat2-col2").textContent = CONFIG.cheat2.columns[1];
+    $("out-cheat2").innerHTML = CONFIG.cheat2.rows.map(([m, meaning]) =>
+      `<tr><td class="mnem">${m}</td><td>${meaning}</td></tr>`
+    ).join("");
+  }
+
+  // ---- footnote ----
+  $("out-footnote").innerHTML = CONFIG.footnoteHTML;
+
+  // ---- drill engine (generic — do not edit per topic) ----
+  const d = CONFIG.drill;
+  $("out-ticket-label").textContent = d.ticketLabel;
+
+  const ticketFieldsEl = $("out-ticket-fields");
+  const answersEl = $("out-answers");
+  const feedback = $("feedback");
+  const scoreEl = $("score");
+  const btnNext = $("btn-next");
+
+  let current = null;
+  let correctCount = 0, totalCount = 0, streak = 0;
+  let answered = false;
+  let answerButtons = [];
+
+  function renderTicket(scenario) {
+    const values = d.render(scenario);
+    ticketFieldsEl.innerHTML = d.fields.map((f) => {
+      const cls = "mono " + (f.tone ? f.tone(scenario) : "");
+      return `<dt>${f.label}</dt><dd class="${cls}">${values[f.key]}</dd>`;
+    }).join("");
+  }
+
+  function renderAnswers() {
+    answersEl.innerHTML = d.answers.map((label, i) =>
+      `<button class="ans" data-idx="${i}" type="button">${label}</button>`
+    ).join("");
+    answerButtons = Array.from(answersEl.querySelectorAll("button.ans"));
+    answerButtons.forEach((btn) => btn.addEventListener("click", () => answer(Number(btn.dataset.idx))));
+  }
+
+  function newTicket() {
+    current = d.generate();
+    renderTicket(current);
+    renderAnswers();
+    answered = false;
+    feedback.textContent = "Pick an answer for the ticket above.";
+    feedback.className = "feedback empty";
+    btnNext.disabled = true;
+  }
+
+  function answer(idx) {
+    if (answered || !current) return;
+    answered = true;
+    totalCount++;
+
+    const { correctIndex, why } = d.judge(current);
+    const isCorrect = idx === correctIndex;
+    if (isCorrect) { correctCount++; streak++; } else { streak = 0; }
+    scoreEl.textContent = correctCount + " / " + totalCount + " · streak " + streak;
+
+    answerButtons.forEach((btn, i) => {
+      btn.disabled = true;
+      if (i === correctIndex) btn.classList.add("correct");
+      else if (i === idx) btn.classList.add("wrong");
+    });
+
+    feedback.className = "feedback " + (isCorrect ? "correct" : "wrong");
+    feedback.innerHTML = '<span class="verdict">' + (isCorrect ? "Correct." : "Not quite.") +
+      "</span> " + why;
+
+    btnNext.disabled = false;
+  }
+
+  btnNext.addEventListener("click", newTicket);
+  newTicket();
+})();
+</script>
+
+</body></html>
