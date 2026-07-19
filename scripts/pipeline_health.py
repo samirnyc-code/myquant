@@ -135,7 +135,48 @@ def check_depth() -> dict:
         return _chk("L2 depth", IDLE, f"{mb:,.0f}MB - market {mkt}", mb=round(mb, 1))
     if age > 180:
         return _chk("L2 depth", BAD, f"STALLED {_fmt_age(age)} - data being lost", mb=round(mb, 1))
-    return _chk("L2 depth", OK, f"{mb:,.0f}MB, {_fmt_age(age)} ago", mb=round(mb, 1))
+
+    # A GROWING FILE IS NOT PROOF OF DEPTH. On 7/17 the recorder ran a full 7h session and
+    # wrote 922,703 rows that were 100% TRADES and zero book events - the subscription was
+    # missing and every size/freshness check looked perfectly healthy. So read the tail and
+    # confirm actual A/U/R book rows are arriving, not just tape.
+    book, tape = _tail_mix(files[-1])
+    if book + tape == 0:
+        return _chk("L2 depth", WARN, f"{mb:,.0f}MB, tail unreadable", mb=round(mb, 1))
+    if book == 0:
+        return _chk("L2 depth", BAD,
+                    f"TAPE ONLY - no book events in the last {tape:,} rows "
+                    f"(depth subscription down?)", mb=round(mb, 1), book=0, tape=tape)
+    pct = 100.0 * book / (book + tape)
+    return _chk("L2 depth", OK,
+                f"{mb:,.0f}MB, {_fmt_age(age)} ago, {pct:.0f}% book",
+                mb=round(mb, 1), book=book, tape=tape)
+
+
+def _tail_mix(path, nbytes: int = 60_000):
+    """(book_rows, tape_rows) in the last chunk of a depth CSV.
+
+    Reads only the tail so it stays cheap on a multi-GB file and reflects what is
+    happening NOW rather than what happened at the open.
+    """
+    try:
+        with open(path, "rb") as f:
+            f.seek(0, 2)
+            f.seek(max(0, f.tell() - nbytes))
+            chunk = f.read().decode("ascii", "ignore")
+        book = tape = 0
+        for line in chunk.splitlines()[1:-1]:      # drop partial first/last lines
+            parts = line.split(",", 2)
+            if len(parts) < 2:
+                continue
+            ev = parts[1]
+            if ev == "T":
+                tape += 1
+            elif ev in ("A", "U", "R"):
+                book += 1
+        return book, tape
+    except Exception:
+        return 0, 0
 
 
 def front_month(now: dt.datetime | None = None) -> str:

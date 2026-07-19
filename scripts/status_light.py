@@ -119,7 +119,15 @@ def probe() -> dict:
     tag = f"ES {contract.get('active', '??')}"
     if contract.get("state") == ph.BAD:
         tag = f"!! {tag}"
-    short = f"{tag} · {mb:,.0f}MB" if mb else f"{tag} · {h['market']}"
+    # Lead with BOOK activity, not file size: a growing file proves nothing (7/17 grew all
+    # day on tape alone with the depth subscription dead). "bk 78%" answers the only
+    # question that matters while recording - are L2 events actually arriving right now.
+    bk, tp = depth.get("book"), depth.get("tape")
+    if bk is not None and (bk or tp):
+        pct = 100.0 * bk / (bk + tp)
+        short = f"{tag} · {mb:,.0f}MB · bk {pct:.0f}%" if bk else f"{tag} · TAPE ONLY!"
+    else:
+        short = f"{tag} · {mb:,.0f}MB" if mb else f"{tag} · {h['market']}"
 
     bad = [c for c in h["checks"] if c["state"] in (ph.BAD, ph.WARN)]
     lines = [f"{c['name']}: {c['detail']}" for c in h["checks"]]
@@ -208,7 +216,7 @@ def run_widget(corner: str) -> None:
     root.overrideredirect(True)              # borderless
     root.attributes("-topmost", True)
     root.configure(bg="#0f172a")
-    W, H = 250, 26
+    W, H = 290, 26
 
     sw, sh = root.winfo_screenwidth(), root.winfo_screenheight()
     pos = st.get("pos")
