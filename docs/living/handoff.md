@@ -1,6 +1,93 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 19, 2026 (sessions 75Q + 75R + Setup Marker rebuild + 75T + 75U + S77 security hardening; merged S76 Mac swing-levels work)
+**Last Updated:** July 19, 2026 (sessions 75Q + 75R + Setup Marker rebuild + 75T + 75U + 75V recording pipeline + S77 security hardening; merged S76 Mac swing-levels work)
+
+---
+
+## S75V (2026-07-19) — L2 recording goes live, unattended NT8, evidence-based health (branch `s75-live-dashboard`)
+
+**Goal:** record ES order flow 24/7 for two weeks, unattended, and be able to see at a glance
+that it is working — so Samir can sit at charts next week instead of tinkering.
+
+**⭐ L2 DEPTH IS LIVE.** CME depth bought 7/19 and confirmed: SuperDOM shows a populated book
+and the 7/17 file gained 60 `A` rows at `Pos` up to **29 — 30 levels per side**, not 10.
+Before this, `ES_depth_2026-07-17.csv` held 922,703 rows that were **100% trades, zero book
+events** — proof the subscription had been missing all along.
+
+**RECORDERS (committed in `nt8/`, deployed to NT8, compiled clean):**
+- **`MarketDepthRecorder.cs` — NEW, a STRATEGY not an indicator.** Runs from Control Center
+  with no chart, so workspace switching or closing a chart can no longer stop the one dataset
+  that can never be re-collected. Appends (a restart cannot truncate the day). Never trades.
+  Stamps connection transitions (`C,D`/`C,C`) into the stream so a disconnect is visible in
+  the data and a post-reconnect burst of `A` rows is identifiable as a book RESYNC.
+- **`FootprintExporter.cs` — truncate-on-load FIXED.** It wiped its file on every chart
+  reload; on 7/19 a reload destroyed ~2/3 of the stored ladder (30,428 rows), recoverable only
+  from git. Now one date-stamped file per load, tagged by instrument **and bar series**
+  (`ES_6500V_footprint_<stamp>.csv`) so 1M/5M/6500V can record simultaneously.
+  `footprint_metrics.resolve_ladder_path(series=...)` picks one; files are never pooled
+  (BarIdx is CurrentBar and restarts at 0 per load).
+- **`MzValueExporter.cs` — NEW, never run.** Captures mzVolumeDelta (Delta/CumDelta/Buy/Sell)
+  and mzVolumeProfile (POC/VAH/VAL) as a **validation reference** while the MzPack trial lasts
+  (**expires ~2026-07-30**). All access via reflection so it cannot fail to compile.
+
+**KEY INSIGHT — the tape is a superset.** The recorder's `T` rows carry time/price/size/
+aggressor for every trade, so **any** footprint (1M, 5M, 6500V, range, tick) can be derived
+later from one recording. Chart-based footprint recording is probably retirable — to be proven
+by diffing tape-derived vs FootprintExporter vs a Tick-Replay rebuild.
+
+**UNATTENDED NT8:** `nt8_login.ps1` starts NT8, fills the `Welcome` window via UI Automation
+and verifies success by the **Control Center appearing** — verified twice end to end (~20s cold
+start → connected feed). Credentials stored DPAPI-encrypted via `nt8_cred_set.ps1` (gitignored,
+never plaintext). `nt8_launch.ps1` is the no-credential variant. `nt8_windows.py` (CTRL+ALT+N)
+shows/hides all NT8 windows together.
+
+**HEALTH / TRAFFIC LIGHT:**
+- `pipeline_health.py` — 9 evidence-based checks (depth, contract, footprint, NT8, tick DB,
+  IB 4002, options sim, disk, scheduled tasks). **Every check reads the artefact a process
+  produces and how fresh it is, never whether the process is alive** — today a login prompt, a
+  recompile-disabled strategy and a missing subscription would all have shown green.
+- `status_light.py` — always-on-top draggable strip, bottom-left, autostarts with Windows.
+  Label leads with the **contract being recorded** (`ES 09-26`), `!!` if not front month.
+- Mission Control `/health` — no-scroll drag-to-reorder grid with a fix hint per failing check.
+  The header's 7 educational buttons collapsed into one **Library** dropdown + a Health pill.
+
+**⚠️ SCHEDULED-TASK AUDIT — "6 failing" was ZERO real failures:** 3 were weekend runs with no
+market data · 1 was the dashboard server being terminated (267014, normal) · 1 was `eod_report`
+returning 1 **by design** when the desk had red steps (now exits 0 — the exit code answers "did
+the job run") · 1 was a transient Gamma Scanner error that does not reproduce. **All 22 tasks
+moved to Mon–Fri** (Data Catalog Scan left daily). All 23 definitions backed up to
+`data/_catalog/task_backup_20260719_all/`.
+
+**⚠️ DST BUG FIXED (silent, twice a year).** Tasks are scheduled in Berlin local assuming
+Berlin = CT+7, but the zones switch DST on different dates, so for ~3 weeks each March and ~1
+week each autumn the offset is +6 and **everything fires an hour late while Task Scheduler
+reports success**. Next window would have been **2026-10-25 → 10-31**. The 7 time-critical
+tasks now have two triggers an hour apart, wrapped in `run_at_ct.py --at <CT time>`: whichever
+lands on the real Chicago time runs, the other exits 0.
+
+**CORRECTED ON THE RECORD:** I claimed the options desk had been running on delayed/absent
+option prices, based on `Error 10090` in a sim-daemon log. **Wrong.** `trade_metrics.csv` for
+7/17 has 202 marks with **151 distinct spots, 85 distinct mids, spreads 0.10–0.15** updating
+every ~2 minutes — that is live OPRA, and `options_mark.py` requests `reqMarketDataType(1)`.
+My test also ran on a Sunday with the market shut. Desk P&L is not built on bad prices.
+
+**DISK:** deleted 4 flat-file caches (~79 GB) after proving redundancy — the parquet extract
+keeps only front-month ES with 3 columns (14.3% of rows), but ES vs MES minute closes match to
+**mean +0.002 pts, max 0.50**, so MES/MNQ add nothing for bars or price-path sim. 8,517 parquet
+files verified readable (1.1bn rows) before deleting. **248 GB free.**
+
+**⚠️ OPEN — put calendar stuck.** `put_cal_wk_20260714_1221` (short 7530P 7/14, long 7530P
+7/17) still shows OPEN at +$5,155. Both legs are expired; it is stuck in `partial_expiry` — the
+lifecycle handles the first expiry but not the last. Value frozen at Friday's mid (76.05)
+rather than settled at intrinsic (SPX 7457.95 → ~$4,755, ~$400 less).
+
+**OPEN / NEXT:** (1) verify tonight's ETH capture with `python scripts/depth_verify.py` — book
+rows landing + real data rate, so the 4x-uncertain disk estimate becomes a number. (2) Nightly
+CSV→parquet rollover in the 16:00–17:00 CT halt (NT8's own `db/replay` grows too; `.nrd` gzips
+3.0x). (3) Diff tape-derived footprint vs FootprintExporter vs Tick-Replay rebuild.
+(4) `MzValueExporter` has never run — check its log resolves both indicators. (5) Fix the
+partial_expiry lifecycle. (6) Extend the light: options sim armed + setups. (7) Auto-restart
+NT8 in the daily halt (memory leak over multi-day runs).
 
 ---
 
