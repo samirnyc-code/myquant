@@ -73,11 +73,22 @@ def bar_metrics(g):
     )
 
 
-def load_ladder():
-    """Load the raw ladder, deduped. The exporter APPENDS on every (re)run, so the same
-    session can be written multiple times; rows are full-row identical except a re-run's
-    final partial bar, where the LAST write is the complete one — keep='last'."""
-    d = pd.read_csv(CSV)
+def resolve_ladder_path():
+    """S75V: FootprintExporter now writes ONE date-stamped file per chart load
+    (ES_footprint_<yyyymmdd_HHMMSS>.csv) instead of truncating a single fixed file.
+    Default to the newest stamped file, falling back to the legacy fixed path so
+    older archives still load. Never pool stamped files here — BarIdx is chart-relative
+    and restarts at 0 per load, so merging them would fuse unrelated bars in groupby."""
+    stamped = sorted(CSV.parent.glob("ES_footprint_*.csv"))
+    return stamped[-1] if stamped else CSV
+
+
+def load_ladder(path=None):
+    """Load the raw ladder, deduped. Within one file a re-written final partial bar can
+    duplicate rows; the LAST write is the complete one — keep='last'."""
+    path = Path(path) if path else resolve_ladder_path()
+    print(f"ladder: {path.name}")
+    d = pd.read_csv(path)
     if "BarIdx" not in d.columns:
         raise SystemExit("CSV missing BarIdx — re-run the fixed FootprintExporter")
     n = len(d)

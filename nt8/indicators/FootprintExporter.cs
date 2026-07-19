@@ -49,6 +49,13 @@ namespace NinjaTrader.NinjaScript.Indicators
         private long curCum, curMin, curMax;
         private DateTime barStart, barEnd;
         private bool barSeeded;
+        private string stamp;                      // one per load -> one file set per load
+
+        // "ES_footprint" + "20260719_170000" -> "ES_footprint_20260719_170000.csv"
+        private static string Stamped(string baseName, string s)
+        {
+            return baseName + "_" + s + ".csv";
+        }
 
         protected override void OnStateChange()
         {
@@ -70,17 +77,33 @@ namespace NinjaTrader.NinjaScript.Indicators
             {
                 try
                 {
-                    Directory.CreateDirectory(Path.GetDirectoryName(ExportPath));
-                    // TRUNCATE on start (S75J bug: appending on every (re)run wrote the
-                    // ladder 3x — identical rows, volume/delta silently tripled). Each run
-                    // now produces a clean file; footprint_metrics.py dedupe stays as a
-                    // belt-and-braces guard.
-                    writer = new StreamWriter(ExportPath, false);
+                    string dir = Path.GetDirectoryName(ExportPath);
+                    Directory.CreateDirectory(dir);
+
+                    // ONE FILE PER LOAD, date-stamped (S75V).
+                    //
+                    // History: S75J appended on every (re)run -> the ladder was written 3x,
+                    // identical rows, volume/delta silently tripled. The fix was to TRUNCATE
+                    // on start, which killed the duplicates but made the file disposable:
+                    // every chart reload wiped it, so the archive only ever held the LAST
+                    // load's lookback. On 2026-07-19 a reload silently destroyed ~2/3 of the
+                    // stored history (30,428 ladder rows) — recoverable only from git.
+                    //
+                    // Now each load writes its OWN stamped file. Nothing is ever overwritten,
+                    // so no reload can destroy history, and BarIdx stays chart-relative WITHIN
+                    // a file (which is what footprint_metrics.py's groupby needs — BarIdx is
+                    // CurrentBar and restarts at 0 on every load, so it must never be pooled
+                    // across files; merge on BarTime instead).
+                    stamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                    string fpPath = Path.Combine(dir, Stamped("ES_footprint", stamp));
+                    string barsPath = Path.Combine(dir, Stamped("ES_bars", stamp));
+
+                    writer = new StreamWriter(fpPath, false);
                     writer.WriteLine("BarIdx,BarTime,Price,BidVol,AskVol,BidVolLarge,AskVolLarge");
-                    string barsPath = Path.Combine(Path.GetDirectoryName(ExportPath), "ES_bars.csv");
                     barsWriter = new StreamWriter(barsPath, false);
                     barsWriter.WriteLine(
                         "BarIdx,BarTime,Open,Close,High,Low,MinDelta,MaxDelta,Delta,DurationSec,DeltaRate,UnfHigh,UnfLow");
+                    Log("FootprintExporter -> " + fpPath, LogLevel.Information);
                 }
                 catch (Exception e) { Log("FootprintExporter open failed: " + e.Message, LogLevel.Error); }
             }
