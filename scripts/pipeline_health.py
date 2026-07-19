@@ -154,7 +154,8 @@ def check_footprint() -> dict:
     if not fp:
         legacy = FOOTPRINT_DIR / "ES_footprint.csv"
         if legacy.exists():
-            return _chk("Footprint", WARN, f"legacy file only, {_fmt_age(_age(legacy))} ago")
+            return _chk("Footprint", WARN if market_state() == "open" else IDLE,
+                        f"legacy file only, {_fmt_age(_age(legacy))} ago")
         return _chk("Footprint", IDLE, "no stamped file yet")
     newest = fp[-1]
     age = _age(newest)
@@ -221,15 +222,21 @@ def check_ib_gateway() -> dict:
 
 
 def check_options_sim() -> dict:
+    """The desk's live feed. Only meaningful while the market is open: the spot feed
+    stops at the close by design, so a stale live.json on a Sunday is correct behaviour,
+    not a fault. Reporting it as WARN made half the timeline amber for no reason."""
     live = ROOT / "data" / "options_sim" / "live.json"
+    mkt = market_state()
     if not live.exists():
-        return _chk("Options sim", WARN, "live.json missing")
+        return _chk("Options sim", WARN if mkt == "open" else IDLE, "live.json missing")
     age = _age(live)
     try:
         d = json.loads(live.read_text())
         n = len(d.get("positions", d)) if isinstance(d, (dict, list)) else 0
     except Exception:
         n = 0
+    if mkt != "open":
+        return _chk("Options sim", IDLE, f"market {mkt} - feed idle ({_fmt_age(age)})")
     if age > 3600:
         return _chk("Options sim", WARN, f"live.json stale {_fmt_age(age)}")
     return _chk("Options sim", OK, f"{n} position(s), {_fmt_age(age)} ago")
