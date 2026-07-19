@@ -17,3 +17,8 @@
 2026-07-17 11:23:06	⚠ OPTIONS DESK — DAEMON DOWN	DAEMON: NOT running
 2026-07-17 15:40:02	✓ Options desk healthy	FEED spx 7441.4 @ 08:39:59 (3s old) · LEVELS CR 7600.0 PS0 7520.0 · src 2026-07-16T20:00 · GAMEPLAN 7 triggers armed
 2026-07-17 22:20:04	⚠ Options desk — attention needed	7/8 steps green · 0 fired · 1 NEED ATTENTION
+2026-07-19 17:58:58	⚠ Options desk — attention needed	2/8 steps green · 0 fired · 6 NEED ATTENTION
+2026-07-19 18:00:26	⚠ Options desk — attention needed	3/8 steps green · 0 fired · 5 NEED ATTENTION
+2026-07-19 18:23:57	⚠ OPTIONS DESK — FEED, DAEMON DOWN	FEED: state=closed · DAEMON: NOT running
+2026-07-19 18:24:00	⚠ Options desk — attention needed	7/8 steps green · 0 fired · 1 NEED ATTENTION
+2026-07-19 18:55:47	⚠ OPTIONS DESK — FEED, LEVELS, DAEMON DOWN	FEED: state=closed · LEVELS: CR 7700.0 PS0 7490.0 · src 2026-07-17T20:00 STALE-SOURCE · DAEMON: NOT running

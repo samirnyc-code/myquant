@@ -8,3 +8,5 @@ ts_et,msg,detail
 2026-07-18 09:32:20,levels loaded,"{""cr"": 7800.0, ""cr0"": 7580.0, ""ps0"": 7470.0, ""ps"": 7470.0, ""hvl"": 7575.0}"
 2026-07-18 09:32:20,engine armed,"{""rules"": [[""lvlfade_cr_ES"", 7800.0], [""lvlfade_cr0_ES"", 7580.0], [""lvlfade_ps0_ES"", 7470.0]]}"
 2026-07-18 16:00:01,engine done,"{""states"": {""lvlfade_cr_ES"": ""armed"", ""lvlfade_cr0_ES"": ""armed"", ""lvlfade_ps0_ES"": ""armed""}}"
+2026-07-19 09:32:19,levels loaded,"{""cr"": 7800.0, ""cr0"": 7580.0, ""ps0"": 7470.0, ""ps"": 7470.0, ""hvl"": 7575.0}"
+2026-07-19 09:32:19,engine armed,"{""rules"": [[""lvlfade_cr_ES"", 7800.0], [""lvlfade_cr0_ES"", 7580.0], [""lvlfade_ps0_ES"", 7470.0]]}"
