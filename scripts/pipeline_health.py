@@ -288,8 +288,13 @@ def _check_tasks_uncached() -> dict:
     note = f" ({weekend} stale weekend)" if weekend else ""
     if not bad:
         return _chk("Scheduled tasks", OK, f"{len(rows)} tasks, all clean{note}")
-    return _chk("Scheduled tasks", WARN,
-                f"{len(bad)} failing{note}: " + ", ".join(b[8:] for b in bad[:4]), failing=bad)
+    # While the market is shut, a stale weekday failure is history, not a live problem, and
+    # nothing is due to run - so report it without lighting the board amber all weekend.
+    state = WARN if market_state() == "open" else OK
+    suffix = "" if state == WARN else " (market shut - recheck at the open)"
+    return _chk("Scheduled tasks", state,
+                f"{len(bad)} failing{note}: " + ", ".join(b[8:] for b in bad[:4]) + suffix,
+                failing=bad)
 
 
 CHECKS = [check_depth, check_contract, check_footprint, check_nt8, check_tick_db,

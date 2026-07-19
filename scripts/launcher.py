@@ -326,6 +326,13 @@ def _timeline():
                             st = "ok"
                         elif t["day"] in (0, 6):
                             st = "idle"          # stale weekend result, not a failure
+                        elif h["market"] == "closed":
+                            # A weekday failure is real, but while the market is SHUT nothing
+                            # is wrong right now and the job is not due - so do not light the
+                            # board amber all weekend. The detail still carries the failure and
+                            # it goes amber again the moment the market reopens.
+                            st = "ok"
+                            detail += "  (last weekday run failed - recheck at the open)"
                         else:
                             st = "warn"
                 rows.append(dict(pr, state=st, detail=detail,
