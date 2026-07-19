@@ -292,6 +292,12 @@ def _mem_map(pids):
 
 
 
+def _artifacts_html():
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import artifacts_page
+    return artifacts_page.HTML
+
+
 def _timeline_html():
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     import timeline_page
@@ -327,6 +333,40 @@ def _pause_task(task_name, pause):
                 "error": None if ok else (r.stderr or "")[:200]}
     except Exception as e:
         return {"ok": False, "task": task_name, "state": "?", "error": f"{type(e).__name__}: {e}"}
+
+
+
+ARTIFACT_DIR = ROOT / "docs" / "artifacts"
+
+
+def _artifact_files():
+    """Locally-backed-up Claude artifacts, newest first.
+
+    The claude_artifacts.json snapshot only ever held titles and URLs - the pages
+    themselves lived on claude.ai and nothing was in the repo. These are the real
+    backups: readable with no account, no network, and versioned in git.
+    """
+    if not ARTIFACT_DIR.exists():
+        return []
+    meta = {}
+    try:
+        raw = json.loads((ROOT / "data" / "_catalog" / "claude_artifacts.json").read_text(encoding="utf-8"))
+        items = raw if isinstance(raw, list) else raw.get("artifacts", raw.get("items", []))
+        import re as _re
+        for a in items:
+            slug = _re.sub(r"[^a-zA-Z0-9]+", "_", a.get("title", "")).strip("_").lower()[:48]
+            meta[slug] = a
+    except Exception:
+        pass
+    out = []
+    for f in sorted(ARTIFACT_DIR.glob("*.html")):
+        st = f.stat()
+        m = meta.get(f.stem, {})
+        out.append({"slug": f.stem, "title": m.get("title") or f.stem.replace("_", " "),
+                    "kb": round(st.st_size / 1024, 1), "url": m.get("url", ""),
+                    "group": m.get("group", ""), "info": (m.get("info") or "")[:400],
+                    "saved": dt.datetime.fromtimestamp(st.st_mtime).strftime("%Y-%m-%d %H:%M")})
+    return sorted(out, key=lambda x: x["title"].lower())
 
 
 def _timeline():
@@ -682,6 +722,18 @@ class Handler(BaseHTTPRequestHandler):
             import urllib.parse
             name = urllib.parse.unquote(p.split("/", 2)[2])
             return self._send(json.dumps(_pause_task(name, p.startswith("/pause/"))))
+        if p == "/artifacts":
+            return self._send(_artifacts_html(), "text/html; charset=utf-8")
+        if p == "/artifacts_local.json":
+            return self._send(json.dumps(_artifact_files()))
+        if p.startswith("/artifact/"):
+            slug = p[len("/artifact/"):]
+            f = ARTIFACT_DIR / (slug + ".html")
+            # never let a crafted slug walk out of the artifacts directory
+            if ".." in slug or "/" in slug or "\\" in slug or not f.exists():
+                return self._send("<h1>404</h1>", "text/html; charset=utf-8", 404)
+            return self._send(f.read_text(encoding="utf-8", errors="replace"),
+                              "text/html; charset=utf-8")
         if p == "/timeline.json":
             return self._send(json.dumps(_timeline()))
         if p == "/timeline":
@@ -963,6 +1015,7 @@ pre{background:var(--chip);border-radius:7px;padding:8px 10px;font-size:11px;ove
       <a href="/mqmethod" target="_blank" rel="noopener" title="MenthorQ Method — framework from 7 Academy videos, every claim tested">🔬 MQ Method</a>
       <a href="/gexlab" target="_blank" rel="noopener" title="S75Q — do MenthorQ gamma levels help the Brooks method?">🧪 GEX Lab</a>
       <a href="/flowlab" target="_blank" rel="noopener" title="S75R — ES 1M order-flow reading, bar by bar">🕯 Flow Lab</a>
+      <a href="/artifacts" target="_blank" rel="noopener" title="Local backups of every Claude artifact - readable offline">🗂 Artifact Library</a>
       <a href="/catalog" target="_blank" rel="noopener" title="Data Catalog — every dataset, where it lives, how fresh it is">🗄 Data Catalog</a>
     </div>
   </div>

@@ -1,0 +1,282 @@
+<title>MentorQ Backtest — Handoff to PC</title>
+<style>
+  :root {
+    --paper: #FBFAF7;
+    --ink: #20242A;
+    --muted: #6B7280;
+    --line: #E4E2DB;
+    --green: #0E8A63;
+    --red: #C2453E;
+    --card: #F3F1EB;
+    --code-bg: #EEECE5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #191C21;
+      --ink: #E8E6E1;
+      --muted: #9AA1AC;
+      --line: #33383F;
+      --green: #3DBA92;
+      --red: #E06B64;
+      --card: #21252C;
+      --code-bg: #262B33;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #191C21;
+    --ink: #E8E6E1;
+    --muted: #9AA1AC;
+    --line: #33383F;
+    --green: #3DBA92;
+    --red: #E06B64;
+    --card: #21252C;
+    --code-bg: #262B33;
+  }
+  :root[data-theme="light"] {
+    --paper: #FBFAF7;
+    --ink: #20242A;
+    --muted: #6B7280;
+    --line: #E4E2DB;
+    --green: #0E8A63;
+    --red: #C2453E;
+    --card: #F3F1EB;
+    --code-bg: #EEECE5;
+  }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: Charter, Georgia, 'Times New Roman', serif;
+    font-size: 1.0625rem;
+    line-height: 1.62;
+    margin: 0;
+    padding: 3rem 1.25rem 5rem;
+  }
+  main { max-width: 68ch; margin: 0 auto; }
+
+  h1, h2, h3, .eyebrow, th, .tag {
+    font-family: 'Avenir Next', Avenir, 'Segoe UI', system-ui, sans-serif;
+  }
+  h1 {
+    font-size: 1.75rem;
+    font-weight: 600;
+    line-height: 1.25;
+    text-wrap: balance;
+    margin: 0.4rem 0 0.5rem;
+  }
+  .subtitle { color: var(--muted); font-size: 0.95rem; margin: 0 0 2.5rem; }
+
+  .eyebrow {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin: 3rem 0 0.35rem;
+  }
+  h2 {
+    font-size: 1.28rem;
+    font-weight: 600;
+    margin: 0 0 0.75rem;
+    text-wrap: balance;
+  }
+  h3 { font-size: 1.02rem; font-weight: 600; margin: 1.6rem 0 0.4rem; }
+
+  p { margin: 0 0 1rem; }
+  ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+  li { margin-bottom: 0.45rem; }
+  strong { font-weight: 600; }
+
+  code, pre, .num {
+    font-family: 'SF Mono', ui-monospace, Menlo, Consolas, monospace;
+  }
+  code {
+    background: var(--code-bg);
+    border-radius: 4px;
+    padding: 0.1em 0.35em;
+    font-size: 0.86em;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 1rem 1.1rem;
+    font-size: 0.82rem;
+    line-height: 1.55;
+    overflow-x: auto;
+    margin: 0 0 1rem;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; }
+
+  .tablewrap { overflow-x: auto; margin: 0 0 1rem; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.92rem;
+    font-variant-numeric: tabular-nums;
+  }
+  th {
+    text-align: left;
+    font-size: 0.76rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1.5px solid var(--ink);
+    padding: 0.4rem 0.9rem 0.4rem 0;
+  }
+  td { border-bottom: 1px solid var(--line); padding: 0.45rem 0.9rem 0.45rem 0; }
+  td.num, th.num { text-align: right; padding-right: 0; }
+  tr.total td { font-weight: 600; border-bottom: none; border-top: 1.5px solid var(--ink); }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 1.1rem 1.3rem;
+    margin: 0 0 1rem;
+  }
+  .card p:last-child, .card ul:last-child { margin-bottom: 0; }
+
+  .qa dt {
+    font-family: 'Avenir Next', Avenir, 'Segoe UI', system-ui, sans-serif;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--red);
+    margin-top: 1rem;
+  }
+  .qa dd { margin: 0.25rem 0 0 0; }
+
+  .check { color: var(--green); font-weight: 600; }
+  hr { border: none; border-top: 1px solid var(--line); margin: 3rem 0; }
+  .footnote { color: var(--muted); font-size: 0.88rem; }
+</style>
+
+<main>
+  <span class="eyebrow" style="margin-top:0">Handoff · Mac session → PC · 2026-07-10</span>
+  <h1>MentorQ Gamma-Level Backtest — Analysis &amp; Questions for Fabio</h1>
+  <p class="subtitle">Everything from the Mac Claude Code session, portable. Paste the bootstrap block at the bottom into Claude Code on the PC to continue.</p>
+
+  <span class="eyebrow">1 · Context</span>
+  <h2>What this is about</h2>
+  <p>MentorQ publishes intraday gamma levels for ES futures with a "Backtest" panel showing, per level, a <strong>Regime Hold Rate</strong> (e.g. 1D Max: 89.07%, "348 positive outcomes over the past 3 years"), plus sub-stats under "Broke During Day" (comeback rate 43%, avg move +22.01, worst +108.70) and "Broke At Close" (10.9%, median +19.74, avg +23.29, worst +86.53). Levels on 2026-07-10: 1D Max 7602.02 (89.1%), Call Res. 0DTE (72.9%), Call Res. (89.8%), Put Support (98.6%), Put Sup. 0DTE (87.2%), 1D Min 7482.54 (91.3%).</p>
+  <p>Only <em>today's</em> backtest is visible — no history. So the plan is (a) ask Fabio the methodology questions below, and (b) log the panel daily to build an independent record and check calibration.</p>
+
+  <span class="eyebrow">2 · The decomposition</span>
+  <h2>What the panel numbers imply (1D Max, 2026-07-10)</h2>
+  <p>From hold rate <span class="num">H</span>, positive count <span class="num">P</span>, broke-at-close <span class="num">Bc</span>, comeback rate <span class="num">Cr</span>:</p>
+  <pre><code>N (total days)  = P / H                       = 348 / 0.8907 ≈ 391
+closed beyond   = N × Bc                      = 391 × 0.109  ≈ 43
+comeback days   = closed_beyond × Cr/(1−Cr)   = 43 × 0.43/0.57 ≈ 32
+broke intraday  = comeback + closed_beyond    = 75
+never reached   = N − broke_intraday          = 316</code></pre>
+  <div class="tablewrap">
+    <table>
+      <tr><th>Outcome</th><th class="num">Days</th><th class="num">% of regime days</th></tr>
+      <tr><td>Never reached</td><td class="num">316</td><td class="num">80.8%</td></tr>
+      <tr><td>Broke intraday, closed back inside (comeback)</td><td class="num">32</td><td class="num">8.2%</td></tr>
+      <tr><td>Closed beyond the level</td><td class="num">43</td><td class="num">11.0%</td></tr>
+      <tr class="total"><td>Total sample</td><td class="num">391</td><td class="num">100%</td></tr>
+    </table>
+  </div>
+  <p><span class="check">Self-check passes:</span> never-reached + comeback = 316 + 32 = 348 = the displayed "positive outcomes." The headline 89% "hold" therefore mixes two very different things: days the level was never touched (~81%) and days it was touched but recovered (~8%).</p>
+  <p class="footnote">Rests on two assumptions to confirm: "comeback rate" = comebacks ÷ intraday-breaks, and "broke" = any intraday pierce. Questions A1–A2 below pin these down.</p>
+
+  <span class="eyebrow">3 · Questions for Fabio</span>
+  <h2>Categorized, logically progressing</h2>
+
+  <h3>A. What the numbers actually count (definitions)</h3>
+  <ol>
+    <li>"Broke during the day" — any intraday <strong>touch</strong>, a <strong>one-tick pierce</strong>, or a <strong>minimum distance</strong> beyond the level?</li>
+    <li>"Comeback rate 43%" — denominator = days that <strong>broke intraday</strong>, or <strong>all regime days</strong>?</li>
+    <li>"Broke at close 10.9%" — share of <strong>all regime days</strong>, or only of days that broke intraday?</li>
+    <li>"348 positive outcomes" = closed back inside — does that include days the level was <strong>never reached</strong>, or only reached-and-held days?</li>
+  </ol>
+
+  <h3>B. Sample and denominator</h3>
+  <ol start="5">
+    <li>348 at 89.07% implies ≈<strong>391 qualifying days</strong> — is that the denominator?</li>
+    <li>How many of those days did price <strong>never reach the level</strong>? (Estimate: ~316, ≈81%.) Does the model track never-reached?</li>
+    <li>Is the 3-year window <strong>rolling</strong>? Does the positive-outcome count change day to day?</li>
+  </ol>
+
+  <h3>C. Regime (the core question)</h3>
+  <ol start="8">
+    <li>How is <strong>regime defined</strong> — gamma positioning only, or also volatility, trend, dealer positioning, HVL…?</li>
+    <li>How many historical days qualify as <strong>today's regime</strong> before the level-specific filter?</li>
+    <li>Can subscribers see <strong>which regime today is classified as</strong>, even without the algorithm?</li>
+  </ol>
+
+  <h3>D. Timing and updates</h3>
+  <ol start="11">
+    <li>When are the stats generated — after the prior close, or pre-open?</li>
+    <li>Do they <strong>update intraday</strong> as gamma levels move (Live tier)? How often?</li>
+    <li>Do 20-minute-delayed subscribers see <strong>delayed stats</strong> too?</li>
+  </ol>
+
+  <h3>E. Bias and validation</h3>
+  <ol start="14">
+    <li>Is regime classified using <strong>only pre-open information</strong>, or can intraday/after-the-fact data enter it? (look-ahead)</li>
+    <li>Are the probabilities <strong>out-of-sample</strong>, or an in-sample fit over the 3 years?</li>
+  </ol>
+
+  <h3>F. Transparency and access</h3>
+  <ol start="16">
+    <li>Why is only <strong>today's</strong> backtest visible? Can historical backtests be exposed?</li>
+    <li>Could the outcome count link to the <strong>underlying dated occurrences</strong> (date / regime / level / result) so users can verify?</li>
+  </ol>
+
+  <div class="card">
+    <p><strong>If sending a first message, lead with six:</strong> A1 (what counts as "broke"), A2 (comeback denominator), B5 (total sample), C8 (regime definition), D11–12 (when computed / intraday updates), F16 (historical access). The rest follow naturally from his answers.</p>
+  </div>
+
+  <span class="eyebrow">4 · Comebacks</span>
+  <h2>If he deflects</h2>
+  <dl class="qa">
+    <dt>"It's proprietary."</dt>
+    <dd>I'm not asking for the formula — just the <strong>inputs</strong> and the <strong>denominator</strong>. That's methodology, not IP; every legitimate backtest states its universe and counting rule.</dd>
+    <dt>"Too technical / complicated."</dt>
+    <dd>Then just one number: how many total historical days is today's 89% computed from? A percentage with no sample size isn't interpretable.</dd>
+    <dt>"You don't need to know that."</dt>
+    <dd>I'm sizing positions on these probabilities. Whether 89% comes from 40 days or 400 — and whether it's conditional on the level being reached — materially changes the bet.</dd>
+    <dt>"Technical issues / can't show history."</dt>
+    <dd>Understood — then a CSV export of the dated occurrences behind one level? Or confirm I'm free to log them myself daily.</dd>
+    <dt>Full stonewall.</dt>
+    <dd>No problem — I'll keep my own daily record and check the calibration over a few months. (Polite signal that verification happens either way.)</dd>
+  </dl>
+
+  <span class="eyebrow">5 · Independent tracker</span>
+  <h2>Files already created on the Mac</h2>
+  <p>In <code>~/gamma-tracker/</code>:</p>
+  <ul>
+    <li><code>daily_log_template.csv</code> — one row per level per day; morning columns from the panel, evening columns after the close (touched / broke / max excursion / closed beyond / held). Pre-seeded with the 2026-07-10 values.</li>
+    <li><code>schema.sql</code> — SQLite table + <code>v_decomposition</code> view that back-outs never-reached / comeback / closed-beyond from the four panel numbers.</li>
+    <li><code>README.md</code> — the daily routine and the decomposition formulas with the worked example.</li>
+  </ul>
+  <p class="footnote">Key habit: record the positive-outcome count <em>every day</em>. If it drifts (348 → 351 → 349), that reveals whether the window is rolling and whether the regime filter changes daily — methodology inferred without their code.</p>
+
+  <span class="eyebrow">6 · Open task on the PC</span>
+  <h2>Check the downloaded options data for 0DTE</h2>
+  <p>The options data downloaded 2026-07-09 lives on the PC (not on the Mac — verified). To check whether it includes 0DTE: filter rows where <strong>expiration date = trade date</strong>. If expirations are only weekly/monthly dates, there's no same-day-expiry data.</p>
+
+  <span class="eyebrow">7 · Bootstrap</span>
+  <h2>Paste into Claude Code on the PC</h2>
+  <pre><code>Context from my Mac session (full handoff doc is a claude.ai artifact
+"MentorQ Backtest — Handoff to PC"):
+
+I'm analyzing MentorQ's gamma-level backtest panel for ES futures.
+Established so far: the panel's 89.07% "Regime Hold Rate" for 1D Max
+(348 positive outcomes / ~391 regime days over 3y) decomposes into
+~81% never-reached, ~8% broke-and-came-back, ~11% closed beyond —
+self-check: 316 + 32 = 348 ✓. I have a categorized question list for
+the vendor (Fabio) and a daily logging tracker on the Mac
+(~/gamma-tracker/: CSV template + SQLite schema).
+
+Task now: I downloaded options data on 2026-07-09 to this PC.
+Find it and check whether it contains 0DTE data — i.e. rows where
+the option's expiration date equals the trade date. Report which
+expiries are present and the row counts per expiry.</code></pre>
+</main>
+
+</body></html>
