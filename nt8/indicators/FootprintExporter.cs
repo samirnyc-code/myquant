@@ -51,10 +51,30 @@ namespace NinjaTrader.NinjaScript.Indicators
         private bool barSeeded;
         private string stamp;                      // one per load -> one file set per load
 
-        // "ES_footprint" + "20260719_170000" -> "ES_footprint_20260719_170000.csv"
-        private static string Stamped(string baseName, string s)
+        // Several instances of this indicator run AT ONCE (1Min / 5Min / 6500V charts on the
+        // same instrument), so the filename must identify the SERIES, not just the time --
+        // otherwise two charts loading in the same second open the same path and clobber each
+        // other. -> ES_5Min_footprint_20260719_170000.csv
+        private string Stamped(string kind)
         {
-            return baseName + "_" + s + ".csv";
+            return string.Format("{0}_{1}_{2}_{3}.csv",
+                Instrument.MasterInstrument.Name, PeriodTag(), kind, stamp);
+        }
+
+        // 1Min / 5Min / 6500V / 4000T / 12R -- short, filename-safe, unambiguous
+        private string PeriodTag()
+        {
+            int v = BarsPeriod.Value;
+            switch (BarsPeriod.BarsPeriodType)
+            {
+                case BarsPeriodType.Minute: return v + "Min";
+                case BarsPeriodType.Volume: return v + "V";
+                case BarsPeriodType.Tick:   return v + "T";
+                case BarsPeriodType.Range:  return v + "R";
+                case BarsPeriodType.Second: return v + "S";
+                case BarsPeriodType.Day:    return v + "D";
+                default:                    return BarsPeriod.BarsPeriodType + "" + v;
+            }
         }
 
         protected override void OnStateChange()
@@ -95,8 +115,8 @@ namespace NinjaTrader.NinjaScript.Indicators
                     // CurrentBar and restarts at 0 on every load, so it must never be pooled
                     // across files; merge on BarTime instead).
                     stamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-                    string fpPath = Path.Combine(dir, Stamped("ES_footprint", stamp));
-                    string barsPath = Path.Combine(dir, Stamped("ES_bars", stamp));
+                    string fpPath = Path.Combine(dir, Stamped("footprint"));
+                    string barsPath = Path.Combine(dir, Stamped("bars"));
 
                     writer = new StreamWriter(fpPath, false);
                     writer.WriteLine("BarIdx,BarTime,Price,BidVol,AskVol,BidVolLarge,AskVolLarge");

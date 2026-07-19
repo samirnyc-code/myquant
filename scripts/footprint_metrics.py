@@ -73,13 +73,17 @@ def bar_metrics(g):
     )
 
 
-def resolve_ladder_path():
-    """S75V: FootprintExporter now writes ONE date-stamped file per chart load
-    (ES_footprint_<yyyymmdd_HHMMSS>.csv) instead of truncating a single fixed file.
-    Default to the newest stamped file, falling back to the legacy fixed path so
-    older archives still load. Never pool stamped files here — BarIdx is chart-relative
-    and restarts at 0 per load, so merging them would fuse unrelated bars in groupby."""
-    stamped = sorted(CSV.parent.glob("ES_footprint_*.csv"))
+def resolve_ladder_path(series=None):
+    """S75V: FootprintExporter now writes ONE date-stamped file per chart load, tagged with
+    the bar series so 1Min/5Min/6500V charts can record simultaneously without colliding:
+        ES_5Min_footprint_20260719_170000.csv
+    Default to the newest file; pass series="5Min" (or "6500V", ...) to pick a chart.
+    Never pool files here — BarIdx is CurrentBar and restarts at 0 on every load, so
+    concatenating would fuse unrelated bars inside the groupby."""
+    pat = f"*_{series}_footprint_*.csv" if series else "*_footprint_*.csv"
+    stamped = sorted(CSV.parent.glob(pat))
+    if not stamped and series:
+        raise SystemExit(f"no footprint file for series {series!r} in {CSV.parent}")
     return stamped[-1] if stamped else CSV
 
 
