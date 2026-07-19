@@ -81,7 +81,7 @@ def resolve_ladder_path(series=None):
     Never pool files here — BarIdx is CurrentBar and restarts at 0 on every load, so
     concatenating would fuse unrelated bars inside the groupby."""
     pat = f"*_{series}_footprint_*.csv" if series else "*_footprint_*.csv"  # contract-prefixed
-    stamped = sorted(CSV.parent.glob(pat))
+    stamped = sorted(CSV.parent.glob(pat), key=lambda x: x.stat().st_mtime)  # newest by mtime, not name
     if not stamped and series:
         raise SystemExit(f"no footprint file for series {series!r} in {CSV.parent}")
     return stamped[-1] if stamped else CSV

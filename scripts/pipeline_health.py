@@ -213,7 +213,7 @@ def check_contract() -> dict:
 
 
 def check_footprint() -> dict:
-    fp = sorted(FOOTPRINT_DIR.glob("*_footprint_*.csv"))
+    fp = sorted(FOOTPRINT_DIR.glob("*_footprint_*.csv"), key=lambda x: x.stat().st_mtime)
     if not fp:
         legacy = FOOTPRINT_DIR / "ES_footprint.csv"
         if legacy.exists():
@@ -271,15 +271,32 @@ def check_tick_db() -> dict:
                 f"{newest_dir.name}, {len(files)} files, {_fmt_age(age)} ago")
 
 
+def _desk_hours() -> bool:
+    """The options desk runs ~08:00-15:00 CT on trading days. Outside that (overnight ETH,
+    weekends, holidays) the gateway/feed/sim are SUPPOSED to be down - flagging them then
+    is a false alarm, the same trap as the weekend one."""
+    now = chicago_now()
+    try:
+        import market_calendar as mc
+        if mc.day_type(now.date())[0] in ("weekend", "holiday"):
+            return False
+    except Exception:
+        if now.weekday() >= 5:
+            return False
+    return dt.time(8, 0) <= now.time() <= dt.time(15, 15)
+
+
 def check_ib_gateway() -> dict:
-    """Login != API port. Port 4002 answering is the only proof (S75 incident)."""
+    """Login != API port. Port 4002 answering is the only proof (S75 incident).
+    Only meaningful during desk hours - overnight the gateway is intentionally down."""
     s = socket.socket()
     s.settimeout(1.5)
     try:
         s.connect(("127.0.0.1", 4002))
         return _chk("IB gateway", OK, "port 4002 answering")
     except Exception:
-        return _chk("IB gateway", WARN, "port 4002 not answering")
+        return _chk("IB gateway", WARN if _desk_hours() else IDLE,
+                    "port 4002 not answering" + ("" if _desk_hours() else " (desk closed)"))
     finally:
         s.close()
 
@@ -298,8 +315,8 @@ def check_options_sim() -> dict:
         n = len(d.get("positions", d)) if isinstance(d, (dict, list)) else 0
     except Exception:
         n = 0
-    if mkt != "open":
-        return _chk("Options sim", IDLE, f"market {mkt} - feed idle ({_fmt_age(age)})")
+    if mkt != "open" or not _desk_hours():
+        return _chk("Options sim", IDLE, f"desk closed - feed idle ({_fmt_age(age)})")
     if age > 3600:
         return _chk("Options sim", WARN, f"live.json stale {_fmt_age(age)}")
     return _chk("Options sim", OK, f"{n} position(s), {_fmt_age(age)} ago")
