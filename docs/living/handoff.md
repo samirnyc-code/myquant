@@ -1,6 +1,65 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 19, 2026 (sessions 75Q + 75R + Setup Marker rebuild + 75T + 75U; merged S76 Mac swing-levels work)
+**Last Updated:** July 19, 2026 (sessions 75Q + 75R + Setup Marker rebuild + 75T + 75U + S77 security hardening; merged S76 Mac swing-levels work)
+
+---
+
+## S77 (2026-07-19) — Agent security hardening: deny rules, MCP disconnect (branch `s75-live-dashboard`)
+
+**No quant/research work this session.** Triggered by a question from Thomas: whether moving
+Claude Code into Linux would be safer, since the agent currently has full access to the
+Windows machine.
+
+### The finding that shaped the approach
+Samir runs `bypassPermissions` and stated plainly he **cannot evaluate permission prompts**
+("I wouldn't know what a malicious permission request looks like") — so any design depending
+on human judgement per-request is the wrong design. Verified in the docs that
+**`permissions.deny` is evaluated BEFORE the permission mode**, i.e. deny rules block even
+under `bypassPermissions`, silently, with no prompt. That is the mechanism that fits: hard
+walls, zero prompts, nothing to judge.
+
+### Applied — `~/.claude/settings.json`, 17 deny rules (user-level, all projects)
+Backups: `settings.json.bak-20260719` (pre-everything), `.bak2-20260719` (pre-deny-list).
+370 allow entries left intact.
+
+| Category | Verified |
+|---|---|
+| Gmail / Drive / Calendar MCP (`mcp__claude_ai_*__*`) | ✅ tools dropped mid-session |
+| `rm -rf`, `rm -fr`, `Remove-Item -Recurse -Force` | ✅ live test blocked |
+| `git push --force`/`-f`, `reset --hard`, `clean -f` | active |
+| Edit/Write on `.claude/settings*.json` (self-escalation) | ✅ locked the agent out |
+| Writes to `//c/Windows/**` | active |
+| `Read(//c/Users/Admin/.ssh/**)` | ✅ live test blocked |
+
+### Gotchas worth keeping
+- **Windows paths normalise to POSIX with a LOWERCASE drive letter.** `C:\Users\Admin` →
+  `/c/Users/Admin`. Rules written as `//C:/Users/...` are **silently inert** — they don't
+  error, they just never match. Caught only because a live read test returned "file does
+  not exist" instead of "denied". Always test a deny rule; don't trust it because it saved.
+- **Drive MCP ≠ the Drive transfer channel.** `G:\My Drive\myquant_transfer\` is a mounted
+  local drive; blocking the Google Drive MCP does not touch the 2nd-PC data path.
+- Self-escalation rules are self-enforcing: the agent could not remove its own bad rule via
+  Bash either (an auto-mode classifier also blocked it). Widening permissions now requires a
+  human hand-editing the file. Working as intended.
+- A separate **auto-mode classifier** blocks some actions independently of settings.json.
+  Undocumented backstop; do not rely on it.
+
+### Deliberately NOT denied (would fire during real work)
+`git checkout -- *` / `git restore`, `curl`-piped-to-shell, and `Read(**/.env)`. The `.env`
+rule was added by mistake mid-session, could not be self-removed, and Samir deleted it by
+hand.
+
+### Open / not started
+1. **`SessionEnd` commit+push hook** — agreed shape: `git commit -am` on **tracked files
+   only, never `git add -A`**. Repo is public and `data/` holds licensed vendor data
+   (376 untracked files; `du` on `data/` times out). Auto-`add -A` would publish it
+   irreversibly. Note a hook runs shell, not the model — it can commit, it cannot write
+   this handoff.
+2. **Devcontainer** — the real isolation (allowlist by construction vs deny blocklist).
+   Half-day+; NT8/IBC/IB Gateway are Windows-native and stay outside. Do it only after the
+   daemon is verified healthy, not the same day.
+3. Linux/WSL2 migration **rejected** — WSL2 mounts `/mnt/c` rw with Windows interop on, so
+   it is cosmetic isolation, and the NT8 pipeline is Windows-bound.
 
 ---
 
