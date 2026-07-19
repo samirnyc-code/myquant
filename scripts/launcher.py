@@ -312,37 +312,48 @@ _HEALTH_HTML = """<!doctype html><html><head><meta charset="utf-8">
 <style>
 :root{--bg:#0d1117;--card:#161b22;--chip:#30363d;--fg:#e6edf3;--muted:#8b949e}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 -apple-system,Segoe UI,Roboto,sans-serif}
-header{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--chip);
-  position:sticky;top:0;background:var(--bg);z-index:5}
-h1{font-size:17px;margin:0}
-a{color:#58a6ff}
-.wrap{padding:18px 20px;max-width:900px}
-.pill{padding:3px 11px;border-radius:999px;font-size:12px;font-weight:600;border:1px solid var(--chip)}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:13.5px/1.45 -apple-system,Segoe UI,Roboto,sans-serif;
+  display:flex;flex-direction:column;overflow:hidden}
+header{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--chip);flex:0 0 auto}
+h1{font-size:15px;margin:0}
+a{color:#58a6ff;text-decoration:none}
+.pill{padding:2px 10px;border-radius:999px;font-size:11.5px;font-weight:600;border:1px solid var(--chip)}
 .ok{color:#22c55e;border-color:#22c55e}.warn{color:#f59e0b;border-color:#f59e0b}
 .bad{color:#ef4444;border-color:#ef4444}.idle{color:#8b949e}
-.row{display:flex;align-items:flex-start;gap:12px;background:var(--card);border:1px solid var(--chip);
-  border-radius:10px;padding:12px 14px;margin-bottom:9px}
-.row.bad{border-color:#ef4444}.row.warn{border-color:#f59e0b55}
-.dot{width:11px;height:11px;border-radius:50%;margin-top:5px;flex:0 0 auto}
-.nm{font-weight:600;min-width:150px}
-.dt{color:var(--muted);font-family:ui-monospace,Consolas,monospace;font-size:12.5px}
-.muted{color:var(--muted);font-size:12.5px}
-.fix{margin-top:6px;font-size:12.5px;color:#8b949e;border-left:2px solid var(--chip);padding-left:9px}
+.hint{color:var(--muted);font-size:11.5px;padding:6px 16px 0}
+/* grid: everything visible at once, no page scroll */
+#rows{flex:1 1 auto;display:grid;gap:9px;padding:10px 16px 14px;overflow:hidden;
+  grid-template-columns:repeat(auto-fit,minmax(255px,1fr));
+  grid-auto-rows:minmax(74px,1fr)}
+.row{background:var(--card);border:1px solid var(--chip);border-radius:10px;padding:10px 12px;
+  display:flex;gap:9px;align-items:flex-start;cursor:grab;transition:transform .12s,box-shadow .12s,opacity .12s;
+  overflow:hidden}
+.row:active{cursor:grabbing}
+.row.bad{border-color:#ef4444}.row.warn{border-color:#f59e0b66}
+.row.drag{opacity:.35}
+.row.over{transform:scale(1.03);box-shadow:0 0 0 2px #58a6ff inset}
+.dot{width:10px;height:10px;border-radius:50%;margin-top:4px;flex:0 0 auto}
+.bd{min-width:0}
+.nm{font-weight:600;font-size:13px}
+.dt{color:var(--muted);font-family:ui-monospace,Consolas,monospace;font-size:11.5px;
+  overflow-wrap:anywhere}
+.fix{margin-top:4px;font-size:11px;color:#7d8590;border-left:2px solid var(--chip);padding-left:7px}
+footer{flex:0 0 auto;padding:5px 16px 9px;color:var(--muted);font-size:11px;display:flex;gap:12px}
+button{background:var(--chip);color:var(--fg);border:1px solid #444c56;border-radius:7px;
+  padding:3px 9px;font-size:11px;cursor:pointer}
 </style></head><body>
 <header><h1>Pipeline Health</h1>
   <span class="pill" id="overall">…</span>
   <span class="pill" id="mkt">…</span>
   <span style="margin-left:auto"></span>
+  <button id="reset">reset layout</button>
   <a href="/">← Mission Control</a>
 </header>
-<div class="wrap">
-  <p class="muted">Every check reads the <b>artefact</b> a process produces and how fresh it is —
-  never whether the process is alive. A live process proves nothing: a login prompt, a
-  recompile-disabled strategy and a missing data subscription all look "running".</p>
-  <div id="rows"></div>
-  <p class="muted" id="gen"></p>
-</div>
+<p class="hint">Each check reads the <b>artefact</b> a process produces and how fresh it is — never
+whether the process is alive. Drag tiles to reorder; the layout is remembered.</p>
+<div id="rows"></div>
+<footer><span id="gen"></span><span id="note"></span></footer>
 <script>
 const FIX={
  "L2 depth":"Control Center → Strategies → MarketDepthRecorder must be ENABLED (a recompile disables it).",
@@ -355,20 +366,55 @@ const FIX={
  "Disk":"data/depth grows fast — convert finished days to parquet.",
  "Scheduled tasks":"Task Scheduler → look at Last Run Result for the named tasks."};
 const C={ok:"#22c55e",warn:"#f59e0b",bad:"#ef4444",idle:"#6b7280"};
+const LSKEY='healthOrder';
+let order=JSON.parse(localStorage.getItem(LSKEY)||'[]');
+let dragName=null;
+
+function saveOrder(){
+  order=[...document.querySelectorAll('.row')].map(r=>r.dataset.name);
+  localStorage.setItem(LSKEY,JSON.stringify(order));
+}
+function sortChecks(cs){
+  if(!order.length) return cs;
+  const ix=n=>{const i=order.indexOf(n);return i<0?999:i;};
+  return [...cs].sort((a,b)=>ix(a.name)-ix(b.name));
+}
+function wire(el){
+  el.draggable=true;
+  el.addEventListener('dragstart',e=>{dragName=el.dataset.name;el.classList.add('drag');
+    e.dataTransfer.effectAllowed='move';});
+  el.addEventListener('dragend',()=>{el.classList.remove('drag');
+    document.querySelectorAll('.row').forEach(r=>r.classList.remove('over'));saveOrder();});
+  el.addEventListener('dragover',e=>{e.preventDefault();el.classList.add('over');});
+  el.addEventListener('dragleave',()=>el.classList.remove('over'));
+  el.addEventListener('drop',e=>{e.preventDefault();el.classList.remove('over');
+    const src=[...document.querySelectorAll('.row')].find(r=>r.dataset.name===dragName);
+    if(!src||src===el)return;
+    const rows=[...document.querySelectorAll('.row')];
+    (rows.indexOf(src)<rows.indexOf(el)?el.after(src):el.before(src));
+    saveOrder();});
+}
 async function load(){
   const h=await(await fetch('/health.json')).json();
   const o=document.getElementById('overall');
   o.textContent=h.overall.toUpperCase(); o.className='pill '+h.overall;
   document.getElementById('mkt').textContent='market '+h.market;
   document.getElementById('gen').textContent='checked '+h.chicago+' CT';
-  document.getElementById('rows').innerHTML=h.checks.map(c=>{
-    const fix=(c.state==='bad'||c.state==='warn')&&FIX[c.name]?`<div class="fix">${FIX[c.name]}</div>`:'';
-    return `<div class="row ${c.state}"><span class="dot" style="background:${C[c.state]}"></span>
-      <div><div class="nm">${c.name}</div><div class="dt">${c.detail}</div>${fix}</div></div>`;}).join('');
+  const n=h.checks.filter(c=>c.state==='bad'||c.state==='warn').length;
+  document.getElementById('note').textContent=n?(n+' need attention'):'all clear';
+  const box=document.getElementById('rows');
+  box.innerHTML=sortChecks(h.checks).map(c=>{
+    const fix=(c.state==='bad'||c.state==='warn')&&FIX[c.name]
+      ?'<div class="fix">'+FIX[c.name]+'</div>':'';
+    return '<div class="row '+c.state+'" data-name="'+c.name+'">'
+      +'<span class="dot" style="background:'+C[c.state]+'"></span>'
+      +'<div class="bd"><div class="nm">'+c.name+'</div>'
+      +'<div class="dt">'+c.detail+'</div>'+fix+'</div></div>';}).join('');
+  document.querySelectorAll('.row').forEach(wire);
 }
+document.getElementById('reset').onclick=()=>{localStorage.removeItem(LSKEY);order=[];load();};
 load(); setInterval(load,15000);
 </script></body></html>"""
-
 
 def _health_html():
     return _HEALTH_HTML
