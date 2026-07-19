@@ -426,13 +426,13 @@ def _timeline():
                             st = "ok"
                         elif t["day"] in (0, 6):
                             st = "idle"          # stale weekend result, not a failure
-                        elif h["market"] == "closed":
-                            # A weekday failure is real, but while the market is SHUT nothing
-                            # is wrong right now and the job is not due - so do not light the
-                            # board amber all weekend. The detail still carries the failure and
-                            # it goes amber again the moment the market reopens.
+                        elif not ph._desk_hours():
+                            # These are weekday-RTH desk jobs. Outside desk hours (overnight
+                            # ETH, weekends) a stale failure is history, not actionable - it
+                            # is not due to run - so do not amber it. The detail keeps the
+                            # note; it goes amber again during desk hours if still failing.
                             st = "ok"
-                            detail += "  (last weekday run failed - recheck at the open)"
+                            detail += "  (last run failed - reruns at the open)"
                         else:
                             st = "warn"
                 # Continuous recorders have no clock time, but they are not "never next":
