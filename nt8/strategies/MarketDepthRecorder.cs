@@ -75,9 +75,12 @@ namespace NinjaTrader.NinjaScript.Strategies
             try
             {
                 Directory.CreateDirectory(ExportDir);
+                // FULL contract, not just "ES": a file named ES_depth_... does not say
+                // WHICH contract it holds, and a chart left on a rolled-off contract records
+                // perfectly happily. On a roll the two contracts must never share a filename.
+                string sym = Instrument.FullName.Replace(" ", "_");   // "ES 09-26" -> "ES_09-26"
                 string path = Path.Combine(ExportDir,
-                    string.Format("{0}_depth_{1:yyyy-MM-dd}.csv",
-                        Instrument.MasterInstrument.Name, t));
+                    string.Format("{0}_depth_{1:yyyy-MM-dd}.csv", sym, t));
                 bool fresh = !File.Exists(path);
                 // APPEND: a restart mid-session must never truncate the day's capture
                 writer = new StreamWriter(path, true, System.Text.Encoding.ASCII, 1 << 20);

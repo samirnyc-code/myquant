@@ -45,7 +45,8 @@ def finished_csvs(today: dt.date):
     out = []
     for p in sorted(DEPTH.glob("*_depth_*.csv")):
         try:
-            d = dt.date.fromisoformat(p.stem.split("_depth_")[1])
+            # "ES_09-26_depth_2026-07-19" -> the part after the LAST "_depth_"
+            d = dt.date.fromisoformat(p.stem.rsplit("_depth_", 1)[1])
         except Exception:
             continue
         if d < today:

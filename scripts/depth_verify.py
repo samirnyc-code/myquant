@@ -43,13 +43,14 @@ def chicago_today():
 def find_file(date, symbol):
     """A single ETH session straddles Chicago midnight, so the session that opened at
     17:00 CT lands in TWO files. Return every file that could hold live data, newest last."""
+    import glob as _glob
     hits = []
     d0 = dt.date.fromisoformat(date)
     for delta in (-1, 0):
         day = (d0 + dt.timedelta(days=delta)).isoformat()
-        p = os.path.join(DEPTH_DIR, f"{symbol}_depth_{day}.csv")
-        if os.path.exists(p):
-            hits.append(p)
+        # filenames carry the FULL contract now (ES_09-26_depth_...), and the legacy
+        # bare-symbol files (ES_depth_...) must still be readable
+        hits += sorted(_glob.glob(os.path.join(DEPTH_DIR, f"{symbol}*_depth_{day}.csv")))
     return hits
 
 

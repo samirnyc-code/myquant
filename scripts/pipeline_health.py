@@ -102,8 +102,11 @@ def check_depth() -> dict:
     """The one dataset that can never be re-collected."""
     now = chicago_now()
     mkt = market_state(now)
-    files = [p for p in (DEPTH_DIR / f"ES_depth_{(now.date()+dt.timedelta(days=d)).isoformat()}.csv"
-                         for d in (-1, 0)) if p.exists()]
+    # ES_09-26_depth_YYYY-MM-DD.csv (and legacy ES_depth_...) - match any contract
+    files = []
+    for d in (-1, 0):
+        day = (now.date() + dt.timedelta(days=d)).isoformat()
+        files += sorted(DEPTH_DIR.glob(f"ES*_depth_{day}.csv"))
     if not files:
         return _chk("L2 depth", BAD if mkt == "open" else IDLE,
                     "no file for today" if mkt == "open" else f"market {mkt}")

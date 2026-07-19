@@ -75,9 +75,7 @@ def _depth_files(now: dt.datetime):
     out = []
     for delta in (-1, 0):
         d = (now.date() + dt.timedelta(days=delta)).isoformat()
-        p = DEPTH_DIR / f"{SYMBOL}_depth_{d}.csv"
-        if p.exists():
-            out.append(p)
+        out += sorted(DEPTH_DIR.glob(f"{SYMBOL}*_depth_{d}.csv"))   # any contract
     return out
 
 

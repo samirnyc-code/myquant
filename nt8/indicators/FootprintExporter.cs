@@ -57,8 +57,10 @@ namespace NinjaTrader.NinjaScript.Indicators
         // other. -> ES_5Min_footprint_20260719_170000.csv
         private string Stamped(string kind)
         {
+            // FULL contract ("ES 09-26"), not the master name ("ES") - the file must say
+            // which contract produced it, and a roll must not collide with the old one.
             return string.Format("{0}_{1}_{2}_{3}.csv",
-                Instrument.MasterInstrument.Name, PeriodTag(), kind, stamp);
+                Instrument.FullName.Replace(" ", "_"), PeriodTag(), kind, stamp);
         }
 
         // 1Min / 5Min / 6500V / 4000T / 12R -- short, filename-safe, unambiguous
