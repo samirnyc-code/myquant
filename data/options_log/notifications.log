@@ -13,3 +13,7 @@
 2026-07-16 16:01:22	TRADE OPENED · fly_gw_0dte (B)	0DTE Call Butterfly @ GW0: butterfly 50pt, net debit 2.55, coll $255 — reached 09:00, regime positive_gamma
 2026-07-16 16:06:26	TRADE OPENED · ps0_fade (B)	PS0 first-touch fade (short put spread): vertical 25pt, net credit 7.90, coll $1,710 — touched 7555 above
 2026-07-16 22:20:02	⚠ Options desk — attention needed	7/8 steps green · 5 fired · 1 NEED ATTENTION
+2026-07-17 11:07:26	⚠ Options desk — attention needed	0/8 steps green · 0 fired · 7 NEED ATTENTION
+2026-07-17 11:23:06	⚠ OPTIONS DESK — DAEMON DOWN	DAEMON: NOT running
+2026-07-17 15:40:02	✓ Options desk healthy	FEED spx 7441.4 @ 08:39:59 (3s old) · LEVELS CR 7600.0 PS0 7520.0 · src 2026-07-16T20:00 · GAMEPLAN 7 triggers armed
+2026-07-17 22:20:04	⚠ Options desk — attention needed	7/8 steps green · 0 fired · 1 NEED ATTENTION

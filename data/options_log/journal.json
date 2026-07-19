@@ -80,7 +80,7 @@
   },
   "meta": {
    "created": "2026-07-14T14:55:59-04:00",
-   "updated": "2026-07-15T09:07:38-04:00"
+   "updated": "2026-07-17T03:54:39-04:00"
   }
  },
  "bps_stmr_20260714_1030": {
@@ -166,7 +166,7 @@
   },
   "meta": {
    "created": "2026-07-14T14:55:59-04:00",
-   "updated": "2026-07-15T09:07:38-04:00"
+   "updated": "2026-07-17T03:54:39-04:00"
   }
  },
  "condor_0dte_20260714_1036": {
@@ -268,7 +268,7 @@
   },
   "meta": {
    "created": "2026-07-14T14:55:59-04:00",
-   "updated": "2026-07-15T09:07:38-04:00"
+   "updated": "2026-07-17T03:54:39-04:00"
   }
  },
  "straddle_0dte_20260714_1039": {
@@ -354,7 +354,7 @@
   },
   "meta": {
    "created": "2026-07-14T14:55:59-04:00",
-   "updated": "2026-07-15T09:07:38-04:00"
+   "updated": "2026-07-17T03:54:39-04:00"
   }
  },
  "fly_gw_0dte_20260714_1056": {
@@ -448,7 +448,7 @@
   },
   "meta": {
    "created": "2026-07-14T14:55:59-04:00",
-   "updated": "2026-07-15T09:07:38-04:00"
+   "updated": "2026-07-17T03:54:39-04:00"
   }
  },
  "bcs_cr_0dte_20260714_1220": {
@@ -534,7 +534,7 @@
   },
   "meta": {
    "created": "2026-07-14T14:55:59-04:00",
-   "updated": "2026-07-15T09:07:38-04:00"
+   "updated": "2026-07-17T03:54:39-04:00"
   }
  },
  "bull_cs_wk_20260714_1221": {
@@ -594,13 +594,13 @@
     "collateral": 2399.9999999999995
    },
    "lifecycle": {
-    "mfe": 420,
-    "mae": 145,
-    "mfe_R": 0.18,
-    "mae_R": 0.06,
-    "n_marks": 25,
-    "best_ts": "2026-07-14 14:26:18",
-    "worst_ts": "2026-07-14 16:23:08"
+    "mfe": 1150,
+    "mae": -1125,
+    "mfe_R": 0.48,
+    "mae_R": -0.47,
+    "n_marks": 140,
+    "best_ts": "2026-07-15 10:17:00",
+    "worst_ts": "2026-07-16 15:48:10"
    },
    "result": {
     "pnl": null,
@@ -620,7 +620,7 @@
   },
   "meta": {
    "created": "2026-07-14T14:55:59-04:00",
-   "updated": "2026-07-15T09:07:38-04:00"
+   "updated": "2026-07-17T03:54:39-04:00"
   }
  },
  "put_cal_wk_20260714_1221": {
@@ -706,7 +706,777 @@
   },
   "meta": {
    "created": "2026-07-14T14:55:59-04:00",
-   "updated": "2026-07-15T09:07:38-04:00"
+   "updated": "2026-07-17T03:54:39-04:00"
+  }
+ },
+ "paper_20260715_1052": {
+  "auto": {
+   "strategy": "condor_0dte_pin",
+   "structure": "P-spread 20pt x1",
+   "legs": [
+    {
+     "side": "sell",
+     "right": "P",
+     "strike": 7505.0,
+     "expiry": "20260715",
+     "qty": 1
+    },
+    {
+     "side": "buy",
+     "right": "P",
+     "strike": 7485.0,
+     "expiry": "20260715",
+     "qty": 1
+    }
+   ],
+   "entry_dt": "2026-07-15 10:52",
+   "exit_dt": "2026-07-15 16:00",
+   "dte": 0,
+   "state": "closed",
+   "context": {
+    "vix": null,
+    "vix_rank": null,
+    "er10": null,
+    "dow": "Wed",
+    "gamma_regime": "positive (spot>HVL)",
+    "mq_levels": {
+     "mq_cr": 7600,
+     "mq_ps": 7300,
+     "mq_hvl": 7495,
+     "mq_cr0": 7550,
+     "mq_ps0": 7475,
+     "mq_hvl0": 7530,
+     "mq_gw0": 7550
+    }
+   },
+   "plan": {
+    "thesis": "0DTE iron-condor pin play (put leg), positive-gamma day (spot ~7561 > HVL 7495 -> pin bias). Short 7505P is ~56pt OTM \u2014 the safe side. Graded B not A+: paired call short (7590) sits only ~29pt OTM (inside the 40pt cushion) and total condor credit ~$1.25 is below the 1.50 A+ threshold. Hold to cash settlement.",
+    "entry_grade": "B",
+    "pop": null,
+    "max_gain": null,
+    "max_loss": null,
+    "planned_exit": "per playbook"
+   },
+   "execution": {
+    "net_credit": 0.5,
+    "fill_model": "cash_settle",
+    "slippage_vs_mid": null,
+    "collateral": 1950.0
+   },
+   "lifecycle": {
+    "mfe": 50,
+    "mae": -135,
+    "mfe_R": 0.03,
+    "mae_R": -0.07,
+    "n_marks": 64,
+    "best_ts": "2026-07-15 13:46:22",
+    "worst_ts": "2026-07-15 12:27:44"
+   },
+   "result": {
+    "pnl": 47.4,
+    "win": true,
+    "r_multiple": 0.02,
+    "exit_cost": 0.0,
+    "hold_days": 0.0
+   }
+  },
+  "review": {
+   "outcome_grade": "",
+   "followed_plan": "",
+   "exit_reason": "",
+   "mistakes": "",
+   "lesson": "",
+   "do_differently": ""
+  },
+  "meta": {
+   "created": "2026-07-17T03:53:08-04:00",
+   "updated": "2026-07-17T03:54:39-04:00"
+  }
+ },
+ "paper_20260715_1055": {
+  "auto": {
+   "strategy": "condor_0dte_pin",
+   "structure": "C-spread 25pt x1",
+   "legs": [
+    {
+     "side": "buy",
+     "right": "C",
+     "strike": 7615.0,
+     "expiry": "20260715",
+     "qty": 1
+    },
+    {
+     "side": "sell",
+     "right": "C",
+     "strike": 7590.0,
+     "expiry": "20260715",
+     "qty": 1
+    }
+   ],
+   "entry_dt": "2026-07-15 10:55",
+   "exit_dt": "2026-07-15 16:00",
+   "dte": 0,
+   "state": "closed",
+   "context": {
+    "vix": null,
+    "vix_rank": null,
+    "er10": null,
+    "dow": "Wed",
+    "gamma_regime": "positive (spot>HVL)",
+    "mq_levels": {
+     "mq_cr": 7600,
+     "mq_ps": 7300,
+     "mq_hvl": 7495,
+     "mq_cr0": 7550,
+     "mq_ps0": 7475,
+     "mq_hvl0": 7530,
+     "mq_gw0": 7550
+    }
+   },
+   "plan": {
+    "thesis": "0DTE iron-condor pin play (call leg), positive-gamma day (spot ~7561 > HVL 7495). Short 7590C is only ~29pt OTM with SPX rallying \u2014 the RISK side of the condor and the reason the trade grades B, not A+ (playbook wants both shorts >=40pt OTM; total credit ~$1.25 < 1.50). Watch CR0 7550/CR 7600 above.",
+    "entry_grade": "B",
+    "pop": null,
+    "max_gain": null,
+    "max_loss": null,
+    "planned_exit": "per playbook"
+   },
+   "execution": {
+    "net_credit": 0.75,
+    "fill_model": "cash_settle",
+    "slippage_vs_mid": null,
+    "collateral": 2425.0
+   },
+   "lifecycle": {
+    "mfe": 75,
+    "mae": -55,
+    "mfe_R": 0.03,
+    "mae_R": -0.02,
+    "n_marks": 63,
+    "best_ts": "2026-07-15 15:36:33",
+    "worst_ts": "2026-07-15 11:09:14"
+   },
+   "result": {
+    "pnl": 72.4,
+    "win": true,
+    "r_multiple": 0.03,
+    "exit_cost": 0.0,
+    "hold_days": 0.0
+   }
+  },
+  "review": {
+   "outcome_grade": "",
+   "followed_plan": "",
+   "exit_reason": "",
+   "mistakes": "",
+   "lesson": "",
+   "do_differently": ""
+  },
+  "meta": {
+   "created": "2026-07-17T03:53:08-04:00",
+   "updated": "2026-07-17T03:54:39-04:00"
+  }
+ },
+ "paper_20260715_1212": {
+  "auto": {
+   "strategy": "sell_0dte_gamma",
+   "structure": "P-spread 25pt x1",
+   "legs": [
+    {
+     "side": "buy",
+     "right": "P",
+     "strike": 7475.0,
+     "expiry": "20260715",
+     "qty": 1
+    },
+    {
+     "side": "sell",
+     "right": "P",
+     "strike": 7500.0,
+     "expiry": "20260715",
+     "qty": 1
+    }
+   ],
+   "entry_dt": "2026-07-15 12:12",
+   "exit_dt": "2026-07-15 16:00",
+   "dte": 0,
+   "state": "closed",
+   "context": {
+    "vix": null,
+    "vix_rank": null,
+    "er10": null,
+    "dow": "Wed",
+    "gamma_regime": "positive (spot>HVL)",
+    "mq_levels": {
+     "mq_cr": 7600,
+     "mq_ps": 7300,
+     "mq_hvl": 7495,
+     "mq_cr0": 7550,
+     "mq_ps0": 7475,
+     "mq_hvl0": 7530,
+     "mq_gw0": 7550
+    }
+   },
+   "plan": {
+    "thesis": "0DTE put credit spread @ support, positive-gamma day (spot ~7544 > HVL 7495 -> pin bias). Short 7500P ~44pt OTM (>40pt cushion OK), 25pt wide, net credit 0.65. Graded B- not higher: entered 12:12 ET, OUTSIDE the sanctioned 9:45-10:30 window, and credit 0.65 is below the 0.80 A+ threshold. Placed to test the trade->notification pipeline. Hold to cash settlement; high POP.",
+    "entry_grade": "B-",
+    "pop": 0.9,
+    "max_gain": null,
+    "max_loss": null,
+    "planned_exit": "hold to cash settlement (grid alt: 50% credit / 2x stop)"
+   },
+   "execution": {
+    "net_credit": 0.65,
+    "fill_model": "cash_settle",
+    "slippage_vs_mid": null,
+    "collateral": 2435.0
+   },
+   "lifecycle": {
+    "mfe": 65,
+    "mae": -95,
+    "mfe_R": 0.03,
+    "mae_R": -0.04,
+    "n_marks": 48,
+    "best_ts": "2026-07-15 13:46:22",
+    "worst_ts": "2026-07-15 12:27:44"
+   },
+   "result": {
+    "pnl": 62.4,
+    "win": true,
+    "r_multiple": 0.03,
+    "exit_cost": 0.0,
+    "hold_days": 0.0
+   }
+  },
+  "review": {
+   "outcome_grade": "",
+   "followed_plan": "",
+   "exit_reason": "",
+   "mistakes": "",
+   "lesson": "",
+   "do_differently": ""
+  },
+  "meta": {
+   "created": "2026-07-17T03:53:08-04:00",
+   "updated": "2026-07-17T03:54:39-04:00"
+  }
+ },
+ "auto_20260715_132024": {
+  "auto": {
+   "strategy": "cr0_fade",
+   "structure": "vertical 25pt",
+   "legs": [
+    {
+     "side": "buy",
+     "right": "C",
+     "strike": 7575.0,
+     "expiry": "20260715",
+     "qty": 1
+    },
+    {
+     "side": "sell",
+     "right": "C",
+     "strike": 7550.0,
+     "expiry": "20260715",
+     "qty": 1
+    }
+   ],
+   "entry_dt": "2026-07-15 13:20",
+   "exit_dt": "2026-07-15 16:00",
+   "dte": 0,
+   "state": "closed",
+   "context": {
+    "vix": null,
+    "vix_rank": null,
+    "er10": null,
+    "dow": "Wed",
+    "gamma_regime": "positive (spot>HVL)",
+    "mq_levels": {
+     "mq_cr": 7600,
+     "mq_ps": 7300,
+     "mq_hvl": 7495,
+     "mq_cr0": 7550,
+     "mq_ps0": 7475,
+     "mq_hvl0": 7530,
+     "mq_gw0": 7550
+    }
+   },
+   "plan": {
+    "thesis": "AUTO-TRIGGER [cr0_touch_fade] fired: touched 7550 below. positive_gamma, short ~0pt OTM, credit 6.40 (late). Projected B premarket. Path A. [RE-GRADED D->B: fade-grading fix \u2014 positive-gamma first-touch fade at the wall is aligned; the loss (wall broke to 7580) is the data point testing whether positive-gamma fades hold.]",
+    "entry_grade": "B",
+    "pop": null,
+    "max_gain": null,
+    "max_loss": null,
+    "planned_exit": "per playbook"
+   },
+   "execution": {
+    "net_credit": 6.3999999999999995,
+    "fill_model": "cash_settle",
+    "slippage_vs_mid": null,
+    "collateral": 1860.0000000000002
+   },
+   "lifecycle": {
+    "mfe": -2,
+    "mae": -1668,
+    "mfe_R": -0.0,
+    "mae_R": -0.9,
+    "n_marks": 35,
+    "best_ts": "2026-07-15 13:25:23",
+    "worst_ts": "2026-07-15 16:02:48"
+   },
+   "result": {
+    "pnl": -1662.6000000000001,
+    "win": false,
+    "r_multiple": -0.89,
+    "exit_cost": 23.0,
+    "hold_days": 0.0
+   }
+  },
+  "review": {
+   "outcome_grade": "",
+   "followed_plan": "",
+   "exit_reason": "",
+   "mistakes": "",
+   "lesson": "",
+   "do_differently": ""
+  },
+  "meta": {
+   "created": "2026-07-17T03:53:08-04:00",
+   "updated": "2026-07-17T03:54:39-04:00"
+  }
+ },
+ "auto_20260716_084837": {
+  "auto": {
+   "strategy": "straddle_0dte",
+   "structure": "straddle",
+   "legs": [
+    {
+     "side": "buy",
+     "right": "C",
+     "strike": 7535.0,
+     "expiry": "20260716",
+     "qty": 1
+    },
+    {
+     "side": "buy",
+     "right": "P",
+     "strike": 7535.0,
+     "expiry": "20260716",
+     "qty": 1
+    }
+   ],
+   "entry_dt": "2026-07-16 08:48",
+   "exit_dt": "2026-07-16 16:00",
+   "dte": 0,
+   "state": "closed",
+   "context": {
+    "vix": null,
+    "vix_rank": null,
+    "er10": null,
+    "dow": "Thu",
+    "gamma_regime": "positive (spot>HVL)",
+    "mq_levels": {
+     "mq_cr": 7600,
+     "mq_ps": 7300,
+     "mq_hvl": 7495,
+     "mq_cr0": 7550,
+     "mq_ps0": 7475,
+     "mq_hvl0": 7530,
+     "mq_gw0": 7550
+    }
+   },
+   "plan": {
+    "thesis": "AUTO-TRIGGER [straddle_0dte] fired: broke below 7535 (regime flip). negative_gamma at fill (long vol wants neg gamma). Projected B if it fires premarket. Path D.",
+    "entry_grade": "B",
+    "pop": null,
+    "max_gain": null,
+    "max_loss": null,
+    "planned_exit": "hold to close (counter-regime test)"
+   },
+   "execution": {
+    "net_credit": -31.7,
+    "fill_model": "cash_settle",
+    "slippage_vs_mid": null,
+    "collateral": 3170.0
+   },
+   "lifecycle": {
+    "mfe": -305,
+    "mae": -3000,
+    "mfe_R": -0.1,
+    "mae_R": -0.95,
+    "n_marks": 33,
+    "best_ts": "2026-07-16 12:04:08",
+    "worst_ts": "2026-07-16 16:01:36"
+   },
+   "result": {
+    "pnl": -2470.6,
+    "win": false,
+    "r_multiple": -0.78,
+    "exit_cost": -7.02,
+    "hold_days": 0.0
+   }
+  },
+  "review": {
+   "outcome_grade": "",
+   "followed_plan": "",
+   "exit_reason": "",
+   "mistakes": "",
+   "lesson": "",
+   "do_differently": ""
+  },
+  "meta": {
+   "created": "2026-07-17T03:53:08-04:00",
+   "updated": "2026-07-17T03:54:39-04:00"
+  }
+ },
+ "auto_20260716_090019": {
+  "auto": {
+   "strategy": "sell_0dte_gamma",
+   "structure": "vertical 25pt",
+   "legs": [
+    {
+     "side": "buy",
+     "right": "P",
+     "strike": 7530.0,
+     "expiry": "20260716",
+     "qty": 1
+    },
+    {
+     "side": "sell",
+     "right": "P",
+     "strike": 7555.0,
+     "expiry": "20260716",
+     "qty": 1
+    }
+   ],
+   "entry_dt": "2026-07-16 09:00",
+   "exit_dt": "2026-07-16 16:00",
+   "dte": 0,
+   "state": "closed",
+   "context": {
+    "vix": null,
+    "vix_rank": null,
+    "er10": null,
+    "dow": "Thu",
+    "gamma_regime": "positive (spot>HVL)",
+    "mq_levels": {
+     "mq_cr": 7600,
+     "mq_ps": 7300,
+     "mq_hvl": 7495,
+     "mq_cr0": 7550,
+     "mq_ps0": 7475,
+     "mq_hvl0": 7530,
+     "mq_gw0": 7550
+    }
+   },
+   "plan": {
+    "thesis": "AUTO-TRIGGER [sell_0dte_put] fired: reached 09:00 (no tag), regime positive_gamma. positive_gamma, short ~11pt OTM, credit 9.90. Projected D premarket. Path B/C.",
+    "entry_grade": "D",
+    "pop": null,
+    "max_gain": null,
+    "max_loss": null,
+    "planned_exit": "hold to cash settlement (grid alt: 50% credit / 2x stop)"
+   },
+   "execution": {
+    "net_credit": 9.900000000000002,
+    "fill_model": "cash_settle",
+    "slippage_vs_mid": null,
+    "collateral": 1509.9999999999998
+   },
+   "lifecycle": {
+    "mfe": 398,
+    "mae": -1635,
+    "mfe_R": 0.26,
+    "mae_R": -1.08,
+    "n_marks": 33,
+    "best_ts": "2026-07-16 12:04:08",
+    "worst_ts": "2026-07-16 15:50:24"
+   },
+   "result": {
+    "pnl": -1512.5999999999997,
+    "win": false,
+    "r_multiple": -1.0,
+    "exit_cost": 25.0,
+    "hold_days": 0.0
+   }
+  },
+  "review": {
+   "outcome_grade": "",
+   "followed_plan": "",
+   "exit_reason": "",
+   "mistakes": "",
+   "lesson": "",
+   "do_differently": ""
+  },
+  "meta": {
+   "created": "2026-07-17T03:53:08-04:00",
+   "updated": "2026-07-17T03:54:39-04:00"
+  }
+ },
+ "auto_20260716_090044": {
+  "auto": {
+   "strategy": "sell_0dte_gamma",
+   "structure": "vertical 25pt",
+   "legs": [
+    {
+     "side": "buy",
+     "right": "C",
+     "strike": 7625.0,
+     "expiry": "20260716",
+     "qty": 1
+    },
+    {
+     "side": "sell",
+     "right": "C",
+     "strike": 7600.0,
+     "expiry": "20260716",
+     "qty": 1
+    }
+   ],
+   "entry_dt": "2026-07-16 09:00",
+   "exit_dt": "2026-07-16 16:00",
+   "dte": 0,
+   "state": "closed",
+   "context": {
+    "vix": null,
+    "vix_rank": null,
+    "er10": null,
+    "dow": "Thu",
+    "gamma_regime": "positive (spot>HVL)",
+    "mq_levels": {
+     "mq_cr": 7600,
+     "mq_ps": 7300,
+     "mq_hvl": 7495,
+     "mq_cr0": 7550,
+     "mq_ps0": 7475,
+     "mq_hvl0": 7530,
+     "mq_gw0": 7550
+    }
+   },
+   "plan": {
+    "thesis": "AUTO-TRIGGER [sell_0dte_call] fired: reached 09:00 (no tag), regime positive_gamma. positive_gamma, short ~56pt OTM, credit 0.35. Projected B premarket. Path A/C.",
+    "entry_grade": "B-",
+    "pop": null,
+    "max_gain": null,
+    "max_loss": null,
+    "planned_exit": "hold to cash settlement (grid alt: 50% credit / 2x stop)"
+   },
+   "execution": {
+    "net_credit": 0.35000000000000003,
+    "fill_model": "cash_settle",
+    "slippage_vs_mid": null,
+    "collateral": 2465.0
+   },
+   "lifecycle": {
+    "mfe": 35,
+    "mae": 20,
+    "mfe_R": 0.01,
+    "mae_R": 0.01,
+    "n_marks": 33,
+    "best_ts": "2026-07-16 15:39:13",
+    "worst_ts": "2026-07-16 12:03:04"
+   },
+   "result": {
+    "pnl": 32.4,
+    "win": true,
+    "r_multiple": 0.01,
+    "exit_cost": 0.0,
+    "hold_days": 0.0
+   }
+  },
+  "review": {
+   "outcome_grade": "",
+   "followed_plan": "",
+   "exit_reason": "",
+   "mistakes": "",
+   "lesson": "",
+   "do_differently": ""
+  },
+  "meta": {
+   "created": "2026-07-17T03:53:08-04:00",
+   "updated": "2026-07-17T03:54:39-04:00"
+  }
+ },
+ "auto_20260716_090122": {
+  "auto": {
+   "strategy": "fly_gw_0dte",
+   "structure": "butterfly 50pt",
+   "legs": [
+    {
+     "side": "buy",
+     "right": "C",
+     "strike": 7575.0,
+     "expiry": "20260716",
+     "qty": 1
+    },
+    {
+     "side": "buy",
+     "right": "C",
+     "strike": 7625.0,
+     "expiry": "20260716",
+     "qty": 1
+    },
+    {
+     "side": "sell",
+     "right": "C",
+     "strike": 7600.0,
+     "expiry": "20260716",
+     "qty": 1
+    },
+    {
+     "side": "sell",
+     "right": "C",
+     "strike": 7600.0,
+     "expiry": "20260716",
+     "qty": 1
+    }
+   ],
+   "entry_dt": "2026-07-16 09:01",
+   "exit_dt": "2026-07-16 16:00",
+   "dte": 0,
+   "state": "closed",
+   "context": {
+    "vix": null,
+    "vix_rank": null,
+    "er10": null,
+    "dow": "Thu",
+    "gamma_regime": "positive (spot>HVL)",
+    "mq_levels": {
+     "mq_cr": 7600,
+     "mq_ps": 7300,
+     "mq_hvl": 7495,
+     "mq_cr0": 7550,
+     "mq_ps0": 7475,
+     "mq_hvl0": 7530,
+     "mq_gw0": 7550
+    }
+   },
+   "plan": {
+    "thesis": "AUTO-TRIGGER [fly_gw_0dte] fired: reached 09:00, regime positive_gamma. positive gamma, debit 2.55 \u226440% wing. Projected B premarket. Path A/C.",
+    "entry_grade": "B",
+    "pop": null,
+    "max_gain": null,
+    "max_loss": null,
+    "planned_exit": "hold to settlement at the pin"
+   },
+   "execution": {
+    "net_credit": -2.55,
+    "fill_model": "cash_settle",
+    "slippage_vs_mid": null,
+    "collateral": 254.99999999999997
+   },
+   "lifecycle": {
+    "mfe": -30,
+    "mae": -255,
+    "mfe_R": -0.12,
+    "mae_R": -1.0,
+    "n_marks": 33,
+    "best_ts": "2026-07-16 12:04:08",
+    "worst_ts": "2026-07-16 15:39:13"
+   },
+   "result": {
+    "pnl": -260.2,
+    "win": false,
+    "r_multiple": -1.02,
+    "exit_cost": 0.0,
+    "hold_days": 0.0
+   }
+  },
+  "review": {
+   "outcome_grade": "",
+   "followed_plan": "",
+   "exit_reason": "",
+   "mistakes": "",
+   "lesson": "",
+   "do_differently": ""
+  },
+  "meta": {
+   "created": "2026-07-17T03:53:08-04:00",
+   "updated": "2026-07-17T03:54:39-04:00"
+  }
+ },
+ "auto_20260716_090626": {
+  "auto": {
+   "strategy": "ps0_fade",
+   "structure": "vertical 25pt",
+   "legs": [
+    {
+     "side": "buy",
+     "right": "P",
+     "strike": 7530.0,
+     "expiry": "20260716",
+     "qty": 1
+    },
+    {
+     "side": "sell",
+     "right": "P",
+     "strike": 7555.0,
+     "expiry": "20260716",
+     "qty": 1
+    }
+   ],
+   "entry_dt": "2026-07-16 09:06",
+   "exit_dt": "2026-07-16 16:00",
+   "dte": 0,
+   "state": "closed",
+   "context": {
+    "vix": null,
+    "vix_rank": null,
+    "er10": null,
+    "dow": "Thu",
+    "gamma_regime": "positive (spot>HVL)",
+    "mq_levels": {
+     "mq_cr": 7600,
+     "mq_ps": 7300,
+     "mq_hvl": 7495,
+     "mq_cr0": 7550,
+     "mq_ps0": 7475,
+     "mq_hvl0": 7530,
+     "mq_gw0": 7550
+    }
+   },
+   "plan": {
+    "thesis": "AUTO-TRIGGER [ps0_touch_fade] fired: touched 7555 above. positive-gamma first-touch fade at the wall (trigger+regime+level aligned); credit 7.90 (rich). Projected C premarket. Path B.",
+    "entry_grade": "B",
+    "pop": null,
+    "max_gain": null,
+    "max_loss": null,
+    "planned_exit": "per playbook"
+   },
+   "execution": {
+    "net_credit": 7.8999999999999995,
+    "fill_model": "cash_settle",
+    "slippage_vs_mid": null,
+    "collateral": 1710.0000000000002
+   },
+   "lifecycle": {
+    "mfe": 198,
+    "mae": -1835,
+    "mfe_R": 0.12,
+    "mae_R": -1.07,
+    "n_marks": 33,
+    "best_ts": "2026-07-16 12:04:08",
+    "worst_ts": "2026-07-16 15:50:24"
+   },
+   "result": {
+    "pnl": -1712.6000000000001,
+    "win": false,
+    "r_multiple": -1.0,
+    "exit_cost": 25.0,
+    "hold_days": 0.0
+   }
+  },
+  "review": {
+   "outcome_grade": "",
+   "followed_plan": "",
+   "exit_reason": "",
+   "mistakes": "",
+   "lesson": "",
+   "do_differently": ""
+  },
+  "meta": {
+   "created": "2026-07-17T03:53:08-04:00",
+   "updated": "2026-07-17T03:54:39-04:00"
   }
  }
 }
