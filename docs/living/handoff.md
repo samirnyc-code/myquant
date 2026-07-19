@@ -1,6 +1,105 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 18, 2026 (sessions 75N cont. + 75P + 75S)
+**Last Updated:** July 19, 2026 (sessions 75Q + 75R + Setup Marker rebuild)
+
+---
+
+## S75Q + S75R (2026-07-18/19) — MenthorQ gamma tested and mostly killed; 1M order-flow reading lab; Setup Marker rebuilt (branch `s75-live-dashboard`)
+
+Commits `8abaf81` (S75Q/S75R) and `e2804c2` (Setup Marker).
+
+### ⭐ S75Q — do MenthorQ gamma levels help the Brooks method? Pre-registered, mostly NO
+Pre-registration written BEFORE any result was seen: `docs/living/s75q_prereg.md`.
+Engines: `scripts/gex_net_vs_total.py`, `gex_vs_vol_baseline.py`, `gex_levels_brooks.py`.
+Report: `/gexlab` in Mission Control (`docs/gexlab/s75q.html`).
+
+**Regime axis — all four claims dead:**
+| claim | test | verdict |
+|---|---|---|
+| MQ levels use Total GEX | net 81%/79% exact vs total 17%/20% (1,181 sessions) | FALSE — our net formula was already right, no code change |
+| "Four Options Matrix regimes" | +GEX/−DEX cell has **n=2 in five years** | it is a 3-box, not a 2×2 |
+| −GEX/−DEX is bearish | mean return **+0.097%**, 50.6% up-days | FALSE |
+| GEX predicts realised range | OOS R² **0.4490 → 0.4416** when added to a VIX baseline | subsumed by VIX; pre-registered gate FAILED so the input was DROPPED, not re-specified |
+
+**Level axis — one weak survivor, three nulls.** H1 (CR rejection from below vs a
+date-shuffled placebo): **62.1% vs 41.2%, +20.9pp, session-clustered bootstrap CI
+[+8.0, +34.1]**, both time halves agree. BUT **n=66 only**, the effect is carried by the
+low-VIX tercile (+30.5pp, n=31) and vanishes at mid-VIX (+1.0pp), and the control design
+was **repaired twice**. Treat as a hypothesis; **do not size it**. PS null; HVL day-type
+confounded by VIX; session extremes vs GEX 1–4 null.
+
+**🔴 THE METHOD LESSON — E3 is worth more than the result.** A badly-matched control read
+session extremes as 11 pts from GEX levels vs 78 pts for controls — a spectacular false
+positive, purely because GEX levels cluster near spot while the controls sat at the edge of
+the span. The date-shuffle placebo (reuse another session's level OFFSETS on today's open)
+collapses it to **11.22 vs 11.93 = nothing**. Also note CR is only reachable ~1 day in 7
+(647 eligible sessions → 87 touches), which caps its practical value regardless of stats.
+
+### S75R — ES 1M order-flow reading lab, two complete swings of 7/17
+`scripts/flowlab_1m.py` → `render_1m_bars.py` → `flowlab_report.py`; `/flowlab` route;
+PNGs in `docs/slides/flow-1m-20260717/`. Built from `data/depth/ES_depth_2026-07-17.csv`
+(every print tagged bid/ask = a true BidAsk footprint at any granularity).
+
+- **⚠ COVERAGE: the depth recording starts 08:44:16, so the RTH open is NOT in the data.**
+  First complete 1M bar is 08:45. Anything claiming to show the open from this source is
+  fabricated.
+- **69% of ES 1M "imbalances" are thin-cell artifacts** (diagonal cell <20 lots) and **39%
+  sit on a row whose delta points the other way** — 83% of those are thin. A buy imbalance
+  on a negative-delta row is usually noise at the bar's edge. The 3× / 20-lot minimum only
+  guards the aggressive side; requiring BOTH cells to have size cuts 75 flags to ~23.
+- **Stacked imbalances barely exist at 1M on ES** (2 bars in 37). Do not wait for them.
+- **The signal is delta-vs-close-location disagreement, not delta.** Bars **27 vs 30** have
+  near-identical negative delta and opposite outcomes: bar 27 closed **mid-range (45%)** and
+  price collapsed; bar 30 closed at **79%** and price reversed up. Bar 27's −1,312 was 79%
+  one print (1,313 lots at 7532.50) — single-tick size alone is not a signal.
+- **No probabilities in the report, by design.** Depth exists for ONE session; any "64% of
+  the time" would be invented from a sample of one day. Report states its Lernziele: this
+  is a READING exercise (fluency + calibrated scepticism), not a research result.
+
+### Setup Marker (`mark_setups.py`) rebuilt — the tool that feeds the above
+5M aggregation done IN THE TOOL, ATR(14) zones on CR/PS, HOY/LOY/COY, prior-session
+VAH/VAL/POC (real value area from footprint volume-at-price), gap stats vs the PRIOR
+session's ATR, full-width/full-height chart with both-axis zoom, bar numbers, click-to-mark
+popup + `M`, Brooks vocabulary (H1 H2 L1 L2 W1P BOFT DBBull DTBear TFTO), and persisted
+line/box/fib drawings (`data/annotations/drawings.json`, kept OUT of the analysis set).
+
+**WEDGES are analysis-grade:** `Q`/`W`/`E` mark pushes 1/2/3, linked by a new `wedge_id`
+column so three pushes reconstruct as ONE wedge. The push is stored at the bar **EXTREME**
+(long→high, short→low), not the close. ⚠ **Convention unverified** — implemented literally
+from Samir's instruction; if a bull wedge should be three pushes DOWN marked at lows, it is
+a one-line flip. Check against the 7/14 wedge already marked (7591.00 → 7581.75 → 7596.00,
+which is not monotonic and may indicate the mapping is inverted).
+
+### 🔴 DATA / ENVIRONMENT LESSONS (all cost real time this session)
+1. **`data/footprint/ES_bars.csv` changed timeframe mid-session** — it read as 5M early in
+   the session and 1M later, after a re-export. **Never trust the exporter's timeframe.**
+   The tool now aggregates to 5M itself and shows a pill with the measured spacing.
+2. **The export is END-STAMPED**: the row labelled 08:31 covers 08:30–08:31, so the 5M bar
+   covering 08:30–08:35 is rows 08:31..08:35, labelled 08:35. Ceil, never floor. Verified:
+   those rows aggregate to O 7485.00 H 7491.25 L 7475.00 C 7475.25, matching the old 5M
+   export exactly.
+3. **A stale process on a port silently serves old code.** Port 8630 was held by an instance
+   from 22:04 that only knew days 7/13–7/16; every "restart" failed to bind and died with an
+   empty log while the browser kept getting the old build. **Fingerprint what the port
+   actually serves** (`/api/day` payload, canvas height, DAYS list) before believing a fix.
+4. **A stale CSV header silently drops new columns.** `wedge_id` was written to disk
+   correctly and read back empty, because `DictReader` discards values past the header.
+   `append_mark` now migrates the header. Data present, invisible to every reader.
+5. `render_b1_explainer.py` selects its bar by TIMESTAMP, so the 1M re-export means
+   re-running it now yields a 1-minute bar under a title that says "08:30–08:35 5M". The
+   committed PNG is correct; the script needs an explicit 5M aggregation before reuse.
+
+### NEXT
+1. **Verify the wedge direction convention** before marking many more (see ⚠ above).
+2. **Replicate S75Q H1 on NQ/RTY** — three quasi-independent samples beat a bigger n on one
+   instrument. MQ histories are already pulled.
+3. **Backfill depth data for 30–50 sessions** (NT8 re-export). It is the blocker for
+   everything: base rates for the 1M patterns, labelled reversals for "what do good reversal
+   bars look like internally", and any absorption mechanism check at the gamma levels.
+4. Restart the launcher to pick up `/gexlab`, `/flowlab` and the `/slides` fix (the gallery's
+   relative links 404'd because the page was served at `/slides` with no trailing slash).
+5. `docs/gexlab/flow1m.html` is 6.6MB (PNGs embedded base64 AND on disk). Gitignore the
+   generated HTML if repo size matters — it rebuilds in ~1 min.
 
 ---
 
