@@ -76,3 +76,8 @@ data/orats/
 # NT8 stored credential (DPAPI, machine-local) - never commit
 nt8_cred.xml
 **/nt8_cred.xml
+
+# Telegram bot token (secret, machine-local)
+telegram.json
+**/telegram.json
+telegram_sent.json
