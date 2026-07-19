@@ -358,14 +358,42 @@ def _artifact_files():
             meta[slug] = a
     except Exception:
         pass
+    def _title_of(f):
+        try:
+            head = f.read_text(encoding="utf-8", errors="ignore")[:4000]
+            i, j = head.find("<title>"), head.find("</title>")
+            if 0 <= i < j:
+                return head[i + 7:j].strip()
+        except Exception:
+            pass
+        return f.stem.replace("_", " ")
+
     out = []
     for f in sorted(ARTIFACT_DIR.glob("*.html")):
         st = f.stat()
         m = meta.get(f.stem, {})
-        out.append({"slug": f.stem, "title": m.get("title") or f.stem.replace("_", " "),
+        out.append({"slug": f.stem, "src": "artifact",
+                    "title": m.get("title") or f.stem.replace("_", " "),
                     "kb": round(st.st_size / 1024, 1), "url": m.get("url", ""),
                     "group": m.get("group", ""), "info": (m.get("info") or "")[:400],
                     "saved": dt.datetime.fromtimestamp(st.st_mtime).strftime("%Y-%m-%d %H:%M")})
+
+    # Locally-built HTML libraries that were never Claude artifacts. The Brooks Codex is
+    # ~30MB of work sitting in docs/living/ that nothing linked to — and two of the three
+    # artifacts that failed to fetch (Codex Trainer, Codex Cheat-Sheet) exist HERE in
+    # fuller form. Listed, not copied: duplicating 30MB into docs/artifacts/ would bloat
+    # the repo for no gain.
+    for sub, label in [("brooks_codex", "Brooks Codex")]:
+        d = ROOT / "docs" / "living" / sub
+        if not d.exists():
+            continue
+        for f in sorted(d.glob("*.html")):
+            st = f.stat()
+            out.append({"slug": f"{sub}/{f.stem}", "src": "local",
+                        "title": _title_of(f), "kb": round(st.st_size / 1024, 1),
+                        "url": "", "group": label,
+                        "info": f"Local library page ({label}) — built in-repo, not a Claude artifact.",
+                        "saved": dt.datetime.fromtimestamp(st.st_mtime).strftime("%Y-%m-%d %H:%M")})
     return sorted(out, key=lambda x: x["title"].lower())
 
 
@@ -728,9 +756,16 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(json.dumps(_artifact_files()))
         if p.startswith("/artifact/"):
             slug = p[len("/artifact/"):]
-            f = ARTIFACT_DIR / (slug + ".html")
-            # never let a crafted slug walk out of the artifacts directory
-            if ".." in slug or "/" in slug or "\\" in slug or not f.exists():
+            if ".." in slug or "\\" in slug:
+                return self._send("<h1>404</h1>", "text/html; charset=utf-8", 404)
+            # "brooks_codex/app" resolves under docs/living/; a bare slug under docs/artifacts/
+            f = ((ROOT / "docs" / "living" / (slug + ".html")) if "/" in slug
+                 else ARTIFACT_DIR / (slug + ".html"))
+            try:    # final guard: the resolved path must stay inside docs/
+                f.resolve().relative_to((ROOT / "docs").resolve())
+            except Exception:
+                return self._send("<h1>404</h1>", "text/html; charset=utf-8", 404)
+            if not f.exists():
                 return self._send("<h1>404</h1>", "text/html; charset=utf-8", 404)
             return self._send(f.read_text(encoding="utf-8", errors="replace"),
                               "text/html; charset=utf-8")
