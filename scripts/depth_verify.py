@@ -103,19 +103,29 @@ def report(path):
             print("  !! WARNING: median ask <= median bid — sides may be mislabelled")
 
     # --- the number we actually came for ---
-    if hours > 0:
+    # LIVE rate from the tail, not the whole-file average: the file often has hours of dead
+    # pre-open prefix (connect snapshot), which drags the average down and under-projects
+    # disk burn. Use the most recent contiguous data instead.
+    tail = d.tail(20000)
+    tspan = (tail.Time.iloc[-1] - tail.Time.iloc[0]).total_seconds()
+    mb_h = rows_s = 0
+    if tspan > 30:
+        mb_h = size_mb * (len(tail) / len(d)) / (tspan / 3600)   # live rate from tail
+        rows_s = len(tail) / tspan
+    elif hours > 0:
         mb_h = size_mb / hours
         rows_s = len(d) / span
+    if mb_h > 0:
         print()
-        print(f"  RATE          : {mb_h:,.1f} MB/hour   ({rows_s:,.0f} rows/sec)")
+        print(f"  RATE (live)   : {mb_h:,.1f} MB/hour   ({rows_s:,.0f} rows/sec)")
         print(f"  projected     : {mb_h * 23:,.0f} MB/day  (23h CME session)")
         print(f"                  {mb_h * 23 * 21 / 1000:,.1f} GB/month   "
               f"{mb_h * 23 * 252 / 1000:,.1f} GB/year")
         free_gb = free_space_gb()
-        if free_gb and mb_h > 0:
+        if free_gb:
             days = free_gb * 1000 / (mb_h * 23)
             print(f"  disk runway   : {free_gb:,.0f} GB free  =>  ~{days:,.0f} days uncompressed")
-            print(f"                  ~{days * 10:,.0f} days if gzipped nightly (~10x on this data)")
+            print(f"                  ~{days * 10:,.0f} days if converted to parquet (~20x)")
     return True
 
 
