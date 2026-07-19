@@ -347,7 +347,6 @@ button{background:var(--chip);color:var(--fg);border:1px solid #444c56;border-ra
   <span class="pill" id="overall">…</span>
   <span class="pill" id="mkt">…</span>
   <span style="margin-left:auto"></span>
-  <button id="reset">reset layout</button>
   <a href="/">← Mission Control</a>
 </header>
 <p class="hint">Each check reads the <b>artefact</b> a process produces and how fresh it is — never
@@ -412,7 +411,6 @@ async function load(){
       +'<div class="dt">'+c.detail+'</div>'+fix+'</div></div>';}).join('');
   document.querySelectorAll('.row').forEach(wire);
 }
-document.getElementById('reset').onclick=()=>{localStorage.removeItem(LSKEY);order=[];load();};
 load(); setInterval(load,15000);
 </script></body></html>"""
 
