@@ -31,6 +31,8 @@ using System.Collections;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Reflection;
+using NinjaTrader.Cbi;          // LogLevel
+using NinjaTrader.Data;         // BarsPeriodType
 using NinjaTrader.NinjaScript;
 #endregion
 
@@ -65,16 +67,16 @@ namespace NinjaTrader.NinjaScript.Indicators
                         Instrument.MasterInstrument.Name, PeriodTag(), DateTime.Now));
                     w = new StreamWriter(path, false);
                     w.WriteLine("BarIdx,BarTime,mzDelta,mzCumDelta,mzBuyVol,mzSellVol,mzPOC,mzVAH,mzVAL");
-                    Log("MzValueExporter -> " + path, LogLevel.Information);
+                    Log("MzValueExporter -> " + path, NinjaTrader.Cbi.LogLevel.Information);
                 }
-                catch (Exception e) { Log("MzValueExporter open failed: " + e.Message, LogLevel.Error); }
+                catch (Exception e) { Log("MzValueExporter open failed: " + e.Message, NinjaTrader.Cbi.LogLevel.Error); }
             }
             else if (State == State.Terminated)
             {
                 if (w != null)
                 {
                     Log(string.Format("MzValueExporter wrote {0:N0} rows (volDelta={1}, volProfile={2})",
-                        rows, volDelta != null, volProfile != null), LogLevel.Information);
+                        rows, volDelta != null, volProfile != null), NinjaTrader.Cbi.LogLevel.Information);
                     try { w.Flush(); w.Close(); } catch { }
                     w = null;
                 }
@@ -102,7 +104,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             resolved = true;
             try
             {
-                if (ChartControl == null) { Log("MzValueExporter: no ChartControl (apply to a CHART)", LogLevel.Warning); return; }
+                if (ChartControl == null) { Log("MzValueExporter: no ChartControl (apply to a CHART)", NinjaTrader.Cbi.LogLevel.Warning); return; }
                 foreach (PropertyInfo p in ChartControl.GetType().GetProperties(PUB))
                 {
                     if (!typeof(IEnumerable).IsAssignableFrom(p.PropertyType) || p.PropertyType == typeof(string)) continue;
@@ -120,9 +122,9 @@ namespace NinjaTrader.NinjaScript.Indicators
                 }
                 Log(string.Format("MzValueExporter resolved: mzVolumeDelta={0} mzVolumeProfile={1}",
                     volDelta != null, volProfile != null),
-                    (volDelta == null && volProfile == null) ? LogLevel.Warning : LogLevel.Information);
+                    (volDelta == null && volProfile == null) ? NinjaTrader.Cbi.LogLevel.Warning : NinjaTrader.Cbi.LogLevel.Information);
             }
-            catch (Exception e) { Log("MzValueExporter resolve failed: " + e.Message, LogLevel.Warning); }
+            catch (Exception e) { Log("MzValueExporter resolve failed: " + e.Message, NinjaTrader.Cbi.LogLevel.Warning); }
         }
 
         /// Read Series<double> member `name` at barsAgo 0. Blank on any mismatch.
@@ -182,7 +184,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 }));
                 if (++rows % 50 == 0) w.Flush();
             }
-            catch (Exception e) { Log("MzValueExporter row failed: " + e.Message, LogLevel.Warning); }
+            catch (Exception e) { Log("MzValueExporter row failed: " + e.Message, NinjaTrader.Cbi.LogLevel.Warning); }
         }
 
         [NinjaScriptProperty]
