@@ -32,6 +32,7 @@ Usage:
   lv = mq.get("gamma-levels/SPX/eod")
   hist = mq.gamma_insights("SPX", 365)
 """
+import re
 import time
 from pathlib import Path
 
@@ -41,6 +42,7 @@ ROOT = Path(__file__).resolve().parents[1]
 AUTH = ROOT / "gamma_tracker" / "auth_state.json"
 GW = "https://gateway.menthorq.io/clickhouse-api/api/web/v1"
 CF = "https://cf.menthorq.io/clickhouse-api/api/web/v1"
+QBOT = "https://cf.menthorq.io/qbot-service/api/web/v1"
 
 
 class MQ:
@@ -109,6 +111,40 @@ class MQ:
 
     def blindspot_levels(self, sym):
         return self.get(f"blindspot-levels/{sym}")
+
+    def blindspots(self, syms, dates):
+        """HISTORICAL blind spots via the qbot /levels endpoint (S75V discovery).
+
+        `blindspots` (no underscore) IS a valid level_type here even though the
+        gateway `blindspot-levels/{sym}` route is today-only. Serves any past
+        session; coverage starts ~2025-10-31 (empty before). Values match the old
+        QUIN scrape to the penny (validated 2026-07-20).
+
+        NOTE the date shift: a requested `dates=D` returns the PRIOR trading
+        session, so always key off the returned `date` field, never the request.
+        Batch limit ~25-30 dates/call (90 -> HTTP 400); caller should chunk.
+
+        syms/dates: list or comma string. Returns list of flat dicts
+        {ticker, date, bl_1..bl_10}.
+        """
+        if isinstance(syms, (list, tuple)):
+            syms = ",".join(syms)
+        if isinstance(dates, (list, tuple)):
+            dates = ",".join(dates)
+        js = self.get("levels", base=QBOT, tickers=syms,
+                      level_types="blindspots", dates=dates)
+        out = []
+        for it in (js.get("data") or []):
+            lv = it.get("levels") or []
+            if not lv:
+                continue
+            row = {"ticker": it["ticker"], "date": it["date"]}
+            for v in lv[0].get("level_values", []):
+                m = re.match(r"BL\s*(\d+)", v.get("name", ""))
+                if m:
+                    row[f"bl_{int(m.group(1))}"] = v.get("value")
+            out.append(row)
+        return out
 
     def swing_levels(self, sym):
         """Last 5 trading days only -- confirmed hard cap, see module docstring."""

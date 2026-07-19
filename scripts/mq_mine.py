@@ -106,6 +106,19 @@ def main():
                 missing.append((sym, name, f"{type(e).__name__}: {str(e)[:50]}"))
                 log.append(f"  XX  {sym:7} {name:18} {type(e).__name__}: {str(e)[:60]}")
 
+    # ---- Blind Spots history (S75V) -----------------------------------------
+    # BL 1..10 via the qbot /levels endpoint. Keeps the tidy per-ticker CSVs
+    # (data/menthorq/<SYM>_mq_blindspots_history.csv) current daily. Idempotent,
+    # self-heals gaps. Never fatal to the mine run.
+    try:
+        from mq_blindspots_backfill import update_history as _bl_update
+        _bl_added = _bl_update(mq=mq, verbose=False)
+        _bl_n = sum(_bl_added.values())
+        log.append(f"  OK  {'blindspots':7} history +{_bl_n} sessions "
+                   f"({sum(1 for v in _bl_added.values() if v)} tickers updated)")
+    except Exception as e:
+        log.append(f"  XX  blindspots history {type(e).__name__}: {str(e)[:60]}")
+
     stamp = _now().strftime("%Y-%m-%d %H:%M ET")
     manifest = MINE / "mine_log.txt"
     with open(manifest, "a", encoding="utf-8") as f:

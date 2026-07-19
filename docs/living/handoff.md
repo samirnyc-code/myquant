@@ -1,6 +1,67 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 19, 2026 (sessions 75Q + 75R + Setup Marker rebuild + 75T + 75U + 75V recording pipeline + S77 security hardening; merged S76 Mac swing-levels work)
+**Last Updated:** July 20, 2026 (S75V-BL blind-spot reverse-engineering + capture pipeline; prior: 75Q + 75R + Setup Marker rebuild + 75T + 75U + 75V recording pipeline + S77 security hardening; merged S76 Mac swing-levels work)
+
+---
+
+## S75V-BL (2026-07-20) — Blind Spots reverse-engineered + full history captured (branch `s75-live-dashboard`)
+
+**Goal:** reverse-engineer MenthorQ Blind Spot levels (`bl_1..bl_10`) so they can be
+backtested. Outcome: exact reconstruction is impossible, but the mechanism is validated
+and — the real win — **we found where BL HISTORY actually lives and captured ~200 days.**
+
+**⭐ THE UNLOCK — BL history exists after all.** The gateway route `blindspot-levels/{sym}`
+is TODAY-ONLY (every date/range param ignored, no `/history` route, both `gateway` and
+`cf` bases). I wrongly concluded "no history exists" from that alone. But:
+- The qbot endpoint **`cf.menthorq.io/qbot-service/api/web/v1/levels?tickers=<S>&level_types=blindspots&dates=<D>`**
+  (`blindspots`, NO underscore) serves ANY past session. **Validated to the penny** vs the
+  old local QUIN `bl_levels.json` archive on 2026-07-02.
+- Coverage starts **~2025-09-30** (empty before). Date shift: request `D` returns the PRIOR
+  session — key off the returned `date`. Batch cap **~5 dates/call** (≥8 → HTTP 400).
+- This replaces the dead QUIN nonce scrape (`menthorq_backfill.py`, nonce expired → 400/"0").
+
+**BUILT (committed):**
+- `mq_api.blindspots(syms, dates)` — new method, qbot endpoint, fresh Playwright token.
+- `scripts/mq_blindspots_backfill.py` — backfill + daily capture in one idempotent script.
+  Writes `data/menthorq/<SYM>_mq_blindspots_history.csv` (+ `_raw.jsonl`). Self-heals gaps.
+- **Wired into the daily scrape:** `mq_mine.py` now calls `update_history()` every run — no
+  new scheduled task. (Task `MyQuant_MQ_Mine`, 14:30 Berlin.)
+- **Panel captured:** 19 tickers × ~200 sessions (2025-09-30 → 2026-07-17): ES1! NQ1! RTY1!
+  YM1!(187, thin) SPX NDX RUT + Mag7 + CL1! GC1! SPY QQQ IWM. Mag7 ~198 (a few empties).
+  NOTE: blind spots use **GOOG** not GOOGL (gamma archive uses GOOGL) — fixed in the daily
+  default ticker list; SI1! returns empty (no BL). All 19 panels present and current.
+
+**REVERSE-ENGINEERING VERDICT (4 parallel agents + 200-day powered re-test):**
+- **Exact reconstruction: IMPOSSIBLE.** BL carries odd 2-decimal values (7579.32) that round
+  gamma levels × any ratio can't produce → the API's BL is **"Blind Spots V2"**, a cross-asset
+  OVERLAP model computed upstream from the per-strike option surface of a proxy basket, NOT a
+  copy of published gamma levels. (V1 = the manual single-proxy fixed-ratio copy traders plot,
+  e.g. QQQ→NQ ×41.26 — a *different* product.)
+- **REFUTED (all on ES+NQ):** exact fixed-ratio copy, momentum-as-input (momentum was DOWN 7/17
+  yet BL skew UP), gamma-magnitude selection, per-strike GEX flips, Q-score, IV expected-move
+  band, OI-minima, distance-rank index, beta-map. BL index = internal overlap-score rank, not
+  geometry. 5/5 above/below split is ES-only (NQ 7/3).
+- **CONFIRMED with power:** BLs cluster near pooled cross-asset STRUCTURAL gamma levels
+  {Call Resistance, Put Support, HVL, **Gamma Wall 0DTE** — load-bearing}. Single day p=0.011 →
+  **200-session z=+8.9, t≈−11, BLs beat null in 81.5% of days** (`scratchpad/bl_confluence_200d.py`).
+- **Edge as reaction zones: weak positive, NOT yet significant.** Tick-based, 146 sessions/329
+  touches (`scratchpad/bl_edge_ticks.py`): rejection 48.9% vs matched-band-null 44.8% (+4.2pp,
+  z=1.3). Underpowered — only ~22% of BLs get touched same-day. NEXT: multi-day touch window.
+
+**AUTH / DEPENDENCY (user asked):** all MQ pulls use the user's OWN logged-in session
+(`gamma_tracker/auth_state.json` cookies → fresh Bearer token via Playwright each run). The
+MenthorQ sub is **FREE** (not paid). Data endpoints check entitlement server-side per request,
+so if the account/session lapses the pull dies (401/empty) — capture history while active.
+
+**DATA NOTES:** ES intraday ticks live in `data/ticks_continuous/*.parquet` (DateTime/Price/
+Volume, 2021-06-18 → 2026-07-09, 1270 sessions) — NOT the stale per-contract `data/bars/ES*`.
+Gamma history (`<SYM>_mq_levels_history_raw.jsonl`) has 11 duplicate dates — dedupe before
+computing returns.
+
+**OPEN / NEXT:** (1) multi-day touch-window edge study for power. (2) Re-run confluence with the
+ETF proxies (SPY/QQQ/NDX/IWM) once their gamma HISTORY is captured (only BL history exists for
+them now; gamma is today-only via API). (3) Test the V2 overlap-clustering model across 200 days
+now that we have the panel. (4) Consider capturing per-strike surfaces daily (the true BL input).
 
 ---
 
