@@ -1,6 +1,114 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 19, 2026 (sessions 75Q + 75R + Setup Marker rebuild)
+**Last Updated:** July 19, 2026 (sessions 75Q + 75R + Setup Marker rebuild + 75T)
+
+---
+
+## S75T (2026-07-19) — ORATS quota spent before cancellation: Mag7 + SPX to 2007; Databento scoped and NOT bought (branch `s75-live-dashboard`)
+
+**Bottom line:** the ORATS sub is being cancelled, so the monthly quota was one-shot.
+Pulled everything worth having before it lapses: **Mag7 (8,248 req) + SPX back to
+2007-06-01 (3,736 req)**. **13,149 of 20,000 used, 6,851 unspent — safe to cancel.**
+Databento was researched in depth and **deliberately NOT purchased.**
+
+**⚠️ Read S75Q first.** This session ran in parallel with S75Q/S75R and was working from
+the S75P framing ("HVL is the one surviving signal"). **S75Q substantially weakened that**
+— see the honest re-assessment at the end of this block.
+
+### Pulled this session (verified against the dry-run plan, not just exit-code 0)
+| Ticker | Dates | Range | Size |
+|---|---|---|---|
+| AAPL | 1,204 | 2021-09-27 → 2026-07-17 | 45 MB |
+| AMZN | 1,203 | 2021-09-27 → 2026-07-17 | 56 MB |
+| GOOGL | 1,204 | 2021-09-27 → 2026-07-17 | 58 MB |
+| META | 1,027 | 2022-06-09 → 2026-07-17 | 67 MB |
+| MSFT | 1,203 | 2021-09-27 → 2026-07-17 | 55 MB |
+| NVDA | 1,204 | 2021-09-27 → 2026-07-17 | 79 MB |
+| TSLA | 1,203 | 2021-09-27 → 2026-07-17 | 81 MB |
+| **SPX** | **4,789** | **2007-06-01 → 2026-07-15** | **646 MB** |
+
+META's short history is the ticker rename, not a gap. 404s in the backfill log are
+holidays, correctly skipped. `data/orats/` is gitignored — 1.09 GB, not in the repo.
+**No code changed this session**; `scripts/orats_pull.py` ran as-is from S75P.
+
+### Deep SPX history IS technically usable — OI + gamma present back to 2008
+| Year | rows/day | strikes | OI populated | gamma clean | 0DTE |
+|---|---|---|---|---|---|
+| 2008 | 604 | 134 | 84.6% | 100% | 0 |
+| 2012 | 1,266 | 176 | 84.6% | 100% | 0 |
+| 2016 | 3,383 | 254 | 87.8% | 100% | 0 |
+| 2020 | 6,747 | 381 | 83.7% | 100% | 252 |
+| 2024 | 11,262 | 488 | 91.0% | 100% | 177 |
+
+Both NetGEX inputs exist all the way back. The corrupt-greek problem is **confined to
+2021–22**; deep history is 100% clean. **The constraint is resolution:** 134 strikes in
+2008 vs 488 in 2024, so the cumulative-gamma curve is far coarser early.
+
+**⚠️ Pre-2020 levels are a DIFFERENT OBJECT.** The `dte>1` 0DTE-exclusion rule that was
+S75P's biggest unlock is a **no-op before 2020** — there is no 0DTE to exclude. Do not
+assume pre-2020 and post-2022 HVL are comparable without testing that explicitly.
+
+**Note on the S75P "2021 hvl = 18%" figure:** that is *match-to-MenthorQ*, not evidence
+the levels are wrong — MQ barely existed then. Deep-history levels can only be validated
+**against price**, never against MQ.
+
+### Databento — researched, scoped, NOT purchased
+- **No SPX index intraday exists on Databento.** Only Cboe CGIF as raw PCAP at $750/mo,
+  not an API product. Dead end for "SPX spot".
+- **ES *is* the intraday SPX proxy** — S75P's price test already used exactly that pairing.
+- **We already have the ES tape:** `data/flatfiles_cache/` = **1,316 days, 2021-06-18 →
+  2026-07-09** (Massive), covering the ORATS window almost exactly. **Databento adds only
+  pre-2021.** Premature purchase — the $125 credit is untouched and lasts 6 months.
+- If ever bought: `GLBX.MDP3`, symbol `ES.v.0` (`stype_in="continuous"`, volume roll —
+  `.c.0` strands you on a dead contract pre-expiry), schema **`trades`** (carries the
+  aggressor `side` field: `B`/`A`/**`N`** — the `N` bucket is real and must be handled
+  explicitly or delta is biased). History to 2010-06-06, but **MBO does not exist before
+  2017-05-21** (pre-2017 is backfilled legacy MDP 2.0, ms timestamps only).
+- Pricing: trades $28/GB, ohlcv-1m $70/GB, mbp-10 $0.50/GB (March-2024 card, may be
+  stale). **Don't buy bars** — build them from trades. Marketing's "credit buys N months"
+  figures are internally inconsistent; `metadata.get_cost` prices a pull spend-free.
+
+### 🔴 Correction to `options_data_vendors.md`
+"OPRA resellers lack OI" is **WRONG for Databento.** Open interest IS available via the
+`statistics` schema, `stat_type=9`, on both OPRA.PILLAR (2013→) and GLBX.MDP3 (2010→).
+What Databento genuinely lacks is **greeks/IV — nowhere, by policy.** ORATS and Databento
+are complements (greeks vs microstructure), not substitutes.
+Also: **GLBX.MDP3 carries ES options on futures** (`ES.OPT`, OI + settlements, 2010→) —
+the native chain MQ actually uses for ES levels. S75P's "stop trying to reproduce ES/NQ
+levels" holds *for ORATS*; it is purchasable elsewhere.
+
+### ⚠️ Honest re-assessment given S75Q — was this pull worth it?
+The deep-SPX backfill was justified in-session by "extend the HVL regime result to 2007
+and test it through 2008/2011/2015/2018/2020." **S75Q then found GEX-vs-realised-range is
+subsumed by VIX** (OOS R² 0.4490 → 0.4416) and **HVL day-type is VIX-confounded.** So the
+strongest reason for the 2007 backfill is now materially weaker than when it was launched.
+
+It was still the right call to *pull* — the sub was being cancelled, the data is
+unrecoverable afterwards, and 3,736 requests were free at the margin. But **do not treat
+the deep history as a queued research priority.** Any deep-history gamma work must now
+clear the S75Q bar: **beat a VIX baseline out-of-sample, against a date-shuffled placebo
+control.** If it can't, the correct move is to leave the parquet on disk unused.
+
+### ⚠️ Project sprawl — flagged, unresolved
+myquant began as a WFA engine with strict Pardo/no-peek discipline. It now also carries
+MenthorQ scraping, ORATS chains, an options sim + desk daemon, Discord intel, footprint/
+CVD, MzPack KB, Mission Control, levels decks, a data catalog, a 1M flow lab and a setup
+marker. **"Step 3 — First real WFA run" has been the next step since session 16. It is now
+session 75.** After S75Q, the validated-signal inventory is: CR/PS ❌ · ES/NQ from ORATS ❌
+· naive 1D condor ❌ (−$24k) · Brooks regime ❌ · GEX-vs-range ❌ (subsumed by VIX) ·
+HVL ⚠️ (VIX-confounded) · CR-rejection-from-below ⚠️ (n=66, low-VIX only, do not size).
+**Nothing is currently strong enough to trade.** That is the thing to fix, not the data.
+
+### NEXT (none of these need new data or spend)
+1. **Mag7 cross-sectional** — the one genuinely new capability this pull unlocked. Does any
+   gamma-level effect exist outside SPX? Must use S75Q's date-shuffle placebo from the
+   start, and clear a VIX baseline. Cheapest real attack on what's left.
+2. **VRP (implied vs subsequent realised)** — zero new data, far better established in the
+   literature than gamma walls, and independent of everything S75Q killed. Strongest
+   remaining non-gamma line.
+3. **Deep-history gamma — only if (1) survives.** Compute 2008–2020 levels, validate
+   against price, beat VIX OOS. Do not start this before (1).
+4. Confirm ORATS cancellation went through; `data/orats/` is now a frozen archive.
 
 ---
 
