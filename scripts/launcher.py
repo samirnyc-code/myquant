@@ -290,6 +290,90 @@ def _mem_map(pids):
     return out
 
 
+def _health():
+    """Evidence-based pipeline health (see scripts/pipeline_health.py).
+
+    Never let a broken check take Mission Control down - degrade to an error card.
+    """
+    try:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import pipeline_health
+        import importlib
+        importlib.reload(pipeline_health)      # pick up edits without restarting MC
+        return pipeline_health.health()
+    except Exception as e:
+        return {"overall": "warn", "market": "?", "chicago": "",
+                "checks": [{"name": "pipeline_health", "state": "warn",
+                            "detail": f"{type(e).__name__}: {e}"}]}
+
+
+_HEALTH_HTML = """<!doctype html><html><head><meta charset="utf-8">
+<title>Pipeline Health — Mission Control</title>
+<style>
+:root{--bg:#0d1117;--card:#161b22;--chip:#30363d;--fg:#e6edf3;--muted:#8b949e}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 -apple-system,Segoe UI,Roboto,sans-serif}
+header{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--chip);
+  position:sticky;top:0;background:var(--bg);z-index:5}
+h1{font-size:17px;margin:0}
+a{color:#58a6ff}
+.wrap{padding:18px 20px;max-width:900px}
+.pill{padding:3px 11px;border-radius:999px;font-size:12px;font-weight:600;border:1px solid var(--chip)}
+.ok{color:#22c55e;border-color:#22c55e}.warn{color:#f59e0b;border-color:#f59e0b}
+.bad{color:#ef4444;border-color:#ef4444}.idle{color:#8b949e}
+.row{display:flex;align-items:flex-start;gap:12px;background:var(--card);border:1px solid var(--chip);
+  border-radius:10px;padding:12px 14px;margin-bottom:9px}
+.row.bad{border-color:#ef4444}.row.warn{border-color:#f59e0b55}
+.dot{width:11px;height:11px;border-radius:50%;margin-top:5px;flex:0 0 auto}
+.nm{font-weight:600;min-width:150px}
+.dt{color:var(--muted);font-family:ui-monospace,Consolas,monospace;font-size:12.5px}
+.muted{color:var(--muted);font-size:12.5px}
+.fix{margin-top:6px;font-size:12.5px;color:#8b949e;border-left:2px solid var(--chip);padding-left:9px}
+</style></head><body>
+<header><h1>Pipeline Health</h1>
+  <span class="pill" id="overall">…</span>
+  <span class="pill" id="mkt">…</span>
+  <span style="margin-left:auto"></span>
+  <a href="/">← Mission Control</a>
+</header>
+<div class="wrap">
+  <p class="muted">Every check reads the <b>artefact</b> a process produces and how fresh it is —
+  never whether the process is alive. A live process proves nothing: a login prompt, a
+  recompile-disabled strategy and a missing data subscription all look "running".</p>
+  <div id="rows"></div>
+  <p class="muted" id="gen"></p>
+</div>
+<script>
+const FIX={
+ "L2 depth":"Control Center → Strategies → MarketDepthRecorder must be ENABLED (a recompile disables it).",
+ "Contract":"Roll the chart/strategy to the front-month contract, then re-enable the recorder.",
+ "Footprint":"FootprintExporter needs Tick Replay ON for its data series.",
+ "NinjaTrader":"scripts/nt8_login.ps1 starts NT8 and signs in.",
+ "NT8 tick DB":"Tools → Options → Market data → 'Record live data as historical' must be ON.",
+ "IB gateway":"Login is not the same as the API port — run scripts/gateway_ensure.py.",
+ "Options sim":"Check the sim daemon scheduled task and data/options_sim/live.json.",
+ "Disk":"data/depth grows fast — convert finished days to parquet.",
+ "Scheduled tasks":"Task Scheduler → look at Last Run Result for the named tasks."};
+const C={ok:"#22c55e",warn:"#f59e0b",bad:"#ef4444",idle:"#6b7280"};
+async function load(){
+  const h=await(await fetch('/health.json')).json();
+  const o=document.getElementById('overall');
+  o.textContent=h.overall.toUpperCase(); o.className='pill '+h.overall;
+  document.getElementById('mkt').textContent='market '+h.market;
+  document.getElementById('gen').textContent='checked '+h.chicago+' CT';
+  document.getElementById('rows').innerHTML=h.checks.map(c=>{
+    const fix=(c.state==='bad'||c.state==='warn')&&FIX[c.name]?`<div class="fix">${FIX[c.name]}</div>`:'';
+    return `<div class="row ${c.state}"><span class="dot" style="background:${C[c.state]}"></span>
+      <div><div class="nm">${c.name}</div><div class="dt">${c.detail}</div>${fix}</div></div>`;}).join('');
+}
+load(); setInterval(load,15000);
+</script></body></html>"""
+
+
+def _health_html():
+    return _HEALTH_HTML
+
+
 def status():
     rows = []
     probe = {}
@@ -439,6 +523,10 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(FAVICON, "image/svg+xml")
         if p == "/status.json":
             return self._send(json.dumps(status()))
+        if p == "/health.json":
+            return self._send(json.dumps(_health()))
+        if p == "/health":
+            return self._send(_health_html(), "text/html; charset=utf-8")
         if p == "/artifacts.json":
             return self._send(json.dumps(load_artifacts()))
         if p.startswith("/log/"):
@@ -689,18 +777,35 @@ a.open{text-decoration:none}
 details{margin-top:2px}details summary{cursor:pointer;font-size:11.5px;color:var(--muted)}
 pre{background:var(--chip);border-radius:7px;padding:8px 10px;font-size:11px;overflow:auto;max-height:180px;margin:6px 0 0}
 .muted{color:var(--muted)}
+.menu{position:relative;display:inline-block}
+.menu-pop{display:none;position:absolute;right:0;top:calc(100% + 6px);z-index:50;min-width:210px;
+  background:var(--card,#161b22);border:1px solid var(--chip,#30363d);border-radius:9px;padding:5px;
+  box-shadow:0 10px 30px rgba(0,0,0,.45)}
+.menu-pop a{display:block;padding:7px 10px;border-radius:6px;font-size:12.5px;text-decoration:none;color:inherit}
+.menu-pop a:hover{background:var(--chip,#30363d)}
+.menu.open .menu-pop{display:block}
+#healthbtn.ok{border-color:#22c55e;color:#22c55e}
+#healthbtn.warn{border-color:#f59e0b;color:#f59e0b}
+#healthbtn.bad{border-color:#ef4444;color:#ef4444;font-weight:700}
 </style></head><body>
 <header>
   <h1>🚀 Mission Control</h1>
   <span class="pill" id="summary">…</span>
   <span style="margin-left:auto"></span>
-  <a href="/tour" target="_blank" rel="noopener"><button title="how the options desk automation works — shareable explainer">📖 Desk Tour</button></a>
-  <a href="/library" target="_blank" rel="noopener"><button title="MZpack Insights knowledge base — order-flow education organized by topic">📚 MZpack Library</button></a>
-  <a href="/slides" target="_blank" rel="noopener"><button title="study-material slides by topic (docs/slides/) — presentation raw material">🎞 Slides</button></a>
-  <a href="/levels" target="_blank" rel="noopener"><button title="Gamma Levels slide deck — 10 sessions per slide, MenthorQ + our CR/PS/HVL over intraday price">📈 Gamma Levels</button></a>
-  <a href="/mqmethod" target="_blank" rel="noopener"><button title="MenthorQ Method — the framework extracted from 7 Academy video transcripts, with every claim tested">🔬 MQ Method</button></a>
-  <a href="/gexlab" target="_blank" rel="noopener"><button title="S75Q — do MenthorQ gamma levels help the Brooks method? Pre-registered study: regime axis dead, one weak CR result at n=66">🧪 GEX Lab</button></a>
-  <a href="/flowlab" target="_blank" rel="noopener"><button title="S75R — ES 1M order-flow reading: two complete swings of 7/17 bar by bar, ladder + delta arithmetic + absorption/trap commentary">🕯 Flow Lab</button></a>
+  <a href="/health" target="_blank" rel="noopener"><button id="healthbtn" title="is everything actually recording? evidence-based pipeline health">● Health</button></a>
+  <div class="menu">
+    <button id="libbtn" title="explanations, study material and research write-ups">📚 Library ▾</button>
+    <div class="menu-pop" id="libpop">
+      <a href="/tour" target="_blank" rel="noopener" title="how the options desk automation works — shareable explainer">📖 Desk Tour</a>
+      <a href="/library" target="_blank" rel="noopener" title="MZpack Insights knowledge base — order-flow education organized by topic">📚 MZpack Library</a>
+      <a href="/slides" target="_blank" rel="noopener" title="study-material slides by topic (docs/slides/)">🎞 Slides</a>
+      <a href="/levels" target="_blank" rel="noopener" title="Gamma Levels slide deck — MenthorQ + our CR/PS/HVL over intraday price">📈 Gamma Levels</a>
+      <a href="/mqmethod" target="_blank" rel="noopener" title="MenthorQ Method — framework from 7 Academy videos, every claim tested">🔬 MQ Method</a>
+      <a href="/gexlab" target="_blank" rel="noopener" title="S75Q — do MenthorQ gamma levels help the Brooks method?">🧪 GEX Lab</a>
+      <a href="/flowlab" target="_blank" rel="noopener" title="S75R — ES 1M order-flow reading, bar by bar">🕯 Flow Lab</a>
+      <a href="/catalog" target="_blank" rel="noopener" title="Data Catalog — every dataset, where it lives, how fresh it is">🗄 Data Catalog</a>
+    </div>
+  </div>
   <button id="reload" title="refresh status now">↻ Reload</button>
   <button class="primary" id="startall">▶ Start all</button>
   <button id="openall" title="open every running dashboard">↗ Open running</button>
@@ -721,6 +826,23 @@ pre{background:var(--chip);border-radius:7px;padding:8px 10px;font-size:11px;ove
   <div id="artifacts"></div>
 </div>
 <script>
+// Library dropdown + health pill in the header
+(function(){
+  const m=document.getElementById('libbtn'); if(m){
+    const box=m.parentElement;
+    m.onclick=e=>{e.stopPropagation();box.classList.toggle('open');};
+    document.addEventListener('click',()=>box.classList.remove('open'));
+  }
+  async function hp(){try{
+    const h=await(await fetch('/health.json')).json();
+    const b=document.getElementById('healthbtn');
+    if(b){b.className=h.overall;
+      const n=h.checks.filter(c=>c.state==='bad'||c.state==='warn').length;
+      b.textContent=(h.overall==='ok'?'● Health':'● Health ('+n+')');}
+  }catch(e){}}
+  hp(); setInterval(hp,20000);
+})();
+
 const css=k=>getComputedStyle(document.documentElement).getPropertyValue(k).trim();
 let ST=null, timer=null;
 const mem=b=>b==null?'':(b>=1e9?(b/1e9).toFixed(2)+' GB':(b/1e6).toFixed(0)+' MB');

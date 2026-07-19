@@ -29,6 +29,7 @@ import webbrowser
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(Path(__file__).resolve().parent))   # so pipeline_health imports
 DEPTH_DIR = ROOT / "data" / "depth"
 FOOTPRINT_DIR = ROOT / "data" / "footprint"
 STATE_FILE = ROOT / "data" / "_catalog" / "status_light.json"
@@ -95,8 +96,44 @@ def _save_state(s: dict) -> None:
 
 
 def probe() -> dict:
-    """Return {color, short, detail} describing the pipeline right now."""
-    now = market_state_now = chicago_now()
+    """Return {color, short, detail} for the widget.
+
+    Delegates the actual checks to pipeline_health so the light, Mission Control and the
+    console all report from ONE source of truth. Falls back to the depth-only probe below
+    if that import fails, so the light never goes dark just because a check has a bug.
+    """
+    try:
+        import pipeline_health as ph
+    except Exception:
+        return _probe_depth_only()
+
+    h = ph.health()
+    sev = {ph.OK: GREEN, ph.IDLE: GREY, ph.WARN: AMBER, ph.BAD: RED}
+    by = {c["name"]: c for c in h["checks"]}
+
+    depth = by.get("L2 depth", {})
+    contract = by.get("Contract", {})
+    mb = depth.get("mb", 0)
+
+    # the label must answer "recording WHAT?" - a healthy-looking file on a dead contract
+    # is the failure this is here to catch
+    tag = f"ES {contract.get('active', '??')}"
+    if contract.get("state") == ph.BAD:
+        tag = f"!! {tag}"
+    short = f"{tag} · {mb:,.0f}MB" if mb else f"{tag} · {h['market']}"
+
+    bad = [c for c in h["checks"] if c["state"] in (ph.BAD, ph.WARN)]
+    lines = [f"{c['name']}: {c['detail']}" for c in h["checks"]]
+    detail = (f"overall {h['overall'].upper()}   market {h['market']}   {h['chicago']} CT\n"
+              + "-" * 44 + "\n" + "\n".join(lines))
+    if bad:
+        detail += f"\n\n{len(bad)} item(s) need attention"
+    return dict(color=sev.get(h["overall"], GREY), short=short, detail=detail)
+
+
+def _probe_depth_only() -> dict:
+    """Fallback: depth file only (used if pipeline_health cannot be imported)."""
+    now = chicago_now()
     mkt = market_state(now)
     files = _depth_files(now)
 
@@ -153,7 +190,7 @@ def run_widget(corner: str) -> None:
     root.overrideredirect(True)              # borderless
     root.attributes("-topmost", True)
     root.configure(bg="#0f172a")
-    W, H = 190, 26
+    W, H = 250, 26
 
     sw, sh = root.winfo_screenwidth(), root.winfo_screenheight()
     pos = st.get("pos")

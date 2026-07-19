@@ -98,6 +98,39 @@ def check_depth() -> dict:
     return _chk("L2 depth", OK, f"{mb:,.0f}MB, {_fmt_age(age)} ago", mb=round(mb, 1))
 
 
+def front_month(now: dt.datetime | None = None) -> str:
+    """Which ES contract SHOULD be front month right now.
+    ES is quarterly (Mar/Jun/Sep/Dec) and rolls ~2nd Thursday of the expiry month, so from
+    mid-month the next quarter leads. Recording a dead contract looks perfectly healthy -
+    a file grows, rows arrive - which is exactly why this is checked explicitly."""
+    now = now or chicago_now()
+    y, m = now.year, now.month
+    for em in (3, 6, 9, 12):
+        if m < em or (m == em and now.day < 10):
+            return f"{em:02d}-{y % 100:02d}"
+    return f"03-{(y + 1) % 100:02d}"
+
+
+def check_contract() -> dict:
+    """Is NT8 recording the contract we expect? (roll traps: 'ES 12-20' was still in a
+    workspace on 2026-07-19 - a chart on a dead contract records nothing, silently.)"""
+    want = front_month()
+    base = NT8 / "db" / "tick"
+    seen, active = [], None
+    if base.exists():
+        dirs = sorted((p for p in base.glob("ES *") if p.is_dir()), key=lambda p: p.stat().st_mtime)
+        seen = [p.name for p in dirs[-3:]]
+        if dirs:
+            active = dirs[-1].name.replace("ES ", "").strip()
+    if not active:
+        return _chk("Contract", WARN, f"expected ES {want}, no tick data found", want=want)
+    if active != want:
+        return _chk("Contract", BAD,
+                    f"recording ES {active} but front month is ES {want}",
+                    want=want, active=active, seen=seen)
+    return _chk("Contract", OK, f"ES {active} (front month)", want=want, active=active)
+
+
 def check_footprint() -> dict:
     fp = sorted(FOOTPRINT_DIR.glob("*_footprint_*.csv"))
     if not fp:
@@ -208,7 +241,7 @@ def check_tasks() -> dict:
                 failing=bad)
 
 
-CHECKS = [check_depth, check_footprint, check_nt8, check_tick_db,
+CHECKS = [check_depth, check_contract, check_footprint, check_nt8, check_tick_db,
           check_ib_gateway, check_options_sim, check_disk, check_tasks]
 
 
