@@ -223,9 +223,22 @@ def check_footprint() -> dict:
     newest = fp[-1]
     age = _age(newest)
     mkt = market_state()
-    if mkt == "open" and age > 900:
-        return _chk("Footprint", WARN, f"{newest.name} stale {_fmt_age(age)}")
-    return _chk("Footprint", OK if mkt == "open" else IDLE, f"{newest.name} ({_fmt_age(age)})")
+    if mkt != "open":
+        return _chk("Footprint", IDLE, f"{newest.name} ({_fmt_age(age)})")
+    # Footprint updates on BAR CLOSE, and these are VOLUME bars (6500V): a bar closes only
+    # when 6,500 contracts trade. In thin overnight ETH that is routinely 15-40 min apart,
+    # so a flat "stale > 15m" flag false-alarms all night. Only treat footprint as stale if
+    # DEPTH is also not flowing (then nothing is being captured at all) or during RTH, where
+    # volume is high enough that a long gap is genuinely abnormal.
+    depth = check_depth()
+    depth_live = depth.get("book", 0) and depth["state"] == OK
+    rth = _desk_hours()
+    limit = 1800 if rth else 999999      # RTH: 30 min is a real gap; ETH: bar-close driven
+    if depth_live and age <= limit:
+        return _chk("Footprint", OK, f"{newest.name} ({_fmt_age(age)}, bar-close driven)")
+    if not depth_live:
+        return _chk("Footprint", WARN, f"{newest.name} stale {_fmt_age(age)} and depth not flowing")
+    return _chk("Footprint", WARN, f"{newest.name} stale {_fmt_age(age)} during RTH")
 
 
 def check_nt8() -> dict:
