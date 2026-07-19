@@ -246,14 +246,33 @@ def main():
                     help="resident 10s loop with fast thresholds (until 15:20 CT)")
     a = ap.parse_args()
 
-    if now().weekday() >= 5 or not in_window("08:15", "15:20"):
-        return  # outside market window — silent exit
+    # HOLIDAY / EARLY-CLOSE AWARE (S75V).
+    # The weekday+window test alone fired on Thanksgiving, Good Friday and after a half-day
+    # close, popping "daemon down" alerts for components that are correctly not running.
+    # An alert that cries wolf on known-closed days is worse than no alert - you learn to
+    # dismiss it, and then you dismiss the real one too.
+    try:
+        import market_calendar as mc
+        kind, label = mc.day_type(now().date())
+        if kind in ("weekend", "holiday"):
+            log(f"skip: {label} — market closed")
+            return
+        close = "12:05" if kind == "early" else "15:20"
+        if kind == "early":
+            log(f"{label} — watching only until {close} CT")
+    except Exception:
+        close = "15:20"
+        if now().weekday() >= 5:
+            return
+
+    if not in_window("08:15", close):
+        return  # outside the day's market window — silent exit
 
     if a.daemon:
         MODE = "fast"
         log("daemon mode: 10s cadence, fast thresholds")
         last_green = 0.0
-        while in_window("08:15", "15:20"):
+        while in_window("08:15", close):
             HEARTBEAT.parent.mkdir(parents=True, exist_ok=True)
             HEARTBEAT.write_text(dt.datetime.now().isoformat(timespec="seconds"))
             try:

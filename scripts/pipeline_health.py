@@ -61,18 +61,37 @@ def chicago_now() -> dt.datetime:
 
 
 def market_state(now: dt.datetime | None = None) -> str:
-    """'open' | 'halt' | 'closed' - CME Globex equity index futures."""
+    """'open' | 'halt' | 'closed' for ES on Globex.
+
+    Delegates to market_calendar, which knows US market HOLIDAYS and half days. Without
+    that, every check treats Thanksgiving or Good Friday as a normal session: the board
+    lights amber because nothing is recording, and the desk's 15:00 flat-by and 15:15
+    postmortem run after an early close as though the day were whole.
+    """
     now = now or chicago_now()
-    wd, t = now.weekday(), now.time()
-    if wd == 5:
-        return "closed"
-    if wd == 6:
-        return "open" if t >= dt.time(17, 0) else "closed"
-    if wd == 4 and t >= dt.time(16, 0):
-        return "closed"
-    if dt.time(16, 0) <= t < dt.time(17, 0):
-        return "halt"
-    return "open"
+    try:
+        import market_calendar as mc
+        return mc.futures_state(now)[0]
+    except Exception:
+        wd, t = now.weekday(), now.time()      # fall back to the weekday-only rule
+        if wd == 5:
+            return "closed"
+        if wd == 6:
+            return "open" if t >= dt.time(17, 0) else "closed"
+        if wd == 4 and t >= dt.time(16, 0):
+            return "closed"
+        if dt.time(16, 0) <= t < dt.time(17, 0):
+            return "halt"
+        return "open"
+
+
+def market_reason(now: dt.datetime | None = None) -> str:
+    """Why the market is in that state - 'Thanksgiving', 'daily maintenance halt', ..."""
+    try:
+        import market_calendar as mc
+        return mc.futures_state(now or chicago_now())[1]
+    except Exception:
+        return ""
 
 
 def _age(path: Path) -> float:
