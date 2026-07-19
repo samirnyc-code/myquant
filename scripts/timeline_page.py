@@ -12,7 +12,26 @@ body{margin:0;background:var(--bg);color:var(--fg);font:13.5px/1.45 -apple-syste
 header{display:flex;align-items:center;gap:10px;padding:11px 18px;border-bottom:1px solid var(--chip);
   position:sticky;top:0;background:var(--bg);z-index:20}
 h1{font-size:15px;margin:0}
-a{color:#58a6ff;text-decoration:none;margin-left:12px}
+a{color:#58a6ff;text-decoration:none}
+.clocks{display:inline-flex;gap:5px;margin-right:4px}
+.clk{display:inline-flex;flex-direction:column;align-items:center;line-height:1.1;
+  background:var(--card);border:1px solid var(--chip);border-radius:8px;padding:3px 9px}
+.clk i{font-style:normal;font-size:8.5px;font-weight:800;letter-spacing:.1em;color:#6b7280}
+.clk b{font-family:ui-monospace,Consolas,monospace;font-size:12.5px;font-weight:600;color:#e6edf3}
+/* Chicago is the exchange clock - every schedule and timestamp in this system is CT */
+.clk.chi{border-color:#e6a94a66;background:#e6a94a12}
+.clk.chi i{color:#e6a94a}
+.clk.chi b{color:#f0c274}
+.btn{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;
+  border-radius:8px;padding:5px 12px;border:1px solid;transition:all .12s;margin-left:7px}
+.btn-mc{color:#58a6ff;border-color:#58a6ff55;background:#58a6ff12}
+.btn-mc:hover{background:#58a6ff26;border-color:#58a6ff}
+.btn-health{color:#22c55e;border-color:#22c55e55;background:#22c55e12}
+.btn-health:hover{background:#22c55e26;border-color:#22c55e}
+.btn-health.warn{color:#f59e0b;border-color:#f59e0b55;background:#f59e0b12}
+.btn-health.warn:hover{background:#f59e0b26;border-color:#f59e0b}
+.btn-health.bad{color:#ef4444;border-color:#ef4444;background:#ef444418}
+.btn-health.idle{color:#8b949e;border-color:#8b949e55;background:#8b949e12}
 .pill{padding:2px 10px;border-radius:999px;font-size:11.5px;font-weight:600;border:1px solid var(--chip)}
 .ok{color:#22c55e;border-color:#22c55e}.warn{color:#f59e0b;border-color:#f59e0b}
 .bad{color:#ef4444;border-color:#ef4444}.idle{color:#8b949e}
@@ -89,8 +108,13 @@ a{color:#58a6ff;text-decoration:none;margin-left:12px}
     <span class="cd" id="cd-opt"></span>
   </span>
   <span style="margin-left:auto"></span>
-  <span class="pill idle" id="gen"></span>
-  <a href="/health">Health</a><a href="/">← Mission Control</a>
+  <span class="clocks">
+    <span class="clk"><i>BER</i><b id="c-ber">--:--</b></span>
+    <span class="clk"><i>NY</i><b id="c-ny">--:--</b></span>
+    <span class="clk chi"><i>CHI</i><b id="c-chi">--:--</b></span>
+  </span>
+  <a class="btn btn-health" id="btn-health" href="/health">● Health</a>
+  <a class="btn btn-mc" href="/">Mission Control</a>
 </header>
 <div class="wrap" id="wrap"></div>
 <div id="ov"><div id="modal"></div></div>
@@ -126,7 +150,20 @@ function fmtEta(sec){
    so the countdown stays honest between the 30s data polls */
 var SKEW=0;
 function nowEpoch(){return Math.floor(Date.now()/1000)+SKEW;}
+var TZ={ber:'Europe/Berlin', ny:'America/New_York', chi:'America/Chicago'};
+function paintClocks(){
+  // one instant, three zones - the PC runs Berlin, the exchange runs Chicago, and the
+  // options/cash tape is quoted New York. Reading a time off the wrong clock is how the
+  // DST bug and the file-naming bug both happened.
+  var d=new Date();
+  for(var k in TZ){
+    var el=document.getElementById('c-'+k);
+    if(el) el.textContent=d.toLocaleTimeString('en-GB',
+      {timeZone:TZ[k],hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+  }
+}
 function tickClocks(){
+  paintClocks();
   if(!DATA) return;
   var n=nowEpoch();
   var f=document.getElementById('cd-fut'), o=document.getElementById('cd-opt');
@@ -199,6 +236,8 @@ function render(){
   var d=DATA; if(!d) return;
   var o=document.getElementById('overall');
   o.textContent=(d.overall||'').toUpperCase(); o.className='pill '+(d.overall||'idle');
+  var hb=document.getElementById('btn-health');
+  if(hb) hb.className='btn btn-health '+(d.overall==='ok'?'':(d.overall||'idle'));
   var sp=document.getElementById('sess');
   sp.textContent = d.session==='RTH' ? 'RTH' : d.session==='ETH' ? 'ETH'
                  : d.session==='halt' ? 'halt' : 'closed';
@@ -207,7 +246,7 @@ function render(){
   op.textContent = d.opt_session==='RTH' ? 'RTH' : d.opt_session==='GTH' ? 'GTH' : 'closed';
   op.className='pill sess-'+d.opt_session;
   SKEW = d.chicago_epoch ? (d.chicago_epoch - Math.floor(Date.now()/1000)) : 0;
-  document.getElementById('gen').textContent=d.chicago+' CT';
+  
   document.getElementById('wrap').innerHTML = d.phases.map(function(ph){
     var n=ph.items.filter(function(i){return i.state==='bad'||i.state==='warn';}).length;
     return '<div class="phase"><div class="ph-h"><span class="ph-t">' + esc(ph.label) + '</span>'
@@ -248,5 +287,5 @@ function render(){
 }
 function load(){fetch('/timeline.json').then(function(r){return r.json();})
   .then(function(j){DATA=j;render();});}
-load(); setInterval(load,30000); setInterval(tickClocks,1000);
+paintClocks(); load(); setInterval(load,30000); setInterval(tickClocks,1000);
 </script></body></html>"""
