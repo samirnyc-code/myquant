@@ -411,7 +411,7 @@ async function load(){
       +'<div class="dt">'+c.detail+'</div>'+fix+'</div></div>';}).join('');
   document.querySelectorAll('.row').forEach(wire);
 }
-load(); setInterval(load,15000);
+load(); setInterval(load,30000);
 </script></body></html>"""
 
 def _health_html():

@@ -284,7 +284,7 @@ def run_widget(corner: str) -> None:
         except Exception as e:
             lbl.config(text="err")
             root._detail = f"status_light error:\n{e}"
-        root.after(10_000, tick)
+        root.after(30_000, tick)
 
     tick()
     root.mainloop()
