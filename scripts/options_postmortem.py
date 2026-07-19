@@ -33,6 +33,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import options_trade_log as tlog
+from options_build_cards import spx_close_on   # per-expiry SPX close for calendar settlement
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -63,12 +64,23 @@ def settle_0dte(date, close):
             legs = json.loads(r.legs)
         except Exception:
             continue
-        if not legs or {l.get("expiry") for l in legs} != {date}:
-            continue  # only pure 0DTE expiring today
+        exps = {l.get("expiry") for l in legs}
+        if not legs or not exps or max(exps) > date:
+            continue            # a leg is still live -> nothing to settle yet
+        # S75V: this used to require {expiries} == {date}, i.e. every leg sharing ONE
+        # expiry that is today. A CALENDAR never satisfies that, so multi-expiry
+        # positions were flagged partial_expiry when the near leg went and then stayed
+        # open forever - put_cal_wk_20260714_1221 sat "open" at a frozen mid for days,
+        # and its card showed no payoff because no live legs remained. Now: settle once
+        # the LAST leg has expired, valuing each leg at ITS OWN expiry-date SPX close.
         cost = 0.0
         for l in legs:
             k, q = float(l["strike"]), int(l.get("qty", 1))
-            intr = max(0.0, close - k) if l["right"] == "C" else max(0.0, k - close)
+            e = l.get("expiry")
+            base = close if e == date else spx_close_on(f"{e[:4]}-{e[4:6]}-{e[6:]}")
+            if base is None:
+                base = close    # fall back to today's close if that day isn't cached
+            intr = max(0.0, base - k) if l["right"] == "C" else max(0.0, k - base)
             cost += (intr * q) if l["side"] == "sell" else (-intr * q)
         fees = len(legs) * int(legs[0].get("qty", 1)) * FEE
         exit_dt = f"{date[:4]}-{date[4:6]}-{date[6:]} 16:00"
