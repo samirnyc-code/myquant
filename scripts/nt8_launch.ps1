@@ -25,9 +25,12 @@ read, written or logged.
 #>
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
-    [int]$TimeoutSec = 120,
+    [int]$TimeoutSec = 240,          # cold start measured at 2m28s on this machine
     [string]$ExePath = 'C:\Program Files\NinjaTrader 8\bin\NinjaTrader.exe',
-    [string]$LogDir  = "$env:USERPROFILE\Documents\NinjaTrader 8\log"
+    [string]$LogDir  = "$env:USERPROFILE\Documents\NinjaTrader 8\log",
+    # window title that means "past the login prompt". Verify against a real logged-in
+    # session before trusting it - a wrong pattern here re-creates the false-green.
+    [string]$ReadyWindowPattern = 'Control Center'
 )
 
 function Say($m) { "{0:HH:mm:ss}  {1}" -f (Get-Date), $m }
@@ -55,19 +58,30 @@ Say "starting $ExePath"
 try { Start-Process -FilePath $ExePath -WorkingDirectory (Split-Path $ExePath) | Out-Null }
 catch { Say "start failed: $($_.Exception.Message)"; exit 1 }
 
-# --- wait for a REAL signal, not just a PID ----------------------------------
+# --- wait for the CONTROL CENTER, not just any window ------------------------
+# 2026-07-19: the first version of this waited for MainWindowHandle -ne 0 and reported
+# success on the LOGIN PROMPT - process up, window drawn, nothing recording. Exactly the
+# false-green this script exists to prevent. A window is not a running platform; only the
+# Control Center means NT8 got past sign-in.
 $deadline = (Get-Date).AddSeconds($TimeoutSec)
-$proc = $null; $win = $false
+$proc = $null; $ready = $false; $lastTitle = ''
 while ((Get-Date) -lt $deadline) {
     Start-Sleep -Seconds 3
     $proc = Get-Process NinjaTrader -ErrorAction SilentlyContinue
     if (-not $proc) { continue }
     $proc.Refresh()
-    if ($proc | Where-Object { $_.MainWindowHandle -ne 0 }) { $win = $true; break }
+    $titles = @($proc | ForEach-Object { $_.MainWindowTitle } | Where-Object { $_ })
+    if ($titles) { $lastTitle = $titles -join ' | ' }
+    if ($titles | Where-Object { $_ -match $ReadyWindowPattern }) { $ready = $true; break }
 }
 
-if (-not $proc) { Say "FAILED: process never appeared"; exit 1 }
-if (-not $win)  { Say "FAILED: process up (PID $($proc.Id -join ',')) but no main window after ${TimeoutSec}s - stuck at login?"; exit 1 }
+if (-not $proc)  { Say "FAILED: process never appeared"; exit 1 }
+if (-not $ready) {
+    Say "FAILED: NT8 running (PID $($proc.Id -join ',')) but no window matching '$ReadyWindowPattern' after ${TimeoutSec}s"
+    Say "        window title seen: '$lastTitle'"
+    Say "        most likely STUCK AT THE LOGIN PROMPT - nothing is recording. Needs a human."
+    exit 1
+}
 
 Say "NT8 up: PID $($proc.Id -join ',')"
 

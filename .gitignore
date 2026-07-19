@@ -72,3 +72,7 @@ data/depth/
 # ORATS API token (paid credential — never commit)
 scratchpad/orats_token.txt
 data/orats/
+
+# NT8 stored credential (DPAPI, machine-local) - never commit
+nt8_cred.xml
+**/nt8_cred.xml
