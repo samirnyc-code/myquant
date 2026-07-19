@@ -32,6 +32,24 @@ NT8 = Path(os.environ["USERPROFILE"]) / "Documents" / "NinjaTrader 8"
 OK, WARN, BAD, IDLE = "ok", "warn", "bad", "idle"
 RANK = {OK: 0, IDLE: 1, WARN: 2, BAD: 3}
 
+# Windows: without CREATE_NO_WINDOW every subprocess flashes a console window on screen.
+# These checks run every 10-15s from the status light AND Mission Control, so an unflagged
+# call is a strobe of popping black windows (2026-07-19).
+_NOWIN = 0x08000000 if os.name == "nt" else 0
+
+_CACHE: dict = {}
+
+
+def _cached(key: str, ttl: float, fn):
+    """Slow, rarely-changing probes (Task Scheduler ~1s) must not run on every poll."""
+    now = dt.datetime.now().timestamp()
+    hit = _CACHE.get(key)
+    if hit and now - hit[0] < ttl:
+        return hit[1]
+    val = fn()
+    _CACHE[key] = (now, val)
+    return val
+
 
 # ------------------------------------------------------------------ time / session
 def chicago_now() -> dt.datetime:
@@ -148,9 +166,14 @@ def check_footprint() -> dict:
 
 def check_nt8() -> dict:
     """Running AND past the login prompt AND writing logs."""
+    return _cached("nt8", 30, _check_nt8_uncached)
+
+
+def _check_nt8_uncached() -> dict:
     try:
         out = subprocess.run(["tasklist", "/FI", "IMAGENAME eq NinjaTrader.exe"],
-                             capture_output=True, text=True, timeout=15).stdout
+                             capture_output=True, text=True, timeout=15,
+                             creationflags=_NOWIN).stdout
         running = "NinjaTrader.exe" in out
     except Exception:
         running = False
@@ -222,13 +245,20 @@ def check_disk() -> dict:
 
 
 def check_tasks() -> dict:
-    """Scheduled jobs whose LAST run exited non-zero."""
+    """Scheduled jobs whose LAST run exited non-zero. Cached: the query costs ~1s and the
+    answer changes at most a few times a day."""
+    return _cached("tasks", 300, _check_tasks_uncached)
+
+
+def _check_tasks_uncached() -> dict:
     ps = ("Get-ScheduledTask | Where-Object {$_.TaskName -like 'MyQuant*'} | "
           "ForEach-Object { $i=$_|Get-ScheduledTaskInfo; "
           "[PSCustomObject]@{n=$_.TaskName;r=$i.LastTaskResult} } | ConvertTo-Json -Compress")
     try:
-        out = subprocess.run(["powershell", "-NoProfile", "-Command", ps],
-                             capture_output=True, text=True, timeout=45).stdout.strip()
+        out = subprocess.run(["powershell", "-NoProfile", "-NonInteractive",
+                              "-WindowStyle", "Hidden", "-Command", ps],
+                             capture_output=True, text=True, timeout=45,
+                             creationflags=_NOWIN).stdout.strip()
         rows = json.loads(out) if out else []
         if isinstance(rows, dict):
             rows = [rows]
