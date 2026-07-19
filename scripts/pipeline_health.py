@@ -251,9 +251,12 @@ def check_tasks() -> dict:
 
 
 def _check_tasks_uncached() -> dict:
+    # LastRunTime comes back too so a stale WEEKEND result is not reported as a failure:
+    # the tasks are weekday-only now, but the last recorded result lingers until Monday.
     ps = ("Get-ScheduledTask | Where-Object {$_.TaskName -like 'MyQuant*'} | "
           "ForEach-Object { $i=$_|Get-ScheduledTaskInfo; "
-          "[PSCustomObject]@{n=$_.TaskName;r=$i.LastTaskResult} } | ConvertTo-Json -Compress")
+          "[PSCustomObject]@{n=$_.TaskName;r=$i.LastTaskResult;"
+          "d=(&{if($i.LastRunTime){[int]$i.LastRunTime.DayOfWeek}else{-1}})} } | ConvertTo-Json -Compress")
     try:
         out = subprocess.run(["powershell", "-NoProfile", "-NonInteractive",
                               "-WindowStyle", "Hidden", "-Command", ps],
@@ -264,11 +267,22 @@ def _check_tasks_uncached() -> dict:
             rows = [rows]
     except Exception as e:
         return _chk("Scheduled tasks", WARN, f"query failed: {type(e).__name__}")
-    bad = [r["n"] for r in rows if r.get("r") not in (0, 267009, 267011)]
+    # 267009 = currently running, 267011 = never run, 267014 = terminated (normal for the
+    # long-running dashboard server), 0 = success. Day 0/6 = Sunday/Saturday -> ignore.
+    ok_codes = (0, 267009, 267011, 267014)
+    bad, weekend = [], 0
+    for r in rows:
+        if r.get("r") in ok_codes:
+            continue
+        if r.get("d") in (0, 6):
+            weekend += 1
+            continue
+        bad.append(r["n"])
+    note = f" ({weekend} stale weekend)" if weekend else ""
     if not bad:
-        return _chk("Scheduled tasks", OK, f"{len(rows)} tasks, all clean")
-    return _chk("Scheduled tasks", WARN, f"{len(bad)} failing: " + ", ".join(b[8:] for b in bad[:4]),
-                failing=bad)
+        return _chk("Scheduled tasks", OK, f"{len(rows)} tasks, all clean{note}")
+    return _chk("Scheduled tasks", WARN,
+                f"{len(bad)} failing{note}: " + ", ".join(b[8:] for b in bad[:4]), failing=bad)
 
 
 CHECKS = [check_depth, check_contract, check_footprint, check_nt8, check_tick_db,
