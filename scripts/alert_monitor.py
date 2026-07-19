@@ -91,12 +91,12 @@ def run_once(verbose: bool = False) -> int:
                 if verbose:
                     print(f"RECOVERED [{key}]")
     # positive session-milestone pings (open, first readings, ...) - additive, never noise
-    try:
-        import session_pings
-        session_pings.main()
-    except Exception as e:
-        if verbose:
-            print(f"session_pings error: {type(e).__name__}: {e}")
+    for mod in ("session_pings", "activity_pings"):
+        try:
+            __import__(mod).main()
+        except Exception as e:
+            if verbose:
+                print(f"{mod} error: {type(e).__name__}: {e}")
 
     if verbose and not paged:
         print(f"all clear (overall={h['overall']}, market={h['market']})")
