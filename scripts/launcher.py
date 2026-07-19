@@ -335,11 +335,16 @@ def _timeline():
                             detail += "  (last weekday run failed - recheck at the open)"
                         else:
                             st = "warn"
-                rows.append(dict(pr, state=st, detail=detail,
+                nxt = ph.next_process_epoch(pr["ct"]) if pr["ct"] != "cont" else None
+                rows.append(dict(pr, state=st, detail=detail, next_epoch=nxt,
                                  last=(t or {}).get("last", ""), next=(t or {}).get("next", "")))
             out.append({"key": key, "label": label, "items": rows})
+        # the process the clock is about to hit — the board should point at what is NEXT,
+        # not just report what already happened
+        upcoming = [i for phz in out for i in phz["items"] if i.get("next_epoch")]
+        up_id = min(upcoming, key=lambda i: i["next_epoch"])["id"] if upcoming else None
         return {"phases": out, "market": h["market"], "chicago": h["chicago"],
-                "overall": h["overall"]}
+                "overall": h["overall"], "upcoming": up_id, **ph.session_info()}
     except Exception as e:
         return {"phases": [], "market": "?", "chicago": "",
                 "overall": "warn", "error": f"{type(e).__name__}: {e}"}

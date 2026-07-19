@@ -17,6 +17,17 @@ a{color:#58a6ff;text-decoration:none;margin-left:12px}
 .ok{color:#22c55e;border-color:#22c55e}.warn{color:#f59e0b;border-color:#f59e0b}
 .bad{color:#ef4444;border-color:#ef4444}.idle{color:#8b949e}
 .wrap{padding:14px 18px 40px}
+.cd{font-family:ui-monospace,Consolas,monospace;font-size:11.5px;color:var(--muted);
+  border:1px solid var(--chip);border-radius:7px;padding:2px 8px}
+.cd b{color:#e6edf3;font-weight:600}
+.sess-RTH{color:#22c55e;border-color:#22c55e}
+.sess-ETH{color:#58a6ff;border-color:#58a6ff}
+.sess-halt{color:#f59e0b;border-color:#f59e0b}
+.sess-closed{color:#8b949e}
+.tile.up{border-color:#58a6ff;box-shadow:0 0 0 1px #58a6ff55, 0 0 18px #58a6ff22}
+.up-badge{position:absolute;top:-8px;right:9px;background:#58a6ff;color:#04121f;
+  font-size:9.5px;font-weight:800;letter-spacing:.05em;padding:1px 6px;border-radius:6px}
+.t-eta{margin-top:4px;font-size:11px;color:#58a6ff;font-family:ui-monospace,Consolas,monospace}
 .phase{margin-bottom:20px}
 .ph-h{display:flex;align-items:baseline;gap:9px;margin:0 0 9px}
 .ph-t{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
@@ -54,7 +65,10 @@ a{color:#58a6ff;text-decoration:none;margin-left:12px}
   padding:3px 9px;cursor:pointer}
 </style></head><body>
 <header><h1>Day Timeline</h1>
-  <span class="pill" id="overall">…</span><span class="pill" id="mkt">…</span>
+  <span class="pill" id="overall">…</span>
+  <span class="pill" id="sess">…</span>
+  <span class="cd" id="cd-rth"></span>
+  <span class="cd" id="cd-eth"></span>
   <span style="margin-left:auto"></span>
   <span class="pill idle" id="gen"></span>
   <a href="/health">Health</a><a href="/">← Mission Control</a>
@@ -78,6 +92,38 @@ function sortItems(ph,items){
   var ord=ORD[ph]; if(!ord) return items;
   function ix(i){var k=ord.indexOf(i); return k<0?999:k;}
   return items.slice().sort(function(a,b){return ix(a.id)-ix(b.id);});
+}
+function fmtEta(sec){
+  if(sec===null||sec===undefined) return '';
+  if(sec<=0) return 'now';
+  var d=Math.floor(sec/86400), h=Math.floor(sec%86400/3600),
+      m=Math.floor(sec%3600/60), s2=Math.floor(sec%60);
+  if(d) return d+'d '+h+'h';
+  if(h) return h+'h '+String(m).padStart(2,'0')+'m';
+  if(m) return m+'m '+String(s2).padStart(2,'0')+'s';
+  return s2+'s';
+}
+/* server sends exchange-anchored epochs; drift is corrected against the browser clock
+   so the countdown stays honest between the 30s data polls */
+var SKEW=0;
+function nowEpoch(){return Math.floor(Date.now()/1000)+SKEW;}
+function tickClocks(){
+  if(!DATA) return;
+  var n=nowEpoch();
+  var r=document.getElementById('cd-rth'), e=document.getElementById('cd-eth');
+  if(DATA.session==='RTH'){
+    r.innerHTML='RTH closes in <b>'+fmtEta(DATA.rth_close_epoch-n)+'</b>';
+  }else{
+    r.innerHTML='RTH in <b>'+fmtEta(DATA.next_rth_epoch-n)+'</b>';
+  }
+  if(DATA.session==='closed'||DATA.session==='halt'){
+    e.innerHTML='market opens in <b>'+fmtEta(DATA.next_eth_epoch-n)+'</b>';
+  }else{
+    e.innerHTML='ETH · next RTH <b>'+fmtEta(DATA.next_rth_epoch-n)+'</b>';
+  }
+  document.querySelectorAll('.t-eta[data-ep]').forEach(function(el){
+    el.textContent='starts in '+fmtEta(parseInt(el.dataset.ep,10)-n);
+  });
 }
 function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');}
 
@@ -126,7 +172,12 @@ function render(){
   var d=DATA; if(!d) return;
   var o=document.getElementById('overall');
   o.textContent=(d.overall||'').toUpperCase(); o.className='pill '+(d.overall||'idle');
-  document.getElementById('mkt').textContent='market '+d.market;
+  var sp=document.getElementById('sess');
+  sp.textContent = d.session==='RTH' ? 'RTH · regular hours'
+                 : d.session==='ETH' ? 'ETH · overnight session'
+                 : d.session==='halt' ? 'daily halt 16:00-17:00 CT' : 'market closed';
+  sp.className='pill sess-'+d.session;
+  SKEW = d.chicago_epoch ? (d.chicago_epoch - Math.floor(Date.now()/1000)) : 0;
   document.getElementById('gen').textContent=d.chicago+' CT';
   document.getElementById('wrap').innerHTML = d.phases.map(function(ph){
     var n=ph.items.filter(function(i){return i.state==='bad'||i.state==='warn';}).length;
@@ -134,19 +185,25 @@ function render(){
       + '<span class="ph-s">' + ph.items.length + ' steps' + (n?' \\u00b7 '+n+' need attention':'') + '</span></div>'
       + '<div class="grid" data-phase="' + ph.key + '">'
       + sortItems(ph.key,ph.items).map(function(p){
-          return '<div class="tile ' + p.state + '" data-id="' + p.id + '" title="' + esc(p.what) + '">'
+          var isUp = (p.id===d.upcoming);
+          return '<div class="tile ' + p.state + (isUp?' up':'') + '" data-id="' + p.id
+            + '" title="' + esc(p.what) + '">'
+            + (isUp?'<span class="up-badge">NEXT UP</span>':'')
             + '<div class="t-top"><span class="dot" style="background:' + C[p.state] + '"></span>'
             + '<span class="ct">' + (p.ct==='cont'?'live':esc(p.ct)) + '</span>'
             + '<span class="t-name">' + esc(p.title) + '</span></div>'
             + '<div class="t-what">' + esc(p.what) + '</div>'
-            + '<div class="t-foot">' + (esc(p.detail)||esc(p.writes)) + '</div></div>';
+            + '<div class="t-foot">' + (esc(p.detail)||esc(p.writes)) + '</div>'
+            + (isUp&&p.next_epoch?'<div class="t-eta" data-ep="'+p.next_epoch+'"></div>':'')
+            + '</div>';
         }).join('')
       + '</div></div>';
   }).join('');
   d.phases.forEach(function(ph){ph.items.forEach(function(p){
     var el=document.querySelector('.tile[data-id="'+p.id+'"]'); if(el) wire(el,p);});});
+  tickClocks();
 }
 function load(){fetch('/timeline.json').then(function(r){return r.json();})
   .then(function(j){DATA=j;render();});}
-load(); setInterval(load,30000);
+load(); setInterval(load,30000); setInterval(tickClocks,1000);
 </script></body></html>"""

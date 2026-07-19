@@ -314,6 +314,68 @@ def health() -> dict:
             "chicago": now.strftime("%Y-%m-%d %H:%M:%S"), "checks": results}
 
 
+# ---------------------------------------------------------------- session clock
+RTH_OPEN, RTH_CLOSE = dt.time(8, 30), dt.time(15, 15)   # ES regular hours, Chicago
+
+
+def session_info(now: dt.datetime | None = None) -> dict:
+    """Which session we are in, and when the next RTH / ETH session starts.
+
+    Returned as UTC epoch seconds so the browser can tick a countdown without
+    re-deriving Chicago time (this PC runs Berlin - every clock question here has to be
+    anchored to the exchange or it is 7h wrong).
+    """
+    now = now or chicago_now()
+    mkt = market_state(now)
+    if mkt == "open":
+        session = "RTH" if (RTH_OPEN <= now.time() < RTH_CLOSE and now.weekday() < 5) else "ETH"
+    else:
+        session = mkt                      # 'closed' | 'halt'
+
+    def _next_rth(frm: dt.datetime) -> dt.datetime:
+        d = frm
+        for _ in range(8):
+            cand = d.replace(hour=RTH_OPEN.hour, minute=RTH_OPEN.minute,
+                             second=0, microsecond=0)
+            if d.weekday() < 5 and cand > frm:
+                return cand
+            d = (d + dt.timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+        return frm
+
+    def _next_eth(frm: dt.datetime) -> dt.datetime:
+        """Next time the market re-opens: 17:00 CT on a session-starting day."""
+        d = frm
+        for _ in range(8):
+            cand = d.replace(hour=17, minute=0, second=0, microsecond=0)
+            # Sun-Thu 17:00 starts a session; Friday 17:00 does not (weekend)
+            if cand > frm and d.weekday() in (6, 0, 1, 2, 3):
+                return cand
+            d = (d + dt.timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+        return frm
+
+    return {
+        "session": session,
+        "chicago_epoch": int(now.timestamp()),
+        "next_rth_epoch": int(_next_rth(now).timestamp()),
+        "next_eth_epoch": int(_next_eth(now).timestamp()),
+        "rth_close_epoch": int(now.replace(hour=RTH_CLOSE.hour, minute=RTH_CLOSE.minute,
+                                           second=0, microsecond=0).timestamp()),
+    }
+
+
+def next_process_epoch(ct_hhmm: str, now: dt.datetime | None = None) -> int:
+    """Epoch seconds of the next weekday occurrence of a HH:MM Chicago time."""
+    now = now or chicago_now()
+    hh, mm = (int(x) for x in ct_hhmm.split(":"))
+    d = now
+    for _ in range(8):
+        cand = d.replace(hour=hh, minute=mm, second=0, microsecond=0)
+        if cand > now and d.weekday() < 5:
+            return int(cand.timestamp())
+        d = (d + dt.timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+    return int(now.timestamp())
+
+
 def task_status() -> dict:
     """taskname -> {result, last, next, day} for every MyQuant scheduled task.
 
