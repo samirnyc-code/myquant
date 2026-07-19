@@ -78,10 +78,16 @@ def check_levels():
     today = dt.datetime.now(CT).strftime("%Y-%m-%d")
     fetched = str(d.get("_fetched_ct", ""))
     src = str(d.get("_source_ts", ""))
-    fresh = fetched.startswith(today) or src.startswith(today) or src.startswith(
-        (dt.datetime.now(CT) - dt.timedelta(days=1)).strftime("%Y-%m-%d"))
+    # S75V: this used to accept `fetched.startswith(today)`, which is TRUE BY CONSTRUCTION
+    # because the fetch runs today - so the check passed even when MenthorQ had published
+    # nothing new and the levels were days old. Freshness is a property of the SOURCE.
+    prev_day = (dt.datetime.now(CT) - dt.timedelta(days=1)).strftime("%Y-%m-%d")
+    fresh = src.startswith(today) or src.startswith(prev_day)
+    if d.get("_stale_warning"):
+        fresh = False
     core = all(d.get(k) is not None for k in ("cr", "hvl", "ps0"))
-    return (fresh and core), f"CR {d.get('cr')} PS0 {d.get('ps0')} · src {src[:16] or '?'}"
+    note = " STALE-SOURCE" if d.get("_stale_warning") else ""
+    return (fresh and core), f"CR {d.get('cr')} PS0 {d.get('ps0')} · src {src[:16] or '?'}{note}"
 
 
 def check_gameplan():

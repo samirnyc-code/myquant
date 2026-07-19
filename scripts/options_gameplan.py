@@ -27,6 +27,7 @@ Writes data/options_sim/gameplan_YYYYMMDD.json and prints the plan.
 import argparse
 import datetime as dt
 import json
+import os
 import sys
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -136,9 +137,26 @@ def rnd(x, step=STRIKE_STEP):
 
 
 def load_levels():
+    """Load today's MenthorQ levels, refusing to arm on levels MenthorQ never republished.
+
+    S75V: mq_levels_fetch now records whether the SOURCE timestamp advanced since the last
+    pull. If MenthorQ has not published yet, their endpoint returns yesterday's numbers
+    quite happily — and this file would arm a full day of triggers off stale levels with
+    nothing anywhere to flag it. A gameplan built on stale levels is worse than no
+    gameplan: it looks committed and considered, and it is neither.
+    """
     if not LEVELS_FILE.exists():
         raise SystemExit(f"no levels file at {LEVELS_FILE} — fill/paste MenthorQ EOD levels first.")
-    return json.loads(LEVELS_FILE.read_text(encoding="utf-8"))
+    d = json.loads(LEVELS_FILE.read_text(encoding="utf-8"))
+    if d.get("_stale_warning"):
+        print(f"  *** STALE LEVELS: {d['_stale_warning']}")
+        if not os.environ.get("MYQUANT_ALLOW_STALE_LEVELS"):
+            raise SystemExit(
+                "REFUSING to build a gameplan on stale levels.\n"
+                f"  source_ts {d.get('_source_ts')} did not advance (prev {d.get('_prev_source_ts')}).\n"
+                "  Re-run scripts/mq_levels_fetch.py once MenthorQ has published, or set\n"
+                "  MYQUANT_ALLOW_STALE_LEVELS=1 to override deliberately.")
+    return d
 
 
 def preopen_spot():

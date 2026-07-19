@@ -57,9 +57,32 @@ def main():
     except Exception as e:
         out["es"] = {"_error": str(e)[:80]}
 
+    # ---- FRESHNESS GATE (S75V) ------------------------------------------------
+    # MenthorQ publishes EOD levels on their own schedule. If they have not published
+    # yet, this endpoint happily returns YESTERDAY'S numbers and everything downstream
+    # arms triggers off stale levels with nothing to flag it. The old check in
+    # options_healthcheck was tautological - it tested `_fetched_ct startswith today`,
+    # which is true by construction because the fetch runs today.
+    #
+    # The only honest test is whether the SOURCE timestamp advanced since the last run.
+    prev_src = None
+    if OUT.exists():
+        try:
+            prev_src = json.loads(OUT.read_text(encoding="utf-8")).get("_source_ts")
+        except Exception:
+            pass
+    src = out.get("_source_ts")
+    out["_prev_source_ts"] = prev_src
+    out["_source_advanced"] = bool(src and prev_src and str(src) > str(prev_src)) or prev_src is None
+    if src and prev_src and str(src) <= str(prev_src):
+        out["_stale_warning"] = (f"source_ts did NOT advance: {src} (previous {prev_src}) - "
+                                 "MenthorQ has not published new levels")
+
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(out, indent=2), encoding="utf-8")
     print(f"wrote {OUT}")
+    if out.get("_stale_warning"):
+        print(f"  *** STALE: {out['_stale_warning']}")
     print(f"  SPX  CR {out['cr']}  CR0 {out['cr0']}  GW0 {out['gw0']}  "
           f"HVL {out['hvl']}  PS0 {out['ps0']}  PS {out['ps']}")
     print(f"  1-day range {out['d1_min']} - {out['d1_max']}  ·  source {out['_source_ts']}")
