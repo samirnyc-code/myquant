@@ -91,7 +91,7 @@ def run_once(verbose: bool = False) -> int:
                 if verbose:
                     print(f"RECOVERED [{key}]")
     # positive session-milestone pings (open, first readings, ...) - additive, never noise
-    for mod in ("session_pings", "activity_pings"):
+    for mod in ("session_pings", "activity_pings", "cool_pings"):
         try:
             __import__(mod).main()
         except Exception as e:
