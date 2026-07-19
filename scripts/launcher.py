@@ -305,6 +305,7 @@ def _timeline():
         import process_registry as reg
         import pipeline_health as ph
         h = ph.health()
+        sess = ph.session_info()
         hs = {c["name"]: c for c in h["checks"]}
         ts = ph.task_status()
         ok_codes = (0, 267009, 267011, 267014)
@@ -335,7 +336,16 @@ def _timeline():
                             detail += "  (last weekday run failed - recheck at the open)"
                         else:
                             st = "warn"
-                nxt = ph.next_process_epoch(pr["ct"]) if pr["ct"] != "cont" else None
+                # Continuous recorders have no clock time, but they are not "never next":
+                # while the market is shut the very next thing that happens is that they
+                # START at the open. Excluding them made the board point at a 07:30 archive
+                # job while the real next event was ES depth recording beginning at 17:00 CT.
+                if pr["ct"] != "cont":
+                    nxt = ph.next_process_epoch(pr["ct"])
+                elif sess["session"] in ("closed", "halt"):
+                    nxt = sess["next_eth_epoch"]
+                else:
+                    nxt = None          # already running
                 rows.append(dict(pr, state=st, detail=detail, next_epoch=nxt,
                                  last=(t or {}).get("last", ""), next=(t or {}).get("next", "")))
             out.append({"key": key, "label": label, "items": rows})
@@ -344,7 +354,7 @@ def _timeline():
         upcoming = [i for phz in out for i in phz["items"] if i.get("next_epoch")]
         up_id = min(upcoming, key=lambda i: i["next_epoch"])["id"] if upcoming else None
         return {"phases": out, "market": h["market"], "chicago": h["chicago"],
-                "overall": h["overall"], "upcoming": up_id, **ph.session_info()}
+                "overall": h["overall"], "upcoming": up_id, **sess}
     except Exception as e:
         return {"phases": [], "market": "?", "chicago": "",
                 "overall": "warn", "error": f"{type(e).__name__}: {e}"}
