@@ -200,7 +200,14 @@ def main():
         print("email:", "sent" if sent else "skipped (no scratchpad/email_cfg.json yet)")
     except Exception as e:
         print(f"notify failed (non-fatal): {e}")
-    return 1 if n_bad else 0
+    # Exit 0 whenever the REPORT itself succeeded. This used to return 1 when the desk had
+    # red steps, which made Task Scheduler record a "failed task" for a script that ran
+    # perfectly - indistinguishable from a real crash, and it masked genuine failures in
+    # the health check. Desk state is carried by the report, the health page and the
+    # notification; the exit code only answers "did the job run".
+    if n_bad:
+        print(f"note: {n_bad} desk step(s) need attention (see the report) - exiting 0 anyway")
+    return 0
 
 
 if __name__ == "__main__":
