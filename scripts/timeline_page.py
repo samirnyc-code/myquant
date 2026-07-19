@@ -20,6 +20,10 @@ a{color:#58a6ff;text-decoration:none;margin-left:12px}
 .cd{font-family:ui-monospace,Consolas,monospace;font-size:11.5px;color:var(--muted);
   border:1px solid var(--chip);border-radius:7px;padding:2px 8px}
 .cd b{color:#e6edf3;font-weight:600}
+.clockbox{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--chip);
+  border-radius:9px;padding:3px 8px 3px 5px}
+.mkt-lbl{font-size:9.5px;font-weight:800;letter-spacing:.08em;color:#6b7280}
+.sess-GTH{color:#a78bfa;border-color:#a78bfa}
 .sess-RTH{color:#22c55e;border-color:#22c55e}
 .sess-ETH{color:#58a6ff;border-color:#58a6ff}
 .sess-halt{color:#f59e0b;border-color:#f59e0b}
@@ -66,9 +70,16 @@ a{color:#58a6ff;text-decoration:none;margin-left:12px}
 </style></head><body>
 <header><h1>Day Timeline</h1>
   <span class="pill" id="overall">…</span>
-  <span class="pill" id="sess">…</span>
-  <span class="cd" id="cd-rth"></span>
-  <span class="cd" id="cd-eth"></span>
+  <span class="clockbox">
+    <span class="mkt-lbl">FUT</span>
+    <span class="pill" id="sess">…</span>
+    <span class="cd" id="cd-fut"></span>
+  </span>
+  <span class="clockbox">
+    <span class="mkt-lbl">OPT</span>
+    <span class="pill" id="osess">…</span>
+    <span class="cd" id="cd-opt"></span>
+  </span>
   <span style="margin-left:auto"></span>
   <span class="pill idle" id="gen"></span>
   <a href="/health">Health</a><a href="/">← Mission Control</a>
@@ -110,16 +121,24 @@ function nowEpoch(){return Math.floor(Date.now()/1000)+SKEW;}
 function tickClocks(){
   if(!DATA) return;
   var n=nowEpoch();
-  var r=document.getElementById('cd-rth'), e=document.getElementById('cd-eth');
+  var f=document.getElementById('cd-fut'), o=document.getElementById('cd-opt');
+  // FUTURES (ES, Globex): Sun 17:00 -> Fri 16:00 CT, RTH 08:30-15:15
   if(DATA.session==='RTH'){
-    r.innerHTML='RTH closes in <b>'+fmtEta(DATA.rth_close_epoch-n)+'</b>';
+    f.innerHTML='RTH ends in <b>'+fmtEta(DATA.rth_close_epoch-n)+'</b>';
+  }else if(DATA.session==='ETH'){
+    f.innerHTML='RTH in <b>'+fmtEta(DATA.next_rth_epoch-n)+'</b>';
   }else{
-    r.innerHTML='RTH in <b>'+fmtEta(DATA.next_rth_epoch-n)+'</b>';
+    f.innerHTML='opens in <b>'+fmtEta(DATA.next_eth_epoch-n)+'</b>';
   }
-  if(DATA.session==='closed'||DATA.session==='halt'){
-    e.innerHTML='market opens in <b>'+fmtEta(DATA.next_eth_epoch-n)+'</b>';
+  // OPTIONS (SPX/SPXW, Cboe): RTH 08:30-15:00 CT (15m before ES), GTH 19:00-08:15
+  if(DATA.opt_session==='RTH'){
+    o.innerHTML='RTH ends in <b>'+fmtEta(DATA.opt_close_epoch-n)+'</b>';
+  }else if(DATA.opt_session==='GTH'){
+    o.innerHTML='RTH in <b>'+fmtEta(DATA.next_opt_epoch-n)+'</b>';
   }else{
-    e.innerHTML='ETH · next RTH <b>'+fmtEta(DATA.next_rth_epoch-n)+'</b>';
+    var toGth=DATA.next_gth_epoch-n, toRth=DATA.next_opt_epoch-n;
+    o.innerHTML = toGth<toRth ? 'GTH in <b>'+fmtEta(toGth)+'</b>'
+                              : 'RTH in <b>'+fmtEta(toRth)+'</b>';
   }
   document.querySelectorAll('.t-eta[data-ep]').forEach(function(el){
     el.textContent='starts in '+fmtEta(parseInt(el.dataset.ep,10)-n);
@@ -173,10 +192,12 @@ function render(){
   var o=document.getElementById('overall');
   o.textContent=(d.overall||'').toUpperCase(); o.className='pill '+(d.overall||'idle');
   var sp=document.getElementById('sess');
-  sp.textContent = d.session==='RTH' ? 'RTH · regular hours'
-                 : d.session==='ETH' ? 'ETH · overnight session'
-                 : d.session==='halt' ? 'daily halt 16:00-17:00 CT' : 'market closed';
+  sp.textContent = d.session==='RTH' ? 'RTH' : d.session==='ETH' ? 'ETH'
+                 : d.session==='halt' ? 'halt' : 'closed';
   sp.className='pill sess-'+d.session;
+  var op=document.getElementById('osess');
+  op.textContent = d.opt_session==='RTH' ? 'RTH' : d.opt_session==='GTH' ? 'GTH' : 'closed';
+  op.className='pill sess-'+d.opt_session;
   SKEW = d.chicago_epoch ? (d.chicago_epoch - Math.floor(Date.now()/1000)) : 0;
   document.getElementById('gen').textContent=d.chicago+' CT';
   document.getElementById('wrap').innerHTML = d.phases.map(function(ph){

@@ -316,6 +316,10 @@ def health() -> dict:
 
 # ---------------------------------------------------------------- session clock
 RTH_OPEN, RTH_CLOSE = dt.time(8, 30), dt.time(15, 15)   # ES regular hours, Chicago
+# SPX/SPXW on Cboe. RTH ends 15:00 - FIFTEEN MINUTES BEFORE ES - which is also the prop
+# flat-by rule and where options_trigger_daemon stops. GTH is the overnight session.
+OPT_OPEN, OPT_CLOSE = dt.time(8, 30), dt.time(15, 0)
+GTH_OPEN, GTH_CLOSE = dt.time(19, 0), dt.time(8, 15)
 
 
 def session_info(now: dt.datetime | None = None) -> dict:
@@ -353,13 +357,36 @@ def session_info(now: dt.datetime | None = None) -> dict:
             d = (d + dt.timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
         return frm
 
+    # ---- options (SPX/SPXW) session, tracked separately from futures ----
+    wd, t = now.weekday(), now.time()
+    if wd < 5 and OPT_OPEN <= t < OPT_CLOSE:
+        opt = "RTH"
+    elif (wd < 5 and t >= GTH_OPEN) or (wd == 6 and t >= GTH_OPEN) or          (wd < 5 and t < GTH_CLOSE):
+        opt = "GTH"
+    else:
+        opt = "closed"
+
+    def _next_at(frm: dt.datetime, hhmm: dt.time, weekdays=(0, 1, 2, 3, 4)) -> dt.datetime:
+        d = frm
+        for _ in range(9):
+            cand = d.replace(hour=hhmm.hour, minute=hhmm.minute, second=0, microsecond=0)
+            if cand > frm and d.weekday() in weekdays:
+                return cand
+            d = (d + dt.timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+        return frm
+
     return {
         "session": session,
+        "opt_session": opt,
         "chicago_epoch": int(now.timestamp()),
         "next_rth_epoch": int(_next_rth(now).timestamp()),
         "next_eth_epoch": int(_next_eth(now).timestamp()),
         "rth_close_epoch": int(now.replace(hour=RTH_CLOSE.hour, minute=RTH_CLOSE.minute,
                                            second=0, microsecond=0).timestamp()),
+        "next_opt_epoch": int(_next_at(now, OPT_OPEN).timestamp()),
+        "opt_close_epoch": int(now.replace(hour=OPT_CLOSE.hour, minute=OPT_CLOSE.minute,
+                                           second=0, microsecond=0).timestamp()),
+        "next_gth_epoch": int(_next_at(now, GTH_OPEN, (6, 0, 1, 2, 3)).timestamp()),
     }
 
 
