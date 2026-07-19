@@ -298,8 +298,10 @@ def _health():
     try:
         sys.path.insert(0, str(Path(__file__).resolve().parent))
         import pipeline_health
-        import importlib
-        importlib.reload(pipeline_health)      # pick up edits without restarting MC
+        # NO importlib.reload here. It reset pipeline_health's module-level cache on every
+        # request, so the expensive probes (Get-ScheduledTask, tasklist) re-ran on every
+        # poll from every open tab - a strobe of console windows. Restart MC to pick up
+        # edits instead.
         return pipeline_health.health()
     except Exception as e:
         return {"overall": "warn", "market": "?", "chicago": "",
