@@ -8,14 +8,14 @@ SETUP (once):
   1. Telegram -> @BotFather -> /newbot -> copy the bot TOKEN.
   2. Send your new bot any message.
   3. python scripts/notify_telegram.py --setup <TOKEN>
-     (auto-detects your chat id from that message and stores both, encrypted-at-rest
+     (auto-detects your chat id from that message and stores both, stored machine-local
       outside the repo).
 
 USE:
   python scripts/notify_telegram.py "test message"
   from notify_telegram import send; send("depth is TAPE ONLY", level="alert")
 
-The token is a secret: stored in %LOCALAPPDATA%\myquant\telegram.json, which is NOT in
+The token is a secret: stored in %LOCALAPPDATA%/myquant/telegram.json, which is NOT in
 the repo. De-duplication (data/_catalog/telegram_sent.json) stops the same condition
 paging you every poll — you get told once when it breaks and once when it recovers.
 """
