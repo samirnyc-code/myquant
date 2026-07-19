@@ -132,6 +132,36 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override void OnBarUpdate() { /* everything happens in the event handlers */ }
 
+        /// Stamp connection transitions INTO the data stream.
+        ///
+        /// Without this a disconnect is invisible: the file just has fewer rows for a while, and
+        /// any footprint/CVD derived from it later silently spans the hole as if nothing happened.
+        /// A 'C' row makes every gap explicit and self-documenting, and marks where the burst of
+        /// 'A' rows after a reconnect is a BOOK RESYNC rather than real activity.
+        ///   C,D = feed disconnected   C,C = feed connected (resync follows)
+        protected override void OnConnectionStatusUpdate(ConnectionStatusEventArgs e)
+        {
+            try
+            {
+                if (e.PriceStatus == ConnectionStatus.Connected)
+                {
+                    EnsureFile(DateTime.Now);
+                    WriteRow(DateTime.Now, 'C', 'C', -1, 0, 0);
+                    if (writer != null) writer.Flush();
+                    Log("MarketDepthRecorder: feed CONNECTED (book resync follows)", LogLevel.Information);
+                }
+                else if (e.PriceStatus == ConnectionStatus.Disconnected ||
+                         e.PriceStatus == ConnectionStatus.ConnectionLost)
+                {
+                    WriteRow(DateTime.Now, 'C', 'D', -1, 0, 0);
+                    if (writer != null) writer.Flush();   // flush NOW: the gap starts here
+                    Log(string.Format("MarketDepthRecorder: feed LOST after {0:N0} book + {1:N0} tape rows",
+                        bookRows, tapeRows), LogLevel.Warning);
+                }
+            }
+            catch { /* never let logging break the recorder */ }
+        }
+
         [NinjaScriptProperty]
         [Display(Name = "ExportDir", GroupName = "Parameters", Order = 0)]
         public string ExportDir { get; set; }
