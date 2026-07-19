@@ -1,6 +1,6 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 19, 2026 (sessions 75Q + 75R + Setup Marker rebuild + 75T + 75U)
+**Last Updated:** July 19, 2026 (sessions 75Q + 75R + Setup Marker rebuild + 75T + 75U; merged S76 Mac swing-levels work)
 
 ---
 
@@ -1180,6 +1180,113 @@ for the user: fly **center-on-wall (bet return)** vs **center-on-spot (pin where
 expiry calendar; IV-from-quotes σ upgrade; after-close entry-criteria review + draft the structural
 fixes as a diff for sign-off; add spot-at-fill stamping to the daemon; user to add Gmail app-pw +
 confirm MQ color hexes.
+
+---
+
+## S76 (2026-07-19, Mac) — MenthorQ Swing Levels: found the real API, folded into mq_api.py, PC TODO
+
+**This Mac checkout was stale by ~35 commits (S70-S75, the whole autonomous options desk) before
+this session — pulled and merged before pushing. Below is Mac-side work done before discovering
+that; it complements S73's `mq_api.py` rather than duplicating it.**
+
+**Investigating a Patrick Petersson/MenthorQ dossier (unrelated side project) surfaced their
+public Swing Trading Model marketing backtests (credit-spread-on-swing-band strategy, MAG7 +
+indices, ~89-95% published win rates over 4 test weeks). User wants to actually test/paper-trade
+this — starting Monday, on SPX + MAG7, per MenthorQ's own rule.**
+
+**⚠️ CORRECTING S66: nothing was ever scheduled anywhere for MenthorQ scraping** — not this Mac,
+not the PC. Re-read S66 itself: it explicitly says "NOT scheduled yet (user's call): deferred the
+Windows Task Scheduler entry." Turned out moot anyway — **S73/S75 superseded the whole DOM-click
+scraper approach with `mq_api.py`'s direct REST + Bearer-token method**, which IS what's live now
+per S75C's Task Scheduler chain. (At the time this correction was written, this Mac genuinely had
+no `playwright`/`auth_state.json` and I hadn't yet seen S70-75 — worth flagging that gap in my own
+process: I read the handoff from a fixed offset and missed the newest entries at the top on first
+pass. Re-read from the top before trusting "nothing exists yet.")
+
+**FOUND: Swing Levels live on the same `dashboard.menthorq.io` / `gateway.menthorq.io` app
+`mq_api.py` already talks to** — just an endpoint it didn't have yet:
+
+    GET https://gateway.menthorq.io/clickhouse-api/api/web/v1/swing-levels/{TICKER}
+
+Response per ticker = last 5 trading days: `[{date, trigger, band, direction}, ...]`.
+`direction` = "lower" (bullish, sell PUT spread @ `band`) or "upper" (bearish, sell CALL spread @
+`band`) — MenthorQ's own rule. `trigger` = the "Risk Trigger" third level; sits on the *opposite*
+side from `band` in every row seen so far, semantics still unconfirmed, not part of MenthorQ's
+published strategy (treat as an optional stop to test, not given).
+
+**⚠️ CONFIRMED HARD CAP: exactly 5 trading days, no more — verified two ways, not just guessed.**
+(1) Empirically: every query-param variant tried (`days=`, `limit=`, `from`/`to`, `start`/`end`,
+`range=`, `period=`) returns the byte-identical 5-row payload. (2) From the app's own minified JS
+(pulled + grepped all 35 chunks across 4 pages): the client builds the request as literally
+`swing-levels/{ticker}` with **zero query params, ever** — the app itself never asks for more.
+`swing-levels` is also the *only* swing-related path anywhere in the entire bundle set — no
+sibling `swing-insights`/`swing-history` the way gamma has `gamma-levels` (today) + `gamma-insights`
+(365d history). This is a real, structural cap, not a client-trimming artifact. Only way to get
+more than 5 days is to run this daily ourselves and accumulate it — same rationale as `gamma_tracker`.
+
+**Bonus find from the same JS-bundle dig — two more clean endpoints, added to `mq_api.py`:**
+- `levels-report/{sym}` — the exact regime hold-rate/positive-outcomes/comeback-rate numbers
+  `gamma_tracker/scrape.py` DOM-scrapes off the Backtest tile. **Should replace that scraper
+  entirely** if it's not already superseded by S73's work — worth checking against whatever S75's
+  automation chain currently uses for this.
+- `blindspot-levels/{sym}` — `bl_1`..`bl_10` (today only), clean replacement for the `bl_levels`
+  wp-admin-ajax parsing in `menthorq_backfill*.py`.
+
+**Built (`scripts/mq_api.py` + `scripts/mq_swing_pull.py`, following S73's existing convention
+rather than the standalone script I wrote before seeing `mq_api.py` — deleted that duplicate):**
+- `MQ.swing_levels(sym)`, `MQ.levels_report(sym)`, `MQ.blindspot_levels(sym)` added to the class.
+- `mq_swing_pull.py` — pulls SPX + MAG7 (AAPL/MSFT/GOOGL/AMZN/META/NVDA/TSLA), appends new
+  `(ticker, date)` rows to `data/menthorq/swing_levels/swing_levels_history.csv` (dedup'd).
+  **Tested end-to-end on the Mac, works** (reuses `gamma_tracker/auth_state.json`, same as
+  `mq_api.py` expects).
+
+**Today's pull (2026-07-17 close, sets the Mon 07/20 → Fri 07/24 trade), already in the CSV:**
+
+| Ticker | Direction | Band (strike) | Trigger |
+|---|---|---|---|
+| SPX | **upper** (bearish) | 7,604.65 | 7,310.73 |
+| AAPL | lower (bullish) | 319.97 | 347.51 |
+| AMZN | lower (bullish) | 232.85 | 261.61 |
+| GOOGL | lower (bullish) | 328.17 | 365.37 |
+| META | lower (bullish) | 598.23 | 693.79 |
+| MSFT | lower (bullish) | 370.03 | 417.61 |
+| NVDA | lower (bullish) | 189.64 | 215.98 |
+| TSLA | lower (bullish) | 355.40 | 406.28 |
+
+Note SPX flipped bearish only on the Friday snapshot; all 4 prior days and all 7 MAG7 names were
+bullish/lower all week — SPX is the outlier, worth double-checking rather than assuming a data
+glitch.
+
+**Open decisions from user (for the live sim build), not yet implemented:**
+1. **Spread width** — MenthorQ never systematizes this (their own credit-spread lesson has two
+   inconsistent one-off worked examples, numbers don't even reconcile). User said "find some info
+   before we decide" — outside convention found: ~20Δ short strike, width targeting ~16Δ average /
+   25-33% credit-to-width ratio. Recommended as the default but user hasn't confirmed; make it a
+   config parameter, not hardcoded.
+2. **DTE** — user said test **both** weekly (expires same Friday as exit) and next-week-out.
+3. **Risk Trigger as stop** — user said test **both** ignore-it/hold-to-Friday and use-it-as-an-
+   intraweek-stop-out. Semantics of `trigger` still not nailed down (see above) — worth resolving
+   before over-trusting a stop rule built on it.
+4. **ES was explicitly dropped from scope** (user's call) — MenthorQ's own tested universe is
+   SPX/SPY/NDX/QQQ/VIX + MAG7, not ES; only SPX + MAG7 in scope now.
+
+**Also started this session (in progress, not written up yet): reverse-engineering what
+`blindspot-levels`' `bl_1`..`bl_10` actually are** — user's hypothesis is they're derived from
+sector ETFs or MAG7 names via a ratio-projection, same mechanism as the "Blind Spots" system in
+the separate Patrick Petersson dossier work (SPX/QQQ/NDX levels projected onto NQ via fixed
+multipliers like `SPX×3.509`). If confirmed, next session should find the actual ratios per bl_N
+slot and check whether they're static or recomputed daily.
+
+**PC TODO (re-check against what S73/S75 already built before redoing anything):**
+1. `git pull` (this commit).
+2. Check whether `mq_api.py`'s new `levels_report`/`blindspot_levels` methods duplicate anything
+   S75's automation chain already gets some other way — if `gamma_tracker/scrape.py` is still the
+   live source for Backtest-tile data, switch it to `levels_report()` instead.
+3. Confirm `scripts/mq_swing_pull.py` runs cleanly on the PC's existing `auth_state.json`/env, then
+   fold it into the S75C Task Scheduler chain (daily, alongside the existing 08:27 levels fetch)
+   if the user wants swing-band history accumulating going forward.
+4. Resolve the 4 open decisions above with the user before wiring this into an actual live-sim
+   options strategy runner.
 
 ---
 

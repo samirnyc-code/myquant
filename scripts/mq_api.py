@@ -14,6 +14,17 @@ Endpoints (SPX/ES1!/... as {sym}):
   volatility-insights/{sym}         0DTE/1M/3M skew + history array
   metrics/{sym}/eod?fields=...&limit=365   QScore components history (max 365)
   tickers/{sym}/candles?interval=&from=&to=   OHLC bars
+  levels-report/{sym}       regime hold-rate/positive-outcomes/comeback-rate per level (TODAY
+                            only) -- the exact numbers gamma_tracker/scrape.py DOM-scrapes off
+                            the "Backtest" tile; replaces that scraper entirely
+  blindspot-levels/{sym}    bl_1..bl_10 (TODAY only)
+  swing-levels/{sym}        Swing Trading Model: last 5 trading days, [{date, trigger, band,
+                            direction}]. CONFIRMED HARD CAP at 5 -- every query param tried
+                            (days/limit/from/to/start/end/range/period) returns identical
+                            output, and the app's own source never sends any param either
+                            (checked the minified JS: fetch is literally swing-levels/{ticker},
+                            no query string at all). No deeper history exists via this route,
+                            full stop -- only way to get more is to pull this daily ourselves.
 
 Usage:
   from mq_api import MQ
@@ -90,6 +101,18 @@ class MQ:
 
     def per_strike(self, sym, freq="eod"):
         return self.get(f"options/net-gex-by-expiration/{sym}", frequency=freq)
+
+    def levels_report(self, sym):
+        """Regime hold-rate/positive-outcomes/comeback-rate per level (today only) --
+        replaces gamma_tracker/scrape.py's DOM-click scraper of the Backtest tile."""
+        return self.get(f"levels-report/{sym}")
+
+    def blindspot_levels(self, sym):
+        return self.get(f"blindspot-levels/{sym}")
+
+    def swing_levels(self, sym):
+        """Last 5 trading days only -- confirmed hard cap, see module docstring."""
+        return self.get(f"swing-levels/{sym}")
 
 
 if __name__ == "__main__":
