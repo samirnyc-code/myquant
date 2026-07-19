@@ -43,6 +43,14 @@ a{color:#58a6ff;text-decoration:none;margin-left:12px}
 .tile:active{cursor:grabbing}
 .tile.bad{border-color:#ef4444}.tile.warn{border-color:#f59e0b66}
 .tile.drag{opacity:.35}.tile.over{box-shadow:0 0 0 2px #58a6ff inset}
+.tile.paused{opacity:.55;border-style:dashed}
+.tile.paused .t-name{text-decoration:line-through;text-decoration-color:#6b7280}
+.pbtn{position:absolute;top:7px;right:7px;background:var(--chip);color:var(--muted);
+  border:1px solid transparent;border-radius:6px;font-size:9.5px;font-weight:700;
+  letter-spacing:.05em;padding:1px 6px;cursor:pointer;opacity:0;transition:opacity .12s}
+.tile:hover .pbtn{opacity:1}
+.tile.paused .pbtn{opacity:1;color:#f59e0b;border-color:#f59e0b55}
+.pbtn:hover{color:#e6edf3;border-color:var(--muted)}
 .t-top{display:flex;align-items:center;gap:7px;margin-bottom:3px}
 .dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
 .ct{font-family:ui-monospace,Consolas,monospace;font-size:11px;color:var(--muted);
@@ -87,7 +95,7 @@ a{color:#58a6ff;text-decoration:none;margin-left:12px}
 <div class="wrap" id="wrap"></div>
 <div id="ov"><div id="modal"></div></div>
 <script>
-var C={ok:"#22c55e",warn:"#f59e0b",bad:"#ef4444",idle:"#6b7280"};
+var C={ok:"#22c55e",warn:"#f59e0b",bad:"#ef4444",idle:"#6b7280",paused:"#6b7280"};
 var LS='timelineOrder';
 var ORD=JSON.parse(localStorage.getItem(LS)||'{}');
 var DATA=null, dragId=null;
@@ -207,9 +215,11 @@ function render(){
       + '<div class="grid" data-phase="' + ph.key + '">'
       + sortItems(ph.key,ph.items).map(function(p){
           var isUp = (p.id===d.upcoming);
-          return '<div class="tile ' + p.state + (isUp?' up':'') + '" data-id="' + p.id
+          return '<div class="tile ' + p.state + (p.paused?' paused':'') + (isUp&&!p.paused?' up':'') + '" data-id="' + p.id
             + '" title="' + esc(p.what) + '">'
-            + (isUp?'<span class="up-badge">NEXT UP</span>':'')
+            + (isUp&&!p.paused?'<span class="up-badge">NEXT UP</span>':'')
+            + (p.task?'<button class="pbtn" data-task="'+esc(p.task)+'" data-paused="'
+                + (p.paused?'1':'0')+'">'+(p.paused?'RESUME':'PAUSE')+'</button>':'')
             + '<div class="t-top"><span class="dot" style="background:' + C[p.state] + '"></span>'
             + '<span class="ct">' + (p.ct==='cont'?'live':esc(p.ct)) + '</span>'
             + '<span class="t-name">' + esc(p.title) + '</span></div>'
@@ -222,6 +232,18 @@ function render(){
   }).join('');
   d.phases.forEach(function(ph){ph.items.forEach(function(p){
     var el=document.querySelector('.tile[data-id="'+p.id+'"]'); if(el) wire(el,p);});});
+  document.querySelectorAll('.pbtn').forEach(function(b){
+    b.addEventListener('click',function(e){
+      e.stopPropagation();                       // do not open the modal
+      var paused=b.dataset.paused==='1';
+      b.textContent='…'; b.disabled=true;
+      fetch((paused?'/resume/':'/pause/')+encodeURIComponent(b.dataset.task))
+        .then(function(r){return r.json();})
+        .then(function(j){ if(!j.ok) alert('failed: '+(j.error||'unknown')); load(); })
+        .catch(function(){ b.textContent=paused?'RESUME':'PAUSE'; b.disabled=false; });
+    });
+    b.addEventListener('dragstart',function(e){e.preventDefault();e.stopPropagation();});
+  });
   tickClocks();
 }
 function load(){fetch('/timeline.json').then(function(r){return r.json();})

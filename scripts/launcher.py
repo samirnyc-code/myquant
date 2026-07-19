@@ -298,6 +298,37 @@ def _timeline_html():
     return timeline_page.HTML
 
 
+
+def _pause_task(task_name, pause):
+    """Enable/disable a Windows scheduled task from Mission Control.
+
+    Pausing is a first-class operation, not an edge case: QUIN's token quota runs out,
+    an API goes down for a day, a job is mid-rewrite. Without this the only options are
+    to let it fail nightly (training you to ignore red) or to go hunting in Task
+    Scheduler. The task keeps its schedule; it simply does not fire.
+    """
+    verb = "Disable" if pause else "Enable"
+    try:
+        r = subprocess.run(["powershell", "-NoProfile", "-NonInteractive",
+                            "-WindowStyle", "Hidden", "-Command",
+                            f"{verb}-ScheduledTask -TaskName '{task_name}' | Out-Null; "
+                            f"(Get-ScheduledTask -TaskName '{task_name}').State"],
+                           capture_output=True, text=True, timeout=45,
+                           creationflags=0x08000000)
+        state = (r.stdout or "").strip().splitlines()[-1] if r.stdout.strip() else "?"
+        ok = r.returncode == 0
+        try:  # the paused/ready state must show up immediately, not in 60s
+            sys.path.insert(0, str(Path(__file__).resolve().parent))
+            import pipeline_health
+            pipeline_health._CACHE.pop("taskstatus", None)
+        except Exception:
+            pass
+        return {"ok": ok, "task": task_name, "state": state,
+                "error": None if ok else (r.stderr or "")[:200]}
+    except Exception as e:
+        return {"ok": False, "task": task_name, "state": "?", "error": f"{type(e).__name__}: {e}"}
+
+
 def _timeline():
     """Registry + live status per process, for Mission Control /timeline."""
     try:
@@ -346,7 +377,11 @@ def _timeline():
                     nxt = sess["next_eth_epoch"]
                 else:
                     nxt = None          # already running
-                rows.append(dict(pr, state=st, detail=detail, next_epoch=nxt,
+                paused = bool(t and str(t.get("tstate", "")).lower() == "disabled")
+                if paused:
+                    st, nxt = "paused", None
+                    detail = "PAUSED - will not run until resumed"
+                rows.append(dict(pr, state=st, detail=detail, next_epoch=nxt, paused=paused,
                                  last=(t or {}).get("last", ""), next=(t or {}).get("next", "")))
             out.append({"key": key, "label": label, "items": rows})
         # the process the clock is about to hit — the board should point at what is NEXT,
@@ -643,6 +678,10 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(json.dumps(_health()))
         if p == "/health":
             return self._send(_health_html(), "text/html; charset=utf-8")
+        if p.startswith("/pause/") or p.startswith("/resume/"):
+            import urllib.parse
+            name = urllib.parse.unquote(p.split("/", 2)[2])
+            return self._send(json.dumps(_pause_task(name, p.startswith("/pause/"))))
         if p == "/timeline.json":
             return self._send(json.dumps(_timeline()))
         if p == "/timeline":

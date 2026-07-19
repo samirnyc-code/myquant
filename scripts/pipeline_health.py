@@ -417,6 +417,7 @@ def _task_status_uncached() -> dict:
           "n=$_.TaskName; r=$i.LastTaskResult; "
           "l=(&{if($i.LastRunTime){$i.LastRunTime.ToString('yyyy-MM-dd HH:mm')}else{''}}); "
           "x=(&{if($i.NextRunTime){$i.NextRunTime.ToString('MM-dd HH:mm')}else{''}}); "
+          "s=$_.State.ToString(); "
           "d=(&{if($i.LastRunTime){[int]$i.LastRunTime.DayOfWeek}else{-1}}) } } | ConvertTo-Json -Compress")
     try:
         out = subprocess.run(["powershell", "-NoProfile", "-NonInteractive",
@@ -428,8 +429,8 @@ def _task_status_uncached() -> dict:
             rows = [rows]
     except Exception:
         return {}
-    return {r["n"]: {"result": r.get("r"), "last": r.get("l", ""),
-                     "next": r.get("x", ""), "day": r.get("d", -1)} for r in rows}
+    return {r["n"]: {"result": r.get("r"), "last": r.get("l", ""), "next": r.get("x", ""),
+                     "day": r.get("d", -1), "tstate": r.get("s", "")} for r in rows}
 
 
 if __name__ == "__main__":
