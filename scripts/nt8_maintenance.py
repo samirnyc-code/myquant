@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import os
 import subprocess
 import sys
 import time
@@ -28,6 +29,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
 NOWIN = 0x08000000
+NT8 = Path(os.environ["USERPROFILE"]) / "Documents" / "NinjaTrader 8"
 
 
 def say(m):
@@ -88,14 +90,59 @@ def restart() -> bool:
     return r.returncode == 0
 
 
+def _armed_state():
+    """(armed, detail) — is the depth recorder ready for the open? Checkable while shut.
+
+    Reads the NT8 log for the most recent Enabling/Disabling of MarketDepthRecorder and the
+    latest connection state. 'Enabled and connected' == armed.
+    """
+    import pipeline_health as ph
+    if not nt8_running():
+        return False, "NT8 not running"
+    logs = sorted((NT8 / "log").glob("log.*.txt"), key=lambda p: p.stat().st_mtime)
+    if not logs:
+        return False, "NT8 up, no log"
+    txt = logs[-1].read_text(encoding="utf-8", errors="ignore")
+    lines = txt.splitlines()
+    enabled = None
+    connected = None
+    for ln in lines:
+        if "MarketDepthRecorder" in ln and "Enabling" in ln:
+            enabled = True
+        elif "MarketDepthRecorder" in ln and "Disabling" in ln:
+            enabled = False
+        if "Price feed=Connected" in ln:
+            connected = True
+        elif "Price feed=Connection lost" in ln or "Price feed=Disconnected" in ln:
+            connected = False
+    if enabled is None:
+        return False, "recorder never enabled this session"
+    if enabled is False:
+        return False, "recorder is DISABLED"
+    if connected is False:
+        return False, "recorder enabled but feed DISCONNECTED"
+    return True, "NT8 up · recorder enabled · feed connected"
+
+
 def verify(wait_s: int) -> bool:
     """Depth rows must actually be ARRIVING. 'NT8 is running' proves nothing — that is
     exactly what a disabled strategy looks like."""
     import pipeline_health as ph
     mkt = ph.market_state()
     if mkt != "open":
-        say(f"market {mkt} - nothing to record yet; deferring the recording check")
-        return True
+        # Before the open there is no data to watch grow — but "recorder armed?" IS
+        # checkable, and it is the whole point of a PRE-open check. Verify NT8 is up, the
+        # strategy is enabled, and the feed is connected, from the NT8 log. A trivial
+        # silent pass here is what let the disabled-strategy failure through twice.
+        armed, detail = _armed_state()
+        if armed:
+            say(f"pre-open ({mkt}): {detail}")
+            _ping(f"✅ Pre-open check — recorder ARMED for the open. {detail}", "ok")
+            return True
+        say(f"pre-open ({mkt}): NOT ARMED — {detail}")
+        _ping(f"🔴 Pre-open check — recorder NOT armed: {detail}. "
+              "Enable MarketDepthRecorder in Control Center before the open.", "alert")
+        return False
     say(f"watching the depth file for {wait_s}s …")
     a = depth_size()
     time.sleep(wait_s)
