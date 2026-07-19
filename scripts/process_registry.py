@@ -19,6 +19,7 @@ PHASES = [
     ("preopen",   "Pre-open — get the desk armed before 08:30 CT"),
     ("session",   "Session — live, running all day"),
     ("close",     "Close — reconcile and learn"),
+    ("halt",      "Daily halt 16:00–17:00 CT — the only hour restarting costs nothing"),
 ]
 
 # ct     : Chicago time the step is meant to run ("cont" = continuous)
@@ -258,6 +259,45 @@ PROCESSES = [
              "for any past day via Tick Replay.",
          writes="Documents/NinjaTrader 8/db/tick/ES 09-26/",
          downstream="Tick-Replay footprint rebuilds; gap-fill for the parquet tick archive."),
+
+
+    # ---------------------------------------------------------------- daily halt
+    dict(id="rollover", phase="halt", ct="16:05", task="MyQuant Depth Rollover",
+         title="Depth CSV -> parquet",
+         script="scripts/depth_rollover.py",
+         what="Converts every FINISHED depth CSV to zstd parquet and deletes the CSV once "
+              "the parquet is re-read and its row count matches.",
+         why="Raw CSV is right for LIVE capture (appendable, crash-safe) and wrong for the "
+             "archive: ES book events run to hundreds of MB a day and disk is what limits "
+             "how long we can record. Measured 20.2x on the first real file (37.8MB -> "
+             "1.9MB). Today's file is never touched - the recorder still holds it open.",
+         writes="data/depth/ES_depth_YYYY-MM-DD.parquet",
+         downstream="Every order-flow study reads the parquet; ~50MB/day instead of ~1GB."),
+
+    dict(id="nt8_restart", phase="halt", ct="16:15", task="MyQuant NT8 Restart",
+         title="NT8 restart + re-arm",
+         script="scripts/nt8_maintenance.py",
+         health="NinjaTrader",
+         what="Closes NT8 cleanly, restarts it via the scripted login, then watches the "
+              "depth file to prove rows are arriving again.",
+         why="NT8 leaks memory over multi-day runs, and a two-week unattended recording "
+             "needs a scheduled restart - the halt is the only hour where it costs no data. "
+             "It verifies AFTERWARDS because a restart or recompile DISABLES enabled "
+             "strategies: that happened twice on 7/19 with the Control Center looking "
+             "perfectly healthy while nothing was being recorded.",
+         writes="—",
+         downstream="Keeps the depth/tape capture alive across a two-week run."),
+
+    dict(id="preopen_verify", phase="halt", ct="16:45", task="MyQuant Pre-Open Verify",
+         title="Pre-open armed check",
+         script="scripts/nt8_maintenance.py --verify-only",
+         health="L2 depth",
+         what="Fifteen minutes before the 17:00 CT open, confirms NT8 is up and the depth "
+              "file is growing.",
+         why="Last gate before an unattended overnight session. Catches a restart that came "
+             "back without the recorder enabled while there is still time to fix it.",
+         writes="—",
+         downstream="The difference between finding out at 16:45 and finding out at 08:00."),
 
     # ---------------------------------------------------------------- close
     dict(id="postmortem", phase="close", ct="15:15", task="MyQuant Postmortem",
