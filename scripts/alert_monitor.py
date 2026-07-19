@@ -90,6 +90,14 @@ def run_once(verbose: bool = False) -> int:
                 tg.send(f"recovered: {name} — {c['detail']}", level="ok")
                 if verbose:
                     print(f"RECOVERED [{key}]")
+    # positive session-milestone pings (open, first readings, ...) - additive, never noise
+    try:
+        import session_pings
+        session_pings.main()
+    except Exception as e:
+        if verbose:
+            print(f"session_pings error: {type(e).__name__}: {e}")
+
     if verbose and not paged:
         print(f"all clear (overall={h['overall']}, market={h['market']})")
     return 0

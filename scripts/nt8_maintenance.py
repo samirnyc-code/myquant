@@ -34,6 +34,14 @@ def say(m):
     print(f"{dt.datetime.now():%H:%M:%S}  {m}", flush=True)
 
 
+def _ping(text, level="info"):
+    try:
+        import notify_telegram as tg
+        tg.send(text, level=level)
+    except Exception:
+        pass
+
+
 def depth_size() -> int:
     import pipeline_health as ph
     now = ph.chicago_now()
@@ -95,10 +103,14 @@ def verify(wait_s: int) -> bool:
     grew = b - a
     if grew > 0:
         say(f"OK - depth grew {grew/1024:,.0f} KB in {wait_s}s")
+        _ping(f"✅ Pre-open check PASSED — depth growing (+{grew/1024:,.0f} KB in {wait_s}s), "
+              "recorder armed for the open.", "ok")
         return True
     say("FAILED - market is OPEN but the depth file is NOT growing.")
     say("         Control Center -> Strategies -> MarketDepthRecorder must be ENABLED")
     say("         (a restart or recompile disables it).")
+    _ping("🔴 Pre-open check FAILED — market open but depth NOT growing. Recorder likely "
+          "disabled (a restart/recompile disables it). Enable it in Control Center.", "alert")
     return False
 
 
