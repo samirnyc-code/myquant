@@ -389,8 +389,13 @@ def health() -> dict:
             results.append(fn())
         except Exception as e:
             results.append(_chk(fn.__name__, WARN, f"check error: {type(e).__name__}: {e}"))
-    worst = max(results, key=lambda r: RANK[r["state"]])["state"] if results else IDLE
-    return {"overall": worst, "market": market_state(now),
+    # Headline priority: a real problem wins, else if ANYTHING is actively working show OK
+    # (green), and only fall to IDLE when everything is dormant. Without this the idle
+    # desk items dragged the headline to grey while depth was recording green.
+    states = {r["state"] for r in results}
+    overall = (BAD if BAD in states else WARN if WARN in states
+               else OK if OK in states else IDLE)
+    return {"overall": overall, "market": market_state(now),
             "chicago": now.strftime("%Y-%m-%d %H:%M:%S"), "checks": results}
 
 
