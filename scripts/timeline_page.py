@@ -122,7 +122,7 @@ a{color:#58a6ff;text-decoration:none}
 var C={ok:"#22c55e",warn:"#f59e0b",bad:"#ef4444",idle:"#6b7280",paused:"#6b7280"};
 var LS='timelineOrder';
 var ORD=JSON.parse(localStorage.getItem(LS)||'{}');
-var DATA=null, dragId=null;
+var DATA=null, dragId=null, openId=null;
 
 function save(){
   var o={};
@@ -192,6 +192,7 @@ function tickClocks(){
 function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');}
 
 function openModal(p){
+  openId=p.id;
   var taskBlock = p.task
     ? '<div class="m-sec"><div class="m-lbl">Scheduled task</div><div class="m-txt m-mono">'
       + esc(p.task) + '<br>last ' + (esc(p.last)||'never') + ' \\u00b7 next ' + (esc(p.next)||'-')
@@ -212,7 +213,7 @@ function openModal(p){
   document.getElementById('ov').classList.add('on');
   document.getElementById('mclose').onclick=closeModal;
 }
-function closeModal(){document.getElementById('ov').classList.remove('on');}
+function closeModal(){openId=null;document.getElementById('ov').classList.remove('on');}
 document.getElementById('ov').onclick=function(e){if(e.target.id==='ov')closeModal();};
 document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal();});
 
