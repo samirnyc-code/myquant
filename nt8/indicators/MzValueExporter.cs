@@ -154,15 +154,26 @@ namespace NinjaTrader.NinjaScript.Indicators
                     object v = p.GetValue(host, null);
                     if (v != null) return Convert.ToDouble(v).ToString("0.####");
                 }
-                // not on the indicator itself -> try the newest profile in its Profiles collection
-                PropertyInfo pf = host.GetType().GetProperty("Profiles", PUB);
-                IEnumerable profiles = pf == null ? null : pf.GetValue(host, null) as IEnumerable;
-                if (profiles == null) return "";
-                object last = null;
-                foreach (object o in profiles) if (o != null) last = o;
-                if (last == null) return "";
-                PropertyInfo p2 = last.GetType().GetProperty(name, PUB);
-                object v2 = p2 == null ? null : p2.GetValue(last, null);
+                // POC/VAH/VAL live on IVolumeProfile, not on mzVolumeProfile itself. Two
+                // confirmed public routes to the current profile (reflection dump):
+                //   GetProfileByTIndex(int)  -> IVolumeProfile   (preferred)
+                //   Profiles                 -> IEnumerable<IVolumeProfile>  (take newest)
+                object prof = null;
+                MethodInfo gp = host.GetType().GetMethod("GetProfileByTIndex", PUB);
+                if (gp != null)
+                {
+                    try { prof = gp.Invoke(host, new object[] { CurrentBar }); } catch { }
+                }
+                if (prof == null)
+                {
+                    PropertyInfo pf = host.GetType().GetProperty("Profiles", PUB);
+                    IEnumerable profiles = pf == null ? null : pf.GetValue(host, null) as IEnumerable;
+                    if (profiles != null)
+                        foreach (object o in profiles) if (o != null) prof = o;   // newest
+                }
+                if (prof == null) return "";
+                PropertyInfo p2 = prof.GetType().GetProperty(name, PUB);
+                object v2 = p2 == null ? null : p2.GetValue(prof, null);
                 return v2 == null ? "" : Convert.ToDouble(v2).ToString("0.####");
             }
             catch { return ""; }
@@ -175,13 +186,18 @@ namespace NinjaTrader.NinjaScript.Indicators
             if (volDelta == null && volProfile == null) return;   // nothing to log; stay silent
             try
             {
+                string dlt = Ser(volDelta, "Delta"), cd = Ser(volDelta, "CumDelta");
+                string bv = Ser(volDelta, "BuyVolume"), sv = Ser(volDelta, "SellVolume");
+                string poc = Val(volProfile, "POC"), vah = Val(volProfile, "VAH"), val = Val(volProfile, "VAL");
                 w.WriteLine(string.Join(",", new string[] {
-                    CurrentBar.ToString(),
-                    Time[0].ToString("yyyy-MM-dd HH:mm:ss"),
-                    Ser(volDelta, "Delta"), Ser(volDelta, "CumDelta"),
-                    Ser(volDelta, "BuyVolume"), Ser(volDelta, "SellVolume"),
-                    Val(volProfile, "POC"), Val(volProfile, "VAH"), Val(volProfile, "VAL")
-                }));
+                    CurrentBar.ToString(), Time[0].ToString("yyyy-MM-dd HH:mm:ss"),
+                    dlt, cd, bv, sv, poc, vah, val }));
+                // First real row: shout what we actually read, so the log answers
+                // "is reflection returning numbers or blanks?" without opening the CSV.
+                if (rows == 0)
+                    Log(string.Format("MzValueExporter FIRST ROW — Delta={0} CumDelta={1} POC={2} VAH={3} VAL={4} "
+                        + "(blank = that member did not resolve)", dlt, cd, poc, vah, val),
+                        NinjaTrader.Cbi.LogLevel.Information);
                 if (++rows % 50 == 0) w.Flush();
             }
             catch (Exception e) { Log("MzValueExporter row failed: " + e.Message, NinjaTrader.Cbi.LogLevel.Warning); }
