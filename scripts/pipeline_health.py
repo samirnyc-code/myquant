@@ -302,6 +302,35 @@ def health() -> dict:
             "chicago": now.strftime("%Y-%m-%d %H:%M:%S"), "checks": results}
 
 
+def task_status() -> dict:
+    """taskname -> {result, last, next, day} for every MyQuant scheduled task.
+
+    Cached for 60s: the Mission Control timeline asks for this on every poll and the
+    Get-ScheduledTask query costs ~1s and spawns a console if unflagged."""
+    return _cached("taskstatus", 60, _task_status_uncached)
+
+
+def _task_status_uncached() -> dict:
+    ps = ("Get-ScheduledTask | Where-Object {$_.TaskName -like 'MyQuant*'} | "
+          "ForEach-Object { $i=$_|Get-ScheduledTaskInfo; [PSCustomObject]@{"
+          "n=$_.TaskName; r=$i.LastTaskResult; "
+          "l=(&{if($i.LastRunTime){$i.LastRunTime.ToString('yyyy-MM-dd HH:mm')}else{''}}); "
+          "x=(&{if($i.NextRunTime){$i.NextRunTime.ToString('MM-dd HH:mm')}else{''}}); "
+          "d=(&{if($i.LastRunTime){[int]$i.LastRunTime.DayOfWeek}else{-1}}) } } | ConvertTo-Json -Compress")
+    try:
+        out = subprocess.run(["powershell", "-NoProfile", "-NonInteractive",
+                              "-WindowStyle", "Hidden", "-Command", ps],
+                             capture_output=True, text=True, timeout=45,
+                             creationflags=_NOWIN).stdout.strip()
+        rows = json.loads(out) if out else []
+        if isinstance(rows, dict):
+            rows = [rows]
+    except Exception:
+        return {}
+    return {r["n"]: {"result": r.get("r"), "last": r.get("l", ""),
+                     "next": r.get("x", ""), "day": r.get("d", -1)} for r in rows}
+
+
 if __name__ == "__main__":
     h = health()
     icon = {OK: "OK  ", WARN: "WARN", BAD: "BAD ", IDLE: "idle"}

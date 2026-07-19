@@ -290,6 +290,54 @@ def _mem_map(pids):
     return out
 
 
+
+
+def _timeline_html():
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import timeline_page
+    return timeline_page.HTML
+
+
+def _timeline():
+    """Registry + live status per process, for Mission Control /timeline."""
+    try:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import process_registry as reg
+        import pipeline_health as ph
+        h = ph.health()
+        hs = {c["name"]: c for c in h["checks"]}
+        ts = ph.task_status()
+        ok_codes = (0, 267009, 267011, 267014)
+        out = []
+        for key, label, items in reg.by_phase():
+            rows = []
+            for pr in sorted(items, key=lambda x: x["ct"]):
+                st, detail = "idle", ""
+                # 1) a health check is the strongest evidence (it reads the artefact)
+                chk = hs.get(pr.get("health") or "")
+                if chk:
+                    st, detail = chk["state"], chk["detail"]
+                # 2) otherwise fall back to the scheduled-task result
+                t = ts.get(pr.get("task") or "")
+                if t:
+                    detail = detail or f"last {t['last'] or 'never'} - next {t['next'] or '-'}"
+                    if not chk:
+                        if t["result"] in ok_codes:
+                            st = "ok"
+                        elif t["day"] in (0, 6):
+                            st = "idle"          # stale weekend result, not a failure
+                        else:
+                            st = "warn"
+                rows.append(dict(pr, state=st, detail=detail,
+                                 last=(t or {}).get("last", ""), next=(t or {}).get("next", "")))
+            out.append({"key": key, "label": label, "items": rows})
+        return {"phases": out, "market": h["market"], "chicago": h["chicago"],
+                "overall": h["overall"]}
+    except Exception as e:
+        return {"phases": [], "market": "?", "chicago": "",
+                "overall": "warn", "error": f"{type(e).__name__}: {e}"}
+
+
 def _health():
     """Evidence-based pipeline health (see scripts/pipeline_health.py).
 
@@ -573,6 +621,10 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(json.dumps(_health()))
         if p == "/health":
             return self._send(_health_html(), "text/html; charset=utf-8")
+        if p == "/timeline.json":
+            return self._send(json.dumps(_timeline()))
+        if p == "/timeline":
+            return self._send(_timeline_html(), "text/html; charset=utf-8")
         if p == "/artifacts.json":
             return self._send(json.dumps(load_artifacts()))
         if p.startswith("/log/"):
@@ -838,6 +890,7 @@ pre{background:var(--chip);border-radius:7px;padding:8px 10px;font-size:11px;ove
   <h1>🚀 Mission Control</h1>
   <span class="pill" id="summary">…</span>
   <span style="margin-left:auto"></span>
+  <a href="/timeline" target="_blank" rel="noopener"><button title="the trading day as a chronological set of automated processes">🕐 Timeline</button></a>
   <a href="/health" target="_blank" rel="noopener"><button id="healthbtn" title="is everything actually recording? evidence-based pipeline health">● Health</button></a>
   <div class="menu">
     <button id="libbtn" title="explanations, study material and research write-ups">📚 Library ▾</button>
