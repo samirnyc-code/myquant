@@ -219,12 +219,14 @@ def run_widget(corner: str) -> None:
     W, H = 290, 26
 
     sw, sh = root.winfo_screenwidth(), root.winfo_screenheight()
+    default = (12, sh - H - 56) if corner == "bl" else (sw - W - 12, sh - H - 56)
     pos = st.get("pos")
-    if pos:
-        x, y = pos
-    else:
-        # bottom-LEFT, sitting just above a standard taskbar
-        x, y = (12, sh - H - 56) if corner == "bl" else (sw - W - 12, sh - H - 56)
+    x, y = pos if pos else default
+    # CLAMP to the visible screen: a saved position off-screen (monitor unplugged,
+    # resolution change, an accidental drag past the edge) made the widget "disappear".
+    # Snap it back rather than let it hide.
+    if not (-W + 40 < x < sw - 40 and -H + 10 < y < sh - 10):
+        x, y = default
     root.geometry(f"{W}x{H}+{int(x)}+{int(y)}")
 
     cv = tk.Canvas(root, width=16, height=H, bg="#0f172a", highlightthickness=0)
