@@ -134,7 +134,7 @@ def load_series(date):
 
 
 def bars_5m(xr, yr):
-    """5-minute OHLC from the tape: [(t_open, o, h, l, c)] — THE chart the user reads."""
+    """5-minute OHLC from a (time, price) series: [(t_open, o, h, l, c)]."""
     out = {}
     for t, p in sorted(zip(xr, yr)):
         b = t.replace(minute=t.minute - t.minute % 5, second=0, microsecond=0)
@@ -144,6 +144,46 @@ def bars_5m(xr, yr):
             o = out[b]
             o[1] = max(o[1], p); o[2] = min(o[2], p); o[3] = p
     return [(b, v[0], v[1], v[2], v[3]) for b, v in sorted(out.items())]
+
+
+def es_bars_5m_spx(date, xr, yr):
+    """TRUE 5M RTH bars from the ES depth tape (every trade print), basis-adjusted into
+    SPX terms. The SPX quote log samples ~1/min — five samples make a fake candle; the
+    tape makes a real one. Basis = median(ES_trade − SPX_quote) at the quote times.
+    Returns ([], reason) when the tape is unavailable so the caller can fall back."""
+    day = f"{date[:4]}-{date[4:6]}-{date[6:]}"
+    hits = sorted((ROOT / "data" / "depth").glob(f"*_depth_{day}.csv"))
+    if not hits:
+        return [], "no depth tape"
+    try:
+        import pandas as pd
+        d = pd.read_csv(hits[-1], usecols=["Time", "Ev", "Price"],
+                        dtype={"Ev": "category", "Price": "float32"},
+                        on_bad_lines="skip")
+        d = d[d["Ev"] == "T"]
+        d["Time"] = pd.to_datetime(d["Time"], errors="coerce")
+        d = d.dropna(subset=["Time"])
+        dd = dt.datetime.strptime(date, "%Y%m%d").date()
+        rth = d[(d["Time"].dt.date == dd) &
+                (d["Time"].dt.time >= dt.time(8, 30)) & (d["Time"].dt.time <= dt.time(15, 15))]
+        if rth.empty:
+            return [], "no RTH tape yet"
+        ests = rth["Time"].dt.tz_localize(CT)
+        # basis from the SPX quote log: nearest tape print at each quote time
+        basis = 0.0
+        if xr:
+            t_arr = ests.astype("int64").to_numpy()
+            p_arr = rth["Price"].to_numpy()
+            diffs = []
+            for qt, qp in zip(xr, yr):
+                i = min(range(0, len(t_arr), max(1, len(t_arr) // 4000)),
+                        key=lambda j: abs(t_arr[j] - qt.timestamp() * 1e9))
+                diffs.append(float(p_arr[i]) - qp)
+            diffs.sort()
+            basis = diffs[len(diffs) // 2] if diffs else 0.0
+        return bars_5m(list(ests), list(rth["Price"] - basis)), f"ES tape − basis {basis:.1f}"
+    except Exception as e:
+        return [], f"tape read failed: {type(e).__name__}"
 
 
 def norm_cdf(x, mu, sigma):
@@ -239,7 +279,9 @@ def render_png(gp, trig, c, when, out):
     from matplotlib.patches import Rectangle
 
     xon, yon, xr, yr = c["series"]
-    bars = bars_5m(xr, yr)
+    bars, bar_src = es_bars_5m_spx(gp["date"], xr, yr)
+    if not bars:                                  # honest fallback, labeled as such
+        bars, bar_src = bars_5m(xr, yr), "SPX quotes ~1/min (SAMPLED, not true bars)"
     open_ct = dt.datetime.strptime(gp["date"] + " 08:30", "%Y%m%d %H:%M").replace(tzinfo=CT)
     x_start = min([open_ct] + ([bars[0][0]] if bars else []))
     close_ct = c["close_ct"]
@@ -249,8 +291,11 @@ def render_png(gp, trig, c, when, out):
          ([min(b[3] for b in bars), max(b[2] for b in bars)] if bars else [])
     ylo, yhi = min(ys) - 18, max(ys) + 18
 
-    fig = plt.figure(figsize=(15, 7.8), facecolor=BG)
-    gs = fig.add_gridspec(1, 2, width_ratios=[4.6, 1.05], wspace=0.04)
+    fig = plt.figure(figsize=(15, 9.6), facecolor=BG)
+    # top row: price + payoff tent · bottom row: text strip (WHY / OUTCOME) — the
+    # boxes must NEVER sit on the price action (user req 2026-07-20)
+    gs = fig.add_gridspec(1, 2, width_ratios=[4.6, 1.05], wspace=0.04,
+                          left=0.05, right=0.985, top=0.895, bottom=0.235)
     ax = fig.add_subplot(gs[0]); axp = fig.add_subplot(gs[1])
     for a in (ax, axp):
         a.set_facecolor(SURF)
@@ -338,23 +383,24 @@ def render_png(gp, trig, c, when, out):
             fontsize=8, ha="right", fontweight="bold", zorder=9,
             bbox=dict(boxstyle="round,pad=0.16", fc=BG, ec="none", alpha=0.9))
 
-    # ---- WHY / OUTCOME boxes -------------------------------------------------
-    why = [f"Fired: {str(c['row'].get('commentary', trig.get('grade_basis', '')))[:170]}"]
+    # ---- WHY / OUTCOME boxes: bottom strip, NEVER on the price action --------
+    why = [f"Fired: {str(c['row'].get('commentary', trig.get('grade_basis', '')))[:230]}"]
     why += [f"Window {'–'.join(trig.get('window', ['?', '?']))} CT · filled {trig['fill']['at']}",
-            f"Grade {c['grade']} · regime at entry {trig.get('entry_regime', c['regime'])}"]
+            f"Grade {c['grade']} · regime at entry {trig.get('entry_regime', c['regime'])}",
+            f"Bars: {bar_src}"]
     box = "WHY THIS TRADE\n" + "\n".join(
-        "✓  " + w for line in why for w in textwrap.wrap(line, 74))
-    ax.text(0.012, 0.978, box, transform=ax.transAxes, va="top", ha="left",
-            fontsize=8.2, color=INK, linespacing=1.5, zorder=10,
-            bbox=dict(boxstyle="round,pad=0.5", fc="#12140f", ec=GOOD, alpha=0.94))
+        "✓  " + w for line in why for w in textwrap.wrap(line, 92))
+    fig.text(0.05, 0.185, box, va="top", ha="left",
+             fontsize=8.6, color=INK, linespacing=1.55,
+             bbox=dict(boxstyle="round,pad=0.55", fc="#12140f", ec=GOOD, alpha=0.94))
     if when == "close" and c["row"].get("close_reason"):
         pnl = c["row"].get("pnl")
-        ob = ("OUTCOME\n" + "\n".join(textwrap.wrap(str(c["row"]["close_reason"]), 60)) +
-              f"\nrealized {pnl:+,.0f}" if pnl == pnl else "")
-        ax.text(0.012, 0.30, ob, transform=ax.transAxes, va="top", ha="left",
-                fontsize=8.2, color=INK, linespacing=1.5, zorder=10,
-                bbox=dict(boxstyle="round,pad=0.5", fc="#141012",
-                          ec=GOOD if (pnl or 0) >= 0 else CRIT, alpha=0.94))
+        ob = ("OUTCOME\n" + "\n".join(textwrap.wrap(str(c["row"]["close_reason"]), 52)) +
+              (f"\nrealized {pnl:+,.0f}" if pnl == pnl else ""))
+        fig.text(0.66, 0.185, ob, va="top", ha="left",
+                 fontsize=8.6, color=INK, linespacing=1.55,
+                 bbox=dict(boxstyle="round,pad=0.55", fc="#141012",
+                           ec=GOOD if (pnl or 0) >= 0 else CRIT, alpha=0.94))
 
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M", tz=CT))
     ax.set_ylabel("SPX (index terms)", color=INK2, fontsize=10)
