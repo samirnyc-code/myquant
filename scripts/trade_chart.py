@@ -169,23 +169,32 @@ def es_bars_5m_spx(date, xr, yr, cutoff=None):
         if rth.empty:
             return [], "no RTH tape yet"
         ests = rth["Time"].dt.tz_localize(CT)
+        # basis = median(ES print − SPX quote) over the FULL day's overlap, exact
+        # nearest print per quote (searchsorted). Full-day on purpose: the spread is a
+        # stable calibration constant, not path information — early in the session the
+        # quote log may hold 2 points and a windowed median swung 28→54 pts (7/20).
+        basis = 0.0
+        if xr:
+            import numpy as np
+            # normalize to ns explicitly: pandas may store datetime64[us], and a raw
+            # astype(int64) then under-counts by 1000x, silently breaking the match
+            t_arr = ests.values.astype("datetime64[ns]").astype("int64")
+            p_arr = rth["Price"].to_numpy()
+            diffs = []
+            for qt, qp in zip(xr, yr):
+                i = int(np.searchsorted(t_arr, int(qt.timestamp() * 1e9)))
+                i = min(max(i, 0), len(t_arr) - 1)
+                if i and abs(t_arr[i - 1] - qt.timestamp() * 1e9) < abs(t_arr[i] - qt.timestamp() * 1e9):
+                    i -= 1
+                if abs(t_arr[i] / 1e9 - qt.timestamp()) <= 120:   # only real overlaps
+                    diffs.append(float(p_arr[i]) - qp)
+            diffs.sort()
+            basis = diffs[len(diffs) // 2] if diffs else 0.0
         if cutoff is not None:                 # entry card = the world AT the fill,
             keep = ests <= cutoff              # nothing after (forward-reveal discipline)
             ests, rth = ests[keep], rth[keep]
             if rth.empty:
                 return [], "no tape before cutoff"
-        # basis from the SPX quote log: nearest tape print at each quote time
-        basis = 0.0
-        if xr:
-            t_arr = ests.astype("int64").to_numpy()
-            p_arr = rth["Price"].to_numpy()
-            diffs = []
-            for qt, qp in zip(xr, yr):
-                i = min(range(0, len(t_arr), max(1, len(t_arr) // 4000)),
-                        key=lambda j: abs(t_arr[j] - qt.timestamp() * 1e9))
-                diffs.append(float(p_arr[i]) - qp)
-            diffs.sort()
-            basis = diffs[len(diffs) // 2] if diffs else 0.0
         return bars_5m(list(ests), list(rth["Price"] - basis)), f"ES tape − basis {basis:.1f}"
     except Exception as e:
         return [], f"tape read failed: {type(e).__name__}"
@@ -295,6 +304,9 @@ def render_png(gp, trig, c, when, out):
     open_ct = dt.datetime.strptime(gp["date"] + " 08:30", "%Y%m%d %H:%M").replace(tzinfo=CT)
     x_start = min([open_ct] + ([bars[0][0]] if bars else []))
     close_ct = c["close_ct"]
+    # axis ends just past the snapshot moment: bars from the open FILL the chart
+    # instead of huddling in a sliver against an empty afternoon (user req 2026-07-20)
+    x_end = min(close_ct, cutoff + dt.timedelta(minutes=25)) if cutoff else close_ct
 
     ys = [c["spot"]] + c["strikes"] + [b for b in c["bes"]] + \
          [v for v in (c["d1lo"], c["d1hi"]) if v] + \
@@ -312,7 +324,7 @@ def render_png(gp, trig, c, when, out):
         for s in a.spines.values():
             s.set_color(AXLINE)
         a.tick_params(colors=MUT, labelsize=9)
-    ax.set_xlim(x_start, close_ct); ax.set_ylim(ylo, yhi)
+    ax.set_xlim(x_start, x_end); ax.set_ylim(ylo, yhi)
 
     # WIN/LOSS zones from the ACTUAL payoff sign — works for every structure
     seg_start, seg_sign = ylo, payoff_pts(c["legs"], c["net"], ylo) > 0
@@ -373,11 +385,12 @@ def render_png(gp, trig, c, when, out):
     # markers on the price, labels in the BOTTOM GUTTER with a thin connector —
     # a label must never cover price action (user req 2026-07-20)
     yr_span = yhi - ylo
+    mid_x = x_start + (x_end - x_start) / 2
     ax.scatter([c["fill_ct"]], [c["spot"]], s=110, marker="^", color=GOOD,
                edgecolor=INK, lw=1.2, zorder=8)
     ax.annotate(f"ENTRY {c['fill_ct']:%H:%M} · {c['spot']:.0f} · {kind_txt}",
-                (c["fill_ct"], c["spot"]), xytext=(c["fill_ct"], ylo + yr_span * 0.035),
-                textcoords="data", ha="left", color=INK, fontsize=8.5, fontweight="bold",
+                (c["fill_ct"], c["spot"]), xytext=(mid_x, ylo + yr_span * 0.035),
+                textcoords="data", ha="center", color=INK, fontsize=8.5, fontweight="bold",
                 zorder=10, arrowprops=dict(arrowstyle="-", color=MUT, lw=0.7, alpha=0.6),
                 bbox=dict(boxstyle="round,pad=0.25", fc=SURF, ec=GOOD, alpha=0.94))
     if c["exit_ct"] and c["exit_px"]:
@@ -386,15 +399,16 @@ def render_png(gp, trig, c, when, out):
         ax.scatter([c["exit_ct"]], [c["exit_px"]], s=110, marker="v", color=pc,
                    edgecolor=INK, lw=1.2, zorder=8)
         ax.annotate(f"EXIT {c['exit_ct']:%H:%M} · {c['exit_px']:.0f} · {pnl:+,.0f}",
-                    (c["exit_ct"], c["exit_px"]), xytext=(c["exit_ct"], ylo + yr_span * 0.105),
-                    textcoords="data", ha="left", color=INK, fontsize=8.5, fontweight="bold",
+                    (c["exit_ct"], c["exit_px"]), xytext=(mid_x, ylo + yr_span * 0.105),
+                    textcoords="data", ha="center", color=INK, fontsize=8.5, fontweight="bold",
                     zorder=10, arrowprops=dict(arrowstyle="-", color=MUT, lw=0.7, alpha=0.6),
                     bbox=dict(boxstyle="round,pad=0.25", fc=SURF, ec=pc, alpha=0.94))
 
-    ax.axvline(close_ct, color=WARN, lw=1.2, ls=":", alpha=0.8, zorder=3)
-    ax.text(close_ct, ylo + (yhi - ylo) * 0.03, "15:00 cash-settle ", color=WARN,
-            fontsize=8, ha="right", fontweight="bold", zorder=9,
-            bbox=dict(boxstyle="round,pad=0.16", fc=BG, ec="none", alpha=0.9))
+    if close_ct <= x_end:
+        ax.axvline(close_ct, color=WARN, lw=1.2, ls=":", alpha=0.8, zorder=3)
+        ax.text(close_ct, ylo + (yhi - ylo) * 0.03, "15:00 cash-settle ", color=WARN,
+                fontsize=8, ha="right", fontweight="bold", zorder=9,
+                bbox=dict(boxstyle="round,pad=0.16", fc=BG, ec="none", alpha=0.9))
 
     # ---- WHY / OUTCOME boxes: bottom strip, NEVER on the price action --------
     why = [f"Fired: {str(c['row'].get('commentary', trig.get('grade_basis', '')))[:230]}"]
