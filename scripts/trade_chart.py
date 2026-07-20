@@ -308,10 +308,18 @@ def render_png(gp, trig, c, when, out):
     # instead of huddling in a sliver against an empty afternoon (user req 2026-07-20)
     x_end = min(close_ct, cutoff + dt.timedelta(minutes=25)) if cutoff else close_ct
 
-    ys = [c["spot"]] + c["strikes"] + [b for b in c["bes"]] + \
-         [v for v in (c["d1lo"], c["d1hi"]) if v] + \
-         ([min(b[3] for b in bars), max(b[2] for b in bars)] if bars else [])
-    ylo, yhi = min(ys) - 18, max(ys) + 18
+    # y-scale follows the PRICE ACTION, not every distant level — including the 1D min
+    # or a far wall pancaked 35pts of candles into a sliver (user req 2026-07-20).
+    # Strikes/BEs join the range only when reasonably near the action; a level far
+    # away simply falls off this card (the path slides show the full map).
+    core = [c["spot"]] + ([c["exit_px"]] if c["exit_px"] else []) + \
+           ([min(b[3] for b in bars), max(b[2] for b in bars)] if bars else [])
+    lo0, hi0 = min(core), max(core)
+    for v in c["strikes"] + list(c["bes"]):
+        if lo0 - 45 <= v <= hi0 + 45:
+            lo0, hi0 = min(lo0, v), max(hi0, v)
+    pad = max(8, (hi0 - lo0) * 0.12)
+    ylo, yhi = lo0 - pad, hi0 + pad
 
     fig = plt.figure(figsize=(15, 9.6), facecolor=BG)
     # top row: price + payoff tent · bottom row: text strip (WHY / OUTCOME) — the
