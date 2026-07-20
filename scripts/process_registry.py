@@ -254,15 +254,17 @@ PROCESSES = [
 
     # ---------------------------------------------------------------- daily halt
     dict(id="rollover", phase="halt", ct="16:05", task="MyQuant Depth Rollover",
-         title="Depth CSV -> parquet",
+         title="L2 market depth -> parquet (compress session)",
          script="scripts/depth_rollover.py",
-         what="Converts every FINISHED depth CSV to zstd parquet and deletes the CSV once "
-              "the parquet is re-read and its row count matches.",
+         what="The session just ended at 16:00: every finished L2/tape CSV (book events + "
+              "trades) is converted to zstd parquet (~20x smaller) and the CSV deleted "
+              "ONLY after the parquet is re-read and its row count matches.",
          why="Raw CSV is right for LIVE capture (appendable, crash-safe) and wrong for the "
              "archive: ES book events run to hundreds of MB a day and disk is what limits "
-             "how long we can record. Measured 20.2x on the first real file (37.8MB -> "
-             "1.9MB). Today's file is never touched - the recorder still holds it open.",
-         writes="data/depth/ES_depth_YYYY-MM-DD.parquet",
+             "how long we can record. Measured 20.2x on the first real file. Files carry "
+             "the TRADE DATE (session template), so the file that just closed converts "
+             "the same afternoon. A file still held open by the recorder is never touched.",
+         writes="data/depth/ES_<contract>_depth_YYYY-MM-DD.parquet",
          downstream="Every order-flow study reads the parquet; ~50MB/day instead of ~1GB."),
 
     dict(id="nt8_restart", phase="halt", ct="16:15", task="MyQuant NT8 Restart",
@@ -291,7 +293,7 @@ PROCESSES = [
          downstream="The difference between finding out at 16:45 and finding out at 08:00."),
 
     dict(id="archive", phase="halt", ct="16:06", task="MyQuant Depth Rollover",
-         title="Off-machine archive (data repo)",
+         title="L2 depth backup -> GitHub (myquantdata)",
          script="scripts/depth_rollover.py -> ~/myquant-data",
          health="Data archive",
          what="Copies each verified depth parquet into the PRIVATE myquantdata git repo and "
