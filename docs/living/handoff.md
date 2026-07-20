@@ -58,6 +58,34 @@ Volume, 2021-06-18 → 2026-07-09, 1270 sessions) — NOT the stale per-contract
 Gamma history (`<SYM>_mq_levels_history_raw.jsonl`) has 11 duplicate dates — dedupe before
 computing returns.
 
+**FORMULA HUNT (overnight 2026-07-20, 5 agents on the 200-day panel + 38-ticker gamma
+cache `scratchpad/bl_basket_gamma.json`; user's lead = sector ETFs):**
+- **CRACKED — cross-instrument BL is an exact identity.** `ES.bl_i = SPX.bl_i × (ES_px/SPX_px)`,
+  element-wise in native order, residual **0.003 pt**, all 200 days. The 19 instruments collapse
+  to ~5 independent underlyings: **S&P {ES=SPX=SPY} · Nasdaq {NQ=NDX=QQQ} · Russell {RTY=RUT=IWM}**
+  · YM, GC, CL, each Mag7 standalone. Cash index/ETF is PRIMARY; the future is derived (ES/SPX
+  ratio drifts 1.0003→1.0100 = basis decaying to expiry). So solve SPX's 10 seeds → ES/SPY free.
+  (`scratchpad/bl_formula_blalgebra.md`)
+- **NOT CRACKED — the SPX seed itself is unreconstructable from published EOD levels**, proven 4 ways:
+  · **Exact fingerprint REFUTED:** BL fractional cents are UNIFORM (100/100 distinct, ~4% on
+    quarter-marks = chance) → BL come from a CONTINUOUS source (spot / per-strike interpolation),
+    NOT round-level×ratio. Independent proof, at 200-day scale.
+  · **ML REFUTED:** RF/GBM on the 740-feature basket is WORSE than a fixed-offset climatology
+    out-of-sample (overfit); no stable per-BL attribution.
+  · **Clustering V2 REFUTED:** distinct-asset "overlap" = plain gamma-density; overlap-rank does
+    NOT predict bl_index (Spearman≈0, powered n=200). "BL1=most overlap" carries no signal.
+  · **SECTOR-ETF HYPOTHESIS REFUTED:** sectors add nothing beyond SPY/QQQ and VANISH under a
+    day-shuffle null (ratio≈1.0, sign-flips OOS) while SPY/QQQ survive (0.86 OOS). Signal lives in
+    the broad index complex, not sectors. (`bl_formula_sector.md`/`_ml.md`/`_clustering.md`/`_fingerprint2.md`)
+- **REAL & robust:** BL track the asset family's own structural cross-asset gamma zones
+  {CR,PS,HVL,**Gamma Wall 0DTE**}. Confluence survives the stricter DAY-SHUFFLE null (not just
+  random-BL): ES real 3.79 vs 5.87 pt, ratio 0.65, **z=+6.9**, 74% of days (corrects the earlier
+  z=+8.9 which was mildly inflated by near-spot co-clustering).
+- **BOTTOM LINE:** BL = computed upstream from the per-strike option surface (continuous inputs we
+  don't hold historically; per-strike is today-only). Operationally BL is a VALIDATED confluence
+  indicator pinned to the index complex's structural gamma zones — not a formula off published
+  levels. Exact reconstruction would need historical per-strike surfaces. **Line closed.**
+
 **OPEN / NEXT:** (1) multi-day touch-window edge study for power. (2) Re-run confluence with the
 ETF proxies (SPY/QQQ/NDX/IWM) once their gamma HISTORY is captured (only BL history exists for
 them now; gamma is today-only via API). (3) Test the V2 overlap-clustering model across 200 days
