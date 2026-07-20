@@ -515,6 +515,22 @@ def manage_open(ib, plan, spot, dry):
         pnl = (entry_net - cost) * 100 - FEE
         print(f"  CLOSED {tid} cost {cost:.2f} P&L ${pnl:,.0f} — {why}")
         notify(f"TRADE CLOSED · {trig['setup']} (${pnl:,.0f})", f"{trig['name']}: {why}")
+        snapshot_chart(tid, "close")
+
+
+def snapshot_chart(tid, when):
+    """Fire-and-forget trade-card render (trade_chart.py) at entry and exit — the
+    daily visual record the user reviews. Detached so a slow matplotlib render can
+    never stall trigger evaluation; a chart is documentation, not execution."""
+    import subprocess
+    try:
+        py = str(ROOT / ".venv" / "Scripts" / "python.exe")
+        subprocess.Popen([py, str(ROOT / "scripts" / "trade_chart.py"),
+                          "--trade", tid, "--when", when],
+                         cwd=str(ROOT), creationflags=0x08000008,
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception as e:
+        print(f"  ! snapshot {when} {tid}: {type(e).__name__}")
 
 
 # ---------- firing ----------
@@ -581,6 +597,7 @@ def fire(ib, trig, spot, plan, reason, dry):
     print(f"  FIRED {trig['id']} -> {tid}: {struct_txt} net {kind} {abs(net):.2f} grade {grade}")
     notify(f"TRADE OPENED · {trig['setup']} ({grade})",
            f"{label}: {struct_txt}, net {kind} {abs(net):.2f}, coll ${coll:,.0f} — {reason}")
+    snapshot_chart(tid, "open")
 
 
 def main():

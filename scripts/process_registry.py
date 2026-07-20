@@ -49,15 +49,6 @@ PROCESSES = [
          writes="data/menthorq/harvest/YYYY-MM-DD/",
          downstream="Cross-check against the API pull; fills gaps the REST endpoints miss."),
 
-    dict(id="quin", phase="overnight", ct="16:00", task="MyQuant QUIN Harvest",
-         title="QUIN AI harvest",
-         script="scripts/mq_quin_harvest.py",
-         what="Asks MenthorQ's in-app AI for a gamma-levels table + top-10 GEX strikes per "
-              "symbol and parses the answer into JSON.",
-         why="QUIN can answer things no endpoint returns. Quota-limited, so it runs last.",
-         writes="data/menthorq/harvest/YYYY-MM-DD/quin_<SYM>.json",
-         downstream="Supplementary only — mq_levels_fetch replaced it as the primary source."),
-
     dict(id="levels_db", phase="overnight", ct="16:15", task="MyQuant Levels DB",
          title="Levels DB + viewer",
          script="scripts/mq_levels_db.py",

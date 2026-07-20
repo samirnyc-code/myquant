@@ -32,7 +32,6 @@ NOWIN = 0x08000000
 TASK_LABEL = {
     "MyQuant MQ Mine": "MQ full-surface mine",
     "MyQuant MQ Harvest": "MQ dashboard harvest",
-    "MyQuant QUIN Harvest": "QUIN harvest",
     "MyQuant Levels DB": "Levels DB",
     "MyQuant Data Catalog Scan": "Data catalog scan",
     "MyQuant Gateway Login": "IB Gateway login",

@@ -1,27 +1,33 @@
-"""Trade-card chart (S75) — an annotated snapshot of a trade at OPEN and CLOSE.
+"""Trade-card chart (S75) — an annotated 5M RTH snapshot of a trade at OPEN and CLOSE.
 
-Renders the intraday underlying with the strategy's strikes, breakevens, shaded
-profit/loss zones, the MenthorQ levels, the projected EOD price paths, the intended
-exit, and OUTCOME PROBABILITIES (from the MQ 1-day expected-move range) — as a dark,
-labeled PNG (archival, dropped in the tradelog) AND an interactive Plotly HTML.
+Generalized 2026-07-20 (was a GW0-butterfly prototype): works for every structure the
+desk trades — vertical credit/debit spreads, butterflies, straddles. Renders:
 
-Price series (see chat): SPX is a cash index (RTH only), so "PA to the left" comes
-from ES futures overnight, basis-adjusted into SPX terms (basis = median ES−SPX over
-the RTH overlap). Annotation layer is delay-immune; price is finalized bars.
+  * 5M RTH candles built from the realtime parity tape (+ dim overnight ES-adj line)
+  * every MenthorQ level + the trade's strikes + computed breakevens, all labeled
+  * shaded WIN / LOSS zones from the actual expiry payoff (not hand-drawn)
+  * ENTRY marker at the fill (interpolated tape price at order time); on --when close
+    also the EXIT marker, realized P&L and the daemon's close reason
+  * metrics header: credit/debit, max gain/loss, POP, P(max loss), EV, 1-sigma
+  * a WHY box (fire reason + grade basis, straight from the gameplan) and, at close,
+    an OUTCOME box (what ended it and what it cost/made)
+  * generic payoff tent sharing the price axis
 
-Prototype entry (today's fired GW0 butterfly):
-  .venv/Scripts/python.exe scripts/trade_chart.py --trade auto_20260716_090122 --when open
+Auto-called by options_trigger_daemon at fire and at close. Manual:
+  .venv/Scripts/python.exe scripts/trade_chart.py --trade auto_20260720_090212 --when open
 """
 import argparse
 import datetime as dt
 import json
 import math
+import re
 import sys
+import textwrap
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
 try:
-    sys.stdout.reconfigure(encoding="utf-8")   # console is cp1252; we print σ, ±, −
+    sys.stdout.reconfigure(encoding="utf-8")   # console is cp1252; we print sigma etc.
 except Exception:
     pass
 
@@ -35,57 +41,109 @@ CT = ZoneInfo("America/Chicago")
 BG, SURF = "#0d0d0d", "#1a1a19"
 INK, INK2, MUT = "#ffffff", "#c3c2b7", "#898781"
 GRID, AXLINE = "#2c2c2a", "#383835"
-GOOD, CRIT, WARN = "#0ca30c", "#d03b3b", "#fab219"   # status: profit / loss / caution
-PRICE = "#3987e5"        # series-1 blue — SPX (RTH)
-NIGHT = "#5f6f8a"        # dimmer — overnight ES (basis-adj)
-WING = "#e8ebf0"         # OUR long-wing strikes (neutral white — not an MQ level)
-PATH_A, PATH_C = "#199e70", "#d55181"  # aqua / magenta — projected paths
-
-# ---- MenthorQ level color coding (PROPOSED — confirm/adjust) -------------------
-# CR call-resistance=red · PS put-support=green · HVL=blue · GW gamma-wall=gold ·
-# GEX=violet · 1D expected range=amber. (No color codes shipped in the MQ API/scrape.)
+GOOD, CRIT, WARN = "#0ca30c", "#d03b3b", "#fab219"
+PRICE = "#3987e5"
+NIGHT = "#5f6f8a"
+WING = "#e8ebf0"           # OUR strikes (neutral white — not an MQ level)
+UP, DN = "#26a69a", "#ef5350"   # candle bodies
 MQ = {"cr": "#e34948", "cr0": "#e34948", "ps": "#1baf7a", "ps0": "#1baf7a",
       "hvl": "#3987e5", "gw0": "#eda100", "d1": "#fab219", "gex": "#9085e9"}
-PIN = MQ["gw0"]          # short×2 sits on GW0/CR0 (the wall/pin the fly targets)
 
 
-def _decollide(items, min_gap):
-    """items: list of [y, ...]. Nudge y's apart (in order) so adjacent ≥ min_gap.
-    Returns new y's preserving order. Prevents label text overlap (req: never overlap)."""
-    ys = sorted(range(len(items)), key=lambda i: items[i][0])
-    out = list(items)
-    prev = None
-    for idx in ys:
-        y = items[idx][0]
-        if prev is not None and y - prev < min_gap:
-            y = prev + min_gap
-        out[idx] = (y,) + tuple(items[idx][1:])
-        prev = y
-    return out
+# ---- structure model ----------------------------------------------------------
+def struct_legs(trig):
+    """[(qty, right, strike)] with sign: +long / -short. Prefers ACTUAL filled legs
+    (the straddle's ATM strike only exists at fill); falls back to the plan."""
+    fl = trig.get("filled_legs")
+    if fl:
+        return [((1 if l.get("side", "buy") == "buy" else -1) * l.get("qty", 1),
+                 l["right"], float(l["strike"])) for l in fl]
+    st = trig["structure"]
+    k = st.get("kind")
+    if k == "vertical":
+        return [(-1, st["right"], float(st["short"])), (1, st["right"], float(st["long"]))]
+    if k == "butterfly":
+        r = st.get("right", "C")
+        return [(1, r, float(st["lower"])), (-2, r, float(st["center"])),
+                (1, r, float(st["upper"]))]
+    raise SystemExit(f"no legs derivable for structure {st}")
 
 
+def payoff_pts(legs, net, S):
+    """Expiry P&L in POINTS at underlying S. net: +credit received / -debit paid."""
+    v = sum(q * (max(S - k, 0) if r == "C" else max(k - S, 0)) for q, r, k in legs)
+    return v + net
+
+
+def breakevens(legs, net, lo, hi):
+    """Zero crossings of the payoff on [lo, hi], found on a 0.25pt grid."""
+    bes, step = [], 0.25
+    prev_s, prev_p = lo, payoff_pts(legs, net, lo)
+    s = lo + step
+    while s <= hi:
+        p = payoff_pts(legs, net, s)
+        if (prev_p < 0) != (p < 0):
+            bes.append(prev_s + step * abs(prev_p) / (abs(prev_p) + abs(p) + 1e-12))
+        prev_s, prev_p = s, p
+        s += step
+    return bes
+
+
+# ---- data ---------------------------------------------------------------------
 def load_trade(trade_id, date):
-    gp = json.loads((SIM / f"gameplan_{date}.json").read_text(encoding="utf-8"))
-    trig = next((t for t in gp["triggers"] if t.get("trade_id") == trade_id), None)
-    if not trig:
-        raise SystemExit(f"trade {trade_id} not in gameplan_{date}.json")
-    return gp, trig
+    """The daemon spawns this renderer right at fire time, possibly BEFORE it has
+    persisted the gameplan with the new trade_id — retry briefly instead of dying."""
+    import time
+    for _ in range(6):
+        gp = json.loads((SIM / f"gameplan_{date}.json").read_text(encoding="utf-8"))
+        trig = next((t for t in gp["triggers"] if t.get("trade_id") == trade_id), None)
+        if trig:
+            return gp, trig
+        time.sleep(5)
+    raise SystemExit(f"trade {trade_id} not in gameplan_{date}.json")
 
 
-def butterfly_payoff(lo, ctr, hi, debit, S):
-    """Long call fly P&L (points) at expiry for underlying S."""
-    return (max(S - lo, 0) - 2 * max(S - ctr, 0) + max(S - hi, 0)) - debit
+def load_log_row(trade_id):
+    try:
+        import pandas as pd
+        d = pd.read_parquet(ROOT / "data" / "options_log" / "trades.parquet")
+        r = d[d["trade_id"] == trade_id]
+        return r.iloc[-1].to_dict() if len(r) else {}
+    except Exception:
+        return {}
 
 
-def load_series():
-    """Combined overnight(ES-adj) + RTH(SPX) price in SPX terms."""
-    f = SCRATCH / "pa_today.json"
+def load_series(date):
+    """RTH SPX tape from the sim daemon's live quote log (underlying_YYYYMMDD.csv,
+    ts on the exchange clock). Replaces the stale pa_today.json prototype source —
+    which froze on 2026-07-16 and silently fed every chart a 4-day-old price."""
+    f = SIM / f"underlying_{date}.csv"
     if not f.exists():
         return [], [], [], []
-    d = json.loads(f.read_text())
-    on = [(dt.datetime.fromisoformat(p["t"]), p["c"]) for p in d["series"] if p["src"] == "ES_adj"]
-    rt = [(dt.datetime.fromisoformat(p["t"]), p["c"]) for p in d["series"] if p["src"] in ("SPX", "TAPE")]
-    return ([x for x, _ in on], [y for _, y in on], [x for x, _ in rt], [y for _, y in rt])
+    xr, yr = [], []
+    day = dt.datetime.strptime(date, "%Y%m%d").date()
+    for ln in f.read_text().splitlines()[1:]:
+        try:
+            ts, px = ln.split(",")
+            h, m, s = (int(v) for v in ts.split(":"))
+            xr.append(dt.datetime.combine(day, dt.time(h, m, s), tzinfo=CT))
+            yr.append(float(px))
+        except Exception:
+            continue
+    return [], [], xr, yr          # no overnight leg from this source
+
+
+def bars_5m(xr, yr):
+    """5-minute OHLC from the tape: [(t_open, o, h, l, c)] — THE chart the user reads."""
+    out = {}
+    for t, p in sorted(zip(xr, yr)):
+        b = t.replace(minute=t.minute - t.minute % 5, second=0, microsecond=0)
+        if b not in out:
+            out[b] = [p, p, p, p]
+        else:
+            o = out[b]
+            o[1] = max(o[1], p); o[2] = min(o[2], p); o[3] = p
+    return [(b, v[0], v[1], v[2], v[3]) for b, v in sorted(out.items())]
 
 
 def norm_cdf(x, mu, sigma):
@@ -93,8 +151,7 @@ def norm_cdf(x, mu, sigma):
 
 
 def price_at(xr, yr, t):
-    """Price on the tape AT time t (interpolated) — NOT the last tape point.
-    Fixes the fill-marker bug: the fill sits on the price when the order was placed."""
+    """Tape price AT time t (interpolated) — the fill sits on the price when placed."""
     if not xr:
         return None
     pairs = sorted(zip(xr, yr))
@@ -103,61 +160,94 @@ def price_at(xr, yr, t):
     prev = pairs[0]
     for x, y in pairs[1:]:
         if x >= t:
-            frac = (t - prev[0]) / (x - prev[0])
+            frac = (t - prev[0]) / ((x - prev[0]) or dt.timedelta(seconds=1))
             return prev[1] + frac * (y - prev[1])
         prev = (x, y)
     return pairs[-1][1]
 
 
-def compute(gp, trig):
-    st = trig["structure"]
-    lo, ctr, hi = st["lower"], st["center"], st["upper"]
-    debit = -trig["fill"]["net"]                 # net negative for a debit
-    be_lo, be_hi = lo + debit, hi - debit
-    max_gain = (ctr - lo - debit) * 100
-    max_loss = debit * 100
+# ---- compute ------------------------------------------------------------------
+def compute(gp, trig, when, row):
+    legs = struct_legs(trig)
+    net = trig["fill"]["net"]                       # +credit / -debit (signed)
     fill_ct = dt.datetime.strptime(gp["date"] + " " + trig["fill"]["at"],
                                    "%Y%m%d %H:%M:%S").replace(tzinfo=CT)
+    xon, yon, xr, yr = load_series(gp["date"])
+    spot = price_at(xr, yr, fill_ct) or gp.get("spot_preopen") or legs[0][2]
 
-    # spot AT FILL (interpolated from the realtime tape) — the price when the order
-    # was placed, not the last tape point. Drives the fill marker AND the probabilities.
-    _, _, xr, yr = load_series()
-    spot = price_at(xr, yr, fill_ct) if yr else gp.get("spot_preopen", ctr)
+    strikes = sorted({k for _, _, k in legs})
     d1lo, d1hi = gp.get("d1_min"), gp.get("d1_max")
-    sigma_full = (d1hi - d1lo) / 2 if (d1lo and d1hi) else 55.0   # ±1σ ≈ half the exp range
+    sigma_full = (d1hi - d1lo) / 2 if (d1lo and d1hi) else spot * 0.009
     close_ct = dt.datetime.strptime(gp["date"] + " 15:00", "%Y%m%d %H:%M").replace(tzinfo=CT)
     open_ct = dt.datetime.strptime(gp["date"] + " 08:30", "%Y%m%d %H:%M").replace(tzinfo=CT)
     frac = max(0.05, (close_ct - fill_ct) / (close_ct - open_ct))
-    sigma = sigma_full * math.sqrt(frac)         # scale to time-to-close
+    sigma = sigma_full * math.sqrt(frac)
 
-    pop = norm_cdf(be_hi, spot, sigma) - norm_cdf(be_lo, spot, sigma)
-    p_maxloss = norm_cdf(lo, spot, sigma) + (1 - norm_cdf(hi, spot, sigma))
-    p_pin = norm_cdf(ctr + 10, spot, sigma) - norm_cdf(ctr - 10, spot, sigma)
-    # expected value: numeric integral of payoff($) × normal pdf
-    ev = 0.0
-    step = 1.0
-    for S in range(int(spot - 4 * sigma), int(spot + 4 * sigma), int(step)):
-        pdf = math.exp(-0.5 * ((S - spot) / sigma) ** 2) / (sigma * math.sqrt(2 * math.pi))
-        ev += butterfly_payoff(lo, ctr, hi, debit, S) * 100 * pdf * step
+    span = max(strikes) - min(strikes) if len(strikes) > 1 else 60
+    glo, ghi = min(strikes) - max(60, span), max(strikes) + max(60, span)
+    bes = breakevens(legs, net, glo, ghi)
 
-    return dict(lo=lo, ctr=ctr, hi=hi, debit=debit, be_lo=be_lo, be_hi=be_hi,
-               max_gain=max_gain, max_loss=max_loss, levels=gp["levels"], fill_ct=fill_ct,
-               grade=trig.get("projected_grade"), name=trig["name"], regime=gp.get("regime"),
-               width=st["width"], spot=spot, sigma=sigma, d1lo=d1lo, d1hi=d1hi,
-               pop=pop, p_maxloss=p_maxloss, p_pin=p_pin, ev=ev)
+    pnl_lo = payoff_pts(legs, net, glo) * 100
+    pnl_hi = payoff_pts(legs, net, ghi) * 100
+    grid = [glo + i for i in range(int(ghi - glo) + 1)]
+    pnls = [payoff_pts(legs, net, s) * 100 for s in grid]
+    max_gain = max(pnls)
+    max_loss = -min(pnls)
+    unbounded = trig["structure"].get("kind") == "straddle"
+
+    pop = sum((norm_cdf(b, spot, sigma) if i % 2 else -norm_cdf(b, spot, sigma))
+              for i, b in enumerate(sorted(bes), start=1))
+    # POP = P(payoff > 0): integrate sign regions properly instead of the alternating
+    # trick above (which assumes profit OUTSIDE for debit etc.) — do it numerically:
+    pop = 0.0
+    for i, s in enumerate(grid[:-1]):
+        if pnls[i] > 0:
+            pop += norm_cdf(grid[i + 1], spot, sigma) - norm_cdf(s, spot, sigma)
+    if pnls[0] > 0:
+        pop += norm_cdf(glo, spot, sigma)
+    if pnls[-1] > 0:
+        pop += 1 - norm_cdf(ghi, spot, sigma)
+    p_maxloss = sum(norm_cdf(grid[i + 1], spot, sigma) - norm_cdf(grid[i], spot, sigma)
+                    for i in range(len(grid) - 1) if -pnls[i] >= max_loss * 0.999)
+    ev = sum(pnls[i] * (norm_cdf(grid[i + 1], spot, sigma) - norm_cdf(grid[i], spot, sigma))
+             for i in range(len(grid) - 1))
+
+    exit_ct = exit_px = None
+    if when == "close" and row.get("exit_dt") not in (None, "", "NaT"):
+        try:
+            exit_ct = dt.datetime.strptime(str(row["exit_dt"]), "%Y-%m-%d %H:%M").replace(tzinfo=CT)
+            exit_px = price_at(xr, yr, exit_ct)
+        except Exception:
+            pass
+
+    return dict(legs=legs, strikes=strikes, net=net, bes=bes, grid=grid, pnls=pnls,
+                max_gain=max_gain, max_loss=max_loss, unbounded=unbounded,
+                levels=gp["levels"], fill_ct=fill_ct, close_ct=close_ct,
+                grade=trig["fill"].get("grade", trig.get("projected_grade")),
+                name=trig["name"], regime=gp.get("regime"), spot=spot, sigma=sigma,
+                d1lo=d1lo, d1hi=d1hi, pop=pop, p_maxloss=p_maxloss, ev=ev,
+                exit_ct=exit_ct, exit_px=exit_px, row=row,
+                series=(xon, yon, xr, yr))
 
 
-# ---- PNG (matplotlib) ---------------------------------------------------------
-def render_png(gp, trig, c, out):
+# ---- PNG ----------------------------------------------------------------------
+def render_png(gp, trig, c, when, out):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     import matplotlib.dates as mdates
+    from matplotlib.patches import Rectangle
 
-    date = gp["date"]
-    close_ct = dt.datetime.strptime(date + " 15:00", "%Y%m%d %H:%M").replace(tzinfo=CT)
-    xon, yon, xrt, yrt = load_series()
-    x_start = xon[0] if xon else (xrt[0] if xrt else c["fill_ct"])
+    xon, yon, xr, yr = c["series"]
+    bars = bars_5m(xr, yr)
+    open_ct = dt.datetime.strptime(gp["date"] + " 08:30", "%Y%m%d %H:%M").replace(tzinfo=CT)
+    x_start = min([open_ct] + ([bars[0][0]] if bars else []))
+    close_ct = c["close_ct"]
+
+    ys = [c["spot"]] + c["strikes"] + [b for b in c["bes"]] + \
+         [v for v in (c["d1lo"], c["d1hi"]) if v] + \
+         ([min(b[3] for b in bars), max(b[2] for b in bars)] if bars else [])
+    ylo, yhi = min(ys) - 18, max(ys) + 18
 
     fig = plt.figure(figsize=(15, 7.8), facecolor=BG)
     gs = fig.add_gridspec(1, 2, width_ratios=[4.6, 1.05], wspace=0.04)
@@ -167,129 +257,135 @@ def render_png(gp, trig, c, out):
         for s in a.spines.values():
             s.set_color(AXLINE)
         a.tick_params(colors=MUT, labelsize=9)
-
-    ylo, yhi = 7500, 7660
     ax.set_xlim(x_start, close_ct); ax.set_ylim(ylo, yhi)
 
-    # profit / loss zones (faint backgrounds; MQ level lines carry the color)
-    ax.axhspan(c["be_lo"], c["be_hi"], color=GOOD, alpha=0.08, zorder=0)
-    ax.axhspan(ylo, c["be_lo"], color=CRIT, alpha=0.06, zorder=0)
-    ax.axhspan(c["be_hi"], yhi, color=CRIT, alpha=0.06, zorder=0)
+    # WIN/LOSS zones from the ACTUAL payoff sign — works for every structure
+    seg_start, seg_sign = ylo, payoff_pts(c["legs"], c["net"], ylo) > 0
+    y = ylo
+    while y <= yhi + 1:
+        sign = payoff_pts(c["legs"], c["net"], y) > 0
+        if sign != seg_sign or y > yhi:
+            ax.axhspan(seg_start, min(y, yhi), color=GOOD if seg_sign else CRIT,
+                       alpha=0.10 if seg_sign else 0.07, zorder=0)
+            seg_start, seg_sign = y, sign
+        y += 0.5
 
-    # ---- horizontal lines (MQ color coding) --------------------------------
+    # ---- levels + strikes + BEs, right-edge labels, de-collided --------------
+    def sq(q):
+        return "short" if q < 0 else "long"
     lv = c["levels"]
-    linespec = [   # (y, color, lw, linestyle)
-        (c["d1lo"], MQ["d1"], 0.9, (0, (5, 4))), (c["d1hi"], MQ["d1"], 0.9, (0, (5, 4))),
-        (lv.get("hvl"), MQ["hvl"], 1.3, ":"), (lv.get("ps0"), MQ["ps0"], 1.5, "-"),
-        (c["lo"], WING, 1.4, "-"), (c["hi"], WING, 1.4, "-"),
-        (c["be_lo"], INK2, 1.0, "--"), (c["be_hi"], INK2, 1.0, "--"),
-        (c["ctr"], MQ["gw0"], 2.4, "-"),
-    ]
-    for y, col, lw, ls in linespec:
-        if y and ylo < y < yhi:
-            ax.axhline(y, color=col, lw=lw, ls=ls, alpha=0.85, zorder=2)
-
-    # labels: right-edge, staggered LEFT within a cluster so text NEVER overlaps
-    labels = [(c["d1lo"], f"1D min {c['d1lo']:.0f}", MQ["d1"], False),
-              (lv.get("hvl"), f"HVL {lv.get('hvl'):.0f}", MQ["hvl"], False) if lv.get("hvl") else None,
-              (lv.get("ps0"), f"PS0 {lv.get('ps0'):.0f}", MQ["ps0"], False) if lv.get("ps0") else None,
-              (c["lo"], f"long {c['lo']:.0f}", WING, False),
-              (c["be_lo"], f"BE {c['be_lo']:.2f}", INK2, False),
-              (c["ctr"], f"GW0·CR0 {c['ctr']:.0f} · short×2", MQ["gw0"], True),
-              (c["be_hi"], f"BE {c['be_hi']:.2f}", INK2, False),
-              (c["hi"], f"long {c['hi']:.0f}", WING, False),
-              (c["d1hi"], f"1D max {c['d1hi']:.0f}", MQ["d1"], False)]
-    labels = [l for l in labels if l and l[0] and ylo < l[0] < yhi]
-    labels.sort(key=lambda t: t[0])
-    span_min = (close_ct - x_start).total_seconds() / 60
-    LEFT_Y = 7576   # levels at/below here → LEFT gutter (clear space below the overnight line);
-    col_i, last = 0, None   # upper levels → RIGHT, staggered. Split keeps text off the price/fill.
-    for y, text, col, bold in labels:
-        if y <= LEFT_Y:
-            ax.text(x_start + dt.timedelta(minutes=0.01 * span_min), y, " " + text, color=col,
-                    va="center", ha="left", fontsize=8, fontweight="bold" if bold else "normal",
-                    zorder=9, bbox=dict(boxstyle="round,pad=0.16", fc=BG, ec="none", alpha=0.92))
+    lines = [(v, MQ[k], 1.3, ":" if k == "hvl" else "-", f"{k.upper()} {v:.0f}")
+             for k, v in lv.items() if v and ylo < v < yhi]
+    lines += [(v, MQ["d1"], 0.9, (0, (5, 4)), f"1D {'min' if v == c['d1lo'] else 'max'} {v:.0f}")
+              for v in (c["d1lo"], c["d1hi"]) if v and ylo < v < yhi]
+    seen = set()
+    for q, r, k in c["legs"]:
+        if k in seen:
             continue
-        col_i = col_i + 1 if (last is not None and y - last < 4.6) else 0
-        lx = close_ct - dt.timedelta(minutes=(0.02 + col_i * 0.11) * span_min)
-        ax.text(lx, y, text + " ", color=col, va="center", ha="right",
-                fontsize=8, fontweight="bold" if bold else "normal", zorder=9,
-                bbox=dict(boxstyle="round,pad=0.16", fc=BG, ec="none", alpha=0.92))
-        last = y
+        seen.add(k)
+        here = [(qq, rr) for qq, rr, kk in c["legs"] if kk == k]
+        rights = "+".join(rr for _, rr in here)          # straddle: "C+P", not "C"
+        qty = here[0][0] if len({qq for qq, _ in here}) == 1 else sum(q for q, _ in here)
+        tag = f"{sq(qty)}{'x' + str(abs(qty)) if abs(qty) > 1 else ''} {k:.0f}{rights}"
+        lines.append((k, WING, 1.6, "-", tag))
+    lines += [(b, INK2, 1.0, "--", f"BE {b:.1f}") for b in c["bes"] if ylo < b < yhi]
+    for yv, col, lw, ls, _ in lines:
+        ax.axhline(yv, color=col, lw=lw, ls=ls, alpha=0.85, zorder=2)
+    lines.sort(key=lambda t: t[0])
+    min_gap = (yhi - ylo) / 34
+    placed = []
+    for yv, col, lw, ls, txt in lines:
+        ly = yv
+        if placed and ly - placed[-1] < min_gap:
+            ly = placed[-1] + min_gap
+        placed.append(ly)
+        ax.annotate(txt + " ", xy=(1.0, ly), xycoords=("axes fraction", "data"),
+                    ha="right", va="center", color=col, fontsize=8, fontweight="bold",
+                    zorder=9, bbox=dict(boxstyle="round,pad=0.16", fc=BG, ec="none", alpha=0.9))
 
-    # ---- price: overnight (ES-adj) dim, RTH (realtime tape) bright ----------
+    # ---- price: dim overnight line + 5M RTH candles --------------------------
     if xon:
-        ax.plot(xon, yon, color=NIGHT, lw=1.4, zorder=4, label="overnight (ES→SPX)")
-    if xrt:
-        ax.plot(xrt, yrt, color=PRICE, lw=2.4, zorder=5, label="SPX realtime (parity tape)")
-    fy = c["spot"]   # price AT fill (interpolated tape), not last point
+        ax.plot(xon, yon, color=NIGHT, lw=1.2, zorder=3, label="overnight (ES→SPX)")
+    w = dt.timedelta(minutes=3.4)
+    for t, o, h, l, cl in bars:
+        col = UP if cl >= o else DN
+        ax.plot([t + w / 2, t + w / 2], [l, h], color=col, lw=0.9, zorder=4)
+        ax.add_patch(Rectangle((mdates.date2num(t), min(o, cl)), mdates.date2num(t + w) - mdates.date2num(t),
+                               max(abs(cl - o), 0.05), facecolor=col, edgecolor=col, zorder=5))
 
-    ax.scatter([c["fill_ct"]], [fy], s=95, color=PRICE, edgecolor=INK, lw=1.4, zorder=7)
-    ax.annotate(f"FILL {c['fill_ct']:%H:%M} · {fy:.0f} · debit {c['debit']:.2f}",
-                (c["fill_ct"], fy), xytext=(14, -34), textcoords="offset points",
+    # ---- entry / exit markers ------------------------------------------------
+    kind_txt = f"{'credit' if c['net'] > 0 else 'debit'} {abs(c['net']):.2f}"
+    ax.scatter([c["fill_ct"]], [c["spot"]], s=110, marker="^", color=GOOD,
+               edgecolor=INK, lw=1.2, zorder=8)
+    ax.annotate(f"ENTRY {c['fill_ct']:%H:%M} · {c['spot']:.0f} · {kind_txt}",
+                (c["fill_ct"], c["spot"]), xytext=(12, -30), textcoords="offset points",
                 color=INK, fontsize=8.5, fontweight="bold", zorder=10,
                 arrowprops=dict(arrowstyle="-", color=MUT, lw=0.8),
-                bbox=dict(boxstyle="round,pad=0.25", fc=SURF, ec=AXLINE, alpha=0.92))
-
-    for col, tgt, nm in [(PATH_A, c["ctr"], "path A · grind to wall"),
-                         (PATH_C, c["ctr"] - 6, "path C · pin (base)")]:
-        ax.plot([c["fill_ct"], close_ct], [fy, tgt], color=col, lw=1.8, ls="--",
-                alpha=0.9, zorder=4, label=nm)
+                bbox=dict(boxstyle="round,pad=0.25", fc=SURF, ec=GOOD, alpha=0.94))
+    if c["exit_ct"] and c["exit_px"]:
+        pnl = c["row"].get("pnl")
+        pc = GOOD if (pnl or 0) >= 0 else CRIT
+        ax.scatter([c["exit_ct"]], [c["exit_px"]], s=110, marker="v", color=pc,
+                   edgecolor=INK, lw=1.2, zorder=8)
+        ax.annotate(f"EXIT {c['exit_ct']:%H:%M} · {c['exit_px']:.0f} · {pnl:+,.0f}",
+                    (c["exit_ct"], c["exit_px"]), xytext=(12, 22), textcoords="offset points",
+                    color=INK, fontsize=8.5, fontweight="bold", zorder=10,
+                    arrowprops=dict(arrowstyle="-", color=MUT, lw=0.8),
+                    bbox=dict(boxstyle="round,pad=0.25", fc=SURF, ec=pc, alpha=0.94))
 
     ax.axvline(close_ct, color=WARN, lw=1.2, ls=":", alpha=0.8, zorder=3)
-    ax.text(close_ct, 7524, "EXIT 15:00 · cash-settle ", color=WARN, fontsize=8,
-            ha="right", va="center", fontweight="bold", zorder=9,
-            bbox=dict(boxstyle="round,pad=0.16", fc=BG, ec="none", alpha=0.92))
+    ax.text(close_ct, ylo + (yhi - ylo) * 0.03, "15:00 cash-settle ", color=WARN,
+            fontsize=8, ha="right", fontweight="bold", zorder=9,
+            bbox=dict(boxstyle="round,pad=0.16", fc=BG, ec="none", alpha=0.9))
 
-    # ---- reasoning box (req 6): why this fired — matches the gameplan -------
-    reasons = [f"Regime {trig.get('arm', {}).get('regime', '?')} — spot ≥ HVL {lv.get('hvl'):.0f}",
-               f"Fired ≥ {trig.get('fire', {}).get('not_before', '?')} CT (filled {trig['fill']['at']})",
-               f"In window {'–'.join(trig.get('window', ['?', '?']))} CT",
-               f"Grade {c['grade']}: {trig.get('grade_basis', '')}"]
-    box = "WHY THIS TRADE  (per gameplan)\n" + "\n".join(f"✓  {r}" for r in reasons)
-    ax.text(0.014, 0.975, box, transform=ax.transAxes, va="top", ha="left",
-            fontsize=8.4, color=INK, linespacing=1.5, zorder=10,
+    # ---- WHY / OUTCOME boxes -------------------------------------------------
+    why = [f"Fired: {str(c['row'].get('commentary', trig.get('grade_basis', '')))[:170]}"]
+    why += [f"Window {'–'.join(trig.get('window', ['?', '?']))} CT · filled {trig['fill']['at']}",
+            f"Grade {c['grade']} · regime at entry {trig.get('entry_regime', c['regime'])}"]
+    box = "WHY THIS TRADE\n" + "\n".join(
+        "✓  " + w for line in why for w in textwrap.wrap(line, 74))
+    ax.text(0.012, 0.978, box, transform=ax.transAxes, va="top", ha="left",
+            fontsize=8.2, color=INK, linespacing=1.5, zorder=10,
             bbox=dict(boxstyle="round,pad=0.5", fc="#12140f", ec=GOOD, alpha=0.94))
+    if when == "close" and c["row"].get("close_reason"):
+        pnl = c["row"].get("pnl")
+        ob = ("OUTCOME\n" + "\n".join(textwrap.wrap(str(c["row"]["close_reason"]), 60)) +
+              f"\nrealized {pnl:+,.0f}" if pnl == pnl else "")
+        ax.text(0.012, 0.30, ob, transform=ax.transAxes, va="top", ha="left",
+                fontsize=8.2, color=INK, linespacing=1.5, zorder=10,
+                bbox=dict(boxstyle="round,pad=0.5", fc="#141012",
+                          ec=GOOD if (pnl or 0) >= 0 else CRIT, alpha=0.94))
 
-    ax.xaxis.set_major_formatter(mdates.DateFormatter("%m/%d %H:%M", tz=CT))
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M", tz=CT))
     ax.set_ylabel("SPX (index terms)", color=INK2, fontsize=10)
-    ax.grid(color=GRID, lw=0.6, alpha=0.5)
-    ax.legend(loc="lower left", bbox_to_anchor=(0.63, 0.0), facecolor=SURF, edgecolor=AXLINE,
-              labelcolor=INK2, fontsize=8, framealpha=0.92)
+    ax.grid(color=GRID, lw=0.6, alpha=0.45)
+    if xon:
+        ax.legend(loc="lower left", facecolor=SURF, edgecolor=AXLINE,
+                  labelcolor=INK2, fontsize=8, framealpha=0.92)
 
-    # --- payoff tent (right), shares price y-axis, $ increments ---
+    # ---- payoff tent (generic) ----------------------------------------------
     axp.set_ylim(ylo, yhi)
-    Sgrid = list(range(ylo, yhi + 1, 1))
-    pnl = [butterfly_payoff(c["lo"], c["ctr"], c["hi"], c["debit"], s) * 100 for s in Sgrid]
-    axp.plot(pnl, Sgrid, color=INK2, lw=1.6, zorder=5)
-    axp.fill_betweenx(Sgrid, 0, pnl, where=[p >= 0 for p in pnl], color=GOOD, alpha=0.35)
-    axp.fill_betweenx(Sgrid, 0, pnl, where=[p < 0 for p in pnl], color=CRIT, alpha=0.30)
+    Sg = [s for s in c["grid"] if ylo <= s <= yhi]
+    pn = [c["pnls"][c["grid"].index(s)] for s in Sg]
+    axp.plot(pn, Sg, color=INK2, lw=1.6, zorder=5)
+    axp.fill_betweenx(Sg, 0, pn, where=[p >= 0 for p in pn], color=GOOD, alpha=0.35)
+    axp.fill_betweenx(Sg, 0, pn, where=[p < 0 for p in pn], color=CRIT, alpha=0.30)
     axp.axvline(0, color=AXLINE, lw=1)
-    xt = list(range(-500, 2501, 500))
-    axp.set_xticks(xt)
-    axp.set_xticklabels([("+" if t > 0 else "") + f"${t:,}" if t else "$0" for t in xt],
-                        fontsize=7.2, rotation=45)
-    axp.set_xlim(-600, 2600)
     axp.set_xlabel("P&L @ expiry", color=MUT, fontsize=8.5)
-    axp.tick_params(labelleft=False)
+    axp.tick_params(labelleft=False, labelsize=7.2)
     axp.grid(color=GRID, lw=0.5, alpha=0.4, axis="x")
-    axp.text(c["max_gain"], c["ctr"], f" +\\${c['max_gain']:,.0f}", color=GOOD,
-             fontsize=8.5, fontweight="bold", va="bottom")
-    axp.text(-c["max_loss"], ylo + 6, f"-\\${c['max_loss']:,.0f}", color=CRIT, fontsize=8)
 
-    # header + probabilities
-    fig.suptitle(f"{c['name']}   ·   {gp['date']}   ·   grade {c['grade']}   ·   {c['regime']}",
+    mg = "unbounded" if c["unbounded"] else f"+\\${c['max_gain']:,.0f}"
+    fig.suptitle(f"{c['name']}   ·   {gp['date']}   ·   grade {c['grade']}   ·   {c['regime']}"
+                 f"   ·   {'ENTRY' if when == 'open' else 'CLOSED'}",
                  color=INK, fontsize=15, fontweight="bold", x=0.5, y=0.985)
-    sub = (f"debit {c['debit']:.2f}     max gain +\\${c['max_gain']:,.0f}     "
-           f"max loss -\\${c['max_loss']:,.0f}     BE {c['be_lo']:.2f}–{c['be_hi']:.2f}     width {c['width']}")
+    sub = (f"{kind_txt}     max gain {mg}     max loss -\\${c['max_loss']:,.0f}     "
+           f"BE {' / '.join(f'{b:.1f}' for b in c['bes'])}")
     fig.text(0.5, 0.945, sub, color=INK2, fontsize=10.5, ha="center")
-    ev_col = GOOD if c["ev"] >= 0 else CRIT
-    prob = (f"POP {c['pop']*100:.0f}%        P(max loss) {c['p_maxloss']*100:.0f}%        "
-            f"P(±10 of pin) {c['p_pin']*100:.0f}%")
-    fig.text(0.5, 0.912, prob, color=INK, fontsize=11, ha="center", fontweight="bold")
-    fig.text(0.5, 0.884, f"EV {'+' if c['ev']>=0 else '−'}\\${abs(c['ev']):,.0f}     ·     "
-             f"1σ to close ±{c['sigma']:.0f} pts  (from MQ 1-day expected range)",
-             color=ev_col, fontsize=9.5, ha="center")
+    fig.text(0.5, 0.912, f"POP {c['pop']*100:.0f}%      P(max loss) {c['p_maxloss']*100:.0f}%      "
+             f"EV {'+' if c['ev'] >= 0 else '-'}${abs(c['ev']):,.0f}      "
+             f"1σ to close ±{c['sigma']:.0f} pts (MQ 1-day range)",
+             color=INK, fontsize=11, ha="center", fontweight="bold")
 
     CARDS.mkdir(parents=True, exist_ok=True)
     fig.savefig(out, dpi=130, facecolor=BG, bbox_inches="tight")
@@ -297,95 +393,24 @@ def render_png(gp, trig, c, out):
     return out
 
 
-# ---- HTML (plotly) ------------------------------------------------------------
-def render_html(gp, trig, c, out):
-    import plotly.graph_objects as go
-    date = gp["date"]
-    close_ct = dt.datetime.strptime(date + " 15:00", "%Y%m%d %H:%M").replace(tzinfo=CT)
-    xon, yon, xrt, yrt = load_series()
-    x_start = xon[0] if xon else (xrt[0] if xrt else c["fill_ct"])
-    fy = c["spot"]   # price AT fill (interpolated tape), not last point
-    ylo, yhi = 7500, 7660
-
-    fig = go.Figure()
-    fig.add_hrect(y0=c["be_lo"], y1=c["be_hi"], fillcolor=GOOD, opacity=0.10, line_width=0)
-    fig.add_hrect(y0=ylo, y1=c["be_lo"], fillcolor=CRIT, opacity=0.08, line_width=0)
-    fig.add_hrect(y0=c["be_hi"], y1=yhi, fillcolor=CRIT, opacity=0.08, line_width=0)
-    for v, lbl in [(c["d1lo"], "1D exp min"), (c["d1hi"], "1D exp max")]:
-        if v:
-            fig.add_hline(y=v, line=dict(color=WARN, width=1, dash="dash"),
-                          annotation_text=f"{lbl} {v:.0f}", annotation_font_color=WARN)
-    for key, lbl in [("hvl", "HVL"), ("ps0", "PS0")]:
-        v = c["levels"].get(key)
-        if v:
-            fig.add_hline(y=v, line=dict(color=MUT, width=1, dash="dot"),
-                          annotation_text=f"{lbl} {v:.0f}", annotation_font_color=MUT)
-    fig.add_hline(y=c["ctr"], line=dict(color=PIN, width=2.4),
-                  annotation_text=f"short×2 {c['ctr']:.0f} (GW0)", annotation_font_color=PIN)
-    for v in (c["lo"], c["hi"]):
-        fig.add_hline(y=v, line=dict(color=WING, width=1.6),
-                      annotation_text=f"long {v:.0f}", annotation_font_color=WING)
-    for v in (c["be_lo"], c["be_hi"]):
-        fig.add_hline(y=v, line=dict(color=INK2, width=1, dash="dash"),
-                      annotation_text=f"BE {v:.2f}", annotation_font_color=INK2)
-    if xon:
-        fig.add_trace(go.Scatter(x=xon, y=yon, mode="lines", name="overnight (ES, adj)",
-                                 line=dict(color=NIGHT, width=1.4),
-                                 hovertemplate="%{x|%m/%d %H:%M}  %{y:.1f}<extra>ES-adj</extra>"))
-    if xrt:
-        fig.add_trace(go.Scatter(x=xrt, y=yrt, mode="lines", name="SPX (RTH)",
-                                 line=dict(color=PRICE, width=2.6),
-                                 hovertemplate="%{x|%H:%M}  %{y:.2f}<extra>SPX</extra>"))
-    fig.add_trace(go.Scatter(x=[c["fill_ct"]], y=[fy], mode="markers+text", name="fill",
-                             text=[f"FILL {c['fill_ct']:%H:%M} · debit {c['debit']:.2f}"],
-                             textposition="bottom right", textfont=dict(color=INK),
-                             marker=dict(color=PRICE, size=13, line=dict(color=INK, width=1.5))))
-    for col, tgt, nm in [(PATH_A, c["ctr"], "path A · grind"),
-                         (PATH_C, c["ctr"] - 6, "path C · pin")]:
-        fig.add_trace(go.Scatter(x=[c["fill_ct"], close_ct], y=[fy, tgt], mode="lines",
-                                 name=nm, line=dict(color=col, width=2, dash="dash")))
-    fig.add_vline(x=close_ct.timestamp() * 1000, line=dict(color=WARN, width=1.2, dash="dot"),
-                  annotation_text="EXIT 15:00 · cash-settle", annotation_font_color=WARN)
-
-    ev_txt = f"{'+' if c['ev']>=0 else '−'}${abs(c['ev']):,.0f}"
-    fig.update_layout(
-        template="plotly_dark", paper_bgcolor=BG, plot_bgcolor=SURF,
-        title=dict(text=(f"<b>{c['name']}</b> · {date} · grade {c['grade']} · {c['regime']}<br>"
-                         f"<span style='font-size:13px;color:{INK2}'>debit {c['debit']:.2f} · "
-                         f"max gain +${c['max_gain']:,.0f} · max loss -${c['max_loss']:,.0f} · "
-                         f"BE {c['be_lo']:.2f}–{c['be_hi']:.2f}</span><br>"
-                         f"<span style='font-size:13px;color:#fab219'>POP {c['pop']*100:.0f}% · "
-                         f"P(max loss) {c['p_maxloss']*100:.0f}% · P(±10 pin) {c['p_pin']*100:.0f}% · "
-                         f"EV {ev_txt} · 1σ ±{c['sigma']:.0f}</span>"), font_color=INK),
-        xaxis=dict(range=[x_start, close_ct], gridcolor=GRID, title="Exchange time (CT)"),
-        yaxis=dict(range=[ylo, yhi], gridcolor=GRID, title="SPX (index terms)"),
-        legend=dict(bgcolor=SURF, bordercolor=AXLINE, borderwidth=1),
-        margin=dict(l=60, r=30, t=120, b=50), height=700)
-    CARDS.mkdir(parents=True, exist_ok=True)
-    fig.write_html(str(out), include_plotlyjs="cdn")
-    return out
-
-
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--trade", default="auto_20260716_090122")
-    ap.add_argument("--date", default="20260716")
+    ap.add_argument("--trade", required=True)
+    ap.add_argument("--date", default=None, help="YYYYMMDD; default: parsed from the trade id")
     ap.add_argument("--when", default="open", choices=["open", "close"])
     args = ap.parse_args()
+    if not args.date:   # auto_YYYYMMDD_HHMMSS carries its own date
+        m = re.search(r"_(\d{8})_", args.trade)
+        args.date = m.group(1) if m else dt.datetime.now(CT).strftime("%Y%m%d")
 
     gp, trig = load_trade(args.trade, args.date)
-    c = compute(gp, trig)
+    row = load_log_row(args.trade)
+    c = compute(gp, trig, args.when, row)
     png = CARDS / f"{args.trade}_{args.when}.png"
-    html = CARDS / f"{args.trade}_{args.when}.html"
-    render_png(gp, trig, c, png)
-    render_html(gp, trig, c, html)
-    print(f"PNG  -> {png}")
-    print(f"HTML -> {html}")
-    print(f"  {c['name']} | debit {c['debit']:.2f} | maxG +${c['max_gain']:,.0f} "
-          f"maxL -${c['max_loss']:,.0f} | BE {c['be_lo']:.2f}-{c['be_hi']:.2f}")
-    print(f"  POP {c['pop']*100:.0f}% | P(maxloss) {c['p_maxloss']*100:.0f}% | "
-          f"P(pin±10) {c['p_pin']*100:.0f}% | EV {'+' if c['ev']>=0 else '-'}${abs(c['ev']):,.0f} "
-          f"| 1σ ±{c['sigma']:.0f} (spot {c['spot']:.1f})")
+    render_png(gp, trig, c, args.when, png)
+    print(f"PNG -> {png}")
+    print(f"  {c['name']} | net {c['net']:+.2f} | maxL -${c['max_loss']:,.0f} | "
+          f"POP {c['pop']*100:.0f}% | BE {' / '.join(f'{b:.1f}' for b in c['bes'])}")
 
 
 if __name__ == "__main__":
