@@ -294,14 +294,14 @@ def _mem_map(pids):
 
 def _artifacts_html():
     sys.path.insert(0, str(Path(__file__).resolve().parent))
-    import artifacts_page
-    return artifacts_page.HTML
+    import artifacts_page, mc_theme
+    return artifacts_page.HTML.replace("</body></html>", mc_theme.SNIPPET + "</body></html>", 1)
 
 
 def _timeline_html():
     sys.path.insert(0, str(Path(__file__).resolve().parent))
-    import timeline_page
-    return timeline_page.HTML
+    import timeline_page, mc_theme
+    return timeline_page.HTML.replace("</body></html>", mc_theme.SNIPPET + "</body></html>", 1)
 
 
 
@@ -1059,7 +1059,6 @@ pre{background:var(--chip);border-radius:7px;padding:8px 10px;font-size:11px;ove
   <button id="openall" title="open every running dashboard">↗ Open running</button>
   <button class="danger" id="stopall">■ Stop all</button>
   <label class="auto"><input type="checkbox" id="autochk" checked> auto</label>
-  <button id="theme" title="toggle light/dark">◐</button>
   <span class="muted" id="gen"></span>
 </header>
 <div class="wrap">
@@ -1163,11 +1162,6 @@ document.getElementById('reload').onclick=load;
 const auto=document.getElementById('autochk');
 function setAuto(){if(timer)clearInterval(timer);timer=null;if(auto.checked)timer=setInterval(load,5000);}
 auto.onchange=setAuto;
-// theme toggle (pages read data-theme; default follows OS)
-const root=document.documentElement;
-document.getElementById('theme').onclick=()=>{
-  const cur=root.getAttribute('data-theme')||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
-  root.setAttribute('data-theme',cur==='dark'?'light':'dark');};
 // ---- Claude Artifacts section ----
 const GEMOJI={Brooks:'📘',Options:'🎯',Signals:'📈',MenthorQ:'⬡','Expected Move':'📐',Footprint:'👣',Other:'🧩'};
 let ARTS=null;

@@ -53,6 +53,12 @@ SNIPPET = """
   window.__mcTheme = localStorage.getItem('mcTheme') || 'dark';
   // apply immediately (button labels get set once DOM is ready)
   apply(window.__mcTheme);
+  // CROSS-PAGE LIVE SYNC: changing the theme on ANY open Mission Control tab writes
+  // localStorage, which fires a 'storage' event in every OTHER tab - apply it there too,
+  // so all open pages recolour together without a reload.
+  window.addEventListener('storage', function(e){
+    if(e.key==='mcTheme' && e.newValue){ window.__mcTheme=e.newValue; apply(e.newValue); }
+  });
   document.addEventListener('DOMContentLoaded', function(){
     apply(window.__mcTheme);
     var b=document.getElementById('mcThemeBtn');
