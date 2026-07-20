@@ -27,6 +27,9 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parent.parent
 DEPTH = ROOT / "data" / "depth"
+# dedicated PRIVATE archive repo (off-machine backup of irreplaceable, un-repurchasable
+# market data). Immutable daily parquet -> git stays lean. Pushed if a remote exists.
+ARCHIVE = Path.home() / "myquant-data"
 DTYPES = {"Ev": "category", "Side": "category", "Pos": "int16",
           "Price": "float32", "Size": "int32"}
 
@@ -88,6 +91,35 @@ def convert(csv: Path, keep_csv: bool, dry: bool) -> dict:
                     f"{'' if keep_csv else ', CSV removed'}"}
 
 
+def archive(pq: Path) -> str:
+    """Copy a verified parquet into the private data repo and commit (push if a remote
+    exists). Runs in the halt right after rollover, so the off-machine backup happens the
+    same hour the parquet is made. Never fatal - a failed backup must not lose the parquet."""
+    import shutil
+    import subprocess
+    if not (ARCHIVE / ".git").exists():
+        return "no archive repo"
+    try:
+        dest_dir = ARCHIVE / "depth"
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        dest = dest_dir / pq.name
+        if dest.exists():
+            return "already archived"
+        shutil.copy2(pq, dest)
+
+        def g(*a):
+            return subprocess.run(["git", "-C", str(ARCHIVE), *a], capture_output=True,
+                                  text=True, timeout=120, creationflags=0x08000000)
+        g("add", f"depth/{pq.name}")
+        g("commit", "-m", f"depth: {pq.stem}")
+        if g("remote").stdout.strip():
+            return "committed + pushed" if g("push", "-q").returncode == 0 \
+                else "committed (push failed)"
+        return "committed (no remote yet)"
+    except Exception as e:
+        return f"archive failed: {type(e).__name__}"
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--keep-csv", action="store_true")
@@ -106,7 +138,10 @@ def main() -> int:
         r = convert(csv, a.keep_csv, a.dry_run)
         if r["status"] == "FAIL":
             bad += 1
-        print(f"  [{r['status']:>4}] {r['file']:<34} {r['note']}")
+        note = r["note"]
+        if r["status"] == "ok" and not a.dry_run:
+            note += "  ·  archive: " + archive(csv.with_suffix(".parquet"))
+        print(f"  [{r['status']:>4}] {r['file']:<34} {note}")
     print(f"\n{len(todo)-bad}/{len(todo)} converted")
     return 1 if bad else 0
 
