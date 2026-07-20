@@ -329,6 +329,17 @@ def main():
     ap.add_argument("--port", type=int, default=None, help="override IB port (default env/4002 paper)")
     a = ap.parse_args()
     dry = a.smoke or a.now
+    if not dry:
+        # single-instance lock: two live daemons would double-log sim trades. Holding a
+        # bound socket for the process lifetime is the same pattern as status_light
+        # (49731) / telegram_bot (49732). Makes relaunch (task retry, self-heal) safe.
+        import socket as _sock
+        _lock = _sock.socket()
+        try:
+            _lock.bind(("127.0.0.1", 49733))
+        except OSError:
+            print("another sim daemon already holds the lock (port 49733) - exiting")
+            return
 
     today = now_et().date().isoformat()
     daily = refresh_spx_daily()

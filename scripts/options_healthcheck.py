@@ -81,7 +81,16 @@ def check_levels():
     # S75V: this used to accept `fetched.startswith(today)`, which is TRUE BY CONSTRUCTION
     # because the fetch runs today - so the check passed even when MenthorQ had published
     # nothing new and the levels were days old. Freshness is a property of the SOURCE.
-    prev_day = (dt.datetime.now(CT) - dt.timedelta(days=1)).strftime("%Y-%m-%d")
+    # previous TRADING day, not calendar day: on Monday the freshest possible levels are
+    # Friday EOD - "yesterday" would false-alarm every Monday (2026-07-20 incident).
+    try:
+        from market_calendar import is_trading_day
+        prev = dt.datetime.now(CT).date() - dt.timedelta(days=1)
+        while not is_trading_day(prev):
+            prev -= dt.timedelta(days=1)
+        prev_day = prev.isoformat()
+    except Exception:
+        prev_day = (dt.datetime.now(CT) - dt.timedelta(days=1)).strftime("%Y-%m-%d")
     fresh = src.startswith(today) or src.startswith(prev_day)
     if d.get("_stale_warning"):
         fresh = False

@@ -54,7 +54,44 @@ RULES = {
         lambda c: c["state"] == "bad",     # WARN on gateway is normal off-hours; only BAD pages
         lambda c: f"IB GATEWAY: {c['detail']}",
     ),
+    # 2026-07-20: sim daemon died at the 08:28 launch and nothing paged. BAD here means
+    # desk hours + market open + (no gameplan after 08:35 CT, or feed dead >10 min).
+    "Options sim": (
+        "options_sim",
+        lambda c: c["state"] == "bad",
+        lambda c: f"OPTIONS DESK: {c['detail']}",
+    ),
 }
+
+
+def _heal_options_sim(c, tg, verbose: bool) -> None:
+    """Self-heal a dead desk instead of only paging about it (2026-07-20: daemon failed
+    at 08:28 launch, sat dead until manually restarted). Direct invocation, NOT
+    Start-ScheduledTask - the run_at_ct wrapper would skip outside its 25-min window,
+    which is exactly when a heal is needed. At most one attempt per 30 min so a genuinely
+    broken script cannot be relaunch-spammed; if the cause persists (e.g. truly stale
+    levels) the BAD page keeps firing and the human decides."""
+    import subprocess
+    py = str(ROOT / ".venv" / "Scripts" / "python.exe")
+    if not tg.send("🔧 attempting desk self-heal (gameplan + sim daemon)…", level="info",
+                   dedup_key="desk_heal", cooldown_s=1800):
+        return                                  # healed too recently - let the page stand
+    if "NO GAMEPLAN" in c["detail"]:
+        r = subprocess.run([py, str(ROOT / "scripts" / "options_gameplan.py")],
+                           capture_output=True, text=True, timeout=180,
+                           cwd=str(ROOT), creationflags=0x08000000)
+        tg.send("✅ self-heal: gameplan rebuilt" if r.returncode == 0 else
+                f"❌ self-heal: gameplan still failing:\n{(r.stderr or r.stdout)[-400:]}",
+                level="info" if r.returncode == 0 else "alert")
+        if r.returncode != 0:
+            return                              # no point starting the daemon on no plan
+    # restart the daemon detached (DETACHED_PROCESS|CREATE_NO_WINDOW) - it exits by
+    # itself if another instance already holds the lock, so double-start is safe
+    subprocess.Popen([py, str(ROOT / "scripts" / "options_sim_daemon.py")],
+                     cwd=str(ROOT), creationflags=0x08000008,
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    if verbose:
+        print("self-heal: daemon relaunched")
 
 
 def run_once(verbose: bool = False) -> int:
@@ -78,6 +115,12 @@ def run_once(verbose: bool = False) -> int:
                 paged += 1
                 if verbose:
                     print(f"PAGED [{key}]: {msg(c)}")
+            if key == "options_sim":
+                try:
+                    _heal_options_sim(c, tg, verbose)
+                except Exception as e:
+                    if verbose:
+                        print(f"self-heal error: {type(e).__name__}: {e}")
         else:
             # condition healthy -> if we had paged it, announce recovery once
             import json

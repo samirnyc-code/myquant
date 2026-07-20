@@ -330,8 +330,18 @@ def check_options_sim() -> dict:
         n = 0
     if mkt != "open" or not _desk_hours():
         return _chk("Options sim", IDLE, f"desk closed - feed idle ({_fmt_age(age)})")
-    if age > 3600:
-        return _chk("Options sim", WARN, f"live.json stale {_fmt_age(age)}")
+    # Desk hours, market open: a dead daemon is a PAGE, not a shrug. On 2026-07-20 the
+    # daemon failed at the 08:28 launch and nothing alerted - only a screenshot caught it.
+    # The gameplan is the desk's brain: missing after 08:35 CT means NOTHING is armed.
+    now = chicago_now()
+    if now.hour > 8 or (now.hour == 8 and now.minute >= 35):
+        gp = ROOT / "data" / "options_sim" / f"gameplan_{now:%Y%m%d}.json"
+        if not gp.exists():
+            return _chk("Options sim", BAD,
+                        f"NO GAMEPLAN for {now:%Y-%m-%d} - desk NOT armed")
+    if age > 600:
+        return _chk("Options sim", BAD,
+                    f"sim daemon feed DEAD - live.json stale {_fmt_age(age)}")
     return _chk("Options sim", OK, f"{n} position(s), {_fmt_age(age)} ago")
 
 
