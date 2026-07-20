@@ -1,5 +1,5 @@
 {
- "generated": "2026-07-19T18:24:00",
+ "generated": "2026-07-20T03:30:02",
  "families": {
   "vendor_flatfiles": {
    "n": 0,
@@ -181,10 +181,10 @@
    "rows": null
   },
   "mq_levels_history": {
-   "n": 3737,
-   "size": 255598704,
+   "n": 3792,
+   "size": 258690967,
    "zero_byte": 2,
-   "newest": 1784467075.2181604,
+   "newest": 1784500448.2409656,
    "exists_any": true,
    "health": "ok",
    "reasons": [
@@ -193,9 +193,9 @@
    "per_path": {
     "data/menthorq": {
      "exists": true,
-     "n": 3737,
-     "size": 255598704,
-     "newest": 1784467075.2181604,
+     "n": 3792,
+     "size": 258690967,
+     "newest": 1784500448.2409656,
      "zero_byte": 2
     }
    },
@@ -252,19 +252,19 @@
    "rows": null
   },
   "mq_mine": {
-   "n": 419,
-   "size": 15261573,
+   "n": 436,
+   "size": 17188403,
    "zero_byte": 0,
-   "newest": 1784448556.6499922,
+   "newest": 1784485703.4964614,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
    "per_path": {
     "data/menthorq/mine": {
      "exists": true,
-     "n": 386,
-     "size": 15200970,
-     "newest": 1784448556.6499922,
+     "n": 403,
+     "size": 17127800,
+     "newest": 1784485703.4964614,
      "zero_byte": 0
     },
     "data/menthorq/academy": {
@@ -279,9 +279,9 @@
   },
   "options_sim": {
    "n": 58,
-   "size": 2425651,
+   "size": 2427287,
    "zero_byte": 0,
-   "newest": 1784478240.202378,
+   "newest": 1784480146.2305827,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
@@ -289,27 +289,27 @@
     "data/options_sim": {
      "exists": true,
      "n": 58,
-     "size": 2425651,
-     "newest": 1784478240.202378,
+     "size": 2427287,
+     "newest": 1784480146.2305827,
      "zero_byte": 0
     }
    },
    "rows": null
   },
   "options_log": {
-   "n": 7,
-   "size": 272987,
+   "n": 8,
+   "size": 297752,
    "zero_byte": 0,
-   "newest": 1784478240.202378,
+   "newest": 1784480147.2918184,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
    "per_path": {
     "data/options_log": {
      "exists": true,
-     "n": 7,
-     "size": 272987,
-     "newest": 1784478240.202378,
+     "n": 8,
+     "size": 297752,
+     "newest": 1784480147.2918184,
      "zero_byte": 0
     }
    },
@@ -507,7 +507,7 @@
    "rows": null
   }
  },
- "total_size": 32316091171,
- "total_files": 17857,
- "scan_seconds": 0.643313
+ "total_size": 32321136665,
+ "total_files": 17930,
+ "scan_seconds": 0.180158
 }
