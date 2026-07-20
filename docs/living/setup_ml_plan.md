@@ -77,9 +77,20 @@ Already solved there: forward-reveal with auditable no-lookahead (`reveal_idx`),
 from ticks (verified), per-session volume profile POC/VAH/VAL, grade+note+setup+direction
 fields.
 
-Deltas to build:
-1. **Brooks H1/H2/L1/L2 detector** — the FOUNDATION. Bad marks → garbage grades. Must be
-   tested against Samir's eye on a sample before trusting. Start here.
+**⭐ FOUNDATION ALREADY EXISTS (found 2026-07-20):** `scripts/brooks_bt_h2.py` +
+`brooks_bt_core.py` already provide:
+- `detect_h2_l2()` — Brooks two-legged A-B-C H2/L2 detector, signal-bar/entry/stop,
+  **REGIME-FREE (EMA20 only, no Brooks engine)** — so it sidesteps the broken engine AND
+  does not depend on the engine rebuild happening this week on a separate branch.
+- `fill_trade()` — forward-outcome across 1R/2R/4R/EOD/BE2R/TR1 = the auto-outcome field.
+- per-year base rates net of $5 MES = the mechanical baseline the FALSIFICATION GATE
+  compares against.
+The engine rebuild is orthogonal: when it lands it becomes an OPTIONAL backend context
+feature, never a dependency of the label or detector.
+
+Deltas to build (foundation now mostly reuse, not new):
+1. **Wrap `detect_h2_l2` to place marks on the grading charts** + reuse `fill_trade` for the
+   outcome field. Sanity-check its marks against Samir's eye on ~5 days before trusting.
 2. Batch queue over 1270 days, batch-blind lock, random order, prior-day left-context.
 3. Grade taxonomy A+/A/B/skip/trap + structured comment + decision-time capture.
 4. Auto-outcome (forward path capture).
