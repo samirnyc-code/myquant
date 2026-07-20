@@ -85,11 +85,26 @@ cache `scratchpad/bl_basket_gamma.json`; user's lead = sector ETFs):**
   don't hold historically; per-strike is today-only). Operationally BL is a VALIDATED confluence
   indicator pinned to the index complex's structural gamma zones — not a formula off published
   levels. Exact reconstruction would need historical per-strike surfaces. **Line closed.**
+- **PER-STRIKE test (2026-07-20):** tested my own claim that BL come from the per-strike surface —
+  pulled today's live per-strike net-GEX for SPX/SPY/QQQ vs today's BL. BL do NOT sit on per-strike
+  features (extrema/weighted-mid/gamma-flip/cum-deciles) better than null either. So "per-strike is
+  the input" is NOT established — only that the source is *continuous*. Was overconfident; corrected.
 
-**OPEN / NEXT:** (1) multi-day touch-window edge study for power. (2) Re-run confluence with the
-ETF proxies (SPY/QQQ/NDX/IWM) once their gamma HISTORY is captured (only BL history exists for
-them now; gamma is today-only via API). (3) Test the V2 overlap-clustering model across 200 days
-now that we have the panel. (4) Consider capturing per-strike surfaces daily (the true BL input).
+**EDGE STUDY — do BL WORK? (2026-07-20) → NO measurable mechanical edge.** ES+NQ, 1-min, 380
+sessions, 688 touches, HARD matched-band null (`scratchpad/bl_edge_study.py`):
+- Reject-on-touch 47.1% vs 47.0% null (rest-of-day, z+0.1); 51.9% vs 51.5% (20-min window, z+0.2).
+- **MQ's key claim REFUTED:** gamma-stacked BLs reject 52.6% vs 51.7% isolated (z+0.2) — no harder.
+- Containment: day range inside BL envelope 70% vs 97% for a naive same-width band = WORSE.
+- Day high/low lands on a BL 22–30% vs 25% random (z−1.0). Reaction magnitude z−0.6.
+- Supersedes the earlier "weak-positive z=1.3" (that was underpowered noise). BL location is real
+  (confluence z=+6.9) but carries no harvestable intraday reaction. NOT tested: BL as targets,
+  trend-conditioned, or combined with a directional signal — the fair next tests.
+- **Deliverable:** dossier artifact `docs/artifacts/blind_spots_reverse_engineered_edge_tested.html`
+  (in MC Artifact Library, group MenthorQ; claude.ai URL in `claude_artifacts.json`).
+
+**OPEN / NEXT:** (1) fair edge tests: BL as TARGETS not entries, trend-conditioned, or BL + a
+directional signal. (2) Re-run confluence with ETF-proxy gamma HISTORY once captured. (3) Consider
+capturing per-strike surfaces daily (still the leading — if unproven — candidate for the true input).
 
 ---
 

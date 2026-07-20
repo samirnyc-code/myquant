@@ -2,6 +2,8 @@
  "generated": "2026-07-17",
  "note": "Snapshot of published Claude Artifacts (claude.ai). Ask Claude to 'refresh the artifacts list' to regenerate via Artifact action:list.",
  "artifacts": [
+  {"title": "Blind Spots — Reverse-Engineered & Edge-Tested", "url": "https://claude.ai/code/artifact/72fbf5b3-ac97-4ebe-af8a-d637260931f7", "updated": "2026-07-20", "group": "MenthorQ",
+   "info": "200-day investigation of MenthorQ Blind Spots. (1) What they are: cross-asset option walls, projected onto your chart. (2) Can we calculate them? No — cross-instrument links are an exact identity (ES.bl = SPX.bl × price-ratio; 19 tickers collapse to 5 underlyings), but the SPX seed is unreconstructable (fingerprint/ML/clustering/sector-ETF/per-strike all refuted; continuous per-strike source). (3) Do they work? No measurable mechanical edge — 688 ES+NQ touches, 47% reject vs 47% random null; gamma-stacked BLs no different; envelope worse than a naive band. Levels sit near real option structure (z=+6.9) but carry no harvestable intraday reaction."},
   {"title": "Price / CVD Divergence — Field Guide", "url": "https://claude.ai/code/artifact/da1a974a-b57a-4e20-8850-80d7f984ff72", "updated": "2026-07-17", "group": "Footprint",
    "info": "Educational: the four price/CVD divergence types (regular/hidden × bullish/bearish) with SVG schematics, who-leads (CVD leads, price lags), a quick-reference table, and the causal usage rule — anchor on the current bar, compare to a prior pivot, act only on a confirming signal bar."},
   {"title": "Patrick Petersson — Trader Dossier", "url": "https://claude.ai/code/artifact/c015e39a-7a5a-4e4e-b9e1-0dbbcc41d19f", "updated": "2026-07-17", "group": "Intel",
