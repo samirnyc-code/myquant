@@ -286,7 +286,15 @@ def panel_html(db):
                 'job (23:15) writes the first rows tonight.</div></div>')
     latest = db["date"].max()
     n_sym = db[db["date"] == latest]["symbol"].nunique()
-    sub = (f'<div class="sub">snapshot <b>{latest}</b> · {n_sym} instruments · '
+    # MenthorQ publishes EOD only: during any trading day the newest snapshot is the
+    # PRIOR session's close - that is the freshest data in existence, not staleness.
+    try:
+        wd = dt.date.fromisoformat(str(latest)).strftime("%a")
+        fresh = (f' <span style="opacity:.75">({wd} EOD — the latest MenthorQ publish; '
+                 f'current until tonight\'s harvest ~22:45)</span>')
+    except Exception:
+        fresh = ""
+    sub = (f'<div class="sub">levels from <b>{latest}</b>{fresh} · {n_sym} instruments · '
            f'{db["date"].nunique()} day(s) stored · '
            '<span style="color:var(--sup)">▏</span>put <span style="color:var(--flip)">▏</span>gamma flip (HVL) '
            '<span style="color:var(--res)">▏</span>call <span style="color:var(--spot)">●</span>spot '

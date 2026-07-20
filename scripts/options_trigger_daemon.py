@@ -327,6 +327,39 @@ PIN_SETUPS = ("sell_0dte_gamma", "cr0_fade", "ps0_fade", "fly_gw_0dte", "condor_
 ANTI_PIN_SETUPS = ("straddle_0dte",)
 
 
+def risk_metrics(st, net, width, spot, strikes, plan):
+    """(max_gain, max_loss, pop) in $ at fill — never logged as NaN again (2026-07-20:
+    the straddle card showed no max loss / no POP; the auto path simply never computed
+    them). POP is an ESTIMATE: expiry distribution ~ Normal(spot, sigma) with sigma =
+    half the MenthorQ 1-day expected-move range — same basis trade_chart.py uses.
+    Unbounded max gain (straddle) is None by design, not missing data."""
+    import math
+
+    def P(z):                       # P(Z <= z)
+        return 0.5 * (1 + math.erf(z / math.sqrt(2)))
+
+    d1a, d1b = plan.get("d1_min"), plan.get("d1_max")
+    sigma = (d1b - d1a) / 2 if (d1a and d1b and d1b > d1a) else (spot or 7500) * 0.009
+    kind = st.get("kind")
+    try:
+        if kind == "vertical" and net > 0:
+            short = st.get("short")
+            pop = P((spot - short) / sigma) if st.get("right") == "P" else P((short - spot) / sigma)
+            return round(net * 100, 0), round((width - net) * 100, 0), round(pop, 2)
+        if kind == "butterfly":
+            debit, half = abs(net), (st["center"] - st["lower"])
+            be_lo, be_hi = st["lower"] + debit, st["upper"] - debit
+            pop = P((be_hi - spot) / sigma) - P((be_lo - spot) / sigma)
+            return round((half - debit) * 100, 0), round(debit * 100, 0), round(pop, 2)
+        if kind == "straddle":
+            debit, k = abs(net), (min(strikes) if strikes else spot)
+            pop = P((k - debit - spot) / sigma) + 1 - P((k + debit - spot) / sigma)
+            return None, round(debit * 100, 0), round(pop, 2)
+    except Exception:
+        pass
+    return None, None, None
+
+
 def thesis_level(trig):
     """The price the trade's thesis lives or dies on, and which side kills it.
     Returns (level, fatal_direction) where fatal_direction is 'above' or 'below'."""
@@ -528,10 +561,12 @@ def fire(ib, trig, spot, plan, reason, dry):
     kind = "credit" if net > 0 else "debit"
     coll = (width - net) * 100 if (width and net > 0) else abs(net) * 100
     struct_txt = trig["structure"]["kind"] + (f" {width:.0f}pt" if width else "")
+    mg, ml, pop = risk_metrics(trig["structure"], net, width, spot, strikes, plan)
     tlog.append_entry({
         "trade_id": tid, "strategy_id": trig["setup"], "source": "auto_trigger",
         "symbol": "SPXW", "entry_dt": now_ct().strftime("%Y-%m-%d %H:%M"),
         "dte": 0, "structure": struct_txt, "fill_model": "paper_fill",
+        "max_gain": mg, "max_loss": ml, "pop": pop,
         "legs": filled, "credit": net, "collateral": coll, "dow": now_ct().strftime("%a"),
         "gex_regime": regime(spot, plan["levels"].get("hvl")),  # for analytics slicing
         "grade": grade, "commentary": f"AUTO-TRIGGER [{trig['id']}] fired: {reason}. {gbasis}. "
