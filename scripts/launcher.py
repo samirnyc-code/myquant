@@ -1332,6 +1332,18 @@ load();loadArtifacts();setInterval(load,5000);
 </script></body></html>"""
 
 
+# --- shared 7-mode theme toggle on every page (S75V) -------------------------------
+try:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import mc_theme as _mc_theme
+    for _name in ("HTML", "_HEALTH_HTML", "VIEW_HTML"):
+        _html = globals().get(_name)
+        if isinstance(_html, str) and "</body>" in _html and "mcThemeBtn" not in _html:
+            globals()[_name] = _html.replace("</body>", _mc_theme.SNIPPET + "</body>", 1)
+except Exception as _e:
+    pass
+
+
 def main():
     ap = argparse.ArgumentParser(description="Mission Control — dashboard launcher")
     ap.add_argument("--port", type=int, default=8590)
