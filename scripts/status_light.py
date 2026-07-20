@@ -294,7 +294,21 @@ def run_widget(corner: str) -> None:
             root._detail = f"status_light error:\n{e}"
         root.after(30_000, tick)
 
+    def keep_on_top():
+        # Re-assert always-on-top on a short timer. Another window forcing itself
+        # foreground (e.g. the NT8 show/hide hotkey calling SetForegroundWindow on the
+        # Control Center) drops this borderless widget behind everything and it looks gone.
+        # Re-lifting every 2s pops it straight back without stealing focus.
+        try:
+            if not tip["win"]:              # don't fight the hover tooltip
+                root.attributes("-topmost", True)
+                root.lift()
+        except Exception:
+            pass
+        root.after(2000, keep_on_top)
+
     tick()
+    keep_on_top()
     root.mainloop()
 
 
