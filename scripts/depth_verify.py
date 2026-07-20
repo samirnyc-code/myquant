@@ -41,12 +41,13 @@ def chicago_today():
 
 
 def find_file(date, symbol):
-    """A single ETH session straddles Chicago midnight, so the session that opened at
-    17:00 CT lands in TWO files. Return every file that could hold live data, newest last."""
+    """Files carry the TRADE DATE (session template): after 17:00 CT the live file is
+    dated TOMORROW. Legacy midnight-rolled files may sit on yesterday/today. Check all
+    three candidate days and return every file that could hold live data, newest last."""
     import glob as _glob
     hits = []
     d0 = dt.date.fromisoformat(date)
-    for delta in (-1, 0):
+    for delta in (-1, 0, 1):
         day = (d0 + dt.timedelta(days=delta)).isoformat()
         # filenames carry the FULL contract now (ES_09-26_depth_...), and the legacy
         # bare-symbol files (ES_depth_...) must still be readable

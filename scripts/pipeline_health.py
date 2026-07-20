@@ -121,9 +121,11 @@ def check_depth() -> dict:
     """The one dataset that can never be re-collected."""
     now = chicago_now()
     mkt = market_state(now)
-    # ES_09-26_depth_YYYY-MM-DD.csv (and legacy ES_depth_...) - match any contract
+    # ES_09-26_depth_YYYY-MM-DD.csv (and legacy ES_depth_...) - match any contract.
+    # +1: files carry the TRADE DATE (session template), so after 17:00 CT the LIVE
+    # file is dated tomorrow. Without +1 every evening looks like "no file" (S75V).
     files = []
-    for d in (-1, 0):
+    for d in (-1, 0, 1):
         day = (now.date() + dt.timedelta(days=d)).isoformat()
         files += sorted(DEPTH_DIR.glob(f"ES*_depth_{day}.csv"))
     if not files:

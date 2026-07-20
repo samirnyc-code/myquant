@@ -34,17 +34,24 @@ DTYPES = {"Ev": "category", "Side": "category", "Pos": "int16",
           "Price": "float32", "Size": "int32"}
 
 
-def chicago_today() -> dt.date:
+def chicago_now() -> dt.datetime:
     try:
         from zoneinfo import ZoneInfo
-        return dt.datetime.now(ZoneInfo("America/Chicago")).date()
+        return dt.datetime.now(ZoneInfo("America/Chicago"))
     except Exception:
-        return (dt.datetime.utcnow() - dt.timedelta(hours=5)).date()
+        return dt.datetime.utcnow() - dt.timedelta(hours=5)
 
 
-def finished_csvs(today: dt.date):
-    """Every depth CSV whose session is over. Today's file is still being written -
-    the recorder holds it open and rows are still arriving, so it is never touched."""
+def finished_csvs(now: dt.datetime):
+    """Every depth CSV whose session is over.
+
+    Files carry the TRADE DATE (session template: 17:00 CT belongs to the next day),
+    so during the 16:00-17:00 halt TODAY'S file is already closed — the session ended
+    at 16:00 and the recorder reopens a NEW (tomorrow-dated) file at 17:00. Legacy
+    midnight-rolled files (dated < today) are covered by the same rule. A file is
+    never touched while its session could still be writing."""
+    today = now.date()
+    halted = now.time() >= dt.time(16, 1)
     out = []
     for p in sorted(DEPTH.glob("*_depth_*.csv")):
         try:
@@ -52,7 +59,7 @@ def finished_csvs(today: dt.date):
             d = dt.date.fromisoformat(p.stem.rsplit("_depth_", 1)[1])
         except Exception:
             continue
-        if d < today:
+        if d < today or (d == today and halted):
             out.append((d, p))
     return out
 
@@ -62,6 +69,13 @@ def convert(csv: Path, keep_csv: bool, dry: bool) -> dict:
     mb_in = csv.stat().st_size / 1e6
     if pq.exists():
         return {"file": csv.name, "status": "skip", "note": "parquet already exists"}
+    # HARD GUARD: NT8's StreamWriter denies other writers. If we can't open for append,
+    # the recorder still holds this file - converting now would freeze a PARTIAL parquet
+    # while rows keep arriving. Skip; the halt-timer in the recorder releases the file.
+    try:
+        open(csv, "ab").close()
+    except PermissionError:
+        return {"file": csv.name, "status": "skip", "note": "still open by recorder - not touching"}
     if dry:
         return {"file": csv.name, "status": "dry", "note": f"{mb_in:,.1f}MB -> parquet"}
 
@@ -126,11 +140,11 @@ def main() -> int:
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args()
 
-    today = chicago_today()
-    todo = finished_csvs(today)
-    print(f"depth rollover — {today} CT — {len(todo)} finished file(s)")
+    now = chicago_now()
+    todo = finished_csvs(now)
+    print(f"depth rollover — {now:%Y-%m-%d %H:%M} CT — {len(todo)} finished file(s)")
     if not todo:
-        print("  nothing to convert (today's file is still being written)")
+        print("  nothing to convert (no closed-session files yet)")
         return 0
 
     bad = 0
