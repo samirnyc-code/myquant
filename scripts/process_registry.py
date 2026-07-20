@@ -299,6 +299,18 @@ PROCESSES = [
          writes="—",
          downstream="The difference between finding out at 16:45 and finding out at 08:00."),
 
+    dict(id="archive", phase="halt", ct="16:06", task="MyQuant Depth Rollover",
+         title="Off-machine archive (data repo)",
+         script="scripts/depth_rollover.py -> ~/myquant-data",
+         health="Data archive",
+         what="Copies each verified depth parquet into the PRIVATE myquantdata git repo and "
+              "pushes it to GitHub.",
+         why="A parquet on this one drive is not a backup - lose the drive, lose the only "
+             "copy of data no vendor sells back. This puts the irreplaceable L2 history "
+             "off-machine the same halt hour it is made. Runs inside the rollover job.",
+         writes="~/myquant-data/depth/*.parquet (GitHub: samirnyc-code/myquantdata, PRIVATE)",
+         downstream="Disaster recovery for the one dataset that cannot be re-collected."),
+
     # ---------------------------------------------------------------- close
     dict(id="postmortem", phase="close", ct="15:15", task="MyQuant Postmortem",
          title="Daily postmortem",

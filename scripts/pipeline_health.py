@@ -390,7 +390,40 @@ def _check_tasks_uncached() -> dict:
                 failing=bad)
 
 
-CHECKS = [check_depth, check_contract, check_footprint, check_nt8, check_tick_db,
+def check_archive() -> dict:
+    """Is the irreplaceable depth data actually backed up OFF-MACHINE?
+
+    A local parquet is not a backup - losing the drive loses it, and no vendor sells this
+    history back. This verifies the private data repo exists, has a remote, and has no
+    unpushed commits (off-machine copy up to date). Cached 5 min - it spawns git.
+    """
+    return _cached("archive", 300, _check_archive_uncached)
+
+
+def _check_archive_uncached() -> dict:
+    arch = Path.home() / "myquant-data"
+    if not (arch / ".git").exists():
+        return _chk("Data archive", WARN, "no archive repo - irreplaceable data not backed up")
+    n = len(list((arch / "depth").glob("*.parquet"))) if (arch / "depth").exists() else 0
+
+    def g(*a):
+        return subprocess.run(["git", "-C", str(arch), *a], capture_output=True,
+                              text=True, timeout=30, creationflags=_NOWIN)
+    try:
+        if not g("remote").stdout.strip():
+            return _chk("Data archive", WARN,
+                        f"{n} days LOCAL ONLY - no remote, not off-machine", n=n)
+        # commits made locally but not yet pushed = off-machine copy is behind
+        unpushed = g("rev-list", "--count", "@{u}..HEAD").stdout.strip()
+        if unpushed and unpushed.isdigit() and int(unpushed) > 0:
+            return _chk("Data archive", WARN,
+                        f"{n} days archived, {unpushed} commit(s) UNPUSHED - backup behind", n=n)
+        return _chk("Data archive", OK, f"{n} days backed up off-machine", n=n)
+    except Exception as e:
+        return _chk("Data archive", WARN, f"git check failed: {type(e).__name__}", n=n)
+
+
+CHECKS = [check_depth, check_contract, check_footprint, check_nt8, check_tick_db, check_archive,
           check_ib_gateway, check_options_sim, check_disk, check_tasks]
 
 
