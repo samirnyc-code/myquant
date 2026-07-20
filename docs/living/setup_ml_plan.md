@@ -88,6 +88,16 @@ fields.
 The engine rebuild is orthogonal: when it lands it becomes an OPTIONAL backend context
 feature, never a dependency of the label or detector.
 
+**Regime as a testable overlay (agreed 2026-07-20):** once the rebuilt engine is trusted,
+layer it on the SAME H2/L2 set as an A/B filter — H2-in-favorable-regime vs
+H2-against-regime vs all-H2 — and compare outcome distributions. Regime earns inclusion
+ONLY if favorable-regime H2s beat the regime-free baseline; if not, we have PROVEN it does
+not help, on real data. Two independent reads on regime result: this explicit A/B test,
+and the model's feature-importance in the analysis phase — agreement = strong
+corroboration, disagreement = itself informative. This also gives the engine rebuild a
+concrete numeric verdict ("does regime-filtering H2s beat unfiltered?") instead of an
+abstract "is it good?".
+
 Deltas to build (foundation now mostly reuse, not new):
 1. **Wrap `detect_h2_l2` to place marks on the grading charts** + reuse `fill_trade` for the
    outcome field. Sanity-check its marks against Samir's eye on ~5 days before trusting.
