@@ -146,7 +146,7 @@ def bars_5m(xr, yr):
     return [(b, v[0], v[1], v[2], v[3]) for b, v in sorted(out.items())]
 
 
-def es_bars_5m_spx(date, xr, yr):
+def es_bars_5m_spx(date, xr, yr, cutoff=None):
     """TRUE 5M RTH bars from the ES depth tape (every trade print), basis-adjusted into
     SPX terms. The SPX quote log samples ~1/min — five samples make a fake candle; the
     tape makes a real one. Basis = median(ES_trade − SPX_quote) at the quote times.
@@ -169,6 +169,11 @@ def es_bars_5m_spx(date, xr, yr):
         if rth.empty:
             return [], "no RTH tape yet"
         ests = rth["Time"].dt.tz_localize(CT)
+        if cutoff is not None:                 # entry card = the world AT the fill,
+            keep = ests <= cutoff              # nothing after (forward-reveal discipline)
+            ests, rth = ests[keep], rth[keep]
+            if rth.empty:
+                return [], "no tape before cutoff"
         # basis from the SPX quote log: nearest tape print at each quote time
         basis = 0.0
         if xr:
@@ -279,9 +284,14 @@ def render_png(gp, trig, c, when, out):
     from matplotlib.patches import Rectangle
 
     xon, yon, xr, yr = c["series"]
-    bars, bar_src = es_bars_5m_spx(gp["date"], xr, yr)
+    # a snapshot shows the world AS IT LOOKED at that moment: bars stop at the fill on
+    # the entry card, at the exit on the close card — never any forward reveal
+    cutoff = c["fill_ct"] if when == "open" else (c["exit_ct"] or None)
+    bars, bar_src = es_bars_5m_spx(gp["date"], xr, yr, cutoff)
     if not bars:                                  # honest fallback, labeled as such
-        bars, bar_src = bars_5m(xr, yr), "SPX quotes ~1/min (SAMPLED, not true bars)"
+        xq = [(t, p) for t, p in zip(xr, yr) if cutoff is None or t <= cutoff]
+        bars, bar_src = bars_5m([t for t, _ in xq], [p for _, p in xq]), \
+            "SPX quotes ~1/min (SAMPLED, not true bars)"
     open_ct = dt.datetime.strptime(gp["date"] + " 08:30", "%Y%m%d %H:%M").replace(tzinfo=CT)
     x_start = min([open_ct] + ([bars[0][0]] if bars else []))
     close_ct = c["close_ct"]
@@ -360,12 +370,15 @@ def render_png(gp, trig, c, when, out):
 
     # ---- entry / exit markers ------------------------------------------------
     kind_txt = f"{'credit' if c['net'] > 0 else 'debit'} {abs(c['net']):.2f}"
+    # markers on the price, labels in the BOTTOM GUTTER with a thin connector —
+    # a label must never cover price action (user req 2026-07-20)
+    yr_span = yhi - ylo
     ax.scatter([c["fill_ct"]], [c["spot"]], s=110, marker="^", color=GOOD,
                edgecolor=INK, lw=1.2, zorder=8)
     ax.annotate(f"ENTRY {c['fill_ct']:%H:%M} · {c['spot']:.0f} · {kind_txt}",
-                (c["fill_ct"], c["spot"]), xytext=(12, -30), textcoords="offset points",
-                color=INK, fontsize=8.5, fontweight="bold", zorder=10,
-                arrowprops=dict(arrowstyle="-", color=MUT, lw=0.8),
+                (c["fill_ct"], c["spot"]), xytext=(c["fill_ct"], ylo + yr_span * 0.035),
+                textcoords="data", ha="left", color=INK, fontsize=8.5, fontweight="bold",
+                zorder=10, arrowprops=dict(arrowstyle="-", color=MUT, lw=0.7, alpha=0.6),
                 bbox=dict(boxstyle="round,pad=0.25", fc=SURF, ec=GOOD, alpha=0.94))
     if c["exit_ct"] and c["exit_px"]:
         pnl = c["row"].get("pnl")
@@ -373,9 +386,9 @@ def render_png(gp, trig, c, when, out):
         ax.scatter([c["exit_ct"]], [c["exit_px"]], s=110, marker="v", color=pc,
                    edgecolor=INK, lw=1.2, zorder=8)
         ax.annotate(f"EXIT {c['exit_ct']:%H:%M} · {c['exit_px']:.0f} · {pnl:+,.0f}",
-                    (c["exit_ct"], c["exit_px"]), xytext=(12, 22), textcoords="offset points",
-                    color=INK, fontsize=8.5, fontweight="bold", zorder=10,
-                    arrowprops=dict(arrowstyle="-", color=MUT, lw=0.8),
+                    (c["exit_ct"], c["exit_px"]), xytext=(c["exit_ct"], ylo + yr_span * 0.105),
+                    textcoords="data", ha="left", color=INK, fontsize=8.5, fontweight="bold",
+                    zorder=10, arrowprops=dict(arrowstyle="-", color=MUT, lw=0.7, alpha=0.6),
                     bbox=dict(boxstyle="round,pad=0.25", fc=SURF, ec=pc, alpha=0.94))
 
     ax.axvline(close_ct, color=WARN, lw=1.2, ls=":", alpha=0.8, zorder=3)
