@@ -103,10 +103,12 @@ def check_tasks(tg, st):
             age_h = 0
         if age_h > 3:                   # stale record, don't ping - just remember it
             continue
+        # "result 0" reads like failure to a human even though 0 = success. Say it plainly.
         ok = res in (0, 267009, 267011, 267014)
-        icon = "✅" if ok else "⚠️"
-        lvl = "info" if ok else "warn"
-        tg.send(f"{icon} {TASK_LABEL[name]} ran — result {res}", level=lvl)
+        if ok:
+            tg.send(f"✅ {TASK_LABEL[name]} — completed OK", level="info")
+        else:
+            tg.send(f"⚠️ {TASK_LABEL[name]} — FAILED (exit code {res})", level="warn")
 
 
 def check_trades(tg, st):
