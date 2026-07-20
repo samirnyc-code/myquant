@@ -358,14 +358,20 @@ def thesis_broken(trig, spot, plan, rules):
         return True, f"time stop {ts} CT — flat before the 0DTE gamma cliff"
 
     # --- 2. regime invalidation ---
+    # Invalidation is a CHANGE, not a state: the regime must have flipped AGAINST the
+    # trade SINCE ENTRY. Testing the bare state killed the 2026-07-20 08:53 PS0 fade the
+    # instant it opened — it fired (legally) in negative gamma, then "reg == negative"
+    # closed it on the next pass for pure spread friction (−$31). A fade entered in
+    # −gamma dies by LEVEL ACCEPTANCE (rule 1), not by the regime it was born in.
     if rules.get("regime_invalidation", True) and hvl is not None and spot is not None:
         reg = regime(spot, hvl)
-        if setup in PIN_SETUPS and reg == "negative_gamma":
-            return True, (f"regime flip: spot {spot:.0f} crossed BELOW HVL {hvl:.0f} — this "
-                          f"structure needs the pin and the pin is gone")
-        if setup in ANTI_PIN_SETUPS and reg == "positive_gamma":
-            return True, (f"regime reclaim: spot {spot:.0f} back ABOVE HVL {hvl:.0f} — long vol "
-                          f"wanted negative gamma; thesis over")
+        entry_reg = trig.get("entry_regime") or plan.get("regime", "unknown")
+        if setup in PIN_SETUPS and reg == "negative_gamma" and entry_reg == "positive_gamma":
+            return True, (f"regime flip since entry: spot {spot:.0f} crossed BELOW HVL "
+                          f"{hvl:.0f} — this structure needed the pin and the pin is gone")
+        if setup in ANTI_PIN_SETUPS and reg == "positive_gamma" and entry_reg == "negative_gamma":
+            return True, (f"regime reclaim since entry: spot {spot:.0f} back ABOVE HVL "
+                          f"{hvl:.0f} — long vol wanted negative gamma; thesis over")
 
     # --- 1. level acceptance (distance + persistence) ---
     lvl, fatal = thesis_level(trig)
@@ -532,6 +538,8 @@ def fire(ib, trig, spot, plan, reason, dry):
                                       f"Projected {trig['projected_grade']} premarket. Path {trig.get('path','—')}.",
     })
     trig["fired"], trig["status"], trig["trade_id"] = True, "fired", tid
+    # the regime the trade was BORN in — regime invalidation compares against this
+    trig["entry_regime"] = regime(spot, plan.get("levels", {}).get("hvl"))
     trig["fill"] = {"net": round(net, 2), "grade": grade, "at": now_ct().strftime("%H:%M:%S")}
     trig["filled_legs"] = filled   # A3: the exit manager reverses these
     trig["exited"] = False
