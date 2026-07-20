@@ -48,9 +48,21 @@ Before any ML: does A+ discretion actually beat the mechanical baseline?
   NOT available historically — forward-only, a separate exercise.**
 
 ## Chart display vs feature backend (the key design)
-**Display (what he sees while grading) — kept PURE:** EMA20 + prior-day H/L/C only.
-Absolute price on the y-axis (accepted — round numbers matter; era-leak tolerated since
-mechanical marks already kill selection bias). NO dates on charts.
+**Display (what he sees while grading):** EMA20 + prior-day H/L/C + **Globex (overnight)
+H/L** (toggleable). Absolute price on the y-axis (accepted — round numbers matter; era-leak
+tolerated since mechanical marks already kill selection bias). NO dates on charts.
+
+**Globex H/L definition (precise):** high and low of the OVERNIGHT session preceding the
+RTH day = prior 17:00 CT → today 08:30 CT. Straddles calendar midnight, so it CANNOT be
+computed by grouping bars on calendar date (the current mark_setups.py limitation) — it
+needs explicit session-boundary logic, built from the tick archive in the labeling tool.
+
+**Displayed levels are INPUTS to the discretion, not discoverable features.** Anything on
+the chart while grading (EMA20, PDH/L/C, Globex H/L) becomes part of the criteria — we do
+NOT later claim to "discover" it. To keep them separable: everything is TOGGLEABLE and the
+**visible-layer state is recorded per mark**, and every displayed level ALSO gets a backend
+distance feature (so it exists even on marks where it was toggled off). Only backend-ONLY
+levels (never displayed) can be claimed as discoveries.
 
 **Backend (computed for every mark, whether displayed or not):** distance-to-nearest for
 gamma levels, blind spots, IB, PDH/L/C, weekly OHLC, monthly OHLC, VWAP, overnight H/L,
