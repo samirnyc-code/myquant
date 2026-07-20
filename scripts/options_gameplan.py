@@ -578,6 +578,17 @@ def main():
     n_armed = sum(1 for t in plan["triggers"] if t["status"] == "armed")
     n_off = len(plan["triggers"]) - n_armed
     print(f"\nwrote {out}  ({n_armed} armed, {n_off} disarmed)")
+    # daily reasoning charts (one per path + per trade) -> gameplan_charts/YYYYMMDD/,
+    # browsable by day in Mission Control /playbook. Detached: a render must never
+    # fail or delay the gameplan itself.
+    try:
+        import subprocess
+        subprocess.Popen([sys.executable, str(ROOT / "scripts" / "gameplan_charts.py"),
+                          "--date", date, "--no-open"],
+                         cwd=str(ROOT), creationflags=0x08000008,
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception as e:
+        print(f"  (chart render not started: {type(e).__name__})")
     return out
 
 

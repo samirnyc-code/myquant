@@ -773,6 +773,21 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(json.dumps(_timeline()))
         if p == "/timeline":
             return self._send(_timeline_html(), "text/html; charset=utf-8")
+        if p == "/playbook":
+            import playbook_page
+            return self._send(playbook_page.html(), "text/html; charset=utf-8")
+        if p == "/playbook.json":
+            import playbook_page, urllib.parse
+            q = urllib.parse.parse_qs(self.path.split("?", 1)[1] if "?" in self.path else "")
+            return self._send(json.dumps(playbook_page.day_data((q.get("date") or [""])[0])))
+        if p.startswith("/playbook_img/"):
+            import playbook_page
+            parts = p.split("/")          # /playbook_img/<kind>/<date>/<name>
+            if len(parts) == 5:
+                f = playbook_page.resolve_img(parts[2], parts[3], parts[4])
+                if f:
+                    return self._send(f.read_bytes(), "image/png")
+            return self._send("<h1>404</h1>", "text/html; charset=utf-8", 404)
         if p == "/artifacts.json":
             return self._send(json.dumps(load_artifacts()))
         if p.startswith("/log/"):
@@ -1051,6 +1066,7 @@ pre{background:var(--chip);border-radius:7px;padding:8px 10px;font-size:11px;ove
       <a href="/gexlab" target="_blank" rel="noopener" title="S75Q — do MenthorQ gamma levels help the Brooks method?">🧪 GEX Lab</a>
       <a href="/flowlab" target="_blank" rel="noopener" title="S75R — ES 1M order-flow reading, bar by bar">🕯 Flow Lab</a>
       <a href="/artifacts" target="_blank" rel="noopener" title="Local backups of every Claude artifact - readable offline">🗂 Artifact Library</a>
+      <a href="/playbook" target="_blank" rel="noopener" title="Every day's price-path slides, trade-idea charts and entry/exit trade cards - archived automatically">📋 Daily Playbook</a>
       <a href="/catalog" target="_blank" rel="noopener" title="Data Catalog — every dataset, where it lives, how fresh it is">🗄 Data Catalog</a>
     </div>
   </div>
