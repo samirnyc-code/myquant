@@ -64,7 +64,12 @@ def main():
     # options_healthcheck was tautological - it tested `_fetched_ct startswith today`,
     # which is true by construction because the fetch runs today.
     #
-    # The only honest test is whether the SOURCE timestamp advanced since the last run.
+    # The honest test is whether the SOURCE timestamp covers today's session: it must be
+    # from the PREVIOUS TRADING DAY's EOD or later. "Did it advance since last fetch" was
+    # the first cut, but it false-alarms every Monday: a weekend fetch records Friday's
+    # ts, then Monday's fetch sees the same (correct, freshest-possible) Friday ts and
+    # refuses the gameplan. MenthorQ does not publish on weekends/holidays — Friday EOD
+    # IS the right data for Monday. (2026-07-20 incident.)
     prev_src = None
     if OUT.exists():
         try:
@@ -74,9 +79,22 @@ def main():
     src = out.get("_source_ts")
     out["_prev_source_ts"] = prev_src
     out["_source_advanced"] = bool(src and prev_src and str(src) > str(prev_src)) or prev_src is None
-    if src and prev_src and str(src) <= str(prev_src):
-        out["_stale_warning"] = (f"source_ts did NOT advance: {src} (previous {prev_src}) - "
-                                 "MenthorQ has not published new levels")
+    if src:
+        try:
+            from market_calendar import is_trading_day
+            src_date = dt.date.fromisoformat(str(src)[:10])
+            prev_td = dt.datetime.now(CT).date() - dt.timedelta(days=1)
+            while not is_trading_day(prev_td):
+                prev_td -= dt.timedelta(days=1)
+            if src_date < prev_td:
+                out["_stale_warning"] = (
+                    f"source_ts {src} is older than the previous trading day ({prev_td}) - "
+                    "MenthorQ has not published levels for the last session")
+        except Exception as e:
+            # calendar unavailable: fall back to the advance check rather than go blind
+            if prev_src and str(src) <= str(prev_src):
+                out["_stale_warning"] = (f"source_ts did NOT advance: {src} (previous "
+                                         f"{prev_src}) [calendar check failed: {e}]")
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(out, indent=2), encoding="utf-8")
