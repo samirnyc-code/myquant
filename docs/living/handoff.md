@@ -4,6 +4,58 @@
 
 ---
 
+## S75V-2 (2026-07-21) — desk fixes, hands-free recorder AddOn, Databento MBO buy (branch `s75-live-dashboard`)
+
+**COMMS PREF:** brief, factual, no fluff/emotion/opinion (memory: communication-style.md).
+
+**DESK FIXES (all committed):**
+- Monday stale-levels gate → trading-day-aware (was blocking gameplan/sim every Monday).
+- Dashboard blackout: STMR legs missing `qty` crashed the whole card build → `.get('qty',1)` +
+  per-trade isolation + STMR writes qty; dashboard now a health tile + alert_monitor self-heals it.
+- PS0 fade opened+closed instantly (−$31): regime-invalidation tested STATE not CHANGE →
+  now compares vs `entry_regime`. Fades in −gamma die by level-acceptance only.
+- Trade cards rebuilt (`trade_chart.py`): live `underlying_*.csv` (was frozen 7/16), TRUE 5M ES-tape
+  candles basis-adj to SPX (fixed ns/µs unit bug), bars cut at fill/exit (no fwd reveal), axis scaled
+  to price action, labels in gutter. Risk metrics (maxG/maxL/POP) computed at fill.
+- Gameplan: added **TR/balance price path** (both regimes); guard blocks --force overwriting a
+  fired plan.
+- MC: `/playbook` (per-day path+trade+card archive, auto-rendered by gameplan/daemon), `/scorecard`
+  (process×day pass/fail grid, task `MyQuant Daily Scorecard` 23:58), timeline reorder
+  preopen→session→close→halt→overnight + per-tile ✓/✗ badges, distinct emoji favicons per app,
+  catalog `offline` state (vendor_flatfiles deleted-on-purpose reads grey not red).
+
+**CONSOLE-FLASH (root-caused + fixed):** `launcher._mem_map` ran `tasklist` w/o CREATE_NO_WINDOW on
+every `/status.json` poll (~3s flash); `run_at_ct` child unflagged; 25 tasks used python.exe. All
+fixed (pythonw + flags). `desk_watchdog` had same bug (10s loop) → flagged all 3 subprocess calls,
+**re-enabled** both Desk Watchdog tasks. Client-side `window.open` for Start-all so Chrome groups tabs.
+
+**NT CRASH RECOVERY (partial):** `nt8_watchdog.py` (task `MyQuant NT Watchdog`, 3-min) restarts the NT
+PROCESS on depth-stall (dead, or jammed-overnight; NOT during desk hours = protect drawings). Gap:
+strategy RE-ARM — NT can't auto-enable a Strategy. **FIX = `nt8/addons/MarketDepthRecorderAddOn.cs`**
+(AddOns auto-run on startup, no enable step). ⚠️ **UNTESTED — compile(F5)+verify in a 16:00 CT halt.**
+APIs all from local NT8 Help Guide PDF (`C:\Users\Admin\Downloads\NinjaTraderVersion8HelpGuide-en-compressed.pdf`).
+Yesterday's crash = NT8 SuperDOM GUI NullRef (close SuperDOM on unattended box). nt8_maintenance no
+longer force-kills (protects workspace; NT restore-all-workspaces is unusable per prior handoff).
+
+**DATABENTO MBO (bought, downloading):** job `GLBX-20260721-4T649EM33V`, ES GLBX.MDP3 MBO
+2026-04-01→07-20, 68GB uncompressed / ~18-20GB DBN+zstd, 1.2B records, **$118 on the $125 free credit.**
+API key → `%LOCALAPPDATA%\myquant\databento.json` (gitignored; ALSO in this transcript—regenerate if
+concerned). Downloading via API (bg) + browser to `data/databento/GLBX-20260721/`. Tool
+`scripts/databento_mbo.py inspect|ingest` ready (needs `pip install databento` — done). MBO = full L3
+book+orders+trades+fills; validated footprint rebuild r=0.9995 vs FootprintExporter
+(`scratchpad/fp_compare.py`). NT8 can't ingest MBO live — forward feed stays L2.
+
+**ORATS:** sub CANCELLED, access ends **~2026-08-04**. On disk: SPX+7 mega-cap per-strike OI+greeks to
+2007 (1.1GB, retained). GEX scripts built (`orats_gex_calib.py`, `gex_net_vs_total.py`). Edge test
+(naive 1D condor) lost −$24k (expected). **NEXT before cutoff: run `orats_gex_calib.py` — did self-GEX
+reproduce MenthorQ? If yes, pull more history now; if no, stop.**
+
+**OPEN:** (1) AddOn halt compile+test → hands-free recording. (2) ORATS calib verdict before 8/4.
+(3) Directional long-options entry criteria — build the S78 breakout event-STUDY first (agreed), not
+the trigger. (4) Consolidate scheduled tasks (fewer tiles). (5) Ingest MBO when download done.
+
+---
+
 ## S78 (2026-07-21) — Depth data: what to build with it (research + direction, no code) (branch `s75-live-dashboard`)
 
 **Goal:** decide how to use the S75V L2/depth recording. Samir's two objectives: (a) identify
