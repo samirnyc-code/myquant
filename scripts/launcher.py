@@ -449,7 +449,20 @@ def _timeline():
                 if paused:
                     st, nxt = "paused", None
                     detail = "PAUSED - will not run until resumed"
+                # #2: did this process SUCCEED for the displayed day? A task that ran today
+                # with an OK exit gets a ✓; a task that ran today and failed gets a ✗;
+                # a continuous recorder is ✓ while its health check is OK. Anything that
+                # hasn't run today yet is neither (no badge).
+                today_iso = ph.chicago_now().date().isoformat()
+                ran_today = bool(t and str(t.get("last", "")).startswith(today_iso))
+                if pr["ct"] == "cont":
+                    ok_today = True if st == "ok" else (False if st == "bad" else None)
+                elif ran_today:
+                    ok_today = bool(t and t["result"] in ok_codes)
+                else:
+                    ok_today = None
                 rows.append(dict(pr, state=st, detail=detail, next_epoch=nxt, paused=paused,
+                                 ok_today=ok_today,
                                  last=(t or {}).get("last", ""), next=(t or {}).get("next", "")))
             out.append({"key": key, "label": label, "items": rows})
         # the process the clock is about to hit — the board should point at what is NEXT,

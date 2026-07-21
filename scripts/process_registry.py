@@ -13,13 +13,17 @@ Consumed by scripts/launcher.py (Mission Control /timeline).
 """
 from __future__ import annotations
 
-# phase -> ordering on the page; each is one tile group
+# phase -> ordering on the page; each is one tile group. Ordered to follow the trading
+# day CHRONOLOGICALLY so the "market-shut" phases (close -> halt -> overnight) sit
+# together and flow logically, instead of overnight-first / halt-last with a gap between
+# them (2026-07-20 fix). The overnight block ends at the 07:30 mine, looping back to
+# pre-open at the top — a natural daily cycle.
 PHASES = [
-    ("overnight", "Overnight — archive while the market is shut"),
-    ("preopen",   "Pre-open — get the desk armed before 08:30 CT"),
-    ("session",   "Session — live, running all day"),
-    ("close",     "Close — reconcile and learn"),
-    ("halt",      "Daily halt 16:00–17:00 CT — the only hour restarting costs nothing"),
+    ("preopen",   "① Pre-open  08:00–08:35 CT — get the desk armed before the 08:30 open"),
+    ("session",   "② Session  08:30–15:00 CT — live, running all day"),
+    ("close",     "③ Close  15:00–15:30 CT — reconcile and learn"),
+    ("halt",      "④ Daily halt  16:00–17:00 CT — compress + back up; the only hour a restart costs nothing"),
+    ("overnight", "⑤ Overnight  17:00–07:30 CT — record ETH + archive while the market is shut"),
 ]
 
 # ct     : Chicago time the step is meant to run ("cont" = continuous)

@@ -51,6 +51,9 @@ a{color:#58a6ff;text-decoration:none}
 .up-badge{position:absolute;top:-8px;right:9px;background:#58a6ff;color:#04121f;
   font-size:9.5px;font-weight:800;letter-spacing:.05em;padding:1px 6px;border-radius:6px}
 .t-eta{margin-top:4px;font-size:11px;color:#58a6ff;font-family:ui-monospace,Consolas,monospace}
+.ok-badge{position:absolute;top:7px;right:8px;font-size:12px;font-weight:800;line-height:1;z-index:1}
+.ok-badge.y{color:#3fb950}.ok-badge.n{color:#ef4444}
+.tile:hover .ok-badge{opacity:0}  /* PAUSE button takes the corner on hover */
 .phase{margin-bottom:20px}
 .ph-h{display:flex;align-items:baseline;gap:9px;margin:0 0 9px}
 .ph-t{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
@@ -258,6 +261,8 @@ function render(){
           return '<div class="tile ' + p.state + (p.paused?' paused':'') + (isUp&&!p.paused?' up':'') + '" data-id="' + p.id
             + '" title="' + esc(p.what) + '">'
             + (isUp&&!p.paused?'<span class="up-badge">NEXT UP</span>':'')
+            + (p.ok_today===true?'<span class="ok-badge y" title="ran OK today">\\u2713</span>'
+               :(p.ok_today===false?'<span class="ok-badge n" title="ran today but FAILED">\\u2717</span>':''))
             + (p.task?'<button class="pbtn" data-task="'+esc(p.task)+'" data-paused="'
                 + (p.paused?'1':'0')+'">'+(p.paused?'RESUME':'PAUSE')+'</button>':'')
             + '<div class="t-top"><span class="dot" style="background:' + C[p.state] + '"></span>'
