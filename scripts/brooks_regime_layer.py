@@ -186,64 +186,115 @@ def build(DAY):
         regime[i] = cur
     flips = [i for i in range(1, n) if regime[i] != regime[i-1]]
 
-    # ---- chart (base layers mirror brooks_structure_engine.py, regime is new) ----
-    pb = [p[0] for p in piv]; pp = [H[p[0]] if p[1] == "H" else L[p[0]] for p in piv]
-    fig, ax = plt.subplots(figsize=(30, 12)); off = 0.014*(H.max()-L.min())
+    # ==== NEW: major/minor HL (bull) and LH (bear) — coarse swing structure, distinct
+    # from the fine-grained two-bar/OB tags above. A candidate L-pivot (any HL/LL/DL)
+    # becomes the tracked "deepest pullback since last confirmation"; it is promoted to
+    # MAJOR only when a later bar's raw High exceeds the running all-time-high that stood
+    # when this candidate was set. Mirrored for H-pivots (HH/LH/DH) -> major LH, confirmed
+    # when a later bar's raw Low undercuts the running all-time-low.
+    #
+    # An OB/equal bar can contain BOTH a high-side and low-side event in one bar — the
+    # confirm-check, break-check, and candidate-update for each side must run in the
+    # bar's actual tick order (already known via evs[i], the same tick-order info the
+    # swing-pivot decomposition above uses), or a bar like an outside bar that broke down
+    # first then rallied to a new extreme gets misread as its OWN new candidate low
+    # instead of merely confirming the PRIOR candidate.
+    #
+    # standing_major_hl/lh = the last CONFIRMED major level, persists until superseded by
+    # the next confirmation or BROKEN (a bar's Low undercuts standing_major_hl, or High
+    # exceeds standing_major_lh) -> recorded in `breaks` as a trend-break-to-neutral event.
+    major_hl = {}; minor_hl = {}   # bar -> low
+    major_lh = {}; minor_lh = {}   # bar -> high
+    breaks = []                    # (bar, "bull"|"bear") — standing major level taken out
+    run_max_H = H[0]; run_min_L = L[0]
+    standing_major_hl = None; standing_major_lh = None
+    cand_lo = None    # (bar, low) deepest L-pivot pending confirmation as major HL
+    cand_hi = None    # (bar, high) highest H-pivot pending confirmation as major LH
+    bull_attempt = False   # since the last bull break: reconfirmation needs a genuine HH pivot,
+    bear_attempt = False   # not just any bar poking a new extreme (S72 ATTEMPT-state intent)
+    break_bar_bull = None  # the exact bar of the last bull break — its OWN pivot (if any)
+    break_bar_bear = None  # doesn't seed the next candidate; the bar AFTER it can
+    tagged_by_bar = {}
+    for (bar, typ, t) in tagged: tagged_by_bar.setdefault(bar, []).append(typ)
 
-    # regime background shading — drawn first, lowest z-order, full height
-    k = 0
-    while k < n:
-        j = k
-        while j+1 < n and regime[j+1] == regime[k]: j += 1
-        ax.axvspan(k-0.5, j+0.5, color=STATE_COLOR[regime[k]], alpha=0.16, zorder=0)
-        k = j+1
+    def do_up(i):
+        nonlocal run_max_H, standing_major_lh, standing_major_hl, cand_lo, cand_hi, bull_attempt, bear_attempt, break_bar_bear
+        if standing_major_lh is not None and H[i] > standing_major_lh:
+            breaks.append((i, "bear")); standing_major_lh = None; cand_hi = None; bear_attempt = True; break_bar_bear = i
+        ok_to_confirm = (not bull_attempt) or ("H" in tagged_by_bar.get(i, []))
+        if H[i] > run_max_H and cand_lo is not None and cand_lo[0] != i and ok_to_confirm:
+            major_hl[cand_lo[0]] = cand_lo[1]; standing_major_hl = cand_lo[1]; cand_lo = None; bull_attempt = False
+        run_max_H = max(run_max_H, H[i])
+        if "H" in tagged_by_bar.get(i, []):
+            if i == break_bar_bear:
+                minor_lh[i] = H[i]   # the break bar's own high doesn't seed the next candidate
+            elif cand_hi is None or H[i] > cand_hi[1]:
+                if cand_hi is not None: minor_lh[cand_hi[0]] = cand_hi[1]
+                cand_hi = (i, H[i])
+            else:
+                minor_lh[i] = H[i]
+
+    def do_down(i):
+        nonlocal run_min_L, standing_major_hl, standing_major_lh, cand_hi, cand_lo, bull_attempt, bear_attempt, break_bar_bull
+        if standing_major_hl is not None and L[i] < standing_major_hl:
+            breaks.append((i, "bull")); standing_major_hl = None; cand_lo = None; bull_attempt = True; break_bar_bull = i
+        ok_to_confirm = (not bear_attempt) or ("L" in tagged_by_bar.get(i, []))
+        if L[i] < run_min_L and cand_hi is not None and cand_hi[0] != i and ok_to_confirm:
+            major_lh[cand_hi[0]] = cand_hi[1]; standing_major_lh = cand_hi[1]; cand_hi = None; bear_attempt = False
+        run_min_L = min(run_min_L, L[i])
+        if "L" in tagged_by_bar.get(i, []):
+            if i == break_bar_bull:
+                minor_hl[i] = L[i]   # the break bar's own low doesn't seed the next candidate
+            elif cand_lo is None or L[i] < cand_lo[1]:
+                if cand_lo is not None: minor_hl[cand_lo[0]] = cand_lo[1]
+                cand_lo = (i, L[i])
+            else:
+                minor_hl[i] = L[i]
+
+    for i in range(n):
+        for ev in evs.get(i, []):
+            do_up(i) if ev == "U" else do_down(i)
+
+    # ---- chart: candles + HH/HL/LH/LL labels only (stripped for bar-by-bar review) ----
+    fig, ax = plt.subplots(figsize=(30, 12)); off = 0.014*(H.max()-L.min())
 
     for i in range(n):
         col = "#26a69a" if C[i] >= O[i] else "#ef5350"
         ax.plot([i, i], [L[i], H[i]], color=col, lw=1.4, zorder=2)
         ax.add_patch(plt.Rectangle((i-0.34, min(O[i], C[i])), 0.68, max(abs(C[i]-O[i]), .02), facecolor=col, edgecolor="black", lw=0.4, zorder=3))
-    for i, s in ob_side.items():
-        ax.plot(i, H[i]+off*0.6 if s == "U" else L[i]-off*0.6, "o", ms=7, color="gold", mec="black", mew=0.6, zorder=8)
-    ax.plot(pb, pp, color="steelblue", lw=1.0, ls=":", marker="o", ms=4, alpha=0.5, zorder=5)
     for (bar, typ, t) in tagged:
-        c = "darkgreen" if t in ("HH","HL") else ("darkred" if t in ("LH","LL") else "gray")
-        ax.text(bar, (H[bar]+off) if typ == "H" else (L[bar]-off), t, ha="center", va="bottom" if typ == "H" else "top", fontsize=8.5, fontweight="bold", color=c, zorder=7)
+        if t not in ("HH", "HL", "LH", "LL"): continue
+        c = "darkgreen" if t in ("HH","HL") else "darkred"
+        y = (H[bar]+off) if typ == "H" else (L[bar]-off)
+        va = "bottom" if typ == "H" else "top"
+        if typ == "L" and bar in major_hl:
+            ax.text(bar, y, "HL", ha="center", va=va, fontsize=12, fontweight="bold", color=c, zorder=7,
+                    bbox=dict(boxstyle="circle,pad=0.35", fc="none", ec=c, lw=1.4))
+        elif typ == "H" and bar in major_lh:
+            ax.text(bar, y, "LH", ha="center", va=va, fontsize=12, fontweight="bold", color=c, zorder=7,
+                    bbox=dict(boxstyle="circle,pad=0.35", fc="none", ec=c, lw=1.4))
+        elif typ == "L" and bar in minor_hl:
+            ax.text(bar, y, "hl", ha="center", va=va, fontsize=7, fontweight="normal", color=c, alpha=0.55, zorder=7)
+        elif typ == "H" and bar in minor_lh:
+            ax.text(bar, y, "lh", ha="center", va=va, fontsize=7, fontweight="normal", color=c, alpha=0.55, zorder=7)
+        else:
+            ax.text(bar, y, t, ha="center", va=va, fontsize=8.5, fontweight="bold", color=c, zorder=7)
 
-    def draw_tri(mem, color, fill, label, brk=None):
-        Hs = [(tagged[m][0], px(m)) for m in mem if tagged[m][1] == "H"]
-        Ls = [(tagged[m][0], px(m)) for m in mem if tagged[m][1] == "L"]
-        x0 = min(Hs[0][0], Ls[0][0])-0.5; x1 = max(Hs[-1][0], Ls[-1][0])+0.5
-        ax.plot([Hs[0][0], Hs[-1][0]], [Hs[0][1], Hs[-1][1]], color=color, lw=2.4, zorder=6)
-        ax.plot([Ls[0][0], Ls[-1][0]], [Ls[0][1], Ls[-1][1]], color=color, lw=2.4, zorder=6)
-        ax.text((x0+x1)/2, H.max()+off, label, ha="center", va="bottom", fontsize=9, fontweight="bold", color=color, zorder=9)
-        if brk is not None:
-            ax.annotate("breakout", (brk, H[brk]), (brk, H[brk]+off*3), fontsize=8, color="black", fontweight="bold", ha="center", arrowprops=dict(arrowstyle="->", color="black"))
-    for (Hs, Ls, mem) in contract: draw_tri(mem, "navy", None, "CONTRACTING")
-    for (mem, brk) in expand: draw_tri(mem, "darkorange", None, "EXPANDING (5pt)", brk)
-    for (a, z) in ttr:  # TTR boundary ZONES
-        top_body = C[a:z+1].max(); top_wick = H[a:z+1].max()
-        bot_body = C[a:z+1].min(); bot_wick = L[a:z+1].min()
-        x0, x1 = a-0.5, z+0.5
-        ax.add_patch(plt.Rectangle((x0, top_body), x1-x0, top_wick-top_body, facecolor="green", alpha=0.22, edgecolor="green", lw=1.4, zorder=11))
-        ax.add_patch(plt.Rectangle((x0, bot_wick), x1-x0, bot_body-bot_wick, facecolor="green", alpha=0.22, edgecolor="green", lw=1.4, zorder=11))
-        ax.text((x0+x1)/2, top_wick+off*1.0, "TTR", ha="center", va="bottom", fontsize=9, fontweight="bold", color="green", zorder=11)
-
-    # NEW: dotted flip lines + state-name tag at each regime transition
-    for i in flips:
-        ax.axvline(i-0.5, color="#555555", lw=1.3, ls=(0, (2, 2)), zorder=4)
-        ax.text(i-0.5, H.max()+off*3.2, STATE_NAME[regime[i]], ha="center", va="bottom", fontsize=7.5, fontweight="bold", color="#333333", rotation=90, zorder=9)
+    for (bar, side) in breaks:
+        ax.axvline(bar-0.5, color="black", lw=1.5, ls=(0, (2, 2)), zorder=4)
+        ax.text(bar-0.5, H.max()+off*2, "%s BREAK\n→ NEUTRAL" % side.upper(), ha="center", va="bottom", fontsize=7.5, fontweight="bold", color="black", zorder=9)
 
     ax.set_ylim(L.min()-off*3, H.max()+off*7)
-    ax.set_xticks(range(0, n, 2)); ax.set_xticklabels([str(i+1) for i in range(0, n, 2)], fontsize=7); ax.grid(alpha=0.25, lw=0.5)
-    ax.set_title("%s - regime layer v1 (%s) + pivots/triangles/TTR from brooks_structure_engine" % (DAY, "/".join(STATE_NAME[s] for s in (-2,-1,0,1,2))), fontsize=11, fontweight="bold")
-
-    # legend for regime shading
-    handles = [plt.Rectangle((0,0),1,1, color=STATE_COLOR[s], alpha=0.5) for s in (-2,-1,0,1,2)]
-    ax.legend(handles, [STATE_NAME[s] for s in (-2,-1,0,1,2)], loc="upper left", fontsize=8, ncol=5, framealpha=0.85)
+    ax.set_xticks(range(0, n, 3)); ax.set_xticklabels([str(i+1) for i in range(0, n, 3)], fontsize=9, fontweight="bold"); ax.grid(alpha=0.25, lw=0.5)
+    ax.set_title("%s - HH/HL/LH/LL swing pivots, major HL/LH circled, standing-level breaks dotted" % DAY, fontsize=11, fontweight="bold")
 
     fig.tight_layout()
     out = ROOT/"docs"/"living"/("regime_layer_%s.png" % DAY.replace("-", "")); fig.savefig(out, dpi=115); plt.close(fig)
-    print("saved %s  | contracting=%d expanding=%d ttr=%d flips=%d final=%s" % (out, len(contract), len(expand), len(ttr), len(flips), STATE_NAME[regime[-1]]))
+    print("saved %s  | major_hl=%s minor_hl=%s major_lh=%s minor_lh=%s breaks=%s" % (
+        out,
+        sorted(b+1 for b in major_hl), sorted(b+1 for b in minor_hl),
+        sorted(b+1 for b in major_lh), sorted(b+1 for b in minor_lh),
+        [(b+1, s) for (b, s) in breaks]))
     return str(out)
 
 

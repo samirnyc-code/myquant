@@ -1,6 +1,76 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 20, 2026 (S75V-BL blind-spot reverse-engineering + capture pipeline; prior: 75Q + 75R + Setup Marker rebuild + 75T + 75U + 75V recording pipeline + S77 security hardening; merged S76 Mac swing-levels work)
+**Last Updated:** July 21, 2026 (regime/v2-multistate kickoff on new Windows PC — brooks_regime_layer.py + major/minor HL/LH; prior: S75V-BL blind-spot reverse-engineering + capture pipeline)
+
+---
+
+## Regime/v2-multistate kickoff (2026-07-21, new Windows PC, branch `main`)
+
+**Machine context:** first session on a fresh Windows machine (user `Thomas-Code`, not `Admin`).
+No system Python/pip; installed a portable embeddable-zip Python 3.12.7 + bootstrapped pip at
+`%LOCALAPPDATA%\Programs\Python\Python312` (MSI installer and MS Store both non-functional in
+this environment — no Windows Installer service, no Store licensing). `python`/`pip` are on
+user PATH for new shells. `requirements.txt` deps installed (boto3, scipy, plotly,
+exchange-calendars, etc. were missing and got added).
+
+**Repo-wide path fix:** `c:\Users\Admin\myquant` was hardcoded (old machine) across 87 `.py`
+files. Fixed all of them to derive ROOT from `Path(__file__).resolve()` — **committed as
+`d22e439`** (by a parallel Claude Code session on this same machine, not this conversation;
+confirmed benign by the user). `brooks_structure_engine.py` itself was fixed first and
+smoke-tested (`python scripts/brooks_structure_engine.py 2022-02-24` → `docs/living/tri_20220224.png`,
+contracting=1 expanding=1 ttr=2 — matches the S63 baseline).
+
+**NEW: `scripts/brooks_regime_layer.py`** — the multi-state regime layer wired on TOP of
+`brooks_structure_engine.py` per the S72 design brief (`BULL/BULL_ATTEMPT/NEUTRAL/
+BEAR_ATTEMPT/BEAR`). Does **not** modify the structure engine (no importable API for its
+internals, so the two-bar/OB/pivot primitives are mirrored, not imported) and does **not**
+touch or reuse the banned old regime engine (`brooks_regime_day.py`, [[brooks_regime_engine_broken]]).
+**Committed baseline in `d22e439` is an early draft — substantial uncommitted refinements
+are sitting in the working tree right now (not yet committed by this conversation).**
+
+**Built so far, validated bar-by-bar on 2022-02-24 with the user:**
+1. Stripped chart: candles + HH/HL/LH/LL labels only + bold bar numbers every 3rd bar (OB
+   dots, triangles, TTR zones, old naive ±1-per-pivot ladder all removed from display —
+   the naive ladder code (`score`/`regime_at_pivot`) is still in the file, unused by the
+   chart now, likely dead weight to clean up or repurpose next session).
+2. **Major vs minor HL/LH** — a coarser swing concept than the two-bar tags (a mechanically-
+   tagged LL can still be a "major HL" in the user's read, e.g. bars 35/56). Algorithm:
+   track the deepest pending L-pivot (any HL/LL/DL) as `cand_lo`; confirm it as MAJOR only
+   when a later bar's raw High exceeds the running day-high that stood when the candidate
+   was set (mirrored for H-pivots → major LH vs running day-low). Requires OB/equal-bar tick
+   order (`evs[i]`, already computed for the two-bar decomposition) to sequence the
+   confirm-check vs candidate-update correctly within a single bar — got this wrong twice
+   (bar 52 false-major, bar 69 self-confirming its own same-bar candidate) before the user
+   caught both from raw price/tick-order review.
+3. **Standing-level break → neutral:** the last CONFIRMED major HL/LH persists until either
+   superseded by the next confirmation or BROKEN (a bar's Low undercuts standing major HL /
+   High exceeds standing major LH) → recorded as a break event, drawn as a dotted vertical
+   line + label. Validated case: bar 71 confirms major HL (via bar 72's up-tick, OB bar,
+   up-first) then bar 72's own down-tick (same bar) breaks it → neutral.
+4. **Attempt-phase reconfirmation gate:** right after a break, the next major HL/LH can't be
+   reconfirmed by just any bar poking a new extreme — it needs an actual new HH/LH **pivot**
+   to form first (not required pre-break, only during the attempt phase, per user: "needs a
+   fresh HH pivot first, not just any bar poking a new high"). This is what correctly pushed
+   the post-break sequence to bar 76 confirmed-at-77, instead of the break bar's own low
+   (bar 72) confirming one bar later via a bare high poke (bar 73).
+
+**Fully validated on 2022-02-24, user-confirmed correct:** major HL at 8, 15, 35, 56, 63, 66,
+71, 76; minor at 19 (+ 28, 37, 41, 43, 48, 52, 55, 69, 72 mechanically, unreviewed in detail);
+one break at bar 72 (bull → neutral); bar 73 = "new bull attempt" (not yet visually
+distinguished from other minor pivots — open item).
+
+**OPEN / NEXT SESSION:**
+1. Give the "bull attempt" phase (bars 73–76, between the break and the next confirmed
+   major) its own visual treatment on the chart — currently no distinct marker.
+2. Symmetric bear-side (major LH / bear break / bear-attempt gate) is implemented but
+   **unvalidated** — 2022-02-24 is a bull day, so `major_lh` stayed empty all session.
+   2022-04-12 (the S62 "must read bear" test day) is the natural next validation target.
+3. The old naive `score`/`regime_at_pivot` ±1-per-pivot ladder is still in the file but
+   unused by the chart/output — decide whether to delete it or repurpose it as the actual
+   BULL/BULL_ATTEMPT/NEUTRAL/BEAR_ATTEMPT/BEAR state driven by (major level + break +
+   attempt-gate) logic above, which is the real deliverable per the S72 brief.
+4. Nothing from this conversation's edits to `brooks_regime_layer.py` is committed yet —
+   review/commit when ready (separately from whatever the parallel session is doing).
 
 ---
 
