@@ -1,5 +1,5 @@
 {
- "finished_utc": "2026-07-19T16:24:28Z",
+ "finished_utc": "2026-07-21T13:17:54Z",
  "tickers": [
   "ES1!",
   "NQ1!",
@@ -14,6 +14,6 @@
   "META",
   "TSLA"
  ],
- "requests": 15,
+ "requests": 30,
  "mode": "recent"
 }

@@ -1,6 +1,62 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 21, 2026 (S78 depth-data direction research; prior: S75V-BL blind-spot reverse-engineering + capture pipeline, 75Q + 75R + Setup Marker rebuild + 75T + 75U + 75V recording pipeline + S77 security hardening; merged S76 Mac swing-levels work)
+**Last Updated:** July 21, 2026 (S79 morning-scramble post-mortem + same-day IB-exec
+requirement; prior: S78 depth-data direction research, S75V-BL blind-spot capture, 75Q–75V
+pipeline + S77 security hardening; merged S76 Mac swing-levels work)
+
+---
+
+## S79 (2026-07-21) — morning false-alarm, corrected diagnosis, SAME-DAY IB EXEC required (branch `s75-live-dashboard`)
+
+**COMMS:** brief, factual (memory: communication-style.md).
+
+**WHAT ACTUALLY HAPPENED (a scramble driven by a monitor false-alarm):**
+- At the open the desk tile read `overall BAD / Options sim: sim daemon feed DEAD / live.json
+  stale 16.7h`. **This is the NORMAL overnight-idle state** — the sim daemon exits after each
+  close and does not restart until its own **08:28 CT `run_at_ct` auto-start**. Checked at
+  ~08:18 CT (10 min before that start), saw it not-running, and treated normal idle as an
+  emergency. Restarted the feed chain ~10 min early (spot_feed/sim_daemon/marks/trigger — all
+  came up). **The gameplan auto-fired correctly at 08:28:02 CT** (pre-open spot 7479.25 from the
+  09:24 tape), proving the 08:28 CT machinery works. **Conclusion: had we done nothing, the
+  15:59 signal would almost certainly have executed correctly on its own** (same as 7/20).
+
+**CORRECTED DIAGNOSIS (I was wrong 3x — do NOT repeat these):**
+- **The STMR `options_sim_daemon.py` does NOT place IB orders.** It is a forward-SIM: `log_fill_window`
+  streams the real 16:00–16:15 ET OPRA NBBO and LOGS an executed fill (credit only; per-leg fills
+  are never stored — that absence is NOT a phantom). "Not in the IB account" is BY DESIGN.
+- **Realtime OPRA quotes DO work on the paper account.** The 7/20 fill-window CSV
+  (`quotes_20260720_entry_bps_stmr_2026-07-20.csv`) shows complete live bid/ask every 5s the whole
+  window. Error **10090 is a partial index-level ("SPX/TOP/ALL") warning, not a block** on the SPXW
+  option NBBO. My "subscription broken → phantom" theory was false.
+- **The 7/20 signal was entered correctly in the sim:** fired valid (K8 8.46 < 15, spot 7444 > SMA100
+  7156), executed credit **$15.40** logged. `bps_stmr_2026-07-20` is a VALID sim row — do NOT void it.
+
+**NEW REQUIREMENT (user, approved): place the REAL IB paper order SAME DAY at 16:00 ET on signal.**
+Size = **1 contract** (approved). **NOT BUILT YET — next task.** Plan: integrate a guarded combo
+placement into the daemon fire path (reuse `scratchpad/place_stmr_real.py` — it filled today: valid
+quotes + width + max-loss guards, protective LONG leg first), KEEP the sim NBBO logging (fill-drift),
+add a **post-16:15 reconciliation alert** (ledger open-trades vs actual IB positions). **Real EXITS
+(buy-to-close at the exit signal) are the required follow-on** or positions accumulate unmanaged.
+
+**MANUAL REAL PAPER TRADE PLACED (user-ordered, "leave it alone"):** `bps_stmr_REAL_20260721_0943`
+— sell 7350P / buy 7300P exp **2026-08-04**, 50pt, net credit **$8.56**, max loss **$4,144**, filled &
+held in IB paper **DUQ159823**, logged. (Late/worse than the sim's 15.40 — placed on my mistaken
+"trade was missed" premise; kept at user's call.) Pre-existing IB position: 7/14 spread 7435/7385P
+exp 7/28 (origin separate — the sim never placed it).
+
+**MONITOR TILE BUGS TO FIX (these caused the whole scramble):**
+1. Reads **normal overnight-idle as `DEAD`/`BAD`** — should know the daemon is idle-by-design until
+   its 08:28 CT start, not flag it red pre-start.
+2. **"N failing" counts running daemons as failures** — result code `0x41301` = "task currently
+   running" = HEALTHY, not a failure. Fix the counter.
+
+**DATABENTO DL STALLED:** partial zip **745 MB** of ~18–20 GB (~4%), downloader died; `batch.download`
+pulls the whole job as ONE zip and the remote **504-times-out**. Needs a **file-by-file** pull instead.
+`data/databento/` now **gitignored** (never commit the flat files).
+
+**OPEN (carried + new):** (1) **Build same-day IB exec + reconciliation alert** (top priority). (2) Fix
+the 2 monitor-tile bugs. (3) Databento file-by-file re-pull. (4) Real exits (buy-to-close). (5) Prior
+S75V-2 items still stand (AddOn halt-test, ORATS calib before 8/4, MBO ingest, task consolidation).
 
 ---
 

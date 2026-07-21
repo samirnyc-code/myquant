@@ -1,5 +1,5 @@
 {
- "generated": "2026-07-20T03:30:02",
+ "generated": "2026-07-21T08:02:58",
  "families": {
   "vendor_flatfiles": {
    "n": 0,
@@ -181,10 +181,10 @@
    "rows": null
   },
   "mq_levels_history": {
-   "n": 3792,
-   "size": 258690967,
+   "n": 4146,
+   "size": 309592468,
    "zero_byte": 2,
-   "newest": 1784500448.2409656,
+   "newest": 1784582120.6782992,
    "exists_any": true,
    "health": "ok",
    "reasons": [
@@ -193,9 +193,9 @@
    "per_path": {
     "data/menthorq": {
      "exists": true,
-     "n": 3792,
-     "size": 258690967,
-     "newest": 1784500448.2409656,
+     "n": 4146,
+     "size": 309592468,
+     "newest": 1784582120.6782992,
      "zero_byte": 2
     }
    },
@@ -212,10 +212,10 @@
    }
   },
   "mq_harvest": {
-   "n": 847,
-   "size": 205205255,
+   "n": 1009,
+   "size": 248709329,
    "zero_byte": 1,
-   "newest": 1784448556.4428895,
+   "newest": 1784581539.8003483,
    "exists_any": true,
    "health": "ok",
    "reasons": [
@@ -224,9 +224,9 @@
    "per_path": {
     "data/menthorq/harvest": {
      "exists": true,
-     "n": 847,
-     "size": 205205255,
-     "newest": 1784448556.4428895,
+     "n": 1009,
+     "size": 248709329,
+     "newest": 1784581539.8003483,
      "zero_byte": 1
     }
    },
@@ -236,7 +236,7 @@
    "n": 1,
    "size": 12288,
    "zero_byte": 0,
-   "newest": 1784466922.2578876,
+   "newest": 1784553319.2805884,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
@@ -245,26 +245,26 @@
      "exists": true,
      "n": 1,
      "size": 12288,
-     "newest": 1784466922.2578876,
+     "newest": 1784553319.2805884,
      "zero_byte": 0
     }
    },
    "rows": null
   },
   "mq_mine": {
-   "n": 436,
-   "size": 17188403,
+   "n": 628,
+   "size": 24445189,
    "zero_byte": 0,
-   "newest": 1784485703.4964614,
+   "newest": 1784550687.9495804,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
    "per_path": {
     "data/menthorq/mine": {
      "exists": true,
-     "n": 403,
-     "size": 17127800,
-     "newest": 1784485703.4964614,
+     "n": 595,
+     "size": 24384586,
+     "newest": 1784550687.9495804,
      "zero_byte": 0
     },
     "data/menthorq/academy": {
@@ -278,38 +278,38 @@
    "rows": null
   },
   "options_sim": {
-   "n": 58,
-   "size": 2427287,
+   "n": 76,
+   "size": 3605375,
    "zero_byte": 0,
-   "newest": 1784480146.2305827,
+   "newest": 1784610048.3280132,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
    "per_path": {
     "data/options_sim": {
      "exists": true,
-     "n": 58,
-     "size": 2427287,
-     "newest": 1784480146.2305827,
+     "n": 76,
+     "size": 3605375,
+     "newest": 1784610048.3280132,
      "zero_byte": 0
     }
    },
    "rows": null
   },
   "options_log": {
-   "n": 8,
-   "size": 297752,
+   "n": 11,
+   "size": 744400,
    "zero_byte": 0,
-   "newest": 1784480147.2918184,
+   "newest": 1784578802.3447738,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
    "per_path": {
     "data/options_log": {
      "exists": true,
-     "n": 8,
-     "size": 297752,
-     "newest": 1784480147.2918184,
+     "n": 11,
+     "size": 744400,
+     "newest": 1784578802.3447738,
      "zero_byte": 0
     }
    },
@@ -381,9 +381,9 @@
   },
   "vix_ib_daily": {
    "n": 6,
-   "size": 1395549,
+   "size": 1395621,
    "zero_byte": 0,
-   "newest": 1784448556.6933627,
+   "newest": 1784553961.649502,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
@@ -391,8 +391,8 @@
     "data/vix_daily.csv": {
      "exists": true,
      "n": 1,
-     "size": 328633,
-     "newest": 1784448556.6933627,
+     "size": 328705,
+     "newest": 1784553961.649502,
      "zero_byte": 0
     },
     "data/vix_daily.parquet": {
@@ -458,10 +458,8 @@
    "zero_byte": 0,
    "newest": 1784129671.75377,
    "exists_any": true,
-   "health": "stale",
-   "reasons": [
-    "newest file 4d old (budget 3d)"
-   ],
+   "health": "ok",
+   "reasons": [],
    "per_path": {
     "data/briefs": {
      "exists": true,
@@ -507,7 +505,7 @@
    "rows": null
   }
  },
- "total_size": 32321136665,
- "total_files": 17930,
- "scan_seconds": 0.180158
+ "total_size": 32424423834,
+ "total_files": 18659,
+ "scan_seconds": 0.372706
 }

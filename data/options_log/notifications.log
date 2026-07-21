@@ -22,3 +22,14 @@
 2026-07-19 18:23:57	⚠ OPTIONS DESK — FEED, DAEMON DOWN	FEED: state=closed · DAEMON: NOT running
 2026-07-19 18:24:00	⚠ Options desk — attention needed	7/8 steps green · 0 fired · 1 NEED ATTENTION
 2026-07-19 18:55:47	⚠ OPTIONS DESK — FEED, LEVELS, DAEMON DOWN	FEED: state=closed · LEVELS: CR 7700.0 PS0 7490.0 · src 2026-07-17T20:00 STALE-SOURCE · DAEMON: NOT running
+2026-07-20 15:40:02	⚠ OPTIONS DESK — LEVELS DOWN	LEVELS: CR 7700.0 PS0 7490.0 · src 2026-07-17T20:00
+2026-07-20 15:48:55	⚠ OPTIONS DESK — LEVELS DOWN	LEVELS: CR 7700.0 PS0 7490.0 · src 2026-07-17T20:00
+2026-07-20 15:49:17	✓ Options desk healthy	FEED spx 7502.5 @ 08:49:16 (1s old) · LEVELS CR 7700.0 PS0 7490.0 · src 2026-07-17T20:00 · GAMEPLAN 7 triggers armed
+2026-07-20 15:49:30	✓ Options desk healthy	FEED spx 7501.3 @ 08:49:26 (4s old) · LEVELS CR 7700.0 PS0 7490.0 · src 2026-07-17T20:00 · GAMEPLAN 7 triggers armed
+2026-07-20 15:53:34	TRADE OPENED · ps0_fade (D)	PS0 first-touch fade (short put spread): vertical 25pt, net credit 7.80, coll $1,720 — touched 7490 above
+2026-07-20 15:53:49	TRADE CLOSED · ps0_fade ($-31)	PS0 first-touch fade (short put spread): regime flip: spot 7489 crossed BELOW HVL 7540 — this structure needs the pin and the pin is gone
+2026-07-20 16:02:12	TRADE OPENED · straddle_0dte (B)	Long ATM Straddle (0DTE) — gap-armed: straddle, net debit 31.00, coll $3,100 — reached 09:00, regime negative_gamma
+2026-07-20 21:45:48	TRADE CLOSED · straddle_0dte ($-636)	Long ATM Straddle (0DTE) — gap-armed: time stop 14:45 CT — flat before the 0DTE gamma cliff
+2026-07-20 22:20:02	⚠ Options desk — attention needed	7/8 steps green · 2 fired · 1 NEED ATTENTION
+2026-07-21 15:40:03	✓ Options desk healthy	FEED spx 7477.35 @ 08:39:57 (5s old) · LEVELS CR 7600.0 PS0 7410.0 · src 2026-07-20T20:00 · GAMEPLAN 7 triggers armed
+2026-07-21 16:00:14	TRADE OPENED · straddle_0dte (B)	Long ATM Straddle (0DTE) — gap-armed: straddle, net debit 28.00, coll $2,800 — reached 09:00, regime negative_gamma
