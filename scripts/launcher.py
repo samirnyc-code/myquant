@@ -786,6 +786,9 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(json.dumps(_timeline()))
         if p == "/timeline":
             return self._send(_timeline_html(), "text/html; charset=utf-8")
+        if p == "/scorecard":
+            import scorecard_page
+            return self._send(scorecard_page.html(), "text/html; charset=utf-8")
         if p == "/playbook":
             import playbook_page
             return self._send(playbook_page.html(), "text/html; charset=utf-8")
@@ -1080,6 +1083,7 @@ pre{background:var(--chip);border-radius:7px;padding:8px 10px;font-size:11px;ove
       <a href="/flowlab" target="_blank" rel="noopener" title="S75R — ES 1M order-flow reading, bar by bar">🕯 Flow Lab</a>
       <a href="/artifacts" target="_blank" rel="noopener" title="Local backups of every Claude artifact - readable offline">🗂 Artifact Library</a>
       <a href="/playbook" target="_blank" rel="noopener" title="Every day's price-path slides, trade-idea charts and entry/exit trade cards - archived automatically">📋 Daily Playbook</a>
+      <a href="/scorecard" target="_blank" rel="noopener" title="Process × day history grid - see which processes failed on which day">📅 Daily Scorecard</a>
       <a href="/catalog" target="_blank" rel="noopener" title="Data Catalog — every dataset, where it lives, how fresh it is">🗄 Data Catalog</a>
     </div>
   </div>
