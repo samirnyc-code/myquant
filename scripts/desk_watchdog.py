@@ -90,17 +90,20 @@ def procs_matching(pattern):
           f"Where-Object {{ $_.CommandLine -match '{pattern}' }} | "
           "Select-Object -ExpandProperty ProcessId")
     r = subprocess.run(["powershell", "-NoProfile", "-Command", ps],
-                       capture_output=True, text=True, timeout=60)
+                       capture_output=True, text=True, timeout=60,
+                       creationflags=0x08000000)   # NO console flash (this loops every 10s)
     return [int(x) for x in r.stdout.split() if x.strip().isdigit()]
 
 
 def kill_pids(pids):
     for pid in pids:
-        subprocess.run(["taskkill", "/PID", str(pid), "/F"], capture_output=True)
+        subprocess.run(["taskkill", "/PID", str(pid), "/F"], capture_output=True,
+                       creationflags=0x08000000)
 
 
 def run_task(name):
-    subprocess.run(["schtasks", "/run", "/tn", name], capture_output=True, text=True)
+    subprocess.run(["schtasks", "/run", "/tn", name], capture_output=True, text=True,
+                   creationflags=0x08000000)
 
 
 def port_open(port, host="127.0.0.1"):
