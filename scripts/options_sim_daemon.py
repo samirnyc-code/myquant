@@ -467,8 +467,8 @@ def main():
                     "symbol": "SPXW", "entry_dt": today,
                     "dte": (dt.datetime.strptime(expiry, "%Y%m%d").date() - now_et().date()).days,
                     "structure": f"BPS {WIDTH}pt", "fill_model": "opra_nbbo_1600",
-                    "legs": [{"side": "sell", "right": "P", "strike": ks, "expiry": expiry},
-                             {"side": "buy", "right": "P", "strike": kl, "expiry": expiry}],
+                    "legs": [{"side": "sell", "right": "P", "strike": ks, "expiry": expiry, "qty": 1},
+                             {"side": "buy", "right": "P", "strike": kl, "expiry": expiry, "qty": 1}],
                     "credit": cr, "slippage": (mid - cr) * 100,
                     "collateral": (ks - kl - cr) * 100, **tags,
                 })

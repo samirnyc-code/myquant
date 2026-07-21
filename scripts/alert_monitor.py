@@ -61,6 +61,12 @@ RULES = {
         lambda c: c["state"] == "bad",
         lambda c: f"OPTIONS DESK: {c['detail']}",
     ),
+    # 2026-07-20: dashboard crashed on a bad trade record and stayed dead all session.
+    "Options dashboard": (
+        "options_dashboard",
+        lambda c: c["state"] == "warn",     # WARN only fires during desk hours
+        lambda c: f"OPTIONS DASHBOARD: {c['detail']}",
+    ),
 }
 
 
@@ -94,6 +100,21 @@ def _heal_options_sim(c, tg, verbose: bool) -> None:
         print("self-heal: daemon relaunched")
 
 
+def _heal_dashboard(tg, verbose: bool) -> None:
+    """Relaunch the options dashboard server if its port died (throttled 30 min)."""
+    import subprocess
+    if not tg.send("🔧 relaunching options dashboard (:8600)…", level="info",
+                   dedup_key="dash_heal", cooldown_s=1800):
+        return
+    pyw = str(ROOT / ".venv" / "Scripts" / "pythonw.exe")
+    subprocess.Popen([pyw, str(ROOT / "scripts" / "options_dashboard_live.py"),
+                      "--host", "0.0.0.0", "--port", "8600"],
+                     cwd=str(ROOT), creationflags=0x08000008,
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    if verbose:
+        print("dashboard relaunched")
+
+
 def run_once(verbose: bool = False) -> int:
     import pipeline_health as ph
     import notify_telegram as tg
@@ -121,6 +142,12 @@ def run_once(verbose: bool = False) -> int:
                 except Exception as e:
                     if verbose:
                         print(f"self-heal error: {type(e).__name__}: {e}")
+            if key == "options_dashboard":
+                try:
+                    _heal_dashboard(tg, verbose)
+                except Exception as e:
+                    if verbose:
+                        print(f"dashboard heal error: {type(e).__name__}: {e}")
         else:
             # condition healthy -> if we had paged it, announce recovery once
             import json

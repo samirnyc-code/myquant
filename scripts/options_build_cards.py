@@ -144,7 +144,7 @@ def trade_payload(r, last_marks, spot, metrics_hist=None):
             g = bs_greeks(spot, l["strike"], T, sig, l["right"])
             sgn = -1 if l["side"] == "sell" else 1
             for i in range(4):
-                tot[i] += sgn * l["qty"] * g[i] * 100
+                tot[i] += sgn * l.get("qty", 1) * g[i] * 100   # qty optional (STMR legs omit it)
         greeks = {"delta": round(tot[0], 1), "gamma": round(tot[1], 3),
                   "theta": round(tot[2], 0), "vega": round(tot[3], 0)}
     pop_v = r["pop"]
@@ -499,8 +499,15 @@ def main():
         if len(mt):
             hist_by_id = {tid: g for tid, g in mt.groupby("trade_id")}
     spot = latest_spot()
-    data = [trade_payload(r, last_marks, spot, hist_by_id.get(r.trade_id))
-            for _, r in trades.iloc[::-1].iterrows()]
+    # PER-TRADE ISOLATION: one malformed trade record must NEVER take down the whole
+    # dashboard (2026-07-20: a STMR leg missing 'qty' crashed the build, and the dashboard
+    # would not reload for the rest of the session). Skip-and-log a bad row instead.
+    data = []
+    for _, r in trades.iloc[::-1].iterrows():
+        try:
+            data.append(trade_payload(r, last_marks, spot, hist_by_id.get(r.trade_id)))
+        except Exception as e:
+            print(f"  ! skipped card for {getattr(r,'trade_id','?')}: {type(e).__name__}: {e}")
     today = dt.datetime.now(ZoneInfo("America/Chicago")).strftime("%Y-%m-%d")
     out = SIM / "cards.html"
     out.write_text(HTML.replace("__DATA__", json.dumps(data)).replace("__TODAY__", today),

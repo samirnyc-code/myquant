@@ -347,6 +347,23 @@ def check_options_sim() -> dict:
     return _chk("Options sim", OK, f"{n} position(s), {_fmt_age(age)} ago")
 
 
+def check_dashboard() -> dict:
+    """The options desk web dashboard (:8600). On 2026-07-20 it crashed on a malformed
+    trade record and stayed dead all session with nothing flagging it. Now it is a
+    first-class health tile: if the port stops answering during desk hours, it is WARN
+    (self-healed by alert_monitor). Off-hours a down dashboard is fine."""
+    s = socket.socket()
+    s.settimeout(1.5)
+    try:
+        s.connect(("127.0.0.1", 8600))
+        return _chk("Options dashboard", OK, "serving :8600")
+    except Exception:
+        return _chk("Options dashboard", WARN if _desk_hours() else IDLE,
+                    ":8600 not answering" + ("" if _desk_hours() else " (desk closed)"))
+    finally:
+        s.close()
+
+
 def check_disk() -> dict:
     free = shutil.disk_usage(str(ROOT)).free / 1e9
     if free < 20:
@@ -436,7 +453,7 @@ def _check_archive_uncached() -> dict:
 
 
 CHECKS = [check_depth, check_contract, check_footprint, check_nt8, check_tick_db, check_archive,
-          check_ib_gateway, check_options_sim, check_disk, check_tasks]
+          check_ib_gateway, check_options_sim, check_dashboard, check_disk, check_tasks]
 
 
 def health() -> dict:
