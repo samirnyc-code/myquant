@@ -951,8 +951,9 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(json.dumps({"ok": False, "err": "read-only viewer"}), code=403)
         if self.path.startswith("/startall"):
             res = {d["key"]: start(d["key"]) for d in DASHBOARDS}
-            for d in DASHBOARDS:
-                open_when_up(d["key"])
+            # tabs are opened CLIENT-SIDE (window.open from the MC page) so Chrome keeps
+            # them in the Mission Control tab group; a server-side webbrowser.open tab has
+            # no opener and can never join a group (2026-07-21).
             return self._send(json.dumps(res))
         if self.path.startswith("/openall"):
             for d in DASHBOARDS:
@@ -1184,14 +1185,18 @@ async function bulk(kind,label){const map={startall:'starting all…',stopall:'s
   const b=document.getElementById(kind);const t=b.textContent;b.disabled=true;b.innerHTML='<span class="spin"></span>';
   await fetch('/'+kind,{method:'POST'});
   for(let i=0;i<11;i++){await new Promise(r=>setTimeout(r,800));await load();}
+  if(kind==='startall')openAllTabs();     // open the tabs FROM this page so they group
   b.disabled=false;b.textContent=t;}
-// Start all: POST /startall — the launcher spawns each server AND opens its tab
-// (server-side webbrowser.open once the port is up), so there are no blank tabs and
-// no popup blocker. We just poll to refresh the dots.
+// Open every RUNNING dashboard as a child tab of THIS Mission Control tab, so Chrome
+// keeps them in the same tab GROUP. A server-side webbrowser.open tab has no opener and
+// can never join a group. Opening several at once trips Chrome's popup blocker the first
+// time — allow pop-ups for this site once ("Always allow") and they all land in the group.
+function openAllTabs(){if(!ST)return;let blocked=false;
+  ST.dashboards.filter(d=>d.up).forEach(d=>{const w=window.open(d.url,'_blank');if(!w)blocked=true;});
+  if(blocked)alert('Chrome blocked the extra tabs. Click the pop-up icon at the right of the address bar → "Always allow pop-ups from this site", then press "Open running" again — they will open inside the Mission Control group.');}
 document.getElementById('startall').onclick=()=>bulk('startall');
 document.getElementById('stopall').onclick=()=>bulk('stopall');
-// Open running: let the launcher open the tabs server-side (reliable; no popup block).
-document.getElementById('openall').onclick=()=>fetch('/openall',{method:'POST'});
+document.getElementById('openall').onclick=openAllTabs;
 document.getElementById('reload').onclick=load;
 const auto=document.getElementById('autochk');
 function setAuto(){if(timer)clearInterval(timer);timer=null;if(auto.checked)timer=setInterval(load,5000);}
