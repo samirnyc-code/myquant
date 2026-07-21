@@ -270,6 +270,16 @@ def scenarios(spot, L, reg):
 
     if reg == "negative_gamma":
         return [
+            # TR / BALANCE first: negative gamma does NOT mean "must trend" — most
+            # sessions ROTATE inside a level box before they accept a direction. Omitting
+            # this told the reader every -gamma day was a straight trend (2026-07-20 gap).
+            {"id": "TR", "name": "Rotation / balance (no acceptance either side)",
+             "path": f"two-sided between {ps0:.0f} and {hvl:.0f}" if (ps0 and hvl) else "rotation in the box",
+             "means": "auction stays two-sided — price rejects BOTH edges; the -gamma break "
+                      "has not been accepted yet. Statistically the most common intraday start.",
+             "acts": "fade the EDGES with tight risk (a -gamma break runs, so keep stops "
+                     "small); premium-sells only if a wall is >40pt away; wait for acceptance "
+                     "before trusting a trend"},
             {"id": "A", "name": "Reclaim HVL",
              "path": f"spot {s} → {hvl:.0f}" if hvl else "→ HVL",
              "means": "regime flips back to positive gamma; the pin returns",
@@ -278,10 +288,10 @@ def scenarios(spot, L, reg):
              "path": f"spot {s} → {ps0:.0f} → {ps:.0f}" if (ps0 and ps) else "→ PS0 → PS",
              "means": "dealers short gamma sell into weakness — moves extend",
              "acts": "long vol works; do NOT fade support into momentum"},
-            {"id": "C", "name": "Trend / expansion (base case, −gamma)",
-             "path": f"range expands beyond {ps0:.0f}–{hvl:.0f}" if (ps0 and hvl) else "range expands",
-             "means": "no pin — this is the regime that makes range, not chop",
-             "acts": "straddle is the structure; premium-sells STAND DOWN"},
+            {"id": "C", "name": "Trend / expansion (breakout of balance)",
+             "path": f"accepts OUTSIDE {ps0:.0f}–{hvl:.0f} and extends" if (ps0 and hvl) else "range expands",
+             "means": "the box breaks and holds — no pin, so the move amplifies",
+             "acts": "straddle is the structure; premium-sells STAND DOWN; do not fade the break"},
             {"id": "D", "name": "Capitulation through PS",
              "path": f"spot < {ps:.0f}" if ps else "< PS",
              "means": "below the last gamma support — nothing structural beneath",
@@ -289,21 +299,23 @@ def scenarios(spot, L, reg):
         ]
 
     return [
+        {"id": "TR", "name": "Balance / rotation (base case, +gamma)",
+         "path": f"two-sided {ps0:.0f}–{cr0:.0f}, pin toward {gw0:.0f}" if (ps0 and cr0 and gw0) else "range-bound, pins",
+         "means": "positive gamma PINS — dealers sell rallies, buy dips; price rotates and "
+                  "decays toward the gamma wall. This is THE +gamma day.",
+         "acts": "sell premium at BOTH edges (CR0 calls / PS0 puts); fly @ GW0 for the pin; "
+                 "theta is the edge — let it work"},
         {"id": "A", "name": "Grind up to the wall",
          "path": f"spot {s} → {cr0:.0f}" if (spot and cr0) else "→ CR0/GW0",
-         "means": "tags CR0/GW0 resistance",
+         "means": "tags CR0/GW0 resistance inside the balance",
          "acts": "CR0 touch-fade (short call spread); fly @ GW0 if it pins there"},
         {"id": "B", "name": "Fade to support",
          "path": f"spot {s} → {hvl:.0f} → {ps0:.0f}" if (spot and hvl and ps0) else "→ HVL → PS0",
-         "means": "tests HVL then PS0",
+         "means": "tests HVL then PS0 inside the balance",
          "acts": "PS0 touch-fade (short put spread); regime still + while HVL holds"},
-        {"id": "C", "name": "Pin / chop (base case, +gamma)",
-         "path": f"chop {hvl:.0f}–{cr0:.0f}" if hvl and cr0 else "range-bound",
-         "means": "the pin — positive gamma pins price",
-         "acts": "both premium-sells decay; fly @ GW0 ideal"},
         {"id": "D", "name": "Break below HVL",
          "path": f"spot < {hvl:.0f}" if hvl else "< HVL",
-         "means": "regime tips toward negative gamma",
+         "means": "regime tips toward negative gamma — balance FAILS",
          "acts": f"premium-sells STAND DOWN; straddle arms; PS {ps:.0f} next magnet" if ps else "straddle arms"},
     ]
 
@@ -483,6 +495,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--date", help="YYYYMMDD (default today CT)")
     ap.add_argument("--spot", type=float, help="override pre-open spot")
+    ap.add_argument("--restore", action="store_true",
+                    help="deliberately rebuild a damaged record that already has fired "
+                         "triggers (bypasses the fired-record guard). Use knowingly.")
     ap.add_argument("--force", action="store_true",
                     help="overwrite even if the day's plan already has fired triggers")
     args = ap.parse_args()
@@ -531,15 +546,25 @@ def main():
         "triggers": plan_triggers,
     }
     out = SIM / f"gameplan_{date}.json"
-    if out.exists() and not args.force:
+    if out.exists():
         try:
             prev = json.loads(out.read_text(encoding="utf-8"))
-            if any(t.get("fired") for t in prev.get("triggers", [])):
-                raise SystemExit(
-                    f"REFUSING to overwrite {out.name}: it already has fired triggers "
-                    f"(would wipe the day's live record). Use --force only if you mean it.")
+            had_fired = any(t.get("fired") for t in prev.get("triggers", []))
         except (ValueError, OSError):
-            pass
+            had_fired = False
+        # HARD guard (even under --force): a plan that already has FIRED triggers is the
+        # day's executed record. --force is for re-running the SAME morning before any
+        # trade fires, never for regenerating a finished day (2026-07-20: a stray --force
+        # at 20:00 CT wiped the morning record). Only --restore may touch a fired plan.
+        if had_fired and not args.restore:
+            raise SystemExit(
+                f"REFUSING to overwrite {out.name}: it has FIRED triggers (the day's "
+                f"executed record). Neither --force nor a rerun may clobber it; pass "
+                f"--restore only to deliberately rebuild a damaged record.")
+        if not args.force:
+            raise SystemExit(
+                f"{out.name} exists. Use --force to regenerate the morning plan "
+                f"(only valid before any trade fires).")
     out.write_text(json.dumps(plan, indent=2), encoding="utf-8")
 
     def fire_str(fire):
