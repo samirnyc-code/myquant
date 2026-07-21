@@ -33,7 +33,7 @@ def data() -> dict:
 
 def html() -> str:
     d = data()
-    return "<!doctype html><html><head><meta charset=\"utf-8\"><title>Daily Scorecard</title>" + """
+    return "<!doctype html><html><head><meta charset=\"utf-8\"><link rel=\"icon\" href=\"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📅</text></svg>\"><title>Daily Scorecard</title>" + """
 <style>
 :root{--bg:#0d1117;--card:#161b22;--border:#30363d;--fg:#e6edf3;--muted:#8b949e}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,'Segoe UI',sans-serif}

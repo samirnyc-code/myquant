@@ -4,7 +4,7 @@ Kept out of launcher.py so the page markup can be edited without touching the se
 """
 
 HTML = """<!doctype html><html><head><meta charset="utf-8">
-<title>Day Timeline — Mission Control</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🕐</text></svg>"><title>Day Timeline — Mission Control</title>
 <style>
 :root{--bg:#0d1117;--card:#161b22;--chip:#30363d;--fg:#e6edf3;--muted:#8b949e}
 *{box-sizing:border-box}
