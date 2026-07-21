@@ -45,12 +45,17 @@ def _ping(text, level="info"):
 
 
 def depth_size() -> int:
+    """Total live depth bytes across the candidate days. Files carry the FULL contract
+    (ES_09-26_depth_) and the TRADE DATE (session template: after 17:00 CT the live file
+    is dated tomorrow), so glob by contract and scan -1/0/+1 — the old fixed 'ES_depth_'
+    pattern matched nothing and made this silently return 0 (2026-07-20 fix)."""
     import pipeline_health as ph
     now = ph.chicago_now()
     tot = 0
-    for d in (-1, 0):
-        p = ROOT / "data" / "depth" / f"ES_depth_{(now.date()+dt.timedelta(days=d)).isoformat()}.csv"
-        if p.exists():
+    depth = ROOT / "data" / "depth"
+    for d in (-1, 0, 1):
+        day = (now.date() + dt.timedelta(days=d)).isoformat()
+        for p in depth.glob(f"ES*_depth_{day}.csv"):
             tot += p.stat().st_size
     return tot
 
@@ -65,18 +70,51 @@ def nt8_running() -> bool:
         return False
 
 
-def restart() -> bool:
-    """Close NT8 cleanly, then bring it back with the scripted login."""
+def _save_workspace_hint() -> None:
+    """Ask NT8 to persist the workspace BEFORE we close it, so a restart never eats the
+    user's chart drawings and extra tabs (2026-07-20: a forced kill lost all of them).
+
+    NT8 saves the workspace on a CLEAN exit; the danger is ONLY the force-kill path. We
+    cannot press its menu from here, so the real guarantees are (a) the settings the user
+    enabled once — Tools>Options>General 'Save workspaces on exit' + restore last workspace
+    — and (b) NEVER force-killing except as an explicit, logged last resort below."""
+    say("relying on NT8 clean-exit workspace save (force-kill is avoided below)")
+
+
+def restart(force_ok: bool = False) -> bool:
+    """Restart NT8 while PRESERVING the workspace (drawings, extra tabs) and re-arming the
+    recorder afterwards.
+
+    A plain `taskkill` sends WM_CLOSE, which NT8 answers with a 'strategies are running'
+    confirmation dialog and then SITS THERE. The old code waited 60s, force-killed, and so
+    lost every unsaved drawing and left the strategy disabled. Now:
+      1. hint a workspace save,
+      2. graceful close, generous 120s grace for NT to flush its workspace,
+      3. force-kill ONLY if explicitly allowed AND still hung — and shout that drawings
+         since the last auto-save may be lost,
+      4. relaunch via the scripted login,
+      5. (caller) verify the recorder re-armed and PAGE if not.
+    """
     if nt8_running():
-        say("closing NT8")
+        _save_workspace_hint()
+        say("closing NT8 (graceful — waiting for clean workspace save)")
         subprocess.run(["taskkill", "/IM", "NinjaTrader.exe"], capture_output=True,
                        timeout=60, creationflags=NOWIN)
-        for _ in range(20):
+        for _ in range(40):                 # 120s: give NT time to save + answer its dialog
             time.sleep(3)
             if not nt8_running():
+                say("NT8 closed cleanly (workspace saved)")
                 break
         if nt8_running():
-            say("NT8 did not close cleanly - forcing")
+            if not force_ok:
+                say("NT8 did NOT close cleanly and force-kill is DISABLED (would lose "
+                    "unsaved drawings). Leaving NT8 up — a human should close it.")
+                _ping("🔴 NT8 restart aborted: it would not close cleanly and I refuse to "
+                      "force-kill (that loses your chart drawings). NT8 left running.", "alert")
+                return False
+            say("NT8 still hung - FORCE killing (drawings since last auto-save may be lost)")
+            _ping("⚠️ NT8 had to be force-killed on restart — drawings since the last "
+                  "workspace auto-save may be lost.", "warn")
             subprocess.run(["taskkill", "/IM", "NinjaTrader.exe", "/F"], capture_output=True,
                            timeout=60, creationflags=NOWIN)
             time.sleep(5)
@@ -165,12 +203,15 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--verify-only", action="store_true")
     ap.add_argument("--no-restart", action="store_true")
+    ap.add_argument("--allow-force-kill", action="store_true",
+                    help="permit a last-resort force-kill if NT8 will not close (RISKS "
+                         "losing chart drawings since the last workspace save)")
     ap.add_argument("--wait", type=int, default=90, help="seconds to watch for growth")
     a = ap.parse_args()
 
     ok = True
     if not (a.verify_only or a.no_restart):
-        ok = restart()
+        ok = restart(force_ok=a.allow_force_kill)
         if not ok:
             say("restart FAILED - not proceeding to verify")
             return 1
