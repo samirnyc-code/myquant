@@ -8,8 +8,8 @@ Self-contained (data embedded inline). Source of truth:
 import json
 from pathlib import Path
 
-ROOT = Path(r"c:\Users\Admin\myquant")
-SCR = Path(r"C:\Users\Admin\AppData\Local\Temp\claude\c--Users-Admin-myquant\f04593f3-53f8-4ab9-9690-dd0509e339a3\scratchpad")
+ROOT = Path(__file__).resolve().parent.parent
+SCR = ROOT / "scratchpad"
 
 golden = json.load(open(SCR / "brooks_golden.json", encoding="utf-8"))
 final = json.load(open(ROOT / "docs" / "living" / "brooks_final.json", encoding="utf-8"))

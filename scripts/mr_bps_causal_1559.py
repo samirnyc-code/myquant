@@ -23,7 +23,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-ROOT = Path(r"c:\Users\Admin\myquant"); OPT = ROOT/"data"/"optionsdx"
+ROOT = Path(__file__).resolve().parent.parent; OPT = ROOT/"data"/"optionsdx"
 spec = importlib.util.spec_from_file_location("m", str(ROOT/"scripts"/"mr_options_strategies.py"))
 mm = importlib.util.module_from_spec(spec); spec.loader.exec_module(mm)
 SLIP, FEE, DTE, WIDTH, SHORT_D = 1.0, 1.30, 14, 50, 0.30   # SLIP=1.0 => bid/ask

@@ -19,7 +19,7 @@ import json, re, sys, io, itertools, statistics
 from pathlib import Path
 from PIL import Image
 
-ROOT = Path(r'c:\Users\Admin\myquant')
+ROOT = Path(__file__).resolve().parent.parent
 HUB = ROOT / 'docs' / 'living' / 'brooks_codex'
 sys.path.insert(0, str(ROOT / 'scripts'))
 from brooks_tag_days import tag_text, IDX

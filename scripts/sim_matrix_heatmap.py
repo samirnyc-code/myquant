@@ -6,7 +6,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-ROOT = Path(r"c:\Users\Admin\myquant")
+ROOT = Path(__file__).resolve().parent.parent
 df = pd.read_parquet(ROOT / "docs" / "living" / "brooks_sim_matrix.parquet")
 STOPS = ["SB", "A1", "A1.5", "A2"]
 TGTS = ["BE1", "BE2", "1R", "2R", "3R", "t8", "EOD"]

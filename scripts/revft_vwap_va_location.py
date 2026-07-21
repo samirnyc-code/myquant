@@ -29,7 +29,7 @@ across a real sample (check +-95%CI). One lucky thin bucket != edge.
 Worktree note: code + output live in the `docs/revft-tradelocation` worktree, but the
 signals/ticks/venv are gitignored and exist only in the MAIN checkout, so data paths
 point there. Run with the MAIN venv:
-  c:/Users/Admin/myquant/.venv/Scripts/python.exe scripts/revft_vwap_va_location.py
+  C:/Users/Thomas-Code/Projects/myquant/.venv/Scripts/python.exe scripts/revft_vwap_va_location.py
 Out: docs/living/revft_vwap_va_location_<date>.md
 """
 from __future__ import annotations
@@ -42,7 +42,7 @@ import numpy as np
 import pandas as pd
 
 _ROOT = Path(__file__).resolve().parents[1]          # the worktree (code + output)
-_MAIN = Path("c:/Users/Admin/myquant")               # gitignored data lives here
+_MAIN = Path(__file__).resolve().parent.parent       # gitignored data lives here
 sys.path.insert(0, str(_ROOT))
 
 import massive                                                       # noqa: E402

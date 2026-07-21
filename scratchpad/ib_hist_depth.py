@@ -3,7 +3,7 @@ import datetime as dt
 import sys
 from pathlib import Path
 
-sys.path.insert(0, r"C:\Users\Admin\myquant\scripts")
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 import ib_conn
 from ib_async import Stock
 

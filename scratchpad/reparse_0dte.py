@@ -4,11 +4,11 @@ import glob
 import sys
 from pathlib import Path
 
-sys.path.insert(0, r"C:\Users\Admin\myquant\scripts")
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 from mq_quin_backfill_0dte import OUT, parse
 
 rows = {}
-for f in sorted(glob.glob(r"C:\Users\Admin\myquant\data\menthorq\harvest\backfill_0dte_raw\*.txt")):
+for f in sorted(glob.glob(str(Path(__file__).resolve().parent.parent / "data" / "menthorq" / "harvest" / "backfill_0dte_raw" / "*.txt"))):
     sym = Path(f).name.split("_")[0]
     for r in parse(open(f, encoding="utf-8").read()):
         rows[(r[0], sym)] = r

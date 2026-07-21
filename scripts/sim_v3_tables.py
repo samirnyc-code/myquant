@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-ROOT = Path(r"c:\Users\Admin\myquant")
+ROOT = Path(__file__).resolve().parent.parent
 df = pd.read_parquet(ROOT / "docs" / "living" / "brooks_sim_trades_v3.parquet")
 EXITS = ["1R", "1.5R", "2R", "3R", "EOD"]
 df["etype"] = df["dir"] + df["count"].astype(str) + "-" + df["setup"]

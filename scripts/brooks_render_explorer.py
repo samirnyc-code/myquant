@@ -8,10 +8,11 @@ from pathlib import Path
 from PIL import Image
 
 DESK = Path(r"C:\Users\Admin\Desktop")
-OUT = Path(r"c:\Users\Admin\myquant\docs\living\brooks_codex")
+ROOT = Path(__file__).resolve().parent.parent
+OUT = ROOT / "docs" / "living" / "brooks_codex"
 FIGDIR = OUT / "figures"; BOOKDIR = OUT / "books"
 FIGDIR.mkdir(parents=True, exist_ok=True); BOOKDIR.mkdir(parents=True, exist_ok=True)
-SCR = Path(r"C:\Users\Admin\AppData\Local\Temp\claude\c--Users-Admin-myquant\f04593f3-53f8-4ab9-9690-dd0509e339a3\scratchpad")
+SCR = ROOT / "scratchpad"
 
 DIGITAL = {"Trends": ("Al-Brooks-Trends.pdf", "TR", "trends.pdf"),
            "Trading Ranges": ("Al-Brooks-Trading-Price-Action-Ranges-(KohanFx.com).pdf", "RG", "ranges.pdf"),

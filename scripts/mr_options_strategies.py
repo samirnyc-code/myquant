@@ -27,7 +27,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-ROOT = Path(r"c:\Users\Admin\myquant")
+ROOT = Path(__file__).resolve().parent.parent
 OPTDIR = ROOT / "data" / "optionsdx"
 MULT = 100.0
 COMM_LEG = 1.0        # ~$1/contract/leg

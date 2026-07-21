@@ -5,7 +5,7 @@ the bar's extreme; target = R * risk. One trade at a time. Bucket win-rate by TL
 import sys
 from pathlib import Path
 import numpy as np, pandas as pd
-ROOT = Path(r"c:\Users\Admin\myquant"); sys.path.insert(0, str(ROOT))
+ROOT = Path(__file__).resolve().parent.parent.parent; sys.path.insert(0, str(ROOT))
 B = pd.read_parquet(ROOT/"data"/"bars"/"_continuous.parquet"); B["Date"] = B["DateTime"].dt.date.astype(str)
 TICK = 0.25; POKE = 2*TICK; R = 2.0
 

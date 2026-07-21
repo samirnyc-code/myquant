@@ -29,7 +29,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 TICK = 0.25
-ROOT = Path(r"c:\Users\Admin\myquant"); sys.path.insert(0, str(ROOT))
+ROOT = Path(__file__).resolve().parent.parent; sys.path.insert(0, str(ROOT))
 import massive
 
 DAY = "2026-06-09"

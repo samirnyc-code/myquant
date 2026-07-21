@@ -14,7 +14,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-ROOT = Path(r"c:\Users\Admin\myquant")
+ROOT = Path(__file__).resolve().parent.parent
 b = pd.read_parquet(ROOT / "data" / "bars" / "_continuous.parquet")
 b["Date"] = b["DateTime"].dt.date.astype(str)
 g = b[b["Date"] == "2026-06-09"].sort_values("DateTime").reset_index(drop=True)

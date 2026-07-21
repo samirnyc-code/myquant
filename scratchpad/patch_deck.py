@@ -1,7 +1,6 @@
 import json, re, pathlib
 
-P = pathlib.Path(r"C:\Users\Admin\AppData\Local\Temp\claude\c--Users-Admin-myquant"
-                 r"\d54fb158-9ac4-48d2-916c-15358e2e88ff\scratchpad\atr_rule_slides.html")
+P = pathlib.Path(__file__).resolve().parent / "atr_rule_slides.html"
 s = P.read_text(encoding="utf-8")
 
 # ---------- 1. gallery slide, before the evidence slide ----------

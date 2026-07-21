@@ -27,7 +27,7 @@ REGIME_END_MODE = 1                   # end a regime -> NEUTRAL when the confirm
 REGIME_END_MODE = int(os.environ.get("END_MODE", REGIME_END_MODE))
 FLIP_BAR_NOT_OB = True                # True: a regime-end (flip) bar may NOT be an outside bar
 STRUCTURE_ONLY = bool(int(os.environ.get("STRUCT_ONLY", "0")))  # hide entries; show only structure+regime
-ROOT = Path(r"c:\Users\Admin\myquant"); sys.path.insert(0, str(ROOT))
+ROOT = Path(__file__).resolve().parent.parent; sys.path.insert(0, str(ROOT))
 import massive
 
 b = pd.read_parquet(ROOT / "data" / "bars" / "_continuous.parquet")

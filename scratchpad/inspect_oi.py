@@ -1,8 +1,9 @@
 import glob
 import json
 import re
+from pathlib import Path
 
-for f in glob.glob(r"C:\Users\Admin\myquant\scratchpad\mq_endpoints\resp_*.json"):
+for f in glob.glob(str(Path(__file__).resolve().parent / "mq_endpoints" / "resp_*.json")):
     d = json.load(open(f, encoding="utf-8"))
     if "net-gex-by-expiration" in d["url"]:
         raw = d["body"]
@@ -17,7 +18,7 @@ else:
     print("no net-gex-by-expiration capture found")
 
 # also the matrix totals — does it carry OI?
-for f in glob.glob(r"C:\Users\Admin\myquant\scratchpad\mq_endpoints\resp_*.json"):
+for f in glob.glob(str(Path(__file__).resolve().parent / "mq_endpoints" / "resp_*.json")):
     d = json.load(open(f, encoding="utf-8"))
     if "options/matrix" in d["url"]:
         raw = d["body"]

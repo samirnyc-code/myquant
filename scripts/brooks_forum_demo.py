@@ -5,7 +5,7 @@ stepping; link to the live tool. Builds a self-contained HTML and opens it.
 import requests, re, json, html as H, io, base64, sys
 from pathlib import Path
 from PIL import Image
-SCR = Path(r"C:\Users\Admin\AppData\Local\Temp\claude\c--Users-Admin-myquant\f04593f3-53f8-4ab9-9690-dd0509e339a3\scratchpad")
+SCR = Path(__file__).resolve().parent.parent / "scratchpad"
 BASE = "https://www.brookspriceaction.com"
 cr = json.load(open(SCR / "bpa_login.json"))
 T = "6118"   # 02-24-2023

@@ -23,7 +23,7 @@ N_WEEKLY, N_MONTHLY = 10, 6
 BATCH = 50            # <= IB simultaneous market-data line cap (~100); stay well under
 GREEK_WAIT = 20       # max seconds to wait for a batch's greeks to populate
 GREEK_FRAC = 0.95     # accept batch once this fraction have modelGreeks
-ROOT = r"c:\Users\Admin\myquant"
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MQ_FILE  = os.path.join(ROOT, "scratchpad", "mq_levels_today.json")
 CALIB    = os.path.join(ROOT, "data", "menthorq", "spx_calibration.csv")
 PROF_DIR = os.path.join(ROOT, "data", "menthorq", "spx_ib_profiles")

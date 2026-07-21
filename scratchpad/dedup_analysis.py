@@ -1,9 +1,11 @@
 """CR vs CR-0DTE overlap/dedup analysis for the 3-rule fade suite (S73)."""
 import numpy as np
 import pandas as pd
+from pathlib import Path
 
-l1 = pd.read_csv(r"C:\Users\Admin\myquant\data\menthorq\levels_history.csv")
-l0 = pd.read_csv(r"C:\Users\Admin\myquant\data\menthorq\levels0_history.csv")
+_ROOT = Path(__file__).resolve().parent.parent
+l1 = pd.read_csv(_ROOT / "data" / "menthorq" / "levels_history.csv")
+l0 = pd.read_csv(_ROOT / "data" / "menthorq" / "levels0_history.csv")
 es1 = l1[l1.symbol == "ES"][["date", "cr", "ps"]]
 es0 = l0[l0.symbol == "ES"][["date", "cr0", "ps0"]]
 m = es1.merge(es0, on="date", how="inner").dropna(subset=["cr", "cr0"])

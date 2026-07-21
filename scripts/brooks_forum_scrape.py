@@ -9,9 +9,9 @@ import requests, re, json, sys, time, html as H, io
 from pathlib import Path
 from PIL import Image
 
-ROOT = Path(r"c:\Users\Admin\myquant")
+ROOT = Path(__file__).resolve().parent.parent
 HUB = ROOT / "docs" / "living" / "brooks_codex"
-SCR = Path(r"C:\Users\Admin\AppData\Local\Temp\claude\c--Users-Admin-myquant\f04593f3-53f8-4ab9-9690-dd0509e339a3\scratchpad")
+SCR = ROOT / "scratchpad"
 OUTIMG = HUB / "forum_charts"; OUTIMG.mkdir(parents=True, exist_ok=True)
 BASE = "https://www.brookspriceaction.com"
 cr = json.load(open(SCR / "bpa_login.json"))

@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-ROOT = Path(r"c:\Users\Admin\myquant")
+ROOT = Path(__file__).resolve().parent.parent
 b = pd.read_parquet(ROOT / "data" / "bars" / "_continuous.parquet")
 b["Date"] = b["DateTime"].dt.date.astype(str)
 dl = b.groupby("Date").agg(O=("Open", "first"), H=("High", "max"), L=("Low", "min"), C=("Close", "last"))

@@ -13,7 +13,7 @@ import pandas as pd
 TICK = 0.25; PT = 50.0; COMM = 5.0
 IGNORE_IB = True; ALLOW_LOOSE = True
 NO_3RD = True                         # do not trade 3rd+ entries
-ROOT = Path(r"c:\Users\Admin\myquant"); sys.path.insert(0, str(ROOT))
+ROOT = Path(__file__).resolve().parent.parent; sys.path.insert(0, str(ROOT))
 import massive
 
 START, END = "2025-07-08", "2026-07-07"

@@ -16,10 +16,11 @@ bars 1, 2, 10..80, 62, 81. No hand-tuned constants; per-day URL params +
 image natural size fully determine the geometry.
 """
 import base64, re, json, sys, os
+from pathlib import Path
 from PIL import Image
 
 SCR = sys.argv[1] if len(sys.argv) > 1 else '.'
-OLD = r'C:\Users\Admin\AppData\Local\Temp\claude\c--Users-Admin-myquant\f04593f3-53f8-4ab9-9690-dd0509e339a3\scratchpad'
+OLD = str(Path(__file__).resolve().parent.parent / 'scratchpad')
 
 IMG_PATH = OLD + r'\diag_7160.jpg'
 GEOM = {'bars': 81, 'left': 80, 'width': 1131}

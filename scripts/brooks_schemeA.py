@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 
 TICK = 0.25
 END_MODE = 1
-ROOT = Path(r"c:\Users\Admin\myquant"); sys.path.insert(0, str(ROOT))
+ROOT = Path(__file__).resolve().parent.parent; sys.path.insert(0, str(ROOT))
 import massive
 
 DAY = sys.argv[1] if len(sys.argv) > 1 else "2026-06-09"

@@ -13,7 +13,7 @@ import json, re, sys
 from pathlib import Path
 from collections import Counter
 
-ROOT = Path(r'c:\Users\Admin\myquant')
+ROOT = Path(__file__).resolve().parent.parent
 IDX = json.load(open(ROOT / 'docs' / 'living' / 'brooks_encyc_index.json', encoding='utf-8'))
 MIN_GENERIC = 3   # occurrences required for 1-token generic codes
 
@@ -46,8 +46,7 @@ def tag_text(text):
 
 if __name__ == '__main__':
     if '--demo' in sys.argv:
-        scr = Path(r'C:\Users\Admin\AppData\Local\Temp\claude\c--Users-Admin-myquant'
-                   r'\f04593f3-53f8-4ab9-9690-dd0509e339a3\scratchpad')
+        scr = ROOT / "scratchpad"
         raw = open(scr / 'bbb_6042_text.txt', encoding='utf-8').read()
         tags = tag_text(raw)
         print('=== day 6042 (07-26-2022):', len(tags), 'tags')

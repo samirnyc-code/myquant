@@ -13,9 +13,10 @@ Put support     = strike BELOW spot with the biggest PUT  metric.
 import sys, glob, os
 import pandas as pd
 import numpy as np
+from pathlib import Path
 
 DATE = sys.argv[1] if len(sys.argv) > 1 else "2023-12-29"
-DDIR = r"c:\Users\Admin\myquant\data\optionsdx"
+DDIR = str(Path(__file__).resolve().parent.parent / "data" / "optionsdx")
 
 ym = DATE[:4] + DATE[5:7]
 path = os.path.join(DDIR, f"spx_eod_{ym}.txt")

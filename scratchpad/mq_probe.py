@@ -5,7 +5,7 @@ from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
-ROOT = Path(r"c:\Users\Admin\myquant")
+ROOT = Path(__file__).resolve().parent.parent
 AUTH = ROOT / "gamma_tracker" / "auth_state.json"
 OUT = ROOT / "scratchpad" / "mq_probe"
 OUT.mkdir(exist_ok=True)

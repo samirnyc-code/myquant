@@ -16,7 +16,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import importlib.util
 
-ROOT = Path(r"c:\Users\Admin\myquant"); OPT = ROOT/"data"/"optionsdx"
+ROOT = Path(__file__).resolve().parent.parent; OPT = ROOT/"data"/"optionsdx"
 spec = importlib.util.spec_from_file_location("m", str(ROOT/"scripts"/"mr_options_strategies.py"))
 mm = importlib.util.module_from_spec(spec); spec.loader.exec_module(mm)
 

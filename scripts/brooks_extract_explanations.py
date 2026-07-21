@@ -8,7 +8,7 @@ import fitz, re, json
 from pathlib import Path
 
 DESK = Path(r"C:\Users\Admin\Desktop")
-SCR = Path(r"C:\Users\Admin\AppData\Local\Temp\claude\c--Users-Admin-myquant\f04593f3-53f8-4ab9-9690-dd0509e339a3\scratchpad")
+SCR = Path(__file__).resolve().parent.parent / "scratchpad"
 BOOKS = {"Trends": ("Al-Brooks-Trends.pdf", "TR"),
          "Trading Ranges": ("Al-Brooks-Trading-Price-Action-Ranges-(KohanFx.com).pdf", "RG"),
          "Reading Price Charts": ("Al Brooks Reading Price Charts Bar by Bar.pdf", "RP")}

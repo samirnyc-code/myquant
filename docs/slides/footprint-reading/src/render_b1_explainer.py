@@ -6,10 +6,12 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
+from pathlib import Path
 
-fp = pd.read_csv(r"c:\Users\Admin\myquant\data\footprint\ES_footprint.csv",
+_ROOT = Path(__file__).resolve().parents[4]
+fp = pd.read_csv(_ROOT / "data" / "footprint" / "ES_footprint.csv",
                  parse_dates=["BarTime"])
-bars = pd.read_csv(r"c:\Users\Admin\myquant\data\footprint\ES_bars.csv",
+bars = pd.read_csv(_ROOT / "data" / "footprint" / "ES_bars.csv",
                    parse_dates=["BarTime"])
 b = bars[bars.BarTime == "2026-07-17 08:35:00"].iloc[0]
 g = fp[fp.BarIdx == b.BarIdx].sort_values("Price", ascending=False).reset_index(drop=True)
@@ -142,7 +144,6 @@ ax.text(0.35, n + 1.9,
 
 # write straight into the slide library — the old scratchpad path meant re-running
 # this script silently left docs/slides/ showing the stale PNG.
-out = (r"c:\Users\Admin\myquant\docs\slides\footprint-reading"
-       r"\02_b1_rth_20260717_ladder_read.png")
+out = _ROOT / "docs" / "slides" / "footprint-reading" / "02_b1_rth_20260717_ladder_read.png"
 fig.savefig(out, dpi=120, bbox_inches="tight", facecolor="#fcfcfa")
 print("saved", out)

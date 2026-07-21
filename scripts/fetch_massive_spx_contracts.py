@@ -12,7 +12,7 @@ import pandas as pd
 
 KEY = os.environ.get("MASSIVE_API_KEY", "")
 BASE = "https://api.massive.com/v3/reference/options/contracts"
-OUT = Path(r"c:\Users\Admin\myquant\data\massive_options")
+OUT = Path(__file__).resolve().parent.parent / "data" / "massive_options"
 OUT.mkdir(parents=True, exist_ok=True)
 CKPT = 10  # pages between checkpoints
 sess = requests.Session()

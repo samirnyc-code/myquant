@@ -3,7 +3,7 @@ embedding the selected items so it can run by scriptPath.
 """
 import json, re
 from pathlib import Path
-SCR = Path(r"C:\Users\Admin\AppData\Local\Temp\claude\c--Users-Admin-myquant\f04593f3-53f8-4ab9-9690-dd0509e339a3\scratchpad")
+SCR = Path(__file__).resolve().parent.parent / "scratchpad"
 items = json.load(open(SCR / "daily_pilot25.json", encoding="utf-8"))
 
 def clean(o):
@@ -24,7 +24,7 @@ JS = r'''export const meta = {
   phases: [{ title: 'Analyze', detail: 'vision: verify match + write commentary' }],
 }
 const ITEMS = __ITEMS__;
-const DIR = 'C:/Users/Admin/myquant/docs/living/brooks_codex/daily';
+const DIR = 'C:/Users/Thomas-Code/Projects/myquant/docs/living/brooks_codex/daily';
 const SCHEMA = {
   type: 'object',
   properties: {

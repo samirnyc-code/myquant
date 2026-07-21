@@ -11,10 +11,10 @@ row (e.g. '...,BX Y 2,Consecutive Complex Bottoms,...').
 import csv, io, json, re, sys
 from pathlib import Path
 
-RAW = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(
-    r'C:\Users\Admin\AppData\Local\Temp\claude\c--Users-Admin-myquant'
-    r'\617168b7-e2d4-4664-957d-b04b4c665a63\scratchpad\encyc_index_raw.txt')
-OUT = Path(r'c:\Users\Admin\myquant\docs\living\brooks_encyc_index.json')
+_ROOT = Path(__file__).resolve().parent.parent
+RAW = Path(sys.argv[1]) if len(sys.argv) > 1 else (
+    _ROOT / "scratchpad" / "encyc_index_raw.txt")
+OUT = _ROOT / "docs" / "living" / "brooks_encyc_index.json"
 
 raw = RAW.read_text(encoding='utf-8')
 # drop the title/header preamble up to the column header row

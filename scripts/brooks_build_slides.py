@@ -12,7 +12,7 @@ with the same Drive shortcut.
 import json, os, re, difflib
 from pathlib import Path
 
-ROOT = Path(r'c:\Users\Admin\myquant')
+ROOT = Path(__file__).resolve().parent.parent
 HUB = ROOT / 'docs' / 'living' / 'brooks_codex'
 SLIDES = Path(r'G:\.shortcut-targets-by-id\1oanmO7XO-brbZThAYjV6t6hZdzRyy9rE\Slides')
 DEFAULT_BASE = 'file:///G:/.shortcut-targets-by-id/1oanmO7XO-brbZThAYjV6t6hZdzRyy9rE/Slides'

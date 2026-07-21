@@ -12,10 +12,9 @@ import json, re, statistics
 from pathlib import Path
 from PIL import Image
 
-ROOT = Path(r'c:\Users\Admin\myquant')
+ROOT = Path(__file__).resolve().parent.parent
 HUB = ROOT / 'docs' / 'living' / 'brooks_codex'
-SRC = Path(r'C:\Users\Admin\AppData\Local\Temp\claude\c--Users-Admin-myquant'
-           r'\f04593f3-53f8-4ab9-9690-dd0509e339a3\scratchpad\rescrape_full.json')
+SRC = ROOT / 'scratchpad' / 'rescrape_full.json'
 
 items = json.load(open(SRC, encoding='utf-8'))
 have = {p.stem for p in (HUB / 'daily2').glob('*.jpg')}

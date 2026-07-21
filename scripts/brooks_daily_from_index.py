@@ -9,7 +9,7 @@ import zipfile, json, re
 from pathlib import Path
 
 ZIP = Path(r"G:\My Drive\MC Setup Research Notes\brooks_study_library.zip")
-HUB = Path(r"c:\Users\Admin\myquant\docs\living\brooks_codex")
+HUB = Path(__file__).resolve().parent.parent / "docs" / "living" / "brooks_codex"
 DAILY = HUB / "daily"
 
 with zipfile.ZipFile(ZIP) as z:

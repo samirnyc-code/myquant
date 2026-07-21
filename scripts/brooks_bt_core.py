@@ -23,7 +23,7 @@ TICK = 0.25
 PT_ES = 50.0        # $/pt full ES
 PT_MES = 5.0        # $/pt micro ES (user's instrument)
 COMM = 5.0          # $ round-turn (user's real prop cost on MES)
-ROOT = Path(r"c:\Users\Admin\myquant")
+ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 

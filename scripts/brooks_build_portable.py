@@ -12,7 +12,7 @@ Embeds (no external references, works from a bare download):
 import json, html as H
 from pathlib import Path
 
-ROOT = Path(r'c:\Users\Admin\myquant')
+ROOT = Path(__file__).resolve().parent.parent
 HUB = ROOT / 'docs' / 'living' / 'brooks_codex'
 
 app = (HUB / 'app.html').read_text(encoding='utf-8')

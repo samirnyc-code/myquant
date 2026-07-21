@@ -16,7 +16,7 @@ Full-sample CI (must exclude zero in R to be a finding) + year-by-year stability
 Honesty: the +0.5σ threshold was chosen in-sample on this same 5yr set; this is a
 selectivity confirmation, NOT out-of-sample. A pass here earns a true OOS test, not belief.
 
-Run (MAIN venv): c:/Users/Admin/myquant/.venv/Scripts/python.exe scripts/revft_continuation_gate.py
+Run (MAIN venv): C:/Users/Thomas-Code/Projects/myquant/.venv/Scripts/python.exe scripts/revft_continuation_gate.py
 Out: docs/living/revft_continuation_gate_<date>.md
 """
 from __future__ import annotations
@@ -29,7 +29,7 @@ import numpy as np
 import pandas as pd
 
 _ROOT = Path(__file__).resolve().parents[1]
-_MAIN = Path("c:/Users/Admin/myquant")
+_MAIN = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_ROOT))
 
 import massive                                                       # noqa: E402

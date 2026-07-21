@@ -5,7 +5,7 @@ Writes docs/living/brooks_explorer/index.html  (open by double-click / host on S
 """
 import json, re
 from pathlib import Path
-OUT = Path(r"c:\Users\Admin\myquant\docs\living\brooks_codex")
+OUT = Path(__file__).resolve().parent.parent / "docs" / "living" / "brooks_codex"
 index = json.load(open(OUT / "figure_index.json", encoding="utf-8"))
 
 def clean_expl(t):

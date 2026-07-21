@@ -5,6 +5,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle, FancyArrowPatch
+from pathlib import Path
 
 INK, MUT = "#20262e", "#68707c"
 GRN, RED = "#2e7d4f", "#b03434"
@@ -84,6 +85,6 @@ ax.text(8.9, Y0 + 2.1 * RH,
 ax.text(1.0, 8.15, "One 5-minute bar's footprint — same numbers, three different reads",
         fontsize=16, fontweight="bold", color=INK)
 
-out = r"c:\Users\Admin\myquant\scratchpad\imbalance_explainer.png"
+out = str(Path(__file__).resolve().parents[4] / "scratchpad" / "imbalance_explainer.png")
 fig.savefig(out, dpi=130, bbox_inches="tight", facecolor="#fcfcfa")
 print("saved", out)

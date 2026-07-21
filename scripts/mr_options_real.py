@@ -21,7 +21,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-ROOT = Path(r"c:\Users\Admin\myquant")
+ROOT = Path(__file__).resolve().parent.parent
 OPTDIR = ROOT / "data" / "optionsdx"
 MULT = 100.0          # SPX index option = $100 per point
 COMM_RT = 4.0         # ~$1/leg x 4 legs round trip (open 2 + close 2)

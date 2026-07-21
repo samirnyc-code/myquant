@@ -29,7 +29,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-ROOT = Path(r"c:\Users\Admin\myquant")
+ROOT = Path(__file__).resolve().parent.parent
 PT, COMM = 50.0, 4.0            # ES $/pt ; ~$4 RT commission+slip
 CSV = ROOT / "data" / "ES_stoch_daily.csv"
 

@@ -7,8 +7,8 @@ Output: docs/living/brooks_app.html  + brooks_app_standalone.html
 import base64
 import json
 from pathlib import Path
-ROOT = Path(r"c:\Users\Admin\myquant")
-SCR = Path(r"C:\Users\Admin\AppData\Local\Temp\claude\c--Users-Admin-myquant\f04593f3-53f8-4ab9-9690-dd0509e339a3\scratchpad")
+ROOT = Path(__file__).resolve().parent.parent
+SCR = ROOT / "scratchpad"
 D = json.load(open(SCR / "brooks_app_data.json", encoding="utf-8"))
 
 # enrich setup figures with the Figure Explorer's full explanation + full-res file

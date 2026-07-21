@@ -5,11 +5,12 @@ Folder: docs/living/brooks_codex/  (open index.html; deploy the folder to Stream
 """
 import json
 from pathlib import Path
-LIVE = Path(r"c:\Users\Admin\myquant\docs\living")
+ROOT = Path(__file__).resolve().parent.parent
+LIVE = ROOT / "docs" / "living"
 HUB = LIVE / "brooks_codex"
 idx = json.load(open(HUB / "figure_index.json", encoding="utf-8"))
 try:
-    ad = json.load(open(Path(r"C:\Users\Admin\AppData\Local\Temp\claude\c--Users-Admin-myquant\f04593f3-53f8-4ab9-9690-dd0509e339a3\scratchpad\brooks_app_data.json"), encoding="utf-8"))
+    ad = json.load(open(ROOT / "scratchpad" / "brooks_app_data.json", encoding="utf-8"))
     c = ad["counts"]
 except Exception:
     c = {"setups": 15, "rules": 78, "core": 15, "teachings": 1390, "quiz": 28}

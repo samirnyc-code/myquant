@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-ROOT = Path(r"c:\Users\Admin\myquant"); PT = 50.0; COMM = 5.0
+ROOT = Path(__file__).resolve().parent.parent; PT = 50.0; COMM = 5.0
 df = pd.read_parquet(ROOT / "docs" / "living" / "brooks_sim_trades_v3.parquet")
 E = df[df.book == "EOD"].copy()          # one row per entry, with path summary
 

@@ -16,7 +16,7 @@ pass could mislead, both fixed here:
 0.5σ slices so the gradient (and the sample thinning past ~2σ) are both visible.
 Includes a direction/sign sanity block up top so the convention is auditable.
 
-Run (MAIN venv): c:/Users/Admin/myquant/.venv/Scripts/python.exe scripts/revft_vwap_slices.py
+Run (MAIN venv): C:/Users/Thomas-Code/Projects/myquant/.venv/Scripts/python.exe scripts/revft_vwap_slices.py
 Out: docs/living/revft_vwap_slices_<date>.md
 """
 from __future__ import annotations
@@ -29,7 +29,7 @@ import numpy as np
 import pandas as pd
 
 _ROOT = Path(__file__).resolve().parents[1]
-_MAIN = Path("c:/Users/Admin/myquant")
+_MAIN = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_ROOT))
 
 import massive                                                       # noqa: E402

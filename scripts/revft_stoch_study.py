@@ -14,7 +14,7 @@ Causal join: stoch bar T attached to signal at bar T (searchsorted right-1).
 Price basis: verified stop < entry for Longs, all ticks back-adjusted.
 
 Run:
-  c:/Users/Admin/myquant/.venv/Scripts/python.exe scripts/revft_stoch_study.py
+  C:/Users/Thomas-Code/Projects/myquant/.venv/Scripts/python.exe scripts/revft_stoch_study.py
 """
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ import numpy as np
 import pandas as pd
 
 _ROOT = Path(__file__).resolve().parents[1]
-_MAIN = Path("c:/Users/Admin/myquant")
+_MAIN = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_ROOT))
 
 import massive                                                         # noqa: E402

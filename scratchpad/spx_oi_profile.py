@@ -90,7 +90,8 @@ print(f"  HVL(maxTgam):   {MQ['HVL']}                  {int(HVL_g)}")
 
 # save profile
 import csv
-p = r"c:\Users\Admin\myquant\scratchpad\spx_oi_profile.csv"
+from pathlib import Path
+p = str(Path(__file__).resolve().parent / "spx_oi_profile.csv")
 with open(p,"w",newline="") as f:
     w=csv.writer(f); w.writerow(["strike","call_oi","put_oi","call_gex","put_gex","tot_gamma"])
     for r in rows: w.writerow([r['k'],int(r['coi']),int(r['poi']),

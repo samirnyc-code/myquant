@@ -9,7 +9,7 @@ from pathlib import Path
 from PIL import Image
 
 DESK = Path(r"C:\Users\Admin\Desktop")
-OUT = Path(r"C:\Users\Admin\AppData\Local\Temp\claude\c--Users-Admin-myquant\f04593f3-53f8-4ab9-9690-dd0509e339a3\scratchpad\figures")
+OUT = Path(__file__).resolve().parent.parent / "scratchpad" / "figures"
 OUT.mkdir(parents=True, exist_ok=True)
 BOOKS = {"Trends": "Al-Brooks-Trends.pdf",
          "Trading Ranges": "Al-Brooks-Trading-Price-Action-Ranges-(KohanFx.com).pdf",

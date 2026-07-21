@@ -8,7 +8,7 @@ from pathlib import Path
 from PIL import Image
 
 ZIP = Path(r"G:\My Drive\MC Setup Research Notes\brooks_study_library.zip")
-OUT = Path(r"c:\Users\Admin\myquant\docs\living\brooks_codex")
+OUT = Path(__file__).resolve().parent.parent / "docs" / "living" / "brooks_codex"
 DAILY = OUT / "daily"; DAILY.mkdir(parents=True, exist_ok=True)
 
 def _strip(inner):

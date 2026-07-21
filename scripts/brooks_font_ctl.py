@@ -14,7 +14,7 @@ Per-page rules:
 """
 from pathlib import Path
 
-HUB = Path(r'c:\Users\Admin\myquant\docs\living\brooks_codex')
+HUB = Path(__file__).resolve().parent.parent / "docs" / "living" / "brooks_codex"
 # name -> (home button, zoom buttons)
 FILES = {
     'app.html': (True, True),

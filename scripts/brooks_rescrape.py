@@ -10,9 +10,9 @@ import requests
 from PIL import Image
 import io
 
-ROOT = Path(r"c:\Users\Admin\myquant")
+ROOT = Path(__file__).resolve().parent.parent
 HUB = ROOT / "docs" / "living" / "brooks_codex"
-SCR = Path(r"C:\Users\Admin\AppData\Local\Temp\claude\c--Users-Admin-myquant\f04593f3-53f8-4ab9-9690-dd0509e339a3\scratchpad")
+SCR = ROOT / "scratchpad"
 CK = json.load(open(SCR / "brooks_cookies.json"))
 OUTIMG = HUB / "daily2"; OUTIMG.mkdir(parents=True, exist_ok=True)
 API = "https://www.brookstradingcourse.com/wp-json/wp/v2/posts"

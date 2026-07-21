@@ -6,7 +6,7 @@ zoom, favorites, and DELETE (hide) with a Trash/restore view. File-based.
 """
 import json
 from pathlib import Path
-HUB = Path(r"c:\Users\Admin\myquant\docs\living\brooks_codex")
+HUB = Path(__file__).resolve().parent.parent / "docs" / "living" / "brooks_codex"
 index = json.load(open(HUB / "daily_index.json", encoding="utf-8"))
 data_js = json.dumps(index, ensure_ascii=False)
 

@@ -1,13 +1,15 @@
 """CRITICAL: are the continuous-ES bars price-aligned with MenthorQ levels
 across the whole year, or does roll adjustment shift older bars?"""
 import pandas as pd
+from pathlib import Path
 
-b = pd.read_parquet(r"C:\Users\Admin\myquant\data\bars\_continuous.parquet")
+_ROOT = Path(__file__).resolve().parent.parent
+b = pd.read_parquet(_ROOT / "data" / "bars" / "_continuous.parquet")
 b["DateTime"] = pd.to_datetime(b["DateTime"])
 b["date"] = b.DateTime.dt.strftime("%Y-%m-%d")
-lv0 = pd.read_csv(r"C:\Users\Admin\myquant\data\menthorq\levels0_history.csv")
+lv0 = pd.read_csv(_ROOT / "data" / "menthorq" / "levels0_history.csv")
 lv0 = lv0[lv0.symbol == "ES"]
-lv1 = pd.read_csv(r"C:\Users\Admin\myquant\data\menthorq\levels_history.csv")
+lv1 = pd.read_csv(_ROOT / "data" / "menthorq" / "levels_history.csv")
 lv1 = lv1[lv1.symbol == "ES"]
 
 print(f"{'date':12s} {'bar range':>15s} {'d1 band':>15s} {'mid-gap':>8s} {'CR':>7s}")

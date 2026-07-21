@@ -7,8 +7,8 @@ from pathlib import Path
 from PIL import Image
 from collections import defaultdict
 
-SCR = Path(r"C:\Users\Admin\AppData\Local\Temp\claude\c--Users-Admin-myquant\f04593f3-53f8-4ab9-9690-dd0509e339a3\scratchpad")
-ROOT = Path(r"c:\Users\Admin\myquant")
+ROOT = Path(__file__).resolve().parent.parent
+SCR = ROOT / "scratchpad"
 figs = json.load(open(SCR / "figures_catalog.json", encoding="utf-8"))
 cards = json.load(open(SCR / "brooks_setup_cards.json", encoding="utf-8"))["cards"]
 rules = json.load(open(SCR / "brooks_rules_expanded.json", encoding="utf-8"))["rules"]

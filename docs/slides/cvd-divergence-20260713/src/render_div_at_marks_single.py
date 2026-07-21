@@ -8,8 +8,9 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
+from pathlib import Path
 
-ROOT = r"c:\Users\Admin\myquant"
+ROOT = str(Path(__file__).resolve().parents[4])
 DAY = "2026-07-13"
 UP, DN = "#2e9e4f", "#d64545"
 BULL, BEAR = "#0e7a3b", "#b02020"

@@ -12,7 +12,7 @@ nothing else — favorites are untouched.
 import json, sys, subprocess
 from pathlib import Path
 
-ROOT = Path(r'c:\Users\Admin\myquant')
+ROOT = Path(__file__).resolve().parent.parent
 HUB = ROOT / 'docs' / 'living' / 'brooks_codex'
 EXC = ROOT / 'docs' / 'living' / 'brooks_daily_excluded.json'
 DL = Path(r'C:\Users\Admin\Downloads')
