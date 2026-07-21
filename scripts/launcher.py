@@ -1069,22 +1069,22 @@ pre{background:var(--chip);border-radius:7px;padding:8px 10px;font-size:11px;ove
   <h1>🚀 Mission Control</h1>
   <span class="pill" id="summary">…</span>
   <span style="margin-left:auto"></span>
-  <a href="/timeline" target="_blank" rel="noopener"><button title="the trading day as a chronological set of automated processes">🕐 Timeline</button></a>
-  <a href="/health" target="_blank" rel="noopener"><button id="healthbtn" title="is everything actually recording? evidence-based pipeline health">● Health</button></a>
+  <a href="/timeline" target="_blank"><button title="the trading day as a chronological set of automated processes">🕐 Timeline</button></a>
+  <a href="/health" target="_blank"><button id="healthbtn" title="is everything actually recording? evidence-based pipeline health">● Health</button></a>
   <div class="menu">
     <button id="libbtn" title="explanations, study material and research write-ups">📚 Library ▾</button>
     <div class="menu-pop" id="libpop">
-      <a href="/tour" target="_blank" rel="noopener" title="how the options desk automation works — shareable explainer">📖 Desk Tour</a>
-      <a href="/library" target="_blank" rel="noopener" title="MZpack Insights knowledge base — order-flow education organized by topic">📚 MZpack Library</a>
-      <a href="/slides" target="_blank" rel="noopener" title="study-material slides by topic (docs/slides/)">🎞 Slides</a>
-      <a href="/levels" target="_blank" rel="noopener" title="Gamma Levels slide deck — MenthorQ + our CR/PS/HVL over intraday price">📈 Gamma Levels</a>
-      <a href="/mqmethod" target="_blank" rel="noopener" title="MenthorQ Method — framework from 7 Academy videos, every claim tested">🔬 MQ Method</a>
-      <a href="/gexlab" target="_blank" rel="noopener" title="S75Q — do MenthorQ gamma levels help the Brooks method?">🧪 GEX Lab</a>
-      <a href="/flowlab" target="_blank" rel="noopener" title="S75R — ES 1M order-flow reading, bar by bar">🕯 Flow Lab</a>
-      <a href="/artifacts" target="_blank" rel="noopener" title="Local backups of every Claude artifact - readable offline">🗂 Artifact Library</a>
-      <a href="/playbook" target="_blank" rel="noopener" title="Every day's price-path slides, trade-idea charts and entry/exit trade cards - archived automatically">📋 Daily Playbook</a>
-      <a href="/scorecard" target="_blank" rel="noopener" title="Process × day history grid - see which processes failed on which day">📅 Daily Scorecard</a>
-      <a href="/catalog" target="_blank" rel="noopener" title="Data Catalog — every dataset, where it lives, how fresh it is">🗄 Data Catalog</a>
+      <a href="/tour" target="_blank" title="how the options desk automation works — shareable explainer">📖 Desk Tour</a>
+      <a href="/library" target="_blank" title="MZpack Insights knowledge base — order-flow education organized by topic">📚 MZpack Library</a>
+      <a href="/slides" target="_blank" title="study-material slides by topic (docs/slides/)">🎞 Slides</a>
+      <a href="/levels" target="_blank" title="Gamma Levels slide deck — MenthorQ + our CR/PS/HVL over intraday price">📈 Gamma Levels</a>
+      <a href="/mqmethod" target="_blank" title="MenthorQ Method — framework from 7 Academy videos, every claim tested">🔬 MQ Method</a>
+      <a href="/gexlab" target="_blank" title="S75Q — do MenthorQ gamma levels help the Brooks method?">🧪 GEX Lab</a>
+      <a href="/flowlab" target="_blank" title="S75R — ES 1M order-flow reading, bar by bar">🕯 Flow Lab</a>
+      <a href="/artifacts" target="_blank" title="Local backups of every Claude artifact - readable offline">🗂 Artifact Library</a>
+      <a href="/playbook" target="_blank" title="Every day's price-path slides, trade-idea charts and entry/exit trade cards - archived automatically">📋 Daily Playbook</a>
+      <a href="/scorecard" target="_blank" title="Process × day history grid - see which processes failed on which day">📅 Daily Scorecard</a>
+      <a href="/catalog" target="_blank" title="Data Catalog — every dataset, where it lives, how fresh it is">🗄 Data Catalog</a>
     </div>
   </div>
   <button id="reload" title="refresh status now">↻ Reload</button>
@@ -1148,7 +1148,7 @@ async function load(){
         <div class="desc">${d.desc}</div>
         <div class="actions">
           <button class="primary btn-start" data-k="${d.key}" ${d.up?'disabled':''}>▶ Start</button>
-          <a class="open" href="${d.url}" target="_blank" rel="noopener"><button ${d.up?'':'disabled'}>↗ Open</button></a>
+          <a class="open" href="${d.url}" target="_blank"><button ${d.up?'':'disabled'}>↗ Open</button></a>
           <button class="btn-restart" data-k="${d.key}" ${d.up?'':'disabled'} title="stop then start">⟳ Restart</button>
           <button class="danger btn-stop" data-k="${d.key}" ${d.up?'':'disabled'}>■ Stop</button>
           <button class="ic btn-copy" data-u="${d.url}" title="copy URL">⧉</button>
@@ -1315,11 +1315,11 @@ async function load(){
     for(const d of groups[g]){
       let extra='';
       if(d.key==='options_desk')
-        extra=d.up?`<a href="http://${location.hostname}:8600/?key=__DESKKEY__" target="_blank" rel="noopener"><button class="primary">↗ Open desk</button></a>
+        extra=d.up?`<a href="http://${location.hostname}:8600/?key=__DESKKEY__" target="_blank"><button class="primary">↗ Open desk</button></a>
                     <button onclick="deskAct(this,'restart','reloading…')" title="restart the desk server if it looks stuck">⟳ Reload desk</button>`
                   :`<button class="primary" onclick="deskAct(this,'start','starting…')">▶ Start desk</button>`;
       if(d.key==='data_catalog'&&d.up)
-        extra=`<a href="${k('/catalog')}" target="_blank" rel="noopener"><button>↗ Browse (read-only)</button></a>`;
+        extra=`<a href="${k('/catalog')}" target="_blank"><button>↗ Browse (read-only)</button></a>`;
       const inf=d.info?`<span class="info" title="${d.info.replace(/"/g,'&quot;')}">i</span>`:'';
       h+=`<div class="card">
         <div class="top"><span class="dot ${d.up?'up':''}"></span>
