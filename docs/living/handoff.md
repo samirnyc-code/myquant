@@ -1,6 +1,72 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 20, 2026 (S75V-BL blind-spot reverse-engineering + capture pipeline; prior: 75Q + 75R + Setup Marker rebuild + 75T + 75U + 75V recording pipeline + S77 security hardening; merged S76 Mac swing-levels work)
+**Last Updated:** July 21, 2026 (S78 depth-data direction research; prior: S75V-BL blind-spot reverse-engineering + capture pipeline, 75Q + 75R + Setup Marker rebuild + 75T + 75U + 75V recording pipeline + S77 security hardening; merged S76 Mac swing-levels work)
+
+---
+
+## S78 (2026-07-21) — Depth data: what to build with it (research + direction, no code) (branch `s75-live-dashboard`)
+
+**Goal:** decide how to use the S75V L2/depth recording. Samir's two objectives: (a) identify
+major intraday turning points, (b) distinguish breakouts that produce a second leg / new trend
+from breakouts that fail. Idea-collection session — deep-research sweep over practitioner +
+academic sources, plus repo audit of what the recorder actually captures. **No code written.**
+
+**WHAT WE HAVE (audited):** `MarketDepthRecorder.cs` writes the RAW book event stream — every
+Add/Update/Remove at up to ~30 levels/side, ms timestamps, Chicago clock — **with the tape
+interleaved on the same clock** (`T` rows: price/size/aggressor, same classification rule as
+FootprintExporter) + connection markers. Schema `Time,Ev,Side,Pos,Price,Size`, files
+`data/depth/{Contract}_depth_{date}.csv` (~200–500 MB/day, ~20x parquet compression via
+`depth_rollover.py`). Coverage: 7/19 + 7/20 full book; 7/17 tape-only (pre-subscription).
+This is sufficient input for order-flow analytics AND a Bookmap-style heatmap replay
+(heatmap = resting size per price over time + trade dots; we hold the exact inputs).
+
+**RESEARCH SWEEP (deep-research workflow, 16 claims survived 3-vote adversarial verify;
+iceberg/VPIN verify batch + final synthesis died on session limit — findings below are the
+verified core):**
+- **OFI (order flow imbalance) is CONTEMPORANEOUS, not predictive:** best-level OFI explains
+  ~65% OOS of *same-window* 10-s returns, integrated (PCA) OFI ~84% — but LAGGED OFI forecasting
+  1-min-ahead returns has **negative** OOS R² (−17 to −19%). An OFI indicator explains the move
+  happening now, not the next one. Depth beyond ~level 8 adds nothing (arxiv 2112.13213).
+- **Queue imbalance (top-of-book only):** extreme imbalance predicts direction of the *very next
+  mid-price move* at ~0.8–0.9 probability on large-tick instruments (ES is large-tick) — but the
+  horizon is ONE TICK, pre-cost (arxiv 1512.03492). Microstructure edge decays in seconds→minutes.
+- **VPIN: do NOT build.** BVC-based VPIN is a distorted realized-vol measure (bulk return corr
+  0.84–0.86 with actual returns ON ES); RV subsumes it entirely (adding VPIN to RV leaves R²
+  unchanged, t≈0.5). Multiple 3-0 verified refutations (Andersen-Bondarenko).
+- **Iceberg detection is the real depth-native prize:** native CME icebergs are deterministic
+  from MBO (order-ID refill tracking) — our MBP feed can't do that, but *synthetic* refill
+  detection (trade at level followed by size restoration, needs depth+tape same clock — exactly
+  what we record) is the implementable version. Verification of the iceberg-edge claims was the
+  batch lost to the session limit — re-run if pursued.
+- **Net of literature:** book features have real information at seconds-to-minutes horizons only.
+  For Samir's swing-horizon objectives, depth is an **event-anchored evidence layer** (what
+  happened AT the level/breakout: absorption/refill vs liquidity pull/vacuum), not a standalone
+  directional predictor.
+
+**AGREED DIRECTION (build order, all offline-first — nothing built yet):**
+1. **Book reconstruction + feature library** (event stream → book state at any t; OFI, refill/
+   absorption events, pulled-vs-stacked size near a level, sweep detection). Keystone for all else.
+2. **Bookmap-style replay viewer** of our recorded sessions — dual purpose: research microscope
+   (eyeball absorption/pull signatures at real turning points/breakouts) AND later a
+   **deliberate-practice scalping simulator** (pause/step/speed, log user entries vs actual
+   subsequent prices, per-setup personal expectancy stats).
+3. **Event studies** once enough days recorded: anchor on level touches/breakouts, matched nulls,
+   BL-study discipline. Test: absorbed touches → reversal? pulled-liquidity breakouts → second leg?
+4. **Live NT8 indicators LAST**, only for signatures surviving #3.
+
+**SCALPING TRACK (new, from this session):** Samir wants to learn a scalping methodology with
+proven edge. Position taken on record: no vendor sells a *proven* one; proof must be built —
+Layer 1 = validate signatures statistically on our own recordings first, Layer 2 = prove the
+trader via replay-sim stats (positive stable expectancy over hundreds of sim trades before live).
+**Cost math flag:** $5 RT on MES = 4 ticks round-trip → MES scalping mathematically dead.
+**Samir confirmed: ES is allowed as long as trailing DD stays under $4,500** (prop limit), where
+the same RT ≈ 0.4 ticks. ES tick $12.50 → DD budget = 360 ES ticks cumulative; sizing/stop
+discipline design needed before any live scalp.
+**Databento MBP-10 backfill** (paused-research memory: history to 2010, $125 free credit) is the
+shortcut to enough breakout/turning-point events for #3 without waiting months of recording.
+
+**STATUS: parked — "we will revisit all this."** Keep the recorder running (data compounds
+regardless). Nothing above is committed-to except continued recording.
 
 ---
 
