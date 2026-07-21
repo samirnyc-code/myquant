@@ -38,12 +38,13 @@ families:
       - data/flatfiles_cache_nymex
       - data/flatfiles_cache_comex
     produced_by: "massive.py / scripts/download_instruments_5y.py / refresh_stale_flatfiles.py"
-    update_cadence: manual
+    update_cadence: on-demand
     expected_freshness_days: 999
     count_rows: false
+    optional: true   # intentionally deleted to free disk — offline (grey), not missing (red)
     useful_for: "Raw daily CME-complex flat files (per-day .csv.gz) — the source Databento/Massive pulls that continuous ticks & bars are BUILT from. Cold archive; not queried directly in studies."
     access: "import pandas as pd; pd.read_csv('data/flatfiles_cache/2026-07-15.csv.gz')  # gzip auto-detected"
-    gotchas: "Biggest footprint on disk (~85 GB across the 4 exchange dirs). One file per session per exchange root. Raw, unadjusted, not roll-stitched — rebuild ticks/bars from these, don't analyse directly."
+    gotchas: "INTENTIONALLY DELETED (2026-07, ~81GB) to free disk — ticks/bars were already rebuilt from these into ticks_continuous/ + bars/ (parquet), so nothing downstream lost them. Re-download via scripts/download_instruments_5y.py only if a fresh rebuild is ever needed. Was the biggest on-disk footprint (~85GB / 4 exchange dirs); one file per session per exchange root; raw/unadjusted/not roll-stitched."
 
   - key: nt_import
     title: "NinjaTrader import data (raw tick text)"
@@ -279,12 +280,12 @@ families:
     paths:
       - data/briefs
     produced_by: "scripts/nq_daily_brief.py / build_morning_report.py"
-    update_cadence: daily
-    expected_freshness_days: 3
+    update_cadence: on-demand
+    expected_freshness_days: 999
     count_rows: false
     useful_for: "Generated morning/daily brief artifacts (nq_daily_brief.py / build_morning_report.py)."
     access: "browse the dir"
-    gotchas: "Regenerated each morning; ephemeral output, not a source dataset."
+    gotchas: "Ephemeral output, not a source dataset. NOT currently scheduled (last run 6d+ ago) — that's expected, not a failure. Regenerate on demand, or ask to wire a daily task if you want the morning brief running automatically again."
 
   - key: misc_cache
     title: "Assorted caches / scratch (cache, raw, leg_labels)"

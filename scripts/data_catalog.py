@@ -86,6 +86,7 @@ def load_registry():
         f.setdefault("paths", [])
         f["expected_freshness_days"] = _int(f.get("expected_freshness_days"), 999)
         f["count_rows"] = str(f.get("count_rows", "")).lower() == "true"
+        f["optional"] = str(f.get("optional", "")).lower() == "true"
     return fams
 
 
@@ -147,6 +148,11 @@ def health(fam, agg):
     """Verdict for a family: ok / stale / missing / empty, plus reasons."""
     reasons = []
     if not agg["exists_any"]:
+        # a family flagged `optional: true` is data we INTENTIONALLY removed (e.g. the
+        # ~81GB vendor flat files deleted to free disk, rebuildable on demand) — that is
+        # "offline" (grey), not "missing" (red alarm). 2026-07-21.
+        if fam.get("optional"):
+            return "offline", ["intentionally offline — deleted to free disk; rebuildable (see gotchas)"]
         return "missing", ["no registered path exists on disk"]
     if agg["n"] == 0:
         return "empty", ["path(s) exist but contain no files"]
@@ -260,7 +266,7 @@ def build_view():
     total = manifest.get("total_size", 0) or 1
     cats = {}
     worst = {"health": "ok", "key": None, "reasons": []}
-    rank = {"missing": 3, "empty": 2, "stale": 1, "ok": 0}
+    rank = {"missing": 3, "empty": 2, "stale": 1, "ok": 0, "offline": 0}
     for f in fams:
         m = mfam.get(f["key"], {})
         size = m.get("size", 0)
@@ -402,7 +408,7 @@ details summary{cursor:pointer;font-size:12px;color:var(--muted);user-select:non
   <div id="cats"></div>
 </div>
 <script>
-const HB={ok:'--good',stale:'--warn',empty:'--warn',missing:'--bad',unknown:'--muted'};
+const HB={ok:'--good',stale:'--warn',empty:'--warn',missing:'--bad',offline:'--muted',unknown:'--muted'};
 const css=k=>getComputedStyle(document.documentElement).getPropertyValue(k).trim();
 const gb=b=>b>=1e9?(b/1e9).toFixed(b>=1e10?0:2)+' GB':b>=1e6?(b/1e6).toFixed(1)+' MB':b>=1e3?(b/1e3).toFixed(0)+' KB':b+' B';
 const nfmt=n=>n.toLocaleString('en-US');
