@@ -270,7 +270,8 @@ def _mem_map(pids):
     out = {}
     try:
         r = subprocess.run(["tasklist", "/FO", "CSV", "/NH"],
-                           capture_output=True, text=True, timeout=8).stdout
+                           capture_output=True, text=True, timeout=8,
+                           creationflags=0x08000000).stdout   # NO console flash (polled every few s)
         import csv as _csv
         want = set(pids)
         for row in _csv.reader(r.splitlines()):

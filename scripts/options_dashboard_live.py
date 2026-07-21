@@ -218,7 +218,7 @@ def main():
     try:
         import subprocess
         tsip = subprocess.run(["tailscale", "ip", "-4"], capture_output=True, text=True,
-                              timeout=5).stdout.strip().splitlines()
+                              timeout=5, creationflags=0x08000000).stdout.strip().splitlines()
         if tsip:
             print(f"  SHARE (Tailscale): http://{tsip[0]}:{args.port}/?key={TOKEN}")
     except Exception:
