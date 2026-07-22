@@ -1,0 +1,237 @@
+<title>Grimes Regime Engine — Research Brief</title>
+<style>
+  :root {
+    --paper: #F6F7F4;
+    --ink: #1C2128;
+    --muted: #5C636E;
+    --line: #D8DBD4;
+    --panel: #FFFFFF;
+    --accent: #B07818;
+    --bull: #2E7D4F;
+    --bear: #B0453A;
+    --neutral-state: #5C636E;
+    --trans-state: #8A6A1F;
+    --mono: ui-monospace, "Cascadia Code", Consolas, Menlo, monospace;
+    --serif: Charter, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #12151A; --ink: #D9DEE4; --muted: #8B94A1; --line: #2A303A;
+      --panel: #191E26; --accent: #D9A03F; --bull: #4CAF79; --bear: #D4756A;
+      --neutral-state: #8B94A1; --trans-state: #C79A3B;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #12151A; --ink: #D9DEE4; --muted: #8B94A1; --line: #2A303A;
+    --panel: #191E26; --accent: #D9A03F; --bull: #4CAF79; --bear: #D4756A;
+    --neutral-state: #8B94A1; --trans-state: #C79A3B;
+  }
+  :root[data-theme="light"] {
+    --paper: #F6F7F4; --ink: #1C2128; --muted: #5C636E; --line: #D8DBD4;
+    --panel: #FFFFFF; --accent: #B07818; --bull: #2E7D4F; --bear: #B0453A;
+    --neutral-state: #5C636E; --trans-state: #8A6A1F;
+  }
+  html { background: var(--paper); }
+  body {
+    font-family: var(--serif);
+    color: var(--ink);
+    background: var(--paper);
+    line-height: 1.55;
+    margin: 0;
+    padding: 2.5rem 1.25rem 5rem;
+  }
+  main { max-width: 46rem; margin: 0 auto; }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 0.4rem;
+  }
+  h1 {
+    font-size: clamp(1.7rem, 4.5vw, 2.4rem);
+    line-height: 1.15;
+    margin: 0 0 0.5rem;
+    text-wrap: balance;
+    font-weight: 700;
+  }
+  .subtitle { color: var(--muted); font-size: 1.02rem; margin: 0 0 0.75rem; }
+  .meta {
+    font-family: var(--mono); font-size: 0.75rem; color: var(--muted);
+    border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+    padding: 0.5rem 0; margin: 1.25rem 0 2.25rem;
+    display: flex; flex-wrap: wrap; gap: 0.4rem 1.5rem;
+  }
+  h2 {
+    font-size: 1.3rem; margin: 2.75rem 0 0.75rem; text-wrap: balance;
+  }
+  h2 .num { font-family: var(--mono); font-size: 0.8rem; color: var(--accent); margin-right: 0.5rem; vertical-align: 0.15em; }
+  h3 { font-size: 1.02rem; margin: 1.5rem 0 0.4rem; }
+  p { margin: 0 0 0.9rem; }
+  li { margin-bottom: 0.35rem; }
+  ul { padding-left: 1.2rem; margin: 0 0 1rem; }
+  strong { font-weight: 700; }
+  .pull {
+    border-left: 3px solid var(--accent);
+    padding: 0.15rem 0 0.15rem 1rem;
+    margin: 1.4rem 0;
+    font-size: 1.08rem;
+    font-style: italic;
+    color: var(--ink);
+  }
+  .cite { font-family: var(--mono); font-size: 0.7rem; color: var(--muted); font-style: normal; white-space: nowrap; }
+  .states { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; margin: 1.25rem 0; }
+  @media (max-width: 40rem) { .states { grid-template-columns: 1fr; } }
+  .state {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-top: 3px solid var(--sc, var(--muted));
+    border-radius: 4px;
+    padding: 0.9rem 1rem 0.6rem;
+  }
+  .state h3 { margin: 0 0 0.5rem; font-family: var(--mono); font-size: 0.82rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--sc, var(--ink)); }
+  .state ul { font-size: 0.92rem; padding-left: 1.05rem; margin-bottom: 0.4rem; }
+  .s-bull { --sc: var(--bull); }
+  .s-bear { --sc: var(--bear); }
+  .s-trans { --sc: var(--trans-state); }
+  .s-none { --sc: var(--neutral-state); }
+  .tablewrap { overflow-x: auto; margin: 1rem 0 1.5rem; border: 1px solid var(--line); border-radius: 4px; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.86rem; background: var(--panel); }
+  th, td { text-align: left; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  tr:last-child td { border-bottom: none; }
+  td.mono, .mono { font-family: var(--mono); font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+  .good { color: var(--bull); font-weight: 700; }
+  .bad { color: var(--bear); font-weight: 700; }
+  .kicker { font-family: var(--mono); font-size: 0.72rem; color: var(--muted); letter-spacing: 0.06em; }
+  .dead { background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 1rem 1.25rem; margin: 1rem 0; }
+  .dead ul { margin-bottom: 0; font-size: 0.94rem; }
+  pre.mermaid { background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 0.75rem; overflow-x: auto; }
+  footer { margin-top: 3rem; border-top: 1px solid var(--line); padding-top: 1rem; font-size: 0.82rem; color: var(--muted); }
+  a { color: var(--accent); }
+</style>
+
+<main>
+  <p class="eyebrow">Research brief · MyQuant</p>
+  <h1>What Adam Grimes gives us for a market regime engine</h1>
+  <p class="subtitle">Full read of <em>The Art &amp; Science of Technical Analysis</em> (Wiley 2012, 480&nbsp;pp) and the <em>Art &amp; Science of Trading</em> course workbook (609&nbsp;pp), distilled to what is buildable for an ES regime classifier: <strong>bull / bear / transition / no-trade</strong>.</p>
+  <div class="meta">
+    <span>Prepared for: Thomas</span>
+    <span>Date: 2026-07-22</span>
+    <span>Sources cited by page in repo: docs/research_notes/grimes_regime/</span>
+  </div>
+
+  <h2><span class="num">01</span>The model in one paragraph</h2>
+  <p>Markets are near-efficient most of the time; most price movement is random, so the engine's <strong>default state is no-trade</strong>. All action lives between two poles — <strong>range expansion</strong> (momentum, positive autocorrelation) and <strong>mean reversion</strong> (negative autocorrelation). Aggregated, the two cancel to roughly zero autocorrelation, which is why unconditioned studies find nothing: <em>the engine's whole job is conditioning first, then measuring</em>. The cycle is Wyckoff's (accumulation → markup → distribution → markdown), and the interfaces between trend and range are where both the opportunity and the failure modes live.</p>
+  <div class="pull">"Markets tend to work in mean reversion mode after a period of expanded volatility, and in range expansion mode after a period of contracted volatility." <span class="cite">workbook p.594–602</span></div>
+  <p>Volatility clustering is the one robust nonrandom feature he stands behind: shocks persist (GARCH-like), magnitude is predictable, direction is not. His summary of trading failure: <em>"Most trading losses come from incorrectly identifying the emerging volatility environment."</em></p>
+
+  <h2><span class="num">02</span>The four states, in Grimes terms</h2>
+  <div class="states">
+    <div class="state s-bull">
+      <h3>Bull — trend up</h3>
+      <ul>
+        <li>Structure first: higher pivot highs <strong>and</strong> higher lows on ATR-filtered zigzag swings; up-legs longer than down-legs in price <em>and</em> time.</li>
+        <li>Pullbacks retracing 40–80% of the prior leg are <strong>normal</strong> (futures: mean 62%, SD 21%) — deeper retracements actually precede <em>larger</em> extensions.</li>
+        <li>Confirmation: price one side of the 20-EMA; MACD (SMA 3-10-16) new momentum highs; <em>failed</em> divergences piling up is itself trend confirmation.</li>
+      </ul>
+    </div>
+    <div class="state s-bear">
+      <h3>Bear — trend down</h3>
+      <ul>
+        <li>Mirror structure: LL + LH required together.</li>
+        <li>Not symmetric with bull: declines carry expanding volatility; bear rallies are sharp and vicious vs orderly bull pullbacks.</li>
+        <li>In his futures tests the trend-state edge is <strong>strongest on the short side</strong> (triple-MA down state: −203&nbsp;bp excess).</li>
+      </ul>
+    </div>
+    <div class="state s-trans">
+      <h3>Transition</h3>
+      <ul>
+        <li>Hard 2-step rule: (1) a break event — climax bar ≥3× average range at a new extreme, free bars outside the Keltner channel, three pushes, failure test, valid divergence, or first counter-swing bigger than the prior with-trend swing — then (2) a <strong>new momentum extreme in the opposite direction</strong>.</li>
+        <li>Divergence alone never flips state — "divergences fail about as often as they work."</li>
+        <li>Most terminations resolve to <em>range</em>, not reversal — transition defaults back to no-trade.</li>
+      </ul>
+    </div>
+    <div class="state s-none">
+      <h3>No-trade — default</h3>
+      <ul>
+        <li>Price chopping both sides of the 20-EMA: absence of departure "virtually guarantees that an imbalance does not exist."</li>
+        <li>Range interiors are a random walk — only the edges (springs / upthrusts / failure tests) are tradable.</li>
+        <li>Sub-states: both-band spike (triangle forming), expanding range, post-climax cooldown, and the runaway "slide-along-band" trend — directional but unenterable.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2><span class="num">03</span>State machine</h2>
+  <pre class="mermaid">
+stateDiagram-v2
+    direction LR
+    [*] --> NoTrade
+    NoTrade --> Trend : impulse beyond Keltner +\nnew momentum extreme\n(best out of vol compression)
+    Trend --> Transition : break event + opposite\nmomentum extreme (2-step)
+    Transition --> NoTrade : usual resolution\n(termination → range)
+    Transition --> Trend : opposite trend confirmed\n(LH+LL or HL+HH)
+    Trend --> Trend : health checklist holds\n(leg momentum consistent,\nno counter-momentum, ≤3 legs)
+  </pre>
+  <p class="kicker">Asymmetries to encode: entry to trend is easy to miss but cheap to wait for (most breakouts fail — demand higher-lows-into-level, tight sub-range &lt;25% at the edge, volatility expansion at the break). Exit from trend needs the full 2-step rule. Transition resolves to no-trade unless the opposite Dow structure completes.</p>
+
+  <h2><span class="num">04</span>The volatility layer</h2>
+  <p>A second state machine runs in parallel and decides which force dominates:</p>
+  <ul>
+    <li><strong>Compressed</strong> (5-day / 40-day ATR ratio &lt; 0.5, or realized vol in its bottom 20th percentile): expect range expansion. His vol-compression breakout test is the strongest futures continuation signal in either book — trigger day's true range ≥ 5-day ATR with a strong close: <span class="mono good">+128 bp** by day 4, 73% up at day 5</span>. Suppress mean-reversion plays here.</li>
+    <li><strong>Expanded</strong> (σ-spike ≥ 2.5–3.0, where spike = today's return ÷ yesterday's 20-day return stdev): expect mean reversion — with the futures caveat below. Shocks persist; don't expect a quick return to quiet.</li>
+  </ul>
+
+  <h2><span class="num">05</span>Futures-specific numbers (ES-relevant — equities often invert)</h2>
+  <div class="tablewrap"><table>
+    <tr><th>Finding</th><th>Number</th><th>Direction for ES</th></tr>
+    <tr><td>MA-slope / triple-MA state (10/20/50 ordered)</td><td class="mono">up +81 bp, down −203 bp excess</td><td>Correct sign <em>in futures only</em>; strongest short side</td></tr>
+    <tr><td>Vol-compression breakout (5/40 ATR &lt; 0.5)</td><td class="mono good">+128 bp** d4 · 73% up d5</td><td>Trust breakouts out of compression</td></tr>
+    <tr><td>Keltner pullback to 20-EMA (after band close)</td><td class="mono">sell −59 bp** d1 (40% up)</td><td>Trend continuation, especially shorts</td></tr>
+    <tr><td>Fading ±3σ single days</td><td class="mono bad">not significant in futures</td><td>Big single days lean <em>continuation</em> — don't fade</td></tr>
+    <tr><td>Donchian 100/260-day breakouts</td><td class="mono good">+73 bp** / +102 bp** at d20</td><td>Long-channel momentum is real in futures</td></tr>
+    <tr><td>S&amp;P <em>cash index</em> after 3–6 day runs</td><td class="mono">P(continue) 39–47%</td><td>Index mean-reverts after runs</td></tr>
+    <tr><td>Intraday index trend legs</td><td class="mono">rarely &gt; 3 legs · ~1 in 5 sessions trends</td><td>ES intraday is chop-dominant</td></tr>
+  </table></div>
+
+  <h2><span class="num">06</span>Candidate feature set</h2>
+  <div class="tablewrap"><table>
+    <tr><th>#</th><th>Feature</th><th>Spec</th></tr>
+    <tr><td class="mono">1</td><td>ATR-zigzag swings</td><td>First-order pivots qualified by k×ATR move (start k ≈ 3× avg bar range)</td></tr>
+    <tr><td class="mono">2</td><td>Swing asymmetry</td><td>Up-leg vs down-leg length in price and bars, rolling</td></tr>
+    <tr><td class="mono">3</td><td>Dow state machine</td><td>HH/HL vs LH/LL on second-order pivots, with UNCERTAIN state + complex-pullback exception</td></tr>
+    <tr><td class="mono">4</td><td>Keltner position</td><td>20-EMA ± 2.25×ATR (~85% containment); free bars, slide-along-band, both-band spike</td></tr>
+    <tr><td class="mono">5</td><td>Modified MACD</td><td>SMA 3-10-16; new-extreme flags, divergence validity + reset rules, zero-cross, drive-and-hold</td></tr>
+    <tr><td class="mono">6</td><td>MA slope 3-state</td><td>Slope of 50-SMA via 5-point regression on the average; explicit undefined zone</td></tr>
+    <tr><td class="mono">7</td><td>Vol ratio</td><td>5d ATR / 40d ATR (&lt; 0.5 = compressed); or 10d/60d realized vol</td></tr>
+    <tr><td class="mono">8</td><td>σ-spike</td><td>Return ÷ prior 20-day return stdev; flag ≥ 2.5–3.0</td></tr>
+    <tr><td class="mono">9</td><td>Climax bar</td><td>Range ≥ 3× recent average at a new extreme breaking the trend's rhythm</td></tr>
+    <tr><td class="mono">10</td><td>Leg counter</td><td>Trend legs since regime start; ≥3 → elevated failure probability</td></tr>
+    <tr><td class="mono">11</td><td>Retracement depth</td><td>BC/AB of current pullback; ≤100% = trend intact; 40–80% normal</td></tr>
+    <tr><td class="mono">12</td><td>Failure-test detector</td><td>Probe beyond level, close back inside ≤ 2–3 bars; flush quality ≈ 10+ ES handles</td></tr>
+  </table></div>
+  <p class="kicker">Caution (workbook p.372): features 4/5/6 measure the same thing different ways — never vote-count correlated inputs as independent evidence.</p>
+
+  <h2><span class="num">07</span>Tested dead ends — do not build on these</h2>
+  <div class="dead"><ul>
+    <li>Fibonacci retracements/extensions — swing ratios indistinguishable from a random walk (median unfiltered retracement ≈ 100%).</li>
+    <li>Moving averages as support/resistance; golden cross (no effect); death cross (one-week R2K effect only); MA touch-and-hold.</li>
+    <li>Floor-trader pivots (≈ random lines); day-of-week/month seasonality (leakage artifact); opening skew (arcsine-law artifact).</li>
+    <li>Volume confirmation around springs/upthrusts — he could not substantiate it.</li>
+    <li>Fading big single days in futures; fading breakouts during volatility compression.</li>
+  </ul></div>
+
+  <h2><span class="num">08</span>Validation protocol (his "Pythia" discipline)</h2>
+  <ul>
+    <li>Assign each bar's return to the <strong>previous</strong> bar's state (no look-ahead); compare per-state excess return / stdev / %Up vs unconditional ES baseline at bars +1…+20.</li>
+    <li>Run every feature against random-walk, AR(2), and GARCH synthetic nulls — anything that lights up on those is noise.</li>
+    <li>≤ 3 conditions per rule; single-use out-of-sample; discard effects &lt; 10 bp or with mean/median sign disagreement.</li>
+    <li>Regime labels must be assignable in real time (a priori) — post-hoc trend/range labeling is circular.</li>
+    <li>Test across volatility regimes (our tick data spans 2021-06 → 2026-07: low-vol 2021, 2022 bear, 2024-26).</li>
+  </ul>
+
+  <footer>
+    Extraction method: both PDFs read in full by 11 parallel readers; page-cited raw notes committed in <span class="mono">docs/research_notes/grimes_regime/</span> (repo <span class="mono">myquant</span>, commit <span class="mono">a7d2395</span>). Numbers marked ** are significant at 0.01 in Grimes's own event studies; all stats are his published tests, not ours — replication on ES data is the proposed next step.
+  </footer>
+</main>
