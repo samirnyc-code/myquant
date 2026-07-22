@@ -66,13 +66,21 @@ def build(DAY, out=None, crop_majors=None):
         tu = up[0] if len(up) else np.inf; td = dn[0] if len(dn) else np.inf
         return "D" if td < tu else "U"
 
+    # An OUTSIDE bar's range is always BIGGER than the prior bar's: one side may be equal, but
+    # never both. A bar with the SAME high AND the same low is a perfect INSIDE bar — it breaks
+    # neither side, so it contributes nothing (it is NOT an OB and gets no tick-order treatment).
+    # The two one-sided OB variants only extend on one side, so that side is the break by
+    # construction and no tick order is needed.
     ob_side = {}; evs = {}
     for i in range(1, n):
-        bt = H[i] > H[i-1]; bb = L[i] < L[i-1]; eq = (H[i] == H[i-1]) and (L[i] == L[i-1])
-        if (bt and bb) or eq: fb = first_break(i); ob_side[i] = fb; evs[i] = ["D", "U"] if fb == "D" else ["U", "D"]
+        bt = H[i] > H[i-1]; bb = L[i] < L[i-1]
+        eqH = H[i] == H[i-1]; eqL = L[i] == L[i-1]
+        if bt and bb: fb = first_break(i); ob_side[i] = fb; evs[i] = ["D", "U"] if fb == "D" else ["U", "D"]
+        elif bt and eqL: ob_side[i] = "U"; evs[i] = ["U"]   # OB, high side extends
+        elif bb and eqH: ob_side[i] = "D"; evs[i] = ["D"]   # OB, low side extends
         elif bt: evs[i] = ["U"]
         elif bb: evs[i] = ["D"]
-        else: evs[i] = []
+        else: evs[i] = []                                   # inside bar, incl. the equal bar
 
     # ---- legs -> swing pivots (mirrors brooks_structure_engine.py) ----
     st = {"d": None, "ext": 0}; piv = []
@@ -273,8 +281,9 @@ def build(DAY, out=None, crop_majors=None):
     # b1 always seeds BOTH an H and an L. Each later bar vs the PRIOR bar (two-bar rule):
     #   higher-high only  -> H moves onto this bar (the L stays where it was)
     #   lower-low only    -> L moves onto this bar (the H stays where it was)
-    #   outside bar / eq  -> BOTH H and L carry forward onto this bar
+    #   outside bar       -> BOTH H and L carry forward onto this bar
     #   inside bar        -> neither moves (this bar gets no label)
+    #   equal bar (H==,L==) -> a perfect INSIDE bar, ignored exactly like one
     # The label only continues on the side that breaks out. The open phase runs ONLY until
     # the first real swing pivot forms (tagged[0], e.g. b5 HH on 2/24, confirmed when b6
     # breaks below it); from that bar on, the regular engine below takes over. The carried-
@@ -285,14 +294,13 @@ def build(DAY, out=None, crop_majors=None):
     open_H[0] = True; open_L[0] = True
     for i in range(1, first_piv_bar+1):
         bt = H[i] > H[i-1]; bb = L[i] < L[i-1]
-        eqboth = (H[i] == H[i-1]) and (L[i] == L[i-1])
-        if (bt and bb) or eqboth:
+        if bt and bb:
             open_H[i] = True; open_L[i] = True
         elif bt:
             open_H[i] = True
         elif bb:
             open_L[i] = True
-        # inside bar: neither
+        # inside bar (and the equal bar, which is a perfect inside bar): neither
 
     # ==== CONFIRMATION — TWO parallel rules, chosen by the pivot's label ====
     # HH / LL are TREND-CONTINUATION pivots: KNOWN at the TURN — price ticks back the other

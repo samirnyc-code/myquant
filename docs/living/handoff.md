@@ -1,6 +1,92 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 22, 2026 (open-of-day logic + minor/major dual labels + real-time confirmation bar# + OB first-break dots in brooks_regime_layer.py; prior: regime/v2-multistate kickoff)
+**Last Updated:** July 22, 2026 (equal-bar = inside-bar fix COMMITTED; OB/intrabar-confirmation + trend-termination + seed-phase rules designed and validated bar-by-bar, NOT yet in the engine)
+
+---
+
+## Outside-bar rules, intrabar confirmation, trend termination + seed phase (2026-07-22 evening, branch `main`)
+
+Session 2 of the day. Continued validating `scripts/brooks_regime_layer.py` on **2022-02-24**
+bar-by-bar with the user. **One fix is committed to the engine; everything else is designed and
+user-validated but still lives only in a scratch phase-machine script.**
+
+### ⭐ COMMITTED — the equal-bar bug (`brooks_regime_layer.py`)
+An **outside bar's range is always BIGGER than the prior bar's: one side may be equal, never
+both.** The old line got this backwards in both directions:
+- `eq` (H==prior H **and** L==prior L) was routed into the OB tick-order path. Wrong — that is a
+  **perfect INSIDE bar**: no events, no pivot contribution. (474 bars, 0.48%.)
+- Higher-high-**with-equal-low** and lower-low-**with-equal-high** fell to `elif bt`/`elif bb` and
+  were treated as ordinary one-sided bars. They ARE outside bars (range grew) — **4,148 bars,
+  4.2%**, understating the OB count by more than a third. Their event decomposition is unchanged
+  (only one side extends, so that side IS the break — no tick order needed), but they now
+  classify as OB and get the gold first-break dot.
+Fixed in the event decomposition AND in the open pre-phase carry rule. On 2/24 the only pivot
+change is **b66** (an exact equal bar to b65): `['U','D']` → `[]`, removing the two spurious
+pivots 66HH/66HL. All user-validated pivots and the confirm set (5→6, 8→9, 11→12, 15→20, 23→24,
+35→52) survived untouched. **This also cleared the b64 "reference-extreme" artifact** that was
+open item #1 from the previous session.
+⚠️ `scripts/brooks_structure_engine.py` **still has the old rule** at lines 55-58 — deliberately
+not touched (validated S63 baseline). The two are now divergent; sync is an open decision.
+
+### VALIDATED WITH THE USER, NOT YET IN THE ENGINE
+All of the below was walked bar-by-bar and confirmed on 2/24. Scratch implementation:
+**`scratchpad/regime_phase_machine.py`** (standalone, imports nothing from the engine).
+
+1. **Every strict OB fires TWO events in tick order**, and each event drops its pivot on
+   whichever bar holds the extreme of the leg it closes — **which may be an EARLIER bar**.
+   b69 (down-first) puts an H pivot on **b68** and an L pivot on itself; b69's own high only
+   becomes a pivot later, at b71. A one-sided OB variant fires only ONE event.
+2. **⭐ INTRABAR CONFIRMATION — the crux.** HH/LL are known **at the turn**, and the turn is the
+   next event in TICK order, which on an OB can be **the same bar**. b63 (up-first) makes its
+   high a minor hh, then its own down-tick below b62 confirms it → **`63i`**, NOT b69. Displayed
+   as the bar number with an **`i`** suffix. User confirmed **`23i` is correct** too (supersedes
+   the engine's `turn_bar()`, which scans from p+1 and can never return p).
+   HL/LH still confirm at the **new extreme** (trend resumes past the prior swing extreme).
+3. **TREND TERMINATION.** The standing HL is the trend floor; a bar trading below it terminates
+   the bull trend. On 2/24: **b71 breaks the b69 HL (5059.00)**. Draw a dotted horizontal from
+   the HL extreme across into the breaking bar, plus a dotted vertical at the break (intrabar in
+   real time; after the bar on a completed-bar chart). **No price labels on these lines.**
+4. **SEED PHASE = the open-of-day logic, reused.** A termination resets into exactly the rule the
+   day's open uses, so **the open is not a special case — it is just the first seed**:
+   the breaking bar seeds BOTH an H and an L; each later bar carries the label on the side it
+   breaks (OB carries both, IB/equal carries neither) until **one side alone advances →
+   direction established**; the first counter-move then ends the seed and makes the leading
+   extreme the first minor pivot. Validated: **b71 seeds H+L · b72 (OB) carries both · b73/b74 H
+   only · b75 (OB up-first) takes the H then turns → minor hh `75i` · b76 inherits the pending hl
+   · b77 takes out b76's high (hl becomes a pivot) then b75's high → HH+HL go MAJOR and the
+   BULL TREND IS CONFIRMED.** Dotted line from the b75 H across to b77.
+5. **NO TERMINAL PIVOT.** The engine force-appends a pivot at the running extreme when it runs
+   out of bars (`piv.append(...)`, line ~88) — b81 got labelled `81i` with nothing after it to
+   confirm it. An unconfirmed extreme at the close is not a pivot. **Same bug is still in
+   `brooks_regime_layer.py`.**
+
+### ⚠️ MISTAKE TO NOT REPEAT (assistant's, cost most of the session)
+Asked to remove **14 specific wrong majors** (b18 19 30 35 37 39 41 42 43 46 51 52 55 56), I
+instead **replaced the entire major-promotion mechanism** with the engine's `do_up`/`do_down`
+contest — which also destroyed majors the user had already validated (**b68, b69**) and moved the
+termination off b71. User rightly called it out as undoing agreed work.
+**Rule going forward: validated output is FROZEN. If a fix would disturb it, stop and say so
+instead of pushing through.** The 14 are now drawn grey/dashed with a `?` — parked, not deleted.
+
+### OPEN / NEXT
+1. **The 14 disputed majors, all in b18–b56 (the chop before the trend).** Cause: the scratch
+   rules promote *every* pivot eventually (hh/ll at the turn, hl/lh at the new extreme) with **no
+   contest between competing swings**. The engine's single-candidate contest (`cand_lo`/`cand_hi`,
+   deeper low replaces and DEMOTES the pending one, confirmed only by a new **day** extreme) is
+   probably the right mechanism — but applying it wholesale is what broke b68/b69.
+   **Next step agreed: user gives their read on b41/b42/b43, and the rule is fitted to that and
+   checked against the 14 WITHOUT disturbing anything from b63 on.**
+2. Port the validated rules (1-5 above) into `brooks_regime_layer.py` once the major rule is settled.
+3. Sync or consciously fork `brooks_structure_engine.py` (equal-bar rule + terminal pivot).
+4. Re-render **2022-04-12** (bear day) — still not re-run since any of these changes.
+5. Regime STATE (BULL/BULL_ATTEMPT/NEUTRAL/BEAR_ATTEMPT/BEAR) still not wired — the seed phase is
+   the natural home for the ATTEMPT states.
+
+**Artifacts published this session** (zoomable viewers, full-res PNG embedded):
+full session restored `a0455e92-7ba3-47fd-b67b-8c5f57e5aec4` · b61-74 OB rules + termination
+`27951530-a022-40cb-aa4d-c5d32e0c3959` · equal-bar fix `5ab24c25-7744-4c06-b643-0306ed223508`.
+**Standing user preference (saved to memory): every chart → hi-res ZOOMABLE artifact AND shown
+inline in the chat, every time, without being asked.**
 
 ---
 
