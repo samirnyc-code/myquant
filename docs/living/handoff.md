@@ -6,6 +6,71 @@ pipeline + S77 security hardening; merged S76 Mac swing-levels work)
 
 ---
 
+## S80 (2026-07-22, overnight) — same-day IB exec built, AddOn shadow-validated, big data pulls, intraday STMR (branch `s75-live-dashboard`)
+
+**COMMS:** brief, factual. **I made several careless errors this session (false "halt"/"crash"
+alarms, "zero data loss" before scanning, wrong Databento range from memory, "tick only in NT").
+Standing correction: VERIFY from the actual data/metadata, never from memory or the handoff.**
+
+**BUILT & COMMITTED THIS SESSION (6 code files):**
+- `options_sim_daemon.py`: **same-day REAL IB paper execution** at 16:00 ET on the 15:59 signal
+  (`place_real_entry`/`place_real_exit`, `outsideRth=True`+TIF pinned so post-close fills don't
+  cancel, marketable, protective-long-first, guards); `entry_extras()` fills grade/POP/max-gain/
+  max-loss/thesis so cards are never blank; **EOD playbook re-render** after fills; restart-safe
+  session-H/L reconstruction from tape; real rows never sim-closed. Round-trip TESTED on paper.
+- `options_mark.py`: **`l["qty"]` KeyError crash FIXED** (`.get("qty",1)`) + per-trade isolation —
+  this was silently killing ALL marks (blank P&L) whenever a legacy qty-less leg was open.
+- `gameplan_charts.py`: **`KeyError:'TR'` FIXED** (+ safe fallback) — this crashed the playbook
+  render on EVERY negative-gamma day with a rotation path (missing price paths / trades). Was NEVER
+  in git history → confirms fixes were being lost by not committing. Now committed.
+- `options_build_cards.py`: "Closed Today" now uses **client-side CT date** → clears at midnight CT.
+- `nt8_maintenance.py`: restart() now **verifies the workspace XML saved** after clean close (pages
+  if not); never force-kills. NOTE: `ReopenWorkspaces=false` stays (loads-all is unusable).
+- `orats_pull.py`: added **XSP** + **VIX** instruments.
+
+**NT RECORDING — root-caused, PARTLY fixed:**
+- **AddOn `MarketDepthRecorderAddOn` DEPLOYED + VALIDATED**: runs in PARALLEL with the Strategy,
+  writing to `data\depth\addon_test\` (separate folder, no collision). Output byte-identical to the
+  Strategy (77,740,120 vs 77,740,199) → **AddOn works**. Both recording now.
+- **The real failure mode**: NT's modal dialogs (**"disable strategy?"** and **"Save workspace 'Massive'?"**)
+  BLOCK the graceful auto-restart → it times out, refuses to force-kill (protect drawings), pages a
+  human. **That caused a real 55-min L2 gap on 7/20 22:28–23:23 CT** (verified via gap scan). Fix =
+  auto-dismiss both dialogs in restart() — **STILL TODO**.
+- Tonight's 7/22 session: **0 gaps, complete**. The "STALLED 3m/4m data being lost" Telegram alerts
+  were **false alarms** (quiet market vs stalled recorder — watchdog can't tell). Fix TODO.
+
+**DATA PULLS (verified from files):**
+- **XSP options 2020→today** (ORATS, ~1710 req). **VIX options 2007–2026 SKIPPING 2013+2017**
+  (~4570 req, complete years incl. 2008 GFC 253d + 2020 COVID 253d). **⚠️ ORATS quota now ~19,650/
+  20,000 — nearly maxed; do NOT launch more ORATS pulls without checking usage.**
+- **Databento ES MBO**: Q1 2026 (`…4T649EM33V`, 20GB) DONE = **Jan 1–Mar 31 2026** (NOT Apr–Jul as the
+  OLD handoff wrongly said). Apr 1–Jul 20 2026 (`GLBX-20260721-JRSPF47X5J`, 70.6GB, key `db-HgYF…`)
+  DOWNLOADING per-file. **User getting +6 months L3 next week** — catalog it BEFORE it lands.
+- **Massive tick data is INTACT** at `data/ticks_continuous/` (1,270 daily parquets, 2021-06-18→
+  2026-07-09, 3.4GB) + `_continuous_1m.parquet` (519k bars). `validate_engine.py` reads TICKS_DIR.
+  Nothing deleted (git confirms). Also raw in NT db as `ES_MAS` instrument.
+
+**KEY RESEARCH (see Desktop reports `STMR_Options_Report_SPX_XSP.html` + `STMR_Filter_Test.html`):**
+- **Options NOT tradeable in the prop account** — regular margin account; for defined-risk spreads
+  margin = max loss = collateral. STMR BPS **crash test**: SMA100 filter shields slow crashes (0
+  trades in 2008/2011/2018Q4); caught by FAST shocks — **COVID −$10,249 (= the max DD, one trade)**,
+  Volmageddon −$3,711. **Best params (walk-forward OOS-validated, PF 3.2–3.8): BPS short 30Δ/long
+  10Δ, 14 DTE, K8<15, exit SMA5.** Measured bid/ask haircut 1.25% (edge survives: PF 4.18→3.80).
+  Thomas's **IBS<40+body filter is REDUNDANT** on daily (near no-op). XSP fee drag 10× SPX (fixed
+  $1.30/ct on 1/10 premiums).
+- **Intraday STMR on ES 1-min** (2021-06→2026-07): dead on 1m/5m (noise), works 30m+; **MES 1c (best
+  = 4h: 77% win, PF 2.36, +$81/tr; $5 RT fee kills fast frames)**. NO STOP yet — worst −$1,860.
+
+**QUEUE (next session, in order):**
+1. **Register the data pulls in the MC data catalog** (ORATS options, Databento MBO, ticks, depth) —
+   `data_catalog.py` currently tracks NONE of them. Do before the +6mo L3 arrives.
+2. **Tick-based stop + target sweep** on 1h/2h/4h MES (needs intrabar scan of `ticks_continuous/`).
+3. **NT dialog auto-dismiss** in restart() + smarter watchdog (market-active check) + **NT event log in MC**.
+4. Options **margin + capital-to-not-blow-up graphs** (equity/DD + physical-$).
+5. Fix `data_catalog`/lvlfade futures-card P&L (shows $0/−$12k bogus for futures rows).
+
+---
+
 ## S79 (2026-07-21) — morning false-alarm, corrected diagnosis, SAME-DAY IB EXEC required (branch `s75-live-dashboard`)
 
 **COMMS:** brief, factual (memory: communication-style.md).

@@ -472,7 +472,9 @@ function openCard(i){
 $('#big').addEventListener('click', e=>{e.stopPropagation();$('#big').classList.toggle('flip');});
 $('#ovl').addEventListener('click', ()=>$('#ovl').classList.remove('on'));
 document.addEventListener('keydown', e=>{if(e.key=='Escape')$('#ovl').classList.remove('on');});
-const TODAY = '__TODAY__';  // CT date — closed section shows only today's, resets daily
+// live CT date computed in the browser so "Closed Today" clears at MIDNIGHT CT on its own
+// (baking it in at gen-time left yesterday's trades showing until the next regeneration)
+const TODAY = new Date().toLocaleDateString('en-CA', {timeZone: 'America/Chicago'});
 const openIdx = T.map((t,i)=>[t,i]).filter(([t])=>t.state=='OPEN');
 const closedIdx = T.map((t,i)=>[t,i]).filter(([t])=>t.state!='OPEN' && t.exitd==TODAY);
 $('#grid_open').innerHTML = openIdx.map(([t,i])=>tile(t,i)).join('');

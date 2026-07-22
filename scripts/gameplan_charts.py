@@ -161,7 +161,11 @@ def _path_why(sid, g):
         "D": (f"PS {lv['ps']:.0f} is the LAST major put wall. Below it there is no gamma "
               "support left to lean on — fades have no structural argument, so the only "
               "position that makes sense is already-held long volatility."),
-    }[sid]
+        "TR": (f"Two-sided rotation between {lv['ps0']:.0f} and {lv['hvl']:.0f} — neither edge "
+               "is accepted, so price rejects both and chops. The negative-gamma break has not "
+               "happened yet (statistically the most common intraday start). Fade the edges with "
+               "tight risk until one side is accepted."),
+    }.get(sid, "See the gameplan for this path's mechanics.")
 
 
 # ---------------------------------------------------------------- trades

@@ -81,6 +81,19 @@ def _save_workspace_hint() -> None:
     say("relying on NT8 clean-exit workspace save (force-kill is avoided below)")
 
 
+NT_WORKSPACES = Path.home() / "Documents" / "NinjaTrader 8" / "workspaces"
+
+
+def _newest_workspace_mtime() -> float:
+    """Newest mtime across all workspace XMLs. NT8 rewrites the ACTIVE workspace (with its
+    chart drawings) on a CLEAN exit, so this value ADVANCING after close = drawings saved.
+    ReopenWorkspaces=false only stops the reload-all on startup; it does NOT stop the save."""
+    try:
+        return max((p.stat().st_mtime for p in NT_WORKSPACES.glob("*.xml")), default=0.0)
+    except Exception:
+        return 0.0
+
+
 def restart(force_ok: bool = False) -> bool:
     """Restart NT8 while PRESERVING the workspace (drawings, extra tabs) and re-arming the
     recorder afterwards.
@@ -97,13 +110,20 @@ def restart(force_ok: bool = False) -> bool:
     """
     if nt8_running():
         _save_workspace_hint()
+        ws_before = _newest_workspace_mtime()   # to VERIFY the clean exit actually saved drawings
         say("closing NT8 (graceful — waiting for clean workspace save)")
         subprocess.run(["taskkill", "/IM", "NinjaTrader.exe"], capture_output=True,
                        timeout=60, creationflags=NOWIN)
         for _ in range(40):                 # 120s: give NT time to save + answer its dialog
             time.sleep(3)
             if not nt8_running():
-                say("NT8 closed cleanly (workspace saved)")
+                time.sleep(2)               # let NT finish flushing the workspace XML to disk
+                if _newest_workspace_mtime() > ws_before:
+                    say("NT8 closed cleanly — workspace SAVED (verified: workspace XML updated)")
+                else:
+                    say("⚠ NT8 closed but NO workspace XML updated — drawings may NOT be saved")
+                    _ping("⚠️ NT8 closed on restart but its workspace file did not update — chart "
+                          "drawings may not have saved. Verify on next launch before drawing more.", "warn")
                 break
         if nt8_running():
             if not force_ok:

@@ -163,6 +163,7 @@ def mark_once(ib, vix):
                          "pop", "ev", "p_maxloss", "sigma", "max_gain", "max_loss"])
         total = 0.0
         for _, tr in opens.iterrows():
+          try:                                 # per-trade isolation: one bad trade must not kill the run
             cost = 0.0
             spread = 0.0
             ok = True
@@ -171,15 +172,15 @@ def mark_once(ib, vix):
                 key = (l["expiry"], l["strike"], l["right"])
                 if key in settled:             # already-expired leg: fixed intrinsic, no spread
                     mid = settled[key]
-                    cost += l["qty"] * (mid if l["side"] == "sell" else -mid)
+                    cost += l.get("qty", 1) * (mid if l["side"] == "sell" else -mid)
                     continue
                 t = tickers[key]
                 if t is None or not (t.bid == t.bid and t.ask == t.ask and t.ask > 0):
                     ok = False
                     break
                 mid = (t.bid + t.ask) / 2
-                cost += l["qty"] * (mid if l["side"] == "sell" else -mid)  # cost to close
-                spread += l["qty"] * (t.ask - t.bid)
+                cost += l.get("qty", 1) * (mid if l["side"] == "sell" else -mid)  # cost to close
+                spread += l.get("qty", 1) * (t.ask - t.bid)
             if not ok:
                 print(f"  {tr.trade_id}: incomplete quotes, skipped")
                 continue
@@ -195,6 +196,8 @@ def mark_once(ib, vix):
                              m["sigma"], m["max_gain"], m["max_loss"]])
             pop_s = f" POP {m['pop']*100:4.0f}%  EV ${m['ev']:+6,.0f}" if m else ""
             print(f"  {tr.trade_id:34s} unreal ${unreal:+8,.0f}{pop_s}")
+          except Exception as e:
+            print(f"  {tr.trade_id}: MARK ERROR ({type(e).__name__}: {e}) — skipped")
         print(f"  {'TOTAL':34s} unreal ${total:+8,.0f}   VIX {vix}")
 
 

@@ -47,10 +47,30 @@ from ib_async import Index, Option
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ib_conn
 import options_trade_log as tlog
+import options_metrics as omx
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "data" / "options_sim"
 ET = ZoneInfo("America/New_York")
+CT = ZoneInfo("America/Chicago")
+
+
+def entry_extras(legs, credit, spot, width, qty, date_ymd, sig):
+    """Full card metrics at entry so no STMR card is ever blank again (S79):
+    grade, POP@entry, bounded max-gain/max-loss ($), and the thesis. max-gain/loss
+    are structural (credit / collateral); POP needs the day's gameplan sigma."""
+    ex = {"grade": "A/B",
+          "max_gain": round(credit * 100 * qty),
+          "max_loss": -round((width - credit) * 100 * qty),
+          "commentary": (f"STMR 15:59: K8 {sig['k8']} < 15 (oversold) with spot "
+                         f"{sig['spot']:.0f} > SMA100 {sig['sma100']:.0f} — the validated edge.")}
+    try:
+        m = omx.live_metrics(legs, credit, spot, date_ymd, dt.datetime.now(CT))
+        if m:
+            ex["pop"] = round(m["pop"], 4)
+    except Exception as e:
+        print(f"  (entry POP unavailable: {e})")
+    return ex
 
 STRATEGY = "bps_stmr"
 DTE, WIDTH, SHORT_D, FEE = 14, 50, 0.30, 1.30
@@ -289,6 +309,91 @@ def log_fill_window(ib, tickers, legs, tag, until=FILL_END, dryrun_secs=None):
     return fill, mid, f.name
 
 
+# ---------- REAL paper-order execution (S79) ----------
+# The sim above measures fill-drift off the NBBO; this places the ACTUAL order on
+# IB paper the SAME DAY at 16:00 ET so the edge is really on. qty fixed at 1
+# (user-approved). Disable with --no-live. Every real fill is logged as a SEPARATE
+# ledger row (source real_paper, trade_id ..._REAL_...) so sim vs real stay comparable.
+QTY = 1
+
+
+def _mkt_leg(ib, contract, action, ref_price, qty, buf=0.30):
+    """Place one marketable-limit leg; retry once wider if it cancels; return
+    (status, filled, avg_price). outsideRth=True is REQUIRED — the 16:00-16:15 ET
+    fill window is after the cash close, so RTH-only orders get cancelled there."""
+    from ib_async import LimitOrder
+    tr = None
+    for attempt, b in enumerate((buf, buf * 4)):
+        px = ref_price + (b if action == "BUY" else -b)
+        lmt = max(round(round(px / 0.05) * 0.05, 2), 0.05)
+        o = LimitOrder(action, qty, lmt)
+        o.tif = "DAY"            # pin TIF so the account preset can't reject it (err 10349)
+        o.outsideRth = True      # allow the 16:00-16:15 ET post-close fills
+        tr = ib.placeOrder(contract, o)
+        for _ in range(24):
+            ib.sleep(0.5)
+            if tr.orderStatus.status in ("Filled", "Cancelled", "ApiCancelled", "Inactive"):
+                break
+        if tr.orderStatus.status == "Filled":
+            return tr.orderStatus.status, tr.orderStatus.filled, tr.orderStatus.avgFillPrice
+        print(f"    leg attempt {attempt + 1}: {action} @ {lmt} -> {tr.orderStatus.status}")
+    return tr.orderStatus.status, tr.orderStatus.filled, tr.orderStatus.avgFillPrice
+
+
+def place_real_entry(ib, so, st, lo, lt, qty=QTY):
+    """REAL bull put spread on IB paper. Protective LONG bought FIRST (never naked
+    short), then short sold. Guards: complete quotes, width==WIDTH, max-loss cap.
+    Returns fill dict or None (no/partial order)."""
+    if not (st.bid == st.bid and lt.ask == lt.ask and st.bid > 0 and lt.ask > 0):
+        print("! REAL entry: incomplete quotes — NO order placed"); return None
+    width = so.strike - lo.strike            # actual width pick_legs chose (~WIDTH, varies)
+    est = st.bid - lt.ask
+    if not (0 < width <= 120) or not (0 < est < width) or (width - est) * 100 * qty > 6000 * qty:
+        print(f"! REAL entry guard fail (width {width}, est credit {est:.2f}, "
+              f"max-loss ${(width - est) * 100 * qty:,.0f}) — NO order"); return None
+    ls, lf, la = _mkt_leg(ib, lo, "BUY", lt.ask, qty)
+    print(f"  REAL long  {lo.strike:.0f}P: {ls} {lf}@{la}")
+    if ls != "Filled":
+        print("! REAL long not filled — aborting entry (never naked short)"); return None
+    ss, sf, sa = _mkt_leg(ib, so, "SELL", st.bid, qty)
+    print(f"  REAL short {so.strike:.0f}P: {ss} {sf}@{sa}")
+    return {"short": so.strike, "long": lo.strike, "width": width, "sfill": sa, "lfill": la,
+            "credit": round((sa or 0) - (la or 0), 2), "qty": qty, "short_status": ss}
+
+
+def place_real_exit(ib, so, st, lo, lt, qty=QTY):
+    """Buy-to-close: buy back the SHORT first (risk-reducing), then sell the long."""
+    ss, sf, sa = _mkt_leg(ib, so, "BUY", st.ask, qty)
+    print(f"  REAL close-short {so.strike:.0f}P: {ss} {sf}@{sa}")
+    ls, lf, la = _mkt_leg(ib, lo, "SELL", lt.bid, qty)
+    print(f"  REAL close-long  {lo.strike:.0f}P: {ls} {lf}@{la}")
+    return {"cost": round((sa or 0) - (la or 0), 2), "qty": qty, "close_status": ss}
+
+
+def reconcile_real(ib, extra_alerts=None):
+    """Diff the ledger's open REAL rows vs actual IB positions; write a status file
+    and shout on divergence. This is the guard against a silent no-fill ever again."""
+    held = set()
+    for p in ib.positions():
+        c = p.contract
+        if c.secType == "OPT" and p.position:
+            held.add((round(float(c.strike)), c.right, p.position > 0))
+    alerts = list(extra_alerts or [])
+    for _, tr in tlog.open_trades(STRATEGY).iterrows():
+        if "REAL" not in str(tr.trade_id):
+            continue
+        for l in json.loads(tr.legs):
+            key = (round(float(l["strike"])), "P", l["side"] == "buy")
+            if key not in held:
+                alerts.append(f"{tr.trade_id}: {l['side']} {l['strike']:.0f}P NOT held in IB")
+    ok = not alerts
+    (OUT / "reconcile_status.json").write_text(json.dumps(
+        {"ts": now_et().isoformat(), "ok": ok, "alerts": alerts}, indent=2))
+    print("RECONCILE: " + ("OK — real ledger matches IB" if ok else
+                           "!! DIVERGENCE\n  " + "\n  ".join(alerts)))
+    return ok
+
+
 def append_decision(row):
     f = OUT / "decisions.csv"
     OUT.mkdir(parents=True, exist_ok=True)
@@ -327,8 +432,11 @@ def main():
     ap.add_argument("--smoke", action="store_true", help="entitlement check only, no waiting/writes")
     ap.add_argument("--now", action="store_true", help="decide immediately (dry-run, no trade-log writes)")
     ap.add_argument("--port", type=int, default=None, help="override IB port (default env/4002 paper)")
+    ap.add_argument("--no-live", action="store_true",
+                    help="sim only — do NOT place the real IB order (default: place it)")
     a = ap.parse_args()
     dry = a.smoke or a.now
+    place_real = not a.no_live and not dry  # real order only on a genuine live run
     if not dry:
         # single-instance lock: two live daemons would double-log sim trades. Holding a
         # bound socket for the process lifetime is the same pattern as status_light
@@ -371,6 +479,18 @@ def main():
         # --- sample undPrice each minute until 15:59, tracking session H/L ---
         uf = OUT / f"underlying_{now_et():%Y%m%d}.csv"
         sess_h = sess_l = spot
+        # S79 restart-safety: a mid-session restart must NOT lose the morning range
+        # (the stochastic K8 uses the full 09:30-15:59 H/L). spot_feed writes this
+        # same tape ~1/min, so reconstruct H/L from it on startup.
+        if uf.exists():
+            try:
+                import csv as _csv
+                vals = [float(r["und"]) for r in _csv.DictReader(open(uf, newline="")) if r.get("und")]
+                if vals:
+                    sess_h, sess_l = max(sess_h, *vals), min(sess_l, *vals)
+                    print(f"session H/L seeded from tape: {sess_l:.2f}..{sess_h:.2f} ({len(vals)} samples)")
+            except Exception as e:
+                print(f"! tape H/L reconstruct failed ({e}) — seeding from spot only")
         if not a.now:
             decide_at = now_et().replace(hour=DECIDE_T.hour, minute=DECIDE_T.minute,
                                          second=0, microsecond=0)
@@ -433,6 +553,21 @@ def main():
                                                        "SMART", tradingClass=chain.tradingClass))[0]
                         tickers[l["strike"]] = (o, ib.reqMktData(o, "", snapshot=False))
                 ib.sleep(3)
+                # S79: REAL rows get a real buy-to-close; never sim-close a real position
+                if "REAL" in str(tr.trade_id):
+                    if not place_real:
+                        print(f"skip closing REAL {tr.trade_id} (--no-live)")
+                        continue
+                    sl = next(l for l in legs if l["side"] == "sell")
+                    ll = next(l for l in legs if l["side"] == "buy")
+                    ex = place_real_exit(ib, tickers[sl["strike"]][0], tickers[sl["strike"]][1],
+                                         tickers[ll["strike"]][0], tickers[ll["strike"]][1],
+                                         qty=int(sl.get("qty", 1)))
+                    tlog.update_exit(tr.trade_id, today, ex["cost"], 4 * FEE,
+                                     fill_model="real_paper_ib_marketable")
+                    print(f"REAL CLOSED {tr.trade_id}: paid {ex['cost']:.2f}")
+                    reconcile_real(ib)
+                    continue
                 ev = [(l["strike"], "buy" if l["side"] == "sell" else "sell") for l in legs]
                 cost, mid, qf = log_fill_window(ib, tickers, ev, f"exit_{tr.trade_id}",
                                                 dryrun_secs=30 if dry else None)
@@ -462,20 +597,60 @@ def main():
             elif dry:
                 print(f"DRYRUN entry {tid}: credit {cr:.2f} (mid {mid:.2f}) — not written")
             else:
+                sim_legs = [{"side": "sell", "right": "P", "strike": ks, "expiry": expiry, "qty": 1},
+                            {"side": "buy", "right": "P", "strike": kl, "expiry": expiry, "qty": 1}]
                 tlog.append_entry({
                     "trade_id": tid, "strategy_id": STRATEGY, "source": "sim",
                     "symbol": "SPXW", "entry_dt": today,
                     "dte": (dt.datetime.strptime(expiry, "%Y%m%d").date() - now_et().date()).days,
-                    "structure": f"BPS {WIDTH}pt", "fill_model": "opra_nbbo_1600",
-                    "legs": [{"side": "sell", "right": "P", "strike": ks, "expiry": expiry, "qty": 1},
-                             {"side": "buy", "right": "P", "strike": kl, "expiry": expiry, "qty": 1}],
+                    "structure": f"BPS {ks - kl:.0f}pt", "fill_model": "opra_nbbo_1600",
+                    "legs": sim_legs,
                     "credit": cr, "slippage": (mid - cr) * 100,
-                    "collateral": (ks - kl - cr) * 100, **tags,
+                    "collateral": (ks - kl - cr) * 100,
+                    **entry_extras(sim_legs, cr, spot, ks - kl, 1, now_et().strftime("%Y%m%d"), sig),
+                    **tags,
                 })
                 print(f"ENTERED {tid}: credit {cr:.2f}, collateral ${(ks - kl - cr) * 100:,.0f}, tape {qf}")
+
+                # S79: place the REAL IB paper order same-day (separate ledger row)
+                if place_real:
+                    real = place_real_entry(ib, tickers[ks][0], tickers[ks][1],
+                                            tickers[kl][0], tickers[kl][1], qty=QTY)
+                    if real and real["short_status"] == "Filled":
+                        rtid = f"{STRATEGY}_REAL_{today.replace('-', '')}"
+                        real_legs = [{"side": "sell", "right": "P", "strike": ks, "expiry": expiry, "qty": QTY, "fill": real["sfill"]},
+                                     {"side": "buy", "right": "P", "strike": kl, "expiry": expiry, "qty": QTY, "fill": real["lfill"]}]
+                        tlog.append_entry({
+                            "trade_id": rtid, "strategy_id": STRATEGY, "source": "real_paper",
+                            "symbol": "SPXW", "entry_dt": today,
+                            "dte": (dt.datetime.strptime(expiry, "%Y%m%d").date() - now_et().date()).days,
+                            "structure": f"BPS {real['width']:.0f}pt", "fill_model": "real_paper_ib_marketable",
+                            "legs": real_legs,
+                            "credit": real["credit"], "collateral": (real["width"] - real["credit"]) * 100 * QTY,
+                            **entry_extras(real_legs, real["credit"], spot, real["width"], QTY, now_et().strftime("%Y%m%d"), sig),
+                            **tags,
+                        })
+                        print(f"REAL ENTERED {rtid}: credit {real['credit']:.2f} x{QTY}")
+                        reconcile_real(ib)
+                    else:
+                        reconcile_real(ib, extra_alerts=[
+                            f"{tid}: signal FIRED but REAL order NOT placed/filled "
+                            "— sim logged, NO IB position (INVESTIGATE)"])
         print("\n" + tlog.summary(STRATEGY))
         import options_sim_report
         options_sim_report.main()
+        # S79: re-render today's playbook AFTER the 16:00 fills/exits so it reflects the
+        # EXECUTED trades (the 08:28 CT morning render froze the pre-market state). Detached.
+        if not dry:
+            try:
+                import subprocess
+                subprocess.Popen([sys.executable, str(ROOT / "scripts" / "gameplan_charts.py"),
+                                  "--date", today.replace("-", ""), "--no-open"],
+                                 cwd=str(ROOT), creationflags=0x08000008,
+                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                print("re-rendered playbook with executed trades")
+            except Exception as e:
+                print(f"  (playbook re-render not started: {type(e).__name__})")
     finally:
         ib.disconnect()
 
