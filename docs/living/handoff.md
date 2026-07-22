@@ -1,6 +1,72 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 21, 2026 (regime/v2-multistate kickoff on new Windows PC — brooks_regime_layer.py + major/minor HL/LH; prior: S75V-BL blind-spot reverse-engineering + capture pipeline)
+**Last Updated:** July 22, 2026 (open-of-day logic + minor/major dual labels + real-time confirmation bar# + OB first-break dots in brooks_regime_layer.py; prior: regime/v2-multistate kickoff)
+
+---
+
+## Open-of-day logic + labeling overhaul (2026-07-22, new Windows PC, branch `main`)
+
+Continued `scripts/brooks_regime_layer.py` (built ON TOP of the untouched
+`brooks_structure_engine.py`; old `brooks_regime_day.py` still banned). All below validated
+bar-by-bar WITH the user on **2022-02-24** (the working chart); 2022-04-12 also updated but the
+newer confirmation/dot/dual-label changes have only been re-run on 2/24. Run:
+`python scripts/brooks_regime_layer.py 2022-02-24`.
+
+**⭐ TWO RULE-SETS — open pre-phase vs post-pivot engine (the core mental model):**
+- **OPEN pre-phase = the first leg.** b1 always seeds BOTH an H and an L. Each later bar vs the
+  PRIOR bar: higher-high-only → H moves onto it (L stays); lower-low-only → L moves onto it;
+  outside bar/equal → both carry forward; inside bar → neither. The label only continues on the
+  side that breaks. The open phase ENDS at the first real swing pivot (`tagged[0]`, e.g. b5 on
+  2/24). Shaded band + faded H/L trail on the chart show the hand-off.
+- **A FIRST LEG CAN NEVER FORM HH/HL/LH/LL** — there is no prior same-type pivot to compare
+  against, so the first pivot is a **single letter H or L** (drawn as a gold circle). Double
+  labels only begin from the 2nd pivot of each type. (This is why b5 = "H", not "HH".)
+
+**LABELING (every pivot, post-open):**
+- **Minor label** = the raw two-bar tag (`hh/hl/lh/ll`, lowercase), drawn NEAR the bar, colored
+  by its own tag (bull hh/hl green, bear lh/ll red).
+- **Major label** = circled HH/HL/LH/LL, drawn FURTHER out, colored by the MAJOR classification.
+  A bar can be minor `ll` (red) AND major `HL` (green) at once — e.g. **b35** — and BOTH are now
+  shown (fixed a prior bug where the major colour was wrongly taken from the two-bar tag).
+- Fixed vertical tiers (minor nearest, major circle further, bar# below) so **nothing overlaps**;
+  bar numbers are non-bold and drop below whatever is stacked under a low.
+
+**⭐ REAL-TIME CONFIRMATION BAR# (`confirm[(bar,typ)]`, printed just outside each circle) —
+TWO PARALLEL RULES, chosen by the pivot's LABEL (this is the crux; getting it wrong is a subtle
+bug):**
+- **HH / LL = trend-continuation pivots → the TURN.** Known the moment price ticks back the other
+  way (a HIGH fixed when a later bar ticks below it: **b11 → b12**; the first pivot too: **b5 → b6**).
+- **HL / LH = pullback pivots → the NEW EXTREME.** Known only when the trend RESUMES past the prior
+  swing extreme — HL needs a new HIGH, LH a new LOW: **b8 → b9, b15 → b20, b35 → b52**. (b16 is NOT
+  a new high above b11, so b15 is not a HL at b16 — a turn-everything rule is WRONG here.)
+Implementation: HL/LH captured during the pass as `newext[bar]` (the new-extreme bar); HH/LL and the
+first pivot computed with `turn_bar()`. Keyed per side (bar, "H"/"L") so an OB bar that is major on
+both sides gets a correct number each. Confirmed set on 2/24: **5→6, 8→9, 11→12, 15→20, 23→24, 35→52**.
+
+**OB FIRST-BREAK = GOLD DOT** (replaces the granular gray tick path, which was removed — "we just
+need to see which side broke first"): on each outside bar, a gold dot marks the side that broke the
+prior bar first, from tick order (`ob_side` via `first_break`, the one place ticks are needed).
+Dot on the high if up-first, on the low if down-first.
+
+**OTHER:** charts render at **200 dpi** (6000×2400) for zoom. `build(DAY, out=None, crop_majors=None)`
+gained an optional crop mode + a `gallery(n, crop_majors=2, seed=None)` driver
+(`python scripts/brooks_regime_layer.py gallery 10 <seed>`) that renders N random days cropped to
+the first N major pivots into `docs/living/open_gallery/` — used once to eyeball the open across 10
+days (self-contained carousel HTML written there, artifact published). **NOTE the crop path scales
+`off`/ylim to the VISIBLE range** (a full-day-range `off` blew out cropped views).
+
+**OPEN / KNOWN ISSUES (next):**
+1. **Reference-high artifact:** `major_hh`/`major_ll` record REFERENCE extremes (e.g. **b64**,
+   whose high was later exceeded by b65) and circle them as HH even though they are not genuine
+   local swing highs. Decide whether reference extremes should be labeled at all. Their turn-based
+   confirm is mechanically correct (b64/b67 → b69, since price only ticked below at b69) but the
+   pivots themselves are questionable.
+2. The first-leg single-letter rule is applied at the DISPLAY layer only; the internal `tagged`
+   tag for the first pivot is still "HH" and the major classifier still treats it as a reference.
+   Push the rule into the engine core before the open phase starts OUTPUTTING a regime state.
+3. Bear side (major LH/LL + confirmation + dots) implemented but only lightly checked on 04-12;
+   re-run the newest changes there. Regime STATE (BULL/BULL_ATTEMPT/NEUTRAL/BEAR_ATTEMPT/BEAR) is
+   still not wired — the open phase should eventually adopt the initial state.
 
 ---
 
