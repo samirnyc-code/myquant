@@ -6,6 +6,38 @@ pipeline + S77 security hardening; merged S76 Mac swing-levels work)
 
 ---
 
+## S81 (2026-07-22) — Grimes regime-engine research corpus (branch `s75-live-dashboard`)
+
+**GOAL (new workstream):** build a market regime engine classifying **BULL / BEAR / TRANSITION /
+NO-TRADE** on ES. Standing constraint: the old Brooks always-in engine is BANNED for reuse
+(memory `brooks_regime_engine_broken`); only structure/fill primitives may be reused.
+
+**DONE (all committed):**
+- **Both Grimes books read in full** (Art & Science of Technical Analysis 480pp + course
+  workbook 609pp) via 11 parallel readers; page-cited raw extractions persisted per ~100-page
+  chunk in `docs/research_notes/grimes_regime/raw_*.md` (commit `a7d2395`).
+- **Synthesis doc** `docs/research_notes/grimes_regime/SYNTHESIS_regime_engine_design.md`:
+  two-force model (range expansion vs mean reversion; vol cycle = his strongest result), the
+  four states with codable rules (2-step transition rule; no-trade = default), 18-feature
+  candidate input table, v0 state-machine sketch, Pythia validation protocol, tested dead ends
+  (Fibonacci, MA-as-S/R, crosses, pivots, seasonality). Key futures-specific numbers: MA-slope/
+  triple-MA states correct-sign in futures only (short side strongest −203bp); vol-compression
+  breakout (5/40 ATR<0.5) = strongest continuation signal (+128bp** d4, 73% up d5); big single
+  days in futures lean continuation (don't fade); ES intraday rarely >3 legs, ~1 in 5 sessions
+  trends.
+- **Shareable artifact for Thomas**: "Grimes Regime Engine — Research Brief"
+  (https://claude.ai/code/artifact/a112473b-4bfe-40a3-b070-6eac0eb67027), local backup in the
+  Artifact Library at `docs/artifacts/grimes_regime_engine_research_brief.html` + catalog entry
+  (commits `566133a`, `597164c`). NOTE: artifact HTML backups go in `docs/artifacts/` with the
+  title-slug filename + `claude_artifacts.json` entry — NOT elsewhere (I got this wrong first).
+
+**NEXT (regime engine, proposed order):** (1) feature extractors #1–12 from the synthesis on ES
+(`data/ticks_continuous/`), (2) v0 state machine on daily + 30m/1h/4h, (3) Pythia-style
+per-state excess-return tables vs ES baseline + RW/AR(2)/GARCH nulls, (4) only then trade logic.
+S80 queue (data-catalog registration, tick stop/target sweep, NT dialog auto-dismiss…) still open.
+
+---
+
 ## S80 (2026-07-22, overnight) — same-day IB exec built, AddOn shadow-validated, big data pulls, intraday STMR (branch `s75-live-dashboard`)
 
 **COMMS:** brief, factual. **I made several careless errors this session (false "halt"/"crash"
