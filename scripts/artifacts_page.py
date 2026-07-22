@@ -23,7 +23,11 @@ a{color:#58a6ff;text-decoration:none}
 .btn:hover{background:#58a6ff26;border-color:#58a6ff}
 .wrap{padding:14px 18px 40px;max-width:1500px}
 .hint{color:var(--muted);font-size:12px;margin:0 0 14px}
-.grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(275px,1fr))}
+.grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(275px,1fr));margin:0 0 20px}
+.daterow{display:flex;align-items:center;gap:10px;margin:18px 0 11px;font-family:ui-monospace,Consolas,monospace;
+  font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.02em}
+.daterow::after{content:"";flex:1;height:1px;background:var(--chip)}
+.daterow .n{color:#6b7280;font-weight:500}
 .card{background:var(--card);border:1px solid var(--chip);border-radius:11px;padding:12px 14px;
   display:flex;flex-direction:column;gap:6px;transition:transform .12s,border-color .12s}
 .card:hover{border-color:#58a6ff88;transform:translateY(-1px)}
@@ -50,7 +54,7 @@ input#q{background:var(--card);border:1px solid var(--chip);color:var(--fg);bord
   <p class="hint">Local backups of every Claude artifact built during this project — served from
   <code>docs/artifacts/</code>, so they open with no account and no network. <b>Open local</b> reads
   the saved copy; <b>original</b> goes to claude.ai.</p>
-  <div class="grid" id="grid"></div>
+  <div id="grid"></div>
 </div>
 <script>
 var ALL=[];
@@ -60,14 +64,28 @@ function render(){
   var rows=ALL.filter(function(a){
     return !q || (a.title+' '+a.info+' '+a.slug).toLowerCase().indexOf(q)>=0; });
   document.getElementById('count').textContent=rows.length+' / '+ALL.length+' saved';
-  document.getElementById('grid').innerHTML=rows.map(function(a){
+  function card(a){
     return '<div class="card"><div class="t">'+esc(a.title)+'</div>'
       + (a.info?'<div class="i">'+esc(a.info)+'</div>':'<div class="i"></div>')
       + '<div class="meta">'+a.kb+' KB · saved '+esc(a.saved)+'</div>'
       + '<div class="acts"><a href="/artifact/'+encodeURIComponent(a.slug)+'" target="_blank">Open local</a>'
       + (a.url?'<a class="cloud" href="'+esc(a.url)+'" target="_blank" rel="noopener">original ↗</a>':'')
       + '</div></div>';
-  }).join('') || '<p class="hint">no local backups yet — run the artifact backup</p>';
+  }
+  // rows arrive newest-first; group them under a date header per day.
+  var MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function fmt(d){var p=(d||'').slice(0,10).split('-');
+    return p.length<3?'Undated':(MO[+p[1]-1]||p[1])+' '+(+p[2])+', '+p[0];}
+  var html='',cur=null,n=0;
+  rows.forEach(function(a){
+    var d=(a.date||a.saved||'').slice(0,10);
+    if(d!==cur){ if(cur!==null) html+='</div>';
+      cur=d; n=rows.filter(function(r){return (r.date||r.saved||'').slice(0,10)===d;}).length;
+      html+='<div class="daterow">'+esc(fmt(d))+' <span class="n">· '+n+'</span></div><div class="grid">'; }
+    html+=card(a);
+  });
+  if(cur!==null) html+='</div>';
+  document.getElementById('grid').innerHTML=html || '<p class="hint">no local backups yet — run the artifact backup</p>';
 }
 document.getElementById('q').addEventListener('input',render);
 fetch('/artifacts_local.json').then(function(r){return r.json();})

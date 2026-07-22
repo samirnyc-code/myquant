@@ -31,8 +31,8 @@ REGISTRY = ROOT / "catalog.yaml"
 MANIFEST = ROOT / "data" / "_catalog" / "manifest.json"
 PY = ROOT / ".venv" / "Scripts" / "python.exe"
 
-CATEGORY_ORDER = ["Raw vendor", "Ticks", "Bars/continuous", "MenthorQ",
-                  "Options desk", "Research/WFA", "Educational", "Misc"]
+CATEGORY_ORDER = ["Raw vendor", "Ticks", "Bars/continuous", "Order flow", "MenthorQ",
+                  "Intel", "Options desk", "Research/WFA", "Educational", "Misc"]
 
 _scan_lock = threading.Lock()
 _scan_state = {"running": False, "log": "", "at": None}

@@ -94,6 +94,54 @@ def _newest_workspace_mtime() -> float:
         return 0.0
 
 
+def _dismiss_nt_dialogs() -> str:
+    """Auto-answer NinjaTrader's blocking close dialogs so a graceful shutdown COMPLETES
+    without a force-kill. On close NT pops two modals that otherwise sit forever:
+      1. "NinjaScript strategies are running ... disable?"  -> Yes (let it close)
+      2. "Save workspace '<name>'?"                          -> Yes (PRESERVE drawings)
+    Uses Windows UI Automation and acts ONLY on NinjaTrader-owned dialog windows, invoking
+    a button named Yes / Save / OK. It never touches other applications. Safe to call in a
+    loop: if no dialog is up it clicks nothing. Returns what it clicked (for the log).
+
+    NOTE: cannot be validated headless — needs one live NT halt-test to confirm the exact
+    dialog titles/buttons on this install. Built defensively; logs every click."""
+    ps = r"""
+Add-Type -AssemblyName UIAutomationClient,UIAutomationTypes 2>$null
+$root=[System.Windows.Automation.AutomationElement]::RootElement
+$W=[System.Windows.Automation.AutomationElement]::ControlTypeProperty
+$N=[System.Windows.Automation.AutomationElement]::NameProperty
+$cond=New-Object System.Windows.Automation.PropertyCondition($W,[System.Windows.Automation.ControlType]::Window)
+$wins=$root.FindAll([System.Windows.Automation.TreeScope]::Children,$cond)
+$done=@()
+foreach($w in $wins){
+  try{
+    $pr=Get-Process -Id $w.Current.ProcessId -ErrorAction SilentlyContinue
+    if(-not $pr -or $pr.ProcessName -ne 'NinjaTrader'){continue}
+    # only act on a modal dialog: it must expose a Yes/Save/OK button at all
+    foreach($lbl in @('Yes','Save','OK')){
+      $bc=New-Object System.Windows.Automation.PropertyCondition($N,$lbl)
+      $btn=$w.FindFirst([System.Windows.Automation.TreeScope]::Descendants,$bc)
+      if($btn){
+        $ip=$btn.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern)
+        $ip.Invoke(); $done+=("'"+$w.Current.Name+"' -> "+$lbl); break
+      }
+    }
+  }catch{}
+}
+$done -join '; '
+"""
+    try:
+        r = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", ps],
+                           capture_output=True, text=True, timeout=30, creationflags=NOWIN)
+        out = (r.stdout or "").strip()
+        if out:
+            say(f"NT dialog auto-dismiss clicked: {out}")
+        return out
+    except Exception as e:
+        say(f"NT dialog dismiss error: {type(e).__name__}: {e}")
+        return ""
+
+
 def restart(force_ok: bool = False) -> bool:
     """Restart NT8 while PRESERVING the workspace (drawings, extra tabs) and re-arming the
     recorder afterwards.
@@ -114,8 +162,10 @@ def restart(force_ok: bool = False) -> bool:
         say("closing NT8 (graceful — waiting for clean workspace save)")
         subprocess.run(["taskkill", "/IM", "NinjaTrader.exe"], capture_output=True,
                        timeout=60, creationflags=NOWIN)
-        for _ in range(40):                 # 120s: give NT time to save + answer its dialog
+        for _i in range(40):                # 120s: give NT time to save + answer its dialog
             time.sleep(3)
+            if nt8_running():
+                _dismiss_nt_dialogs()       # auto-answer the "disable strategy?" / "save workspace?" modals
             if not nt8_running():
                 time.sleep(2)               # let NT finish flushing the workspace XML to disk
                 if _newest_workspace_mtime() > ws_before:

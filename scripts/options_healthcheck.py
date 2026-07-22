@@ -115,7 +115,8 @@ def check_daemon():
     try:
         import subprocess
         out = subprocess.run(["wmic", "process", "where", "name='python.exe'", "get",
-                              "commandline"], capture_output=True, text=True, timeout=10).stdout
+                              "commandline"], capture_output=True, text=True, timeout=10,
+                             creationflags=0x08000000).stdout   # CREATE_NO_WINDOW: no wmic flash (runs every 5 min)
         running = "options_trigger_daemon" in out
         return running, "running" if running else "NOT running"
     except Exception as e:

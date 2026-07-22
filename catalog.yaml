@@ -83,7 +83,7 @@ families:
     count_rows: false
     useful_for: "The OI unlock OptionsDX lacks: per-strike callOpenInterest/putOpenInterest + gamma/delta/IV back to 2007. Raw material for self-computed GEX (Σ gamma·OI·spot) — reproduces MenthorQ cr/ps/hvl/walls on the overlap, then extends dealer-positioning pre-2021 (pre-MQ). Also a real per-strike fill surface for option-P&L backtests."
     access: "pd.read_parquet('data/orats/SPX/SPX_2024.parquet')  # per ticker-year; coverage in data/orats/_coverage.json"
-    gotchas: "Gitignored firehose (per ticker-year parquet, pruned+zstd). OI = prior-session SETTLED (one value/day). SPX pull includes SPXW — split by expiryTod. Use spotPrice NOT stockPrice. Exclude dte==1 (expiring-today) for next-session GEX. ORATS has NO futures options: NQ/RTY are illiquid-index proxies (noisy), CL/GC are ETF proxies (USO/GLD, weak). Clean matches = SPX + 7 mega-cap equities."
+    gotchas: "10 instruments on disk (coverage in _coverage.json): SPX (2007→), 7 mega-caps (AAPL/AMZN/GOOGL/META/MSFT/NVDA/TSLA), plus S80 adds XSP (2020→today) and VIX (2007-2026, SKIPPING 2013+2017). Gitignored firehose (per ticker-year parquet, pruned+zstd). OI = prior-session SETTLED (one value/day). SPX pull includes SPXW — split by expiryTod. Use spotPrice NOT stockPrice. Exclude dte==1 (expiring-today) for next-session GEX. ⚠ ORATS quota ~19,650/20,000 — nearly maxed, do NOT launch more pulls without checking usage. ORATS has NO futures options (NQ/RTY index proxies noisy; CL/GC ETF proxies weak). XSP fee drag ~10x SPX (fixed $1.30/ct on 1/10 premiums)."
 
   # -------------------------------------------------------------------- Ticks
   - key: ticks_continuous
@@ -115,7 +115,7 @@ families:
     update_cadence: manual
     expected_freshness_days: 30
     count_rows: false
-    useful_for: "Continuous + per-contract bar parquets — fast load for studies that don't need ticks. TWO flavours of the continuous series: back-adjusted (_continuous*.parquet) and UNADJUSTED (_continuous*_unadj.parquet)."
+    useful_for: "Continuous + per-contract bar parquets — fast load for studies that don't need ticks. Flavours of the continuous ES series: RTH back-adjusted (_continuous*.parquet), UNADJUSTED (_continuous*_unadj.parquet), and the 24-HOUR ETH+RTH 1-min series (_continuous_1m_24h.parquet) — panama-stitched from the NT tick exports (2021-06→2026-07, 1.74M bars), validated tick-for-tick vs eth_levels; the only overnight-inclusive bars we have."
     access: "pd.read_parquet('data/bars/_continuous_unadj.parquet')  # unadjusted ES; drop _unadj for back-adjusted"
     gotchas: "⚠ _continuous.parquet is BACK-ADJUSTED (older bars shifted by cumulative roll gaps, e.g. +263pt). MenthorQ levels are struck in ACTUAL prices, so any bar-vs-level study MUST use the *_unadj.parquet variant (built by es_unadjust.py against Yahoo ES=F closes; es_offsets.csv audits the per-session offset). Dir also mixes per-contract bars (e.g. 6EH3)."
 
@@ -301,3 +301,68 @@ families:
     useful_for: "Transient caches / staging (cache/, raw/, leg_labels/); safe to ignore for analysis."
     access: "n/a"
     gotchas: "May be empty/stale; candidates for cleanup. Grouped here so they show up in the footprint rather than hiding."
+
+  - key: databento_mbo
+    title: "Databento ES MBO (24h order-by-order tick tape)"
+    category: Ticks
+    paths:
+      - data/databento
+    produced_by: "scratchpad/dbn_perfile.py (Databento batch, file-by-file to dodge the whole-zip 504)"
+    update_cadence: on-demand
+    expected_freshness_days: 999
+    count_rows: false
+    useful_for: "Databento ES MBO (market-by-order) — the FULL 24-hour order-by-order tape (every add/mod/cancel), the deep L3 source ticks_continuous (RTH-only trades) lacks. Feeds overnight-aware studies and true order-book reconstruction."
+    access: "per-session glbx-mdp3-YYYYMMDD.mbo.dbn.zst under GLBX-*/; decode with the databento python lib (DBNStore)"
+    gotchas: "~39GB. Q1 2026 (Jan 1-Mar 31) COMPLETE; Apr 1-Jul 20 2026 PARTIAL (batch.download 504'd mid-zip -- needs file-by-file). GITIGNORED (never commit the flat files). +6 months L3 arriving next -- catalog before it lands."
+
+  - key: depth_l2
+    title: "ES Level-2 market depth (DOM recordings)"
+    category: Order flow
+    paths:
+      - data/depth
+    produced_by: "nt8/addons/MarketDepthRecorderAddOn.cs (+ MarketDepthRecorder.cs strategy) -- NT8 live L2 recorder"
+    update_cadence: daily
+    expected_freshness_days: 4
+    count_rows: false
+    useful_for: "ES order-book depth (DOM) snapshots per session -- raw material for absorption / liquidity / iceberg studies. NT keeps no deep DOM history, so this is the only L2 we have going forward."
+    access: "pd.read_parquet('data/depth/ES_09-26_depth_2026-07-21.parquet')"
+    gotchas: "Per-session parquet+csv (ES_09-26_depth_YYYY-MM-DD). addon_test/ = the AddOn recorder run in PARALLEL with the strategy for shadow validation (output byte-identical). WARN: 55-min gap 2026-07-20 22:28-23:23 CT (an NT restart dialog blocked the recorder). Live-record only -- no backfill exists."
+
+  - key: footprint
+    title: "ES footprint / volume-bar reconstruction (free MzPack)"
+    category: Order flow
+    paths:
+      - data/footprint
+    produced_by: "nt8 FootprintExporter (from NT ticks) + scripts/footprint_metrics.py / flowlab_*.py"
+    update_cadence: on-demand
+    expected_freshness_days: 999
+    count_rows: false
+    useful_for: "ES footprint (bid x ask traded volume per price per bar) reconstructed FREE from NT ticks -- MzPack-equivalent. Two files per run: _bars_ (OHLCV) + _footprint_ (per-price bid/ask ladder)."
+    access: "pd.read_csv('data/footprint/ES_09-26_6500V_footprint_20260721_231756.csv')"
+    gotchas: "6500V = 6500-contract volume bars. VALIDATED exact vs MzPack (0 delta error) -- only their tuned absorption LABELS are proprietary, the numbers are ours. Timestamped per export (multiple runs/day)."
+
+  - key: discord_intel
+    title: "Discord trader-intel scrape (setups / nuggets / corpora)"
+    category: Intel
+    paths:
+      - data/discord
+    produced_by: "scripts/discord_scrape.py + discord_intel (hourly incremental; channels in config.json)"
+    update_cadence: hourly
+    expected_freshness_days: 1
+    count_rows: false
+    useful_for: "Scraped trader-Discord intel: setups, nuggets, links and per-trader corpora, rolled into report.html. Context source for marks and research."
+    access: "open('data/discord/report.html'); structured extracts under data/discord/parsed/"
+    gotchas: "config.json holds channel/server IDs (gitignored). ~33 channels / 83k msgs / 1550 setups / 2975 nuggets / 19973 links. *_corpus.txt + *_profile.md = per-trader dossiers. Incremental -- gaps if the scraper is down."
+
+  - key: annotations
+    title: "Chart annotations -- user marks / R:R / divergence"
+    category: Options desk
+    paths:
+      - data/annotations
+    produced_by: "scripts/mark_setups.py / mark_rr.py / mark_divergence.py (user-driven)"
+    update_cadence: manual
+    expected_freshness_days: 999
+    count_rows: false
+    useful_for: "Hand-authored chart annotations -- setup marks, R:R marks, CVD-divergence marks + raw drawings.json. The curated ground-truth label set for setup studies."
+    access: "pd.read_csv('data/annotations/marks.csv')"
+    gotchas: "marks.csv = master; marks_rr.* = R:R-tagged; divergence_marks.csv = CVD-divergence; drawings.json = raw NT drawings. Backups timestamped (marks_backup_*). Hand-curated ground truth -- never overwrite programmatically."

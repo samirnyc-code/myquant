@@ -228,7 +228,8 @@ def stop(key):
         return {"ok": False, "err": "no pid / not running"}
     try:
         subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"],
-                       capture_output=True, text=True, timeout=15)
+                       capture_output=True, text=True, timeout=15,
+                       creationflags=0x08000000)   # CREATE_NO_WINDOW: no taskkill flash
     except Exception as e:
         return {"ok": False, "err": str(e)}
     with _lock:
@@ -305,6 +306,39 @@ def _timeline_html():
     return timeline_page.HTML.replace("</body></html>", mc_theme.SNIPPET + "</body></html>", 1)
 
 
+def _backtest_data():
+    """MenthorQ 'Gamma Levels | Backtesting' tile from gamma_tracker/gamma.db, grouped by
+    session (newest first). Six level panels per day, all fields."""
+    import sqlite3
+    db = ROOT / "gamma_tracker" / "gamma.db"
+    if not db.exists():
+        return []
+    order = ["1D Max", "Call Res.", "Call Res. 0DTE", "Put Sup. 0DTE", "Put Support", "1D Min"]
+    try:
+        con = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
+        con.row_factory = sqlite3.Row
+        rows = [dict(r) for r in con.execute("SELECT * FROM daily_levels")]
+        con.close()
+    except Exception:
+        return []
+    by_date = {}
+    for r in rows:
+        by_date.setdefault(r["date"], []).append(r)
+    out = []
+    for d in sorted(by_date, reverse=True):
+        lv = by_date[d]
+        lv.sort(key=lambda x: (order.index(x["level_name"]) if x["level_name"] in order else 99,
+                               x["level_name"] or ""))
+        out.append({"date": d, "levels": lv})
+    return out
+
+
+def _backtest_html():
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import backtest_page, mc_theme
+    return backtest_page.HTML.replace("</body></html>", mc_theme.SNIPPET + "</body></html>", 1)
+
+
 
 def _pause_task(task_name, pause):
     """Enable/disable a Windows scheduled task from Mission Control.
@@ -377,6 +411,7 @@ def _artifact_files():
                     "title": m.get("title") or f.stem.replace("_", " "),
                     "kb": round(st.st_size / 1024, 1), "url": m.get("url", ""),
                     "group": m.get("group", ""), "info": (m.get("info") or "")[:400],
+                    "date": m.get("updated") or dt.datetime.fromtimestamp(st.st_mtime).strftime("%Y-%m-%d"),
                     "saved": dt.datetime.fromtimestamp(st.st_mtime).strftime("%Y-%m-%d %H:%M")})
 
     # Locally-built HTML libraries that were never Claude artifacts. The Brooks Codex is
@@ -394,8 +429,12 @@ def _artifact_files():
                         "title": _title_of(f), "kb": round(st.st_size / 1024, 1),
                         "url": "", "group": label,
                         "info": f"Local library page ({label}) — built in-repo, not a Claude artifact.",
+                        "date": dt.datetime.fromtimestamp(st.st_mtime).strftime("%Y-%m-%d"),
                         "saved": dt.datetime.fromtimestamp(st.st_mtime).strftime("%Y-%m-%d %H:%M")})
-    return sorted(out, key=lambda x: x["title"].lower())
+    # Organize by date, newest first (title breaks ties within a day).
+    out.sort(key=lambda x: x["title"].lower())
+    out.sort(key=lambda x: x.get("date", ""), reverse=True)
+    return out
 
 
 def _timeline():
@@ -766,6 +805,10 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(json.dumps(_pause_task(name, p.startswith("/pause/"))))
         if p == "/artifacts":
             return self._send(_artifacts_html(), "text/html; charset=utf-8")
+        if p == "/backtest":
+            return self._send(_backtest_html(), "text/html; charset=utf-8")
+        if p == "/backtest.json":
+            return self._send(json.dumps(_backtest_data()))
         if p == "/artifacts_local.json":
             return self._send(json.dumps(_artifact_files()))
         if p.startswith("/artifact/"):
@@ -1072,6 +1115,7 @@ pre{background:var(--chip);border-radius:7px;padding:8px 10px;font-size:11px;ove
   <span class="pill" id="summary">…</span>
   <span style="margin-left:auto"></span>
   <a href="/timeline" target="_blank"><button title="the trading day as a chronological set of automated processes">🕐 Timeline</button></a>
+  <a href="/backtest" target="_blank"><button title="MenthorQ Gamma-Levels Backtest — the 6 level panels (hold-rate, break, comeback, moves) per day, from gamma.db">📊 Gamma Backtest</button></a>
   <a href="/health" target="_blank"><button id="healthbtn" title="is everything actually recording? evidence-based pipeline health">● Health</button></a>
   <div class="menu">
     <button id="libbtn" title="explanations, study material and research write-ups">📚 Library ▾</button>

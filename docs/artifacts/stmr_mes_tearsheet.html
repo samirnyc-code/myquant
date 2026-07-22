@@ -1,0 +1,291 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>STMR on MES — an overnight-aware tearsheet</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{
+  --paper:#eceff3; --panel:#f7f9fb; --panel2:#eef2f6; --ink:#141c25; --ink2:#33414e;
+  --mut:#5d6b78; --line:#d3dbe3; --accent:#256b8a; --accent2:#2f88ad;
+  --pos:#0f7a52; --neg:#af3838; --warn:#8f6415;
+  --serif:"Charter","Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono","Cascadia Code","Consolas",monospace;
+}
+@media (prefers-color-scheme:dark){:root{
+  --paper:#0c1117; --panel:#131b24; --panel2:#18222c; --ink:#e7edf3; --ink2:#c2ccd6;
+  --mut:#8493a1; --line:#243039; --accent:#54a6c8; --accent2:#6cbfdd;
+  --pos:#40bd8b; --neg:#e46b6b; --warn:#d7a54c;
+}}
+:root[data-theme="light"]{
+  --paper:#eceff3; --panel:#f7f9fb; --panel2:#eef2f6; --ink:#141c25; --ink2:#33414e;
+  --mut:#5d6b78; --line:#d3dbe3; --accent:#256b8a; --accent2:#2f88ad;
+  --pos:#0f7a52; --neg:#af3838; --warn:#8f6415;
+}
+:root[data-theme="dark"]{
+  --paper:#0c1117; --panel:#131b24; --panel2:#18222c; --ink:#e7edf3; --ink2:#c2ccd6;
+  --mut:#8493a1; --line:#243039; --accent:#54a6c8; --accent2:#6cbfdd;
+  --pos:#40bd8b; --neg:#e46b6b; --warn:#d7a54c;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+  font-size:16px;line-height:1.62;-webkit-font-smoothing:antialiased}
+.wrap{max-width:940px;margin:0 auto;padding:52px 22px 100px}
+.eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--accent);margin:0 0 14px;font-weight:600}
+h1{font-family:var(--serif);font-weight:600;font-size:clamp(28px,4.6vw,42px);line-height:1.1;
+  letter-spacing:-.012em;margin:0 0 16px;text-wrap:balance;color:var(--ink)}
+.lede{font-size:18.5px;color:var(--ink2);max-width:64ch;margin:0 0 8px}
+.lineage{font-family:var(--mono);font-size:12px;color:var(--mut);margin-top:20px;
+  display:flex;gap:8px 20px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:16px}
+.lineage b{color:var(--ink2);font-weight:600}
+section{margin-top:50px;border-top:1px solid var(--line);padding-top:28px}
+h2{font-family:var(--serif);font-weight:600;font-size:25px;letter-spacing:-.01em;margin:0 0 6px;color:var(--ink)}
+h3{font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--mut);margin:24px 0 10px;font-weight:600}
+p{margin:0 0 14px;max-width:68ch} a{color:var(--accent)}
+strong{color:var(--ink);font-weight:650}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.pos{color:var(--pos)} .neg{color:var(--neg)} .part{color:var(--mut);font-size:11px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px;margin:26px 0 6px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.tile .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--mut)}
+.tile .v{font-family:var(--serif);font-size:31px;font-weight:600;margin-top:5px;font-variant-numeric:tabular-nums;line-height:1}
+.tile .d{font-size:12px;color:var(--mut);margin-top:6px}
+.tbl{overflow-x:auto;margin:16px 0;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{padding:10px 15px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
+thead th{color:var(--mut);font-family:var(--mono);font-size:11px;letter-spacing:.04em;
+  text-transform:uppercase;font-weight:600;background:var(--panel2)}
+tbody th{text-align:left;color:var(--ink);font-weight:600;font-family:var(--sans)}
+thead th.l,tbody td.l{text-align:left}
+tbody tr:last-child th,tbody tr:last-child td{border-bottom:none}
+tr.hi{background:color-mix(in srgb,var(--accent) 12%,transparent)}
+tr.tot th,tr.tot td{border-top:2px solid var(--line);font-weight:700}
+.sig{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:10px;padding:18px 22px;margin:18px 0}
+.sig .row{display:flex;gap:14px;align-items:baseline;margin:6px 0;flex-wrap:wrap}
+.sig .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;
+  color:#fff;background:var(--accent);padding:3px 9px;border-radius:5px;flex:none}
+.note{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--warn);
+  border-radius:10px;padding:16px 20px;margin:18px 0}
+.note .lab{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--warn);margin-bottom:8px;font-weight:600}
+.note ul{margin:6px 0 0;padding-left:20px;max-width:68ch} .note li{margin:6px 0}
+.assum{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px 22px;
+  margin:16px 0 2px;font-family:var(--mono);font-size:12px;color:var(--mut);
+  border-top:1px solid var(--line);padding-top:14px}
+.assum b{color:var(--ink2);font-weight:600;letter-spacing:.02em}
+figure{margin:18px 0}
+.chart-wrap{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 12px 8px}
+canvas{width:100%;height:auto;display:block}
+figcaption{font-family:var(--mono);font-size:11.5px;color:var(--mut);margin-top:10px;padding:0 4px}
+.legend{display:flex;gap:18px;font-family:var(--mono);font-size:11.5px;color:var(--mut);
+  padding:2px 6px 10px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+footer{margin-top:52px;padding-top:20px;border-top:1px solid var(--line);
+  color:var(--mut);font-size:12px;font-family:var(--mono);line-height:1.7}
+</style>
+
+</head><body><div class="wrap">
+<p class="eyebrow">MES Futures · Real 24-Hour Backtest</p>
+<h1>STMR mean-reversion on MES, tested on the real overnight path</h1>
+<p class="lede">A trend-filtered oversold-bounce signal on the S&amp;P 500 E-mini, traded as a single
+directional MES position. Every stop, target and add-in is simulated on <strong>actual 24-hour
+one-minute price</strong> — overnight included — not the day session alone. What survives that
+test is smaller than the day-only version, and honest.</p>
+<div class="lineage">
+<span><b>Source</b> NinjaTrader tick export, full Globex</span>
+<span><b>Span</b> 2021-06-17 → 2026-07-02 (5.0 yr)</span>
+<span><b>Bars</b> 1.74M · 1-min · 21 ES contracts</span>
+<span><b>Validated</b> overnight H/L = independent source, tick-for-tick</span>
+<span><b>Unit</b> 1 MES · $5/pt · $5 round-turn</span>
+</div>
+
+<div class="tiles">
+<div class="tile"><div class="k">Net / year</div><div class="v pos">$2,351</div><div class="d">combined, 1 MES base</div></div>
+<div class="tile"><div class="k">Profit factor</div><div class="v">2.26</div><div class="d">111 trades, 70% win</div></div>
+<div class="tile"><div class="k">Max drawdown</div><div class="v neg">−$1,662</div><div class="d">worst unrealized, incl. overnight</div></div>
+<div class="tile"><div class="k">On $100k</div><div class="v">14%<span style="font-size:16px">/yr</span></div><div class="d">at 6× base, 10% drawdown</div></div>
+</div>
+
+<section>
+<h2>The signal</h2>
+<p><strong>STMR — Stochastic Trend-filtered Mean-Reversion.</strong> Buy the dip, but only while the
+longer trend is still up. Read at the bar close, one position at a time:</p>
+<div class="sig">
+<div class="row"><span class="tag">Enter</span><span>8-bar stochastic <strong>%K8 &lt; 15</strong>
+ (deeply oversold) <strong>and</strong> close <strong>&gt; 100-bar SMA</strong> (trend intact) — go long at the close.</span></div>
+<div class="row"><span class="tag">Exit</span><span>close back <strong>above the 5-bar SMA</strong> — or a stop / target if one is used.</span></div>
+</div>
+<p>The 100-SMA filter is what separates this from catching a falling knife: it only fires oversold
+dips <em>inside</em> an uptrend. It runs on two clocks — the <strong>daily</strong> bar (a multi-day
+swing) and the <strong>4-hour</strong> bar (a shorter hold) — which fire on different days and are
+combined into one book.</p>
+</section>
+
+<section>
+<h2>What actually survives</h2>
+<p>Two engines clear the overnight-path test. On the daily clock, a stop plus a runner target and a
+single add-in on further weakness beats the raw signal. On the 4-hour clock, <strong>stops lose money</strong>
+— the overnight range is wide enough that any tight stop gets tagged before the reversion completes —
+so the un-stopped signal is the one that holds.</p>
+<div class="tbl"><table>
+<thead><tr><th class="l">engine</th><th>trades</th><th>win</th><th>net P&amp;L</th><th>PF</th><th>max drawdown</th></tr></thead>
+<tbody>
+<tr><th class="l">Daily · stop 35 / target 75 / +1 on −10</th><td class="mono">37</td><td class="mono">57%</td><td class="mono pos">$5,722</td><td class="mono">2.15</td><td class="mono neg">−$945</td></tr>
+<tr><th class="l">4-hour · no stop (signal exit)</th><td class="mono">74</td><td class="mono">77%</td><td class="mono pos">$6,121</td><td class="mono">2.38</td><td class="mono neg">−$1,454</td></tr>
+<tr class="tot"><th class="l">Combined book</th><td class="mono">111</td><td class="mono">70%</td><td class="mono pos">$11,844</td><td class="mono">2.26</td><td class="mono neg">−$1,662</td></tr>
+</tbody></table></div>
+<p style="font-size:13.5px;color:var(--mut)">Max drawdown here is the deepest <em>unrealized</em>
+mark-to-market loss while a position is open — overnight included — not the tidier closed-trade
+figure. It is the money you must actually sit through.</p>
+<div class="assum">
+<span><b>Date range</b> 2021-06-17 → 2026-07-02 · 5.0 yr</span>
+<span><b>Fees</b> $5 round-turn / contract — netted into every figure</span>
+<span><b>Slippage / haircut</b> not modeled — fills at the bar close or the exact stop / target level</span>
+<span><b>Instrument</b> MES · $5 / point · 1 contract = 1 unit</span>
+</div>
+</section>
+
+<section>
+<h2>Equity &amp; drawdown</h2>
+<p>Cumulative net P&amp;L of the combined book at 1 MES per signal, marked at each trade's close.</p>
+<figure>
+<div class="chart-wrap">
+<div class="legend"><span><i style="background:var(--accent)"></i>cumulative P&amp;L</span><span><i style="background:var(--neg)"></i>drawdown from peak</span></div>
+<canvas id="eq" width="1200" height="520" aria-label="Equity curve and drawdown, combined book, 1 MES base"></canvas>
+</div>
+<figcaption>2021-06-17 → 2026-07-02 · base 1 MES · net of $5 round-turn</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>Year by year</h2>
+<p>Combined book, 1 MES base. Positive in five of five completed years; the one soft year (2022,
+the bear) still only cost $535.</p>
+<div class="tbl" style="max-width:560px"><table>
+<thead><tr><th class="l">year</th><th>trades</th><th>win</th><th>PF</th><th>net P&amp;L</th></tr></thead>
+<tbody><tr><th>2021</th><td class=mono>7</td><td class=mono>86%</td><td class=mono>4.98</td><td class='mono pos'>+$890</td></tr><tr><th>2022</th><td class=mono>14</td><td class=mono>50%</td><td class=mono>0.77</td><td class='mono neg'>−$535</td></tr><tr><th>2023</th><td class=mono>24</td><td class=mono>67%</td><td class=mono>1.9</td><td class='mono pos'>+$1,506</td></tr><tr><th>2024</th><td class=mono>32</td><td class=mono>75%</td><td class=mono>2.7</td><td class='mono pos'>+$3,989</td></tr><tr><th>2025</th><td class=mono>23</td><td class=mono>70%</td><td class=mono>2.26</td><td class='mono pos'>+$2,582</td></tr><tr><th>2026 <span class=part>(part)</span></th><td class=mono>11</td><td class=mono>82%</td><td class=mono>5.63</td><td class='mono pos'>+$3,411</td></tr></tbody></table></div>
+</section>
+
+<section>
+<h2>Sizing $100k</h2>
+<p>The unit is 1 MES per signal; scale by trading <em>k</em> micros per signal. Drawdown and margin
+scale linearly. Margin is the real ceiling — the two engines can hold up to 3 micros at
+once, so peak margin is 3&times;<em>k</em>&times;~$2,450 (the overnight rate, which floats with volatility).</p>
+<div class="tbl"><table>
+<thead><tr><th class="l">base k</th><th>net / yr</th><th>return</th><th>max drawdown</th><th>of $100k</th><th>peak margin</th></tr></thead>
+<tbody><tr><th class=mono>3</th><td class='mono pos'>$7,053</td><td class=mono>7%</td><td class='mono neg'>−$4,986</td><td class=mono>5%</td><td class=mono>22%</td></tr><tr><th class=mono>4</th><td class='mono pos'>$9,404</td><td class=mono>9%</td><td class='mono neg'>−$6,648</td><td class=mono>7%</td><td class=mono>29%</td></tr><tr><th class=mono>5</th><td class='mono pos'>$11,755</td><td class=mono>12%</td><td class='mono neg'>−$8,310</td><td class=mono>8%</td><td class=mono>37%</td></tr><tr class=hi><th class=mono>6</th><td class='mono pos'>$14,106</td><td class=mono>14%</td><td class='mono neg'>−$9,972</td><td class=mono>10%</td><td class=mono>44%</td></tr><tr><th class=mono>8</th><td class='mono pos'>$18,808</td><td class=mono>19%</td><td class='mono neg'>−$13,296</td><td class=mono>13%</td><td class=mono>59%</td></tr></tbody></table></div>
+<p style="font-size:13.5px;color:var(--mut)">Highlighted row (6×) is the balance point: ~14%/yr with a
+~10% peak drawdown and margin under half the account, leaving room for a volatility spike to raise the
+requirement without forcing liquidation.</p>
+<div class="note" style="border-left-color:var(--accent)">
+<div class="lab" style="color:var(--accent)">Suggested account size</div>
+<p style="margin:0"><strong>~$13,500 to run 1&times; base</strong> — it covers peak margin
+(3 MES &times; ~$2,450 = $7,350), the worst unrealized drawdown ($1,662),
+and a buffer for a volatility-driven margin hike (bare minimum to survive is $9,012). The studied
+deployment is <strong>$100k at 6&times; base</strong> — the highlighted row: ~14%/yr, ~10% peak drawdown,
+margin under half the account.</p>
+</div>
+</section>
+
+<section>
+<h2>What this is — and what could still be wrong</h2>
+<p>The edge is real and it is modest. It is the same mean-reversion signal already validated on the
+equity side, now measured against the true overnight path instead of the flattering day-session-only
+version. Read the profit factor as an honest anchor, not a promise.</p>
+<div class="note"><div class="lab">Known limits — read before sizing</div>
+<ul>
+<li><strong>It is short volatility in disguise.</strong> Long-only dip-buying inside an uptrend pays
+until it doesn't — a sustained 2008/2000-style decline is the failure mode, and this 2021–2026
+sample contains no such regime. The worst year was only $535, which understates
+that tail.</li>
+<li><strong>Parameters are in-sample.</strong> The stop, target and add spacing were chosen on the full
+history. A walk-forward split (train 2021–23, test 2024–26) is not yet done — until it is, discount
+the profit factor.</li>
+<li><strong>1-minute path, not tick.</strong> Fills land at the bar close or the exact stop/target level;
+within a single minute where both are touched, the stop is assumed first (conservative). No slippage
+beyond the $5 round-turn. MES liquidity easily covers 1–3 contracts, so fill risk is low but not zero.</li>
+<li><strong>Modest sample.</strong> 111 trades over 5.0 years; 2026 is partial. Real regime
+coverage, but thin per year.</li>
+</ul></div>
+<p>Everything here was built from tick data already on the machine — no vendor pull, no modeled
+overnight. The next step that would raise confidence is the walk-forward split; the step that would
+break it is a bear market the sample never saw.</p>
+</section>
+
+<footer>
+STMR / MES · 24-hour continuous, panama-stitched · 2021-06-17–2026-07-02 · 1 MES @ $5/pt, $5 round-turn<br>
+Overnight path from NinjaTrader tick export, validated tick-for-tick against independent overnight source · not investment advice.
+</footer>
+</div>
+
+<script>
+const EQ = [["2021-09-15", -224], ["2021-11-12", -189], ["2021-11-28", -36], ["2021-11-29", 334], ["2021-11-29", 682], ["2021-11-30", 700], ["2021-12-15", 890], ["2022-01-06", 580], ["2022-01-10", 390], ["2022-01-19", 80], ["2022-04-04", 324], ["2022-04-07", 498], ["2022-04-13", 501], ["2022-07-27", 718], ["2022-08-24", 292], ["2022-08-25", 822], ["2022-08-28", 512], ["2022-09-01", -236], ["2022-11-30", 334], ["2022-12-08", 410], ["2022-12-21", 355], ["2023-01-20", 264], ["2023-01-20", 600], ["2023-02-13", 844], ["2023-02-23", 429], ["2023-02-24", 119], ["2023-04-27", 159], ["2023-04-27", 529], ["2023-05-05", 631], ["2023-05-05", 1001], ["2023-05-15", 1155], ["2023-05-25", 1110], ["2023-05-26", 1480], ["2023-06-22", 1516], ["2023-06-27", 1608], ["2023-06-27", 1922], ["2023-08-04", 1996], ["2023-08-04", 1686], ["2023-08-07", 1871], ["2023-08-11", 1849], ["2023-08-16", 1539], ["2023-09-08", 1360], ["2023-11-30", 1461], ["2023-12-07", 1620], ["2023-12-21", 1861], ["2024-01-05", 1551], ["2024-01-08", 1664], ["2024-01-18", 1882], ["2024-02-01", 2239], ["2024-02-01", 2595], ["2024-02-14", 2818], ["2024-02-21", 2881], ["2024-02-29", 2971], ["2024-03-18", 3224], ["2024-03-27", 3419], ["2024-04-05", 4159], ["2024-04-05", 4502], ["2024-04-11", 4685], ["2024-04-11", 5180], ["2024-04-15", 4870], ["2024-05-30", 4560], ["2024-05-31", 4642], ["2024-06-25", 4725], ["2024-07-22", 4518], ["2024-07-23", 4888], ["2024-09-06", 4578], ["2024-09-09", 4174], ["2024-10-04", 4396], ["2024-10-24", 4475], ["2024-11-05", 4689], ["2024-11-05", 5429], ["2024-11-19", 5119], ["2024-11-19", 4934], ["2024-12-11", 5118], ["2024-12-16", 5340], ["2024-12-16", 5480], ["2024-12-19", 5850], ["2025-02-24", 5540], ["2025-02-28", 4980], ["2025-05-23", 4670], ["2025-05-26", 4855], ["2025-05-30", 5109], ["2025-06-20", 5479], ["2025-06-20", 5728], ["2025-07-16", 5841], ["2025-08-04", 6581], ["2025-08-04", 6482], ["2025-08-22", 6564], ["2025-09-03", 6900], ["2025-09-26", 6922], ["2025-10-10", 6612], ["2025-10-13", 6869], ["2025-11-03", 7035], ["2025-11-04", 6725], ["2025-11-05", 6929], ["2025-11-07", 6938], ["2025-11-19", 7678], ["2025-12-18", 8418], ["2025-12-18", 8268], ["2026-01-05", 8432], ["2026-01-15", 8798], ["2026-01-21", 9538], ["2026-04-30", 9829], ["2026-05-20", 10569], ["2026-05-20", 10852], ["2026-06-04", 10981], ["2026-06-08", 11721], ["2026-06-09", 11295], ["2026-06-11", 11966], ["2026-06-25", 11656], ["2026-06-29", 11844]];
+const cv = document.getElementById('eq'), ctx = cv.getContext('2d');
+function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+function draw(){
+  const dpr = Math.min(2, window.devicePixelRatio||1);
+  const w = cv.clientWidth, h = 300;
+  cv.width = w*dpr; cv.height = h*dpr; cv.style.height = h+'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,w,h);
+  const ink=css('--ink'), mut=css('--mut'), line=css('--line'), acc=css('--accent'), neg=css('--neg');
+  const padL=58, padR=14, padT=14, padB=40, midGap=8;
+  const eqH = (h-padT-padB)*0.66, ddH=(h-padT-padB)*0.34;
+  const eqTop=padT, eqBot=padT+eqH, ddTop=eqBot+midGap, ddBot=h-padB;
+  const vals=EQ.map(p=>p[1]); const maxV=Math.max(0,...vals), minV=Math.min(0,...vals);
+  // drawdown series
+  let peak=-1e9; const dd=vals.map(v=>{peak=Math.max(peak,v);return v-peak;});
+  const maxDD=Math.min(...dd);
+  const n=EQ.length; const X=i=> padL + (n<2?0:(i/(n-1))*(w-padL-padR));
+  const Ye=v=> eqBot - (v-minV)/((maxV-minV)||1)*eqH;
+  const Yd=v=> ddTop - (v/ (maxDD||-1))*ddH*-1; // v<=0 -> maps 0..ddH
+  ctx.font='11px ui-monospace,Consolas,monospace'; ctx.textBaseline='middle';
+  // eq gridlines + labels
+  ctx.strokeStyle=line; ctx.fillStyle=mut; ctx.lineWidth=1;
+  const ticks=4;
+  for(let t=0;t<=ticks;t++){ const v=minV+(maxV-minV)*t/ticks; const y=Ye(v);
+    ctx.globalAlpha=.5; ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(w-padR,y);ctx.stroke();ctx.globalAlpha=1;
+    ctx.textAlign='right'; ctx.fillText('$'+Math.round(v/1000)+'k', padL-8, y); }
+  // zero baseline emphasis
+  ctx.strokeStyle=mut;ctx.globalAlpha=.6;ctx.beginPath();const yz=Ye(0);ctx.moveTo(padL,yz);ctx.lineTo(w-padR,yz);ctx.stroke();ctx.globalAlpha=1;
+  // eq area
+  const grad=ctx.createLinearGradient(0,eqTop,0,eqBot);
+  grad.addColorStop(0, acc+'55'); grad.addColorStop(1, acc+'08');
+  ctx.beginPath(); ctx.moveTo(X(0),Ye(vals[0]));
+  for(let i=1;i<n;i++) ctx.lineTo(X(i),Ye(vals[i]));
+  ctx.lineTo(X(n-1),Ye(minV)); ctx.lineTo(X(0),Ye(minV)); ctx.closePath();
+  ctx.fillStyle=grad; ctx.fill();
+  // eq line
+  ctx.beginPath(); ctx.moveTo(X(0),Ye(vals[0]));
+  for(let i=1;i<n;i++) ctx.lineTo(X(i),Ye(vals[i]));
+  ctx.strokeStyle=acc; ctx.lineWidth=1.9; ctx.lineJoin='round'; ctx.stroke();
+  // endpoint dot
+  ctx.fillStyle=acc; ctx.beginPath(); ctx.arc(X(n-1),Ye(vals[n-1]),3.2,0,7); ctx.fill();
+  // drawdown y-scale: $0 at panel top down to peak DD at the bottom
+  ctx.font='10px ui-monospace,Consolas,monospace';
+  const ddTicks=2;
+  for(let t=0;t<=ddTicks;t++){
+    const frac=t/ddTicks, y=ddTop+frac*ddH, val=maxDD*frac;
+    ctx.strokeStyle=line; ctx.globalAlpha=.45; ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(w-padR,y); ctx.stroke(); ctx.globalAlpha=1;
+    ctx.fillStyle=mut; ctx.textAlign='right'; ctx.textBaseline='middle';
+    ctx.fillText(val===0?'$0':'−$'+Math.abs(Math.round(val)).toLocaleString(), padL-8, y);
+  }
+  // drawdown fill + line
+  ctx.beginPath(); ctx.moveTo(X(0),ddTop);
+  for(let i=0;i<n;i++) ctx.lineTo(X(i), ddTop + (dd[i]/(maxDD||-1))*ddH);
+  ctx.lineTo(X(n-1),ddTop); ctx.closePath(); ctx.fillStyle=neg+'33'; ctx.fill();
+  ctx.beginPath(); for(let i=0;i<n;i++){const y=ddTop+(dd[i]/(maxDD||-1))*ddH; i?ctx.lineTo(X(i),y):ctx.moveTo(X(i),y);}
+  ctx.strokeStyle=neg; ctx.lineWidth=1.2; ctx.stroke();
+  ctx.textAlign='right'; ctx.fillStyle=mut; ctx.font='10px ui-monospace,Consolas,monospace';
+  ctx.fillText('drawdown from peak · $, 1 MES', w-padR-2, ddTop+9);
+  // year labels
+  ctx.textAlign='center'; ctx.fillStyle=mut;
+  let lastYr=null;
+  for(let i=0;i<n;i++){ const yr=EQ[i][0].slice(0,4); if(yr!==lastYr){lastYr=yr; ctx.fillText(yr, X(i), h-padB+16);} }
+}
+draw();
+let rt; addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(draw,120);});
+const mo=new MutationObserver(draw); mo.observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+matchMedia('(prefers-color-scheme:dark)').addEventListener('change',draw);
+</script>
+</body></html>

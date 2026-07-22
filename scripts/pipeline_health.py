@@ -332,15 +332,22 @@ def check_options_sim() -> dict:
         n = 0
     if mkt != "open" or not _desk_hours():
         return _chk("Options sim", IDLE, f"desk closed - feed idle ({_fmt_age(age)})")
-    # Desk hours, market open: a dead daemon is a PAGE, not a shrug. On 2026-07-20 the
-    # daemon failed at the 08:28 launch and nothing alerted - only a screenshot caught it.
-    # The gameplan is the desk's brain: missing after 08:35 CT means NOTHING is armed.
+    # PRE-OPEN ARMING WINDOW (08:00-08:35 CT): the spot feed + sim daemon do not start
+    # until ~08:26-08:28 CT, so a stale/missing live.json BEFORE the desk is armed is
+    # idle-BY-DESIGN, not a dead daemon. This is a NEUTRAL state, never red -- flagging
+    # it BAD (and self-healing) is the false alarm that scrambled the morning on 07-21/22.
+    # Red must mean damage: only after 08:35 CT is a stale feed / missing gameplan a fault.
     now = chicago_now()
-    if now.hour > 8 or (now.hour == 8 and now.minute >= 35):
-        gp = ROOT / "data" / "options_sim" / f"gameplan_{now:%Y%m%d}.json"
-        if not gp.exists():
-            return _chk("Options sim", BAD,
-                        f"NO GAMEPLAN for {now:%Y-%m-%d} - desk NOT armed")
+    armed_by = now.replace(hour=8, minute=35, second=0, microsecond=0)
+    if now < armed_by:
+        return _chk("Options sim", IDLE,
+                    f"pre-open - desk arms by 08:35 CT (feed idle {_fmt_age(age)})")
+    # 08:35 CT onward, market open: a dead daemon is a PAGE, not a shrug. On 2026-07-20 the
+    # daemon failed at the 08:28 launch and nothing alerted - only a screenshot caught it.
+    gp = ROOT / "data" / "options_sim" / f"gameplan_{now:%Y%m%d}.json"
+    if not gp.exists():
+        return _chk("Options sim", BAD,
+                    f"NO GAMEPLAN for {now:%Y-%m-%d} - desk NOT armed")
     if age > 600:
         return _chk("Options sim", BAD,
                     f"sim daemon feed DEAD - live.json stale {_fmt_age(age)}")

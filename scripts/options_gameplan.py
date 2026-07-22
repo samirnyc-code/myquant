@@ -606,14 +606,26 @@ def main():
     # daily reasoning charts (one per path + per trade) -> gameplan_charts/YYYYMMDD/,
     # browsable by day in Mission Control /playbook. Detached: a render must never
     # fail or delay the gameplan itself.
+    # Render SYNCHRONOUSLY and LOG the result. The old fire-and-forget with stderr=DEVNULL
+    # meant a silent chart-render crash left the playbook chartless all day with no trace
+    # (2026-07-22). Now: run it, capture output to a log, and shout if it failed — the
+    # gameplan JSON is already written above, so a chart failure never blocks the plan.
+    rlog = SIM / "gameplan_charts_render.log"
     try:
         import subprocess
-        subprocess.Popen([sys.executable, str(ROOT / "scripts" / "gameplan_charts.py"),
-                          "--date", date, "--no-open"],
-                         cwd=str(ROOT), creationflags=0x08000008,
-                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        r = subprocess.run([sys.executable, str(ROOT / "scripts" / "gameplan_charts.py"),
+                            "--date", date, "--no-open"],
+                           cwd=str(ROOT), creationflags=0x08000000,
+                           capture_output=True, text=True, timeout=180)
+        with open(rlog, "a", encoding="utf-8") as fh:
+            fh.write(f"\n=== {date} render rc={r.returncode} ===\n{r.stdout}\n{r.stderr}\n")
+        if r.returncode == 0:
+            print(f"  charts rendered ({date})")
+        else:
+            print(f"  ⚠ CHART RENDER FAILED (rc={r.returncode}) — see {rlog.name}:\n"
+                  f"{(r.stderr or r.stdout)[-400:]}")
     except Exception as e:
-        print(f"  (chart render not started: {type(e).__name__})")
+        print(f"  ⚠ chart render error: {type(e).__name__}: {e}")
     return out
 
 
