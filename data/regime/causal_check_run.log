@@ -1,0 +1,11 @@
+[200/1267] n=142 (69s)
+[400/1267] n=265 (159s)
+[600/1267] n=400 (230s)
+[800/1267] n=536 (295s)
+[1000/1267] n=685 (375s)
+[1200/1267] n=822 (451s)
+
+== CAUSAL vs RECORDED (headline strict book) ==
+recorded: n=876  net +29,032  PF 1.201
+causal  : n=875  net +29,238  PF 1.202
+days with identical trade count: 99.8%
