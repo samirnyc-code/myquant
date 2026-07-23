@@ -205,7 +205,9 @@ at most 0.05. The entry pattern, mechanized naively, has no edge on ES.</p>
   <li><b>Do not chase.</b> When the trigger fires, place a <b>limit 1 pt back from the trigger
   price</b>. No fill = no trade (≈4% of signals run away; let them).</li>
   <li><b>Risk:</b> fixed <b>4-pt stop</b> from fill. No target — <b>hold to the session close</b>,
-  exit EOD flat. Expect ≈45–50% winners; the right tail pays.</li>
+  exit EOD flat. Know the profile going in: <b>~19% winners</b> — 80% of trades die at the small
+  stop (−$205), and nearly every trade that survives to the close is a winner (96%), averaging
+  +$1,046. This is a right-tail harvest, psychologically brutal and mechanically simple.</li>
 </ol>
 </div>
 <p class="small">The machine-hour window is this machine's clock, not CT — map it against
