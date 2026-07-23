@@ -61,6 +61,9 @@ def main():
     t1 = t1.rename(columns={"net": "netT1", "R": "RT1"})
     tr = tr.merge(t1, on=["Date", "fire_bar", "dir"], how="left")
     by_day = {d: g for d, g in tr.groupby("Date")}
+    e1 = pd.read_csv(WT_ROOT / "data" / "regime" / "second_entries_regime_20260723.csv")
+    e1 = e1[(e1["count"] == 1) & (e1.book == "T1")][["Date", "dir", "fire_bar", "fill"]]
+    e1_by_day = {d: g.sort_values("fire_bar") for d, g in e1.groupby("Date")}
 
     b = pd.read_parquet(DATA / "bars" / "_continuous.parquet")
     b["Date"] = b["DateTime"].dt.date.astype(str)
@@ -168,6 +171,51 @@ def main():
             else:
                 pushes = sum(1 for i in range(w0 + 1, fb)
                              if H[i] > H[i-1] and (i + 1 > fb - 1 or H[i] >= H[i+1]))
+            # ---- Brooks codex gates ----
+            # momentum gate: consecutive counter-trend closes into the signal
+            cct = 0
+            i = sb
+            while i >= 1 and ((C[i] < O[i]) if not short else (C[i] > O[i])):
+                cct += 1; i -= 1
+            # climax lockout: any bar in last 10 with range >= 2x ABR10
+            clim = bool((rng[max(0, fb - 10):fb] >= 2 * abr10[max(0, fb - 10):fb]).any())
+            # tight-range veto: last-15-bar range vs ADR10
+            t15 = ((H[max(0, fb - 15):fb].max() - L[max(0, fb - 15):fb].min()) /
+                   dd.adr10) if (fb >= 5 and pd.notna(dd.adr10) and dd.adr10 > 0) else np.nan
+            # barbwire: doji fraction of last 4 closed bars
+            w4 = slice(max(0, fb - 4), fb)
+            doji4 = float(np.mean(np.abs(C[w4] - O[w4]) / rng[w4] < 0.25)) if fb >= 4 else np.nan
+            # prior-strength: max with-trend body/range in the prior leg window
+            pstr = np.nan
+            if np.isfinite(leg_atr):
+                lw = slice(st_b, (le_b if short else he_b) + 1)
+                bodies = (O[lw] - C[lw]) / rng[lw] if short else (C[lw] - O[lw]) / rng[lw]
+                pstr = float(bodies.max()) if len(bodies) else np.nan
+            # double-bottom/top pullback: two pushes ~equal (<=3 ticks)
+            dbl = np.nan
+            if np.isfinite(pb_bars) and pb_bars >= 3:
+                w0_ = (le_b if short else he_b)
+                half = w0_ + max(1, int(pb_bars // 2))
+                if short:
+                    a1 = H[w0_:half].max(); a2 = H[half:fb + 1].max()
+                else:
+                    a1 = L[w0_:half].min(); a2 = L[half:fb + 1].min()
+                dbl = bool(abs(a1 - a2) <= 3 * TICK)
+            # M2B/M2S: pullback tags the EMA (any pullback bar straddles EMA)
+            m2 = False
+            if np.isfinite(pb_bars):
+                w0_ = (le_b if short else he_b)
+                for i in range(w0_, fb + 1):
+                    if L[i] <= ema[i] <= H[i]:
+                        m2 = True; break
+            # better-price trap: 2E fill BETTER than latest prior same-dir 1E fill
+            bp = np.nan
+            ge1 = e1_by_day.get(dstr)
+            if ge1 is not None:
+                pri = ge1[(ge1["dir"] == t.dir) & (ge1.fire_bar < t.fire_bar)]
+                if len(pri):
+                    f1 = pri.fill.iloc[-1]
+                    bp = bool(fill > f1) if short else bool(fill < f1)
             # location / day-so-far (bars closed before fb)
             hi_sf = H[:fb].max(); lo_sf = L[:fb].min(); rng_sf = max(hi_sf - lo_sf, 1e-9)
             pos_day = (fill - lo_sf) / rng_sf
@@ -195,7 +243,11 @@ def main():
                 below_pL=bool(fill < dd.pL) if pd.notna(dd.pL) else np.nan,
                 gap_atr=round(gap_pts / atr, 2) if np.isfinite(gap_pts) else np.nan,
                 nth_2e=seq[t.dir], hour=pd.Timestamp(g_dt[fb]).strftime("%H"),
-                prior_out=prior_out[t.dir]))
+                prior_out=prior_out[t.dir],
+                consec_ct=cct, climax10=clim,
+                tight15=round(t15, 2) if np.isfinite(t15) else np.nan,
+                doji4=doji4, prior_str=round(pstr, 2) if np.isfinite(pstr) else np.nan,
+                dbl_pb=dbl, m2_tag=m2, better_px=bp))
             prior_out[t.dir] = 1.0 if t.net > 0 else 0.0
         del tP, tbar; gc.collect()
         if (di + 1) % 100 == 0:
@@ -222,9 +274,11 @@ def main():
     wt = ((f.regime == "BULL") & (f.dir == "L")) | ((f.regime == "BEAR") & (f.dir == "S"))
     NUMS = ["ts_bars", "leg_atr", "pb_depth", "pb_bars", "overlap", "mchan", "pushes",
             "pos_day", "drift", "rng_sf_adr", "fh_adr", "ema_slope", "vs_pC", "gap_atr",
-            "nth_2e", "ema20_atr", "er10", "adx14", "stochK", "zl_osc", "vix", "adr10_pct"]
+            "nth_2e", "ema20_atr", "er10", "adx14", "stochK", "zl_osc", "vix", "adr10_pct",
+            "consec_ct", "tight15", "doji4", "prior_str"]
     CATS = ["regime", "hour", "ib_pos", "va_pos", "eth_pos", "prior_out",
-            "above_pH", "below_pL", "zl_sign"]
+            "above_pH", "below_pL", "zl_sign",
+            "climax10", "dbl_pb", "m2_tag", "better_px"]
     scan = []
     for c in NUMS:
         if c not in f.columns:

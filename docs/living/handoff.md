@@ -1,6 +1,64 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 23, 2026 (⭐ TICK-DRIVEN phase machine — full regime rule set taught by Samir, both reference days reproduce exactly; the target is a live NT8 OnPriceChange indicator)
+**Last Updated:** July 23, 2026 (S83: regime × second-entry 5-yr tick study — raw 2E negative
+everywhere, but retest-entry + wide-stop + EOD-hold + TOD + with-trend stack survives
+train/test AND strict-fill audit; prior: tick-driven phase machine)
+
+---
+
+## S83 (2026-07-23) — REGIME × SECOND ENTRIES, 5yr ticks (worktree `myquant-regime`, branch `regime/indep`)
+
+**Setup:** worktree at `C:\Users\Admin\myquant-regime` off origin/main @2bfc02b (phase machine
+v4). Main repo untouched on `s75-live-dashboard`. Bars/ticks read READ-ONLY from the main
+repo's `data/` (1,270 tick days 2021-06-18→2026-07-09). All scripts/CSVs committed on
+`regime/indep`; **ready to merge to main + push on Samir's word**.
+
+**PIPELINE (all committed):** phase machine ported verbatim (`regime_second_entry_study.py`,
+validated vs both reference days exactly) × S61 entry engine (2E = count 2) × S61 fill sim.
+1,231 days, 3,340 2E/book. Per-day hi-res charts + gallery:
+`docs/living/regime_2e_charts/index.html` (378MB, gitignored).
+
+**BASE RESULT — raw 2E is DEAD:** T1 PF 0.82 (−$108k), T2 0.78 (−$174k); negative in every
+regime×dir cell. Regime filter alone moves PF by ≤0.05 (NEUTRAL is worst state; with-trend
+no better at T1). TF ladder peaks at 5m (1m 0.73 / 5m 0.82 / 15m 0.67 / 30m 0.47 / 60m 0.13,
+day-scoped engine; 1D deferred = different engine). Sticky + close-confirm regime variants: no help.
+
+**THE FIVE LEVERS THAT MATTER (each independently motivated, then stacked):**
+1. **Retest limit entry** (limit 4t back from trigger, skip if never touched): recovers
+   $29 of the $32/trade deficit, fills 96%. The breakout chase was most of the loss.
+2. **TOD**: machine-hours 14–15 = −$90k of the T2 deficit (PF 0.43/0.07). Trade h09–13.
+3. **Stop**: fixed 4pt beats signal-bar+1t (tight stops probed out; codex rule #68 wrong on ES).
+4. **Target**: EOD-hold beats all fixed targets across every scope.
+5. **Filter**: with-trend (phase machine) + ER10 top-half. (Brooks SB-strength/EMA-side helps
+   T2 marginally; EMA-touch M2B HURTS on ES — opposite of doctrine.)
+
+**HEADLINE (WT | h09-13 | retest4t | 4pt stop | EOD hold), $5 RT 1 ES:**
+- touch-fill: +$44.7k, 897 tr, every year 2021–26 positive (PF 1.14–1.73), maxDD −$15.6k
+- **strict through-fill audit: +$29.0k, PF ~1.2, 2024 dips to 0.90, shorts ≈ flat (1.04),
+  LONGS carry it (1.37)**. Robustness: 147/160 (touch) / 122/160 (through) parameter cells
+  green in BOTH train (≤2023) and test (2024–26). Best honest cell: **WT+ER h09-12 retest4
+  4pt: train 1.44 (+$10.2k n=144) / test 1.56 (+$17.6k n=187)**.
+- ⚠️ NOT validated for MES at $5 RT (edge ≈ $33/tr on ES → ≈$3.3 on MES < commission).
+  Viable sizing discussion = ES or better MES commissions.
+
+**Brooks codex mined** (agent, 68 rules → computable proxies):
+`docs/research_notes/brooks_2e_rules_mined_20260723.md`. Autopsy over 620 feature buckets
+(train/test): single survivor = microchannel≥q3 × ER10≥q3 (1.05/1.12) — consistent with the
+ER lever. Codex's own flags: M2B family "tested-robust", 2E-reversal "tested-failed".
+
+**Key files:** `scripts/regime_second_entry_study.py` (base+charts), `regime_2e_sweeps.py`
+(features/stop-target/regime-variants), `regime_2e_tf_sweep.py`, `regime_2e_brooks_filters.py`,
+`regime_2e_filter_compare.py`, `regime_2e_autopsy.py`, `regime_2e_entry_variants.py`,
+`regime_2e_synthesis.py`, `regime_2e_robustness.py` (+`--through`). All outputs dated CSVs in
+`data/regime/`.
+
+**OPEN:**
+1. Merge `regime/indep` → main + push (pre-authorized "when we finish" — awaiting the word).
+2. Shorts ≈ flat under strict fills — long-only book? (test before deciding)
+3. Live-executable version needs CT-session mapping of the h09-13 machine-tz window (do NOT
+   assert CT conversion — verify against exchange timestamps).
+4. Retest-limit reality: touch vs through fill brackets the truth; live fill data will settle it.
+5. Port winning stack into the NT8 OnPriceChange indicator path (phase machine port pending).
 
 ---
 
