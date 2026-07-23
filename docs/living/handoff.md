@@ -52,13 +52,36 @@ ER lever. Codex's own flags: M2B family "tested-robust", 2E-reversal "tested-fai
 `regime_2e_synthesis.py`, `regime_2e_robustness.py` (+`--through`). All outputs dated CSVs in
 `data/regime/`.
 
+**LATER SAME SESSION (all committed):**
+- **CAUSALITY AUDIT PASSED** (`regime_2e_causal_check.py`): S61 engine's structure events were
+  keyed at the pivot bar (pre-knowable); re-keyed causally → n=875 vs 876, net +$29,238 vs
+  +$29,032, PF identical. The edge is fully causal; live ports are legitimate.
+- **REPORT ARTIFACT** (private link, Samir has it; `docs/artifacts/regime_2e_report.html`,
+  builder `regime_2e_report_build.py` + template): full verdict, failure graveyard, all cell
+  grids, trade metrics (exp +$33/tr, avg win +$1,046 / avg loss −$204, payoff 5.1, 80%
+  stop-outs, median hold 4 bars, 14 trades/mo median), monthly chart,
+  zoomed trade anatomy, equity+underwater curves, prop/MES feasibility.
+- **PROP/MES VERDICT** (trailing-style DD incl. MFE/MAE): 1 ES trail DD −$19,395 → does NOT
+  fit $4,500 prop. MES @ $5 RT: headline book commission-dead (−$1.19/tr); ER book +$1.08/tr,
+  +$572/5yr, trail DD −$2,972 → fits at 1 MES ONLY, but < $300/mo account cost. @ $2.50 RT the
+  ER book is +$3.58/tr. Conclusion: ES-account strategy, not a $4.5k-prop strategy at $5 RT.
+- **NT8 STRATEGY BUILT**: `nt8/strategies/RegimeSecondEntry.cs` — causal port of the full stack
+  (phase machine tick loop + S61 counting + retest limit + 4pt stop + EOD + window params +
+  optional ER filter + signal-CSV export). **UNVALIDATED**: needs Tick Replay + signal diff vs
+  `data/regime/causal_check_20260723.csv` before any live/eval use.
+- Headline trade detail: `data/regime/headline_trades_detail_20260723.csv` (876 trades, holds,
+  MFE/MAE, exit types).
+
 **OPEN:**
 1. Merge `regime/indep` → main + push (pre-authorized "when we finish" — awaiting the word).
-2. Shorts ≈ flat under strict fills — long-only book? (test before deciding)
-3. Live-executable version needs CT-session mapping of the h09-13 machine-tz window (do NOT
-   assert CT conversion — verify against exchange timestamps).
-4. Retest-limit reality: touch vs through fill brackets the truth; live fill data will settle it.
-5. Port winning stack into the NT8 OnPriceChange indicator path (phase machine port pending).
+2. **Validate the NT8 port**: ES 5m + Tick Replay 2021→2026, WriteSignalsCsv=true, diff vs
+   causal_check CSV. Only then eval/live.
+3. Walk-forward honesty: single OOS split + per-year + plateau done; lever SELECTION saw the
+   full sample once — rolling WFA not retroactively possible without bias. Live sim is the
+   real next test.
+4. Shorts ≈ flat under strict fills (PF 1.04) — long-only variant decision.
+5. h09-13 window is machine-tz; map to exchange time before live (never assert CT conversion).
+6. Retest-limit fill reality: touch vs through brackets it; log live fills to settle.
 
 ---
 
