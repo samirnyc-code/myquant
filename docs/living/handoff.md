@@ -42,6 +42,17 @@ vs null (3rd consecutive sample) → HARD RULE: no breakdown-short logic on ES d
 **Standalone Grimes engine NOT supported** — fold the two surviving facts into the desk;
 if regime work continues, the evidence points to a MEAN-REVERSION-regime engine.
 
+**STMR RE-RUN ON CLEAN DB SERIES (`stmr_db_rerun.py`; S82 engine was never persisted —
+reconstructed from stmr_final.json specs, NO "+1" add rule):**
+- **DAILY engine SURVIVES**: A-window (S82 span) n=38 vs S82's 37 (signals match), **$3,340
+  PF 2.02** vs S82's $5,722 on faulty data (gap = data fault + missing add rule). **OOS
+  2010–2021: n=81, +$2,341, PF 1.67, 73% win — the daily STMR edge is REAL out-of-sample.**
+  Full 2010–2026: n=125, +$5,988, PF 1.82, worst −$181 (stop35 works).
+- **4H engine FAILS on clean data**: construction-sensitive (n=163 vs S82's 74 — 4h binning
+  differs, not apples-to-apples), ~$0 over the S82 span, **PF 0.75 OOS 2010–2021**. Do not
+  trust the tearsheet's 4h book; the tearsheet needs a rebuild from `stmr_db_rerun` numbers.
+- Trades: `data/regime/stmr_db_rerun_20260723.csv`.
+
 **⚠️ DATA FAULT FOUND (cross-workstream, affects S82):** NT-derived
 `data/bars/_continuous_1m_24h.parquet` has **~20 bad daily closes in 2021–23** (worst
 2022-09-26: −4.98% vs actual −1.0%). Refereed vs SPX cash: Databento closer 17–2
