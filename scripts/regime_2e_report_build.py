@@ -444,7 +444,7 @@ PROP_VERDICT = (
     f"On MES at your $5 RT the headline book nets {hb[1]:+,.0f}$ over 5 yrs per contract "
     f"({'viable' if hb[1] > 0 else 'commission-dead'}); the ER-filtered book nets "
     f"{eb[1]:+,.0f}$ per contract with a {eb[2]:,.0f}$ trailing DD — "
-    f"{'it fits the account with room to scale as shown above' if -eb[2] * 1 <= 4500 and eb[1] > 0 else 'it does not clear the bar'}. "
+    f"{'it fits the account at 1 contract only — the ladder shows 2+ contracts break the limit' if -eb[2] * 1 <= 4500 and eb[1] > 0 else 'it does not clear the bar'}. "
     "Cheaper micro commissions (the $2.50 rows) change the math materially — worth negotiating "
     "before writing the strategy off at micro scale.")
 
