@@ -272,7 +272,88 @@ robustness cells are green only when profitable in <b>both</b> train (2021–23)
   (retest 2–8 ticks, stop 3–6 pt, all window variants) — it is not a lucky cell.</li>
 </ul>
 
-<h2><span class="no">§7</span>What the trades look like</h2>
+<h2><span class="no">§7</span>Every idea, tested — the full grids</h2>
+<p class="sub">Everything proposed during the research day, run on the audited execution
+(retest through-fill · 4-pt stop · h09-13 · gate at trigger), train 2021-23 | test 2024-26.
+Source CSVs: <span class="mono">final_variants / account_sim / failed2e / sb_on_headline
+_20260723.csv</span>.</p>
+
+<h3>Exit rules (2E, base gate) — "should we exit when the regime flips?"</h3>
+<div class="tablewrap"><table>
+<tr><th>exit</th><th>n tr</th><th>net tr</th><th>PF tr</th><th>n te</th><th>net te</th><th>PF te</th></tr>
+<tr><td><b>EOD hold (champion)</b></td><td>417</td><td class="pos c-g">+21,752</td><td class="c-g">1.32</td><td>458</td><td class="pos c-g">+7,485</td><td class="c-g">1.10</td></tr>
+<tr><td>exit on flip-to-NEUTRAL</td><td>417</td><td class="neg c-r">−17,422</td><td class="c-r">0.72</td><td>458</td><td class="neg c-r">−23,840</td><td class="c-r">0.68</td></tr>
+<tr><td>exit only on OPPOSITE trend</td><td>417</td><td class="neg c-r">−62,522</td><td class="c-r">0.20</td><td>458</td><td class="neg c-r">−65,065</td><td class="c-r">0.25</td></tr>
+<tr><td>1:1 target (4pt)</td><td>417</td><td class="c-a">+1,715</td><td class="c-a">1.04</td><td>458</td><td class="neg c-r">−5,090</td><td class="c-r">0.89</td></tr>
+<tr><td>2:1 target (8pt)</td><td>417</td><td class="neg c-r">−1,485</td><td class="c-r">0.97</td><td>458</td><td class="neg c-a">−1,490</td><td class="c-a">0.98</td></tr>
+</table></div>
+<p class="small">Holding to the close is not just best — every regime-aware exit is
+destructive. The flip is noise; the close is the signal. The 4-pt stop is the only
+risk manager the trade needs.</p>
+<h3>Why every fixed target fails — the signal prices them at fair value</h3>
+<div class="tablewrap"><table>
+<tr><th>exit</th><th>win%</th><th>avg win</th><th>avg loss</th><th>$/trade</th><th>PF</th><th>5-yr net</th></tr>
+<tr><td>1:1 (4pt)</td><td>50.3</td><td>+195</td><td>−205</td><td class="neg">−3.9</td><td>0.96</td><td class="neg">−3,375</td></tr>
+<tr><td>2:1 (8pt)</td><td>33.6</td><td>+395</td><td>−205</td><td class="neg">−3.4</td><td>0.98</td><td class="neg">−2,975</td></tr>
+<tr><td><b>EOD hold</b></td><td>19.0</td><td class="pos">+1,046</td><td>−204</td><td class="pos"><b>+33.4</b></td><td><b>1.20</b></td><td class="pos"><b>+29,238</b></td></tr>
+</table></div>
+<p class="small">50.3% at 1:1 and 33.6% at 2:1 are <i>exactly</i> fair odds — costs then tip
+both negative by ~$4. The entire edge is the drift beyond 2R on the ~1-in-5 runner days.
+Any fixed target amputates the only part of the distribution that pays.</p>
+
+<h3>Regime-gate variants (EOD hold) — wick break vs close-through vs sticky; 2E vs 1E</h3>
+<div class="tablewrap"><table>
+<tr><th>entries</th><th>gate</th><th>n tr</th><th>net tr</th><th>PF tr</th><th>n te</th><th>net te</th><th>PF te</th></tr>
+<tr><td>2E</td><td><b>base (tick/wick break)</b></td><td>417</td><td class="pos c-g">+21,752</td><td class="c-g">1.32</td><td>458</td><td class="pos c-g">+7,485</td><td class="c-g">1.10</td></tr>
+<tr><td>2E</td><td>sticky (NEUTRAL inherits trend)</td><td>561</td><td class="pos c-g">+19,470</td><td class="c-g">1.21</td><td>627</td><td class="pos c-g">+9,865</td><td class="c-g">1.09</td></tr>
+<tr><td>2E</td><td>close-through transitions</td><td>490</td><td class="pos c-g">+17,238</td><td class="c-g">1.22</td><td>537</td><td class="pos c-a">+3,802</td><td class="c-a">1.04</td></tr>
+<tr><td>1E</td><td>base</td><td>1,327</td><td class="pos c-a">+24,052</td><td class="c-a">1.11</td><td>1,528</td><td class="neg c-r">−6,628</td><td class="c-r">0.97</td></tr>
+<tr><td>1E</td><td>sticky</td><td>1,698</td><td class="pos c-a">+40,472</td><td class="c-a">1.14</td><td>1,943</td><td class="neg c-r">−19,965</td><td class="c-r">0.94</td></tr>
+<tr><td>1E</td><td>close-through</td><td>1,466</td><td class="pos c-a">+43,870</td><td class="c-a">1.18</td><td>1,605</td><td class="neg c-r">−13,850</td><td class="c-r">0.95</td></tr>
+</table></div>
+<p class="small">Close-through qualifies more trades but worse ones — waiting for a close
+always trades later, and later is always worse in this system (as exit driver it is far
+worse still: flip-exit PF 0.46/0.48). Sticky adds ~35% more trades at slightly lower PF.
+<b>First entries are a train-side mirage</b>: green 2021-23, negative out-of-sample in
+every gate — the "second attempt" is load-bearing.</p>
+
+<h3>Account-level policies — one equity path, no opposing positions ever</h3>
+<div class="tablewrap"><table>
+<tr><th>policy</th><th>n</th><th>net 5yr</th><th>PF</th><th>net tr / te</th><th>max closed DD</th></tr>
+<tr><td>P1 one trade at a time</td><td>733</td><td class="pos">+17,572</td><td>1.14</td><td>+9,965 / +7,608</td><td>−16,765</td></tr>
+<tr><td>P2 pyramid ≤3 same-dir</td><td>864</td><td class="pos">+29,105</td><td>1.20</td><td>+22,982 / +6,122</td><td>−18,790</td></tr>
+<tr><td>P3 stop-and-reverse</td><td>871</td><td class="pos">+30,095</td><td>1.21</td><td>+19,700 / +10,395</td><td>−20,720</td></tr>
+</table></div>
+
+<h3>f2E trap fade — a failed counter-trend 2E, faded with the trend</h3>
+<p class="small">Spec: a counter-trend 2E triggers (1t beyond its signal bar) then ticks 1t
+through the far side of the signal bar within K bars → enter with the trend at the failure
+tick. 4-pt stop, EOD, h09-13.</p>
+<div class="tablewrap"><table>
+<tr><th>K</th><th>side</th><th>n tr</th><th>net tr</th><th>PF tr</th><th>n te</th><th>net te</th><th>PF te</th></tr>
+<tr><td>2</td><td><b>failed 2EL in BEAR → short</b></td><td>81</td><td class="pos c-g">+5,508</td><td class="c-g">1.38</td><td>60</td><td class="pos c-g">+3,588</td><td class="c-g">1.34</td></tr>
+<tr><td>3</td><td>failed 2EL in BEAR → short</td><td>88</td><td class="pos c-g">+6,572</td><td class="c-g">1.43</td><td>69</td><td class="pos c-g">+1,742</td><td class="c-g">1.14</td></tr>
+<tr><td>2</td><td>failed 2ES in BULL → long</td><td>71</td><td class="neg c-r">−2,868</td><td class="c-r">0.77</td><td>89</td><td class="neg c-r">−1,532</td><td class="c-r">0.90</td></tr>
+<tr><td>3</td><td>failed 2ES in BULL → long</td><td>83</td><td class="neg c-r">−3,340</td><td class="c-r">0.77</td><td>106</td><td class="neg c-a">−92</td><td class="c-a">0.99</td></tr>
+</table></div>
+<p class="small"><b>The short side is a validated second book</b> — green both halves,
+~28/yr, ~$65/trade. The long mirror fails: same asymmetry as the main book (ES punishes
+trapped longs, forgives trapped shorts).</p>
+
+<h3>Signal-bar strength on the final book — unstable, not dismissed</h3>
+<div class="tablewrap"><table>
+<tr><th>cut</th><th>n tr</th><th>net tr</th><th>PF tr</th><th>n te</th><th>net te</th><th>PF te</th><th>$/tr</th></tr>
+<tr><td>headline, no SB cut</td><td>417</td><td class="pos c-g">+21,752</td><td class="c-g">1.32</td><td>459</td><td class="pos c-g">+7,280</td><td class="c-g">1.09</td><td>+33</td></tr>
+<tr><td>SB strong (ibs≥.7 · dir close · rng≥ABR)</td><td>65</td><td class="neg c-r">−2,375</td><td class="c-r">0.78</td><td>54</td><td class="pos c-g">+14,692</td><td class="c-g">2.94</td><td>+104</td></tr>
+<tr><td>SB strong + EMA side</td><td>60</td><td class="neg c-r">−1,350</td><td class="c-r">0.86</td><td>51</td><td class="pos c-g">+15,308</td><td class="c-g">3.20</td><td>+126</td></tr>
+<tr><td>SB weak (ibs&lt;.4)</td><td>103</td><td class="pos c-g">+6,122</td><td class="c-g">1.38</td><td>104</td><td class="neg c-r">−8,920</td><td class="c-r">0.51</td><td>−14</td></tr>
+</table></div>
+<p class="small">The filter flips sign between eras in both directions — the pre-registered
+selection rule (green in both halves) rightly refused it. But since 2024 virtually the entire
+edge lives in strong signal bars, and weak ones are toxic. <b>Forward-track the strong-SB
+cut as its own book</b>; live data breaks the tie.</p>
+
+<h2><span class="no">§8</span>What the trades look like</h2>
 <h3>Trade anatomy — zoomed in</h3>
 <p class="sub">Single trades under the microscope: solid line = the S61 trigger, the marker one
 point below/above it = the retest limit fill (▲/▼), dotted = the fixed 4-pt stop, dashed path to
@@ -285,7 +366,7 @@ mechanically: best, busiest, and worst by net. All 1,231 sessions are browsable 
 chart gallery (<span class="mono">docs/living/regime_2e_charts/index.html</span>).</p>
 {{EXAMPLES}}
 
-<h2><span class="no">§8</span>Drawdown, the $4,500 prop question, and MES</h2>
+<h2><span class="no">§9</span>Drawdown, the $4,500 prop question, and MES</h2>
 <figure><figcaption><span class="cap-label">Equity and underwater curves</span> — strict fills,
 1 ES. Top: closed-trade equity. Bottom: drawdown from the running peak — <b>closed-trade</b>
 (solid) and <b>trailing-style</b> (shaded), where the peak may include a trade's unrealized
@@ -318,7 +399,7 @@ EOD-hold exit, subject to the machine-tz mapping).</p>
 </table></div>
 <p><b>Bottom line:</b> {{PROP_VERDICT}}</p>
 
-<h2><span class="no">§9</span>What would kill it — read before believing</h2>
+<h2><span class="no">§10</span>What would kill it — read before believing</h2>
 <div class="note">
 <p><b>Fills.</b> The limit-entry edge is bracketed, not known: touch-fills say {{NET_TCH}}$,
 strict through-fills say {{NET_THR}}$. Live queue position will land in between. If real fills
@@ -331,7 +412,7 @@ survival — §8 quantifies exactly which books and commission levels clear the 
 <p><b>Timezone.</b> All session hours are machine-clock. Map to exchange time before live use.</p>
 </div>
 
-<h2><span class="no">§10</span>Is this programmable?</h2>
+<h2><span class="no">§11</span>Is this programmable?</h2>
 <p><b>Yes — every rule in the spec is causal and mechanical.</b> Nothing requires judgment:
 the regime is a deterministic state machine over price changes, the entry count is a
 deterministic bar/tick rule, and entry, stop, and exit are order types every platform supports.</p>
@@ -349,7 +430,7 @@ deterministic bar/tick rule, and entry, stop, and exit are order types every pla
   settles the one number the backtest cannot.</li>
 </ul>
 
-<h2><span class="no">§11</span>Reproduce it</h2>
+<h2><span class="no">§12</span>Reproduce it</h2>
 <p class="small">Branch <span class="mono">regime/indep</span> (worktree
 <span class="mono">myquant-regime</span>), 17 commits, everything dated 2026-07-23 in
 <span class="mono">data/regime/</span>. Pipeline scripts, in order:
