@@ -72,6 +72,18 @@ ER lever. Codex's own flags: M2B family "tested-robust", 2E-reversal "tested-fai
 - Headline trade detail: `data/regime/headline_trades_detail_20260723.csv` (876 trades, holds,
   MFE/MAE, exit types).
 
+**S83-ETH (2026-07-24, same worktree):** built 24h session tick cache from the NT exports
+(`eth_build_tick_cache.py`, 1,274 sessions, 1.2GB gitignored, panama roll table; NO Databento
+per Samir). Ran the winning stack + f2EL fade on the 24h machine (`eth_regime_2e_study.py`):
+**KILLED — no overnight edge** (all non-RTH slices negative OOS; full session 0.88/0.86), and
+the 24h machine DEGRADES the RTH-morning trades (1.09/0.98 vs day-scoped 1.32/1.10) — the
+day-scoped fresh open is part of the edge. 14:00+ slaughterhouse replicated on independent
+data. Also this session: final variants (EOD-hold decisively beats flip-exits; 1E fails OOS;
+1:1 and 2:1 = fair-value minus costs), account sim (P1/P2/P3, no opposing positions, edge
+intact; P3 best OOS), **f2EL fade shorts in BEAR validated** (K=2: 1.38/1.34), strong-SB
+found era-unstable (0.78 train / 2.94 test — forward-track), portfolio AL+B net/DD 2.79
+(worst yr −$32), NT8 strategy extended to the AL+B combo (auto-reverse = P3).
+
 **OPEN:**
 1. Merge `regime/indep` → main + push (pre-authorized "when we finish" — awaiting the word).
 2. **Validate the NT8 port**: ES 5m + Tick Replay 2021→2026, WriteSignalsCsv=true, diff vs
