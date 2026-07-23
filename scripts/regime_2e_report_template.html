@@ -1,0 +1,381 @@
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ES Second Entries × Regime — the S83 verdict</title>
+<style>
+:root{
+  --page:#f6f5f1; --surface:#fdfdfb; --ink:#171b20; --ink2:#575c64; --muted:#8b8f96;
+  --grid:#e3e2dc; --border:rgba(20,24,29,.12);
+  --bull:#1f7a3d; --bear:#b23a2e; --bull-soft:rgba(31,122,61,.14); --bear-soft:rgba(178,58,46,.13);
+  --amber-soft:rgba(201,133,0,.16);
+  --s1:#2a78d6; --s2:#eb6834; --teal:#0e7c86;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:where(:not([data-theme="light"])){
+    --page:#0f1216; --surface:#161a20; --ink:#eeede8; --ink2:#b7bac0; --muted:#83878e;
+    --grid:#272b31; --border:rgba(255,255,255,.12);
+    --bull:#3fae67; --bear:#d76454; --bull-soft:rgba(63,174,103,.16); --bear-soft:rgba(215,100,84,.15);
+    --amber-soft:rgba(230,168,60,.18);
+    --s1:#3987e5; --s2:#d95926; --teal:#2fa9b5;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --page:#0f1216; --surface:#161a20; --ink:#eeede8; --ink2:#b7bac0; --muted:#83878e;
+  --grid:#272b31; --border:rgba(255,255,255,.12);
+  --bull:#3fae67; --bear:#d76454; --bull-soft:rgba(63,174,103,.16); --bear-soft:rgba(215,100,84,.15);
+  --amber-soft:rgba(230,168,60,.18);
+  --s1:#3987e5; --s2:#d95926; --teal:#2fa9b5; color-scheme:dark;
+}
+:root[data-theme="light"]{
+  --page:#f6f5f1; --surface:#fdfdfb; --ink:#171b20; --ink2:#575c64; --muted:#8b8f96;
+  --grid:#e3e2dc; --border:rgba(20,24,29,.12);
+  --bull:#1f7a3d; --bear:#b23a2e; --bull-soft:rgba(31,122,61,.14); --bear-soft:rgba(178,58,46,.13);
+  --amber-soft:rgba(201,133,0,.16);
+  --s1:#2a78d6; --s2:#eb6834; --teal:#0e7c86; color-scheme:light;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--ink);
+  font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+.wrap{max-width:920px;margin:0 auto;padding:40px 22px 80px}
+header.hero{border-bottom:2px solid var(--ink);padding-bottom:22px;margin-bottom:30px}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink2);
+  font-weight:600;margin:0 0 10px}
+h1{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  font-size:clamp(30px,5vw,44px);line-height:1.12;margin:0 0 10px;text-wrap:balance;font-weight:700}
+.dek{font-size:18px;color:var(--ink2);max-width:64ch;margin:0}
+h2{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  font-size:26px;margin:52px 0 6px;text-wrap:balance}
+h2 .no{color:var(--muted);font-size:17px;vertical-align:middle;margin-right:8px;
+  font-family:system-ui,sans-serif;font-weight:600}
+h3{font-size:16px;margin:26px 0 8px}
+p{max-width:70ch}
+.sub{color:var(--ink2);font-size:14px;margin:0 0 18px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:26px 0 6px}
+.tile{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:12px 14px}
+.tile .v{font-size:26px;font-weight:700;letter-spacing:-.01em}
+.tile .l{font-size:12px;color:var(--ink2);margin-top:2px}
+.pos{color:var(--bull)} .neg{color:var(--bear)}
+table{border-collapse:collapse;font-size:13.5px;background:var(--surface);
+  font-variant-numeric:tabular-nums}
+th,td{border:1px solid var(--grid);padding:5px 9px;text-align:right}
+th{background:transparent;color:var(--ink2);font-weight:600;font-size:12px}
+td:first-child,th:first-child{text-align:left}
+.tablewrap{overflow-x:auto;margin:14px 0;border:1px solid var(--border);border-radius:6px}
+.tablewrap table{margin:0;width:100%}
+.c-g{background:var(--bull-soft)} .c-r{background:var(--bear-soft)} .c-a{background:var(--amber-soft)}
+.legend{display:flex;gap:16px;font-size:12.5px;color:var(--ink2);margin:6px 2px;flex-wrap:wrap}
+.legend .k{display:inline-block;width:13px;height:13px;border-radius:3px;vertical-align:-2px;margin-right:5px;border:1px solid var(--border)}
+figure{margin:26px 0;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:10px}
+figure img{max-width:100%;display:block;border-radius:3px}
+figcaption{font-size:13.5px;color:var(--ink2);padding:2px 4px 8px}
+.cap-label{font-weight:700;color:var(--ink)}
+.recipe{background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--teal);
+  border-radius:6px;padding:18px 22px;margin:20px 0}
+.recipe ol{margin:8px 0 0;padding-left:22px}
+.recipe li{margin:9px 0;max-width:66ch}
+.recipe .why{color:var(--ink2);font-size:14px}
+.grave td:nth-child(2){text-align:left}
+.verdict{font-weight:700;font-size:12px;letter-spacing:.04em}
+.mono{font-family:Consolas,"Cascadia Mono",Menlo,monospace;font-size:.92em}
+.chart{background:var(--surface);border:1px solid var(--border);border-radius:6px;
+  padding:14px 14px 6px;margin:20px 0}
+.chart svg{width:100%;height:auto;display:block}
+.ax{fill:var(--muted);font-size:12px;font-family:system-ui,sans-serif}
+.serieslab{font-size:12.5px;font-weight:700}
+.note{border:1px solid var(--border);border-left:4px solid var(--bear);border-radius:6px;
+  background:var(--surface);padding:14px 18px;margin:18px 0;max-width:74ch}
+.note p{margin:6px 0}
+.small{font-size:13px;color:var(--ink2)}
+ul{max-width:72ch}
+li{margin:5px 0}
+a{color:var(--s1)}
+.ttip{position:absolute;pointer-events:none;background:var(--ink);color:var(--page);
+  font:12px/1.4 system-ui;padding:4px 8px;border-radius:4px;transform:translate(-50%,-130%);
+  white-space:nowrap;display:none}
+@media print{.chart,figure{break-inside:avoid}}
+</style>
+
+<div class="wrap">
+<header class="hero">
+  <p class="eyebrow">Research verdict · S83 · 2026-07-23 · branch regime/indep</p>
+  <h1>ES Second Entries × Regime: the raw setup is dead — the execution around it wasn't</h1>
+  <p class="dek">Five years of tick data (1,231 sessions, 2021–2026), the validated tick-driven
+  regime machine, and 3,340 mechanical second entries. The signal loses money in every regime.
+  Five execution and context changes — none of them the entry pattern itself — flip it to a
+  book that survives a train/test split, a 160-cell parameter sweep, and a strict-fill audit.</p>
+</header>
+
+<div class="tiles">
+  <div class="tile"><div class="v pos">{{NET_THR}}$</div><div class="l">5-yr net, strict fills · 1 ES · $5 RT</div></div>
+  <div class="tile"><div class="v">{{PF_THR}}</div><div class="l">profit factor (strict fills)</div></div>
+  <div class="tile"><div class="v">{{N_THR}}</div><div class="l">trades (~3–4 / week)</div></div>
+  <div class="tile"><div class="v">{{WIN_THR}}%</div><div class="l">win rate (EOD hold)</div></div>
+  <div class="tile"><div class="v neg">{{DD_THR}}$</div><div class="l">max closed-trade drawdown</div></div>
+</div>
+<p class="small">Headline configuration: with-trend second entries only · retest limit entry ·
+fixed 4-pt stop · hold to session close · entries 09:00–13:59 machine-clock. Touch-fill upper
+bound: <b class="pos">{{NET_TCH}}$</b> (PF {{PF_TCH}}). Truth lies between the two fill models.</p>
+
+<div class="chart">
+  <svg viewBox="0 0 1000 300" id="eqsvg" role="img"
+       aria-label="Cumulative net PnL, strict fills vs touch fills, 2021 to 2026">
+    <line x1="8" y1="{{ZERO_Y}}" x2="992" y2="{{ZERO_Y}}" stroke="var(--grid)" stroke-width="1"/>
+    {{YR_TICKS}}
+    <polyline points="{{POLY_TCH}}" fill="none" stroke="var(--s2)" stroke-width="1.6" opacity=".55"/>
+    <polyline points="{{POLY_THR}}" fill="none" stroke="var(--s1)" stroke-width="2.2"/>
+    <line id="cross" x1="0" x2="0" y1="8" y2="292" stroke="var(--muted)" stroke-width="1" style="display:none"/>
+  </svg>
+  <div class="legend" style="padding:6px 2px 8px">
+    <span><span class="k" style="background:var(--s1)"></span><span class="serieslab" style="color:var(--s1)">Strict through-fill</span> — the conservative book</span>
+    <span><span class="k" style="background:var(--s2);opacity:.6"></span><span class="serieslab" style="color:var(--s2)">Touch-fill</span> — the optimistic bound</span>
+  </div>
+  <div class="ttip" id="ttip"></div>
+</div>
+
+<h2><span class="no">§1</span>What was on the table</h2>
+<p>Three locked components, none invented for this study:</p>
+<ul>
+  <li><b>Regime</b> — the tick-driven phase machine (v4), the engine validated bar-by-bar on the
+  2022-02-24 and 2022-04-12 reference days. Every price change advances the state:
+  BULL / NEUTRAL / BEAR, day-scoped.</li>
+  <li><b>Setups</b> — the S61 entry engine (spec locked 2026-07-08): strict legs, tick-resolved
+  outside bars, origin-reset entry counting. The <b>second entry</b> (2EL/2ES) is Brooks' H2/L2:
+  the second attempt to resume after a pullback.</li>
+  <li><b>Fills</b> — everything tick-simulated. $5 round turn, 1 ES contract, flat at session end.</li>
+</ul>
+<p>Base result, before any changes: <b class="neg">T1 book PF 0.82 (−$108k), T2 book PF 0.78
+(−$174k)</b> — negative in all six regime × direction cells. The regime filter alone moves PF by
+at most 0.05. The entry pattern, mechanized naively, has no edge on ES.</p>
+
+<h2><span class="no">§2</span>Everything tested that failed</h2>
+<p class="sub">Full metrics live in the committed CSVs; here only the verdicts.</p>
+<div class="tablewrap"><table class="grave">
+<tr><th>Tested</th><th>Result</th><th>Verdict</th></tr>
+<tr><td>Regime filter alone (with-trend / drop-neutral / counter-trend)</td><td>PF moves ≤ 0.05, all cells stay negative</td><td class="verdict neg">FAILED</td></tr>
+<tr><td>Sticky regime (neutral inherits prior trend)</td><td>PF 0.81 vs 0.80 base</td><td class="verdict neg">NO HELP</td></tr>
+<tr><td>Close-confirmed regime transitions</td><td>PF 0.78 vs 0.80 base</td><td class="verdict neg">NO HELP</td></tr>
+<tr><td>Other timeframes (day-scoped engine)</td><td>2E PF: 1m 0.73 · <b>5m 0.82</b> · 15m 0.67 · 30m 0.47 · 60m 0.13 — 5m is the peak</td><td class="verdict neg">WORSE</td></tr>
+<tr><td>Signal-bar strength on the 1R book</td><td>strong bars PF 0.82 vs weak 0.92 — backwards at 1R</td><td class="verdict neg">FAILED</td></tr>
+<tr><td>EMA-touch pullback (M2B, the Brooks flagship)</td><td>PF 0.71 on top of the Brooks stack — hurts on ES</td><td class="verdict neg">INVERTED</td></tr>
+<tr><td>Close-confirmation <i>entry</i> (enter next bar)</td><td>−$121/trade</td><td class="verdict neg">CATASTROPHIC</td></tr>
+<tr><td>Breakeven stop-move at +1R</td><td>helps (0.78→0.85) but strictly inferior to EOD hold</td><td class="verdict">DOMINATED</td></tr>
+<tr><td>12-bar time stop</td><td>helps (0.78→0.84), inferior to EOD hold</td><td class="verdict">DOMINATED</td></tr>
+<tr><td>All fixed R-multiple targets (0.5R–4R) and point targets</td><td>every one inferior to holding to the close</td><td class="verdict">DOMINATED</td></tr>
+<tr><td>620-bucket feature scan (train/test)</td><td>one survivor: microchannel×ER (PF 1.05/1.12); "previous 2E won" was the top train cell and flipped negative in test</td><td class="verdict">1 SURVIVOR</td></tr>
+<tr><td>Gamma regime, MenthorQ levels</td><td>8 days / ~1yr of history — cannot be tested on 5 yrs</td><td class="verdict">NO COVERAGE</td></tr>
+</table></div>
+
+<h2><span class="no">§3</span>The five levers that worked</h2>
+<ol>
+  <li><b>Stop chasing the breakout — retest limit entry.</b> The base sim buys a stop-entry one
+  tick beyond the break with a tick of slip. Placing a limit <b>4 ticks (1 pt) back from the
+  trigger</b> instead — and skipping the trade if it never pulls back — recovered
+  <b>$29 of the $32/trade deficit</b> and still filled 96% of signals. This is the single
+  biggest finding: the entry pattern was roughly fair value; the chase was the loss.</li>
+  <li><b>Time of day.</b> Entries in the last ~90 minutes (machine-hours 14–15) lost
+  <b>$90k of the −$174k</b> base deficit (PF 0.43 and 0.07): they cannot reach a target before
+  the forced EOD exit. The 08 bucket is thin and terrible. Tradeable window:
+  <b>09:00–13:59 machine-clock</b>.</li>
+  <li><b>Wide fixed stop.</b> The classic signal-bar+1-tick stop gets probed out; a
+  <b>fixed 4-pt stop</b> dominates it everywhere (Brooks cell: PF 0.94 → 1.13 at 2R just from
+  the stop change).</li>
+  <li><b>Hold to the close.</b> EOD-hold beats every fixed target in every scope tested.
+  The 2E's payoff is trend-day drift, not a 2R scalp.</li>
+  <li><b>With-trend + efficient day.</b> Phase-machine with-trend only (long in BULL, short in
+  BEAR), optionally plus ER10 (10-bar efficiency ratio) in its top half. ER, ADX and
+  EMA-extension were the only monotonic features in the scan — all say the same thing:
+  <i>this trade pays only when the day is trending efficiently.</i></li>
+</ol>
+
+<h2><span class="no">§4</span>How to find the signal</h2>
+<div class="recipe">
+<b>The edge spec — ES 5-minute RTH, day-scoped.</b>
+<ol>
+  <li><b>Track the regime</b> (phase machine): the day opens NEUTRAL. A tick above the latest
+  swing-high pivot while a higher-low exists → <b>BULL</b>; mirror for <b>BEAR</b>; a tick
+  through the standing major HL/LH ends the trend → NEUTRAL.
+  <span class="why">On a chart: shade the day by these states; you only care about the shaded trend spans.</span></li>
+  <li><b>Count entries</b> (S61 origin-reset counting): in a pullback against the trend, the
+  first bar whose extreme is taken out in the trend direction is the 1st entry; if the pullback
+  resumes and a second break fires, that is the <b>second entry</b> — the signal.
+  <span class="why">This is Brooks' H2/L2, counted mechanically.</span></li>
+  <li><b>Qualify it:</b> regime must be <b>with-trend</b> (2EL in BULL, 2ES in BEAR) and the
+  clock inside the <b>09–13 machine-hour window</b>. Optional upgrade, historically the
+  strongest cell: ER10 ≥ ~0.20 (top half). Longs have carried most of the edge.</li>
+  <li><b>Do not chase.</b> When the trigger fires, place a <b>limit 1 pt back from the trigger
+  price</b>. No fill = no trade (≈4% of signals run away; let them).</li>
+  <li><b>Risk:</b> fixed <b>4-pt stop</b> from fill. No target — <b>hold to the session close</b>,
+  exit EOD flat. Expect ≈45–50% winners; the right tail pays.</li>
+</ol>
+</div>
+<p class="small">The machine-hour window is this machine's clock, not CT — map it against
+exchange timestamps before trading it live.</p>
+
+<h2><span class="no">§5</span>The cells</h2>
+<p class="sub">Nothing summarized away — these are the actual grids. Green = PF &gt; 1, red = PF &lt; 1;
+robustness cells are green only when profitable in <b>both</b> train (2021–23) and test (2024–26).</p>
+
+<h3>Stop × target, T2 base geometry (chase entry) — where the wide-stop signal first appeared</h3>
+{{MATRIX_ST}}
+
+<h3>Robustness neighborhood — retest entry, EOD hold, with-trend (train PF / test PF per cell)</h3>
+<div class="legend">
+  <span><span class="k c-g"></span>green in both halves</span>
+  <span><span class="k c-a"></span>green in one half</span>
+  <span><span class="k c-r"></span>negative in both</span>
+</div>
+{{MATRIX_ROB}}
+
+<h2><span class="no">§6</span>The edge, audited</h2>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px">
+<div>
+<h3>Strict through-fill · per year</h3>
+<div class="tablewrap"><table>
+<tr><th>year</th><th>n</th><th>net $</th><th>PF</th></tr>
+{{YR_ROWS_THR}}
+</table></div>
+</div>
+<div>
+<h3>Touch-fill · per year</h3>
+<div class="tablewrap"><table>
+<tr><th>year</th><th>n</th><th>net $</th><th>PF</th></tr>
+{{YR_ROWS_TCH}}
+</table></div>
+</div>
+</div>
+<h3>Trade-level metrics — strict fills, headline book</h3>
+<div class="tiles">
+  <div class="tile"><div class="v">{{EXP_TR}}$</div><div class="l">expectancy / trade</div></div>
+  <div class="tile"><div class="v pos">{{AVG_WIN}}$</div><div class="l">average winner</div></div>
+  <div class="tile"><div class="v neg">{{AVG_LOSS}}$</div><div class="l">average loser</div></div>
+  <div class="tile"><div class="v">{{PAYOFF}}</div><div class="l">payoff ratio (win/loss)</div></div>
+  <div class="tile"><div class="v">{{HOLD_MED}}</div><div class="l">median hold (5m bars)</div></div>
+  <div class="tile"><div class="v">{{TPM}}</div><div class="l">trades / month (median · min–max)</div></div>
+  <div class="tile"><div class="v neg">{{MAX_LSTREAK}}</div><div class="l">max consecutive losers</div></div>
+  <div class="tile"><div class="v">{{STOP_PCT}}%</div><div class="l">exits at the 4-pt stop</div></div>
+  <div class="tile"><div class="v pos">{{BEST_TR}}$</div><div class="l">best trade</div></div>
+  <div class="tile"><div class="v neg">{{WORST_TR}}$</div><div class="l">worst trade</div></div>
+</div>
+<figure><figcaption><span class="cap-label">Month by month</span> — net PnL per calendar month
+(bars) and trade count (dots), strict fills. 66 months, {{POS_MONTHS}} positive.</figcaption>
+<img alt="Monthly net PnL bars with trade counts" src="data:image/png;base64,{{MONTHLY_IMG}}"></figure>
+<ul>
+  <li><b>Long / short split (strict fills):</b> longs PF <b>{{PF_L}}</b>, shorts PF {{PF_S}} —
+  the long side carries the edge; shorts are optional at best.</li>
+  <li><b>ER-filtered cell (strict fills, this configuration):</b> n={{N_ER}},
+  net <b class="pos">{{NET_ER}}$</b>, PF <b>{{PF_ER}}</b>. In the h09-12 window the ER cell's
+  test half (PF 1.56) was <i>stronger</i> than train (1.44) — the opposite of an overfit signature.</li>
+  <li><b>Parameter plateau:</b> 147/160 perturbation cells green in both halves with touch
+  fills, 122/160 with strict fills. The edge degrades gracefully in every direction
+  (retest 2–8 ticks, stop 3–6 pt, all window variants) — it is not a lucky cell.</li>
+</ul>
+
+<h2><span class="no">§7</span>What the trades look like</h2>
+<h3>Trade anatomy — zoomed in</h3>
+<p class="sub">Single trades under the microscope: solid line = the S61 trigger, the marker one
+point below/above it = the retest limit fill (▲/▼), dotted = the fixed 4-pt stop, dashed path to
+■ = the exit. Chosen mechanically: biggest winner, a median winner, a stop-out, and the worst
+EOD-hold loser.</p>
+{{ZOOMS}}
+<h3>Full sessions</h3>
+<p class="sub">Same annotations at day scale, with phase-machine regime shading. Days chosen
+mechanically: best, busiest, and worst by net. All 1,231 sessions are browsable in the local
+chart gallery (<span class="mono">docs/living/regime_2e_charts/index.html</span>).</p>
+{{EXAMPLES}}
+
+<h2><span class="no">§8</span>Drawdown, the $4,500 prop question, and MES</h2>
+<figure><figcaption><span class="cap-label">Equity and underwater curves</span> — strict fills,
+1 ES. Top: closed-trade equity. Bottom: drawdown from the running peak — <b>closed-trade</b>
+(solid) and <b>trailing-style</b> (shaded), where the peak may include a trade's unrealized
+high (MFE) and the trough its unrealized low (MAE), the way trailing prop drawdowns are
+typically computed.</figcaption>
+<img alt="Equity curve and drawdown curves" src="data:image/png;base64,{{PROP_IMG}}"></figure>
+
+<div class="tiles">
+  <div class="tile"><div class="v neg">{{DD_CLOSED}}$</div><div class="l">max DD, closed-trade (1 ES)</div></div>
+  <div class="tile"><div class="v neg">{{DD_TRAIL}}$</div><div class="l">max DD, trailing-style incl. unrealized (1 ES)</div></div>
+  <div class="tile"><div class="v">{{DD_LEN}}</div><div class="l">longest underwater stretch (trades)</div></div>
+</div>
+
+<h3>The $4,500 trailing-DD prop account</h3>
+<p><b>1 ES does not fit.</b> The strict-fill book draws down {{DD_TRAIL}}$ trailing-style —
+roughly {{DD_X}}× the $4,500 limit. The instrument that fits is MES — but commissions decide
+everything at MES scale:</p>
+<div class="tablewrap"><table>
+<tr><th>book · per MES contract</th><th>gross $/trade</th><th>RT comm</th><th>net $/trade</th><th>5-yr net</th><th>PF</th><th>max trail DD</th></tr>
+{{MES_ROWS}}
+</table></div>
+<p class="small">Gross = price movement × $5/pt (MES multiplier). Your prop terms: $5 RT on MES,
+$4,500 trailing DD freezing at breakeven, flat by 15:00 CT (the RTH close — compatible with the
+EOD-hold exit, subject to the machine-tz mapping).</p>
+
+<h3>Scaling ladder — does it stay under $4,500?</h3>
+<div class="tablewrap"><table>
+<tr><th>contracts (MES)</th><th>book</th><th>net $/yr ≈</th><th>max trail DD</th><th>fits $4,500?</th><th>fits with 30% buffer ($3,150)?</th></tr>
+{{SCALE_ROWS}}
+</table></div>
+<p><b>Bottom line:</b> {{PROP_VERDICT}}</p>
+
+<h2><span class="no">§9</span>What would kill it — read before believing</h2>
+<div class="note">
+<p><b>Fills.</b> The limit-entry edge is bracketed, not known: touch-fills say {{NET_TCH}}$,
+strict through-fills say {{NET_THR}}$. Live queue position will land in between. If real fills
+track the strict model's worst year (2024: PF 0.90), the ER filter or long-only is load-bearing.</p>
+<p><b>Selection pressure.</b> Five levers were chosen from many tested — the train/test split,
+the parameter plateau, and every-year-positive mitigate but do not eliminate selection bias.
+The strict-fill 2024 dip is the honest wart.</p>
+<p><b>Sizing.</b> Verified on ES at $5 RT (≈$33/trade edge). At MES scale, commissions decide
+survival — §8 quantifies exactly which books and commission levels clear the bar.</p>
+<p><b>Timezone.</b> All session hours are machine-clock. Map to exchange time before live use.</p>
+</div>
+
+<h2><span class="no">§10</span>Is this programmable?</h2>
+<p><b>Yes — every rule in the spec is causal and mechanical.</b> Nothing requires judgment:
+the regime is a deterministic state machine over price changes, the entry count is a
+deterministic bar/tick rule, and entry, stop, and exit are order types every platform supports.</p>
+<ul>
+  <li><b>The regime machine was built for this.</b> The Python engine is an explicit emulation
+  of an NT8 indicator running <span class="mono">Calculate.OnPriceChange</span> — the tick loop
+  body <i>is</i> the intended C# handler. Porting it is transcription, not research.</li>
+  <li><b>Order logic is plain ATM material:</b> when a qualifying 2E triggers → submit a limit
+  1 pt back from the trigger, working until filled or session cutoff; on fill → attach a fixed
+  4-pt stop; cancel/flatten at the session close; no entries after the 13:59 machine-hour
+  boundary (map to exchange time first).</li>
+  <li><b>ER10 filter</b> is ten closes of arithmetic — trivial in any indicator.</li>
+  <li><b>The honest gap:</b> backtest limit fills are modeled (touch vs through brackets it);
+  a live implementation should log actual fill rates vs the model before scaling — that log
+  settles the one number the backtest cannot.</li>
+</ul>
+
+<h2><span class="no">§11</span>Reproduce it</h2>
+<p class="small">Branch <span class="mono">regime/indep</span> (worktree
+<span class="mono">myquant-regime</span>), 17 commits, everything dated 2026-07-23 in
+<span class="mono">data/regime/</span>. Pipeline scripts, in order:
+<span class="mono">regime_second_entry_study.py</span> (base + 1,231 day-charts →
+<span class="mono">docs/living/regime_2e_charts/index.html</span>),
+<span class="mono">regime_2e_sweeps.py</span>, <span class="mono">regime_2e_tf_sweep.py</span>,
+<span class="mono">regime_2e_brooks_filters.py</span>, <span class="mono">regime_2e_autopsy.py</span>,
+<span class="mono">regime_2e_entry_variants.py</span>, <span class="mono">regime_2e_synthesis.py</span>,
+<span class="mono">regime_2e_robustness.py</span> (<span class="mono">--through</span> for strict
+fills), <span class="mono">regime_2e_report_build.py</span> (this page). Brooks rule extraction:
+<span class="mono">docs/research_notes/brooks_2e_rules_mined_20260723.md</span>.</p>
+</div>
+
+<script>
+(function(){
+  var svg=document.getElementById('eqsvg'), tip=document.getElementById('ttip'),
+      cross=document.getElementById('cross'), data={{TT_DATA}};
+  if(!svg||!data.length) return;
+  svg.addEventListener('mousemove',function(e){
+    var r=svg.getBoundingClientRect(), fx=(e.clientX-r.left)/r.width;
+    var i=Math.max(0,Math.min(data.length-1,Math.round(fx*(data.length-1))));
+    var x=8+(984)*i/(data.length-1);
+    cross.style.display='block'; cross.setAttribute('x1',x); cross.setAttribute('x2',x);
+    tip.style.display='block';
+    tip.style.left=(r.left+window.scrollX+x/1000*r.width)+'px';
+    tip.style.top=(r.top+window.scrollY+20)+'px';
+    tip.textContent=data[i].d+'  ·  '+(data[i].v>=0?'+':'')+data[i].v.toLocaleString()+'$';
+  });
+  svg.addEventListener('mouseleave',function(){tip.style.display='none';cross.style.display='none';});
+})();
+</script>

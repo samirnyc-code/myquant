@@ -1,0 +1,18 @@
+[150/1267] trades=111 (42s)
+[300/1267] trades=193 (105s)
+[450/1267] trades=304 (163s)
+[600/1267] trades=400 (211s)
+[900/1267] trades=606 (306s)
+[1050/1267] trades=719 (365s)
+[1200/1267] trades=823 (424s)
+C:\Users\Admin\myquant-regime\scripts\regime_2e_report_build.py:165: UserWarning: This figure includes Axes that are not compatible with tight_layout, so results might be incorrect.
+  fig.tight_layout()
+detail -> C:\Users\Admin\myquant-regime\data\regime\headline_trades_detail_20260723.csv  n=876
+Traceback (most recent call last):
+  File "C:\Users\Admin\myquant-regime\scripts\regime_2e_report_build.py", line 225, in <module>
+    MATRIX_ROB = (rob_matrix(rob_t, "Strict through-fills (the conservative grid — headline cell outlined)") +
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\myquant-regime\scripts\regime_2e_report_build.py", line 205, in rob_matrix
+    cells = {(r.window, r.retest, r["stop"]): (r.PF_tr, r.PF_te) for r in d.itertuples()}
+                                  ~^^^^^^^^
+TypeError: tuple indices must be integers or slices, not str
