@@ -75,6 +75,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 		private bool fUpDone, fDnDone;              // first-break-events on forming bar
 		private double armedLongTrig, armedShortTrig;
 		private bool hasLongTrig, hasShortTrig;
+		private int armedLongSb, armedShortSb;      // signal-bar index of each armed trigger
+		private int fadeExpiryBar = -1;             // f2EL fade stop-order lives until this bar
+		private string fadeOrderName;
 		private int sessionBarCount;
 		private int sigSeq;
 		private List<string> csvRows;
@@ -97,7 +100,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 				RetestTicks = 4;
 				StopTicks = 16;
 				TradeLongs = true;
-				TradeShorts = true;
+				TradeShorts = false;               // with-trend 2ES measured flat (PF 1.04) — off by default
+				UseFadeShorts = true;              // f2EL fade in BEAR: the validated short book
+				FadeKBars = 2;                     // failure must print within K bars of the 2EL trigger
 				UseErFilter = false;
 				ErThreshold = 0.201;
 				Contracts = 1;
@@ -347,9 +352,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 
 			// arm the NEXT forming bar's triggers (counts as they stand now)
 			hasShortTrig = hasRefS && engRegime <= 0 && ecS == 1;   // next break = 2nd entry
-			if (hasShortTrig) armedShortTrig = refS - TICK;
+			if (hasShortTrig) { armedShortTrig = refS - TICK; armedShortSb = refSb; }
 			hasLongTrig = hasRefLo && engRegime >= 0 && ecL == 1;
-			if (hasLongTrig) armedLongTrig = refLo + TICK;
+			if (hasLongTrig) { armedLongTrig = refLo + TICK; armedLongSb = refLb; }
 		}
 
 		private void ClearS() { ecS = 0; hasRefS = false; hasOrgS = false; }
@@ -446,17 +451,43 @@ namespace NinjaTrader.NinjaScript.Strategies
 				foreach (Order o in toCancel) CancelOrder(o);
 			}
 
-			// trigger touch on the forming bar -> regime gate -> retest limit
-			if (hasLongTrig && TradeLongs && px > armedLongTrig - TICK / 2)
+			// expire a pending f2EL fade stop after FadeKBars
+			if (fadeExpiryBar >= 0 && formBar > fadeExpiryBar)
 			{
-				hasLongTrig = false;
-				if (mode == "BULL" && PassesEr() && inWindow)
-					SubmitRetest(true, armedLongTrig);
+				var fc = new List<Order>();
+				foreach (Order o in Orders)
+					if (o.OrderState == OrderState.Working && o.Name == fadeOrderName)
+						fc.Add(o);
+				foreach (Order o in fc) CancelOrder(o);
+				fadeExpiryBar = -1;
 			}
-			if (hasShortTrig && TradeShorts && px < armedShortTrig + TICK / 2)
+
+			// trigger touch on the forming bar -> regime gate -> entry
+			if (hasLongTrig && px > armedLongTrig - TICK / 2)
+			{
+				int sbIdx = armedLongSb;
+				hasLongTrig = false;
+				if (mode == "BULL" && TradeLongs && PassesEr() && inWindow)
+					SubmitRetest(true, armedLongTrig);
+				else if (mode == "BEAR" && UseFadeShorts && inWindow && sbIdx >= 0 && sbIdx < lo.Count)
+				{
+					// f2EL fade: a counter-trend 2EL just triggered in a BEAR — if it
+					// fails (tick 1t below its signal bar within FadeKBars), go short.
+					double failPx = lo[sbIdx] - TICK;
+					sigSeq++;
+					fadeOrderName = "F2E" + sigSeq;
+					fadeExpiryBar = formBar + FadeKBars;
+					SetStopLoss(fadeOrderName, CalculationMode.Ticks, StopTicks, false);
+					EnterShortStopMarket(0, true, Contracts, failPx, fadeOrderName);
+					if (WriteSignalsCsv)
+						csvRows.Add(string.Format("{0:yyyy-MM-dd},F2ES,{1},{2},{3}",
+							Time[0], formBar + 1, failPx, failPx));
+				}
+			}
+			if (hasShortTrig && px < armedShortTrig + TICK / 2)
 			{
 				hasShortTrig = false;
-				if (mode == "BEAR" && PassesEr() && inWindow)
+				if (mode == "BEAR" && TradeShorts && PassesEr() && inWindow)
 					SubmitRetest(false, armedShortTrig);
 			}
 		}
@@ -499,6 +530,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 		[NinjaScriptProperty] public int StopTicks { get; set; }
 		[NinjaScriptProperty] public bool TradeLongs { get; set; }
 		[NinjaScriptProperty] public bool TradeShorts { get; set; }
+		[NinjaScriptProperty] public bool UseFadeShorts { get; set; }
+		[NinjaScriptProperty] public int FadeKBars { get; set; }
 		[NinjaScriptProperty] public bool UseErFilter { get; set; }
 		[NinjaScriptProperty] public double ErThreshold { get; set; }
 		[NinjaScriptProperty] public int Contracts { get; set; }
