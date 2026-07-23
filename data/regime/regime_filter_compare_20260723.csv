@@ -1,0 +1,11 @@
+book,filter,n,meanR,win%,net$,PF,$/trade
+T1,unfiltered (all 2E),3340,-0.103,44.9,-108000,0.816,-32.3
+T1,with-trend (BULL L + BEAR S),1186,-0.099,45.0,-37430,0.81,-31.6
+T1,counter-trend (BULL S + BEAR L),911,-0.082,45.9,-22380,0.863,-24.6
+T1,drop NEUTRAL (trade both dirs),2097,-0.092,45.4,-59810,0.834,-28.5
+T1,NEUTRAL only,1243,-0.121,43.9,-48190,0.788,-38.8
+T2,unfiltered (all 2E),3340,-0.162,27.9,-174212,0.775,-52.2
+T2,with-trend (BULL L + BEAR S),1186,-0.127,29.1,-50718,0.803,-42.8
+T2,counter-trend (BULL S + BEAR L),911,-0.18,27.3,-49418,0.776,-54.2
+T2,drop NEUTRAL (trade both dirs),2097,-0.15,28.3,-100135,0.79,-47.8
+T2,NEUTRAL only,1243,-0.182,27.3,-74078,0.751,-59.6
