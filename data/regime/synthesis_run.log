@@ -1,0 +1,99 @@
+[100/1267] trades=228 (24s)
+[200/1267] trades=495 (68s)
+[300/1267] trades=729 (112s)
+[400/1267] trades=984 (153s)
+[500/1267] trades=1249 (187s)
+[600/1267] trades=1507 (223s)
+[700/1267] trades=1778 (254s)
+[800/1267] trades=2036 (288s)
+[900/1267] trades=2288 (323s)
+[1000/1267] trades=2546 (369s)
+[1100/1267] trades=2798 (403s)
+[1200/1267] trades=3048 (445s)
+
+train medians: ER10 0.265  ADX 24.1
+
+================= SYNTHESIS GRID (train | test) =================
+      filter       tod     geom  n_tr  net_tr  PF_tr  n_te  net_te  PF_te
+     F0 none all-hours fx4p_t8p  1557  -31785  0.856  1663    6485  1.029
+     F0 none all-hours fx4p_eod  1557    5228  1.021  1663   20460  1.075
+     F0 none all-hours  sb1_t8p  1557  -24585  0.891  1663   -3928  0.984
+     F0 none all-hours  sb1_eod  1557   21528  1.073  1663   11748  1.034
+     F0 none    h09-13 fx4p_t8p  1275   -7575  0.957  1377   22515  1.126
+     F0 none    h09-13 fx4p_eod  1275   15100  1.071  1377   36215  1.157
+     F0 none    h09-13  sb1_t8p  1275   -6612  0.964  1377   14965  1.076
+     F0 none    h09-13  sb1_eod  1275   27775  1.110  1377   28590  1.095
+       F1 WT all-hours fx4p_t8p   534   -5670  0.923   601     995  1.012
+       F1 WT all-hours fx4p_eod   534   21492  1.265   601   13320  1.139
+       F1 WT all-hours  sb1_t8p   534   -6645  0.909   601   -2055  0.976
+       F1 WT all-hours  sb1_eod   534   11455  1.126   601   14070  1.120
+       F1 WT    h09-13 fx4p_t8p   427    4865  1.087   470    3850  1.062
+       F1 WT    h09-13 fx4p_eod   427   27740  1.413   470   16925  1.218
+       F1 WT    h09-13  sb1_t8p   427     152  1.003   470    3475  1.053
+       F1 WT    h09-13  sb1_eod   427   15628  1.204   470   21412  1.223
+    F2 WT+ER all-hours fx4p_t8p   269   -1745  0.953   315    6825  1.170
+    F2 WT+ER all-hours fx4p_eod   269    6718  1.168   315   19425  1.391
+    F2 WT+ER all-hours  sb1_t8p   269    -920  0.974   315    1725  1.039
+    F2 WT+ER all-hours  sb1_eod   269   -1608  0.963   315   18800  1.311
+    F2 WT+ER    h09-13 fx4p_t8p   207    3765  1.141   253    8135  1.259
+    F2 WT+ER    h09-13 fx4p_eod   207   10340  1.323   253   20372  1.489
+    F2 WT+ER    h09-13  sb1_t8p   207    2852  1.111   253    4322  1.122
+    F2 WT+ER    h09-13  sb1_eod   207      15  1.000   253   21172  1.402
+   F3 Brooks all-hours fx4p_t8p    86   -2630  0.790    78    7410  1.927
+   F3 Brooks all-hours fx4p_eod    86   -2880  0.778    78   14048  2.260
+   F3 Brooks all-hours  sb1_t8p    86   -5168  0.682    78    3885  1.306
+   F3 Brooks all-hours  sb1_eod    86   -4818  0.740    78    4960  1.251
+   F3 Brooks    h09-13 fx4p_t8p    63     285  1.034    53    7735  2.715
+   F3 Brooks    h09-13 fx4p_eod    63    -990  0.899    53   16848  3.417
+   F3 Brooks    h09-13  sb1_t8p    63   -2790  0.765    53    7110  2.125
+   F3 Brooks    h09-13  sb1_eod    63   -3828  0.750    53    9910  1.721
+   F4 WT+ADX all-hours fx4p_t8p   219     705  1.024   269      55  1.002
+   F4 WT+ADX all-hours fx4p_eod   219   19168  1.658   269   -1208  0.972
+   F4 WT+ADX all-hours  sb1_t8p   219    -645  0.977   269    1480  1.038
+   F4 WT+ADX all-hours  sb1_eod   219   15892  1.515   269   -1920  0.963
+   F4 WT+ADX    h09-13 fx4p_t8p   156    5220  1.271   195     225  1.009
+   F4 WT+ADX    h09-13 fx4p_eod   156   20545  1.940   195   -1275  0.960
+   F4 WT+ADX    h09-13  sb1_t8p   156    1932  1.104   195    3738  1.142
+   F4 WT+ADX    h09-13  sb1_eod   156   16695  1.733   195    1312  1.033
+F5 WT+ER+ADX all-hours fx4p_t8p   122   -1010  0.940   150    2850  1.148
+F5 WT+ER+ADX all-hours fx4p_eod   122    1740  1.105   150   -2525  0.896
+F5 WT+ER+ADX all-hours  sb1_t8p   122   -1272  0.925   150     525  1.024
+F5 WT+ER+ADX all-hours  sb1_eod   122   -3035  0.840   150   -3850  0.876
+F5 WT+ER+ADX    h09-13 fx4p_t8p    83    1585  1.149   115    2225  1.151
+F5 WT+ER+ADX    h09-13 fx4p_eod    83    2810  1.232   115   -2312  0.880
+F5 WT+ER+ADX    h09-13  sb1_t8p    83     972  1.093   115    1675  1.102
+F5 WT+ER+ADX    h09-13  sb1_eod    83   -2365  0.828   115   -2362  0.909
+
+== combos green in BOTH train and test ==
+      filter       tod     geom  n_tr  net_tr  PF_tr  n_te  net_te  PF_te
+     F0 none all-hours fx4p_eod  1557    5228  1.021  1663   20460  1.075
+     F0 none all-hours  sb1_eod  1557   21528  1.073  1663   11748  1.034
+     F0 none    h09-13 fx4p_eod  1275   15100  1.071  1377   36215  1.157
+     F0 none    h09-13  sb1_eod  1275   27775  1.110  1377   28590  1.095
+       F1 WT all-hours fx4p_eod   534   21492  1.265   601   13320  1.139
+       F1 WT all-hours  sb1_eod   534   11455  1.126   601   14070  1.120
+       F1 WT    h09-13 fx4p_t8p   427    4865  1.087   470    3850  1.062
+       F1 WT    h09-13 fx4p_eod   427   27740  1.413   470   16925  1.218
+       F1 WT    h09-13  sb1_t8p   427     152  1.003   470    3475  1.053
+       F1 WT    h09-13  sb1_eod   427   15628  1.204   470   21412  1.223
+    F2 WT+ER all-hours fx4p_eod   269    6718  1.168   315   19425  1.391
+    F2 WT+ER    h09-13 fx4p_t8p   207    3765  1.141   253    8135  1.259
+    F2 WT+ER    h09-13 fx4p_eod   207   10340  1.323   253   20372  1.489
+    F2 WT+ER    h09-13  sb1_t8p   207    2852  1.111   253    4322  1.122
+   F3 Brooks    h09-13 fx4p_t8p    63     285  1.034    53    7735  2.715
+   F4 WT+ADX all-hours fx4p_t8p   219     705  1.024   269      55  1.002
+   F4 WT+ADX    h09-13 fx4p_t8p   156    5220  1.271   195     225  1.009
+   F4 WT+ADX    h09-13  sb1_t8p   156    1932  1.104   195    3738  1.142
+   F4 WT+ADX    h09-13  sb1_eod   156   16695  1.733   195    1312  1.033
+F5 WT+ER+ADX    h09-13 fx4p_t8p    83    1585  1.149   115    2225  1.151
+F5 WT+ER+ADX    h09-13  sb1_t8p    83     972  1.093   115    1675  1.102
+
+== per-year: F0 none | h09-13 | fx4p_eod ==
+        n      net   pf
+yr                     
+2021  217  11378.0  1.0
+2022  526  -2642.0  1.0
+2023  532   6365.0  1.0
+2024  559  32442.0  1.0
+2025  539 -13545.0  1.0
+2026  279  17318.0  1.0
