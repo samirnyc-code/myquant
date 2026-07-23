@@ -28,7 +28,9 @@ sys.path.insert(0, str(WT_ROOT / "scripts"))
 from regime_second_entry_study import phase_transitions, load_day  # noqa: E402
 from regime_2e_sweeps import detect_entries  # noqa: E402
 
-OUT = WT_ROOT / "data" / "regime" / "robustness_20260723.csv"
+THROUGH = "--through" in sys.argv           # strict limit-fill: price must trade through
+OUT = WT_ROOT / "data" / "regime" / ("robustness_through_20260723.csv" if THROUGH
+                                     else "robustness_20260723.csv")
 TRAIN_END = "2023-12-31"
 RETESTS = [2, 4, 6, 8]                      # ticks back from trigger
 STOPS = [12, 16, 20, 24, None]              # ticks from fill; None = sb1
@@ -83,7 +85,10 @@ def main():
             for rt in RETESTS:
                 lim = trig + rt * TICK if short else trig - rt * TICK
                 seg0 = tP[jf:]
-                jl_ = np.nonzero(seg0 >= lim)[0] if short else np.nonzero(seg0 <= lim)[0]
+                if THROUGH:                    # strict: must trade THROUGH the limit
+                    jl_ = np.nonzero(seg0 > lim)[0] if short else np.nonzero(seg0 < lim)[0]
+                else:
+                    jl_ = np.nonzero(seg0 >= lim)[0] if short else np.nonzero(seg0 <= lim)[0]
                 if not len(jl_):
                     continue
                 jfl = jf + int(jl_[0])
