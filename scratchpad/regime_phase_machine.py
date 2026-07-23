@@ -1,42 +1,41 @@
-"""Regime phase machine — trend / termination / seed / re-confirmation, drawn per session.
+"""Regime phase machine v4 — TICK-DRIVEN (OnPriceChange emulation).
 
 Usage:  python scratchpad/regime_phase_machine.py [YYYY-MM-DD]
 
-Standalone: does NOT import or modify scripts/brooks_regime_layer.py. This is the working
-model of the rules validated bar-by-bar with Samir on 2022-02-24 (2026-07-22), pending a port
-into the engine once they hold up on other days.
+Standalone: does NOT import or modify scripts/brooks_regime_layer.py. This emulates the
+target live indicator: the machine's clock is EVERY PRICE CHANGE, exactly as an NT8
+indicator running Calculate.OnPriceChange would see it. Bars exist only as bookkeeping
+(pivots live on bars, labels reference bar numbers); all state transitions fire on ticks.
 
-BAR CLASSIFICATION
-  An outside bar's range is always BIGGER than the prior bar's: one side may be equal, never
-  both. So H==prior H AND L==prior L is a perfect INSIDE bar (no events), while higher-high-
-  with-equal-low and lower-low-with-equal-high ARE outside bars (one-sided, so the extending
-  side is the break by construction and no tick order is needed).
+EVENTS (per Samir): each bar has at most two events — the FIRST tick above the prior bar's
+high and the FIRST tick below the prior bar's low, registered in the order the ticks present
+them. Each event applies the regime logic against live state, so an outside bar is simply
+two consecutive steps that share a bar. Equal bars are perfect inside bars (no tick can
+break an equal extreme — strict comparisons handle this for free).
 
-PHASES
-  SEED  : the open-of-day rule, reused. The seeding bar marks BOTH an H and an L; each later
-          bar carries the label on the side it breaks (OB carries both, IB/equal carries
-          neither) until one side alone advances -> direction established. The first
-          counter-move then ends the seed and makes the leading extreme the first pivot.
-          The day OPENS in this phase, so the open is not a special case - it is seed #1.
-  TREND : the event machine. A strict OB fires TWO events in tick order, so it can supply its
-          own turn -> INTRABAR confirmation, displayed with an "i" (b23 -> 23i, b63 -> 63i).
-          HH/LL are known at the turn; HL/LH at the new extreme.
-          A bar trading below the standing MAJOR HL terminates the bull trend -> back to SEED.
-
-MAJOR vs MINOR (this is the part that is easy to get wrong - see the handoff)
-  ONE candidate per side at a time. Every pivot on that side enters the contest whatever its
-  two-bar tag; a DEEPER low replaces the pending low and DEMOTES it to minor. The winner is
-  promoted to major only when price exceeds the RUNNING DAY EXTREME that stood when it was
-  set - NOT merely the prior swing pivot, which is a far lower bar and promotes all the chop.
-  A promoted low is a major HL regardless of its tag, so a mechanically-tagged `ll` can be the
-  major HL (b35, b56 on 2/24).
+STATES
+  NEUTRAL : the day opens here and every termination returns here. Swing pivots keep
+            forming (only a termination bar itself is excluded — its leg dies, though its
+            extremes stay in the tag-comparison chain). The race: a tick above the latest
+            swing-high pivot with an hl in the phase -> BULL; a tick below the latest
+            swing-low pivot with an lh in the phase -> BEAR ("hl gets taken out in a
+            neutral phase"). Day-first single-letter pivots count as compatible structure.
+            At the start: broken pivot -> continuation major (HH/LL), the enabling hl/lh ->
+            HL/LH, the phase's opposite extreme pivot -> its uppercased tag. The running
+            trend extreme is born at the breaking tick.
+  TREND   : a swing pivot that IS the trend's running extreme -> MAJOR continuation at its
+            turn (every new running low of a bear is an LL — b17 on 04-12). Counter-trend
+            pivots enter the ONE-candidate contest (deeper low / higher high replaces,
+            replaced stays minor); the candidate promotes to major HL/LH when a tick
+            exceeds the running extreme that stood when it was set, and becomes the
+            STANDING level. A tick through the standing level TERMINATES the trend.
 """
 import sys
 from datetime import date
 import numpy as np, pandas as pd
 import matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt
-
 from pathlib import Path
+
 ROOT = str(Path(__file__).resolve().parent.parent)
 OUTDIR = str(Path(ROOT) / "docs" / "living")
 sys.path.insert(0, ROOT)
@@ -44,366 +43,338 @@ import massive
 
 DAY = sys.argv[1] if len(sys.argv) > 1 else "2022-02-24"
 
-
 B = pd.read_parquet(ROOT + "/data/bars/_continuous.parquet")
 B["Date"] = B["DateTime"].dt.date.astype(str)
 g = B[B["Date"] == DAY].sort_values("DateTime").reset_index(drop=True)
 O, H, L, C = (g[c].values for c in ["Open", "High", "Low", "Close"])
 n = len(g)
-LO, HI = 1, n            # whole session
 tk = massive.load_continuous_ticks(date.fromisoformat(DAY)).sort_values("DateTime")
 tbar = np.searchsorted(g["DateTime"].values, tk["DateTime"].values, side="right") - 1
 tP = tk["Price"].values
 
-
-def first_break(i):
-    s = tP[tbar == i]
-    up = np.nonzero(s > H[i-1])[0]; dn = np.nonzero(s < L[i-1])[0]
-    tu = up[0] if len(up) else np.inf
-    td = dn[0] if len(dn) else np.inf
-    return "D" if td < tu else "U"
-
-
-kind = {}; evs = {}; obdir = {}
+# ---- bar classification (display strip + gold OB dots only; the machine reads ticks) ----
+kind = {}; obdir = {}
 for i in range(1, n):
     bt = H[i] > H[i-1]; bb = L[i] < L[i-1]
     eqH = H[i] == H[i-1]; eqL = L[i] == L[i-1]
     if bt and bb:
-        fb = first_break(i); obdir[i] = fb
-        kind[i] = "OB " + fb + "-first"; evs[i] = ["D", "U"] if fb == "D" else ["U", "D"]
-    elif bt and eqL: obdir[i] = "U"; kind[i] = "OB (high)"; evs[i] = ["U"]
-    elif bb and eqH: obdir[i] = "D"; kind[i] = "OB (low)";  evs[i] = ["D"]
-    elif bt:          kind[i] = "up";            evs[i] = ["U"]
-    elif bb:          kind[i] = "down";          evs[i] = ["D"]
-    elif eqH and eqL: kind[i] = "EQUAL = IB";    evs[i] = []
-    else:             kind[i] = "inside";        evs[i] = []
+        s_ = tP[tbar == i]
+        up = np.nonzero(s_ > H[i-1])[0]; dn = np.nonzero(s_ < L[i-1])[0]
+        fb = "D" if (dn[0] if len(dn) else np.inf) < (up[0] if len(up) else np.inf) else "U"
+        obdir[i] = fb; kind[i] = "OB " + fb + "-first"
+    elif bt and eqL: obdir[i] = "U"; kind[i] = "OB (high)"
+    elif bb and eqH: obdir[i] = "D"; kind[i] = "OB (low)"
+    elif bt:          kind[i] = "up"
+    elif bb:          kind[i] = "down"
+    elif eqH and eqL: kind[i] = "EQUAL = IB"
+    else:             kind[i] = "inside"
 
-# ---------------------------------------------------------------- phase machine
-piv = []          # dicts: bar, side, tag, pivot_bar(confirm), intrabar, major_bar, in_seed
-seed_marks = []   # (bar, "H"/"L")
-seed_spans = []   # (start_bar, end_bar)
-terms = []        # (hl_bar, hl_px, break_bar)
-resumes = []      # (hh_bar, cont_bar)
+# ============================== state ==============================
+piv = []           # bar, side, tag, disp, conf, intrabar, major, majlab
 log = []
+trend_starts = []  # (bar, "bull"|"bear", broken_pivot_bar)
+terms = []         # (standing_bar, standing_px, break_bar, "bull"|"bear")
+race_lines = []    # (pivot_bar, px, break_bar, "bull"|"bear")
+neutral_spans = [] # (start_bar, end_bar)
 
 prevH = prevL = 0
-def tag_of(bar, side):
-    global prevH, prevL
+first_pivot_done = False
+mode = "NEUTRAL"
+standing = None              # (bar, px): major HL floor (bull) / major LH ceiling (bear)
+run_b = None; run_px = None  # running trend extreme — born at trend start, tick-accurate
+cand = None                  # {p, ref_px}: pending pullback candidate
+neu_start = 0
+hi_p = None; lo_p = None     # EXTREME pivots since reset (promoted when the race resolves)
+lsh = None; lsl = None       # LATEST pivots since reset — the race break levels
+has_hl = False; has_lh = False
+struct_hl = None; struct_lh = None   # the hl / lh pivot enabling a start (the partner)
+
+
+def add_pivot(bar, side, emit):
+    global prevH, prevL, first_pivot_done, hi_p, lo_p, lsh, lsl
+    global has_hl, has_lh, cand, struct_hl, struct_lh
     if side == "H":
         t = "hh" if H[bar] > H[prevH] else ("lh" if H[bar] < H[prevH] else "dh"); prevH = bar
     else:
         t = "hl" if L[bar] > L[prevL] else ("ll" if L[bar] < L[prevL] else "dl"); prevL = bar
-    return t
-
-run_max_H = H[0]; run_max_H_bar = 0      # running DAY extremes - the promotion reference
-run_min_L = L[0]; run_min_L_bar = 0
-
-
-def add_pivot(bar, side, emit, in_seed=False):
-    global awaiting
-    t = tag_of(bar, side)
-    p = dict(bar=bar, side=side, tag=t, conf=emit, intrabar=(emit == bar),
-             major=None, majlab=None, in_seed=in_seed)
+    disp = side if not first_pivot_done else t     # day's first pivot: single letter
+    first_pivot_done = True
+    p = dict(bar=bar, side=side, tag=t, disp=disp, conf=emit, intrabar=(emit == bar),
+             major=None, majlab=None)
     piv.append(p)
-    log.append((emit, "pivot %s on b%d (%s)%s" % (side, bar + 1, t,
+    log.append((emit, "pivot %s on b%d (%s)%s" % (side, bar + 1, disp,
                 "  [intrabar]" if emit == bar else "")))
-    # the first opposite-side pivot after a seed lead becomes its promotion partner
-    if awaiting and awaiting["partner"] is None and side != awaiting["lead"]["side"]:
-        awaiting["partner"] = p
-    if in_seed:
-        return p                       # seed leads promote with their partner, not on their own
-    # A pullback pivot goes major only when price exceeds the RUNNING DAY EXTREME that stood
-    # when it was set - the engine's own reference (run_max_H / run_min_L). Using the prior
-    # SWING pivot instead is a far lower bar and wrongly promoted the whole chop (b18, b19,
-    # b30, b37, b39, b41-46, b51, b52, b55...). An hh/ll is major only as the partner of a
-    # promoted pullback, never on its own.
-    # ONE candidate per side at a time. A DEEPER low replaces the pending low and DEMOTES it
-    # to minor; a low that is not deeper is minor immediately and never competes. Same,
-    # mirrored, for highs. Without this contest every pullback eventually promotes.
-    # EVERY pivot on the side enters the contest, whatever its two-bar tag - the DEEPEST low
-    # wins and becomes the major HL, so a mechanically-tagged `ll` can be the major HL (b35,
-    # b56 on 2/24). Restricting the contest to `hl` was wrong.
-    if side == "L":
-        cur = next((r for r in pending_promo if r["need"] == "H"), None)
-        if cur is None or L[bar] < L[cur["p"]["bar"]]:
-            if cur is not None: pending_promo.remove(cur)      # demoted, stays minor
-            pending_promo.append(dict(p=p, need="H", px=run_max_H, pk=run_max_H_bar))
-    else:
-        cur = next((r for r in pending_promo if r["need"] == "L"), None)
-        if cur is None or H[bar] > H[cur["p"]["bar"]]:
-            if cur is not None: pending_promo.remove(cur)
-            pending_promo.append(dict(p=p, need="L", px=run_min_L, pk=run_min_L_bar))
+    if mode == "NEUTRAL":
+        if side == "H":
+            lsh = p
+            if hi_p is None or H[bar] > H[hi_p["bar"]]: hi_p = p
+            if t == "lh" or len(disp) == 1: has_lh = True; struct_lh = p
+        else:
+            lsl = p
+            if lo_p is None or L[bar] < L[lo_p["bar"]]: lo_p = p
+            if t == "hl" or len(disp) == 1: has_hl = True; struct_hl = p
+    elif mode == "BULL" and side == "L":
+        # ONE candidate: a DEEPER low replaces it (old stays minor); otherwise minor forever
+        if cand is None or L[bar] < L[cand["p"]["bar"]]:
+            cand = dict(p=p, ref_px=run_px)
+    elif mode == "BEAR" and side == "H":
+        if cand is None or H[bar] > H[cand["p"]["bar"]]:
+            cand = dict(p=p, ref_px=run_px)
+    # TREND-EXTREME CONTINUATION (b17 on 04-12): a swing pivot that IS the trend's running
+    # extreme is a major continuation pivot at its turn. Equal extremes are not new (b19 dl).
+    # identity test, not price: an EQUAL low is a dl, not a new extreme (b19 on 04-12) —
+    # strict < in the tick loop keeps run_b on the FIRST bar that made the level
+    if mode == "BULL" and side == "H" and bar == run_b:
+        p["major"] = emit; p["majlab"] = "HH"
+    elif mode == "BEAR" and side == "L" and bar == run_b:
+        p["major"] = emit; p["majlab"] = "LL"
     return p
 
-# The day OPENS in the seed phase - b1 seeds both an H and an L. This is the same logic a
-# termination resets into, so the open is not a special case, it is just the first seed.
-mode = "seed"
-st = {"d": None, "ext": 0}
-standing_hl = None          # (bar, price)
-seed = dict(sH=0, sL=0, dir=None, start=0)
-seed_marks.append((0, "H")); seed_marks.append((0, "L"))
-awaiting = None             # {lead, partner} pair awaiting major promotion
-pending_promo = []          # hl/lh pivots awaiting their new-extreme confirmation
 
-i = 1
-while i < n:
-    if mode == "trend":
-        for ev in evs[i]:
-            if ev == "U":
-                if st["d"] == -1:
-                    add_pivot(st["ext"], "L", i)
-                    st["d"] = 1; st["ext"] = i
-                else:
-                    st["d"] = 1
-                    st["ext"] = i if H[i] >= H[st["ext"]] else st["ext"]
-            else:
-                if st["d"] == 1:
-                    add_pivot(st["ext"], "H", i)
-                    st["d"] = -1; st["ext"] = i
-                else:
-                    st["d"] = -1
-                    st["ext"] = i if L[i] <= L[st["ext"]] else st["ext"]
-        # pullback pivots go major when price resumes past the prior swing extreme. ONLY a
-        # MAJOR HL becomes the standing HL - a minor hl that price undercuts before it was
-        # ever confirmed never was the trend's floor, and must not terminate anything.
-        for pp in list(pending_promo):
-            hit = (H[i] > pp["px"]) if pp["need"] == "H" else (L[i] < pp["px"])
-            if hit:
-                q = pp["p"]
-                if q["major"] is None: q["major"] = i
-                # the peak that stood when the pullback was set becomes the partner major
-                # HH/LL - unless the confirming bar is itself a pivot on that side
-                partner_bar = i if any(r["bar"] == i and r["side"] != q["side"] for r in piv) else pp["pk"]
-                for r in piv:
-                    if r["bar"] == partner_bar and r["side"] != q["side"] and r["major"] is None:
-                        r["major"] = i; r["majlab"] = "HH" if r["side"] == "H" else "LL"
-                q["majlab"] = "HL" if q["side"] == "L" else "LH"
-                if q["side"] == "L":
-                    standing_hl = (q["bar"], L[q["bar"]])
-                    log.append((i, "standing HL -> b%d (major)" % (q["bar"] + 1)))
-                pending_promo.remove(pp)
-        # promotion of a post-seed pair: the seed's lead pivot and the pullback that follows
-        # it go major together, at the moment price takes out the lead pivot's extreme
-        if awaiting and awaiting["partner"] is not None:
-            lead = awaiting["lead"]; part = awaiting["partner"]
-            hit = (H[i] > H[lead["bar"]]) if lead["side"] == "H" else (L[i] < L[lead["bar"]])
-            if hit:
-                lead["major"] = i; part["major"] = i
-                lead["majlab"] = "HH" if lead["side"] == "H" else "LL"
-                part["majlab"] = "HL" if part["side"] == "L" else "LH"
-                if part["tag"] == "hl":
-                    standing_hl = (part["bar"], L[part["bar"]])
-                resumes.append((lead["bar"], i, lead["side"]))
-                log.append((i, "TREND RE-CONFIRMED: b%d -> major %s, b%d -> major %s"
-                            % (lead["bar"] + 1, lead["tag"].upper(),
-                               part["bar"] + 1, part["tag"].upper())))
-                awaiting = None
-        # termination test, after this bar's events
-        if standing_hl and L[i] < standing_hl[1]:
-            terms.append((standing_hl[0], standing_hl[1], i))
-            log.append((i, "*** BULL TREND TERMINATED (breaks b%d HL) -> seed phase"
-                        % (standing_hl[0] + 1)))
-            mode = "seed"
-            seed = dict(sH=i, sL=i, dir=None, start=i)
-            seed_marks.append((i, "H")); seed_marks.append((i, "L"))
-            standing_hl = None
-        if H[i] > run_max_H: run_max_H = H[i]; run_max_H_bar = i
-        if L[i] < run_min_L: run_min_L = L[i]; run_min_L_bar = i
-        i += 1
+def start_trend(up, b, px):
+    global mode, standing, run_b, run_px, cand
+    side = "bull" if up else "bear"
+    broken = lsh if up else lsl
+    partner = struct_hl if up else struct_lh
+    opp = lo_p if up else hi_p
+    broken["major"] = b
+    broken["majlab"] = "HH" if up else "LL"
+    if partner is not None and partner["major"] is None:
+        partner["major"] = b
+        partner["majlab"] = (partner["disp"] if len(partner["disp"]) == 1
+                             else ("HL" if up else "LH"))
+    if opp is not None and opp is not partner and opp["major"] is None:
+        opp["major"] = b
+        opp["majlab"] = (opp["disp"] if len(opp["disp"]) == 1 else opp["tag"].upper())
+    race_lines.append((broken["bar"], H[broken["bar"]] if up else L[broken["bar"]], b, side))
+    trend_starts.append((b, side, broken["bar"]))
+    neutral_spans.append((neu_start, b))
+    standing = None
+    if partner is not None:
+        standing = (partner["bar"], L[partner["bar"]] if up else H[partner["bar"]])
+    run_b, run_px = b, px            # running extreme born at the breaking tick
+    mode = "BULL" if up else "BEAR"; cand = None
+    log.append((b, "*** %s TREND STARTS - b%d breaks the b%d pivot"
+                % (side.upper(), b + 1, broken["bar"] + 1)))
+
+
+def terminate(b):
+    global mode, standing, run_b, run_px, cand, d, leg_px, leg_bar, neu_start
+    global hi_p, lo_p, lsh, lsl, has_hl, has_lh, struct_hl, struct_lh, prevH, prevL
+    terms.append((standing[0], standing[1], b, mode.lower()))
+    log.append((b, "*** %s TREND TERMINATED - b%d breaks the b%d %s -> NEUTRAL"
+                % (mode, b + 1, standing[0] + 1, "HL" if mode == "BULL" else "LH")))
+    mode = "NEUTRAL"; neu_start = b
+    cand = None; standing = None; run_b = run_px = None
+    hi_p = lo_p = lsh = lsl = None; has_hl = has_lh = False
+    struct_hl = struct_lh = None
+    prevH = b; prevL = b             # termination bar joins the comparison chain, never a pivot
+    d = None; leg_px = leg_bar = None    # the open leg dies with the trend
+
+
+# ============================ TICK LOOP — OnPriceChange emulation ============================
+d = None                 # leg direction
+leg_px = None; leg_bar = None
+cur_bar = -1
+up_done = dn_done = True
+
+for _t in range(len(tP)):
+    b = int(tbar[_t])
+    if b < 1 or b >= n:
         continue
+    px = tP[_t]
+    if b != cur_bar:
+        cur_bar = b
+        up_done = dn_done = False    # both breakout events armed against the prior bar
+    # ---- leg extreme carries tick by tick ----
+    if d == 1 and (leg_px is None or px > leg_px): leg_px, leg_bar = px, b
+    if d == -1 and (leg_px is None or px < leg_px): leg_px, leg_bar = px, b
+    # ---- the two per-bar breakout events, in tick order ----
+    if not up_done and px > H[b - 1]:
+        up_done = True
+        if d == -1:
+            add_pivot(leg_bar, "L", b)
+            d = 1; leg_px, leg_bar = px, b
+        elif d is None:
+            d = 1; leg_px, leg_bar = px, b
+    if not dn_done and px < L[b - 1]:
+        dn_done = True
+        if d == 1:
+            add_pivot(leg_bar, "H", b)
+            d = -1; leg_px, leg_bar = px, b
+        elif d is None:
+            d = -1; leg_px, leg_bar = px, b
+    # ---- regime checks on every price change ----
+    if mode == "NEUTRAL":
+        if lsh is not None and px > H[lsh["bar"]] and has_hl:
+            start_trend(True, b, px)
+        elif lsl is not None and px < L[lsl["bar"]] and has_lh:
+            start_trend(False, b, px)
+    else:
+        if cand is not None and cand["ref_px"] is not None:
+            hit = px > cand["ref_px"] if mode == "BULL" else px < cand["ref_px"]
+            if hit:
+                q = cand["p"]; q["major"] = b
+                q["majlab"] = "HL" if mode == "BULL" else "LH"
+                standing = (q["bar"], L[q["bar"]] if mode == "BULL" else H[q["bar"]])
+                log.append((b, "major %s on b%d -> standing level" % (q["majlab"], q["bar"] + 1)))
+                cand = None
+        if mode == "BULL" and px > run_px: run_b, run_px = b, px
+        if mode == "BEAR" and px < run_px: run_b, run_px = b, px
+        if standing is not None:
+            if (mode == "BULL" and px < standing[1]) or (mode == "BEAR" and px > standing[1]):
+                terminate(b)
 
-    # ---- seed phase ----
+if mode == "NEUTRAL":
+    neutral_spans.append((neu_start, n - 1))
+
+# ---- open pre-phase carry trail (display only, validated on 02-24) ----
+first_piv_bar = piv[0]["bar"] if piv else n - 1
+first_piv_side = piv[0]["side"] if piv else None
+seed_marks = [(0, "H"), (0, "L")]
+for i in range(1, first_piv_bar + 1):
     bt = H[i] > H[i-1]; bb = L[i] < L[i-1]
-    eqH = H[i] == H[i-1]; eqL = L[i] == L[i-1]
-    ended = False
-    if bt and bb:                                     # strict OB
-        if seed["dir"] is None:
-            seed["sH"] = i; seed["sL"] = i
-            seed_marks.append((i, "H")); seed_marks.append((i, "L"))
-        elif seed["dir"] == 1 and obdir[i] == "U":
-            seed["sH"] = i; seed_marks.append((i, "H"))
-            p = add_pivot(i, "H", i, in_seed=True)     # own turn -> intrabar first pivot
-            awaiting = dict(lead=p, partner=None)
-            st = {"d": -1, "ext": i}; ended = True
-        elif seed["dir"] == -1 and obdir[i] == "D":
-            seed["sL"] = i; seed_marks.append((i, "L"))
-            p = add_pivot(i, "L", i, in_seed=True)
-            awaiting = dict(lead=p, partner=None)
-            st = {"d": 1, "ext": i}; ended = True
-        else:                                          # OB breaks counter first
-            side = "H" if seed["dir"] == 1 else "L"
-            ref = seed["sH"] if side == "H" else seed["sL"]
-            p = add_pivot(ref, side, i, in_seed=True)
-            awaiting = dict(lead=p, partner=None)
-            st = {"d": -1 if side == "H" else 1, "ext": i}; ended = True
-    elif bt and not bb:                                # higher high only
-        if seed["dir"] == -1:
-            p = add_pivot(seed["sL"], "L", i, in_seed=True)
-            awaiting = dict(lead=p, partner=None); st = {"d": 1, "ext": i}; ended = True
-        else:
-            seed["dir"] = 1; seed["sH"] = i; seed_marks.append((i, "H"))
-    elif bb and not bt:                                # lower low only
-        if seed["dir"] == 1:
-            p = add_pivot(seed["sH"], "H", i, in_seed=True)
-            awaiting = dict(lead=p, partner=None); st = {"d": -1, "ext": i}; ended = True
-        else:
-            seed["dir"] = -1; seed["sL"] = i; seed_marks.append((i, "L"))
-    # IB / equal: nothing carries
+    if bt and bb: seed_marks += [(i, "H"), (i, "L")]
+    elif bt: seed_marks.append((i, "H"))
+    elif bb: seed_marks.append((i, "L"))
+# the first pivot's own label replaces its trail mark
+seed_marks = [(b_, s_) for (b_, s_) in seed_marks
+              if not (b_ == first_piv_bar and s_ == first_piv_side)]
 
-    if ended:
-        seed_spans.append((seed["start"], i))
-        log.append((i, "seed phase ends -> first minor pivot"))
-        mode = "trend"; seed = None
-    if H[i] > run_max_H: run_max_H = H[i]; run_max_H_bar = i
-    if L[i] < run_min_L: run_min_L = L[i]; run_min_L_bar = i
-    i += 1
-
-# NO terminal pivot. The running extreme at the close of the session was never confirmed by a
-# turn (an HL needs a following higher high, an HH needs a following turn down) and the day
-# simply ran out of bars. Labelling it would invent a pivot that price never made.
-# (The original engine force-appends one here - same bug, carried over.)
-unconfirmed = (st["ext"], "H" if st["d"] == 1 else "L") if st["d"] is not None else None
-
-# ---------------------------------------------------------------- text output
+# ============================== text output ==============================
 print("=" * 96)
-print("PHASE / EVENT LOG   (b%d-b%d)" % (LO, HI))
+print("EVENT LOG  %s  (tick-driven)" % DAY)
 print("=" * 96)
 for (bar, msg) in log:
-    if LO - 1 <= bar <= HI - 1:
-        print("  b%-3d  %s" % (bar + 1, msg))
+    print("  b%-3d  %s" % (bar + 1, msg))
 
 print()
 print("=" * 96)
-print("PIVOTS")
+print("PIVOTS  (bar | side | display tag | known-at | major label @ promoted-at)")
 print("=" * 96)
 for p in piv:
-    if not (LO - 3 <= p["bar"] <= HI - 1): continue
     cs = "b%d%s" % (p["conf"] + 1, "i" if p["intrabar"] else "")
-    ms = "-" if p["major"] is None else "b%d" % (p["major"] + 1)
-    print("  b%-3d %s  minor %-3s  pivot@%-6s  MAJOR %-3s @%-5s%s"
-          % (p["bar"] + 1, p["side"], p["tag"], cs, p["tag"].upper(), ms,
-             "   [seed phase]" if p["in_seed"] else ""))
+    ms = "-" if p["major"] is None else "%s @b%d" % (p["majlab"], p["major"] + 1)
+    print("  b%-3d %s  %-3s  known@%-6s  %s" % (p["bar"] + 1, p["side"], p["disp"], cs, ms))
 
 print()
-for (hlb, hlp, bb_) in terms:
-    print("  TERMINATION: b%d HL broken by b%d" % (hlb + 1, bb_ + 1))
-for (hb, cb, sd) in resumes:
-    print("  RE-CONFIRMED: b%d high taken out by b%d" % (hb + 1, cb + 1))
+for (sb, sd, brk) in trend_starts:
+    print("  %s TREND STARTS  b%d  (breaks the b%d pivot)" % (sd.upper(), sb + 1, brk + 1))
+for (pb, px_, bb_, sd) in terms:
+    print("  %s TREND TERMINATED b%d (breaks the b%d %s) -> NEUTRAL"
+          % (sd.upper(), bb_ + 1, pb + 1, "HL" if sd == "bull" else "LH"))
 
-# ---------------------------------------------------------------- chart
-lo_i, hi_i = LO - 1, HI - 1
-sub = range(lo_i, hi_i + 1)
-vhi = max(H[k] for k in sub); vlo = min(L[k] for k in sub)
-rng = vhi - vlo; off = rng * 0.026
-
+# ============================== chart ==============================
+vhi = H.max(); vlo = L.min(); rng = vhi - vlo; off = rng * 0.021
 fig, ax = plt.subplots(figsize=(36, 12), dpi=200)
 
-for (s0, s1) in seed_spans:
-    if s1 < lo_i or s0 > hi_i: continue          # keep out-of-window spans off the canvas
-    ax.axvspan(max(s0, lo_i) - 0.45, min(s1, hi_i) + 0.45, color="#c9a227", alpha=0.10, zorder=0)
-    ax.text((max(s0, lo_i) + min(s1, hi_i)) / 2.0, vhi + rng * 0.055, "SEED PHASE",
-            ha="center", va="bottom", fontsize=12, color="#8a6a12", fontweight="bold",
-            clip_on=False)
+segs = []
+bounds = sorted([(s_, "start", sd) for (s_, sd, _) in trend_starts] +
+                [(b_, "term", None) for (_, _, b_, _) in terms])
+cur = "neutral"; x0 = 0
+for (xb, ktp, sd) in bounds:
+    segs.append((x0, xb, cur)); x0 = xb
+    cur = sd if ktp == "start" else "neutral"
+segs.append((x0, n - 1, cur))
+SHADE = {"neutral": ("#9aa0a6", 0.10), "bull": ("#1f7a3d", 0.06), "bear": ("#b23a2e", 0.06)}
+for (a, b_, sdv) in segs:
+    col, al = SHADE[sdv]
+    ax.axvspan(a + 0.5 if a else -0.9, b_ + 0.5, color=col, alpha=al, zorder=0)
+    if b_ - a >= 3:
+        ax.text((a + b_) / 2.0, vhi + rng * 0.075, sdv.upper(), ha="center", va="bottom",
+                fontsize=12, fontweight="bold",
+                color={"neutral": "#0e7c86", "bull": "#1f7a3d", "bear": "#b23a2e"}[sdv])
 
-for k in sub:
-    up = C[k] >= O[k]
-    col = "#2e9e8f" if up else "#e0574a"
-    ax.plot([k, k], [L[k], H[k]], color=col, lw=1.9, zorder=2)
+for k in range(n):
+    up_ = C[k] >= O[k]
+    col = "#2e9e8f" if up_ else "#e0574a"
+    ax.plot([k, k], [L[k], H[k]], color=col, lw=1.7, zorder=2)
     ax.add_patch(plt.Rectangle((k - 0.30, min(O[k], C[k])), 0.60,
-                               max(abs(C[k] - O[k]), rng * 0.0012),
-                               facecolor=col, edgecolor="black", lw=0.5, zorder=3))
-
-for k in sub:
+                               max(abs(C[k] - O[k]), rng * 0.0010),
+                               facecolor=col, edgecolor="black", lw=0.45, zorder=3))
     if k in obdir and kind[k].startswith("OB"):
-        s = obdir[k]
-        yy = H[k] + off * 0.42 if s == "U" else L[k] - off * 0.42
-        ax.plot(k, yy, "o", ms=9, color="gold", mec="black", mew=0.8, zorder=6)
+        yy = H[k] + off * 0.40 if obdir[k] == "U" else L[k] - off * 0.40
+        ax.plot(k, yy, "o", ms=8, color="gold", mec="black", mew=0.7, zorder=6)
 
-# faded seed H/L trail
-for (bar, side) in seed_marks:
-    if not (lo_i <= bar <= hi_i): continue
-    y = H[bar] + off * 0.95 if side == "H" else L[bar] - off * 0.95
-    ax.text(bar, y, side, ha="center", va="bottom" if side == "H" else "top",
-            fontsize=15, color="#8a6a12", fontweight="bold", alpha=0.85)
+for (bar, sdv) in seed_marks:
+    y = H[bar] + off * 0.85 if sdv == "H" else L[bar] - off * 0.85
+    ax.text(bar, y, sdv, ha="center", va="bottom" if sdv == "H" else "top",
+            fontsize=13, color="#8a6a12", fontweight="bold", alpha=0.9)
 
-# pivots
-last_side_bar = {}
+last_side = {}
 for p in piv:
-    bar = p["bar"]
-    if not (lo_i <= bar <= hi_i): continue
-    t = p["tag"]; bull = t in ("hh", "hl")
-    mcol = "#1f7a3d" if bull else "#b23a2e"
-    seedbump = off * 1.5 if any(b == bar for b, _ in seed_marks) else 0.0
-    if p["side"] == "H":
-        y1 = H[bar] + off * 0.95 + seedbump
-        y2 = H[bar] + off * 3.15 + seedbump
-        y3 = H[bar] + off * 5.15 + seedbump
-        va = "bottom"
-    else:
-        y1 = L[bar] - off * 0.95 - seedbump
-        y2 = L[bar] - off * 3.15 - seedbump
-        y3 = L[bar] - off * 5.15 - seedbump
-        va = "top"
-    # adjacent same-side pivots would collide -> push the later one out one extra tier
-    prev = last_side_bar.get(p["side"])
-    if prev is not None and bar - prev <= 1:
-        bump = off * 2.1
-        y1 += bump if p["side"] == "H" else -bump
-        y2 += bump if p["side"] == "H" else -bump
-        y3 += bump if p["side"] == "H" else -bump
-    last_side_bar[p["side"]] = bar
-    ax.text(bar, y1, t, ha="center", va=va, fontsize=13.5,
-            color=mcol, fontweight="bold")
+    bar, side, t = p["bar"], p["side"], p["disp"]
+    mcol = "#8a6a12" if len(t) == 1 else ("#1f7a3d" if t in ("hh", "hl") else "#b23a2e")
+    seedbump = off * 1.4 if any(b_ == bar for b_, _ in seed_marks) else 0.0
+    sgn = 1 if side == "H" else -1
+    base = (H[bar] + off * 0.85 + seedbump) if side == "H" else (L[bar] - off * 0.85 - seedbump)
+    prev = last_side.get(side)
+    if prev is not None and bar - prev <= 1: base += sgn * off * 1.9
+    last_side[side] = bar
+    va = "bottom" if side == "H" else "top"
+    if len(t) == 1:
+        # the day's first pivot: one gold circled letter + its number — no extra layers
+        ax.text(bar, base + sgn * off * 1.2, t, ha="center", va="center", fontsize=14.5,
+                color="#8a6a12", fontweight="bold",
+                bbox=dict(boxstyle="circle,pad=0.30", fc="white", ec="#8a6a12", lw=1.9))
+        lab = "%d%s" % (p["conf"] + 1, "i" if p["intrabar"] else "")
+        if p["major"] is not None and p["major"] != p["conf"]:
+            lab += "→%d" % (p["major"] + 1)
+        ax.text(bar, base + sgn * off * 3.0, lab, ha="center", va=va, fontsize=12.5,
+                color="#b8860b" if p["intrabar"] else "#444444", fontweight="bold")
+        continue
+    ax.text(bar, base, t, ha="center", va=va, fontsize=12.5, color=mcol, fontweight="bold")
     if p["major"] is not None:
-        ml = p.get("majlab") or t.upper()
-        mc2 = "#1f7a3d" if ml in ("HH", "HL") else "#b23a2e"
-        ax.text(bar, y2, ml, ha="center", va="center", fontsize=14.5,
+        ml = p["majlab"]
+        mc2 = "#8a6a12" if len(ml) == 1 else ("#1f7a3d" if ml in ("HH", "HL") else "#b23a2e")
+        ax.text(bar, base + sgn * off * 2.3, ml, ha="center", va="center", fontsize=14.5,
                 color=mc2, fontweight="bold",
                 bbox=dict(boxstyle="circle,pad=0.30", fc="white", ec=mc2, lw=1.9))
-    if p["major"] is not None:
         lab = "%d%s" % (p["conf"] + 1, "i" if p["intrabar"] else "")
         if p["major"] != p["conf"]: lab += "→%d" % (p["major"] + 1)
-        ax.text(bar, y3, lab, ha="center", va=va, fontsize=13,
+        ax.text(bar, base + sgn * off * 4.1, lab, ha="center", va=va, fontsize=12.5,
                 color="#b8860b" if p["intrabar"] else "#444444", fontweight="bold")
 
-# termination: standing HL carried into its break + the moment it breaks
-for (hlb, hlp, bb_) in terms:
-    if not (lo_i - 3 <= hlb <= hi_i): continue
-    ax.plot([hlb, bb_], [hlp, hlp], ls=(0, (4, 3)), lw=2.3, color="#b23a2e", zorder=5)
-    ax.plot(bb_, hlp, "x", ms=12, mew=2.8, color="#b23a2e", zorder=6)
-    xv = bb_ + 0.5
-    ax.axvline(xv, ls=(0, (3, 3)), lw=2.3, color="#b23a2e", zorder=5)
-    ax.text(xv - 0.16, vlo + rng * 0.02, "BULL TREND TERMINATED", ha="right", va="bottom",
-            fontsize=11.5, color="#b23a2e", fontweight="bold", rotation=90)
+for (pb, px_, bb_, sdv) in race_lines:
+    col = "#1f7a3d" if sdv == "bull" else "#b23a2e"
+    ax.plot([pb, bb_], [px_, px_], ls=(0, (4, 3)), lw=2.2, color=col, zorder=5)
+    ax.plot(bb_, px_, "x", ms=12, mew=2.6, color=col, zorder=6)
+for (pb, px_, bb_, sdv) in terms:
+    ax.plot([pb, bb_], [px_, px_], ls=(0, (4, 3)), lw=2.2, color="#33454d", zorder=5)
+    ax.plot(bb_, px_, "x", ms=12, mew=2.6, color="#33454d", zorder=6)
 
-# resumption: the minor hh carried across to the bar that takes it out
-for (hb, cb, sd) in resumes:
-    if not (lo_i <= hb <= hi_i): continue
-    ax.plot([hb, cb], [H[hb], H[hb]], ls=(0, (4, 3)), lw=2.3, color="#1f7a3d", zorder=5)
-    ax.plot(cb, H[hb], "x", ms=12, mew=2.8, color="#1f7a3d", zorder=6)
-    xv = cb + 0.5
-    ax.axvline(xv, ls=(0, (3, 3)), lw=2.3, color="#1f7a3d", zorder=5)
-    ax.text(xv + 0.16, vlo + rng * 0.02, "BULL TREND CONFIRMED", ha="left", va="bottom",
-            fontsize=11.5, color="#1f7a3d", fontweight="bold", rotation=90)
+_evt = ([(bb_, "term", sdv) for (_, _, bb_, sdv) in terms] +
+        [(sb, "start", sdv) for (sb, sdv, _) in trend_starts])
+_evt.sort()
+for _k, (xb, ekind, sdv) in enumerate(_evt):
+    if ekind == "term":
+        col = "#0e7c86"; txt = "NEUTRAL  b%d" % (xb + 1)
+    else:
+        col = "#1f7a3d" if sdv == "bull" else "#b23a2e"
+        txt = "%s TREND  b%d" % (sdv.upper(), xb + 1)
+    xv = xb + 0.5
+    ax.axvline(xv, ls=(0, (3, 3)), lw=2.2, color=col, zorder=5)
+    ytxt = vlo + rng * (0.015 if _k % 2 == 0 else 0.115)
+    ax.text(xv - 0.14, ytxt, txt, ha="right", va="bottom", fontsize=10.5,
+            color=col, fontweight="bold", rotation=90)
 
 ybar = vlo - rng * 0.075
-for k in sub:
-    ax.text(k, ybar, str(k + 1), ha="center", va="top", fontsize=13, color="#333333")
+for k in range(n):
+    ax.text(k, ybar, str(k + 1), ha="center", va="top", fontsize=11.5, color="#333333")
     kk = kind.get(k, "")
-    kc = "#b8860b" if kk.startswith("OB") else ("#7a5aa0" if "IB" in kk or "inside" in kk else "#9aa4a8")
-    ax.text(k, ybar - rng * 0.026, kk.replace(" ", "\n", 1), ha="center", va="top",
-            fontsize=9.5, color=kc, linespacing=1.3,
+    kc = "#b8860b" if kk.startswith("OB") else ("#7a5aa0" if ("IB" in kk or "inside" in kk) else "#9aa4a8")
+    ax.text(k, ybar - rng * 0.020, kk.replace(" ", "\n", 1), ha="center", va="top",
+            fontsize=8.5, color=kc, linespacing=1.25,
             fontweight="bold" if (kk.startswith("OB") or "EQUAL" in kk) else "normal")
 
-ax.set_xlim(lo_i - 0.9, hi_i + 1.1)
-ax.set_ylim(vlo - rng * 0.24, vhi + rng * 0.13)
-ax.set_title("2022-02-24  b%d–b%d  ·  trend → termination → seed phase → re-confirmation\n"
-             "major = wins the deepest-low / highest-high contest AND is confirmed by a new DAY "
-             "extreme · \"i\" = intrabar confirm · \"→\" = bar it was promoted to major"
-             % (LO, HI), fontsize=14.5, fontweight="bold", pad=16, linespacing=1.7)
-ax.grid(axis="y", color="#eceeed", lw=0.8)
-ax.set_axisbelow(True)
-for s in ("top", "right", "bottom"): ax.spines[s].set_visible(False)
+ax.set_xlim(-1.0, n)
+ax.set_ylim(vlo - rng * 0.19, vhi + rng * 0.13)
+ax.set_title("%s  ·  TICK-DRIVEN phase machine (OnPriceChange emulation)\n"
+             "every price change advances the state · per-bar breakout events in tick order · "
+             "hl/lh takeout = trend start · standing major HL/LH broken = termination"
+             % DAY, fontsize=14.5, fontweight="bold", pad=16, linespacing=1.7)
+ax.grid(axis="y", color="#eceeed", lw=0.8); ax.set_axisbelow(True)
+for s_ in ("top", "right", "bottom"): ax.spines[s_].set_visible(False)
 ax.tick_params(axis="x", bottom=False, labelbottom=False)
 fig.tight_layout()
 out = OUTDIR + "/phase_machine_" + DAY.replace("-", "") + ".png"
