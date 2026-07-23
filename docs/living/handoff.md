@@ -6,6 +6,36 @@ pipeline + S77 security hardening; merged S76 Mac swing-levels work)
 
 ---
 
+## S81-b (2026-07-23) — Grimes EVENT tests: one survivor (Keltner pullback LONG), catalog regime family (branch `s75-live-dashboard`)
+
+**Continuation of S81 after the v0 occupancy gate failed.** Ran Grimes's own EVENT studies on ES
+vs 20×shuffle/20×rw aggregated nulls (`regime_events.py` RTH daily/60m/30m + `regime_events_24h.py`
+true-CME-session daily robustness rerun). Full note: `docs/research_notes/grimes_regime/RESULTS_event_tests.md`.
+
+**RESULTS (daily; verified from events_gate/events24h_gate CSVs):**
+- **SURVIVOR — Keltner pullback→20-EMA, LONG only**: RTH d1 +41bp (13/18 up, t 2.54, edge vs null
+  +33bp); 24h d3 +55bp (12/15 up, t 2.13, edge +43), d20 +79 (edge +48). Same-sign mean/median every
+  horizon, both bar constructions. **N=15–18 → X-of-Y evidence, NOT confirmed** (N≈20 rule).
+- Keltner pullback SHORT: fails (opposite of Grimes's pooled-futures claim) — ES is buy-dip.
+- **Compression breakout (his flagship): UNDERPOWERED, N=6–7 in 5yrs** (~1-in-500 freq). Not
+  falsified, not confirmed — cannot be tested on this sample length.
+- Donchian 100/260 longs: weak d20 lean (+31/+39 edge, t≈1) — not evidence. **Donchian SHORTS
+  INVERTED: −252 to −624bp d20** — ES channel breakdowns were bounce points. HARD FILTER: no
+  breakdown-shorting logic on ES daily.
+- All events at 60m/30m: DEAD (<15bp) — consistent with costs-eat-intraday + S80 STMR.
+- **Binding constraint = history: 1,300 daily bars can't power daily event studies.** Fix = extend
+  ES daily/1h to 2010+ via Databento OHLCV (pennies, keys on hand) — **ASK before spending**.
+
+**ALSO:** registered `data/regime` family in the data catalog (S82 had already completed the rest of
+the catalog — verified committed in `94d8f9b`; queue item closed). Note S82 runs CONCURRENTLY with
+S81 sessions on this branch — pull/rebase before assuming file state.
+
+**NEXT (regime):** (1) Databento daily/1h 2010+ pull (user approval) → rerun events with power;
+(2) rebuild engine event-anchored: bull regime = armed by band-close-above, entered on EMA-touch,
+killed by 2-step rule; (3) keep no-short-breakdowns filter. Then trade logic, not before.
+
+---
+
 ## S82 (2026-07-22, evening) — desk false-alarm + NT dialog fix, data catalog completed, Gamma-Backtest MC section (branch `s75-live-dashboard`)
 
 **HARD RULES ADDED (CLAUDE.md + memory) after a rough day of self-inflicted problems:**
