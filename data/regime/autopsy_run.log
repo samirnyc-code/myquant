@@ -1,0 +1,37 @@
+[100/1231] (28s)
+[200/1231] (75s)
+[300/1231] (124s)
+[400/1231] (169s)
+[500/1231] (205s)
+[600/1231] (243s)
+[700/1231] (277s)
+[800/1231] (316s)
+[900/1231] (361s)
+[1000/1231] (403s)
+[1100/1231] (445s)
+[1200/1231] (490s)
+features -> C:\Users\Admin\myquant-regime\data\regime\autopsy_features_20260723.csv  n=3340
+
+scan -> C:\Users\Admin\myquant-regime\data\regime\autopsy_scan_20260723.csv  rows=620
+
+== SURVIVORS (PF>1 in BOTH train and test) ==
+ kind              feature bucket  n_tr  PF_tr  net_tr  n_te  PF_te  net_te
+rule2 mchan>=q3 & er10>=q3          168  1.047    1348   207  1.121    5065
+
+== top-15 by TRAIN net (for honesty, with their test cols) ==
+ kind                      feature      bucket  n_tr  PF_tr  net_tr  n_te  PF_te  net_te
+  cat                    prior_out         1.0   271  1.065    3108   316  0.884   -8268
+  num                      ts_bars (6.0, 12.0]   241  1.042    1995   254  0.862   -7695
+rule2   leg_atr>=q3 & pb_depth<=q1               216  1.036    1445   263  0.915   -5040
+rule2             leg_atr>=q3 & WT               169  1.046    1380   202  0.997    -122
+rule2         mchan>=q3 & er10>=q3               168  1.047    1348   207  1.121    5065
+rule2 pb_depth<=q1 & ema20_atr>=q3               155  0.993    -188   168  0.746   -8915
+  cat                         hour          11   191  0.970   -1030   216  0.808   -9155
+rule2       mchan>=q3 & stochK>=q3               172  0.957   -1272   221  0.908   -4005
+rule2      leg_atr>=q3 & mchan<=q1               150  0.957   -1275   197  0.700  -13822
+  num                       pushes  (3.0, 5.0]    49  0.849   -1495    59  0.557   -7770
+rule2               doji4>=q3 & WT               184  0.953   -1570   223  0.789  -10540
+rule2           prior_str>=q3 & WT               151  0.945   -1630   189  0.932   -2895
+rule2   drift>=q3 & rng_sf_adr>=q3               167  0.941   -1922   155  0.943   -2300
+rule2       drift>=q3 & nth_2e>=q3               189  0.936   -2008   189  0.771   -9608
+rule2           ema_slope>=q3 & WT               193  0.936   -2015   215  0.768   -9888
