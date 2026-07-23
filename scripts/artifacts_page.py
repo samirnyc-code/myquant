@@ -69,6 +69,7 @@ function render(){
       + (a.info?'<div class="i">'+esc(a.info)+'</div>':'<div class="i"></div>')
       + '<div class="meta">'+a.kb+' KB · saved '+esc(a.saved)+'</div>'
       + '<div class="acts"><a href="/artifact/'+encodeURIComponent(a.slug)+'" target="_blank">Open local</a>'
+      + '<a href="/artifact/'+encodeURIComponent(a.slug)+'" download="'+esc(a.slug)+'.html" title="download the standalone .html to share">share .html ⬇</a>'
       + (a.url?'<a class="cloud" href="'+esc(a.url)+'" target="_blank" rel="noopener">original ↗</a>':'')
       + '</div></div>';
   }

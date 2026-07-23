@@ -107,7 +107,17 @@
   .kicker { font-family: var(--mono); font-size: 0.72rem; color: var(--muted); letter-spacing: 0.06em; }
   .dead { background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 1rem 1.25rem; margin: 1rem 0; }
   .dead ul { margin-bottom: 0; font-size: 0.94rem; }
-  pre.mermaid { background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 0.75rem; overflow-x: auto; }
+  .smachine { background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 1.1rem; overflow-x: auto; margin: 1rem 0; }
+  .srow { display: flex; align-items: center; gap: 1rem; min-width: 34rem; }
+  .scol { display: flex; flex-direction: column; gap: 0.5rem; flex: 1; }
+  .sarrs { display: flex; flex-direction: column; gap: 0.5rem; max-width: 15rem; }
+  .snode { border: 1.5px solid var(--sc, var(--muted)); border-radius: 4px; padding: 0.55rem 0.8rem; font-family: var(--mono); font-size: 0.8rem; letter-spacing: 0.08em; color: var(--sc, var(--ink)); background: var(--paper); }
+  .snode span { display: block; font-family: var(--serif); font-size: 0.8rem; letter-spacing: 0; text-transform: none; color: var(--muted); margin-top: 0.2rem; }
+  .sn-none { --sc: var(--neutral-state); align-self: center; white-space: nowrap; }
+  .sn-trend { --sc: var(--bull); }
+  .sn-trans { --sc: var(--trans-state); }
+  .sarr { font-family: var(--mono); font-size: 0.72rem; color: var(--muted); }
+  .sarr em { font-family: var(--serif); font-style: italic; font-size: 0.78rem; }
   footer { margin-top: 3rem; border-top: 1px solid var(--line); padding-top: 1rem; font-size: 0.82rem; color: var(--muted); }
   a { color: var(--accent); }
 </style>
@@ -164,16 +174,20 @@
   </div>
 
   <h2><span class="num">03</span>State machine</h2>
-  <pre class="mermaid">
-stateDiagram-v2
-    direction LR
-    [*] --> NoTrade
-    NoTrade --> Trend : impulse beyond Keltner +\nnew momentum extreme\n(best out of vol compression)
-    Trend --> Transition : break event + opposite\nmomentum extreme (2-step)
-    Transition --> NoTrade : usual resolution\n(termination → range)
-    Transition --> Trend : opposite trend confirmed\n(LH+LL or HL+HH)
-    Trend --> Trend : health checklist holds\n(leg momentum consistent,\nno counter-momentum, ≤3 legs)
-  </pre>
+  <div class="smachine">
+    <div class="srow">
+      <div class="snode sn-none">NO-TRADE<span>default state</span></div>
+      <div class="sarrs">
+        <div class="sarr">→ <em>impulse beyond Keltner + new momentum extreme (best out of vol compression)</em></div>
+        <div class="sarr back">← <em>usual resolution: termination → range</em></div>
+      </div>
+      <div class="scol">
+        <div class="snode sn-trend">TREND <span>bull / bear · health checklist keeps state alive (leg momentum consistent, no counter-momentum, ≤3 legs)</span></div>
+        <div class="sarr down">↓ <em>break event + opposite momentum extreme (2-step rule)</em>&emsp;↑ <em>opposite trend confirmed (LH+LL or HL+HH)</em></div>
+        <div class="snode sn-trans">TRANSITION<span>Dow UNCERTAIN · Anti watch</span></div>
+      </div>
+    </div>
+  </div>
   <p class="kicker">Asymmetries to encode: entry to trend is easy to miss but cheap to wait for (most breakouts fail — demand higher-lows-into-level, tight sub-range &lt;25% at the edge, volatility expansion at the break). Exit from trend needs the full 2-step rule. Transition resolves to no-trade unless the opposite Dow structure completes.</p>
 
   <h2><span class="num">04</span>The volatility layer</h2>
