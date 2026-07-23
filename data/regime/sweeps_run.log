@@ -1,0 +1,28 @@
+[50/1267] entries=441 (23s)
+[100/1267] entries=910 (58s)
+[150/1267] entries=1470 (117s)
+[200/1267] entries=2040 (179s)
+[250/1267] entries=2532 (239s)
+[300/1267] entries=3039 (298s)
+[350/1267] entries=3568 (362s)
+[400/1267] entries=4109 (414s)
+[450/1267] entries=4677 (464s)
+[500/1267] entries=5158 (502s)
+[550/1267] entries=5635 (542s)
+[600/1267] entries=6152 (588s)
+[650/1267] entries=6705 (623s)
+[700/1267] entries=7180 (661s)
+[800/1267] entries=8252 (745s)
+[850/1267] entries=8793 (785s)
+[900/1267] entries=9334 (830s)
+[950/1267] entries=9889 (899s)
+[1000/1267] entries=10392 (943s)
+[1050/1267] entries=10913 (979s)
+[1100/1267] entries=11410 (1027s)
+[1150/1267] entries=11910 (1075s)
+[1200/1267] entries=12427 (1133s)
+[1250/1267] entries=12937 (1181s)
+
+DONE 1201s days=1231 entries=13096 sweep_rows=654800
+-> C:\Users\Admin\myquant-regime\data\regime\second_entries_features_20260723.csv
+-> C:\Users\Admin\myquant-regime\data\regime\second_entries_stop_target_sweep_20260723.csv

@@ -1,0 +1,373 @@
+table,a,b,c,value
+ALL 2E,net,fx2p,r05,-70800.0
+ALL 2E,net,fx2p,r10,-75700.0
+ALL 2E,net,fx2p,r15,-88200.0
+ALL 2E,net,fx2p,r20,-91800.0
+ALL 2E,net,fx2p,r30,-100300.0
+ALL 2E,net,fx2p,r40,-101200.0
+ALL 2E,net,fx2p,f2p,-75700.0
+ALL 2E,net,fx2p,f4p,-91800.0
+ALL 2E,net,fx2p,f6p,-100300.0
+ALL 2E,net,fx2p,eod,-122550.0
+ALL 2E,net,fx3p,r05,-67700.0
+ALL 2E,net,fx3p,r10,-82400.0
+ALL 2E,net,fx3p,r15,-96950.0
+ALL 2E,net,fx3p,r20,-108650.0
+ALL 2E,net,fx3p,r30,-122300.0
+ALL 2E,net,fx3p,r40,-140450.0
+ALL 2E,net,fx3p,f2p,-69700.0
+ALL 2E,net,fx3p,f4p,-85100.0
+ALL 2E,net,fx3p,f6p,-108650.0
+ALL 2E,net,fx3p,eod,-125750.0
+ALL 2E,net,fx4p,r05,-67000.0
+ALL 2E,net,fx4p,r10,-76300.0
+ALL 2E,net,fx4p,r15,-103200.0
+ALL 2E,net,fx4p,r20,-109300.0
+ALL 2E,net,fx4p,r30,-152700.0
+ALL 2E,net,fx4p,r40,-194700.0
+ALL 2E,net,fx4p,f2p,-67000.0
+ALL 2E,net,fx4p,f4p,-76300.0
+ALL 2E,net,fx4p,f6p,-103200.0
+ALL 2E,net,fx4p,eod,-104762.0
+ALL 2E,net,sb1,r05,-85844.0
+ALL 2E,net,sb1,r10,-108000.0
+ALL 2E,net,sb1,r15,-141544.0
+ALL 2E,net,sb1,r20,-174212.0
+ALL 2E,net,sb1,r30,-282550.0
+ALL 2E,net,sb1,r40,-410138.0
+ALL 2E,net,sb1,f2p,-67575.0
+ALL 2E,net,sb1,f4p,-88200.0
+ALL 2E,net,sb1,f6p,-123500.0
+ALL 2E,net,sb1,eod,-71888.0
+ALL 2E,net,sb4,r05,-95556.0
+ALL 2E,net,sb4,r10,-121025.0
+ALL 2E,net,sb4,r15,-167762.0
+ALL 2E,net,sb4,r20,-209350.0
+ALL 2E,net,sb4,r30,-355250.0
+ALL 2E,net,sb4,r40,-502200.0
+ALL 2E,net,sb4,f2p,-71988.0
+ALL 2E,net,sb4,f4p,-93362.0
+ALL 2E,net,sb4,f6p,-127550.0
+ALL 2E,net,sb4,eod,-64675.0
+ALL 2E,PF,fx2p,r05,0.54
+ALL 2E,PF,fx2p,r10,0.63
+ALL 2E,PF,fx2p,r15,0.63
+ALL 2E,PF,fx2p,r20,0.65
+ALL 2E,PF,fx2p,r30,0.65
+ALL 2E,PF,fx2p,r40,0.66
+ALL 2E,PF,fx2p,f2p,0.63
+ALL 2E,PF,fx2p,f4p,0.65
+ALL 2E,PF,fx2p,f6p,0.65
+ALL 2E,PF,fx2p,eod,0.62
+ALL 2E,PF,fx3p,r05,0.67
+ALL 2E,PF,fx3p,r10,0.72
+ALL 2E,PF,fx3p,r15,0.72
+ALL 2E,PF,fx3p,r20,0.71
+ALL 2E,PF,fx3p,r30,0.71
+ALL 2E,PF,fx3p,r40,0.68
+ALL 2E,PF,fx3p,f2p,0.71
+ALL 2E,PF,fx3p,f4p,0.74
+ALL 2E,PF,fx3p,f6p,0.71
+ALL 2E,PF,fx3p,eod,0.72
+ALL 2E,PF,fx4p,r05,0.74
+ALL 2E,PF,fx4p,r10,0.8
+ALL 2E,PF,fx4p,r15,0.77
+ALL 2E,PF,fx4p,r20,0.78
+ALL 2E,PF,fx4p,r30,0.72
+ALL 2E,PF,fx4p,r40,0.67
+ALL 2E,PF,fx4p,f2p,0.74
+ALL 2E,PF,fx4p,f4p,0.8
+ALL 2E,PF,fx4p,f6p,0.77
+ALL 2E,PF,fx4p,eod,0.82
+ALL 2E,PF,sb1,r05,0.79
+ALL 2E,PF,sb1,r10,0.82
+ALL 2E,PF,sb1,r15,0.8
+ALL 2E,PF,sb1,r20,0.78
+ALL 2E,PF,sb1,r30,0.68
+ALL 2E,PF,sb1,r40,0.57
+ALL 2E,PF,sb1,f2p,0.76
+ALL 2E,PF,sb1,f4p,0.8
+ALL 2E,PF,sb1,f6p,0.77
+ALL 2E,PF,sb1,eod,0.91
+ALL 2E,PF,sb4,r05,0.79
+ALL 2E,PF,sb4,r10,0.82
+ALL 2E,PF,sb4,r15,0.79
+ALL 2E,PF,sb4,r20,0.76
+ALL 2E,PF,sb4,r30,0.64
+ALL 2E,PF,sb4,r40,0.53
+ALL 2E,PF,sb4,f2p,0.76
+ALL 2E,PF,sb4,f4p,0.8
+ALL 2E,PF,sb4,f6p,0.78
+ALL 2E,PF,sb4,eod,0.93
+WITH-TREND,net,fx2p,r05,-25080.0
+WITH-TREND,net,fx2p,r10,-26330.0
+WITH-TREND,net,fx2p,r15,-31780.0
+WITH-TREND,net,fx2p,r20,-33030.0
+WITH-TREND,net,fx2p,r30,-31730.0
+WITH-TREND,net,fx2p,r40,-32030.0
+WITH-TREND,net,fx2p,f2p,-26330.0
+WITH-TREND,net,fx2p,f4p,-33030.0
+WITH-TREND,net,fx2p,f6p,-31730.0
+WITH-TREND,net,fx2p,eod,-37292.0
+WITH-TREND,net,fx3p,r05,-25880.0
+WITH-TREND,net,fx3p,r10,-32030.0
+WITH-TREND,net,fx3p,r15,-31580.0
+WITH-TREND,net,fx3p,r20,-34880.0
+WITH-TREND,net,fx3p,r30,-41630.0
+WITH-TREND,net,fx3p,r40,-51080.0
+WITH-TREND,net,fx3p,f2p,-25330.0
+WITH-TREND,net,fx3p,f4p,-31580.0
+WITH-TREND,net,fx3p,f6p,-34880.0
+WITH-TREND,net,fx3p,eod,-27468.0
+WITH-TREND,net,fx4p,r05,-23830.0
+WITH-TREND,net,fx4p,r10,-26730.0
+WITH-TREND,net,fx4p,r15,-31630.0
+WITH-TREND,net,fx4p,r20,-30730.0
+WITH-TREND,net,fx4p,r30,-57530.0
+WITH-TREND,net,fx4p,r40,-83130.0
+WITH-TREND,net,fx4p,f2p,-23830.0
+WITH-TREND,net,fx4p,f4p,-26730.0
+WITH-TREND,net,fx4p,f6p,-31630.0
+WITH-TREND,net,fx4p,eod,-10618.0
+WITH-TREND,net,sb1,r05,-29642.0
+WITH-TREND,net,sb1,r10,-37430.0
+WITH-TREND,net,sb1,r15,-45374.0
+WITH-TREND,net,sb1,r20,-50718.0
+WITH-TREND,net,sb1,r30,-96930.0
+WITH-TREND,net,sb1,r40,-145218.0
+WITH-TREND,net,sb1,f2p,-24468.0
+WITH-TREND,net,sb1,f4p,-30568.0
+WITH-TREND,net,sb1,f6p,-38968.0
+WITH-TREND,net,sb1,eod,-6868.0
+WITH-TREND,net,sb4,r05,-32118.0
+WITH-TREND,net,sb4,r10,-36405.0
+WITH-TREND,net,sb4,r15,-48349.0
+WITH-TREND,net,sb4,r20,-68718.0
+WITH-TREND,net,sb4,r30,-121855.0
+WITH-TREND,net,sb4,r40,-175942.0
+WITH-TREND,net,sb4,f2p,-24280.0
+WITH-TREND,net,sb4,f4p,-32255.0
+WITH-TREND,net,sb4,f6p,-39730.0
+WITH-TREND,net,sb4,eod,-4205.0
+WITH-TREND,PF,fx2p,r05,0.54
+WITH-TREND,PF,fx2p,r10,0.64
+WITH-TREND,PF,fx2p,r15,0.63
+WITH-TREND,PF,fx2p,r20,0.64
+WITH-TREND,PF,fx2p,r30,0.68
+WITH-TREND,PF,fx2p,r40,0.7
+WITH-TREND,PF,fx2p,f2p,0.64
+WITH-TREND,PF,fx2p,f4p,0.64
+WITH-TREND,PF,fx2p,f6p,0.68
+WITH-TREND,PF,fx2p,eod,0.67
+WITH-TREND,PF,fx3p,r05,0.66
+WITH-TREND,PF,fx3p,r10,0.7
+WITH-TREND,PF,fx3p,r15,0.74
+WITH-TREND,PF,fx3p,r20,0.74
+WITH-TREND,PF,fx3p,r30,0.72
+WITH-TREND,PF,fx3p,r40,0.67
+WITH-TREND,PF,fx3p,f2p,0.7
+WITH-TREND,PF,fx3p,f4p,0.73
+WITH-TREND,PF,fx3p,f6p,0.74
+WITH-TREND,PF,fx3p,eod,0.83
+WITH-TREND,PF,fx4p,r05,0.74
+WITH-TREND,PF,fx4p,r10,0.8
+WITH-TREND,PF,fx4p,r15,0.8
+WITH-TREND,PF,fx4p,r20,0.82
+WITH-TREND,PF,fx4p,r30,0.71
+WITH-TREND,PF,fx4p,r40,0.6
+WITH-TREND,PF,fx4p,f2p,0.74
+WITH-TREND,PF,fx4p,f4p,0.8
+WITH-TREND,PF,fx4p,f6p,0.8
+WITH-TREND,PF,fx4p,eod,0.95
+WITH-TREND,PF,sb1,r05,0.78
+WITH-TREND,PF,sb1,r10,0.81
+WITH-TREND,PF,sb1,r15,0.81
+WITH-TREND,PF,sb1,r20,0.8
+WITH-TREND,PF,sb1,r30,0.67
+WITH-TREND,PF,sb1,r40,0.54
+WITH-TREND,PF,sb1,f2p,0.76
+WITH-TREND,PF,sb1,f4p,0.8
+WITH-TREND,PF,sb1,f6p,0.79
+WITH-TREND,PF,sb1,eod,0.97
+WITH-TREND,PF,sb4,r05,0.79
+WITH-TREND,PF,sb4,r10,0.83
+WITH-TREND,PF,sb4,r15,0.82
+WITH-TREND,PF,sb4,r20,0.77
+WITH-TREND,PF,sb4,r30,0.64
+WITH-TREND,PF,sb4,r40,0.51
+WITH-TREND,PF,sb4,f2p,0.77
+WITH-TREND,PF,sb4,f4p,0.8
+WITH-TREND,PF,sb4,f6p,0.8
+WITH-TREND,PF,sb4,eod,0.99
+BROOKS CELL (WT+SBstrong+EMAside),net,fx2p,r05,-2850.0
+BROOKS CELL (WT+SBstrong+EMAside),net,fx2p,r10,-3450.0
+BROOKS CELL (WT+SBstrong+EMAside),net,fx2p,r15,-4350.0
+BROOKS CELL (WT+SBstrong+EMAside),net,fx2p,r20,-4650.0
+BROOKS CELL (WT+SBstrong+EMAside),net,fx2p,r30,-2650.0
+BROOKS CELL (WT+SBstrong+EMAside),net,fx2p,r40,-3850.0
+BROOKS CELL (WT+SBstrong+EMAside),net,fx2p,f2p,-3450.0
+BROOKS CELL (WT+SBstrong+EMAside),net,fx2p,f4p,-4650.0
+BROOKS CELL (WT+SBstrong+EMAside),net,fx2p,f6p,-2650.0
+BROOKS CELL (WT+SBstrong+EMAside),net,fx2p,eod,-8450.0
+BROOKS CELL (WT+SBstrong+EMAside),net,fx3p,r05,-2275.0
+BROOKS CELL (WT+SBstrong+EMAside),net,fx3p,r10,-4450.0
+BROOKS CELL (WT+SBstrong+EMAside),net,fx3p,r15,-3100.0
+BROOKS CELL (WT+SBstrong+EMAside),net,fx3p,r20,-1600.0
+BROOKS CELL (WT+SBstrong+EMAside),net,fx3p,r30,-4150.0
+BROOKS CELL (WT+SBstrong+EMAside),net,fx3p,r40,-5350.0
+BROOKS CELL (WT+SBstrong+EMAside),net,fx3p,f2p,-3850.0
+BROOKS CELL (WT+SBstrong+EMAside),net,fx3p,f4p,-3950.0
+BROOKS CELL (WT+SBstrong+EMAside),net,fx3p,f6p,-1600.0
+BROOKS CELL (WT+SBstrong+EMAside),net,fx3p,eod,-4750.0
+BROOKS CELL (WT+SBstrong+EMAside),net,fx4p,r05,-3050.0
+BROOKS CELL (WT+SBstrong+EMAside),net,fx4p,r10,-2050.0
+BROOKS CELL (WT+SBstrong+EMAside),net,fx4p,r15,1650.0
+BROOKS CELL (WT+SBstrong+EMAside),net,fx4p,r20,2950.0
+BROOKS CELL (WT+SBstrong+EMAside),net,fx4p,r30,-450.0
+BROOKS CELL (WT+SBstrong+EMAside),net,fx4p,r40,-5850.0
+BROOKS CELL (WT+SBstrong+EMAside),net,fx4p,f2p,-3050.0
+BROOKS CELL (WT+SBstrong+EMAside),net,fx4p,f4p,-2050.0
+BROOKS CELL (WT+SBstrong+EMAside),net,fx4p,f6p,1650.0
+BROOKS CELL (WT+SBstrong+EMAside),net,fx4p,eod,5375.0
+BROOKS CELL (WT+SBstrong+EMAside),net,sb1,r05,-8406.0
+BROOKS CELL (WT+SBstrong+EMAside),net,sb1,r10,-9988.0
+BROOKS CELL (WT+SBstrong+EMAside),net,sb1,r15,-7250.0
+BROOKS CELL (WT+SBstrong+EMAside),net,sb1,r20,-2688.0
+BROOKS CELL (WT+SBstrong+EMAside),net,sb1,r30,-24588.0
+BROOKS CELL (WT+SBstrong+EMAside),net,sb1,r40,-48500.0
+BROOKS CELL (WT+SBstrong+EMAside),net,sb1,f2p,-6725.0
+BROOKS CELL (WT+SBstrong+EMAside),net,sb1,f4p,-7675.0
+BROOKS CELL (WT+SBstrong+EMAside),net,sb1,f6p,-4275.0
+BROOKS CELL (WT+SBstrong+EMAside),net,sb1,eod,-7338.0
+BROOKS CELL (WT+SBstrong+EMAside),net,sb4,r05,-7619.0
+BROOKS CELL (WT+SBstrong+EMAside),net,sb4,r10,-9512.0
+BROOKS CELL (WT+SBstrong+EMAside),net,sb4,r15,-7062.0
+BROOKS CELL (WT+SBstrong+EMAside),net,sb4,r20,-10975.0
+BROOKS CELL (WT+SBstrong+EMAside),net,sb4,r30,-32112.0
+BROOKS CELL (WT+SBstrong+EMAside),net,sb4,r40,-52375.0
+BROOKS CELL (WT+SBstrong+EMAside),net,sb4,f2p,-6825.0
+BROOKS CELL (WT+SBstrong+EMAside),net,sb4,f4p,-8462.0
+BROOKS CELL (WT+SBstrong+EMAside),net,sb4,f6p,-5000.0
+BROOKS CELL (WT+SBstrong+EMAside),net,sb4,eod,-8850.0
+BROOKS CELL (WT+SBstrong+EMAside),PF,fx2p,r05,0.61
+BROOKS CELL (WT+SBstrong+EMAside),PF,fx2p,r10,0.66
+BROOKS CELL (WT+SBstrong+EMAside),PF,fx2p,r15,0.64
+BROOKS CELL (WT+SBstrong+EMAside),PF,fx2p,r20,0.65
+BROOKS CELL (WT+SBstrong+EMAside),PF,fx2p,r30,0.81
+BROOKS CELL (WT+SBstrong+EMAside),PF,fx2p,r40,0.74
+BROOKS CELL (WT+SBstrong+EMAside),PF,fx2p,f2p,0.66
+BROOKS CELL (WT+SBstrong+EMAside),PF,fx2p,f4p,0.65
+BROOKS CELL (WT+SBstrong+EMAside),PF,fx2p,f6p,0.81
+BROOKS CELL (WT+SBstrong+EMAside),PF,fx2p,eod,0.49
+BROOKS CELL (WT+SBstrong+EMAside),PF,fx3p,r05,0.77
+BROOKS CELL (WT+SBstrong+EMAside),PF,fx3p,r10,0.7
+BROOKS CELL (WT+SBstrong+EMAside),PF,fx3p,r15,0.81
+BROOKS CELL (WT+SBstrong+EMAside),PF,fx3p,r20,0.91
+BROOKS CELL (WT+SBstrong+EMAside),PF,fx3p,r30,0.8
+BROOKS CELL (WT+SBstrong+EMAside),PF,fx3p,r40,0.76
+BROOKS CELL (WT+SBstrong+EMAside),PF,fx3p,f2p,0.69
+BROOKS CELL (WT+SBstrong+EMAside),PF,fx3p,f4p,0.76
+BROOKS CELL (WT+SBstrong+EMAside),PF,fx3p,f6p,0.91
+BROOKS CELL (WT+SBstrong+EMAside),PF,fx3p,eod,0.79
+BROOKS CELL (WT+SBstrong+EMAside),PF,fx4p,r05,0.77
+BROOKS CELL (WT+SBstrong+EMAside),PF,fx4p,r10,0.89
+BROOKS CELL (WT+SBstrong+EMAside),PF,fx4p,r15,1.08
+BROOKS CELL (WT+SBstrong+EMAside),PF,fx4p,r20,1.13
+BROOKS CELL (WT+SBstrong+EMAside),PF,fx4p,r30,0.98
+BROOKS CELL (WT+SBstrong+EMAside),PF,fx4p,r40,0.8
+BROOKS CELL (WT+SBstrong+EMAside),PF,fx4p,f2p,0.77
+BROOKS CELL (WT+SBstrong+EMAside),PF,fx4p,f4p,0.89
+BROOKS CELL (WT+SBstrong+EMAside),PF,fx4p,f6p,1.08
+BROOKS CELL (WT+SBstrong+EMAside),PF,fx4p,eod,1.2
+BROOKS CELL (WT+SBstrong+EMAside),PF,sb1,r05,0.71
+BROOKS CELL (WT+SBstrong+EMAside),PF,sb1,r10,0.75
+BROOKS CELL (WT+SBstrong+EMAside),PF,sb1,r15,0.84
+BROOKS CELL (WT+SBstrong+EMAside),PF,sb1,r20,0.94
+BROOKS CELL (WT+SBstrong+EMAside),PF,sb1,r30,0.58
+BROOKS CELL (WT+SBstrong+EMAside),PF,sb1,r40,0.26
+BROOKS CELL (WT+SBstrong+EMAside),PF,sb1,f2p,0.63
+BROOKS CELL (WT+SBstrong+EMAside),PF,sb1,f4p,0.71
+BROOKS CELL (WT+SBstrong+EMAside),PF,sb1,f6p,0.86
+BROOKS CELL (WT+SBstrong+EMAside),PF,sb1,eod,0.84
+BROOKS CELL (WT+SBstrong+EMAside),PF,sb4,r05,0.75
+BROOKS CELL (WT+SBstrong+EMAside),PF,sb4,r10,0.78
+BROOKS CELL (WT+SBstrong+EMAside),PF,sb4,r15,0.85
+BROOKS CELL (WT+SBstrong+EMAside),PF,sb4,r20,0.8
+BROOKS CELL (WT+SBstrong+EMAside),PF,sb4,r30,0.51
+BROOKS CELL (WT+SBstrong+EMAside),PF,sb4,r40,0.27
+BROOKS CELL (WT+SBstrong+EMAside),PF,sb4,f2p,0.63
+BROOKS CELL (WT+SBstrong+EMAside),PF,sb4,f4p,0.7
+BROOKS CELL (WT+SBstrong+EMAside),PF,sb4,f6p,0.84
+BROOKS CELL (WT+SBstrong+EMAside),PF,sb4,eod,0.82
+variants,reg_base,with-trend,,0.803
+variants,reg_base,all-nonneutral,,0.79
+variants,reg_sticky,with-trend,,0.807
+variants,reg_sticky,all-nonneutral,,0.765
+variants,reg_closec,with-trend,,0.781
+variants,reg_closec,all-nonneutral,,0.778
+tod,08,,,0.22
+tod,09,,,0.82
+tod,10,,,0.97
+tod,11,,,0.88
+tod,12,,,0.83
+tod,13,,,0.92
+tod,14,,,0.43
+tod,15,,,0.07
+feat,ema20_atr,"(-2.92, -0.694]",,0.76
+feat,ema20_atr,"(-0.694, 0.073]",,0.77
+feat,ema20_atr,"(0.073, 0.908]",,0.8
+feat,ema20_atr,"(0.908, 3.328]",,0.77
+feat,er10,"(-0.001, 0.134]",,0.64
+feat,er10,"(0.134, 0.272]",,0.83
+feat,er10,"(0.272, 0.439]",,0.79
+feat,er10,"(0.439, 1.0]",,0.89
+feat,adx14,"(6.199, 17.8]",,0.6
+feat,adx14,"(17.8, 24.1]",,0.67
+feat,adx14,"(24.1, 33.0]",,0.73
+feat,adx14,"(33.0, 86.4]",,0.83
+feat,stochK,"(2.6990000000000003, 30.9]",,0.81
+feat,stochK,"(30.9, 56.0]",,0.72
+feat,stochK,"(56.0, 76.725]",,0.81
+feat,stochK,"(76.725, 98.7]",,0.77
+feat,zl_osc,"(-24.081, -2.142]",,0.78
+feat,zl_osc,"(-2.142, 0.03]",,0.69
+feat,zl_osc,"(0.03, 2.37]",,0.78
+feat,zl_osc,"(2.37, 45.09]",,0.82
+feat,vix,"(11.859, 15.37]",,0.7
+feat,vix,"(15.37, 17.69]",,0.8
+feat,vix,"(17.69, 21.57]",,0.8
+feat,vix,"(21.57, 52.33]",,0.78
+feat,gap_pct,"(-4.458, -0.235]",,0.75
+feat,gap_pct,"(-0.235, 0.0405]",,0.83
+feat,gap_pct,"(0.0405, 0.285]",,0.85
+feat,gap_pct,"(0.285, 4.023]",,0.69
+feat,prev_rng_pct,"(0.067, 0.613]",,0.79
+feat,prev_rng_pct,"(0.613, 0.889]",,0.79
+feat,prev_rng_pct,"(0.889, 1.279]",,0.8
+feat,prev_rng_pct,"(1.279, 9.37]",,0.74
+feat,adr10_pct,"(0.356, 0.719]",,0.78
+feat,adr10_pct,"(0.719, 0.918]",,0.7
+feat,adr10_pct,"(0.918, 1.246]",,0.88
+feat,adr10_pct,"(1.246, 4.387]",,0.74
+feat,sb_ibs_o,"(-0.001, 0.417]",,0.83
+feat,sb_ibs_o,"(0.417, 0.667]",,0.74
+feat,sb_ibs_o,"(0.667, 0.857]",,0.76
+feat,sb_ibs_o,"(0.857, 1.0]",,0.78
+feat,sb_rngx,"(0.232, 0.663]",,0.78
+feat,sb_rngx,"(0.663, 0.818]",,0.69
+feat,sb_rngx,"(0.818, 1.0]",,0.92
+feat,sb_rngx,"(1.0, 2.308]",,0.72
+feat,ema_dist,"(-3.122, -0.135]",,0.77
+feat,ema_dist,"(-0.135, 0.643]",,0.72
+feat,ema_dist,"(0.643, 1.285]",,0.74
+feat,ema_dist,"(1.285, 3.571]",,0.89
+feat,ib_pos,above,,0.72
+feat,ib_pos,below,,0.81
+feat,ib_pos,inside,,0.78
+feat,va_pos,above,,0.75
+feat,va_pos,below,,0.79
+feat,va_pos,inside,,0.79
+feat,eth_pos,above,,0.74
+feat,eth_pos,inside,,0.86
+feat,zl_sign,-1,,0.75
+feat,zl_sign,1,,0.8
