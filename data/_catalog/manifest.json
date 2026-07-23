@@ -1,5 +1,5 @@
 {
- "generated": "2026-07-21T08:02:58",
+ "generated": "2026-07-23T09:12:56",
  "families": {
   "vendor_flatfiles": {
    "n": 0,
@@ -82,19 +82,19 @@
    "rows": null
   },
   "orats_chains": {
-   "n": 62,
-   "size": 1136457282,
+   "n": 87,
+   "size": 1422187186,
    "zero_byte": 0,
-   "newest": 1784418624.5398178,
+   "newest": 1784700168.299365,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
    "per_path": {
     "data/orats": {
      "exists": true,
-     "n": 62,
-     "size": 1136457282,
-     "newest": 1784418624.5398178,
+     "n": 87,
+     "size": 1422187186,
+     "newest": 1784700168.299365,
      "zero_byte": 0
     }
    },
@@ -162,29 +162,29 @@
    "rows": null
   },
   "bars": {
-   "n": 225,
-   "size": 64046295,
+   "n": 226,
+   "size": 89377899,
    "zero_byte": 0,
-   "newest": 1784121423.9402983,
+   "newest": 1784714001.1791966,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
    "per_path": {
     "data/bars": {
      "exists": true,
-     "n": 225,
-     "size": 64046295,
-     "newest": 1784121423.9402983,
+     "n": 226,
+     "size": 89377899,
+     "newest": 1784714001.1791966,
      "zero_byte": 0
     }
    },
    "rows": null
   },
   "mq_levels_history": {
-   "n": 4146,
-   "size": 309592468,
+   "n": 4851,
+   "size": 411752793,
    "zero_byte": 2,
-   "newest": 1784582120.6782992,
+   "newest": 1784754928.67444,
    "exists_any": true,
    "health": "ok",
    "reasons": [
@@ -193,9 +193,9 @@
    "per_path": {
     "data/menthorq": {
      "exists": true,
-     "n": 4146,
-     "size": 309592468,
-     "newest": 1784582120.6782992,
+     "n": 4851,
+     "size": 411752793,
+     "newest": 1784754928.67444,
      "zero_byte": 2
     }
    },
@@ -212,10 +212,10 @@
    }
   },
   "mq_harvest": {
-   "n": 1009,
-   "size": 248709329,
+   "n": 1330,
+   "size": 335689376,
    "zero_byte": 1,
-   "newest": 1784581539.8003483,
+   "newest": 1784754327.701926,
    "exists_any": true,
    "health": "ok",
    "reasons": [
@@ -224,9 +224,9 @@
    "per_path": {
     "data/menthorq/harvest": {
      "exists": true,
-     "n": 1009,
-     "size": 248709329,
-     "newest": 1784581539.8003483,
+     "n": 1330,
+     "size": 335689376,
+     "newest": 1784754327.701926,
      "zero_byte": 1
     }
    },
@@ -234,9 +234,9 @@
   },
   "mq_gamma_db": {
    "n": 1,
-   "size": 12288,
+   "size": 20480,
    "zero_byte": 0,
-   "newest": 1784553319.2805884,
+   "newest": 1784726120.9651113,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
@@ -244,27 +244,27 @@
     "gamma_tracker/gamma.db": {
      "exists": true,
      "n": 1,
-     "size": 12288,
-     "newest": 1784553319.2805884,
+     "size": 20480,
+     "newest": 1784726120.9651113,
      "zero_byte": 0
     }
    },
    "rows": null
   },
   "mq_mine": {
-   "n": 628,
-   "size": 24445189,
+   "n": 1012,
+   "size": 39302739,
    "zero_byte": 0,
-   "newest": 1784550687.9495804,
+   "newest": 1784723492.595324,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
    "per_path": {
     "data/menthorq/mine": {
      "exists": true,
-     "n": 595,
-     "size": 24384586,
-     "newest": 1784550687.9495804,
+     "n": 979,
+     "size": 39242136,
+     "newest": 1784723492.595324,
      "zero_byte": 0
     },
     "data/menthorq/academy": {
@@ -278,38 +278,38 @@
    "rows": null
   },
   "options_sim": {
-   "n": 76,
-   "size": 3605375,
+   "n": 114,
+   "size": 6250104,
    "zero_byte": 0,
-   "newest": 1784610048.3280132,
+   "newest": 1784751685.9366088,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
    "per_path": {
     "data/options_sim": {
      "exists": true,
-     "n": 76,
-     "size": 3605375,
-     "newest": 1784610048.3280132,
+     "n": 114,
+     "size": 6250104,
+     "newest": 1784751685.9366088,
      "zero_byte": 0
     }
    },
    "rows": null
   },
   "options_log": {
-   "n": 11,
-   "size": 744400,
+   "n": 16,
+   "size": 1493047,
    "zero_byte": 0,
-   "newest": 1784578802.3447738,
+   "newest": 1784751605.2205808,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
    "per_path": {
     "data/options_log": {
      "exists": true,
-     "n": 11,
-     "size": 744400,
-     "newest": 1784578802.3447738,
+     "n": 16,
+     "size": 1493047,
+     "newest": 1784751605.2205808,
      "zero_byte": 0
     }
    },
@@ -360,6 +360,25 @@
    },
    "rows": null
   },
+  "regime": {
+   "n": 20,
+   "size": 4827378,
+   "zero_byte": 0,
+   "newest": 1784790666.3246138,
+   "exists_any": true,
+   "health": "ok",
+   "reasons": [],
+   "per_path": {
+    "data/regime": {
+     "exists": true,
+     "n": 20,
+     "size": 4827378,
+     "newest": 1784790666.3246138,
+     "zero_byte": 0
+    }
+   },
+   "rows": null
+  },
   "mq_knowledge": {
    "n": 428,
    "size": 1365961,
@@ -381,9 +400,9 @@
   },
   "vix_ib_daily": {
    "n": 6,
-   "size": 1395621,
+   "size": 1395796,
    "zero_byte": 0,
-   "newest": 1784553961.649502,
+   "newest": 1784726763.1216152,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
@@ -391,8 +410,8 @@
     "data/vix_daily.csv": {
      "exists": true,
      "n": 1,
-     "size": 328705,
-     "newest": 1784553961.649502,
+     "size": 328880,
+     "newest": 1784726763.1216152,
      "zero_byte": 0
     },
     "data/vix_daily.parquet": {
@@ -503,9 +522,106 @@
     }
    },
    "rows": null
+  },
+  "databento_mbo": {
+   "n": 180,
+   "size": 41926956801,
+   "zero_byte": 0,
+   "newest": 1784702605.091069,
+   "exists_any": true,
+   "health": "ok",
+   "reasons": [],
+   "per_path": {
+    "data/databento": {
+     "exists": true,
+     "n": 180,
+     "size": 41926956801,
+     "newest": 1784702605.091069,
+     "zero_byte": 0
+    }
+   },
+   "rows": null
+  },
+  "depth_l2": {
+   "n": 12,
+   "size": 703312250,
+   "zero_byte": 1,
+   "newest": 1784790750.4992979,
+   "exists_any": true,
+   "health": "ok",
+   "reasons": [
+    "1 zero-byte file(s)"
+   ],
+   "per_path": {
+    "data/depth": {
+     "exists": true,
+     "n": 12,
+     "size": 703312250,
+     "newest": 1784790750.4992979,
+     "zero_byte": 1
+    }
+   },
+   "rows": null
+  },
+  "footprint": {
+   "n": 31,
+   "size": 4556757,
+   "zero_byte": 0,
+   "newest": 1784750105.3551412,
+   "exists_any": true,
+   "health": "ok",
+   "reasons": [],
+   "per_path": {
+    "data/footprint": {
+     "exists": true,
+     "n": 31,
+     "size": 4556757,
+     "newest": 1784750105.3551412,
+     "zero_byte": 0
+    }
+   },
+   "rows": null
+  },
+  "discord_intel": {
+   "n": 2322,
+   "size": 195176994,
+   "zero_byte": 0,
+   "newest": 1784788418.1292639,
+   "exists_any": true,
+   "health": "ok",
+   "reasons": [],
+   "per_path": {
+    "data/discord": {
+     "exists": true,
+     "n": 2322,
+     "size": 195176994,
+     "newest": 1784788418.1292639,
+     "zero_byte": 0
+    }
+   },
+   "rows": null
+  },
+  "annotations": {
+   "n": 6,
+   "size": 20299,
+   "zero_byte": 0,
+   "newest": 1784538460.733732,
+   "exists_any": true,
+   "health": "ok",
+   "reasons": [],
+   "per_path": {
+    "data/annotations": {
+     "exists": true,
+     "n": 6,
+     "size": 20299,
+     "newest": 1784538460.733732,
+     "zero_byte": 0
+    }
+   },
+   "rows": null
   }
  },
- "total_size": 32424423834,
- "total_files": 18659,
- "scan_seconds": 0.372706
+ "total_size": 75777735486,
+ "total_files": 22709,
+ "scan_seconds": 0.205738
 }

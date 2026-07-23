@@ -228,6 +228,19 @@ families:
     access: "import sqlite3; sqlite3.connect('data/wfa_store/wfa_results.db')"
     gotchas: "⚠ _contaminated_pre_S34/ is quarantined bad data — do NOT use."
 
+  - key: regime
+    title: "Grimes regime engine — features / states / validation tables"
+    category: Research/WFA
+    paths:
+      - data/regime
+    produced_by: "scripts/regime_features.py -> regime_v0.py -> regime_validate.py / regime_events.py"
+    update_cadence: on-demand
+    expected_freshness_days: 999
+    count_rows: false
+    useful_for: "Dated outputs of the S81 Grimes regime workstream: feature parquets (daily/60m/30m), v0 state parquets, Pythia validation tables vs rw/shuffle/ar1 nulls, and the event-study gates (compression breakout, Keltner pullback, Donchian). Research notes in docs/research_notes/grimes_regime/."
+    access: "pd.read_parquet('data/regime/features_daily_20260723.parquet'); pd.read_csv('data/regime/events_gate_20260723.csv')"
+    gotchas: "v0 state-occupancy FAILED the null gate (bear-bounce = shuffle artifact — see RESULTS_v0_validation.md); only the Keltner pullback LONG event survived (N=15-18, X-of-Y evidence, RESULTS_event_tests.md). Daily bars from RTH 1m (gaps folded into next open); *_24h variants use the true CME session. All files dated YYYYMMDD — regenerate, don't edit."
+
   # ---------------------------------------------------------------- Educational
   - key: mq_knowledge
     title: "MenthorQ educational corpus (guides / lessons / wiki)"
