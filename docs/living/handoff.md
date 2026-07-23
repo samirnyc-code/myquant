@@ -80,10 +80,26 @@ NO-TRADE** on ES. Standing constraint: the old Brooks always-in engine is BANNED
   (commits `566133a`, `597164c`). NOTE: artifact HTML backups go in `docs/artifacts/` with the
   title-slug filename + `claude_artifacts.json` entry — NOT elsewhere (I got this wrong first).
 
-**NEXT (regime engine, proposed order):** (1) feature extractors #1–12 from the synthesis on ES
-(`data/ticks_continuous/`), (2) v0 state machine on daily + 30m/1h/4h, (3) Pythia-style
-per-state excess-return tables vs ES baseline + RW/AR(2)/GARCH nulls, (4) only then trade logic.
-S80 queue (data-catalog registration, tick stop/target sweep, NT dialog auto-dismiss…) still open.
+**BUILT + VALIDATED (v0, all committed):** `regime_features.py` (Grimes feature set on ES
+daily/60m/30m from `_continuous_1m.parquet`), `regime_v0.py` (no-trade-default state machine,
+2-step transition rule; daily no_trade 57/bull 22/bear 19/transition 2%, Grimes-faithful dwell),
+`regime_validate.py` (Pythia forward-return-by-prior-state vs rw/shuffle/ar1 nulls).
+**GATE RESULT — v0 FAILED (this is a real, useful negative):** the only large effect is
+"bear state → +226bp bounce @ h20" — but the SHUFFLE null (real returns, order destroyed)
+reproduces it at +249bp. So it is a **mechanical entry-selection artifact, not a market edge**
+(BULL fires buying an upper-band+MACD-high top, BEAR buys a bottom → any series reverts).
+Bull state is flat-to-negative. Overlapping windows also inflate all t-stats. **State-OCCUPANCY
+is the wrong test unit** — Grimes validates EVENTS, not "being in a trend". Full write-up:
+`docs/research_notes/grimes_regime/RESULTS_v0_validation.md`.
+
+**NEXT (regime engine):** replicate Grimes's own EVENT studies on ES vs the same nulls —
+(1) vol-compression breakout (5/40 ATR<0.5 + TR≥5d-ATR trigger; he claims +128bp** d4 in
+futures), (2) Keltner pullback-to-20-EMA, (3) Donchian 100/260 breakout. Only events that beat
+the shuffle null become state-machine blocks; rebuild around those. If his flagship compression
+breakout doesn't replicate on ES, the program stops there. **DECISION FOR USER: this is the
+juncture where Fable-level judgment on direction matters (Opus ran the build fine).**
+S80 queue (data-catalog registration — time-sensitive before +6mo L3 lands, tick stop/target
+sweep, NT dialog auto-dismiss…) still open.
 
 ---
 
