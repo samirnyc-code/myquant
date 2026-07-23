@@ -30,9 +30,24 @@ true-CME-session daily robustness rerun). Full note: `docs/research_notes/grimes
 the catalog — verified committed in `94d8f9b`; queue item closed). Note S82 runs CONCURRENTLY with
 S81 sessions on this branch — pull/rebase before assuming file state.
 
-**NEXT (regime):** (1) Databento daily/1h 2010+ pull (user approval) → rerun events with power;
-(2) rebuild engine event-anchored: bull regime = armed by band-close-above, entered on EMA-touch,
-killed by 2-step rule; (3) keep no-short-breakdowns filter. Then trade logic, not before.
+**POWERED RERUN DONE (2026-07-23, later same session):** user submitted Databento batch
+`GLBX-20260723-QSMLGGLMWB` (ohlcv-1h ES.FUT 2010→2026, $0.69, quote cross-verified vs unit
+prices). Built volume-roll continuous (65 rolls audited) → `_db_es_1h_continuous.parquet` +
+`_db_es_daily_24h.parquet` (4,155 session dailies). **FINAL VERDICTS**
+(`RESULTS_event_tests_2010.md`): kelt-pullback LONG **confirmed-small** (d3 +32bp, edge +23,
+t 2.0, N=49, ~3/yr — filter/sizing input, not a strategy); **compression breakout does NOT
+replicate on ES** (negative edge at his d3–d5, even at 16yrs); Donchian **shorts −271/−514bp
+vs null (3rd consecutive sample) → HARD RULE: no breakdown-short logic on ES daily** — ES
+"bear regime" = bounce-risk regime, not short-momentum regime; 60m dead at N=2,800.
+**Standalone Grimes engine NOT supported** — fold the two surviving facts into the desk;
+if regime work continues, the evidence points to a MEAN-REVERSION-regime engine.
+
+**⚠️ DATA FAULT FOUND (cross-workstream, affects S82):** NT-derived
+`data/bars/_continuous_1m_24h.parquet` has **~20 bad daily closes in 2021–23** (worst
+2022-09-26: −4.98% vs actual −1.0%). Refereed vs SPX cash: Databento closer 17–2
+(`db_overlap_audit_20260723.csv`). **The S82 STMR-MES tearsheet was built on the faulty NT
+series → re-run STMR on `_db_es_daily_24h.parquet` before trusting its numbers.** DB series
+is now the canonical ES daily/hourly source.
 
 ---
 
