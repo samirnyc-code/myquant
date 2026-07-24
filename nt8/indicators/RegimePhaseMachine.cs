@@ -107,6 +107,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private Data.SessionIterator sessionIt;
 		private DateTime winStartT, winEndT, flatT;
 
+		// state-transition log for validation diff vs the research engine
+		private System.IO.StreamWriter tlog;
+		private void TLog(string evt, int b, double px)
+		{
+			if (tlog == null) return;
+			try { tlog.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+				"{0:yyyy-MM-dd HH:mm:ss},{1},{2},{3},{4:F2}", Time[0], b + 1, evt, mode, px)); tlog.Flush(); }
+			catch { }
+		}
+
 		// account PnL tracking (FIFO, this instrument)
 		private Account acct;
 		private double realized; private int wins, losses;
@@ -159,6 +169,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 			else if (State == State.DataLoaded)
 			{
+				try
+				{
+					tlog = new System.IO.StreamWriter(
+						@"C:\Users\Admin\myquant\data\regime\nt8_transitions.csv", false);
+					tlog.WriteLine("time,bar,event,mode,px");
+				}
+				catch { tlog = null; }
 				sessionIt = new Data.SessionIterator(Bars);
 				ResetDay();
 				foreach (Account a in Account.All)
@@ -169,6 +186,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			else if (State == State.Terminated)
 			{
 				if (acct != null) acct.ExecutionUpdate -= OnExec;
+				if (tlog != null) { try { tlog.Close(); } catch { } tlog = null; }
 			}
 		}
 
@@ -302,6 +320,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			runB = b; runPx = px; hasRun = true;
 			mode = up ? "BULL" : "BEAR"; cand = null; candHasRef = false;
 			trendStartBar = b;
+			TLog("START", b, px);
 			Draw.VerticalLine(this, "st" + CurrentBar, 0, up ? Brushes.DarkSeaGreen : Brushes.RosyBrown,
 				DashStyleHelper.Dot, 1);
 		}
@@ -314,6 +333,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			structHl = structLh = null;
 			prevH = b; prevL = b;
 			legD = 0; hasLeg = false; trendStartBar = -1;
+			TLog("TERM", b, Close[0]);
 			Draw.VerticalLine(this, "tm" + CurrentBar, 0, Brushes.CadetBlue, DashStyleHelper.Dot, 1);
 		}
 
@@ -527,6 +547,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				}
 				sessHigh = double.MinValue; sessLow = double.MaxValue;
 				ResetDay();
+				TLog("RESET", -1, Close[0]);
 				lastObUpList = new List<bool>();
 				sessFirstCurrentBar = CurrentBar;
 				sessionIt.GetNextSession(Time[0], true);
