@@ -36,8 +36,21 @@ engine (never below 1.19 in any year); shorts carried the bear years and gave ba
 Win 45% · avg win ≈ +$1,010 · avg loss ≈ −$700 · ~10.4 trades/month.
 
 **Validation that passed:** out-of-sample split; parameter plateaus on every free
-parameter; gap filter transfers to an untuned config (PF 1.12→1.27 both halves);
-removed gap-day trades broadly bad (median −$517), not tail-driven; strict trade-through fills — conservative twice over: excludes touch-and-reverse, the cleanest fills. Fill-model spread measured ON THIS SPEC: touch vs strict = +8% (+$6.5k, 16 trades) — entry microstructure is NOT load-bearing here (the old 4t/4pt config's 54% spread does not carry over); causality audit (fully causal, live-portable).
+parameter; gap filter transfers to an untuned config (PF 1.12→1.27 both halves).
+The pre-registered day-filter sweep had FOUR arms (uniform q3/q1 cuts, set before
+results): ALL FOUR improved the book — gap 1.40, ADR-trend 1.35, VIX 1.28,
+prior-range 1.20 vs 1.17 baseline — gap is the BEST AMONG four coherent day-type
+effects pointing the same way, not the lone hit of a 4-way selection.
+Monster-membership test: the filter removed top-20 winners at exactly chance rate
+(5 of 20, −$22.5k of winners) and bottom-20 DISASTERS at 2.3x chance (11 of 20,
+−$20.9k) — PF rose because it deletes disasters, not because it luckily spared
+monsters. Removed gap-day trades broadly bad (median −$517), not tail-driven.
+GAP SIGN: the measured damage is up-gaps (PF 0.57, n=92); down-gap days are not
+measurably bad (PF 0.91, inside 1 SE of zero). The symmetric |gap| rule is kept on
+PARSIMONY (one parameter, not two; skipping 107 neutral trades costs nothing) —
+not because "skip both scored higher." Down-gap LONGS (+$110/tr, n=52,
+95% CI [−$290, +$510]) are statistically zero — the "gap-fill buying" story must
+not resurrect this cell without forward data; strict trade-through fills — conservative twice over: excludes touch-and-reverse, the cleanest fills. Fill-model spread measured ON THIS SPEC: touch vs strict = +8% (+$6.5k, 16 trades) — entry microstructure is NOT load-bearing here (the old 4t/4pt config's 54% spread does not carry over); causality audit (fully causal, live-portable).
 
 **THE HEADLINE RISK — tail concentration. If you read one table, read this one.**
 The concentration is FRACTAL: the top 20 trades are all the profit (remove them: the
