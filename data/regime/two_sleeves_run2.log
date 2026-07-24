@@ -1,0 +1,35 @@
+[800/1267] rows=492 (209s)
+[1000/1267] rows=613 (266s)
+[1200/1267] rows=748 (327s)
+C:\Users\Admin\myquant-regime\scripts\regime_2e_two_sleeves.py:214: UserWarning: This figure includes Axes that are not compatible with tight_layout, so results might be incorrect.
+  fig.tight_layout()
+
+DONE 346s  fadestop=16t  rows=799
+
+=== PER BOOK ===
+WT-L  2EL long bull            n= 282  net  +37,878  $/tr +134.3  PF 1.44  win 52.5%  avgW   +835 avgL   -640  maxDD  -12,840  tr 1.60|te 1.33
+WT-S  2ES short bear           n= 291  net  +48,970  $/tr +168.3  PF 1.46  win 42.6%  avgW  +1246 avgL   -632  maxDD  -14,130  tr 1.43|te 1.49
+FADE-S f2EL fade short         n= 105  net   +6,875  $/tr  +65.5  PF 1.35  win 13.3%  avgW  +1905 avgL   -218  maxDD   -5,062  tr 1.28|te 1.42
+FADE-L f2ES fade long          n= 121  net   -6,280  $/tr  -51.9  PF 0.71  win 17.4%  avgW   +737 avgL   -218  maxDD  -10,018  tr 0.51|te 0.88
+
+=== PER SLEEVE ===
+SLEEVE A  with-trend (wide)    n= 573  net  +86,848  $/tr +151.6  PF 1.45  win 47.5%  avgW  +1022 avgL   -635  maxDD   -8,838  tr 1.51|te 1.42
+SLEEVE B  fade (tight)         n= 226  net     +595  $/tr   +2.6  PF 1.01  win 15.5%  avgW  +1204 avgL   -218  maxDD  -11,058  tr 0.91|te 1.12
+
+=== COMBINED (both sleeves, one book) ===
+COMBINED                       n= 799  net  +87,442  $/tr +109.4  PF 1.38  win 38.4%  avgW  +1043 avgL   -473  maxDD  -11,312  tr 1.39|te 1.37
+
+=== PF BY YEAR ===
+sleeve  FADE    WT  COMBINED  FADE_n  WT_n
+yr                                        
+2021    1.62  1.30      1.35      16    53
+2022    1.01  1.83      1.66      47    84
+2023    0.57  1.23      1.09      45   111
+2024    0.85  1.55      1.43      48   139
+2025    1.66  1.38      1.42      47   125
+2026    0.60  1.25      1.15      23    61
+
+sleeve daily-PnL correlation (WT vs FADE): +0.020
+combined maxDD: realized -11,312  | MC median -13,909 worst-5% -22,064 worst-1% -26,367
+combined: 799 trades, 158/yr, net/yr +17,281, exp +109$/tr
+saved C:\Users\Admin\myquant-regime\docs\living\two_sleeves_20260724.png
