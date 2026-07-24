@@ -577,19 +577,21 @@ namespace NinjaTrader.NinjaScript.Indicators
 				: new SolidColorBrush(Color.FromArgb(20, 128, 134, 139));
 
 			// live decision levels
+			int lb = Math.Min(12, CurrentBar);          // clamp lookback to available bars
+			int tb = Math.Min(6, CurrentBar);
 			if (ShowLevels)
 			{
 				RemoveDrawObject("lvS"); RemoveDrawObject("lvRU"); RemoveDrawObject("lvRD");
 				if (mode != "NEUTRAL" && hasStanding)
-					Draw.Line(this, "lvS", false, 12, standingPx, -4, standingPx,
+					Draw.Line(this, "lvS", false, lb, standingPx, -4, standingPx,
 						Brushes.DimGray, DashStyleHelper.Dash, 2);
 				if (mode == "NEUTRAL")
 				{
 					if (lsh != null && hasHl)
-						Draw.Line(this, "lvRU", false, 12, HiAt(lsh.Bar), -4, HiAt(lsh.Bar),
+						Draw.Line(this, "lvRU", false, lb, HiAt(lsh.Bar), -4, HiAt(lsh.Bar),
 							Brushes.Green, DashStyleHelper.Dot, 2);
 					if (lsl != null && hasLh)
-						Draw.Line(this, "lvRD", false, 12, LoAt(lsl.Bar), -4, LoAt(lsl.Bar),
+						Draw.Line(this, "lvRD", false, lb, LoAt(lsl.Bar), -4, LoAt(lsl.Bar),
 							Brushes.Firebrick, DashStyleHelper.Dot, 2);
 				}
 			}
@@ -598,10 +600,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 			{
 				RemoveDrawObject("tgL"); RemoveDrawObject("tgS");
 				if (hasLongTrig && mode == "BULL" && !skipDay)
-					Draw.Line(this, "tgL", false, 6, armedLongTrig, -4, armedLongTrig,
+					Draw.Line(this, "tgL", false, tb, armedLongTrig, -4, armedLongTrig,
 						Brushes.LimeGreen, DashStyleHelper.DashDot, 2);
 				if (hasShortTrig && mode == "BEAR" && !skipDay)
-					Draw.Line(this, "tgS", false, 6, armedShortTrig, -4, armedShortTrig,
+					Draw.Line(this, "tgS", false, tb, armedShortTrig, -4, armedShortTrig,
 						Brushes.OrangeRed, DashStyleHelper.DashDot, 2);
 			}
 
