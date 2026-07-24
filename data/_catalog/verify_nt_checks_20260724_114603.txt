@@ -1,0 +1,6 @@
+run: 2026-07-24T11:46:03.231370 (machine time)
+market_state: open
+pipeline_health.check_depth: state=ok detail=945MB, 4s ago, 99% book
+nt8_maintenance.depth_size: 945.4 MB (must be >0 while recording)
+nt8_maintenance._armed_state: armed=True detail=NT8 up · recorder enabled · feed connected
+VERDICT: PASS

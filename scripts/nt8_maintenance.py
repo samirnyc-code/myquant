@@ -57,6 +57,9 @@ def depth_size() -> int:
         day = (now.date() + dt.timedelta(days=d)).isoformat()
         for p in depth.glob(f"ES*_depth_{day}.csv"):
             tot += p.stat().st_size
+        # 2026-07: the AddOn recorder is the live collector and writes addon_test/
+        for p in (depth / "addon_test").glob(f"ES*_depth_{day}.csv"):
+            tot += p.stat().st_size
     return tot
 
 
@@ -215,6 +218,14 @@ def _armed_state():
     enabled = None
     connected = None
     for ln in lines:
+        if "MarketDepthRecorderAddOn" in ln:
+            # 2026-07: the AddOn is the live collector. It never logs strategy-style
+            # 'Enabling' lines — its own lifecycle lines are the arming signal.
+            if "feed CONNECTED, recording" in ln:
+                enabled, connected = True, True
+            elif "stopped:" in ln or "waiting for price feed" in ln:
+                enabled, connected = True, False
+            continue
         if "MarketDepthRecorder" in ln and "Enabling" in ln:
             enabled = True
         elif "MarketDepthRecorder" in ln and "Disabling" in ln:
