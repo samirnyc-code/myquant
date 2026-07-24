@@ -37,9 +37,7 @@ Win 45% · avg win ≈ +$1,010 · avg loss ≈ −$700 · ~10.4 trades/month.
 
 **Validation that passed:** out-of-sample split; parameter plateaus on every free
 parameter; gap filter transfers to an untuned config (PF 1.12→1.27 both halves);
-removed gap-day trades broadly bad (median −$517), not tail-driven; strict
-trade-through fills (conservative twice over: excludes touch-and-reverse, the cleanest
-fills); causality audit (fully causal, live-portable).
+removed gap-day trades broadly bad (median −$517), not tail-driven; strict trade-through fills — conservative twice over: excludes touch-and-reverse, the cleanest fills. Fill-model spread measured ON THIS SPEC: touch vs strict = +8% (+$6.5k, 16 trades) — entry microstructure is NOT load-bearing here (the old 4t/4pt config's 54% spread does not carry over); causality audit (fully causal, live-portable).
 
 **THE HEADLINE RISK — tail concentration. If you read one table, read this one.**
 The concentration is FRACTAL: the top 20 trades are all the profit (remove them: the

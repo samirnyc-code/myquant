@@ -1,0 +1,9 @@
+[800/1267] rows=780 (216s)
+[1000/1267] rows=993 (270s)
+[1200/1267] rows=1200 (331s)
+
+DONE 350s -> C:\Users\Admin\myquant-regime\data\regime\fillmodel_20260724.csv
+strict: n= 630  net   +82,712  $/tr  +131.3  PF 1.39  train 1.44 | test 1.36
+touch : n= 646  net   +89,170  $/tr  +138.0  PF 1.42  train 1.47 | test 1.38
+touch-only trades: 16  |  net spread: +6,458 (+8%)
+saved C:\Users\Admin\myquant-regime\docs\living\fillmodel_20260724.png
