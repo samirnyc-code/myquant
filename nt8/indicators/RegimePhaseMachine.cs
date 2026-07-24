@@ -57,6 +57,47 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private int refSb, refLb;
 		private double armedLongTrig, armedShortTrig; private bool hasLongTrig, hasShortTrig;
 
+		// MenthorQ HVL (gamma regime)
+		private double hvl = double.NaN, hvl0 = double.NaN;
+		private string hvlDate = "";
+		private bool hvlIsPrev;
+
+		private void ReadHvl(DateTime sessionDate)
+		{
+			hvl = double.NaN; hvl0 = double.NaN; hvlDate = ""; hvlIsPrev = false;
+			try
+			{
+				string[] lines = System.IO.File.ReadAllLines(HvlCsvPath);
+				if (lines.Length < 2) return;
+				string[] hdr = lines[0].Split(',');
+				int iDate = Array.IndexOf(hdr, "session_date");
+				int iHvl = Array.IndexOf(hdr, "hvl");
+				int iHvl0 = Array.IndexOf(hdr, "hvl0");
+				if (iDate < 0 || iHvl < 0) return;
+				string want = sessionDate.ToString("yyyy-MM-dd");
+				for (int i = lines.Length - 1; i >= 1 && i >= lines.Length - 12; i--)
+				{
+					string[] f = lines[i].Split(',');
+					if (f.Length <= Math.Max(iHvl, iHvl0)) continue;
+					double v;
+					if (f[iDate] == want || hvlDate == "")
+					{
+						if (double.TryParse(f[iHvl], System.Globalization.NumberStyles.Any,
+							System.Globalization.CultureInfo.InvariantCulture, out v) && v > 0)
+						{
+							hvl = v; hvlDate = f[iDate]; hvlIsPrev = f[iDate] != want;
+							if (iHvl0 >= 0 && double.TryParse(f[iHvl0],
+								System.Globalization.NumberStyles.Any,
+								System.Globalization.CultureInfo.InvariantCulture, out v) && v > 0)
+								hvl0 = v;
+						}
+						if (f[iDate] == want) break;
+					}
+				}
+			}
+			catch { }
+		}
+
 		// session / day stats
 		private readonly Queue<double> sessRanges = new Queue<double>();
 		private double prevSessClose = double.NaN, lastSessClose = double.NaN;
@@ -82,6 +123,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				IsOverlay = true;
 				DrawOnPricePanel = true;
 				AccountName = "Sim101";
+				HvlCsvPath = @"C:\Users\Admin\myquant\data\menthorq\ES1!_mq_levels_history.csv";
+				ShowHvlLine = true;
 				ShowPivotTags = true;
 				ShowLevels = true;
 				ShowTriggers = true;
@@ -109,6 +152,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 				AddPlot(new Stroke(Brushes.Transparent), PlotStyle.Line, "Count2E_S");
 				AddPlot(new Stroke(Brushes.Transparent), PlotStyle.Line, "BarsInTrend");
 				AddPlot(new Stroke(Brushes.Transparent), PlotStyle.Line, "DayRngVsADR");
+				// GammaRegime: +1 above HVL (positive) / -1 below / 0 unknown
+				AddPlot(new Stroke(Brushes.Transparent), PlotStyle.Line, "GammaRegime");
+				AddPlot(new Stroke(Brushes.Transparent), PlotStyle.Line, "DistToHVL");
 			}
 			else if (State == State.DataLoaded)
 			{
@@ -484,6 +530,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 				winEndT = sessionIt.ActualSessionBegin.AddMinutes(WindowEndMin);
 				flatT = sessionIt.ActualSessionBegin.AddMinutes(FlatAfterMin);
 				gapPct = double.NaN; skipDay = true; adr10 = double.NaN; adrStopTicks = 0;
+				ReadHvl(sessionIt.ActualSessionBegin.Date);
+				RemoveDrawObject("hvlLn"); RemoveDrawObject("hvl0Ln");
+				if (ShowHvlLine && !double.IsNaN(hvl))
+				{
+					Draw.HorizontalLine(this, "hvlLn", hvl, Brushes.DarkGoldenrod,
+						DashStyleHelper.Solid, 2);
+					if (!double.IsNaN(hvl0))
+						Draw.HorizontalLine(this, "hvl0Ln", hvl0, Brushes.Goldenrod,
+							DashStyleHelper.Dot, 1);
+				}
 				if (sessRanges.Count >= 10 && !double.IsNaN(prevSessClose) && prevSessClose > 0)
 				{
 					double a = 0; foreach (double r in sessRanges) a += r;
@@ -572,6 +628,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 			Values[10][0] = mode != "NEUTRAL" && trendStartBar >= 0 ? formBar - trendStartBar : 0;
 			Values[11][0] = !double.IsNaN(adr10) && adr10 > 0 && sessHigh > sessLow
 				? (sessHigh - sessLow) / adr10 : 0;
+			Values[12][0] = double.IsNaN(hvl) ? 0 : (Close[0] >= hvl ? 1 : -1);
+			Values[13][0] = double.IsNaN(hvl) ? 0 : Close[0] - hvl;
 
 			DrawInfoBox();
 		}
@@ -603,6 +661,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (mode != "NEUTRAL" && hasStanding)
 				sb.AppendFormat("standing lvl: {0:F2} ({1}{2:F2})\n", standingPx,
 					px - standingPx >= 0 ? "+" : "", px - standingPx);
+			if (!double.IsNaN(hvl))
+				sb.AppendFormat("GAMMA: {0}  HVL {1:F0} ({2}{3:F2}p){4}{5}\n",
+					px >= hvl ? "POS" : "NEG", hvl,
+					px - hvl >= 0 ? "+" : "", px - hvl,
+					double.IsNaN(hvl0) ? "" : "  0dte " + hvl0.ToString("F0"),
+					hvlIsPrev ? "  [prev " + hvlDate + "]" : "");
+			else
+				sb.Append("GAMMA: no HVL data\n");
 			sb.AppendFormat("gap: {0}   ADR10: {1}\n",
 				double.IsNaN(gapPct) ? "warmup" : gapPct.ToString("+0.00;-0.00") + "%"
 					+ (skipDay ? "  SKIP-DAY" : ""),
@@ -631,6 +697,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		#region Properties
 		[NinjaScriptProperty] public string AccountName { get; set; }
+		[NinjaScriptProperty] public string HvlCsvPath { get; set; }
+		[NinjaScriptProperty] public bool ShowHvlLine { get; set; }
 		[NinjaScriptProperty] public bool ShowPivotTags { get; set; }
 		[NinjaScriptProperty] public bool ShowLevels { get; set; }
 		[NinjaScriptProperty] public bool ShowTriggers { get; set; }
