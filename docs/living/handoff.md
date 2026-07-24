@@ -6,6 +6,30 @@ pipeline + S77 security hardening; merged S76 Mac swing-levels work)
 
 ---
 
+## S83 (2026-07-24) — NT8 restart false-fails killed; stale desk bots restarted (branch `s75-live-dashboard`)
+
+**Dashboard still showed "L2 depth: no file for today" AFTER the f823c52 fix** because
+`telegram_bot.py` + `status_light.py` had been running since 7/21 05:33 machine-time with the
+pre-fix `pipeline_health` cached in-process. Depth was fine the whole time
+(`addon_test/ES_09-26_depth_2026-07-24.csv`, 99% book). **User approved restart** of both pairs
+(done 11:47 machine-time — new PIDs 1068/22812 telegram, 20460/18564 status_light).
+
+**NT8 Restart + Pre-Open Verify exit-1 every night = FALSE ALARMS, fixed (`bd7d648`):**
+- The restart itself WORKED last night (NT8 logs, CT): clean close 16:18, relaunch 16:41,
+  AddOn recording all night, no force-kill, no data loss. The S82 dialog auto-dismiss path is
+  effectively validated (graceful close completed).
+- Exit 1 came from `nt8_maintenance.verify()`: `_armed_state()` grepped for STRATEGY
+  "Enabling …MarketDepthRecorder" lines but the collector is the **AddOn** (never logs
+  "Enabling") → "recorder never enabled"; `depth_size()` also missed `addon_test/`.
+  Both fixed; `scripts/verify_nt_checks_20260724.py` run live: PASS (945MB, armed, ok).
+- **Tasks stay scheduled** (restart machinery is good; only the verdict lied).
+- **NT Watchdog stays DISABLED** — user decision: re-enable only after tonight's
+  16:15/16:45 CT runs pass clean with the fixed verifier. CHECK TOMORROW.
+- Unrelated: NT restarted 21:42 CT by the morning session (manual), not the scheduler.
+  `RegimeSecondEntry` strategy logs out-of-range OnBarUpdate errors — pre-existing, untouched.
+
+---
+
 ## S81-b (2026-07-23) — Grimes EVENT tests: one survivor (Keltner pullback LONG), catalog regime family (branch `s75-live-dashboard`)
 
 **Continuation of S81 after the v0 occupancy gate failed.** Ran Grimes's own EVENT studies on ES
