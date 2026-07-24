@@ -572,10 +572,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (formBar >= 1)
 				MachineTick(Close[0], formBar);
 
-			// regime background shading (per bar, so history keeps its own state colors)
-			BackBrush = mode == "BULL" ? new SolidColorBrush(Color.FromArgb(26, 31, 122, 61))
-				: mode == "BEAR" ? new SolidColorBrush(Color.FromArgb(26, 178, 58, 46))
-				: new SolidColorBrush(Color.FromArgb(20, 128, 134, 139));
+			// regime background shading (per bar): BULL green / BEAR red, NEUTRAL unshaded
+			// so any colored stretch = the machine was in a trend, nothing else
+			BackBrush = mode == "BULL" ? new SolidColorBrush(Color.FromArgb(48, 31, 122, 61))
+				: mode == "BEAR" ? new SolidColorBrush(Color.FromArgb(48, 178, 58, 46))
+				: null;
 
 			// live decision levels
 			int lb = Math.Min(12, CurrentBar);          // clamp lookback to available bars
