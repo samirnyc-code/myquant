@@ -391,7 +391,7 @@ def _check_tasks_uncached() -> dict:
     # the tasks are weekday-only now, but the last recorded result lingers until Monday.
     ps = ("Get-ScheduledTask | Where-Object {$_.TaskName -like 'MyQuant*'} | "
           "ForEach-Object { $i=$_|Get-ScheduledTaskInfo; "
-          "[PSCustomObject]@{n=$_.TaskName;r=$i.LastTaskResult;"
+          "[PSCustomObject]@{n=$_.TaskName;r=$i.LastTaskResult;s=[int]$_.State;"
           "d=(&{if($i.LastRunTime){[int]$i.LastRunTime.DayOfWeek}else{-1}})} } | ConvertTo-Json -Compress")
     try:
         out = subprocess.run(["powershell", "-NoProfile", "-NonInteractive",
@@ -406,15 +406,19 @@ def _check_tasks_uncached() -> dict:
     # 267009 = currently running, 267011 = never run, 267014 = terminated (normal for the
     # long-running dashboard server), 0 = success. Day 0/6 = Sunday/Saturday -> ignore.
     ok_codes = (0, 267009, 267011, 267014)
-    bad, weekend = [], 0
+    bad, weekend, disabled = [], 0, 0
     for r in rows:
+        if r.get("s") == 1:            # Disabled = intentionally off, not a failure
+            disabled += 1
+            continue
         if r.get("r") in ok_codes:
             continue
         if r.get("d") in (0, 6):
             weekend += 1
             continue
         bad.append(r["n"])
-    note = f" ({weekend} stale weekend)" if weekend else ""
+    note = (f" ({weekend} stale weekend)" if weekend else "") + \
+        (f" ({disabled} disabled)" if disabled else "")
     if not bad:
         return _chk("Scheduled tasks", OK, f"{len(rows)} tasks, all clean{note}")
     # While the market is shut, a stale weekday failure is history, not a live problem, and
