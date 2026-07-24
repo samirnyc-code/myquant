@@ -1,6 +1,8 @@
 #region Using declarations
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Xml.Serialization;
 using System.Text;
 using System.Windows.Media;
 using NinjaTrader.Cbi;
@@ -145,6 +147,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 				WindowStartMin = 30;
 				WindowEndMin = 330;
 				FlatAfterMin = 404;
+				BullStartLineBrush = Brushes.DarkSeaGreen;
+				BearStartLineBrush = Brushes.RosyBrown;
+				TermLineBrush = Brushes.CadetBlue;
+				TrendLineDash = DashStyleHelper.Dot;
+				TrendLineWidth = 1;
 			}
 			else if (State == State.Configure)
 			{
@@ -290,7 +297,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (p == null || p.Major) return;
 			p.Major = true; p.MajLab = lab;
 			if (!ShowPivotTags) return;
-			double off = TickSize * 14;
+			double off = TickSize * 26;   // majors well clear of the minor tags
 			double y = p.IsH ? HiAt(p.Bar) + off : LoAt(p.Bar) - off;
 			int ago = CurrentBar - BarOfSession(p.Bar);
 			if (ago < 0) return;
@@ -303,6 +310,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		private int sessFirstCurrentBar;
 		private int BarOfSession(int sessBar) { return sessFirstCurrentBar + sessBar; }
+
+		// x-position between the previous and current bar (transition lines sit on the boundary)
+		private DateTime BoundaryTime()
+		{
+			return CurrentBar > 0 ? Time[1].AddTicks((Time[0] - Time[1]).Ticks / 2) : Time[0];
+		}
 
 		private void StartTrend(bool up, int b, double px)
 		{
@@ -321,8 +334,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 			mode = up ? "BULL" : "BEAR"; cand = null; candHasRef = false;
 			trendStartBar = b;
 			TLog("START", b, px);
-			Draw.VerticalLine(this, "st" + CurrentBar, 0, up ? Brushes.DarkSeaGreen : Brushes.RosyBrown,
-				DashStyleHelper.Dot, 1);
+			Draw.VerticalLine(this, "st" + CurrentBar, BoundaryTime(),
+				up ? BullStartLineBrush : BearStartLineBrush, TrendLineDash, TrendLineWidth);
 		}
 
 		private void Terminate(int b)
@@ -334,7 +347,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 			prevH = b; prevL = b;
 			legD = 0; hasLeg = false; trendStartBar = -1;
 			TLog("TERM", b, Close[0]);
-			Draw.VerticalLine(this, "tm" + CurrentBar, 0, Brushes.CadetBlue, DashStyleHelper.Dot, 1);
+			Draw.VerticalLine(this, "tm" + CurrentBar, BoundaryTime(),
+				TermLineBrush, TrendLineDash, TrendLineWidth);
 		}
 
 		private void MachineTick(double px, int b)
@@ -746,6 +760,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[NinjaScriptProperty] public int WindowStartMin { get; set; }
 		[NinjaScriptProperty] public int WindowEndMin { get; set; }
 		[NinjaScriptProperty] public int FlatAfterMin { get; set; }
+
+		// transition-line customization (Properties grid; not constructor params)
+		[XmlIgnore] public Brush BullStartLineBrush { get; set; }
+		[Browsable(false)] public string BullStartLineBrushSerializable
+		{ get { return Serialize.BrushToString(BullStartLineBrush); } set { BullStartLineBrush = Serialize.StringToBrush(value); } }
+		[XmlIgnore] public Brush BearStartLineBrush { get; set; }
+		[Browsable(false)] public string BearStartLineBrushSerializable
+		{ get { return Serialize.BrushToString(BearStartLineBrush); } set { BearStartLineBrush = Serialize.StringToBrush(value); } }
+		[XmlIgnore] public Brush TermLineBrush { get; set; }
+		[Browsable(false)] public string TermLineBrushSerializable
+		{ get { return Serialize.BrushToString(TermLineBrush); } set { TermLineBrush = Serialize.StringToBrush(value); } }
+		public DashStyleHelper TrendLineDash { get; set; }
+		public int TrendLineWidth { get; set; }
 		#endregion
 	}
 }
