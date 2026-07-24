@@ -661,8 +661,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 			sb.AppendFormat("bar: {0}\n", CurBarClass());
 			sb.AppendFormat("REGIME: {0}{1}\n", mode,
 				mode != "NEUTRAL" && trendStartBar >= 0 ? "  (b" + (trendStartBar + 1) + ", " + (formBar - trendStartBar) + " bars)" : "");
-			sb.AppendFormat("last minor piv: {0}{1:F2} pts\n", dMin >= 0 ? "+" : "", dMin);
-			sb.AppendFormat("last MAJOR ({0}): {1}{2:F2} pts\n", majLab, dMaj >= 0 ? "+" : "", dMaj);
+			sb.AppendFormat("last minor piv: {0}\n",
+				double.IsNaN(dMin) ? "-" : (dMin >= 0 ? "+" : "") + dMin.ToString("F2") + " pts");
+			sb.AppendFormat("last MAJOR ({0}): {1}\n", majLab,
+				double.IsNaN(dMaj) ? "-" : (dMaj >= 0 ? "+" : "") + dMaj.ToString("F2") + " pts");
 			if (mode != "NEUTRAL" && hasStanding)
 				sb.AppendFormat("standing lvl: {0:F2} ({1}{2:F2})\n", standingPx,
 					px - standingPx >= 0 ? "+" : "", px - standingPx);
