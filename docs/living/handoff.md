@@ -84,10 +84,23 @@ intact; P3 best OOS), **f2EL fade shorts in BEAR validated** (K=2: 1.38/1.34), s
 found era-unstable (0.78 train / 2.94 test — forward-track), portfolio AL+B net/DD 2.79
 (worst yr −$32), NT8 strategy extended to the AL+B combo (auto-reverse = P3).
 
+**S83 LATE (2026-07-24, Samir-directed):** ⭐ **VOL-SCALED STOPS DOUBLE THE EDGE**
+(`regime_2e_volstops.py`, his call after rejecting the 4pt stop): stop = 0.30×ADR10 (best OOS:
+test +$36.7k PF 1.20, net/DD 2.95) or 3.0×ABR10 (best total: +$69.4k) × EOD hold → +$60–69k
+5yr vs +$29.2k fixed-4pt, win% 45–47 vs 19, avg loss ~$700–760, worst trade −$3.6–4.5k. All
+10 vol variants green both halves; targets dead at every width. **NEW HEADLINE STOP =
+0.30×ADR10.** Also: 6500-volume bars KILLED (test PF 0.94); NT port debugging session
+(4 real bugs fixed on live NT: forming-bar crash, template-dependent EOD, dead-stop carry,
+opposing-order silent ignore — all committed; NT crashed once 0xc0000409); desk fixes on
+main-repo branch: watchdog task disabled (Samir's order), depth check → addon path, task
+health ignores Disabled, dashboard+launcher restarted on fixed code (board green, verified).
+NT-side historical validation ABANDONED for now (Samir) → **next session: standalone C#
+harness** (compile strategy core outside NT, feed research ticks, diff signals — no GUI).
+
 **OPEN:**
 1. Merge `regime/indep` → main + push (pre-authorized "when we finish" — awaiting the word).
-2. **Validate the NT8 port**: ES 5m + Tick Replay 2021→2026, WriteSignalsCsv=true, diff vs
-   causal_check CSV. Only then eval/live.
+2. **Validate the NT8 port via standalone C# harness** (NT chart route abandoned); then update
+   strategy stop to 0.30×ADR10 + rerun. Only then eval/live.
 3. Walk-forward honesty: single OOS split + per-year + plateau done; lever SELECTION saw the
    full sample once — rolling WFA not retroactively possible without bias. Live sim is the
    real next test.
