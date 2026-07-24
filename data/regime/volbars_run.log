@@ -1,0 +1,12 @@
+[150/1267] rows=194 (50s)
+[300/1267] rows=478 (126s)
+[450/1267] rows=763 (196s)
+[600/1267] rows=1012 (254s)
+[900/1267] rows=1483 (366s)
+[1050/1267] rows=1691 (433s)
+[1200/1267] rows=1940 (502s)
+
+DONE 530s days=1232 bars/day~187 rows=2030 -> C:\Users\Admin\myquant-regime\data\regime\volbars6500_2e_20260724.csv
+ALL  n= 2030  train   +32,842 PF  1.19  |  test   -10,855 PF  0.94
+L    n= 1033  train   +41,590 PF  1.50  |  test   -10,080 PF  0.89
+S    n=  997  train    -8,748 PF  0.91  |  test      -775 PF  0.99
