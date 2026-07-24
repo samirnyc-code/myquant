@@ -1,0 +1,4 @@
+tf,bars,no_trade%,no_trade_dwell,no_trade_entries,bull%,bull_dwell,bull_entries,bear%,bear_dwell,bear_entries,transition%,transition_dwell,transition_entries
+daily,1305,56.6,56.8,13,22.1,26.2,11,19.0,31.0,8,2.3,3.3,9
+60m,8994,45.6,50.6,81,21.9,34.0,58,29.4,36.2,73,3.2,4.1,70
+30m,17942,40.7,45.1,162,26.7,34.9,137,29.0,34.5,151,3.6,3.8,169

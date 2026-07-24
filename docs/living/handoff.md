@@ -32,6 +32,26 @@ pre-fix `pipeline_health` cached in-process. Depth was fine the whole time
 
 ## S81-b (2026-07-23) — Grimes EVENT tests: one survivor (Keltner pullback LONG), catalog regime family (branch `s75-live-dashboard`)
 
+**MORNING DESK FINDINGS (2026-07-23, ~08:0x–08:4x CT, all read-only diagnosis):**
+- **NT8 Restart + Pre-Open Verify both exited 1 last night SILENTLY** (no Telegram — `say()`
+  stdout is discarded under pythonw and the `restart FAILED` path in `nt8_maintenance.main()`
+  never pings). NT8 process start time is still **7/21 23:16** → NT was NOT restarted, running
+  ~36h. **No data loss** (7/22 depth parquet finalized 23:05; 7/23 CSV growing, L2 fresh).
+  TODO before tonight's 16:15 CT run: file-logging + ping on EVERY failure path so we capture
+  WHY `restart()` returned False. S82's auto-dismiss first live run = FAIL, cause unknown.
+- **"Options sim DEAD" tile at 08:06 CT = the S79 pre-open idle false-alarm again** — S82's
+  IDLE fix is not reflected in that tile (different renderer or stale process). Not urgent.
+- **MQ LEVELS-ROLL DISCOVERY (design decision needed):** user saw MQ showing ES HVL 7500 while
+  the desk's pinned 7/23 set says ES 7530/SPX 7525. Direct API pull confirmed: MQ **re-publishes
+  levels intraday and the payload is now date-stamped 2026-07-24** (ES1! hvl 7500, SPX 7535).
+  Our desk pins one set per session (by design); MQ's display had already rolled. Implication:
+  yesterday's HVL-whipsaw trades (−$641/−$31) defended a level MQ may have already moved.
+  **OPEN QUESTION for user: should the desk adopt MQ's intraday re-publish or stay pinned?**
+  Interacts with every regime-flip rule. (Refresh run approved+done; new values landed under
+  2026-07-24 per the API's own dating — 7/23 row untouched.)
+- **`SPX_mq_levels_history.csv` (deep miner) has NO rows since 7/15** — "MyQuant Levels History"
+  task failing silently for a week. Diagnose separately (levels_db.csv is NOT affected).
+
 **Continuation of S81 after the v0 occupancy gate failed.** Ran Grimes's own EVENT studies on ES
 vs 20×shuffle/20×rw aggregated nulls (`regime_events.py` RTH daily/60m/30m + `regime_events_24h.py`
 true-CME-session daily robustness rerun). Full note: `docs/research_notes/grimes_regime/RESULTS_event_tests.md`.
