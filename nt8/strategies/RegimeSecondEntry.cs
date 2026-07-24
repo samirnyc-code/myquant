@@ -98,11 +98,15 @@ namespace NinjaTrader.NinjaScript.Strategies
 				WindowStartMin = 30;                   // fills allowed from open+30min
 				WindowEndMin = 330;                    // ...until open+5h30 (exclusive)
 				FlatAfterMin = 404;                    // hard flat: open+6h44 (=15:14 on an 08:30 RTH session)
-				RetestTicks = 4;
-				StopTicks = 16;
+				RetestTicks = 6;                       // FINAL SPEC: limit 6t back from trigger
+				StopAdrMult = 0.30;                    // FINAL SPEC: stop = 0.30 x ADR10
+				StopFloorTicks = 8;                    // stop floor 2.0 pts
+				GapMaxPct = 0.54;                      // FINAL SPEC: skip day when |gap| > 0.54%
+				EntryCancelBars = 6;                   // FINAL SPEC: unfilled entry limit dies after 6 bars
+				AdrLookback = 10;
 				TradeLongs = true;
-				TradeShorts = false;               // with-trend 2ES measured flat (PF 1.04) — off by default
-				UseFadeShorts = true;              // f2EL fade in BEAR: the validated short book
+				TradeShorts = true;                // FINAL SPEC book: 2ES in BEAR (PF 1.35) is IN
+				UseFadeShorts = false;             // f2EL fade = side book, forward-validate first
 				FadeKBars = 2;                     // failure must print within K bars of the 2EL trigger
 				UseErFilter = false;
 				ErThreshold = 0.201;
@@ -428,13 +432,31 @@ namespace NinjaTrader.NinjaScript.Strategies
 		private DateTime winStartT = DateTime.MinValue, winEndT = DateTime.MaxValue;
 		private DateTime flatT = DateTime.MaxValue;
 
+		// ---- FINAL SPEC state: ADR stop, gap filter, entry-order expiry ----
+		private readonly Queue<double> sessRanges = new Queue<double>();
+		private double prevSessClose = double.NaN;
+		private double sessHigh = double.MinValue, sessLow = double.MaxValue;
+		private double lastSessClose = double.NaN;
+		private bool skipDay = true;              // true until ADR ready and gap checked
+		private int adrStopTicks;
+		private readonly List<Tuple<string, int>> pendingEntry = new List<Tuple<string, int>>();
+
 		protected override void OnBarUpdate()
 		{
 			if (BarsInProgress != 0) return;
 
 			if (Bars.IsFirstBarOfSession && IsFirstTickOfBar)
 			{
+				// finalize PRIOR session stats before resetting
+				if (sessHigh > double.MinValue && sessLow < double.MaxValue)
+				{
+					sessRanges.Enqueue(sessHigh - sessLow);
+					while (sessRanges.Count > AdrLookback) sessRanges.Dequeue();
+					prevSessClose = lastSessClose;
+				}
+				sessHigh = double.MinValue; sessLow = double.MaxValue;
 				ResetSession();
+				pendingEntry.Clear();
 				// time-based entry window — works on ANY bar type (time or volume)
 				sessionIt.GetNextSession(Time[0], true);
 				winStartT = sessionIt.ActualSessionBegin.AddMinutes(WindowStartMin);
@@ -442,7 +464,24 @@ namespace NinjaTrader.NinjaScript.Strategies
 				// hard EOD anchor independent of NT's close mechanism / template quirks:
 				// never in a trade later than session open + FlatAfterMin.
 				flatT = sessionIt.ActualSessionBegin.AddMinutes(FlatAfterMin);
+				// ---- FINAL SPEC day gate: ADR10 stop size + gap filter ----
+				skipDay = true;
+				if (sessRanges.Count >= AdrLookback && !double.IsNaN(prevSessClose) && prevSessClose > 0)
+				{
+					double adr = 0; foreach (double r in sessRanges) adr += r;
+					adr /= sessRanges.Count;
+					adrStopTicks = Math.Max(StopFloorTicks,
+						(int)Math.Round(StopAdrMult * adr / TICK, MidpointRounding.ToEven));
+					double gapPct = Math.Abs(Close[0] - prevSessClose) / prevSessClose * 100.0;
+					skipDay = gapPct > GapMaxPct;
+					if (skipDay)
+						Log(string.Format("RegimeSecondEntry {0:d}: GAP {1:F2}% > {2:F2}% - day skipped",
+							Time[0], gapPct, GapMaxPct), LogLevel.Information);
+				}
 			}
+			lastSessClose = Close[0];
+			if (Close[0] > sessHigh) sessHigh = Close[0];
+			if (Close[0] < sessLow) sessLow = Close[0];
 
 			// ---- belt-and-suspenders exits (template-proof) ----
 			if (Position.MarketPosition != MarketPosition.Flat)
@@ -459,7 +498,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 				{
 					double adverse = Position.MarketPosition == MarketPosition.Long
 						? Position.AveragePrice - Close[0] : Close[0] - Position.AveragePrice;
-					if (adverse > 2 * StopTicks * TICK)
+					if (adrStopTicks > 0 && adverse > 2 * adrStopTicks * TICK)
 					{
 						Log("RegimeSecondEntry: DEAD-STOP CATCH - adverse "
 							+ adverse + "pt with no stop fill; exiting market.", LogLevel.Error);
@@ -519,13 +558,30 @@ namespace NinjaTrader.NinjaScript.Strategies
 			}
 
 			// trigger touch on the forming bar -> regime gate -> entry
+			// expire unfilled entry limits after EntryCancelBars
+			if (pendingEntry.Count > 0)
+			{
+				var dead = new List<Tuple<string, int>>();
+				foreach (var pe in pendingEntry)
+					if (formBar > pe.Item2) dead.Add(pe);
+				foreach (var pe in dead)
+				{
+					pendingEntry.Remove(pe);
+					var tc = new List<Order>();
+					foreach (Order o in Orders)
+						if (o.OrderState == OrderState.Working && o.Name == pe.Item1)
+							tc.Add(o);
+					foreach (Order o in tc) CancelOrder(o);
+				}
+			}
+
 			if (hasLongTrig && px > armedLongTrig - TICK / 2)
 			{
 				int sbIdx = armedLongSb;
 				hasLongTrig = false;
-				if (mode == "BULL" && TradeLongs && PassesEr() && inWindow)
+				if (mode == "BULL" && TradeLongs && PassesEr() && inWindow && !skipDay)
 					SubmitRetest(true, armedLongTrig);
-				else if (mode == "BEAR" && UseFadeShorts && inWindow && sbIdx >= 0 && sbIdx < lo.Count)
+				else if (mode == "BEAR" && UseFadeShorts && inWindow && !skipDay && sbIdx >= 0 && sbIdx < lo.Count)
 				{
 					// f2EL fade: a counter-trend 2EL just triggered in a BEAR — if it
 					// fails (tick 1t below its signal bar within FadeKBars), go short.
@@ -534,7 +590,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 					sigSeq++;
 					fadeOrderName = "F2E" + sigSeq;
 					fadeExpiryBar = formBar + FadeKBars;
-					SetStopLoss(fadeOrderName, CalculationMode.Ticks, StopTicks, false);
+					SetStopLoss(fadeOrderName, CalculationMode.Ticks, adrStopTicks, false);
 					EnterShortStopMarket(0, true, Contracts, failPx, fadeOrderName);
 					if (WriteSignalsCsv)
 						csvRows.Add(string.Format("{0:yyyy-MM-dd},F2ES,{1},{2},{3}",
@@ -544,7 +600,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			if (hasShortTrig && px < armedShortTrig + TICK / 2)
 			{
 				hasShortTrig = false;
-				if (mode == "BEAR" && TradeShorts && PassesEr() && inWindow)
+				if (mode == "BEAR" && TradeShorts && PassesEr() && inWindow && !skipDay)
 					SubmitRetest(false, armedShortTrig);
 			}
 		}
@@ -588,7 +644,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 			double lim = isLong ? trig - RetestTicks * TICK : trig + RetestTicks * TICK;
 			sigSeq++;
 			string sig = "2E" + (isLong ? "L" : "S") + sigSeq;
-			SetStopLoss(sig, CalculationMode.Ticks, StopTicks, false);
+			pendingEntry.Add(Tuple.Create(sig, formBar + EntryCancelBars));
+			SetStopLoss(sig, CalculationMode.Ticks, adrStopTicks, false);
 			if (isLong) EnterLongLimit(0, true, Contracts, lim, sig);
 			else EnterShortLimit(0, true, Contracts, lim, sig);
 			if (WriteSignalsCsv)
@@ -600,7 +657,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 		[NinjaScriptProperty] public int WindowStartMin { get; set; }
 		[NinjaScriptProperty] public int WindowEndMin { get; set; }
 		[NinjaScriptProperty] public int RetestTicks { get; set; }
-		[NinjaScriptProperty] public int StopTicks { get; set; }
+		[NinjaScriptProperty] public double StopAdrMult { get; set; }
+		[NinjaScriptProperty] public int StopFloorTicks { get; set; }
+		[NinjaScriptProperty] public double GapMaxPct { get; set; }
+		[NinjaScriptProperty] public int EntryCancelBars { get; set; }
+		[NinjaScriptProperty] public int AdrLookback { get; set; }
 		[NinjaScriptProperty] public bool TradeLongs { get; set; }
 		[NinjaScriptProperty] public bool TradeShorts { get; set; }
 		[NinjaScriptProperty] public bool UseFadeShorts { get; set; }
