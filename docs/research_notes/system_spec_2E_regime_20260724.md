@@ -11,7 +11,7 @@ net of $5 RT + 1 tick exit slip, 1 ES. Every claim traces to a committed CSV.
 | Regime | Tick-driven phase machine v4: day opens NEUTRAL; tick > latest swing-high pivot with a higher-low present → BULL (mirror → BEAR); tick through standing major HL/LH → NEUTRAL. **Wick break, not close** |
 | Signal | S61 second entry only (2EL/2ES; origin-reset count; increment #2). No first entries, no third entries |
 | Direction | 2EL only while machine = BULL; 2ES only while machine = BEAR, **evaluated at the trigger tick**. Regime flips while in a trade are ignored |
-| Day filter | **Skip the day's new entries when \|RTH open − prior RTH close\| / prior close > 0.54%** (threshold = 75th pctile of train years — derived, not swept) |
+| Day filter | **Skip the day's new entries when \|RTH open − prior RTH close\| / prior close > 0.54%.** The 0.54% is a **fixed constant, frozen at design time** (it is the 75th percentile of \|gap\| over the 2021-23 train sessions — that's how it was *chosen*, not how it *runs*; each morning is one comparison against the hardcoded number). Consequence: exclusion rate drifts with the vol regime (2022: many days skipped, 0.36 tr/session; normal years ~0.53) — a stated design choice, acting as a de facto vol governor. Untested alternative: rolling 250-session percentile (self-adjusting) — logged, not run |
 | Entry | On trigger touch (S61 level + 1t): **limit 6 ticks back from the trigger**. Never chase. Backtest requires trade-through + 1 tick |
 | Entry window | Fills allowed session open +30 min → +330 min (09:00–13:59 machine-tz). Working orders cancelled at window end |
 | Order lifetime | **Cancel unfilled limit 6 bars (30 min) after the trigger** — operational rule; its PF contribution is NOT counted in expectations |
