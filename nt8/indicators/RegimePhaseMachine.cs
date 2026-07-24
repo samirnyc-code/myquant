@@ -514,7 +514,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
 			if (BarsInProgress != 0 || CurrentBar < 1) return;
 
-			if (Bars.IsFirstBarOfSession && IsFirstTickOfBar)
+			// SessionIterator-based new-session detection: Bars.IsFirstBarOfSession is
+			// unreliable under Tick Replay, which silently killed the day reset on
+			// historical sessions (machine stuck in one regime across days).
+			if (sessionIt.IsNewSession(Time[0], true))
 			{
 				if (sessHigh > double.MinValue)
 				{
