@@ -121,12 +121,27 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		// state-transition log for validation diff vs the research engine
 		private System.IO.StreamWriter tlog;
+		private System.IO.StreamWriter mlog;
+		private DateTime marksDay = DateTime.MinValue;
 		private void TLog(string evt, int b, double px)
 		{
 			if (tlog == null) return;
 			try { tlog.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture,
 				"{0:yyyy-MM-dd HH:mm:ss},{1},{2},{3},{4:F2}", Time[0], b + 1, evt, mode, px)); tlog.Flush(); }
 			catch { }
+		}
+
+		private void DumpMarks()
+		{
+			if (mlog == null || piv == null || piv.Count == 0 || marksDay == DateTime.MinValue) return;
+			try {
+				string ds = marksDay.ToString("yyyy-MM-dd");
+				foreach (Piv p in piv)
+					mlog.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+						"{0},{1},pivot,{2},{3},{4},{5},{6}", ds, p.Bar + 1,
+						p.IsH ? "H" : "L", p.Tag, p.Disp, p.Major ? 1 : 0, p.MajLab ?? ""));
+				mlog.Flush();
+			} catch { }
 		}
 
 		// account PnL tracking (FIFO, this instrument)
@@ -202,8 +217,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 					tlog = new System.IO.StreamWriter(
 						@"C:\Users\Admin\myquant\data\regime\nt8_transitions.csv", false);
 					tlog.WriteLine("time,bar,event,mode,px");
+					mlog = new System.IO.StreamWriter(
+						@"C:\Users\Admin\myquant\data\regime\nt8_marks.csv", false);
+					mlog.WriteLine("date,bar,event,side,minor_tag,disp,is_major,major_lab");
 				}
-				catch { tlog = null; }
+				catch { tlog = null; mlog = null; }
 				sessionIt = new Data.SessionIterator(Bars);
 				ResetDay();
 				foreach (Account a in Account.All)
@@ -214,7 +232,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 			else if (State == State.Terminated)
 			{
 				if (acct != null) acct.ExecutionUpdate -= OnExec;
+				DumpMarks();
 				if (tlog != null) { try { tlog.Close(); } catch { } tlog = null; }
+				if (mlog != null) { try { mlog.Close(); } catch { } mlog = null; }
 			}
 		}
 
@@ -580,12 +600,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 					while (sessRanges.Count > 10) sessRanges.Dequeue();
 					prevSessClose = lastSessClose;
 				}
+				DumpMarks();
 				sessHigh = double.MinValue; sessLow = double.MaxValue;
 				ResetDay();
 				TLog("RESET", -1, Close[0]);
 				lastObUpList = new List<bool>();
 				sessFirstCurrentBar = CurrentBar;
 				sessionIt.GetNextSession(Time[0], true);
+				marksDay = sessionIt.ActualSessionBegin.Date;
 				winStartT = sessionIt.ActualSessionBegin.AddMinutes(WindowStartMin);
 				winEndT = sessionIt.ActualSessionBegin.AddMinutes(WindowEndMin);
 				flatT = sessionIt.ActualSessionBegin.AddMinutes(FlatAfterMin);

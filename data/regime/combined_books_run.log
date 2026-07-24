@@ -1,0 +1,23 @@
+[300/1267] rows=206 (70s)
+[450/1267] rows=334 (110s)
+[900/1267] rows=751 (234s)
+[1050/1267] rows=880 (274s)
+[1200/1267] rows=1003 (319s)
+
+DONE 338s  rows=1062
+
+== individual books ==
+WT-L                       n= 282  net  +37,878  $/tr +134.3  PF 1.44  train 1.60 | test 1.33
+WT-S                       n= 291  net  +48,970  $/tr +168.3  PF 1.46  train 1.43 | test 1.49
+FADE-S                     n= 249  net   -1,908  $/tr   -7.7  PF 0.98  train 0.90 | test 1.09
+FADE-L                     n= 240  net   +3,138  $/tr  +13.1  PF 1.03  train 1.31 | test 0.86
+
+== SIDES combined ==
+BEAR: WT-S + FADE-S        n= 540  net  +47,062  $/tr  +87.2  PF 1.22  train 1.13 | test 1.31
+BULL: WT-L + FADE-L        n= 522  net  +41,015  $/tr  +78.6  PF 1.23  train 1.45 | test 1.07
+FULL: all 4 books          n=1062  net  +88,078  $/tr  +82.9  PF 1.22  train 1.26 | test 1.19
+
+== OVERLAP (a WT and a FADE trade agree: same dir, <=3 bars apart same day) ==
+  no overlaps found
+
+saved C:\Users\Admin\myquant-regime\docs\living\combined_books_20260724.png

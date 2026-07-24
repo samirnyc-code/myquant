@@ -8,6 +8,25 @@ embed the OLD engine — A/B comparison pending. Our +$82.7k backtest is on the 
 
 ---
 
+## S83 evening (2026-07-24) — engine A/B done + THREE-BOOK system + fade-gate bug found/fixed
+
+- **Engine A/B done** (`regime_engine_ab.py`): OLD vs NEW engine on the same committed book.
+  State differs 47.9% of days but PF ~identical (OLD 1.45 / NEW 1.44, both halves green) —
+  **edge is robust to the engine change**; NEW is higher-capacity (661 vs 573 trades, +$9k).
+  Caveat: NEW = my verbatim lift, not yet reference-day-diffed.
+- **2ES vs f2EL RESOLVED** — see memory `s83-2e-regime-setup`. With-trend book = 2ES in bear
+  (1.35). f2EL fade = separate validated book (1.35, both halves, ~$66/tr, corr +0.01, tight
+  4pt stop). Earlier "f2EL superior" was true when 2ES was 0.83 (pre-vol-stop); vol stop
+  rescued 2ES to equal it. I switched the spec to 2ES silently — that caused the whiplash.
+- **THREE-BOOK FINAL:** 2EL-long + 2ES-short (wide 0.30×ADR stop) + f2EL-fade-short (tight
+  4pt stop). WT+FADE-S = **+$93.7k, PF 1.44, maxDD −$9.5k**, green every year, MC worst-5%
+  −$19.8k. **f2ES-long fade DEAD (0.71)** — do not trade. Fade must gate to OPPOSITE trend
+  only (NEUTRAL firing was a bug: `regime_2e_two_sleeves.py`, fixed).
+- Fade on the WIDE stop collapses (0.94) — it needs its own tight stop (trap trade: fast or dead).
+- NT strategy still 2ES-only (UseFadeShorts=false); f2EL sleeve NOT yet wired into NT.
+
+---
+
 ## S83 (2026-07-23) — REGIME × SECOND ENTRIES, 5yr ticks (worktree `myquant-regime`, branch `regime/indep`)
 
 **Setup:** worktree at `C:\Users\Admin\myquant-regime` off origin/main @2bfc02b (phase machine
