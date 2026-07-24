@@ -112,7 +112,12 @@ def main():
                         if net is not None:
                             rows.append((dstr, "WT", "S" if short else "L", net))
             else:
+                # FADE only when regime is the OPPOSITE established trend (not NEUTRAL):
+                # a failed 2EL must fail against a real BEAR (f2EL), 2ES against a real BULL.
                 fade_short = not short
+                need = "BEAR" if fade_short else "BULL"
+                if reg != need:
+                    continue
                 sb_ext = L[sb] if fade_short else H[sb]
                 fail_px = sb_ext - TICK if fade_short else sb_ext + TICK
                 zlim = np.searchsorted(tbar, fb + KFADE + 1, "left")
