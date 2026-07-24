@@ -97,6 +97,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 				BarsRequiredToTrade = 2;
 				WindowStartMin = 30;                   // fills allowed from open+30min
 				WindowEndMin = 330;                    // ...until open+5h30 (exclusive)
+				FlatAfterMin = 404;                    // hard flat: open+6h44 (=15:14 on an 08:30 RTH session)
 				RetestTicks = 4;
 				StopTicks = 16;
 				TradeLongs = true;
@@ -425,6 +426,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 		// ───────────────────────── main handler ─────────────────────────
 		private Data.SessionIterator sessionIt;
 		private DateTime winStartT = DateTime.MinValue, winEndT = DateTime.MaxValue;
+		private DateTime flatT = DateTime.MaxValue;
 
 		protected override void OnBarUpdate()
 		{
@@ -437,6 +439,34 @@ namespace NinjaTrader.NinjaScript.Strategies
 				sessionIt.GetNextSession(Time[0], true);
 				winStartT = sessionIt.ActualSessionBegin.AddMinutes(WindowStartMin);
 				winEndT = sessionIt.ActualSessionBegin.AddMinutes(WindowEndMin);
+				// hard EOD anchor independent of NT's close mechanism / template quirks:
+				// never in a trade later than session open + FlatAfterMin.
+				flatT = sessionIt.ActualSessionBegin.AddMinutes(FlatAfterMin);
+			}
+
+			// ---- belt-and-suspenders exits (template-proof) ----
+			if (Position.MarketPosition != MarketPosition.Flat)
+			{
+				// 1) hard flat past the anchor (covers broken session-close on odd templates)
+				if (Time[0] >= flatT)
+				{
+					if (Position.MarketPosition == MarketPosition.Long) ExitLong("HardEOD", "");
+					else ExitShort("HardEOD", "");
+				}
+				// 2) dead-stop catch: adverse move beyond 2x the stop means the stop order
+				//    is not working — exit market immediately.
+				else
+				{
+					double adverse = Position.MarketPosition == MarketPosition.Long
+						? Position.AveragePrice - Close[0] : Close[0] - Position.AveragePrice;
+					if (adverse > 2 * StopTicks * TICK)
+					{
+						Log("RegimeSecondEntry: DEAD-STOP CATCH - adverse "
+							+ adverse + "pt with no stop fill; exiting market.", LogLevel.Error);
+						if (Position.MarketPosition == MarketPosition.Long) ExitLong("DeadStop", "");
+						else ExitShort("DeadStop", "");
+					}
+				}
 			}
 
 			if (IsFirstTickOfBar)
@@ -558,6 +588,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 		[NinjaScriptProperty] public bool TradeShorts { get; set; }
 		[NinjaScriptProperty] public bool UseFadeShorts { get; set; }
 		[NinjaScriptProperty] public int FadeKBars { get; set; }
+		[NinjaScriptProperty] public int FlatAfterMin { get; set; }
 		[NinjaScriptProperty] public bool UseErFilter { get; set; }
 		[NinjaScriptProperty] public double ErThreshold { get; set; }
 		[NinjaScriptProperty] public int Contracts { get; set; }
