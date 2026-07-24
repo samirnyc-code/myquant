@@ -1,66 +1,122 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 23, 2026 (⭐ TICK-DRIVEN phase machine — full regime rule set taught by Samir, both reference days reproduce exactly; the target is a live NT8 OnPriceChange indicator)
+**Last Updated:** July 23, 2026, evening pass (⭐ TICK-DRIVEN phase machine — immediate-flip
+rule + leg-continuation fix, both taught live against 2024-08-20 and 2023-04-12; both
+reference days still reproduce exactly; 12 charts rendered on the final engine)
 
 ---
 
-## ⭐ TICK-DRIVEN REGIME MACHINE — the full rule set (2026-07-23, branch `main`)
+## ⭐ TICK-DRIVEN REGIME MACHINE — immediate flips + the leg-continuation fix (2026-07-23 evening, branch `main`)
 
 **`scratchpad/regime_phase_machine.py` (v4) is the working model of the regime engine and the
 single source of truth for the rules.** The end goal is a LIVE NT8 indicator running
 `Calculate.OnPriceChange`; the script emulates exactly that on historical ticks — **the
-machine's clock is EVERY PRICE CHANGE**, bars are only bookkeeping. Samir: "emulate the
-indicator's logic even when you draw these charts." Runs any day:
+machine's clock is EVERY PRICE CHANGE**, bars are only bookkeeping. Runs any day:
 `python scratchpad/regime_phase_machine.py YYYY-MM-DD` → `docs/living/phase_machine_<date>.png`.
+This session added two real rules and fixed one bug that both rules exposed — see below.
+**Not committed to `scripts/brooks_regime_layer.py` yet** — still lives only in the scratch
+phase machine.
 
-### The rule set (all taught/validated bar-by-bar with Samir on 02-24 + 04-12)
+### The rule set (all taught/validated against 02-24 + 04-12 + 2024-08-20 + 2023-04-12)
 1. **Events:** each bar has at most two — the FIRST tick above the prior bar's high and the
    FIRST tick below the prior bar's low, in tick order. An OB is two consecutive steps
-   sharing a bar; each event applies the regime logic against live state, and every price
-   change advances race/promotion/termination checks. (This dissolved ALL the OB special
-   cases — the earlier bar-loop machine kept tripping precisely because it checked state
-   once per bar.) Equal bar = perfect inside bar (strict comparisons, free).
+   sharing a bar; each event applies the regime logic against live state. Equal bar =
+   perfect inside bar (strict comparisons, free).
 2. **Pivots:** an event that closes a leg drops the pivot on the bar holding the leg's
    tick-accurate extreme (can be an earlier bar). Day's first pivot = single gold letter.
-   Minor tags currently compare vs the prior same-side PIVOT (Samir's convention may be
-   two-bar tags — open display question). Terminations kill the open leg: the termination
-   bar can never carry a pivot, but its extremes join the tag-comparison chain (b43 on
-   04-12 reads lh vs b41's high).
-3. **NEUTRAL + the race:** day opens neutral; every termination returns there. Pivots keep
-   forming (b43!). A tick above the latest swing-high pivot with an **hl present** → BULL;
-   a tick below the latest swing-low pivot with an **lh present** → BEAR ("hl gets taken
-   out in a neutral phase", same logic as b31/b50; single-letter first pivots count as
-   compatible). OBs can do it intrabar: b50 (bear, U confirms the b49 hl then D takes it
-   out), b76 (bull mirror). b45 could NOT start a bull: lows were ll — no hl. At the start:
-   broken pivot → HH/LL, enabling hl/lh → HL/LH (standing level), phase's opposite-extreme
-   pivot → uppercased tag (b25→HH); running trend extreme born at the breaking tick.
-4. **TREND:** a swing pivot that IS the running extreme (identity test, bar==run_b — an
-   equal low is a dl, never a new extreme: b19) → major continuation HH/LL at its turn.
-   Counter-trend pivots: ONE-candidate contest (deeper replaces, replaced stays minor
-   forever); promotion when a tick exceeds the running extreme that stood at candidate-set
-   → major HL/LH = the STANDING level. A tick through the standing level TERMINATES.
-5. **Chart conventions:** dashed level from pivot to its break + ✗, dotted verticals at
-   starts/terminations (no price labels), state shading, "i" = intrabar confirm,
-   "N→M" = known at N, promoted major at M, gold dots = OB first-break side.
+   Minor tags compare vs the prior same-side PIVOT (Samir's convention may be two-bar tags —
+   open display question).
+3. **⭐ THE LEG DOES NOT RESET AT TERMINATION (new, fixes a real bug).** Only the REGIME
+   state (mode/standing/cand/race trackers) belongs to the trend and resets when it
+   terminates; the underlying leg (`d`/`leg_bar`) and the tag-comparison chain
+   (`prevH`/`prevL`) keep running exactly as they would have anyway, completely untouched by
+   termination. **Taught via 2023-04-12: bull terminates at b12 (breaks the b10 HL); the
+   down-leg from b11 was still running THROUGH b12 at that moment.** The old code killed the
+   leg right there, so b13's up-tick (b13 is an OB) opened a brand-new leg instead of closing
+   the real one — b12 never became the pivot it should have been. With the leg left alone:
+   b13 ticks above b12 → **confirms b12 as a genuine minor `ll`** (vs the real prior L-pivot
+   b10, not a self-reference) → b13 ticks below → BEAR STARTS AT B13, both b12→LL and
+   b13→LH promoted together. Exactly Samir's read: *"b13 triggers above b12 (makes b12 a
+   minor ll), then triggers below b12's ll and makes a LL — bear trend starting on b13."**
+   An **earlier same-session fix attempt** (only update `prevH`/`prevL` on the side that
+   broke, to fix 04-10's b25/b26 — see below) was a step in the right direction but caused a
+   **self-reference bug**: when the termination bar itself later becomes a pivot (like b12
+   here), comparing it against a `prevL` that had JUST been set to point at itself produces a
+   meaningless `dl` instead of the real `ll`. **The final fix supersedes it**: touch NEITHER
+   prevH nor prevL at termination, ever. Both the b25/04-10 case and the b12/2023-04-12 case
+   resolve correctly this way, because the chain was simply never interrupted.
+4. **⭐ TWO-LEGS-DOWN / two-legs-up (04-10, b26).** Because the leg and tag chain now run
+   continuously, a lower high that forms AFTER a termination correctly compares against the
+   real pre-termination high (b14), not the termination bar's arbitrary price (b21) — so b25
+   properly tags `lh`, `has_lh` goes true, and the bear fires at **b26** (breaking b22) the
+   moment real two-legs-down structure exists, rather than waiting until b33 for a fresh lh
+   to form from scratch. This was a genuine display/logic bug in the ORIGINAL (pre-tonight)
+   engine, not a new rule — the two-legs-down pattern was always supposed to be visible.
+5. **⭐ IMMEDIATE FLIP (2024-08-20, b56).** Counter-trend minor structure that forms INSIDE a
+   dying trend (tracked continuously now, in every mode — `lsh`/`lsl`/`has_hl`/`has_lh`) can
+   satisfy the OPPOSITE race on the SAME tick that terminates the trend. b53 (minor hh) + b55
+   (minor hl), both formed while still technically in the bear, break the bear's own LH (b41)
+   AND independently clear b53 at the same instant → BULL STARTS AT B56, no neutral pause.
+   Guard: the enabling partner must postdate the candidate (b55 after b53) — an unguarded
+   version fired on ANY leftover structure and spuriously flipped the validated b71/b74
+   terminations on 02-24/04-12 during testing. Confirmed fires again on 04-08 (3x), 04-10
+   (b38, b78), 2023-04-12 (b30), 2022-02-17 (b37), 2025-04-14 (b77), 2021-09-28 (b76),
+   2024-03-01 (b33, b68).
+6. **NEUTRAL + the race:** day opens neutral; every termination returns there (or, per #5,
+   immediately into the opposite trend). A tick above the latest swing-high pivot with an
+   **hl present** → BULL; below the latest swing-low with an **lh present** → BEAR. At the
+   start: broken pivot → HH/LL, enabling hl/lh → HL/LH (standing level), phase's
+   opposite-extreme pivot → uppercased tag (b25→HH on 04-12, blessed on his NT chart —
+   same-tag duplicate on 2023-04-12's b13/b17 (both LH) is this SAME mechanism, not a bug:
+   opp=highest-price pivot in phase vs partner=latest pivot, here both happen to already be
+   tagged `lh`). Running trend extreme born at the breaking tick.
+7. **TREND:** a swing pivot that IS the running extreme (identity test, `bar==run_b`) → major
+   continuation HH/LL at its turn. Counter-trend pivots: ONE-candidate contest (deeper
+   replaces, replaced stays minor forever); promotion when a tick exceeds the running extreme
+   that stood at candidate-set → major HL/LH = the STANDING level. A tick through it
+   TERMINATES.
+8. **Chart / display:** same-bar term+start pairs need TRUE firing order, not a bar-number
+   sort — term-then-start (an immediate flip) vs start-then-term (a wide/OB bar that starts a
+   trend and kills it before the bar ends, e.g. 04-10 b78, real and tick-verified) are
+   opposite orderings and guessing wrong mislabels every bar after. Fixed via a `transitions`
+   list appended in true chronological order; the merged "X→Y" arrow label is used ONLY for
+   genuine opposite-side flips, never for a same-side start-then-term.
+
+### ⚠️ Documentation correction
+Last session's note **"b43 on 04-12 reads lh vs b41's high" was wrong** — b41's high
+(5256.50) is genuinely above the prior H-pivot b38 (5254.00), so `hh` is mechanically
+correct by the same rule every other tag uses. b41 was never a major pivot either way, so
+this never affected any trend timing — it was a documentation error (likely conflated with
+the real b43 teaching, which is about 2024-08-20's b43/b44/b45, not 04-12).
 
 ### Validation state
-- **2022-02-24** (bull ref) and **2022-04-12** (bear ref): reproduce Samir's bar-by-bar
-  teaching EXACTLY on the tick engine (starts b9/b71/b77 and b10/b22/b31/b41/b50/b74/b76).
-- Rendered BLIND, unreviewed: 2022-04-08, 2023-04-12, 2023-10-26, 2022-02-17. The choppy
-  days (2023-04-12, 2023-10-26) show fast trend/neutral churn (3-5 bar trends, b79 on
-  10-26 starts and terminates the same bar) → likely where the S72 **ATTEMPT states** live.
+- **2022-02-24** (bull) and **2022-04-12** (bear): reproduce Samir's bar-by-bar teaching
+  EXACTLY, pivot-tag-by-pivot-tag (checked in full this time, not just the starts/terms
+  summary — the summary alone already missed one regression during tonight's work).
+- **2024-08-20** and **2023-04-12**: the two days the new rules were taught against; both
+  match Samir's read exactly (b56 flip; b13 bear start).
+- Rendered and RE-rendered on the final engine, still unreviewed by Samir: 2022-04-08,
+  2023-10-26, 2022-02-17, 2025-04-14, 2022-11-14, 2021-09-28, 2024-03-01, 2024-04-10. Three
+  of these picked up genuinely NEW legs from the leg-continuation fix that weren't visible
+  before (more structure recognized, not less) — worth a first look: **2022-02-17** (new
+  bull b28→n31), **2025-04-14** (new bull b7→n10, new bear b42→n43), **2022-11-14** (new
+  bear b58→n61).
 
 ### OPEN
-1. Review the blind days with Samir; decide whether fast flips are full trends or ATTEMPTs
-   (the last conceptual gap to the 5-state BULL/BULL_ATTEMPT/NEUTRAL/BEAR_ATTEMPT/BEAR).
-2. For review: opposite-extreme promotion at a start (b25→HH blessed on his NT chart;
-   mirror gives 02-24 b72→LL@77 which was previously minor — flagged, not yet ruled on).
-3. Minor-tag convention: pivot-chain (current) vs raw two-bar tag (his NT chart) — display.
-4. Port to NT8 C# (`Calculate.OnPriceChange`) — the tick loop body IS the handler. Also
-   decide fate of `scripts/brooks_regime_layer.py` (still pre-equal-bar-fix divergent
-   `brooks_structure_engine.py`; the phase machine supersedes both for regime purposes).
-5. Artifacts (zoomable): 02-24 `5b99e290`, 04-12 `bf90a2b5`, 04-08 `911170f3`,
-   2023-04-12 `084292c2`, 10-26 `07eeec60`, 02-17 `dbe4dc5f`.
+1. Review the still-unreviewed blind days with Samir, especially the three with new legs
+   above. Decide whether fast/short-lived flips (04-08 has three immediate flips back to
+   back) are full trends or should be ATTEMPT states — the last conceptual gap to the
+   5-state BULL/BULL_ATTEMPT/NEUTRAL/BEAR_ATTEMPT/BEAR ladder.
+2. Minor-tag convention: pivot-chain (current) vs raw two-bar tag (his NT chart) — display
+   only, structure unaffected either way.
+3. Port to NT8 C# (`Calculate.OnPriceChange`) — the tick loop body IS the handler almost
+   verbatim now. Also decide fate of `scripts/brooks_regime_layer.py` (still
+   pre-equal-bar-fix divergent from `brooks_structure_engine.py`; the phase machine
+   supersedes both for regime purposes).
+4. Artifacts (zoomable, all on the final engine as of this session):
+   02-24 `5b99e290` · 04-12 `bf90a2b5` · 08-20 `4553b1f7` · 04-10 `0f0d27f2` ·
+   04-08 `911170f3` · 2023-04-12 `084292c2` · 10-26 `07eeec60` · 02-17 `dbe4dc5f` ·
+   2025-04-14 `2b8e7115` · 11-14 `9dc85e2b` · 09-28 `b4b3230b` · 03-01 `a8dcb44b`.
 
 **Two-PC workflow (agreed 2026-07-23):** main pushed after this session; each PC works its
 own topic branch off main, merges back to main at session end (handoff.md edited on main,

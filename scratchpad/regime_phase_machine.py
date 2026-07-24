@@ -76,6 +76,12 @@ trend_starts = []  # (bar, "bull"|"bear", broken_pivot_bar)
 terms = []         # (standing_bar, standing_px, break_bar, "bull"|"bear")
 race_lines = []    # (pivot_bar, px, break_bar, "bull"|"bear")
 neutral_spans = [] # (start_bar, end_bar)
+transitions = []   # (bar, "start"|"term", side) in TRUE firing order - same-bar events can
+                    # go either way: term-then-start on an immediate flip (terminate() calls
+                    # start_trend()), or start-then-term when a wide/OB bar ticks through a
+                    # fresh trigger and then straight through its own brand-new standing
+                    # level (04-10 b78: starts bull, dies bull, same bar). A bar-number sort
+                    # can't tell these apart; only insertion order can.
 
 prevH = prevL = 0
 first_pivot_done = False
@@ -104,16 +110,22 @@ def add_pivot(bar, side, emit):
     piv.append(p)
     log.append((emit, "pivot %s on b%d (%s)%s" % (side, bar + 1, disp,
                 "  [intrabar]" if emit == bar else "")))
-    if mode == "NEUTRAL":
-        if side == "H":
-            lsh = p
-            if hi_p is None or H[bar] > H[hi_p["bar"]]: hi_p = p
-            if t == "lh" or len(disp) == 1: has_lh = True; struct_lh = p
-        else:
-            lsl = p
-            if lo_p is None or L[bar] < L[lo_p["bar"]]: lo_p = p
-            if t == "hl" or len(disp) == 1: has_hl = True; struct_hl = p
-    elif mode == "BULL" and side == "L":
+    # Latest-pivot / structure trackers run in EVERY mode, not just NEUTRAL - reset at every
+    # mode transition (start_trend / terminate), accumulated continuously in between. In
+    # NEUTRAL they drive the entry race; in TREND they capture the counter-trend minor
+    # structure forming INSIDE the trend (e.g. a bear's own minor hh + hl), which the next
+    # termination checks for an IMMEDIATE flip straight to the opposite trend (08-20: b53
+    # minor hh + b55 minor hl -> b56 breaks the bear's LH and fires bull on the same tick,
+    # no neutral pause) instead of always parking in neutral to wait for fresh pivots.
+    if side == "H":
+        lsh = p
+        if hi_p is None or H[bar] > H[hi_p["bar"]]: hi_p = p
+        if t == "lh" or len(disp) == 1: has_lh = True; struct_lh = p
+    else:
+        lsl = p
+        if lo_p is None or L[bar] < L[lo_p["bar"]]: lo_p = p
+        if t == "hl" or len(disp) == 1: has_hl = True; struct_hl = p
+    if mode == "BULL" and side == "L":
         # ONE candidate: a DEEPER low replaces it (old stays minor); otherwise minor forever
         if cand is None or L[bar] < L[cand["p"]["bar"]]:
             cand = dict(p=p, ref_px=run_px)
@@ -133,6 +145,7 @@ def add_pivot(bar, side, emit):
 
 def start_trend(up, b, px):
     global mode, standing, run_b, run_px, cand
+    global hi_p, lo_p, lsh, lsl, has_hl, has_lh, struct_hl, struct_lh
     side = "bull" if up else "bear"
     broken = lsh if up else lsl
     partner = struct_hl if up else struct_lh
@@ -148,28 +161,64 @@ def start_trend(up, b, px):
         opp["majlab"] = (opp["disp"] if len(opp["disp"]) == 1 else opp["tag"].upper())
     race_lines.append((broken["bar"], H[broken["bar"]] if up else L[broken["bar"]], b, side))
     trend_starts.append((b, side, broken["bar"]))
+    transitions.append((b, "start", side))
     neutral_spans.append((neu_start, b))
     standing = None
     if partner is not None:
         standing = (partner["bar"], L[partner["bar"]] if up else H[partner["bar"]])
     run_b, run_px = b, px            # running extreme born at the breaking tick
     mode = "BULL" if up else "BEAR"; cand = None
+    hi_p = lo_p = lsh = lsl = None; has_hl = has_lh = False   # fresh scope for the new trend
+    struct_hl = struct_lh = None
     log.append((b, "*** %s TREND STARTS - b%d breaks the b%d pivot"
                 % (side.upper(), b + 1, broken["bar"] + 1)))
 
 
-def terminate(b):
+def terminate(b, px):
     global mode, standing, run_b, run_px, cand, d, leg_px, leg_bar, neu_start
     global hi_p, lo_p, lsh, lsl, has_hl, has_lh, struct_hl, struct_lh, prevH, prevL
+    was_bull = (mode == "BULL")
     terms.append((standing[0], standing[1], b, mode.lower()))
-    log.append((b, "*** %s TREND TERMINATED - b%d breaks the b%d %s -> NEUTRAL"
-                % (mode, b + 1, standing[0] + 1, "HL" if mode == "BULL" else "LH")))
+    transitions.append((b, "term", mode.lower()))
+    # IMMEDIATE FLIP: the counter-trend minor structure already formed INSIDE the dying
+    # trend (lsh/has_hl or lsl/has_lh, tracked continuously - see add_pivot) may already
+    # satisfy the OPPOSITE race at this same tick. If so, skip neutral and start the new
+    # trend right away (08-20 b56: bear's own minor hh@53 + hl@55 -> bull fires on the
+    # break, not after a fresh seed forms).
+    # the enabling partner must have formed AFTER the candidate (hh THEN hl, b53 then b55 -
+    # not some stale lh from back near the trend's own start) or this fires on ANY leftover
+    # structure, which spuriously flipped the validated b71/b74 terminations in testing
+    flip_up = (not was_bull) and lsh is not None and px > H[lsh["bar"]] and has_hl \
+              and struct_hl is not None and struct_hl["bar"] > lsh["bar"]
+    flip_dn = was_bull and lsl is not None and px < L[lsl["bar"]] and has_lh \
+              and struct_lh is not None and struct_lh["bar"] > lsl["bar"]
+    log.append((b, "*** %s TREND TERMINATED - b%d breaks the b%d %s%s"
+                % (mode, b + 1, standing[0] + 1, "HL" if was_bull else "LH",
+                   "" if (flip_up or flip_dn) else " -> NEUTRAL")))
     mode = "NEUTRAL"; neu_start = b
     cand = None; standing = None; run_b = run_px = None
-    hi_p = lo_p = lsh = lsl = None; has_hl = has_lh = False
-    struct_hl = struct_lh = None
-    prevH = b; prevL = b             # termination bar joins the comparison chain, never a pivot
-    d = None; leg_px = leg_bar = None    # the open leg dies with the trend
+    # prevH/prevL are NOT touched here at all - termination is purely a REGIME-state event.
+    # An earlier version forced the termination bar onto the comparison chain (on the side
+    # that broke), which fixed 04-10's b25 (correctly reading lh vs b14, not the b21
+    # termination bar) - but it broke the moment the termination bar ITSELF later turns out
+    # to be a genuine pivot (2023-04-12 b12: comparing L[12] to a prevL that had JUST been
+    # set to b12 is a self-reference, producing dl instead of the real ll vs b10). Leaving
+    # prevH/prevL untouched resolves both: whatever pivot forms next - on the termination
+    # bar itself or later - naturally compares against the real last prior pivot, because
+    # the tag chain was never interrupted in the first place.
+    # The LEG ITSELF does NOT reset at termination - it keeps running exactly as it would
+    # have anyway. Killing it here was an unvalidated guess that broke real structure
+    # (2023-04-12: the down-leg from b11 was running through b12 when the bull terminated
+    # AT b12; resetting the leg discarded that leg entirely, so b13's up-tick opened a
+    # brand-new leg instead of closing the real one, and b12 never got to be the pivot it
+    # should be - "b13 triggers above b12, which makes b12 a minor ll"). Only the REGIME
+    # state (mode/standing/cand/race trackers) belongs to the trend and resets with it.
+    if flip_up or flip_dn:
+        log.append((b, "    counter-trend structure already satisfies the race -> immediate flip"))
+        start_trend(flip_up, b, px)  # uses the still-populated lsh/lsl/struct_*/hi_p/lo_p
+    else:
+        hi_p = lo_p = lsh = lsl = None; has_hl = has_lh = False
+        struct_hl = struct_lh = None
 
 
 # ============================ TICK LOOP — OnPriceChange emulation ============================
@@ -223,7 +272,7 @@ for _t in range(len(tP)):
         if mode == "BEAR" and px < run_px: run_b, run_px = b, px
         if standing is not None:
             if (mode == "BULL" and px < standing[1]) or (mode == "BEAR" and px > standing[1]):
-                terminate(b)
+                terminate(b, px)
 
 if mode == "NEUTRAL":
     neutral_spans.append((neu_start, n - 1))
@@ -269,10 +318,12 @@ vhi = H.max(); vlo = L.min(); rng = vhi - vlo; off = rng * 0.021
 fig, ax = plt.subplots(figsize=(36, 12), dpi=200)
 
 segs = []
-bounds = sorted([(s_, "start", sd) for (s_, sd, _) in trend_starts] +
-                [(b_, "term", None) for (_, _, b_, _) in terms])
+# walk `transitions` in TRUE firing order (stable sort by bar preserves same-bar insertion
+# order) - a bar-number-only sort can't distinguish term-then-start (flip) from
+# start-then-term (a wide bar that starts a trend and kills it before the bar even ends,
+# e.g. 04-10 b78), and guessing wrong mislabels every bar after it
 cur = "neutral"; x0 = 0
-for (xb, ktp, sd) in bounds:
+for (xb, ktp, sd) in sorted(transitions, key=lambda e: e[0]):
     segs.append((x0, xb, cur)); x0 = xb
     cur = sd if ktp == "start" else "neutral"
 segs.append((x0, n - 1, cur))
@@ -343,12 +394,29 @@ for (pb, px_, bb_, sdv) in terms:
     ax.plot([pb, bb_], [px_, px_], ls=(0, (4, 3)), lw=2.2, color="#33454d", zorder=5)
     ax.plot(bb_, px_, "x", ms=12, mew=2.6, color="#33454d", zorder=6)
 
-_evt = ([(bb_, "term", sdv) for (_, _, bb_, sdv) in terms] +
-        [(sb, "start", sdv) for (sb, sdv, _) in trend_starts])
-_evt.sort()
+# group by bar in TRUE firing order (see `transitions`). A term-then-start pair with
+# OPPOSITE sides is a genuine immediate flip -> one merged arrow label (08-20 b56: bear
+# terminates, bull starts, same tick). Any other same-bar combination (e.g. start-then-term,
+# same side - 04-10 b78: a wide bar starts a bull and kills it before the bar ends) is NOT a
+# flip and gets two separate, correctly-ordered labels instead of a misleading merge.
+_by_bar = {}
+for (xb, ktp, sd) in transitions:
+    _by_bar.setdefault(xb, []).append((ktp, sd))
+_evt = []
+for xb, evs in _by_bar.items():
+    if len(evs) == 2 and evs[0][0] == "term" and evs[1][0] == "start" and evs[0][1] != evs[1][1]:
+        _evt.append((xb, "flip", (evs[0][1], evs[1][1])))
+    else:
+        for (ktp, sd) in evs:
+            _evt.append((xb, ktp, sd))
+_evt.sort(key=lambda e: e[0])
 for _k, (xb, ekind, sdv) in enumerate(_evt):
     if ekind == "term":
         col = "#0e7c86"; txt = "NEUTRAL  b%d" % (xb + 1)
+    elif ekind == "flip":
+        was, now = sdv
+        col = "#1f7a3d" if now == "bull" else "#b23a2e"
+        txt = "%s→%s  b%d" % (was.upper(), now.upper(), xb + 1)
     else:
         col = "#1f7a3d" if sdv == "bull" else "#b23a2e"
         txt = "%s TREND  b%d" % (sdv.upper(), xb + 1)
