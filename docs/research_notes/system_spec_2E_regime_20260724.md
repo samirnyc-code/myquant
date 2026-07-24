@@ -39,18 +39,21 @@ Win 45% · avg win ≈ +$1,010 · avg loss ≈ −$700 · ~10.4 trades/month.
 parameter; gap filter transfers to an untuned config (PF 1.12→1.27 both halves).
 The pre-registered day-filter sweep had FOUR arms (uniform q3/q1 cuts, set before
 results): ALL FOUR improved the book — gap 1.40, ADR-trend 1.35, VIX 1.28,
-prior-range 1.20 vs 1.17 baseline — gap is the BEST AMONG four coherent day-type
-effects pointing the same way, not the lone hit of a 4-way selection.
-Monster-membership test: the filter removed top-20 winners at exactly chance rate
-(5 of 20, −$22.5k of winners) and bottom-20 DISASTERS at 2.3x chance (11 of 20,
-−$20.9k) — PF rose because it deletes disasters, not because it luckily spared
-monsters. Removed gap-day trades broadly bad (median −$517), not tail-driven.
+prior-range 1.20 vs 1.17 baseline — these four are CORRELATED vol proxies — one phenomenon (the book dislikes
+disturbed sessions, consistent with Q5-vol PF 1.14) measured four ways, gap being
+the sharpest instrument. Not four independent effects; not a lone hit either.
+Monster-membership test: removed top-20 winners at chance rate (5, +$22.5k) and
+bottom-20 disasters at 2.3x chance (11, −$20.9k) — but those 16 tail trades roughly
+CANCEL (+$1.6k). $28.4k of the filter's benefit comes from the OTHER 183 gap-day
+trades averaging −$155 each: **the filter's evidence is broad-based (effective
+n ≈ 183), unlike the book itself (effective n ≈ 20)** — the best-supported
+component in the system. Removed gap-day trades broadly bad (median −$517), not tail-driven.
 GAP SIGN: the measured damage is up-gaps (PF 0.57, n=92); down-gap days are not
 measurably bad (PF 0.91, inside 1 SE of zero). The symmetric |gap| rule is kept on
 PARSIMONY (one parameter, not two; skipping 107 neutral trades costs nothing) —
 not because "skip both scored higher." Down-gap LONGS (+$110/tr, n=52,
 95% CI [−$290, +$510]) are statistically zero — the "gap-fill buying" story must
-not resurrect this cell without forward data; strict trade-through fills — conservative twice over: excludes touch-and-reverse, the cleanest fills. Fill-model spread measured ON THIS SPEC: touch vs strict = +8% (+$6.5k, 16 trades) — entry microstructure is NOT load-bearing here (the old 4t/4pt config's 54% spread does not carry over); causality audit (fully causal, live-portable).
+not resurrect this cell without forward data; strict trade-through fills — conservative twice over: excludes touch-and-reverse, the cleanest fills. Fill-model spread measured ON THIS SPEC: touch vs strict = +8% (+$6.5k; the 16 marginal touch-and-reverse trades average $404 vs the $131 book average — strict is conservative in exactly the direction claimed) — entry microstructure is NOT load-bearing here (the old 4t/4pt config's 54% spread does not carry over); causality audit (fully causal, live-portable).
 
 **THE HEADLINE RISK — tail concentration. If you read one table, read this one.**
 The concentration is FRACTAL: the top 20 trades are all the profit (remove them: the
@@ -84,8 +87,8 @@ that kills the book, which is why **automation is not preferred — it is the st
 | Monthly | **≈ +$900–1,100 per ES**, highly lumpy | tail-driven; flat months are normal |
 | Max drawdown to size for | **−$21k per ES** (MC worst-5%), realized-typical −$13k | 5,000-path reshuffle |
 | Underwater stretches | expect 6–18 months without new highs | 2023-like years pay ≈ flat |
-| Account per 1 ES | **$30–35k** | worst-5% DD × 1.5 + margin |
-| MES at $5 RT | **+$8.6/tr · ≈ +$1,074/yr · PF 1.24 per contract** (MC worst-5% DD ≈ −$2.1k). **What the MES phase verifies — and is sold as:** fill fidelity vs the strict trade-through model, the ~610-trade churn body, and operator/automation compliance (holding to EOD underwater). **It CANNOT verify the tail**: ~1.8 tail events/yr means 40–100 trades most likely contain 0–2 — tail confirmation is a 12–18-month proposition minimum. A quiet MES stretch is NOT failure; one lucky monster is NOT confirmation | committed-spec costs |
+| Account per 1 ES | **$70–85k** (worst-5% DD = 25–30% of account; ~15%/yr expected return — that's what this is) | a $30k account would be 60–70% down at the MC 5% tail, worse with clustering: not survivable |
+| MES at $5 RT | **+$8.6/tr · ≈ +$1,074/yr · PF 1.24 per contract** (MC worst-5% DD ≈ −$2.1k). **What the MES phase verifies — and is sold as:** fill fidelity vs the strict trade-through model, the ~610-trade churn body, and operator/automation compliance (holding to EOD underwater). **It CANNOT verify the tail** (~1.8 tail events/yr; 12–18 months minimum). Quiet ≠ failure; one monster ≠ confirmation. MES account: **$7–8.5k** (same 25–30% sizing) | committed-spec costs |
 | Best / worst weather | trending years (2022-like: PF ~1.8) / chop+high-vol (PF ~1.1) | yearly + ADR buckets |
 
 ## 4. Live watch flags (review monthly)
@@ -97,8 +100,16 @@ that kills the book, which is why **automation is not preferred — it is the st
    ~+$60k/5yr candidate) — forward-validate before capital.
 4. Shorts-in-up-years (2023 S 0.51, 2026 S 0.83 while longs ≥1.19): logged as the next
    conditioning candidate — six noisy cells, NOT a rule yet.
-5. Kill criteria: 12-month PF < 1.0, or DD beyond −$25k (MC worst-1%), or either side
-   (L/S) persistently < 1.0 for 2+ quarters.
+5. Kill criteria — **backtested against the book's own history** (any rule that fires
+   mid-sample before the good years is the wrong rule): the draft rules FAILED —
+   "12-mo PF < 1.0" fires SIX times in-sample (incl. Jan–Apr 2024, each forgoing
+   ~$40k+); "side < 1.0 for 2 quarters" fires THREE times (shorts after 2024Q1,
+   right before the best test stretch). ADOPTED (never fire in-sample):
+   **(a) closed-trade DD beyond −$25k (MC worst-1%); (b) trailing 12-mo NET below
+   −$10k; (c) either side PF < 1.0 for 4+ consecutive quarters.** Honesty note:
+   in-sample testing can only REJECT kill rules; the survivors aren't validated,
+   merely not-rejected — their function is bounding unprecedented behavior, and
+   they are exactly as loose as history required.
 
 **Verdict (reframed after review):** not "PF 1.39, validated" — a **tail-harvest book
 with ~20 effective observations, conservative fills, balanced sides, and a −$21k
