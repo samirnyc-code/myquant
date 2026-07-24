@@ -97,10 +97,25 @@ health ignores Disabled, dashboard+launcher restarted on fixed code (board green
 NT-side historical validation ABANDONED for now (Samir) → **next session: standalone C#
 harness** (compile strategy core outside NT, feed research ticks, diff signals — no GUI).
 
+**S83 FINAL SPEC (2026-07-24, after Samir's validation battery — the audited book):**
+**adr.30 stop (0.30×ADR10, nearest-tick, floor 8t) × retest 6t through-fill × GAP FILTER
+(skip |RTH gap| > 0.54% = train-q3 percentile, derived not swept) × EOD hold; h09-13;
+30-min limit cancel = OPERATIONAL rule only (PF contribution unproven — excluded from claims).**
+n=630 · +$131/tr · PF 1.39 · **train 1.44 (n=283) / test 1.36 (n=347, +$41.9k, maxDD −$8.3k)**
+· 2t-slip 1.35 · planning number PF 1.25–1.30. Validation battery results: gap filter passed
+4 lenses incl cross-config transfer (s0: 1.12→1.27 both halves); cxl6 failed transfer/yearly
+(+0.02 PF, consistent but negligible); tight6 stop-tighten was FILL FANTASY (retracted);
+2022 = 37% of net (PF 1.79) but ex-2022 all years green 1.10–1.44. LIVE WATCH FLAGS:
+2026 gap-days flipped positive (decay watch on the gap filter); strong-SB era-instability.
+GAP-DAY SIDE BOOK candidates (both halves green): RevFT:BO both dirs + MC:CC4 longs
+(~+$60k/5yr from skipped days; from data/signals exports; forward-validate first).
+Gap-day gallery: docs/living/gapday_gallery/index.html (291 charts, arrow-key cycling).
+
 **OPEN:**
 1. Merge `regime/indep` → main + push (pre-authorized "when we finish" — awaiting the word).
 2. **Validate the NT8 port via standalone C# harness** (NT chart route abandoned); then update
-   strategy stop to 0.30×ADR10 + rerun. Only then eval/live.
+   strategy to the FINAL SPEC above (vol stop, 6t retest, gap filter, 30-min cancel) + rerun.
+   Only then eval/live.
 3. Walk-forward honesty: single OOS split + per-year + plateau done; lever SELECTION saw the
    full sample once — rolling WFA not retroactively possible without bias. Live sim is the
    real next test.
