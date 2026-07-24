@@ -109,6 +109,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private Data.SessionIterator sessionIt;
 		private DateTime winStartT, winEndT, flatT;
 
+		// frozen regime-shade brushes (built once at DataLoaded)
+		private Brush bullShade, bearShade;
+		private static Brush MakeShade(Brush src, int alpha)
+		{
+			Color c = src is SolidColorBrush ? ((SolidColorBrush)src).Color : Colors.Gray;
+			var b = new SolidColorBrush(Color.FromArgb((byte)alpha, c.R, c.G, c.B));
+			b.Freeze();
+			return b;
+		}
+
 		// state-transition log for validation diff vs the research engine
 		private System.IO.StreamWriter tlog;
 		private void TLog(string evt, int b, double px)
@@ -153,6 +163,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 				TermLineBrush = Brushes.CadetBlue;
 				TrendLineDash = DashStyleHelper.Dot;
 				TrendLineWidth = 1;
+				ShowRegimeShading = true;
+				BullShadeBrush = Brushes.Green;
+				BearShadeBrush = Brushes.Firebrick;
+				ShadeOpacityPct = 20;
 			}
 			else if (State == State.Configure)
 			{
@@ -177,6 +191,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 			else if (State == State.DataLoaded)
 			{
+				// shading brushes: built ONCE and FROZEN. Unfrozen brushes are thread-affine
+				// in WPF — the render thread paints stale/dropped backgrounds, desyncing the
+				// shading from the machine state.
+				int sa = Math.Max(0, Math.Min(100, ShadeOpacityPct)) * 255 / 100;
+				bullShade = MakeShade(BullShadeBrush, sa);
+				bearShade = MakeShade(BearShadeBrush, sa);
 				try
 				{
 					tlog = new System.IO.StreamWriter(
@@ -611,10 +631,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (formBar >= 1)
 				MachineTick(Close[0], formBar);
 
-			// regime background shading (per bar): BULL green / BEAR red, NEUTRAL unshaded
-			// so any colored stretch = the machine was in a trend, nothing else
-			BackBrush = mode == "BULL" ? new SolidColorBrush(Color.FromArgb(48, 31, 122, 61))
-				: mode == "BEAR" ? new SolidColorBrush(Color.FromArgb(48, 178, 58, 46))
+			// regime background shading (per bar): BULL/BEAR tint, NEUTRAL unshaded.
+			// Frozen, pre-built brushes only — see DataLoaded.
+			BackBrush = !ShowRegimeShading ? null
+				: mode == "BULL" ? bullShade
+				: mode == "BEAR" ? bearShade
 				: null;
 
 			// live decision levels
@@ -774,6 +795,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{ get { return Serialize.BrushToString(TermLineBrush); } set { TermLineBrush = Serialize.StringToBrush(value); } }
 		public DashStyleHelper TrendLineDash { get; set; }
 		public int TrendLineWidth { get; set; }
+
+		// regime shading customization
+		public bool ShowRegimeShading { get; set; }
+		[XmlIgnore] public Brush BullShadeBrush { get; set; }
+		[Browsable(false)] public string BullShadeBrushSerializable
+		{ get { return Serialize.BrushToString(BullShadeBrush); } set { BullShadeBrush = Serialize.StringToBrush(value); } }
+		[XmlIgnore] public Brush BearShadeBrush { get; set; }
+		[Browsable(false)] public string BearShadeBrushSerializable
+		{ get { return Serialize.BrushToString(BearShadeBrush); } set { BearShadeBrush = Serialize.StringToBrush(value); } }
+		public int ShadeOpacityPct { get; set; }
 		#endregion
 	}
 }
