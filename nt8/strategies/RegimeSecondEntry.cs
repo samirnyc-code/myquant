@@ -106,12 +106,22 @@ namespace NinjaTrader.NinjaScript.Strategies
 				UseErFilter = false;
 				ErThreshold = 0.201;
 				Contracts = 1;
-				WriteSignalsCsv = false;
+				WriteSignalsCsv = true;            // validation build: export ON by default
 			}
 			else if (State == State.DataLoaded)
 			{
 				csvRows = new List<string>();
 				ResetSession();
+				// ---- guards: this build is 5-MINUTE TIME BARS ONLY ----
+				wrongSeries = BarsPeriod.BarsPeriodType != BarsPeriodType.Minute
+					|| BarsPeriod.Value != 5;
+				if (wrongSeries)
+					Log("RegimeSecondEntry: WRONG DATA SERIES (" + BarsPeriod
+						+ ") — validated on 5-MINUTE bars only. Strategy will NOT trade.",
+						LogLevel.Error);
+				if (!Bars.IsTickReplay)
+					Log("RegimeSecondEntry: TICK REPLAY IS OFF — historical signals will be "
+						+ "WRONG. Enable Tick Replay on the Data Series.", LogLevel.Error);
 			}
 			else if (State == State.Terminated)
 			{
@@ -408,9 +418,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 		}
 
 		// ───────────────────────── main handler ─────────────────────────
+		private bool wrongSeries;
+
 		protected override void OnBarUpdate()
 		{
-			if (BarsInProgress != 0) return;
+			if (BarsInProgress != 0 || wrongSeries) return;
 
 			if (Bars.IsFirstBarOfSession && IsFirstTickOfBar)
 				ResetSession();
