@@ -1,0 +1,4 @@
+source,start,end,days,fields_ok,note
+orats_spx_eod_chains,2007-06-01,2026-07-15,4789,True,"per-strike EOD; oi cols=['callOpenInterest', 'putOpenInterest']; 20 yearly files"
+gamma.db:daily_levels,2026-07-10,2026-07-24,10,True,"cols=['date', 'level_name', 'level_price', 'regime_label', 'regime_hold_rate_pct', 'positive_outcomes', 'broke_at_close_pct', 'comeback_rate_pct']"
+menthorq:SPX_mq_levels_history.csv,2021-09-27,2026-07-15,1183,True,"cols=['session_date', 'eod_date', 'spot_eod', 'spot_intraday', 'cr', 'cr_gex', 'ps', 'ps_gex', 'hvl', 'hvl_gex']"
