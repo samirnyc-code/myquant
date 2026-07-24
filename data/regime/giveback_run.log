@@ -1,0 +1,39 @@
+[800/1267] rows=2490 (222s)
+[1000/1267] rows=3156 (280s)
+[1200/1267] rows=3834 (347s)
+
+DONE 368s  trades/variant=678
+
+=== GIVE-BACK DIAGNOSTIC (EOD baseline) ===
+WT: n=573  reached>=1R MFE 256 (45%)  >=2R 112 (20%)  ROUND-TRIP (>=1R then <=0): 63 (25% of rich)
+     among >=1R winners: avg MFE 2.30R, avg captured 74% of MFE$ (rough)
+FADE: n=105  reached>=1R MFE 94 (90%)  >=2R 79 (75%)  ROUND-TRIP (>=1R then <=0): 80 (85% of rich)
+     among >=1R winners: avg MFE 6.96R, avg captured 137% of MFE$ (rough)
+
+=== EXIT VARIANTS ($/tr, PF, maxDD, train|test) ===
+
+-- book: WT --
+  eod    n= 573  net  +86,848  $/tr +151.6  PF 1.45  maxDD   -8,838  1.51|1.42  <= baseline
+  gb25   n= 573  net  +21,410  $/tr  +37.4  PF 1.12  maxDD   -9,582  1.11|1.13
+  gb50   n= 573  net  +48,960  $/tr  +85.4  PF 1.28  maxDD   -9,545  1.20|1.34
+  peakK  n= 573  net  +31,372  $/tr  +54.8  PF 1.18  maxDD  -10,070  1.18|1.18
+  t1r    n= 573  net -125,215  $/tr -218.5  PF 0.58  maxDD -126,258  0.68|0.52
+  d1     n= 573  net -1,967,620  $/tr -3433.9  PF 0.08  maxDD -2,018,874  1.51|0.02
+
+-- book: FADE --
+  eod    n= 105  net   +6,875  $/tr  +65.5  PF 1.35  maxDD   -5,062  1.28|1.42  <= baseline
+  gb25   n= 105  net   -4,012  $/tr  -38.2  PF 0.68  maxDD   -4,510  0.63|0.75
+  gb50   n= 105  net   -4,538  $/tr  -43.2  PF 0.64  maxDD   -5,052  0.55|0.76
+  peakK  n= 105  net   -4,150  $/tr  -39.5  PF 0.67  maxDD   -4,885  0.58|0.78
+  t1r    n= 105  net   -4,038  $/tr  -38.5  PF 0.68  maxDD   -4,698  0.63|0.74
+  d1     n= 105  net   -7,276  $/tr  -69.3  PF 0.69  maxDD  -13,704  1.28|0.19
+
+-- book: ALL --
+  eod    n= 678  net  +93,722  $/tr +138.2  PF 1.44  maxDD   -9,502  1.48|1.42  <= baseline
+  gb25   n= 678  net  +17,398  $/tr  +25.7  PF 1.09  maxDD  -12,272  1.07|1.11
+  gb50   n= 678  net  +44,422  $/tr  +65.5  PF 1.24  maxDD  -11,150  1.15|1.31
+  peakK  n= 678  net  +27,222  $/tr  +40.2  PF 1.15  maxDD  -11,235  1.13|1.16
+  t1r    n= 678  net -129,252  $/tr -190.6  PF 0.58  maxDD -130,078  0.68|0.52
+  d1     n= 678  net -1,974,896  $/tr -2912.8  PF 0.08  maxDD -2,030,126  1.48|0.02
+
+saved C:\Users\Admin\myquant-regime\docs\living\giveback_20260724.png
