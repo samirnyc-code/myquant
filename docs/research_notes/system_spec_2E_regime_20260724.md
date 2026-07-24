@@ -96,7 +96,8 @@ shows up live; MES first, ES on forward evidence.
 Raw 2E (PF 0.78) · every fixed target 0.5R–4R · exits on regime flips (destroys edge) ·
 first entries (fail OOS) · close-confirmed regime · sticky regime · 1m/15m/30m/60m and
 6500-volume bars (5m time is the peak) · ETH/overnight (dead; 24h machine even hurts RTH) ·
-BE-moves, scale-outs, 30-min stop-tighten (fill fantasy — retracted) · MES at $5 RT ·
+BE-moves, scale-outs, 30-min stop-tighten (fill fantasy — retracted) · MES at $5 RT on
+the EARLY 4pt-stop book only (commission-dead there; viable on the final spec, see §3) ·
 EMA-touch M2B on ES (inverts) · chase entries on gap days.
 
 *Reproduction: scripts + dated CSVs on `regime/indep`; validation battery in
