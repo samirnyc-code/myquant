@@ -92,6 +92,24 @@ namespace NinjaTrader.NinjaScript.Indicators
 				WindowEndMin = 330;
 				FlatAfterMin = 404;
 			}
+			else if (State == State.Configure)
+			{
+				// Tier-1 hover: hidden plots -> NT Data Box shows per-bar values on hover.
+				// Regime: +1 BULL / 0 NEUTRAL / -1 BEAR
+				AddPlot(new Stroke(Brushes.Transparent), PlotStyle.Line, "Regime");
+				// BarClass: 1 up / -1 down / 0 inside / 2 EQUAL-IB / 3 OB U-first / -3 OB D-first
+				AddPlot(new Stroke(Brushes.Transparent), PlotStyle.Line, "BarClass");
+				AddPlot(new Stroke(Brushes.Transparent), PlotStyle.Line, "DistMinorPiv");
+				AddPlot(new Stroke(Brushes.Transparent), PlotStyle.Line, "DistMajorPiv");
+				AddPlot(new Stroke(Brushes.Transparent), PlotStyle.Line, "StandingLvl");
+				AddPlot(new Stroke(Brushes.Transparent), PlotStyle.Line, "GapPct");
+				AddPlot(new Stroke(Brushes.Transparent), PlotStyle.Line, "SkipDay");
+				AddPlot(new Stroke(Brushes.Transparent), PlotStyle.Line, "StopTicksNow");
+				AddPlot(new Stroke(Brushes.Transparent), PlotStyle.Line, "Count2E_L");
+				AddPlot(new Stroke(Brushes.Transparent), PlotStyle.Line, "Count2E_S");
+				AddPlot(new Stroke(Brushes.Transparent), PlotStyle.Line, "BarsInTrend");
+				AddPlot(new Stroke(Brushes.Transparent), PlotStyle.Line, "DayRngVsADR");
+			}
 			else if (State == State.DataLoaded)
 			{
 				sessionIt = new Data.SessionIterator(Bars);
@@ -530,6 +548,30 @@ namespace NinjaTrader.NinjaScript.Indicators
 					Draw.Line(this, "tgS", false, 6, armedShortTrig, -4, armedShortTrig,
 						Brushes.OrangeRed, DashStyleHelper.DashDot, 2);
 			}
+
+			// Tier-1 hover plots (Data Box shows these per hovered bar)
+			Values[0][0] = mode == "BULL" ? 1 : mode == "BEAR" ? -1 : 0;
+			string bc = CurBarClass();
+			Values[1][0] = bc == "up" ? 1 : bc == "down" ? -1 : bc == "EQUAL=IB" ? 2
+				: bc.StartsWith("OB U") ? 3 : bc.StartsWith("OB D") ? -3 : 0;
+			double dMinP = double.NaN, dMajP = double.NaN;
+			for (int i = piv.Count - 1; i >= 0; i--)
+			{
+				double pp = piv[i].IsH ? HiAt(piv[i].Bar) : LoAt(piv[i].Bar);
+				if (double.IsNaN(dMinP)) dMinP = Close[0] - pp;
+				if (piv[i].Major) { dMajP = Close[0] - pp; break; }
+			}
+			Values[2][0] = double.IsNaN(dMinP) ? 0 : dMinP;
+			Values[3][0] = double.IsNaN(dMajP) ? 0 : dMajP;
+			Values[4][0] = mode != "NEUTRAL" && hasStanding ? standingPx : 0;
+			Values[5][0] = double.IsNaN(gapPct) ? 0 : gapPct;
+			Values[6][0] = skipDay ? 1 : 0;
+			Values[7][0] = adrStopTicks;
+			Values[8][0] = ecL;
+			Values[9][0] = ecS;
+			Values[10][0] = mode != "NEUTRAL" && trendStartBar >= 0 ? formBar - trendStartBar : 0;
+			Values[11][0] = !double.IsNaN(adr10) && adr10 > 0 && sessHigh > sessLow
+				? (sessHigh - sessLow) / adr10 : 0;
 
 			DrawInfoBox();
 		}
