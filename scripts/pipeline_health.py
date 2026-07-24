@@ -128,6 +128,8 @@ def check_depth() -> dict:
     for d in (-1, 0, 1):
         day = (now.date() + dt.timedelta(days=d)).isoformat()
         files += sorted(DEPTH_DIR.glob(f"ES*_depth_{day}.csv"))
+        # 2026-07: the AddOn recorder is the live collector and writes addon_test/
+        files += sorted((DEPTH_DIR / "addon_test").glob(f"ES*_depth_{day}.csv"))
     if not files:
         return _chk("L2 depth", BAD if mkt == "open" else IDLE,
                     "no file for today" if mkt == "open" else f"market {mkt}")
