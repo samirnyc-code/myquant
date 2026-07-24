@@ -530,6 +530,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 					// f2EL fade: a counter-trend 2EL just triggered in a BEAR — if it
 					// fails (tick 1t below its signal bar within FadeKBars), go short.
 					double failPx = lo[sbIdx] - TICK;
+					CancelWorkingEntries(true, false);   // clear working long entries first
 					sigSeq++;
 					fadeOrderName = "F2E" + sigSeq;
 					fadeExpiryBar = formBar + FadeKBars;
@@ -566,8 +567,24 @@ namespace NinjaTrader.NinjaScript.Strategies
 			return !double.IsNaN(er) && er >= ErThreshold;
 		}
 
+		private void CancelWorkingEntries(bool longs, bool shorts)
+		{
+			var toCancel = new List<Order>();
+			foreach (Order o in Orders)
+				if (o.OrderState == OrderState.Working
+					&& (o.Name.StartsWith("2E") || o.Name.StartsWith("F2E"))
+					&& ((longs && o.OrderAction == OrderAction.Buy)
+						|| (shorts && (o.OrderAction == OrderAction.Sell
+							|| o.OrderAction == OrderAction.SellShort))))
+					toCancel.Add(o);
+			foreach (Order o in toCancel) CancelOrder(o);
+		}
+
 		private void SubmitRetest(bool isLong, double trig)
 		{
+			// NT managed mode refuses opposing working entries ("Internal Order Handling
+			// Rules") — clear the other side first or this submission is silently ignored.
+			CancelWorkingEntries(!isLong, isLong);
 			double lim = isLong ? trig - RetestTicks * TICK : trig + RetestTicks * TICK;
 			sigSeq++;
 			string sig = "2E" + (isLong ? "L" : "S") + sigSeq;
