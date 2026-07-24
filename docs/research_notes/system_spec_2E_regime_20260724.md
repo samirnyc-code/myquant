@@ -30,16 +30,24 @@ net of $5 RT + 1 tick exit slip, 1 ES. Every claim traces to a committed CSV.
 | Ex-2022 | 540 | +$52.1k | +97 | 1.30 |
 | 2-tick slip | 630 | +$74.8k | +119 | 1.35 |
 
-Long PF 1.44 / Short PF 1.35 — sides alternate leadership by year (not a directional bet).
-Green all 6 calendar years (1.10–1.79). All ADR-vol quintiles green (1.14–1.92).
+Long PF 1.44 / Short PF 1.35 — neither side is dead lifetime; longs are the steadier
+engine (never below 1.19 in any year); shorts carried the bear years and gave back in
+2023/2026. Green all 6 calendar years (1.10–1.79). All ADR-vol quintiles green.
 Win 45% · avg win ≈ +$1,010 · avg loss ≈ −$700 · ~10.4 trades/month.
 
 **Validation that passed:** out-of-sample split; parameter plateaus on every free
-parameter (stop mult, retest depth, gap threshold, window); gap filter transfers to an
-untuned config (PF 1.12→1.27 both halves); removed gap-day trades are broadly bad
-(median −$517), not tail-driven; causality audit (fully causal, live-portable).
-**Known concentration:** top 10 trades ≈ 42% of net (intrinsic to no-target EOD books) —
-the system must be traded so it cannot miss runners (automated, no discretionary exits).
+parameter; gap filter transfers to an untuned config (PF 1.12→1.27 both halves);
+removed gap-day trades broadly bad (median −$517), not tail-driven; strict
+trade-through fills (conservative twice over: excludes touch-and-reverse, the cleanest
+fills); causality audit (fully causal, live-portable).
+
+**THE HEADLINE RISK — tail concentration.** Top 10 trades ≈ 42% of net; remove the top
+20 and the remaining 610 trades collectively LOSE (PF 0.97). The effective sample is
+~20 observations, not 630 — confidence intervals are far wider than n suggests, and
+every slice above is a distribution whose mean is set by those twenty trades.
+Capture-rate sensitivity (miss k of the top 10): 0→PF 1.39 · 2→1.30 · 5→1.20 · 10→1.11.
+It degrades gracefully, but **automation is not preferred — it is the strategy**:
+any process that can miss runners (discretionary exits, missed sessions) eats the book.
 
 ## 3. Forward-looking expectations (plan, not hope)
 
@@ -52,7 +60,7 @@ the system must be traded so it cannot miss runners (automated, no discretionary
 | Max drawdown to size for | **−$21k per ES** (MC worst-5%), realized-typical −$13k | 5,000-path reshuffle |
 | Underwater stretches | expect 6–18 months without new highs | 2023-like years pay ≈ flat |
 | Account per 1 ES | **$30–35k** | worst-5% DD × 1.5 + margin |
-| MES at $5 RT | **not viable** (commission-dead) | costs table |
+| MES at $5 RT | **+$8.6/tr · ≈ +$1,074/yr · PF 1.24 per contract** — viable as a live tail-verification vehicle (MC worst-5% DD ≈ −$2.1k/MES); still below prop-account carry cost | committed-spec costs |
 | Best / worst weather | trending years (2022-like: PF ~1.8) / chop+high-vol (PF ~1.1) | yearly + ADR buckets |
 
 ## 4. Live watch flags (review monthly)
@@ -62,8 +70,15 @@ the system must be traded so it cannot miss runners (automated, no discretionary
    book; do not trade it.
 3. **Gap-day side book** (RevFT:BO both dirs, MicroChannel CC4 longs — both halves green,
    ~+$60k/5yr candidate) — forward-validate before capital.
-4. Kill criteria: 12-month PF < 1.0, or DD beyond −$25k (MC worst-1%), or either side
+4. Shorts-in-up-years (2023 S 0.51, 2026 S 0.83 while longs ≥1.19): logged as the next
+   conditioning candidate — six noisy cells, NOT a rule yet.
+5. Kill criteria: 12-month PF < 1.0, or DD beyond −$25k (MC worst-1%), or either side
    (L/S) persistently < 1.0 for 2+ quarters.
+
+**Verdict (reframed after review):** not "PF 1.39, validated" — a **tail-harvest book
+with ~20 effective observations, conservative fills, balanced sides, and a −$21k
+drawdown budget per ES.** Trade it small and automated to find out whether the tail
+shows up live; MES first, ES on forward evidence.
 
 ## 5. What was tried and failed (so it isn't re-litigated)
 Raw 2E (PF 0.78) · every fixed target 0.5R–4R · exits on regime flips (destroys edge) ·
