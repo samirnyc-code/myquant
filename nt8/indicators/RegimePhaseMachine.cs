@@ -654,6 +654,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 			int nTr = wins + losses;
 			bool inWin = Time[0] >= winStartT && Time[0] < winEndT;
 			var sb = new StringBuilder();
+			if (!Bars.IsTickReplay)
+				sb.Append("!! TICK REPLAY OFF - HISTORICAL STATES UNRELIABLE !!\n");
 			sb.AppendFormat("{0:ddd}  {0:HH:mm:ss}   b#{1}\n", Time[0], formBar + 1);
 			sb.AppendFormat("bar: {0}\n", CurBarClass());
 			sb.AppendFormat("REGIME: {0}{1}\n", mode,
