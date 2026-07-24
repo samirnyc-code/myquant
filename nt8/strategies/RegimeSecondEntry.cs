@@ -112,13 +112,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 			{
 				csvRows = new List<string>();
 				ResetSession();
-				// ---- guards: this build is 5-MINUTE TIME BARS ONLY ----
-				wrongSeries = BarsPeriod.BarsPeriodType != BarsPeriodType.Minute
-					|| BarsPeriod.Value != 5;
-				if (wrongSeries)
-					Log("RegimeSecondEntry: WRONG DATA SERIES (" + BarsPeriod
-						+ ") — validated on 5-MINUTE bars only. Strategy will NOT trade.",
-						LogLevel.Error);
+				sessionIt = new Data.SessionIterator(Bars);
+				if (BarsPeriod.BarsPeriodType != BarsPeriodType.Minute || BarsPeriod.Value != 5)
+					Log("RegimeSecondEntry: non-5min series (" + BarsPeriod + ") — all "
+						+ "validated numbers are 5-MINUTE; this run is an experiment.",
+						LogLevel.Warning);
 				if (!Bars.IsTickReplay)
 					Log("RegimeSecondEntry: TICK REPLAY IS OFF — historical signals will be "
 						+ "WRONG. Enable Tick Replay on the Data Series.", LogLevel.Error);
@@ -418,14 +416,21 @@ namespace NinjaTrader.NinjaScript.Strategies
 		}
 
 		// ───────────────────────── main handler ─────────────────────────
-		private bool wrongSeries;
+		private Data.SessionIterator sessionIt;
+		private DateTime winStartT = DateTime.MinValue, winEndT = DateTime.MaxValue;
 
 		protected override void OnBarUpdate()
 		{
-			if (BarsInProgress != 0 || wrongSeries) return;
+			if (BarsInProgress != 0) return;
 
 			if (Bars.IsFirstBarOfSession && IsFirstTickOfBar)
+			{
 				ResetSession();
+				// time-based entry window — works on ANY bar type (time or volume)
+				sessionIt.GetNextSession(Time[0], true);
+				winStartT = sessionIt.ActualSessionBegin.AddMinutes(WindowStartMin);
+				winEndT = sessionIt.ActualSessionBegin.AddMinutes(WindowEndMin);
+			}
 
 			if (IsFirstTickOfBar)
 			{
@@ -449,9 +454,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 			TrackFirstBreak(px);
 			MachineTick(px, formBar);
 
-			// window (in 5-min bars from session open)
-			int winStartBar = WindowStartMin / 5, winEndBar = WindowEndMin / 5;
-			bool inWindow = formBar >= winStartBar && formBar < winEndBar;
+			// window: fill time inside [sessionOpen+WindowStartMin, sessionOpen+WindowEndMin)
+			bool inWindow = Time[0] >= winStartT && Time[0] < winEndT;
 			if (!inWindow)
 			{
 				// cancel working entry limits outside the fill window
