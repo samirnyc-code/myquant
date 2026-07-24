@@ -1,0 +1,25 @@
+[150/1267] statediff 69/144 (56s)
+[300/1267] statediff 120/290 (131s)
+[450/1267] statediff 193/437 (210s)
+[600/1267] statediff 268/582 (292s)
+[900/1267] statediff 430/874 (444s)
+[1050/1267] statediff 500/1020 (523s)
+[1200/1267] statediff 563/1167 (614s)
+
+DONE 651s  days=1231  tick-state differs on 590 days (47.9%)
+
+engine  n    net       $/tr   PF   train      | test        | L_PF  S_PF
+OLD    573   +86,848 +151.6  1.45   +41248/1.51 |   +45600/1.42 | 1.44 1.46
+NEW    661   +95,858 +145.0  1.44   +44532/1.48 |   +51325/1.41 | 1.41 1.47
+
+PF by year:
+          PF          n     
+engine   NEW   OLD  NEW  OLD
+yr                          
+2021    1.21  1.30   57   53
+2022    1.65  1.83   95   84
+2023    1.39  1.23  129  111
+2024    1.67  1.55  166  139
+2025    1.28  1.38  141  125
+2026    1.21  1.25   73   61
+saved C:\Users\Admin\myquant-regime\docs\living\engine_ab_20260724.png
