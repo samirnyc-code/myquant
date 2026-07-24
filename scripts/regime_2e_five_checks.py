@@ -52,9 +52,9 @@ for i in range(5000):
     p = rng.permutation(vals)
     eq = np.cumsum(p)
     dds[i] = (eq - np.maximum.accumulate(eq)).min()
-q = np.percentile(dds, [50, 75, 95, 99])
+q = np.percentile(dds, [50, 25, 5, 1])   # for negative DDs the BAD tail is the LOW pctile
 print(f"realized path: -8,308 (test) / {float((s3.net.cumsum()-s3.net.cumsum().cummax()).min()):,.0f} (lifetime)")
-print(f"reshuffled: median {q[0]:,.0f}  75th {q[1]:,.0f}  95th {q[2]:,.0f}  99th {q[3]:,.0f}")
+print(f"reshuffled: median {q[0]:,.0f}  worst-25% {q[1]:,.0f}  worst-5% {q[2]:,.0f}  worst-1% {q[3]:,.0f}")
 
 print("\n== 5) ADR-QUINTILE BUCKETS ==")
 b = pd.read_parquet(DATA / "bars" / "_continuous.parquet")
@@ -86,7 +86,7 @@ ax.axhline(0, color="#c3c2b7", lw=1); ax.legend(frameon=False)
 ax.set_title("1) Long vs Short equity", fontweight="bold")
 ax = axes[0][1]
 ax.hist(dds, bins=60, color="#9ec5f4", edgecolor="#2a78d6")
-for v, lab in ((q[2], "95th"), (q[3], "99th")):
+for v, lab in ((q[2], "worst-5%"), (q[3], "worst-1%")):
     ax.axvline(v, ls="--", color="#b23a2e"); ax.text(v, ax.get_ylim()[1]*0.9, f" {lab}\n {v:,.0f}", fontsize=9)
 ax.axvline(-8308, ls="-", color="#33454d"); ax.text(-8308, ax.get_ylim()[1]*0.6, " realized\n test", fontsize=9)
 ax.set_title("4) Monte-Carlo maxDD distribution (5,000 reshuffles)", fontweight="bold")
