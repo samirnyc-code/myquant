@@ -41,13 +41,27 @@ removed gap-day trades broadly bad (median −$517), not tail-driven; strict
 trade-through fills (conservative twice over: excludes touch-and-reverse, the cleanest
 fills); causality audit (fully causal, live-portable).
 
-**THE HEADLINE RISK — tail concentration.** Top 10 trades ≈ 42% of net; remove the top
-20 and the remaining 610 trades collectively LOSE (PF 0.97). The effective sample is
-~20 observations, not 630 — confidence intervals are far wider than n suggests, and
-every slice above is a distribution whose mean is set by those twenty trades.
-Capture-rate sensitivity (miss k of the top 10): 0→PF 1.39 · 2→1.30 · 5→1.20 · 10→1.11.
-It degrades gracefully, but **automation is not preferred — it is the strategy**:
-any process that can miss runners (discretionary exits, missed sessions) eats the book.
+**THE HEADLINE RISK — tail concentration. If you read one table, read this one.**
+The concentration is FRACTAL: the top 20 trades are all the profit (remove them: the
+remaining 610 collectively lose, PF 0.97); the top 10 are 72% of that; **the top 2
+(~$10k apiece) are 24% of lifetime net by themselves.** Effective sample ≈ 20
+observations, not 630 — every other slice in this document measures a distribution
+whose mean is set by those twenty trades.
+
+| miss the largest k | PF | Δ net | per missed trade |
+|---|---|---|---|
+| 0 | 1.39 | — | — |
+| 2 | 1.30 | −$19,902 | $9,951 |
+| 5 | 1.20 | −$39,912 | next 3: $6,670 |
+| 10 | 1.11 | −$59,287 | next 5: $3,875 |
+| 20 | 0.97 | −$88,624 | next 10: $2,934 |
+
+**Which failure mode this table measures:** the worst-case ordering — losing the
+LARGEST winners first. That is the correct model for the behavioral risk (the trades
+you're most tempted to clip early are exactly the ones that have already run furthest).
+Random operational misses (outage, sick day) cost ~$131 per missed trade in
+expectation and only rarely hit a monster — far milder. The behavioral mode is the one
+that kills the book, which is why **automation is not preferred — it is the strategy.**
 
 ## 3. Forward-looking expectations (plan, not hope)
 
@@ -60,7 +74,7 @@ any process that can miss runners (discretionary exits, missed sessions) eats th
 | Max drawdown to size for | **−$21k per ES** (MC worst-5%), realized-typical −$13k | 5,000-path reshuffle |
 | Underwater stretches | expect 6–18 months without new highs | 2023-like years pay ≈ flat |
 | Account per 1 ES | **$30–35k** | worst-5% DD × 1.5 + margin |
-| MES at $5 RT | **+$8.6/tr · ≈ +$1,074/yr · PF 1.24 per contract** — viable as a live tail-verification vehicle (MC worst-5% DD ≈ −$2.1k/MES); still below prop-account carry cost | committed-spec costs |
+| MES at $5 RT | **+$8.6/tr · ≈ +$1,074/yr · PF 1.24 per contract** (MC worst-5% DD ≈ −$2.1k). **What the MES phase verifies — and is sold as:** fill fidelity vs the strict trade-through model, the ~610-trade churn body, and operator/automation compliance (holding to EOD underwater). **It CANNOT verify the tail**: ~1.8 tail events/yr means 40–100 trades most likely contain 0–2 — tail confirmation is a 12–18-month proposition minimum. A quiet MES stretch is NOT failure; one lucky monster is NOT confirmation | committed-spec costs |
 | Best / worst weather | trending years (2022-like: PF ~1.8) / chop+high-vol (PF ~1.1) | yearly + ADR buckets |
 
 ## 4. Live watch flags (review monthly)
