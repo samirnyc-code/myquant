@@ -302,8 +302,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 			runB = b; runPx = px; hasRun = true;
 			mode = up ? "BULL" : "BEAR"; cand = null; candHasRef = false;
 			trendStartBar = b;
-			Draw.VerticalLine(this, "st" + CurrentBar, 0, up ? Brushes.Green : Brushes.Firebrick,
-				DashStyleHelper.Dash, 2);
+			Draw.VerticalLine(this, "st" + CurrentBar, 0, up ? Brushes.DarkSeaGreen : Brushes.RosyBrown,
+				DashStyleHelper.Dot, 1);
 		}
 
 		private void Terminate(int b)
@@ -314,7 +314,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			structHl = structLh = null;
 			prevH = b; prevL = b;
 			legD = 0; hasLeg = false; trendStartBar = -1;
-			Draw.VerticalLine(this, "tm" + CurrentBar, 0, Brushes.Teal, DashStyleHelper.Dash, 2);
+			Draw.VerticalLine(this, "tm" + CurrentBar, 0, Brushes.CadetBlue, DashStyleHelper.Dot, 1);
 		}
 
 		private void MachineTick(double px, int b)
