@@ -134,14 +134,20 @@ def main():
                 cut = np.searchsorted(segbars, fb2 + 6, "left")
                 if jsv <= cut:
                     ex = stop0
+                elif cut >= len(seg):
+                    ex = eod_px
                 else:
                     ext = seg[:cut].min() if short else seg[:cut].max()
                     tst = ext + abr10[fb2] if short else ext - abr10[fb2]
                     # tightened stop only if tighter than original
                     tst = min(tst, stop0) if short else max(tst, stop0)
-                    seg2 = seg[cut:]
-                    js2 = first_hit(seg2, tst, short, True)
-                    ex = tst if js2 >= 0 else eod_px
+                    act = seg[cut]
+                    if (short and act >= tst) or (not short and act <= tst):
+                        ex = act                      # stop born underwater -> market exit
+                    else:
+                        seg2 = seg[cut:]
+                        js2 = first_hit(seg2, tst, short, True)
+                        ex = tst if js2 >= 0 else eod_px
                 pnl = ((fill - ex) if short else (ex - fill)) * PT - COMM - SLIP
                 rows.append((dstr, dr, "tight6", round(pnl, 1)))
                 # scale-out half at 2x stop distance
