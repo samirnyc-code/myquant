@@ -122,6 +122,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				Calculate = Calculate.OnPriceChange;
 				IsOverlay = true;
 				DrawOnPricePanel = true;
+				MaximumBarsLookBack = MaximumBarsLookBack.Infinite;   // keep plot values for ALL bars (Data Box on any past session)
 				AccountName = "Sim101";
 				HvlCsvPath = @"C:\Users\Admin\myquant\data\menthorq\ES1!_mq_levels_history.csv";
 				ShowHvlLine = true;
