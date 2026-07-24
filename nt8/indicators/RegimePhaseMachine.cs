@@ -134,6 +134,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				Calculate = Calculate.OnPriceChange;
 				IsOverlay = true;
 				DrawOnPricePanel = true;
+				IsAutoScale = false;   // data plots live near 0 — must not stretch the price scale
 				MaximumBarsLookBack = MaximumBarsLookBack.Infinite;   // keep plot values for ALL bars (Data Box on any past session)
 				AccountName = "Sim101";
 				HvlCsvPath = @"C:\Users\Admin\myquant\data\menthorq\ES1!_mq_levels_history.csv";
@@ -157,22 +158,22 @@ namespace NinjaTrader.NinjaScript.Indicators
 			{
 				// Tier-1 hover: hidden plots -> NT Data Box shows per-bar values on hover.
 				// Regime: +1 BULL / 0 NEUTRAL / -1 BEAR
-				AddPlot(new Stroke(Brushes.Transparent), PlotStyle.Line, "Regime");
+				AddPlot(new Stroke(Brushes.DimGray, 1), PlotStyle.Line, "Regime");
 				// BarClass: 1 up / -1 down / 0 inside / 2 EQUAL-IB / 3 OB U-first / -3 OB D-first
-				AddPlot(new Stroke(Brushes.Transparent), PlotStyle.Line, "BarClass");
-				AddPlot(new Stroke(Brushes.Transparent), PlotStyle.Line, "DistMinorPiv");
-				AddPlot(new Stroke(Brushes.Transparent), PlotStyle.Line, "DistMajorPiv");
-				AddPlot(new Stroke(Brushes.Transparent), PlotStyle.Line, "StandingLvl");
-				AddPlot(new Stroke(Brushes.Transparent), PlotStyle.Line, "GapPct");
-				AddPlot(new Stroke(Brushes.Transparent), PlotStyle.Line, "SkipDay");
-				AddPlot(new Stroke(Brushes.Transparent), PlotStyle.Line, "StopTicksNow");
-				AddPlot(new Stroke(Brushes.Transparent), PlotStyle.Line, "Count2E_L");
-				AddPlot(new Stroke(Brushes.Transparent), PlotStyle.Line, "Count2E_S");
-				AddPlot(new Stroke(Brushes.Transparent), PlotStyle.Line, "BarsInTrend");
-				AddPlot(new Stroke(Brushes.Transparent), PlotStyle.Line, "DayRngVsADR");
+				AddPlot(new Stroke(Brushes.DimGray, 1), PlotStyle.Line, "BarClass");
+				AddPlot(new Stroke(Brushes.DimGray, 1), PlotStyle.Line, "DistMinorPiv");
+				AddPlot(new Stroke(Brushes.DimGray, 1), PlotStyle.Line, "DistMajorPiv");
+				AddPlot(new Stroke(Brushes.DimGray, 1), PlotStyle.Line, "DistToStanding");
+				AddPlot(new Stroke(Brushes.DimGray, 1), PlotStyle.Line, "GapPct");
+				AddPlot(new Stroke(Brushes.DimGray, 1), PlotStyle.Line, "SkipDay");
+				AddPlot(new Stroke(Brushes.DimGray, 1), PlotStyle.Line, "StopTicksNow");
+				AddPlot(new Stroke(Brushes.DimGray, 1), PlotStyle.Line, "Count2E_L");
+				AddPlot(new Stroke(Brushes.DimGray, 1), PlotStyle.Line, "Count2E_S");
+				AddPlot(new Stroke(Brushes.DimGray, 1), PlotStyle.Line, "BarsInTrend");
+				AddPlot(new Stroke(Brushes.DimGray, 1), PlotStyle.Line, "DayRngVsADR");
 				// GammaRegime: +1 above HVL (positive) / -1 below / 0 unknown
-				AddPlot(new Stroke(Brushes.Transparent), PlotStyle.Line, "GammaRegime");
-				AddPlot(new Stroke(Brushes.Transparent), PlotStyle.Line, "DistToHVL");
+				AddPlot(new Stroke(Brushes.DimGray, 1), PlotStyle.Line, "GammaRegime");
+				AddPlot(new Stroke(Brushes.DimGray, 1), PlotStyle.Line, "DistToHVL");
 			}
 			else if (State == State.DataLoaded)
 			{
@@ -661,7 +662,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 			Values[2][0] = double.IsNaN(dMinP) ? 0 : dMinP;
 			Values[3][0] = double.IsNaN(dMajP) ? 0 : dMajP;
-			Values[4][0] = mode != "NEUTRAL" && hasStanding ? standingPx : 0;
+			Values[4][0] = mode != "NEUTRAL" && hasStanding ? Close[0] - standingPx : 0;
 			Values[5][0] = double.IsNaN(gapPct) ? 0 : gapPct;
 			Values[6][0] = skipDay ? 1 : 0;
 			Values[7][0] = adrStopTicks;
