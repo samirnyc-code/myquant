@@ -157,11 +157,18 @@ namespace NinjaTrader.NinjaScript.Strategies
 		}
 
 		// ───────────────────────── phase machine ─────────────────────────
+		// hi/lo hold COMPLETED bars only; the machine may reference the forming bar
+		// (leg extreme / termination on the current bar) -> running extremes.
+		private double formHigh, formLow;
+
+		private double HiAt(int b2) { return b2 < hi.Count ? hi[b2] : formHigh; }
+		private double LoAt(int b2) { return b2 < lo.Count ? lo[b2] : formLow; }
+
 		private void AddPivot(int bar, bool isH)
 		{
 			string t;
-			if (isH) { t = hi[bar] > hi[prevH] ? "hh" : (hi[bar] < hi[prevH] ? "lh" : "dh"); prevH = bar; }
-			else { t = lo[bar] > lo[prevL] ? "hl" : (lo[bar] < lo[prevL] ? "ll" : "dl"); prevL = bar; }
+			if (isH) { t = HiAt(bar) > HiAt(prevH) ? "hh" : (HiAt(bar) < HiAt(prevH) ? "lh" : "dh"); prevH = bar; }
+			else { t = LoAt(bar) > LoAt(prevL) ? "hl" : (LoAt(bar) < LoAt(prevL) ? "ll" : "dl"); prevL = bar; }
 			string disp = firstPivotDone ? t : (isH ? "H" : "L");
 			firstPivotDone = true;
 			Piv p = new Piv { Bar = bar, IsH = isH, Tag = t, Disp = disp };
@@ -171,23 +178,23 @@ namespace NinjaTrader.NinjaScript.Strategies
 				if (isH)
 				{
 					lsh = p;
-					if (hiP == null || hi[bar] > hi[hiP.Bar]) hiP = p;
+					if (hiP == null || HiAt(bar) > HiAt(hiP.Bar)) hiP = p;
 					if (t == "lh" || disp.Length == 1) { hasLh = true; structLh = p; }
 				}
 				else
 				{
 					lsl = p;
-					if (loP == null || lo[bar] < lo[loP.Bar]) loP = p;
+					if (loP == null || LoAt(bar) < LoAt(loP.Bar)) loP = p;
 					if (t == "hl" || disp.Length == 1) { hasHl = true; structHl = p; }
 				}
 			}
 			else if (mode == "BULL" && !isH)
 			{
-				if (cand == null || lo[bar] < lo[cand.Bar]) { cand = p; candRefPx = runPx; candHasRef = hasRun; }
+				if (cand == null || LoAt(bar) < LoAt(cand.Bar)) { cand = p; candRefPx = runPx; candHasRef = hasRun; }
 			}
 			else if (mode == "BEAR" && isH)
 			{
-				if (cand == null || hi[bar] > hi[cand.Bar]) { cand = p; candRefPx = runPx; candHasRef = hasRun; }
+				if (cand == null || HiAt(bar) > HiAt(cand.Bar)) { cand = p; candRefPx = runPx; candHasRef = hasRun; }
 			}
 		}
 
@@ -198,7 +205,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			if (partner != null)
 			{
 				standingBar = partner.Bar;
-				standingPx = up ? lo[partner.Bar] : hi[partner.Bar];
+				standingPx = up ? LoAt(partner.Bar) : HiAt(partner.Bar);
 				hasStanding = true;
 			}
 			runB = b; runPx = px; hasRun = true;
@@ -234,8 +241,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 			}
 			if (mode == "NEUTRAL")
 			{
-				if (lsh != null && px > hi[lsh.Bar] && hasHl) StartTrend(true, b, px);
-				else if (lsl != null && px < lo[lsl.Bar] && hasLh) StartTrend(false, b, px);
+				if (lsh != null && px > HiAt(lsh.Bar) && hasHl) StartTrend(true, b, px);
+				else if (lsl != null && px < LoAt(lsl.Bar) && hasLh) StartTrend(false, b, px);
 			}
 			else
 			{
@@ -245,7 +252,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 					if (hit)
 					{
 						standingBar = cand.Bar;
-						standingPx = mode == "BULL" ? lo[cand.Bar] : hi[cand.Bar];
+						standingPx = mode == "BULL" ? LoAt(cand.Bar) : HiAt(cand.Bar);
 						hasStanding = true; cand = null; candHasRef = false;
 					}
 				}
@@ -447,7 +454,10 @@ namespace NinjaTrader.NinjaScript.Strategies
 				fUpDone = fDnDone = false;
 				obFirstRecorded = false; obFirstWasUp = false;
 				sessionBarCount = formBar;
+				formHigh = Close[0]; formLow = Close[0];
 			}
+			formHigh = Math.Max(formHigh, Close[0]);
+			formLow = Math.Min(formLow, Close[0]);
 			if (formBar < 1) { TrackFirstBreak(Close[0]); return; }
 
 			double px = Close[0];
