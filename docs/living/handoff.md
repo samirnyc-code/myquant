@@ -6,6 +6,40 @@ pipeline + S77 security hardening; merged S76 Mac swing-levels work)
 
 ---
 
+## S85b (2026-07-25) — SLIPPAGE-MODE reconciliation: raw MC is slippage-FRAGILE, 2E is slippage-IMMUNE (branch `s75-live-dashboard`)
+
+**Trigger:** user recalled the ES-app MC numbers being "much worse" than what I quoted, and
+asked what execution mode we'd been on ("was it on touch or some crazy shit"). **Answer: no —
+`entry_model="market"` (fill at the next bar's first tick, fixed 1t entry+exit slip, ZERO
+latency), the SAME for all regime books (MC, 2E, RevFT). NOT on-touch (that's `entry_model="stop"`,
+never used).** The only optimism is latency=0 → between the app's Optimistic and Realistic presets.
+
+**Reproduced the app's 4 ESA presets exactly** (`simulation_engine.EXECUTION_PRESETS`, fed as
+`bar_analysis` does: calc/wire delay + randomized entry/exit slip ranges + seed 42). Scripts:
+`mc_pnl_reconcile.py`, `mc_pnl_exec_modes.py`, `regime_books_slippage_sensitivity.py`
+(+ `data/regime/regime_books_slippage_sensitivity_20260725.csv`). Exp $/tr in every metric.
+
+**FINDINGS:**
+- **The "much worse" = the app-default `Realistic` preset, not my fixed-1t/no-latency quote.**
+  Raw MC (1R exit, only slippage varying): Optimistic +$49/tr PF1.15 → **Realistic +$31/tr PF1.09**
+  → Conservative +$19/tr PF1.06 → **Brutal +$1.7/tr PF1.00 (ExpR neg, 2/6 green)**. Raw MC is
+  acutely **slippage-fragile** (breakeven +2.5 extra ticks). **Stack v2 stays +$59–100/tr PF≥1.16
+  across ALL modes** → the S53 filter's real job is slippage-robustness.
+- **2E is slippage-IMMUNE.** WT combined base +$145/tr PF1.44, **breakeven +11.6 extra ticks**;
+  even Brutal +$101/tr PF1.29. Wide 0.30×ADR stop + hold-to-EOD → big absolute $/tr edge that
+  absorbs 10+ ticks. Polar opposite of tight-stop MC. (First-order cost model, validated: it
+  reproduces the MC real-preset spread, −$47.6/tr ≈ +3.8t between Optimistic and Brutal.)
+- **Unifying rule:** slippage sensitivity ≈ absolute $/tr edge ÷ $12.50/tick. Wide-stop/runner
+  designs are robust; tight-stop small-edge scalping is fragile. Corollary: the S85 "2E exit is
+  neutral for MC" was measured at generous slippage — **re-test the MC×2E study at Brutal** (open item).
+- **RevFT EXCLUDED** — concurrent chat's LIVE workstream (its output files rewritten minutes ago:
+  `revft_fade_ema_20260725` 10:52, `revft_2e_sequence` 10:36); intermediate lists inconsistent
+  (the 107-row `revft_regime_2e` CSV scores WT NEGATIVE vs their committed "+$123–145k"). No stable
+  RevFT trade list on our side — rerun the sweep once their book is frozen. **Do NOT interfere with
+  their worktree/jobs** (`regime_2e_nq_recalib.py`, `revft_fade_ema_frozen.py` running).
+
+---
+
 ## S85 (2026-07-25) — MC setups × 2E regime engine: NEGATIVE — the two books don't cross-pollinate (branch `s75-live-dashboard`)
 
 **Premise (user):** take the latest fast-flip tick-driven regime engine + the second-entry
