@@ -27,7 +27,8 @@ from regime_engine_ab import pt_new                      # noqa: E402
 TICK = 0.25; PT = 50.0; COMM = 5.0; SLIP = 12.5
 GOOD = {"09", "10", "11", "12", "13"}
 FADE_STOP_T = 16                 # 4pt tight fade stop
-K = 10; EMA_N = 20; TRAIN_END = "2023-12-31"
+KS = [5, 8, 10, 15, 20]          # lookback sweep — is K=10 arbitrary?
+EMA_N = 20; TRAIN_END = "2023-12-31"
 BARS = MAIN / "data" / "bars" / "_continuous.parquet"
 OUT = MAIN / "data" / "regime" / "revft_fade_ema_frozen_20260725.parquet"
 RNG = np.random.default_rng(20260725)
@@ -45,7 +46,8 @@ def gg(v):
     return f"n={len(v):4d} ${v.sum():>8,.0f} ${v.mean():6.1f}/tr PF={pf(v):4.2f} win={100*(v>0).mean():4.1f}%"
 
 
-def cross_str(ema, high, low, close, fb):
+def cross_str(ema, high, low, close, fb, K):
+    """strength of the most recent DOWNSIDE EMA cross in [fb-K, fb), in ATR14 units."""
     a = max(1, fb - K); h, l, c, e = high[a:fb], low[a:fb], close[a:fb], ema[a:fb]
     if len(c) < 3:
         return 0.0
@@ -106,11 +108,26 @@ def main():
             fill = fail - TICK; stop = fill + FADE_STOP_T * TICK; seg = tP[jx:]
             js = np.nonzero(seg >= stop)[0]; ex = stop if len(js) else seg[-1]
             net = round((fill - ex) * PT - COMM - SLIP, 1)
-            rows.append(dict(Date=dstr, year=int(dstr[:4]), net=net,
-                             cross_str=cross_str(ema, H, Lo, C, fb2)))
+            rec = dict(Date=dstr, year=int(dstr[:4]), net=net, fill_bar=fb2)
+            for k in KS:
+                rec[f"cs{k}"] = cross_str(ema, H, Lo, C, fb2, k)
+            rows.append(rec)
     t = pd.DataFrame(rows); t.to_parquet(OUT, index=False)
     print(f"FROZEN f2EL fade regenerated: n={len(t)}  base {gg(t.net)}  (target ~n141 PF1.28 wf_dataset)\n")
     tr = t.Date <= TRAIN_END
+
+    print("="*90); print("LOOKBACK-K SWEEP — is K=10 arbitrary? (strong = cs>=2.0 ATR, wide/EOD fade)"); print("="*90)
+    print(f"  {'K':>3s} {'strong n':>9s} {'strong $/tr':>12s} {'strong PF':>10s} {'perm-p':>7s} {'rest $/tr':>10s} {'rest PF':>8s} {'hold PF':>8s}")
+    for k in KS:
+        col = f"cs{k}"; strong = t[col] >= 2.0; rest = ~strong
+        if strong.sum() < 10:
+            continue
+        p = perm_p(t.net.values, strong.values)
+        hpf = pf(t[strong & ~tr].net) if (strong & ~tr).sum() else float('nan')
+        print(f"  {k:>3d} {strong.sum():>9d} {t[strong].net.mean():>12.1f} {pf(t[strong].net):>10.2f} "
+              f"{p:>7.3f} {t[rest].net.mean():>10.1f} {pf(t[rest].net):>8.2f} {hpf:>8.2f}")
+    # keep the primary K=10 column as `cross_str` for downstream compatibility
+    t["cross_str"] = t["cs10"]
 
     print("="*90); print("TERCILE of cross_str (strong move through EMA)"); print("="*90)
     q = t.cross_str.quantile([1/3, 2/3]).values

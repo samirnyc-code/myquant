@@ -64,21 +64,49 @@ Tercile: weak (n=46) +$25/tr PF 1.12 · mid (n=30) −$59 PF 0.69 · STRONG (n=3
 | the REST (weak/mid) | 54 | **+168** | +3 | 1.02 |
 | SIZER 2×strong + 1×rest | — | **+12,712** | — | — |
 
-**Decision: SIZER, not FILTER.** The non-strong fades net +$168 (breakeven, PF 1.02) — **not dead**.
-Filtering to strong-only keeps ~the same total $ on half the trades (concentrates, doesn't grow);
-sizing up the strong-cross fades ~doubles total $ ($6.4k→$12.7k) while the rest don't lose. So do NOT
-trade only strong fades — keep all, lean bigger on strong.
+**The real framing is conviction vs sample size, not FILTER vs SIZER.** Both FILTER and SIZER put the
+risk on the strong-cross fades; they differ only in what you do with the weak ones (drop vs downweight).
+The numbers make the case for concentrating attractive: FILTER strong-only keeps **97% of the profit
+($6,272 of $6,440) on half the trades at PF 1.60 vs 1.31** — on a risk-per-slot basis (the fade shares
+prop margin/DD with 2EL/2ES) that is a *better* use of a risk slot, not a worse one. My earlier "don't
+filter, you'd lose the breakeven dollars" was wrong: you'd barely lose any dollars.
 
-**But weaker evidence than the weak-fade result:** on the frozen fade the **permutation null is NOT
-significant** (p=0.14–0.37 across thresholds, vs 0.039 on the weak fade). Dose-response holds (weak $25
-→ strong $196, monotone $80→$108→$175→$219 across thr) and holdout ≥ train throughout, but at n=112 the
-strong subset isn't distinguishable from a lucky slice of an already-good book. The 0015d "filter
-rescues the fade" was real *for the weak near-final fade* only.
+**The one real blocker is that the split is not statistically confirmed.** On the frozen fade the
+**permutation null is NOT significant** (p=0.14–0.37 across thresholds, vs 0.039 on the weak fade), on
+n=112 (36 strong). Dose-response holds (weak $25 → strong $196; monotone $80→$108→$175→$219 across thr)
+and holdout ≥ train throughout — but at this n the strong subset can't be distinguished from a lucky
+slice of an already-good book. So the asymmetry: if the split is REAL, concentrating (filter or heavy
+size) is clearly right; if it's NOISE, you've halved a thin, 13%-win, tail-dependent book and made
+realized results noisier for nothing.
 
-**Corrected verdict:** the strong-move-through-EMA is a **sizing lean on the fade, not a filter, and
-NOT yet confirmed on the frozen fade** (n=112 thin, null ns). Carry it forward; re-check as fades
-accumulate. Do not change the fade rule today; definitely do not filter (would cut breakeven-not-dead
-trades). ORTHOGONAL: keep it out of RevFT Book B — this is a 2E-fade idea.
+## LOOKBACK-K SWEEP — the deciding robustness test — FAILED
+Samir asked whether K=10 is arbitrary. Re-ran strong(cs≥2.0)-vs-rest across K∈{5,8,10,15,20}:
+
+| K | strong n | strong PF | rest PF | perm-p |
+|---|---|---|---|---|
+| 5 | 18 | **0.85** | 1.39 | 0.64 |
+| 8 | 52 | 1.69 | 1.00 | 0.22 |
+| 10 | 58 | 1.60 | 1.02 | 0.26 |
+| 15 | 68 | **1.13** | 1.57 | 0.71 |
+| 20 | 75 | 1.28 | 1.35 | 0.54 |
+
+**The effect exists only at K=8–10 and INVERTS at K=5/15/20** (at those lookbacks the *weak* crosses are
+the better fades). A real "forceful break through the EMA" edge should not care whether it's measured
+over 8 or 15 bars. Perm-null never clears at any K (best p=0.22). This is the classic
+lucky-window/noise signature — the same one that killed the RevFT→2E confluence (0015c) across *its*
+windows.
+
+**Verdict (downgraded): the fade-EMA signal is most likely NOT a real edge.** The K=10 dose-response +
+holdout that looked good were riding a lookback sweet spot that doesn't generalize. Do NOT filter, do
+NOT size on it. Keep the cross_str *metric* only as an **exploratory chart annotation / forward-watch**
+(indicator viz + the chart `docs/living/revft_fade_ema_crosses_20260725.png`), not a rule. If it were
+real it would survive the K-sweep and a cross-instrument (NQ) re-run — neither is met.
+ORTHOGONAL to RevFT Book B (untouched; Book B remains the validated result).
+
+## Residual value / if revisited
+- **Cross-instrument (NQ)** would be the only way to resurrect it — more fades + independent sample. But
+  given the K-instability on ES, the prior is low.
+- The `cross_str` visualization is still useful to *eyeball* fade context live; just don't trade on it.
 
 ## Reproduce
 `scripts/revft_fade_ema.py` (weak fade) + `scripts/revft_fade_ema_frozen.py` (frozen fade) →

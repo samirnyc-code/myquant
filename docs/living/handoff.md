@@ -118,10 +118,15 @@ on the WEAK near-final fade. **FROZEN-FADE RE-RUN DONE** (`revft_fade_ema_frozen
 1.31 ≈ wf_dataset n141/PF1.28): the answer CHANGES — the frozen fade base is already profitable, so
 the non-strong fades are **breakeven (+$3/tr PF1.02), NOT dead**. → **SIZER not FILTER**: filtering
 strong-only keeps ~same total $ on half the trades; sizing 2×strong+1×rest ~doubles total ($6.4k→
-$12.7k). BUT on the frozen fade the **perm-null is NOT significant (p=0.14–0.37** vs 0.039 weak-fade) —
-dose-response + holdout≥train hold, but n=112 too thin to confirm. **Corrected verdict: a SIZING LEAN
-on the fade, not a filter, NOT yet confirmed. Do NOT filter (would cut breakeven-not-dead trades); do
-not change the fade rule today.** Carry forward, re-check as fades accumulate.
+$12.7k). BUT on the frozen fade the **perm-null is NOT significant (p=0.14–0.37** vs 0.039 weak-fade). **LOOKBACK-K
+SWEEP (K∈{5,8,10,15,20}) FAILED** — strong-vs-rest INVERTS at K=5 (strong PF0.85 vs rest 1.39) and
+K=15 (1.13 vs 1.57); only K=8-10 shows the effect; perm-null never <0.05 at any K. Classic lucky-window
+noise (same signature that killed the 0015c confluence). **DOWNGRADED VERDICT: the fade-EMA signal is
+most likely NOT a real edge** — do not filter/size on it. cross_str kept only as an exploratory chart
+annotation / forward-watch (chart `revft_fade_ema_crosses_20260725.png`). Only NQ cross-instrument could
+resurrect it (low prior). Book B untouched/still the validated result. FILTER-vs-SIZER framing (risk-per-
+slot) was the right lens but moot now. INDICATOR viz asked-for but NOT yet added (pending user OK given
+edge weakened).
 
 **Files (all committed `1bb8190`, `git add -f`):** `scripts/revft_regime_full.py` (sim, vendors
 pt_new + joins MQ gamma), `scripts/revft_regime_deep.py` (slicing + honest verdict),
