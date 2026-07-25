@@ -160,10 +160,14 @@ recency-aware (`revft_fade_ema_recency.py`) → the real feature is different AN
 works when price is **ABOVE the EMA at entry = a FAILED EMA RECLAIM** (failed long reclaimed the MA then
 failed): PF **2.78, +$295/tr, n=25, perm-p 0.06, holdout PF 4.29 > train 1.91**. Below-EMA weak-bounce
 fades = breakeven-neg (PF 0.94, n=87) = dead weight. Down-cross strength/recency all dead (p>0.3); stale
-strong cross PF 0.81 (confirms Samir). **VERDICT: f2EL wants a failed EMA reclaim, not a down-thrust;
-lookback-free so no stale-cross problem — best candidate yet but BORDERLINE (p=0.06, n=25,
-2022/2025-concentrated), NOT confirmed. Confirm via NQ cross-instrument.** Book B untouched. INDICATOR
-viz now justified (plot EMA + flag failed-reclaim fades) — user wants it; not yet built.
+strong cross PF 0.81 (confirms Samir). Failed-reclaim was borderline on ES (p=0.06, n=25). **NQ CROSS-
+INSTRUMENT TEST → DOES NOT CONFIRM → WHOLE FADE-EMA THREAD RETIRED (`revft_fade_nq.py`):** (1) ES stop-
+dependent — ADR-scaled stop instead of the ES 4pt drops perm-p 0.06→0.30 (ns); (2) NQ INVERTS —
+above-EMA PF 0.62 vs below 0.94 (base fade also loses on NQ, PF 0.88, ES-tuned geometry). Every fade-EMA
+form failed under rigor (down-cross K-unstable/stale; failed-reclaim stop-dependent + NQ-inverts). **No
+robust EMA-context edge for the fade; did NOT wire into the indicator (dead signal).** Samir's recency
+correction was right + gave a better feature, just didn't survive — clean negative. **Book B (0015/0015b)
+remains the ONE validated result of the whole RevFT arc.**
 
 **Files (all committed `1bb8190`, `git add -f`):** `scripts/revft_regime_full.py` (sim, vendors
 pt_new + joins MQ gamma), `scripts/revft_regime_deep.py` (slicing + honest verdict),

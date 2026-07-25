@@ -26,10 +26,25 @@ train PF 1.91 → holdout PF 4.29. **But borderline:** perm-p 0.06 (not <0.05), 
 (2022 +$4.1k / 2025 +$6.1k carry it; 2023/2024 negative). Down-cross recency/strength: all perm-p>0.3,
 dead. Stale strong cross (recency>10) PF 0.81 — confirms Samir's point (stale = useless).
 
-**Verdict (current): the f2EL fade wants a FAILED EMA RECLAIM (price above EMA at entry), not a strong
-prior down-move.** Lookback-free → immune to the stale-cross problem. Best candidate so far but
-borderline — **confirm via NQ cross-instrument** (more sample) before any sizing/filter. Below-EMA
-weak-bounce fades (PF 0.94) are the dead weight to deprioritise. Book B untouched.
+**NQ CROSS-INSTRUMENT TEST → DOES NOT CONFIRM → THREAD RETIRED (`revft_fade_nq.py`).**
+
+| test | above-EMA (reclaim) | below-EMA | perm-p |
+|---|---|---|---|
+| ES, original 4pt stop | PF 2.78 | 0.94 | 0.06 |
+| ES, ADR-normalized stop | PF 1.79 | 1.20 | **0.30** |
+| NQ, ADR-normalized stop | **PF 0.62 (inverts)** | 0.94 | 0.53 |
+
+Two kills: (1) **stop-dependent on ES** — swapping the ES-specific 4pt stop for an ADR-scaled one drops
+perm-p 0.06→0.30 (ns); a real edge shouldn't hinge on one stop size. (2) **inverts on NQ** — above-EMA
+fades are *worse* (PF 0.62 vs 0.94). Caveat: the f2EL fade itself is a loser on NQ (PF 0.88, ES-tuned
+geometry), so NQ isn't a perfectly clean test of the feature — but ES stop-dependence + NQ inversion
+together are decisive.
+
+**FINAL VERDICT: retire the entire fade-EMA thread.** Every form failed under rigor — down-cross
+strength (K-unstable / stale-cross artifact) and failed-reclaim (ES stop-dependent, NQ inverts). No
+robust EMA-context edge for the fade. Do NOT wire into the indicator. Book B remains the one validated
+result of the RevFT arc (0015/0015b). Samir's recency correction was right and produced a better
+feature; it just didn't survive — a clean negative, not a mistake.
 
 ---
 _Below: the DEAD original down-cross feature, kept for the record._
