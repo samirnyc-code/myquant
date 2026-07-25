@@ -38,6 +38,18 @@ honest DD corrected to block-bootstrap −$35.4k. All on `regime/indep`, pushed.
   stop with test>train (1.28→1.42). Vol-scaling REJECTED (k×ADR overfits; invalidation is structural,
   4pt≈7% ADR). Caveat: sharp peak on thin 13%-win book — trust "small fixed ~4pt", not exact value.
 
+- **2:1 lean in real contracts** (`regime_2e_lean_contracts.py` MES, `_lean_es.py` ES): 2:1 = 2 contracts
+  near-HVL / 1 far (~1.5 avg). MES: lean ~2x flat-1 return at 1.5x size but does NOT fit $4,500 prop
+  (boot-1% -$5.8k); prop stays flat-1 MES (thin, -$4.4k daily-block boot vs config -$3.3k MC — reconcile on
+  full 678). ES: lean ROC 23% vs 18% flat-1 / 17% flat-2 — near flat-2 dollars ($174k vs $185k) on $70k
+  less capital (~$148k vs $218k); wins calm yrs (2024/25 ~2x), lags flat-2 in 2022. Lean = larger-account
+  play (needs room to size UP), not a prop tactic.
+- **vs SPX buy-hold** (`regime_2e_vs_spx.py`, 2021-07 to 2026-07): prior +38% was a BUG — `spx_daily_yahoo.csv`
+  is only 2yr (2024-07+). Full-history v2 spot: SPX +83% total-ret (12.8% CAGR, -25% maxDD). Corrected
+  verdict: flat-1 ES TIES SPX (+89%, edge only +$6.3k on $104k); LEAN 2:1 beats by ~$49k (+115%). Strategy's
+  edge is RISK not return: -9% realized DD vs SPX -25%, corr -0.15 -> diversifier to run ALONGSIDE SPX on
+  same margin, roughly index-parity standalone over this bull.
+
 **OPEN THREADS (next session):** (a) HVL 2:1 lean → wire into NT8 strategy/indicator once past a
 forward check; (b) NT8 port still 2ES-only (f2EL fade + HVL lean NOT wired); (c) reference-day-diff
 the lifted new engine; (d) unrunnable stress #4/#9/#10 (Databento/live/cross-instrument).
