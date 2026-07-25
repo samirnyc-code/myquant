@@ -42,11 +42,38 @@ Two new committed studies there (`e970499`, `2e81320`) + that worktree's handoff
   - API key stored gitignored at `%LOCALAPPDATA%\myquant\databento.json` (key was pasted in-chat →
     **regenerate it**). Databento batch API has **no cancel method** — cancellation is support-email only.
 
-**PENDING (next session):**
-1. Download the 1-min pull when `done` → build panama-roll converter (front-month, seam-check vs
-   `_continuous_1m.parquet` at 2021-06) → run the 2E book across **2010–2020 (true OOS, never tested)**.
-   If PF ≥ ~1.3 there, the edge is structural across a decade of unseen regimes.
-2. Download the `mbp-10` L2 job → catalog. Confirm support cancelled the duplicate 1-min job.
+**DONE THIS SESSION — the 16-yr OOS ran (see below). PENDING:**
+1. Download the `mbp-10` L2 job when `done` → catalog. Confirm support cancelled the dup 1-min job.
+2. Build/validate the long-biased + downtrend-gated-shorts variant as the durable spec (see S85d).
+
+---
+
+## S85d (2026-07-25) — ⭐ 16-YEAR OOS on Databento 1-min: frozen 2E is REGIME-fit to 2021-26; WFA recovers a durable LONG-BIASED edge (branch `regime/indep`)
+
+**Bought+built the pre-2021 data and ran the true OOS the frozen system never had.** Databento
+ES `ohlcv-1m` 2010→2026 pulled ($0.48, job `X98V5EDDHH`) → `databento_build_continuous_1m.py`
+(panama front-month, **seam corr 0.99987** vs `_continuous_1m` on 2021-26) → frames
+`_db_es_{5m,1m}_rth.parquet` (gitignored). 2E book run via the validated tick-proxy. Full battery
+committed on `regime/indep` (`b4c3d9a`): scripts `regime_2e_oos_{databento,diagnostics,pertrade,
+analysis}.py` + `regime_2e_wfa.py`.
+
+- **Pipeline PROVEN sound** (`regime_2e_oos_diagnostics`): pre-2021 data pristine (81 5m / 405 1m
+  bars/day, 08:30-15:10 every yr, flat1m~0%, regime mix stable ~32/26/42), **Databento 5M == NT 5M**
+  (range corr 0.99996, median diff 0.0000pt). The null is REAL, not an artifact.
+- **Frozen three-book pre-2021 (2010-20): PF 0.96, −$6,435** (n=997) vs **2021+ PF 1.38, +$90,410.**
+  The +$93.7k/1.44 headline is validated on 2021-26 = ONE favorable high-vol two-sided regime.
+- **DECOMPOSITION:** the loss is the **SHORT side** — pre-2021 longs PF 1.03 (breakeven), shorts
+  PF 0.91 (−$8.6k). With-trend shorts need a real downtrend; the 2010-20 secular bull starved them.
+  Moderate-vol (ADR 22-37) profits in BOTH eras (1.34/1.67); low-vol grind kills pre-2021; a single
+  ADR/VIX threshold does NOT transfer cleanly. Counter-trend negative both eras (gate dir correct).
+- **WFA (`regime_2e_wfa`, user-requested train-early-test-late):** optimize on **2010-2011 ONLY** →
+  picks **long-only / 0.40×ADR / 10-13**, **OOS 2012-2026 PF 1.39 +$53k** (green through 2012-16).
+  **Anchored WFA PF 1.28 +$77k**, rolling 3yr/1yr 1.26 — both beat the frozen PF 1.21. Picks `long`
+  2012-18, adds `both` from 2021 (exactly when shorts start paying).
+- **VERDICT:** NOT a pure 2021 artifact — a real long-biased second-entry edge the frozen SYMMETRIC
+  spec was masking. **Durable core = long-biased, shorts gated to bear/high-vol.** Honest caveats:
+  early-train sample thin (n=51), pre-2021 is modest (money still vol-amplified), the trustworthy
+  figure is anchored-WFA PF 1.28 (not the single-pick 1.39).
 
 ---
 
