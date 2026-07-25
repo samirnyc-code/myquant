@@ -1,0 +1,102 @@
+<!doctype html><html><head><meta charset="utf-8"><title>2E Trade Review — P0</title>
+<script src="vendor/lightweight-charts.js"></script>
+<style>
+  :root{--ink:#33454d;--blu:#2a78d6;--red:#b23a2e;--grn:#2e8b57;--org:#d98a2b;--gry:#8a8f94;--pur:#7a5cc0;--ema:#c98a10}
+  *{box-sizing:border-box} body{font:13px/1.4 -apple-system,Segoe UI,Roboto,sans-serif;margin:0;background:#fafaf8;color:#222}
+  header{padding:12px 18px;border-bottom:1px solid #e6e6e0;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+  h1{font-size:16px;margin:0}
+  .chip{background:#fff;border:1px solid #e0e0d8;border-radius:8px;padding:6px 10px;font-size:12px}
+  .chip b{color:var(--ink)}
+  .ok{background:#e8f5ee;border-color:#bfe3cf;color:#1c6b41;font-weight:700}
+  .bad{background:#fbeaea;border-color:#eec4c0;color:#a1281f;font-weight:700}
+  .wrap{display:grid;grid-template-columns:1fr 230px;gap:14px;padding:14px 18px}
+  .charts{display:flex;flex-direction:column;gap:14px}
+  .card{background:#fff;border:1px solid #eceae2;border-radius:10px;padding:10px 12px;position:relative}
+  .card h3{margin:0 0 8px;font-size:12px;color:#666;font-weight:600;letter-spacing:.02em}
+  .cc{position:relative}
+  .check{position:absolute;top:10px;right:14px;z-index:5;font-size:34px;font-weight:800;line-height:1}
+  .check .lbl{font-size:11px;font-weight:600;display:block;text-align:right}
+  .gutter{background:#fff;border:1px solid #eceae2;border-radius:10px;padding:12px;height:fit-content;position:sticky;top:14px}
+  .gutter h3{margin:0 0 10px;font-size:12px;color:#666}
+  .lev{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed #eee}
+  .sw{width:14px;height:0;border-top:3px dotted #999;flex:0 0 14px}
+  .lev .nm{flex:1;color:#555} .lev .px{font-variant-numeric:tabular-nums;font-weight:700}
+  .note{font-size:11px;color:#888;margin-top:10px}
+</style></head><body>
+<header>
+  <h1 id="ttl">2E Trade Review</h1>
+  <span class="chip" id="gapchip"></span>
+  <span class="chip" id="netchip"></span>
+  <span class="chip" id="vchip"></span>
+</header>
+<div class="wrap">
+  <div class="charts">
+    <div class="card"><h3>CONTEXT · 5-minute · regime shading · EMA20</h3><div class="cc" id="ctx" style="height:340px"></div></div>
+    <div class="card"><h3>TICK-GRANULARITY ZOOM · fill &amp; exit path</h3>
+      <div class="check" id="chk"></div><div class="cc" id="zoom" style="height:300px"></div></div>
+  </div>
+  <div class="gutter"><h3>PRICE LEVELS</h3><div id="levels"></div>
+    <div class="note">No arrows on candles — dotted lines only. Prices live here, color-matched, never overlapping the bars.</div>
+  </div>
+</div>
+<script>
+const D=__DATA__, T=D.trade, LS=LightweightCharts.LineStyle;
+document.getElementById('ttl').textContent=`${T.date} · ${T.book}`;
+document.getElementById('gapchip').innerHTML=`gap <b>${T.gap_pct}%</b> · ADR10 <b>${T.adr10}</b> · thr 0.54 · <b>${Math.abs(T.gap_pct)<=0.54?'TRADE':'SKIP'}</b>`;
+document.getElementById('netchip').innerHTML=`net <b>$${T.net}</b> · exit <b>${T.exit_type}</b> · sig ${T.sig_time} → entry ${T.entry_time}`;
+const vc=document.getElementById('vchip'); vc.className='chip '+(T.verified?'ok':'bad');
+vc.textContent=T.verified?'✓ VERIFIED':'✗ NOT VERIFIED';
+
+const LV=[['Prior close',T.prior_close,'var(--pur)'],['2EL trigger',T.trigger,'var(--org)'],
+  ['Entry (fill)',T.entry,'var(--blu)'],['Signal-bar low',T.sb_low,'var(--gry)'],
+  ['Stop (0.30×ADR)',T.stop,'var(--red)'],[`Exit (${T.exit_type})`,T.exit,'var(--grn)']];
+document.getElementById('levels').innerHTML=LV.map(([n,p,c])=>
+  `<div class="lev"><span class="sw" style="border-color:${c}"></span><span class="nm">${n}</span><span class="px" style="color:${c}">${p}</span></div>`).join('');
+
+const base={layout:{background:{color:'#fff'},textColor:'#555'},grid:{vertLines:{color:'#f2f2ec'},horzLines:{color:'#f2f2ec'}},
+  rightPriceScale:{borderColor:'#e6e6e0'},timeScale:{borderColor:'#e6e6e0',timeVisible:true,secondsVisible:false},crosshair:{mode:0}};
+
+// ---------- CONTEXT ----------
+const cx=LightweightCharts.createChart(document.getElementById('ctx'),base);
+const cs=cx.addCandlestickSeries({upColor:'#2e8b57',downColor:'#b23a2e',borderVisible:false,wickUpColor:'#2e8b57',wickDownColor:'#b23a2e'});
+const prior=Object.assign({},D.context.prior,{color:'#c9c9c2',wickColor:'#c9c9c2',borderColor:'#c9c9c2'});
+cs.setData([prior,...D.context.candles]);
+const es=cx.addLineSeries({color:'var(--ema)',lineWidth:2,priceLineVisible:false,lastValueVisible:false});
+es.setData(D.context.ema20);
+function pl(s,price,color){s.createPriceLine({price,color,lineWidth:1,lineStyle:LS.Dotted,axisLabelVisible:false});}
+pl(cs,T.prior_close,'#7a5cc0');pl(cs,T.trigger,'#d98a2b');pl(cs,T.entry,'#2a78d6');
+pl(cs,T.sb_low,'#8a8f94');pl(cs,T.stop,'#b23a2e');pl(cs,T.exit,'#2e8b57');
+cs.setMarkers([{time:D.context.sig_time,position:'belowBar',color:'#d98a2b',shape:'circle',text:'2EL'}]);
+cx.timeScale().fitContent();
+
+// regime shading overlay
+const shadeHost=document.getElementById('ctx'); const modeColor={BULL:'rgba(46,139,87,.09)',BEAR:'rgba(178,58,46,.09)',NEUTRAL:'rgba(120,120,120,.05)'};
+function drawShade(){
+  [...shadeHost.querySelectorAll('.shade')].forEach(e=>e.remove());
+  const ts=cx.timeScale();
+  D.context.spans.forEach(s=>{
+    const x1=ts.timeToCoordinate(s.from), x2=ts.timeToCoordinate(s.to);
+    if(x1==null||x2==null)return;
+    const d=document.createElement('div'); d.className='shade';
+    Object.assign(d.style,{position:'absolute',top:0,bottom:'22px',left:x1+'px',width:Math.max(1,x2-x1)+'px',
+      background:modeColor[s.mode]||'transparent',pointerEvents:'none',zIndex:1});
+    shadeHost.appendChild(d);
+  });
+}
+cx.timeScale().subscribeVisibleTimeRangeChange(drawShade); setTimeout(drawShade,60); new ResizeObserver(drawShade).observe(shadeHost);
+
+// ---------- ZOOM (tick path, index x-axis with clock labels) ----------
+const zm=LightweightCharts.createChart(document.getElementById('zoom'),Object.assign({},base,{
+  timeScale:{borderColor:'#e6e6e0',tickMarkFormatter:(t)=>D.zoom.tlabels[t]||''}}));
+const zs=zm.addLineSeries({color:'#33454d',lineWidth:2,priceLineVisible:false,lastValueVisible:false});
+zs.setData(D.zoom.path.map(p=>({time:p.i,value:p.value})));
+pl(zs,T.entry,'#2a78d6');pl(zs,T.stop,'#b23a2e');pl(zs,T.exit,'#2e8b57');pl(zs,T.sb_low,'#8a8f94');
+zs.setMarkers([
+  {time:D.zoom.fill_i,position:'belowBar',color:'#2a78d6',shape:'circle',text:'FILL '+T.entry},
+  {time:D.zoom.exit_i,position:'aboveBar',color:'#2e8b57',shape:'circle',text:T.exit_type+' '+T.exit}]);
+zm.timeScale().fitContent();
+
+const chk=document.getElementById('chk');
+chk.style.color=T.verified?'#1c6b41':'#a1281f';
+chk.innerHTML=(T.verified?'✓':'✗')+`<span class="lbl">${T.verified?'entry &amp; exit confirmed':'MISMATCH'}</span>`;
+</script></body></html>
