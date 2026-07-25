@@ -13,6 +13,12 @@ Branch `regime/indep`, worktree `myquant-regime`. All numbers: ES 5-min RTH tick
 | f2EL | short | BEAR | failed counter-trend 2EL, stop-entry at SBlow−1t | 4pt (tight) |
 f2ES-long fade = DEAD (0.71), NOT in the system. Fade must gate to the OPPOSITE
 trend only (never NEUTRAL).
+**CONSTITUENTS of the 678 three-book (name before sharing): 2EL long (282) + 2ES short (291) + f2EL
+fade-short (105).** Raw file also holds FADE-L (f2ES-long, 121)=DEAD, EXCLUDED. **RevFT:BO & MC:CC4 are
+NOT in it** — separate unvalidated gap-day side-book candidates, never in any regime-2E number/CI.
+**SHIPPING subset = WT (573: 2EL+2ES)**; NT strategy runs fade OFF, so f2EL (105) is validated-but-not-
+shipping. CI measures what ships: WT-573 alone P(PF>1)=100%, PF-5th 1.20, net-5th +$40k ≈ three-book (no
+pooling inflation). `regime_2e_effective_n.py`.
 
 ## FROZEN PARAMETERS (do not change without a new version)
 - Instrument/chart: ES front-month volume-continuous, **5-min TIME bars, RTH**, day-scoped.
@@ -50,9 +56,10 @@ trend only (never NEUTRAL).
 - Max realized DD **−$9,502**; worst-start (≈Sep-2023) −$9,502; MC-shuffle worst-1% −$24k.
   **HONEST DD = block-bootstrap (5-trade blocks, preserves losing clusters): worst-5% −$27.6k,
   worst-1% −$35.4k** (stress #6). The MC shuffle understated it by breaking up streaks — size off −$35k.
-- **Account sizing:** on the honest −$35.4k, DD ÷ 33% → **~$105k per 1 ES** (the earlier $70–75k used the
-  optimistic MC number). Return ≈ **~18% CAGR fixed-contract** (the earlier "~26%" was simple, not CAGR).
-  $20k fits **1 MES**, not 1 ES.
+- **Account sizing (ONE number, both earlier figures superseded):** on the honest −$35.4k block-bootstrap
+  DD → **~$105k per ES (33% tol) / ~$137k (25% tol).** $30–35k and $70–85k are DEAD (the latter used the
+  softer MC −$21–24k DD = the stale artifact number). ES is a ~$105–137k instrument, full stop.
+  Return ≈ **~18% CAGR fixed-contract** (earlier "~26%" was simple, not CAGR). $20k fits **1 MES**, not 1 ES.
 - MES viability marginal after $5 RT commission — negotiate cheaper micros or run ES.
 
 ## STRESS TEST #5 RESULT — engine invariance (DONE, PASS)
@@ -160,6 +167,11 @@ edge and a routine drought look identical for ~a year. So act on early warning, 
 - **DE-RISK** (objective, regime-agnostic): live DD breaches block-boot **worst-5% (−$27.6k / 1-ES)** → **half size**.
 - **HALT:** live DD breaches **worst-1% (−$35.4k)** OR trailing ~500-trade net stays negative → pause + re-audit.
 In-sample worst DD was −$9,502, so the breaker levels (3-4× beyond) won't fire on noise.
+**⛔ PER-SIDE QUARTERLY-PF KILL RULE — TESTED & REJECTED** (`regime_2e_killrule_backtest.py`): "disable a
+side after PF<1.0 two consecutive quarters" COSTS −$24k (−28%) on the shipping book and disabled SHORT
+right before **2025Q4 (+$15,645)**; the 1-Q variant loses −$58k. Per-side quarterly PF is noise (6–26
+tr/Q, swings 0.01→10.25) and the sides MEAN-REVERT → the rule catches the bottom. **Do NOT put any
+per-side quarterly on/off switch in §4.** Only the aggregate-equity DD breaker (above) is safe.
 
 ## GAMMA / LEVELS — INVESTIGATED, NOT INCORPORATED (2026-07-25)
 Full gamma/MQ-levels sweep. **Verdict: nothing clears the bar to trade. Kept as understanding, not knobs.**

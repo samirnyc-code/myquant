@@ -108,6 +108,13 @@ this session; charts in `docs/living/`.
   not 16t, FIX before diff); ② done (MES recon; engine ref-day-diff still todo); ③ forward paper (calendar-gated);
   ④ NQ DONE = fail; #4 Databento & pre-2021 stay parked (constraint).
 
+- **⛔ KILL-RULE BACKTEST — REJECTED** (`regime_2e_killrule_backtest.py`): per-side "PF<1.0 two-consec-Q →
+  disable side" COSTS −$24k (−28%) on shipping WT and disabled SHORT right before 2025Q4 (+$15,645); 1-Q
+  variant −$58k. Per-side quarterly PF is noise (6–26 tr/Q, 0.01→10.25) and sides mean-revert → catches
+  the bottom. STRIKE any per-side quarterly on/off from §4; only the aggregate-DD breaker is safe.
+- **Sizing = ONE number:** ~$105k/ES (33%) / ~$137k (25%) on −$35.4k DD. $30–35k & $70–85k both DEAD.
+- **678 constituents named:** 2EL long(282)+2ES short(291)+f2EL fade(105). FADE-L(121)=dead, excluded.
+  RevFT:BO/MC:CC4 NOT in it (separate side-books). Shipping=WT-573; CI on WT-573 alone ≈ three-book (no pooling).
 - **Artifact rebuild (deferred, Samir's call):** `regime_2e_summary.html` gets a FULL rebuild later with
   most-current info — its older top tables are still WT-only (630/1.39); current system is three-book (678/1.44).
   Today only ADDED the significance/overfit-evidence section (2 figures + corrected stats) via
