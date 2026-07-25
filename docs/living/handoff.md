@@ -41,6 +41,40 @@ application.** Both books stay frozen and independent.
 
 ---
 
+## S85 (2026-07-25) — RevFT RESCUED by the regime engine + 2E exit (branch `s75-live-dashboard`, committed `1bb8190`)
+
+**Goal:** apply the latest regime engine + the S83 2E-book improvements to the RevFT loser to
+improve PnL. **Result: works — base −$59k/5yr → +$123.5k (drop-CT) or +$144.7k (neg∩drop-CT).**
+Full note: `docs/research_notes/0015_revft_regime_2e.md`. All verified from
+`data/regime/revft_regime_full_20260725.parquet` (4,582 trades / 1,204 days).
+
+**THE FINDING — neither lever works alone; the interaction is the edge:**
+- Exit-only (all signals, wide-vol stop + hold-to-EOD): flat +$1.9/tr.
+- Gate-only (drop counter-trend, keep 1R target): flat −$1.9/tr.
+- **Gate + Exit (drop counter-trend + hold-to-close on 0.30×ADR stop): +$45/tr, +$123.5k, PF 1.12,
+  bootCI[3,90], 4–5/6 yrs green.** Counter-trend RevFT (fading a live intraday phase-machine trend)
+  loses −$115k *every year* — that's the whole disease; removing it + letting survivors run is the cure.
+- **+ MQ gamma day-filter (trade only negative-gamma / trending days): +$123.6/tr, +$144.7k, PF 1.27,
+  bootCI[37,213], 5/6 yrs green (only 2023 red −$7k), holdout(2024–26)>train.**
+- My "fades work when dealers pin (positive gamma)" hypothesis was **BACKWARDS** — RevFT is momentum,
+  wants trending/negative-gamma days. Confirms Note 0005's thesis (RevFT is with-trend, not a fade)
+  with a real label instead of the VWAP proxy that only reached break-even carried by 2022.
+- Why the EOD exit matters: with-trend median MFE=1.46R (P(MFE≥2R)=40%); the old 1R target clipped
+  the momentum tail. `pt_new` beats `pt_old` on the gate (+$9.3k vs −$0.6k).
+
+**CAVEATS (not yet an edge):** RevFT has two prior kill-notes (0005, 0013); ~26 books searched
+(multiple-testing); no truly-OOS run. Survivors are broad/monotone (every neg∩notCT∩EOD variant wins,
+every CT variant loses), better than a single fitted cell — but forward-validate on MES before capital.
+**Next:** forward-track neg∩drop-CT/wide+EOD; test 2E limit-6t-back entry on RevFT (native next-tick
+used here); gap-skip/hour-window ablation; regime-confluence sizing.
+
+**Files (all committed `1bb8190`, `git add -f`):** `scripts/revft_regime_full.py` (sim, vendors
+pt_new + joins MQ gamma), `scripts/revft_regime_deep.py` (slicing + honest verdict),
+`scripts/revft_regime_2e.py` (superseded focused v), `scripts/revft_regime_chart.py`,
+`docs/living/revft_regime_equity_20260725.png`, note 0015.
+
+---
+
 ## S84b (2026-07-25, night) — NT8 RegimePhaseMachine indicator: marks-export + engine-port diff harness (regime work lives on branch `regime/indep`)
 
 **Goal:** audit the NT8 `RegimePhaseMachine` indicator (the "UNVALIDATED PORT" of the
