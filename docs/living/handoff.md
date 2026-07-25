@@ -114,9 +114,14 @@ cross_str = strength of the down-cross in prior 10 bars /ATR14 (causal). Base FA
 +143**, MONOTONE dose-response ($54→$126→$251→$323 as thr 1.5→3.0), holdout≥train. Secondary pen_atr
 (deep-below-EMA) FAILS — the through-EMA STRENGTH is the signal, not distance (matches the mechanism →
 not data-mining). Caveats: threshold swept (lean on pre-committed 2.0), moderate n (114/249), tested
-on the WEAK near-final fade. **NEXT: full 0015b battery + re-run on the FROZEN f2EL** (spec PF 1.35) —
-if it holds it lifts the 2E three-book + combined portfolio. This is the one sequence-adjacent idea
-that earned promotion (vs the refuted RevFT-confluence).
+on the WEAK near-final fade. **FROZEN-FADE RE-RUN DONE** (`revft_fade_ema_frozen.py`, regen n=112 PF
+1.31 ≈ wf_dataset n141/PF1.28): the answer CHANGES — the frozen fade base is already profitable, so
+the non-strong fades are **breakeven (+$3/tr PF1.02), NOT dead**. → **SIZER not FILTER**: filtering
+strong-only keeps ~same total $ on half the trades; sizing 2×strong+1×rest ~doubles total ($6.4k→
+$12.7k). BUT on the frozen fade the **perm-null is NOT significant (p=0.14–0.37** vs 0.039 weak-fade) —
+dose-response + holdout≥train hold, but n=112 too thin to confirm. **Corrected verdict: a SIZING LEAN
+on the fade, not a filter, NOT yet confirmed. Do NOT filter (would cut breakeven-not-dead trades); do
+not change the fade rule today.** Carry forward, re-check as fades accumulate.
 
 **Files (all committed `1bb8190`, `git add -f`):** `scripts/revft_regime_full.py` (sim, vendors
 pt_new + joins MQ gamma), `scripts/revft_regime_deep.py` (slicing + honest verdict),
