@@ -98,11 +98,14 @@ every CT variant loses), better than a single fitted cell — but forward-valida
   Diversification MODEST: daily corr +0.39 on shared days; combined maxDD −$39.9k saves only ~$6k vs
   summed; combined tail DD −$61k ≈ RevFT alone. Additive return, weak hedge. (2E file = near-final
   combined_books_20260724, FADE-S ~breakeven here, below frozen spec PF1.35.)
-- **RevFT→2E sequence (EXPLORATORY, in-sample, small cells):** (1) CONFLUENCE — 2E entries preceded by
-  a RevFT within ~24 bars are better (PF 1.37 vs 1.14 unpreceded, n=505; +EMA-cross PF 1.43) →
-  candidate 2E sizer. (2) Samir's neutral→fade idea LANDS but narrow: neutral-RevFT rescues f2EL
-  (FADE-S breakeven→PF1.30, n=70), HURTS the WT books. (3) forward: RevFT-BEAR→2ES PF1.55 (n=150),
-  RevFT-BULL→2EL PF1.46; neutral-RevFT leans short. NEEDS the 0015b perm-null/OOS treatment before use.
+- **RevFT→2E sequence CONFLUENCE — TESTED & REFUTED** (`revft_2e_confluence.py`): the pooled
+  "preceded 2E better (PF 1.37 vs 1.14)" does NOT survive per-book permutation-null (all p=0.13–0.90,
+  none <0.05). Noise signatures: per-book lift flips sign across windows (WT-S +139→−75→−26); train→
+  holdout collapse (FADE-S preceded $128→$17/tr, WT-S $266→$31); EMA-cross incoherent (helps WT-S,
+  hurts FADE-S). Pooled illusion = FADE-S's weak not-preceded trades (this file's fade is ~breakeven).
+  **Do NOT wire preceding-RevFT into 2E.** Contrast: RevFT Book B passed the SAME null at p<0.0001.
+- **Durable kept result = the combined portfolio** (two independently-validated books, +$221k additive).
+  Sequence/conditioning is dead. (Samir's neutral→fade thought was dropped by him — not pursued.)
 
 **Files (all committed `1bb8190`, `git add -f`):** `scripts/revft_regime_full.py` (sim, vendors
 pt_new + joins MQ gamma), `scripts/revft_regime_deep.py` (slicing + honest verdict),

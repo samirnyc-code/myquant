@@ -57,10 +57,32 @@ follower is regime-aligned: RevFT-BEAR → **2ES $196/tr PF 1.55 (n=150)**; RevF
 1.46 (n=141). Neutral RevFT leans **short** (both short books +, long −$79/tr) — weak support for
 "neutral precedes a downside trend change."
 
-## 3. Actionable leads (all need the 0015b treatment before use)
-1. **RevFT-preceded confluence as a 2E sizer** (n=505, PF 1.37 vs 1.14 unpreceded) — strongest.
-2. **Neutral-RevFT as an f2EL enabler** (n=70, breakeven → PF 1.30) — Samir's idea; narrow, small-n.
-3. Run the permutation-null + train/holdout (as in 0015b) on both before trusting — exploratory now.
+## 3. Confluence tested with the 0015b treatment — REFUTED (`revft_2e_confluence.py`)
+The pooled "RevFT-preceded 2E is better" (PF 1.37 vs 1.14) does **not** survive rigor. Per-book
+permutation-null on the lift (is 'preceded' better than a random same-size subset of that book?):
+
+| book | X=6 lift / p | X=12 lift / p | X=24 lift / p |
+|---|---|---|---|
+| pooled | +$52 / 0.28 | +$31 / 0.37 | +$76 / 0.19 |
+| WT-S | +$139 / 0.23 | −$75 / 0.67 | −$26 / 0.58 |
+| FADE-S | +$167 / 0.15 | +$132 / 0.17 | +$82 / 0.30 |
+| WT-L | −$164 / 0.90 | +$21 / 0.43 | +$133 / 0.13 |
+
+**Nothing clears p<0.05.** Three noise signatures: (1) per-book lift **flips sign across windows**
+(WT-S +139→−75→−26; WT-L −164→+21→+133); (2) **train→holdout collapse** — FADE-S preceded $128→$17/tr,
+WT-S preceded $266→$31/tr (only WT-L holds, but lift +$21, p=0.43); (3) the EMA-cross "refinement" is
+**incoherent** — helps WT-S (+$303/tr, n=49) but makes FADE-S negative. The pooled illusion came from
+FADE-S's not-preceded trades being the weak-fade artifact of this file; the best book-selective play
+(filter FADE-S to preceded-only, +$9k) is just dropping weak trades, not a conditioning edge, and
+doesn't survive the null.
+
+**Verdict: do NOT wire preceding-RevFT into the 2E book** — no whole-book or per-book edge survives.
+Contrast: RevFT Book B passed the same permutation null at **p<0.0001**; the confluence sits at
+0.13–0.90. (Caveat: FADE-S here is the weak near-final version; on the frozen f2EL it *could* differ,
+but the non-significant null + noisy yearly lift make a real signal unlikely — not worth chasing.)
+
+Kept lead: the **combined portfolio** (§1) is the durable result — two independently-validated books,
++$221k, additive. Sequence conditioning is dead.
 
 ## Reproduce
 - `scripts/revft_2e_combined.py` → `docs/living/revft_2e_combined_equity_20260725.png`.
