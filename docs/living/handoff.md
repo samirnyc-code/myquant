@@ -6,6 +6,51 @@ pipeline + S77 security hardening; merged S76 Mac swing-levels work)
 
 ---
 
+## S84b (2026-07-25, night) — NT8 RegimePhaseMachine indicator: marks-export + engine-port diff harness (regime work lives on branch `regime/indep`)
+
+**Goal:** audit the NT8 `RegimePhaseMachine` indicator (the "UNVALIDATED PORT" of the
+tick-driven phase machine v4) against the Python reference engine by dumping every mark to
+CSV and diffing. Reference days: **2022-02-24** (bull) + **2022-04-12** (bear) — both are the
+user-validated teaching days and are in `_continuous.parquet`/`ticks_continuous`, so Python runs
+them and NT8 can Tick-Replay them.
+
+**DONE:**
+- **Python reference exporter** — `scratchpad/regime_marks_export.py` (reuses the validated
+  `regime_phase_machine.py` state). Emits `date,bar,event,side,minor_tag,disp,is_major,major_lab,
+  promoted_at,confirm_bar,confirm_i,is_ob,ob_kind,ob_dir,ref_bar,price`. Ran →
+  `scratchpad/marks_py_2022-02-24.csv` (35 pivots), `marks_py_2022-04-12.csv` (36). Reproduces the
+  teaching exactly (b35 minor `ll`+major `HL`@52; intrabar `i` set; seed→b77; term b71/b69-HL).
+- **Indicator marks-export** — added to `nt8/indicators/RegimePhaseMachine.cs` (add-only:
+  `mlog`/`marksDay` fields, `DumpMarks()`, per-session dump → `data/regime/nt8_marks.csv`, cols
+  `date,bar,event,side,minor_tag,disp,is_major,major_lab`). **Committed + PUSHED on `regime/indep`
+  `b494747`** (swept in by the concurrent sim session; `origin/regime/indep`=`477bfef`). NOT yet
+  compiled/mirrored to the live NT8 file.
+- **Diff harness** — `scratchpad/diff_marks.py <date>` aligns on `(bar,side)`, reports
+  py-only / nt-only / label mismatches.
+
+**FINDINGS (before running the diff):**
+- **b2=HH bug:** `StartTrend` unconditionally stamps the broken pivot `HH`/`LL`
+  (`RegimePhaseMachine.cs:346`; same in Python `regime_phase_machine.py start_trend:154`) — it does
+  NOT respect the day-first single-letter rule that the partner/opp pivots DO (`:348/:350`). So the
+  first bull leg breaking the opening high restamps that `H` as `HH`. Violates the agreed
+  "a first leg can never form HH/HL/LH/LL → single gold H/L" rule. Fix must land in BOTH engine +
+  indicator to stay in lockstep.
+- **Discrepancy #1:** the indicator has **no confirmation-bar subsystem** — `Piv` stores only
+  `Bar/IsH/Tag/Disp/MajLab/Major`; the two-rule confirmation (`conf`/`promoted_at`/`intrabar`:
+  HH/LL→turn, HL/LH→new-extreme) is unported. That's why the C# export has only 6 columns.
+
+**PENDING PICKUPS (tomorrow):**
+1. Get the patched `.cs` onto the NT8 machine → **recompile** → **Tick-Replay 02-24 + 04-12** so it
+   writes `nt8_marks.csv` → `python scratchpad/diff_marks.py 2022-02-24` (and 04-12).
+2. Decide the **b2 `H` vs `HH`** fix (apply to engine + indicator together).
+
+**⚠️ CONCURRENCY:** the `regime/indep` worktree (`C:/Users/Admin/myquant-regime`) is shared with a
+concurrent "other chat" running the sim task (stress-test #5 / engine A/B `newengine_20260724.*`,
+new-engine PF 1.43 vs 1.44). Its work was uncommitted when I checked — **pull/re-verify worktree
+state before acting** and do NOT sweep its files into a commit.
+
+---
+
 ## S84 (2026-07-24→25) — MenthorQ level methodology REVERSE-ENGINEERED (6-agent workflow, branch `s75-live-dashboard`)
 
 **Premise: figure out how MQ computes its levels. Result: cracked for the main level set.**
