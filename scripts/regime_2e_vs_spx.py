@@ -33,16 +33,20 @@ med = d.absdist.median(); d["near"] = d.absdist <= med
 d0, d1 = d.Date.min(), d.Date.max()
 yrs = (pd.to_datetime(d1) - pd.to_datetime(d0)).days / 365.25
 
-# SPX daily close over the exact period
-spx = pd.read_csv(MAIN / "data" / "options_sim" / "spx_daily_yahoo.csv")
-spx["dt"] = pd.to_datetime(spx.Date).dt.date.astype(str)
+# SPX daily close over the exact period — use FULL-HISTORY v2 spot (yahoo file is only 2yr!)
+DIV = 0.013                                       # ~1.3%/yr SPX dividend yield (total-return adj)
+spx = pd.read_csv(MAIN / "data" / "regime" / "mq_regime_daily_2007_2026_v2.csv")
+spx["dt"] = pd.to_datetime(spx.date).dt.date.astype(str)
 spx = spx[(spx.dt >= d0) & (spx.dt <= d1)].sort_values("dt").reset_index(drop=True)
+spx = spx.rename(columns={"spot": "Close"})
 p0, p1 = spx.Close.iloc[0], spx.Close.iloc[-1]
-spx_tot = p1/p0 - 1; spx_cagr = (p1/p0)**(1/yrs) - 1
-sp_eq = spx.Close.values / p0                     # normalized equity path
+spx_tot = (p1/p0) * (1+DIV)**yrs - 1              # total return incl dividends
+spx_cagr = (1+spx_tot)**(1/yrs) - 1
+sp_eq = spx.Close.values / p0                     # normalized equity path (price)
 sp_ddpct = float((sp_eq/np.maximum.accumulate(sp_eq) - 1).min())
 print(f"period {d0} -> {d1}  ({yrs:.2f} yrs)")
-print(f"SPX buy&hold: {p0:.0f} -> {p1:.0f}  total {spx_tot*100:+.0f}%  CAGR {spx_cagr*100:+.1f}%  maxDD {sp_ddpct*100:.0f}%\n")
+print(f"SPX buy&hold (v2 spot, incl ~{DIV*100:.1f}%/yr divs): {p0:.0f} -> {p1:.0f}  "
+      f"price {(p1/p0-1)*100:+.0f}%  total-ret {spx_tot*100:+.0f}%  CAGR {spx_cagr*100:+.1f}%  maxDD {sp_ddpct*100:.0f}%\n")
 
 SCH = {"flat 1 ES": np.ones(len(d)), "LEAN 2:1": np.where(d.near, 2, 1), "flat 2 ES": np.full(len(d), 2)}
 print(f"{'scheme':11}{'acct@33%':>10}{'5yr net':>10}{'totRet%':>9}{'CAGR*':>8}{'maxDD$':>9}{'maxDD%':>8}"
