@@ -40,7 +40,10 @@ def daily_feats():
     d["dow"] = pd.to_datetime(d["Date"]).dt.dayofweek                # 0=Mon
     for f in ["above20", "above50", "er10", "ret5"]:                 # causal: prior day
         d[f] = d[f].shift(1)
-    return d.set_index("Date")[["above20", "above50", "er10", "ret5", "dow"]]
+    # CAUSAL threshold: expanding median of PRIOR er10 only (no full-sample look-ahead)
+    d["er10_medexp"] = d["er10"].expanding(min_periods=60).median()
+    d["er10_top"] = (d["er10"] > d["er10_medexp"]).astype("float")   # NaN until 60 days seen
+    return d.set_index("Date")[["above20", "above50", "er10", "er10_top", "ret5", "dow"]]
 
 
 def report(name, m):
@@ -63,15 +66,15 @@ def main():
     S = np.maximum(np.round(0.30 * d.adr.values / TICK) * TICK, FLOOR)
     move = np.where(d.mae_pts.values >= S, -S, d.eod_move.values)
     d["net"] = move * PT - COMM - SLIP; d["Rn"] = d.net / (S * PT)
-    d["er10q"] = d.groupby(d.yr)["er10"].transform(lambda x: x.rank(pct=True))  # within-year pctile (causal-ish)
 
     print("net meanR by 4yr block  [2010-13][2014-17][2018-21][2022-26]  (ROBUST = >0 all blocks)\n")
     report("BASE long (all)", d)
     print("-- trend alignment --")
     report("above SMA50", d[d.above50 == 1]); report("below SMA50", d[d.above50 == 0])
     report("above SMA20", d[d.above20 == 1]); report("below SMA20", d[d.above20 == 0])
-    print("-- efficiency / momentum --")
-    report("er10 top-half", d[d.er10 >= d.er10.median()]); report("er10 bottom-half", d[d.er10 < d.er10.median()])
+    print("-- efficiency / momentum (CAUSAL expanding-median threshold) --")
+    report("er10 top (causal)", d[d.er10_top == 1]); report("er10 bottom (causal)", d[d.er10_top == 0])
+    report("er10 top (LEAKY full-median)", d[d.er10 >= d.er10.median()])  # for contrast only
     report("prior 5d ret>0", d[d.ret5 > 0]); report("prior 5d ret<0", d[d.ret5 <= 0])
     print("-- entry hour --")
     for h in (9, 10, 11, 12, 13):
@@ -79,8 +82,8 @@ def main():
     print("-- day of week --")
     for dw, nm in zip(range(5), ["Mon", "Tue", "Wed", "Thu", "Fri"]):
         report(nm, d[d.dow == dw])
-    print("-- combos --")
-    report("above50 & er10-top", d[(d.above50 == 1) & (d.er10 >= d.er10.median())])
+    print("-- combos (causal er10) --")
+    report("above50 & er10-top", d[(d.above50 == 1) & (d.er10_top == 1)])
     report("above50 & h09-12", d[(d.above50 == 1) & (d.fh <= 12)])
 
 
