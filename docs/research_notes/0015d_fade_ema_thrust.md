@@ -26,24 +26,34 @@ train PF 1.91 → holdout PF 4.29. **But borderline:** perm-p 0.06 (not <0.05), 
 (2022 +$4.1k / 2025 +$6.1k carry it; 2023/2024 negative). Down-cross recency/strength: all perm-p>0.3,
 dead. Stale strong cross (recency>10) PF 0.81 — confirms Samir's point (stale = useless).
 
-**NQ CROSS-INSTRUMENT TEST → DOES NOT CONFIRM → THREAD RETIRED (`revft_fade_nq.py`).**
+**WHY IT'S DEAD FOR ES — a 2-year mirage (the real reason; NQ/stop are secondary).** Under the REAL
+frozen f2EL geometry (4pt stop — the actual spec), above-EMA reclaim = PF 2.78 in aggregate, but the
+year split is fatal:
 
-| test | above-EMA (reclaim) | below-EMA | perm-p |
+| year | n | net | PF |
 |---|---|---|---|
-| ES, original 4pt stop | PF 2.78 | 0.94 | 0.06 |
-| ES, ADR-normalized stop | PF 1.79 | 1.20 | **0.30** |
-| NQ, ADR-normalized stop | **PF 0.62 (inverts)** | 0.94 | 0.53 |
+| 2021 | 1 | −218 | 0.00 |
+| 2022 | 7 | +4,102 | 5.72 |
+| 2023 | 7 | −1,522 | **0.00** |
+| 2024 | 5 | −1,088 | **0.00** |
+| 2025 | 5 | +6,100 | 15.02 |
+| 2022+2025 | 12 | +10,202 | 8.82 |
+| **all other yrs** | 13 | **−2,828** | **0.00** |
 
-Two kills: (1) **stop-dependent on ES** — swapping the ES-specific 4pt stop for an ADR-scaled one drops
-perm-p 0.06→0.30 (ns); a real edge shouldn't hinge on one stop size. (2) **inverts on NQ** — above-EMA
-fades are *worse* (PF 0.62 vs 0.94). Caveat: the f2EL fade itself is a loser on NQ (PF 0.88, ES-tuned
-geometry), so NQ isn't a perfectly clean test of the feature — but ES stop-dependence + NQ inversion
-together are decisive.
+The entire PF-2.78 is **12 trades in 2022+2025** (high-vol/trending years). Across 2021/2023/2024 —
+13 trades — there is **not a single winner** (PF 0.00). This is the exact 2022-carried mirage Note 0005
+documented, here at its starkest (0% win rate outside two years). n=25 total; you cannot build a rule
+on a dozen trades in two trending years. It *might* be a trending-regime-only fade, but 12 trades / 2
+years cannot separate "vol-regime edge" from "lucky twice" — same wall as 0005.
 
-**FINAL VERDICT: retire the entire fade-EMA thread.** Every form failed under rigor — down-cross
-strength (K-unstable / stale-cross artifact) and failed-reclaim (ES stop-dependent, NQ inverts). No
-robust EMA-context edge for the fade. Do NOT wire into the indicator. Book B remains the one validated
-result of the RevFT arc (0015/0015b). Samir's recency correction was right and produced a better
+Secondary confirmations (NOT the primary reason): perm-p 0.06 (misses 0.05); the effect is
+stop-dependent (ADR-scaled stop → p 0.30); and it inverts on NQ (PF 0.62, though the f2EL doesn't
+transfer to NQ so that test is weak). The ES year-concentration alone is decisive.
+
+**FINAL VERDICT: retire the entire fade-EMA thread.** Every form failed — down-cross strength
+(K-unstable / stale-cross artifact) and failed-reclaim (a 2022+2025-only mirage, 0 winners elsewhere).
+No robust ES EMA-context edge for the fade. Do NOT wire into the indicator. Book B (0015/0015b) remains
+the one validated result of the RevFT arc. Samir's recency correction was right and produced a better
 feature; it just didn't survive — a clean negative, not a mistake.
 
 ---
