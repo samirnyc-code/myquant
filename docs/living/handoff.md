@@ -77,6 +77,21 @@ every CT variant loses), better than a single fitted cell — but forward-valida
   at ~unchanged total; efficiency only.
 **Next:** forward-track neg∩drop-CT/wide+EOD on MES; regime-confluence sizing; NT8 signal-diff before live.
 
+**VALIDATION BATTERY DONE (mirrors the 2E 10-test battery; `scripts/revft_regime_stress.py`, note
+`0015b_revft_validation.md`) — 8 of 10 runnable, headline Book B clears them:**
+- **N1 permutation null: p<0.0001** (real $124/tr vs null μ≈$2) — the regime gate is NOT a
+  multiple-testing artifact (this is the headline; refutes the "1 of 26 subsets" worry).
+- **N2 gamma inversion: PASSES** — RevFT's neg-gamma edge is STRONGER OOS (tr PF 1.15/te 1.39),
+  opposite of the 2E pos/neg label that inverted (tr 2.07/te 0.91) and got killed.
+- Engine-invariance ✅ (pt_old≈pt_new $/tr), param-neighborhood ✅ plateau, pess-fills ✅.
+- **Book A (DROP-CT alone) is MARGINAL — retire standalone:** fails cost-stress (PF 1.12→1.01) and
+  goes negative on top-20 tail-jackknife. **Neg-gamma filter is load-bearing → trade Book B only.**
+- **Quantified risks:** tail-concentrated (top-20 of 1171 ≈ all profit, like 2E); honest block-boot
+  DD worst-1% = **−$59k/1 ES** (the sizing #); rolling-OOS 65% green quarters (2E was 78%).
+- **BLOCKED gates before capital:** #4 Databento clean-tick cross-check; #10 out-of-period ES
+  2010-2020 + cross-instrument NQ/MES (needs RevFT signal export off ES); #9 NT8 signal-diff +
+  forward MES real fills. Sequence #4 → #10 → #9; do NOT deploy on the in-sample battery alone.
+
 **Files (all committed `1bb8190`, `git add -f`):** `scripts/revft_regime_full.py` (sim, vendors
 pt_new + joins MQ gamma), `scripts/revft_regime_deep.py` (slicing + honest verdict),
 `scripts/revft_regime_2e.py` (superseded focused v), `scripts/revft_regime_chart.py`,
