@@ -79,12 +79,15 @@ contracts only on a bigger account. (MES @ $3 RT holds PF ~1.35; at $5 RT it sag
 On the honest block-bootstrap DD, 1 MES worst-1% = −$3,545 (−35.4k/10) — still clears $4,500. 1 MES holds.
 
 ## KNOWN RISKS (on the record)
-- **Tail-concentrated:** top 20 of 630 WT trades = all the profit; top 2 ≈ 24%. NOT flukes —
-  90% of top-20 on trend-expansion days (day-range >1.3×ADR), spread across all 6 years.
-  But ⇒ high variance, low statistical confidence, regime-dependent (a multi-year chop era is
-  the kryptonite; 2023 = weakest at 1.10–1.23). **Automation is the strategy** — any process
-  that can clip runners eats the edge.
-- ~20 *effective* observations over 5 yrs; PF CI straddles 1.0.
+- **Positive-skew / tail-dependent** (`regime_2e_effective_n.py`, 2026-07-25): drop top-20 → breakeven,
+  top-40 → loss. BUT the "top-20 = all profit" line is about the small NET residual and OVERSTATES it:
+  286 of 678 trades are winners; gross profit spread over top-48 (50%) / top-124 (80%). NOT flukes —
+  90% of the big winners on trend-expansion days (>1.3×ADR), spread across all 6 years. **Automation is
+  the strategy** — any process that clips runners eats the edge.
+- **CORRECTED (prior claims were WRONG, pessimistic):** effective N is NOT ~20 — **Kish n_eff = 115
+  winners / 273 all-trades.** PF CI does NOT straddle 1.0 — **bootstrap (iid & 5-block, 20k) P(PF>1) =
+  99.7–99.9%, PF 5th-pct 1.16–1.20, P(net>0) = 99.7%.** The edge is in-sample significant. The real
+  remaining risks are FORWARD/regime shift (bootstrap only measures in-sample variability) + scope (ES-only).
 - NT-derived tick series had ~20 bad closes 2021-23; Databento is the clean cross-check (untested here).
 - Second-PC engine (immediate-flip) changes state on 48% of days but PF ~identical (1.44 vs 1.45) —
   edge robust to engine; port not yet reference-day-diffed.

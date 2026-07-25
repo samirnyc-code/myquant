@@ -97,6 +97,11 @@ this session; charts in `docs/living/`.
   power=~20 eff obs (always was). Neither is "overfit." Tail-concentration (top-20≈99%) is a positive-skew
   FEATURE to size for (spread across all yrs, 90% on trend-expansion days), not a defect. YM/RTY would
   settle N=2 (no ticks). [Corrected from an earlier over-alarmist framing of this same result.]
+- **CORRECTED STATS (`regime_2e_effective_n.py`) — two claims I'd been parroting were WRONG (pessimistic):**
+  "~20 effective observations" → real Kish n_eff = **115 winners / 273 all-trades**. "PF CI straddles 1.0"
+  → bootstrap (iid & 5-block, 20k) **P(PF>1)=99.7–99.9%, PF 5th-pct 1.16–1.20, P(net>0)=99.7%** (edge is
+  in-sample significant). 286/678 trades are winners; gross profit spread over top-48(50%)/124(80%), not 20.
+  Still positive-skew/tail-dependent (drop top-40→loss) — a size-for-it feature. Real risks: forward/regime + scope.
 - **②b MES prop margin reconciled** (full 678): config −$3.3k was per-trade MC; honest daily-block boot worst-1%
   = **−$4,163** — 1 MES fits $4,500 both ways but thin cushion (~93% consumed in 1-in-100).
 - **Validation plan (this session):** ① NT8 signal-diff (needs NT8 replay; fade mis-wired — line 593 uses adrStopTicks
