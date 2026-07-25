@@ -61,6 +61,24 @@ def main():
     print("BASELINES (w30eod):"); line("A DROP-CT", t.loc[A, "w30eod"]); line("B NEG&DROP-CT", t.loc[B, "w30eod"])
     line("all (no gate)", t.w30eod)
 
+    # ===== SPEC SHEET for Book B =====
+    print("\n===== BOOK B SPEC SHEET (neg-gamma & drop-CT / wide-0.30xADR + hold-EOD, native entry) =====")
+    bb = t[B].copy()
+    bb["wide_pts"] = np.maximum(np.round(0.30 * bb.adr / 0.25) * 0.25, 2.0)
+    v = bb.w30eod.values; wins = v[v > 0]; losses = v[v < 0]
+    print(f"  trades n={len(bb)}   days={bb.Date.nunique()}   Long {(bb.dir=='L').sum()} / Short {(bb.dir=='S').sum()}")
+    print(f"  regime-at-signal mix (kept): BULL/BEAR with-trend {((bb.reg=='BULL')|(bb.reg=='BEAR')).sum()}  NEUTRAL {(bb.reg=='NEUTRAL').sum()}")
+    print(f"  ADR10 (pts): median {bb.adr.median():.1f}  [p10 {bb.adr.quantile(.1):.1f}, p90 {bb.adr.quantile(.9):.1f}]")
+    print(f"  STOP = 0.30xADR10 (floor 2.0pt): median {bb.wide_pts.median():.2f}pt = ${bb.wide_pts.median()*50:.0f}  [p10 {bb.wide_pts.quantile(.1):.2f}, p90 {bb.wide_pts.quantile(.9):.2f}]")
+    print(f"  native R (entry->extreme, pts): median {bb.R.median():.2f}  [p10 {bb.R.quantile(.1):.2f}, p90 {bb.R.quantile(.9):.2f}]")
+    print(f"  MFE/R median {(bb.mfe/bb.R).median():.2f}   MAE/R median {(bb.mae/bb.R).median():.2f}   P(MFE>=2R)={(bb.mfe>=2*bb.R).mean()*100:.0f}%")
+    print(f"  win {100*(v>0).mean():.1f}%   avg win ${wins.mean():.0f}   avg loss ${losses.mean():.0f}   payoff {wins.mean()/-losses.mean():.2f}")
+    print(f"  hours-of-fill kept: " + " ".join(f"{h}:{(bb.hour==h).sum()}" for h in sorted(bb.hour.unique())))
+    print("  OPTIONAL trims (same rule + filter):")
+    GOODH = {"09","10","11","12","13"}
+    h = t[B & t.hour.isin(GOODH)]; g = t[B & (t.gap <= 0.54)]
+    line("   + hours 09-13", h.w30eod); line("   + gap-skip<=0.54%", g.w30eod)
+
     # ===== N1 LABEL-PERMUTATION NULL =====
     print("\n===== N1 LABEL-PERMUTATION NULL (2000x; permute reg+mq across trades, re-gate) =====")
     print("H0: regime/gamma labels carry no info -> gate picks a random subset -> $/tr ~ base.")
