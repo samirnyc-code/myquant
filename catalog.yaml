@@ -239,7 +239,22 @@ families:
     count_rows: false
     useful_for: "Dated outputs of the S81 Grimes regime workstream: feature parquets (daily/60m/30m), v0 state parquets, Pythia validation tables vs rw/shuffle/ar1 nulls, and the event-study gates (compression breakout, Keltner pullback, Donchian). Research notes in docs/research_notes/grimes_regime/."
     access: "pd.read_parquet('data/regime/features_daily_20260723.parquet'); pd.read_csv('data/regime/events_gate_20260723.csv')"
-    gotchas: "v0 state-occupancy FAILED the null gate (bear-bounce = shuffle artifact — see RESULTS_v0_validation.md); only the Keltner pullback LONG event survived (N=15-18, X-of-Y evidence, RESULTS_event_tests.md). Daily bars from RTH 1m (gaps folded into next open); *_24h variants use the true CME session. All files dated YYYYMMDD — regenerate, don't edit."
+    gotchas: "v0 state-occupancy FAILED the null gate (bear-bounce = shuffle artifact — see RESULTS_v0_validation.md); only the Keltner pullback LONG event survived (N=15-18, X-of-Y evidence, RESULTS_event_tests.md). Daily bars from RTH 1m (gaps folded into next open); *_24h variants use the true CME session. All files dated YYYYMMDD — regenerate, don't edit. ⚠ gamma_regime_daily_2007_2026.csv (v1, cumulative zero-cross) is SUPERSEDED by the mq_gamma_regime family — do not use. The MQ reverse-engineering outputs are cataloged separately (key: mq_gamma_regime)."
+
+  - key: mq_gamma_regime
+    title: "MQ-style gamma levels 19y backfill + reverse-engineering outputs (S84)"
+    category: Research/WFA
+    paths:
+      - data/regime/mq_reveng
+      - data/regime/mq_regime_daily_2007_2026_v2.csv
+      - data/regime/mq_regime_19y_20260725.png
+    produced_by: "scripts/mq_regime_backfill_20260725.py (series); scripts/mq_reveng_*_20260724.py (spec search); scripts/mq_regime_page_20260725.py (MC page)"
+    update_cadence: on-demand
+    expected_freshness_days: 999
+    count_rows: false
+    useful_for: "THE cracked MenthorQ replication (S84 6-agent reverse-engineering): mq_regime_daily_2007_2026_v2.csv = 4,789 daily CR/PS/HVL + $-GEX values + positive/negative gamma regime label, 2007-06..2026-07, computed from ORATS SPX chains with the inferred MQ spec (net GEX = gamma*(callOI-putOI)*100*spot, dte>=2; HVL = per-strike sign-flip nearest spot). Validated vs 1,181 scraped MQ days: regime agreement 95.1%, HVL medAE 10pt. mq_reveng/ holds the ground truth (mq_truth.csv), all spec-search scoreboards, and final_replication.csv. MC page: /artifact/mq_gamma_regime_19y."
+    access: "pd.read_csv('data/regime/mq_regime_daily_2007_2026_v2.csv', parse_dates=['date']); spec in docs/research_notes/mq_level_reveng_20260724.md"
+    gotchas: "Pre-2022 fidelity ~89-92% (no daily SPX expiries then; 2021 is the worst overlap year) vs ~97% recent. 0DTE set + GEX1-10 intentionally NOT in the backfill (EOD chains can't see MQ's intraday inputs). ORATS series ends 2026-07-15 — extend via a fresh ORATS pull, then rerun backfill + page scripts. chain_slices_overlap.parquet (163MB) is NOT in git — rebuild with mq_reveng_build_slices_20260724.py."
 
   # ---------------------------------------------------------------- Educational
   - key: mq_knowledge

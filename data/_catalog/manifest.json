@@ -1,5 +1,5 @@
 {
- "generated": "2026-07-23T09:12:56",
+ "generated": "2026-07-25T04:42:18",
  "families": {
   "vendor_flatfiles": {
    "n": 0,
@@ -162,29 +162,29 @@
    "rows": null
   },
   "bars": {
-   "n": 226,
-   "size": 89377899,
+   "n": 228,
+   "size": 91879948,
    "zero_byte": 0,
-   "newest": 1784714001.1791966,
+   "newest": 1784793097.195646,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
    "per_path": {
     "data/bars": {
      "exists": true,
-     "n": 226,
-     "size": 89377899,
-     "newest": 1784714001.1791966,
+     "n": 228,
+     "size": 91879948,
+     "newest": 1784793097.195646,
      "zero_byte": 0
     }
    },
    "rows": null
   },
   "mq_levels_history": {
-   "n": 4851,
-   "size": 411752793,
+   "n": 5568,
+   "size": 515115588,
    "zero_byte": 2,
-   "newest": 1784754928.67444,
+   "newest": 1784927725.7628317,
    "exists_any": true,
    "health": "ok",
    "reasons": [
@@ -193,9 +193,9 @@
    "per_path": {
     "data/menthorq": {
      "exists": true,
-     "n": 4851,
-     "size": 411752793,
-     "newest": 1784754928.67444,
+     "n": 5568,
+     "size": 515115588,
+     "newest": 1784927725.7628317,
      "zero_byte": 2
     }
    },
@@ -212,10 +212,10 @@
    }
   },
   "mq_harvest": {
-   "n": 1330,
-   "size": 335689376,
+   "n": 1663,
+   "size": 423693261,
    "zero_byte": 1,
-   "newest": 1784754327.701926,
+   "newest": 1784927043.0804672,
    "exists_any": true,
    "health": "ok",
    "reasons": [
@@ -224,9 +224,9 @@
    "per_path": {
     "data/menthorq/harvest": {
      "exists": true,
-     "n": 1330,
-     "size": 335689376,
-     "newest": 1784754327.701926,
+     "n": 1663,
+     "size": 423693261,
+     "newest": 1784927043.0804672,
      "zero_byte": 1
     }
    },
@@ -236,7 +236,7 @@
    "n": 1,
    "size": 20480,
    "zero_byte": 0,
-   "newest": 1784726120.9651113,
+   "newest": 1784898924.9698758,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
@@ -245,26 +245,26 @@
      "exists": true,
      "n": 1,
      "size": 20480,
-     "newest": 1784726120.9651113,
+     "newest": 1784898924.9698758,
      "zero_byte": 0
     }
    },
    "rows": null
   },
   "mq_mine": {
-   "n": 1012,
-   "size": 39302739,
+   "n": 1396,
+   "size": 54279530,
    "zero_byte": 0,
-   "newest": 1784723492.595324,
+   "newest": 1784896296.151175,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
    "per_path": {
     "data/menthorq/mine": {
      "exists": true,
-     "n": 979,
-     "size": 39242136,
-     "newest": 1784723492.595324,
+     "n": 1363,
+     "size": 54218927,
+     "newest": 1784896296.151175,
      "zero_byte": 0
     },
     "data/menthorq/academy": {
@@ -278,38 +278,40 @@
    "rows": null
   },
   "options_sim": {
-   "n": 114,
-   "size": 6250104,
-   "zero_byte": 0,
-   "newest": 1784751685.9366088,
+   "n": 153,
+   "size": 8855767,
+   "zero_byte": 1,
+   "newest": 1784924495.572075,
    "exists_any": true,
    "health": "ok",
-   "reasons": [],
+   "reasons": [
+    "1 zero-byte file(s)"
+   ],
    "per_path": {
     "data/options_sim": {
      "exists": true,
-     "n": 114,
-     "size": 6250104,
-     "newest": 1784751685.9366088,
-     "zero_byte": 0
+     "n": 153,
+     "size": 8855767,
+     "newest": 1784924495.572075,
+     "zero_byte": 1
     }
    },
    "rows": null
   },
   "options_log": {
-   "n": 16,
-   "size": 1493047,
+   "n": 22,
+   "size": 2387042,
    "zero_byte": 0,
-   "newest": 1784751605.2205808,
+   "newest": 1784924405.6922524,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
    "per_path": {
     "data/options_log": {
      "exists": true,
-     "n": 16,
-     "size": 1493047,
-     "newest": 1784751605.2205808,
+     "n": 22,
+     "size": 2387042,
+     "newest": 1784924405.6922524,
      "zero_byte": 0
     }
    },
@@ -361,19 +363,52 @@
    "rows": null
   },
   "regime": {
-   "n": 20,
-   "size": 4827378,
+   "n": 88,
+   "size": 177915735,
    "zero_byte": 0,
-   "newest": 1784790666.3246138,
+   "newest": 1784946918.835693,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
    "per_path": {
     "data/regime": {
      "exists": true,
-     "n": 20,
-     "size": 4827378,
-     "newest": 1784790666.3246138,
+     "n": 88,
+     "size": 177915735,
+     "newest": 1784946918.835693,
+     "zero_byte": 0
+    }
+   },
+   "rows": null
+  },
+  "mq_gamma_regime": {
+   "n": 58,
+   "size": 172148396,
+   "zero_byte": 0,
+   "newest": 1784946918.835693,
+   "exists_any": true,
+   "health": "ok",
+   "reasons": [],
+   "per_path": {
+    "data/regime/mq_reveng": {
+     "exists": true,
+     "n": 56,
+     "size": 171453968,
+     "newest": 1784932880.1670241,
+     "zero_byte": 0
+    },
+    "data/regime/mq_regime_daily_2007_2026_v2.csv": {
+     "exists": true,
+     "n": 1,
+     "size": 590552,
+     "newest": 1784946684.5176923,
+     "zero_byte": 0
+    },
+    "data/regime/mq_regime_19y_20260725.png": {
+     "exists": true,
+     "n": 1,
+     "size": 103876,
+     "newest": 1784946918.835693,
      "zero_byte": 0
     }
    },
@@ -400,9 +435,9 @@
   },
   "vix_ib_daily": {
    "n": 6,
-   "size": 1395796,
+   "size": 1395969,
    "zero_byte": 0,
-   "newest": 1784726763.1216152,
+   "newest": 1784899563.448565,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
@@ -410,8 +445,8 @@
     "data/vix_daily.csv": {
      "exists": true,
      "n": 1,
-     "size": 328880,
-     "newest": 1784726763.1216152,
+     "size": 329053,
+     "newest": 1784899563.448565,
      "zero_byte": 0
     },
     "data/vix_daily.parquet": {
@@ -524,78 +559,76 @@
    "rows": null
   },
   "databento_mbo": {
-   "n": 180,
-   "size": 41926956801,
+   "n": 184,
+   "size": 41932526347,
    "zero_byte": 0,
-   "newest": 1784702605.091069,
+   "newest": 1784793065.4550152,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
    "per_path": {
     "data/databento": {
      "exists": true,
-     "n": 180,
-     "size": 41926956801,
-     "newest": 1784702605.091069,
+     "n": 184,
+     "size": 41932526347,
+     "newest": 1784793065.4550152,
      "zero_byte": 0
     }
    },
    "rows": null
   },
   "depth_l2": {
-   "n": 12,
-   "size": 703312250,
-   "zero_byte": 1,
-   "newest": 1784790750.4992979,
+   "n": 14,
+   "size": 1985486208,
+   "zero_byte": 0,
+   "newest": 1784932935.756518,
    "exists_any": true,
    "health": "ok",
-   "reasons": [
-    "1 zero-byte file(s)"
-   ],
+   "reasons": [],
    "per_path": {
     "data/depth": {
      "exists": true,
-     "n": 12,
-     "size": 703312250,
-     "newest": 1784790750.4992979,
-     "zero_byte": 1
+     "n": 14,
+     "size": 1985486208,
+     "newest": 1784932935.756518,
+     "zero_byte": 0
     }
    },
    "rows": null
   },
   "footprint": {
-   "n": 31,
-   "size": 4556757,
+   "n": 47,
+   "size": 10520186,
    "zero_byte": 0,
-   "newest": 1784750105.3551412,
+   "newest": 1784932935.6467805,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
    "per_path": {
     "data/footprint": {
      "exists": true,
-     "n": 31,
-     "size": 4556757,
-     "newest": 1784750105.3551412,
+     "n": 47,
+     "size": 10520186,
+     "newest": 1784932935.6467805,
      "zero_byte": 0
     }
    },
    "rows": null
   },
   "discord_intel": {
-   "n": 2322,
-   "size": 195176994,
+   "n": 3642,
+   "size": 201538511,
    "zero_byte": 0,
-   "newest": 1784788418.1292639,
+   "newest": 1784940237.5767581,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
    "per_path": {
     "data/discord": {
      "exists": true,
-     "n": 2322,
-     "size": 195176994,
-     "newest": 1784788418.1292639,
+     "n": 3642,
+     "size": 201538511,
+     "newest": 1784940237.5767581,
      "zero_byte": 0
     }
    },
@@ -621,7 +654,7 @@
    "rows": null
   }
  },
- "total_size": 75777735486,
- "total_files": 22709,
- "scan_seconds": 0.205738
+ "total_size": 77635386040,
+ "total_files": 25658,
+ "scan_seconds": 0.705094
 }
