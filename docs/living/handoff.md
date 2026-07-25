@@ -49,6 +49,40 @@ concurrent "other chat" running the sim task (stress-test #5 / engine A/B `newen
 new-engine PF 1.43 vs 1.44). Its work was uncommitted when I checked — **pull/re-verify worktree
 state before acting** and do NOT sweep its files into a commit.
 
+### ⏸️ PICK UP SOON — per-bar Python↔NT comparison harness (brainstormed, NOT decided, NOT built)
+
+**The bigger frame behind the marks-export work.** Goal: have the current Python regime engine AND
+the NT `RegimePhaseMachine` indicator each emit a **recordable per-5M-RTH-bar output**, diff them
+side-by-side, treat **Python as ground truth**, and drive NT to a **100% match given identical
+input**. Then finding porting bugs = reading the first divergent bar.
+
+**Established this session (verified):**
+- The 5-yr backfill ticks are **massive.io on BOTH sides** (Samir feeds the same ticks into NT), so
+  historical days are **already input-identical → diffable now, no export needed**.
+- Python's 5M bars are **resampled straight from the tick parquets** (`massive.py:202`,
+  `resample("5min", label="left", closed="left")`, CT), schema `ticks_continuous/<d>.parquet` =
+  `DateTime,Price,Volume`. So bars = f(ticks, binning); same ticks → same bars.
+- Existing NT tick-export path: `data/nt_import/ES_MAS *.Last.txt` (the 24h-continuous pipeline).
+
+**The only genuinely new plumbing = pull YESTERDAY's NT-realtime-saved ticks into Python** (live day,
+NT is the tick source). Two approaches — **UNDECIDED (Samir paused here):**
+- **A. Reuse existing export:** NT → Historical Data → Export (Tick) → `*.Last.txt` → converter →
+  `ticks_continuous/<d>.parquet` → downstream just runs. Cheapest.
+- **B. (assistant's vote) Hermetic:** the indicator dumps its OWN consumed input — per-bar OHLC +
+  the ordered `(bar,price)` `OnPriceChange` stream it processed — and Python replays THAT through
+  `phase_transitions`. Nothing left to reconcile (no massive-vs-NT, no resample, no timestamp
+  question); works for any day.
+
+**Gotchas captured:** (1) preserve **intra-second tick ORDER** — OB first-break (U-first/D-first)
+depends on it; a second-resolution CSV re-sorted by timestamp manufactures fake OB diffs. (2) Put
+**OHLC + break-order in every output row** so the diff self-labels data-mismatch vs logic-mismatch.
+(3) Diff tool should report the **FIRST divergent bar** (bugs cascade); 02-24/04-12 should be
+zero-divergence when the port is right. (4) Confirm once that NT's 5M binning == pandas left/left CT.
+
+**DECISION PENDING that defines the whole harness:** A vs B for the canonical input. Nothing built
+for this yet. Existing pieces to reuse: `scratchpad/regime_marks_export.py` (per-event, Python),
+`scratchpad/diff_marks.py`, indicator marks-dump (`regime/indep b494747`).
+
 ---
 
 ## S84 (2026-07-24→25) — MenthorQ level methodology REVERSE-ENGINEERED (6-agent workflow, branch `s75-live-dashboard`)
@@ -91,6 +125,18 @@ expiry dies — 2,377/4,789 days total, **865/866 days 2023+** — sanity vs MQ:
 still not backfilled. Cataloged as family `mq_gamma_regime` (+ MC Artifact Library page
 `/artifact/mq_gamma_regime_19y`); Data Catalog :8620 had died silently — restarted with user
 approval. OPEN IDEA: pipeline_health probe for the 85xx/86xx dashboard ports.
+
+**0DTE HISTORY RECONCILIATION (settled a cross-chat discrepancy, all verified from raw files):**
+- **SPX**: 1,183 sessions of MQ 0DTE levels 2021-09-27..2026-07-15 (raw-API audited — 2021's
+  are ~77% copies of main levels; **meaningful from 2022-05** daily expiries, **clean 2023-01+**).
+- **ES1!/NQ1!/RTY1!/CL1!/GC1!**: exactly **530 sessions, 2024-07-01..2026-07-23** — MQ futures
+  history starts 2024-07-01. The "530 days of 0DTE" figure from another chat = the FUTURES
+  tickers, not SPX. Both correct.
+- **ES 0DTE levels for the regime engine/sim: `data/menthorq/ES1!_mq_levels_history.csv`**
+  (cols cr0/ps0/hvl0/gw0 + _gex, session_date/eod_date keys; futures price scale — no basis
+  conversion; dedup keep-last per session_date; raw audit ES1!_mq_levels_history_raw.jsonl).
+- Evidence: `mq_0dte_authenticity_20260725.csv` + `mq_0dte_extent_alltickers_20260725.csv`
+  in data/regime/mq_reveng/ (scripts of the same names in scripts/).
 
 ---
 
