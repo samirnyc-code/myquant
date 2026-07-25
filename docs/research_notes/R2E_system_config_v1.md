@@ -94,12 +94,17 @@ On the honest block-bootstrap DD, 1 MES worst-1% = −$3,545 (−35.4k/10) — s
 - **ES control (same harness): 573 tr, +$86,848, PF 1.45, green 6/6, maxDD −$8.8k — reproduces exactly.**
 - **NQ literal params: 589 tr, +$990, PF 1.00, green 3/6, maxDD −$49.4k.** NQ scaled-retest (to %-of-ADR):
   515 tr, −$650, PF 1.00 — scaling did NOT rescue it, so not a parameter artifact.
-- **VERDICT: the edge is ES-SPECIFIC — does not transfer to NQ.** Setup fires at the same rate (structure
-  detected equally) but carries no edge on NQ. Biggest robustness limitation on record: within-ES tests
-  (train/test, WFA, plateau) can't see this because they live inside ES. Caveats: NQ is the most
-  momentum/tech index future (least S&P-like); YM/RTY (more ES-like) untested (no tick data); pre-2021
-  ES untested (Databento-blocked). Honest confidence: *validated within ES 2021-26, does NOT generalize
-  to NQ, unconfirmed outside that window.*
+- **Recalibration test** (`regime_2e_nq_recalib.py`): re-tuned stop×gap on NQ's OWN train data → best NQ
+  train PF 1.24, decays to ~1.0 on NQ test. So NQ lacks the edge even recalibrated — **not a calibration
+  mismatch; NQ just doesn't have the structure.**
+- **VERDICT: the edge is ES-SPECIFIC — this is a SCOPE boundary, NOT an overfitting verdict.** Overfit
+  edges fail their OWN OOS; ES does not (WFA 14/18 green, plateau, jackknife, test≥train). NQ non-transfer
+  bounds the scope to ES; it does NOT weaken the within-ES OOS evidence. Instrument-specific real edges are
+  normal. Do not treat cross-instrument transfer as a required validation — it isn't. Caveats: NQ is the
+  least-S&P-like major; YM/RTY (more ES-like) untested (no ticks); pre-2021 ES Databento-blocked. The one
+  thing N=2 can't settle (is ES "the real one" or "the lucky one") needs YM/RTY, not more NQ.
+  **Honest scope+power statement: real ES-specific positive-skew edge, validated within ES 2021-26; scope
+  is ES-only; statistical power is ~20 effective obs (always was). Neither is "overfit."**
 
 ## RETRACTED / DEAD (do not resurrect)
 Fixed targets (all) · regime-flip exits (0.72/0.20) · 1st entries (OOS-dead) · close-confirm &

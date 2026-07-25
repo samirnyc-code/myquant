@@ -87,12 +87,16 @@ this session; charts in `docs/living/`.
   edge is RISK not return: -9% realized DD vs SPX -25%, corr -0.15 -> diversifier to run ALONGSIDE SPX on
   same margin, roughly index-parity standalone over this bull.
 
-- **⚠️ STRESS #10 CROSS-INSTRUMENT (NQ) — PARTIAL FAIL, the day's biggest finding** (`regime_2e_nq_crossinstrument.py`,
-  real NQ ticks `ticks_continuous_NQ`): ES control via same harness reproduces exactly (573tr/PF1.45/green 6/6);
-  **NQ = PF 1.00 breakeven (literal AND scaled-retest), 3/6 red years.** Setup fires at same rate but NO edge →
-  **the edge is ES-SPECIFIC, does not transfer to NQ.** Within-ES tests (train/test, WFA, plateau) can't see this.
-  Caveats: NQ is most momentum/tech index (least S&P-like); YM/RTY untested (no ticks); pre-2021 Databento-blocked.
-  Honest confidence now: validated within ES 2021-26, does NOT generalize to NQ, unconfirmed outside window.
+- **STRESS #10 CROSS-INSTRUMENT (NQ) — the edge is ES-SPECIFIC (a SCOPE boundary, NOT overfitting)**
+  (`regime_2e_nq_crossinstrument.py` + `_recalib.py`, real NQ ticks): ES control via same harness reproduces
+  exactly (573tr/PF1.45/green 6/6). NQ = PF 1.00 (literal, scaled-retest, AND re-tuned on NQ's own train:
+  best train 1.24 → test ~1.0). NQ just lacks the structure. **This does NOT impugn the within-ES OOS
+  evidence** (overfit fails its OWN OOS; ES doesn't — WFA/plateau/jackknife/test≥train all pass).
+  Cross-instrument transfer is NOT a required validation — instrument-specific real edges are normal.
+  Honest statement: real ES-specific positive-skew edge, validated within ES 2021-26; scope=ES-only;
+  power=~20 eff obs (always was). Neither is "overfit." Tail-concentration (top-20≈99%) is a positive-skew
+  FEATURE to size for (spread across all yrs, 90% on trend-expansion days), not a defect. YM/RTY would
+  settle N=2 (no ticks). [Corrected from an earlier over-alarmist framing of this same result.]
 - **②b MES prop margin reconciled** (full 678): config −$3.3k was per-trade MC; honest daily-block boot worst-1%
   = **−$4,163** — 1 MES fits $4,500 both ways but thin cushion (~93% consumed in 1-in-100).
 - **Validation plan (this session):** ① NT8 signal-diff (needs NT8 replay; fade mis-wired — line 593 uses adrStopTicks
