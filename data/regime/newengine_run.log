@@ -1,0 +1,31 @@
+[300/1267] rows=285 (122s)
+[450/1267] rows=453 (196s)
+[900/1267] rows=1013 (422s)
+[1050/1267] rows=1194 (490s)
+[1200/1267] rows=1364 (569s)
+
+DONE 601s
+
+===== OLD engine =====
+  WT-L   n= 282  net  +37,878  $/tr +134.3  PF 1.44  (tr 1.6 te 1.33)
+  WT-S   n= 291  net  +48,970  $/tr +168.3  PF 1.46  (tr 1.43 te 1.49)
+  FADE   n= 105  net   +6,875  $/tr  +65.5  PF 1.35  (tr 1.28 te 1.42)
+  SYSTEM n= 678  net  +93,722  PF 1.44  (tr 1.48 te 1.42)  maxDD -9,502  MC-1% -23,509
+
+===== NEW engine =====
+  WT-L   n= 335  net  +41,275  $/tr +123.2  PF 1.41  (tr 1.61 te 1.27)
+  WT-S   n= 326  net  +54,582  $/tr +167.4  PF 1.47  (tr 1.38 te 1.53)
+  FADE   n= 112  net   +6,440  $/tr  +57.5  PF 1.31  (tr 1.13 te 1.54)
+  SYSTEM n= 773  net +102,298  PF 1.43  (tr 1.44 te 1.42)  maxDD -14,288  MC-1% -25,260
+
+PF by year (system):
+engine   NEW   OLD
+Date              
+2021    1.21  1.29
+2022    1.64  1.82
+2023    1.29  1.17
+2024    1.58  1.47
+2025    1.39  1.47
+2026    1.18  1.19
+
+saved C:\Users\Admin\myquant-regime\docs\living\newengine_20260724.png

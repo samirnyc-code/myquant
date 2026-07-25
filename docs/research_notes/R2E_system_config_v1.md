@@ -46,6 +46,28 @@ trend only (never NEUTRAL).
   not 1 ES (−$9.5k realized DD = 47% of $20k; stress case = ruin on 1 ES).
 - MES viability marginal after $5 RT commission — negotiate cheaper micros or run ES.
 
+## STRESS TEST #5 RESULT — engine invariance (DONE, PASS)
+Full three-book on the NEW 2nd-PC immediate-flip engine vs OLD (same everything else):
+- OLD: n=678, +$93,722, **PF 1.44**, maxDD −$9,502, MC-1% −$23.5k.
+- NEW: n=773, +$102,298, **PF 1.43**, maxDD −$14,288, MC-1% −$25.3k.
+- Both halves green, green every year. Fade survives (1.31 vs 1.35). **Edge is ROBUST to the
+  engine** — new engine is higher-capacity (+95 trades, +$8.6k) at ~identical PF, but DEEPER
+  drawdown (−$14.3k vs −$9.5k realized). Caveat: pt_new is a verbatim lift, not yet
+  reference-day-diffed. Use the deeper NEW-engine DD for sizing if adopting the new engine.
+
+## PROP / MES SIZING (EOD-trail, corrected 2026-07-25)
+The prop DD is an **EOD (end-of-day closed) trail**, NOT intraday — so the flat-by-close
+system is judged only on daily closed equity (my earlier intraday-unrealized objection was WRONG).
+EOD-trail DD, three-book MES @ **$3 RT**, vs a **$4,500** trailing limit:
+| contracts | realized | MC-5% | MC-1% | net/yr | fits $4,500? |
+|---|---|---|---|---|---|
+| **1 MES** | −$1,158 | −$2,778 | −$3,340 | +$1,517 | **YES (even worst-1% clears)** |
+| 2 MES | −$2,316 | −$5,422 | −$6,616 | +$3,034 | NO (bad-1-in-20 blows it) |
+| 3 MES | −$3,473 | −$8,363 | −$9,829 | +$4,552 | NO |
+**Verdict: 1 MES is prop-safe on a $4,500 EOD-trail (even the 1-in-100 stress stays under).**
+2 MES is NOT — a plausible ~1-in-20 sequence trips the limit. Prop route = 1 MES only; scale
+contracts only on a bigger account. (MES @ $3 RT holds PF ~1.35; at $5 RT it sags.)
+
 ## KNOWN RISKS (on the record)
 - **Tail-concentrated:** top 20 of 630 WT trades = all the profit; top 2 ≈ 24%. NOT flukes —
   90% of top-20 on trend-expansion days (day-range >1.3×ADR), spread across all 6 years.
