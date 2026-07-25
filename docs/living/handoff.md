@@ -6,6 +6,41 @@ pipeline + S77 security hardening; merged S76 Mac swing-levels work)
 
 ---
 
+## S85 (2026-07-25) — MC setups × 2E regime engine: NEGATIVE — the two books don't cross-pollinate (branch `s75-live-dashboard`)
+
+**Premise (user):** take the latest fast-flip tick-driven regime engine + the second-entry
+book's machinery (vol stop, gap gate) and see if any of it improves the MC/CC breakout setups.
+Ran in two staged passes (user chose filters-only first). **Result: clean, decisive NO on every
+application.** Both books stay frozen and independent.
+
+**Built (committed on `s75-live-dashboard`):**
+- `scripts/regime_label_engine.py` — reusable class port of `scratchpad/regime_phase_machine.py`
+  (the fast-flip engine). Emits per-5M-bar regime (neutral/bull/bear) at bar CLOSE (causal).
+  **Self-test in lockstep with the validated standalone: 2022-02-24=35 pivots, 2022-04-12=36.**
+- `scripts/mc_regime_label_cache.py` → `data/regime/mc_signal_day_regime.parquet` (1,203 signal
+  days, tick replay ~7min). Resumable.
+- `scripts/mc_regime_filter_study.py` (filters-only) + `scripts/mc_regime_harness_swap.py`
+  (full 2E exec). Scoreboards: `mc_regime_filter_scoreboard_20260725.csv`,
+  `mc_regime_harness_swap_scoreboard_20260725.csv`.
+
+**Findings (harness gate passed — frozen Stack v2 book reproduces: +0.135R, PF 1.33, green 6/6):**
+- **GAP GATE (|RTH gap|>0.54%) — INERT on MC.** Identical netR (+0.135), just deletes 24% of
+  trades; the skipped big-gap days ran AT book average.
+- **REGIME GATE — does not add / hurts.** As an add-on netR moves within noise while cutting the
+  book; as a replacement for the crude F1 counter-IB gate it is strictly WORSE (0.107/0.090 vs
+  0.135) — the simple IB-break state beats the phase machine as a directional filter. **With-trend
+  kills LONGS** (an MC breakout often IS the regime change → gate is late by construction).
+- **2E EXIT (0.30×ADR vol stop + hold-to-close) — NEUTRAL for MC.** On stackv2: +0.143R PF 1.27
+  ≈ frozen 3R/BE (+0.135R PF 1.33); only change is higher WR (46 vs 40%), same net edge.
+- **CC trigger in the FULL 2E harness (regime+gap+vol-stop+hold) = PF 1.10, green 4/6, $35/tr —
+  loses decisively to the 2E second-entry trigger** (PF 1.44, green 6/6). CC is a worse trigger
+  for that harness.
+- **Conclusion:** MC edge = its own stack entry filters + simple exit; 2E edge = second-entry
+  trigger + with-trend + runner exit. Separately optimized, do not combine. Reinforces note 0009.
+  `regime_label_engine.py` is now a reusable causal per-bar regime labeler for any future study.
+
+---
+
 ## S84b (2026-07-25, night) — NT8 RegimePhaseMachine indicator: marks-export + engine-port diff harness (regime work lives on branch `regime/indep`)
 
 **Goal:** audit the NT8 `RegimePhaseMachine` indicator (the "UNVALIDATED PORT" of the
