@@ -59,9 +59,14 @@ b64 = base64.b64encode(png.read_bytes()).decode()
 
 # ---- html
 recent = d.tail(30).iloc[::-1]
+def _f(v):
+    return f"{v:,.0f}" if np.isfinite(v) else "—"
+
 rows = "\n".join(
     f"<tr><td>{ix:%Y-%m-%d}</td><td>{r.spot:,.0f}</td><td>{r.hvl:,.0f}</td>"
     f"<td>{r.cr:,.0f}</td><td>{r.ps:,.0f}</td>"
+    f"<td>{_f(r.get('cr0', np.nan))}</td><td>{_f(r.get('ps0', np.nan))}</td>"
+    f"<td>{_f(r.get('hvl0', np.nan))}</td>"
     f"<td class='{'pg' if r.regime=='positive_gamma' else 'ng'}'>{r.regime.replace('_',' ')}</td></tr>"
     for ix, r in recent.iterrows())
 stat_html = "\n".join(f"<div class='tile'><div class='k'>{k}</div><div class='v'>{v}</div></div>"
@@ -90,7 +95,11 @@ pre-2022 expect ~89–92% fidelity (no daily expiries then) · generated {dt.dat
 <div class="tiles">{stat_html}</div>
 <img src="data:image/png;base64,{b64}" alt="19y gamma regime chart">
 <h2>Last 30 sessions</h2>
-<table><tr><th>date</th><th>spot</th><th>HVL</th><th>CR</th><th>PS</th><th>regime</th></tr>
+<p class="meta">0DTE levels (CR0/PS0/HVL0) from the prior day's dying-expiry chain — treat as
+zones, not exact strikes (~62% within 25pts vs MQ; MQ uses intraday inputs EOD chains lack).
+Coverage: daily from 2023, Mon/Wed/Fri 2016–22, sparse before.</p>
+<table><tr><th>date</th><th>spot</th><th>HVL</th><th>CR</th><th>PS</th>
+<th>CR0</th><th>PS0</th><th>HVL0</th><th>regime</th></tr>
 {rows}</table>
 </body></html>"""
 out = ROOT / "docs" / "artifacts" / "mq_gamma_regime_19y.html"

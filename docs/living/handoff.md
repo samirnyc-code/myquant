@@ -85,7 +85,12 @@ pre-2022, ~96%+ recent. 0DTE set NOT trustworthy historically.
 CR/PS/HVL + gex values + net_total_gex + regime label; `mq_regime_backfill_20260725.py`).
 Sanity gate vs MQ truth on the 1,181-day overlap: **regime agreement 95.1%, HVL medAE 10pt**
 — reproduces the synthesis. The v1 file (`gamma_regime_daily_2007_2026.csv`) is SUPERSEDED —
-do not use it. 0DTE/GEX1-10 intentionally not backfilled.
+do not use it. **0DTE set ADDED on user call** (relevant 2023+): cr0/ps0/hvl0/gw0 wherever an
+expiry dies — 2,377/4,789 days total, **865/866 days 2023+** — sanity vs MQ: cr0 24% exact /
+62% within-25, medAE 25pt (known intraday-data ceiling → zones, not exact strikes). GEX1-10
+still not backfilled. Cataloged as family `mq_gamma_regime` (+ MC Artifact Library page
+`/artifact/mq_gamma_regime_19y`); Data Catalog :8620 had died silently — restarted with user
+approval. OPEN IDEA: pipeline_health probe for the 85xx/86xx dashboard ports.
 
 ---
 
