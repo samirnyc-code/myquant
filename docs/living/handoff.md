@@ -6,6 +6,50 @@ pipeline + S77 security hardening; merged S76 Mac swing-levels work)
 
 ---
 
+## S85c (2026-07-25) — 2E-book reproductions + regime-gate comparison + tick-proxy fidelity + Databento data audit
+
+**Regime/2E work is on branch `regime/indep` (worktree `C:\Users\Admin\myquant-regime`), pushed.**
+Two new committed studies there (`e970499`, `2e81320`) + that worktree's handoff updated (S84 block).
+
+- **Reproduced the agreed three-book 2E system, 5-yr ES tick** — OLD engine **+$93,722 / 678 tr /
+  PF 1.44 / maxDD −$9,502**; NEW immediate-flip engine **+$102,298 / 773 tr / PF 1.43 / maxDD
+  −$14,288** (+95 tr, +$8.6k, ~flat PF, ~50% deeper DD). Both match frozen `R2E_system_config_v1.md`.
+  The +100k "with more trades" the user recalled = the NEW engine.
+- **REGIME-GATE COMPARISON** (`regime_2e_gate_compare.py`): same WT 2E book, only the gate differs.
+  **PHASE (validated phase machine) +$86,848 / PF 1.45 / net-DD 9.83 — decisively best.
+  NONE (no gate) +$67,422 / PF 1.10 (raw 2E ~dead, 3× trades/DD). EMA20 +$71,572 / PF 1.20**
+  (real but weak, 2021 losing 0.92). Only the phase gate filters the SHORT side. **Gate = the edge.**
+  → goes into the final 2E-book artifact.
+- **TICK-PROXY FIDELITY** (`regime_2e_tickproxy_fidelity.py`): can a 1-MIN backfill replace ticks?
+  On 2021-26 (both available) reconstruct pseudo-ticks from `_continuous_1m.parquet` and run the
+  identical PHASE-gate WT book vs real ticks. **Regime-label agreement 99.89% per RTH 5M bar
+  (73,823/73,906, 930 days)** — the engine incl. OB break-ordering is ~perfectly reproduced by
+  1-min. Book PnL REAL +$86,848/PF 1.45 vs PROXY +$76,005/PF 1.35 (every year green). The ~12% gap
+  is the FILL SIM, not the signal; hits shorts hardest. Proxy mildly PESSIMISTIC = safe.
+  **VERDICT: a 1-min pre-2021 backfill is a trustworthy kill-test — ticks NOT needed for history.**
+
+- **DATABENTO DATA AUDIT (verified by reading the actual files, not the handoff):**
+  - **On disk = L3 (mbo), 6 months, 2 batches** — job `4T649EM33V` (Jan 1–Mar 31 2026, 77 files) +
+    `JRSPF47X5J` (Apr 1–Jul 20 2026, 95 files), ~20GB+20GB DBN/zstd, `ES.FUT` parent. Decoded both:
+    `meta.schema=mbo`, per-order `order_id` + A/C/M/F/T actions = L3 signature (NOT mbp-10). **This is
+    the L3 iceberg/queue data** — bought over L2 because native CME iceberg refill detection is
+    deterministic only from MBO (S78 rationale; MBP-10 can't).
+  - **Schema map for reference:** L1=`mbp-1`/`tbbo`, **L2=`mbp-10`**, **L3=`mbo`** (Market-By-Order).
+  - **Queued today (2026-07-25, not yet downloaded):** `X98V5EDDHH` + `AU7NMUKBYK` = **DUPLICATE**
+    ES ohlcv-1m 2010→2026 (the pre-2021 1-min backfill, submitted twice — user emailed support to
+    cancel one); `HUUY5RDR7V` = **mbp-10 (L2)** ES Nov 1–Dec 26 2025. All `ES.FUT` parent (include
+    calendar spreads → filter to front-month outright on convert).
+  - API key stored gitignored at `%LOCALAPPDATA%\myquant\databento.json` (key was pasted in-chat →
+    **regenerate it**). Databento batch API has **no cancel method** — cancellation is support-email only.
+
+**PENDING (next session):**
+1. Download the 1-min pull when `done` → build panama-roll converter (front-month, seam-check vs
+   `_continuous_1m.parquet` at 2021-06) → run the 2E book across **2010–2020 (true OOS, never tested)**.
+   If PF ≥ ~1.3 there, the edge is structural across a decade of unseen regimes.
+2. Download the `mbp-10` L2 job → catalog. Confirm support cancelled the duplicate 1-min job.
+
+---
+
 ## S85b (2026-07-25) — SLIPPAGE-MODE reconciliation: raw MC is slippage-FRAGILE, 2E is slippage-IMMUNE (branch `s75-live-dashboard`)
 
 **Trigger:** user recalled the ES-app MC numbers being "much worse" than what I quoted, and
