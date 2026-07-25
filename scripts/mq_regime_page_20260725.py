@@ -82,7 +82,8 @@ html = f"""<!doctype html><html><head><meta charset="utf-8">
  .meta{{color:#52514e;font-size:12px}}
 </style></head><body>
 <h1>MQ-style Gamma Regime — 19-Year Backfill (cracked spec)</h1>
-<p class="meta">Source: <code>data/regime/mq_regime_daily_2007_2026_v2.csv</code> ·
+<p class="meta">Source: <code>data/regime/mq_regime_daily_2007_2026_v2.csv</code>
+(<a href="http://localhost:8620/">Data Catalog</a> family <code>mq_gamma_regime</code>) ·
 spec: S84 reverse-engineering (<code>docs/research_notes/mq_level_reveng_20260724.md</code>) ·
 validated vs 1,181 MenthorQ days: regime agreement 95.1%, HVL medAE 10pt ·
 pre-2022 expect ~89–92% fidelity (no daily expiries then) · generated {dt.date.today()}</p>
