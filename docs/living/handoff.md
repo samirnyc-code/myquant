@@ -306,8 +306,20 @@ dependent — ADR-scaled stop instead of the ES 4pt drops perm-p 0.06→0.30 (ns
 above-EMA PF 0.62 vs below 0.94 (base fade also loses on NQ, PF 0.88, ES-tuned geometry). Every fade-EMA
 form failed under rigor (down-cross K-unstable/stale; failed-reclaim stop-dependent + NQ-inverts). **No
 robust EMA-context edge for the fade; did NOT wire into the indicator (dead signal).** Samir's recency
-correction was right + gave a better feature, just didn't survive — clean negative. **Book B (0015/0015b)
-remains the ONE validated result of the whole RevFT arc.**
+correction was right + gave a better feature, just didn't survive — clean negative.
+
+**⚠️ BOOK B ITSELF DESTROYED as a SIGNAL edge (`revft_bookb_destroy.py`, conservative $30/tr) — mirrors
+the 2ES kill in the other chat.** The 0015b battery only proved the GATE (which days) is informative;
+it never tested the SIGNAL. Red-team: (1) RANDOM-TIME NULL — replace each entry with a random 09-13 bar,
+same day/dir/exit: Book B $125k vs null mean $86k, **p=0.12 (ns)**, signal beats random timing on only
+40% of trades → ~69% of return is DRIFT CAPTURE (be with-trend on trending days, hold to close); RevFT
+timing adds nothing significant. (2) TAIL JACKKNIFE — the entire +$125k is 20 of 908 trades (remove
+top-20 → −$7k). (3) recent decay: survives (2025 PF1.32, 2026 1.35, last-12mo 1.38). **Verdict: retire
+Book B as a standalone RevFT signal edge; residual = neg-gamma trend-day drift (regime beta), tail-
+concentrated, doesn't need RevFT.** Filter-ablation earlier confirmed the same: E (hold-EOD exit) is the
+whole edge; the signal/gates just pick which trades hold to close. **NET OF THE WHOLE ARC: no deployable
+RevFT signal edge survived; the durable facts are the negative results + that neg-gamma trend days have
+positive with-trend drift (regime beta, not a signal).**
 
 **Files (all committed `1bb8190`, `git add -f`):** `scripts/revft_regime_full.py` (sim, vendors
 pt_new + joins MQ gamma), `scripts/revft_regime_deep.py` (slicing + honest verdict),

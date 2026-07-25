@@ -1,9 +1,32 @@
 # 0015b — RevFT × Regime: Validation Battery & Go-Live Roadmap — 2026-07-25
 **Series:** MC Setup Research Notes · Note 0015b (companion to 0015)
-**Confidence:** The headline book (B) clears every runnable adversarial test, including the two
-kill-shots for a multiple-tested rescue (permutation null p<0.0001; gamma train/test *not* inverted).
-Three tests remain blocked on external data / live fills. **Status: strong candidate; not yet
-graduated.**
+**Confidence:** ⚠️ **DOWNGRADED — read §DESTROYER FIRST.** The battery below tested whether the REGIME
+GATE is informative (it is: permutation null on the labels p<0.0001) — but it NEVER tested whether the
+RevFT SIGNAL itself adds value. A later red-team (`revft_bookb_destroy.py`) shows it does not: a
+random-time entry on the same day/direction/exit reproduces ~69% of the return (p=0.12, signal loses to
+random timing on 60% of trades), and the entire profit is 20 of 908 trades (remove them → negative).
+**Book B is destroyed as a RevFT *signal* edge; what remains is negative-gamma trend-day drift capture
+(regime beta), tail-concentrated. Not a deployable signal edge.**
+
+## ⚠️ DESTROYER (adversarial red-team, conservative $30/tr) — `revft_bookb_destroy.py`
+1. **Random-time null (kill):** replace each entry with a random 09-13 bar, SAME day/direction/exit.
+   Book B $125,198 vs random-time null mean $86,365 (95% $21k–$150k). **p(null≥actual)=0.12 (ns)**;
+   signal beats random timing on only 40% of trades. ⇒ ~69% of the return is drift capture; the RevFT
+   entry timing adds nothing significant. (The null was HANDED RevFT's direction, so this kills the
+   timing claim; even so it reproduces 69% of return.)
+2. **Tail jackknife:** remove top-10 → $40k (68% of profit in 10 trades); **top-20 → −$7k (negative)**;
+   top-30 → −$46k. The entire edge is ~20 of 908 trades. A few-trend-day mirage, same as 2ES.
+3. **Recent decay:** the one it survives — 2025 PF 1.32, 2026 PF 1.35, last-12mo PF 1.38 (not decayed).
+
+**Verdict:** the 0015b battery proved the GATE (which days to trade) is real; it did not prove the
+SIGNAL is. The signal fails the random-time null and the whole book is 20 tail trades. Retire Book B as
+a standalone signal edge. Residual = "neg-gamma with-trend/neutral drift, hold to close" = regime beta,
+tail-dependent (needs the big trend days), not RevFT-specific. Everything below is the (now-superseded)
+gate-level battery, kept for the record.
+
+---
+
+_Original battery (gate-level; DOES NOT test the signal — superseded by the destroyer above):_
 
 **Method mirrors the S83 2E book's 10-test battery** (`R2E_system_config_v1.md`, worktree
 `regime/indep`) — the same bar that graduated REGIME-2E to rc1. RevFT has almost no fitted
