@@ -30,6 +30,12 @@ trend only (never NEUTRAL).
 - Stop (WT): **0.30 × ADR10** (prior-10-day avg RTH range), nearest tick, **floor 8 ticks**
   (~15.75pt median), never moved. Intraday-adaptive stop tested — does NOT beat this OOS.
 - Stop (fade): **fixed 4 pt (16 ticks)**, never moved. (Fade dies on the wide stop.)
+  **Swept 2026-07-25 (`regime_2e_fade_stop_sweep.py`, FADE-S 105 tr):** 4pt is the PF-max (1.35)
+  and the ONLY stop with test>train (1.28→1.42) — every higher-net stop (10/12pt, EOD make ~2× $)
+  degrades OOS. **Vol-scaling (k×ADR) tested and REJECTED** — 0.15×ADR overfits (tr 1.53/te 1.12);
+  the fade's invalidation is *structural* (~small buffer past the failed-breakout bar), not vol-dependent
+  (4pt ≈ 7% of ADR). Caveat: 4pt is a *sharp* peak (3pt 1.05 / 5pt 1.12) on a thin 13%-win book — trust
+  "small fixed ~4pt structural stop", not the exact 4.00 value.
 - Exit: **NO target. Hold to session close (EOD flat), or the stop.** Regime flips do NOT
   exit. Every target / trail / % give-back tested — all lose. (2R "target" would seem to work
   because 75% reach 2R MFE, but only 30% reach it BEFORE the stop → real 2R target PF 0.74.)
