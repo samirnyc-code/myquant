@@ -141,6 +141,17 @@ def main():
         verdict(t, m, col, name)
         print()
 
+    print("\n"+"="*100); print("8. GAP / HOUR ablation on NATIVE entry (w30eod) — clean, vs the k=6-limit ablation"); print("="*100)
+    GOOD = {"09", "10", "11", "12", "13"}
+    for gname, gm in (("DROP-CT (WT|NEU)", notCT), ("NEG & notCT", neg & notCT)):
+        print(f"\n{gname} / w30eod (native next-tick entry):")
+        for name, mm in (("all", gm),
+                         ("+gap-skip |gap|<=0.54", gm & (t.gap <= 0.54)),
+                         ("+hours 09-13", gm & (t.hour.astype(str).isin(GOOD))),
+                         ("+gap-skip +hours", gm & (t.gap <= 0.54) & (t.hour.astype(str).isin(GOOD)))):
+            v = t.loc[mm, "w30eod"]
+            print(f"  {name:26s} {stat(v.values)}")
+
 
 if __name__ == "__main__":
     main()

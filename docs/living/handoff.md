@@ -65,8 +65,17 @@ Full note: `docs/research_notes/0015_revft_regime_2e.md`. All verified from
 **CAVEATS (not yet an edge):** RevFT has two prior kill-notes (0005, 0013); ~26 books searched
 (multiple-testing); no truly-OOS run. Survivors are broad/monotone (every neg∩notCT∩EOD variant wins,
 every CT variant loses), better than a single fitted cell — but forward-validate on MES before capital.
-**Next:** forward-track neg∩drop-CT/wide+EOD; test 2E limit-6t-back entry on RevFT (native next-tick
-used here); gap-skip/hour-window ablation; regime-confluence sizing.
+
+**FOLLOW-UP DONE (entry sweep + filter ablation, `scripts/revft_regime_entry.py`, parquet
+`revft_regime_entry_20260725.parquet`):** which 2E improvements port to RevFT —
+- wide-vol stop + hold-to-EOD ✅, phase-machine gate ✅, gamma-day filter ✅ (all essential/additive).
+- **Limit-back entry ✗ ANTI-PORTS** — swept k=0..16t; native next-tick (+$45/tr DROP-CT) beats every
+  offset (k=0 −$32/tr up to k=16t +$32/tr on 54% fills). RevFT is a first-move momentum signal;
+  demanding a pullback adversely selects out the winners (mirror of note 0013). Keep native market fill.
+- **Gap-skip ✗ HURTS** — central to the 2E book but cuts RevFT's net-positive gap days (total $ falls).
+- **Hours 09-13 ~ optional** — trims afternoon dead-weight, $/tr 45→58 (DROP-CT) / 124→150 (neg∩notCT)
+  at ~unchanged total; efficiency only.
+**Next:** forward-track neg∩drop-CT/wide+EOD on MES; regime-confluence sizing; NT8 signal-diff before live.
 
 **Files (all committed `1bb8190`, `git add -f`):** `scripts/revft_regime_full.py` (sim, vendors
 pt_new + joins MQ gamma), `scripts/revft_regime_deep.py` (slicing + honest verdict),

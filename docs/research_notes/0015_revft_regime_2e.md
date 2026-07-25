@@ -136,6 +136,47 @@ Contrast with note 0005's VWAP continuation gate (its best rescue): break-even a
 entirely by 2022, significantly negative in 2025–26. The regime-labelled version is positive across
 the recent holdout, which is the period the 0005 gate failed.
 
+### 3.6 Entry-offset sweep — the 2E limit-back entry does NOT port to RevFT
+
+§3.1–3.5 use a **native next-tick** entry (market on the first tick after the signal bar). The S83 2E
+book instead rests a limit *k* ticks back from the trigger (cancel after 6 bars) for a better fill.
+Ported to RevFT (`scripts/revft_regime_entry.py`, DROP-CT gate, wide+EOD, sweep *k*):
+
+| entry | fill% | n | Total $ | $/tr | PF |
+|---|---|---|---|---|---|
+| native next-tick (§3.1) | ~100 | 2,742 | +123,515 | +45.0 | 1.12 |
+| limit k=0 (@ SignalPrice) | 85 | 2,357 | −75,222 | −31.9 | 0.92 |
+| limit k=4t | 80 | 2,207 | −14,798 | −6.7 | 0.98 |
+| limit k=8t | 72 | 1,995 | +13,912 | +7.0 | 1.02 |
+| limit k=16t | 54 | 1,492 | +48,028 | +32.2 | 1.08 |
+
+Monotone in *k*, and **every offset loses to native.** Deeper *k* raises $/tr only by shrinking the
+book (fewer fills) — the trades that never pull back to fill are precisely the winners. Requiring a
+pullback **adversely selects against a momentum signal** — the mirror image of note 0013's "clean runs
+don't retest." So the 2E limit-back entry is *anti-ported*: RevFT wants the native market fill, not a
+better price. (neg∩notCT identical: native +$123.6/tr beats k=16t's +$73.4/tr on fewer trades.)
+
+### 3.7 Filter ablation (native entry, wide+EOD) — gap-skip hurts, hours are optional
+
+| Gate + filter | n | Total $ | $/tr | PF |
+|---|---|---|---|---|
+| DROP-CT — all | 2,742 | +123,515 | +45.0 | 1.12 |
+| DROP-CT + gap-skip (gap≤0.54%) | 2,000 | +76,112 | +38.1 | 1.12 |
+| DROP-CT + hours 09–13 | 2,128 | +123,985 | +58.3 | 1.14 |
+| NEG∩notCT — all | 1,171 | +144,695 | +123.6 | 1.27 |
+| NEG∩notCT + gap-skip | 678 | +90,798 | +133.9 | 1.33 |
+| NEG∩notCT + hours 09–13 | 908 | +136,548 | +150.4 | 1.30 |
+
+- **Gap-skip: drop it.** Central to the 2E book, but it *hurts* RevFT — it lifts per-trade PF only by
+  cutting profitable trades; total $ falls sharply. RevFT's gap days are net positive.
+- **Hours 09–13: optional.** Removes ~afternoon dead-weight (nets ≈0), lifting $/tr (45→58, 124→150)
+  and PF at ~unchanged total. An efficiency trim, not a total-$ gain.
+
+**Which 2E improvements port to RevFT:** wide-vol stop + hold-to-EOD ✅ (essential); phase-machine
+regime gate ✅ (essential); gamma-regime day filter ✅ (additive). Limit-back entry ✗ (anti-ports);
+gap-skip ✗ (hurts); hour-window ~ (optional trim). The exits/gates transfer; the entry/day filters do
+not — because the 2E setup is a pullback-continuation and RevFT is a first-move momentum signal.
+
 Equity curves: `docs/living/revft_regime_equity_20260725.png`.
 
 ## 4. Why it works (mechanism)
@@ -162,10 +203,10 @@ Equity curves: `docs/living/revft_regime_equity_20260725.png`.
   capital. 2023 is a consistent soft spot to watch.
 - **Fill realism** = first-tick-after-close entry + tick-crossing stops (same as the S83 work); costs
   included; no queue model. EOD-flat is compatible with the prop rule (flat by 15:00 CT).
-- **Next:** (1) forward-track neg∩notCT/wide+EOD on MES; (2) test entry improvements from the 2E book
-  (limit-6t-back + cancel-after-6-bars) on RevFT — untested here (native next-tick entry used);
-  (3) gap-skip / hour-window ablation on the headline book; (4) size by regime confluence (the 2E
-  HVL-sizing analog).
+- **Next:** (1) forward-track neg∩notCT/wide+EOD on MES; (2) size by regime confluence (the 2E
+  HVL-sizing analog); (3) NT8 signal-diff of the phase-machine gate vs the research engine before any
+  live wiring. (Entry-offset sweep and gap/hour ablation are now done — see §3.6–3.7: limit-back entry
+  anti-ports, gap-skip hurts, hours optional.)
 
 ## 6. Reproduce
 
@@ -173,6 +214,8 @@ Equity curves: `docs/living/revft_regime_equity_20260725.png`.
   per-trade table `data/regime/revft_regime_full_20260725.parquet` (all exit outcomes + features).
 - `scripts/revft_regime_deep.py` — all slicing + honest verdict (train/holdout, year, bootstrap CI,
   multiple-testing tally) on the saved table; no re-sim.
+- `scripts/revft_regime_entry.py` — entry-offset sweep + gap/hour ablation (§3.6–3.7) →
+  `data/regime/revft_regime_entry_20260725.parquet`.
 - `scripts/revft_regime_2e.py` — the initial focused version (superseded by `_full`).
 - `scripts/revft_regime_chart.py` — equity curves → `docs/living/revft_regime_equity_20260725.png`.
 
