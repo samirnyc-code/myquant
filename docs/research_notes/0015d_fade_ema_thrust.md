@@ -1,8 +1,38 @@
-# 0015d — f2EL Fade × Strong-Move-Through-EMA Filter — 2026-07-25
-**Series:** MC Setup Research Notes · Note 0015d (companion to 0015c)
-**Confidence:** Promising, first-pass rigor PASSED (unlike the 0015c confluence). Dose-response +
-permutation-null p=0.039 at a pre-committed threshold + holdout ≥ train. NOT yet graduated: swept
-threshold, moderate n, tested on the *weak* near-final fade. Deserves the full 0015b battery.
+# 0015d — f2EL Fade × EMA Context — 2026-07-25
+**Series:** MC Setup Research Notes · Note 0015c companion
+**Confidence:** EVOLVED THROUGH THREE FEATURES — read §Correction FIRST. The original "strong
+down-move through the EMA" feature is DEAD (a stale-cross artifact). The surviving candidate is
+**"price ABOVE the EMA at the fade = failed reclaim"** (lookback-free, PF 2.78, holdout>train, but
+perm-p 0.06 / n=25 / year-concentrated → borderline, NOT confirmed). §1–§K-sweep below are the dead
+original for the record.
+
+## ⚠️ CORRECTION (Samir's recency point) — the real feature is a FAILED EMA RECLAIM
+Samir: "of course it matters how many bars ago — a strong cross 20 bars ago on 5M is meaningless if
+we already crossed back." Correct. The original `cross_str` took the MAX-strength down-cross anywhere
+in a K-bar window → at large K it tagged fades with **stale/already-reversed** crosses. The K-sweep
+"inversion" (§K-sweep) was that bad-feature artifact, not proof the idea is noise.
+
+Rebuilt recency-aware (`revft_fade_ema_recency.py`): anchor on the most-recent INTACT down-cross, make
+recency the axis. That exposed the down-cross was the wrong feature *and wrong direction* — the best
+fades are where price is **ABOVE** the EMA at entry (the failed long RECLAIMED the EMA then failed = a
+failed-breakout-above-the-MA short), which has **no lookback K at all**:
+
+| f2EL fade at entry | n | $/tr | PF | perm-p |
+|---|---|---|---|---|
+| **price ABOVE EMA (failed reclaim)** | 25 | **+295** | **2.78** | **0.060** |
+| price BELOW EMA (weak bounce) | 87 | −11 | 0.94 | — |
+
+train PF 1.91 → holdout PF 4.29. **But borderline:** perm-p 0.06 (not <0.05), n=25, year-concentrated
+(2022 +$4.1k / 2025 +$6.1k carry it; 2023/2024 negative). Down-cross recency/strength: all perm-p>0.3,
+dead. Stale strong cross (recency>10) PF 0.81 — confirms Samir's point (stale = useless).
+
+**Verdict (current): the f2EL fade wants a FAILED EMA RECLAIM (price above EMA at entry), not a strong
+prior down-move.** Lookback-free → immune to the stale-cross problem. Best candidate so far but
+borderline — **confirm via NQ cross-instrument** (more sample) before any sizing/filter. Below-EMA
+weak-bounce fades (PF 0.94) are the dead weight to deprioritise. Book B untouched.
+
+---
+_Below: the DEAD original down-cross feature, kept for the record._
 
 **Idea (Samir):** only take the f2EL fade (FADE-S, a short of a failed counter-trend long in a bear)
 when a **strong move THROUGH the 20-EMA** precedes it — a forceful bear thrust that broke the EMA,

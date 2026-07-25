@@ -120,13 +120,16 @@ the non-strong fades are **breakeven (+$3/tr PF1.02), NOT dead**. → **SIZER no
 strong-only keeps ~same total $ on half the trades; sizing 2×strong+1×rest ~doubles total ($6.4k→
 $12.7k). BUT on the frozen fade the **perm-null is NOT significant (p=0.14–0.37** vs 0.039 weak-fade). **LOOKBACK-K
 SWEEP (K∈{5,8,10,15,20}) FAILED** — strong-vs-rest INVERTS at K=5 (strong PF0.85 vs rest 1.39) and
-K=15 (1.13 vs 1.57); only K=8-10 shows the effect; perm-null never <0.05 at any K. Classic lucky-window
-noise (same signature that killed the 0015c confluence). **DOWNGRADED VERDICT: the fade-EMA signal is
-most likely NOT a real edge** — do not filter/size on it. cross_str kept only as an exploratory chart
-annotation / forward-watch (chart `revft_fade_ema_crosses_20260725.png`). Only NQ cross-instrument could
-resurrect it (low prior). Book B untouched/still the validated result. FILTER-vs-SIZER framing (risk-per-
-slot) was the right lens but moot now. INDICATOR viz asked-for but NOT yet added (pending user OK given
-edge weakened).
+K=15 (1.13 vs 1.57); only K=8-10; perm-null never <0.05. BUT Samir's correction resolved WHY: `cross_str`
+took the MAX cross in a K-window → large K tagged STALE/reversed crosses (meaningless on 5M). **REBUILT
+recency-aware (`revft_fade_ema_recency.py`) → the real feature is different AND lookback-FREE:** the fade
+works when price is **ABOVE the EMA at entry = a FAILED EMA RECLAIM** (failed long reclaimed the MA then
+failed): PF **2.78, +$295/tr, n=25, perm-p 0.06, holdout PF 4.29 > train 1.91**. Below-EMA weak-bounce
+fades = breakeven-neg (PF 0.94, n=87) = dead weight. Down-cross strength/recency all dead (p>0.3); stale
+strong cross PF 0.81 (confirms Samir). **VERDICT: f2EL wants a failed EMA reclaim, not a down-thrust;
+lookback-free so no stale-cross problem — best candidate yet but BORDERLINE (p=0.06, n=25,
+2022/2025-concentrated), NOT confirmed. Confirm via NQ cross-instrument.** Book B untouched. INDICATOR
+viz now justified (plot EMA + flag failed-reclaim fades) — user wants it; not yet built.
 
 **Files (all committed `1bb8190`, `git add -f`):** `scripts/revft_regime_full.py` (sim, vendors
 pt_new + joins MQ gamma), `scripts/revft_regime_deep.py` (slicing + honest verdict),
