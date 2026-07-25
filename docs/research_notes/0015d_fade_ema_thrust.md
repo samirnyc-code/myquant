@@ -50,11 +50,19 @@ Secondary confirmations (NOT the primary reason): perm-p 0.06 (misses 0.05); the
 stop-dependent (ADR-scaled stop → p 0.30); and it inverts on NQ (PF 0.62, though the f2EL doesn't
 transfer to NQ so that test is weak). The ES year-concentration alone is decisive.
 
-**FINAL VERDICT: retire the entire fade-EMA thread.** Every form failed — down-cross strength
-(K-unstable / stale-cross artifact) and failed-reclaim (a 2022+2025-only mirage, 0 winners elsewhere).
-No robust ES EMA-context edge for the fade. Do NOT wire into the indicator. Book B (0015/0015b) remains
-the one validated result of the RevFT arc. Samir's recency correction was right and produced a better
-feature; it just didn't survive — a clean negative, not a mistake.
+**FINAL VERDICT: retire the entire fade-EMA thread — but the two features die for DIFFERENT reasons:**
+- **failed-reclaim = a 2022+2025 mirage** (aggregate PF 2.78, but 0 winners across 2021/2023/2024).
+- **cross-strength = no demonstrable lift** (NOT a mirage — it's positive in every year but 2026/n=2,
+  and +$1,498/PF 1.26 stripping 2022+2025). It fails because: (1) perm-p 0.25 (best 0.14, never <0.05)
+  — the strong subset isn't better than a random same-size slice, so the metric adds nothing over just
+  trading the fade (base PF 1.31 → strong 1.60 is within noise at n=58); (2) lookback-fragile (K=8–10
+  only); (3) non-monotone tercile (mid −$59 is worse than weak +$25). A weak, unconfirmed selector, not
+  an edge.
+
+The fade (f2EL) already works on its own (~PF 1.3); neither EMA metric reliably improves it. No robust
+ES EMA-context edge. Do NOT wire into the indicator. Book B (0015/0015b) remains the one validated
+result of the RevFT arc. Samir's recency correction was right and produced a better feature; it just
+didn't survive — a clean negative, not a mistake.
 
 ---
 _Below: the DEAD original down-cross feature, kept for the record._
