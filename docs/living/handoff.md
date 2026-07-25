@@ -98,6 +98,17 @@ the regime-fit frozen book. Scripts: `regime_2e_durable{,_risk,_volfilter,_stres
   **volatility-harvesting strategy**, not an all-weather one. Strong in high vol (2021-26 and any
   2011/2020-style vol), ~flat-after-costs in dead-calm grinds (2013-17). We are CURRENTLY in a
   favorable regime. Sizing ~$110k/ES (moderate 33% of block-boot worst-1% −$36k); prop $4,500 = MES only.
+- **REAL-TICK CROSS-CHECK (2021-26, not proxy; `regime_2e_durable_realtick.py` `7f1d8bc`):** FROZEN
+  (0.30 both, ungated) +$86.8k PF1.45 **net/DD 9.83** (reproduces gate_compare); DURABLE40 (long 0.40 +
+  gated short) +$72.5k PF **1.58** but maxDD −$18.4k **net/DD 3.94** (0.40>0.30 long stop confirmed on
+  real ticks; short-gate lifts short PF to 1.68). **In the modern regime FROZEN WINS** — the *ungated*
+  shorts DIVERSIFY the longs and smooth DD; gating them ~doubles DD. So the short-gate is **insurance
+  against a low-vol secular bull** (rescues pre-2021), paid for with lower net/DD in favorable regimes.
+- **THE DECISION (not a bug — a genuine choice):** FROZEN = bet the current high-vol regime persists
+  (high-octane, net/DD ~10, but dies if vol collapses to 2013-17 levels). DURABLE40 = pay ~60% of the
+  modern net/DD for all-weather positivity. Recommended posture: **trade FROZEN now (favorable regime)
+  but treat it as regime-conditional — monitor a vol/regime trigger and switch to DURABLE (or stand
+  down) if ADR/VIX collapse to secular-bull-grind levels.** Not "green every year forever."
 
 **NEXT:** (a) sanity-check the durable short-gate on REAL NT ticks 2021-26 (not just proxy);
 (b) wire the durable spec (long 0.40 + below-SMA50 short gate) into `RegimeSecondEntry.cs`;
