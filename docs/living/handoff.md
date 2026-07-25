@@ -33,8 +33,14 @@ Ground truth = 1,183 scraped MQ days (2021-09..2026-07) incl. MQ's own published
 **Backfill verdict (2007-2021): qualified yes** for regime label + CR/PS/HVL structure — every
 metric BETTER on holdout than fit (not overfit), but 2021 is the worst overlap year on every
 metric (CR 65%, regime 89.4%) and pre-2022 SPX lacked dailies → expect ~89–92% regime fidelity
-pre-2022, ~96%+ recent. 0DTE set NOT trustworthy historically. NEXT: recompute the 19y daily
-series (`gamma_regime_daily_2007_2026.csv`, currently v1 spec) with the cracked spec.
+pre-2022, ~96%+ recent. 0DTE set NOT trustworthy historically.
+
+**DONE (2026-07-25): 19y backfill recomputed with the cracked spec** —
+`data/regime/mq_regime_daily_2007_2026_v2.csv` (4,789 days, 2007-06-01..2026-07-15:
+CR/PS/HVL + gex values + net_total_gex + regime label; `mq_regime_backfill_20260725.py`).
+Sanity gate vs MQ truth on the 1,181-day overlap: **regime agreement 95.1%, HVL medAE 10pt**
+— reproduces the synthesis. The v1 file (`gamma_regime_daily_2007_2026.csv`) is SUPERSEDED —
+do not use it. 0DTE/GEX1-10 intentionally not backfilled.
 
 ---
 
