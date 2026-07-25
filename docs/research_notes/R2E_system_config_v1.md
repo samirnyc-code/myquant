@@ -137,10 +137,13 @@ In-sample worst DD was −$9,502, so the breaker levels (3-4× beyond) won't fir
 
 ## GAMMA / LEVELS — INVESTIGATED, NOT INCORPORATED (2026-07-25)
 Full gamma/MQ-levels sweep. **Verdict: nothing clears the bar to trade. Kept as understanding, not knobs.**
-- **HVL-proximity** (near-HVL PF 1.81 vs far, tr 1.65/te 1.90, full 5yr): the only OOS-stable one, but as
-  a hard gate it guts 2022 (−80%), its gain is efficiency not profit (total net 92→82k), tail slightly worse,
-  and it is **untested for orthogonality vs the gap filter**. Status: possible future *size-lean* only, pending
-  that test. NOT a rule.
+- **HVL-proximity** (near-HVL PF 1.81 vs far, tr 1.65/te 1.90, full 5yr): OOS-stable AND now **passes
+  orthogonality vs the gap filter** (corr −0.09; near>far inside both gap halves & 2/3 gap terciles; HVL PF-spread
+  +0.71 > gap's +0.25 — HVL is the stronger stratifier). **Graduated to candidate SIZE-LEAN.** NOT a hard gate:
+  far-HVL is the trend tail (beats near in gap-high → hard-gating kills 2022). Rule shape: **size UP near-HVL,
+  DOWN far-HVL; skip only `far-HVL + low-gap`** (the lone dead bucket, PF 0.95). Still pending: the size-lean's
+  own DD/tail check (does leaning move the −$35k envelope / top-20 concentration?) before it goes live.
+  Test: `regime_2e_hvl_orthogonality.py`.
 - **Gamma regime label (pos/neg):** train/test PFs **invert** (tr 2.07/te 0.91) → dead.
 - **0DTE (cr0/ps0/hvl0, d1-envelope):** only 2024-07→2026-07 coverage; d1-envelope 0.72-corr w/ VIX
   (redundant); intraday level features basis-contaminated (panama drift +244pt); best nugget (low-VIX×wide-0DTE
