@@ -6,6 +6,38 @@ pipeline + S77 security hardening; merged S76 Mac swing-levels work)
 
 ---
 
+## S84 (2026-07-24→25) — MenthorQ level methodology REVERSE-ENGINEERED (6-agent workflow, branch `s75-live-dashboard`)
+
+**Premise: figure out how MQ computes its levels. Result: cracked for the main level set.**
+Ground truth = 1,183 scraped MQ days (2021-09..2026-07) incl. MQ's own published GEX values
+(`data/regime/mq_reveng/mq_truth.csv`); inputs = ORATS SPX chains. Full note:
+`docs/research_notes/mq_level_reveng_20260724.md`. All 28 scripts + scoreboards committed
+(`76d72a6`). Metrics below verified from `final_replication_summary_20260724.csv`.
+
+**THE INFERRED SPEC (fit ≤2023 / holdout 2024+):**
+- **Value formula (0 fitted params):** per-strike net GEX = Σ_{dte≥2} gamma·(callOI−putOI)·100·spot
+  ($ per 1-pt move), dying expiry EXCLUDED (it feeds the 0DTE set). Matches MQ's published values:
+  holdout R² 0.989, median ratio 0.991.
+- **CR** = argmax net(K), all strikes: exact 81.4% / **92.1%**. **PS** = argmin net(K) ±20% of spot:
+  exact 74.1% / **87.0%**.
+- **HVL** = per-strike net-GEX SIGN FLIP nearest spot (5-pt grid, ±25pt smoothing) — **NOT the
+  cumulative zero-cross** (that hypothesis refuted head-to-head: 420/180pt medAE, 12–14% regime).
+  HVL medAE 15pt / **10pt**, within-25 77.6% / **94.8%**.
+- **REGIME LABEL: 94.0% fit / 96.5% holdout / 95.3% overall** (v1 was 21.8%).
+- GEX 1-10: top strikes by max(call,put) side gamma·OI, 2≤dte≤21, ±3% spot, excluding primary
+  levels, ordered by spot-proximity — membership ~58–65%, treat as fuzzy zones not exact strikes.
+- 0DTE set (CR0/GW0/PS0/HVL0): DATA-limited ~25–28% exact (~65% within-25) — MQ uses same-day
+  intraday OI/flow that EOD chains can't see. gw0==cr0 on 99.8% of truth days.
+- ORATS hygiene: clamp gamma to [0,0.5] (63 corrupt rows, ~961k negative deep-ITM gammas).
+
+**Backfill verdict (2007-2021): qualified yes** for regime label + CR/PS/HVL structure — every
+metric BETTER on holdout than fit (not overfit), but 2021 is the worst overlap year on every
+metric (CR 65%, regime 89.4%) and pre-2022 SPX lacked dailies → expect ~89–92% regime fidelity
+pre-2022, ~96%+ recent. 0DTE set NOT trustworthy historically. NEXT: recompute the 19y daily
+series (`gamma_regime_daily_2007_2026.csv`, currently v1 spec) with the cracked spec.
+
+---
+
 ## S83 (2026-07-24) — NT8 restart false-fails killed; stale desk bots restarted (branch `s75-live-dashboard`)
 
 **Dashboard still showed "L2 depth: no file for today" AFTER the f823c52 fix** because
