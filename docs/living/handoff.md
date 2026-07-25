@@ -107,6 +107,17 @@ every CT variant loses), better than a single fitted cell — but forward-valida
 - **Durable kept result = the combined portfolio** (two independently-validated books, +$221k additive).
   Sequence/conditioning is dead. (Samir's neutral→fade thought was dropped by him — not pursued.)
 
+**FADE × STRONG-MOVE-THROUGH-EMA — PROMISING, first-pass rigor PASSED** (note `0015d`,
+`revft_fade_ema.py`): only take f2EL fades after a strong down-thrust THROUGH the 20-EMA. Feature
+cross_str = strength of the down-cross in prior 10 bars /ATR14 (causal). Base FADE-S breakeven
+(−$7.7/tr) → filter cross_str≥2.0 ATR = **+$126/tr PF 1.36, perm-null p=0.039, train +112/holdout
++143**, MONOTONE dose-response ($54→$126→$251→$323 as thr 1.5→3.0), holdout≥train. Secondary pen_atr
+(deep-below-EMA) FAILS — the through-EMA STRENGTH is the signal, not distance (matches the mechanism →
+not data-mining). Caveats: threshold swept (lean on pre-committed 2.0), moderate n (114/249), tested
+on the WEAK near-final fade. **NEXT: full 0015b battery + re-run on the FROZEN f2EL** (spec PF 1.35) —
+if it holds it lifts the 2E three-book + combined portfolio. This is the one sequence-adjacent idea
+that earned promotion (vs the refuted RevFT-confluence).
+
 **Files (all committed `1bb8190`, `git add -f`):** `scripts/revft_regime_full.py` (sim, vendors
 pt_new + joins MQ gamma), `scripts/revft_regime_deep.py` (slicing + honest verdict),
 `scripts/revft_regime_2e.py` (superseded focused v), `scripts/revft_regime_chart.py`,
