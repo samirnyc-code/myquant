@@ -1,9 +1,46 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 25, 2026 (S83 cont — stress battery run [#1/#2/#6/#7/#8 PASS, #3 quarantined];
-full gamma/levels sweep [only HVL-proximity survives → v1.1 size-lean candidate]; vol→edge map
-found NON-STATIONARY [2022↔2023 break] → circuit-breaker protocol added; fade 4pt stop justified;
-honest DD corrected to block-bootstrap −$35.4k. All on `regime/indep`, pushed. Base system UNCHANGED.)
+**Last Updated:** July 25, 2026 (S84 — reproduced the agreed 2E book 5-yr [OLD +$93.7k/1.44,
+NEW-engine +$102.3k/1.43]; regime-gate comparison [PHASE≫EMA20≫NONE]; tick-proxy fidelity test
+[1-min reproduces the engine 99.9% → cheap pre-2021 backfill decision]. All on `regime/indep`,
+pushed. Base system UNCHANGED. Samir getting 1-min pre-2021 data next.)
+
+---
+
+## S84 (2026-07-25) — 2E-book reproductions + regime-gate comparison + tick-proxy fidelity (branch `regime/indep`)
+
+**All existing scripts re-run + two new committed studies. Base system UNCHANGED.**
+
+- **Reproduced the agreed three-book 2E system, 5-yr ES tick** (`regime_2e_two_sleeves.py` +
+  `regime_2e_newengine.py`): OLD engine **+$93,722 / 678 tr / PF 1.44 / maxDD −$9,502**;
+  NEW immediate-flip engine **+$102,298 / 773 tr / PF 1.43 / maxDD −$14,288** (+95 tr, +$8.6k,
+  ~flat PF, ~50% deeper DD). Both match the frozen `R2E_system_config_v1.md` exactly. The dead
+  FADE-L (f2ES-long, PF 0.71) is excluded — the script's raw COMBINED row still bundles it.
+- **REGIME-GATE COMPARISON** (`regime_2e_gate_compare.py`, committed `e970499`, output CSV +
+  chart): same WT 2E book (2EL long + 2ES short), only the gate differs, one tick pass computes
+  all three. **PHASE (validated phase machine): +$86,848 / PF 1.45 / net-DD 9.83 — decisively
+  best. NONE (no gate): +$67,422 / PF 1.10 / 3× trades / 3× DD — raw 2E barely alive (re-confirms
+  "raw 2E dead"). EMA20 (price vs 20-EMA, causal): +$71,572 / PF 1.20 — real but weak, ~2× trades
+  at half the edge, 2021 losing (0.92 EMA whipsaw).** Only the phase gate filters the SHORT side
+  (NONE shorts PF 1.02, EMA20 1.06, PHASE 1.46). **Gate = the edge.** → goes into the final 2E-book
+  artifact.
+- **TICK-PROXY FIDELITY TEST** (`regime_2e_tickproxy_fidelity.py`, output CSV + chart): decides
+  whether a 1-MINUTE pre-2021 backfill can substitute for real ticks. Method: on 2021-26 (both
+  available), reconstruct pseudo-ticks from `_continuous_1m.parquet` (each 1-min bar → O,(L,H)|(H,L),C
+  low-first-if-up / high-first-if-down) and run the identical PHASE-gate WT book vs real ticks.
+  **RESULT: regime-label agreement 99.89% per RTH 5M bar (73,823/73,906, 930 days) — the engine
+  incl. OB break-ordering is ~perfectly reproduced by 1-min. Book PnL: REAL +$86,848/PF 1.45 vs
+  PROXY +$76,005/PF 1.35** (every year green, no flip). The ~12% gap is the FILL SIM (pseudo-tick
+  intrabar path resolves retest-fills/stops differently), NOT the signal; hits shorts hardest
+  (2ES 1.46→1.32), longs ~unchanged (1.44→1.39). Proxy is mildly PESSIMISTIC = safe direction.
+  **VERDICT: a 1-min OHLCV Databento backfill to 2010-2021 (cheap, keys on hand) is a trustworthy
+  kill-test for the 2E book — ticks NOT needed for historical validation.** Samir is getting the
+  1-min data.
+
+**PENDING (next session):** run the 2E book on the pre-2021 1-min backfill once Samir has it —
+true OOS across 2010-2020 regimes (low-vol grind, 2011/2015-16/2018 stress) never yet tested.
+If PF ≥ ~1.3 there, the edge is structural across a decade. New scripts + CSVs untracked→committed
+this session; charts in `docs/living/`.
 
 ---
 
