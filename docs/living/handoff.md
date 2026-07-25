@@ -1,10 +1,45 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 24, 2026 (MERGED: S83 regime × 2E study — final audited spec [PF 1.36
-OOS, NT8 strategy + cockpit indicator ports] AND the second-PC engine upgrade [immediate-flip
-rule + leg-continuation fix, both reference days still reproduce]. ⚠️ TWO ENGINES NOW COEXIST:
-the reference `scratchpad/regime_phase_machine.py` = new 2nd-PC engine; the S83 study scripts
-embed the OLD engine — A/B comparison pending. Our +$82.7k backtest is on the OLD engine.)
+**Last Updated:** July 25, 2026 (S83 cont — stress battery run [#1/#2/#6/#7/#8 PASS, #3 quarantined];
+full gamma/levels sweep [only HVL-proximity survives → v1.1 size-lean candidate]; vol→edge map
+found NON-STATIONARY [2022↔2023 break] → circuit-breaker protocol added; fade 4pt stop justified;
+honest DD corrected to block-bootstrap −$35.4k. All on `regime/indep`, pushed. Base system UNCHANGED.)
+
+---
+
+## S83 (2026-07-25) — stress battery + gamma sweep + regime-break diagnosis + fade-stop audit
+
+**All committed+pushed on `regime/indep` (21cfd78 → 3669462 → fade → today). Config
+`docs/research_notes/R2E_system_config_v1.md` is the live spec — updated with everything below.**
+
+- **Stress battery (6/10 run, all survive).** Base reconciles +$93,722/PF1.44 (trust check OK).
+  #1 walk-forward 14/18 OOS quarters green (78%); #2 cost 2× → PF 1.28; #6 **block-bootstrap DD
+  worst-1% −$35.4k** (MC understated → **resize ES ~$105k**, 1 MES still prop-safe); #7 param plateau;
+  #8 jackknife no-single-year. **#3 pessfills QUARANTINED** (tick-reimpl base +83.3k ≠ frozen +93.7k
+  — bug, do not cite; #2 covers cost). #4/#9/#10 need Databento/live/cross-instrument (can't run here).
+- **Gamma/levels sweep — only HVL survives.** Gamma regime label inverts OOS; 0DTE VIX-redundant
+  (0.72) + basis-contaminated + fragile (39-trade nugget); VIX-conditional & inverted-U refuted OOS.
+  **HVL-proximity** (near>far, tr1.65/te1.90) cleared ALL gates: gap-orthogonal (corr −0.09, stronger
+  than gap) + **DD/tail gate PASSED** (2:1 lean, same avg capital → net +25%, PF→1.56, boot-1% shallower,
+  top-20 100→94%). **→ v1.1 SIZING-RULE candidate: size UP near-HVL / DOWN far-HVL (2:1).** Skip-dead
+  variant REJECTED (deepens boot-1%). Caveats: doesn't fix tail (~94%); needs room to size UP → NOT on
+  the 1-MES prop floor. Scripts: `regime_2e_gamma_hvl*.py`, `regime_2e_hvl_orthogonality.py`,
+  `regime_2e_hvl_sizelean_risk.py`.
+- **⚠️ vol→edge map is NON-STATIONARY — structural break 2022→2023.** 2021-22 (79% neg-gamma in 2022):
+  elevated vol best (2022 = +$33.8k, best year). 2023-26 (4 yrs, pos-gamma): calm vol best, elevated
+  degrades. No VIX transform is stationary; inverted-U refuted OOS (mid-only 0.83). **→ keep system
+  UNCONDITIONAL; do NOT bolt on a vol/gamma knob.** `regime_2e_vix_stationarity.py`, `_vol_invertedU.py`.
+- **REGIME CIRCUIT-BREAKER (`regime_2e_regime_tracker.py`, daily-updatable):** "back to 2022" is NOT a
+  de-risk trigger (2022 was best). Detection is slow — normal droughts 143 (median)→493 (worst-1%, ~44mo)
+  trades; can't tell dead-edge from drought for ~a year. **WATCH** 50d-med VIX>22 / neg-gamma>60% (~12wk
+  lag) → strip regime knobs; **DE-RISK** at boot worst-5% −$27.6k → half size; **HALT** at worst-1% −$35.4k.
+- **Fade 4pt stop audited** (`regime_2e_fade_stop_sweep.py`, FADE-S 105tr): 4pt = PF-max (1.35) & ONLY
+  stop with test>train (1.28→1.42). Vol-scaling REJECTED (k×ADR overfits; invalidation is structural,
+  4pt≈7% ADR). Caveat: sharp peak on thin 13%-win book — trust "small fixed ~4pt", not exact value.
+
+**OPEN THREADS (next session):** (a) HVL 2:1 lean → wire into NT8 strategy/indicator once past a
+forward check; (b) NT8 port still 2ES-only (f2EL fade + HVL lean NOT wired); (c) reference-day-diff
+the lifted new engine; (d) unrunnable stress #4/#9/#10 (Databento/live/cross-instrument).
 
 ---
 

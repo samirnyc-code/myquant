@@ -146,10 +146,14 @@ Full gamma/MQ-levels sweep. **Verdict: nothing clears the bar to trade. Kept as 
 - **HVL-proximity** (near-HVL PF 1.81 vs far, tr 1.65/te 1.90, full 5yr): OOS-stable AND now **passes
   orthogonality vs the gap filter** (corr −0.09; near>far inside both gap halves & 2/3 gap terciles; HVL PF-spread
   +0.71 > gap's +0.25 — HVL is the stronger stratifier). **Graduated to candidate SIZE-LEAN.** NOT a hard gate:
-  far-HVL is the trend tail (beats near in gap-high → hard-gating kills 2022). Rule shape: **size UP near-HVL,
-  DOWN far-HVL; skip only `far-HVL + low-gap`** (the lone dead bucket, PF 0.95). Still pending: the size-lean's
-  own DD/tail check (does leaning move the −$35k envelope / top-20 concentration?) before it goes live.
-  Test: `regime_2e_hvl_orthogonality.py`.
+  far-HVL is the trend tail (beats near in gap-high → hard-gating kills 2022). Rule shape: **size UP near-HVL, DOWN far-HVL (2:1)**.
+  **DD/tail gate PASSED 2026-07-25 (`regime_2e_hvl_sizelean_risk.py`):** same-avg-capital 2:1 lean →
+  net +25%, PF 1.44→1.56, maxDD unchanged, boot worst-1% *shallower* (−33.1k), top-20 100→94%. The
+  **skip-dead variant is REJECTED** (deepens boot-1% to −36.4k, maxDD −15.6k). **HVL 2:1 lean has now
+  cleared all gates → v1.1 SIZING-RULE candidate.** Caveats: (a) does NOT fix tail dependence (top-20 still
+  ~94%); (b) benefit realizable only where you can size UP near-HVL — **NOT on the 1-MES prop floor**
+  (there you can only size down far, which cuts return). Tests: `regime_2e_hvl_orthogonality.py`,
+  `regime_2e_hvl_sizelean_risk.py`.
 - **Gamma regime label (pos/neg):** train/test PFs **invert** (tr 2.07/te 0.91) → dead.
 - **0DTE (cr0/ps0/hvl0, d1-envelope):** only 2024-07→2026-07 coverage; d1-envelope 0.72-corr w/ VIX
   (redundant); intraday level features basis-contaminated (panama drift +244pt); best nugget (low-VIX×wide-0DTE
