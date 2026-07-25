@@ -92,6 +92,18 @@ every CT variant loses), better than a single fitted cell — but forward-valida
   2010-2020 + cross-instrument NQ/MES (needs RevFT signal export off ES); #9 NT8 signal-diff +
   forward MES real fills. Sequence #4 → #10 → #9; do NOT deploy on the in-sample battery alone.
 
+**COMBINED + SEQUENCE (note `0015c`, `revft_2e_combined.py` + `revft_2e_sequence.py`):**
+- **Book B spec updated: adopt hours 09-13** (= 2E window) → n=908, +$136.5k, $/tr 150, PF 1.30.
+- **2E three-book + RevFT-B combined = +$221k, PF 1.29, green every yr but 2023 (−$15.4k).**
+  Diversification MODEST: daily corr +0.39 on shared days; combined maxDD −$39.9k saves only ~$6k vs
+  summed; combined tail DD −$61k ≈ RevFT alone. Additive return, weak hedge. (2E file = near-final
+  combined_books_20260724, FADE-S ~breakeven here, below frozen spec PF1.35.)
+- **RevFT→2E sequence (EXPLORATORY, in-sample, small cells):** (1) CONFLUENCE — 2E entries preceded by
+  a RevFT within ~24 bars are better (PF 1.37 vs 1.14 unpreceded, n=505; +EMA-cross PF 1.43) →
+  candidate 2E sizer. (2) Samir's neutral→fade idea LANDS but narrow: neutral-RevFT rescues f2EL
+  (FADE-S breakeven→PF1.30, n=70), HURTS the WT books. (3) forward: RevFT-BEAR→2ES PF1.55 (n=150),
+  RevFT-BULL→2EL PF1.46; neutral-RevFT leans short. NEEDS the 0015b perm-null/OOS treatment before use.
+
 **Files (all committed `1bb8190`, `git add -f`):** `scripts/revft_regime_full.py` (sim, vendors
 pt_new + joins MQ gamma), `scripts/revft_regime_deep.py` (slicing + honest verdict),
 `scripts/revft_regime_2e.py` (superseded focused v), `scripts/revft_regime_chart.py`,
