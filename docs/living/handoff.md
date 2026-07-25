@@ -108,6 +108,11 @@ this session; charts in `docs/living/`.
   not 16t, FIX before diff); ② done (MES recon; engine ref-day-diff still todo); ③ forward paper (calendar-gated);
   ④ NQ DONE = fail; #4 Databento & pre-2021 stay parked (constraint).
 
+- **Artifact rebuild (deferred, Samir's call):** `regime_2e_summary.html` gets a FULL rebuild later with
+  most-current info — its older top tables are still WT-only (630/1.39); current system is three-book (678/1.44).
+  Today only ADDED the significance/overfit-evidence section (2 figures + corrected stats) via
+  `inject_overfit_section.py`. Do NOT piecemeal-reconcile; do it in the rebuild.
+
 **OPEN THREADS (next session):** (a) HVL 2:1 lean → wire into NT8 strategy/indicator once past a
 forward check; (b) NT8 port still 2ES-only (f2EL fade + HVL lean NOT wired); (c) reference-day-diff
 the lifted new engine; (d) unrunnable stress #4/#9/#10 (Databento/live/cross-instrument).
