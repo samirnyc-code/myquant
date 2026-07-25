@@ -41,9 +41,12 @@ trend only (never NEUTRAL).
 - 5-yr net **+$93,722**, 678 trades (~133/yr), win 45% (WT) / 13% (fade).
 - WT PF 1.45 (train 1.51/test 1.42); fade 1.35–1.36; combined **PF 1.44**.
 - Green every calendar year; every ADR-vol quintile green.
-- Max realized DD **−$9,502**; worst-start (≈Sep-2023) −$9,502; MC worst-5% −$20k, worst-1% −$24k.
-- **Account sizing:** stress DD ÷ 25–33% → **$70–75k per 1 ES (~26%/yr)**; $20k fits **1 MES**,
-  not 1 ES (−$9.5k realized DD = 47% of $20k; stress case = ruin on 1 ES).
+- Max realized DD **−$9,502**; worst-start (≈Sep-2023) −$9,502; MC-shuffle worst-1% −$24k.
+  **HONEST DD = block-bootstrap (5-trade blocks, preserves losing clusters): worst-5% −$27.6k,
+  worst-1% −$35.4k** (stress #6). The MC shuffle understated it by breaking up streaks — size off −$35k.
+- **Account sizing:** on the honest −$35.4k, DD ÷ 33% → **~$105k per 1 ES** (the earlier $70–75k used the
+  optimistic MC number). Return ≈ **~18% CAGR fixed-contract** (the earlier "~26%" was simple, not CAGR).
+  $20k fits **1 MES**, not 1 ES.
 - MES viability marginal after $5 RT commission — negotiate cheaper micros or run ES.
 
 ## STRESS TEST #5 RESULT — engine invariance (DONE, PASS)
@@ -67,6 +70,7 @@ EOD-trail DD, three-book MES @ **$3 RT**, vs a **$4,500** trailing limit:
 **Verdict: 1 MES is prop-safe on a $4,500 EOD-trail (even the 1-in-100 stress stays under).**
 2 MES is NOT — a plausible ~1-in-20 sequence trips the limit. Prop route = 1 MES only; scale
 contracts only on a bigger account. (MES @ $3 RT holds PF ~1.35; at $5 RT it sags.)
+On the honest block-bootstrap DD, 1 MES worst-1% = −$3,545 (−35.4k/10) — still clears $4,500. 1 MES holds.
 
 ## KNOWN RISKS (on the record)
 - **Tail-concentrated:** top 20 of 630 WT trades = all the profit; top 2 ≈ 24%. NOT flukes —
@@ -90,6 +94,59 @@ Strategy `nt8/strategies/RegimeSecondEntry.cs` · indicator `nt8/indicators/Regi
 (cockpit + HVL) · engine `scratchpad/regime_phase_machine.py` · sims `scripts/regime_2e_*.py`,
 `regime_2e_two_sleeves.py` (three-book), `regime_engine_ab.py` · report
 `docs/artifacts/regime_2e_summary.html` · fade gallery `docs/living/fade_gallery/index.html`.
+Stress/gamma scripts: `regime_2e_walkforward.py`, `regime_2e_stress_battery.py`,
+`regime_2e_gamma_hvl.py`, `regime_2e_0dte_expansion.py`, `regime_2e_vix_stationarity.py`,
+`regime_2e_vol_invertedU.py`, `regime_2e_regime_tracker.py`.
+
+---
+
+## STRESS RESULTS (run 2026-07-25) — 6 of 10 executed, all survive
+Base reconciles to +$93,722 / PF 1.44 / maxDD −$9,502 in the battery (trust check passed).
+- **#1 Walk-forward (PASS):** 14/18 OOS quarters green (78%), median +$2,484, worst qtr −$5,208;
+  re-derived gap threshold mean 0.531% (0.54 well-centered). Edge is temporally stable.
+- **#2 Cost stress (PASS):** $10 RT + 2t both sides → PF 1.44→**1.28**, +$64.9k, maxDD −$13.1k.
+- **#3 Pessimistic fills (QUARANTINED):** the tick-reimplementation base = +$83.3k ≠ frozen +$93.7k,
+  so its absolute numbers are untrusted. #2 (reconciled) already covers cost/slip. Do not cite #3.
+- **#5 Engine invariance (PASS):** see above.
+- **#6 Drought/bootstrap (PASS, sobering):** block-boot maxDD worst-1% −$35.4k (the honest sizing #);
+  longest flat stretch median 143 trades, worst-1% 493 (~44 months).
+- **#7 Param neighborhood (PASS):** broad plateau PF 1.35–1.53 across stop{0.20,0.30,0.40}×gap{0.45,0.54,0.60};
+  0.30×ADR is the ridge. 0.45 gap scores higher (1.53) but we keep the derived 0.54 (no optimum-shopping).
+- **#8 Jackknife (PASS):** drop any single year → rest PF 1.35–1.50 (no year carries it); tail: top-20 = 99% of net.
+- Not runnable here: #4 Databento cross-check, #9 NT8 live-fills, #10 out-of-period/cross-instrument.
+
+## REGIME RISK & CIRCUIT-BREAKER (2026-07-25)
+**Diagnosis:** the vol→edge map is **non-stationary — a real structural break at 2022→2023.**
+2021-22 (macro-vol / **79% negative-gamma** in 2022): elevated vol traded BEST (2022 = +$33.8k, best year).
+2023-26 (calm, positive-gamma-dominant, 4 straight yrs): calm vol (VIX<17) best, elevated degrades.
+No VIX transform (level, %ile, vs-SMA, Δ) is stationary; the "inverted-U in vol" was refuted OOS
+(mid-only 2024-26 = PF 0.83). **Consequence: keep the system UNCONDITIONAL — that is what makes it
+robust across both regimes. Do NOT bolt on a vol/gamma-tuned knob (it breaks across the next break).**
+
+**"Back to 2022" is NOT itself a de-risk trigger — 2022 was the best year.** The real threat is an
+*unseen* regime where the 2E trend edge dies. We cannot detect that fast: normal droughts run 143
+(median) to 493 (worst-1%, ~44 mo) trades, and rolling-40 PF is <1.0 25% of the time as noise — a dead
+edge and a routine drought look identical for ~a year. So act on early warning, not on proof.
+
+**Tracker (`regime_2e_regime_tracker.py`, daily-updatable), 3 layers:**
+- **WATCH** (lead, ~12-wk lag measured on 2022): 50d-median VIX > ~22 sustained ≥15d **OR** 20d
+  negative-gamma share > 60%. → strip any regime-tuned knobs, revert to pure base, tighten monitoring.
+- **DE-RISK** (objective, regime-agnostic): live DD breaches block-boot **worst-5% (−$27.6k / 1-ES)** → **half size**.
+- **HALT:** live DD breaches **worst-1% (−$35.4k)** OR trailing ~500-trade net stays negative → pause + re-audit.
+In-sample worst DD was −$9,502, so the breaker levels (3-4× beyond) won't fire on noise.
+
+## GAMMA / LEVELS — INVESTIGATED, NOT INCORPORATED (2026-07-25)
+Full gamma/MQ-levels sweep. **Verdict: nothing clears the bar to trade. Kept as understanding, not knobs.**
+- **HVL-proximity** (near-HVL PF 1.81 vs far, tr 1.65/te 1.90, full 5yr): the only OOS-stable one, but as
+  a hard gate it guts 2022 (−80%), its gain is efficiency not profit (total net 92→82k), tail slightly worse,
+  and it is **untested for orthogonality vs the gap filter**. Status: possible future *size-lean* only, pending
+  that test. NOT a rule.
+- **Gamma regime label (pos/neg):** train/test PFs **invert** (tr 2.07/te 0.91) → dead.
+- **0DTE (cr0/ps0/hvl0, d1-envelope):** only 2024-07→2026-07 coverage; d1-envelope 0.72-corr w/ VIX
+  (redundant); intraday level features basis-contaminated (panama drift +244pt); best nugget (low-VIX×wide-0DTE
+  PF 6.17) is 39 trades = 100%+ of profit, inverts 2025 → too fragile. Levels are **ES1! scale** (no SPX conv);
+  join by `session_date`, dedup last-per-session.
+- **VIX-conditional / inverted-U sizing:** non-stationary / refuted OOS (above). Dead.
 
 ---
 

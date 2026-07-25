@@ -73,7 +73,9 @@ def main():
                     continue
                 if is_wt:
                     lim = trig + 6*TICK if short else trig - 6*TICK
-                    thr_px = lim - (thru-1)*TICK if short else lim + (thru-1)*TICK  # deeper through
+                    # trade THROUGH by `thru` ticks: short fills when price rises to lim+(thru-1)t;
+                    # long fills when price drops to lim-(thru-1)t (stricter as thru grows).
+                    thr_px = lim + (thru-1)*TICK if short else lim - (thru-1)*TICK
                     s0 = tP[jf:]
                     jl = np.nonzero(s0 > thr_px)[0] if short else np.nonzero(s0 < thr_px)[0]
                     if not len(jl):
