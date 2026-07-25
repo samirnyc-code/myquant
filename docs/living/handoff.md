@@ -75,6 +75,34 @@ analysis}.py` + `regime_2e_wfa.py`.
   early-train sample thin (n=51), pre-2021 is modest (money still vol-amplified), the trustworthy
   figure is anchored-WFA PF 1.28 (not the single-pick 1.39).
 
+### DURABLE SPEC built + stress-tested (S85, `regime/indep` `5625f98`→`6379afe`)
+
+**THE DURABLE 2E BOOK = with-trend LONGS (all, 0.40×ADR stop) + with-trend SHORTS gated to a
+downtrend (price below 50-day SMA, 0.30×ADR stop).** One universal, non-fit trend filter fixes
+the regime-fit frozen book. Scripts: `regime_2e_durable{,_risk,_volfilter,_stress}.py`, book
+`data/regime/durable_20260725.csv`, charts `docs/living/durable_risk_20260725.png`.
+
+- **Headline (1 ES, $5 RT, 2010-2026):** +$78,082, PF **1.30**, win 52.4%, realized maxDD −$17,702,
+  net/DD 4.41. **Pre-2021 PF 1.09 (+$9,588) — was −$6,435 frozen. Post-2021 PF 1.44 (+$68,495).**
+  No losing year worse than −$1,570.
+- **Robust to the gate:** below-sma50 / below-sma100 / sma50-falling all give pre-2021 1.09-1.14 —
+  not a knife-edge. **Anchored WFA (short-gate chosen from prior years only): OOS 2013-26 PF 1.24,
+  +$58k** — optimizer picks a trend-gate EVERY year (never 'none').
+- **Gated shorts are worth it:** add +$24,950 (32% of net) AND improve net/DD (4.41 vs long-only 3.81).
+- **Two honest limits:** (1) **vol-concentrated** — 2022+2024 = 59% of 16yr net; 90% of sessions
+  underwater; a vol-regime day-filter does NOT help (uw% stuck 86-90%, net/DD never beats 4.41 —
+  paying days aren't identifiable ex-ante). (2) **Cost-fragile in low vol** — at $10 RT + 3t slip the
+  book holds (PF 1.17) and the **high-vol era stays strong (post 1.34) but the thin pre-2021 layer
+  goes negative (0.92)**.
+- **BOTTOM LINE:** a real, 16-yr-OOS-validated, cost-robust edge **in elevated-vol regimes** — it is a
+  **volatility-harvesting strategy**, not an all-weather one. Strong in high vol (2021-26 and any
+  2011/2020-style vol), ~flat-after-costs in dead-calm grinds (2013-17). We are CURRENTLY in a
+  favorable regime. Sizing ~$110k/ES (moderate 33% of block-boot worst-1% −$36k); prop $4,500 = MES only.
+
+**NEXT:** (a) sanity-check the durable short-gate on REAL NT ticks 2021-26 (not just proxy);
+(b) wire the durable spec (long 0.40 + below-SMA50 short gate) into `RegimeSecondEntry.cs`;
+(c) refresh `R2E_system_config_v1.md` to the durable spec + regime-conditional framing.
+
 ---
 
 ## S85b (2026-07-25) — SLIPPAGE-MODE reconciliation: raw MC is slippage-FRAGILE, 2E is slippage-IMMUNE (branch `s75-live-dashboard`)
