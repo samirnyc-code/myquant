@@ -22,7 +22,8 @@ honest DD corrected to block-bootstrap −$35.4k. All on `regime/indep`, pushed.
   **HVL-proximity** (near>far, tr1.65/te1.90) cleared ALL gates: gap-orthogonal (corr −0.09, stronger
   than gap) + **DD/tail gate PASSED** (2:1 lean, same avg capital → net +25%, PF→1.56, boot-1% shallower,
   top-20 100→94%). **→ v1.1 SIZING-RULE candidate: size UP near-HVL / DOWN far-HVL (2:1).** Skip-dead
-  variant REJECTED (deepens boot-1%). Caveats: doesn't fix tail (~94%); needs room to size UP → NOT on
+  variant REJECTED — far+low-gap bucket NOT stably dead (train PF 1.30/test 0.69/2022=3.10; skipping it
+  overfits recent weakness). Earlier DD-breach reason was a normalization artifact (`regime_2e_skipdead_check.py`). Caveats: doesn't fix tail (~94%); needs room to size UP → NOT on
   the 1-MES prop floor. Scripts: `regime_2e_gamma_hvl*.py`, `regime_2e_hvl_orthogonality.py`,
   `regime_2e_hvl_sizelean_risk.py`.
 - **⚠️ vol→edge map is NON-STATIONARY — structural break 2022→2023.** 2021-22 (79% neg-gamma in 2022):

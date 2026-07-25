@@ -149,8 +149,13 @@ Full gamma/MQ-levels sweep. **Verdict: nothing clears the bar to trade. Kept as 
   far-HVL is the trend tail (beats near in gap-high → hard-gating kills 2022). Rule shape: **size UP near-HVL, DOWN far-HVL (2:1)**.
   **DD/tail gate PASSED 2026-07-25 (`regime_2e_hvl_sizelean_risk.py`):** same-avg-capital 2:1 lean →
   net +25%, PF 1.44→1.56, maxDD unchanged, boot worst-1% *shallower* (−33.1k), top-20 100→94%. The
-  **skip-dead variant is REJECTED** (deepens boot-1% to −36.4k, maxDD −15.6k). **HVL 2:1 lean has now
-  cleared all gates → v1.1 SIZING-RULE candidate.** Caveats: (a) does NOT fix tail dependence (top-20 still
+  **skip-dead variant is REJECTED — because the far+low-gap bucket is NOT stably dead** (train PF 1.30 /
+  test 0.69 / 2022 = 3.10; full-sample 0.95 only because 2024-26 dragged it): skipping it fits recent
+  weakness = overfit (same train/test-inversion trap as the gamma label). *(The earlier DD-breach reason
+  was a same-capital normalization artifact — under fixed-size framing skip-dead's boot-1% is actually the
+  shallowest at −22.4k; `regime_2e_skipdead_check.py`.)* The plain 2:1 lean survives because it is
+  UNCONDITIONAL (down-weights all far-HVL uniformly), inheriting the stable near/far split (1.65/1.90).
+  **HVL 2:1 lean has now cleared all gates → v1.1 SIZING-RULE candidate.** Caveats: (a) does NOT fix tail dependence (top-20 still
   ~94%); (b) benefit realizable only where you can size UP near-HVL — **NOT on the 1-MES prop floor**
   (there you can only size down far, which cuts return). Tests: `regime_2e_hvl_orthogonality.py`,
   `regime_2e_hvl_sizelean_risk.py`.
