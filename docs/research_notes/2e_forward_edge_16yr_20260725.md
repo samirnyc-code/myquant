@@ -16,9 +16,12 @@
   to trend-efficient days (ER10-top).** It is **net-positive in all four 4-year blocks 2010–2026**
   (PF 1.28–1.46), robust to parameters, and long-bias is independently confirmed by the WFA (long
   picked 14/15 years).
-- **Honest scale:** **PF 1.32, meanR +0.155, ~$2,553/yr per ES**, realized maxDD −$13.9k, crash-
-  vulnerable (2020 −$11.9k). ~2.7%/yr on ~$96k/ES capital. **Real but modest and low-frequency
-  (32 trades/yr).** Not a standalone money machine on one instrument.
+- **A causal CRASH GUARD improves it further:** skip longs when the prior-5-session return < −4%
+  (don't buy continuation into a fast decline). Improves **every** block, robust −3% to −6%, cuts
+  the 2020 tail −$11.9k → −$4.9k. **FINAL LOCKED SPEC = LONG-2E + ER10-top + crash-guard: PF 1.38,
+  meanR +0.165, ~$2,637/yr per ES, win 51%, all 4 blocks 1.23–1.47.**
+- **Honest scale:** real but **modest and low-frequency (31 trades/yr)**, ~2.7%/yr on ~$96k/ES
+  capital. Not a standalone money machine on one instrument — value is in scaling it multi-instrument.
 - **Everything else we hoped for is dead or fake:** the short side is regime-dependent; **gamma-
   regime conditioning is LOOK-AHEAD** (dies causally); VIX conditioning is 2024-driven; a mean-
   reversion complement does not exist (choppy days have no edge either way).
