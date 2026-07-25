@@ -42,9 +42,39 @@ Two new committed studies there (`e970499`, `2e81320`) + that worktree's handoff
   - API key stored gitignored at `%LOCALAPPDATA%\myquant\databento.json` (key was pasted in-chat →
     **regenerate it**). Databento batch API has **no cancel method** — cancellation is support-email only.
 
-**DONE THIS SESSION — the 16-yr OOS ran (see below). PENDING:**
+**DONE THIS SESSION — 16-yr OOS + full autonomous edge-hunt (S85e below). PENDING:**
 1. Download the `mbp-10` L2 job when `done` → catalog. Confirm support cancelled the dup 1-min job.
-2. Build/validate the long-biased + downtrend-gated-shorts variant as the durable spec (see S85d).
+2. Test the LONG-2E+ER10 forward spec MULTI-INSTRUMENT (NQ/RTY) to scale the modest edge.
+
+## S85e (2026-07-25) — AUTONOMOUS EDGE-HUNT: the frozen book is regime-fit+hindsight; the real forward edge is a MODEST long-only + ER10 + crash-guard (branch `regime/indep`)
+
+**Full memo:** `docs/research_notes/2e_forward_edge_16yr_20260725.md`. 15 scripts committed
+(`regime_2e_{oos_databento,diagnostics,pertrade,analysis,wfa,wfa_cleanroom,reconcile,fixed_configs,
+long_hunt,era_vs_vol,gamma_condition,reversion,forward_spec,vol_history,crashguard}.py`), branch
+`regime/indep` pushed through `87b05f8`.
+
+- **Frozen +$93.7k/1.44 is INFLATED by regime-fit + hindsight.** Clean-room WFA from 2010
+  (re-optimize gap/stop/window/side yearly, zero 2021 priors) = **PF 1.10** vs frozen 1.21 → the
+  0.11 gap is curve-fit premium. True OOS 2010-20 frozen = PF 0.96. The pre-2021 loss is ALL the
+  SHORT side (secular bull); gross long edge is small-but-positive every era.
+- **THE REAL FORWARD EDGE (causal, block-robust): LONG-only 2E + ER10-top(causal, prior-day trend
+  efficiency, expanding-median threshold — NOT the S83 look-ahead bug) + crash-guard (skip if
+  prior-5d ret < −4%).** PF **1.38**, meanR +0.165, **~$2,637/yr per ES**, win 51%, net-positive in
+  ALL four 4-yr blocks (1.33/1.36/1.23/1.47), realized maxDD ~−$13k. Modest, low-freq (31/yr),
+  ~2.7%/yr on ~$96k/ES. **NOT a standalone money machine — value is multi-instrument scaling.**
+- **DEAD ENDS (recorded, don't re-run):** with-trend shorts = regime-dependent; **GAMMA-regime
+  conditioning = LOOK-AHEAD** (MQ gamma[D] uses D's own EOD chain; POS 1.66→1.27 causal ≈ NEG 1.20);
+  VIX conditioning = 2024-driven; mean-reversion/fade complement = dead (PF 0.87-0.94, choppy days
+  have no edge either way); vol-regime day-filter = no help.
+- **STRUCTURAL/vol context:** dead 2010-17 era = extreme low vol (VIX med 10.8-15.3) AND pre-0DTE;
+  0DTE(2022+)/retail(2020+) are sticky; edge does NOT need high VIX (2024 low-VIX was strong). Full
+  return to the dead regime unlikely. The 2021 equity "explosion" is ~4x exaggerated by $-vol scaling
+  (R ratio 3:1 not 14:1) — real edge-shift but smaller than the $ curve implies.
+- **Caveat:** proxy unvalidated below ADR 25 pre-2018 (no low-vol days in 2021-26 to check against).
+
+**NEXT:** (a) multi-instrument test of the long spec (NQ/RTY — long-only, not the failed symmetric
+book); (b) NT8 port of the long-only+ER10+crash-guard spec; (c) the parallel NQ cross-instrument
+work is on `regime/indep` too (don't collide).
 
 ---
 
