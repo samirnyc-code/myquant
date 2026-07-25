@@ -89,6 +89,18 @@ On the honest block-bootstrap DD, 1 MES worst-1% = −$3,545 (−35.4k/10) — s
 - Second-PC engine (immediate-flip) changes state on 48% of days but PF ~identical (1.44 vs 1.45) —
   edge robust to engine; port not yet reference-day-diffed.
 
+## STRESS #10 RESULT — cross-instrument NQ (PARTIAL FAIL, 2026-07-25)
+`regime_2e_nq_crossinstrument.py` — WT book on real NQ ticks (`ticks_continuous_NQ`), same harness.
+- **ES control (same harness): 573 tr, +$86,848, PF 1.45, green 6/6, maxDD −$8.8k — reproduces exactly.**
+- **NQ literal params: 589 tr, +$990, PF 1.00, green 3/6, maxDD −$49.4k.** NQ scaled-retest (to %-of-ADR):
+  515 tr, −$650, PF 1.00 — scaling did NOT rescue it, so not a parameter artifact.
+- **VERDICT: the edge is ES-SPECIFIC — does not transfer to NQ.** Setup fires at the same rate (structure
+  detected equally) but carries no edge on NQ. Biggest robustness limitation on record: within-ES tests
+  (train/test, WFA, plateau) can't see this because they live inside ES. Caveats: NQ is the most
+  momentum/tech index future (least S&P-like); YM/RTY (more ES-like) untested (no tick data); pre-2021
+  ES untested (Databento-blocked). Honest confidence: *validated within ES 2021-26, does NOT generalize
+  to NQ, unconfirmed outside that window.*
+
 ## RETRACTED / DEAD (do not resurrect)
 Fixed targets (all) · regime-flip exits (0.72/0.20) · 1st entries (OOS-dead) · close-confirm &
 sticky regimes · 1m/15m/30m/60m & 6500-vol bars (5m is peak) · ETH/overnight · BE-move / scale-out /

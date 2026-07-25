@@ -50,6 +50,18 @@ honest DD corrected to block-bootstrap −$35.4k. All on `regime/indep`, pushed.
   edge is RISK not return: -9% realized DD vs SPX -25%, corr -0.15 -> diversifier to run ALONGSIDE SPX on
   same margin, roughly index-parity standalone over this bull.
 
+- **⚠️ STRESS #10 CROSS-INSTRUMENT (NQ) — PARTIAL FAIL, the day's biggest finding** (`regime_2e_nq_crossinstrument.py`,
+  real NQ ticks `ticks_continuous_NQ`): ES control via same harness reproduces exactly (573tr/PF1.45/green 6/6);
+  **NQ = PF 1.00 breakeven (literal AND scaled-retest), 3/6 red years.** Setup fires at same rate but NO edge →
+  **the edge is ES-SPECIFIC, does not transfer to NQ.** Within-ES tests (train/test, WFA, plateau) can't see this.
+  Caveats: NQ is most momentum/tech index (least S&P-like); YM/RTY untested (no ticks); pre-2021 Databento-blocked.
+  Honest confidence now: validated within ES 2021-26, does NOT generalize to NQ, unconfirmed outside window.
+- **②b MES prop margin reconciled** (full 678): config −$3.3k was per-trade MC; honest daily-block boot worst-1%
+  = **−$4,163** — 1 MES fits $4,500 both ways but thin cushion (~93% consumed in 1-in-100).
+- **Validation plan (this session):** ① NT8 signal-diff (needs NT8 replay; fade mis-wired — line 593 uses adrStopTicks
+  not 16t, FIX before diff); ② done (MES recon; engine ref-day-diff still todo); ③ forward paper (calendar-gated);
+  ④ NQ DONE = fail; #4 Databento & pre-2021 stay parked (constraint).
+
 **OPEN THREADS (next session):** (a) HVL 2:1 lean → wire into NT8 strategy/indicator once past a
 forward check; (b) NT8 port still 2ES-only (f2EL fade + HVL lean NOT wired); (c) reference-day-diff
 the lifted new engine; (d) unrunnable stress #4/#9/#10 (Databento/live/cross-instrument).
