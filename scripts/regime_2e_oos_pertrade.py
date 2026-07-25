@@ -80,6 +80,8 @@ def emit_day(g, tP, tbar, adr):
 
 def main():
     limit = None
+    full = "--full" in sys.argv   # --full: keep ALL days (no gap skip) so gap threshold is a free WFA param
+    outp = (WT / "data" / "regime" / "oos_pertrade_full_20260725.csv") if full else OUT
     if "--limit" in sys.argv:
         limit = int(sys.argv[sys.argv.index("--limit") + 1])
     b = pd.read_parquet(M5); b["DateTime"] = pd.to_datetime(b["DateTime"]); b["Date"] = b["DateTime"].dt.date.astype(str)
@@ -101,7 +103,7 @@ def main():
         if dstr not in gm.index or dstr not in m1g:
             continue
         adr, gapv = gm.loc[dstr, "adr10"], gm.loc[dstr, "gap"]
-        if not np.isfinite(adr) or gapv > 0.54:
+        if not np.isfinite(adr) or (not full and gapv > 0.54):
             continue
         g = b[b.Date == dstr].sort_values("DateTime").reset_index(drop=True)
         if len(g) < 30:
@@ -121,7 +123,7 @@ def main():
         if (di + 1) % 500 == 0:
             print(f"[{di+1}/{len(days)}] rows={len(rows)} ({time.time()-t0:.0f}s)", flush=True)
     df = pd.DataFrame(rows)
-    df.to_csv(OUT, index=False)
+    df.to_csv(outp, index=False)
     print(f"\nDONE {time.time()-t0:.0f}s  -> {OUT}  ({len(df):,} filled 2E entries)")
     print("with_trend rows:", int(df.with_trend.sum()), "| counter-trend rows:", int((~df.with_trend).sum()))
     print("vix_prev coverage:", f"{df.vix_prev.notna().mean()*100:.0f}%")
