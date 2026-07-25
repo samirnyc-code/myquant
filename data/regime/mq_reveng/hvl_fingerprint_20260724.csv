@@ -1,0 +1,49 @@
+stat,value
+hvl_gex_frac_negative,1.0
+abs(hvl_gex)/abs(gex1_gex)_median,0.06198500276273671
+abs(hvl_gex)/abs(gex1_gex)_p90,0.49556875029676867
+"corr(hvl_gex, netAThvl_all)",0.5706451488406907
+frac_netAThvl_negative_all,0.9211864406779661
+median_absnet_rank_at_hvl_all,412.0
+"corr(hvl_gex, cumloAThvl_all)",-0.01220485530445318
+"corr(hvl_gex, cumhiAThvl_all)",-0.03778860837091252
+"corr(hvl_gex, netAThvl_ex1)",0.8367718093712476
+frac_netAThvl_negative_ex1,0.9542372881355933
+median_absnet_rank_at_hvl_ex1,405.0
+"corr(hvl_gex, cumloAThvl_ex1)",-0.01220485530445318
+"corr(hvl_gex, cumhiAThvl_ex1)",-0.03778860837091252
+"corr(hvl_gex, netAThvl_d90)",0.4813787102288634
+frac_netAThvl_negative_d90,0.8949152542372881
+median_absnet_rank_at_hvl_d90,431.0
+"corr(hvl_gex, cumloAThvl_d90)",-0.012190920793288804
+"corr(hvl_gex, cumhiAThvl_d90)",0.08765931119498874
+"corr(hvl_gex, netAThvl_d60)",0.4382773977061234
+frac_netAThvl_negative_d60,0.8652542372881356
+median_absnet_rank_at_hvl_d60,436.0
+"corr(hvl_gex, cumloAThvl_d60)",-0.012190919736489367
+"corr(hvl_gex, cumhiAThvl_d60)",0.08171426415897086
+"corr(hvl_gex, netAThvl_d45)",0.39611814908607396
+frac_netAThvl_negative_d45,0.8440677966101695
+median_absnet_rank_at_hvl_d45,442.5
+"corr(hvl_gex, cumloAThvl_d45)",-0.005186563818099536
+"corr(hvl_gex, cumhiAThvl_d45)",0.0769046479160869
+"corr(hvl_gex, netAThvl_d30)",0.3607696360371513
+frac_netAThvl_negative_d30,0.8059322033898305
+median_absnet_rank_at_hvl_d30,448.5
+"corr(hvl_gex, cumloAThvl_d30)",-0.01496327861998008
+"corr(hvl_gex, cumhiAThvl_d30)",0.076688304052976
+"corr(hvl_gex, netAThvl_d7)",0.13731528530665033
+frac_netAThvl_negative_d7,0.6593220338983051
+median_absnet_rank_at_hvl_d7,471.0
+"corr(hvl_gex, cumloAThvl_d7)",-0.013328910164630062
+"corr(hvl_gex, cumhiAThvl_d7)",0.06294244422049142
+"corr(hvl_gex, netAThvl_monthly)",0.5371168452011787
+frac_netAThvl_negative_monthly,0.711864406779661
+median_absnet_rank_at_hvl_monthly,360.0
+"corr(hvl_gex, cumloAThvl_monthly)",-0.012193088069464385
+"corr(hvl_gex, cumhiAThvl_monthly)",-0.037788608370912524
+"corr(hvl_gex, netAThvl_isqrt)",0.16620468017625734
+frac_netAThvl_negative_isqrt,0.8432203389830508
+median_absnet_rank_at_hvl_isqrt,436.0
+"corr(hvl_gex, cumloAThvl_isqrt)",-0.012171941805559262
+"corr(hvl_gex, cumhiAThvl_isqrt)",-0.037673213998917515
