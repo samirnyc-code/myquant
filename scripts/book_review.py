@@ -84,15 +84,22 @@ textarea{width:100%;background:#0c0f13;color:var(--tx);border:1px solid var(--ln
  <button onclick=openPaths()>W/L paths 📈</button>
  <select id=spd><option value=350>slow</option><option value=150 selected>med</option><option value=50>fast</option></select>
  <span style=color:var(--mut)>filter</span>
- <select id=filt onchange=render()><option value=all>all</option><option value=book>in-book</option><option value=L>long</option><option value=S>short</option><option value=win>winners</option><option value=loss>losers</option></select>
+ <select id=filt onchange=render()><option value=all>all</option><option value=book>in-book</option><option value=fade>fades (f2E)</option><option value=L>long</option><option value=S>short</option><option value=win>winners</option><option value=loss>losers</option></select>
  <span class=tog><input type=checkbox id=t_reg checked onchange=render()>regime</span>
  <span class=tog><input type=checkbox id=t_sma checked onchange=render()>SMA20</span>
  <span class=tog><input type=checkbox id=t_hlc checked onchange=render()>prior HLC</span>
  <span class=tog><input type=checkbox id=t_pb checked onchange=render()>prior bar</span>
  <span class=tog><input type=checkbox id=t_gap checked onchange=render()>gap</span>
  <span class=tog><input type=checkbox id=t_ib checked onchange=render()>IB</span>
+ <span class=tog><input type=checkbox id=t_ema checked onchange=render()>EMA20</span>
  <span class=tog><input type=checkbox id=t_tr checked onchange=render()>trades</span>
  <span class=tog><input type=checkbox id=t_num checked onchange=render()>bar#</span>
+ <span class=tog><input type=checkbox id=t_lbl checked onchange=render()>labels</span>
+ <button onclick=toggleSettings() title="colors & opacity">⚙</button>
+</div>
+<div id=settings style="display:none;position:absolute;top:80px;right:314px;z-index:8;background:#1a1f26;border:1px solid #2b333d;border-radius:8px;padding:10px;width:230px;box-shadow:0 6px 24px #000a">
+ <b style="color:#4a9eff">colors &amp; opacity</b><div id=setbody style="margin-top:6px"></div>
+ <button style="margin-top:8px;width:100%" onclick=resetCfg()>reset defaults</button>
 </div>
 <div id=wrap><div id=chart><canvas id=cv></canvas></div>
 <div id=side>
@@ -125,6 +132,13 @@ textarea{width:100%;background:#0c0f13;color:var(--tx);border:1px solid var(--ln
 <script>
 const DTS=__DTS__;
 let PATHS=null;
+const CFG_DEF={cUp:'#26a65b',cDn:'#d64541',cEma:'#3aa0ff',cSma:'#f1c40f',cBull:'#2ecc71',cBear:'#e74c3c',
+ cIb:'#4a9eff',cEntry:'#ffffff',cStop:'#ff5a5a',cTrig:'#f1c40f',regOp:0.10,ibOp:0.06,bg:'#0c0f13'};
+let CFG=Object.assign({},CFG_DEF,JSON.parse(localStorage.getItem('brcfg')||'{}'));
+function saveCfg(){localStorage.setItem('brcfg',JSON.stringify(CFG))}
+function resetCfg(){CFG=Object.assign({},CFG_DEF);saveCfg();buildSettings();render()}
+function hexa(hex,a){let h=hex.replace('#','');let r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16);return`rgba(${r},${g},${b},${a})`}
+let CH={on:false,x:0,y:0};
 let D=null,notes={},idx=[],curDate=null,revIdx=0,playT=null,sel=null,VX={x0:60,y0:20};
 const $=id=>document.getElementById(id);
 for(const s of ['dti','dtf']){const e=$(s);e.innerHTML='<option value="">—</option>'+DTS.map(d=>`<option>${d}</option>`).join('')}
@@ -142,57 +156,87 @@ window.onkeydown=e=>{if(e.target.tagName=='TEXTAREA')return;if(e.key==' '){e.pre
 let cv=$('cv'),ctx=cv.getContext('2d');
 function fit(){cv.width=$('chart').clientWidth;cv.height=$('chart').clientHeight}
 window.onresize=()=>{fit();render()};
-function visTrades(){let f=$('filt').value;return D.trades.filter(t=>{if(f=='book')return t.in_book;if(f=='L')return t.dir=='L';if(f=='S')return t.dir=='S';if(f=='win')return t.net>0;if(f=='loss')return t.net<0;return true})}
-function render(){if(!D)return;$('dt').textContent=D.date;$('rev').textContent=revIdx;$('nb').textContent=D.bars.length-1;
- let bars=D.bars,W=cv.width,H=cv.height,pad=VX;let shown=bars.slice(0,revIdx+1);
- let lows=shown.map(b=>b[4]),his=shown.map(b=>b[3]);let lo=Math.min(...lows),hi=Math.max(...his);
- // include overlays in scale
+function visTrades(){let f=$('filt').value;return D.trades.filter(t=>{if(f=='book')return t.in_book;if(f=='fade')return !t.with_trend;if(f=='L')return t.dir=='L';if(f=='S')return t.dir=='S';if(f=='win')return t.net>0;if(f=='loss')return t.net<0;return true})}
+function hline(a,b,yy){ctx.beginPath();ctx.moveTo(a,yy);ctx.lineTo(b,yy);ctx.stroke()}
+function dot(a,b,r){ctx.beginPath();ctx.arc(a,b,r,0,7);ctx.fill()}
+function candle(i,o,h,l,c,x,y,bw,dim){let up=c>=o,col=dim?'#39424d':(up?CFG.cUp:CFG.cDn),xx=x(i);ctx.globalAlpha=dim?.55:1;ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(xx,y(h));ctx.lineTo(xx,y(l));ctx.stroke();let yo=y(o),yc=y(c);ctx.fillRect(xx-bw*.32,Math.min(yo,yc),Math.max(1,bw*.64),Math.max(1,Math.abs(yo-yc)));ctx.globalAlpha=1}
+function setupLbl(t){return (t.with_trend?'':'f')+'2E'+t.dir}
+function setupCol(t){return t.in_book?(t.dir=='L'?CFG.cBull:CFG.cBear):(t.dir=='L'?'#e67e22':'#9b59b6')}
+function render(){if(!D)return;$('dt').textContent=D.date;$('rev').textContent=revIdx+1;$('nb').textContent=D.bars.length;
+ let bars=D.bars,pt=D.prior_tail||[],P=pt.length,W=cv.width,H=cv.height,pad=VX,bot=H-26,lbl=$('t_lbl').checked;
+ let lo=1e9,hi=-1e9;
+ for(let b of pt){lo=Math.min(lo,b[2]);hi=Math.max(hi,b[1])}
+ for(let i=0;i<=revIdx;i++){lo=Math.min(lo,bars[i][4]);hi=Math.max(hi,bars[i][3])}
  if($('t_sma').checked&&D.sma20){lo=Math.min(lo,D.sma20);hi=Math.max(hi,D.sma20)}
  if($('t_hlc').checked&&D.prior.H){lo=Math.min(lo,D.prior.L);hi=Math.max(hi,D.prior.H)}
- let rng=(hi-lo)||1;lo-=rng*.05;hi+=rng*.05;rng=hi-lo;
- let n=bars.length,bw=(W-pad.x0-10)/n,x=i=>pad.x0+i*bw+bw/2,y=p=>pad.y0+(hi-p)/rng*(H-pad.y0-24);
- ctx.clearRect(0,0,W,H);
- // regime shading
- if($('t_reg').checked)for(let s of D.regime){if(s.from>revIdx)continue;let to=Math.min(s.to,revIdx);let c=s.mode=='BULL'?'rgba(46,204,113,.09)':s.mode=='BEAR'?'rgba(231,76,60,.09)':'rgba(139,147,160,.06)';ctx.fillStyle=c;ctx.fillRect(pad.x0+s.from*bw,pad.y0,(to-s.from+1)*bw,H-pad.y0-24)}
- // y grid + labels
- ctx.strokeStyle='#1a2028';ctx.fillStyle='#6b7480';ctx.font='10px sans-serif';ctx.textAlign='right';
- for(let k=0;k<=5;k++){let p=lo+rng*k/5,yy=y(p);ctx.beginPath();ctx.moveTo(pad.x0,yy);ctx.lineTo(W-10,yy);ctx.stroke();ctx.fillText(p.toFixed(0),pad.x0-4,yy+3)}
+ if($('t_ib').checked&&D.ib){lo=Math.min(lo,D.ib.lo);hi=Math.max(hi,D.ib.hi)}
+ let rng=(hi-lo)||1;lo-=rng*.06;hi+=rng*.06;rng=hi-lo;
+ let tot=P+bars.length,bw=(W-pad.x0-12)/tot,x=i=>pad.x0+(i+P)*bw+bw/2,y=p=>pad.y0+(hi-p)/rng*(bot-pad.y0);
+ cv.style.background=CFG.bg;ctx.clearRect(0,0,W,H);
+ // regime shading (RTH)
+ if($('t_reg').checked)for(let s of D.regime){if(s.from>revIdx)continue;let to=Math.min(s.to,revIdx);let c=s.mode=='BULL'?hexa(CFG.cBull,CFG.regOp):s.mode=='BEAR'?hexa(CFG.cBear,CFG.regOp):hexa('#8b93a0',CFG.regOp*.5);ctx.fillStyle=c;ctx.fillRect(x(s.from)-bw/2,pad.y0,(to-s.from+1)*bw,bot-pad.y0)}
+ // IB band to EOD
+ if($('t_ib').checked&&D.ib){let y1=y(D.ib.hi),y2=y(D.ib.lo),xl=x(0)-bw/2;ctx.fillStyle=hexa(CFG.cIb,CFG.ibOp);ctx.fillRect(xl,y1,W-10-xl,y2-y1);ctx.strokeStyle=hexa(CFG.cIb,.55);ctx.setLineDash([4,3]);hline(xl,W-10,y1);hline(xl,W-10,y2);ctx.setLineDash([]);if(lbl){ctx.fillStyle=hexa(CFG.cIb,.9);ctx.font='10px sans-serif';ctx.textAlign='left';ctx.fillText('IBH',x(0),y1-2);ctx.fillText('IBL',x(0),y2+10)}}
+ // racing stripes: highlight each setup's bar-span (behind candles)
+ if($('t_tr').checked)for(let t of visTrades()){if(t.sig_bar>revIdx)continue;let endB=Math.max(Math.min(t.exit_bar,revIdx),t.sig_bar);let xa=x(t.sig_bar)-bw/2,ww=(endB-t.sig_bar+1)*bw,col=setupCol(t);ctx.fillStyle=hexa(col,t.in_book?.07:.05);ctx.fillRect(xa,pad.y0,ww,bot-pad.y0);ctx.fillStyle=hexa(col,.9);ctx.fillRect(xa,pad.y0,ww,3)}
+ // grid + price axis
+ ctx.font='10px sans-serif';ctx.textAlign='right';for(let k=0;k<=6;k++){let p=lo+rng*k/6,yy=y(p);ctx.strokeStyle='#161c23';hline(pad.x0,W-10,yy);ctx.fillStyle='#6b7480';ctx.fillText(p.toFixed(0),pad.x0-4,yy+3)}
  // prior HLC
- if($('t_hlc').checked)for(let [p,c,l] of [[D.prior.H,'#c0392b','pH'],[D.prior.L,'#2980b9','pL'],[D.prior.C,'#8e44ad','pC']]){if(!p)continue;let yy=y(p);ctx.strokeStyle=c;ctx.setLineDash([2,3]);ctx.beginPath();ctx.moveTo(pad.x0,yy);ctx.lineTo(W-10,yy);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle=c;ctx.textAlign='left';ctx.fillText(l,W-28,yy-2)}
- // SMA20
- if($('t_sma').checked&&D.sma20){let yy=y(D.sma20);ctx.strokeStyle='#f1c40f';ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(pad.x0,yy);ctx.lineTo(W-10,yy);ctx.stroke();ctx.lineWidth=1;ctx.fillStyle='#f1c40f';ctx.fillText('SMA20',W-46,yy-2)}
- // IB box
- if($('t_ib').checked&&D.ib){let y1=y(D.ib.hi),y2=y(D.ib.lo);ctx.strokeStyle='rgba(74,158,255,.5)';ctx.setLineDash([4,3]);ctx.strokeRect(pad.x0,y1,12*bw,y2-y1);ctx.setLineDash([])}
- // candles + bar numbers
- for(let i=0;i<=revIdx;i++){let b=bars[i],up=b[5]>=b[2],col=up?'#26a65b':'#d64541';ctx.strokeStyle=col;ctx.fillStyle=col;let xx=x(i);ctx.beginPath();ctx.moveTo(xx,y(b[3]));ctx.lineTo(xx,y(b[4]));ctx.stroke();let o=y(b[2]),c=y(b[5]);ctx.fillRect(xx-bw*.32,Math.min(o,c),bw*.64,Math.max(1,Math.abs(o-c)));
-  if($('t_num').checked&&bw>7){ctx.fillStyle='#4b5560';ctx.font='8px sans-serif';ctx.textAlign='center';ctx.fillText(i,xx,H-14)}}
- // gap marker (open vs prior close)
- if($('t_gap').checked&&D.prior.C){let yy=y(D.prior.C),yo=y(bars[0][2]);ctx.strokeStyle='#f39c12';ctx.beginPath();ctx.moveTo(x(0),yy);ctx.lineTo(x(0),yo);ctx.stroke()}
- // prior last bar marker (at x=-1 region, draw a small tag at left)
- // trades
- if($('t_tr').checked)for(let t of visTrades()){if(t.entry_bar>revIdx)continue;let xe=x(t.entry_bar),ye=y(t.entry_px),ys=y(t.stop);let long=t.dir=='L';let col=t.in_book?(t.net>0?'#2ecc71':'#e74c3c'):'#7f8c8d';
-  ctx.strokeStyle=col;ctx.lineWidth=t.in_book?2:1;ctx.beginPath();ctx.moveTo(xe,ye);ctx.lineTo(xe,ys);ctx.stroke();
-  // entry arrow
-  ctx.fillStyle=col;ctx.beginPath();if(long){ctx.moveTo(xe-4,ye+6);ctx.lineTo(xe+4,ye+6);ctx.lineTo(xe,ye)}else{ctx.moveTo(xe-4,ye-6);ctx.lineTo(xe+4,ye-6);ctx.lineTo(xe,ye)}ctx.fill();
-  // exit dotted to exit bar if revealed
-  if(t.exit_bar<=revIdx){let xx2=x(t.exit_bar),yy2=y(t.exit_px);ctx.setLineDash([2,2]);ctx.strokeStyle=col;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(xe,ye);ctx.lineTo(xx2,yy2);ctx.stroke();ctx.setLineDash([])}
-  if(sel&&sel.entry_bar==t.entry_bar&&sel.dir==t.dir){ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.strokeRect(xe-bw*.5,Math.min(ye,ys)-4,bw,Math.abs(ye-ys)+8)}
-  ctx.lineWidth=1}
+ if($('t_hlc').checked)for(let [p,c,l] of [[D.prior.H,'#c0392b','pH'],[D.prior.L,'#2980b9','pL'],[D.prior.C,'#8e44ad','pC']]){if(!p)continue;let yy=y(p);ctx.strokeStyle=c;ctx.setLineDash([2,3]);hline(pad.x0,W-10,yy);ctx.setLineDash([]);if(lbl){ctx.fillStyle=c;ctx.textAlign='left';ctx.fillText(l,W-26,yy-2)}}
+ // SMA20 dotted
+ if($('t_sma').checked&&D.sma20){let yy=y(D.sma20);ctx.strokeStyle=CFG.cSma;ctx.lineWidth=1.4;ctx.setLineDash([2,4]);hline(pad.x0,W-10,yy);ctx.setLineDash([]);ctx.lineWidth=1;if(lbl){ctx.fillStyle=CFG.cSma;ctx.textAlign='left';ctx.fillText('SMA20',W-44,yy-2)}}
+ // prior-session tail candles (dim; fully known)
+ for(let j=0;j<P;j++){let b=pt[j];candle(-(P-j),b[0],b[1],b[2],b[3],x,y,bw,true)}
+ // divider between prior session and RTH
+ ctx.strokeStyle='#2b333d';ctx.setLineDash([3,3]);hline2(x(-0.5),pad.y0,x(-0.5),bot);ctx.setLineDash([]);
+ // RTH candles + bar numbers
+ for(let i=0;i<=revIdx;i++){let b=bars[i];candle(i,b[2],b[3],b[4],b[5],x,y,bw,false);if($('t_num').checked&&bw>7){ctx.fillStyle='#4b5560';ctx.font='8px sans-serif';ctx.textAlign='center';ctx.fillText(i+1,x(i),bot+12)}}
+ // intraday EMA20 (prior tail -> revealed RTH)
+ if($('t_ema').checked){ctx.strokeStyle=CFG.cEma;ctx.lineWidth=1.6;ctx.beginPath();let st=false;for(let j=0;j<P;j++){let xx=x(-(P-j)),yy=y(pt[j][4]);st?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy);st=true}for(let i=0;i<=revIdx;i++){let xx=x(i),yy=y(bars[i][6]);st?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy);st=true}ctx.stroke();ctx.lineWidth=1;if(lbl&&revIdx>=0){ctx.fillStyle=CFG.cEma;ctx.textAlign='left';ctx.fillText('EMA20',x(revIdx)+3,y(bars[revIdx][6]))}}
+ // gap tick (open vs prior close)
+ if($('t_gap').checked&&D.prior.C){ctx.strokeStyle='#f39c12';ctx.lineWidth=2;hline2(x(0),y(D.prior.C),x(0),y(bars[0][2]));ctx.lineWidth=1}
+ // trades: trigger/entry/stop levels from signal bar -> exit(or reveal), no triangles
+ if($('t_tr').checked)for(let t of visTrades()){if(t.sig_bar>revIdx)continue;let endB=Math.min(t.exit_bar,revIdx);let x0=x(t.sig_bar)-bw*.45,x1=x(Math.max(endB,t.sig_bar))+bw*.45,book=t.in_book;ctx.globalAlpha=book?1:.5;
+  ctx.strokeStyle=CFG.cTrig;ctx.lineWidth=1;ctx.setLineDash([1,3]);hline(x0,x1,y(t.trigger));
+  ctx.strokeStyle=CFG.cEntry;ctx.lineWidth=book?1.8:1;ctx.setLineDash([]);hline(x0,x1,y(t.entry_px));
+  ctx.strokeStyle=CFG.cStop;ctx.lineWidth=1.3;ctx.setLineDash([5,3]);hline(x0,x1,y(t.stop));ctx.setLineDash([]);
+  if(t.entry_bar<=revIdx){ctx.fillStyle=CFG.cEntry;dot(x(t.entry_bar),y(t.entry_px),3.2)}
+  if(t.exit_bar<=revIdx){ctx.fillStyle='#dfe4e8';dot(x(t.exit_bar),y(t.exit_px),3.2)}
+  // signal-bar marker (small caret in gutter, not over the bar)
+  ctx.fillStyle=book?CFG.cEntry:'#8b93a0';ctx.font='9px sans-serif';ctx.textAlign='center';ctx.fillText(t.dir=='L'?'▲':'▼',x(t.sig_bar),t.dir=='L'?bot-2:pad.y0+9);
+  if(lbl){ctx.textAlign='left';ctx.font='9px sans-serif';ctx.fillStyle=setupCol(t);ctx.fillText(setupLbl(t)+' '+t.entry_px,x0,y(t.entry_px)-3);ctx.fillStyle=CFG.cStop;ctx.fillText('stp '+t.stop,x0,y(t.stop)+(t.dir=='L'?11:-3));ctx.fillStyle=CFG.cTrig;ctx.fillText('trg '+t.trigger,x1+2,y(t.trigger)+3)}
+  if(sel&&sel.entry_bar==t.entry_bar&&sel.dir==t.dir){let ys=[y(t.entry_px),y(t.stop),y(t.trigger)];ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.setLineDash([]);ctx.strokeRect(x0-2,Math.min(...ys)-3,(x1-x0)+4,Math.max(...ys)-Math.min(...ys)+6)}
+  ctx.globalAlpha=1;ctx.lineWidth=1}
  // reveal edge
- ctx.strokeStyle='#333c47';ctx.beginPath();ctx.moveTo(x(revIdx)+bw*.5,pad.y0);ctx.lineTo(x(revIdx)+bw*.5,H-24);ctx.stroke();
- renderStats();renderDayInfo();window._x=x;window._y=y;window._bw=bw}
+ ctx.strokeStyle='#333c47';hline2(x(revIdx)+bw*.5,pad.y0,x(revIdx)+bw*.5,bot);
+ // crosshair + hover readout
+ if(CH.on){let bi=Math.round((CH.x-pad.x0)/bw-P);ctx.strokeStyle='#5a6470';ctx.setLineDash([2,3]);ctx.lineWidth=1;hline2(CH.x,pad.y0,CH.x,bot);hline(pad.x0,W-10,CH.y);ctx.setLineDash([]);
+  let pcur=hi-(CH.y-pad.y0)/(bot-pad.y0)*rng;ctx.fillStyle='#2c3440';ctx.fillRect(W-56,CH.y-8,50,16);ctx.fillStyle='#e6e9ec';ctx.textAlign='left';ctx.font='10px sans-serif';ctx.fillText(pcur.toFixed(2),W-54,CH.y+3);
+  let o,h,l,c,tm,tag;if(bi>=0&&bi<=revIdx){let b=bars[bi];o=b[2];h=b[3];l=b[4];c=b[5];tm=b[1];tag='bar '+(bi+1);}else if(bi<0&&bi>=-P){let b=pt[bi+P];o=b[0];h=b[1];l=b[2];c=b[3];tm=b[5];tag='prior';}
+  if(tm){let txt=`${tag} ${tm}  O${o} H${h} L${l} C${c}  (${(c-o>=0?'+':'')}${(c-o).toFixed(2)})`;ctx.font='11px sans-serif';let tw=ctx.measureText(txt).width+14;ctx.fillStyle='rgba(16,20,26,.96)';ctx.fillRect(pad.x0+4,pad.y0+3,tw,18);ctx.fillStyle='#e6e9ec';ctx.fillText(txt,pad.x0+11,pad.y0+16)}}
+ renderStats();renderDayInfo();window._x=x;window._y=y;window._bw=bw;window._P=P}
+function hline2(a,b,c,d){ctx.beginPath();ctx.moveTo(a,b);ctx.lineTo(c,d);ctx.stroke()}
 function renderDayInfo(){let p=D.prior;$('dayinfo').innerHTML=`<div class=stat>gap<span>${p.gap_pts} (${p.gap_pct}%)</span></div><div class=stat>ADR10<span>${D.adr10}</span></div><div class=stat>SMA20<span>${D.sma20}</span></div><div class=stat>skip-after-TD<span>${D.skipTD?'<span class=loss>YES (skipped)</span>':'no'}</span></div><div class=stat>trades<span>${D.trades.length} (${D.trades.filter(t=>t.in_book).length} in-book)</span></div>`}
 function renderStats(){let ts=visTrades().filter(t=>t.in_book);let w=ts.filter(t=>t.net>0),l=ts.filter(t=>t.net<0);let gp=w.reduce((a,b)=>a+b.net,0),gl=-l.reduce((a,b)=>a+b.net,0);let net=ts.reduce((a,b)=>a+b.net,0);
  $('stats').innerHTML=`<div class=stat>n<span>${ts.length}</span></div><div class=stat>PF<span>${gl?(gp/gl).toFixed(2):'∞'}</span></div><div class=stat>win%<span>${ts.length?(100*w.length/ts.length).toFixed(0):0}</span></div><div class=stat>net<span class=${net>=0?'win':'loss'}>${net>=0?'+':''}${net.toFixed(0)}</span></div>`}
-cv.onclick=e=>{if(!D)return;let r=cv.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;let best=null,bd=1e9;for(let t of visTrades()){if(t.entry_bar>revIdx)continue;let dx=Math.abs(window._x(t.entry_bar)-mx),dy=Math.abs(window._y(t.entry_px)-my);let d=dx+dy*.3;if(d<bd&&dx<window._bw*2){bd=d;best=t}}if(best){selectTrade(best)}}
+cv.onclick=e=>{if(!D)return;let r=cv.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;let best=null,bd=1e9;
+ for(let t of visTrades()){if(t.sig_bar>revIdx)continue;let xa=window._x(t.sig_bar),xb=window._x(Math.min(t.exit_bar,revIdx));if(mx<xa-window._bw||mx>xb+window._bw)continue;let dy=Math.min(Math.abs(window._y(t.entry_px)-my),Math.abs(window._y(t.stop)-my),Math.abs(window._y(t.trigger)-my));if(dy<bd&&dy<16){bd=dy;best=t}}
+ if(best)selectTrade(best)}
+cv.onmousemove=e=>{if(!D)return;let r=cv.getBoundingClientRect();CH={on:true,x:e.clientX-r.left,y:e.clientY-r.top};if(!CH._raf){CH._raf=requestAnimationFrame(()=>{CH._raf=0;render()})}}
+cv.onmouseleave=()=>{CH.on=false;render()}
 function selectTrade(t){sel=t;$('selpanel').style.display='block';let k=tkey(t);let nt=(notes.setups||{})[k]||{};
- $('selinfo').innerHTML=`<b>2E${t.dir}</b> @bar ${t.entry_bar} · entry ${t.entry_px} stop ${t.stop} · net <span class=${t.net>0?'win':'loss'}>${t.net>0?'+':''}${t.net}</span><br><span class=pill>SMA20 ${t.pass_sma20?'✓':'✕'}</span> <span class=pill>skipTD ${t.pass_skipTD?'✓':'✕'}</span> <span class=pill>WT ${t.with_trend?'✓':'✕'}</span> <span class=pill>${t.in_book?'IN BOOK':'excluded'}</span>`;
+ let why=t.in_book?'':' — excluded: '+[!t.with_trend?'countertrend (WT✕)':'',!t.pass_sma20?'wrong side of SMA20':'',!t.pass_skipTD?'day-after-trend-day':'',!t.pass_gap?'gap>0.54%':'',!t.pass_window?'outside 09-13':''].filter(Boolean).join(', ');
+ let tag=t.in_book?'IN BOOK':(t.with_trend?'EXCLUDED':'FADE '+setupLbl(t));
+ $('selinfo').innerHTML=`<b style="color:${setupCol(t)}">${setupLbl(t)}</b> sig bar ${t.sig_bar+1} · fill bar ${t.entry_bar+1}<br>trigger ${t.trigger} · entry ${t.entry_px} · stop ${t.stop} · exit ${t.exit_px} (bar ${t.exit_bar+1})<br>net <span class=${t.net>0?'win':'loss'}>${t.net>0?'+':''}${t.net}</span> &nbsp;<span class=pill>SMA20 ${t.pass_sma20?'✓':'✕'}</span> <span class=pill>skipTD ${t.pass_skipTD?'✓':'✕'}</span> <span class=pill>WT ${t.with_trend?'✓':'✕'}</span> <span class=pill style="border-color:${t.in_book?'#2ecc71':(t.with_trend?'#e74c3c':'#e67e22')}">${tag}</span><span style="color:#e67e22">${why}</span>`;
  $('note').value=nt.note||'';render()}
+function toggleSettings(){let s=$('settings');s.style.display=s.style.display=='none'?'block':'none';if(s.style.display=='block')buildSettings()}
+function buildSettings(){let rows=[['cUp','up candle','color'],['cDn','down candle','color'],['cEma','EMA20','color'],['cSma','SMA20','color'],['cEntry','entry line','color'],['cStop','stop line','color'],['cTrig','trigger line','color'],['cBull','bull shade','color'],['cBear','bear shade','color'],['cIb','IB','color'],['bg','background','color'],['regOp','regime opacity','range'],['ibOp','IB opacity','range']];
+ $('setbody').innerHTML=rows.map(([k,lab,ty])=>ty=='color'?`<div class=stat><span>${lab}</span><input type=color value="${CFG[k]}" oninput="CFG['${k}']=this.value;saveCfg();render()"></div>`:`<div class=stat><span>${lab}</span><input type=range min=0 max=0.4 step=0.01 value="${CFG[k]}" oninput="CFG['${k}']=+this.value;saveCfg();render()"></div>`).join('')}
 function tkey(t){return t.entry_bar+t.dir}
 function grade(g){if(!sel)return;setNote({grade:g})}
 function takeskip(v){if(!sel)return;setNote({takeskip:v})}
 function saveSel(){if(!sel)return;setNote({note:$('note').value})}
-function setNote(o){let k=tkey(sel);notes.setups=notes.setups||{};notes.setups[k]=Object.assign({entry_bar:sel.entry_bar,dir:sel.dir,in_book:sel.in_book,net:sel.net,reveal_idx:revIdx},notes.setups[k]||{},o);save()}
+function setNote(o){let k=tkey(sel);notes.setups=notes.setups||{};notes.setups[k]=Object.assign({setup:setupLbl(sel),entry_bar:sel.entry_bar,sig_bar:sel.sig_bar,dir:sel.dir,with_trend:sel.with_trend,in_book:sel.in_book,net:sel.net,reveal_idx:revIdx},notes.setups[k]||{},o);save()}
 function saveDay(){notes.daytype_inter=$('dti').value;notes.daytype_inter_bar=revIdx;notes.daytype_final=$('dtf').value;$('ibar').textContent=revIdx;save()}
 function save(){fetch('/save/'+curDate,{method:'POST',body:JSON.stringify(notes)})}
 function openPaths(){$('modal').style.display='block';if(PATHS){drawPaths();return}fetch('/allpaths').then(r=>r.json()).then(j=>{PATHS=j;drawPaths()})}

@@ -36,6 +36,11 @@ def main():
     limit = int(sys.argv[sys.argv.index("--limit") + 1]) if "--limit" in sys.argv else None
     OUT.mkdir(parents=True, exist_ok=True)
     b = pd.read_parquet(DATA / "bars" / "_db_es_5m_rth.parquet"); b["DateTime"] = pd.to_datetime(b["DateTime"]); b["Date"] = b["DateTime"].dt.date.astype(str)
+    b = b.sort_values("DateTime").reset_index(drop=True)
+    b["ema20i"] = b["Close"].ewm(span=20, adjust=False).mean()   # continuous 5M EMA20 (carries across sessions)
+    alldates = sorted(b["Date"].unique())
+    prior_date = {alldates[i]: alldates[i - 1] for i in range(1, len(alldates))}
+    bydate = {d: x.sort_values("DateTime").reset_index(drop=True) for d, x in b.groupby("Date")}
     m1 = pd.read_parquet(DATA / "bars" / "_db_es_1m_rth.parquet"); m1["DateTime"] = pd.to_datetime(m1["DateTime"]); m1["Date"] = m1["DateTime"].dt.date.astype(str)
     m1g = {d: x.sort_values("DateTime").reset_index(drop=True) for d, x in m1.groupby("Date")}
     dly = b.groupby("Date").agg(dO=("Open", "first"), dC=("Close", "last"), dH=("High", "max"), dL=("Low", "min")).reset_index().sort_values("Date").reset_index(drop=True)
@@ -68,8 +73,17 @@ def main():
         sma20 = float(row.sma20) if np.isfinite(row.sma20) else None
         pass_gap = (gapPct is None) or (abs(gapPct) <= 0.54)
         skipTD = bool(row.skipTD)
+        EMA = g.ema20i.values
         bars = [[i, pd.Timestamp(g.DateTime.values[i]).strftime("%H:%M"),
-                 round(float(O[i]), 2), round(float(H[i]), 2), round(float(L[i]), 2), round(float(C[i]), 2)] for i in range(n)]
+                 round(float(O[i]), 2), round(float(H[i]), 2), round(float(L[i]), 2), round(float(C[i]), 2),
+                 round(float(EMA[i]), 2)] for i in range(n)]
+        pdte = prior_date.get(dstr)
+        ptail = []
+        if pdte and pdte in bydate:
+            ptdf = bydate[pdte].tail(20)
+            ptail = [[round(float(r.Open), 2), round(float(r.High), 2), round(float(r.Low), 2),
+                      round(float(r.Close), 2), round(float(r.ema20i), 2),
+                      pd.Timestamp(r.DateTime).strftime("%H:%M")] for r in ptdf.itertuples()]
         # regime segments
         tP, tbar = proxy_ticks(g, m1day)
         trans = pt_old(H, L, n, tP, tbar); tr_ix = [t for (t, _) in trans]; tr_md = [mm for (_, mm) in trans]
@@ -107,14 +121,15 @@ def main():
             exbar = int(tbar[min(jfl + (int(js[0]) if len(js) else len(segp) - 1), len(tbar) - 1)])
             net = round(((lim - ex) if short else (ex - lim)) * PT - COMM - SLIP, 1)
             pass_sma = (sma20 is not None) and (lim > sma20)
-            trades.append({"entry_bar": fb2, "sig_bar": int(sb), "dir": dr, "entry_px": round(float(lim), 2),
+            trades.append({"entry_bar": fb2, "sig_bar": int(sb), "dir": dr, "trigger": round(float(trig), 2),
+                           "entry_px": round(float(lim), 2),
                            "stop": round(float(stop), 2), "exit_bar": exbar, "exit_px": round(float(ex), 2),
                            "net": net, "with_trend": bool(wt), "pass_sma20": bool(pass_sma),
                            "pass_skipTD": (not skipTD), "pass_gap": bool(pass_gap), "pass_window": hr in GOOD,
                            "in_book": bool(wt and pass_sma and (not skipTD) and pass_gap and (hr in GOOD))})
         ib = g[g.DateTime.dt.hour.isin([8, 9]) & (g.DateTime.dt.strftime("%H:%M") < "09:30")]
         rec = {
-            "date": dstr, "bars": bars, "regime": seg, "trades": trades,
+            "date": dstr, "bars": bars, "regime": seg, "trades": trades, "prior_tail": ptail,
             "sma20": round(sma20, 2) if sma20 else None,
             "prior": {"H": round(float(row.pH), 2) if np.isfinite(row.pH) else None,
                       "L": round(float(row.pL), 2) if np.isfinite(row.pL) else None,
