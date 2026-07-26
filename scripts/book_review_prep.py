@@ -22,6 +22,7 @@ import numpy as np
 import pandas as pd
 
 TICK = 0.25; PT = 50.0; COMM = 5.0; SLIP = 12.5; FLOOR = 8 * TICK
+KFADE = 2; FADE_STOP = 4.0                                   # fade: fail within 2 bars, fixed 4pt stop
 WT = Path(__file__).resolve().parent.parent
 DATA = Path(r"C:/Users/Admin/myquant/data")
 sys.path.insert(0, str(WT / "scripts"))
@@ -84,9 +85,10 @@ def main():
             ptail = [[round(float(r.Open), 2), round(float(r.High), 2), round(float(r.Low), 2),
                       round(float(r.Close), 2), round(float(r.ema20i), 2),
                       pd.Timestamp(r.DateTime).strftime("%H:%M")] for r in ptdf.itertuples()]
-        # regime segments
+        # regime segments + pivots (phase-machine trace)
         tP, tbar = proxy_ticks(g, m1day)
-        trans = pt_old(H, L, n, tP, tbar); tr_ix = [t for (t, _) in trans]; tr_md = [mm for (_, mm) in trans]
+        tr = {}
+        trans = pt_old(H, L, n, tP, tbar, trace=tr); tr_ix = [t for (t, _) in trans]; tr_md = [mm for (_, mm) in trans]
         seg = []
         for i in range(n):
             z = int(np.searchsorted(tbar, i, "right"))
@@ -95,7 +97,12 @@ def main():
                 seg[-1]["to"] = i
             else:
                 seg.append({"from": i, "to": i, "mode": mode})
-        # book trades (2E both, with-trend, retest, 0.30 ADR, EOD) + filter verdicts
+        pivots = [{"b": int(p["bar"]), "side": p["side"],
+                   "lab": (p["majlab"] or p["disp"] or p["tag"]).upper()}
+                  for p in tr.get("piv", []) if 0 <= p["bar"] < n]
+        obs = [i for i in range(1, n) if H[i] >= H[i - 1] and L[i] <= L[i - 1] and (H[i] > H[i - 1] or L[i] < L[i - 1])]
+        ibs = [i for i in range(1, n) if H[i] <= H[i - 1] and L[i] >= L[i - 1]]
+        # trades: WITH-TREND book (2EL/2ES, retest, 0.30xADR) + FADES (f2EL short / f2ES long, stop-entry, 4pt)
         wide = max(round(0.30 * adr / TICK) * TICK, FLOOR); trades = []
         for (fb, sb, dr, cnt, trig) in detect_entries_causal(g, tP, tbar):
             if cnt != 2:
@@ -106,30 +113,59 @@ def main():
             if not len(hit):
                 continue
             jf = a + int(hit[0]); reg = tr_md[bisect_right(tr_ix, jf) - 1]
-            wt = reg == want
-            lim = trig + 6 * TICK if short else trig - 6 * TICK; s0 = tP[jf:]
-            jl = np.nonzero(s0 > lim)[0] if short else np.nonzero(s0 < lim)[0]
-            if not len(jl):
-                continue
-            jfl = jf + int(jl[0]); fb2 = int(tbar[jfl])
-            if fb2 - fb > 6:
-                continue
-            hr = int(pd.Timestamp(g.DateTime.values[min(fb2, n - 1)]).hour)
-            stop = lim + wide if short else lim - wide; segp = tP[jfl:]
-            js = np.nonzero(segp >= stop)[0] if short else np.nonzero(segp <= stop)[0]
-            ex = stop if len(js) else segp[-1]
-            exbar = int(tbar[min(jfl + (int(js[0]) if len(js) else len(segp) - 1), len(tbar) - 1)])
-            net = round(((lim - ex) if short else (ex - lim)) * PT - COMM - SLIP, 1)
-            pass_sma = (sma20 is not None) and (lim > sma20)
-            trades.append({"entry_bar": fb2, "sig_bar": int(sb), "dir": dr, "trigger": round(float(trig), 2),
-                           "entry_px": round(float(lim), 2),
-                           "stop": round(float(stop), 2), "exit_bar": exbar, "exit_px": round(float(ex), 2),
-                           "net": net, "with_trend": bool(wt), "pass_sma20": bool(pass_sma),
-                           "pass_skipTD": (not skipTD), "pass_gap": bool(pass_gap), "pass_window": hr in GOOD,
-                           "in_book": bool(wt and pass_sma and (not skipTD) and pass_gap and (hr in GOOD))})
+            if reg == want:
+                # ---- WITH-TREND 2E book ----
+                lim = trig + 6 * TICK if short else trig - 6 * TICK; s0 = tP[jf:]
+                jl = np.nonzero(s0 > lim)[0] if short else np.nonzero(s0 < lim)[0]
+                if not len(jl):
+                    continue
+                jfl = jf + int(jl[0]); fb2 = int(tbar[jfl])
+                if fb2 - fb > 6:
+                    continue
+                hr = int(pd.Timestamp(g.DateTime.values[min(fb2, n - 1)]).hour)
+                stop = lim + wide if short else lim - wide; segp = tP[jfl:]
+                js = np.nonzero(segp >= stop)[0] if short else np.nonzero(segp <= stop)[0]
+                ex = stop if len(js) else segp[-1]
+                exbar = int(tbar[min(jfl + (int(js[0]) if len(js) else len(segp) - 1), len(tbar) - 1)])
+                net = round(((lim - ex) if short else (ex - lim)) * PT - COMM - SLIP, 1)
+                pass_sma = (sma20 is not None) and (lim > sma20)
+                trades.append({"setup": "2E" + dr, "book": "2E", "is_fade": False, "entry_bar": fb2, "sig_bar": int(sb),
+                               "dir": dr, "trigger": round(float(trig), 2), "entry_px": round(float(lim), 2),
+                               "stop": round(float(stop), 2), "exit_bar": exbar, "exit_px": round(float(ex), 2),
+                               "net": net, "with_trend": True, "pass_sma20": bool(pass_sma),
+                               "pass_skipTD": (not skipTD), "pass_gap": bool(pass_gap), "pass_window": hr in GOOD,
+                               "in_book": bool(pass_sma and (not skipTD) and pass_gap and (hr in GOOD))})
+            else:
+                # ---- FADE book (f2EL=short/f2ES=long): stop-entry beyond signal-bar extreme, 4pt stop ----
+                fade_short = not short; need = "BEAR" if fade_short else "BULL"
+                if reg != need:
+                    continue                                          # neutral regime -> not a fade
+                sb_ext = L[sb] if fade_short else H[sb]
+                fail_px = sb_ext - TICK if fade_short else sb_ext + TICK
+                zlim = np.searchsorted(tbar, fb + KFADE + 1, "left"); segf = tP[jf:zlim]
+                w = np.nonzero(segf <= fail_px)[0] if fade_short else np.nonzero(segf >= fail_px)[0]
+                if not len(w):
+                    continue
+                jx = jf + int(w[0]); fb2 = int(tbar[min(jx, len(tbar) - 1)])
+                hr = int(pd.Timestamp(g.DateTime.values[min(fb2, n - 1)]).hour)
+                fill = fail_px - TICK if fade_short else fail_px + TICK
+                stop = fill + FADE_STOP if fade_short else fill - FADE_STOP; seg2 = tP[jx:]
+                jsx = np.nonzero(seg2 >= stop)[0] if fade_short else np.nonzero(seg2 <= stop)[0]
+                ex = stop if len(jsx) else seg2[-1]
+                exbar = int(tbar[min(jx + (int(jsx[0]) if len(jsx) else len(seg2) - 1), len(tbar) - 1)])
+                net = round(((fill - ex) if fade_short else (ex - fill)) * PT - COMM - SLIP, 1)
+                fdir = "S" if fade_short else "L"
+                trades.append({"setup": "f2E" + dr, "book": "fade", "is_fade": True, "entry_bar": fb2, "sig_bar": int(sb),
+                               "dir": fdir, "trigger": round(float(fail_px), 2), "entry_px": round(float(fill), 2),
+                               "stop": round(float(stop), 2), "exit_bar": exbar, "exit_px": round(float(ex), 2),
+                               "net": net, "with_trend": False, "pass_sma20": None, "pass_skipTD": None,
+                               "pass_gap": bool(pass_gap), "pass_window": hr in GOOD,
+                               "fade_tradeable": bool(fade_short),   # f2EL tradeable; f2ES DEAD
+                               "in_book": bool(fade_short and pass_gap and (hr in GOOD))})
         ib = g[g.DateTime.dt.hour.isin([8, 9]) & (g.DateTime.dt.strftime("%H:%M") < "09:30")]
         rec = {
             "date": dstr, "bars": bars, "regime": seg, "trades": trades, "prior_tail": ptail,
+            "pivots": pivots, "obs": obs, "ibs": ibs, "today_open": round(float(O[0]), 2),
             "sma20": round(sma20, 2) if sma20 else None,
             "prior": {"H": round(float(row.pH), 2) if np.isfinite(row.pH) else None,
                       "L": round(float(row.pL), 2) if np.isfinite(row.pL) else None,

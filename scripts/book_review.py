@@ -64,7 +64,8 @@ button:hover{background:#2c3440} button.on{background:#204a2e;border-color:var(-
 .tog{display:inline-flex;align-items:center;gap:3px} .tog input{accent-color:var(--grn)}
 #wrap{display:flex;height:calc(100vh - 44px)} #chart{flex:1;position:relative}
 canvas{display:block;background:#0c0f13}
-#side{width:300px;background:var(--sf);border-left:1px solid var(--ln);padding:10px;overflow:auto}
+#side{width:236px;background:var(--sf);border-left:1px solid var(--ln);padding:9px;overflow:auto;font-size:12px}
+#side.hidden{display:none}
 .pill{background:#232a33;border:1px solid var(--ln);border-radius:10px;padding:2px 8px;font-size:11px}
 h4{margin:10px 0 5px;color:var(--mut);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.4px}
 textarea{width:100%;background:#0c0f13;color:var(--tx);border:1px solid var(--ln);border-radius:5px;padding:5px;resize:vertical;font:12px sans-serif}
@@ -95,15 +96,20 @@ textarea{width:100%;background:#0c0f13;color:var(--tx);border:1px solid var(--ln
  <span class=tog><input type=checkbox id=t_tr checked onchange=render()>trades</span>
  <span class=tog><input type=checkbox id=t_num checked onchange=render()>bar#</span>
  <span class=tog><input type=checkbox id=t_lbl checked onchange=render()>labels</span>
+ <span class=tog><input type=checkbox id=t_open checked onchange=render()>open</span>
+ <span class=tog><input type=checkbox id=t_piv onchange=render()>pivots</span>
+ <span class=tog><input type=checkbox id=t_ob onchange=render()>OB</span>
  <button onclick=toggleSettings() title="colors & opacity">⚙</button>
+ <button onclick=toggleSide() title="collapse panel">⇥</button>
 </div>
-<div id=settings style="display:none;position:absolute;top:80px;right:314px;z-index:8;background:#1a1f26;border:1px solid #2b333d;border-radius:8px;padding:10px;width:230px;box-shadow:0 6px 24px #000a">
+<div id=settings style="display:none;position:absolute;top:80px;right:250px;z-index:8;background:#1a1f26;border:1px solid #2b333d;border-radius:8px;padding:10px;width:224px;box-shadow:0 6px 24px #000a">
  <b style="color:#4a9eff">colors &amp; opacity</b><div id=setbody style="margin-top:6px"></div>
  <button style="margin-top:8px;width:100%" onclick=resetCfg()>reset defaults</button>
 </div>
 <div id=wrap><div id=chart><canvas id=cv></canvas></div>
 <div id=side>
  <h4>day</h4><div id=dayinfo></div>
+ <h4>levels (● on-screen ○ off)</h4><div id=levels></div>
  <h4>day type</h4>
  <div class=stat>intermediate @bar <b id=ibar>—</b> <select id=dti onchange=saveDay()></select></div>
  <div class=stat>final <select id=dtf onchange=saveDay()></select></div>
@@ -112,6 +118,7 @@ textarea{width:100%;background:#0c0f13;color:var(--tx);border:1px solid var(--ln
   <div class=gr><button onclick=grade('A')>A</button><button onclick=grade('B')>B</button><button onclick=grade('C')>C</button><button onclick=grade('F')>F</button></div>
   <div class=gr style=margin-top:4px><button onclick=takeskip('take')>take ✓</button><button onclick=takeskip('skip')>skip ✕</button></div>
   <textarea id=note rows=3 placeholder="why? (your read)" oninput=saveSel()></textarea>
+  <button style="width:100%;margin-top:4px" onclick=openLens()>🔍 zoom this setup</button>
  </div>
  <h4>stats (filter)</h4><div id=stats></div>
 </div></div>
@@ -128,6 +135,13 @@ textarea{width:100%;background:#0c0f13;color:var(--tx);border:1px solid var(--ln
    </span></div>
   <canvas id=pcv style="flex:1;background:#0c0f13;margin-top:8px;border-radius:5px"></canvas>
   <div id=pstats style="color:#8b93a0;margin-top:6px;font-size:12px"></div>
+ </div></div>
+<div id=lens style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:9">
+ <div style="position:absolute;top:6%;left:8%;right:8%;bottom:6%;background:#12161b;border:1px solid #2b333d;border-radius:8px;padding:10px;display:flex;flex-direction:column">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+   <b id=lenstitle style="color:#4a9eff">setup lens</b>
+   <span>pad <input type=range id=lpad min=3 max=25 value=8 oninput=drawLens() style="vertical-align:middle"> <button onclick="document.getElementById('lens').style.display='none'">✕ close</button></span></div>
+  <canvas id=lcv style="flex:1;background:#0c0f13;margin-top:8px;border-radius:5px"></canvas>
  </div></div>
 <script>
 const DTS=__DTS__;
@@ -156,41 +170,44 @@ window.onkeydown=e=>{if(e.target.tagName=='TEXTAREA')return;if(e.key==' '){e.pre
 let cv=$('cv'),ctx=cv.getContext('2d');
 function fit(){cv.width=$('chart').clientWidth;cv.height=$('chart').clientHeight}
 window.onresize=()=>{fit();render()};
-function visTrades(){let f=$('filt').value;return D.trades.filter(t=>{if(f=='book')return t.in_book;if(f=='fade')return !t.with_trend;if(f=='L')return t.dir=='L';if(f=='S')return t.dir=='S';if(f=='win')return t.net>0;if(f=='loss')return t.net<0;return true})}
+function visTrades(){let f=$('filt').value;return D.trades.filter(t=>{if(f=='book')return t.in_book;if(f=='fade')return t.is_fade;if(f=='L')return t.dir=='L';if(f=='S')return t.dir=='S';if(f=='win')return t.net>0;if(f=='loss')return t.net<0;return true})}
+function toggleSide(){$('side').classList.toggle('hidden');fit();render()}
 function hline(a,b,yy){ctx.beginPath();ctx.moveTo(a,yy);ctx.lineTo(b,yy);ctx.stroke()}
 function dot(a,b,r){ctx.beginPath();ctx.arc(a,b,r,0,7);ctx.fill()}
 function candle(i,o,h,l,c,x,y,bw,dim){let up=c>=o,col=dim?'#39424d':(up?CFG.cUp:CFG.cDn),xx=x(i);ctx.globalAlpha=dim?.55:1;ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(xx,y(h));ctx.lineTo(xx,y(l));ctx.stroke();let yo=y(o),yc=y(c);ctx.fillRect(xx-bw*.32,Math.min(yo,yc),Math.max(1,bw*.64),Math.max(1,Math.abs(yo-yc)));ctx.globalAlpha=1}
-function setupLbl(t){return (t.with_trend?'':'f')+'2E'+t.dir}
-function setupCol(t){return t.in_book?(t.dir=='L'?CFG.cBull:CFG.cBear):(t.dir=='L'?'#e67e22':'#9b59b6')}
+function setupLbl(t){return t.setup||((t.with_trend?'':'f')+'2E'+t.dir)}
+function setupCol(t){if(t.is_fade)return t.dir=='L'?'#e67e22':'#9b59b6';if(t.in_book)return t.dir=='L'?CFG.cBull:CFG.cBear;return '#7f8c8d'}
 function render(){if(!D)return;$('dt').textContent=D.date;$('rev').textContent=revIdx+1;$('nb').textContent=D.bars.length;
- let bars=D.bars,pt=D.prior_tail||[],P=pt.length,W=cv.width,H=cv.height,pad=VX,bot=H-26,lbl=$('t_lbl').checked;
- let lo=1e9,hi=-1e9;
+ let bars=D.bars,ptA=D.prior_tail||[],pt=ptA.length?[ptA[ptA.length-1]]:[],P=pt.length,W=cv.width,H=cv.height,pad=VX,bot=H-26,lbl=$('t_lbl').checked;
+ let lo=1e9,hi=-1e9;                              // scale to PRICE ACTION only (bars); far levels listed in panel
  for(let b of pt){lo=Math.min(lo,b[2]);hi=Math.max(hi,b[1])}
  for(let i=0;i<=revIdx;i++){lo=Math.min(lo,bars[i][4]);hi=Math.max(hi,bars[i][3])}
- if($('t_sma').checked&&D.sma20){lo=Math.min(lo,D.sma20);hi=Math.max(hi,D.sma20)}
- if($('t_hlc').checked&&D.prior.H){lo=Math.min(lo,D.prior.L);hi=Math.max(hi,D.prior.H)}
- if($('t_ib').checked&&D.ib){lo=Math.min(lo,D.ib.lo);hi=Math.max(hi,D.ib.hi)}
- let rng=(hi-lo)||1;lo-=rng*.06;hi+=rng*.06;rng=hi-lo;
+ let rng=(hi-lo)||1;lo-=rng*.06;hi+=rng*.06;rng=hi-lo;let onS=p=>p!=null&&p>=lo&&p<=hi;
  let tot=P+bars.length,bw=(W-pad.x0-12)/tot,x=i=>pad.x0+(i+P)*bw+bw/2,y=p=>pad.y0+(hi-p)/rng*(bot-pad.y0);
  cv.style.background=CFG.bg;ctx.clearRect(0,0,W,H);
  // regime shading (RTH)
  if($('t_reg').checked)for(let s of D.regime){if(s.from>revIdx)continue;let to=Math.min(s.to,revIdx);let c=s.mode=='BULL'?hexa(CFG.cBull,CFG.regOp):s.mode=='BEAR'?hexa(CFG.cBear,CFG.regOp):hexa('#8b93a0',CFG.regOp*.5);ctx.fillStyle=c;ctx.fillRect(x(s.from)-bw/2,pad.y0,(to-s.from+1)*bw,bot-pad.y0)}
- // IB band to EOD
- if($('t_ib').checked&&D.ib){let y1=y(D.ib.hi),y2=y(D.ib.lo),xl=x(0)-bw/2;ctx.fillStyle=hexa(CFG.cIb,CFG.ibOp);ctx.fillRect(xl,y1,W-10-xl,y2-y1);ctx.strokeStyle=hexa(CFG.cIb,.55);ctx.setLineDash([4,3]);hline(xl,W-10,y1);hline(xl,W-10,y2);ctx.setLineDash([]);if(lbl){ctx.fillStyle=hexa(CFG.cIb,.9);ctx.font='10px sans-serif';ctx.textAlign='left';ctx.fillText('IBH',x(0),y1-2);ctx.fillText('IBL',x(0),y2+10)}}
+ // IB band to EOD (only if it intersects the visible range)
+ if($('t_ib').checked&&D.ib&&D.ib.lo<=hi&&D.ib.hi>=lo){let y1=y(Math.min(D.ib.hi,hi)),y2=y(Math.max(D.ib.lo,lo)),xl=x(0)-bw/2;ctx.fillStyle=hexa(CFG.cIb,CFG.ibOp);ctx.fillRect(xl,y1,W-10-xl,y2-y1);ctx.strokeStyle=hexa(CFG.cIb,.55);ctx.setLineDash([4,3]);if(onS(D.ib.hi))hline(xl,W-10,y(D.ib.hi));if(onS(D.ib.lo))hline(xl,W-10,y(D.ib.lo));ctx.setLineDash([]);if(lbl){ctx.fillStyle=hexa(CFG.cIb,.9);ctx.font='10px sans-serif';ctx.textAlign='left';if(onS(D.ib.hi))ctx.fillText('IBH',x(0),y(D.ib.hi)-2);if(onS(D.ib.lo))ctx.fillText('IBL',x(0),y(D.ib.lo)+10)}}
  // racing stripes: highlight each setup's bar-span (behind candles)
  if($('t_tr').checked)for(let t of visTrades()){if(t.sig_bar>revIdx)continue;let endB=Math.max(Math.min(t.exit_bar,revIdx),t.sig_bar);let xa=x(t.sig_bar)-bw/2,ww=(endB-t.sig_bar+1)*bw,col=setupCol(t);ctx.fillStyle=hexa(col,t.in_book?.07:.05);ctx.fillRect(xa,pad.y0,ww,bot-pad.y0);ctx.fillStyle=hexa(col,.9);ctx.fillRect(xa,pad.y0,ww,3)}
  // grid + price axis
  ctx.font='10px sans-serif';ctx.textAlign='right';for(let k=0;k<=6;k++){let p=lo+rng*k/6,yy=y(p);ctx.strokeStyle='#161c23';hline(pad.x0,W-10,yy);ctx.fillStyle='#6b7480';ctx.fillText(p.toFixed(0),pad.x0-4,yy+3)}
  // prior HLC
- if($('t_hlc').checked)for(let [p,c,l] of [[D.prior.H,'#c0392b','pH'],[D.prior.L,'#2980b9','pL'],[D.prior.C,'#8e44ad','pC']]){if(!p)continue;let yy=y(p);ctx.strokeStyle=c;ctx.setLineDash([2,3]);hline(pad.x0,W-10,yy);ctx.setLineDash([]);if(lbl){ctx.fillStyle=c;ctx.textAlign='left';ctx.fillText(l,W-26,yy-2)}}
- // SMA20 dotted
- if($('t_sma').checked&&D.sma20){let yy=y(D.sma20);ctx.strokeStyle=CFG.cSma;ctx.lineWidth=1.4;ctx.setLineDash([2,4]);hline(pad.x0,W-10,yy);ctx.setLineDash([]);ctx.lineWidth=1;if(lbl){ctx.fillStyle=CFG.cSma;ctx.textAlign='left';ctx.fillText('SMA20',W-44,yy-2)}}
- // prior-session tail candles (dim; fully known)
- for(let j=0;j<P;j++){let b=pt[j];candle(-(P-j),b[0],b[1],b[2],b[3],x,y,bw,true)}
- // divider between prior session and RTH
- ctx.strokeStyle='#2b333d';ctx.setLineDash([3,3]);hline2(x(-0.5),pad.y0,x(-0.5),bot);ctx.setLineDash([]);
- // RTH candles + bar numbers
- for(let i=0;i<=revIdx;i++){let b=bars[i];candle(i,b[2],b[3],b[4],b[5],x,y,bw,false);if($('t_num').checked&&bw>7){ctx.fillStyle='#4b5560';ctx.font='8px sans-serif';ctx.textAlign='center';ctx.fillText(i+1,x(i),bot+12)}}
+ if($('t_hlc').checked)for(let [p,c,l] of [[D.prior.H,'#c0392b','pH'],[D.prior.L,'#2980b9','pL'],[D.prior.C,'#8e44ad','pC']]){if(!onS(p))continue;let yy=y(p);ctx.strokeStyle=c;ctx.setLineDash([2,3]);hline(pad.x0,W-10,yy);ctx.setLineDash([]);if(lbl){ctx.fillStyle=c;ctx.textAlign='left';ctx.fillText(l,W-26,yy-2)}}
+ // SMA20 dotted (width 1, same dash as HLC)
+ if($('t_sma').checked&&onS(D.sma20)){let yy=y(D.sma20);ctx.strokeStyle=CFG.cSma;ctx.lineWidth=1;ctx.setLineDash([2,3]);hline(pad.x0,W-10,yy);ctx.setLineDash([]);if(lbl){ctx.fillStyle=CFG.cSma;ctx.textAlign='left';ctx.fillText('SMA20',W-44,yy-2)}}
+ // today's OPEN
+ if($('t_open').checked&&onS(D.today_open)){let yy=y(D.today_open);ctx.strokeStyle='#e6e9ec';ctx.lineWidth=1;ctx.setLineDash([6,4]);hline(x(0)-bw/2,W-10,yy);ctx.setLineDash([]);if(lbl){ctx.fillStyle='#e6e9ec';ctx.textAlign='left';ctx.fillText('OPEN '+D.today_open,x(0),yy-2)}}
+ // prior-session LAST bar only (normal colors), + divider
+ for(let j=0;j<P;j++){let b=pt[j];candle(-(P-j),b[0],b[1],b[2],b[3],x,y,bw,false);if(lbl){ctx.fillStyle='#8b93a0';ctx.font='8px sans-serif';ctx.textAlign='center';ctx.fillText('prev',x(-(P-j)),bot+12)}}
+ if(P){ctx.strokeStyle='#2b333d';ctx.setLineDash([3,3]);hline2(x(-0.5),pad.y0,x(-0.5),bot);ctx.setLineDash([])}
+ // RTH candles + bar numbers (b1, then every 3rd)
+ for(let i=0;i<=revIdx;i++){let b=bars[i];candle(i,b[2],b[3],b[4],b[5],x,y,bw,false);if($('t_num').checked&&i%3==0){ctx.fillStyle='#5a6470';ctx.font='9px sans-serif';ctx.textAlign='center';ctx.fillText(i+1,x(i),bot+12)}}
+ // pivots (swing H/L from phase machine)
+ if($('t_piv').checked&&D.pivots)for(let p of D.pivots){if(p.b>revIdx)continue;let b=bars[p.b],hiP=p.side=='H',py=hiP?b[3]:b[4],yy=y(py)+(hiP?-4:4);ctx.fillStyle=hiP?'#e59866':'#5dade2';dot(x(p.b),y(py),2.5);ctx.font='8px sans-serif';ctx.textAlign='center';ctx.fillText(p.lab,x(p.b),hiP?yy-3:yy+9)}
+ // OB dots
+ if($('t_ob').checked&&D.obs)for(let i of D.obs){if(i>revIdx)continue;ctx.fillStyle='#c39bd3';dot(x(i),y(bars[i][4])+9,2.2)}
  // intraday EMA20 (prior tail -> revealed RTH)
  if($('t_ema').checked){ctx.strokeStyle=CFG.cEma;ctx.lineWidth=1.6;ctx.beginPath();let st=false;for(let j=0;j<P;j++){let xx=x(-(P-j)),yy=y(pt[j][4]);st?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy);st=true}for(let i=0;i<=revIdx;i++){let xx=x(i),yy=y(bars[i][6]);st?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy);st=true}ctx.stroke();ctx.lineWidth=1;if(lbl&&revIdx>=0){ctx.fillStyle=CFG.cEma;ctx.textAlign='left';ctx.fillText('EMA20',x(revIdx)+3,y(bars[revIdx][6]))}}
  // gap tick (open vs prior close)
@@ -211,10 +228,15 @@ function render(){if(!D)return;$('dt').textContent=D.date;$('rev').textContent=r
  ctx.strokeStyle='#333c47';hline2(x(revIdx)+bw*.5,pad.y0,x(revIdx)+bw*.5,bot);
  // crosshair + hover readout
  if(CH.on){let bi=Math.round((CH.x-pad.x0)/bw-P);ctx.strokeStyle='#5a6470';ctx.setLineDash([2,3]);ctx.lineWidth=1;hline2(CH.x,pad.y0,CH.x,bot);hline(pad.x0,W-10,CH.y);ctx.setLineDash([]);
-  let pcur=hi-(CH.y-pad.y0)/(bot-pad.y0)*rng;ctx.fillStyle='#2c3440';ctx.fillRect(W-56,CH.y-8,50,16);ctx.fillStyle='#e6e9ec';ctx.textAlign='left';ctx.font='10px sans-serif';ctx.fillText(pcur.toFixed(2),W-54,CH.y+3);
-  let o,h,l,c,tm,tag;if(bi>=0&&bi<=revIdx){let b=bars[bi];o=b[2];h=b[3];l=b[4];c=b[5];tm=b[1];tag='bar '+(bi+1);}else if(bi<0&&bi>=-P){let b=pt[bi+P];o=b[0];h=b[1];l=b[2];c=b[3];tm=b[5];tag='prior';}
-  if(tm){let txt=`${tag} ${tm}  O${o} H${h} L${l} C${c}  (${(c-o>=0?'+':'')}${(c-o).toFixed(2)})`;ctx.font='11px sans-serif';let tw=ctx.measureText(txt).width+14;ctx.fillStyle='rgba(16,20,26,.96)';ctx.fillRect(pad.x0+4,pad.y0+3,tw,18);ctx.fillStyle='#e6e9ec';ctx.fillText(txt,pad.x0+11,pad.y0+16)}}
- renderStats();renderDayInfo();window._x=x;window._y=y;window._bw=bw;window._P=P}
+  let pcur=Math.round((hi-(CH.y-pad.y0)/(bot-pad.y0)*rng)/0.25)*0.25;ctx.fillStyle='#2c3440';ctx.fillRect(W-56,CH.y-8,50,16);ctx.fillStyle='#e6e9ec';ctx.textAlign='left';ctx.font='10px sans-serif';ctx.fillText(pcur.toFixed(2),W-54,CH.y+3);
+  let o,h,l,c,tm,tag;if(bi>=0&&bi<=revIdx){let b=bars[bi];o=b[2];h=b[3];l=b[4];c=b[5];tm=b[1];tag='b'+(bi+1);}else if(bi<0&&bi>=-P){let b=pt[bi+P];o=b[0];h=b[1];l=b[2];c=b[3];tm=b[5];tag='prev';}
+  if(tm){let cls=[];if(bi>=0){if(D.obs&&D.obs.includes(bi))cls.push('OB');if(D.ibs&&D.ibs.includes(bi))cls.push('IB');let pv=D.pivots&&D.pivots.find(p=>p.b==bi);if(pv)cls.push((pv.side=='H'?'swingH':'swingL')+' '+pv.lab);cls.push(c>=o?'up':'dn');let rg=D.regime&&D.regime.find(s=>bi>=s.from&&bi<=s.to);if(rg)cls.push(rg.mode)}
+    let txt=`${tag} ${tm}  O${o} H${h} L${l} C${c}  Δ${(c-o>=0?'+':'')}${(c-o).toFixed(2)}${cls.length?'  ['+cls.join(', ')+']':''}`;ctx.font='11px sans-serif';let tw=ctx.measureText(txt).width+14;ctx.fillStyle='rgba(16,20,26,.96)';ctx.fillRect(pad.x0+4,pad.y0+3,tw,18);ctx.fillStyle='#e6e9ec';ctx.fillText(txt,pad.x0+11,pad.y0+16)}}
+ window._lo=lo;window._hi=hi;renderStats();renderDayInfo();renderLevels();window._x=x;window._y=y;window._bw=bw;window._P=P}
+function renderLevels(){if(!D)return;let last=D.bars[revIdx][5],lo=window._lo,hi=window._hi;
+ let rows=[['last',last,'#e6e9ec'],['OPEN',D.today_open,'#dfe4e8'],['SMA20',D.sma20,CFG.cSma],['pH',D.prior.H,'#c0392b'],['pC',D.prior.C,'#8e44ad'],['pL',D.prior.L,'#2980b9']];
+ if(D.ib){rows.push(['IBH',D.ib.hi,'#4a9eff'],['IBL',D.ib.lo,'#4a9eff'])}
+ $('levels').innerHTML=rows.filter(r=>r[1]!=null).map(([k,v,c])=>{let on=v>=lo&&v<=hi,d=k=='last'?'':((v-last>=0?'+':'')+(v-last).toFixed(2)+'pt');return`<div class=stat><span style="color:${c}">${on?'●':'○'} ${k}</span><span>${v} <span style="color:#6b7480">${d}</span></span></div>`}).join('')}
 function hline2(a,b,c,d){ctx.beginPath();ctx.moveTo(a,b);ctx.lineTo(c,d);ctx.stroke()}
 function renderDayInfo(){let p=D.prior;$('dayinfo').innerHTML=`<div class=stat>gap<span>${p.gap_pts} (${p.gap_pct}%)</span></div><div class=stat>ADR10<span>${D.adr10}</span></div><div class=stat>SMA20<span>${D.sma20}</span></div><div class=stat>skip-after-TD<span>${D.skipTD?'<span class=loss>YES (skipped)</span>':'no'}</span></div><div class=stat>trades<span>${D.trades.length} (${D.trades.filter(t=>t.in_book).length} in-book)</span></div>`}
 function renderStats(){let ts=visTrades().filter(t=>t.in_book);let w=ts.filter(t=>t.net>0),l=ts.filter(t=>t.net<0);let gp=w.reduce((a,b)=>a+b.net,0),gl=-l.reduce((a,b)=>a+b.net,0);let net=ts.reduce((a,b)=>a+b.net,0);
@@ -225,9 +247,10 @@ cv.onclick=e=>{if(!D)return;let r=cv.getBoundingClientRect(),mx=e.clientX-r.left
 cv.onmousemove=e=>{if(!D)return;let r=cv.getBoundingClientRect();CH={on:true,x:e.clientX-r.left,y:e.clientY-r.top};if(!CH._raf){CH._raf=requestAnimationFrame(()=>{CH._raf=0;render()})}}
 cv.onmouseleave=()=>{CH.on=false;render()}
 function selectTrade(t){sel=t;$('selpanel').style.display='block';let k=tkey(t);let nt=(notes.setups||{})[k]||{};
- let why=t.in_book?'':' — excluded: '+[!t.with_trend?'countertrend (WT✕)':'',!t.pass_sma20?'wrong side of SMA20':'',!t.pass_skipTD?'day-after-trend-day':'',!t.pass_gap?'gap>0.54%':'',!t.pass_window?'outside 09-13':''].filter(Boolean).join(', ');
- let tag=t.in_book?'IN BOOK':(t.with_trend?'EXCLUDED':'FADE '+setupLbl(t));
- $('selinfo').innerHTML=`<b style="color:${setupCol(t)}">${setupLbl(t)}</b> sig bar ${t.sig_bar+1} · fill bar ${t.entry_bar+1}<br>trigger ${t.trigger} · entry ${t.entry_px} · stop ${t.stop} · exit ${t.exit_px} (bar ${t.exit_bar+1})<br>net <span class=${t.net>0?'win':'loss'}>${t.net>0?'+':''}${t.net}</span> &nbsp;<span class=pill>SMA20 ${t.pass_sma20?'✓':'✕'}</span> <span class=pill>skipTD ${t.pass_skipTD?'✓':'✕'}</span> <span class=pill>WT ${t.with_trend?'✓':'✕'}</span> <span class=pill style="border-color:${t.in_book?'#2ecc71':(t.with_trend?'#e74c3c':'#e67e22')}">${tag}</span><span style="color:#e67e22">${why}</span>`;
+ let pills,tag,why='';
+ if(t.is_fade){tag=t.fade_tradeable?'FADE (tradeable)':'FADE (DEAD)';pills=`<span class=pill>4pt stop</span> <span class=pill>${t.dir=='S'?'BEAR-gated':'BULL-gated'}</span> <span class=pill>gap ${t.pass_gap?'✓':'✕'}</span> <span class=pill>09-13 ${t.pass_window?'✓':'✕'}</span> <span class=pill style="border-color:${t.fade_tradeable?'#e67e22':'#7f8c8d'}">${tag}</span>`;if(!t.fade_tradeable)why=' — f2ES-long is DEAD (PF 0.71), do not trade';}
+ else{tag=t.in_book?'IN BOOK':'EXCLUDED';why=t.in_book?'':' — excluded: '+[!t.pass_sma20?'wrong side of SMA20':'',!t.pass_skipTD?'day-after-trend-day':'',!t.pass_gap?'gap>0.54%':'',!t.pass_window?'outside 09-13':''].filter(Boolean).join(', ');pills=`<span class=pill>SMA20 ${t.pass_sma20?'✓':'✕'}</span> <span class=pill>skipTD ${t.pass_skipTD?'✓':'✕'}</span> <span class=pill>WT ${t.with_trend?'✓':'✕'}</span> <span class=pill style="border-color:${t.in_book?'#2ecc71':'#e74c3c'}">${tag}</span>`;}
+ $('selinfo').innerHTML=`<b style="color:${setupCol(t)}">${setupLbl(t)}</b> ${t.dir=='S'?'short':'long'} · sig b${t.sig_bar+1} · fill b${t.entry_bar+1}<br>trigger ${t.trigger} · entry ${t.entry_px} · stop ${t.stop} · exit ${t.exit_px} (b${t.exit_bar+1})<br>net <span class=${t.net>0?'win':'loss'}>${t.net>0?'+':''}${t.net}</span> ${pills}<span style="color:#e67e22">${why}</span>`;
  $('note').value=nt.note||'';render()}
 function toggleSettings(){let s=$('settings');s.style.display=s.style.display=='none'?'block':'none';if(s.style.display=='block')buildSettings()}
 function buildSettings(){let rows=[['cUp','up candle','color'],['cDn','down candle','color'],['cEma','EMA20','color'],['cSma','SMA20','color'],['cEntry','entry line','color'],['cStop','stop line','color'],['cTrig','trigger line','color'],['cBull','bull shade','color'],['cBear','bear shade','color'],['cIb','IB','color'],['bg','background','color'],['regOp','regime opacity','range'],['ibOp','IB opacity','range']];
@@ -239,6 +262,27 @@ function saveSel(){if(!sel)return;setNote({note:$('note').value})}
 function setNote(o){let k=tkey(sel);notes.setups=notes.setups||{};notes.setups[k]=Object.assign({setup:setupLbl(sel),entry_bar:sel.entry_bar,sig_bar:sel.sig_bar,dir:sel.dir,with_trend:sel.with_trend,in_book:sel.in_book,net:sel.net,reveal_idx:revIdx},notes.setups[k]||{},o);save()}
 function saveDay(){notes.daytype_inter=$('dti').value;notes.daytype_inter_bar=revIdx;notes.daytype_final=$('dtf').value;$('ibar').textContent=revIdx;save()}
 function save(){fetch('/save/'+curDate,{method:'POST',body:JSON.stringify(notes)})}
+function openLens(){if(!sel){return}$('lens').style.display='block';drawLens()}
+function drawLens(){if(!sel||!D)return;let t=sel,bars=D.bars,padN=+$('lpad').value;
+ let i0=Math.max(0,t.sig_bar-padN),i1=Math.min(bars.length-1,Math.min(t.exit_bar,revIdx)+padN);
+ $('lenstitle').textContent=`${setupLbl(t)} — bars ${i0+1}..${i1+1}  ·  entry ${t.entry_px} · stop ${t.stop} · trig ${t.trigger} · net ${t.net>0?'+':''}${t.net}`;
+ let c=$('lcv');c.width=c.clientWidth;c.height=c.clientHeight;let g=c.getContext('2d'),W=c.width,H=c.height,pl=52,bot=H-24;
+ let lo=1e9,hi=-1e9;for(let i=i0;i<=i1;i++){lo=Math.min(lo,bars[i][4]);hi=Math.max(hi,bars[i][3])}
+ for(let v of [t.entry_px,t.stop,t.trigger]){lo=Math.min(lo,v);hi=Math.max(hi,v)}
+ let rng=(hi-lo)||1;lo-=rng*.08;hi+=rng*.08;rng=hi-lo;let n=i1-i0+1,bw=(W-pl-14)/n;
+ let x=i=>pl+(i-i0)*bw+bw/2,y=p=>10+(hi-p)/rng*(bot-10);
+ g.clearRect(0,0,W,H);g.font='11px sans-serif';g.textAlign='right';
+ for(let k=0;k<=8;k++){let p=lo+rng*k/8,yy=y(p);g.strokeStyle='#161c23';g.beginPath();g.moveTo(pl,yy);g.lineTo(W-14,yy);g.stroke();g.fillStyle='#6b7480';g.fillText((Math.round(p/0.25)*0.25).toFixed(2),pl-4,yy+3)}
+ // EMA
+ g.strokeStyle=CFG.cEma;g.lineWidth=1.6;g.beginPath();for(let i=i0;i<=i1;i++){let xx=x(i),yy=y(bars[i][6]);i==i0?g.moveTo(xx,yy):g.lineTo(xx,yy)}g.stroke();g.lineWidth=1;
+ // level lines
+ for(let [v,col,dash,lab] of [[t.trigger,CFG.cTrig,[1,3],'trigger'],[t.entry_px,CFG.cEntry,[],'entry'],[t.stop,CFG.cStop,[5,3],'stop']]){g.strokeStyle=col;g.setLineDash(dash);g.beginPath();g.moveTo(pl,y(v));g.lineTo(W-14,y(v));g.stroke();g.setLineDash([]);g.fillStyle=col;g.textAlign='left';g.fillText(lab+' '+v,pl+3,y(v)-3)}
+ // candles + bar#
+ for(let i=i0;i<=i1;i++){let b=bars[i],up=b[5]>=b[2],col=up?CFG.cUp:CFG.cDn,xx=x(i);g.strokeStyle=col;g.fillStyle=col;g.beginPath();g.moveTo(xx,y(b[3]));g.lineTo(xx,y(b[4]));g.stroke();let yo=y(b[2]),yc=y(b[5]);g.fillRect(xx-bw*.34,Math.min(yo,yc),Math.max(1.5,bw*.68),Math.max(1,Math.abs(yo-yc)));
+  g.fillStyle=(i==t.sig_bar)?'#4a9eff':(i==t.entry_bar?'#fff':'#5a6470');g.font='9px sans-serif';g.textAlign='center';g.fillText(i+1,xx,bot+12);
+  if(i==t.sig_bar){g.fillStyle='#4a9eff';g.fillText('sig',xx,10)}if(i==t.entry_bar){g.fillStyle='#fff';g.fillText('fill',xx,20)}if(i==t.exit_bar&&t.exit_bar<=revIdx){g.fillStyle='#dfe4e8';g.fillText('exit',xx,10)}}
+ // entry/exit dots
+ g.fillStyle=CFG.cEntry;if(t.entry_bar<=i1){g.beginPath();g.arc(x(t.entry_bar),y(t.entry_px),4,0,7);g.fill()}if(t.exit_bar<=revIdx&&t.exit_bar<=i1){g.fillStyle='#dfe4e8';g.beginPath();g.arc(x(t.exit_bar),y(t.exit_px),4,0,7);g.fill()}}
 function openPaths(){$('modal').style.display='block';if(PATHS){drawPaths();return}fetch('/allpaths').then(r=>r.json()).then(j=>{PATHS=j;drawPaths()})}
 function median(a){if(!a.length)return 0;let s=[...a].sort((x,y)=>x-y),m=s.length>>1;return s.length%2?s[m]:(s[m-1]+s[m])/2}
 function drawPaths(){if(!PATHS)return;let dir=$('p_dir').value;
