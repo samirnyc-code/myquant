@@ -87,21 +87,19 @@ textarea{width:100%;background:#0c0f13;color:var(--tx);border:1px solid var(--ln
  <span style=color:var(--mut)>filter</span>
  <select id=filt onchange=render()><option value=all>all</option><option value=book>in-book</option><option value=fade>fades (f2E)</option><option value=L>long</option><option value=S>short</option><option value=win>winners</option><option value=loss>losers</option></select>
  <span class=tog><input type=checkbox id=t_reg checked onchange=render()>regime</span>
- <span class=tog><input type=checkbox id=t_sma checked onchange=render()>SMA20</span>
- <span class=tog><input type=checkbox id=t_hlc checked onchange=render()>prior HLC</span>
- <span class=tog><input type=checkbox id=t_pb checked onchange=render()>prior bar</span>
- <span class=tog><input type=checkbox id=t_gap checked onchange=render()>gap</span>
- <span class=tog><input type=checkbox id=t_ib checked onchange=render()>IB</span>
  <span class=tog><input type=checkbox id=t_ema checked onchange=render()>EMA20</span>
+ <span class=tog><input type=checkbox id=t_gap checked onchange=render()>gap</span>
  <span class=tog><input type=checkbox id=t_tr checked onchange=render()>trades</span>
  <span class=tog><input type=checkbox id=t_num checked onchange=render()>bar#</span>
  <span class=tog><input type=checkbox id=t_lbl checked onchange=render()>labels</span>
- <span class=tog><input type=checkbox id=t_open checked onchange=render()>open</span>
  <span class=tog><input type=checkbox id=t_piv onchange=render()>pivots</span>
  <span class=tog><input type=checkbox id=t_ob onchange=render()>OB</span>
+ <span style=color:var(--mut)>levels→⚙</span>
+ <button id=lensbtn onclick=toggleLens() title="movable magnifier">🔍 lens</button>
  <button onclick=toggleSettings() title="colors & opacity">⚙</button>
- <button onclick=toggleSide() title="collapse panel">⇥</button>
 </div>
+<button id=sidebtn onclick=toggleSide() title="show/hide panel" style="position:fixed;top:46px;right:6px;z-index:11">⇥</button>
+<canvas id=lenscv width=320 height=320 style="position:fixed;border-radius:50%;border:2px solid #4a9eff;box-shadow:0 6px 28px rgba(0,0,0,.6);pointer-events:none;display:none;z-index:120"></canvas>
 <div id=settings style="display:none;position:absolute;top:80px;right:250px;z-index:8;background:#1a1f26;border:1px solid #2b333d;border-radius:8px;padding:10px;width:224px;box-shadow:0 6px 24px #000a">
  <b style="color:#4a9eff">colors &amp; opacity</b><div id=setbody style="margin-top:6px"></div>
  <button style="margin-top:8px;width:100%" onclick=resetCfg()>reset defaults</button>
@@ -146,8 +144,11 @@ textarea{width:100%;background:#0c0f13;color:var(--tx);border:1px solid var(--ln
 <script>
 const DTS=__DTS__;
 let PATHS=null;
-const CFG_DEF={cUp:'#26a65b',cDn:'#d64541',cEma:'#3aa0ff',cSma:'#f1c40f',cBull:'#2ecc71',cBear:'#e74c3c',
- cIb:'#4a9eff',cEntry:'#ffffff',cStop:'#ff5a5a',cTrig:'#f1c40f',regOp:0.10,ibOp:0.06,bg:'#0c0f13'};
+const CFG_DEF={cUp:'#26a65b',cDn:'#d64541',cEma:'#3aa0ff',cBull:'#2ecc71',cBear:'#e74c3c',
+ cIb:'#4a9eff',cEntry:'#ffffff',cStop:'#ff5a5a',cTrig:'#f1c40f',regOp:0.10,ibOp:0.06,bg:'#0c0f13',
+ lv:{pH:{on:1,c:'#c0392b',w:1,d:'dash'},pL:{on:1,c:'#2980b9',w:1,d:'dash'},pC:{on:1,c:'#8e44ad',w:1,d:'dash'},
+     sma:{on:1,c:'#f1c40f',w:1,d:'dot'},open:{on:1,c:'#dfe4e8',w:1,d:'dash'},
+     ibh:{on:1,c:'#4a9eff',w:1,d:'dash'},ibl:{on:1,c:'#4a9eff',w:1,d:'dash'}}};
 let CFG=Object.assign({},CFG_DEF,JSON.parse(localStorage.getItem('brcfg')||'{}'));
 function saveCfg(){localStorage.setItem('brcfg',JSON.stringify(CFG))}
 function resetCfg(){CFG=Object.assign({},CFG_DEF);saveCfg();buildSettings();render()}
@@ -187,25 +188,24 @@ function render(){if(!D)return;$('dt').textContent=D.date;$('rev').textContent=r
  cv.style.background=CFG.bg;ctx.clearRect(0,0,W,H);
  // regime shading (RTH)
  if($('t_reg').checked)for(let s of D.regime){if(s.from>revIdx)continue;let to=Math.min(s.to,revIdx);let c=s.mode=='BULL'?hexa(CFG.cBull,CFG.regOp):s.mode=='BEAR'?hexa(CFG.cBear,CFG.regOp):hexa('#8b93a0',CFG.regOp*.5);ctx.fillStyle=c;ctx.fillRect(x(s.from)-bw/2,pad.y0,(to-s.from+1)*bw,bot-pad.y0)}
- // IB band to EOD (only if it intersects the visible range)
- if($('t_ib').checked&&D.ib&&D.ib.lo<=hi&&D.ib.hi>=lo){let y1=y(Math.min(D.ib.hi,hi)),y2=y(Math.max(D.ib.lo,lo)),xl=x(0)-bw/2;ctx.fillStyle=hexa(CFG.cIb,CFG.ibOp);ctx.fillRect(xl,y1,W-10-xl,y2-y1);ctx.strokeStyle=hexa(CFG.cIb,.55);ctx.setLineDash([4,3]);if(onS(D.ib.hi))hline(xl,W-10,y(D.ib.hi));if(onS(D.ib.lo))hline(xl,W-10,y(D.ib.lo));ctx.setLineDash([]);if(lbl){ctx.fillStyle=hexa(CFG.cIb,.9);ctx.font='10px sans-serif';ctx.textAlign='left';if(onS(D.ib.hi))ctx.fillText('IBH',x(0),y(D.ib.hi)-2);if(onS(D.ib.lo))ctx.fillText('IBL',x(0),y(D.ib.lo)+10)}}
- // racing stripes: highlight each setup's bar-span (behind candles)
- if($('t_tr').checked)for(let t of visTrades()){if(t.sig_bar>revIdx)continue;let endB=Math.max(Math.min(t.exit_bar,revIdx),t.sig_bar);let xa=x(t.sig_bar)-bw/2,ww=(endB-t.sig_bar+1)*bw,col=setupCol(t);ctx.fillStyle=hexa(col,t.in_book?.07:.05);ctx.fillRect(xa,pad.y0,ww,bot-pad.y0);ctx.fillStyle=hexa(col,.9);ctx.fillRect(xa,pad.y0,ww,3)}
+ // per-level style/toggle from settings
+ let dashOf=d=>d=='solid'?[]:d=='dot'?[2,3]:[6,4];
+ let drawLevel=(p,k,label)=>{let s=CFG.lv[k];if(!s||!s.on||!onS(p))return;let yy=y(p);ctx.strokeStyle=s.c;ctx.lineWidth=s.w;ctx.setLineDash(dashOf(s.d));hline(pad.x0,W-10,yy);ctx.setLineDash([]);ctx.lineWidth=1;if(lbl){ctx.fillStyle=s.c;ctx.textAlign='left';ctx.fillText(label,W-26,yy-2)}};
+ // IB band fill (if either edge on and it intersects the range)
+ if(D.ib&&(CFG.lv.ibh.on||CFG.lv.ibl.on)&&D.ib.lo<=hi&&D.ib.hi>=lo){let y1=y(Math.min(D.ib.hi,hi)),y2=y(Math.max(D.ib.lo,lo)),xl=x(0)-bw/2;ctx.fillStyle=hexa(CFG.cIb,CFG.ibOp);ctx.fillRect(xl,y1,W-10-xl,y2-y1)}
  // grid + price axis
  ctx.font='10px sans-serif';ctx.textAlign='right';for(let k=0;k<=6;k++){let p=lo+rng*k/6,yy=y(p);ctx.strokeStyle='#161c23';hline(pad.x0,W-10,yy);ctx.fillStyle='#6b7480';ctx.fillText(p.toFixed(0),pad.x0-4,yy+3)}
- // prior HLC
- if($('t_hlc').checked)for(let [p,c,l] of [[D.prior.H,'#c0392b','pH'],[D.prior.L,'#2980b9','pL'],[D.prior.C,'#8e44ad','pC']]){if(!onS(p))continue;let yy=y(p);ctx.strokeStyle=c;ctx.setLineDash([2,3]);hline(pad.x0,W-10,yy);ctx.setLineDash([]);if(lbl){ctx.fillStyle=c;ctx.textAlign='left';ctx.fillText(l,W-26,yy-2)}}
- // SMA20 dotted (width 1, same dash as HLC)
- if($('t_sma').checked&&onS(D.sma20)){let yy=y(D.sma20);ctx.strokeStyle=CFG.cSma;ctx.lineWidth=1;ctx.setLineDash([2,3]);hline(pad.x0,W-10,yy);ctx.setLineDash([]);if(lbl){ctx.fillStyle=CFG.cSma;ctx.textAlign='left';ctx.fillText('SMA20',W-44,yy-2)}}
- // today's OPEN
- if($('t_open').checked&&onS(D.today_open)){let yy=y(D.today_open);ctx.strokeStyle='#e6e9ec';ctx.lineWidth=1;ctx.setLineDash([6,4]);hline(x(0)-bw/2,W-10,yy);ctx.setLineDash([]);if(lbl){ctx.fillStyle='#e6e9ec';ctx.textAlign='left';ctx.fillText('OPEN '+D.today_open,x(0),yy-2)}}
+ // horizontal levels
+ drawLevel(D.prior.H,'pH','pH');drawLevel(D.prior.L,'pL','pL');drawLevel(D.prior.C,'pC','pC');
+ drawLevel(D.sma20,'sma','SMA');drawLevel(D.today_open,'open','O');
+ if(D.ib){drawLevel(D.ib.hi,'ibh','IBH');drawLevel(D.ib.lo,'ibl','IBL')}
  // prior-session LAST bar only (normal colors), + divider
  for(let j=0;j<P;j++){let b=pt[j];candle(-(P-j),b[0],b[1],b[2],b[3],x,y,bw,false);if(lbl){ctx.fillStyle='#8b93a0';ctx.font='8px sans-serif';ctx.textAlign='center';ctx.fillText('prev',x(-(P-j)),bot+12)}}
  if(P){ctx.strokeStyle='#2b333d';ctx.setLineDash([3,3]);hline2(x(-0.5),pad.y0,x(-0.5),bot);ctx.setLineDash([])}
  // RTH candles + bar numbers (b1, then every 3rd)
  for(let i=0;i<=revIdx;i++){let b=bars[i];candle(i,b[2],b[3],b[4],b[5],x,y,bw,false);if($('t_num').checked&&i%3==0){ctx.fillStyle='#5a6470';ctx.font='9px sans-serif';ctx.textAlign='center';ctx.fillText(i+1,x(i),bot+12)}}
- // pivots (swing H/L from phase machine)
- if($('t_piv').checked&&D.pivots)for(let p of D.pivots){if(p.b>revIdx)continue;let b=bars[p.b],hiP=p.side=='H',py=hiP?b[3]:b[4],yy=y(py)+(hiP?-4:4);ctx.fillStyle=hiP?'#e59866':'#5dade2';dot(x(p.b),y(py),2.5);ctx.font='8px sans-serif';ctx.textAlign='center';ctx.fillText(p.lab,x(p.b),hiP?yy-3:yy+9)}
+ // pivots (swing H/L from phase machine): opening=gold, major=bold, minor=dim
+ if($('t_piv').checked&&D.pivots)for(let p of D.pivots){if(p.b>revIdx)continue;let b=bars[p.b],hiP=p.side=='H',py=hiP?b[3]:b[4],big=p.major||p.open;let col=p.open?'#f1c40f':(hiP?'#e59866':'#5dade2');ctx.fillStyle=col;dot(x(p.b),y(py),big?3:1.7);ctx.font=(big?'9px':'8px')+' sans-serif';ctx.textAlign='center';ctx.fillStyle=big?col:'#6b7480';ctx.fillText(p.lab,x(p.b),hiP?y(py)-6:y(py)+13)}
  // OB dots
  if($('t_ob').checked&&D.obs)for(let i of D.obs){if(i>revIdx)continue;ctx.fillStyle='#c39bd3';dot(x(i),y(bars[i][4])+9,2.2)}
  // intraday EMA20 (prior tail -> revealed RTH)
@@ -222,7 +222,7 @@ function render(){if(!D)return;$('dt').textContent=D.date;$('rev').textContent=r
   // signal-bar marker (small caret in gutter, not over the bar)
   ctx.fillStyle=book?CFG.cEntry:'#8b93a0';ctx.font='9px sans-serif';ctx.textAlign='center';ctx.fillText(t.dir=='L'?'▲':'▼',x(t.sig_bar),t.dir=='L'?bot-2:pad.y0+9);
   if(lbl){ctx.textAlign='left';ctx.font='9px sans-serif';ctx.fillStyle=setupCol(t);ctx.fillText(setupLbl(t)+' '+t.entry_px,x0,y(t.entry_px)-3);ctx.fillStyle=CFG.cStop;ctx.fillText('stp '+t.stop,x0,y(t.stop)+(t.dir=='L'?11:-3));ctx.fillStyle=CFG.cTrig;ctx.fillText('trg '+t.trigger,x1+2,y(t.trigger)+3)}
-  if(sel&&sel.entry_bar==t.entry_bar&&sel.dir==t.dir){let ys=[y(t.entry_px),y(t.stop),y(t.trigger)];ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.setLineDash([]);ctx.strokeRect(x0-2,Math.min(...ys)-3,(x1-x0)+4,Math.max(...ys)-Math.min(...ys)+6)}
+  if(sel&&sel.entry_bar==t.entry_bar&&sel.dir==t.dir){ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.setLineDash([]);ctx.beginPath();ctx.arc(x(t.entry_bar),y(t.entry_px),6,0,7);ctx.stroke()}
   ctx.globalAlpha=1;ctx.lineWidth=1}
  // reveal edge
  ctx.strokeStyle='#333c47';hline2(x(revIdx)+bw*.5,pad.y0,x(revIdx)+bw*.5,bot);
@@ -234,8 +234,8 @@ function render(){if(!D)return;$('dt').textContent=D.date;$('rev').textContent=r
     let txt=`${tag} ${tm}  O${o} H${h} L${l} C${c}  Δ${(c-o>=0?'+':'')}${(c-o).toFixed(2)}${cls.length?'  ['+cls.join(', ')+']':''}`;ctx.font='11px sans-serif';let tw=ctx.measureText(txt).width+14;ctx.fillStyle='rgba(16,20,26,.96)';ctx.fillRect(pad.x0+4,pad.y0+3,tw,18);ctx.fillStyle='#e6e9ec';ctx.fillText(txt,pad.x0+11,pad.y0+16)}}
  window._lo=lo;window._hi=hi;renderStats();renderDayInfo();renderLevels();window._x=x;window._y=y;window._bw=bw;window._P=P}
 function renderLevels(){if(!D)return;let last=D.bars[revIdx][5],lo=window._lo,hi=window._hi;
- let rows=[['last',last,'#e6e9ec'],['OPEN',D.today_open,'#dfe4e8'],['SMA20',D.sma20,CFG.cSma],['pH',D.prior.H,'#c0392b'],['pC',D.prior.C,'#8e44ad'],['pL',D.prior.L,'#2980b9']];
- if(D.ib){rows.push(['IBH',D.ib.hi,'#4a9eff'],['IBL',D.ib.lo,'#4a9eff'])}
+ let L=CFG.lv,rows=[['last',last,'#e6e9ec'],['OPEN',D.today_open,L.open.c],['SMA20',D.sma20,L.sma.c],['pH',D.prior.H,L.pH.c],['pC',D.prior.C,L.pC.c],['pL',D.prior.L,L.pL.c]];
+ if(D.ib){rows.push(['IBH',D.ib.hi,L.ibh.c],['IBL',D.ib.lo,L.ibl.c])}
  $('levels').innerHTML=rows.filter(r=>r[1]!=null).map(([k,v,c])=>{let on=v>=lo&&v<=hi,d=k=='last'?'':((v-last>=0?'+':'')+(v-last).toFixed(2)+'pt');return`<div class=stat><span style="color:${c}">${on?'●':'○'} ${k}</span><span>${v} <span style="color:#6b7480">${d}</span></span></div>`}).join('')}
 function hline2(a,b,c,d){ctx.beginPath();ctx.moveTo(a,b);ctx.lineTo(c,d);ctx.stroke()}
 function renderDayInfo(){let p=D.prior;$('dayinfo').innerHTML=`<div class=stat>gap<span>${p.gap_pts} (${p.gap_pct}%)</span></div><div class=stat>ADR10<span>${D.adr10}</span></div><div class=stat>SMA20<span>${D.sma20}</span></div><div class=stat>skip-after-TD<span>${D.skipTD?'<span class=loss>YES (skipped)</span>':'no'}</span></div><div class=stat>trades<span>${D.trades.length} (${D.trades.filter(t=>t.in_book).length} in-book)</span></div>`}
@@ -243,9 +243,17 @@ function renderStats(){let ts=visTrades().filter(t=>t.in_book);let w=ts.filter(t
  $('stats').innerHTML=`<div class=stat>n<span>${ts.length}</span></div><div class=stat>PF<span>${gl?(gp/gl).toFixed(2):'∞'}</span></div><div class=stat>win%<span>${ts.length?(100*w.length/ts.length).toFixed(0):0}</span></div><div class=stat>net<span class=${net>=0?'win':'loss'}>${net>=0?'+':''}${net.toFixed(0)}</span></div>`}
 cv.onclick=e=>{if(!D)return;let r=cv.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;let best=null,bd=1e9;
  for(let t of visTrades()){if(t.sig_bar>revIdx)continue;let xa=window._x(t.sig_bar),xb=window._x(Math.min(t.exit_bar,revIdx));if(mx<xa-window._bw||mx>xb+window._bw)continue;let dy=Math.min(Math.abs(window._y(t.entry_px)-my),Math.abs(window._y(t.stop)-my),Math.abs(window._y(t.trigger)-my));if(dy<bd&&dy<16){bd=dy;best=t}}
- if(best)selectTrade(best)}
-cv.onmousemove=e=>{if(!D)return;let r=cv.getBoundingClientRect();CH={on:true,x:e.clientX-r.left,y:e.clientY-r.top};if(!CH._raf){CH._raf=requestAnimationFrame(()=>{CH._raf=0;render()})}}
-cv.onmouseleave=()=>{CH.on=false;render()}
+ if(best)selectTrade(best);else{sel=null;$('selpanel').style.display='none';$('selinfo').textContent='click a setup or bar';render()}}
+let LENS_ON=false;
+function toggleLens(){LENS_ON=!LENS_ON;$('lensbtn').classList.toggle('on',LENS_ON);$('lenscv').style.display=LENS_ON?'block':'none'}
+function drawLensMag(){let lc=$('lenscv'),g=lc.getContext('2d'),S=lc.width,Z=2.8,sw=S/Z;
+ g.clearRect(0,0,S,S);g.save();g.beginPath();g.arc(S/2,S/2,S/2-2,0,7);g.clip();g.fillStyle=CFG.bg;g.fillRect(0,0,S,S);
+ g.imageSmoothingEnabled=false;g.drawImage(cv,CH.x-sw/2,CH.y-sw/2,sw,sw,0,0,S,S);
+ g.strokeStyle='rgba(255,255,255,.22)';g.lineWidth=1;g.beginPath();g.moveTo(S/2,0);g.lineTo(S/2,S);g.moveTo(0,S/2);g.lineTo(S,S/2);g.stroke();g.restore();
+ let px=CH.cx+22,py=CH.cy+22;if(px+S>innerWidth)px=CH.cx-S-22;if(py+S>innerHeight)py=CH.cy-S-22;lc.style.left=px+'px';lc.style.top=py+'px'}
+cv.onmousemove=e=>{if(!D)return;let r=cv.getBoundingClientRect();CH={on:true,x:e.clientX-r.left,y:e.clientY-r.top,cx:e.clientX,cy:e.clientY};if(!CH._raf){CH._raf=requestAnimationFrame(()=>{CH._raf=0;render();if(LENS_ON)drawLensMag()})}}
+cv.onmouseleave=()=>{CH.on=false;$('lenscv').style.display='none';render()}
+cv.onmouseenter=()=>{if(LENS_ON)$('lenscv').style.display='block'}
 function selectTrade(t){sel=t;$('selpanel').style.display='block';let k=tkey(t);let nt=(notes.setups||{})[k]||{};
  let pills,tag,why='';
  if(t.is_fade){tag=t.fade_tradeable?'FADE (tradeable)':'FADE (DEAD)';pills=`<span class=pill>4pt stop</span> <span class=pill>${t.dir=='S'?'BEAR-gated':'BULL-gated'}</span> <span class=pill>gap ${t.pass_gap?'✓':'✕'}</span> <span class=pill>09-13 ${t.pass_window?'✓':'✕'}</span> <span class=pill style="border-color:${t.fade_tradeable?'#e67e22':'#7f8c8d'}">${tag}</span>`;if(!t.fade_tradeable)why=' — f2ES-long is DEAD (PF 0.71), do not trade';}
@@ -253,8 +261,19 @@ function selectTrade(t){sel=t;$('selpanel').style.display='block';let k=tkey(t);
  $('selinfo').innerHTML=`<b style="color:${setupCol(t)}">${setupLbl(t)}</b> ${t.dir=='S'?'short':'long'} · sig b${t.sig_bar+1} · fill b${t.entry_bar+1}<br>trigger ${t.trigger} · entry ${t.entry_px} · stop ${t.stop} · exit ${t.exit_px} (b${t.exit_bar+1})<br>net <span class=${t.net>0?'win':'loss'}>${t.net>0?'+':''}${t.net}</span> ${pills}<span style="color:#e67e22">${why}</span>`;
  $('note').value=nt.note||'';render()}
 function toggleSettings(){let s=$('settings');s.style.display=s.style.display=='none'?'block':'none';if(s.style.display=='block')buildSettings()}
-function buildSettings(){let rows=[['cUp','up candle','color'],['cDn','down candle','color'],['cEma','EMA20','color'],['cSma','SMA20','color'],['cEntry','entry line','color'],['cStop','stop line','color'],['cTrig','trigger line','color'],['cBull','bull shade','color'],['cBear','bear shade','color'],['cIb','IB','color'],['bg','background','color'],['regOp','regime opacity','range'],['ibOp','IB opacity','range']];
- $('setbody').innerHTML=rows.map(([k,lab,ty])=>ty=='color'?`<div class=stat><span>${lab}</span><input type=color value="${CFG[k]}" oninput="CFG['${k}']=this.value;saveCfg();render()"></div>`:`<div class=stat><span>${lab}</span><input type=range min=0 max=0.4 step=0.01 value="${CFG[k]}" oninput="CFG['${k}']=+this.value;saveCfg();render()"></div>`).join('')}
+function buildSettings(){
+ let LV=[['pH','prior high'],['pL','prior low'],['pC','prior close'],['sma','SMA20'],['open','open'],['ibh','IB high'],['ibl','IB low']];
+ let dopt=d=>['solid','dash','dot'].map(o=>`<option ${o==d?'selected':''}>${o}</option>`).join('');
+ let lvHtml=LV.map(([k,lab])=>{let s=CFG.lv[k];return `<div style="display:flex;align-items:center;gap:4px;margin:2px 0;font-size:11px">
+   <input type=checkbox ${s.on?'checked':''} onchange="CFG.lv['${k}'].on=this.checked?1:0;saveCfg();render()">
+   <span style="width:66px">${lab}</span>
+   <input type=color value="${s.c}" oninput="CFG.lv['${k}'].c=this.value;saveCfg();render()">
+   <input type=range min=1 max=4 step=1 value="${s.w}" title=width style="width:44px" oninput="CFG.lv['${k}'].w=+this.value;saveCfg();render()">
+   <select onchange="CFG.lv['${k}'].d=this.value;saveCfg();render()" style="font-size:10px">${dopt(s.d)}</select></div>`}).join('');
+ let rows=[['cUp','up candle'],['cDn','down candle'],['cEma','EMA20 line'],['cEntry','entry line'],['cStop','stop line'],['cTrig','trigger line'],['cBull','bull shade'],['cBear','bear shade'],['cIb','IB fill'],['bg','background']];
+ let colHtml=rows.map(([k,lab])=>`<div class=stat><span>${lab}</span><input type=color value="${CFG[k]}" oninput="CFG['${k}']=this.value;saveCfg();render()"></div>`).join('');
+ let opHtml=[['regOp','regime opacity'],['ibOp','IB opacity']].map(([k,lab])=>`<div class=stat><span>${lab}</span><input type=range min=0 max=0.4 step=0.01 value="${CFG[k]}" oninput="CFG['${k}']=+this.value;saveCfg();render()"></div>`).join('');
+ $('setbody').innerHTML=`<div style="color:#8b93a0;font-size:10px;margin:4px 0">LEVELS (on · color · width · style)</div>${lvHtml}<div style="color:#8b93a0;font-size:10px;margin:6px 0 2px">CHART</div>${colHtml}${opHtml}`}
 function tkey(t){return t.entry_bar+t.dir}
 function grade(g){if(!sel)return;setNote({grade:g})}
 function takeskip(v){if(!sel)return;setNote({takeskip:v})}

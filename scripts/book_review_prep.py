@@ -97,9 +97,14 @@ def main():
                 seg[-1]["to"] = i
             else:
                 seg.append({"from": i, "to": i, "mode": mode})
-        pivots = [{"b": int(p["bar"]), "side": p["side"],
-                   "lab": (p["majlab"] or p["disp"] or p["tag"]).upper()}
+        pivots = [{"b": int(p["bar"]), "side": p["side"], "tag": p["tag"],
+                   "lab": (p["majlab"] or p["disp"] or p["tag"]).upper(),
+                   "major": p["major"] is not None}
                   for p in tr.get("piv", []) if 0 <= p["bar"] < n]
+        for _s in ("H", "L"):                              # opening regime swing H / L
+            _f = next((q for q in pivots if q["side"] == _s), None)
+            if _f:
+                _f["lab"] = "O" + _s; _f["open"] = True; _f["major"] = True
         obs = [i for i in range(1, n) if H[i] >= H[i - 1] and L[i] <= L[i - 1] and (H[i] > H[i - 1] or L[i] < L[i - 1])]
         ibs = [i for i in range(1, n) if H[i] <= H[i - 1] and L[i] >= L[i - 1]]
         # trades: WITH-TREND book (2EL/2ES, retest, 0.30xADR) + FADES (f2EL short / f2ES long, stop-entry, 4pt)
