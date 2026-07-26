@@ -74,7 +74,8 @@ def emit_day(g, tP, tbar, adr):
         rows.append({"dir": dr, "regime": reg, "with_trend": reg == want,
                      "net": net, "adr": round(float(adr), 2), "hold": hold_bars,
                      "wide": round(float(wide), 2), "mae_pts": round(mae_pts, 2),
-                     "eod_move": round(eod_move, 2), "fill_hour": fill_hour})
+                     "eod_move": round(eod_move, 2), "fill_hour": fill_hour,
+                     "entry_px": round(float(lim), 2)})
     return rows
 
 
