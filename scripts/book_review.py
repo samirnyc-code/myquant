@@ -95,11 +95,15 @@ textarea{width:100%;background:#0c0f13;color:var(--tx);border:1px solid var(--ln
  <span class=tog><input type=checkbox id=t_piv onchange=render()>pivots</span>
  <span class=tog><input type=checkbox id=t_ob onchange=render()>OB</span>
  <span style=color:var(--mut)>levels→⚙</span>
+ <span style=color:var(--mut)>Y</span><input type=range id=yzoom min=0.5 max=3.5 step=0.1 value=1 oninput=render() style="width:56px" title="Y compress/expand">
+ <span style=color:var(--mut)>X</span><input type=range id=xzoom min=0.5 max=7 step=0.1 value=1 oninput=render() style="width:56px" title="X compress/expand">
+ <span style=color:var(--mut)>pan</span><input type=range id=panx min=0 max=1 step=0.01 value=1 oninput=render() style="width:56px" title="horizontal pan">
+ <button onclick="document.getElementById('yzoom').value=1;document.getElementById('xzoom').value=1;document.getElementById('panx').value=1;render()" title="reset zoom">⟲</button>
  <button id=lensbtn onclick=toggleLens() title="movable magnifier">🔍 lens</button>
  <button onclick=toggleSettings() title="colors & opacity">⚙</button>
 </div>
-<button id=sidebtn onclick=toggleSide() title="show/hide panel" style="position:fixed;top:46px;right:6px;z-index:11">⇥</button>
-<canvas id=lenscv width=320 height=320 style="position:fixed;border-radius:50%;border:2px solid #4a9eff;box-shadow:0 6px 28px rgba(0,0,0,.6);pointer-events:none;display:none;z-index:120"></canvas>
+<button id=sidebtn onclick=toggleSide() title="show/hide panel" style="position:fixed;top:48px;right:8px;z-index:130;background:#2c3440;border:1px solid #4a9eff;padding:4px 7px">⇥ panel</button>
+<canvas id=lenscv width=200 height=200 style="position:fixed;border-radius:50%;border:2px solid #4a9eff;box-shadow:0 6px 28px rgba(0,0,0,.6);pointer-events:none;display:none;z-index:120"></canvas>
 <div id=settings style="display:none;position:absolute;top:80px;right:250px;z-index:8;background:#1a1f26;border:1px solid #2b333d;border-radius:8px;padding:10px;width:224px;box-shadow:0 6px 24px #000a">
  <b style="color:#4a9eff">colors &amp; opacity</b><div id=setbody style="margin-top:6px"></div>
  <button style="margin-top:8px;width:100%" onclick=resetCfg()>reset defaults</button>
@@ -145,11 +149,15 @@ textarea{width:100%;background:#0c0f13;color:var(--tx);border:1px solid var(--ln
 const DTS=__DTS__;
 let PATHS=null;
 const CFG_DEF={cUp:'#26a65b',cDn:'#d64541',cEma:'#3aa0ff',cBull:'#2ecc71',cBear:'#e74c3c',
- cIb:'#4a9eff',cEntry:'#ffffff',cStop:'#ff5a5a',cTrig:'#f1c40f',regOp:0.10,ibOp:0.06,bg:'#0c0f13',
- lv:{pH:{on:1,c:'#c0392b',w:1,d:'dash'},pL:{on:1,c:'#2980b9',w:1,d:'dash'},pC:{on:1,c:'#8e44ad',w:1,d:'dash'},
-     sma:{on:1,c:'#f1c40f',w:1,d:'dot'},open:{on:1,c:'#dfe4e8',w:1,d:'dash'},
-     ibh:{on:1,c:'#4a9eff',w:1,d:'dash'},ibl:{on:1,c:'#4a9eff',w:1,d:'dash'}}};
+ cIb:'#4a9eff',cEntry:'#ffffff',cStop:'#ff5a5a',cTrig:'#f1c40f',regOp:0.10,ibOp:0.06,ibFill:1,bg:'#0c0f13',
+ tl:{entry:{w:1,d:'solid'},stop:{w:1,d:'dash'},trig:{w:1,d:'dot'}},
+ lv:{pH:{on:1,c:'#c0392b',w:1,d:'dash',a:1},pL:{on:1,c:'#2980b9',w:1,d:'dash',a:1},pC:{on:1,c:'#8e44ad',w:1,d:'dash',a:1},
+     sma:{on:1,c:'#f1c40f',w:1,d:'dot',a:1},open:{on:1,c:'#dfe4e8',w:1,d:'dash',a:1},
+     ibh:{on:1,c:'#4a9eff',w:1,d:'dash',a:1},ibl:{on:1,c:'#4a9eff',w:1,d:'dash',a:1}}};
 let CFG=Object.assign({},CFG_DEF,JSON.parse(localStorage.getItem('brcfg')||'{}'));
+CFG.lv=CFG.lv||{};for(let k in CFG_DEF.lv)CFG.lv[k]=Object.assign({},CFG_DEF.lv[k],CFG.lv[k]||{});
+CFG.tl=CFG.tl||{};for(let k in CFG_DEF.tl)CFG.tl[k]=Object.assign({},CFG_DEF.tl[k],CFG.tl[k]||{});
+if(CFG.ibFill==null)CFG.ibFill=1;
 function saveCfg(){localStorage.setItem('brcfg',JSON.stringify(CFG))}
 function resetCfg(){CFG=Object.assign({},CFG_DEF);saveCfg();buildSettings();render()}
 function hexa(hex,a){let h=hex.replace('#','');let r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16);return`rgba(${r},${g},${b},${a})`}
@@ -172,7 +180,7 @@ let cv=$('cv'),ctx=cv.getContext('2d');
 function fit(){cv.width=$('chart').clientWidth;cv.height=$('chart').clientHeight}
 window.onresize=()=>{fit();render()};
 function visTrades(){let f=$('filt').value;return D.trades.filter(t=>{if(f=='book')return t.in_book;if(f=='fade')return t.is_fade;if(f=='L')return t.dir=='L';if(f=='S')return t.dir=='S';if(f=='win')return t.net>0;if(f=='loss')return t.net<0;return true})}
-function toggleSide(){$('side').classList.toggle('hidden');fit();render()}
+function toggleSide(){let h=$('side').classList.toggle('hidden');$('sidebtn').textContent=h?'‹ panel':'⇥ panel';fit();render()}
 function hline(a,b,yy){ctx.beginPath();ctx.moveTo(a,yy);ctx.lineTo(b,yy);ctx.stroke()}
 function dot(a,b,r){ctx.beginPath();ctx.arc(a,b,r,0,7);ctx.fill()}
 function candle(i,o,h,l,c,x,y,bw,dim){let up=c>=o,col=dim?'#39424d':(up?CFG.cUp:CFG.cDn),xx=x(i);ctx.globalAlpha=dim?.55:1;ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(xx,y(h));ctx.lineTo(xx,y(l));ctx.stroke();let yo=y(o),yc=y(c);ctx.fillRect(xx-bw*.32,Math.min(yo,yc),Math.max(1,bw*.64),Math.max(1,Math.abs(yo-yc)));ctx.globalAlpha=1}
@@ -183,16 +191,18 @@ function render(){if(!D)return;$('dt').textContent=D.date;$('rev').textContent=r
  let lo=1e9,hi=-1e9;                              // scale to PRICE ACTION only (bars); far levels listed in panel
  for(let b of pt){lo=Math.min(lo,b[2]);hi=Math.max(hi,b[1])}
  for(let i=0;i<=revIdx;i++){lo=Math.min(lo,bars[i][4]);hi=Math.max(hi,bars[i][3])}
- let rng=(hi-lo)||1;lo-=rng*.06;hi+=rng*.06;rng=hi-lo;let onS=p=>p!=null&&p>=lo&&p<=hi;
- let tot=P+bars.length,bw=(W-pad.x0-12)/tot,x=i=>pad.x0+(i+P)*bw+bw/2,y=p=>pad.y0+(hi-p)/rng*(bot-pad.y0);
+ let rng=(hi-lo)||1;lo-=rng*.06;hi+=rng*.06;rng=hi-lo;
+ let yZoom=+$('yzoom').value,mid=(lo+hi)/2,half=rng/2/yZoom;lo=mid-half;hi=mid+half;rng=hi-lo;let onS=p=>p!=null&&p>=lo&&p<=hi;
+ let tot=P+bars.length,vw=W-pad.x0-12,xZoom=+$('xzoom').value,bw=vw/tot*xZoom,offX=(+$('panx').value)*Math.max(0,tot*bw-vw);
+ let x=i=>pad.x0+(i+P)*bw+bw/2-offX,y=p=>pad.y0+(hi-p)/rng*(bot-pad.y0);
  cv.style.background=CFG.bg;ctx.clearRect(0,0,W,H);
  // regime shading (RTH)
  if($('t_reg').checked)for(let s of D.regime){if(s.from>revIdx)continue;let to=Math.min(s.to,revIdx);let c=s.mode=='BULL'?hexa(CFG.cBull,CFG.regOp):s.mode=='BEAR'?hexa(CFG.cBear,CFG.regOp):hexa('#8b93a0',CFG.regOp*.5);ctx.fillStyle=c;ctx.fillRect(x(s.from)-bw/2,pad.y0,(to-s.from+1)*bw,bot-pad.y0)}
  // per-level style/toggle from settings
  let dashOf=d=>d=='solid'?[]:d=='dot'?[2,3]:[6,4];
- let drawLevel=(p,k,label)=>{let s=CFG.lv[k];if(!s||!s.on||!onS(p))return;let yy=y(p);ctx.strokeStyle=s.c;ctx.lineWidth=s.w;ctx.setLineDash(dashOf(s.d));hline(pad.x0,W-10,yy);ctx.setLineDash([]);ctx.lineWidth=1;if(lbl){ctx.fillStyle=s.c;ctx.textAlign='left';ctx.fillText(label,W-26,yy-2)}};
- // IB band fill (if either edge on and it intersects the range)
- if(D.ib&&(CFG.lv.ibh.on||CFG.lv.ibl.on)&&D.ib.lo<=hi&&D.ib.hi>=lo){let y1=y(Math.min(D.ib.hi,hi)),y2=y(Math.max(D.ib.lo,lo)),xl=x(0)-bw/2;ctx.fillStyle=hexa(CFG.cIb,CFG.ibOp);ctx.fillRect(xl,y1,W-10-xl,y2-y1)}
+ let drawLevel=(p,k,label)=>{let s=CFG.lv[k];if(!s||!s.on||!onS(p))return;let yy=y(p),al=s.a==null?1:s.a;ctx.strokeStyle=hexa(s.c,al);ctx.lineWidth=s.w;ctx.setLineDash(dashOf(s.d));hline(pad.x0,W-10,yy);ctx.setLineDash([]);ctx.lineWidth=1;if(lbl){ctx.fillStyle=hexa(s.c,al);ctx.textAlign='left';ctx.fillText(label,W-26,yy-2)}};
+ // IB band fill (own toggle, independent of the IBH/IBL line toggles)
+ if(D.ib&&CFG.ibFill&&D.ib.lo<=hi&&D.ib.hi>=lo){let y1=y(Math.min(D.ib.hi,hi)),y2=y(Math.max(D.ib.lo,lo)),xl=x(0)-bw/2;ctx.fillStyle=hexa(CFG.cIb,CFG.ibOp);ctx.fillRect(xl,y1,W-10-xl,y2-y1)}
  // grid + price axis
  ctx.font='10px sans-serif';ctx.textAlign='right';for(let k=0;k<=6;k++){let p=lo+rng*k/6,yy=y(p);ctx.strokeStyle='#161c23';hline(pad.x0,W-10,yy);ctx.fillStyle='#6b7480';ctx.fillText(p.toFixed(0),pad.x0-4,yy+3)}
  // horizontal levels
@@ -205,29 +215,29 @@ function render(){if(!D)return;$('dt').textContent=D.date;$('rev').textContent=r
  // RTH candles + bar numbers (b1, then every 3rd)
  for(let i=0;i<=revIdx;i++){let b=bars[i];candle(i,b[2],b[3],b[4],b[5],x,y,bw,false);if($('t_num').checked&&i%3==0){ctx.fillStyle='#5a6470';ctx.font='9px sans-serif';ctx.textAlign='center';ctx.fillText(i+1,x(i),bot+12)}}
  // pivots (swing H/L from phase machine): opening=gold, major=bold, minor=dim
- if($('t_piv').checked&&D.pivots)for(let p of D.pivots){if(p.b>revIdx)continue;let b=bars[p.b],hiP=p.side=='H',py=hiP?b[3]:b[4],big=p.major||p.open;let col=p.open?'#f1c40f':(hiP?'#e59866':'#5dade2');ctx.fillStyle=col;dot(x(p.b),y(py),big?3:1.7);ctx.font=(big?'9px':'8px')+' sans-serif';ctx.textAlign='center';ctx.fillStyle=big?col:'#6b7480';ctx.fillText(p.lab,x(p.b),hiP?y(py)-6:y(py)+13)}
+ if($('t_piv').checked&&D.pivots)for(let p of D.pivots){if(p.b>revIdx)continue;let b=bars[p.b],hiP=p.side=='H',py=hiP?b[3]:b[4],big=p.major||p.open;let col=p.open?'#f1c40f':(hiP?'#e59866':'#5dade2');ctx.fillStyle=big?col:hexa(col,.8);dot(x(p.b),y(py),big?3.4:2.4);ctx.font=(big?'9px':'8px')+' sans-serif';ctx.textAlign='center';ctx.fillStyle=big?col:hexa(col,.75);ctx.fillText(p.lab,x(p.b),hiP?y(py)-6:y(py)+13)}
  // OB dots
  if($('t_ob').checked&&D.obs)for(let i of D.obs){if(i>revIdx)continue;ctx.fillStyle='#c39bd3';dot(x(i),y(bars[i][4])+9,2.2)}
  // intraday EMA20 (prior tail -> revealed RTH)
  if($('t_ema').checked){ctx.strokeStyle=CFG.cEma;ctx.lineWidth=1.6;ctx.beginPath();let st=false;for(let j=0;j<P;j++){let xx=x(-(P-j)),yy=y(pt[j][4]);st?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy);st=true}for(let i=0;i<=revIdx;i++){let xx=x(i),yy=y(bars[i][6]);st?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy);st=true}ctx.stroke();ctx.lineWidth=1;if(lbl&&revIdx>=0){ctx.fillStyle=CFG.cEma;ctx.textAlign='left';ctx.fillText('EMA20',x(revIdx)+3,y(bars[revIdx][6]))}}
  // gap tick (open vs prior close)
  if($('t_gap').checked&&D.prior.C){ctx.strokeStyle='#f39c12';ctx.lineWidth=2;hline2(x(0),y(D.prior.C),x(0),y(bars[0][2]));ctx.lineWidth=1}
- // trades: trigger/entry/stop levels from signal bar -> exit(or reveal), no triangles
- if($('t_tr').checked)for(let t of visTrades()){if(t.sig_bar>revIdx)continue;let endB=Math.min(t.exit_bar,revIdx);let x0=x(t.sig_bar)-bw*.45,x1=x(Math.max(endB,t.sig_bar))+bw*.45,book=t.in_book;ctx.globalAlpha=book?1:.5;
-  ctx.strokeStyle=CFG.cTrig;ctx.lineWidth=1;ctx.setLineDash([1,3]);hline(x0,x1,y(t.trigger));
-  ctx.strokeStyle=CFG.cEntry;ctx.lineWidth=book?1.8:1;ctx.setLineDash([]);hline(x0,x1,y(t.entry_px));
-  ctx.strokeStyle=CFG.cStop;ctx.lineWidth=1.3;ctx.setLineDash([5,3]);hline(x0,x1,y(t.stop));ctx.setLineDash([]);
-  if(t.entry_bar<=revIdx){ctx.fillStyle=CFG.cEntry;dot(x(t.entry_bar),y(t.entry_px),3.2)}
-  if(t.exit_bar<=revIdx){ctx.fillStyle='#dfe4e8';dot(x(t.exit_bar),y(t.exit_px),3.2)}
-  // signal-bar marker (small caret in gutter, not over the bar)
-  ctx.fillStyle=book?CFG.cEntry:'#8b93a0';ctx.font='9px sans-serif';ctx.textAlign='center';ctx.fillText(t.dir=='L'?'▲':'▼',x(t.sig_bar),t.dir=='L'?bot-2:pad.y0+9);
-  if(lbl){ctx.textAlign='left';ctx.font='9px sans-serif';ctx.fillStyle=setupCol(t);ctx.fillText(setupLbl(t)+' '+t.entry_px,x0,y(t.entry_px)-3);ctx.fillStyle=CFG.cStop;ctx.fillText('stp '+t.stop,x0,y(t.stop)+(t.dir=='L'?11:-3));ctx.fillStyle=CFG.cTrig;ctx.fillText('trg '+t.trigger,x1+2,y(t.trigger)+3)}
+ // racing stripe on the SIGNAL BAR only
+ if($('t_tr').checked)for(let t of visTrades()){if(t.sig_bar>revIdx)continue;let col=setupCol(t),xs=x(t.sig_bar)-bw/2;ctx.globalAlpha=t.in_book?1:.55;ctx.fillStyle=hexa(col,.11);ctx.fillRect(xs,pad.y0,bw,bot-pad.y0);ctx.fillStyle=hexa(col,.9);ctx.fillRect(xs,pad.y0,bw,3);ctx.globalAlpha=1}
+ // trades: trigger/entry/stop level lines from signal bar -> exit(or reveal)
+ if($('t_tr').checked)for(let t of visTrades()){if(t.sig_bar>revIdx)continue;let endB=Math.min(t.exit_bar,revIdx);let x0=x(t.sig_bar)-bw*.45,x1=x(Math.max(endB,t.sig_bar))+bw*.45,book=t.in_book,TL=CFG.tl;ctx.globalAlpha=book?1:.55;
+  ctx.strokeStyle=CFG.cTrig;ctx.lineWidth=TL.trig.w;ctx.setLineDash(dashOf(TL.trig.d));hline(x0,x1,y(t.trigger));
+  ctx.strokeStyle=CFG.cEntry;ctx.lineWidth=TL.entry.w;ctx.setLineDash(dashOf(TL.entry.d));hline(x0,x1,y(t.entry_px));
+  ctx.strokeStyle=CFG.cStop;ctx.lineWidth=TL.stop.w;ctx.setLineDash(dashOf(TL.stop.d));hline(x0,x1,y(t.stop));ctx.setLineDash([]);ctx.lineWidth=1;
+  if(t.entry_bar<=revIdx){ctx.fillStyle=CFG.cEntry;dot(x(t.entry_bar),y(t.entry_px),3)}
+  if(t.exit_bar<=revIdx){ctx.fillStyle='#dfe4e8';dot(x(t.exit_bar),y(t.exit_px),3)}
+  if(lbl){ctx.textAlign='left';ctx.font='9px sans-serif';ctx.fillStyle=setupCol(t);ctx.fillText(setupLbl(t)+' '+t.entry_px,x0,y(t.entry_px)-3);ctx.fillStyle=CFG.cStop;ctx.fillText('stop '+t.stop,x0,y(t.stop)+(t.dir=='L'?11:-3));if(Math.abs(t.trigger-t.entry_px)>1){ctx.fillStyle=CFG.cTrig;ctx.fillText('trig '+t.trigger,x1+2,y(t.trigger)+3)}}
   if(sel&&sel.entry_bar==t.entry_bar&&sel.dir==t.dir){ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.setLineDash([]);ctx.beginPath();ctx.arc(x(t.entry_bar),y(t.entry_px),6,0,7);ctx.stroke()}
   ctx.globalAlpha=1;ctx.lineWidth=1}
  // reveal edge
  ctx.strokeStyle='#333c47';hline2(x(revIdx)+bw*.5,pad.y0,x(revIdx)+bw*.5,bot);
  // crosshair + hover readout
- if(CH.on){let bi=Math.round((CH.x-pad.x0)/bw-P);ctx.strokeStyle='#5a6470';ctx.setLineDash([2,3]);ctx.lineWidth=1;hline2(CH.x,pad.y0,CH.x,bot);hline(pad.x0,W-10,CH.y);ctx.setLineDash([]);
+ if(CH.on){let bi=Math.round((CH.x-pad.x0+offX)/bw-P);ctx.strokeStyle='#5a6470';ctx.setLineDash([2,3]);ctx.lineWidth=1;hline2(CH.x,pad.y0,CH.x,bot);hline(pad.x0,W-10,CH.y);ctx.setLineDash([]);
   let pcur=Math.round((hi-(CH.y-pad.y0)/(bot-pad.y0)*rng)/0.25)*0.25;ctx.fillStyle='#2c3440';ctx.fillRect(W-56,CH.y-8,50,16);ctx.fillStyle='#e6e9ec';ctx.textAlign='left';ctx.font='10px sans-serif';ctx.fillText(pcur.toFixed(2),W-54,CH.y+3);
   let o,h,l,c,tm,tag;if(bi>=0&&bi<=revIdx){let b=bars[bi];o=b[2];h=b[3];l=b[4];c=b[5];tm=b[1];tag='b'+(bi+1);}else if(bi<0&&bi>=-P){let b=pt[bi+P];o=b[0];h=b[1];l=b[2];c=b[3];tm=b[5];tag='prev';}
   if(tm){let cls=[];if(bi>=0){if(D.obs&&D.obs.includes(bi))cls.push('OB');if(D.ibs&&D.ibs.includes(bi))cls.push('IB');let pv=D.pivots&&D.pivots.find(p=>p.b==bi);if(pv)cls.push((pv.side=='H'?'swingH':'swingL')+' '+pv.lab);cls.push(c>=o?'up':'dn');let rg=D.regime&&D.regime.find(s=>bi>=s.from&&bi<=s.to);if(rg)cls.push(rg.mode)}
@@ -250,7 +260,7 @@ function drawLensMag(){let lc=$('lenscv'),g=lc.getContext('2d'),S=lc.width,Z=2.8
  g.clearRect(0,0,S,S);g.save();g.beginPath();g.arc(S/2,S/2,S/2-2,0,7);g.clip();g.fillStyle=CFG.bg;g.fillRect(0,0,S,S);
  g.imageSmoothingEnabled=false;g.drawImage(cv,CH.x-sw/2,CH.y-sw/2,sw,sw,0,0,S,S);
  g.strokeStyle='rgba(255,255,255,.22)';g.lineWidth=1;g.beginPath();g.moveTo(S/2,0);g.lineTo(S/2,S);g.moveTo(0,S/2);g.lineTo(S,S/2);g.stroke();g.restore();
- let px=CH.cx+22,py=CH.cy+22;if(px+S>innerWidth)px=CH.cx-S-22;if(py+S>innerHeight)py=CH.cy-S-22;lc.style.left=px+'px';lc.style.top=py+'px'}
+ lc.style.left=(CH.cx-S/2)+'px';lc.style.top=(CH.cy-S/2)+'px'}
 cv.onmousemove=e=>{if(!D)return;let r=cv.getBoundingClientRect();CH={on:true,x:e.clientX-r.left,y:e.clientY-r.top,cx:e.clientX,cy:e.clientY};if(!CH._raf){CH._raf=requestAnimationFrame(()=>{CH._raf=0;render();if(LENS_ON)drawLensMag()})}}
 cv.onmouseleave=()=>{CH.on=false;$('lenscv').style.display='none';render()}
 cv.onmouseenter=()=>{if(LENS_ON)$('lenscv').style.display='block'}
@@ -264,16 +274,20 @@ function toggleSettings(){let s=$('settings');s.style.display=s.style.display=='
 function buildSettings(){
  let LV=[['pH','prior high'],['pL','prior low'],['pC','prior close'],['sma','SMA20'],['open','open'],['ibh','IB high'],['ibl','IB low']];
  let dopt=d=>['solid','dash','dot'].map(o=>`<option ${o==d?'selected':''}>${o}</option>`).join('');
- let lvHtml=LV.map(([k,lab])=>{let s=CFG.lv[k];return `<div style="display:flex;align-items:center;gap:4px;margin:2px 0;font-size:11px">
+ let lvHtml=LV.map(([k,lab])=>{let s=CFG.lv[k];return `<div style="display:flex;align-items:center;gap:3px;margin:2px 0;font-size:11px">
    <input type=checkbox ${s.on?'checked':''} onchange="CFG.lv['${k}'].on=this.checked?1:0;saveCfg();render()">
-   <span style="width:66px">${lab}</span>
+   <span style="width:58px">${lab}</span>
    <input type=color value="${s.c}" oninput="CFG.lv['${k}'].c=this.value;saveCfg();render()">
-   <input type=range min=1 max=4 step=1 value="${s.w}" title=width style="width:44px" oninput="CFG.lv['${k}'].w=+this.value;saveCfg();render()">
-   <select onchange="CFG.lv['${k}'].d=this.value;saveCfg();render()" style="font-size:10px">${dopt(s.d)}</select></div>`}).join('');
+   <input type=range min=1 max=4 step=1 value="${s.w}" title=width style="width:38px" oninput="CFG.lv['${k}'].w=+this.value;saveCfg();render()">
+   <select onchange="CFG.lv['${k}'].d=this.value;saveCfg();render()" style="font-size:10px">${dopt(s.d)}</select>
+   <input type=range min=0 max=1 step=0.05 value="${s.a==null?1:s.a}" title="opacity (0=transparent)" style="width:36px" oninput="CFG.lv['${k}'].a=+this.value;saveCfg();render()"></div>`}).join('');
+ let TL=[['entry','entry'],['stop','stop'],['trig','trigger']];
+ let tlHtml=TL.map(([k,lab])=>{let s=CFG.tl[k];return `<div style="display:flex;align-items:center;gap:3px;margin:2px 0;font-size:11px"><span style="width:58px">${lab}</span><input type=range min=1 max=4 step=1 value="${s.w}" title=width style="width:38px" oninput="CFG.tl['${k}'].w=+this.value;saveCfg();render()"><select onchange="CFG.tl['${k}'].d=this.value;saveCfg();render()" style="font-size:10px">${dopt(s.d)}</select></div>`}).join('');
  let rows=[['cUp','up candle'],['cDn','down candle'],['cEma','EMA20 line'],['cEntry','entry line'],['cStop','stop line'],['cTrig','trigger line'],['cBull','bull shade'],['cBear','bear shade'],['cIb','IB fill'],['bg','background']];
  let colHtml=rows.map(([k,lab])=>`<div class=stat><span>${lab}</span><input type=color value="${CFG[k]}" oninput="CFG['${k}']=this.value;saveCfg();render()"></div>`).join('');
+ let ibFillHtml=`<div class=stat><span>IB fill shade</span><input type=checkbox ${CFG.ibFill?'checked':''} onchange="CFG.ibFill=this.checked?1:0;saveCfg();render()"></div>`;
  let opHtml=[['regOp','regime opacity'],['ibOp','IB opacity']].map(([k,lab])=>`<div class=stat><span>${lab}</span><input type=range min=0 max=0.4 step=0.01 value="${CFG[k]}" oninput="CFG['${k}']=+this.value;saveCfg();render()"></div>`).join('');
- $('setbody').innerHTML=`<div style="color:#8b93a0;font-size:10px;margin:4px 0">LEVELS (on · color · width · style)</div>${lvHtml}<div style="color:#8b93a0;font-size:10px;margin:6px 0 2px">CHART</div>${colHtml}${opHtml}`}
+ $('setbody').innerHTML=`<div style="color:#8b93a0;font-size:10px;margin:4px 0">LEVELS (on·color·width·style·opacity)</div>${lvHtml}<div style="color:#8b93a0;font-size:10px;margin:6px 0 2px">TRADE LINES (width·style)</div>${tlHtml}<div style="color:#8b93a0;font-size:10px;margin:6px 0 2px">CHART</div>${colHtml}${ibFillHtml}${opHtml}`}
 function tkey(t){return t.entry_bar+t.dir}
 function grade(g){if(!sel)return;setNote({grade:g})}
 function takeskip(v){if(!sel)return;setNote({takeskip:v})}
