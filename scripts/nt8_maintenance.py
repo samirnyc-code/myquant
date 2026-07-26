@@ -107,26 +107,49 @@ def _dismiss_nt_dialogs() -> str:
     loop: if no dialog is up it clicks nothing. Returns what it clicked (for the log).
 
     NOTE: cannot be validated headless — needs one live NT halt-test to confirm the exact
-    dialog titles/buttons on this install. Built defensively; logs every click."""
+    dialog titles/buttons on this install. Built defensively; logs every click.
+
+    HARDENED (2026-07-26): the first version missed the live dialog. Now it (a) scans BOTH
+    top-level windows AND any nested Window under the main NT window (WPF confirm dialogs can
+    be nested), (b) enumerates every Button control and matches its Name case-insensitively
+    with the '&' access-key stripped (so '&Yes' / 'Yes ' still match), (c) tries Invoke and
+    falls back to keyboard SetFocus+Enter on the default button. Still NinjaTrader-only and
+    only ever clicks an affirmative Yes/Save/OK button."""
     ps = r"""
-Add-Type -AssemblyName UIAutomationClient,UIAutomationTypes 2>$null
+Add-Type -AssemblyName UIAutomationClient,UIAutomationTypes,System.Windows.Forms 2>$null
 $root=[System.Windows.Automation.AutomationElement]::RootElement
-$W=[System.Windows.Automation.AutomationElement]::ControlTypeProperty
-$N=[System.Windows.Automation.AutomationElement]::NameProperty
-$cond=New-Object System.Windows.Automation.PropertyCondition($W,[System.Windows.Automation.ControlType]::Window)
-$wins=$root.FindAll([System.Windows.Automation.TreeScope]::Children,$cond)
-$done=@()
-foreach($w in $wins){
+$CT=[System.Windows.Automation.AutomationElement]::ControlTypeProperty
+$winCond=New-Object System.Windows.Automation.PropertyCondition($CT,[System.Windows.Automation.ControlType]::Window)
+$btnCond=New-Object System.Windows.Automation.PropertyCondition($CT,[System.Windows.Automation.ControlType]::Button)
+$tops=$root.FindAll([System.Windows.Automation.TreeScope]::Children,$winCond)
+# candidate windows = every NinjaTrader-owned top-level window PLUS any nested Window under it
+$cands=New-Object System.Collections.ArrayList
+foreach($w in $tops){
   try{
     $pr=Get-Process -Id $w.Current.ProcessId -ErrorAction SilentlyContinue
     if(-not $pr -or $pr.ProcessName -ne 'NinjaTrader'){continue}
-    # only act on a modal dialog: it must expose a Yes/Save/OK button at all
-    foreach($lbl in @('Yes','Save','OK')){
-      $bc=New-Object System.Windows.Automation.PropertyCondition($N,$lbl)
-      $btn=$w.FindFirst([System.Windows.Automation.TreeScope]::Descendants,$bc)
-      if($btn){
-        $ip=$btn.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern)
-        $ip.Invoke(); $done+=("'"+$w.Current.Name+"' -> "+$lbl); break
+    [void]$cands.Add($w)
+    $nested=$w.FindAll([System.Windows.Automation.TreeScope]::Descendants,$winCond)
+    foreach($n in $nested){[void]$cands.Add($n)}
+  }catch{}
+}
+function Norm($s){ if($null-eq$s){return ''}; return ($s -replace '&','').Trim().ToLower() }
+$want=@('yes','save','ok','save and close','save workspace')
+$done=@()
+foreach($w in $cands){
+  try{
+    $btns=$w.FindAll([System.Windows.Automation.TreeScope]::Descendants,$btnCond)
+    foreach($b in $btns){
+      $nm=Norm($b.Current.Name)
+      if($want -contains $nm){
+        try{
+          $ip=$b.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern)
+          $ip.Invoke()
+        }catch{
+          # fallback: focus the button and press Enter
+          try{ $b.SetFocus(); [System.Windows.Forms.SendKeys]::SendWait('{ENTER}') }catch{}
+        }
+        $done+=("'"+$w.Current.Name+"' -> "+$b.Current.Name); break
       }
     }
   }catch{}
