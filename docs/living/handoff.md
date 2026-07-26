@@ -1,9 +1,32 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 25, 2026 (S84 — reproduced the agreed 2E book 5-yr [OLD +$93.7k/1.44,
-NEW-engine +$102.3k/1.43]; regime-gate comparison [PHASE≫EMA20≫NONE]; tick-proxy fidelity test
-[1-min reproduces the engine 99.9% → cheap pre-2021 backfill decision]. All on `regime/indep`,
-pushed. Base system UNCHANGED. Samir getting 1-min pre-2021 data next.)
+**Last Updated:** July 27, 2026 (S84 cont — INTERACTIVE trade-review gallery [Plotly v3: candles +
+native zoom + bar-select annotation] + entry/exit deep-dive: 6t retest is the OPTIMAL depth, misses
+154/21% runners but capturing them is a wash, SB tight stop LOSES, 1:1 clips runners, first-trade-of-day
+is WEAKEST → "size up 2nd+ trade of day" candidate. Base UNCHANGED. On `regime/indep`, pushed.)
+
+---
+
+## S84 cont (2026-07-27) — trade-review gallery + entry/exit deep-dive (branch `regime/indep`)
+
+- **Trade-review gallery (the "final big sweep" tool):** P0 lightweight-charts REJECTED (broke candles,
+  wrong format) → v2 matplotlib (fade-gallery style: full-day 5M candles, entry/exit zoom, level gutter +
+  leader lines [fixes label overlap], no arrows, EMA20 + prior bar + gap chip) → **v3 INTERACTIVE (Plotly):
+  reliable candles + native zoom/pan + bar-select/box-select annotation** (localStorage + export JSON now;
+  P2 = local server → committed JSON for lossless). Vendored plotly offline. `gallery_v3_build.py`,
+  `docs/living/trade_review/v3.html`. One 2EL trade so far (approve look → P1 all 678 → P2 annotate).
+- **Entry/exit research (all on the 573 WT 6t book; scripts + charts committed):**
+  - 6t retest MISSES 154/727 = 21% (2EL 25% / 2ES 18%) — the momentum RUNNERS. `regime_2e_missed_by_retest.py`.
+  - Missed via stop-entry = +$48k/PF2.60, BUT capturing needs stop-entry-all-727 → WASH (retest 573=+$86.8k/1.45
+    vs stop-all 727=+$88.9k/1.37; net +$2k/5yr). "Enter BOTH" DOMINATED by just 2x-ing the retest (2x-retest =
+    same $ at PF1.45/-$17.7k DD vs BOTH 1.41/-$21.3k). `regime_2e_missed_pnl.py`, `_both_entry.py`.
+  - **6t is the OPTIMAL retest depth** — peak net AND PF, smooth 4-12t plateau (in-sample). Runners NOT
+    predictable from causal SB features (size/close/ema-ext/tod) → order flow is the only untested lever.
+    `regime_2e_retest_depth.py`.
+  - Exit matrix (573): 1:1 win 53% (39% target-hit) but PF 1.45→1.13 (clips runners; EOD wins). SB±1t stop
+    LOSES (1:1 PF0.75, 2:1 PF0.82; whipsaws 51-67%). **First-trade-of-day WEAKEST (ADR/EOD PF 1.30 vs
+    non-first 1.99, holds every scheme)** → "size up the 2nd+ trade of a day" = size-lean candidate (needs
+    train/test+orthogonality; caveat: non-first conditioned on trending multi-trade days). `regime_2e_exit_matrix.py`.
 
 ---
 
