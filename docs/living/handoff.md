@@ -6,6 +6,42 @@ pipeline + S77 security hardening; merged S76 Mac swing-levels work)
 
 ---
 
+## S85f (2026-07-25) — ⭐ CORRECTED verdict: HVL-gated two-sided 2E PASSES within-modern-era OOS (branch `regime/indep`)
+
+**The autonomous edge-hunt's earlier "dead/modest" calls were WRONG on two counts (both mine),
+and the corrected book is materially better.** Full arc + reckoning in the `regime/indep` git log
+(`8075217`→`93439ab`). This SUPERSEDES the S85d/S85e "modest ~$2.5k/yr long-only" framing.
+
+- **Two corrections that flipped the verdict:** (1) I had tested the WRONG gamma construction —
+  sign of same-day EOD `net_total_gex` (look-ahead) — and wrongly called gamma dead. The LIVE
+  method is **price vs PRIOR-day HVL, intraday** (Samir's method, always was). (2) I held a
+  16yr all-weather bar; Samir correctly argued that's the wrong standard for a modern-regime
+  strategy (2013-17 low-vol era is structurally gone: 0DTE/retail sticky). Recalibrated to:
+  validate WITHIN 2021+, no look-ahead, keep BOTH sides, monitor for regime change.
+- **THE BOOK: with-trend 2E (both sides) | entry ABOVE prior-day HVL | 0.30xADR stop | 09-13 |
+  EOD hold.** Full modern (2021+): **PF 1.50, +$76.4k (+$15.3k/yr/ES), maxDD −$7.9k, net/DD 9.6**,
+  positive every year. NOT drift/beta: counter-trend same-days-to-EOD LOSES (0.94 vs 1.50), and
+  shorts above HVL PF 1.57 > longs 1.43 (beta can't do that). Below-HVL is the mirror (negative-
+  gamma) where 2E dies and RevFT lives.
+- **OOS PASS (`regime_2e_hvl_traintest.py`):** trained 2021-23 (PF 1.18, +$13k, positive), HOLDOUT
+  2024-26 = **PF 1.78, +$63,360, every year green (1.64/1.94/1.77), maxDD −$7.2k, shorts hold
+  (holdout S PF 2.11).** First result all session to survive a clean no-tuning OOS test.
+- **RevFT (MyReversals):** confirmed the negative-gamma mirror over full 5yr (below-HVL PF ~1.10
+  EOD, +$71k; positive-gamma loses). But lower-grade: maxDD −$34k, −$19k in 2023; pairing with 2E
+  DEGRADES net/DD (9.6→4.5). Needs filtering (types Trap/IB good, OB bad) before it earns a slot.
+  RevFT gamma tag inherited from the PARALLEL session's `revft_regime_*_20260725` build — VERIFY
+  its causality before trusting.
+- **HONEST caveats:** HVL-gate strength is largely a 2024+ phenomenon (weak in 2021-23); modest
+  samples (~290/period); one broad regime (no bear-only holdout). Validated, not bulletproof.
+
+**Scripts (regime/indep):** `regime_2e_gamma_hvl_causal`, `_hvl_traintest`, `regime_hvl_portfolio`,
+`regime_2e_gamma_full`, `_era_vs_vol`, `_vol_history` (+ the earlier oos/wfa/reconcile/fixed_configs
+battery). Charts `hvl_traintest_`, `hvl_portfolio_`, `forward_spec_` in `docs/living/`.
+**NEXT:** verify RevFT causal tag; filter RevFT for a below-HVL slot; forward-track; NT8 port of
+the HVL-gated spec.
+
+---
+
 ## S85c (2026-07-25) — 2E-book reproductions + regime-gate comparison + tick-proxy fidelity + Databento data audit
 
 **Regime/2E work is on branch `regime/indep` (worktree `C:\Users\Admin\myquant-regime`), pushed.**
