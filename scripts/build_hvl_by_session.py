@@ -36,7 +36,9 @@ def main():
     out = pd.DataFrame({
         "session_date": mq["date"].shift(-1),      # this EOD level applies to the next session
         "eod_date": mq["date"],
-        "hvl_spx": mq["hvl"],
+        "hvl_spx": mq["hvl"],                       # HVL — gamma flip / regime line
+        "cr_spx": mq["cr"],                         # Call Resistance = argmax net(K)
+        "ps_spx": mq["ps"],                         # Put Support = argmin net(K), |K/spot-1|<=20%
         "spx_eod": mq["spot"],
     }).dropna(subset=["session_date"]).reset_index(drop=True)
 
@@ -47,16 +49,19 @@ def main():
         esc = es.groupby("Date")["Close"].last()
         out["es_eod"] = out["eod_date"].map(esc)
         out["basis"] = out["es_eod"] - out["spx_eod"]
-        out["hvl_es"] = out["hvl_spx"] + out["basis"]
+        for lv in ("hvl", "cr", "ps"):
+            out[f"{lv}_es"] = out[f"{lv}_spx"] + out["basis"]
     else:
-        out["basis"] = np.nan; out["hvl_es"] = np.nan
+        out["basis"] = np.nan
+        for lv in ("hvl", "cr", "ps"):
+            out[f"{lv}_es"] = np.nan
 
     out.to_csv(DATA / "regime" / "hvl_by_session.csv", index=False)
     print(f"wrote {len(out)} sessions -> data/regime/hvl_by_session.csv")
     print(f"  span: {out.session_date.min()} -> {out.session_date.max()}")
     print(f"  ES-basis coverage (2021+): {out.hvl_es.notna().sum()} sessions\n")
-    print("last 12 sessions (session_date uses eod_date's EOD level all day):")
-    cols = ["session_date", "eod_date", "hvl_spx", "spx_eod", "basis", "hvl_es"]
+    print("last 12 sessions (each session uses the PRIOR EOD's levels all day):")
+    cols = ["session_date", "eod_date", "hvl_spx", "cr_spx", "ps_spx", "basis", "hvl_es", "cr_es", "ps_es"]
     print(out[cols].tail(12).to_string(index=False))
 
 
