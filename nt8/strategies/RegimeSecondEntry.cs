@@ -683,6 +683,10 @@ namespace NinjaTrader.NinjaScript.Strategies
 		[NinjaScriptProperty] public int FlatAfterMin { get; set; }
 		[NinjaScriptProperty] public bool UseErFilter { get; set; }
 		[NinjaScriptProperty] public double ErThreshold { get; set; }
+		[NinjaScriptProperty] public int SmaLookback { get; set; }
+		[NinjaScriptProperty] public bool UseSmaGate { get; set; }
+		[NinjaScriptProperty] public bool UseTrendDaySkip { get; set; }
+		[NinjaScriptProperty] public double TrendDayMult { get; set; }
 		[NinjaScriptProperty] public int Contracts { get; set; }
 		[NinjaScriptProperty] public bool WriteSignalsCsv { get; set; }
 		#endregion
