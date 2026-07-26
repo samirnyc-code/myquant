@@ -92,7 +92,9 @@ textarea{width:100%;background:#0c0f13;color:var(--tx);border:1px solid var(--ln
  <span class=tog><input type=checkbox id=t_tr checked onchange=render()>trades</span>
  <span class=tog><input type=checkbox id=t_num checked onchange=render()>bar#</span>
  <span class=tog><input type=checkbox id=t_lbl checked onchange=render()>labels</span>
- <span class=tog><input type=checkbox id=t_piv onchange=render()>pivots</span>
+ <span class=tog><input type=checkbox id=t_piv onchange=render()>piv</span>
+ <span class=tog><input type=checkbox id=t_pivM checked onchange=render()>maj</span>
+ <span class=tog><input type=checkbox id=t_pivm checked onchange=render()>min</span>
  <span class=tog><input type=checkbox id=t_ob onchange=render()>OB</span>
  <span style=color:var(--mut)>levels→⚙</span>
  <span style=color:var(--mut)>Y</span><input type=range id=yzoom min=0.5 max=3.5 step=0.1 value=1 oninput=render() style="width:56px" title="Y compress/expand">
@@ -215,7 +217,12 @@ function render(){if(!D)return;$('dt').textContent=D.date;$('rev').textContent=r
  // RTH candles + bar numbers (b1, then every 3rd)
  for(let i=0;i<=revIdx;i++){let b=bars[i];candle(i,b[2],b[3],b[4],b[5],x,y,bw,false);if($('t_num').checked&&i%3==0){ctx.fillStyle='#5a6470';ctx.font='9px sans-serif';ctx.textAlign='center';ctx.fillText(i+1,x(i),bot+12)}}
  // pivots (swing H/L from phase machine): opening=gold, major=bold, minor=dim
- if($('t_piv').checked&&D.pivots)for(let p of D.pivots){if(p.b>revIdx)continue;let b=bars[p.b],hiP=p.side=='H',py=hiP?b[3]:b[4],big=p.major||p.open;let col=p.open?'#f1c40f':(hiP?'#e59866':'#5dade2');ctx.fillStyle=big?col:hexa(col,.8);dot(x(p.b),y(py),big?3.4:2.4);ctx.font=(big?'9px':'8px')+' sans-serif';ctx.textAlign='center';ctx.fillStyle=big?col:hexa(col,.75);ctx.fillText(p.lab,x(p.b),hiP?y(py)-6:y(py)+13)}
+ if($('t_piv').checked&&D.pivots){let placed=[];for(let p of D.pivots){if(p.b>revIdx)continue;let big=p.major||p.open;if(big&&!$('t_pivM').checked)continue;if(!big&&!$('t_pivm').checked)continue;
+  let b=bars[p.b],hiP=p.side=='H',py=hiP?b[3]:b[4],col=p.open?'#f1c40f':(hiP?'#e59866':'#5dade2'),txt=big?p.lab:(p.tag||p.lab.toLowerCase());
+  ctx.fillStyle=big?col:hexa(col,.55);dot(x(p.b),y(py),big?3.4:2);
+  let off=big?(hiP?-15:17):(hiP?-5:9),lx=x(p.b),ly=y(py)+off;                      // major far, minor near
+  if(placed.some(q=>Math.abs(q[0]-lx)<15&&Math.abs(q[1]-ly)<11))continue;          // never overlap
+  placed.push([lx,ly]);ctx.font=(big?'bold 9px':'8px')+' sans-serif';ctx.textAlign='center';ctx.fillStyle=big?col:hexa(col,.72);ctx.fillText(txt,lx,ly)}}
  // OB dots
  if($('t_ob').checked&&D.obs)for(let i of D.obs){if(i>revIdx)continue;ctx.fillStyle='#c39bd3';dot(x(i),y(bars[i][4])+9,2.2)}
  // intraday EMA20 (prior tail -> revealed RTH)
