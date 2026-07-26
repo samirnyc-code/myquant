@@ -1,9 +1,39 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 27, 2026 (S84 cont — INTERACTIVE trade-review gallery [Plotly v3: candles +
-native zoom + bar-select annotation] + entry/exit deep-dive: 6t retest is the OPTIMAL depth, misses
-154/21% runners but capturing them is a wash, SB tight stop LOSES, 1:1 clips runners, first-trade-of-day
-is WEAKEST → "size up 2nd+ trade of day" candidate. Base UNCHANGED. On `regime/indep`, pushed.)
+**Last Updated:** July 27, 2026 (S85 — forward-reveal BOOK REVIEW tool [`scripts/book_review.py`] built +
+iterated over many rounds; CORRECT fade spec re-confirmed [f2EL=SHORT 4pt stop, f2ES-long DEAD];
+always-count experiment = DON'T switch [+$69k of losers]. On `regime/indep`, pushed.)
+
+---
+
+## S85 (2026-07-27) — interactive BOOK REVIEW tool + fade-spec fix + always-count test (branch `regime/indep`)
+
+- **The tool: `scripts/book_review.py`** (stdlib HTTP server + canvas, `http://localhost:8640`) — forward-reveal
+  reviewer for the last 5yr of THE BOOK's trades so Samir (and Thomas) can grade/annotate every setup and I can
+  mine the annotations. Data prepped by **`scripts/book_review_prep.py`** → `data/annotations/book_review/<date>.json`
+  (1434 days, committed; ~18MB). Annotations persist to `data/annotations/book_review_notes/<date>.json`.
+  - **Features:** forward reveal (space/step/show-all/next-setup/next-ungraded) · toggles (regime shading, EMA20,
+    gap, trades, bar#, labels, pivots maj/min, OB) · click a setup → grade A/B/C/F + take/skip + note (keyed to
+    the reveal bar = NO hindsight) · intermediate + final day-type · setup filter (book/fade/long/short/win/loss)
+    · live PF/win/net · **W/L price-path** modal (R-paths, MFE/MAE) · **movable magnifier lens** · **per-level
+    settings** (on/color/width/dash/opacity for pH/pL/pC/SMA/OPEN/IBH/IBL + trade-line styles + IB-fill toggle)
+    · **X/Y zoom + pan** · **LEVELS panel** (far levels listed w/ Δ + on/off-screen dot; chart scales to price
+    action only) · crosshair (tick-snapped) + hover box (OHLC + OB/IB/swing/regime classification).
+  - **Setups shown:** with-trend 2EL/2ES (green/red) + FADES f2EL/f2ES (amber/purple). Racing stripe marks the
+    SIGNAL BAR only. Pivots from the phase-machine trace: opening OH/OL (gold), major HH/LL/HL/LH (bold UPPER),
+    minor hh/ll/hl/lh (lowercase, dim) — separate maj/min toggles, offset+collision-skip so labels never overlap.
+- **FADE SPEC re-confirmed from the P&L sim** (`regime_2e_fade_stop_sweep.py` / two_sleeves): a 2E signal whose
+  phase regime is OPPOSITE its direction → fade the OTHER way. **f2EL = fade of a 2E-long = a SHORT**; **f2ES =
+  fade of a 2E-short = a LONG**. Stop-entry 1t beyond the signal bar's extreme (NO 6t retest), gated to the
+  opposite trend, **fixed 4pt stop**, EOD. **f2EL tradeable (PF 1.35, 105 trades — matches handoff); f2ES-long
+  DEAD (0.71).** My first review-tool fades used book mechanics (wrong) — fixed to match the sim exactly.
+- **ALWAYS-COUNT experiment** (`scripts/regime_2e_always_count.py`, Samir's Q): the S61 counter zeros the 2E
+  count in the opposite regime + on every flip. Ran a variant counting BOTH dirs continuously, classify by phase
+  machine at fill, full 2021+ real-tick. **VERDICT: don't switch.** WT book baseline 573tr +$86,848 vs always
+  825tr +$18,038 (the +252 extra signals are net **−$68,810**); fade 105tr +$6,875 vs 188tr +$6,210 (extra fades
+  ~breakeven). Live engine untouched. CSV: `data/regime/always_count_compare_20210101.csv`.
+- **STILL OPEN:** real tick-level zoom inside the lens (needs tick data in the day JSONs); Al Brooks side-by-side
+  from the Codex; optional per-trade audit of the always-count (Samir unsure it's right).
 
 ---
 

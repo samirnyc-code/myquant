@@ -104,7 +104,7 @@ textarea{width:100%;background:#0c0f13;color:var(--tx);border:1px solid var(--ln
  <button id=lensbtn onclick=toggleLens() title="movable magnifier">🔍 lens</button>
  <button onclick=toggleSettings() title="colors & opacity">⚙</button>
 </div>
-<button id=sidebtn onclick=toggleSide() title="show/hide panel" style="position:fixed;top:48px;right:8px;z-index:130;background:#2c3440;border:1px solid #4a9eff;padding:4px 7px">⇥ panel</button>
+<button id=sidebtn onclick=toggleSide() title="show/hide panel" style="position:fixed;top:50%;right:0;transform:translateY(-50%);z-index:130;background:#2c3440;color:#e6e9ec;border:1px solid #4a9eff;border-right:none;border-radius:6px 0 0 6px;padding:12px 3px;writing-mode:vertical-rl;font-size:11px">panel</button>
 <canvas id=lenscv width=200 height=200 style="position:fixed;border-radius:50%;border:2px solid #4a9eff;box-shadow:0 6px 28px rgba(0,0,0,.6);pointer-events:none;display:none;z-index:120"></canvas>
 <div id=settings style="display:none;position:absolute;top:80px;right:250px;z-index:8;background:#1a1f26;border:1px solid #2b333d;border-radius:8px;padding:10px;width:224px;box-shadow:0 6px 24px #000a">
  <b style="color:#4a9eff">colors &amp; opacity</b><div id=setbody style="margin-top:6px"></div>
@@ -182,7 +182,7 @@ let cv=$('cv'),ctx=cv.getContext('2d');
 function fit(){cv.width=$('chart').clientWidth;cv.height=$('chart').clientHeight}
 window.onresize=()=>{fit();render()};
 function visTrades(){let f=$('filt').value;return D.trades.filter(t=>{if(f=='book')return t.in_book;if(f=='fade')return t.is_fade;if(f=='L')return t.dir=='L';if(f=='S')return t.dir=='S';if(f=='win')return t.net>0;if(f=='loss')return t.net<0;return true})}
-function toggleSide(){let h=$('side').classList.toggle('hidden');$('sidebtn').textContent=h?'‹ panel':'⇥ panel';fit();render()}
+function toggleSide(){let s=$('side'),hidden=getComputedStyle(s).display==='none';s.style.display=hidden?'block':'none';fit();render()}
 function hline(a,b,yy){ctx.beginPath();ctx.moveTo(a,yy);ctx.lineTo(b,yy);ctx.stroke()}
 function dot(a,b,r){ctx.beginPath();ctx.arc(a,b,r,0,7);ctx.fill()}
 function candle(i,o,h,l,c,x,y,bw,dim){let up=c>=o,col=dim?'#39424d':(up?CFG.cUp:CFG.cDn),xx=x(i);ctx.globalAlpha=dim?.55:1;ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(xx,y(h));ctx.lineTo(xx,y(l));ctx.stroke();let yo=y(o),yc=y(c);ctx.fillRect(xx-bw*.32,Math.min(yo,yc),Math.max(1,bw*.64),Math.max(1,Math.abs(yo-yc)));ctx.globalAlpha=1}
@@ -247,8 +247,14 @@ function render(){if(!D)return;$('dt').textContent=D.date;$('rev').textContent=r
  if(CH.on){let bi=Math.round((CH.x-pad.x0+offX)/bw-P);ctx.strokeStyle='#5a6470';ctx.setLineDash([2,3]);ctx.lineWidth=1;hline2(CH.x,pad.y0,CH.x,bot);hline(pad.x0,W-10,CH.y);ctx.setLineDash([]);
   let pcur=Math.round((hi-(CH.y-pad.y0)/(bot-pad.y0)*rng)/0.25)*0.25;ctx.fillStyle='#2c3440';ctx.fillRect(W-56,CH.y-8,50,16);ctx.fillStyle='#e6e9ec';ctx.textAlign='left';ctx.font='10px sans-serif';ctx.fillText(pcur.toFixed(2),W-54,CH.y+3);
   let o,h,l,c,tm,tag;if(bi>=0&&bi<=revIdx){let b=bars[bi];o=b[2];h=b[3];l=b[4];c=b[5];tm=b[1];tag='b'+(bi+1);}else if(bi<0&&bi>=-P){let b=pt[bi+P];o=b[0];h=b[1];l=b[2];c=b[3];tm=b[5];tag='prev';}
-  if(tm){let cls=[];if(bi>=0){if(D.obs&&D.obs.includes(bi))cls.push('OB');if(D.ibs&&D.ibs.includes(bi))cls.push('IB');let pv=D.pivots&&D.pivots.find(p=>p.b==bi);if(pv)cls.push((pv.side=='H'?'swingH':'swingL')+' '+pv.lab);cls.push(c>=o?'up':'dn');let rg=D.regime&&D.regime.find(s=>bi>=s.from&&bi<=s.to);if(rg)cls.push(rg.mode)}
-    let txt=`${tag} ${tm}  O${o} H${h} L${l} C${c}  Δ${(c-o>=0?'+':'')}${(c-o).toFixed(2)}${cls.length?'  ['+cls.join(', ')+']':''}`;ctx.font='11px sans-serif';let tw=ctx.measureText(txt).width+14;ctx.fillStyle='rgba(16,20,26,.96)';ctx.fillRect(pad.x0+4,pad.y0+3,tw,18);ctx.fillStyle='#e6e9ec';ctx.fillText(txt,pad.x0+11,pad.y0+16)}}
+  if(tm){let up=c>=o,dc=up?'#2ecc71':'#e74c3c',dim='#7a828c';
+    let toks=[[tag,'#cbd3dc'],['  '+tm+'   ','#8b93a0'],['O','#7a828c'],[o+'  ','#d6dbe0'],['H','#7a828c'],[h+'  ','#26c281'],['L','#7a828c'],[l+'  ','#e35d4f'],['C','#7a828c'],[''+c,'#f0f3f6'],['   Δ'+(up?'+':'')+(c-o).toFixed(2),dc]];
+    if(bi>=0){let cmap={OB:'#c39bd3',IB:'#5dade2',up:'#2ecc71',dn:'#e74c3c',BULL:'#2ecc71',BEAR:'#e74c3c',NEUTRAL:'#8b93a0'},cls=[];
+      if(D.obs&&D.obs.includes(bi))cls.push('OB');if(D.ibs&&D.ibs.includes(bi))cls.push('IB');let pv=D.pivots&&D.pivots.find(p=>p.b==bi);if(pv)cls.push((pv.side=='H'?'swingH ':'swingL ')+pv.lab);cls.push(up?'up':'dn');let rg=D.regime&&D.regime.find(s=>bi>=s.from&&bi<=s.to);if(rg)cls.push(rg.mode);
+      toks.push(['   [','#5a6470']);cls.forEach((t,ix)=>{let cc=cmap[t]||(t.indexOf('swingH')==0?'#e59866':t.indexOf('swingL')==0?'#5dade2':'#f1c40f');toks.push([t,cc]);if(ix<cls.length-1)toks.push([', ','#5a6470'])});toks.push([']','#5a6470']);}
+    ctx.font='11px sans-serif';ctx.textAlign='left';let tw=toks.reduce((a,t)=>a+ctx.measureText(t[0]).width,0)+16;
+    ctx.fillStyle='rgba(16,20,26,.96)';ctx.fillRect(pad.x0+4,pad.y0+3,tw,18);
+    let cx=pad.x0+11;for(let [t,cc] of toks){ctx.fillStyle=cc;ctx.fillText(t,cx,pad.y0+16);cx+=ctx.measureText(t).width}}}
  window._lo=lo;window._hi=hi;renderStats();renderDayInfo();renderLevels();window._x=x;window._y=y;window._bw=bw;window._P=P}
 function renderLevels(){if(!D)return;let last=D.bars[revIdx][5],lo=window._lo,hi=window._hi;
  let L=CFG.lv,rows=[['last',last,'#e6e9ec'],['OPEN',D.today_open,L.open.c],['SMA20',D.sma20,L.sma.c],['pH',D.prior.H,L.pH.c],['pC',D.prior.C,L.pC.c],['pL',D.prior.L,L.pL.c]];
