@@ -112,6 +112,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 				ErThreshold = 0.201;
 				Contracts = 1;
 				WriteSignalsCsv = true;            // validation build: export ON by default
+				// ---- CURRENT-BOOK gates (S85 spec) ----
+				SmaLookback = 20;                  // regime gate: only trade when price > 20-day SMA of session closes
+				UseSmaGate = false;                // OFF = the validated 573-trade WT book (+$86.8k/PF1.45)
+				UseTrendDaySkip = false;           // OFF = the validated book (extra gate, not in the +$86.8k backtest)
+				TrendDayMult = 1.6;
 			}
 			else if (State == State.DataLoaded)
 			{
@@ -439,6 +444,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 		private double lastSessClose = double.NaN;
 		private bool skipDay = true;              // true until ADR ready and gap checked
 		private int adrStopTicks;
+		// ---- CURRENT-BOOK gates (S85): 20-day SMA regime gate + skip-day-after-trend-day ----
+		private readonly Queue<double> sessCloses = new Queue<double>();  // rolling session closes for the SMA
+		private double smaDaily = double.NaN;     // N-day SMA of prior session closes (the regime line, replaces HVL)
 		private readonly List<Tuple<string, int>> pendingEntry = new List<Tuple<string, int>>();
 
 		protected override void OnBarUpdate()
@@ -453,6 +461,12 @@ namespace NinjaTrader.NinjaScript.Strategies
 					sessRanges.Enqueue(sessHigh - sessLow);
 					while (sessRanges.Count > AdrLookback) sessRanges.Dequeue();
 					prevSessClose = lastSessClose;
+					// CURRENT-BOOK: rolling N-day SMA of session closes (the regime line, replaces HVL)
+					sessCloses.Enqueue(lastSessClose);
+					while (sessCloses.Count > SmaLookback) sessCloses.Dequeue();
+					if (sessCloses.Count >= SmaLookback)
+					{ double sc = 0; foreach (double v in sessCloses) sc += v; smaDaily = sc / sessCloses.Count; }
+					else smaDaily = double.NaN;
 				}
 				sessHigh = double.MinValue; sessLow = double.MaxValue;
 				ResetSession();
