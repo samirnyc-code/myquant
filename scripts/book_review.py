@@ -26,6 +26,34 @@ DAYTYPES = ["Trend", "Trend-from-open", "Trend reversal", "Tight channel", "Broa
             "Trading range", "TR breakout", "Double-distribution trend", "Normal (Dalton)",
             "Normal-variation", "Neutral (Dalton)", "Non-trend", "Other"]
 
+_PATHS = None
+
+
+def build_paths():
+    """R-multiple price path (entry->exit, per bar close) for every in-book trade, from disk.
+    R = (px-entry)/risk, sign-adjusted for direction; risk = |entry-stop|. Cached."""
+    global _PATHS
+    if _PATHS is not None:
+        return _PATHS
+    win, loss = [], []
+    for f in sorted(DAYS.glob("2*.json")):
+        try:
+            d = json.loads(f.read_text())
+        except Exception:
+            continue
+        closes = [b[5] for b in d["bars"]]
+        for t in d["trades"]:
+            if not t.get("in_book"):
+                continue
+            risk = abs(t["entry_px"] - t["stop"]) or 0.25
+            sgn = 1.0 if t["dir"] == "L" else -1.0
+            eb, xb = t["entry_bar"], min(t["exit_bar"], len(closes) - 1)
+            path = [round(sgn * (closes[i] - t["entry_px"]) / risk, 3) for i in range(eb, xb + 1)]
+            path = [0.0] + path if not path or path[0] != 0.0 else path
+            (win if t["net"] > 0 else loss).append({"date": d["date"], "dir": t["dir"], "net": t["net"], "r": path})
+    _PATHS = {"win": win, "loss": loss}
+    return _PATHS
+
 HTML = r"""<!doctype html><html><head><meta charset=utf-8><title>Book Review</title>
 <style>
 :root{--bg:#0f1216;--sf:#1a1f26;--ln:#2b333d;--tx:#e6e9ec;--mut:#8b93a0;--grn:#2ecc71;--red:#e74c3c;--blu:#4a9eff;--yel:#f1c40f}
@@ -53,6 +81,7 @@ textarea{width:100%;background:#0c0f13;color:var(--tx);border:1px solid var(--ln
  <button onclick=play()><span id=playlbl>▶ play</span></button>
  <button onclick=step(-1)>◀</button><button onclick=step(1)>▶</button>
  <button onclick=showAll()>show all</button><button onclick=nextSetup()>next setup ⤼</button>
+ <button onclick=openPaths()>W/L paths 📈</button>
  <select id=spd><option value=350>slow</option><option value=150 selected>med</option><option value=50>fast</option></select>
  <span style=color:var(--mut)>filter</span>
  <select id=filt onchange=render()><option value=all>all</option><option value=book>in-book</option><option value=L>long</option><option value=S>short</option><option value=win>winners</option><option value=loss>losers</option></select>
@@ -79,8 +108,23 @@ textarea{width:100%;background:#0c0f13;color:var(--tx);border:1px solid var(--ln
  </div>
  <h4>stats (filter)</h4><div id=stats></div>
 </div></div>
+<div id=modal style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9">
+ <div style="position:absolute;top:3%;left:3%;right:3%;bottom:3%;background:#1a1f26;border:1px solid #2b333d;border-radius:8px;padding:12px;display:flex;flex-direction:column">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+   <b style="color:#4a9eff">Winner vs Loser price paths — R-multiple by bars-since-entry (in-book trades)</b>
+   <span>
+    <span class=tog><input type=checkbox id=p_win checked onchange=drawPaths()>winners</span>
+    <span class=tog><input type=checkbox id=p_loss checked onchange=drawPaths()>losers</span>
+    <span class=tog><input type=checkbox id=p_med checked onchange=drawPaths()>medians</span>
+    <select id=p_dir onchange=drawPaths()><option value=all>both dirs</option><option value=L>long</option><option value=S>short</option></select>
+    <button onclick="document.getElementById('modal').style.display='none'">✕ close</button>
+   </span></div>
+  <canvas id=pcv style="flex:1;background:#0c0f13;margin-top:8px;border-radius:5px"></canvas>
+  <div id=pstats style="color:#8b93a0;margin-top:6px;font-size:12px"></div>
+ </div></div>
 <script>
 const DTS=__DTS__;
+let PATHS=null;
 let D=null,notes={},idx=[],curDate=null,revIdx=0,playT=null,sel=null,VX={x0:60,y0:20};
 const $=id=>document.getElementById(id);
 for(const s of ['dti','dtf']){const e=$(s);e.innerHTML='<option value="">—</option>'+DTS.map(d=>`<option>${d}</option>`).join('')}
@@ -151,6 +195,23 @@ function saveSel(){if(!sel)return;setNote({note:$('note').value})}
 function setNote(o){let k=tkey(sel);notes.setups=notes.setups||{};notes.setups[k]=Object.assign({entry_bar:sel.entry_bar,dir:sel.dir,in_book:sel.in_book,net:sel.net,reveal_idx:revIdx},notes.setups[k]||{},o);save()}
 function saveDay(){notes.daytype_inter=$('dti').value;notes.daytype_inter_bar=revIdx;notes.daytype_final=$('dtf').value;$('ibar').textContent=revIdx;save()}
 function save(){fetch('/save/'+curDate,{method:'POST',body:JSON.stringify(notes)})}
+function openPaths(){$('modal').style.display='block';if(PATHS){drawPaths();return}fetch('/allpaths').then(r=>r.json()).then(j=>{PATHS=j;drawPaths()})}
+function median(a){if(!a.length)return 0;let s=[...a].sort((x,y)=>x-y),m=s.length>>1;return s.length%2?s[m]:(s[m-1]+s[m])/2}
+function drawPaths(){if(!PATHS)return;let dir=$('p_dir').value;
+ let win=PATHS.win.filter(t=>dir=='all'||t.dir==dir),loss=PATHS.loss.filter(t=>dir=='all'||t.dir==dir);
+ let c=$('pcv');c.width=c.clientWidth;c.height=c.clientHeight;let g=c.getContext('2d'),W=c.width,H=c.height,pl=44,pb=24;
+ let all=[...win,...loss];if(!all.length)return;let maxL=Math.max(...all.map(t=>t.r.length));
+ let rmax=Math.max(1.5,...all.flatMap(t=>t.r.map(Math.abs)));
+ let X=i=>pl+i/(maxL-1)*(W-pl-10),Y=r=>10+(rmax-r)/(2*rmax)*(H-10-pb);
+ g.clearRect(0,0,W,H);g.strokeStyle='#1a2028';g.fillStyle='#6b7480';g.font='10px sans-serif';g.textAlign='right';
+ for(let r=-Math.floor(rmax);r<=rmax;r++){let yy=Y(r);g.strokeStyle=r==0?'#3a444f':'#161c23';g.beginPath();g.moveTo(pl,yy);g.lineTo(W-10,yy);g.stroke();g.fillStyle='#6b7480';g.fillText(r+'R',pl-4,yy+3)}
+ g.textAlign='center';for(let k=0;k<maxL;k+=Math.ceil(maxL/12)){g.fillText(k,X(k),H-8)}
+ function drawSet(set,col){g.strokeStyle=col;g.lineWidth=1;for(let t of set){g.globalAlpha=.10;g.beginPath();t.r.forEach((r,i)=>i?g.lineTo(X(i),Y(r)):g.moveTo(X(i),Y(r)));g.stroke()}g.globalAlpha=1}
+ function drawMed(set,col){if(!set.length)return;g.strokeStyle=col;g.lineWidth=2.4;g.beginPath();for(let i=0;i<maxL;i++){let v=set.filter(t=>i<t.r.length).map(t=>t.r[i]);if(!v.length)break;let m=median(v);i?g.lineTo(X(i),Y(m)):g.moveTo(X(i),Y(m))}g.stroke();g.lineWidth=1}
+ if($('p_win').checked)drawSet(win,'#2ecc71');if($('p_loss').checked)drawSet(loss,'#e74c3c');
+ if($('p_med').checked){if($('p_win').checked)drawMed(win,'#2ecc71');if($('p_loss').checked)drawMed(loss,'#e74c3c')}
+ let mfeW=median(win.map(t=>Math.max(...t.r))),maeW=median(win.map(t=>Math.min(...t.r))),mfeL=median(loss.map(t=>Math.max(...t.r))),maeL=median(loss.map(t=>Math.min(...t.r)));
+ $('pstats').innerHTML=`<span class=win>winners n=${win.length}</span> · med MFE ${mfeW.toFixed(2)}R · med MAE ${maeW.toFixed(2)}R &nbsp;|&nbsp; <span class=loss>losers n=${loss.length}</span> · med MFE ${mfeL.toFixed(2)}R · med MAE ${maeL.toFixed(2)}R &nbsp;→&nbsp; losers that first ran ≥+0.5R: ${(100*loss.filter(t=>Math.max(...t.r)>=.5).length/(loss.length||1)).toFixed(0)}% (giveback signal)`}
 </script></body></html>"""
 
 
@@ -170,6 +231,8 @@ class H(BaseHTTPRequestHandler):
         if p == "/index":
             f = DAYS / "index.json"
             return self._send(f.read_bytes() if f.exists() else b"[]")
+        if p == "/allpaths":
+            return self._send(json.dumps(build_paths()))
         if p.startswith("/day/"):
             f = DAYS / (p[5:] + ".json")
             return self._send(f.read_bytes() if f.exists() else b"{}")
