@@ -6,6 +6,44 @@ pipeline + S77 security hardening; merged S76 Mac swing-levels work)
 
 ---
 
+## S86 (2026-07-26 eve, CT) — NT8 nightly-restart popup STILL blocks; watchdog re-enabled; L2 recording verified live at Sunday reopen (branch `s75-live-dashboard`)
+
+**Operational, not research. L2 recording is HEALTHY for tonight; the nightly restart is still broken on the workspace popup.**
+
+- **RECORDING VERIFIED LIVE** (Sun 2026-07-26, ~17:13 CT): NT8 up (PID since 15:10 CT), feed
+  Connected, `MarketDepthRecorderAddOn: feed CONNECTED, recording ES 09-26`. `check_depth()=ok`,
+  5MB / 96% book / 5,000 rows per 20s. **The recorder is an AddOn now (not a strategy)** → auto-loads
+  on every NT start, NOT disabled by restart/recompile (the old S75V trap is retired for it).
+  - Transient at the reopen: connection flapped 16:59 + 17:10 CT (lost→reconnect in ~2s each); the
+    depth file had a ~68s zero-row gap 17:11–17:13 CT then resumed at full rate. Sunday-open settle,
+    self-recovered. NOT a dead subscription.
+- **NT8 NIGHTLY RESTART STILL FAILS on the "Save workspace?" modal.** `MyQuant NT8 Restart` fired
+  16:15 CT, exited **0x1** (aborted). Confirmed it never closed: no workspace XML written at 16:15
+  (active `Massive.xml` last saved 7/25), NT process start still 15:10 CT. The S82 UI-Automation
+  auto-dismiss is NOT clicking the live dialog. This fires the "🔴 restart aborted" Telegram alert
+  the user sees. **It does NOT threaten recording** — restart is memory-hygiene only; NT + AddOn stay up.
+- **CORRECTION (I was wrong):** I told the user to disable a "save workspaces on shutdown" checkbox
+  in Tools>Options>General. **That toggle does NOT exist** (verified by the user's screenshot: General
+  has "Confirm on window or tab close" — already OFF — and NO save-on-exit toggle). There is no GUI
+  switch for that prompt. **The hardened auto-dismiss code is therefore the ONLY fix path.**
+- **Hardened `nt8_maintenance._dismiss_nt_dialogs`** (commit `481ea27`): scans nested NT Window
+  elements, enumerates Button controls, matches Name with `&` access-key stripped + case-insensitive
+  (`yes/save/ok/save and close/save workspace`), SendKeys+Enter fallback. NT-only, affirmative-only.
+  **STILL UNVALIDATED** — needs one observed live 16:15 CT halt to confirm it clicks the real dialog,
+  OR the user reads out the exact button text/window title. Dry-run runs clean (nothing to click now).
+- **`MyQuant NT Watchdog` RE-ENABLED** (was Disabled; user approved). 8-min stall threshold, market-open
+  gate, overnight→clean auto-restart via `restart(force_ok=False)`, desk-hours→page-only. Crash/stall
+  auto-recovery restored. **CAVEAT: its overnight restart path calls the SAME unvalidated dismiss** — if
+  NT jams overnight and the popup blocks, restart aborts and it pages "needs a human." So the popup fix
+  is still the critical open item.
+
+**NEXT:** (1) validate the hardened dismiss on the next live 16:15 CT restart (or capture the real
+dialog button/title). (2) If it fails again, consider a different close mechanism (e.g. NT `AddOn`
+that self-saves + `Environment.Exit`, or a targeted SendKeys to the known dialog). (3) Watch tonight's
+watchdog behavior + tomorrow's restart result.
+
+---
+
 ## S85f (2026-07-25) — ⭐ CORRECTED verdict: HVL-gated two-sided 2E PASSES within-modern-era OOS (branch `regime/indep`)
 
 **The autonomous edge-hunt's earlier "dead/modest" calls were WRONG on two counts (both mine),
