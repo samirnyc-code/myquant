@@ -244,8 +244,9 @@ def vwap_fade(day, ext_atr, atr_span, stop_buf_pts, target="vwap", rr_min=2.0,
     return sig
 
 
-def make_fade(ext_atr, atr_span, stop_buf, target="vwap", tod_lo=6, tod_hi=None, tag=""):
+def make_fade(ext_atr, atr_span, stop_buf, target="vwap", rr=2.0, tod_lo=6, tod_hi=None, tag=""):
     def f(day):
-        return vwap_fade(day, ext_atr, atr_span, stop_buf, target, tod_lo=tod_lo, tod_hi=tod_hi)
-    f.__name__ = f"fd_x{ext_atr}_a{atr_span}_sb{stop_buf}_{target}_{tag}"
+        return vwap_fade(day, ext_atr, atr_span, stop_buf, target, rr_min=rr,
+                         tod_lo=tod_lo, tod_hi=tod_hi)
+    f.__name__ = f"fd_x{ext_atr}_a{atr_span}_sb{stop_buf}_{target}{rr}_{tag}"
     return f

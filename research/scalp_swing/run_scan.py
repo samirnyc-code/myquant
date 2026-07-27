@@ -38,6 +38,20 @@ elif mode == "gscalp":   # gated breakout, short hold
                                             tag=f"tod{orb}-48_x{exp}"))
     combos = [None] * len(fns)
     max_hold = 60
+elif mode == "rscalp":   # RELAXED-RR scalp search (breakout + fade), find natural edge
+    fns = []
+    # breakout momentum at low RR
+    for orb in [3, 6]:
+        for risk in [2, 3, 4]:
+            for rr in [0.75, 1.0, 1.5]:
+                fns.append(S.make_range(orb, risk, rr, buf_ticks=1))
+    # fixed-RR fade (mean reversion at its natural low RR)
+    for ext in [1.0, 1.5, 2.0]:
+        for sb in [1.0, 2.0]:
+            for rr in [0.75, 1.0, 1.5]:
+                fns.append(S.make_fade(ext, 14, sb, target="rr", rr=rr, tod_lo=6, tod_hi=60, tag="r"))
+    combos = [None] * len(fns); max_hold = 45
+    MIN_RR = 0.7
 elif mode == "fscalp":   # vwap-fade mean reversion, short hold
     fns = []
     for ext in [1.5, 2.0, 2.5]:
@@ -64,8 +78,9 @@ elif mode == "gswing":   # gated breakout, hold to close
     combos = [None] * len(fns)
     max_hold = None
 
-print(f"MODE={mode}  {len(fns)} configs, loading ticks once/day ...")
-res = E.run_many(df5, fns, max_hold_minutes=max_hold)
+MIN_RR = locals().get("MIN_RR", 2.0)
+print(f"MODE={mode}  {len(fns)} configs, min_rr={MIN_RR}, loading ticks once/day ...")
+res = E.run_many(df5, fns, max_hold_minutes=max_hold, min_rr=MIN_RR)
 
 rows = []
 for combo, f in zip(combos, fns):

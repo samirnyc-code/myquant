@@ -43,7 +43,7 @@ def _first_idx(cond, start):
     return start + w
 
 
-def run(df5, sig_fn, max_hold_minutes=None):
+def run(df5, sig_fn, max_hold_minutes=None, min_rr=2.0):
     trades = []
     FIVE = np.timedelta64(5, "m")
     for date, day in df5.groupby("Date", sort=True):
@@ -73,7 +73,7 @@ def run(df5, sig_fn, max_hold_minutes=None):
             if arm_end < ptr_time:
                 continue
             risk = abs(ep - sp); rew = abs(tpx - ep)
-            if risk <= 0 or rew < 2 * risk - 1e-9:
+            if risk <= 0 or rew < min_rr * risk - 1e-9:
                 continue
             win_end = bt[min(ab + exp, n - 1)] + FIVE
             e0 = np.searchsorted(tt, arm_end, side="left")
@@ -122,7 +122,7 @@ def run(df5, sig_fn, max_hold_minutes=None):
     return pd.DataFrame(trades)
 
 
-def _sim_day(date, day, tt, tp, sig, max_hold_minutes):
+def _sim_day(date, day, tt, tp, sig, max_hold_minutes, min_rr=2.0):
     """Simulate one day given preloaded ticks + a signal frame. Returns list of trade dicts."""
     out = []
     FIVE = np.timedelta64(5, "m")
@@ -139,7 +139,7 @@ def _sim_day(date, day, tt, tp, sig, max_hold_minutes):
         if arm_end < ptr_time:
             continue
         risk = abs(ep - sp); rew = abs(tpx - ep)
-        if risk <= 0 or rew < 2 * risk - 1e-9:
+        if risk <= 0 or rew < min_rr * risk - 1e-9:
             continue
         win_end = bt[min(ab + exp, n - 1)] + FIVE
         e0 = np.searchsorted(tt, arm_end, side="left")
@@ -148,12 +148,14 @@ def _sim_day(date, day, tt, tp, sig, max_hold_minutes):
             continue
         if et == "market":
             efill = e0
-        elif et == "stop":
-            cond = (tp >= ep) if s > 0 else (tp <= ep)
-            efill = _first_idx(cond[:e1], e0)
         else:
-            cond = (tp <= ep) if s > 0 else (tp >= ep)
-            efill = _first_idx(cond[:e1], e0)
+            seg = tp[e0:e1]                       # only the small entry window
+            if et == "stop":
+                m = (seg >= ep) if s > 0 else (seg <= ep)
+            else:
+                m = (seg <= ep) if s > 0 else (seg >= ep)
+            w = np.argmax(m)
+            efill = (e0 + w) if (m.size and m[w]) else -1
         if efill < 0 or efill >= e1:
             continue
         fpx = tp[efill]; ftime = tt[efill]
@@ -162,10 +164,11 @@ def _sim_day(date, day, tt, tp, sig, max_hold_minutes):
         else:
             hard = sess_end
         x1 = min(max(np.searchsorted(tt, hard, side="right"), efill + 1), len(tt))
-        stop_cond = (tp <= sp) if s > 0 else (tp >= sp)
-        tgt_cond = (tp >= tpx) if s > 0 else (tp <= tpx)
-        si = _first_idx(stop_cond[:x1], efill + 1)
-        ti = _first_idx(tgt_cond[:x1], efill + 1)
+        xseg = tp[efill + 1:x1]                   # exit window only
+        sc = (xseg <= sp) if s > 0 else (xseg >= sp)
+        tc = (xseg >= tpx) if s > 0 else (xseg <= tpx)
+        sw = np.argmax(sc); si = (efill + 1 + sw) if (sc.size and sc[sw]) else -1
+        tw = np.argmax(tc); ti = (efill + 1 + tw) if (tc.size and tc[tw]) else -1
         cand = [c for c in [(si, "stop"), (ti, "target")] if c[0] >= 0]
         if cand:
             xi, reason = min(cand, key=lambda c: c[0])
@@ -181,7 +184,7 @@ def _sim_day(date, day, tt, tp, sig, max_hold_minutes):
     return out
 
 
-def run_many(df5, sig_fns, max_hold_minutes=None):
+def run_many(df5, sig_fns, max_hold_minutes=None, min_rr=2.0):
     """Loop days ONCE, load ticks once/day, evaluate every sig_fn. Returns {name: trades_df}."""
     acc = {getattr(f, "__name__", f"s{i}"): [] for i, f in enumerate(sig_fns)}
     names = list(acc.keys())
@@ -197,7 +200,7 @@ def run_many(df5, sig_fns, max_hold_minutes=None):
             sig = f(day)
             if sig is None or (sig["side"] != 0).sum() == 0:
                 continue
-            acc[nm].extend(_sim_day(date, day, tt, tp, sig, max_hold_minutes))
+            acc[nm].extend(_sim_day(date, day, tt, tp, sig, max_hold_minutes, min_rr))
     return {nm: pd.DataFrame(rows) for nm, rows in acc.items()}
 
 
