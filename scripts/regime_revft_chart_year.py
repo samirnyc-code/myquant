@@ -55,9 +55,8 @@ def main():
             ax.axhline(r.entry,color="#ffffff",lw=.9)
             ax.axhline(r.stop,color="#ff5a5a",lw=.9,ls="--")
             ax.axhline(tgt2,color="#4a9eff",lw=.9,ls=":")
-            # 2R price PATH: bar closes from entry bar to 2R-exit bar
-            pcl=g.iloc[eb:x2+1]; px=np.arange(eb,x2+1)
-            ax.plot(px,pcl.Close.values,color="#00e5ff",lw=1.4,alpha=.9,zorder=5)
+            # straight line from entry to the 2R exit (target or stop)
+            ax.plot([eb,x2],[r.entry,r.expx_2R],color="#00e5ff",lw=1.6,alpha=.9,zorder=5)
             win=r.net_2R>0
             ax.plot(x2,r.expx_2R,"o",color=("#2ecc71" if win else "#ff5a5a"),ms=7,zorder=6,mec="w",mew=.5)
             ax.plot(eb,r.entry,"^" if not short else "v",color="#ffffff",ms=6,zorder=6)
