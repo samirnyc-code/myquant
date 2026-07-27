@@ -37,7 +37,7 @@ def main():
     g["sma20"] = g.C.rolling(20).mean().shift(1)
     g["adr10"] = (g.H - g.L).rolling(10).mean().shift(1)
     g["rng"] = g.H - g.L
-    g["skip_after"] = (g["rng"] > 1.6 * g["adr10"]).shift(1).fillna(False)
+    g["skip_after"] = (g["rng"] > 1.6 * g["adr10"]).shift(1).fillna(False).astype(bool)  # astype(bool): object ~ was a no-op
     d = d.merge(g[["Date", "sma20", "skip_after"]], on="Date", how="left").dropna(subset=["sma20"])
     d["above"] = d.entry_px > d.sma20
     L = d.dir == "L"; Sh = d.dir == "S"; td = ~d.skip_after

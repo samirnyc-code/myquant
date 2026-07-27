@@ -19,7 +19,7 @@ def main():
     b=pd.read_parquet(DATA/"bars"/"_db_es_5m_rth.parquet"); b["Date"]=pd.to_datetime(b["DateTime"]).dt.date.astype(str)
     g=b.groupby("Date").agg(C=("Close","last"),H=("High","max"),L=("Low","min")).reset_index().sort_values("Date")
     g["sma20"]=g.C.rolling(20).mean().shift(1); g["adr10"]=(g.H-g.L).rolling(10).mean().shift(1)
-    g["skip_after"]=((g.H-g.L)>1.6*g["adr10"]).shift(1).fillna(False)
+    g["skip_after"]=((g.H-g.L)>1.6*g["adr10"]).shift(1).fillna(False).astype(bool)  # astype(bool): object-dtype ~ was a silent no-op
     d=d.merge(g[["Date","sma20","skip_after"]],on="Date",how="left").dropna(subset=["sma20"])
     book=d[(d.entry_px>d.sma20)&(~d.skip_after)].copy()
     def metrics(x,yrs,label):

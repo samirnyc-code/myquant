@@ -41,7 +41,7 @@ def main():
     g["adr10"] = (g.H - g.L).rolling(10).mean().shift(1)
     g["rng"] = g.H - g.L
     g["trendday"] = (g["rng"] > 1.6 * g["adr10"])          # today an outsized/trend day
-    g["skip_after"] = g["trendday"].shift(1).fillna(False)  # skip today if YESTERDAY was a trend day
+    g["skip_after"] = g["trendday"].shift(1).fillna(False).astype(bool)  # skip today if YESTERDAY was a trend day; astype(bool): object ~ was a no-op
     g["ret5"] = c.pct_change(5).shift(1)
     chg = c.diff().abs(); g["er10"] = ((c - c.shift(10)).abs() / chg.rolling(10).sum()).shift(1)
     g["er10_top"] = (g["er10"] > g["er10"].expanding(min_periods=60).median())
