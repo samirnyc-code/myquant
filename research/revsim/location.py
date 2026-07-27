@@ -20,11 +20,28 @@ import revsim as R
 N_EXT = 8
 
 
+def augment(sg, df5=None, n_ext=N_EXT):
+    """Add causal location features to an arbitrary signals df (cols: rev,side,Date,time,entry,stop)."""
+    sg = sg[sg.Date >= "2021-06-18"].reset_index(drop=True)
+    if df5 is None:
+        df5 = pd.read_parquet(ROOT / "research" / "scalp_swing" / "es_5m_rth.parquet")
+    df5 = df5.copy(); df5["DateTime"] = pd.to_datetime(df5["DateTime"])
+    return _augment_core(sg, df5, n_ext)
+
+
 def build(sig_txt=None, out=None, n_ext=N_EXT):
     sg = R.parse_signals() if sig_txt is None else R.parse_signals(sig_txt)
     sg = sg[sg.Date >= "2021-06-18"].reset_index(drop=True)
     df5 = pd.read_parquet(ROOT / "research" / "scalp_swing" / "es_5m_rth.parquet")
     df5["DateTime"] = pd.to_datetime(df5["DateTime"])
+    aug = _augment_core(sg, df5, n_ext)
+    outp = out or (ROOT / "research" / "revsim" / "signals_located.parquet")
+    aug.to_parquet(outp)
+    print(f"wrote {outp}  {len(aug)} signals")
+    return aug
+
+
+def _augment_core(sg, df5, n_ext):
     # prior-day H/L
     dayHL = df5.groupby("Date").agg(dh=("High", "max"), dl=("Low", "min"))
     dates = list(dayHL.index)
@@ -65,12 +82,7 @@ def build(sig_txt=None, out=None, n_ext=N_EXT):
                               d_pdl=round(s["entry"] - pdl.get(date, np.nan), 2),
                               d_pdh=round(pdh.get(date, np.nan) - s["entry"], 2)))
     fdf = pd.DataFrame(feats).set_index("idx")
-    aug = sg.join(fdf)
-    outp = out or (ROOT / "research" / "revsim" / "signals_located.parquet")
-    aug.to_parquet(outp)
-    print(f"wrote {outp}  {len(aug)} signals, {fdf.shape[1]} loc features")
-    print(aug[["rev", "side", "entry", "loc_pct", "dist_ext", "fresh_ext", "d_pdl", "d_pdh"]].head(8).to_string())
-    return aug
+    return sg.join(fdf)
 
 
 if __name__ == "__main__":
