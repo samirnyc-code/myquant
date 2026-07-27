@@ -27,6 +27,42 @@ elif mode == "pbswing":  # trend pullback held to RTH close
     combos = list(itertools.product([20, 40], [14], [1.5, 2.0, 2.5], [2.0, 2.5, 3.0]))
     fns = [S.make_pullback(e, a, s, rr) for (e, a, s, rr) in combos]
     max_hold = None
+elif mode == "gscalp":   # gated breakout, short hold
+    fns = []
+    for orb in [3, 6]:
+        for risk in [4, 5, 6]:
+            for rr in [2.0, 3.0]:
+                for exp in [0.0, 1.2]:
+                    fns.append(S.make_gated(orb, risk, rr, tod_lo=orb, tod_hi=48,
+                                            need_vwap=True, need_expand=exp,
+                                            tag=f"tod{orb}-48_x{exp}"))
+    combos = [None] * len(fns)
+    max_hold = 60
+elif mode == "fscalp":   # vwap-fade mean reversion, short hold
+    fns = []
+    for ext in [1.5, 2.0, 2.5]:
+        for a in [14, 20]:
+            for sb in [1.0, 2.0]:
+                fns.append(S.make_fade(ext, a, sb, target="vwap", tod_lo=6, tod_hi=54, tag="v"))
+    combos = [None] * len(fns); max_hold = 45
+elif mode == "fswing":   # vwap-fade held to RTH close
+    fns = []
+    for ext in [1.5, 2.0, 2.5, 3.0]:
+        for a in [14, 20]:
+            for sb in [1.0, 2.0]:
+                fns.append(S.make_fade(ext, a, sb, target="vwap", tod_lo=6, tod_hi=60, tag="v"))
+    combos = [None] * len(fns); max_hold = None
+elif mode == "gswing":   # gated breakout, hold to close
+    fns = []
+    for orb in [6, 12]:
+        for risk in [6, 8, 10]:
+            for rr in [2.0, 3.0]:
+                for exp in [0.0, 1.2]:
+                    fns.append(S.make_gated(orb, risk, rr, tod_lo=orb, tod_hi=54,
+                                            need_vwap=True, need_expand=exp,
+                                            tag=f"tod{orb}-54_x{exp}"))
+    combos = [None] * len(fns)
+    max_hold = None
 
 print(f"MODE={mode}  {len(fns)} configs, loading ticks once/day ...")
 res = E.run_many(df5, fns, max_hold_minutes=max_hold)

@@ -148,3 +148,104 @@ def make_pullback(ema_span, atr_span, stop_atr, rr=2.0, max_entry_bar=None, one_
                               max_entry_bar=max_entry_bar, one_per_day=one_per_day)
     f.__name__ = f"pb_e{ema_span}_a{atr_span}_s{stop_atr}_rr{rr}"
     return f
+
+
+def _vwap(day):
+    tp = (day.High.values + day.Low.values + day.Close.values) / 3.0
+    v = day.Volume.values.astype(float)
+    cum_pv = np.cumsum(tp * v); cum_v = np.cumsum(v)
+    return cum_pv / np.maximum(cum_v, 1)
+
+
+def gated_breakout(day, or_bars, risk_pts, rr=2.0, buf_ticks=1,
+                   tod_lo=None, tod_hi=None, need_vwap=True, need_expand=0.0,
+                   trend_day=False):
+    """Opening-range breakout with CONTEXT GATES (the edge lives here):
+      tod_lo/tod_hi : only allow the breakout bar within [tod_lo,tod_hi] (bar idx)
+      need_vwap     : breakout side must agree with sign(close - session VWAP)
+      need_expand   : breakout bar range >= need_expand * avg range of first or_bars
+      trend_day     : require close beyond OR on the breakout bar (drive, not poke)
+    Fires on the FIRST qualifying breakout of the day (single position).
+    """
+    n = len(day); sig = _empty(day)
+    if n < or_bars + 3:
+        return sig
+    H, L, C = day.High.values, day.Low.values, day.Close.values
+    hi = H[:or_bars].max(); lo = L[:or_bars].min()
+    or_avg_rng = np.mean(H[:or_bars] - L[:or_bars])
+    vw = _vwap(day)
+    buf = buf_ticks * TICK
+    hi_lvl = hi + buf; lo_lvl = lo - buf
+    tlo = or_bars - 1 if tod_lo is None else max(or_bars - 1, tod_lo)
+    thi = n - 1 if tod_hi is None else min(n - 1, tod_hi)
+    # Causal per-bar arming: at arm bar i (info through i only) choose side by VWAP,
+    # arm a stop at the OR level for i+1..i+2. Re-armed each bar -> rolling bracket.
+    for i in range(tlo, thi):
+        s = 1 if (C[i] > vw[i]) else -1          # VWAP-side gate = direction
+        if not need_vwap:
+            # no vwap: allow the side of the nearer untested extreme (bias to breakout of open)
+            s = 1 if (C[i] - lo) >= (hi - C[i]) else -1
+        # expansion gate (causal: bar i range vs OR avg)
+        if need_expand and (H[i] - L[i]) < need_expand * max(or_avg_rng, 0.25):
+            continue
+        # only arm if the level is still AHEAD (anticipate the break, don't chase)
+        ep = hi_lvl if s > 0 else lo_lvl
+        if (s > 0 and C[i] >= ep) or (s < 0 and C[i] <= ep):
+            continue
+        sp = ep - s * risk_pts; tp = ep + s * rr * risk_pts
+        sig.loc[i, ["side", "entry", "stop", "target", "etype", "expiry"]] = [s, ep, sp, tp, "stop", 2]
+    return sig
+
+
+def make_gated(or_bars, risk_pts, rr=2.0, tod_lo=None, tod_hi=None,
+               need_vwap=True, need_expand=0.0, trend_day=False, tag=""):
+    def f(day):
+        return gated_breakout(day, or_bars, risk_pts, rr, 1, tod_lo, tod_hi,
+                              need_vwap, need_expand, trend_day)
+    f.__name__ = f"gb_or{or_bars}_r{risk_pts}_rr{rr}_{tag}"
+    return f
+
+
+def vwap_fade(day, ext_atr, atr_span, stop_buf_pts, target="vwap", rr_min=2.0,
+              tod_lo=6, tod_hi=None, warmup=6):
+    """ES-native MEAN REVERSION. When price extends >= ext_atr*ATR beyond session
+    VWAP and prints a reversal bar (close back toward VWAP vs the prior bar's
+    extreme), FADE it. stop = bar extreme +/- stop_buf; target = VWAP (default) or
+    a fixed rr. Engine's RR>=2 guard means it only fires when the fade has room
+    (>= 2x stop) -> selective exhaustion fade. Fully causal (info through bar i).
+    One position/day handled by engine; we arm at each qualifying bar."""
+    n = len(day); sig = _empty(day)
+    need = max(atr_span, warmup) + 2
+    if n < need + 3:
+        return sig
+    H, L, C, O = day.High.values, day.Low.values, day.Close.values, day.Open.values
+    vw = _vwap(day); atr = _atr(H, L, C, atr_span)
+    thi = n - 1 if tod_hi is None else min(n - 1, tod_hi)
+    for i in range(max(tod_lo, need), thi):
+        if atr[i] <= 0:
+            continue
+        ext_up = (H[i] - vw[i]) >= ext_atr * atr[i]     # stretched above value
+        ext_dn = (vw[i] - L[i]) >= ext_atr * atr[i]     # stretched below value
+        # reversal confirmation on bar i: closed back off its extreme
+        rev_dn = ext_up and C[i] < O[i] and C[i] < H[i] - 0.25   # fade short
+        rev_up = ext_dn and C[i] > O[i] and C[i] > L[i] + 0.25   # fade long
+        if rev_dn:
+            ep = C[i]; sp = H[i] + stop_buf_pts
+            tp = vw[i] if target == "vwap" else ep - rr_min * (sp - ep)
+            s = -1
+        elif rev_up:
+            ep = C[i]; sp = L[i] - stop_buf_pts
+            tp = vw[i] if target == "vwap" else ep + rr_min * (ep - sp)
+            s = +1
+        else:
+            continue
+        # enter next bar at market (reversal already printed at i's close)
+        sig.loc[i, ["side", "entry", "stop", "target", "etype", "expiry"]] = [s, ep, sp, tp, "market", 1]
+    return sig
+
+
+def make_fade(ext_atr, atr_span, stop_buf, target="vwap", tod_lo=6, tod_hi=None, tag=""):
+    def f(day):
+        return vwap_fade(day, ext_atr, atr_span, stop_buf, target, tod_lo=tod_lo, tod_hi=tod_hi)
+    f.__name__ = f"fd_x{ext_atr}_a{atr_span}_sb{stop_buf}_{target}_{tag}"
+    return f
