@@ -1,0 +1,58 @@
+================================================================================================
+2E BOOK MASTER SWEEP (2021+, EOD hold, skip_after FIXED)  — base: WT, 09-13, entry>SMA20
+================================================================================================
+
+### A. BASELINE frozen book (0.30xADR, skip ON, NO gap filter) ###
+  frozen (both sides)                n= 540  net $ +82,275  PF 1.54  DD $ -10,155  Shp 2.47  | tr PF 1.17 te PF 1.90
+    2EL                              n= 291  net $ +42,082  PF 1.57  DD $  -7,552  Shp 2.75  | tr PF 1.46 te PF 1.66
+    2ES                              n= 249  net $ +40,192  PF 1.52  DD $ -12,582  Shp 2.10  | tr PF 0.92 te PF 2.14
+
+### B. STOP-MULT sweep (skip ON, no gap filter, both sides) ###
+  stop 0.15xADR                      n= 540  net $ +43,775  PF 1.35  DD $ -11,548  Shp 1.65  | tr PF 1.09 te PF 1.58
+  stop 0.20xADR                      n= 540  net $ +50,625  PF 1.36  DD $ -10,442  Shp 1.80  | tr PF 1.10 te PF 1.59
+  stop 0.25xADR                      n= 540  net $ +75,925  PF 1.51  DD $ -11,080  Shp 2.33  | tr PF 1.19 te PF 1.81
+  stop 0.30xADR                      n= 540  net $ +82,275  PF 1.54  DD $ -10,155  Shp 2.47  | tr PF 1.17 te PF 1.90
+  stop 0.35xADR                      n= 540  net $ +79,688  PF 1.50  DD $  -8,560  Shp 2.32  | tr PF 1.16 te PF 1.83
+  stop 0.40xADR                      n= 540  net $ +73,688  PF 1.44  DD $ -10,635  Shp 2.09  | tr PF 1.10 te PF 1.77
+  stop 0.50xADR                      n= 540  net $ +64,138  PF 1.36  DD $ -11,590  Shp 1.76  | tr PF 1.08 te PF 1.61
+  stop 0.60xADR                      n= 540  net $ +62,525  PF 1.34  DD $ -15,152  Shp 1.66  | tr PF 1.10 te PF 1.55
+
+### C. GAP-THRESHOLD sweep (0.30xADR, skip ON, both sides) — skip days with |gap|% > thr ###
+  no gap filter                      n= 540  net $ +82,275  PF 1.54  DD $ -10,155  Shp 2.47  | tr PF 1.17 te PF 1.90
+  gap <= 1.50%                       n= 538  net $ +84,260  PF 1.56  DD $ -10,155  Shp 2.54  | tr PF 1.19 te PF 1.92
+  gap <= 1.00%                       n= 519  net $ +82,068  PF 1.57  DD $  -8,430  Shp 2.53  | tr PF 1.17 te PF 1.94
+  gap <= 0.75%                       n= 496  net $ +76,008  PF 1.55  DD $  -8,460  Shp 2.43  | tr PF 1.14 te PF 1.92
+  gap <= 0.54%                       n= 461  net $ +78,645  PF 1.64  DD $  -7,100  Shp 2.69  | tr PF 1.24 te PF 2.00
+  gap <= 0.40%                       n= 425  net $ +68,962  PF 1.59  DD $  -8,412  Shp 2.53  | tr PF 1.11 te PF 2.03
+  gap <= 0.30%                       n= 366  net $ +59,858  PF 1.59  DD $  -7,850  Shp 2.52  | tr PF 1.04 te PF 2.11
+  gap <= 0.20%                       n= 282  net $ +51,340  PF 1.69  DD $  -6,842  Shp 2.66  | tr PF 0.95 te PF 2.33
+
+### D. GAP sweep PER SIDE (0.30xADR, skip ON) ###
+  -- 2EL --
+      no gap filter                  n= 291  net $ +42,082  PF 1.57  DD $  -7,552  Shp 2.75  | tr PF 1.46 te PF 1.66
+      gap<=0.75                      n= 262  net $ +36,752  PF 1.56  DD $  -7,105  Shp 2.67  | tr PF 1.40 te PF 1.70
+      gap<=0.54                      n= 245  net $ +40,838  PF 1.71  DD $  -6,918  Shp 3.16  | tr PF 1.44 te PF 1.95
+      gap<=0.40                      n= 224  net $ +39,030  PF 1.72  DD $  -6,918  Shp 3.22  | tr PF 1.42 te PF 2.00
+      gap<=0.30                      n= 188  net $ +34,798  PF 1.76  DD $  -6,875  Shp 3.36  | tr PF 1.40 te PF 2.09
+  -- 2ES --
+      no gap filter                  n= 249  net $ +40,192  PF 1.52  DD $ -12,582  Shp 2.10  | tr PF 0.92 te PF 2.14
+      gap<=0.75                      n= 234  net $ +39,255  PF 1.54  DD $ -10,375  Shp 2.12  | tr PF 0.94 te PF 2.14
+      gap<=0.54                      n= 216  net $ +37,808  PF 1.58  DD $  -8,830  Shp 2.21  | tr PF 1.04 te PF 2.04
+      gap<=0.40                      n= 201  net $ +29,932  PF 1.48  DD $ -11,445  Shp 1.86  | tr PF 0.84 te PF 2.05
+      gap<=0.30                      n= 178  net $ +25,060  PF 1.45  DD $ -11,505  Shp 1.76  | tr PF 0.75 te PF 2.13
+
+### E. FILTER ISOLATION (0.30xADR, both sides) ###
+  no skip, no sma, no gap (raw WT)   n= 958  net $ +58,848  PF 1.16  DD $ -18,775  Shp 0.92  | tr PF 1.10 te PF 1.22
+  sma only                           n= 589  net $ +77,118  PF 1.46  DD $ -12,852  Shp 2.18  | tr PF 1.16 te PF 1.73
+  sma + skip (=frozen)               n= 540  net $ +82,275  PF 1.54  DD $ -10,155  Shp 2.47  | tr PF 1.17 te PF 1.90
+  sma + skip + gap0.54               n= 461  net $ +78,645  PF 1.64  DD $  -7,100  Shp 2.69  | tr PF 1.24 te PF 2.00
+  sma + skip + gap0.40               n= 425  net $ +68,962  PF 1.59  DD $  -8,412  Shp 2.53  | tr PF 1.11 te PF 2.03
+  skip only (no sma)                 n= 854  net $ +66,205  PF 1.21  DD $ -18,282  Shp 1.14  | tr PF 1.11 te PF 1.31
+
+### F. 2D STOP x GAP (both sides, skip ON) — PF | net$k | DD$k ###
+  stop\gap              none            0.75            0.54            0.40
+  0.20xADR    PF1.36 +50.6k -10.4k  PF1.37 +47.0k -10.1k  PF1.41 +47.3k  -9.4k  PF1.43 +45.7k  -7.4k
+  0.25xADR    PF1.51 +75.9k -11.1k  PF1.53 +70.9k -10.1k  PF1.59 +71.0k  -8.4k  PF1.56 +63.4k  -8.8k
+  0.30xADR    PF1.54 +82.3k -10.2k  PF1.55 +76.0k  -8.5k  PF1.64 +78.6k  -7.1k  PF1.59 +69.0k  -8.4k
+  0.35xADR    PF1.50 +79.7k  -8.6k  PF1.49 +71.9k  -7.8k  PF1.56 +73.0k  -8.4k  PF1.51 +63.2k  -9.2k
+  0.40xADR    PF1.44 +73.7k -10.6k  PF1.44 +67.5k  -9.2k  PF1.52 +70.6k -10.1k  PF1.47 +61.0k -11.7k

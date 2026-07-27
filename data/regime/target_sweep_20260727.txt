@@ -1,0 +1,39 @@
+============================================================================================
+TARGET SWEEP — frozen book 2021+ (0.30xADR stop, skip ON, gap<=0.54, WT, 09-13)
+============================================================================================
+loaded 461 book trades (median ADR 47.0, median stop 14.0pt)
+
+### Fixed-point targets (both sides) ###
+  EOD (no target)  n= 461 net $ +78,645 PF 1.64 win 52.7% DD $  -7,100 Shp 2.69 | tr 1.24 te 2.00
+  target 4pt       n= 461 net $ +14,670 PF 1.28 win 80.9% DD $  -4,435 Shp 1.72 | tr 1.04 te 1.53
+  target 6pt       n= 461 net $ +26,408 PF 1.38 win 74.6% DD $  -5,360 Shp 2.54 | tr 1.18 te 1.57
+  target 8pt       n= 461 net $ +25,732 PF 1.29 win 67.2% DD $  -7,765 Shp 2.08 | tr 1.13 te 1.45
+  target 10pt      n= 461 net $ +33,732 PF 1.35 win 63.3% DD $  -6,842 Shp 2.41 | tr 1.10 te 1.60
+  target 12pt      n= 461 net $ +43,895 PF 1.44 win 61.4% DD $  -5,805 Shp 2.92 | tr 1.11 te 1.76
+  target 16pt      n= 461 net $ +44,082 PF 1.40 win 57.0% DD $  -6,768 Shp 2.55 | tr 1.10 te 1.69
+  target 20pt      n= 461 net $ +50,445 PF 1.44 win 55.1% DD $  -6,882 Shp 2.61 | tr 1.17 te 1.69
+  target 24pt      n= 461 net $ +53,170 PF 1.45 win 54.0% DD $  -7,082 Shp 2.54 | tr 1.18 te 1.69
+  target 30pt      n= 461 net $ +66,032 PF 1.55 win 53.8% DD $  -6,482 Shp 2.92 | tr 1.27 te 1.81
+
+### xADR targets (both sides) ###
+  0.15xADR target n= 461 net $ +29,194 PF 1.35 win 70.5% DD $  -5,513 Shp 2.29 | tr 1.16 te 1.51
+  0.20xADR target n= 461 net $ +35,388 PF 1.37 win 64.0% DD $  -6,550 Shp 2.42 | tr 1.07 te 1.66
+  0.30xADR target n= 461 net $ +43,067 PF 1.39 win 57.5% DD $  -6,589 Shp 2.30 | tr 1.10 te 1.65
+  0.40xADR target n= 461 net $ +53,950 PF 1.46 win 54.9% DD $  -6,076 Shp 2.54 | tr 1.16 te 1.73
+  0.50xADR target n= 461 net $ +62,374 PF 1.52 win 54.0% DD $  -6,910 Shp 2.74 | tr 1.17 te 1.85
+  0.75xADR target n= 461 net $ +77,367 PF 1.64 win 53.4% DD $  -7,100 Shp 3.07 | tr 1.31 te 1.94
+  1.00xADR target n= 461 net $ +63,252 PF 1.51 win 52.7% DD $  -7,100 Shp 2.56 | tr 1.24 te 1.76
+
+### 2EL only — fixed-pt targets ###
+  EOD              n= 245 net $ +40,838 PF 1.71 win 59.2% DD $  -6,918 Shp 3.16 | tr 1.44 te 1.95
+  target 6pt       n= 245 net $ +19,275 PF 1.57 win 77.6% DD $  -4,725 Shp 3.38 | tr 1.41 te 1.72
+  target 10pt      n= 245 net $ +22,288 PF 1.47 win 66.5% DD $  -7,605 Shp 2.81 | tr 1.22 te 1.70
+  target 16pt      n= 245 net $ +29,350 PF 1.55 win 61.6% DD $  -6,762 Shp 3.07 | tr 1.36 te 1.73
+  target 24pt      n= 245 net $ +38,988 PF 1.72 win 60.8% DD $  -5,962 Shp 3.55 | tr 1.47 te 1.95
+
+### 2ES only — fixed-pt targets ###
+  EOD              n= 216 net $ +37,808 PF 1.58 win 45.4% DD $  -8,830 Shp 2.21 | tr 1.04 te 2.04
+  target 6pt       n= 216 net $  +7,132 PF 1.20 win 71.3% DD $  -3,418 Shp 1.40 | tr 0.99 te 1.43
+  target 10pt      n= 216 net $ +11,445 PF 1.24 win 59.7% DD $  -4,968 Shp 1.69 | tr 0.98 te 1.50
+  target 16pt      n= 216 net $ +14,732 PF 1.26 win 51.9% DD $  -6,168 Shp 1.66 | tr 0.87 te 1.65
+  target 24pt      n= 216 net $ +14,182 PF 1.22 win 46.3% DD $  -8,932 Shp 1.31 | tr 0.92 te 1.48

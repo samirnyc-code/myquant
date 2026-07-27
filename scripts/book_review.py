@@ -78,6 +78,7 @@ textarea{width:100%;background:#0c0f13;color:var(--tx);border:1px solid var(--ln
  <button onclick=nav(-1)>◀ prev</button><button onclick=nav(1)>next ▶</button>
  <button onclick=jumpUngraded()>next ungraded</button>
  <select id=daysel onchange=goDay(this.value)></select>
+ <span class=tog title="only days AFTER a trend day (prior range > 1.6xADR10) — the book skips these"><input type=checkbox id=t_skip onchange=applyDayFilter()>skip-days only<b id=skipn></b></span>
  <span class=pill>reveal <b id=rev>0</b>/<b id=nb>0</b></span>
  <button onclick=play()><span id=playlbl>▶ play</span></button>
  <button onclick=step(-1)>◀</button><button onclick=step(1)>▶</button>
@@ -167,7 +168,12 @@ let CH={on:false,x:0,y:0};
 let D=null,notes={},idx=[],curDate=null,revIdx=0,playT=null,sel=null,VX={x0:60,y0:20};
 const $=id=>document.getElementById(id);
 for(const s of ['dti','dtf']){const e=$(s);e.innerHTML='<option value="">—</option>'+DTS.map(d=>`<option>${d}</option>`).join('')}
-fetch('/index').then(r=>r.json()).then(j=>{idx=j;$('daysel').innerHTML=idx.map(d=>`<option value=${d.date}>${d.date} (${d.n_in_book}tr ${d.net>=0?'+':''}${d.net})</option>`).join('');goDay(idx[0].date)});
+let ALLIDX=[];
+fetch('/index').then(r=>r.json()).then(j=>{ALLIDX=j;$('skipn').textContent=' ('+ALLIDX.filter(d=>d.skipTD).length+')';applyDayFilter(true)});
+function applyDayFilter(init){let sk=$('t_skip').checked;idx=sk?ALLIDX.filter(d=>d.skipTD):ALLIDX;
+ if(!idx.length){$('daysel').innerHTML='<option>none</option>';return}
+ $('daysel').innerHTML=idx.map(d=>`<option value=${d.date}>${d.date}${d.skipTD?' ⚑':''} (${d.n_in_book}tr ${d.net>=0?'+':''}${d.net})</option>`).join('');
+ let keep=!init&&idx.some(d=>d.date==curDate);goDay(keep?curDate:idx[0].date)}
 function goDay(dt){curDate=dt;$('daysel').value=dt;fetch('/day/'+dt).then(r=>r.json()).then(j=>{D=j;revIdx=D.bars.length-1;loadNotes(dt)})}
 function loadNotes(dt){fetch('/notes/'+dt).then(r=>r.json()).then(n=>{notes=n||{};$('dti').value=notes.daytype_inter||'';$('dtf').value=notes.daytype_final||'';$('ibar').textContent=notes.daytype_inter_bar??'—';sel=null;$('selpanel').style.display='none';$('selinfo').textContent='click a setup or bar';fit();render()})}
 function nav(d){let i=idx.findIndex(x=>x.date==curDate)+d;if(i>=0&&i<idx.length)goDay(idx[i].date)}

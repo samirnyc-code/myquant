@@ -1,8 +1,54 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 27, 2026 (S85 — forward-reveal BOOK REVIEW tool [`scripts/book_review.py`] built +
-iterated over many rounds; CORRECT fade spec re-confirmed [f2EL=SHORT 4pt stop, f2ES-long DEAD];
-always-count experiment = DON'T switch [+$69k of losers]. On `regime/indep`, pushed.)
+**Last Updated:** July 28, 2026 (S87 — skip_after was a SILENT NO-OP [fixed]; gap<=0.54 improves
+book SHAPE not substance; 6500V volume bars KILLED; targets/loser-elimination = DEAD END; fades
+must NOT use skip_after; Book Review tool + skip-days filter. On `regime/indep`.)
+
+---
+
+## S87 (2026-07-28) — skip_after no-op FIXED; full stop/target/gap/fade sweeps; loser-elimination DEAD END (branch `regime/indep`)
+
+**The frozen book is better than recorded (real PF 1.54 not 1.46), gap-skip improves the curve
+shape, but NO new tradeable edge — the book stays 85%-tail-dependent and 2024-26-loaded. Do not
+re-hunt loser-elimination; it's fitted noise.**
+
+- **⚠️ CANONICAL BUG FIXED — `skip_after` was a SILENT NO-OP.** Object-dtype boolean + `~` yields
+  integers (`~True=-2`, truthy), so the skip-day-after-trend-day filter NEVER applied in
+  `regime_2e_book_metrics.py` (also `book_filters.py`, `short_gate.py`). Fixed with `.astype(bool)`.
+  **Real frozen book 2021+ = PF 1.54 / +$82,275 / DD −$10,155 / Sharpe 2.47 / n=540** (removes 49
+  post-trend-day losers worth −$5.2k), NOT the recorded 1.46/+$77.1k/n589. 16yr = PF 1.33. Memory
+  `s85-2e-book-metrics` updated. `skip_after` fix committed in `2f43bcf`.
+- **6500V VOLUME BARS — KILLED (re-confirmed with the FIXED spec).** Applied the frozen book to
+  6500-contract bars (real ticks, same audited engine). 2021+ PF 1.18 vs 5M 1.54; Sharpe 0.99 vs
+  2.47; DD −$32.8k vs −$10.2k; 2ES side dead (0.94). Edge is in 5-min TIME structure, not volume
+  clock. Prior "KILLED 0.94" was old 4pt spec; this is the current spec. `regime_2e_volbars.py`.
+- **STOP sweep:** 0.30×ADR confirmed optimal (smooth 0.25–0.35 plateau). No change.
+- **GAP ≤ 0.54% — ADD IT (shape only, not new $).** Book currently skips NO gap days. Adding it:
+  PF 1.54→**1.64**, maxDD −$10.2k→**−$7.1k** (−30%), Sharpe 2.47→**2.69**, improves both halves +
+  fixes the fragile 2ES train half (0.92→1.04). 0.54 independently re-emerges as optimal (not
+  curve-fit). BUT gross net DROPS $3.6k — the 79 removed gap trades were +$3,630 (near-breakeven),
+  so it's a VARIANCE trade, not loser-removal. `regime_2e_sweep_master.py`.
+- **TARGETS — none beat EOD hold.** Exact target sweep via mfe-before-stop (`regime_2e_target_emit.py`
+  + `_target_sweep.py`): every fixed/xADR target clips net; only 0.75×ADR ~matches EOD (same PF 1.64,
+  slightly higher Sharpe) but caps upside. Wide-stop + EOD tail-capture IS the edge. 2ES especially
+  needs EOD. Confirms prior "targets dead at every width."
+- **FADES — do NOT apply skip_after.** The fade LIKES post-trend days (its 17 skip-day f2EL trades:
+  PF 2.77). skip_after ON drops f2EL PF 1.35→1.09. Keep f2EL at 4pt/EOD/BEAR/gap, NO skip. f2ES-long
+  still DEAD (all stop×skip combos <0.93). `regime_2e_fade_skip.py`.
+- **⚠️ TAIL / LOSER-ELIMINATION = DEAD END (`regime_2e_funnel_tail.py`, `_loser_scan.py`).** The
+  461-book (with gap) is **85% of net from top-20 trades**; ex-top-20 PF 1.10, ex-top-30 NET NEGATIVE
+  (the other 431 trades lose). Also recency-loaded: 2021-23 PF ~1.2 vs 2024-26 ~2.0. Adversarial
+  conditioning scan on every causal pre-entry feature (nth-of-day, hour, ADR/VIX tertile, dist-above-
+  SMA, gap sub, DOW, side×nth): **NO cohort loses in BOTH halves** — every "weak" cell is fitted
+  (bad one half, strong the other). Removable structural losers were already gone (SMA20+skip+gap).
+  **Do not re-run loser-elimination — it fits 2021-23 noise and blows up OOS.** Realistic forward =
+  train half ~1.2–1.3, NOT the 1.64 headline. Only robust signals are for SIZING not skipping
+  (non-first PF 1.81 test-driven; mid-vol PF 2.17 both-halves-stable; L-non-first 2.74 small-n) —
+  and they overlap ("clean already-trending mid-vol day") and CONCENTRATE the tail, not de-risk it.
+- **Book Review tool** (`scripts/book_review.py` @ localhost:8640): added a **"skip-days only (171)"**
+  day filter (⚑-marked; filters dropdown/prev-next/next-ungraded). Memory `book-review-tool` created.
+- **Honest levers left (not pursued):** order-flow as a winner/loser separator (price features can't),
+  and diversification (a 2nd uncorrelated book) — the only real ways to cut the tail fragility.
 
 ---
 

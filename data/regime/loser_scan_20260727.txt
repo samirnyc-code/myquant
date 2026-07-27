@@ -1,0 +1,54 @@
+BOOK: n=461 net $+78,645 PF 1.64 | tr 1.24 te 2.00
+Goal: find a cohort that LOSES in BOTH halves (removable). Cells flagged.
+
+[nth setup of day]
+    nth==1                 n= 335 net $+58,512 PF 1.60 | tr 1.24 te 1.91
+    nth==2                 n= 105 net $+17,925 PF 1.83 | tr 1.27 te 2.43
+    nth==3                 n=  19 net $ +2,205 PF 1.72 | tr 0.80 te 2.15 <-- fitted?
+    nth>=2 (non-first)     n= 126 net $+20,132 PF 1.81 | tr 1.23 te 2.36
+
+[fill hour]
+    hour 9                 n=  94 net $+12,292 PF 1.34 | tr 1.17 te 1.52
+    hour 10                n= 100 net $+28,025 PF 2.11 | tr 1.09 te 3.39
+    hour 11                n=  83 net $+13,172 PF 1.54 | tr 1.05 te 1.93
+    hour 12                n=  95 net $ +8,650 PF 1.37 | tr 1.02 te 1.63
+    hour 13                n=  89 net $+16,505 PF 2.14 | tr 2.55 te 1.88
+    hour>=12 (late)        n= 184 net $+25,155 PF 1.67 | tr 1.58 te 1.73
+
+[vol regime (ADR tertile)]
+    loVol                  n= 154 net $+11,642 PF 1.33 | tr 0.89 te 2.38 <-- fitted?
+    midVol                 n= 155 net $+41,038 PF 2.17 | tr 2.53 te 2.06
+    hiVol                  n= 152 net $+25,965 PF 1.49 | tr 1.15 te 1.80
+
+[VIX_prev tertile]
+    loVIX                  n= 154 net $+10,818 PF 1.31 | tr 0.97 te 1.46 <-- fitted?
+    midVIX                 n= 154 net $+45,855 PF 2.32 | tr 1.15 te 2.98
+    hiVIX                  n= 153 net $+21,972 PF 1.41 | tr 1.35 te 1.52
+
+[distance above SMA20 (ADR units)]
+    <0.25 ADR (barely)     n=  19 net $ +2,505 PF 1.25 | tr 0.10 te 5.14 <-- fitted?
+    0.25-0.75              n=  57 net $+30,040 PF 2.99 | tr 1.26 te 5.22
+    >=0.75 (extended)      n= 385 net $+46,100 PF 1.47 | tr 1.44 te 1.49
+
+[gap sub-bucket (all <=0.54)]
+    gap<0.10               n= 158 net $+30,235 PF 1.74 | tr 1.44 te 1.96
+    0.10-0.30              n= 208 net $+29,622 PF 1.49 | tr 0.82 te 2.24 <-- fitted?
+    0.30-0.54              n=  95 net $+18,788 PF 1.86 | tr 2.31 te 1.54
+
+[day of week]
+    Mon                    n=  78 net $ +4,360 PF 1.26 | tr 1.27 te 1.25
+    Tue                    n= 102 net $+10,690 PF 1.43 | tr 0.62 te 2.57 <-- fitted?
+    Wed                    n= 103 net $+15,310 PF 1.41 | tr 0.89 te 1.75 <-- fitted?
+    Thu                    n=  97 net $+32,865 PF 2.41 | tr 2.37 te 2.46
+    Fri                    n=  81 net $+15,420 PF 1.74 | tr 1.26 te 2.19
+
+[side x nth]
+    L first                n= 174 net $+23,318 PF 1.49 | tr 1.40 te 1.56
+    L non-first            n=  71 net $+17,520 PF 2.74 | tr 1.62 te 4.10
+    S first                n= 161 net $+35,195 PF 1.70 | tr 1.08 te 2.24
+    S non-first            n=  55 net $ +2,612 PF 1.18 | tr 0.91 te 1.39 <-- fitted?
+
+[candidate removable combos]
+    late & loVol           n=  61 net $ +5,395 PF 1.50 | tr 1.06 te 2.68
+    first & short          n= 161 net $+35,195 PF 1.70 | tr 1.08 te 2.24
+    barely-above SMA (dup) n=  19 net $ +2,505 PF 1.25 | tr 0.10 te 5.14 <-- fitted?
