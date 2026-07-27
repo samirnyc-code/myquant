@@ -6,6 +6,38 @@ pipeline + S77 security hardening; merged S76 Mac swing-levels work)
 
 ---
 
+## S88 (2026-07-27) — Fresh scalp/swing hunt on 5yr ES RTH ticks: SWING FOUND (gated, real), SCALP does not exist (branch `s75-live-dashboard`, work in `research/scalp_swing/`)
+
+**Task:** find profitable scalp + swing, min RR 2:1, 1 ES, no opposing trades. Confirmed
+assumptions: $30 RT cost, flat by RTH close, train 2021-23 / OOS 2024-26.
+
+**New tick-accurate engine** (`research/scalp_swing/engine_ticks.py`): signals on 5M RTH
+bars (built from `data/ticks_continuous`, 1270 days), every fill resolved on raw ticks in
+time order — no phantom fills. All results OOS-tested + chart-audited.
+
+- **CORE FINDING (~150 configs, 5 families):** ungated directional entries have ZERO edge
+  at ANY R/R (breakout/pullback/gated-VWAP/fade all net-neg OOS; relaxing to 1:1/0.75:1
+  didn't help). **The edge is SELECTION/gate, not entry/exit/RR** — reconfirms S85.
+- **SWING = FOUND (real, modest):** LONG-only, **price>prior-day SMA20-D gate** + 60-min
+  IB breakout, **10pt stop / 20pt tgt (2:1), hold to RTH close.** ALL 2021-26 **PF 1.28,
+  +$36,975 (~$7.4k/yr/ES), maxDD −$6,665, Sharpe 1.81**; **OOS 2024-26 PF 1.14, +$11,210,
+  Sharpe 0.96**; green every year (1.87→1.08, decaying). SMA20-D≈HVL (both tested).
+  **Beta-checked:** pure buy-IB-hold-close = Sharpe 0.10/−$31k DD → gate lifts to Sharpe
+  ~1 OOS/−$6.7k DD = real selection value, not just the bull market. Shorts lose (dropped).
+- **SCALP = DOES NOT EXIST:** every config (ungated any-RR, gated short-hold) fails OOS
+  (gated 30-min hold PF 0.92). The ES intraday edge only appears held-to-close with a wide
+  stop → structurally a swing. A real scalp would need L2/L3 order-flow, not 5M OHLC.
+- **Caveats:** long-only, 5yr BULL sample only (no bear holdout); edge decaying; modest
+  PF 1.14 OOS. Stronger sibling already validated = the 2E-HVL book (same SMA20-D gate
+  family, PF 1.54) on `regime/indep` — see memory `s85-2e-book-metrics`.
+
+**Files (committed):** `research/scalp_swing/FINDINGS.md` (full writeup), `swing_level_gated.py`
+(the winner), `engine_ticks.py`, `strategies.py`, `TRADES_swing_final.csv`,
+`AUDIT_swing_trades.png`, `EQUITY_swing_final.png`. **NEXT:** if pursued — filter the
+decaying edge / add the 2E entry mechanic / test on ETH data / bear-regime robustness.
+
+---
+
 ## S86 (2026-07-26 eve, CT) — NT8 nightly-restart popup STILL blocks; watchdog re-enabled; L2 recording verified live at Sunday reopen (branch `s75-live-dashboard`)
 
 **Operational, not research. L2 recording is HEALTHY for tonight; the nightly restart is still broken on the workspace popup.**
