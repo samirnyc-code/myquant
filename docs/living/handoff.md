@@ -65,6 +65,13 @@ always-count experiment = DON'T switch [+$69k of losers]. On `regime/indep`, pus
     LOSES (1:1 PF0.75, 2:1 PF0.82; whipsaws 51-67%). **First-trade-of-day WEAKEST (ADR/EOD PF 1.30 vs
     non-first 1.99, holds every scheme)** → "size up the 2nd+ trade of a day" = size-lean candidate (needs
     train/test+orthogonality; caveat: non-first conditioned on trending multi-trade days). `regime_2e_exit_matrix.py`.
+  - **Swing/structural stops all LOSE vs 0.30xADR/EOD** (wide stop + EOD-hold is load-bearing). Regime-swing
+    TRAIL (to confirmed HL/LH): 2E PF 1.49 vs 1.45 but net -29% (clips tail); 1E/3E much worse. Exit-on-
+    TREND-BREAK (regime termination): +$32.3k/1.27 vs EOD +$86.8k/1.45 — regime cuts 83% early; on those 474
+    cut trades HOLDING=+$53.8k vs cutting=-$0.8k; top-20 tail gives up 64%. Intraday breaks = shakeouts, not
+    reversals. `regime_2e_swing_stop.py`, `_regime_exit.py`.
+  - NT8 `RegimeSecondEntry` synced to NT folder, compiles (added missing SmaGate/TrendDaySkip props);
+    UseSmaGate + UseTrendDaySkip default OFF = the validated 573-book. NOT yet signal-diff'd (the ① gate).
 
 ---
 
