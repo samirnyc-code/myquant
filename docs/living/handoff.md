@@ -32,6 +32,14 @@ always-count experiment = DON'T switch [+$69k of losers]. On `regime/indep`, pus
   machine at fill, full 2021+ real-tick. **VERDICT: don't switch.** WT book baseline 573tr +$86,848 vs always
   825tr +$18,038 (the +252 extra signals are net **−$68,810**); fade 105tr +$6,875 vs 188tr +$6,210 (extra fades
   ~breakeven). Live engine untouched. CSV: `data/regime/always_count_compare_20210101.csv`.
+- **RevFT investigation (2026-07-27, closed):** tried filtering RevFT (MyReversals) to the n-bar-extreme
+  (reversal bar + prior bar make the 8-bar high/low). First pass looked great (PF ~1.9) but was an ENTRY
+  ARTIFACT. With the CORRECT stop-entry (pull back >=1t beyond SignalPrice, then tick >=1t back through ->
+  fill; else no fill) on Massive real ticks: base PF ~0.80 (losing). Salvage sweep (bars-to-fill<=K, TOD
+  cutoff, risk>=2pt, drop-BO, side) = 0 robust positive cells; best = breakeven. RevFT-extreme = DEAD.
+  Scripts: regime_revft_extreme_detail.py / _chart_full.py (full-size labeled charts, exit=TARGET/STOPPED/
+  EOD) / _salvage.py. See memory [[s85-2e-book-metrics]]. Also: short-gate (2ES belongs ABOVE SMA20, not
+  below), entry-count (1E/1ES don't add, 2E best), ABR8 stop/target + reversion-scalp (no edge).
 - **STILL OPEN:** real tick-level zoom inside the lens (needs tick data in the day JSONs); Al Brooks side-by-side
   from the Codex; optional per-trade audit of the always-count (Samir unsure it's right).
 

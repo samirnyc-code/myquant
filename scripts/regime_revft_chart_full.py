@@ -50,18 +50,23 @@ def main():
         for yv,c,ls,lab in [(r.entry,"#ffffff","-","entry "+str(r.entry)),(r.stop,"#ff5a5a","--","stop "+str(r.stop)),
                             (tgt2,"#4a9eff",":",f"2R {tgt2:.2f}"),(tgt3,"#2ecc71",":",f"3R {tgt3:.2f}")]:
             ax.axhline(yv,color=c,lw=1.3,ls=ls); ax.text(len(seg)-.5,yv,"  "+lab,color=c,fontsize=10,va="center")
-        ax.plot([gi(eb),gi(x2)],[r.entry,r.expx_2R],color="#00e5ff",lw=2.2,zorder=5,label="entry→2R exit")
+        # actual outcome of the 2R trade: did it hit TARGET, get STOPPED, or exit at EOD?
+        tol=0.13
+        if abs(r.expx_2R-tgt2)<tol: oc="TARGET (2R hit)"; ocol="#2ecc71"
+        elif abs(r.expx_2R-r.stop)<tol: oc="STOPPED"; ocol="#ff5a5a"
+        else: oc="EOD exit (no target/stop)"; ocol="#f1c40f"
+        ax.plot([gi(eb),gi(x2)],[r.entry,r.expx_2R],color="#00e5ff",lw=2.2,zorder=5,label="entry→exit")
         ax.plot(gi(eb),r.entry,"v" if short else "^",color="#fff",ms=13,zorder=6,mec="#000",label="stop-entry fill")
-        win=r.net_2R>0
-        ax.plot(gi(x2),r.expx_2R,"o",color=("#2ecc71" if win else "#ff5a5a"),ms=13,zorder=6,mec="#fff",label="exit (2R hit / stopped)")
+        ax.plot(gi(x2),r.expx_2R,"o",color=ocol,ms=15,zorder=6,mec="#fff",label="exit: "+oc)
+        ax.annotate(f"  {oc}\n  ${r.net_2R:+.0f}",(gi(x2),r.expx_2R),color=ocol,fontsize=11,va="center",fontweight="bold",zorder=7)
         # x ticks = bar times
         tk=list(range(0,len(seg),max(1,len(seg)//12)))
         ax.set_xticks(tk); ax.set_xticklabels([pd.Timestamp(seg.DateTime[j]).strftime("%H:%M") for j in tk],color="#8b93a0",fontsize=9)
         ax.tick_params(colors="#8b93a0"); [sp.set_color("#2b333d") for sp in ax.spines.values()]
         ax.grid(True,color="#161c23",lw=.6)
-        ax.set_title(f"{r.Date}  RevFT {r.dir} · type={r.type} · regime-side={r.side}   [{'WIN' if win else 'LOSS'} @2R]\n"
-                     f"STOP-ENTRY fill {r.entry}  ·  stop {r.stop} (risk {risk:.2f}pt)  ·  2R ${r.net_2R:+.0f}   3R ${r.net_3R:+.0f}",
-                     color="#e6e9ec",fontsize=13)
+        ax.set_title(f"{r.Date}  RevFT {r.dir} · type={r.type} · regime-side={r.side}   →  {oc}  (${r.net_2R:+.0f})\n"
+                     f"STOP-ENTRY fill {r.entry}  ·  stop {r.stop} (risk {risk:.2f}pt)  ·  2R target {tgt2:.2f}",
+                     color=ocol,fontsize=13)
         ax.set_ylabel("ES price",color="#8b93a0"); ax.set_xlabel("RTH 5-min bars (time)",color="#8b93a0")
         ax.legend(loc="upper left",facecolor="#1a1f26",edgecolor="#2b333d",labelcolor="#e6e9ec",fontsize=9)
         plt.tight_layout()
