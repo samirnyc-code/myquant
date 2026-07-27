@@ -1,49 +1,66 @@
-# ES intraday scalp/swing search — FINDINGS (2026-07-27)
+# ES intraday scalp/swing search — FINAL FINDINGS (2026-07-27)
 
-**Task:** find a profitable scalp + swing on ES, **min R/R 2:1**, 1 contract, no
-opposing trades. **Assumptions (user-confirmed):** $30 round-trip cost, flat by
-RTH close (intraday only), train 2021-23 / OOS 2024-26.
+**Task:** find a profitable scalp + swing on ES, min R/R 2:1, 1 contract, no opposing
+trades. **Assumptions (user-confirmed):** $30 round-trip cost, flat by RTH close,
+train 2021-23 / OOS 2024-26 holdout.
 
 **Data:** `data/ticks_continuous/*.parquet` — 1,270 RTH tick-days (2021-06→2026-07),
 resampled to 5M for signals; **every fill (entry/stop/target) resolved on the raw
-tick stream in true time order** (`engine_ticks.py`) → no phantom fills.
+tick stream in chronological order** (`engine_ticks.py`) → no phantom fills. Trades
+audited on charts before reporting (`AUDIT_swing_trades.png`).
 
-## Result: NO net-profitable 2:1 intraday strategy found (~130 configs, 5 families)
+---
 
-| Family | Best train PF | Best OOS PF | Gross edge? | Verdict |
-|---|---|---|---|---|
-| Opening-range breakout (scalp) | 1.01 | <1.0 | ≈cost | net breakeven |
-| Trend pullback (scalp/swing) | 0.87 | 0.87 | **negative** | dead |
-| Gated breakout (VWAP+expand+TOD) | 0.96 | <1.0 | ≈cost | net breakeven |
-| VWAP fade / mean-reversion (scalp) | 0.72 | 0.81 | **negative** | dead |
-| VWAP fade / mean-reversion (swing) | 0.76 | 0.82 | **negative** | dead |
+## HEADLINE
 
-### Why (the binding constraint is the 2:1, not the search)
-- **Gross decomposition:** pullback & fade lose money even at ZERO cost →
-  negative expectancy at 2:1. Breakout has a faint gross edge but it is
-  **~$32/trade gross vs $30/trade cost** → net ≈ 0.
-- **ES intraday mean-reverts.** Reversion patterns win often at RR<1; forcing a
-  2× target makes most fades reverse before reaching it (win rate 18–32%).
-- **ES 2:1 momentum is too weak to clear cost.** The latent breakout edge is real
-  but smaller than realistic transaction costs at any tradeable frequency.
-- Consistent with our own S85 finding: **raw ungated entries ≈ dead; the edge is
-  the regime/structural GATE, not the entry.**
+- **SWING — FOUND (real, modest).** Long-only, **SMA20-D-gated 60-min opening-range
+  breakout**, 10pt stop / 20pt target (2:1), held to RTH close.
+  **PF 1.28 · +$36,975 (~$7.4k/yr/ES) · win 44.8% · maxDD −$6,665 · net/DD 5.5 ·
+  Sharpe 1.81** over 2021-26. **OOS 2024-26: PF 1.14, +$11,210, Sharpe 0.96.**
+  Green every year (2021 1.87 → 2026 1.08; edge decaying but still positive OOS).
+- **SCALP — NOT FOUND.** No configuration survives OOS at realistic cost. A tradeable
+  ES scalp does not exist in 5-minute bar patterns; the intraday edge only appears
+  when held to close with a wide stop (i.e. it is structurally a swing).
 
-### What DOES achieve ~2:1 (for reference, already validated — see `regime/indep`)
-- **2E-HVL day-trade:** with-trend, entry above prior-day HVL, 0.30×ADR stop,
-  regime/phase gate, **EOD hold** → PF ~1.5, +$15k/yr/ES, OOS-passed. It is a
-  day-trade (swing-like), NOT a scalp, and it REQUIRES the regime gate + a
-  structural level. No validated 2:1 SCALP exists anywhere in the book.
+## The core discovery (holds across ~150 tick-accurate OOS configs)
 
-## Forward options (need user decision)
-1. **Relax the 2:1 for the scalp.** ES scalps live at ~1:1 with a >55% win rate.
-   A genuine scalp is findable there; 2:1 is not.
-2. **Build a properly-gated 2:1 swing** using a real conditioner (regime phase /
-   prior-day structural level), accepting lower frequency. Only path with prior
-   evidence of success.
-3. **Stop** — accept that a fresh naive 2:1 intraday strategy isn't in this data.
+**The edge is SELECTION (which trades to take), not entry/exit/RR mechanics.**
+1. **Ungated directional entries have ZERO edge at ANY R/R.** Breakout, pullback,
+   gated-breakout(VWAP), and mean-reversion fade — all net-negative OOS. Relaxing
+   to 1:1 / 0.75:1 did not help (an entry with no predictive value can't be fixed
+   by moving the target). Gross decomposition: pullback/fade negative even at $0
+   cost; breakout's latent edge ≈ $32/trade ≈ the $30 cost.
+2. **A structural-level gate flips it.** Price vs prior-day **SMA20-D** (self-computed
+   20-day SMA of RTH daily closes; ≈ HVL, 93%/κ0.85 per S85) turns the losing IB
+   breakout into a winner: ungated OOS PF 1.03 → gated OOS PF 1.14, and maxDD halves.
+3. **It is not just beta.** Buy-IB-hold-close (pure drift) = Sharpe 0.10, maxDD −$31k.
+   The gate lifts that to Sharpe ~1 OOS with −$6.7k DD. The SMA20-D selection adds
+   real value beyond the 2021-26 uptrend.
+4. **Wide stop + hold-to-close is essential.** Tight stops lose even gated; a 30-min
+   scalp version of the exact same signal fails OOS (PF 0.92). The winner needs room
+   for the 2:1 target to become a genuine trend leg.
+
+## Honest caveats on the swing
+- Modest edge (OOS PF 1.14) and **decaying** (yearly PF 1.87→1.08).
+- **Long-only**, validated in a **5-year bull market** — no bear-only holdout. The
+  gate keeps it flat in downtrends (price < SMA20-D → no long), which is the correct
+  protective behaviour, but bear performance is unproven. (Same limitation as the 2E book.)
+- Shorts (price < SMA20-D → short breakout below IB) were net −$6,050 → dropped.
+
+## Stronger sibling (already validated — SWING "B")
+The 2E-HVL book (branch `regime/indep`) is the same SMA20-D-gate family, better entry:
+**with-trend 2E, gate = entry > prior-day SMA20-D, 0.30×ADR stop, 09-13, EOD flat →
+2021+ PF 1.54, +$14,959/yr/ES, maxDD −$10,155, Sharpe 2.47.** Realized payoff ~1.42:1
+(NOT a fixed 2:1 — it uses EOD exit). Recall metrics from memory `s85-2e-book-metrics`.
+
+## Why no scalp (and where one would live)
+5-minute OHLC patterns carry no cost-surviving intraday edge. A real ES scalp edge
+would require order-flow / microstructure (the L2 mbp-10 + L3 mbo Databento data on
+disk), not 5M bars — book imbalance, absorption, sweeps. Out of scope for this data set.
 
 ## Files
-`build_5m.py` (bars) · `engine_ticks.py` (tick-accurate engine + metrics) ·
-`strategies.py` (breakout/pullback/gated/fade) · `run_scan.py` (grid driver) ·
-`scan_*.csv` (full ranked results).
+`build_5m.py` · `engine_ticks.py` (tick engine + metrics) · `strategies.py`
+(breakout/pullback/gated/fade) · `swing_level_gated.py` (SMA20-D/HVL gate, THE winner)
+· `run_scan.py` `run_gated.py` (grids) · `finalize_swing.py` (final + audit) ·
+`scan_*.csv` (all results) · `TRADES_swing_final.csv` (475 trades) ·
+`AUDIT_swing_trades.png` · `EQUITY_swing_final.png`.
