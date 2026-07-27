@@ -50,34 +50,34 @@ def main():
         def regat(bar):
             z=int(np.searchsorted(tbar,bar,"right")); return tr_md[bisect_right(tr_ix,z-1)-1] if z else "NEUTRAL"
         for _,r in s[s.Date==dstr].iterrows():
-            bi=tmap.get(pd.Timestamp(r.DateTime))
-            if bi is None or bi<N or bi>=nb-1: continue
+            db=tmap.get(pd.Timestamp(r.DateTime))            # DateTime bar (open-labeled) = the bar AFTER the SB
+            if db is None: continue
+            sb=db-1                                           # SB: its close == SignalPrice (NT8 close-time vs open-label)
+            if sb<N+2 or db>=nb: continue
             short=r.Direction=="Short"
-            ext=min(L[bi],L[bi-1]) if not short else max(H[bi],H[bi-1])
-            lo=L[bi-N+1:bi+1].min(); hi=H[bi-N+1:bi+1].max()
-            if not ((ext<=lo) if not short else (ext>=hi)): continue      # n-bar extreme filter (ties=DB/DT ok)
-            cand+=1
-            reg=regat(bi)
-            side="WT" if ((not short and reg=="BULL") or (short and reg=="BEAR")) else ("CT" if ((not short and reg=="BEAR") or (short and reg=="BULL")) else "NEUT")
-            a=np.searchsorted(tbar,bi+1,"left")
-            if a>=len(tP): continue
-            sig_px=float(r.SignalPrice); stop=float(r.StopPrice); sub=tP[a:]; subbar=tbar[a:]
-            # STOP ENTRY: pull back >=1t beyond SignalPrice, then tick >=1t back through -> fill; else NO FILL
-            if short:
-                rh=np.flatnonzero(sub>=sig_px+TICK)
-                if not len(rh): continue
-                th=np.flatnonzero(sub[rh[0]:]<=sig_px-TICK)
-                if not len(th): continue
-                fidx=int(rh[0])+int(th[0]); entry=sig_px-TICK
+            # EXACT filter: long  -> MIN(Low,N)[BarNo+3] > MIN(Low,3)[BarNo]   (fresh N-bar low in last 3 bars)
+            #               short -> MAX(High,N)[BarNo+3] < MAX(High,3)[BarNo]
+            if not short:
+                if not (L[sb-N-2:sb-2].min() > L[sb-2:sb+1].min()): continue
             else:
-                rh=np.flatnonzero(sub<=sig_px-TICK)
-                if not len(rh): continue
-                th=np.flatnonzero(sub[rh[0]:]>=sig_px+TICK)
-                if not len(th): continue
-                fidx=int(rh[0])+int(th[0]); entry=sig_px+TICK
-            seg=sub[fidx:]; segbar=subbar[fidx:]
+                if not (H[sb-N-2:sb-2].max() < H[sb-2:sb+1].max()): continue
+            cand+=1
+            reg=regat(sb)
+            side="WT" if ((not short and reg=="BULL") or (short and reg=="BEAR")) else ("CT" if ((not short and reg=="BEAR") or (short and reg=="BULL")) else "NEUT")
+            a=np.searchsorted(tbar,db,"left")                 # ticks from the bar AFTER the SB
+            if a>=len(tP): continue
+            sub=tP[a:]; subbar=tbar[a:]; sig=float(r.SignalPrice); stop=float(r.StopPrice)
+            # RACE: fill at SignalPrice vs reversal extreme (StopPrice) taken out first
+            if short:
+                fh=np.flatnonzero(sub<=sig); dh=np.flatnonzero(sub>=stop)
+            else:
+                fh=np.flatnonzero(sub>=sig); dh=np.flatnonzero(sub<=stop)
+            fi=fh[0] if len(fh) else np.inf; di=dh[0] if len(dh) else np.inf
+            if di<fi: continue                                # rev bar taken out BEFORE fill -> DEAD (eliminate)
+            if fi==np.inf: continue                           # never filled
+            fi=int(fi); entry=sig; seg=sub[fi:]; segbar=subbar[fi:]
             if abs(entry-stop)<=0: continue
-            rec={"Date":dstr,"yr":int(dstr[:4]),"sig_bar":bi,"entry_bar":int(segbar[0]),"dir":r.Direction,
+            rec={"Date":dstr,"yr":int(dstr[:4]),"sig_bar":sb,"entry_bar":int(segbar[0]),"dir":r.Direction,
                  "side":side,"type":r.SignalType,"entry":round(entry,2),"stop":round(stop,2),
                  "risk_pts":round(abs(entry-stop),2),"reg":reg}
             for tag,tr in [("eod",None),("1R",1.0),("2R",2.0),("3R",3.0)]:
