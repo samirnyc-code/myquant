@@ -6,6 +6,35 @@ pipeline + S77 security hardening; merged S76 Mac swing-levels work)
 
 ---
 
+## S89 (2026-07-28) — MyReversals (RevFT) ported to Python + full setting sweep: strong-FT+OB-strict+below-SMA20 = PF 1.19 (regime satellite). Work in `research/revsim/`
+
+**Converted `MyReversals.cs` to Python, ran in tick-accurate sim on 5yr ES 5M RTH, swept
+the individual setup settings (the user's ask). All fills tick-accurate.**
+
+- **PORT (`revdetect.py`)** — faithful Trap/BO/OB/IB + Follow-Through, every detection
+  param exposed. **Validated vs the NT signal export: 97.4% of exported signals matched,
+  99.0% type agreement** on the common 08:35–13:30 window. (Export used a Nymex-Energy
+  08:10–13:30 session; port uses standard equity RTH — deltas are just the non-overlap.)
+  Raw EOD PF **0.98** (breakeven) = matches prior RevFT baseline.
+- **NT bar-close-time convention:** export Time = FT bar CLOSE; port emits open-label +5min;
+  entries fill on first tick ≥ signal time = next bar (no look-ahead). (User flagged this.)
+- **Swept:** filters/combos, **trade LOCATION** (loc_pct/dist-extreme/fresh-extreme/PDH-PDL),
+  and **detection params**. LOCATION: fading INTO the day extreme HURTS (these are
+  momentum-CONFIRMED reversals). DETECTION: stricter = better; **FT_ABR (follow-through
+  strength) is the single most impactful knob**.
+- **BEST: FT_ABR≥1.0 + OB_Strict + below-prior-day-SMA20-D + EOD hold** → ALL 2021-26
+  **PF 1.19, +$96,330, maxDD −$33,288, net/DD 2.9, Sharpe 1.28; OOS PF 1.31 +$72k Sharpe
+  1.88.** Below-SMA20 gate = negative-gamma regime (matches `s85-2e-book-metrics`).
+- **CAVEATS (satellite, not core):** type-concentrated (BO +$80k of $96k; **OB loses −$14k
+  → drop**); year-concentrated (2023 −$15k, 2024 −$6k lose; 2025 +$66.5k dominates); train
+  net/DD only 0.8; ~2yr flat stretch. Refines the prior RevFT "modern-regime satellite" verdict.
+- **Files:** `research/revsim/FINDINGS_revft.md`, `revdetect.py`, `revsim.py`, `location.py`,
+  `run_*sweep.py`, `run_refine.py`, `finalize_revft.py`, `TRADES_revft_final.csv`, charts.
+  **NEXT if pursued:** drop-OB variant + BO-only sizing; forward-track; NT8 strategy port of
+  the strong-FT+below-SMA20 spec; combine with S88 gated-long swing as a two-regime book.
+
+---
+
 ## S88 (2026-07-27) — Fresh scalp/swing hunt on 5yr ES RTH ticks: SWING FOUND (gated, real), SCALP does not exist (branch `s75-live-dashboard`, work in `research/scalp_swing/`)
 
 **Task:** find profitable scalp + swing, min RR 2:1, 1 ES, no opposing trades. Confirmed
