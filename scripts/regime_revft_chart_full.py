@@ -46,7 +46,12 @@ def main():
             ax.add_patch(Rectangle((j-.34,min(bar.Open,bar.Close)),.68,max(abs(bar.Close-bar.Open),.03),color=col))
         gi=lambda k:k-i0
         ax.axvspan(gi(bi-N+1)-.5,gi(bi)+.5,color="#ffffff",alpha=.05,label="8-bar window")
-        ax.axvspan(gi(bi-1)-.5,gi(bi)+.5,color="#f1c40f",alpha=.22,label="reversal (2 bars)")
+        # mark the Signal Bar (SB) — no 2-bar shading
+        sbx=gi(bi); sbhi=seg.High.iloc[bi-i0]; sblo=seg.Low.iloc[bi-i0]
+        ax.axvline(sbx,color="#f1c40f",lw=1.1,ls=":",alpha=.8,label="SB (signal bar)")
+        ax.annotate("SB",(sbx, sbhi if short else sblo),color="#f1c40f",fontsize=13,fontweight="bold",
+                    ha="center",va="bottom" if short else "top",
+                    xytext=(0,10 if short else -10),textcoords="offset points")
         for yv,c,ls,lab in [(r.entry,"#ffffff","-","entry "+str(r.entry)),(r.stop,"#ff5a5a","--","stop "+str(r.stop)),
                             (tgt2,"#4a9eff",":",f"2R {tgt2:.2f}"),(tgt3,"#2ecc71",":",f"3R {tgt3:.2f}")]:
             ax.axhline(yv,color=c,lw=1.3,ls=ls); ax.text(len(seg)-.5,yv,"  "+lab,color=c,fontsize=10,va="center")
