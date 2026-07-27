@@ -40,7 +40,7 @@ def main():
     b=pd.read_parquet(BARS); b["DateTime"]=pd.to_datetime(b["DateTime"]); b["Date"]=b.DateTime.dt.date.astype(str)
     sdays=sorted(set(s.Date)&set(b.Date))
     if limit: sdays=sdays[:limit]
-    recs=[]; t0=time.time()
+    recs=[]; cand=0; t0=time.time()
     for di,dstr in enumerate(sdays):
         gd=load_day(b,dstr)
         if gd[0] is None: continue
@@ -55,14 +55,29 @@ def main():
             short=r.Direction=="Short"
             ext=min(L[bi],L[bi-1]) if not short else max(H[bi],H[bi-1])
             lo=L[bi-N+1:bi+1].min(); hi=H[bi-N+1:bi+1].max()
-            if not ((ext<=lo) if not short else (ext>=hi)): continue      # n-bar extreme filter
+            if not ((ext<=lo) if not short else (ext>=hi)): continue      # n-bar extreme filter (ties=DB/DT ok)
+            cand+=1
             reg=regat(bi)
             side="WT" if ((not short and reg=="BULL") or (short and reg=="BEAR")) else ("CT" if ((not short and reg=="BEAR") or (short and reg=="BULL")) else "NEUT")
             a=np.searchsorted(tbar,bi+1,"left")
             if a>=len(tP): continue
-            entry=float(tP[a]); seg=tP[a:]; segbar=tbar[a:]; stop=float(r.StopPrice)
+            sig_px=float(r.SignalPrice); stop=float(r.StopPrice); sub=tP[a:]; subbar=tbar[a:]
+            # STOP ENTRY: pull back >=1t beyond SignalPrice, then tick >=1t back through -> fill; else NO FILL
+            if short:
+                rh=np.flatnonzero(sub>=sig_px+TICK)
+                if not len(rh): continue
+                th=np.flatnonzero(sub[rh[0]:]<=sig_px-TICK)
+                if not len(th): continue
+                fidx=int(rh[0])+int(th[0]); entry=sig_px-TICK
+            else:
+                rh=np.flatnonzero(sub<=sig_px-TICK)
+                if not len(rh): continue
+                th=np.flatnonzero(sub[rh[0]:]>=sig_px+TICK)
+                if not len(th): continue
+                fidx=int(rh[0])+int(th[0]); entry=sig_px+TICK
+            seg=sub[fidx:]; segbar=subbar[fidx:]
             if abs(entry-stop)<=0: continue
-            rec={"Date":dstr,"yr":int(dstr[:4]),"sig_bar":bi,"entry_bar":int(bi+1),"dir":r.Direction,
+            rec={"Date":dstr,"yr":int(dstr[:4]),"sig_bar":bi,"entry_bar":int(segbar[0]),"dir":r.Direction,
                  "side":side,"type":r.SignalType,"entry":round(entry,2),"stop":round(stop,2),
                  "risk_pts":round(abs(entry-stop),2),"reg":reg}
             for tag,tr in [("eod",None),("1R",1.0),("2R",2.0),("3R",3.0)]:
@@ -87,7 +102,7 @@ def main():
               f"exp ${v.mean():+5.0f}  DD ${mdd(x):+7,.0f}")
 
     print(f"\n===== RevFT n={N}-bar-extreme filter — FULL METRICS (Massive real ticks, {yrs:.1f}yr) =====")
-    print(f"total filtered trades: {len(d)}  (~{len(d)/yrs:.0f}/yr)   fills across {len(sdays)} sig-days\n")
+    print(f"extreme-filter candidates: {cand}   FILLED (pullback+tick-through): {len(d)} ({100*len(d)/max(cand,1):.0f}%)   ~{len(d)/yrs:.0f} trades/yr\n")
     for exitcol,exlab in [("net_eod","EOD hold"),("net_1R","target 1R"),("net_2R","target 2R"),("net_3R","target 3R")]:
         print(f"--- exit: {exlab} ---")
         for side in ("CT","NEUT","WT"):
