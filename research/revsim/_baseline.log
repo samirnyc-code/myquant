@@ -1,0 +1,19 @@
+parsed 12707 signals  2021-06-08..2026-07-02
+rev
+Trap    5417
+BO      2867
+IB      2449
+OB      1974
+
+BASELINE: all types, market entry, EOD hold
+ALL   {'label': '', 'n': 2777, 'pnl': -27110, 'pf': np.float64(0.98), 'win': np.float64(29.4), 'avgR': np.float64(-0.01), 'maxdd': -53298, 'netdd': np.float64(-0.5), 'sharpe': np.float64(-0.18)}
+TRAIN {'label': '', 'n': 1381, 'pnl': -16418, 'pf': np.float64(0.97), 'win': np.float64(30.0), 'avgR': np.float64(0.0), 'maxdd': -32150, 'netdd': np.float64(-0.5), 'sharpe': np.float64(-0.25)}
+OOS   {'label': '', 'n': 1396, 'pnl': -10692, 'pf': np.float64(0.98), 'win': np.float64(28.8), 'avgR': np.float64(-0.03), 'maxdd': -51180, 'netdd': np.float64(-0.2), 'sharpe': np.float64(-0.13)}
+        n      pnl    pf   win
+year                          
+2021  283  -4290.0  0.95  31.1
+2022  539  11492.0  1.04  31.9
+2023  559 -23620.0  0.87  27.5
+2024  579 -10132.0  0.95  27.3
+2025  546  20320.0  1.08  29.7
+2026  271 -20880.0  0.86  30.3
