@@ -174,12 +174,12 @@ def detect(df5, p=None):
         if ftL[i]:
             sigs.append(dict(rev=revtypeL[i-1], side=1, Date=str(A["date"][i]),
                              time=pd.Timestamp(A["dt"][i]) + FIVE, bar=int(A["bar"][i]),
-                             entry=C[i], stop=min(L[i-1], L[i-2])))
+                             entry=C[i], stop=min(L[i-1], L[i-2]), ci=i, rb=i-1))
         if ftS[i]:
             sigs.append(dict(rev=revtypeS[i-1], side=-1, Date=str(A["date"][i]),
                              time=pd.Timestamp(A["dt"][i]) + FIVE, bar=int(A["bar"][i]),
-                             entry=C[i], stop=max(H[i-1], H[i-2])))
-    return pd.DataFrame(sigs)
+                             entry=C[i], stop=max(H[i-1], H[i-2]), ci=i, rb=i-1))
+    return pd.DataFrame(sigs)   # ci=continuous idx of FT bar; rb=reversal bar (the extreme)
 
 
 if __name__ == "__main__":
