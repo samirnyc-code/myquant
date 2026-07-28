@@ -6,6 +6,42 @@ pipeline + S77 security hardening; merged S76 Mac swing-levels work)
 
 ---
 
+## S90 (2026-07-28) — ChartSim (Book Review) big UI build + RevFT per-type book + RegimePhaseMachine HH bug fixed + Render-deploy plan for Thomas
+
+**ChartSim = the renamed Book Review tool** (`scripts/book_review.py` on branch `regime/indep`,
+worktree `myquant-regime`, localhost:8640). Large UI session, all committed there (7dfcfa1):
+- MyReversals indicator markers on every day (default detection, computed from ChartSim's
+  OWN bars, 2021-01→2026-07-24): green ▲ FT-long / red ▼ FT-short + blue reversal-bar dot +
+  T/B/O/I. Racing stripe per reversal AND per 2E setup (taken or not); hover data boxes;
+  click→panel/grade. Removed entry/stop/trigger lines + labels (clutter).
+- Themes dark/light/**grey-NT (Thomas)** = white-up/dark-grey-down/black wicks; level+Globex
+  (overnight H/L) lines + hover tooltip; panel collapse fixed (flexbox min-width:0 bug);
+  ThreadingHTTPServer + no-cache. Build tag `vNN` top-left to confirm fresh loads.
+
+**RevFT per-type book (research/revsim, committed on main 297aefa):** splitting setups by
+type = first ex-2025-positive result. Trap DEAD (drop). BO best (net/DD 2.4). Extreme filter
+RESCUES OB and makes IB most consistent. BOOK = BO-all + IB/OB-at-8bar-extreme, Trap dropped:
+PF 1.14, +$81k, net/DD 3.2, ex-2025 +$32k, 4-5/6 green. Modest, regime-tilted, 2024 red.
+(Prior S89 sweeps: raw/location/detection all 2025-carried; strong-FT+below-SMA20 = satellite.)
+
+**Regime engine port checked (agent diff Python `phase_transitions` vs `RegimePhaseMachine.cs`):**
+the BULL/BEAR/NEUTRAL **phase-machine shading is a faithful line-for-line match.** Divergences
+live in the separate S61 2E-trigger engine: Python is OFFLINE/look-ahead (adopts regime earlier)
+vs NT causal; + leg-direction seed. **FOUND + FIXED a real HH/LL drawing bug in
+`RegimePhaseMachine.cs`:** run-peak highs set `Major` directly then only drew the minor `hh`,
+and the later `PromoteMajor` was skipped by its already-major guard → missing HH/LL on trend
+days. Fix: route run-peak promotion through `PromoteMajor` (flags AND draws). File copied to
+`nt8/indicators/RegimePhaseMachine.cs` (was never version-controlled). **User must recompile in NT.**
+
+**NEXT — deploy ChartSim for Thomas (Path B, user chose):** deploy the Python app AS-IS to a
+persistent host (Render free tier — NOT Vercel, which is serverless/no persistent disk), add a
+login (Samir/Thomas) + move comments from files → a DB (Neon or Render Postgres) keyed by user.
+Standalone repo (don't expose research). Waiting on user: DB connection, 2 passwords, repo OK.
+Auto-updates on redeploy; comments per-user (separate). Regime-engine 2E-trigger causality
+(make Python causal to match NT) = separate open task.
+
+---
+
 ## S89 (2026-07-28) — MyReversals (RevFT) ported to Python + full setting sweep: strong-FT+OB-strict+below-SMA20 = PF 1.19 (regime satellite). Work in `research/revsim/`
 
 **Converted `MyReversals.cs` to Python, ran in tick-accurate sim on 5yr ES 5M RTH, swept
