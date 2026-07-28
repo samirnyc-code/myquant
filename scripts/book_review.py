@@ -13,7 +13,7 @@ bar or setup to grade(A/B/C)+comment+take/skip · intermediate & final day-type 
 (all/long/short/win/loss/in-book) · live stats · no-lookahead (annotations keyed to reveal bar).
 """
 import json
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -57,15 +57,30 @@ def build_paths():
 HTML = r"""<!doctype html><html><head><meta charset=utf-8><title>Book Review</title>
 <style>
 :root{--bg:#0f1216;--sf:#1a1f26;--ln:#2b333d;--tx:#e6e9ec;--mut:#8b93a0;--grn:#2ecc71;--red:#e74c3c;--blu:#4a9eff;--yel:#f1c40f}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:13px/1.4 system-ui,sans-serif}
+body.light{--bg:#f4f5f7;--sf:#ffffff;--ln:#d5dae1;--tx:#1c2530;--mut:#5c6673}
+body.grey{--bg:#9a9a9a;--sf:#b8b8b8;--ln:#828282;--tx:#141414;--mut:#3a3a3a}
+body.grey canvas{background:#b0b0b0}
+body.grey button,body.grey select{background:#c4c4c4;color:#141414;border-color:#8a8a8a}
+body.grey button:hover{background:#b7b7b7}
+body.grey .pill,body.grey input,body.grey textarea{background:#c9c9c9;color:#141414;border-color:#8a8a8a}
+body.grey #settings,body.grey #modal>div,body.grey #lens>div{background:#c4c4c4!important;color:#141414}
+body.grey #settings *,body.light #settings *{color:#1c2530!important}
+body.light canvas{background:#fbfbfa}
+body.light textarea,body.light input{background:#fff;color:#1c2530;border-color:#d5dae1}
+body.light button,body.light select{background:#eef0f3;color:#1c2530;border-color:#cfd5dd}
+body.light button:hover{background:#e2e6ea}
+body.light button.on{background:#cdeecd;border-color:#27a844;color:#14361d}
+body.light .pill{background:#eef0f3;border-color:#cfd5dd;color:#1c2530}
+body.light #settings,body.light #modal>div,body.light #lens>div{background:#fff!important;color:#1c2530}
+body.light #sidebtn{background:#4a9eff;color:#fff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:13px/1.4 system-ui,sans-serif;display:flex;flex-direction:column;height:100vh;overflow:hidden}
 #top{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:6px 10px;background:var(--sf);border-bottom:1px solid var(--ln)}
 #top b{color:var(--blu)} button,select{background:#232a33;color:var(--tx);border:1px solid var(--ln);border-radius:5px;padding:4px 8px;cursor:pointer;font-size:12px}
 button:hover{background:#2c3440} button.on{background:#204a2e;border-color:var(--grn)}
 .tog{display:inline-flex;align-items:center;gap:3px} .tog input{accent-color:var(--grn)}
-#wrap{display:flex;height:calc(100vh - 44px)} #chart{flex:1;position:relative}
+#wrap{display:flex;flex:1;min-height:0} #chart{flex:1;min-width:0;position:relative}
 canvas{display:block;background:#0c0f13}
-#side{width:236px;background:var(--sf);border-left:1px solid var(--ln);padding:9px;overflow:auto;font-size:12px}
-#side.hidden{display:none}
+#side{width:320px;background:var(--sf);border-left:1px solid var(--ln);padding:9px;overflow:auto;font-size:12px;transition:width .12s}
 .pill{background:#232a33;border:1px solid var(--ln);border-radius:10px;padding:2px 8px;font-size:11px}
 h4{margin:10px 0 5px;color:var(--mut);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.4px}
 textarea{width:100%;background:#0c0f13;color:var(--tx);border:1px solid var(--ln);border-radius:5px;padding:5px;resize:vertical;font:12px sans-serif}
@@ -74,7 +89,7 @@ textarea{width:100%;background:#0c0f13;color:var(--tx);border:1px solid var(--ln
 .win{color:var(--grn)}.loss{color:var(--red)}
 </style></head><body>
 <div id=top>
- <b id=dt>—</b>
+ <b id=dt>—</b><span style="color:#2ecc71;font-size:10px" title="build tag — changes when new code loads">v12</span>
  <button onclick=nav(-1)>◀ prev</button><button onclick=nav(1)>next ▶</button>
  <button onclick=jumpUngraded()>next ungraded</button>
  <select id=daysel onchange=goDay(this.value)></select>
@@ -89,7 +104,7 @@ textarea{width:100%;background:#0c0f13;color:var(--tx);border:1px solid var(--ln
  <select id=filt onchange=render()><option value=all>all</option><option value=book>in-book</option><option value=fade>fades (f2E)</option><option value=L>long</option><option value=S>short</option><option value=win>winners</option><option value=loss>losers</option></select>
  <span class=tog><input type=checkbox id=t_reg checked onchange=render()>regime</span>
  <span class=tog><input type=checkbox id=t_ema checked onchange=render()>EMA20</span>
- <span class=tog><input type=checkbox id=t_gap checked onchange=render()>gap</span>
+ <span class=tog><input type=checkbox id=t_gap onchange=render()>gap</span>
  <span class=tog><input type=checkbox id=t_tr checked onchange=render()>trades</span>
  <span class=tog><input type=checkbox id=t_num checked onchange=render()>bar#</span>
  <span class=tog><input type=checkbox id=t_lbl checked onchange=render()>labels</span>
@@ -97,22 +112,28 @@ textarea{width:100%;background:#0c0f13;color:var(--tx);border:1px solid var(--ln
  <span class=tog><input type=checkbox id=t_pivM checked onchange=render()>maj</span>
  <span class=tog><input type=checkbox id=t_pivm checked onchange=render()>min</span>
  <span class=tog><input type=checkbox id=t_ob onchange=render()>OB</span>
+ <span class=tog title="show the prior session's last bar + gap line (uncheck to readjust the chart to today only after a large gap)"><input type=checkbox id=t_prev checked onchange=render()>prev bar</span>
+ <span class=tog title="MyReversals indicator markers: ▲green FT-long / ▼red FT-short at the FT bar, blue dot on the reversal bar, T/B/O/I = Trap/BO/OB/IB"><input type=checkbox id=t_rev checked onchange=render()>rev</span>
+ <span class=tog title="Globex (overnight) high/low on the RTH chart"><input type=checkbox id=t_gx onchange=render()>GX H/L</span>
+ <span class=tog title="chart theme"><span style=color:var(--mut)>theme</span><select id=theme onchange=applyTheme(this.value)><option value=dark>dark</option><option value=light>light</option><option value=grey>grey · NT (Thomas)</option></select></span>
  <span style=color:var(--mut)>levels→⚙</span>
  <span style=color:var(--mut)>Y</span><input type=range id=yzoom min=0.5 max=3.5 step=0.1 value=1 oninput=render() style="width:56px" title="Y compress/expand">
  <span style=color:var(--mut)>X</span><input type=range id=xzoom min=0.5 max=7 step=0.1 value=1 oninput=render() style="width:56px" title="X compress/expand">
  <span style=color:var(--mut)>pan</span><input type=range id=panx min=0 max=1 step=0.01 value=1 oninput=render() style="width:56px" title="horizontal pan">
- <button onclick="document.getElementById('yzoom').value=1;document.getElementById('xzoom').value=1;document.getElementById('panx').value=1;render()" title="reset zoom">⟲</button>
+ <button onclick="document.getElementById('yzoom').value=1;document.getElementById('xzoom').value=1;document.getElementById('panx').value=1;showPanel()" title="reset zoom + show panel">⟲</button>
  <button id=lensbtn onclick=toggleLens() title="movable magnifier">🔍 lens</button>
  <button onclick=toggleSettings() title="colors & opacity">⚙</button>
+ <button onclick=toggleSide() title="show/hide the side panel (P)" style="background:#4a9eff;color:#fff;font-weight:700">⊞ panel</button>
 </div>
-<button id=sidebtn onclick=toggleSide() title="show/hide panel" style="position:fixed;top:50%;right:0;transform:translateY(-50%);z-index:130;background:#2c3440;color:#e6e9ec;border:1px solid #4a9eff;border-right:none;border-radius:6px 0 0 6px;padding:12px 3px;writing-mode:vertical-rl;font-size:11px">panel</button>
 <canvas id=lenscv width=200 height=200 style="position:fixed;border-radius:50%;border:2px solid #4a9eff;box-shadow:0 6px 28px rgba(0,0,0,.6);pointer-events:none;display:none;z-index:120"></canvas>
+<div id=lvltip style="display:none;position:fixed;z-index:140;background:#0f1216;color:#e6e9ec;border:1px solid #4a9eff;border-radius:5px;padding:4px 8px;font-size:12px;line-height:1.35;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.45)"></div>
 <div id=settings style="display:none;position:absolute;top:80px;right:250px;z-index:8;background:#1a1f26;border:1px solid #2b333d;border-radius:8px;padding:10px;width:224px;box-shadow:0 6px 24px #000a">
  <b style="color:#4a9eff">colors &amp; opacity</b><div id=setbody style="margin-top:6px"></div>
  <button style="margin-top:8px;width:100%" onclick=resetCfg()>reset defaults</button>
 </div>
 <div id=wrap><div id=chart><canvas id=cv></canvas></div>
 <div id=side>
+ <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px"><b style="color:var(--mut);font-size:11px">PANEL</b><button onclick=hidePanel() title="collapse panel" style="padding:2px 8px">⟩ hide</button></div>
  <h4>day</h4><div id=dayinfo></div>
  <h4>levels (● on-screen ○ off)</h4><div id=levels></div>
  <h4>day type</h4>
@@ -120,6 +141,7 @@ textarea{width:100%;background:#0c0f13;color:var(--tx);border:1px solid var(--ln
  <div class=stat>final <select id=dtf onchange=saveDay()></select></div>
  <h4>selected setup</h4><div id=selinfo style=color:var(--mut)>click a setup or bar</div>
  <div id=selpanel style=display:none>
+  <div id=tagwrap style="display:none;margin-bottom:4px"><input id=tagname placeholder="name this bar (e.g. failed BO, HL, spike)" style="width:100%;padding:4px;border-radius:5px" oninput=saveTagName()></div>
   <div class=gr><button onclick=grade('A')>A</button><button onclick=grade('B')>B</button><button onclick=grade('C')>C</button><button onclick=grade('F')>F</button></div>
   <div class=gr style=margin-top:4px><button onclick=takeskip('take')>take ✓</button><button onclick=takeskip('skip')>skip ✕</button></div>
   <textarea id=note rows=3 placeholder="why? (your read)" oninput=saveSel()></textarea>
@@ -145,7 +167,7 @@ textarea{width:100%;background:#0c0f13;color:var(--tx);border:1px solid var(--ln
  <div style="position:absolute;top:6%;left:8%;right:8%;bottom:6%;background:#12161b;border:1px solid #2b333d;border-radius:8px;padding:10px;display:flex;flex-direction:column">
   <div style="display:flex;justify-content:space-between;align-items:center">
    <b id=lenstitle style="color:#4a9eff">setup lens</b>
-   <span>pad <input type=range id=lpad min=3 max=25 value=8 oninput=drawLens() style="vertical-align:middle"> <button onclick="document.getElementById('lens').style.display='none'">✕ close</button></span></div>
+   <span>zoom <input type=range id=lpad min=4 max=45 value=10 oninput=drawLens() style="vertical-align:middle" title="bars each side of entry — lower = more zoom"> <button onclick="document.getElementById('lens').style.display='none'">✕ close</button></span></div>
   <canvas id=lcv style="flex:1;background:#0c0f13;margin-top:8px;border-radius:5px"></canvas>
  </div></div>
 <script>
@@ -162,14 +184,24 @@ CFG.lv=CFG.lv||{};for(let k in CFG_DEF.lv)CFG.lv[k]=Object.assign({},CFG_DEF.lv[
 CFG.tl=CFG.tl||{};for(let k in CFG_DEF.tl)CFG.tl[k]=Object.assign({},CFG_DEF.tl[k],CFG.tl[k]||{});
 if(CFG.ibFill==null)CFG.ibFill=1;
 function saveCfg(){localStorage.setItem('brcfg',JSON.stringify(CFG))}
+const THEMES={dark:{bg:'#0c0f13',cUp:'#26a65b',cDn:'#d64541'},light:{bg:'#fbfbfa',cUp:'#1a9d54',cDn:'#d64541'},grey:{bg:'#b0b0b0',cUp:'#ffffff',cDn:'#5c5c5c'}};
+function applyTheme(t){document.body.classList.remove('light','grey');if(t!=='dark')document.body.classList.add(t);
+ let P=THEMES[t]||THEMES.dark;CFG.bg=P.bg;CFG.cUp=P.cUp;CFG.cDn=P.cDn;saveCfg();localStorage.setItem('brtheme',t);
+ let sel=$('theme');if(sel)sel.value=t;render()}
 function resetCfg(){CFG=Object.assign({},CFG_DEF);saveCfg();buildSettings();render()}
 function hexa(hex,a){let h=hex.replace('#','');let r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16);return`rgba(${r},${g},${b},${a})`}
+function darkenHex(c,f){let m=(c||'').replace('#','');if(m.length!=6)return c;let v=i=>Math.round(parseInt(m.slice(i,i+2),16)*f).toString(16).padStart(2,'0');return'#'+v(0)+v(2)+v(4)}
+function ccol(c){if(!window._LTbg)return c;let m=(c||'').replace('#','');if(m.length!=6)return c;let r=parseInt(m.slice(0,2),16),g=parseInt(m.slice(2,4),16),b=parseInt(m.slice(4,6),16),L=(0.299*r+0.587*g+0.114*b)/255;return L>0.6?darkenHex(c,0.5):c}  // darken pale colours on light/grey bg
 let CH={on:false,x:0,y:0};
 let D=null,notes={},idx=[],curDate=null,revIdx=0,playT=null,sel=null,VX={x0:60,y0:20};
+let REVS={};fetch('/revs').then(r=>r.json()).then(j=>{REVS=j}).catch(()=>{});
+let GX={};fetch('/globex').then(r=>r.json()).then(j=>{GX=j}).catch(()=>{});
+const REVCOL={T:'#e67e22',B:'#4a9eff',O:'#c39bd3',I:'#2ecc71'}; // Trap/BO/OB/IB
 const $=id=>document.getElementById(id);
 for(const s of ['dti','dtf']){const e=$(s);e.innerHTML='<option value="">—</option>'+DTS.map(d=>`<option>${d}</option>`).join('')}
 let ALLIDX=[];
 fetch('/index').then(r=>r.json()).then(j=>{ALLIDX=j;$('skipn').textContent=' ('+ALLIDX.filter(d=>d.skipTD).length+')';applyDayFilter(true)});
+applyTheme(localStorage.getItem('brtheme')||'dark');   // restore saved theme (per-browser -> Thomas keeps his grey)
 function applyDayFilter(init){let sk=$('t_skip').checked;idx=sk?ALLIDX.filter(d=>d.skipTD):ALLIDX;
  if(!idx.length){$('daysel').innerHTML='<option>none</option>';return}
  $('daysel').innerHTML=idx.map(d=>`<option value=${d.date}>${d.date}${d.skipTD?' ⚑':''} (${d.n_in_book}tr ${d.net>=0?'+':''}${d.net})</option>`).join('');
@@ -183,19 +215,29 @@ function play(){if(playT){clearInterval(playT);playT=null;$('playlbl').textConte
 function step(d){revIdx=Math.max(0,Math.min(D.bars.length-1,revIdx+d));render()}
 function showAll(){revIdx=D.bars.length-1;render()}
 function nextSetup(){if(!D)return;let t=D.trades.filter(x=>x.entry_bar>revIdx).sort((a,b)=>a.entry_bar-b.entry_bar)[0];if(t){revIdx=t.entry_bar;render()}}
-window.onkeydown=e=>{if(e.target.tagName=='TEXTAREA')return;if(e.key==' '){e.preventDefault();play()}else if(e.key=='ArrowRight')step(1);else if(e.key=='ArrowLeft')step(-1);else if(e.key=='a'||e.key=='s'&&0)showAll();else if(e.key=='n')nextSetup();else if(['A','B','C','F'].includes(e.key.toUpperCase())&&sel)grade(e.key.toUpperCase())}
+window.onkeydown=e=>{if(e.target.tagName=='TEXTAREA')return;if(e.key==' '){e.preventDefault();play()}else if(e.key=='ArrowRight')step(1);else if(e.key=='ArrowLeft')step(-1);else if(e.key=='a'||e.key=='s'&&0)showAll();else if(e.key=='n')nextSetup();else if(e.key=='p'||e.key=='P')toggleSide();else if(['A','B','C','F'].includes(e.key.toUpperCase())&&sel)grade(e.key.toUpperCase())}
 let cv=$('cv'),ctx=cv.getContext('2d');
-function fit(){cv.width=$('chart').clientWidth;cv.height=$('chart').clientHeight}
+let DPR=1;
+function fit(){DPR=Math.min(window.devicePixelRatio||1,3);let w=$('chart').clientWidth,h=$('chart').clientHeight;
+ cv.width=Math.round(w*DPR);cv.height=Math.round(h*DPR);cv.style.width=w+'px';cv.style.height=h+'px';ctx.setTransform(DPR,0,0,DPR,0,0)}
 window.onresize=()=>{fit();render()};
 function visTrades(){let f=$('filt').value;return D.trades.filter(t=>{if(f=='book')return t.in_book;if(f=='fade')return t.is_fade;if(f=='L')return t.dir=='L';if(f=='S')return t.dir=='S';if(f=='win')return t.net>0;if(f=='loss')return t.net<0;return true})}
-function toggleSide(){let s=$('side'),hidden=getComputedStyle(s).display==='none';s.style.display=hidden?'block':'none';fit();render()}
+function showPanel(){let s=$('side');s.style.setProperty('display','block','important');s.style.width='320px';fit();render()}
+function hidePanel(){$('side').style.setProperty('display','none','important');fit();render()}
+function toggleSide(){if(getComputedStyle($('side')).display=='none')showPanel();else hidePanel()}
 function hline(a,b,yy){ctx.beginPath();ctx.moveTo(a,yy);ctx.lineTo(b,yy);ctx.stroke()}
 function dot(a,b,r){ctx.beginPath();ctx.arc(a,b,r,0,7);ctx.fill()}
-function candle(i,o,h,l,c,x,y,bw,dim){let up=c>=o,col=dim?'#39424d':(up?CFG.cUp:CFG.cDn),xx=x(i);ctx.globalAlpha=dim?.55:1;ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(xx,y(h));ctx.lineTo(xx,y(l));ctx.stroke();let yo=y(o),yc=y(c);ctx.fillRect(xx-bw*.32,Math.min(yo,yc),Math.max(1,bw*.64),Math.max(1,Math.abs(yo-yc)));ctx.globalAlpha=1}
+function candle(i,o,h,l,c,x,y,bw,dim){let up=c>=o,col=dim?'#39424d':(up?CFG.cUp:CFG.cDn),xx=x(i);ctx.globalAlpha=dim?.55:1;ctx.strokeStyle=(window._wick&&!dim)?window._wick:col;ctx.fillStyle=col;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(xx,y(h));ctx.lineTo(xx,y(l));ctx.stroke();let yo=y(o),yc=y(c),bx=xx-bw*.32,bwd=Math.max(1,bw*.64),bh=Math.max(1,Math.abs(yo-yc));ctx.fillStyle=col;ctx.fillRect(bx,Math.min(yo,yc),bwd,bh);if(window._edge&&!dim){ctx.lineWidth=1;ctx.strokeStyle=window._edge;ctx.strokeRect(bx,Math.min(yo,yc),bwd,bh)}ctx.globalAlpha=1}
 function setupLbl(t){return t.setup||((t.with_trend?'':'f')+'2E'+t.dir)}
+function setupBox(t){let dir=t.dir=='S'?'short ▽':'long △',net=(t.net!=null&&!isNaN(t.net))?`<span style="color:${t.net>0?'#2ecc71':'#e74c3c'}">${t.net>0?'+':''}${t.net}</span>`:'—',
+ status=t.is_fade?(t.fade_tradeable?'FADE · tradeable':'FADE · dead'):(t.in_book?'IN BOOK':'excluded');
+ return `<b style="color:${setupCol(t)};font-size:13px">${setupLbl(t)}</b> ${dir} &nbsp;<span style="color:#aeb6c0">${status}</span>`+
+   `<br><span style="color:#8b93a0">sig</span> b${t.sig_bar+1} · <span style="color:#8b93a0">fill</span> b${t.entry_bar+1} · <span style="color:#8b93a0">exit</span> b${t.exit_bar+1}`+
+   `<br><span style="color:#8b93a0">trig</span> ${t.trigger} · <span style="color:#8b93a0">entry</span> ${t.entry_px} · <span style="color:#8b93a0">stop</span> ${t.stop} · <span style="color:#8b93a0">exit</span> ${t.exit_px}`+
+   `<br><span style="color:#8b93a0">net</span> ${net}`;}
 function setupCol(t){if(t.is_fade)return t.dir=='L'?'#e67e22':'#9b59b6';if(t.in_book)return t.dir=='L'?CFG.cBull:CFG.cBear;return '#7f8c8d'}
 function render(){if(!D)return;$('dt').textContent=D.date;$('rev').textContent=revIdx+1;$('nb').textContent=D.bars.length;
- let bars=D.bars,ptA=D.prior_tail||[],pt=ptA.length?[ptA[ptA.length-1]]:[],P=pt.length,W=cv.width,H=cv.height,pad=VX,bot=H-26,lbl=$('t_lbl').checked;
+ let bars=D.bars,ptA=D.prior_tail||[],pt=($('t_prev').checked&&ptA.length)?[ptA[ptA.length-1]]:[],P=pt.length,W=cv.clientWidth,H=cv.clientHeight,pad=VX,bot=H-26,lbl=$('t_lbl').checked;
  let lo=1e9,hi=-1e9;                              // scale to PRICE ACTION only (bars); far levels listed in panel
  for(let b of pt){lo=Math.min(lo,b[2]);hi=Math.max(hi,b[1])}
  for(let i=0;i<=revIdx;i++){lo=Math.min(lo,bars[i][4]);hi=Math.max(hi,bars[i][3])}
@@ -203,16 +245,22 @@ function render(){if(!D)return;$('dt').textContent=D.date;$('rev').textContent=r
  let yZoom=+$('yzoom').value,mid=(lo+hi)/2,half=rng/2/yZoom;lo=mid-half;hi=mid+half;rng=hi-lo;let onS=p=>p!=null&&p>=lo&&p<=hi;
  let tot=P+bars.length,vw=W-pad.x0-12,xZoom=+$('xzoom').value,bw=vw/tot*xZoom,offX=(+$('panx').value)*Math.max(0,tot*bw-vw);
  let x=i=>pad.x0+(i+P)*bw+bw/2-offX,y=p=>pad.y0+(hi-p)/rng*(bot-pad.y0);
+ let GY=document.body.classList.contains('grey'),LT=document.body.classList.contains('light')||GY;
+ window._LTbg=LT;window._lvlHit=[];window._setupHit=[];window._revHit=[];   // contrast + hover tooltips
+ window._edge=GY?'#111':(LT?'rgba(20,20,20,.55)':null);   // body outline: black on NT theme
+ window._wick=GY?'#111':null;                             // wicks black on NT theme, else candle colour
  cv.style.background=CFG.bg;ctx.clearRect(0,0,W,H);
  // regime shading (RTH)
  if($('t_reg').checked)for(let s of D.regime){if(s.from>revIdx)continue;let to=Math.min(s.to,revIdx);let c=s.mode=='BULL'?hexa(CFG.cBull,CFG.regOp):s.mode=='BEAR'?hexa(CFG.cBear,CFG.regOp):hexa('#8b93a0',CFG.regOp*.5);ctx.fillStyle=c;ctx.fillRect(x(s.from)-bw/2,pad.y0,(to-s.from+1)*bw,bot-pad.y0)}
  // per-level style/toggle from settings
  let dashOf=d=>d=='solid'?[]:d=='dot'?[2,3]:[6,4];
- let drawLevel=(p,k,label)=>{let s=CFG.lv[k];if(!s||!s.on||!onS(p))return;let yy=y(p),al=s.a==null?1:s.a;ctx.strokeStyle=hexa(s.c,al);ctx.lineWidth=s.w;ctx.setLineDash(dashOf(s.d));hline(pad.x0,W-10,yy);ctx.setLineDash([]);ctx.lineWidth=1;if(lbl){ctx.fillStyle=hexa(s.c,al);ctx.textAlign='left';ctx.fillText(label,W-26,yy-2)}};
+ let drawLevel=(p,k,label)=>{let s=CFG.lv[k];if(!s||!s.on||!onS(p))return;let yy=y(p),al=s.a==null?1:s.a,cc=ccol(s.c);ctx.strokeStyle=hexa(cc,al);ctx.lineWidth=s.w;ctx.setLineDash(dashOf(s.d));hline(pad.x0,W-10,yy);ctx.setLineDash([]);ctx.lineWidth=1;window._lvlHit.push({y:yy,name:label,price:p,c:cc});if(lbl){ctx.font=(LT?'bold ':'')+'11.5px sans-serif';ctx.fillStyle=hexa(cc,1);ctx.textAlign='left';ctx.fillText(label,W-32,yy-3)}};
  // IB band fill (own toggle, independent of the IBH/IBL line toggles)
  if(D.ib&&CFG.ibFill&&D.ib.lo<=hi&&D.ib.hi>=lo){let y1=y(Math.min(D.ib.hi,hi)),y2=y(Math.max(D.ib.lo,lo)),xl=x(0)-bw/2;ctx.fillStyle=hexa(CFG.cIb,CFG.ibOp);ctx.fillRect(xl,y1,W-10-xl,y2-y1)}
  // grid + price axis
- ctx.font='10px sans-serif';ctx.textAlign='right';for(let k=0;k<=6;k++){let p=lo+rng*k/6,yy=y(p);ctx.strokeStyle='#161c23';hline(pad.x0,W-10,yy);ctx.fillStyle='#6b7480';ctx.fillText(p.toFixed(0),pad.x0-4,yy+3)}
+ ctx.font=(LT?'bold ':'')+'11px sans-serif';ctx.textAlign='right';for(let k=0;k<=6;k++){let p=lo+rng*k/6,yy=y(p);ctx.strokeStyle=LT?'#dcdcdc':'#161c23';hline(pad.x0,W-10,yy);ctx.fillStyle=LT?'#000':'#6b7480';ctx.fillText(p.toFixed(0),pad.x0-4,yy+3)}
+ // Globex (overnight) H/L
+ if($('t_gx').checked&&GX[D.date]){let g=GX[D.date],gc=LT?'#9a6a00':'#f5b041';[[g[0],'GXH'],[g[1],'GXL']].forEach(pl=>{if(!onS(pl[0]))return;let yy=y(pl[0]);ctx.strokeStyle=gc;ctx.setLineDash([5,3]);ctx.lineWidth=1.3;hline(pad.x0,W-10,yy);ctx.setLineDash([]);ctx.lineWidth=1;window._lvlHit.push({y:yy,name:pl[1],price:pl[0],c:gc});if(lbl){ctx.font=(LT?'bold ':'')+'11.5px sans-serif';ctx.fillStyle=gc;ctx.textAlign='left';ctx.fillText(pl[1],W-32,yy-3)}})}
  // horizontal levels
  drawLevel(D.prior.H,'pH','pH');drawLevel(D.prior.L,'pL','pL');drawLevel(D.prior.C,'pC','pC');
  drawLevel(D.sma20,'sma','SMA');drawLevel(D.today_open,'open','O');
@@ -221,7 +269,7 @@ function render(){if(!D)return;$('dt').textContent=D.date;$('rev').textContent=r
  for(let j=0;j<P;j++){let b=pt[j];candle(-(P-j),b[0],b[1],b[2],b[3],x,y,bw,false);if(lbl){ctx.fillStyle='#8b93a0';ctx.font='8px sans-serif';ctx.textAlign='center';ctx.fillText('prev',x(-(P-j)),bot+12)}}
  if(P){ctx.strokeStyle='#2b333d';ctx.setLineDash([3,3]);hline2(x(-0.5),pad.y0,x(-0.5),bot);ctx.setLineDash([])}
  // RTH candles + bar numbers (b1, then every 3rd)
- for(let i=0;i<=revIdx;i++){let b=bars[i];candle(i,b[2],b[3],b[4],b[5],x,y,bw,false);if($('t_num').checked&&i%3==0){ctx.fillStyle='#5a6470';ctx.font='9px sans-serif';ctx.textAlign='center';ctx.fillText(i+1,x(i),bot+12)}}
+ for(let i=0;i<=revIdx;i++){let b=bars[i];candle(i,b[2],b[3],b[4],b[5],x,y,bw,false);if($('t_num').checked&&i%3==0){ctx.fillStyle=LT?'#000':'#7a8592';ctx.font=(LT?'bold ':'')+'10px sans-serif';ctx.textAlign='center';ctx.fillText(i+1,x(i),bot+12)}}
  // pivots (swing H/L from phase machine): opening=gold, major=bold, minor=dim
  if($('t_piv').checked&&D.pivots){let placed=[];for(let p of D.pivots){if(p.b>revIdx)continue;let big=p.major||p.open;if(big&&!$('t_pivM').checked)continue;if(!big&&!$('t_pivm').checked)continue;
   let b=bars[p.b],hiP=p.side=='H',py=hiP?b[3]:b[4],col=p.open?'#f1c40f':(hiP?'#e59866':'#5dade2'),txt=big?p.lab:(p.tag||p.lab.toLowerCase());
@@ -231,22 +279,36 @@ function render(){if(!D)return;$('dt').textContent=D.date;$('rev').textContent=r
   placed.push([lx,ly]);ctx.font=(big?'bold 9px':'8px')+' sans-serif';ctx.textAlign='center';ctx.fillStyle=big?col:hexa(col,.72);ctx.fillText(txt,lx,ly)}}
  // OB dots
  if($('t_ob').checked&&D.obs)for(let i of D.obs){if(i>revIdx)continue;ctx.fillStyle='#c39bd3';dot(x(i),y(bars[i][4])+9,2.2)}
+ // MyReversals indicator markers: FT triangle at the FT bar (▲ green long / ▼ red short) + type letter
+ if($('t_rev').checked&&REVS[D.date]){
+  for(let r of REVS[D.date]){let bi=r[0],sd=r[1],typ=r[2],rvb=r[3];
+   if(bi>revIdx||bi>=bars.length)continue;
+   let up=sd>0,b=bars[bi],xx=x(bi),s=6,ty=up?y(b[4])+15:y(b[3])-15,col=up?'#1fae43':'#e23b3b',rc=REVCOL[typ]||'#888';
+   // racing stripe spanning reversal bar -> FT bar
+   let sb=(rvb>=0?rvb:bi),xa=x(sb)-bw/2,xw=Math.max(bw,x(bi)+bw/2-xa),seld=(sel&&sel.is_rev&&sel._key===('R'+D.date+bi+typ));
+   ctx.fillStyle=hexa(rc,seld?.26:.12);ctx.fillRect(xa,pad.y0,xw,bot-pad.y0);
+   ctx.fillStyle=hexa(rc,1);ctx.fillRect(xa,pad.y0,xw,seld?5:3);
+   if(seld){ctx.strokeStyle=LT?'#111':'#fff';ctx.lineWidth=1.2;ctx.strokeRect(xa,pad.y0,xw,bot-pad.y0);ctx.lineWidth=1}
+   window._revHit.push({xc:xx,x0:xa,x1:xa+xw,r:r});
+   if(rvb>=0&&rvb<=revIdx){let rb=bars[rvb];ctx.fillStyle='#2b6fff';ctx.beginPath();ctx.arc(x(rvb),up?y(rb[4])+10:y(rb[3])-10,4,0,7);ctx.fill()}  // blue dot on reversal bar
+   ctx.beginPath(); if(up){ctx.moveTo(xx,ty-s);ctx.lineTo(xx-s,ty+s);ctx.lineTo(xx+s,ty+s);}else{ctx.moveTo(xx,ty+s);ctx.lineTo(xx-s,ty-s);ctx.lineTo(xx+s,ty-s);} ctx.closePath();
+   ctx.fillStyle=col;ctx.fill();
+   ctx.font='8px sans-serif';ctx.textAlign='center';ctx.fillStyle=col;ctx.fillText(typ,xx,up?ty+s+8:ty-s-3);}}
+ // user bar TAGS (name+grade+note) — always shown
+ if(notes.setups)for(let k in notes.setups){let n=notes.setups[k];if(!n.is_bar)continue;let bi=n.entry_bar;if(bi>revIdx||bi>=bars.length)continue;
+  let b=bars[bi],xx=x(bi),yt=y(b[3])-9;ctx.fillStyle='#f1c40f';ctx.beginPath();ctx.moveTo(xx,yt-5);ctx.lineTo(xx-4,yt+2);ctx.lineTo(xx+4,yt+2);ctx.closePath();ctx.fill();
+  let lab=(n.name||'tag')+(n.grade?' ['+n.grade+']':'');ctx.font='9px sans-serif';ctx.textAlign='center';ctx.fillStyle=LT?'#8a6d00':'#f1c40f';ctx.fillText(lab,xx,yt-8);
+  if(sel&&sel.is_bar&&sel.entry_bar==bi){ctx.strokeStyle=LT?'#333':'#fff';ctx.lineWidth=1.3;ctx.beginPath();ctx.arc(xx,yt-1,7,0,7);ctx.stroke();ctx.lineWidth=1}}
  // intraday EMA20 (prior tail -> revealed RTH)
  if($('t_ema').checked){ctx.strokeStyle=CFG.cEma;ctx.lineWidth=1.6;ctx.beginPath();let st=false;for(let j=0;j<P;j++){let xx=x(-(P-j)),yy=y(pt[j][4]);st?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy);st=true}for(let i=0;i<=revIdx;i++){let xx=x(i),yy=y(bars[i][6]);st?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy);st=true}ctx.stroke();ctx.lineWidth=1;if(lbl&&revIdx>=0){ctx.fillStyle=CFG.cEma;ctx.textAlign='left';ctx.fillText('EMA20',x(revIdx)+3,y(bars[revIdx][6]))}}
  // gap tick (open vs prior close)
- if($('t_gap').checked&&D.prior.C){ctx.strokeStyle='#f39c12';ctx.lineWidth=2;hline2(x(0),y(D.prior.C),x(0),y(bars[0][2]));ctx.lineWidth=1}
- // racing stripe on the SIGNAL BAR only
- if($('t_tr').checked)for(let t of visTrades()){if(t.sig_bar>revIdx)continue;let col=setupCol(t),xs=x(t.sig_bar)-bw/2;ctx.globalAlpha=t.in_book?1:.55;ctx.fillStyle=hexa(col,.11);ctx.fillRect(xs,pad.y0,bw,bot-pad.y0);ctx.fillStyle=hexa(col,.9);ctx.fillRect(xs,pad.y0,bw,3);ctx.globalAlpha=1}
- // trades: trigger/entry/stop level lines from signal bar -> exit(or reveal)
- if($('t_tr').checked)for(let t of visTrades()){if(t.sig_bar>revIdx)continue;let endB=Math.min(t.exit_bar,revIdx);let x0=x(t.sig_bar)-bw*.45,x1=x(Math.max(endB,t.sig_bar))+bw*.45,book=t.in_book,TL=CFG.tl;ctx.globalAlpha=book?1:.55;
-  ctx.strokeStyle=CFG.cTrig;ctx.lineWidth=TL.trig.w;ctx.setLineDash(dashOf(TL.trig.d));hline(x0,x1,y(t.trigger));
-  ctx.strokeStyle=CFG.cEntry;ctx.lineWidth=TL.entry.w;ctx.setLineDash(dashOf(TL.entry.d));hline(x0,x1,y(t.entry_px));
-  ctx.strokeStyle=CFG.cStop;ctx.lineWidth=TL.stop.w;ctx.setLineDash(dashOf(TL.stop.d));hline(x0,x1,y(t.stop));ctx.setLineDash([]);ctx.lineWidth=1;
-  if(t.entry_bar<=revIdx){ctx.fillStyle=CFG.cEntry;dot(x(t.entry_bar),y(t.entry_px),3)}
-  if(t.exit_bar<=revIdx){ctx.fillStyle='#dfe4e8';dot(x(t.exit_bar),y(t.exit_px),3)}
-  if(lbl){ctx.textAlign='left';ctx.font='9px sans-serif';ctx.fillStyle=setupCol(t);ctx.fillText(setupLbl(t)+' '+t.entry_px,x0,y(t.entry_px)-3);ctx.fillStyle=CFG.cStop;ctx.fillText('stop '+t.stop,x0,y(t.stop)+(t.dir=='L'?11:-3));if(Math.abs(t.trigger-t.entry_px)>1){ctx.fillStyle=CFG.cTrig;ctx.fillText('trig '+t.trigger,x1+2,y(t.trigger)+3)}}
-  if(sel&&sel.entry_bar==t.entry_bar&&sel.dir==t.dir){ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.setLineDash([]);ctx.beginPath();ctx.arc(x(t.entry_bar),y(t.entry_px),6,0,7);ctx.stroke()}
-  ctx.globalAlpha=1;ctx.lineWidth=1}
+ if($('t_gap').checked&&$('t_prev').checked&&D.prior.C){ctx.strokeStyle='#f39c12';ctx.lineWidth=2;hline2(x(0),y(D.prior.C),x(0),y(bars[0][2]));ctx.lineWidth=1}
+ // racing stripe on the signal bar for EVERY setup (taken or not); data shown on hover
+ if($('t_tr').checked)for(let t of visTrades()){if(t.sig_bar>revIdx)continue;let col=setupCol(t),xs=x(t.sig_bar)-bw/2,seld=(sel&&!sel.is_rev&&!sel.is_bar&&sel.entry_bar==t.entry_bar&&sel.dir==t.dir);
+  ctx.globalAlpha=1;ctx.fillStyle=hexa(col,seld?.30:.14);ctx.fillRect(xs,pad.y0,bw,bot-pad.y0);
+  ctx.fillStyle=hexa(col,1);ctx.fillRect(xs,pad.y0,bw,seld?5:3);
+  if(seld){ctx.strokeStyle=LT?'#111':'#fff';ctx.lineWidth=1.3;ctx.strokeRect(xs,pad.y0,bw,bot-pad.y0);ctx.lineWidth=1}
+  window._setupHit.push({xc:x(t.sig_bar),t:t});}
  // reveal edge
  ctx.strokeStyle='#333c47';hline2(x(revIdx)+bw*.5,pad.y0,x(revIdx)+bw*.5,bot);
  // crosshair + hover readout
@@ -265,25 +327,41 @@ function render(){if(!D)return;$('dt').textContent=D.date;$('rev').textContent=r
 function renderLevels(){if(!D)return;let last=D.bars[revIdx][5],lo=window._lo,hi=window._hi;
  let L=CFG.lv,rows=[['last',last,'#e6e9ec'],['OPEN',D.today_open,L.open.c],['SMA20',D.sma20,L.sma.c],['pH',D.prior.H,L.pH.c],['pC',D.prior.C,L.pC.c],['pL',D.prior.L,L.pL.c]];
  if(D.ib){rows.push(['IBH',D.ib.hi,L.ibh.c],['IBL',D.ib.lo,L.ibl.c])}
- $('levels').innerHTML=rows.filter(r=>r[1]!=null).map(([k,v,c])=>{let on=v>=lo&&v<=hi,d=k=='last'?'':((v-last>=0?'+':'')+(v-last).toFixed(2)+'pt');return`<div class=stat><span style="color:${c}">${on?'●':'○'} ${k}</span><span>${v} <span style="color:#6b7480">${d}</span></span></div>`}).join('')}
+ if(GX[D.date]){let g=GX[D.date];rows.push(['GXH',g[0],'#f5b041'],['GXL',g[1],'#f5b041'])}
+ $('levels').innerHTML=rows.filter(r=>r[1]!=null).map(([k,v,c])=>{let on=v>=lo&&v<=hi,d=k=='last'?'':((v-last>=0?'+':'')+(v-last).toFixed(2)+'pt');return`<div class=stat><span style="color:${ccol(c)}">${on?'●':'○'} ${k}</span><span>${v} <span style="color:var(--mut)">${d}</span></span></div>`}).join('')}
 function hline2(a,b,c,d){ctx.beginPath();ctx.moveTo(a,b);ctx.lineTo(c,d);ctx.stroke()}
 function renderDayInfo(){let p=D.prior;$('dayinfo').innerHTML=`<div class=stat>gap<span>${p.gap_pts} (${p.gap_pct}%)</span></div><div class=stat>ADR10<span>${D.adr10}</span></div><div class=stat>SMA20<span>${D.sma20}</span></div><div class=stat>skip-after-TD<span>${D.skipTD?'<span class=loss>YES (skipped)</span>':'no'}</span></div><div class=stat>trades<span>${D.trades.length} (${D.trades.filter(t=>t.in_book).length} in-book)</span></div>`}
 function renderStats(){let ts=visTrades().filter(t=>t.in_book);let w=ts.filter(t=>t.net>0),l=ts.filter(t=>t.net<0);let gp=w.reduce((a,b)=>a+b.net,0),gl=-l.reduce((a,b)=>a+b.net,0);let net=ts.reduce((a,b)=>a+b.net,0);
  $('stats').innerHTML=`<div class=stat>n<span>${ts.length}</span></div><div class=stat>PF<span>${gl?(gp/gl).toFixed(2):'∞'}</span></div><div class=stat>win%<span>${ts.length?(100*w.length/ts.length).toFixed(0):0}</span></div><div class=stat>net<span class=${net>=0?'win':'loss'}>${net>=0?'+':''}${net.toFixed(0)}</span></div>`}
 cv.onclick=e=>{if(!D)return;let r=cv.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;let best=null,bd=1e9;
- for(let t of visTrades()){if(t.sig_bar>revIdx)continue;let xa=window._x(t.sig_bar),xb=window._x(Math.min(t.exit_bar,revIdx));if(mx<xa-window._bw||mx>xb+window._bw)continue;let dy=Math.min(Math.abs(window._y(t.entry_px)-my),Math.abs(window._y(t.stop)-my),Math.abs(window._y(t.trigger)-my));if(dy<bd&&dy<16){bd=dy;best=t}}
- if(best)selectTrade(best);else{sel=null;$('selpanel').style.display='none';$('selinfo').textContent='click a setup or bar';render()}}
+ let rv=pickRev(mx,my);if(rv){selectRev(rv);return}
+ for(let t of visTrades()){if(t.sig_bar>revIdx)continue;let dx=Math.abs(window._x(t.sig_bar)-mx);if(dx<bd&&dx<Math.max(9,window._bw*.6)){bd=dx;best=t}}  // select by racing-stripe column
+ if(best){selectTrade(best);return}
+ let bi=barAtX(mx);if(bi!=null){selectBar(bi);return}
+ sel=null;$('selpanel').style.display='none';$('tagwrap').style.display='none';$('selinfo').textContent='click a setup or bar';render()}
 let LENS_ON=false;
 function toggleLens(){LENS_ON=!LENS_ON;$('lensbtn').classList.toggle('on',LENS_ON);$('lenscv').style.display=LENS_ON?'block':'none'}
 function drawLensMag(){let lc=$('lenscv'),g=lc.getContext('2d'),S=lc.width,Z=2.8,sw=S/Z;
  g.clearRect(0,0,S,S);g.save();g.beginPath();g.arc(S/2,S/2,S/2-2,0,7);g.clip();g.fillStyle=CFG.bg;g.fillRect(0,0,S,S);
- g.imageSmoothingEnabled=false;g.drawImage(cv,CH.x-sw/2,CH.y-sw/2,sw,sw,0,0,S,S);
+ g.imageSmoothingEnabled=false;g.drawImage(cv,(CH.x-sw/2)*DPR,(CH.y-sw/2)*DPR,sw*DPR,sw*DPR,0,0,S,S);
  g.strokeStyle='rgba(255,255,255,.22)';g.lineWidth=1;g.beginPath();g.moveTo(S/2,0);g.lineTo(S/2,S);g.moveTo(0,S/2);g.lineTo(S,S/2);g.stroke();g.restore();
  lc.style.left=(CH.cx-S/2)+'px';lc.style.top=(CH.cy-S/2)+'px'}
-cv.onmousemove=e=>{if(!D)return;let r=cv.getBoundingClientRect();CH={on:true,x:e.clientX-r.left,y:e.clientY-r.top,cx:e.clientX,cy:e.clientY};if(!CH._raf){CH._raf=requestAnimationFrame(()=>{CH._raf=0;render();if(LENS_ON)drawLensMag()})}}
-cv.onmouseleave=()=>{CH.on=false;$('lenscv').style.display='none';render()}
+cv.onmousemove=e=>{if(!D)return;let r=cv.getBoundingClientRect();CH={on:true,x:e.clientX-r.left,y:e.clientY-r.top,cx:e.clientX,cy:e.clientY};
+ let tip=$('lvltip'),html=null,thr=Math.max(7,(window._bw||6)*.6);
+ for(let S of window._setupHit||[]){if(Math.abs(S.xc-CH.x)<thr){html=setupBox(S.t);break}}
+ if(!html)for(let H of window._revHit||[]){if(CH.x>=H.x0&&CH.x<=H.x1){html=revBox(H.r);break}}
+ if(!html)for(let L of window._lvlHit||[]){if(Math.abs(L.y-CH.y)<5){let last=D.bars[revIdx][5],d=L.price-last;html=`<b style="color:${L.c}">${L.name}</b> &nbsp;<span style="color:#fff">${L.price}</span><br><span style="color:#aeb6c0">${d>=0?'+':''}${d.toFixed(2)} pt · ${(d/D.adr10*100).toFixed(0)}% ADR from last</span>`;break}}
+ if(html){tip.innerHTML=html;tip.style.display='block';tip.style.left=(e.clientX+14)+'px';tip.style.top=(e.clientY+12)+'px'}else tip.style.display='none';
+ if(!CH._raf){CH._raf=requestAnimationFrame(()=>{CH._raf=0;render();if(LENS_ON)drawLensMag()})}}
+cv.onmouseleave=()=>{CH.on=false;$('lenscv').style.display='none';$('lvltip').style.display='none';render()}
 cv.onmouseenter=()=>{if(LENS_ON)$('lenscv').style.display='block'}
-function selectTrade(t){sel=t;$('selpanel').style.display='block';let k=tkey(t);let nt=(notes.setups||{})[k]||{};
+function barAtX(mx){if(!D)return null;let best=null,bd=1e9;for(let i=0;i<=revIdx;i++){let dx=Math.abs(window._x(i)-mx);if(dx<bd){bd=dx;best=i}}return bd<window._bw?best:null}
+function selectBar(bi){let b=D.bars[bi];sel={is_bar:true,_key:'bar'+bi,setup:'tag',dir:'',entry_bar:bi,sig_bar:bi};
+ $('selpanel').style.display='block';$('tagwrap').style.display='block';let nt=(notes.setups||{})['bar'+bi]||{};
+ $('selinfo').innerHTML=`<b style="color:#f1c40f">tag bar ${bi+1}</b> · ${b[1]} · O${b[2]} H${b[3]} L${b[4]} C${b[5]}`+(nt.grade?` · grade <b>${nt.grade}</b>`:'');
+ $('tagname').value=nt.name||'';$('note').value=nt.note||'';render()}
+function saveTagName(){if(sel&&sel.is_bar)setNote({name:$('tagname').value})}
+function selectTrade(t){sel=t;$('selpanel').style.display='block';$('tagwrap').style.display='none';let k=tkey(t);let nt=(notes.setups||{})[k]||{};
  let pills,tag,why='';
  if(t.is_fade){tag=t.fade_tradeable?'FADE (tradeable)':'FADE (DEAD)';pills=`<span class=pill>4pt stop</span> <span class=pill>${t.dir=='S'?'BEAR-gated':'BULL-gated'}</span> <span class=pill>gap ${t.pass_gap?'✓':'✕'}</span> <span class=pill>09-13 ${t.pass_window?'✓':'✕'}</span> <span class=pill style="border-color:${t.fade_tradeable?'#e67e22':'#7f8c8d'}">${tag}</span>`;if(!t.fade_tradeable)why=' — f2ES-long is DEAD (PF 0.71), do not trade';}
  else{tag=t.in_book?'IN BOOK':'EXCLUDED';why=t.in_book?'':' — excluded: '+[!t.pass_sma20?'wrong side of SMA20':'',!t.pass_skipTD?'day-after-trend-day':'',!t.pass_gap?'gap>0.54%':'',!t.pass_window?'outside 09-13':''].filter(Boolean).join(', ');pills=`<span class=pill>SMA20 ${t.pass_sma20?'✓':'✕'}</span> <span class=pill>skipTD ${t.pass_skipTD?'✓':'✕'}</span> <span class=pill>WT ${t.with_trend?'✓':'✕'}</span> <span class=pill style="border-color:${t.in_book?'#2ecc71':'#e74c3c'}">${tag}</span>`;}
@@ -307,34 +385,50 @@ function buildSettings(){
  let ibFillHtml=`<div class=stat><span>IB fill shade</span><input type=checkbox ${CFG.ibFill?'checked':''} onchange="CFG.ibFill=this.checked?1:0;saveCfg();render()"></div>`;
  let opHtml=[['regOp','regime opacity'],['ibOp','IB opacity']].map(([k,lab])=>`<div class=stat><span>${lab}</span><input type=range min=0 max=0.4 step=0.01 value="${CFG[k]}" oninput="CFG['${k}']=+this.value;saveCfg();render()"></div>`).join('');
  $('setbody').innerHTML=`<div style="color:#8b93a0;font-size:10px;margin:4px 0">LEVELS (on·color·width·style·opacity)</div>${lvHtml}<div style="color:#8b93a0;font-size:10px;margin:6px 0 2px">TRADE LINES (width·style)</div>${tlHtml}<div style="color:#8b93a0;font-size:10px;margin:6px 0 2px">CHART</div>${colHtml}${ibFillHtml}${opHtml}`}
-function tkey(t){return t.entry_bar+t.dir}
+function tkey(t){return t._key||(t.entry_bar+t.dir)}
+const REVNAME={T:'Trap',B:'BO',O:'OB',I:'IB'};
+function pickRev(mx){let best=null,bd=1e9;for(let H of window._revHit||[]){if(mx>=H.x0&&mx<=H.x1){let d=Math.abs(H.xc-mx);if(d<bd){bd=d;best=H.r}}}return best}
+function revBox(r){let up=r[1]>0,typ=r[2];return `<b style="color:${REVCOL[typ]};font-size:13px">${REVNAME[typ]} + FT</b> ${up?'long ▲':'short ▼'}`+
+ `<br><span style="color:#8b93a0">reversal bar</span> ${r[3]+1} · <span style="color:#8b93a0">FT bar</span> ${r[0]+1}`+
+ `<br><span style="color:#8b93a0">entry (FT close)</span> ${r[4]} · <span style="color:#8b93a0">stop</span> ${r[5]}`;}
+function selectRev(r){let bi=r[0],up=r[1]>0,typ=r[2],revbar=r[3],entry=r[4],stop=r[5];
+ sel={is_rev:true,_key:'R'+D.date+bi+typ,setup:'rev'+typ,dir:up?'L':'S',entry_bar:bi,sig_bar:bi,entry_px:entry,stop:stop};
+ $('selpanel').style.display='block';$('tagwrap').style.display='none';let nt=(notes.setups||{})[tkey(sel)]||{};
+ $('selinfo').innerHTML=`<b style="color:${REVCOL[typ]}">${REVNAME[typ]} + FT</b> ${up?'long ▲':'short ▼'} · reversal bar ${revbar+1} · FT bar ${bi+1}`+
+   `<br>entry(FT close) ${entry} · stop ${stop}`+(nt.grade?` · grade <b>${nt.grade}</b>`:'');
+ $('note').value=nt.note||'';render()}
 function grade(g){if(!sel)return;setNote({grade:g})}
 function takeskip(v){if(!sel)return;setNote({takeskip:v})}
 function saveSel(){if(!sel)return;setNote({note:$('note').value})}
-function setNote(o){let k=tkey(sel);notes.setups=notes.setups||{};notes.setups[k]=Object.assign({setup:setupLbl(sel),entry_bar:sel.entry_bar,sig_bar:sel.sig_bar,dir:sel.dir,with_trend:sel.with_trend,in_book:sel.in_book,net:sel.net,reveal_idx:revIdx},notes.setups[k]||{},o);save()}
+function setNote(o){let k=tkey(sel);notes.setups=notes.setups||{};notes.setups[k]=Object.assign({setup:setupLbl(sel),entry_bar:sel.entry_bar,sig_bar:sel.sig_bar,dir:sel.dir,is_bar:!!sel.is_bar,with_trend:sel.with_trend,in_book:sel.in_book,net:sel.net,reveal_idx:revIdx},notes.setups[k]||{},o);save()}
 function saveDay(){notes.daytype_inter=$('dti').value;notes.daytype_inter_bar=revIdx;notes.daytype_final=$('dtf').value;$('ibar').textContent=revIdx;save()}
 function save(){fetch('/save/'+curDate,{method:'POST',body:JSON.stringify(notes)})}
 function openLens(){if(!sel){return}$('lens').style.display='block';drawLens()}
 function drawLens(){if(!sel||!D)return;let t=sel,bars=D.bars,padN=+$('lpad').value;
- let i0=Math.max(0,t.sig_bar-padN),i1=Math.min(bars.length-1,Math.min(t.exit_bar,revIdx)+padN);
- $('lenstitle').textContent=`${setupLbl(t)} — bars ${i0+1}..${i1+1}  ·  entry ${t.entry_px} · stop ${t.stop} · trig ${t.trigger} · net ${t.net>0?'+':''}${t.net}`;
- let c=$('lcv');c.width=c.clientWidth;c.height=c.clientHeight;let g=c.getContext('2d'),W=c.width,H=c.height,pl=52,bot=H-24;
+ let ctr=(t.entry_bar!=null?t.entry_bar:t.sig_bar);         // CENTER on entry/signal, not the far exit
+ let i0=Math.max(0,ctr-padN),i1=Math.min(bars.length-1,Math.min(revIdx,ctr+padN));
+ let fin=v=>typeof v=='number'&&isFinite(v);
+ let entryPx=fin(t.entry_px)?t.entry_px:bars[ctr][5];       // rev/tag: use bar close as entry
+ let title=t.is_bar?`tag bar ${ctr+1}`:t.is_rev?`${t.setup} ${t.dir} rev · bar ${ctr+1}`:setupLbl(t);
+ $('lenstitle').textContent=`${title} — bars ${i0+1}..${i1+1}${fin(t.net)?` · net ${t.net>0?'+':''}${t.net}`:''}`;
+ let LT=document.body.classList.contains('light')||document.body.classList.contains('grey');
+ let GRID=LT?'#e4e7eb':'#161c23',AX=LT?'#8a94a0':'#6b7480',TX=LT?'#98a2ad':'#5a6470',BAR=LT?'#333':'#fff';
+ let c=$('lcv'),dpr=Math.min(window.devicePixelRatio||1,3);let cw=c.clientWidth,chh=c.clientHeight;
+ c.width=Math.round(cw*dpr);c.height=Math.round(chh*dpr);let g=c.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);
+ c.style.background=LT?'#fbfbfa':'#0c0f13';let W=cw,H=chh,pl=52,bot=H-24;
  let lo=1e9,hi=-1e9;for(let i=i0;i<=i1;i++){lo=Math.min(lo,bars[i][4]);hi=Math.max(hi,bars[i][3])}
- for(let v of [t.entry_px,t.stop,t.trigger]){lo=Math.min(lo,v);hi=Math.max(hi,v)}
+ for(let v of [entryPx,t.stop,t.trigger])if(fin(v)){lo=Math.min(lo,v);hi=Math.max(hi,v)}
  let rng=(hi-lo)||1;lo-=rng*.08;hi+=rng*.08;rng=hi-lo;let n=i1-i0+1,bw=(W-pl-14)/n;
  let x=i=>pl+(i-i0)*bw+bw/2,y=p=>10+(hi-p)/rng*(bot-10);
  g.clearRect(0,0,W,H);g.font='11px sans-serif';g.textAlign='right';
- for(let k=0;k<=8;k++){let p=lo+rng*k/8,yy=y(p);g.strokeStyle='#161c23';g.beginPath();g.moveTo(pl,yy);g.lineTo(W-14,yy);g.stroke();g.fillStyle='#6b7480';g.fillText((Math.round(p/0.25)*0.25).toFixed(2),pl-4,yy+3)}
- // EMA
+ for(let k=0;k<=8;k++){let p=lo+rng*k/8,yy=y(p);g.strokeStyle=GRID;g.beginPath();g.moveTo(pl,yy);g.lineTo(W-14,yy);g.stroke();g.fillStyle=AX;g.fillText((Math.round(p/0.25)*0.25).toFixed(2),pl-4,yy+3)}
  g.strokeStyle=CFG.cEma;g.lineWidth=1.6;g.beginPath();for(let i=i0;i<=i1;i++){let xx=x(i),yy=y(bars[i][6]);i==i0?g.moveTo(xx,yy):g.lineTo(xx,yy)}g.stroke();g.lineWidth=1;
- // level lines
- for(let [v,col,dash,lab] of [[t.trigger,CFG.cTrig,[1,3],'trigger'],[t.entry_px,CFG.cEntry,[],'entry'],[t.stop,CFG.cStop,[5,3],'stop']]){g.strokeStyle=col;g.setLineDash(dash);g.beginPath();g.moveTo(pl,y(v));g.lineTo(W-14,y(v));g.stroke();g.setLineDash([]);g.fillStyle=col;g.textAlign='left';g.fillText(lab+' '+v,pl+3,y(v)-3)}
- // candles + bar#
+ for(let [v,col,dash,lab] of [[t.trigger,CFG.cTrig,[1,3],'trigger'],[entryPx,CFG.cEntry,[],t.is_bar?'close':'entry'],[t.stop,CFG.cStop,[5,3],'stop']])if(fin(v)){g.strokeStyle=col;g.setLineDash(dash);g.beginPath();g.moveTo(pl,y(v));g.lineTo(W-14,y(v));g.stroke();g.setLineDash([]);g.fillStyle=col;g.textAlign='left';g.fillText(lab+' '+v,pl+3,y(v)-3)}
  for(let i=i0;i<=i1;i++){let b=bars[i],up=b[5]>=b[2],col=up?CFG.cUp:CFG.cDn,xx=x(i);g.strokeStyle=col;g.fillStyle=col;g.beginPath();g.moveTo(xx,y(b[3]));g.lineTo(xx,y(b[4]));g.stroke();let yo=y(b[2]),yc=y(b[5]);g.fillRect(xx-bw*.34,Math.min(yo,yc),Math.max(1.5,bw*.68),Math.max(1,Math.abs(yo-yc)));
-  g.fillStyle=(i==t.sig_bar)?'#4a9eff':(i==t.entry_bar?'#fff':'#5a6470');g.font='9px sans-serif';g.textAlign='center';g.fillText(i+1,xx,bot+12);
-  if(i==t.sig_bar){g.fillStyle='#4a9eff';g.fillText('sig',xx,10)}if(i==t.entry_bar){g.fillStyle='#fff';g.fillText('fill',xx,20)}if(i==t.exit_bar&&t.exit_bar<=revIdx){g.fillStyle='#dfe4e8';g.fillText('exit',xx,10)}}
- // entry/exit dots
- g.fillStyle=CFG.cEntry;if(t.entry_bar<=i1){g.beginPath();g.arc(x(t.entry_bar),y(t.entry_px),4,0,7);g.fill()}if(t.exit_bar<=revIdx&&t.exit_bar<=i1){g.fillStyle='#dfe4e8';g.beginPath();g.arc(x(t.exit_bar),y(t.exit_px),4,0,7);g.fill()}}
+  g.fillStyle=(i==t.sig_bar)?'#4a9eff':(i==ctr?BAR:TX);g.font='9px sans-serif';g.textAlign='center';g.fillText(i+1,xx,bot+12);
+  if(i==ctr){g.fillStyle='#4a9eff';g.fillText(t.is_bar?'★':'fill',xx,12)}if(fin(t.exit_bar)&&i==t.exit_bar&&t.exit_bar<=revIdx){g.fillStyle=LT?'#555':'#dfe4e8';g.fillText('exit',xx,12)}}
+ g.fillStyle=CFG.cEntry;if(ctr>=i0&&ctr<=i1){g.beginPath();g.arc(x(ctr),y(entryPx),4,0,7);g.fill()}
+ if(fin(t.exit_bar)&&fin(t.exit_px)&&t.exit_bar<=revIdx&&t.exit_bar>=i0&&t.exit_bar<=i1){g.fillStyle=LT?'#555':'#dfe4e8';g.beginPath();g.arc(x(t.exit_bar),y(t.exit_px),4,0,7);g.fill()}}
 function openPaths(){$('modal').style.display='block';if(PATHS){drawPaths();return}fetch('/allpaths').then(r=>r.json()).then(j=>{PATHS=j;drawPaths()})}
 function median(a){if(!a.length)return 0;let s=[...a].sort((x,y)=>x-y),m=s.length>>1;return s.length%2?s[m]:(s[m-1]+s[m])/2}
 function drawPaths(){if(!PATHS)return;let dir=$('p_dir').value;
@@ -360,6 +454,8 @@ class H(BaseHTTPRequestHandler):
 
     def _send(self, body, ctype="application/json", code=200):
         self.send_response(code); self.send_header("Content-Type", ctype)
+        self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+        self.send_header("Pragma", "no-cache"); self.send_header("Expires", "0")
         b = body if isinstance(body, bytes) else body.encode()
         self.send_header("Content-Length", str(len(b))); self.end_headers(); self.wfile.write(b)
 
@@ -373,6 +469,12 @@ class H(BaseHTTPRequestHandler):
             return self._send(f.read_bytes() if f.exists() else b"[]")
         if p == "/allpaths":
             return self._send(json.dumps(build_paths()))
+        if p == "/revs":
+            f = DAYS / "revs_index.json"
+            return self._send(f.read_bytes() if f.exists() else b"{}")
+        if p == "/globex":
+            f = DAYS / "globex_index.json"
+            return self._send(f.read_bytes() if f.exists() else b"{}")
         if p.startswith("/day/"):
             f = DAYS / (p[5:] + ".json")
             return self._send(f.read_bytes() if f.exists() else b"{}")
@@ -391,4 +493,4 @@ class H(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     print(f"Book Review  ->  http://localhost:{PORT}   (Ctrl-C to stop)")
-    HTTPServer(("127.0.0.1", PORT), H).serve_forever()
+    ThreadingHTTPServer(("127.0.0.1", PORT), H).serve_forever()
