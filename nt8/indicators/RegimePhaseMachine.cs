@@ -129,6 +129,22 @@ namespace NinjaTrader.NinjaScript.Indicators
 			catch { }
 		}
 
+		// per-PIVOT log (bar/side/tag/major) for diffing HH/LL labels vs the Python engine
+		private System.IO.StreamWriter plog;
+		private DateTime sessionDate;
+		private void DumpPivots()
+		{
+			if (plog == null) return;
+			try {
+				foreach (var p in piv)
+					plog.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+						"{0:yyyy-MM-dd},{1},{2},{3},{4},{5},{6},{7:F2}",
+						sessionDate, p.Bar + 1, p.IsH ? "H" : "L", p.Tag, p.Disp,
+						p.Major ? 1 : 0, p.MajLab ?? "", p.IsH ? HiAt(p.Bar) : LoAt(p.Bar)));
+				plog.Flush();
+			} catch { }
+		}
+
 		// account PnL tracking (FIFO, this instrument)
 		private Account acct;
 		private double realized; private int wins, losses;
@@ -202,8 +218,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 					tlog = new System.IO.StreamWriter(
 						@"C:\Users\Admin\myquant\data\regime\nt8_transitions.csv", false);
 					tlog.WriteLine("time,bar,event,mode,px");
+					plog = new System.IO.StreamWriter(
+						@"C:\Users\Admin\myquant\data\regime\nt8_pivots.csv", false);
+					plog.WriteLine("session,bar,side,tag,disp,major,majlab,price");
 				}
-				catch { tlog = null; }
+				catch { tlog = null; plog = null; }
 				sessionIt = new Data.SessionIterator(Bars);
 				ResetDay();
 				foreach (Account a in Account.All)
@@ -214,7 +233,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 			else if (State == State.Terminated)
 			{
 				if (acct != null) acct.ExecutionUpdate -= OnExec;
+				if (piv != null && piv.Count > 0) DumpPivots();   // last session
 				if (tlog != null) { try { tlog.Close(); } catch { } tlog = null; }
+				if (plog != null) { try { plog.Close(); } catch { } plog = null; }
 			}
 		}
 
@@ -577,6 +598,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 			// historical sessions (machine stuck in one regime across days).
 			if (sessionIt.IsNewSession(Time[0], true))
 			{
+				if (piv.Count > 0) DumpPivots();     // flush completed session's pivots before reset
+				sessionDate = Time[0].Date;
 				if (sessHigh > double.MinValue)
 				{
 					sessRanges.Enqueue(sessHigh - sessLow);

@@ -32,6 +32,14 @@ vs NT causal; + leg-direction seed. **FOUND + FIXED a real HH/LL drawing bug in
 and the later `PromoteMajor` was skipped by its already-major guard → missing HH/LL on trend
 days. Fix: route run-peak promotion through `PromoteMajor` (flags AND draws). File copied to
 `nt8/indicators/RegimePhaseMachine.cs` (was never version-controlled). **User must recompile in NT.**
+- **STILL OPEN (HH fix confirmed drawing, but labels not yet fully reconciled).** Added a
+  per-PIVOT export to the NT indicator → `data/regime/nt8_pivots.csv` (session,bar,side,tag,
+  disp,major,majlab,price) generated on recompile+chart-load. Python reference pivots dumped
+  from book_review day-JSONs → `data/regime/py_pivots.csv` (43,610 pivots, 1434 sessions,
+  same schema) via `scripts/dump_py_pivots.py`. NEXT: recompile NT, load an overlapping day
+  (≤2026-07-24), diff nt8_pivots vs py_pivots by (session,bar,side) to find remaining
+  HH/LL/HL/LH label divergences. (User example: b37 not LL — explained: bull-mode pullback,
+  major-LL only in established bear; minor tag is vs prior swing-low pivot, not vs b25.)
 
 **NEXT — deploy ChartSim for Thomas (Path B, user chose):** deploy the Python app AS-IS to a
 persistent host (Render free tier — NOT Vercel, which is serverless/no persistent disk), add a
