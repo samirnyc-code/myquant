@@ -1,0 +1,10 @@
+
+=== REAL-TICK 5M  v1.1 (no gap)  (2021+) ===
+  n=445  net $+82,175  PF 1.64  win 50.8%  maxDD $-9,322  Sharpe 2.32  | train PF 1.29 / test PF 1.92
+  2EL n=243 PF 1.59 $+38,060   2ES n=202 PF 1.68 $+44,115
+
+=== REAL-TICK 5M  v1.1 + gap<=0.54  (2021+) ===
+  n=384  net $+74,155  PF 1.70  win 51.6%  maxDD $-7,450  Sharpe 2.39  | train PF 1.37 / test PF 1.96
+  2EL n=206 PF 1.71 $+35,945   2ES n=178 PF 1.70 $+38,210
+
+-- proxy (Databento 1m) ref: v1.1 PF 1.54 / +$82.3k / DD -$10.2k ; +gap PF 1.64 / +$78.6k / DD -$7.1k --

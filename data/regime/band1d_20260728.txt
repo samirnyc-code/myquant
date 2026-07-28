@@ -1,0 +1,30 @@
+BOOK (with gap): n=461 net $+78,645 PF 1.64 | tr 1.24 te 2.00
+containment (unique days): close inside 86.6% | >1DMin 94.9% | <1DMax 91.6%  (MQ: 74/88/86)
+
+[pos in band — LONGS] (low pos = near 1D Min = most room up)
+  L pos -9.00..+0.25         n=   3 net $ +1,735 PF 32.55 DD $     +0 | tr 0.00 te  inf <-- fitted
+  L pos +0.25..+0.50         n=  35 net $ +1,800 PF 1.15 DD $ -4,342 | tr 1.69 te 0.75 <-- fitted
+  L pos +0.50..+0.75         n= 130 net $+18,050 PF 1.55 DD $ -6,108 | tr 1.15 te 2.00
+  L pos +0.75..+1.00         n=  66 net $+18,108 PF 2.65 DD $ -1,700 | tr 2.16 te 3.01
+  L pos +1.00..+9.00         n=  11 net $ +1,145 PF 1.55 DD $   -792 | tr 2.09 te 1.27
+
+[pos in band — SHORTS] (high pos = near 1D Max = most room down)
+  S pos -9.00..+0.00         n=   2 net $   -410 PF 0.47 DD $   -768 | tr  inf te 0.00 <-- fitted
+  S pos +0.00..+0.25         n=  22 net $ +4,440 PF 1.71 DD $ -3,375 | tr 1.91 te 1.62
+  S pos +0.25..+0.50         n= 119 net $+13,968 PF 1.40 DD $ -6,380 | tr 1.00 te 1.85
+  S pos +0.50..+0.75         n=  66 net $+20,608 PF 1.96 DD $ -6,138 | tr 1.03 te 2.59
+  S pos +0.75..+9.00         n=   7 net $   -798 PF 0.54 DD $ -1,490 | tr 0.00 te 1.59 <-- fitted
+
+[room-to-with-trend-edge, ADR units — both sides]
+  room -9.00..+0.00 ADR      n=  13 net $   +735 PF 1.26 DD $ -1,560 | tr 2.59 te 0.81 <-- fitted
+  room +0.00..+0.25 ADR      n=  23 net $ +8,635 PF 3.39 DD $ -1,180 | tr 1.81 te 6.33
+  room +0.25..+0.50 ADR      n=  66 net $+15,682 PF 1.87 DD $ -4,835 | tr 1.90 te 1.85
+  room +0.50..+1.00 ADR      n= 205 net $+28,438 PF 1.50 DD $ -8,185 | tr 1.16 te 1.81
+  room +1.00..+9.00 ADR      n= 154 net $+25,155 PF 1.61 DD $ -7,775 | tr 1.02 te 2.22
+
+[candidate skip filters]
+  KEEP room>=0 (skip beyond-edge) n= 448 net $+77,910 PF 1.65 DD $ -7,380 | tr 1.22 te 2.04
+    removed: beyond-edge     n=  13 net $   +735 PF 1.26 DD $ -1,560 | tr 2.59 te 0.81 <-- fitted
+  KEEP room>=0.25 ADR        n= 425 net $+69,275 PF 1.59 DD $ -7,945 | tr 1.19 te 1.95
+    removed: 0..0.25 ADR     n=  23 net $ +8,635 PF 3.39 DD $ -1,180 | tr 1.81 te 6.33
+  KEEP room>=0.5 ADR         n= 359 net $+53,592 PF 1.54 DD $-10,975 | tr 1.10 te 1.98

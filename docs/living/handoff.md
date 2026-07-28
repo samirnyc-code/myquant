@@ -1,8 +1,36 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 28, 2026 (S87 — skip_after was a SILENT NO-OP [fixed]; gap<=0.54 improves
-book SHAPE not substance; 6500V volume bars KILLED; targets/loser-elimination = DEAD END; fades
-must NOT use skip_after; Book Review tool + skip-days filter. On `regime/indep`.)
+**Last Updated:** July 28, 2026 (S87b — real-tick sim CONFIRMS book [PF 1.64/1.70, proxy was
+pessimistic]; gap ADOPTED; 1D Min/Max MQ level studied = dead as a filter; prior: skip_after
+no-op fixed, sweeps, loser-elimination dead end. On `regime/indep`.)
+
+---
+
+## S87b (2026-07-28) — real-tick sim confirms book; gap ADOPTED; 1D Min/Max MQ level = dead as a filter (branch `regime/indep`)
+
+- **REAL-TICK SIM CONFIRMS THE BOOK (`regime_2e_realtick_5m.py`).** Re-ran v1.1 on 5-min bars built
+  from the REAL continuous tick cache, stop/EOD decided by the REAL post-entry intraday min/max (no
+  Databento 1m pseudo-ticks). 2021+: **v1.1 (no gap) PF 1.64 / +$82.2k / DD −$9.3k / n=445**; **+gap<=0.54
+  PF 1.70 / +$74.2k / DD −$7.5k / n=384**. The proxy (1.54 / 1.64) was mildly PESSIMISTIC — real ticks
+  are BETTER, edge is NOT a proxy artifact. Independent sim (445 vs proxy 540 — tick-cache 5M bars ≠
+  Databento bar-for-bar), agrees at PF/DD/side/train-test level. Recency caveat unchanged (train ~1.3 /
+  test ~1.9). BUG fixed en route: numpy `astype('datetime64[5m]')` does NOT floor to 5-min (mangles
+  timestamps → only 95 trades, all hour 11-12); use pandas `.dt.floor('5min')`.
+- **GAP <=0.54% ADOPTED** — validated on BOTH proxy and real ticks (PF up, DD down, both halves up).
+  v1.1 = with gap. Memory `s85-2e-book-metrics` toggle flipped to adopted.
+- **1D MIN/MAX (MenthorQ level) STUDIED — DEAD as a filter (`regime_2e_1dband.py`).** It's NOT a daily
+  bar extreme; it's the IV expected-move band `prior_close*(1 +- (VIX/100)*sqrt(1/365))` (data cols
+  `d1_min/d1_max`; ~74% all-day close-containment, per S75U reveng). Reconstructed causally in the sim
+  price base (prior close + vix_prev) to dodge the roll-offset mismatch. My "runway to EOD" hypothesis
+  (more room to band = better) was REFUTED — it's BACKWARDS: with-trend trades entered NEAR the band
+  edge (price already extended toward 1D Max/Min = confirmed strong trend day) are the strongest, low-
+  in-band ("more room") are weakest. As a loser/skip filter it FAILS (removing beyond-band trades =
+  no change; low-room trades are winners). The one "strong" cell (L pos 0.75-1.0 PF 2.65) is **66 trades
+  / 5yr, 3 trades = 37% of net, ex-top5 PF 1.73** = too thin + tail-inflated, NOT actionable.
+- **META (confirmed again): the ~460-trade book does not sub-divide into anything robust.** Every
+  conditioning (loser_scan features, sizing pockets, 1D band) is either fitted or too-thin. Stop
+  slicing — it IS the overfitting. Only real risk-reduction levers left are OUTSIDE the 2E signal set:
+  **order flow** (pre-entry winner/loser separator) and **a 2nd uncorrelated book**.
 
 ---
 
