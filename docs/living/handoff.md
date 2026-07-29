@@ -6,6 +6,18 @@ pipeline + S77 security hardening; merged S76 Mac swing-levels work)
 
 ---
 
+## S91c (2026-07-29) — Disabled the 16:15 NT8 auto-restart task
+
+Per user request, **`MyQuant NT8 Restart`** scheduled task set to **Disabled**
+(`Disable-ScheduledTask`). The 16:15 CT daily-halt auto-close/relaunch of NT8
+(`scripts/nt8_maintenance.py` via `run_at_ct`, see `process_registry.py` id
+`nt8_restart`) no longer fires — NT stays up untouched through the halt. Left
+intact: `MyQuant NT Watchdog` (dead/jam recovery) + `MyQuant Pre-Open Verify`
+(read-only armed check). MC timeline will show this halt step as PAUSED.
+Re-enable: `Enable-ScheduledTask -TaskName 'MyQuant NT8 Restart'`.
+
+---
+
 ## S91b (2026-07-29) — Regime engine Python↔NT verification + KNOWN pivot-label bug
 
 **Python↔NT regime pivots — VERIFIED.** Diffed the NT `RegimePhaseMachine` indicator
