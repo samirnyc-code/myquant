@@ -1,4 +1,5 @@
 # Copyrighted third-party material — never commit
 data/*.pdf
 data/book_text.txt
+data/chapters/
 figures/page_*.png

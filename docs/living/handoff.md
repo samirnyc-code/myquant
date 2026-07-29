@@ -94,8 +94,18 @@ Dominant leg 6,420.75 (3/31)→7,699.75 (6/1): HWB 7,060, fail 6,909, target 8,0
 never retraced to HWB (shallow=strong, MM intact, target unmet). Last/counter leg 7,699→7,299:
 HWB 7,499.75, fail 7,546.95, target 7,205.35 — price pressing the 7,547 failure line (decision point).
 
-**NEXT:** (a) codify Ch 6 setups into `{trigger,entry,stop,target,filters,session}` rulebook;
-(b) optionally draw the chained next-MM sequence; (c) subscribe → scrape slides + video transcripts.
+**FULL-BOOK EXTRACTION DONE (8 parallel agents):** all 16 chapters extracted to faithful,
+number-exact notes `eminiaddict/notes/chNN_*.md` (167K chars) + synthesized
+`notes/RULEBOOK.md`. Split via `scripts/split_chapters.py` (chapters gitignored, copyrighted).
+Key locked specs: 3 setups (traditional/extension/61.8%-failure, Ch6); 3 entries in fixed order
+(first-test/front-run-2nd/trend-break) + ES tick table (ES front-run +2, stop −6→−4, 1st tgt +2, Ch8);
+4 exits (Distance Formula = |50%−38.2%| = 0.118R, trail-61.8, confirmation-of-trend, −23%/123% target, Ch13);
+gap-fill book (open <10pt→77–79% fill, >10pt→9–26%; 08:00–08:30 ET; ES gap 5–10pt; Fig12.1 stats, Ch12);
+Ch16 = 31 rules (10 General/8 Gap/9 NYSE/4 Euro) + sessions 08:00–11:30 & 13:30–16:00 ET, no-trade
+09:30–10:00 & after 15:45, ≤1% risk, half-size Mon/Fri/opt-ex/rollover; DP=(H+L+C)/3.
+
+**NEXT:** (a) encode RULEBOOK §3–§5 as machine-readable config + backtest on ES (seed-detector param
+swept in WFA); (b) optionally draw the chained next-MM sequence; (c) subscribe → scrape slides + video transcripts.
 
 ---
 
