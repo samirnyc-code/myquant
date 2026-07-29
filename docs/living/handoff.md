@@ -6,6 +6,40 @@ no-op fixed, sweeps, loser-elimination dead end. On `regime/indep`.)
 
 ---
 
+## S91 (2026-07-29) — MyReversals export deep-dive on REAL TICKS + ChartSim overlays (param panel, NT-csv, BO-setup). `regime/indep` (ChartSim) + `s75-live-dashboard` (research scripts)
+
+**ChartSim = `scripts/book_review.py` (regime/indep, localhost:8640, build v23). New overlays:**
+- **MyReversals PARAM PANEL (⚑ button) + `/recalc`:** adjust Thomas's detection params (Trap/BO/OB/IB/FT,
+  defaults = his NT screenshot), recompute all markers live via `scripts/revdetect.py` port (~2s, full 5yr series).
+- **NT-csv overlay (`t_csv`, `/csvsig`):** Thomas's 50-day SEP26 export (`data/signals/...50 Days.txt`) — stripe +
+  limit line, pullback tick-through fill, 1R stop/target, PnL on hover + day panel. **BarNo→bar: FT bar = BarNo-1**
+  (NT stamps by close-time, ChartSim by open-time).
+- **BO-setup overlay (`t_bo` + green `BO ▶` jump button, `/bosetup`):** the FINAL researched setup, **tick-accurate PnL**
+  from `data/annotations/book_review/bo_setup_index.json` (264 trades / 227 days). Entry dot + stop/2R lines +
+  win/loss line to exit + hover + right-panel day P&L. Only ~227/1435 days have a trade (use `BO ▶`).
+- Per-family 2E toggles (2EL/2ES/f2EL/f2ES).
+
+**RESEARCH (scripts on `s75-live-dashboard`): MyReversals 1830-day JUN26 export (3763 sigs, 2021→2026-06) on REAL NT TICKS (`data/ticks_continuous`).**
+- **⚠️ 5M-BAR FILLS ARE PHANTOM — everything fill-dependent MUST be tick-filled.** The "away≥1R PF 1.35" edge was
+  100% a 5M-bar artifact (real ticks: PF 0.90, net LOSER). Raw export = net loser on ticks (PF 0.91).
+- **Contract offset:** JUN26 export vs `es_5m_rth` (SEP26-anchored) = constant **61.25** (the ESU6 back-adjust, = NT's
+  Contract-months dialog). Per-signal **BTC-anchor** (`shift = bar_close − BTC`) corrects it — works for any export/contract.
+- **ChartSim data problem:** ChartSim reads Databento `_db_es_5m_rth.parquet` (rolls by VOLUME ~6/15) vs NT (fixed 6/12)
+  → **pre-6/16 6.25 offset.** Fix = repoint ChartSim to NT ticks `es_5m_rth.parquet` (0.00 match, verified). BLOCKED:
+  `es_5m_rth` ends **2026-07-09**; need `RawTickExporter` CSVs for 7/10→now (NT `.ncd` db is proprietary, header-only decodable).
+- **FINAL SETUP (Sharpe ann 1.16, tick-verified, OOS train≥test, 5/6 yrs green):** RevType=**BO**, entry **≥11:00 CT**,
+  **skip gap days** (|gap|<0.3%), **MARKET entry** at signal close, **fixed 2R** target, export stop, flat@close.
+  264 trades, **+$31.4k / 1 ES, $6.3k/yr, PF 1.55, DD $4,962, net/DD 6.33, exp $119/trade.**
+- **Key insight:** the LMT retest bought dips into continuation (the killer); MARKET entry + 2R was the fix. away-depth /
+  tight-risk / SMA/VWAP/EMA / EOD-runner all OVERFIT (regime-loaded or 5M-phantom). skip-gap + hi-vol are the real levers.
+- **Overlap:** non-issue (max 2 concurrent, 17/227 days); 1-at-a-time ≈ all (marginally better). **Account:** ~$15k/1 ES
+  comfortable, MES ~$2-3k (fits $4.5k prop trailing DD). Small but real edge — forward-track before sizing.
+- **Scripts (s75 main):** `revsig_backtest_full/filter_ablation/filter_oos/tick_fills/tick_ablation/bo_drill/entries/
+  exits/bo_final/bo_eod_multi/bo_metrics.py`, `bo_setup_export/overlap/verify.py`, `csv_*` (in regime). Data: `data/signals/*1830 Days.txt`.
+- **NEXT:** forward-track BO setup; RawTickExporter to extend ticks to yesterday + daily; repoint ChartSim off Databento → `es_5m_rth`.
+
+---
+
 ## S87b (2026-07-28) — real-tick sim confirms book; gap ADOPTED; 1D Min/Max MQ level = dead as a filter (branch `regime/indep`)
 
 - **REAL-TICK SIM CONFIRMS THE BOOK (`regime_2e_realtick_5m.py`).** Re-ran v1.1 on 5-min bars built
