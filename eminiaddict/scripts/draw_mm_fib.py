@@ -1,0 +1,180 @@
+"""Draw an ES daily chart with a Halsey Measured-Move Fib on the dominant recent leg.
+
+Halsey MM levels (Ch2 / Fig 6.1), for an UP leg from swing low L to swing high H
+(range R = H - L):
+    100%  = L            (start of move)
+     61.8% = L + 0.382*R (FAILURE line - breach invalidates the MM)
+     50%  = L + 0.500*R  (HWB / half-way-back = entry-continuation zone)
+      0%  = H            (end of move)
+    123.6% = H + 0.236*R (measured-move PROFIT TARGET; also seeds next swing)
+Down leg is the mirror (100%=H, 0%=L, target below L).
+
+Seed swing = last completed leg from a ZigZag pivot detector (proxy for Halsey's
+"significant high-low that jumps off the page"). ZigZag threshold in %.
+"""
+import sys
+import numpy as np
+import pandas as pd
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
+
+PARQUET = "../../data/bars/_db_es_daily_24h.parquet"
+OUT = "../figures/es_daily_mm_fib_{mode}.png"
+WINDOW = 170          # bars to display
+ZZ_PCT = 4.0          # ZigZag reversal threshold (%)
+
+
+def zigzag(highs, lows, pct):
+    """Return list of (index, price, kind) pivots. kind='H' or 'L'."""
+    thr = pct / 100.0
+    piv = []
+    # seed with first bar as tentative low and high
+    last_ext_i = 0
+    last_ext_p = lows[0]
+    direction = 0  # +1 up (seeking high), -1 down (seeking low), 0 unknown
+    ref_hi_i, ref_hi_p = 0, highs[0]
+    ref_lo_i, ref_lo_p = 0, lows[0]
+    for i in range(1, len(highs)):
+        if highs[i] > ref_hi_p:
+            ref_hi_p, ref_hi_i = highs[i], i
+        if lows[i] < ref_lo_p:
+            ref_lo_p, ref_lo_i = lows[i], i
+        if direction >= 0:  # seeking a high; watch for reversal down
+            if ref_hi_p - lows[i] >= thr * ref_hi_p and ref_hi_i != last_ext_i:
+                piv.append((ref_hi_i, ref_hi_p, 'H'))
+                direction = -1
+                last_ext_i, last_ext_p = ref_hi_i, ref_hi_p
+                ref_lo_p, ref_lo_i = lows[i], i
+        if direction <= 0:  # seeking a low; watch for reversal up
+            if highs[i] - ref_lo_p >= thr * ref_lo_p and ref_lo_i != last_ext_i:
+                piv.append((ref_lo_i, ref_lo_p, 'L'))
+                direction = 1
+                last_ext_i, last_ext_p = ref_lo_i, ref_lo_p
+                ref_hi_p, ref_hi_i = highs[i], i
+    return piv
+
+
+def main():
+    df = pd.read_parquet(PARQUET).reset_index(drop=True)
+    df = df.tail(WINDOW).reset_index(drop=True)
+    highs = df["High"].values
+    lows = df["Low"].values
+    closes = df["Close"].values
+    n = len(df)
+
+    piv = zigzag(highs, lows, ZZ_PCT)
+    if len(piv) < 2:
+        raise SystemExit("not enough pivots; lower ZZ_PCT")
+
+    mode = sys.argv[1] if len(sys.argv) > 1 else "last"
+    if mode == "dominant":
+        # seed = the completed pivot-to-pivot leg with the largest price range
+        legs = [(piv[j], piv[j + 1]) for j in range(len(piv) - 1)]
+        (a, b) = max(legs, key=lambda lg: abs(lg[1][1] - lg[0][1]))
+        (i0, p0, k0), (i1, p1, k1) = a, b
+    else:
+        # seed swing = last completed leg (second-to-last pivot -> last pivot)
+        (i0, p0, k0), (i1, p1, k1) = piv[-2], piv[-1]
+    up = k1 == 'H'  # leg goes low->high
+    # snap anchors to the TRUE extreme lows/highs within the leg span (+small pad)
+    lo_i, hi_i = sorted((i0, i1))
+    pad = 6
+    a0, b0 = max(0, lo_i - pad), min(n - 1, hi_i + pad)
+    seg = df.iloc[a0:b0 + 1]
+    lo_idx = int(seg["Low"].idxmin())
+    hi_idx = int(seg["High"].idxmax())
+    if up:
+        i0, p0 = lo_idx, df.Low[lo_idx]
+        i1, p1 = hi_idx, df.High[hi_idx]
+    else:
+        i0, p0 = hi_idx, df.High[hi_idx]
+        i1, p1 = lo_idx, df.Low[lo_idx]
+    L, H = (p0, p1) if up else (p1, p0)
+    R = H - L
+
+    def lvl(frac_from_start):
+        # frac measured as retracement fraction; price at that fib level
+        if up:
+            # 100%=L start, 0%=H end
+            return L + (1 - frac_from_start) * R
+        else:
+            return H - (1 - frac_from_start) * R
+
+    # explicit levels
+    lv100 = L if up else H
+    lv0 = H if up else L
+    hwb = L + 0.5 * R if up else H - 0.5 * R
+    fail = L + 0.382 * R if up else H - 0.382 * R
+    tgt = H + 0.236 * R if up else L - 0.236 * R
+
+    # ---- plot ----
+    plt.rcParams.update({"font.size": 10})
+    fig, ax = plt.subplots(figsize=(15, 9), facecolor="#0b0b0b")
+    ax.set_facecolor("#0b0b0b")
+    up_c, dn_c = "#26a65b", "#e2453c"
+    w = 0.6
+    for i in range(n):
+        o, h, l, c = df.Open[i], df.High[i], df.Low[i], df.Close[i]
+        col = up_c if c >= o else dn_c
+        ax.plot([i, i], [l, h], color=col, lw=0.8, zorder=2)
+        ax.add_patch(Rectangle((i - w / 2, min(o, c)), w, abs(c - o) or 0.01,
+                               facecolor=col, edgecolor=col, zorder=3))
+
+    # EMAs (generic trend context, not Halsey's exact params)
+    ema9 = pd.Series(closes).ewm(span=9).mean()
+    ema20 = pd.Series(closes).ewm(span=20).mean()
+    ax.plot(range(n), ema9, color="#4aa3ff", lw=1.0, alpha=.8, label="EMA 9")
+    ax.plot(range(n), ema20, color="#dddddd", lw=1.0, alpha=.6, label="EMA 20")
+
+    # swing anchor line
+    ax.plot([i0, i1], [p0, p1], color="#888", ls="--", lw=1.2, zorder=4)
+    ax.scatter([i0, i1], [p0, p1], color="#ffd400", s=60, zorder=6)
+
+    # fib lines
+    xr = n - 1
+    def hline(y, color, label, lw=1.4, ls="-"):
+        ax.axhline(y, xmin=i0 / xr if xr else 0, color=color, lw=lw, ls=ls, zorder=5)
+        ax.text(n + 1.5, y, f"{label}  {y:,.2f}", color=color, va="center",
+                fontsize=10, fontweight="bold")
+
+    hline(lv100, "#bbbbbb", "100%  (start)", 1.2, ":")
+    hline(fail, "#e2453c", "61.8% FAILURE")
+    hline(hwb, "#ffd400", "50% HWB (entry)")
+    hline(lv0, "#bbbbbb", "0%  (end)", 1.2, ":")
+    hline(tgt, "#26a65b", "123.6% TARGET", 1.8)
+
+    ax.axhline(closes[-1], color="#4aa3ff", lw=0.8, ls="--", alpha=.5)
+    ax.text(n + 1.5, closes[-1], f"last {closes[-1]:,.2f}", color="#4aa3ff",
+            va="center", fontsize=9)
+
+    dir_txt = "LONG (up leg, drawn low→high)" if up else "SHORT (down leg, drawn high→low)"
+    d0 = df.DateTime[i0].strftime("%Y-%m-%d")
+    d1 = df.DateTime[i1].strftime("%Y-%m-%d")
+    ax.set_title(
+        f"ES daily — Halsey Measured Move  |  seed swing {dir_txt}\n"
+        f"{d0}  {p0:,.2f}  →  {d1}  {p1:,.2f}   (range {R:,.2f} pts,  ZigZag {ZZ_PCT}%)",
+        color="#eee", fontsize=13, loc="left")
+
+    # x ticks as dates
+    step = max(1, n // 12)
+    ax.set_xticks(range(0, n, step))
+    ax.set_xticklabels([df.DateTime[i].strftime("%m/%d/%y") for i in range(0, n, step)],
+                       color="#aaa", rotation=0)
+    ax.tick_params(colors="#aaa")
+    for s in ax.spines.values():
+        s.set_color("#333")
+    ax.set_xlim(-1, n + 14)
+    ax.grid(True, color="#1c1c1c", lw=0.5)
+    ax.legend(loc="upper left", facecolor="#111", edgecolor="#333", labelcolor="#ccc")
+    fig.tight_layout()
+    fig.savefig(OUT.format(mode=mode), dpi=130, facecolor=fig.get_facecolor())
+    print("wrote", OUT.format(mode=mode))
+    print(f"seed leg: {'UP' if up else 'DOWN'}  L={L:,.2f} H={H:,.2f} R={R:,.2f}")
+    print(f"100%={lv100:,.2f} 61.8%(fail)={fail:,.2f} 50%(HWB)={hwb:,.2f} "
+          f"0%={lv0:,.2f} 123.6%(target)={tgt:,.2f}  last={closes[-1]:,.2f}")
+
+
+if __name__ == "__main__":
+    main()

@@ -6,6 +6,45 @@ pipeline + S77 security hardening; merged S76 Mac swing-levels work)
 
 ---
 
+## S91 (2026-07-29) — NEW PROJECT: EminiAddict / Halsey Measured-Move method (in `eminiaddict/`)
+
+New project to learn, codify, and test David Halsey's **Measured Move (MM)** method
+(eminiaddict.com, $29.99/mo). User has the book PDF and will subscribe.
+
+**Site recon (verified):** WordPress + WishList Member paywall. Daily analysis + videos +
+slides are member-only — NOT scrapable logged-out (only post titles/dates via sitemap; old
+2009 blog posts are the only public text). Once subscribed: cookie/Playwright scrape + Whisper
+transcript nugget-mining (target the structured daily-review/education videos, not 8-hr live room).
+
+**Book** = *Trading the Measured Move* (Wiley 2014), 226 pp. Pulled from user's Drive to
+`eminiaddict/data/halsey_measured_move.pdf` (gitignored, copyrighted). Full text →
+`data/book_text.txt` (gitignored). Text extraction clean (13/226 image-only pages). Render script
+`scripts/render_pages.py`. Confirmed I read both chart diagrams (Fig 6.1) and stat tables (Fig 12.1).
+
+**The method (verified from book):** Fib on a swing leg. UP leg low L→high H, range R:
+100%=L (start) · 61.8%=L+0.382R = FAILURE (breach kills MM) · 50%=L+0.500R = HWB (entry) ·
+0%=H (end) · 123.6%=H+0.236R = TARGET (seeds next swing). Down leg mirrored. Key chapters:
+2 (Fibs), 6 (three setups: Traditional 50% MM / Extension 50% MM / 61.8% Failure), 8 (entries),
+12 (gap fills + stat table: 2010–12 fill ~66.6%, ~77.8% if gap <10pts), 13 (mgmt/23% target),
+16 (trading plan rules). Gap def: ES professional gap ≥10pts, amateur <10 fills within 1st hr.
+
+**"What defines a swing?"** = NO mechanical fractal rule. Seed swing = discretionary "significant
+high-low that jumps off the page." AFTER the seed it's mechanical: new peak = prior MM retrace
+high, new trough = prior MM 123.6% target; leg confirmed by 61.8% break of the opposing MM.
+**Only discretionary knob = the seed** → codify with a ZigZag/ATR seed detector, tune/validate in WFA.
+
+**Built `scripts/draw_mm_fib.py [last|dominant]`** — ZigZag seed detector on ES daily
+(`data/bars/_db_es_daily_24h.parquet`), draws MM Fib with all Halsey levels, anchors snapped to
+true extreme wicks. Two demo charts committed (`figures/es_daily_mm_fib_{dominant,last}.png`).
+Dominant leg 6,420.75 (3/31)→7,699.75 (6/1): HWB 7,060, fail 6,909, target 8,001.59; price 7,530
+never retraced to HWB (shallow=strong, MM intact, target unmet). Last/counter leg 7,699→7,299:
+HWB 7,499.75, fail 7,546.95, target 7,205.35 — price pressing the 7,547 failure line (decision point).
+
+**NEXT:** (a) codify Ch 6 setups into `{trigger,entry,stop,target,filters,session}` rulebook;
+(b) optionally draw the chained next-MM sequence; (c) subscribe → scrape slides + video transcripts.
+
+---
+
 ## S90 (2026-07-28) — ChartSim (Book Review) big UI build + RevFT per-type book + RegimePhaseMachine HH bug fixed + Render-deploy plan for Thomas
 
 **ChartSim = the renamed Book Review tool** (`scripts/book_review.py` on branch `regime/indep`,
