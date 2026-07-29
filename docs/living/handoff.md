@@ -6,6 +6,48 @@ pipeline + S77 security hardening; merged S76 Mac swing-levels work)
 
 ---
 
+## S91b (2026-07-29) — Regime engine Python↔NT verification + KNOWN pivot-label bug
+
+**Python↔NT regime pivots — VERIFIED.** Diffed the NT `RegimePhaseMachine` indicator
+export (`data/regime/nt8_pivots.csv`) vs Python `phase_transitions` on the SAME ticks:
+- **20/22 overlap days pivot-identical, 0 engine-logic differences** (`scripts/verify_pivots_final.py`
+  → `data/regime/pivot_verify_2026-07-28.csv`). The 2 non-matches are DATA gaps in the tick
+  export (07-06 stale parquet, 07-17 ~1hr hole), not logic. 06-29 = a +1 bar-number offset on
+  the first-day-of-data (session counter edge), pivots identical once aligned.
+- Python 5yr reference built: `data/regime/py_realtick_pivots.csv` (1,284 sessions, 2021→2026).
+
+**DATA PROVENANCE (settle this — it caused a mess):** the ONE dataset is **Massive ticks**.
+- `data/ticks_continuous/` = Massive tick data (`massive.build_continuous_ticks_for_date` →
+  `fetch_massive_trades`), tick-granularity, 2021-06→2026-07, 1,284 days. NOT Databento.
+- NT **ES_MAS** = the same Massive ticks loaded into NT (tick data 2021-06-17→~2026-03-13;
+  ES_MAS 06-26/09-26 empty). Recent gap filled by real ES 09-26 contract ticks.
+- **Databento** only ever fed the ChartSim proxy (`book_review_prep.py` `_db_*` + `proxy_ticks`).
+  User banned Databento AND 1M — build 5M straight from ticks. Purge `_db_` from consumers
+  (NOT done — needs user go; do not blanket-delete).
+- NT tick DB: real ES contracts only ~2025-07→now; older ES tick folders are EMPTY. 5yr of
+  MINUTE data exists but is not ticks.
+
+**KNOWN BUG — pivot mislabel on trend termination (UNFIXED; do NOT patch blind):**
+On Jul 29, b37 (high 7398.75 > prior high) should be `hh` and b38 (low 7385.25 > prior low
+b34 7371.75) should be `hl`, but the engine emits no b37 and tags b38 `ll`. Root cause verified:
+`phase_transitions.terminate()` does `prevH=b; prevL=b` and `d=leg_px=leg_bar=None`, which
+(1) drops the termination-bar swing and (2) rebaselines the next pivot's hl/ll tag to the
+termination bar instead of the true prior like-pivot. Same reset also feeds the "bull flip late"
+complaint. **A fix that keeps the leg across termination REGRESSED 07-24 from 34/34-clean to
+match-2** — the reset is load-bearing. Needs a surgical fix (emit term-bar swing explicitly +
+keep prevH/prevL, leave leg reset) with FULL multi-day regression before touching the .cs.
+This engine drives every regime flip AND the 2E backtest — changing it re-labels all history.
+
+**Tick Replay MUST be ON** for correct historical states (engine is tick-driven; without it NT
+feeds only bar closes → sparse pivots, missed flips → looks stuck NEUTRAL on obvious trends).
+Cockpit already prints `!! TICK REPLAY OFF !!`. NT `.cs` restored to committed (HH-fix intact).
+
+**ChartSim:** added `scripts/chartsim_realtick_day.py` (builds a book_review day JSON from the
+real ticks with NT-matching pivots) + 2026-07-28 day; `book_review.py` v21 (hash deep-link
+`#date`, defaults to newest day). Server on :8640 still serves old page until restarted.
+
+---
+
 ## S91 (2026-07-29) — NEW PROJECT: EminiAddict / Halsey Measured-Move method (in `eminiaddict/`)
 
 New project to learn, codify, and test David Halsey's **Measured Move (MM)** method
