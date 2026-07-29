@@ -13,6 +13,7 @@ bar or setup to grade(A/B/C)+comment+take/skip · intermediate & final day-type 
 (all/long/short/win/loss/in-book) · live stats · no-lookahead (annotations keyed to reveal bar).
 """
 import json
+import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -21,6 +22,86 @@ DAYS = ROOT / "data" / "annotations" / "book_review"
 NOTES = ROOT / "data" / "annotations" / "book_review_notes"
 NOTES.mkdir(parents=True, exist_ok=True)
 PORT = 8640
+sys.path.insert(0, str(Path(__file__).resolve().parent))   # for revdetect
+
+# --- live MyReversals recompute ---------------------------------------------
+# Detection runs on the EXACT per-day bars ChartSim draws (concatenated into a
+# continuous RTH series so cross-day lookbacks / avg-range / first-bar match NT),
+# so recomputed markers always land on the right bars. revdetect.py is the
+# validated port of MyReversals.cs (S89: 97.4% signal match vs Thomas's NT export).
+_CONT = None
+_TYPE_LETTER = {"Trap": "T", "BO": "B", "OB": "O", "IB": "I"}
+
+
+def _continuous():
+    """Continuous RTH 5M DataFrame rebuilt from the per-day review JSON (cached)."""
+    global _CONT
+    if _CONT is not None:
+        return _CONT
+    import pandas as pd
+    rows = []
+    for f in sorted(DAYS.glob("2*.json")):
+        try:
+            d = json.loads(f.read_text())
+        except Exception:
+            continue
+        dt = d["date"]
+        for b in d["bars"]:   # b = [within-day idx, "HH:MM", O, H, L, C, ema20]
+            rows.append((f"{dt} {b[1]}", dt, b[0], b[2], b[3], b[4], b[5]))
+    df = pd.DataFrame(rows, columns=["DateTime", "Date", "bar", "Open", "High", "Low", "Close"])
+    df["DateTime"] = pd.to_datetime(df["DateTime"])
+    _CONT = df
+    return _CONT
+
+
+_CSVSIG = None
+
+
+def csv_signals():
+    """Parse Thomas's NT MyReversals export (data/signals/*RTH*.txt, newest) into
+    {date: [[ftbar, dir(+1/-1), typeletter, revbar, btc, stop, lmt], ...]}.
+    NT stamps bars by CLOSE time and 1-indexes BarNo; ChartSim indexes bars by OPEN
+    time from 0 -> the FT/confirmation bar is BarNo-1, the reversal bar is BarNo-2
+    (verified: LMT/stop == rev bar high/low exactly). Drawn like the computed 'rev'
+    overlay (stripe + blue dot on rev bar + triangle on FT bar) but from this CSV only."""
+    global _CSVSIG
+    if _CSVSIG is not None:
+        return _CSVSIG
+    out = {}
+    sigdir = ROOT / "data" / "signals"
+    files = sorted(sigdir.glob("*RTH*Days.txt"), key=lambda f: f.stat().st_mtime)
+    if files:
+        tl = {"BO": "B", "Trap": "T", "IB": "I", "OB": "O"}
+        for ln in files[-1].read_text().splitlines():
+            p = ln.split()
+            if len(p) != 9 or not p[0].isdigit():
+                continue
+            _, rt, dr, dt, tm, bn, btc, stop, lmt = p
+            try:
+                dd, mm, yy = dt.split("/")
+                iso = f"{yy}-{mm}-{dd}"
+                num = lambda s: float(s.replace(",", ""))
+                ft = int(bn) - 1        # FT/triangle bar (ChartSim open-time index)
+                out.setdefault(iso, []).append(
+                    [ft, 1 if dr.lower().startswith("l") else -1,
+                     tl.get(rt, rt[:1]), ft - 1, num(btc), num(stop), num(lmt)])
+            except Exception:
+                continue
+    _CSVSIG = out
+    return _CSVSIG
+
+
+def recalc_revs(params):
+    """Run revdetect with `params`, return {date: [[ftbar,dir,typeletter,revbar,entry,stop],...]}."""
+    import revdetect
+    sg = revdetect.detect(_continuous(), params or {})
+    out = {}
+    for r in sg.itertuples(index=False):
+        ftbar = int(r.bar)
+        out.setdefault(r.Date, []).append(
+            [ftbar, int(r.side), _TYPE_LETTER.get(r.rev, str(r.rev)[:1]),
+             ftbar - 1, round(float(r.entry), 2), round(float(r.stop), 2)])
+    return out
 
 DAYTYPES = ["Trend", "Trend-from-open", "Trend reversal", "Tight channel", "Broad channel",
             "Trading range", "TR breakout", "Double-distribution trend", "Normal (Dalton)",
@@ -63,8 +144,13 @@ body.grey canvas{background:#b0b0b0}
 body.grey button,body.grey select{background:#c4c4c4;color:#141414;border-color:#8a8a8a}
 body.grey button:hover{background:#b7b7b7}
 body.grey .pill,body.grey input,body.grey textarea{background:#c9c9c9;color:#141414;border-color:#8a8a8a}
-body.grey #settings,body.grey #modal>div,body.grey #lens>div{background:#c4c4c4!important;color:#141414}
-body.grey #settings *,body.light #settings *{color:#1c2530!important}
+body.grey #settings,body.grey #modal>div,body.grey #lens>div,body.grey #revpanel{background:#c4c4c4!important;color:#141414}
+body.grey #settings *,body.light #settings *,body.grey #revpanel *,body.light #revpanel *{color:#1c2530!important}
+body.light #revpanel{background:#fff!important;color:#1c2530}
+#revpanel input[type=number]{width:52px;background:#0c0f13;color:#e6e9ec;border:1px solid #2b333d;border-radius:4px;padding:2px 4px;font-size:11px}
+body.light #revpanel input[type=number],body.grey #revpanel input[type=number]{background:#fff;color:#1c2530}
+.rvg{margin:7px 0 2px;color:#e67e22;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.rvr{display:flex;align-items:center;justify-content:space-between;gap:6px;margin:2px 0;font-size:11.5px}
 body.light canvas{background:#fbfbfa}
 body.light textarea,body.light input{background:#fff;color:#1c2530;border-color:#d5dae1}
 body.light button,body.light select{background:#eef0f3;color:#1c2530;border-color:#cfd5dd}
@@ -89,7 +175,7 @@ textarea{width:100%;background:#0c0f13;color:var(--tx);border:1px solid var(--ln
 .win{color:var(--grn)}.loss{color:var(--red)}
 </style></head><body>
 <div id=top>
- <b id=dt>—</b><span style="color:#2ecc71;font-size:10px" title="build tag — changes when new code loads">v12</span>
+ <b id=dt>—</b><span style="color:#2ecc71;font-size:10px" title="build tag — changes when new code loads">v23</span>
  <button onclick=nav(-1)>◀ prev</button><button onclick=nav(1)>next ▶</button>
  <button onclick=jumpUngraded()>next ungraded</button>
  <select id=daysel onchange=goDay(this.value)></select>
@@ -114,6 +200,14 @@ textarea{width:100%;background:#0c0f13;color:var(--tx);border:1px solid var(--ln
  <span class=tog><input type=checkbox id=t_ob onchange=render()>OB</span>
  <span class=tog title="show the prior session's last bar + gap line (uncheck to readjust the chart to today only after a large gap)"><input type=checkbox id=t_prev checked onchange=render()>prev bar</span>
  <span class=tog title="MyReversals indicator markers: ▲green FT-long / ▼red FT-short at the FT bar, blue dot on the reversal bar, T/B/O/I = Trap/BO/OB/IB"><input type=checkbox id=t_rev checked onchange=render()>rev</span>
+ <span class=tog title="Thomas's NT MyReversals EXPORT (this CSV): diamond at limit entry + dashed stop, T/B/I letter. Separate from the computed 'rev' markers and the book trades."><input type=checkbox id=t_csv onchange=render()><b style="color:#e67e22">NT csv</b></span>
+ <span class=tog title="FINAL BO SETUP: BO type, entry >=11:00, skip gap days, MARKET entry, 2R target (flat at close). Tick-accurate P&L."><input type=checkbox id=t_bo onchange=render()><b style="color:#16c60c">BO setup</b></span>
+ <button onclick=jumpBO() title="jump to next day that has a BO setup trade (only ~227 days have one)" style="border-color:#16c60c;color:#16c60c">BO ▶</button>
+ <span style="color:var(--mut)">setups</span>
+ <span class=tog><input type=checkbox id=t_2el checked onchange=render()>2EL</span>
+ <span class=tog><input type=checkbox id=t_2es checked onchange=render()>2ES</span>
+ <span class=tog><input type=checkbox id=t_f2el checked onchange=render()>f2EL</span>
+ <span class=tog><input type=checkbox id=t_f2es checked onchange=render()>f2ES</span>
  <span class=tog title="Globex (overnight) high/low on the RTH chart"><input type=checkbox id=t_gx onchange=render()>GX H/L</span>
  <span class=tog title="chart theme"><span style=color:var(--mut)>theme</span><select id=theme onchange=applyTheme(this.value)><option value=dark>dark</option><option value=light>light</option><option value=grey>grey · NT (Thomas)</option></select></span>
  <span style=color:var(--mut)>levels→⚙</span>
@@ -123,6 +217,7 @@ textarea{width:100%;background:#0c0f13;color:var(--tx);border:1px solid var(--ln
  <button onclick="document.getElementById('yzoom').value=1;document.getElementById('xzoom').value=1;document.getElementById('panx').value=1;showPanel()" title="reset zoom + show panel">⟲</button>
  <button id=lensbtn onclick=toggleLens() title="movable magnifier">🔍 lens</button>
  <button onclick=toggleSettings() title="colors & opacity">⚙</button>
+ <button onclick=toggleRevPanel() title="MyReversals detection parameters — adjust &amp; recalculate all signals" style="border-color:#e67e22;color:#e67e22">⚑ MyReversals</button>
  <button onclick=toggleSide() title="show/hide the side panel (P)" style="background:#4a9eff;color:#fff;font-weight:700">⊞ panel</button>
 </div>
 <canvas id=lenscv width=200 height=200 style="position:fixed;border-radius:50%;border:2px solid #4a9eff;box-shadow:0 6px 28px rgba(0,0,0,.6);pointer-events:none;display:none;z-index:120"></canvas>
@@ -130,6 +225,18 @@ textarea{width:100%;background:#0c0f13;color:var(--tx);border:1px solid var(--ln
 <div id=settings style="display:none;position:absolute;top:80px;right:250px;z-index:8;background:#1a1f26;border:1px solid #2b333d;border-radius:8px;padding:10px;width:224px;box-shadow:0 6px 24px #000a">
  <b style="color:#4a9eff">colors &amp; opacity</b><div id=setbody style="margin-top:6px"></div>
  <button style="margin-top:8px;width:100%" onclick=resetCfg()>reset defaults</button>
+</div>
+<div id=revpanel style="display:none;position:absolute;top:80px;right:12px;z-index:8;background:#1a1f26;border:1px solid #e67e22;border-radius:8px;padding:10px;width:300px;max-height:82vh;overflow:auto;box-shadow:0 6px 24px #000a">
+ <div style="display:flex;justify-content:space-between;align-items:center">
+  <b style="color:#e67e22">MyReversals parameters</b>
+  <button onclick=toggleRevPanel() style="padding:2px 7px">✕</button></div>
+ <div style="color:#8b93a0;font-size:10px;margin:4px 0 6px">Thomas's NT settings. Change any, then <b>Recalculate</b> to redraw every chart's signals.</div>
+ <div id=revbody></div>
+ <div style="position:sticky;bottom:0;background:#1a1f26;padding-top:8px;margin-top:6px;border-top:1px solid #2b333d">
+  <button style="width:100%;background:#e67e22;color:#111;font-weight:700;border-color:#e67e22" onclick=recalcRevs()>↻ Recalculate all signals</button>
+  <button style="width:100%;margin-top:5px" onclick=resetRevParams()>reset to Thomas defaults</button>
+  <div id=revstatus style="color:#8b93a0;font-size:11px;margin-top:5px;text-align:center">showing baked signals — recalculate to apply panel values</div>
+ </div>
 </div>
 <div id=wrap><div id=chart><canvas id=cv></canvas></div>
 <div id=side>
@@ -148,6 +255,8 @@ textarea{width:100%;background:#0c0f13;color:var(--tx);border:1px solid var(--ln
   <button style="width:100%;margin-top:4px" onclick=openLens()>🔍 zoom this setup</button>
  </div>
  <h4>stats (filter)</h4><div id=stats></div>
+ <h4>NT csv setups · day P&amp;L (1R tgt, $17.5 RT)</h4><div id=csvstats style=color:var(--mut)>—</div>
+ <h4 style="color:#16c60c">BO setup · day P&amp;L (2R, tick)</h4><div id=bostats style=color:var(--mut)>—</div>
 </div></div>
 <div id=modal style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9">
  <div style="position:absolute;top:3%;left:3%;right:3%;bottom:3%;background:#1a1f26;border:1px solid #2b333d;border-radius:8px;padding:12px;display:flex;flex-direction:column">
@@ -195,7 +304,43 @@ function ccol(c){if(!window._LTbg)return c;let m=(c||'').replace('#','');if(m.le
 let CH={on:false,x:0,y:0};
 let D=null,notes={},idx=[],curDate=null,revIdx=0,playT=null,sel=null,VX={x0:60,y0:20};
 let REVS={};fetch('/revs').then(r=>r.json()).then(j=>{REVS=j}).catch(()=>{});
+// --- MyReversals detection parameters (defaults = Thomas's NT screenshot) ---
+const REV_DEFAULTS={
+ ShowTrap:true,Trap_IBS:72,Trap_UL:80,Trap_Body:15,Trap_Tail:20,Trap_MinSize:2,Trap_ABR:0.6,Trap_Prior_OppClose:true,Trap_BodyCheck:true,
+ ShowBO:true,BO_IBS:72,BO_UL:15,BO_Body:50,BO_CloseBeyond:true,BO_ABR:0.8,BO_Prior_OppClose:true,
+ ShowOB:true,OB_IBS:90,OB_UL:10,OB_Body:50,OB_CloseBeyond:true,OB_CloseBeyondIB:true,OB_ABR:0.8,OB_Strict:true,OB_Prior_OppClose:true,OB_BodyCheck:true,
+ ShowIB:true,IB_IBS:50,IB_Body:40,IB_BodyCheck:true,IB_Prior_Tail:49,IB_Prior_OppClose:true,
+ FT_IBS:50,FT_UL:5,FT_Body:50,FT_CloseBeyond:true,FT_ABR:0.24,FT_NoDojiIB:true};
+// [key,label,type]  type: n=int, f=float, b=bool
+const REV_FIELDS=[
+ ['Trap Reversal',[['ShowTrap','Show Trap Reversal','b'],['Trap_IBS','IBS (1-100)','n'],['Trap_UL','Underlap Max (1-100)','n'],['Trap_Body','Body Min (0-100)','n'],['Trap_Tail','Tail Min (1-100)','n'],['Trap_MinSize','Trap Min (ticks)','n'],['Trap_ABR','ABR Multiple','f'],['Trap_Prior_OppClose','Prior Body Opposite','b'],['Trap_BodyCheck','Body = Bar Direction','b']]],
+ ['Breakout Reversal',[['ShowBO','Show BO Reversal','b'],['BO_IBS','IBS (1-100)','n'],['BO_UL','Breakout Min (1-100)','n'],['BO_Body','Body Min (0-100)','n'],['BO_CloseBeyond','Close beyond','b'],['BO_ABR','ABR Multiple','f'],['BO_Prior_OppClose','Prior Body Opposite','b']]],
+ ['Outside Reversal',[['ShowOB','Show OB Reversal','b'],['OB_IBS','IBS (1-100)','n'],['OB_UL','Breakout Min (1-100)','n'],['OB_Body','Body Min (0-100)','n'],['OB_CloseBeyond','Close beyond','b'],['OB_CloseBeyondIB','Close beyond IB1','b'],['OB_ABR','ABR Multiple','f'],['OB_Strict','Strict OB only','b'],['OB_Prior_OppClose','Prior Body Opposite','b'],['OB_BodyCheck','Body = Bar Direction','b']]],
+ ['Inside Reversal',[['ShowIB','Show IB Reversal','b'],['IB_IBS','IBS (1-100)','n'],['IB_Body','Body Min (0-100)','n'],['IB_BodyCheck','Body = Bar Direction','b'],['IB_Prior_Tail','Prior Tail Max (1-50)','n'],['IB_Prior_OppClose','Prior Body Opposite','b']]],
+ ['Follow Through',[['FT_IBS','IBS (1-100)','n'],['FT_UL','Breakout Min (1-100)','n'],['FT_Body','Body Min (1-100)','n'],['FT_CloseBeyond','Close beyond','b'],['FT_ABR','ABR Multiple','f'],['FT_NoDojiIB','Filter for Doji IB','b']]]];
+let REVP=Object.assign({},REV_DEFAULTS,JSON.parse(localStorage.getItem('revparams')||'{}'));
+function toggleRevPanel(){let s=$('revpanel');let show=s.style.display=='none';s.style.display=show?'block':'none';if(show)buildRevPanel()}
+function buildRevPanel(){let h='';for(let [grp,fields] of REV_FIELDS){h+=`<div class=rvg>${grp}</div>`;
+  for(let [k,lab,ty] of fields){let v=REVP[k];
+   if(ty=='b')h+=`<div class=rvr><span>${lab}</span><input type=checkbox id=rp_${k} ${v?'checked':''}></div>`;
+   else h+=`<div class=rvr><span>${lab}</span><input type=number id=rp_${k} value="${v}" step="${ty=='f'?'0.01':'1'}"></div>`;}}
+ $('revbody').innerHTML=h}
+function collectRevParams(){let p={};for(let [grp,fields] of REV_FIELDS)for(let [k,lab,ty] of fields){let el=$('rp_'+k);if(!el)continue;
+  p[k]=ty=='b'?el.checked:(ty=='f'?parseFloat(el.value):parseInt(el.value));}
+ return p}
+function resetRevParams(){REVP=Object.assign({},REV_DEFAULTS);localStorage.removeItem('revparams');buildRevPanel();$('revstatus').textContent='defaults restored — recalculate to apply'}
+function recalcRevs(){REVP=collectRevParams();$('revstatus').textContent='recalculating all days…';
+ fetch('/recalc',{method:'POST',body:JSON.stringify(REVP)}).then(r=>r.json()).then(j=>{
+  if(j&&j.error){$('revstatus').textContent='error: '+j.error;return}
+  REVS=j;localStorage.setItem('revparams',JSON.stringify(REVP));
+  let n=Object.values(j).reduce((a,v)=>a+v.length,0),d=Object.keys(j).length;
+  $('revstatus').innerHTML=`<b style="color:#2ecc71">${n} signals</b> across ${d} days ✓`;render()})
+ .catch(e=>{$('revstatus').textContent='error: '+e})}
 let GX={};fetch('/globex').then(r=>r.json()).then(j=>{GX=j}).catch(()=>{});
+let CSVS={};fetch('/csvsig').then(r=>r.json()).then(j=>{CSVS=j;render()}).catch(()=>{});  // Thomas's NT export overlay
+let BOS={};fetch('/bosetup').then(r=>r.json()).then(j=>{BOS=j;render()}).catch(()=>{});  // final BO setup (tick PnL)
+function jumpBO(){let ks=Object.keys(BOS).sort();if(!ks.length){alert('BO setup data not loaded');return}
+ let nx=ks.find(k=>k>(curDate||''))||ks[0];$('t_bo').checked=true;goDay(nx)}
 const REVCOL={T:'#e67e22',B:'#4a9eff',O:'#c39bd3',I:'#2ecc71'}; // Trap/BO/OB/IB
 const $=id=>document.getElementById(id);
 for(const s of ['dti','dtf']){const e=$(s);e.innerHTML='<option value="">—</option>'+DTS.map(d=>`<option>${d}</option>`).join('')}
@@ -205,7 +350,9 @@ applyTheme(localStorage.getItem('brtheme')||'dark');   // restore saved theme (p
 function applyDayFilter(init){let sk=$('t_skip').checked;idx=sk?ALLIDX.filter(d=>d.skipTD):ALLIDX;
  if(!idx.length){$('daysel').innerHTML='<option>none</option>';return}
  $('daysel').innerHTML=idx.map(d=>`<option value=${d.date}>${d.date}${d.skipTD?' ⚑':''} (${d.n_in_book}tr ${d.net>=0?'+':''}${d.net})</option>`).join('');
- let keep=!init&&idx.some(d=>d.date==curDate);goDay(keep?curDate:idx[0].date)}
+ let h=decodeURIComponent(location.hash.slice(1));
+ let start=(init&&h&&idx.some(d=>d.date==h))?h:((!init&&idx.some(d=>d.date==curDate))?curDate:idx[idx.length-1].date);
+ goDay(start)}
 function goDay(dt){curDate=dt;$('daysel').value=dt;fetch('/day/'+dt).then(r=>r.json()).then(j=>{D=j;revIdx=D.bars.length-1;loadNotes(dt)})}
 function loadNotes(dt){fetch('/notes/'+dt).then(r=>r.json()).then(n=>{notes=n||{};$('dti').value=notes.daytype_inter||'';$('dtf').value=notes.daytype_final||'';$('ibar').textContent=notes.daytype_inter_bar??'—';sel=null;$('selpanel').style.display='none';$('selinfo').textContent='click a setup or bar';fit();render()})}
 function nav(d){let i=idx.findIndex(x=>x.date==curDate)+d;if(i>=0&&i<idx.length)goDay(idx[i].date)}
@@ -229,6 +376,26 @@ function hline(a,b,yy){ctx.beginPath();ctx.moveTo(a,yy);ctx.lineTo(b,yy);ctx.str
 function dot(a,b,r){ctx.beginPath();ctx.arc(a,b,r,0,7);ctx.fill()}
 function candle(i,o,h,l,c,x,y,bw,dim){let up=c>=o,col=dim?'#39424d':(up?CFG.cUp:CFG.cDn),xx=x(i);ctx.globalAlpha=dim?.55:1;ctx.strokeStyle=(window._wick&&!dim)?window._wick:col;ctx.fillStyle=col;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(xx,y(h));ctx.lineTo(xx,y(l));ctx.stroke();let yo=y(o),yc=y(c),bx=xx-bw*.32,bwd=Math.max(1,bw*.64),bh=Math.max(1,Math.abs(yo-yc));ctx.fillStyle=col;ctx.fillRect(bx,Math.min(yo,yc),bwd,bh);if(window._edge&&!dim){ctx.lineWidth=1;ctx.strokeStyle=window._edge;ctx.strokeRect(bx,Math.min(yo,yc),bwd,bh)}ctx.globalAlpha=1}
 function setupLbl(t){return t.setup||((t.with_trend?'':'f')+'2E'+t.dir)}
+const FAM_TOG={'2EL':'t_2el','2ES':'t_2es','f2EL':'t_f2el','f2ES':'t_f2es'};
+function famVis(t){let id=FAM_TOG[setupLbl(t)];return id?$(id).checked:true}  // per-family toggle; unknown labels always show
+// NT-csv setup outcome: pullback fill -> stop/1R-target/EOD exit, P&L net $17.5 RT (full day, reveal-agnostic)
+function csvResult(c,bars){let bi=c[0],up=c[1]>0,stopP=c[5],lmt=c[6];
+ if(bi>=bars.length)return null;
+ let b=bars[bi],slo=b[4],shi=b[3],away=false,fillB=-1;
+ for(let j=bi+1;j<bars.length;j++){let hh=bars[j][3],ll=bars[j][4];
+  if(up){if(away&&ll<lmt){fillB=j;break} if(hh>shi)away=true;}
+  else{if(away&&hh>lmt){fillB=j;break} if(ll<slo)away=true;}}
+ if(fillB<0)return {bi:bi,up:up,fillB:-1};
+ let risk=Math.abs(lmt-stopP),tgt=up?lmt+risk:lmt-risk,exitB=-1,exitPx=null,oc=null;
+ for(let j=fillB;j<bars.length;j++){let hh=bars[j][3],ll=bars[j][4];
+  if(up){if(ll<=stopP){exitB=j;exitPx=stopP;oc='stop';break} if(hh>=tgt){exitB=j;exitPx=tgt;oc='target';break}}
+  else{if(hh>=stopP){exitB=j;exitPx=stopP;oc='stop';break} if(ll<=tgt){exitB=j;exitPx=tgt;oc='target';break}}}
+ if(exitB<0){exitB=bars.length-1;exitPx=bars[exitB][5];oc='eod';}
+ let pts=up?(exitPx-lmt):(lmt-exitPx),pnl=Math.round(pts*50-17.5);
+ return {bi:bi,up:up,fillB:fillB,btf:fillB-bi,exitB:exitB,exitPx:exitPx,oc:oc,pnl:pnl,
+         pts:+pts.toFixed(2),tgt:+tgt.toFixed(2),risk:+risk.toFixed(2),lmt:lmt,stopP:stopP};}
+function distSeg(px,py,x1,y1,x2,y2){let dx=x2-x1,dy=y2-y1,l2=dx*dx+dy*dy;if(!l2)return Math.hypot(px-x1,py-y1);
+ let t=Math.max(0,Math.min(1,((px-x1)*dx+(py-y1)*dy)/l2));return Math.hypot(px-(x1+t*dx),py-(y1+t*dy));}
 function setupBox(t){let dir=t.dir=='S'?'short ▽':'long △',net=(t.net!=null&&!isNaN(t.net))?`<span style="color:${t.net>0?'#2ecc71':'#e74c3c'}">${t.net>0?'+':''}${t.net}</span>`:'—',
  status=t.is_fade?(t.fade_tradeable?'FADE · tradeable':'FADE · dead'):(t.in_book?'IN BOOK':'excluded');
  return `<b style="color:${setupCol(t)};font-size:13px">${setupLbl(t)}</b> ${dir} &nbsp;<span style="color:#aeb6c0">${status}</span>`+
@@ -246,7 +413,7 @@ function render(){if(!D)return;$('dt').textContent=D.date;$('rev').textContent=r
  let tot=P+bars.length,vw=W-pad.x0-12,xZoom=+$('xzoom').value,bw=vw/tot*xZoom,offX=(+$('panx').value)*Math.max(0,tot*bw-vw);
  let x=i=>pad.x0+(i+P)*bw+bw/2-offX,y=p=>pad.y0+(hi-p)/rng*(bot-pad.y0);
  let GY=document.body.classList.contains('grey'),LT=document.body.classList.contains('light')||GY;
- window._LTbg=LT;window._lvlHit=[];window._setupHit=[];window._revHit=[];   // contrast + hover tooltips
+ window._LTbg=LT;window._lvlHit=[];window._setupHit=[];window._revHit=[];window._csvHit=[];window._boHit=[];   // contrast + hover tooltips
  window._edge=GY?'#111':(LT?'rgba(20,20,20,.55)':null);   // body outline: black on NT theme
  window._wick=GY?'#111':null;                             // wicks black on NT theme, else candle colour
  cv.style.background=CFG.bg;ctx.clearRect(0,0,W,H);
@@ -294,6 +461,47 @@ function render(){if(!D)return;$('dt').textContent=D.date;$('rev').textContent=r
    ctx.beginPath(); if(up){ctx.moveTo(xx,ty-s);ctx.lineTo(xx-s,ty+s);ctx.lineTo(xx+s,ty+s);}else{ctx.moveTo(xx,ty+s);ctx.lineTo(xx-s,ty-s);ctx.lineTo(xx+s,ty-s);} ctx.closePath();
    ctx.fillStyle=col;ctx.fill();
    ctx.font='8px sans-serif';ctx.textAlign='center';ctx.fillStyle=col;ctx.fillText(typ,xx,up?ty+s+8:ty-s-3);}}
+ // NT export (Thomas's CSV): grey LMT line (signal->fill), then a BOLD straight line entry->exit,
+ // green = winner / red = loser (1R target vs stop vs EOD). P&L on hover. Day P&L in the panel.
+ if($('t_csv').checked&&CSVS[D.date]){
+  for(let c of CSVS[D.date]){let R=csvResult(c,bars);if(!R||R.bi>revIdx)continue;
+   let up=R.up,bi=R.bi,yl=y(c[6]),col=up?'#1fae43':'#e23b3b',xs=x(bi)-bw/2;
+   ctx.fillStyle=hexa(col,.10);ctx.fillRect(xs,pad.y0,bw,bot-pad.y0);            // faint stripe on the signal bar
+   if(R.fillB<0){                                                               // never filled -> dashed grey LMT line
+    let noFill=revIdx>=bars.length-1,xe=x(revIdx)+bw*.5;
+    ctx.strokeStyle='#9aa4b0';ctx.lineWidth=1.4;ctx.setLineDash(noFill?[4,3]:[2,3]);hline2(xs,yl,xe,yl);ctx.setLineDash([]);ctx.lineWidth=1;
+    window._csvHit.push({segs:[[xs,yl,xe,yl]],c:c,fillB:-1,btf:null,exit:null});continue;}
+   let feEnd=Math.min(R.fillB,revIdx),xfe=x(feEnd)+bw*.5;
+   ctx.strokeStyle='#9aa4b0';ctx.lineWidth=1.2;ctx.setLineDash([]);hline2(xs,yl,xfe,yl);ctx.lineWidth=1;   // grey LMT entry line
+   let segs=[[xs,yl,xfe,yl]];
+   if(R.fillB<=revIdx&&R.exitB<=revIdx){                                        // closed & revealed -> bold win/loss line
+    let win=R.pnl>0,oc=win?'#16c60c':'#ef2b2b',xf=x(R.fillB),xe2=x(R.exitB),ye=y(R.exitPx);
+    ctx.strokeStyle=oc;ctx.lineWidth=2.6;ctx.beginPath();ctx.moveTo(xf,yl);ctx.lineTo(xe2,ye);ctx.stroke();ctx.lineWidth=1;
+    ctx.fillStyle=oc;ctx.beginPath();ctx.arc(xe2,ye,3.4,0,7);ctx.fill();
+    segs.push([xf,yl,xe2,ye]);
+   } else if(R.fillB<=revIdx){                                                  // filled, not yet exited (reveal)
+    ctx.strokeStyle='#9aa4b0';ctx.setLineDash([2,3]);hline2(x(R.fillB),yl,x(revIdx)+bw*.5,yl);ctx.setLineDash([]);
+    segs.push([x(R.fillB),yl,x(revIdx)+bw*.5,yl]);}
+   window._csvHit.push({segs:segs,c:c,fillB:R.fillB,btf:R.btf,
+    exit:{oc:R.oc,pnl:R.pnl,pts:R.pts,tgt:R.tgt,risk:R.risk,exitBar:R.exitB+1}});}}
+ // FINAL BO SETUP (tick-accurate): BO>=11:00, skip-gap, MARKET entry, 2R target. entry dot + stop/2R lines + win/loss line.
+ if($('t_bo').checked&&BOS[D.date]){
+  for(let tr of BOS[D.date]){let ft=tr[0],dir=tr[1],btc=tr[2],estop=tr[3],pnl=tr[4],reason=tr[5],xb=tr[6];
+   if(ft>revIdx||ft>=bars.length)continue;
+   let long=dir>0,b=bars[ft],entry=b[5],shift=entry-btc,stop=estop+shift,risk=Math.abs(btc-estop);
+   let tgt=long?entry+2*risk:entry-2*risk,xx=x(ft),ye=y(entry),ys=y(stop),yt=y(tgt),win=pnl>0,col=win?'#16c60c':'#ef2b2b';
+   let exEnd=Math.min(xb,revIdx),xe=x(exEnd)+bw*.5;
+   ctx.fillStyle=hexa(col,.08);ctx.fillRect(xx-bw/2,pad.y0,bw,bot-pad.y0);          // stripe
+   ctx.setLineDash([3,3]);ctx.lineWidth=1;
+   ctx.strokeStyle=hexa('#e74c3c',.6);hline2(xx-bw*.5,ys,xe,ys);                    // stop
+   ctx.strokeStyle=hexa('#2ecc71',.6);hline2(xx-bw*.5,yt,xe,yt);                    // 2R target
+   ctx.setLineDash([]);
+   ctx.fillStyle=col;ctx.beginPath();ctx.arc(xx,ye,3.6,0,7);ctx.fill();            // market-entry dot
+   if(xb<=revIdx){let exPx=reason==0?stop:reason==1?tgt:bars[Math.min(xb,bars.length-1)][5],yex=y(exPx);
+    ctx.strokeStyle=col;ctx.lineWidth=2.6;ctx.beginPath();ctx.moveTo(xx,ye);ctx.lineTo(x(xb),yex);ctx.stroke();ctx.lineWidth=1;
+    ctx.fillStyle=col;ctx.beginPath();ctx.arc(x(xb),yex,3.4,0,7);ctx.fill();}
+   window._boHit.push({x0:xx-bw/2,x1:xe,ylo:Math.min(ye,ys,yt)-4,yhi:Math.max(ye,ys,yt)+4,
+    tr:tr,entry:entry,stop:stop,tgt:tgt,risk:risk});}}
  // user bar TAGS (name+grade+note) — always shown
  if(notes.setups)for(let k in notes.setups){let n=notes.setups[k];if(!n.is_bar)continue;let bi=n.entry_bar;if(bi>revIdx||bi>=bars.length)continue;
   let b=bars[bi],xx=x(bi),yt=y(b[3])-9;ctx.fillStyle='#f1c40f';ctx.beginPath();ctx.moveTo(xx,yt-5);ctx.lineTo(xx-4,yt+2);ctx.lineTo(xx+4,yt+2);ctx.closePath();ctx.fill();
@@ -304,7 +512,7 @@ function render(){if(!D)return;$('dt').textContent=D.date;$('rev').textContent=r
  // gap tick (open vs prior close)
  if($('t_gap').checked&&$('t_prev').checked&&D.prior.C){ctx.strokeStyle='#f39c12';ctx.lineWidth=2;hline2(x(0),y(D.prior.C),x(0),y(bars[0][2]));ctx.lineWidth=1}
  // racing stripe on the signal bar for EVERY setup (taken or not); data shown on hover
- if($('t_tr').checked)for(let t of visTrades()){if(t.sig_bar>revIdx)continue;let col=setupCol(t),xs=x(t.sig_bar)-bw/2,seld=(sel&&!sel.is_rev&&!sel.is_bar&&sel.entry_bar==t.entry_bar&&sel.dir==t.dir);
+ if($('t_tr').checked)for(let t of visTrades()){if(t.sig_bar>revIdx||!famVis(t))continue;let col=setupCol(t),xs=x(t.sig_bar)-bw/2,seld=(sel&&!sel.is_rev&&!sel.is_bar&&sel.entry_bar==t.entry_bar&&sel.dir==t.dir);
   ctx.globalAlpha=1;ctx.fillStyle=hexa(col,seld?.30:.14);ctx.fillRect(xs,pad.y0,bw,bot-pad.y0);
   ctx.fillStyle=hexa(col,1);ctx.fillRect(xs,pad.y0,bw,seld?5:3);
   if(seld){ctx.strokeStyle=LT?'#111':'#fff';ctx.lineWidth=1.3;ctx.strokeRect(xs,pad.y0,bw,bot-pad.y0);ctx.lineWidth=1}
@@ -323,7 +531,16 @@ function render(){if(!D)return;$('dt').textContent=D.date;$('rev').textContent=r
     ctx.font='11px sans-serif';ctx.textAlign='left';let tw=toks.reduce((a,t)=>a+ctx.measureText(t[0]).width,0)+16;
     ctx.fillStyle='rgba(16,20,26,.96)';ctx.fillRect(pad.x0+4,pad.y0+3,tw,18);
     let cx=pad.x0+11;for(let [t,cc] of toks){ctx.fillStyle=cc;ctx.fillText(t,cx,pad.y0+16);cx+=ctx.measureText(t).width}}}
- window._lo=lo;window._hi=hi;renderStats();renderDayInfo();renderLevels();window._x=x;window._y=y;window._bw=bw;window._P=P}
+ window._lo=lo;window._hi=hi;renderStats();renderCsvStats();renderBoStats();renderDayInfo();renderLevels();window._x=x;window._y=y;window._bw=bw;window._P=P}
+function renderBoStats(){let el=$('bostats');if(!el)return;
+ if(!$('t_bo').checked||!D||!BOS[D.date]){el.innerHTML='<span style="color:#5c6673">toggle BO setup on</span>';return}
+ let all=BOS[D.date].filter(t=>t[0]<=revIdx),w=all.filter(t=>t[4]>0),l=all.filter(t=>t[4]<=0);
+ let net=all.reduce((a,t)=>a+t[4],0),gw=w.reduce((a,t)=>a+t[4],0),gl=-l.reduce((a,t)=>a+t[4],0);
+ let pf=gl?(gw/gl):(gw>0?'∞':'0');
+ el.innerHTML=`<div class=stat>trades<span>${all.length}</span></div>`+
+  `<div class=stat>W / L<span><span class=win>${w.length}</span> / <span class=loss>${l.length}</span></span></div>`+
+  `<div class=stat>PF<span>${typeof pf=='string'?pf:pf.toFixed(2)}</span></div>`+
+  `<div class=stat>net<span class=${net>=0?'win':'loss'}>${net>=0?'+':''}$${net.toFixed(0)}</span></div>`;}
 function renderLevels(){if(!D)return;let last=D.bars[revIdx][5],lo=window._lo,hi=window._hi;
  let L=CFG.lv,rows=[['last',last,'#e6e9ec'],['OPEN',D.today_open,L.open.c],['SMA20',D.sma20,L.sma.c],['pH',D.prior.H,L.pH.c],['pC',D.prior.C,L.pC.c],['pL',D.prior.L,L.pL.c]];
  if(D.ib){rows.push(['IBH',D.ib.hi,L.ibh.c],['IBL',D.ib.lo,L.ibl.c])}
@@ -333,6 +550,17 @@ function hline2(a,b,c,d){ctx.beginPath();ctx.moveTo(a,b);ctx.lineTo(c,d);ctx.str
 function renderDayInfo(){let p=D.prior;$('dayinfo').innerHTML=`<div class=stat>gap<span>${p.gap_pts} (${p.gap_pct}%)</span></div><div class=stat>ADR10<span>${D.adr10}</span></div><div class=stat>SMA20<span>${D.sma20}</span></div><div class=stat>skip-after-TD<span>${D.skipTD?'<span class=loss>YES (skipped)</span>':'no'}</span></div><div class=stat>trades<span>${D.trades.length} (${D.trades.filter(t=>t.in_book).length} in-book)</span></div>`}
 function renderStats(){let ts=visTrades().filter(t=>t.in_book);let w=ts.filter(t=>t.net>0),l=ts.filter(t=>t.net<0);let gp=w.reduce((a,b)=>a+b.net,0),gl=-l.reduce((a,b)=>a+b.net,0);let net=ts.reduce((a,b)=>a+b.net,0);
  $('stats').innerHTML=`<div class=stat>n<span>${ts.length}</span></div><div class=stat>PF<span>${gl?(gp/gl).toFixed(2):'∞'}</span></div><div class=stat>win%<span>${ts.length?(100*w.length/ts.length).toFixed(0):0}</span></div><div class=stat>net<span class=${net>=0?'win':'loss'}>${net>=0?'+':''}${net.toFixed(0)}</span></div>`}
+function renderCsvStats(){let el=$('csvstats');if(!el)return;
+ if(!$('t_csv').checked||!D||!CSVS[D.date]){el.innerHTML='<span style="color:#5c6673">toggle NT csv on</span>';return}
+ let all=CSVS[D.date].filter(c=>c[0]<=revIdx),rs=all.map(c=>csvResult(c,D.bars)).filter(r=>r&&r.fillB>=0);
+ let nf=all.length-rs.length,w=rs.filter(r=>r.pnl>0),l=rs.filter(r=>r.pnl<=0);
+ let net=rs.reduce((a,r)=>a+r.pnl,0),gw=w.reduce((a,r)=>a+r.pnl,0),gl=-l.reduce((a,r)=>a+r.pnl,0);
+ let pf=gl?(gw/gl):(gw>0?'∞':'0');
+ el.innerHTML=`<div class=stat>filled<span>${rs.length} <span style="color:#5c6673">(${nf} unfilled)</span></span></div>`+
+  `<div class=stat>W / L<span><span class=win>${w.length}</span> / <span class=loss>${l.length}</span></span></div>`+
+  `<div class=stat>win%<span>${rs.length?(100*w.length/rs.length).toFixed(0):0}</span></div>`+
+  `<div class=stat>PF<span>${typeof pf=='string'?pf:pf.toFixed(2)}</span></div>`+
+  `<div class=stat>net<span class=${net>=0?'win':'loss'}>${net>=0?'+':''}$${net}</span></div>`;}
 cv.onclick=e=>{if(!D)return;let r=cv.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;let best=null,bd=1e9;
  let rv=pickRev(mx,my);if(rv){selectRev(rv);return}
  for(let t of visTrades()){if(t.sig_bar>revIdx)continue;let dx=Math.abs(window._x(t.sig_bar)-mx);if(dx<bd&&dx<Math.max(9,window._bw*.6)){bd=dx;best=t}}  // select by racing-stripe column
@@ -349,6 +577,8 @@ function drawLensMag(){let lc=$('lenscv'),g=lc.getContext('2d'),S=lc.width,Z=2.8
 cv.onmousemove=e=>{if(!D)return;let r=cv.getBoundingClientRect();CH={on:true,x:e.clientX-r.left,y:e.clientY-r.top,cx:e.clientX,cy:e.clientY};
  let tip=$('lvltip'),html=null,thr=Math.max(7,(window._bw||6)*.6);
  for(let S of window._setupHit||[]){if(Math.abs(S.xc-CH.x)<thr){html=setupBox(S.t);break}}
+ if(!html)for(let C of window._csvHit||[]){let hit=false;for(let s of C.segs){if(distSeg(CH.x,CH.y,s[0],s[1],s[2],s[3])<6){hit=true;break}}if(hit){html=csvBox(C.c,C);break}}
+ if(!html)for(let Bh of window._boHit||[]){if(CH.x>=Bh.x0&&CH.x<=Bh.x1&&CH.y>=Bh.ylo&&CH.y<=Bh.yhi){html=boBox(Bh);break}}
  if(!html)for(let H of window._revHit||[]){if(CH.x>=H.x0&&CH.x<=H.x1){html=revBox(H.r);break}}
  if(!html)for(let L of window._lvlHit||[]){if(Math.abs(L.y-CH.y)<5){let last=D.bars[revIdx][5],d=L.price-last;html=`<b style="color:${L.c}">${L.name}</b> &nbsp;<span style="color:#fff">${L.price}</span><br><span style="color:#aeb6c0">${d>=0?'+':''}${d.toFixed(2)} pt · ${(d/D.adr10*100).toFixed(0)}% ADR from last</span>`;break}}
  if(html){tip.innerHTML=html;tip.style.display='block';tip.style.left=(e.clientX+14)+'px';tip.style.top=(e.clientY+12)+'px'}else tip.style.display='none';
@@ -391,6 +621,20 @@ function pickRev(mx){let best=null,bd=1e9;for(let H of window._revHit||[]){if(mx
 function revBox(r){let up=r[1]>0,typ=r[2];return `<b style="color:${REVCOL[typ]};font-size:13px">${REVNAME[typ]} + FT</b> ${up?'long ▲':'short ▼'}`+
  `<br><span style="color:#8b93a0">reversal bar</span> ${r[3]+1} · <span style="color:#8b93a0">FT bar</span> ${r[0]+1}`+
  `<br><span style="color:#8b93a0">entry (FT close)</span> ${r[4]} · <span style="color:#8b93a0">stop</span> ${r[5]}`;}
+function csvBox(c,H){let up=c[1]>0,typ=c[2],btc=c[4],stop=c[5],lmt=c[6],risk=Math.abs(lmt-stop);
+ let head=`<b style="color:${REVCOL[typ]};font-size:13px">${REVNAME[typ]} · NT export</b> ${up?'long':'short'}`+
+  `<br><span style="color:#8b93a0">LMT</span> <b>${lmt}</b> · <span style="color:#8b93a0">stop</span> ${stop} · <span style="color:#8b93a0">1R</span> ${risk.toFixed(2)}pt (${(risk*50).toFixed(0)}$)`;
+ if(!H||H.fillB<0)return head+`<br><span style="color:#e67e22">not filled (session)</span>`;
+ let e=H.exit,ft=`filled in ${H.btf} bar${H.btf==1?'':'s'}`;
+ if(!e)return head+`<br><span style="color:#2ecc71">${ft}</span>`;
+ let win=e.pnl>0,oc=e.oc=='target'?'1R target ✓':e.oc=='stop'?'stop ✗':'EOD flat';
+ return head+`<br><span style="color:#2ecc71">${ft}</span> → <b style="color:${win?'#2ecc71':'#e74c3c'}">${oc} ${win?'+':''}$${e.pnl}</b>`+
+  `<br><span style="color:#8b93a0">exit</span> b${e.exitBar} · <span style="color:#8b93a0">1R tgt</span> ${e.tgt} · <span style="color:#8b93a0">${e.pts>0?'+':''}${e.pts}pt</span>`;}
+function boBox(H){let tr=H.tr,long=tr[1]>0,pnl=tr[4],reason=tr[5],win=pnl>0;
+ let oc=reason==0?'stop ✗':reason==1?'2R target ✓':'flat@close';
+ return `<b style="color:#16c60c;font-size:13px">BO setup</b> ${long?'long':'short'} <span style="color:#8b93a0">(market entry, 2R)</span>`+
+  `<br><span style="color:#8b93a0">entry</span> ${H.entry.toFixed(2)} · <span style="color:#8b93a0">stop</span> ${H.stop.toFixed(2)} · <span style="color:#8b93a0">2R tgt</span> ${H.tgt.toFixed(2)} · <span style="color:#8b93a0">1R</span> ${H.risk.toFixed(2)}pt`+
+  `<br><b style="color:${win?'#2ecc71':'#e74c3c'}">${oc} ${win?'+':''}$${pnl}</b> <span style="color:#8b93a0">(tick-accurate)</span>`;}
 function selectRev(r){let bi=r[0],up=r[1]>0,typ=r[2],revbar=r[3],entry=r[4],stop=r[5];
  sel={is_rev:true,_key:'R'+D.date+bi+typ,setup:'rev'+typ,dir:up?'L':'S',entry_bar:bi,sig_bar:bi,entry_px:entry,stop:stop};
  $('selpanel').style.display='block';$('tagwrap').style.display='none';let nt=(notes.setups||{})[tkey(sel)]||{};
@@ -475,6 +719,11 @@ class H(BaseHTTPRequestHandler):
         if p == "/globex":
             f = DAYS / "globex_index.json"
             return self._send(f.read_bytes() if f.exists() else b"{}")
+        if p == "/csvsig":
+            return self._send(json.dumps(csv_signals()))
+        if p == "/bosetup":
+            fp = DAYS / "bo_setup_index.json"
+            return self._send(fp.read_bytes() if fp.exists() else b"{}")
         if p.startswith("/day/"):
             f = DAYS / (p[5:] + ".json")
             return self._send(f.read_bytes() if f.exists() else b"{}")
@@ -488,9 +737,22 @@ class H(BaseHTTPRequestHandler):
             ln = int(self.headers.get("Content-Length", 0))
             (NOTES / (self.path[6:] + ".json")).write_bytes(self.rfile.read(ln))
             return self._send(b'{"ok":1}')
+        if self.path == "/recalc":
+            ln = int(self.headers.get("Content-Length", 0))
+            try:
+                params = json.loads(self.rfile.read(ln) or b"{}")
+                return self._send(json.dumps(recalc_revs(params)))
+            except Exception as e:
+                return self._send(json.dumps({"error": str(e)}), code=500)
         self._send(b"not found", "text/plain", 404)
 
 
 if __name__ == "__main__":
+    print("Book Review — warming continuous series for live MyReversals recompute…")
+    try:
+        _continuous()   # one-time build so the first /recalc is ~2s not ~20s
+        print(f"  ready: {len(_CONT)} bars cached")
+    except Exception as e:
+        print(f"  warm-up skipped: {e}")
     print(f"Book Review  ->  http://localhost:{PORT}   (Ctrl-C to stop)")
     ThreadingHTTPServer(("127.0.0.1", PORT), H).serve_forever()
