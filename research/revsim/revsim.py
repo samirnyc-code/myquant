@@ -59,7 +59,7 @@ def sim(sigs, entry="market", rr=2.0, hold_eod=False, min_rr=0.0,
         sess_end = tt[-1]
         L = sma.get(date, np.nan) if sma is not None else np.nan
         ptr = tt[0]
-        for _, s in day.iterrows():
+        for _sidx, s in day.iterrows():
             st = np.datetime64(s["time"])
             if st < ptr:
                 continue
@@ -128,7 +128,8 @@ def sim(sigs, entry="market", rr=2.0, hold_eod=False, min_rr=0.0,
             trades.append(dict(Date=date, rev=s["rev"], side=side, entry=round(fpx, 2),
                                stop=stop, target=round(target, 2), exitpx=round(xpx, 2),
                                reason=reason, risk_pts=round(risk, 2), pnl_pts=round(pnl_pts, 2),
-                               pnl=round(pnl_pts * PT - COST, 2), etime=ftime, xtime=xtime))
+                               pnl=round(pnl_pts * PT - COST, 2), etime=ftime, xtime=xtime,
+                               sig_idx=_sidx))
             ptr = xtime
     return pd.DataFrame(trades)
 

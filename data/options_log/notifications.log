@@ -33,3 +33,32 @@
 2026-07-20 22:20:02	⚠ Options desk — attention needed	7/8 steps green · 2 fired · 1 NEED ATTENTION
 2026-07-21 15:40:03	✓ Options desk healthy	FEED spx 7477.35 @ 08:39:57 (5s old) · LEVELS CR 7600.0 PS0 7410.0 · src 2026-07-20T20:00 · GAMEPLAN 7 triggers armed
 2026-07-21 16:00:14	TRADE OPENED · straddle_0dte (B)	Long ATM Straddle (0DTE) — gap-armed: straddle, net debit 28.00, coll $2,800 — reached 09:00, regime negative_gamma
+2026-07-21 22:20:04	⚠ Options desk — attention needed	7/8 steps green · 1 fired · 1 NEED ATTENTION
+2026-07-22 15:40:03	✓ Options desk healthy	FEED spx 7498.4 @ 08:40:01 (1s old) · LEVELS CR 7600.0 PS0 7450.0 · src 2026-07-21T20:00 · GAMEPLAN 7 triggers armed
+2026-07-22 16:01:19	TRADE OPENED · straddle_0dte (B)	Long ATM Straddle (0DTE) — gap-armed: straddle, net debit 23.00, coll $2,300 — reached 09:00, regime negative_gamma
+2026-07-22 16:05:14	STOOD DOWN · sell_0dte_gamma [thin_credit]	0DTE Call Credit Spread @ CR0: credit 0.70 < playbook minimum 0.80 — would risk $2,430 to make $70
+2026-07-22 17:21:27	TRADE OPENED · fly_gw_0dte (B)	0DTE Call Butterfly @ GW0: butterfly 50pt, net debit 3.45, coll $345 — reached 09:00, regime positive_gamma
+2026-07-22 17:21:55	TRADE CLOSED · straddle_0dte ($-641)	Long ATM Straddle (0DTE) — gap-armed: regime reclaim since entry: spot 7515 back ABOVE HVL 7515 — long vol wanted negative gamma; thesis over
+2026-07-22 17:23:33	TRADE CLOSED · fly_gw_0dte ($-31)	0DTE Call Butterfly @ GW0: regime flip since entry: spot 7515 crossed BELOW HVL 7515 — this structure needed the pin and the pin is gone
+2026-07-22 22:20:05	⚠ Options desk — attention needed	7/8 steps green · 3 fired · 1 NEED ATTENTION
+2026-07-23 15:40:02	✓ Options desk healthy	FEED spx 7440.35 @ 08:40:01 (1s old) · LEVELS CR 7600.0 PS0 7525.0 · src 2026-07-22T20:00 · GAMEPLAN 7 triggers armed
+2026-07-23 16:01:31	TRADE OPENED · straddle_0dte (B)	Long ATM Straddle (0DTE) — gap-armed: straddle, net debit 38.10, coll $3,810 — reached 09:00, regime negative_gamma
+2026-07-23 21:47:14	TRADE CLOSED · straddle_0dte ($804)	Long ATM Straddle (0DTE) — gap-armed: time stop 14:45 CT — flat before the 0DTE gamma cliff
+2026-07-23 22:20:05	⚠ Options desk — attention needed	7/8 steps green · 1 fired · 1 NEED ATTENTION
+2026-07-24 15:40:02	✓ Options desk healthy	FEED spx 7414.8 @ 08:39:58 (4s old) · LEVELS CR 7600.0 PS0 7400.0 · src 2026-07-23T20:00 · GAMEPLAN 7 triggers armed
+2026-07-24 15:55:40	TRADE OPENED · ps0_fade (D)	PS0 first-touch fade (short put spread): vertical 25pt, net credit 8.80, coll $1,620 — touched 7400 above
+2026-07-24 16:02:00	TRADE OPENED · straddle_0dte (B)	Long ATM Straddle (0DTE) — gap-armed: straddle, net debit 31.30, coll $3,130 — reached 09:00, regime negative_gamma
+2026-07-24 21:45:29	TRADE CLOSED · ps0_fade ($719)	PS0 first-touch fade (short put spread): time stop 14:45 CT — flat before the 0DTE gamma cliff
+2026-07-24 21:53:02	TRADE CLOSED · straddle_0dte ($-2,466)	Long ATM Straddle (0DTE) — gap-armed: time stop 14:45 CT — flat before the 0DTE gamma cliff
+2026-07-24 22:20:05	✓ Options desk ran clean	8/8 steps green · 2 fired
+2026-07-27 15:40:02	✓ Options desk healthy	FEED spx 7473.55 @ 08:40:00 (2s old) · LEVELS CR 7600.0 PS0 7450.0 · src 2026-07-24T20:00 · GAMEPLAN 7 triggers armed
+2026-07-27 16:00:28	TRADE OPENED · straddle_0dte (B)	Long ATM Straddle (0DTE) — gap-armed: straddle, net debit 33.20, coll $3,320 — reached 09:00, regime negative_gamma
+2026-07-27 22:20:05	⚠ Options desk — attention needed	7/8 steps green · 1 fired · 1 NEED ATTENTION
+2026-07-28 15:40:02	✓ Options desk healthy	FEED spx 7402.05 @ 08:39:59 (3s old) · LEVELS CR 7600.0 PS0 7400.0 · src 2026-07-27T20:00 · GAMEPLAN 7 triggers armed
+2026-07-28 15:51:29	TRADE OPENED · ps0_fade (D)	PS0 first-touch fade (short put spread): vertical 25pt, net credit 9.70, coll $1,530 — touched 7400 above
+2026-07-28 16:00:33	TRADE OPENED · straddle_0dte (B)	Long ATM Straddle (0DTE) — gap-armed: straddle, net debit 36.60, coll $3,660 — reached 09:00, regime negative_gamma
+2026-07-28 16:21:14	TRADE CLOSED · ps0_fade ($-1)	PS0 first-touch fade (short put spread): level ACCEPTED: spot 7393 held below the 7400 short strike for 12min (>10) — the wall we sold did not hold
+2026-07-28 22:20:05	⚠ Options desk — attention needed	7/8 steps green · 2 fired · 1 NEED ATTENTION
+2026-07-29 15:40:02	✓ Options desk healthy	FEED spx 7423.0 @ 08:40:00 (2s old) · LEVELS CR 7600.0 PS0 7300.0 · src 2026-07-28T20:00 · GAMEPLAN 7 triggers armed
+2026-07-29 16:00:24	TRADE OPENED · straddle_0dte (B)	Long ATM Straddle (0DTE) — gap-armed: straddle, net debit 55.80, coll $5,580 — reached 09:00, regime negative_gamma
+2026-07-29 22:20:05	✓ Options desk ran clean	8/8 steps green · 1 fired

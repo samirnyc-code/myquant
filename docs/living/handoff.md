@@ -6,6 +6,37 @@ pipeline + S77 security hardening; merged S76 Mac swing-levels work)
 
 ---
 
+## S91-EA (2026-07-30) — EminiAddict / Halsey Measured-Move project (all in `eminiaddict/`)
+
+New project: learn/codify/test David Halsey's Measured-Move method (eminiaddict.com,
+$29.99/mo — **user is subscribing now**). Book *Trading the Measured Move* (Wiley 2014)
+pulled + fully extracted; site content is WishList-paywalled (not scrapable logged-out).
+
+**Committed & pushed on `s75-live-dashboard`** (commits `7413ceb`→`9284eed`):
+- Full-book extraction: `notes/chNN_*.md` (16 chapters) + `notes/RULEBOOK.md`. Method artifact
+  + interactive study quiz + MM sequence gallery all in Mission Control (`docs/artifacts/
+  eminiaddict_*.html`, served :8590). `notes/questions_for_halsey.md`.
+- Scripts (`eminiaddict/scripts/`): `draw_mm_fib.py`, `find_mm_trades.py`, `sequence_lib.py`,
+  `mm_anatomy.py`, `swings_test.py` (bar-by-bar structural swing detector), `fib_render.py`,
+  **`fib_tool.py`** (interactive Halsey Fib tool, stdlib server + canvas, **:8641**).
+
+**⚠️ STATE — the visual/detection work is NOT landing with the user (they are dissatisfied).**
+- The auto-detected swing/sequence charts (%-ZigZag → then structural) were rejected as
+  wrong/cluttered/"useless". Root problem: swing-picking is discretionary; auto-drawing every
+  fib statically is noise. Pivoted to **interactive tool** (`fib_tool.py`) where the USER clicks
+  the swing anchors and the tool draws all levels (consistent per-level colors, toggle) —
+  fibs persist as price+time so they show on every TF (Daily fib shows on 15M/5M) and carry a
+  live status (in play / target hit / failed=61.8 breached). This is the current v1 to react to.
+- **Chart rule now HARD (memory `chart-label-no-overlap`):** text never overlaps level lines or
+  other labels; lines stop at price-area edge; consistent per-level colors; bigger fonts.
+
+**NEXT (per user, unconfirmed since they're unhappy):** iterate `fib_tool.py` to their taste
+(snap-to-swing, styling, status logic), then port into ChartSim (`book_review.py`, regime/indep)
+as the configurable Fib tool + 15M/D modes. Once subscribed: scrape slides + Whisper-transcribe
+videos for repeated-rule mining. Prices in `_db` bar files are back-adjusted (recent≈real).
+
+---
+
 ## S91d (2026-07-30) — L2 depth AddOn into the pipeline + Bookmap-style liquidity heatmap
 
 **Context:** the `MarketDepthRecorderAddOn` has been the SOLE L2 recorder since ~07-24
@@ -66,6 +97,42 @@ user request (committed `8d9e264`).
   alone. Results: `data/depth/level_edge_summary_20260729.txt` + events CSV.
   Next: split absorbed (traded) vs pulled (removed) big levels; or test as a conditioner on
   the 2E/reversal entries — NOT a standalone trigger.
+
+---
+
+## S92 (2026-07-30) — NT8 overnight feed-disconnect incident + VWAP/VA-from-ticks confirmed
+
+**Incident (RESOLVED by user manual restart).** Telegram spammed "L2 RECORDING DOWN /
+Auto-restart could NOT bring NT8 back / needs a human" from ~08:45 machine time. Root cause,
+verified from `log.20260730.00000` + the live depth CSV:
+- NT8 data feed **disconnected at 01:41:49 CT (08:41 machine)** — log: `Primary
+  connection=Disconnected, Price feed=Disconnected` → `MarketDepthRecorderAddOn: feed LOST
+  after 4,060,563 book + 53,031 tape rows`. It was NOT a chart/GUI jam.
+- NT8 then logged **nothing for ~28 min** — no reconnect retries. Process alive (PID 16200,
+  up since 3:18 AM) but its connection pump was hung behind a possibly-stale "connected"
+  indicator. This is the "Control Center looks healthy, recorder is dead" failure mode.
+- The watchdog (`nt8_watchdog.py`) correctly paged, and being overnight (not desk hours)
+  tried `nt8_maintenance.restart()` — a graceful, workspace-saving close. NT wouldn't close
+  cleanly and **force-kill is deliberately disabled** (protects chart drawings), so every
+  cycle aborted "needs a human." Two schedulers (NT Watchdog ~3 min, Alert Monitor 5 min)
+  looped it → the alert storm.
+- **User restarted NT8 manually at ~02:09 CT.** Verified recovery: new PID 12072, depth CSV
+  live, `feed CONNECTED, recording ES 09-26`, workspace 'Massive' restored (drawings intact),
+  FootprintExporter re-armed. **Data gap = ~28 min** (01:41:49→02:09:47 CT); the 4.06M
+  pre-drop rows are safe on disk.
+
+**TWO UNFIXED GAPS (need user go before any change):**
+1. NT8 did not auto-reconnect on a routine feed blip — root cause of the hang unknown (check
+   01:41 window for provider blip / machine sleep / network).
+2. The watchdog can page but structurally cannot recover a hung-NT overnight — its only tool
+   is a graceful restart it refuses to escalate. Candidate fix: allow overnight force-kill
+   ONLY after confirming a fresh workspace save, or add NT-side auto-reconnect. Not started.
+
+**VWAP + Value Areas from ticks — CONFIRMED FEASIBLE (accurate).** `data/ticks_continuous/*.parquet`
+schema = `[DateTime, Price, Volume]` per trade. That's exactly the input VWAP (Σ price·vol / Σ vol)
+and volume Value Areas (volume-at-price histogram → POC → 70% VA) require, with no reconstruction.
+Not yet built — just verified the data supports it. (User was mid-thread on Halsey MM "next
+traditional after target hit" in `eminiaddict/` when this came up.)
 
 ---
 
