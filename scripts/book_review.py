@@ -173,52 +173,76 @@ textarea{width:100%;background:#0c0f13;color:var(--tx);border:1px solid var(--ln
 .gr{display:flex;gap:4px}.gr button{flex:1}
 .stat{display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid #222}
 .win{color:var(--grn)}.loss{color:var(--red)}
+/* toolbar groups (S91e): cluster the ~40 controls into labelled boxes, Time first */
+#top{gap:6px}
+.grp{display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap;padding:3px 7px 3px 6px;
+  border:1px solid var(--ln);border-radius:7px;background:#20262e;position:relative}
+.grp>.glab{color:var(--mut);font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;
+  font-weight:700;margin-right:2px;opacity:.8}
+body.light .grp{background:#eef0f3}
+#tf{font-weight:700}
+.grp .sep{width:1px;height:16px;background:var(--ln);margin:0 1px}
 </style></head><body>
 <div id=top>
- <b id=dt>—</b><span style="color:#2ecc71;font-size:10px" title="build tag — changes when new code loads">v23</span>
- <button onclick=nav(-1)>◀ prev</button><button onclick=nav(1)>next ▶</button>
- <button onclick=jumpUngraded()>next ungraded</button>
- <select id=daysel onchange=goDay(this.value)></select>
- <span class=tog title="only days AFTER a trend day (prior range > 1.6xADR10) — the book skips these"><input type=checkbox id=t_skip onchange=applyDayFilter()>skip-days only<b id=skipn></b></span>
- <span class=pill>reveal <b id=rev>0</b>/<b id=nb>0</b></span>
- <button onclick=play()><span id=playlbl>▶ play</span></button>
- <button onclick=step(-1)>◀</button><button onclick=step(1)>▶</button>
- <button onclick=showAll()>show all</button><button onclick=nextSetup()>next setup ⤼</button>
- <button onclick=openPaths()>W/L paths 📈</button>
- <select id=spd><option value=350>slow</option><option value=150 selected>med</option><option value=50>fast</option></select>
- <span style=color:var(--mut)>filter</span>
- <select id=filt onchange=render()><option value=all>all</option><option value=book>in-book</option><option value=fade>fades (f2E)</option><option value=L>long</option><option value=S>short</option><option value=win>winners</option><option value=loss>losers</option></select>
- <span class=tog><input type=checkbox id=t_reg checked onchange=render()>regime</span>
- <span class=tog><input type=checkbox id=t_ema checked onchange=render()>EMA20</span>
- <span class=tog><input type=checkbox id=t_gap onchange=render()>gap</span>
- <span class=tog><input type=checkbox id=t_tr checked onchange=render()>trades</span>
- <span class=tog><input type=checkbox id=t_num checked onchange=render()>bar#</span>
- <span class=tog><input type=checkbox id=t_lbl checked onchange=render()>labels</span>
- <span class=tog><input type=checkbox id=t_piv onchange=render()>piv</span>
- <span class=tog><input type=checkbox id=t_pivM checked onchange=render()>maj</span>
- <span class=tog><input type=checkbox id=t_pivm checked onchange=render()>min</span>
- <span class=tog><input type=checkbox id=t_ob onchange=render()>OB</span>
- <span class=tog title="show the prior session's last bar + gap line (uncheck to readjust the chart to today only after a large gap)"><input type=checkbox id=t_prev checked onchange=render()>prev bar</span>
- <span class=tog title="MyReversals indicator markers: ▲green FT-long / ▼red FT-short at the FT bar, blue dot on the reversal bar, T/B/O/I = Trap/BO/OB/IB"><input type=checkbox id=t_rev checked onchange=render()>rev</span>
- <span class=tog title="Thomas's NT MyReversals EXPORT (this CSV): diamond at limit entry + dashed stop, T/B/I letter. Separate from the computed 'rev' markers and the book trades."><input type=checkbox id=t_csv onchange=render()><b style="color:#e67e22">NT csv</b></span>
- <span class=tog title="FINAL BO SETUP: BO type, entry >=11:00, skip gap days, MARKET entry, 2R target (flat at close). Tick-accurate P&L."><input type=checkbox id=t_bo onchange=render()><b style="color:#16c60c">BO setup</b></span>
- <button onclick=jumpBO() title="jump to next day that has a BO setup trade (only ~227 days have one)" style="border-color:#16c60c;color:#16c60c">BO ▶</button>
- <span style="color:var(--mut)">setups</span>
- <span class=tog><input type=checkbox id=t_2el checked onchange=render()>2EL</span>
- <span class=tog><input type=checkbox id=t_2es checked onchange=render()>2ES</span>
- <span class=tog><input type=checkbox id=t_f2el checked onchange=render()>f2EL</span>
- <span class=tog><input type=checkbox id=t_f2es checked onchange=render()>f2ES</span>
- <span class=tog title="Globex (overnight) high/low on the RTH chart"><input type=checkbox id=t_gx onchange=render()>GX H/L</span>
- <span class=tog title="chart theme"><span style=color:var(--mut)>theme</span><select id=theme onchange=applyTheme(this.value)><option value=dark>dark</option><option value=light>light</option><option value=grey>grey · NT (Thomas)</option></select></span>
- <span style=color:var(--mut)>levels→⚙</span>
- <span style=color:var(--mut)>Y</span><input type=range id=yzoom min=0.5 max=3.5 step=0.1 value=1 oninput=render() style="width:56px" title="Y compress/expand">
- <span style=color:var(--mut)>X</span><input type=range id=xzoom min=0.5 max=7 step=0.1 value=1 oninput=render() style="width:56px" title="X compress/expand">
- <span style=color:var(--mut)>pan</span><input type=range id=panx min=0 max=1 step=0.01 value=1 oninput=render() style="width:56px" title="horizontal pan">
- <button onclick="document.getElementById('yzoom').value=1;document.getElementById('xzoom').value=1;document.getElementById('panx').value=1;showPanel()" title="reset zoom + show panel">⟲</button>
- <button id=lensbtn onclick=toggleLens() title="movable magnifier">🔍 lens</button>
- <button onclick=toggleSettings() title="colors & opacity">⚙</button>
- <button onclick=toggleRevPanel() title="MyReversals detection parameters — adjust &amp; recalculate all signals" style="border-color:#e67e22;color:#e67e22">⚑ MyReversals</button>
- <button onclick=toggleSide() title="show/hide the side panel (P)" style="background:#4a9eff;color:#fff;font-weight:700">⊞ panel</button>
+ <b id=dt>—</b><span style="color:#2ecc71;font-size:10px" title="build tag — changes when new code loads">v24</span>
+
+ <span class=grp><span class=glab>time</span>
+  <select id=tf onchange=setTF(this.value) title="bar timeframe — 5M (base) / 15M / Daily"><option value=5 selected>5M</option><option value=15>15M</option><option value=D>D</option></select>
+  <select id=daysel onchange=goDay(this.value)></select>
+  <button onclick=nav(-1) title="previous day">◀</button><button onclick=nav(1) title="next day">▶</button>
+  <button onclick=jumpUngraded() title="next ungraded day">ungr</button>
+  <span class=sep></span>
+  <span class=pill>reveal <b id=rev>0</b>/<b id=nb>0</b></span>
+  <button onclick=play()><span id=playlbl>▶ play</span></button>
+  <button onclick=step(-1) title="step back">◀</button><button onclick=step(1) title="step fwd">▶</button>
+  <button onclick=showAll() title="reveal whole day">all</button>
+  <button onclick=nextSetup() title="jump to next setup">setup ⤼</button>
+  <select id=spd title="play speed"><option value=350>slow</option><option value=150 selected>med</option><option value=50>fast</option></select>
+ </span>
+
+ <span class=grp><span class=glab>setups</span>
+  <select id=filt onchange=render() title="filter trades"><option value=all>all</option><option value=book>in-book</option><option value=fade>fades (f2E)</option><option value=L>long</option><option value=S>short</option><option value=win>winners</option><option value=loss>losers</option></select>
+  <span class=tog><input type=checkbox id=t_2el checked onchange=render()>2EL</span>
+  <span class=tog><input type=checkbox id=t_2es checked onchange=render()>2ES</span>
+  <span class=tog><input type=checkbox id=t_f2el checked onchange=render()>f2EL</span>
+  <span class=tog><input type=checkbox id=t_f2es checked onchange=render()>f2ES</span>
+  <span class=sep></span>
+  <span class=tog title="MyReversals indicator markers: ▲green FT-long / ▼red FT-short at the FT bar, blue dot on the reversal bar, T/B/O/I = Trap/BO/OB/IB"><input type=checkbox id=t_rev checked onchange=render()>rev</span>
+  <span class=tog title="Thomas's NT MyReversals EXPORT (this CSV): diamond at limit entry + dashed stop, T/B/I letter. Separate from the computed 'rev' markers and the book trades."><input type=checkbox id=t_csv onchange=render()><b style="color:#e67e22">NT csv</b></span>
+  <span class=tog title="FINAL BO SETUP: BO type, entry >=11:00, skip gap days, MARKET entry, 2R target (flat at close). Tick-accurate P&L."><input type=checkbox id=t_bo onchange=render()><b style="color:#16c60c">BO</b></span>
+  <button onclick=jumpBO() title="jump to next day that has a BO setup trade (only ~227 days have one)" style="border-color:#16c60c;color:#16c60c">BO ▶</button>
+  <span class=sep></span>
+  <span class=tog title="L2 ABSORPTION at each setup's pullback level (badge + depth strip). Only days with recorded depth (2026-07-21..28 + going forward) show data."><input type=checkbox id=t_absorb onchange=render()><b style="color:#f1c40f">absorb</b></span>
+  <span class=tog title="only days AFTER a trend day (prior range > 1.6xADR10) — the book skips these"><input type=checkbox id=t_skip onchange=applyDayFilter()>skip-days<b id=skipn></b></span>
+  <button onclick=openPaths() title="winner/loser path cloud">W/L 📈</button>
+ </span>
+
+ <span class=grp><span class=glab>overlays</span>
+  <span class=tog><input type=checkbox id=t_reg checked onchange=render()>regime</span>
+  <span class=tog><input type=checkbox id=t_ema checked onchange=render()>EMA20</span>
+  <span class=tog><input type=checkbox id=t_gap onchange=render()>gap</span>
+  <span class=tog><input type=checkbox id=t_tr checked onchange=render()>trades</span>
+  <span class=tog><input type=checkbox id=t_num checked onchange=render()>bar#</span>
+  <span class=tog><input type=checkbox id=t_lbl checked onchange=render()>labels</span>
+  <span class=tog><input type=checkbox id=t_piv onchange=render()>piv</span>
+  <span class=tog><input type=checkbox id=t_pivM checked onchange=render()>maj</span>
+  <span class=tog><input type=checkbox id=t_pivm checked onchange=render()>min</span>
+  <span class=tog><input type=checkbox id=t_ob onchange=render()>OB</span>
+  <span class=tog title="show the prior session's last bar + gap line (uncheck to readjust the chart to today only after a large gap)"><input type=checkbox id=t_prev checked onchange=render()>prev bar</span>
+  <span class=tog title="Globex (overnight) high/low on the RTH chart"><input type=checkbox id=t_gx onchange=render()>GX H/L</span>
+ </span>
+
+ <span class=grp><span class=glab>view</span>
+  <span class=tog title="chart theme"><select id=theme onchange=applyTheme(this.value)><option value=dark>dark</option><option value=light>light</option><option value=grey>grey · NT (Thomas)</option></select></span>
+  <span style=color:var(--mut) title="line levels are configured in ⚙">Y</span><input type=range id=yzoom min=0.5 max=3.5 step=0.1 value=1 oninput=render() style="width:52px" title="Y compress/expand">
+  <span style=color:var(--mut)>X</span><input type=range id=xzoom min=0.5 max=7 step=0.1 value=1 oninput=render() style="width:52px" title="X compress/expand">
+  <span style=color:var(--mut)>pan</span><input type=range id=panx min=0 max=1 step=0.01 value=1 oninput=render() style="width:52px" title="horizontal pan">
+  <button onclick="document.getElementById('yzoom').value=1;document.getElementById('xzoom').value=1;document.getElementById('panx').value=1;showPanel()" title="reset zoom + show panel">⟲</button>
+  <button id=lensbtn onclick=toggleLens() title="movable magnifier">🔍</button>
+  <button onclick=toggleSettings() title="colors &amp; opacity / line levels">⚙</button>
+  <button onclick=toggleRevPanel() title="MyReversals detection parameters — adjust &amp; recalculate all signals" style="border-color:#e67e22;color:#e67e22">⚑</button>
+  <button onclick=toggleSide() title="show/hide the side panel (P)" style="background:#4a9eff;color:#fff;font-weight:700">⊞</button>
+ </span>
 </div>
 <canvas id=lenscv width=200 height=200 style="position:fixed;border-radius:50%;border:2px solid #4a9eff;box-shadow:0 6px 28px rgba(0,0,0,.6);pointer-events:none;display:none;z-index:120"></canvas>
 <div id=lvltip style="display:none;position:fixed;z-index:140;background:#0f1216;color:#e6e9ec;border:1px solid #4a9eff;border-radius:5px;padding:4px 8px;font-size:12px;line-height:1.35;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.45)"></div>
@@ -349,11 +373,24 @@ fetch('/index').then(r=>r.json()).then(j=>{ALLIDX=j;$('skipn').textContent=' ('+
 applyTheme(localStorage.getItem('brtheme')||'dark');   // restore saved theme (per-browser -> Thomas keeps his grey)
 function applyDayFilter(init){let sk=$('t_skip').checked;idx=sk?ALLIDX.filter(d=>d.skipTD):ALLIDX;
  if(!idx.length){$('daysel').innerHTML='<option>none</option>';return}
- $('daysel').innerHTML=idx.map(d=>`<option value=${d.date}>${d.date}${d.skipTD?' ⚑':''} (${d.n_in_book}tr ${d.net>=0?'+':''}${d.net})</option>`).join('');
+ $('daysel').innerHTML=idx.slice().reverse().map(d=>`<option value=${d.date}>${d.date}${d.skipTD?' ⚑':''} (${d.n_in_book}tr ${d.net>=0?'+':''}${d.net})</option>`).join('');  // newest first (S91e)
  let h=decodeURIComponent(location.hash.slice(1));
  let start=(init&&h&&idx.some(d=>d.date==h))?h:((!init&&idx.some(d=>d.date==curDate))?curDate:idx[idx.length-1].date);
  goDay(start)}
-function goDay(dt){curDate=dt;$('daysel').value=dt;fetch('/day/'+dt).then(r=>r.json()).then(j=>{D=j;revIdx=D.bars.length-1;loadNotes(dt)})}
+function goDay(dt){curDate=dt;$('daysel').value=dt;fetch('/day/'+dt).then(r=>r.json()).then(j=>{RAWD=j;D=(TF>5)?aggDay(j,TF/5):j;revIdx=D.bars.length-1;loadNotes(dt)})}
+// ---- timeframe (S91e): 5M base, client-side 15M aggregation. Default 5M => D===raw (no change).
+let TF=5,RAWD=null;
+function setTF(v){if(v=='D'){alert('Daily is a separate multi-day view — coming next. Staying on '+TF+'M.');$('tf').value=TF;return}
+ TF=+v;if(RAWD){D=(TF>5)?aggDay(RAWD,TF/5):RAWD;revIdx=D.bars.length-1;fit();render()}}
+function aggDay(d,k){let src=d.bars||[],out=[];  // bar tuple = [i, "HH:MM", O, H, L, C, EMA]
+ for(let i=0;i<src.length;i+=k){let g=src.slice(i,i+k);
+  out.push([out.length,g[0][1],g[0][2],Math.max(...g.map(b=>b[3])),Math.min(...g.map(b=>b[4])),g[g.length-1][5],g[g.length-1][6]])}
+ let mi=i=>Math.floor(i/k),uniq=a=>[...new Set(a)],nd=Object.assign({},d);nd.bars=out;
+ nd.regime=(d.regime||[]).map(s=>Object.assign({},s,{from:mi(s.from),to:mi(s.to)}));
+ nd.pivots=(d.pivots||[]).map(p=>Object.assign({},p,{b:mi(p.b)}));
+ nd.obs=uniq((d.obs||[]).map(mi));nd.ibs=uniq((d.ibs||[]).map(mi));
+ nd.trades=(d.trades||[]).map(t=>Object.assign({},t,{entry_bar:t.entry_bar!=null?mi(t.entry_bar):t.entry_bar,sig_bar:t.sig_bar!=null?mi(t.sig_bar):t.sig_bar}));
+ nd._tf=k*5;return nd}
 function loadNotes(dt){fetch('/notes/'+dt).then(r=>r.json()).then(n=>{notes=n||{};$('dti').value=notes.daytype_inter||'';$('dtf').value=notes.daytype_final||'';$('ibar').textContent=notes.daytype_inter_bar??'—';sel=null;$('selpanel').style.display='none';$('selinfo').textContent='click a setup or bar';fit();render()})}
 function nav(d){let i=idx.findIndex(x=>x.date==curDate)+d;if(i>=0&&i<idx.length)goDay(idx[i].date)}
 function jumpUngraded(){let start=idx.findIndex(x=>x.date==curDate);
