@@ -64,9 +64,9 @@ function render(){if(!view.length){document.getElementById('img').src='';documen
   '<span class="pill">'+m.tf+'</span>'+
   '<span class="pill">'+m.dir+'</span>'+
   '<span>leg <b>'+m.leg+'</b></span>'+
-  '<span><b>'+m.n_with+'</b> with-trend MMs</span>'+
-  '<span><b>'+m.n_counter+'</b> counter</span>'+
-  '<span>R <b>'+m.R+'</b></span>'+
+  '<span style="color:#4aa3ff"><b>'+m.n_trad+'</b> traditionals</span>'+
+  '<span style="color:#c77dff"><b>'+(m.n_ext||0)+'</b> extensions</span>'+
+  '<span style="color:#f85149"><b>'+m.n_fail+'</b> failures</span>'+
   '<span>ATWHWB '+(m.atw?'<b style="color:#3fb950">reached ✓</b>':'<span style="color:#8b949e">not in window</span>')+'</span>';}
 document.addEventListener('keydown',function(e){if(e.key==='ArrowRight')go(1);if(e.key==='ArrowLeft')go(-1);});
 setTf('all');
@@ -90,10 +90,11 @@ HTML = f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
   <button class="btn" onclick="go(1)">Next →</button>
  </div>
  <img id="img" alt="MM sequence">
- <p class="hint">Each chart: the initial (macro) leg + its 123.6% target and the
-  <b style="color:#4aa3ff">ATWHWB</b> (50% of the whole leg); ▲/▼ = a member MM's 50% entry,
-  ★ = its 123.6% target (green=with-trend, orange=counter-trend). {n} sequences, 5-yr ES.
-  Use ← → arrow keys. Prices on pre-2024 charts are continuous back-adjusted; recent = real ES.</p>
+ <p class="hint">Full anatomy: every impulse leg drawn as its own Fib ladder —
+  <b style="color:#4aa3ff">blue Trad</b> (hit the 123.6% target ✓),
+  <b style="color:#c77dff">purple Ext</b>, <b style="color:#f85149">red FAIL</b> (✗ pierced 61.8%) —
+  plus the <b style="color:#ffd400">ATWHWB</b> (50% of the initial move) price retraces to after the trend breaks.
+  {n} sequences across 5-yr ES (5M/15M/1D). Use ← → arrow keys. Pre-2024 prices are continuous back-adjusted; recent = real ES.</p>
 </div>
 <script>{JS.replace('__DATA__', DATA)}</script>
 </body></html>"""
