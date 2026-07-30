@@ -3,6 +3,13 @@
  "note": "Snapshot of published Claude Artifacts (claude.ai). Ask Claude to 'refresh the artifacts list' to regenerate via Artifact action:list.",
  "artifacts": [
   {
+   "title": "EminiAddict MM Sequence Library",
+   "url": "",
+   "updated": "2026-07-30",
+   "group": "EminiAddict",
+   "info": "Scrollable library of 53 Halsey measured-move SEQUENCES auto-detected across 5 years of ES (5M/15M/1D). Each shows the initial leg, its with-trend series of traditional MMs riding to the 123.6% target, counter-trend MMs after the break, and the ATWHWB (50% of the initial move) that price retraces to. Filter by timeframe, arrow-key scroll."
+  },
+  {
    "title": "EminiAddict Method Study Quiz",
    "url": "",
    "updated": "2026-07-30",
