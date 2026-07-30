@@ -3,6 +3,13 @@
  "note": "Snapshot of published Claude Artifacts (claude.ai). Ask Claude to 'refresh the artifacts list' to regenerate via Artifact action:list.",
  "artifacts": [
   {
+   "title": "EminiAddict Method Study Quiz",
+   "url": "",
+   "updated": "2026-07-30",
+   "group": "EminiAddict",
+   "info": "Interactive study tool for the Halsey Measured-Move method: flip-card definitions (18 terms), a scored quiz (multiple-choice + numeric level computations), a live MM-level calculator (set swing L/H, see 50%/61.8%/123% draw for long or short), drag-to-order sequence drills (entries, trend order, gap-fill workflow), and a chart-reading drill on real ES daily."
+  },
+  {
    "title": "EminiAddict Measured Move Method",
    "url": "",
    "updated": "2026-07-30",
