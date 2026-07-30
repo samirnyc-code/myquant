@@ -204,18 +204,31 @@ function quizNext(){if(qi<QUIZ.length-1){qi++;quizRender();}else{
  document.getElementById('qProg').style.width='100%';}}
 function quizStart(){qi=0;qScore=0;quizRender();}
 
+var mmFont=15;
+function mmFontStep(d){mmFont=Math.max(10,Math.min(26,mmFont+d));drawMM();}
 function drawMM(){var mode=document.querySelector('input[name=mmMode]:checked').value;
  var l=parseFloat(document.getElementById('mmL').value),h=parseFloat(document.getElementById('mmH').value);
- if(isNaN(l)||isNaN(h)||h<=l){document.getElementById('mmSvg').innerHTML='<text x=10 y=20 fill="#f85149">need H &gt; L</text>';return;}
+ if(isNaN(l)||isNaN(h)||h<=l){document.getElementById('mmSvg').innerHTML='<text x=10 y=24 fill="#f85149" font-size="'+mmFont+'">need H &gt; L</text>';return;}
  var Lv=levels(l,h,mode);
- var rows=[['123% TARGET',Lv.tgt,'#3fb950'],['0% (end)',Lv.end,'#8b949e'],['38.2%',Lv.d382,'#8b949e'],
-  ['50% HWB (entry)',Lv.hwb,'#e3b341'],['61.8% FAILURE',Lv.fail,'#f85149'],['100% (start)',Lv.start,'#8b949e']];
+ var rows=[['123% TARGET',Lv.tgt,'#3fb950',1],['0% (end)',Lv.end,'#8b949e',0],['38.2%',Lv.d382,'#8b949e',0],
+  ['50% HWB (entry)',Lv.hwb,'#e3b341',1],['61.8% FAILURE',Lv.fail,'#f85149',1],['100% (start)',Lv.start,'#8b949e',0]];
  var vals=rows.map(function(r){return r[1];});var mx=Math.max.apply(null,vals),mn=Math.min.apply(null,vals);
- var W=760,Hh=340,pad=30;function y(p){return pad+(mx-p)/(mx-mn)*(Hh-2*pad);}
+ var W=820,Hh=Math.max(300,rows.length*(mmFont+9)+40),pad=26,lineX=W-260;
+ function y(p){return pad+(mx-p)/(mx-mn)*(Hh-2*pad);}
+ // true line y for each row, then de-collide the TEXT y so labels never overlap
+ rows.forEach(function(r){r.push(y(r[1]));});            // r[4] = true y
+ var byY=rows.slice().sort(function(a,b){return a[4]-b[4];});
+ var gap=mmFont+6;byY.forEach(function(r){r[5]=r[4];});  // r[5] = text y
+ for(var k=1;k<byY.length;k++){if(byY[k][5]-byY[k-1][5]<gap)byY[k][5]=byY[k-1][5]+gap;}
+ var over=byY[byY.length-1][5]-(Hh-6);
+ if(over>0){byY.forEach(function(r){r[5]-=over;});
+  for(var k2=byY.length-2;k2>=0;k2--){if(byY[k2+1][5]-byY[k2][5]<gap)byY[k2][5]=byY[k2+1][5]-gap;}}
  var s='<rect x=0 y=0 width='+W+' height='+Hh+' fill="#0d1117"/>';
- rows.forEach(function(r){var yy=y(r[1]).toFixed(1);s+='<line x1=60 y1='+yy+' x2='+(W-210)+' y2='+yy+' stroke="'+r[2]+'" stroke-width="'+((r[0].indexOf('HWB')>=0||r[0].indexOf('FAIL')>=0||r[0].indexOf('TARGET')>=0)?2:1)+'"/>';
-  s+='<text x='+(W-205)+' y='+(+yy+4)+' fill="'+r[2]+'" font-weight="bold">'+r[0]+'  '+r[1].toFixed(2)+'</text>';});
- document.getElementById('mmSvg').innerHTML=s;
+ rows.forEach(function(r){var yy=r[4].toFixed(1),ty=r[5].toFixed(1);
+  s+='<line x1=56 y1='+yy+' x2='+lineX+' y2='+yy+' stroke="'+r[2]+'" stroke-width="'+(r[3]?2:1)+'"/>';
+  if(Math.abs(r[5]-r[4])>2)s+='<line x1='+lineX+' y1='+yy+' x2='+(lineX+10)+' y2='+ty+' stroke="'+r[2]+'" stroke-width="0.8" opacity="0.55"/>';
+  s+='<text x='+(lineX+14)+' y='+(+ty+mmFont*0.35).toFixed(1)+' fill="'+r[2]+'" font-weight="bold" font-size="'+mmFont+'">'+r[0]+'  '+r[1].toFixed(2)+'</text>';});
+ var svg=document.getElementById('mmSvg');svg.setAttribute('viewBox','0 0 '+W+' '+Hh);svg.innerHTML=s;
  var R=h-l;document.getElementById('mmInfo').innerHTML='Range R = '+R.toFixed(2)+' pts &nbsp;&middot;&nbsp; '+
   (mode==='long'?'LONG (low&rarr;high)':'SHORT (high&rarr;low)')+' &nbsp;&middot;&nbsp; risk (entry&rarr;fail) = '+Math.abs(Lv.hwb-Lv.fail).toFixed(2)+
   ' &nbsp;&middot;&nbsp; reward (entry&rarr;target) = '+Math.abs(Lv.tgt-Lv.hwb).toFixed(2);}
@@ -268,8 +281,11 @@ BODY = f"""
    <label class="lb">Direction
     <span class="row"><label><input type="radio" name="mmMode" value="long" checked onchange="drawMM()"> long</label>
     <label><input type="radio" name="mmMode" value="short" onchange="drawMM()"> short</label></span></label>
+   <label class="lb">Label size
+    <span class="row"><button class="btn sec" onclick="mmFontStep(-1)">A&minus;</button>
+    <button class="btn sec" onclick="mmFontStep(1)">A+</button></span></label>
   </div>
-  <svg id="mmSvg" viewBox="0 0 760 340" style="width:100%;border:1px solid var(--chip);border-radius:10px;margin-top:10px"></svg>
+  <svg id="mmSvg" viewBox="0 0 820 340" style="width:100%;border:1px solid var(--chip);border-radius:10px;margin-top:10px"></svg>
   <p class="muted" id="mmInfo" style="margin-top:8px"></p>
  </div></div>
 

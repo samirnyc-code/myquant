@@ -86,3 +86,7 @@ cool_pings_state.json
 
 # Databento flat files — large market data, never commit
 data/databento/
+
+# depth heatmap: interactive Plotly HTMLs are heavy (~10MB each, plotly inlined) and
+# fully regenerable via scripts/depth_heatmap.py build — keep index.html + PNGs, not these
+docs/depth_heatmap/ES_*.html

@@ -583,7 +583,7 @@ whether the process is alive. Drag tiles to reorder; the layout is remembered.</
 <footer><span id="gen"></span><span id="note"></span></footer>
 <script>
 const FIX={
- "L2 depth":"Control Center → Strategies → MarketDepthRecorder must be ENABLED (a recompile disables it).",
+ "L2 depth":"AddOn recorder (data/depth/addon_test). If stalled: restart NinjaTrader — the AddOn starts with NT; the old MarketDepthRecorder strategy is retired.",
  "Contract":"Roll the chart/strategy to the front-month contract, then re-enable the recorder.",
  "Footprint":"FootprintExporter needs Tick Replay ON for its data series.",
  "NinjaTrader":"scripts/nt8_login.ps1 starts NT8 and signs in.",
@@ -765,6 +765,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send_gexlab()
             if p == "/flowlab":
                 return self._send_flowlab()
+            if p == "/depthmap" or p.startswith("/depthmap/"):
+                return self._send_depthmap(p)
             if p == "/slides" or p.startswith("/slides/"):
                 return self._send_slides(p)
             if p == "/catalog" or p.startswith("/catalog/"):
@@ -789,6 +791,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._send_gexlab()
         if p == "/flowlab":
             return self._send_flowlab()
+        if p == "/depthmap" or p.startswith("/depthmap/"):
+            return self._send_depthmap(p)
         if p == "/slides" or p.startswith("/slides/"):
             return self._send_slides(p)
         if p in ("/favicon.svg", "/favicon.ico"):
@@ -962,6 +966,28 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(f.read_text(encoding="utf-8"), "text/html; charset=utf-8")
         return self._send("<h1>report not built</h1><p>run scripts/flowlab_1m.py, "
                           "scripts/render_1m_bars.py, then scripts/flowlab_report.py.</p>",
+                          "text/html; charset=utf-8")
+
+    def _send_depthmap(self, p="/depthmap"):
+        # ES L2 liquidity heatmap (Bookmap-style) reconstructed from the NT8 AddOn depth
+        # event stream by scripts/depth_heatmap.py. /depthmap = the gallery index; the
+        # per-day interactive Plotly viewer is /depthmap/ES_<date>.html. Static + path-
+        # traversal-safe, so the keyed remote viewer may browse it too. Rebuild a day:
+        #   python scripts/depth_heatmap.py build YYYY-MM-DD
+        base = (ROOT / "docs" / "depth_heatmap").resolve()
+        sub = p[len("/depthmap"):].lstrip("/") or "index.html"
+        from urllib.parse import unquote
+        target = (base / unquote(sub)).resolve()
+        if base != target and base not in target.parents:
+            return self._send("not found", "text/plain", 404)
+        if target.is_file():
+            ctype = {".html": "text/html; charset=utf-8", ".png": "image/png"}.get(
+                target.suffix, "application/octet-stream")
+            data = target.read_bytes() if ctype == "image/png" else \
+                target.read_text(encoding="utf-8")
+            return self._send(data, ctype)
+        return self._send("<h1>no heatmaps yet</h1><p>run scripts/depth_heatmap.py build "
+                          "&lt;date&gt; then scripts/depth_heatmap.py page.</p>",
                           "text/html; charset=utf-8")
 
     def _send_gexlab(self):

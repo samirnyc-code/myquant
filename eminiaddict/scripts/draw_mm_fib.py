@@ -12,6 +12,7 @@ Down leg is the mirror (100%=H, 0%=L, target below L).
 Seed swing = last completed leg from a ZigZag pivot detector (proxy for Halsey's
 "significant high-low that jumps off the page"). ZigZag threshold in %.
 """
+import os
 import sys
 import numpy as np
 import pandas as pd
@@ -24,6 +25,11 @@ PARQUET = "../../data/bars/_db_es_daily_24h.parquet"
 OUT = "../figures/es_daily_mm_fib_{mode}.png"
 WINDOW = 170          # bars to display
 ZZ_PCT = 4.0          # ZigZag reversal threshold (%)
+FONT_SCALE = 1.25     # global text scale (env EA_FONT_SCALE overrides)
+FONT_SCALE = float(os.environ.get("EA_FONT_SCALE", FONT_SCALE))
+LABEL_FS = 12.5 * FONT_SCALE   # right-margin level labels
+TICK_FS = 10.5 * FONT_SCALE    # axis tick labels
+TITLE_FS = 12.5 * FONT_SCALE   # title
 
 
 def zigzag(highs, lows, pct):
@@ -132,22 +138,50 @@ def main():
     ax.plot([i0, i1], [p0, p1], color="#888", ls="--", lw=1.2, zorder=4)
     ax.scatter([i0, i1], [p0, p1], color="#ffd400", s=60, zorder=6)
 
-    # fib lines
+    # fib lines (drawn at true y) — labels are de-collided below so no text overlaps
     xr = n - 1
-    def hline(y, color, label, lw=1.4, ls="-"):
+    for y, color, lw, ls in [
+        (lv100, "#bbbbbb", 1.2, ":"), (fail, "#e2453c", 1.6, "-"),
+        (hwb, "#ffd400", 1.6, "-"), (lv0, "#bbbbbb", 1.2, ":"),
+        (tgt, "#26a65b", 2.0, "-"),
+    ]:
         ax.axhline(y, xmin=i0 / xr if xr else 0, color=color, lw=lw, ls=ls, zorder=5)
-        ax.text(n + 1.5, y, f"{label}  {y:,.2f}", color=color, va="center",
-                fontsize=10, fontweight="bold")
-
-    hline(lv100, "#bbbbbb", "100%  (start)", 1.2, ":")
-    hline(fail, "#e2453c", "61.8% FAILURE")
-    hline(hwb, "#ffd400", "50% HWB (entry)")
-    hline(lv0, "#bbbbbb", "0%  (end)", 1.2, ":")
-    hline(tgt, "#26a65b", "123.6% TARGET", 1.8)
-
     ax.axhline(closes[-1], color="#4aa3ff", lw=0.8, ls="--", alpha=.5)
-    ax.text(n + 1.5, closes[-1], f"last {closes[-1]:,.2f}", color="#4aa3ff",
-            va="center", fontsize=9)
+
+    # right-margin labels — bigger fonts + collision avoidance (never overlap)
+    labels = [
+        {"y": lv100, "c": "#bbbbbb", "t": f"100% (start)  {lv100:,.2f}"},
+        {"y": fail, "c": "#e2453c", "t": f"61.8% FAILURE  {fail:,.2f}"},
+        {"y": hwb, "c": "#ffd400", "t": f"50% HWB (entry)  {hwb:,.2f}"},
+        {"y": lv0, "c": "#bbbbbb", "t": f"0% (end)  {lv0:,.2f}"},
+        {"y": tgt, "c": "#26a65b", "t": f"123.6% TARGET  {tgt:,.2f}"},
+        {"y": closes[-1], "c": "#4aa3ff", "t": f"last  {closes[-1]:,.2f}"},
+    ]
+    lo = min(lows.min(), min(d["y"] for d in labels))
+    hi = max(highs.max(), max(d["y"] for d in labels))
+    span = hi - lo
+    ax.set_ylim(lo - 0.03 * span, hi + 0.06 * span)
+    ymin_l, ymax_l = ax.get_ylim()
+    gap = 0.046 * span * FONT_SCALE           # min vertical spacing between label texts
+    labels.sort(key=lambda d: d["y"])
+    for d in labels:
+        d["ty"] = d["y"]
+    for k in range(1, len(labels)):           # push up to enforce the gap
+        if labels[k]["ty"] - labels[k - 1]["ty"] < gap:
+            labels[k]["ty"] = labels[k - 1]["ty"] + gap
+    over = labels[-1]["ty"] - (ymax_l - 0.01 * span)   # if stack overflows top, slide down
+    if over > 0:
+        for d in labels:
+            d["ty"] -= over
+        for k in range(len(labels) - 2, -1, -1):
+            if labels[k + 1]["ty"] - labels[k]["ty"] < gap:
+                labels[k]["ty"] = labels[k + 1]["ty"] - gap
+    for d in labels:
+        if abs(d["ty"] - d["y"]) > span * 0.006:       # faint leader when nudged
+            ax.plot([n, n + 1.2], [d["y"], d["ty"]], color=d["c"], lw=0.6, alpha=.55,
+                    zorder=4, clip_on=False)
+        ax.text(n + 1.6, d["ty"], d["t"], color=d["c"], va="center",
+                fontsize=LABEL_FS, fontweight="bold", clip_on=False)
 
     dir_txt = "LONG (up leg, drawn low→high)" if up else "SHORT (down leg, drawn high→low)"
     d0 = df.DateTime[i0].strftime("%Y-%m-%d")
@@ -155,17 +189,17 @@ def main():
     ax.set_title(
         f"ES daily — Halsey Measured Move  |  seed swing {dir_txt}\n"
         f"{d0}  {p0:,.2f}  →  {d1}  {p1:,.2f}   (range {R:,.2f} pts,  ZigZag {ZZ_PCT}%)",
-        color="#eee", fontsize=13, loc="left")
+        color="#eee", fontsize=TITLE_FS, loc="left")
 
     # x ticks as dates
     step = max(1, n // 12)
     ax.set_xticks(range(0, n, step))
     ax.set_xticklabels([df.DateTime[i].strftime("%m/%d/%y") for i in range(0, n, step)],
-                       color="#aaa", rotation=0)
-    ax.tick_params(colors="#aaa")
+                       color="#aaa", rotation=0, fontsize=TICK_FS)
+    ax.tick_params(colors="#aaa", labelsize=TICK_FS)
     for s in ax.spines.values():
         s.set_color("#333")
-    ax.set_xlim(-1, n + 14)
+    ax.set_xlim(-1, n + 30)
     ax.grid(True, color="#1c1c1c", lw=0.5)
     ax.legend(loc="upper left", facecolor="#111", edgecolor="#333", labelcolor="#ccc")
     fig.tight_layout()

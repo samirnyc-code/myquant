@@ -348,13 +348,13 @@ families:
     category: Order flow
     paths:
       - data/depth
-    produced_by: "nt8/addons/MarketDepthRecorderAddOn.cs (+ MarketDepthRecorder.cs strategy) -- NT8 live L2 recorder"
+    produced_by: "nt8/addons/MarketDepthRecorderAddOn.cs -- NT8 live L2 recorder (AddOn). The old MarketDepthRecorder.cs strategy wrote the root dir until ~2026-07-23; AddOn is sole recorder since."
     update_cadence: daily
     expected_freshness_days: 4
     count_rows: false
-    useful_for: "ES order-book depth (DOM) snapshots per session -- raw material for absorption / liquidity / iceberg studies. NT keeps no deep DOM history, so this is the only L2 we have going forward."
-    access: "pd.read_parquet('data/depth/ES_09-26_depth_2026-07-21.parquet')"
-    gotchas: "Per-session parquet+csv (ES_09-26_depth_YYYY-MM-DD). addon_test/ = the AddOn recorder run in PARALLEL with the strategy for shadow validation (output byte-identical). WARN: 55-min gap 2026-07-20 22:28-23:23 CT (an NT restart dialog blocked the recorder). Live-record only -- no backfill exists."
+    useful_for: "ES order-book depth (DOM) event stream per session -- raw material for absorption / liquidity / iceberg studies and the Bookmap-style liquidity heatmap (scripts/depth_heatmap.py). NT keeps no deep DOM history, so this is the only L2 we have going forward."
+    access: "pd.read_parquet('data/depth/addon_test/ES_09-26_depth_2026-07-29.parquet')"
+    gotchas: "Event stream, NOT snapshots: cols Time,Ev,Side,Pos,Price,Size. Ev=A/U/R book (add/update/remove) by POSITION (R rows carry Pos only -- Price/Size are 0, so reconstruct the book by level index, NOT by price), T=tape (Side=aggressor), C=connect marker. Session-template dated (>=17:00 CT -> next day). Two dirs: root data/depth/ = old strategy (to 07-23), addon_test/ = AddOn (sole recorder since ~07-24). Both roll to zstd parquet via depth_rollover.py (verify-before-delete) and back up to myquant-data repo (depth/ + depth_addon/ subdirs). WARN: 55-min gap 2026-07-20 22:28-23:23 CT (NT restart dialog blocked the recorder). Live-record only -- no backfill exists."
 
   - key: footprint
     title: "ES footprint / volume-bar reconstruction (free MzPack)"
