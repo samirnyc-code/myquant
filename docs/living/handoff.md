@@ -6,6 +6,69 @@ pipeline + S77 security hardening; merged S76 Mac swing-levels work)
 
 ---
 
+## S91d (2026-07-30) — L2 depth AddOn into the pipeline + Bookmap-style liquidity heatmap
+
+**Context:** the `MarketDepthRecorderAddOn` has been the SOLE L2 recorder since ~07-24
+(the old Strategy stopped), writing raw CSV to `data/depth/addon_test/` — 4.3 GB, NOT
+compressed, NOT backed up, NOT the same pipeline as the primary. Fixed all three + built
+the viz the user wanted.
+
+**Pipeline integration (`depth_rollover.py`):**
+- Now processes TWO sources — `data/depth/` (legacy strategy) and `data/depth/addon_test/`
+  (AddOn) — via `SOURCES`. Each archives to its own backup subdir (`depth/` vs
+  `depth_addon/`) so overlap-day filenames (07-21..23, both recorders) never collide.
+- Backlog converted: 7 addon days (07-21→07-29) → zstd parquet, verify-by-reread before
+  CSV delete (~20-30× each, 4.3 GB → ~180 MB). Today's live file (07-30) correctly skipped.
+- Off-machine backup CONFIRMED: all 7 committed to `~/myquant-data/depth_addon/` (158 MB).
+- The daily 16:00 CT `MyQuant Depth Rollover` task now picks up new addon days automatically
+  (no task change needed — same script).
+- Catalog `depth_l2` gotchas rewritten (event-stream schema, position-keyed removes, AddOn
+  = sole recorder, both parquet dirs).
+
+**Liquidity heatmap (`scripts/depth_heatmap.py`, NEW):** Bookmap-style — replays the L2
+event stream, reconstructs the resting book, renders time×price with resting size as the
+Bookmap heat ramp + last-trade line + buy/sell tape. Static PNG (`docs/depth_heatmap/
+ES_<date>.png`, committed) AND per-day interactive Plotly viewer (candlesticks + zoom,
+`ES_<date>.html`, gitignored — 10 MB each, regenerable). Gallery index + MC route
+`/depthmap` (+ `/depthmap/ES_<date>.html`). 6 days built (07-22→07-29), npz cache.
+
+**⚠️ RECONSTRUCTION SEMANTICS (verified, non-obvious — do not "fix" blindly):**
+- Book is NT's price-sorted DOM ladder keyed by **POSITION** (rank), NOT price: `A`=insert
+  at Pos, `U`=replace at Pos, `R`=delete at Pos. **`R` rows carry Pos only — Price/Size are
+  0** (measured: 100% of R events). Price-keying silently corrupts on repricing Updates.
+- **Clear the book on every `C` (connection) marker** — on reconnect NT re-sends the whole
+  ladder via Adds; without clearing you get an exact 2× depth leak (measured 60 vs 30 levels).
+- Perfect replay isn't attainable (repricing U + any dropped event drift a few stale FAR
+  levels → crossed book). For the VIZ: anchor the price line to the TAPE and clip levels
+  >`clip_ticks` (56) from it at snapshot time. Near-touch book stays faithful.
+
+**Also (S91c, same session):** disabled the 16:15 `MyQuant NT8 Restart` scheduled task per
+user request (committed `8d9e264`).
+
+**NOT yet done / pending:**
+- **Commit:** code + PNGs + index STAGED, awaiting user OK (no-commit-without-confirm rule).
+- **2nd surface:** user wants the heatmap ALSO as an NT8 indicator overlay (live) — deferred.
+- MC needs a restart to serve the new `/depthmap` route (did NOT restart — ask first).
+
+**UPDATE (findings after the viz — CHANGES the read):**
+- **Feed is only ~30 DOM levels ≈ ±7pt each side** (verified `scripts/depth_book_probe.py`:
+  bid/ask 29–30 levels spanning 7.00–7.25pt at 09:00/11:15/12:00/14:00; 8 C-resyncs/day).
+  The "±39pt" seen in RAW events is transient far-quote flicker, not resting size.
+  **⇒ distant fixed-price Bookmap walls DO NOT EXIST in this data.** Widening the clip just
+  renders empty black; correct frame is clip ≈36 (±9pt), and 07-29 PNG re-rendered so.
+  The heatmap is a **near-touch tool only**. Deep walls would need CME MDP full-depth / MBO
+  (Databento MBP-10 = 10 levels, shallower — not it).
+- **Near-touch edge study (`scripts/depth_level_edge.py`, NEW; 6 sessions 07-22→29, n≈97k):**
+  does big touch-size predict a 60s hold (no 2-tick break)? Base hold 0.31. Monotone by size
+  quintile Q1 0.26 → Q5 0.35 on BOTH sides, survives de-overlapping = **real but weak**.
+  Effect SATURATES ~2× and the biggest levels (≥5×) do NOT hold better (ask ≥5× negative) =
+  **spoof fingerprint** — the giant displayed walls are the most fake. Too weak to trade
+  alone. Results: `data/depth/level_edge_summary_20260729.txt` + events CSV.
+  Next: split absorbed (traded) vs pulled (removed) big levels; or test as a conditioner on
+  the 2E/reversal entries — NOT a standalone trigger.
+
+---
+
 ## S91c (2026-07-29) — Disabled the 16:15 NT8 auto-restart task
 
 Per user request, **`MyQuant NT8 Restart`** scheduled task set to **Disabled**

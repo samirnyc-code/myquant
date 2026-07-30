@@ -41,7 +41,12 @@ namespace NinjaTrader.NinjaScript.AddOns
     {
         // -------- config (front-month; update on the quarterly roll) --------
         private const string SymbolName = "ES 09-26";
-        private const string ExportDir  = @"C:\Users\Admin\myquant\data\depth";
+        // SHADOW-TEST path: separate folder so the AddOn can run in PARALLEL with the live
+        // Strategy recorder as insurance without corrupting its CSV. depth_rollover globs
+        // data\depth\*.csv (non-recursive) so this subfolder is ignored by the primary
+        // pipeline. Once the AddOn is proven (diff addon_test vs the primary file matches),
+        // change this back to @"C:\Users\Admin\myquant\data\depth" and disable the Strategy.
+        private const string ExportDir  = @"C:\Users\Admin\myquant\data\depth\addon_test";
 
         private Instrument instrument;
         private MarketDepth<MarketDepthRow> marketDepth;
