@@ -15,7 +15,7 @@ import re
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]  # repo root
 NOTES = ROOT / "eminiaddict" / "notes"
-CHART = ROOT / "eminiaddict" / "figures" / "es_daily_mm_fib_dominant.png"
+CHART = ROOT / "eminiaddict" / "figures" / "es_15m_mm_trade.png"
 OUT = ROOT / "docs" / "artifacts" / "eminiaddict_measured_move_method.html"
 CATALOG = ROOT / "data" / "_catalog" / "claude_artifacts.json"
 TITLE = "EminiAddict Measured Move Method"  # slugifies to the file stem
@@ -183,8 +183,11 @@ when the <b>opposing MM's 61.8% breaks</b> (a "trend break").</p>
 <p><b>To codify:</b> replace the seed with a ZigZag / ATR / fractal detector — its
 threshold is the one parameter to tune & validate.</p>
 </div>
-<p>The chart below is drawn exactly by these rules on ES daily (seed = the dominant
-leg 6,420.75 → 7,699.75). Entry (HWB) 7,060 · failure 6,909 · target 8,001.59.</p>
+<p>Below is a <b>real completed measured move</b> on 15-minute ES (the timeframe
+Halsey trades — Ch 16). Price rallied <b>7,432.50 → 7,525.50</b>, pulled back and
+<b>tagged the 50% HWB entry (7,479.00)</b>, held above the <b>61.8% failure
+(7,468)</b>, then ran to the <b>123.6% target (7,547.45)</b> — the setup working
+end to end (found by scanning 16 yrs of 15-min ES; 275 such completions exist).</p>
 {CHART_BLOCK}
 
 <h2 id="setups">3 · The three setups</h2>

@@ -11,7 +11,7 @@ import json
 import pathlib
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-CHART = ROOT / "eminiaddict" / "figures" / "es_daily_mm_fib_dominant.png"
+CHART = ROOT / "eminiaddict" / "figures" / "es_15m_mm_trade.png"
 OUT = ROOT / "docs" / "artifacts" / "eminiaddict_method_study_quiz.html"
 CATALOG = ROOT / "data" / "_catalog" / "claude_artifacts.json"
 TITLE = "EminiAddict Method Study Quiz"       # slug -> eminiaddict_method_study_quiz
@@ -294,16 +294,17 @@ BODY = f"""
  <div id="seqWrap"></div></div>
 
 <div class="pane" id="chartd">
- <div class="card"><h2>Chart drill &mdash; read the levels</h2>
-  <p class="muted">ES daily with the MM Fib on the dominant seed leg
-   (6,420.75 &rarr; 7,699.75). Identify each level, then check yourself:</p>
+ <div class="card"><h2>Chart drill &mdash; a real completed trade</h2>
+  <p class="muted">A REAL completed measured move on 15-min ES (2026-05-19&rarr;21):
+   price tags the 50% HWB, holds the 61.8%, and runs to the 123.6% target.
+   Identify each level, then check yourself:</p>
   {CHART_IMG}
   <div class="row"><button class="btn" onclick="document.getElementById('cdA').style.display='block'">Reveal levels</button></div>
   <div id="cdA" style="display:none" class="ex">
-   <b>100% start</b> 6,420.75 &middot; <b style="color:#f85149">61.8% failure</b> 6,909.33 &middot;
-   <b style="color:#e3b341">50% HWB entry</b> 7,060.25 &middot; <b>0% end</b> 7,699.75 &middot;
-   <b style="color:#3fb950">123% target</b> 8,001.59. Last price 7,530 never retraced to HWB
-   (shallow = strong): the MM is intact and the target is unmet.</div>
+   <b>100% start</b> 7,432.50 &middot; <b style="color:#f85149">61.8% failure</b> 7,468.03 &middot;
+   <b style="color:#e3b341">50% HWB entry</b> 7,479.00 &middot; <b>0% end</b> 7,525.50 &middot;
+   <b style="color:#3fb950">123.6% target</b> 7,547.45. Pullback tagged the HWB entry, held
+   above the failure line, then price ran to the target &mdash; the setup working end to end.</div>
  </div></div>
 """
 
