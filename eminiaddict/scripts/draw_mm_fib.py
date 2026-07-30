@@ -138,15 +138,18 @@ def main():
     ax.plot([i0, i1], [p0, p1], color="#888", ls="--", lw=1.2, zorder=4)
     ax.scatter([i0, i1], [p0, p1], color="#ffd400", s=60, zorder=6)
 
-    # fib lines (drawn at true y) — labels are de-collided below so no text overlaps
+    # fib lines — STOP at the last bar (x=n) so nothing is drawn through the
+    # right-margin labels. Lines start at the anchor bar i0.
     xr = n - 1
+    LINE_END = n - 0.5   # right edge of the plotted lines; labels live beyond this
     for y, color, lw, ls in [
         (lv100, "#bbbbbb", 1.2, ":"), (fail, "#e2453c", 1.6, "-"),
         (hwb, "#ffd400", 1.6, "-"), (lv0, "#bbbbbb", 1.2, ":"),
         (tgt, "#26a65b", 2.0, "-"),
     ]:
-        ax.axhline(y, xmin=i0 / xr if xr else 0, color=color, lw=lw, ls=ls, zorder=5)
-    ax.axhline(closes[-1], color="#4aa3ff", lw=0.8, ls="--", alpha=.5)
+        ax.plot([i0, LINE_END], [y, y], color=color, lw=lw, ls=ls, zorder=5)
+    ax.plot([0, LINE_END], [closes[-1], closes[-1]], color="#4aa3ff", lw=0.8,
+            ls="--", alpha=.5, zorder=5)
 
     # right-margin labels — bigger fonts + collision avoidance (never overlap)
     labels = [
@@ -176,11 +179,10 @@ def main():
         for k in range(len(labels) - 2, -1, -1):
             if labels[k + 1]["ty"] - labels[k]["ty"] < gap:
                 labels[k]["ty"] = labels[k + 1]["ty"] - gap
-    for d in labels:
-        if abs(d["ty"] - d["y"]) > span * 0.006:       # faint leader when nudged
-            ax.plot([n, n + 1.2], [d["y"], d["ty"]], color=d["c"], lw=0.6, alpha=.55,
-                    zorder=4, clip_on=False)
-        ax.text(n + 1.6, d["ty"], d["t"], color=d["c"], va="center",
+    for d in labels:                                    # leader from line-end to label
+        ax.plot([LINE_END, n + 1.4], [d["y"], d["ty"]], color=d["c"], lw=0.7,
+                alpha=.6, zorder=4, clip_on=False)
+        ax.text(n + 2.2, d["ty"], d["t"], color=d["c"], va="center",
                 fontsize=LABEL_FS, fontweight="bold", clip_on=False)
 
     dir_txt = "LONG (up leg, drawn low→high)" if up else "SHORT (down leg, drawn high→low)"
