@@ -6,11 +6,15 @@ embedded as base64. Auto-listed in Mission Control's Artifact Library
 (/artifact/eminiaddict_measured_move_method). Run from repo root or eminiaddict/.
 """
 import base64
+import glob
+import html as _html
 import json
 import os
 import pathlib
+import re
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]  # repo root
+NOTES = ROOT / "eminiaddict" / "notes"
 CHART = ROOT / "eminiaddict" / "figures" / "es_daily_mm_fib_dominant.png"
 OUT = ROOT / "docs" / "artifacts" / "eminiaddict_measured_move_method.html"
 CATALOG = ROOT / "data" / "_catalog" / "claude_artifacts.json"
@@ -18,6 +22,88 @@ TITLE = "EminiAddict Measured Move Method"  # slugifies to the file stem
 DATE = "2026-07-30"
 
 chart_b64 = base64.b64encode(CHART.read_bytes()).decode() if CHART.exists() else ""
+
+
+def _inline(s):
+    s = _html.escape(s)
+    s = re.sub(r"`([^`]+)`", r"<code>\1</code>", s)
+    s = re.sub(r"\*\*([^*]+)\*\*", r"<b>\1</b>", s)
+    return s
+
+
+def md2html(text):
+    """Minimal markdown -> HTML for the chapter notes (headings, tables, lists,
+    hr, bold, inline code, paragraphs). Not a general converter."""
+    lines = text.split("\n")
+    out, i, n = [], 0, len(lines)
+    while i < n:
+        ln = lines[i]
+        # table block
+        if ln.lstrip().startswith("|") and i + 1 < n and set(lines[i + 1].strip()) <= set("|-: "):
+            rows = []
+            while i < n and lines[i].lstrip().startswith("|"):
+                rows.append([c.strip() for c in lines[i].strip().strip("|").split("|")])
+                i += 1
+            head, body = rows[0], rows[2:]
+            t = ["<table><tr>" + "".join(f"<th>{_inline(c)}</th>" for c in head) + "</tr>"]
+            for r in body:
+                t.append("<tr>" + "".join(f"<td>{_inline(c)}</td>" for c in r) + "</tr>")
+            out.append("".join(t) + "</table>")
+            continue
+        # headings
+        m = re.match(r"^(#{1,6})\s+(.*)$", ln)
+        if m:
+            lvl = min(len(m.group(1)) + 1, 6)  # bump so chapter # -> h3 under section
+            out.append(f"<h{lvl}>{_inline(m.group(2))}</h{lvl}>")
+            i += 1
+            continue
+        # hr
+        if ln.strip() in ("---", "***", "___"):
+            out.append("<hr>")
+            i += 1
+            continue
+        # unordered list
+        if re.match(r"^\s*[-*]\s+", ln):
+            items = []
+            while i < n and re.match(r"^\s*[-*]\s+", lines[i]):
+                items.append("<li>" + _inline(re.sub(r"^\s*[-*]\s+", "", lines[i])) + "</li>")
+                i += 1
+            out.append("<ul>" + "".join(items) + "</ul>")
+            continue
+        # ordered list
+        if re.match(r"^\s*\d+\.\s+", ln):
+            items = []
+            while i < n and re.match(r"^\s*\d+\.\s+", lines[i]):
+                items.append("<li>" + _inline(re.sub(r"^\s*\d+\.\s+", "", lines[i])) + "</li>")
+                i += 1
+            out.append("<ol>" + "".join(items) + "</ol>")
+            continue
+        # paragraph (gather until blank)
+        if ln.strip():
+            para = [ln]
+            i += 1
+            while i < n and lines[i].strip() and not re.match(r"^(\s*[-*]\s+|\s*\d+\.\s+|#{1,6}\s|\|)", lines[i]):
+                para.append(lines[i])
+                i += 1
+            out.append("<p>" + _inline(" ".join(para)) + "</p>")
+            continue
+        i += 1
+    return "\n".join(out)
+
+
+# --- assemble chapter-by-chapter section from notes/chNN_*.md ---
+chap_files = sorted(glob.glob(str(NOTES / "ch[0-9][0-9]_*.md")))
+chap_nav, chap_sec = [], []
+for f in chap_files:
+    stem = pathlib.Path(f).stem              # e.g. ch06_setups
+    num = stem[2:4]
+    body_md = pathlib.Path(f).read_text(encoding="utf-8")
+    first = body_md.lstrip().split("\n", 1)[0].lstrip("# ").strip()  # "# Ch N — Title"
+    chap_nav.append(f'<a href="#{stem}">Ch {int(num)} — {_html.escape(first.split("—")[-1].strip())}</a>')
+    chap_sec.append(f'<section id="{stem}" class="chap"><div class="chaphd">{_html.escape(first)}</div>'
+                    + md2html(body_md.split("\n", 1)[1] if "\n" in body_md else "") + "</section>")
+CHAPTERS = ("".join(chap_sec)) if chap_sec else "<p class='lead'>No chapter notes found.</p>"
+CHAP_NAV = "".join(chap_nav)
 
 CSS = """
 :root{--bg:#0d1117;--card:#161b22;--chip:#30363d;--fg:#e6edf3;--muted:#8b949e;
@@ -51,6 +137,12 @@ ul{margin:8px 0;padding-left:22px}
 li{margin:3px 0}
 img.chart{width:100%;border:1px solid var(--chip);border-radius:10px;margin:12px 0}
 .lead{color:var(--muted);font-size:13.5px}
+.chapnav{background:var(--card);border:1px solid var(--chip);border-radius:10px;padding:12px 18px;
+  margin:12px 0 20px;columns:2;font-size:12.5px}
+.chapnav a{display:block;padding:2px 0}
+section.chap{border-top:2px solid var(--chip);margin-top:26px;padding-top:6px}
+.chaphd{font-size:16px;font-weight:700;color:var(--yellow);margin:14px 0 4px}
+hr{border:none;border-top:1px solid var(--chip);margin:16px 0}
 .pill{display:inline-block;background:#1f2630;border:1px solid var(--chip);border-radius:6px;
   padding:1px 8px;margin:2px 3px 2px 0;font-size:12px}
 """
@@ -218,8 +310,14 @@ HTML = f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <a href="#entries">4 · Entry strategies</a><a href="#exits">5 · Taking profit</a>
 <a href="#gaps">6 · Gap-fill book</a><a href="#sessions">7 · Sessions &amp; timing</a>
 <a href="#rules">8 · The 31 rules</a><a href="#build">9 · What to build</a>
+<a href="#chapters">▸ Chapter-by-chapter notes</a>
 </div>
 {BODY}
+<h2 id="chapters">Chapter-by-chapter notes (full extraction)</h2>
+<p class="lead">The complete, number-exact read of all 16 chapters — the source
+behind the synthesis above.</p>
+<div class="chapnav">{CHAP_NAV}</div>
+{CHAPTERS}
 </div></body></html>"""
 
 OUT.parent.mkdir(parents=True, exist_ok=True)
