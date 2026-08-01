@@ -92,3 +92,4 @@ data/databento/
 docs/depth_heatmap/ES_*.html
 # copyrighted EminiAddict diagram gallery (embeds paid content)
 docs/artifacts/eminiaddict_diagrams.html
+data/nt_internals/

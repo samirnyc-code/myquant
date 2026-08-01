@@ -35,10 +35,11 @@ GRID = [7492.75, 7482.75, 7472.75, 7462.75, 7452.75, 7442.75]   # his ~10pt leve
 
 def main():
     df = pd.read_parquet(SRC)[["DateTime", "Open", "High", "Low", "Close"]]
-    # 5m source is OPEN-labeled; keep 15m OPEN-labeled to match (bar time = bar OPEN):
-    # closed='left' includes [t, t+15m); label='left' names it by the open. A 08:30 bar =
-    # 08:30-08:44:59; the last bar 15:00 = 15:00-15:14:59 (RTH close). Do NOT change these.
-    d15 = (df.set_index("DateTime").resample("15min", closed="left", label="left")
+    # NT convention: a bar's timestamp = the bar's CLOSE (end of the period), NOT the open.
+    # The 5m source is open-stamped points (08:30,08:35,...); binning them [t,t+15m) with
+    # label='right' stamps the 15m bar by its close. So the 08:30-08:45 bar = "08:45", and
+    # the final RTH bar (15:00-15:15) = "15:15". Do NOT switch back to open labels.
+    d15 = (df.set_index("DateTime").resample("15min", closed="left", label="right")
            .agg({"Open": "first", "High": "max", "Low": "min", "Close": "last"})
            .dropna().reset_index()).tail(BARS).reset_index(drop=True)
     n = len(d15)

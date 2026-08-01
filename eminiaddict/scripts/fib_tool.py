@@ -27,8 +27,8 @@ def _resample(rule):
     if rule == "5m":
         d = _SRC.copy()
     else:
-        # OPEN-labeled bars (bar time = bar OPEN), matching the 5m source. Do NOT change.
-        d = (_SRC.set_index("DateTime").resample(rule, closed="left", label="left")
+        # NT convention: bar timestamp = bar CLOSE (end of period). label='right' close-stamps.
+        d = (_SRC.set_index("DateTime").resample(rule, closed="left", label="right")
              .agg({"Open": "first", "High": "max", "Low": "min",
                    "Close": "last", "Volume": "sum"}).dropna().reset_index())
     d["t"] = (d["DateTime"].astype("int64") // 1_000_000)  # ms epoch
