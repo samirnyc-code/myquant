@@ -90,3 +90,5 @@ data/databento/
 # depth heatmap: interactive Plotly HTMLs are heavy (~10MB each, plotly inlined) and
 # fully regenerable via scripts/depth_heatmap.py build — keep index.html + PNGs, not these
 docs/depth_heatmap/ES_*.html
+# copyrighted EminiAddict diagram gallery (embeds paid content)
+docs/artifacts/eminiaddict_diagrams.html
