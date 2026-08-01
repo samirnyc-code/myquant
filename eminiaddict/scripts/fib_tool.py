@@ -16,16 +16,19 @@ import pandas as pd
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 PORT = 8641
 FIBS_FILE = ROOT / "eminiaddict" / "data" / "fibs.json"
-_CUR = ROOT / "eminiaddict" / "data" / "es_5m_current.parquet"   # extended w/ fresh ticks
+# canonical current 5m (built from ticks_continuous through the latest session) if present
+_CUR = ROOT / "research" / "scalp_swing" / "es_5m_rth.parquet"
 _SRC = pd.read_parquet(_CUR if _CUR.exists() else ROOT / "data" / "bars" / "_db_es_5m_rth.parquet")
-print("bars source:", "es_5m_current" if _CUR.exists() else "_db_es_5m_rth")
+_SRC = _SRC[["DateTime", "Open", "High", "Low", "Close", "Volume"]].copy()
+print("bars source:", _CUR.name if _CUR.exists() else "_db_es_5m_rth", "ends", _SRC.DateTime.max())
 
 # derive all timeframes from the 5m RTH source (consistent price scale)
 def _resample(rule):
     if rule == "5m":
         d = _SRC.copy()
     else:
-        d = (_SRC.set_index("DateTime").resample(rule)
+        # OPEN-labeled bars (bar time = bar OPEN), matching the 5m source. Do NOT change.
+        d = (_SRC.set_index("DateTime").resample(rule, closed="left", label="left")
              .agg({"Open": "first", "High": "max", "Low": "min",
                    "Close": "last", "Volume": "sum"}).dropna().reset_index())
     d["t"] = (d["DateTime"].astype("int64") // 1_000_000)  # ms epoch
