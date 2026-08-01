@@ -1,0 +1,19 @@
+L2 ABSORPTION vs MC OUTCOME — 394 scored trades, 122 days
+level=SignalPrice window=[-12,+8]min held=adverse<=8t
+==============================================================
+
+ALL covered MC trades at signal level: n=394  win%=43.4  meanR=+0.11  meanNet=+123
+
+  HELD (adverse<=8t): n=66  win%=42.4  meanR=+0.08  meanNet=+11
+
+  SWEPT (adverse>8t): n=328  win%=43.6  meanR=+0.12  meanNet=+146
+
+  by AGAINST-volume quartile (aggression into the level):
+    Q1: n=  99  win%= 45.5  meanR=+0.13
+    Q2: n=  98  win%= 38.8  meanR=+0.15
+    Q3: n=  98  win%= 45.9  meanR=+0.18
+    Q4: n=  99  win%= 43.4  meanR=-0.01
+
+  STRONG absorption (held & against>=median) vs REST:
+    strong: n=12  win%=41.7  meanR=-0.07
+    rest  : n=382  win%=43.5  meanR=+0.12

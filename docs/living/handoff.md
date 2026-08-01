@@ -6,6 +6,41 @@ pipeline + S77 security hardening; merged S76 Mac swing-levels work)
 
 ---
 
+## S92-ABS (2026-08-01) — L2 absorption at PB levels: engine + ChartSim viz + VALIDATION verdict
+
+Built absorption-at-pullback-level for the book (user: "absorption at pb levels like 2E, rev, MC").
+
+**Engine (`scripts/absorption_engine.py`, main):** reconstructs traded volume at any
+price/time from the order book — NT AddOn depth (≥07-21) or Databento **MBO** (Jan01–Jul20,
+172 days; the MBO we already have, NOT buying more). Auto-calibrates the **roll-basis offset**
+(book = back-adjusted continuous; raw ESH6 ~+68 pt below) AND the **aggressor side** (from
+price-move corr, not assumed). Tape cached to `data/depth/tape_cache/` (gitignored) so re-runs
+at new levels are instant, no re-decode.
+
+**ChartSim viz (`scripts/book_review.py`, regime/indep):** `absorb` toggle → badge
+(✓held/✗swept + contracts) + per-tick depth strip at each setup's PB level; hover = numbers;
+`/absorption/<date>` route. ⚠️ **KNOWN-IMPERFECT (do not trust the badges yet):** window starts
+at the signal bar (misses the real pullback low) and held/swept was anchored to a far stop →
+misleading on messy days (user caught this on 04-13). Only **2E-family** in the viz; **rev + MC
+NOT wired**.
+
+**VALIDATION (`scripts/absorption_validate.py`) — the gate; MC carries real P&L:**
+- MC pb levels = **33/50/66% of the signal→stop leg** (the parquet's `PBLevel` col is EMPTY,
+  so this is a leg ASSUMPTION — confirm with user). 711 level-tests / 109 days.
+- **A pb level HOLDING is a real filter:** held **36.1% win / +0.08R** vs swept **26.4% / −0.13R**.
+  Best cell = **fib-33% + held: 41.9% / +0.14R**.
+- **But L2 absorption VOLUME does NOT add:** against-vol quartiles flat (28–29%). The edge is
+  "did the fib hold" — visible from PRICE alone; the order-flow magnitude isn't earning its keep.
+- **2E inconclusive:** only 2/177 "held" in-window — 2E window/level needs rework.
+- **Verdict:** pb-hold = real edge; the order-flow absorption layer is UNPROVEN for MC.
+  Results: `data/depth/absorption_validation_20260702.txt`.
+
+**NEXT (cheap, off the cache):** does against-vol add WITHIN held levels (order flow's last
+chance)? · fix 2E window · wire rev+MC into viz ONLY if order flow proves out. Earlier same
+session: ChartSim toolbar regroup + date-invert + 5M/15M TF (committed `9bb19e2`).
+
+---
+
 ## S91-EA (2026-07-30) — EminiAddict / Halsey Measured-Move project (all in `eminiaddict/`)
 
 New project: learn/codify/test David Halsey's Measured-Move method (eminiaddict.com,
