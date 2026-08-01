@@ -21,6 +21,7 @@ ROOT = Path(__file__).resolve().parent.parent
 DAYS = ROOT / "data" / "annotations" / "book_review"
 NOTES = ROOT / "data" / "annotations" / "book_review_notes"
 NOTES.mkdir(parents=True, exist_ok=True)
+ABSORB = ROOT / "data" / "annotations" / "absorption"   # L2 absorption at PB levels (S91e)
 PORT = 8640
 sys.path.insert(0, str(Path(__file__).resolve().parent))   # for revdetect
 
@@ -377,7 +378,8 @@ function applyDayFilter(init){let sk=$('t_skip').checked;idx=sk?ALLIDX.filter(d=
  let h=decodeURIComponent(location.hash.slice(1));
  let start=(init&&h&&idx.some(d=>d.date==h))?h:((!init&&idx.some(d=>d.date==curDate))?curDate:idx[idx.length-1].date);
  goDay(start)}
-function goDay(dt){curDate=dt;$('daysel').value=dt;fetch('/day/'+dt).then(r=>r.json()).then(j=>{RAWD=j;D=(TF>5)?aggDay(j,TF/5):j;revIdx=D.bars.length-1;loadNotes(dt)})}
+function goDay(dt){curDate=dt;$('daysel').value=dt;fetch('/day/'+dt).then(r=>r.json()).then(j=>{RAWD=j;D=(TF>5)?aggDay(j,TF/5):j;revIdx=D.bars.length-1;loadNotes(dt)});
+ ABSORB={};fetch('/absorption/'+dt).then(r=>r.json()).then(a=>{ABSORB=a||{};if(D)render()}).catch(()=>{ABSORB={}})}  // L2 absorption (S91e)
 // ---- timeframe (S91e): 5M base, client-side 15M aggregation. Default 5M => D===raw (no change).
 let TF=5,RAWD=null;
 function setTF(v){if(v=='D'){alert('Daily is a separate multi-day view — coming next. Staying on '+TF+'M.');$('tf').value=TF;return}
@@ -415,6 +417,22 @@ function candle(i,o,h,l,c,x,y,bw,dim){let up=c>=o,col=dim?'#39424d':(up?CFG.cUp:
 function setupLbl(t){return t.setup||((t.with_trend?'':'f')+'2E'+t.dir)}
 const FAM_TOG={'2EL':'t_2el','2ES':'t_2es','f2EL':'t_f2el','f2ES':'t_f2es'};
 function famVis(t){let id=FAM_TOG[setupLbl(t)];return id?$(id).checked:true}  // per-family toggle; unknown labels always show
+// ---- L2 absorption at PB levels (S91e) ----
+let ABSORB={};
+function compactN(n){n=Math.abs(+n||0);return n>=1000?(n/1000).toFixed(n>=10000?0:1)+'k':''+n}
+function absorbFor(t){if(!ABSORB.setups)return null;let lv=(t.trigger!=null)?t.trigger:t.entry_px;
+ return ABSORB.setups.find(r=>r.setup==setupLbl(t)&&r.dir==t.dir&&Math.abs(r.level-lv)<0.6&&r.n)||null}
+function drawAbsorb(t,r,x,y,bw,pad,bot){
+ let yl=y(r.level);if(yl<pad.y0-40||yl>bot+40)return;
+ let held=r.held,col=held?'#2ecc71':'#e74c3c',xc=x(t.entry_bar)+bw*0.9;   // strip just right of entry
+ let mv=1;for(let row of (r.ladder||[]))mv=Math.max(mv,row.buy,row.sell);let sc=22/mv;
+ for(let row of (r.ladder||[])){let yy=y(row.px);if(yy<pad.y0||yy>bot)continue;
+  ctx.fillStyle=hexa('#2ecc71',.7);ctx.fillRect(xc,yy-1.4,Math.min(22,row.buy*sc),2.8);
+  let sw=Math.min(22,row.sell*sc);ctx.fillStyle=hexa('#e74c3c',.7);ctx.fillRect(xc-sw,yy-1.4,sw,2.8)}
+ ctx.fillStyle=col;ctx.fillRect(xc-2,yl-1.5,4,3);                          // marker at the level
+ let lab=(held?'✓':'✗')+' '+compactN(r.absorbed||r.against)+(held?' held':' swept');
+ ctx.font='bold 10px sans-serif';ctx.textAlign='left';let tw=ctx.measureText(lab).width+8,bx=xc+26,by=yl-7;
+ ctx.fillStyle=hexa(col,.93);ctx.fillRect(bx,by,tw,14);ctx.fillStyle=held?'#06240f':'#2a0606';ctx.fillText(lab,bx+4,by+10);}
 // NT-csv setup outcome: pullback fill -> stop/1R-target/EOD exit, P&L net $17.5 RT (full day, reveal-agnostic)
 function csvResult(c,bars){let bi=c[0],up=c[1]>0,stopP=c[5],lmt=c[6];
  if(bi>=bars.length)return null;
@@ -438,7 +456,7 @@ function setupBox(t){let dir=t.dir=='S'?'short ▽':'long △',net=(t.net!=null&
  return `<b style="color:${setupCol(t)};font-size:13px">${setupLbl(t)}</b> ${dir} &nbsp;<span style="color:#aeb6c0">${status}</span>`+
    `<br><span style="color:#8b93a0">sig</span> b${t.sig_bar+1} · <span style="color:#8b93a0">fill</span> b${t.entry_bar+1} · <span style="color:#8b93a0">exit</span> b${t.exit_bar+1}`+
    `<br><span style="color:#8b93a0">trig</span> ${t.trigger} · <span style="color:#8b93a0">entry</span> ${t.entry_px} · <span style="color:#8b93a0">stop</span> ${t.stop} · <span style="color:#8b93a0">exit</span> ${t.exit_px}`+
-   `<br><span style="color:#8b93a0">net</span> ${net}`;}
+   `<br><span style="color:#8b93a0">net</span> ${net}`+(()=>{let r=absorbFor(t);if(!r)return '';let c=r.held?'#2ecc71':'#e74c3c';return `<br><span style="color:#f1c40f">absorb</span> against <b>${r.against}</b> · with ${r.wth} · Δ${r.delta} · <span style="color:${c}">${r.held?'HELD':'SWEPT'}</span> · adv ${r.adverse_ticks}t <span style="color:#5a6470">(${ABSORB.source||'?'})</span>`})();}
 function setupCol(t){if(t.is_fade)return t.dir=='L'?'#e67e22':'#9b59b6';if(t.in_book)return t.dir=='L'?CFG.cBull:CFG.cBear;return '#7f8c8d'}
 function render(){if(!D)return;$('dt').textContent=D.date;$('rev').textContent=revIdx+1;$('nb').textContent=D.bars.length;
  let bars=D.bars,ptA=D.prior_tail||[],pt=($('t_prev').checked&&ptA.length)?[ptA[ptA.length-1]]:[],P=pt.length,W=cv.clientWidth,H=cv.clientHeight,pad=VX,bot=H-26,lbl=$('t_lbl').checked;
@@ -554,6 +572,8 @@ function render(){if(!D)return;$('dt').textContent=D.date;$('rev').textContent=r
   ctx.fillStyle=hexa(col,1);ctx.fillRect(xs,pad.y0,bw,seld?5:3);
   if(seld){ctx.strokeStyle=LT?'#111':'#fff';ctx.lineWidth=1.3;ctx.strokeRect(xs,pad.y0,bw,bot-pad.y0);ctx.lineWidth=1}
   window._setupHit.push({xc:x(t.sig_bar),t:t});}
+ // L2 absorption badge + depth strip at each setup's PB level (S91e); no-lookahead (entry revealed)
+ if($('t_absorb').checked)for(let t of visTrades()){if(t.entry_bar>revIdx||!famVis(t))continue;let r=absorbFor(t);if(r)drawAbsorb(t,r,x,y,bw,pad,bot);}
  // reveal edge
  ctx.strokeStyle='#333c47';hline2(x(revIdx)+bw*.5,pad.y0,x(revIdx)+bw*.5,bot);
  // crosshair + hover readout
@@ -763,6 +783,9 @@ class H(BaseHTTPRequestHandler):
             return self._send(fp.read_bytes() if fp.exists() else b"{}")
         if p.startswith("/day/"):
             f = DAYS / (p[5:] + ".json")
+            return self._send(f.read_bytes() if f.exists() else b"{}")
+        if p.startswith("/absorption/"):
+            f = ABSORB / (p[12:] + ".json")
             return self._send(f.read_bytes() if f.exists() else b"{}")
         if p.startswith("/notes/"):
             f = NOTES / (p[7:] + ".json")

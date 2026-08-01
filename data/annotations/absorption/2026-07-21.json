@@ -1,0 +1,19 @@
+{
+ "date": "2026-07-21",
+ "source": "nt_depth",
+ "buy_side": "A",
+ "basis_offset": 0.0,
+ "n_setups": 1,
+ "setups": [
+  {
+   "key": "2ES#0",
+   "setup": "2ES",
+   "dir": "S",
+   "level": 7512.25,
+   "t0": "09:10",
+   "t1": "09:25",
+   "n": 0,
+   "note": "no trades at level in window"
+  }
+ ]
+}

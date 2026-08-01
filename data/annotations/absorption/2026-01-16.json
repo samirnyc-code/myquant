@@ -1,0 +1,71 @@
+{
+ "date": "2026-01-16",
+ "source": "mbo",
+ "buy_side": "B",
+ "basis_offset": 119.75,
+ "n_setups": 1,
+ "setups": [
+  {
+   "key": "2ES#0",
+   "setup": "2ES",
+   "dir": "S",
+   "level": 7107.0,
+   "t0": "13:50",
+   "t1": "14:05",
+   "n": 2803,
+   "against": 4854,
+   "wth": 4849,
+   "delta": -5,
+   "held": true,
+   "swept": false,
+   "adverse_ticks": 12,
+   "absorbed": 4854,
+   "score": 1.0,
+   "net": 607.5,
+   "ladder": [
+    {
+     "px": 7106.25,
+     "buy": 627,
+     "sell": 503,
+     "net": 124
+    },
+    {
+     "px": 7106.5,
+     "buy": 441,
+     "sell": 375,
+     "net": 66
+    },
+    {
+     "px": 7106.75,
+     "buy": 484,
+     "sell": 728,
+     "net": -244
+    },
+    {
+     "px": 7107.0,
+     "buy": 841,
+     "sell": 697,
+     "net": 144
+    },
+    {
+     "px": 7107.25,
+     "buy": 1307,
+     "sell": 1310,
+     "net": -3
+    },
+    {
+     "px": 7107.5,
+     "buy": 554,
+     "sell": 582,
+     "net": -28
+    },
+    {
+     "px": 7107.75,
+     "buy": 600,
+     "sell": 654,
+     "net": -54
+    }
+   ]
+  }
+ ]
+}

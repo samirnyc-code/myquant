@@ -1,0 +1,51 @@
+{
+ "date": "2026-07-22",
+ "source": "nt_depth",
+ "buy_side": "A",
+ "basis_offset": 0.0,
+ "n_setups": 1,
+ "setups": [
+  {
+   "key": "2EL#0",
+   "setup": "2EL",
+   "dir": "L",
+   "level": 7561.75,
+   "t0": "11:40",
+   "t1": "11:55",
+   "n": 961,
+   "against": 506,
+   "wth": 661,
+   "delta": 155,
+   "held": false,
+   "swept": true,
+   "absorbed": 0,
+   "score": 0.0,
+   "ladder": [
+    {
+     "px": 7561.0,
+     "buy": 265,
+     "sell": 186,
+     "net": 79
+    },
+    {
+     "px": 7561.25,
+     "buy": 231,
+     "sell": 182,
+     "net": 49
+    },
+    {
+     "px": 7561.5,
+     "buy": 95,
+     "sell": 138,
+     "net": -43
+    },
+    {
+     "px": 7561.75,
+     "buy": 70,
+     "sell": 0,
+     "net": 70
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,115 @@
+{
+ "date": "2026-01-29",
+ "source": "mbo",
+ "buy_side": "B",
+ "basis_offset": 119.75,
+ "n_setups": 2,
+ "setups": [
+  {
+   "key": "2EL#0",
+   "setup": "2EL",
+   "dir": "L",
+   "level": 7070.75,
+   "t0": "12:00",
+   "t1": "12:15",
+   "n": 1599,
+   "against": 1857,
+   "wth": 1824,
+   "delta": -33,
+   "held": true,
+   "swept": false,
+   "adverse_ticks": 54,
+   "absorbed": 1857,
+   "score": 1.02,
+   "net": 1995.0,
+   "ladder": [
+    {
+     "px": 7070.0,
+     "buy": 165,
+     "sell": 104,
+     "net": 61
+    },
+    {
+     "px": 7070.25,
+     "buy": 148,
+     "sell": 133,
+     "net": 15
+    },
+    {
+     "px": 7070.5,
+     "buy": 180,
+     "sell": 192,
+     "net": -12
+    },
+    {
+     "px": 7070.75,
+     "buy": 247,
+     "sell": 203,
+     "net": 44
+    },
+    {
+     "px": 7071.0,
+     "buy": 249,
+     "sell": 304,
+     "net": -55
+    },
+    {
+     "px": 7071.25,
+     "buy": 335,
+     "sell": 393,
+     "net": -58
+    },
+    {
+     "px": 7071.5,
+     "buy": 500,
+     "sell": 528,
+     "net": -28
+    }
+   ]
+  },
+  {
+   "key": "2EL#1",
+   "setup": "2EL",
+   "dir": "L",
+   "level": 7089.5,
+   "t0": "13:40",
+   "t1": "13:55",
+   "n": 397,
+   "against": 396,
+   "wth": 449,
+   "delta": 53,
+   "held": true,
+   "swept": false,
+   "adverse_ticks": 28,
+   "absorbed": 396,
+   "score": 0.88,
+   "net": 1057.5,
+   "ladder": [
+    {
+     "px": 7088.75,
+     "buy": 151,
+     "sell": 114,
+     "net": 37
+    },
+    {
+     "px": 7089.0,
+     "buy": 142,
+     "sell": 158,
+     "net": -16
+    },
+    {
+     "px": 7089.25,
+     "buy": 96,
+     "sell": 69,
+     "net": 27
+    },
+    {
+     "px": 7089.5,
+     "buy": 60,
+     "sell": 55,
+     "net": 5
+    }
+   ]
+  }
+ ]
+}
