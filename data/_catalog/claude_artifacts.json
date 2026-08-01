@@ -3,6 +3,13 @@
  "note": "Snapshot of published Claude Artifacts (claude.ai). Ask Claude to 'refresh the artifacts list' to regenerate via Artifact action:list.",
  "artifacts": [
   {
+   "title": "EminiAddict Academy",
+   "url": "",
+   "updated": "2026-08-02",
+   "group": "EminiAddict",
+   "info": "Ground-up learning hub for David Halsey's Measured-Move method — a 9-module curriculum (foundations -> setups -> entries -> exits -> the decision-tree flow chart -> daily process -> signal alignment -> gaps/rules -> practice) that ties together the method reference, his teaching diagrams + both flow charts, the 71-sequence library, and the study quiz, with a cheat-sheet."
+  },
+  {
    "title": "EminiAddict Diagrams",
    "url": "",
    "updated": "2026-08-01",
