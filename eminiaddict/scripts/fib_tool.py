@@ -123,6 +123,7 @@ h4{margin:6px 0;font-size:12px;color:var(--mut);text-transform:uppercase;letter-
  <span class="tf on" data-tf=15m onclick="setTf('15m')">15M</span>
  <span class=tf data-tf=1D onclick="setTf('1D')">1D</span>
  <span id=draw class=btn onclick="toggleDraw()">✎ Draw fib</span>
+ <span id=emabtn class="btn arm" onclick="toggleEma()">EMA 8/21</span>
  <span class=btn onclick="loadOlder()">◀ older</span>
  <span class=btn onclick="loadNewer()">newer ▶</span>
  <span id=stat style="margin-left:auto;color:var(--mut)"></span>
@@ -136,7 +137,8 @@ h4{margin:6px 0;font-size:12px;color:var(--mut);text-transform:uppercase;letter-
  </div>
 </div>
 <script>
-var TF='15m', OFF=0, N=900, BARS=[], VIEW={i0:0,i1:0}, FIBS=[], DRAW=false, pend=null, DPR=devicePixelRatio||1;
+var TF='15m', OFF=0, N=900, BARS=[], VIEW={i0:0,i1:0}, FIBS=[], DRAW=false, pend=null, DPR=devicePixelRatio||1, EMAON=true;
+function toggleEma(){EMAON=!EMAON;document.getElementById('emabtn').classList.toggle('arm',EMAON);draw();}
 var LV=[['100','#8a8f98',':'],['61.8','#e2453c','-'],['50','#e3b341','-'],['38.2','#e08a2b','--'],['0','#8a8f98',':'],['123.6','#26a65b','-']];
 var LVON={}; LV.forEach(function(l){LVON[l[0]]=true});
 var cv=document.getElementById('c'), cx=cv.getContext('2d');
@@ -173,6 +175,10 @@ function draw(){var w=cv.clientWidth,h=cv.clientHeight;cx.clearRect(0,0,w,h);cx.
  for(var i=P.i0;i<=P.i1;i++){var b=BARS[i],x=P.x(i),up=b[4]>=b[1];cx.strokeStyle=up?'#26a65b':'#e2453c';cx.fillStyle=cx.strokeStyle;
   cx.beginPath();cx.moveTo(x,P.y(b[2]));cx.lineTo(x,P.y(b[3]));cx.stroke();
   var yo=P.y(b[1]),yc=P.y(b[4]);cx.fillRect(x-P.bw/2,Math.min(yo,yc),P.bw,Math.max(1,Math.abs(yc-yo)));}
+ // EMA 8 (white) + EMA 21 (cyan) — Halsey's MAs
+ if(EMAON){[[8,'#ededed'],[21,'#38c6d9']].forEach(function(cfg){var nn=cfg[0],k=2/(nn+1),e=null,pts=[];
+   for(var i=0;i<BARS.length;i++){var c=BARS[i][4];e=(e==null)?c:c*k+e*(1-k);if(i>=P.i0&&i<=P.i1)pts.push([P.x(i),P.y(e)]);}
+   cx.strokeStyle=cfg[1];cx.lineWidth=1.3;cx.beginPath();pts.forEach(function(p,j){j?cx.lineTo(p[0],p[1]):cx.moveTo(p[0],p[1]);});cx.stroke();cx.lineWidth=1;});}
  // fibs (price-based -> show on any TF)
  FIBS.forEach(function(f){if(f.hidden)return;var pr=lvlprices(f.a,f.b);
   // x-start = bar at/after the anchor time (else left edge)
