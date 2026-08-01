@@ -1,13 +1,13 @@
-"""ES 15m (24H) for Monday 08/03/26 — David Halsey's ACTUAL read from his 07-31 video
-(transcribed), NOT a guessed traditional MM.
+"""ES 15m (24H) for Monday 08/03/26 — David Halsey's PRIMARY measured move, read straight
+off his 07-31 video (his Fibonacci tool popup gives the exact anchors):
+    Start 7324 @ 2026-07-29 16:22 (100% low)  ->  End 7446.50 @ 2026-07-30 10:22 (0% high)
+Complete level set (his exact numbers, read off his axis):
+    100% 7324 · 61.8% 7370.80 · 50% 7385.25 · 38.2% 7399.71 · 0% 7446.50 · -23.6% 7475.41
+Price extended ABOVE the -23.6% (7475.41) -> that is his "line in the sand" / extension
+trigger; above it the ES grinds up in extensions (gated by VIX < 18.85, DXY falling).
 
-His read: the ES is going UP IN EXTENSIONS. The extension-failure level is right at the
-gap fill and his bullish "LINE IN THE SAND" is 7473-75 ("everything above it is bullish").
-Above it = extensions grind higher toward the upside targets; a break = the extension
-fails -> swing high -> new series of shorts down into the larger downtrend. Gated by the
-multi-market signals: stays bullish while VIX holds below 18.85 and DXY keeps falling in
-extensions. Resistance levels are drawn from the mid-July highs->lows that price is running
-into. Data: eminiaddict/data/es_5m_24h.parquet (24H), 15m close-labeled (NT convention).
+Fib is drawn ANCHORED to the actual bars (diagonal leg + all levels), not floated.
+Data: eminiaddict/data/es_5m_24h.parquet (24H), 15m close-labeled (NT convention).
 """
 import os
 import pandas as pd
@@ -18,17 +18,19 @@ from matplotlib.patches import Rectangle
 
 SRC = "../data/es_5m_24h.parquet"
 OUT = "../figures/monday_es.png"
-BARS = 320
 FS = 12 * float(os.environ.get("EA_FONT_SCALE", 1.2))
 
-SAND_LO, SAND_HI = 7473.0, 7475.0     # "line in the sand" zone (extension failure)
-# horizontal levels he named / drew (price, color, style, label)
-LEVELS = [
-    (7547.88, "#e2453c", "-", "upper 61.8% / next resistance  7,547.88"),
-    (7534.57, "#26a65b", "-", "extension target (-23.6%)  7,534.57"),
-    (7521.88, "#e3b341", "--", "upper 50%  7,521.88"),
-    (7517.75, "#bbbbbb", ":", "swing high (running into resistance)  7,517.75"),
-    (7490.53, "#8a8f98", ":", "38.2%  7,490.53"),
+# his exact anchors (from the fib-tool popup in the video)
+LO_P, LO_T = 7324.0, "2026-07-29 16:22:00"     # 100%
+HI_P, HI_T = 7446.5, "2026-07-30 10:22:00"     # 0%
+# complete level set (price, color, style, label) — his colors
+FIB = [
+    (7324.00, "#cfcfcf", ":", "100%  7,324.00"),
+    (7370.80, "#e2453c", "-", "61.8%  7,370.80"),
+    (7385.25, "#e3b341", "-", "50%  7,385.25"),
+    (7399.71, "#8a8f98", ":", "38.2%  7,399.71"),
+    (7446.50, "#cfcfcf", ":", "0%  7,446.50"),
+    (7475.41, "#26d07c", (0, (1, 1)), "-23.6% = LINE IN SAND  7,475.41"),
 ]
 
 
@@ -36,11 +38,18 @@ def main():
     df = pd.read_parquet(SRC)[["DateTime", "Open", "High", "Low", "Close"]]
     d15 = (df.set_index("DateTime").resample("15min", closed="left", label="right")
            .agg({"Open": "first", "High": "max", "Low": "min", "Close": "last"})
-           .dropna().reset_index()).tail(BARS).reset_index(drop=True)
+           .dropna().reset_index())
+    # window: from a bit before the low anchor to the end
+    a = d15.index[d15.DateTime >= pd.Timestamp(LO_T) - pd.Timedelta(hours=12)][0]
+    d15 = d15.iloc[a:].reset_index(drop=True)
     n = len(d15)
     c = d15["Close"]
     ema8, ema21 = c.ewm(span=8).mean(), c.ewm(span=21).mean()
     last = c.iloc[-1]
+
+    def bar_at(ts):
+        return int((d15.DateTime - pd.Timestamp(ts)).abs().idxmin())
+    lo_i, hi_i = bar_at(LO_T), bar_at(HI_T)
 
     fig, ax = plt.subplots(figsize=(16, 9), facecolor="#0b0b0b")
     ax.set_facecolor("#0b0b0b")
@@ -53,14 +62,16 @@ def main():
     ax.plot(range(n), ema8, color="#ededed", lw=1.3, zorder=4, label="EMA 8")
     ax.plot(range(n), ema21, color="#38c6d9", lw=1.3, zorder=4, label="EMA 21")
 
-    # THE line in the sand (extension failure) — shaded zone, the centerpiece
-    ax.axhspan(SAND_LO, SAND_HI, color="#e2453c", alpha=.28, zorder=3)
-    ax.axhline(SAND_HI, color="#e2453c", lw=2.0, zorder=5)
+    # the measured-move LEG (anchors) + markers
+    ax.plot([lo_i, hi_i], [LO_P, HI_P], color="#888", ls="--", lw=1.4, zorder=5)
+    ax.scatter([lo_i, hi_i], [LO_P, HI_P], color="#ffd400", s=80, zorder=8,
+               edgecolor="white", lw=.7)
 
-    labels = [{"y": (SAND_LO + SAND_HI) / 2, "c": "#ff6a5e",
-               "t": "LINE IN SAND 7,473-75 (ext fail)"}]
-    for y, color, ls, lab in LEVELS:
-        ax.plot([0, n - 0.5], [y, y], color=color, lw=1.6 if ls == "-" else 1.0, ls=ls, zorder=5)
+    # complete fib level set, drawn FROM the leg forward
+    labels = []
+    for y, color, ls, lab in FIB:
+        ax.plot([lo_i, n - 0.5], [y, y], color=color, lw=1.9 if "SAND" in lab else 1.5,
+                ls=ls, zorder=6 if "SAND" in lab else 5)
         labels.append({"y": y, "c": color, "t": lab})
     ax.plot([0, n - 0.5], [last, last], color="#4aa3ff", lw=0.8, ls="--", alpha=.6, zorder=5)
     labels.append({"y": last, "c": "#4aa3ff", "t": f"last  {last:,.2f}"})
@@ -91,10 +102,10 @@ def main():
                 fontweight="bold", clip_on=False)
 
     ax.set_title(
-        "ES 15m (24H) — Monday 08/03/26 · David Halsey's read (his 07-31 video)\n"
-        "UP IN EXTENSIONS · above 7,473-75 = bullish, grind toward 7,534.57 / 7,547.88 · "
-        "break = extension fails -> shorts · gate: VIX < 18.85, DXY falling",
-        color="#eee", fontsize=FS, loc="left")
+        "ES 15m (24H) — Monday 08/03/26 · David Halsey's primary MM (exact from his 07-31 video)\n"
+        f"leg 7,324 ({d15.DateTime[lo_i]:%m/%d %H:%M}) -> 7,446.50 ({d15.DateTime[hi_i]:%m/%d %H:%M}) · "
+        "extended above -23.6% 7,475.41 = UP IN EXTENSIONS · above 7,475 bullish (VIX<18.85)",
+        color="#eee", fontsize=FS * .95, loc="left")
     step = max(1, n // 12)
     ax.set_xticks(range(0, n, step))
     ax.set_xticklabels([d15.DateTime[i].strftime("%m/%d %H:%M") for i in range(0, n, step)],
@@ -107,7 +118,8 @@ def main():
     ax.legend(loc="upper left", facecolor="#111", edgecolor="#333", labelcolor="#ccc")
     fig.tight_layout()
     fig.savefig(OUT, dpi=120, facecolor=fig.get_facecolor())
-    print("wrote", OUT, "| last bar", d15.DateTime.iloc[-1], "close", last)
+    print("wrote", OUT, "| leg", d15.DateTime[lo_i], LO_P, "->", d15.DateTime[hi_i], HI_P,
+          "| last", last)
 
 
 if __name__ == "__main__":
