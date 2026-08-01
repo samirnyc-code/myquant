@@ -10,3 +10,4 @@ figures/fib_render.png
 data/site/
 data/es_5m_current.parquet
 figures/monday_es.png
+data/es_5m_24h.parquet
