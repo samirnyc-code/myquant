@@ -17,7 +17,6 @@ DATE = "2026-08-02"
 # curriculum: (module, blurb, [(label, href|None)])
 A_METHOD = "/artifact/eminiaddict_measured_move_method"
 A_DIAG = "/artifact/eminiaddict_diagrams"
-A_SEQ = "/artifact/eminiaddict_mm_sequence_library"
 A_QUIZ = "/artifact/eminiaddict_method_study_quiz"
 
 MODULES = [
@@ -46,8 +45,7 @@ MODULES = [
      "How MMs chain into a trend: draw a basic MM → enter at HWB → tick-by-tick → profit "
      "target → beyond PT? → next MM… A trend break routes to STOP → draw the ATW-HWB of the "
      "whole series as the possible limit → reverse. THIS is the core process flowchart.",
-     [("Diagram #5: Measured Move Flow Chart (the decision tree)", A_DIAG),
-      ("Sequence Library — 71 real detected sequences (5M/15M/1D)", A_SEQ)]),
+     [("Diagram #5: Measured Move Flow Chart (the decision tree)", A_DIAG)]),
     ("6 · The daily process — Market Analysis Flow Chart",
      "Start on the Daily → find the last completed MM → is there a series/trend? → identify the "
      "Active MM & its phase → identify the larger opposing MM → drop to the 15-minute for the "
@@ -114,8 +112,8 @@ h2{{font-size:13px;color:var(--mut);text-transform:uppercase;letter-spacing:.05e
  <a href="/artifacts">← Artifact Library</a></header>
 <div class="wrap">
  <p class="lead">A ground-up path through Halsey's Measured-Move method — built from the full
-  book extraction, his own teaching diagrams &amp; flow charts, 71 real detected sequences, and a
-  practice quiz. Work top to bottom. Each module links to the deep material.</p>
+  book extraction, his own teaching diagrams &amp; flow charts, and a practice quiz. Work top
+  to bottom. Each module links to the deep material.</p>
  <h2>Cheat-sheet</h2>
  <div class="cheat">{cheat_html}</div>
  <h2>Curriculum</h2>
@@ -125,7 +123,6 @@ h2{{font-size:13px;color:var(--mut);text-transform:uppercase;letter-spacing:.05e
   <ul>
    <li><a href="{A_METHOD}">Method Reference</a> — the full synthesis + all 16 chapter notes</li>
    <li><a href="{A_DIAG}">Diagram Library</a> — his 16 teaching diagrams + both flow charts</li>
-   <li><a href="{A_SEQ}">Sequence Library</a> — 71 auto-detected MM sequences (5M/15M/1D)</li>
    <li><a href="{A_QUIZ}">Study &amp; Quiz</a> — flashcards, quiz, MM calculator, drills</li>
   </ul>
  </div>
@@ -139,8 +136,8 @@ its = cat["artifacts"]
 info = ("Ground-up learning hub for David Halsey's Measured-Move method — a 9-module "
         "curriculum (foundations -> setups -> entries -> exits -> the decision-tree flow chart "
         "-> daily process -> signal alignment -> gaps/rules -> practice) that ties together the "
-        "method reference, his teaching diagrams + both flow charts, the 71-sequence library, and "
-        "the study quiz, with a cheat-sheet.")
+        "method reference, his teaching diagrams + both flow charts, and the study quiz, with a "
+        "cheat-sheet.")
 its[:] = [a for a in its if a.get("title") != TITLE]
 its.insert(0, {"title": TITLE, "url": "", "updated": DATE, "group": "EminiAddict", "info": info})
 CATALOG.write_text(json.dumps(cat, indent=1, ensure_ascii=False), encoding="utf-8")

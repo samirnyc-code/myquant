@@ -7,7 +7,7 @@
    "url": "",
    "updated": "2026-08-02",
    "group": "EminiAddict",
-   "info": "Ground-up learning hub for David Halsey's Measured-Move method — a 9-module curriculum (foundations -> setups -> entries -> exits -> the decision-tree flow chart -> daily process -> signal alignment -> gaps/rules -> practice) that ties together the method reference, his teaching diagrams + both flow charts, the 71-sequence library, and the study quiz, with a cheat-sheet."
+   "info": "Ground-up learning hub for David Halsey's Measured-Move method — a 9-module curriculum (foundations -> setups -> entries -> exits -> the decision-tree flow chart -> daily process -> signal alignment -> gaps/rules -> practice) that ties together the method reference, his teaching diagrams + both flow charts, and the study quiz, with a cheat-sheet."
   },
   {
    "title": "EminiAddict Diagrams",
@@ -15,13 +15,6 @@
    "updated": "2026-08-01",
    "group": "EminiAddict",
    "info": "David Halsey's own teaching diagrams (the Measured Move Diagram Slideshow) + the two flow charts — the Measured Move decision tree (basic→extended→next-extended, trend-break→ATW-HWB→reverse) and the Market Analysis flow (Daily→series→active MM→phase→larger opposing MM→15M entry) — plus reference tools (signal-alignment checklist, gap-fill stats, dollar correlation, position sizing). Scrollable, keyboard nav."
-  },
-  {
-   "title": "EminiAddict MM Sequence Library",
-   "url": "",
-   "updated": "2026-07-30",
-   "group": "EminiAddict",
-   "info": "Scrollable library of 71 Halsey measured-move SEQUENCES auto-detected across 5 years of ES (5M/15M/1D). Each shows the initial leg, its with-trend series of traditional MMs riding to the 123.6% target, counter-trend MMs after the break, and the ATWHWB (50% of the initial move) that price retraces to. Filter by timeframe, arrow-key scroll."
   },
   {
    "title": "EminiAddict Method Study Quiz",
