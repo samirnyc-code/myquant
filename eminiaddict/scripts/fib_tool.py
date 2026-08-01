@@ -16,7 +16,9 @@ import pandas as pd
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 PORT = 8641
 FIBS_FILE = ROOT / "eminiaddict" / "data" / "fibs.json"
-_SRC = pd.read_parquet(ROOT / "data" / "bars" / "_db_es_5m_rth.parquet")
+_CUR = ROOT / "eminiaddict" / "data" / "es_5m_current.parquet"   # extended w/ fresh ticks
+_SRC = pd.read_parquet(_CUR if _CUR.exists() else ROOT / "data" / "bars" / "_db_es_5m_rth.parquet")
+print("bars source:", "es_5m_current" if _CUR.exists() else "_db_es_5m_rth")
 
 # derive all timeframes from the 5m RTH source (consistent price scale)
 def _resample(rule):
