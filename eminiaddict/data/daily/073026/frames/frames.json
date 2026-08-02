@@ -1,0 +1,146 @@
+[
+ {
+  "topic": "CL",
+  "sec": 92,
+  "blue": 0,
+  "file": "00_CL.png",
+  "instrument": null,
+  "tf": "",
+  "header": ""
+ },
+ {
+  "topic": "DXY",
+  "sec": 256,
+  "blue": 0,
+  "file": "01_DXY.png",
+  "instrument": "DXY",
+  "tf": "",
+  "header": "SDXY Max MD: 7/1/26 | O: 101.218 | H: 101.64 |L: 1"
+ },
+ {
+  "topic": "6E",
+  "sec": 336,
+  "blue": 0,
+  "file": "02_6E.png",
+  "instrument": "6E",
+  "tf": "12h",
+  "header": "EUR/USD (MARK) 180 D 12h _ D: 7/30/26 1:00AM |"
+ },
+ {
+  "topic": "BANK",
+  "sec": 386,
+  "blue": 0,
+  "file": "03_BANK.png",
+  "instrument": "NQ",
+  "tf": "",
+  "header": "BANK Max 1D [NASDAQ] D: 7/10/26 \u00a9: 5318.16"
+ },
+ {
+  "topic": "VIX",
+  "sec": 429,
+  "blue": 0,
+  "file": "04_VIX.png",
+  "instrument": null,
+  "tf": "",
+  "header": "/VX Max 1D From price: 10.48 To price: 43.61 | Fre"
+ },
+ {
+  "topic": "ES",
+  "sec": 571,
+  "blue": 0,
+  "file": "05_ES.png",
+  "instrument": "ES",
+  "tf": "12h",
+  "header": "/ES 180 D 12h \u2014D: 7/26/26 1:00 PM | O: 7490 | H: 751."
+ },
+ {
+  "topic": "ES-tf2",
+  "sec": 571,
+  "blue": 0,
+  "file": "06_ES-tf2.png",
+  "instrument": "ES",
+  "tf": "12h",
+  "header": "/ES 180 D 12h \u2014D: 7/26/26 1:00 PM | O: 7490 | H: 751."
+ },
+ {
+  "topic": "ES-tf3",
+  "sec": 586,
+  "blue": 0,
+  "file": "07_ES-tf3.png",
+  "instrument": "ES",
+  "tf": "4h",
+  "header": "JES 360 D 4h | From price: 7175.98 | To price: 7717.2"
+ },
+ {
+  "topic": "NQ",
+  "sec": 883,
+  "blue": 0,
+  "file": "08_NQ.png",
+  "instrument": null,
+  "tf": "",
+  "header": "INQ Max 1D D: 7/30/26 O: 27202 | H: 27696.75 i\u201c"
+ },
+ {
+  "topic": "YM",
+  "sec": 920,
+  "blue": 0,
+  "file": "09_YM.png",
+  "instrument": "YM",
+  "tf": "12h",
+  "header": "{YM 180 D 12h From price: 45624 | To price: 55525"
+ },
+ {
+  "topic": "RTY",
+  "sec": 1016,
+  "blue": 0,
+  "file": "10_RTY.png",
+  "instrument": "RTY",
+  "tf": "12h",
+  "header": "/RTY 180 D 12h | From price: 2684.1 To price: 3128"
+ },
+ {
+  "topic": "BTC",
+  "sec": 1066,
+  "blue": 0,
+  "file": "11_BTC.png",
+  "instrument": "BTC",
+  "tf": "",
+  "header": "/BTC 360 D 4h_D: 7/30/26 5:00 AM _O: 64260 | H: 64"
+ },
+ {
+  "topic": "ETH",
+  "sec": 1066,
+  "blue": 0,
+  "file": "12_ETH.png",
+  "instrument": "BTC",
+  "tf": "",
+  "header": "/BTC 360 D 4h_D: 7/30/26 5:00 AM _O: 64260 | H: 64"
+ },
+ {
+  "topic": "6J",
+  "sec": 1332,
+  "blue": 0,
+  "file": "13_6J.png",
+  "instrument": "6J",
+  "tf": "12h",
+  "header": "USD/JPY (MARK) 180 D 12h 0D: 7/3/26 1:00 AMO:"
+ },
+ {
+  "topic": "GC",
+  "sec": 1397,
+  "blue": 0,
+  "file": "14_GC.png",
+  "instrument": "GC",
+  "tf": "4h",
+  "header": "/GC 360 D 4h. \u2014D: 3/12/27 5:15 AMY: 5255.1 | MovA"
+ },
+ {
+  "topic": "SI",
+  "sec": 1397,
+  "blue": 0,
+  "file": "15_SI.png",
+  "instrument": "GC",
+  "tf": "4h",
+  "header": "/GC 360 D 4h. \u2014D: 3/12/27 5:15 AMY: 5255.1 | MovA"
+ }
+]

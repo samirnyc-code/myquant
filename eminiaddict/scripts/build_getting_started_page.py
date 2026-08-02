@@ -506,7 +506,16 @@ def frames_gallery(mmddyy):
     if not os.path.exists(fj):
         return ""
     frames = json.load(open(fj, encoding="utf-8"))
-    frames.sort(key=lambda f: (0 if f["topic"].startswith("ES") else 1, f["sec"]))
+    # ES-only for now, identified by the OCR'd ticker header (reliable), not the transcript cue.
+    frames = [f for f in frames if f.get("instrument") == "ES"]
+    tf_rank = {"12h": 0, "4h": 1, "1h": 2, "15m": 3, "5m": 4, "": 8}
+    frames.sort(key=lambda f: tf_rank.get(f.get("tf", ""), 7))
+    seen, uniq = set(), []                              # one frame per timeframe
+    for f in frames:
+        if f.get("tf", "") in seen:
+            continue
+        seen.add(f.get("tf", "")); uniq.append(f)
+    frames = uniq
     figs = []
     for f in frames:
         p = os.path.join(fdir, f["file"])
@@ -516,7 +525,7 @@ def frames_gallery(mmddyy):
         if not (os.path.exists(p) and os.path.getsize(p) > 3000):
             continue
         d = b64img(p, maxw=1680, jpeg=True, quality=80)
-        lab = _frlabel(f["topic"]) + (" — fibs labeled" if p == annot else "")
+        lab = f"ES — {f.get('tf') or 'chart'}" + (" — fibs labeled" if p == annot else "")
         figs.append(f'<figure class="fr"><img src="{d}" loading="lazy" '
                     f'data-sid="fr_{mmddyy}_{f["topic"]}" data-ttl="{esc(lab)} — {mmddyy} '
                     f'@ {f["sec"]//60:02d}:{f["sec"]%60:02d}"><figcaption>{esc(lab)}</figcaption>'
