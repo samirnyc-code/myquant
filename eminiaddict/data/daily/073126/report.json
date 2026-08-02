@@ -5,20 +5,20 @@
  "video_url": "https://ttmm25.s3.us-west-2.amazonaws.com/073126.mp4",
  "transcribed": true,
  "extracted": true,
- "headline": "Indices grinding straight up in extensions into month-end, but Bank + Crude + Euro warn a dollar-strength reversal is loading — VIX 1885 is the trigger.",
+ "headline": "Indices grinding straight up in extensions into month-end, but Bank + Crude + Euro warn a dollar-strength reversal is loading — VIX 18.85 is the trigger.",
  "market_state": "Range-bound ~8 weeks; risk-off hedging into weekends; USD negatively correlated with indices (30d & 15d); regime flip-flopping inflationary bust/boom (crude + S&P sideways). Last day of July (month-end). Econ: Employment Cost Index 8:30, Chicago PMI 9:45 (exp 55.9), U-Mich sentiment 10:00. Fed-watch: 67.4% prob of a Sept hike.",
- "bias": "Short-term BULLISH while extensions hold (VIX < 1885 and DXY below its 61.8%). Structurally BEARISH building: Bank in a confirmed head-&-shoulders downtrend (the ONLY leading indicator confirming weakness), crude breaking out of shorts (inflationary), euro confirming the dollar-strength trade, and a yen carry-trade unwind starting.",
+ "bias": "Short-term BULLISH while extensions hold (VIX < 18.85 and DXY below its 61.8%). Structurally BEARISH building: Bank in a confirmed head-&-shoulders downtrend (the ONLY leading indicator confirming weakness), crude breaking out of shorts (inflationary), euro confirming the dollar-strength trade, and a yen carry-trade unwind starting.",
  "es": {
   "current_mm": "Going straight up in EXTENSIONS after a pro gap-up-and-go; hit a profit target and blew through it. Defended an overnight extension-long whose FAILURE level sits right at the gap fill. Trade the extensions until one fails.",
   "trend": "Range-bound ~8 weeks; near-term up-grind (hedge-covering squeeze) inside a larger downtrend risk. ES running back up into the same series-short resistance it sold from Monday (2nd/3rd test).",
   "key_levels": [
    {"price": "7473-7475", "label": "Bullish-above line in the sand"},
    {"price": "= gap fill", "label": "Extension-long FAILURE = top-of-range trigger"},
-   {"price": "VIX 1885", "label": "Correlated trigger: VIX break = extension fails"},
+   {"price": "VIX 18.85", "label": "Correlated trigger: VIX break = extension fails"},
    {"price": "DXY 100.418 61.8%", "label": "Dollar-strength confirm (breaks = indices shorts)"},
    {"price": "Fri gap: full 53% / half 65%", "label": "No edge if open >20 handle from fill"}
   ],
-  "watch": "Extension-long holding = continuation grind higher. If VIX breaks 1885 AND DXY breaks its 61.8%, the ES extension fails -> confirms top of range -> new series of shorts into the larger downtrend. At the open: outside the 20-handle = ~coin-flip gap, no edge."
+  "watch": "Extension-long holding = continuation grind higher. If VIX breaks 18.85 AND DXY breaks its 61.8%, the ES extension fails -> confirms top of range -> new series of shorts into the larger downtrend. At the open: outside the 20-handle = ~coin-flip gap, no edge."
  },
  "instruments": {
   "ES": {"bias": "up (fragile)", "mm_state": "straight-up extensions; failure at gap fill", "levels": "bull>7473-75", "notes": "hedge-covering squeeze into month-end"},
@@ -31,8 +31,8 @@
   "ZB": {"bias": "", "mm_state": "", "levels": "", "notes": ""}
  },
  "scenarios": [
-  {"id": "0731-es-up", "instrument": "ES", "direction": "long", "thesis": "Extension-long holds -> continuation grind higher (hedge-covering squeeze).", "trigger": "holds >7473-75 & VIX<1885", "target": "top-of-range continuation", "invalidation": "extension-long failure at the gap fill", "outcome": "pending", "auto": false},
-  {"id": "0731-es-dn", "instrument": "ES", "direction": "short", "thesis": "VIX breaks 1885 + DXY breaks 61.8% -> ES extension fails -> new shorts into larger downtrend.", "trigger": "VIX>1885 & DXY>61.8%", "target": "50% shorts highs->lows (larger downtrend)", "invalidation": "VIX holds <1885", "outcome": "pending", "auto": false},
+  {"id": "0731-es-up", "instrument": "ES", "direction": "long", "thesis": "Extension-long holds -> continuation grind higher (hedge-covering squeeze).", "trigger": "holds >7473-75 & VIX<18.85", "target": "top-of-range continuation", "invalidation": "extension-long failure at the gap fill", "outcome": "pending", "auto": false},
+  {"id": "0731-es-dn", "instrument": "ES", "direction": "short", "thesis": "VIX breaks 18.85 + DXY breaks 61.8% -> ES extension fails -> new shorts into larger downtrend.", "trigger": "VIX>18.85 & DXY>61.8%", "target": "50% shorts highs->lows (larger downtrend)", "invalidation": "VIX holds <18.85", "outcome": "pending", "auto": false},
   {"id": "0731-nq-dn", "instrument": "NQ", "direction": "short", "thesis": "Larger traditional short overhead once tagged.", "trigger": "tag larger traditional / lose 28,397", "target": "traditional short target", "invalidation": ">28,397", "outcome": "pending", "auto": false},
   {"id": "0731-cl-up", "instrument": "CL", "direction": "long", "thesis": "Broke out of shorts, defended support -> pullbacks defended higher (inflationary).", "trigger": "holds >80.90", "target": "away from support", "invalidation": "<80.90 support fails", "outcome": "pending", "auto": false},
   {"id": "0731-6e-dn", "instrument": "6E", "direction": "short", "thesis": "Extension-long broke 61.8% -> first measured-move short; dollar strength.", "trigger": "1st MM short at 1.5015", "target": "123% short target", "invalidation": "reclaim extension-long", "outcome": "pending", "auto": false},
@@ -41,7 +41,7 @@
  ],
  "key_quotes": [
   {"t": "06:47", "text": "Wall Street always gets its fill — every important level, if it happens on a Friday or Monday or pre-FOMC, is retested."},
-  {"t": "08:54", "text": "We're going straight up in extensions on the indices as long as the VIX holds below its 1885."},
+  {"t": "08:54", "text": "We're going straight up in extensions on the indices as long as the VIX holds below its 18.85."},
   {"t": "17:56", "text": "Crude oil rallying away from its support... is a bearish sign for the indices."},
   {"t": "19:05", "text": "We have started a carry-trade unwind — all the ingredients are mixed and the oven's preheated."}
  ],

@@ -10,7 +10,7 @@
  "bias": "BEARISH 'sell the rip': the dollar is in a long-from-lows, VIX is falling into a support-long, and Bank has squeezed into its FIRST traditional short after the trend break — all -> continuation of indices weakness. The backing-and-filling into resistance is 'a feature not a bug' of the downtrend.",
  "es": {
   "current_mm": "Coming into a full-retracement short from highs->lows; overnight (Sun-night Mon) highs->lows defending a 50% short. Pro gap-up-and-go — reminiscent of Friday and last Monday (gap up -> new trading-hours high -> short-covering squeeze -> slam).",
-  "trend": "Downtrend; sell the rip. Confirmation of weakness = break of the VIX 1945 series / break of the ES week lows->highs longs.",
+  "trend": "Downtrend; sell the rip. Confirmation of weakness = break of the VIX 19.45 series / break of the ES week lows->highs longs.",
   "key_levels": [
    {"price": "7547.75", "label": "Bearish-below line in the sand"},
    {"price": "7499", "label": "Longs to break by 9:15-9:30 (else short-covering squeeze)"},
@@ -29,7 +29,7 @@
   "ZB": {"bias": "", "mm_state": "", "levels": "", "notes": ""}
  },
  "scenarios": [
-  {"id": "0727-es-dn", "instrument": "ES", "direction": "short", "thesis": "Sell-the-rip continuation: dollar-long + VIX-into-support + bank-short = weakness continues.", "trigger": "break VIX 1945 series / lose ES week longs", "target": "series lower", "invalidation": "reclaim / dollar breaks its long-from-lows", "outcome": "pending", "auto": false},
+  {"id": "0727-es-dn", "instrument": "ES", "direction": "short", "thesis": "Sell-the-rip continuation: dollar-long + VIX-into-support + bank-short = weakness continues.", "trigger": "break VIX 19.45 series / lose ES week longs", "target": "series lower", "invalidation": "reclaim / dollar breaks its long-from-lows", "outcome": "pending", "auto": false},
   {"id": "0727-es-squeeze", "instrument": "ES", "direction": "long", "thesis": "Monday gap-up short-covering squeeze to a new high if 7499 longs don't break by 9:15-9:30 (then watch for the slam).", "trigger": "7499 longs hold into 9:30", "target": "new trading-hours high", "invalidation": "break 7499 longs (weakness continues)", "outcome": "pending", "auto": false},
   {"id": "0727-bank-dn", "instrument": "ES", "direction": "short", "thesis": "Bank into its FIRST traditional short after the trend break = financials confirm weakness.", "trigger": "Bank <5424.42", "target": "indices lower", "invalidation": ">5424.42", "outcome": "pending", "auto": false},
   {"id": "0727-cl-up", "instrument": "CL", "direction": "long", "thesis": "Break extension shorts -> reconfirm support -> run to targets (inflationary-boom rotation).", "trigger": "break extension shorts", "target": "99.74", "invalidation": "intraday <85.56", "outcome": "pending", "auto": false},
@@ -41,5 +41,5 @@
   {"t": "13:00", "text": "If we haven't broken through these long setups... there's a potential short-covering squeeze, and we'll watch to see if there's a slam (like last Monday)."},
   {"t": "22:36", "text": "A wedge forming while the dollar correlations go from negative to neutral to positive would be perfect... we anticipate precious metals go sideways to higher."}
  ],
- "other_notes": "2 days pre-FOMC. VIX bull>1760 (confirm support by breaking 1945 series). DXY bull>108.08; dollar-support confirms >101.381. USD/JPY bull>163.27 (multi-decade yen lows; a break = yen strength + dollar strength = carry unwind). Crypto: BTC intraday 50% short in a H&S; ETH no short-from-highs yet."
+ "other_notes": "2 days pre-FOMC. VIX bull>17.60 (confirm support by breaking 19.45 series). DXY bull>108.08; dollar-support confirms >101.381. USD/JPY bull>163.27 (multi-decade yen lows; a break = yen strength + dollar strength = carry unwind). Crypto: BTC intraday 50% short in a H&S; ETH no short-from-highs yet."
 }

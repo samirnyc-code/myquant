@@ -7,10 +7,10 @@
  "extracted": true,
  "headline": "FOMC day (most contested in a decade, 9-9 split): everything coiled in wedges into 2:00 — intraday leans to a squeeze higher into resistance; the real trend shows after 3:00.",
  "market_state": "FOMC DAY — statement 2:00, presser 2:30 (crude inventories 10:30). Fed-watch 54.5% Sept hike; a 2nd 2026 hike is NOT yet in the mainstream narrative (arguably unpriced). 'Most important FOMC in a decade,' ~9-9 split, Warsh gave no forward guidance. Regime: deflationary boom (crude down, gold selling, indices holding in traditional shorts). Markets coiled in tight wedges pre-FOMC.",
- "bias": "Intraday BULLISH squeeze into resistance favored (path of least resistance): dollar in an intraday weakness leg, bank grinding higher (financial strength), VIX wedged/likely back to support — all tailwinds toward Monday's highs where 'Wall Street gets its fill' (~2475s). Longer term still DOWN (dollar up; indices in traditional shorts). Don't predict — the true trend reveals after 3:00.",
+ "bias": "Intraday BULLISH squeeze into resistance favored (path of least resistance): dollar in an intraday weakness leg, bank grinding higher (financial strength), VIX wedged/likely back to support — all tailwinds toward Monday's highs where 'Wall Street gets its fill' (~24.75s). Longer term still DOWN (dollar up; indices in traditional shorts). Don't predict — the true trend reveals after 3:00.",
  "es": {
   "current_mm": "Wedging; squeezing back up into a daily short setup (like last week). Broke 61.8% of the shorts; the counter-trend long hit its target then went sideways -> now a range/wedge.",
-  "trend": "Range-bound; trade the top/bottom, avoid the middle. Path of least resistance = grind into Monday's highs where Wall St forces its fill (~2475s). Longer term down.",
+  "trend": "Range-bound; trade the top/bottom, avoid the middle. Path of least resistance = grind into Monday's highs where Wall St forces its fill (~24.75s). Longer term down.",
   "key_levels": [
    {"price": "7547.75", "label": "Bearish-below (longer-term line in the sand)"},
    {"price": "~86 (20-handle up)", "label": "Range top / gap edge"},
@@ -30,7 +30,7 @@
   "ZB": {"bias": "", "mm_state": "", "levels": "", "notes": ""}
  },
  "scenarios": [
-  {"id": "0729-es-up", "instrument": "ES", "direction": "long", "thesis": "Intraday squeeze into resistance toward Monday's highs (Wall St gets its fill).", "trigger": "hold range / dollar-weakness leg", "target": "Monday highs ~2475s / range top ~86", "invalidation": "lose range bottom ~46 / bear<7547.75", "outcome": "pending", "auto": false},
+  {"id": "0729-es-up", "instrument": "ES", "direction": "long", "thesis": "Intraday squeeze into resistance toward Monday's highs (Wall St gets its fill).", "trigger": "hold range / dollar-weakness leg", "target": "Monday highs ~24.75s / range top ~86", "invalidation": "lose range bottom ~46 / bear<7547.75", "outcome": "pending", "auto": false},
   {"id": "0729-es-fomc", "instrument": "ES", "direction": "TBD", "thesis": "True trend revealed 2:00->3:00 by the statement + Warsh presser.", "trigger": "post-2:00 price action", "target": "into the week", "invalidation": "n/a (event)", "outcome": "pending", "auto": false},
   {"id": "0729-cl-up", "instrument": "CL", "direction": "long", "thesis": "First support confirmation; rising crude = inflation input up (bearish read-through for indices longer-term).", "trigger": ">77.15 / 61.8% reclaim", "target": "opposing MM / away from support", "invalidation": "<77.15", "outcome": "pending", "auto": false},
   {"id": "0729-ym-up", "instrument": "YM", "direction": "long", "thesis": "Strongest index; defend the HWB long (best strength-event vehicle).", "trigger": "holds >52,529", "target": "series continuation", "invalidation": "<52,529", "outcome": "pending", "auto": false},
@@ -38,7 +38,7 @@
  ],
  "key_quotes": [
   {"t": "01:03", "text": "Is there a possibility that Warsh signals a more hawkish Fed... a second hike really hasn't entered the mainstream narrative yet."},
-  {"t": "12:16", "text": "A grind higher back up into our Monday highs where Wall Street will try to force its fill at those 2475s."},
+  {"t": "12:16", "text": "A grind higher back up into our Monday highs where Wall Street will try to force its fill at those 24.75s."},
   {"t": "19:02", "text": "Crude oil rising... will increase inflation expectations... rate hikes pulled much further into the future if crude defends these pullbacks."}
  ],
  "other_notes": "FOMC day: coiled spring, expect consolidation into 2:00 then expansion 2:00-3:00. Best instruments: YM (strength), NQ (weakness). Bank bull>5385.37; VIX defended yesterday's lows->highs at 1895. USD/JPY bull>163.27."

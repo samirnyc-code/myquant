@@ -9,11 +9,108 @@ Usage: python build_getting_started_page.py
 """
 import base64
 import html
+import io
 import json
 import os
 import re
 
+import numpy as np
+import pandas as pd
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
+
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+ES_PARQUET = os.path.join(ROOT, "research", "scalp_swing", "es_5m_rth.parquet")
+_ESDF = None
+
+
+def _load_es():
+    global _ESDF
+    if _ESDF is None:
+        _ESDF = pd.read_parquet(ES_PARQUET)[["DateTime", "Open", "High", "Low", "Close", "Date"]]
+        _ESDF["Date"] = _ESDF["Date"].astype(str)
+    return _ESDF
+
+
+def _es_num(s):
+    m = re.search(r'\b(6[5-9]\d\d|7[0-6]\d\d)(\.\d+)?\b', str(s).replace(",", ""))
+    return float(m.group(0)) if m else None
+
+
+def es_levels_from_report(r):
+    """Extract ES-range numeric levels (value,label,role) from key_levels + ES scenarios."""
+    out = []
+    for x in r.get("es", {}).get("key_levels", []):
+        v = _es_num(x.get("price", ""))
+        if v is None:
+            continue
+        lab = (x.get("label", "") + " " + str(x.get("price", ""))).lower()
+        role = ("bull" if "bull" in lab else "bear" if "bear" in lab
+                else "target" if ("target" in lab or "retrace" in lab) else "other")
+        out.append((v, x.get("price", ""), role))
+    for s in r.get("scenarios", []):
+        if s.get("instrument") != "ES":
+            continue
+        v = _es_num(s.get("target", ""))
+        if v:
+            out.append((v, "target", "target"))
+        v = _es_num(s.get("invalidation", ""))
+        if v:
+            out.append((v, "invalidation", "bear"))
+    seen, ded = set(), []
+    for v, l, ro in out:
+        if round(v) in seen:
+            continue
+        seen.add(round(v)); ded.append((v, l, ro))
+    return ded
+
+
+def es_chart_b64(date_iso, levels):
+    """Candlestick of the ~6 RTH sessions up to date_iso with the ES levels drawn. -> data URI."""
+    df = _load_es()
+    days = sorted(df["Date"].unique())
+    le = [d for d in days if d <= date_iso]
+    if not le:
+        return ""
+    end = le[-1]
+    window = days[max(0, days.index(end) - 5): days.index(end) + 1]
+    g = df[df["Date"].isin(window)].reset_index(drop=True)
+    if g.empty:
+        return ""
+    n = len(g)
+    fig, ax = plt.subplots(figsize=(11, 5), facecolor="#0d1117")
+    ax.set_facecolor("#0d1117")
+    for i in range(n):
+        o, h, l, c = g.Open[i], g.High[i], g.Low[i], g.Close[i]
+        col = "#26a65b" if c >= o else "#e2453c"
+        ax.plot([i, i], [l, h], color=col, lw=0.7, zorder=2)
+        ax.add_patch(Rectangle((i - .3, min(o, c)), .6, abs(c - o) or .1, facecolor=col,
+                               edgecolor=col, zorder=3))
+    colmap = {"bull": "#3fb950", "bear": "#f85149", "target": "#22d3ee", "other": "#e3b341"}
+    for v, lab, role in levels:
+        ax.axhline(v, color=colmap.get(role, "#e3b341"), lw=1.1, ls="--", alpha=.9, zorder=4)
+        ax.text(n - 0.5, v, f" {v:g} {lab}", color=colmap.get(role, "#e3b341"), fontsize=7,
+                va="center", ha="left")
+    # day separators + labels
+    for i in range(1, n):
+        if g.Date[i] != g.Date[i - 1]:
+            ax.axvline(i - 0.5, color="#232a33", lw=0.7, zorder=1)
+    ticks = [i for i in range(n) if i == 0 or g.Date[i] != g.Date[i - 1]]
+    ax.set_xticks(ticks)
+    ax.set_xticklabels([g.Date[i][5:] for i in ticks], color="#8b949e", fontsize=7)
+    ax.tick_params(colors="#8b949e", labelsize=7)
+    for sp in ax.spines.values():
+        sp.set_color("#30363d")
+    ax.set_xlim(-1, n + 12)
+    ax.set_title(f"ES 5-min (RTH) — levels in play thru {end}", color="#e6edf3", fontsize=9,
+                 loc="left")
+    buf = io.BytesIO()
+    fig.tight_layout()
+    fig.savefig(buf, format="png", dpi=110, facecolor=fig.get_facecolor())
+    plt.close(fig)
+    return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
 GS = os.path.join(ROOT, "eminiaddict", "data", "site", "getting_started")
 TR = os.path.join(GS, "transcripts")
 NUG = os.path.join(GS, "nuggets")          # <idx>_*.md nugget files (assistant-produced)
@@ -86,6 +183,12 @@ table.dt td{border-bottom:1px solid #1c2128;padding:4px 8px;vertical-align:top}
 .score .s{font-size:13px}.score .s b{font-size:19px;color:var(--fg);display:block}
 .dd{display:grid;grid-template-columns:1fr 1fr;gap:4px 18px;margin:6px 0}
 .dd .lv{font-size:13px;color:#cbd5e1}.dd .lv b{color:var(--gold)}
+.pb{background:#0b0f14;border:1px solid var(--chip);border-left:3px solid var(--blue);border-radius:8px;padding:9px 12px;margin:7px 0}
+.pb .pbrow{display:flex;flex-wrap:wrap;gap:10px;align-items:center;font-size:13px}
+.pbif{color:#cbd5e1}.pbif b{color:var(--gold)}
+.pbthen{font-weight:700}.dir-long{color:#3fb950}.dir-short{color:#f85149}.dir-TBD{color:#8b949e}
+.pbtgt{color:#22d3ee}.pbinv{color:#f0883e}.pboc{margin-left:auto}
+.pbth{color:var(--mut);font-size:12.5px;margin-top:4px}
 """
 
 LB_JS = r"""
@@ -358,11 +461,19 @@ def daily_html():
             f'<td>{esc(v.get("mm_state",""))}</td><td>{esc(v.get("levels",""))}</td>'
             f'<td>{esc(v.get("notes",""))}</td></tr>'
             for k, v in r.get("instruments", {}).items() if any(v.values()))
-        srows = "".join(
-            f'<tr><td><b>{esc(s.get("instrument",""))}</b></td><td>{esc(s.get("direction",""))}</td>'
-            f'<td>{esc(s.get("thesis",""))}</td><td>{esc(str(s.get("trigger","")))}</td>'
-            f'<td>{esc(str(s.get("target","")))}</td><td>{esc(str(s.get("invalidation","")))}</td>'
-            f'<td>{oc(s)}</td></tr>' for s in r.get("scenarios", []))
+        chart = es_chart_b64(r.get("date", ""), es_levels_from_report(r))
+        chart_html = (f'<h4>ES — levels in play</h4><div class="slides"><img src="{chart}" '
+                      f'loading="lazy"></div>' if chart else "")
+        pb = "".join(
+            f'<div class="pb"><div class="pbrow">'
+            f'<span class="pbif"><b>IF</b> {esc(str(s.get("trigger","")))}</span>'
+            f'<span class="pbthen dir-{esc(s.get("direction",""))}">&rarr; '
+            f'{esc((s.get("direction","") or "").upper())} {esc(s.get("instrument",""))}</span>'
+            f'<span class="pbtgt">&#127919; {esc(str(s.get("target","")))}</span>'
+            f'<span class="pbinv">&#128721; {esc(str(s.get("invalidation","")))}</span>'
+            f'<span class="pboc">{oc(s)}</span></div>'
+            f'<div class="pbth">{esc(s.get("thesis",""))}</div></div>'
+            for s in r.get("scenarios", []))
         quotes = "".join(f'<div class="lv">[{esc(q.get("t",""))}] "{esc(q.get("text",""))}"</div>'
                          for q in r.get("key_quotes", []))
         head_lbl = f'{esc(r.get("weekday",""))} {esc(r.get("date",""))} — {esc(r.get("headline","report"))}'
@@ -376,11 +487,10 @@ def daily_html():
             f'<b>Trend/road-map:</b> {esc(es.get("trend","—"))}<br>'
             f'<b>Watch:</b> {esc(es.get("watch","—"))}</p>'
             + (f'<div class="dd">{lv}</div>' if lv else "")
+            + chart_html
+            + (f'<h4>Trade playbook (if &rarr; then)</h4>{pb}' if pb else "")
             + (f'<h4>Instruments</h4><table class="dt"><tr><th>Instr</th><th>Bias</th>'
                f'<th>MM state</th><th>Levels</th><th>Notes</th>{inst}</table>' if inst else "")
-            + (f'<h4>Scenarios (tracked)</h4><table class="dt"><tr><th>Instr</th><th>Dir</th>'
-               f'<th>Thesis</th><th>Trigger</th><th>Target</th><th>Invalid.</th><th>Outcome</th>'
-               f'{srows}</table>' if srows else "")
             + (f'<h4>Key quotes</h4>{quotes}' if quotes else "")
             + (f'<div class="vid">🎬 <a href="{esc(r.get("video_url",""))}" target="_blank">'
                f'watch the video</a></div>' if r.get("video_url") else "")
