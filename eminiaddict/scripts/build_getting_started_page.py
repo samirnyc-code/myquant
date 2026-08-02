@@ -183,6 +183,14 @@ table.dt td{border-bottom:1px solid #1c2128;padding:4px 8px;vertical-align:top}
 .score .s{font-size:13px}.score .s b{font-size:19px;color:var(--fg);display:block}
 .dd{display:grid;grid-template-columns:1fr 1fr;gap:4px 18px;margin:6px 0}
 .dd .lv{font-size:13px;color:#cbd5e1}.dd .lv b{color:var(--gold)}
+.mut{color:var(--mut)}
+.anchors{font-size:13px;color:#cbd5e1;margin:4px 0 6px}.anchors b{color:var(--fg)}
+.fibtab{border-collapse:collapse;margin:4px 0 6px;font-size:13.5px}
+.fibtab th{text-align:left;color:var(--mut);font-weight:600;padding:2px 14px 4px 0;font-size:11px;text-transform:uppercase}
+.fibtab td{padding:3px 14px 3px 0;border-bottom:1px solid #1c2128}
+.fibtab .fpct{font-weight:700}.fibtab .fp{font-variant-numeric:tabular-nums;font-weight:700}
+.fl-red .fpct,.fl-red .fp{color:#f85149}.fl-yellow .fpct,.fl-yellow .fp{color:#e3b341}
+.fl-green .fpct,.fl-green .fp{color:#3fb950}.fl-na .fp{color:#cbd5e1}
 .pb{background:#0b0f14;border:1px solid var(--chip);border-left:3px solid var(--blue);border-radius:8px;padding:9px 12px;margin:7px 0}
 .pb .pbrow{display:flex;flex-wrap:wrap;gap:10px;align-items:center;font-size:13px}
 .pbif{color:#cbd5e1}.pbif b{color:var(--gold)}
@@ -285,12 +293,27 @@ LB_JS = r"""
 """
 
 
-def b64img(path):
+def b64img(path, maxw=1400, jpeg=False, quality=82):
+    """Downscale + embed as a data URI (keeps the self-contained page small)."""
     try:
-        ext = os.path.splitext(path)[1].lstrip(".").lower().replace("jpg", "jpeg")
-        return f"data:image/{ext};base64," + base64.b64encode(open(path, "rb").read()).decode()
+        from PIL import Image
+        im = Image.open(path)
+        if im.width > maxw:
+            im = im.resize((maxw, round(im.height * maxw / im.width)), Image.LANCZOS)
+        buf = io.BytesIO()
+        if jpeg:
+            im.convert("RGB").save(buf, "JPEG", quality=quality, optimize=True)
+            mime = "jpeg"
+        else:
+            im.save(buf, "PNG", optimize=True)
+            mime = "png"
+        return f"data:image/{mime};base64," + base64.b64encode(buf.getvalue()).decode()
     except Exception:
-        return ""
+        try:
+            ext = os.path.splitext(path)[1].lstrip(".").lower().replace("jpg", "jpeg")
+            return f"data:image/{ext};base64," + base64.b64encode(open(path, "rb").read()).decode()
+        except Exception:
+            return ""
 
 def esc(s):
     return html.escape(s or "")
@@ -420,6 +443,33 @@ def main():
     print(f"wrote {os.path.relpath(OUT, ROOT)}  ({len(page)//1024} KB, {len(man)} lessons)")
     register_mc()
 
+def es_block(es):
+    """Stacked ES fib layout when a ladder is present; else the older prose fields."""
+    if not es.get("ladder"):
+        kl = "".join(f'<div class="lv"><b>{esc(x.get("label",""))}:</b> {esc(str(x.get("price","")))}'
+                     f'</div>' for x in es.get("key_levels", []))
+        return (f'<h4>ES</h4><p><b>Current MM:</b> {esc(es.get("current_mm","—"))}<br>'
+                f'<b>Trend/road-map:</b> {esc(es.get("trend","—"))}<br>'
+                f'<b>Watch:</b> {esc(es.get("watch","—"))}</p>'
+                + (f'<div class="dd">{kl}</div>' if kl else ""))
+    anch = " &nbsp;·&nbsp; ".join(
+        f'<b>{esc(p)}</b> {esc(v)} <span class="mut">{esc(n)}</span>' for p, v, n in es["anchors"])
+    rows = ""
+    for pct, price, role, color, note in es["ladder"]:
+        c = color or "na"
+        rows += (f'<tr class="fl-{c}"><td class="fpct">{esc(pct)}</td>'
+                 f'<td class="fp">{esc(price)}</td><td>{esc(role)}</td>'
+                 f'<td class="mut">{esc(note)}</td></tr>')
+    return (f'<h4>ES — {esc(es.get("structure",""))} <span class="mut">({esc(es.get("tf",""))})'
+            f'</span></h4>'
+            f'<div class="anchors">Anchors: {anch}</div>'
+            f'<table class="fibtab"><tr><th>%</th><th>price</th><th>role</th><th></th>{rows}</table>'
+            f'<div class="mut" style="margin:4px 0">Price now: {esc(es.get("price_now","—"))} '
+            f'&nbsp;·&nbsp; HTF: {esc(es.get("htf",""))}</div>'
+            f'<p><b>Series:</b> {esc(es.get("series",""))}</p>'
+            f'<p><b>Watch:</b> {esc(es.get("watch",""))}</p>')
+
+
 _FRLBL = {"6E": "Euro", "6J": "USD/JPY", "CL": "Crude", "GC": "Gold", "SI": "Silver",
           "BANK": "Bank", "VIX": "VIX", "DXY": "Dollar (DXY)", "BTC": "Bitcoin",
           "ETH": "Ethereum", "NQ": "NQ", "YM": "YM", "RTY": "RTY", "ES": "ES"}
@@ -442,10 +492,13 @@ def frames_gallery(mmddyy):
     figs = []
     for f in frames:
         p = os.path.join(fdir, f["file"])
+        annot = os.path.join(fdir, os.path.splitext(f["file"])[0] + "_annot.png")
+        if os.path.exists(annot) and os.path.getsize(annot) > 3000:
+            p = annot                                   # prefer the callout-annotated version
         if not (os.path.exists(p) and os.path.getsize(p) > 3000):
             continue
-        d = b64img(p)
-        lab = _frlabel(f["topic"])
+        d = b64img(p, maxw=1680, jpeg=True, quality=80)
+        lab = _frlabel(f["topic"]) + (" — fibs labeled" if p == annot else "")
         figs.append(f'<figure class="fr"><img src="{d}" loading="lazy" '
                     f'data-sid="fr_{mmddyy}_{f["topic"]}" data-ttl="{esc(lab)} — {mmddyy} '
                     f'@ {f["sec"]//60:02d}:{f["sec"]%60:02d}"><figcaption>{esc(lab)}</figcaption>'
@@ -521,10 +574,7 @@ def daily_html():
             f'<div class="nug"><div class="hd">📌 Snapshot</div>'
             f'<p class="tldr"><b>Bias:</b> {esc(r.get("bias","—"))}</p>'
             f'<p><b>Market state:</b> {esc(r.get("market_state","—"))}</p></div>'
-            f'<h4>ES</h4><p><b>Current MM:</b> {esc(es.get("current_mm","—"))}<br>'
-            f'<b>Trend/road-map:</b> {esc(es.get("trend","—"))}<br>'
-            f'<b>Watch:</b> {esc(es.get("watch","—"))}</p>'
-            + (f'<div class="dd">{lv}</div>' if lv else "")
+            + es_block(es)
             + chart_html
             + (f'<h4>Trade playbook (if &rarr; then)</h4>{pb}' if pb else "")
             + (f'<h4>Instruments</h4><table class="dt"><tr><th>Instr</th><th>Bias</th>'
