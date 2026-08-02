@@ -38,7 +38,9 @@ namespace NinjaTrader.NinjaScript.Indicators
         // ---- hard-coded config (no editable params, so no stale value can apply) ----
         private static readonly string[] SYMS = {
             "^TICK", "^VIX", "^ADD", "^ADV", "^UVOL", "^DVOL", "^TRIN",
-            "^TICKQ", "^TRINQ", "BANK", "DX 09-26"
+            "^TICKQ", "BANK", "DX 09-26"
+            // ^TRINQ removed: feed not entitled ("Symbol is inaccessible"). If ^TICKQ (or any
+            // other) logs the same, delete it here too and recompile.
         };
         private const string EXPORT_DIR = @"C:\Users\Admin\myquant\data\nt_internals";
         private const int PERIOD_MINUTES = 5;
