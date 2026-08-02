@@ -189,6 +189,9 @@ table.dt td{border-bottom:1px solid #1c2128;padding:4px 8px;vertical-align:top}
 .pbthen{font-weight:700}.dir-long{color:#3fb950}.dir-short{color:#f85149}.dir-TBD{color:#8b949e}
 .pbtgt{color:#22d3ee}.pbinv{color:#f0883e}.pboc{margin-left:auto}
 .pbth{color:var(--mut);font-size:12.5px;margin-top:4px}
+.frwrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin:8px 0}
+.fr{margin:0}.fr img{width:100%;border:1px solid var(--chip);border-radius:8px;cursor:zoom-in;display:block}
+.fr figcaption{font-size:12px;color:var(--gold);margin-top:3px;font-weight:600}
 """
 
 LB_JS = r"""
@@ -225,8 +228,9 @@ LB_JS = r"""
    scale=1;px=0;py=0;apply();ta.value=(store[sid]&&store[sid].comment)||'';renderPins();}
  const open=(list,i)=>{set=list;lb.style.display='flex';load(i);};
  const close=()=>lb.style.display='none';
- document.querySelectorAll('.slides img').forEach(i=>i.onclick=()=>{
-   const list=[...i.closest('.slides').querySelectorAll('img')];open(list,list.indexOf(i));});
+ document.querySelectorAll('.slides img, .frwrap img').forEach(i=>i.onclick=()=>{
+   const box=i.closest('.slides, .frwrap');
+   const list=[...box.querySelectorAll('img')];open(list,list.indexOf(i));});
  $('lbprev').onclick=()=>load(idx-1);$('lbnext').onclick=()=>load(idx+1);
  $('lbin').onclick=()=>{scale=Math.min(8,scale*1.3);apply();};
  $('lbout').onclick=()=>{scale=Math.max(1,scale/1.3);apply();};
@@ -416,6 +420,42 @@ def main():
     print(f"wrote {os.path.relpath(OUT, ROOT)}  ({len(page)//1024} KB, {len(man)} lessons)")
     register_mc()
 
+_FRLBL = {"6E": "Euro", "6J": "USD/JPY", "CL": "Crude", "GC": "Gold", "SI": "Silver",
+          "BANK": "Bank", "VIX": "VIX", "DXY": "Dollar (DXY)", "BTC": "Bitcoin",
+          "ETH": "Ethereum", "NQ": "NQ", "YM": "YM", "RTY": "RTY", "ES": "ES"}
+
+
+def _frlabel(t):
+    if t.startswith("ES-tf"):
+        return "ES (other timeframe)"
+    return _FRLBL.get(t, t)
+
+
+def frames_gallery(mmddyy):
+    """His actual chart frames pulled from the video (fibs/anchors/HTF), ES first."""
+    fdir = os.path.join(DAILY, mmddyy, "frames")
+    fj = os.path.join(fdir, "frames.json")
+    if not os.path.exists(fj):
+        return ""
+    frames = json.load(open(fj, encoding="utf-8"))
+    frames.sort(key=lambda f: (0 if f["topic"].startswith("ES") else 1, f["sec"]))
+    figs = []
+    for f in frames:
+        p = os.path.join(fdir, f["file"])
+        if not (os.path.exists(p) and os.path.getsize(p) > 3000):
+            continue
+        d = b64img(p)
+        lab = _frlabel(f["topic"])
+        figs.append(f'<figure class="fr"><img src="{d}" loading="lazy" '
+                    f'data-sid="fr_{mmddyy}_{f["topic"]}" data-ttl="{esc(lab)} — {mmddyy} '
+                    f'@ {f["sec"]//60:02d}:{f["sec"]%60:02d}"><figcaption>{esc(lab)}</figcaption>'
+                    f'</figure>')
+    if not figs:
+        return ""
+    return (f'<h4>His charts — click to zoom (anchors, fibs, opposing &amp; HTF levels)</h4>'
+            f'<div class="frwrap">{"".join(figs)}</div>')
+
+
 def daily_html():
     """Render the Daily Analysis pane from data/daily/*/report.json (newest first)."""
     reports = []
@@ -461,9 +501,7 @@ def daily_html():
             f'<td>{esc(v.get("mm_state",""))}</td><td>{esc(v.get("levels",""))}</td>'
             f'<td>{esc(v.get("notes",""))}</td></tr>'
             for k, v in r.get("instruments", {}).items() if any(v.values()))
-        chart = es_chart_b64(r.get("date", ""), es_levels_from_report(r))
-        chart_html = (f'<h4>ES — levels in play</h4><div class="slides"><img src="{chart}" '
-                      f'loading="lazy"></div>' if chart else "")
+        chart_html = frames_gallery(r.get("mmddyy", ""))
         pb = "".join(
             f'<div class="pb"><div class="pbrow">'
             f'<span class="pbif"><b>IF</b> {esc(str(s.get("trigger","")))}</span>'
