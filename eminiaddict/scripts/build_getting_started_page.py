@@ -50,7 +50,7 @@ pre{white-space:pre-wrap;background:#0b0f14;border:1px solid var(--chip);border-
 #lbstage{flex:1;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center;cursor:grab}
 #lbstage.tag{cursor:crosshair}#lbstage.pan{cursor:grabbing}
 #lbtx{position:relative;transform-origin:0 0;will-change:transform}
-#lbtx img{display:block;max-width:none;user-select:none;-webkit-user-drag:none}
+#lbtx img{display:block;max-width:96vw;max-height:calc(100vh - 180px);user-select:none;-webkit-user-drag:none}
 #lbpins{position:absolute;inset:0;pointer-events:none}
 .pin{position:absolute;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:#f85149;border:2px solid #fff;box-shadow:0 0 0 1px #000;pointer-events:auto;cursor:pointer;font-size:9px;color:#fff;text-align:center;line-height:14px;font-weight:700}
 .lbside{background:#0b0f14;border-top:1px solid var(--chip);padding:10px 14px;display:flex;gap:14px;align-items:flex-start}
