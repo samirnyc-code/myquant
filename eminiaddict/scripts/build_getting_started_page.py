@@ -275,7 +275,8 @@ def md_to_html(md):
         else:
             if inul:
                 out.append("</ul>"); inul = False
-            cls = ' class="tldr"' if s.lower().startswith(("**tl;dr", "tl;dr")) else ""
+            cls = ' class="tldr"' if s.lower().startswith(("**in short", "in short",
+                                                          "**tl;dr", "tl;dr")) else ""
             out.append(f"<p{cls}>{s}</p>")
     if inul:
         out.append("</ul>")
