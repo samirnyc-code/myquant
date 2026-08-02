@@ -6,6 +6,25 @@ pipeline + S77 security hardening; merged S76 Mac swing-levels work)
 
 ---
 
+## S92-EA2 (2026-08-02) — Internals/MM backtesting ABANDONED → pivot to EDUCATIONAL TOOL
+
+Direction change (user decision). The NYSE-internals turning-point study and the Halsey 50%
+measured-move backtests are **dropped**. All session test scripts, charts, and metrics were
+**removed from the repo** this session (`ingest_nt_internals.py`, `internals_*`, `halsey_mm50_*`,
+`mm50_*`, `nt_swing.py`, `mm_swing_viz.py`, plus `data/nt_internals/master/` outputs and the
+`eminiaddict/figures/` test PNGs/CSVs). Do **NOT** resume this testing.
+
+**Why:** the backtests were not trustworthy / not faithful to DH (RTH-vs-24H bar issue,
+touch-vs-tick-through fills, 15M intrabar phantom targets; the mechanized 50%-MM does not
+reflect DH's discretionary execution). Not worth continuing as a strategy study.
+
+**NEW FOCUS:** build an **educational tool** that repackages DH's method from the site content
+we already scraped (`eminiaddict/data/site/`, the Academy hub, diagrams/flowcharts, transcribed
+videos, `notes/RULEBOOK.md` + chapter notes). No live analysis, no backtests — teaching only.
+Raw internals export retained at `data/nt_internals/*.csv` but unused.
+
+---
+
 ## S92-EA (2026-08-02) — EminiAddict: site fully scraped, video pipeline, NT exporters, Academy
 
 Continuation of the EminiAddict/Halsey project (all in `eminiaddict/`, branch s75-live-dashboard).
