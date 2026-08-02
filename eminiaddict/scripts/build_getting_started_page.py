@@ -452,6 +452,21 @@ def es_block(es):
                 f'<b>Trend/road-map:</b> {esc(es.get("trend","—"))}<br>'
                 f'<b>Watch:</b> {esc(es.get("watch","—"))}</p>'
                 + (f'<div class="dd">{kl}</div>' if kl else ""))
+    dblock = ""
+    dd = es.get("daily")
+    if dd:
+        da = " &nbsp;·&nbsp; ".join(f'<b>{esc(p)}</b> {esc(v)} <span class="mut">{esc(n)}</span>'
+                                    for p, v, n in dd.get("anchors", []))
+        tg = dd.get("target", ["", "", ""])
+        reds = "".join(f'<tr class="fl-red"><td class="fp">{esc(p)}</td><td class="mut">'
+                       f'{esc(n)}</td></tr>' for p, n in dd.get("levels", []))
+        dblock = (f'<h4>ES — {esc(dd.get("structure",""))} <span class="mut">'
+                  f'({esc(dd.get("tf",""))})</span></h4>'
+                  f'<div class="anchors">Anchors: {da}</div>'
+                  f'<table class="fibtab"><tr class="fl-green"><td class="fpct">{esc(tg[0])}</td>'
+                  f'<td class="fp">{esc(tg[1])}</td><td>{esc(tg[2])}</td></tr>'
+                  f'<tr><td colspan=3 class="mut" style="padding-top:6px">downside levels</td></tr>'
+                  f'{reds}</table>')
     anch = " &nbsp;·&nbsp; ".join(
         f'<b>{esc(p)}</b> {esc(v)} <span class="mut">{esc(n)}</span>' for p, v, n in es["anchors"])
     rows = ""
@@ -460,7 +475,8 @@ def es_block(es):
         rows += (f'<tr class="fl-{c}"><td class="fpct">{esc(pct)}</td>'
                  f'<td class="fp">{esc(price)}</td><td>{esc(role)}</td>'
                  f'<td class="mut">{esc(note)}</td></tr>')
-    return (f'<h4>ES — {esc(es.get("structure",""))} <span class="mut">({esc(es.get("tf",""))})'
+    return (dblock
+            + f'<h4>ES — {esc(es.get("structure",""))} <span class="mut">({esc(es.get("tf",""))})'
             f'</span></h4>'
             f'<div class="anchors">Anchors: {anch}</div>'
             f'<table class="fibtab"><tr><th>%</th><th>price</th><th>role</th><th></th>{rows}</table>'
@@ -476,8 +492,10 @@ _FRLBL = {"6E": "Euro", "6J": "USD/JPY", "CL": "Crude", "GC": "Gold", "SI": "Sil
 
 
 def _frlabel(t):
+    if t == "ES":
+        return "ES — Daily / 12h"
     if t.startswith("ES-tf"):
-        return "ES (other timeframe)"
+        return "ES — 4h"
     return _FRLBL.get(t, t)
 
 

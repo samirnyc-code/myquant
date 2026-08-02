@@ -9,6 +9,15 @@
  "market_state": "Range-bound ~8 weeks; risk-off hedging into weekends; USD negatively correlated with indices (30d & 15d); regime flip-flopping inflationary bust/boom (crude + S&P sideways). Last day of July (month-end). Econ: Employment Cost Index 8:30, Chicago PMI 9:45 (exp 55.9), U-Mich sentiment 10:00. Fed-watch: 67.4% prob of a Sept hike.",
  "bias": "Short-term BULLISH while extensions hold (VIX < 18.85 and DXY below its 61.8%). Structurally BEARISH building: Bank in a confirmed head-&-shoulders downtrend (the ONLY leading indicator confirming weakness), crude breaking out of shorts (inflationary), euro confirming the dollar-strength trade, and a yen carry-trade unwind starting.",
  "es": {
+  "daily": {
+   "tf": "Daily / 12h",
+   "structure": "UP measured move — target reached (range ceiling)",
+   "anchors": [["Lo", "6353.25", "Apr low"], ["Hi", "7648.75", "Jun high"]],
+   "target": ["-23.6%", "7632.25", "green ceiling (reached)"],
+   "levels": [["7231.24", "red support"], ["7076.5", "red support"],
+              ["6921.22", "red support"], ["6655.54", "red support"],
+              ["6387.68", "red support"]]
+  },
   "tf": "4-hour",
   "structure": "SHORT measured move (active)",
   "anchors": [["100%", "7632.35", "range high = daily -23.6% ceiling"],
