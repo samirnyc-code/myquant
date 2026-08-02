@@ -1,0 +1,46 @@
+{
+ "date": "2026-07-30",
+ "weekday": "Thursday",
+ "mmddyy": "073026",
+ "video_url": "https://ttmm25.s3.us-west-2.amazonaws.com/073026.mp4",
+ "transcribed": true,
+ "extracted": true,
+ "headline": "Day after FOMC: leading indicators favor a counter-trend squeeze higher into resistance (buy the dip) — but crude is the decider for whether the aggressive bear setup activates.",
+ "market_state": "Day AFTER FOMC; regime back to inflationary bust (most dangerous — all financial assets can fall together). Econ 8:30: Advance GDP, core PCE, unemployment claims (exp 201k), personal income/spending; nat-gas 10:30. Fed-watch: a Sept hike to 3.75-4.0 now priced (from 3.50-3.75); 2nd hike pushed to March. USD-indices correlations deepening negative; gold/silver/BTC negative-correlation fading toward neutral. Month-end tomorrow -> gold's first GREEN monthly candle of 2026 = perceived first support.",
+ "bias": "Short-term BULLISH counter-trend squeeze into resistance (path of least resistance): dollar in a pullback, bank longs unbroken, VIX in 50% shorts, gap stats 68% no-fill outside the 30-handle. The bear setup activates only when the dollar changes trend + bank breaks its long + VIX pierces its shorts + crude defends its HWB long. CRUDE is the decider.",
+ "es": {
+  "current_mm": "Completed a profit target at Monday's resistance; nothing unusual about coming all-the-way-HWB again -> next full retracement up at 7478. Currently a pro gap-up-and-go.",
+  "trend": "Range-bound; repeating weekly pattern: short-squeeze -> grind higher -> crowd chases green bars -> break extensions at resistance -> roll over -> repeat.",
+  "key_levels": [
+   {"price": "6700", "label": "Bullish-above (morning lows->highs, counter-trend long line)"},
+   {"price": "7478", "label": "Next full retracement (squeeze target)"},
+   {"price": "20-handle", "label": "Gap-fill edge boundary (below = ~coin flip)"},
+   {"price": ">30-handle = 32% fill", "label": "Edge is NO fill (68% keep grinding), 180d"}
+  ],
+  "watch": "Buy the dip intraday for the squeeze; confirm resistance by breaking the counter-trend longs from lows. The more aggressive bear setup = Monday highs->lows (further away) — needs the leading indicators to flip."
+ },
+ "instruments": {
+  "ES": {"bias": "up (squeeze)", "mm_state": "target hit; halfway-back squeeze into resistance", "levels": "bull>6700; next retrace 7478", "notes": "buy the dip until leading indicators flip"},
+  "NQ": {"bias": "up (squeeze)", "mm_state": "targets done; halfway-back short overhead", "levels": "bull>27,470-75", "notes": "NASDAQ ~50%-off; dip buyers eyeing a new long series"},
+  "YM": {"bias": "up", "mm_state": "targets done; running into June lows->highs longs", "levels": "validate resistance 52,882", "notes": "less technical counter-trend"},
+  "RTY": {"bias": "up", "mm_state": "old targets done; squeeze-back risk", "levels": "break long setups to confirm resistance", "notes": "watch overnight lows->highs break"},
+  "CL": {"bias": "decider", "mm_state": "support traded then ran into resistance, selling off", "levels": "bull>80.90", "notes": "MOST IMPORTANT: green hourly close off HWB-long support = aggressive ES bear activates; keeps falling = indices grind higher"},
+  "GC": {"bias": "up-watch", "mm_state": "still in big short, but 61.8% of the opposing short pierced; bounced", "levels": "bull>4074.40", "notes": "first green monthly candle of 2026; will it defend a pullback despite dollar strength?"},
+  "6E": {"bias": "down-watch", "mm_state": "squeezed into resistance; possible double top", "levels": "above 1.4453 = indices tailwind", "notes": "confirm at 1.4453; euro roll-over = dollar strength"},
+  "ZB": {"bias": "", "mm_state": "", "levels": "", "notes": ""}
+ },
+ "scenarios": [
+  {"id": "0730-es-up", "instrument": "ES", "direction": "long", "thesis": "Counter-trend squeeze: buy the dip up toward the next full retracement.", "trigger": "holds >6700 & dollar <100.893", "target": "7478", "invalidation": "break the counter-trend longs from lows", "outcome": "pending", "auto": false},
+  {"id": "0730-es-dn", "instrument": "ES", "direction": "short", "thesis": "Aggressive bear activates when dollar changes trend + bank breaks long + VIX pierces shorts + crude defends its long.", "trigger": "leading indicators flip together", "target": "Monday highs->lows retrace", "invalidation": "crude keeps falling / indicators stay bid", "outcome": "pending", "auto": false},
+  {"id": "0730-cl-decider", "instrument": "CL", "direction": "long", "thesis": "DECIDER: green hourly close off the HWB-long support = inflation input rising = read-through short for ES.", "trigger": "green hourly close >80.90", "target": "away from support", "invalidation": "<80.90 keeps falling", "outcome": "pending", "auto": false},
+  {"id": "0730-6e-up", "instrument": "6E", "direction": "long", "thesis": "Above 1.4453 = euro breakout = indices have a tailwind to grind into resistance.", "trigger": ">1.4453", "target": "larger resistance", "invalidation": "double-top rejection <1.4453", "outcome": "pending", "auto": false},
+  {"id": "0730-6j-dn", "instrument": "6E", "direction": "short", "thesis": "USD/JPY can't get through 163.34 = yen strength alongside dollar strength (carry unwind).", "trigger": "<163.34 (USDJPY)", "target": "yen-strength move", "invalidation": ">163.34", "outcome": "pending", "auto": false},
+  {"id": "0730-gc-up", "instrument": "GC", "direction": "long", "thesis": "Defends a pullback off the pierced opposing-short 61.8% (first green monthly).", "trigger": "holds >4074.40", "target": "out of the hole", "invalidation": "<4074.40 (dollar strength wins)", "outcome": "pending", "auto": false}
+ ],
+ "key_quotes": [
+  {"t": "02:15", "text": "It is the day after FOMC... inflationary bust — all financial assets go down potentially, the most dangerous part of the market."},
+  {"t": "20:24", "text": "Crude oil is going to tell us everything that we need to know about this week's price action."},
+  {"t": "21:21", "text": "We're grinding higher, and it would be better to buy the dip in the intraday timeframe to take advantage of that squeeze."}
+ ],
+ "other_notes": "Leading-indicator scoreboard: dollar-trend-change NO, bank-break NO, VIX-pierce NO -> squeeze-higher favored until they flip. Bank line 5388.99; VIX bull-above 1920 (next MM 2010). BTC bear<65,408; ETH bear<604."
+}

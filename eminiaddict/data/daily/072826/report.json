@@ -1,0 +1,45 @@
+{
+ "date": "2026-07-28",
+ "weekday": "Tuesday",
+ "mmddyy": "072826",
+ "video_url": "https://ttmm25.s3.us-west-2.amazonaws.com/072826.mp4",
+ "transcribed": true,
+ "extracted": true,
+ "headline": "Day before FOMC: leading indicators (dollar strength, financials into a 50% short, VIX long) point to indices weakness — overnight ran to the 30-handle; watch counter-trend squeezes to Monday's highs.",
+ "market_state": "1 day before FOMC. Econ: ADP 8:15, goods trade 8:30, CB consumer confidence + Richmond mfg 10:00. Fed-watch: ~2 hikes priced into 2026 (Sept 35.8 from 37.9; Dec still winning) — debatable even one is priced re: indices. Regime = INFLATIONARY BOOM (economy + prices rising) -> rotate to real assets (gold/commodities/energy); bonds weak. Dollar-correlation still negative on indices; crude turned positive; gold/silver negative-correlation fading toward neutral.",
+ "bias": "BEARISH continuation favored: dollar strength, financials into a 50% retracement short, and a VIX long all point to indices weakness (overnight ran to the 30-handle). Watch counter-trend hedge-covering SQUEEZES up to Monday's highs (~7050 = 50% short) if the dollar AND VIX break their week lows->highs longs.",
+ "es": {
+  "current_mm": "3-week pattern: Monday-high squeeze -> sell off -> 50% shorts (last week hit targets; this week's not yet, target down at 7359). Straight-down series vs retests is decided by whether the dollar/VIX hold their longs.",
+  "trend": "Downtrend; counter-trends are against it. Range top = 7050 (50% short). Overnight showed real weakness (ran to 30-handle, bounced).",
+  "key_levels": [
+   {"price": "7483.25", "label": "Bearish-below line in the sand"},
+   {"price": "7050", "label": "Range top / 50% short (squeeze target)"},
+   {"price": "7359", "label": "This week's short target (not yet hit)"},
+   {"price": "Tue gap 58% / inside-20h 68% / <30h 32%", "label": "Below 30-handle = pro gap-and-go down"}
+  ],
+  "watch": "Below the 30-handle at the open = markets falling apart (pro gap-and-go down). Counter-trend squeezes only appear if the dollar & VIX lose their week lows->highs longs -> revisit Monday lows -> ES squeezes to Monday highs."
+ },
+ "instruments": {
+  "ES": {"bias": "down", "mm_state": "this week's 50% short, target 7359 unmet", "levels": "bear<7483.25", "notes": "counter-trend squeezes are against the trend"},
+  "NQ": {"bias": "down (weakest)", "mm_state": "wk1 & wk2 halfway-back shorts; trailing morning highs->lows", "levels": "bear<28,448.50", "notes": "extra afternoon highs->lows = more protection than ES"},
+  "YM": {"bias": "up (strongest)", "mm_state": "squeezing to all-the-way-HWB short; only index defending a long from lows", "levels": "daily shorts <52,916", "notes": "flight-to-quality rotation into the Dow; least desirable short"},
+  "RTY": {"bias": "chop-down", "mm_state": "tagged new resistance ES/NQ couldn't", "levels": "bear<2968.80", "notes": ""},
+  "CL": {"bias": "up-watch", "mm_state": "first real pullback in the new paradigm; trailing extensions", "levels": "bull>77.15; uptrend confirm >84.67", "notes": "watch the 80.27 traditional-long defend -> extension; inflationary-boom real asset"},
+  "GC": {"bias": "down (mess)", "mm_state": "wedge/consolidation, not a trend; dollar-corr changing", "levels": "longer-term bear<4232.40", "notes": "less weak than the euro; no support confirmed"},
+  "6E": {"bias": "down", "mm_state": "series of shorts; 5-pip front-run of resistance", "levels": "bear<1.4393", "notes": "DXY bull>108.08; euro drives the dollar-strength trade"},
+  "ZB": {"bias": "", "mm_state": "", "levels": "", "notes": ""}
+ },
+ "scenarios": [
+  {"id": "0728-es-dn", "instrument": "ES", "direction": "short", "thesis": "Weakness continuation: dollar/VIX hold longs -> ES straight down in the series.", "trigger": "dollar & VIX hold week longs / open <30-handle", "target": "7359 then lower", "invalidation": "dollar & VIX lose their week lows->highs longs", "outcome": "pending", "auto": false},
+  {"id": "0728-es-up", "instrument": "ES", "direction": "long", "thesis": "Hedge-covering squeeze up to Monday's highs if the leading indicators break.", "trigger": "dollar & VIX break week longs", "target": "Monday highs ~7050 (50% short)", "invalidation": "holds below the 30-handle", "outcome": "pending", "auto": false},
+  {"id": "0728-bank-dn", "instrument": "ES", "direction": "short", "thesis": "Bank into a 50% retracement short = financials confirm indices weakness.", "trigger": "Bank <5424.42", "target": "indices lower", "invalidation": ">5424.42", "outcome": "pending", "auto": false},
+  {"id": "0728-cl-up", "instrument": "CL", "direction": "long", "thesis": "Inflationary-boom real-asset rotation; traditional-long 80.27 defends -> extension.", "trigger": "holds >77.15; confirm >84.67", "target": "extension targets", "invalidation": "<77.15", "outcome": "pending", "auto": false},
+  {"id": "0728-nq-dn", "instrument": "NQ", "direction": "short", "thesis": "Weakest index, straight down in halfway-back shorts.", "trigger": "<28,448.50", "target": "series lower", "invalidation": ">28,448.50", "outcome": "pending", "auto": false}
+ ],
+ "key_quotes": [
+  {"t": "02:00", "text": "When the dot drifts into the upper right, it's time to rotate towards real assets — gold, commodities, and energy producers."},
+  {"t": "04:26", "text": "Our leading indicators are pointing towards weakness on the indices — the dollar, the financials, the VIX."},
+  {"t": "12:29", "text": "We fall below the 30 handle... there's only a 32% probability of filling the gap (pro gap-and-go down)."}
+ ],
+ "other_notes": "Day before FOMC positioning. VIX bull>1875; DXY downtrend-end for indices at 101.316. Silver first-notice in 3 days (one of the largest delivery months on record) = potential bear trap. USD/JPY bull>163.27 (watching for yen strength = carry unwind)."
+}
