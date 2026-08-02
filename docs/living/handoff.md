@@ -32,6 +32,28 @@ Last day of the MenthorQ sub. Did a final max-history archive pull.
   NO edge with them yet; without years of levels there's no point. "Easy API but no rollout target
   date — why?" User distrusts Patrick (feels like a conman; promised call never happened); unsure
   if Fabio missed it or knows. Considering telling Fabio but wary of overstepping.
+- **Fabio correspondence (in progress):** user is writing Fabio honest feedback before cancelling.
+  Fabio engaged, asked "how have you tested the levels? what criteria?" Agreed framing: describe
+  testing on the website levels only (do NOT reveal the 82-day accumulation or the scrape). The
+  real substance to draw on = **Note 0009** (`docs/research_notes/0009_menthorq_gamma_mc.md`, 81
+  days, 4 pre-registered rounds): claims REFUTED — levels bounce no more than random (21.8% vs
+  23.9%), containment explained by IV distance not gamma, "don't trade into a level" refuted
+  (into-level did better), QScores null; only survivor = neg-gamma days realize 1.18× implied
+  move (VOL-amplitude, not S/R/direction). Patrick's own site rules mostly UNtestable at the event
+  rate: "wait for 2nd/3rd test" (main levels touched ~5% of days), the 41.26 QQQ→NQ Blind-Spots
+  ratio (never tested), the "1.5×ATR overextension→reversal" Academy claim (never run; we only
+  tested the implied-EM-boundary fade cousin, RevFT R5).
+- **Median-zone backtest — BLOCKED, do not chase:** user asked to backtest "setups at the levels,
+  stop at the median zone" using MQ's backtest data. Can't faithfully: MQ's median/worst adverse-
+  excursion zone is a **today-only single snapshot** (captured 08-02 for the first time; NO
+  history). Applying one value across 4.5yr = lookahead/dishonest; computing our own median from
+  price = our stat, not theirs. This IS the user's Fabio point — the backtest output is a scalar,
+  not a series, so it's unbacktestable by anyone. (Have the pieces for a self-computed version if
+  ever wanted: reveng levels `data/regime/mq_reveng/final_replication.csv` 2021→2026, ES 5M bars
+  `data/bars/_continuous.parquet`, 1,287d ES ticks, MC/RevFT signal exports in `data/signals/`.)
+- **Reverse-engineered CR/PS accuracy vs MQ published (recall, from reveng note):** CR exact-strike
+  81% fit / 92% holdout; PS 74% / 87%; by year rising to CR 97.7% / PS 94.7% in 2026; regime label
+  95%; GEX $ values R² 0.99; 0 fitted params.
 
 ---
 
