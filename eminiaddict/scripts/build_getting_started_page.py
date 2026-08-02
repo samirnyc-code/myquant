@@ -37,8 +37,11 @@ header h1{font-size:18px;margin:0}a{color:var(--blue);text-decoration:none}a:hov
 .vid{margin:8px 0}.vid a{font-weight:600}
 details{margin:8px 0}summary{cursor:pointer;color:var(--gold);font-weight:600}
 pre{white-space:pre-wrap;background:#0b0f14;border:1px solid var(--chip);border-radius:8px;padding:10px 12px;font-size:12.5px;color:#cbd5e1;max-height:340px;overflow:auto}
-.nug{background:#12261a;border:1px solid #1f5133;border-radius:8px;padding:10px 14px;margin:8px 0}
-.nug h4{margin:0 0 6px;color:#3fb950}
+.nug{background:linear-gradient(180deg,#141e18,#12261a);border:1px solid #2ea043;border-radius:11px;padding:14px 18px;margin:6px 0 16px;box-shadow:0 1px 0 #0b1f13 inset}
+.nug .hd{color:#3fb950;font-weight:700;font-size:14px;margin:0 0 8px;letter-spacing:.02em}
+.nug h4{margin:12px 0 4px;color:var(--gold);font-size:13px;text-transform:uppercase;letter-spacing:.04em}
+.nug p{margin:6px 0;font-size:13.6px}.nug ul{margin:4px 0;padding-left:20px}.nug li{margin:3px 0;font-size:13.6px}
+.nug .tldr{background:#0b1f13;border-left:3px solid #3fb950;padding:7px 12px;border-radius:6px;font-size:13.6px}
 .pending{color:var(--mut);font-style:italic}
 .glossary dt{font-weight:600;color:var(--gold);margin-top:10px}.glossary dd{margin:2px 0 0;color:#cbd5e1}
 #lb{position:fixed;inset:0;background:rgba(0,0,0,.94);display:none;flex-direction:column;z-index:100}
@@ -179,6 +182,11 @@ def main():
         text = item.get("text", "")
         parts = [f'<div class="mod" id="{anchor}"><div class="k">Lesson {idx:02d}</div>'
                  f'<h3>{label}</h3>']
+        # NUGGETS card FIRST (read the summary before the video/slides)
+        nf = os.path.join(NUG, f"{idx:02d}.md")
+        if os.path.exists(nf):
+            parts.append(f'<div class="nug"><div class="hd">📌 Key points</div>'
+                         f'{md_to_html(open(nf, encoding="utf-8").read())}</div>')
         # glossary special-render
         if "glossary" in r["label"].lower() and len(text) > 200:
             parts.append(render_glossary(text))
@@ -202,10 +210,6 @@ def main():
             if v.endswith(".mp4"):
                 parts.append(f'<div class="vid">🎬 <a href="{esc(v)}" target="_blank">'
                              f'Lesson video (public)</a></div>')
-        # nuggets (assistant-produced .md)
-        nf = os.path.join(NUG, f"{idx:02d}.md")
-        if os.path.exists(nf):
-            parts.append(f'<div class="nug"><h4>Nuggets</h4>{md_to_html(open(nf,encoding="utf-8").read())}</div>')
         # transcript (collapsible) if present
         tname = f"{idx:02d}_" + re.sub(r'[^a-z0-9]+', '-', r['label'].lower()).strip('-')[:40]
         tf = os.path.join(TR, tname + ".txt")
@@ -254,10 +258,30 @@ def main():
     register_mc()
 
 def md_to_html(md):
-    md = esc(md)
-    md = re.sub(r'^\- (.+)$', r'<li>\1</li>', md, flags=re.M)
-    md = re.sub(r'(<li>.*</li>)', r'<ul>\1</ul>', md, flags=re.S)
-    return md.replace("\n", "<br>")
+    out, inul = [], False
+    for ln in md.split("\n"):
+        s = esc(ln.strip())
+        if s.startswith("## "):
+            if inul:
+                out.append("</ul>"); inul = False
+            out.append(f"<h4>{s[3:]}</h4>")
+        elif s.startswith("- "):
+            if not inul:
+                out.append("<ul>"); inul = True
+            out.append(f"<li>{s[2:]}</li>")
+        elif s == "":
+            if inul:
+                out.append("</ul>"); inul = False
+        else:
+            if inul:
+                out.append("</ul>"); inul = False
+            cls = ' class="tldr"' if s.lower().startswith(("**tl;dr", "tl;dr")) else ""
+            out.append(f"<p{cls}>{s}</p>")
+    if inul:
+        out.append("</ul>")
+    h = "\n".join(out)
+    h = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", h)
+    return h
 
 def register_mc():
     """Add/refresh the MC catalog entry so the page groups under EminiAddict at :8590."""
