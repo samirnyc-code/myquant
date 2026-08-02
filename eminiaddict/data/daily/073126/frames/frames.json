@@ -142,5 +142,14 @@
   "instrument": "GC",
   "tf": "",
   "header": "{GC 180 D 1h_D: 7/28/26 9:00 AM | O: 4029.4 | H: 40:"
+ },
+ {
+  "topic": "ES-15m",
+  "sec": 642,
+  "blue": 0,
+  "file": "16_ES-15m.png",
+  "instrument": "ES",
+  "tf": "15m",
+  "header": "/ES 180 D 15m (extension long)"
  }
 ]

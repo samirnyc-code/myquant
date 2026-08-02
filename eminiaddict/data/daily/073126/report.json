@@ -28,7 +28,7 @@
              ["-23.6%", "7359.77", "TARGET", "green", "= his target ~7359"]],
   "price_now": "~7510 — between the 38.2% and 50%",
   "htf": "Daily UP-MM: Low 6353.25 -> High 7648.75; its -23.6% target 7632.25 is reached = the ceiling this short hangs from.",
-  "series": "SHORTS from the range top. Near-term bouncing UP in extensions off the 7411 low toward the 61.8% (7547.86); the larger short re-engages if 7547.86 caps it (esp. VIX>18.85). Bullish only on a reclaim >7547.86 with VIX<18.85.",
+  "series": "THREE timeframes in play: Daily UP-MM (target 7632.25 reached = ceiling); 4h SHORT-MM (capped at 61.8% 7547.86, target 7359.77); and a 15m EXTENSION-LONG (Lo 7446.5 -> Hi 7517.75; 61.8% 7473.72 = his 'bullish above 7473-75'; -23.6% targets 7524.75/7534.57). Bullish while the 15m holds 7473.72; bearish if the 4h short caps it at 7547.86 with VIX>18.85.",
   "watch": "Below 7547.86 (61.8% red) the SHORT is in play -> 7521.88 (50%) -> 7359.77 (green target). Reclaim >7547.86 with VIX<18.85 fails the short and re-opens the ceiling. Gap: outside the 20-handle = coin flip, no edge."
  },
  "instruments": {
@@ -42,8 +42,8 @@
   "ZB": {"bias": "", "mm_state": "", "levels": "", "notes": ""}
  },
  "scenarios": [
-  {"id": "0731-es-dn", "instrument": "ES", "direction": "short", "thesis": "4h SHORT measured move active: capped by the 61.8% (7547.86), works down the ladder.", "trigger": "stays <7547.86 (61.8% red), esp. VIX>18.85", "target": "7521.88 (50%) -> 7359.77 (-23.6% green target)", "invalidation": "reclaim >7547.86 with VIX<18.85", "outcome": "pending", "auto": false},
-  {"id": "0731-es-up", "instrument": "ES", "direction": "long", "thesis": "Short fails: reclaim of the 61.8% flips it bullish back toward the range ceiling.", "trigger": "reclaim >7547.86 (61.8%) & VIX<18.85", "target": "7632.35 range ceiling (daily -23.6%)", "invalidation": "loses 7521.88 (50%)", "outcome": "pending", "auto": false},
+  {"id": "0731-es-up15", "instrument": "ES", "direction": "long", "thesis": "15m EXTENSION-LONG holds its 61.8% -> grind up to the -23.6% targets (his 'bullish above 7473-75').", "trigger": "holds >7473.72 (15m 61.8%) & VIX<18.85", "target": "7524.75 / 7534.57 (-23.6% green)", "invalidation": "loses 7473.72 (61.8% = extension failure at the gap fill)", "outcome": "pending", "auto": false},
+  {"id": "0731-es-dn", "instrument": "ES", "direction": "short", "thesis": "4h SHORT measured move: capped by the 61.8% (7547.86), works down the ladder.", "trigger": "stays <7547.86 (4h 61.8% red), esp. VIX>18.85", "target": "7521.88 (50%) -> 7359.77 (-23.6% green target)", "invalidation": "reclaim >7547.86 with VIX<18.85", "outcome": "pending", "auto": false},
   {"id": "0731-nq-dn", "instrument": "NQ", "direction": "short", "thesis": "Larger traditional short overhead once tagged.", "trigger": "tag larger traditional / lose 28,397", "target": "traditional short target", "invalidation": ">28,397", "outcome": "pending", "auto": false},
   {"id": "0731-cl-up", "instrument": "CL", "direction": "long", "thesis": "Broke out of shorts, defended support -> pullbacks defended higher (inflationary).", "trigger": "holds >80.90", "target": "away from support", "invalidation": "<80.90 support fails", "outcome": "pending", "auto": false},
   {"id": "0731-6e-dn", "instrument": "6E", "direction": "short", "thesis": "Extension-long broke 61.8% -> first measured-move short; dollar strength.", "trigger": "1st MM short at 1.5015", "target": "123% short target", "invalidation": "reclaim extension-long", "outcome": "pending", "auto": false},
