@@ -36,11 +36,14 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from nt_swing import nt_swing  # faithful NT8 Swing(Strength) port  # noqa: E402
+
 ROOT = Path(__file__).resolve().parent.parent
 MASTER_DIR = ROOT / "data" / "nt_internals" / "master"
 REV = ROOT / "research" / "revsim" / "revft_all_signals.csv"
 FIG_DIR = ROOT / "eminiaddict" / "figures"
-FRACTAL_N = [2, 3, 5]
+FRACTAL_N = [1, 2, 3, 5]
 HORIZON_BARS = 26          # 15M bars (~6.5h) cap; also EOD-capped
 ES_PT = 50.0
 
@@ -102,7 +105,7 @@ def run(g, N, tick_os):
     H = g["H"].to_numpy(); L = g["L"].to_numpy(); C = g["C"].to_numpy()
     O = g["O"].to_numpy(); day = g["day"].to_numpy()
     tkl = g["tkl"].to_numpy(); tkh = g["tkh"].to_numpy()
-    piv = fractal(H, L, N)
+    piv = nt_swing(H, L, N)   # faithful NT8 Swing(Strength=N)
     legs = legs_from_pivots(piv, H, L)
     n = len(g)
     trades = []

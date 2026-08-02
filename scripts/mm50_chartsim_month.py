@@ -47,21 +47,18 @@ def main():
                                  name="ES 15M", increasing_line_color="#26a65b",
                                  decreasing_line_color="#e2453c"), row=1, col=1)
 
-    # TICK panel: high-low bars via a filled scatter per bar is heavy; use error-bar style
-    fig.add_trace(go.Scatter(
-        x=x, y=gm.tkh, mode="markers", marker=dict(size=2, color="#888"),
-        name="TICK high", hovertemplate="TICK hi %{y}<extra></extra>"), row=2, col=1)
-    fig.add_trace(go.Scatter(
-        x=x, y=gm.tkl, mode="markers", marker=dict(size=2, color="#888"),
-        name="TICK low", hovertemplate="TICK lo %{y}<extra></extra>"), row=2, col=1)
-    # vertical TICK range segments
-    for i in range(len(gm)):
-        if np.isnan(gm.tkh[i]):
-            continue
-        fig.add_shape(type="line", x0=x[i], x1=x[i], y0=gm.tkl[i], y1=gm.tkh[i],
-                      line=dict(color="#666", width=1), row=2, col=1)
+    # TICK panel: real hi-lo bars (base=low, height=hi-low) — robust on a category axis
+    base = gm.tkl.fillna(0)
+    height = (gm.tkh - gm.tkl).fillna(0)
+    colors = ["#e2453c" if (h >= 800 or l <= -800) else "#888"
+              for h, l in zip(gm.tkh.fillna(0), gm.tkl.fillna(0))]
+    fig.add_trace(go.Bar(x=x, y=height, base=base, marker_color=colors, width=0.7,
+                         name="TICK hi-lo",
+                         hovertext=[f"TICK {l:.0f}..{h:.0f}" for l, h in zip(gm.tkl, gm.tkh)],
+                         hoverinfo="text"), row=2, col=1)
     for lv, dash in [(1000, "solid"), (800, "dash"), (-800, "dash"), (-1000, "solid")]:
         fig.add_hline(y=lv, line=dict(color="#e2453c", width=1, dash=dash), row=2, col=1)
+    fig.update_yaxes(range=[-1300, 1300], row=2, col=1)
 
     # MM 50% setups overlay
     tr = pd.read_csv(sorted(_glob.glob(str(MASTER_DIR / "mm50_trades_*.csv")))[-1])
@@ -74,27 +71,49 @@ def main():
             continue
         xf = gi2x[fk]; xe = gi2x.get(ek, xf)
         c = "#22d3ee" if t.why == "target" else ("#e2453c" if t.why == "stop" else "#f1c40f")
+        # leg pivots (side-aware): long leg = low->high, short leg = high->low
+        if t.side == 1:
+            lo_i, lo_px, hi_i, hi_px = int(t.jL), g.loc[int(t.jL), "L"], int(t.jH), g.loc[int(t.jH), "H"]
+        else:
+            hi_i, hi_px, lo_i, lo_px = int(t.jL), g.loc[int(t.jL), "H"], int(t.jH), g.loc[int(t.jH), "L"]
+        # MEASURED-MOVE dotted line: pivot1 -> pivot2 (the leg) -> 50% entry (the retrace)
+        piv = sorted([(lo_i, lo_px), (hi_i, hi_px)], key=lambda p: p[0])
+        path_i = [piv[0][0], piv[1][0], fk]
+        path_y = [piv[0][1], piv[1][1], t.e50]
+        if all(pi in gi2x for pi in path_i):
+            fig.add_trace(go.Scatter(
+                x=[gi2x[pi] for pi in path_i], y=path_y, mode="lines",
+                line=dict(color="#ffffff", width=1.4, dash="dot"), showlegend=False,
+                hovertext=["swing H/L -> 50%"] * 3, hoverinfo="text"), row=1, col=1)
+        # 50 / 61.8 / 123 levels drawn from fill to exit
         for lv, col, dash in [(t.e50, "#ffd400", "solid"), (t.stop, "#e2453c", "dot"),
                               (t.tgt, "#22d3ee", "dash")]:
             fig.add_shape(type="line", x0=xf, x1=xe, y0=lv, y1=lv,
-                          line=dict(color=col, width=1.3, dash=dash), row=1, col=1)
+                          line=dict(color=col, width=1.2, dash=dash), row=1, col=1)
+        # swing markers with labels (guard: pivot may be in a prior month -> off-view)
+        if hi_i in gi2x:
+            fig.add_trace(go.Scatter(x=[gi2x[hi_i]], y=[hi_px], mode="markers+text",
+                          marker=dict(size=9, color="#ff5566", symbol="triangle-down"),
+                          text=["H"], textposition="top center", textfont=dict(size=9, color="#ff5566"),
+                          showlegend=False, hovertext=[f"swing H {hi_px:.2f}"], hoverinfo="text"),
+                          row=1, col=1)
+        if lo_i in gi2x:
+            fig.add_trace(go.Scatter(x=[gi2x[lo_i]], y=[lo_px], mode="markers+text",
+                          marker=dict(size=9, color="#33dd88", symbol="triangle-up"),
+                          text=["L"], textposition="bottom center", textfont=dict(size=9, color="#33dd88"),
+                          showlegend=False, hovertext=[f"swing L {lo_px:.2f}"], hoverinfo="text"),
+                          row=1, col=1)
+        # fill marker + outcome
         fig.add_trace(go.Scatter(
             x=[xf], y=[t.e50], mode="markers+text",
-            marker=dict(size=11, color="white", symbol=("triangle-up" if t.side == 1
+            marker=dict(size=12, color="white", symbol=("triangle-up" if t.side == 1
                                                         else "triangle-down"),
                         line=dict(color="black", width=1)),
-            text=[f"{t.why} {t.R:+.1f}R"], textposition="top center",
+            text=[f"{t.why} {t.R:+.1f}R"], textposition="middle right",
             textfont=dict(size=9, color=c),
-            hovertext=[f"{'LONG' if t.side==1 else 'SHORT'} 50%={t.e50:.2f} "
-                       f"stop={t.stop:.2f} tgt={t.tgt:.2f} -> {t.why} {t.R:+.2f}R"],
+            hovertext=[f"{'LONG' if t.side==1 else 'SHORT'} entry@50%={t.e50:.2f} "
+                       f"stop(61.8%)={t.stop:.2f} tgt(123%)={t.tgt:.2f} -> {t.why} {t.R:+.2f}R"],
             hoverinfo="text", showlegend=False), row=1, col=1)
-        # swing markers
-        for gi_, sym, col in [(int(t.jL), "circle", "#33dd88"), (int(t.jH), "circle", "#ff5566")]:
-            if gi_ in gi2x:
-                yy = g.loc[gi_, "L"] if col == "#33dd88" else g.loc[gi_, "H"]
-                fig.add_trace(go.Scatter(x=[gi2x[gi_]], y=[yy], mode="markers",
-                              marker=dict(size=7, color=col), showlegend=False,
-                              hovertext=["swing"], hoverinfo="text"), row=1, col=1)
 
     fig.update_layout(template="plotly_dark", height=900, xaxis_rangeslider_visible=False,
                       margin=dict(l=40, r=20, t=50, b=40),
