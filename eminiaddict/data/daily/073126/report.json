@@ -9,16 +9,19 @@
  "market_state": "Range-bound ~8 weeks; risk-off hedging into weekends; USD negatively correlated with indices (30d & 15d); regime flip-flopping inflationary bust/boom (crude + S&P sideways). Last day of July (month-end). Econ: Employment Cost Index 8:30, Chicago PMI 9:45 (exp 55.9), U-Mich sentiment 10:00. Fed-watch: 67.4% prob of a Sept hike.",
  "bias": "Short-term BULLISH while extensions hold (VIX < 18.85 and DXY below its 61.8%). Structurally BEARISH building: Bank in a confirmed head-&-shoulders downtrend (the ONLY leading indicator confirming weakness), crude breaking out of shorts (inflationary), euro confirming the dollar-strength trade, and a yen carry-trade unwind starting.",
  "es": {
-  "current_mm": "Going straight up in EXTENSIONS after a pro gap-up-and-go; hit a profit target and blew through it. Defended an overnight extension-long whose FAILURE level sits right at the gap fill. Trade the extensions until one fails.",
-  "trend": "Range-bound ~8 weeks; near-term up-grind (hedge-covering squeeze) inside a larger downtrend risk. ES running back up into the same series-short resistance it sold from Monday (2nd/3rd test).",
+  "current_mm": "TWO measured moves in play (read off his charts). (1) HTF DAILY/12h UP-MM: anchor Low 6353.25 (Apr) -> High 7648.75 (Jun); its -23.6%/123% target 7632.25 is REACHED = ceiling of the 8-week range. (2) Intraday 4h SHORT-MM: anchor 100%=7632.25 -> 0%=7506.45 (61.8% failure 7584.04, 50% short 7569.23, 38.2% 7554.41), target -23.6%=7476.82. Price defended ~7476-7506 and is flipping to an EXTENSION LONG.",
+  "trend": "Range-bound ~8 weeks under 7632-7648. SERIES = both, nested: larger frame is traditional SHORTS at the range top (the 4h short fib); the immediate is EXTENSION LONGS off the 7476-7506 support (as long as VIX<18.85).",
   "key_levels": [
-   {"price": "7473-7475", "label": "Bullish-above line in the sand"},
-   {"price": "= gap fill", "label": "Extension-long FAILURE = top-of-range trigger"},
-   {"price": "VIX 18.85", "label": "Correlated trigger: VIX break = extension fails"},
-   {"price": "DXY 100.418 61.8%", "label": "Dollar-strength confirm (breaks = indices shorts)"},
-   {"price": "Fri gap: full 53% / half 65%", "label": "No edge if open >20 handle from fill"}
+   {"price": "6353.25 / 7648.75", "label": "Daily UP-MM anchors (Low Apr / High Jun)"},
+   {"price": "7632.25", "label": "Daily -23.6% target = range ceiling (reached)"},
+   {"price": "7584.04", "label": "4h 61.8% = short failure / bearish trigger zone"},
+   {"price": "7569.23 / 7554.41", "label": "4h 50% short / 38.2%"},
+   {"price": "7506.45", "label": "4h 0% (recent swing low)"},
+   {"price": "7476.82", "label": "4h -23.6% target = his 'bull above ~7473-75'"},
+   {"price": "VIX 18.85 / DXY 61.8%", "label": "Correlated flip: break both = extension fails"},
+   {"price": "7231.24 / 7076.5 / 6921.22", "label": "Daily lower fib supports if it rolls over"}
   ],
-  "watch": "Extension-long holding = continuation grind higher. If VIX breaks 18.85 AND DXY breaks its 61.8%, the ES extension fails -> confirms top of range -> new series of shorts into the larger downtrend. At the open: outside the 20-handle = ~coin-flip gap, no edge."
+  "watch": "BULLISH extension while it holds >~7476 (4h -23.6%) and VIX<18.85. Flips to SHORTS if it loses ~7547.75 (back into the 4h 50/38.2 zone 7569/7554) AND VIX breaks 18.85 -> target 7476.82, then the daily red supports. Gap: outside the 20-handle = ~coin flip, no edge."
  },
  "instruments": {
   "ES": {"bias": "up (fragile)", "mm_state": "straight-up extensions; failure at gap fill", "levels": "bull>7473-75", "notes": "hedge-covering squeeze into month-end"},
