@@ -58,6 +58,10 @@ pre{white-space:pre-wrap;background:#0b0f14;border:1px solid var(--chip);border-
 .lbside .pins{width:280px;max-height:120px;overflow:auto;font-size:12px}
 .lbside .pins div{padding:3px 0;color:#cbd5e1;border-bottom:1px solid #1c2128}
 .lbside .pins b{color:#f85149;margin-right:6px}
+.lbside .pins .del{color:#f85149;cursor:pointer;float:right;font-weight:700;padding:0 5px}
+.lbside .pins .del:hover{color:#ff7b72}
+.lbside .clr{color:#8b949e;cursor:pointer;font-size:11px;display:inline-block;margin-top:6px}
+.lbside .clr:hover{color:#f85149}
 #home{position:fixed;right:18px;bottom:18px;background:var(--blue);color:#001;border:0;border-radius:24px;padding:10px 16px;font-weight:700;cursor:pointer;z-index:50;box-shadow:0 2px 8px rgba(0,0,0,.4)}
 .tools{display:flex;gap:8px;margin:0 0 16px}.tools button{background:var(--chip);color:var(--fg);border:0;border-radius:7px;padding:7px 12px;cursor:pointer;font-size:13px}
 """
@@ -81,9 +85,16 @@ LB_JS = r"""
        if(nn===null)return; if(nn==='')pins.splice(k,1); else p.note=nn;
        store[sid].pins=pins;save();renderPins();mark();};
      pinsEl.appendChild(d);});
-   pinList.innerHTML=pins.map((p,k)=>`<div><b>${k+1}</b>${p.note||'(no note)'}</div>`).join('')
-     ||'<div style="color:#6e7681">no tags — turn on 🏷 then click the slide</div>';
+   pinList.innerHTML=(pins.map((p,k)=>`<div><b>${k+1}</b>${p.note||'(no note)'}`
+     +`<span class="del" data-k="${k}" title="delete tag">✕</span></div>`).join('')
+     ||'<div style="color:#6e7681">no tags — turn on 🏷 then click the slide</div>')
+     +(pins.length?'<span class="clr" id="clrtags">clear all tags on this slide</span>':'');
  }
+ function delPin(k){const pins=(store[sid]&&store[sid].pins)||[];pins.splice(k,1);
+   store[sid].pins=pins;save();renderPins();mark();}
+ pinList.onclick=e=>{if(e.target.classList.contains('del'))delPin(+e.target.dataset.k);
+   else if(e.target.id==='clrtags'){if(confirm('Delete all tags on this slide?')){
+     store[sid].pins=[];save();renderPins();mark();}}};
  function load(i){idx=(i+set.length)%set.length;const el=set[idx];sid=el.dataset.sid;
    img.src=el.src;ttl.textContent=el.dataset.ttl||'';cnt.textContent=(idx+1)+' / '+set.length;
    scale=1;px=0;py=0;apply();ta.value=(store[sid]&&store[sid].comment)||'';renderPins();}
