@@ -189,9 +189,9 @@ table.dt td{border-bottom:1px solid #1c2128;padding:4px 8px;vertical-align:top}
 .pbthen{font-weight:700}.dir-long{color:#3fb950}.dir-short{color:#f85149}.dir-TBD{color:#8b949e}
 .pbtgt{color:#22d3ee}.pbinv{color:#f0883e}.pboc{margin-left:auto}
 .pbth{color:var(--mut);font-size:12.5px;margin-top:4px}
-.frwrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin:8px 0}
+.frwrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(460px,1fr));gap:12px;margin:8px 0}
 .fr{margin:0}.fr img{width:100%;border:1px solid var(--chip);border-radius:8px;cursor:zoom-in;display:block}
-.fr figcaption{font-size:12px;color:var(--gold);margin-top:3px;font-weight:600}
+.fr figcaption{font-size:12.5px;color:var(--gold);margin:4px 0 0;font-weight:600}
 """
 
 LB_JS = r"""

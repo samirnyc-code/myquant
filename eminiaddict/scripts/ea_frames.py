@@ -17,6 +17,10 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
+
+import numpy as np
+import matplotlib.image as mpimg
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 DAILY = os.path.join(ROOT, "eminiaddict", "data", "daily")
@@ -85,6 +89,42 @@ def grab(url, sec, out_png):
     return r.returncode == 0 and os.path.exists(out_png) and os.path.getsize(out_png) > 3000
 
 
+def blue_hlines(png):
+    """Count horizontal CYAN/BLUE lines = a fib being DRAWN (not yet set). The 21-EMA is also
+    cyan but wavy (few pixels per row), so a width-spanning blue row = an in-progress fib."""
+    try:
+        im = mpimg.imread(png)
+    except Exception:
+        return 999
+    if im.ndim < 3:
+        return 999
+    if im.max() > 1:
+        im = im / 255.0
+    r, g, b = im[..., 0], im[..., 1], im[..., 2]
+    blue = (b > 0.5) & (r < 0.5) & (g > 0.35) & (g < 0.92)
+    rowfrac = blue.mean(axis=1)
+    return int((rowfrac > 0.30).sum())
+
+
+def best_frame(url, base, endcap, out_png):
+    """Sample a few offsets after the cue; keep the frame with the FEWEST blue (drawing) lines."""
+    offs = [o for o in (8, 18, 30, 45, 62, 80) if base + o < endcap] or [8]
+    best_score, best_off = None, None
+    with tempfile.TemporaryDirectory() as td:
+        for o in offs:
+            tmp = os.path.join(td, f"{o}.png")
+            if not grab(url, base + o, tmp):
+                continue
+            s = blue_hlines(tmp)
+            if best_score is None or s < best_score:
+                best_score, best_off = s, o
+                import shutil
+                shutil.copy(tmp, out_png)
+            if s == 0:
+                break
+    return (best_off is not None), best_score, best_off
+
+
 def process(mmddyy):
     d = os.path.join(DAILY, mmddyy)
     rp = os.path.join(d, "report.json"); tp = os.path.join(d, "transcript.txt")
@@ -94,30 +134,37 @@ def process(mmddyy):
     url = r.get("video_url")
     lines = ts_lines(tp)
     fdir = os.path.join(d, "frames"); os.makedirs(fdir, exist_ok=True)
+    for old in os.listdir(fdir):
+        if old.endswith(".png") or old == "frames.json":
+            os.remove(os.path.join(fdir, old))
+    # plan (topic, cue_sec); ES gets its extra timeframe frames
     plan = []
     for topic, phrases in TOPICS:
         sec = cue(lines, phrases)
         if sec is None:
             continue
-        plan.append((topic, sec + OFFSET))
-        if topic == "ES":                       # grab the extra ES timeframes he flips through
+        plan.append((topic, sec))
+        if topic == "ES":
             nxt = first_hit(lines, ES_TF_CUES, after=sec)
             k = 2
             while nxt and k <= 3:
-                plan.append((f"ES-tf{k}", nxt + OFFSET))
-                nxt2 = first_hit(lines, ES_TF_CUES, after=nxt + 5)
-                nxt = nxt2; k += 1
+                plan.append((f"ES-tf{k}", nxt))
+                nxt = first_hit(lines, ES_TF_CUES, after=nxt + 5); k += 1
     plan.sort(key=lambda x: x[1])
     idx = []
-    print(f"{mmddyy}: grabbing {len(plan)} frames")
+    print(f"{mmddyy}: {len(plan)} charts (picking the SETTLED frame = no blue/drawing)")
     for i, (topic, sec) in enumerate(plan):
+        endcap = plan[i + 1][1] if i + 1 < len(plan) else sec + 90
         out = os.path.join(fdir, f"{i:02d}_{topic}.png")
-        ok = grab(url, sec, out)
-        print(f"  [{'ok' if ok else 'FAIL'}] {topic} @ {sec//60:02d}:{sec%60:02d}")
+        ok, score, off = best_frame(url, sec, min(endcap, sec + 90), out)
+        tag = "ok" if ok else "FAIL"
+        print(f"  [{tag}] {topic:7s} @ {(sec+(off or 0))//60:02d}:{(sec+(off or 0))%60:02d}"
+              f"  blue-lines={score}")
         if ok:
-            idx.append({"topic": topic, "sec": sec, "file": os.path.basename(out)})
+            idx.append({"topic": topic, "sec": sec + (off or 0), "blue": score,
+                        "file": os.path.basename(out)})
     json.dump(idx, open(os.path.join(fdir, "frames.json"), "w"), indent=1)
-    print(f"  wrote {len(idx)} frames + frames.json")
+    print(f"  wrote {len(idx)} settled frames + frames.json")
 
 
 def main():

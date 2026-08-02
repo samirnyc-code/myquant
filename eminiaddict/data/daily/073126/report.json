@@ -9,19 +9,19 @@
  "market_state": "Range-bound ~8 weeks; risk-off hedging into weekends; USD negatively correlated with indices (30d & 15d); regime flip-flopping inflationary bust/boom (crude + S&P sideways). Last day of July (month-end). Econ: Employment Cost Index 8:30, Chicago PMI 9:45 (exp 55.9), U-Mich sentiment 10:00. Fed-watch: 67.4% prob of a Sept hike.",
  "bias": "Short-term BULLISH while extensions hold (VIX < 18.85 and DXY below its 61.8%). Structurally BEARISH building: Bank in a confirmed head-&-shoulders downtrend (the ONLY leading indicator confirming weakness), crude breaking out of shorts (inflationary), euro confirming the dollar-strength trade, and a yen carry-trade unwind starting.",
  "es": {
-  "current_mm": "TWO measured moves in play (read off his charts). (1) HTF DAILY/12h UP-MM: anchor Low 6353.25 (Apr) -> High 7648.75 (Jun); its -23.6%/123% target 7632.25 is REACHED = ceiling of the 8-week range. (2) Intraday 4h SHORT-MM: anchor 100%=7632.25 -> 0%=7506.45 (61.8% failure 7584.04, 50% short 7569.23, 38.2% 7554.41), target -23.6%=7476.82. Price defended ~7476-7506 and is flipping to an EXTENSION LONG.",
-  "trend": "Range-bound ~8 weeks under 7632-7648. SERIES = both, nested: larger frame is traditional SHORTS at the range top (the 4h short fib); the immediate is EXTENSION LONGS off the 7476-7506 support (as long as VIX<18.85).",
+  "current_mm": "Read off his SETTLED 4h fib (red/yellow levels, green target). Active 4h SHORT measured move: 100% anchor 7632.35 (range high = the daily -23.6% ceiling) -> 0% anchor 7411.75 (swing low). 61.8% FAILURE (red) 7547.86, 50% (yellow) 7521.88, 38.2% 7495.89, -23.6% TARGET (green) 7359.77. Price ~7510 sits between the 38.2% and 50%. HTF daily UP-MM (Low 6353.25 -> High 7648.75) already hit its -23.6% target 7632.25 = the ceiling this short hangs from.",
+  "trend": "Range-bound ~8 weeks under 7632-7648. SERIES = SHORTS from the range top (4h short fib active). Near-term it's bouncing UP in extensions off the 7411 low toward the 61.8% (7547.86); the larger short re-engages if 7547.86 caps it (esp. with VIX>18.85). Bullish only if it reclaims >7547.86 with VIX<18.85.",
   "key_levels": [
-   {"price": "6353.25 / 7648.75", "label": "Daily UP-MM anchors (Low Apr / High Jun)"},
-   {"price": "7632.25", "label": "Daily -23.6% target = range ceiling (reached)"},
-   {"price": "7584.04", "label": "4h 61.8% = short failure / bearish trigger zone"},
-   {"price": "7569.23 / 7554.41", "label": "4h 50% short / 38.2%"},
-   {"price": "7506.45", "label": "4h 0% (recent swing low)"},
-   {"price": "7476.82", "label": "4h -23.6% target = his 'bull above ~7473-75'"},
-   {"price": "VIX 18.85 / DXY 61.8%", "label": "Correlated flip: break both = extension fails"},
-   {"price": "7231.24 / 7076.5 / 6921.22", "label": "Daily lower fib supports if it rolls over"}
+   {"price": "7632.35", "label": "4h 100% anchor (range ceiling = daily -23.6%)"},
+   {"price": "7547.86", "label": "61.8% FAILURE (red) = his bearish-below 7547.75"},
+   {"price": "7521.88", "label": "50% (yellow)"},
+   {"price": "7495.89", "label": "38.2%"},
+   {"price": "7411.75", "label": "0% anchor (swing low)"},
+   {"price": "7359.77", "label": "-23.6% TARGET (green) = his ES target ~7359"},
+   {"price": "VIX 18.85 / DXY 61.8%", "label": "Correlated flip toward the short"},
+   {"price": "6353.25 / 7648.75", "label": "Daily UP-MM anchors (Low Apr / High Jun)"}
   ],
-  "watch": "BULLISH extension while it holds >~7476 (4h -23.6%) and VIX<18.85. Flips to SHORTS if it loses ~7547.75 (back into the 4h 50/38.2 zone 7569/7554) AND VIX breaks 18.85 -> target 7476.82, then the daily red supports. Gap: outside the 20-handle = ~coin flip, no edge."
+  "watch": "Below 7547.86 (61.8% red) the SHORT is in play -> toward 7521.88 (50%), then the 7359.77 green target. A reclaim >7547.86 with VIX<18.85 fails the short and re-opens the ceiling. Gap: outside the 20-handle = ~coin flip, no edge."
  },
  "instruments": {
   "ES": {"bias": "up (fragile)", "mm_state": "straight-up extensions; failure at gap fill", "levels": "bull>7473-75", "notes": "hedge-covering squeeze into month-end"},
