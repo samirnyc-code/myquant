@@ -80,6 +80,12 @@ pre{white-space:pre-wrap;background:#0b0f14;border:1px solid var(--chip);border-
 table.dt{width:100%;border-collapse:collapse;margin:6px 0 12px;font-size:13px}
 table.dt th{text-align:left;color:var(--mut);font-weight:600;border-bottom:1px solid var(--chip);padding:4px 8px}
 table.dt td{border-bottom:1px solid #1c2128;padding:4px 8px;vertical-align:top}
+.oc-hit{color:#3fb950;font-weight:700}.oc-miss{color:#f85149;font-weight:700}
+.oc-partial{color:#e3b341;font-weight:700}.oc-pending{color:#8b949e}
+.score{display:flex;gap:16px;flex-wrap:wrap;background:var(--card);border:1px solid var(--chip);border-radius:11px;padding:12px 18px;margin:0 0 16px}
+.score .s{font-size:13px}.score .s b{font-size:19px;color:var(--fg);display:block}
+.dd{display:grid;grid-template-columns:1fr 1fr;gap:4px 18px;margin:6px 0}
+.dd .lv{font-size:13px;color:#cbd5e1}.dd .lv b{color:var(--gold)}
 """
 
 LB_JS = r"""
@@ -324,33 +330,64 @@ def daily_html():
                 'state, bias, current measured move, ES watch, per-instrument notes,</b> and tracked '
                 '<b>scenarios (hit / miss)</b>.<br><i>Pipeline is built (ea_daily.py); the first '
                 'report is coming next.</i></p></div>')
+    # ---- scorecard across all scenarios ----
+    allsc = [s for r in reports for s in r.get("scenarios", [])]
+    resolved = [s for s in allsc if s.get("outcome") in ("hit", "miss", "partial")]
+    hits = sum(1 for s in resolved if s.get("outcome") == "hit")
+    pend = sum(1 for s in allsc if s.get("outcome", "pending") == "pending")
+    rate = f"{100*hits/len(resolved):.0f}%" if resolved else "—"
+    score = (f'<div class="score"><div class="s"><b>{len(reports)}</b>days</div>'
+             f'<div class="s"><b>{len(allsc)}</b>scenarios</div>'
+             f'<div class="s"><b class="oc-hit">{hits}</b>hit</div>'
+             f'<div class="s"><b class="oc-miss">{len(resolved)-hits}</b>miss</div>'
+             f'<div class="s"><b class="oc-pending">{pend}</b>pending</div>'
+             f'<div class="s"><b>{rate}</b>hit-rate (resolved)</div></div>')
+
+    def oc(s):
+        o = s.get("outcome", "pending")
+        auto = " ⚙" if s.get("auto") else ""
+        return f'<span class="oc-{o}">{esc(o)}{auto}</span>'
+
     cards = []
     for r in reports:
-        sc = r.get("scenarios", [])
-        srows = "".join(
-            f'<tr><td>{esc(s.get("instrument",""))}</td><td>{esc(s.get("prediction",""))}</td>'
-            f'<td>{esc(s.get("outcome","pending"))}</td></tr>' for s in sc)
+        es = r.get("es", {})
+        lv = "".join(f'<div class="lv"><b>{esc(x.get("label",""))}:</b> {esc(str(x.get("price","")))}</div>'
+                     for x in es.get("key_levels", []))
         inst = "".join(
-            f'<tr><td>{esc(k)}</td><td>{esc(v.get("bias",""))}</td><td>{esc(v.get("levels",""))}</td>'
+            f'<tr><td><b>{esc(k)}</b></td><td>{esc(v.get("bias",""))}</td>'
+            f'<td>{esc(v.get("mm_state",""))}</td><td>{esc(v.get("levels",""))}</td>'
             f'<td>{esc(v.get("notes",""))}</td></tr>'
             for k, v in r.get("instruments", {}).items() if any(v.values()))
+        srows = "".join(
+            f'<tr><td><b>{esc(s.get("instrument",""))}</b></td><td>{esc(s.get("direction",""))}</td>'
+            f'<td>{esc(s.get("thesis",""))}</td><td>{esc(str(s.get("trigger","")))}</td>'
+            f'<td>{esc(str(s.get("target","")))}</td><td>{esc(str(s.get("invalidation","")))}</td>'
+            f'<td>{oc(s)}</td></tr>' for s in r.get("scenarios", []))
+        quotes = "".join(f'<div class="lv">[{esc(q.get("t",""))}] "{esc(q.get("text",""))}"</div>'
+                         for q in r.get("key_quotes", []))
+        head_lbl = f'{esc(r.get("weekday",""))} {esc(r.get("date",""))} — {esc(r.get("headline","report"))}'
         cards.append(
-            f'<div class="mod open"><div class="k">Daily · {esc(r.get("date",""))}</div>'
-            f'<div class="modhead"><span class="arw">▶</span>{esc(r.get("date",""))} — '
-            f'{esc(r.get("outlook","") or "report")}</div><div class="modbody">'
+            f'<div class="mod open"><div class="k">Daily analysis</div>'
+            f'<div class="modhead"><span class="arw">▶</span>{head_lbl}</div><div class="modbody">'
             f'<div class="nug"><div class="hd">📌 Snapshot</div>'
-            f'<p class="tldr"><b>Market state:</b> {esc(r.get("market_state","—"))}</p>'
-            f'<p><b>Outlook:</b> {esc(r.get("outlook","—"))} &nbsp; <b>Current MM:</b> '
-            f'{esc(r.get("current_mm","—"))}</p><p><b>ES watch:</b> {esc(r.get("es_watch","—"))}</p></div>'
-            + (f'<h4>Instruments</h4><table class="dt"><tr><th>Instr</th><th>Bias</th><th>Levels</th>'
-               f'<th>Notes</th>{inst}</table>' if inst else "")
-            + (f'<h4>Scenarios (tracked)</h4><table class="dt"><tr><th>Instr</th><th>Prediction</th>'
-               f'<th>Outcome</th>{srows}</table>' if srows else "")
+            f'<p class="tldr"><b>Bias:</b> {esc(r.get("bias","—"))}</p>'
+            f'<p><b>Market state:</b> {esc(r.get("market_state","—"))}</p></div>'
+            f'<h4>ES</h4><p><b>Current MM:</b> {esc(es.get("current_mm","—"))}<br>'
+            f'<b>Trend/road-map:</b> {esc(es.get("trend","—"))}<br>'
+            f'<b>Watch:</b> {esc(es.get("watch","—"))}</p>'
+            + (f'<div class="dd">{lv}</div>' if lv else "")
+            + (f'<h4>Instruments</h4><table class="dt"><tr><th>Instr</th><th>Bias</th>'
+               f'<th>MM state</th><th>Levels</th><th>Notes</th>{inst}</table>' if inst else "")
+            + (f'<h4>Scenarios (tracked)</h4><table class="dt"><tr><th>Instr</th><th>Dir</th>'
+               f'<th>Thesis</th><th>Trigger</th><th>Target</th><th>Invalid.</th><th>Outcome</th>'
+               f'{srows}</table>' if srows else "")
+            + (f'<h4>Key quotes</h4>{quotes}' if quotes else "")
             + (f'<div class="vid">🎬 <a href="{esc(r.get("video_url",""))}" target="_blank">'
-               f'video</a></div>' if r.get("video_url") else "")
+               f'watch the video</a></div>' if r.get("video_url") else "")
             + '</div></div>')
-    return ('<div class="wrap"><p class="lead">Newest first. Scenario outcomes accumulate a '
-            'hit/miss record over time.</p>' + "".join(cards) + '</div>')
+    return (f'<div class="wrap"><p class="lead">Newest first. ⚙ = auto-scored against price. '
+            f'Scenario outcomes build a hit/miss record over time.</p>{score}'
+            + "".join(cards) + '</div>')
 
 
 def md_to_html(md):

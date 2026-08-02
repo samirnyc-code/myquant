@@ -27,14 +27,23 @@ UA = "Mozilla/5.0"
 INSTRUMENTS = ["ES", "NQ", "YM", "RTY", "6E", "CL", "GC", "ZB"]
 
 REPORT_TEMPLATE = {
-    "date": "", "mmddyy": "", "video_url": "", "transcribed": False, "extracted": False,
-    "market_state": "",        # overall (trend day? balance? risk-on/off, VIX/DXY note)
-    "outlook": "",             # bullish / bearish / neutral (overall bias)
-    "current_mm": "",          # which measured move / series we're in (traditional/extension/#)
-    "es_watch": "",            # the key ES levels + what to watch (user's top interest)
-    "instruments": {k: {"bias": "", "levels": "", "notes": ""} for k in INSTRUMENTS},
-    "scenarios": [],           # [{instrument, prediction, trigger, target, invalidation,
-                               #   outcome: pending|hit|miss|partial, resolved_note}]
+    "date": "", "weekday": "", "mmddyy": "", "video_url": "",
+    "transcribed": False, "extracted": False,
+    "headline": "",            # one-line gist of the day
+    "market_state": "",        # trend/balance, risk-on/off, gap/VIX/season context
+    "bias": "",                # overall lean + WHY (bank/breadth/trend)
+    "es": {                    # ES deep-dive (user's priority)
+        "current_mm": "",      # which MM / series / extension we're in
+        "trend": "",           # daily/weekly road-map direction + target
+        "key_levels": [],      # [{"price": "", "label": ""}] 50/123/61.8/gap/DP/prior H-L
+        "watch": "",           # what to watch for on ES
+    },
+    "instruments": {k: {"bias": "", "mm_state": "", "levels": "", "notes": ""}
+                    for k in INSTRUMENTS},
+    "scenarios": [],           # [{id, instrument, direction, thesis, trigger, target,
+                               #   invalidation, outcome: pending|hit|miss|partial,
+                               #   auto: bool, resolved_note, resolved_date}]
+    "key_quotes": [],          # [{"t": "MM:SS", "text": ""}]
     "other_notes": "",
 }
 
@@ -65,6 +74,7 @@ def scaffold(date_iso, mmddyy):
     if not os.path.exists(rp):
         r = json.loads(json.dumps(REPORT_TEMPLATE))
         r["date"] = date_iso; r["mmddyy"] = mmddyy
+        r["weekday"] = dt.date.fromisoformat(date_iso).strftime("%A")
         r["video_url"] = f"{BUCKET}/{mmddyy}.mp4"
         json.dump(r, open(rp, "w", encoding="utf-8"), indent=1)
     return d, rp
