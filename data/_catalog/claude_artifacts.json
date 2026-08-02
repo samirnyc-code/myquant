@@ -227,10 +227,10 @@
    "info": "Demo of rendering Brooks-style chart figures for the study apps."
   },
   {
-   "title": "EminiAddict Getting Started",
+   "title": "EminiAddict Tool",
    "group": "EminiAddict",
    "url": "",
-   "info": "DH Getting Started curriculum: sections, glossary, slides, transcripts, nuggets."
+   "info": "One-page EminiAddict tool: Getting Started curriculum + Daily analysis reports + scenario tracker. Self-contained (syncable across machines)."
   }
  ]
 }

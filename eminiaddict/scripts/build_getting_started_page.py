@@ -17,7 +17,8 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 GS = os.path.join(ROOT, "eminiaddict", "data", "site", "getting_started")
 TR = os.path.join(GS, "transcripts")
 NUG = os.path.join(GS, "nuggets")          # <idx>_*.md nugget files (assistant-produced)
-OUT = os.path.join(ROOT, "docs", "artifacts", "eminiaddict_getting_started.html")
+OUT = os.path.join(ROOT, "docs", "artifacts", "eminiaddict_tool.html")
+DAILY = os.path.join(ROOT, "eminiaddict", "data", "daily")   # daily reports live here
 CATALOG = os.path.join(ROOT, "data", "_catalog", "claude_artifacts.json")
 
 CSS = """
@@ -70,7 +71,15 @@ pre{white-space:pre-wrap;background:#0b0f14;border:1px solid var(--chip);border-
 .lbside .clr{color:#8b949e;cursor:pointer;font-size:11px;display:inline-block;margin-top:6px}
 .lbside .clr:hover{color:#f85149}
 #home{position:fixed;right:18px;bottom:18px;background:var(--blue);color:#001;border:0;border-radius:24px;padding:10px 16px;font-weight:700;cursor:pointer;z-index:50;box-shadow:0 2px 8px rgba(0,0,0,.4)}
-.tools{display:flex;gap:8px;margin:0 0 16px}.tools button{background:var(--chip);color:var(--fg);border:0;border-radius:7px;padding:7px 12px;cursor:pointer;font-size:13px}
+.tools{display:flex;gap:8px;margin:0 0 16px;flex-wrap:wrap}.tools button{background:var(--chip);color:var(--fg);border:0;border-radius:7px;padding:7px 12px;cursor:pointer;font-size:13px}
+.tabs{display:flex;gap:4px;padding:0 24px;background:var(--bg);border-bottom:1px solid var(--chip);position:sticky;top:49px;z-index:9}
+.tabs .tab{background:none;border:0;border-bottom:2px solid transparent;color:var(--mut);padding:11px 16px;font-size:14px;font-weight:600;cursor:pointer}
+.tabs .tab:hover{color:var(--fg)}.tabs .tab.on{color:var(--blue);border-bottom-color:var(--blue)}
+.tabpane[hidden]{display:none}
+.about b{color:var(--fg)}.about code{background:#0b0f14;border:1px solid var(--chip);padding:1px 6px;border-radius:5px}
+table.dt{width:100%;border-collapse:collapse;margin:6px 0 12px;font-size:13px}
+table.dt th{text-align:left;color:var(--mut);font-weight:600;border-bottom:1px solid var(--chip);padding:4px 8px}
+table.dt td{border-bottom:1px solid #1c2128;padding:4px 8px;vertical-align:top}
 """
 
 LB_JS = r"""
@@ -154,6 +163,11 @@ LB_JS = r"""
  if(location.hash)openMod(document.querySelector(location.hash));
  $('expandall').onclick=()=>document.querySelectorAll('.mod').forEach(m=>m.classList.add('open'));
  $('collapseall').onclick=()=>document.querySelectorAll('.mod').forEach(m=>m.classList.remove('open'));
+ // ---- top-level tabs ----
+ document.querySelectorAll('.tabs .tab').forEach(t=>t.onclick=()=>{
+   document.querySelectorAll('.tabs .tab').forEach(x=>x.classList.toggle('on',x===t));
+   document.querySelectorAll('.tabpane').forEach(p=>{p.hidden=(p.id!=='tab-'+t.dataset.t);});
+   window.scrollTo({top:0});});
 })();
 """
 
@@ -255,22 +269,89 @@ def main():
              '<button id="exp">⬇ Export notes</button>'
              '<button onclick="document.getElementById(\'imp\').click()">⬆ Import notes</button>'
              '<input id="imp" type="file" accept="application/json" style="display:none"></div>')
+    daily_pane = daily_html()
+    about_pane = (
+        '<div class="wrap about"><p class="lead">One page for the whole EminiAddict method — '
+        'Getting Started curriculum + Daily analysis, all self-contained.</p>'
+        '<h4>Use across your computers</h4><ul>'
+        '<li>This is a <b>single self-contained file</b> (slides embedded). Drop '
+        '<code>eminiaddict_tool.html</code> in your Google Drive transfer folder and open it '
+        'on any machine — no server, no login.</li>'
+        '<li>Your <b>comments &amp; tags</b> are saved in each browser (localStorage). To move them '
+        'between computers use <b>⬇ Export notes</b> on one and <b>⬆ Import notes</b> on the other '
+        '(keep the JSON in Drive too).</li>'
+        '<li>Source content is copyrighted (paid subscription) — keep this personal, don\'t publish it.</li>'
+        '</ul><h4>Sections</h4><ul>'
+        '<li><b>Getting Started</b> — his curriculum in order: summaries, slides, transcripts, glossary.</li>'
+        '<li><b>Daily Analysis</b> — auto-pulled daily video reports + scenario tracker.</li>'
+        '</ul></div>')
+    nav = ('<nav class="tabs">'
+           '<button class="tab on" data-t="gs">Getting Started</button>'
+           '<button class="tab" data-t="daily">Daily Analysis</button>'
+           '<button class="tab" data-t="about">About / Sync</button></nav>')
+    gs_pane = (f'<section id="tab-gs" class="tabpane"><div class="wrap">'
+               f'<p class="lead">David Halsey\'s Getting Started curriculum, in his order. '
+               f'Expand a section; click a slide to zoom/pan, cycle ◀▶, comment, and 🏷 tag a spot.</p>'
+               f'{tools}<div class="toc">{"".join(toc)}</div>{"".join(mods)}</div></section>')
     page = (f'<!doctype html><html lang="en"><head><meta charset="utf-8">'
             f'<meta name="viewport" content="width=device-width,initial-scale=1">'
-            f'<title>EminiAddict Getting Started</title><style>{CSS}</style></head><body>'
-            f'<header><h1>EminiAddict — Getting Started</h1></header><div class="wrap">'
-            f'<p class="lead">David Halsey\'s Getting Started curriculum, in his order — '
-            f'sections, glossary, slides, lesson videos, transcripts &amp; nuggets. '
-            f'Click a slide to zoom/pan, cycle ◀▶, comment, and 🏷 tag a spot. '
-            f'Notes save in this browser — Export to back them up.</p>'
-            f'{tools}<div class="toc">{"".join(toc)}</div>'
-            f'{"".join(mods)}</div>'
+            f'<title>EminiAddict Tool</title><style>{CSS}</style></head><body>'
+            f'<header><h1>EminiAddict</h1></header>{nav}'
+            f'{gs_pane}'
+            f'<section id="tab-daily" class="tabpane" hidden>{daily_pane}</section>'
+            f'<section id="tab-about" class="tabpane" hidden>{about_pane}</section>'
             f'<button id="home" onclick="window.scrollTo({{top:0,behavior:\'smooth\'}})">⤒ TOP</button>'
             f'{lb_html}<script>{LB_JS}</script></body></html>')
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     open(OUT, "w", encoding="utf-8").write(page)
     print(f"wrote {os.path.relpath(OUT, ROOT)}  ({len(page)//1024} KB, {len(man)} lessons)")
     register_mc()
+
+def daily_html():
+    """Render the Daily Analysis pane from data/daily/*/report.json (newest first)."""
+    reports = []
+    if os.path.isdir(DAILY):
+        for d in sorted(os.listdir(DAILY), reverse=True):
+            rp = os.path.join(DAILY, d, "report.json")
+            if os.path.exists(rp):
+                try:
+                    reports.append(json.load(open(rp, encoding="utf-8")))
+                except Exception:
+                    pass
+    if not reports:
+        return ('<div class="wrap"><p class="lead">Daily analysis reports appear here. The latest '
+                'David Halsey video is auto-downloaded, transcribed, and summarized into <b>market '
+                'state, bias, current measured move, ES watch, per-instrument notes,</b> and tracked '
+                '<b>scenarios (hit / miss)</b>.<br><i>Pipeline is built (ea_daily.py); the first '
+                'report is coming next.</i></p></div>')
+    cards = []
+    for r in reports:
+        sc = r.get("scenarios", [])
+        srows = "".join(
+            f'<tr><td>{esc(s.get("instrument",""))}</td><td>{esc(s.get("prediction",""))}</td>'
+            f'<td>{esc(s.get("outcome","pending"))}</td></tr>' for s in sc)
+        inst = "".join(
+            f'<tr><td>{esc(k)}</td><td>{esc(v.get("bias",""))}</td><td>{esc(v.get("levels",""))}</td>'
+            f'<td>{esc(v.get("notes",""))}</td></tr>'
+            for k, v in r.get("instruments", {}).items() if any(v.values()))
+        cards.append(
+            f'<div class="mod open"><div class="k">Daily · {esc(r.get("date",""))}</div>'
+            f'<div class="modhead"><span class="arw">▶</span>{esc(r.get("date",""))} — '
+            f'{esc(r.get("outlook","") or "report")}</div><div class="modbody">'
+            f'<div class="nug"><div class="hd">📌 Snapshot</div>'
+            f'<p class="tldr"><b>Market state:</b> {esc(r.get("market_state","—"))}</p>'
+            f'<p><b>Outlook:</b> {esc(r.get("outlook","—"))} &nbsp; <b>Current MM:</b> '
+            f'{esc(r.get("current_mm","—"))}</p><p><b>ES watch:</b> {esc(r.get("es_watch","—"))}</p></div>'
+            + (f'<h4>Instruments</h4><table class="dt"><tr><th>Instr</th><th>Bias</th><th>Levels</th>'
+               f'<th>Notes</th>{inst}</table>' if inst else "")
+            + (f'<h4>Scenarios (tracked)</h4><table class="dt"><tr><th>Instr</th><th>Prediction</th>'
+               f'<th>Outcome</th>{srows}</table>' if srows else "")
+            + (f'<div class="vid">🎬 <a href="{esc(r.get("video_url",""))}" target="_blank">'
+               f'video</a></div>' if r.get("video_url") else "")
+            + '</div></div>')
+    return ('<div class="wrap"><p class="lead">Newest first. Scenario outcomes accumulate a '
+            'hit/miss record over time.</p>' + "".join(cards) + '</div>')
+
 
 def md_to_html(md):
     out, inul = [], False
@@ -306,8 +387,9 @@ def register_mc():
     except Exception:
         cat = []
     items = cat if isinstance(cat, list) else cat.get("items", cat.get("artifacts", []))
-    entry = {"title": "EminiAddict Getting Started", "group": "EminiAddict", "url": "",
-             "info": "DH Getting Started curriculum: sections, glossary, slides, transcripts, nuggets."}
+    entry = {"title": "EminiAddict Tool", "group": "EminiAddict", "url": "",
+             "info": "One-page EminiAddict tool: Getting Started curriculum + Daily analysis "
+                     "reports + scenario tracker. Self-contained (syncable across machines)."}
     items = [i for i in items if i.get("title") != entry["title"]]
     items.append(entry)
     if isinstance(cat, list):
