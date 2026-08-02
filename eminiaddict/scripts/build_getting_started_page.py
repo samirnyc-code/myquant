@@ -41,6 +41,8 @@ pre{white-space:pre-wrap;background:#0b0f14;border:1px solid var(--chip);border-
 .nug h4{margin:0 0 6px;color:#3fb950}
 .pending{color:var(--mut);font-style:italic}
 .glossary dt{font-weight:600;color:var(--gold);margin-top:10px}.glossary dd{margin:2px 0 0;color:#cbd5e1}
+#lb{position:fixed;inset:0;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;z-index:100;cursor:zoom-out}
+#lb img{max-width:96vw;max-height:96vh;border-radius:6px}
 """
 
 def b64img(path):
@@ -86,7 +88,8 @@ def main():
             parts.append(f"<p>{esc(text)}</p>")
         # slides
         if item_dir:
-            imgs = sorted(f for f in os.listdir(item_dir) if f.startswith("slide_"))
+            imgs = sorted(f for f in os.listdir(item_dir) if f.startswith("slide_")
+                          and os.path.getsize(os.path.join(item_dir, f)) > 1000)
             if imgs:
                 parts.append('<div class="slides">')
                 for im in imgs:
@@ -124,8 +127,12 @@ def main():
             f'(Study notes from a paid subscription; source is copyrighted.)</p>'
             f'<div class="toc">{"".join(toc)}</div>'
             f'{"".join(mods)}</div>'
-            f'<script>document.querySelectorAll(".slides img").forEach(i=>i.onclick=()=>'
-            f'window.open(i.src))</script></body></html>')
+            f'<div id="lb" onclick="this.style.display=\'none\'"><img></div>'
+            f'<script>var lb=document.getElementById("lb");'
+            f'document.querySelectorAll(".slides img").forEach(i=>i.onclick=()=>{{'
+            f'lb.firstElementChild.src=i.src;lb.style.display="flex";}});'
+            f'document.onkeydown=e=>{{if(e.key=="Escape")lb.style.display="none";}};'
+            f'</script></body></html>')
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     open(OUT, "w", encoding="utf-8").write(page)
     print(f"wrote {os.path.relpath(OUT, ROOT)}  ({len(page)//1024} KB, {len(man)} lessons)")

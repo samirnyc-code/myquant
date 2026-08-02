@@ -81,17 +81,20 @@ def clean_img_urls(area):
             if u:
                 cands.append(u)
     cands += re.findall(r'<a[^>]+href="([^"]+\.(?:png|jpe?g|gif|webp))"', area, re.I)
-    out = []
+    out, seen = [], set()
     for u in cands:
-        u = u.strip()
+        u = u.strip().split("?")[0]                       # drop query/resize params
         if not re.match(r"https?://", u) or not re.search(r"\.(png|jpe?g|gif|webp)$", u, re.I):
             continue
         if any(k in u.lower() for k in ("favicon", "logo", "gravatar", "avatar", "emoji",
-                                        "loading", "spinner", "/plugins/", "/themes/")):
+                                        "loading", "spinner", "/plugins/", "/themes/",
+                                        "-150x", "-300x", "-1x1", "spacer", "blank")):
             continue
-        base = re.sub(r"-\d+x\d+(?=\.\w+$)", "", u)  # strip -300x58 thumbnail suffix
-        if base not in out:
-            out.append(base)
+        base = re.sub(r"-\d+x\d+(?=\.\w+$)", "", u)        # WP thumbnail suffix
+        base = re.sub(r"-scaled(?=\.\w+$)", "", base)      # WP -scaled variant
+        key = re.sub(r".*/", "", base).lower()             # dedupe by basename (any host/size)
+        if key not in seen:
+            seen.add(key); out.append(base)
     return out
 
 
@@ -145,16 +148,20 @@ def main():
         videos = find_videos(html)
         d = os.path.join(OUT, f"{i:02d}_{slug(label)}")
         os.makedirs(d, exist_ok=True)
+        for old in [f for f in os.listdir(d) if f.startswith("slide_")]:  # fresh, consistent
+            os.remove(os.path.join(d, old))
         got = 0
         for j, im in enumerate(imgs):
             ext = re.search(r"\.(png|jpe?g|gif|webp)$", im, re.I)
             ext = "." + ext.group(1).lower() if ext else ".png"
             fp = os.path.join(d, f"slide_{j:02d}{ext}")
-            if not os.path.exists(fp):
-                try:
-                    open(fp, "wb").write(get(im, binary=True)); got += 1; time.sleep(0.1)
-                except Exception as e:
-                    print(f"      img fail {im}: {str(e)[:60]}")
+            try:
+                data = get(im, binary=True)
+                if len(data) < 1500:            # 1x1 pixels / broken -> skip, don't leave empties
+                    continue
+                open(fp, "wb").write(data); got += 1; time.sleep(0.1)
+            except Exception as e:
+                print(f"      img fail {im}: {str(e)[:60]}")
         rec = {"idx": i, "label": label, "title": title, "url": url,
                "n_images": len(imgs), "images": imgs, "videos": videos,
                "text": text, "dir": os.path.basename(d)}
