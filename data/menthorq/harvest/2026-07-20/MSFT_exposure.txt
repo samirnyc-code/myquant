@@ -1,0 +1,123 @@
+Toggle left sidebar
+MSFT
+Ctrl
++
+K
+AFTER-HOURS
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+Net GEX Exposure
+Levels
+3/7
+Net GEX
+10 Strikes +/-
+Intraday
+All
+Expirations
+Jul 20
+0d
+Jul 22
+2d
+Jul 24
+4d
+Jul 27
+7d
+Jul 31
+11d
+Aug 03
+14d
+Aug 07
+18d
+Aug 14
+25d
+Aug 21
+32d
+Aug 28
+39d
+Sep 18
+60d
+Oct 16
+88d
+Nov 20
+123d
+Dec 18
+151d
+Jan 15
+179d
+Mar 19
+242d
+Jun 17
+332d
+Sep 17
+424d
+Dec 17
+515d
+Jan 21
+550d
+Jun 16
+697d
+Dec 15
+879d
+Strike
+Net GEX
+Put / Call OI
+427.50
+399.13K
+425.00
+4.51M
+422.50
+843.47K
+420.00
+9.55M
+417.50
+1.13M
+415.00
+6.3M
+412.50
+1.01M
+410.00
+12.39M
+407.50
+3.4M
+405.00
+8.41M
+402.50
+17.23M
+400.00
+27.1M
+397.50
+1.88M
+395.00
+3.37M
+392.50
+412.14K
+390.00
+6.15M
+387.50
+-261.5K
+385.00
+455.14K
+382.50
+HVL
+-177.42K
+380.00
+-4.02M
+377.50
+-286.75K
+Intraday summary
+Watchlist
+Net Gex
+Chats

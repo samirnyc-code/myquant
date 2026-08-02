@@ -6,6 +6,35 @@ pipeline + S77 security hardening; merged S76 Mac swing-levels work)
 
 ---
 
+## S92-MQ (2026-08-02) — MenthorQ FINAL-DAY capture (sub expires today)
+
+Last day of the MenthorQ sub. Did a final max-history archive pull.
+
+- **Final `mq_mine.py --backfill` run:** 192/200 = **96%** (only YM1! fails — dead contract,
+  404, no MQ data). All 8 surfaces × 24 live symbols fresh. History surfaces already at MQ's
+  365-day API cap. Blindspots "+0 new sessions" = correct (weekend; Fri 07-31 is the last EOD set).
+- **Found + captured a surface the daily miner NEVER archived:** `levels-report/{sym}` (the
+  "Backtest" tile — per-level regime hold-rate, come-back rate, median/avg/worst adverse
+  excursion low&close, +0DTE variants; 57 fields/ticker). TODAY-ONLY → would've been lost.
+  New committed script `scripts/mq_levels_report_capture.py` → `data/menthorq/levels_report_20260802.csv`
+  plus raw JSON `data/menthorq/mine/raw/levels_report/`. Only un-captured endpoint left = trivial
+  `gamma-insights/{sym}/expirations` share.
+- **"Keep getting data after expiry?"** Cached token won't survive — entitlement is server-side
+  (403/empty on lapse); circumventing = ToS violation. Legit path already built: S74 reverse-
+  engineered MQ's level formulas (`docs/research_notes/mq_level_reveng_20260724.md`, main set
+  0 fitted params: Σ_{dte≥2} gamma·(callOI−putOI)·100·spot; blindspots too). The real dependency
+  is a forward per-strike OI+greeks feed — our ORATS source is ALSO cancelled (ends ~8/4). MQ is
+  replaceable; the options-data sub is the actual thing to keep.
+- **User verdict on MQ (recorded):** the "Backtest" tile is not backtestable — it never says what
+  the regime IS, never shows the comparable same-regime days, never says how many regimes exist or
+  how often levels are actually hit; the hit-rate placeholder only just populated. Gamma-levels
+  history capped at ~30d also blocks any real backtest. We found MORE levels than MQ exposes and
+  NO edge with them yet; without years of levels there's no point. "Easy API but no rollout target
+  date — why?" User distrusts Patrick (feels like a conman; promised call never happened); unsure
+  if Fabio missed it or knows. Considering telling Fabio but wary of overstepping.
+
+---
+
 ## S92-EA2 (2026-08-02) — Internals/MM backtesting ABANDONED → pivot to EDUCATIONAL TOOL
 
 Direction change (user decision). The NYSE-internals turning-point study and the Halsey 50%

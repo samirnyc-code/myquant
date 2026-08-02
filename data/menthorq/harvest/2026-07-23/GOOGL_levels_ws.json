@@ -1,0 +1,11 @@
+[
+ {
+  "url": "https://gateway.menthorq.io/chat-service/api/web/v1/chat-context",
+  "body": {
+   "ai_assistant": {
+    "id": "mrq-premium-app"
+   },
+   "can_send_messages": true
+  }
+ }
+]

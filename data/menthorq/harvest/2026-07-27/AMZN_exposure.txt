@@ -1,0 +1,128 @@
+Toggle left sidebar
+AMZN
+Ctrl
++
+K
+AFTER-HOURS
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+Net GEX Exposure
+Levels
+3/7
+Net GEX
+10 Strikes +/-
+Intraday
+All
+Expirations
+Jul 27
+0d
+Jul 29
+2d
+Jul 31
+4d
+Aug 03
+7d
+Aug 05
+9d
+Aug 07
+11d
+Aug 10
+14d
+Aug 14
+18d
+Aug 21
+25d
+Aug 28
+32d
+Sep 04
+39d
+Sep 18
+53d
+Oct 16
+81d
+Nov 20
+116d
+Dec 18
+144d
+Jan 15
+172d
+Feb 19
+207d
+Mar 19
+235d
+Jun 17
+325d
+Jul 16
+354d
+Dec 17
+508d
+Jan 21
+543d
+Jun 16
+690d
+Dec 15
+872d
+Strike
+Net GEX
+Put / Call OI
+257.50
+415.22K
+255.00
+9.62M
+252.50
+405.47K
+250.00
+24.47M
+247.50
+2.97M
+245.00
+8.29M
+242.50
+1.18M
+240.00
+-88.72K
+237.50
+5.23M
+235.00
+HVL
+1.74M
+232.50
+2.22M
+230.00
+PS
+-17.11M
+227.50
+-1.11M
+225.00
+-12.57M
+222.50
+-559.98K
+220.00
+-13.09M
+217.50
+-401.12K
+215.00
+-7.69M
+212.50
+-63.96K
+210.00
+-8.91M
+207.50
+-66.87K
+Intraday summary
+Watchlist
+Net Gex
+Chats

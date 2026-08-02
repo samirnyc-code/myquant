@@ -1,0 +1,75 @@
+Toggle left sidebar
+G
+GC1!
+Ctrl
++
+K
+OPEN
+Delayed
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+Net GEX Heatmap
+Net GEX
+10 Strikes +/-
+Intraday
+Strike
+2026-07-28
+4,130.00
+4,125.00
+4,120.00
+4,115.00
+4,110.00
+4,105.00
+4,100.00
+4,095.00
+4,090.00
+4,085.00
+4,080.00
+4,075.00
+4,070.00
+4,065.00
+4,060.00
+4,055.00
+4,050.00
+4,045.00
+4,040.00
+4,035.00
+4,030.00
+23.77K
+927.07K
+149.32K
+58.1K
+151.09K
+-10.1K
+2.3M
+-270.35K
+98.24K
+-536.08K
+147.85K
+-428.2K
+156.83K
+95.73K
+277.23K
+-80.19K
+313.33K
+-312.34K
+-269.98K
+-268.59K
+-384.48K
+Intraday summary
+Watchlist
+Net Gex
+Chats

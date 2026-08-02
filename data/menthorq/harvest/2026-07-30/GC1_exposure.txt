@@ -1,0 +1,120 @@
+Toggle left sidebar
+G
+GC1!
+Ctrl
++
+K
+OPEN
+Delayed
+Samir
+Premium
+SA
+For You
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Levels
+Screeners
+Explore
+Create
+Saved
+Net GEX Exposure
+Levels
+3/7
+Net GEX
+Intraday
+ALL
+-495K
+Expirations
+OCT 27
+96%
+-514.7K
+89d
+NOV 24
+4%
+19.7K
+117d
+Strike
+Net GEX
+Put / Call OI
+4,260.00
+40.13K
+4,255.00
+13.36K
+4,250.00
+-287.46K
+4,245.00
+63.38K
+4,240.00
+-372.08
+4,235.00
+-16.29K
+4,230.00
+-45.39K
+4,225.00
+172.05K
+4,220.00
+1.34K
+4,215.00
+-56.5K
+4,210.00
+2.99K
+4,205.00
+-22.44K
+4,195.00
+6.75K
+4,190.00
+-16.04K
+4,185.00
+-3.01K
+4,180.00
+-3.51K
+4,175.00
+215.33K
+4,170.00
+2.88K
+4,165.00
+904.18
+4,160.00
+-125.51K
+4,155.00
+1.8K
+4,150.00
+-918.05
+4,145.00
+6.49K
+4,140.00
+2.14K
+4,135.00
+26.14K
+4,130.00
+-219.15K
+4,125.00
+289.3
+4,120.00
+-6.78K
+4,115.00
+-14.23K
+4,110.00
+8.79K
+4,105.00
+3.22K
+4,100.00
+97.92K
+4,095.00
+-2.92K
+4,090.00
+532.66
+4,085.00
+10.14K
+4,080.00
+-97.6K
+4,075.00
+-6.57K
+Intraday summary
+Watchlist
+Net Gex
+Chats
