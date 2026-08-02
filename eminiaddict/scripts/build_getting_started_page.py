@@ -29,8 +29,12 @@ header h1{font-size:18px;margin:0}a{color:var(--blue);text-decoration:none}a:hov
 .lead{color:var(--mut);margin:6px 0 18px}
 .toc{background:var(--card);border:1px solid var(--chip);border-radius:12px;padding:12px 18px;margin:0 0 22px;columns:2;column-gap:26px}
 .toc a{display:block;font-size:13.5px;margin:3px 0}
-.mod{background:var(--card);border:1px solid var(--chip);border-radius:12px;padding:16px 20px;margin:14px 0;border-left:3px solid var(--blue)}
-.mod h3{margin:0 0 4px;font-size:16px}.mod .k{color:var(--mut);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+.mod{background:var(--card);border:1px solid var(--chip);border-radius:12px;padding:14px 20px;margin:12px 0;border-left:3px solid var(--blue)}
+.mod .k{color:var(--mut);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+.modhead{cursor:pointer;font-size:16px;font-weight:600;margin:2px 0;user-select:none;display:flex;align-items:center;gap:9px}
+.modhead .arw{color:var(--mut);transition:transform .15s;font-size:12px}
+.mod.open .modhead .arw{transform:rotate(90deg)}
+.modbody{display:none;margin-top:10px}.mod.open .modbody{display:block}
 .mod p{margin:8px 0;font-size:13.7px}
 .slides{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
 .slides img{max-width:100%;width:300px;border:1px solid var(--chip);border-radius:8px;cursor:zoom-in}
@@ -112,7 +116,7 @@ LB_JS = r"""
  tagBtn.onclick=()=>{tagMode=!tagMode;tagBtn.classList.toggle('on',tagMode);stage.classList.toggle('tag',tagMode);};
  $('lbclose').onclick=close;
  $('lbhome').onclick=()=>{const sec=set[idx]&&set[idx].closest('.mod');close();
-   if(sec)sec.scrollIntoView({behavior:'smooth',block:'start'});};
+   if(sec){sec.classList.add('open');sec.scrollIntoView({behavior:'smooth',block:'start'});}};
  ta.oninput=()=>{(store[sid]=store[sid]||{}).comment=ta.value;save();mark();};
  stage.onwheel=e=>{e.preventDefault();const r=tx.getBoundingClientRect();
    const ox=(e.clientX-r.left)/scale,oy=(e.clientY-r.top)/scale;
@@ -142,6 +146,14 @@ LB_JS = r"""
  $('imp').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();
    r.onload=()=>{try{Object.assign(store,JSON.parse(r.result));save();mark();alert('Imported.');}
    catch(x){alert('Bad file');}};r.readAsText(f);};
+ // ---- accordion (collapsible sections) ----
+ const openMod=m=>{if(m)m.classList.add('open');};
+ document.querySelectorAll('.modhead').forEach(h=>h.onclick=()=>h.closest('.mod').classList.toggle('open'));
+ document.querySelectorAll('.toc a').forEach(a=>a.addEventListener('click',()=>
+   openMod(document.getElementById(a.getAttribute('href').slice(1)))));
+ if(location.hash)openMod(document.querySelector(location.hash));
+ $('expandall').onclick=()=>document.querySelectorAll('.mod').forEach(m=>m.classList.add('open'));
+ $('collapseall').onclick=()=>document.querySelectorAll('.mod').forEach(m=>m.classList.remove('open'));
 })();
 """
 
@@ -180,8 +192,7 @@ def main():
         if item_dir and os.path.exists(os.path.join(item_dir, "item.json")):
             item = json.load(open(os.path.join(item_dir, "item.json"), encoding="utf-8"))
         text = item.get("text", "")
-        parts = [f'<div class="mod" id="{anchor}"><div class="k">Lesson {idx:02d}</div>'
-                 f'<h3>{label}</h3>']
+        parts = []
         # NUGGETS card FIRST (read the summary before the video/slides)
         nf = os.path.join(NUG, f"{idx:02d}.md")
         if os.path.exists(nf):
@@ -219,8 +230,10 @@ def main():
                          f'<pre>{esc(tx)}</pre></details>')
         elif r.get("videos"):
             parts.append('<p class="pending">Transcript + nuggets pending transcription…</p>')
-        parts.append("</div>")
-        mods.append("\n".join(parts))
+        head = (f'<div class="k">Lesson {idx:02d}</div>'
+                f'<div class="modhead"><span class="arw">▶</span>{label}</div>')
+        mods.append(f'<div class="mod" id="{anchor}">{head}'
+                    f'<div class="modbody">{"".join(parts)}</div></div>')
 
     lb_html = (
         '<div id="lb"><div class="lbbar">'
@@ -237,7 +250,9 @@ def main():
         '<div id="lbstage"><div id="lbtx"><img id="lbimg"><div id="lbpins"></div></div></div>'
         '<div class="lbside"><textarea id="lbcomment" placeholder="Your comment on this slide…">'
         '</textarea><div class="pins" id="lbpinlist"></div></div></div>')
-    tools = ('<div class="tools"><button id="exp">⬇ Export notes</button>'
+    tools = ('<div class="tools"><button id="expandall">▽ Expand all</button>'
+             '<button id="collapseall">△ Collapse all</button>'
+             '<button id="exp">⬇ Export notes</button>'
              '<button onclick="document.getElementById(\'imp\').click()">⬆ Import notes</button>'
              '<input id="imp" type="file" accept="application/json" style="display:none"></div>')
     page = (f'<!doctype html><html lang="en"><head><meta charset="utf-8">'
