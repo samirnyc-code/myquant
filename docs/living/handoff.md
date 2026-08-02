@@ -6,6 +6,50 @@ pipeline + S77 security hardening; merged S76 Mac swing-levels work)
 
 ---
 
+## S92-EA (2026-08-02) — EminiAddict: site fully scraped, video pipeline, NT exporters, Academy
+
+Continuation of the EminiAddict/Halsey project (all in `eminiaddict/`, branch s75-live-dashboard).
+
+**Site access SOLVED (member content).** WordPress WishList paywall; user's session cookie in
+session scratchpad (`ea_cookie.txt`, NEVER committed). `scripts/scrape_ea.py` pulls daily posts →
+slides `keylevels/*.png` (16/post) + video (public S3 `<MMDDYY>.mp4`, ~230MB) + text. The
+"Measured Move Diagram Slideshow" (?p=13011) = 16 teaching diagrams on public S3, INCLUDING the
+two FLOW CHARTS: **#5 "Measured Move Flow Chart" (THE decision tree — user confirmed)** and
+**#8 "Market Analysis Flow Chart"** (daily process). All under `eminiaddict/data/site/` (gitignored, copyrighted).
+
+**Video transcription WORKS** (`scripts/transcribe_video.py`, faster-whisper; ffmpeg via winget).
+Transcribed 07-31 ES video. **His actual method (not a lone traditional):** a SERIES — traditional
+→ traditional → extension → break → reverse toward the ATW-HWB of the whole series (his flowchart).
+Signal-alignment GATE (his checklist): VIX down-MM + Indices up-MM + new low TICK + BANK strength +
+USD weakness = long (mirror short); ES stays bullish only while VIX < 18.85 & DXY falling.
+
+**Mission Control artifacts (served :8590, group EminiAddict):** `eminiaddict_academy` (NEW hub —
+9-module curriculum), `_measured_move_method`, `_diagrams` (16 diagrams + both flowcharts),
+`_method_study_quiz`. **`_mm_sequence_library` DELETED per user (they hated it)** — scripts
+sequence_lib/mm_anatomy/build_gallery also removed.
+
+**⚠️ MONDAY-CHART LESSONS (user very frustrated; repeatedly wrong; then said stop live analysis,
+"educational tool only"):** (1) **NT bars are CLOSE-labeled**, not open (resample label='right').
+(2) His charts are **24H/ETH**, not RTH — his fib legs form overnight; `build_24h_bars.py` builds
+24H bars from the raw CSV. (3) Fibs must be **ANCHORED** to the swing bars (read exact anchors off
+his fib-tool popup in video frames via ffmpeg), never floated. (4) It's a **series** (T→T→E), and
+the extension **broke** — read is DOWN toward ATW-HWB, not "still bullish". User has a
+**RegimeSecondEntry** NT indicator that auto-draws the T/E structure (ground truth).
+
+**Data / NT exporters:** `ticks_continuous` extended through 07-31 via RawTickExporter →
+`scripts/ingest_nt_ticks.py` (RTH, ESU6 offset 0, contract-checked; seams clean) → `build_5m.py`.
+`.ncd` direct-read ABANDONED (proprietary binary; header cracked but records not worth it — use the
+exporter). **NEW `nt8/indicators/MarketInternalExporter.cs`** (committed + copied to NT8 Custom\Indicators):
+exports internals as BARS (OHLCV, close-labeled, no Tick Replay) — **HARD-CODED list** (no editable
+params so no stale value): `^TICK,^VIX,^ADD,^ADV,^UVOL,^DVOL,^TRIN,^TICKQ,BANK,DX 09-26`
+(^TRINQ/^ADVN/^DECN dropped — feed not entitled/nonexistent). User has **5yr VIX+TICK** in NT.
+
+**NEXT:** user running the internals exporter → write ingest (parallel to ingest_nt_ticks) to align
+internals to ES → then the theory tests (gap-fill durability by VIX regime, MM expectancy, tick
+divergence — user said NOT yet). Deepen Academy via video-nugget mining across more days.
+
+---
+
 ## S92-ABS (2026-08-01) — L2 absorption at PB levels: engine + ChartSim viz + VALIDATION verdict
 
 Built absorption-at-pullback-level for the book (user: "absorption at pb levels like 2E, rev, MC").
