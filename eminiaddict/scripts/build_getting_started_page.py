@@ -108,7 +108,8 @@ LB_JS = r"""
  $('lbreset').onclick=()=>{scale=1;px=0;py=0;apply();};
  tagBtn.onclick=()=>{tagMode=!tagMode;tagBtn.classList.toggle('on',tagMode);stage.classList.toggle('tag',tagMode);};
  $('lbclose').onclick=close;
- $('lbhome').onclick=()=>{close();window.scrollTo({top:0,behavior:'smooth'});};
+ $('lbhome').onclick=()=>{const sec=set[idx]&&set[idx].closest('.mod');close();
+   if(sec)sec.scrollIntoView({behavior:'smooth',block:'start'});};
  ta.oninput=()=>{(store[sid]=store[sid]||{}).comment=ta.value;save();mark();};
  stage.onwheel=e=>{e.preventDefault();const r=tx.getBoundingClientRect();
    const ox=(e.clientX-r.left)/scale,oy=(e.clientY-r.top)/scale;
@@ -227,7 +228,8 @@ def main():
         '<button id="lbin" title="zoom in (+)">＋</button>'
         '<button id="lbreset">reset</button>'
         '<button id="lbtag" title="click image to drop a tag">🏷 tag</button>'
-        '<button id="lbhome">🏠 home</button><button id="lbclose">✕</button></div>'
+        '<button id="lbhome" title="back to this section">← back</button>'
+        '<button id="lbclose">✕</button></div>'
         '<div id="lbstage"><div id="lbtx"><img id="lbimg"><div id="lbpins"></div></div></div>'
         '<div class="lbside"><textarea id="lbcomment" placeholder="Your comment on this slide…">'
         '</textarea><div class="pins" id="lbpinlist"></div></div></div>')
@@ -244,7 +246,7 @@ def main():
             f'Notes save in this browser — Export to back them up.</p>'
             f'{tools}<div class="toc">{"".join(toc)}</div>'
             f'{"".join(mods)}</div>'
-            f'<button id="home" onclick="window.scrollTo({{top:0,behavior:\'smooth\'}})">🏠 Home</button>'
+            f'<button id="home" onclick="window.scrollTo({{top:0,behavior:\'smooth\'}})">⤒ TOP</button>'
             f'{lb_html}<script>{LB_JS}</script></body></html>')
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     open(OUT, "w", encoding="utf-8").write(page)
