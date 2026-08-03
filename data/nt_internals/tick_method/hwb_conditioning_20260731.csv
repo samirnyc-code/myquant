@@ -1,0 +1,6 @@
+group,n_entries,n_resolved,target_first_%,med_mfe,med_mae,mfe/mae
+ALL 50%-HWB entries,2421,2413,5.1,10.75,12.0,0.9
+TICK-confluent (|tick|>=400),2153,2146,5.4,11.0,12.12,0.91
+NOT confluent (<400),268,267,3.4,9.06,11.44,0.79
+TICK-confluent (|tick|>=800),894,891,3.6,10.62,14.06,0.76
+NOT confluent (<800),1527,1522,6.0,10.88,10.88,1.0

@@ -1,8 +1,46 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 21, 2026 (S79 morning-scramble post-mortem + same-day IB-exec
+**Last Updated:** August 3, 2026 (S93-TICK: Halsey TICK-method testing → resolution wall;
+prior: July 21, 2026 — S79 morning-scramble post-mortem + same-day IB-exec
 requirement; prior: S78 depth-data direction research, S75V-BL blind-spot capture, 75Q–75V
 pipeline + S77 security hardening; merged S76 Mac swing-levels work)
+
+---
+
+## S93-TICK (2026-08-03) — Halsey TICK-method testing → RESOLUTION WALL (not testable at 5M/15M)
+
+Goal: expand/test David Halsey's NYSE-TICK method. Two committed scripts; verdict = the
+faithful test is BLOCKED by data resolution, not by a negative result.
+
+- **`scripts/tick_method_test.py` — REJECTED framing (kept for the record).** Un-gated marker +
+  divergence-episode tests over the 5yr master (105k 5M bars). User's correction: **DH reads the
+  TICK ONLY at the 50% HWB pullback of a measured move**, not at arbitrary swings — so these
+  don't test his method. Findings anyway: (A) reversal markers (TICK ±800/±1000, confirm bars)
+  land near a matching structural swing only ~1.2–1.3× base rate (weak). (B) faithful
+  divergence-EPISODE hold ("stay in until next opposing new tick") beats a matched-horizon
+  baseline at the MEDIAN (long +4.0 vs +0.75 pts; short +3.75 vs −0.5; hit ~62–64% vs ~47–53%)
+  BUT mean ≈ 0 (long) / negative (short), median MAE ≥ MFE, 59% of episodes just run to EOD —
+  fragile, context not trigger.
+- **`scripts/tick_at_hwb_test.py` — #2 at the CORRECT location; NOT TESTABLE at 5M/15M.** TICK
+  confluence at 50%-HWB entries (leg from find_mm_trades.py zigzag; 50% entry / 61.8% stop /
+  123.6% tgt; leg-relative so roll/back-adjust offset can't corrupt; conservative same-bar=stop).
+  2,421 entries, 95% resolve to stop-before-target. **Two fatal artifacts:** (1) the 61.8% stop
+  is only 0.118R below the 50% entry → on 15M bars a pullback tagging 50% usually pierces 38.2%
+  intrabar, so **56% of stops fire on the entry bar itself** (15M phantom-intrabar, the exact
+  failure the handoff already flagged). (2) the ±400 TICK filter is **degenerate on 15M** — a 15M
+  bar's tick-low is ≤ −400 ~89% of the time, so it filters nothing; ±800 (37% fire) showed no
+  positive separation, no per-year stability.
+- **BLOCKER / the one unlock:** DH's TICK-at-HWB is inherently a **1-minute / intrabar** technique
+  (1M TICK read + intrabar entry-stop path). A faithful test needs **1-minute ^TICK** (NOT
+  ingested — master is 5M; user has 5yr TICK in NT, needs a 1M export+ingest) + the intrabar ES
+  price path (HAVE IT: `data/ticks_continuous/`, 1,287 days). Decision pending: export 5yr 1M
+  ^TICK from NT, or park.
+- **HARD LESSON (do not repeat):** never test the TICK method at 5M/15M — any coarse-bar version
+  produces artifact-driven numbers (tight-stop same-bar exits + degenerate ±400 filter). The
+  method lives at 1M/intrabar or it isn't being tested.
+- Result CSVs (in gitignored `data/nt_internals/tick_method/`, force-added small ones):
+  `markerA_reversal_*`, `markerB_episodes_summary_*`, `hwb_conditioning_*`, `hwb_entries_*`.
+  Prior untracked `scripts/internals_tick_divergence_deep.py` also committed this session.
 
 ---
 
