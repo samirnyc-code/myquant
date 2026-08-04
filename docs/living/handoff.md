@@ -1,9 +1,43 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** August 3, 2026 (S93-TICK: Halsey TICK-method testing → resolution wall;
-prior: July 21, 2026 — S79 morning-scramble post-mortem + same-day IB-exec
-requirement; prior: S78 depth-data direction research, S75V-BL blind-spot capture, 75Q–75V
-pipeline + S77 security hardening; merged S76 Mac swing-levels work)
+**Last Updated:** August 4, 2026 (S94-EA: ALL-IN-ONE EminiAddict Tool + webinar collection;
+prior: S93-TICK Halsey TICK-method resolution wall; S79 morning-scramble post-mortem)
+
+---
+
+## S94-EA (2026-08-04) — ALL-IN-ONE EminiAddict Tool + webinar scrape/transcribe
+
+Goal: one self-contained shareable tool for the 2nd PC. All committed on `s75-live-dashboard`
+(`906f6e2d`, `bc36a45e`, `72313770`).
+
+- **ALL-IN-ONE tool (`docs/artifacts/eminiaddict_tool.html`, ~24 MB, gitignored):** now 7 tabs —
+  Getting Started / Daily Analysis / **Academy** (hub folded in as cross-tab curriculum links —
+  its page is now redundant) / **Method** / **Diagrams** / **Quiz** (each embedded as isolated
+  srcdoc iframe, postMessage anchor routing) / About-Sync. Zero content duplication. Builder =
+  `eminiaddict/scripts/build_getting_started_page.py` (rebuild embedded artifacts first if changed);
+  `build_academy.py` refactored so MODULES/CHEAT import (side effects under `__main__`).
+  **2nd-PC share channel: `G:\My Drive\myquant_transfer\eminiaddict_tool.html`** (kept current;
+  open by double-click, no server; notes/tags = per-browser localStorage → Export/Import notes).
+- **Webinars collection scraped (NEW `scripts/scrape_webinars.py`):** the ?page_id=1867 hub the
+  GS scrape never followed — 26 sub-pages → `data/site/webinars/` (gitignored) manifest.
+  8 are the SAME mp4s as GS lessons (marked `dupe_of_lesson`, render as links to the lesson).
+  Renderer: Webinars section = full collection, inline streaming players (public S3, zero size),
+  key points + transcript slots fill as transcribed. Also fixed: all lesson mp4s play inline;
+  the 3 forever-"pending" sections were never videos (OneDrive position-sizing calculator +
+  2 SlideShare decks) → now live iframe embeds.
+- **Transcription state: 5 of 11 method webinars done, then STOPPED per user** (was task
+  b7ulyj5i2; ~27 min/90-min webinar, small.en CPU). Done + committed key-points nuggets
+  (`data/site/webinars/nuggets/`, force-added; transcripts stay untracked like GS precedent):
+  03 Gap Fill Drill · 08 Micro 6E · 09 #2 50% Retracement/Trend Failure · 10 Spot Forex
+  Two-Trades-a-Day · 11 Euro Trading Rules. **Remaining 6 NOT transcribed** (12 Gap Fill 90m,
+  16 Past-Predicts-Future, 20 Profiting from Gap Fills, 21 Crude & Gold, 22 Manage Positions,
+  25 Dead Cat Bounce): resumable anytime via
+  `EA_COOKIE=<cookie> python eminiaddict/scripts/scrape_webinars.py --transcribe --method-only`
+  (skips existing). Macro/crypto webinars (Fed Pivot ×3, Bitcoin Cycles, SPX-in-Gold, Crypto
+  Winter, Hedging) = video-only by user decision. EA cookie: session scratchpad `ea_cookie.txt`
+  (from 08-02 session; still valid 08-04).
+- The 4 standalone MC artifacts (Academy/Method/Diagrams/Quiz) still exist — now redundant with
+  the tool; user hasn't said whether to retire them from the MC catalog.
 
 ---
 
