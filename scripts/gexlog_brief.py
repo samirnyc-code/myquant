@@ -55,6 +55,9 @@ def fetch(date: str | None = None, timeout: int = 15) -> dict:
            "forecast_type": None, "regime": None, "net_gex": None, "gex_flip": None,
            "putWall": None, "callWall": None, "expectedMove": None,
            "emLower": None, "emUpper": None, "current": None,
+           "risk_level": None, "confidence": None, "flip_proximity": None,
+           "borderline_regime": None, "streak_label": None,
+           "catalysts_today": [], "high_impact_today": 0,
            "generated_at": None, "source": None, "error": None}
     try:
         s = requests.Session()
@@ -80,6 +83,15 @@ def fetch(date: str | None = None, timeout: int = 15) -> dict:
             expectedMove=_g(d, "levels", "expectedMove"),
             emLower=_g(d, "levels", "emLower"), emUpper=_g(d, "levels", "emUpper"),
             current=_g(d, "levels", "current"),
+            risk_level=_g(d, "risk", "level"),
+            confidence=_g(d, "forecast", "confidence"),
+            flip_proximity=_g(d, "forecast", "factors", "gamma", "flip_proximity"),
+            borderline_regime=_g(d, "forecast", "factors", "gamma", "borderline_regime"),
+            streak_label=_g(d, "forecast", "regime_streak", "label"),
+            catalysts_today=[c for c in (_g(d, "catalysts", "today", default=[]) or [])
+                             if isinstance(c, dict)][:8],
+            high_impact_today=sum(1 for c in (_g(d, "catalysts", "today", default=[]) or [])
+                                  if isinstance(c, dict) and c.get("impact") == "high"),
             generated_at=_g(d, "meta", "generatedAt"),
             source="report.php" if not date else "archive.php")
     except Exception as e:

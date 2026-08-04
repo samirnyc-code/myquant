@@ -1,6 +1,6 @@
 {
   "date": "20260804",
-  "generated_at": "2026-08-04 04:22:11 CT",
+  "generated_at": "2026-08-04 04:37:33 CT",
   "spot_preopen": 7600.0,
   "spot_source": "manual",
   "vix": 15.989999771118164,
@@ -24,6 +24,44 @@
     "emLower": 7414.0,
     "emUpper": 7565.0,
     "current": 7490.0,
+    "risk_level": "Moderate",
+    "confidence": 55,
+    "flip_proximity": 15.28,
+    "borderline_regime": true,
+    "streak_label": "Day 1 Positive Gamma",
+    "catalysts_today": [
+      {
+        "time": "10:00",
+        "title": "ISM Manufacturing PMI (Jul)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "10:00",
+        "title": "ISM Manufacturing New Orders (Jul)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "10:00",
+        "title": "ISM Manufacturing Employment (Jul)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "10:00",
+        "title": "ISM Manufacturing Prices (Jul)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "14:00",
+        "title": "Loan Officer Survey",
+        "impact": "low",
+        "category": "economic"
+      }
+    ],
+    "high_impact_today": 0,
     "generated_at": "2026-08-03 06:20 AM ET",
     "source": "archive.php",
     "error": null,

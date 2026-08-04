@@ -768,6 +768,34 @@ def gameplan_html(gp, trades=None, marks_last=None):
                  + _gxt("EM Band", em_band)
                  + _gxt("Day Type", dt_, dtc, border=dtc)
                  + "</div>")
+        # brief context row: risk / confidence / streak / today's catalysts
+        cat = gx.get("catalysts_today") or []
+        hi_n = gx.get("high_impact_today") or 0
+        catc = RES if hi_n else (PIV if cat else SUP)
+        cat_txt = " · ".join(f"{c.get('time','')} {c.get('title','')}"
+                             + (f" [{c.get('impact','')}]" if c.get('impact') == 'high' else "")
+                             for c in cat[:5]) or "none listed"
+        ctx = []
+        if gx.get("risk_level"):
+            ctx.append(f"risk <b>{gx['risk_level']}</b>")
+        if gx.get("confidence") is not None:
+            ctx.append(f"confidence <b>{gx['confidence']}%</b>")
+        if gx.get("streak_label"):
+            ctx.append(f"<b>{gx['streak_label']}</b>")
+        if gx.get("flip_proximity") is not None:
+            fp = gx["flip_proximity"]
+            ctx.append(f"flip {fp:.0f}pt away" + (" <b style='color:#e0a04d'>(borderline)</b>"
+                                                  if gx.get("borderline_regime") else ""))
+        head += (f"<div class='muted' style='margin:2px 0 6px;font-size:12.5px'>"
+                 + " · ".join(ctx)
+                 + f"<br><span style='color:{catc}'>catalysts today ({len(cat)}"
+                 + (f", {hi_n} HIGH" if hi_n else "") + "):</span> " + cat_txt + "</div>")
+        # brief hyperlinks: today's live brief + the history/archive site
+        head += ("<div style='margin:0 0 6px;font-size:12.5px'>"
+                 "<a href='https://gexlog.com/dashboard/' target='_blank' style='color:#5b9dd9'>"
+                 "Morning/Evening brief (gexlog.com) ↗</a> &nbsp;·&nbsp; "
+                 "<a href='https://gexlog.com/dashboard/history/' target='_blank' "
+                 "style='color:#5b9dd9'>Brief archive / past days ↗</a></div>")
         # live spot for the bands graphic (same live.json the ticker uses)
         _ls = None
         try:
