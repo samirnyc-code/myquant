@@ -29,6 +29,18 @@ def _norm_day_type(raw: str) -> str:
     return "unknown"
 
 
+def _norm_signal(raw: str) -> str:
+    """GexLog's go/no-go call -> GO / CAUTION / WAIT (the 3 P&L buckets)."""
+    s = (raw or "").strip().upper()
+    if s.startswith("GO"):
+        return "GO"
+    if s.startswith("CAUT"):
+        return "CAUTION"
+    if s.startswith("WAIT"):
+        return "WAIT"
+    return "unknown"
+
+
 def _g(d, *path, default=None):
     for k in path:
         d = d.get(k) if isinstance(d, dict) else None
@@ -39,8 +51,8 @@ def _g(d, *path, default=None):
 
 def fetch(date: str | None = None, timeout: int = 15) -> dict:
     """Return a normalized dict; day_type in {TREND, RANGE, CHOP, unknown}."""
-    out = {"day_type": "unknown", "forecast_type": None, "signal": None,
-           "regime": None, "net_gex": None, "gex_flip": None,
+    out = {"signal_bucket": "unknown", "signal": None, "day_type": "unknown",
+           "forecast_type": None, "regime": None, "net_gex": None, "gex_flip": None,
            "putWall": None, "callWall": None, "expectedMove": None,
            "generated_at": None, "source": None, "error": None}
     try:
@@ -56,9 +68,10 @@ def fetch(date: str | None = None, timeout: int = 15) -> dict:
             out["error"] = "no report"
             return out
         ft = _g(d, "forecast", "type") or _g(d, "forecast", "regime_streak", "day_type")
+        sig = _g(d, "guidance", "signal")
         out.update(
             forecast_type=ft, day_type=_norm_day_type(ft),
-            signal=_g(d, "guidance", "signal"),
+            signal=sig, signal_bucket=_norm_signal(sig),
             regime=_g(d, "forecast", "factors", "gamma", "value"),
             net_gex=_g(d, "forecast", "factors", "gamma", "net_gex"),
             gex_flip=_g(d, "forecast", "factors", "gamma", "gex_flip"),

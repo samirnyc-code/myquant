@@ -191,6 +191,7 @@ def main():
     triggers = build_triggers(spot, vix)
     for t in triggers:
         t.update(status="armed", fired=False, trade_id=None,
+                 gexlog_signal=gx.get("signal_bucket", "unknown"),
                  gexlog_day_type=gx.get("day_type", "unknown"))
 
     plan = {
@@ -233,8 +234,8 @@ def main():
     print(f"\nGAMEPLAN {date}  spot {spot:.0f} ({spot_src})  VIX {vix:.1f} ({vix_src})  "
           f"PREMIUM-SELLING ONLY")
     print(f"  EM band  {spot - hw:.0f} – {spot + hw:.0f}   (±{hw:.0f}pt, 1-day VIX move)")
-    print(f"  GexLog day-type: {gx.get('day_type', 'unknown')}  "
-          f"(forecast '{gx.get('forecast_type')}', signal {gx.get('signal')})"
+    print(f"  GexLog signal: {gx.get('signal_bucket', 'unknown')} (P&L bucket)  "
+          f"[day-type {gx.get('day_type', 'unknown')}, forecast '{gx.get('forecast_type')}']"
           + (f"  [brief error: {gx['error']}]" if gx.get('error') else ""))
     print(f"\n  {'STATUS':7} {'SETUP':14} {'FIRE':10} STRUCTURE")
     print("  " + "-" * 78)
