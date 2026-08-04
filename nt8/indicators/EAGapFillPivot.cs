@@ -137,6 +137,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             {
                 for (int i = 0; i < 10; i++)
                     Values[i].Reset();
+                RemoveAllLines();   // hard guarantee: nothing prints outside RTH
                 return;
             }
 
@@ -193,6 +194,19 @@ namespace NinjaTrader.NinjaScript.Indicators
             int tSecs     = tHHmmss / 10000 * 3600 + tHHmmss / 100 % 100 * 60 + tHHmmss % 100;
             int closeSecs = RthCloseTime / 10000 * 3600 + RthCloseTime / 100 % 100 * 60 + RthCloseTime % 100;
             return Math.Min(FutureBars, Math.Max(0, (closeSecs - tSecs) / barSecs));
+        }
+
+        private void RemoveAllLines()
+        {
+            RemoveDrawObject("EAGF_piv");
+            RemoveDrawObject("EAGF_half");
+            RemoveDrawObject("EAGF_full");
+            RemoveDrawObject("EAGF_gpiv");
+            for (int k = 1; k <= 3; k++)
+            {
+                RemoveDrawObject("EAGF_p" + k);
+                RemoveDrawObject("EAGF_m" + k);
+            }
         }
 
         // future segment styled from the corresponding plot, so Plots-panel
