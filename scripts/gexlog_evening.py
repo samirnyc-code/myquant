@@ -64,6 +64,22 @@ def main():
 
     out = SIM / f"evening_{date}.json"
     out.write_text(json.dumps(d, indent=2), encoding="utf-8")
+    # full-text read file — EVERY word of the narrative, for the daily review
+    # (docs/living/evening_reads/; the next session reads this and writes
+    # improvement suggestions per the handoff's daily-review protocol)
+    reads = ROOT / "docs" / "living" / "evening_reads"
+    reads.mkdir(parents=True, exist_ok=True)
+    sa0 = d.get("session_analysis", {}) or {}
+    md = [f"# GexLog evening report — {date}",
+          f"generated: {d.get('meta', {}).get('generatedAt')}",
+          f"session: {sa0.get('session_type')} · forecast_accurate {sa0.get('forecast_accurate')}"
+          f" · em_hit {sa0.get('expected_move_hit')} · SPX {sa0.get('spx_change')}%",
+          "", "## Narrative (notes)", str(d.get("notes") or ""),
+          "", "## Guidance", json.dumps(d.get("guidance"), indent=1),
+          "", "## Look ahead", json.dumps(d.get("lookAhead"), indent=1),
+          "", "## Market context", json.dumps(d.get("market_context"), indent=1)]
+    (reads / f"evening_{date}.md").write_text("\n".join(md), encoding="utf-8")
+    print(f"full-text read file -> docs/living/evening_reads/evening_{date}.md")
     sa = d.get("session_analysis", {}) or {}
     print(f"saved {out.name}: session={sa.get('session_type')} forecast_accurate="
           f"{sa.get('forecast_accurate')} em_hit={sa.get('expected_move_hit')}")

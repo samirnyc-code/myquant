@@ -1,7 +1,74 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** August 4, 2026 (S94-EA: ALL-IN-ONE EminiAddict Tool + webinar collection;
-prior: S93-TICK Halsey TICK-method resolution wall; S79 morning-scramble post-mortem)
+**Last Updated:** August 4, 2026 (S94: PREMIUM DESK LIVE — MQ purged, GexLog-driven, day 1 traded)
+
+---
+
+## S94 (2026-08-04) — PREMIUM-SELLING DESK: blank slate, GexLog integration, DAY 1 LIVE
+
+**THE RESET (user-mandated):** MenthorQ fully purged from the live options system
+(sub expired; Note 0009 = no edge). Ledger + journal blanked (archives:
+`trades_pre_blankslate_20260804.parquet`, `_archive_mq_pre_blankslate/` 74 files+).
+Premium-selling ONLY. New data source: **GexLog.com** (free, no auth; see the
+separate repo `Desktop/gexlog` = client + 85-day archive + backtests, GitHub
+samirnyc-code/gexlog, private).
+
+**The system (all committed today, ~15 commits a5ec2b87..ef6820ac):**
+- `gexlog_brief.py` — full morning-brief capture: signal GO/CAUTION/WAIT (P&L bucket),
+  day-type, EM band, walls, flip, gap %+follow/fade, calendar load, catalysts,
+  confidence, streak, stale_risk, ES premkt, RSI, corrected net-GEX walls,
+  playbook scenarios + playbook_wait flag, pivots r1/r2/s1/s2.
+- `options_gameplan.py` — 11 triggers/day, ALL premium: [EOD] condor+fly (prior
+  close ± EM, strikes fixed premarket) + [Open] condor+fly (struck at entry) +
+  [GexLog] walls condor + STMR 15:59. Entry 08:30; playbook_wait days shift
+  open/gexlog streams to 09:05 (EOD keeps the open per user). Telegram push
+  (HTML, stacked, all catalysts). Staleness guard: brief not generated today →
+  computed VIX band, gx condor skipped.
+- `options_trigger_daemon.py` — vertical_dynamic strikes struck at fire; open_spot
+  stamped at 08:30; CREDIT_SETUPS=new streams; dedupe same-setup only.
+- Dashboard: GexLog strip + tiles (consistent colors: res red/sup green/flip amber),
+  bands SVG graphic w/ LIVE marker + PoP, Running P&L tables (Trades + Game Plan
+  tabs, by center + structure, partial-day flags), grouped structure tiles.
+- `options_pnl_report.py` — streams eod/open/gexlog/stmr × GO/CAUTION/WAIT.
+- `options_chain_recorder.py` — OWN forward 0DTE dataset: rolling ±1.25% window
+  + day's traded strikes pinned all session → chain_YYYYMMDD.csv (user: "never
+  buying data again"). Task 08:25–15:05 CT.
+- `gexlog_evening.py` — NEW nightly task 19:05 CT: archives evening report,
+  annotates gameplan with REALIZED session verdict, full-text read file →
+  `docs/living/evening_reads/`, Telegram recap.
+- notify() → Telegram (all fills/exits); morning plan + evening recap pushed.
+
+**DAY 1 RESULT (2026-08-04, +41pt gap-up, trend day, CAUTION/HIGH-VOL):**
+8 fills + 2 correct stand-downs (thin/zero credit put wings after the gap).
+**Total −$1,334.** Flies WON (+$296 open, +$61 eod — rich credits absorb trend);
+small-credit condor call wings took the damage (−$754/−$866); gexlog condor −$71.
+Exits worked: worst loss $866 vs $2,465 max risk (short-strike acceptance).
+STMR: no signal (correct). Full report `pnl_report_20260804.csv`.
+
+**Day-1 incidents (both fixed):** trigger-daemon task fired 08:33 not 08:29
+(Windows trigger time, not wrapper — trigger moved to 07:33 CT, wrapper releases
+08:29; verified for 08-05). Chain recorder crashed silently at 08:25 (pythonw, no
+log) — relaunched 08:40 WITH logging; watch tomorrow. During diagnosis the daemon
+process chain was killed and relaunched manually (~3 min gap, no dupes — fired
+flags prevented refires).
+
+**⚠ DAILY REVIEW PROTOCOL (user mandate: "improve every day"):** every session,
+FIRST read `docs/living/evening_reads/evening_<latest>.md` (the FULL evening
+narrative) + the morning brief words (playbook/guidance/notes — they carry
+timing instructions, e.g. 08-04 "WAIT for JOLTs" moved our entries). Write 2–3
+concrete improvement suggestions, get user sign-off, implement. Candidates queue:
+(1) pre-event full-notional entries — measure after ~10 WAIT days; (2) pivot-wing
+condor variant (S2/S1/R1/R2 wings, their evening suggestion); (3) playbook-scenario
+resolution tagging → test "trade the primary scenario"; (4) wall/flip proximity as
+entry-quality tag; (5) all-or-none condor option (user undecided; today partial =
+call-wing-only was BETTER); (6) sim-daemon rc=1 recheck; (7) day-type normalizer:
+map 'HIGH VOLATILITY' forecasts (currently 'unknown').
+
+**Open ends:** gexlog repo has the EM-vs-MQ + signal backtests (VIX-regime band
+scaling validated 1183 sessions: VIX<20 → VIX band, VIX>30 → ATM-IV band).
+Databento 0DTE definition-schema workflow documented (scratchpad/databento_page.txt);
+prototype pull pending. MQ-era tasks (Levels Fetch, MQ Mine, Gamma Scanner) left
+ENABLED per user ("let's see if they still work") — MQ sub expired, expect decay.
 
 ---
 

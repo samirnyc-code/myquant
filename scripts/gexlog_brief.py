@@ -58,7 +58,7 @@ def fetch(date: str | None = None, timeout: int = 15) -> dict:
            "risk_level": None, "confidence": None, "flip_proximity": None,
            "borderline_regime": None, "streak_label": None,
            "catalysts_today": [], "high_impact_today": 0,
-           "playbook_wait": False,
+           "playbook_wait": False, "playbook": {}, "pivots": {},
            "gap_pct": None, "gap_note": None, "calendar_note": None,
            "stale_risk": None, "es_premarket": None, "rsi_14": None,
            "corr_putWall": None, "corr_callWall": None,
@@ -98,6 +98,10 @@ def fetch(date: str | None = None, timeout: int = 15) -> dict:
                                   if isinstance(c, dict) and c.get("impact") == "high"),
             playbook_wait=any("wait" in ((p.get("trigger") or "") + (p.get("bias") or "")).lower()
                               for p in (d.get("playbook") or {}).values() if isinstance(p, dict)),
+            playbook={k: {"scenario": p.get("scenario"), "trigger": p.get("trigger"),
+                          "bias": (p.get("bias") or "")[:300]}
+                      for k, p in (d.get("playbook") or {}).items() if isinstance(p, dict)},
+            pivots={k: _g(d, "levels", k) for k in ("r2", "r1", "s1", "s2")},
             gap_pct=_g(d, "forecast", "factors", "gap", "percent"),
             gap_note=_g(d, "forecast", "factors", "gap", "value"),
             calendar_note=_g(d, "forecast", "factors", "calendar", "value"),
