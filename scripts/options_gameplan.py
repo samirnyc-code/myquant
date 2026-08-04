@@ -151,11 +151,21 @@ def build_triggers(spot, vix, gx):
     eod vs open share the same ± width; only the CENTER differs — a clean A/B on
     anchoring the range to the prior close vs the actual open."""
     hw = em_halfwidth(spot, vix)
+    # STALENESS GUARD: only trust the brief if it was generated TODAY. A late/stale
+    # brief is anchored to the WRONG prior close (e.g. 08-03 morning band was 186pt
+    # below the 08-03 close) — building on it would misplace every EOD strike.
+    today_et = dt.datetime.now(ZoneInfo("America/New_York")).strftime("%Y-%m-%d")
+    fresh = (str(gx.get("generated_at") or "").startswith(today_et)
+             or bool(gx.get("_trusted_test_brief")))
+    if not fresh:
+        gx = dict(gx, emLower=None, emUpper=None, expectedMove=None,
+                  current=None, putWall=None, callWall=None)
     move = gx.get("expectedMove") or hw
-    prior_close = gx.get("current") or spot
+    prior_close = gx.get("current") or spot   # stale/no brief -> last tape ≈ prior close
     em_lo = gx.get("emLower") if gx.get("emLower") else prior_close - move
     em_hi = gx.get("emUpper") if gx.get("emUpper") else prior_close + move
-    band_src = "gexlog brief" if gx.get("emLower") else f"computed VIX {vix:.1f}"
+    band_src = ("gexlog brief" if gx.get("emLower")
+                else f"computed VIX {vix:.1f}" + ("" if fresh else " (brief STALE — gx condor skipped)"))
     lo, hi, pc = rnd(em_lo), rnd(em_hi), rnd(prior_close)
 
     # EVERY centered strategy is traded in BOTH versions each day — EOD-centered
@@ -220,6 +230,8 @@ def main():
     ap.add_argument("--date", help="YYYYMMDD (default today CT)")
     ap.add_argument("--spot", type=float, help="override pre-open spot")
     ap.add_argument("--vix", type=float, help="override VIX (default: latest close)")
+    ap.add_argument("--brief-date", help="TEST: use the archived GexLog brief from this date "
+                                         "(YYYY-MM-DD) and trust it even though it is not today's")
     ap.add_argument("--restore", action="store_true", help="rebuild a damaged record with fired triggers")
     ap.add_argument("--force", action="store_true", help="overwrite the morning plan (before any fire)")
     args = ap.parse_args()
@@ -240,7 +252,9 @@ def main():
     # day is tagged "unknown" and premium is still sold.
     try:
         from gexlog_brief import fetch as gexlog_fetch
-        gx = gexlog_fetch()
+        gx = gexlog_fetch(date=args.brief_date) if args.brief_date else gexlog_fetch()
+        if args.brief_date:
+            gx["_trusted_test_brief"] = True
     except Exception as e:
         gx = {"day_type": "unknown", "error": f"{type(e).__name__}: {e}"}
 

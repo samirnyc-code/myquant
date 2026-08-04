@@ -669,19 +669,30 @@ def gameplan_html(gp, trades=None, marks_last=None):
         head += f"<span class='muted' style='margin-left:auto'>live {gp['live_spot']} @ {gp.get('live_ts','')}</span>"
     head += "</div>"
 
-    def _gxt(label, val):
+    # CONSISTENT level colors everywhere: resistance red / support green / flip amber
+    RES, SUP, PIV = "#e05561", "#4cc38a", "#e0a04d"
+    def _gxt(label, val, color=None, border=None):
+        vs = f"color:{color}" if color else ""
+        bd = border or "#232a3a"
         return (f"<div style='display:inline-block;padding:5px 11px;margin:3px 4px 3px 0;"
-                f"background:#161b28;border:1px solid #232a3a;border-radius:6px;min-width:64px'>"
+                f"background:#161b28;border:1px solid {bd};border-radius:6px;min-width:64px'>"
                 f"<div style='font-size:10px;color:#8a94a6;text-transform:uppercase;letter-spacing:.3px'>{label}</div>"
-                f"<div style='font-weight:600;font-size:14px'>{val}</div></div>")
+                f"<div style='font-weight:600;font-size:14px;{vs}'>{val}</div></div>")
     if gx:
+        reg = gx.get("regime") or "—"
+        regc = SUP if reg == "POSITIVE" else (RES if reg == "NEGATIVE" else None)
+        dt_ = gx.get("day_type") or "—"
+        dtc = {"RANGE": SUP, "CHOP": PIV, "TREND": RES}.get(dt_)
+        em_band = (f"<span style='color:{SUP}'>{gp.get('em_low', '—')}</span>"
+                   f"<span style='color:#8a94a6'> – </span>"
+                   f"<span style='color:{RES}'>{gp.get('em_high', '—')}</span>")
         head += ("<div style='margin:8px 0 4px'>"
-                 + _gxt("GexLog Regime", gx.get("regime") or "—")
-                 + _gxt("GEX Flip", gx.get("gex_flip") or "—")
-                 + _gxt("Put Wall", gx.get("putWall") or "—")
-                 + _gxt("Call Wall", gx.get("callWall") or "—")
-                 + _gxt("EM Band", f"{gp.get('em_low', '—')}–{gp.get('em_high', '—')}")
-                 + _gxt("Day Type", gx.get("day_type") or "—")
+                 + _gxt("GexLog Regime", reg, regc)
+                 + _gxt("GEX Flip", gx.get("gex_flip") or "—", PIV)
+                 + _gxt("Put Wall", gx.get("putWall") or "—", SUP)
+                 + _gxt("Call Wall", gx.get("callWall") or "—", RES)
+                 + _gxt("EM Band", em_band)
+                 + _gxt("Day Type", dt_, dtc, border=dtc)
                  + "</div>")
     paths = ""
     for p in gp.get("scenarios", []):
@@ -773,9 +784,13 @@ def levels_panel(lr):
            + tile("PUT WALL", "putWall", "sup"))
     foot = ""
     if g.get("net_gex") is not None:
-        foot += f"<span class='gex'>net GEX {g['net_gex'] / 1e9:+.1f}B</span> "
+        ng = g["net_gex"] / 1e9
+        foot += (f"<span class='gex' style='color:{'#4cc38a' if ng >= 0 else '#e05561'}'>"
+                 f"net GEX {ng:+.1f}B</span> ")
     if g.get("day_type"):
-        foot += f"<span class='d1'>{g['day_type']} day forecast</span> "
+        dtc = {"RANGE": "#4cc38a", "CHOP": "#e0a04d", "TREND": "#e05561"}.get(g["day_type"], "#8a94a6")
+        foot += (f"<span class='d1' style='color:{dtc};border:1px solid {dtc};border-radius:4px;"
+                 f"padding:1px 7px'>{g['day_type']} day forecast</span> ")
     return f"""<div class="lvpanel">
       <div class="lvhead">
         <span class="rlabel {r['cls']}" id="lv-regime">{r['label']}</span>
@@ -1247,7 +1262,7 @@ h2{{font-size:15px;color:var(--acc);margin:24px 0 8px}}
   <div class="tab" data-p="levels">Levels</div>
 </div>
 
-<div class="page on" id="p-trades">{card_body}</div>
+<div class="page on" id="p-trades">{pnl_summary_html(gp_trades)}{card_body}</div>
 <div class="page" id="p-analytics">
   <div class="kpis" id="an-tiles"></div>
   <div class="an-charts">
