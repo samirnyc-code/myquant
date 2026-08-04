@@ -58,6 +58,9 @@ def fetch(date: str | None = None, timeout: int = 15) -> dict:
            "risk_level": None, "confidence": None, "flip_proximity": None,
            "borderline_regime": None, "streak_label": None,
            "catalysts_today": [], "high_impact_today": 0,
+           "gap_pct": None, "gap_note": None, "calendar_note": None,
+           "stale_risk": None, "es_premarket": None, "rsi_14": None,
+           "corr_putWall": None, "corr_callWall": None,
            "generated_at": None, "source": None, "error": None}
     try:
         s = requests.Session()
@@ -92,8 +95,25 @@ def fetch(date: str | None = None, timeout: int = 15) -> dict:
                              if isinstance(c, dict)][:8],
             high_impact_today=sum(1 for c in (_g(d, "catalysts", "today", default=[]) or [])
                                   if isinstance(c, dict) and c.get("impact") == "high"),
+            gap_pct=_g(d, "forecast", "factors", "gap", "percent"),
+            gap_note=_g(d, "forecast", "factors", "gap", "value"),
+            calendar_note=_g(d, "forecast", "factors", "calendar", "value"),
+            stale_risk=_g(d, "regime_caveat", "stale_risk"),
+            es_premarket=_g(d, "market", "es", "price"),
+            rsi_14=_g(d, "market_context", "technical", "rsi_14"),
             generated_at=_g(d, "meta", "generatedAt"),
             source="report.php" if not date else "archive.php")
+        # corrected walls from the per-strike profile (net-GEX method — the fix we
+        # proved on 08-03 when the published put wall degenerated to spot):
+        prof = _g(d, "forecast", "factors", "gamma", "gex_profile", default=[]) or []
+        spot0 = out.get("current")
+        if prof and spot0:
+            below = [s for s in prof if s.get("strike", 0) < spot0 and s.get("net_gex") is not None]
+            above = [s for s in prof if s.get("strike", 0) > spot0 and s.get("net_gex") is not None]
+            if below:
+                out["corr_putWall"] = min(below, key=lambda s: s["net_gex"])["strike"]
+            if above:
+                out["corr_callWall"] = max(above, key=lambda s: s["net_gex"])["strike"]
     except Exception as e:
         out["error"] = f"{type(e).__name__}: {e}"[:120]
     return out

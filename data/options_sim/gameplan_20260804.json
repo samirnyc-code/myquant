@@ -1,71 +1,96 @@
 {
   "date": "20260804",
-  "generated_at": "2026-08-04 04:51:37 CT",
-  "spot_preopen": 7600.0,
-  "spot_source": "manual",
+  "generated_at": "2026-08-04 07:44:10 CT",
+  "spot_preopen": 7600.45,
+  "spot_source": "15:20 tape",
   "vix": 15.989999771118164,
   "vix_source": "2026-07-31",
   "em_halfwidth": 75.0,
   "em_source": "gexlog brief",
-  "em_low": 7414.0,
-  "em_high": 7565.0,
+  "em_low": 7526.0,
+  "em_high": 7675.0,
   "regime": "n/a (premium-only, unconditional)",
   "gexlog": {
     "signal_bucket": "CAUTION",
     "signal": "Caution",
-    "day_type": "CHOP",
-    "forecast_type": "MIXED / CHOP",
+    "day_type": "unknown",
+    "forecast_type": "HIGH VOLATILITY",
     "regime": "POSITIVE",
-    "net_gex": 6127172344.0,
-    "gex_flip": 7505.0,
-    "putWall": 7425.0,
-    "callWall": 7530.0,
+    "net_gex": 27081171402.0,
+    "gex_flip": 7595.0,
+    "putWall": 7525.0,
+    "callWall": 7630.0,
     "expectedMove": 75.0,
-    "emLower": 7414.0,
-    "emUpper": 7565.0,
-    "current": 7490.0,
-    "risk_level": "Moderate",
-    "confidence": 55,
-    "flip_proximity": 15.28,
+    "emLower": 7526.0,
+    "emUpper": 7675.0,
+    "current": 7600.0,
+    "risk_level": "Elevated",
+    "confidence": 70,
+    "flip_proximity": 5.5,
     "borderline_regime": true,
-    "streak_label": "Day 1 Positive Gamma",
+    "streak_label": "Day 2 Positive Gamma",
     "catalysts_today": [
       {
-        "time": "10:00",
-        "title": "ISM Manufacturing PMI (Jul)",
-        "impact": "medium",
-        "category": "economic"
-      },
-      {
-        "time": "10:00",
-        "title": "ISM Manufacturing New Orders (Jul)",
-        "impact": "medium",
-        "category": "economic"
-      },
-      {
-        "time": "10:00",
-        "title": "ISM Manufacturing Employment (Jul)",
-        "impact": "medium",
-        "category": "economic"
-      },
-      {
-        "time": "10:00",
-        "title": "ISM Manufacturing Prices (Jul)",
-        "impact": "medium",
-        "category": "economic"
-      },
-      {
-        "time": "14:00",
-        "title": "Loan Officer Survey",
+        "time": "06:00",
+        "title": "LMI Logistics Managers Index (Jul)",
         "impact": "low",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Exports (Jun)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Balance of Trade (Jun)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Imports (Jun)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "10:00",
+        "title": "JOLTs Job Openings (Jun)",
+        "impact": "high",
+        "category": "economic"
+      },
+      {
+        "time": "10:00",
+        "title": "Factory Orders ex Transportation (Jun)",
+        "impact": "low",
+        "category": "economic"
+      },
+      {
+        "time": "10:00",
+        "title": "Economic Optimism Index (Aug)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "10:00",
+        "title": "Factory Orders MoM (Jun)",
+        "impact": "medium",
         "category": "economic"
       }
     ],
-    "high_impact_today": 0,
-    "generated_at": "2026-08-03 06:20 AM ET",
-    "source": "archive.php",
-    "error": null,
-    "_trusted_test_brief": true
+    "high_impact_today": 1,
+    "gap_pct": 0.58,
+    "gap_note": "+0.58% (follow)",
+    "calendar_note": "4/5 HIGH",
+    "stale_risk": true,
+    "es_premarket": 7644.5,
+    "rsi_14": 52.8,
+    "corr_putWall": 7525.0,
+    "corr_callWall": 7630.0,
+    "generated_at": "2026-08-04 07:03 AM ET",
+    "source": "report.php",
+    "error": null
   },
   "levels": {},
   "warnings": [],
@@ -89,7 +114,7 @@
       "setup": "eodic_p",
       "stream": "eod",
       "path": "\u2014",
-      "name": "[EOD] Bull Put @ 7415",
+      "name": "[EOD] Bull Put @ 7525",
       "arm": {
         "regime": "any"
       },
@@ -104,8 +129,8 @@
       "structure": {
         "kind": "vertical",
         "right": "P",
-        "short": 7415,
-        "long": 7390,
+        "short": 7525,
+        "long": 7500,
         "width": 25
       },
       "projected_grade": "C",
@@ -116,14 +141,14 @@
       "fired": false,
       "trade_id": null,
       "gexlog_signal": "CAUTION",
-      "gexlog_day_type": "CHOP"
+      "gexlog_day_type": "unknown"
     },
     {
       "id": "eodic_c",
       "setup": "eodic_c",
       "stream": "eod",
       "path": "\u2014",
-      "name": "[EOD] Bear Call @ 7565",
+      "name": "[EOD] Bear Call @ 7675",
       "arm": {
         "regime": "any"
       },
@@ -138,8 +163,8 @@
       "structure": {
         "kind": "vertical",
         "right": "C",
-        "short": 7565,
-        "long": 7590,
+        "short": 7675,
+        "long": 7700,
         "width": 25
       },
       "projected_grade": "C",
@@ -150,14 +175,14 @@
       "fired": false,
       "trade_id": null,
       "gexlog_signal": "CAUTION",
-      "gexlog_day_type": "CHOP"
+      "gexlog_day_type": "unknown"
     },
     {
       "id": "eodfly_p",
       "setup": "eodfly_p",
       "stream": "eod",
       "path": "\u2014",
-      "name": "[EOD] Bull Put @ 7490 (ATM)",
+      "name": "[EOD] Bull Put @ 7600 (ATM)",
       "arm": {
         "regime": "any"
       },
@@ -172,8 +197,8 @@
       "structure": {
         "kind": "vertical",
         "right": "P",
-        "short": 7490,
-        "long": 7465,
+        "short": 7600,
+        "long": 7575,
         "width": 25
       },
       "projected_grade": "C",
@@ -184,14 +209,14 @@
       "fired": false,
       "trade_id": null,
       "gexlog_signal": "CAUTION",
-      "gexlog_day_type": "CHOP"
+      "gexlog_day_type": "unknown"
     },
     {
       "id": "eodfly_c",
       "setup": "eodfly_c",
       "stream": "eod",
       "path": "\u2014",
-      "name": "[EOD] Bear Call @ 7490 (ATM)",
+      "name": "[EOD] Bear Call @ 7600 (ATM)",
       "arm": {
         "regime": "any"
       },
@@ -206,8 +231,8 @@
       "structure": {
         "kind": "vertical",
         "right": "C",
-        "short": 7490,
-        "long": 7515,
+        "short": 7600,
+        "long": 7625,
         "width": 25
       },
       "projected_grade": "C",
@@ -218,7 +243,7 @@
       "fired": false,
       "trade_id": null,
       "gexlog_signal": "CAUTION",
-      "gexlog_day_type": "CHOP"
+      "gexlog_day_type": "unknown"
     },
     {
       "id": "openic_p",
@@ -251,7 +276,7 @@
       "fired": false,
       "trade_id": null,
       "gexlog_signal": "CAUTION",
-      "gexlog_day_type": "CHOP"
+      "gexlog_day_type": "unknown"
     },
     {
       "id": "openic_c",
@@ -284,7 +309,7 @@
       "fired": false,
       "trade_id": null,
       "gexlog_signal": "CAUTION",
-      "gexlog_day_type": "CHOP"
+      "gexlog_day_type": "unknown"
     },
     {
       "id": "openfly_p",
@@ -317,7 +342,7 @@
       "fired": false,
       "trade_id": null,
       "gexlog_signal": "CAUTION",
-      "gexlog_day_type": "CHOP"
+      "gexlog_day_type": "unknown"
     },
     {
       "id": "openfly_c",
@@ -350,14 +375,14 @@
       "fired": false,
       "trade_id": null,
       "gexlog_signal": "CAUTION",
-      "gexlog_day_type": "CHOP"
+      "gexlog_day_type": "unknown"
     },
     {
       "id": "gx_bps",
       "setup": "gx_bps",
       "stream": "gexlog",
       "path": "\u2014",
-      "name": "[GexLog] Bull Put @ putWall 7425",
+      "name": "[GexLog] Bull Put @ putWall 7525",
       "arm": {
         "regime": "any"
       },
@@ -372,8 +397,8 @@
       "structure": {
         "kind": "vertical",
         "right": "P",
-        "short": 7425,
-        "long": 7400,
+        "short": 7525,
+        "long": 7500,
         "width": 25
       },
       "projected_grade": "C",
@@ -384,14 +409,14 @@
       "fired": false,
       "trade_id": null,
       "gexlog_signal": "CAUTION",
-      "gexlog_day_type": "CHOP"
+      "gexlog_day_type": "unknown"
     },
     {
       "id": "gx_bcs",
       "setup": "gx_bcs",
       "stream": "gexlog",
       "path": "\u2014",
-      "name": "[GexLog] Bear Call @ callWall 7530",
+      "name": "[GexLog] Bear Call @ callWall 7630",
       "arm": {
         "regime": "any"
       },
@@ -406,8 +431,8 @@
       "structure": {
         "kind": "vertical",
         "right": "C",
-        "short": 7530,
-        "long": 7555,
+        "short": 7630,
+        "long": 7655,
         "width": 25
       },
       "projected_grade": "C",
@@ -418,7 +443,7 @@
       "fired": false,
       "trade_id": null,
       "gexlog_signal": "CAUTION",
-      "gexlog_day_type": "CHOP"
+      "gexlog_day_type": "unknown"
     },
     {
       "id": "bps_stmr_1559",
@@ -453,7 +478,7 @@
       "fired": false,
       "trade_id": null,
       "gexlog_signal": "CAUTION",
-      "gexlog_day_type": "CHOP"
+      "gexlog_day_type": "unknown"
     }
   ]
 }

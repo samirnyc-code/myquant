@@ -341,8 +341,15 @@ def main():
              f"{sig_ico} <b>{sig}</b> · {dt_ico} {gx.get('day_type', '?')} · conf {gx.get('confidence', '?')}%",
              "",
              f"📍 EOD <b>{(gx.get('current') or spot):.0f}</b> · EM ±<b>{move:.0f}</b> · VIX {vix:.2f}",
-             f"🛡 band <b>{em_lo:.0f}–{em_hi:.0f}</b> · walls <b>{gx.get('putWall') or '—'} / {gx.get('callWall') or '—'}</b>",
-             ""]
+             f"🛡 band <b>{em_lo:.0f}–{em_hi:.0f}</b> · walls <b>{gx.get('putWall') or '—'} / {gx.get('callWall') or '—'}</b>"]
+        if gx.get("gap_note"):
+            L.append(f"↗️ gap <b>{gx['gap_note']}</b>"
+                     + (f" · ES premkt {gx['es_premarket']:.0f}" if gx.get("es_premarket") else ""))
+        if gx.get("calendar_note"):
+            L.append(f"📅 calendar <b>{gx['calendar_note']}</b>")
+        if gx.get("stale_risk"):
+            L.append("⚠️ their caveat: quote-derived close (pivots approximate)")
+        L.append("")
         pairs = [("🔵 <b>EOD Condor</b>", sk("eodic_p"), sk("eodic_c")),
                  ("🔵 <b>EOD Fly</b>", sk("eodfly_p"), sk("eodfly_c")),
                  ("⚪ <b>Open Condor</b>", sk("openic_p"), sk("openic_c")),

@@ -786,6 +786,20 @@ def gameplan_html(gp, trades=None, marks_last=None):
             fp = gx["flip_proximity"]
             ctx.append(f"flip {fp:.0f}pt away" + (" <b style='color:#e0a04d'>(borderline)</b>"
                                                   if gx.get("borderline_regime") else ""))
+        if gx.get("gap_note"):
+            gpc = gx.get("gap_pct") or 0
+            ctx.append(f"gap <b style='color:{SUP if gpc >= 0 else RES}'>{gx['gap_note']}</b>")
+        if gx.get("es_premarket") and gx.get("current"):
+            imp = gx["es_premarket"] - gx["current"]
+            ctx.append(f"ES premkt {gx['es_premarket']:.0f} (implied {imp:+.0f}pt)")
+        if gx.get("calendar_note"):
+            ctx.append(f"calendar <b>{gx['calendar_note']}</b>")
+        if gx.get("stale_risk"):
+            ctx.append("<b style='color:#e0a04d'>⚠ their data caveat: quote-derived close</b>")
+        if gx.get("corr_putWall") and gx.get("putWall") and (
+                gx["corr_putWall"] != gx["putWall"] or gx.get("corr_callWall") != gx.get("callWall")):
+            ctx.append(f"<b style='color:#e05561'>corrected walls {gx['corr_putWall']:.0f}/"
+                       f"{gx.get('corr_callWall') or 0:.0f} ≠ published</b>")
         head += (f"<div class='muted' style='margin:2px 0 6px;font-size:12.5px'>"
                  + " · ".join(ctx)
                  + f"<br><span style='color:{catc}'>catalysts today ({len(cat)}"
