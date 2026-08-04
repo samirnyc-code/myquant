@@ -131,11 +131,15 @@ def main():
     for st in STREAMS:
         print(row(st, stats(df[df.stream == st].pnl)))
 
-    print("\n3) RECONSTRUCTED STRUCTURES (two legs summed per day)"); print(HEAD)
+    print("\n3) RECONSTRUCTED STRUCTURES (two legs summed per day; partial days flagged)")
+    print(HEAD)
     for label, legs in STRUCTS.items():
         sub = df[df.strategy_id.isin(legs)]
         daily = sub.groupby("entry_date").pnl.sum()      # both legs same day = the structure
-        print(row(label, stats(daily.values)))
+        nlegs = sub.groupby("entry_date").strategy_id.nunique()
+        partial = int((nlegs < len(legs)).sum())
+        note = f"  ({partial} partial day{'s' if partial != 1 else ''}: gate stood a wing down)" if partial else ""
+        print(row(label, stats(daily.values)) + note)
 
     print("\n4) BY GEXLOG SIGNAL (all premium trades)"); print(HEAD)
     for sig in ("GO", "CAUTION", "WAIT", "unknown"):
