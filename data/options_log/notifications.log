@@ -62,3 +62,18 @@
 2026-07-29 15:40:02	✓ Options desk healthy	FEED spx 7423.0 @ 08:40:00 (2s old) · LEVELS CR 7600.0 PS0 7300.0 · src 2026-07-28T20:00 · GAMEPLAN 7 triggers armed
 2026-07-29 16:00:24	TRADE OPENED · straddle_0dte (B)	Long ATM Straddle (0DTE) — gap-armed: straddle, net debit 55.80, coll $5,580 — reached 09:00, regime negative_gamma
 2026-07-29 22:20:05	✓ Options desk ran clean	8/8 steps green · 1 fired
+2026-07-30 15:40:03	✓ Options desk healthy	FEED spx 7376.2 @ 08:39:58 (5s old) · LEVELS CR 7700.0 PS0 7300.0 · src 2026-07-29T20:00 · GAMEPLAN 7 triggers armed
+2026-07-30 16:00:16	TRADE OPENED · straddle_0dte (B)	Long ATM Straddle (0DTE) — gap-armed: straddle, net debit 36.20, coll $3,620 — reached 09:00, regime negative_gamma
+2026-07-30 21:45:39	TRADE CLOSED · straddle_0dte ($-326)	Long ATM Straddle (0DTE) — gap-armed: time stop 14:45 CT — flat before the 0DTE gamma cliff
+2026-07-30 22:20:04	✓ Options desk ran clean	8/8 steps green · 1 fired
+2026-07-31 15:40:02	✓ Options desk healthy	FEED spx 7464.7 @ 08:39:59 (3s old) · LEVELS CR 7700.0 PS0 7400.0 · src 2026-07-30T20:00 · GAMEPLAN 7 triggers armed
+2026-07-31 16:35:10	TRADE OPENED · straddle_0dte (B)	Long ATM Straddle (0DTE) — gap-armed: straddle, net debit 36.70, coll $3,670 — reached 09:00, regime negative_gamma
+2026-07-31 19:24:29	TRADE CLOSED · straddle_0dte ($1,684)	Long ATM Straddle (0DTE) — gap-armed: regime reclaim since entry: spot 7481 back ABOVE HVL 7480 — long vol wanted negative gamma; thesis over
+2026-07-31 21:21:30	TRADE OPENED · cr0_fade (B)	CR0 first-touch fade (short call spread): vertical 25pt, net credit 5.70, coll $1,930 — touched 7500 below
+2026-07-31 21:45:46	TRADE CLOSED · cr0_fade ($-286)	CR0 first-touch fade (short call spread): time stop 14:45 CT — flat before the 0DTE gamma cliff
+2026-07-31 22:20:06	✓ Options desk ran clean	8/8 steps green · 2 fired
+2026-08-03 15:40:02	✓ Options desk healthy	FEED spx 7540.4 @ 08:40:00 (2s old) · LEVELS CR 7550.0 PS0 7425.0 · src 2026-07-31T20:00 · GAMEPLAN 7 triggers armed
+2026-08-03 16:00:14	STOOD DOWN · sell_0dte_gamma [thin_credit]	0DTE Put Credit Spread @ PS0: credit 0.05 < playbook minimum 0.80 — would risk $2,495 to make $5
+2026-08-03 16:00:54	TRADE OPENED · fly_gw_0dte (B)	0DTE Call Butterfly @ GW0: butterfly 50pt, net debit 2.50, coll $250 — reached 09:00, regime positive_gamma
+2026-08-03 21:46:12	TRADE CLOSED · fly_gw_0dte ($-341)	0DTE Call Butterfly @ GW0: time stop 14:45 CT — flat before the 0DTE gamma cliff
+2026-08-03 22:20:05	✓ Options desk ran clean	8/8 steps green · 2 fired

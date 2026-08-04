@@ -1,0 +1,79 @@
+{
+  "date": "20260719",
+  "regime_preopen": "negative_gamma",
+  "spot_preopen": 7457.95,
+  "levels": {
+    "ps": 7300.0,
+    "ps0": 7490.0,
+    "hvl": 7540.0,
+    "gw0": 7565.0,
+    "cr0": 7565.0,
+    "cr": 7700.0
+  },
+  "settled_0dte": [],
+  "triggers": [
+    {
+      "id": "sell_0dte_put",
+      "setup": "sell_0dte_gamma",
+      "name": "0DTE Put Credit Spread @ PS0",
+      "projected_grade": "C",
+      "status": "disarmed",
+      "fired": false
+    },
+    {
+      "id": "sell_0dte_call",
+      "setup": "sell_0dte_gamma",
+      "name": "0DTE Call Credit Spread @ CR0",
+      "projected_grade": "C",
+      "status": "armed",
+      "fired": false
+    },
+    {
+      "id": "fly_gw_0dte",
+      "setup": "fly_gw_0dte",
+      "name": "0DTE Call Butterfly @ GW0",
+      "projected_grade": "F",
+      "status": "armed",
+      "fired": false
+    },
+    {
+      "id": "cr0_touch_fade",
+      "setup": "cr0_fade",
+      "name": "CR0 first-touch fade (short call spread)",
+      "projected_grade": "D",
+      "status": "armed",
+      "fired": false
+    },
+    {
+      "id": "ps0_touch_fade",
+      "setup": "ps0_fade",
+      "name": "PS0 first-touch fade (short put spread)",
+      "projected_grade": "C",
+      "status": "disarmed",
+      "fired": false
+    },
+    {
+      "id": "straddle_0dte",
+      "setup": "straddle_0dte",
+      "name": "Long ATM Straddle (0DTE) \u2014 gap-armed",
+      "projected_grade": "B",
+      "status": "armed",
+      "fired": false
+    },
+    {
+      "id": "bps_stmr_1559",
+      "setup": "bps_stmr",
+      "name": "STMR Bull Put Spread (15:59 signal)",
+      "projected_grade": "A/B if signal fires",
+      "status": "armed",
+      "fired": false
+    }
+  ],
+  "ohlc": null,
+  "paths_materialized": [
+    [
+      "?",
+      "no tape for this date"
+    ]
+  ]
+}

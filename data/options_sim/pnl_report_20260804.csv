@@ -1,0 +1,4 @@
+trade_id,entry_date,strategy_id,stream,signal,structure,credit,pnl,roc,win,close_reason
+bps_stmr_20260714_1030,2026-07-14,bps_stmr,stmr,unknown,bull put spread 50pt 14DTE,10.000000000000004,154.80000000000015,0.038700000000000026,True,
+bps_stmr_2026-07-20,2026-07-20,bps_stmr,stmr,unknown,BPS 50pt,15.399999999999999,464.7999999999998,0.05494089834515364,True,
+bps_stmr_REAL_20260721_0943,2026-07-21,bps_stmr,stmr,unknown,bull put spread 50pt 14DTE,8.56,100.80000000000005,,True,
