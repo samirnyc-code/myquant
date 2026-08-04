@@ -191,7 +191,34 @@ namespace NinjaTrader.NinjaScript.Indicators
             {
                 for (int i = 0; i < 10; i++)
                     Values[i].Reset();
-                RemoveAllLines();   // hard guarantee: no LINES outside RTH
+
+                // overnight/premarket (new trading day, after the globex reopen,
+                // before the RTH open): draw the pending next-session levels as
+                // projection lines. 15:00-16:00 post-settlement stays empty.
+                bool overnight = isLastDay && curClose > 0
+                    && (t > GlobexCloseTime || t <= RthOpenTime);
+                if (overnight)
+                {
+                    double fullGap = curClose;
+                    double pivot   = (curClose + curHigh + curLow) / 3.0;
+                    bool[] ring    = { ShowBand1, ShowBand2, ShowBand3 };
+                    FutureLine("piv",  0, pivot,   FutureBars, ShowPivot);
+                    FutureLine("half", 1, 0,       FutureBars, false);   // needs today's open
+                    FutureLine("full", 2, fullGap, FutureBars, ShowFullGap);
+                    FutureLine("gpiv", 3, pendingGlobexClose > 0
+                        ? (pendingGlobexClose + curHigh + curLow) / 3.0 : 0,
+                        FutureBars, ShowGlobexPivot && pendingGlobexClose > 0);
+                    for (int k = 1; k <= 3; k++)
+                    {
+                        FutureLine("p" + k, 2 + 2 * k, fullGap + k * OffsetPoints, FutureBars, ring[k - 1]);
+                        FutureLine("m" + k, 3 + 2 * k, fullGap - k * OffsetPoints, FutureBars, ring[k - 1]);
+                    }
+                }
+                else
+                {
+                    RemoveAllLines();   // hard guarantee: nothing after the cash close
+                }
+
                 if (isLastDay)
                 {
                     // hover + info box stay live outside RTH with the pending
