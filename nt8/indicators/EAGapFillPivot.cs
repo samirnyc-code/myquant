@@ -52,6 +52,8 @@ using NinjaTrader.NinjaScript.DrawingTools;
 
 namespace NinjaTrader.NinjaScript.Indicators
 {
+    public enum EagfDistanceUnit { Points, Ticks }
+
     public class EAGapFillPivot : Indicator
     {
         // today's building RTH values
@@ -103,6 +105,10 @@ namespace NinjaTrader.NinjaScript.Indicators
                 ShowHoverLabel      = true;
                 ShowInfoBox         = false;
                 InfoBoxPosition     = TextPosition.TopRight;
+                DistanceUnit        = EagfDistanceUnit.Points;
+                ShowTouchMarkers    = true;
+                EnableTouchAlerts   = false;
+                AlertSound          = "Alert1.wav";
 
                 AddPlot(new Stroke(Brushes.Cyan,       2), PlotStyle.Line, "PivotPoint");    // Values[0]
                 AddPlot(new Stroke(Brushes.Lime,       2), PlotStyle.Line, "HalfGapFill");   // Values[1]
@@ -214,9 +220,9 @@ namespace NinjaTrader.NinjaScript.Indicators
                 }
             }
 
-            // register touches AFTER plotting so the touch bar stays visible
-            if (High[0] >= halfGap && Low[0] <= halfGap) halfHit = true;
-            if (High[0] >= fullGap && Low[0] <= fullGap) fullHit = true;
+            // register FIRST touches AFTER plotting so the touch bar stays visible
+            if (!halfHit && High[0] >= halfGap && Low[0] <= halfGap) { halfHit = true; OnLevelTouch("half", "Half Gap", halfGap, 1); }
+            if (!fullHit && High[0] >= fullGap && Low[0] <= fullGap) { fullHit = true; OnLevelTouch("full", "Full Gap", fullGap, 2); }
 
             if (!isLastDay)
                 return;
@@ -266,8 +272,11 @@ namespace NinjaTrader.NinjaScript.Indicators
             foreach (Lvl l in snap)
             {
                 double d = l.Val - last;
-                sb.AppendFormat("{0,-9} {1,9}  {2}{3:F2}\n",
-                    l.Name, Instrument.MasterInstrument.FormatPrice(l.Val), d >= 0 ? "+" : "-", Math.Abs(d));
+                string dist = DistanceUnit == EagfDistanceUnit.Ticks
+                    ? string.Format("{0}{1:F0}t", d >= 0 ? "+" : "-", Math.Abs(d) / TickSize)
+                    : string.Format("{0}{1:F2}", d >= 0 ? "+" : "-", Math.Abs(d));
+                sb.AppendFormat("{0,-9} {1,9}  {2}\n",
+                    l.Name, Instrument.MasterInstrument.FormatPrice(l.Val), dist);
             }
             Draw.TextFixed(this, "EAGF_info", sb.ToString().TrimEnd('\n'), InfoBoxPosition,
                 Brushes.White, new SimpleFont("Consolas", 13), Brushes.DimGray, Brushes.Black, 60);
@@ -349,6 +358,20 @@ namespace NinjaTrader.NinjaScript.Indicators
             int tSecs     = tHHmmss / 10000 * 3600 + tHHmmss / 100 % 100 * 60 + tHHmmss % 100;
             int closeSecs = RthCloseTime / 10000 * 3600 + RthCloseTime / 100 % 100 * 60 + RthCloseTime % 100;
             return Math.Min(FutureBars, Math.Max(0, (closeSecs - tSecs) / barSecs));
+        }
+
+        // first touch of a gap level: diamond marker on the touch bar at the level
+        // price (per-day tag, persists for review) + optional real-time alert
+        private void OnLevelTouch(string key, string name, double level, int plotIdx)
+        {
+            if (ShowTouchMarkers)
+                Draw.Diamond(this, "EAGF_hit_" + key + "_" + curRthDate.ToString("yyyyMMdd"),
+                    false, 0, level, Plots[plotIdx].Brush);
+            if (EnableTouchAlerts && State == State.Realtime)
+                Alert("EAGF_" + key + "_" + curRthDate.ToString("yyyyMMdd"), Priority.High,
+                    Instrument.FullName + ": " + name + " touched @ " + Instrument.MasterInstrument.FormatPrice(level),
+                    NinjaTrader.Core.Globals.InstallDir + @"\sounds\" + AlertSound, 10,
+                    Brushes.Black, Plots[plotIdx].Brush);
         }
 
         private void RemoveAllLines()
@@ -452,6 +475,22 @@ namespace NinjaTrader.NinjaScript.Indicators
         [NinjaScriptProperty]
         [Display(Name = "Info box position", GroupName = "Labels", Order = 2)]
         public TextPosition InfoBoxPosition { get; set; }
+
+        [NinjaScriptProperty]
+        [Display(Name = "Distance unit", GroupName = "Labels", Order = 3)]
+        public EagfDistanceUnit DistanceUnit { get; set; }
+
+        [NinjaScriptProperty]
+        [Display(Name = "Mark first gap-level touch", GroupName = "Touch", Order = 0)]
+        public bool ShowTouchMarkers { get; set; }
+
+        [NinjaScriptProperty]
+        [Display(Name = "Alert on first gap-level touch", GroupName = "Touch", Order = 1)]
+        public bool EnableTouchAlerts { get; set; }
+
+        [NinjaScriptProperty]
+        [Display(Name = "Alert sound file", GroupName = "Touch", Order = 2)]
+        public string AlertSound { get; set; }
         #endregion
     }
 }
