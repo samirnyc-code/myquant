@@ -257,7 +257,8 @@ def grade_at_fill(trig, net, spot, plan):
 
 
 CREDIT_SETUPS = ("sell_0dte_gamma", "cr0_fade", "ps0_fade",
-                 "sell_bps", "sell_bcs", "sell_bps_atm", "sell_bcs_atm")
+                 "sell_bps", "sell_bcs", "sell_bps_atm", "sell_bcs_atm",
+                 "gx_bps", "gx_bcs")
 
 
 def short_strike(trig):
@@ -293,19 +294,24 @@ def gate(trig, est_net, spot, plan):
             f"credit {est_net:.2f} < playbook minimum {min_cred:.2f} — would risk "
             f"${(width - est_net) * 100:,.0f} to make ${est_net * 100:,.0f}")
 
-    # --- A2: dedupe by SHORT STRIKE, not just by side ---
+    # --- A2: dedupe by SHORT STRIKE, WITHIN THE SAME SETUP ONLY ---
+    # We deliberately run overlapping structures/streams in parallel (algo vs
+    # gexlog can pick the same short strike) — that is the experiment, not an
+    # error. So dedupe only guards a setup against firing its OWN short twice.
     mine = short_strike(trig)
     if mine is not None:
         for other in plan["triggers"]:
             if other is trig or other.get("status") != "fired":
+                continue
+            if other.get("setup") != setup:
                 continue
             if other.get("structure", {}).get("right") != st.get("right"):
                 continue
             theirs = short_strike(other)
             if theirs is not None and theirs == mine:
                 return False, "duplicate_level", (
-                    f"{other['id']} already fired a {st.get('right')} short at {theirs:.0f} — "
-                    f"this is the same trade twice, doubled risk on one idea")
+                    f"{other['id']} already fired the same {setup} {st.get('right')} short "
+                    f"at {theirs:.0f} — same trade twice")
 
     # --- A1: grade gate, using the grade the REAL quote implies ---
     g, basis = grade_at_fill(trig, est_net, spot, plan)

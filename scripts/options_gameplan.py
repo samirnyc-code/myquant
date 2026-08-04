@@ -116,10 +116,10 @@ def preopen_spot():
     return None, None
 
 
-def _vert(tid, setup, name, right, short, note):
+def _vert(tid, setup, name, right, short, stream, note):
     long = short - WING if right == "P" else short + WING
     return {
-        "id": tid, "setup": setup, "path": "—", "name": name,
+        "id": tid, "setup": setup, "stream": stream, "path": "—", "name": name,
         "arm": {"regime": "any"},
         "fire": {"type": "time_at", "not_before": ENTRY_AT},
         "window": ENTRY_WINDOW,
@@ -128,25 +128,42 @@ def _vert(tid, setup, name, right, short, note):
     }
 
 
-def build_triggers(spot, vix):
+def build_triggers(spot, vix, gx):
+    """Two parallel streams, separate P&L:
+       'algo'   — our systematic verticals off the VIX EM band (gexlog brief's
+                  emUpper/emLower when present, else computed) + ATM iron fly.
+       'gexlog' — gexlog's OWN suggested legs: an iron condor at its putWall/callWall.
+    Only the short-strike SOURCE differs between the two 1σ condors; wings, entry,
+    and exits are identical, so it's a clean strike-selection A/B."""
     hw = em_halfwidth(spot, vix)
-    sp1 = rnd(spot - hw)     # ~1sigma below
-    sc1 = rnd(spot + hw)     # ~1sigma above
-    atm = rnd(spot)
-    band = f"±{hw:.0f}pt (VIX {vix:.1f})"
+    em_lo = gx.get("emLower") if gx.get("emLower") else spot - hw
+    em_hi = gx.get("emUpper") if gx.get("emUpper") else spot + hw
+    band_src = "gexlog brief" if gx.get("emLower") else f"computed VIX {vix:.1f}"
+    sp1, sc1, atm = rnd(em_lo), rnd(em_hi), rnd(spot)
+
     T = [
-        _vert("sell_bps", "sell_bps", f"0DTE Bull Put Spread @ {sp1:.0f} (~1σ)", "P", sp1,
-              f"short put ~1σ below spot, {band}; condor put wing"),
-        _vert("sell_bcs", "sell_bcs", f"0DTE Bear Call Spread @ {sc1:.0f} (~1σ)", "C", sc1,
-              f"short call ~1σ above spot, {band}; condor call wing"),
-        _vert("sell_bps_atm", "sell_bps_atm", f"0DTE Bull Put Spread @ {atm:.0f} (ATM)", "P", atm,
-              "short put AT the money; iron-fly put wing"),
-        _vert("sell_bcs_atm", "sell_bcs_atm", f"0DTE Bear Call Spread @ {atm:.0f} (ATM)", "C", atm,
-              "short call AT the money; iron-fly call wing"),
+        _vert("sell_bps", "sell_bps", f"[algo] Bull Put @ {sp1:.0f} (EM low)", "P", sp1,
+              "algo", f"short put at EM low ({band_src}); condor put wing"),
+        _vert("sell_bcs", "sell_bcs", f"[algo] Bear Call @ {sc1:.0f} (EM high)", "C", sc1,
+              "algo", f"short call at EM high ({band_src}); condor call wing"),
+        _vert("sell_bps_atm", "sell_bps_atm", f"[algo] Bull Put @ {atm:.0f} (ATM)", "P", atm,
+              "algo", "short put ATM; iron-fly put wing"),
+        _vert("sell_bcs_atm", "sell_bcs_atm", f"[algo] Bear Call @ {atm:.0f} (ATM)", "C", atm,
+              "algo", "short call ATM; iron-fly call wing"),
     ]
+
+    # GexLog's own suggested condor — shorts at its gamma walls (separate P&L stream)
+    pw, cw = gx.get("putWall"), gx.get("callWall")
+    if pw and cw:
+        T += [
+            _vert("gx_bps", "gx_bps", f"[gexlog] Bull Put @ putWall {pw:.0f}", "P", rnd(pw),
+                  "gexlog", "gexlog suggested: short put at its Put Wall"),
+            _vert("gx_bcs", "gx_bcs", f"[gexlog] Bear Call @ callWall {cw:.0f}", "C", rnd(cw),
+                  "gexlog", "gexlog suggested: short call at its Call Wall"),
+        ]
     # STMR 15:59 bull put spread — the one validated edge; run by options_sim_daemon.
     T.append({
-        "id": "bps_stmr_1559", "setup": "bps_stmr", "path": "—",
+        "id": "bps_stmr_1559", "setup": "bps_stmr", "stream": "stmr", "path": "—",
         "name": "STMR Bull Put Spread (15:59 signal)",
         "arm": {"regime": "any"},
         "fire": {"type": "signal_1559", "cond": "%K8<15 AND spot>SMA100"},
@@ -156,7 +173,7 @@ def build_triggers(spot, vix):
         "grade_basis": "the only validated edge; executed by options_sim_daemon at 14:59 CT",
         "note": "run by options_sim_daemon.py, NOT the trigger daemon",
     })
-    return T
+    return T, band_src, round(em_lo, 1), round(em_hi, 1)
 
 
 def main():
@@ -188,7 +205,7 @@ def main():
     except Exception as e:
         gx = {"day_type": "unknown", "error": f"{type(e).__name__}: {e}"}
 
-    triggers = build_triggers(spot, vix)
+    triggers, band_src, em_lo, em_hi = build_triggers(spot, vix, gx)
     for t in triggers:
         t.update(status="armed", fired=False, trade_id=None,
                  gexlog_signal=gx.get("signal_bucket", "unknown"),
@@ -199,8 +216,8 @@ def main():
         "generated_at": now_ct().strftime("%Y-%m-%d %H:%M:%S CT"),
         "spot_preopen": spot, "spot_source": spot_src,
         "vix": vix, "vix_source": vix_src,
-        "em_halfwidth": round(hw, 1),
-        "em_low": round(spot - hw, 1), "em_high": round(spot + hw, 1),
+        "em_halfwidth": round(hw, 1), "em_source": band_src,
+        "em_low": em_lo, "em_high": em_hi,
         "regime": "n/a (premium-only, unconditional)",
         "gexlog": gx,            # morning brief: day_type (TREND/RANGE/CHOP), signal, regime, walls
         "levels": {},            # kept as an empty dict so the daemon's plan["levels"].get(...) is safe
@@ -233,19 +250,20 @@ def main():
 
     print(f"\nGAMEPLAN {date}  spot {spot:.0f} ({spot_src})  VIX {vix:.1f} ({vix_src})  "
           f"PREMIUM-SELLING ONLY")
-    print(f"  EM band  {spot - hw:.0f} – {spot + hw:.0f}   (±{hw:.0f}pt, 1-day VIX move)")
+    print(f"  EM band  {plan['em_low']:.0f} – {plan['em_high']:.0f}   (source: {band_src})")
     print(f"  GexLog signal: {gx.get('signal_bucket', 'unknown')} (P&L bucket)  "
           f"[day-type {gx.get('day_type', 'unknown')}, forecast '{gx.get('forecast_type')}']"
           + (f"  [brief error: {gx['error']}]" if gx.get('error') else ""))
-    print(f"\n  {'STATUS':7} {'SETUP':14} {'FIRE':10} STRUCTURE")
+    print(f"\n  {'STREAM':7} {'SETUP':14} {'FIRE':10} STRUCTURE")
     print("  " + "-" * 78)
     for t in plan["triggers"]:
         st = t["structure"]
         desc = (f"{st['right']} short {st['short']} / long {st.get('long', '')}"
                 if isinstance(st.get("short"), (int, float)) else st.get("short", ""))
         fire = t["fire"].get("not_before", t["fire"]["type"])
-        print(f"  {t['status']:7} {t['setup']:14} {fire:10} {t['name']}  [{desc}]")
-    print(f"\n  iron condor = sell_bps + sell_bcs   |   iron fly = sell_bps_atm + sell_bcs_atm")
+        print(f"  {t.get('stream', '—'):7} {t['setup']:14} {fire:10} {t['name']}  [{desc}]")
+    print(f"\n  algo   iron condor = sell_bps + sell_bcs   |   iron fly = sell_bps_atm + sell_bcs_atm")
+    print(f"  gexlog iron condor = gx_bps + gx_bcs (at its walls) — separate P&L")
     print(f"\nwrote {out}  ({len(plan['triggers'])} triggers armed)")
     return out
 
