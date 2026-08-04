@@ -108,9 +108,29 @@ def run_live(pct, secs, stop_hhmm):
 
     tick = {}                                    # (strike, right) -> streaming ticker
 
+    def pinned_strikes():
+        """Strikes of TODAY'S armed/fired structures (gameplan verticals) — kept
+        subscribed ALL DAY even when the rolling window moves away, so every real
+        trade's full intraday exit path (TP/trail/MFE-MAE) is recorded. Re-read
+        each loop: the daemon persists resolved open-struck strikes after the bell.
+        (STMR is 14-DTE — different expiry, captured by the sim daemon's own tape.)"""
+        try:
+            d = json.loads((SIM / f"gameplan_{date}.json").read_text(encoding="utf-8"))
+            out = set()
+            for t in d.get("triggers", []):
+                st = t.get("structure", {})
+                if st.get("kind") == "vertical" and not st.get("dte"):
+                    for key in ("short", "long"):
+                        v = st.get(key)
+                        if isinstance(v, (int, float)):
+                            out.add(int(v))
+            return out
+        except Exception:
+            return set()
+
     def retune(center):
-        """Subscribe strikes inside ±pct of `center`; drop ones that left."""
-        want = set(strike_window(center, pct))
+        """Subscribe strikes inside ±pct of `center` + all pinned; drop the rest."""
+        want = set(strike_window(center, pct)) | pinned_strikes()
         have = {k for k, _ in tick}
         for k in sorted(have - want):
             for r in ("P", "C"):
@@ -139,8 +159,11 @@ def run_live(pct, secs, stop_hhmm):
     p = out_path(date)
     while now_ct().time() < stop:
         spot = spot_now(ib) or spot
-        # re-center once spot drifts >20% of the window from the current center
-        if abs(spot - center) > center * pct / 100.0 * 0.20:
+        # re-center once spot drifts >20% of the window from the current center,
+        # or when new pinned strikes appeared (open-struck trades resolved at the bell)
+        have = {k for k, _ in tick}
+        if (abs(spot - center) > center * pct / 100.0 * 0.20
+                or (pinned_strikes() - have)):
             n = retune(spot)
             center = spot
             if n:
