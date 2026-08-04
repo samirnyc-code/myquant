@@ -55,8 +55,7 @@ flags prevented refires).
 **⚠ DAILY REVIEW PROTOCOL (user mandate: "improve every day"):** every session,
 FIRST read `docs/living/evening_reads/evening_<latest>.md` (the FULL evening
 narrative) + the morning brief words (playbook/guidance/notes — they carry
-timing instructions, e.g. 08-04 "WAIT for JOLTs" moved our entries). Write 2–3
-concrete improvement suggestions, get user sign-off, implement. Candidates queue:
+timing instructions, e.g. 08-04 "WAIT for JOLTs" moved our entries). Write 2–3 concrete improvement suggestions INTO docs/living/improvement_log.md (the tracked ideas ledger — every idea gets a row and a fate), get user sign-off, implement, measure, record verdict. Seeded queue:
 (1) pre-event full-notional entries — measure after ~10 WAIT days; (2) pivot-wing
 condor variant (S2/S1/R1/R2 wings, their evening suggestion); (3) playbook-scenario
 resolution tagging → test "trade the primary scenario"; (4) wall/flip proximity as
