@@ -638,14 +638,30 @@ def gameplan_html(gp, trades=None, marks_last=None):
     if not gp:
         return ("<p class='muted'>No gameplan generated yet. Run "
                 "<code>scripts/options_gameplan.py</code> (auto ~8:25 CT).</p>")
-    regcls = "pos" if gp.get("regime") == "positive_gamma" else "neg"
-    head = (f"<div class='gp-head'><span class='rlabel {regcls}'>"
-            f"{gp.get('regime','').replace('_',' ').upper()}</span>"
+    gx = gp.get("gexlog", {}) or {}
+    sig = gx.get("signal_bucket", "—")
+    sigcls = {"GO": "pos", "CAUTION": "warn", "WAIT": "neg"}.get(sig, "muted")
+    head = (f"<div class='gp-head'><span class='rlabel {sigcls}'>{sig}</span>"
             f"<span class='muted'>{gp.get('date','')} · preopen {gp.get('spot_preopen','—')} "
-            f"({gp.get('spot_source','')})</span>")
+            f"({gp.get('spot_source','')}) · VIX {gp.get('vix','—')}</span>")
     if gp.get("live_spot"):
         head += f"<span class='muted' style='margin-left:auto'>live {gp['live_spot']} @ {gp.get('live_ts','')}</span>"
     head += "</div>"
+
+    def _gxt(label, val):
+        return (f"<div style='display:inline-block;padding:5px 11px;margin:3px 4px 3px 0;"
+                f"background:#161b28;border:1px solid #232a3a;border-radius:6px;min-width:64px'>"
+                f"<div style='font-size:10px;color:#8a94a6;text-transform:uppercase;letter-spacing:.3px'>{label}</div>"
+                f"<div style='font-weight:600;font-size:14px'>{val}</div></div>")
+    if gx:
+        head += ("<div style='margin:8px 0 4px'>"
+                 + _gxt("GexLog Regime", gx.get("regime") or "—")
+                 + _gxt("GEX Flip", gx.get("gex_flip") or "—")
+                 + _gxt("Put Wall", gx.get("putWall") or "—")
+                 + _gxt("Call Wall", gx.get("callWall") or "—")
+                 + _gxt("EM Band", f"{gp.get('em_low', '—')}–{gp.get('em_high', '—')}")
+                 + _gxt("Day Type", gx.get("day_type") or "—")
+                 + "</div>")
     paths = ""
     for p in gp.get("scenarios", []):
         paths += (f"<div class='path'><div class='path-h'><b>{p['id']}. {p['name']}</b>"
@@ -702,11 +718,11 @@ def gameplan_html(gp, trades=None, marks_last=None):
                 else "<span class='wait'>◷ armed — waiting for trigger</span>")
         ideas.append(_group_tile(ts, foot))
 
-    note = ("<p class='muted' style='margin:14px 0 10px'>Every idea flows "
+    note = ("<p class='muted' style='margin:14px 0 10px'>Premium-selling only. Every idea flows "
             "<b>Idea → Open → Closed</b>, or lands in <b>Never triggered</b>. Committed premarket, "
-            "auto-executed by the trigger daemon on its condition (1 lot, all grades). Deduped: two "
-            "one-sided spreads, no condor. This board is saved per day (<code>gameplan_*.json</code>) — "
-            "the growing historical record.</p>")
+            "auto-executed by the trigger daemon at the open (1 lot). Two streams: <b>algo</b> (EM band) "
+            "vs <b>gexlog</b> (its walls); iron condor = the two 1σ legs, iron fly = the ATM legs. "
+            "Saved per day (<code>gameplan_*.json</code>).</p>")
     board = (_bucket("💡 IDEAS · waiting to trigger", ideas, "ideas", True)
              + _bucket("🟢 OPEN · triggered, live", opens, "opens", True)
              + _bucket("⚪ CLOSED · settled", closed, "closed", len(closed) > 0)
