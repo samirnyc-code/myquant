@@ -611,6 +611,22 @@ def _idea_tile(t, foot, gc=None):
       <div class="itile-foot">{foot}</div></div>"""
 
 
+def _group_tile(ts, foot):
+    """One tile for a structure — both legs of a condor/fly shown together."""
+    t0 = ts[0]
+    gr = t0.get("projected_grade")
+    color = _grade_color(gr)
+    legs = "".join(
+        f"<div class='itile-sub'>{_struct_txt(t['structure'])} "
+        f"<span class='muted'>· {t.get('stream', '')}</span></div>" for t in ts)
+    return f"""<div class="itile" style="--gc:{color}">
+      <div class="itile-h"><div class="itile-name">{t0.get('group', t0['name'])}</div>
+        <span class="ichip" style="background:{color}">{gr}</span></div>
+      {legs}
+      <div class="itile-sub">fires <b>{_fire_str(t0['fire'])}</b></div>
+      <div class="itile-foot">{foot}</div></div>"""
+
+
 def _bucket(title, tiles, bid, is_open=True):
     body = "".join(tiles) if tiles else "<div class='muted' style='padding:6px 2px'>—</div>"
     return (f"<details id='ex-{bid}' class='ex ex-sec'{' open' if is_open else ''}>"
@@ -637,17 +653,19 @@ def gameplan_html(gp, trades=None, marks_last=None):
                   f"<div class='muted'>{p['means']} → <span style='color:var(--ink)'>{p['acts']}</span></div></div>")
     paths = f"<div class='paths'>{paths}</div>" if paths else ""
 
-    # sort each trigger into a lifecycle bucket
+    # sort each trigger into a lifecycle bucket. Armed ideas are GROUPED by
+    # structure (both legs of a condor/fly in one tile); fired trades stay per-leg.
+    from collections import OrderedDict
     ideas, opens, closed, never = [], [], [], []
+    armed_groups = OrderedDict()
     for t in gp.get("triggers", []):
         st = t.get("status", "armed")
         tid = t.get("trade_id")
         fill = t.get("fill") or {}
-        if t["fire"]["type"] == "signal_1559":
-            ideas.append(_idea_tile(t, "<span class='wait'>◷ 15:59 signal — run by the BPS daemon</span>"))
-        elif st in ("armed",):
-            ideas.append(_idea_tile(t, "<span class='wait'>◷ armed — waiting for trigger</span>"))
-        elif st == "fired" and tid is not None and trades is not None:
+        if t["fire"]["type"] == "signal_1559" or st == "armed":
+            armed_groups.setdefault(t.get("group", t["id"]), []).append(t)
+            continue
+        if st == "fired" and tid is not None and trades is not None:
             tr = trades[trades.trade_id == tid]
             if len(tr):
                 r = tr.iloc[0]
@@ -676,6 +694,13 @@ def gameplan_html(gp, trades=None, marks_last=None):
             never.append(_idea_tile(t, f"<span class='neg'>! error: {t.get('error','')}</span>", gc="var(--neg)"))
         else:
             ideas.append(_idea_tile(t, f"<span class='muted'>{st}</span>"))
+
+    # render grouped armed ideas — one tile per structure, both legs together
+    for g, ts in armed_groups.items():
+        foot = ("<span class='wait'>◷ 15:59 signal — run by the BPS daemon</span>"
+                if ts[0]["fire"]["type"] == "signal_1559"
+                else "<span class='wait'>◷ armed — waiting for trigger</span>")
+        ideas.append(_group_tile(ts, foot))
 
     note = ("<p class='muted' style='margin:14px 0 10px'>Every idea flows "
             "<b>Idea → Open → Closed</b>, or lands in <b>Never triggered</b>. Committed premarket, "

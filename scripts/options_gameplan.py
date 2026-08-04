@@ -173,6 +173,13 @@ def build_triggers(spot, vix, gx):
         "grade_basis": "the only validated edge; executed by options_sim_daemon at 14:59 CT",
         "note": "run by options_sim_daemon.py, NOT the trigger daemon",
     })
+    # structure GROUP — the dashboard renders one tile per group (both legs together)
+    GROUPS = {"sell_bps": "[algo] Iron Condor", "sell_bcs": "[algo] Iron Condor",
+              "sell_bps_atm": "[algo] Iron Fly", "sell_bcs_atm": "[algo] Iron Fly",
+              "gx_bps": "[gexlog] Iron Condor", "gx_bcs": "[gexlog] Iron Condor",
+              "bps_stmr": "STMR Bull Put Spread"}
+    for t in T:
+        t["group"] = GROUPS.get(t["id"], t.get("name"))
     return T, band_src, round(em_lo, 1), round(em_hi, 1)
 
 
