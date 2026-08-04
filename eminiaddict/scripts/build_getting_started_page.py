@@ -1,9 +1,12 @@
-"""build_getting_started_page.py — render the Getting Started knowledge base into a single
-self-contained Mission Control artifact (docs/artifacts/eminiaddict_getting_started.html),
-structured in David Halsey's own curriculum order. Re-runnable: pulls text + slides from the
-scrape and transcripts/nuggets when present (so re-running after transcription fills them in).
-
-Serves at MC :8590 (group EminiAddict). Slides embedded as base64 -> the page is portable.
+"""build_getting_started_page.py — render the ALL-IN-ONE EminiAddict Tool into a single
+self-contained artifact (docs/artifacts/eminiaddict_tool.html). Tabs:
+Getting Started · Daily Analysis · Academy (curriculum, from build_academy.py data) ·
+Method (embedded eminiaddict_measured_move_method.html) · Diagrams (embedded
+eminiaddict_diagrams.html) · Quiz (embedded eminiaddict_method_study_quiz.html) · About/Sync.
+The three embedded pages ride in isolated srcdoc iframes (their own CSS/JS untouched);
+Academy links jump across tabs and postMessage the section anchor into the Method iframe.
+Re-runnable: pulls text + slides from the scrape and transcripts/nuggets when present.
+Rebuild the three embedded artifacts first if they changed, then re-run this.
 
 Usage: python build_getting_started_page.py
 """
@@ -115,8 +118,11 @@ GS = os.path.join(ROOT, "eminiaddict", "data", "site", "getting_started")
 TR = os.path.join(GS, "transcripts")
 NUG = os.path.join(GS, "nuggets")          # <idx>_*.md nugget files (assistant-produced)
 OUT = os.path.join(ROOT, "docs", "artifacts", "eminiaddict_tool.html")
+ARTI = os.path.join(ROOT, "docs", "artifacts")               # built pages embedded as tabs
 DAILY = os.path.join(ROOT, "eminiaddict", "data", "daily")   # daily reports live here
 CATALOG = os.path.join(ROOT, "data", "_catalog", "claude_artifacts.json")
+
+from build_academy import MODULES as ACADEMY_MODULES, CHEAT as ACADEMY_CHEAT
 
 CSS = """
 :root{--bg:#0d1117;--card:#161b22;--chip:#30363d;--fg:#e6edf3;--mut:#8b949e;--blue:#58a6ff;--gold:#e3b341}
@@ -200,6 +206,14 @@ table.dt td{border-bottom:1px solid #1c2128;padding:4px 8px;vertical-align:top}
 .frwrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(460px,1fr));gap:12px;margin:8px 0}
 .fr{margin:0}.fr img{width:100%;border:1px solid var(--chip);border-radius:8px;cursor:zoom-in;display:block}
 .fr figcaption{font-size:12.5px;color:var(--gold);margin:4px 0 0;font-weight:600}
+.subframe{display:block;width:100%;height:calc(100vh - 100px);border:0;background:var(--bg)}
+.ach{font-size:13px;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;margin:24px 0 10px}
+.cheat{background:var(--card);border:1px solid var(--chip);border-radius:12px;padding:14px 18px;margin:0 0 22px;display:grid;grid-template-columns:1fr 1fr;gap:6px 20px}
+.cc{font-size:13px;color:var(--mut)}.cc b{color:var(--fg)}
+.sw{width:11px;height:11px;border-radius:3px;display:inline-block;margin-right:7px;vertical-align:middle}
+.acmod{background:var(--card);border:1px solid var(--chip);border-radius:12px;padding:16px 20px;margin:12px 0;border-left:3px solid var(--gold)}
+.acmod h3{margin:0 0 6px;font-size:15.5px}.acmod p{margin:0 0 10px;color:var(--mut);font-size:13.5px}
+.acmod ul{margin:0;padding-left:20px}.acmod li{margin:4px 0;font-size:13.5px}
 """
 
 LB_JS = r"""
@@ -289,6 +303,12 @@ LB_JS = r"""
    document.querySelectorAll('.tabs .tab').forEach(x=>x.classList.toggle('on',x===t));
    document.querySelectorAll('.tabpane').forEach(p=>{p.hidden=(p.id!=='tab-'+t.dataset.t);});
    window.scrollTo({top:0});});
+ // ---- academy jump links -> other tabs (+ scroll to the section inside the iframe) ----
+ document.querySelectorAll('a.jump').forEach(a=>a.onclick=e=>{e.preventDefault();
+   const t=a.dataset.tab,b=document.querySelector('.tabs .tab[data-t="'+t+'"]');
+   if(b)b.click();
+   const h=a.dataset.hash,f=document.getElementById('if-'+t);
+   if(h&&f)setTimeout(()=>f.contentWindow.postMessage({eaHash:h},'*'),80);});
 })();
 """
 
@@ -329,6 +349,42 @@ def render_glossary(text):
             out.append(f"<dt>{esc(m.group(1).strip())}</dt><dd>{esc(m.group(2).strip())}</dd>")
     out.append("</dl>")
     return "\n".join(out) if len(out) > 2 else f"<p>{esc(text)}</p>"
+
+def embed_iframe_pane(fname, tab):
+    """Wrap a built artifact page in an isolated srcdoc iframe tab (own CSS/JS intact).
+    Injects a postMessage listener so Academy links can scroll it to a section anchor."""
+    doc = open(os.path.join(ARTI, fname), encoding="utf-8").read()
+    listener = ("<script>window.addEventListener('message',function(e){"
+                "if(e.data&&e.data.eaHash){var el=document.getElementById(e.data.eaHash);"
+                "if(el)el.scrollIntoView();else location.hash=e.data.eaHash;}});</script>")
+    doc = doc.replace("</body>", listener + "</body>", 1) if "</body>" in doc else doc + listener
+    return (f'<section id="tab-{tab}" class="tabpane" hidden>'
+            f'<iframe class="subframe" id="if-{tab}" srcdoc="{html.escape(doc)}"></iframe>'
+            f'</section>')
+
+
+def academy_pane():
+    """The Academy hub as a tab: cheat-sheet + 9-module curriculum. Its links become
+    cross-tab jumps (data-tab/data-hash) instead of /artifact/ routes — no duplicated content."""
+    def jump(href):
+        tab = ("method" if "measured_move_method" in href else
+               "diagrams" if "diagrams" in href else "quiz")
+        h = href.split("#", 1)[1] if "#" in href else ""
+        return (f'class="jump" href="#" data-tab="{tab}"'
+                + (f' data-hash="{h}"' if h else ""))
+    cheat = "".join(f'<div class="cc"><span class="sw" style="background:{c}"></span>'
+                    f'<b>{esc(k)}</b> — {esc(v)}</div>' for k, v, c in ACADEMY_CHEAT)
+    mods = ""
+    for title, blurb, links in ACADEMY_MODULES:
+        li = "".join(f'<li><a {jump(href)}>{esc(lab)}</a></li>' if href else f'<li>{esc(lab)}</li>'
+                     for lab, href in links)
+        mods += f'<div class="acmod"><h3>{esc(title)}</h3><p>{esc(blurb)}</p><ul>{li}</ul></div>'
+    return (f'<div class="wrap"><p class="lead">A ground-up path through Halsey\'s Measured-Move '
+            f'method. Work top to bottom — each link opens the deep material in the Method, '
+            f'Diagrams, or Quiz tab.</p>'
+            f'<h2 class="ach">Cheat-sheet</h2><div class="cheat">{cheat}</div>'
+            f'<h2 class="ach">Curriculum</h2>{mods}</div>')
+
 
 def main():
     man = json.load(open(os.path.join(GS, "manifest.json"), encoding="utf-8"))
@@ -408,11 +464,11 @@ def main():
     daily_pane = daily_html()
     about_pane = (
         '<div class="wrap about"><p class="lead">One page for the whole EminiAddict method — '
-        'Getting Started curriculum + Daily analysis, all self-contained.</p>'
+        'everything built for it, in one self-contained file.</p>'
         '<h4>Use across your computers</h4><ul>'
-        '<li>This is a <b>single self-contained file</b> (slides embedded). Drop '
-        '<code>eminiaddict_tool.html</code> in your Google Drive transfer folder and open it '
-        'on any machine — no server, no login.</li>'
+        '<li>This is a <b>single self-contained file</b> (slides, diagrams, method reference and '
+        'quiz all embedded). Drop <code>eminiaddict_tool.html</code> in your Google Drive transfer '
+        'folder and open it on any machine — no server, no login.</li>'
         '<li>Your <b>comments &amp; tags</b> are saved in each browser (localStorage). To move them '
         'between computers use <b>⬇ Export notes</b> on one and <b>⬆ Import notes</b> on the other '
         '(keep the JSON in Drive too).</li>'
@@ -420,10 +476,18 @@ def main():
         '</ul><h4>Sections</h4><ul>'
         '<li><b>Getting Started</b> — his curriculum in order: summaries, slides, transcripts, glossary.</li>'
         '<li><b>Daily Analysis</b> — auto-pulled daily video reports + scenario tracker.</li>'
+        '<li><b>Academy</b> — the guided 9-module path + cheat-sheet; links open the other tabs.</li>'
+        '<li><b>Method</b> — the full codified reference (geometry, setups, entries, exits, gaps, the 31 rules).</li>'
+        '<li><b>Diagrams</b> — his 16 teaching diagrams incl. both flow charts.</li>'
+        '<li><b>Quiz</b> — flashcards, scored quiz, MM calculator, drills.</li>'
         '</ul></div>')
     nav = ('<nav class="tabs">'
            '<button class="tab on" data-t="gs">Getting Started</button>'
            '<button class="tab" data-t="daily">Daily Analysis</button>'
+           '<button class="tab" data-t="academy">Academy</button>'
+           '<button class="tab" data-t="method">Method</button>'
+           '<button class="tab" data-t="diagrams">Diagrams</button>'
+           '<button class="tab" data-t="quiz">Quiz</button>'
            '<button class="tab" data-t="about">About / Sync</button></nav>')
     gs_pane = (f'<section id="tab-gs" class="tabpane"><div class="wrap">'
                f'<p class="lead">David Halsey\'s Getting Started curriculum, in his order. '
@@ -435,7 +499,11 @@ def main():
             f'<header><h1>EminiAddict</h1></header>{nav}'
             f'{gs_pane}'
             f'<section id="tab-daily" class="tabpane" hidden>{daily_pane}</section>'
-            f'<section id="tab-about" class="tabpane" hidden>{about_pane}</section>'
+            f'<section id="tab-academy" class="tabpane" hidden>{academy_pane()}</section>'
+            + embed_iframe_pane("eminiaddict_measured_move_method.html", "method")
+            + embed_iframe_pane("eminiaddict_diagrams.html", "diagrams")
+            + embed_iframe_pane("eminiaddict_method_study_quiz.html", "quiz")
+            + f'<section id="tab-about" class="tabpane" hidden>{about_pane}</section>'
             f'<button id="home" onclick="window.scrollTo({{top:0,behavior:\'smooth\'}})">⤒ TOP</button>'
             f'{lb_html}<script>{LB_JS}</script></body></html>')
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
@@ -650,8 +718,9 @@ def register_mc():
         cat = []
     items = cat if isinstance(cat, list) else cat.get("items", cat.get("artifacts", []))
     entry = {"title": "EminiAddict Tool", "group": "EminiAddict", "url": "",
-             "info": "One-page EminiAddict tool: Getting Started curriculum + Daily analysis "
-                     "reports + scenario tracker. Self-contained (syncable across machines)."}
+             "info": "ALL-IN-ONE EminiAddict tool: Getting Started curriculum + Daily analysis "
+                     "reports + Academy curriculum + Method reference + Diagrams + Quiz — one "
+                     "self-contained file (syncable across machines)."}
     items = [i for i in items if i.get("title") != entry["title"]]
     items.append(entry)
     if isinstance(cat, list):

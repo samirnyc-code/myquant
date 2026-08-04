@@ -76,16 +76,16 @@ CHEAT = [
     ("61.8% failure", "trend-change signal", "#f85149"), ("ATW-HWB", "50% of the whole series after a break", "#e3b341"),
 ]
 
-cheat_html = "".join(
-    f'<div class="cc"><span class="sw" style="background:{c}"></span><b>{k}</b> — {v}</div>'
-    for k, v, c in CHEAT)
-mods_html = ""
-for title, blurb, links in MODULES:
-    li = "".join(f'<li><a href="{href}">{lab}</a></li>' if href else f"<li>{lab}</li>"
-                 for lab, href in links)
-    mods_html += (f'<div class="mod"><h3>{title}</h3><p>{blurb}</p><ul>{li}</ul></div>')
-
-HTML = f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
+def _build_html():
+    cheat_html = "".join(
+        f'<div class="cc"><span class="sw" style="background:{c}"></span><b>{k}</b> — {v}</div>'
+        for k, v, c in CHEAT)
+    mods_html = ""
+    for title, blurb, links in MODULES:
+        li = "".join(f'<li><a href="{href}">{lab}</a></li>' if href else f"<li>{lab}</li>"
+                     for lab, href in links)
+        mods_html += (f'<div class="mod"><h3>{title}</h3><p>{blurb}</p><ul>{li}</ul></div>')
+    return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>{TITLE}</title>
 <style>
 :root{{--bg:#0d1117;--card:#161b22;--chip:#30363d;--fg:#e6edf3;--mut:#8b949e;--blue:#58a6ff;--gold:#e3b341}}
@@ -128,17 +128,20 @@ h2{{font-size:13px;color:var(--mut);text-transform:uppercase;letter-spacing:.05e
  </div>
 </div></body></html>"""
 
-OUT.write_text(HTML, encoding="utf-8")
-print(f"wrote {OUT} ({round(len(HTML)/1024,1)} KB)")
 
-cat = json.loads(CATALOG.read_text(encoding="utf-8"))
-its = cat["artifacts"]
-info = ("Ground-up learning hub for David Halsey's Measured-Move method — a 9-module "
-        "curriculum (foundations -> setups -> entries -> exits -> the decision-tree flow chart "
-        "-> daily process -> signal alignment -> gaps/rules -> practice) that ties together the "
-        "method reference, his teaching diagrams + both flow charts, and the study quiz, with a "
-        "cheat-sheet.")
-its[:] = [a for a in its if a.get("title") != TITLE]
-its.insert(0, {"title": TITLE, "url": "", "updated": DATE, "group": "EminiAddict", "info": info})
-CATALOG.write_text(json.dumps(cat, indent=1, ensure_ascii=False), encoding="utf-8")
-print(f"registered '{TITLE}'")
+if __name__ == "__main__":
+    HTML = _build_html()
+    OUT.write_text(HTML, encoding="utf-8")
+    print(f"wrote {OUT} ({round(len(HTML)/1024,1)} KB)")
+
+    cat = json.loads(CATALOG.read_text(encoding="utf-8"))
+    its = cat["artifacts"]
+    info = ("Ground-up learning hub for David Halsey's Measured-Move method — a 9-module "
+            "curriculum (foundations -> setups -> entries -> exits -> the decision-tree flow chart "
+            "-> daily process -> signal alignment -> gaps/rules -> practice) that ties together the "
+            "method reference, his teaching diagrams + both flow charts, and the study quiz, with a "
+            "cheat-sheet.")
+    its[:] = [a for a in its if a.get("title") != TITLE]
+    its.insert(0, {"title": TITLE, "url": "", "updated": DATE, "group": "EminiAddict", "info": info})
+    CATALOG.write_text(json.dumps(cat, indent=1, ensure_ascii=False), encoding="utf-8")
+    print(f"registered '{TITLE}'")
