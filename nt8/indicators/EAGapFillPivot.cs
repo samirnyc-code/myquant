@@ -50,10 +50,15 @@ using NinjaTrader.NinjaScript;
 using NinjaTrader.NinjaScript.DrawingTools;
 #endregion
 
-namespace NinjaTrader.NinjaScript.Indicators
+// declared in the parent namespace so NT's auto-generated wrappers
+// (Indicators/MarketAnalyzerColumns/Strategies namespaces) can all resolve it
+namespace NinjaTrader.NinjaScript
 {
     public enum EagfDistanceUnit { Points, Ticks }
+}
 
+namespace NinjaTrader.NinjaScript.Indicators
+{
     public class EAGapFillPivot : Indicator
     {
         // today's building RTH values
