@@ -256,7 +256,8 @@ def grade_at_fill(trig, net, spot, plan):
     return "C", reg
 
 
-CREDIT_SETUPS = ("sell_0dte_gamma", "cr0_fade", "ps0_fade")
+CREDIT_SETUPS = ("sell_0dte_gamma", "cr0_fade", "ps0_fade",
+                 "sell_bps", "sell_bcs", "sell_bps_atm", "sell_bcs_atm")
 
 
 def short_strike(trig):
