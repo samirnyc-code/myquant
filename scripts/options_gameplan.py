@@ -228,9 +228,11 @@ def build_triggers(spot, vix, gx):
     # 09:05 CT — after the 09:00 CT / 10:00 ET data. Deterministic from the brief,
     # so the scheduled --force rebuild reproduces it. The OPEN is still captured
     # at 08:30 by the daemon; dynamic strikes are struck from the 09:05 spot.
+    # (revised 08-04: EOD strategies keep the 08:30 open entry — their strikes are
+    # premarket-fixed; only the entry-spot-dependent streams (open, gexlog) wait.)
     if gx.get("playbook_wait"):
         for t in T:
-            if t["fire"].get("type") == "time_at":
+            if t["fire"].get("type") == "time_at" and t.get("stream") in ("open", "gexlog"):
                 t["fire"]["not_before"] = "09:05"
                 t["window"] = ["09:05", "10:00"]
                 t["grade_basis"] = (t.get("grade_basis", "") +

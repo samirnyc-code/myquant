@@ -1,6 +1,6 @@
 {
   "date": "20260804",
-  "generated_at": "2026-08-04 08:21:04 CT",
+  "generated_at": "2026-08-04 08:24:21 CT",
   "spot_preopen": 7600.45,
   "spot_source": "15:20 tape",
   "vix": 15.989999771118164,
@@ -121,11 +121,11 @@
       },
       "fire": {
         "type": "time_at",
-        "not_before": "09:05"
+        "not_before": "08:30"
       },
       "window": [
-        "09:05",
-        "10:00"
+        "08:30",
+        "09:30"
       ],
       "structure": {
         "kind": "vertical",
@@ -135,7 +135,7 @@
         "width": 25
       },
       "projected_grade": "C",
-      "grade_basis": "EOD condor put \u2014 prior-close EM low (gexlog brief) [WAIT day: entry 09:05 CT post-event per brief]",
+      "grade_basis": "EOD condor put \u2014 prior-close EM low (gexlog brief)",
       "group": "[EOD] Iron Condor",
       "center": "eod",
       "status": "armed",
@@ -155,11 +155,11 @@
       },
       "fire": {
         "type": "time_at",
-        "not_before": "09:05"
+        "not_before": "08:30"
       },
       "window": [
-        "09:05",
-        "10:00"
+        "08:30",
+        "09:30"
       ],
       "structure": {
         "kind": "vertical",
@@ -169,7 +169,7 @@
         "width": 25
       },
       "projected_grade": "C",
-      "grade_basis": "EOD condor call \u2014 prior-close EM high (gexlog brief) [WAIT day: entry 09:05 CT post-event per brief]",
+      "grade_basis": "EOD condor call \u2014 prior-close EM high (gexlog brief)",
       "group": "[EOD] Iron Condor",
       "center": "eod",
       "status": "armed",
@@ -189,11 +189,11 @@
       },
       "fire": {
         "type": "time_at",
-        "not_before": "09:05"
+        "not_before": "08:30"
       },
       "window": [
-        "09:05",
-        "10:00"
+        "08:30",
+        "09:30"
       ],
       "structure": {
         "kind": "vertical",
@@ -203,7 +203,7 @@
         "width": 25
       },
       "projected_grade": "C",
-      "grade_basis": "EOD fly put \u2014 ATM = prior close [WAIT day: entry 09:05 CT post-event per brief]",
+      "grade_basis": "EOD fly put \u2014 ATM = prior close",
       "group": "[EOD] Iron Fly",
       "center": "eod",
       "status": "armed",
@@ -223,11 +223,11 @@
       },
       "fire": {
         "type": "time_at",
-        "not_before": "09:05"
+        "not_before": "08:30"
       },
       "window": [
-        "09:05",
-        "10:00"
+        "08:30",
+        "09:30"
       ],
       "structure": {
         "kind": "vertical",
@@ -237,7 +237,7 @@
         "width": 25
       },
       "projected_grade": "C",
-      "grade_basis": "EOD fly call \u2014 ATM = prior close [WAIT day: entry 09:05 CT post-event per brief]",
+      "grade_basis": "EOD fly call \u2014 ATM = prior close",
       "group": "[EOD] Iron Fly",
       "center": "eod",
       "status": "armed",
