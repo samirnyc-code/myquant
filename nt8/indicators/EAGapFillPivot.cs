@@ -108,7 +108,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 ShowBand3           = true;
 
                 ShowHoverLabel      = true;
-                ShowInfoBox         = false;
+                ShowInfoBox         = true;
                 InfoBoxPosition     = TextPosition.TopRight;
                 DistanceUnit        = EagfDistanceUnit.Points;
                 ShowTouchMarkers    = true;
@@ -191,9 +191,14 @@ namespace NinjaTrader.NinjaScript.Indicators
             {
                 for (int i = 0; i < 10; i++)
                     Values[i].Reset();
-                RemoveAllLines();   // hard guarantee: nothing prints outside RTH
+                RemoveAllLines();   // hard guarantee: no LINES outside RTH
                 if (isLastDay)
-                    lock (levelLock) activeLevels.Clear();
+                {
+                    // hover + info box stay live outside RTH with the pending
+                    // next-session levels (no half gap until today's open exists)
+                    BuildPendingLevels();
+                    if (ShowInfoBox) DrawInfoBox(Close[0]); else RemoveDrawObject("EAGF_info");
+                }
                 return;
             }
 
@@ -263,6 +268,32 @@ namespace NinjaTrader.NinjaScript.Indicators
                 DrawInfoBox(Close[0]);
             else
                 RemoveDrawObject("EAGF_info");
+        }
+
+        // levels known BEFORE the next RTH open (and after today's close), built
+        // from the still-accumulating cur* values: everything except the half gap,
+        // which needs the upcoming session's open print
+        private void BuildPendingLevels()
+        {
+            lock (levelLock)
+            {
+                activeLevels.Clear();
+                if (curHigh <= 0 || curClose <= 0)
+                    return;
+                double fullGap = curClose;
+                double pivot   = (curClose + curHigh + curLow) / 3.0;
+                bool[] ring    = { ShowBand1, ShowBand2, ShowBand3 };
+                if (ShowPivot)   activeLevels.Add(new Lvl { Name = "Pivot",    Val = pivot,   PlotIdx = 0 });
+                if (ShowFullGap) activeLevels.Add(new Lvl { Name = "Full Gap", Val = fullGap, PlotIdx = 2 });
+                if (ShowGlobexPivot && pendingGlobexClose > 0)
+                    activeLevels.Add(new Lvl { Name = "Glbx Piv", Val = (pendingGlobexClose + curHigh + curLow) / 3.0, PlotIdx = 3 });
+                for (int k = 1; k <= 3; k++)
+                {
+                    if (!ring[k - 1]) continue;
+                    activeLevels.Add(new Lvl { Name = "FG +" + k * OffsetPoints, Val = fullGap + k * OffsetPoints, PlotIdx = 2 + 2 * k });
+                    activeLevels.Add(new Lvl { Name = "FG -" + k * OffsetPoints, Val = fullGap - k * OffsetPoints, PlotIdx = 3 + 2 * k });
+                }
+            }
         }
 
         // info box: one line per visible level, nearest first, signed distance in points
@@ -342,13 +373,13 @@ namespace NinjaTrader.NinjaScript.Indicators
             mouseX = ChartingExtensions.ConvertToHorizontalPixels(p.X, ChartControl.PresentationSource);
             mouseY = ChartingExtensions.ConvertToVerticalPixels(p.Y, ChartControl.PresentationSource);
             mouseValid = true;
-            if (ShowHoverLabel) ChartControl.InvalidateVisual();
+            if (ShowHoverLabel) ForceRefresh();
         }
 
         private void OnChartMouseLeave(object sender, System.Windows.Input.MouseEventArgs e)
         {
             mouseValid = false;
-            if (ChartControl != null && ShowHoverLabel) ChartControl.InvalidateVisual();
+            if (ChartControl != null && ShowHoverLabel) ForceRefresh();
         }
 
         // how many bars to project: FutureBars, but never past the RTH close.
@@ -385,7 +416,6 @@ namespace NinjaTrader.NinjaScript.Indicators
             RemoveDrawObject("EAGF_half");
             RemoveDrawObject("EAGF_full");
             RemoveDrawObject("EAGF_gpiv");
-            RemoveDrawObject("EAGF_info");
             for (int k = 1; k <= 3; k++)
             {
                 RemoveDrawObject("EAGF_p" + k);
