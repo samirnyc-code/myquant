@@ -117,6 +117,7 @@ def es_chart_b64(date_iso, levels):
 GS = os.path.join(ROOT, "eminiaddict", "data", "site", "getting_started")
 TR = os.path.join(GS, "transcripts")
 NUG = os.path.join(GS, "nuggets")          # <idx>_*.md nugget files (assistant-produced)
+WEB = os.path.join(ROOT, "eminiaddict", "data", "site", "webinars")   # scrape_webinars.py
 OUT = os.path.join(ROOT, "docs", "artifacts", "eminiaddict_tool.html")
 ARTI = os.path.join(ROOT, "docs", "artifacts")               # built pages embedded as tabs
 DAILY = os.path.join(ROOT, "eminiaddict", "data", "daily")   # daily reports live here
@@ -214,6 +215,11 @@ table.dt td{border-bottom:1px solid #1c2128;padding:4px 8px;vertical-align:top}
 .acmod{background:var(--card);border:1px solid var(--chip);border-radius:12px;padding:16px 20px;margin:12px 0;border-left:3px solid var(--gold)}
 .acmod h3{margin:0 0 6px;font-size:15.5px}.acmod p{margin:0 0 10px;color:var(--mut);font-size:13.5px}
 .acmod ul{margin:0;padding-left:20px}.acmod li{margin:4px 0;font-size:13.5px}
+.vid video{width:100%;max-width:860px;display:block;border:1px solid var(--chip);border-radius:8px;background:#000;margin:6px 0}
+.embedframe{width:100%;max-width:960px;height:540px;border:1px solid var(--chip);border-radius:8px;background:#fff;margin:8px 0}
+.webi{background:#0b0f14;border:1px solid var(--chip);border-radius:9px;padding:8px 14px;margin:8px 0}
+.webi>summary{cursor:pointer;color:var(--fg);font-weight:600}
+.webi.dupe{color:var(--mut);font-size:13.5px}.webi.dupe b{color:#cbd5e1}
 """
 
 LB_JS = r"""
@@ -338,6 +344,60 @@ def b64img(path, maxw=1400, jpeg=False, quality=82):
 def esc(s):
     return html.escape(s or "")
 
+def video_player(url):
+    """Inline streaming player — the mp4s are public S3, so nothing is embedded (zero size)."""
+    u = esc(url.replace("&amp;", "&"))
+    return (f'<div class="vid"><video controls preload="none" src="{u}"></video>'
+            f'🎬 <a href="{u}" target="_blank">open video in its own tab</a></div>')
+
+
+def embed_frame(url):
+    """Non-video member embeds (OneDrive calculator, SlideShare decks) as live iframes."""
+    u = esc(url.replace("&amp;", "&"))
+    return (f'<iframe class="embedframe" src="{u}" loading="lazy" allowfullscreen></iframe>'
+            f'<div class="vid">🔗 <a href="{u}" target="_blank">open in its own tab</a></div>')
+
+
+def _wslug(s):
+    return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")[:48] or "item"
+
+
+def webinars_block():
+    """The 'Webinars' section body: the full collection from scrape_webinars.py.
+    Dupes of Getting Started lessons just point there (no duplicated content); the rest get
+    an inline player + key points + transcript once transcribed."""
+    mf = os.path.join(WEB, "manifest.json")
+    if not os.path.exists(mf):
+        return ""
+    man = json.load(open(mf, encoding="utf-8"))
+    out = ['<p>The full member webinar collection. Webinars that repeat a lesson above just '
+           'link there; the method webinars carry key points and a transcript once '
+           'transcribed (macro-commentary ones stay video-only).</p>']
+    for m in man:
+        lbl = esc(m["label"])
+        if m.get("dupe_of_lesson") is not None:
+            li = m["dupe_of_lesson"]
+            out.append(f'<div class="webi dupe"><b>{lbl}</b> — same video as '
+                       f'<a href="#m{li}">Lesson {li:02d}</a> above.</div>')
+            continue
+        inner = []
+        nf = os.path.join(WEB, "nuggets", f"{m['idx']:02d}.md")
+        if os.path.exists(nf):
+            inner.append(f'<div class="nug"><div class="hd">📌 Key points</div>'
+                         f'{md_to_html(open(nf, encoding="utf-8").read())}</div>')
+        if m.get("mp4"):
+            inner.append(video_player(m["mp4"]))
+        elif m.get("videos"):
+            inner.append(embed_frame(m["videos"][0]))
+        tf = os.path.join(WEB, "transcripts", f"{m['idx']:02d}_{_wslug(m['label'])}.txt")
+        if os.path.exists(tf):
+            tx = open(tf, encoding="utf-8").read()
+            inner.append(f'<details><summary>Transcript ({len(tx.splitlines())} lines)'
+                         f'</summary><pre>{esc(tx)}</pre></details>')
+        out.append(f'<details class="webi"><summary>{lbl}</summary>{"".join(inner)}</details>')
+    return "".join(out)
+
+
 def render_glossary(text):
     # glossary text is "Term – definition. Term2 – ..." ; split on " – " heuristically
     out = ['<dl class="glossary">']
@@ -399,6 +459,15 @@ def main():
             item = json.load(open(os.path.join(item_dir, "item.json"), encoding="utf-8"))
         text = item.get("text", "")
         parts = []
+        # the Webinars page renders as the full scraped collection, not its run-on text
+        if r["label"].strip().lower() == "webinars":
+            wb = webinars_block()
+            if wb:
+                head = (f'<div class="k">Lesson {idx:02d}</div>'
+                        f'<div class="modhead"><span class="arw">▶</span>{label}</div>')
+                mods.append(f'<div class="mod" id="{anchor}">{head}'
+                            f'<div class="modbody">{wb}</div></div>')
+                continue
         # NUGGETS card FIRST (read the summary before the video/slides)
         nf = os.path.join(NUG, f"{idx:02d}.md")
         if os.path.exists(nf):
@@ -422,11 +491,13 @@ def main():
                         parts.append(f'<img src="{d}" loading="lazy" data-sid="{sid}" '
                                      f'data-ttl="{label} — {im}">')
                 parts.append("</div>")
-        # video link
+        # media: mp4 -> inline streaming player; SmartPlayer page dupes skipped;
+        # anything else (OneDrive calculator, SlideShare decks) -> live iframe embed
         for v in r.get("videos", []):
             if v.endswith(".mp4"):
-                parts.append(f'<div class="vid">🎬 <a href="{esc(v)}" target="_blank">'
-                             f'Lesson video (public)</a></div>')
+                parts.append(video_player(v))
+            elif "_player.html" not in v:
+                parts.append(embed_frame(v))
         # transcript (collapsible) if present
         tname = f"{idx:02d}_" + re.sub(r'[^a-z0-9]+', '-', r['label'].lower()).strip('-')[:40]
         tf = os.path.join(TR, tname + ".txt")
@@ -434,7 +505,7 @@ def main():
             tx = open(tf, encoding="utf-8").read()
             parts.append(f'<details><summary>Transcript ({len(tx.splitlines())} lines)</summary>'
                          f'<pre>{esc(tx)}</pre></details>')
-        elif r.get("videos"):
+        elif any(v.endswith(".mp4") for v in r.get("videos", [])):
             parts.append('<p class="pending">Transcript + nuggets pending transcription…</p>')
         head = (f'<div class="k">Lesson {idx:02d}</div>'
                 f'<div class="modhead"><span class="arw">▶</span>{label}</div>')
