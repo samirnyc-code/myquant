@@ -2,13 +2,18 @@
 // "Half Gap Fill, Full Gap Fill, and Trading Hours only Pivot Point"
 // ($V:build_1324:2009.05.09:1.0.3) + Samir's added +/-10/20/30 pt bands.
 //
-// v1.3 DISPLAY: line PLOTS (fully customizable per-level in the chart dialog's
-// Plots panel — color/width/dash) starting at the RTH OPEN bar and running
-// right until EOD. On the current day the levels are additionally projected up
-// to FutureBars past the current bar via Draw.Line segments that INHERIT each
-// plot's Plots-panel style, capped so they never extend past the RTH close.
-// (The ToS original could only paint per-bar dots — no future projection
-// exists in thinkscript.)
+// v1.4:
+//   - Per-level visibility toggles (Visibility group): Pivot, Half Gap, Full Gap,
+//     Globex Pivot, and per-ring band toggles (+/-1x, +/-2x, +/-3x).
+//   - Hover tooltip: move the cursor within a few px of a level line and a
+//     name+value label pops up next to the cursor, offset ABOVE the line so it
+//     never covers the line itself (chart-label no-overlap rule). Today's levels only.
+//   - Optional info box (Draw.TextFixed, corner selectable): one line per visible
+//     level — name, price, signed distance from last price in points — sorted
+//     nearest-first. Off by default.
+//   - Line plots run from the RTH open bar to EOD; current-day projection ahead
+//     of the last bar inherits each plot's Plots-panel style and is capped at the
+//     cash close; outside RTH every projection object is actively removed.
 //
 // LEVELS (default colors):
 //   PivotPoint   = (prevRthClose + prevRthHigh + prevRthLow) / 3   [cyan]
@@ -19,9 +24,9 @@
 //
 // PORT NOTES vs the ToS original:
 //   - NT8 stamps bars with their END time (ToS uses start time) — verified
-//     empirically against this machine's MarketInternalExporter output. So the
-//     ToS 09:45 "offset" bar gymnastics are gone and this works on ANY intraday
-//     timeframe. Today's RTH open = Open[] of the first bar ending after RthOpenTime.
+//     empirically against this machine's MarketInternalExporter output. Works on
+//     any intraday timeframe; today's RTH open = Open[] of the first bar ending
+//     after RthOpenTime.
 //   - Session times are properties in the CHART'S DISPLAY TIMEZONE. Defaults are
 //     CT (RTH 08:30-15:00, globex close 16:00); NT here is set to Chicago.
 //     The 2009 original was ET (09:30/16:00/16:15).
@@ -31,6 +36,7 @@
 
 #region Using declarations
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Windows.Media;
@@ -39,6 +45,7 @@ using NinjaTrader.Cbi;
 using NinjaTrader.Data;
 using NinjaTrader.Gui;
 using NinjaTrader.Gui.Chart;
+using NinjaTrader.Gui.Tools;
 using NinjaTrader.NinjaScript;
 using NinjaTrader.NinjaScript.DrawingTools;
 #endregion
@@ -56,12 +63,21 @@ namespace NinjaTrader.NinjaScript.Indicators
         private double   pendingGlobexClose;
         private bool     halfHit, fullHit;
 
+        // today's active (visible) levels, for the hover tooltip + info box
+        private class Lvl { public string Name; public double Val; public int PlotIdx; }
+        private readonly List<Lvl> activeLevels = new List<Lvl>();
+        private readonly object levelLock = new object();
+
+        // mouse state for the hover tooltip (chart-control pixel coords)
+        private int  mouseX = -1, mouseY = -1;
+        private bool mouseValid;
+
         protected override void OnStateChange()
         {
             if (State == State.SetDefaults)
             {
                 Name                       = "EAGapFillPivot";
-                Description                = "EminiAddict gap fill + RTH pivot (ToS port): levels from the RTH open bar to EOD, projected ahead intraday";
+                Description                = "EminiAddict gap fill + RTH pivot (ToS port): levels from the RTH open bar to EOD, hover labels, optional distance box";
                 Calculate                  = Calculate.OnBarClose;
                 IsOverlay                  = true;
                 DisplayInDataBox           = true;
@@ -70,12 +86,23 @@ namespace NinjaTrader.NinjaScript.Indicators
 
                 ShowTodayOnly       = false;
                 HideGapFillsOnceHit = false;
-                ShowGlobexPivot     = false;
                 RthOpenTime         = 83000;    // HHmmss, chart display time (CT default)
                 RthCloseTime        = 150000;
                 GlobexCloseTime     = 160000;
                 OffsetPoints        = 10;
                 FutureBars          = 20;
+
+                ShowPivot           = true;
+                ShowHalfGap         = true;
+                ShowFullGap         = true;
+                ShowGlobexPivot     = false;
+                ShowBand1           = true;
+                ShowBand2           = true;
+                ShowBand3           = true;
+
+                ShowHoverLabel      = true;
+                ShowInfoBox         = false;
+                InfoBoxPosition     = TextPosition.TopRight;
 
                 AddPlot(new Stroke(Brushes.Cyan,       2), PlotStyle.Line, "PivotPoint");    // Values[0]
                 AddPlot(new Stroke(Brushes.Lime,       2), PlotStyle.Line, "HalfGapFill");   // Values[1]
@@ -87,6 +114,22 @@ namespace NinjaTrader.NinjaScript.Indicators
                 AddPlot(new Stroke(Brushes.Silver,     1), PlotStyle.Line, "FullGapM2");     // Values[7]
                 AddPlot(new Stroke(Brushes.Silver,     1), PlotStyle.Line, "FullGapP3");     // Values[8]
                 AddPlot(new Stroke(Brushes.Silver,     1), PlotStyle.Line, "FullGapM3");     // Values[9]
+            }
+            else if (State == State.DataLoaded)
+            {
+                if (ChartControl != null)
+                {
+                    ChartControl.MouseMove  += OnChartMouseMove;
+                    ChartControl.MouseLeave += OnChartMouseLeave;
+                }
+            }
+            else if (State == State.Terminated)
+            {
+                if (ChartControl != null)
+                {
+                    ChartControl.MouseMove  -= OnChartMouseMove;
+                    ChartControl.MouseLeave -= OnChartMouseLeave;
+                }
             }
         }
 
@@ -138,6 +181,8 @@ namespace NinjaTrader.NinjaScript.Indicators
                 for (int i = 0; i < 10; i++)
                     Values[i].Reset();
                 RemoveAllLines();   // hard guarantee: nothing prints outside RTH
+                if (isLastDay)
+                    lock (levelLock) activeLevels.Clear();
                 return;
             }
 
@@ -145,41 +190,151 @@ namespace NinjaTrader.NinjaScript.Indicators
             double halfGap = prevClose + (rthOpen - prevClose) / 2.0;
             double fullGap = prevClose;
 
-            Values[0][0] = pivot;
-
-            if (!(HideGapFillsOnceHit && halfHit)) Values[1][0] = halfGap; else Values[1].Reset();
-            if (!(HideGapFillsOnceHit && fullHit)) Values[2][0] = fullGap; else Values[2].Reset();
-
+            bool showHalf = ShowHalfGap && !(HideGapFillsOnceHit && halfHit);
+            bool showFull = ShowFullGap && !(HideGapFillsOnceHit && fullHit);
             bool haveGpiv = ShowGlobexPivot && prevGlobexClose > 0;
             double gpiv   = haveGpiv ? (prevGlobexClose + prevHigh + prevLow) / 3.0 : 0;
-            if (haveGpiv) Values[3][0] = gpiv; else Values[3].Reset();
+            bool[] ring   = { ShowBand1, ShowBand2, ShowBand3 };
 
-            Values[4][0] = fullGap + 1 * OffsetPoints;
-            Values[5][0] = fullGap - 1 * OffsetPoints;
-            Values[6][0] = fullGap + 2 * OffsetPoints;
-            Values[7][0] = fullGap - 2 * OffsetPoints;
-            Values[8][0] = fullGap + 3 * OffsetPoints;
-            Values[9][0] = fullGap - 3 * OffsetPoints;
+            if (ShowPivot) Values[0][0] = pivot;   else Values[0].Reset();
+            if (showHalf)  Values[1][0] = halfGap; else Values[1].Reset();
+            if (showFull)  Values[2][0] = fullGap; else Values[2].Reset();
+            if (haveGpiv)  Values[3][0] = gpiv;    else Values[3].Reset();
+            for (int k = 1; k <= 3; k++)
+            {
+                if (ring[k - 1])
+                {
+                    Values[2 + 2 * k][0] = fullGap + k * OffsetPoints;
+                    Values[3 + 2 * k][0] = fullGap - k * OffsetPoints;
+                }
+                else
+                {
+                    Values[2 + 2 * k].Reset();
+                    Values[3 + 2 * k].Reset();
+                }
+            }
 
             // register touches AFTER plotting so the touch bar stays visible
             if (High[0] >= halfGap && Low[0] <= halfGap) halfHit = true;
             if (High[0] >= fullGap && Low[0] <= fullGap) fullHit = true;
 
-            // project today's levels ahead of the current bar, capped at EOD.
-            // Constant tags -> the segments advance with each new bar.
-            if (isLastDay)
+            if (!isLastDay)
+                return;
+
+            // ---- current day only: projection lines, tooltip inventory, info box ----
+            int ahead = BarsAhead(t);
+            FutureLine("piv",  0, pivot,   ahead, ShowPivot);
+            FutureLine("half", 1, halfGap, ahead, showHalf);
+            FutureLine("full", 2, fullGap, ahead, showFull);
+            FutureLine("gpiv", 3, gpiv,    ahead, haveGpiv);
+            for (int k = 1; k <= 3; k++)
             {
-                int ahead = BarsAhead(t);
-                FutureLine("piv",  0, pivot,   ahead, true);
-                FutureLine("half", 1, halfGap, ahead, !(HideGapFillsOnceHit && halfHit));
-                FutureLine("full", 2, fullGap, ahead, !(HideGapFillsOnceHit && fullHit));
-                FutureLine("gpiv", 3, gpiv,    ahead, haveGpiv);
+                FutureLine("p" + k, 2 + 2 * k, fullGap + k * OffsetPoints, ahead, ring[k - 1]);
+                FutureLine("m" + k, 3 + 2 * k, fullGap - k * OffsetPoints, ahead, ring[k - 1]);
+            }
+
+            lock (levelLock)
+            {
+                activeLevels.Clear();
+                if (ShowPivot) activeLevels.Add(new Lvl { Name = "Pivot",     Val = pivot,   PlotIdx = 0 });
+                if (showHalf)  activeLevels.Add(new Lvl { Name = "Half Gap",  Val = halfGap, PlotIdx = 1 });
+                if (showFull)  activeLevels.Add(new Lvl { Name = "Full Gap",  Val = fullGap, PlotIdx = 2 });
+                if (haveGpiv)  activeLevels.Add(new Lvl { Name = "Glbx Piv",  Val = gpiv,    PlotIdx = 3 });
                 for (int k = 1; k <= 3; k++)
                 {
-                    FutureLine("p" + k, 2 + 2 * k, fullGap + k * OffsetPoints, ahead, true);
-                    FutureLine("m" + k, 3 + 2 * k, fullGap - k * OffsetPoints, ahead, true);
+                    if (!ring[k - 1]) continue;
+                    activeLevels.Add(new Lvl { Name = "FG +" + k * OffsetPoints, Val = fullGap + k * OffsetPoints, PlotIdx = 2 + 2 * k });
+                    activeLevels.Add(new Lvl { Name = "FG -" + k * OffsetPoints, Val = fullGap - k * OffsetPoints, PlotIdx = 3 + 2 * k });
                 }
             }
+
+            if (ShowInfoBox)
+                DrawInfoBox(Close[0]);
+            else
+                RemoveDrawObject("EAGF_info");
+        }
+
+        // info box: one line per visible level, nearest first, signed distance in points
+        private void DrawInfoBox(double last)
+        {
+            List<Lvl> snap;
+            lock (levelLock) snap = new List<Lvl>(activeLevels);
+            if (snap.Count == 0) { RemoveDrawObject("EAGF_info"); return; }
+            snap.Sort((a, b) => Math.Abs(a.Val - last).CompareTo(Math.Abs(b.Val - last)));
+
+            var sb = new System.Text.StringBuilder();
+            foreach (Lvl l in snap)
+            {
+                double d = l.Val - last;
+                sb.AppendFormat("{0,-9} {1,9}  {2}{3:F2}\n",
+                    l.Name, Instrument.MasterInstrument.FormatPrice(l.Val), d >= 0 ? "+" : "-", Math.Abs(d));
+            }
+            Draw.TextFixed(this, "EAGF_info", sb.ToString().TrimEnd('\n'), InfoBoxPosition,
+                Brushes.White, new SimpleFont("Consolas", 13), Brushes.DimGray, Brushes.Black, 60);
+        }
+
+        // hover tooltip: name + value next to the cursor when within a few px of a
+        // level line, offset above the line so it never overlaps it
+        protected override void OnRender(ChartControl chartControl, ChartScale chartScale)
+        {
+            base.OnRender(chartControl, chartScale);
+            if (!ShowHoverLabel || !mouseValid || RenderTarget == null)
+                return;
+
+            List<Lvl> snap;
+            lock (levelLock) snap = new List<Lvl>(activeLevels);
+            if (snap.Count == 0)
+                return;
+
+            if (mouseX < ChartPanel.X || mouseX > ChartPanel.X + ChartPanel.W ||
+                mouseY < ChartPanel.Y || mouseY > ChartPanel.Y + ChartPanel.H)
+                return;
+
+            // nearest level within 8 px of the cursor
+            Lvl best = null; double bestPx = 8.0; float bestY = 0;
+            foreach (Lvl l in snap)
+            {
+                float y = chartScale.GetYByValue(l.Val);
+                double dpx = Math.Abs(mouseY - y);
+                if (dpx <= bestPx) { bestPx = dpx; best = l; bestY = y; }
+            }
+            if (best == null)
+                return;
+
+            string txt = best.Name + "  " + Instrument.MasterInstrument.FormatPrice(best.Val);
+            using (var tf = new SharpDX.DirectWrite.TextFormat(NinjaTrader.Core.Globals.DirectWriteFactory, "Segoe UI", 14f))
+            using (var tl = new SharpDX.DirectWrite.TextLayout(NinjaTrader.Core.Globals.DirectWriteFactory, txt, tf, 500, 30))
+            {
+                float w = tl.Metrics.Width + 10, h = tl.Metrics.Height + 6;
+                float x = Math.Min(mouseX + 14, ChartPanel.X + ChartPanel.W - w);
+                float y = bestY - h - 8;                       // above the line
+                if (y < ChartPanel.Y) y = bestY + 8;           // below if no room
+                var rect = new SharpDX.RectangleF(x, y, w, h);
+
+                using (var bg = new SharpDX.Direct2D1.SolidColorBrush(RenderTarget, new SharpDX.Color4(0f, 0f, 0f, 0.85f)))
+                    RenderTarget.FillRectangle(rect, bg);
+                using (var border = Plots[best.PlotIdx].Brush.ToDxBrush(RenderTarget))
+                {
+                    RenderTarget.DrawRectangle(rect, border);
+                    RenderTarget.DrawTextLayout(new SharpDX.Vector2(x + 5, y + 3), tl, border);
+                }
+            }
+        }
+
+        private void OnChartMouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+        {
+            if (ChartControl == null) return;
+            var p  = e.GetPosition(ChartControl);
+            mouseX = ChartingExtensions.ConvertToHorizontalPixels(p.X, ChartControl.PresentationSource);
+            mouseY = ChartingExtensions.ConvertToVerticalPixels(p.Y, ChartControl.PresentationSource);
+            mouseValid = true;
+            if (ShowHoverLabel) ChartControl.InvalidateVisual();
+        }
+
+        private void OnChartMouseLeave(object sender, System.Windows.Input.MouseEventArgs e)
+        {
+            mouseValid = false;
+            if (ChartControl != null && ShowHoverLabel) ChartControl.InvalidateVisual();
         }
 
         // how many bars to project: FutureBars, but never past the RTH close.
@@ -202,6 +357,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             RemoveDrawObject("EAGF_half");
             RemoveDrawObject("EAGF_full");
             RemoveDrawObject("EAGF_gpiv");
+            RemoveDrawObject("EAGF_info");
             for (int k = 1; k <= 3; k++)
             {
                 RemoveDrawObject("EAGF_p" + k);
@@ -233,33 +389,69 @@ namespace NinjaTrader.NinjaScript.Indicators
         public bool HideGapFillsOnceHit { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name = "Show globex pivot", GroupName = "Parameters", Order = 2)]
-        public bool ShowGlobexPivot { get; set; }
-
-        [NinjaScriptProperty]
         [Range(0, 235959)]
-        [Display(Name = "RTH open (HHmmss, chart time)", GroupName = "Parameters", Order = 3)]
+        [Display(Name = "RTH open (HHmmss, chart time)", GroupName = "Parameters", Order = 2)]
         public int RthOpenTime { get; set; }
 
         [NinjaScriptProperty]
         [Range(0, 235959)]
-        [Display(Name = "RTH close (HHmmss, chart time)", GroupName = "Parameters", Order = 4)]
+        [Display(Name = "RTH close (HHmmss, chart time)", GroupName = "Parameters", Order = 3)]
         public int RthCloseTime { get; set; }
 
         [NinjaScriptProperty]
         [Range(0, 235959)]
-        [Display(Name = "Globex close (HHmmss, chart time)", GroupName = "Parameters", Order = 5)]
+        [Display(Name = "Globex close (HHmmss, chart time)", GroupName = "Parameters", Order = 4)]
         public int GlobexCloseTime { get; set; }
 
         [NinjaScriptProperty]
         [Range(0.0, double.MaxValue)]
-        [Display(Name = "Offset band step (points)", GroupName = "Parameters", Order = 6)]
+        [Display(Name = "Offset band step (points)", GroupName = "Parameters", Order = 5)]
         public double OffsetPoints { get; set; }
 
         [NinjaScriptProperty]
         [Range(1, 500)]
-        [Display(Name = "Extend into future (bars, capped at EOD)", GroupName = "Parameters", Order = 7)]
+        [Display(Name = "Extend into future (bars, capped at EOD)", GroupName = "Parameters", Order = 6)]
         public int FutureBars { get; set; }
+
+        [NinjaScriptProperty]
+        [Display(Name = "Pivot point", GroupName = "Visibility", Order = 0)]
+        public bool ShowPivot { get; set; }
+
+        [NinjaScriptProperty]
+        [Display(Name = "Half gap fill", GroupName = "Visibility", Order = 1)]
+        public bool ShowHalfGap { get; set; }
+
+        [NinjaScriptProperty]
+        [Display(Name = "Full gap fill", GroupName = "Visibility", Order = 2)]
+        public bool ShowFullGap { get; set; }
+
+        [NinjaScriptProperty]
+        [Display(Name = "Globex pivot", GroupName = "Visibility", Order = 3)]
+        public bool ShowGlobexPivot { get; set; }
+
+        [NinjaScriptProperty]
+        [Display(Name = "Bands +/-1x", GroupName = "Visibility", Order = 4)]
+        public bool ShowBand1 { get; set; }
+
+        [NinjaScriptProperty]
+        [Display(Name = "Bands +/-2x", GroupName = "Visibility", Order = 5)]
+        public bool ShowBand2 { get; set; }
+
+        [NinjaScriptProperty]
+        [Display(Name = "Bands +/-3x", GroupName = "Visibility", Order = 6)]
+        public bool ShowBand3 { get; set; }
+
+        [NinjaScriptProperty]
+        [Display(Name = "Hover label (name + value)", GroupName = "Labels", Order = 0)]
+        public bool ShowHoverLabel { get; set; }
+
+        [NinjaScriptProperty]
+        [Display(Name = "Info box (levels + distance)", GroupName = "Labels", Order = 1)]
+        public bool ShowInfoBox { get; set; }
+
+        [NinjaScriptProperty]
+        [Display(Name = "Info box position", GroupName = "Labels", Order = 2)]
+        public TextPosition InfoBoxPosition { get; set; }
         #endregion
     }
 }
