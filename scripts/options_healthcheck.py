@@ -68,35 +68,24 @@ def check_feed():
 
 
 def check_levels():
-    f = ROOT / "scratchpad" / "mq_levels_today.json"
+    """GexLog brief health (MQ removed 2026-08-04): today's gameplan must carry a
+    band, and ideally a brief generated TODAY (stale brief -> computed-VIX fallback)."""
+    date = dt.datetime.now(CT).strftime("%Y%m%d")
+    f = SIM / f"gameplan_{date}.json"
     if not f.exists():
-        return False, "levels file missing"
+        return False, "no gameplan yet (brief unchecked)"
     try:
         d = json.loads(f.read_text())
     except Exception:
-        return False, "levels unreadable"
-    today = dt.datetime.now(CT).strftime("%Y-%m-%d")
-    fetched = str(d.get("_fetched_ct", ""))
-    src = str(d.get("_source_ts", ""))
-    # S75V: this used to accept `fetched.startswith(today)`, which is TRUE BY CONSTRUCTION
-    # because the fetch runs today - so the check passed even when MenthorQ had published
-    # nothing new and the levels were days old. Freshness is a property of the SOURCE.
-    # previous TRADING day, not calendar day: on Monday the freshest possible levels are
-    # Friday EOD - "yesterday" would false-alarm every Monday (2026-07-20 incident).
-    try:
-        from market_calendar import is_trading_day
-        prev = dt.datetime.now(CT).date() - dt.timedelta(days=1)
-        while not is_trading_day(prev):
-            prev -= dt.timedelta(days=1)
-        prev_day = prev.isoformat()
-    except Exception:
-        prev_day = (dt.datetime.now(CT) - dt.timedelta(days=1)).strftime("%Y-%m-%d")
-    fresh = src.startswith(today) or src.startswith(prev_day)
-    if d.get("_stale_warning"):
-        fresh = False
-    core = all(d.get(k) is not None for k in ("cr", "hvl", "ps0"))
-    note = " STALE-SOURCE" if d.get("_stale_warning") else ""
-    return (fresh and core), f"CR {d.get('cr')} PS0 {d.get('ps0')} · src {src[:16] or '?'}{note}"
+        return False, "gameplan unreadable"
+    gx = d.get("gexlog", {}) or {}
+    today_et = dt.datetime.now(dt.timezone.utc).astimezone(
+        __import__("zoneinfo").ZoneInfo("America/New_York")).strftime("%Y-%m-%d")
+    fresh = str(gx.get("generated_at") or "").startswith(today_et)
+    band = d.get("em_low") is not None and d.get("em_high") is not None
+    note = "" if fresh else " (brief STALE — computed-VIX fallback)"
+    return band, (f"GexLog {gx.get('signal_bucket', '?')} · EM {d.get('em_low')}–{d.get('em_high')}"
+                  f" · src {str(gx.get('generated_at') or '?')[:16]}{note}")
 
 
 def check_gameplan():

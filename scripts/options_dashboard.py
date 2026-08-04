@@ -657,10 +657,9 @@ def bands_svg(gp, live_spot=None):
         for p, c in [(o_lo, SUP), (o_hi, RES)]:
             rows.append(f"<line x1='{X(p):.0f}' y1='70' x2='{X(p):.0f}' y2='96' stroke='{c}' stroke-width='1.6'/>")
             rows.append(f"<text x='{X(p):.0f}' y='108' fill='{c}' font-size='10' text-anchor='middle'>{p:.0f}</text>")
-    # current price marker
-    inside = "▲"
-    rows.append(f"<line x1='{X(cur):.0f}' y1='20' x2='{X(cur):.0f}' y2='122' stroke='#fff' stroke-width='2'/>")
-    rows.append(f"<text x='{X(cur):.0f}' y='136' fill='#fff' font-size='12' font-weight='700' text-anchor='middle'>{inside} {cur:.0f}</text>")
+    # current price marker — id'd so the 5s poll moves it LIVE from lr.spot
+    rows.append(f"<line id='bm-line' x1='{X(cur):.0f}' y1='20' x2='{X(cur):.0f}' y2='122' stroke='#fff' stroke-width='2'/>")
+    rows.append(f"<text id='bm-text' x='{X(cur):.0f}' y='136' fill='#fff' font-size='12' font-weight='700' text-anchor='middle'>▲ {cur:.0f}</text>")
     # PoP legend
     pops = [f"EOD condor PoP <b style='color:{SUP}'>{pop_band(e_lo, e_hi):.0f}%</b>"]
     if op:
@@ -671,7 +670,8 @@ def bands_svg(gp, live_spot=None):
     legend = " · ".join(pops) + " <span class='muted'>(Normal, σ = 1-day EM, from current price)</span>"
     return (f"<div style='background:#10141f;border:1px solid #232a3a;border-radius:8px;"
             f"padding:10px 8px 4px;margin:8px 0'>"
-            f"<svg viewBox='0 0 {W} {H}' style='width:100%;height:auto'>{''.join(rows)}</svg>"
+            f"<svg id='bands-svg' data-lo='{lo:.2f}' data-hi='{hi:.2f}' data-w='{W}' "
+            f"viewBox='0 0 {W} {H}' style='width:100%;height:auto'>{''.join(rows)}</svg>"
             f"<div style='padding:2px 10px 8px;font-size:12.5px'>{legend}</div></div>")
 
 
@@ -728,9 +728,11 @@ def gameplan_html(gp, trades=None, marks_last=None):
     gx = gp.get("gexlog", {}) or {}
     sig = gx.get("signal_bucket", "—")
     sigcls = {"GO": "pos", "CAUTION": "warn", "WAIT": "neg"}.get(sig, "muted")
+    v = gp.get("vix")
+    vixtxt = f"{v:.2f}" if isinstance(v, (int, float)) else "—"
     head = (f"<div class='gp-head'><span class='rlabel {sigcls}'>{sig}</span>"
             f"<span class='muted'>{gp.get('date','')} · preopen {gp.get('spot_preopen','—')} "
-            f"({gp.get('spot_source','')}) · VIX {gp.get('vix','—')}</span>")
+            f"({gp.get('spot_source','')}) · VIX {vixtxt}</span>")
     if gp.get("live_spot"):
         head += f"<span class='muted' style='margin-left:auto'>live {gp['live_spot']} @ {gp.get('live_ts','')}</span>"
     head += "</div>"
@@ -1445,6 +1447,17 @@ async function poll(){{
   const sp = document.getElementById('lv-spot');
   if(sp && lr.spot!=null) sp.textContent = lr.spot.toLocaleString(undefined,{{minimumFractionDigits:1,maximumFractionDigits:1}});
   const sts = document.getElementById('lv-spotts'); if(sts) sts.textContent = lr.spot_ts||'';
+  // LIVE band-graphic marker: move the white price line with each poll
+  const bs = document.getElementById('bands-svg');
+  if(bs && lr.spot!=null){{
+    const blo=+bs.dataset.lo, bhi=+bs.dataset.hi, bw=+bs.dataset.w;
+    if(bhi>blo){{
+      const bx = 30 + (Math.min(Math.max(lr.spot,blo),bhi)-blo)/(bhi-blo)*(bw-60);
+      const bl=document.getElementById('bm-line'), bt=document.getElementById('bm-text');
+      if(bl){{ bl.setAttribute('x1',bx); bl.setAttribute('x2',bx); }}
+      if(bt){{ bt.setAttribute('x',bx); bt.textContent='▲ '+Math.round(lr.spot); }}
+    }}
+  }}
   if(lr.regime){{
     const rl = document.getElementById('lv-regime');
     if(rl){{ rl.textContent = lr.regime.label; rl.className = 'rlabel '+(lr.regime.cls||''); }}
