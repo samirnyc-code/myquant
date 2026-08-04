@@ -356,10 +356,9 @@ def main():
         if cats:
             head_c = f"📅 catalysts {len(cats)}" + (f" · <b>{hi} HIGH</b> ⚠️" if hi else "")
             L.append(head_c)
-            for c in cats[:3]:
-                L.append(f"      {c.get('time')}  {c.get('title')}")
-            if len(cats) > 3:
-                L.append(f"      … +{len(cats) - 3} more")
+            for c in cats:
+                imp = " ⚠️" if c.get("impact") == "high" else ""
+                L.append(f"      {c.get('time')}  {c.get('title')}{imp}")
         L.append("")
         L.append("🔗 <a href='https://gexlog.com/dashboard/'>morning brief</a> · "
                  "<a href='https://gexlog.com/dashboard/history/'>archive</a>")
