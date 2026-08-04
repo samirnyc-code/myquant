@@ -50,7 +50,8 @@ CT = ZoneInfo("America/Chicago")
 STRIKE_STEP = 5      # SPXW strikes are 5pt apart near ATM
 WING = 25            # protective long distance (points) — defined risk = (WING - credit)
 SQRT252 = 15.874507866387544
-ENTRY_AT = "08:35"   # fire once, just after the 08:30 CT open
+ENTRY_AT = "08:30"   # fire IMMEDIATELY at the 08:30 CT open — open-centered strikes
+                     # are struck from the first live tick after the bell
 ENTRY_WINDOW = ["08:30", "09:30"]
 
 # Execution policy. Grade gate OFF (F): unconditional data collection. Credit floor

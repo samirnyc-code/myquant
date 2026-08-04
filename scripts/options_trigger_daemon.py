@@ -354,8 +354,8 @@ def risk_metrics(st, net, width, spot, strikes, plan):
     def P(z):                       # P(Z <= z)
         return 0.5 * (1 + math.erf(z / math.sqrt(2)))
 
-    d1a, d1b = plan.get("d1_min"), plan.get("d1_max")
-    sigma = (d1b - d1a) / 2 if (d1a and d1b and d1b > d1a) else (spot or 7500) * 0.009
+    hw = plan.get("em_halfwidth")
+    sigma = hw if hw else (spot or 7500) * 0.009   # 1-day expected move = 1σ
     kind = st.get("kind")
     try:
         if kind == "vertical" and net > 0:
@@ -644,6 +644,14 @@ def main():
                 continue
             reg = regime(spot, hvl)
             dirty = False
+            # OPEN CAPTURE: first live tick at/after 08:30 CT = the session open.
+            # Stamped once into the plan — the [Open] strategies strike off it and
+            # the dashboard's EOD-vs-Open tiles/graphic read it.
+            if plan.get("open_spot") is None and now_ct() >= hhmm("08:30"):
+                plan["open_spot"] = round(spot, 2)
+                plan["open_spot_at"] = now_ct().strftime("%H:%M:%S CT")
+                print(f"  OPEN captured: {spot:.2f} @ {plan['open_spot_at']}")
+                dirty = True
             for trig in plan["triggers"]:
                 if trig.get("fired") or trig["fire"]["type"] == "signal_1559":
                     continue

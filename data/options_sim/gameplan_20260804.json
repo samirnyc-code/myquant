@@ -1,6 +1,6 @@
 {
   "date": "20260804",
-  "generated_at": "2026-08-04 04:15:23 CT",
+  "generated_at": "2026-08-04 04:22:11 CT",
   "spot_preopen": 7600.0,
   "spot_source": "manual",
   "vix": 15.989999771118164,
@@ -57,7 +57,7 @@
       },
       "fire": {
         "type": "time_at",
-        "not_before": "08:35"
+        "not_before": "08:30"
       },
       "window": [
         "08:30",
@@ -91,7 +91,7 @@
       },
       "fire": {
         "type": "time_at",
-        "not_before": "08:35"
+        "not_before": "08:30"
       },
       "window": [
         "08:30",
@@ -125,7 +125,7 @@
       },
       "fire": {
         "type": "time_at",
-        "not_before": "08:35"
+        "not_before": "08:30"
       },
       "window": [
         "08:30",
@@ -159,7 +159,7 @@
       },
       "fire": {
         "type": "time_at",
-        "not_before": "08:35"
+        "not_before": "08:30"
       },
       "window": [
         "08:30",
@@ -193,7 +193,7 @@
       },
       "fire": {
         "type": "time_at",
-        "not_before": "08:35"
+        "not_before": "08:30"
       },
       "window": [
         "08:30",
@@ -226,7 +226,7 @@
       },
       "fire": {
         "type": "time_at",
-        "not_before": "08:35"
+        "not_before": "08:30"
       },
       "window": [
         "08:30",
@@ -259,7 +259,7 @@
       },
       "fire": {
         "type": "time_at",
-        "not_before": "08:35"
+        "not_before": "08:30"
       },
       "window": [
         "08:30",
@@ -292,7 +292,7 @@
       },
       "fire": {
         "type": "time_at",
-        "not_before": "08:35"
+        "not_before": "08:30"
       },
       "window": [
         "08:30",
@@ -325,7 +325,7 @@
       },
       "fire": {
         "type": "time_at",
-        "not_before": "08:35"
+        "not_before": "08:30"
       },
       "window": [
         "08:30",
@@ -359,7 +359,7 @@
       },
       "fire": {
         "type": "time_at",
-        "not_before": "08:35"
+        "not_before": "08:30"
       },
       "window": [
         "08:30",

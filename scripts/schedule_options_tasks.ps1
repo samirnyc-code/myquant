@@ -5,7 +5,7 @@
 # Daily loop:
 #   08:28  Gameplan       -> gameplan_YYYYMMDD.json (premarket plan from EOD levels)
 #   08:26  Spot Feed      -> live.json + underlying tape, runs until ~16:20
-#   08:33  Trigger Daemon -> auto-executes triggers on their condition until 16:00
+#   08:29  Trigger Daemon -> auto-executes triggers on their condition until 16:00
 #   14:28  Sim Daemon     -> (existing) the 15:59 STMR BPS decision
 #   14:35  Marks Watch    -> (existing) marks open positions
 #   15:15  Postmortem     -> postmortem_YYYYMMDD.json (plan vs actual, observe-only)
@@ -45,7 +45,7 @@ Set-QTask "MyQuant Dashboard"      "options_dashboard_live.py" "08:25" "--host 0
 Set-QTask "MyQuant Spot Feed"      "spot_feed.py"              "08:26"
 Set-QTask "MyQuant Levels Fetch"   "mq_levels_fetch.py"        "08:27"
 Set-QTask "MyQuant Gameplan"       "options_gameplan.py"       "08:28"
-Set-QTask "MyQuant Trigger Daemon" "options_trigger_daemon.py" "08:33" "--until 15:00"
+Set-QTask "MyQuant Trigger Daemon" "options_trigger_daemon.py" "08:29" "--until 15:00"
 Set-QTask "MyQuant Gamma Scanner"  "options_gamma_scanner.py"  "08:35"
 Set-QTask "MyQuant Health Check"   "options_healthcheck.py"    "08:40"
 Set-QTask "MyQuant Marks Watch"    "options_mark.py"           "08:26" "--watch 120"

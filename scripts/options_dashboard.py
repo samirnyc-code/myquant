@@ -609,6 +609,72 @@ STRUCT_OF = {
 }
 
 
+def bands_svg(gp, live_spot=None):
+    """EOD vs Open bands graphic: EOD spot level, open level, both strategy bands,
+    and where price is now — plus PoP (Normal, sigma = 1-day EM) per structure."""
+    import math
+    RES, SUP, PIV, SPOT = "#e05561", "#4cc38a", "#e0a04d", "#5b9dd9"
+    eod = (gp.get("gexlog") or {}).get("current")
+    move = gp.get("em_halfwidth")
+    if not (eod and move):
+        return ""
+    op = gp.get("open_spot")
+    cur = live_spot or op or eod
+    e_lo, e_hi = eod - move, eod + move
+    o_lo, o_hi = (op - move, op + move) if op else (None, None)
+    xs = [e_lo, e_hi, cur, eod] + ([o_lo, o_hi, op] if op else [])
+    lo, hi = min(xs) - move * 0.25, max(xs) + move * 0.25
+    W, H = 860, 148
+    X = lambda p: 30 + (p - lo) / (hi - lo) * (W - 60)
+
+    def N(z):  # standard normal CDF
+        return 0.5 * (1 + math.erf(z / math.sqrt(2)))
+
+    def pop_band(b_lo, b_hi):
+        return (N((b_hi - cur) / move) - N((b_lo - cur) / move)) * 100
+
+    rows = []
+    # EOD band row (y=44) and Open band row (y=84)
+    rows.append(f"<rect x='{X(e_lo):.0f}' y='36' width='{X(e_hi)-X(e_lo):.0f}' height='16' rx='3' fill='{SUP}22' stroke='#2a3245'/>")
+    rows.append(f"<text x='24' y='48' fill='#8a94a6' font-size='11'>EOD band</text>")
+    if op:
+        rows.append(f"<rect x='{X(o_lo):.0f}' y='76' width='{X(o_hi)-X(o_lo):.0f}' height='16' rx='3' fill='{PIV}22' stroke='#2a3245'/>")
+        rows.append(f"<text x='24' y='88' fill='#8a94a6' font-size='11'>Open band</text>")
+    else:
+        rows.append(f"<text x='24' y='88' fill='#5a6478' font-size='11'>Open band — waits for the 08:30 bell</text>")
+    # levels
+    for p, c, lab, y0, y1 in [
+        (eod, SPOT, f"EOD {eod:.0f}", 24, 118),
+        (op, "#e8ecf4", (f"OPEN {op:.0f}" if op else None), 24, 118) if op else (None,)*5,
+        (e_lo, SUP, f"{e_lo:.0f}", 30, 56), (e_hi, RES, f"{e_hi:.0f}", 30, 56),
+    ]:
+        if p is None:
+            continue
+        rows.append(f"<line x1='{X(p):.0f}' y1='{y0}' x2='{X(p):.0f}' y2='{y1}' stroke='{c}' stroke-width='1.6' stroke-dasharray='4 3'/>")
+        if lab:
+            rows.append(f"<text x='{X(p):.0f}' y='{y0-6}' fill='{c}' font-size='11' text-anchor='middle'>{lab}</text>")
+    if op:
+        for p, c in [(o_lo, SUP), (o_hi, RES)]:
+            rows.append(f"<line x1='{X(p):.0f}' y1='70' x2='{X(p):.0f}' y2='96' stroke='{c}' stroke-width='1.6'/>")
+            rows.append(f"<text x='{X(p):.0f}' y='108' fill='{c}' font-size='10' text-anchor='middle'>{p:.0f}</text>")
+    # current price marker
+    inside = "▲"
+    rows.append(f"<line x1='{X(cur):.0f}' y1='20' x2='{X(cur):.0f}' y2='122' stroke='#fff' stroke-width='2'/>")
+    rows.append(f"<text x='{X(cur):.0f}' y='136' fill='#fff' font-size='12' font-weight='700' text-anchor='middle'>{inside} {cur:.0f}</text>")
+    # PoP legend
+    pops = [f"EOD condor PoP <b style='color:{SUP}'>{pop_band(e_lo, e_hi):.0f}%</b>"]
+    if op:
+        pops.append(f"Open condor PoP <b style='color:{PIV}'>{pop_band(o_lo, o_hi):.0f}%</b>")
+    pw, cw = (gp.get("gexlog") or {}).get("putWall"), (gp.get("gexlog") or {}).get("callWall")
+    if pw and cw:
+        pops.append(f"GexLog condor PoP <b style='color:{RES}'>{pop_band(pw, cw):.0f}%</b>")
+    legend = " · ".join(pops) + " <span class='muted'>(Normal, σ = 1-day EM, from current price)</span>"
+    return (f"<div style='background:#10141f;border:1px solid #232a3a;border-radius:8px;"
+            f"padding:10px 8px 4px;margin:8px 0'>"
+            f"<svg viewBox='0 0 {W} {H}' style='width:100%;height:auto'>{''.join(rows)}</svg>"
+            f"<div style='padding:2px 10px 8px;font-size:12.5px'>{legend}</div></div>")
+
+
 def pnl_summary_html(trades):
     """Running-P&L summary table for the main page — split by center (EOD vs Open)
     and structure. Realized (closed) P&L; open counts shown separately."""
@@ -686,7 +752,13 @@ def gameplan_html(gp, trades=None, marks_last=None):
         em_band = (f"<span style='color:{SUP}'>{gp.get('em_low', '—')}</span>"
                    f"<span style='color:#8a94a6'> – </span>"
                    f"<span style='color:{RES}'>{gp.get('em_high', '—')}</span>")
+        SPOTC = "#5b9dd9"
+        op = gp.get("open_spot")
         head += ("<div style='margin:8px 0 4px'>"
+                 + _gxt("EOD Spot", gx.get("current") or "—", SPOTC, border=SPOTC)
+                 + _gxt("Open Spot", (f"{op:.2f}" if op else "at 08:30…"),
+                        "#e8ecf4" if op else "#5a6478",
+                        border="#e8ecf4" if op else None)
                  + _gxt("GexLog Regime", reg, regc)
                  + _gxt("GEX Flip", gx.get("gex_flip") or "—", PIV)
                  + _gxt("Put Wall", gx.get("putWall") or "—", SUP)
@@ -694,6 +766,15 @@ def gameplan_html(gp, trades=None, marks_last=None):
                  + _gxt("EM Band", em_band)
                  + _gxt("Day Type", dt_, dtc, border=dtc)
                  + "</div>")
+        # live spot for the bands graphic (same live.json the ticker uses)
+        _ls = None
+        try:
+            _d = json.loads((SIM / "live.json").read_text())
+            if _d.get("spx"):
+                _ls = float(_d["spx"])
+        except Exception:
+            pass
+        head += bands_svg(gp, _ls)
     paths = ""
     for p in gp.get("scenarios", []):
         paths += (f"<div class='path'><div class='path-h'><b>{p['id']}. {p['name']}</b>"
