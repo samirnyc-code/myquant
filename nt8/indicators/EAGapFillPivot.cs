@@ -2,7 +2,8 @@
 // "Half Gap Fill, Full Gap Fill, and Trading Hours only Pivot Point"
 // ($V:build_1324:2009.05.09:1.0.3) + Samir's added +/-10/20/30 pt bands.
 //
-// WHAT IT PLOTS (dots, during RTH only):
+// WHAT IT PLOTS (lines during RTH; today's levels also projected FutureBars
+// (default 20) past the current bar into the right margin via Draw.Line):
 //   PivotPoint   = (prevRthClose + prevRthHigh + prevRthLow) / 3   [cyan]
 //   HalfGapFill  = prevRthClose + (todayRthOpen - prevRthClose)/2  [lime]
 //   FullGapFill  = prevRthClose                                    [white]
@@ -33,6 +34,7 @@ using NinjaTrader.Data;
 using NinjaTrader.Gui;
 using NinjaTrader.Gui.Chart;
 using NinjaTrader.NinjaScript;
+using NinjaTrader.NinjaScript.DrawingTools;
 #endregion
 
 namespace NinjaTrader.NinjaScript.Indicators
@@ -67,17 +69,18 @@ namespace NinjaTrader.NinjaScript.Indicators
                 RthCloseTime        = 150000;
                 GlobexCloseTime     = 160000;
                 OffsetPoints        = 10;
+                FutureBars          = 20;
 
-                AddPlot(new Stroke(Brushes.Cyan,       2), PlotStyle.Dot, "PivotPoint");    // Values[0]
-                AddPlot(new Stroke(Brushes.Lime,       2), PlotStyle.Dot, "HalfGapFill");   // Values[1]
-                AddPlot(new Stroke(Brushes.White,      2), PlotStyle.Dot, "FullGapFill");   // Values[2]
-                AddPlot(new Stroke(Brushes.LightGreen, 2), PlotStyle.Dot, "GlobexPivot");   // Values[3]
-                AddPlot(new Stroke(Brushes.Silver,     1), PlotStyle.Dot, "FullGapP1");     // Values[4]
-                AddPlot(new Stroke(Brushes.Silver,     1), PlotStyle.Dot, "FullGapM1");     // Values[5]
-                AddPlot(new Stroke(Brushes.Silver,     1), PlotStyle.Dot, "FullGapP2");     // Values[6]
-                AddPlot(new Stroke(Brushes.Silver,     1), PlotStyle.Dot, "FullGapM2");     // Values[7]
-                AddPlot(new Stroke(Brushes.Silver,     1), PlotStyle.Dot, "FullGapP3");     // Values[8]
-                AddPlot(new Stroke(Brushes.Silver,     1), PlotStyle.Dot, "FullGapM3");     // Values[9]
+                AddPlot(new Stroke(Brushes.Cyan,       2), PlotStyle.Line, "PivotPoint");    // Values[0]
+                AddPlot(new Stroke(Brushes.Lime,       2), PlotStyle.Line, "HalfGapFill");   // Values[1]
+                AddPlot(new Stroke(Brushes.White,      2), PlotStyle.Line, "FullGapFill");   // Values[2]
+                AddPlot(new Stroke(Brushes.LightGreen, 2), PlotStyle.Line, "GlobexPivot");   // Values[3]
+                AddPlot(new Stroke(Brushes.Silver,     1), PlotStyle.Line, "FullGapP1");     // Values[4]
+                AddPlot(new Stroke(Brushes.Silver,     1), PlotStyle.Line, "FullGapM1");     // Values[5]
+                AddPlot(new Stroke(Brushes.Silver,     1), PlotStyle.Line, "FullGapP2");     // Values[6]
+                AddPlot(new Stroke(Brushes.Silver,     1), PlotStyle.Line, "FullGapM2");     // Values[7]
+                AddPlot(new Stroke(Brushes.Silver,     1), PlotStyle.Line, "FullGapP3");     // Values[8]
+                AddPlot(new Stroke(Brushes.Silver,     1), PlotStyle.Line, "FullGapM3");     // Values[9]
             }
         }
 
@@ -155,6 +158,34 @@ namespace NinjaTrader.NinjaScript.Indicators
             // register touches AFTER plotting so the touch bar stays visible
             if (High[0] >= halfGap && Low[0] <= halfGap) halfHit = true;
             if (High[0] >= fullGap && Low[0] <= fullGap) fullHit = true;
+
+            // project today's levels FutureBars past the current bar (right margin).
+            // Constant tags -> the lines advance with each new bar instead of stacking.
+            if (Time[0].Date == Bars.GetTime(Bars.Count - 1).Date)
+            {
+                FutureLine("piv",  pivot,   Brushes.Cyan,       2, true);
+                FutureLine("half", halfGap, Brushes.Lime,       2, !(HideGapFillsOnceHit && halfHit));
+                FutureLine("full", fullGap, Brushes.White,      2, !(HideGapFillsOnceHit && fullHit));
+                FutureLine("gpiv", ShowGlobexPivot && prevGlobexClose > 0
+                    ? (prevGlobexClose + prevHigh + prevLow) / 3.0 : 0,
+                    Brushes.LightGreen, 2, ShowGlobexPivot && prevGlobexClose > 0);
+                for (int k = 1; k <= 3; k++)
+                {
+                    FutureLine("p" + k, fullGap + k * OffsetPoints, Brushes.Silver, 1, true);
+                    FutureLine("m" + k, fullGap - k * OffsetPoints, Brushes.Silver, 1, true);
+                }
+            }
+        }
+
+        private void FutureLine(string key, double y, Brush brush, int width, bool show)
+        {
+            string tag = "EAGF_" + key;
+            if (!show)
+            {
+                RemoveDrawObject(tag);
+                return;
+            }
+            Draw.Line(this, tag, false, 0, y, -FutureBars, y, brush, DashStyleHelper.Solid, width);
         }
 
         #region Properties
@@ -189,6 +220,11 @@ namespace NinjaTrader.NinjaScript.Indicators
         [Range(0.0, double.MaxValue)]
         [Display(Name = "Offset band step (points)", GroupName = "Parameters", Order = 6)]
         public double OffsetPoints { get; set; }
+
+        [NinjaScriptProperty]
+        [Range(1, 500)]
+        [Display(Name = "Extend into future (bars)", GroupName = "Parameters", Order = 7)]
+        public int FutureBars { get; set; }
         #endregion
     }
 }
