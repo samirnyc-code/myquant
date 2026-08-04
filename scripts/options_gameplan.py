@@ -223,6 +223,18 @@ def build_triggers(spot, vix, gx):
     for t in T:
         t["group"] = GROUPS.get(t["id"], t.get("name"))
         t["center"] = t.get("stream")   # eod | open | gexlog | stmr
+    # BRIEF-DRIVEN WAIT (2026-08-04, user decision): when the playbook says WAIT
+    # for an event (all scenarios "WAIT for JOLTs..."), shift EVERY entry to
+    # 09:05 CT — after the 09:00 CT / 10:00 ET data. Deterministic from the brief,
+    # so the scheduled --force rebuild reproduces it. The OPEN is still captured
+    # at 08:30 by the daemon; dynamic strikes are struck from the 09:05 spot.
+    if gx.get("playbook_wait"):
+        for t in T:
+            if t["fire"].get("type") == "time_at":
+                t["fire"]["not_before"] = "09:05"
+                t["window"] = ["09:05", "10:00"]
+                t["grade_basis"] = (t.get("grade_basis", "") +
+                                    " [WAIT day: entry 09:05 CT post-event per brief]")
     return T, band_src, round(em_lo, 1), round(em_hi, 1), round(move, 1)
 
 
@@ -347,6 +359,8 @@ def main():
                      + (f" · ES premkt {gx['es_premarket']:.0f}" if gx.get("es_premarket") else ""))
         if gx.get("calendar_note"):
             L.append(f"📅 calendar <b>{gx['calendar_note']}</b>")
+        if gx.get("playbook_wait"):
+            L.append("⏳ <b>WAIT day: ALL entries 09:05 CT (post-event, per brief)</b>")
         if gx.get("stale_risk"):
             L.append("⚠️ their caveat: quote-derived close (pivots approximate)")
         L.append("")

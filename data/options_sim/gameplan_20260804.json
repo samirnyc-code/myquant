@@ -1,6 +1,6 @@
 {
   "date": "20260804",
-  "generated_at": "2026-08-04 07:44:10 CT",
+  "generated_at": "2026-08-04 08:21:04 CT",
   "spot_preopen": 7600.45,
   "spot_source": "15:20 tape",
   "vix": 15.989999771118164,
@@ -80,6 +80,7 @@
       }
     ],
     "high_impact_today": 1,
+    "playbook_wait": true,
     "gap_pct": 0.58,
     "gap_note": "+0.58% (follow)",
     "calendar_note": "4/5 HIGH",
@@ -120,11 +121,11 @@
       },
       "fire": {
         "type": "time_at",
-        "not_before": "08:30"
+        "not_before": "09:05"
       },
       "window": [
-        "08:30",
-        "09:30"
+        "09:05",
+        "10:00"
       ],
       "structure": {
         "kind": "vertical",
@@ -134,7 +135,7 @@
         "width": 25
       },
       "projected_grade": "C",
-      "grade_basis": "EOD condor put \u2014 prior-close EM low (gexlog brief)",
+      "grade_basis": "EOD condor put \u2014 prior-close EM low (gexlog brief) [WAIT day: entry 09:05 CT post-event per brief]",
       "group": "[EOD] Iron Condor",
       "center": "eod",
       "status": "armed",
@@ -154,11 +155,11 @@
       },
       "fire": {
         "type": "time_at",
-        "not_before": "08:30"
+        "not_before": "09:05"
       },
       "window": [
-        "08:30",
-        "09:30"
+        "09:05",
+        "10:00"
       ],
       "structure": {
         "kind": "vertical",
@@ -168,7 +169,7 @@
         "width": 25
       },
       "projected_grade": "C",
-      "grade_basis": "EOD condor call \u2014 prior-close EM high (gexlog brief)",
+      "grade_basis": "EOD condor call \u2014 prior-close EM high (gexlog brief) [WAIT day: entry 09:05 CT post-event per brief]",
       "group": "[EOD] Iron Condor",
       "center": "eod",
       "status": "armed",
@@ -188,11 +189,11 @@
       },
       "fire": {
         "type": "time_at",
-        "not_before": "08:30"
+        "not_before": "09:05"
       },
       "window": [
-        "08:30",
-        "09:30"
+        "09:05",
+        "10:00"
       ],
       "structure": {
         "kind": "vertical",
@@ -202,7 +203,7 @@
         "width": 25
       },
       "projected_grade": "C",
-      "grade_basis": "EOD fly put \u2014 ATM = prior close",
+      "grade_basis": "EOD fly put \u2014 ATM = prior close [WAIT day: entry 09:05 CT post-event per brief]",
       "group": "[EOD] Iron Fly",
       "center": "eod",
       "status": "armed",
@@ -222,11 +223,11 @@
       },
       "fire": {
         "type": "time_at",
-        "not_before": "08:30"
+        "not_before": "09:05"
       },
       "window": [
-        "08:30",
-        "09:30"
+        "09:05",
+        "10:00"
       ],
       "structure": {
         "kind": "vertical",
@@ -236,7 +237,7 @@
         "width": 25
       },
       "projected_grade": "C",
-      "grade_basis": "EOD fly call \u2014 ATM = prior close",
+      "grade_basis": "EOD fly call \u2014 ATM = prior close [WAIT day: entry 09:05 CT post-event per brief]",
       "group": "[EOD] Iron Fly",
       "center": "eod",
       "status": "armed",
@@ -256,11 +257,11 @@
       },
       "fire": {
         "type": "time_at",
-        "not_before": "08:30"
+        "not_before": "09:05"
       },
       "window": [
-        "08:30",
-        "09:30"
+        "09:05",
+        "10:00"
       ],
       "structure": {
         "kind": "vertical_dynamic",
@@ -269,7 +270,7 @@
         "width": 25
       },
       "projected_grade": "C",
-      "grade_basis": "Open condor put \u2014 75pt below the open",
+      "grade_basis": "Open condor put \u2014 75pt below the open [WAIT day: entry 09:05 CT post-event per brief]",
       "group": "[Open] Iron Condor",
       "center": "open",
       "status": "armed",
@@ -289,11 +290,11 @@
       },
       "fire": {
         "type": "time_at",
-        "not_before": "08:30"
+        "not_before": "09:05"
       },
       "window": [
-        "08:30",
-        "09:30"
+        "09:05",
+        "10:00"
       ],
       "structure": {
         "kind": "vertical_dynamic",
@@ -302,7 +303,7 @@
         "width": 25
       },
       "projected_grade": "C",
-      "grade_basis": "Open condor call \u2014 75pt above the open",
+      "grade_basis": "Open condor call \u2014 75pt above the open [WAIT day: entry 09:05 CT post-event per brief]",
       "group": "[Open] Iron Condor",
       "center": "open",
       "status": "armed",
@@ -322,11 +323,11 @@
       },
       "fire": {
         "type": "time_at",
-        "not_before": "08:30"
+        "not_before": "09:05"
       },
       "window": [
-        "08:30",
-        "09:30"
+        "09:05",
+        "10:00"
       ],
       "structure": {
         "kind": "vertical_dynamic",
@@ -335,7 +336,7 @@
         "width": 25
       },
       "projected_grade": "C",
-      "grade_basis": "Open fly put \u2014 ATM = open",
+      "grade_basis": "Open fly put \u2014 ATM = open [WAIT day: entry 09:05 CT post-event per brief]",
       "group": "[Open] Iron Fly",
       "center": "open",
       "status": "armed",
@@ -355,11 +356,11 @@
       },
       "fire": {
         "type": "time_at",
-        "not_before": "08:30"
+        "not_before": "09:05"
       },
       "window": [
-        "08:30",
-        "09:30"
+        "09:05",
+        "10:00"
       ],
       "structure": {
         "kind": "vertical_dynamic",
@@ -368,7 +369,7 @@
         "width": 25
       },
       "projected_grade": "C",
-      "grade_basis": "Open fly call \u2014 ATM = open",
+      "grade_basis": "Open fly call \u2014 ATM = open [WAIT day: entry 09:05 CT post-event per brief]",
       "group": "[Open] Iron Fly",
       "center": "open",
       "status": "armed",
@@ -388,11 +389,11 @@
       },
       "fire": {
         "type": "time_at",
-        "not_before": "08:30"
+        "not_before": "09:05"
       },
       "window": [
-        "08:30",
-        "09:30"
+        "09:05",
+        "10:00"
       ],
       "structure": {
         "kind": "vertical",
@@ -402,7 +403,7 @@
         "width": 25
       },
       "projected_grade": "C",
-      "grade_basis": "gexlog suggested: short put at its Put Wall",
+      "grade_basis": "gexlog suggested: short put at its Put Wall [WAIT day: entry 09:05 CT post-event per brief]",
       "group": "[GexLog] Iron Condor",
       "center": "gexlog",
       "status": "armed",
@@ -422,11 +423,11 @@
       },
       "fire": {
         "type": "time_at",
-        "not_before": "08:30"
+        "not_before": "09:05"
       },
       "window": [
-        "08:30",
-        "09:30"
+        "09:05",
+        "10:00"
       ],
       "structure": {
         "kind": "vertical",
@@ -436,7 +437,7 @@
         "width": 25
       },
       "projected_grade": "C",
-      "grade_basis": "gexlog suggested: short call at its Call Wall",
+      "grade_basis": "gexlog suggested: short call at its Call Wall [WAIT day: entry 09:05 CT post-event per brief]",
       "group": "[GexLog] Iron Condor",
       "center": "gexlog",
       "status": "armed",

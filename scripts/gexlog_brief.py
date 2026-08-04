@@ -58,6 +58,7 @@ def fetch(date: str | None = None, timeout: int = 15) -> dict:
            "risk_level": None, "confidence": None, "flip_proximity": None,
            "borderline_regime": None, "streak_label": None,
            "catalysts_today": [], "high_impact_today": 0,
+           "playbook_wait": False,
            "gap_pct": None, "gap_note": None, "calendar_note": None,
            "stale_risk": None, "es_premarket": None, "rsi_14": None,
            "corr_putWall": None, "corr_callWall": None,
@@ -95,6 +96,8 @@ def fetch(date: str | None = None, timeout: int = 15) -> dict:
                              if isinstance(c, dict)][:8],
             high_impact_today=sum(1 for c in (_g(d, "catalysts", "today", default=[]) or [])
                                   if isinstance(c, dict) and c.get("impact") == "high"),
+            playbook_wait=any("wait" in ((p.get("trigger") or "") + (p.get("bias") or "")).lower()
+                              for p in (d.get("playbook") or {}).values() if isinstance(p, dict)),
             gap_pct=_g(d, "forecast", "factors", "gap", "percent"),
             gap_note=_g(d, "forecast", "factors", "gap", "value"),
             calendar_note=_g(d, "forecast", "factors", "calendar", "value"),
