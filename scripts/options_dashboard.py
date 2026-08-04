@@ -16,11 +16,9 @@ import pandas as pd
 
 import options_build_cards as obc
 import options_trade_log as tlog
-import mq_levels_db as mqdb
 
 ROOT = Path(__file__).resolve().parents[1]
 SIM = ROOT / "data" / "options_sim"
-LEVELS_FILE = ROOT / "scratchpad" / "mq_levels_today.json"
 
 
 def last_spot():
@@ -37,35 +35,25 @@ def last_spot():
     return None, None
 
 
-def load_levels():
-    if not LEVELS_FILE.exists():
+# (MenthorQ regime/levels code removed 2026-08-04 — premium-selling only, GexLog levels.)
+
+
+def _today_gameplan():
+    import datetime as _dt
+    from zoneinfo import ZoneInfo
+    d = _dt.datetime.now(ZoneInfo("America/Chicago")).strftime("%Y%m%d")
+    p = SIM / f"gameplan_{d}.json"
+    if not p.exists():
         return None
     try:
-        return json.loads(LEVELS_FILE.read_text(encoding="utf-8"))
+        return json.loads(p.read_text(encoding="utf-8"))
     except Exception:
         return None
 
 
-def regime_state(spot, lv):
-    """Options dealer-gamma regime from spot vs HVL (NOT the Brooks engine).
-    spot > HVL => positive gamma (dealers long gamma: mean-revert / pin bias)."""
-    if spot is None or not lv or lv.get("hvl") is None:
-        return {"label": "—", "detail": "need spot + HVL", "cls": ""}
-    hvl = float(lv["hvl"])
-    if spot >= hvl:
-        return {"label": "POSITIVE GAMMA",
-                "detail": f"spot {spot:.0f} > HVL {hvl:.0f} — dealers long gamma; "
-                          "pin / fade-the-extremes bias. Favors premium-sell & flies.",
-                "cls": "pos"}
-    return {"label": "NEGATIVE GAMMA",
-            "detail": f"spot {spot:.0f} < HVL {hvl:.0f} — dealers short gamma; "
-                      "moves amplify. Favors long vol / straddles, avoid naked premium.",
-            "cls": "neg"}
-
-
 def levels_regime():
-    """Bundle used by the header panel + the live /state.json endpoint."""
-    lv = load_levels()
+    """GexLog levels + signal for the header panel and the live /state.json endpoint.
+    MenthorQ fully removed — premium-selling only. Reads the day's gameplan gexlog block."""
     live = SIM / "live.json"
     spot = spot_ts = None
     if live.exists():
@@ -79,16 +67,25 @@ def levels_regime():
         s, t = last_spot()
         if s is not None:
             spot, spot_ts = s, (t or "") + " delayed"
-    spx = (lv or {}).get
-    es = ((lv or {}).get("es") or {}).get
+    gp = _today_gameplan() or {}
+    gx = gp.get("gexlog", {}) or {}
+    sig = gx.get("signal_bucket", "—")
+    reg = gx.get("regime")
+    detail = (f"GexLog {sig} · {gx.get('day_type', '—')} day · {reg or '—'} gamma"
+              if gx else "no GexLog brief yet")
     return {
         "spot": None if spot is None else round(spot, 1),
         "spot_ts": spot_ts,
-        "regime": regime_state(spot, lv),
-        "spx": {k: spx(k) for k in ("ps", "ps0", "hvl", "gw0", "cr0", "cr")} if lv else {},
-        "es": {k: es(k) for k in ("ps", "ps0", "hvl", "gw0", "cr0", "cr")} if lv else {},
-        "d1_min": (lv or {}).get("d1_min"), "d1_max": (lv or {}).get("d1_max"),
-        "gex": (lv or {}).get("gex", [])[:6] if lv else [],
+        "signal": sig,
+        "regime": {"label": sig, "detail": detail,
+                   "cls": {"GO": "pos", "CAUTION": "warn", "WAIT": "neg"}.get(sig, "")},
+        "gexlog": {
+            "putWall": gx.get("putWall"), "callWall": gx.get("callWall"),
+            "gex_flip": gx.get("gex_flip"), "day_type": gx.get("day_type"),
+            "net_gex": gx.get("net_gex"),
+            "em_low": gp.get("em_low"), "em_high": gp.get("em_high"),
+        },
+        "vix": gp.get("vix"),
     }
 
 
@@ -299,69 +296,29 @@ def md_to_html(md):
 # C = structure test / off-signal; F = broken execution. Each setup below spells
 # out what actually earns each grade for THAT structure.
 SETUPS = [
-    {"name": "STMR Bull Put Spread", "id": "bps_stmr", "tag": "SUPPORTED (in-sample)",
+    {"name": "STMR Bull Put Spread", "id": "bps_stmr", "tag": "VALIDATED EDGE",
      "tagcls": "pos", "thesis": "Oversold-but-uptrend mean reversion; sell put premium into the bounce.",
      "default": "SPXW ~30Δ put / buy 50pt lower · 14 DTE · exit on SMA5 signal (NO stops/targets/holds).",
      "grades": [
-        ("A+", "15:59 %K8<15 AND spot>SMA100, LOW VIX-rank tercile, non-crash uptrend, no gap-down cluster."),
-        ("A / B", "Trigger fires but one context off (VIX-rank mid, choppy tape). Still the only real edge — take it."),
-        ("C", "Off-signal execution/labeling test (%K8 not oversold) — plumbing only, no edge."),
-        ("F", "Held to expiry / used price stops / profit target — the exit shootout proved these are negative."),
+        ("A+", "15:59 %K8<15 AND spot>SMA100 — the only validated edge (PF 4.45, 80% win, 16/17 yrs)."),
+        ("F", "Held to expiry / price stops / profit target — the exit shootout proved these negative."),
      ]},
-    {"name": "0DTE Premium Sell @ Wall", "id": "sell_0dte_gamma", "tag": "HYPOTHESIS (live)",
-     "tagcls": "warn", "thesis": "Positive-gamma days pin; sell defined-risk premium at the walls.",
-     "default": "0DTE 25pt credit spread, short AT PS0 (puts) / CR0 (calls), 8:45–9:30 CT.",
-     "grades": [
-        ("A+", "Positive gamma (spot>HVL), VIX<20, no FOMC/CPI, spot ≥40pt from short strike, credit ≥0.80."),
-        ("A / B", "Positive gamma but closer to the wall (25–40pt) or credit 0.60–0.80."),
-        ("C", "Ambiguous regime (|spot−HVL|<15) or entered late/off the wall — structure test."),
-        ("F", "Zero/near-zero credit fill (wall already faded past the strike) — reject before placing."),
-     ]},
-    {"name": "0DTE Iron Condor (inside walls)", "id": "condor_0dte", "tag": "HYPOTHESIS",
-     "tagcls": "warn", "thesis": "Add call-side credit on ~zero extra collateral on a pin day.",
-     "default": "Short put AT/inside PS0 + short call AT/inside CR0 · 25pt wings · both ≥40pt OTM, total credit ≥1.50.",
-     "grades": [
-        ("A+", "Clean positive gamma, spot mid-channel between PS0/CR0, both strikes ≥40pt OTM, credit ≥1.50."),
-        ("A / B", "Positive gamma but one side <40pt OTM (asymmetric) — the risk side is the trending one."),
-        ("C", "|spot−HVL|<15 (regime ambiguity) — playbook says skip; logged only as a test."),
-        ("F", "One side filled far after the other (leg risk) or a side already breached."),
-     ]},
-    {"name": "Long ATM Straddle", "id": "straddle_0dte", "tag": "HYPOTHESIS (counter-regime)",
-     "tagcls": "warn", "thesis": "Buy vol when realized>implied is likely: events, negative-gamma days.",
-     "default": "Buy ATM C+P · 0DTE (event) or nearest weekly · risk = full debit.",
-     "grades": [
-        ("A+", "Scheduled event (FOMC/CPI before 16:00) OR negative-gamma morning with VIX term inverted."),
-        ("A / B", "Negative gamma but VIX term not clearly inverted."),
-        ("C", "Taken to test debit/two-right execution with no vol catalyst."),
-        ("F", "Bought on a positive-gamma pin day at low VIX — the textbook counter-regime loss (2026-07-14)."),
-     ]},
-    {"name": "Butterfly at the Pin", "id": "fly_gw_0dte", "tag": "HYPOTHESIS (most aligned long)",
-     "tagcls": "warn", "thesis": "Positive-gamma days settle near the Gamma Wall; convex payoff into the pin.",
-     "default": "Call butterfly · 25pt wings · centered ON GW0 · 0DTE · enter 10:00–12:00 · debit ≤40% of wing.",
-     "grades": [
-        ("A+", "Positive gamma, spot hovering near GW0, debit ≤40% of wing width, no event."),
-        ("A / B", "Positive gamma but spot 25–50pt off GW0, or debit 40–50% of wing."),
-        ("C", "Entered outside the 10:00–12:00 window or center guessed (no clean GW0)."),
-        ("F", "Bought on a negative-gamma / trend day (no pin) — the wall won't hold price."),
-     ]},
-    {"name": "Directional Verticals", "id": "bull_cs_wk", "tag": "HYPOTHESIS (needs a signal)",
-     "tagcls": "warn", "thesis": "A debit vertical is a delta bet; only sanctioned to express a VALIDATED futures signal.",
-     "default": "Buy 50Δ / sell 25Δ · 7–14 DTE · ONLY on a validated STMR-long signal day · exit with the signal.",
-     "grades": [
-        ("A+", "Expresses an active validated STMR-long signal in defined-risk form; exit tied to the signal."),
-        ("A / B", "Validated signal present but sizing/DTE improvised."),
-        ("C", "Momentum chase with no validated signal — coin flip minus the spread (2026-07-14 sample)."),
-        ("F", "Blind directional bet against the regime / no exit plan."),
-     ]},
-    {"name": "Put Calendar", "id": "put_cal_wk", "tag": "PARKED (structure test)",
-     "tagcls": "mut", "thesis": "Short-leg theta > long-leg theta near ATM; vega hedge. No testable edge with owned data.",
-     "default": "ATM put calendar (short 0DTE / long weekly) · risk = net debit.",
-     "grades": [
-        ("A+", "n/a — parked until term-structure history is owned."),
-        ("A / B", "n/a."),
-        ("C", "Logged once to prove multi-expiry handling."),
-        ("F", "—"),
-     ]},
+    {"name": "EOD-centered Iron Condor", "id": "eod", "tag": "FORWARD TEST", "tagcls": "warn",
+     "thesis": "Sell the expected-move range anchored on the PRIOR CLOSE (GexLog EM band).",
+     "default": "Bull put @ prior_close−EM · bear call @ prior_close+EM · 25pt wings · 0DTE · fire 08:35 CT.",
+     "grades": [("C", "Unconditional data-collection — every day taken, exit on short-strike acceptance or 14:45.")]},
+    {"name": "Open-centered Iron Condor", "id": "open", "tag": "FORWARD TEST", "tagcls": "warn",
+     "thesis": "Same ± expected move, centered on the actual OPEN (strikes struck at 08:35).",
+     "default": "Bull put @ open−EM · bear call @ open+EM · 25pt wings · 0DTE.",
+     "grades": [("C", "A/B vs EOD centering — which anchor contains the session better.")]},
+    {"name": "ATM Iron Fly", "id": "fly", "tag": "FORWARD TEST", "tagcls": "warn",
+     "thesis": "Short straddle at the money with defined-risk wings — max theta, tightest range.",
+     "default": "Short put + short call ATM(open) · 25pt wings · 0DTE.",
+     "grades": [("C", "Highest credit, highest gamma — the aggressive premium sell.")]},
+    {"name": "GexLog Iron Condor (its walls)", "id": "gexlog", "tag": "FORWARD TEST", "tagcls": "warn",
+     "thesis": "Sell at GexLog's own suggested strikes — short put @ Put Wall, short call @ Call Wall.",
+     "default": "Bull put @ putWall · bear call @ callWall · 25pt wings · 0DTE.",
+     "grades": [("C", "Tests GexLog's gamma walls vs the VIX EM band as the strike source.")]},
 ]
 
 
@@ -592,6 +549,10 @@ def _struct_txt(st):
         s, l = st.get("short"), st.get("long")
         both = isinstance(s, (int, float)) and isinstance(l, (int, float))
         return f"{st.get('right','')} {s:.0f}/{l:.0f}" if both else f"{st.get('right','')} {s} w{st.get('width','')}"
+    if k == "vertical_dynamic":
+        off = st.get("offset", 0)
+        where = "ATM" if off == 0 else f"open{off:+.0f}"
+        return f"{st.get('right','')} {where} · w{st.get('width','')} (struck at open)"
     if k == "butterfly":
         return f"C {st['lower']:.0f}/{st['center']:.0f}/{st['upper']:.0f}"
     if k == "straddle":
@@ -632,6 +593,66 @@ def _bucket(title, tiles, bid, is_open=True):
     return (f"<details id='ex-{bid}' class='ex ex-sec'{' open' if is_open else ''}>"
             f"<summary>{title} <span class='cnt'>{len(tiles)}</span></summary>"
             f"<div class='iboard'>{body}</div></details>")
+
+
+CENTER_OF = {
+    "eodic_p": "EOD", "eodic_c": "EOD", "eodfly_p": "EOD", "eodfly_c": "EOD",
+    "openic_p": "Open", "openic_c": "Open", "openfly_p": "Open", "openfly_c": "Open",
+    "gx_bps": "GexLog", "gx_bcs": "GexLog", "bps_stmr": "STMR",
+}
+STRUCT_OF = {
+    "eodic_p": "Iron Condor", "eodic_c": "Iron Condor",
+    "eodfly_p": "Iron Fly", "eodfly_c": "Iron Fly",
+    "openic_p": "Iron Condor", "openic_c": "Iron Condor",
+    "openfly_p": "Iron Fly", "openfly_c": "Iron Fly",
+    "gx_bps": "GexLog Condor", "gx_bcs": "GexLog Condor", "bps_stmr": "STMR",
+}
+
+
+def pnl_summary_html(trades):
+    """Running-P&L summary table for the main page — split by center (EOD vs Open)
+    and structure. Realized (closed) P&L; open counts shown separately."""
+    if trades is None or len(trades) == 0:
+        return ("<div class='pnlsum'><b>Running P&L</b>"
+                "<p class='muted'>No trades yet — this fills as the day trades.</p></div>")
+    df = trades.copy()
+    df["center"] = df.strategy_id.map(lambda s: CENTER_OF.get(str(s)))
+    df["struct"] = df.strategy_id.map(lambda s: STRUCT_OF.get(str(s)))
+    df = df[df.center.notna()]
+    df["pnl"] = pd.to_numeric(df.pnl, errors="coerce")
+    df["closed"] = df.exit_dt.notna()
+
+    def block(sub):
+        cl = sub[sub.closed]
+        real = cl.pnl.sum()
+        n = len(cl); nopen = int((~sub.closed).sum())
+        win = (cl.pnl > 0).mean() * 100 if n else float("nan")
+        cls = "pos" if real >= 0 else "neg"
+        wins = f"{win:.0f}%" if n else "—"
+        return (f"<td>{n}</td><td>{nopen}</td><td>{wins}</td>"
+                f"<td class='{cls}'>{money(real)}</td>")
+
+    hdr = "<tr><th>bucket</th><th>closed</th><th>open</th><th>win%</th><th>realized</th></tr>"
+    # by CENTER (the headline the user wants)
+    center_rows = ""
+    for c in ("EOD", "Open", "GexLog", "STMR"):
+        sub = df[df.center == c]
+        if len(sub):
+            center_rows += f"<tr><td><b>{c}</b></td>{block(sub)}</tr>"
+    total = f"<tr class='tot'><td><b>TOTAL</b></td>{block(df)}</tr>"
+    # by CENTER × STRUCTURE
+    combo_rows = ""
+    for c in ("EOD", "Open", "GexLog", "STMR"):
+        for s in ("Iron Condor", "Iron Fly", "GexLog Condor", "STMR"):
+            sub = df[(df.center == c) & (df.struct == s)]
+            if len(sub):
+                combo_rows += f"<tr><td class='muted'>{c} · {s}</td>{block(sub)}</tr>"
+    return f"""<div class="pnlsum">
+      <b>Running P&L — by center (EOD vs Open)</b>
+      <table class="sumtab">{hdr}{center_rows}{total}</table>
+      <b style="display:block;margin-top:10px">By structure</b>
+      <table class="sumtab">{hdr}{combo_rows}</table>
+    </div>"""
 
 
 def gameplan_html(gp, trades=None, marks_last=None):
@@ -730,37 +751,39 @@ def gameplan_html(gp, trades=None, marks_last=None):
     paths_ex = (f"<details id='ex-paths' class='ex ex-sec' open><summary>Price paths "
                 f"<span class='cnt'>{len(gp.get('scenarios', []))}</span></summary>"
                 f"{paths}</details>") if paths else ""
-    return head + note + paths_ex + board
+    return head + pnl_summary_html(trades) + note + paths_ex + board
 
 
 def levels_panel(lr):
-    """Server-side render of the levels + regime strip (also live-updated by poll())."""
+    """GexLog levels + signal strip (MenthorQ fully removed)."""
     r = lr["regime"]
     spot = lr["spot"]
     spot_txt = f"{spot:,.1f}" if spot is not None else "—"
+    g = lr.get("gexlog", {}) or {}
 
-    def wall(label, key, cls):
-        v = lr["spx"].get(key)
-        return (f"<div class='lv {cls}'><b>{label}</b>"
-                f"<span>{v:,.0f}</span></div>") if v is not None else ""
-    walls = (wall("CR", "cr", "res") + wall("CR0", "cr0", "res")
-             + wall("GW0", "gw0", "piv") + f"<div class='lv spot'><b>SPOT</b><span id='lv-spot'>{spot_txt}</span></div>"
-             + wall("HVL", "hvl", "piv") + wall("PS0", "ps0", "sup") + wall("PS", "ps", "sup"))
-    d1 = ""
-    if lr["d1_min"] and lr["d1_max"]:
-        d1 = (f"<span class='d1'>1-day range {lr['d1_min']:,.0f} – {lr['d1_max']:,.0f}</span>")
-    gex = ""
-    if lr["gex"]:
-        gex = "<span class='gex'>top GEX: " + " · ".join(f"{int(g):,}" for g in lr["gex"]) + "</span>"
+    def tile(label, key, cls):
+        v = g.get(key)
+        return (f"<div class='lv {cls}'><b>{label}</b><span>{v:,.0f}</span></div>"
+                if v is not None else "")
+    row = (tile("CALL WALL", "callWall", "res")
+           + tile("EM HIGH", "em_high", "res")
+           + f"<div class='lv spot'><b>SPOT</b><span id='lv-spot'>{spot_txt}</span></div>"
+           + tile("GEX FLIP", "gex_flip", "piv")
+           + tile("EM LOW", "em_low", "sup")
+           + tile("PUT WALL", "putWall", "sup"))
+    foot = ""
+    if g.get("net_gex") is not None:
+        foot += f"<span class='gex'>net GEX {g['net_gex'] / 1e9:+.1f}B</span> "
+    if g.get("day_type"):
+        foot += f"<span class='d1'>{g['day_type']} day forecast</span> "
     return f"""<div class="lvpanel">
       <div class="lvhead">
         <span class="rlabel {r['cls']}" id="lv-regime">{r['label']}</span>
         <span class="muted" id="lv-regdetail">{r['detail']}</span>
         <span class="muted" style="margin-left:auto" id="lv-spotts">{lr['spot_ts'] or ''}</span>
       </div>
-      <div class="lvrow">{walls}</div>
-      <div class="lvfoot">{d1} {gex}
-        <span class="muted">SPX $MenthorQ walls · today</span></div>
+      <div class="lvrow">{row}</div>
+      <div class="lvfoot">{foot}<span class="muted">GexLog SPX · today</span></div>
     </div>"""
 
 
@@ -781,11 +804,10 @@ def results_html():
 
 
 def levels_html():
-    """MenthorQ levels visual DB, embedded from mq_levels_db (nightly capture)."""
-    try:
-        return mqdb.panel_html(mqdb.load_db())
-    except Exception as e:
-        return f"<p class='muted'>Levels unavailable: {e}</p>"
+    """MenthorQ levels DB removed — premium-selling only. GexLog levels live in the
+    header strip + the gameplan board."""
+    return ("<p class='muted'>MenthorQ removed. GexLog levels (Put/Call Wall, GEX Flip, "
+            "EM band) are in the header strip and on each gameplan tile.</p>")
 
 
 def _history_dates(prefix):

@@ -139,6 +139,15 @@ def should_fire(trig, prev, spot, reg):
 def build_legs(struct, spot):
     """Return [(right, strike, action)] BUY-wings-first. Credit structures list
     the protective long first so it is placed before the naked short."""
+    # OPEN-centered / ATM structures carry no fixed strike — resolve them from the
+    # live (open) spot at fire time, then treat as a normal vertical. Mutates the
+    # struct so grade/exit/risk downstream see the concrete strikes.
+    if struct.get("kind") == "vertical_dynamic":
+        w = struct.get("width", 25)
+        short = round((spot + struct["offset"]) / 5) * 5
+        struct["short"] = short
+        struct["long"] = short - w if struct["right"] == "P" else short + w
+        struct["kind"] = "vertical"
     kind = struct["kind"]
     if kind == "vertical":
         r = struct["right"]
@@ -256,8 +265,8 @@ def grade_at_fill(trig, net, spot, plan):
     return "C", reg
 
 
-CREDIT_SETUPS = ("sell_0dte_gamma", "cr0_fade", "ps0_fade",
-                 "sell_bps", "sell_bcs", "sell_bps_atm", "sell_bcs_atm",
+CREDIT_SETUPS = ("eodic_p", "eodic_c", "eodfly_p", "eodfly_c",
+                 "openic_p", "openic_c", "openfly_p", "openfly_c",
                  "gx_bps", "gx_bcs")
 
 

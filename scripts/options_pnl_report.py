@@ -36,25 +36,26 @@ ROOT = Path(__file__).resolve().parents[1]
 SIM = ROOT / "data" / "options_sim"
 TRADES = ROOT / "data" / "options_log" / "trades.parquet"
 
-ALGO = {"sell_bps", "sell_bcs", "sell_bps_atm", "sell_bcs_atm"}
-GEXLOG = {"gx_bps", "gx_bcs"}
+# CENTER split — the headline the user wants: EOD-centered vs OPEN-centered
+STREAM_MAP = {
+    "eodic_p": "eod", "eodic_c": "eod", "eodfly_p": "eod", "eodfly_c": "eod",
+    "openic_p": "open", "openic_c": "open", "openfly_p": "open", "openfly_c": "open",
+    "gx_bps": "gexlog", "gx_bcs": "gexlog",
+    "bps_stmr": "stmr",
+}
+STREAMS = ("eod", "open", "gexlog", "stmr")
 # structures reconstructed by summing their two legs' P&L per day
 STRUCTS = {
-    "algo iron condor": ("algo", {"sell_bps", "sell_bcs"}),
-    "algo iron fly":    ("algo", {"sell_bps_atm", "sell_bcs_atm"}),
-    "gexlog iron condor": ("gexlog", {"gx_bps", "gx_bcs"}),
+    "[EOD] Iron Condor":  {"eodic_p", "eodic_c"},
+    "[EOD] Iron Fly":     {"eodfly_p", "eodfly_c"},
+    "[Open] Iron Condor": {"openic_p", "openic_c"},
+    "[Open] Iron Fly":    {"openfly_p", "openfly_c"},
+    "[GexLog] Iron Condor": {"gx_bps", "gx_bcs"},
 }
 
 
 def stream_of(sid):
-    sid = str(sid)
-    if sid in GEXLOG:
-        return "gexlog"
-    if sid in ALGO:
-        return "algo"
-    if sid == "bps_stmr":
-        return "stmr"
-    return "legacy"
+    return STREAM_MAP.get(str(sid), "legacy")
 
 
 @lru_cache(maxsize=None)
@@ -127,11 +128,11 @@ def main():
         print(row(sid, stats(df[df.strategy_id == sid].pnl)))
 
     print("\n2) PER STREAM"); print(HEAD)
-    for st in ("algo", "gexlog", "stmr"):
+    for st in STREAMS:
         print(row(st, stats(df[df.stream == st].pnl)))
 
     print("\n3) RECONSTRUCTED STRUCTURES (two legs summed per day)"); print(HEAD)
-    for label, (stream, legs) in STRUCTS.items():
+    for label, legs in STRUCTS.items():
         sub = df[df.strategy_id.isin(legs)]
         daily = sub.groupby("entry_date").pnl.sum()      # both legs same day = the structure
         print(row(label, stats(daily.values)))
@@ -144,7 +145,7 @@ def main():
 
     print("\n5) STREAM x SIGNAL  (total$ / PF / n)")
     print(f"  {'stream':10}" + "".join(f"{sig:>18}" for sig in ("GO", "CAUTION", "WAIT")))
-    for st in ("algo", "gexlog", "stmr"):
+    for st in STREAMS:
         cells = []
         for sig in ("GO", "CAUTION", "WAIT"):
             s = stats(df[(df.stream == st) & (df.signal == sig)].pnl)

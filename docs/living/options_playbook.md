@@ -1,5 +1,10 @@
 # Options Strategy Playbook — rules, parameters, regimes, and how we test them
 
+> **2026-08-04 RESET — PREMIUM-SELLING ONLY.** MenthorQ is fully removed from the
+> live system (no levels, no HVL regime, no MQ-anchored setups). §§2–8 below are
+> RETIRED MQ-era documentation kept for the record. The live system = §1 (STMR)
+> + the §D daily loop: [EOD] & [Open] condor+fly + [GexLog] walls condor.
+
 **Status:** Living. Started S70 (2026-07-12); S73 (2026-07-14) major expansion: every
 strategy family now has a FIXED parameter set + a test grid, after all 8 structures were
 executed and logged on the paper account (first live-pipeline day).
@@ -55,13 +60,13 @@ execution (e.g. zero-credit fill — see 2026-07-14 bcs example).
   prior is unsupported (falling-VIX buckets n≤13; LOW VIX-rank was actually the best
   tercile, PF 6.15 n=31). Trade it UNCONDITIONED.** Trades: `data/options_sim/bps_regime_trades.csv`.
 
-## 2. Iron Condor on STMR  `condor_stmr`  — ANTI (as an STMR variant)
+## 2. [RETIRED] Iron Condor on STMR  `condor_stmr`  — ANTI (as an STMR variant)
 - **Thesis:** add call-side credit on ~zero extra collateral.
 - **Status:** SUPPORTED-NEGATIVE — S68 sweep: LOSES to plain BPS (the bounce runs into the
   short calls). Only helps tail/maxDD.
 - **Verdict:** DEPRECATED on the STMR signal. Condor lives on as `condor_0dte` (§3b).
 
-## 3. 0DTE premium sell at gamma level  `sell_0dte_gamma`  *(HYPOTHESIS — forward-test live)*
+## 3. [RETIRED — MQ era] 0DTE premium sell at gamma level  `sell_0dte_gamma`  *(HYPOTHESIS — forward-test live)*
 - **Thesis:** positive-gamma days pin; sell defined-risk premium at the walls.
 - **Entry trigger:** morning (9:45–10:30 ET), positive-gamma day (spot > HVL), short strike
   AT the MenthorQ PS0 (puts) or CR0 (calls); require spot ≥ 40pts from the short strike
@@ -76,19 +81,19 @@ execution (e.g. zero-credit fill — see 2026-07-14 bcs example).
   First live sample 2026-07-14 (7475/7450 P, $130 credit, settled — see log).
 - **Verdict:** the daily forward-test workhorse — cheap, fast feedback, one per day max.
 
-### 3b. 0DTE iron condor inside the walls  `condor_0dte`  *(HYPOTHESIS)*
+### 3b. [RETIRED — MQ era] 0DTE iron condor inside the walls  `condor_0dte`  *(HYPOTHESIS)*
 - **Structure & DEFAULT:** short put AT/inside PS0 + short call AT/inside CR0, **25pt wings**,
   entered 9:45–10:30 on a positive-gamma day; both strikes ≥ 40pts OTM, total credit ≥ 1.50.
 - **Exit:** settlement; grid adds close-both at 50% credit.
 - **Status:** HYPOTHESIS (2026-07-14 sample: $180 credit, POP 96% at entry).
 - **Caveat:** asymmetric risk on trend days — skip when |spot − HVL| < 15 (regime ambiguity).
 
-## 4. Gamma-level fade / HVL  `gamma_level_fade`  — ANTI (naive)
+## 4. [RETIRED — MQ era] Gamma-level fade / HVL  `gamma_level_fade`  — ANTI (naive)
 - S66: MenthorQ levels hold ~50% once touched. Do NOT trade naively. Only revisit with a
   conditioned trigger (GEX magnitude + distance + time-of-day). Calibration continues daily
   (`mq_logger.py`); our CR matches MenthorQ exactly, PS/HVL formulas still wrong.
 
-## 5. Long ATM straddle  `straddle_0dte` / `straddle_event`  *(HYPOTHESIS, counter-regime by default)*
+## 5. [RETIRED] Long ATM straddle  `straddle_0dte` / `straddle_event`  *(HYPOTHESIS, counter-regime by default)*
 - **Thesis:** buy vol when realized > implied is likely: event days, negative-gamma days.
 - **Entry trigger:** ONLY on (a) scheduled events (FOMC/CPI before 16:00) or (b) negative-gamma
   (spot < HVL) mornings with VIX term inverted. NEVER on a positive-gamma pin day
@@ -101,7 +106,7 @@ execution (e.g. zero-credit fill — see 2026-07-14 bcs example).
 - **Status:** HYPOTHESIS with a skeptical prior (theta on 0DTE is brutal).
 - **Verdict:** forward-test ONLY on trigger days; expect few samples/month.
 
-## 6. Butterfly at the pin  `fly_gw_0dte`  *(HYPOTHESIS — most regime-aligned 0DTE long)*
+## 6. [RETIRED — MQ era] Butterfly at the pin  `fly_gw_0dte`  *(HYPOTHESIS — most regime-aligned 0DTE long)*
 - **Thesis:** positive-gamma days settle near the Gamma Wall; a cheap fly centered there has
   convex payoff into the pin.
 - **Entry trigger:** positive-gamma day, enter 10:00–12:00, center = GW0 (fallback: max-GEX
@@ -114,7 +119,7 @@ execution (e.g. zero-credit fill — see 2026-07-14 bcs example).
   (SPX hovering 7540s vs 7550 wall) — encouraging single sample, means nothing yet.
 - **Verdict:** alongside §3, the second daily forward-test candidate.
 
-## 7. Directional verticals  `bull_cs_wk` / `bear_cs_wk`  *(HYPOTHESIS — needs a signal)*
+## 7. [RETIRED] Directional verticals  `bull_cs_wk` / `bear_cs_wk`  *(HYPOTHESIS — needs a signal)*
 - **Thesis:** none yet — a debit vertical is a delta bet; without a validated directional
   signal it's a coin flip minus spread. 2026-07-14 sample = momentum chase, grade C+.
 - **Only sanctioned use:** expressing an EXISTING validated futures signal (STMR long) in
@@ -122,7 +127,7 @@ execution (e.g. zero-credit fill — see 2026-07-14 bcs example).
 - **Test grid:** deferred until a signal is chosen. Do not sweep blind.
 - **Status:** HYPOTHESIS.
 
-## 8. Calendars  `put_cal_wk`  *(structure-test only)*
+## 8. [RETIRED] Calendars  `put_cal_wk`  *(structure-test only)*
 - **Thesis:** short-leg theta > long-leg theta near ATM; vega hedge.
 - **Status:** logged once (2026-07-14) to prove multi-expiry handling. No thesis we can
   test with owned data (needs term-structure history). PARKED.
@@ -161,10 +166,11 @@ Marks (running PnL + VIX) in `data/options_sim/marks.csv` every ~5 min.
 | ES realtime | NT8 only (no bridge yet — see handoff S73 open items) |
 | Historical intraday NBBO + OI | NEED (ThetaData $40) — the gate for backtesting §3/3b/6 |
 
-## D. Forward-test protocol (the daily loop)
-1. **Morning (9:30–10:30 ET):** paste MenthorQ levels → `scratchpad/mq_levels_today.json`;
-   run `mq_logger.py` (calibration row). If regime qualifies: place §3 and/or §6 (one each,
-   1-lot, DEFAULT params ONLY — no improvising strikes), commentary + grade at entry.
+## D. Forward-test protocol (the daily loop) — REWRITTEN 2026-08-04 (premium-only, MQ removed)
+1. **Premarket (~08:00 CT):** `options_gameplan.py` pulls the GexLog brief (signal
+   GO/CAUTION/WAIT + EM band + walls) and arms EVERY premium structure in BOTH
+   centerings — [EOD] condor+fly (prior close ± EM) and [Open] condor+fly (open ± EM,
+   struck at 08:35) — plus the [GexLog] walls condor. Unconditional, 1-lot, every day.
 2. **All day:** `options_mark.py --watch 300` (running PnL + VIX), daemon sampling spot.
 3. **15:59 ET:** daemon decides `bps_stmr` causally; 16:00–16:15 fill tape logged.
 4. **After close:** settle 0DTE trades at SPX settle, book realized PnL, review in the app.
@@ -173,7 +179,7 @@ Marks (running PnL + VIX) in `data/options_sim/marks.csv` every ~5 min.
 6. **Sample-size honesty:** nothing graduates from HYPOTHESIS until ≥30 forward samples
    AND the equivalent backtest (once ThetaData decision is made).
 
-## E. Where MenthorQ fits — unchanged (calibration ground truth + regime tag, not a signal)
+## E. [RETIRED] MenthorQ — REMOVED 2026-08-04 (sub cancelled; no edge found in Note 0009)
 
 ## F. Open decisions
 - [ ] ThetaData $40/mo — the gate for backtesting all 0DTE strategies. Decide after ~2 weeks

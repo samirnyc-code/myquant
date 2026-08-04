@@ -128,37 +128,66 @@ def _vert(tid, setup, name, right, short, stream, note):
     }
 
 
+def _vert_dyn(tid, setup, name, right, offset, stream, note):
+    """Strikes resolved AT FIRE from the live (open) spot: short = round(spot+offset).
+    The daemon converts kind 'vertical_dynamic' -> 'vertical' before building legs."""
+    return {
+        "id": tid, "setup": setup, "stream": stream, "path": "—", "name": name,
+        "arm": {"regime": "any"},
+        "fire": {"type": "time_at", "not_before": ENTRY_AT},
+        "window": ENTRY_WINDOW,
+        "structure": {"kind": "vertical_dynamic", "right": right, "offset": offset, "width": WING},
+        "projected_grade": "C", "grade_basis": note,
+    }
+
+
 def build_triggers(spot, vix, gx):
-    """Two parallel streams, separate P&L:
-       'algo'   — our systematic verticals off the VIX EM band (gexlog brief's
-                  emUpper/emLower when present, else computed) + ATM iron fly.
-       'gexlog' — gexlog's OWN suggested legs: an iron condor at its putWall/callWall.
-    Only the short-strike SOURCE differs between the two 1σ condors; wings, entry,
-    and exits are identical, so it's a clean strike-selection A/B."""
+    """Premium-selling structures in parallel, separate P&L streams:
+       eod    — iron condor centered on the PRIOR CLOSE ± expected move (gexlog band)
+       open   — iron condor centered on the OPEN ± the SAME move (struck at 08:35)
+       fly    — ATM iron fly, struck at the open
+       gexlog — iron condor at gexlog's putWall / callWall
+       stmr   — the 15:59 validated bull put spread
+    eod vs open share the same ± width; only the CENTER differs — a clean A/B on
+    anchoring the range to the prior close vs the actual open."""
     hw = em_halfwidth(spot, vix)
-    em_lo = gx.get("emLower") if gx.get("emLower") else spot - hw
-    em_hi = gx.get("emUpper") if gx.get("emUpper") else spot + hw
+    move = gx.get("expectedMove") or hw
+    prior_close = gx.get("current") or spot
+    em_lo = gx.get("emLower") if gx.get("emLower") else prior_close - move
+    em_hi = gx.get("emUpper") if gx.get("emUpper") else prior_close + move
     band_src = "gexlog brief" if gx.get("emLower") else f"computed VIX {vix:.1f}"
-    sp1, sc1, atm = rnd(em_lo), rnd(em_hi), rnd(spot)
+    lo, hi, pc = rnd(em_lo), rnd(em_hi), rnd(prior_close)
 
+    # EVERY centered strategy is traded in BOTH versions each day — EOD-centered
+    # (prior close) and OPEN-centered (struck at 08:35). Same strategy, only the
+    # center differs, so P&L splits cleanly by EOD vs Open.
     T = [
-        _vert("sell_bps", "sell_bps", f"[algo] Bull Put @ {sp1:.0f} (EM low)", "P", sp1,
-              "algo", f"short put at EM low ({band_src}); condor put wing"),
-        _vert("sell_bcs", "sell_bcs", f"[algo] Bear Call @ {sc1:.0f} (EM high)", "C", sc1,
-              "algo", f"short call at EM high ({band_src}); condor call wing"),
-        _vert("sell_bps_atm", "sell_bps_atm", f"[algo] Bull Put @ {atm:.0f} (ATM)", "P", atm,
-              "algo", "short put ATM; iron-fly put wing"),
-        _vert("sell_bcs_atm", "sell_bcs_atm", f"[algo] Bear Call @ {atm:.0f} (ATM)", "C", atm,
-              "algo", "short call ATM; iron-fly call wing"),
+        # ===== EOD-centered (prior close) — fixed premarket =====
+        _vert("eodic_p", "eodic_p", f"[EOD] Bull Put @ {lo:.0f}", "P", lo,
+              "eod", f"EOD condor put — prior-close EM low ({band_src})"),
+        _vert("eodic_c", "eodic_c", f"[EOD] Bear Call @ {hi:.0f}", "C", hi,
+              "eod", f"EOD condor call — prior-close EM high ({band_src})"),
+        _vert("eodfly_p", "eodfly_p", f"[EOD] Bull Put @ {pc:.0f} (ATM)", "P", pc,
+              "eod", "EOD fly put — ATM = prior close"),
+        _vert("eodfly_c", "eodfly_c", f"[EOD] Bear Call @ {pc:.0f} (ATM)", "C", pc,
+              "eod", "EOD fly call — ATM = prior close"),
+        # ===== OPEN-centered — strikes struck at fire (08:35) =====
+        _vert_dyn("openic_p", "openic_p", f"[Open] Bull Put @ open-{move:.0f}", "P", -move,
+                  "open", f"Open condor put — {move:.0f}pt below the open"),
+        _vert_dyn("openic_c", "openic_c", f"[Open] Bear Call @ open+{move:.0f}", "C", move,
+                  "open", f"Open condor call — {move:.0f}pt above the open"),
+        _vert_dyn("openfly_p", "openfly_p", "[Open] Bull Put @ ATM(open)", "P", 0,
+                  "open", "Open fly put — ATM = open"),
+        _vert_dyn("openfly_c", "openfly_c", "[Open] Bear Call @ ATM(open)", "C", 0,
+                  "open", "Open fly call — ATM = open"),
     ]
-
-    # GexLog's own suggested condor — shorts at its gamma walls (separate P&L stream)
+    # GexLog's own suggested condor — at its gamma walls (its own stream)
     pw, cw = gx.get("putWall"), gx.get("callWall")
     if pw and cw:
         T += [
-            _vert("gx_bps", "gx_bps", f"[gexlog] Bull Put @ putWall {pw:.0f}", "P", rnd(pw),
+            _vert("gx_bps", "gx_bps", f"[GexLog] Bull Put @ putWall {pw:.0f}", "P", rnd(pw),
                   "gexlog", "gexlog suggested: short put at its Put Wall"),
-            _vert("gx_bcs", "gx_bcs", f"[gexlog] Bear Call @ callWall {cw:.0f}", "C", rnd(cw),
+            _vert("gx_bcs", "gx_bcs", f"[GexLog] Bear Call @ callWall {cw:.0f}", "C", rnd(cw),
                   "gexlog", "gexlog suggested: short call at its Call Wall"),
         ]
     # STMR 15:59 bull put spread — the one validated edge; run by options_sim_daemon.
@@ -173,14 +202,17 @@ def build_triggers(spot, vix, gx):
         "grade_basis": "the only validated edge; executed by options_sim_daemon at 14:59 CT",
         "note": "run by options_sim_daemon.py, NOT the trigger daemon",
     })
-    # structure GROUP — the dashboard renders one tile per group (both legs together)
-    GROUPS = {"sell_bps": "[algo] Iron Condor", "sell_bcs": "[algo] Iron Condor",
-              "sell_bps_atm": "[algo] Iron Fly", "sell_bcs_atm": "[algo] Iron Fly",
-              "gx_bps": "[gexlog] Iron Condor", "gx_bcs": "[gexlog] Iron Condor",
+    # structure GROUP (one tile per structure) + CENTER (eod/open P&L split)
+    GROUPS = {"eodic_p": "[EOD] Iron Condor", "eodic_c": "[EOD] Iron Condor",
+              "eodfly_p": "[EOD] Iron Fly", "eodfly_c": "[EOD] Iron Fly",
+              "openic_p": "[Open] Iron Condor", "openic_c": "[Open] Iron Condor",
+              "openfly_p": "[Open] Iron Fly", "openfly_c": "[Open] Iron Fly",
+              "gx_bps": "[GexLog] Iron Condor", "gx_bcs": "[GexLog] Iron Condor",
               "bps_stmr": "STMR Bull Put Spread"}
     for t in T:
         t["group"] = GROUPS.get(t["id"], t.get("name"))
-    return T, band_src, round(em_lo, 1), round(em_hi, 1)
+        t["center"] = t.get("stream")   # eod | open | gexlog | stmr
+    return T, band_src, round(em_lo, 1), round(em_hi, 1), round(move, 1)
 
 
 def main():
@@ -212,7 +244,7 @@ def main():
     except Exception as e:
         gx = {"day_type": "unknown", "error": f"{type(e).__name__}: {e}"}
 
-    triggers, band_src, em_lo, em_hi = build_triggers(spot, vix, gx)
+    triggers, band_src, em_lo, em_hi, move = build_triggers(spot, vix, gx)
     for t in triggers:
         t.update(status="armed", fired=False, trade_id=None,
                  gexlog_signal=gx.get("signal_bucket", "unknown"),
@@ -223,7 +255,7 @@ def main():
         "generated_at": now_ct().strftime("%Y-%m-%d %H:%M:%S CT"),
         "spot_preopen": spot, "spot_source": spot_src,
         "vix": vix, "vix_source": vix_src,
-        "em_halfwidth": round(hw, 1), "em_source": band_src,
+        "em_halfwidth": move, "em_source": band_src,
         "em_low": em_lo, "em_high": em_hi,
         "regime": "n/a (premium-only, unconditional)",
         "gexlog": gx,            # morning brief: day_type (TREND/RANGE/CHOP), signal, regime, walls
@@ -269,8 +301,8 @@ def main():
                 if isinstance(st.get("short"), (int, float)) else st.get("short", ""))
         fire = t["fire"].get("not_before", t["fire"]["type"])
         print(f"  {t.get('stream', '—'):7} {t['setup']:14} {fire:10} {t['name']}  [{desc}]")
-    print(f"\n  algo   iron condor = sell_bps + sell_bcs   |   iron fly = sell_bps_atm + sell_bcs_atm")
-    print(f"  gexlog iron condor = gx_bps + gx_bcs (at its walls) — separate P&L")
+    print(f"\n  streams: eod (prior-close ±{move:.0f}) · open (open ±{move:.0f}, struck at {ENTRY_AT}) · "
+          f"fly (ATM) · gexlog (walls) · stmr")
     print(f"\nwrote {out}  ({len(plan['triggers'])} triggers armed)")
     return out
 

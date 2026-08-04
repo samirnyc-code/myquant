@@ -54,7 +54,7 @@ def fetch(date: str | None = None, timeout: int = 15) -> dict:
     out = {"signal_bucket": "unknown", "signal": None, "day_type": "unknown",
            "forecast_type": None, "regime": None, "net_gex": None, "gex_flip": None,
            "putWall": None, "callWall": None, "expectedMove": None,
-           "emLower": None, "emUpper": None,
+           "emLower": None, "emUpper": None, "current": None,
            "generated_at": None, "source": None, "error": None}
     try:
         s = requests.Session()
@@ -79,6 +79,7 @@ def fetch(date: str | None = None, timeout: int = 15) -> dict:
             putWall=_g(d, "levels", "putWall"), callWall=_g(d, "levels", "callWall"),
             expectedMove=_g(d, "levels", "expectedMove"),
             emLower=_g(d, "levels", "emLower"), emUpper=_g(d, "levels", "emUpper"),
+            current=_g(d, "levels", "current"),
             generated_at=_g(d, "meta", "generatedAt"),
             source="report.php" if not date else "archive.php")
     except Exception as e:
