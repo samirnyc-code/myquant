@@ -85,6 +85,14 @@ def notify(title, msg):
     _log(title, msg)
     desktop(title, msg)
     email(title, msg)
+    # Telegram (2026-08-04): forward every desk event to the bot. Fail-silent —
+    # a Telegram outage must never crash the daemon.
+    try:
+        from notify_telegram import send
+        lvl = "alert" if any(k in title.upper() for k in ("CLOSED", "STOOD DOWN", "ERROR")) else "info"
+        send(f"{title}\n{msg}", level=lvl)
+    except Exception:
+        pass
 
 
 if __name__ == "__main__":

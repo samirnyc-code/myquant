@@ -318,6 +318,31 @@ def main():
         print(f"  {t.get('stream', '—'):7} {t['setup']:14} {fire:10} {t['name']}  [{desc}]")
     print(f"\n  streams: eod (prior-close ±{move:.0f}) · open (open ±{move:.0f}, struck at {ENTRY_AT}) · "
           f"fly (ATM) · gexlog (walls) · stmr")
+
+    # push the day's plan to Telegram (fail-silent; never blocks the plan)
+    try:
+        from notify_telegram import send
+        cats = gx.get("catalysts_today") or []
+        hi = gx.get("high_impact_today") or 0
+        lines = [f"GAMEPLAN {date} — {gx.get('signal_bucket', '?')} "
+                 f"({gx.get('day_type', '?')}, conf {gx.get('confidence', '?')}%)",
+                 f"EOD spot {gx.get('current') or spot:.0f} · EM ±{move:.0f} · VIX {vix:.2f}",
+                 f"EOD band {em_lo:.0f}–{em_hi:.0f} · walls {gx.get('putWall') or '—'}/{gx.get('callWall') or '—'}"]
+        for t in plan["triggers"]:
+            st = t["structure"]
+            if st.get("kind") == "vertical":
+                s = st.get("short")
+                lines.append(f"  {t['setup']}: {st['right']} short {s}")
+            elif st.get("kind") == "vertical_dynamic":
+                lines.append(f"  {t['setup']}: {st['right']} open{st['offset']:+.0f} (struck {ENTRY_AT})")
+        if cats:
+            lines.append(f"catalysts: {len(cats)}" + (f" ({hi} HIGH)" if hi else "")
+                         + " — " + "; ".join(f"{c.get('time')} {c.get('title')}" for c in cats[:3]))
+        lines.append("brief: https://gexlog.com/dashboard/")
+        send("\n".join(lines), level="info")
+        print("  → pushed to Telegram")
+    except Exception as e:
+        print(f"  (telegram push skipped: {type(e).__name__})")
     print(f"\nwrote {out}  ({len(plan['triggers'])} triggers armed)")
     return out
 
