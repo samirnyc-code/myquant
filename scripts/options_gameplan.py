@@ -319,27 +319,51 @@ def main():
     print(f"\n  streams: eod (prior-close ±{move:.0f}) · open (open ±{move:.0f}, struck at {ENTRY_AT}) · "
           f"fly (ATM) · gexlog (walls) · stmr")
 
-    # push the day's plan to Telegram (fail-silent; never blocks the plan)
+    # push the day's plan to Telegram — HTML, stacked per structure, no link preview
     try:
         from notify_telegram import send
         cats = gx.get("catalysts_today") or []
         hi = gx.get("high_impact_today") or 0
-        lines = [f"GAMEPLAN {date} — {gx.get('signal_bucket', '?')} "
-                 f"({gx.get('day_type', '?')}, conf {gx.get('confidence', '?')}%)",
-                 f"EOD spot {gx.get('current') or spot:.0f} · EM ±{move:.0f} · VIX {vix:.2f}",
-                 f"EOD band {em_lo:.0f}–{em_hi:.0f} · walls {gx.get('putWall') or '—'}/{gx.get('callWall') or '—'}"]
-        for t in plan["triggers"]:
-            st = t["structure"]
-            if st.get("kind") == "vertical":
-                s = st.get("short")
-                lines.append(f"  {t['setup']}: {st['right']} short {s}")
-            elif st.get("kind") == "vertical_dynamic":
-                lines.append(f"  {t['setup']}: {st['right']} open{st['offset']:+.0f} (struck {ENTRY_AT})")
+        sig = gx.get("signal_bucket", "?")
+        sig_ico = {"GO": "🟢", "CAUTION": "🟡", "WAIT": "🔴"}.get(sig, "⚪")
+        dt_ico = {"RANGE": "🟢", "CHOP": "🟡", "TREND": "🔴"}.get(gx.get("day_type"), "⚪")
+
+        def sk(tid):
+            st = next((t["structure"] for t in plan["triggers"] if t["id"] == tid), None)
+            if not st:
+                return None
+            if st.get("kind") == "vertical_dynamic":
+                off = st["offset"]
+                return "ATM(open)" if off == 0 else f"open{off:+.0f}"
+            return f"{st.get('short'):.0f}" if isinstance(st.get("short"), (int, float)) else str(st.get("short"))
+
+        L = [f"📋 <b>GAMEPLAN {date}</b>",
+             f"{sig_ico} <b>{sig}</b> · {dt_ico} {gx.get('day_type', '?')} · conf {gx.get('confidence', '?')}%",
+             "",
+             f"📍 EOD <b>{(gx.get('current') or spot):.0f}</b> · EM ±<b>{move:.0f}</b> · VIX {vix:.2f}",
+             f"🛡 band <b>{em_lo:.0f}–{em_hi:.0f}</b> · walls <b>{gx.get('putWall') or '—'} / {gx.get('callWall') or '—'}</b>",
+             ""]
+        pairs = [("🔵 <b>EOD Condor</b>", sk("eodic_p"), sk("eodic_c")),
+                 ("🔵 <b>EOD Fly</b>", sk("eodfly_p"), sk("eodfly_c")),
+                 ("⚪ <b>Open Condor</b>", sk("openic_p"), sk("openic_c")),
+                 ("⚪ <b>Open Fly</b>", sk("openfly_p"), sk("openfly_c")),
+                 ("🟣 <b>GexLog Walls</b>", sk("gx_bps"), sk("gx_bcs"))]
+        for name, p, c in pairs:
+            if p and c:
+                L.append(f"{name}\n      <code>P {p}  ·  C {c}</code>")
+        L.append("🟢 <b>STMR 15:59</b>\n      <code>P ~30Δ (only if signal fires)</code>")
+        L.append("")
         if cats:
-            lines.append(f"catalysts: {len(cats)}" + (f" ({hi} HIGH)" if hi else "")
-                         + " — " + "; ".join(f"{c.get('time')} {c.get('title')}" for c in cats[:3]))
-        lines.append("brief: https://gexlog.com/dashboard/")
-        send("\n".join(lines), level="info")
+            head_c = f"📅 catalysts {len(cats)}" + (f" · <b>{hi} HIGH</b> ⚠️" if hi else "")
+            L.append(head_c)
+            for c in cats[:3]:
+                L.append(f"      {c.get('time')}  {c.get('title')}")
+            if len(cats) > 3:
+                L.append(f"      … +{len(cats) - 3} more")
+        L.append("")
+        L.append("🔗 <a href='https://gexlog.com/dashboard/'>morning brief</a> · "
+                 "<a href='https://gexlog.com/dashboard/history/'>archive</a>")
+        send("\n".join(L), level="info", html=True, no_preview=True)
         print("  → pushed to Telegram")
     except Exception as e:
         print(f"  (telegram push skipped: {type(e).__name__})")
