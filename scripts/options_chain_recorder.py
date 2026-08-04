@@ -89,6 +89,13 @@ def run_mock(pct):
 
 
 def run_live(pct, secs, stop_hhmm):
+    """ROLLING window: ±pct around CURRENT spot, re-centered as price drifts.
+
+    Why rolling (2026-08-04): our entries are struck at the open, but the dataset
+    must also support retro-testing LATER entry times — which needs quotes around
+    wherever spot is at that moment. A window frozen at the open misses those
+    strikes after a trend move; a rolling one covers them with ~80 bounded lines
+    (new strikes subscribe as they come into range, far ones unsubscribe)."""
     import ib_conn
     from ib_async import Option
     ib = ib_conn.connect(client_id=71)          # distinct from daemons (avoid clientId clash)
@@ -98,23 +105,46 @@ def run_live(pct, secs, stop_hhmm):
     spot = spot_now(ib)
     if spot is None:
         raise SystemExit("no spot available — is the feed live?")
-    ks = strike_window(spot, pct)
-    print(f"recording {len(ks)} strikes {ks[0]}..{ks[-1]} ({len(ks) * 2} lines) "
-          f"exp {expiry}, every {secs}s until {stop_hhmm} CT")
 
-    # qualify + subscribe streaming tickers ONCE; read them each minute
-    contracts = []
-    for k in ks:
-        for r in ("P", "C"):
-            contracts.append(Option("SPX", expiry, k, r, "SMART", tradingClass="SPXW"))
-    q = [c for c in ib.qualifyContracts(*contracts) if c and c.conId]
-    tick = {(c.strike, c.right): ib.reqMktData(c, "", snapshot=False) for c in q}
-    ib.sleep(6)
+    tick = {}                                    # (strike, right) -> streaming ticker
+
+    def retune(center):
+        """Subscribe strikes inside ±pct of `center`; drop ones that left."""
+        want = set(strike_window(center, pct))
+        have = {k for k, _ in tick}
+        for k in sorted(have - want):
+            for r in ("P", "C"):
+                t = tick.pop((k, r), None)
+                if t is not None:
+                    try:
+                        ib.cancelMktData(t.contract)
+                    except Exception:
+                        pass
+        new = sorted(want - have)
+        if new:
+            cs = [Option("SPX", expiry, k, r, "SMART", tradingClass="SPXW")
+                  for k in new for r in ("P", "C")]
+            for c in ib.qualifyContracts(*cs):
+                if c and c.conId:
+                    tick[(c.strike, c.right)] = ib.reqMktData(c, "", snapshot=False)
+            ib.sleep(4)
+        return len(new)
+
+    retune(spot)
+    center = spot
+    print(f"recording ±{pct}% ROLLING window around spot ({len(tick)} lines), "
+          f"exp {expiry}, every {secs}s until {stop_hhmm} CT")
 
     stop = dt.time(*map(int, stop_hhmm.split(":")))
     p = out_path(date)
     while now_ct().time() < stop:
         spot = spot_now(ib) or spot
+        # re-center once spot drifts >20% of the window from the current center
+        if abs(spot - center) > center * pct / 100.0 * 0.20:
+            n = retune(spot)
+            center = spot
+            if n:
+                print(f"  window rolled to {center:.0f} (+{n} strikes)")
         ts = dt.datetime.now(ET).strftime("%Y-%m-%d %H:%M:%S")
         rows = []
         for (k, r), t in tick.items():
@@ -130,9 +160,9 @@ def run_live(pct, secs, stop_hhmm):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--pct", type=float, default=1.5,
-                    help="strike window half-width, %% of spot (1.5%% ~ 92 IB data lines; "
-                         "raise only if your IB market-data line allowance permits)")
+    ap.add_argument("--pct", type=float, default=1.25,
+                    help="ROLLING strike-window half-width, %% of current spot "
+                         "(1.25%% ~ 78 IB data lines; window re-centers as spot drifts)")
     ap.add_argument("--secs", type=int, default=60, help="snapshot cadence (s)")
     ap.add_argument("--stop", default="15:00", help="stop time CT (HH:MM)")
     ap.add_argument("--mock", action="store_true", help="no IB — verify logic only")
