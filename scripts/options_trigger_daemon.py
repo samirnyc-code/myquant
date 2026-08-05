@@ -234,6 +234,27 @@ def grade_at_fill(trig, net, spot, plan):
         if reg == "negative_gamma":
             return "D", f"NEG-gamma fade — fading into momentum, wall likely breaks; credit {net:.2f}"
         return "C", f"neutral-regime fade; credit {net:.2f}"
+    if setup in CREDIT_SETUPS:
+        # PREMIUM-SPREAD ladder (2026-08-05, replaces the default-C catch-all).
+        # Objective, from the fill: credit richness vs width + short-strike cushion.
+        # UNVALIDATED as a P&L predictor — it grades entry QUALITY for later analysis
+        # (the old MQ-era ladder anti-correlated with P&L; this one gets tested too).
+        width = st.get("width", 25)
+        short = st.get("short")
+        dist = (spot - short) if st.get("right") == "P" else (short - spot)   # +OTM / −ITM
+        ratio = net / width if width else 0
+        if dist is None:
+            return "C", f"credit {net:.2f}, no strike distance"
+        if ratio >= 0.10 and dist >= 30:
+            g = "A"          # rich credit AND real cushion
+        elif (ratio >= 0.05 and dist >= 15) or ratio >= 0.50:
+            g = "B"          # decent both, or very rich ITM (deliberate gap-fade)
+        elif ratio >= 0.02:
+            g = "C"          # thin but priced
+        else:
+            g = "D"          # near-free credit — data collection only
+        side = f"{dist:.0f}pt {'OTM' if dist >= 0 else 'ITM'}"
+        return g, f"credit {net:.2f} = {ratio*100:.0f}% of width, short {side}"
     if setup == "sell_0dte_gamma":
         # PREMIUM-SELL grading: here you WANT the short far OTM, so distance IS
         # the right axis (unlike a fade).
