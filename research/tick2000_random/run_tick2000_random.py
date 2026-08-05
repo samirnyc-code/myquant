@@ -1,21 +1,27 @@
 """
-Random stop-entry study on ES 2000-tick RTH charts.
+Random stop-entry study on ES 2000-tick RTH charts — variant comparison.
 
 Spec (user, S95 2026-08-05):
 - 2000-tick bars built per day from data/ticks_continuous (RTH-only ticks, 08:30-15:15).
-- 21 EMA on bar closes (per-day chart; signals only after 21 bars of warmup).
 - Random signal bars, targeting 2-5 FILLED trades per day (canceled stop orders
   are re-drawn on later random bars until the day's fill target or day end).
-- Stop entry placed on signal bar close: long = signal bar high + 1 tick (only if
-  close > EMA21), short = signal bar low - 1 tick (only if close < EMA21).
-  Order valid for the NEXT bar only; canceled if not triggered.
+- Stop entry placed on signal bar close: long = signal bar high + 1 tick,
+  short = signal bar low - 1 tick. Order valid for the NEXT bar only.
 - Target +4 ticks (limit, requires 1-tick tick-through to fill at the limit).
 - Stop -8 ticks (stop order, fills on touch; gap-through fills at traded price).
 - One position at a time. EOD flatten at last tick of day.
+- Fee: $4 round-turn per trade, ES big contract ($12.50/tick).
+
+Variants:
+  ema    - long above 21EMA / short below (EMA on bar closes, 21-bar warmup)
+  random - direction = coin flip, EMA ignored
+  long   - always long, EMA ignored
+  short  - always short, EMA ignored
+(All variants keep the same 21-bar warmup so they trade the same bar universe.)
 
 Outputs (dated):
-- trades_tick2000_random_<stamp>.csv  (full trade list)
-- summary_tick2000_random_<stamp>.txt (aggregate stats)
+- trades_tick2000_<variant>_<stamp>.csv  (full trade list per variant)
+- summary_tick2000_variants_<stamp>.txt  (comparison table)
 """
 import numpy as np
 import pandas as pd
@@ -32,18 +38,16 @@ EMA_N = 21
 TGT_T = 4             # target ticks
 STP_T = 8             # stop ticks
 SEED = 42
-
-rng = np.random.default_rng(SEED)
+FEE_RT = 4.0          # $ round-turn per trade
+TICK_USD = 12.5       # ES big contract
+VARIANTS = ["ema", "random", "long", "short"]
 
 
 def ema(closes: np.ndarray, n: int) -> np.ndarray:
     return pd.Series(closes).ewm(span=n, adjust=False).mean().to_numpy()
 
 
-def run_day(path: Path):
-    df = pd.read_parquet(path, columns=["DateTime", "Price"])
-    prices = df["Price"].to_numpy()
-    times = df["DateTime"].to_numpy()
+def run_day(prices, times, day, mode, rng):
     n = len(prices)
     nbars = n // BAR
     if nbars < EMA_N + 3:
@@ -53,9 +57,8 @@ def run_day(path: Path):
     highs = grid.max(axis=1)
     lows = grid.min(axis=1)
     closes = grid[:, -1]
-    e = ema(closes, EMA_N)
+    e = ema(closes, EMA_N) if mode == "ema" else None
 
-    # eligible signal bars: EMA warmed up, and a full next bar exists for the entry window
     n_target = int(rng.integers(2, 6))
     trades = []
     canceled = 0
@@ -74,15 +77,22 @@ def run_day(path: Path):
         need = n_target - len(trades)
         if rng.random() >= need / remaining:
             continue
-        c, m = closes[b], e[b]
-        if c > m:
+
+        if mode == "ema":
+            c, m = closes[b], e[b]
+            if c > m:
+                side = 1
+            elif c < m:
+                side = -1
+            else:
+                continue
+        elif mode == "random":
+            side = 1 if rng.random() < 0.5 else -1
+        elif mode == "long":
             side = 1
-            stop_lvl = highs[b] + T
-        elif c < m:
-            side = -1
-            stop_lvl = lows[b] - T
         else:
-            continue
+            side = -1
+        stop_lvl = highs[b] + T if side == 1 else lows[b] - T
 
         seg = prices[win_lo:win_hi]
         hit = np.nonzero(seg >= stop_lvl)[0] if side == 1 else np.nonzero(seg <= stop_lvl)[0]
@@ -117,7 +127,7 @@ def run_day(path: Path):
 
         pnl_t = round(side * (exit_px - entry) / T)
         trades.append({
-            "date": path.stem,
+            "date": day,
             "signal_bar": int(b),
             "side": "long" if side == 1 else "short",
             "entry_time": times[fill_i],
@@ -126,59 +136,67 @@ def run_day(path: Path):
             "exit": exit_px,
             "reason": reason,
             "pnl_ticks": pnl_t,
-            "bars_in_day": int(nbars),
+            "pnl_usd_net": pnl_t * TICK_USD - FEE_RT,
         })
     return trades, canceled
 
 
+def stats_row(name, tdf, canceled, ndays):
+    wins = (tdf["pnl_ticks"] > 0).sum()
+    gw = tdf.loc[tdf["pnl_ticks"] > 0, "pnl_ticks"].sum()
+    gl = -tdf.loc[tdf["pnl_ticks"] < 0, "pnl_ticks"].sum()
+    net_t = tdf["pnl_ticks"].sum()
+    return {
+        "variant": name,
+        "trades": len(tdf),
+        "per_day": round(len(tdf) / ndays, 2),
+        "canceled": canceled,
+        "win_pct": round(wins / len(tdf) * 100, 1),
+        "tgt": int((tdf["reason"] == "target").sum()),
+        "stp": int((tdf["reason"] == "stop").sum()),
+        "eod": int((tdf["reason"] == "eod").sum()),
+        "net_ticks": int(net_t),
+        "t_per_trade": round(net_t / len(tdf), 3),
+        "PF": round(gw / gl, 3),
+        "gross_usd": round(net_t * TICK_USD),
+        "fees_usd": round(FEE_RT * len(tdf)),
+        "net_usd": round(net_t * TICK_USD - FEE_RT * len(tdf)),
+        "usd_per_trade": round((net_t * TICK_USD - FEE_RT * len(tdf)) / len(tdf), 2),
+    }
+
+
 def main():
     files = sorted(TICK_DIR.glob("*.parquet"))
-    all_trades, total_canceled = [], 0
+    rngs = {v: np.random.default_rng(SEED) for v in VARIANTS}
+    all_trades = {v: [] for v in VARIANTS}
+    all_canceled = {v: 0 for v in VARIANTS}
+
     for i, f in enumerate(files):
-        tr, canc = run_day(f)
-        all_trades.extend(tr)
-        total_canceled += canc
+        df = pd.read_parquet(f, columns=["DateTime", "Price"])
+        prices = df["Price"].to_numpy()
+        times = df["DateTime"].to_numpy()
+        for v in VARIANTS:
+            tr, canc = run_day(prices, times, f.stem, v, rngs[v])
+            all_trades[v].extend(tr)
+            all_canceled[v] += canc
         if (i + 1) % 200 == 0:
             print(f"{i+1}/{len(files)} days...", flush=True)
 
-    tdf = pd.DataFrame(all_trades)
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    trades_path = OUT_DIR / f"trades_tick2000_random_{stamp}.csv"
-    tdf.to_csv(trades_path, index=False)
+    rows = []
+    for v in VARIANTS:
+        tdf = pd.DataFrame(all_trades[v])
+        tdf.to_csv(OUT_DIR / f"trades_tick2000_{v}_{stamp}.csv", index=False)
+        rows.append(stats_row(v, tdf, all_canceled[v], tdf["date"].nunique()))
 
-    lines = []
-    def w(s=""):
-        lines.append(s)
-        print(s)
-
-    ndays = tdf["date"].nunique()
-    wins = (tdf["pnl_ticks"] > 0).sum()
-    losses = (tdf["pnl_ticks"] < 0).sum()
-    gross_win = tdf.loc[tdf["pnl_ticks"] > 0, "pnl_ticks"].sum()
-    gross_loss = -tdf.loc[tdf["pnl_ticks"] < 0, "pnl_ticks"].sum()
-    net_t = tdf["pnl_ticks"].sum()
-
-    w(f"days={ndays}  trades={len(tdf)}  ({len(tdf)/ndays:.2f}/day)  canceled_orders={total_canceled}")
-    w(f"win={wins} ({wins/len(tdf)*100:.1f}%)  loss={losses}  eod_exits={(tdf['reason']=='eod').sum()}")
-    w(f"target_exits={(tdf['reason']=='target').sum()}  stop_exits={(tdf['reason']=='stop').sum()}")
-    w(f"net={net_t:+,} ticks  ({net_t/len(tdf):+.3f} t/trade)")
-    w(f"PF={gross_win/gross_loss:.3f}  gross_win={gross_win:,}t gross_loss={gross_loss:,}t")
-    w(f"ES $/contract gross: {net_t*12.5:+,.0f}   MES gross: {net_t*1.25:+,.0f}   MES net @$5RT: {net_t*1.25-5*len(tdf):+,.0f}")
-    w()
-    w("by side:")
-    for side, g in tdf.groupby("side"):
-        gw = g.loc[g.pnl_ticks > 0, "pnl_ticks"].sum(); gl = -g.loc[g.pnl_ticks < 0, "pnl_ticks"].sum()
-        w(f"  {side:5s} n={len(g):5d}  win%={(g.pnl_ticks>0).mean()*100:5.1f}  net={g.pnl_ticks.sum():+8,}t  PF={gw/max(gl,1):.3f}")
-    w()
-    w("by year:")
-    yr = tdf.assign(year=tdf["date"].str[:4])
-    for y, g in yr.groupby("year"):
-        gw = g.loc[g.pnl_ticks > 0, "pnl_ticks"].sum(); gl = -g.loc[g.pnl_ticks < 0, "pnl_ticks"].sum()
-        w(f"  {y} n={len(g):5d}  win%={(g.pnl_ticks>0).mean()*100:5.1f}  net={g.pnl_ticks.sum():+8,}t  PF={gw/max(gl,1):.3f}")
-
-    summary_path = OUT_DIR / f"summary_tick2000_random_{stamp}.txt"
-    summary_path.write_text("\n".join(lines), encoding="utf-8")
-    print(f"\nsaved: {trades_path.name}, {summary_path.name}")
+    cmp = pd.DataFrame(rows)
+    out = cmp.to_string(index=False)
+    print(out)
+    (OUT_DIR / f"summary_tick2000_variants_{stamp}.txt").write_text(
+        f"fee=${FEE_RT}/RT on ES big (${TICK_USD}/tick), seed={SEED}\n\n" + out + "\n",
+        encoding="utf-8")
+    cmp.to_csv(OUT_DIR / f"summary_tick2000_variants_{stamp}.csv", index=False)
+    print(f"\nsaved: summary_tick2000_variants_{stamp}.txt/.csv + 4 trade CSVs")
 
 
 if __name__ == "__main__":
