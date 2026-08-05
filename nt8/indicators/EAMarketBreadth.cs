@@ -138,7 +138,6 @@ namespace NinjaTrader.NinjaScript.Indicators
                 return;
 
             bool[] show = { ShowVolumeRatio, ShowIssuesRatio, ShowVolumeDiff, ShowIssuesDiff };
-            string[] tag = { "Vol", "Iss", "Vol", "Iss" };
             string[] mktName = { "NYSE", "NASDAQ" };
             Brush[] posB = { NYSEPosColor, NASDAQPosColor };
             Brush[] negB = { NYSENegColor, NASDAQNegColor };
@@ -172,11 +171,11 @@ namespace NinjaTrader.NinjaScript.Indicators
                         {
                             int k = kind * 2 + col;
                             if (!show[k] || double.IsNaN(cur[m, k])) continue;
-                            // single metric -> exact ToS label text ("2.1734:1 NYSE");
-                            // the "Vol "/"Iss " prefix only disambiguates multiple chips
-                            string prefix = visible > 1 ? tag[k] + " " : "";
+                            // exact ToS label text, no prefixes ("2.1734:1 NYSE");
+                            // chips are told apart by position: Vol column left,
+                            // Iss column right, ratios row above diffs row
                             var tl = new SharpDX.DirectWrite.TextLayout(NinjaTrader.Core.Globals.DirectWriteFactory,
-                                prefix + FormatVal(cur[m, k], k < 2) + " " + mktName[m], tf, 500, 30);
+                                FormatVal(cur[m, k], k < 2) + " " + mktName[m], tf, 500, 30);
                             rowL[col] = tl;
                             rowF[col] = double.IsNaN(prev[m, k]) || cur[m, k] > prev[m, k] ? posB[m] : negB[m];
                             colW[col] = Math.Max(colW[col], tl.Metrics.Width + 12);
@@ -223,7 +222,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             // ToS: full precision + ":1" unless AbbreviateText, then Round(x,2) without ":1"
             if (ratio)
                 return AbbreviateText ? Math.Round(raw, 2).ToString("0.##") : raw.ToString("0.####") + ":1";
-            return raw.ToString("+#,0;-#,0");
+            return raw.ToString("#,0");   // ToS shows the plain number, no sign
         }
 
         #region Properties
