@@ -35,6 +35,7 @@ namespace NinjaTrader.NinjaScript
 {
     public enum EabMarket { NYSE, NASDAQ, Both }
     public enum EabLabelCorner { TopLeft, TopRight }
+    public enum EabColorMode { RisingFalling, PositiveNegative }
 }
 
 namespace NinjaTrader.NinjaScript.Indicators
@@ -65,6 +66,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 ShowVolumeDiff  = false;
                 ShowIssuesDiff  = false;
                 AbbreviateText  = false;
+                ColorMode       = EabColorMode.RisingFalling;   // ToS behavior
                 LabelCorner     = EabLabelCorner.TopLeft;
                 LabelOffsetY    = 30;
 
@@ -123,10 +125,10 @@ namespace NinjaTrader.NinjaScript.Indicators
             return (idx >= 0 && CurrentBars[idx] >= 0) ? Closes[idx][0] : 0;
         }
 
+        // prev = the PRIOR BAR's value (ToS Breadth[1]); OnBarClose = one call per bar
         private void Set(int m, int k, double raw)
         {
-            if (!double.IsNaN(cur[m, k]) && raw != cur[m, k])
-                prev[m, k] = cur[m, k];
+            prev[m, k] = cur[m, k];
             cur[m, k] = raw;
         }
 
@@ -177,7 +179,13 @@ namespace NinjaTrader.NinjaScript.Indicators
                             var tl = new SharpDX.DirectWrite.TextLayout(NinjaTrader.Core.Globals.DirectWriteFactory,
                                 FormatVal(cur[m, k], k < 2) + " " + mktName[m], tf, 500, 30);
                             rowL[col] = tl;
-                            rowF[col] = double.IsNaN(prev[m, k]) || cur[m, k] > prev[m, k] ? posB[m] : negB[m];
+                            // ToS: strictly rising vs prior bar = pos color, else neg
+                            // (flat = neg). Optional PositiveNegative mode colors by
+                            // breadth sign instead (ratio raw is >=1 or <=-1).
+                            bool posColor = ColorMode == EabColorMode.PositiveNegative
+                                ? cur[m, k] > 0
+                                : !double.IsNaN(prev[m, k]) && cur[m, k] > prev[m, k];
+                            rowF[col] = posColor ? posB[m] : negB[m];
                             colW[col] = Math.Max(colW[col], tl.Metrics.Width + 12);
                             chipH     = Math.Max(chipH, tl.Metrics.Height + 6);
                             any = true;
@@ -249,6 +257,10 @@ namespace NinjaTrader.NinjaScript.Indicators
         [NinjaScriptProperty]
         [Display(Name = "Abbreviate text", GroupName = "Parameters", Order = 1)]
         public bool AbbreviateText { get; set; }
+
+        [NinjaScriptProperty]
+        [Display(Name = "Color by (RisingFalling = ToS)", GroupName = "Parameters", Order = 5)]
+        public EabColorMode ColorMode { get; set; }
 
         [NinjaScriptProperty]
         [Display(Name = "Label corner", GroupName = "Parameters", Order = 2)]
