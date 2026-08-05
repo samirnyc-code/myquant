@@ -162,6 +162,73 @@ def build_legs(struct, spot):
     raise ValueError(f"unknown structure kind {kind}")
 
 
+import os
+COMBO_ORDERS = os.environ.get("MYQUANT_COMBO_ORDERS", "0") == "1"
+# ATOMIC COMBO (BAG) ORDERS — 2026-08-05, after two ITM shorts missed their fills
+# and orphaned their long wings (-$730). A BAG order fills both legs together or
+# not at all: no sequencing gap, no orphan possible. Flag stays OFF until the
+# live sign-convention test (scripts/combo_test.py) passes on paper.
+
+
+def combo_contract(ib, exp, legs):
+    """BAG whose BUY equals our position. legs=[(right,strike,action)]."""
+    from ib_async import Contract, ComboLeg
+    bag = Contract(secType="BAG", symbol="SPX", currency="USD", exchange="SMART")
+    bag.comboLegs = []
+    for right, strike, action in legs:
+        c = qualify(ib, exp, strike, right)
+        cl = ComboLeg()
+        cl.conId, cl.ratio, cl.action, cl.exchange = c.conId, 1, action, "SMART"
+        bag.comboLegs.append(cl)
+    return bag
+
+
+def quote_combo(ib, bag, wait=6):
+    t = ib.reqMktData(bag, "", snapshot=False)
+    ib.sleep(wait)
+    bid, ask = t.bid, t.ask
+    ib.cancelMktData(bag)
+    ok = all(x == x and x is not None for x in (bid, ask))
+    return (bid, ask) if ok else (None, None)
+
+
+def place_combo(ib, exp, legs, qty, retries=1):
+    """Open the position atomically: BUY the bag marketable at the ask.
+    For a credit spread the bag trades NEGATIVE (we get paid to buy it);
+    returns net credit per spread (positive = credit received)."""
+    from ib_async import LimitOrder
+    bag = combo_contract(ib, exp, legs)
+    for attempt in range(retries + 1):
+        bid, ask = quote_combo(ib, bag)
+        if bid is None:
+            raise RuntimeError("no combo quote")
+        tr = ib.placeOrder(bag, LimitOrder("BUY", qty, round(ask, 2)))
+        ib.sleep(8)
+        if tr.orderStatus.status == "Filled":
+            px = tr.orderStatus.avgFillPrice
+            return -px, bag        # negative fill price == credit received
+        ib.cancelOrder(tr.order)
+        ib.sleep(2)
+    raise RuntimeError("combo did not fill (atomic — nothing was placed)")
+
+
+def close_combo(ib, bag, qty, retries=1):
+    """Close atomically: SELL the same bag marketable at the bid.
+    Returns cost paid to close per spread (positive = we paid)."""
+    from ib_async import LimitOrder
+    for attempt in range(retries + 1):
+        bid, ask = quote_combo(ib, bag)
+        if bid is None:
+            raise RuntimeError("no combo quote to close")
+        tr = ib.placeOrder(bag, LimitOrder("SELL", qty, round(bid, 2)))
+        ib.sleep(8)
+        if tr.orderStatus.status == "Filled":
+            return -tr.orderStatus.avgFillPrice
+        ib.cancelOrder(tr.order)
+        ib.sleep(2)
+    raise RuntimeError("combo close did not fill")
+
+
 def qualify(ib, exp, strike, right):
     o = ib.qualifyContracts(Option("SPX", exp, strike, right, "SMART", tradingClass="SPXW"))
     if not o or not o[0].conId:
