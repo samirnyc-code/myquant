@@ -92,6 +92,29 @@ def _series_for(hist):
             "pop": [None if pd.isna(x) else round(float(x) * 100) for x in h["pop"]]}
 
 
+_TAPE_CACHE = {}
+
+
+def spot_at(ts):
+    """SPX from the day's underlying tape at/just-before timestamp 'YYYY-MM-DD HH:MM[:SS]'."""
+    try:
+        s = str(ts)
+        day, hhmm = s[:10], s[11:16]
+        if not hhmm:
+            return None
+        f = SIM / f"underlying_{day.replace('-', '')}.csv"
+        if day not in _TAPE_CACHE:
+            _TAPE_CACHE[day] = pd.read_csv(f) if f.exists() else None
+        tape = _TAPE_CACHE[day]
+        if tape is None or not len(tape):
+            return None
+        sub = tape[tape.ts_et.str[:5] <= hhmm]
+        row = sub.iloc[-1] if len(sub) else tape.iloc[0]
+        return round(float(row.und), 1)
+    except Exception:
+        return None
+
+
 def trade_payload(r, last_marks, spot, metrics_hist=None):
     legs = json.loads(r.legs) if isinstance(r.legs, str) else []
     is_open = pd.isna(r.exit_dt)
@@ -168,6 +191,8 @@ def trade_payload(r, last_marks, spot, metrics_hist=None):
         "entry": str(r.entry_dt), "dow": r.dow if isinstance(r.dow, str) else "",
         "commentary": r.commentary if isinstance(r.commentary, str) else "",
         "payoff": payoff, "breakevens": bes, "spot": None if spot is None else round(spot, 1),
+        "entry_spot": spot_at(r.entry_dt),
+        "exit_spot": spot_at(r.exit_dt) if not is_open and pd.notna(r.exit_dt) else None,
         "greeks": greeks, "multi": multi_exp,
         "series": _series_for(metrics_hist),
     }
@@ -273,9 +298,19 @@ function payoffSVG(t, w, h, mini){
     const iMax=v.indexOf(Math.max(...v)), iMin=v.indexOf(Math.min(...v));
     extras+=`<circle cx="${X(s[iMax])}" cy="${Y(v[iMax])}" r="4" fill="var(--good)"/>`+
             `<circle cx="${X(s[iMin])}" cy="${Y(v[iMin])}" r="4" fill="var(--crit)"/>`;
-    if(t.spot!=null && t.spot>=x0 && t.spot<=x1)
+    const closed = t.state==='CLOSED';
+    // live spot line only while the position EXISTS; a closed trade's curve is hypothetical
+    if(!closed && t.spot!=null && t.spot>=x0 && t.spot<=x1)
       extras+=`<line x1="${X(t.spot)}" y1="${mt}" x2="${X(t.spot)}" y2="${h-mb}" stroke="var(--blue)" stroke-width="2" stroke-dasharray="6 4"/>`+
               `<text x="${X(t.spot)+5}" y="${mt+12}" fill="var(--blue)" font-size="11" font-weight="700">spot ${t.spot}</text>`;
+    if(t.entry_spot!=null && t.entry_spot>=x0 && t.entry_spot<=x1)
+      extras+=`<line x1="${X(t.entry_spot)}" y1="${mt}" x2="${X(t.entry_spot)}" y2="${h-mb}" stroke="var(--ink)" stroke-width="1.6" stroke-dasharray="2 3"/>`+
+              `<text x="${X(t.entry_spot)+4}" y="${h-mb-6}" fill="var(--ink)" font-size="10.5" font-weight="700">entry ${t.entry_spot}</text>`;
+    if(t.exit_spot!=null && t.exit_spot>=x0 && t.exit_spot<=x1)
+      extras+=`<line x1="${X(t.exit_spot)}" y1="${mt}" x2="${X(t.exit_spot)}" y2="${h-mb}" stroke="var(--orange)" stroke-width="2"/>`+
+              `<text x="${X(t.exit_spot)+4}" y="${mt+26}" fill="var(--orange)" font-size="10.5" font-weight="700">exit ${t.exit_spot}</text>`;
+    if(closed)
+      extras+=`<text x="${w-mr}" y="${mt+2}" fill="var(--mut)" font-size="9.5" text-anchor="end">payoff = hypothetical at expiry · position closed early</text>`;
     for(const b of t.breakevens)
       extras+=`<circle cx="${X(b)}" cy="${zero}" r="5" fill="var(--warn)" stroke="var(--bg)" stroke-width="2"/>`+
               `<text x="${X(b)}" y="${+zero-9}" fill="var(--warn)" font-size="10.5" font-weight="700" text-anchor="middle">BE ${b}</text>`;
@@ -534,8 +569,36 @@ def main():
         m["pnl"] = (a.pnl if pd.notna(a.pnl) else 0) + (b.pnl if pd.notna(b.pnl) else 0) \
             if not pd.isna(a.exit_dt) else None
         m["pop"] = min(x for x in (a["pop"], b["pop"]) if pd.notna(x)) if (pd.notna(a["pop"]) or pd.notna(b["pop"])) else float("nan")
-        m["commentary"] = f"legs: {a.strategy_id} {a.credit or 0:+.2f} (P&L {a.pnl if pd.notna(a.pnl) else '—'}) · " \
-                          f"{b.strategy_id} {b.credit or 0:+.2f} (P&L {b.pnl if pd.notna(b.pnl) else '—'})"
+        # recompute risk numbers for the COMBINED structure (not leg-A's):
+        # max gain = total credit; max loss = widest side's width − total credit
+        allw = []
+        for L in (la, lb):
+            ks = [x["strike"] for x in L]
+            if len(ks) >= 2:
+                allw.append(abs(ks[0] - ks[1]))
+        w = max(allw) if allw else 25.0
+        m["max_gain"] = round(m["credit"] * 100)
+        m["max_loss"] = round((w - m["credit"]) * 100)
+        m["collateral"] = round((w - m["credit"]) * 100)
+
+        def _wing(r0):
+            side = "P-wing" if str(r0.strategy_id).endswith(("_p", "bps")) else "C-wing"
+            pnl0 = f"{r0.pnl:+,.0f}" if pd.notna(r0.pnl) else "open"
+            return f"{side} {r0.structure or ''} cr {r0.credit or 0:.2f} → ${pnl0}"
+        m["commentary"] = _wing(a) + "  ·  " + _wing(b)
+        m["_wings"] = [_wing(a), _wing(b)]
+        # merged intraday P&L series = sum of the two legs' mark paths
+        ha, hb = hist_by_id.get(a.trade_id), hist_by_id.get(b.trade_id)
+        m["_hist"] = None
+        if ha is not None and hb is not None and len(ha) and len(hb):
+            j = pd.merge(ha[["ts_et", "unreal_pnl", "pop"]], hb[["ts_et", "unreal_pnl", "pop"]],
+                         on="ts_et", suffixes=("_a", "_b"))
+            if len(j):
+                m["_hist"] = pd.DataFrame({
+                    "ts_et": j.ts_et,
+                    "unreal_pnl": j.unreal_pnl_a.fillna(0) + j.unreal_pnl_b.fillna(0),
+                    "pop": j[["pop_a", "pop_b"]].min(axis=1),
+                })
         merged_rows.append(m)
         consumed |= {a.trade_id, b.trade_id}
         # merged unrealized mark = sum of the legs'
@@ -557,7 +620,10 @@ def main():
     data = []
     for m in merged_rows[::-1]:
         try:
-            data.append(trade_payload(m, last_marks, spot, None))
+            p = trade_payload(m, last_marks, spot, m.get("_hist"))
+            # per-wing results shown on the card, above the raw leg list
+            p["legs"] = m["_wings"] + p["legs"]
+            data.append(p)
         except Exception as e:
             print(f"  ! skipped merged card {m['trade_id']}: {type(e).__name__}: {e}")
     for _, r in trades.iloc[::-1].iterrows():
