@@ -504,8 +504,65 @@ def main():
     # PER-TRADE ISOLATION: one malformed trade record must NEVER take down the whole
     # dashboard (2026-07-20: a STMR leg missing 'qty' crashed the build, and the dashboard
     # would not reload for the rest of the session). Skip-and-log a bad row instead.
+    # STRUCTURE MERGE (2026-08-05, user request): the two legs of a condor/fly are
+    # ONE strategy — render ONE tile with combined numbers and the true 4-leg
+    # payoff, not two half-tiles the user has to sum in their head. Legs merge
+    # when both same-day trades share a pair-group and the same open/closed state.
+    PAIR = {"eodic_p": "eodic", "eodic_c": "eodic", "eodfly_p": "eodfly", "eodfly_c": "eodfly",
+            "openic_p": "openic", "openic_c": "openic", "openfly_p": "openfly", "openfly_c": "openfly",
+            "gx_bps": "gxic", "gx_bcs": "gxic"}
+    GNAME = {"eodic": "[EOD] Iron Condor", "eodfly": "[EOD] Iron Fly",
+             "openic": "[Open] Iron Condor", "openfly": "[Open] Iron Fly",
+             "gxic": "[GexLog] Iron Condor"}
+    trades = trades.copy()
+    trades["_day"] = trades.entry_dt.astype(str).str[:10]
+    trades["_grp"] = trades.strategy_id.map(PAIR)
+    merged_rows, consumed = [], set()
+    for (day, grp), g in trades[trades._grp.notna()].groupby(["_day", "_grp"]):
+        if len(g) != 2 or g.exit_dt.isna().nunique() != 1:
+            continue                      # lone wing or mixed state -> leave as-is
+        a, b = g.iloc[0], g.iloc[1]
+        m = a.copy()
+        m["trade_id"] = f"{grp}_{day.replace('-', '')}"
+        m["strategy_id"] = grp
+        m["structure"] = GNAME[grp] + " (both legs)"
+        la = json.loads(a.legs) if isinstance(a.legs, str) else []
+        lb = json.loads(b.legs) if isinstance(b.legs, str) else []
+        m["legs"] = json.dumps(la + lb)
+        m["credit"] = (a.credit or 0) + (b.credit or 0)
+        m["collateral"] = max(a.collateral or 0, b.collateral or 0)   # broker margins one side
+        m["pnl"] = (a.pnl if pd.notna(a.pnl) else 0) + (b.pnl if pd.notna(b.pnl) else 0) \
+            if not pd.isna(a.exit_dt) else None
+        m["pop"] = min(x for x in (a["pop"], b["pop"]) if pd.notna(x)) if (pd.notna(a["pop"]) or pd.notna(b["pop"])) else float("nan")
+        m["commentary"] = f"legs: {a.strategy_id} {a.credit or 0:+.2f} (P&L {a.pnl if pd.notna(a.pnl) else '—'}) · " \
+                          f"{b.strategy_id} {b.credit or 0:+.2f} (P&L {b.pnl if pd.notna(b.pnl) else '—'})"
+        merged_rows.append(m)
+        consumed |= {a.trade_id, b.trade_id}
+        # merged unrealized mark = sum of the legs'
+        if last_marks is not None and a.trade_id in last_marks.index and b.trade_id in last_marks.index:
+            row = last_marks.loc[a.trade_id].copy()
+            row["unreal_pnl"] = (last_marks.loc[a.trade_id].unreal_pnl or 0) + (last_marks.loc[b.trade_id].unreal_pnl or 0)
+            last_marks.loc[m["trade_id"]] = row
+    NAMES.update(GNAME)
+    # solo wings (partner stood down / failed) get an explicit label — no head-math
+    NAMES.update({
+        "eodic_p": "[EOD] Condor · put wing only", "eodic_c": "[EOD] Condor · call wing only",
+        "eodfly_p": "[EOD] Fly · put wing only", "eodfly_c": "[EOD] Fly · call wing only",
+        "openic_p": "[Open] Condor · put wing only", "openic_c": "[Open] Condor · call wing only",
+        "openfly_p": "[Open] Fly · put wing only", "openfly_c": "[Open] Fly · call wing only",
+        "gx_bps": "[GexLog] Condor · put wing only", "gx_bcs": "[GexLog] Condor · call wing only",
+        "incident_orphan": "⚠ Incident — orphaned leg",
+    })
+
     data = []
+    for m in merged_rows[::-1]:
+        try:
+            data.append(trade_payload(m, last_marks, spot, None))
+        except Exception as e:
+            print(f"  ! skipped merged card {m['trade_id']}: {type(e).__name__}: {e}")
     for _, r in trades.iloc[::-1].iterrows():
+        if r.trade_id in consumed:
+            continue
         try:
             data.append(trade_payload(r, last_marks, spot, hist_by_id.get(r.trade_id)))
         except Exception as e:
