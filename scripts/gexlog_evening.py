@@ -120,6 +120,13 @@ def main():
         print("pushed evening recap to Telegram")
     except Exception as e:
         print(f"telegram recap skipped: {e}")
+    # nightly: refresh the one-row-per-day comparison table
+    try:
+        import subprocess
+        subprocess.run([sys.executable, str(ROOT / "scripts" / "daily_summary.py")],
+                       cwd=str(ROOT), timeout=120)
+    except Exception as e:
+        print(f"daily_summary skipped: {e}")
     return 0
 
 
