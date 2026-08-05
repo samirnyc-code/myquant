@@ -227,9 +227,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 
         private string FormatVal(double raw, bool ratio)
         {
-            // ToS: full precision + ":1" unless AbbreviateText, then Round(x,2) without ":1"
+            // user preference (2026-08-05): 2 decimals are sufficient on ratios
             if (ratio)
-                return AbbreviateText ? Math.Round(raw, 2).ToString("0.##") : raw.ToString("0.####") + ":1";
+                return AbbreviateText ? Math.Round(raw, 2).ToString("0.##") : raw.ToString("0.00") + ":1";
             return raw.ToString("#,0");   // ToS shows the plain number, no sign
         }
 
