@@ -115,6 +115,54 @@ def spot_at(ts):
         return None
 
 
+_CHAIN_CACHE = {}
+
+
+def chain_series(legs, entry_dt, exit_dt, credit):
+    """Intraday P&L line reconstructed from OUR chain recording (minute NBBO mids):
+    pnl(t) = (entry credit − cost to close at t) × 100, from entry to exit/now.
+    Chain timestamps are ET; trade timestamps are CT (ET−1h)."""
+    try:
+        day = str(entry_dt)[:10]
+        f = SIM / f"chain_{day.replace('-', '')}.csv"
+        if day not in _CHAIN_CACHE:
+            _CHAIN_CACHE[day] = pd.read_csv(f) if f.exists() else None
+        ch = _CHAIN_CACHE[day]
+        if ch is None or not len(ch) or not legs:
+            return None
+
+        def to_et(ts):  # CT 'YYYY-MM-DD HH:MM' -> ET 'YYYY-MM-DD HH:MM'
+            t = pd.to_datetime(str(ts)[:16]) + pd.Timedelta(hours=1)
+            return t.strftime("%Y-%m-%d %H:%M")
+        t0 = to_et(entry_dt)
+        t1 = to_et(exit_dt) if exit_dt is not None and pd.notna(exit_dt) else "9999"
+        sub = ch[(ch.ts_et.str[:16] >= t0) & (ch.ts_et.str[:16] <= t1)]
+        if not len(sub):
+            return None
+        out_t, out_p = [], []
+        for ts, g in sub.groupby(sub.ts_et.str[:16]):
+            px = {(row.strike, row.right): (row.bid, row.ask) for row in g.itertuples()}
+            cost = 0.0
+            ok = True
+            for l in legs:
+                q = px.get((float(l["strike"]), l["right"]))
+                if not q or pd.isna(q[0]) or pd.isna(q[1]) or q[1] <= 0:
+                    ok = False
+                    break
+                mid = (float(q[0]) + float(q[1])) / 2
+                cost += mid if l["side"] == "sell" else -mid
+            if not ok:
+                continue
+            ct = (pd.to_datetime(ts) - pd.Timedelta(hours=1)).strftime("%H:%M")
+            out_t.append(ct)
+            out_p.append(round((credit - cost) * 100))
+        if len(out_p) < 2:
+            return None
+        return {"t": out_t, "pnl": out_p, "pop": [None] * len(out_p)}
+    except Exception:
+        return None
+
+
 def trade_payload(r, last_marks, spot, metrics_hist=None):
     legs = json.loads(r.legs) if isinstance(r.legs, str) else []
     is_open = pd.isna(r.exit_dt)
@@ -479,7 +527,9 @@ function openCard(i){
        <span class="mut" style="font-size:13px;font-weight:400">${t.state=='OPEN'?'running (mark-to-market now — includes time value)':'final'}</span></div>
      ${expAtSpot(t)}
      ${gauge(t)}
-     ${payoffSVG(t, 900, 340, false)}
+     ${t.series?`<div class="sechead">Intraday P&amp;L — what actually happened</div>`+metricsSVG(t):''}
+     <div class="sechead">Payoff structure${t.state==='CLOSED'?' (hypothetical at expiry)':''}</div>
+     ${payoffSVG(t, 900, t.series?250:340, false)}
      ${closeBtn(t)}
      <div class="hint">click to flip for details ⟲</div></div>
    <div class="face back" style="--gc:${gc}">
@@ -623,6 +673,8 @@ def main():
             p = trade_payload(m, last_marks, spot, m.get("_hist"))
             # per-wing results shown on the card, above the raw leg list
             p["legs"] = m["_wings"] + p["legs"]
+            if not p.get("series"):   # no marker history -> rebuild from our chain recording
+                p["series"] = chain_series(json.loads(m["legs"]), m["entry_dt"], m["exit_dt"], m["credit"])
             data.append(p)
         except Exception as e:
             print(f"  ! skipped merged card {m['trade_id']}: {type(e).__name__}: {e}")
@@ -630,7 +682,12 @@ def main():
         if r.trade_id in consumed:
             continue
         try:
-            data.append(trade_payload(r, last_marks, spot, hist_by_id.get(r.trade_id)))
+            p = trade_payload(r, last_marks, spot, hist_by_id.get(r.trade_id))
+            if not p.get("series"):
+                lg = json.loads(r.legs) if isinstance(r.legs, str) else []
+                p["series"] = chain_series(lg, r.entry_dt, r.exit_dt,
+                                           float(r.credit) if pd.notna(r.credit) else 0.0)
+            data.append(p)
         except Exception as e:
             print(f"  ! skipped card for {getattr(r,'trade_id','?')}: {type(e).__name__}: {e}")
     today = dt.datetime.now(ZoneInfo("America/Chicago")).strftime("%Y-%m-%d")
