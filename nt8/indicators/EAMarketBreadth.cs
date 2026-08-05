@@ -146,63 +146,74 @@ namespace NinjaTrader.NinjaScript.Indicators
             using (var tf = new SharpDX.DirectWrite.TextFormat(NinjaTrader.Core.Globals.DirectWriteFactory, "Segoe UI", 13f))
             using (var black = new SharpDX.Direct2D1.SolidColorBrush(RenderTarget, new SharpDX.Color4(0f, 0f, 0f, 1f)))
             {
-                // grid layout: metrics = columns (uniform width), markets = rows,
-                // so Both + 2 metrics renders an aligned 2x2 block
-                var cols = new List<int>();
+                // 2x2 block per market: Vol column | Iss column, ratios row on top,
+                // diffs row beneath. Market=Both stacks the NASDAQ block below NYSE.
+                // metric k: 0=VolRatio 1=IssRatio 2=VolDiff 3=IssDiff
+                //   -> col = 0 for Vol (k 0,2), 1 for Iss (k 1,3); row = ratios/diffs
+                int visible = 0;
                 for (int k = 0; k < 4; k++)
-                    if (show[k]) cols.Add(k);
-                if (cols.Count == 0)
+                    if (show[k]) visible++;
+                if (visible == 0)
                     return;
 
-                var layouts = new SharpDX.DirectWrite.TextLayout[2, cols.Count];
-                var fills   = new Brush[2, cols.Count];
-                float[] colW = new float[cols.Count];
+                var rows  = new List<SharpDX.DirectWrite.TextLayout[]>();
+                var rowFills = new List<Brush[]>();
+                float[] colW = new float[2];
                 float chipH = 0;
                 for (int m = 0; m < 2; m++)
                 {
                     if (issA[m] < 0) continue;
-                    for (int c = 0; c < cols.Count; c++)
+                    for (int kind = 0; kind < 2; kind++)          // 0 = ratios, 1 = diffs
                     {
-                        int k = cols[c];
-                        if (double.IsNaN(cur[m, k])) continue;
-                        // single metric -> exact ToS label text ("2.1734:1 NYSE");
-                        // the "Vol "/"Iss " prefix only disambiguates multiple chips
-                        string prefix = cols.Count > 1 ? tag[k] + " " : "";
-                        var tl = new SharpDX.DirectWrite.TextLayout(NinjaTrader.Core.Globals.DirectWriteFactory,
-                            prefix + FormatVal(cur[m, k], k < 2) + " " + mktName[m], tf, 500, 30);
-                        layouts[m, c] = tl;
-                        fills[m, c]   = double.IsNaN(prev[m, k]) || cur[m, k] > prev[m, k] ? posB[m] : negB[m];
-                        colW[c]  = Math.Max(colW[c], tl.Metrics.Width + 12);
-                        chipH    = Math.Max(chipH, tl.Metrics.Height + 6);
+                        var rowL = new SharpDX.DirectWrite.TextLayout[2];
+                        var rowF = new Brush[2];
+                        bool any = false;
+                        for (int col = 0; col < 2; col++)          // 0 = Vol, 1 = Iss
+                        {
+                            int k = kind * 2 + col;
+                            if (!show[k] || double.IsNaN(cur[m, k])) continue;
+                            // single metric -> exact ToS label text ("2.1734:1 NYSE");
+                            // the "Vol "/"Iss " prefix only disambiguates multiple chips
+                            string prefix = visible > 1 ? tag[k] + " " : "";
+                            var tl = new SharpDX.DirectWrite.TextLayout(NinjaTrader.Core.Globals.DirectWriteFactory,
+                                prefix + FormatVal(cur[m, k], k < 2) + " " + mktName[m], tf, 500, 30);
+                            rowL[col] = tl;
+                            rowF[col] = double.IsNaN(prev[m, k]) || cur[m, k] > prev[m, k] ? posB[m] : negB[m];
+                            colW[col] = Math.Max(colW[col], tl.Metrics.Width + 12);
+                            chipH     = Math.Max(chipH, tl.Metrics.Height + 6);
+                            any = true;
+                        }
+                        if (any) { rows.Add(rowL); rowFills.Add(rowF); }
                     }
                 }
+                if (rows.Count == 0)
+                    return;
 
                 float totalW = 0;
-                foreach (float w in colW) totalW += w + 6;
+                for (int c = 0; c < 2; c++)
+                    if (colW[c] > 0) totalW += colW[c] + 6;
                 float x0 = LabelCorner == EabLabelCorner.TopRight
                     ? ChartPanel.X + ChartPanel.W - totalW - 8
                     : ChartPanel.X + 8;
                 float y = ChartPanel.Y + LabelOffsetY;
-                for (int m = 0; m < 2; m++)
+                for (int r = 0; r < rows.Count; r++)
                 {
-                    bool any = false;
                     float x = x0;
-                    for (int c = 0; c < cols.Count; c++)
+                    for (int c = 0; c < 2; c++)
                     {
-                        if (layouts[m, c] != null)
+                        if (colW[c] <= 0) continue;
+                        if (rows[r][c] != null)
                         {
-                            using (var fill = fills[m, c].ToDxBrush(RenderTarget))
+                            using (var fill = rowFills[r][c].ToDxBrush(RenderTarget))
                             {
                                 RenderTarget.FillRectangle(new SharpDX.RectangleF(x, y, colW[c], chipH), fill);
-                                RenderTarget.DrawTextLayout(new SharpDX.Vector2(x + 6, y + 3), layouts[m, c], black);
+                                RenderTarget.DrawTextLayout(new SharpDX.Vector2(x + 6, y + 3), rows[r][c], black);
                             }
-                            layouts[m, c].Dispose();
-                            any = true;
+                            rows[r][c].Dispose();
                         }
                         x += colW[c] + 6;
                     }
-                    if (any)
-                        y += chipH + 4;   // next market row directly beneath, aligned
+                    y += chipH + 4;
                 }
             }
         }
