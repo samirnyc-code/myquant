@@ -279,7 +279,10 @@ function openCard(i){
        <span class="mut" style="font-size:13px;font-weight:400">${t.state=='OPEN'?'running (mark-to-market now — includes time value)':'final'}</span></div>
      ${expAtSpot(t)}
      ${gauge(t)}
-     ${t.series?`<div class="sechead">Intraday P&amp;L — what actually happened</div>`+metricsSVG(t):''}
+     ${t.series?`<div class="sechead">Intraday P&amp;L — what actually happened</div>
+       <div class="mut" style="font-size:11.5px;margin:-2px 0 4px">${t.credit>=0
+         ?`credit <b>$${Math.round(Math.abs(t.credit)*100).toLocaleString()}</b> collected at entry · line = credit − cost to buy back (starts ≈ $0; rises as the sold options decay)`
+         :`debit $${Math.round(Math.abs(t.credit)*100).toLocaleString()} paid at entry · line = liquidation value − debit`}</div>`+metricsSVG(t):''}
      <div class="sechead">Payoff structure${t.state==='CLOSED'?' (hypothetical at expiry)':''}</div>
      ${payoffSVG(t, 900, t.series?250:340, false)}
      ${closeBtn(t)}
