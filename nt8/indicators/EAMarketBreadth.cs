@@ -1,25 +1,26 @@
 // EAMarketBreadth — NT8 port of the ToS BWD_MarketBreadth study v1.1
-// (BigWaveDave / thinkscripter MARKETBREADTH lineage, 6/26/12).
+// (BigWaveDave / thinkscripter MARKETBREADTH lineage, 6/26/12), in the
+// LABEL-ONLY style the user runs it in ToS ("unselect 'show plot', move to the
+// upper chart"): colored AddLabel-style chips on the PRICE chart, no plots.
 //
-// Lower-panel breadth trend: A/D issues or volume, as difference or zero-based
-// normalized ratio, NYSE / NASDAQ / both, with gradient line coloring by where
-// the current value sits in the last TrendStrengthLength bars (the ToS
-// AssignNormGradientColor equivalent) and corner value labels colored by
-// rising/falling.
+// CHIP = solid rectangle, black text, laid left-to-right at the top-left:
+//   "2.09:1 NYSE"  background green when breadth rising vs prior bar, red when
+//   falling (NASDAQ: blue / dark orange) — exact ToS AddLabel behavior.
 //
 // FEED SYMBOLS (My NinjaTrader / CQG — probed live 2026-08-05, EABreadthProbe):
 //   NYSE:   ^ADV / ^DECL (issues)   ^UVOL / ^DVOL (volume)
 //   NASDAQ: ^NUPI / ^NDNI (issues)  ^NUPV / ^NDNV (volume)
-// (ToS $ADVN/$DECN/$UVOL/$DVOL and the /q variants.) ^ADD is dead on this feed;
-// differences are computed from the components instead.
+// (ToS $ADVN/$DECN/$UVOL/$DVOL and the /q variants.)
 //
-// MODES (DisplayValue):
-//   ADIssuesRatio  adv>decl ? adv/decl : -decl/adv   (ratio, normalizable)
+// MODES (DisplayValue, ToS default ADVolumeRatio):
+//   ADIssuesRatio  adv>decl ? adv/decl : -decl/adv
 //   ADIssues       adv - decl
-//   ADVolumeRatio  uvol>dvol ? uvol/dvol : -dvol/uvol  [ToS default]
+//   ADVolumeRatio  uvol>dvol ? uvol/dvol : -dvol/uvol
 //   ADVolume       uvol - dvol
-// NormalizeToZeroLine (ratio modes only): >=1 -> v-1, else v+1 (zero-based, the
-// ToS default). Non-normalized ratio blanks the sign-crossing bar like ToS does.
+// AbbreviateText (ToS input): No -> full value + ":1" on ratios; Yes -> 2dp.
+// The plot/zero-line rendering of the original is intentionally NOT ported —
+// the user's display is chips only (panel-plot version lives in git history
+// at 93903caf if ever wanted).
 // RULE (CLAUDE.md): this .cs lives in nt8/ and stays committed.
 
 #region Using declarations
@@ -34,7 +35,6 @@ using NinjaTrader.Data;
 using NinjaTrader.Gui;
 using NinjaTrader.Gui.Chart;
 using NinjaTrader.NinjaScript;
-using NinjaTrader.NinjaScript.DrawingTools;
 #endregion
 
 namespace NinjaTrader.NinjaScript
@@ -49,37 +49,30 @@ namespace NinjaTrader.NinjaScript.Indicators
     {
         private bool useVolume, isRatio;
         private int nyA = -1, nyD = -1, nqA = -1, nqD = -1;   // BarsInProgress indices
-        private Series<double> nySer, nqSer;                   // plotted values (for gradient window)
-        private double nyRaw, nyRawPrev = double.NaN, nqRaw, nqRawPrev = double.NaN;
-        private Brush[] nyGrad, nqGrad;                        // 11-step frozen gradients neg->pos
+        private double nyCur = double.NaN, nyPrev = double.NaN;
+        private double nqCur = double.NaN, nqPrev = double.NaN;
 
         protected override void OnStateChange()
         {
             if (State == State.SetDefaults)
             {
                 Name                     = "EAMarketBreadth";
-                Description              = "ToS BWD_MarketBreadth port: A/D issues/volume breadth, normalized ratio, gradient trend coloring";
+                Description              = "ToS BWD_MarketBreadth port, label-only style: colored breadth chips on the price chart";
                 Calculate                = Calculate.OnBarClose;
-                IsOverlay                = false;
-                DisplayInDataBox         = true;
-                PaintPriceMarkers        = true;
+                IsOverlay                = true;
+                DisplayInDataBox         = false;
+                PaintPriceMarkers        = false;
                 IsSuspendedWhileInactive = true;
 
-                DisplayValue         = EabDisplayValue.ADVolumeRatio;
-                Market               = EabMarket.NYSE;
-                NormalizeToZeroLine  = true;
-                DisplayZeroLine      = true;
-                TrendStrengthLength  = 5;
-                ShowChartLabels      = true;
+                DisplayValue    = EabDisplayValue.ADVolumeRatio;
+                Market          = EabMarket.NYSE;
+                AbbreviateText  = false;
+                LabelOffsetY    = 30;
 
                 NYSEPosColor    = Brushes.Green;
                 NYSENegColor    = Brushes.Red;
                 NASDAQPosColor  = Brushes.DodgerBlue;
                 NASDAQNegColor  = Brushes.DarkOrange;
-
-                AddPlot(new Stroke(Brushes.Green,      2), PlotStyle.Line, "NYSEBreadth");    // Values[0]
-                AddPlot(new Stroke(Brushes.DodgerBlue, 2), PlotStyle.Line, "NASDAQBreadth");  // Values[1]
-                AddPlot(new Stroke(Brushes.DarkGray, DashStyleHelper.Dash, 1), PlotStyle.Line, "ZeroLine"); // Values[2]
             }
             else if (State == State.Configure)
             {
@@ -97,134 +90,67 @@ namespace NinjaTrader.NinjaScript.Indicators
                     AddDataSeries(useVolume ? "^NDNV" : "^NDNI"); nqD = bip++;
                 }
             }
-            else if (State == State.DataLoaded)
-            {
-                nySer  = new Series<double>(this);
-                nqSer  = new Series<double>(this);
-                nyGrad = MakeGradient(NYSENegColor, NYSEPosColor);
-                nqGrad = MakeGradient(NASDAQNegColor, NASDAQPosColor);
-            }
         }
 
         protected override void OnBarUpdate()
         {
             if (BarsInProgress != 0)
                 return;
-
             if (nyA >= 0)
-                nyRawPrev = DoMarket(nyA, nyD, nySer, nyGrad, 0, ref nyRaw, nyRawPrev);
+                Compute(nyA, nyD, ref nyCur, ref nyPrev);
             if (nqA >= 0)
-                nqRawPrev = DoMarket(nqA, nqD, nqSer, nqGrad, 1, ref nqRaw, nqRawPrev);
-
-            if (DisplayZeroLine)
-                Values[2][0] = 0;
-            else
-                Values[2].Reset();
+                Compute(nqA, nqD, ref nqCur, ref nqPrev);
         }
 
-        // computes one market's breadth, plots it with gradient color; returns the
-        // raw value to carry as next bar's "previous" (label color + cross blanking)
-        private double DoMarket(int aIdx, int dIdx, Series<double> ser, Brush[] grad, int plotIdx, ref double rawOut, double rawPrev)
+        private void Compute(int aIdx, int dIdx, ref double cur, ref double prev)
         {
             if (CurrentBars[aIdx] < 0 || CurrentBars[dIdx] < 0)
-                { Values[plotIdx].Reset(); return rawPrev; }
+                return;
             double a = Closes[aIdx][0], d = Closes[dIdx][0];
             if (a <= 0 || d <= 0)
-                { Values[plotIdx].Reset(); return rawPrev; }
-
+                return;
             double raw = isRatio ? (a > d ? a / d : -d / a) : a - d;
-            rawOut = raw;
-
-            double v;
-            bool blank = false;
-            if (isRatio && NormalizeToZeroLine)
-                v = raw >= 1 ? raw - 1 : raw + 1;
-            else if (isRatio)
-            {
-                // ToS: blank the bar where the ratio flips sign (avoids the jump line)
-                v = raw;
-                blank = !double.IsNaN(rawPrev) && ((raw >= 1 && rawPrev < 1) || (raw < 1 && rawPrev >= 1));
-            }
-            else
-                v = raw;
-
-            ser[0] = v;
-            if (blank)
-                Values[plotIdx].Reset();
-            else
-            {
-                Values[plotIdx][0] = v;
-                PlotBrushes[plotIdx][0] = GradientBrush(ser, grad);
-            }
-            return raw;
+            if (!double.IsNaN(cur) && raw != cur)
+                prev = cur;
+            cur = raw;
         }
 
-        // color by where the current value sits within the min..max of the last
-        // TrendStrengthLength bars (ToS AssignNormGradientColor equivalent)
-        private Brush GradientBrush(Series<double> ser, Brush[] grad)
-        {
-            int len = Math.Min(TrendStrengthLength, CurrentBar + 1);
-            double mn = double.MaxValue, mx = double.MinValue;
-            for (int i = 0; i < len; i++)
-            {
-                double s = ser[i];
-                if (s < mn) mn = s;
-                if (s > mx) mx = s;
-            }
-            double pos = mx > mn ? (ser[0] - mn) / (mx - mn) : 0.5;
-            return grad[(int)Math.Round(pos * 10)];
-        }
-
-        private static Brush[] MakeGradient(Brush negBrush, Brush posBrush)
-        {
-            Color neg = ((SolidColorBrush)negBrush).Color, pos = ((SolidColorBrush)posBrush).Color;
-            var g = new Brush[11];
-            for (int i = 0; i <= 10; i++)
-            {
-                float t = i / 10f;
-                var b = new SolidColorBrush(Color.FromRgb(
-                    (byte)(neg.R + (pos.R - neg.R) * t),
-                    (byte)(neg.G + (pos.G - neg.G) * t),
-                    (byte)(neg.B + (pos.B - neg.B) * t)));
-                b.Freeze();
-                g[i] = b;
-            }
-            return g;
-        }
-
-        // corner labels, one colored row per market: value + market name,
-        // colored pos/neg by rising vs falling (ToS AddLabel behavior)
+        // ToS AddLabel style: solid chip, black text, left-to-right at top-left
         protected override void OnRender(ChartControl chartControl, ChartScale chartScale)
         {
             base.OnRender(chartControl, chartScale);
-            if (!ShowChartLabels || RenderTarget == null)
+            if (RenderTarget == null)
                 return;
 
-            var rows = new List<string>();
-            var brushes = new List<Brush>();
-            if (nyA >= 0 && nyRaw != 0)
+            var texts = new List<string>();
+            var fills = new List<Brush>();
+            if (nyA >= 0 && !double.IsNaN(nyCur))
             {
-                rows.Add(FormatLabel(nyRaw) + " NYSE");
-                brushes.Add(nyRaw > nyRawPrev ? NYSEPosColor : NYSENegColor);
+                texts.Add(FormatLabel(nyCur) + " NYSE");
+                fills.Add(double.IsNaN(nyPrev) || nyCur > nyPrev ? NYSEPosColor : NYSENegColor);
             }
-            if (nqA >= 0 && nqRaw != 0)
+            if (nqA >= 0 && !double.IsNaN(nqCur))
             {
-                rows.Add(FormatLabel(nqRaw) + " NASDAQ");
-                brushes.Add(nqRaw > nqRawPrev ? NASDAQPosColor : NASDAQNegColor);
+                texts.Add(FormatLabel(nqCur) + " NASDAQ");
+                fills.Add(double.IsNaN(nqPrev) || nqCur > nqPrev ? NASDAQPosColor : NASDAQNegColor);
             }
-            if (rows.Count == 0)
+            if (texts.Count == 0)
                 return;
 
-            using (var tf = new SharpDX.DirectWrite.TextFormat(NinjaTrader.Core.Globals.DirectWriteFactory, "Segoe UI", 14f))
+            using (var tf = new SharpDX.DirectWrite.TextFormat(NinjaTrader.Core.Globals.DirectWriteFactory, "Segoe UI", 13f))
+            using (var black = new SharpDX.Direct2D1.SolidColorBrush(RenderTarget, new SharpDX.Color4(0f, 0f, 0f, 1f)))
             {
-                float y = ChartPanel.Y + 8;
-                foreach (var pair in System.Linq.Enumerable.Zip(rows, brushes, (r, b) => new { r, b }))
+                float x = ChartPanel.X + 8;
+                float y = ChartPanel.Y + LabelOffsetY;
+                for (int i = 0; i < texts.Count; i++)
                 {
-                    using (var tl = new SharpDX.DirectWrite.TextLayout(NinjaTrader.Core.Globals.DirectWriteFactory, pair.r, tf, 400, 30))
-                    using (var dx = pair.b.ToDxBrush(RenderTarget))
+                    using (var tl = new SharpDX.DirectWrite.TextLayout(NinjaTrader.Core.Globals.DirectWriteFactory, texts[i], tf, 500, 30))
+                    using (var fill = fills[i].ToDxBrush(RenderTarget))
                     {
-                        RenderTarget.DrawTextLayout(new SharpDX.Vector2(ChartPanel.X + 8, y), tl, dx);
-                        y += tl.Metrics.Height + 2;
+                        float w = tl.Metrics.Width + 12, h = tl.Metrics.Height + 6;
+                        RenderTarget.FillRectangle(new SharpDX.RectangleF(x, y, w, h), fill);
+                        RenderTarget.DrawTextLayout(new SharpDX.Vector2(x + 6, y + 3), tl, black);
+                        x += w + 6;   // next chip to the right, ToS label row style
                     }
                 }
             }
@@ -232,7 +158,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 
         private string FormatLabel(double raw)
         {
-            return isRatio ? raw.ToString("0.00") + ":1" : raw.ToString("+#,0;-#,0");
+            if (AbbreviateText)
+                return Math.Round(raw, 2).ToString("0.##");
+            return isRatio ? raw.ToString("0.####") + ":1" : raw.ToString("#,0");
         }
 
         #region Properties
@@ -245,21 +173,13 @@ namespace NinjaTrader.NinjaScript.Indicators
         public EabMarket Market { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name = "Normalize ratio to zero line", GroupName = "Parameters", Order = 2)]
-        public bool NormalizeToZeroLine { get; set; }
+        [Display(Name = "Abbreviate text", GroupName = "Parameters", Order = 2)]
+        public bool AbbreviateText { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name = "Display zero line", GroupName = "Parameters", Order = 3)]
-        public bool DisplayZeroLine { get; set; }
-
-        [NinjaScriptProperty]
-        [Range(1, 500)]
-        [Display(Name = "Trend strength length (bars)", GroupName = "Parameters", Order = 4)]
-        public int TrendStrengthLength { get; set; }
-
-        [NinjaScriptProperty]
-        [Display(Name = "Show chart labels", GroupName = "Parameters", Order = 5)]
-        public bool ShowChartLabels { get; set; }
+        [Range(0, 2000)]
+        [Display(Name = "Label offset from top (px)", GroupName = "Parameters", Order = 3)]
+        public int LabelOffsetY { get; set; }
 
         [XmlIgnore]
         [Display(Name = "NYSE positive", GroupName = "Colors", Order = 0)]
