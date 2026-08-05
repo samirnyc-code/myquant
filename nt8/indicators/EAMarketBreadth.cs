@@ -41,6 +41,7 @@ namespace NinjaTrader.NinjaScript
 {
     public enum EabDisplayValue { ADIssuesRatio, ADIssues, ADVolumeRatio, ADVolume }
     public enum EabMarket { NYSE, NASDAQ, Both }
+    public enum EabLabelCorner { TopLeft, TopRight }
 }
 
 namespace NinjaTrader.NinjaScript.Indicators
@@ -67,6 +68,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 DisplayValue    = EabDisplayValue.ADVolumeRatio;
                 Market          = EabMarket.NYSE;
                 AbbreviateText  = false;
+                LabelCorner     = EabLabelCorner.TopLeft;
                 LabelOffsetY    = 30;
 
                 NYSEPosColor    = Brushes.Green;
@@ -140,18 +142,30 @@ namespace NinjaTrader.NinjaScript.Indicators
             using (var tf = new SharpDX.DirectWrite.TextFormat(NinjaTrader.Core.Globals.DirectWriteFactory, "Segoe UI", 13f))
             using (var black = new SharpDX.Direct2D1.SolidColorBrush(RenderTarget, new SharpDX.Color4(0f, 0f, 0f, 1f)))
             {
-                float x = ChartPanel.X + 8;
-                float y = ChartPanel.Y + LabelOffsetY;
-                for (int i = 0; i < texts.Count; i++)
+                // measure chips first so a right-anchored row can be laid out right-to-left
+                var layouts = new List<SharpDX.DirectWrite.TextLayout>();
+                float totalW = 0, chipH = 0;
+                foreach (string t in texts)
                 {
-                    using (var tl = new SharpDX.DirectWrite.TextLayout(NinjaTrader.Core.Globals.DirectWriteFactory, texts[i], tf, 500, 30))
+                    var tl = new SharpDX.DirectWrite.TextLayout(NinjaTrader.Core.Globals.DirectWriteFactory, t, tf, 500, 30);
+                    layouts.Add(tl);
+                    totalW += tl.Metrics.Width + 12 + 6;
+                    chipH = Math.Max(chipH, tl.Metrics.Height + 6);
+                }
+                float x = LabelCorner == EabLabelCorner.TopRight
+                    ? ChartPanel.X + ChartPanel.W - totalW - 8
+                    : ChartPanel.X + 8;
+                float y = ChartPanel.Y + LabelOffsetY;
+                for (int i = 0; i < layouts.Count; i++)
+                {
                     using (var fill = fills[i].ToDxBrush(RenderTarget))
                     {
-                        float w = tl.Metrics.Width + 12, h = tl.Metrics.Height + 6;
-                        RenderTarget.FillRectangle(new SharpDX.RectangleF(x, y, w, h), fill);
-                        RenderTarget.DrawTextLayout(new SharpDX.Vector2(x + 6, y + 3), tl, black);
+                        float w = layouts[i].Metrics.Width + 12;
+                        RenderTarget.FillRectangle(new SharpDX.RectangleF(x, y, w, chipH), fill);
+                        RenderTarget.DrawTextLayout(new SharpDX.Vector2(x + 6, y + 3), layouts[i], black);
                         x += w + 6;   // next chip to the right, ToS label row style
                     }
+                    layouts[i].Dispose();
                 }
             }
         }
@@ -177,8 +191,12 @@ namespace NinjaTrader.NinjaScript.Indicators
         public bool AbbreviateText { get; set; }
 
         [NinjaScriptProperty]
+        [Display(Name = "Label corner", GroupName = "Parameters", Order = 3)]
+        public EabLabelCorner LabelCorner { get; set; }
+
+        [NinjaScriptProperty]
         [Range(0, 2000)]
-        [Display(Name = "Label offset from top (px)", GroupName = "Parameters", Order = 3)]
+        [Display(Name = "Label offset from top (px)", GroupName = "Parameters", Order = 4)]
         public int LabelOffsetY { get; set; }
 
         [XmlIgnore]
