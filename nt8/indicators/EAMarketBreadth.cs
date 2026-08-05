@@ -1,26 +1,20 @@
 // EAMarketBreadth — NT8 port of the ToS BWD_MarketBreadth study v1.1
-// (BigWaveDave / thinkscripter MARKETBREADTH lineage, 6/26/12), in the
-// LABEL-ONLY style the user runs it in ToS ("unselect 'show plot', move to the
-// upper chart"): colored AddLabel-style chips on the PRICE chart, no plots.
-//
-// CHIP = solid rectangle, black text, laid left-to-right at the top-left:
-//   "2.09:1 NYSE"  background green when breadth rising vs prior bar, red when
-//   falling (NASDAQ: blue / dark orange) — exact ToS AddLabel behavior.
+// (BigWaveDave / thinkscripter MARKETBREADTH lineage), LABEL-ONLY style
+// (the user's ToS display: AddLabel chips on the price chart, no plots),
+// EXTENDED beyond the original: ALL FOUR metrics available at once in one
+// instance, toggleable —
+//   Vol ratio   uvol>dvol ? uvol/dvol : -dvol/uvol      [on by default]
+//   Iss ratio   adv>decl  ? adv/decl  : -decl/adv       [on by default]
+//   Vol diff    uvol - dvol                             [off]
+//   Iss diff    adv - decl                              [off]
+// One chip row per market (NYSE row, NASDAQ row below when Market=Both).
+// Chip = solid rectangle, black text, bg pos/neg color by metric rising vs
+// falling vs prior bar (exact ToS AddLabel behavior).
 //
 // FEED SYMBOLS (My NinjaTrader / CQG — probed live 2026-08-05, EABreadthProbe):
 //   NYSE:   ^ADV / ^DECL (issues)   ^UVOL / ^DVOL (volume)
 //   NASDAQ: ^NUPI / ^NDNI (issues)  ^NUPV / ^NDNV (volume)
-// (ToS $ADVN/$DECN/$UVOL/$DVOL and the /q variants.)
-//
-// MODES (DisplayValue, ToS default ADVolumeRatio):
-//   ADIssuesRatio  adv>decl ? adv/decl : -decl/adv
-//   ADIssues       adv - decl
-//   ADVolumeRatio  uvol>dvol ? uvol/dvol : -dvol/uvol
-//   ADVolume       uvol - dvol
-// AbbreviateText (ToS input): No -> full value + ":1" on ratios; Yes -> 2dp.
-// The plot/zero-line rendering of the original is intentionally NOT ported —
-// the user's display is chips only (panel-plot version lives in git history
-// at 93903caf if ever wanted).
+// Panel-plot v1 of this port lives at git 93903caf if ever wanted.
 // RULE (CLAUDE.md): this .cs lives in nt8/ and stays committed.
 
 #region Using declarations
@@ -39,7 +33,6 @@ using NinjaTrader.NinjaScript;
 
 namespace NinjaTrader.NinjaScript
 {
-    public enum EabDisplayValue { ADIssuesRatio, ADIssues, ADVolumeRatio, ADVolume }
     public enum EabMarket { NYSE, NASDAQ, Both }
     public enum EabLabelCorner { TopLeft, TopRight }
 }
@@ -48,25 +41,29 @@ namespace NinjaTrader.NinjaScript.Indicators
 {
     public class EAMarketBreadth : Indicator
     {
-        private bool useVolume, isRatio;
-        private int nyA = -1, nyD = -1, nqA = -1, nqD = -1;   // BarsInProgress indices
-        private double nyCur = double.NaN, nyPrev = double.NaN;
-        private double nqCur = double.NaN, nqPrev = double.NaN;
+        // per market: BarsInProgress indices of adv/decl issues + up/down volume
+        private int[] issA = { -1, -1 }, issD = { -1, -1 }, volU = { -1, -1 }, volD = { -1, -1 };
+        // cur/prev per market [0]=NYSE [1]=NASDAQ, per metric 0=VolRatio 1=IssRatio 2=VolDiff 3=IssDiff
+        private readonly double[,] cur  = new double[2, 4];
+        private readonly double[,] prev = new double[2, 4];
 
         protected override void OnStateChange()
         {
             if (State == State.SetDefaults)
             {
                 Name                     = "EAMarketBreadth";
-                Description              = "ToS BWD_MarketBreadth port, label-only style: colored breadth chips on the price chart";
+                Description              = "ToS BWD_MarketBreadth port, label-only chips: vol/issues ratio+diff, NYSE/NASDAQ, all in one instance";
                 Calculate                = Calculate.OnBarClose;
                 IsOverlay                = true;
                 DisplayInDataBox         = false;
                 PaintPriceMarkers        = false;
                 IsSuspendedWhileInactive = true;
 
-                DisplayValue    = EabDisplayValue.ADVolumeRatio;
                 Market          = EabMarket.NYSE;
+                ShowVolumeRatio = true;
+                ShowIssuesRatio = true;
+                ShowVolumeDiff  = false;
+                ShowIssuesDiff  = false;
                 AbbreviateText  = false;
                 LabelCorner     = EabLabelCorner.TopLeft;
                 LabelOffsetY    = 30;
@@ -75,21 +72,27 @@ namespace NinjaTrader.NinjaScript.Indicators
                 NYSENegColor    = Brushes.Red;
                 NASDAQPosColor  = Brushes.DodgerBlue;
                 NASDAQNegColor  = Brushes.DarkOrange;
+
+                for (int m = 0; m < 2; m++)
+                    for (int k = 0; k < 4; k++)
+                        { cur[m, k] = double.NaN; prev[m, k] = double.NaN; }
             }
             else if (State == State.Configure)
             {
-                useVolume = DisplayValue == EabDisplayValue.ADVolumeRatio || DisplayValue == EabDisplayValue.ADVolume;
-                isRatio   = DisplayValue == EabDisplayValue.ADVolumeRatio || DisplayValue == EabDisplayValue.ADIssuesRatio;
                 int bip = 1;
                 if (Market != EabMarket.NASDAQ)
                 {
-                    AddDataSeries(useVolume ? "^UVOL" : "^ADV");  nyA = bip++;
-                    AddDataSeries(useVolume ? "^DVOL" : "^DECL"); nyD = bip++;
+                    AddDataSeries("^ADV");  issA[0] = bip++;
+                    AddDataSeries("^DECL"); issD[0] = bip++;
+                    AddDataSeries("^UVOL"); volU[0] = bip++;
+                    AddDataSeries("^DVOL"); volD[0] = bip++;
                 }
                 if (Market != EabMarket.NYSE)
                 {
-                    AddDataSeries(useVolume ? "^NUPV" : "^NUPI"); nqA = bip++;
-                    AddDataSeries(useVolume ? "^NDNV" : "^NDNI"); nqD = bip++;
+                    AddDataSeries("^NUPI"); issA[1] = bip++;
+                    AddDataSeries("^NDNI"); issD[1] = bip++;
+                    AddDataSeries("^NUPV"); volU[1] = bip++;
+                    AddDataSeries("^NDNV"); volD[1] = bip++;
                 }
             }
         }
@@ -98,105 +101,132 @@ namespace NinjaTrader.NinjaScript.Indicators
         {
             if (BarsInProgress != 0)
                 return;
-            if (nyA >= 0)
-                Compute(nyA, nyD, ref nyCur, ref nyPrev);
-            if (nqA >= 0)
-                Compute(nqA, nqD, ref nqCur, ref nqPrev);
+            for (int m = 0; m < 2; m++)
+            {
+                if (issA[m] < 0) continue;
+                double a = Val(issA[m]), d = Val(issD[m]), u = Val(volU[m]), v = Val(volD[m]);
+                if (u > 0 && v > 0)
+                {
+                    Set(m, 0, u > v ? u / v : -v / u);   // VolRatio
+                    Set(m, 2, u - v);                    // VolDiff
+                }
+                if (a > 0 && d > 0)
+                {
+                    Set(m, 1, a > d ? a / d : -d / a);   // IssRatio
+                    Set(m, 3, a - d);                    // IssDiff
+                }
+            }
         }
 
-        private void Compute(int aIdx, int dIdx, ref double cur, ref double prev)
+        private double Val(int idx)
         {
-            if (CurrentBars[aIdx] < 0 || CurrentBars[dIdx] < 0)
-                return;
-            double a = Closes[aIdx][0], d = Closes[dIdx][0];
-            if (a <= 0 || d <= 0)
-                return;
-            double raw = isRatio ? (a > d ? a / d : -d / a) : a - d;
-            if (!double.IsNaN(cur) && raw != cur)
-                prev = cur;
-            cur = raw;
+            return (idx >= 0 && CurrentBars[idx] >= 0) ? Closes[idx][0] : 0;
         }
 
-        // ToS AddLabel style: solid chip, black text, left-to-right at top-left
+        private void Set(int m, int k, double raw)
+        {
+            if (!double.IsNaN(cur[m, k]) && raw != cur[m, k])
+                prev[m, k] = cur[m, k];
+            cur[m, k] = raw;
+        }
+
+        // chip rows, ToS AddLabel style: one row per market, chips left-to-right
         protected override void OnRender(ChartControl chartControl, ChartScale chartScale)
         {
             base.OnRender(chartControl, chartScale);
             if (RenderTarget == null)
                 return;
 
-            var texts = new List<string>();
-            var fills = new List<Brush>();
-            if (nyA >= 0 && !double.IsNaN(nyCur))
-            {
-                texts.Add(FormatLabel(nyCur) + " NYSE");
-                fills.Add(double.IsNaN(nyPrev) || nyCur > nyPrev ? NYSEPosColor : NYSENegColor);
-            }
-            if (nqA >= 0 && !double.IsNaN(nqCur))
-            {
-                texts.Add(FormatLabel(nqCur) + " NASDAQ");
-                fills.Add(double.IsNaN(nqPrev) || nqCur > nqPrev ? NASDAQPosColor : NASDAQNegColor);
-            }
-            if (texts.Count == 0)
-                return;
+            bool[] show = { ShowVolumeRatio, ShowIssuesRatio, ShowVolumeDiff, ShowIssuesDiff };
+            string[] tag = { "Vol", "Iss", "Vol", "Iss" };
+            string[] mktName = { "NYSE", "NASDAQ" };
+            Brush[] posB = { NYSEPosColor, NASDAQPosColor };
+            Brush[] negB = { NYSENegColor, NASDAQNegColor };
 
             using (var tf = new SharpDX.DirectWrite.TextFormat(NinjaTrader.Core.Globals.DirectWriteFactory, "Segoe UI", 13f))
             using (var black = new SharpDX.Direct2D1.SolidColorBrush(RenderTarget, new SharpDX.Color4(0f, 0f, 0f, 1f)))
             {
-                // measure chips first so a right-anchored row can be laid out right-to-left
-                var layouts = new List<SharpDX.DirectWrite.TextLayout>();
-                float totalW = 0, chipH = 0;
-                foreach (string t in texts)
-                {
-                    var tl = new SharpDX.DirectWrite.TextLayout(NinjaTrader.Core.Globals.DirectWriteFactory, t, tf, 500, 30);
-                    layouts.Add(tl);
-                    totalW += tl.Metrics.Width + 12 + 6;
-                    chipH = Math.Max(chipH, tl.Metrics.Height + 6);
-                }
-                float x = LabelCorner == EabLabelCorner.TopRight
-                    ? ChartPanel.X + ChartPanel.W - totalW - 8
-                    : ChartPanel.X + 8;
                 float y = ChartPanel.Y + LabelOffsetY;
-                for (int i = 0; i < layouts.Count; i++)
+                for (int m = 0; m < 2; m++)
                 {
-                    using (var fill = fills[i].ToDxBrush(RenderTarget))
+                    if (issA[m] < 0) continue;
+                    var texts = new List<string>();
+                    var fills = new List<Brush>();
+                    for (int k = 0; k < 4; k++)
                     {
-                        float w = layouts[i].Metrics.Width + 12;
-                        RenderTarget.FillRectangle(new SharpDX.RectangleF(x, y, w, chipH), fill);
-                        RenderTarget.DrawTextLayout(new SharpDX.Vector2(x + 6, y + 3), layouts[i], black);
-                        x += w + 6;   // next chip to the right, ToS label row style
+                        if (!show[k] || double.IsNaN(cur[m, k])) continue;
+                        texts.Add(tag[k] + " " + FormatVal(cur[m, k], k < 2) + " " + mktName[m]);
+                        fills.Add(double.IsNaN(prev[m, k]) || cur[m, k] > prev[m, k] ? posB[m] : negB[m]);
                     }
-                    layouts[i].Dispose();
+                    if (texts.Count == 0) continue;
+
+                    var layouts = new List<SharpDX.DirectWrite.TextLayout>();
+                    float totalW = 0, chipH = 0;
+                    foreach (string t in texts)
+                    {
+                        var tl = new SharpDX.DirectWrite.TextLayout(NinjaTrader.Core.Globals.DirectWriteFactory, t, tf, 500, 30);
+                        layouts.Add(tl);
+                        totalW += tl.Metrics.Width + 12 + 6;
+                        chipH = Math.Max(chipH, tl.Metrics.Height + 6);
+                    }
+                    float x = LabelCorner == EabLabelCorner.TopRight
+                        ? ChartPanel.X + ChartPanel.W - totalW - 8
+                        : ChartPanel.X + 8;
+                    for (int i = 0; i < layouts.Count; i++)
+                    {
+                        using (var fill = fills[i].ToDxBrush(RenderTarget))
+                        {
+                            float w = layouts[i].Metrics.Width + 12;
+                            RenderTarget.FillRectangle(new SharpDX.RectangleF(x, y, w, chipH), fill);
+                            RenderTarget.DrawTextLayout(new SharpDX.Vector2(x + 6, y + 3), layouts[i], black);
+                            x += w + 6;
+                        }
+                        layouts[i].Dispose();
+                    }
+                    y += chipH + 4;   // next market on its own row
                 }
             }
         }
 
-        private string FormatLabel(double raw)
+        private string FormatVal(double raw, bool ratio)
         {
-            if (AbbreviateText)
-                return Math.Round(raw, 2).ToString("0.##");
-            return isRatio ? raw.ToString("0.####") + ":1" : raw.ToString("#,0");
+            if (ratio)
+                return AbbreviateText ? Math.Round(raw, 2).ToString("0.##") : raw.ToString("0.00") + ":1";
+            return raw.ToString("+#,0;-#,0");
         }
 
         #region Properties
         [NinjaScriptProperty]
-        [Display(Name = "Display value", GroupName = "Parameters", Order = 0)]
-        public EabDisplayValue DisplayValue { get; set; }
-
-        [NinjaScriptProperty]
-        [Display(Name = "Market", GroupName = "Parameters", Order = 1)]
+        [Display(Name = "Market", GroupName = "Parameters", Order = 0)]
         public EabMarket Market { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name = "Abbreviate text", GroupName = "Parameters", Order = 2)]
+        [Display(Name = "Volume ratio", GroupName = "Metrics", Order = 0)]
+        public bool ShowVolumeRatio { get; set; }
+
+        [NinjaScriptProperty]
+        [Display(Name = "Issues ratio", GroupName = "Metrics", Order = 1)]
+        public bool ShowIssuesRatio { get; set; }
+
+        [NinjaScriptProperty]
+        [Display(Name = "Volume difference", GroupName = "Metrics", Order = 2)]
+        public bool ShowVolumeDiff { get; set; }
+
+        [NinjaScriptProperty]
+        [Display(Name = "Issues difference", GroupName = "Metrics", Order = 3)]
+        public bool ShowIssuesDiff { get; set; }
+
+        [NinjaScriptProperty]
+        [Display(Name = "Abbreviate text", GroupName = "Parameters", Order = 1)]
         public bool AbbreviateText { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name = "Label corner", GroupName = "Parameters", Order = 3)]
+        [Display(Name = "Label corner", GroupName = "Parameters", Order = 2)]
         public EabLabelCorner LabelCorner { get; set; }
 
         [NinjaScriptProperty]
         [Range(0, 2000)]
-        [Display(Name = "Label offset from top (px)", GroupName = "Parameters", Order = 4)]
+        [Display(Name = "Label offset from top (px)", GroupName = "Parameters", Order = 3)]
         public int LabelOffsetY { get; set; }
 
         [XmlIgnore]
