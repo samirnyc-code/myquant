@@ -472,6 +472,11 @@ namespace NinjaTrader.NinjaScript.Indicators
         // price (per-day tag, persists for review) + optional real-time alert
         private void OnLevelTouch(string key, string name, double level, int plotIdx)
         {
+            // HARD INVARIANT: gap fills only exist during RTH — never mark or
+            // alert a touch on an overnight/premarket bar, no matter the caller
+            int t = ToTime(Time[0]);
+            if (t <= RthOpenTime || t > RthCloseTime)
+                return;
             if (ShowTouchMarkers)
                 Draw.Diamond(this, "EAGF_hit_" + key + "_" + curRthDate.ToString("yyyyMMdd"),
                     false, 0, level, Plots[plotIdx].Brush);
