@@ -1,0 +1,18 @@
+days=1174  trades=2496  (2.13/day)  canceled_orders=1982
+win=1426 (57.1%)  loss=1070  eod_exits=2
+target_exits=1425  stop_exits=1069
+net=-2,962 ticks  (-1.187 t/trade)
+PF=0.658  gross_win=5,703t gross_loss=8,665t
+ES $/contract gross: -37,025   MES gross: -3,702   MES net @$5RT: -16,182
+
+by side:
+  long  n= 1289  win%= 58.6  net=  -1,311t  PF=0.697
+  short n= 1207  win%= 55.6  net=  -1,651t  PF=0.619
+
+by year:
+  2021 n=  222  win%= 54.5  net=    -326t  PF=0.598
+  2022 n=  496  win%= 55.4  net=    -683t  PF=0.617
+  2023 n=  501  win%= 57.7  net=    -581t  PF=0.666
+  2024 n=  504  win%= 57.5  net=    -563t  PF=0.673
+  2025 n=  485  win%= 59.6  net=    -432t  PF=0.728
+  2026 n=  288  win%= 56.2  net=    -377t  PF=0.632
