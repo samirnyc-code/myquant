@@ -1,0 +1,39 @@
+=== CHOSEN SWING: SMA20-D-gated IB(60m) breakout, 10pt stop / 20pt tgt, hold to close ===
+ALL 2021-26      {'label': '', 'n': 475, 'pnl': 36975, 'pf': np.float64(1.28), 'win': np.float64(44.8), 'avgR': np.float64(0.16), 'maxdd': -6665, 'netdd': np.float64(5.5), 'sharpe': np.float64(1.81)}
+TRAIN 2021-23    {'label': '', 'n': 202, 'pnl': 25765, 'pf': np.float64(1.51), 'win': np.float64(49.5), 'avgR': np.float64(0.26), 'maxdd': -4830, 'netdd': np.float64(5.3), 'sharpe': np.float64(2.99)}
+OOS 2024-26      {'label': '', 'n': 273, 'pnl': 11210, 'pf': np.float64(1.14), 'win': np.float64(41.4), 'avgR': np.float64(0.08), 'maxdd': -6665, 'netdd': np.float64(1.7), 'sharpe': np.float64(0.96)}
+
+PER YEAR:
+        n      pnl    pf   win
+year                          
+2021   42   6402.0  1.87  59.5
+2022   57  12015.0  1.80  50.9
+2023  103   7348.0  1.26  44.7
+2024  112   4990.0  1.15  42.0
+2025  113   5048.0  1.15  41.6
+2026   48   1172.0  1.08  39.6
+
+EXIT REASONS:
+reason
+stop      242
+target    148
+eod        85
+SIDE SPLIT:
+      count      sum
+side                
+1       475  36975.0
+
+saved 475 trades -> TRADES_swing_final.csv
+chart -> c:\Users\Admin\myquant\research\scalp_swing\AUDIT_swing_trades.png
+Traceback (most recent call last):
+  File "C:\Users\Admin\myquant\research\scalp_swing\finalize_swing.py", line 82, in <module>
+    ax2.plot(range(len(t2)), t2.eq, color="#1565c0", lw=1.5)
+  File "C:\Users\Admin\myquant\.venv\Lib\site-packages\matplotlib\axes\_axes.py", line 1792, in plot
+    lines = [*self._get_lines(self, *args, data=data, **kwargs)]
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\myquant\.venv\Lib\site-packages\matplotlib\axes\_base.py", line 331, in __call__
+    yield from self._plot_args(
+               ^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\myquant\.venv\Lib\site-packages\matplotlib\axes\_base.py", line 509, in _plot_args
+    raise ValueError(f"x and y must have same first dimension, but "
+ValueError: x and y must have same first dimension, but have shapes (475,) and (1,)

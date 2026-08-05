@@ -1,0 +1,77 @@
+{
+  "date": "2026-07-22",
+  "levels": [
+    {
+      "level_name": "1D Max",
+      "regime_hold_rate_pct": 89.29,
+      "positive_outcomes": 350,
+      "broke_at_close_pct": 10.7,
+      "comeback_rate_pct": 43.0,
+      "avg_move_intraday": 21.98,
+      "worst_move_intraday": 108.21,
+      "median_close_beyond": 19.81,
+      "avg_close_beyond": 23.6,
+      "worst_close_beyond": 86.13
+    },
+    {
+      "level_name": "Call Res. 0DTE",
+      "regime_hold_rate_pct": 73.51,
+      "positive_outcomes": 200,
+      "broke_at_close_pct": 26.5,
+      "comeback_rate_pct": 45.0,
+      "avg_move_intraday": 26.0,
+      "worst_move_intraday": 104.0,
+      "median_close_beyond": 20.88,
+      "avg_close_beyond": 26.77,
+      "worst_close_beyond": 83.1
+    },
+    {
+      "level_name": "Call Res.",
+      "regime_hold_rate_pct": 89.76,
+      "positive_outcomes": 338,
+      "broke_at_close_pct": 10.2,
+      "comeback_rate_pct": 43.0,
+      "avg_move_intraday": 26.31,
+      "worst_move_intraday": 104.0,
+      "median_close_beyond": 20.64,
+      "avg_close_beyond": 27.17,
+      "worst_close_beyond": 81.11
+    },
+    {
+      "level_name": "Put Support",
+      "regime_hold_rate_pct": 98.4,
+      "positive_outcomes": 423,
+      "broke_at_close_pct": 1.6,
+      "comeback_rate_pct": 46.0,
+      "avg_move_intraday": -46.23,
+      "worst_move_intraday": -116.11,
+      "median_close_beyond": -38.42,
+      "avg_close_beyond": -51.41,
+      "worst_close_beyond": -93.88
+    },
+    {
+      "level_name": "Put Sup. 0DTE",
+      "regime_hold_rate_pct": 86.75,
+      "positive_outcomes": 312,
+      "broke_at_close_pct": 13.3,
+      "comeback_rate_pct": 46.0,
+      "avg_move_intraday": -39.3,
+      "worst_move_intraday": -179.57,
+      "median_close_beyond": -19.89,
+      "avg_close_beyond": -36.4,
+      "worst_close_beyond": -164.61
+    },
+    {
+      "level_name": "1D Min",
+      "regime_hold_rate_pct": 90.89,
+      "positive_outcomes": 363,
+      "broke_at_close_pct": 9.1,
+      "comeback_rate_pct": 55.0,
+      "avg_move_intraday": -36.0,
+      "worst_move_intraday": -170.13,
+      "median_close_beyond": -26.09,
+      "avg_close_beyond": -41.52,
+      "worst_close_beyond": -164.7
+    }
+  ]
+}

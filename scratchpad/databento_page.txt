@@ -1,0 +1,213 @@
+DOCS
+Home
+Quickstart
+Examples and tutorials
+Equities
+Futures
+Options
+Equity options: Introduction
+Options on futures: Introduction
+All options with a given underlying
+Join options with underlying prices
+US equity options volume by venue
+Resample US equity options NBBO
+Estimate implied volatility
+Get symbols for 0DTE options
+Daily statistics for equity options
+Get end of day option spreads
+Live data
+Historical data
+Symbology
+Instrument definitions
+Order book
+Algorithmic trading
+Corporate actions
+Adjustment factors
+Security master
+CORE CONCEPTS
+Schemas and data formats
+Standards and conventions
+Architecture
+Venues and datasets
+API REFERENCE
+Historical API
+Live API
+Reference API
+RESOURCES
+FAQs
+Portal
+Release notes
+Support
+Log in
+Sign up
+Examples and tutorials
+Options
+Get symbols for 0DTE options
+Overview
+
+In this example we will show how to get symbols for 0DTE options for a product. 0DTE (Zero Days To Expiration) options are contracts that expire at the end of the current session.
+
+Definition schema
+
+The definition schema contains instrument definitions and properties. In these examples, we are primarily interested in the raw_symbol and expiration fields. We will retrieve definition data for all options that trade under a parent symbol. We will then filter for 0DTE contracts based on expiration. We can then use raw_symbol to pass a list of symbols into another data query.
+
+Historical example
+
+First, we'll take a look at how to do this with the Historical client. We'll use a pandas DataFrame to filter for this example.
+
+Python
+import datetime
+import databento as db
+
+# Create a historical client
+client = db.Historical("YOUR_API_KEY")
+
+# Set parameters
+dataset = "OPRA.PILLAR"
+parent_symbol = "SPXW"  # SPX Weekly Options
+date = datetime.date(2025, 9, 10)
+
+# Download definition data for a parent symbol
+def_data = client.timeseries.get_range(
+    dataset=dataset,
+    schema="definition",
+    symbols=f"{parent_symbol}.OPT",
+    stype_in="parent",
+    start=date,
+)
+
+# Convert to DataFrame and filter for 0DTE
+def_df = def_data.to_df()
+def_df = def_df[def_df["expiration"].dt.date == date]
+
+# Print out raw_symbols, expiration, and strike price
+print(def_df[["raw_symbol", "expiration", "strike_price"]])
+
+# Download some TCBBO data with these symbols
+tcbbo_data = client.timeseries.get_range(
+    dataset=dataset,
+    schema="tcbbo",
+    symbols=def_df["raw_symbol"].to_list(),
+    start=date,
+    limit=10000,
+)
+
+# Convert to DataFrame
+tcbbo_df = tcbbo_data.to_df()
+
+# Print TCBBO DataFrame
+print(tcbbo_df)
+
+Result
+Python
+                                                raw_symbol                expiration  strike_price
+ts_recv
+2025-09-10 10:30:02.624717419+00:00  SPXW  250910P04000000 2025-09-10 00:00:00+00:00        4000.0
+2025-09-10 10:30:02.634731457+00:00  SPXW  250910P06700000 2025-09-10 00:00:00+00:00        6700.0
+2025-09-10 10:30:02.644740147+00:00  SPXW  250910P06200000 2025-09-10 00:00:00+00:00        6200.0
+2025-09-10 10:30:02.644740147+00:00  SPXW  250910C05775000 2025-09-10 00:00:00+00:00        5775.0
+2025-09-10 10:30:02.662006482+00:00  SPXW  250910P06450000 2025-09-10 00:00:00+00:00        6450.0
+...                                                    ...                       ...           ...
+2025-09-10 10:30:29.833577055+00:00  SPXW  250910C05970000 2025-09-10 00:00:00+00:00        5970.0
+2025-09-10 10:30:29.844558808+00:00  SPXW  250910C06145000 2025-09-10 00:00:00+00:00        6145.0
+2025-09-10 10:30:29.869477754+00:00  SPXW  250910C06065000 2025-09-10 00:00:00+00:00        6065.0
+2025-09-10 10:30:29.883667299+00:00  SPXW  250910C05960000 2025-09-10 00:00:00+00:00        5960.0
+2025-09-10 10:30:29.994986746+00:00  SPXW  250910P06710000 2025-09-10 00:00:00+00:00        6710.0
+
+[406 rows x 3 columns]
+
+Python
+                                                               ts_event  rtype  publisher_id  instrument_id side  ...  bid_sz_00  ask_sz_00  bid_pb_00  ask_pb_00                 symbol
+ts_recv                                                                                                           ...
+2025-09-10 13:30:02.764440257+00:00 2025-09-10 13:30:02.764236273+00:00    194            22     1241523583    N  ...          0          0          0          0  SPXW  250910P06350000
+2025-09-10 13:30:02.764443670+00:00 2025-09-10 13:30:02.764240780+00:00    194            22     1241523583    N  ...          0          0          0          0  SPXW  250910P06350000
+2025-09-10 13:30:02.764725051+00:00 2025-09-10 13:30:02.764522162+00:00    194            22     1241515705    N  ...          0          0          0          0  SPXW  250910P06400000
+2025-09-10 13:30:02.764725051+00:00 2025-09-10 13:30:02.764522162+00:00    194            22     1241515705    N  ...          0          0          0          0  SPXW  250910P06400000
+2025-09-10 13:30:02.764734633+00:00 2025-09-10 13:30:02.764531350+00:00    194            22     1241515705    N  ...          0          0          0          0  SPXW  250910P06400000
+...                                                                 ...    ...           ...            ...  ...  ...        ...        ...        ...        ...                    ...
+2025-09-10 13:31:50.928232746+00:00 2025-09-10 13:31:50.928030554+00:00    194            22     1241531922    N  ...        385        364         22         22  SPXW  250910C06610000
+2025-09-10 13:31:50.956014355+00:00 2025-09-10 13:31:50.955812019+00:00    194            22     1241520104    N  ...        134        200         22         22  SPXW  250910P06495000
+2025-09-10 13:31:50.961115681+00:00 2025-09-10 13:31:50.960913601+00:00    194            22     1241528118    N  ...        234        200         22         22  SPXW  250910C06555000
+2025-09-10 13:31:50.962087120+00:00 2025-09-10 13:31:50.961883488+00:00    194            22     1241516275    N  ...        136         60         22         22  SPXW  250910C06545000
+2025-09-10 13:31:50.962087120+00:00 2025-09-10 13:31:50.961883488+00:00    194            22     1241519790    N  ...         54        188         22         22  SPXW  250910C06550000
+
+[10000 rows x 15 columns]
+
+Live example
+
+Next, we'll take a look at how to do this with the Live client. We'll use the pretty_expiration attribute which converts expiration into a datetime object to filter.
+
+Info
+
+You will need a live license for OPRA.PILLAR to run this example. See our plans and live data page for more information.
+
+Python
+import datetime
+import databento as db
+
+# Create a live client
+live_client = db.Live("YOUR_API_KEY", compression=db.Compression.ZSTD)
+
+# Set parameters
+dataset = "OPRA.PILLAR"
+parent_symbol = "SPXW"  # SPX Weekly Options
+date = datetime.datetime.now(tz=datetime.timezone.utc).date()
+
+# Subscribe to the definition schema for the parent symbol for this session
+live_client.subscribe(
+    dataset=dataset,
+    schema="definition",
+    symbols=f"{parent_symbol}.OPT",
+    stype_in="parent",
+    start=0,
+)
+
+# Create a list of 0DTE symbols
+symbols = []
+def append_symbol_list(msg):
+    if isinstance(msg, db.InstrumentDefMsg):
+        # Filter for 0DTE
+        if msg.pretty_expiration.date() == date:
+            symbols.append(msg.raw_symbol)
+
+# Add the callback and start the stream
+live_client.add_callback(append_symbol_list)
+live_client.start()
+
+# Listen to the stream for 15 seconds to get all messages
+live_client.block_for_close(timeout=15)
+
+# Print out the symbol count and the first 5 symbols
+print(f"Total symbol count for {dataset} = {len(symbols)}\nFirst 5 symbols...{symbols[:5]}")
+
+# Re-subscribe to the TCBBO schema with 0DTE symbols
+live_client.subscribe(
+    dataset=dataset,
+    schema="tcbbo",
+    symbols=symbols,
+)
+
+# Add a print callback and start the stream
+live_client.add_callback(print)
+live_client.start()
+
+# Listen to the stream for 10 seconds
+live_client.block_for_close(timeout=10)
+
+Result
+Python
+Total symbol count for OPRA.PILLAR = 139
+First 5 symbols...['SPXW  260122P02800000', 'SPXW  260122P08200000', 'SPXW  260122C05800000', 'SPXW  260122C04800000', 'SPXW  260122C03400000']
+
+Python
+SymbolMappingMsg(rtype=<RType.SYMBOL_MAPPING: 22>, publisher_id=0, instrument_id=1174406426, ts_event=1769047672270047890, pretty_ts_event='2026-01-22T02:07:52.270047890Z', stype_in=None, stype_in_symbol='SPXW  260122P02800000', stype_out=None, stype_out_symbol='SPXW  260122P02800000', start_ts=18446744073709551615, pretty_start_ts='2554-07-21T23:34:33.709551615Z', end_ts=18446744073709551615, pretty_end_ts='2554-07-21T23:34:33.709551615Z')
+...
+Cmbp1Msg(ts_recv=1769027025118777730, pretty_ts_recv='2026-01-21T20:23:45.118777730Z', rtype=<RType.TCBBO: 194>, publisher_id=OPRA.PILLAR.XCBO (22), instrument_id=1174410419, ts_event=1769027025118577558, pretty_ts_event='2026-01-21T20:23:45.118577558Z', action='T', side='N', price=2420000000, pretty_price=2.42, size=1, flags=LAST | TOB (192), ts_in_delta=0, bid_px_00=2400000000, pretty_bid_px_00=2.4, ask_px_00=2450000000, pretty_ask_px_00=2.45, bid_sz_00=24, ask_sz_00=33, bid_pb_00=22, ask_pb_00=22)
+Cmbp1Msg(ts_recv=1769027025118782732, pretty_ts_recv='2026-01-21T20:23:45.118782732Z', rtype=<RType.TCBBO: 194>, publisher_id=OPRA.PILLAR.XCBO (22), instrument_id=1174410419, ts_event=1769027025118582557, pretty_ts_event='2026-01-21T20:23:45.118582557Z', action='T', side='N', price=2420000000, pretty_price=2.42, size=1, flags=LAST | TOB (192), ts_in_delta=0, bid_px_00=2400000000, pretty_bid_px_00=2.4, ask_px_00=2450000000, pretty_ask_px_00=2.45, bid_sz_00=24, ask_sz_00=33, bid_pb_00=22, ask_pb_00=22)
+Cmbp1Msg(ts_recv=1769027026311010903, pretty_ts_recv='2026-01-21T20:23:46.311010903Z', rtype=<RType.TCBBO: 194>, publisher_id=OPRA.PILLAR.XCBO (22), instrument_id=1174415604, ts_event=1769027026310810688, pretty_ts_event='2026-01-21T20:23:46.310810688Z', action='T', side='N', price=19140000000, pretty_price=19.14, size=1, flags=LAST | TOB (192), ts_in_delta=0, bid_px_00=19000000000, pretty_bid_px_00=19, ask_px_00=19300000000, pretty_ask_px_00=19.3, bid_sz_00=19, ask_sz_00=28, bid_pb_00=22, ask_pb_00=22)
+...
+Cmbp1Msg(ts_recv=1769027042926074875, pretty_ts_recv='2026-01-21T20:24:02.926074875Z', rtype=<RType.TCBBO: 194>, publisher_id=OPRA.PILLAR.XCBO (22), instrument_id=1174410087, ts_event=1769027042925867805, pretty_ts_event='2026-01-21T20:24:02.925867805Z', action='T', side='N', price=10720000000, pretty_price=10.72, size=1, flags=LAST | TOB (192), ts_in_delta=0, bid_px_00=10600000000, pretty_bid_px_00=10.6, ask_px_00=10800000000, pretty_ask_px_00=10.8, bid_sz_00=13, ask_sz_00=11, bid_pb_00=22, ask_pb_00=22)
+Cmbp1Msg(ts_recv=1769027043433405443, pretty_ts_recv='2026-01-21T20:24:03.433405443Z', rtype=<RType.TCBBO: 194>, publisher_id=OPRA.PILLAR.XCBO (22), instrument_id=1174410087, ts_event=1769027043433197884, pretty_ts_event='2026-01-21T20:24:03.433197884Z', action='T', side='N', price=10700000000, pretty_price=10.7, size=1, flags=LAST | TOB (192), ts_in_delta=0, bid_px_00=10600000000, pretty_bid_px_00=10.6, ask_px_00=10800000000, pretty_ask_px_00=10.8, bid_sz_00=14, ask_sz_00=26, bid_pb_00=22, ask_pb_00=22)
+Cmbp1Msg(ts_recv=1769027043433405682, pretty_ts_recv='2026-01-21T20:24:03.433405682Z', rtype=<RType.TCBBO: 194>, publisher_id=OPRA.PILLAR.XCBO (22), instrument_id=1174410087, ts_event=1769027043433202613, pretty_ts_event='2026-01-21T20:24:03.433202613Z', action='T', side='N', price=10700000000, pretty_price=10.7, size=1, flags=LAST | TOB (192), ts_in_delta=0, bid_px_00=10600000000, pretty_bid_px_00=10.6, ask_px_00=10800000000, pretty_ask_px_00=10.8, bid_sz_00=14, ask_sz_00=26, bid_pb_00=22, ask_pb_00=22)
+
+Python

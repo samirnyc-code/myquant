@@ -1,0 +1,16 @@
+1 tickers · 1254 request-dates (2021-09-28..2026-07-17)
+  ...100/1254 dates  95 level-days  (100 requests)
+  ...200/1254 dates  191 level-days  (200 requests)
+  ...300/1254 dates  289 level-days  (300 requests)
+  ...400/1254 dates  381 level-days  (400 requests)
+  ...500/1254 dates  464 level-days  (500 requests)
+  ...600/1254 dates  560 level-days  (600 requests)
+  ...700/1254 dates  655 level-days  (700 requests)
+  ...800/1254 dates  751 level-days  (800 requests)
+  ...900/1254 dates  844 level-days  (900 requests)
+  ...1000/1254 dates  940 level-days  (1000 requests)
+  ...1100/1254 dates  1038 level-days  (1100 requests)
+  ...1200/1254 dates  1133 level-days  (1200 requests)
+SPX    : 1183 sessions  2021-09-27..2026-07-15  (no-spot rows: 1)
+
+DONE — 1254 requests used.

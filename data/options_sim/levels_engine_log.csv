@@ -1,0 +1,5 @@
+ts_et,msg,detail
+2026-08-04 09:32:30,levels loaded,"{""cr"": 7650.0, ""cr0"": 7650.0, ""ps0"": 7525.0, ""ps"": 7500.0, ""hvl"": 7525.0}"
+2026-08-04 09:32:30,dedup: CR and CR0 within 5pts — CR(major) only,"{""cr"": 7650.0, ""cr0"": 7650.0}"
+2026-08-04 09:32:30,engine armed,"{""rules"": [[""lvlfade_cr_ES"", 7650.0], [""lvlfade_ps0_ES"", 7525.0]]}"
+2026-08-04 16:00:01,engine done,"{""states"": {""lvlfade_cr_ES"": ""armed"", ""lvlfade_ps0_ES"": ""armed""}}"

@@ -1,0 +1,59 @@
+[200/1287] rows=4137
+[400/1287] rows=9821
+[600/1287] rows=14882
+[800/1287] rows=19887
+[1000/1287] rows=25256
+[1200/1287] rows=30604
+
+saved C:\Users\Admin\myquant\data\regime\revft_regime_entry_20260725.parquet  (1204 days)
+
+================================================================================================
+ENTRY-OFFSET SWEEP (wide-vol+EOD exit, cancel after 6 bars)  —  DROP-CT gate
+================================================================================================
+k=ticks back from SignalPrice for the resting limit (k=0 = at SignalPrice; native next-tick in 0015):
+  k= 0t   fill=  85%  n= 2357  tot=$  -75,222  $/tr= -31.9  PF=0.92  win=39.4%
+  k= 2t   fill=  82%  n= 2277  tot=$  -42,160  $/tr= -18.5  PF=0.95  win=40.1%
+  k= 4t   fill=  80%  n= 2207  tot=$  -14,798  $/tr=  -6.7  PF=0.98  win=40.7%
+  k= 6t   fill=  76%  n= 2101  tot=$   -5,442  $/tr=  -2.6  PF=0.99  win=41.2%
+  k= 8t   fill=  72%  n= 1995  tot=$   13,912  $/tr=   7.0  PF=1.02  win=42.0%
+  k=12t   fill=  64%  n= 1762  tot=$   19,502  $/tr=  11.1  PF=1.03  win=43.7%
+  k=16t   fill=  54%  n= 1492  tot=$   48,028  $/tr=  32.2  PF=1.08  win=44.4%
+
+same, NEG-gamma & DROP-CT gate:
+  k= 0t   fill=  84%  n=  995  tot=$   12,138  $/tr=  12.2  PF=1.02  win=40.3%
+  k= 2t   fill=  82%  n=  975  tot=$   24,212  $/tr=  24.8  PF=1.05  win=40.3%
+  k= 4t   fill=  81%  n=  955  tot=$   40,525  $/tr=  42.4  PF=1.09  win=41.0%
+  k= 6t   fill=  77%  n=  918  tot=$   36,498  $/tr=  39.8  PF=1.08  win=41.3%
+  k= 8t   fill=  75%  n=  886  tot=$   37,295  $/tr=  42.1  PF=1.09  win=41.8%
+  k=12t   fill=  69%  n=  816  tot=$   40,482  $/tr=  49.6  PF=1.10  win=43.3%
+  k=16t   fill=  63%  n=  741  tot=$   54,370  $/tr=  73.4  PF=1.15  win=43.6%
+
+================================================================================================
+TRAIN/HOLDOUT + YEAR for the best-looking k on each gate
+================================================================================================
+
+DROP-CT  best k=16t:
+  ALL     fill=  54%  n= 1492  tot=$   48,028  $/tr=  32.2  PF=1.08  win=44.4%
+  train   fill=  52%  n=  695  tot=$   17,875  $/tr=  25.7  PF=1.07  win=44.7%
+  holdout fill=  55%  n=  797  tot=$   30,152  $/tr=  37.8  PF=1.09  win=44.2%
+  yr 2021:     98 2022: 17,180 2023:    598 2024: 13,760 2025: 10,370 2026:  6,022
+
+NEG&DROP-CT  best k=16t:
+  ALL     fill=  63%  n=  741  tot=$   54,370  $/tr=  73.4  PF=1.15  win=43.6%
+  train   fill=  60%  n=  369  tot=$   22,605  $/tr=  61.3  PF=1.13  win=43.6%
+  holdout fill=  65%  n=  372  tot=$   31,765  $/tr=  85.4  PF=1.17  win=43.5%
+  yr 2021:  2,242 2022: 19,702 2023:    660 2024:  7,535 2025: 20,662 2026:  3,568
+
+================================================================================================
+GAP / HOUR ablation (DROP-CT gate, wide+EOD; native-entry k=0 for comparability)
+================================================================================================
+  k=6 all                            fill=  76%  n= 2101  tot=$   -5,442  $/tr=  -2.6  PF=0.99  win=41.2%
+  k=6 + gap-skip(|gap|<=0.54)        fill=  75%  n= 1513  tot=$   -4,528  $/tr=  -3.0  PF=0.99  win=41.6%
+  k=6 + hours 09-13                  fill=  77%  n= 1656  tot=$   11,295  $/tr=   6.8  PF=1.02  win=40.8%
+  k=6 + gap-skip + hours             fill=  76%  n= 1202  tot=$   -1,222  $/tr=  -1.0  PF=1.00  win=41.1%
+
+same ablation on NEG&DROP-CT:
+  all                                fill=  77%  n=  918  tot=$   36,498  $/tr=  39.8  PF=1.08  win=41.3%
+  +gap-skip                          fill=  76%  n=  521  tot=$   19,870  $/tr=  38.1  PF=1.09  win=42.0%
+  +hours                             fill=  79%  n=  724  tot=$   45,380  $/tr=  62.7  PF=1.12  win=41.2%
+  +gap+hours                         fill=  77%  n=  414  tot=$   20,592  $/tr=  49.7  PF=1.10  win=42.0%

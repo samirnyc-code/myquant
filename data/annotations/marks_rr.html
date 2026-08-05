@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Marked Setups — R/R report</title>
+<style>
+:root{--surface:#fcfcfb;--plane:#f9f9f7;--ink:#0b0b0b;--ink2:#52514e;--muted:#898781;
+  --border:rgba(11,11,11,.10);--card:#fff;--pos:#1f8a4c;--neg:#cf3f3f;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root{--surface:#1a1a19;--plane:#0d0d0d;--ink:#fff;
+  --ink2:#c3c2b7;--muted:#898781;--border:rgba(255,255,255,.12);--card:#1f1f1e;
+  --pos:#37b06a;--neg:#e66767;--accent:#3987e5}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--plane);color:var(--ink);font-size:14.5px;
+  font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+header{padding:16px 28px;background:var(--surface);border-bottom:1px solid var(--border)}
+h1{font-size:18px;margin:0}
+.sub{color:var(--muted);font-size:12.5px;margin-top:4px}
+main{max-width:1150px;margin:0 auto;padding:10px 28px 80px}
+section{margin-top:44px}
+h2{font-size:15px;font-weight:650;margin:0 0 14px}
+h2 .n{color:var(--muted);font-weight:400;font-size:12.5px;margin-left:8px}
+table{border-collapse:separate;border-spacing:0;width:100%;background:var(--card);
+  border:1px solid var(--border);border-radius:12px;overflow:hidden}
+th,td{padding:10px 14px;text-align:right;font-variant-numeric:tabular-nums}
+th:first-child,td:first-child,th:nth-child(2),td:nth-child(2){text-align:left}
+thead th{font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;
+  color:var(--ink2);border-bottom:1px solid var(--border);background:var(--surface)}
+tbody.blk{border-top:6px solid transparent}
+tbody.blk tr:first-child td{border-top:10px solid var(--plane)}
+td{border-top:1px solid var(--border)}
+.pos{color:var(--pos)}.neg{color:var(--neg)}
+.note{color:var(--muted);font-size:12.5px;margin-top:14px;line-height:1.6}
+.warn{background:var(--card);border:1px solid var(--neg);border-radius:10px;
+  padding:12px 16px;margin-top:26px;font-size:13px;line-height:1.55}
+</style></head><body>
+<header><h1>Marked Setups — R/R report</h1>
+<div class="sub">entry = stop order 1 tick beyond signal bar · both-touch bars count as
+stop-outs · flat 15:00 CT · MES $5/pt net of $5 RT · generated 2026-07-17 12:13</div></header>
+<main>
+<div class="warn"><b>Read with care:</b> n is tiny and marks placed &gt;15 bars after
+the fact are hindsight-contaminated. This report screens management styles; it is not
+evidence of edge until marks accumulate (≥25 per setup over ≥10 sessions) and the
+extracted rule survives unmarked history.</div>
+<section><h2>All setups <span class='n'>6 marks</span></h2><table><thead><tr><th>stop</th><th>mgmt</th><th>n</th><th>win %</th><th>Exp R</th><th>Exp $</th><th>PF</th><th>Total $</th><th>MaxDD $</th><th>streak</th><th>streak $</th><th>Exp $ @ $100 risk</th></tr></thead><tbody class='blk'><tr><td>sb</td><td>2R</td><td>6</td><td>67%</td><td class='pos'>+1.00</td><td class='pos'>12.50</td><td>2.36</td><td class='pos'>75.00</td><td>55.00</td><td>2</td><td class='neg'>-55.00</td><td class='pos'>73.17</td></tr>
+<tr><td>sb</td><td>3R</td><td>6</td><td>50%</td><td class='pos'>+1.00</td><td class='pos'>7.50</td><td>1.52</td><td class='pos'>45.00</td><td>86.25</td><td>3</td><td class='neg'>-86.25</td><td class='pos'>73.17</td></tr>
+<tr><td>sb</td><td>2R+BE</td><td>6</td><td>50%</td><td class='pos'>+0.83</td><td class='pos'>11.88</td><td>3.28</td><td class='pos'>71.25</td><td>26.25</td><td>1</td><td class='neg'>-21.25</td><td class='pos'>56.50</td></tr>
+<tr><td>sb</td><td>trail</td><td>6</td><td>83%</td><td class='pos'>+1.19</td><td class='pos'>17.70</td><td>5.72</td><td class='pos'>106.20</td><td>22.51</td><td>1</td><td class='neg'>-21.25</td><td class='pos'>92.50</td></tr></tbody><tbody class='blk'><tr><td>struct</td><td>2R</td><td>6</td><td>50%</td><td class='pos'>+0.50</td><td class='pos'>9.17</td><td>1.50</td><td class='pos'>55.00</td><td>110.00</td><td>3</td><td class='neg'>-110.00</td><td class='pos'>31.64</td></tr>
+<tr><td>struct</td><td>3R</td><td>6</td><td>50%</td><td class='pos'>+1.00</td><td class='pos'>24.17</td><td>2.32</td><td class='pos'>145.00</td><td>110.00</td><td>3</td><td class='neg'>-110.00</td><td class='pos'>81.64</td></tr>
+<tr><td>struct</td><td>2R+BE</td><td>6</td><td>33%</td><td class='pos'>+0.50</td><td class='pos'>12.08</td><td>2.38</td><td class='pos'>72.50</td><td>47.50</td><td>1</td><td class='neg'>-37.50</td><td class='pos'>31.64</td></tr>
+<tr><td>struct</td><td>trail</td><td>6</td><td>83%</td><td class='pos'>+0.62</td><td class='pos'>15.00</td><td>3.31</td><td class='pos'>89.97</td><td>38.90</td><td>1</td><td class='neg'>-37.50</td><td class='pos'>43.80</td></tr></tbody><tbody class='blk'><tr><td>swing</td><td>2R</td><td>6</td><td>67%</td><td class='pos'>+1.00</td><td class='pos'>28.33</td><td>2.08</td><td class='pos'>170.00</td><td>157.50</td><td>2</td><td class='neg'>-157.50</td><td class='pos'>87.67</td></tr>
+<tr><td>swing</td><td>3R</td><td>6</td><td>50%</td><td class='pos'>+0.71</td><td class='pos'>17.46</td><td>1.55</td><td class='pos'>104.75</td><td>157.50</td><td>2</td><td class='neg'>-157.50</td><td class='pos'>59.00</td></tr>
+<tr><td>swing</td><td>2R+BE</td><td>6</td><td>50%</td><td class='pos'>+1.00</td><td class='pos'>43.75</td><td>18.50</td><td class='pos'>262.50</td><td>10.00</td><td>0</td><td class=''>0.00</td><td class='pos'>87.67</td></tr>
+<tr><td>swing</td><td>trail</td><td>6</td><td>100%</td><td class='pos'>+0.62</td><td class='pos'>21.55</td><td>122.69</td><td class='pos'>129.30</td><td>1.06</td><td>0</td><td class=''>0.00</td><td class='pos'>50.17</td></tr></tbody></table></section>
+<section><h2>bopb <span class='n'>2 marks</span></h2><table><thead><tr><th>stop</th><th>mgmt</th><th>n</th><th>win %</th><th>Exp R</th><th>Exp $</th><th>PF</th><th>Total $</th><th>MaxDD $</th><th>streak</th><th>streak $</th><th>Exp $ @ $100 risk</th></tr></thead><tbody class='blk'><tr><td>sb</td><td>2R</td><td>2</td><td>50%</td><td class='pos'>+0.50</td><td class='pos'>13.12</td><td>2.24</td><td class='pos'>26.25</td><td>21.25</td><td>1</td><td class='neg'>-21.25</td><td class='pos'>25.09</td></tr>
+<tr><td>sb</td><td>3R</td><td>2</td><td>0%</td><td class='neg'>-1.00</td><td class='neg'>-26.25</td><td>0.00</td><td class='neg'>-52.50</td><td>21.25</td><td>2</td><td class='neg'>-52.50</td><td class='neg'>-124.91</td></tr>
+<tr><td>sb</td><td>2R+BE</td><td>2</td><td>50%</td><td class='pos'>+0.50</td><td class='pos'>13.12</td><td>2.24</td><td class='pos'>26.25</td><td>21.25</td><td>1</td><td class='neg'>-21.25</td><td class='pos'>25.09</td></tr>
+<tr><td>sb</td><td>trail</td><td>2</td><td>50%</td><td class='pos'>+0.12</td><td class='pos'>3.15</td><td>1.30</td><td class='pos'>6.30</td><td>21.25</td><td>1</td><td class='neg'>-21.25</td><td class='neg'>-12.91</td></tr></tbody><tbody class='blk'><tr><td>struct</td><td>2R</td><td>2</td><td>0%</td><td class='neg'>-1.00</td><td class='neg'>-37.50</td><td>0.00</td><td class='neg'>-75.00</td><td>37.50</td><td>2</td><td class='neg'>-75.00</td><td class='neg'>-115.38</td></tr>
+<tr><td>struct</td><td>3R</td><td>2</td><td>0%</td><td class='neg'>-1.00</td><td class='neg'>-37.50</td><td>0.00</td><td class='neg'>-75.00</td><td>37.50</td><td>2</td><td class='neg'>-75.00</td><td class='neg'>-115.38</td></tr>
+<tr><td>struct</td><td>2R+BE</td><td>2</td><td>0%</td><td class='neg'>-0.50</td><td class='neg'>-21.25</td><td>0.00</td><td class='neg'>-42.50</td><td>37.50</td><td>1</td><td class='neg'>-37.50</td><td class='neg'>-65.38</td></tr>
+<tr><td>struct</td><td>trail</td><td>2</td><td>50%</td><td class=''>+0.00</td><td class='neg'>-5.00</td><td>0.73</td><td class='neg'>-10.00</td><td>37.50</td><td>1</td><td class='neg'>-37.50</td><td class='neg'>-15.38</td></tr></tbody><tbody class='blk'><tr><td>swing</td><td>2R</td><td>2</td><td>50%</td><td class='pos'>+0.50</td><td class='pos'>24.38</td><td>1.51</td><td class='pos'>48.75</td><td>0.00</td><td>1</td><td class='neg'>-96.25</td><td class='pos'>43.93</td></tr>
+<tr><td>swing</td><td>3R</td><td>2</td><td>50%</td><td class='pos'>+0.14</td><td class='neg'>-2.62</td><td>0.95</td><td class='neg'>-5.25</td><td>0.00</td><td>1</td><td class='neg'>-96.25</td><td class='pos'>7.93</td></tr>
+<tr><td>swing</td><td>2R+BE</td><td>2</td><td>50%</td><td class='pos'>+1.00</td><td class='pos'>70.00</td><td>29.00</td><td class='pos'>140.00</td><td>0.00</td><td>0</td><td class=''>0.00</td><td class='pos'>93.93</td></tr>
+<tr><td>swing</td><td>trail</td><td>2</td><td>100%</td><td class='pos'>+0.22</td><td class='pos'>14.42</td><td>∞</td><td class='pos'>28.85</td><td>0.00</td><td>0</td><td class=''>0.00</td><td class='pos'>15.93</td></tr></tbody></table></section>
+<section><h2>fade2 <span class='n'>4 marks</span></h2><table><thead><tr><th>stop</th><th>mgmt</th><th>n</th><th>win %</th><th>Exp R</th><th>Exp $</th><th>PF</th><th>Total $</th><th>MaxDD $</th><th>streak</th><th>streak $</th><th>Exp $ @ $100 risk</th></tr></thead><tbody class='blk'><tr><td>sb</td><td>2R</td><td>4</td><td>75%</td><td class='pos'>+1.25</td><td class='pos'>12.19</td><td>2.44</td><td class='pos'>48.75</td><td>33.75</td><td>1</td><td class='neg'>-33.75</td><td class='pos'>97.20</td></tr>
+<tr><td>sb</td><td>3R</td><td>4</td><td>75%</td><td class='pos'>+2.00</td><td class='pos'>24.38</td><td>3.89</td><td class='pos'>97.50</td><td>33.75</td><td>1</td><td class='neg'>-33.75</td><td class='pos'>172.20</td></tr>
+<tr><td>sb</td><td>2R+BE</td><td>4</td><td>50%</td><td class='pos'>+1.00</td><td class='pos'>11.25</td><td>5.50</td><td class='pos'>45.00</td><td>5.00</td><td>0</td><td class=''>0.00</td><td class='pos'>72.20</td></tr>
+<tr><td>sb</td><td>trail</td><td>4</td><td>100%</td><td class='pos'>+1.73</td><td class='pos'>24.97</td><td>80.13</td><td class='pos'>99.90</td><td>1.26</td><td>0</td><td class=''>0.00</td><td class='pos'>145.20</td></tr></tbody><tbody class='blk'><tr><td>struct</td><td>2R</td><td>4</td><td>75%</td><td class='pos'>+1.25</td><td class='pos'>32.50</td><td>4.71</td><td class='pos'>130.00</td><td>35.00</td><td>1</td><td class='neg'>-35.00</td><td class='pos'>105.15</td></tr>
+<tr><td>struct</td><td>3R</td><td>4</td><td>75%</td><td class='pos'>+2.00</td><td class='pos'>55.00</td><td>7.29</td><td class='pos'>220.00</td><td>35.00</td><td>1</td><td class='neg'>-35.00</td><td class='pos'>180.15</td></tr>
+<tr><td>struct</td><td>2R+BE</td><td>4</td><td>50%</td><td class='pos'>+1.00</td><td class='pos'>28.75</td><td>12.50</td><td class='pos'>115.00</td><td>5.00</td><td>0</td><td class=''>0.00</td><td class='pos'>80.15</td></tr>
+<tr><td>struct</td><td>trail</td><td>4</td><td>100%</td><td class='pos'>+0.93</td><td class='pos'>24.99</td><td>72.41</td><td class='pos'>99.97</td><td>1.40</td><td>0</td><td class=''>0.00</td><td class='pos'>73.40</td></tr></tbody><tbody class='blk'><tr><td>swing</td><td>2R</td><td>4</td><td>75%</td><td class='pos'>+1.25</td><td class='pos'>30.31</td><td>2.98</td><td class='pos'>121.25</td><td>61.25</td><td>1</td><td class='neg'>-61.25</td><td class='pos'>109.54</td></tr>
+<tr><td>swing</td><td>3R</td><td>4</td><td>50%</td><td class='pos'>+1.00</td><td class='pos'>27.50</td><td>2.17</td><td class='pos'>110.00</td><td>61.25</td><td>1</td><td class='neg'>-61.25</td><td class='pos'>84.54</td></tr>
+<tr><td>swing</td><td>2R+BE</td><td>4</td><td>50%</td><td class='pos'>+1.00</td><td class='pos'>30.62</td><td>13.25</td><td class='pos'>122.50</td><td>5.00</td><td>0</td><td class=''>0.00</td><td class='pos'>84.54</td></tr>
+<tr><td>swing</td><td>trail</td><td>4</td><td>100%</td><td class='pos'>+0.83</td><td class='pos'>25.11</td><td>95.54</td><td class='pos'>100.45</td><td>1.06</td><td>0</td><td class=''>0.00</td><td class='pos'>67.29</td></tr></tbody></table></section>
+<section><h2>Marks in this run</h2>
+<table><thead><tr><th>day</th><th>time</th><th>setup</th><th>dir</th><th>grade</th>
+<th>lag (bars)</th></tr></thead><tbody><tr><td>2026-07-13</td><td>08:35</td><td>fade2</td><td>short</td><td>—</td><td>88</td></tr><tr><td>2026-07-13</td><td>09:15</td><td>fade2</td><td>short</td><td>—</td><td>16</td></tr><tr><td>2026-07-13</td><td>09:23</td><td>bopb</td><td>long</td><td>—</td><td>33</td></tr><tr><td>2026-07-13</td><td>09:55</td><td>fade2</td><td>long</td><td>—</td><td>105</td></tr><tr><td>2026-07-13</td><td>11:04</td><td>bopb</td><td>short</td><td>—</td><td>49</td></tr><tr><td>2026-07-13</td><td>14:38</td><td>fade2</td><td>long</td><td>—</td><td>73</td></tr></tbody></table></section>
+<div class="note">Exp $ @ fixed risk sizes every trade to the same $ risk (fractional
+MES lots) — the only $ column comparable across stop modes. MaxDD $ and streak $ are
+1-lot equity-curve values in mark order. PF on tiny n (or with near-zero losses) is
+meaningless — treat PF &gt; 3 as suspect until proven.</div>
+</main></body></html>

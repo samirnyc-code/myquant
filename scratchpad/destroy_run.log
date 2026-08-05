@@ -1,0 +1,27 @@
+Book B (conservative $30/tr): n=908  total=$125,198  $/tr=137.9  PF=1.27
+
+================================================================================
+ATTACK 1 — RANDOM-TIME NULL (same dir/day/exit, random 09-13 entry bar)
+================================================================================
+  Book B actual total (valid trades)  $125,198   $/tr $137.9
+  random-time null total  mean $86,365  [p2.5 $21,406, p97.5 $149,838]
+  random-time null $/tr   $94.1
+  empirical p(null >= actual) = 0.1200   |   signal beats random-timing on 40.4% of trades
+  --> DESTROYED (signal timing ~ random; edge is drift capture)
+
+================================================================================
+ATTACK 2 — TAIL JACKKNIFE (remove top-N winners, conservative cost)
+================================================================================
+  full $125,198  (n=908)
+  remove top-10: $   40,298   (68% of profit in 10 trades)
+  remove top-20: $   -7,028   (106% of profit in 20 trades)
+  remove top-30: $  -45,940   (137% of profit in 30 trades)
+  remove top-50: $ -112,840   (190% of profit in 50 trades)
+
+================================================================================
+ATTACK 3 — RECENT-PERIOD DECAY (conservative cost)
+================================================================================
+  2025                       n= 183  $  35,160  $/tr  192.1  PF 1.32
+  2026 YTD                   n= 126  $  25,370  $/tr  201.3  PF 1.35
+  last 12mo (>=2025-07)      n= 183  $  37,985  $/tr  207.6  PF 1.38
+  H2-2025+2026 (>=2025-07)   n= 183  $  37,985  $/tr  207.6  PF 1.38

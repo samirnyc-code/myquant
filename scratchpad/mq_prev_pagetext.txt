@@ -1,0 +1,41 @@
+Toggle left sidebar
+S
+SPX
+Ctrl
++
+K
+PRE-MARKET
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+Request Levels
+
+Get Gamma Levels, Blind Spots, and Swing Levels for Stocks, ETFs, Indices, Futures or Crypto. Return the TradingView code ready to plot on your charts. Up to 5 tickers per request.
+
+Search Tickers
+Paste Tickers
+SPX
+Maximum of 5 tickers can be selected
+Gamma Levels EOD
+Search
+$SPX: Call Resistance, 7600, Put Support, 7300, HVL, 7495, 1D Min, 7516.84, 1D Max, 7633.92, Call Resistance 0DTE, 7600, Put Support 0DTE, 7440, HVL 0DTE, 7500, Gamma Wall 0DTE, 7600, GEX 1, 7550, GEX 2, 7575, GEX 3, 7620, GEX 4, 7625, GEX 5, 7525, GEX 6, 7650, GEX 7, 7675, GEX 8, 7670, GEX 9, 7645, GEX 10, 7475
+Copy
+Prev Date
+2026-07-10
+Next Date
+Intraday summary
+Watchlist
+Net Gex
+Chats

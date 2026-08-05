@@ -1,21 +1,919 @@
-----------------------------------------
-Exception occurred during processing of request from ('127.0.0.1', 64531)
-Traceback (most recent call last):
-  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\socketserver.py", line 697, in process_request_thread
-    self.finish_request(request, client_address)
-  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\socketserver.py", line 362, in finish_request
-    self.RequestHandlerClass(request, client_address, self)
-  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\socketserver.py", line 766, in __init__
-    self.handle()
-  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\http\server.py", line 436, in handle
-    self.handle_one_request()
-  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\http\server.py", line 424, in handle_one_request
-    method()
-  File "C:\Users\Admin\myquant\scripts\options_dashboard_live.py", line 146, in do_GET
-    self._send(json.dumps(state()), "application/json", set_cookie)
-  File "C:\Users\Admin\myquant\scripts\options_dashboard_live.py", line 114, in _send
-    self.wfile.write(body)
-  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\socketserver.py", line 845, in write
-    self._sock.sendall(b)
-ConnectionAbortedError: [WinError 10053] An established connection was aborted by the software in your host machine
-----------------------------------------
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (0 cards, spot=7600.45)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+live options dashboard -> http://127.0.0.1:8600/  (Ctrl-C to stop)
+  polling /state.json every 5s; regenerates on trade/journal change.
+  ACCESS TOKEN: Tp3xCWzVnG3_6KeDsvkzUA   (localhost exempt; remote needs ?key=)
+  SHARE (Tailscale): http://100.120.208.126:8600/?key=Tp3xCWzVnG3_6KeDsvkzUA
+  NOTE: live feed offline — run scripts/spot_feed.py for real-time SPX/ES/VIX.
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (0 cards, spot=7600.45)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (0 cards, spot=7600.45)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (0 cards, spot=None)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (1 cards, spot=7640.75)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (2 cards, spot=7640.75)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (3 cards, spot=7640.75)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (3 cards, spot=7639.55)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (3 cards, spot=7639.55)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (3 cards, spot=7641.9)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (3 cards, spot=7644.85)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (3 cards, spot=7644.85)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (3 cards, spot=7639.55)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (3 cards, spot=7640.05)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (3 cards, spot=7640.05)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (3 cards, spot=7640.95)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (3 cards, spot=7641.75)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (3 cards, spot=7641.75)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (3 cards, spot=7644.15)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (3 cards, spot=7644.15)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (3 cards, spot=7644.65)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (3 cards, spot=7644.65)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (3 cards, spot=7645.6)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (3 cards, spot=7645.95)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (3 cards, spot=7646.8)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (3 cards, spot=7646.85)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (3 cards, spot=7646.85)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (3 cards, spot=7651.95)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (3 cards, spot=7652.8)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (3 cards, spot=7652.8)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (3 cards, spot=7653.3)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (3 cards, spot=7654.6)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (3 cards, spot=7654.6)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (3 cards, spot=7654.6)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (3 cards, spot=7656.85)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (3 cards, spot=7653.45)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (3 cards, spot=7653.45)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (3 cards, spot=7652.75)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (3 cards, spot=7652.1)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (3 cards, spot=7655.4)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (3 cards, spot=7655.4)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (3 cards, spot=7656.45)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (3 cards, spot=7658.5)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (3 cards, spot=7658.5)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (3 cards, spot=7661.7)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (3 cards, spot=7662.45)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (3 cards, spot=7662.45)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (3 cards, spot=7664.25)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (4 cards, spot=7664.25)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (5 cards, spot=7665.75)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (5 cards, spot=7665.75)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (6 cards, spot=7667.2)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (6 cards, spot=7667.2)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (7 cards, spot=7667.8)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7667.8)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7667.45)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7667.45)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7667.7)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7668.15)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7668.15)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7669.75)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7670.85)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7670.85)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7672.25)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7673.65)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7673.65)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7672.9)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7676.1)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7676.1)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7672.7)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7669.4)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7669.4)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7671.0)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7669.15)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7665.95)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7665.95)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7670.3)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7670.3)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7670.3)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7670.3)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7670.3)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7668.7)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7668.2)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7668.2)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7665.15)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7667.25)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7667.25)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7673.2)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7673.2)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7673.2)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7674.1)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7674.45)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7674.45)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7672.65)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7674.55)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7674.55)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7674.95)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7674.8)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7674.8)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7675.75)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7678.4)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7678.4)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7679.7)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7679.7)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7681.25)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7680.5)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7680.5)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7680.65)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7681.3)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7681.3)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7682.4)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7683.85)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7683.85)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7682.1)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7682.1)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7681.95)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7682.7)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7682.7)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7684.45)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7684.45)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7684.65)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7687.05)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7687.05)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7687.05)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7685.95)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7685.95)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7690.5)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7690.5)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7692.3)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7690.9)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7690.9)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7688.6)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7688.6)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7691.75)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7691.75)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7691.5)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7692.5)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7693.85)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7693.85)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7694.0)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7694.0)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7696.2)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7696.2)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7696.9)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7697.1)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7697.1)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7697.35)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7697.35)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7697.85)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7700.8)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7700.8)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7702.25)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7702.25)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7701.35)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7698.55)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7698.65)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7698.65)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7697.05)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7697.05)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7699.35)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7699.35)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7696.1)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7696.1)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7696.1)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7698.7)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7698.1)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7698.1)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7702.05)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7702.05)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7702.65)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7702.65)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7704.0)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7704.0)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7704.75)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7704.75)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7709.3)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7709.3)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7710.45)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7710.45)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7712.1)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7712.1)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7712.8)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7712.8)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7707.5)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7707.5)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7707.5)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7708.0)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7709.6)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7709.6)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7709.75)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7709.75)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7711.4)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7711.4)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7712.1)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7712.1)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7712.1)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7712.3)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7710.6)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7710.6)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7709.9)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7709.9)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7707.5)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7707.5)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7707.5)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7707.55)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7707.25)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7708.4)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7708.4)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7708.2)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7708.2)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7709.8)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7709.8)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7711.55)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7711.55)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7715.35)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7715.35)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7716.75)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7716.75)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7716.75)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7715.2)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7716.6)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7716.6)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7717.05)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7716.4)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7716.7)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7716.7)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7719.4)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7719.4)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7719.45)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7719.45)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7719.45)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7720.15)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7717.85)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7717.85)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7719.4)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7719.4)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7720.1)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7720.1)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7721.5)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7724.35)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7724.35)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7725.85)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7725.2)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7725.2)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7724.9)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7724.9)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7726.65)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7726.65)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7725.55)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7725.55)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7725.55)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7727.65)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7725.4)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7725.4)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7725.95)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7725.95)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7726.8)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7730.05)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7731.85)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7731.85)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7732.05)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7732.05)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7735.8)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7735.8)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7734.1)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7734.1)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7735.45)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7735.45)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7735.7)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7735.7)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7735.75)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7735.75)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7735.75)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7736.85)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7738.8)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7737.9)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7739.95)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7739.95)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7738.5)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7738.5)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7734.95)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7734.95)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7734.95)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7736.4)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7736.4)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7736.4)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7736.75)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7738.75)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7738.75)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7737.15)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7737.15)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7735.5)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7735.9)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7735.9)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7738.45)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7736.45)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7736.45)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7738.9)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7739.05)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7739.05)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7742.2)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7742.2)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7744.25)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7744.25)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7744.25)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7746.18)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7746.18)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7747.32)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7747.32)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7747.32)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7749.0)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7750.5)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7751.65)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7755.4)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7755.4)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7750.85)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7744.3)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7744.3)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7742.8)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7743.65)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7743.65)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7744.2)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7744.2)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7744.25)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7744.25)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7744.45)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7744.45)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7735.45)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7735.45)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7735.45)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7741.6)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7742.35)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7742.35)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7740.55)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7737.3)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7739.35)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7742.6)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7742.6)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7742.85)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7742.85)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7742.85)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7743.7)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7743.7)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7742.65)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7745.7)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7745.7)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7746.4)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7746.4)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7745.3)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7744.7)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7746.0)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7746.0)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7745.25)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7747.3)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7746.95)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7747.5)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7747.5)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7747.5)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7747.3)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7747.3)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7746.45)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7744.7)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7744.7)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7747.4)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7747.4)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7747.4)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7747.3)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7747.3)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7747.3)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7747.95)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7747.0)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7746.0)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7746.2)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7746.2)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7745.9)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7744.05)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7744.05)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7744.05)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7739.9)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7739.9)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7740.52)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7738.55)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7738.55)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7740.9)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7743.7)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7743.7)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7744.2)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7745.15)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7745.15)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7746.2)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7744.9)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7745.9)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7745.9)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7745.75)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7745.75)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7744.85)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7744.85)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7745.25)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7745.25)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7745.25)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7744.9)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7744.9)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7744.9)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7744.23)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7752.45)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7752.45)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7752.1)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7753.2)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7752.45)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7752.45)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7749.75)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7751.8)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7751.4)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7751.4)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7752.8)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7752.8)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7753.5)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7753.5)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7752.75)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7752.75)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7753.0)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7753.0)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7753.0)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7753.1)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7754.3)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7754.3)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7753.75)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7753.75)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7753.75)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7754.2)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7755.02)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7754.1)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7753.3)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7753.3)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7752.82)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7752.82)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7752.82)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7749.02)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7747.55)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7747.55)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7746.6)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7746.6)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7748.7)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7748.7)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7749.32)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7749.68)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7749.68)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7749.38)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7750.12)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7751.95)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7752.57)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7752.7)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7753.68)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7753.68)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7752.55)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7752.55)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html
+wrote C:\Users\Admin\myquant\data\options_sim\cards.html (8 cards, spot=7752.55)
+wrote C:\Users\Admin\myquant\data\options_sim\dashboard.html

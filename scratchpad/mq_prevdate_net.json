@@ -1,0 +1,67 @@
+[
+ {
+  "phase": "load",
+  "url": "https://gateway.menthorq.io/user-service/api/web/v1/users/me",
+  "status": 200
+ },
+ {
+  "phase": "load",
+  "url": "https://gateway.menthorq.io/user-service/api/web/v1/watchlists",
+  "status": 200
+ },
+ {
+  "phase": "load",
+  "url": "https://cf.menthorq.io/clickhouse-api/api/web/v1/tickers",
+  "status": 200
+ },
+ {
+  "phase": "load",
+  "url": "https://cf.menthorq.io/qbot-service/api/web/v1/assets",
+  "status": 200
+ },
+ {
+  "phase": "load",
+  "url": "https://cf.menthorq.io/clickhouse-api/api/web/v1/market-status/NYSE",
+  "status": 200
+ },
+ {
+  "phase": "load",
+  "url": "https://gateway.menthorq.io/clickhouse-api/api/web/v1/options/matrix/SPX?frequency=intraday",
+  "status": 200
+ },
+ {
+  "phase": "load",
+  "url": "https://gateway.menthorq.io/chat-service/api/web/v1/chat-context",
+  "status": 200
+ },
+ {
+  "phase": "load",
+  "url": "https://gateway.menthorq.io/chat-service/api/web/v1/screeners",
+  "status": 200
+ },
+ {
+  "phase": "load",
+  "url": "https://gateway.menthorq.io/chat-service/api/web/v1/chats",
+  "status": 200
+ },
+ {
+  "phase": "search",
+  "url": "https://cf.menthorq.io/qbot-service/api/web/v1/levels?tickers=SPX&level_types=gamma_levels&dates=latest",
+  "status": 200
+ },
+ {
+  "phase": "prevdate",
+  "url": "https://cf.menthorq.io/qbot-service/api/web/v1/levels?tickers=SPX&level_types=gamma_levels&dates=2026-07-15",
+  "status": 200
+ },
+ {
+  "phase": "prevdate",
+  "url": "https://cf.menthorq.io/qbot-service/api/web/v1/levels?tickers=SPX&level_types=gamma_levels&dates=2026-07-14",
+  "status": 200
+ },
+ {
+  "phase": "prevdate",
+  "url": "https://cf.menthorq.io/qbot-service/api/web/v1/levels?tickers=SPX&level_types=gamma_levels&dates=2026-07-13",
+  "status": 200
+ }
+]

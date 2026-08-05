@@ -1,0 +1,136 @@
+{
+ "data": [
+  {
+   "ticker": "SPX",
+   "ticker_mq": "SPX",
+   "date": "2026-07-14",
+   "intraday_timestamp": null,
+   "previous_intraday_timestamp": null,
+   "previous_eod_date": "2026-07-13",
+   "levels": [
+    {
+     "level_type": "gamma_levels",
+     "kind": "eod",
+     "level_values": [
+      {
+       "name": "Call Resistance",
+       "value": 7600.0,
+       "gex": 74095640.53356357
+      },
+      {
+       "name": "Put Support",
+       "value": 7300.0,
+       "gex": -41072588.620003305
+      },
+      {
+       "name": "HVL",
+       "value": 7535.0,
+       "gex": -11663620.80849214
+      },
+      {
+       "name": "1D Min",
+       "value": 7483.0,
+       "gex": null
+      },
+      {
+       "name": "1D Max",
+       "value": 7606.26,
+       "gex": null
+      },
+      {
+       "name": "Call Resistance 0DTE",
+       "value": 7600.0,
+       "gex": 74095640.53356357
+      },
+      {
+       "name": "Put Support 0DTE",
+       "value": 7535.0,
+       "gex": -11663620.80849214
+      },
+      {
+       "name": "HVL 0DTE",
+       "value": 7535.0,
+       "gex": -11663620.80849214
+      },
+      {
+       "name": "Gamma Wall 0DTE",
+       "value": 7600.0,
+       "gex": 74095640.53356357
+      },
+      {
+       "name": "GEX 1",
+       "value": 7500.0,
+       "gex": 35452696.8921503
+      },
+      {
+       "name": "GEX 2",
+       "value": 7550.0,
+       "gex": 37473640.99549704
+      },
+      {
+       "name": "GEX 3",
+       "value": 7575.0,
+       "gex": 41633143.57290566
+      },
+      {
+       "name": "GEX 4",
+       "value": 7580.0,
+       "gex": 31220448.665838078
+      },
+      {
+       "name": "GEX 5",
+       "value": 7590.0,
+       "gex": 19422506.600017548
+      },
+      {
+       "name": "GEX 6",
+       "value": 7650.0,
+       "gex": 56703588.6392115
+      },
+      {
+       "name": "GEX 7",
+       "value": 7620.0,
+       "gex": 39891704.93941534
+      },
+      {
+       "name": "GEX 8",
+       "value": 7450.0,
+       "gex": -5880909.86613715
+      },
+      {
+       "name": "GEX 9",
+       "value": 7625.0,
+       "gex": 27708067.209355168
+      },
+      {
+       "name": "GEX 10",
+       "value": 7425.0,
+       "gex": -10776749.808826726
+      }
+     ],
+     "timestamp": "2026-07-14",
+     "price": 7543.589844
+    }
+   ],
+   "price": {
+    "eod": {
+     "value": 7572.399902,
+     "date": "2026-07-15",
+     "timestamp": null
+    },
+    "intraday": {
+     "value": 7572.2,
+     "date": null,
+     "timestamp": "2026-07-15T15:59:00"
+    },
+    "current_timestamp": "2026-07-16T08:58:57"
+   }
+  }
+ ],
+ "tradingview_format": {
+  "2026-07-15": {
+   "gamma_levels": "$SPX: Call Resistance, 7600, Put Support, 7300, HVL, 7535, 1D Min, 7483, 1D Max, 7606.26, Call Resistance 0DTE, 7600, Put Support 0DTE, 7535, HVL 0DTE, 7535, Gamma Wall 0DTE, 7600, GEX 1, 7500, GEX 2, 7550, GEX 3, 7575, GEX 4, 7580, GEX 5, 7590, GEX 6, 7650, GEX 7, 7620, GEX 8, 7450, GEX 9, 7625, GEX 10, 7425"
+  }
+ },
+ "not_found": []
+}

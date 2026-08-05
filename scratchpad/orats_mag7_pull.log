@@ -1,0 +1,235 @@
+
+AAPL -> ORATS AAPL [equity]  clean (validated)
+  1204 dates to pull (0 on disk, 1204 in plan)  ~73 MB, 1204 req (6.0% quota)
+  ...100/1204 (100 req, ~0.5% quota) — checkpoint
+  wrote data\orats\AAPL\AAPL_2021.parquet (59,527 rows)
+  wrote data\orats\AAPL\AAPL_2022.parquet (31,172 rows)
+  ...200/1204 (200 req, ~1.0% quota) — checkpoint
+  wrote data\orats\AAPL\AAPL_2022.parquet (119,396 rows)
+  ...300/1204 (300 req, ~1.5% quota) — checkpoint
+  wrote data\orats\AAPL\AAPL_2022.parquet (214,377 rows)
+  ...400/1204 (400 req, ~2.0% quota) — checkpoint
+  wrote data\orats\AAPL\AAPL_2022.parquet (231,745 rows)
+  wrote data\orats\AAPL\AAPL_2023.parquet (95,252 rows)
+  ...500/1204 (500 req, ~2.5% quota) — checkpoint
+  wrote data\orats\AAPL\AAPL_2023.parquet (191,354 rows)
+  ...600/1204 (600 req, ~3.0% quota) — checkpoint
+  wrote data\orats\AAPL\AAPL_2023.parquet (256,464 rows)
+  wrote data\orats\AAPL\AAPL_2024.parquet (35,922 rows)
+  ...700/1204 (700 req, ~3.5% quota) — checkpoint
+  wrote data\orats\AAPL\AAPL_2024.parquet (146,616 rows)
+  ...800/1204 (800 req, ~4.0% quota) — checkpoint
+  wrote data\orats\AAPL\AAPL_2024.parquet (260,741 rows)
+  ...900/1204 (900 req, ~4.5% quota) — checkpoint
+  wrote data\orats\AAPL\AAPL_2024.parquet (282,025 rows)
+  wrote data\orats\AAPL\AAPL_2025.parquet (95,563 rows)
+  ...1000/1204 (1000 req, ~5.0% quota) — checkpoint
+  wrote data\orats\AAPL\AAPL_2025.parquet (215,838 rows)
+  ...1100/1204 (1100 req, ~5.5% quota) — checkpoint
+  wrote data\orats\AAPL\AAPL_2025.parquet (307,048 rows)
+  wrote data\orats\AAPL\AAPL_2026.parquet (47,922 rows)
+  ...1200/1204 (1200 req, ~6.0% quota) — checkpoint
+  wrote data\orats\AAPL\AAPL_2026.parquet (219,218 rows)
+  wrote data\orats\AAPL\AAPL_2026.parquet (226,298 rows)
+  coverage: 1204 dates on disk
+
+AMZN -> ORATS AMZN [equity]  clean
+  1203 dates to pull (0 on disk, 1203 in plan)  ~89 MB, 1203 req (6.0% quota)
+  ...100/1203 (1304 req, ~6.5% quota) — checkpoint
+  wrote data\orats\AMZN\AMZN_2021.parquet (199,947 rows)
+  wrote data\orats\AMZN\AMZN_2022.parquet (104,300 rows)
+  ...200/1203 (1404 req, ~7.0% quota) — checkpoint
+  wrote data\orats\AMZN\AMZN_2022.parquet (406,506 rows)
+  ...300/1203 (1504 req, ~7.5% quota) — checkpoint
+  wrote data\orats\AMZN\AMZN_2022.parquet (595,875 rows)
+  ...400/1203 (1604 req, ~8.0% quota) — checkpoint
+  wrote data\orats\AMZN\AMZN_2022.parquet (619,944 rows)
+  wrote data\orats\AMZN\AMZN_2023.parquet (106,485 rows)
+  ...500/1203 (1704 req, ~8.5% quota) — checkpoint
+  wrote data\orats\AMZN\AMZN_2023.parquet (213,599 rows)
+  ...600/1203 (1804 req, ~9.0% quota) — checkpoint
+  wrote data\orats\AMZN\AMZN_2023.parquet (276,305 rows)
+  wrote data\orats\AMZN\AMZN_2024.parquet (31,139 rows)
+  ...700/1203 (1904 req, ~9.5% quota) — checkpoint
+  wrote data\orats\AMZN\AMZN_2024.parquet (123,248 rows)
+  ...800/1203 (2004 req, ~10.0% quota) — checkpoint
+  wrote data\orats\AMZN\AMZN_2024.parquet (208,523 rows)
+  ...900/1203 (2104 req, ~10.5% quota) — checkpoint
+  wrote data\orats\AMZN\AMZN_2024.parquet (227,461 rows)
+  wrote data\orats\AMZN\AMZN_2025.parquet (90,934 rows)
+  ...1000/1203 (2204 req, ~11.0% quota) — checkpoint
+  wrote data\orats\AMZN\AMZN_2025.parquet (196,916 rows)
+  ...1100/1203 (2304 req, ~11.5% quota) — checkpoint
+  wrote data\orats\AMZN\AMZN_2025.parquet (270,036 rows)
+  wrote data\orats\AMZN\AMZN_2026.parquet (38,378 rows)
+  ...1200/1203 (2404 req, ~12.0% quota) — checkpoint
+  wrote data\orats\AMZN\AMZN_2026.parquet (167,622 rows)
+  wrote data\orats\AMZN\AMZN_2026.parquet (171,126 rows)
+  coverage: 1203 dates on disk
+
+GOOGL -> ORATS GOOGL [equity]  clean
+  1204 dates to pull (0 on disk, 1204 in plan)  ~81 MB, 1204 req (6.0% quota)
+  ...100/1204 (2507 req, ~12.5% quota) — checkpoint
+  wrote data\orats\GOOGL\GOOGL_2021.parquet (156,630 rows)
+  wrote data\orats\GOOGL\GOOGL_2022.parquet (88,223 rows)
+  ...200/1204 (2607 req, ~13.0% quota) — checkpoint
+  wrote data\orats\GOOGL\GOOGL_2022.parquet (344,288 rows)
+  ...300/1204 (2707 req, ~13.5% quota) — checkpoint
+  wrote data\orats\GOOGL\GOOGL_2022.parquet (507,362 rows)
+  ...400/1204 (2807 req, ~14.0% quota) — checkpoint
+  wrote data\orats\GOOGL\GOOGL_2022.parquet (527,597 rows)
+  wrote data\orats\GOOGL\GOOGL_2023.parquet (98,943 rows)
+  ...500/1204 (2907 req, ~14.5% quota) — checkpoint
+  wrote data\orats\GOOGL\GOOGL_2023.parquet (215,826 rows)
+  ...600/1204 (3007 req, ~15.0% quota) — checkpoint
+  wrote data\orats\GOOGL\GOOGL_2023.parquet (290,588 rows)
+  wrote data\orats\GOOGL\GOOGL_2024.parquet (35,799 rows)
+  ...700/1204 (3107 req, ~15.5% quota) — checkpoint
+  wrote data\orats\GOOGL\GOOGL_2024.parquet (145,870 rows)
+  ...800/1204 (3207 req, ~16.0% quota) — checkpoint
+  wrote data\orats\GOOGL\GOOGL_2024.parquet (245,720 rows)
+  ...900/1204 (3307 req, ~16.5% quota) — checkpoint
+  wrote data\orats\GOOGL\GOOGL_2024.parquet (265,019 rows)
+  wrote data\orats\GOOGL\GOOGL_2025.parquet (85,242 rows)
+  ...1000/1204 (3407 req, ~17.0% quota) — checkpoint
+  wrote data\orats\GOOGL\GOOGL_2025.parquet (194,876 rows)
+  ...1100/1204 (3507 req, ~17.5% quota) — checkpoint
+  wrote data\orats\GOOGL\GOOGL_2025.parquet (304,566 rows)
+  wrote data\orats\GOOGL\GOOGL_2026.parquet (66,653 rows)
+  ...1200/1204 (3607 req, ~18.0% quota) — checkpoint
+  wrote data\orats\GOOGL\GOOGL_2026.parquet (305,451 rows)
+  wrote data\orats\GOOGL\GOOGL_2026.parquet (315,648 rows)
+  coverage: 1204 dates on disk
+
+META -> ORATS META [equity]  clean
+  1027 dates to pull (0 on disk, 1027 in plan)  ~83 MB, 1027 req (5.1% quota)
+  ...100/1027 (3711 req, ~18.6% quota) — checkpoint
+  wrote data\orats\META\META_2022.parquet (122,788 rows)
+  ...200/1027 (3811 req, ~19.1% quota) — checkpoint
+  wrote data\orats\META\META_2022.parquet (174,968 rows)
+  wrote data\orats\META\META_2023.parquet (78,309 rows)
+  ...300/1027 (3911 req, ~19.6% quota) — checkpoint
+  wrote data\orats\META\META_2023.parquet (245,090 rows)
+  ...400/1027 (4011 req, ~20.1% quota) — checkpoint
+  wrote data\orats\META\META_2023.parquet (420,493 rows)
+  wrote data\orats\META\META_2024.parquet (17,910 rows)
+  ...500/1027 (4111 req, ~20.6% quota) — checkpoint
+  wrote data\orats\META\META_2024.parquet (262,348 rows)
+  ...600/1027 (4211 req, ~21.1% quota) — checkpoint
+  wrote data\orats\META\META_2024.parquet (517,905 rows)
+  ...700/1027 (4311 req, ~21.6% quota) — checkpoint
+  wrote data\orats\META\META_2024.parquet (627,531 rows)
+  wrote data\orats\META\META_2025.parquet (166,486 rows)
+  ...800/1027 (4411 req, ~22.1% quota) — checkpoint
+  wrote data\orats\META\META_2025.parquet (457,638 rows)
+  ...900/1027 (4511 req, ~22.6% quota) — checkpoint
+  wrote data\orats\META\META_2025.parquet (725,539 rows)
+  wrote data\orats\META\META_2026.parquet (23,967 rows)
+  ...1000/1027 (4611 req, ~23.1% quota) — checkpoint
+  wrote data\orats\META\META_2026.parquet (399,369 rows)
+  wrote data\orats\META\META_2026.parquet (496,563 rows)
+  coverage: 1027 dates on disk
+
+MSFT -> ORATS MSFT [equity]  clean
+  1203 dates to pull (0 on disk, 1203 in plan)  ~89 MB, 1203 req (6.0% quota)
+  ...100/1203 (4738 req, ~23.7% quota) — checkpoint
+  wrote data\orats\MSFT\MSFT_2021.parquet (75,357 rows)
+  wrote data\orats\MSFT\MSFT_2022.parquet (38,340 rows)
+  ...200/1203 (4838 req, ~24.2% quota) — checkpoint
+  wrote data\orats\MSFT\MSFT_2022.parquet (150,028 rows)
+  ...300/1203 (4938 req, ~24.7% quota) — checkpoint
+  wrote data\orats\MSFT\MSFT_2022.parquet (252,787 rows)
+  ...400/1203 (5038 req, ~25.2% quota) — checkpoint
+  wrote data\orats\MSFT\MSFT_2022.parquet (268,571 rows)
+  wrote data\orats\MSFT\MSFT_2023.parquet (90,408 rows)
+  ...500/1203 (5138 req, ~25.7% quota) — checkpoint
+  wrote data\orats\MSFT\MSFT_2023.parquet (234,087 rows)
+  ...600/1203 (5238 req, ~26.2% quota) — checkpoint
+  wrote data\orats\MSFT\MSFT_2023.parquet (332,153 rows)
+  wrote data\orats\MSFT\MSFT_2024.parquet (53,477 rows)
+  ...700/1203 (5338 req, ~26.7% quota) — checkpoint
+  wrote data\orats\MSFT\MSFT_2024.parquet (208,145 rows)
+  ...800/1203 (5438 req, ~27.2% quota) — checkpoint
+  wrote data\orats\MSFT\MSFT_2024.parquet (380,176 rows)
+  ...900/1203 (5538 req, ~27.7% quota) — checkpoint
+  wrote data\orats\MSFT\MSFT_2024.parquet (409,580 rows)
+  wrote data\orats\MSFT\MSFT_2025.parquet (128,993 rows)
+  ...1000/1203 (5638 req, ~28.2% quota) — checkpoint
+  wrote data\orats\MSFT\MSFT_2025.parquet (292,535 rows)
+  ...1100/1203 (5738 req, ~28.7% quota) — checkpoint
+  wrote data\orats\MSFT\MSFT_2025.parquet (407,775 rows)
+  wrote data\orats\MSFT\MSFT_2026.parquet (59,444 rows)
+  ...1200/1203 (5838 req, ~29.2% quota) — checkpoint
+  wrote data\orats\MSFT\MSFT_2026.parquet (250,755 rows)
+  wrote data\orats\MSFT\MSFT_2026.parquet (256,182 rows)
+  coverage: 1203 dates on disk
+
+NVDA -> ORATS NVDA [equity]  clean
+  1204 dates to pull (0 on disk, 1204 in plan)  ~121 MB, 1204 req (6.0% quota)
+  ...100/1204 (5941 req, ~29.7% quota) — checkpoint
+  wrote data\orats\NVDA\NVDA_2021.parquet (100,815 rows)
+  wrote data\orats\NVDA\NVDA_2022.parquet (50,044 rows)
+  ...200/1204 (6041 req, ~30.2% quota) — checkpoint
+  wrote data\orats\NVDA\NVDA_2022.parquet (193,403 rows)
+  ...300/1204 (6141 req, ~30.7% quota) — checkpoint
+  wrote data\orats\NVDA\NVDA_2022.parquet (325,644 rows)
+  ...400/1204 (6241 req, ~31.2% quota) — checkpoint
+  wrote data\orats\NVDA\NVDA_2022.parquet (345,006 rows)
+  wrote data\orats\NVDA\NVDA_2023.parquet (109,501 rows)
+  ...500/1204 (6341 req, ~31.7% quota) — checkpoint
+  wrote data\orats\NVDA\NVDA_2023.parquet (344,185 rows)
+  ...600/1204 (6441 req, ~32.2% quota) — checkpoint
+  wrote data\orats\NVDA\NVDA_2023.parquet (520,482 rows)
+  wrote data\orats\NVDA\NVDA_2024.parquet (104,407 rows)
+  ...700/1204 (6541 req, ~32.7% quota) — checkpoint
+  wrote data\orats\NVDA\NVDA_2024.parquet (542,983 rows)
+  ...800/1204 (6641 req, ~33.2% quota) — checkpoint
+  wrote data\orats\NVDA\NVDA_2024.parquet (888,964 rows)
+  ...900/1204 (6741 req, ~33.7% quota) — checkpoint
+  wrote data\orats\NVDA\NVDA_2024.parquet (944,484 rows)
+  wrote data\orats\NVDA\NVDA_2025.parquet (203,765 rows)
+  ...1000/1204 (6841 req, ~34.2% quota) — checkpoint
+  wrote data\orats\NVDA\NVDA_2025.parquet (420,562 rows)
+  ...1100/1204 (6941 req, ~34.7% quota) — checkpoint
+  wrote data\orats\NVDA\NVDA_2025.parquet (560,925 rows)
+  wrote data\orats\NVDA\NVDA_2026.parquet (55,397 rows)
+  ...1200/1204 (7041 req, ~35.2% quota) — checkpoint
+  wrote data\orats\NVDA\NVDA_2026.parquet (258,898 rows)
+  wrote data\orats\NVDA\NVDA_2026.parquet (266,838 rows)
+  coverage: 1204 dates on disk
+
+TSLA -> ORATS TSLA [equity]  clean
+  1203 dates to pull (0 on disk, 1203 in plan)  ~129 MB, 1203 req (6.0% quota)
+  ...100/1203 (7145 req, ~35.7% quota) — checkpoint
+  wrote data\orats\TSLA\TSLA_2021.parquet (191,790 rows)
+  wrote data\orats\TSLA\TSLA_2022.parquet (106,854 rows)
+  ...200/1203 (7245 req, ~36.2% quota) — checkpoint
+  wrote data\orats\TSLA\TSLA_2022.parquet (371,594 rows)
+  ...300/1203 (7345 req, ~36.7% quota) — checkpoint
+  wrote data\orats\TSLA\TSLA_2022.parquet (590,495 rows)
+  ...400/1203 (7445 req, ~37.2% quota) — checkpoint
+  wrote data\orats\TSLA\TSLA_2022.parquet (621,709 rows)
+  wrote data\orats\TSLA\TSLA_2023.parquet (169,082 rows)
+  ...500/1203 (7545 req, ~37.7% quota) — checkpoint
+  wrote data\orats\TSLA\TSLA_2023.parquet (367,812 rows)
+  ...600/1203 (7645 req, ~38.2% quota) — checkpoint
+  wrote data\orats\TSLA\TSLA_2023.parquet (497,889 rows)
+  wrote data\orats\TSLA\TSLA_2024.parquet (66,342 rows)
+  ...700/1203 (7745 req, ~38.7% quota) — checkpoint
+  wrote data\orats\TSLA\TSLA_2024.parquet (238,106 rows)
+  ...800/1203 (7845 req, ~39.2% quota) — checkpoint
+  wrote data\orats\TSLA\TSLA_2024.parquet (411,592 rows)
+  ...900/1203 (7945 req, ~39.7% quota) — checkpoint
+  wrote data\orats\TSLA\TSLA_2024.parquet (456,172 rows)
+  wrote data\orats\TSLA\TSLA_2025.parquet (202,737 rows)
+  ...1000/1203 (8045 req, ~40.2% quota) — checkpoint
+  wrote data\orats\TSLA\TSLA_2025.parquet (434,522 rows)
+  ...1100/1203 (8145 req, ~40.7% quota) — checkpoint
+  wrote data\orats\TSLA\TSLA_2025.parquet (622,735 rows)
+  wrote data\orats\TSLA\TSLA_2026.parquet (94,852 rows)
+  ...1200/1203 (8245 req, ~41.2% quota) — checkpoint
+  wrote data\orats\TSLA\TSLA_2026.parquet (396,275 rows)
+  wrote data\orats\TSLA\TSLA_2026.parquet (404,900 rows)
+  coverage: 1203 dates on disk
+
+DONE - 8248 requests this run (~41.2% of 20,000/mo quota)

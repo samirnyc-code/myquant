@@ -1,0 +1,225 @@
+
+SPX -> ORATS SPX [index]  clean - SPX index options ARE the S&P basket
+  3736 dates to pull (1183 on disk, 3736 in plan)  ~1827 MB, 3736 req (18.7% quota)
+  2007-07-04: HTTP 404 {"message":"Not Found."}
+  2007-09-03: HTTP 404 {"message":"Not Found."}
+  ...100/3736 (100 req, ~0.5% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2007.parquet (44,660 rows)
+  2007-11-22: HTTP 404 {"message":"Not Found."}
+  2007-12-25: HTTP 404 {"message":"Not Found."}
+  2008-01-01: HTTP 404 {"message":"Not Found."}
+  2008-01-21: HTTP 404 {"message":"Not Found."}
+  2008-02-18: HTTP 404 {"message":"Not Found."}
+  ...200/3736 (200 req, ~1.0% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2007.parquet (70,595 rows)
+  wrote data\orats\SPX\SPX_2008.parquet (23,770 rows)
+  2008-03-21: HTTP 404 {"message":"Not Found."}
+  2008-05-26: HTTP 404 {"message":"Not Found."}
+  2008-07-04: HTTP 404 {"message":"Not Found."}
+  ...300/3736 (300 req, ~1.5% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2008.parquet (78,393 rows)
+  2008-09-01: HTTP 404 {"message":"Not Found."}
+  2008-11-27: HTTP 404 {"message":"Not Found."}
+  ...400/3736 (400 req, ~2.0% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2008.parquet (148,561 rows)
+  2008-12-25: HTTP 404 {"message":"Not Found."}
+  2009-01-01: HTTP 404 {"message":"Not Found."}
+  2009-01-19: HTTP 404 {"message":"Not Found."}
+  2009-02-16: HTTP 404 {"message":"Not Found."}
+  2009-04-10: HTTP 404 {"message":"Not Found."}
+  ...500/3736 (500 req, ~2.5% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2008.parquet (159,065 rows)
+  wrote data\orats\SPX\SPX_2009.parquet (66,176 rows)
+  2009-05-25: HTTP 404 {"message":"Not Found."}
+  2009-07-03: HTTP 404 {"message":"Not Found."}
+  2009-09-07: HTTP 404 {"message":"Not Found."}
+  ...600/3736 (600 req, ~3.0% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2009.parquet (149,308 rows)
+  2009-11-26: HTTP 404 {"message":"Not Found."}
+  2009-12-25: HTTP 404 {"message":"Not Found."}
+  2010-01-01: HTTP 404 {"message":"Not Found."}
+  2010-01-18: HTTP 404 {"message":"Not Found."}
+  ...700/3736 (700 req, ~3.5% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2009.parquet (214,711 rows)
+  wrote data\orats\SPX\SPX_2010.parquet (21,335 rows)
+  2010-02-15: HTTP 404 {"message":"Not Found."}
+  2010-04-02: HTTP 404 {"message":"Not Found."}
+  2010-05-31: HTTP 404 {"message":"Not Found."}
+  ...800/3736 (800 req, ~4.0% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2010.parquet (110,845 rows)
+  2010-07-05: HTTP 404 {"message":"Not Found."}
+  2010-09-06: HTTP 404 {"message":"Not Found."}
+  ...900/3736 (900 req, ~4.5% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2010.parquet (203,352 rows)
+  2010-11-25: HTTP 404 {"message":"Not Found."}
+  2010-12-24: HTTP 404 {"message":"Not Found."}
+  2011-01-17: HTTP 404 {"message":"Not Found."}
+  2011-02-21: HTTP 404 {"message":"Not Found."}
+  ...1000/3736 (1000 req, ~5.0% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2010.parquet (234,240 rows)
+  wrote data\orats\SPX\SPX_2011.parquet (62,016 rows)
+  2011-04-22: HTTP 404 {"message":"Not Found."}
+  2011-05-30: HTTP 404 {"message":"Not Found."}
+  2011-07-04: HTTP 404 {"message":"Not Found."}
+  ...1100/3736 (1100 req, ~5.5% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2011.parquet (157,885 rows)
+  2011-09-05: HTTP 404 {"message":"Not Found."}
+  2011-11-24: HTTP 404 {"message":"Not Found."}
+  2011-12-26: HTTP 404 {"message":"Not Found."}
+  2012-01-02: HTTP 404 {"message":"Not Found."}
+  ...1200/3736 (1200 req, ~6.0% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2011.parquet (255,236 rows)
+  wrote data\orats\SPX\SPX_2012.parquet (3,180 rows)
+  2012-01-16: HTTP 404 {"message":"Not Found."}
+  2012-02-20: HTTP 404 {"message":"Not Found."}
+  2012-04-06: HTTP 404 {"message":"Not Found."}
+  ...1300/3736 (1300 req, ~6.5% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2012.parquet (114,270 rows)
+  2012-05-28: HTTP 404 {"message":"Not Found."}
+  2012-07-04: HTTP 404 {"message":"Not Found."}
+  2012-09-03: HTTP 404 {"message":"Not Found."}
+  ...1400/3736 (1400 req, ~7.0% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2012.parquet (245,431 rows)
+  2012-10-29: HTTP 404 {"message":"Not Found."}
+  2012-10-30: HTTP 404 {"message":"Not Found."}
+  2012-11-22: HTTP 404 {"message":"Not Found."}
+  2012-12-25: HTTP 404 {"message":"Not Found."}
+  2013-01-01: HTTP 404 {"message":"Not Found."}
+  2013-01-21: HTTP 404 {"message":"Not Found."}
+  2013-02-18: HTTP 404 {"message":"Not Found."}
+  ...1500/3736 (1500 req, ~7.5% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2012.parquet (324,865 rows)
+  wrote data\orats\SPX\SPX_2013.parquet (57,109 rows)
+  2013-03-29: HTTP 404 {"message":"Not Found."}
+  2013-05-27: HTTP 404 {"message":"Not Found."}
+  2013-07-04: HTTP 404 {"message":"Not Found."}
+  ...1600/3736 (1600 req, ~8.0% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2013.parquet (207,490 rows)
+  2013-09-02: HTTP 404 {"message":"Not Found."}
+  2013-11-28: HTTP 404 {"message":"Not Found."}
+  ...1700/3736 (1700 req, ~8.5% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2013.parquet (379,768 rows)
+  2013-12-25: HTTP 404 {"message":"Not Found."}
+  2014-01-01: HTTP 404 {"message":"Not Found."}
+  2014-01-20: HTTP 404 {"message":"Not Found."}
+  2014-02-17: HTTP 404 {"message":"Not Found."}
+  2014-04-18: HTTP 404 {"message":"Not Found."}
+  ...1800/3736 (1800 req, ~9.0% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2013.parquet (411,478 rows)
+  wrote data\orats\SPX\SPX_2014.parquet (167,469 rows)
+  2014-05-26: HTTP 404 {"message":"Not Found."}
+  2014-07-04: HTTP 404 {"message":"Not Found."}
+  2014-09-01: HTTP 404 {"message":"Not Found."}
+  ...1900/3736 (1900 req, ~9.5% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2014.parquet (395,940 rows)
+  2014-11-27: HTTP 404 {"message":"Not Found."}
+  2014-12-25: HTTP 404 {"message":"Not Found."}
+  2015-01-01: HTTP 404 {"message":"Not Found."}
+  2015-01-19: HTTP 404 {"message":"Not Found."}
+  ...2000/3736 (2000 req, ~10.0% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2014.parquet (619,830 rows)
+  wrote data\orats\SPX\SPX_2015.parquet (60,550 rows)
+  2015-02-16: HTTP 404 {"message":"Not Found."}
+  2015-04-03: HTTP 404 {"message":"Not Found."}
+  2015-05-25: HTTP 404 {"message":"Not Found."}
+  ...2100/3736 (2100 req, ~10.5% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2015.parquet (426,548 rows)
+  2015-07-03: HTTP 404 {"message":"Not Found."}
+  2015-09-07: HTTP 404 {"message":"Not Found."}
+  ...2200/3736 (2200 req, ~11.0% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2015.parquet (842,006 rows)
+  2015-11-26: HTTP 404 {"message":"Not Found."}
+  2015-12-25: HTTP 404 {"message":"Not Found."}
+  2016-01-01: HTTP 404 {"message":"Not Found."}
+  2016-01-18: HTTP 404 {"message":"Not Found."}
+  2016-02-15: HTTP 404 {"message":"Not Found."}
+  ...2300/3736 (2300 req, ~11.5% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2015.parquet (990,175 rows)
+  wrote data\orats\SPX\SPX_2016.parquet (215,094 rows)
+  2016-03-25: HTTP 404 {"message":"Not Found."}
+  2016-05-30: HTTP 404 {"message":"Not Found."}
+  2016-07-04: HTTP 404 {"message":"Not Found."}
+  ...2400/3736 (2400 req, ~12.0% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2016.parquet (563,294 rows)
+  2016-09-05: HTTP 404 {"message":"Not Found."}
+  2016-11-24: HTTP 404 {"message":"Not Found."}
+  2016-12-26: HTTP 404 {"message":"Not Found."}
+  ...2500/3736 (2500 req, ~12.5% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2016.parquet (944,569 rows)
+  2017-01-02: HTTP 404 {"message":"Not Found."}
+  2017-01-16: HTTP 404 {"message":"Not Found."}
+  2017-02-20: HTTP 404 {"message":"Not Found."}
+  2017-04-14: HTTP 404 {"message":"Not Found."}
+  ...2600/3736 (2600 req, ~13.0% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2016.parquet (949,059 rows)
+  wrote data\orats\SPX\SPX_2017.parquet (391,242 rows)
+  2017-05-29: HTTP 404 {"message":"Not Found."}
+  2017-07-04: HTTP 404 {"message":"Not Found."}
+  2017-09-04: HTTP 404 {"message":"Not Found."}
+  ...2700/3736 (2700 req, ~13.5% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2017.parquet (775,925 rows)
+  2017-11-23: HTTP 404 {"message":"Not Found."}
+  2017-12-25: HTTP 404 {"message":"Not Found."}
+  2018-01-01: HTTP 404 {"message":"Not Found."}
+  2018-01-15: HTTP 404 {"message":"Not Found."}
+  2018-02-19: HTTP 404 {"message":"Not Found."}
+  ...2800/3736 (2800 req, ~14.0% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2017.parquet (1,027,813 rows)
+  wrote data\orats\SPX\SPX_2018.parquet (173,770 rows)
+  2018-03-30: HTTP 404 {"message":"Not Found."}
+  2018-05-28: HTTP 404 {"message":"Not Found."}
+  2018-07-04: HTTP 404 {"message":"Not Found."}
+  ...2900/3736 (2900 req, ~14.5% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2018.parquet (678,242 rows)
+  2018-09-03: HTTP 404 {"message":"Not Found."}
+  2018-11-22: HTTP 404 {"message":"Not Found."}
+  ...3000/3736 (3000 req, ~15.0% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2018.parquet (1,220,886 rows)
+  2018-12-05: HTTP 404 {"message":"Not Found."}
+  2018-12-25: HTTP 404 {"message":"Not Found."}
+  2019-01-01: HTTP 404 {"message":"Not Found."}
+  2019-01-21: HTTP 404 {"message":"Not Found."}
+  2019-02-18: HTTP 404 {"message":"Not Found."}
+  ...3100/3736 (3100 req, ~15.5% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2018.parquet (1,330,130 rows)
+  wrote data\orats\SPX\SPX_2019.parquet (430,932 rows)
+  2019-04-19: HTTP 404 {"message":"Not Found."}
+  2019-05-27: HTTP 404 {"message":"Not Found."}
+  2019-07-04: HTTP 404 {"message":"Not Found."}
+  2019-09-02: HTTP 404 {"message":"Not Found."}
+  ...3200/3736 (3200 req, ~16.0% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2019.parquet (981,733 rows)
+  2019-11-28: HTTP 404 {"message":"Not Found."}
+  2019-12-25: HTTP 404 {"message":"Not Found."}
+  2020-01-01: HTTP 404 {"message":"Not Found."}
+  2020-01-20: HTTP 404 {"message":"Not Found."}
+  ...3300/3736 (3300 req, ~16.5% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2019.parquet (1,472,872 rows)
+  wrote data\orats\SPX\SPX_2020.parquet (100,918 rows)
+  2020-02-17: HTTP 404 {"message":"Not Found."}
+  2020-04-10: HTTP 404 {"message":"Not Found."}
+  2020-05-25: HTTP 404 {"message":"Not Found."}
+  ...3400/3736 (3400 req, ~17.0% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2020.parquet (785,040 rows)
+  2020-07-03: HTTP 404 {"message":"Not Found."}
+  2020-09-07: HTTP 404 {"message":"Not Found."}
+  ...3500/3736 (3500 req, ~17.5% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2020.parquet (1,456,863 rows)
+  2020-11-26: HTTP 404 {"message":"Not Found."}
+  2020-12-25: HTTP 404 {"message":"Not Found."}
+  2021-01-01: HTTP 404 {"message":"Not Found."}
+  2021-01-18: HTTP 404 {"message":"Not Found."}
+  2021-02-15: HTTP 404 {"message":"Not Found."}
+  ...3600/3736 (3600 req, ~18.0% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2020.parquet (1,757,701 rows)
+  wrote data\orats\SPX\SPX_2021.parquet (1,136,284 rows)
+  2021-04-02: HTTP 404 {"message":"Not Found."}
+  2021-05-31: HTTP 404 {"message":"Not Found."}
+  2021-07-05: HTTP 404 {"message":"Not Found."}
+  ...3700/3736 (3700 req, ~18.5% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2021.parquet (2,014,169 rows)
+  2021-09-06: HTTP 404 {"message":"Not Found."}
+  wrote data\orats\SPX\SPX_2021.parquet (2,389,488 rows)
+  coverage: 4789 dates on disk
+
+DONE - 3736 requests this run (~18.7% of 20,000/mo quota)

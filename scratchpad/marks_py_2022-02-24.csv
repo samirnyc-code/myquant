@@ -1,0 +1,43 @@
+date,bar,event,side,minor_tag,disp,is_major,major_lab,promoted_at,confirm_bar,confirm_i,is_ob,ob_kind,ob_dir,ref_bar,price
+2022-02-24,1,seed,H,,,,,,,,,,,,4950.5
+2022-02-24,1,seed,L,,,,,,,,,,,,4925.0
+2022-02-24,2,seed,H,,,,,,,,,,,,4960.25
+2022-02-24,4,seed,H,,,,,,,,,,,,4969.0
+2022-02-24,5,pivot,H,hh,H,1,HH,9,6,,0,up,,,4978.25
+2022-02-24,8,pivot,L,hl,hl,1,HL,9,9,,0,down,,,4949.5
+2022-02-24,9,start,bull,,,,,,,,,,,5,4978.25
+2022-02-24,11,pivot,H,hh,hh,1,HH,12,12,,0,up,,,4999.75
+2022-02-24,15,pivot,L,hl,hl,1,HL,20,16,,0,down,,,4962.25
+2022-02-24,18,pivot,H,lh,lh,0,,,19,,0,up,,,4998.0
+2022-02-24,19,pivot,L,hl,hl,0,,,20,,1,OB (low),D,,4980.75
+2022-02-24,23,pivot,H,hh,hh,1,HH,23,23,i,1,OB U-first,U,,5013.25
+2022-02-24,28,pivot,L,ll,ll,0,,,29,,0,down,,,4979.25
+2022-02-24,30,pivot,H,lh,lh,0,,,32,,0,up,,,5006.25
+2022-02-24,35,pivot,L,ll,ll,1,HL,52,37,,0,down,,,4971.5
+2022-02-24,37,pivot,H,lh,lh,0,,,37,i,1,OB U-first,U,,4989.0
+2022-02-24,37,pivot,L,hl,hl,0,,,38,,1,OB U-first,U,,4972.0
+2022-02-24,39,pivot,H,hh,hh,0,,,40,,0,up,,,4998.0
+2022-02-24,41,pivot,L,hl,hl,0,,,42,,0,down,,,4984.5
+2022-02-24,42,pivot,H,lh,lh,0,,,42,i,1,OB U-first,U,,4996.0
+2022-02-24,43,pivot,L,ll,ll,0,,,44,,0,down,,,4975.5
+2022-02-24,46,pivot,H,hh,hh,0,,,47,,0,up,,,5000.75
+2022-02-24,48,pivot,L,hl,hl,0,,,49,,0,down,,,4982.75
+2022-02-24,51,pivot,H,hh,hh,0,,,52,,0,up,,,5008.5
+2022-02-24,52,pivot,L,hl,hl,0,,,52,i,1,OB D-first,D,,4993.25
+2022-02-24,53,pivot,H,hh,hh,1,HH,54,54,,0,up,,,5033.0
+2022-02-24,55,pivot,L,hl,hl,0,,,56,,0,down,,,5000.0
+2022-02-24,56,pivot,H,lh,lh,0,,,56,i,1,OB U-first,U,,5015.5
+2022-02-24,56,pivot,L,ll,ll,1,HL,61,57,,1,OB U-first,U,,4996.75
+2022-02-24,63,pivot,H,hh,hh,1,HH,63,63,i,1,OB U-first,U,,5053.25
+2022-02-24,63,pivot,L,hl,hl,1,HL,64,64,,1,OB U-first,U,,5040.5
+2022-02-24,68,pivot,H,hh,hh,1,HH,69,69,,0,up,,,5066.0
+2022-02-24,69,pivot,H,hh,hh,1,HH,71,71,,1,OB D-first,D,,5066.25
+2022-02-24,69,pivot,L,hl,hl,1,HL,69,69,i,1,OB D-first,D,,5059.0
+2022-02-24,71,pivot,L,ll,ll,0,,,72,,1,OB (low),D,,5057.75
+2022-02-24,71,term,bull,,,,,,,,,,,69,5059.0
+2022-02-24,72,pivot,H,hh,hh,0,,,72,i,1,OB U-first,U,,5068.5
+2022-02-24,72,pivot,L,ll,ll,1,LL,77,73,,1,OB U-first,U,,5054.75
+2022-02-24,75,pivot,H,hh,hh,1,HH,77,75,i,1,OB U-first,U,,5090.0
+2022-02-24,76,pivot,L,hl,hl,1,HL,77,77,,0,down,,,5078.0
+2022-02-24,77,pivot,H,hh,hh,1,HH,79,79,,0,up,,,5106.25
+2022-02-24,77,start,bull,,,,,,,,,,,75,5090.0

@@ -1,0 +1,39 @@
+Error 354, reqId 5: Requested market data is not subscribed. Check API status by selecting the Account menu then under Management choose Market Data Subscription Manager and/or availability of delayed data.SPX S&P 500 Stock Index/TOP/ALL, contract: Index(conId=416904, symbol='SPX', exchange='CBOE', currency='USD', localSymbol='SPX')
+Error 10090, reqId 17: Part of requested market data is not subscribed. Subscription-independent ticks are still active.Delayed market data is available.SPX S&P 500 Stock Index/TOP/ALL, contract: Option(conId=875927877, symbol='SPX', lastTradeDateOrContractMonth='20260717', strike=7540.0, right='C', multiplier='100', exchange='SMART', currency='USD', localSymbol='SPXW  260717C07540000', tradingClass='SPXW')
+Error 10090, reqId 15: Part of requested market data is not subscribed. Subscription-independent ticks are still active.Delayed market data is available.SPX S&P 500 Stock Index/TOP/ALL, contract: Option(conId=875927864, symbol='SPX', lastTradeDateOrContractMonth='20260717', strike=7530.0, right='C', multiplier='100', exchange='SMART', currency='USD', localSymbol='SPXW  260717C07530000', tradingClass='SPXW')
+Error 10090, reqId 18: Part of requested market data is not subscribed. Subscription-independent ticks are still active.Delayed market data is available.SPX S&P 500 Stock Index/TOP/ALL, contract: Option(conId=875928492, symbol='SPX', lastTradeDateOrContractMonth='20260717', strike=7540.0, right='P', multiplier='100', exchange='SMART', currency='USD', localSymbol='SPXW  260717P07540000', tradingClass='SPXW')
+Error 10090, reqId 16: Part of requested market data is not subscribed. Subscription-independent ticks are still active.Delayed market data is available.SPX S&P 500 Stock Index/TOP/ALL, contract: Option(conId=875928464, symbol='SPX', lastTradeDateOrContractMonth='20260717', strike=7530.0, right='P', multiplier='100', exchange='SMART', currency='USD', localSymbol='SPXW  260717P07530000', tradingClass='SPXW')
+Error 10090, reqId 16: Part of requested market data is not subscribed. Subscription-independent ticks are still active.Delayed market data is available.SPX S&P 500 Stock Index/TOP/ALL, contract: Option(conId=875928464, symbol='SPX', lastTradeDateOrContractMonth='20260717', strike=7530.0, right='P', multiplier='100', exchange='SMART', currency='USD', localSymbol='SPXW  260717P07530000', tradingClass='SPXW')
+Error 10090, reqId 13: Part of requested market data is not subscribed. Subscription-independent ticks are still active.Delayed market data is available.SPX S&P 500 Stock Index/TOP/ALL, contract: Option(conId=880896884, symbol='SPX', lastTradeDateOrContractMonth='20260717', strike=7535.0, right='C', multiplier='100', exchange='SMART', currency='USD', localSymbol='SPXW  260717C07535000', tradingClass='SPXW')
+Error 10090, reqId 14: Part of requested market data is not subscribed. Subscription-independent ticks are still active.Delayed market data is available.SPX S&P 500 Stock Index/TOP/ALL, contract: Option(conId=880897014, symbol='SPX', lastTradeDateOrContractMonth='20260717', strike=7535.0, right='P', multiplier='100', exchange='SMART', currency='USD', localSymbol='SPXW  260717P07535000', tradingClass='SPXW')
+Error 10090, reqId 31: Part of requested market data is not subscribed. Subscription-independent ticks are still active.Delayed market data is available.SPX S&P 500 Stock Index/TOP/ALL, contract: Option(conId=873619085, symbol='SPX', lastTradeDateOrContractMonth='20260717', strike=7470.0, right='P', multiplier='100', exchange='SMART', currency='USD', localSymbol='SPXW  260717P07470000', tradingClass='SPXW')
+Error 10090, reqId 28: Part of requested market data is not subscribed. Subscription-independent ticks are still active.Delayed market data is available.SPX S&P 500 Stock Index/TOP/ALL, contract: Option(conId=873618494, symbol='SPX', lastTradeDateOrContractMonth='20260717', strike=7460.0, right='C', multiplier='100', exchange='SMART', currency='USD', localSymbol='SPXW  260717C07460000', tradingClass='SPXW')
+Error 10090, reqId 26: Part of requested market data is not subscribed. Subscription-independent ticks are still active.Delayed market data is available.SPX S&P 500 Stock Index/TOP/ALL, contract: Option(conId=880896857, symbol='SPX', lastTradeDateOrContractMonth='20260717', strike=7465.0, right='C', multiplier='100', exchange='SMART', currency='USD', localSymbol='SPXW  260717C07465000', tradingClass='SPXW')
+Error 10090, reqId 27: Part of requested market data is not subscribed. Subscription-independent ticks are still active.Delayed market data is available.SPX S&P 500 Stock Index/TOP/ALL, contract: Option(conId=880896987, symbol='SPX', lastTradeDateOrContractMonth='20260717', strike=7465.0, right='P', multiplier='100', exchange='SMART', currency='USD', localSymbol='SPXW  260717P07465000', tradingClass='SPXW')
+Error 10090, reqId 27: Part of requested market data is not subscribed. Subscription-independent ticks are still active.Delayed market data is available.SPX S&P 500 Stock Index/TOP/ALL, contract: Option(conId=880896987, symbol='SPX', lastTradeDateOrContractMonth='20260717', strike=7465.0, right='P', multiplier='100', exchange='SMART', currency='USD', localSymbol='SPXW  260717P07465000', tradingClass='SPXW')
+Error 10090, reqId 29: Part of requested market data is not subscribed. Subscription-independent ticks are still active.Delayed market data is available.SPX S&P 500 Stock Index/TOP/ALL, contract: Option(conId=873619079, symbol='SPX', lastTradeDateOrContractMonth='20260717', strike=7460.0, right='P', multiplier='100', exchange='SMART', currency='USD', localSymbol='SPXW  260717P07460000', tradingClass='SPXW')
+Error 10090, reqId 30: Part of requested market data is not subscribed. Subscription-independent ticks are still active.Delayed market data is available.SPX S&P 500 Stock Index/TOP/ALL, contract: Option(conId=873618499, symbol='SPX', lastTradeDateOrContractMonth='20260717', strike=7470.0, right='C', multiplier='100', exchange='SMART', currency='USD', localSymbol='SPXW  260717C07470000', tradingClass='SPXW')
+Error 10090, reqId 30: Part of requested market data is not subscribed. Subscription-independent ticks are still active.Delayed market data is available.SPX S&P 500 Stock Index/TOP/ALL, contract: Option(conId=873618499, symbol='SPX', lastTradeDateOrContractMonth='20260717', strike=7470.0, right='C', multiplier='100', exchange='SMART', currency='USD', localSymbol='SPXW  260717C07470000', tradingClass='SPXW')
+Traceback (most recent call last):
+  File "C:\Users\Admin\myquant\scripts\spot_feed.py", line 185, in main
+    write({"ts_et": now().strftime("%H:%M:%S"),
+  File "C:\Users\Admin\myquant\scripts\spot_feed.py", line 125, in write
+    tmp.replace(OUT)  # atomic — the app never reads a half-written file
+    ^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\pathlib.py", line 1376, in replace
+    os.replace(self, target)
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\Admin\\myquant\\data\\options_sim\\live.tmp' -> 'C:\\Users\\Admin\\myquant\\data\\options_sim\\live.json'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\Admin\myquant\scripts\spot_feed.py", line 199, in <module>
+    main()
+  File "C:\Users\Admin\myquant\scripts\spot_feed.py", line 193, in main
+    write({"ts_et": now().strftime("%H:%M:%S"), "state": "closed",
+  File "C:\Users\Admin\myquant\scripts\spot_feed.py", line 125, in write
+    tmp.replace(OUT)  # atomic — the app never reads a half-written file
+    ^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\pathlib.py", line 1376, in replace
+    os.replace(self, target)
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\Admin\\myquant\\data\\options_sim\\live.tmp' -> 'C:\\Users\\Admin\\myquant\\data\\options_sim\\live.json'

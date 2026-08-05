@@ -1,0 +1,154 @@
+{
+  "date": "20260804",
+  "regime_preopen": "n/a (premium-only, unconditional)",
+  "spot_preopen": 7600.45,
+  "levels": {},
+  "settled_0dte": [
+    {
+      "trade_id": "auto_20260804_083352",
+      "pnl": 162
+    },
+    {
+      "trade_id": "auto_20260804_090516",
+      "pnl": 32
+    },
+    {
+      "trade_id": "auto_20260804_090917",
+      "pnl": 567
+    }
+  ],
+  "triggers": [
+    {
+      "id": "eodic_p",
+      "setup": "eodic_p",
+      "name": "[EOD] Bull Put @ 7525",
+      "projected_grade": "C",
+      "status": "stood_down_thin_credit",
+      "fired": true
+    },
+    {
+      "id": "eodic_c",
+      "setup": "eodic_c",
+      "name": "[EOD] Bear Call @ 7675",
+      "projected_grade": "C",
+      "status": "fired",
+      "fired": true,
+      "final_grade": "C",
+      "credit": 1.95,
+      "pnl": -866,
+      "outcome": "LOSS"
+    },
+    {
+      "id": "eodfly_p",
+      "setup": "eodfly_p",
+      "name": "[EOD] Bull Put @ 7600 (ATM)",
+      "projected_grade": "C",
+      "status": "fired",
+      "fired": true,
+      "final_grade": "C",
+      "credit": 1.65,
+      "pnl": 162,
+      "outcome": "WIN"
+    },
+    {
+      "id": "eodfly_c",
+      "setup": "eodfly_c",
+      "name": "[EOD] Bear Call @ 7600 (ATM)",
+      "projected_grade": "C",
+      "status": "fired",
+      "fired": true,
+      "final_grade": "C",
+      "credit": 20.6,
+      "pnl": -101,
+      "outcome": "LOSS"
+    },
+    {
+      "id": "openic_p",
+      "setup": "openic_p",
+      "name": "[Open] Bull Put @ open-75",
+      "projected_grade": "C",
+      "status": "fired",
+      "fired": true,
+      "final_grade": "C",
+      "credit": 0.35,
+      "pnl": 32,
+      "outcome": "WIN"
+    },
+    {
+      "id": "openic_c",
+      "setup": "openic_c",
+      "name": "[Open] Bear Call @ open+75",
+      "projected_grade": "C",
+      "status": "fired",
+      "fired": true,
+      "final_grade": "C",
+      "credit": 0.35,
+      "pnl": -786,
+      "outcome": "LOSS"
+    },
+    {
+      "id": "openfly_p",
+      "setup": "openfly_p",
+      "name": "[Open] Bull Put @ ATM(open)",
+      "projected_grade": "C",
+      "status": "fired",
+      "fired": true,
+      "final_grade": "C",
+      "credit": 5.7,
+      "pnl": 567,
+      "outcome": "WIN"
+    },
+    {
+      "id": "openfly_c",
+      "setup": "openfly_c",
+      "name": "[Open] Bear Call @ ATM(open)",
+      "projected_grade": "C",
+      "status": "fired",
+      "fired": true,
+      "final_grade": "C",
+      "credit": 11.2,
+      "pnl": -271,
+      "outcome": "LOSS"
+    },
+    {
+      "id": "gx_bps",
+      "setup": "gx_bps",
+      "name": "[GexLog] Bull Put @ putWall 7525",
+      "projected_grade": "C",
+      "status": "stood_down_broken",
+      "fired": true
+    },
+    {
+      "id": "gx_bcs",
+      "setup": "gx_bcs",
+      "name": "[GexLog] Bear Call @ callWall 7630",
+      "projected_grade": "C",
+      "status": "fired",
+      "fired": true,
+      "final_grade": "C",
+      "credit": 20.1,
+      "pnl": -71,
+      "outcome": "LOSS"
+    },
+    {
+      "id": "bps_stmr_1559",
+      "setup": "bps_stmr",
+      "name": "STMR Bull Put Spread (15:59 signal)",
+      "projected_grade": "A/B if signal fires",
+      "status": "armed",
+      "fired": false
+    }
+  ],
+  "ohlc": {
+    "open": 7629.15,
+    "high": 7758.02,
+    "low": 7629.15,
+    "close": 7736.38
+  },
+  "paths_materialized": [
+    [
+      "C/\u2014",
+      "ranged 7629\u20137758"
+    ]
+  ]
+}

@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "<string>", line 6, in <module>
+  File "C:\Users\Admin\myquant\.venv\Lib\site-packages\databento\historical\api\batch.py", line 346, in download
+    downloaded_files = [self._download_batch_zip(job_id, zip_path)]
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\myquant\.venv\Lib\site-packages\databento\historical\api\batch.py", line 612, in _download_batch_zip
+    check_http_error(response)
+  File "C:\Users\Admin\myquant\.venv\Lib\site-packages\databento\common\http.py", line 233, in check_http_error
+    raise BentoServerError(
+databento.common.error.BentoServerError: 504 The remote gateway timed out.
+resuming batch.download (skips completed files)...

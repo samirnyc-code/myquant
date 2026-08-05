@@ -1,4 +1,9 @@
 trade_id,entry_date,strategy_id,stream,signal,structure,credit,pnl,roc,win,close_reason
-bps_stmr_20260714_1030,2026-07-14,bps_stmr,stmr,unknown,bull put spread 50pt 14DTE,10.000000000000004,154.80000000000015,0.038700000000000026,True,
-bps_stmr_2026-07-20,2026-07-20,bps_stmr,stmr,unknown,BPS 50pt,15.399999999999999,464.7999999999998,0.05494089834515364,True,
-bps_stmr_REAL_20260721_0943,2026-07-21,bps_stmr,stmr,unknown,bull put spread 50pt 14DTE,8.56,100.80000000000005,,True,
+auto_20260804_083337,2026-08-04,eodic_c,eod,CAUTION,vertical 25pt,1.9500000000000002,-866.3000000000002,-0.3758351409978309,False,level ACCEPTED: spot 7682 held above the 7675 short strike for 10min (>10) — the wall we sold did not hold
+auto_20260804_083352,2026-08-04,eodfly_p,eod,CAUTION,vertical 25pt,1.65,162.4,0.06955032119914348,True,expired
+auto_20260804_083406,2026-08-04,eodfly_c,eod,CAUTION,vertical 25pt,20.6,-101.3,-0.23022727272727278,False,level ACCEPTED: spot 7647 held above the 7600 short strike for 15min (>10) — the wall we sold did not hold
+auto_20260804_090516,2026-08-04,openic_p,open,CAUTION,vertical 25pt,0.35,32.4,0.013144016227180528,True,expired
+auto_20260804_090532,2026-08-04,openic_c,open,CAUTION,vertical 25pt,0.35,-786.3,-0.3189858012170385,False,level ACCEPTED: spot 7736 held above the 7735 short strike for 10min (>10) — the wall we sold did not hold
+auto_20260804_090713,2026-08-04,openfly_c,open,CAUTION,vertical 25pt,11.2,-271.3000000000001,-0.1965942028985508,False,level ACCEPTED: spot 7676 held above the 7660 short strike for 10min (>10) — the wall we sold did not hold
+auto_20260804_090917,2026-08-04,openfly_p,open,CAUTION,vertical 25pt,5.699999999999999,567.3999999999999,0.29398963730569944,True,expired
+auto_20260804_090940,2026-08-04,gx_bcs,gexlog,CAUTION,vertical 25pt,20.099999999999998,-71.30000000000028,-0.14551020408163315,False,level ACCEPTED: spot 7671 held above the 7630 short strike for 12min (>10) — the wall we sold did not hold

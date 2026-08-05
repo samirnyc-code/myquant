@@ -95,3 +95,7 @@ docs/artifacts/eminiaddict_diagrams.html
 data/nt_internals/
 docs/artifacts/eminiaddict_getting_started.html
 docs/artifacts/eminiaddict_tool.html
+
+# huge NT8 tick exports — never in git (1.4GB files; GitHub hard-rejects >100MB)
+data/nt_ticks/
+data/regime/mq_reveng/chain_slices_overlap.parquet

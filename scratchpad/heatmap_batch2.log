@@ -1,0 +1,27 @@
+  reading data\depth\addon_test\ES_09-26_depth_2026-07-22.parquet …
+  11,551,267 events · reconstructing book · window 08:30-15:15 · 3s buckets
+  cached 2026-07-22_1784709000000000000_1784733300000000000_3_56.npz
+C:\Users\Admin\myquant\scripts\depth_heatmap.py:333: RuntimeWarning: divide by zero encountered in log10
+  z = np.where(mat > 0, np.log10(mat), np.nan)   # log color; empties transparent
+  -> docs\depth_heatmap\ES_2026-07-22.png  ·  docs\depth_heatmap\ES_2026-07-22.html  (263 price rows x 8100 buckets)
+  reading data\depth\addon_test\ES_09-26_depth_2026-07-23.parquet …
+  18,170,482 events · reconstructing book · window 08:30-15:15 · 3s buckets
+  cached 2026-07-23_1784795400000000000_1784819700000000000_3_56.npz
+C:\Users\Admin\myquant\scripts\depth_heatmap.py:333: RuntimeWarning: divide by zero encountered in log10
+  z = np.where(mat > 0, np.log10(np.where(mat > 0, mat, 1)), np.nan)  # empties transparent
+  -> docs\depth_heatmap\ES_2026-07-23.png  ·  docs\depth_heatmap\ES_2026-07-23.html  (408 price rows x 8100 buckets)
+  reading data\depth\addon_test\ES_09-26_depth_2026-07-24.parquet …
+  17,502,194 events · reconstructing book · window 08:30-15:15 · 3s buckets
+  cached 2026-07-24_1784881800000000000_1784906100000000000_3_56.npz
+  -> docs\depth_heatmap\ES_2026-07-24.png  ·  docs\depth_heatmap\ES_2026-07-24.html  (371 price rows x 8096 buckets)
+  reading data\depth\addon_test\ES_09-26_depth_2026-07-27.parquet …
+  16,802,573 events · reconstructing book · window 08:30-15:15 · 3s buckets
+  cached 2026-07-27_1785141000000000000_1785165300000000000_3_56.npz
+  -> docs\depth_heatmap\ES_2026-07-27.png  ·  docs\depth_heatmap\ES_2026-07-27.html  (502 price rows x 8100 buckets)
+  reading data\depth\addon_test\ES_09-26_depth_2026-07-28.parquet …
+  18,948,988 events · reconstructing book · window 08:30-15:15 · 3s buckets
+  cached 2026-07-28_1785227400000000000_1785251700000000000_3_56.npz
+  -> docs\depth_heatmap\ES_2026-07-28.png  ·  docs\depth_heatmap\ES_2026-07-28.html  (385 price rows x 8100 buckets)
+  cache hit 2026-07-29_1785313800000000000_1785338100000000000_3_56.npz
+  -> docs\depth_heatmap\ES_2026-07-29.png  ·  docs\depth_heatmap\ES_2026-07-29.html  (735 price rows x 8100 buckets)
+  -> docs\depth_heatmap\index.html  (6 day(s))

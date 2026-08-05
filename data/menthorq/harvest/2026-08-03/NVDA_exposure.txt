@@ -1,0 +1,208 @@
+Toggle left sidebar
+NVDA
+Ctrl
++
+K
+AFTER-HOURS
+Samir
+Premium
+SA
+For You
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Levels
+Screeners
+Explore
+Create
+Saved
+Net GEX Exposure
+Levels
+3/7
+Net GEX
+Intraday
+ALL
+626.3M
+Expirations
+AUG 03
+13%
+84M
+0d
+AUG 05
+4%
+26.1M
+2d
+AUG 07
+25%
+155.1M
+4d
+AUG 10
+3%
+16.4M
+7d
+AUG 12
+0%
+2M
+9d
+AUG 14
+3%
+15.9M
+11d
+AUG 17
+0%
+0
+14d
+AUG 21
+11%
+66.6M
+18d
+AUG 28
+2%
+14.6M
+25d
+SEP 04
+0%
+2.4M
+32d
+SEP 11
+0%
+1.5M
+39d
+SEP 18
+11%
+66.2M
+46d
+OCT 16
+6%
+37.9M
+74d
+NOV 20
+1%
+4.4M
+109d
+DEC 18
+5%
+32.7M
+137d
+JAN 15
+8%
+50M
+165d
+FEB 19
+0%
+-467K
+200d
+MAR 19
+1%
+6.6M
+228d
+JUN 17
+1%
+6.5M
+318d
+SEP 17
+0%
+1.5M
+410d
+DEC 17
+2%
+10.5M
+501d
+JAN 21
+3%
+20.1M
+536d
+JUN 16
+0%
+281K
+683d
+DEC 15
+1%
+5.4M
+865d
+Strike
+Net GEX
+Put / Call OI
+225.00
+32.88M
+224.00
+144.74K
+223.00
+276.7K
+222.50
+1.84M
+222.00
+284.11K
+221.00
+231.87K
+220.00
+CR
+73.06M
+219.00
+133.23K
+218.00
+87.13K
+217.50
+5.26M
+217.00
+-206.61K
+216.00
+272.68K
+215.00
+39.83M
+214.00
+181.08K
+213.00
+148.27K
+212.50
+18.28M
+212.00
+110.94K
+210.00
+96.33M
+207.50
+99.27M
+205.00
+42.8M
+202.50
+30.84M
+200.00
+38.21M
+197.50
+12.53M
+195.00
+8.55M
+194.00
+1.53M
+193.00
+45.51K
+192.50
+-771.31K
+192.00
+HVL
+-108.72K
+191.00
+-33.14K
+190.00
+-17.34M
+189.00
+479.68K
+188.00
+-111.72K
+187.50
+-4.17M
+187.00
+-220.29K
+186.00
+-4.05K
+185.00
+-17.63M
+184.00
+43.55K
+Intraday summary
+Watchlist
+Net Gex
+Chats

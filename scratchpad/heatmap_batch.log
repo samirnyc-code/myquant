@@ -1,0 +1,16 @@
+  reading data\depth\addon_test\ES_09-26_depth_2026-07-23.parquet …
+  18,170,482 events · reconstructing book · window 08:30-15:15 · 3s buckets
+  -> docs\depth_heatmap\ES_2026-07-23.png  (408 price rows x 8100 buckets)
+  reading data\depth\addon_test\ES_09-26_depth_2026-07-24.parquet …
+  17,502,194 events · reconstructing book · window 08:30-15:15 · 3s buckets
+  -> docs\depth_heatmap\ES_2026-07-24.png  (371 price rows x 8096 buckets)
+  reading data\depth\addon_test\ES_09-26_depth_2026-07-27.parquet …
+  16,802,573 events · reconstructing book · window 08:30-15:15 · 3s buckets
+  -> docs\depth_heatmap\ES_2026-07-27.png  (502 price rows x 8100 buckets)
+  reading data\depth\addon_test\ES_09-26_depth_2026-07-28.parquet …
+  18,948,988 events · reconstructing book · window 08:30-15:15 · 3s buckets
+  -> docs\depth_heatmap\ES_2026-07-28.png  (385 price rows x 8100 buckets)
+  reading data\depth\addon_test\ES_09-26_depth_2026-07-29.parquet …
+  26,110,412 events · reconstructing book · window 08:30-15:15 · 3s buckets
+  -> docs\depth_heatmap\ES_2026-07-29.png  (735 price rows x 8100 buckets)
+  -> docs\depth_heatmap\index.html  (6 day(s))

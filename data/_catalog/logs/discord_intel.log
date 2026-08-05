@@ -1,0 +1,181 @@
+# launched 2026-07-21T06:42:56
+# C:\Users\Admin\myquant\.venv\Scripts\pythonw.exe C:\Users\Admin\myquant\scripts\discord_intel.py --port 8640
+
+2026-07-21T06:42:57  scheduler started (every 3600s)
+2026-07-21T06:42:57  Discord Intel at http://127.0.0.1:8640/
+2026-07-21T06:43:17  scrape start: incremental
+2026-07-21T06:46:47  scrape done rc=0; [discord_report] 33 channels | 83153 msgs | 1549 setups | 2956 nuggets | 19942 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-21T07:46:47  scrape start: incremental
+2026-07-21T07:49:48  scrape done rc=0; [discord_report] 33 channels | 83153 msgs | 1549 setups | 2956 nuggets | 19942 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-21T08:49:48  scrape start: incremental
+2026-07-21T08:53:00  scrape done rc=0; [discord_report] 33 channels | 83154 msgs | 1549 setups | 2956 nuggets | 19942 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-21T09:53:00  scrape start: incremental
+2026-07-21T09:56:03  scrape done rc=0; [discord_report] 33 channels | 83155 msgs | 1549 setups | 2956 nuggets | 19942 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-21T10:56:03  scrape start: incremental
+2026-07-21T10:59:04  scrape done rc=0; [discord_report] 33 channels | 83156 msgs | 1549 setups | 2956 nuggets | 19942 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-21T11:59:04  scrape start: incremental
+2026-07-21T12:02:07  scrape done rc=0; [discord_report] 33 channels | 83164 msgs | 1549 setups | 2956 nuggets | 19947 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-21T13:02:07  scrape start: incremental
+2026-07-21T13:05:07  scrape done rc=0; [discord_report] 33 channels | 83164 msgs | 1549 setups | 2956 nuggets | 19947 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-21T14:05:07  scrape start: incremental
+2026-07-21T14:08:10  scrape done rc=0; [discord_report] 33 channels | 83170 msgs | 1549 setups | 2956 nuggets | 19950 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-21T15:08:10  scrape start: incremental
+2026-07-21T15:11:30  scrape done rc=0; [discord_report] 33 channels | 83174 msgs | 1549 setups | 2956 nuggets | 19951 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-21T16:11:30  scrape start: incremental
+2026-07-21T16:14:38  scrape done rc=0; [discord_report] 33 channels | 83177 msgs | 1549 setups | 2956 nuggets | 19954 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-21T17:14:38  scrape start: incremental
+2026-07-21T17:17:47  scrape done rc=0; [discord_report] 33 channels | 83197 msgs | 1549 setups | 2956 nuggets | 19956 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-21T18:17:47  scrape start: incremental
+2026-07-21T18:38:35  scrape done rc=0; [discord_report] 33 channels | 83236 msgs | 1550 setups | 2963 nuggets | 19959 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-21T19:38:35  scrape start: incremental
+2026-07-21T19:41:43  scrape done rc=0; [discord_report] 33 channels | 83239 msgs | 1550 setups | 2964 nuggets | 19959 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-21T20:41:43  scrape start: incremental
+2026-07-21T20:44:51  scrape done rc=0; [discord_report] 33 channels | 83247 msgs | 1550 setups | 2964 nuggets | 19959 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-21T21:44:51  scrape start: incremental
+2026-07-21T21:48:16  scrape done rc=0; [discord_report] 33 channels | 83254 msgs | 1550 setups | 2967 nuggets | 19960 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-21T22:48:16  scrape start: incremental
+2026-07-21T22:51:26  scrape done rc=0; [discord_report] 33 channels | 83264 msgs | 1550 setups | 2967 nuggets | 19960 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-21T23:51:27  scrape start: incremental
+2026-07-21T23:54:52  scrape done rc=0; [discord_report] 33 channels | 83266 msgs | 1550 setups | 2967 nuggets | 19960 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-22T00:54:52  scrape start: incremental
+2026-07-22T00:57:59  scrape done rc=0; [discord_report] 33 channels | 83291 msgs | 1550 setups | 2973 nuggets | 19961 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-22T01:57:59  scrape start: incremental
+2026-07-22T02:01:09  scrape done rc=0; [discord_report] 33 channels | 83301 msgs | 1550 setups | 2974 nuggets | 19964 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-22T03:01:09  scrape start: incremental
+2026-07-22T03:04:15  scrape done rc=0; [discord_report] 33 channels | 83309 msgs | 1550 setups | 2974 nuggets | 19965 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-22T04:04:15  scrape start: incremental
+2026-07-22T04:07:21  scrape done rc=0; [discord_report] 33 channels | 83319 msgs | 1550 setups | 2975 nuggets | 19965 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-22T05:07:21  scrape start: incremental
+2026-07-22T05:10:25  scrape done rc=0; [discord_report] 33 channels | 83324 msgs | 1550 setups | 2975 nuggets | 19966 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-22T06:10:25  scrape start: incremental
+2026-07-22T06:13:52  scrape done rc=0; [discord_report] 33 channels | 83324 msgs | 1550 setups | 2975 nuggets | 19966 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-22T07:13:52  scrape start: incremental
+2026-07-22T07:17:21  scrape done rc=0; [discord_report] 33 channels | 83324 msgs | 1550 setups | 2975 nuggets | 19966 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-22T08:17:21  scrape start: incremental
+2026-07-22T08:20:29  scrape done rc=0; [discord_report] 33 channels | 83325 msgs | 1550 setups | 2975 nuggets | 19966 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-22T09:20:29  scrape start: incremental
+2026-07-22T09:24:01  scrape done rc=0; [discord_report] 33 channels | 83327 msgs | 1550 setups | 2975 nuggets | 19968 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-22T10:24:02  scrape start: incremental
+2026-07-22T10:27:35  scrape done rc=0; [discord_report] 33 channels | 83330 msgs | 1550 setups | 2975 nuggets | 19969 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-22T11:27:35  scrape start: incremental
+2026-07-22T11:30:42  scrape done rc=0; [discord_report] 33 channels | 83333 msgs | 1550 setups | 2975 nuggets | 19970 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-22T12:30:42  scrape start: incremental
+2026-07-22T12:33:52  scrape done rc=0; [discord_report] 33 channels | 83333 msgs | 1550 setups | 2975 nuggets | 19970 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-22T13:33:52  scrape start: incremental
+2026-07-22T13:36:57  scrape done rc=0; [discord_report] 33 channels | 83346 msgs | 1550 setups | 2975 nuggets | 19973 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-22T14:36:57  scrape start: incremental
+2026-07-22T14:40:07  scrape done rc=0; [discord_report] 33 channels | 83352 msgs | 1550 setups | 2975 nuggets | 19973 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-22T15:40:07  scrape start: incremental
+2026-07-22T15:43:14  scrape done rc=0; [discord_report] 33 channels | 83369 msgs | 1551 setups | 2976 nuggets | 19977 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-22T16:43:14  scrape start: incremental
+2026-07-22T16:46:18  scrape done rc=0; [discord_report] 33 channels | 83392 msgs | 1551 setups | 2979 nuggets | 19977 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-22T17:46:18  scrape start: incremental
+2026-07-22T17:49:52  scrape done rc=0; [discord_report] 33 channels | 83406 msgs | 1551 setups | 2982 nuggets | 19977 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-22T18:49:53  scrape start: incremental
+2026-07-22T18:53:02  scrape done rc=0; [discord_report] 33 channels | 83423 msgs | 1551 setups | 2984 nuggets | 19979 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-22T19:53:02  scrape start: incremental
+2026-07-22T19:56:06  scrape done rc=0; [discord_report] 33 channels | 83434 msgs | 1552 setups | 2985 nuggets | 19981 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-22T20:56:07  scrape start: incremental
+2026-07-22T20:59:13  scrape done rc=0; [discord_report] 33 channels | 83438 msgs | 1552 setups | 2985 nuggets | 19981 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-22T21:59:13  scrape start: incremental
+2026-07-22T22:02:25  scrape done rc=0; [discord_report] 33 channels | 83449 msgs | 1552 setups | 2985 nuggets | 19981 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-22T23:02:25  scrape start: incremental
+2026-07-22T23:05:29  scrape done rc=0; [discord_report] 33 channels | 83454 msgs | 1552 setups | 2985 nuggets | 19981 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-23T00:05:29  scrape start: incremental
+2026-07-23T00:08:34  scrape done rc=0; [discord_report] 33 channels | 83470 msgs | 1552 setups | 2986 nuggets | 19981 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-23T01:08:34  scrape start: incremental
+2026-07-23T01:11:37  scrape done rc=0; [discord_report] 33 channels | 83474 msgs | 1552 setups | 2986 nuggets | 19982 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-23T02:11:37  scrape start: incremental
+2026-07-23T02:14:42  scrape done rc=0; [discord_report] 33 channels | 83478 msgs | 1552 setups | 2988 nuggets | 19982 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-23T03:14:42  scrape start: incremental
+2026-07-23T03:17:49  scrape done rc=0; [discord_report] 33 channels | 83499 msgs | 1553 setups | 2989 nuggets | 19984 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-23T04:17:49  scrape start: incremental
+2026-07-23T04:20:51  scrape done rc=0; [discord_report] 33 channels | 83501 msgs | 1554 setups | 2989 nuggets | 19984 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-23T05:20:51  scrape start: incremental
+2026-07-23T05:23:58  scrape done rc=0; [discord_report] 33 channels | 83509 msgs | 1554 setups | 2989 nuggets | 19988 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-23T06:23:58  scrape start: incremental
+2026-07-23T06:27:32  scrape done rc=0; [discord_report] 33 channels | 83510 msgs | 1554 setups | 2989 nuggets | 19988 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-23T07:27:32  scrape start: incremental
+2026-07-23T07:30:35  scrape done rc=0; [discord_report] 33 channels | 83511 msgs | 1554 setups | 2989 nuggets | 19989 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-23T08:30:35  scrape start: incremental
+2026-07-23T08:33:38  scrape done rc=0; [discord_report] 33 channels | 83511 msgs | 1554 setups | 2989 nuggets | 19989 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-23T09:33:38  scrape start: incremental
+2026-07-23T09:36:44  scrape done rc=0; [discord_report] 33 channels | 83512 msgs | 1554 setups | 2989 nuggets | 19989 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-23T10:36:44  scrape start: incremental
+2026-07-23T10:40:25  scrape done rc=0; [discord_report] 33 channels | 83513 msgs | 1554 setups | 2990 nuggets | 19989 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-23T11:40:25  scrape start: incremental
+2026-07-23T11:43:30  scrape done rc=0; [discord_report] 33 channels | 83515 msgs | 1554 setups | 2990 nuggets | 19990 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-23T12:43:30  scrape start: incremental
+2026-07-23T12:46:37  scrape done rc=0; [discord_report] 33 channels | 83518 msgs | 1554 setups | 2990 nuggets | 19991 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-23T13:46:37  scrape start: incremental
+2026-07-23T13:49:47  scrape done rc=0; [discord_report] 33 channels | 83522 msgs | 1554 setups | 2990 nuggets | 19991 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-23T14:49:47  scrape start: incremental
+2026-07-23T14:52:52  scrape done rc=0; [discord_report] 33 channels | 83527 msgs | 1554 setups | 2991 nuggets | 19991 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-23T15:52:52  scrape start: incremental
+2026-07-23T15:55:57  scrape done rc=0; [discord_report] 33 channels | 83539 msgs | 1554 setups | 2992 nuggets | 19993 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-23T16:55:57  scrape start: incremental
+2026-07-23T16:59:03  scrape done rc=0; [discord_report] 33 channels | 83551 msgs | 1554 setups | 2992 nuggets | 19998 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-23T17:59:03  scrape start: incremental
+2026-07-23T18:02:26  scrape done rc=0; [discord_report] 33 channels | 83560 msgs | 1554 setups | 2992 nuggets | 19999 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-23T19:02:26  scrape start: incremental
+2026-07-23T19:06:07  scrape done rc=0; [discord_report] 33 channels | 83564 msgs | 1554 setups | 2992 nuggets | 20000 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-23T20:06:07  scrape start: incremental
+2026-07-23T20:09:18  scrape done rc=0; [discord_report] 33 channels | 83570 msgs | 1554 setups | 2993 nuggets | 20001 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-23T21:09:19  scrape start: incremental
+2026-07-23T21:12:27  scrape done rc=0; [discord_report] 33 channels | 83571 msgs | 1554 setups | 2993 nuggets | 20001 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-23T22:12:27  scrape start: incremental
+2026-07-23T22:15:38  scrape done rc=0; [discord_report] 33 channels | 83573 msgs | 1554 setups | 2994 nuggets | 20001 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-23T23:15:38  scrape start: incremental
+2026-07-23T23:19:26  scrape done rc=0; [discord_report] 33 channels | 83579 msgs | 1554 setups | 2996 nuggets | 20004 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-24T00:19:26  scrape start: incremental
+2026-07-24T00:22:36  scrape done rc=0; [discord_report] 33 channels | 83581 msgs | 1555 setups | 2996 nuggets | 20005 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-24T01:22:36  scrape start: incremental
+2026-07-24T01:25:42  scrape done rc=0; [discord_report] 33 channels | 83592 msgs | 1555 setups | 2996 nuggets | 20006 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-24T02:25:42  scrape start: incremental
+2026-07-24T02:28:46  scrape done rc=0; [discord_report] 33 channels | 83592 msgs | 1555 setups | 2996 nuggets | 20006 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-24T03:28:46  scrape start: incremental
+2026-07-24T03:31:51  scrape done rc=0; [discord_report] 33 channels | 83595 msgs | 1555 setups | 2997 nuggets | 20006 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-24T04:31:51  scrape start: incremental
+2026-07-24T04:35:00  scrape done rc=0; [discord_report] 33 channels | 83595 msgs | 1555 setups | 2997 nuggets | 20006 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-24T05:35:00  scrape start: incremental
+2026-07-24T05:38:06  scrape done rc=0; [discord_report] 33 channels | 83595 msgs | 1555 setups | 2997 nuggets | 20006 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-24T06:38:06  scrape start: incremental
+2026-07-24T06:41:50  scrape done rc=0; [discord_report] 33 channels | 83597 msgs | 1556 setups | 2997 nuggets | 20006 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-24T07:41:50  scrape start: incremental
+2026-07-24T07:44:54  scrape done rc=0; [discord_report] 33 channels | 83597 msgs | 1556 setups | 2997 nuggets | 20006 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-24T08:44:54  scrape start: incremental
+2026-07-24T08:48:01  scrape done rc=0; [discord_report] 33 channels | 83597 msgs | 1556 setups | 2997 nuggets | 20006 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-24T09:48:01  scrape start: incremental
+2026-07-24T09:51:11  scrape done rc=0; [discord_report] 33 channels | 83597 msgs | 1556 setups | 2997 nuggets | 20006 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-24T10:51:11  scrape start: incremental
+2026-07-24T10:54:17  scrape done rc=0; [discord_report] 33 channels | 83600 msgs | 1556 setups | 2998 nuggets | 20007 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-24T11:54:18  scrape start: incremental
+2026-07-24T11:57:35  scrape done rc=0; [discord_report] 33 channels | 83602 msgs | 1556 setups | 2998 nuggets | 20007 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-24T12:57:35  scrape start: incremental
+2026-07-24T13:00:42  scrape done rc=0; [discord_report] 33 channels | 83608 msgs | 1556 setups | 2998 nuggets | 20008 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-24T14:00:42  scrape start: incremental
+2026-07-24T14:03:49  scrape done rc=0; [discord_report] 33 channels | 83615 msgs | 1556 setups | 2999 nuggets | 20010 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-24T15:03:49  scrape start: incremental
+2026-07-24T15:06:57  scrape done rc=0; [discord_report] 33 channels | 83618 msgs | 1556 setups | 2999 nuggets | 20011 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-24T16:06:57  scrape start: incremental
+2026-07-24T16:10:07  scrape done rc=0; [discord_report] 33 channels | 83622 msgs | 1556 setups | 3000 nuggets | 20012 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-24T17:10:07  scrape start: incremental
+2026-07-24T17:13:15  scrape done rc=0; [discord_report] 33 channels | 83634 msgs | 1556 setups | 3000 nuggets | 20013 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-24T18:13:15  scrape start: incremental
+2026-07-24T18:17:04  scrape done rc=0; [discord_report] 33 channels | 83643 msgs | 1556 setups | 3000 nuggets | 20013 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-24T19:17:04  scrape start: incremental
+2026-07-24T19:20:18  scrape done rc=0; [discord_report] 33 channels | 83644 msgs | 1556 setups | 3000 nuggets | 20013 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-24T20:20:18  scrape start: incremental
+2026-07-24T20:23:26  scrape done rc=0; [discord_report] 33 channels | 83647 msgs | 1556 setups | 3000 nuggets | 20013 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-24T21:23:26  scrape start: incremental
+2026-07-24T21:27:23  scrape done rc=0; [discord_report] 33 channels | 83647 msgs | 1556 setups | 3000 nuggets | 20013 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-24T22:27:23  scrape start: incremental
+2026-07-24T22:30:37  scrape done rc=0; [discord_report] 33 channels | 83647 msgs | 1556 setups | 3000 nuggets | 20013 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-24T23:30:37  scrape start: incremental
+2026-07-24T23:33:46  scrape done rc=0; [discord_report] 33 channels | 83648 msgs | 1556 setups | 3000 nuggets | 20013 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-25T00:33:46  scrape start: incremental
+2026-07-25T00:37:47  scrape done rc=0; [discord_report] 33 channels | 83653 msgs | 1556 setups | 3000 nuggets | 20013 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-25T01:37:47  scrape start: incremental
+2026-07-25T01:40:53  scrape done rc=0; [discord_report] 33 channels | 83653 msgs | 1556 setups | 3000 nuggets | 20013 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-07-25T02:40:53  scrape start: incremental
+2026-07-25T02:43:57  scrape done rc=0; [discord_report] 33 channels | 83654 msgs | 1556 setups | 3000 nuggets | 20013 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html

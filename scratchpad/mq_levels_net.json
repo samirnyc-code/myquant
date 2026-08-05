@@ -1,0 +1,20 @@
+[
+ {
+  "method": "GET",
+  "url": "https://cf.menthorq.io/clickhouse-api/api/web/v1/tickers",
+  "body": null,
+  "status": 200
+ },
+ {
+  "method": "GET",
+  "url": "https://cf.menthorq.io/clickhouse-api/api/web/v1/market-status/NYSE",
+  "body": null,
+  "status": 200
+ },
+ {
+  "method": "GET",
+  "url": "https://gateway.menthorq.io/clickhouse-api/api/web/v1/options/matrix/SPX?frequency=intraday",
+  "body": null,
+  "status": 200
+ }
+]
