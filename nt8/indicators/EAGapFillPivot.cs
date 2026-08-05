@@ -200,20 +200,20 @@ namespace NinjaTrader.NinjaScript.Indicators
                     && (t > GlobexCloseTime || t <= RthOpenTime);
                 if (overnight)
                 {
-                    double fullGap = curClose;
-                    double pivot   = (curClose + curHigh + curLow) / 3.0;
-                    bool[] ring    = { ShowBand1, ShowBand2, ShowBand3 };
-                    FutureLine("piv",  0, pivot,   FutureBars, ShowPivot);
+                    double oFull  = curClose;
+                    double oPivot = (curClose + curHigh + curLow) / 3.0;
+                    bool[] oRing  = { ShowBand1, ShowBand2, ShowBand3 };
+                    FutureLine("piv",  0, oPivot, FutureBars, ShowPivot);
                     // provisional half gap vs current price; locks in at the open
-                    FutureLine("half", 1, fullGap + (Close[0] - fullGap) / 2.0, FutureBars, ShowHalfGap);
-                    FutureLine("full", 2, fullGap, FutureBars, ShowFullGap);
+                    FutureLine("half", 1, oFull + (Close[0] - oFull) / 2.0, FutureBars, ShowHalfGap);
+                    FutureLine("full", 2, oFull, FutureBars, ShowFullGap);
                     FutureLine("gpiv", 3, pendingGlobexClose > 0
                         ? (pendingGlobexClose + curHigh + curLow) / 3.0 : 0,
                         FutureBars, ShowGlobexPivot && pendingGlobexClose > 0);
                     for (int k = 1; k <= 3; k++)
                     {
-                        FutureLine("p" + k, 2 + 2 * k, fullGap + k * OffsetPoints, FutureBars, ring[k - 1]);
-                        FutureLine("m" + k, 3 + 2 * k, fullGap - k * OffsetPoints, FutureBars, ring[k - 1]);
+                        FutureLine("p" + k, 2 + 2 * k, oFull + k * OffsetPoints, FutureBars, oRing[k - 1]);
+                        FutureLine("m" + k, 3 + 2 * k, oFull - k * OffsetPoints, FutureBars, oRing[k - 1]);
                     }
                 }
                 else
