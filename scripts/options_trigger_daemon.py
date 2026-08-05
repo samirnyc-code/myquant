@@ -594,22 +594,35 @@ def manage_open(ib, plan, spot, dry):
         if not go:
             continue
 
+        use_combo = COMBO_ORDERS and trig.get("structure", {}).get("kind") == "vertical"
         close_legs = reverse(legs)
-        try:
-            _, quoted = quote_legs(ib, exp, close_legs)
-        except Exception as e:
-            print(f"  ! exit quote failed {tid}: {e}")
-            continue
         if dry:
             print(f"  [DRY] WOULD CLOSE {tid}: {why}")
             trig["exited"] = True
             continue
-        try:
-            net_out, _ = place_legs(ib, exp, quoted, plan["execution"]["size"])
-        except Exception as e:
-            print(f"  ! exit FAILED {tid}: {e}")
-            continue
-        cost = -net_out
+        if use_combo:
+            # ATOMIC close: SELL the same bag we bought at entry (both legs together)
+            try:
+                open_legs = [(l["right"], l["strike"], "SELL" if l["side"] == "sell" else "BUY")
+                             for l in legs]
+                bag = combo_contract(ib, exp, open_legs)
+                cost = close_combo(ib, bag, plan["execution"]["size"])
+                print(f"  ATOMIC combo close {tid}: cost {cost:+.2f}")
+            except Exception as e:
+                print(f"  ! exit FAILED {tid} (combo): {e}")
+                continue
+        else:
+            try:
+                _, quoted = quote_legs(ib, exp, close_legs)
+            except Exception as e:
+                print(f"  ! exit quote failed {tid}: {e}")
+                continue
+            try:
+                net_out, _ = place_legs(ib, exp, quoted, plan["execution"]["size"])
+            except Exception as e:
+                print(f"  ! exit FAILED {tid}: {e}")
+                continue
+            cost = -net_out
         tlog.update_exit(tid, now_ct().strftime("%Y-%m-%d %H:%M"), cost, FEE,
                          close_reason=why)
         if tid in manual:
@@ -648,8 +661,16 @@ def fire(ib, trig, spot, plan, reason, dry):
         trig["fired"], trig["status"] = True, "dry-fired"
         return
     # 1. QUOTE — no order exists yet, so every gate below is free to say no.
+    use_combo = COMBO_ORDERS and trig["structure"].get("kind") == "vertical"
     try:
-        est_net, quoted = quote_legs(ib, exp, legs)
+        if use_combo:
+            _bag = combo_contract(ib, exp, legs)
+            _cbid, _cask = quote_combo(ib, _bag)
+            if _cbid is None:
+                raise RuntimeError("no combo quote")
+            est_net, quoted = -_cask, None      # BUY at ask; negative price = credit
+        else:
+            est_net, quoted = quote_legs(ib, exp, legs)
     except Exception as e:
         print(f"  ! {trig['id']} quote FAILED: {e}")
         trig["status"] = "error"
@@ -668,7 +689,14 @@ def fire(ib, trig, spot, plan, reason, dry):
 
     # 3. EXECUTE — only now do real orders hit the account.
     try:
-        net, filled = place_legs(ib, exp, quoted, plan["execution"]["size"])
+        if use_combo:
+            net, _ = place_combo(ib, exp, legs, plan["execution"]["size"])
+            filled = [{"side": "sell" if a == "SELL" else "buy", "right": rt,
+                       "strike": float(k), "expiry": exp, "qty": plan["execution"]["size"]}
+                      for rt, k, a in legs]
+            print(f"  ATOMIC combo fill: net {net:+.2f}")
+        else:
+            net, filled = place_legs(ib, exp, quoted, plan["execution"]["size"])
     except Exception as e:
         print(f"  ! {trig['id']} fire FAILED after gates passed: {e}")
         trig["status"] = "error"
