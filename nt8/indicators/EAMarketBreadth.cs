@@ -152,10 +152,16 @@ namespace NinjaTrader.NinjaScript.Indicators
                     if (issA[m] < 0) continue;
                     var texts = new List<string>();
                     var fills = new List<Brush>();
+                    int visible = 0;
+                    for (int k = 0; k < 4; k++)
+                        if (show[k]) visible++;
                     for (int k = 0; k < 4; k++)
                     {
                         if (!show[k] || double.IsNaN(cur[m, k])) continue;
-                        texts.Add(tag[k] + " " + FormatVal(cur[m, k], k < 2) + " " + mktName[m]);
+                        // single metric -> exact ToS label text ("2.1734:1 NYSE");
+                        // the "Vol "/"Iss " prefix only disambiguates multiple chips
+                        string prefix = visible > 1 ? tag[k] + " " : "";
+                        texts.Add(prefix + FormatVal(cur[m, k], k < 2) + " " + mktName[m]);
                         fills.Add(double.IsNaN(prev[m, k]) || cur[m, k] > prev[m, k] ? posB[m] : negB[m]);
                     }
                     if (texts.Count == 0) continue;
@@ -190,8 +196,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 
         private string FormatVal(double raw, bool ratio)
         {
+            // ToS: full precision + ":1" unless AbbreviateText, then Round(x,2) without ":1"
             if (ratio)
-                return AbbreviateText ? Math.Round(raw, 2).ToString("0.##") : raw.ToString("0.00") + ":1";
+                return AbbreviateText ? Math.Round(raw, 2).ToString("0.##") : raw.ToString("0.####") + ":1";
             return raw.ToString("+#,0;-#,0");
         }
 
