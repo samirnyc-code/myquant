@@ -163,6 +163,71 @@ def chain_series(legs, entry_dt, exit_dt, credit):
         return None
 
 
+def chain_series_wings(wings):
+    """Exit-aware combined P&L path: per timestamp, an open wing is marked from
+    the chain (credit − cost-to-close at mid); an EXITED wing contributes its
+    REALIZED ledger P&L (frozen). Ends exactly at the booked total."""
+    try:
+        day = str(wings[0][2])[:10]
+        f = SIM / f"chain_{day.replace('-', '')}.csv"
+        if day not in _CHAIN_CACHE:
+            _CHAIN_CACHE[day] = pd.read_csv(f) if f.exists() else None
+        ch = _CHAIN_CACHE[day]
+        if ch is None or not len(ch):
+            return None
+
+        def et(ts):
+            return (pd.to_datetime(str(ts)[:16]) + pd.Timedelta(hours=1)).strftime("%Y-%m-%d %H:%M")
+        t0 = min(et(w[2]) for w in wings)
+        t1 = max(et(w[3]) for w in wings if w[3] and w[3] != "NaT")
+        sub = ch[(ch.ts_et.str[:16] >= t0) & (ch.ts_et.str[:16] <= t1)]
+        out_t, out_p = [], []
+        for ts, g in sub.groupby(sub.ts_et.str[:16]):
+            px = {(row.strike, row.right): (row.bid, row.ask) for row in g.itertuples()}
+            tot, ok = 0.0, True
+            for legs, credit, ent, ex, realized in wings:
+                if ts < et(ent):
+                    continue
+                if ex and ex != "NaT" and ts >= et(ex):
+                    tot += (realized or 0.0)          # frozen at its booked P&L
+                    continue
+                cost = 0.0
+                for l in legs:
+                    q = px.get((float(l["strike"]), l["right"]))
+                    if not q or pd.isna(q[0]) or pd.isna(q[1]) or q[1] <= 0:
+                        ok = False
+                        break
+                    mid = (float(q[0]) + float(q[1])) / 2
+                    cost += mid if l["side"] == "sell" else -mid
+                if not ok:
+                    break
+                tot += (credit - cost) * 100
+            if ok:
+                ct = (pd.to_datetime(ts) - pd.Timedelta(hours=1)).strftime("%H:%M")
+                out_t.append(ct)
+                out_p.append(round(tot))
+        # terminal point = the booked total, at the last exit (ledger truth)
+        final = sum((w[4] or 0.0) for w in wings)
+        if out_t:
+            out_t.append((pd.to_datetime(t1) - pd.Timedelta(hours=1)).strftime("%H:%M"))
+            out_p.append(round(final))
+        if len(out_p) < 2:
+            return None
+        return {"t": out_t, "pnl": out_p, "pop": [None] * len(out_p)}
+    except Exception:
+        return None
+
+
+def _with_final(series, final_pnl, at_hhmm=None):
+    """Append the LEDGER's booked P&L as the terminal point so every line ends at
+    the number on the card (chain mids ≈ fills, but the book is the truth)."""
+    if series and final_pnl is not None:
+        series["t"].append(at_hhmm or series["t"][-1])
+        series["pnl"].append(round(float(final_pnl)))
+        series["pop"].append(None)
+    return series
+
+
 def trade_payload(r, last_marks, spot, metrics_hist=None):
     legs = json.loads(r.legs) if isinstance(r.legs, str) else []
     is_open = pd.isna(r.exit_dt)
@@ -637,18 +702,14 @@ def main():
             return f"{side} {r0.structure or ''} cr {r0.credit or 0:.2f} → ${pnl0}"
         m["commentary"] = _wing(a) + "  ·  " + _wing(b)
         m["_wings"] = [_wing(a), _wing(b)]
-        # merged intraday P&L series = sum of the two legs' mark paths
-        ha, hb = hist_by_id.get(a.trade_id), hist_by_id.get(b.trade_id)
+        # per-wing data for the EXIT-AWARE intraday P&L reconstruction: a wing's
+        # P&L freezes at its REALIZED value once that wing exits (marking a closed
+        # leg to market all day painted a fictional path — 2026-08-05 bug).
+        m["_wingdata"] = [
+            (la, float(a.credit or 0), str(a.entry_dt), str(a.exit_dt), float(a.pnl) if pd.notna(a.pnl) else None),
+            (lb, float(b.credit or 0), str(b.entry_dt), str(b.exit_dt), float(b.pnl) if pd.notna(b.pnl) else None),
+        ]
         m["_hist"] = None
-        if ha is not None and hb is not None and len(ha) and len(hb):
-            j = pd.merge(ha[["ts_et", "unreal_pnl", "pop"]], hb[["ts_et", "unreal_pnl", "pop"]],
-                         on="ts_et", suffixes=("_a", "_b"))
-            if len(j):
-                m["_hist"] = pd.DataFrame({
-                    "ts_et": j.ts_et,
-                    "unreal_pnl": j.unreal_pnl_a.fillna(0) + j.unreal_pnl_b.fillna(0),
-                    "pop": j[["pop_a", "pop_b"]].min(axis=1),
-                })
         merged_rows.append(m)
         consumed |= {a.trade_id, b.trade_id}
         # merged unrealized mark = sum of the legs'
@@ -673,8 +734,8 @@ def main():
             p = trade_payload(m, last_marks, spot, m.get("_hist"))
             # per-wing results shown on the card, above the raw leg list
             p["legs"] = m["_wings"] + p["legs"]
-            if not p.get("series"):   # no marker history -> rebuild from our chain recording
-                p["series"] = chain_series(json.loads(m["legs"]), m["entry_dt"], m["exit_dt"], m["credit"])
+            # EXIT-AWARE reconstruction (each wing freezes at its realized P&L)
+            p["series"] = chain_series_wings(m["_wingdata"]) or p.get("series")
             data.append(p)
         except Exception as e:
             print(f"  ! skipped merged card {m['trade_id']}: {type(e).__name__}: {e}")
@@ -685,8 +746,11 @@ def main():
             p = trade_payload(r, last_marks, spot, hist_by_id.get(r.trade_id))
             if not p.get("series"):
                 lg = json.loads(r.legs) if isinstance(r.legs, str) else []
-                p["series"] = chain_series(lg, r.entry_dt, r.exit_dt,
-                                           float(r.credit) if pd.notna(r.credit) else 0.0)
+                s = chain_series(lg, r.entry_dt, r.exit_dt,
+                                 float(r.credit) if pd.notna(r.credit) else 0.0)
+                if s and pd.notna(r.exit_dt) and pd.notna(r.pnl):
+                    s = _with_final(s, float(r.pnl))
+                p["series"] = s
             data.append(p)
         except Exception as e:
             print(f"  ! skipped card for {getattr(r,'trade_id','?')}: {type(e).__name__}: {e}")
