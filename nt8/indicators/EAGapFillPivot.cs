@@ -78,6 +78,7 @@ namespace NinjaTrader.NinjaScript.Indicators
         // mouse state for the hover tooltip (chart-control pixel coords)
         private int  mouseX = -1, mouseY = -1;
         private bool mouseValid;
+        private double lastPrice;   // latest close, for info-box distances
 
         protected override void OnStateChange()
         {
@@ -203,7 +204,8 @@ namespace NinjaTrader.NinjaScript.Indicators
                     double pivot   = (curClose + curHigh + curLow) / 3.0;
                     bool[] ring    = { ShowBand1, ShowBand2, ShowBand3 };
                     FutureLine("piv",  0, pivot,   FutureBars, ShowPivot);
-                    FutureLine("half", 1, 0,       FutureBars, false);   // needs today's open
+                    // provisional half gap vs current price; locks in at the open
+                    FutureLine("half", 1, fullGap + (Close[0] - fullGap) / 2.0, FutureBars, ShowHalfGap);
                     FutureLine("full", 2, fullGap, FutureBars, ShowFullGap);
                     FutureLine("gpiv", 3, pendingGlobexClose > 0
                         ? (pendingGlobexClose + curHigh + curLow) / 3.0 : 0,
@@ -222,9 +224,9 @@ namespace NinjaTrader.NinjaScript.Indicators
                 if (isLastDay)
                 {
                     // hover + info box stay live outside RTH with the pending
-                    // next-session levels (no half gap until today's open exists)
-                    BuildPendingLevels();
-                    if (ShowInfoBox) DrawInfoBox(Close[0]); else RemoveDrawObject("EAGF_info");
+                    // next-session levels (half gap provisional until the open)
+                    BuildPendingLevels(Close[0]);
+                    lastPrice = Close[0];
                 }
                 return;
             }
@@ -291,16 +293,13 @@ namespace NinjaTrader.NinjaScript.Indicators
                 }
             }
 
-            if (ShowInfoBox)
-                DrawInfoBox(Close[0]);
-            else
-                RemoveDrawObject("EAGF_info");
+            lastPrice = Close[0];
         }
 
         // levels known BEFORE the next RTH open (and after today's close), built
-        // from the still-accumulating cur* values: everything except the half gap,
-        // which needs the upcoming session's open print
-        private void BuildPendingLevels()
+        // from the still-accumulating cur* values; half gap is provisional
+        // ("~", vs the current price) until the upcoming session's open prints
+        private void BuildPendingLevels(double px)
         {
             lock (levelLock)
             {
@@ -311,6 +310,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 double pivot   = (curClose + curHigh + curLow) / 3.0;
                 bool[] ring    = { ShowBand1, ShowBand2, ShowBand3 };
                 if (ShowPivot)   activeLevels.Add(new Lvl { Name = "Pivot",    Val = pivot,   PlotIdx = 0 });
+                if (ShowHalfGap) activeLevels.Add(new Lvl { Name = "Half Gap~", Val = fullGap + (px - fullGap) / 2.0, PlotIdx = 1 });
                 if (ShowFullGap) activeLevels.Add(new Lvl { Name = "Full Gap", Val = fullGap, PlotIdx = 2 });
                 if (ShowGlobexPivot && pendingGlobexClose > 0)
                     activeLevels.Add(new Lvl { Name = "Glbx Piv", Val = (pendingGlobexClose + curHigh + curLow) / 3.0, PlotIdx = 3 });
@@ -323,26 +323,64 @@ namespace NinjaTrader.NinjaScript.Indicators
             }
         }
 
-        // info box: one line per visible level, nearest first, signed distance in points
-        private void DrawInfoBox(double last)
+        // info box, custom-rendered so each row draws in its level's plot color:
+        // one line per visible level, nearest first, signed distance in points/ticks
+        private void RenderInfoBox()
         {
             List<Lvl> snap;
             lock (levelLock) snap = new List<Lvl>(activeLevels);
-            if (snap.Count == 0) { RemoveDrawObject("EAGF_info"); return; }
+            double last = lastPrice;
+            if (snap.Count == 0 || last <= 0)
+                return;
             snap.Sort((a, b) => Math.Abs(a.Val - last).CompareTo(Math.Abs(b.Val - last)));
 
-            var sb = new System.Text.StringBuilder();
+            var rows = new List<string>();
+            var idxs = new List<int>();
             foreach (Lvl l in snap)
             {
                 double d = l.Val - last;
                 string dist = DistanceUnit == EagfDistanceUnit.Ticks
                     ? string.Format("{0}{1:F0}t", d >= 0 ? "+" : "-", Math.Abs(d) / TickSize)
                     : string.Format("{0}{1:F2}", d >= 0 ? "+" : "-", Math.Abs(d));
-                sb.AppendFormat("{0,-9} {1,9}  {2}\n",
-                    l.Name, Instrument.MasterInstrument.FormatPrice(l.Val), dist);
+                rows.Add(string.Format("{0,-9} {1,9}  {2,8}",
+                    l.Name, Instrument.MasterInstrument.FormatPrice(l.Val), dist));
+                idxs.Add(l.PlotIdx);
             }
-            Draw.TextFixed(this, "EAGF_info", sb.ToString().TrimEnd('\n'), InfoBoxPosition,
-                Brushes.White, new SimpleFont("Consolas", 13), Brushes.DimGray, Brushes.Black, 60);
+
+            using (var tf = new SharpDX.DirectWrite.TextFormat(NinjaTrader.Core.Globals.DirectWriteFactory, "Consolas", 13f))
+            {
+                var layouts = new List<SharpDX.DirectWrite.TextLayout>();
+                float maxW = 0, rowH = 0;
+                foreach (string r in rows)
+                {
+                    var tl = new SharpDX.DirectWrite.TextLayout(NinjaTrader.Core.Globals.DirectWriteFactory, r, tf, 600, 30);
+                    layouts.Add(tl);
+                    maxW = Math.Max(maxW, tl.Metrics.Width);
+                    rowH = Math.Max(rowH, tl.Metrics.Height);
+                }
+                float pad = 6, margin = 10;
+                float w = maxW + 2 * pad, h = rows.Count * rowH + 2 * pad;
+                float x, y;
+                switch (InfoBoxPosition)
+                {
+                    case TextPosition.TopLeft:     x = ChartPanel.X + margin;                    y = ChartPanel.Y + margin;                    break;
+                    case TextPosition.BottomLeft:  x = ChartPanel.X + margin;                    y = ChartPanel.Y + ChartPanel.H - h - margin; break;
+                    case TextPosition.BottomRight: x = ChartPanel.X + ChartPanel.W - w - margin; y = ChartPanel.Y + ChartPanel.H - h - margin; break;
+                    case TextPosition.Center:      x = ChartPanel.X + (ChartPanel.W - w) / 2;    y = ChartPanel.Y + (ChartPanel.H - h) / 2;    break;
+                    default:                       x = ChartPanel.X + ChartPanel.W - w - margin; y = ChartPanel.Y + margin;                    break; // TopRight
+                }
+                var rect = new SharpDX.RectangleF(x, y, w, h);
+                using (var bg = new SharpDX.Direct2D1.SolidColorBrush(RenderTarget, new SharpDX.Color4(0f, 0f, 0f, 0.75f)))
+                    RenderTarget.FillRectangle(rect, bg);
+                using (var border = new SharpDX.Direct2D1.SolidColorBrush(RenderTarget, new SharpDX.Color4(0.4f, 0.4f, 0.4f, 1f)))
+                    RenderTarget.DrawRectangle(rect, border);
+                for (int i = 0; i < layouts.Count; i++)
+                {
+                    using (var b = Plots[idxs[i]].Brush.ToDxBrush(RenderTarget))
+                        RenderTarget.DrawTextLayout(new SharpDX.Vector2(x + pad, y + pad + i * rowH), layouts[i], b);
+                    layouts[i].Dispose();
+                }
+            }
         }
 
         // hover tooltip: name + value next to the cursor when within a few px of a
@@ -350,7 +388,13 @@ namespace NinjaTrader.NinjaScript.Indicators
         protected override void OnRender(ChartControl chartControl, ChartScale chartScale)
         {
             base.OnRender(chartControl, chartScale);
-            if (!ShowHoverLabel || !mouseValid || RenderTarget == null)
+            if (RenderTarget == null)
+                return;
+
+            if (ShowInfoBox)
+                RenderInfoBox();
+
+            if (!ShowHoverLabel || !mouseValid)
                 return;
 
             List<Lvl> snap;
