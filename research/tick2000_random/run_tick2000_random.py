@@ -38,7 +38,7 @@ EMA_N = 21
 TGT_T = 4             # target ticks
 STP_T = 8             # stop ticks
 SEED = 42
-FEE_RT = 4.0          # $ round-turn per trade
+FEE_RT = 3.5          # $ round-turn per trade (user-corrected from $4, S95)
 TICK_USD = 12.5       # ES big contract
 VARIANTS = ["ema", "random", "long", "short"]
 
