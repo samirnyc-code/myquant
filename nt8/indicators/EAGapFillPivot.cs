@@ -111,6 +111,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 ShowHoverLabel      = true;
                 ShowInfoBox         = true;
                 InfoBoxPosition     = TextPosition.TopRight;
+                InfoBoxTopOffset    = 80;
                 DistanceUnit        = EagfDistanceUnit.Points;
                 ShowTouchMarkers    = true;
                 EnableTouchAlerts   = false;
@@ -363,11 +364,11 @@ namespace NinjaTrader.NinjaScript.Indicators
                 float x, y;
                 switch (InfoBoxPosition)
                 {
-                    case TextPosition.TopLeft:     x = ChartPanel.X + margin;                    y = ChartPanel.Y + margin;                    break;
+                    case TextPosition.TopLeft:     x = ChartPanel.X + margin;                    y = ChartPanel.Y + margin + InfoBoxTopOffset; break;
                     case TextPosition.BottomLeft:  x = ChartPanel.X + margin;                    y = ChartPanel.Y + ChartPanel.H - h - margin; break;
                     case TextPosition.BottomRight: x = ChartPanel.X + ChartPanel.W - w - margin; y = ChartPanel.Y + ChartPanel.H - h - margin; break;
                     case TextPosition.Center:      x = ChartPanel.X + (ChartPanel.W - w) / 2;    y = ChartPanel.Y + (ChartPanel.H - h) / 2;    break;
-                    default:                       x = ChartPanel.X + ChartPanel.W - w - margin; y = ChartPanel.Y + margin;                    break; // TopRight
+                    default:                       x = ChartPanel.X + ChartPanel.W - w - margin; y = ChartPanel.Y + margin + InfoBoxTopOffset; break; // TopRight
                 }
                 var rect = new SharpDX.RectangleF(x, y, w, h);
                 using (var bg = new SharpDX.Direct2D1.SolidColorBrush(RenderTarget, new SharpDX.Color4(0f, 0f, 0f, 0.75f)))
@@ -583,7 +584,12 @@ namespace NinjaTrader.NinjaScript.Indicators
         public TextPosition InfoBoxPosition { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name = "Distance unit", GroupName = "Labels", Order = 3)]
+        [Range(0, 2000)]
+        [Display(Name = "Info box offset from top (px)", GroupName = "Labels", Order = 3)]
+        public int InfoBoxTopOffset { get; set; }
+
+        [NinjaScriptProperty]
+        [Display(Name = "Distance unit", GroupName = "Labels", Order = 4)]
         public EagfDistanceUnit DistanceUnit { get; set; }
 
         [NinjaScriptProperty]
