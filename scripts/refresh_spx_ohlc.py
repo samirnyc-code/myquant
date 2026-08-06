@@ -23,6 +23,14 @@ def main():
     print(f"wrote {OUT}  {len(df)} rows  {df.index.min().date()} -> {df.index.max().date()}")
     print(df.tail(3).to_string())
 
+    # VIX too (EM needs it; vix_daily_full.csv was stale at 2026-07-17)
+    v = yf.download("^VIX", start="1990-01-01", auto_adjust=False, progress=False)[["Close"]].round(2)
+    v.columns = ["vix"]
+    v.index.name = "Date"
+    vout = ROOT / "data" / "vix_daily_full.csv"
+    v.to_csv(vout)
+    print(f"wrote {vout}  {len(v)} rows  -> {v.index.max().date()}  last vix {v['vix'].iloc[-1]}")
+
 
 if __name__ == "__main__":
     main()
