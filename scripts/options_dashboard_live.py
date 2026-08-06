@@ -27,6 +27,7 @@ import sys
 import threading
 import urllib.parse
 import webbrowser
+import zlib
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -56,7 +57,11 @@ TOKEN = load_token()
 
 # Files that, when they change, mean the page needs a rebuild (cards / journal /
 # results / game-plan status). Today's gameplan is resolved lazily in gen_stamp.
-WATCH = [LOG / "trades.parquet", LOG / "journal.json", SIM / "sim_ledger.csv", SIM / "marks.csv"]
+# marks.csv is deliberately NOT watched: it rewrites every ~2 min all session and
+# forced a full reload+rebuild each time (tab stuck "loading"). Live P&L/spot
+# reach the page through the 5s /state.json poll; only trade/journal/plan
+# changes need the hard reload.
+WATCH = [LOG / "trades.parquet", LOG / "journal.json", SIM / "sim_ledger.csv"]
 
 
 def _watch_files():
@@ -71,8 +76,16 @@ _last_gen = [None]
 
 
 def gen_stamp():
-    """Integer that changes whenever any watched file is written."""
-    return int(sum(f.stat().st_mtime_ns for f in _watch_files() if f.exists()) % 2_000_000_000)
+    """Integer that changes whenever any watched file's CONTENT changes.
+    mtime is not enough: the trigger daemon rewrites the day's gameplan every
+    ~2 min with identical bytes, which must not reload the page."""
+    h = 0
+    for f in _watch_files():
+        try:
+            h = zlib.crc32(f.read_bytes(), h)
+        except OSError:
+            pass
+    return h
 
 
 def live_json():
