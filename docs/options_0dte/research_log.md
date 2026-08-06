@@ -115,3 +115,19 @@ VIX tailwind on recent $, zero crisis data.
 5. Crisis stress: worst in-sample days + a synthetic gap-down shock
 
 ---
+
+## Cycle 6 (gap as a DIRECTIONAL signal) — `options_0dte_gap_directional.py`
+
+Tested on FULL SPX cash 1990-2026 (9,214 days). Gap is a MOMENTUM signal (corr +0.16,
+continuation), NOT mean-reversion (that hypothesis lost, Sharpe −4). "Go with the gap,
+exit at close" (|gap|>0.15%, net 0.02% cost):
+- 1990-2018 Sharpe **5.94** (+132%/yr) · 2019-2022 Sharpe **3.22** · **2023-2026 Sharpe −0.06 (DEAD)**
+- Classic gap-and-go, arbitraged away ~2023 (0DTE + systematic overnight flow).
+
+**Regime insight (the real payoff):** gap-momentum (trending) and premium-selling (choppy)
+are the SAME regime coin, opposite faces. The 2023-26 regime that killed momentum is exactly
+what makes short-vol premium-selling pay. **If gap-momentum revives, the 0DTE premium desk
+will start bleeding — it's a leading kill-switch signal for the desk.**
+
+Not tradeable directionally now. Value = the regime read + a monitor: track rolling
+gap→intraday corr; when it turns decisively positive again, cut premium-selling size.
