@@ -1,5 +1,39 @@
 # 0DTE SPXW premium-selling — autonomous research log
 
+## ★ CONSOLIDATED STATE (after Cycles 1-4)
+
+**Candidate book:** open-anchored IC (or BPS), skip up-gaps > +0.2%, **hold to expiry**,
+1-EM short / 25-wide. No intraday stop.
+
+**What's real:**
+- VRP harvest — market moves ~0.5× implied EM every year (stable, the durable edge).
+- Execution-robust: positive even at worst-case cross fills (break-even fill fraction > 1).
+- Passed true OOS (threshold locked on 2023-24 → 2025-26 held).
+- Defined-risk: single-day loss capped ~−$2,300/contract (no naked blowup).
+
+**What's fragile / unproven:**
+- Recent $ is VIX-tailwind-inflated (credit $133→$180 as VIX 15→19); base strategy is flat.
+- Gap filter is in-sample (mitigated by OOS + monotonic sweep + economic logic, not eliminated).
+- **Un-hedged crash tail** — crashes are down-gaps the filter does NOT skip; BPS's big losses
+  are 100% down days. A crash streak ≈ −$2.3k/contract/day.
+- IC & BPS are 0.81 correlated — no diversification from running both.
+- **Zero crisis data** — 0DTE has no pre-2023 history; never stress-tested in a real bear.
+- Intraday STOPS do NOT help (mid-fill mirage; fill worst exactly when they fire).
+
+**Realistic expectation:** ~20% (worst-case fills) to ~33% (mid, recent regime) per year on
+~$20k/contract, LUMPY (29% red months, −$3k worst month), with a fat un-hedged left tail.
+NOT a $500/mo annuity. Best next step to change the risk profile: a cheap far-OTM tail hedge.
+
+**Cycle 5 result — static tail hedge FAILS.** A continuous long put at 2-3× EM below open
+drags ~$75/day (~$40k over 522 days), pays only 2-4× in a no-crisis sample: Sharpe 1.47→0.2,
+worst day WORSE. Crash tail is real but not cheaply hedgeable with a static long put; a real
+defense must be regime-conditional (hedge only on stress signals) or via sizing-down.
+
+**Queued (Cycle 6+):** regime-conditional hedge/sizing (VIX or term-structure trigger);
+entry-time sweep; day-of-week (M/W/F vs Tu/Th 0DTE); put-spread hedge (cheaper than long put).
+
+---
+
 Running log of hypotheses tested, results, and next ideas. Newest cycle at top.
 Data: OPRA.PILLAR cbbo-1m, 841 sessions 2023-03-28 → 2026-08-04, ±200pt 0DTE grid.
 Engine: `options_0dte_backtest.py` (hold-to-expiry) + `options_0dte_exits.py` (intraday).
@@ -48,13 +82,36 @@ on IC & BPS (open anchor, mid fills). Baseline = hold-to-expiry.
 - Path-dependency / whipsaw: stop out then market reverts. Year-by-year needed.
 - Per-trade P&L for all configs saved to `exit_trades.parquet` for fast slicing.
 
-### Cycle 2 ideas (queued)
-1. Verify BPS-stop year-by-year + cross fills (is Sharpe 1.25 real or 2024-ish + mid-flattered?)
-2. Finer stop grid (1.25/1.75/2.5) + pure-stop on IC
-3. Stop × gap-filter interaction (do they stack or overlap?)
-4. Delta-based strikes (Δ0.16 short) vs fixed-EM — adapts to smile/skew
-5. Width by % of spot (not fixed 25pt) — fixes the drift found in the regime diag
-6. Size by VIX/gap instead of filtering (keep all days, weight the good ones)
-7. Entry-time sweep (09:30 vs 10:00 vs 11:00) — is the open the best entry?
+---
+
+## Cycle 2 (cross-fill reality) — the decisive execution check
+
+Added worst-case CROSS fills + BCS to the exit engine. Verdict:
+
+- **At worst-case cross fills, unfiltered/stop configs are NEGATIVE.** BPS stop@2× mid
+  Sharpe 1.25 → CROSS Sharpe −0.24. The edge (~$6-13/trade) is smaller than the spread.
+- **The stop's Sharpe 1.25 was a MID-FILL MIRAGE.** Stops fire on fast moves when the
+  spread is WIDEST, so realistic exit fills ≈ worst-case. Hold-to-expiry crosses the
+  spread only ONCE (entry) and settles at exact intrinsic → far more slippage-robust.
+- **Break-even fill fraction (0=mid, 1=worst cross; >1 = profitable even at worst-case):**
+  - IC skip-up-gaps hold-to-exp: **f=2.59** (cross +$26.3/trade)
+  - BPS skip-up-gaps hold-to-exp: **f=4.00** (cross +$25.1/trade)
+  - IC all-days hold-to-exp: f=0.83 · BPS stop@2×+gap: f=1.23
+
+**CONCLUSION (inverts Cycle 1): do NOT use intraday stops.** The gap filter alone removes
+the up-gap tail, and hold-to-expiry is inherently slippage-robust. The candidate book is:
+**open-anchored IC (and/or BPS), skip up-gaps > +0.2%, hold to expiry, no stop** — the only
+thing tested that is positive even at worst-case fills, positive every year, and passed OOS.
+
+Remaining doubts unchanged: gap filter in-sample (but OOS-validated + economically motivated),
+VIX tailwind on recent $, zero crisis data.
+
+### Cycle 3 ideas (queued)
+1. Structural sweep: short-strike distance {0.75/1.0/1.25 EM} × width {10/25/50} — is fixed
+   25pt / 1-EM optimal? (hold-to-exp, gap-filtered, mid+cross) — FAST (entry+settle only)
+2. IC+BPS portfolio combine (correlation, combined equity/DD)
+3. Entry-time sweep (09:30 / 10:00 / 11:00) + day-of-week (0DTE M/W/F vs Tu/Th)
+4. Size-by-VIX (credit scales with VIX; does vol-targeting size help?)
+5. Crisis stress: worst in-sample days + a synthetic gap-down shock
 
 ---
