@@ -22,6 +22,11 @@ Statuses: `proposed` → `approved` → `implemented` → `measuring (n=X)` → 
 | 10 | Evening task registered after its start boundary → never fired day 1 | 08-05 incident | 08-05 | **implemented** | manual retry-loop caught 08-04; task fires correctly from 08-05 |
 | 11 | VIX-regime band scaling (widen band VIX>25) — validated in the 1,183-session backtest, not yet live | gexlog repo backtest | 08-04 | **parked** | VIX ~16 now; wire `band_k(vix)` into the gameplan when VIX regime shifts or after base sample accrues |
 | 12 | Rich-credit vs thin-credit asymmetry: day-1 flies (fat credits) beat far condors (thin credits) on the trend day | 08-04 P&L | 08-04 | **measuring** | hypothesis: min-credit floor higher than $0.10, or credit-scaled sizing; needs ≥20 days |
+| 13 | Capture VIX-up-with-rally "protection bid" flag (their emphasis 2 days running; our 1990-study says not bearish — record, don't trade) | 08-04/05 evening reads | 08-05 | **measuring** | `vix_change` in daily_summary; intraday VIX path not yet captured |
+| 14 | Wing width responsive to event days ("if holding, use wider wings" — we are fixed 25pt) | 08-05 evening guidance | 08-06 | **proposed** | needs the minute-data sims to price wider wings honestly |
+| 15 | Wing-independent vs both-together vs hold-to-expiry exits | 08-05 user question + fly evidence (+686 vs ~+100 vs −570) | 08-06 | **proposed (sim question)** | replay all three exit modes over the 2-yr minute data |
+| 16 | Combo (BAG) atomic orders — orphan cure | 08-05 incident (−$730) | 08-06 | **implemented (combo-first + fallback)** | RTH-only, so first live proof = 08-06 open; fallback = old path |
+| 17 | Premarket-data days (08:30 ET cluster) clear BEFORE our bell — WAIT shift unnecessary on those days; distinguish premarket vs intraday catalysts in the wait rule | 08-05 evening (Productivity 08:30 ET) | 08-06 | **proposed** | wait rule currently keys on playbook text only |
 
 ## How to add a row
 One line per idea, always with a source and a date. When acted on, update status
