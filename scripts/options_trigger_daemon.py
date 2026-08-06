@@ -163,11 +163,14 @@ def build_legs(struct, spot):
 
 
 import os
-COMBO_ORDERS = os.environ.get("MYQUANT_COMBO_ORDERS", "0") == "1"
+COMBO_ORDERS = os.environ.get("MYQUANT_COMBO_ORDERS", "1") == "1"
 # ATOMIC COMBO (BAG) ORDERS — 2026-08-05, after two ITM shorts missed their fills
 # and orphaned their long wings (-$730). A BAG order fills both legs together or
-# not at all: no sequencing gap, no orphan possible. Flag stays OFF until the
-# live sign-convention test (scripts/combo_test.py) passes on paper.
+# not at all: no sequencing gap, no orphan possible.
+# DEFAULT ON as COMBO-FIRST WITH FALLBACK (08-05 night): combos are RTH-only so
+# the overnight test couldn't fill; the daemon therefore TRIES the atomic combo
+# and falls back to the sequential leg path if the combo can't quote/fill.
+# Worst case = today's behavior; whenever combos work, orphans are impossible.
 
 
 def combo_contract(ib, exp, legs):
@@ -600,6 +603,7 @@ def manage_open(ib, plan, spot, dry):
             print(f"  [DRY] WOULD CLOSE {tid}: {why}")
             trig["exited"] = True
             continue
+        cost = None
         if use_combo:
             # ATOMIC close: SELL the same bag we bought at entry (both legs together)
             try:
@@ -609,9 +613,9 @@ def manage_open(ib, plan, spot, dry):
                 cost = close_combo(ib, bag, plan["execution"]["size"])
                 print(f"  ATOMIC combo close {tid}: cost {cost:+.2f}")
             except Exception as e:
-                print(f"  ! exit FAILED {tid} (combo): {e}")
-                continue
-        else:
+                print(f"  combo close failed ({e}) — falling back to sequential legs")
+                cost = None
+        if cost is None:
             try:
                 _, quoted = quote_legs(ib, exp, close_legs)
             except Exception as e:
@@ -662,14 +666,21 @@ def fire(ib, trig, spot, plan, reason, dry):
         return
     # 1. QUOTE — no order exists yet, so every gate below is free to say no.
     use_combo = COMBO_ORDERS and trig["structure"].get("kind") == "vertical"
+    quoted = None
     try:
+        est_net = None
         if use_combo:
-            _bag = combo_contract(ib, exp, legs)
-            _cbid, _cask = quote_combo(ib, _bag)
-            if _cbid is None:
-                raise RuntimeError("no combo quote")
-            est_net, quoted = -_cask, None      # BUY at ask; negative price = credit
-        else:
+            try:
+                _bag = combo_contract(ib, exp, legs)
+                _cbid, _cask = quote_combo(ib, _bag)
+                if _cbid is not None and -_cask > 0:     # sane credit sign
+                    est_net = -_cask                      # BUY at ask; negative price = credit
+                else:
+                    use_combo = False                     # weird quote -> fall back
+            except Exception as ce:
+                print(f"  combo quote unavailable ({ce}) — falling back to legs")
+                use_combo = False
+        if est_net is None:
             est_net, quoted = quote_legs(ib, exp, legs)
     except Exception as e:
         print(f"  ! {trig['id']} quote FAILED: {e}")
@@ -689,13 +700,20 @@ def fire(ib, trig, spot, plan, reason, dry):
 
     # 3. EXECUTE — only now do real orders hit the account.
     try:
+        net = None
         if use_combo:
-            net, _ = place_combo(ib, exp, legs, plan["execution"]["size"])
-            filled = [{"side": "sell" if a == "SELL" else "buy", "right": rt,
-                       "strike": float(k), "expiry": exp, "qty": plan["execution"]["size"]}
-                      for rt, k, a in legs]
-            print(f"  ATOMIC combo fill: net {net:+.2f}")
-        else:
+            try:
+                net, _ = place_combo(ib, exp, legs, plan["execution"]["size"])
+                filled = [{"side": "sell" if a == "SELL" else "buy", "right": rt,
+                           "strike": float(k), "expiry": exp, "qty": plan["execution"]["size"]}
+                          for rt, k, a in legs]
+                print(f"  ATOMIC combo fill: net {net:+.2f}")
+            except Exception as ce:
+                print(f"  combo did not fill ({ce}) — falling back to sequential legs")
+                net = None
+        if net is None:
+            if quoted is None:
+                est_net, quoted = quote_legs(ib, exp, legs)
             net, filled = place_legs(ib, exp, quoted, plan["execution"]["size"])
     except Exception as e:
         print(f"  ! {trig['id']} fire FAILED after gates passed: {e}")
