@@ -675,6 +675,48 @@ def bands_svg(gp, live_spot=None):
             f"<div style='padding:2px 10px 8px;font-size:12.5px'>{legend}</div></div>")
 
 
+def today_credit_line(trades):
+    """Headline: today's credit collected, realized, open unrealized, buy-back cost."""
+    import datetime as _dt
+    from zoneinfo import ZoneInfo as _ZI
+    today = _dt.datetime.now(_ZI("America/Chicago")).strftime("%Y-%m-%d")
+    td = trades[trades.entry_dt.astype(str).str.startswith(today)].copy()
+    if not len(td):
+        return ""
+    td["credit"] = pd.to_numeric(td.credit, errors="coerce").fillna(0)
+    credit = float(td.credit.clip(lower=0).sum()) * 100          # premium sold today
+    closed = td[td.exit_dt.notna()]
+    realized = float(pd.to_numeric(closed.pnl, errors="coerce").sum()) if len(closed) else 0.0
+    open_ = td[td.exit_dt.isna()]
+    open_credit = float(open_.credit.clip(lower=0).sum()) * 100
+    # unrealized from marks
+    unreal = None
+    mf = SIM / "marks.csv"
+    if mf.exists() and len(open_):
+        try:
+            mk = pd.read_csv(mf).groupby("trade_id").last()
+            vals = [mk.unreal_pnl.get(t) for t in open_.trade_id]
+            vals = [v for v in vals if v is not None and v == v]
+            unreal = float(sum(vals)) if vals else None
+        except Exception:
+            unreal = None
+    buyback = (open_credit - unreal) if unreal is not None else None
+    def m(v, signed=True):
+        return money(v, signed)
+    parts = [f"credit collected <b style='color:#5b9dd9'>{m(credit, False)}</b>",
+             f"realized <b class='{'pos' if realized >= 0 else 'neg'}'>{m(realized)}</b>",
+             f"open {len(open_)} (sold for {m(open_credit, False)})"]
+    if unreal is not None:
+        parts.append(f"open P&L <b class='{'pos' if unreal >= 0 else 'neg'}'>{m(unreal)}</b>")
+        parts.append(f"buy-back cost now <b style='color:#e0a04d'>{m(buyback, False)}</b>")
+        day = realized + unreal
+        parts.append(f"→ day if closed now <b class='{'pos' if day >= 0 else 'neg'}' "
+                     f"style='font-size:15px'>{m(day)}</b>")
+    return ("<div style='background:#131826;border:1px solid #2a3245;border-radius:8px;"
+            "padding:8px 12px;margin:6px 0;font-size:13px'>📊 <b>TODAY</b> · "
+            + " · ".join(parts) + "</div>")
+
+
 def pnl_summary_html(trades):
     """Running-P&L summary table for the main page — split by center (EOD vs Open)
     and structure. Realized (closed) P&L; open counts shown separately."""
@@ -713,7 +755,7 @@ def pnl_summary_html(trades):
             sub = df[(df.center == c) & (df.struct == s)]
             if len(sub):
                 combo_rows += f"<tr><td class='muted'>{c} · {s}</td>{block(sub)}</tr>"
-    return f"""<div class="pnlsum">
+    return today_credit_line(df) + f"""<div class="pnlsum">
       <b>Running P&L — by center (EOD vs Open)</b>
       <table class="sumtab">{hdr}{center_rows}{total}</table>
       <b style="display:block;margin-top:10px">By structure</b>
