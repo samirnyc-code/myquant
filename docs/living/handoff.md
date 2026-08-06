@@ -1,6 +1,53 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** August 4, 2026 (S94: PREMIUM DESK LIVE — MQ purged, GexLog-driven, day 1 traded)
+**Last Updated:** August 6, 2026 (S95: Databento 0DTE pull + full backtest research arc)
+
+---
+
+## S95 (2026-08-06) — Databento 0DTE intraday pull + 0DTE premium-selling backtest (branch `s75-live-dashboard`)
+
+**Full detail: `docs/options_0dte/research_log.md` (consolidated state at top).**
+
+### Data bought (~$46 of the $125 Databento credit; card NOT charged — credit covered it)
+- **OPRA.PILLAR cbbo-1m (1-min NBBO), 0DTE SPXW, 2023-03-28 → 2026-08-04**, calls+puts,
+  prior_close ±200pt grid. 77 batch jobs, ~21GB DBN → `data/databento/0dte_spxw_cbbo1m/`
+  (gitignored). Parsed to lean per-day 0DTE parquet `data/databento/0dte_parsed/` (841 days).
+- **COST LESSON (committed):** `get_cost` == the bill ONLY when its params match the submit
+  exactly. I priced per-day (~$7.70) but submitted ~11-day chunk ranges, so each option was
+  pulled across all its pre-expiry days (~5×). Actual ~$46 for a SUPERSET (0DTE + 1-15 DTE).
+  Manifest of 77 job IDs: `data/databento/_0dte_jobs.json` (tracked — irreplaceable).
+- **Databento key rotated? NO — still exposed in chat (2nd account key). ROTATE IT.**
+- Also pulled earlier this session: ORATS Mag7 + SPX-to-2007 (see the OLDER S75T block below).
+- New: `data/spx_daily_ohlc.csv` (Yahoo ^GSPC OHLC, has OPEN) + VIX refreshed to 8/06.
+
+### Backtest — what's real vs not (open-anchored EM band; `scripts/options_0dte_*.py`)
+Structures: bull-put (bps), bear-call (bcs), iron condor (ic), iron fly (ifly), 25-wide.
+- **Open-anchored band >> close-anchored** on every directional structure (the gap carries info).
+- **Candidate book: open IC (or BPS), skip up-gaps>+0.2%, HOLD TO EXPIRY, 1-EM/25-wide.**
+  Positive even at worst-case cross fills (break-even fill fraction >1), positive every year,
+  passed true OOS. Mid ~33%/yr, cross ~20%/yr on ~$20k/contract; LUMPY (29% red months).
+- **Intraday STOPS do NOT help** — mid-fill mirage (fill worst exactly when they fire).
+  Profit targets alone hurt (commission churn). Hold-to-expiry is execution-robust.
+- **Width = leverage not edge; 1-EM/25-wide near-optimal.** IC & BPS 0.81 corr (no diversification).
+- **⚠ NOT a green light.** Recent $ is VIX-tailwind-inflated (base strategy flat); gap filter
+  in-sample (OOS-mitigated); **un-hedged crash tail** (crashes are down-gaps the filter takes;
+  static long-put hedge FAILED — drag >> payoff); **ZERO crisis data** (0DTE has no pre-2023
+  history). Durable piece = VRP (realized ≈ 0.5× implied every year). Defined-risk caps single
+  day ~−$2.3k/contract (no blowup), but a crash streak ≈ −$2.3k/contract/day.
+
+### Databento scoping (researched, NOT bought)
+- No SPX index intraday exists on Databento (PCAP-only $750/mo). ES=`GLBX.MDP3`/`ES.v.0`/`trades`.
+- `options_data_vendors.md` CORRECTION: Databento HAS open interest (statistics schema,
+  stat_type=9), lacks greeks/IV. ORATS↔Databento are complements (greeks vs microstructure).
+
+### Forward sim (running)
+`scripts/options_0dte_forward.py` — separate paper ledger from 2026-08-05, logs daily gap%
+(unfiltered), IC+BPS, retries live-gated days. `data/options_0dte/forward_pnl.csv`.
+
+### NEXT (Cycle 6+, all free — data on disk)
+Regime-conditional hedge/sizing (VIX or term-structure trigger — the one real tail defense left);
+entry-time sweep; day-of-week (M/W/F vs Tu/Th 0DTE); model the desk's actual 14:45/short-strike
+exits vs hold-to-expiry. **Do NOT trade this off the backtest — crisis-untested + VIX-flattered.**
 
 ---
 
