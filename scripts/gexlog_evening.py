@@ -120,6 +120,16 @@ def main():
         print("pushed evening recap to Telegram")
     except Exception as e:
         print(f"telegram recap skipped: {e}")
+    # nightly: retire the dashboard server so tomorrow's 08:25 task starts FRESH CODE
+    # (a long-running instance blocks the task and serves stale builds — 08-06 lesson)
+    try:
+        import subprocess as _sp
+        _sp.run(["powershell", "-NoProfile", "-Command",
+                 "Get-NetTCPConnection -State Listen -LocalPort 8600 -ErrorAction SilentlyContinue | "
+                 "ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }"], timeout=30)
+        print("dashboard server retired (fresh start tomorrow 08:25)")
+    except Exception as _e:
+        print(f"dashboard retire skipped: {_e}")
     # nightly: refresh the one-row-per-day comparison table
     try:
         import subprocess
