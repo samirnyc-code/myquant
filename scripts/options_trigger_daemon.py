@@ -205,7 +205,8 @@ def place_combo(ib, exp, legs, qty, retries=1):
         bid, ask = quote_combo(ib, bag)
         if bid is None:
             raise RuntimeError("no combo quote")
-        tr = ib.placeOrder(bag, LimitOrder("BUY", qty, round(ask, 2)))
+        o = LimitOrder("BUY", qty, round(ask, 2)); o.tif = "DAY"
+        tr = ib.placeOrder(bag, o)
         ib.sleep(8)
         if tr.orderStatus.status == "Filled":
             px = tr.orderStatus.avgFillPrice
@@ -223,7 +224,8 @@ def close_combo(ib, bag, qty, retries=1):
         bid, ask = quote_combo(ib, bag)
         if bid is None:
             raise RuntimeError("no combo quote to close")
-        tr = ib.placeOrder(bag, LimitOrder("SELL", qty, round(bid, 2)))
+        o = LimitOrder("SELL", qty, round(bid, 2)); o.tif = "DAY"
+        tr = ib.placeOrder(bag, o)
         ib.sleep(8)
         if tr.orderStatus.status == "Filled":
             return -tr.orderStatus.avgFillPrice
