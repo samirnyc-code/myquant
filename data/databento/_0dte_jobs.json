@@ -1,0 +1,701 @@
+{
+  "dataset": "OPRA.PILLAR",
+  "schema": "cbbo-1m",
+  "band_pts": 200,
+  "created": "2026-08-06T09:36:55",
+  "jobs": [
+    {
+      "job_id": "OPRA-20260806-95WSEKFWG5",
+      "start": "2023-03-28",
+      "end": "2023-04-13",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-LRRBQPB488",
+      "start": "2023-04-13",
+      "end": "2023-04-28",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-LSNW5R37T3",
+      "start": "2023-04-28",
+      "end": "2023-05-13",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-DBRGMYN6KG",
+      "start": "2023-05-15",
+      "end": "2023-05-31",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-C9V6QRJREE",
+      "start": "2023-05-31",
+      "end": "2023-06-15",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-9MDRQ5EPV8",
+      "start": "2023-06-15",
+      "end": "2023-07-01",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-LC5L3SL6RK",
+      "start": "2023-07-03",
+      "end": "2023-07-19",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-AE5S8LQHHU",
+      "start": "2023-07-19",
+      "end": "2023-08-03",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-MXW5G9FBNU",
+      "start": "2023-08-03",
+      "end": "2023-08-18",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-5LCGG5E6X4",
+      "start": "2023-08-18",
+      "end": "2023-09-02",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-8FH56NAPC4",
+      "start": "2023-09-05",
+      "end": "2023-09-20",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-G9U5L3PMLM",
+      "start": "2023-09-20",
+      "end": "2023-10-05",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-RFU9YXE9G9",
+      "start": "2023-10-05",
+      "end": "2023-10-20",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-7JT5UHRYFX",
+      "start": "2023-10-20",
+      "end": "2023-11-04",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-KWH7HBXGN4",
+      "start": "2023-11-06",
+      "end": "2023-11-21",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-SFRSF479XA",
+      "start": "2023-11-21",
+      "end": "2023-12-07",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-GUE3Q8NPTV",
+      "start": "2023-12-07",
+      "end": "2023-12-22",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-VP5YHWYA6P",
+      "start": "2023-12-22",
+      "end": "2024-01-10",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-F4BVCLEG56",
+      "start": "2024-01-10",
+      "end": "2024-01-26",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-EK77J7B95P",
+      "start": "2024-01-26",
+      "end": "2024-02-10",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-KD43LF6MMU",
+      "start": "2024-02-12",
+      "end": "2024-02-28",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-X98XW9TA3L",
+      "start": "2024-02-28",
+      "end": "2024-03-14",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-PCWT6L79QV",
+      "start": "2024-03-14",
+      "end": "2024-03-29",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-UN6TE4EGPW",
+      "start": "2024-04-01",
+      "end": "2024-04-16",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-NHUWBJ96NY",
+      "start": "2024-04-16",
+      "end": "2024-05-01",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-3QN793SEB4",
+      "start": "2024-05-01",
+      "end": "2024-05-16",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-HU3EFF9D6X",
+      "start": "2024-05-16",
+      "end": "2024-06-01",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-647B8955WN",
+      "start": "2024-06-03",
+      "end": "2024-06-18",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-XMFMA58VCR",
+      "start": "2024-06-18",
+      "end": "2024-07-04",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-8XAY6WUMXX",
+      "start": "2024-07-05",
+      "end": "2024-07-20",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-G3MK58H5LU",
+      "start": "2024-07-22",
+      "end": "2024-08-06",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-ACEFEEPYGF",
+      "start": "2024-08-06",
+      "end": "2024-08-21",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-CQA3TF7WWP",
+      "start": "2024-08-21",
+      "end": "2024-09-06",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-EBJ5KNBWQJ",
+      "start": "2024-09-06",
+      "end": "2024-09-21",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-FLWBUMRVU6",
+      "start": "2024-09-23",
+      "end": "2024-10-08",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-U7BR6394SW",
+      "start": "2024-10-08",
+      "end": "2024-10-23",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-7FWTTC48C6",
+      "start": "2024-10-23",
+      "end": "2024-11-07",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-DQV6FEE8UT",
+      "start": "2024-11-07",
+      "end": "2024-11-22",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-M6JHKEUMRQ",
+      "start": "2024-11-22",
+      "end": "2024-12-10",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-RQNFYFN6UH",
+      "start": "2024-12-10",
+      "end": "2024-12-25",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-AR4GB4QTGU",
+      "start": "2024-12-26",
+      "end": "2025-01-14",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-U8P545DTKN",
+      "start": "2025-01-14",
+      "end": "2025-01-30",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-CQYMEUS7JN",
+      "start": "2025-01-30",
+      "end": "2025-02-14",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-FA8XFSS8CQ",
+      "start": "2025-02-14",
+      "end": "2025-03-04",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-WH7JDJH3FC",
+      "start": "2025-03-04",
+      "end": "2025-03-19",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-4G3VD5JGS7",
+      "start": "2025-03-19",
+      "end": "2025-04-03",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-Q5MVHXJHMU",
+      "start": "2025-04-03",
+      "end": "2025-04-18",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-9X74J6JUB6",
+      "start": "2025-04-21",
+      "end": "2025-05-06",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-A4ABY849WB",
+      "start": "2025-05-06",
+      "end": "2025-05-21",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-4VQ7AUGWJL",
+      "start": "2025-05-21",
+      "end": "2025-06-06",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-WJ9NT9C3AU",
+      "start": "2025-06-06",
+      "end": "2025-06-24",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-UVL6WTWVBB",
+      "start": "2025-06-24",
+      "end": "2025-07-10",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-5EAKYC5T5T",
+      "start": "2025-07-10",
+      "end": "2025-07-25",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-MQTYEE88YC",
+      "start": "2025-07-25",
+      "end": "2025-08-09",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-4QMWNWKRKJ",
+      "start": "2025-08-11",
+      "end": "2025-08-26",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-VUNHRGMDXU",
+      "start": "2025-08-26",
+      "end": "2025-09-11",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-ADCWQF6TP6",
+      "start": "2025-09-11",
+      "end": "2025-09-26",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-QUG5TFRHNX",
+      "start": "2025-09-26",
+      "end": "2025-10-11",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-4Y3AVCACGY",
+      "start": "2025-10-13",
+      "end": "2025-10-28",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-JTTQEV8YY9",
+      "start": "2025-10-28",
+      "end": "2025-11-12",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-53XNVBUTDC",
+      "start": "2025-11-12",
+      "end": "2025-11-27",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-JU3U8MQJV8",
+      "start": "2025-11-28",
+      "end": "2025-12-13",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-RVPD3B6F57",
+      "start": "2025-12-15",
+      "end": "2025-12-31",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-6Y5UVQLJRW",
+      "start": "2025-12-31",
+      "end": "2026-01-16",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-KF4GJQVMUH",
+      "start": "2026-01-16",
+      "end": "2026-02-03",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-46LSQ6M4GC",
+      "start": "2026-02-03",
+      "end": "2026-02-19",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-QBMKUS5NP6",
+      "start": "2026-02-19",
+      "end": "2026-03-06",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-SUMJSYHE5M",
+      "start": "2026-03-06",
+      "end": "2026-03-21",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-VW3SMKJUV6",
+      "start": "2026-03-23",
+      "end": "2026-04-08",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-MU6RVSS6YM",
+      "start": "2026-04-08",
+      "end": "2026-04-23",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-CPFUVQF3DV",
+      "start": "2026-04-23",
+      "end": "2026-05-08",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-YCYYG9G4DQ",
+      "start": "2026-05-08",
+      "end": "2026-05-23",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-Q5X58FVST3",
+      "start": "2026-05-26",
+      "end": "2026-06-10",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-QEJVFGY6H4",
+      "start": "2026-06-10",
+      "end": "2026-06-26",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-VL9LMHGDGJ",
+      "start": "2026-06-26",
+      "end": "2026-07-14",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-6CKJAXJHLP",
+      "start": "2026-07-14",
+      "end": "2026-07-29",
+      "n_sessions": 11,
+      "n_symbols": 1782,
+      "cost_usd": 0.0,
+      "billed_size": null
+    },
+    {
+      "job_id": "OPRA-20260806-SMGLLMA6RK",
+      "start": "2026-07-29",
+      "end": "2026-08-05",
+      "n_sessions": 5,
+      "n_symbols": 810,
+      "cost_usd": 0.0,
+      "billed_size": null
+    }
+  ]
+}
