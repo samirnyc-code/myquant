@@ -1,6 +1,38 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** August 6, 2026 (S95: Databento 0DTE pull + full backtest research arc)
+**Last Updated:** August 6, 2026 (S96: machine triage + dashboard perpetual-reload fix)
+
+---
+
+## S96 (2026-08-06 evening) — machine load triage + dashboard "always loading" fix (branch `s75-live-dashboard`)
+
+### Dashboard fix (commit 8718ec7e) — tab no longer reloads itself every ~2 min
+Root cause was TWO independent 2-minute reload drivers in `options_dashboard_live.py`:
+1. `marks.csv` was in the WATCH list and `options_mark.py --watch 120` rewrites it every ~2 min.
+2. The trigger daemon rewrites `gameplan_YYYYMMDD.json` every ~2 min with **byte-identical
+   content** — `gen_stamp()` was mtime-based, so identical rewrites still bumped `gen` →
+   `location.reload()` → 2s full dashboard rebuild per cycle (the perpetual spinner).
+Fix: marks.csv removed from WATCH; `gen_stamp()` now CRC32s watched-file contents (all ≤21KB).
+Live P&L tiles + SPX/ES/VIX ticker still update via the 5s `/state.json` poll; hard reload only
+on real trade/journal/ledger/plan content change. **Verified live:** gameplan + marks both
+rewritten, gen stable. Server restarted with new code (port 8600); nightly 08:25 retirement
+keeps serving current code going forward.
+
+### Machine triage (fan/RAM complaints)
+- No runaway process. Load = legitimate stack (IB Gateway ~7%, NT8 ~4%, Chrome ~13% CPU /
+  6.8GB RAM, VS Code ~2.3GB) on the 35W i5-8400T at full turbo → loud fan. RAM was down to
+  1.6GB free of 15.8GB.
+- Killed (user-approved): 3 stale `fib_tool.py` pairs from 7/30+8/1 (newest kept), and
+  thinkorswim with its embedded jxbrowser chromium (~1.75GB freed → 2.6GB free).
+- **⚠ java PID pattern:** the lone `java.exe` was **IB Gateway**, NOT thinkorswim's JVM —
+  verify command line (`Jts|ibgateway|IBC`) before ever killing java.
+- **PUP removed: SYSCLEANER** (`%APPDATA%\Roaming\SYSCLEANER\sclhelper.exe`, signed
+  "Esperanza Pte. Ltd." SG, running since 7/30 with 13,110s cumulative CPU, persisted via
+  Startup-folder `sclhelper.lnk`). Process killed + startup link deleted; Defender custom scan
+  of the folder = clean. Permission system blocked running `uinst.exe`/deleting the folder —
+  **folder remains at `%APPDATA%\Roaming\SYSCLEANER`, user to delete manually.**
+- Still running, offered but not killed: 5 old claude.exe sessions from 8/4–8/5 (~855MB).
+- The 08:31 bell-check `python -c` watcher pair is expected (sleeps until tomorrow 08:31 CT).
 
 ---
 
