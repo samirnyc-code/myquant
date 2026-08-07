@@ -230,6 +230,13 @@ def build_triggers(spot, vix, gx):
     # at 08:30 by the daemon; dynamic strikes are struck from the 09:05 spot.
     # (revised 08-04: EOD strategies keep the 08:30 open entry — their strikes are
     # premarket-fixed; only the entry-spot-dependent streams (open, gexlog) wait.)
+    # SAFE DEFAULT (2026-08-07, NFP-blind lesson): if the brief is missing/blocked/
+    # stale we CANNOT see a WAIT instruction — so assume one. Trading blind at the
+    # bell on an unread event day is the aggressive choice; blind days take the
+    # conservative posture instead.
+    brief_blind = bool(gx.get("error")) or not fresh
+    if brief_blind:
+        gx["playbook_wait"] = True
     if gx.get("playbook_wait"):
         for t in T:
             if t["fire"].get("type") == "time_at" and t.get("stream") in ("open", "gexlog"):
