@@ -1,1 +1,2 @@
 run_at_ct: target 07:30 CT | now 06:30 CT | delta -60min | berlin-chicago 7h | SKIP (other trigger owns this slot)
+run_at_ct: target 07:30 CT | now 07:30 CT | delta +0min | berlin-chicago 7h | RUN: cmd.exe /c C:\IBC\StartGateway.bat /INLINE
