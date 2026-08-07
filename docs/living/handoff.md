@@ -1,8 +1,44 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** August 6, 2026 (S96: machine triage + dashboard perpetual-reload fix)
+**Last Updated:** August 7, 2026 (S97: PATs-Trading project kickoff + Mission Control /pats)
 
 ---
+
+## S97 (2026-08-07) — NEW SIDE PROJECT: PATs-Trading transcript library (separate repo) + Mission Control `/pats`
+
+**Separate repo `C:\Users\Admin\Desktop\PATs-Trading`** (GitHub samirnyc-code/PATs-Trading,
+private). Read ITS `PROJECT.md` first — it is that project's source of truth. Goal: extract
+Mack's PATs methodology from ~2,920 @PATsTrading YouTube recaps (captions only, no video)
++ comments, cross-checked against his manual (`manual/`, gitignored), full corpus +
+longitudinal tone/rule-drift analysis. Key user rulings recorded in PROJECT.md.
+
+### Done today (all committed there)
+- Pipeline: manifest (2,920 videos) → resumable transcript fetcher → comments fetcher →
+  extraction agents → `library/` JSON (`nuggets.json` 657 nuggets/41 videos,
+  `term_counts.json`, `videos.json`, `comments_signal.json`) → `library/index.html`.
+- Synthesis `nuggets/00–05`: glossary, manual baseline (page-cited), Top-10 trade setups
+  (second entry 644 mentions/40 vids; "room to scalp out" = biggest video-only rule),
+  risk (4t target vs 8t stop ⇒ needs ~68–70% real WR to break even), mindset, structure.
+- Comments signal (282 comments): Mack never replies; ≥6 commenters call hindsight bias;
+  losses more concrete than wins; 13% bot share.
+- **myquant change (commit 77120ed9, this branch): launcher.py `/pats` route + 📚 Library
+  dropdown entry "🎯 PATs Library"** serving the PATs page from the other repo. Launcher
+  restarted (user-approved); NOTE: killing launcher coincided with MyQuant Alert Monitor
+  task reviving dashboards — looked like the ES Sim restarting, it wasn't; be careful.
+
+### Open / how to resume
+- **YouTube IP-blocked caption fetch** (home IP + VPN both 429'd; cookies/impersonation/
+  IPv6/alt-clients all tested, don't help). Loop `scripts/run_full_fetch.py` retries every
+  30 min at 22s+jitter pacing; survives nothing — restart it after reboot from the repo
+  (venv python, resumable via `transcripts/_progress.json`). 41/2,920 fetched so far.
+- Free unblock: router reconnect after session close (fresh Telekom IP) or wait ~12–24h.
+  Paid fallback: Webshare rotating residential (~$6) — youtube-transcript-api supports it.
+- As transcripts land: extraction agent batches (template `library/extractions/
+  KQ02L-Ngexs.json`), then `term_counts.py`/`build_library.py`/`build_page.py`
+  (auto_rebuild.py loop does this every 10 min while running).
+- Backlog user liked (S97 suggestion list): trade-reconstruction backtest vs own tick
+  data, PATS-as-mechanical-system backtest, day-type labels → regime validation, NT8
+  indicator pack (2E counter / signal-bar lamp / room gauge / trap detector).
 
 ## S96 (2026-08-06 evening) — machine load triage + dashboard "always loading" fix (branch `s75-live-dashboard`)
 
