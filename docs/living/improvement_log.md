@@ -27,6 +27,16 @@ Statuses: `proposed` → `approved` → `implemented` → `measuring (n=X)` → 
 | 15 | Wing-independent vs both-together vs hold-to-expiry exits | 08-05 user question + fly evidence (+686 vs ~+100 vs −570) | 08-06 | **proposed (sim question)** | replay all three exit modes over the 2-yr minute data |
 | 16 | Combo (BAG) atomic orders — orphan cure | 08-05 incident (−$730) | 08-06 | **implemented (combo-first + fallback)** | RTH-only, so first live proof = 08-06 open; fallback = old path |
 | 17 | Premarket-data days (08:30 ET cluster) clear BEFORE our bell — WAIT shift unnecessary on those days; distinguish premarket vs intraday catalysts in the wait rule | 08-05 evening (Productivity 08:30 ET) | 08-06 | **proposed** | wait rule currently keys on playbook text only |
+| 18 | Anchor condor/fly SHORTS at Call/Put Wall (not EM band) in POSITIVE gamma — walls confirmed to-the-handle 40+ days | archive read | 08-07 | **proposed (high)** | our gexlog stream does this; make it the primary positive-gamma anchor, test wall vs EM containment split by regime |
+| 19 | FADE their forecast label: HIGH-VOL-in-positive-gamma & CHOP-with-catalyst are self-defeating (CHOP 0/26) — stop weighting day_type; weight signal+band | archive read (28% acc) | 08-07 | **proposed (high)** | drop forecast_type from any gating; keep as recorded field only |
+| 20 | Negative-gamma SCHEDULED-EVENT days: reduce size / widen wings / stand aside — EM breaks concentrate here | archive read (EM-hit False cluster) | 08-07 | **proposed (high)** | needs regime (pos/neg) from brief + event calendar; both captured |
+| 21 | Negative gamma + HIGH sector dispersion → range holds (condor-friendly, contra their advice) | archive read (~6 days) | 08-07 | **proposed** | capture sector dispersion from market_context; test as a condor-GO filter |
+| 22 | Manage at 50% of max profit (recurring their rule) — we hold to acceptance/time-stop | archive read | 08-07 | **proposed (sim question)** | replay 50%-TP vs current exit on the 2-yr minute data + forward |
+| 23 | Skew short call TIGHTER than short put at RSI>80 (their asymmetric-skew instruction) — we run symmetric | archive read | 08-07 | **proposed** | rsi_14 captured; add a skew variant stream |
+| 24 | Gap-into-Call-Wall fades at open in positive gamma — pre-position bear-call | archive read (~20 days) | 08-07 | **proposed** | gap_note + walls captured; test |
+| 25 | Enter income POST-print (IV crush) not into it — already partly done via WAIT; formalize as the edge, not just risk-avoidance | archive read | 08-07 | **measuring** | WAIT-day entries; measure post-print vs at-open |
+| 26 | Their signal MOST trustworthy on neg-gamma scheduled-event days — use as a stand-down/directional trigger | archive read | 08-07 | **proposed** | inverse of #20; same inputs |
+| 27 | Regime (pos/neg gamma) + sector dispersion + RSI not yet captured per day for these tests | archive read | 08-07 | **implemented (capture)** | add gamma regime, dispersion, rsi to daily_summary from the brief |
 
 ## How to add a row
 One line per idea, always with a source and a date. When acted on, update status
