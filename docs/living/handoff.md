@@ -119,6 +119,40 @@ exits vs hold-to-expiry. **Do NOT trade this off the backtest — crisis-unteste
 
 ---
 
+## S95-RND (2026-08-05..07) — tick-chart RANDOM-ENTRY baseline: friction floor quantified, 2E-on-ticks dead (`research/tick2000_random/`, branch `s75-live-dashboard`)
+
+**Question:** can simple bracket scalps on ES 2000-tick RTH charts beat random?
+Data: `data/ticks_continuous` (2021-06-18..2026-07-31, 1,287 days, RTH-only).
+Engine (all sims): 2000-tick bars, stop entry 1t beyond signal bar (valid next bar
+only), target limit needs 1-TICK TICK-THROUGH, stops fill on touch (gap = worse
+fill), one position, EOD flatten, **$3.50 RT** ES (user corrected from $4).
+
+**Results (ALL negative — this is the friction-floor baseline):**
+- Direction variants @4t/8t, 2-5 fills/day: EMA21 filter −1.21 t/tr (PF 0.65);
+  random / long-only / short-only −1.13..−1.16. The EMA filter adds NOTHING.
+- 64-combo target×stop sweep {2..24t}: all lose; best 12t/24t −0.53 t/tr (PF 0.94).
+  **Friction floor ≈ 1 t/tr** (stops ≤12t) → ~0.5 t/tr (wide stops). MAE≈MFE
+  (random = zero info). Win% sits ~2-3pts below breakeven in every cell.
+- WF 12m/3m combo-selection: OOS **−$62.5k** chained, 2/17 quarters positive —
+  IS selection on random entries = selecting noise.
+- Hour-of-day: late entries are the LEAST bad (14h+ mildly positive on 12/24);
+  excluding them makes results worse. 13h is the worst hour.
+- **H2/L2 second entries (Brooks 2E) on the tick chart = SAME AS RANDOM** (~8
+  fills/day, best −0.70 t/tr, delta grid ±noise). Consistent with S87: the 2E edge
+  lives in 5-min TIME structure + context gates (PF 1.54 REGIME-2E book on
+  `regime/indep`), NOT in the naked pattern.
+- ABR of 2000t bars by year: 3.82 / 4.91 / 3.49 / 3.99 / 5.27 / 5.50 pts
+  (2021→2026; ALL 4.56 pts = 18.3t); 20d rolling now ~6.2 pts. Chart + per-day CSV
+  committed (`abr_tick2000_*`).
+
+**Standing conclusion:** any entry idea on this chart must clear ~1 t/tr friction
+before edge counts; test with wide stops / EOD holds / context gates (where 2E
+survives), not small fixed brackets. Scripts: `run_tick2000_random.py`,
+`sweep_tick2000_targets.py`, `wf_tick2000.py`, `tick2000_2e.py`, `abr_tick2000.py`,
+`abr_chart.py` (+ dated trade lists/summaries, all committed 66cf8fbd..d2a65259).
+
+---
+
 ## S94 (2026-08-04) — PREMIUM-SELLING DESK: blank slate, GexLog integration, DAY 1 LIVE
 
 **THE RESET (user-mandated):** MenthorQ fully purged from the live options system
