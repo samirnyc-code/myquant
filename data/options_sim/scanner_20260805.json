@@ -1,0 +1,62 @@
+{
+  "date": "20260805",
+  "generated_ct": "2026-08-05 08:45:48 CT",
+  "rows": [
+    {
+      "sym": "SPX",
+      "error": "403 Client Error: Forbidden for url: https://gateway.menthor"
+    },
+    {
+      "sym": "SPY",
+      "error": "403 Client Error: Forbidden for url: https://gateway.menthor"
+    },
+    {
+      "sym": "QQQ",
+      "error": "403 Client Error: Forbidden for url: https://gateway.menthor"
+    },
+    {
+      "sym": "IWM",
+      "error": "403 Client Error: Forbidden for url: https://gateway.menthor"
+    },
+    {
+      "sym": "NVDA",
+      "error": "403 Client Error: Forbidden for url: https://gateway.menthor"
+    },
+    {
+      "sym": "AAPL",
+      "error": "403 Client Error: Forbidden for url: https://gateway.menthor"
+    },
+    {
+      "sym": "MSFT",
+      "error": "403 Client Error: Forbidden for url: https://gateway.menthor"
+    },
+    {
+      "sym": "AMZN",
+      "error": "403 Client Error: Forbidden for url: https://gateway.menthor"
+    },
+    {
+      "sym": "GOOGL",
+      "error": "403 Client Error: Forbidden for url: https://gateway.menthor"
+    },
+    {
+      "sym": "META",
+      "error": "403 Client Error: Forbidden for url: https://gateway.menthor"
+    },
+    {
+      "sym": "TSLA",
+      "error": "403 Client Error: Forbidden for url: https://gateway.menthor"
+    },
+    {
+      "sym": "AMD",
+      "error": "403 Client Error: Forbidden for url: https://gateway.menthor"
+    },
+    {
+      "sym": "NFLX",
+      "error": "403 Client Error: Forbidden for url: https://gateway.menthor"
+    },
+    {
+      "sym": "AVGO",
+      "error": "403 Client Error: Forbidden for url: https://gateway.menthor"
+    }
+  ]
+}

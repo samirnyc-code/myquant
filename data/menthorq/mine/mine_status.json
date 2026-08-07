@@ -1,51 +1,411 @@
 {
-  "ts": "2026-08-04 08:32 ET",
-  "date": "2026-08-04",
+  "ts": "2026-08-05 11:24 ET",
+  "date": "2026-08-05",
   "expected": 200,
-  "ok": 192,
-  "fail": 5,
-  "empty": 3,
-  "coverage_pct": 96.0,
+  "ok": 0,
+  "fail": 200,
+  "empty": 0,
+  "coverage_pct": 0.0,
   "missing": [
     {
-      "sym": "YM1!",
+      "sym": "AAPL",
       "surface": "levels",
-      "why": "HTTPError: 404 Client Error: Not Found for url: https://gatew"
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
     },
     {
-      "sym": "YM1!",
+      "sym": "AAPL",
       "surface": "matrix_eod",
-      "why": "HTTPError: 404 Client Error: Not Found for url: https://gatew"
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
     },
     {
-      "sym": "YM1!",
+      "sym": "AAPL",
       "surface": "matrix_intraday",
-      "why": "HTTPError: 404 Client Error: Not Found for url: https://gatew"
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
     },
     {
-      "sym": "YM1!",
+      "sym": "AAPL",
       "surface": "per_strike",
-      "why": "HTTPError: 404 Client Error: Not Found for url: https://gatew"
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
     },
     {
-      "sym": "YM1!",
+      "sym": "AAPL",
       "surface": "gamma_insights",
-      "why": "empty"
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
     },
     {
-      "sym": "YM1!",
+      "sym": "AAPL",
       "surface": "vol_insights",
-      "why": "HTTPError: 404 Client Error: Not Found for url: https://gatew"
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
     },
     {
-      "sym": "YM1!",
+      "sym": "AAPL",
       "surface": "qscore",
-      "why": "empty"
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
     },
     {
-      "sym": "YM1!",
+      "sym": "AAPL",
       "surface": "swing_levels",
-      "why": "empty"
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "MSFT",
+      "surface": "levels",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "MSFT",
+      "surface": "matrix_eod",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "MSFT",
+      "surface": "matrix_intraday",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "MSFT",
+      "surface": "per_strike",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "MSFT",
+      "surface": "gamma_insights",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "MSFT",
+      "surface": "vol_insights",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "MSFT",
+      "surface": "qscore",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "MSFT",
+      "surface": "swing_levels",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "NVDA",
+      "surface": "levels",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "NVDA",
+      "surface": "matrix_eod",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "NVDA",
+      "surface": "matrix_intraday",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "NVDA",
+      "surface": "per_strike",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "NVDA",
+      "surface": "gamma_insights",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "NVDA",
+      "surface": "vol_insights",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "NVDA",
+      "surface": "qscore",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "NVDA",
+      "surface": "swing_levels",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "AMZN",
+      "surface": "levels",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "AMZN",
+      "surface": "matrix_eod",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "AMZN",
+      "surface": "matrix_intraday",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "AMZN",
+      "surface": "per_strike",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "AMZN",
+      "surface": "gamma_insights",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "AMZN",
+      "surface": "vol_insights",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "AMZN",
+      "surface": "qscore",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "AMZN",
+      "surface": "swing_levels",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "GOOGL",
+      "surface": "levels",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "GOOGL",
+      "surface": "matrix_eod",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "GOOGL",
+      "surface": "matrix_intraday",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "GOOGL",
+      "surface": "per_strike",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "GOOGL",
+      "surface": "gamma_insights",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "GOOGL",
+      "surface": "vol_insights",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "GOOGL",
+      "surface": "qscore",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "GOOGL",
+      "surface": "swing_levels",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "META",
+      "surface": "levels",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "META",
+      "surface": "matrix_eod",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "META",
+      "surface": "matrix_intraday",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "META",
+      "surface": "per_strike",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "META",
+      "surface": "gamma_insights",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "META",
+      "surface": "vol_insights",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "META",
+      "surface": "qscore",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "META",
+      "surface": "swing_levels",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "TSLA",
+      "surface": "levels",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "TSLA",
+      "surface": "matrix_eod",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "TSLA",
+      "surface": "matrix_intraday",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "TSLA",
+      "surface": "per_strike",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "TSLA",
+      "surface": "gamma_insights",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "TSLA",
+      "surface": "vol_insights",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "TSLA",
+      "surface": "qscore",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "TSLA",
+      "surface": "swing_levels",
+      "why": "TimeoutError: Page.goto: Timeout 60000ms exceeded.\nCall log:\n  -"
+    },
+    {
+      "sym": "SPX",
+      "surface": "levels",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "SPX",
+      "surface": "matrix_eod",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "SPX",
+      "surface": "matrix_intraday",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "SPX",
+      "surface": "per_strike",
+      "why": "RuntimeError: no Bearer token captured \u2014 session may be stale"
+    },
+    {
+      "sym": "SPX",
+      "surface": "gamma_insights",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "SPX",
+      "surface": "vol_insights",
+      "why": "RuntimeError: no Bearer token captured \u2014 session may be stale"
+    },
+    {
+      "sym": "SPX",
+      "surface": "qscore",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "SPX",
+      "surface": "swing_levels",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "NDX",
+      "surface": "levels",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "NDX",
+      "surface": "matrix_eod",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "NDX",
+      "surface": "matrix_intraday",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "NDX",
+      "surface": "per_strike",
+      "why": "TimeoutError: Page.goto: Timeout 60000ms exceeded.\nCall log:\n  -"
+    },
+    {
+      "sym": "NDX",
+      "surface": "gamma_insights",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "NDX",
+      "surface": "vol_insights",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "NDX",
+      "surface": "qscore",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "NDX",
+      "surface": "swing_levels",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "RUT",
+      "surface": "levels",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "RUT",
+      "surface": "matrix_eod",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "RUT",
+      "surface": "matrix_intraday",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "RUT",
+      "surface": "per_strike",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "RUT",
+      "surface": "gamma_insights",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "RUT",
+      "surface": "vol_insights",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "RUT",
+      "surface": "qscore",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
+    },
+    {
+      "sym": "RUT",
+      "surface": "swing_levels",
+      "why": "HTTPError: 403 Client Error: Forbidden for url: https://gatew"
     }
   ]
 }

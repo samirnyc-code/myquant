@@ -1,0 +1,25 @@
+cbbo-1m EXACT cost, 829 sessions 2023-03-28..2026-07-17
+(resuming: 0 already priced, $0.0000)
+
+[50/829] 2023-06-07  running total $0.4533
+[100/829] 2023-08-18  running total $0.9150
+[150/829] 2023-10-30  running total $1.3984
+[200/829] 2024-01-11  running total $1.8581
+[250/829] 2024-03-25  running total $2.3301
+[300/829] 2024-06-05  running total $2.8093
+[330/829] 2024-07-19 ERROR 504 The remote gateway timed out.
+[350/829] 2024-08-16  running total $3.2731
+[400/829] 2024-10-28  running total $3.7526
+[450/829] 2025-01-10  running total $4.2278
+[500/829] 2025-03-25  running total $4.7015
+[550/829] 2025-06-05  running total $5.1550
+[563/829] 2025-06-25 ERROR 504 The remote gateway timed out.
+[600/829] 2025-08-18  running total $5.5927
+[650/829] 2025-10-28  running total $6.0428
+[700/829] 2026-01-09  running total $6.4942
+[750/829] 2026-03-24  running total $6.9564
+[800/829] 2026-06-04  running total $7.4196
+[829/829] 2026-07-17  running total $7.6917
+
+EXACT TOTAL (827 sessions): $7.69
+saved -> C:\Users\Admin\myquant\data\databento\_fullcost.json

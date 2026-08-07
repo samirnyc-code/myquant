@@ -1,0 +1,1 @@
+run_at_ct: target 16:39 CT | now 16:38 CT | delta -1min | berlin-chicago 7h | RUN: C:\Users\Admin\myquant\.venv\Scripts\python.exe -c print('SLOT TEST EXECUTED OK')

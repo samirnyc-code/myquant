@@ -1,0 +1,1088 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💹</text></svg>"><title>Options — Forward Sim</title>
+<style>
+:root{--bg:#0b0d12;--panel:#12151c;--panel2:#171b23;--line:#232833;--ink:#e8ebf0;
+--mut:#7d8697;--acc:#5b9bff;--pos:#2fbf8f;--neg:#f0555f;--warn:#e6a84b;--chip:#1c212b;
+/* semantic colors the embedded flip-cards need (their own :root is stripped) */
+--card:#171b23;--card2:#1b202b;--good:#2fbf8f;--crit:#f0555f;--blue:#5b9bff;
+--orange:#eb6834;--vio:#9085e9}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(1200px 600px at 70% -10%,#151b28 0,var(--bg) 60%);
+color:var(--ink);font:14px/1.5 -apple-system,Segoe UI,Inter,system-ui,sans-serif;
+-webkit-font-smoothing:antialiased;padding:26px 30px 60px}
+.wrap{max-width:1180px;margin:0 auto}
+.top{display:flex;align-items:center;gap:14px;margin-bottom:4px}
+h1{font-size:21px;font-weight:700;letter-spacing:-.01em;margin:0}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--pos)}
+.sub{color:var(--mut);font-size:12.5px;margin:2px 0 20px}
+.sub code{background:var(--chip);padding:1px 6px;border-radius:5px;color:var(--ink)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:10px;margin-bottom:22px}
+.tile{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);
+border-radius:13px;padding:13px 15px}
+.tl{color:var(--mut);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.tv{font-size:21px;font-weight:750;margin-top:5px;letter-spacing:-.02em}
+.pos{color:var(--pos)}.neg{color:var(--neg)}.muted{color:var(--mut)}
+.ticker{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 20px}
+.tk{background:var(--chip);border:1px solid var(--line);border-radius:8px;
+padding:6px 11px;font-variant-numeric:tabular-nums;font-size:13px}
+.tk b{color:var(--mut);font-weight:600;font-size:11px;letter-spacing:.03em;
+text-transform:uppercase;margin-right:6px}
+.tk .v{font-weight:700}
+.dot.pulse{box-shadow:0 0 0 0 var(--pos);animation:pulse 2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(47,191,143,.5)}
+70%{box-shadow:0 0 0 7px rgba(47,191,143,0)}100%{box-shadow:0 0 0 0 rgba(47,191,143,0)}}
+/* LIVE status pill */
+.livebadge{display:inline-flex;align-items:center;gap:7px;padding:5px 12px 5px 10px;
+border-radius:999px;font-size:11.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;
+border:1px solid var(--line);background:var(--chip);color:var(--mut);transition:color .3s,background .3s,border-color .3s;user-select:none}
+.livebadge .lb-dot{width:9px;height:9px;border-radius:50%;background:var(--mut)}
+.livebadge.on{color:var(--pos);border-color:rgba(47,191,143,.45);background:rgba(47,191,143,.10)}
+.livebadge.on .lb-dot{background:var(--pos);box-shadow:0 0 0 0 var(--pos);animation:pulse 2s infinite}
+.acc{color:var(--acc)}
+/* levels + regime panel */
+.lvpanel{background:linear-gradient(180deg,var(--panel2),var(--panel));
+border:1px solid var(--line);border-radius:13px;padding:12px 15px;margin:0 0 22px}
+.lvhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.rlabel{font-weight:800;letter-spacing:.06em;font-size:13px;padding:3px 10px;border-radius:8px;
+background:var(--chip)}
+.rlabel.pos{color:var(--pos);box-shadow:inset 0 0 0 1px rgba(47,191,143,.4)}
+.rlabel.neg{color:var(--neg);box-shadow:inset 0 0 0 1px rgba(240,85,95,.4)}
+.lvrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(74px,1fr));gap:7px}
+.lv{background:var(--chip);border:1px solid var(--line);border-radius:9px;padding:7px 6px;
+text-align:center;font-variant-numeric:tabular-nums}
+.lv b{display:block;font-size:9.5px;color:var(--mut);letter-spacing:.06em;margin-bottom:3px}
+.lv span{font-size:15px;font-weight:750}
+.lv.res{border-top:2px solid var(--neg)} .lv.res span{color:var(--neg)}
+.lv.sup{border-top:2px solid var(--pos)} .lv.sup span{color:var(--pos)}
+.lv.piv{border-top:2px solid var(--warn)} .lv.piv span{color:var(--warn)}
+.lv.spot{border-top:2px solid var(--acc);background:rgba(91,155,255,.1)}
+.lv.spot span{color:var(--acc)}
+.lvfoot{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;font-size:11.5px}
+.lvfoot .d1,.lvfoot .gex{color:var(--ink)}
+/* setups grade ladders */
+.setups{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:14px}
+.setup{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);
+border-radius:13px;padding:14px 16px}
+.setup-h{display:flex;align-items:center;gap:9px;font-size:15px;margin-bottom:6px}
+.pill{font-size:9.5px;letter-spacing:.05em;padding:2px 8px;border-radius:7px;background:var(--chip);
+font-weight:700;text-transform:uppercase}
+.pill.pos{color:var(--pos)}.pill.warn{color:var(--warn)}.pill.mut{color:var(--mut)}
+.setup-thesis{color:var(--ink);font-size:12.5px;line-height:1.5;margin-bottom:6px}
+.setup-def{color:var(--mut);font-size:11.5px;line-height:1.45;margin-bottom:10px}
+.gtable{width:100%;border-collapse:collapse}
+.gtable td{border-top:1px solid var(--line);padding:7px 6px;font-size:12px;vertical-align:top}
+.gcell{width:52px;font-weight:800;text-align:center;font-size:13px}
+.gcell.pos{color:var(--pos)}.gcell.acc{color:var(--acc)}
+.gcell.warn{color:var(--warn)}.gcell.neg{color:var(--neg)}
+/* game plan tab */
+.gp-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+.paths{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin:12px 0 18px}
+.path{background:var(--chip);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.path-h{display:flex;justify-content:space-between;gap:8px;margin-bottom:4px}
+.path-h code{background:var(--panel);padding:1px 6px;border-radius:5px;font-size:11px}
+.gptable{width:100%;border-collapse:collapse}
+.gptable th{text-align:left;color:var(--mut);font-size:10.5px;letter-spacing:.05em;
+text-transform:uppercase;padding:6px 8px;border-bottom:1px solid var(--line)}
+.gptable td{padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.gptable code{background:var(--chip);padding:1px 6px;border-radius:5px;font-size:11.5px}
+.stpill{font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+padding:3px 8px;border-radius:7px;background:var(--chip);white-space:nowrap}
+.stpill.arm{color:var(--acc);box-shadow:inset 0 0 0 1px rgba(91,155,255,.35)}
+.stpill.pos{color:var(--pos)}.stpill.mut{color:var(--mut)}
+.stpill.warn{color:var(--warn)}.stpill.neg{color:var(--neg)}.stpill.acc{color:var(--acc)}
+/* lifecycle board (Ideas / Open / Closed / Never) */
+.sec-h{display:flex;align-items:center;gap:10px;margin:20px 2px 10px;font-size:12.5px;
+letter-spacing:.06em;font-weight:800;color:var(--ink)}
+.sec-h::after{content:'';flex:1;height:1px;background:var(--line)}
+.sec-h .cnt{background:var(--chip);border:1px solid var(--line);border-radius:8px;
+padding:1px 9px;font-size:11px;color:var(--mut)}
+.iboard{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
+.itile{background:linear-gradient(160deg,var(--panel2),var(--panel) 60%);border:1px solid var(--line);
+border-radius:14px;padding:14px 15px 12px;position:relative;overflow:hidden}
+.itile::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--gc,#777)}
+.itile-h{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.itile-name{font-weight:800;font-size:14.5px;line-height:1.25}
+.ichip{min-width:2em;text-align:center;padding:2px 9px;border-radius:9px;color:#fff;font-weight:800;
+font-size:12.5px;box-shadow:0 2px 8px rgba(0,0,0,.35)}
+.itile-sub{color:var(--mut);font-size:11.5px;margin:7px 0 6px;line-height:1.4}
+.itile-sub b{color:var(--ink);font-weight:600}
+.itile-why{font-size:12px;line-height:1.5;color:var(--ink);opacity:.9}
+.itile-foot{margin-top:10px;padding-top:9px;border-top:1px solid var(--line);font-size:12.5px;font-weight:600}
+.itile-foot .wait{color:var(--acc)}
+.itile-foot .pos{color:var(--pos)}.itile-foot .neg{color:var(--neg)}.itile-foot .warn{color:var(--warn)}
+/* collapsible expanders (native <details>) */
+.ex{background:var(--panel);border:1px solid var(--line);border-radius:12px;margin:0 0 12px;overflow:hidden}
+.ex>summary{cursor:pointer;padding:11px 15px;font-weight:700;font-size:13px;list-style:none;
+display:flex;align-items:center;gap:9px;user-select:none}
+.ex>summary::-webkit-details-marker{display:none}
+.ex>summary::before{content:'▸';color:var(--mut);font-size:11px;transition:transform .15s}
+.ex[open]>summary::before{transform:rotate(90deg)}
+.ex>summary .cnt{background:var(--chip);border:1px solid var(--line);border-radius:8px;
+padding:1px 9px;font-size:11px;color:var(--mut);font-weight:600}
+.ex>summary .sp{margin-left:auto;color:var(--mut);font-weight:600;font-size:12px}
+.ex-body{padding:2px 15px 14px}
+.ex-sec{background:transparent;border:0;margin:14px 0 4px}
+.ex-sec>summary{padding:8px 2px;letter-spacing:.05em;font-size:12.5px;font-weight:800;border-bottom:1px solid var(--line)}
+.ex-sec .ex-body,.ex-sec>.iboard{padding:12px 0 4px}
+.ptable{width:100%;border-collapse:collapse;font-size:12.5px}
+.ptable td{padding:6px 8px;border-top:1px solid var(--line)}
+.ptable td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+.ptable tr.ph td{color:var(--mut);font-size:10.5px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;border-top:0}
+.ptable h4,.ex-body h4{margin:12px 0 4px;font-size:11px;color:var(--mut);letter-spacing:.06em;text-transform:uppercase}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:18px}
+.tab{padding:9px 16px;color:var(--mut);cursor:pointer;font-weight:600;font-size:13.5px;
+border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab.on{color:var(--ink);border-bottom-color:var(--acc)}
+.page{display:none} .page.on{display:block}
+.jrow{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 16px;margin:10px 0}
+.jhead{display:flex;align-items:center;gap:9px}
+.badge{font-size:9.5px;letter-spacing:.1em;padding:2px 7px;border-radius:6px;background:var(--chip);color:var(--mut)}
+.badge.open{color:var(--pos)} .jmeta{color:var(--mut);font-size:12px;margin:5px 0}
+.jthesis{font-size:13px;line-height:1.55}
+h2{font-size:15px;color:var(--acc);margin:24px 0 8px}
+
+
+
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);
+font:14px/1.45 system-ui,'Segoe UI',sans-serif;padding:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.tile{background:linear-gradient(160deg,var(--card2),var(--card) 55%);border:1px solid var(--line);
+border-radius:16px;padding:16px 16px 12px;cursor:pointer;position:relative;overflow:hidden;
+transition:transform .16s, box-shadow .16s, border-color .16s}
+.tile::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--gc,#777)}
+.tile:hover{transform:translateY(-4px) scale(1.015);box-shadow:0 14px 34px rgba(0,0,0,.45);border-color:var(--gc,#777)}
+.trow{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.strat{font-weight:800;font-size:16px;letter-spacing:.01em}
+.exp{color:var(--mut);font-size:12px;margin-top:1px}
+.chip{min-width:2.2em;text-align:center;padding:3px 10px;border-radius:10px;color:#fff;font-weight:800;
+box-shadow:0 2px 10px rgba(0,0,0,.35)}
+.staterow{display:flex;align-items:center;gap:7px;margin-top:8px;font-size:10.5px;letter-spacing:.14em;color:var(--mut)}
+.dot{width:8px;height:8px;border-radius:50%}
+.dot.open{background:var(--good);animation:pulse 1.6s infinite}
+.dot.closed{background:var(--mut)}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(27,175,122,.55)}70%{box-shadow:0 0 0 8px rgba(27,175,122,0)}100%{box-shadow:0 0 0 0 rgba(27,175,122,0)}}
+.pnl{font-size:26px;font-weight:850;margin:6px 0 0;text-shadow:0 0 24px rgba(0,0,0,.3)}
+.pos{color:var(--good)}.neg{color:var(--crit)}
+.sub{color:var(--mut);font-size:12px;margin-top:2px}
+.spark{margin-top:10px;display:block}
+#ovl{position:fixed;inset:0;background:rgba(5,6,10,.72);backdrop-filter:blur(4px);
+display:none;align-items:center;justify-content:center;z-index:9}
+#ovl.on{display:flex}
+.big{width:min(1000px,96vw);height:min(760px,94vh);perspective:1500px;cursor:pointer;
+animation:zoomin .22s ease-out}
+@keyframes zoomin{from{transform:scale(.6);opacity:.2}to{transform:scale(1);opacity:1}}
+.inner{position:relative;width:100%;height:100%;transition:transform .6s cubic-bezier(.4,.1,.2,1);transform-style:preserve-3d}
+.big.flip .inner{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;backface-visibility:hidden;background:linear-gradient(165deg,var(--card2),var(--card) 60%);
+border:1px solid var(--line);border-radius:20px;padding:24px;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.5);
+display:flex;flex-direction:column}
+.face::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:var(--gc,#777);border-radius:20px 20px 0 0}
+.back{transform:rotateY(180deg)}
+.kv{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
+.kv>div{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--kc,var(--line));
+border-radius:11px;padding:8px 11px}
+.kv b{display:block;font-size:9.5px;color:var(--mut);letter-spacing:.09em;margin-bottom:2px}
+.kv span{font-weight:700;font-size:14px}
+.gauge{height:10px;border-radius:6px;background:linear-gradient(90deg,var(--crit),var(--warn) 50%,var(--good));
+position:relative;margin:6px 0 2px}
+.gauge i{position:absolute;top:-4px;width:4px;height:18px;background:var(--ink);border-radius:2px;box-shadow:0 0 6px rgba(0,0,0,.6)}
+.glabel{display:flex;justify-content:space-between;font-size:10px;color:var(--mut)}
+.hint{position:absolute;bottom:12px;right:18px;font-size:11px;color:var(--mut)}
+.comm{background:var(--card);border-left:3px solid var(--blue);border-radius:9px;padding:11px 13px;
+margin-top:10px;font-size:13px;line-height:1.5;max-height:82px;overflow:hidden}
+.legchips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.legchip{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:3px 9px;
+font-size:12px;font-weight:600}
+.legchip.sell{border-color:var(--crit);color:var(--crit)}
+.legchip.buy{border-color:var(--good);color:var(--good)}
+h2{margin:0 0 1px;font-size:21px}.mut{color:var(--mut)}
+.sechead{display:flex;align-items:center;gap:10px;margin:18px 2px 10px;font-size:13px;
+letter-spacing:.14em;color:var(--mut);font-weight:700}
+.sechead::after{content:'';flex:1;height:1px;background:var(--line)}
+.sechead .cnt{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:1px 8px}
+
+.grid{margin-top:0}
+</style></head><body><div class="wrap">
+<div class="top"><span class="livebadge on" id="livebadge" title="Live feed status"><span class="lb-dot"></span><span id="livebadge-txt">LIVE</span></span><h1>Options — Forward Sim</h1>
+  <span class="sub" id="updated" style="margin-left:auto"></span></div>
+<div class="sub">causal 15:59 BPS + paper strategies · live feed
+  <b id="feedstate">live</b>
+  <span id="feedhint"></span></div>
+
+<div class="ticker" id="ticker"></div>
+
+<div id="lvpanel-wrap"><div class="lvpanel">
+      <div class="lvhead">
+        <span class="rlabel warn" id="lv-regime">CAUTION</span>
+        <span class="muted" id="lv-regdetail">GexLog CAUTION · unknown day · POSITIVE gamma</span>
+        <span class="muted" style="margin-left:auto" id="lv-spotts">10:05 live</span>
+      </div>
+      <div class="lvrow"><div class='lv res'><b>CALL WALL</b><span>7,800</span></div><div class='lv res'><b>EM HIGH</b><span>7,801</span></div><div class='lv spot'><b>SPOT</b><span id='lv-spot'>7,727.8</span></div><div class='lv piv'><b>GEX FLIP</b><span>7,800</span></div><div class='lv sup'><b>EM LOW</b><span>7,646</span></div><div class='lv sup'><b>PUT WALL</b><span>7,700</span></div></div>
+      <div class="lvfoot"><span class='gex' style='color:#4cc38a'>net GEX +3.6B</span> <span class='d1' style='color:#8a94a6;border:1px solid #8a94a6;border-radius:4px;padding:1px 7px'>unknown day forecast</span> <span class="muted">GexLog SPX · today</span></div>
+    </div></div>
+
+<div class="kpis"><div class="tile">
+          <div class="tl">Net Liq</div>
+          <div class="tv " id="k-netliq">$250,245</div></div><div class="tile">
+          <div class="tl">Realized P&L</div>
+          <div class="tv neg" id="k-realized">−$2,288</div></div><div class="tile">
+          <div class="tl">Running (open)</div>
+          <div class="tv pos" id="k-running">+$122</div></div><div class="tile">
+          <div class="tl">Win rate</div>
+          <div class="tv " id="k-win">40%</div></div><div class="tile">
+          <div class="tl">Profit factor</div>
+          <div class="tv " id="k-pf">0.44</div></div><div class="tile">
+          <div class="tl">Open / Closed</div>
+          <div class="tv " id="k-openclosed">7 / 20</div></div><div class="tile">
+          <div class="tl">Collateral at risk</div>
+          <div class="tv warn" id="k-collateral">$16,335</div></div><div class="tile">
+          <div class="tl">IB maint margin</div>
+          <div class="tv warn" id="k-margin">$10,000</div></div><div class="tile">
+          <div class="tl">VIX</div>
+          <div class="tv " id="k-vix">15.5</div></div></div>
+
+<details id='ex-positions' class='ex'><summary>Positions detail <span class='cnt'>7 open · 20 closed</span><span class='sp'>click to expand</span></summary><div class='ex-body'><h4>Open — live P&amp;L · POP · EV (mark-to-market)</h4><table class='ptable'><tr class='ph'><td>strategy</td><td>structure</td><td>grade</td><td class='r'>POP</td><td class='r'>EV</td><td class='r'>bid–ask (close)</td><td class='r'>P&amp;L now</td></tr><tr><td><b>gx_bcs</b> </td><td class='muted'>vertical 25pt</td><td style='color:var(--orange);font-weight:800'>D</td><td class='r'>—</td><td class='r '>—</td><td class='r muted'>—</td><td class='r pos'>+$35</td></tr><tr><td><b>gx_bps</b> </td><td class='muted'>vertical 25pt</td><td style='color:var(--acc);font-weight:800'>B</td><td class='r'>—</td><td class='r '>—</td><td class='r muted'>—</td><td class='r neg'>−$12</td></tr><tr><td><b>openic_c</b> </td><td class='muted'>vertical 25pt</td><td style='color:var(--orange);font-weight:800'>D</td><td class='r'>—</td><td class='r '>—</td><td class='r muted'>—</td><td class='r pos'>+$10</td></tr><tr><td><b>openic_p</b> </td><td class='muted'>vertical 25pt</td><td style='color:var(--warn);font-weight:800'>C</td><td class='r'>—</td><td class='r '>—</td><td class='r muted'>—</td><td class='r pos'>+$10</td></tr><tr><td><b>eodfly_p</b> </td><td class='muted'>vertical 25pt</td><td style='color:var(--warn);font-weight:800'>C</td><td class='r'>—</td><td class='r '>—</td><td class='r muted'>—</td><td class='r pos'>+$10</td></tr><tr><td><b>eodic_c</b> </td><td class='muted'>vertical 25pt</td><td style='color:var(--orange);font-weight:800'>D</td><td class='r'>—</td><td class='r '>—</td><td class='r muted'>—</td><td class='r pos'>+$30</td></tr><tr><td><b>eodic_p</b> </td><td class='muted'>vertical 25pt</td><td style='color:var(--warn);font-weight:800'>C</td><td class='r'>—</td><td class='r '>—</td><td class='r muted'>—</td><td class='r pos'>+$40</td></tr></table><h4>Closed — realized</h4><table class='ptable'><tr class='ph'><td>strategy</td><td>structure</td><td>grade</td><td>close</td><td class='r'>realized</td></tr><tr><td><b>openfly_c</b></td><td class='muted'>vertical 25pt</td><td style='color:var(--warn);font-weight:800'>C</td><td><span style='background:#8a91a022;color:#8a91a0;border:1px solid #8a91a066;border-radius:5px;padding:1px 6px;font-size:10px;font-weight:700'>level ACCEPTED: spot 7740 held above the 7735 short strike for 10min (>10) — the wall we sold did not hold</span></td><td class='r neg'>−$181</td></tr><tr><td><b>openfly_p</b></td><td class='muted'>vertical 25pt</td><td style='color:var(--warn);font-weight:800'>C</td><td><span style='background:#8a91a022;color:#8a91a0;border:1px solid #8a91a066;border-radius:5px;padding:1px 6px;font-size:10px;font-weight:700'>level ACCEPTED: spot 7732 held below the 7735 short strike for 10min (>10) — the wall we sold did not hold</span></td><td class='r neg'>−$41</td></tr><tr><td><b>eodfly_c</b></td><td class='muted'>vertical 25pt</td><td style='color:var(--warn);font-weight:800'>C</td><td><span style='background:#8a91a022;color:#8a91a0;border:1px solid #8a91a066;border-radius:5px;padding:1px 6px;font-size:10px;font-weight:700'>level ACCEPTED: spot 7736 held above the 7725 short strike for 10min (>10) — the wall we sold did not hold</span></td><td class='r neg'>−$131</td></tr><tr><td><b>incident_orphan</b></td><td class='muted'>orphan long 7760C (leg-fill failure)</td><td style='color:var(--neg);font-weight:800'>F</td><td><span style='background:#2fbf8f22;color:#2fbf8f;border:1px solid #2fbf8f66;border-radius:5px;padding:1px 6px;font-size:10px;font-weight:700'>traded_to_close</span></td><td class='r neg'>−$633</td></tr><tr><td><b>incident_orphan</b></td><td class='muted'>orphan long 7840C (leg-fill failure)</td><td style='color:var(--neg);font-weight:800'>F</td><td><span style='background:#2fbf8f22;color:#2fbf8f;border:1px solid #2fbf8f66;border-radius:5px;padding:1px 6px;font-size:10px;font-weight:700'>traded_to_close</span></td><td class='r neg'>−$103</td></tr><tr><td><b>openfly_p</b></td><td class='muted'>vertical 25pt</td><td style='color:var(--warn);font-weight:800'>C</td><td><span style='background:#8a91a022;color:#8a91a0;border:1px solid #8a91a066;border-radius:5px;padding:1px 6px;font-size:10px;font-weight:700'>level ACCEPTED: spot 7765 held below the 7780 short strike for 10min (>10) — the wall we sold did not hold</span></td><td class='r neg'>−$131</td></tr><tr><td><b>gx_bcs</b></td><td class='muted'>vertical 25pt</td><td style='color:var(--warn);font-weight:800'>C</td><td><span style='background:#8a91a022;color:#8a91a0;border:1px solid #8a91a066;border-radius:5px;padding:1px 6px;font-size:10px;font-weight:700'>level ACCEPTED: spot 7764 held above the 7750 short strike for 10min (>10) — the wall we sold did not hold</span></td><td class='r pos'>+$109</td></tr><tr><td><b>openfly_c</b></td><td class='muted'>vertical 25pt</td><td style='color:var(--warn);font-weight:800'>C</td><td><span style='background:#8a91a022;color:#8a91a0;border:1px solid #8a91a066;border-radius:5px;padding:1px 6px;font-size:10px;font-weight:700'>expired</span></td><td class='r pos'>+$817</td></tr><tr><td><b>openic_c</b></td><td class='muted'>vertical 25pt</td><td style='color:var(--warn);font-weight:800'>C</td><td><span style='background:#8a91a022;color:#8a91a0;border:1px solid #8a91a066;border-radius:5px;padding:1px 6px;font-size:10px;font-weight:700'>expired</span></td><td class='r pos'>+$27</td></tr><tr><td><b>openic_p</b></td><td class='muted'>vertical 25pt</td><td style='color:var(--warn);font-weight:800'>C</td><td><span style='background:#8a91a022;color:#8a91a0;border:1px solid #8a91a066;border-radius:5px;padding:1px 6px;font-size:10px;font-weight:700'>expired</span></td><td class='r pos'>+$77</td></tr><tr><td><b>eodfly_p</b></td><td class='muted'>vertical 25pt</td><td style='color:var(--warn);font-weight:800'>C</td><td><span style='background:#8a91a022;color:#8a91a0;border:1px solid #8a91a066;border-radius:5px;padding:1px 6px;font-size:10px;font-weight:700'>level ACCEPTED: spot 7728 held below the 7735 short strike for 12min (>10) — the wall we sold did not hold</span></td><td class='r neg'>−$781</td></tr><tr><td><b>eodic_p</b></td><td class='muted'>vertical 25pt</td><td style='color:var(--warn);font-weight:800'>C</td><td><span style='background:#8a91a022;color:#8a91a0;border:1px solid #8a91a066;border-radius:5px;padding:1px 6px;font-size:10px;font-weight:700'>expired</span></td><td class='r pos'>+$17</td></tr><tr><td><b>gx_bcs</b></td><td class='muted'>vertical 25pt</td><td style='color:var(--warn);font-weight:800'>C</td><td><span style='background:#8a91a022;color:#8a91a0;border:1px solid #8a91a066;border-radius:5px;padding:1px 6px;font-size:10px;font-weight:700'>level ACCEPTED: spot 7671 held above the 7630 short strike for 12min (>10) — the wall we sold did not hold</span></td><td class='r neg'>−$71</td></tr><tr><td><b>openfly_p</b></td><td class='muted'>vertical 25pt</td><td style='color:var(--warn);font-weight:800'>C</td><td><span style='background:#8a91a022;color:#8a91a0;border:1px solid #8a91a066;border-radius:5px;padding:1px 6px;font-size:10px;font-weight:700'>expired</span></td><td class='r pos'>+$567</td></tr><tr><td><b>openfly_c</b></td><td class='muted'>vertical 25pt</td><td style='color:var(--warn);font-weight:800'>C</td><td><span style='background:#8a91a022;color:#8a91a0;border:1px solid #8a91a066;border-radius:5px;padding:1px 6px;font-size:10px;font-weight:700'>level ACCEPTED: spot 7676 held above the 7660 short strike for 10min (>10) — the wall we sold did not hold</span></td><td class='r neg'>−$271</td></tr><tr><td><b>openic_c</b></td><td class='muted'>vertical 25pt</td><td style='color:var(--warn);font-weight:800'>C</td><td><span style='background:#8a91a022;color:#8a91a0;border:1px solid #8a91a066;border-radius:5px;padding:1px 6px;font-size:10px;font-weight:700'>level ACCEPTED: spot 7736 held above the 7735 short strike for 10min (>10) — the wall we sold did not hold</span></td><td class='r neg'>−$786</td></tr><tr><td><b>openic_p</b></td><td class='muted'>vertical 25pt</td><td style='color:var(--warn);font-weight:800'>C</td><td><span style='background:#8a91a022;color:#8a91a0;border:1px solid #8a91a066;border-radius:5px;padding:1px 6px;font-size:10px;font-weight:700'>expired</span></td><td class='r pos'>+$32</td></tr><tr><td><b>eodfly_c</b></td><td class='muted'>vertical 25pt</td><td style='color:var(--warn);font-weight:800'>C</td><td><span style='background:#8a91a022;color:#8a91a0;border:1px solid #8a91a066;border-radius:5px;padding:1px 6px;font-size:10px;font-weight:700'>level ACCEPTED: spot 7647 held above the 7600 short strike for 15min (>10) — the wall we sold did not hold</span></td><td class='r neg'>−$101</td></tr><tr><td><b>eodfly_p</b></td><td class='muted'>vertical 25pt</td><td style='color:var(--warn);font-weight:800'>C</td><td><span style='background:#8a91a022;color:#8a91a0;border:1px solid #8a91a066;border-radius:5px;padding:1px 6px;font-size:10px;font-weight:700'>expired</span></td><td class='r pos'>+$162</td></tr><tr><td><b>eodic_c</b></td><td class='muted'>vertical 25pt</td><td style='color:var(--warn);font-weight:800'>C</td><td><span style='background:#8a91a022;color:#8a91a0;border:1px solid #8a91a066;border-radius:5px;padding:1px 6px;font-size:10px;font-weight:700'>level ACCEPTED: spot 7682 held above the 7675 short strike for 10min (>10) — the wall we sold did not hold</span></td><td class='r neg'>−$866</td></tr></table></div></details>
+
+<div class="tabs">
+  <div class="tab on" data-p="trades">Trades</div>
+  <div class="tab" data-p="gameplan">Game Plan</div>
+  <div class="tab" data-p="analytics">Analytics</div>
+  <div class="tab" data-p="calendar">Calendar</div>
+  <div class="tab" data-p="postmortem">Postmortem</div>
+  <div class="tab" data-p="eodreport">Desk Report</div>
+  <div class="tab" data-p="setups">Setups &amp; Grades</div>
+  <div class="tab" data-p="journal">Journal</div>
+  <div class="tab" data-p="playbook">Playbook</div>
+  <div class="tab" data-p="results">Sim Results</div>
+  <div class="tab" data-p="levels">Levels</div>
+</div>
+
+<div class="page on" id="p-trades"><div style='background:#131826;border:1px solid #2a3245;border-radius:8px;padding:8px 12px;margin:6px 0;font-size:13px'>📊 <b>TODAY</b> · credit collected <b style='color:#5b9dd9'>$4,075</b> · realized <b class='neg'>−$354</b> · open 7 (sold for $1,165) · open P&L <b class='pos'>+$122</b> · buy-back cost now <b style='color:#e0a04d'>$1,042</b> · → day if closed now <b class='neg' style='font-size:15px'>−$231</b></div><div class="pnlsum">
+      <b>Running P&L — by center (EOD vs Open)</b>
+      <table class="sumtab"><tr><th>bucket</th><th>closed</th><th>open</th><th>win%</th><th>realized</th></tr><tr><td><b>EOD</b></td><td>6</td><td>3</td><td>33%</td><td class='neg'>−$1,700</td></tr><tr><td><b>Open</b></td><td>10</td><td>2</td><td>50%</td><td class='pos'>+$110</td></tr><tr><td><b>GexLog</b></td><td>2</td><td>2</td><td>50%</td><td class='pos'>+$37</td></tr><tr class='tot'><td><b>TOTAL</b></td><td>18</td><td>7</td><td>44%</td><td class='neg'>−$1,553</td></tr></table>
+      <b style="display:block;margin-top:10px">By structure</b>
+      <table class="sumtab"><tr><th>bucket</th><th>closed</th><th>open</th><th>win%</th><th>realized</th></tr><tr><td class='muted'>EOD · Iron Condor</td><td>2</td><td>2</td><td>50%</td><td class='neg'>−$849</td></tr><tr><td class='muted'>EOD · Iron Fly</td><td>4</td><td>1</td><td>25%</td><td class='neg'>−$852</td></tr><tr><td class='muted'>Open · Iron Condor</td><td>4</td><td>2</td><td>75%</td><td class='neg'>−$649</td></tr><tr><td class='muted'>Open · Iron Fly</td><td>6</td><td>0</td><td>33%</td><td class='pos'>+$760</td></tr><tr><td class='muted'>GexLog · GexLog Condor</td><td>2</td><td>2</td><td>50%</td><td class='pos'>+$37</td></tr></table>
+    </div>
+<details class="ex ex-sec" id="oh" open><summary>● OPEN POSITIONS <span class="cnt" id="oc"></span></summary>
+<div class="grid" id="grid_open"></div></details>
+<details class="ex ex-sec" id="ch" open><summary>CLOSED TODAY <span class="cnt" id="cc"></span>
+<span class="muted" style="font-weight:400;margin-left:6px">· history in the Calendar tab</span></summary>
+<div class="grid" id="grid_closed"></div></details>
+<div id="ovl"><div class="big" id="big"><div class="inner" id="inner"></div></div></div>
+<script>
+const T = [{"id": "openic_20260806", "strat": "openic", "name": "[Open] Iron Condor", "exp": "08/06/2026", "structure": "[Open] Iron Condor (both legs)", "grade": "C", "state": "OPEN", "exitd": null, "pnl": 20, "legs": ["P-wing vertical 25pt cr 0.55 \u2192 $open", "C-wing vertical 25pt cr 0.15 \u2192 $open", "B1 7635P 08/06", "S1 7660P 08/06", "B1 7840C 08/06", "S1 7815C 08/06"], "credit": 0.7, "collateral": 2430, "maxg": 70, "maxl": 2430, "pop": 83, "vix": null, "entry": "2026-08-06 09:05", "dow": "Thu", "commentary": "P-wing vertical 25pt cr 0.55 \u2192 $open  \u00b7  C-wing vertical 25pt cr 0.15 \u2192 $open", "payoff": {"s": [7515.0, 7517.0, 7519.1, 7521.1, 7523.1, 7525.2, 7527.2, 7529.2, 7531.3, 7533.3, 7535.3, 7537.4, 7539.4, 7541.4, 7543.4, 7545.5, 7547.5, 7549.5, 7551.6, 7553.6, 7555.6, 7557.7, 7559.7, 7561.7, 7563.8, 7565.8, 7567.8, 7569.9, 7571.9, 7573.9, 7576.0, 7578.0, 7580.0, 7582.1, 7584.1, 7586.1, 7588.2, 7590.2, 7592.2, 7594.2, 7596.3, 7598.3, 7600.3, 7602.4, 7604.4, 7606.4, 7608.5, 7610.5, 7612.5, 7614.6, 7616.6, 7618.6, 7620.7, 7622.7, 7624.7, 7626.8, 7628.8, 7630.8, 7632.9, 7634.9, 7635.0, 7636.9, 7638.9, 7641.0, 7643.0, 7645.0, 7647.1, 7649.1, 7651.1, 7653.2, 7655.2, 7657.2, 7659.3, 7660.0, 7661.3, 7663.3, 7665.4, 7667.4, 7669.4, 7671.5, 7673.5, 7675.5, 7677.6, 7679.6, 7681.6, 7683.7, 7685.7, 7687.7, 7689.7, 7691.8, 7693.8, 7695.8, 7697.9, 7699.9, 7701.9, 7704.0, 7706.0, 7708.0, 7710.1, 7712.1, 7714.1, 7716.2, 7718.2, 7720.2, 7722.3, 7724.3, 7726.3, 7727.9, 7728.4, 7730.4, 7732.4, 7734.5, 7736.5, 7738.5, 7740.5, 7742.6, 7744.6, 7746.6, 7748.7, 7750.7, 7752.7, 7754.8, 7756.8, 7758.8, 7760.9, 7762.9, 7764.9, 7767.0, 7769.0, 7771.0, 7773.1, 7775.1, 7777.1, 7779.2, 7781.2, 7783.2, 7785.3, 7787.3, 7789.3, 7791.3, 7793.4, 7795.4, 7797.4, 7799.5, 7801.5, 7803.5, 7805.6, 7807.6, 7809.6, 7811.7, 7813.7, 7815.0, 7815.7, 7817.8, 7819.8, 7821.8, 7823.9, 7825.9, 7827.9, 7830.0, 7832.0, 7834.0, 7836.1, 7838.1, 7840.0, 7840.1, 7842.1, 7844.2, 7846.2, 7848.2, 7850.3, 7852.3, 7854.3, 7856.4, 7858.4, 7860.4, 7862.5, 7864.5, 7866.5, 7868.6, 7870.6, 7872.6, 7874.7, 7876.7, 7878.7, 7880.8, 7882.8, 7884.8, 7886.8, 7888.9, 7890.9, 7892.9, 7895.0, 7897.0, 7899.0, 7901.1, 7903.1, 7905.1, 7907.2, 7909.2, 7911.2, 7913.3, 7915.3, 7917.3, 7919.4, 7921.4, 7923.4, 7925.5, 7927.5, 7929.5, 7931.6, 7933.6, 7935.6, 7937.6, 7939.7, 7941.7, 7943.7, 7945.8, 7947.8, 7949.8, 7951.9, 7953.9, 7955.9, 7958.0, 7960.0], "v": [-2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2238, -2035, -1832, -1629, -1425, -1222, -1019, -816, -613, -409, -206, -3, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, -3, -206, -409, -613, -816, -1019, -1222, -1425, -1629, -1832, -2035, -2238, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430, -2430]}, "breakevens": [7659.3, 7815.7], "spot": 7727.9, "entry_spot": 7734.6, "exit_spot": null, "greeks": {"delta": 0.8, "gamma": -0.097, "theta": 204.0, "vega": -5.0}, "multi": false, "series": null}, {"id": "openfly_20260806", "strat": "openfly", "name": "[Open] Iron Fly", "exp": "08/06/2026", "structure": "[Open] Iron Fly (both legs)", "grade": "C", "state": "CLOSED", "exitd": "2026-08-06", "pnl": -223, "legs": ["P-wing vertical 25pt cr 8.40 \u2192 $-41", "C-wing vertical 25pt cr 9.20 \u2192 $-181", "B1 7710P 08/06", "S1 7735P 08/06", "B1 7760C 08/06", "S1 7735C 08/06"], "credit": 17.6, "collateral": 740, "maxg": 1760, "maxl": 740, "pop": 50, "vix": null, "entry": "2026-08-06 09:06", "dow": "Thu", "commentary": "P-wing vertical 25pt cr 8.40 \u2192 $-41  \u00b7  C-wing vertical 25pt cr 9.20 \u2192 $-181", "payoff": {"s": [7590.0, 7591.3, 7592.6, 7594.0, 7595.3, 7596.6, 7597.9, 7599.3, 7600.6, 7601.9, 7603.2, 7604.6, 7605.9, 7607.2, 7608.5, 7609.9, 7611.2, 7612.5, 7613.8, 7615.2, 7616.5, 7617.8, 7619.1, 7620.5, 7621.8, 7623.1, 7624.4, 7625.8, 7627.1, 7628.4, 7629.7, 7631.1, 7632.4, 7633.7, 7635.0, 7636.3, 7637.7, 7639.0, 7640.3, 7641.6, 7643.0, 7644.3, 7645.6, 7646.9, 7648.3, 7649.6, 7650.9, 7652.2, 7653.6, 7654.9, 7656.2, 7657.5, 7658.9, 7660.2, 7661.5, 7662.8, 7664.2, 7665.5, 7666.8, 7668.1, 7669.5, 7670.8, 7672.1, 7673.4, 7674.7, 7676.1, 7677.4, 7678.7, 7680.0, 7681.4, 7682.7, 7684.0, 7685.3, 7686.7, 7688.0, 7689.3, 7690.6, 7692.0, 7693.3, 7694.6, 7695.9, 7697.3, 7698.6, 7699.9, 7701.2, 7702.6, 7703.9, 7705.2, 7706.5, 7707.9, 7709.2, 7710.0, 7710.5, 7711.8, 7713.2, 7714.5, 7715.8, 7717.1, 7718.4, 7719.8, 7721.1, 7722.4, 7723.7, 7725.1, 7726.4, 7727.7, 7727.9, 7729.0, 7730.4, 7731.7, 7733.0, 7734.3, 7735.0, 7735.7, 7737.0, 7738.3, 7739.6, 7741.0, 7742.3, 7743.6, 7744.9, 7746.3, 7747.6, 7748.9, 7750.2, 7751.6, 7752.9, 7754.2, 7755.5, 7756.8, 7758.2, 7759.5, 7760.0, 7760.8, 7762.1, 7763.5, 7764.8, 7766.1, 7767.4, 7768.8, 7770.1, 7771.4, 7772.7, 7774.1, 7775.4, 7776.7, 7778.0, 7779.4, 7780.7, 7782.0, 7783.3, 7784.7, 7786.0, 7787.3, 7788.6, 7790.0, 7791.3, 7792.6, 7793.9, 7795.3, 7796.6, 7797.9, 7799.2, 7800.5, 7801.9, 7803.2, 7804.5, 7805.8, 7807.2, 7808.5, 7809.8, 7811.1, 7812.5, 7813.8, 7815.1, 7816.4, 7817.8, 7819.1, 7820.4, 7821.7, 7823.1, 7824.4, 7825.7, 7827.0, 7828.4, 7829.7, 7831.0, 7832.3, 7833.7, 7835.0, 7836.3, 7837.6, 7838.9, 7840.3, 7841.6, 7842.9, 7844.2, 7845.6, 7846.9, 7848.2, 7849.5, 7850.9, 7852.2, 7853.5, 7854.8, 7856.2, 7857.5, 7858.8, 7860.1, 7861.5, 7862.8, 7864.1, 7865.4, 7866.8, 7868.1, 7869.4, 7870.7, 7872.1, 7873.4, 7874.7, 7876.0, 7877.4, 7878.7, 7880.0], "v": [-740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -690, -557, -425, -293, -160, -28, 105, 237, 370, 502, 634, 767, 899, 1032, 1055, 1164, 1297, 1429, 1561, 1694, 1760, 1694, 1561, 1429, 1297, 1164, 1032, 899, 767, 634, 502, 370, 237, 105, -28, -160, -293, -425, -557, -690, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740, -740]}, "breakevens": [7717.4, 7752.6], "spot": 7727.9, "entry_spot": 7733.4, "exit_spot": 7731.2, "greeks": {"delta": 5.8, "gamma": -0.771, "theta": 1614.0, "vega": -41.0}, "multi": false, "series": {"t": ["09:06", "09:07", "09:08", "09:09", "09:10", "09:11", "09:12", "09:13", "09:14", "09:15", "09:16", "09:17", "09:18", "09:19", "09:20", "09:21", "09:22", "09:23", "09:24", "09:25", "09:26", "09:27", "09:28", "09:29", "09:30", "09:31", "09:32", "09:33", "09:34", "09:35", "09:35"], "pnl": [-25, -25, -20, -15, -15, -15, -15, -15, -10, 0, -5, -21, -11, 14, 9, -21, 14, -51, -61, -196, -341, -316, -281, -406, -221, -311, -316, -321, -211, -223, -223], "pop": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]}}, {"id": "gxic_20260806", "strat": "gxic", "name": "[GexLog] Iron Condor", "exp": "08/06/2026", "structure": "[GexLog] Iron Condor (both legs)", "grade": "B", "state": "OPEN", "exitd": null, "pnl": 22, "legs": ["P-wing vertical 25pt cr 2.35 \u2192 $open", "C-wing vertical 25pt cr 0.45 \u2192 $open", "B1 7675P 08/06", "S1 7700P 08/06", "B1 7825C 08/06", "S1 7800C 08/06"], "credit": 2.8, "collateral": 2220, "maxg": 280, "maxl": 2220, "pop": 68, "vix": null, "entry": "2026-08-06 09:07", "dow": "Thu", "commentary": "P-wing vertical 25pt cr 2.35 \u2192 $open  \u00b7  C-wing vertical 25pt cr 0.45 \u2192 $open", "payoff": {"s": [7555.0, 7556.8, 7558.6, 7560.3, 7562.1, 7563.9, 7565.7, 7567.5, 7569.2, 7571.0, 7572.8, 7574.6, 7576.4, 7578.2, 7579.9, 7581.7, 7583.5, 7585.3, 7587.1, 7588.8, 7590.6, 7592.4, 7594.2, 7596.0, 7597.7, 7599.5, 7601.3, 7603.1, 7604.9, 7606.6, 7608.4, 7610.2, 7612.0, 7613.8, 7615.5, 7617.3, 7619.1, 7620.9, 7622.7, 7624.5, 7626.2, 7628.0, 7629.8, 7631.6, 7633.4, 7635.1, 7636.9, 7638.7, 7640.5, 7642.3, 7644.0, 7645.8, 7647.6, 7649.4, 7651.2, 7652.9, 7654.7, 7656.5, 7658.3, 7660.1, 7661.8, 7663.6, 7665.4, 7667.2, 7669.0, 7670.8, 7672.5, 7674.3, 7675.0, 7676.1, 7677.9, 7679.7, 7681.4, 7683.2, 7685.0, 7686.8, 7688.6, 7690.3, 7692.1, 7693.9, 7695.7, 7697.5, 7699.2, 7700.0, 7701.0, 7702.8, 7704.6, 7706.4, 7708.2, 7709.9, 7711.7, 7713.5, 7715.3, 7717.1, 7718.8, 7720.6, 7722.4, 7724.2, 7726.0, 7727.7, 7727.9, 7729.5, 7731.3, 7733.1, 7734.9, 7736.6, 7738.4, 7740.2, 7742.0, 7743.8, 7745.5, 7747.3, 7749.1, 7750.9, 7752.7, 7754.5, 7756.2, 7758.0, 7759.8, 7761.6, 7763.4, 7765.1, 7766.9, 7768.7, 7770.5, 7772.3, 7774.0, 7775.8, 7777.6, 7779.4, 7781.2, 7782.9, 7784.7, 7786.5, 7788.3, 7790.1, 7791.8, 7793.6, 7795.4, 7797.2, 7799.0, 7800.0, 7800.8, 7802.5, 7804.3, 7806.1, 7807.9, 7809.7, 7811.4, 7813.2, 7815.0, 7816.8, 7818.6, 7820.3, 7822.1, 7823.9, 7825.0, 7825.7, 7827.5, 7829.2, 7831.0, 7832.8, 7834.6, 7836.4, 7838.2, 7839.9, 7841.7, 7843.5, 7845.3, 7847.1, 7848.8, 7850.6, 7852.4, 7854.2, 7856.0, 7857.7, 7859.5, 7861.3, 7863.1, 7864.9, 7866.6, 7868.4, 7870.2, 7872.0, 7873.8, 7875.5, 7877.3, 7879.1, 7880.9, 7882.7, 7884.5, 7886.2, 7888.0, 7889.8, 7891.6, 7893.4, 7895.1, 7896.9, 7898.7, 7900.5, 7902.3, 7904.0, 7905.8, 7907.6, 7909.4, 7911.2, 7912.9, 7914.7, 7916.5, 7918.3, 7920.1, 7921.8, 7923.6, 7925.4, 7927.2, 7929.0, 7930.8, 7932.5, 7934.3, 7936.1, 7937.9, 7939.7, 7941.4, 7943.2, 7945.0], "v": [-2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2110, -1932, -1754, -1576, -1398, -1220, -1042, -864, -686, -508, -330, -152, 27, 205, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 280, 205, 27, -152, -330, -508, -686, -864, -1042, -1220, -1398, -1576, -1754, -1932, -2110, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220, -2220]}, "breakevens": [7697.2, 7802.8], "spot": 7727.9, "entry_spot": 7737.1, "exit_spot": null, "greeks": {"delta": 12.8, "gamma": -0.662, "theta": 1386.0, "vega": -35.0}, "multi": false, "series": null}, {"id": "eodic_20260806", "strat": "eodic", "name": "[EOD] Iron Condor", "exp": "08/06/2026", "structure": "[EOD] Iron Condor (both legs)", "grade": "C", "state": "OPEN", "exitd": null, "pnl": 70, "legs": ["P-wing vertical 25pt cr 0.65 \u2192 $open", "C-wing vertical 25pt cr 0.40 \u2192 $open", "B1 7620P 08/06", "S1 7645P 08/06", "B1 7825C 08/06", "S1 7800C 08/06"], "credit": 1.05, "collateral": 2395, "maxg": 105, "maxl": 2395, "pop": 82, "vix": null, "entry": "2026-08-06 08:42", "dow": "Thu", "commentary": "P-wing vertical 25pt cr 0.65 \u2192 $open  \u00b7  C-wing vertical 25pt cr 0.40 \u2192 $open", "payoff": {"s": [7500.0, 7502.0, 7504.1, 7506.1, 7508.1, 7510.2, 7512.2, 7514.2, 7516.3, 7518.3, 7520.3, 7522.4, 7524.4, 7526.4, 7528.4, 7530.5, 7532.5, 7534.5, 7536.6, 7538.6, 7540.6, 7542.7, 7544.7, 7546.7, 7548.8, 7550.8, 7552.8, 7554.9, 7556.9, 7558.9, 7561.0, 7563.0, 7565.0, 7567.1, 7569.1, 7571.1, 7573.2, 7575.2, 7577.2, 7579.2, 7581.3, 7583.3, 7585.3, 7587.4, 7589.4, 7591.4, 7593.5, 7595.5, 7597.5, 7599.6, 7601.6, 7603.6, 7605.7, 7607.7, 7609.7, 7611.8, 7613.8, 7615.8, 7617.9, 7619.9, 7620.0, 7621.9, 7623.9, 7626.0, 7628.0, 7630.0, 7632.1, 7634.1, 7636.1, 7638.2, 7640.2, 7642.2, 7644.3, 7645.0, 7646.3, 7648.3, 7650.4, 7652.4, 7654.4, 7656.5, 7658.5, 7660.5, 7662.6, 7664.6, 7666.6, 7668.7, 7670.7, 7672.7, 7674.7, 7676.8, 7678.8, 7680.8, 7682.9, 7684.9, 7686.9, 7689.0, 7691.0, 7693.0, 7695.1, 7697.1, 7699.1, 7701.2, 7703.2, 7705.2, 7707.3, 7709.3, 7711.3, 7713.4, 7715.4, 7717.4, 7719.5, 7721.5, 7723.5, 7725.5, 7727.6, 7727.9, 7729.6, 7731.6, 7733.7, 7735.7, 7737.7, 7739.8, 7741.8, 7743.8, 7745.9, 7747.9, 7749.9, 7752.0, 7754.0, 7756.0, 7758.1, 7760.1, 7762.1, 7764.2, 7766.2, 7768.2, 7770.3, 7772.3, 7774.3, 7776.3, 7778.4, 7780.4, 7782.4, 7784.5, 7786.5, 7788.5, 7790.6, 7792.6, 7794.6, 7796.7, 7798.7, 7800.0, 7800.7, 7802.8, 7804.8, 7806.8, 7808.9, 7810.9, 7812.9, 7815.0, 7817.0, 7819.0, 7821.1, 7823.1, 7825.0, 7825.1, 7827.1, 7829.2, 7831.2, 7833.2, 7835.3, 7837.3, 7839.3, 7841.4, 7843.4, 7845.4, 7847.5, 7849.5, 7851.5, 7853.6, 7855.6, 7857.6, 7859.7, 7861.7, 7863.7, 7865.8, 7867.8, 7869.8, 7871.8, 7873.9, 7875.9, 7877.9, 7880.0, 7882.0, 7884.0, 7886.1, 7888.1, 7890.1, 7892.2, 7894.2, 7896.2, 7898.3, 7900.3, 7902.3, 7904.4, 7906.4, 7908.4, 7910.5, 7912.5, 7914.5, 7916.6, 7918.6, 7920.6, 7922.6, 7924.7, 7926.7, 7928.7, 7930.8, 7932.8, 7934.8, 7936.9, 7938.9, 7940.9, 7943.0, 7945.0], "v": [-2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2203, -2000, -1797, -1594, -1390, -1187, -984, -781, -578, -374, -171, 32, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 32, -171, -374, -578, -781, -984, -1187, -1390, -1594, -1797, -2000, -2203, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395, -2395]}, "breakevens": [7643.9, 7801.1], "spot": 7727.9, "entry_spot": 7727.4, "exit_spot": null, "greeks": {"delta": -0.5, "gamma": -0.084, "theta": 176.0, "vega": -4.0}, "multi": false, "series": null}, {"id": "openic_20260805", "strat": "openic", "name": "[Open] Iron Condor", "exp": "08/05/2026", "structure": "[Open] Iron Condor (both legs)", "grade": "C", "state": "CLOSED", "exitd": "2026-08-05", "pnl": 105, "legs": ["P-wing vertical 25pt cr 0.80 \u2192 $+77", "C-wing vertical 25pt cr 0.30 \u2192 $+27", "B1 7675P 08/05", "S1 7700P 08/05", "B1 7885C 08/05", "S1 7860C 08/05"], "credit": 1.1, "collateral": 2390, "maxg": 110, "maxl": 2390, "pop": 84, "vix": null, "entry": "2026-08-05 09:29", "dow": "Wed", "commentary": "P-wing vertical 25pt cr 0.80 \u2192 $+77  \u00b7  C-wing vertical 25pt cr 0.30 \u2192 $+27", "payoff": null, "breakevens": [], "spot": 7727.9, "entry_spot": 7774.8, "exit_spot": 7732.8, "greeks": {"delta": 0.0, "gamma": -0.0, "theta": 0.0, "vega": -0.0}, "multi": false, "series": {"t": ["09:33", "09:34", "09:35", "09:36", "09:37", "09:38", "09:39", "09:40", "09:41", "09:42", "09:43", "09:44", "09:45", "09:46", "09:47", "09:48", "09:49", "09:50", "09:51", "09:52", "09:53", "09:54", "09:55", "09:56", "09:57", "09:58", "09:59", "10:00", "10:01", "10:02", "10:03", "10:04", "10:05", "10:06", "10:07", "10:08", "10:09", "10:10", "10:11", "10:12", "10:13", "10:14", "10:15", "10:16", "10:17", "10:18", "10:19", "10:20", "10:21", "10:22", "10:23", "10:24", "10:25", "10:26", "10:27", "10:28", "10:29", "10:30", "10:31", "10:32", "10:33", "10:34", "10:35", "10:36", "10:37", "10:38", "10:39", "10:40", "10:41", "10:42", "10:43", "10:44", "10:45", "10:46", "10:47", "10:48", "10:49", "10:50", "10:51", "10:52", "10:53", "10:54", "10:55", "10:58", "10:59", "11:00", "11:01", "11:02", "11:03", "11:04", "11:05", "11:06", "11:07", "11:08", "11:09", "11:10", "11:11", "11:12", "11:13", "11:14", "11:15", "11:16", "11:17", "11:18", "11:19", "11:20", "11:21", "11:22", "11:23", "11:24", "11:25", "11:26", "11:27", "11:28", "11:29", "11:30", "11:31", "11:32", "11:33", "11:34", "11:35", "11:36", "11:37", "11:38", "11:39", "11:40", "11:41", "11:42", "11:43", "11:44", "11:45", "11:46", "11:47", "11:48", "11:49", "11:50", "11:51", "11:52", "11:53", "11:54", "11:55", "11:56", "11:57", "11:58", "11:59", "12:00", "12:01", "12:02", "12:03", "12:04", "12:05", "12:06", "12:07", "12:08", "12:09", "12:10", "12:11", "12:12", "12:13", "12:14", "12:15", "12:16", "12:17", "12:18", "12:19", "12:20", "12:21", "12:22", "12:23", "12:24", "12:25", "12:26", "12:27", "12:28", "12:29", "12:30", "12:31", "12:32", "12:33", "12:34", "12:35", "12:36", "12:37", "12:38", "12:39", "12:40", "12:41", "12:42", "12:43", "12:44", "12:45", "12:46", "12:47", "12:48", "12:49", "12:50", "12:51", "12:52", "12:53", "12:54", "12:55", "12:56", "12:57", "12:58", "12:59", "13:00", "13:01", "13:02", "13:03", "13:04", "13:05", "13:06", "13:07", "13:08", "13:09", "13:10", "13:11", "13:12", "13:13", "13:14", "13:15", "13:16", "13:17", "13:18", "13:19", "13:20", "13:21", "13:22", "13:23", "13:24", "13:25", "13:26", "13:27", "13:28", "13:29", "13:30", "13:31", "16:00"], "pnl": [-32, -40, -40, -45, -55, -65, -50, -70, -68, -58, -42, -48, -40, -28, -23, -25, -22, -12, -40, -48, -50, -88, -82, -87, -45, -47, -50, -42, -40, -32, -40, -55, -50, -70, -45, -45, -43, -40, -27, -27, -50, -55, -68, -82, -82, -145, -92, -118, -87, -102, -98, -113, -107, -130, -110, -135, -137, -125, -82, -77, -92, -88, -108, -118, -88, -98, -98, -100, -112, -85, -93, -87, -95, -88, -92, -98, -98, -98, -112, -112, -88, -100, -112, -137, -135, -152, -163, -223, -177, -132, -178, -212, -193, -215, -263, -223, -238, -260, -238, -238, -205, -115, -150, -173, -178, -117, -80, -65, -80, -118, -98, -65, -55, -70, -45, -55, -75, -70, -113, -80, -92, -90, -75, -50, -58, -50, -35, -47, -40, -20, -35, -35, -25, -35, -30, -10, 10, 15, 15, 15, 22, 25, 25, 12, 5, -2, 25, 5, 5, -15, -5, -40, -10, -10, -18, -22, -18, 13, 15, 13, 13, 17, -7, 5, 25, 15, 15, -2, 15, 18, 17, 43, 50, 42, 33, 25, 23, 37, 35, 42, 50, 45, 52, 52, 52, 68, 68, 68, 70, 68, 52, 60, 60, 60, 70, 75, 75, 75, 70, 75, 68, 75, 80, 80, 80, 80, 82, 85, 90, 90, 95, 90, 85, 85, 90, 95, 95, 90, 92, 88, 92, 92, 92, 92, 95, 95, 92, 88, 95, 95, 95, 100, 100, 95, 95, 90, 80, 105], "pop": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]}}, {"id": "openfly_20260805", "strat": "openfly", "name": "[Open] Iron Fly", "exp": "08/05/2026", "structure": "[Open] Iron Fly (both legs)", "grade": "C", "state": "CLOSED", "exitd": "2026-08-05", "pnl": 686, "legs": ["C-wing vertical 25pt cr 8.20 \u2192 $+817", "P-wing vertical 25pt cr 11.10 \u2192 $-131", "B1 7805C 08/05", "S1 7780C 08/05", "B1 7755P 08/05", "S1 7780P 08/05"], "credit": 19.3, "collateral": 570, "maxg": 1930, "maxl": 570, "pop": 45, "vix": null, "entry": "2026-08-05 09:34", "dow": "Wed", "commentary": "C-wing vertical 25pt cr 8.20 \u2192 $+817  \u00b7  P-wing vertical 25pt cr 11.10 \u2192 $-131", "payoff": null, "breakevens": [], "spot": 7727.9, "entry_spot": 7773.0, "exit_spot": 7732.8, "greeks": {"delta": 0.0, "gamma": 0.0, "theta": -0.0, "vega": 0.0}, "multi": false, "series": {"t": ["09:34", "09:35", "09:36", "09:37", "09:38", "09:39", "09:40", "09:41", "09:42", "09:43", "09:44", "09:45", "09:46", "09:47", "09:48", "09:49", "09:50", "09:51", "09:52", "09:53", "09:54", "09:55", "09:56", "09:57", "09:58", "09:59", "10:00", "10:01", "10:02", "10:03", "10:04", "10:05", "10:06", "10:07", "10:08", "10:09", "10:10", "10:11", "10:12", "10:13", "10:14", "10:15", "10:16", "10:17", "10:18", "10:19", "10:20", "10:21", "10:22", "10:23", "10:24", "10:25", "10:26", "10:27", "10:28", "10:29", "10:30", "10:31", "10:32", "10:33", "10:34", "10:35", "10:36", "10:37", "10:38", "10:39", "10:40", "10:41", "10:42", "10:43", "10:44", "10:45", "10:46", "10:47", "10:48", "10:49", "10:50", "10:51", "10:52", "10:53", "10:54", "10:55", "10:56", "10:57", "10:58", "10:59", "11:00", "11:01", "11:02", "11:03", "11:04", "11:05", "11:06", "11:07", "11:08", "11:09", "11:10", "11:11", "11:12", "11:13", "11:14", "11:15", "11:16", "11:17", "11:18", "11:19", "11:20", "11:21", "11:22", "11:23", "11:24", "11:25", "11:26", "11:27", "11:28", "11:29", "11:30", "11:31", "11:32", "11:33", "11:34", "11:35", "11:36", "11:37", "11:38", "11:39", "11:40", "11:41", "11:42", "11:43", "11:44", "11:45", "11:46", "11:47", "11:48", "11:49", "11:50", "11:51", "11:52", "11:53", "11:54", "11:55", "11:56", "11:57", "11:58", "11:59", "12:00", "12:01", "12:02", "12:03", "12:04", "12:05", "12:06", "12:07", "12:08", "12:09", "12:10", "12:11", "12:12", "12:13", "12:14", "12:15", "12:16", "12:17", "12:18", "12:19", "12:20", "12:21", "12:22", "12:23", "12:24", "12:25", "12:26", "12:27", "12:28", "12:29", "12:30", "12:31", "12:32", "12:33", "12:34", "12:35", "12:36", "12:37", "12:38", "12:39", "12:40", "12:41", "12:42", "12:43", "12:44", "12:45", "12:46", "12:47", "12:48", "12:49", "12:50", "12:51", "12:52", "12:53", "12:54", "12:55", "12:56", "12:57", "12:58", "12:59", "13:00", "13:01", "13:02", "13:03", "13:04", "13:05", "13:06", "13:07", "13:08", "13:09", "13:10", "13:11", "13:12", "13:13", "13:14", "13:15", "13:16", "13:17", "13:18", "13:19", "13:20", "13:21", "13:22", "13:23", "13:24", "13:25", "13:26", "13:27", "13:28", "13:29", "13:30", "13:31", "13:32", "13:33", "13:34", "13:35", "13:36", "13:37", "13:38", "13:39", "13:40", "13:41", "13:42", "13:43", "13:44", "13:45", "13:46", "13:47", "13:48", "13:49", "13:50", "13:51", "13:52", "13:53", "13:54", "13:55", "13:56", "13:57", "13:58", "13:59", "14:00", "14:01", "14:02", "14:03", "14:04", "14:05", "14:06", "14:07", "14:08", "14:09", "16:00"], "pnl": [-10, 15, 15, 5, 10, 25, 0, 5, 20, 35, 35, 40, 60, -1, -6, 9, -56, 54, 124, 154, 266, 276, 271, 176, 181, 171, 146, 151, 119, 156, 186, 181, 206, 154, 171, 154, 186, 166, 166, 256, 274, 306, 381, 376, 449, 396, 396, 351, 371, 381, 396, 396, 436, 436, 489, 494, 476, 416, 401, 416, 414, 441, 471, 434, 449, 456, 471, 499, 466, 476, 486, 511, 526, 539, 549, 559, 549, 554, 554, 534, 554, 571, 586, 609, 604, 599, 604, 609, 629, 616, 584, 591, 604, 599, 609, 624, 614, 616, 629, 624, 629, 619, 579, 596, 601, 604, 571, 549, 539, 549, 554, 544, 529, 514, 519, 496, 499, 529, 514, 559, 544, 554, 554, 549, 541, 549, 544, 534, 556, 564, 561, 589, 599, 604, 621, 619, 599, 591, 594, 594, 589, 584, 586, 584, 594, 604, 604, 589, 604, 611, 634, 624, 649, 634, 634, 639, 644, 646, 629, 634, 631, 634, 629, 644, 639, 634, 641, 644, 654, 649, 649, 649, 634, 634, 649, 654, 659, 666, 654, 654, 654, 646, 651, 649, 649, 654, 634, 649, 644, 649, 649, 659, 659, 659, 659, 654, 651, 654, 654, 654, 659, 669, 664, 659, 659, 664, 664, 664, 659, 656, 659, 644, 654, 656, 659, 659, 659, 656, 659, 659, 664, 659, 659, 664, 659, 661, 661, 659, 664, 664, 664, 664, 664, 664, 669, 669, 679, 684, 679, 679, 679, 679, 684, 679, 681, 679, 679, 676, 679, 679, 679, 679, 679, 679, 679, 679, 679, 679, 681, 684, 679, 679, 684, 684, 684, 684, 684, 684, 684, 684, 684, 684, 684, 684, 684, 689, 686], "pop": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]}}, {"id": "openic_20260804", "strat": "openic", "name": "[Open] Iron Condor", "exp": "08/04/2026", "structure": "[Open] Iron Condor (both legs)", "grade": "C", "state": "CLOSED", "exitd": "2026-08-04", "pnl": -754, "legs": ["P-wing vertical 25pt cr 0.35 \u2192 $+32", "C-wing vertical 25pt cr 0.35 \u2192 $-786", "B1 7560P 08/04", "S1 7585P 08/04", "B1 7760C 08/04", "S1 7735C 08/04"], "credit": 0.7, "collateral": 2430, "maxg": 70, "maxl": 2430, "pop": 83, "vix": null, "entry": "2026-08-04 09:05", "dow": "Tue", "commentary": "P-wing vertical 25pt cr 0.35 \u2192 $+32  \u00b7  C-wing vertical 25pt cr 0.35 \u2192 $-786", "payoff": null, "breakevens": [], "spot": 7727.9, "entry_spot": 7665.8, "exit_spot": 7736.4, "greeks": {"delta": -9.6, "gamma": -3.152, "theta": 6601.0, "vega": -6.0}, "multi": false, "series": {"t": ["09:09", "09:10", "09:11", "09:12", "09:13", "09:14", "09:15", "09:16", "09:17", "09:18", "09:19", "09:20", "09:21", "09:22", "09:23", "09:24", "09:25", "09:26", "09:27", "09:28", "09:29", "09:30", "09:31", "09:32", "09:33", "09:34", "09:35", "09:36", "09:37", "09:38", "09:39", "09:40", "09:41", "09:42", "09:43", "09:44", "09:45", "09:46", "09:47", "09:48", "09:49", "09:50", "09:51", "09:52", "09:53", "09:54", "09:55", "09:56", "09:57", "09:58", "09:59", "10:00", "10:01", "10:02", "10:03", "10:04", "10:05", "10:06", "10:07", "10:08", "10:09", "10:10", "10:11", "10:12", "10:13", "10:14", "10:15", "10:16", "10:17", "10:18", "10:19", "10:20", "10:21", "10:22", "10:23", "10:24", "10:25", "10:26", "10:27", "10:28", "10:29", "10:30", "10:31", "10:32", "10:33", "10:34", "10:35", "10:36", "10:37", "10:38", "10:39", "10:40", "10:41", "10:42", "10:43", "10:44", "10:45", "10:46", "10:47", "10:48", "10:49", "10:50", "10:51", "10:52", "10:53", "10:54", "10:55", "10:56", "10:57", "10:58", "10:59", "11:00", "11:01", "11:02", "11:03", "11:04", "11:05", "11:06", "11:07", "11:08", "11:09", "11:10", "11:11", "11:12", "11:13", "11:14", "11:15", "11:16", "11:17", "11:18", "11:19", "11:20", "11:21", "11:22", "11:23", "11:24", "11:25", "11:26", "11:27", "11:28", "11:29", "11:30", "11:31", "11:32", "11:33", "11:34", "11:35", "11:36", "11:37", "11:38", "11:39", "11:40", "11:41", "11:42", "11:43", "11:44", "11:45", "11:46", "11:47", "11:48", "11:49", "11:50", "11:51", "11:52", "11:53", "11:54", "11:55", "11:56", "11:57", "11:58", "11:59", "12:00", "12:01", "12:02", "12:03", "12:04", "12:05", "12:06", "12:07", "12:08", "12:09", "12:10", "12:11", "12:12", "12:13", "12:14", "12:15", "12:16", "12:17", "12:18", "12:19", "12:20", "12:21", "12:22", "12:23", "12:24", "12:25", "12:26", "12:27", "12:28", "12:29", "12:30", "12:31", "12:32", "12:33", "12:34", "12:35", "12:36", "12:37", "12:38", "12:39", "12:40", "12:41", "12:42", "12:43", "12:44", "12:45", "12:46", "12:47", "12:48", "12:49", "12:50", "12:51", "12:52", "12:53", "12:54", "12:55", "12:56", "12:57", "12:58", "12:59", "13:00", "13:01", "13:02", "13:03", "13:04", "13:05", "13:06", "13:07", "13:08", "13:09", "13:10", "13:11", "13:12", "13:13", "13:14", "13:15", "13:16", "13:17", "13:18", "13:19", "13:20", "13:21", "13:22", "13:23", "13:24", "13:25", "13:26", "13:27", "13:28", "13:29", "13:30", "13:31", "13:32", "13:33", "13:34", "13:35", "13:36", "13:37", "13:38", "13:39", "13:40", "13:41", "13:42", "13:43", "13:44", "13:45", "13:46", "13:47", "13:48", "13:49", "13:50", "13:51", "13:52", "13:53", "13:54", "13:55", "13:56", "13:57", "13:58", "13:59", "14:00", "14:02", "14:03", "14:04", "14:06", "16:00"], "pnl": [0, -7, -5, -7, -10, -10, -15, -10, -10, -18, -15, 0, 5, 7, 2, 0, 5, 0, 3, 5, 0, 5, 10, 10, 17, 18, 25, 25, 25, 20, 15, 10, 15, 10, 17, 12, 20, 17, 15, 15, 12, 5, 17, 10, 15, 10, 12, 5, 2, 10, 0, 5, -5, -15, -25, -20, -25, -18, -23, -12, -20, -25, -22, -23, -30, -30, -25, -28, -30, -30, -35, -35, -30, -35, -45, -62, -70, -75, -55, -40, -43, -50, -50, -58, -47, -35, -45, -45, -45, -38, -95, -80, -90, -88, -90, -92, -123, -152, -145, -168, -172, -217, -210, -230, -178, -125, -140, -180, -152, -177, -148, -157, -188, -192, -182, -168, -202, -167, -158, -150, -110, -110, -115, -93, -105, -110, -110, -135, -135, -145, -155, -140, -162, -202, -198, -222, -182, -198, -203, -215, -192, -187, -198, -227, -227, -238, -253, -262, -272, -212, -250, -260, -238, -247, -273, -332, -417, -393, -357, -378, -378, -398, -415, -408, -382, -443, -398, -373, -402, -413, -402, -503, -605, -578, -612, -672, -800, -603, -677, -742, -697, -738, -732, -760, -740, -775, -805, -840, -875, -850, -880, -805, -770, -756, -756, -756, -756, -756, -756, -756, -756, -756, -756, -756, -756, -756, -756, -756, -756, -756, -756, -756, -751, -751, -751, -751, -751, -751, -751, -751, -751, -751, -756, -751, -751, -751, -751, -751, -751, -751, -756, -756, -751, -756, -756, -756, -756, -756, -751, -751, -751, -756, -756, -756, -756, -756, -756, -751, -751, -751, -751, -751, -751, -751, -751, -751, -751, -751, -751, -751, -756, -756, -756, -756, -756, -756, -756, -756, -751, -756, -756, -756, -756, -756, -756, -756, -751, -751, -751, -751, -751, -751, -751, -751, -751, -751, -751, -751, -751, -751, -751, -751, -751, -751, -751, -751, -754], "pop": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]}}, {"id": "openfly_20260804", "strat": "openfly", "name": "[Open] Iron Fly", "exp": "08/04/2026", "structure": "[Open] Iron Fly (both legs)", "grade": "C", "state": "CLOSED", "exitd": "2026-08-04", "pnl": 296, "legs": ["C-wing vertical 25pt cr 11.20 \u2192 $-271", "P-wing vertical 25pt cr 5.70 \u2192 $+567", "B1 7685C 08/04", "S1 7660C 08/04", "B1 7635P 08/04", "S1 7660P 08/04"], "credit": 16.9, "collateral": 810, "maxg": 1690, "maxl": 810, "pop": 49, "vix": null, "entry": "2026-08-04 09:07", "dow": "Tue", "commentary": "C-wing vertical 25pt cr 11.20 \u2192 $-271  \u00b7  P-wing vertical 25pt cr 5.70 \u2192 $+567", "payoff": null, "breakevens": [], "spot": 7727.9, "entry_spot": 7667.2, "exit_spot": 7676.1, "greeks": {"delta": -0.0, "gamma": 0.0, "theta": -0.0, "vega": 0.0}, "multi": false, "series": {"t": ["09:07", "09:08", "09:09", "09:10", "09:11", "09:12", "09:13", "09:14", "09:15", "09:16", "09:17", "09:18", "09:19", "09:20", "09:21", "09:22", "09:23", "09:24", "09:25", "09:26", "09:27", "09:28", "09:29", "09:30", "09:31", "09:32", "09:33", "09:34", "09:35", "09:36", "09:37", "09:38", "09:39", "09:40", "09:41", "09:42", "09:43", "09:44", "09:45", "09:46", "09:47", "09:48", "09:49", "09:50", "09:51", "09:52", "09:53", "09:54", "09:55", "09:56", "09:57", "09:58", "09:59", "10:00", "10:01", "10:02", "10:03", "10:04", "10:05", "10:06", "10:07", "10:08", "10:09", "10:10", "10:11", "10:12", "10:13", "10:14", "10:15", "10:16", "10:17", "10:18", "10:19", "10:20", "10:21", "10:22", "10:23", "10:24", "10:25", "10:26", "10:27", "10:28", "10:29", "10:30", "10:31", "10:32", "10:33", "10:34", "10:35", "10:36", "10:37", "10:38", "10:39", "10:40", "10:41", "10:42", "10:43", "10:44", "10:45", "10:46", "10:47", "10:48", "10:49", "10:50", "10:51", "10:52", "10:53", "10:54", "10:55", "10:56", "10:57", "10:58", "10:59", "11:00", "11:01", "11:02", "11:03", "11:04", "11:05", "11:06", "11:07", "11:08", "11:09", "11:10", "11:11", "11:12", "11:13", "11:14", "11:15", "11:16", "11:17", "11:18", "11:19", "11:20", "11:21", "11:22", "11:23", "11:24", "11:25", "11:26", "11:27", "11:28", "11:29", "11:30", "11:31", "11:32", "11:33", "11:34", "11:35", "11:36", "11:37", "11:38", "11:39", "11:40", "11:41", "11:42", "11:43", "11:44", "11:45", "11:46", "11:47", "11:48", "11:49", "11:50", "11:51", "11:52", "11:53", "11:54", "11:55", "11:56", "11:57", "11:58", "11:59", "12:00", "12:01", "12:02", "12:03", "12:04", "12:05", "12:06", "12:07", "12:08", "12:09", "12:10", "12:11", "12:12", "12:13", "12:14", "12:15", "12:16", "12:17", "12:18", "12:19", "12:20", "12:21", "12:22", "12:23", "12:24", "12:25", "12:26", "12:27", "12:28", "12:29", "12:30", "12:31", "12:32", "12:33", "12:34", "12:35", "12:36", "12:37", "12:38", "12:39", "12:40", "12:41", "12:42", "12:43", "12:44", "12:45", "12:46", "12:47", "12:48", "12:49", "12:50", "12:51", "12:52", "12:53", "12:54", "12:55", "12:56", "12:57", "12:58", "12:59", "13:00", "13:01", "13:02", "13:03", "13:04", "13:05", "13:06", "13:07", "13:08", "13:09", "13:10", "13:11", "13:12", "13:13", "13:14", "13:15", "13:16", "13:17", "13:18", "13:19", "13:20", "13:21", "13:22", "13:23", "13:24", "13:25", "13:26", "13:27", "13:28", "13:29", "13:30", "13:31", "13:32", "13:33", "13:34", "13:35", "13:36", "13:37", "13:38", "13:39", "13:40", "13:41", "13:42", "13:43", "13:44", "13:45", "13:46", "13:47", "13:48", "13:49", "13:50", "13:51", "13:52", "13:53", "13:54", "13:55", "13:56", "13:57", "13:58", "13:59", "14:00", "14:01", "14:02", "14:03", "14:04", "14:05", "14:06", "14:07", "14:08", "14:09", "14:10", "14:11", "14:12", "14:13", "14:14", "14:15", "14:16", "14:17", "14:18", "14:19", "14:20", "14:21", "14:22", "14:23", "14:24", "14:25", "14:26", "14:27", "14:28", "14:29", "14:30", "14:31", "14:32", "14:33", "14:34", "14:35", "14:36", "14:37", "14:38", "16:00"], "pnl": [-5, 10, -5, 5, -5, -10, -55, -45, -73, -95, -95, -129, -104, -184, -231, -221, -311, -261, -281, -211, -211, -221, -241, -281, -321, -256, -141, -134, -109, -109, -146, -11, -94, -44, -64, -39, -19, 31, 36, 46, 26, 31, 56, 54, 41, 51, 66, 51, 56, 91, 104, 106, 124, 124, 136, 134, 141, 144, 151, 139, 149, 121, 134, 154, 151, 169, 174, 174, 174, 189, 189, 189, 191, 194, 189, 194, 194, 199, 204, 199, 194, 184, 184, 189, 184, 189, 184, 179, 186, 184, 186, 186, 221, 214, 214, 224, 229, 231, 244, 241, 239, 241, 239, 244, 234, 239, 234, 214, 224, 224, 224, 229, 219, 224, 239, 239, 239, 239, 244, 234, 234, 234, 224, 224, 224, 219, 224, 224, 224, 236, 244, 249, 244, 244, 259, 261, 259, 264, 259, 261, 264, 264, 264, 264, 264, 274, 269, 274, 269, 269, 269, 264, 271, 269, 269, 266, 269, 279, 279, 281, 279, 279, 279, 279, 279, 279, 279, 279, 279, 274, 279, 279, 279, 284, 286, 286, 286, 289, 286, 284, 284, 284, 284, 284, 279, 279, 284, 279, 279, 284, 284, 279, 279, 279, 279, 276, 279, 279, 279, 284, 284, 284, 284, 279, 279, 289, 286, 286, 284, 289, 289, 294, 294, 294, 289, 289, 294, 294, 294, 294, 294, 294, 289, 291, 284, 289, 284, 286, 284, 284, 284, 286, 284, 276, 284, 279, 284, 276, 284, 279, 284, 284, 289, 284, 289, 289, 289, 289, 289, 294, 289, 289, 289, 294, 294, 294, 294, 294, 294, 294, 289, 294, 294, 294, 294, 294, 294, 294, 294, 294, 294, 294, 294, 289, 289, 289, 289, 294, 294, 294, 299, 294, 294, 294, 294, 294, 294, 294, 294, 294, 294, 294, 294, 294, 299, 299, 299, 299, 294, 294, 294, 299, 294, 299, 296, 294, 294, 294, 299, 299, 299, 299, 299, 299, 299, 299, 299, 299, 299, 299, 299, 299, 299, 299, 299, 299, 299, 299, 299, 299, 299, 299, 296], "pop": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]}}, {"id": "eodfly_20260804", "strat": "eodfly", "name": "[EOD] Iron Fly", "exp": "08/04/2026", "structure": "[EOD] Iron Fly (both legs)", "grade": "C", "state": "CLOSED", "exitd": "2026-08-04", "pnl": 61, "legs": ["P-wing vertical 25pt cr 1.65 \u2192 $+162", "C-wing vertical 25pt cr 20.60 \u2192 $-101", "B1 7575P 08/04", "S1 7600P 08/04", "B1 7625C 08/04", "S1 7600C 08/04"], "credit": 22.25, "collateral": 275, "maxg": 2225, "maxl": 275, "pop": 29, "vix": null, "entry": "2026-08-04 08:33", "dow": "Tue", "commentary": "P-wing vertical 25pt cr 1.65 \u2192 $+162  \u00b7  C-wing vertical 25pt cr 20.60 \u2192 $-101", "payoff": null, "breakevens": [], "spot": 7727.9, "entry_spot": 7640.8, "exit_spot": 7736.4, "greeks": {"delta": 0.0, "gamma": 0.0, "theta": -0.0, "vega": 0.0}, "multi": false, "series": {"t": ["08:38", "08:39", "08:40", "08:41", "08:42", "08:43", "08:44", "08:45", "08:46", "08:47", "08:48", "08:49", "08:50", "08:51", "08:52", "08:53", "08:54", "08:55", "08:56", "08:57", "08:58", "08:59", "09:00", "09:01", "09:02", "09:03", "09:04", "09:05", "09:06", "09:07", "09:08", "09:09", "09:10", "09:11", "09:12", "09:13", "09:14", "09:15", "09:16", "09:17", "09:18", "09:19", "09:20", "09:21", "09:22", "09:23", "09:24", "09:25", "09:26", "09:27", "09:28", "09:29", "09:30", "09:31", "09:32", "09:33", "09:34", "09:35", "09:36", "09:37", "09:38", "09:39", "09:40", "09:41", "09:42", "09:43", "09:44", "09:45", "09:46", "09:47", "09:48", "09:49", "09:50", "09:51", "09:52", "09:53", "09:54", "09:55", "09:56", "09:57", "09:58", "09:59", "10:00", "10:01", "10:02", "10:03", "10:04", "10:05", "10:06", "10:07", "10:08", "10:09", "10:10", "10:11", "10:12", "10:13", "10:14", "10:15", "10:16", "10:17", "10:18", "10:19", "10:20", "10:21", "10:22", "10:23", "10:24", "10:25", "10:26", "10:27", "10:28", "10:29", "10:30", "10:31", "10:32", "10:33", "10:34", "10:35", "10:36", "10:37", "10:38", "10:39", "10:40", "10:41", "10:42", "10:43", "10:44", "10:45", "10:46", "10:47", "10:48", "10:49", "10:50", "10:51", "10:52", "10:53", "10:54", "10:55", "10:56", "10:57", "10:58", "10:59", "11:00", "11:01", "11:02", "11:03", "11:04", "11:05", "11:06", "11:07", "11:08", "11:09", "11:10", "11:11", "11:12", "11:13", "11:14", "11:15", "11:16", "11:17", "11:18", "11:19", "11:20", "11:21", "11:22", "11:23", "11:24", "11:25", "11:26", "11:27", "11:28", "11:29", "11:30", "11:31", "11:32", "11:33", "11:34", "11:35", "11:36", "11:37", "11:38", "11:39", "11:40", "11:41", "11:42", "11:43", "11:44", "11:45", "11:46", "11:47", "11:48", "11:49", "11:50", "11:51", "11:52", "11:53", "11:54", "11:55", "11:56", "11:57", "11:58", "11:59", "12:00", "12:01", "12:02", "12:03", "12:04", "12:05", "12:06", "12:07", "12:08", "12:09", "12:10", "12:11", "12:12", "12:13", "12:14", "12:15", "12:16", "12:17", "12:18", "12:19", "12:20", "12:21", "12:22", "12:23", "12:24", "12:25", "12:26", "12:27", "12:28", "12:29", "12:30", "12:31", "12:32", "12:33", "12:34", "12:35", "12:36", "12:37", "12:38", "12:39", "12:40", "12:41", "12:42", "12:43", "12:44", "12:45", "12:46", "12:47", "12:48", "12:49", "12:50", "12:51", "12:52", "12:53", "12:54", "12:55", "12:56", "12:57", "12:58", "12:59", "13:00", "13:01", "13:02", "13:03", "13:04", "13:05", "13:06", "13:07", "13:08", "13:09", "13:10", "13:11", "13:12", "13:13", "13:14", "13:15", "13:16", "13:17", "13:18", "13:19", "13:20", "13:21", "13:22", "13:23", "13:24", "13:25", "13:26", "13:27", "13:28", "13:29", "13:30", "13:31", "13:32", "13:33", "13:34", "13:35", "13:36", "13:37", "13:38", "13:39", "13:40", "13:41", "13:42", "13:43", "13:44", "13:45", "13:46", "13:47", "13:48", "13:49", "13:50", "13:51", "13:52", "13:53", "13:54", "13:55", "13:56", "13:57", "13:58", "13:59", "14:00", "14:01", "14:02", "14:03", "14:04", "14:05", "14:06", "14:07", "14:08", "14:09", "14:10", "14:11", "16:00"], "pnl": [-37, -8, -23, -28, -32, -48, -27, -67, -75, -60, -40, -76, -41, -41, -36, -31, -21, -21, -44, -36, -36, -31, -21, -21, 1, 4, 9, 6, 14, 9, 9, 14, 11, 9, 9, 14, 14, 19, 19, 19, 19, 26, 24, 14, 14, -6, 9, 4, 14, 14, 14, 11, 4, 9, 14, 29, 29, 34, 34, 29, 39, 34, 34, 34, 34, 39, 44, 44, 44, 39, 39, 44, 44, 39, 39, 39, 39, 39, 44, 49, 44, 49, 49, 49, 49, 49, 54, 54, 49, 54, 49, 49, 51, 51, 49, 54, 54, 54, 56, 54, 54, 54, 54, 54, 54, 54, 54, 54, 54, 54, 54, 54, 59, 54, 54, 54, 54, 54, 54, 54, 54, 59, 59, 59, 59, 59, 59, 54, 61, 61, 59, 59, 61, 59, 59, 59, 59, 59, 59, 59, 59, 59, 59, 59, 59, 59, 59, 59, 64, 64, 64, 54, 54, 54, 56, 56, 56, 56, 56, 59, 59, 59, 59, 59, 64, 64, 64, 59, 59, 59, 59, 64, 59, 59, 59, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 59, 59, 59, 59, 59, 59, 59, 59, 59, 59, 64, 64, 64, 64, 64, 61, 61, 61, 59, 64, 64, 64, 61, 64, 64, 59, 59, 59, 59, 61, 59, 59, 59, 59, 59, 59, 59, 59, 59, 59, 59, 59, 59, 59, 64, 64, 64, 64, 64, 64, 64, 59, 59, 59, 59, 64, 61, 64, 64, 64, 64, 64, 64, 64, 59, 64, 59, 59, 59, 59, 59, 59, 64, 64, 59, 59, 59, 59, 54, 59, 54, 59, 59, 64, 64, 64, 64, 64, 64, 59, 59, 59, 59, 59, 59, 59, 59, 59, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 59, 59, 59, 59, 59, 59, 59, 59, 59, 59, 59, 59, 59, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 61], "pop": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]}}, {"id": "auto_20260806_084404", "strat": "eodfly_c", "name": "[EOD] Fly \u00b7 call wing only", "exp": "08/06/2026", "structure": "vertical 25pt", "grade": "C", "state": "CLOSED", "exitd": "2026-08-06", "pnl": -131, "legs": ["B1 7750C 08/06", "S1 7725C 08/06"], "credit": 11.5, "collateral": 1350, "maxg": 1150, "maxl": 1350, "pop": 48, "vix": null, "entry": "2026-08-06 08:44", "dow": "Thu", "commentary": "AUTO-TRIGGER [eodfly_c] fired: reached 08:30, regime unknown. credit 11.50 = 46% of width, short -3pt ITM. Projected C premarket. Path \u2014.", "payoff": {"s": [7605.0, 7606.2, 7607.4, 7608.6, 7609.8, 7611.1, 7612.3, 7613.5, 7614.7, 7615.9, 7617.1, 7618.3, 7619.5, 7620.7, 7621.9, 7623.2, 7624.4, 7625.6, 7626.8, 7628.0, 7629.2, 7630.4, 7631.6, 7632.8, 7634.0, 7635.3, 7636.5, 7637.7, 7638.9, 7640.1, 7641.3, 7642.5, 7643.7, 7644.9, 7646.1, 7647.4, 7648.6, 7649.8, 7651.0, 7652.2, 7653.4, 7654.6, 7655.8, 7657.0, 7658.2, 7659.5, 7660.7, 7661.9, 7663.1, 7664.3, 7665.5, 7666.7, 7667.9, 7669.1, 7670.3, 7671.6, 7672.8, 7674.0, 7675.2, 7676.4, 7677.6, 7678.8, 7680.0, 7681.2, 7682.4, 7683.7, 7684.9, 7686.1, 7687.3, 7688.5, 7689.7, 7690.9, 7692.1, 7693.3, 7694.5, 7695.8, 7697.0, 7698.2, 7699.4, 7700.6, 7701.8, 7703.0, 7704.2, 7705.4, 7706.6, 7707.9, 7709.1, 7710.3, 7711.5, 7712.7, 7713.9, 7715.1, 7716.3, 7717.5, 7718.7, 7720.0, 7721.2, 7722.4, 7723.6, 7724.8, 7725.0, 7726.0, 7727.2, 7727.9, 7728.4, 7729.6, 7730.8, 7732.1, 7733.3, 7734.5, 7735.7, 7736.9, 7738.1, 7739.3, 7740.5, 7741.7, 7742.9, 7744.2, 7745.4, 7746.6, 7747.8, 7749.0, 7750.0, 7750.2, 7751.4, 7752.6, 7753.8, 7755.0, 7756.3, 7757.5, 7758.7, 7759.9, 7761.1, 7762.3, 7763.5, 7764.7, 7765.9, 7767.1, 7768.4, 7769.6, 7770.8, 7772.0, 7773.2, 7774.4, 7775.6, 7776.8, 7778.0, 7779.2, 7780.5, 7781.7, 7782.9, 7784.1, 7785.3, 7786.5, 7787.7, 7788.9, 7790.1, 7791.3, 7792.6, 7793.8, 7795.0, 7796.2, 7797.4, 7798.6, 7799.8, 7801.0, 7802.2, 7803.4, 7804.7, 7805.9, 7807.1, 7808.3, 7809.5, 7810.7, 7811.9, 7813.1, 7814.3, 7815.5, 7816.8, 7818.0, 7819.2, 7820.4, 7821.6, 7822.8, 7824.0, 7825.2, 7826.4, 7827.6, 7828.9, 7830.1, 7831.3, 7832.5, 7833.7, 7834.9, 7836.1, 7837.3, 7838.5, 7839.7, 7841.0, 7842.2, 7843.4, 7844.6, 7845.8, 7847.0, 7848.2, 7849.4, 7850.6, 7851.8, 7853.1, 7854.3, 7855.5, 7856.7, 7857.9, 7859.1, 7860.3, 7861.5, 7862.7, 7863.9, 7865.2, 7866.4, 7867.6, 7868.8, 7870.0], "v": [1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1050, 929, 855, 808, 687, 566, 445, 324, 203, 82, -39, -161, -282, -403, -524, -645, -766, -887, -1008, -1129, -1250, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350, -1350]}, "breakevens": [7736.5], "spot": 7727.9, "entry_spot": 7730.7, "exit_spot": 7735.6, "greeks": {"delta": -31.5, "gamma": -0.328, "theta": 686.0, "vega": -18.0}, "multi": false, "series": {"t": ["08:44", "08:45", "08:46", "08:47", "08:48", "08:49", "08:50", "08:51", "08:52", "08:53", "08:54", "08:54"], "pnl": [-15, -80, -45, -170, -210, -200, -180, -115, -155, -185, -130, -131], "pop": [null, null, null, null, null, null, null, null, null, null, null, null]}}, {"id": "auto_20260806_084344", "strat": "eodfly_p", "name": "[EOD] Fly \u00b7 put wing only", "exp": "08/06/2026", "structure": "vertical 25pt", "grade": "C", "state": "OPEN", "exitd": null, "pnl": 10, "legs": ["B1 7700P 08/06", "S1 7725P 08/06"], "credit": 7.1, "collateral": 1790, "maxg": 710, "maxl": 1790, "pop": 52, "vix": null, "entry": "2026-08-06 08:43", "dow": "Thu", "commentary": "AUTO-TRIGGER [eodfly_p] fired: reached 08:30, regime unknown. credit 7.10 = 28% of width, short 3pt OTM. Projected C premarket. Path \u2014.", "payoff": {"s": [7580.0, 7581.2, 7582.4, 7583.6, 7584.8, 7586.1, 7587.3, 7588.5, 7589.7, 7590.9, 7592.1, 7593.3, 7594.5, 7595.7, 7596.9, 7598.2, 7599.4, 7600.6, 7601.8, 7603.0, 7604.2, 7605.4, 7606.6, 7607.8, 7609.0, 7610.3, 7611.5, 7612.7, 7613.9, 7615.1, 7616.3, 7617.5, 7618.7, 7619.9, 7621.1, 7622.4, 7623.6, 7624.8, 7626.0, 7627.2, 7628.4, 7629.6, 7630.8, 7632.0, 7633.2, 7634.5, 7635.7, 7636.9, 7638.1, 7639.3, 7640.5, 7641.7, 7642.9, 7644.1, 7645.3, 7646.6, 7647.8, 7649.0, 7650.2, 7651.4, 7652.6, 7653.8, 7655.0, 7656.2, 7657.4, 7658.7, 7659.9, 7661.1, 7662.3, 7663.5, 7664.7, 7665.9, 7667.1, 7668.3, 7669.5, 7670.8, 7672.0, 7673.2, 7674.4, 7675.6, 7676.8, 7678.0, 7679.2, 7680.4, 7681.6, 7682.9, 7684.1, 7685.3, 7686.5, 7687.7, 7688.9, 7690.1, 7691.3, 7692.5, 7693.7, 7695.0, 7696.2, 7697.4, 7698.6, 7699.8, 7700.0, 7701.0, 7702.2, 7703.4, 7704.6, 7705.8, 7707.1, 7708.3, 7709.5, 7710.7, 7711.9, 7713.1, 7714.3, 7715.5, 7716.7, 7717.9, 7719.2, 7720.4, 7721.6, 7722.8, 7724.0, 7725.0, 7725.2, 7726.4, 7727.6, 7727.9, 7728.8, 7730.0, 7731.3, 7732.5, 7733.7, 7734.9, 7736.1, 7737.3, 7738.5, 7739.7, 7740.9, 7742.1, 7743.4, 7744.6, 7745.8, 7747.0, 7748.2, 7749.4, 7750.6, 7751.8, 7753.0, 7754.2, 7755.5, 7756.7, 7757.9, 7759.1, 7760.3, 7761.5, 7762.7, 7763.9, 7765.1, 7766.3, 7767.6, 7768.8, 7770.0, 7771.2, 7772.4, 7773.6, 7774.8, 7776.0, 7777.2, 7778.4, 7779.7, 7780.9, 7782.1, 7783.3, 7784.5, 7785.7, 7786.9, 7788.1, 7789.3, 7790.5, 7791.8, 7793.0, 7794.2, 7795.4, 7796.6, 7797.8, 7799.0, 7800.2, 7801.4, 7802.6, 7803.9, 7805.1, 7806.3, 7807.5, 7808.7, 7809.9, 7811.1, 7812.3, 7813.5, 7814.7, 7816.0, 7817.2, 7818.4, 7819.6, 7820.8, 7822.0, 7823.2, 7824.4, 7825.6, 7826.8, 7828.1, 7829.3, 7830.5, 7831.7, 7832.9, 7834.1, 7835.3, 7836.5, 7837.7, 7838.9, 7840.2, 7841.4, 7842.6, 7843.8, 7845.0], "v": [-1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1790, -1690, -1569, -1448, -1327, -1206, -1085, -964, -843, -722, -601, -479, -358, -237, -116, 5, 126, 247, 368, 489, 610, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710, 710]}, "breakevens": [7717.9], "spot": 7727.9, "entry_spot": 7727.4, "exit_spot": null, "greeks": {"delta": 29.0, "gamma": -0.496, "theta": 1038.0, "vega": -27.0}, "multi": false, "series": {"t": ["08:43", "08:44", "08:45", "08:46", "08:47", "08:48", "08:49", "08:50", "08:51", "08:52", "08:53", "08:54", "08:55", "08:56", "08:57", "08:58", "08:59", "09:00", "09:01", "09:02", "09:03", "09:04", "09:05", "09:06", "09:07", "09:08", "09:09", "09:10", "09:11", "09:12", "09:13", "09:14", "09:15", "09:16", "09:17", "09:18", "09:19", "09:20", "09:21", "09:22", "09:23", "09:24", "09:25", "09:26", "09:27", "09:28", "09:29", "09:30", "09:31", "09:32", "09:33", "09:34", "09:35", "09:36", "09:37", "09:38", "09:39", "09:40", "09:41", "09:42", "09:43", "09:44", "09:45", "09:46", "09:47", "09:48", "09:49", "09:50", "09:51", "09:52", "09:53", "09:54", "09:55", "09:56", "09:57", "09:58", "09:59", "10:00", "10:01", "10:02", "10:03"], "pnl": [-10, -5, 45, 15, 110, 130, 125, 115, 70, 95, 120, 85, 75, 5, 50, 20, 10, 65, 35, 105, 40, 30, 90, 70, 155, 140, 170, 210, 225, 210, 220, 210, 140, 150, 230, 252, 262, 260, 235, 268, 220, 210, 90, -35, -5, 20, -90, 70, 0, -5, -10, 80, 95, 10, -50, -60, -145, -130, -105, -15, 60, 10, -130, -80, -145, -140, -145, -110, -115, -115, -60, -20, 10, 60, 130, 152, 157, 222, 150, 130, -35], "pop": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]}}, {"id": "incident_20260805_orphan_7760C", "strat": "incident_orphan", "name": "\u26a0 Incident \u2014 orphaned leg", "exp": "08/05/2026", "structure": "orphan long 7760C (leg-fill failure)", "grade": "F", "state": "CLOSED", "exitd": "2026-08-05", "pnl": -633, "legs": ["B1 7760C 08/05"], "credit": -28.7, "collateral": 2870, "maxg": null, "maxl": null, "pop": null, "vix": null, "entry": "2026-08-05 09:27", "dow": "", "commentary": "eodfly_c short leg missed fill; long wing orphaned then closed", "payoff": null, "breakevens": [], "spot": 7727.9, "entry_spot": 7779.4, "exit_spot": 7770.0, "greeks": {"delta": 0.0, "gamma": 0.0, "theta": -0.0, "vega": 0.0}, "multi": false, "series": {"t": ["09:28", "09:29", "09:30", "09:31", "09:32", "09:33", "09:33"], "pnl": [25, -190, -460, -610, -505, -430, -633], "pop": [null, null, null, null, null, null, null]}}, {"id": "incident_20260805_orphan_7840C", "strat": "incident_orphan", "name": "\u26a0 Incident \u2014 orphaned leg", "exp": "08/05/2026", "structure": "orphan long 7840C (leg-fill failure)", "grade": "F", "state": "CLOSED", "exitd": "2026-08-05", "pnl": -103, "legs": ["B1 7840C 08/05"], "credit": -2.3, "collateral": 230, "maxg": null, "maxl": null, "pop": null, "vix": null, "entry": "2026-08-05 09:27", "dow": "", "commentary": "eodic_c short leg missed fill; long wing orphaned then closed", "payoff": null, "breakevens": [], "spot": 7727.9, "entry_spot": 7779.4, "exit_spot": 7770.0, "greeks": {"delta": 0.0, "gamma": 0.0, "theta": -0.0, "vega": 0.0}, "multi": false, "series": {"t": ["09:28", "09:29", "09:30", "09:31", "09:32", "09:33", "09:33"], "pnl": [-32, -55, -88, -102, -107, -107, -103], "pop": [null, null, null, null, null, null, null]}}, {"id": "auto_20260805_093447", "strat": "gx_bcs", "name": "[GexLog] Condor \u00b7 call wing only", "exp": "08/05/2026", "structure": "vertical 25pt", "grade": "C", "state": "CLOSED", "exitd": "2026-08-05", "pnl": 109, "legs": ["B1 7775C 08/05", "S1 7750C 08/05"], "credit": 15.0, "collateral": 1000, "maxg": 1500, "maxl": 1000, "pop": 40, "vix": null, "entry": "2026-08-05 09:34", "dow": "Wed", "commentary": "AUTO-TRIGGER [gx_bcs] fired: reached 09:05, regime unknown. unknown. Projected C premarket. Path \u2014.", "payoff": null, "breakevens": [], "spot": 7727.9, "entry_spot": 7773.0, "exit_spot": 7764.1, "greeks": {"delta": -0.0, "gamma": -0.002, "theta": 4.0, "vega": -0.0}, "multi": false, "series": {"t": ["09:34", "09:35", "09:36", "09:37", "09:38", "09:39", "09:40", "09:41", "09:42", "09:43", "09:44", "09:45", "09:45"], "pnl": [-40, 10, 50, 120, 120, 55, 150, 205, 170, 115, 155, 140, 109], "pop": [null, null, null, null, null, null, null, null, null, null, null, null, null]}}, {"id": "auto_20260805_092813", "strat": "eodfly_p", "name": "[EOD] Fly \u00b7 put wing only", "exp": "08/05/2026", "structure": "vertical 25pt", "grade": "C", "state": "CLOSED", "exitd": "2026-08-05", "pnl": -781, "legs": ["B1 7710P 08/05", "S1 7735P 08/05"], "credit": 2.6, "collateral": 2240, "maxg": 260, "maxl": 2240, "pop": 71, "vix": null, "entry": "2026-08-05 09:28", "dow": "Wed", "commentary": "AUTO-TRIGGER [eodfly_p] fired: reached 08:30, regime unknown. unknown. Projected C premarket. Path \u2014.", "payoff": null, "breakevens": [], "spot": 7727.9, "entry_spot": 7774.8, "exit_spot": 7726.5, "greeks": {"delta": 90.4, "gamma": -3.123, "theta": 6541.0, "vega": -6.0}, "multi": false, "series": {"t": ["09:28", "09:29", "09:30", "09:31", "09:32", "09:33", "09:34", "09:35", "09:36", "09:37", "09:38", "09:39", "09:40", "09:41", "09:42", "09:43", "09:44", "09:45", "09:46", "09:47", "09:48", "09:49", "09:50", "09:51", "09:52", "09:53", "09:54", "09:55", "09:56", "09:57", "09:58", "09:59", "10:00", "10:01", "10:02", "10:03", "10:04", "10:05", "10:06", "10:07", "10:08", "10:09", "10:10", "10:11", "10:12", "10:13", "10:14", "10:15", "10:16", "10:17", "10:18", "10:19", "10:20", "10:21", "10:22", "10:23", "10:24", "10:25", "10:26", "10:27", "10:28", "10:29", "10:30", "10:31", "10:32", "10:33", "10:34", "10:35", "10:36", "10:37", "10:38", "10:39", "10:40", "10:41", "10:42", "10:43", "10:44", "10:45", "10:46", "10:47", "10:48", "10:49", "10:50", "10:51", "10:52", "10:53", "10:54", "10:55", "10:56", "10:57", "10:58", "10:59", "11:00", "11:01", "11:02", "11:03", "11:04", "11:05", "11:06", "11:07", "11:08", "11:08"], "pnl": [-3, -12, -65, -100, -70, -60, -60, -85, -100, -135, -135, -100, -145, -170, -145, -105, -125, -110, -80, -65, -60, -60, -28, -100, -150, -170, -280, -285, -280, -180, -185, -180, -160, -160, -140, -160, -185, -190, -205, -150, -160, -140, -150, -130, -130, -200, -225, -250, -320, -325, -470, -355, -380, -305, -330, -335, -360, -360, -415, -400, -470, -480, -435, -340, -315, -355, -340, -390, -430, -350, -370, -380, -395, -440, -365, -385, -380, -420, -410, -420, -440, -455, -460, -495, -505, -455, -500, -540, -615, -725, -600, -615, -660, -690, -820, -715, -600, -700, -765, -720, -780, -781], "pop": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]}}, {"id": "auto_20260805_092640", "strat": "eodic_p", "name": "[EOD] Condor \u00b7 put wing only", "exp": "08/05/2026", "structure": "vertical 25pt", "grade": "C", "state": "CLOSED", "exitd": "2026-08-05", "pnl": 17, "legs": ["B1 7630P 08/05", "S1 7655P 08/05"], "credit": 0.2, "collateral": 2480, "maxg": 20, "maxl": 2480, "pop": 94, "vix": null, "entry": "2026-08-05 09:26", "dow": "Wed", "commentary": "AUTO-TRIGGER [eodic_p] fired: reached 08:30, regime unknown. unknown. Projected C premarket. Path \u2014.", "payoff": null, "breakevens": [], "spot": 7727.9, "entry_spot": 7778.3, "exit_spot": 7732.8, "greeks": {"delta": 0.0, "gamma": -0.0, "theta": 0.0, "vega": -0.0}, "multi": false, "series": {"t": ["09:28", "09:29", "09:30", "09:31", "09:32", "09:33", "09:34", "09:35", "09:36", "09:37", "09:38", "09:39", "09:40", "09:41", "09:42", "09:43", "09:44", "09:45", "09:46", "09:47", "09:48", "09:49", "09:50", "09:51", "09:52", "09:53", "09:54", "09:55", "09:56", "09:57", "09:58", "09:59", "10:00", "10:01", "10:02", "10:03", "10:04", "10:05", "10:06", "10:07", "10:08", "10:09", "10:10", "10:11", "10:12", "10:13", "10:14", "10:15", "10:16", "10:17", "10:18", "10:19", "10:20", "10:21", "10:22", "10:23", "10:24", "10:25", "10:26", "10:27", "10:28", "10:29", "10:30", "10:31", "10:32", "10:33", "10:34", "10:35", "10:36", "10:37", "10:38", "10:39", "10:40", "10:41", "10:42", "10:43", "10:44", "10:45", "10:46", "10:47", "10:48", "10:49", "10:50", "10:51", "10:52", "10:53", "10:54", "10:55", "10:56", "10:57", "10:58", "10:59", "11:00", "11:01", "11:02", "11:03", "11:04", "11:05", "11:06", "11:07", "11:08", "11:09", "11:10", "11:11", "11:12", "11:13", "11:14", "11:15", "11:16", "11:17", "11:18", "11:19", "11:20", "11:21", "11:22", "11:23", "11:24", "11:25", "11:26", "11:27", "11:28", "11:29", "11:30", "11:31", "11:32", "11:33", "11:34", "11:35", "11:36", "11:37", "11:38", "11:39", "11:40", "11:41", "11:42", "11:43", "11:44", "11:45", "11:46", "11:47", "11:48", "11:49", "11:50", "11:51", "11:52", "11:53", "11:54", "11:55", "11:56", "11:57", "11:58", "11:59", "12:00", "12:01", "12:02", "12:03", "12:04", "12:05", "12:06", "12:07", "12:08", "12:09", "12:10", "12:11", "12:12", "12:13", "12:14", "12:15", "12:16", "12:17", "12:18", "12:19", "12:20", "12:21", "12:22", "12:23", "12:24", "12:25", "12:26", "12:27", "12:28", "12:29", "12:30", "12:31", "12:32", "12:33", "12:34", "12:35", "12:36", "12:37", "12:38", "12:39", "12:40", "12:41", "12:42", "12:43", "12:44", "12:45", "12:46", "12:47", "12:48", "12:49", "12:50", "12:51", "12:52", "12:53", "12:54", "12:55", "12:56", "12:57", "12:58", "12:59", "13:00", "13:01", "13:02", "13:03", "13:04", "13:05", "13:06", "13:07", "13:08", "13:09", "13:10", "13:11", "13:12", "13:13", "13:14", "13:15", "13:16", "13:17", "13:18", "13:19", "13:20", "13:21", "13:22", "13:23", "13:24", "13:25", "13:26", "13:27", "13:28", "13:29", "13:30", "13:31", "13:32", "13:33", "13:34", "13:35", "13:36", "13:37", "13:38", "13:39", "13:40", "13:41", "13:42", "13:43", "13:44", "13:45", "13:52", "13:59", "13:59"], "pnl": [-5, -5, -10, -15, -10, -12, -10, -15, -18, -20, -22, -20, -25, -30, -25, -18, -20, -20, -13, -10, -10, -10, -5, -20, -20, -20, -25, -30, -30, -20, -18, -18, -20, -15, -12, -15, -15, -15, -20, -15, -18, -15, -18, -10, -10, -15, -12, -15, -25, -25, -35, -22, -30, -25, -25, -27, -30, -30, -30, -30, -32, -30, -30, -20, -20, -25, -20, -22, -25, -20, -25, -25, -20, -25, -20, -20, -20, -22, -20, -20, -20, -20, -20, -20, -25, -15, -20, -25, -27, -37, -27, -30, -30, -30, -40, -30, -20, -27, -35, -30, -32, -45, -32, -35, -37, -35, -35, -30, -10, -20, -25, -20, -15, -5, -2, -5, -10, -8, 0, 0, -3, 5, 5, 0, 0, -5, 0, 0, 0, 3, 0, 3, 5, 5, 5, 5, 5, 3, 5, 5, 5, 5, 10, 15, 10, 10, 15, 10, 10, 13, 12, 10, 10, 15, 15, 10, 5, 10, 5, 5, 10, 10, 5, 5, 8, 13, 8, 5, 10, 8, 5, 10, 5, 5, 10, 10, 10, 5, 10, 15, 15, 10, 10, 10, 10, 10, 15, 15, 15, 15, 15, 15, 20, 15, 15, 15, 15, 15, 15, 15, 15, 15, 20, 20, 20, 20, 18, 20, 15, 15, 15, 15, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 17], "pop": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]}}, {"id": "auto_20260804_090940", "strat": "gx_bcs", "name": "[GexLog] Condor \u00b7 call wing only", "exp": "08/04/2026", "structure": "vertical 25pt", "grade": "C", "state": "CLOSED", "exitd": "2026-08-04", "pnl": -71, "legs": ["B1 7655C 08/04", "S1 7630C 08/04"], "credit": 20.1, "collateral": 490, "maxg": 2010, "maxl": 490, "pop": 31, "vix": null, "entry": "2026-08-04 09:09", "dow": "Tue", "commentary": "AUTO-TRIGGER [gx_bcs] fired: reached 09:05, regime unknown. unknown. Projected C premarket. Path \u2014.", "payoff": null, "breakevens": [], "spot": 7727.9, "entry_spot": 7667.4, "exit_spot": 7669.4, "greeks": {"delta": 0.0, "gamma": 0.0, "theta": -0.0, "vega": 0.0}, "multi": false, "series": {"t": ["09:09", "09:10", "09:11", "09:12", "09:13", "09:14", "09:15", "09:16", "09:17", "09:18", "09:19", "09:20", "09:21", "09:21"], "pnl": [-10, -20, -35, -35, -65, -70, -115, -110, -120, -150, -165, -100, -65, -71], "pop": [null, null, null, null, null, null, null, null, null, null, null, null, null, null]}}, {"id": "auto_20260804_083337", "strat": "eodic_c", "name": "[EOD] Condor \u00b7 call wing only", "exp": "08/04/2026", "structure": "vertical 25pt", "grade": "C", "state": "CLOSED", "exitd": "2026-08-04", "pnl": -866, "legs": ["B1 7700C 08/04", "S1 7675C 08/04"], "credit": 1.95, "collateral": 2305, "maxg": 195, "maxl": 2305, "pop": 68, "vix": null, "entry": "2026-08-04 08:33", "dow": "Tue", "commentary": "AUTO-TRIGGER [eodic_c] fired: reached 08:30, regime unknown. unknown. Projected C premarket. Path \u2014.", "payoff": null, "breakevens": [], "spot": 7727.9, "entry_spot": 7640.8, "exit_spot": 7681.9, "greeks": {"delta": -0.0, "gamma": 0.0, "theta": -0.0, "vega": 0.0}, "multi": false, "series": {"t": ["08:38", "08:39", "08:40", "08:41", "08:42", "08:43", "08:44", "08:45", "08:46", "08:47", "08:48", "08:49", "08:50", "08:51", "08:52", "08:53", "08:54", "08:55", "08:56", "08:57", "08:58", "08:59", "09:00", "09:01", "09:02", "09:03", "09:04", "09:05", "09:06", "09:07", "09:08", "09:09", "09:10", "09:11", "09:12", "09:13", "09:14", "09:15", "09:16", "09:17", "09:18", "09:19", "09:20", "09:21", "09:22", "09:23", "09:24", "09:25", "09:26", "09:27", "09:28", "09:29", "09:30", "09:31", "09:32", "09:33", "09:34", "09:35", "09:36", "09:37", "09:38", "09:39", "09:40", "09:41", "09:42", "09:43", "09:44", "09:45", "09:46", "09:47", "09:48", "09:49", "09:50", "09:51", "09:51"], "pnl": [-22, -17, -22, -43, -33, -37, -17, -47, -67, -47, -27, -42, -148, -130, -122, -138, -168, -178, -92, -133, -122, -153, -167, -197, -277, -312, -347, -352, -423, -437, -417, -418, -408, -420, -437, -505, -525, -585, -595, -610, -695, -725, -590, -515, -503, -420, -480, -463, -545, -535, -505, -468, -418, -372, -423, -585, -585, -608, -613, -542, -715, -630, -690, -660, -685, -725, -830, -835, -840, -810, -820, -875, -890, -860, -866], "pop": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]}}];
+const GC = {A:'var(--good)',B:'var(--blue)',C:'var(--warn)',D:'var(--orange)',F:'var(--crit)'};
+const $ = s=>document.querySelector(s);
+const fmt = v => v==null ? '—' : (v<0?'−':'+')+'$'+Math.abs(v).toLocaleString();
+const fmtu = v => v==null ? '—' : '$'+Math.abs(v).toLocaleString();
+
+function payoffSVG(t, w, h, mini){
+  if(!t.payoff) return `<div class="sub" style="height:${h}px;display:flex;align-items:center">`+
+    (t.multi?'multi-expiry — single-expiry payoff undefined':'no payoff data')+`</div>`;
+  const s=t.payoff.s, v=t.payoff.v, ml=mini?4:44, mb=mini?4:22, mt=mini?4:10, mr=8;
+  const x0=s[0], x1=s[s.length-1], vmin=Math.min(...v,0), vmax=Math.max(...v,0), pad=(vmax-vmin)*.14||1;
+  const X=x=> ml+(x-x0)/(x1-x0)*(w-ml-mr), Y=y=> mt+(1-(y-(vmin-pad))/((vmax+pad)-(vmin-pad)))*(h-mt-mb);
+  const zero=Y(0).toFixed(1);
+  let up='',dn='';
+  for(let i=0;i<s.length;i++){const c=`${X(s[i]).toFixed(1)},${Y(v[i]).toFixed(1)} `;
+    up+= (v[i]>=0? c : `${X(s[i]).toFixed(1)},${zero} `);
+    dn+= (v[i]<0?  c : `${X(s[i]).toFixed(1)},${zero} `);}
+  let extras='';
+  if(!mini){
+    // strike ticks
+    for(const L of t.legs){const k=parseFloat(L.split(' ')[1]);
+      if(k>=x0&&k<=x1) extras+=`<line x1="${X(k)}" y1="${h-mb}" x2="${X(k)}" y2="${h-mb+5}" stroke="var(--mut)"/>`+
+        `<text x="${X(k)}" y="${h-4}" fill="var(--mut)" font-size="10" text-anchor="middle">${k}</text>`;}
+    // y labels
+    extras+=`<text x="4" y="${Y(vmax)+4}" fill="var(--good)" font-size="11" font-weight="700">${fmt(vmax)}</text>`+
+            `<text x="4" y="${Y(vmin)+4}" fill="var(--crit)" font-size="11" font-weight="700">${fmt(vmin)}</text>`+
+            `<text x="4" y="${+zero+4}" fill="var(--mut)" font-size="10">$0</text>`;
+    // max annotations on curve
+    const iMax=v.indexOf(Math.max(...v)), iMin=v.indexOf(Math.min(...v));
+    extras+=`<circle cx="${X(s[iMax])}" cy="${Y(v[iMax])}" r="4" fill="var(--good)"/>`+
+            `<circle cx="${X(s[iMin])}" cy="${Y(v[iMin])}" r="4" fill="var(--crit)"/>`;
+    const closed = t.state==='CLOSED';
+    // live spot line only while the position EXISTS; a closed trade's curve is hypothetical
+    if(!closed && t.spot!=null && t.spot>=x0 && t.spot<=x1)
+      extras+=`<line x1="${X(t.spot)}" y1="${mt}" x2="${X(t.spot)}" y2="${h-mb}" stroke="var(--blue)" stroke-width="2" stroke-dasharray="6 4"/>`+
+              `<text x="${X(t.spot)+5}" y="${mt+12}" fill="var(--blue)" font-size="11" font-weight="700">spot ${t.spot}</text>`;
+    if(t.entry_spot!=null && t.entry_spot>=x0 && t.entry_spot<=x1)
+      extras+=`<line x1="${X(t.entry_spot)}" y1="${mt}" x2="${X(t.entry_spot)}" y2="${h-mb}" stroke="var(--ink)" stroke-width="1.6" stroke-dasharray="2 3"/>`+
+              `<text x="${X(t.entry_spot)+4}" y="${h-mb-6}" fill="var(--ink)" font-size="10.5" font-weight="700">entry ${t.entry_spot}</text>`;
+    if(t.exit_spot!=null && t.exit_spot>=x0 && t.exit_spot<=x1)
+      extras+=`<line x1="${X(t.exit_spot)}" y1="${mt}" x2="${X(t.exit_spot)}" y2="${h-mb}" stroke="var(--orange)" stroke-width="2"/>`+
+              `<text x="${X(t.exit_spot)+4}" y="${mt+26}" fill="var(--orange)" font-size="10.5" font-weight="700">exit ${t.exit_spot}</text>`;
+    if(closed)
+      extras+=`<text x="${w-mr}" y="${mt+2}" fill="var(--mut)" font-size="9.5" text-anchor="end">payoff = hypothetical at expiry · position closed early</text>`;
+    for(const b of t.breakevens)
+      extras+=`<circle cx="${X(b)}" cy="${zero}" r="5" fill="var(--warn)" stroke="var(--bg)" stroke-width="2"/>`+
+              `<text x="${X(b)}" y="${+zero-9}" fill="var(--warn)" font-size="10.5" font-weight="700" text-anchor="middle">BE ${b}</text>`;
+  }
+  return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    <defs>
+     <linearGradient id="gup${w}" x1="0" y1="0" x2="0" y2="1">
+       <stop offset="0" stop-color="var(--good)" stop-opacity=".45"/><stop offset="1" stop-color="var(--good)" stop-opacity=".04"/></linearGradient>
+     <linearGradient id="gdn${w}" x1="0" y1="1" x2="0" y2="0">
+       <stop offset="0" stop-color="var(--crit)" stop-opacity=".45"/><stop offset="1" stop-color="var(--crit)" stop-opacity=".04"/></linearGradient>
+    </defs>
+    <line x1="${ml}" y1="${zero}" x2="${w-mr}" y2="${zero}" stroke="var(--line)" stroke-width="1.5"/>
+    <polygon points="${X(s[0])},${zero} ${up}${X(s[s.length-1])},${zero}" fill="url(#gup${w})"/>
+    <polygon points="${X(s[0])},${zero} ${dn}${X(s[s.length-1])},${zero}" fill="url(#gdn${w})"/>
+    <polyline points="${s.map((x,i)=>X(x).toFixed(1)+','+Y(v[i]).toFixed(1)).join(' ')}"
+      fill="none" stroke="var(--ink)" stroke-width="2.4" stroke-linejoin="round"/>${extras}</svg>`;
+}
+
+const MW=900, MH=214;                 // metrics-chart viewBox (fixed → hover math is exact)
+function mgeom(S){
+  const n=S.pnl.length, ml=44, mr=56, gap=16;
+  const hP=Math.round((MH-gap)*0.6), oy=hP+gap, hQ=MH-oy;
+  const pv=S.pnl.map(x=>x==null?0:x);
+  const pmin=Math.min(...pv,0), pmax=Math.max(...pv,0), pad=(pmax-pmin)*.12||1;
+  const X=i=> ml+(n<=1?0:i/(n-1))*(MW-ml-mr);
+  const YP=y=> (1-(y-(pmin-pad))/((pmax+pad)-(pmin-pad)))*hP;
+  const YQ=y=> oy+(1-y/100)*hQ;
+  return {n,ml,mr,hP,oy,hQ,pv,X,YP,YQ};
+}
+function metricsSVG(t){
+  // two stacked sparklines (never dual-axis): P&L($) area + POP(%) line, over the
+  // trade's life from trade_metrics.csv. Rebuilds every card-wall refresh = live.
+  // Hover crosshair + tooltip wired in wireMetricsHover().
+  const S=t.series;
+  if(!S || !S.pnl || S.pnl.length<2)
+    return `<div class="sub" style="height:${MH}px;display:flex;align-items:center">no live metrics history yet — the marker logs one point per cycle</div>`;
+  const G=mgeom(S), n=G.n, w=MW, h=MH, zP=G.YP(0).toFixed(1), last=G.pv[n-1];
+  let up='',dn='';
+  for(let i=0;i<n;i++){const c=`${G.X(i).toFixed(1)},${G.YP(G.pv[i]).toFixed(1)} `;
+    up+=(G.pv[i]>=0?c:`${G.X(i).toFixed(1)},${zP} `); dn+=(G.pv[i]<0?c:`${G.X(i).toFixed(1)},${zP} `);}
+  const pl=S.pnl.map((x,i)=>G.X(i).toFixed(1)+','+G.YP(x==null?0:x).toFixed(1)).join(' ');
+  const lastPop=S.pop[n-1];
+  const pop=S.pop.map((x,i)=>x==null?null:G.X(i).toFixed(1)+','+G.YQ(x).toFixed(1)).filter(Boolean).join(' ');
+  return `<svg id="msvg" class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="cursor:crosshair;max-width:100%">
+    <defs>
+     <linearGradient id="mup" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--good)" stop-opacity=".4"/><stop offset="1" stop-color="var(--good)" stop-opacity=".03"/></linearGradient>
+     <linearGradient id="mdn" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="var(--crit)" stop-opacity=".4"/><stop offset="1" stop-color="var(--crit)" stop-opacity=".03"/></linearGradient>
+    </defs>
+    <text x="0" y="10" fill="var(--mut)" font-size="10" font-weight="700">P&amp;L $</text>
+    <line x1="${G.ml}" y1="${zP}" x2="${w-G.mr}" y2="${zP}" stroke="var(--line)" stroke-width="1.4"/>
+    <polygon points="${G.X(0)},${zP} ${up}${G.X(n-1)},${zP}" fill="url(#mup)"/>
+    <polygon points="${G.X(0)},${zP} ${dn}${G.X(n-1)},${zP}" fill="url(#mdn)"/>
+    <polyline points="${pl}" fill="none" stroke="var(--blue)" stroke-width="2.4" stroke-linejoin="round"/>
+    <text x="2" y="${+zP+3}" fill="var(--mut)" font-size="9">$0</text>
+    <text x="${w-G.mr+5}" y="${G.YP(last)+4}" fill="${last>=0?'var(--good)':'var(--crit)'}" font-size="12" font-weight="700">${fmt(last)}</text>
+    <text x="0" y="${G.oy+9}" fill="var(--mut)" font-size="10" font-weight="700">POP %</text>
+    <line x1="${G.ml}" y1="${G.YQ(0).toFixed(1)}" x2="${w-G.mr}" y2="${G.YQ(0).toFixed(1)}" stroke="var(--line)" stroke-width="1"/>
+    <line x1="${G.ml}" y1="${G.YQ(50).toFixed(1)}" x2="${w-G.mr}" y2="${G.YQ(50).toFixed(1)}" stroke="var(--line)" stroke-width=".6" stroke-dasharray="3 4"/>
+    <polyline points="${pop}" fill="none" stroke="var(--good)" stroke-width="2.4" stroke-linejoin="round"/>
+    <text x="${w-G.mr+5}" y="${G.YQ(lastPop==null?0:lastPop)+4}" fill="var(--good)" font-size="12" font-weight="700">${lastPop==null?'—':lastPop+'%'}</text>
+    <text x="${G.ml}" y="${h-1}" fill="var(--mut)" font-size="9">${S.t[0]}</text>
+    <text x="${w-G.mr}" y="${h-1}" fill="var(--mut)" font-size="9" text-anchor="end">${S.t[n-1]}</text>
+    <line id="mcx" x1="0" y1="0" x2="0" y2="${h}" stroke="var(--ink)" stroke-width="1" stroke-dasharray="3 3" opacity="0"/>
+    <circle id="mcd1" r="4.5" fill="var(--blue)" stroke="var(--bg)" stroke-width="1.5" opacity="0"/>
+    <circle id="mcd2" r="4.5" fill="var(--good)" stroke="var(--bg)" stroke-width="1.5" opacity="0"/>
+    <g id="mtt" opacity="0">
+      <rect id="mttb" width="112" height="52" rx="7" fill="var(--card)" stroke="var(--line)"/>
+      <text id="mtt0" x="10" y="17" fill="var(--ink)" font-size="11.5" font-weight="700"></text>
+      <text id="mtt1" x="10" y="33" fill="var(--blue)" font-size="11.5" font-weight="700"></text>
+      <text id="mtt2" x="10" y="47" fill="var(--good)" font-size="11.5" font-weight="700"></text>
+    </g>
+  </svg>`;
+}
+function wireMetricsHover(t){
+  const svg=document.getElementById('msvg');
+  if(!svg || !t.series || t.series.pnl.length<2) return;
+  const S=t.series, G=mgeom(S);
+  const cx=document.getElementById('mcx'), d1=document.getElementById('mcd1'), d2=document.getElementById('mcd2'),
+        tt=document.getElementById('mtt'), l0=document.getElementById('mtt0'),
+        l1=document.getElementById('mtt1'), l2=document.getElementById('mtt2');
+  const setOp=o=>[cx,d1,d2,tt].forEach(e=>e.setAttribute('opacity',o));
+  svg.addEventListener('mousemove', e=>{
+    const r=svg.getBoundingClientRect();           // back face renders un-mirrored → 1:1 map
+    const lx=(e.clientX-r.left)*(MW/r.width);
+    let i=Math.round((lx-G.ml)/(MW-G.ml-G.mr)*(G.n-1));
+    i=Math.max(0, Math.min(G.n-1, i));
+    const x=G.X(i), py=G.YP(G.pv[i]), qy=(S.pop[i]==null?G.oy:G.YQ(S.pop[i]));
+    cx.setAttribute('x1',x); cx.setAttribute('x2',x);
+    d1.setAttribute('cx',x); d1.setAttribute('cy',py);
+    d2.setAttribute('cx',x); d2.setAttribute('cy',qy);
+    l0.textContent=S.t[i];
+    l1.textContent='P&L '+fmt(S.pnl[i]);
+    l2.textContent='POP '+(S.pop[i]==null?'—':S.pop[i]+'%');
+    let tx=x+13; if(tx+112>MW-2) tx=x-13-112; if(tx<2) tx=2;
+    tt.setAttribute('transform',`translate(${tx},6)`);
+    setOp(1);
+  });
+  svg.addEventListener('mouseleave', ()=>setOp(0));
+}
+
+function tile(t,i){
+  const pc = t.pnl==null?'':(t.pnl>=0?'pos':'neg');
+  const gc = GC[t.grade[0]]||'#777';
+  return `<div class="tile" style="--gc:${gc}" onclick="openCard(${i})">
+    <div class="trow"><div><div class="strat">${t.name}</div><div class="exp">Exp ${t.exp||'—'}</div></div>
+      <span class="chip" style="background:${gc}">${t.grade}</span></div>
+    <div class="staterow"><span class="dot ${t.state=='OPEN'?'open':'closed'}"></span>${t.state}
+      ${t.state=='OPEN'?'· RUNNING':''} &nbsp;·&nbsp; POP ${t.pop==null?'—':t.pop+'%'}</div>
+    <div class="pnl ${pc}">${fmt(t.pnl)}</div>
+    <div class="sub">${t.structure}</div>
+    ${payoffSVG(t, 272, 74, true)}</div>`;
+}
+
+function expAtSpot(t){
+  // the payoff curve's value at TODAY'S spot — makes running-PnL vs expiry-payoff explicit
+  if(!t.payoff || t.spot==null || t.state!='OPEN') return '';
+  const s=t.payoff.s, v=t.payoff.v;
+  if(t.spot<s[0]||t.spot>s[s.length-1]) return '';
+  let i=1; while(i<s.length-1 && s[i]<t.spot) i++;
+  const w=(t.spot-s[i-1])/(s[i]-s[i-1]), val=v[i-1]+w*(v[i]-v[i-1]);
+  const cls=val>=0?'pos':'neg';
+  return `<div class="mut" style="margin:-4px 0 6px;font-size:13px">if it expired at spot ${t.spot}: `+
+         `<b class="${cls}">${fmt(Math.round(val))}</b> — the difference vs running is remaining time value</div>`;
+}
+
+function gauge(t){
+  if(t.maxl==null||t.maxg==null||t.pnl==null||t.maxg==t.maxl) return '';
+  const p=Math.max(0,Math.min(1,(t.pnl-t.maxl)/(t.maxg-t.maxl)));
+  return `<div class="gauge"><i style="left:calc(${(p*100).toFixed(1)}% - 2px)"></i></div>
+    <div class="glabel"><span>max loss ${fmtu(t.maxl)}</span><span>P&L position</span><span>max gain ${fmtu(t.maxg)}</span></div>`;
+}
+
+// Manual close. The page NEVER places an order itself — it posts a request and
+// the trigger daemon (the one process holding the IB connection) executes it on
+// its next poll (~3s). Single writer of orders, by design.
+function closeBtn(t){
+  if(t.state!='OPEN') return '';
+  return `<div style="margin:14px 0 4px">
+    <button id="cb_${t.id}" onclick="reqClose(event,'${t.id}')"
+      style="background:#c0392b;color:#fff;border:0;border-radius:10px;padding:11px 20px;
+             font:600 15px system-ui;cursor:pointer">✕ CLOSE THIS TRADE</button>
+    <span id="cs_${t.id}" class="mut" style="margin-left:12px;font-size:13px"></span></div>`;
+}
+async function reqClose(e,id){
+  e.stopPropagation();
+  const btn=document.getElementById('cb_'+id), st=document.getElementById('cs_'+id);
+  if(!confirm('Close '+id+' at market now?')) return;
+  btn.disabled=true; btn.style.opacity=.5; st.textContent='sending…';
+  try{
+    const r=await fetch('/close',{method:'POST',headers:{'Content-Type':'application/json'},
+                                  body:JSON.stringify({trade_id:id})});
+    const j=await r.json();
+    st.textContent = r.ok ? 'queued — daemon closes it within ~3s' : ('failed: '+(j.error||r.status));
+    if(!r.ok){ btn.disabled=false; btn.style.opacity=1; }
+  }catch(err){ st.textContent='failed: '+err; btn.disabled=false; btn.style.opacity=1; }
+}
+function openCard(i){
+  const t=T[i], big=$('#big'), gc=GC[t.grade[0]]||'#777', g=t.greeks;
+  big.classList.remove('flip');
+  const legchips=t.legs.map(l=>`<span class="legchip ${l[0]=='S'?'sell':'buy'}">${l}</span>`).join('');
+  $('#inner').innerHTML = `
+   <div class="face" style="--gc:${gc}">
+     <div class="trow"><div><h2>${t.name}</h2><div class="mut">Exp ${t.exp} · ${t.structure} · ${t.state}</div></div>
+       <span class="chip" style="background:${gc};font-size:18px">${t.grade}</span></div>
+     <div class="pnl ${t.pnl>=0?'pos':'neg'}" style="font-size:40px">${fmt(t.pnl)}
+       <span class="mut" style="font-size:13px;font-weight:400">${t.state=='OPEN'?'running (mark-to-market now — includes time value)':'final'}</span></div>
+     ${expAtSpot(t)}
+     ${gauge(t)}
+     ${t.series?`<div class="sechead">Intraday P&amp;L — what actually happened</div>
+       <div class="mut" style="font-size:11.5px;margin:-2px 0 4px">${t.credit>=0
+         ?`credit <b>$${Math.round(Math.abs(t.credit)*100).toLocaleString()}</b> collected at entry · line = credit − cost to buy back (starts ≈ $0; rises as the sold options decay)`
+         :`debit $${Math.round(Math.abs(t.credit)*100).toLocaleString()} paid at entry · line = liquidation value − debit`}</div>`+metricsSVG(t):''}
+     <div class="sechead">Payoff structure${t.state==='CLOSED'?' (hypothetical at expiry)':''}</div>
+     ${payoffSVG(t, 900, t.series?250:340, false)}
+     ${closeBtn(t)}
+     <div class="hint">click to flip for details ⟲</div></div>
+   <div class="face back" style="--gc:${gc}">
+     <div class="trow"><div><h2>${t.name} — details</h2>
+       <div class="mut">${t.id} · entered ${t.entry} (${t.dow}) · VIX ${t.vix??'—'}</div></div>
+       <span class="chip" style="background:${gc};font-size:16px">${t.grade}</span></div>
+     <div class="legchips">${legchips}</div>
+     <div class="kv">
+       <div style="--kc:var(--blue)"><b>NET ${t.credit>=0?'CREDIT':'DEBIT'}</b><span style="color:var(--blue)">${Math.abs(t.credit??0).toFixed(2)}</span></div>
+       <div style="--kc:var(--vio)"><b>COLLATERAL</b><span style="color:var(--vio)">${fmtu(t.collateral)}</span></div>
+       <div style="--kc:var(--blue)"><b>POP @ ENTRY</b><span style="color:var(--blue)">${t.pop==null?'—':t.pop+'%'}</span></div>
+       <div style="--kc:var(--good)"><b>MAX GAIN</b><span style="color:var(--good)">${t.maxg==null?'unbounded':fmtu(t.maxg)}</span></div>
+       <div style="--kc:var(--crit)"><b>MAX LOSS</b><span style="color:var(--crit)">${fmtu(t.maxl)}</span></div>
+       <div style="--kc:var(--warn)"><b>BREAKEVENS</b><span style="color:var(--warn)">${t.breakevens.length?t.breakevens.join(' / '):'—'}</span></div>
+       <div style="--kc:${g&&g.delta>=0?'var(--good)':'var(--crit)'}"><b>DELTA (est)</b><span>${g?g.delta:'—'}</span></div>
+       <div style="--kc:${g&&g.theta>=0?'var(--good)':'var(--crit)'}"><b>THETA/DAY (est)</b><span style="color:${g&&g.theta>=0?'var(--good)':'var(--crit)'}">${g?fmt(g.theta):'—'}</span></div>
+       <div style="--kc:${g&&g.vega>=0?'var(--good)':'var(--crit)'}"><b>VEGA (est)</b><span>${g?fmt(g.vega):'—'}</span></div></div>
+     <div class="sechead" style="margin-top:10px">Live metrics over the trade's life · hover to read any point<span class="cnt">${t.series?t.series.pnl.length+' pts':'—'}</span></div>
+     ${metricsSVG(t)}
+     <div class="comm"><b>Why this trade:</b> ${t.commentary||'<i>none recorded</i>'}</div>
+     <div class="hint">P&L/POP series from the marker (every ~2 min) · greeks = BS est. from entry VIX · Esc closes</div></div>`;
+  wireMetricsHover(t);
+  $('#ovl').classList.add('on');
+}
+$('#big').addEventListener('click', e=>{e.stopPropagation();$('#big').classList.toggle('flip');});
+$('#ovl').addEventListener('click', ()=>$('#ovl').classList.remove('on'));
+document.addEventListener('keydown', e=>{if(e.key=='Escape')$('#ovl').classList.remove('on');});
+// live CT date computed in the browser so "Closed Today" clears at MIDNIGHT CT on its own
+// (baking it in at gen-time left yesterday's trades showing until the next regeneration)
+const TODAY = new Date().toLocaleDateString('en-CA', {timeZone: 'America/Chicago'});
+const openIdx = T.map((t,i)=>[t,i]).filter(([t])=>t.state=='OPEN');
+const closedIdx = T.map((t,i)=>[t,i]).filter(([t])=>t.state!='OPEN' && t.exitd==TODAY);
+$('#grid_open').innerHTML = openIdx.map(([t,i])=>tile(t,i)).join('');
+$('#grid_closed').innerHTML = closedIdx.length ? closedIdx.map(([t,i])=>tile(t,i)).join('')
+  : '<div class="sub" style="padding:6px 2px">no trades closed today — see the Calendar tab for history</div>';
+$('#oc').textContent = openIdx.length; $('#cc').textContent = closedIdx.length;
+if(!openIdx.length){$('#oh').style.display='none';}
+</script></div>
+<div class="page" id="p-analytics">
+  <div class="kpis" id="an-tiles"></div>
+  <div class="an-charts">
+    <div class="an-card"><div class="an-h">Equity curve <span class="muted" id="an-eqsub"></span></div><div id="an-equity"></div></div>
+    <div class="an-card"><div class="an-h">Grade calibration <span class="muted">— does grade predict P&amp;L?</span></div><div id="an-grade"></div></div>
+  </div>
+  <div class="an-card" style="margin-top:14px">
+    <div class="an-h">Break down by
+      <select id="an-dim">
+        <option value="grade">Grade</option><option value="strategy">Strategy</option>
+        <option value="regime">Gamma regime</option><option value="bias">Directional bias</option>
+        <option value="dow">Day of week</option><option value="hour">Entry hour</option>
+        <option value="source">Source</option><option value="win">Win/Loss</option>
+      </select>
+      <span class="muted" id="an-note"></span>
+    </div>
+    <div id="an-pivot"></div>
+  </div>
+</div>
+<div class="page" id="p-calendar">
+  <div class="cal-top"><button id="cal-prev">‹</button>
+    <b id="cal-title"></b><button id="cal-next">›</button>
+    <span class="muted" id="cal-month-tot" style="margin-left:auto"></span></div>
+  <div id="cal-grid"></div>
+  <div id="cal-day"></div>
+</div>
+<div class="page" id="p-gameplan"><div class='gp-head'><span class='rlabel warn'>CAUTION</span><span class='muted'>20260806 · preopen 7732.8 (14:59 tape) · VIX 15.81</span></div><div style='margin:8px 0 4px'><div style='display:inline-block;padding:5px 11px;margin:3px 4px 3px 0;background:#161b28;border:1px solid #5b9dd9;border-radius:6px;min-width:64px'><div style='font-size:10px;color:#8a94a6;text-transform:uppercase;letter-spacing:.3px'>EOD Spot</div><div style='font-weight:600;font-size:14px;color:#5b9dd9'>7723.55</div></div><div style='display:inline-block;padding:5px 11px;margin:3px 4px 3px 0;background:#161b28;border:1px solid #e8ecf4;border-radius:6px;min-width:64px'><div style='font-size:10px;color:#8a94a6;text-transform:uppercase;letter-spacing:.3px'>Open Spot</div><div style='font-weight:600;font-size:14px;color:#e8ecf4'>7728.15</div></div><div style='display:inline-block;padding:5px 11px;margin:3px 4px 3px 0;background:#161b28;border:1px solid #232a3a;border-radius:6px;min-width:64px'><div style='font-size:10px;color:#8a94a6;text-transform:uppercase;letter-spacing:.3px'>GexLog Regime</div><div style='font-weight:600;font-size:14px;color:#4cc38a'>POSITIVE</div></div><div style='display:inline-block;padding:5px 11px;margin:3px 4px 3px 0;background:#161b28;border:1px solid #232a3a;border-radius:6px;min-width:64px'><div style='font-size:10px;color:#8a94a6;text-transform:uppercase;letter-spacing:.3px'>GEX Flip</div><div style='font-weight:600;font-size:14px;color:#e0a04d'>7800.0</div></div><div style='display:inline-block;padding:5px 11px;margin:3px 4px 3px 0;background:#161b28;border:1px solid #232a3a;border-radius:6px;min-width:64px'><div style='font-size:10px;color:#8a94a6;text-transform:uppercase;letter-spacing:.3px'>Put Wall</div><div style='font-weight:600;font-size:14px;color:#4cc38a'>7700.0</div></div><div style='display:inline-block;padding:5px 11px;margin:3px 4px 3px 0;background:#161b28;border:1px solid #232a3a;border-radius:6px;min-width:64px'><div style='font-size:10px;color:#8a94a6;text-transform:uppercase;letter-spacing:.3px'>Call Wall</div><div style='font-weight:600;font-size:14px;color:#e05561'>7800.0</div></div><div style='display:inline-block;padding:5px 11px;margin:3px 4px 3px 0;background:#161b28;border:1px solid #232a3a;border-radius:6px;min-width:64px'><div style='font-size:10px;color:#8a94a6;text-transform:uppercase;letter-spacing:.3px'>EM Band</div><div style='font-weight:600;font-size:14px;'><span style='color:#4cc38a'>7646.0</span><span style='color:#8a94a6'> – </span><span style='color:#e05561'>7801.0</span></div></div><div style='display:inline-block;padding:5px 11px;margin:3px 4px 3px 0;background:#161b28;border:1px solid #232a3a;border-radius:6px;min-width:64px'><div style='font-size:10px;color:#8a94a6;text-transform:uppercase;letter-spacing:.3px'>Day Type</div><div style='font-weight:600;font-size:14px;'>unknown</div></div></div><div class='muted' style='margin:2px 0 6px;font-size:12.5px'>risk <b>Elevated</b> · confidence <b>70%</b> · <b>Day 4 Positive Gamma</b> · flip 76pt away · gap <b style='color:#4cc38a'>+0.42% (fade)</b> · ES premkt 7756 (implied +33pt) · calendar <b>4/5 HIGH</b> · <b style='color:#e0a04d'>⚠ their data caveat: quote-derived close</b> · <b style='color:#e05561'>corrected walls 7700/7770 ≠ published</b><br><span style='color:#e05561'>catalysts today (8, 1 HIGH):</span> 05:30 Challenger Job Cuts (Jul) · 08:30 Jobless Claims 4-Week Average (Aug/01) · 08:30 Initial Jobless Claims (Aug/01) · 08:30 Unit Labour Costs QoQ (Q2) · 08:30 Continuing Jobless Claims (Jul/25)</div><div style='margin:0 0 6px;font-size:12.5px'><a href='https://gexlog.com/dashboard/' target='_blank' style='color:#5b9dd9'>Morning/Evening brief (gexlog.com) ↗</a> &nbsp;·&nbsp; <a href='https://gexlog.com/dashboard/history/' target='_blank' style='color:#5b9dd9'>Brief archive / past days ↗</a></div><div style='background:#10141f;border:1px solid #232a3a;border-radius:8px;padding:10px 8px 4px;margin:8px 0'><svg id='bands-svg' data-lo='7626.05' data-hi='7825.65' data-w='860' viewBox='0 0 860 148' style='width:100%;height:auto'><rect x='108' y='36' width='625' height='16' rx='3' fill='#4cc38a22' stroke='#2a3245'/><text x='24' y='48' fill='#8a94a6' font-size='11'>EOD band</text><rect x='127' y='76' width='625' height='16' rx='3' fill='#e0a04d22' stroke='#2a3245'/><text x='24' y='88' fill='#8a94a6' font-size='11'>Open band</text><line x1='421' y1='24' x2='421' y2='118' stroke='#5b9dd9' stroke-width='1.6' stroke-dasharray='4 3'/><text x='421' y='18' fill='#5b9dd9' font-size='11' text-anchor='middle'>EOD 7724</text><line x1='439' y1='24' x2='439' y2='118' stroke='#e8ecf4' stroke-width='1.6' stroke-dasharray='4 3'/><text x='439' y='18' fill='#e8ecf4' font-size='11' text-anchor='middle'>OPEN 7728</text><line x1='108' y1='30' x2='108' y2='56' stroke='#4cc38a' stroke-width='1.6' stroke-dasharray='4 3'/><text x='108' y='24' fill='#4cc38a' font-size='11' text-anchor='middle'>7646</text><line x1='733' y1='30' x2='733' y2='56' stroke='#e05561' stroke-width='1.6' stroke-dasharray='4 3'/><text x='733' y='24' fill='#e05561' font-size='11' text-anchor='middle'>7802</text><line x1='127' y1='70' x2='127' y2='96' stroke='#4cc38a' stroke-width='1.6'/><text x='127' y='108' fill='#4cc38a' font-size='10' text-anchor='middle'>7650</text><line x1='752' y1='70' x2='752' y2='96' stroke='#e05561' stroke-width='1.6'/><text x='752' y='108' fill='#e05561' font-size='10' text-anchor='middle'>7806</text><line id='bm-line' x1='438' y1='20' x2='438' y2='122' stroke='#fff' stroke-width='2'/><text id='bm-text' x='438' y='136' fill='#fff' font-size='12' font-weight='700' text-anchor='middle'>▲ 7728</text></svg><div style='padding:2px 10px 8px;font-size:12.5px'>EOD condor PoP <b style='color:#4cc38a'>68%</b> · Open condor PoP <b style='color:#e0a04d'>68%</b> · GexLog condor PoP <b style='color:#e05561'>46%</b> <span class='muted'>(Normal, σ = 1-day EM, from current price)</span></div></div><div style='background:#131826;border:1px solid #2a3245;border-radius:8px;padding:8px 12px;margin:6px 0;font-size:13px'>📊 <b>TODAY</b> · credit collected <b style='color:#5b9dd9'>$4,075</b> · realized <b class='neg'>−$354</b> · open 7 (sold for $1,165) · open P&L <b class='pos'>+$122</b> · buy-back cost now <b style='color:#e0a04d'>$1,042</b> · → day if closed now <b class='neg' style='font-size:15px'>−$231</b></div><div class="pnlsum">
+      <b>Running P&L — by center (EOD vs Open)</b>
+      <table class="sumtab"><tr><th>bucket</th><th>closed</th><th>open</th><th>win%</th><th>realized</th></tr><tr><td><b>EOD</b></td><td>6</td><td>3</td><td>33%</td><td class='neg'>−$1,700</td></tr><tr><td><b>Open</b></td><td>10</td><td>2</td><td>50%</td><td class='pos'>+$110</td></tr><tr><td><b>GexLog</b></td><td>2</td><td>2</td><td>50%</td><td class='pos'>+$37</td></tr><tr class='tot'><td><b>TOTAL</b></td><td>18</td><td>7</td><td>44%</td><td class='neg'>−$1,553</td></tr></table>
+      <b style="display:block;margin-top:10px">By structure</b>
+      <table class="sumtab"><tr><th>bucket</th><th>closed</th><th>open</th><th>win%</th><th>realized</th></tr><tr><td class='muted'>EOD · Iron Condor</td><td>2</td><td>2</td><td>50%</td><td class='neg'>−$849</td></tr><tr><td class='muted'>EOD · Iron Fly</td><td>4</td><td>1</td><td>25%</td><td class='neg'>−$852</td></tr><tr><td class='muted'>Open · Iron Condor</td><td>4</td><td>2</td><td>75%</td><td class='neg'>−$649</td></tr><tr><td class='muted'>Open · Iron Fly</td><td>6</td><td>0</td><td>33%</td><td class='pos'>+$760</td></tr><tr><td class='muted'>GexLog · GexLog Condor</td><td>2</td><td>2</td><td>50%</td><td class='pos'>+$37</td></tr></table>
+    </div><p class='muted' style='margin:14px 0 10px'>Premium-selling only. Every idea flows <b>Idea → Open → Closed</b>, or lands in <b>Never triggered</b>. Committed premarket, auto-executed by the trigger daemon at the open (1 lot). Two streams: <b>algo</b> (EM band) vs <b>gexlog</b> (its walls); iron condor = the two 1σ legs, iron fly = the ATM legs. Saved per day (<code>gameplan_*.json</code>).</p><details id='ex-ideas' class='ex ex-sec' open><summary>💡 IDEAS · waiting to trigger <span class='cnt'>1</span></summary><div class='iboard'><div class="itile" style="--gc:var(--pos)">
+      <div class="itile-h"><div class="itile-name">STMR Bull Put Spread (15:59 signal)</div>
+        <span class="ichip" style="background:var(--pos)">A/B if signal fires</span></div>
+      <div class='itile-sub'>P ~30Δ w50 <span class='muted'>· stmr</span></div>
+      <div class="itile-sub">fires <b>15:59 signal</b></div>
+      <div class="itile-foot"><span class='wait'>◷ 15:59 signal — run by the BPS daemon</span></div></div></div></details><details id='ex-opens' class='ex ex-sec' open><summary>🟢 OPEN · triggered, live <span class='cnt'>7</span></summary><div class='iboard'><div class="itile" style="--gc:var(--warn)">
+      <div class="itile-h"><div class="itile-name">[EOD] Bull Put @ 7645</div>
+        <span class="ichip" style="background:var(--warn)">C</span></div>
+      <div class="itile-sub">P 7645/7620 · path — ·
+        fires <b>at 08:30</b></div>
+      <div class="itile-why">EOD condor put — prior-close EM low (gexlog brief)</div>
+      <div class="itile-foot"><span class='pos'>running +$40</span> <span class='muted'>· grade C · filled 08:42:46</span></div></div><div class="itile" style="--gc:var(--orange)">
+      <div class="itile-h"><div class="itile-name">[EOD] Bear Call @ 7800</div>
+        <span class="ichip" style="background:var(--orange)">D</span></div>
+      <div class="itile-sub">C 7800/7825 · path — ·
+        fires <b>at 08:30</b></div>
+      <div class="itile-why">EOD condor call — prior-close EM high (gexlog brief)</div>
+      <div class="itile-foot"><span class='pos'>running +$30</span> <span class='muted'>· grade D · filled 08:43:23</span></div></div><div class="itile" style="--gc:var(--warn)">
+      <div class="itile-h"><div class="itile-name">[EOD] Bull Put @ 7725 (ATM)</div>
+        <span class="ichip" style="background:var(--warn)">C</span></div>
+      <div class="itile-sub">P 7725/7700 · path — ·
+        fires <b>at 08:30</b></div>
+      <div class="itile-why">EOD fly put — ATM = prior close</div>
+      <div class="itile-foot"><span class='pos'>running +$10</span> <span class='muted'>· grade C · filled 08:43:44</span></div></div><div class="itile" style="--gc:var(--warn)">
+      <div class="itile-h"><div class="itile-name">[Open] Bull Put @ open-78</div>
+        <span class="ichip" style="background:var(--warn)">C</span></div>
+      <div class="itile-sub">P 7660/7635 · path — ·
+        fires <b>at 09:05</b></div>
+      <div class="itile-why">Open condor put — 78pt below the open [WAIT day: entry 09:05 CT post-event per brief]</div>
+      <div class="itile-foot"><span class='pos'>running +$10</span> <span class='muted'>· grade C · filled 09:05:22</span></div></div><div class="itile" style="--gc:var(--orange)">
+      <div class="itile-h"><div class="itile-name">[Open] Bear Call @ open+78</div>
+        <span class="ichip" style="background:var(--orange)">D</span></div>
+      <div class="itile-sub">C 7815/7840 · path — ·
+        fires <b>at 09:05</b></div>
+      <div class="itile-why">Open condor call — 78pt above the open [WAIT day: entry 09:05 CT post-event per brief]</div>
+      <div class="itile-foot"><span class='pos'>running +$10</span> <span class='muted'>· grade D · filled 09:05:43</span></div></div><div class="itile" style="--gc:var(--acc)">
+      <div class="itile-h"><div class="itile-name">[GexLog] Bull Put @ putWall 7700</div>
+        <span class="ichip" style="background:var(--acc)">B</span></div>
+      <div class="itile-sub">P 7700/7675 · path — ·
+        fires <b>at 09:05</b></div>
+      <div class="itile-why">gexlog suggested: short put at its Put Wall [WAIT day: entry 09:05 CT post-event per brief]</div>
+      <div class="itile-foot"><span class='neg'>running −$12</span> <span class='muted'>· grade B · filled 09:07:01</span></div></div><div class="itile" style="--gc:var(--orange)">
+      <div class="itile-h"><div class="itile-name">[GexLog] Bear Call @ callWall 7800</div>
+        <span class="ichip" style="background:var(--orange)">D</span></div>
+      <div class="itile-sub">C 7800/7825 · path — ·
+        fires <b>at 09:05</b></div>
+      <div class="itile-why">gexlog suggested: short call at its Call Wall [WAIT day: entry 09:05 CT post-event per brief]</div>
+      <div class="itile-foot"><span class='pos'>running +$35</span> <span class='muted'>· grade D · filled 09:07:22</span></div></div></div></details><details id='ex-closed' class='ex ex-sec' open><summary>⚪ CLOSED · settled <span class='cnt'>3</span></summary><div class='iboard'><div class="itile" style="--gc:var(--warn)">
+      <div class="itile-h"><div class="itile-name">[EOD] Bear Call @ 7725 (ATM)</div>
+        <span class="ichip" style="background:var(--warn)">C</span></div>
+      <div class="itile-sub">C 7725/7750 · path — ·
+        fires <b>at 08:30</b></div>
+      <div class="itile-why">EOD fly call — ATM = prior close</div>
+      <div class="itile-foot"><span class='neg'>−$131</span> <span class='muted'>· grade C · LOSS</span></div></div><div class="itile" style="--gc:var(--warn)">
+      <div class="itile-h"><div class="itile-name">[Open] Bull Put @ ATM(open)</div>
+        <span class="ichip" style="background:var(--warn)">C</span></div>
+      <div class="itile-sub">P 7735/7710 · path — ·
+        fires <b>at 09:05</b></div>
+      <div class="itile-why">Open fly put — ATM = open [WAIT day: entry 09:05 CT post-event per brief]</div>
+      <div class="itile-foot"><span class='neg'>−$41</span> <span class='muted'>· grade C · LOSS</span></div></div><div class="itile" style="--gc:var(--warn)">
+      <div class="itile-h"><div class="itile-name">[Open] Bear Call @ ATM(open)</div>
+        <span class="ichip" style="background:var(--warn)">C</span></div>
+      <div class="itile-sub">C 7735/7760 · path — ·
+        fires <b>at 09:05</b></div>
+      <div class="itile-why">Open fly call — ATM = open [WAIT day: entry 09:05 CT post-event per brief]</div>
+      <div class="itile-foot"><span class='neg'>−$181</span> <span class='muted'>· grade C · LOSS</span></div></div></div></details><details id='ex-never' class='ex ex-sec'><summary>✕ NEVER TRIGGERED <span class='cnt'>0</span></summary><div class='iboard'><div class='muted' style='padding:6px 2px'>—</div></div></details><h2 style='margin:24px 0 8px'>History — 2 logged gameplan(s)</h2><details id='ex-gph-20260805' class='ex'><summary>2026-08-05 · <span class='muted'>n/a (premium-only, unconditional)</span> · 11 triggers · <b>8 fired</b></summary><div class='ex-body'><div class='muted' style='font-size:11.5px;margin-bottom:8px'></div><table class='antable'><tr><th>Setup</th><th>Status</th><th>Grade</th></tr><tr><td><b>[EOD] Bull Put @ 7655</b></td><td class='muted'>fired</td><td style='color:var(--warn);font-weight:800'>C</td></tr><tr><td><b>[EOD] Bear Call @ 7815</b></td><td class='muted'>expired</td><td style='color:var(--warn);font-weight:800'>C</td></tr><tr><td><b>[EOD] Bull Put @ 7735 (ATM)</b></td><td class='muted'>fired</td><td style='color:var(--warn);font-weight:800'>C</td></tr><tr><td><b>[EOD] Bear Call @ 7735 (ATM)</b></td><td class='muted'>expired</td><td style='color:var(--warn);font-weight:800'>C</td></tr><tr><td><b>[Open] Bull Put @ open-80</b></td><td class='muted'>fired</td><td style='color:var(--warn);font-weight:800'>C</td></tr><tr><td><b>[Open] Bear Call @ open+80</b></td><td class='muted'>fired</td><td style='color:var(--warn);font-weight:800'>C</td></tr><tr><td><b>[Open] Bull Put @ ATM(open)</b></td><td class='muted'>fired</td><td style='color:var(--warn);font-weight:800'>C</td></tr><tr><td><b>[Open] Bear Call @ ATM(open)</b></td><td class='muted'>fired</td><td style='color:var(--warn);font-weight:800'>C</td></tr><tr><td><b>[GexLog] Bull Put @ putWall 7565</b></td><td class='muted'>stood_down_broken</td><td style='color:var(--warn);font-weight:800'>C</td></tr><tr><td><b>[GexLog] Bear Call @ callWall 7750</b></td><td class='muted'>fired</td><td style='color:var(--warn);font-weight:800'>C</td></tr><tr><td><b>STMR Bull Put Spread (15:59 signal)</b></td><td class='muted'>armed</td><td style='color:var(--pos);font-weight:800'>A/B if signal fires</td></tr></table></div></details><details id='ex-gph-20260804' class='ex'><summary>2026-08-04 · <span class='muted'>n/a (premium-only, unconditional)</span> · 11 triggers · <b>10 fired</b></summary><div class='ex-body'><div class='muted' style='font-size:11.5px;margin-bottom:8px'></div><table class='antable'><tr><th>Setup</th><th>Status</th><th>Grade</th></tr><tr><td><b>[EOD] Bull Put @ 7525</b></td><td class='muted'>stood_down_thin_credit</td><td style='color:var(--warn);font-weight:800'>C</td></tr><tr><td><b>[EOD] Bear Call @ 7675</b></td><td class='muted'>fired</td><td style='color:var(--warn);font-weight:800'>C</td></tr><tr><td><b>[EOD] Bull Put @ 7600 (ATM)</b></td><td class='muted'>fired</td><td style='color:var(--warn);font-weight:800'>C</td></tr><tr><td><b>[EOD] Bear Call @ 7600 (ATM)</b></td><td class='muted'>fired</td><td style='color:var(--warn);font-weight:800'>C</td></tr><tr><td><b>[Open] Bull Put @ open-75</b></td><td class='muted'>fired</td><td style='color:var(--warn);font-weight:800'>C</td></tr><tr><td><b>[Open] Bear Call @ open+75</b></td><td class='muted'>fired</td><td style='color:var(--warn);font-weight:800'>C</td></tr><tr><td><b>[Open] Bull Put @ ATM(open)</b></td><td class='muted'>fired</td><td style='color:var(--warn);font-weight:800'>C</td></tr><tr><td><b>[Open] Bear Call @ ATM(open)</b></td><td class='muted'>fired</td><td style='color:var(--warn);font-weight:800'>C</td></tr><tr><td><b>[GexLog] Bull Put @ putWall 7525</b></td><td class='muted'>stood_down_broken</td><td style='color:var(--warn);font-weight:800'>C</td></tr><tr><td><b>[GexLog] Bear Call @ callWall 7630</b></td><td class='muted'>fired</td><td style='color:var(--warn);font-weight:800'>C</td></tr><tr><td><b>STMR Bull Put Spread (15:59 signal)</b></td><td class='muted'>armed</td><td style='color:var(--pos);font-weight:800'>A/B if signal fires</td></tr></table></div></details></div>
+<div class="page" id="p-postmortem"><p class='muted'>No postmortem yet for today. It runs automatically at 15:15 CT (<code>options_postmortem.py</code>) once the day closes.</p><h2 style='margin:24px 0 8px'>History — 2 logged postmortem(s)</h2><details id='ex-pmh-20260805' class='ex'><summary>2026-08-05 · <span class='muted'>O 7785 H 7791 L 7725 C 7733</span> · path C/— · <b>8 fired</b></summary><div class='ex-body'><table class='antable'><tr><th>Setup</th><th>Result</th><th>P&amp;L</th><th>Notes</th></tr><tr><td><b>[EOD] Bull Put @ 7655</b></td><td class='muted'>fired</td><td class='pos' style='text-align:right'>+$17</td><td class='muted'>WIN</td></tr><tr><td><b>[EOD] Bear Call @ 7815</b></td><td class='muted'>expired</td><td class='' style='text-align:right'></td><td class='muted'></td></tr><tr><td><b>[EOD] Bull Put @ 7735 (ATM)</b></td><td class='muted'>fired</td><td class='neg' style='text-align:right'>−$781</td><td class='muted'>LOSS</td></tr><tr><td><b>[EOD] Bear Call @ 7735 (ATM)</b></td><td class='muted'>expired</td><td class='' style='text-align:right'></td><td class='muted'></td></tr><tr><td><b>[Open] Bull Put @ open-80</b></td><td class='muted'>fired</td><td class='pos' style='text-align:right'>+$77</td><td class='muted'>WIN</td></tr><tr><td><b>[Open] Bear Call @ open+80</b></td><td class='muted'>fired</td><td class='pos' style='text-align:right'>+$27</td><td class='muted'>WIN</td></tr><tr><td><b>[Open] Bull Put @ ATM(open)</b></td><td class='muted'>fired</td><td class='neg' style='text-align:right'>−$131</td><td class='muted'>LOSS</td></tr><tr><td><b>[Open] Bear Call @ ATM(open)</b></td><td class='muted'>fired</td><td class='pos' style='text-align:right'>+$817</td><td class='muted'>WIN</td></tr><tr><td><b>[GexLog] Bull Put @ putWall 7565</b></td><td class='muted'>fired</td><td class='' style='text-align:right'></td><td class='muted'></td></tr><tr><td><b>[GexLog] Bear Call @ callWall 7750</b></td><td class='muted'>fired</td><td class='pos' style='text-align:right'>+$109</td><td class='muted'>WIN</td></tr><tr><td><b>STMR Bull Put Spread (15:59 signal)</b></td><td class='muted'>armed</td><td class='' style='text-align:right'></td><td class='muted'></td></tr></table></div></details><details id='ex-pmh-20260804' class='ex'><summary>2026-08-04 · <span class='muted'>O 7629 H 7758 L 7629 C 7736</span> · path C/— · <b>10 fired</b></summary><div class='ex-body'><table class='antable'><tr><th>Setup</th><th>Result</th><th>P&amp;L</th><th>Notes</th></tr><tr><td><b>[EOD] Bull Put @ 7525</b></td><td class='muted'>fired</td><td class='' style='text-align:right'></td><td class='muted'></td></tr><tr><td><b>[EOD] Bear Call @ 7675</b></td><td class='muted'>fired</td><td class='neg' style='text-align:right'>−$866</td><td class='muted'>LOSS</td></tr><tr><td><b>[EOD] Bull Put @ 7600 (ATM)</b></td><td class='muted'>fired</td><td class='pos' style='text-align:right'>+$162</td><td class='muted'>WIN</td></tr><tr><td><b>[EOD] Bear Call @ 7600 (ATM)</b></td><td class='muted'>fired</td><td class='neg' style='text-align:right'>−$101</td><td class='muted'>LOSS</td></tr><tr><td><b>[Open] Bull Put @ open-75</b></td><td class='muted'>fired</td><td class='pos' style='text-align:right'>+$32</td><td class='muted'>WIN</td></tr><tr><td><b>[Open] Bear Call @ open+75</b></td><td class='muted'>fired</td><td class='neg' style='text-align:right'>−$786</td><td class='muted'>LOSS</td></tr><tr><td><b>[Open] Bull Put @ ATM(open)</b></td><td class='muted'>fired</td><td class='pos' style='text-align:right'>+$567</td><td class='muted'>WIN</td></tr><tr><td><b>[Open] Bear Call @ ATM(open)</b></td><td class='muted'>fired</td><td class='neg' style='text-align:right'>−$271</td><td class='muted'>LOSS</td></tr><tr><td><b>[GexLog] Bull Put @ putWall 7525</b></td><td class='muted'>fired</td><td class='' style='text-align:right'></td><td class='muted'></td></tr><tr><td><b>[GexLog] Bear Call @ callWall 7630</b></td><td class='muted'>fired</td><td class='neg' style='text-align:right'>−$71</td><td class='muted'>LOSS</td></tr><tr><td><b>STMR Bull Put Spread (15:59 signal)</b></td><td class='muted'>armed</td><td class='' style='text-align:right'></td><td class='muted'></td></tr></table></div></details></div>
+<div class="page" id="p-eodreport">
+<div style="max-width:760px;margin:0 auto">
+  <div style="display:flex;align-items:center;gap:12px">
+    <span style="display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:999px;
+      font-weight:800;letter-spacing:.06em;font-size:12px;
+      background:rgba(229,72,77,.12);
+      color:#e5484d;
+      border:1px solid rgba(229,72,77,.45)">
+      ✗ ATTENTION NEEDED</span>
+    <h1 style="font-size:20px;margin:0">Options Desk — EOD Report</h1>
+  </div>
+  <div style="color:#8a91a0;font-size:12.5px;margin:6px 0 20px">2026-08-05 15:20 CT · 7/8 steps green
+    · 1 need attention</div>
+
+  <h2 style="font-size:15px;color:#8ab4f8;border-bottom:1px solid #23262d;padding-bottom:6px">Daily chain</h2>
+  <table style="width:100%;border-collapse:collapse;font-size:14px"><tr><td style="color:#2fbf8f;font-weight:800;width:26px">✓</td><td style="font-weight:600">Gateway login (API 4002)</td><td style="color:#8a91a0">connected DUQ159823</td></tr><tr><td style="color:#e5484d;font-weight:800;width:26px">✗</td><td style="font-weight:600">Live feed</td><td style="color:#8a91a0">state=reconnecting</td></tr><tr><td style="color:#2fbf8f;font-weight:800;width:26px">✓</td><td style="font-weight:600">MenthorQ levels</td><td style="color:#8a91a0">GexLog CAUTION · EM 7657.0–7816.0 · src 2026-08-05 06:20</td></tr><tr><td style="color:#2fbf8f;font-weight:800;width:26px">✓</td><td style="font-weight:600">Game plan</td><td style="color:#8a91a0">11 triggers armed</td></tr><tr><td style="color:#2fbf8f;font-weight:800;width:26px">✓</td><td style="font-weight:600">Gamma scanner</td><td style="color:#8a91a0">scanner_20260805.json written</td></tr><tr><td style="color:#2fbf8f;font-weight:800;width:26px">✓</td><td style="font-weight:600">Trigger daemon (→15:00 CT)</td><td style="color:#8a91a0">11 armed · 8 fired</td></tr><tr><td style="color:#2fbf8f;font-weight:800;width:26px">✓</td><td style="font-weight:600">Trade log / marks</td><td style="color:#8a91a0">trades.parquet updated today</td></tr><tr><td style="color:#2fbf8f;font-weight:800;width:26px">✓</td><td style="font-weight:600">Postmortem</td><td style="color:#8a91a0">postmortem_20260805.json</td></tr></table>
+
+  <h2 style="font-size:15px;color:#8ab4f8;border-bottom:1px solid #23262d;padding-bottom:6px;margin-top:26px">P&amp;L snapshot</h2>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:9px;margin:12px 0"><div style="background:#161a22;border:1px solid #23262d;border-radius:11px;padding:11px 14px"><div style="color:#8a91a0;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em">Net Liq</div><div style="font-size:19px;font-weight:750;margin-top:4px;color:#e8ebf0">$250,225</div></div><div style="background:#161a22;border:1px solid #23262d;border-radius:11px;padding:11px 14px"><div style="color:#8a91a0;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em">Realized P&L</div><div style="font-size:19px;font-weight:750;margin-top:4px;color:#e5484d">−$1,199</div></div><div style="background:#161a22;border:1px solid #23262d;border-radius:11px;padding:11px 14px"><div style="color:#8a91a0;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em">Running (open)</div><div style="font-size:19px;font-weight:750;margin-top:4px;color:#2fbf8f">+$0</div></div><div style="background:#161a22;border:1px solid #23262d;border-radius:11px;padding:11px 14px"><div style="color:#8a91a0;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em">Win rate</div><div style="font-size:19px;font-weight:750;margin-top:4px;color:#e8ebf0">53%</div></div><div style="background:#161a22;border:1px solid #23262d;border-radius:11px;padding:11px 14px"><div style="color:#8a91a0;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em">Profit factor</div><div style="font-size:19px;font-weight:750;margin-top:4px;color:#e8ebf0">0.60</div></div><div style="background:#161a22;border:1px solid #23262d;border-radius:11px;padding:11px 14px"><div style="color:#8a91a0;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em">Open / Closed</div><div style="font-size:19px;font-weight:750;margin-top:4px;color:#e8ebf0">0 / 15</div></div><div style="background:#161a22;border:1px solid #23262d;border-radius:11px;padding:11px 14px"><div style="color:#8a91a0;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em">Collateral at risk</div><div style="font-size:19px;font-weight:750;margin-top:4px;color:#e8ebf0">$0</div></div><div style="background:#161a22;border:1px solid #23262d;border-radius:11px;padding:11px 14px"><div style="color:#8a91a0;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em">IB maint margin</div><div style="font-size:19px;font-weight:750;margin-top:4px;color:#e8ebf0">$0</div></div><div style="background:#161a22;border:1px solid #23262d;border-radius:11px;padding:11px 14px"><div style="color:#8a91a0;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em">VIX</div><div style="font-size:19px;font-weight:750;margin-top:4px;color:#e8ebf0">15.6</div></div></div>
+
+  <h2 style="font-size:15px;color:#8ab4f8;border-bottom:1px solid #23262d;padding-bottom:6px;margin-top:26px">Fired triggers</h2>
+  <table style="width:100%;border-collapse:collapse"><tr><td style="padding:5px 0;border-bottom:1px solid #23262d">[EOD] Bull Put @ 7655</td><td style="padding:5px 0;border-bottom:1px solid #23262d;color:#8a91a0">grade C · fired</td></tr><tr><td style="padding:5px 0;border-bottom:1px solid #23262d">[EOD] Bull Put @ 7735 (ATM)</td><td style="padding:5px 0;border-bottom:1px solid #23262d;color:#8a91a0">grade C · fired</td></tr><tr><td style="padding:5px 0;border-bottom:1px solid #23262d">[Open] Bull Put @ open-80</td><td style="padding:5px 0;border-bottom:1px solid #23262d;color:#8a91a0">grade C · fired</td></tr><tr><td style="padding:5px 0;border-bottom:1px solid #23262d">[Open] Bear Call @ open+80</td><td style="padding:5px 0;border-bottom:1px solid #23262d;color:#8a91a0">grade C · fired</td></tr><tr><td style="padding:5px 0;border-bottom:1px solid #23262d">[Open] Bull Put @ ATM(open)</td><td style="padding:5px 0;border-bottom:1px solid #23262d;color:#8a91a0">grade C · fired</td></tr><tr><td style="padding:5px 0;border-bottom:1px solid #23262d">[Open] Bear Call @ ATM(open)</td><td style="padding:5px 0;border-bottom:1px solid #23262d;color:#8a91a0">grade C · fired</td></tr><tr><td style="padding:5px 0;border-bottom:1px solid #23262d">[GexLog] Bull Put @ putWall 7565</td><td style="padding:5px 0;border-bottom:1px solid #23262d;color:#8a91a0">grade C · stood_down_broken</td></tr><tr><td style="padding:5px 0;border-bottom:1px solid #23262d">[GexLog] Bear Call @ callWall 7750</td><td style="padding:5px 0;border-bottom:1px solid #23262d;color:#8a91a0">grade C · fired</td></tr></table>
+
+  <p style="color:#5f6672;font-size:11.5px;margin-top:28px">Generated by scripts/eod_report.py ·
+     data-collection mode (unvalidated) · times in Exchange/Central</p>
+</div><h3 style='margin:20px 0 8px'>History (logged daily)</h3><details class='ex'><summary>20260804<span class='sp'>expand</span></summary><div class='ex-body'><div style='margin:6px 0 10px'><span style='display:inline-block;padding:4px 12px;border-radius:999px;font-weight:800;font-size:11px;letter-spacing:.05em;background:#e3494822;color:#e34948;border:1px solid #e3494866'>✗ ATTENTION NEEDED</span><span class='muted' style='margin-left:10px;font-size:12px'>2026-08-04T15:20 · 7/8 green · 10 fired</span></div><table class='ptable'><tr><td style='color:#1baf7a;font-weight:800;width:24px'>✓</td><td style='font-weight:600'>Gateway login (API 4002)</td><td class='muted'>connected DUQ159823</td></tr><tr><td style='color:#e34948;font-weight:800;width:24px'>✗</td><td style='font-weight:600'>Live feed</td><td class='muted'>state=closed</td></tr><tr><td style='color:#1baf7a;font-weight:800;width:24px'>✓</td><td style='font-weight:600'>MenthorQ levels</td><td class='muted'>GexLog CAUTION · EM 7526.0–7675.0 · src 2026-08-04 07:03</td></tr><tr><td style='color:#1baf7a;font-weight:800;width:24px'>✓</td><td style='font-weight:600'>Game plan</td><td class='muted'>11 triggers armed</td></tr><tr><td style='color:#1baf7a;font-weight:800;width:24px'>✓</td><td style='font-weight:600'>Gamma scanner</td><td class='muted'>scanner_20260804.json written</td></tr><tr><td style='color:#1baf7a;font-weight:800;width:24px'>✓</td><td style='font-weight:600'>Trigger daemon (→15:00 CT)</td><td class='muted'>11 armed · 10 fired</td></tr><tr><td style='color:#1baf7a;font-weight:800;width:24px'>✓</td><td style='font-weight:600'>Trade log / marks</td><td class='muted'>trades.parquet updated today</td></tr><tr><td style='color:#1baf7a;font-weight:800;width:24px'>✓</td><td style='font-weight:600'>Postmortem</td><td class='muted'>postmortem_20260804.json</td></tr></table></div></details></div>
+<div class="page" id="p-setups"><div class='muted' style='margin:0 0 14px'>Grade = how aligned the trade is at <b>entry</b>: <b class='pos'>A+</b> trigger + regime + level all aligned · <b>A/B</b> most aligned · <b class='warn'>C</b> structure test / off-signal · <b class='neg'>F</b> broken execution. Grades are set AT ENTRY, per trade.</div><details id="ex-setup-bps_stmr" class="ex">
+          <summary><b>STMR Bull Put Spread</b>
+            <span class="pill pos">VALIDATED EDGE</span>
+            <span class="sp"><code>bps_stmr</code></span></summary>
+          <div class="ex-body">
+          <div class="setup-thesis">Oversold-but-uptrend mean reversion; sell put premium into the bounce.</div>
+          <div class="setup-def"><b>Default:</b> SPXW ~30Δ put / buy 50pt lower · 14 DTE · exit on SMA5 signal (NO stops/targets/holds).</div>
+          <table class="gtable"><tr><td class='gcell pos'>A+</td><td>15:59 %K8<15 AND spot>SMA100 — the only validated edge (PF 4.45, 80% win, 16/17 yrs).</td></tr><tr><td class='gcell neg'>F</td><td>Held to expiry / price stops / profit target — the exit shootout proved these negative.</td></tr></table></div></details><details id="ex-setup-eod" class="ex">
+          <summary><b>EOD-centered Iron Condor</b>
+            <span class="pill warn">FORWARD TEST</span>
+            <span class="sp"><code>eod</code></span></summary>
+          <div class="ex-body">
+          <div class="setup-thesis">Sell the expected-move range anchored on the PRIOR CLOSE (GexLog EM band).</div>
+          <div class="setup-def"><b>Default:</b> Bull put @ prior_close−EM · bear call @ prior_close+EM · 25pt wings · 0DTE · fire 08:35 CT.</div>
+          <table class="gtable"><tr><td class='gcell warn'>C</td><td>Unconditional data-collection — every day taken, exit on short-strike acceptance or 14:45.</td></tr></table></div></details><details id="ex-setup-open" class="ex">
+          <summary><b>Open-centered Iron Condor</b>
+            <span class="pill warn">FORWARD TEST</span>
+            <span class="sp"><code>open</code></span></summary>
+          <div class="ex-body">
+          <div class="setup-thesis">Same ± expected move, centered on the actual OPEN (strikes struck at 08:35).</div>
+          <div class="setup-def"><b>Default:</b> Bull put @ open−EM · bear call @ open+EM · 25pt wings · 0DTE.</div>
+          <table class="gtable"><tr><td class='gcell warn'>C</td><td>A/B vs EOD centering — which anchor contains the session better.</td></tr></table></div></details><details id="ex-setup-fly" class="ex">
+          <summary><b>ATM Iron Fly</b>
+            <span class="pill warn">FORWARD TEST</span>
+            <span class="sp"><code>fly</code></span></summary>
+          <div class="ex-body">
+          <div class="setup-thesis">Short straddle at the money with defined-risk wings — max theta, tightest range.</div>
+          <div class="setup-def"><b>Default:</b> Short put + short call ATM(open) · 25pt wings · 0DTE.</div>
+          <table class="gtable"><tr><td class='gcell warn'>C</td><td>Highest credit, highest gamma — the aggressive premium sell.</td></tr></table></div></details><details id="ex-setup-gexlog" class="ex">
+          <summary><b>GexLog Iron Condor (its walls)</b>
+            <span class="pill warn">FORWARD TEST</span>
+            <span class="sp"><code>gexlog</code></span></summary>
+          <div class="ex-body">
+          <div class="setup-thesis">Sell at GexLog's own suggested strikes — short put @ Put Wall, short call @ Call Wall.</div>
+          <div class="setup-def"><b>Default:</b> Bull put @ putWall · bear call @ callWall · 25pt wings · 0DTE.</div>
+          <table class="gtable"><tr><td class='gcell warn'>C</td><td>Tests GexLog's gamma walls vs the VIX EM band as the strike source.</td></tr></table></div></details></div>
+<div class="page" id="p-journal"><p class='muted'>No journal entries.</p></div>
+<div class="page prose" id="p-playbook"><h1>Options Strategy Playbook — rules, parameters, regimes, and how we test them</h1>
+<p>> <b>2026-08-04 RESET — PREMIUM-SELLING ONLY.</b> MenthorQ is fully removed from the</p>
+<p>> live system (no levels, no HVL regime, no MQ-anchored setups). §§2–8 below are</p>
+<p>> RETIRED MQ-era documentation kept for the record. The live system = §1 (STMR)</p>
+<p>> + the §D daily loop: [EOD] & [Open] condor+fly + [GexLog] walls condor.</p>
+<p><b>Status:</b> Living. Started S70 (2026-07-12); S73 (2026-07-14) major expansion: every</p>
+<p>strategy family now has a FIXED parameter set + a test grid, after all 8 structures were</p>
+<p>executed and logged on the paper account (first live-pipeline day).</p>
+<p>One entry per strategy so results are testable, consistent, and comparable.</p>
+<p>Every strategy carries an honest <b>backtest-status</b> tag and a <b>data-needed</b> tag so we</p>
+<p>never confuse a validated edge with a hypothesis.</p>
+<p>> Companion source of truth: <code>docs/living/handoff.md</code>. Infrastructure: the sim daemon</p>
+<p>> (<code>scripts/options_sim_daemon.py</code>), manual trades (<code>scripts/options_manual_trade.py</code>),</p>
+<p>> sampler (<code>scripts/options_strategy_sampler.py</code>), marks (<code>scripts/options_mark.py</code>),</p>
+<p>> dashboard (<code>scripts/options_app.py</code>, Streamlit :8511). All trades land in ONE log:</p>
+<p>> <code>data/options_log/trades.parquet</code> (§B schema).</p>
+<p>---</p>
+<h2>0. How to read a strategy entry</h2>
+<li><b>Thesis</b> — why an edge should exist</li>
+<li><b>Entry trigger</b> — the signal; must be readable at a defined time (causality!)</li>
+<li><b>Structure & DEFAULT params</b> — the ONE parameter set forward-tests run with</li>
+<li><b>Test grid</b> — the parameter sweep we'd optimize over once data allows</li>
+<li><b>Exit</b> — profit target / signal exit / time stop / settlement</li>
+<li><b>Sizing</b> — contracts, collateral, max concurrent</li>
+<li><b>Favorable regime</b> — where it should work (§A framework)</li>
+<li><b>Status</b> — VALIDATED (walk-forward) / SUPPORTED (in-sample) / HYPOTHESIS / ANTI (evidence against)</li>
+<li><b>Verdict</b> — current call</li>
+<p><b>Grading scale for individual trades</b> (logged per trade): A+ = trigger + regime +</p>
+<p>level all aligned; A/B = most aligned; C = structure test or off-signal; F = broken</p>
+<p>execution (e.g. zero-credit fill — see 2026-07-14 bcs example).</p>
+<p>---</p>
+<h2>1. STMR Bull Put Spread  <code>bps_stmr</code>  — THE FLAGSHIP</h2>
+<li><b>Thesis:</b> oversold-but-uptrend mean reversion; sell put premium into the bounce.</li>
+<li><b>Entry trigger (CAUSAL):</b> at 15:59 ET, stoch <code>%K8 < 15 AND spot > SMA100</code></li>
+<p>  (daily series + today's session H/L + 15:59 spot). Fill 16:00–16:15.</p>
+<li><b>Structure & DEFAULT:</b> SPXW put spread, sell <b>~30Δ</b> put / buy <b>50pt</b> lower, <b>14 DTE</b>.</li>
+<li><b>Test grid:</b> DTE {7, 14, 21, 30} × width {25, 50, 100} × short-delta {20, 30, 40}</li>
+<p>  — S67/S68 swept this on EOD marks: 14DTE/50pt was the capital-efficiency winner.</p>
+<li><b>Exit:</b> first day spot(15:59) > SMA5 → buy back 16:00+; else settle at expiry.</li>
+<p>  **S73 exit shootout (<code>scripts/mr_bps_exit_rules.py</code>, 142 trades): the SMA5 exit IS the</p>
+<p>  edge** — hold-to-expiry is NEGATIVE (PF 0.95, maxDD −$27.7K), tastylive TP-50% ≈ flat</p>
+<p>  (0.97), price stops are poison (0.71–0.84; they sell the pre-bounce low). SMA5: PF 1.74,</p>
+<p>  +$14.7K, maxDD −$6.3K. This is a mean-reversion TIMING play, not a theta play. NO price</p>
+<p>  stops, NO expiry holds, NO profit targets — exit on the signal only.</p>
+<li><b>Sizing:</b> 1-lot; collateral = width − credit (~$4.0–4.9K); max 3 concurrent.</li>
+<li><b>Regime:</b> elevated-but-falling IV; non-crash uptrend. Worst: gap-down clusters.</li>
+<li><b>Status:</b> SUPPORTED in-sample (146 trades 2010–23, PF 1.93 bid/ask, +$18.2K, maxDD −$6.3K).</li>
+<p>  Causal executable subset (2021-07→2023-12): 29 trades, PF 3.78 — n too small, regime-flattered.</p>
+<li><b>Verdict:</b> the ONLY strategy with real support. Forward-test is LIVE as of 2026-07-14</li>
+<p>  (daemon). **S73 walk-forward result (<code>scripts/mr_bps_regime_wf.py</code>): VIX-rank filters DO</p>
+<p>  NOT help — OOS filtered PF 2.13 < unfiltered 2.24 (2014-23); the "elevated-but-falling"</p>
+<p>  prior is unsupported (falling-VIX buckets n≤13; LOW VIX-rank was actually the best</p>
+<p>  tercile, PF 6.15 n=31). Trade it UNCONDITIONED.** Trades: <code>data/options_sim/bps_regime_trades.csv</code>.</p>
+<h2>2. [RETIRED] Iron Condor on STMR  <code>condor_stmr</code>  — ANTI (as an STMR variant)</h2>
+<li><b>Thesis:</b> add call-side credit on ~zero extra collateral.</li>
+<li><b>Status:</b> SUPPORTED-NEGATIVE — S68 sweep: LOSES to plain BPS (the bounce runs into the</li>
+<p>  short calls). Only helps tail/maxDD.</p>
+<li><b>Verdict:</b> DEPRECATED on the STMR signal. Condor lives on as <code>condor_0dte</code> (§3b).</li>
+<h2>3. [RETIRED — MQ era] 0DTE premium sell at gamma level  <code>sell_0dte_gamma</code>  *(HYPOTHESIS — forward-test live)*</h2>
+<li><b>Thesis:</b> positive-gamma days pin; sell defined-risk premium at the walls.</li>
+<li><b>Entry trigger:</b> morning (9:45–10:30 ET), positive-gamma day (spot > HVL), short strike</li>
+<p>  AT the MenthorQ PS0 (puts) or CR0 (calls); require spot ≥ 40pts from the short strike</p>
+<p>  AND net credit ≥ 0.80.</p>
+<li><b>Structure & DEFAULT:</b> 0DTE credit spread, <b>25pt width</b>, short AT the wall.</li>
+<li><b>Test grid:</b> entry time {9:45, 11:00, 13:00} × width {10, 25, 50} × wall {PS0, CR0, GW}</li>
+<p>  × min-distance {25, 50, 75}.</p>
+<li><b>Exit:</b> hold to settlement (cash) by default; test grid adds 50%-credit target and 2×-credit stop.</li>
+<li><b>Sizing:</b> 1-lot; collateral = width − credit (~$2.4K).</li>
+<li><b>Regime:</b> positive GEX, VIX < 20, no FOMC/CPI.</li>
+<li><b>Status:</b> HYPOTHESIS. No historical intraday data owned → forward-only.</li>
+<p>  First live sample 2026-07-14 (7475/7450 P, $130 credit, settled — see log).</p>
+<li><b>Verdict:</b> the daily forward-test workhorse — cheap, fast feedback, one per day max.</li>
+<h3>3b. [RETIRED — MQ era] 0DTE iron condor inside the walls  <code>condor_0dte</code>  *(HYPOTHESIS)*</h3>
+<li><b>Structure & DEFAULT:</b> short put AT/inside PS0 + short call AT/inside CR0, <b>25pt wings</b>,</li>
+<p>  entered 9:45–10:30 on a positive-gamma day; both strikes ≥ 40pts OTM, total credit ≥ 1.50.</p>
+<li><b>Exit:</b> settlement; grid adds close-both at 50% credit.</li>
+<li><b>Status:</b> HYPOTHESIS (2026-07-14 sample: $180 credit, POP 96% at entry).</li>
+<li><b>Caveat:</b> asymmetric risk on trend days — skip when |spot − HVL| < 15 (regime ambiguity).</li>
+<h2>4. [RETIRED — MQ era] Gamma-level fade / HVL  <code>gamma_level_fade</code>  — ANTI (naive)</h2>
+<li>S66: MenthorQ levels hold ~50% once touched. Do NOT trade naively. Only revisit with a</li>
+<p>  conditioned trigger (GEX magnitude + distance + time-of-day). Calibration continues daily</p>
+<p>  (<code>mq_logger.py</code>); our CR matches MenthorQ exactly, PS/HVL formulas still wrong.</p>
+<h2>5. [RETIRED] Long ATM straddle  <code>straddle_0dte</code> / <code>straddle_event</code>  *(HYPOTHESIS, counter-regime by default)*</h2>
+<li><b>Thesis:</b> buy vol when realized > implied is likely: event days, negative-gamma days.</li>
+<li><b>Entry trigger:</b> ONLY on (a) scheduled events (FOMC/CPI before 16:00) or (b) negative-gamma</li>
+<p>  (spot < HVL) mornings with VIX term inverted. NEVER on a positive-gamma pin day</p>
+<p>  (2026-07-14 sample bought at VIX 15 on a pin day = −$1.3K unrealized within hours — the</p>
+<p>  textbook counter-example, grade C−).</p>
+<li><b>Structure & DEFAULT:</b> buy ATM C + P, 0DTE (event day) or nearest-weekly.</li>
+<li><b>Test grid:</b> trigger {event, neg-gamma, both} × DTE {0, 2–4} × exit {close-before-event-fade,</li>
+<p>  fixed 2× debit target / 50% stop, hold-to-close}.</p>
+<li><b>Sizing:</b> risk = full debit (~$2.5–2.7K ATM 0DTE); 1-lot.</li>
+<li><b>Status:</b> HYPOTHESIS with a skeptical prior (theta on 0DTE is brutal).</li>
+<li><b>Verdict:</b> forward-test ONLY on trigger days; expect few samples/month.</li>
+<h2>6. [RETIRED — MQ era] Butterfly at the pin  <code>fly_gw_0dte</code>  *(HYPOTHESIS — most regime-aligned 0DTE long)*</h2>
+<li><b>Thesis:</b> positive-gamma days settle near the Gamma Wall; a cheap fly centered there has</li>
+<p>  convex payoff into the pin.</p>
+<li><b>Entry trigger:</b> positive-gamma day, enter 10:00–12:00, center = GW0 (fallback: max-GEX</li>
+<p>  strike); require debit ≤ 40% of wing width.</p>
+<li><b>Structure & DEFAULT:</b> call butterfly, <b>25pt wings</b>, centered ON the wall, 0DTE.</li>
+<li><b>Test grid:</b> wings {10, 25, 50} × center {GW0, CR0, spot-rounded} × entry time.</li>
+<li><b>Exit:</b> settlement (max value AT the pin); grid adds 2× debit target intraday.</li>
+<li><b>Sizing:</b> risk = debit (~$0.9K on 25pt). Defined, small.</li>
+<li><b>Status:</b> HYPOTHESIS. 2026-07-14 sample: $9.05 debit, peaked +$742 unrealized mid-day</li>
+<p>  (SPX hovering 7540s vs 7550 wall) — encouraging single sample, means nothing yet.</p>
+<li><b>Verdict:</b> alongside §3, the second daily forward-test candidate.</li>
+<h2>7. [RETIRED] Directional verticals  <code>bull_cs_wk</code> / <code>bear_cs_wk</code>  *(HYPOTHESIS — needs a signal)*</h2>
+<li><b>Thesis:</b> none yet — a debit vertical is a delta bet; without a validated directional</li>
+<p>  signal it's a coin flip minus spread. 2026-07-14 sample = momentum chase, grade C+.</p>
+<li><b>Only sanctioned use:</b> expressing an EXISTING validated futures signal (STMR long) in</li>
+<p>  defined-risk form: buy 50Δ / sell 25Δ, 7–14 DTE, on signal days, exit with the signal.</p>
+<li><b>Test grid:</b> deferred until a signal is chosen. Do not sweep blind.</li>
+<li><b>Status:</b> HYPOTHESIS.</li>
+<h2>8. [RETIRED] Calendars  <code>put_cal_wk</code>  *(structure-test only)*</h2>
+<li><b>Thesis:</b> short-leg theta > long-leg theta near ATM; vega hedge.</li>
+<li><b>Status:</b> logged once (2026-07-14) to prove multi-expiry handling. No thesis we can</li>
+<p>  test with owned data (needs term-structure history). PARKED.</p>
+<p>---</p>
+<h2>A. Regime framework (unchanged, now partially LIVE)</h2>
+<table>
+<tr><td>Dimension</td><td>Source</td><td>Have?</td></tr>
+<tr><td>IV level / rank</td><td>VIX daily (auto-refreshed by <code>options_mark.py</code>) + live IB delayed</td><td><b>LIVE</b> ✓</td></tr>
+<tr><td>VIX term structure</td><td>VIX/VIX3M</td><td>NEED (free) — next</td></tr>
+<tr><td>Trend vs range</td><td>ER/ADX on SPX daily (Yahoo, auto)</td><td>LIVE ✓</td></tr>
+<tr><td>Dealer gamma regime</td><td>MenthorQ manual AM + IB scanner (<code>mq_logger.py</code>)</td><td>LIVE ✓ (CR exact; PS/HVL formulas wrong)</td></tr>
+<tr><td>Session position vs walls</td><td>parity-spot rig vs levels</td><td>LIVE ✓</td></tr>
+<tr><td>Calendar events</td><td>manual</td><td>easy, add to daemon</td></tr>
+</table>
+<p><b>Premium-selling prior:</b> best in elevated-but-falling IV + positive-gamma range days;</p>
+<p>worst in IV spikes and negative-gamma trends. 2026-07-14 was the archetypal positive-gamma</p>
+<p>pin day and behaved exactly to type (credit structures +, straddle −).</p>
+<h2>B. Trade log — unified schema (S73: extended)</h2>
+<p><code>data/options_log/trades.parquet</code>: trade_id, strategy_id, source(backtest|sim|paper),</p>
+<p>symbol, entry_dt, exit_dt, dte, structure, legs(json), credit, exit_cost, fill_model,</p>
+<p>slippage, pnl, roc, collateral, hold_days, win, regime tags (vix, vix_rank, er10, adx,</p>
+<p>gex_regime, hvl_side, dow, event), <b>commentary, grade, max_gain, max_loss, pop</b>.</p>
+<p>Marks (running PnL + VIX) in <code>data/options_sim/marks.csv</code> every ~5 min.</p>
+<h2>C. Data inventory</h2>
+<table>
+<tr><td>Data</td><td>Status</td></tr>
+<tr><td>OptionsDX SPX EOD 2010–2023</td><td>HAVE</td></tr>
+<tr><td>SPX daily (Yahoo ^GSPC, auto-refresh)</td><td>LIVE ✓</td></tr>
+<tr><td>VIX daily (auto-refresh) + live delayed</td><td>LIVE ✓</td></tr>
+<tr><td>OPRA realtime NBBO on paper acct</td><td>LIVE ✓ (verified 2026-07-14)</td></tr>
+<tr><td>Realtime SPX spot</td><td>LIVE ✓ via 0DTE put-call parity rig (no index sub needed)</td></tr>
+<tr><td>ES realtime</td><td>NT8 only (no bridge yet — see handoff S73 open items)</td></tr>
+<tr><td>Historical intraday NBBO + OI</td><td>NEED (ThetaData $40) — the gate for backtesting §3/3b/6</td></tr>
+</table>
+<h2>D. Forward-test protocol (the daily loop) — REWRITTEN 2026-08-04 (premium-only, MQ removed)</h2>
+<p>1. <b>Premarket (~08:00 CT):</b> <code>options_gameplan.py</code> pulls the GexLog brief (signal</p>
+<p>   GO/CAUTION/WAIT + EM band + walls) and arms EVERY premium structure in BOTH</p>
+<p>   centerings — [EOD] condor+fly (prior close ± EM) and [Open] condor+fly (open ± EM,</p>
+<p>   struck at 08:35) — plus the [GexLog] walls condor. Unconditional, 1-lot, every day.</p>
+<p>2. <b>All day:</b> <code>options_mark.py --watch 300</code> (running PnL + VIX), daemon sampling spot.</p>
+<p>3. <b>15:59 ET:</b> daemon decides <code>bps_stmr</code> causally; 16:00–16:15 fill tape logged.</p>
+<p>4. <b>After close:</b> settle 0DTE trades at SPX settle, book realized PnL, review in the app.</p>
+<p>5. <b>Rule:</b> every trade gets commentary + grade AT ENTRY. Parameters are FIXED per §s</p>
+<p>   above — a param change = a NEW strategy_id (e.g. <code>fly_gw_0dte_w50</code>).</p>
+<p>6. <b>Sample-size honesty:</b> nothing graduates from HYPOTHESIS until ≥30 forward samples</p>
+<p>   AND the equivalent backtest (once ThetaData decision is made).</p>
+<h2>E. [RETIRED] MenthorQ — REMOVED 2026-08-04 (sub cancelled; no edge found in Note 0009)</h2>
+<h2>F. Open decisions</h2>
+<li>[ ] ThetaData $40/mo — the gate for backtesting all 0DTE strategies. Decide after ~2 weeks</li>
+<p>      of forward samples show which strategy deserves the spend.</p>
+<li>[x] ~~VIX daily~~ — LIVE (auto-refresh, S73)</li>
+<li>[x] ~~unified trade-log writer~~ — LIVE (S73)</li>
+<li>[ ] VIX term structure (VIX3M) — free, next data add</li>
+<li>[x] ~~Walk-forward the BPS family with VIX-rank conditioning~~ — DONE S73: filters don't</li>
+<p>      help OOS (2.13 vs 2.24 PF); trade unconditioned. Prior §A "elevated-but-falling" demoted.</p>
+<li>[ ] NT8→repo ES bridge (exporter indicator) if ES-based signals return to the sim</li>
+<li>[ ] Event calendar (FOMC/CPI) into the daemon for §5 triggers + §3 skips</li></div>
+<div class="page" id="p-results"><p class='muted'>No sim results yet.</p></div>
+<div class="page" id="p-levels"><p class='muted'>MenthorQ removed. GexLog levels (Put/Call Wall, GEX Flip, EM band) are in the header strip and on each gameplan tile.</p></div>
+</div>
+<script>
+// ---- UI state: keep the active tab / scroll / open expanders across the
+// (now rare) soft-reloads so auto-refresh never kicks you off your tab ----
+const UIK='optsUI_v1';
+function activateTab(p){
+  const tab=document.querySelector('.tab[data-p="'+p+'"]'); if(!tab) return;
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('on'));
+  tab.classList.add('on'); const pg=document.getElementById('p-'+p); if(pg) pg.classList.add('on');
+}
+function saveUI(){
+  const on=document.querySelector('.tab.on');
+  const det={}; document.querySelectorAll('details[id]').forEach(d=>det[d.id]=d.open);
+  try{sessionStorage.setItem(UIK, JSON.stringify({tab:on?on.dataset.p:null, y:window.scrollY, det}));}catch(e){}
+}
+function restoreUI(){
+  let st; try{st=JSON.parse(sessionStorage.getItem(UIK));}catch(e){}
+  if(!st) return;
+  if(st.det) document.querySelectorAll('details[id]').forEach(d=>{ if(d.id in st.det) d.open=st.det[d.id]; });
+  if(st.tab) activateTab(st.tab);
+  if(st.y) window.scrollTo(0, st.y);
+}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{ activateTab(t.dataset.p); saveUI(); });
+document.addEventListener('toggle', e=>{ if(e.target.tagName==='DETAILS') saveUI(); }, true);
+window.addEventListener('beforeunload', saveUI);
+restoreUI();
+
+// ---- live polling (active only when served over http by options_dashboard_live.py) ----
+// NB: the embedded card wall already defines global `fmt`/`$` — do NOT redeclare
+// them here or the whole script throws and the tabs go dead.
+let __dashGen = null;
+function dfv(v){ return (v===null||v===undefined) ? '—' : v; }
+function dtick(label, v){
+  return `<div class="tk"><b>${label}</b><span class="v">${dfv(v)}</span></div>`;
+}
+async function poll(){
+  let d;
+  try{
+    const r = await fetch('state.json?_='+Date.now(), {cache:'no-store'});
+    if(!r.ok) return; d = await r.json();
+  }catch(e){ return; }  // file:// or server down -> stay static, no errors
+  // KPI tiles
+  for(const [k,t] of Object.entries(d.tiles||{})){
+    const el = document.getElementById('k-'+k);
+    if(el){ el.textContent = t.value; el.className = 'tv '+(t.cls||''); }
+  }
+  // live ticker + feed state
+  const L = d.live||{}, live = L.state==='live';
+  const lb = document.getElementById('livebadge');
+  if(lb){ lb.className = 'livebadge'+(live?' on':'');
+    const lt = document.getElementById('livebadge-txt'); if(lt) lt.textContent = live?'LIVE':'OFFLINE'; }
+  const fs = document.getElementById('feedstate'); if(fs) fs.textContent = L.state||'offline';
+  const fh = document.getElementById('feedhint');
+  if(fh) fh.innerHTML = live ? '' : '· start <code>scripts/spot_feed.py</code>';
+  const tk = document.getElementById('ticker');
+  if(tk){
+    tk.innerHTML = live
+      ? dtick('SPX', L.spx) + dtick('ES est', L.es_est) + dtick('VIX', L.vix)
+        + (L.basis!==null&&L.basis!==undefined ? dtick('Basis', L.basis+' @'+(L.basis_ts||'')) : '')
+      : '<div class="tk muted">feed offline — spot updates paused</div>';
+  }
+  // levels + regime panel (spot + gamma regime move live)
+  const lr = d.lr||{};
+  const sp = document.getElementById('lv-spot');
+  if(sp && lr.spot!=null) sp.textContent = lr.spot.toLocaleString(undefined,{minimumFractionDigits:1,maximumFractionDigits:1});
+  const sts = document.getElementById('lv-spotts'); if(sts) sts.textContent = lr.spot_ts||'';
+  // LIVE band-graphic marker: move the white price line with each poll
+  const bs = document.getElementById('bands-svg');
+  if(bs && lr.spot!=null){
+    const blo=+bs.dataset.lo, bhi=+bs.dataset.hi, bw=+bs.dataset.w;
+    if(bhi>blo){
+      const bx = 30 + (Math.min(Math.max(lr.spot,blo),bhi)-blo)/(bhi-blo)*(bw-60);
+      const bl=document.getElementById('bm-line'), bt=document.getElementById('bm-text');
+      if(bl){ bl.setAttribute('x1',bx); bl.setAttribute('x2',bx); }
+      if(bt){ bt.setAttribute('x',bx); bt.textContent='▲ '+Math.round(lr.spot); }
+    }
+  }
+  if(lr.regime){
+    const rl = document.getElementById('lv-regime');
+    if(rl){ rl.textContent = lr.regime.label; rl.className = 'rlabel '+(lr.regime.cls||''); }
+    const rd = document.getElementById('lv-regdetail'); if(rd) rd.textContent = lr.regime.detail;
+  }
+  const up = document.getElementById('updated');
+  if(up) up.textContent = (L.ts_et? 'feed '+L.ts_et+' CT · ':'') + 'refreshed '
+    + new Date().toLocaleTimeString();
+  // soft reload when trades/journal change (card wall + journal refresh) —
+  // save UI first so the reload lands you back on the same tab/scroll/expanders
+  if(__dashGen!==null && d.gen!==__dashGen){ saveUI(); location.reload(); }
+  __dashGen = d.gen;
+}
+poll(); setInterval(poll, 5000);
+</script>
+<style>
+.an-charts{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+@media(max-width:820px){.an-charts{grid-template-columns:1fr}}
+.an-card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:13px;padding:14px 16px}
+.an-h{font-size:13px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.an-h select{background:var(--chip);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:4px 8px;font-size:13px;font-weight:600}
+.bar{display:flex;align-items:center;gap:8px;margin:5px 0;font-size:12.5px}
+.bar .lab{width:118px;text-align:right;flex:none}
+.bar .track{flex:1;height:16px;background:var(--chip);border-radius:5px;position:relative;overflow:hidden}
+.bar .fill{position:absolute;top:0;bottom:0;border-radius:5px}
+.bar .val{width:74px;font-variant-numeric:tabular-nums;font-weight:700;text-align:right}
+.antable{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:8px}
+.antable th{color:var(--mut);text-align:right;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;padding:5px 8px;border-bottom:1px solid var(--line)}
+.antable th:first-child,.antable td:first-child{text-align:left}
+.antable td{text-align:right;padding:6px 8px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+.cal-top{display:flex;align-items:center;gap:12px;margin-bottom:12px;font-size:15px}
+.cal-top button{background:var(--chip);color:var(--ink);border:1px solid var(--line);border-radius:8px;width:32px;height:32px;font-size:16px;cursor:pointer}
+#cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.cal-dow{color:var(--mut);font-size:11px;text-align:center;padding:4px;font-weight:600}
+.cal-cell{background:var(--panel);border:1px solid var(--line);border-radius:9px;min-height:66px;padding:6px 8px;font-size:12px;position:relative}
+.cal-cell.empty{background:transparent;border:0}
+.cal-cell.has{cursor:pointer} .cal-cell.has:hover{border-color:var(--acc)}
+.cal-cell .d{color:var(--mut);font-size:11px}
+.cal-cell .p{font-weight:800;font-size:14px;margin-top:6px}
+.cal-cell .n{color:var(--mut);font-size:10px;position:absolute;bottom:5px;right:8px}
+.cal-cell.pos{background:rgba(47,191,143,.12);border-color:rgba(47,191,143,.35)}
+.cal-cell.neg{background:rgba(240,85,95,.12);border-color:rgba(240,85,95,.35)}
+#cal-day{margin-top:16px}
+</style>
+<script>
+window.__T = [{"id": "auto_20260804_083337", "strategy": "eodic_c", "date": "2026-08-04", "entry": "2026-08-04 08:33", "dow": "Tue", "hour": "08:00", "grade": "C", "regime": "unknown", "bias": "neutral", "source": "auto_trigger", "dte": 0, "pnl": -866, "collateral": 2305, "roi": -37.6, "open": false, "win": false, "structure": "vertical 25pt"}, {"id": "auto_20260804_083352", "strategy": "eodfly_p", "date": "2026-08-04", "entry": "2026-08-04 08:33", "dow": "Tue", "hour": "08:00", "grade": "C", "regime": "unknown", "bias": "neutral", "source": "auto_trigger", "dte": 0, "pnl": 162, "collateral": 2335, "roi": 7.0, "open": false, "win": true, "structure": "vertical 25pt"}, {"id": "auto_20260804_083406", "strategy": "eodfly_c", "date": "2026-08-04", "entry": "2026-08-04 08:34", "dow": "Tue", "hour": "08:00", "grade": "C", "regime": "unknown", "bias": "neutral", "source": "auto_trigger", "dte": 0, "pnl": -101, "collateral": 440, "roi": -23.0, "open": false, "win": false, "structure": "vertical 25pt"}, {"id": "auto_20260804_090516", "strategy": "openic_p", "date": "2026-08-04", "entry": "2026-08-04 09:05", "dow": "Tue", "hour": "09:00", "grade": "C", "regime": "unknown", "bias": "neutral", "source": "auto_trigger", "dte": 0, "pnl": 32, "collateral": 2465, "roi": 1.3, "open": false, "win": true, "structure": "vertical 25pt"}, {"id": "auto_20260804_090532", "strategy": "openic_c", "date": "2026-08-04", "entry": "2026-08-04 09:05", "dow": "Tue", "hour": "09:00", "grade": "C", "regime": "unknown", "bias": "neutral", "source": "auto_trigger", "dte": 0, "pnl": -786, "collateral": 2465, "roi": -31.9, "open": false, "win": false, "structure": "vertical 25pt"}, {"id": "auto_20260804_090713", "strategy": "openfly_c", "date": "2026-08-04", "entry": "2026-08-04 09:07", "dow": "Tue", "hour": "09:00", "grade": "C", "regime": "unknown", "bias": "neutral", "source": "auto_trigger", "dte": 0, "pnl": -271, "collateral": 1380, "roi": -19.7, "open": false, "win": false, "structure": "vertical 25pt"}, {"id": "auto_20260804_090917", "strategy": "openfly_p", "date": "2026-08-04", "entry": "2026-08-04 09:09", "dow": "Tue", "hour": "09:00", "grade": "C", "regime": "unknown", "bias": "neutral", "source": "auto_trigger", "dte": 0, "pnl": 567, "collateral": 1930, "roi": 29.4, "open": false, "win": true, "structure": "vertical 25pt"}, {"id": "auto_20260804_090940", "strategy": "gx_bcs", "date": "2026-08-04", "entry": "2026-08-04 09:09", "dow": "Tue", "hour": "09:00", "grade": "C", "regime": "unknown", "bias": "neutral", "source": "auto_trigger", "dte": 0, "pnl": -71, "collateral": 490, "roi": -14.6, "open": false, "win": false, "structure": "vertical 25pt"}, {"id": "auto_20260805_092640", "strategy": "eodic_p", "date": "2026-08-05", "entry": "2026-08-05 09:26", "dow": "Wed", "hour": "09:00", "grade": "C", "regime": "unknown", "bias": "neutral", "source": "auto_trigger", "dte": 0, "pnl": 17, "collateral": 2480, "roi": 0.7, "open": false, "win": true, "structure": "vertical 25pt"}, {"id": "auto_20260805_092813", "strategy": "eodfly_p", "date": "2026-08-05", "entry": "2026-08-05 09:28", "dow": "Wed", "hour": "09:00", "grade": "C", "regime": "unknown", "bias": "neutral", "source": "auto_trigger", "dte": 0, "pnl": -781, "collateral": 2240, "roi": -34.9, "open": false, "win": false, "structure": "vertical 25pt"}, {"id": "auto_20260805_092930", "strategy": "openic_p", "date": "2026-08-05", "entry": "2026-08-05 09:29", "dow": "Wed", "hour": "09:00", "grade": "C", "regime": "unknown", "bias": "neutral", "source": "auto_trigger", "dte": 0, "pnl": 77, "collateral": 2420, "roi": 3.2, "open": false, "win": true, "structure": "vertical 25pt"}, {"id": "auto_20260805_092945", "strategy": "openic_c", "date": "2026-08-05", "entry": "2026-08-05 09:29", "dow": "Wed", "hour": "09:00", "grade": "C", "regime": "unknown", "bias": "neutral", "source": "auto_trigger", "dte": 0, "pnl": 27, "collateral": 2470, "roi": 1.1, "open": false, "win": true, "structure": "vertical 25pt"}, {"id": "auto_20260805_093432", "strategy": "openfly_c", "date": "2026-08-05", "entry": "2026-08-05 09:34", "dow": "Wed", "hour": "09:00", "grade": "C", "regime": "unknown", "bias": "neutral", "source": "auto_trigger", "dte": 0, "pnl": 817, "collateral": 1680, "roi": 48.7, "open": false, "win": true, "structure": "vertical 25pt"}, {"id": "auto_20260805_093447", "strategy": "gx_bcs", "date": "2026-08-05", "entry": "2026-08-05 09:34", "dow": "Wed", "hour": "09:00", "grade": "C", "regime": "unknown", "bias": "neutral", "source": "auto_trigger", "dte": 0, "pnl": 109, "collateral": 1000, "roi": 10.9, "open": false, "win": true, "structure": "vertical 25pt"}, {"id": "auto_20260805_093505", "strategy": "openfly_p", "date": "2026-08-05", "entry": "2026-08-05 09:35", "dow": "Wed", "hour": "09:00", "grade": "C", "regime": "unknown", "bias": "neutral", "source": "auto_trigger", "dte": 0, "pnl": -131, "collateral": 1390, "roi": -9.4, "open": false, "win": false, "structure": "vertical 25pt"}, {"id": "incident_20260805_orphan_7840C", "strategy": "incident_orphan", "date": "2026-08-05", "entry": "2026-08-05 09:27", "dow": "Wed", "hour": "09:00", "grade": "F", "regime": "unknown", "bias": "neutral", "source": "incident", "dte": 0, "pnl": -103, "collateral": 230, "roi": -44.6, "open": false, "win": false, "structure": "orphan long 7840C (leg-fill failure)"}, {"id": "incident_20260805_orphan_7760C", "strategy": "incident_orphan", "date": "2026-08-05", "entry": "2026-08-05 09:27", "dow": "Wed", "hour": "09:00", "grade": "F", "regime": "unknown", "bias": "neutral", "source": "incident", "dte": 0, "pnl": -633, "collateral": 2870, "roi": -22.0, "open": false, "win": false, "structure": "orphan long 7760C (leg-fill failure)"}, {"id": "auto_20260806_084246", "strategy": "eodic_p", "date": "2026-08-06", "entry": "2026-08-06 08:42", "dow": "Thu", "hour": "08:00", "grade": "C", "regime": "unknown", "bias": "neutral", "source": "auto_trigger", "dte": 0, "pnl": 40, "collateral": 2435, "roi": 1.6, "open": true, "win": true, "structure": "vertical 25pt"}, {"id": "auto_20260806_084323", "strategy": "eodic_c", "date": "2026-08-06", "entry": "2026-08-06 08:43", "dow": "Thu", "hour": "08:00", "grade": "D", "regime": "unknown", "bias": "neutral", "source": "auto_trigger", "dte": 0, "pnl": 30, "collateral": 2460, "roi": 1.2, "open": true, "win": true, "structure": "vertical 25pt"}, {"id": "auto_20260806_084344", "strategy": "eodfly_p", "date": "2026-08-06", "entry": "2026-08-06 08:43", "dow": "Thu", "hour": "08:00", "grade": "C", "regime": "unknown", "bias": "neutral", "source": "auto_trigger", "dte": 0, "pnl": 10, "collateral": 1790, "roi": 0.6, "open": true, "win": true, "structure": "vertical 25pt"}, {"id": "auto_20260806_084404", "strategy": "eodfly_c", "date": "2026-08-06", "entry": "2026-08-06 08:44", "dow": "Thu", "hour": "08:00", "grade": "C", "regime": "unknown", "bias": "neutral", "source": "auto_trigger", "dte": 0, "pnl": -131, "collateral": 1350, "roi": -9.7, "open": false, "win": false, "structure": "vertical 25pt"}, {"id": "auto_20260806_090522", "strategy": "openic_p", "date": "2026-08-06", "entry": "2026-08-06 09:05", "dow": "Thu", "hour": "09:00", "grade": "C", "regime": "unknown", "bias": "neutral", "source": "auto_trigger", "dte": 0, "pnl": 10, "collateral": 2445, "roi": 0.4, "open": true, "win": true, "structure": "vertical 25pt"}, {"id": "auto_20260806_090543", "strategy": "openic_c", "date": "2026-08-06", "entry": "2026-08-06 09:05", "dow": "Thu", "hour": "09:00", "grade": "D", "regime": "unknown", "bias": "neutral", "source": "auto_trigger", "dte": 0, "pnl": 10, "collateral": 2485, "roi": 0.4, "open": true, "win": true, "structure": "vertical 25pt"}, {"id": "auto_20260806_090604", "strategy": "openfly_p", "date": "2026-08-06", "entry": "2026-08-06 09:06", "dow": "Thu", "hour": "09:00", "grade": "C", "regime": "unknown", "bias": "neutral", "source": "auto_trigger", "dte": 0, "pnl": -41, "collateral": 1660, "roi": -2.5, "open": false, "win": false, "structure": "vertical 25pt"}, {"id": "auto_20260806_090641", "strategy": "openfly_c", "date": "2026-08-06", "entry": "2026-08-06 09:06", "dow": "Thu", "hour": "09:00", "grade": "C", "regime": "unknown", "bias": "neutral", "source": "auto_trigger", "dte": 0, "pnl": -181, "collateral": 1580, "roi": -11.5, "open": false, "win": false, "structure": "vertical 25pt"}, {"id": "auto_20260806_090701", "strategy": "gx_bps", "date": "2026-08-06", "entry": "2026-08-06 09:07", "dow": "Thu", "hour": "09:00", "grade": "B", "regime": "unknown", "bias": "bullish", "source": "auto_trigger", "dte": 0, "pnl": -12, "collateral": 2265, "roi": -0.6, "open": true, "win": false, "structure": "vertical 25pt"}, {"id": "auto_20260806_090722", "strategy": "gx_bcs", "date": "2026-08-06", "entry": "2026-08-06 09:07", "dow": "Thu", "hour": "09:00", "grade": "D", "regime": "unknown", "bias": "neutral", "source": "auto_trigger", "dte": 0, "pnl": 35, "collateral": 2455, "roi": 1.4, "open": true, "win": true, "structure": "vertical 25pt"}];
+
+(function(){
+  const T = window.__T || [];
+  const $ = s=>document.querySelector(s);
+  const money=v=>v==null?'—':(v<0?'−':'+')+'$'+Math.abs(Math.round(v)).toLocaleString();
+  const pctf=v=>v==null?'—':(v>=0?'+':'')+v.toFixed(1)+'%';
+  const gcol=g=>({A:'var(--pos)',B:'var(--acc)',C:'var(--warn)',D:'var(--orange)',F:'var(--neg)'}[(g||'?')[0]]||'var(--mut)');
+  const closed=T.filter(t=>t.pnl!=null);
+  function statAll(rows){
+    const p=rows.filter(t=>t.pnl!=null).map(t=>t.pnl);
+    const w=p.filter(x=>x>=0),l=p.filter(x=>x<0),tot=p.reduce((a,b)=>a+b,0);
+    const pf=l.length?w.reduce((a,b)=>a+b,0)/-l.reduce((a,b)=>a+b,0):null;
+    const rois=rows.filter(t=>t.roi!=null).map(t=>t.roi);
+    const avgroi=rois.length?rois.reduce((a,b)=>a+b,0)/rois.length:null;
+    let eq=0,peak=0,dd=0;[...rows].filter(t=>t.pnl!=null).sort((a,b)=>(a.entry||'').localeCompare(b.entry||''))
+      .forEach(t=>{eq+=t.pnl;peak=Math.max(peak,eq);dd=Math.min(dd,eq-peak);});
+    return {n:p.length,tot,win:p.length?w.length/p.length*100:null,pf,exp:p.length?tot/p.length:null,avgroi,dd};
+  }
+  function tile(l,v,c){return '<div class="tile"><div class="tl">'+l+'</div><div class="tv '+(c||'')+'">'+v+'</div></div>';}
+  function renderTiles(){const s=statAll(T),el=$('#an-tiles');if(!el)return;
+    el.innerHTML=tile('Total P&L',money(s.tot),s.tot>=0?'pos':'neg')+tile('Trades',s.n,'')+
+      tile('Win rate',s.win==null?'—':s.win.toFixed(0)+'%','')+tile('Profit factor',s.pf==null?'—':s.pf.toFixed(2),'')+
+      tile('Expectancy',money(s.exp),(s.exp||0)>=0?'pos':'neg')+tile('Avg ROI',pctf(s.avgroi),(s.avgroi||0)>=0?'pos':'neg')+
+      tile('Max drawdown',money(s.dd),'neg');}
+  function renderEquity(){const el=$('#an-equity');if(!el)return;
+    const rows=[...T].filter(t=>t.pnl!=null).sort((a,b)=>(a.entry||'').localeCompare(b.entry||''));
+    if(!rows.length){el.innerHTML='<div class="muted">no closed trades yet</div>';return;}
+    let eq=0;const pts=rows.map((t,i)=>{eq+=t.pnl;return{y:eq,d:t.date};});
+    const W=440,H=170,ml=52,mb=16,mt=8,mr=8;
+    const ys=pts.map(p=>p.y).concat([0]),ymin=Math.min.apply(0,ys),ymax=Math.max.apply(0,ys);
+    const pad=(ymax-ymin)*.12||100,lo=ymin-pad,hi=ymax+pad;
+    const X=i=>ml+(pts.length<2?(W-ml-mr)/2:i/(pts.length-1)*(W-ml-mr));
+    const Y=v=>mt+(1-(v-lo)/(hi-lo))*(H-mt-mb),zero=Y(0);
+    const line=pts.map((p,i)=>X(i).toFixed(1)+','+Y(p.y).toFixed(1)).join(' ');
+    if($('#an-eqsub'))$('#an-eqsub').textContent='cum '+money(eq);
+    el.innerHTML='<svg width="100%" viewBox="0 0 '+W+' '+H+'">'+
+      '<line x1="'+ml+'" y1="'+zero+'" x2="'+(W-mr)+'" y2="'+zero+'" stroke="var(--line)"/>'+
+      '<text x="4" y="'+(Y(hi)+9)+'" fill="var(--mut)" font-size="10">'+money(hi)+'</text>'+
+      '<text x="4" y="'+(zero+3)+'" fill="var(--mut)" font-size="10">$0</text>'+
+      '<text x="4" y="'+Y(lo)+'" fill="var(--mut)" font-size="10">'+money(lo)+'</text>'+
+      '<polyline points="'+line+'" fill="none" stroke="var(--acc)" stroke-width="2"/>'+
+      pts.map((p,i)=>'<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(p.y).toFixed(1)+'" r="2.5" fill="'+(p.y>=0?'var(--pos)':'var(--neg)')+'"/>').join('')+'</svg>';}
+  function grp(rows,key){const m={};rows.forEach(t=>{let k=t[key];if(k===true)k='win';if(k===false)k='loss';if(k==null||k==='')k='?';(m[k]=m[k]||[]).push(t);});return m;}
+  function bstat(rows){const p=rows.filter(t=>t.pnl!=null).map(t=>t.pnl),w=p.filter(x=>x>=0),l=p.filter(x=>x<0);
+    const rois=rows.filter(t=>t.roi!=null).map(t=>t.roi);
+    return {n:p.length,tot:p.reduce((a,b)=>a+b,0),win:p.length?w.length/p.length*100:null,
+      avg:p.length?p.reduce((a,b)=>a+b,0)/p.length:null,pf:l.length?w.reduce((a,b)=>a+b,0)/-l.reduce((a,b)=>a+b,0):null,
+      roi:rois.length?rois.reduce((a,b)=>a+b,0)/rois.length:null};}
+  const GO=['A+','A','B+','B','B-','C+','C','C-','D','F','?'];
+  function renderGrade(){const el=$('#an-grade');if(!el)return;const g=grp(closed,'grade');
+    const keys=Object.keys(g).sort((a,b)=>GO.indexOf(a)-GO.indexOf(b));
+    const mx=Math.max.apply(0,[1].concat(keys.map(k=>Math.abs(bstat(g[k]).avg||0))));
+    el.innerHTML=keys.map(k=>{const s=bstat(g[k]),a=s.avg||0,w=Math.abs(a)/mx*100;
+      return '<div class="bar"><span class="lab" style="color:'+gcol(k)+';font-weight:800">'+k+' <span style="color:var(--mut);font-weight:400">n'+s.n+'</span></span>'+
+        '<span class="track"><span class="fill" style="width:'+w+'%;background:'+(a>=0?'var(--pos)':'var(--neg)')+';'+(a>=0?'left:50%':'right:50%')+'"></span></span>'+
+        '<span class="val '+(a>=0?'pos':'neg')+'">'+money(a)+'</span></div>';}).join('')+
+      '<div class="muted" style="font-size:11px;margin-top:6px">avg P&L per trade by grade · should slope A→F if the grading works</div>';}
+  function renderPivot(){const el=$('#an-pivot'),dim=$('#an-dim').value;if(!el)return;
+    const g=grp(closed,dim),keys=Object.keys(g).sort((a,b)=>bstat(g[b]).tot-bstat(g[a]).tot);
+    const rows=keys.map(k=>{const s=bstat(g[k]);return '<tr><td><b>'+k+'</b></td><td>'+s.n+'</td>'+
+      '<td>'+(s.win==null?'—':s.win.toFixed(0)+'%')+'</td><td class="'+(s.tot>=0?'pos':'neg')+'">'+money(s.tot)+'</td>'+
+      '<td class="'+((s.avg||0)>=0?'pos':'neg')+'">'+money(s.avg)+'</td><td>'+(s.pf==null?'—':s.pf.toFixed(2))+'</td>'+
+      '<td class="'+((s.roi||0)>=0?'pos':'neg')+'">'+pctf(s.roi)+'</td></tr>';}).join('');
+    el.innerHTML='<table class="antable"><tr><th>'+dim+'</th><th>n</th><th>win</th><th>total</th><th>avg</th><th>PF</th><th>ROI</th></tr>'+rows+'</table>';
+    if($('#an-note'))$('#an-note').textContent=closed.length<20?'· only '+closed.length+' closed — small sample, read as noise':'';}
+  const byDay={};T.forEach(t=>{if(!t.date)return;(byDay[t.date]=byDay[t.date]||{pnl:0,n:0,rows:[]});
+    byDay[t.date].n++;if(t.pnl!=null)byDay[t.date].pnl+=t.pnl;byDay[t.date].rows.push(t);});
+  const allDates=Object.keys(byDay).sort();
+  let calM=allDates.length?new Date(allDates[allDates.length-1]+'T12:00:00'):new Date();
+  function renderCal(){const grid=$('#cal-grid');if(!grid)return;const y=calM.getFullYear(),m=calM.getMonth();
+    $('#cal-title').textContent=calM.toLocaleString('en',{month:'long',year:'numeric'});
+    const start=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate();let mtot=0;
+    let html=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>'<div class="cal-dow">'+d+'</div>').join('');
+    for(let i=0;i<start;i++)html+='<div class="cal-cell empty"></div>';
+    for(let d=1;d<=days;d++){const ds=y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0'),e=byDay[ds];
+      if(e){mtot+=e.pnl;const cls=e.pnl>=0?'pos':'neg';
+        html+='<div class="cal-cell has '+cls+'" data-d="'+ds+'"><div class="d">'+d+'</div><div class="p '+cls+'">'+money(e.pnl)+'</div><div class="n">'+e.n+' trd</div></div>';}
+      else html+='<div class="cal-cell"><div class="d">'+d+'</div></div>';}
+    grid.innerHTML=html;
+    $('#cal-month-tot').innerHTML='month <b class="'+(mtot>=0?'pos':'neg')+'">'+money(mtot)+'</b>';
+    grid.querySelectorAll('.cal-cell.has').forEach(c=>c.onclick=()=>showDay(c.dataset.d));}
+  function showDay(ds){const e=byDay[ds],el=$('#cal-day');if(!e){el.innerHTML='';return;}
+    const tiles=e.rows.map(t=>{const c=gcol(t.grade);
+      return '<div class="itile" style="--gc:'+c+'"><div class="itile-h"><div class="itile-name">'+t.strategy+'</div>'+
+        '<span class="ichip" style="background:'+c+'">'+t.grade+'</span></div>'+
+        '<div class="itile-sub">'+t.structure+' · '+String(t.regime).replace('_gamma','')+' · '+t.bias+(t.dte!=null?' · '+t.dte+'DTE':'')+'</div>'+
+        '<div class="itile-foot"><span class="'+((t.pnl||0)>=0?'pos':'neg')+'">'+money(t.pnl)+'</span>'+
+        (t.roi!=null?' <span class="muted" style="font-weight:400">· ROI '+pctf(t.roi)+'</span>':'')+
+        (t.open?' <span class="muted" style="font-weight:400">· open</span>':'')+'</div></div>';}).join('');
+    el.innerHTML='<div class="an-h" style="margin:16px 2px 10px;font-size:15px">'+ds+
+      ' — <span class="'+(e.pnl>=0?'pos':'neg')+'">'+money(e.pnl)+'</span> · '+e.n+' trades</div>'+
+      '<div class="iboard">'+tiles+'</div>';}
+  function initAn(){renderTiles();renderEquity();renderGrade();renderPivot();renderCal();
+    const dim=$('#an-dim');if(dim)dim.onchange=renderPivot;
+    const pv=$('#cal-prev'),nx=$('#cal-next');
+    if(pv)pv.onclick=()=>{calM.setMonth(calM.getMonth()-1);renderCal();$('#cal-day').innerHTML='';};
+    if(nx)nx.onclick=()=>{calM.setMonth(calM.getMonth()+1);renderCal();$('#cal-day').innerHTML='';};}
+  if(document.readyState!=='loading')initAn();else document.addEventListener('DOMContentLoaded',initAn);
+})();
+
+</script></body></html>

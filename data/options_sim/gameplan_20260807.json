@@ -572,17 +572,5 @@
     }
   ],
   "open_spot": 7730.65,
-  "open_spot_at": "08:30:13 CT",
-  "gexlog_actual": {
-    "signal_bucket": "WAIT",
-    "forecast_type": "HIGH VOLATILITY",
-    "emLower": 7636.0,
-    "emUpper": 7784.0,
-    "putWall": 7650.0,
-    "callWall": 7750.0,
-    "playbook_wait": true,
-    "gap_note": "+0.46% (fade)",
-    "generated_at": "2026-08-07 06:20 AM ET",
-    "note": "brief was CDN-blocked at build time (VPN IP); we entered 08:30 vs a WAIT signal. Captured post-hoc."
-  }
+  "open_spot_at": "08:30:13 CT"
 }

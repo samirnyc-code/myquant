@@ -700,5 +700,13 @@
     }
   ],
   "open_spot": 7779.4,
-  "open_spot_at": "09:26:24 CT"
+  "open_spot_at": "09:26:24 CT",
+  "gexlog_evening": {
+    "generated_at": "2026-08-05 07:45 PM ET",
+    "session_type": "RANGE BOUND",
+    "forecast_accurate": false,
+    "expected_move_hit": true,
+    "spx_change": -0.17,
+    "vix_change": -4.19
+  }
 }

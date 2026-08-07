@@ -1,0 +1,16 @@
+run_at_ct: target 16:53 CT | now 16:41 CT | delta -11min | berlin-chicago 7h | RUN: .venv/Scripts/python.exe -c print('DIRECT CHILD OUTPUT OK')
+Traceback (most recent call last):
+  File "C:\Users\Admin\myquant\scripts\run_at_ct.py", line 103, in <module>
+    main()
+  File "C:\Users\Admin\myquant\scripts\run_at_ct.py", line 99, in main
+    sys.exit(subprocess.run(rest, creationflags=0x08000000).returncode)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\subprocess.py", line 548, in run
+    with Popen(*popenargs, **kwargs) as process:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\subprocess.py", line 1026, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\subprocess.py", line 1538, in _execute_child
+    hp, ht, pid, tid = _winapi.CreateProcess(executable, args,
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [WinError 2] The system cannot find the file specified
