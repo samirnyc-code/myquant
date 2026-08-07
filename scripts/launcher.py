@@ -765,6 +765,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send_gexlab()
             if p == "/flowlab":
                 return self._send_flowlab()
+            if p == "/pats":
+                return self._send_pats()
             if p == "/depthmap" or p.startswith("/depthmap/"):
                 return self._send_depthmap(p)
             if p == "/slides" or p.startswith("/slides/"):
@@ -791,6 +793,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._send_gexlab()
         if p == "/flowlab":
             return self._send_flowlab()
+        if p == "/pats":
+            return self._send_pats()
         if p == "/depthmap" or p.startswith("/depthmap/"):
             return self._send_depthmap(p)
         if p == "/slides" or p.startswith("/slides/"):
@@ -943,6 +947,17 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(f.read_text(encoding="utf-8"), "text/html; charset=utf-8")
         return self._send("<h1>dossier missing</h1><p>docs/mq_method/index.html not found.</p>",
                           "text/html; charset=utf-8")
+
+    def _send_pats(self):
+        # PATs (Mack) transcript library — nuggets extracted from the @PATsTrading
+        # YouTube recaps, cross-checked against his manual. Lives in the separate
+        # PATs-Trading repo; rebuilt there by scripts/build_page.py. Static
+        # self-contained HTML, safe for the remote viewer.
+        f = Path(r"C:\Users\Admin\Desktop\PATs-Trading\library\index.html")
+        if f.exists():
+            return self._send(f.read_text(encoding="utf-8"), "text/html; charset=utf-8")
+        return self._send("<h1>PATs library not built</h1><p>run scripts/build_page.py "
+                          "in the PATs-Trading repo.</p>", "text/html; charset=utf-8")
 
     def _send_levels(self):
         # Gamma Levels slide deck (S75P) — 10 sessions/slide across every session we
@@ -1152,6 +1167,7 @@ pre{background:var(--chip);border-radius:7px;padding:8px 10px;font-size:11px;ove
       <a href="/levels" target="_blank" title="Gamma Levels slide deck — MenthorQ + our CR/PS/HVL over intraday price">📈 Gamma Levels</a>
       <a href="/mqmethod" target="_blank" title="MenthorQ Method — framework from 7 Academy videos, every claim tested">🔬 MQ Method</a>
       <a href="/gexlab" target="_blank" title="S75Q — do MenthorQ gamma levels help the Brooks method?">🧪 GEX Lab</a>
+      <a href="/pats" target="_blank" title="PATs (Mack) transcript library — rules/nuggets from ~2.9k YouTube recaps, cross-checked against the manual">🎯 PATs Library</a>
       <a href="/flowlab" target="_blank" title="S75R — ES 1M order-flow reading, bar by bar">🕯 Flow Lab</a>
       <a href="/artifacts" target="_blank" title="Local backups of every Claude artifact - readable offline">🗂 Artifact Library</a>
       <a href="/playbook" target="_blank" title="Every day's price-path slides, trade-idea charts and entry/exit trade cards - archived automatically">📋 Daily Playbook</a>
