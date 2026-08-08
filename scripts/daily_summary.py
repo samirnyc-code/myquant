@@ -83,6 +83,10 @@ def day_row(gp_path, trades):
         pnl_eod=round(per.get("eod", 0), 0), pnl_open=round(per.get("open", 0), 0),
         pnl_gexlog=round(per.get("gexlog", 0), 0), pnl_stmr=round(per.get("stmr", 0), 0),
         n_closed=len(tc), n_wins=int((tc.pnl > 0).sum()) if len(tc) else 0,
+        # S99 entry integrity: count trades struck late/off a stale feed (entry_valid
+        # False). >0 ⇒ the day's A/B tables must filter these out (they're not clean).
+        n_entry_invalid=(int((tc["entry_valid"] == False).sum())  # noqa: E712 (NaN-safe)
+                         if "entry_valid" in tc.columns else 0),
         credit_total=round(pd.to_numeric(tc.credit, errors="coerce").sum() * 100, 0) if len(tc) else None,
         # realized side (evening report)
         session_type=ev.get("session_type"), forecast_accurate=ev.get("forecast_accurate"),

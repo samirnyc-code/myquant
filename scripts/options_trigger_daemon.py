@@ -86,6 +86,51 @@ def read_live():
     return None
 
 
+# S99 entry-integrity thresholds — a trade breaching either is tagged entry_valid=False
+# and (for strike-at-fire structures) is NOT a clean A/B datapoint.
+ENTRY_LAG_TOL_MIN = 15    # minutes after the trigger's not_before still counts as "on time"
+FEED_STALE_TOL_S = 120    # spot tick older than this = stale feed
+
+
+def live_feed_age():
+    """Seconds since the live feed's last tick (ts_epoch in live.json), or None if
+    unknown. Large/So None ⇒ we are firing off a stale or absent spot."""
+    f = SIM / "live.json"
+    if not f.exists():
+        return None
+    try:
+        d = json.loads(f.read_text())
+        ep = d.get("ts_epoch")
+        return None if ep is None else max(0.0, time.time() - float(ep))
+    except Exception:
+        return None
+
+
+def entry_integrity(trig):
+    """Compute (entry_valid, lag_min, feed_age_s, note) at the moment of fire.
+    STRIKE-AT-FIRE structures (vertical_dynamic — the open/gexlog streams) are the
+    ones a late or stale entry actually CORRUPTS (wrong strike); fixed-strike EOD
+    trades still get tagged so fills can be audited, but lateness alone doesn't
+    invalidate their premarket-fixed strikes."""
+    nb = trig.get("fire", {}).get("not_before")
+    lag = None
+    if nb and len(nb) >= 5 and nb[2] == ":":
+        lag = round((now_ct() - hhmm(nb)).total_seconds() / 60.0, 1)
+    age = live_feed_age()
+    dynamic = trig.get("structure", {}).get("kind") == "vertical_dynamic"
+    problems = []
+    if age is not None and age > FEED_STALE_TOL_S:
+        problems.append(f"stale feed {age:.0f}s")
+    if dynamic and lag is not None and lag > ENTRY_LAG_TOL_MIN:
+        problems.append(f"late entry +{lag:.0f}min (strike struck off drifted spot)")
+    elif lag is not None and lag > ENTRY_LAG_TOL_MIN:
+        problems.append(f"late fill +{lag:.0f}min (fixed strike; fill only)")
+    # a fixed-strike late fill is a soft flag, not an invalidation
+    hard = bool(age is not None and age > FEED_STALE_TOL_S) or \
+           bool(dynamic and lag is not None and lag > ENTRY_LAG_TOL_MIN)
+    return (not hard), lag, (round(age, 0) if age is not None else None), "; ".join(problems) or "ok"
+
+
 # ---------- condition evaluation ----------
 
 def regime(spot, hvl):
@@ -730,6 +775,7 @@ def fire(ib, trig, spot, plan, reason, dry):
     coll = (width - net) * 100 if (width and net > 0) else abs(net) * 100
     struct_txt = trig["structure"]["kind"] + (f" {width:.0f}pt" if width else "")
     mg, ml, pop = risk_metrics(trig["structure"], net, width, spot, strikes, plan)
+    e_valid, e_lag, e_age, e_note = entry_integrity(trig)   # S99 entry-integrity tag
     tlog.append_entry({
         "trade_id": tid, "strategy_id": trig["setup"], "source": "auto_trigger",
         "symbol": "SPXW", "entry_dt": now_ct().strftime("%Y-%m-%d %H:%M"),
@@ -737,10 +783,16 @@ def fire(ib, trig, spot, plan, reason, dry):
         "max_gain": mg, "max_loss": ml, "pop": pop,
         "legs": filled, "credit": net, "collateral": coll, "dow": now_ct().strftime("%a"),
         "gex_regime": regime(spot, plan["levels"].get("hvl")),  # for analytics slicing
+        "entry_valid": e_valid, "entry_lag_min": e_lag, "feed_age_s": e_age, "entry_note": e_note,
         "grade": grade, "commentary": f"AUTO-TRIGGER [{trig['id']}] fired: {reason}. {gbasis}. "
                                       f"Projected {trig['projected_grade']} premarket. Path {trig.get('path','—')}.",
     })
     trig["fired"], trig["status"], trig["trade_id"] = True, "fired", tid
+    trig["entry_valid"], trig["entry_note"] = e_valid, e_note   # surfaced on the plan too
+    if not e_valid:
+        notify(f"⚠️ ENTRY INVALID · {trig['setup']}",
+               f"{label}: {e_note}. Trade booked but EXCLUDED from A/B (not a clean datapoint).")
+        print(f"  ⚠️ ENTRY INVALID {trig['id']}: {e_note} — booked but tagged entry_valid=False")
     # the regime the trade was BORN in — regime invalidation compares against this
     trig["entry_regime"] = regime(spot, plan.get("levels", {}).get("hvl"))
     trig["fill"] = {"net": round(net, 2), "grade": grade, "at": now_ct().strftime("%H:%M:%S")}

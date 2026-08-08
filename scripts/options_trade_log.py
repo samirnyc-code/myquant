@@ -28,6 +28,10 @@ COLUMNS = [
     # "traded_to_close" (we placed offsetting orders) | "partial_expiry" (some legs
     # expired, position residual — needs attention). Tracked as an outcome stat.
     "close_reason",
+    # S99 (2026-08-08) — ENTRY INTEGRITY. A trade struck late or off a stale feed is
+    # NOT a clean datapoint (08-05: an open-centered trade struck ~1h late polluted the
+    # centering A/B). entry_valid=False ⇒ exclude from A/B tables; the others explain why.
+    "entry_valid", "entry_lag_min", "feed_age_s", "entry_note",
 ]
 
 

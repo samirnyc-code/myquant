@@ -1,6 +1,35 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** August 8, 2026 (S99: weekend review — #20 validated + shipped advisory; #7/#19/#27 done; sim spec; deadman fix)
+**Last Updated:** August 8, 2026 (S100: wk1 review — data-integrity fixes; Open-centering "win" was a mistimed-entry artifact)
+
+---
+
+## S100 (2026-08-08) — Week-1 review + data-integrity plumbing
+
+**Wk1 forward P&L (08-04→07, paper): net −$953, 35 trades, 57% win, n=4 (2 clean).**
+Do NOT trust the centering read: the reported "Open beats EOD by +$2,642" was
+CONTAMINATED — **75% of the Open stream (+$791 of +$1,056) came from ONE 08-05 trade
+struck ~1h late** (dead feed until 09:26). Cleaned edge is +$1,087 (3 days) / +$692
+(ex-NFP), leaning on the lucky 08-07 NFP day. **Withdrawn — no centering conclusion at
+n=2 clean.** Two execution problems found: (1) 08-07 bell-fire blind into NFP (pre-fix
+artifact; blind→WAIT now handles it), (2) 08-05 feed dead 1h at the open.
+
+**Decision (user): keep trading everything unchanged (fact-finding, never block), FIX
+THE PLUMBING so the record stops lying.** Shipped, all compile + tested:
+- **Entry-integrity tag** (#29): daemon `entry_integrity()` writes `entry_valid`/
+  `entry_lag_min`/`feed_age_s`/`entry_note` per trade (LAG_TOL 15min, FEED_TOL 120s;
+  dynamic/strike-at-fire trades hard-invalidate on lateness, fixed strikes soft-flag).
+  **Every A/B table must now filter `entry_valid`.** `daily_summary.n_entry_invalid`
+  surfaces contamination (08-05 = 4). 08-05 backfilled via `backfill_entry_valid_0805.py`.
+- **Feed-health guard** (#30): `live_feed_age()`; invalid fires get a Telegram alert +
+  entry_valid=False, trade STILL booked (never block).
+- **Blind-clobber guard** (#31): gameplan refuses to overwrite a good-brief plan with a
+  blind (errored) one — the 08-07 failure mode. Code neutralizes it.
+
+**OPEN — needs user OK (system state):** the scheduler has a redundant **08:28 CT
+gameplan trigger** (+07:05, 07:28). Propose removing the 08:28 one. Code guard already
+makes it safe; removal is cleanup. NOT touched — awaiting approval per the no-unilateral
+rule.
 
 ---
 

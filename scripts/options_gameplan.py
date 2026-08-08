@@ -339,6 +339,7 @@ def main():
 
     out = SIM / f"gameplan_{date}.json"
     if out.exists():
+        prev = {}
         try:
             prev = json.loads(out.read_text(encoding="utf-8"))
             had_fired = any(t.get("fired") for t in prev.get("triggers", []))
@@ -347,6 +348,15 @@ def main():
         if had_fired and not args.restore:
             raise SystemExit(f"REFUSING to overwrite {out.name}: it has FIRED triggers (the day's "
                              f"executed record). Pass --restore only to rebuild a damaged record.")
+        # S99 BLIND-CLOBBER GUARD: a LATE scheduled run (e.g. 08:28) with a blocked/
+        # errored brief must NOT overwrite an EARLIER plan built off a GOOD brief. On
+        # 08-07 a blind 08:28 regen replaced the morning plan and fired blind at the
+        # bell. Keep the good early plan; the blind run is a no-op.
+        prev_gx = (prev.get("gexlog") or {})
+        prev_good = bool(prev_gx.get("generated_at")) and not prev_gx.get("error")
+        if prev_good and gx.get("error") and not args.restore:
+            raise SystemExit(f"KEEPING {out.name}: existing plan has a GOOD brief; this run's brief "
+                             f"is blind ({gx['error']}). Refusing to clobber good with blind (S99 guard).")
         if not args.force:
             raise SystemExit(f"{out.name} exists. Use --force to regenerate (only before any fire).")
     out.write_text(json.dumps(plan, indent=2), encoding="utf-8")
