@@ -1,6 +1,34 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** August 7, 2026 (S97: PATs-Trading project kickoff + Mission Control /pats)
+**Last Updated:** August 8, 2026 (S98: 08-07 NFP evening report read + analyzed; rule #20 refined)
+
+---
+
+## S98 (2026-08-08) — Evening report auto-pull VERIFIED + 08-07 NFP analysis
+
+**First unattended evening pull worked.** `evening_20260807.json` written by the
+scheduled task at 19:05 CT (`delta +0min RUN`) on the clean IP — no manual retry. Full
+text at `docs/living/evening_reads/evening_20260807.md`, now read every word + analyzed.
+
+**08-07 NFP verdict:** payrolls −23k vs +83k consensus. Their morning forecast (POSITIVE
+gamma + HIGH-VOL 70%) was **wrong the archive-predicted way** — printed moderate trend,
+0.57% range, **EM held**, VIX −1.65% to 14.90. We traded EOD structures at 08:30 into
+their Caution and **netted +$1,366.80** (8/8 legs closed). Both losers were the ATM
+iron-fly **short-call** side (eodfly_c −$211 @7710, openfly_c −$31 @7730) on the +0.62%
+drift; every put side + condor wing expired full credit. Both centerings (EOD + Open) net-positive.
+
+**Rule refined (improvement_log #20):** it's the **gamma regime**, not the calendar, that
+gates event days. `event + neg-gamma = stand aside; event + pos-gamma + no in-range flip
+= EM holds, sell it.` New item **#28**: ATM-fly short-call is our only directional leak on
+drift days → test a directional/near-wall fly center vs symmetric-ATM.
+
+**Their Monday (08-10) look-ahead:** POSITIVE gamma, no in-range flip; SPX pinned on Call
+Wall 7,760 (Put Wall 7,700; EM ±73 ≈ 7,685–7,831); only catalyst Bowman 12:45 ET (medium);
+**week ELEVATED — Core CPI MoM+YoY** → don't over-lever income into it.
+
+**NEXT (user returns for it):** weekend triage of all 28 improvement-log items — bucket
+each into make-live-now / needs-2yr-minute-sim / park. Still pending: plan-file fired-flag
+persistence bug; Saturday weekend-preview pull.
 
 ---
 
