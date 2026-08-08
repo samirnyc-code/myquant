@@ -25,6 +25,23 @@ STREAM_MAP = {
 }
 
 
+def _norm_gamma(raw):
+    """POSITIVE/NEGATIVE -> POS/NEG/? — backfills gamma_regime for pre-08-08 briefs."""
+    s = str(raw or "").strip().upper()
+    return "POS" if s.startswith("POS") else ("NEG" if s.startswith("NEG") else "?")
+
+
+def _flip_in(gx):
+    """GEX flip inside [emLower, emUpper]? Use the stored field, else recompute from
+    fields older gameplans already carry (emLower/emUpper/gex_flip)."""
+    if gx.get("in_range_flip") is not None:
+        return gx.get("in_range_flip")
+    lo, hi, flip = gx.get("emLower"), gx.get("emUpper"), gx.get("gex_flip")
+    if lo is not None and hi is not None and flip is not None:
+        return bool(lo <= flip <= hi)
+    return None
+
+
 def day_row(gp_path, trades):
     d = json.loads(Path(gp_path).read_text(encoding="utf-8"))
     date = d.get("date")
@@ -49,6 +66,14 @@ def day_row(gp_path, trades):
         em_low=d.get("em_low"), em_high=d.get("em_high"),
         put_wall=gx.get("putWall"), call_wall=gx.get("callWall"),
         gex_flip=gx.get("gex_flip"), net_gex=gx.get("net_gex"),
+        # #27 capture (added 2026-08-08) — the #20 gate axes + rotation/RSI context.
+        # gamma_regime/event_day/dispersion are forward-only (older briefs lack them);
+        # gamma_regime falls back to the raw `regime` string when the norm is absent.
+        gamma_regime=gx.get("gamma_regime") or _norm_gamma(gx.get("regime")),
+        event_day=gx.get("event_day"), event_titles="; ".join(gx.get("event_titles") or []),
+        event_gate=(d.get("event_gate", {}) or {}).get("verdict"),
+        in_range_flip=_flip_in(gx), sector_dispersion=gx.get("sector_dispersion"),
+        rsi_14=gx.get("rsi_14"),
         # execution side
         open_spot=d.get("open_spot"), open_at=d.get("open_spot_at"),
         n_armed=len(trig), n_fired=sum(1 for x in trig if x.get("status") == "fired"),

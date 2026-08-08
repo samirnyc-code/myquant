@@ -11,15 +11,29 @@ Endpoints (see the gexlog repo docs/API.md):
   archive.php?action=report&type=morning&date=D    fallback by date
 """
 from __future__ import annotations
+import re
+
 import requests
 
 BASE = "https://gexlog.com/dashboard/api"
 _H = {"User-Agent": "Mozilla/5.0 (myquant)", "Referer": "https://gexlog.com/dashboard/",
       "Accept": "application/json"}
 
+# High-impact SCHEDULED MACRO prints — the events the #20 gamma-gate keys on
+# (validated 2026-08-08, gexlog_event_gate_validate.py). Fed-speaker/medium items
+# are deliberately excluded; only the prints that break EM in negative gamma.
+EVENT_RX = re.compile(
+    r"nonfarm|payroll|\bcpi\b|inflation|\bfomc\b|fed funds|interest rate deci|"
+    r"\bpce\b|jobless|unemployment|\bgdp\b|jackson hole|powell", re.I)
+
 
 def _norm_day_type(raw: str) -> str:
     s = (raw or "").lower()
+    # HIGH VOLATILITY is its OWN bucket (was silently -> unknown). Archive #19: a
+    # HIGH-VOL forecast under positive gamma is self-defeating (prints contained),
+    # so we must SEE it to fade it, not lose it to "unknown".
+    if "volatil" in s:
+        return "HIVOL"
     if "trend" in s:
         return "TREND"
     if "range" in s:
@@ -27,6 +41,16 @@ def _norm_day_type(raw: str) -> str:
     if "chop" in s or "mixed" in s or "balance" in s:
         return "CHOP"
     return "unknown"
+
+
+def _norm_gamma(raw: str) -> str:
+    """Dealer gamma regime -> POS / NEG / ? (the #20 event-gate axis)."""
+    s = (raw or "").strip().upper()
+    if s.startswith("POS"):
+        return "POS"
+    if s.startswith("NEG"):
+        return "NEG"
+    return "?"
 
 
 def _norm_signal(raw: str) -> str:
@@ -62,6 +86,12 @@ def fetch(date: str | None = None, timeout: int = 15) -> dict:
            "gap_pct": None, "gap_note": None, "calendar_note": None,
            "stale_risk": None, "es_premarket": None, "rsi_14": None,
            "corr_putWall": None, "corr_callWall": None,
+           # --- #20 event-gate + #27 daily-summary capture (added 2026-08-08) ---
+           "gamma_regime": "?",       # POS / NEG / ? (dealer gamma)
+           "event_day": False,        # high-impact scheduled macro print today
+           "event_titles": [],        # which prints matched
+           "in_range_flip": None,     # GEX flip inside [emLower, emUpper]?
+           "sector_dispersion": None, # top-leader %chg − bottom-laggard %chg
            "generated_at": None, "source": None, "error": None}
     try:
         s = requests.Session()
@@ -81,6 +111,7 @@ def fetch(date: str | None = None, timeout: int = 15) -> dict:
             forecast_type=ft, day_type=_norm_day_type(ft),
             signal=sig, signal_bucket=_norm_signal(sig),
             regime=_g(d, "forecast", "factors", "gamma", "value"),
+            gamma_regime=_norm_gamma(_g(d, "forecast", "factors", "gamma", "value")),
             net_gex=_g(d, "forecast", "factors", "gamma", "net_gex"),
             gex_flip=_g(d, "forecast", "factors", "gamma", "gex_flip"),
             putWall=_g(d, "levels", "putWall"), callWall=_g(d, "levels", "callWall"),
@@ -121,6 +152,22 @@ def fetch(date: str | None = None, timeout: int = 15) -> dict:
                 out["corr_putWall"] = min(below, key=lambda s: s["net_gex"])["strike"]
             if above:
                 out["corr_callWall"] = max(above, key=lambda s: s["net_gex"])["strike"]
+
+        # --- #20 event-gate inputs ---
+        titles = [str(c.get("title", "")) for c in (out.get("catalysts_today") or [])]
+        matched = [t for t in titles if EVENT_RX.search(t)]
+        out["event_titles"] = matched
+        out["event_day"] = bool(matched)
+        # GEX flip inside the expected-move band = dealer inflection in range
+        lo, hi, flip = out.get("emLower"), out.get("emUpper"), out.get("gex_flip")
+        if lo is not None and hi is not None and flip is not None:
+            out["in_range_flip"] = bool(lo <= flip <= hi)
+        # sector dispersion: widest leader − widest laggard (archive: >3–4% ⇒ rotation)
+        secs = _g(d, "market_context", "sectors", default={}) or {}
+        chs = [c.get("change") for grp in ("leaders", "laggards")
+               for c in (secs.get(grp) or []) if isinstance(c, dict) and c.get("change") is not None]
+        if chs:
+            out["sector_dispersion"] = round(max(chs) - min(chs), 2)
     except Exception as e:
         out["error"] = f"{type(e).__name__}: {e}"[:120]
     return out

@@ -79,6 +79,33 @@ def now_ct():
     return dt.datetime.now(CT)
 
 
+def event_gate(gx):
+    """#20 gamma-regime event gate (VALIDATED 2026-08-08 on 82 archive days,
+    scripts/gexlog_event_gate_validate.py). ADVISORY ONLY — the desk trades every
+    structure every day for the parallel comparison, so this records a posture, it
+    does not disarm triggers. It tells us which event days to actually stand aside on
+    once real money is on: EM-held by cell was POS+event 83%, NEG+event 65% (worst).
+    """
+    if not bool(gx.get("event_day")):
+        return {"event_day": False, "gamma": gx.get("gamma_regime", "?"),
+                "verdict": "NORMAL", "advisory": False,
+                "note": "no high-impact scheduled macro print today"}
+    gm = gx.get("gamma_regime", "?")
+    titles = ", ".join(gx.get("event_titles") or []) or "scheduled print"
+    if gm == "NEG":
+        return {"event_day": True, "gamma": "NEG", "verdict": "STAND_ASIDE", "advisory": True,
+                "note": f"NEG-gamma event day ({titles}) — archive EM-held only 65% "
+                        "(worst cell; breaks are TREND-strong). Real-money posture: "
+                        "size down / widen wings / go directional. Paper still trades all for the record."}
+    if gm == "POS":
+        return {"event_day": True, "gamma": "POS", "verdict": "TRADE_NORMAL", "advisory": True,
+                "note": f"POS-gamma event day ({titles}) — archive EM-held 83% (~= non-event). "
+                        "Positive gamma dampens the print (08-07 NFP +$1,367). Trade normal, "
+                        "but damper≠wall (06-05 POS-NFP still broke) — never naked."}
+    return {"event_day": True, "gamma": "?", "verdict": "CAUTION", "advisory": True,
+            "note": f"event day ({titles}) with UNKNOWN gamma regime — treat as caution."}
+
+
 def rnd(x, step=STRIKE_STEP):
     return None if x is None else round(x / step) * step
 
@@ -295,6 +322,7 @@ def main():
         "em_low": em_lo, "em_high": em_hi,
         "regime": "n/a (premium-only, unconditional)",
         "gexlog": gx,            # morning brief: day_type (TREND/RANGE/CHOP), signal, regime, walls
+        "event_gate": event_gate(gx),   # #20 gamma-regime event posture (advisory; validated 08-08)
         "levels": {},            # kept as an empty dict so the daemon's plan["levels"].get(...) is safe
         "warnings": [],
         "execution": {"mode": "auto", "size": 1, "concurrency_cap": None,
@@ -329,6 +357,8 @@ def main():
     print(f"  GexLog signal: {gx.get('signal_bucket', 'unknown')} (P&L bucket)  "
           f"[day-type {gx.get('day_type', 'unknown')}, forecast '{gx.get('forecast_type')}']"
           + (f"  [brief error: {gx['error']}]" if gx.get('error') else ""))
+    eg = plan["event_gate"]
+    print(f"  Event gate: {eg['verdict']} (gamma {eg['gamma']}, event_day {eg['event_day']}) — {eg['note']}")
     print(f"\n  {'STREAM':7} {'SETUP':14} {'FIRE':10} STRUCTURE")
     print("  " + "-" * 78)
     for t in plan["triggers"]:
@@ -347,7 +377,7 @@ def main():
         hi = gx.get("high_impact_today") or 0
         sig = gx.get("signal_bucket", "?")
         sig_ico = {"GO": "🟢", "CAUTION": "🟡", "WAIT": "🔴"}.get(sig, "⚪")
-        dt_ico = {"RANGE": "🟢", "CHOP": "🟡", "TREND": "🔴"}.get(gx.get("day_type"), "⚪")
+        dt_ico = {"RANGE": "🟢", "CHOP": "🟡", "TREND": "🔴", "HIVOL": "🟠"}.get(gx.get("day_type"), "⚪")
 
         def sk(tid):
             st = next((t["structure"] for t in plan["triggers"] if t["id"] == tid), None)
@@ -370,6 +400,11 @@ def main():
             L.append(f"📅 calendar <b>{gx['calendar_note']}</b>")
         if gx.get("playbook_wait"):
             L.append("⏳ <b>WAIT day: ALL entries 09:05 CT (post-event, per brief)</b>")
+        eg = plan["event_gate"]
+        if eg.get("advisory"):
+            eg_ico = {"STAND_ASIDE": "🛑", "TRADE_NORMAL": "✅", "CAUTION": "⚠️"}.get(eg["verdict"], "•")
+            L.append(f"{eg_ico} <b>Event gate: {eg['verdict']}</b> (gamma {eg['gamma']}) "
+                     f"— {', '.join(gx.get('event_titles') or []) or 'scheduled print'}")
         if gx.get("stale_risk"):
             L.append("⚠️ their caveat: quote-derived close (pivots approximate)")
         L.append("")

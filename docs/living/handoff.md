@@ -1,6 +1,48 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** August 8, 2026 (S98: 08-07 NFP evening report read + analyzed; rule #20 refined)
+**Last Updated:** August 8, 2026 (S99: weekend review — #20 validated + shipped advisory; #7/#19/#27 done; sim spec; deadman fix)
+
+---
+
+## S99 (2026-08-08) — Weekend review: validate-then-ship batch
+
+User approved "validate #20 on the archive first," then "continue with all the other
+suggestions." Done, all committed on `s75-live-dashboard`, nothing pushed.
+
+**#20 event-gate VALIDATED on 82 days** (`gexlog_event_gate_validate.py` →
+`event_gate_validation_20260808.csv`): EM-held by cell — POS+event **83%** (n=18) ≈
+POS non-event 84%; NEG+event **65%** (n=17, worst, breaks all TREND-strong FOMC/CPI);
+NEG non-event 81%. ⇒ gate event days on **gamma regime**, not the calendar. Caveats:
+n≈17/cell (suggestive); 06-05 POS-NFP still broke (damper≠wall). Flip-half untestable
+(field only recent) → forward capture.
+
+**Shipped this session (all compile + tested offline; NO live network trades):**
+- `gexlog_brief.py`: new fields `gamma_regime` (POS/NEG/?), `event_day`+`event_titles`
+  (macro-print regex), `in_range_flip`, `sector_dispersion`; `_norm_day_type` now maps
+  HIGH VOLATILITY → **HIVOL** (#7, was lost to unknown).
+- `options_gameplan.py`: `event_gate()` → `plan["event_gate"]` + console + Telegram
+  banner. **ADVISORY ONLY** — records STAND_ASIDE/TRADE_NORMAL, does NOT disarm any
+  trigger (the always-trade-everything comparison must stay intact; gate informs
+  real-money sizing later).
+- `daily_summary.py` (#27): captures gamma_regime/event_day/event_gate/in_range_flip/
+  sector_dispersion/rsi_14 (backfills gamma/flip/rsi on old days; event/dispersion
+  forward-only). Verified populated.
+- `deadman_0832.py`: fixed the "cry wolf" — it was a **reader race** (single-shot at
+  08:32 vs first fire ~08:33), NOT a persistence bug (daemon save path verified atomic
+  on every status change). Now polls a 3-min grace window; alarms only on what's still
+  wrong. **This resolves the "plan-file fired-flag persistence bug" — it was mis-diagnosed.**
+- `#19` KEEP as-is: verified `grep` shows forecast_type gates nothing in either daemon.
+- `docs/living/premium_sim_spec.md`: turnkey battery for the 8 minute-data experiments
+  (#2/#12/#14/#15/#22/#23/#24/#28) — build order for when the 2-yr 1-min 0DTE data lands.
+
+**GexLog access RESTORED** — one controlled morning pull returned HTTP 200 on the clean
+IP (VPN off). No separate Saturday preview exists (endpoint still serves Fri 08-07);
+the evening week-ahead (CPI elevated) is the weekend intel. Friday's forecast was
+literally "HIGH VOLATILITY"+"Wait" → real-data confirmation of the #7 normalizer + #19 fade.
+
+**NEXT:** implement the #20 gate into a real-money sizing rule if/when we go live;
+grade-bucket sims + the 8-experiment battery when the minute data arrives; keep
+accruing the forward record (n=4 days, far too small to conclude anything yet).
 
 ---
 
