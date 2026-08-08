@@ -1,0 +1,60 @@
+EVENT-GATE VALIDATION (#20) — 82 paired days (2026-04-06..2026-08-03)
+
+EM-HELD RATE by gamma regime:
+  POS                          84%  (n=49)
+  NEG                          73%  (n=33)
+
+EM-HELD RATE by gamma x EVENT-day:
+  POS  event=True            83%  (n=18)
+  POS  event=False           84%  (n=31)
+  NEG  event=True            65%  (n=17)
+  NEG  event=False           81%  (n=16)
+
+EM-HELD RATE by gamma x in-range-flip (the full #20 refinement):
+  POS  in_range_flip=True    88%  (n= 8)
+  POS  in_range_flip=False  n=0
+  NEG  in_range_flip=True   n=0
+  NEG  in_range_flip=False  n=0
+
+THE KEY CELL — event days, split every way:
+  event & POS & flip=True   100%  (n= 2)
+  event & POS & flip=False  n=0
+  event & NEG & flip=True   n=0
+  event & NEG & flip=False  n=0
+
+EVENT DAYS (the sample the rule rides on):
+  2026-04-07  NEG  EM-held=True  flip_in=None  RANGE BOUND    [Consumer Inflation Expectation (Mar)]
+  2026-04-08  NEG  EM-held=False  flip_in=None  TREND (strong) [FOMC Minutes]
+  2026-04-09  POS  EM-held=True  flip_in=None  TREND (moderate) [PCE Price Index YoY (Feb)]
+  2026-04-10  POS  EM-held=True  flip_in=None  RANGE BOUND    [CPI s.a (Mar)]
+  2026-04-16  POS  EM-held=True  flip_in=None  RANGE BOUND    [Continuing Jobless Claims (Apr/04)]
+  2026-04-23  POS  EM-held=True  flip_in=None  MIXED          [Continuing Jobless Claims (Apr/11)]
+  2026-04-29  POS  EM-held=True  flip_in=None  RANGE BOUND    [FOMC Economic Projections]
+  2026-04-30  POS  EM-held=True  flip_in=None  TREND (strong) [GDP Price Index QoQ (Q1)]
+  2026-05-07  POS  EM-held=True  flip_in=None  MIXED          [Continuing Jobless Claims (Apr/25)]
+  2026-05-08  POS  EM-held=True  flip_in=None  TREND (moderate) [U-6 Unemployment Rate (Apr)]
+  2026-05-12  POS  EM-held=True  flip_in=None  RANGE BOUND    [CPI MoM (Apr)]
+  2026-05-14  POS  EM-held=True  flip_in=None  TREND (moderate) [Initial Jobless Claims (May/09)]
+  2026-05-20  NEG  EM-held=True  flip_in=None  TREND (strong) [FOMC Minutes]
+  2026-05-21  POS  EM-held=True  flip_in=None  RANGE BOUND    [Jobless Claims 4-Week Average (May/16)]
+  2026-05-28  POS  EM-held=True  flip_in=None  TREND (moderate) [Initial Jobless Claims (May/23)]
+  2026-06-04  NEG  EM-held=True  flip_in=None  MIXED          [Initial Jobless Claims (May/30)]
+  2026-06-05  POS  EM-held=False  flip_in=None  TREND (strong) [Nonfarm Payrolls Private (May)]
+  2026-06-08  NEG  EM-held=True  flip_in=None  MIXED          [Consumer Inflation Expectation (May)]
+  2026-06-10  NEG  EM-held=False  flip_in=None  TREND (strong) [CPI (May)]
+  2026-06-11  NEG  EM-held=False  flip_in=None  TREND (strong) [Jobless Claims 4-Week Average (Jun/06)]
+  2026-06-12  NEG  EM-held=True  flip_in=None  TREND (moderate) [Michigan Inflation Expectations (Jun)]
+  2026-06-17  POS  EM-held=False  flip_in=None  TREND (strong) [FOMC Economic Projections]
+  2026-06-18  POS  EM-held=False  flip_in=None  TREND (strong) [Initial Jobless Claims (Jun/13)]
+  2026-06-25  NEG  EM-held=True  flip_in=None  RANGE BOUND    [Core PCE Price Index YoY (May)]
+  2026-07-02  POS  EM-held=True  flip_in=True  RANGE BOUND    [Jobless Claims 4-Week Average (Jun/27)]
+  2026-07-07  POS  EM-held=True  flip_in=None  MIXED          [Consumer Inflation Expectation (Jun)]
+  2026-07-08  NEG  EM-held=True  flip_in=None  RANGE BOUND    [FOMC Minutes]
+  2026-07-09  NEG  EM-held=True  flip_in=None  TREND (moderate) [Jobless Claims 4-Week Average (Jul/04)]
+  2026-07-14  NEG  EM-held=True  flip_in=None  MIXED          [CPI YoY (Jun)]
+  2026-07-16  POS  EM-held=True  flip_in=True  TREND (moderate) [Initial Jobless Claims (Jul/11)]
+  2026-07-17  NEG  EM-held=True  flip_in=None  TREND (strong) [Michigan Inflation Expectations (Jul)]
+  2026-07-23  NEG  EM-held=False  flip_in=None  TREND (strong) [Jobless Claims 4-Week Average (Jul/18)]
+  2026-07-29  NEG  EM-held=False  flip_in=None  TREND (strong) [Fed Interest Rate Decision]
+  2026-07-30  NEG  EM-held=False  flip_in=None  TREND (strong) [Jobless Claims 4-Week Average (Jul/25)]
+  2026-07-31  NEG  EM-held=True  flip_in=None  TREND (moderate) [Michigan 1 Year Inflation Expectations (]
