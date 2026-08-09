@@ -1,6 +1,22 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** August 8, 2026 (S100: wk1 review — data-integrity fixes; Open-centering "win" was a mistimed-entry artifact)
+**Last Updated:** August 9, 2026 (S101: PATs auction-profile tool added — separate research thread)
+
+---
+
+## S101 (2026-08-09) — PATs auction-profile tool (research thread, not the live system)
+
+Side thread supporting the **PATs-Trading** repo (Mack price-action study). Added
+`scripts/pats_profile_charts.py`: renders N random ES days as a **2000-tick chart +
+Volume Profile + TPO/Market Profile** from `data/ticks_continuous/` (5-yr RTH ES ticks).
+- **Dalton value area** computed exactly per *Mind Over Markets* Appendix 1 (volume,
+  two-prices-above vs two-below, heavier pair, to 70%). Verified against the book.
+- Shows **prior-session VA as the shaded "trade-from" zone**, **current developing VA**
+  as dashed migrating lines, POC, initial balance, TPO colored by 30-min bracket.
+- Outputs to `data/profiles/charts/`. Knobs: `--n --days --ticks --rowh --seed`.
+- Data note: tick archive is **RTH-only** (08:30–15:14 CT); Mack's live chart is ETH.
+- Next (PATs, tomorrow): NT8 TPO indicator (colored squares) + premium midday charts
+  compared to these EOD profiles. Congestion detector still PARKED (not built).
 
 ---
 
