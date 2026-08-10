@@ -40,6 +40,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private double poc, vah, val, ibh, ibl, maxVol;
 		private double pPoc = double.NaN, pVah = double.NaN, pVal = double.NaN;  // prior session
 		private int maxBracket;
+		private int winStartBar;            // first bar of the current profile window
+		private int priorStartBar = -1;     // first bar of the prior session
 
 		[NinjaScriptProperty] [Range(1, int.MaxValue)]
 		[Display(Name = "Row height (ticks)", Order = 0, GroupName = "1 Profile")]
@@ -138,6 +140,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			int sc = sessionStarts.Count;
 			int wIdx = Math.Max(0, sc - Math.Max(1, CompositeSessions));
 			int startBar = sc > 0 ? sessionStarts[wIdx] : 0;
+			winStartBar = startBar;
 			int lastStart = sc > 0 ? sessionStarts[sc - 1] : 0;
 			DateTime wStart = Time.GetValueAt(startBar);
 			DateTime lastSess = Time.GetValueAt(lastStart);
@@ -237,11 +240,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private void ComputePriorLevels()
 		{
 			pPoc = pVah = pVal = double.NaN;
+			priorStartBar = -1;
 			int sc = sessionStarts.Count;
 			if (sc < 2) return;
 			int ps = sessionStarts[sc - 2];
 			int pe = sessionStarts[sc - 1] - 1;
 			if (pe < ps) return;
+			priorStartBar = ps;
 			double ppoc;
 			Dictionary<double, double> pvol = BuildVolume(ps, pe, out ppoc);
 			pPoc = ppoc;
@@ -277,6 +282,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 			// Anchor to the RIGHT of the last bar and draw OUTWARD into the margin,
 			// so price action stays to the left and is never covered.
 			float panelLeft = (float)ChartPanel.X;
+			// value area / POC / IB start at their session's left break, not the panel edge
+			float winStartX = Math.Max(panelLeft, chartControl.GetXByBarIndex(ChartBars, winStartBar));
+			float priorStartX = priorStartBar >= 0
+				? Math.Max(panelLeft, chartControl.GetXByBarIndex(ChartBars, priorStartBar))
+				: panelLeft;
 			float vpLeft = chartControl.GetXByBarIndex(ChartBars, endBar) + RightOffsetPx;
 			float vpMaxRight = vpLeft + VpWidthPx;   // VP bars grow right from vpLeft
 			float tpoLeft = vpMaxRight + 10f;        // TPO blocks sit right of the VP
@@ -295,20 +305,20 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (ShowVA && !double.IsNaN(vah))
 			{
 				float y1 = chartScale.GetYByValue(vah), y2 = chartScale.GetYByValue(val);
-				RenderTarget.FillRectangle(new SharpDX.RectangleF(panelLeft, Math.Min(y1, y2),
-					vpMaxRight - panelLeft, Math.Abs(y2 - y1)), vaBr);
+				RenderTarget.FillRectangle(new SharpDX.RectangleF(winStartX, Math.Min(y1, y2),
+					vpMaxRight - winStartX, Math.Abs(y2 - y1)), vaBr);
 			}
 
 			// prior-session value = the "trade-from" zone (steel band + pVAH/pVAL/pPOC lines)
 			if (ShowPriorValue && !double.IsNaN(pVah))
 			{
 				float py1 = chartScale.GetYByValue(pVah), py2 = chartScale.GetYByValue(pVal);
-				RenderTarget.FillRectangle(new SharpDX.RectangleF(panelLeft, Math.Min(py1, py2),
-					vpMaxRight - panelLeft, Math.Abs(py2 - py1)), priorBand);
+				RenderTarget.FillRectangle(new SharpDX.RectangleF(priorStartX, Math.Min(py1, py2),
+					vpMaxRight - priorStartX, Math.Abs(py2 - py1)), priorBand);
 				float yph = chartScale.GetYByValue(pVah), ypl = chartScale.GetYByValue(pVal), ypp = chartScale.GetYByValue(pPoc);
-				RenderTarget.DrawLine(new SharpDX.Vector2(panelLeft, yph), new SharpDX.Vector2(vpMaxRight, yph), priorLine, 1.0f);
-				RenderTarget.DrawLine(new SharpDX.Vector2(panelLeft, ypl), new SharpDX.Vector2(vpMaxRight, ypl), priorLine, 1.0f);
-				RenderTarget.DrawLine(new SharpDX.Vector2(panelLeft, ypp), new SharpDX.Vector2(vpMaxRight, ypp), priorLine, 1.5f);
+				RenderTarget.DrawLine(new SharpDX.Vector2(priorStartX, yph), new SharpDX.Vector2(vpMaxRight, yph), priorLine, 1.0f);
+				RenderTarget.DrawLine(new SharpDX.Vector2(priorStartX, ypl), new SharpDX.Vector2(vpMaxRight, ypl), priorLine, 1.0f);
+				RenderTarget.DrawLine(new SharpDX.Vector2(priorStartX, ypp), new SharpDX.Vector2(vpMaxRight, ypp), priorLine, 1.5f);
 			}
 
 			foreach (KeyValuePair<double, double> kv in volByRow)
@@ -339,13 +349,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (ShowPOC && !double.IsNaN(poc))
 			{
 				float y = chartScale.GetYByValue(poc);
-				RenderTarget.DrawLine(new SharpDX.Vector2(panelLeft, y), new SharpDX.Vector2(vpMaxRight, y), pocBr, 1.2f);
+				RenderTarget.DrawLine(new SharpDX.Vector2(winStartX, y), new SharpDX.Vector2(vpMaxRight, y), pocBr, 1.2f);
 			}
 			if (ShowIB && ibh > double.MinValue)
 			{
 				float yh = chartScale.GetYByValue(ibh), yl = chartScale.GetYByValue(ibl);
-				RenderTarget.DrawLine(new SharpDX.Vector2(panelLeft, yh), new SharpDX.Vector2(vpMaxRight, yh), ibBr, 0.9f);
-				RenderTarget.DrawLine(new SharpDX.Vector2(panelLeft, yl), new SharpDX.Vector2(vpMaxRight, yl), ibBr, 0.9f);
+				RenderTarget.DrawLine(new SharpDX.Vector2(winStartX, yh), new SharpDX.Vector2(vpMaxRight, yh), ibBr, 0.9f);
+				RenderTarget.DrawLine(new SharpDX.Vector2(winStartX, yl), new SharpDX.Vector2(vpMaxRight, yl), ibBr, 0.9f);
 			}
 
 			teal.Dispose(); pocBr.Dispose(); vaBr.Dispose(); ibBr.Dispose();
