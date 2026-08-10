@@ -68,10 +68,21 @@ namespace NinjaTrader.NinjaScript.Indicators
 		public bool ShowPOC { get; set; }
 		[NinjaScriptProperty] [Display(Name = "Single prints (excess)", Order = 1, GroupName = "2 Show")]
 		public bool ShowSinglePrints { get; set; }
-		[NinjaScriptProperty] [Display(Name = "Labels (date + VAH/VAL/POC)", Order = 2, GroupName = "2 Show")]
-		public bool ShowLabels { get; set; }
 		[NinjaScriptProperty] [Display(Name = "Level lines (VAH/VAL/POC across session)", Order = 3, GroupName = "2 Show")]
 		public bool ShowLevelLines { get; set; }
+
+		[NinjaScriptProperty] [Display(Name = "Date + merged header", Order = 0, GroupName = "5 Labels")]
+		public bool ShowDate { get; set; }
+		[NinjaScriptProperty] [Display(Name = "VAH label", Order = 1, GroupName = "5 Labels")]
+		public bool ShowVahLabel { get; set; }
+		[NinjaScriptProperty] [Display(Name = "VAL label", Order = 2, GroupName = "5 Labels")]
+		public bool ShowValLabel { get; set; }
+		[NinjaScriptProperty] [Display(Name = "POC label", Order = 3, GroupName = "5 Labels")]
+		public bool ShowPocLabel { get; set; }
+		[NinjaScriptProperty] [Display(Name = "Label name (VAH/VAL/POC text)", Order = 4, GroupName = "5 Labels")]
+		public bool ShowLabelName { get; set; }
+		[NinjaScriptProperty] [Display(Name = "Label price", Order = 5, GroupName = "5 Labels")]
+		public bool ShowLabelPrice { get; set; }
 
 		[XmlIgnore] [Display(Name = "Value area (Sierra)", Order = 0, GroupName = "3 Colors")]
 		public System.Windows.Media.Brush VaColor { get; set; }
@@ -103,7 +114,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 				RowTicks = 1; BracketMinutes = 30; MaxProfiles = 15; BlockWidthPx = 6; ColumnGapPx = 16; LabelFontSize = 11;
 				MergeGroups = ""; ColorScheme = TpoColorScheme.Sierra;
 				AutoMerge = false; AutoMergeOverlapPct = 50;
-				ShowPOC = true; ShowSinglePrints = true; ShowLabels = true; ShowLevelLines = true;
+				ShowPOC = true; ShowSinglePrints = true; ShowLevelLines = true;
+				ShowDate = true; ShowVahLabel = true; ShowValLabel = true; ShowPocLabel = true;
+				ShowLabelName = true; ShowLabelPrice = true;
 				VaColor = System.Windows.Media.Brushes.DodgerBlue;
 				RestColor = System.Windows.Media.Brushes.Gray;
 				PocColor = System.Windows.Media.Brushes.Magenta;
@@ -334,28 +347,28 @@ namespace NinjaTrader.NinjaScript.Indicators
 					RenderTarget.DrawLine(new SharpDX.Vector2(colX, yp), new SharpDX.Vector2(colEndX, yp), pocBr, 1.4f);
 				}
 
-				if (ShowLabels)
+				// labels sit to the RIGHT of the profile blocks, ABOVE each level line
+				float labelX = colX + (float)c.MaxCount * bw + 5f;
+				float lh = LabelFontSize + 3f;
+				bool merged = c.Label.IndexOf('-') > 0;
+				if (ShowDate)
 				{
-					// labels sit to the RIGHT of the profile blocks, ABOVE each level line
-					float labelX = colX + (float)c.MaxCount * bw + 5f;
-					float lh = LabelFontSize + 3f;
-					bool merged = c.Label.IndexOf('-') > 0;
 					string head;
 					if (merged)
 					{
 						string[] pp = c.Label.Split('-'); int aa, bb, days = 0;
 						if (int.TryParse(pp[0], out aa) && int.TryParse(pp[1], out bb)) days = bb - aa + 1;
 						head = "MERGED " + Time.GetValueAt(c.Start).ToString("MM-dd") + "→" + Time.GetValueAt(c.End).ToString("MM-dd") + " (" + days + "d)";
-						RenderTarget.DrawLine(new SharpDX.Vector2(colX, topY - (lh + 3f)), new SharpDX.Vector2(colEndX, topY - (lh + 3f)), pocBr, 1.5f);   // bracket over the merged span
+						RenderTarget.DrawLine(new SharpDX.Vector2(colX, topY - (lh + 3f)), new SharpDX.Vector2(colEndX, topY - (lh + 3f)), pocBr, 1.5f);
 					}
 					else head = c.Label + "  " + Time.GetValueAt(c.End).ToString("MM-dd");
 					RenderTarget.DrawText(head, tf, new SharpDX.RectangleF(colX, topY - (lh + 2f), lblW, lh), merged ? pocBr : labelBr);
-					if (!double.IsNaN(c.Vah))
-					{
-						RenderTarget.DrawText("VAH " + c.Vah.ToString("0.##"), tf, new SharpDX.RectangleF(labelX, chartScale.GetYByValue(c.Vah) - lh, 90f, lh), labelBr);
-						RenderTarget.DrawText("VAL " + c.Val.ToString("0.##"), tf, new SharpDX.RectangleF(labelX, chartScale.GetYByValue(c.Val) - lh, 90f, lh), labelBr);
-						if (ShowPOC) RenderTarget.DrawText("POC " + c.Poc.ToString("0.##"), tf, new SharpDX.RectangleF(labelX, chartScale.GetYByValue(c.Poc) - lh, 90f, lh), pocBr);
-					}
+				}
+				if (!double.IsNaN(c.Vah))
+				{
+					if (ShowVahLabel) { string t = (ShowLabelName ? "VAH " : "") + (ShowLabelPrice ? c.Vah.ToString("0.##") : ""); if (t.Length > 0) RenderTarget.DrawText(t, tf, new SharpDX.RectangleF(labelX, chartScale.GetYByValue(c.Vah) - lh, 90f, lh), labelBr); }
+					if (ShowValLabel) { string t = (ShowLabelName ? "VAL " : "") + (ShowLabelPrice ? c.Val.ToString("0.##") : ""); if (t.Length > 0) RenderTarget.DrawText(t, tf, new SharpDX.RectangleF(labelX, chartScale.GetYByValue(c.Val) - lh, 90f, lh), labelBr); }
+					if (ShowPocLabel) { string t = (ShowLabelName ? "POC " : "") + (ShowLabelPrice ? c.Poc.ToString("0.##") : ""); if (t.Length > 0) RenderTarget.DrawText(t, tf, new SharpDX.RectangleF(labelX, chartScale.GetYByValue(c.Poc) - lh, 90f, lh), pocBr); }
 				}
 			}
 
