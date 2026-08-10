@@ -229,10 +229,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			float rowH = Math.Abs(chartScale.GetYByValue(0.0) - chartScale.GetYByValue(rowSize));
 			if (rowH < 1f) rowH = 1f;
+			// Anchor to the RIGHT of the last bar and draw OUTWARD into the margin,
+			// so price action stays to the left and is never covered.
 			float panelLeft = (float)ChartPanel.X;
-			float vpRight = (float)(ChartPanel.X + ChartPanel.W) - RightOffsetPx;
-			float vpLeft = vpRight - VpWidthPx;
-			float tpoRight = vpLeft - 8f;
+			float vpLeft = chartControl.GetXByBarIndex(ChartBars, endBar) + RightOffsetPx;
+			float vpMaxRight = vpLeft + VpWidthPx;   // VP bars grow right from vpLeft
+			float tpoLeft = vpMaxRight + 10f;        // TPO blocks sit right of the VP
 
 			SolidColorBrush teal = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.35f, 0.71f, 0.82f, (float)Opacity));
 			SolidColorBrush pocBr = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.88f, 0.53f, 0.25f, 0.95f));
@@ -247,7 +249,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			{
 				float y1 = chartScale.GetYByValue(vah), y2 = chartScale.GetYByValue(val);
 				RenderTarget.FillRectangle(new SharpDX.RectangleF(panelLeft, Math.Min(y1, y2),
-					vpRight - panelLeft, Math.Abs(y2 - y1)), vaBr);
+					vpMaxRight - panelLeft, Math.Abs(y2 - y1)), vaBr);
 			}
 
 			foreach (KeyValuePair<double, double> kv in volByRow)
@@ -258,7 +260,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				{
 					float w = (float)(VpWidthPx * kv.Value / maxVol);
 					SolidColorBrush br = (ShowPOC && price == poc) ? pocBr : teal;
-					RenderTarget.FillRectangle(new SharpDX.RectangleF(vpRight - w, yTop, w, rowH - 1f), br);
+					RenderTarget.FillRectangle(new SharpDX.RectangleF(vpLeft, yTop, w, rowH - 1f), br);
 				}
 				if (ShowTPO)
 				{
@@ -268,7 +270,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 						brs.Sort();
 						for (int k = 0; k < brs.Count; k++)
 						{
-							float x = tpoRight - (k + 1) * BlockWidthPx;
+							float x = tpoLeft + k * BlockWidthPx;
 							RenderTarget.FillRectangle(new SharpDX.RectangleF(x, yTop, BlockWidthPx - 1f, rowH - 1f), brackets[brs[k]]);
 						}
 					}
@@ -278,13 +280,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (ShowPOC && !double.IsNaN(poc))
 			{
 				float y = chartScale.GetYByValue(poc);
-				RenderTarget.DrawLine(new SharpDX.Vector2(panelLeft, y), new SharpDX.Vector2(vpRight, y), pocBr, 1.2f);
+				RenderTarget.DrawLine(new SharpDX.Vector2(panelLeft, y), new SharpDX.Vector2(vpMaxRight, y), pocBr, 1.2f);
 			}
 			if (ShowIB && ibh > double.MinValue)
 			{
 				float yh = chartScale.GetYByValue(ibh), yl = chartScale.GetYByValue(ibl);
-				RenderTarget.DrawLine(new SharpDX.Vector2(panelLeft, yh), new SharpDX.Vector2(vpRight, yh), ibBr, 0.9f);
-				RenderTarget.DrawLine(new SharpDX.Vector2(panelLeft, yl), new SharpDX.Vector2(vpRight, yl), ibBr, 0.9f);
+				RenderTarget.DrawLine(new SharpDX.Vector2(panelLeft, yh), new SharpDX.Vector2(vpMaxRight, yh), ibBr, 0.9f);
+				RenderTarget.DrawLine(new SharpDX.Vector2(panelLeft, yl), new SharpDX.Vector2(vpMaxRight, yl), ibBr, 0.9f);
 			}
 
 			teal.Dispose(); pocBr.Dispose(); vaBr.Dispose(); ibBr.Dispose();
