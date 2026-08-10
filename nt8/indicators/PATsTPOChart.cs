@@ -12,20 +12,17 @@ using SharpDX.Direct2D1;
 using SharpDX.DirectWrite;
 #endregion
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PATsTPOChart — a "pure TPO chart" for its OWN chart window (hide the candles):
-// each session drawn as its own profile COLUMN, laid out left→right, Sierra
-// style — value area in blue, the rest in gray. Parameter-based MERGE combines
-// adjacent sessions into one column showing the cumulative value area (the map
-// that governs a multi-day swing). POC highlighted; VAH/VAL/POC labeled per
-// column; single prints (excess) optionally marked.
-//
-// Usage: put on a fresh chart, hide the price bars (Chart Style → set the bar
-// colors to transparent, or use a wide time frame). Set "Max profiles" and, to
-// merge, e.g. Merge groups = "3-6,10-12" (1-based, left→right of what's shown).
-//
-// Commit CS to: repo/nt8/indicators/PATsTPOChart.cs
-// ─────────────────────────────────────────────────────────────────────────────
+// PATsTPOChart — pure split-TPO chart for its own window (hide the candles).
+// Each session is a profile column, laid left→right; parameter-based MERGE
+// combines adjacent sessions into one cumulative-value-area column.
+// Color schemes: Sierra (VA colored / rest gray), TimeGradient (blue early ->
+// red late), Monochrome. Commit CS to: repo/nt8/indicators/PATsTPOChart.cs
+
+namespace NinjaTrader.NinjaScript
+{
+	public enum TpoColorScheme { Sierra, TimeGradient, Monochrome }
+}
+
 namespace NinjaTrader.NinjaScript.Indicators
 {
 	public class PATsTPOChart : Indicator
@@ -34,12 +31,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private List<int> sessionStarts;
 		private string sig = "";
 		private List<Col> cols;
+		private int globalMaxBracket;
 
 		private class Col
 		{
-			public int Start, End;
+			public int Start, End, MaxBracket;
 			public string Label;
-			public Dictionary<double, double> Tpo = new Dictionary<double, double>();
+			public Dictionary<double, List<int>> Rows = new Dictionary<double, List<int>>();
 			public double Poc = double.NaN, Vah = double.NaN, Val = double.NaN, MaxCount = 0;
 			public HashSet<double> Singles = new HashSet<double>();
 		}
@@ -59,6 +57,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 		public int LabelFontSize { get; set; }
 		[NinjaScriptProperty] [Display(Name = "Merge groups (e.g. 3-6,10-12)", Order = 6, GroupName = "1 Profile")]
 		public string MergeGroups { get; set; }
+		[NinjaScriptProperty] [Display(Name = "Color scheme", Order = 7, GroupName = "1 Profile")]
+		public TpoColorScheme ColorScheme { get; set; }
 
 		[NinjaScriptProperty] [Display(Name = "POC", Order = 0, GroupName = "2 Show")]
 		public bool ShowPOC { get; set; }
@@ -67,7 +67,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[NinjaScriptProperty] [Display(Name = "Labels (date + VAH/VAL/POC)", Order = 2, GroupName = "2 Show")]
 		public bool ShowLabels { get; set; }
 
-		[XmlIgnore] [Display(Name = "Value area", Order = 0, GroupName = "3 Colors")]
+		[XmlIgnore] [Display(Name = "Value area (Sierra)", Order = 0, GroupName = "3 Colors")]
 		public System.Windows.Media.Brush VaColor { get; set; }
 		[Browsable(false)] public string VaColorSerialize { get { return Serialize.BrushToString(VaColor); } set { VaColor = Serialize.StringToBrush(value); } }
 		[XmlIgnore] [Display(Name = "Rest of profile", Order = 1, GroupName = "3 Colors")]
@@ -79,6 +79,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[XmlIgnore] [Display(Name = "Single prints", Order = 3, GroupName = "3 Colors")]
 		public System.Windows.Media.Brush SingleColor { get; set; }
 		[Browsable(false)] public string SingleColorSerialize { get { return Serialize.BrushToString(SingleColor); } set { SingleColor = Serialize.StringToBrush(value); } }
+		[XmlIgnore] [Display(Name = "Monochrome", Order = 4, GroupName = "3 Colors")]
+		public System.Windows.Media.Brush MonoColor { get; set; }
+		[Browsable(false)] public string MonoColorSerialize { get { return Serialize.BrushToString(MonoColor); } set { MonoColor = Serialize.StringToBrush(value); } }
+		[XmlIgnore] [Display(Name = "Labels", Order = 5, GroupName = "3 Colors")]
+		public System.Windows.Media.Brush LabelColor { get; set; }
+		[Browsable(false)] public string LabelColorSerialize { get { return Serialize.BrushToString(LabelColor); } set { LabelColor = Serialize.StringToBrush(value); } }
 		#endregion
 
 		protected override void OnStateChange()
@@ -86,15 +92,17 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (State == State.SetDefaults)
 			{
 				Name = "PATs TPO Chart (split/merge)";
-				Description = "Pure TPO chart: split daily profiles (VA blue / rest gray) with parameter-based merge for cumulative value areas. Put on its own chart with candles hidden.";
+				Description = "Pure TPO chart: split daily profiles with parameter merge for cumulative value areas. Own chart, candles hidden. Sierra / time-gradient / mono color schemes.";
 				IsOverlay = true; IsChartOnly = true; DrawOnPricePanel = true; IsSuspendedWhileInactive = true;
-				RowTicks = 1; BracketMinutes = 30; MaxProfiles = 15; BlockWidthPx = 6; ColumnGapPx = 14; LabelFontSize = 11;
-				MergeGroups = "";
+				RowTicks = 1; BracketMinutes = 30; MaxProfiles = 15; BlockWidthPx = 6; ColumnGapPx = 16; LabelFontSize = 11;
+				MergeGroups = ""; ColorScheme = TpoColorScheme.Sierra;
 				ShowPOC = true; ShowSinglePrints = true; ShowLabels = true;
 				VaColor = System.Windows.Media.Brushes.DodgerBlue;
-				RestColor = System.Windows.Media.Brushes.Gainsboro;
+				RestColor = System.Windows.Media.Brushes.Gray;
 				PocColor = System.Windows.Media.Brushes.Magenta;
 				SingleColor = System.Windows.Media.Brushes.Goldenrod;
+				MonoColor = System.Windows.Media.Brushes.SteelBlue;
+				LabelColor = System.Windows.Media.Brushes.DimGray;
 			}
 			else if (State == State.Configure) { rowSize = RowTicks * TickSize; }
 			else if (State == State.DataLoaded) { sessionStarts = new List<int>(); }
@@ -112,13 +120,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
 			List<int[]> ranges = new List<int[]>();
 			if (string.IsNullOrEmpty(MergeGroups)) return ranges;
-			string[] parts = MergeGroups.Split(',');
-			foreach (string p in parts)
+			foreach (string p in MergeGroups.Split(','))
 			{
 				string t = p.Trim();
 				if (t.Length == 0) continue;
-				int dash = t.IndexOf('-');
-				int a, b;
+				int dash = t.IndexOf('-'); int a, b;
 				if (dash > 0)
 				{
 					if (int.TryParse(t.Substring(0, dash).Trim(), out a) && int.TryParse(t.Substring(dash + 1).Trim(), out b) && b >= a)
@@ -131,10 +137,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		private void Recompute(int endBar)
 		{
-			cols = new List<Col>();
+			cols = new List<Col>(); globalMaxBracket = 0;
 			int sc = sessionStarts.Count;
 			if (sc == 0) return;
-			// chronological session (start,end)
 			List<int[]> sess = new List<int[]>();
 			for (int i = 0; i < sc; i++)
 			{
@@ -142,69 +147,65 @@ namespace NinjaTrader.NinjaScript.Indicators
 				int en = (i + 1 < sc) ? sessionStarts[i + 1] - 1 : endBar;
 				if (en >= st) sess.Add(new int[] { st, en });
 			}
-			int first = Math.Max(0, sess.Count - MaxProfiles);
-			List<int[]> shown = sess.GetRange(first, sess.Count - first);   // oldest..newest
+			int firstIdx = Math.Max(0, sess.Count - MaxProfiles);
+			List<int[]> shown = sess.GetRange(firstIdx, sess.Count - firstIdx);
 			int K = shown.Count;
 			List<int[]> merges = ParseMerges();
-
-			int idx = 1;   // 1-based over shown
+			int idx = 1;
 			while (idx <= K)
 			{
 				int rangeEnd = -1;
 				foreach (int[] r in merges) if (idx >= r[0] && idx <= r[1]) { rangeEnd = Math.Min(r[1], K); break; }
 				Col c = new Col();
-				if (rangeEnd >= idx)
-				{
-					c.Start = shown[idx - 1][0]; c.End = shown[rangeEnd - 1][1];
-					c.Label = idx + "-" + rangeEnd;
-					idx = rangeEnd + 1;
-				}
+				if (rangeEnd >= idx) { c.Start = shown[idx - 1][0]; c.End = shown[rangeEnd - 1][1]; c.Label = idx + "-" + rangeEnd; idx = rangeEnd + 1; }
 				else { c.Start = shown[idx - 1][0]; c.End = shown[idx - 1][1]; c.Label = idx.ToString(); idx++; }
 				BuildCol(c);
+				if (c.MaxBracket > globalMaxBracket) globalMaxBracket = c.MaxBracket;
 				cols.Add(c);
 			}
 		}
 
 		private void BuildCol(Col c)
 		{
-			Dictionary<double, HashSet<int>> br = new Dictionary<double, HashSet<int>>();
 			DateTime w = Time.GetValueAt(c.Start);
 			for (int i = c.Start; i <= c.End; i++)
 			{
 				double h = High.GetValueAt(i), l = Low.GetValueAt(i);
 				int bk = (int)((Time.GetValueAt(i) - w).TotalMinutes / BracketMinutes);
 				if (bk < 0) bk = 0;
+				if (bk > c.MaxBracket) c.MaxBracket = bk;
 				double lo = Math.Floor(l / rowSize) * rowSize;
 				for (double p = lo; p <= h + rowSize * 0.5; p += rowSize)
 				{
 					double key = Math.Round(p, 5);
-					HashSet<int> set;
-					if (!br.TryGetValue(key, out set)) { set = new HashSet<int>(); br[key] = set; }
-					set.Add(bk);
+					List<int> lst;
+					if (!c.Rows.TryGetValue(key, out lst)) { lst = new List<int>(); c.Rows[key] = lst; }
+					if (!lst.Contains(bk)) lst.Add(bk);
 				}
 			}
-			foreach (KeyValuePair<double, HashSet<int>> kv in br)
+			Dictionary<double, double> cnt = new Dictionary<double, double>();
+			foreach (KeyValuePair<double, List<int>> kv in c.Rows)
 			{
-				double cnt = kv.Value.Count;
-				c.Tpo[kv.Key] = cnt;
-				if (cnt > c.MaxCount) { c.MaxCount = cnt; c.Poc = kv.Key; }
-				if (cnt == 1) c.Singles.Add(kv.Key);
+				kv.Value.Sort();
+				double n = kv.Value.Count;
+				cnt[kv.Key] = n;
+				if (n > c.MaxCount) { c.MaxCount = n; c.Poc = kv.Key; }
+				if (n == 1) c.Singles.Add(kv.Key);
 			}
-			// TPO value area (two-at-a-time to 70%)
-			List<double> prices = new List<double>(c.Tpo.Keys); prices.Sort();
-			int n = prices.Count;
-			if (n == 0 || double.IsNaN(c.Poc)) return;
+			List<double> prices = new List<double>(cnt.Keys); prices.Sort();
+			int np = prices.Count;
+			if (np == 0 || double.IsNaN(c.Poc)) return;
 			int pocI = prices.IndexOf(c.Poc); if (pocI < 0) pocI = 0;
-			double total = 0; foreach (double v in c.Tpo.Values) total += v;
-			double target = 0.70 * total; double acc = c.Tpo[prices[pocI]];
+			double total = 0; foreach (double v in cnt.Values) total += v;
+			double target = 0.70 * total; double acc = cnt[prices[pocI]];
 			int lo2 = pocI, hi = pocI;
-			while (acc < target && (lo2 > 0 || hi < n - 1))
+			while (acc < target && (lo2 > 0 || hi < np - 1))
 			{
-				double up = (hi + 1 < n ? c.Tpo[prices[hi + 1]] : 0) + (hi + 2 < n ? c.Tpo[prices[hi + 2]] : 0);
-				double dn = (lo2 - 1 >= 0 ? c.Tpo[prices[lo2 - 1]] : 0) + (lo2 - 2 >= 0 ? c.Tpo[prices[lo2 - 2]] : 0);
-				bool upok = hi < n - 1, dnok = lo2 > 0;
-				if (upok && (up >= dn || !dnok)) for (int k = 0; k < 2 && hi < n - 1; k++) { hi++; acc += c.Tpo[prices[hi]]; }
-				else if (dnok) for (int k = 0; k < 2 && lo2 > 0; k++) { lo2--; acc += c.Tpo[prices[lo2]]; }
+				double up = (hi + 1 < np ? cnt[prices[hi + 1]] : 0) + (hi + 2 < np ? cnt[prices[hi + 2]] : 0);
+				double dn = (lo2 - 1 >= 0 ? cnt[prices[lo2 - 1]] : 0) + (lo2 - 2 >= 0 ? cnt[prices[lo2 - 2]] : 0);
+				bool upok = hi < np - 1, dnok = lo2 > 0;
+				if (upok && (up >= dn || !dnok)) for (int k = 0; k < 2 && hi < np - 1; k++) { hi++; acc += cnt[prices[hi]]; }
+				else if (dnok) for (int k = 0; k < 2 && lo2 > 0; k++) { lo2--; acc += cnt[prices[lo2]]; }
 				else break;
 			}
 			c.Val = prices[lo2]; c.Vah = prices[hi];
@@ -214,9 +215,20 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private SharpDX.Color4 Dx(System.Windows.Media.Brush b, float a)
 		{
 			System.Windows.Media.SolidColorBrush s = b as System.Windows.Media.SolidColorBrush;
-			if (s == null) return new SharpDX.Color4(0.7f, 0.7f, 0.7f, a);
+			if (s == null) return new SharpDX.Color4(0.6f, 0.6f, 0.6f, a);
 			System.Windows.Media.Color c = s.Color;
 			return new SharpDX.Color4(c.R / 255f, c.G / 255f, c.B / 255f, a);
+		}
+
+		private SharpDX.Color4 Gradient(int b, int maxB)
+		{
+			double t = maxB <= 0 ? 0.0 : (double)b / maxB;
+			float r, g, bl, u;
+			if (t < 0.25) { u = (float)(t / 0.25); r = 0.20f; g = 0.30f + 0.40f * u; bl = 0.90f; }
+			else if (t < 0.50) { u = (float)((t - 0.25) / 0.25); r = 0.20f; g = 0.70f + 0.20f * u; bl = 0.90f - 0.60f * u; }
+			else if (t < 0.75) { u = (float)((t - 0.50) / 0.25); r = 0.20f + 0.70f * u; g = 0.90f; bl = 0.30f - 0.30f * u; }
+			else { u = (float)((t - 0.75) / 0.25); r = 0.90f; g = 0.90f - 0.60f * u; bl = 0.10f; }
+			return new SharpDX.Color4(r, g, bl, 0.95f);
 		}
 
 		protected override void OnRender(ChartControl chartControl, ChartScale chartScale)
@@ -239,46 +251,57 @@ namespace NinjaTrader.NinjaScript.Indicators
 			SolidColorBrush restBr = new SolidColorBrush(RenderTarget, Dx(RestColor, 0.9f));
 			SolidColorBrush pocBr = new SolidColorBrush(RenderTarget, Dx(PocColor, 0.95f));
 			SolidColorBrush singleBr = new SolidColorBrush(RenderTarget, Dx(SingleColor, 0.95f));
+			SolidColorBrush monoBr = new SolidColorBrush(RenderTarget, Dx(MonoColor, 0.95f));
+			SolidColorBrush monoFaint = new SolidColorBrush(RenderTarget, Dx(MonoColor, 0.4f));
+			SolidColorBrush labelBr = new SolidColorBrush(RenderTarget, Dx(LabelColor, 0.95f));
+			SolidColorBrush[] grad = new SolidColorBrush[globalMaxBracket + 1];
+			for (int b = 0; b <= globalMaxBracket; b++) grad[b] = new SolidColorBrush(RenderTarget, Gradient(b, globalMaxBracket));
 			TextFormat tf = new TextFormat(NinjaTrader.Core.Globals.DirectWriteFactory, "Arial", LabelFontSize);
 
 			for (int ci = 0; ci < nc; ci++)
 			{
 				Col c = cols[ci];
-				if (c.Tpo.Count == 0 || c.MaxCount <= 0) continue;
+				if (c.Rows.Count == 0 || c.MaxCount <= 0) continue;
 				float colX = left + ci * slotW;
 				float bw = Math.Min((float)BlockWidthPx, (slotW - ColumnGapPx) / (float)Math.Max(1.0, c.MaxCount));
 				if (bw < 1f) bw = 1f;
 				float topY = float.MaxValue;
 
-				foreach (KeyValuePair<double, double> kv in c.Tpo)
+				foreach (KeyValuePair<double, List<int>> kv in c.Rows)
 				{
 					double price = kv.Key;
+					List<int> brs = kv.Value;
 					float yTop = chartScale.GetYByValue(price + rowSize);
 					if (yTop < topY) topY = yTop;
-					int count = (int)kv.Value;
 					bool inVA = !double.IsNaN(c.Vah) && price <= c.Vah + 1e-9 && price >= c.Val - 1e-9;
 					bool isPoc = ShowPOC && price == c.Poc;
-					bool isSingle = ShowSinglePrints && c.Singles.Contains(price);
-					SolidColorBrush br = isPoc ? pocBr : (isSingle ? singleBr : (inVA ? vaBr : restBr));
-					for (int k = 0; k < count; k++)
+					bool isSingle = ShowSinglePrints && brs.Count == 1;
+					for (int k = 0; k < brs.Count; k++)
+					{
+						SolidColorBrush br;
+						if (ColorScheme == TpoColorScheme.TimeGradient) br = grad[brs[k]];
+						else if (ColorScheme == TpoColorScheme.Monochrome) br = inVA ? monoBr : monoFaint;
+						else br = isPoc ? pocBr : (isSingle ? singleBr : (inVA ? vaBr : restBr)); // Sierra
 						RenderTarget.FillRectangle(new SharpDX.RectangleF(colX + k * bw, yTop, bw - 0.5f, rowH - 0.5f), br);
+					}
 				}
 
 				if (ShowLabels)
 				{
-					string date = Time.GetValueAt(c.End).ToString("MM-dd");
-					string head = c.Label + "  " + date;
-					RenderTarget.DrawText(head, tf, new SharpDX.RectangleF(colX, topY - (LabelFontSize + 4f), slotW, LabelFontSize + 4f), restBr);
+					string head = c.Label + "  " + Time.GetValueAt(c.End).ToString("MM-dd");
+					RenderTarget.DrawText(head, tf, new SharpDX.RectangleF(colX, topY - (LabelFontSize + 4f), slotW, LabelFontSize + 4f), labelBr);
 					if (!double.IsNaN(c.Vah))
 					{
-						RenderTarget.DrawText("VAH " + c.Vah.ToString("0.##"), tf, new SharpDX.RectangleF(colX, chartScale.GetYByValue(c.Vah) - LabelFontSize, slotW, LabelFontSize + 3f), vaBr);
-						RenderTarget.DrawText("VAL " + c.Val.ToString("0.##"), tf, new SharpDX.RectangleF(colX, chartScale.GetYByValue(c.Val), slotW, LabelFontSize + 3f), vaBr);
+						RenderTarget.DrawText("VAH " + c.Vah.ToString("0.##"), tf, new SharpDX.RectangleF(colX, chartScale.GetYByValue(c.Vah) - LabelFontSize, slotW, LabelFontSize + 3f), labelBr);
+						RenderTarget.DrawText("VAL " + c.Val.ToString("0.##"), tf, new SharpDX.RectangleF(colX, chartScale.GetYByValue(c.Val), slotW, LabelFontSize + 3f), labelBr);
 						if (ShowPOC) RenderTarget.DrawText("POC " + c.Poc.ToString("0.##"), tf, new SharpDX.RectangleF(colX, chartScale.GetYByValue(c.Poc) - LabelFontSize * 0.5f, slotW, LabelFontSize + 3f), pocBr);
 					}
 				}
 			}
 
-			vaBr.Dispose(); restBr.Dispose(); pocBr.Dispose(); singleBr.Dispose(); tf.Dispose();
+			vaBr.Dispose(); restBr.Dispose(); pocBr.Dispose(); singleBr.Dispose(); monoBr.Dispose(); monoFaint.Dispose(); labelBr.Dispose();
+			for (int b = 0; b <= globalMaxBracket; b++) grad[b].Dispose();
+			tf.Dispose();
 		}
 	}
 }
