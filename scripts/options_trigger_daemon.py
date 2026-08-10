@@ -817,7 +817,23 @@ def main():
 
     ib = None
     if not args.dry_run:
-        ib = ib_conn.connect()
+        # S103: a late / cold-auth-hung gateway must NOT kill the daemon at
+        # startup. The 2026-08-10 hang (gateway not authenticated until 08:56)
+        # crashed the 08:29 daemon on its very first connect — ib_conn.connect()
+        # retries only ONCE — so every open setup was missed. Retry until
+        # connected or the --until deadline; the fire loop below already tolerates
+        # a null feed, so once the gateway comes up the armed setups fire (entry-
+        # integrity tags them late rather than the day recording zero trades).
+        while ib is None and now_ct() < end:
+            try:
+                ib = ib_conn.connect()
+            except Exception as e:
+                print(f"  gateway not ready ({type(e).__name__}: {e}) — retry in 20s "
+                      f"(until {args.until} CT)")
+                time.sleep(20)
+        if ib is None:
+            print(f"gateway never came up before {args.until} CT — nothing fired.")
+            return
     mode = "DRY-RUN" if args.dry_run else "LIVE (auto-execute)"
     armed = [t for t in plan["triggers"] if t["fire"]["type"] != "signal_1559"]
     print(f"trigger daemon [{mode}] {date}: {len(armed)} triggers, watching until {args.until} CT")
