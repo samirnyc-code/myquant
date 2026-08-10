@@ -130,11 +130,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 				IsOverlay = true; IsChartOnly = true; DrawOnPricePanel = true; IsSuspendedWhileInactive = true;
 				RowTicks = 1; BracketMinutes = 30; MaxProfiles = 15; BlockWidthPx = 6; ColumnGapPx = 16; LabelFontSize = 11;
 				MergeGroups = ""; ColorScheme = TpoColorScheme.Sierra;
-				AutoMerge = false; AutoMergeOverlapPct = 50;
+				AutoMerge = true; AutoMergeOverlapPct = 50;
 				ShowPOC = true; ShowSinglePrints = true; ShowLevelLines = true;
 				ShowDate = true; ShowVahLabel = true; ShowValLabel = true; ShowPocLabel = true;
 				ShowLabelName = true; ShowLabelPrice = true;
-				ShowSpZones = false; MinSingleRun = 2; GreyAfterSessions = 3; MaxForwardSessions = 20; DimFilled = true;
+				ShowSpZones = true; MinSingleRun = 2; GreyAfterSessions = 3; MaxForwardSessions = 20; DimFilled = true;
 				SpZoneColor = System.Windows.Media.Brushes.Goldenrod;
 				VaColor = System.Windows.Media.Brushes.DodgerBlue;
 				RestColor = System.Windows.Media.Brushes.Gray;
