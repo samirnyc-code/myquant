@@ -31,7 +31,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private List<int> sessionStarts;
 		private string sig = "";
 		private List<Col> cols;
+		private List<Zone> zones;
 		private int globalMaxBracket;
+
+		private class Zone { public double Low, High; public int EndBar, Age; public bool Filled; }
 
 		private class Col
 		{
@@ -84,6 +87,20 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[NinjaScriptProperty] [Display(Name = "Label price", Order = 5, GroupName = "5 Labels")]
 		public bool ShowLabelPrice { get; set; }
 
+		[NinjaScriptProperty] [Display(Name = "Forward single-print zones", Order = 0, GroupName = "6 SP Zones")]
+		public bool ShowSpZones { get; set; }
+		[NinjaScriptProperty] [Range(1, 20)] [Display(Name = "Min single-print run (rows)", Order = 1, GroupName = "6 SP Zones")]
+		public int MinSingleRun { get; set; }
+		[NinjaScriptProperty] [Range(0, 200)] [Display(Name = "Grey after N sessions", Order = 2, GroupName = "6 SP Zones")]
+		public int GreyAfterSessions { get; set; }
+		[NinjaScriptProperty] [Range(1, 200)] [Display(Name = "Drop after N sessions", Order = 3, GroupName = "6 SP Zones")]
+		public int MaxForwardSessions { get; set; }
+		[NinjaScriptProperty] [Display(Name = "Dim once filled", Order = 4, GroupName = "6 SP Zones")]
+		public bool DimFilled { get; set; }
+		[XmlIgnore] [Display(Name = "Recent SP-zone color", Order = 5, GroupName = "6 SP Zones")]
+		public System.Windows.Media.Brush SpZoneColor { get; set; }
+		[Browsable(false)] public string SpZoneColorSerialize { get { return Serialize.BrushToString(SpZoneColor); } set { SpZoneColor = Serialize.StringToBrush(value); } }
+
 		[XmlIgnore] [Display(Name = "Value area (Sierra)", Order = 0, GroupName = "3 Colors")]
 		public System.Windows.Media.Brush VaColor { get; set; }
 		[Browsable(false)] public string VaColorSerialize { get { return Serialize.BrushToString(VaColor); } set { VaColor = Serialize.StringToBrush(value); } }
@@ -117,6 +134,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				ShowPOC = true; ShowSinglePrints = true; ShowLevelLines = true;
 				ShowDate = true; ShowVahLabel = true; ShowValLabel = true; ShowPocLabel = true;
 				ShowLabelName = true; ShowLabelPrice = true;
+				ShowSpZones = false; MinSingleRun = 2; GreyAfterSessions = 3; MaxForwardSessions = 20; DimFilled = true;
+				SpZoneColor = System.Windows.Media.Brushes.Goldenrod;
 				VaColor = System.Windows.Media.Brushes.DodgerBlue;
 				RestColor = System.Windows.Media.Brushes.Gray;
 				PocColor = System.Windows.Media.Brushes.Magenta;
@@ -182,6 +201,42 @@ namespace NinjaTrader.NinjaScript.Indicators
 				BuildCol(c);
 				if (c.MaxBracket > globalMaxBracket) globalMaxBracket = c.MaxBracket;
 				cols.Add(c);
+			}
+			BuildZones(shown, endBar);
+		}
+
+		// Per-session single-print runs, projected forward; aged + fill-checked.
+		private void BuildZones(List<int[]> shown, int endBar)
+		{
+			zones = new List<Zone>();
+			if (!ShowSpZones) return;
+			int K = shown.Count;
+			for (int i = 0; i < K; i++)
+			{
+				Col t = new Col(); t.Start = shown[i][0]; t.End = shown[i][1]; BuildCol(t);
+				if (t.Singles.Count == 0) continue;
+				List<double> sp = new List<double>(t.Singles); sp.Sort();
+				int a = 0;
+				while (a < sp.Count)
+				{
+					int b = a;
+					while (b + 1 < sp.Count && Math.Abs(sp[b + 1] - sp[b] - rowSize) < rowSize * 0.5) b++;
+					int len = b - a + 1;
+					if (len >= MinSingleRun)
+					{
+						Zone z = new Zone { Low = sp[a], High = sp[b], EndBar = t.End, Age = (K - 1) - i };
+						double minLow = double.MaxValue, maxHigh = double.MinValue;
+						for (int j = t.End + 1; j <= endBar; j++)
+						{
+							double l = Low.GetValueAt(j), h = High.GetValueAt(j);
+							if (l < minLow) minLow = l;
+							if (h > maxHigh) maxHigh = h;
+						}
+						z.Filled = (minLow < z.Low) && (maxHigh > z.High);   // price traded through it
+						zones.Add(z);
+					}
+					a = b + 1;
+				}
 			}
 		}
 
@@ -287,7 +342,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (sessionStarts == null || RenderTarget == null || Bars == null) return;
 			int endBar = Bars.Count - 1;
 			if (endBar < 0) return;
-			string s = endBar + "|" + MaxProfiles + "|" + RowTicks + "|" + BracketMinutes + "|" + MergeGroups + "|" + AutoMerge + "|" + AutoMergeOverlapPct;
+			string s = endBar + "|" + MaxProfiles + "|" + RowTicks + "|" + BracketMinutes + "|" + MergeGroups + "|" + AutoMerge + "|" + AutoMergeOverlapPct + "|" + ShowSpZones + "|" + MinSingleRun;
 			if (s != sig || cols == null) { Recompute(endBar); sig = s; }
 			if (cols == null || cols.Count == 0) return;
 
@@ -304,7 +359,26 @@ namespace NinjaTrader.NinjaScript.Indicators
 			SolidColorBrush labelBr = new SolidColorBrush(RenderTarget, Dx(LabelColor, 0.95f));
 			SolidColorBrush[] grad = new SolidColorBrush[globalMaxBracket + 1];
 			for (int b = 0; b <= globalMaxBracket; b++) grad[b] = new SolidColorBrush(RenderTarget, Gradient(b, globalMaxBracket));
+			SolidColorBrush spRecent = new SolidColorBrush(RenderTarget, Dx(SpZoneColor, 0.22f));
+			SolidColorBrush spGrey = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.5f, 0.5f, 0.5f, 0.13f));
+			SolidColorBrush spFilled = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.5f, 0.5f, 0.5f, 0.05f));
 			TextFormat tf = new TextFormat(NinjaTrader.Core.Globals.DirectWriteFactory, "Arial", LabelFontSize);
+
+			// forward single-print zones (drawn behind the profiles)
+			if (ShowSpZones && zones != null)
+			{
+				foreach (Zone z in zones)
+				{
+					if (z.Age > MaxForwardSessions) continue;
+					if (z.Filled && !DimFilled) continue;
+					float zx0 = chartControl.GetXByBarIndex(ChartBars, z.EndBar);
+					float zx1 = chartControl.GetXByBarIndex(ChartBars, endBar);
+					if (zx1 <= zx0) continue;
+					float zy1 = chartScale.GetYByValue(z.High), zy2 = chartScale.GetYByValue(z.Low);
+					SolidColorBrush zb = z.Filled ? spFilled : (z.Age > GreyAfterSessions ? spGrey : spRecent);
+					RenderTarget.FillRectangle(new SharpDX.RectangleF(zx0, Math.Min(zy1, zy2), zx1 - zx0, Math.Abs(zy2 - zy1) + 1f), zb);
+				}
+			}
 
 			for (int ci = 0; ci < nc; ci++)
 			{
@@ -373,6 +447,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 
 			vaBr.Dispose(); restBr.Dispose(); pocBr.Dispose(); singleBr.Dispose(); monoBr.Dispose(); monoFaint.Dispose(); labelBr.Dispose();
+			spRecent.Dispose(); spGrey.Dispose(); spFilled.Dispose();
 			for (int b = 0; b <= globalMaxBracket; b++) grad[b].Dispose();
 			tf.Dispose();
 		}
