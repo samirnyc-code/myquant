@@ -32,6 +32,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private class SessionProfile
 		{
 			public int StartBar;
+			public int EndBar;
 			public DateTime Start;
 			public Dictionary<double, HashSet<int>> Rows = new Dictionary<double, HashSet<int>>();
 		}
@@ -97,6 +98,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				cur = new SessionProfile { StartBar = CurrentBar, Start = Time[0] };
 				sessions.Add(cur);
 			}
+			cur.EndBar = CurrentBar;
 
 			int bracket = (int)((Time[0] - cur.Start).TotalMinutes / BracketMinutes);
 			if (bracket < 0)
@@ -148,7 +150,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 						if (b > maxB)
 							maxB = b;
 
-				float x0 = chartControl.GetXByBarIndex(ChartBars, s.StartBar);
+				// Anchor the profile just to the RIGHT of the session's last bar
+				// so it sits beside the candles (like the Python panel), not over them.
+				float x0 = chartControl.GetXByBarIndex(ChartBars, s.EndBar) + BlockWidthPx * 2f;
 
 				SolidColorBrush[] brushes = new SolidColorBrush[maxB + 1];
 				for (int b = 0; b <= maxB; b++)
@@ -157,12 +161,17 @@ namespace NinjaTrader.NinjaScript.Indicators
 				foreach (KeyValuePair<double, HashSet<int>> kv in s.Rows)
 				{
 					float yTop = chartScale.GetYByValue(kv.Key + rowSize);
-					foreach (int b in kv.Value)
+					// Pack this row's blocks LEFT-to-right by stack order (k),
+					// color by bracket (b). Position must NOT be the bracket
+					// index or the profile skews diagonally on trend days.
+					List<int> brs = new List<int>(kv.Value);
+					brs.Sort();
+					for (int k = 0; k < brs.Count; k++)
 					{
-						float x = x0 + b * BlockWidthPx;
+						float x = x0 + k * BlockWidthPx;
 						RenderTarget.FillRectangle(
 							new SharpDX.RectangleF(x, yTop, BlockWidthPx - 1f, rowH - 1f),
-							brushes[b]);
+							brushes[brs[k]]);
 					}
 				}
 
