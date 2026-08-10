@@ -29,6 +29,31 @@ S94-EA + these 6).
 - Remaining webinars are macro/crypto (Fed Pivot ×3, Bitcoin Cycles, SPX-in-Gold,
   Crypto Winter, Hedging) = video-only by prior user decision — NOT transcribing.
 
+**NEW THREAD — structured curriculum + "Modern Edition" of DH's book.** User's
+gripe: DH has no ground-up teaching sequence (DH admits it). Wrote a full
+**blueprint** `eminiaddict/notes/CURRICULUM_SYLLABUS.md` (`0e436b26`) — approve
+before ANY build. Locked decisions:
+- **5 stages / 14 modules**, ground-up (atom-first: MM geometry → seed-swing →
+  setups → entries → exits → series → timeframes → daily process → internals →
+  playbooks → history → psychology → capstone plan). Per-lesson template:
+  objective → DH-in-his-words (cited) → worked examples → mistakes → drill →
+  gating quiz.
+- **Voice:** DH base preserved, our commentary layered (`[OUR ADD]` boxes).
+- **Book incorporated FULLY**, cited ch/fig/page (§3a citation map in the doc).
+- **Biggest gap-fill = a real seed-swing methodology** (his one discretionary
+  step, barely taught). Also: terminology fixes, expectations/risk-of-ruin math,
+  honesty flags on unproven bits (S92 backtests, S93 TICK).
+- **Verified sourcing fact:** book covers TICK/BANK/breadth confluence (Ch 10–11)
+  but **NOT VIX** (0 mentions) — the 5-signal VIX/checklist is webinar/site-only.
+  Module 9 sources are split accordingly.
+- **Two outputs, one research base:** each module → (a) interactive gated lesson
+  (new "Learn" tab superseding the Academy hub) + (b) a **Modern-Edition prose
+  chapter**. Modern Edition = re-sequenced, current charts, webinar material
+  folded in — framed explicitly as a **PITCH TO DH** (clean copyright posture;
+  no public distribution without him). Chapters → `eminiaddict/modern_edition/`.
+- **Open (need user):** ES-primary vs euro-equal; hard vs soft quiz gates; module
+  length; Modern-Edition chapter order (improved sequence vs his original 1–16).
+
 ---
 
 ## S101 (2026-08-09) — PATs auction-profile tool (research thread, not the live system)
