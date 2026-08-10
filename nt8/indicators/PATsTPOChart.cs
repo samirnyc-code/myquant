@@ -59,6 +59,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 		public string MergeGroups { get; set; }
 		[NinjaScriptProperty] [Display(Name = "Color scheme", Order = 7, GroupName = "1 Profile")]
 		public TpoColorScheme ColorScheme { get; set; }
+		[NinjaScriptProperty] [Display(Name = "Auto-merge overlapping VAs", Order = 8, GroupName = "1 Profile")]
+		public bool AutoMerge { get; set; }
+		[NinjaScriptProperty] [Range(1, 100)] [Display(Name = "Auto-merge overlap %", Order = 9, GroupName = "1 Profile")]
+		public double AutoMergeOverlapPct { get; set; }
 
 		[NinjaScriptProperty] [Display(Name = "POC", Order = 0, GroupName = "2 Show")]
 		public bool ShowPOC { get; set; }
@@ -66,6 +70,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 		public bool ShowSinglePrints { get; set; }
 		[NinjaScriptProperty] [Display(Name = "Labels (date + VAH/VAL/POC)", Order = 2, GroupName = "2 Show")]
 		public bool ShowLabels { get; set; }
+		[NinjaScriptProperty] [Display(Name = "Level lines (VAH/VAL/POC across session)", Order = 3, GroupName = "2 Show")]
+		public bool ShowLevelLines { get; set; }
 
 		[XmlIgnore] [Display(Name = "Value area (Sierra)", Order = 0, GroupName = "3 Colors")]
 		public System.Windows.Media.Brush VaColor { get; set; }
@@ -96,7 +102,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				IsOverlay = true; IsChartOnly = true; DrawOnPricePanel = true; IsSuspendedWhileInactive = true;
 				RowTicks = 1; BracketMinutes = 30; MaxProfiles = 15; BlockWidthPx = 6; ColumnGapPx = 16; LabelFontSize = 11;
 				MergeGroups = ""; ColorScheme = TpoColorScheme.Sierra;
-				ShowPOC = true; ShowSinglePrints = true; ShowLabels = true;
+				AutoMerge = false; AutoMergeOverlapPct = 50;
+				ShowPOC = true; ShowSinglePrints = true; ShowLabels = true; ShowLevelLines = true;
 				VaColor = System.Windows.Media.Brushes.DodgerBlue;
 				RestColor = System.Windows.Media.Brushes.Gray;
 				PocColor = System.Windows.Media.Brushes.Magenta;
@@ -150,7 +157,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			int firstIdx = Math.Max(0, sess.Count - MaxProfiles);
 			List<int[]> shown = sess.GetRange(firstIdx, sess.Count - firstIdx);
 			int K = shown.Count;
-			List<int[]> merges = ParseMerges();
+			List<int[]> merges = AutoMerge ? AutoMergeRanges(shown) : ParseMerges();
 			int idx = 1;
 			while (idx <= K)
 			{
@@ -163,6 +170,37 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (c.MaxBracket > globalMaxBracket) globalMaxBracket = c.MaxBracket;
 				cols.Add(c);
 			}
+		}
+
+		// Auto-merge: chain consecutive sessions whose TPO value areas overlap >= pct.
+		private List<int[]> AutoMergeRanges(List<int[]> shown)
+		{
+			int K = shown.Count;
+			double[] vah = new double[K], val = new double[K];
+			for (int i = 0; i < K; i++)
+			{
+				Col t = new Col(); t.Start = shown[i][0]; t.End = shown[i][1];
+				BuildCol(t); vah[i] = t.Vah; val[i] = t.Val;
+			}
+			List<int[]> ranges = new List<int[]>();
+			int a = 0;
+			while (a < K)
+			{
+				int j = a;
+				while (j + 1 < K && VaOverlap(val[j], vah[j], val[j + 1], vah[j + 1]) >= AutoMergeOverlapPct / 100.0) j++;
+				if (j > a) ranges.Add(new int[] { a + 1, j + 1 });   // 1-based, only real merges
+				a = j + 1;
+			}
+			return ranges;
+		}
+
+		private double VaOverlap(double a1, double a2, double b1, double b2)
+		{
+			if (double.IsNaN(a2) || double.IsNaN(b2)) return 0;
+			double ov = Math.Min(a2, b2) - Math.Max(a1, b1);
+			if (ov <= 0) return 0;
+			double m = Math.Min(a2 - a1, b2 - b1);
+			return m <= 0 ? 0 : ov / m;
 		}
 
 		private void BuildCol(Col c)
@@ -236,7 +274,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (sessionStarts == null || RenderTarget == null || Bars == null) return;
 			int endBar = Bars.Count - 1;
 			if (endBar < 0) return;
-			string s = endBar + "|" + MaxProfiles + "|" + RowTicks + "|" + BracketMinutes + "|" + MergeGroups;
+			string s = endBar + "|" + MaxProfiles + "|" + RowTicks + "|" + BracketMinutes + "|" + MergeGroups + "|" + AutoMerge + "|" + AutoMergeOverlapPct;
 			if (s != sig || cols == null) { Recompute(endBar); sig = s; }
 			if (cols == null || cols.Count == 0) return;
 
@@ -287,15 +325,26 @@ namespace NinjaTrader.NinjaScript.Indicators
 					}
 				}
 
+				// level lines across the session (start -> end)
+				if (ShowLevelLines && !double.IsNaN(c.Vah))
+				{
+					float yv1 = chartScale.GetYByValue(c.Vah), yv2 = chartScale.GetYByValue(c.Val), yp = chartScale.GetYByValue(c.Poc);
+					RenderTarget.DrawLine(new SharpDX.Vector2(colX, yv1), new SharpDX.Vector2(colEndX, yv1), vaBr, 1f);
+					RenderTarget.DrawLine(new SharpDX.Vector2(colX, yv2), new SharpDX.Vector2(colEndX, yv2), vaBr, 1f);
+					RenderTarget.DrawLine(new SharpDX.Vector2(colX, yp), new SharpDX.Vector2(colEndX, yp), pocBr, 1.4f);
+				}
+
 				if (ShowLabels)
 				{
+					// labels sit to the RIGHT of the profile blocks, not over them
+					float labelX = colX + (float)c.MaxCount * bw + 5f;
 					string head = c.Label + "  " + Time.GetValueAt(c.End).ToString("MM-dd");
 					RenderTarget.DrawText(head, tf, new SharpDX.RectangleF(colX, topY - (LabelFontSize + 4f), lblW, LabelFontSize + 4f), labelBr);
 					if (!double.IsNaN(c.Vah))
 					{
-						RenderTarget.DrawText("VAH " + c.Vah.ToString("0.##"), tf, new SharpDX.RectangleF(colX, chartScale.GetYByValue(c.Vah) - LabelFontSize, lblW, LabelFontSize + 3f), labelBr);
-						RenderTarget.DrawText("VAL " + c.Val.ToString("0.##"), tf, new SharpDX.RectangleF(colX, chartScale.GetYByValue(c.Val), lblW, LabelFontSize + 3f), labelBr);
-						if (ShowPOC) RenderTarget.DrawText("POC " + c.Poc.ToString("0.##"), tf, new SharpDX.RectangleF(colX, chartScale.GetYByValue(c.Poc) - LabelFontSize * 0.5f, lblW, LabelFontSize + 3f), pocBr);
+						RenderTarget.DrawText("VAH " + c.Vah.ToString("0.##"), tf, new SharpDX.RectangleF(labelX, chartScale.GetYByValue(c.Vah) - LabelFontSize, 90f, LabelFontSize + 3f), labelBr);
+						RenderTarget.DrawText("VAL " + c.Val.ToString("0.##"), tf, new SharpDX.RectangleF(labelX, chartScale.GetYByValue(c.Val), 90f, LabelFontSize + 3f), labelBr);
+						if (ShowPOC) RenderTarget.DrawText("POC " + c.Poc.ToString("0.##"), tf, new SharpDX.RectangleF(labelX, chartScale.GetYByValue(c.Poc) - LabelFontSize * 0.5f, 90f, LabelFontSize + 3f), pocBr);
 					}
 				}
 			}
