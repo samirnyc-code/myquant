@@ -282,7 +282,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 						if (ColorScheme == TpoColorScheme.TimeGradient) br = grad[brs[k]];
 						else if (ColorScheme == TpoColorScheme.Monochrome) br = inVA ? monoBr : monoFaint;
 						else br = isPoc ? pocBr : (isSingle ? singleBr : (inVA ? vaBr : restBr)); // Sierra
-						RenderTarget.FillRectangle(new SharpDX.RectangleF(colX + k * bw, yTop, bw - 0.5f, rowH - 0.5f), br);
+						RenderTarget.FillRectangle(new SharpDX.RectangleF(colX + k * bw, yTop, Math.Max(1f, bw - 0.5f), Math.Max(1f, rowH)), br);
 					}
 				}
 
