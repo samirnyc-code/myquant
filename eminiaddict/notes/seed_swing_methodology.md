@@ -16,7 +16,7 @@ his method is unchanged — we're only making the undefined step followable.
 - The seed is **"the significant high-low that jumps off the page"** on the chosen
   timeframe (Ch 2–3; RULEBOOK §2). It is *the only non-mechanical step*.
 - **After the seed, mechanical & recursive:** new peak = prior MM's retracement
-  (HWB) point; new trough = prior MM's 123.6% target. The series projects itself
+  (HWB) point; new trough = prior MM's −23.6% target. The series projects itself
   (Ch 2, Figs 2.3–2.4).
 - **Confirm the extreme before drawing** (Ch 2, Fig 2.7): draw the Fib from swing
   low to swing high only once a candle closes back inside (below its own high /
@@ -76,7 +76,7 @@ wait.
 
 ### Step 5 — Validity check (did I seed right?)
 A correct seed makes the mechanical projection FIT: price should be respecting the
-50% (HWB), 61.8% (failure), and 123.6% (target) as **zones**, and the series
+50% (HWB), 61.8% (failure), and −23.6% (target) as **zones**, and the series
 should behave like a series (2–3+ MMs, DH's norm). If price ignores your levels —
 blows through HWB without reaction, or the "target" means nothing — **you seeded
 the wrong leg. Re-seed.** This self-correction is the safety net that lets a

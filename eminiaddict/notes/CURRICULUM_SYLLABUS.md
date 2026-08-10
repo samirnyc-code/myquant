@@ -86,7 +86,7 @@ chapter, title to confirm against the PDF render.
 | Ch | Title | Key figures / anchors | Feeds module(s) |
 |----|-------|----------------------|-----------------|
 | 1  | Today's Trading Environment (pit→screen) | no figs; Flash Crash 5/6/2010; quant 60–80% | M0 |
-| 2  | Fibs & the Measured Move | MM geometry; the 50/61.8/123.6 levels | **M1** |
+| 2  | Fibs & the Measured Move | MM geometry; the 50/61.8/−23.6 levels | **M1** |
 | 3  | The Road Map | swing definition; correlation intro | M2, M8 |
 | 4  | Tools of the Trade | tape/time&sales; platform tools | M0, M9 |
 | 5  | Execution | order mechanics | M4, M5 |
@@ -177,7 +177,7 @@ quiz is passed.
   Types of Moves, #3 Basic Moves, #4 Levels; Ch 15 "Four Phases."
 - **Concept:** for an up-leg from swing low L to high H, range R:
   `100%=L (start) · 61.8%=L+0.382R (FAILURE) · 50%=L+0.500R (HWB=entry) ·
-  0%=H (end) · 123.6%=H+0.236R (TARGET, seeds next swing)`. Down-leg mirrors.
+  0%=H (end) · −23.6%=H+0.236R (TARGET, spoken "123.6%", seeds next swing)`. Down-leg mirrors.
   The Four Phases (Ch 15): P1 entry at 50% (must hold 61.8%) → P2 → P3 → P4 target.
 - **DH in his own words:** his fibs are drawn "backwards"; the 50% is man-made
   "halfway back," not a real Fib number (webinar 09).
@@ -198,7 +198,7 @@ quiz is passed.
   diagram #16 MM Cycle. **Note:** DH is deliberately vague here — this module is
   mostly OUR construction from his scattered hints + our own tested heuristic.
 - **Concept:** after the seed, all swing points are mechanical (prior MM's
-  retracement high = new peak; prior MM's 123.6% = new trough). Only the seed is
+  retracement high = new peak; prior MM's −23.6% target = new trough). Only the seed is
   discretionary.
 - **DH in his own words:** "the only discretionary step is the seed swing"; the
   dominant/most-recent leg guidance from the daily videos.
@@ -438,7 +438,7 @@ quiz is passed.
 ## 6. Cross-cutting components (built once, used everywhere)
 
 - **Glossary / cheat-sheet** — disambiguates DH's drifting terms (50%=HWB;
-  61.8%=failure; 38.2%=distance-formula exit; 123.6%≡−23.6%=target; "weekly"=
+  61.8%=failure; 38.2%=distance-formula exit; −23.6% target (spoken "123.6%"); "weekly"=
   largest trend; distance formula = |50%−38.2%|). Always one tap away.
 - **Spaced-repetition review deck** — flip cards accumulate across modules; a
   "review" surface resurfaces older cards.

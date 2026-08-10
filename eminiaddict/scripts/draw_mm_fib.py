@@ -6,7 +6,7 @@ Halsey MM levels (Ch2 / Fig 6.1), for an UP leg from swing low L to swing high H
      61.8% = L + 0.382*R (FAILURE line - breach invalidates the MM)
      50%  = L + 0.500*R  (HWB / half-way-back = entry-continuation zone)
       0%  = H            (end of move)
-    123.6% = H + 0.236*R (measured-move PROFIT TARGET; also seeds next swing)
+    -23.6% = H + 0.236*R (measured-move PROFIT TARGET, pronounced "123.6%"; also seeds next swing)
 Down leg is the mirror (100%=H, 0%=L, target below L).
 
 Seed swing = last completed leg from a ZigZag pivot detector (proxy for Halsey's
@@ -157,7 +157,7 @@ def main():
         {"y": fail, "c": "#e2453c", "t": f"61.8% FAILURE  {fail:,.2f}"},
         {"y": hwb, "c": "#ffd400", "t": f"50% HWB (entry)  {hwb:,.2f}"},
         {"y": lv0, "c": "#bbbbbb", "t": f"0% (end)  {lv0:,.2f}"},
-        {"y": tgt, "c": "#26a65b", "t": f"123.6% TARGET  {tgt:,.2f}"},
+        {"y": tgt, "c": "#26a65b", "t": f"-23.6% TARGET  {tgt:,.2f}"},
         {"y": closes[-1], "c": "#4aa3ff", "t": f"last  {closes[-1]:,.2f}"},
     ]
     lo = min(lows.min(), min(d["y"] for d in labels))
@@ -209,7 +209,7 @@ def main():
     print("wrote", OUT.format(mode=mode))
     print(f"seed leg: {'UP' if up else 'DOWN'}  L={L:,.2f} H={H:,.2f} R={R:,.2f}")
     print(f"100%={lv100:,.2f} 61.8%(fail)={fail:,.2f} 50%(HWB)={hwb:,.2f} "
-          f"0%={lv0:,.2f} 123.6%(target)={tgt:,.2f}  last={closes[-1]:,.2f}")
+          f"0%={lv0:,.2f} -23.6%(target)={tgt:,.2f}  last={closes[-1]:,.2f}")
 
 
 if __name__ == "__main__":
