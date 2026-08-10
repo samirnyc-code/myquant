@@ -34,7 +34,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private List<Zone> zones;
 		private int globalMaxBracket;
 
-		private class Zone { public double Low, High; public int EndBar, Age; public bool Filled; }
+		private class Zone { public double Low, High; public int StartBar, EndBar, Age; public bool Filled; }
 
 		private class Col
 		{
@@ -224,7 +224,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					int len = b - a + 1;
 					if (len >= MinSingleRun)
 					{
-						Zone z = new Zone { Low = sp[a], High = sp[b], EndBar = t.End, Age = (K - 1) - i };
+						Zone z = new Zone { Low = sp[a], High = sp[b], StartBar = t.Start, EndBar = t.End, Age = (K - 1) - i };
 						double minLow = double.MaxValue, maxHigh = double.MinValue;
 						for (int j = t.End + 1; j <= endBar; j++)
 						{
@@ -371,7 +371,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				{
 					if (z.Age > MaxForwardSessions) continue;
 					if (z.Filled && !DimFilled) continue;
-					float zx0 = chartControl.GetXByBarIndex(ChartBars, z.EndBar);
+					float zx0 = chartControl.GetXByBarIndex(ChartBars, z.StartBar);   // begin in the session that made the excess
 					float zx1 = chartControl.GetXByBarIndex(ChartBars, endBar);
 					if (zx1 <= zx0) continue;
 					float zy1 = chartScale.GetYByValue(z.High), zy2 = chartScale.GetYByValue(z.Low);
