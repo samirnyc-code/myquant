@@ -33,8 +33,15 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private List<Col> cols;
 		private List<Zone> zones;
 		private int globalMaxBracket;
+		private double adr20;
 
 		private class Zone { public double Low, High; public int StartBar, EndBar, Age; public bool Filled; }
+
+		// interactive unmerge/re-merge (Ctrl+click a column)
+		private List<HashSet<DateTime>> brokenGroups = new List<HashSet<DateTime>>();
+		private List<Hit> hits = new List<Hit>();
+		private bool mouseHooked;
+		private class Hit { public float X0, X1; public int Start, End; public bool Merged; }
 
 		private class Col
 		{
@@ -42,6 +49,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			public string Label;
 			public Dictionary<double, List<int>> Rows = new Dictionary<double, List<int>>();
 			public double Poc = double.NaN, Vah = double.NaN, Val = double.NaN, MaxCount = 0;
+			public double Hi = double.MinValue, Lo = double.MaxValue, Open, Close, IBH = double.MinValue, IBL = double.MaxValue, Range;
 			public HashSet<double> Singles = new HashSet<double>();
 		}
 
@@ -101,6 +109,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 		public System.Windows.Media.Brush SpZoneColor { get; set; }
 		[Browsable(false)] public string SpZoneColorSerialize { get { return Serialize.BrushToString(SpZoneColor); } set { SpZoneColor = Serialize.StringToBrush(value); } }
 
+		[NinjaScriptProperty] [Display(Name = "Day metrics label (below profile)", Order = 0, GroupName = "7 Metrics")]
+		public bool ShowMetrics { get; set; }
+
 		[XmlIgnore] [Display(Name = "Value area (Sierra)", Order = 0, GroupName = "3 Colors")]
 		public System.Windows.Media.Brush VaColor { get; set; }
 		[Browsable(false)] public string VaColorSerialize { get { return Serialize.BrushToString(VaColor); } set { VaColor = Serialize.StringToBrush(value); } }
@@ -136,6 +147,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				ShowLabelName = true; ShowLabelPrice = true;
 				ShowSpZones = true; MinSingleRun = 2; GreyAfterSessions = 3; MaxForwardSessions = 20; DimFilled = true;
 				SpZoneColor = System.Windows.Media.Brushes.Goldenrod;
+				ShowMetrics = true;
 				VaColor = System.Windows.Media.Brushes.DodgerBlue;
 				RestColor = System.Windows.Media.Brushes.Gray;
 				PocColor = System.Windows.Media.Brushes.Magenta;
@@ -145,6 +157,22 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 			else if (State == State.Configure) { rowSize = RowTicks * TickSize; }
 			else if (State == State.DataLoaded) { sessionStarts = new List<int>(); }
+			else if (State == State.Historical)
+			{
+				if (ChartControl != null && !mouseHooked)
+				{
+					mouseHooked = true;
+					ChartControl.Dispatcher.InvokeAsync(() => { ChartControl.MouseDown += OnChartMouseDown; });
+				}
+			}
+			else if (State == State.Terminated)
+			{
+				if (ChartControl != null && mouseHooked)
+				{
+					mouseHooked = false;
+					ChartControl.Dispatcher.InvokeAsync(() => { ChartControl.MouseDown -= OnChartMouseDown; });
+				}
+			}
 		}
 
 		protected override void OnBarUpdate()
@@ -152,6 +180,39 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (CurrentBar < 0) return;
 			if (rowSize <= 0) rowSize = RowTicks * TickSize;
 			if (CurrentBar == 0 || Bars.IsFirstBarOfSession) sessionStarts.Add(CurrentBar);
+		}
+
+		// Ctrl+left-click a column: unmerge a merged group, or re-merge a split one.
+		private void OnChartMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+		{
+			try
+			{
+				if (ChartControl == null || hits == null || hits.Count == 0) return;
+				if (System.Windows.Input.Keyboard.Modifiers != System.Windows.Input.ModifierKeys.Control) return;
+				double dpi = 1.0;
+				System.Windows.PresentationSource src = System.Windows.PresentationSource.FromVisual(ChartControl);
+				if (src != null) dpi = src.CompositionTarget.TransformToDevice.M11;
+				float px = (float)(e.GetPosition(ChartControl).X * dpi);
+				Hit hit = null;
+				foreach (Hit h in hits) if (px >= h.X0 && px <= h.X1) { hit = h; break; }
+				if (hit == null) return;
+				List<DateTime> dates = new List<DateTime>();
+				if (sessionStarts != null)
+					foreach (int sb in sessionStarts) if (sb >= hit.Start && sb <= hit.End) dates.Add(Time.GetValueAt(sb).Date);
+				if (hit.Merged) brokenGroups.Add(new HashSet<DateTime>(dates));
+				else { DateTime d = dates.Count > 0 ? dates[0] : Time.GetValueAt(hit.Start).Date; brokenGroups.RemoveAll(g => g.Contains(d)); }
+				sig = "";
+				ForceRefresh();
+			}
+			catch { }
+		}
+
+		private bool IsBroken(int barStart)
+		{
+			if (brokenGroups.Count == 0) return false;
+			DateTime d = Time.GetValueAt(barStart).Date;
+			foreach (HashSet<DateTime> g in brokenGroups) if (g.Contains(d)) return true;
+			return false;
 		}
 
 		#region Build
@@ -186,6 +247,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 				int en = (i + 1 < sc) ? sessionStarts[i + 1] - 1 : endBar;
 				if (en >= st) sess.Add(new int[] { st, en });
 			}
+			// ADR over the last 20 individual sessions (for %ADR metric)
+			int adN = Math.Min(20, sess.Count); double adSum = 0;
+			for (int i = sess.Count - adN; i < sess.Count; i++)
+			{
+				double sh = double.MinValue, sl = double.MaxValue;
+				for (int b = sess[i][0]; b <= sess[i][1]; b++) { double hh = High.GetValueAt(b), ll = Low.GetValueAt(b); if (hh > sh) sh = hh; if (ll < sl) sl = ll; }
+				if (sh > sl) adSum += (sh - sl);
+			}
+			adr20 = adN > 0 ? adSum / adN : 0;
+
 			int firstIdx = Math.Max(0, sess.Count - MaxProfiles);
 			List<int[]> shown = sess.GetRange(firstIdx, sess.Count - firstIdx);
 			int K = shown.Count;
@@ -254,8 +325,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 			int a = 0;
 			while (a < K)
 			{
+				if (IsBroken(shown[a][0])) { a++; continue; }   // user-pinned standalone
 				int j = a;
-				while (j + 1 < K && VaOverlap(val[j], vah[j], val[j + 1], vah[j + 1]) >= AutoMergeOverlapPct / 100.0) j++;
+				while (j + 1 < K && !IsBroken(shown[j + 1][0]) && VaOverlap(val[j], vah[j], val[j + 1], vah[j + 1]) >= AutoMergeOverlapPct / 100.0) j++;
 				if (j > a) ranges.Add(new int[] { a + 1, j + 1 });   // 1-based, only real merges
 				a = j + 1;
 			}
@@ -274,9 +346,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private void BuildCol(Col c)
 		{
 			DateTime w = Time.GetValueAt(c.Start);
+			c.Open = Open.GetValueAt(c.Start); c.Close = Close.GetValueAt(c.End);
 			for (int i = c.Start; i <= c.End; i++)
 			{
 				double h = High.GetValueAt(i), l = Low.GetValueAt(i);
+				if (h > c.Hi) c.Hi = h;
+				if (l < c.Lo) c.Lo = l;
+				if (Time.GetValueAt(i) < w.AddMinutes(60)) { if (h > c.IBH) c.IBH = h; if (l < c.IBL) c.IBL = l; }
 				int bk = (int)((Time.GetValueAt(i) - w).TotalMinutes / BracketMinutes);
 				if (bk < 0) bk = 0;
 				if (bk > c.MaxBracket) c.MaxBracket = bk;
@@ -289,6 +365,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					if (!lst.Contains(bk)) lst.Add(bk);
 				}
 			}
+			c.Range = (c.Hi > c.Lo) ? c.Hi - c.Lo : 0;
 			Dictionary<double, double> cnt = new Dictionary<double, double>();
 			foreach (KeyValuePair<double, List<int>> kv in c.Rows)
 			{
@@ -380,6 +457,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				}
 			}
 
+			hits.Clear();
 			for (int ci = 0; ci < nc; ci++)
 			{
 				Col c = cols[ci];
@@ -387,6 +465,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				// anchor to the session's real bar position so it moves/scales with the time axis
 				float colX = chartControl.GetXByBarIndex(ChartBars, c.Start);
 				float colEndX = chartControl.GetXByBarIndex(ChartBars, c.End);
+				bool merged = c.Label.IndexOf('-') > 0;
+				hits.Add(new Hit { X0 = colX, X1 = colEndX, Start = c.Start, End = c.End, Merged = merged });
 				float sessW = Math.Max(colEndX - colX - ColumnGapPx, 8f);
 				float lblW = Math.Max(sessW, 90f);
 				float bw = Math.Min((float)BlockWidthPx, sessW / (float)Math.Max(1.0, c.MaxCount));
@@ -424,7 +504,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 				// labels sit to the RIGHT of the profile blocks, ABOVE each level line
 				float labelX = colX + (float)c.MaxCount * bw + 5f;
 				float lh = LabelFontSize + 3f;
-				bool merged = c.Label.IndexOf('-') > 0;
 				if (ShowDate)
 				{
 					string head;
@@ -442,6 +521,25 @@ namespace NinjaTrader.NinjaScript.Indicators
 					if (ShowVahLabel) { string t = (ShowLabelName ? "VAH " : "") + (ShowLabelPrice ? c.Vah.ToString("0.##") : ""); if (t.Length > 0) RenderTarget.DrawText(t, tf, new SharpDX.RectangleF(labelX, chartScale.GetYByValue(c.Vah) - lh, 90f, lh), labelBr); }
 					if (ShowValLabel) { string t = (ShowLabelName ? "VAL " : "") + (ShowLabelPrice ? c.Val.ToString("0.##") : ""); if (t.Length > 0) RenderTarget.DrawText(t, tf, new SharpDX.RectangleF(labelX, chartScale.GetYByValue(c.Val) - lh, 90f, lh), labelBr); }
 					if (ShowPocLabel) { string t = (ShowLabelName ? "POC " : "") + (ShowLabelPrice ? c.Poc.ToString("0.##") : ""); if (t.Length > 0) RenderTarget.DrawText(t, tf, new SharpDX.RectangleF(labelX, chartScale.GetYByValue(c.Poc) - lh, 90f, lh), pocBr); }
+				}
+
+				// per-day metrics below the profile: range, %ADR20, IB %, day-type read
+				if (ShowMetrics && c.Range > 0)
+				{
+					double pctAdr = adr20 > 0 ? c.Range / adr20 * 100.0 : 0;
+					double vaW = (!double.IsNaN(c.Vah)) ? c.Vah - c.Val : 0;
+					double elong = c.Range > 0 ? vaW / c.Range : 0;
+					double ibR = (c.IBH > c.IBL) ? c.IBH - c.IBL : 0;
+					double ibPct = c.Range > 0 ? ibR / c.Range * 100.0 : 0;
+					string dtype;
+					if (pctAdr >= 130 && elong > 0 && elong <= 0.45) dtype = "TREND";
+					else if (pctAdr <= 70) dtype = "QUIET";
+					else if (ibPct >= 85) dtype = "BALANCED(IB)";
+					else if (elong >= 0.65) dtype = "RANGE";
+					else dtype = "NORMAL";
+					float by = chartScale.GetYByValue(c.Lo) + 3f;
+					RenderTarget.DrawText("R " + c.Range.ToString("0.#") + " (" + pctAdr.ToString("0") + "% ADR)", tf, new SharpDX.RectangleF(colX, by, lblW, lh), labelBr);
+					RenderTarget.DrawText("IB " + ibPct.ToString("0") + "% · " + dtype, tf, new SharpDX.RectangleF(colX, by + lh, lblW, lh), labelBr);
 				}
 			}
 
