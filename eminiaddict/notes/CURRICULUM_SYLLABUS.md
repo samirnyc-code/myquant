@@ -478,21 +478,19 @@ quiz is passed.
 6. Assemble output (b) into the **Modern Edition manuscript** (§10) — the pitch
    to DH.
 
-## 9. Open questions for the user
+## 9. Decisions — RESOLVED (2026-08-10)
 
-*(Resolved: additions scope = expansive/everything; audience = pitch to DH;
-outputs = one base → two. Remaining:)*
-
-1. **Target learner instrument** — teach primarily on **ES** (his lead market) and
-   mention euro/gold/CL as playbooks (Module 10), or give the euro equal weight
-   throughout (he clearly loves it)?
-2. **Assessment strictness** — hard gates (can't advance until quiz passed) vs
-   soft (recommended, freely navigable)?
-3. **Length target per module** — tight (10–15 min each, ~3–4 hrs total) vs deep
-   (30+ min each, a multi-week course)?
-4. **Modern Edition chapter order** — use the improved 14-module sequence (my
-   recommendation, since his order is the problem), or keep his original 16-chapter
-   order so DH recognizes his own book 1:1?
+- Additions scope = expansive/everything; audience = pitch to DH; outputs = one
+  base → two.
+- **Instrument:** **ES-primary for now.** Teach on ES throughout; euro/gold/CL are
+  Module-10 playbooks only. (Revisit if the euro emphasis is wanted later.)
+- **Assessment:** **soft gates.** Quizzes are recommended checkpoints; the learner
+  can navigate freely. (Still show score + a "you may not be ready" nudge, but
+  never block.)
+- **Length:** **deep / multi-week course.** ~30+ min per module, thorough worked
+  examples and drills; not a 3-hr skim.
+- **Modern Edition order:** **improved 14-module sequence + a crosswalk table** to
+  his original 1–16 so DH can compare directly (what moved, and why).
 
 ## 10. Modern Edition track — the pitch to David Halsey
 
