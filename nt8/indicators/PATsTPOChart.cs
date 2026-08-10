@@ -433,7 +433,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 						string[] pp = c.Label.Split('-'); int aa, bb, days = 0;
 						if (int.TryParse(pp[0], out aa) && int.TryParse(pp[1], out bb)) days = bb - aa + 1;
 						head = "MERGED " + Time.GetValueAt(c.Start).ToString("MM-dd") + "→" + Time.GetValueAt(c.End).ToString("MM-dd") + " (" + days + "d)";
-						RenderTarget.DrawLine(new SharpDX.Vector2(colX, topY - (lh + 3f)), new SharpDX.Vector2(colEndX, topY - (lh + 3f)), labelBr, 1f);   // neutral span marker, not a level
 					}
 					else head = c.Label + "  " + Time.GetValueAt(c.End).ToString("MM-dd");
 					RenderTarget.DrawText(head, tf, new SharpDX.RectangleF(colX, topY - (lh + 2f), lblW, lh), merged ? pocBr : labelBr);
