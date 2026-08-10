@@ -1,6 +1,33 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** August 9, 2026 (S101: PATs auction-profile tool added — separate research thread)
+**Last Updated:** August 10, 2026 (S102-EA: final 6 method webinars transcribed + nuggets → webinar collection complete)
+
+---
+
+## S102-EA (2026-08-10) — Final 6 method webinars transcribed + key-points mined
+
+Finished the EminiAddict webinar collection: the **6 remaining method webinars**
+(12 Gap Fill 90m, 16 Past-Predicts-Future, 20 Profiting from Gap Fills, 21 Crude
+& Gold, 22 Manage Positions, 25 Trend Changes / Dead Cat Bounce) transcribed +
+assistant-written key-points nuggets. **All 11 method webinars now done** (5 in
+S94-EA + these 6).
+
+- **Transcribe:** `ea_transcribe` pulls mp4s direct from public S3 — **no cookie
+  needed** for transcription (only the initial scrape did). Ran
+  `scrape_webinars.py --transcribe --idx 12,16,20,21,22,25` with a throwaway
+  `EA_COOKIE` file just to satisfy the import-time cookie read in
+  `scrape_getting_started.py`. `small.en` CPU whisper, ~30–85 min/file.
+  Transcripts → `data/site/webinars/transcripts/` (untracked, copyrighted).
+- **Nuggets committed** (`26c1313c`, `git add -f`): `data/site/webinars/nuggets/
+  {12,16,20,21,22,25}.md`. Same **In short:** + thematic-section format as 03/08/
+  09/10/11. Only nuggets tracked; transcripts stay ignored (GS precedent).
+- **Tool rebuilt + Drive-synced:** `build_getting_started_page.py` reads
+  `webinars/nuggets/NN.md`, so the rebuild folded the 6 key-point cards in.
+  `docs/artifacts/eminiaddict_tool.html` (24 MB, gitignored) → copied to
+  `G:\My Drive\myquant_transfer\eminiaddict_tool.html`. Verified: 0 method
+  webinars still "pending transcription".
+- Remaining webinars are macro/crypto (Fed Pivot ×3, Bitcoin Cycles, SPX-in-Gold,
+  Crypto Winter, Hedging) = video-only by prior user decision — NOT transcribing.
 
 ---
 
