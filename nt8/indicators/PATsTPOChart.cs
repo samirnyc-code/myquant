@@ -242,10 +242,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			float rowH = Math.Abs(chartScale.GetYByValue(0.0) - chartScale.GetYByValue(rowSize));
 			if (rowH < 1f) rowH = 1f;
-			float left = (float)ChartPanel.X + 6f;
-			float avail = (float)ChartPanel.W - 12f;
 			int nc = cols.Count;
-			float slotW = avail / nc;
 
 			SolidColorBrush vaBr = new SolidColorBrush(RenderTarget, Dx(VaColor, 0.95f));
 			SolidColorBrush restBr = new SolidColorBrush(RenderTarget, Dx(RestColor, 0.9f));
@@ -262,8 +259,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 			{
 				Col c = cols[ci];
 				if (c.Rows.Count == 0 || c.MaxCount <= 0) continue;
-				float colX = left + ci * slotW;
-				float bw = Math.Min((float)BlockWidthPx, (slotW - ColumnGapPx) / (float)Math.Max(1.0, c.MaxCount));
+				// anchor to the session's real bar position so it moves/scales with the time axis
+				float colX = chartControl.GetXByBarIndex(ChartBars, c.Start);
+				float colEndX = chartControl.GetXByBarIndex(ChartBars, c.End);
+				float sessW = Math.Max(colEndX - colX - ColumnGapPx, 8f);
+				float lblW = Math.Max(sessW, 90f);
+				float bw = Math.Min((float)BlockWidthPx, sessW / (float)Math.Max(1.0, c.MaxCount));
 				if (bw < 1f) bw = 1f;
 				float topY = float.MaxValue;
 
@@ -289,12 +290,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (ShowLabels)
 				{
 					string head = c.Label + "  " + Time.GetValueAt(c.End).ToString("MM-dd");
-					RenderTarget.DrawText(head, tf, new SharpDX.RectangleF(colX, topY - (LabelFontSize + 4f), slotW, LabelFontSize + 4f), labelBr);
+					RenderTarget.DrawText(head, tf, new SharpDX.RectangleF(colX, topY - (LabelFontSize + 4f), lblW, LabelFontSize + 4f), labelBr);
 					if (!double.IsNaN(c.Vah))
 					{
-						RenderTarget.DrawText("VAH " + c.Vah.ToString("0.##"), tf, new SharpDX.RectangleF(colX, chartScale.GetYByValue(c.Vah) - LabelFontSize, slotW, LabelFontSize + 3f), labelBr);
-						RenderTarget.DrawText("VAL " + c.Val.ToString("0.##"), tf, new SharpDX.RectangleF(colX, chartScale.GetYByValue(c.Val), slotW, LabelFontSize + 3f), labelBr);
-						if (ShowPOC) RenderTarget.DrawText("POC " + c.Poc.ToString("0.##"), tf, new SharpDX.RectangleF(colX, chartScale.GetYByValue(c.Poc) - LabelFontSize * 0.5f, slotW, LabelFontSize + 3f), pocBr);
+						RenderTarget.DrawText("VAH " + c.Vah.ToString("0.##"), tf, new SharpDX.RectangleF(colX, chartScale.GetYByValue(c.Vah) - LabelFontSize, lblW, LabelFontSize + 3f), labelBr);
+						RenderTarget.DrawText("VAL " + c.Val.ToString("0.##"), tf, new SharpDX.RectangleF(colX, chartScale.GetYByValue(c.Val), lblW, LabelFontSize + 3f), labelBr);
+						if (ShowPOC) RenderTarget.DrawText("POC " + c.Poc.ToString("0.##"), tf, new SharpDX.RectangleF(colX, chartScale.GetYByValue(c.Poc) - LabelFontSize * 0.5f, lblW, LabelFontSize + 3f), pocBr);
 					}
 				}
 			}
