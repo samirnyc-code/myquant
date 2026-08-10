@@ -41,7 +41,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private Dictionary<double, List<int>> tpoByRow;
 		private List<double> hvn, lvn, singlePrints;
 		private double poc, vah, val, ibh, ibl, maxVol;
-		private double pPoc = double.NaN, pVah = double.NaN, pVal = double.NaN;
+		private double pPoc = double.NaN, pVah = double.NaN, pVal = double.NaN;         // prior VOLUME VA
+		private double pTpoPoc = double.NaN, pTpoVah = double.NaN, pTpoVal = double.NaN; // prior TPO VA
 		private int maxBracket, winStartBar, priorStartBar = -1;
 
 		#region Parameters
@@ -80,11 +81,15 @@ namespace NinjaTrader.NinjaScript.Indicators
 		public bool ShowLVN { get; set; }
 		[NinjaScriptProperty] [Display(Name = "Single prints (excess)", Order = 8, GroupName = "2 Show")]
 		public bool ShowSinglePrints { get; set; }
-		[NinjaScriptProperty] [Display(Name = "Prior-session lines", Order = 9, GroupName = "2 Show")]
+		[NinjaScriptProperty] [Display(Name = "Prior VOLUME-VA lines", Order = 9, GroupName = "2 Show")]
 		public bool ShowPriorLines { get; set; }
-		[NinjaScriptProperty] [Display(Name = "Prior-session band (trade-from zone)", Order = 10, GroupName = "2 Show")]
+		[NinjaScriptProperty] [Display(Name = "Prior VOLUME-VA band", Order = 10, GroupName = "2 Show")]
 		public bool ShowPriorBand { get; set; }
-		[NinjaScriptProperty] [Display(Name = "Labels", Order = 11, GroupName = "2 Show")]
+		[NinjaScriptProperty] [Display(Name = "Prior TPO-VA lines", Order = 11, GroupName = "2 Show")]
+		public bool ShowPriorTpoLines { get; set; }
+		[NinjaScriptProperty] [Display(Name = "Prior TPO-VA band", Order = 12, GroupName = "2 Show")]
+		public bool ShowPriorTpoBand { get; set; }
+		[NinjaScriptProperty] [Display(Name = "Labels", Order = 13, GroupName = "2 Show")]
 		public bool ShowLabels { get; set; }
 
 		[NinjaScriptProperty] [Range(1, 20)] [Display(Name = "Node lookback (rows)", Order = 0, GroupName = "3 Nodes")]
@@ -115,6 +120,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[XmlIgnore] [Display(Name = "Single prints", Order = 6, GroupName = "4 Colors")]
 		public System.Windows.Media.Brush SinglePrintColor { get; set; }
 		[Browsable(false)] public string SinglePrintColorSerialize { get { return Serialize.BrushToString(SinglePrintColor); } set { SinglePrintColor = Serialize.StringToBrush(value); } }
+		[XmlIgnore] [Display(Name = "Prior TPO VA", Order = 7, GroupName = "4 Colors")]
+		public System.Windows.Media.Brush PriorTpoColor { get; set; }
+		[Browsable(false)] public string PriorTpoColorSerialize { get { return Serialize.BrushToString(PriorTpoColor); } set { PriorTpoColor = Serialize.StringToBrush(value); } }
 		#endregion
 
 		protected override void OnStateChange()
@@ -127,7 +135,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				RowTicks = 4; BracketMinutes = 30; CompositeSessions = 1; VpWidthPx = 150; BlockWidthPx = 7; RightOffsetPx = 6;
 				Opacity = 0.85; LabelFontSize = 11;
 				ShowTPO = true; ShowVP = true; ShowVAHVAL = true; ShowVABand = true; ShowPOC = true; ShowIB = true;
-				ShowHVN = true; ShowLVN = true; ShowSinglePrints = true; ShowPriorLines = true; ShowPriorBand = true; ShowLabels = true;
+				ShowHVN = true; ShowLVN = true; ShowSinglePrints = true; ShowPriorLines = true; ShowPriorBand = true;
+				ShowPriorTpoLines = true; ShowPriorTpoBand = true; ShowLabels = true;
 				NodeLookback = 4; HvnFactor = 1.2; LvnFactor = 0.7;
 				PocColor = System.Windows.Media.Brushes.Orange;
 				VaColor = System.Windows.Media.Brushes.MediumPurple;
@@ -136,6 +145,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				LvnColor = System.Windows.Media.Brushes.IndianRed;
 				IbColor = System.Windows.Media.Brushes.Goldenrod;
 				SinglePrintColor = System.Windows.Media.Brushes.White;
+				PriorTpoColor = System.Windows.Media.Brushes.MediumSeaGreen;
 			}
 			else if (State == State.Configure) { rowSize = RowTicks * TickSize; }
 			else if (State == State.DataLoaded) { sessionStarts = new List<int>(); }
@@ -272,7 +282,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		private void ComputePriorLevels()
 		{
-			pPoc = pVah = pVal = double.NaN; priorStartBar = -1;
+			pPoc = pVah = pVal = double.NaN;
+			pTpoPoc = pTpoVah = pTpoVal = double.NaN;
+			priorStartBar = -1;
 			int sc = sessionStarts.Count;
 			if (sc < 2) return;
 			int ps = sessionStarts[sc - 2];
@@ -282,7 +294,41 @@ namespace NinjaTrader.NinjaScript.Indicators
 			double ppoc;
 			Dictionary<double, double> pvol = BuildVolume(ps, pe, out ppoc);
 			pPoc = ppoc;
-			ValueAreaOf(pvol, pPoc, out pVal, out pVah);
+			ValueAreaOf(pvol, pPoc, out pVal, out pVah);   // prior VOLUME value area
+			double ptpoc;
+			Dictionary<double, double> ptpo = BuildTPO(ps, pe, out ptpoc);
+			pTpoPoc = ptpoc;
+			ValueAreaOf(ptpo, pTpoPoc, out pTpoVal, out pTpoVah);   // prior TPO value area
+		}
+
+		// TPO count per row (distinct 30-min brackets that traded there) + TPO POC.
+		private Dictionary<double, double> BuildTPO(int a, int b, out double pocOut)
+		{
+			Dictionary<double, HashSet<int>> br = new Dictionary<double, HashSet<int>>();
+			DateTime w = Time.GetValueAt(a);
+			for (int i = a; i <= b; i++)
+			{
+				double h = High.GetValueAt(i), l = Low.GetValueAt(i);
+				int bk = (int)((Time.GetValueAt(i) - w).TotalMinutes / BracketMinutes);
+				if (bk < 0) bk = 0;
+				double lo = Math.Floor(l / rowSize) * rowSize;
+				for (double p = lo; p <= h + rowSize * 0.5; p += rowSize)
+				{
+					double key = Math.Round(p, 5);
+					HashSet<int> set;
+					if (!br.TryGetValue(key, out set)) { set = new HashSet<int>(); br[key] = set; }
+					set.Add(bk);
+				}
+			}
+			Dictionary<double, double> cnt = new Dictionary<double, double>();
+			pocOut = double.NaN; double mv = 0;
+			foreach (KeyValuePair<double, HashSet<int>> kv in br)
+			{
+				double c = kv.Value.Count;
+				cnt[kv.Key] = c;
+				if (c > mv) { mv = c; pocOut = kv.Key; }
+			}
+			return cnt;
 		}
 		#endregion
 
@@ -305,7 +351,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			return new SharpDX.Color4(c.R / 255f, c.G / 255f, c.B / 255f, alpha);
 		}
 
-		private class Lbl { public float y; public string text; public SolidColorBrush brush; public float trueY; }
+		private class Lbl { public float y; public string text; public SolidColorBrush brush; public float trueY; public int col; }
 
 		protected override void OnRender(ChartControl chartControl, ChartScale chartScale)
 		{
@@ -333,6 +379,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 			SolidColorBrush ibBr = new SolidColorBrush(RenderTarget, Dx(IbColor, 0.8f));
 			SolidColorBrush priorLineBr = new SolidColorBrush(RenderTarget, Dx(PriorColor, 0.85f));
 			SolidColorBrush priorBandBr = new SolidColorBrush(RenderTarget, Dx(PriorColor, 0.14f));
+			SolidColorBrush priorTpoLineBr = new SolidColorBrush(RenderTarget, Dx(PriorTpoColor, 0.85f));
+			SolidColorBrush priorTpoBandBr = new SolidColorBrush(RenderTarget, Dx(PriorTpoColor, 0.14f));
 			SolidColorBrush hvnBr = new SolidColorBrush(RenderTarget, Dx(HvnColor, 0.95f));
 			SolidColorBrush lvnBr = new SolidColorBrush(RenderTarget, Dx(LvnColor, 0.95f));
 			SolidColorBrush spBr = new SolidColorBrush(RenderTarget, Dx(SinglePrintColor, 0.95f));
@@ -352,6 +400,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 			{
 				float y1 = chartScale.GetYByValue(pVah), y2 = chartScale.GetYByValue(pVal);
 				RenderTarget.FillRectangle(new SharpDX.RectangleF(priorStartX, Math.Min(y1, y2), vpMaxRight - priorStartX, Math.Abs(y2 - y1)), priorBandBr);
+			}
+			if (ShowPriorTpoBand && !double.IsNaN(pTpoVah))
+			{
+				float y1 = chartScale.GetYByValue(pTpoVah), y2 = chartScale.GetYByValue(pTpoVal);
+				RenderTarget.FillRectangle(new SharpDX.RectangleF(priorStartX, Math.Min(y1, y2), vpMaxRight - priorStartX, Math.Abs(y2 - y1)), priorTpoBandBr);
 			}
 
 			// rows: VP bars (with node coloring) + TPO blocks + single-print ticks
@@ -393,21 +446,32 @@ namespace NinjaTrader.NinjaScript.Indicators
 				DrawLevel(chartScale, priorStartX, vpMaxRight, pVal, priorLineBr, 1.0f);
 				DrawLevel(chartScale, priorStartX, vpMaxRight, pPoc, priorLineBr, 1.5f);
 			}
+			if (ShowPriorTpoLines && !double.IsNaN(pTpoVah))
+			{
+				DrawLevel(chartScale, priorStartX, vpMaxRight, pTpoVah, priorTpoLineBr, 1.0f);
+				DrawLevel(chartScale, priorStartX, vpMaxRight, pTpoVal, priorTpoLineBr, 1.0f);
+				DrawLevel(chartScale, priorStartX, vpMaxRight, pTpoPoc, priorTpoLineBr, 1.5f);
+			}
 
 			// labels (de-collided, with leaders), placed right of the profile
 			if (ShowLabels)
 			{
 				float labelX = tpoLeft + (maxBracket + 1) * BlockWidthPx + 8f;
 				List<Lbl> labels = new List<Lbl>();
-				if (ShowPOC && !double.IsNaN(poc)) AddLbl(labels, chartScale, "POC " + FmtP(poc), poc, pocBr);
-				if (ShowVAHVAL && !double.IsNaN(vah)) { AddLbl(labels, chartScale, "VAH " + FmtP(vah), vah, vaLineBr); AddLbl(labels, chartScale, "VAL " + FmtP(val), val, vaLineBr); }
-				if (ShowPriorLines && !double.IsNaN(pVah)) { AddLbl(labels, chartScale, "pVAH " + FmtP(pVah), pVah, priorLineBr); AddLbl(labels, chartScale, "pPOC " + FmtP(pPoc), pPoc, priorLineBr); AddLbl(labels, chartScale, "pVAL " + FmtP(pVal), pVal, priorLineBr); }
-				if (ShowIB && ibh > double.MinValue) { AddLbl(labels, chartScale, "IBH " + FmtP(ibh), ibh, ibBr); AddLbl(labels, chartScale, "IBL " + FmtP(ibl), ibl, ibBr); }
+				// column 0 = current session
+				if (ShowPOC && !double.IsNaN(poc)) AddLbl(labels, chartScale, "POC " + FmtP(poc), poc, pocBr, 0);
+				if (ShowVAHVAL && !double.IsNaN(vah)) { AddLbl(labels, chartScale, "VAH " + FmtP(vah), vah, vaLineBr, 0); AddLbl(labels, chartScale, "VAL " + FmtP(val), val, vaLineBr, 0); }
+				if (ShowIB && ibh > double.MinValue) { AddLbl(labels, chartScale, "IBH " + FmtP(ibh), ibh, ibBr, 0); AddLbl(labels, chartScale, "IBL " + FmtP(ibl), ibl, ibBr, 0); }
+				// column 1 = prior VOLUME value area
+				if (ShowPriorLines && !double.IsNaN(pVah)) { AddLbl(labels, chartScale, "pvVAH " + FmtP(pVah), pVah, priorLineBr, 1); AddLbl(labels, chartScale, "pvPOC " + FmtP(pPoc), pPoc, priorLineBr, 1); AddLbl(labels, chartScale, "pvVAL " + FmtP(pVal), pVal, priorLineBr, 1); }
+				// column 2 = prior TPO value area
+				if (ShowPriorTpoLines && !double.IsNaN(pTpoVah)) { AddLbl(labels, chartScale, "ptVAH " + FmtP(pTpoVah), pTpoVah, priorTpoLineBr, 2); AddLbl(labels, chartScale, "ptPOC " + FmtP(pTpoPoc), pTpoPoc, priorTpoLineBr, 2); AddLbl(labels, chartScale, "ptVAL " + FmtP(pTpoVal), pTpoVal, priorTpoLineBr, 2); }
 				DrawLabels(labels, labelX, vpMaxRight);
 			}
 
 			teal.Dispose(); pocBr.Dispose(); vaLineBr.Dispose(); vaBandBr.Dispose(); ibBr.Dispose();
-			priorLineBr.Dispose(); priorBandBr.Dispose(); hvnBr.Dispose(); lvnBr.Dispose(); spBr.Dispose();
+			priorLineBr.Dispose(); priorBandBr.Dispose(); priorTpoLineBr.Dispose(); priorTpoBandBr.Dispose();
+			hvnBr.Dispose(); lvnBr.Dispose(); spBr.Dispose();
 			for (int b = 0; b <= maxBracket; b++) brackets[b].Dispose();
 		}
 
@@ -417,25 +481,34 @@ namespace NinjaTrader.NinjaScript.Indicators
 			RenderTarget.DrawLine(new SharpDX.Vector2(x0, y), new SharpDX.Vector2(x1, y), br, wdt);
 		}
 
-		private void AddLbl(List<Lbl> list, ChartScale cs, string text, double price, SolidColorBrush br)
+		private void AddLbl(List<Lbl> list, ChartScale cs, string text, double price, SolidColorBrush br, int col)
 		{
 			float y = cs.GetYByValue(price);
-			list.Add(new Lbl { y = y, trueY = y, text = text, brush = br });
+			list.Add(new Lbl { y = y, trueY = y, text = text, brush = br, col = col });
 		}
 
-		private void DrawLabels(List<Lbl> labels, float x, float leaderFromX)
+		// Each column is a separate x-slot; de-collide vertically within each column.
+		private void DrawLabels(List<Lbl> labels, float baseX, float leaderFromX)
 		{
 			if (labels.Count == 0) return;
-			labels.Sort(delegate (Lbl a, Lbl b) { return a.y.CompareTo(b.y); });
+			float colW = LabelFontSize * 6.5f;
 			float gap = LabelFontSize + 4f;
-			for (int i = 1; i < labels.Count; i++)
-				if (labels[i].y < labels[i - 1].y + gap) labels[i].y = labels[i - 1].y + gap;
 			TextFormat tf = new TextFormat(NinjaTrader.Core.Globals.DirectWriteFactory, "Arial", LabelFontSize);
-			foreach (Lbl L in labels)
+			for (int c = 0; c <= 2; c++)
 			{
-				if (Math.Abs(L.y - L.trueY) > 1.5f)
-					RenderTarget.DrawLine(new SharpDX.Vector2(leaderFromX, L.trueY), new SharpDX.Vector2(x - 2f, L.y + LabelFontSize * 0.5f), L.brush, 0.6f);
-				RenderTarget.DrawText(L.text, tf, new SharpDX.RectangleF(x, L.y, 150f, LabelFontSize + 6f), L.brush);
+				List<Lbl> col = new List<Lbl>();
+				foreach (Lbl L in labels) if (L.col == c) col.Add(L);
+				if (col.Count == 0) continue;
+				col.Sort(delegate (Lbl a, Lbl b) { return a.y.CompareTo(b.y); });
+				for (int i = 1; i < col.Count; i++)
+					if (col[i].y < col[i - 1].y + gap) col[i].y = col[i - 1].y + gap;
+				float x = baseX + c * colW;
+				foreach (Lbl L in col)
+				{
+					if (Math.Abs(L.y - L.trueY) > 1.5f)
+						RenderTarget.DrawLine(new SharpDX.Vector2(x - 6f, L.trueY), new SharpDX.Vector2(x - 1f, L.y + LabelFontSize * 0.5f), L.brush, 0.6f);
+					RenderTarget.DrawText(L.text, tf, new SharpDX.RectangleF(x, L.y, colW, LabelFontSize + 6f), L.brush);
+				}
 			}
 			tf.Dispose();
 		}
