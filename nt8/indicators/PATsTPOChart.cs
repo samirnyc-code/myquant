@@ -336,15 +336,25 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 				if (ShowLabels)
 				{
-					// labels sit to the RIGHT of the profile blocks, not over them
+					// labels sit to the RIGHT of the profile blocks, ABOVE each level line
 					float labelX = colX + (float)c.MaxCount * bw + 5f;
-					string head = c.Label + "  " + Time.GetValueAt(c.End).ToString("MM-dd");
-					RenderTarget.DrawText(head, tf, new SharpDX.RectangleF(colX, topY - (LabelFontSize + 4f), lblW, LabelFontSize + 4f), labelBr);
+					float lh = LabelFontSize + 3f;
+					bool merged = c.Label.IndexOf('-') > 0;
+					string head;
+					if (merged)
+					{
+						string[] pp = c.Label.Split('-'); int aa, bb, days = 0;
+						if (int.TryParse(pp[0], out aa) && int.TryParse(pp[1], out bb)) days = bb - aa + 1;
+						head = "MERGED " + Time.GetValueAt(c.Start).ToString("MM-dd") + "→" + Time.GetValueAt(c.End).ToString("MM-dd") + " (" + days + "d)";
+						RenderTarget.DrawLine(new SharpDX.Vector2(colX, topY - (lh + 3f)), new SharpDX.Vector2(colEndX, topY - (lh + 3f)), pocBr, 1.5f);   // bracket over the merged span
+					}
+					else head = c.Label + "  " + Time.GetValueAt(c.End).ToString("MM-dd");
+					RenderTarget.DrawText(head, tf, new SharpDX.RectangleF(colX, topY - (lh + 2f), lblW, lh), merged ? pocBr : labelBr);
 					if (!double.IsNaN(c.Vah))
 					{
-						RenderTarget.DrawText("VAH " + c.Vah.ToString("0.##"), tf, new SharpDX.RectangleF(labelX, chartScale.GetYByValue(c.Vah) - LabelFontSize, 90f, LabelFontSize + 3f), labelBr);
-						RenderTarget.DrawText("VAL " + c.Val.ToString("0.##"), tf, new SharpDX.RectangleF(labelX, chartScale.GetYByValue(c.Val), 90f, LabelFontSize + 3f), labelBr);
-						if (ShowPOC) RenderTarget.DrawText("POC " + c.Poc.ToString("0.##"), tf, new SharpDX.RectangleF(labelX, chartScale.GetYByValue(c.Poc) - LabelFontSize * 0.5f, 90f, LabelFontSize + 3f), pocBr);
+						RenderTarget.DrawText("VAH " + c.Vah.ToString("0.##"), tf, new SharpDX.RectangleF(labelX, chartScale.GetYByValue(c.Vah) - lh, 90f, lh), labelBr);
+						RenderTarget.DrawText("VAL " + c.Val.ToString("0.##"), tf, new SharpDX.RectangleF(labelX, chartScale.GetYByValue(c.Val) - lh, 90f, lh), labelBr);
+						if (ShowPOC) RenderTarget.DrawText("POC " + c.Poc.ToString("0.##"), tf, new SharpDX.RectangleF(labelX, chartScale.GetYByValue(c.Poc) - lh, 90f, lh), pocBr);
 					}
 				}
 			}
