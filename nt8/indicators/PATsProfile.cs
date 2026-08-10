@@ -38,6 +38,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private Dictionary<double, double> volByRow;
 		private Dictionary<double, List<int>> tpoByRow;
 		private double poc, vah, val, ibh, ibl, maxVol;
+		private double pPoc = double.NaN, pVah = double.NaN, pVal = double.NaN;  // prior session
 		private int maxBracket;
 
 		[NinjaScriptProperty] [Range(1, int.MaxValue)]
@@ -83,6 +84,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[NinjaScriptProperty] [Display(Name = "Show Initial Balance", Order = 4, GroupName = "2 Toggles")]
 		public bool ShowIB { get; set; }
 
+		[NinjaScriptProperty] [Display(Name = "Show Prior-session value (trade-from zone)", Order = 5, GroupName = "2 Toggles")]
+		public bool ShowPriorValue { get; set; }
+
 		protected override void OnStateChange()
 		{
 			if (State == State.SetDefaults)
@@ -105,6 +109,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				ShowVA							= true;
 				ShowPOC							= true;
 				ShowIB							= true;
+				ShowPriorValue					= true;
 			}
 			else if (State == State.Configure)
 			{
@@ -171,36 +176,76 @@ namespace NinjaTrader.NinjaScript.Indicators
 			poc = double.NaN; maxVol = 0;
 			foreach (KeyValuePair<double, double> kv in volByRow)
 				if (kv.Value > maxVol) { maxVol = kv.Value; poc = kv.Key; }
-			ComputeValueArea();
+			ValueAreaOf(volByRow, poc, out val, out vah);
+			ComputePriorLevels();
+		}
+
+		// Volume-by-row for a bar range (volume distributed across each bar's rows).
+		private Dictionary<double, double> BuildVolume(int a, int b, out double pocOut)
+		{
+			Dictionary<double, double> vol = new Dictionary<double, double>();
+			for (int i = a; i <= b; i++)
+			{
+				double h = High.GetValueAt(i), l = Low.GetValueAt(i), v = Volume.GetValueAt(i);
+				double lo = Math.Floor(l / rowSize) * rowSize;
+				int nrows = 0;
+				for (double p = lo; p <= h + rowSize * 0.5; p += rowSize) nrows++;
+				if (nrows < 1) nrows = 1;
+				double vShare = v / nrows;
+				for (double p = lo; p <= h + rowSize * 0.5; p += rowSize)
+				{
+					double key = Math.Round(p, 5);
+					double cv; vol.TryGetValue(key, out cv); vol[key] = cv + vShare;
+				}
+			}
+			pocOut = double.NaN; double mv = 0;
+			foreach (KeyValuePair<double, double> kv in vol)
+				if (kv.Value > mv) { mv = kv.Value; pocOut = kv.Key; }
+			return vol;
 		}
 
 		// Dalton volume value area (MOM Appendix 1): from POC, compare the two
 		// rows above vs the two below, add the heavier pair, until 70% volume.
-		private void ComputeValueArea()
+		private void ValueAreaOf(Dictionary<double, double> vol, double pocv, out double valO, out double vahO)
 		{
-			List<double> prices = new List<double>(volByRow.Keys);
+			List<double> prices = new List<double>(vol.Keys);
 			prices.Sort();
 			int n = prices.Count;
-			if (n == 0) { vah = val = double.NaN; return; }
-			int pocI = prices.IndexOf(poc);
+			if (n == 0 || double.IsNaN(pocv)) { valO = vahO = double.NaN; return; }
+			int pocI = prices.IndexOf(pocv);
 			if (pocI < 0) pocI = 0;
 			double total = 0;
-			foreach (double vv in volByRow.Values) total += vv;
+			foreach (double vv in vol.Values) total += vv;
 			double target = 0.70 * total;
-			double acc = volByRow[prices[pocI]];
+			double acc = vol[prices[pocI]];
 			int lo = pocI, hi = pocI;
 			while (acc < target && (lo > 0 || hi < n - 1))
 			{
-				double up = (hi + 1 < n ? volByRow[prices[hi + 1]] : 0) + (hi + 2 < n ? volByRow[prices[hi + 2]] : 0);
-				double dn = (lo - 1 >= 0 ? volByRow[prices[lo - 1]] : 0) + (lo - 2 >= 0 ? volByRow[prices[lo - 2]] : 0);
+				double up = (hi + 1 < n ? vol[prices[hi + 1]] : 0) + (hi + 2 < n ? vol[prices[hi + 2]] : 0);
+				double dn = (lo - 1 >= 0 ? vol[prices[lo - 1]] : 0) + (lo - 2 >= 0 ? vol[prices[lo - 2]] : 0);
 				bool upok = hi < n - 1, dnok = lo > 0;
 				if (upok && (up >= dn || !dnok))
-					for (int k = 0; k < 2 && hi < n - 1; k++) { hi++; acc += volByRow[prices[hi]]; }
+					for (int k = 0; k < 2 && hi < n - 1; k++) { hi++; acc += vol[prices[hi]]; }
 				else if (dnok)
-					for (int k = 0; k < 2 && lo > 0; k++) { lo--; acc += volByRow[prices[lo]]; }
+					for (int k = 0; k < 2 && lo > 0; k++) { lo--; acc += vol[prices[lo]]; }
 				else break;
 			}
-			val = prices[lo]; vah = prices[hi];
+			valO = prices[lo]; vahO = prices[hi];
+		}
+
+		// Prior session's completed value (the "trade-from" reference).
+		private void ComputePriorLevels()
+		{
+			pPoc = pVah = pVal = double.NaN;
+			int sc = sessionStarts.Count;
+			if (sc < 2) return;
+			int ps = sessionStarts[sc - 2];
+			int pe = sessionStarts[sc - 1] - 1;
+			if (pe < ps) return;
+			double ppoc;
+			Dictionary<double, double> pvol = BuildVolume(ps, pe, out ppoc);
+			pPoc = ppoc;
+			ValueAreaOf(pvol, pPoc, out pVal, out pVah);
 		}
 
 		private SharpDX.Color4 BracketColor(int b, int maxB)
@@ -240,6 +285,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 			SolidColorBrush pocBr = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.88f, 0.53f, 0.25f, 0.95f));
 			SolidColorBrush vaBr = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.72f, 0.55f, 0.85f, 0.12f));
 			SolidColorBrush ibBr = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.88f, 0.71f, 0.37f, 0.75f));
+			SolidColorBrush priorBand = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.30f, 0.44f, 0.60f, 0.15f));
+			SolidColorBrush priorLine = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.58f, 0.70f, 0.85f, 0.85f));
 			SolidColorBrush[] brackets = new SolidColorBrush[maxBracket + 1];
 			for (int b = 0; b <= maxBracket; b++)
 				brackets[b] = new SolidColorBrush(RenderTarget, BracketColor(b, maxBracket));
@@ -250,6 +297,18 @@ namespace NinjaTrader.NinjaScript.Indicators
 				float y1 = chartScale.GetYByValue(vah), y2 = chartScale.GetYByValue(val);
 				RenderTarget.FillRectangle(new SharpDX.RectangleF(panelLeft, Math.Min(y1, y2),
 					vpMaxRight - panelLeft, Math.Abs(y2 - y1)), vaBr);
+			}
+
+			// prior-session value = the "trade-from" zone (steel band + pVAH/pVAL/pPOC lines)
+			if (ShowPriorValue && !double.IsNaN(pVah))
+			{
+				float py1 = chartScale.GetYByValue(pVah), py2 = chartScale.GetYByValue(pVal);
+				RenderTarget.FillRectangle(new SharpDX.RectangleF(panelLeft, Math.Min(py1, py2),
+					vpMaxRight - panelLeft, Math.Abs(py2 - py1)), priorBand);
+				float yph = chartScale.GetYByValue(pVah), ypl = chartScale.GetYByValue(pVal), ypp = chartScale.GetYByValue(pPoc);
+				RenderTarget.DrawLine(new SharpDX.Vector2(panelLeft, yph), new SharpDX.Vector2(vpMaxRight, yph), priorLine, 1.0f);
+				RenderTarget.DrawLine(new SharpDX.Vector2(panelLeft, ypl), new SharpDX.Vector2(vpMaxRight, ypl), priorLine, 1.0f);
+				RenderTarget.DrawLine(new SharpDX.Vector2(panelLeft, ypp), new SharpDX.Vector2(vpMaxRight, ypp), priorLine, 1.5f);
 			}
 
 			foreach (KeyValuePair<double, double> kv in volByRow)
@@ -290,6 +349,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 
 			teal.Dispose(); pocBr.Dispose(); vaBr.Dispose(); ibBr.Dispose();
+			priorBand.Dispose(); priorLine.Dispose();
 			for (int b = 0; b <= maxBracket; b++) brackets[b].Dispose();
 		}
 	}
