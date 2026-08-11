@@ -824,13 +824,28 @@ def main():
         # connected or the --until deadline; the fire loop below already tolerates
         # a null feed, so once the gateway comes up the armed setups fire (entry-
         # integrity tags them late rather than the day recording zero trades).
+        import socket as _sock
         while ib is None and now_ct() < end:
+            # Wait PASSIVELY for a genuinely-up gateway. Do NOT call ib_conn.connect()
+            # while 4002 is down: on failure it auto-runs gateway_ensure, which
+            # relaunches IBC — and repeated relaunches trip IB's login rate-limiter
+            # (the 2026-08-11 storm). Only attempt a real connect once the port is
+            # actually listening (gateway_ensure then no-ops, so no relaunch).
+            up = False
+            try:
+                with _sock.create_connection(("127.0.0.1", 4002), timeout=3):
+                    up = True
+            except OSError:
+                up = False
+            if not up:
+                print(f"  waiting for gateway — 4002 down, recheck in 30s (until {args.until} CT)")
+                time.sleep(30)
+                continue
             try:
                 ib = ib_conn.connect()
             except Exception as e:
-                print(f"  gateway not ready ({type(e).__name__}: {e}) — retry in 20s "
-                      f"(until {args.until} CT)")
-                time.sleep(20)
+                print(f"  4002 up but connect not ready ({type(e).__name__}: {e}) — retry 30s")
+                time.sleep(30)
         if ib is None:
             print(f"gateway never came up before {args.until} CT — nothing fired.")
             return
