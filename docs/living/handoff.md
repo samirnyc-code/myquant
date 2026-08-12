@@ -1,6 +1,59 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** August 10, 2026 (S102-EA: final 6 method webinars transcribed + nuggets → webinar collection complete)
+**Last Updated:** August 12, 2026 (S103: gateway cold-auth/throttle saga + NT save-workspace popup solved structurally)
+
+---
+
+## S103 (2026-08-11 → 08-12) — Gateway login reliability + NT popup fix
+
+**What broke and why (own it): a gateway "watchdog" I shipped 08-10 caused a worse
+daily failure.** Root incident 08-10 (Mon): a weekend-expired IBC autorestart token
+forced a FULL cold authentication that HUNG ~85 min (07:30→08:56 CT), feed dead through
+the open, the 08:29 trigger daemon died on first connect → every premium setup missed.
+
+- **08-10 fix attempt (`gateway_watchdog.py`, commit 451ef8e5):** verify real auth
+  (managed accounts, not just port 4002), relaunch-if-down, force-restart-if-stuck,
+  Telegram alert. **TWO BUGS:** (1) 8-min "stuck" grace is SHORTER than a cold-auth, so
+  it killed the gateway mid-login; (2) its readiness check called `ib_conn.connect()`,
+  which auto-runs `gateway_ensure` → relaunches IBC. Together = a kill-loop + spawn-storm.
+- **08-11 (Tue) result:** the watchdog fired ~6 rapid logins at the open, tripped **IB's
+  login rate-limiter** ("Too many failed login attempts" / "Server disconnected"), and
+  blocked the gateway all morning. User logged in MANUALLY (~07:30 CT) and it worked —
+  proving it was never the password (IBC entered it every attempt), it was the throttle.
+- **Remediation shipped (committed, verified):**
+  - **`gateway_watchdog.py` DISABLED** (task `MyQuant Gateway Watchdog` = Disabled). Do
+    NOT re-enable until its two bugs are properly fixed (longer grace; a readiness probe
+    that NEVER launches anything).
+  - **Trigger daemon now waits PASSIVELY** (commit c295814b): raw-socket-probes 4002 and
+    only calls `ib_conn.connect()` once the port is actually listening — so it can never
+    re-trigger the relaunch storm / throttle. (Earlier hardening 451ef8e5 added the
+    connect-retry that had the storm bug; c295814b is the corrected version.)
+- **Gateway login TIMING (key lesson):** logging in TOO EARLY hits IB's overnight
+  server-maintenance window. **02:34 CT (09:30 Berlin / 03:34 ET) → clean single attempt
+  still gets "Server disconnected"** = IB refusing logins that early, NOT our throttle.
+  Working times observed: ~06:30 ET (manual) and the long-standing original 07:30 CT.
+  **Current setting: `MyQuant Gateway Login` = 06:00 CT (13:00 Berlin), Mon–Fri**, plain
+  local trigger (no run_at_ct), StartGateway.bat /INLINE + log. Rationale: after IB's
+  window, ~2.5 h idle buffer before the 08:30 CT open. `config.ini AutoRestartTime=02:00`
+  set 08-10 (out-of-repo). **UNSOLVED:** the Monday case — weekend cold-auth needs a big
+  pre-open buffer, but early enough for that buffer collides with IB's downtime. Solve
+  separately; do not just move the login earlier.
+- **NOTE:** 08-11 the desk MISSED the open (gateway blocked); trades only fired after a
+  manual relaunch ~09:00 CT, all entry_valid=False (contaminated day, filter it out).
+
+**NT8 save-workspace popup — SOLVED structurally (commit 26c5eb95).** The "Save
+workspace 'Massive'?" popups + the "restart aborted, needs a human" Telegram flood all
+came from ONE path: `nt8_watchdog.py` trying to CLOSE a running-but-jammed NT to restart
+it. NT's close dialog can't be reliably auto-answered (`_dismiss_nt_dialogs` misses the
+native Win32 box), so the close hangs → abort → popup on the user.
+- **Fix:** the watchdog now **NEVER auto-closes a running NT** — it only RELAUNCHES NT
+  when it is already DOWN (that path closes nothing → no dialog → no popup; the AddOn L2
+  recorder resumes on its own on relaunch). A running-but-stalled NT gets ONE alert; user
+  restarts manually. `MyQuant NT8 Restart` (the daily-halt restart, the other close-path)
+  stays **Disabled**. Net: no automated path closes a running NT, so the popup can only
+  appear if the USER closes NT. Tradeoff accepted: no auto-recovery of a jammed NT.
+- **Verified:** recording auto-resumes on manual restart — the L2 recorder is an *AddOn*
+  (loads on startup) and `ReopenWorkspaces=false`, so it doesn't even need the workspace.
 
 ---
 
