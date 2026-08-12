@@ -71,29 +71,33 @@ def main() -> int:
           level="alert", dedup="rec_down", cooldown=1800)
     print(f"{now:%H:%M} DEPTH STALLED - NT running={running} desk_hours={desk}")
 
-    if running and desk:
-        # jammed during the session — do NOT auto-restart, it could wipe chart drawings
-        # you are actively working on. You decide.
-        _ping("⚠️ NT8 is up but recording is stalled during DESK HOURS. Not auto-restarting "
-              "(it could lose chart drawings). Restart it yourself when ready, or run "
-              "nt8_maintenance.py.", level="alert", dedup="jam_desk", cooldown=1800)
-        print("  jammed during desk hours -> page only, no auto-restart (protect drawings)")
+    # THE RULE THAT KILLS THE POPUP (2026-08-12): NEVER auto-CLOSE a running NT8.
+    # Closing it triggers the "Save workspace?" dialog, which cannot be reliably
+    # auto-answered — so the close hangs, the restart aborts, and the popup lands on
+    # the user (the whole 08-11/08-12 flood). We ONLY ever RELAUNCH NT when it is
+    # already DOWN — that path closes nothing, shows no popup, and the AddOn L2
+    # recorder resumes on its own once the feed reconnects.
+    if running:
+        # up but recording stalled (jammed): page once, do NOT touch it. The user
+        # restarts manually when ready; recording comes back by itself on relaunch.
+        _ping("⚠️ NT8 is up but recording is STALLED. NOT auto-restarting — restart NT "
+              "yourself when ready (the L2 recorder resumes on its own on relaunch).",
+              level="alert", dedup="jam", cooldown=1800)
+        print("  NT running but stalled -> page only, NEVER auto-close (popup-safe)")
         return 1
 
-    # safe to act: NT is dead (nothing to lose), OR jammed overnight (no one is drawing)
-    why = "NT8 crashed/closed" if not running else "NT8 jammed overnight"
-    _ping(f"🔧 {why} — auto-restarting to resume recording…", level="info",
-          dedup="auto_restart", cooldown=600)
-    print(f"  {why} -> auto-restart")
-    ok = ntm.restart(force_ok=False)     # 120s graceful, workspace-saving, no blind kill
+    # NT is DOWN (crashed/closed): safe to relaunch — nothing to close, no popup.
+    _ping("🔧 NT8 is down — relaunching to resume recording…", level="info",
+          dedup="auto_relaunch", cooldown=600)
+    print("  NT down -> relaunch (no close dialog, no popup)")
+    ok = ntm.restart(force_ok=False)     # NT not running, so restart() skips the close, just relaunches
     if not ok:
-        _ping("🔴 Auto-restart could NOT bring NT8 back cleanly. Needs a human.", level="alert")
+        _ping("🔴 NT8 relaunch could NOT bring it back. Needs a human.", level="alert")
         return 1
-    # verify() watches the depth file grow AND checks the recorder is armed, and pages.
     armed = ntm.verify(wait_s=90)
     if not armed:
-        _ping("🔴 NT8 restarted but the MarketDepthRecorder is NOT recording — enable it in "
-              "Control Center → Strategies. (Auto-enable is not yet trusted.)", level="alert",
+        _ping("🔴 NT8 relaunched but the recorder is NOT recording — enable MarketDepthRecorder "
+              "in Control Center. (Auto-enable is not yet trusted.)", level="alert",
               dedup="not_armed", cooldown=1800)
     return 0 if armed else 1
 
