@@ -1,2 +1,30 @@
 run_at_ct: target 07:30 CT | now 06:30 CT | delta -60min | berlin-chicago 7h | SKIP (other trigger owns this slot)
 run_at_ct: target 07:30 CT | now 07:30 CT | delta +0min | berlin-chicago 7h | RUN: cmd.exe /c C:\IBC\StartGateway.bat /INLINE
+run_at_ct: target 07:30 CT | now 07:30 CT | delta +0min | berlin-chicago 7h | RUN: cmd.exe /c C:\IBC\StartGateway.bat /INLINE
+run_at_ct: target 05:30 CT | now 05:30 CT | delta +0min | berlin-chicago 7h | RUN: cmd.exe /c C:\IBC\StartGateway.bat /INLINE
++==============================================================================
++
++ IBC version 3.24.1
++
++ Running GATEWAY 1045 at Wed 08/12/2026 13:00:01.38
++
++ Diagnostic information is logged in:
++
++ C:\IBC\Logs\IBC-3.24.1_GATEWAY-1045_WEDNESDAY.txt
++
++
++ ** Caution: closing this window will close GATEWAY 1045 **
++
++==============================================================================
++
++ IBC version 3.24.1
++
++ Running GATEWAY 1045 at Thu 08/13/2026 13:00:01.41
++
++ Diagnostic information is logged in:
++
++ C:\IBC\Logs\IBC-3.24.1_GATEWAY-1045_THURSDAY.txt
++
++
++ ** Caution: closing this window will close GATEWAY 1045 **
++

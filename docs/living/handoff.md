@@ -1,6 +1,44 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** August 12, 2026 (S103: gateway cold-auth/throttle saga + NT save-workspace popup solved structurally)
+**Last Updated:** August 13, 2026 (S104: all MenthorQ/MQ automations paused — expired site session; gexlog morning/evening confirmed independent + healthy)
+
+---
+
+## S104 (2026-08-13) — MQ automations paused; gexlog pipeline confirmed unaffected
+
+**All MenthorQ (MQ) automations put ON HOLD (user decision).** We have no working
+MenthorQ site session and cannot re-auth headlessly. Root cause: the shared Playwright
+session `gamma_tracker/auth_state.json` expired — on load the dashboard redirects
+`/charts` → `/login` → Cognito → WordPress, so every MQ scraper times out. Last good data:
+Backtest-tile scraper **2026-07-29**; full harvester **2026-08-04** (folders since are
+created but 0 files — it exits 0 while capturing nothing, so the task result LIES).
+
+**Scheduled tasks DISABLED this session** (all verified `Disabled`):
+- MQ/MenthorQ scrapers: `MyQuant Backtest Levels`, `MyQuant MQ Harvest`, `MyQuant MQ Mine`,
+  `MyQuant Levels Fetch`, `MyQuant Levels DB`, `MyQuant Levels Engine`, `MyQuant Levels History`
+- `MyQuant Gamma Scanner` — confirmed MQ (imports `mq_api`, direct MenthorQ API) → out.
+- Redundancy trim: `MyQuant Desk Watchdog` (plain one-shot; kept `…Live` daemon) and
+  `MyQuant Gameplan` (08:28 duplicate; kept `Gameplan Early` 07:05, same script).
+- Already-disabled, left inert (no telegram since disabled = never run): `QUIN Harvest`,
+  `NT8 Restart`, `Gateway Watchdog`.
+- No live MQ python processes were running — nothing to kill. Nothing deleted; re-enable
+  with `Enable-ScheduledTask`. Full revival needs a fresh MenthorQ login saved to
+  `gamma_tracker/auth_state.json` (must be done at the browser).
+
+**KEPT (verified NOT MenthorQ — do not confuse with MQ):**
+- `MyQuant Sim Daemon` = `options_sim_daemon.py`, the live 15:59 BPS SPX paper-trader off
+  IB/OPRA. (Its two triggers 14:28/15:28 machine = DST belt-and-suspenders, not a dup.)
+- `MyQuant Chain Recorder` = `options_chain_recorder.py`, forward SPXW 0DTE NBBO off IB/OPRA.
+  Exits `1` — not yet diagnosed (clean `--stop` vs gateway issue); left enabled.
+
+**Morning/evening brief = GexLog (gexlog.com), NOT MenthorQ → unaffected by the MQ hold.**
+- Morning: `gexlog_brief.fetch()` called INSIDE `options_gameplan.py` (not a standalone
+  task). Verified live in today's `gameplan_20260813.json`: day_type CHOP, EM 7677–7820,
+  putWall 7725 / callWall 7750, `error=None`. Runs via `Gameplan Early` (07:05 CT, result 0).
+  Strategies (EM-band condor, gexlog wall condors, day-type buckets, WAIT/event-gate) all
+  build off this brief — intact.
+- Evening: `MyQuant Evening Brief` → `gexlog_evening.py` (19:05 CT), result 0, ran today;
+  pushes a Telegram recap = a real ongoing telegram source (independent of MQ).
 
 ---
 

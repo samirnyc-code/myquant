@@ -1,0 +1,948 @@
+{
+  "meta": {
+    "reportType": "evening",
+    "generatedAt": "2026-08-12 07:45 PM ET",
+    "version": "2.0",
+    "dataSource": "tradier"
+  },
+  "risk": {
+    "level": "Moderate",
+    "summary": "Moderate catalyst risk tomorrow. Normal overnight positioning."
+  },
+  "market": {
+    "spx": {
+      "price": 7748.5,
+      "change": 20.3,
+      "changePercent": 0.27,
+      "high": 7766.01,
+      "low": 7737.95,
+      "open": 7765.46
+    },
+    "es": {
+      "price": 7769.75,
+      "change": 22.25,
+      "changePercent": 0.29,
+      "high": 7771.75,
+      "low": 7766.5,
+      "open": 7770.0
+    },
+    "nq": {
+      "price": 29798.5,
+      "change": 172.5,
+      "changePercent": 0.58,
+      "high": 29831.75,
+      "low": 29783.0,
+      "open": 29825.0
+    },
+    "rty": {
+      "price": 3055.6,
+      "change": 20.1,
+      "changePercent": 0.66,
+      "high": 3056.2,
+      "low": 3053.6,
+      "open": 3056.2
+    },
+    "vix": {
+      "price": 14.55,
+      "change": -0.73,
+      "changePercent": -4.78,
+      "high": 15.42,
+      "low": 14.39,
+      "open": 15.28
+    },
+    "global": {
+      "asia": "closed",
+      "europe": "N/A"
+    }
+  },
+  "forecast": {
+    "type": "MIXED / CHOP",
+    "confidence": 55,
+    "factors": {
+      "gamma": {
+        "value": "POSITIVE",
+        "sentiment": "positive",
+        "gex_flip": 7765.0,
+        "gex_flip_raw": 7530.0,
+        "flip_proximity": 16.5,
+        "borderline_regime": true,
+        "gex_method": "gex_weighted",
+        "gex_profile": [
+          {
+            "strike": 7540.0,
+            "net_gex": 78051.0,
+            "call_gex": 404665.0,
+            "put_gex": -326614.0
+          },
+          {
+            "strike": 7545.0,
+            "net_gex": -792518.0,
+            "call_gex": 64842.0,
+            "put_gex": -857361.0
+          },
+          {
+            "strike": 7550.0,
+            "net_gex": -14548712.0,
+            "call_gex": 6935734.0,
+            "put_gex": -21484446.0
+          },
+          {
+            "strike": 7555.0,
+            "net_gex": 1188777.0,
+            "call_gex": 1594042.0,
+            "put_gex": -405265.0
+          },
+          {
+            "strike": 7560.0,
+            "net_gex": -20648700.0,
+            "call_gex": 1322064.0,
+            "put_gex": -21970764.0
+          },
+          {
+            "strike": 7565.0,
+            "net_gex": -235354.0,
+            "call_gex": 384251.0,
+            "put_gex": -619605.0
+          },
+          {
+            "strike": 7570.0,
+            "net_gex": -966632.0,
+            "call_gex": 870569.0,
+            "put_gex": -1837201.0
+          },
+          {
+            "strike": 7575.0,
+            "net_gex": -686849.0,
+            "call_gex": 5362106.0,
+            "put_gex": -6048955.0
+          },
+          {
+            "strike": 7580.0,
+            "net_gex": -2103775.0,
+            "call_gex": 2391964.0,
+            "put_gex": -4495739.0
+          },
+          {
+            "strike": 7585.0,
+            "net_gex": -3950583.0,
+            "call_gex": 360236.0,
+            "put_gex": -4310818.0
+          },
+          {
+            "strike": 7590.0,
+            "net_gex": -10057776.0,
+            "call_gex": 1729130.0,
+            "put_gex": -11786906.0
+          },
+          {
+            "strike": 7595.0,
+            "net_gex": -10342362.0,
+            "call_gex": 243759.0,
+            "put_gex": -10586121.0
+          },
+          {
+            "strike": 7600.0,
+            "net_gex": -7102644.0,
+            "call_gex": 12923449.0,
+            "put_gex": -20026093.0
+          },
+          {
+            "strike": 7605.0,
+            "net_gex": -4337236.0,
+            "call_gex": 1235608.0,
+            "put_gex": -5572843.0
+          },
+          {
+            "strike": 7610.0,
+            "net_gex": -5148366.0,
+            "call_gex": 5266043.0,
+            "put_gex": -10414409.0
+          },
+          {
+            "strike": 7615.0,
+            "net_gex": -3517099.0,
+            "call_gex": 1706316.0,
+            "put_gex": -5223415.0
+          },
+          {
+            "strike": 7620.0,
+            "net_gex": -6368964.0,
+            "call_gex": 12084701.0,
+            "put_gex": -18453665.0
+          },
+          {
+            "strike": 7625.0,
+            "net_gex": -17264887.0,
+            "call_gex": 6355755.0,
+            "put_gex": -23620643.0
+          },
+          {
+            "strike": 7630.0,
+            "net_gex": -9003486.0,
+            "call_gex": 5910264.0,
+            "put_gex": -14913750.0
+          },
+          {
+            "strike": 7635.0,
+            "net_gex": -4412885.0,
+            "call_gex": 2710772.0,
+            "put_gex": -7123657.0
+          },
+          {
+            "strike": 7640.0,
+            "net_gex": -9734764.0,
+            "call_gex": 16781571.0,
+            "put_gex": -26516336.0
+          },
+          {
+            "strike": 7645.0,
+            "net_gex": -19885000.0,
+            "call_gex": 2402771.0,
+            "put_gex": -22287771.0
+          },
+          {
+            "strike": 7650.0,
+            "net_gex": -43541667.0,
+            "call_gex": 25423021.0,
+            "put_gex": -68964687.0
+          },
+          {
+            "strike": 7655.0,
+            "net_gex": -25435029.0,
+            "call_gex": 1496178.0,
+            "put_gex": -26931207.0
+          },
+          {
+            "strike": 7660.0,
+            "net_gex": -142018048.0,
+            "call_gex": 45843571.0,
+            "put_gex": -187861620.0
+          },
+          {
+            "strike": 7665.0,
+            "net_gex": -14510286.0,
+            "call_gex": 7939591.0,
+            "put_gex": -22449877.0
+          },
+          {
+            "strike": 7670.0,
+            "net_gex": -18516105.0,
+            "call_gex": 54776812.0,
+            "put_gex": -73292917.0
+          },
+          {
+            "strike": 7675.0,
+            "net_gex": 26282783.0,
+            "call_gex": 106514437.0,
+            "put_gex": -80231654.0
+          },
+          {
+            "strike": 7680.0,
+            "net_gex": 28032327.0,
+            "call_gex": 91636710.0,
+            "put_gex": -63604383.0
+          },
+          {
+            "strike": 7685.0,
+            "net_gex": -69165219.0,
+            "call_gex": 4755109.0,
+            "put_gex": -73920327.0
+          },
+          {
+            "strike": 7690.0,
+            "net_gex": -18825908.0,
+            "call_gex": 31617871.0,
+            "put_gex": -50443779.0
+          },
+          {
+            "strike": 7695.0,
+            "net_gex": 3481076.0,
+            "call_gex": 49270612.0,
+            "put_gex": -45789536.0
+          },
+          {
+            "strike": 7700.0,
+            "net_gex": 5052303.0,
+            "call_gex": 241618965.0,
+            "put_gex": -236566662.0
+          },
+          {
+            "strike": 7705.0,
+            "net_gex": -84730995.0,
+            "call_gex": 25944762.0,
+            "put_gex": -110675757.0
+          },
+          {
+            "strike": 7710.0,
+            "net_gex": -7951599.0,
+            "call_gex": 68672897.0,
+            "put_gex": -76624495.0
+          },
+          {
+            "strike": 7715.0,
+            "net_gex": -15850363.0,
+            "call_gex": 53098715.0,
+            "put_gex": -68949077.0
+          },
+          {
+            "strike": 7720.0,
+            "net_gex": -74022994.0,
+            "call_gex": 115579763.0,
+            "put_gex": -189602758.0
+          },
+          {
+            "strike": 7725.0,
+            "net_gex": -16880636.0,
+            "call_gex": 266338926.0,
+            "put_gex": -283219562.0
+          },
+          {
+            "strike": 7730.0,
+            "net_gex": -115628996.0,
+            "call_gex": 78264167.0,
+            "put_gex": -193893163.0
+          },
+          {
+            "strike": 7735.0,
+            "net_gex": -70550324.0,
+            "call_gex": 137869336.0,
+            "put_gex": -208419660.0
+          },
+          {
+            "strike": 7740.0,
+            "net_gex": 181750824.0,
+            "call_gex": 319199885.0,
+            "put_gex": -137449061.0
+          },
+          {
+            "strike": 7745.0,
+            "net_gex": -10033159.0,
+            "call_gex": 127480144.0,
+            "put_gex": -137513303.0
+          },
+          {
+            "strike": 7750.0,
+            "net_gex": 146021465.0,
+            "call_gex": 673388245.0,
+            "put_gex": -527366780.0
+          },
+          {
+            "strike": 7755.0,
+            "net_gex": 66637566.0,
+            "call_gex": 182344613.0,
+            "put_gex": -115707047.0
+          },
+          {
+            "strike": 7760.0,
+            "net_gex": 341272716.0,
+            "call_gex": 504464207.0,
+            "put_gex": -163191491.0
+          },
+          {
+            "strike": 7765.0,
+            "net_gex": 154076331.0,
+            "call_gex": 238846953.0,
+            "put_gex": -84770621.0
+          },
+          {
+            "strike": 7770.0,
+            "net_gex": 144331961.0,
+            "call_gex": 201957035.0,
+            "put_gex": -57625074.0
+          },
+          {
+            "strike": 7775.0,
+            "net_gex": 285998179.0,
+            "call_gex": 329195820.0,
+            "put_gex": -43197642.0
+          },
+          {
+            "strike": 7780.0,
+            "net_gex": 98351500.0,
+            "call_gex": 128440772.0,
+            "put_gex": -30089272.0
+          },
+          {
+            "strike": 7785.0,
+            "net_gex": 84897904.0,
+            "call_gex": 102117762.0,
+            "put_gex": -17219858.0
+          },
+          {
+            "strike": 7790.0,
+            "net_gex": 77313746.0,
+            "call_gex": 112969857.0,
+            "put_gex": -35656111.0
+          },
+          {
+            "strike": 7795.0,
+            "net_gex": 84102985.0,
+            "call_gex": 88741017.0,
+            "put_gex": -4638032.0
+          },
+          {
+            "strike": 7800.0,
+            "net_gex": 297881748.0,
+            "call_gex": 423773853.0,
+            "put_gex": -125892105.0
+          },
+          {
+            "strike": 7805.0,
+            "net_gex": 46481188.0,
+            "call_gex": 52350025.0,
+            "put_gex": -5868837.0
+          },
+          {
+            "strike": 7810.0,
+            "net_gex": 211890529.0,
+            "call_gex": 218014533.0,
+            "put_gex": -6124004.0
+          },
+          {
+            "strike": 7815.0,
+            "net_gex": 67605399.0,
+            "call_gex": 73077376.0,
+            "put_gex": -5471977.0
+          },
+          {
+            "strike": 7820.0,
+            "net_gex": 278464454.0,
+            "call_gex": 278921953.0,
+            "put_gex": -457499.0
+          },
+          {
+            "strike": 7825.0,
+            "net_gex": 97509750.0,
+            "call_gex": 108504137.0,
+            "put_gex": -10994388.0
+          },
+          {
+            "strike": 7830.0,
+            "net_gex": 101719702.0,
+            "call_gex": 104077443.0,
+            "put_gex": -2357741.0
+          },
+          {
+            "strike": 7835.0,
+            "net_gex": 27807180.0,
+            "call_gex": 28749796.0,
+            "put_gex": -942616.0
+          },
+          {
+            "strike": 7840.0,
+            "net_gex": 22678026.0,
+            "call_gex": 23396696.0,
+            "put_gex": -718670.0
+          },
+          {
+            "strike": 7845.0,
+            "net_gex": 14727629.0,
+            "call_gex": 14793672.0,
+            "put_gex": -66043.0
+          },
+          {
+            "strike": 7850.0,
+            "net_gex": 52529543.0,
+            "call_gex": 52640015.0,
+            "put_gex": -110472.0
+          },
+          {
+            "strike": 7855.0,
+            "net_gex": 8841380.0,
+            "call_gex": 8930238.0,
+            "put_gex": -88858.0
+          },
+          {
+            "strike": 7860.0,
+            "net_gex": 15601800.0,
+            "call_gex": 15711672.0,
+            "put_gex": -109872.0
+          },
+          {
+            "strike": 7865.0,
+            "net_gex": 9561251.0,
+            "call_gex": 9561251.0,
+            "put_gex": 0
+          },
+          {
+            "strike": 7870.0,
+            "net_gex": 7709040.0,
+            "call_gex": 8333448.0,
+            "put_gex": -624408.0
+          },
+          {
+            "strike": 7875.0,
+            "net_gex": 33911370.0,
+            "call_gex": 33911370.0,
+            "put_gex": 0
+          },
+          {
+            "strike": 7880.0,
+            "net_gex": 7247939.0,
+            "call_gex": 7579355.0,
+            "put_gex": -331417.0
+          },
+          {
+            "strike": 7885.0,
+            "net_gex": 7554139.0,
+            "call_gex": 7554139.0,
+            "put_gex": 0
+          },
+          {
+            "strike": 7890.0,
+            "net_gex": 3252927.0,
+            "call_gex": 3252927.0,
+            "put_gex": 0
+          },
+          {
+            "strike": 7895.0,
+            "net_gex": 2515645.0,
+            "call_gex": 2575684.0,
+            "put_gex": -60039.0
+          },
+          {
+            "strike": 7900.0,
+            "net_gex": 8850987.0,
+            "call_gex": 8893014.0,
+            "put_gex": -42027.0
+          },
+          {
+            "strike": 7905.0,
+            "net_gex": 702459.0,
+            "call_gex": 702459.0,
+            "put_gex": 0
+          },
+          {
+            "strike": 7910.0,
+            "net_gex": 1412123.0,
+            "call_gex": 1419328.0,
+            "put_gex": -7205.0
+          },
+          {
+            "strike": 7915.0,
+            "net_gex": 280984.0,
+            "call_gex": 280984.0,
+            "put_gex": 0
+          },
+          {
+            "strike": 7920.0,
+            "net_gex": 567971.0,
+            "call_gex": 571574.0,
+            "put_gex": -3602.0
+          },
+          {
+            "strike": 7925.0,
+            "net_gex": 1137744.0,
+            "call_gex": 1137744.0,
+            "put_gex": 0
+          },
+          {
+            "strike": 7930.0,
+            "net_gex": 782912.0,
+            "call_gex": 782912.0,
+            "put_gex": 0
+          },
+          {
+            "strike": 7935.0,
+            "net_gex": 371643.0,
+            "call_gex": 371643.0,
+            "put_gex": 0
+          }
+        ],
+        "net_gex": 2180971468.0,
+        "gex_zero_gamma": 7724.31,
+        "gex_spot_override": false,
+        "gex_spot_ref": 7748.5
+      },
+      "gap": {
+        "value": "N/A (evening)",
+        "sentiment": "neutral"
+      },
+      "volatility": {
+        "value": "VIX 14.6",
+        "sentiment": "positive"
+      },
+      "calendar": {
+        "value": "3/5 MOD",
+        "sentiment": "neutral"
+      }
+    }
+  },
+  "levels": {
+    "pivotSource": "today_session_ohlc",
+    "r2": 7778.88,
+    "r1": 7763.69,
+    "current": 7748.5,
+    "s1": 7735.63,
+    "s2": 7722.76,
+    "putWall": 7725.0,
+    "callWall": 7750.0,
+    "expectedMove": 71.0
+  },
+  "catalysts": {
+    "today": [
+      {
+        "time": "Session",
+        "title": "Market closed",
+        "impact": "low"
+      }
+    ],
+    "tomorrow": [
+      {
+        "time": "08:15",
+        "title": "Fed Hammack Speech",
+        "impact": "medium",
+        "category": "fed"
+      },
+      {
+        "time": "08:30",
+        "title": "Jobless Claims 4-Week Average (Aug/08)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "PPI Ex Food, Energy and Trade MoM (Jul)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Core PPI MoM (Jul)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Continuing Jobless Claims (Aug/01)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Producer Price Index YoY (Jul)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Producer Price Index (Jul)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Initial Jobless Claims (Aug/08)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Producer Price Index MoM (Jul)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Core PPI YoY (Jul)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "PPI Ex Food, Energy and Trade YoY (Jul)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "08:40",
+        "title": "Fed Barkin Speech",
+        "impact": "medium",
+        "category": "fed"
+      },
+      {
+        "time": "13:00",
+        "title": "30-Year Bond Auction",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "16:30",
+        "title": "Fed Balance Sheet (Aug/12)",
+        "impact": "low",
+        "category": "fed"
+      }
+    ],
+    "week": [
+      {
+        "time": "08:30",
+        "title": "Import Prices YoY (Jul)",
+        "impact": "low",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Import Prices MoM (Jul)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Export Prices MoM (Jul)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Building Permits MoM (Jul)",
+        "impact": "low",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Housing Starts MoM (Jul)",
+        "impact": "low",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Housing Starts (Jul)",
+        "impact": "low",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Export Prices YoY (Jul)",
+        "impact": "low",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Building Permits (Jul)",
+        "impact": "low",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "NY Empire State Manufacturing Index (Aug)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Retail Sales YoY (Jul)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Retail Sales Ex Autos MoM (Jul)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Retail Sales MoM (Jul)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Retail Sales Ex Gas/Autos MoM (Jul)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "09:15",
+        "title": "Manufacturing Production MoM (Jul)",
+        "impact": "low",
+        "category": "economic"
+      },
+      {
+        "time": "09:15",
+        "title": "Manufacturing Production YoY (Jul)",
+        "impact": "low",
+        "category": "economic"
+      },
+      {
+        "time": "09:15",
+        "title": "Industrial Production YoY (Jul)",
+        "impact": "low",
+        "category": "economic"
+      },
+      {
+        "time": "09:15",
+        "title": "Capacity Utilization (Jul)",
+        "impact": "low",
+        "category": "economic"
+      },
+      {
+        "time": "09:15",
+        "title": "Industrial Production MoM (Jul)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "10:00",
+        "title": "Pending Home Sales MoM (Jul)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "10:00",
+        "title": "Pending Home Sales YoY (Jul)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "10:00",
+        "title": "NAHB Housing Market Index (Aug)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "10:00",
+        "title": "Michigan Consumer Sentiment (Aug)",
+        "impact": "high",
+        "category": "economic"
+      },
+      {
+        "time": "10:00",
+        "title": "Michigan 5 Year Inflation Expectations (Aug)",
+        "impact": "low",
+        "category": "economic"
+      },
+      {
+        "time": "10:00",
+        "title": "Michigan 1 Year Inflation Expectations (Aug)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "10:00",
+        "title": "Michigan Consumer Expectations (Aug)",
+        "impact": "low",
+        "category": "economic"
+      },
+      {
+        "time": "10:00",
+        "title": "Michigan Current Conditions (Aug)",
+        "impact": "low",
+        "category": "economic"
+      },
+      {
+        "time": "10:00",
+        "title": "Michigan Inflation Expectations (Aug)",
+        "impact": "low",
+        "category": "economic"
+      },
+      {
+        "time": "10:00",
+        "title": "Business Inventories MoM (Jun)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "13:00",
+        "title": "20-Year Bond Auction",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "14:00",
+        "title": "FOMC Minutes",
+        "impact": "high",
+        "category": "fed"
+      },
+      {
+        "time": "16:00",
+        "title": "Foreign Bond Investment (Jun)",
+        "impact": "low",
+        "category": "economic"
+      },
+      {
+        "time": "16:00",
+        "title": "Net Long-Term TIC Flows (Jun)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "16:00",
+        "title": "Overall Net Capital Flows (Jun)",
+        "impact": "low",
+        "category": "economic"
+      }
+    ]
+  },
+  "lookAhead": {
+    "tomorrow": {
+      "risk": "Moderate",
+      "reason": "Several events scheduled. Stay nimble."
+    },
+    "week": {
+      "risk": "Elevated",
+      "reason": "Coming up: Michigan Consumer Sentiment (Aug), FOMC Minutes. Position sizing appropriately."
+    }
+  },
+  "guidance": {
+    "signal": "Caution",
+    "message": "ASSESS OVERNIGHT RISK",
+    "notes": "Moderate conditions. Overnight positions acceptable with awareness of tomorrow's calendar."
+  },
+  "session_analysis": {
+    "spx_change": 0.27,
+    "vix_change": -4.78,
+    "forecast_accurate": false,
+    "expected_move_hit": true,
+    "session_type": "RANGE BOUND"
+  },
+  "notes": "# Evening Derivatives Strategy Recap\n### Wednesday, August 12, 2026 | Post-Close\n\n---\n\n## Session Flow: Rotation Over Trend, Containment Over Breakout\n\nToday's session was defined by **sector rotation and positioning ahead of tomorrow's data slate**, not a directional macro shock or earnings-driven catalyst. The SPX closed at **7,748.50 (+0.27%)** on a session range of just **0.36%** (High: 7,766.01 / Low: 7,737.95), characteristic of a tape that was mechanically pinned \u2014 not one expressing genuine directional conviction. Beneath the headline, the story was Nasdaq modestly outperforming (+0.54%), the Dow flat to slightly lower (-0.04%), and Russell 2000 leading (+0.61%), suggesting rotation *within* risk rather than a broad risk-on or risk-off impulse. News context points to traders trimming heavyweight tech exposure ahead of tomorrow's PPI print, with Iran/Hormuz geopolitical uncertainty providing a modest macro overhang that kept any rally attempt from gaining clean traction.\n\n**The most important structural observation: the regime flipped intraday.** The morning opened in a **NEGATIVE gamma** environment. It closed in a **POSITIVE gamma** regime. That flip is the lead story for how tomorrow is set up.\n\n---\n\n## Regime Validation: Morning Call Contradicted \u2014 Regime Flip Is the Story\n\nThe morning forecast called for **HIGH VOLATILITY (70% confidence)** under a **NEGATIVE gamma** regime, implying dealer flows would amplify any directional move. That call was **contradicted by the actual session**, which printed as definitively **RANGE BOUND**.\n\nHere is what happened and why:\n\nThe NEGATIVE gamma morning setup theoretically positioned dealers to *buy rallies and sell dips*, amplifying moves. Instead, the session range compressed to 0.36% \u2014 a 28-point absolute range on SPX above 7,700. The most defensible explanation is that the intraday price action held close enough to dealer hedging strike concentrations that the regime migrated toward neutral and ultimately flipped **POSITIVE** by the close. SPX never built sustained momentum in either direction, and with VIX collapsing nearly 5%, realized vol undershot implied vol materially \u2014 a hallmark of dealer long-gamma absorption kicking in as the regime transitioned.\n\n**The closing regime is now POSITIVE GAMMA.** In a positive gamma environment, dealers are net long options and hedge by selling into strength and buying into weakness. That dynamic is what dampened today's session character as the flip took hold intraday.\n\n**Caveat \u2014 and this is critical:** SPX closed at **7,748.50**, and the GEX flip level sits at approximately **7,765.00** \u2014 just **16.5 points overhead**. Per the regime classification, this is **BORDERLINE**. Do not read this as a firmly entrenched positive gamma environment. The structural support from dealer flows exists, but the margin is thin.\n\n---\n\n## VIX / Gamma Interplay: Confirmation with a Nuance\n\nVIX closed at **14.55, down 4.78%**, which directionally confirmed SPX's modest green close \u2014 a well-behaved vol compression on a quiet up-day. The magnitude of the VIX decline relative to the SPX gain (+0.27%) was notable: a near-5% vol crush on a sub-0.3% index move indicates the market is aggressively pricing out near-term tail risk, not just tracking realized vol lower.\n\nThe interpretation here is dual-edged:\n\n- **Constructive read:** As the gamma regime flipped from negative to positive intraday, the reduction in dealer short-gamma exposure removes a mechanical amplifier. Tighter ranges and lower implied vol are the natural output.\n- **Cautionary read:** At **VIX 14.55** with SPY RSI at **68** (approaching overbought) and price sitting **+3.3% above the 50-SMA and +9.7% above the 200-SMA**, the market is buying vol compression at extended valuations heading into a catalyst-dense morning. That is a setup where asymmetric tail risk is cheap in absolute terms but proximity to technical resistance makes directionality sensitive to data outcomes.\n\nSector data reinforces the defensive posture embedded in today's tape: **Real Estate (+1.2%) and Consumer Defensive (+1.1%) led**, while **Consumer Cyclical (-1.3%) and Basic Materials (-1.6%) lagged**. The bond market cooperated \u2014 10Y yields fell 2bps to **4.68%** \u2014 providing a modest tailwind to rate-sensitive sectors. This is not a sector rotation story consistent with accelerating growth expectations; it reads more like mild risk management into the data.\n\n---\n\n## Tomorrow's Setup: Borderline Regime, Dense 08:30 Catalyst Stack, Thin Margin at the Flip\n\n**Key Levels for Thursday, August 13:**\n\n| Level | Value | Context |\n|---|---|---|\n| Call Wall | 7,750.0 | SPX closed directly at/just below \u2014 a structural ceiling |\n| R1 | 7,763.69 | First resistance above the Call Wall |\n| R2 / GEX Flip Zone | 7,778.88 / ~7,765 | Flip zone sits between R1 and R2 \u2014 breakout threshold |\n| S1 | 7,735.63 | First meaningful support below |\n| Put Wall | 7,725.0 | Structural floor; dealer support concentrated here |\n| S2 | 7,722.76 | Confluence zone with Put Wall |\n| Expected Move | \u00b171.0 | Full range: ~7,677 to ~7,819 |\n\n**SPX closed at 7,748.50 \u2014 essentially sitting on the Call Wall (7,750.00).** That level is the first thing to watch at tomorrow's open. In a positive gamma regime, the Call Wall acts as a gravitational ceiling \u2014 dealer hedging behavior (selling into strength, buying into weakness) mechanically suppresses breakouts above it. However, if PPI data surprises to the downside on inflation and drives an impulsive rally through 7,750 toward **7,763.69 (R1)** and then **~7,765 (the GEX flip zone)**, the regime becomes vulnerable.\n\n**A sustained print above 7,765 risks flipping the regime back to NEGATIVE GAMMA**, at which point the mechanical character of the session would reverse: dealer flows would amplify the move higher rather than contain it, and the 7,778.88 (R2) level would become the next magnet. This is the key binary for tomorrow's positioning.\n\n**Catalyst stack hits at 08:15 and 08:30 ET \u2014 before the open:**\n\n- **Fed's Hammack (08:15 ET):** A hawkish tilt on rates could pressure the long end, clip the real estate/defensive rotation, and add volatility ahead of the data print 15 minutes later.\n- **Core PPI MoM / PPI Ex Food, Energy & Trade (08:30 ET):** The highest-impact data print of the session. Today's news context noted \"easing inflation\" and \"inflation relief\" as session themes following CPI; if PPI confirms the disinflationary impulse, expect a test of the Call Wall and the R1/flip zone. A hot PPI reading that reverberates through rate markets (10Y above 4.70%) would pressure SPX toward S1 (7,735.63) and potentially the Put Wall (7,725.00).\n- **Jobless Claims data (08:30 ET):** Secondary to PPI in current macro context, but a significant miss in either direction compounds the vol event at the open.\n\nThe week carries **elevated risk** with Michigan Consumer Sentiment and FOMC Minutes still ahead.\n\n---\n\n## Strategy Implications: Precision Over Position Size\n\n**Current Regime: Borderline POSITIVE GAMMA \u2014 treat as transitional, not anchored.**\n\nWith SPX pinned at the Call Wall in a borderline positive gamma environment heading into a dense pre-market catalyst stack, the strategy landscape is asymmetric and requires defined risk above all else.\n\n**If the positive gamma regime holds through tomorrow's session (SPX remains below ~7,765):**\nDealer hedging \u2014 selling into strength, buying weakness \u2014 mechanically compresses the range. The Call Wall at 7,750 and Put Wall at 7,725 define the likely gravitational bounds. In this environment, **income structures** are structurally aligned: **iron condors or neutral credit spreads** anchored between the walls fit the regime's dampening character. The \u00b171 expected move provides the outer boundary for wing placement.\n\n**If PPI/data breaks SPX above 7,765 and the regime flips NEGATIVE GAMMA:**\nThe mechanical character inverts. Dealer flows would amplify the move \u2014 buying rallies, selling weakness \u2014 making this a trending, momentum-driven session. In that scenario, **defined-risk directional structures** (call debit spreads targeting R2 at 7,778.88 or above) become the appropriate vehicle. Do not size these aggressively; with SPY RSI at 68 and price extended well above both moving averages, the technical case for chasing breakouts is limited even in a negative gamma tape.\n\n**On the downside:** S1 at **7,735.63** and the Put Wall at **7,725.00** represent the key support cluster. A hot PPI print that reverses today's vol compression would likely re-price VIX higher rapidly, and dealer flows in a positive regime would partially cushion the decline \u2014 but only down to the Put Wall. Below 7,725, the structural bid thins.\n\n**Position sizing note:** With FOMC Minutes and Michigan Consumer Sentiment still ahead this week and the regime in a genuinely transitional state, risk units should remain below normal. Tomorrow's session has the potential to produce a clean, contained range \u2014 or to be the inflection session for a regime shift. That uncertainty is not priced aggressively in VIX at 14.55, which makes options defensively cheap for tail hedges heading into the data.\n\n---\n\n*This recap is intended for professional use only. All levels are derived from closing GEX modeling and should be updated at tomorrow's open as the options chain reprices. Regime classifications are dynamic and subject to intraday revision.*",
+  "ai_narrative_claude": "# Evening Derivatives Strategy Recap\n### Wednesday, August 12, 2026 | Post-Close\n\n---\n\n## Session Flow: Rotation Over Trend, Containment Over Breakout\n\nToday's session was defined by **sector rotation and positioning ahead of tomorrow's data slate**, not a directional macro shock or earnings-driven catalyst. The SPX closed at **7,748.50 (+0.27%)** on a session range of just **0.36%** (High: 7,766.01 / Low: 7,737.95), characteristic of a tape that was mechanically pinned \u2014 not one expressing genuine directional conviction. Beneath the headline, the story was Nasdaq modestly outperforming (+0.54%), the Dow flat to slightly lower (-0.04%), and Russell 2000 leading (+0.61%), suggesting rotation *within* risk rather than a broad risk-on or risk-off impulse. News context points to traders trimming heavyweight tech exposure ahead of tomorrow's PPI print, with Iran/Hormuz geopolitical uncertainty providing a modest macro overhang that kept any rally attempt from gaining clean traction.\n\n**The most important structural observation: the regime flipped intraday.** The morning opened in a **NEGATIVE gamma** environment. It closed in a **POSITIVE gamma** regime. That flip is the lead story for how tomorrow is set up.\n\n---\n\n## Regime Validation: Morning Call Contradicted \u2014 Regime Flip Is the Story\n\nThe morning forecast called for **HIGH VOLATILITY (70% confidence)** under a **NEGATIVE gamma** regime, implying dealer flows would amplify any directional move. That call was **contradicted by the actual session**, which printed as definitively **RANGE BOUND**.\n\nHere is what happened and why:\n\nThe NEGATIVE gamma morning setup theoretically positioned dealers to *buy rallies and sell dips*, amplifying moves. Instead, the session range compressed to 0.36% \u2014 a 28-point absolute range on SPX above 7,700. The most defensible explanation is that the intraday price action held close enough to dealer hedging strike concentrations that the regime migrated toward neutral and ultimately flipped **POSITIVE** by the close. SPX never built sustained momentum in either direction, and with VIX collapsing nearly 5%, realized vol undershot implied vol materially \u2014 a hallmark of dealer long-gamma absorption kicking in as the regime transitioned.\n\n**The closing regime is now POSITIVE GAMMA.** In a positive gamma environment, dealers are net long options and hedge by selling into strength and buying into weakness. That dynamic is what dampened today's session character as the flip took hold intraday.\n\n**Caveat \u2014 and this is critical:** SPX closed at **7,748.50**, and the GEX flip level sits at approximately **7,765.00** \u2014 just **16.5 points overhead**. Per the regime classification, this is **BORDERLINE**. Do not read this as a firmly entrenched positive gamma environment. The structural support from dealer flows exists, but the margin is thin.\n\n---\n\n## VIX / Gamma Interplay: Confirmation with a Nuance\n\nVIX closed at **14.55, down 4.78%**, which directionally confirmed SPX's modest green close \u2014 a well-behaved vol compression on a quiet up-day. The magnitude of the VIX decline relative to the SPX gain (+0.27%) was notable: a near-5% vol crush on a sub-0.3% index move indicates the market is aggressively pricing out near-term tail risk, not just tracking realized vol lower.\n\nThe interpretation here is dual-edged:\n\n- **Constructive read:** As the gamma regime flipped from negative to positive intraday, the reduction in dealer short-gamma exposure removes a mechanical amplifier. Tighter ranges and lower implied vol are the natural output.\n- **Cautionary read:** At **VIX 14.55** with SPY RSI at **68** (approaching overbought) and price sitting **+3.3% above the 50-SMA and +9.7% above the 200-SMA**, the market is buying vol compression at extended valuations heading into a catalyst-dense morning. That is a setup where asymmetric tail risk is cheap in absolute terms but proximity to technical resistance makes directionality sensitive to data outcomes.\n\nSector data reinforces the defensive posture embedded in today's tape: **Real Estate (+1.2%) and Consumer Defensive (+1.1%) led**, while **Consumer Cyclical (-1.3%) and Basic Materials (-1.6%) lagged**. The bond market cooperated \u2014 10Y yields fell 2bps to **4.68%** \u2014 providing a modest tailwind to rate-sensitive sectors. This is not a sector rotation story consistent with accelerating growth expectations; it reads more like mild risk management into the data.\n\n---\n\n## Tomorrow's Setup: Borderline Regime, Dense 08:30 Catalyst Stack, Thin Margin at the Flip\n\n**Key Levels for Thursday, August 13:**\n\n| Level | Value | Context |\n|---|---|---|\n| Call Wall | 7,750.0 | SPX closed directly at/just below \u2014 a structural ceiling |\n| R1 | 7,763.69 | First resistance above the Call Wall |\n| R2 / GEX Flip Zone | 7,778.88 / ~7,765 | Flip zone sits between R1 and R2 \u2014 breakout threshold |\n| S1 | 7,735.63 | First meaningful support below |\n| Put Wall | 7,725.0 | Structural floor; dealer support concentrated here |\n| S2 | 7,722.76 | Confluence zone with Put Wall |\n| Expected Move | \u00b171.0 | Full range: ~7,677 to ~7,819 |\n\n**SPX closed at 7,748.50 \u2014 essentially sitting on the Call Wall (7,750.00).** That level is the first thing to watch at tomorrow's open. In a positive gamma regime, the Call Wall acts as a gravitational ceiling \u2014 dealer hedging behavior (selling into strength, buying into weakness) mechanically suppresses breakouts above it. However, if PPI data surprises to the downside on inflation and drives an impulsive rally through 7,750 toward **7,763.69 (R1)** and then **~7,765 (the GEX flip zone)**, the regime becomes vulnerable.\n\n**A sustained print above 7,765 risks flipping the regime back to NEGATIVE GAMMA**, at which point the mechanical character of the session would reverse: dealer flows would amplify the move higher rather than contain it, and the 7,778.88 (R2) level would become the next magnet. This is the key binary for tomorrow's positioning.\n\n**Catalyst stack hits at 08:15 and 08:30 ET \u2014 before the open:**\n\n- **Fed's Hammack (08:15 ET):** A hawkish tilt on rates could pressure the long end, clip the real estate/defensive rotation, and add volatility ahead of the data print 15 minutes later.\n- **Core PPI MoM / PPI Ex Food, Energy & Trade (08:30 ET):** The highest-impact data print of the session. Today's news context noted \"easing inflation\" and \"inflation relief\" as session themes following CPI; if PPI confirms the disinflationary impulse, expect a test of the Call Wall and the R1/flip zone. A hot PPI reading that reverberates through rate markets (10Y above 4.70%) would pressure SPX toward S1 (7,735.63) and potentially the Put Wall (7,725.00).\n- **Jobless Claims data (08:30 ET):** Secondary to PPI in current macro context, but a significant miss in either direction compounds the vol event at the open.\n\nThe week carries **elevated risk** with Michigan Consumer Sentiment and FOMC Minutes still ahead.\n\n---\n\n## Strategy Implications: Precision Over Position Size\n\n**Current Regime: Borderline POSITIVE GAMMA \u2014 treat as transitional, not anchored.**\n\nWith SPX pinned at the Call Wall in a borderline positive gamma environment heading into a dense pre-market catalyst stack, the strategy landscape is asymmetric and requires defined risk above all else.\n\n**If the positive gamma regime holds through tomorrow's session (SPX remains below ~7,765):**\nDealer hedging \u2014 selling into strength, buying weakness \u2014 mechanically compresses the range. The Call Wall at 7,750 and Put Wall at 7,725 define the likely gravitational bounds. In this environment, **income structures** are structurally aligned: **iron condors or neutral credit spreads** anchored between the walls fit the regime's dampening character. The \u00b171 expected move provides the outer boundary for wing placement.\n\n**If PPI/data breaks SPX above 7,765 and the regime flips NEGATIVE GAMMA:**\nThe mechanical character inverts. Dealer flows would amplify the move \u2014 buying rallies, selling weakness \u2014 making this a trending, momentum-driven session. In that scenario, **defined-risk directional structures** (call debit spreads targeting R2 at 7,778.88 or above) become the appropriate vehicle. Do not size these aggressively; with SPY RSI at 68 and price extended well above both moving averages, the technical case for chasing breakouts is limited even in a negative gamma tape.\n\n**On the downside:** S1 at **7,735.63** and the Put Wall at **7,725.00** represent the key support cluster. A hot PPI print that reverses today's vol compression would likely re-price VIX higher rapidly, and dealer flows in a positive regime would partially cushion the decline \u2014 but only down to the Put Wall. Below 7,725, the structural bid thins.\n\n**Position sizing note:** With FOMC Minutes and Michigan Consumer Sentiment still ahead this week and the regime in a genuinely transitional state, risk units should remain below normal. Tomorrow's session has the potential to produce a clean, contained range \u2014 or to be the inflection session for a regime shift. That uncertainty is not priced aggressively in VIX at 14.55, which makes options defensively cheap for tail hedges heading into the data.\n\n---\n\n*This recap is intended for professional use only. All levels are derived from closing GEX modeling and should be updated at tomorrow's open as the options chain reprices. Regime classifications are dynamic and subject to intraday revision.*",
+  "ai_narrative_gemini": "**EVENING MACRO & DERIVATIVES RECAP**\n**Wednesday, August 12, 2026**\n\n**1. Session Flow & Regime Validation**\nThis morning\u2019s forecast anticipated a High Volatility session operating under a Negative Gamma regime. This call was aggressively contradicted by today\u2019s tape. Instead of momentum and expansion, the S&P 500 ground out a highly compressed 0.36% intraday range, closing modestly higher at 7748.5 (+0.27%). The primary driver was a transition back into a Positive Gamma environment, where dealer hedging behavior (long options) actively dampened price movement. Market makers were structurally forced to sell rallies and buy dips, neutralizing macro flows following earlier inflation data. Beneath the index surface, the tape was characterized by defensive rotation, with Real Estate (+1.2%) and Consumer Defensive (+1.1%) leading, while Consumer Cyclical (-1.3%) and Basic Materials (-1.6%) lagged.\n\n**2. VIX & Dealer Interplay**\nVolatility markets confirmed the suppression of realized movement. The VIX dropped 4.78% to close at 14.55. With dealers back in a long gamma posture, their intraday liquidity provision kept the index pinned near the heavily monetized 7750 strike. The compression in implied volatility aligns perfectly with the range-bound index action and the defensive sector rotation we observed. \n\n**3. Tomorrow\u2019s Setup & Key Levels**\nWe close today in a **POSITIVE GAMMA** regime, but we must emphasize a critical caveat: this regime is borderline. Spot (7748.5) sits just 16.5 points below a key transitional GEX pivot at 7765.0. Therefore, the positive gamma label should not be treated as firmly entrenched. \n\n*   **Upside:** The 7750.0 Call Wall is our immediate magnet and resistance. If bulls push through this, the 7765.0 GEX transition zone and R1 (7763.69) will determine if the regime holds. R2 sits at 7778.88.\n*   **Downside:** Support rests at the 7725.0 Put Wall, backed by S1 (7735.63) and S2 (7722.76).\n*   **Catalysts:** Tomorrow morning brings a dense data slate at 08:30 ET, including Core PPI and Jobless Claims, alongside a Fed speech from Hammack at 08:15 ET. The expected move prices in a +/- 71.0 point variance.\n\n**4. Strategy Implications**\nIf the positive gamma regime holds overnight and into tomorrow's data prints, dealers will continue to sell rallies and buy dips, making income-generating structures (iron condors, credit spreads) the preferred tactical approach. However, given the proximity to the 7765.0 transition zone and tomorrow's PPI catalyst, traders must remain nimble. Should the index break cleanly above 7765.0 or slice through the 7725.0 Put Wall, the dampening effects of dealer hedging could abruptly unwind. Position sizing should reflect this structural fragility ahead of tomorrow's macro tape.",
+  "ai_narrative_provider": "claude",
+  "market_context": {
+    "sectors": {
+      "leaders": [
+        {
+          "name": "Real Estate",
+          "change": 1.18
+        },
+        {
+          "name": "Consumer Defensive",
+          "change": 1.14
+        },
+        {
+          "name": "Industrials",
+          "change": 0.94
+        }
+      ],
+      "laggards": [
+        {
+          "name": "Communication Services",
+          "change": -1.05
+        },
+        {
+          "name": "Consumer Cyclical",
+          "change": -1.34
+        },
+        {
+          "name": "Basic Materials",
+          "change": -1.65
+        }
+      ]
+    },
+    "treasury": {
+      "year2": 4.2,
+      "year10": 4.68,
+      "year30": 5.24,
+      "spread_2y10y": 0.48,
+      "change_10y_bp": -2.0
+    },
+    "technical": {
+      "rsi_14": 67.9,
+      "rsi_label": "approaching overbought",
+      "vs_50sma_pct": 3.3,
+      "vs_200sma_pct": 9.73
+    }
+  }
+}
