@@ -241,16 +241,28 @@ namespace NinjaTrader.NinjaScript.AddOns
           }
         }
 
-        // release the finished session file during the 16:00-17:00 halt so depth_rollover can
-        // convert it the same afternoon (identical to the Strategy's halt-timer).
+        // Maintenance timer (every 5s while recording):
+        //   (1) FLUSH the writer so the on-disk file stays fresh. The row-count-only flush
+        //       (every 5000 rows) let the file sit unflushed for MANY MINUTES during thin
+        //       overnight book (as slow as ~318 rows/min => ~15 min per flush). pipeline_health
+        //       / nt8_watchdog judge freshness by the file's mtime, so a lagging flush read as
+        //       "STALLED - data being lost" and paged FALSE alarms (the 2026-08-13 flapping),
+        //       even though every book event was captured (just buffered). A time-based flush
+        //       keeps mtime current whenever depth is actually arriving, AND shrinks any
+        //       crash-loss window from up to 5000 rows to a few seconds. A GENUINE feed loss
+        //       clears `subscribed` and stops the rows, so the file still goes stale and the
+        //       watchdog still fires a REAL alert — the distinction the watchdog needs is preserved.
+        //   (2) release the finished session file during the 16:00-17:00 halt so depth_rollover
+        //       can convert it the same afternoon (identical to the Strategy's halt-timer).
         private void EnsureHaltTimer()
         {
             if (haltTimer != null) return;
-            haltTimer = new System.Timers.Timer(60000);
+            haltTimer = new System.Timers.Timer(5000);
             haltTimer.Elapsed += (s, a) =>
             {
                 try
                 {
+                    Flush();   // keep the on-disk file fresh between the 5000-row flushes
                     TimeSpan now = Core.Globals.Now.TimeOfDay;
                     if (now >= new TimeSpan(16, 0, 30) && now < new TimeSpan(16, 59, 0))
                         lock (fileLock)
