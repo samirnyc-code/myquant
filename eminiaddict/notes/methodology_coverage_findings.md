@@ -107,3 +107,39 @@ are live) and re-run `methodology_coverage.py` — the room-only signals (VIX,
 dollar, and anything else that surfaces) will sharpen, and new room-only concepts
 may appear that 5 days can't reveal. This is the cheapest high-value next step if
 we want to map the room fully.
+
+---
+
+## Addendum — decoding "he constantly changes anchors"
+
+User's observation: DH re-anchors constantly and it feels arbitrary. It is NOT.
+Two different acts get called "anchoring"; only one is undefined:
+
+- **Picking the FIRST anchor (seed)** = discretionary, taught nowhere (0/0/0).
+- **Changing anchors DURING a live series** = mechanical, well-documented. Three
+  triggers (his own words, webinars 09/12/16):
+
+1. **Target hit cleanly → erase, draw a fresh traditional.** "We're going to erase
+   this old 50 because it hit its target… new draw from where the 50 bounced to
+   our highs." New anchor = prior HWB-bounce point → new high.
+2. **Price BLOWS PAST the target → extension; keep the SAME anchor re-projected to
+   each new extreme.** "draw an extension long… from the previous high… You draw
+   from highs to highs" / "keep drawing that anchor to new lows." This is the
+   visible "constant changing": same anchor, redrawn to each new high/low until it
+   fails.
+3. **61.8% failure (trend break) → stop; don't reach for a new 50; wait the full
+   halfway-back, then draw the opposing MM.** "Once an extension fails, I'm not
+   going to try to find a new 50%… we have to draw a new 50% short."
+
+**The one genuinely fuzzy call inside this** is the routing question — *did price
+HIT the target or BLOW PAST it?* — because that decides traditional-redraw (rule
+1) vs extension-redraw (rule 2). And **"blows past target" has no threshold
+anywhere** (BOOK 0.3/10k, no magnitude), so the part that feels arbitrary is real
+and pinpointed: not the anchor-changing, but the reached-vs-blew-through judgment
+that routes it. → A `[OUR ADD]` candidate: define a "blows past" threshold.
+
+**Webinar check:** no dedicated anchor-picking or $-correlation webinar exists.
+Only untranscribed MM-drawing candidate = **#23 "Measured Move Diagram Webinar"
+(60 min)** — transcribe to confirm whether it adds redraw detail (unlikely to add
+a seed-PICKING rule). $-correlation is a room/leading-indicator topic (the
+"Dollar/Indices Correlation" diagram + daily videos).

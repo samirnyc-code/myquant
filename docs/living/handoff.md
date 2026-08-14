@@ -142,8 +142,31 @@ before ANY build. Locked decisions:
   chapter**. Modern Edition = re-sequenced, current charts, webinar material
   folded in — framed explicitly as a **PITCH TO DH** (clean copyright posture;
   no public distribution without him). Chapters → `eminiaddict/modern_edition/`.
-- **Open (need user):** ES-primary vs euro-equal; hard vs soft quiz gates; module
-  length; Modern-Edition chapter order (improved sequence vs his original 1–16).
+- **RESOLVED (user):** ES-primary · soft gates · multi-week depth · improved
+  sequence + crosswalk to his original 1–16.
+- **Build started.** `eminiaddict/notes/seed_swing_methodology.md` = the flagship
+  gap-fill (5-step seed-pick procedure; his one discretionary step, taught
+  nowhere). Detector `draw_mm_fib.py` verified on live ES (two-seed rule). Target
+  relabeled **−23.6%** (spoken "123.6%") per his Fib convention. NEXT: validate
+  `ZZ_PCT` vs his daily frames, then cross-cutting components → Module 0/1.
+
+**METHODOLOGY COVERAGE STUDY (verified, committed).** Answered "does he teach
+things in the room not in the book/webinars, and what's covered poorly?"
+`scripts/methodology_coverage.py` counts 58 components across book/webinars/
+room(5 daily videos)/diagrams, per-10k normalized → `data/analysis/
+method_coverage_*.csv` + `notes/methodology_coverage_findings.md`. Verified:
+- **Seed-selection HOW-TO = 0/0/0** everywhere (genuine void, matches Ch2 deferral).
+- **VIX + dollar/DXY leading-indicator routine = ROOM-only** (VIX 0 in book).
+- **Psychology + trading-plan = BOOK-only** (absent from videos).
+- **Named-but-undefined:** "blows past target" threshold, tick hook, failure
+  significance, which-touch, zone width.
+- **Re-anchoring decode:** "constant anchor changing" is MECHANICAL — 3 triggers
+  (target-hit→fresh traditional; blows-past→same-anchor extension highs-to-highs;
+  61.8 fail→wait halfway-back, opposing MM). The only fuzzy call = "hit vs blew
+  past" (undefined threshold) which routes traditional-redraw vs extension-redraw.
+- **Caveat:** room corpus = 5 days only. Transcribe more daily videos (S3 keys
+  live) + re-run to harden. Untranscribed anchor-relevant candidate: webinar #23
+  "Measured Move Diagram Webinar". No dedicated anchor-pick or $-correlation webinar.
 
 ---
 
