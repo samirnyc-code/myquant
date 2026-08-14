@@ -60,6 +60,8 @@ namespace NinjaTrader.NinjaScript.AddOns
         private bool hooked;       // Connection event hooked once
         private bool subscribed;   // depth/data subscriptions live
         private System.Timers.Timer haltTimer;
+        private DateTime lastDepth = DateTime.MinValue;   // wall-time of the last depth event (silent-stall detector)
+        private const double StallResubSecs = 90;         // no depth this long while open -> force a resubscribe
 
         // ================================================================ lifecycle
         protected override void OnStateChange()
@@ -128,6 +130,7 @@ namespace NinjaTrader.NinjaScript.AddOns
                         marketData.Update += OnMarketData;
                         subscribed = true;
                         DateTime now = Core.Globals.Now;
+                        lastDepth = now;   // grace period so a fresh subscription doesn't instantly trip the stall detector
                         EnsureFile(now);
                         WriteRow(now, 'C', 'C', -1, 0, 0);   // connected (book resync follows)
                         Flush();
@@ -161,6 +164,7 @@ namespace NinjaTrader.NinjaScript.AddOns
         // ================================================================ data handlers
         private void OnMarketDepth(object sender, MarketDepthEventArgs e)
         {
+            lastDepth = Core.Globals.Now;   // proof of life for the silent-stall detector
             EnsureFile(e.Time);
             char ev = e.Operation == Operation.Add ? 'A'
                     : e.Operation == Operation.Update ? 'U' : 'R';
@@ -263,14 +267,37 @@ namespace NinjaTrader.NinjaScript.AddOns
                 try
                 {
                     Flush();   // keep the on-disk file fresh between the 5000-row flushes
-                    TimeSpan now = Core.Globals.Now.TimeOfDay;
-                    if (now >= new TimeSpan(16, 0, 30) && now < new TimeSpan(16, 59, 0))
+                    DateTime now = Core.Globals.Now;
+                    TimeSpan tod = now.TimeOfDay;
+                    bool inHalt = tod >= new TimeSpan(16, 0, 0) && tod < new TimeSpan(17, 0, 0);
+
+                    // release the finished session file during the 16:00-17:00 halt for depth_rollover
+                    if (tod >= new TimeSpan(16, 0, 30) && tod < new TimeSpan(16, 59, 0))
                         lock (fileLock)
                             if (writer != null)
                             {
                                 Log("MarketDepthRecorderAddOn: session over - releasing file for rollover", LogLevel.Information);
                                 CloseFile();
                             }
+
+                    // SELF-HEAL a SILENT depth stall. NT can stop delivering depth WITHOUT firing a
+                    // Disconnected event (the overnight 'NT8 running (jammed)' case — 2026-08-14 depth
+                    // died 01:13 with no connection event and the recorder sat dead 2.7h). If we're
+                    // subscribed, outside the halt, and no depth row has arrived for StallResubSecs,
+                    // force an unsubscribe+resubscribe of the MarketDepth stream. This revives a jammed
+                    // subscription with NO GUI interaction — no NT close, no save-workspace popup, no
+                    // manual restart. If the whole feed is genuinely down this is harmless (still no
+                    // rows -> the external watchdog still pages), but for a stuck subscription it
+                    // recovers on its own within ~StallResubSecs.
+                    if (subscribed && !inHalt && lastDepth != DateTime.MinValue
+                        && (now - lastDepth).TotalSeconds > StallResubSecs)
+                    {
+                        Log(string.Format("MarketDepthRecorderAddOn: depth SILENT {0:N0}s while open — forcing resubscribe",
+                                          (now - lastDepth).TotalSeconds), LogLevel.Warning);
+                        lastDepth = now;      // reset so retries are spaced by StallResubSecs
+                        Unsubscribe();
+                        Subscribe();          // re-arms MarketDepth/MarketData on the instrument dispatcher
+                    }
                 }
                 catch { }
             };
