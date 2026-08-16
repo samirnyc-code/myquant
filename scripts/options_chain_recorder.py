@@ -88,16 +88,64 @@ def run_mock(pct):
     print(f"wrote {len(rows)} rows -> {p.relative_to(ROOT)}  (delete when done verifying)")
 
 
-def run_live(pct, secs, stop_hhmm):
-    """ROLLING window: ±pct around CURRENT spot, re-centered as price drifts.
-
-    Why rolling (2026-08-04): our entries are struck at the open, but the dataset
-    must also support retro-testing LATER entry times — which needs quotes around
-    wherever spot is at that moment. A window frozen at the open misses those
-    strikes after a trend move; a rolling one covers them with ~80 bounded lines
-    (new strikes subscribe as they come into range, far ones unsubscribe)."""
-    import ib_conn
+def _qualified(ib, expiry, strikes, cache):
+    """Qualify each (strike, right) once and reuse across cycles (qualifyContracts
+    is a network round-trip; caching keeps the per-minute sweep cheap)."""
     from ib_async import Option
+    need = [(k, r) for k in strikes for r in ("P", "C") if (k, r) not in cache]
+    if need:
+        cs = [Option("SPX", expiry, k, r, "SMART", tradingClass="SPXW") for k, r in need]
+        for c in ib.qualifyContracts(*cs):
+            if c and c.conId:
+                cache[(c.strike, c.right)] = c
+    return [cache[(k, r)] for k in strikes for r in ("P", "C") if (k, r) in cache]
+
+
+def snapshot_sweep(ib, contracts, batch=30, settle=3.0):
+    """One NBBO SNAPSHOT per contract, in line-friendly batches.
+
+    THE FIX (2026-08-16): the recorder used to hold ~78 PERSISTENT streaming lines
+    all day (reqMktData snapshot=False), which stacked on top of the live desk's
+    streaming lines and blew past the account's market-data-line quota — IB then
+    returned error 10090 ('not subscribed / delayed available') for the overflow and
+    the recorder captured nothing (dead since 2026-08-07). But it only samples once a
+    minute, so it never needed persistent streams. A SNAPSHOT holds a line only for
+    the ~seconds it takes to fill, then releases it — so the recorder no longer
+    competes all-day with the desk, and its need is 'a few at a time' (fits whatever
+    headroom exists) instead of 'all 78 at once'. Blocked/empty contracts are retried
+    once in a smaller batch to squeeze into tight headroom.
+
+    Returns ({(strike, right): (bid, ask)}, n_blocked)."""
+    out, pending = {}, list(contracts)
+    for _ in range(2):
+        missed = []
+        for i in range(0, len(pending), batch):
+            grp = pending[i:i + batch]
+            tks = [(c, ib.reqMktData(c, "", snapshot=True)) for c in grp]
+            ib.sleep(settle)
+            for c, t in tks:
+                b = t.bid if (t.bid == t.bid and t.bid >= 0) else None
+                a = t.ask if (t.ask == t.ask and t.ask >= 0) else None
+                if b is None and a is None:
+                    missed.append(c)
+                else:
+                    out[(c.strike, c.right)] = (b, a)
+                try:
+                    ib.cancelMktData(c)   # snapshots auto-cancel; belt-and-suspenders
+                except Exception:
+                    pass
+        if not missed:
+            return out, 0
+        pending, batch = missed, max(5, batch // 3)
+    return out, len(pending)
+
+
+def run_live(pct, secs, stop_hhmm):
+    """Per-minute SNAPSHOT sweep of a rolling ±pct 0DTE strike window (+ pinned
+    trade strikes). Snapshots — not persistent streams — so the recorder holds data
+    lines only momentarily and COEXISTS with the live desk instead of exceeding the
+    account's market-data-line quota (the 10090 line-contention that broke it)."""
+    import ib_conn
     ib = ib_conn.connect(client_id=71)          # distinct from daemons (avoid clientId clash)
     ib.reqMarketDataType(1)
     date = now_ct().strftime("%Y%m%d")
@@ -106,14 +154,12 @@ def run_live(pct, secs, stop_hhmm):
     if spot is None:
         raise SystemExit("no spot available — is the feed live?")
 
-    tick = {}                                    # (strike, right) -> streaming ticker
-
     def pinned_strikes():
-        """Strikes of TODAY'S armed/fired structures (gameplan verticals) — kept
-        subscribed ALL DAY even when the rolling window moves away, so every real
-        trade's full intraday exit path (TP/trail/MFE-MAE) is recorded. Re-read
-        each loop: the daemon persists resolved open-struck strikes after the bell.
-        (STMR is 14-DTE — different expiry, captured by the sim daemon's own tape.)"""
+        """Strikes of TODAY'S armed/fired structures (gameplan verticals) — always
+        swept, even when the rolling window moves away, so every real trade's full
+        intraday exit path (TP/trail/MFE-MAE) is recorded. Re-read each loop: the
+        daemon persists resolved open-struck strikes after the bell. (STMR is 14-DTE —
+        different expiry, captured by the sim daemon's own tape.)"""
         try:
             d = json.loads((SIM / f"gameplan_{date}.json").read_text(encoding="utf-8"))
             out = set()
@@ -128,54 +174,27 @@ def run_live(pct, secs, stop_hhmm):
         except Exception:
             return set()
 
-    def retune(center):
-        """Subscribe strikes inside ±pct of `center` + all pinned; drop the rest."""
-        want = set(strike_window(center, pct)) | pinned_strikes()
-        have = {k for k, _ in tick}
-        for k in sorted(have - want):
-            for r in ("P", "C"):
-                t = tick.pop((k, r), None)
-                if t is not None:
-                    try:
-                        ib.cancelMktData(t.contract)
-                    except Exception:
-                        pass
-        new = sorted(want - have)
-        if new:
-            cs = [Option("SPX", expiry, k, r, "SMART", tradingClass="SPXW")
-                  for k in new for r in ("P", "C")]
-            for c in ib.qualifyContracts(*cs):
-                if c and c.conId:
-                    tick[(c.strike, c.right)] = ib.reqMktData(c, "", snapshot=False)
-            ib.sleep(4)
-        return len(new)
-
-    retune(spot)
-    center = spot
-    print(f"recording ±{pct}% ROLLING window around spot ({len(tick)} lines), "
-          f"exp {expiry}, every {secs}s until {stop_hhmm} CT")
-
+    cache = {}                                   # (strike, right) -> qualified Contract
     stop = dt.time(*map(int, stop_hhmm.split(":")))
     p = out_path(date)
+    print(f"recording ±{pct}% 0DTE SNAPSHOT sweep every {secs}s until {stop_hhmm} CT, exp {expiry}")
     while now_ct().time() < stop:
         spot = spot_now(ib) or spot
-        # re-center once spot drifts >20% of the window from the current center,
-        # or when new pinned strikes appeared (open-struck trades resolved at the bell)
-        have = {k for k, _ in tick}
-        if (abs(spot - center) > center * pct / 100.0 * 0.20
-                or (pinned_strikes() - have)):
-            n = retune(spot)
-            center = spot
-            if n:
-                print(f"  window rolled to {center:.0f} (+{n} strikes)")
+        # rolling window recomputed each cycle from current spot (+ pinned strikes),
+        # so it self-recenters on a trend move — no separate drift bookkeeping needed
+        strikes = sorted(set(strike_window(spot, pct)) | pinned_strikes())
+        contracts = _qualified(ib, expiry, strikes, cache)
+        quotes, blocked = snapshot_sweep(ib, contracts)
         ts = dt.datetime.now(ET).strftime("%Y-%m-%d %H:%M:%S")
-        rows = []
-        for (k, r), t in tick.items():
-            b, a = t.bid, t.ask
-            b = b if (b == b and b >= 0) else ""
-            a = a if (a == a and a >= 0) else ""
-            rows.append([ts, round(spot, 2), expiry, k, r, b, a])
-        append_rows(p, rows)
+        rows = [[ts, round(spot, 2), expiry, k, r,
+                 (b if b is not None else ""), (a if a is not None else "")]
+                for (k, r), (b, a) in quotes.items()]
+        if rows:
+            append_rows(p, rows)
+        msg = f"  {ts}  {len(rows)} quotes"
+        if blocked:
+            msg += f"  ({blocked} blocked/empty — retried smaller)"
+        print(msg)
         ib.sleep(secs)
     ib.disconnect()
     print(f"done — {p.relative_to(ROOT)}")
