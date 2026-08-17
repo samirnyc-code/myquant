@@ -48,9 +48,10 @@ def spot_now(ib=None):
     if ib is not None:
         try:
             from options_sim_daemon import rough_spot
-            return float(rough_spot(ib))
-        except Exception:
-            pass
+            _, px = rough_spot(ib)   # rough_spot returns (contract, price), NOT a float —
+            return float(px)         # float(rough_spot(...)) threw & was swallowed => None,
+        except Exception:            # so this fallback never worked and the recorder died at
+            pass                     # launch whenever live.json was stale (2026-08-17 fix).
     return None
 
 
