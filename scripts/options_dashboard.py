@@ -95,8 +95,26 @@ def money(v, signed=True):
     return (f"{'+' if v >= 0 else '−'}${abs(v):,.0f}") if signed else f"${abs(v):,.0f}"
 
 
+# --- historical clean-up: hide the desk's known-bad early days from what the app SHOWS -
+# 2026-08-04: blank-slate setup day, untracked (user recalls it wasn't right).
+# 2026-08-05: dead-feed day (IB feed down till 09:26 -> late/invalid entries + 2 orphaned
+#             positions; the orphans live here so this drops them too).
+# Aug 6/7 are KEPT (not proven broken; Aug 7 was a +$1,367 winner). This is a FIXED
+# PAST-DATE exclusion: it can never hide a current or future trade, and only affects
+# DISPLAY — the desk still loads the full book via tlog for its own position logic.
+EXCLUDE_DAYS = {"2026-08-04", "2026-08-05"}
+
+
+def _shown(trades):
+    """Display filter: drop the excluded past error day(s). Past-only, never future."""
+    if trades is None or not len(trades):
+        return trades
+    ed = pd.to_datetime(trades.entry_dt, errors="coerce").dt.strftime("%Y-%m-%d")
+    return trades[~ed.isin(EXCLUDE_DAYS)].copy()
+
+
 def load_stats():
-    trades = tlog.load()
+    trades = _shown(tlog.load())
     closed = trades[trades.exit_dt.notna()] if len(trades) else trades
     p = closed.pnl.astype(float) if len(closed) else pd.Series(dtype=float)
     pf = p[p > 0].sum() / -p[p < 0].sum() if len(p) and (p < 0).any() else None
@@ -1231,7 +1249,7 @@ def main():
     lr = levels_regime()
     gp = load_gameplan()
     pm = load_postmortem()
-    gp_trades = tlog.load()
+    gp_trades = _shown(tlog.load())
     gp_marks = None
     an_json = "[]"
     _mf = SIM / "marks.csv"
