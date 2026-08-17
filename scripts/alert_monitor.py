@@ -167,6 +167,16 @@ def run_once(verbose: bool = False) -> int:
                 tg.send(f"recovered: {name} — {c['detail']}", level="ok")
                 if verbose:
                     print(f"RECOVERED [{key}]")
+    # real-time options-data watchdog: pages FAST when the shared market-data session is
+    # stolen by a competing live login (IBKR app / TWS) -> paper gateway drops to delayed
+    # and the whole desk silently dies (2026-08-17, ~4h unnoticed). Cheap unless live.json
+    # is stale, then one IB probe names the cause.
+    try:
+        import rt_data_watchdog
+        rt_data_watchdog.run_once(verbose=verbose)
+    except Exception as e:
+        if verbose:
+            print(f"rt_data_watchdog error: {type(e).__name__}: {e}")
     # positive session-milestone pings (open, first readings, ...) - additive, never noise
     for mod in ("session_pings", "activity_pings", "cool_pings"):
         try:
