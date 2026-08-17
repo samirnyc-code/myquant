@@ -1,0 +1,5 @@
+strategy,short_k,right,cushion,mark,max_loss,selloff
+eodic_p,7710.0,P,57.5,15.0,2480.0,HURTS
+eodfly_c,7785.0,C,17.5,610.0,1650.0,helps
+openic_p,7715.0,P,52.5,20.0,2475.0,HURTS
+openfly_c,7785.0,C,17.5,425.0,1835.0,helps
