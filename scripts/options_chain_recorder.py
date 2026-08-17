@@ -116,29 +116,45 @@ def snapshot_sweep(ib, contracts, batch=30, settle=3.0):
     headroom exists) instead of 'all 78 at once'. Blocked/empty contracts are retried
     once in a smaller batch to squeeze into tight headroom.
 
-    Returns ({(strike, right): (bid, ask)}, n_blocked)."""
-    out, pending = {}, list(contracts)
-    for _ in range(2):
-        missed = []
-        for i in range(0, len(pending), batch):
-            grp = pending[i:i + batch]
-            tks = [(c, ib.reqMktData(c, "", snapshot=True)) for c in grp]
-            ib.sleep(settle)
-            for c, t in tks:
-                b = t.bid if (t.bid == t.bid and t.bid >= 0) else None
-                a = t.ask if (t.ask == t.ask and t.ask >= 0) else None
-                if b is None and a is None:
-                    missed.append(c)
-                else:
-                    out[(c.strike, c.right)] = (b, a)
-                try:
-                    ib.cancelMktData(c)   # snapshots auto-cancel; belt-and-suspenders
-                except Exception:
-                    pass
-        if not missed:
-            return out, 0
-        pending, batch = missed, max(5, batch // 3)
-    return out, len(pending)
+    REALTIME GUARD (2026-08-17): IB silently serves DELAYED/frozen quotes when realtime
+    is denied (lines exhausted or not entitled) — it emits error 10090/10167 and the
+    snapshot STILL fills, so without this the recorder would log stale prices as if live.
+    We capture the contracts IB refuses realtime for and DROP them: better to write
+    nothing (and let the completeness alarm page) than to poison the dataset with stale
+    quotes. Returns ({(strike, right): (bid, ask)}, n_empty, n_delayed)."""
+    denied = set()   # conId IB refused realtime for during this sweep -> untrustworthy
+    def _on_err(reqId, code, msg, contract=None, *a):
+        if code in (10090, 10091, 10167, 10197) and contract is not None:
+            denied.add(contract.conId)
+    ib.errorEvent += _on_err
+    out, delayed, missed = {}, 0, list(contracts)
+    try:
+        for _ in range(2):
+            pending, missed = missed, []
+            for i in range(0, len(pending), batch):
+                grp = pending[i:i + batch]
+                tks = [(c, ib.reqMktData(c, "", snapshot=True)) for c in grp]
+                ib.sleep(settle)
+                for c, t in tks:
+                    try:
+                        ib.cancelMktData(c)   # snapshots auto-cancel; belt-and-suspenders
+                    except Exception:
+                        pass
+                    if c.conId in denied:     # realtime refused -> DROP (never record delayed)
+                        delayed += 1
+                        continue
+                    b = t.bid if (t.bid == t.bid and t.bid >= 0) else None
+                    a = t.ask if (t.ask == t.ask and t.ask >= 0) else None
+                    if b is None and a is None:
+                        missed.append(c)
+                    else:
+                        out[(c.strike, c.right)] = (b, a)
+            if not missed:
+                break
+            batch = max(5, batch // 3)
+    finally:
+        ib.errorEvent -= _on_err
+    return out, len(missed), delayed
 
 
 def run_live(pct, secs, stop_hhmm):
@@ -185,16 +201,18 @@ def run_live(pct, secs, stop_hhmm):
         # so it self-recenters on a trend move — no separate drift bookkeeping needed
         strikes = sorted(set(strike_window(spot, pct)) | pinned_strikes())
         contracts = _qualified(ib, expiry, strikes, cache)
-        quotes, blocked = snapshot_sweep(ib, contracts)
+        quotes, empty, delayed = snapshot_sweep(ib, contracts)
         ts = dt.datetime.now(ET).strftime("%Y-%m-%d %H:%M:%S")
         rows = [[ts, round(spot, 2), expiry, k, r,
                  (b if b is not None else ""), (a if a is not None else "")]
                 for (k, r), (b, a) in quotes.items()]
         if rows:
             append_rows(p, rows)
-        msg = f"  {ts}  {len(rows)} quotes"
-        if blocked:
-            msg += f"  ({blocked} blocked/empty — retried smaller)"
+        msg = f"  {ts}  {len(rows)} realtime quotes"
+        if delayed:
+            msg += f"  ({delayed} DROPPED not-realtime)"
+        if empty:
+            msg += f"  ({empty} no quote)"
         print(msg)
         ib.sleep(secs)
     ib.disconnect()

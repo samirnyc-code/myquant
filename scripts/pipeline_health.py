@@ -465,8 +465,29 @@ def _check_archive_uncached() -> dict:
         return _chk("Data archive", WARN, f"git check failed: {type(e).__name__}", n=n)
 
 
+def check_chain() -> dict:
+    """0DTE SPXW chain recorder — the intraday per-strike NBBO tape (cannot be re-collected).
+    A fresh, growing chain_<today>.csv during the session is proof it's recording. Pages
+    ONLY during the options session (recorder runs ~08:25-15:05 CT); silent 08-07->08-16."""
+    now = chicago_now()
+    session = now.weekday() < 5 and dt.time(8, 35) <= now.time() <= dt.time(15, 0)
+    day = now.strftime("%Y%m%d")
+    f = ROOT / "data" / "options_sim" / f"chain_{day}.csv"
+    if not session:
+        return _chk("0DTE chain", IDLE,
+                    f"{f.stat().st_size / 1e6:,.1f}MB - off session" if f.exists() else "off session")
+    if not f.exists():
+        return _chk("0DTE chain", BAD, "NO file today - recorder not writing")
+    age = _age(f)
+    mb = f.stat().st_size / 1e6
+    if age > 180:
+        return _chk("0DTE chain", BAD,
+                    f"STALLED {_fmt_age(age)} - recorder stuck or all-delayed", mb=round(mb, 1))
+    return _chk("0DTE chain", OK, f"{mb:,.1f}MB, {_fmt_age(age)} ago", mb=round(mb, 1))
+
+
 CHECKS = [check_depth, check_contract, check_footprint, check_nt8, check_tick_db, check_archive,
-          check_ib_gateway, check_options_sim, check_dashboard, check_disk, check_tasks]
+          check_ib_gateway, check_options_sim, check_dashboard, check_disk, check_chain, check_tasks]
 
 
 def health() -> dict:

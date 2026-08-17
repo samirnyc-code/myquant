@@ -61,6 +61,13 @@ RULES = {
         lambda c: c["state"] == "bad",
         lambda c: f"OPTIONS DESK: {c['detail']}",
     ),
+    # 2026-08-17: the 0DTE chain recorder died silently 08-07->08-16 (nothing paged) —
+    # BAD = session hours + no file today or the file stalled >3min (stuck / all-delayed).
+    "0DTE chain": (
+        "chain0dte",
+        lambda c: c["state"] == "bad",
+        lambda c: f"0DTE CHAIN RECORDER: {c['detail']}",
+    ),
     # 2026-07-20: dashboard crashed on a bad trade record and stayed dead all session.
     "Options dashboard": (
         "options_dashboard",
