@@ -92,20 +92,24 @@ namespace NinjaTrader.NinjaScript.AddOns
                 Instrument instr = Instrument.GetInstrument(contract);
                 if (instr == null) { Log("TickExportAddOn: instrument not found: " + contract, LogLevel.Error); Finish("instrument not found"); return; }
 
+                int period = 1;                          // ticks per bar; 1 = raw tick tape
+                int.TryParse(JsonStr(txt, "period"), out period);
+                if (period < 1) period = 1;
+
                 var days = new List<DateTime>();
                 for (DateTime d = from.Date; d <= to.Date; d = d.AddDays(1))
                     if (d.DayOfWeek != DayOfWeek.Saturday && d.DayOfWeek != DayOfWeek.Sunday)
                         days.Add(d);
-                Log(string.Format("TickExportAddOn: request {0} {1:yyyy-MM-dd}..{2:yyyy-MM-dd} ({3} weekdays)",
-                                  contract, from, to, days.Count), LogLevel.Information);
-                ExportNext(instr, contract, days, 0, 0);
+                Log(string.Format("TickExportAddOn: request {0} {1:yyyy-MM-dd}..{2:yyyy-MM-dd} ({3} weekdays, {4}-tick)",
+                                  contract, from, to, days.Count, period), LogLevel.Information);
+                ExportNext(instr, contract, days, 0, 0, period);
             }
             catch (Exception ex) { Log("TickExportAddOn request err: " + ex.Message, LogLevel.Error); Finish("error: " + ex.Message); }
         }
 
         // Export days sequentially: fire one BarsRequest, and in its callback write the
         // CSV and recurse to the next day. Bounded memory, and one failed day is isolated.
-        private void ExportNext(Instrument instr, string contract, List<DateTime> days, int idx, int okCount)
+        private void ExportNext(Instrument instr, string contract, List<DateTime> days, int idx, int okCount, int period)
         {
             if (idx >= days.Count) { Finish(string.Format("exported {0}/{1} day(s)", okCount, days.Count)); return; }
             DateTime day = days[idx];
@@ -114,7 +118,7 @@ namespace NinjaTrader.NinjaScript.AddOns
             try
             {
                 BarsRequest req = new BarsRequest(instr, f, t);
-                req.BarsPeriod = new BarsPeriod { BarsPeriodType = BarsPeriodType.Tick, Value = 1 };
+                req.BarsPeriod = new BarsPeriod { BarsPeriodType = BarsPeriodType.Tick, Value = period };
                 req.Request((r, err, msg) =>
                 {
                     int wrote = 0;
@@ -123,41 +127,50 @@ namespace NinjaTrader.NinjaScript.AddOns
                         if (err != ErrorCode.NoError)
                             Log(string.Format("TickExportAddOn: {0:yyyy-MM-dd} request error {1} {2}", day, err, msg), LogLevel.Warning);
                         else if (r != null && r.Bars != null && r.Bars.Count > 0)
-                            wrote = WriteDay(contract, day, r.Bars);
+                            wrote = WriteDay(contract, day, r.Bars, period);
                         else
-                            Log(string.Format("TickExportAddOn: {0:yyyy-MM-dd} no ticks", day), LogLevel.Warning);
+                            Log(string.Format("TickExportAddOn: {0:yyyy-MM-dd} no data", day), LogLevel.Warning);
                     }
                     catch (Exception ex) { Log("TickExportAddOn write err " + day.ToString("yyyy-MM-dd") + ": " + ex.Message, LogLevel.Error); }
                     finally { try { if (r != null) r.Dispose(); } catch { } }
-                    ExportNext(instr, contract, days, idx + 1, okCount + (wrote > 0 ? 1 : 0));
+                    ExportNext(instr, contract, days, idx + 1, okCount + (wrote > 0 ? 1 : 0), period);
                 });
             }
             catch (Exception ex)
             {
                 Log("TickExportAddOn BarsRequest err " + day.ToString("yyyy-MM-dd") + ": " + ex.Message, LogLevel.Error);
-                ExportNext(instr, contract, days, idx + 1, okCount);
+                ExportNext(instr, contract, days, idx + 1, okCount, period);
             }
         }
 
-        private int WriteDay(string contract, DateTime day, Bars bars)
+        private int WriteDay(string contract, DateTime day, Bars bars, int period)
         {
             string sym = contract.Replace(" ", "_");
-            string path = Path.Combine(ExportDir, string.Format("{0}_ticks_{1:yyyyMMdd}_{2:HHmmss}.csv",
-                                       sym, day, DateTime.Now));
+            // period 1 -> raw tick tape (Time,Price,Volume) for the ingest; period>1 -> native
+            // N-tick OHLCV bars, for bar-by-bar validation against our resampled bars.
+            bool tape = period <= 1;
+            string kind = tape ? "ticks" : ("bars" + period + "t");
+            string path = Path.Combine(ExportDir, string.Format("{0}_{1}_{2:yyyyMMdd}_{3:HHmmss}.csv",
+                                       sym, kind, day, DateTime.Now));
             int n = 0;
             using (var w = new StreamWriter(path, false, System.Text.Encoding.ASCII, 1 << 20))
             {
-                w.WriteLine("Time,Price,Volume");
+                w.WriteLine(tape ? "Time,Price,Volume" : "Time,Open,High,Low,Close,Volume");
                 for (int i = 0; i < bars.Count; i++)
                 {
-                    // 1-tick bars: Close = the trade price, Volume = the trade size, Time = tick time.
-                    w.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                        "{0:yyyy-MM-dd HH:mm:ss.fff},{1},{2}",
-                        bars.GetTime(i), bars.GetClose(i), (long)bars.GetVolume(i)));
+                    if (tape)
+                        w.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                            "{0:yyyy-MM-dd HH:mm:ss.fff},{1},{2}",
+                            bars.GetTime(i), bars.GetClose(i), (long)bars.GetVolume(i)));
+                    else
+                        w.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                            "{0:yyyy-MM-dd HH:mm:ss.fff},{1},{2},{3},{4},{5}",
+                            bars.GetTime(i), bars.GetOpen(i), bars.GetHigh(i), bars.GetLow(i),
+                            bars.GetClose(i), (long)bars.GetVolume(i)));
                     n++;
                 }
             }
-            Log(string.Format("TickExportAddOn: {0:yyyy-MM-dd} -> {1} ({2} ticks)", day, Path.GetFileName(path), n), LogLevel.Information);
+            Log(string.Format("TickExportAddOn: {0:yyyy-MM-dd} -> {1} ({2} {3})", day, Path.GetFileName(path), n, kind), LogLevel.Information);
             return n;
         }
 

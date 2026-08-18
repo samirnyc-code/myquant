@@ -45,9 +45,15 @@ def main() -> int:
     a = ap.parse_args()
 
     NT_TICKS.mkdir(parents=True, exist_ok=True)
-    yesterday = dt.date.today() - dt.timedelta(days=1)
-    frm = dt.date.fromisoformat(a.frm) if a.frm else ((last_trove_day() or yesterday) + dt.timedelta(days=1))
-    to = dt.date.fromisoformat(a.to) if a.to else yesterday
+    # CT-anchored dates (this PC runs Berlin; NT/market run CT). Default 'to' = today only
+    # once the CT session is complete (>=15:30), else yesterday — so a run at any hour never
+    # ingests a half-finished day into the trove.
+    import pipeline_health as ph
+    now = ph.chicago_now()
+    today, yday = now.date(), now.date() - dt.timedelta(days=1)
+    default_to = today if now.time() >= dt.time(15, 30) else yday
+    frm = dt.date.fromisoformat(a.frm) if a.frm else ((last_trove_day() or yday) + dt.timedelta(days=1))
+    to = dt.date.fromisoformat(a.to) if a.to else default_to
     if to < frm:
         print(f"nothing to do — trove is current through {frm - dt.timedelta(days=1)}")
         return 0
