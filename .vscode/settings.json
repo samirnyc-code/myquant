@@ -1,0 +1,44 @@
+{
+  // --- Lean VSCode for this large, data-heavy repo -------------------------------
+  // The RAM cost was Pylance indexing .venv (thousands of package .py files) and the
+  // file watcher crawling data/ + .git. These settings stop that. Reload the window
+  // (Ctrl+Shift+P -> "Developer: Reload Window") for it to take effect and drop RAM.
+
+  // Pylance: only deep-analyze OPEN files, and never index the heavy folders.
+  "python.analysis.diagnosticMode": "openFilesOnly",
+  "python.analysis.exclude": [
+    "**/.venv/**",
+    "**/__pycache__/**",
+    "**/data/**",
+    "**/node_modules/**",
+    "**/.git/**",
+    "eminiaddict/figures/**"
+  ],
+  "python.analysis.autoImportCompletions": false,
+  "python.analysis.userFileIndexingLimit": 2000,
+
+  // File watcher: don't watch huge/irrelevant trees (CPU + RAM + fewer FS handles).
+  "files.watcherExclude": {
+    "**/.venv/**": true,
+    "**/data/**": true,
+    "**/.git/**": true,
+    "**/__pycache__/**": true,
+    "**/eminiaddict/figures/**": true
+  },
+
+  // Search: skip data blobs and the venv so search stays fast and light.
+  "search.exclude": {
+    "**/.venv": true,
+    "**/data": true,
+    "**/__pycache__": true,
+    "**/*.parquet": true,
+    "**/*.ncd": true,
+    "**/*.csv": true
+  },
+
+  // Explorer: hide caches (cosmetic + a touch less watching).
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/*.pyc": true
+  }
+}
