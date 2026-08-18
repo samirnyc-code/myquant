@@ -46,25 +46,31 @@ namespace NinjaTrader.NinjaScript.AddOns
         private System.Timers.Timer poll;
         private readonly object gate = new object();
         private bool busy;                       // one export run at a time
+        private bool started;                    // AddOns get SetDefaults (maybe >1x); init once
 
         protected override void OnStateChange()
         {
+            // AddOnBase fires State.SetDefaults (NOT Configure/DataLoaded — those are for
+            // indicators/strategies). All init happens here, guarded so a repeat SetDefaults
+            // doesn't spawn a second timer (same pattern as MarketDepthRecorderAddOn).
             if (State == State.SetDefaults)
             {
                 Name = "TickExportAddOn";
                 Description = "Headless .ncd -> CSV tick exporter driven by data\\nt_ticks\\_request.json";
-            }
-            else if (State == State.Configure)
-            {
-                try { Directory.CreateDirectory(ExportDir); } catch { }
-                poll = new System.Timers.Timer(20000);   // check for a request every 20s
-                poll.Elapsed += (s, e) => TryProcess();
-                poll.Start();
-                Log("TickExportAddOn: loaded, watching " + REQ, LogLevel.Information);
+                if (!started)
+                {
+                    try { Directory.CreateDirectory(ExportDir); } catch { }
+                    poll = new System.Timers.Timer(20000);   // check for a request every 20s
+                    poll.Elapsed += (s, e) => TryProcess();
+                    poll.Start();
+                    started = true;
+                    Log("TickExportAddOn: loaded, watching " + REQ, LogLevel.Information);
+                }
             }
             else if (State == State.Terminated)
             {
                 if (poll != null) { try { poll.Stop(); poll.Dispose(); } catch { } poll = null; }
+                started = false;
             }
         }
 
