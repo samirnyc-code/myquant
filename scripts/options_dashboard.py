@@ -700,7 +700,7 @@ def today_credit_line(trades):
     today = _dt.datetime.now(_ZI("America/Chicago")).strftime("%Y-%m-%d")
     td = trades[trades.entry_dt.astype(str).str.startswith(today)].copy()
     if not len(td):
-        return ""
+        return "<div id='today-banner'></div>"   # keep the id so the 5s poll can fill it later
     td["credit"] = pd.to_numeric(td.credit, errors="coerce").fillna(0)
     credit = float(td.credit.clip(lower=0).sum()) * 100          # premium sold today
     closed = td[td.exit_dt.notna()]
@@ -730,7 +730,7 @@ def today_credit_line(trades):
         day = realized + unreal
         parts.append(f"→ day if closed now <b class='{'pos' if day >= 0 else 'neg'}' "
                      f"style='font-size:15px'>{m(day)}</b>")
-    return ("<div style='background:#131826;border:1px solid #2a3245;border-radius:8px;"
+    return ("<div id='today-banner' style='background:#131826;border:1px solid #2a3245;border-radius:8px;"
             "padding:8px 12px;margin:6px 0;font-size:13px'>📊 <b>TODAY</b> · "
             + " · ".join(parts) + "</div>")
 
@@ -1529,6 +1529,9 @@ async function poll(){{
     const el = document.getElementById('k-'+k);
     if(el){{ el.textContent = t.value; el.className = 'tv '+(t.cls||''); }}
   }}
+  // TODAY banner — re-rendered server-side each poll from live marks, so it never goes stale
+  const tb = document.getElementById('today-banner');
+  if(tb && d.today_banner!==undefined){{ tb.outerHTML = d.today_banner || "<div id='today-banner'></div>"; }}
   // live ticker + feed state
   const L = d.live||{{}}, live = L.state==='live';
   const lb = document.getElementById('livebadge');

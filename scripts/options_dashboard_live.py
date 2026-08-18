@@ -110,7 +110,13 @@ def ensure_html(force=False):
 def state():
     s = dash.load_stats()
     tiles = {k: {"value": v, "cls": c} for k, _label, v, c in dash.tile_specs(s)}
-    return {"gen": gen_stamp(), "live": live_json(),
+    # TODAY banner re-rendered each poll from CURRENT marks, so it's never the stale
+    # value frozen into the HTML at last regen.
+    try:
+        banner = dash.today_credit_line(dash._shown(dash.tlog.load()))
+    except Exception:
+        banner = None
+    return {"gen": gen_stamp(), "live": live_json(), "today_banner": banner,
             "tiles": tiles, "lr": dash.levels_regime()}
 
 
