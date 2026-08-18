@@ -15,6 +15,7 @@
     "eminiaddict/figures/**"
   ],
   "python.analysis.autoImportCompletions": false,
+  "python.analysis.indexing": false,
   "python.analysis.userFileIndexingLimit": 2000,
 
   // File watcher: don't watch huge/irrelevant trees (CPU + RAM + fewer FS handles).
