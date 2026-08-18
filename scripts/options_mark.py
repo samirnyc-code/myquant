@@ -202,6 +202,8 @@ def mark_once(ib, vix):
 
 
 def main():
+    import singleton
+    singleton.ensure("options_mark")   # one marker only — duplicates thrash marks.csv + IB lines
     watch = int(sys.argv[sys.argv.index("--watch") + 1]) if "--watch" in sys.argv else 0
     refresh_vix_daily()
     ib = ib_conn.connect()

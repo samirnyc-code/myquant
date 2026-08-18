@@ -163,6 +163,8 @@ def run_live(pct, secs, stop_hhmm):
     lines only momentarily and COEXISTS with the live desk instead of exceeding the
     account's market-data-line quota (the 10090 line-contention that broke it)."""
     import ib_conn
+    import singleton
+    singleton.ensure("options_chain_recorder")  # one recorder only — duplicates starve each other of IB lines
     ib = ib_conn.connect(client_id=71)          # distinct from daemons (avoid clientId clash)
     ib.reqMarketDataType(1)
     date = now_ct().strftime("%Y%m%d")

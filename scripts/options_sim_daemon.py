@@ -436,6 +436,9 @@ def main():
                     help="sim only — do NOT place the real IB order (default: place it)")
     a = ap.parse_args()
     dry = a.smoke or a.now
+    if not dry:
+        import singleton
+        singleton.ensure("options_sim_daemon")   # one live sim daemon only (test modes exempt)
     place_real = not a.no_live and not dry  # real order only on a genuine live run
     if not dry:
         # single-instance lock: two live daemons would double-log sim trades. Holding a

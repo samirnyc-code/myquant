@@ -810,6 +810,8 @@ def main():
     ap.add_argument("--dry-run", action="store_true", help="evaluate + log, place nothing")
     ap.add_argument("--until", default="15:00", help="stop time CT (default 15:00 = 16:00 ET)")
     args = ap.parse_args()
+    import singleton
+    singleton.ensure("options_trigger_daemon")   # one trigger daemon only (one order writer)
     date = args.date or now_ct().strftime("%Y%m%d")
     plan = load_plan(date)
     hvl = plan["levels"].get("hvl")
