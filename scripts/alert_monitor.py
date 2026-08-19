@@ -107,6 +107,22 @@ def _heal_options_sim(c, tg, verbose: bool) -> None:
         print("self-heal: daemon relaunched")
 
 
+def _heal_chain(tg, verbose: bool) -> None:
+    """Relaunch the 0DTE chain recorder if it stopped writing during the session — the
+    intraday prices can't be re-collected, so a page alone isn't enough. The singleton
+    lock makes a double-start safe (a second copy exits immediately). Throttled 30 min."""
+    import subprocess
+    if not tg.send("🔧 relaunching 0DTE chain recorder…", level="info",
+                   dedup_key="chain_heal", cooldown_s=1800):
+        return
+    pyw = str(ROOT / ".venv" / "Scripts" / "pythonw.exe")
+    subprocess.Popen([pyw, str(ROOT / "scripts" / "options_chain_recorder.py"), "--stop", "15:05"],
+                     cwd=str(ROOT), creationflags=0x08000008,
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    if verbose:
+        print("chain recorder relaunched")
+
+
 def _heal_dashboard(tg, verbose: bool) -> None:
     """Relaunch the options dashboard server if its port died (throttled 30 min)."""
     import subprocess
@@ -155,6 +171,12 @@ def run_once(verbose: bool = False) -> int:
                 except Exception as e:
                     if verbose:
                         print(f"dashboard heal error: {type(e).__name__}: {e}")
+            if key == "chain0dte":
+                try:
+                    _heal_chain(tg, verbose)
+                except Exception as e:
+                    if verbose:
+                        print(f"chain heal error: {type(e).__name__}: {e}")
         else:
             # condition healthy -> if we had paged it, announce recovery once
             import json
