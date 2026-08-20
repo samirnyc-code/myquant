@@ -102,14 +102,19 @@ def probe(day: str):
         t = ib.reqMktData(cc[0], "", snapshot=True)
         ib.sleep(6)
         ib.cancelMktData(cc[0])
-        if 10197 in codes:
-            return "bad", "competing live session — close the IBKR app / TWS on the LIVE account"
-        if 10090 in codes or 10168 in codes:
-            return "bad", "real-time options data NOT entitled — check IB subscription / market-data agreement"
+        mdt = getattr(t, "marketDataType", None)   # 1=realtime 2=frozen 3=delayed 4=delayed-frozen
         got = (t.bid == t.bid and t.bid >= 0) or (t.ask == t.ask and t.ask >= 0)
-        if got:
-            return "ok", f"real-time OK (SPXW {k}C {t.bid}/{t.ask})"
-        return "unknown", "no quote and no error (pre/post open?)"
+        # Truth is marketDataType, NOT the 10090 warning. SPXW snapshots ROUTINELY emit
+        # 10090 ("part not subscribed; subscription-INDEPENDENT ticks active") while the
+        # NBBO is REALTIME (mdType=1) — keying off 10090 produced false "DATA DOWN" pages
+        # on a live feed (2026-08-20). Only a genuinely delayed ticker (mdType 3/4) is down.
+        if got and mdt in (1, 2, None):
+            return "ok", f"real-time OK (SPXW {k}C {t.bid}/{t.ask}, mdType={mdt})"
+        if mdt in (3, 4):
+            return "bad", f"feed DELAYED (SPXW {k}C marketDataType={mdt}) — realtime quotes unavailable"
+        if 10197 in codes:
+            return "bad", "competing live session — a separate login of this IB user holds realtime"
+        return "unknown", "no quote (pre/post open or transient)"
     finally:
         try:
             ib.disconnect()
@@ -147,10 +152,10 @@ def run_once(verbose: bool = False) -> int:
     state, detail = probe(now.strftime("%Y%m%d"))
     if state == "bad":
         n = _open_0dte(now.strftime("%Y%m%d"))
-        esc = f" — {n} OPEN 0DTE POSITION(S) UNMANAGED" if n else ""
-        tg.send(f"🔴 REAL-TIME DATA DOWN: {detail}{esc}", level="alert",
+        esc = f" — {n} defined-risk 0DTE open (settle at cap regardless of feed)" if n else ""
+        tg.send(f"🔴 0DTE FEED DELAYED: {detail}{esc}", level="alert",
                 dedup_key=KEY, cooldown_s=1800)
-        print(f"BAD: {detail}{esc}")
+        print(f"DELAYED: {detail}{esc}")
         return 1
     if state == "ok":                                 # data fine, spot_feed is the problem
         if _paged():
