@@ -1,7 +1,7 @@
 """Forward 0DTE SPXW chain recorder — build our OWN intraday options dataset.
 
 Every trading day, from the open to the close, snapshot the SPXW 0DTE NBBO for a
-strike window around spot (every minute) and append to a dated CSV. This is the
+strike window around spot (every 30s by default) and append to a dated CSV. This is the
 data that lets us later test EVERYTHING retrospectively — any entry time (was
 08:35 right?), any strike, any structure, any exit rule — from real quotes we
 actually recorded, not from the handful of trades we happened to take.
@@ -21,6 +21,8 @@ import argparse
 import csv
 import datetime as dt
 import json
+import time
+import traceback
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -29,6 +31,7 @@ SIM = ROOT / "data" / "options_sim"
 CT = ZoneInfo("America/Chicago")
 ET = ZoneInfo("America/New_York")
 STRIKE_STEP = 5
+HEARTBEAT = SIM / "chain_heartbeat.json"   # written every sweep; the supervisor reads it
 
 
 def now_ct():
@@ -157,21 +160,93 @@ def snapshot_sweep(ib, contracts, batch=30, settle=3.0):
     return out, len(missed), delayed
 
 
-def run_live(pct, secs, stop_hhmm):
-    """Per-minute SNAPSHOT sweep of a rolling ±pct 0DTE strike window (+ pinned
-    trade strikes). Snapshots — not persistent streams — so the recorder holds data
-    lines only momentarily and COEXISTS with the live desk instead of exceeding the
-    account's market-data-line quota (the 10090 line-contention that broke it)."""
+def validate_day(date, secs, stop_hhmm, open_hhmm="08:30"):
+    """EOD completeness gate: a day only 'counts' toward the 90 if it's actually
+    complete. Compares distinct snapshots captured against the full session at the
+    target cadence, and finds the largest hole. Writes a report; returns the dict."""
+    import numpy as np, pandas as pd
+    p = out_path(date)
+    oh, om = map(int, open_hhmm.split(":"))
+    sh, sm = map(int, stop_hhmm.split(":"))
+    session_s = ((sh * 60 + sm) - (oh * 60 + om)) * 60
+    expected = max(1, session_s // secs)
+    rep = {"date": date, "cadence_s": secs, "expected_snaps": int(expected),
+           "actual_snaps": 0, "coverage_pct": 0.0, "first_ct": None, "last_ct": None,
+           "max_gap_s": None, "holes_over_2x": 0, "complete": False}
+    if p.exists():
+        d = pd.read_csv(p)
+        ts = pd.to_datetime(d["ts_et"])                       # ET stamps
+        t = np.array(sorted(ts.dt.floor("s").unique()))
+        rep["actual_snaps"] = int(len(t))
+        rep["coverage_pct"] = round(100 * len(t) / expected, 1)
+        rep["first_ct"] = (ts.min() - pd.Timedelta(hours=1)).strftime("%H:%M:%S")
+        rep["last_ct"] = (ts.max() - pd.Timedelta(hours=1)).strftime("%H:%M:%S")
+        if len(t) > 1:
+            gaps = np.diff(t).astype("timedelta64[s]").astype(int)
+            rep["max_gap_s"] = int(gaps.max())
+            rep["holes_over_2x"] = int((gaps > 2 * secs).sum())
+        rep["complete"] = rep["coverage_pct"] >= 90 and (rep["max_gap_s"] or 0) <= 4 * secs
+    out = SIM / f"chain_completeness_{date}.json"
+    out.write_text(json.dumps(rep, indent=2), encoding="utf-8")
+    flag = "COMPLETE" if rep["complete"] else "INCOMPLETE"
+    print(f"  completeness [{flag}]: {rep['actual_snaps']}/{rep['expected_snaps']} snaps "
+          f"({rep['coverage_pct']}%), {rep['first_ct']}→{rep['last_ct']} CT, "
+          f"max gap {rep['max_gap_s']}s, {rep['holes_over_2x']} holes  -> {out.name}")
+    return rep
+
+
+def write_heartbeat(date, rows, spot, state, delayed=0, empty=0, note=""):
+    """One-line liveness beacon the supervisor polls. state ∈ ok / waiting_spot /
+    feed_delayed / error. A FRESH heartbeat with rows==0 means 'alive but the feed
+    gave us nothing' (do NOT relaunch — that's a feed issue); a STALE heartbeat means
+    the process hung or died (relaunch)."""
+    try:
+        HEARTBEAT.write_text(json.dumps({
+            "ts_ct": now_ct().strftime("%Y-%m-%d %H:%M:%S"),
+            "ts_epoch": time.time(), "date": date, "rows": rows,
+            "spot": spot, "state": state, "delayed": delayed, "empty": empty,
+            "note": note, "pid": __import__("os").getpid(),
+        }), encoding="utf-8")
+    except Exception:
+        pass
+
+
+def connect_with_retry(client_id, tries=30, wait=10, log=print):
+    """Connect to the gateway, RETRYING instead of dying. At the 08:25 launch the
+    gateway may still be finishing login; a single failed connect used to kill the
+    recorder for the whole day. Returns a connected ib or None after `tries`."""
     import ib_conn
+    for i in range(1, tries + 1):
+        try:
+            ib = ib_conn.connect(client_id=client_id)
+            ib.reqMarketDataType(1)
+            return ib
+        except Exception as e:
+            log(f"  connect attempt {i}/{tries} failed: {type(e).__name__}: {e} — retry in {wait}s")
+            time.sleep(wait)
+    return None
+
+
+def run_live(pct, secs, stop_hhmm):
+    """Durable per-`secs` SNAPSHOT sweep of a rolling ±pct 0DTE window (+ pinned trade
+    strikes). Rebuilt 2026-08-20 to be CRASH-PROOF: it retries the gateway connect at
+    launch (never SystemExit on a cold feed), reconnects on a mid-session drop, wraps
+    every sweep so one bad cycle can't kill the day, anchors the cadence to wall-clock
+    (true 30s spacing, not sweep+sleep drift), and writes a heartbeat each cycle so the
+    supervisor can tell 'hung/dead' (relaunch) from 'feed delayed' (alert only)."""
     import singleton
     singleton.ensure("options_chain_recorder")  # one recorder only — duplicates starve each other of IB lines
-    ib = ib_conn.connect(client_id=71)          # distinct from daemons (avoid clientId clash)
-    ib.reqMarketDataType(1)
     date = now_ct().strftime("%Y%m%d")
     expiry = date                                # 0DTE: today's SPXW expiry
-    spot = spot_now(ib)
-    if spot is None:
-        raise SystemExit("no spot available — is the feed live?")
+    stop = dt.time(*map(int, stop_hhmm.split(":")))
+    p = out_path(date)
+    cache = {}                                   # (strike, right) -> qualified Contract
+
+    ib = connect_with_retry(client_id=71)        # distinct from daemons (avoid clientId clash)
+    if ib is None:
+        write_heartbeat(date, 0, None, "error", note="could not connect to gateway")
+        raise SystemExit("gateway unreachable after retries — supervisor will relaunch")
+    spot = spot_now(ib)                          # may be None on a cold feed; we WAIT, not die
 
     def pinned_strikes():
         """Strikes of TODAY'S armed/fired structures (gameplan verticals) — always
@@ -193,32 +268,77 @@ def run_live(pct, secs, stop_hhmm):
         except Exception:
             return set()
 
-    cache = {}                                   # (strike, right) -> qualified Contract
-    stop = dt.time(*map(int, stop_hhmm.split(":")))
-    p = out_path(date)
     print(f"recording ±{pct}% 0DTE SNAPSHOT sweep every {secs}s until {stop_hhmm} CT, exp {expiry}")
+    total_snaps = 0
+    next_t = time.monotonic()
     while now_ct().time() < stop:
-        spot = spot_now(ib) or spot
-        # rolling window recomputed each cycle from current spot (+ pinned strikes),
-        # so it self-recenters on a trend move — no separate drift bookkeeping needed
-        strikes = sorted(set(strike_window(spot, pct)) | pinned_strikes())
-        contracts = _qualified(ib, expiry, strikes, cache)
-        quotes, empty, delayed = snapshot_sweep(ib, contracts)
-        ts = dt.datetime.now(ET).strftime("%Y-%m-%d %H:%M:%S")
-        rows = [[ts, round(spot, 2), expiry, k, r,
-                 (b if b is not None else ""), (a if a is not None else "")]
-                for (k, r), (b, a) in quotes.items()]
-        if rows:
-            append_rows(p, rows)
-        msg = f"  {ts}  {len(rows)} realtime quotes"
-        if delayed:
-            msg += f"  ({delayed} DROPPED not-realtime)"
-        if empty:
-            msg += f"  ({empty} no quote)"
-        print(msg)
-        ib.sleep(secs)
-    ib.disconnect()
-    print(f"done — {p.relative_to(ROOT)}")
+        try:
+            if not ib.isConnected():             # reconnect on a silent mid-session drop
+                print("  connection dropped — reconnecting…")
+                write_heartbeat(date, 0, spot, "error", note="reconnecting")
+                try:
+                    ib.disconnect()
+                except Exception:
+                    pass
+                ib = connect_with_retry(client_id=71)
+                if ib is None:
+                    raise SystemExit("gateway unreachable mid-session — supervisor will relaunch")
+            s = spot_now(ib)
+            if s is None:                        # feed not serving spot — stay ALIVE and wait
+                write_heartbeat(date, 0, spot, "waiting_spot", note="no spot from feed")
+                print(f"  {now_ct():%H:%M:%S} CT  waiting for spot…")
+            else:
+                spot = s
+                # rolling window recomputed each cycle from current spot (+ pinned strikes),
+                # so it self-recenters on a trend move — no separate drift bookkeeping needed
+                strikes = sorted(set(strike_window(spot, pct)) | pinned_strikes())
+                contracts = _qualified(ib, expiry, strikes, cache)
+                quotes, empty, delayed = snapshot_sweep(ib, contracts)
+                ts = dt.datetime.now(ET).strftime("%Y-%m-%d %H:%M:%S")
+                rows = [[ts, round(spot, 2), expiry, k, r,
+                         (b if b is not None else ""), (a if a is not None else "")]
+                        for (k, r), (b, a) in quotes.items()]
+                if rows:
+                    append_rows(p, rows)
+                    total_snaps += 1
+                state = "ok" if rows else ("feed_delayed" if delayed else "empty")
+                write_heartbeat(date, len(rows), spot, state, delayed=delayed, empty=empty)
+                msg = f"  {ts}  {len(rows)} realtime quotes"
+                if delayed:
+                    msg += f"  ({delayed} DROPPED not-realtime)"
+                if empty:
+                    msg += f"  ({empty} no quote)"
+                print(msg)
+        except SystemExit:
+            raise                                # let the supervisor relaunch
+        except Exception as e:
+            # one bad cycle must NEVER end the day — log, beat, keep going
+            write_heartbeat(date, 0, spot, "error", note=f"{type(e).__name__}: {e}")
+            print(f"  ! sweep error (continuing): {type(e).__name__}: {e}")
+            traceback.print_exc()
+        # anchor cadence to wall-clock so spacing stays ~secs regardless of sweep duration
+        next_t += secs
+        remaining = next_t - time.monotonic()
+        if remaining < 0:                        # sweep took longer than secs — resync
+            if -remaining > secs:
+                print(f"  (behind by {-remaining:.0f}s — resyncing cadence)")
+            next_t = time.monotonic()
+            remaining = 0
+        if remaining > 0:
+            try:
+                ib.sleep(remaining) if ib.isConnected() else time.sleep(remaining)
+            except Exception:
+                time.sleep(remaining)
+    try:
+        ib.disconnect()
+    except Exception:
+        pass
+    write_heartbeat(date, 0, spot, "stopped", note=f"clean stop {stop_hhmm} CT")
+    print(f"done — {total_snaps} snapshots -> {p.relative_to(ROOT)}")
+    try:
+        validate_day(date, secs, stop_hhmm)
+    except Exception as e:
+        print(f"  (completeness check error: {e})")
 
 
 def main():
@@ -226,7 +346,7 @@ def main():
     ap.add_argument("--pct", type=float, default=1.25,
                     help="ROLLING strike-window half-width, %% of current spot "
                          "(1.25%% ~ 78 IB data lines; window re-centers as spot drifts)")
-    ap.add_argument("--secs", type=int, default=60, help="snapshot cadence (s)")
+    ap.add_argument("--secs", type=int, default=30, help="snapshot cadence (s)")
     ap.add_argument("--stop", default="15:00", help="stop time CT (HH:MM)")
     ap.add_argument("--mock", action="store_true", help="no IB — verify logic only")
     args = ap.parse_args()

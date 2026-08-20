@@ -418,7 +418,11 @@ def settle_expired(daily, today, dry):
             print(f"! {tr.trade_id} expired {exp} but no SPX close for that date yet")
             continue
         S = float(row.Close.iloc[0])
-        cost = sum((1 if l["side"] == "sell" else -1) * max(0.0, l["strike"] - S) for l in legs)
+        # per-right intrinsic: CALL = max(S-K,0), PUT = max(K-S,0). (Prior code used the
+        # put formula for every leg, mis-settling call spreads. Fixed 2026-08-20.)
+        def _intr(l):
+            return max(0.0, S - l["strike"]) if l["right"] == "C" else max(0.0, l["strike"] - S)
+        cost = sum((1 if l["side"] == "sell" else -1) * _intr(l) for l in legs)
         print(f"SETTLING {tr.trade_id}: expired {exp}, SPX close {S:.2f}, intrinsic cost {cost:.2f}")
         if not dry:
             r = tlog.update_exit(tr.trade_id, exp, cost, 0.0, fill_model="settlement")
