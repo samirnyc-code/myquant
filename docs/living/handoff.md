@@ -1,6 +1,54 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** August 13, 2026 (S104: all MenthorQ/MQ automations paused — expired site session; gexlog morning/evening confirmed independent + healthy)
+**Last Updated:** August 20, 2026 (S105: 0DTE recorder rebuilt crash-proof + supervised @30s; root cause = PROCESS DEATH not the feed; Aug 19 P&L re-booked to the official close)
+
+---
+
+## S105 (2026-08-19→20) — 0DTE recorder rebuilt (crash-proof + supervised @30s); Aug 19 P&L corrected
+
+**GOAL clarified by the user (this reframes everything):** the desk exists to **collect
+data** — the trades PLUS a clean intraday 0DTE tape at **30s** — so that **after 90 days**
+we replay and test exit strategies on real recorded prices. Live execution / marks /
+dashboard are SECONDARY. A gap or a delayed stretch = lost forever = corrupts the dataset.
+
+**ROOT CAUSE of the lost dataset — verified across Aug 4-19: PROCESS DEATH, not the feed.**
+Measured spot behavior per day: the feed was **realtime on 5 of 6 recorded days** (spot
+moving, 200-350 distinct values). The recorder just **wasn't alive**: Aug 7-16 exited 1
+silently (**8 sessions lost**), Aug 17/18 crashed at the open and started hours late on a
+**fine** feed. The delayed feed cost **exactly ONE day (Aug 19)**. We had been fighting the
+wrong enemy for days.
+- Banked toward the 90 so far: ~3 usable days (Aug 4, 6, partial 5/17). **The clock has not
+  really started.** Cadence was **60s**, not the 30s assumed. Assessment scripts print a
+  per-day completeness table.
+
+**REBUILT recorder `options_chain_recorder.py` (durable):** `connect_with_retry` (never
+SystemExit on a cold-feed launch — THE Aug 7-16 killer, was `raise SystemExit("no spot")`);
+waits-alive-for-spot; crash-proof per-sweep loop; reconnect on drop; **true 30s wall-clock-
+anchored cadence** (default `--secs 30`); heartbeat each sweep → `chain_heartbeat.json`; EOD
+completeness gate → `chain_completeness_YYYYMMDD.json` (≥90% coverage or it does NOT count).
+
+**NEW supervisor `chain_recorder_supervisor.py`:** keeps exactly one recorder alive
+08:25→15:05 CT, relaunches within seconds on death, and reads the heartbeat to separate
+**hung/dead (relaunch)** from **feed_delayed (alert only — relaunching can't fix IB's feed)**.
+Pages on death/hang/incomplete-day; recovery ping when realtime returns. **Scheduled task
+`MyQuant Chain Recorder` REPOINTED to it** (run_at_ct `--at 08:25` wrapper + log preserved).
+
+**Settlement bug fixed** (`options_sim_daemon.py` settle_expired): calls now `max(S-K,0)`,
+puts `max(K-S,0)`. Prior code applied the PUT formula to every leg → mis-settled every call
+spread held through that path.
+
+**Aug 19 re-booked to the official ^GSPC close 7707.98** (spot_feed had frozen at 7717.6):
+`openfly_p` −145.6 → −4.6; **day +1884.9 → +2025.9**. `trades.parquet` (backup
+`.bak_20260819`) + `daily_summary.csv` corrected. Scripts: `correct_20260819_settlement.py`,
+`reconcile_0dte_settlement.py`, `feed_watch.py`. **Commit `fbe31f14`.**
+
+**⚠️ NOT YET PROVEN:** the live connect / reconnect / real-sweep path — only tested offline
+(mock + completeness validator + heartbeat). **It proves on the Aug 20 open — WATCH the first
+session** via `chain_heartbeat.json` (live) and `chain_completeness_20260820.json` (EOD).
+
+**Still open:** strike width is ±1.25% (~40-60 strikes) — widen if exit research needs it.
+The data-SOURCE question (flaky paper OPRA vs a read-only market-data login on the LIVE
+account) remains — but it is correctly scoped to ~1-in-11 days, not the main problem.
 
 ---
 
