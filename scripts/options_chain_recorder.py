@@ -119,44 +119,40 @@ def snapshot_sweep(ib, contracts, batch=30, settle=3.0):
     headroom exists) instead of 'all 78 at once'. Blocked/empty contracts are retried
     once in a smaller batch to squeeze into tight headroom.
 
-    REALTIME GUARD (2026-08-17): IB silently serves DELAYED/frozen quotes when realtime
-    is denied (lines exhausted or not entitled) — it emits error 10090/10167 and the
-    snapshot STILL fills, so without this the recorder would log stale prices as if live.
-    We capture the contracts IB refuses realtime for and DROP them: better to write
-    nothing (and let the completeness alarm page) than to poison the dataset with stale
-    quotes. Returns ({(strike, right): (bid, ask)}, n_empty, n_delayed)."""
-    denied = set()   # conId IB refused realtime for during this sweep -> untrustworthy
-    def _on_err(reqId, code, msg, contract=None, *a):
-        if code in (10090, 10091, 10167, 10197) and contract is not None:
-            denied.add(contract.conId)
-    ib.errorEvent += _on_err
+    REALTIME GUARD — decide realtime-vs-delayed from each ticker's marketDataType
+    (1=realtime, 2=frozen, 3=delayed, 4=delayed-frozen), NOT from the 10090 error.
+    (2026-08-20 fix, verified live: SPXW snapshots ROUTINELY emit error 10090 — 'part of
+    requested market data is not subscribed; subscription-INDEPENDENT ticks are still
+    active' — while the NBBO itself is REALTIME (marketDataType=1). The prior guard keyed
+    off the 10090 code and DROPPED those good realtime quotes: on 2026-08-20 it wrote 0
+    rows for 2+ hours on a fully realtime feed (8/8 probe strikes were mdType=1 with valid
+    NBBO, all dropped). We now record when the ticker is realtime with a valid NBBO and
+    drop ONLY when IB actually served delayed (marketDataType in (3, 4)).)
+    Returns ({(strike, right): (bid, ask)}, n_empty, n_delayed)."""
     out, delayed, missed = {}, 0, list(contracts)
-    try:
-        for _ in range(2):
-            pending, missed = missed, []
-            for i in range(0, len(pending), batch):
-                grp = pending[i:i + batch]
-                tks = [(c, ib.reqMktData(c, "", snapshot=True)) for c in grp]
-                ib.sleep(settle)
-                for c, t in tks:
-                    try:
-                        ib.cancelMktData(c)   # snapshots auto-cancel; belt-and-suspenders
-                    except Exception:
-                        pass
-                    if c.conId in denied:     # realtime refused -> DROP (never record delayed)
-                        delayed += 1
-                        continue
-                    b = t.bid if (t.bid == t.bid and t.bid >= 0) else None
-                    a = t.ask if (t.ask == t.ask and t.ask >= 0) else None
-                    if b is None and a is None:
-                        missed.append(c)
-                    else:
-                        out[(c.strike, c.right)] = (b, a)
-            if not missed:
-                break
-            batch = max(5, batch // 3)
-    finally:
-        ib.errorEvent -= _on_err
+    for _ in range(2):
+        pending, missed = missed, []
+        for i in range(0, len(pending), batch):
+            grp = pending[i:i + batch]
+            tks = [(c, ib.reqMktData(c, "", snapshot=True)) for c in grp]
+            ib.sleep(settle)
+            for c, t in tks:
+                try:
+                    ib.cancelMktData(c)       # snapshots auto-cancel; belt-and-suspenders
+                except Exception:
+                    pass
+                if getattr(t, "marketDataType", None) in (3, 4):  # IB actually served DELAYED
+                    delayed += 1                                  # -> never record stale quotes
+                    continue
+                b = t.bid if (t.bid == t.bid and t.bid >= 0) else None
+                a = t.ask if (t.ask == t.ask and t.ask >= 0) else None
+                if b is None and a is None:
+                    missed.append(c)
+                else:
+                    out[(c.strike, c.right)] = (b, a)
+        if not missed:
+            break
+        batch = max(5, batch // 3)
     return out, len(missed), delayed
 
 
