@@ -130,6 +130,27 @@ def _paged() -> bool:
         return False
 
 
+def _heal_spot_feed(verbose: bool = False) -> None:
+    """spot_feed is stale but realtime data IS live -> the feed process died/hung.
+    RESTART it instead of only paging (2026-08-20: 'needs a kick' pages that nobody
+    can action in real time). spot_feed holds singleton.ensure('spot_feed'), so a
+    double-start is safe — a second copy exits immediately. Its scheduled task launches
+    the script directly; `schtasks /run` re-launches it exactly as configured."""
+    import subprocess
+    try:
+        subprocess.run(["schtasks", "/run", "/tn", "MyQuant Spot Feed"],
+                       capture_output=True, text=True, timeout=30, creationflags=0x08000000)
+        if verbose:
+            print("spot_feed: restart requested via task")
+    except Exception:
+        pyw = str(ROOT / ".venv" / "Scripts" / "pythonw.exe")
+        subprocess.Popen([pyw, str(ROOT / "scripts" / "spot_feed.py")], cwd=str(ROOT),
+                         creationflags=0x08000008,
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if verbose:
+            print("spot_feed: restart via direct launch (task run failed)")
+
+
 def run_once(verbose: bool = False) -> int:
     import pipeline_health as ph
     now = ph.chicago_now()
@@ -161,9 +182,13 @@ def run_once(verbose: bool = False) -> int:
         if _paged():
             tg.clear_dedup(KEY)
             tg.send("recovered: real-time options data restored", level="ok")
-        tg.send("⚠️ spot feed stale but real-time data IS live — spot_feed needs a kick",
-                level="warn", dedup_key="spotfeed_only", cooldown_s=1800)
-        print(f"data OK but spot feed stale: {detail}")
+        # AUTO-KICK spot_feed instead of paging a human to do it. Throttle the restart
+        # itself (dedup gate) so a persistently-failing feed can't be relaunch-spammed;
+        # the info ping only fires when a kick actually happens.
+        if tg.send("🔧 spot_feed stale (data live) — auto-restarting", level="info",
+                   dedup_key="spotfeed_heal", cooldown_s=600):
+            _heal_spot_feed(verbose)
+        print(f"data OK but spot feed stale -> auto-kicked: {detail}")
         return 0
     if verbose:
         print(f"{state}: {detail}")
