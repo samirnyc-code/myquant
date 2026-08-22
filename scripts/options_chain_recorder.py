@@ -181,7 +181,14 @@ def validate_day(date, secs, stop_hhmm, open_hhmm="08:30"):
             gaps = np.diff(t).astype("timedelta64[s]").astype(int)
             rep["max_gap_s"] = int(gaps.max())
             rep["holes_over_2x"] = int((gaps > 2 * secs).sum())
-        rep["complete"] = rep["coverage_pct"] >= 90 and (rep["max_gap_s"] or 0) <= 4 * secs
+        # Grade on CONTINUITY (full-session span + no holes), NOT on hitting the nominal
+        # cadence exactly. A wide sweep may only achieve ~10-15s even at --secs 10; that
+        # must not false-flag INCOMPLETE. A day counts if it started near the open, ran to
+        # the close, and has no gap beyond ~a handful of missed cycles.
+        started = rep["first_ct"] is not None and rep["first_ct"] <= "08:40:00"
+        ran_to_close = rep["last_ct"] is not None and rep["last_ct"] >= "14:55:00"
+        no_holes = (rep["max_gap_s"] or 0) <= max(6 * secs, 90)
+        rep["complete"] = bool(started and ran_to_close and no_holes)
     out = SIM / f"chain_completeness_{date}.json"
     out.write_text(json.dumps(rep, indent=2), encoding="utf-8")
     flag = "COMPLETE" if rep["complete"] else "INCOMPLETE"
@@ -342,7 +349,8 @@ def main():
     ap.add_argument("--pct", type=float, default=1.25,
                     help="ROLLING strike-window half-width, %% of current spot "
                          "(1.25%% ~ 78 IB data lines; window re-centers as spot drifts)")
-    ap.add_argument("--secs", type=int, default=30, help="snapshot cadence (s)")
+    ap.add_argument("--secs", type=int, default=10, help="snapshot cadence (s) — target; "
+                    "a wide sweep may only achieve ~10-15s, which the anchored loop tolerates")
     ap.add_argument("--stop", default="15:00", help="stop time CT (HH:MM)")
     ap.add_argument("--mock", action="store_true", help="no IB — verify logic only")
     args = ap.parse_args()

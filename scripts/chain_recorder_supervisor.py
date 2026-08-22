@@ -86,7 +86,7 @@ def launch(secs, pct, stop):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--stop", default="15:05", help="stop time CT HH:MM")
-    ap.add_argument("--secs", type=int, default=30)
+    ap.add_argument("--secs", type=int, default=10)
     ap.add_argument("--pct", type=float, default=1.25)
     a = ap.parse_args()
 
@@ -189,6 +189,25 @@ def _grade_day(secs, stop):
         page(f"⚠️ 0DTE tape INCOMPLETE {date}: {rep['coverage_pct']}% "
              f"({rep['actual_snaps']}/{rep['expected_snaps']} snaps), "
              f"max gap {rep.get('max_gap_s')}s — does NOT count toward the 90", "chain_incomplete")
+    _archive_day(date)
+
+
+def _archive_day(date):
+    """EOD close-out: CSV -> snappy Parquet + gzipped raw backup, then clean the loose
+    CSV (both copies verified first). Archives complete AND incomplete days — data is
+    data. A failure keeps the loose CSV and pages, never loses the tape."""
+    csv = SIM / f"chain_{date}.csv"
+    if not csv.exists():
+        return
+    try:
+        sys.path.insert(0, str(ROOT / "scripts"))
+        import archive_chain_day as arch
+        r = arch.archive_one(csv, remove_loose=True, verbose=False)
+        log(f"archived: {r['rows']} rows -> {r['parquet']} ({r['parquet_mb']}MB, "
+            f"{r['compression_x']}x) + gz backup; loose CSV removed")
+    except Exception as e:
+        log(f"archive FAILED (loose CSV kept, not lost): {e}")
+        page(f"⚠️ 0DTE tape archive failed {date}: {e} — raw CSV kept", "chain_archive_fail")
 
 
 if __name__ == "__main__":

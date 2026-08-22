@@ -86,6 +86,19 @@ families:
     gotchas: "10 instruments on disk (coverage in _coverage.json): SPX (2007→), 7 mega-caps (AAPL/AMZN/GOOGL/META/MSFT/NVDA/TSLA), plus S80 adds XSP (2020→today) and VIX (2007-2026, SKIPPING 2013+2017). Gitignored firehose (per ticker-year parquet, pruned+zstd). OI = prior-session SETTLED (one value/day). SPX pull includes SPXW — split by expiryTod. Use spotPrice NOT stockPrice. Exclude dte==1 (expiring-today) for next-session GEX. ⚠ ORATS quota ~19,650/20,000 — nearly maxed, do NOT launch more pulls without checking usage. ORATS has NO futures options (NQ/RTY index proxies noisy; CL/GC ETF proxies weak). XSP fee drag ~10x SPX (fixed $1.30/ct on 1/10 premiums)."
 
   # -------------------------------------------------------------------- Ticks
+  - key: options_tape
+    title: "0DTE SPXW chain tape (our forward recording)"
+    category: Options
+    paths:
+      - data/options_tape
+    produced_by: "scripts/options_chain_recorder.py (live IB/OPRA NBBO) -> archive_chain_day.py at EOD"
+    update_cadence: daily
+    expected_freshness_days: 4
+    count_rows: false
+    useful_for: "Forward-recorded SPXW 0DTE NBBO tape (per-strike bid/ask + spot, ~10-30s cadence, 08:30-15:00 CT) for exit-rule/entry-timing backtests. One snappy Parquet per session; gzipped raw CSV backup under raw/. The free forward equivalent of ORATS/OptionsDX history."
+    access: "pd.read_parquet('data/options_tape/chain_20260821.parquet')  # one file per session; cols ts_et,spot,expiry,strike,right,bid,ask"
+    gotchas: "Only days that passed the completeness gate (chain_completeness_YYYYMMDD.json complete=true) are full-session; incomplete days are archived too but flagged. Pre-2026-08-20 days were recorded before the guard fix and may be partial."
+
   - key: ticks_continuous
     title: "Continuous tick series (ES/NQ/YM/CL/GC/6E/6J)"
     category: Ticks
