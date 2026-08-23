@@ -230,11 +230,53 @@ def run_live(until):
                             print(f"  closed XSP mirror {xr['trade_id']} cost {cost:+.2f}")
                     except Exception as e:
                         print(f"  ! mirror exit failed {xr['trade_id']}: {e}")
+            # MARK open XSP positions -> marks_xsp.csv (so the mini tab shows unrealized)
+            _mark_open(ib, bags)
         except Exception as e:
             print(f"  loop error (continuing): {type(e).__name__}: {e}")
         ib.sleep(20)
     ib.disconnect()
     print("XSP mirror done.")
+
+
+def _mark_open(ib, bags):
+    """Quote each open XSP combo -> unrealized -> append to marks_xsp.csv. unreal for a
+    bag we BOUGHT (== our position) = (current_mid - entry_price)*100; entry_price = -credit.
+    First-cut schema (ts,trade_id,unreal_pnl,mid,vix); aligned with marks.csv when the
+    mini tab is built. Positions opened in a prior process run (no bag cached) are skipped
+    until the mirror is hardened to rebuild bags from legs."""
+    import csv as _csv
+    import options_trade_log as tlog
+    tlog.set_book("xsp")
+    op = tlog.load()
+    op = op[op.exit_dt.isna()]
+    if not len(op):
+        return
+    try:
+        vix = json.loads((SIM / "live.json").read_text()).get("vix")
+    except Exception:
+        vix = None
+    rows = []
+    ts = now_ct().strftime("%Y-%m-%d %H:%M:%S")
+    for _, r in op.iterrows():
+        bag = bags.get(r["trade_id"])
+        if bag is None:
+            continue
+        bid, ask = _quote(ib, bag, wait=3)
+        if bid is None:
+            continue
+        mid = (bid + ask) / 2
+        credit = float(r["credit"]) if r.get("credit") == r.get("credit") else 0.0
+        unreal = round((mid + credit) * 100, 2)
+        rows.append([ts, r["trade_id"], unreal, round(mid, 3), vix])
+    if rows:
+        f = LOG / "marks_xsp.csv"
+        new = not f.exists()
+        with f.open("a", newline="") as fh:
+            w = _csv.writer(fh)
+            if new:
+                w.writerow(["ts", "trade_id", "unreal_pnl", "mid", "vix"])
+            w.writerows(rows)
 
 
 def main():
