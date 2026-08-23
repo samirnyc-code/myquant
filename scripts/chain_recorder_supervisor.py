@@ -29,15 +29,28 @@ from zoneinfo import ZoneInfo
 ROOT = Path(__file__).resolve().parents[1]
 SIM = ROOT / "data" / "options_sim"
 CT = ZoneInfo("America/Chicago")
-HEARTBEAT = SIM / "chain_heartbeat.json"
 PYW = ROOT / ".venv" / "Scripts" / "pythonw.exe"
 PY = ROOT / ".venv" / "Scripts" / "python.exe"
 RECORDER = ROOT / "scripts" / "options_chain_recorder.py"
-LOGF = SIM / "chain_supervisor.log"
 
 STALL_S = 90          # no heartbeat for this long during session = hung/dead -> relaunch
 POLL_S = 15           # how often the supervisor checks
 RELAUNCH_BACKOFF = 5  # pause before a relaunch so a hard-failing child can't spin
+
+# one supervisor process = ONE instrument (set in main). SPX defaults keep legacy names.
+SYMBOL = "SPX"
+
+
+def _sfx():
+    return "" if SYMBOL == "SPX" else f"{SYMBOL}_"
+
+
+def heartbeat_path():
+    return SIM / f"chain_{_sfx()}heartbeat.json"
+
+
+def logf():
+    return SIM / f"chain_{_sfx()}supervisor.log"
 
 
 def now_ct():
@@ -45,10 +58,10 @@ def now_ct():
 
 
 def log(msg):
-    line = f"{now_ct():%Y-%m-%d %H:%M:%S} CT  {msg}"
+    line = f"{now_ct():%Y-%m-%d %H:%M:%S} CT  [{SYMBOL}] {msg}"
     print(line, flush=True)
     try:
-        with LOGF.open("a", encoding="utf-8") as f:
+        with logf().open("a", encoding="utf-8") as f:
             f.write(line + "\n")
     except Exception:
         pass
@@ -66,7 +79,7 @@ def page(msg, key, cooldown=1800):
 
 def read_heartbeat():
     try:
-        d = json.loads(HEARTBEAT.read_text(encoding="utf-8"))
+        d = json.loads(heartbeat_path().read_text(encoding="utf-8"))
         d["age"] = time.time() - float(d.get("ts_epoch", 0))
         return d
     except Exception:
@@ -76,7 +89,8 @@ def read_heartbeat():
 def launch(secs, pct, stop):
     """Start one recorder child detached-ish (own stdout to a log). Returns Popen."""
     exe = str(PYW) if PYW.exists() else str(PY)
-    cmd = [exe, "-u", str(RECORDER), "--secs", str(secs), "--pct", str(pct), "--stop", stop]
+    cmd = [exe, "-u", str(RECORDER), "--symbol", SYMBOL,
+           "--secs", str(secs), "--pct", str(pct), "--stop", stop]
     log(f"launching recorder: {' '.join(cmd[2:])}")
     return subprocess.Popen(cmd, cwd=str(ROOT),
                             creationflags=0x08000008,  # DETACHED_PROCESS | CREATE_NO_WINDOW
@@ -84,14 +98,21 @@ def launch(secs, pct, stop):
 
 
 def main():
+    global SYMBOL
     ap = argparse.ArgumentParser()
     ap.add_argument("--stop", default="15:05", help="stop time CT HH:MM")
     ap.add_argument("--secs", type=int, default=10)
     ap.add_argument("--pct", type=float, default=1.25)
+    ap.add_argument("--symbol", default="SPX", help="instrument: SPX | XSP")
     a = ap.parse_args()
+    SYMBOL = a.symbol.upper()
 
     import singleton
-    singleton.ensure("chain_recorder_supervisor")   # one supervisor only
+    if SYMBOL == "SPX":
+        singleton.ensure("chain_recorder_supervisor")            # legacy lock, unchanged
+    else:
+        singleton.ensure(f"chain_recorder_supervisor_{SYMBOL}",  # distinct lock per instrument
+                         match=f"--symbol {SYMBOL}")             # this supervisor's own cmdline arg
 
     sh, sm = map(int, a.stop.split(":"))
     stop_t = dt.time(sh, sm)
@@ -169,14 +190,16 @@ def _kill(child):
 def _grade_day(secs, stop):
     """Read the child's completeness report and page if the day is incomplete."""
     date = now_ct().strftime("%Y%m%d")
-    f = SIM / f"chain_completeness_{date}.json"
+    f = SIM / f"chain_{_sfx()}completeness_{date}.json"
     try:
         rep = json.loads(f.read_text(encoding="utf-8"))
     except Exception:
-        # child may not have written it (killed) — compute directly
+        # child may not have written it (killed) — compute directly for THIS instrument
         try:
             sys.path.insert(0, str(ROOT / "scripts"))
             import options_chain_recorder as rec
+            rec.set_instrument(SYMBOL, "SPXW" if SYMBOL == "SPX" else SYMBOL,
+                               5 if SYMBOL == "SPX" else 1, 1.0 if SYMBOL == "SPX" else 10.0)
             rep = rec.validate_day(date, secs, stop)
         except Exception as e:
             log(f"could not grade day: {e}")
@@ -196,7 +219,7 @@ def _archive_day(date):
     """EOD close-out: CSV -> snappy Parquet + gzipped raw backup, then clean the loose
     CSV (both copies verified first). Archives complete AND incomplete days — data is
     data. A failure keeps the loose CSV and pages, never loses the tape."""
-    csv = SIM / f"chain_{date}.csv"
+    csv = SIM / f"chain_{_sfx()}{date}.csv"
     if not csv.exists():
         return
     try:

@@ -30,8 +30,29 @@ ROOT = Path(__file__).resolve().parents[1]
 SIM = ROOT / "data" / "options_sim"
 CT = ZoneInfo("America/Chicago")
 ET = ZoneInfo("America/New_York")
-STRIKE_STEP = 5
-HEARTBEAT = SIM / "chain_heartbeat.json"   # written every sweep; the supervisor reads it
+# One recorder process = ONE instrument. set_instrument() (called once at startup from
+# main) flips these; every path/qualify below reads them, so SPX and XSP share ALL the
+# crash-proofing/heartbeat/completeness/archival code. SPX defaults keep the original
+# single-instrument behavior byte-identical (files stay chain_YYYYMMDD.csv, etc).
+SYMBOL = "SPX"        # underlying symbol (SPX | XSP)
+TCLASS = "SPXW"       # option tradingClass (SPXW = SPX 0DTE weeklies; XSP = XSP)
+STRIKE_STEP = 5       # strike grid ($5 SPX; $1 XSP near ATM)
+SPOT_DIV = 1.0        # instrument spot = live.json spx / SPOT_DIV (XSP tracks SPX/10)
+CLIENT_ID = 71        # IB clientId — distinct per instrument so SPX/XSP don't clash
+
+
+def set_instrument(symbol="SPX", tclass="SPXW", step=5, spot_div=1.0, client_id=71):
+    global SYMBOL, TCLASS, STRIKE_STEP, SPOT_DIV, CLIENT_ID
+    SYMBOL, TCLASS, STRIKE_STEP, SPOT_DIV, CLIENT_ID = symbol, tclass, int(step), float(spot_div), int(client_id)
+
+
+def _sfx():
+    """File-name infix: '' for SPX (unchanged legacy names), 'XSP_' for XSP, etc."""
+    return "" if SYMBOL == "SPX" else f"{SYMBOL}_"
+
+
+def heartbeat_path():
+    return SIM / f"chain_{_sfx()}heartbeat.json"
 
 
 def now_ct():
@@ -39,22 +60,23 @@ def now_ct():
 
 
 def spot_now(ib=None):
-    """Live spot: from live.json if ticking, else IB ATM parity, else None."""
+    """Instrument spot: SPX spot from live.json (or IB parity) divided by SPOT_DIV so an
+    XSP recorder centers on SPX/10 (~768) and sweeps XSP strikes. SPX: SPOT_DIV=1."""
     live = SIM / "live.json"
     if live.exists():
         try:
             d = json.loads(live.read_text())
             if d.get("spx"):
-                return float(d["spx"])
+                return float(d["spx"]) / SPOT_DIV
         except Exception:
             pass
     if ib is not None:
         try:
             from options_sim_daemon import rough_spot
             _, px = rough_spot(ib)   # rough_spot returns (contract, price), NOT a float —
-            return float(px)         # float(rough_spot(...)) threw & was swallowed => None,
-        except Exception:            # so this fallback never worked and the recorder died at
-            pass                     # launch whenever live.json was stale (2026-08-17 fix).
+            return float(px) / SPOT_DIV
+        except Exception:            # fallback used when live.json is stale (2026-08-17 fix)
+            pass
     return None
 
 
@@ -65,7 +87,7 @@ def strike_window(spot, pct):
 
 
 def out_path(date):
-    return SIM / f"chain_{date}.csv"
+    return SIM / f"chain_{_sfx()}{date}.csv"
 
 
 def append_rows(path, rows):
@@ -98,7 +120,7 @@ def _qualified(ib, expiry, strikes, cache):
     from ib_async import Option
     need = [(k, r) for k in strikes for r in ("P", "C") if (k, r) not in cache]
     if need:
-        cs = [Option("SPX", expiry, k, r, "SMART", tradingClass="SPXW") for k, r in need]
+        cs = [Option(SYMBOL, expiry, k, r, "SMART", tradingClass=TCLASS) for k, r in need]
         for c in ib.qualifyContracts(*cs):
             if c and c.conId:
                 cache[(c.strike, c.right)] = c
@@ -189,7 +211,7 @@ def validate_day(date, secs, stop_hhmm, open_hhmm="08:30"):
         ran_to_close = rep["last_ct"] is not None and rep["last_ct"] >= "14:55:00"
         no_holes = (rep["max_gap_s"] or 0) <= max(6 * secs, 90)
         rep["complete"] = bool(started and ran_to_close and no_holes)
-    out = SIM / f"chain_completeness_{date}.json"
+    out = SIM / f"chain_{_sfx()}completeness_{date}.json"
     out.write_text(json.dumps(rep, indent=2), encoding="utf-8")
     flag = "COMPLETE" if rep["complete"] else "INCOMPLETE"
     print(f"  completeness [{flag}]: {rep['actual_snaps']}/{rep['expected_snaps']} snaps "
@@ -204,7 +226,7 @@ def write_heartbeat(date, rows, spot, state, delayed=0, empty=0, note=""):
     gave us nothing' (do NOT relaunch — that's a feed issue); a STALE heartbeat means
     the process hung or died (relaunch)."""
     try:
-        HEARTBEAT.write_text(json.dumps({
+        heartbeat_path().write_text(json.dumps({
             "ts_ct": now_ct().strftime("%Y-%m-%d %H:%M:%S"),
             "ts_epoch": time.time(), "date": date, "rows": rows,
             "spot": spot, "state": state, "delayed": delayed, "empty": empty,
@@ -238,14 +260,18 @@ def run_live(pct, secs, stop_hhmm):
     (true 30s spacing, not sweep+sleep drift), and writes a heartbeat each cycle so the
     supervisor can tell 'hung/dead' (relaunch) from 'feed delayed' (alert only)."""
     import singleton
-    singleton.ensure("options_chain_recorder")  # one recorder only — duplicates starve each other of IB lines
+    if SYMBOL == "SPX":
+        singleton.ensure("options_chain_recorder")          # legacy lock — unchanged for SPX
+    else:
+        singleton.ensure(f"options_chain_recorder_{SYMBOL}",  # distinct lock so SPX+XSP coexist
+                         match=f"--symbol {SYMBOL}")           # verify via the --symbol arg
     date = now_ct().strftime("%Y%m%d")
     expiry = date                                # 0DTE: today's SPXW expiry
     stop = dt.time(*map(int, stop_hhmm.split(":")))
     p = out_path(date)
     cache = {}                                   # (strike, right) -> qualified Contract
 
-    ib = connect_with_retry(client_id=71)        # distinct from daemons (avoid clientId clash)
+    ib = connect_with_retry(client_id=CLIENT_ID)  # per-instrument id (SPX 71, XSP 72) — no clash
     if ib is None:
         write_heartbeat(date, 0, None, "error", note="could not connect to gateway")
         raise SystemExit("gateway unreachable after retries — supervisor will relaunch")
@@ -257,6 +283,8 @@ def run_live(pct, secs, stop_hhmm):
         intraday exit path (TP/trail/MFE-MAE) is recorded. Re-read each loop: the
         daemon persists resolved open-struck strikes after the bell. (STMR is 14-DTE —
         different expiry, captured by the sim daemon's own tape.)"""
+        if SYMBOL != "SPX":
+            return set()          # gameplan strikes are SPX-priced; XSP pins come later (Phase 2 mirror)
         try:
             d = json.loads((SIM / f"gameplan_{date}.json").read_text(encoding="utf-8"))
             out = set()
@@ -283,7 +311,7 @@ def run_live(pct, secs, stop_hhmm):
                     ib.disconnect()
                 except Exception:
                     pass
-                ib = connect_with_retry(client_id=71)
+                ib = connect_with_retry(client_id=CLIENT_ID)
                 if ib is None:
                     raise SystemExit("gateway unreachable mid-session — supervisor will relaunch")
             s = spot_now(ib)
@@ -353,7 +381,20 @@ def main():
                     "a wide sweep may only achieve ~10-15s, which the anchored loop tolerates")
     ap.add_argument("--stop", default="15:00", help="stop time CT (HH:MM)")
     ap.add_argument("--mock", action="store_true", help="no IB — verify logic only")
+    # instrument selection — default SPX (byte-identical to the legacy recorder).
+    ap.add_argument("--symbol", default="SPX", help="underlying: SPX | XSP")
+    ap.add_argument("--tclass", default=None, help="option tradingClass (default: SPXW for SPX, else =symbol)")
+    ap.add_argument("--step", type=int, default=None, help="strike grid (default: 5 for SPX, 1 for XSP)")
+    ap.add_argument("--spot-div", type=float, default=None,
+                    help="instrument spot = SPX spot / this (default: 1 SPX, 10 XSP)")
+    ap.add_argument("--client-id", type=int, default=None, help="IB clientId (default: 71 SPX, 72 XSP)")
     args = ap.parse_args()
+    sym = args.symbol.upper()
+    tclass = args.tclass or ("SPXW" if sym == "SPX" else sym)
+    step = args.step if args.step is not None else (5 if sym == "SPX" else 1)
+    spot_div = args.spot_div if args.spot_div is not None else (1.0 if sym == "SPX" else 10.0)
+    cid = args.client_id if args.client_id is not None else (71 if sym == "SPX" else 72)
+    set_instrument(sym, tclass, step, spot_div, cid)
     if args.mock:
         run_mock(args.pct)
     else:

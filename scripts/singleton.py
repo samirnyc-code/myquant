@@ -15,19 +15,24 @@ from pathlib import Path
 LOCKDIR = Path(__file__).resolve().parents[1] / "data" / "_catalog" / "locks"
 
 
-def _holder_is_live(name: str, pid: int) -> bool:
-    """True only if `pid` is alive AND it's actually a <name> daemon (not a reused PID)."""
+def _holder_is_live(match: str, pid: int) -> bool:
+    """True only if `pid` is alive AND its cmdline contains `match` (not a reused PID)."""
     try:
         import psutil
         if not psutil.pid_exists(pid):
             return False
         cl = " ".join(psutil.Process(pid).cmdline() or [])
-        return name in cl
+        return match in cl
     except Exception:
         return False
 
 
-def ensure(name: str) -> None:
+def ensure(name: str, match: str | None = None) -> None:
+    """One instance per `name` (the lock-file key). `match` is the cmdline substring used
+    to verify a lock-holder is really live — defaults to `name`. Pass a distinct `match`
+    when several daemons share one script and differ only by an arg (e.g. the SPX vs XSP
+    chain recorders: ensure('..._XSP', match='--symbol XSP'))."""
+    match = match or name
     LOCKDIR.mkdir(parents=True, exist_ok=True)
     lock = LOCKDIR / f"{name}.pid"
     if lock.exists():
@@ -35,7 +40,7 @@ def ensure(name: str) -> None:
             pid = int(lock.read_text().strip())
         except (ValueError, OSError):
             pid = -1
-        if pid != os.getpid() and _holder_is_live(name, pid):
+        if pid != os.getpid() and _holder_is_live(match, pid):
             print(f"singleton: {name} already running (pid {pid}) — exiting")
             sys.exit(0)
     # take (or reclaim a stale) lock; drop it on clean exit
