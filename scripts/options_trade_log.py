@@ -17,6 +17,15 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 LOG = ROOT / "data" / "options_log" / "trades.parquet"
 
+
+def set_book(name: str = "spx") -> None:
+    """Point this process's trade log at a parallel book. Default 'spx' = the canonical
+    trades.parquet (unchanged); 'xsp' = trades_xsp.parquet (the Mini-SPX mirror book).
+    Per-process module state — the mirror daemon sets 'xsp'; the desk stays 'spx'."""
+    global LOG
+    LOG = ROOT / "data" / "options_log" / (
+        "trades.parquet" if name in ("spx", "", None) else f"trades_{name}.parquet")
+
 COLUMNS = [
     "trade_id", "strategy_id", "source", "symbol", "entry_dt", "exit_dt", "dte",
     "structure", "legs", "credit", "exit_cost", "fill_model", "slippage",
