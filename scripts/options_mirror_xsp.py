@@ -33,9 +33,12 @@ LOG = ROOT / "data" / "options_log"
 SIM = ROOT / "data" / "options_sim"
 CT = ZoneInfo("America/Chicago")
 SYMBOL, TCLASS, CLIENT_ID = "XSP", "XSP", 73
-FEE = 1.30   # $/contract — SAME as SPX (commissions are per-contract FLAT, they do NOT
-             # scale with contract size), so on XSP's ~1/10 P&L the fee drag is ~10x heavier.
-             # This is likely the make-or-break cost for the mini; the live test quantifies it.
+FEE = 0.70   # $/contract for XSP at 1-lot — ~HALF of SPX (~$1.30), NOT the same (a prior
+             # claim I had to retract). Cboe/IB WAIVE the XSP proprietary index fee for
+             # 1-9 contracts ($0.00); XSP = IB base comm ~$0.65 + tiny regulatory, while SPX
+             # carries the full Cboe SPX index fee on top. Fees still don't scale with size,
+             # so ~2x the % drag of SPX. Published-schedule estimate — confirm the exact
+             # per-account number via scripts/check_fees_ib.py (whatIf) when the gateway's up.
 
 
 def now_ct():
