@@ -33,6 +33,9 @@ LOG = ROOT / "data" / "options_log"
 SIM = ROOT / "data" / "options_sim"
 CT = ZoneInfo("America/Chicago")
 SYMBOL, TCLASS, CLIENT_ID = "XSP", "XSP", 73
+FEE = 1.30   # $/contract — SAME as SPX (commissions are per-contract FLAT, they do NOT
+             # scale with contract size), so on XSP's ~1/10 P&L the fee drag is ~10x heavier.
+             # This is likely the make-or-break cost for the mini; the live test quantifies it.
 
 
 def now_ct():
@@ -174,8 +177,11 @@ def run_dry(date):
         legs = r["legs"] if isinstance(r["legs"], list) else json.loads(r["legs"])
         xl = map_legs(legs)
         credit = round(float(r["credit"]) / 10.0, 2) if r.get("credit") == r.get("credit") else 0.0
-        pnl = round(float(r["pnl"]) / 10.0, 2) if r.get("pnl") == r.get("pnl") else None
         ec = round(float(r["exit_cost"]) / 10.0, 2) if r.get("exit_cost") == r.get("exit_cost") else None
+        # HONEST dry P&L: XSP gross = SPX gross / 10, but the commission is the FULL
+        # per-contract fee (NOT /10) — that's the whole point. gross = (credit-ec)*100.
+        fee = len(xl) * FEE
+        pnl = round((credit - ec) * 100 - fee, 2) if ec is not None else None
         row = mirror_row(r, xl, credit, exit_cost=ec, pnl=pnl, fill_model="dry_est")
         tlog.append_entry(row)
         n += 1
@@ -225,8 +231,10 @@ def run_live(until):
                     try:
                         cost = close_combo(ib, bag) if bag is not None else None
                         if cost is not None:
+                            xlegs = xr["legs"] if isinstance(xr["legs"], list) else json.loads(xr["legs"])
+                            fee = len(xlegs) * int(xlegs[0].get("qty", 1)) * FEE  # per-contract, same as SPX
                             tlog.update_exit(xr["trade_id"], now_ct().strftime("%Y-%m-%d %H:%M"),
-                                             round(cost, 2), 0.13, close_reason="mirror parent closed")
+                                             round(cost, 2), fee, close_reason="mirror parent closed")
                             print(f"  closed XSP mirror {xr['trade_id']} cost {cost:+.2f}")
                     except Exception as e:
                         print(f"  ! mirror exit failed {xr['trade_id']}: {e}")
