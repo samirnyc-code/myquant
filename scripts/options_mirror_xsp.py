@@ -198,8 +198,17 @@ def run_live(until):
     import ib_conn, singleton
     singleton.ensure("options_mirror_xsp")
     stop = dt.time(*map(int, until.split(":")))
-    ib = ib_conn.connect(client_id=CLIENT_ID)
-    ib.reqMarketDataType(1)
+    ib = None
+    for i in range(30):                       # gateway may still be finishing login at 08:29
+        try:
+            ib = ib_conn.connect(client_id=CLIENT_ID)
+            ib.reqMarketDataType(1)
+            break
+        except Exception as e:
+            print(f"  connect {i+1}/30 failed: {type(e).__name__}: {e} — retry 10s")
+            time.sleep(10)
+    if ib is None:
+        raise SystemExit("XSP mirror: gateway unreachable after retries")
     date = now_ct().strftime("%Y-%m-%d")
     bags = {}   # xsp trade_id -> bag (to close later)
     print(f"XSP mirror live until {until} CT (client {CLIENT_ID})")
