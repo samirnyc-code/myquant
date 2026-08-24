@@ -87,7 +87,7 @@ def main():
     print(f"XSP MINI BOOK  {'(DRY estimates — SPX/10; live fills Monday)' if dry else '(LIVE paper fills)'}")
     print("=" * 68)
     print(f"  TODAY net ${t_net:+,.2f}  (realized ${t_real:+,.0f} / {n_closed} closed + open ${t_unreal:+,.0f} / {n_open} live)")
-    print(f"  XSP (all): {xs['n']} trades | P&L ${xs['total']:,.2f} | win {xs['win']}% | PF {xs['pf']}")
+    print(f"  XSP closed: {xs['n']} (of {n_open + n_closed} mirrored) | realized ${xs['total']:,.2f} | win {xs['win']}% | PF {xs['pf']}")
     print(f"  SPX (same strategies): P&L ${ss['total']:,.0f}")
     print(f"  edge survival  XSP*10 / SPX = {round(surv,2) if surv else '—'}   (1.0 = mini keeps the full SPX edge)")
     print(f"\n  {'strategy':>10} {'SPX$':>8} {'XSP$':>8} {'XSP*10':>8} {'ratio':>7}")
@@ -120,7 +120,7 @@ td:first-child,th:first-child{{text-align:left}}.n{{font-weight:600}}
    <div class=tl style="margin-top:4px">realized ${t_real:+,.0f} ({n_closed} closed) · open ${t_unreal:+,.0f} ({n_open} live)</div></div>
 </div>
 <div class=kpis>
- <div class=tile><div class=tl>XSP trades</div><div class=tv>{xs['n']}</div></div>
+ <div class=tile><div class=tl>mirrored today</div><div class=tv>{n_open + n_closed}</div><div class=tl style="margin-top:3px">{n_closed} closed · {n_open} open</div></div>
  <div class=tile><div class=tl>XSP P&L</div><div class="tv {'pos' if xs['total']>=0 else 'neg'}">${xs['total']:,.2f}</div></div>
  <div class=tile><div class=tl>win rate</div><div class=tv>{xs['win']}%</div></div>
  <div class=tile><div class=tl>PF</div><div class=tv>{xs['pf']}</div></div>
