@@ -112,17 +112,54 @@ def _quote(ib, bag, wait=6):
     return (bid, ask) if ok else (None, None)
 
 
+def _leg_quotes(ib, exp, legs):
+    """TICK-EXACT per-leg NBBO snapshotted AT execution time. legs=[(right,strike,action)].
+    Returns [(right,strike,action,bid,ask)] — the true fill-quality record (not the ~10s
+    tape). ~3s/leg."""
+    out = []
+    for right, strike, action in legs:
+        try:
+            c = _qualify(ib, exp, strike, right)
+            t = ib.reqMktData(c, "", snapshot=True); ib.sleep(3)
+            ib.cancelMktData(c)
+            b = t.bid if (t.bid == t.bid and t.bid >= 0) else None
+            a = t.ask if (t.ask == t.ask and t.ask >= 0) else None
+        except Exception:
+            b = a = None
+        out.append((right, strike, action, b, a))
+    return out
+
+
+def _log_fill(tid, strat, kind, fill, leg_q):
+    """One row per leg to xsp_fills.csv — the tick-exact bid/ask at fill + the combo fill."""
+    import csv as _csv
+    f = LOG / "xsp_fills.csv"
+    new = not f.exists()
+    with f.open("a", newline="") as fh:
+        w = _csv.writer(fh)
+        if new:
+            w.writerow(["ts", "trade_id", "strategy", "kind", "action", "leg",
+                        "leg_bid", "leg_ask", "mid", "spread", "combo_fill"])
+        for right, strike, action, b, a in leg_q:
+            mid = round((b + a) / 2, 3) if (b is not None and a is not None) else ""
+            spr = round(a - b, 3) if (b is not None and a is not None) else ""
+            w.writerow([now_ct().strftime("%Y-%m-%d %H:%M:%S"), tid, strat, kind, action,
+                        f"{int(strike)}{right}", b, a, mid, spr, round(fill, 3)])
+
+
 def open_combo(ib, exp, legs, qty=1):
-    """BUY the bag (== our position) marketable at the ask; returns (credit, bag)."""
+    """BUY the bag (== our position) marketable at the ask; returns (credit, bag, leg_q).
+    leg_q = per-leg NBBO snapshotted AT execution (tick-exact fill-quality record)."""
     from ib_async import LimitOrder
     bag = _bag(ib, exp, legs)
+    leg_q = _leg_quotes(ib, exp, legs)               # tick-exact per-leg bid/ask at execution
     bid, ask = _quote(ib, bag)
     if bid is None:
         raise RuntimeError("no XSP combo quote")
     o = LimitOrder("BUY", qty, round(ask, 2)); o.tif = "DAY"
     tr = ib.placeOrder(bag, o); ib.sleep(8)
     if tr.orderStatus.status == "Filled":
-        return -tr.orderStatus.avgFillPrice, bag     # negative fill = credit
+        return -tr.orderStatus.avgFillPrice, bag, leg_q   # negative fill = credit
     ib.cancelOrder(tr.order)
     raise RuntimeError("XSP combo did not fill")
 
@@ -241,8 +278,9 @@ def run_live(until):
                 exp = legs[0]["expiry"]
                 xl = map_legs(legs)
                 try:
-                    credit, bag = open_combo(ib, exp, _open_actions(xl))
+                    credit, bag, leg_q = open_combo(ib, exp, _open_actions(xl))
                     bags[tid] = bag
+                    _log_fill(tid, r["strategy_id"], "entry", credit, leg_q)  # tick-exact bid/ask
                     tlog.set_book("xsp")
                     tlog.append_entry(mirror_row(r, xl, round(credit, 2)))
                     print(f"  mirrored {r['strategy_id']} -> XSP credit {credit:+.2f}")
