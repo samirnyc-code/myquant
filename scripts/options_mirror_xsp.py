@@ -209,6 +209,22 @@ def run_live(until):
             time.sleep(10)
     if ib is None:
         raise SystemExit("XSP mirror: gateway unreachable after retries")
+    # capture IB's ACTUAL commission per fill -> the real XSP per-contract cost (whatIf
+    # wouldn't return it; a real fill's commissionReport is definitive). The desk never
+    # logged real commissions — this does, for XSP.
+    fees_csv = LOG / "xsp_commissions.csv"
+    def _on_comm(trade, fill, report):
+        try:
+            new = not fees_csv.exists()
+            with fees_csv.open("a") as f:
+                if new:
+                    f.write("ts,localSymbol,commission,currency\n")
+                f.write(f"{now_ct():%Y-%m-%d %H:%M:%S},{fill.contract.localSymbol},"
+                        f"{report.commission},{report.currency}\n")
+            print(f"  [comm] {fill.contract.localSymbol}: ${report.commission} {report.currency}")
+        except Exception:
+            pass
+    ib.commissionReportEvent += _on_comm
     date = now_ct().strftime("%Y-%m-%d")
     bags = {}   # xsp trade_id -> bag (to close later)
     print(f"XSP mirror live until {until} CT (client {CLIENT_ID})")
