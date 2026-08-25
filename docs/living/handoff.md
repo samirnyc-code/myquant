@@ -1,6 +1,75 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** August 20, 2026 (S105: 0DTE recorder rebuilt crash-proof + supervised @30s; root cause = PROCESS DEATH not the feed; Aug 19 P&L re-booked to the official close)
+**Last Updated:** August 25, 2026 (S106: XSP mini-contract mirror built + LIVE — full A/B vs SPX; recorder @10s + parquet archival; real XSP fee $1.22/ct; ATM flies don't scale in XSP)
+
+---
+
+## S106 (2026-08-21→25) — XSP mini mirror (1/10 SPX) built + running LIVE; recorder @10s + archival
+
+**BIG PICTURE:** on top of the SPX 0DTE paper desk, we now run a **parallel XSP (Mini-SPX,
+1/10 SPX, same Cboe/OPRA feed) mirror** — every SPX fill is mirrored into XSP on the paper
+account — to measure the SAME strategy at 1/10 size and see if a small account is viable.
+Both books + both tapes now record. The desk is a SIM/paper account; end goal = a clean
+intraday tape (now **10s** cadence, maybe 5s) to backtest exit rules after ~90 days.
+
+**RECORDER (S105 rebuild) now @10s + archives:** crash-proof/supervised recorder is
+parameterized by instrument (SPX + XSP), both at **10s** (was 30s). At EOD each day's CSV
+→ snappy **Parquet** in `data/options_tape/` + gzipped raw backup (`archive_chain_day.py`,
+wired into the supervisor); working dir stays clean. 8-day backfill done. Completeness gate
+grades on continuity (started-at-open + ran-to-close + no big hole), not nominal count.
+
+**THE XSP MIRROR (Phase 1+2 done; Phase 3 mini-dashboard-tab NOT built):**
+- `options_chain_recorder.py` + `chain_recorder_supervisor.py` — `--symbol SPX|XSP`; XSP =
+  $1 strikes at spot/10, client 72, own files (`chain_XSP_*`), lock, heartbeat, archival.
+  Task **`MyQuant Chain Recorder XSP`** (08:25 CT).
+- `options_mirror_xsp.py` — mirrors each SPX fill → XSP (strike/10 nearest $1, same
+  side/qty/expiry), places the combo on paper (client 73), logs to parallel book
+  **`data/options_log/trades_xsp.parquet`** (via `tlog.set_book('xsp')`). Marks open
+  positions → `marks_xsp.csv`. Captures IB's ACTUAL commission (`commissionReportEvent`) →
+  `xsp_commissions.csv`, and **tick-exact per-leg bid/ask at each fill** → `xsp_fills.csv`.
+  RESTART-SAFE (rebuilds open combos from the book on startup). Task **`MyQuant XSP Mirror`**
+  (08:29→15:00 CT). `settle_xsp.py` cash-settles the mirror book at XSP close (=SPX/10) —
+  **the SPX postmortem does NOT settle the XSP book, you must run settle_xsp**.
+- VIEWS (standalone, auto-refresh 30s, kept live by a regen loop): **`mini_stats.html`**
+  (mini net realized+open, XSP-vs-SPX×10 edge-survival) and **`mini_executions.html`**
+  (tick-exact spread paid/trade + fly-vs-condor cost). Open in browser, NOT VSCode.
+
+**REAL XSP FEE = $1.22/contract** (IB commissionReport, live). NOT the modeled $1.30, NOT
+my wrong $0.70 estimate. Cboe waives the XSP index fee 1-9 lots; verify exact via
+`check_fees_ib.py` (whatIf) — note whatIf returned empty (paper preset), real fills are
+definitive. `ib_executions.py` pulls IB's fills (commissions show $0 from a fresh client —
+they only reach the PLACING client live). Fee is per-contract FLAT → ~2x the % drag of SPX;
+`xsp_fee_model.py` details 1-9 lots (stay ≤9/leg to keep index fee $0).
+
+**KEY FINDING (the whole point):** the mini **tracks condors/walls ~10% cleanly** (XSP OTM
+spreads 0.01–0.02, fill near mid) but the **ATM iron FLIES do NOT scale** — the at-the-money
+strike has a wide XSP spread (e.g. 766C bid 2.04/ask 2.51 = 0.47) + the flat $1.22 fee, so
+the mini goes negative even when SPX is ~flat. OPEN QUESTION: fix execution (**mid-limit vs
+marketable**, both books — proposed next study) before deciding to **exclude flies from the
+minis only** (keep full-size in SPX). Don't exclude on 1-2 days.
+
+**P&L:** 8/21 SPX +$748 (first 100% clean tape). **8/24 SPX −$499 (RED)** — whipsaw THROUGH
+the 7665 ATM: dropped→cut put flies, reversed→cut call fly (path, not size; range was only
+30pts). 8/24 XSP −$114 (vs expected −$50; ATM-fly execution the culprit, esp eodfly_p 2x
+worse). **8/25 (in progress, ~14:21 CT): SPX +$250 GREEN (mark-to-market, 4 open), XSP
+−$189** (fee+fly drag; XSP open marks are noisy/thin).
+
+**OPEN ITEMS / GAPS:**
+- Mirror was **7 vs SPX 8** on 8/25 — one SPX trade not mirrored; investigate.
+- **SPX real-commission capture** (add `commissionReportEvent` to trigger/sim daemon) — NOT
+  done (touches the working desk; needs user OK). SPX still uses modeled $1.30.
+- **Phase 3 mini dashboard TAB** — not built (standalone views instead); build on real data.
+- **ES trove backup** — `data/ticks_continuous` (5yr, 1301 sessions, through 8/21) is
+  **gitignored/LOCAL-ONLY**; raw Massive flatfiles intentionally deleted (re-downloadable via
+  `download_instruments_5y.py`). Next ES roll ~**Sep 14-16** into Dec (ESZ6), automatic.
+- sim daemon `res=1` (STMR daily-check gap) — left per user.
+- Mid-limit-vs-marketable execution study (proposed, not built).
+
+**STANDING (unchanged, reinforced):** user is on CT, machine is Berlin — NEVER state a
+converted CT wall-clock as fact (use zoneinfo). No unilateral state changes (ask before
+start/stop/kill/task edits). Verify before speaking; I mis-stated the XSP fee twice and
+false-alarmed a "stuck mirror" — the user rightly wants me to reconcile prior claims, not
+skip past them.
 
 ---
 
