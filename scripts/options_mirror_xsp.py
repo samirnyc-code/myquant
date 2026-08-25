@@ -264,6 +264,23 @@ def run_live(until):
     ib.commissionReportEvent += _on_comm
     date = now_ct().strftime("%Y-%m-%d")
     bags = {}   # xsp trade_id -> bag (to close later)
+    # RESTART-SAFE: if the mirror restarts mid-session, rebuild the combos for positions it
+    # already opened today so it can still close them when their SPX parents close (else a
+    # restart would orphan the open XSP legs and break the exit A/B).
+    try:
+        tlog.set_book("xsp")
+        _od = tlog.load(); _od["e"] = __import__("pandas").to_datetime(_od["entry_dt"], errors="coerce")
+        _open = _od[(_od["e"] >= date) & (_od.exit_dt.isna())] if len(_od) else _od
+        for _, _r in _open.iterrows():
+            _legs = _r["legs"] if isinstance(_r["legs"], list) else json.loads(_r["legs"])
+            try:
+                bags[_r["trade_id"]] = _bag(ib, _legs[0]["expiry"], _open_actions(_legs))
+            except Exception as e:
+                print(f"  ! could not rebuild bag {_r['trade_id']}: {e}")
+        if len(bags):
+            print(f"  rebuilt {len(bags)} open XSP combos from the book (restart-safe)")
+    except Exception as e:
+        print(f"  (bag rebuild skipped: {e})")
     print(f"XSP mirror live until {until} CT (client {CLIENT_ID})")
     while now_ct().time() < stop:
         try:
