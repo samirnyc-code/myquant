@@ -1,0 +1,2 @@
+closed_dt_et,trade_id,book_exit_cost,actual_close_cost,operational_cost_usd,ib_flat,note
+2026-08-26 09:40:50,bps_stmr_REAL_20260819,14.35,14.6,25.0,True,"flatten of the 8/25-reconstructed STMR leg; operational only, not in strategy PnL"
