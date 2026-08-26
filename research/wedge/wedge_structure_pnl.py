@@ -126,15 +126,17 @@ def main():
         gg = g.sort_values("SignalTime")
         st = gg["SignalTime"].values.astype("datetime64[ns]")
         i0s = np.searchsorted(ttimes, st, side="left")
-        inwin = (i0s < n) & (i0s >= 0)
-        if inwin.sum() == 0:
+        # only signals INSIDE the trove session (exclude pre-open ones that would
+        # searchsorted to index 0 and simulate from the RTH open — phantom trades)
+        valid = (st >= ttimes[0]) & (st <= ttimes[-1]) & (i0s < n)
+        if valid.sum() == 0:
             continue
-        med_off = float(np.median(gg["Close"].to_numpy()[inwin] - price[np.clip(i0s[inwin], 0, n - 1)]))
+        med_off = float(np.median(gg["Close"].to_numpy()[valid] - price[np.clip(i0s[valid], 0, n - 1)]))
 
         busy = -1
         for k, (_, r) in enumerate(gg.iterrows()):
             i0 = int(i0s[k])
-            if i0 >= n or i0 <= busy:
+            if i0 >= n or i0 <= busy or not valid[k]:
                 continue
             side = 1 if r["Signal"] == "BL" else -1
             if side == 1:
