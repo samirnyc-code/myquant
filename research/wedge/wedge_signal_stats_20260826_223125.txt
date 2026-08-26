@@ -1,0 +1,51 @@
+MyWedge signal stats — wedge_signals_ES_2000t_6mo.csv
+5206 signals over 171 days  (2026-02-01 -> 2026-08-26)  = 30.4/day
+offset beyond SB = 1t   scalp target = 4t
+
+side split:
+  BL (long): 2566  (49.3%)
+  BR (short): 2640  (50.7%)
+
+STOP DISTANCE (entry->stop = SB range + 2t), in ticks:
+  mean 17.1  median 15  p10 10  p25 12  p75 20  p90 27  max 126
+  in $:  mean $214  median $188  p90 $338   (per contract, $12.5/tick)
+
+stop-distance histogram (ticks):
+     <=4t :     1  ( 0.0%)
+     5-6t :    27  ( 0.5%)
+     7-8t :   236  ( 4.5%)
+    9-10t :   499  ( 9.6%)
+   11-12t :   754  (14.5%)
+   13-16t :  1485  (28.5%)
+   17-20t :   952  (18.3%)
+   21-30t :   945  (18.2%)
+     >30t :   307  ( 5.9%)
+
++4t SCALP reward:risk  (scalp_R = 4 / stop_t):
+  mean 0.27R  median 0.27R  share with R>=1: 0.0%   R>=0.5: 5.1%
+  breakeven win-rate for the scalp leg at median R:R = 79%
+
+by hour-of-day (signal bar close, chart/exchange tz):
+  00:00  n=  38  medStop=24t
+  01:00  n=  43  medStop=21t
+  02:00  n=  69  medStop=27t
+  03:00  n=  83  medStop=27t
+  04:00  n=  63  medStop=26t
+  05:00  n=  58  medStop=24t
+  06:00  n=  92  medStop=24t
+  07:00  n= 130  medStop=23t
+  08:00  n= 726  medStop=15t
+  09:00  n= 890  medStop=15t
+  10:00  n= 660  medStop=14t
+  11:00  n= 448  medStop=14t
+  12:00  n= 438  medStop=14t
+  13:00  n= 382  medStop=14t
+  14:00  n= 663  medStop=12t
+  15:00  n= 206  medStop=14t
+  17:00  n=  13  medStop=30t
+  18:00  n=  17  medStop=30t
+  19:00  n=  34  medStop=24t
+  20:00  n=  57  medStop=26t
+  21:00  n=  30  medStop=26t
+  22:00  n=  34  medStop=24t
+  23:00  n=  32  medStop=22t

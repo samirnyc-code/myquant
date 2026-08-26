@@ -91,27 +91,42 @@ namespace NinjaTrader.NinjaScript.Indicators
 				_wedge = MyWedge(Input, LookBack, ShowW2L, WedgeSymmetry, OLSensitivity,
 					CTSB_Ignore, IB_Ignore, ShowWedgeSB, SignalBarIBS, ContinueMC, ContinueOnGap);
 			}
+			else if (State == State.Realtime)
+			{
+				// Historical load just finished (NT flips historical -> realtime).
+				// Flush here so the file appears automatically the moment loading
+				// completes — no need to remove the indicator.
+				WriteFile();
+			}
 			else if (State == State.Terminated)
 			{
-				if (_rows == null || _rows.Count == 0)
-					return;
-				try
-				{
-					var sb = new StringBuilder();
-					sb.AppendLine("Date,SignalTime,BarNum,Signal,WedgeBL,WedgeBR,WedgeBLSB,WedgeBRSB,Open,High,Low,Close,Volume");
-					foreach (var r in _rows)
-						sb.AppendLine(r);
-					var tmp = _outPath + ".tmp";
-					File.WriteAllText(tmp, sb.ToString());
-					if (File.Exists(_outPath))
-						File.Delete(_outPath);
-					File.Move(tmp, _outPath);
-					Print(string.Format("WedgeExporter: {0} signal rows -> {1}", _rows.Count, _outPath));
-				}
-				catch (Exception ex)
-				{
-					Print("WedgeExporter write failed: " + ex.Message);
-				}
+				// Backstop: historical-only runs (Strategy Analyzer / no live feed)
+				// never hit State.Realtime, so also write on teardown. Also captures
+				// any realtime signals added after the historical flush.
+				WriteFile();
+			}
+		}
+
+		private void WriteFile()
+		{
+			if (_rows == null || _rows.Count == 0 || string.IsNullOrEmpty(_outPath))
+				return;
+			try
+			{
+				var sb = new StringBuilder();
+				sb.AppendLine("Date,SignalTime,BarNum,Signal,WedgeBL,WedgeBR,WedgeBLSB,WedgeBRSB,Open,High,Low,Close,Volume");
+				foreach (var r in _rows)
+					sb.AppendLine(r);
+				var tmp = _outPath + ".tmp";
+				File.WriteAllText(tmp, sb.ToString());
+				if (File.Exists(_outPath))
+					File.Delete(_outPath);
+				File.Move(tmp, _outPath);
+				Print(string.Format("WedgeExporter: {0} signal rows -> {1}", _rows.Count, _outPath));
+			}
+			catch (Exception ex)
+			{
+				Print("WedgeExporter write failed: " + ex.Message);
 			}
 		}
 
