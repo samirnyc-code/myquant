@@ -429,6 +429,54 @@ def settle_expired(daily, today, dry):
             print(f"  closed: pnl ${r['pnl']:+,.0f}")
 
 
+# ---------- exit execution (shared by the daemon and stmr_exit_check.py) ----------
+
+def do_exits(ib, chain, tickers, opens, today, place_real, dry):
+    """Close open STMR spreads: REAL rows get a real buy-to-close, sim rows the NBBO
+    window. `tickers` may be {} — each leg is qualified/streamed on demand from its own
+    expiry. Idempotent (driven by `opens`). Returns the number of rows closed."""
+    closed = 0
+    for _, tr in opens.iterrows():
+        legs = json.loads(tr.legs)
+        for l in legs:
+            if l["strike"] not in tickers:
+                o = ib.qualifyContracts(Option("SPX", l["expiry"], l["strike"], "P",
+                                               "SMART", tradingClass=chain.tradingClass))[0]
+                tickers[l["strike"]] = (o, ib.reqMktData(o, "", snapshot=False))
+        ib.sleep(3)
+        # S79: REAL rows get a real buy-to-close; never sim-close a real position
+        if "REAL" in str(tr.trade_id):
+            if not place_real:
+                print(f"skip closing REAL {tr.trade_id} (--no-live)")
+                continue
+            sl = next(l for l in legs if l["side"] == "sell")
+            ll = next(l for l in legs if l["side"] == "buy")
+            ex = place_real_exit(ib, tickers[sl["strike"]][0], tickers[sl["strike"]][1],
+                                 tickers[ll["strike"]][0], tickers[ll["strike"]][1],
+                                 qty=int(sl.get("qty", 1)))
+            tlog.update_exit(tr.trade_id, today, ex["cost"], 4 * FEE,
+                             fill_model="real_paper_ib_marketable")
+            print(f"REAL CLOSED {tr.trade_id}: paid {ex['cost']:.2f}")
+            reconcile_real(ib)
+            closed += 1
+            continue
+        ev = [(l["strike"], "buy" if l["side"] == "sell" else "sell") for l in legs]
+        cost, mid, qf = log_fill_window(ib, tickers, ev, f"exit_{tr.trade_id}",
+                                        dryrun_secs=30 if dry else None)
+        if cost is None:
+            print(f"! no valid exit quotes for {tr.trade_id} — left open")
+            continue
+        cost = -cost  # we PAID to close
+        if dry:
+            print(f"DRYRUN exit {tr.trade_id}: cost {cost:.2f} (not written)")
+        else:
+            r = tlog.update_exit(tr.trade_id, today, cost, 4 * FEE,
+                                 fill_model="opra_nbbo_1600", slippage=(cost - (-mid)) * 100)
+            print(f"CLOSED {tr.trade_id}: pnl ${r['pnl']:+,.0f}")
+        closed += 1
+    return closed
+
+
 # ---------- main ----------
 
 def main():
@@ -552,42 +600,7 @@ def main():
 
         # --- exits first (frees collateral), then entry ---
         if sig["exit_sig"] and len(opens):
-            for _, tr in opens.iterrows():
-                legs = json.loads(tr.legs)
-                for l in legs:
-                    if l["strike"] not in tickers:
-                        o = ib.qualifyContracts(Option("SPX", l["expiry"], l["strike"], "P",
-                                                       "SMART", tradingClass=chain.tradingClass))[0]
-                        tickers[l["strike"]] = (o, ib.reqMktData(o, "", snapshot=False))
-                ib.sleep(3)
-                # S79: REAL rows get a real buy-to-close; never sim-close a real position
-                if "REAL" in str(tr.trade_id):
-                    if not place_real:
-                        print(f"skip closing REAL {tr.trade_id} (--no-live)")
-                        continue
-                    sl = next(l for l in legs if l["side"] == "sell")
-                    ll = next(l for l in legs if l["side"] == "buy")
-                    ex = place_real_exit(ib, tickers[sl["strike"]][0], tickers[sl["strike"]][1],
-                                         tickers[ll["strike"]][0], tickers[ll["strike"]][1],
-                                         qty=int(sl.get("qty", 1)))
-                    tlog.update_exit(tr.trade_id, today, ex["cost"], 4 * FEE,
-                                     fill_model="real_paper_ib_marketable")
-                    print(f"REAL CLOSED {tr.trade_id}: paid {ex['cost']:.2f}")
-                    reconcile_real(ib)
-                    continue
-                ev = [(l["strike"], "buy" if l["side"] == "sell" else "sell") for l in legs]
-                cost, mid, qf = log_fill_window(ib, tickers, ev, f"exit_{tr.trade_id}",
-                                                dryrun_secs=30 if dry else None)
-                if cost is None:
-                    print(f"! no valid exit quotes for {tr.trade_id} — left open")
-                    continue
-                cost = -cost  # we PAID to close
-                if dry:
-                    print(f"DRYRUN exit {tr.trade_id}: cost {cost:.2f} (not written)")
-                else:
-                    r = tlog.update_exit(tr.trade_id, today, cost, 4 * FEE,
-                                         fill_model="opra_nbbo_1600", slippage=(cost - (-mid)) * 100)
-                    print(f"CLOSED {tr.trade_id}: pnl ${r['pnl']:+,.0f}")
+            do_exits(ib, chain, tickers, opens, today, place_real, dry)
 
         if sig["fire"]:
             ks, kl = pick_legs(ib, chain, tickers, expiry)
