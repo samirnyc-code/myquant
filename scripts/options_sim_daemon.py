@@ -477,6 +477,65 @@ def do_exits(ib, chain, tickers, opens, today, place_real, dry):
     return closed
 
 
+def do_entry(ib, chain, tickers, expiry, sig, tags, spot, today, place_real, dry):
+    """Enter the STMR BPS on `fire`: a sim row always, plus the real IB paper row (unless
+    dry/--no-live). `tickers` must be the streamed put ladder on `expiry` (pick_legs reads
+    it). Shared by the daemon and stmr_exit_check.py. Returns the sim trade_id or None."""
+    ks, kl = pick_legs(ib, chain, tickers, expiry)
+    if ks is None:
+        raise SystemExit("Signal fired but no quotable legs — investigate.")
+    print(f"legs: sell {ks:.0f}P / buy {kl:.0f}P  {expiry}")
+    tid = f"{STRATEGY}_{today}"
+    cr, mid, qf = log_fill_window(ib, tickers, [(ks, "sell"), (kl, "buy")],
+                                  f"entry_{tid}", dryrun_secs=30 if dry else None)
+    if cr is None:
+        print("! no valid entry quotes in the window — NO TRADE recorded"); return None
+    if cr <= 0:
+        print(f"! non-positive credit {cr:.2f} — NO TRADE recorded"); return None
+    if dry:
+        print(f"DRYRUN entry {tid}: credit {cr:.2f} (mid {mid:.2f}) — not written"); return None
+    sim_legs = [{"side": "sell", "right": "P", "strike": ks, "expiry": expiry, "qty": 1},
+                {"side": "buy", "right": "P", "strike": kl, "expiry": expiry, "qty": 1}]
+    tlog.append_entry({
+        "trade_id": tid, "strategy_id": STRATEGY, "source": "sim",
+        "symbol": "SPXW", "entry_dt": today,
+        "dte": (dt.datetime.strptime(expiry, "%Y%m%d").date() - now_et().date()).days,
+        "structure": f"BPS {ks - kl:.0f}pt", "fill_model": "opra_nbbo_1600",
+        "legs": sim_legs,
+        "credit": cr, "slippage": (mid - cr) * 100,
+        "collateral": (ks - kl - cr) * 100,
+        **entry_extras(sim_legs, cr, spot, ks - kl, 1, now_et().strftime("%Y%m%d"), sig),
+        **tags,
+    })
+    print(f"ENTERED {tid}: credit {cr:.2f}, collateral ${(ks - kl - cr) * 100:,.0f}, tape {qf}")
+
+    # S79: place the REAL IB paper order same-day (separate ledger row)
+    if place_real:
+        real = place_real_entry(ib, tickers[ks][0], tickers[ks][1],
+                                tickers[kl][0], tickers[kl][1], qty=QTY)
+        if real and real["short_status"] == "Filled":
+            rtid = f"{STRATEGY}_REAL_{today.replace('-', '')}"
+            real_legs = [{"side": "sell", "right": "P", "strike": ks, "expiry": expiry, "qty": QTY, "fill": real["sfill"]},
+                         {"side": "buy", "right": "P", "strike": kl, "expiry": expiry, "qty": QTY, "fill": real["lfill"]}]
+            tlog.append_entry({
+                "trade_id": rtid, "strategy_id": STRATEGY, "source": "real_paper",
+                "symbol": "SPXW", "entry_dt": today,
+                "dte": (dt.datetime.strptime(expiry, "%Y%m%d").date() - now_et().date()).days,
+                "structure": f"BPS {real['width']:.0f}pt", "fill_model": "real_paper_ib_marketable",
+                "legs": real_legs,
+                "credit": real["credit"], "collateral": (real["width"] - real["credit"]) * 100 * QTY,
+                **entry_extras(real_legs, real["credit"], spot, real["width"], QTY, now_et().strftime("%Y%m%d"), sig),
+                **tags,
+            })
+            print(f"REAL ENTERED {rtid}: credit {real['credit']:.2f} x{QTY}")
+            reconcile_real(ib)
+        else:
+            reconcile_real(ib, extra_alerts=[
+                f"{tid}: signal FIRED but REAL order NOT placed/filled "
+                "— sim logged, NO IB position (INVESTIGATE)"])
+    return tid
+
+
 # ---------- main ----------
 
 def main():
@@ -603,59 +662,7 @@ def main():
             do_exits(ib, chain, tickers, opens, today, place_real, dry)
 
         if sig["fire"]:
-            ks, kl = pick_legs(ib, chain, tickers, expiry)
-            if ks is None:
-                raise SystemExit("Signal fired but no quotable legs — investigate.")
-            print(f"legs: sell {ks:.0f}P / buy {kl:.0f}P  {expiry}")
-            tid = f"{STRATEGY}_{today}"
-            cr, mid, qf = log_fill_window(ib, tickers, [(ks, "sell"), (kl, "buy")],
-                                          f"entry_{tid}", dryrun_secs=30 if dry else None)
-            if cr is None:
-                print("! no valid entry quotes in the window — NO TRADE recorded")
-            elif cr <= 0:
-                print(f"! non-positive credit {cr:.2f} — NO TRADE recorded")
-            elif dry:
-                print(f"DRYRUN entry {tid}: credit {cr:.2f} (mid {mid:.2f}) — not written")
-            else:
-                sim_legs = [{"side": "sell", "right": "P", "strike": ks, "expiry": expiry, "qty": 1},
-                            {"side": "buy", "right": "P", "strike": kl, "expiry": expiry, "qty": 1}]
-                tlog.append_entry({
-                    "trade_id": tid, "strategy_id": STRATEGY, "source": "sim",
-                    "symbol": "SPXW", "entry_dt": today,
-                    "dte": (dt.datetime.strptime(expiry, "%Y%m%d").date() - now_et().date()).days,
-                    "structure": f"BPS {ks - kl:.0f}pt", "fill_model": "opra_nbbo_1600",
-                    "legs": sim_legs,
-                    "credit": cr, "slippage": (mid - cr) * 100,
-                    "collateral": (ks - kl - cr) * 100,
-                    **entry_extras(sim_legs, cr, spot, ks - kl, 1, now_et().strftime("%Y%m%d"), sig),
-                    **tags,
-                })
-                print(f"ENTERED {tid}: credit {cr:.2f}, collateral ${(ks - kl - cr) * 100:,.0f}, tape {qf}")
-
-                # S79: place the REAL IB paper order same-day (separate ledger row)
-                if place_real:
-                    real = place_real_entry(ib, tickers[ks][0], tickers[ks][1],
-                                            tickers[kl][0], tickers[kl][1], qty=QTY)
-                    if real and real["short_status"] == "Filled":
-                        rtid = f"{STRATEGY}_REAL_{today.replace('-', '')}"
-                        real_legs = [{"side": "sell", "right": "P", "strike": ks, "expiry": expiry, "qty": QTY, "fill": real["sfill"]},
-                                     {"side": "buy", "right": "P", "strike": kl, "expiry": expiry, "qty": QTY, "fill": real["lfill"]}]
-                        tlog.append_entry({
-                            "trade_id": rtid, "strategy_id": STRATEGY, "source": "real_paper",
-                            "symbol": "SPXW", "entry_dt": today,
-                            "dte": (dt.datetime.strptime(expiry, "%Y%m%d").date() - now_et().date()).days,
-                            "structure": f"BPS {real['width']:.0f}pt", "fill_model": "real_paper_ib_marketable",
-                            "legs": real_legs,
-                            "credit": real["credit"], "collateral": (real["width"] - real["credit"]) * 100 * QTY,
-                            **entry_extras(real_legs, real["credit"], spot, real["width"], QTY, now_et().strftime("%Y%m%d"), sig),
-                            **tags,
-                        })
-                        print(f"REAL ENTERED {rtid}: credit {real['credit']:.2f} x{QTY}")
-                        reconcile_real(ib)
-                    else:
-                        reconcile_real(ib, extra_alerts=[
-                            f"{tid}: signal FIRED but REAL order NOT placed/filled "
-                            "— sim logged, NO IB position (INVESTIGATE)"])
+            do_entry(ib, chain, tickers, expiry, sig, tags, spot, today, place_real, dry)
         print("\n" + tlog.summary(STRATEGY))
         import options_sim_report
         options_sim_report.main()
