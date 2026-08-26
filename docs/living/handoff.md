@@ -1,6 +1,62 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** August 25, 2026 (S106: XSP mini-contract mirror built + LIVE — full A/B vs SPX; recorder @10s + parquet archival; real XSP fee $1.22/ct; ATM flies don't scale in XSP)
+**Last Updated:** August 26, 2026 (S106-cont: STMR strategy re-architected — the all-day daemon retired for a lightweight observable near-close decision; missed 8/25 exit reconstructed + IB flattened; calendar now buckets P&L by exit date)
+
+---
+
+## S106-cont (2026-08-26) — STMR strategy fixed end-to-end (daemon retired); 8/25 missed exit reconstructed; calendar → exit-date
+
+**THE STMR PROBLEM (found this session):** the 14-DTE stochastic-mean-reversion book
+(`bps_stmr`: K8<15 & spot>SMA100 → sell a 50-60pt BPS; exit the first day 15:59 spot >
+SMA5 → buy it back) had been **failing silently for weeks**. `options_sim_daemon.py` runs
+all day (launches 08:28 CT, must survive to the 15:59 ET decision), headless (`pythonw`, no
+output capture), so every `res=1` was invisible. `decisions.csv` logged only 7/21, 7/22,
+7/28, 8/10, 8/17, 8/19 — many missing weekdays. On **8/25 it missed a live exit**: the rule
+fired (15:59 spot 7679 > SMA5 7671, verified from the tape) but the daemon died before the
+decision, so both `bps_stmr` legs (entered 8/19) sat open unmanaged.
+
+**ROOT-CAUSE INSIGHT:** the daemon runs all day for **one reason** — to accumulate the
+session High/Low the K8 stochastic needs. But that H/L is **independently recorded** in
+`data/options_sim/underlying_YYYYMMDD.csv` (verified: full-session, reliable). So the
+fragile 6.5-hour process is unnecessary.
+
+**THE FIX (`scripts/stmr_exit_check.py`, now the SOLE STMR decision-maker):** a lightweight,
+OBSERVABLE near-close run — reads realtime spot (SpotRig) + session H/L (tape), computes the
+full signal, then `exit_sig → do_exits()` / `fire → open_put_ladder + do_entry()` (sim +
+real IB rows). Needs only a ~1-min connection at 15:59 ET; writes `stmr_exit_heartbeat.json`
++ a `decisions.csv` row; Telegram-alerts on any action/error. Own lock port 49734; idempotent
+via `open_trades`. Entry/exit logic extracted from the daemon into shared `do_entry`/`do_exits`
+(one tested copy each — daemon still has them but its all-day path is retired). Commits
+**5301aa48** (exit-only stopgap) → **09d4e045** (full entry+exit).
+
+**OPS CHANGES APPLIED THIS SESSION (all done + verified):**
+- `MyQuant Sim Daemon` → **DISABLED**. Do NOT re-enable — its decision is superseded.
+- **NEW task `MyQuant STMR Decision`** → Ready, runs `run_at_ct --at 14:59 -- stmr_exit_check.py`,
+  Mon-Fri, DST-safe dual triggers (21:59/20:59 Berlin). **First live fire: 2026-08-27 14:59 CT.**
+- `dashboard_live` restarted (fresh code) to apply the calendar fix.
+- **WATCH 8/27 ~15:05 CT:** `stmr_exit_heartbeat.json` should show `state:ok`; a `decisions.csv`
+  row noted `decision`; Telegram only if it enters/exits. Nothing written = task didn't run.
+
+**8/25 MISSED EXIT — RECONSTRUCTED (commit 346278fb):** booked both `bps_stmr` legs closed
+as-of **8/25** at the 16:05 mid mark **14.35** (`fill_model=reconstructed_1600_mark`, tagged
+so it's never mistaken for a real NBBO fill; ~0.15-0.30 optimistic). PnL **sim −$420.2 /
+real −$270.2 = −$690.4**. Book backed up → `trades.parquet.bak_reconstruct_20260825`. The
+live IB paper leg (short 7635P/long 7575P exp 9/2) was **flattened** (commit 9a58ba8f) after
+the opening spread tightened: paid **14.60**, IB verified flat. The **+$25** vs the 14.35 book
+went to `data/options_sim/stmr_missed_exit_cost_20260825.csv` as **operational cost ONLY** —
+NOT in strategy or today's desk PnL (user's explicit instruction).
+
+**CALENDAR FIX (commit 9f6e81c5):** `options_dashboard.py` bucketed every trade's P&L by
+**entry** date — fine for 0DTE (enter==exit) but the STMR swing (entered 8/19 / exited 8/25)
+dumped its −$690 onto 8/19, hiding it. Closed trades now bucket by **exit** (realization) date;
+open trades stay on entry (unrealized); dow/hour stay entry-based (strategy-entry analytics).
+Result: **8/19 +$2,023** (true same-day), **8/25 −$436** (0DTE +254 − STMR 690). Only multi-day
+trades move.
+
+**8/26 DESK (for the record):** recorder **99.9% complete** (first fully-clean tape since 8/21,
+started 08:30:36 at the open). 0DTE desk **−$720.2** realized — the EOD iron fly got whipsawed
+through 7675 (call side −$616 closed 09:02 CT, put side −$81 closed 09:33 CT; both walls broke
+opposite sides — same pattern as 8/24). XSP mirror ran clean; `settle_xsp` still needed nightly.
 
 ---
 
