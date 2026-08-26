@@ -504,13 +504,18 @@ def analytics_payload(trades, marks_last):
             pnl = float(r.pnl) if pd.notna(r.pnl) else None
         coll = float(r.collateral) if pd.notna(r.collateral) else None
         entry = str(r.entry_dt) if pd.notna(r.entry_dt) else ""
+        exitd = str(r.exit_dt) if pd.notna(r.exit_dt) else ""
         try:
             dow = pd.to_datetime(entry).strftime("%a") if entry else ""
         except Exception:
             dow = ""
+        # P&L buckets (calendar/equity curve) on the day it was REALIZED = exit date for
+        # closed trades. 0DTE enter==exit so only multi-day trades (STMR) move; open trades
+        # keep entry (unrealized). dow/hour stay entry-based (strategy-entry analytics).
+        bucket_date = exitd[:10] if (not is_open and exitd) else entry[:10]
         rows.append({
             "id": r.trade_id, "strategy": r.strategy_id,
-            "date": entry[:10], "entry": entry, "dow": dow,
+            "date": bucket_date, "entry": entry, "dow": dow,
             "hour": entry[11:13] + ":00" if len(entry) >= 13 else "?",
             "grade": r.grade if isinstance(r.grade, str) else "?",
             "regime": r.gex_regime if isinstance(r.gex_regime, str) else "unknown",
