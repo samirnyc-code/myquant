@@ -79,13 +79,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 				IsUnmanaged                  = false;
 
 				// ── trade structure ────────────────────────────────────────────
-				ScalpQty          = 1;
-				RunnerQty         = 1;
+				ScalpQty          = 1;   // 0 = no scalp lot
+				RunnerQty         = 1;   // 0 = no runner lot
 				StopBeyondSBTicks = 1;
 				ScalpTargetTicks  = 4;
 				BETriggerTicks    = 5;
 				TrailTicks        = 1;
 				EntryValidBars    = 1;
+				TrailFromEntry    = false;   // true: runner trails from entry, BE floor after trigger
 
 				// ── MyWedge ctor params — SET TO MATCH YOUR CHART ──────────────
 				LookBack       = 20;     // confirmed correct (S107)
@@ -150,19 +151,31 @@ namespace NinjaTrader.NinjaScript.Strategies
 						double tgtOff = ScalpTargetTicks * tick;
 						if (_pendingSide == 1)
 						{
-							SetStopLoss  ("LScalp", CalculationMode.Price, _stopPx, false);
-							SetProfitTarget("LScalp", CalculationMode.Price, _entryPx + tgtOff);
-							SetStopLoss  ("LRun",  CalculationMode.Price, _stopPx, false);
-							EnterLongStopMarket(0, true, ScalpQty,  _entryPx, "LScalp");
-							EnterLongStopMarket(0, true, RunnerQty, _entryPx, "LRun");
+							if (ScalpQty > 0)
+							{
+								SetStopLoss    ("LScalp", CalculationMode.Price, _stopPx, false);
+								SetProfitTarget("LScalp", CalculationMode.Price, _entryPx + tgtOff);
+								EnterLongStopMarket(0, true, ScalpQty, _entryPx, "LScalp");
+							}
+							if (RunnerQty > 0)
+							{
+								SetStopLoss("LRun", CalculationMode.Price, _stopPx, false);
+								EnterLongStopMarket(0, true, RunnerQty, _entryPx, "LRun");
+							}
 						}
 						else
 						{
-							SetStopLoss  ("SScalp", CalculationMode.Price, _stopPx, false);
-							SetProfitTarget("SScalp", CalculationMode.Price, _entryPx - tgtOff);
-							SetStopLoss  ("SRun",  CalculationMode.Price, _stopPx, false);
-							EnterShortStopMarket(0, true, ScalpQty,  _entryPx, "SScalp");
-							EnterShortStopMarket(0, true, RunnerQty, _entryPx, "SRun");
+							if (ScalpQty > 0)
+							{
+								SetStopLoss    ("SScalp", CalculationMode.Price, _stopPx, false);
+								SetProfitTarget("SScalp", CalculationMode.Price, _entryPx - tgtOff);
+								EnterShortStopMarket(0, true, ScalpQty, _entryPx, "SScalp");
+							}
+							if (RunnerQty > 0)
+							{
+								SetStopLoss("SRun", CalculationMode.Price, _stopPx, false);
+								EnterShortStopMarket(0, true, RunnerQty, _entryPx, "SRun");
+							}
 						}
 					}
 					else
@@ -187,43 +200,61 @@ namespace NinjaTrader.NinjaScript.Strategies
 			{
 				if (_entry == 0) { _entry = Position.AveragePrice; _curStop = _stopPx; _beActive = false; _pendingSide = 0; }
 
-				if (!_beActive && High[0] >= _entry + BETriggerTicks * tick)
-					_beActive = true;
-
-				if (_beActive)
+				if (RunnerQty > 0)
 				{
-					_curStop = Math.Max(_curStop, _entry);                    // breakeven
-					_curStop = Math.Max(_curStop, Low[0] - TrailTicks * tick); // 1t/bar trail
+					if (TrailFromEntry)
+					{
+						_curStop = Math.Max(_curStop, Low[0] - TrailTicks * tick);   // trail from entry
+						if (High[0] >= _entry + BETriggerTicks * tick)
+							_curStop = Math.Max(_curStop, _entry);                   // BE floor after X ticks
+					}
+					else
+					{
+						if (!_beActive && High[0] >= _entry + BETriggerTicks * tick) _beActive = true;
+						if (_beActive)
+						{
+							_curStop = Math.Max(_curStop, _entry);                    // breakeven
+							_curStop = Math.Max(_curStop, Low[0] - TrailTicks * tick); // 1t/bar trail
+						}
+					}
+					SetStopLoss("LRun", CalculationMode.Price, _curStop, false);
 				}
-
-				SetStopLoss("LRun", CalculationMode.Price, _curStop, false);
 			}
 			else if (Position.MarketPosition == MarketPosition.Short)
 			{
 				if (_entry == 0) { _entry = Position.AveragePrice; _curStop = _stopPx; _beActive = false; _pendingSide = 0; }
 
-				if (!_beActive && Low[0] <= _entry - BETriggerTicks * tick)
-					_beActive = true;
-
-				if (_beActive)
+				if (RunnerQty > 0)
 				{
-					_curStop = Math.Min(_curStop, _entry);
-					_curStop = Math.Min(_curStop, High[0] + TrailTicks * tick);
+					if (TrailFromEntry)
+					{
+						_curStop = Math.Min(_curStop, High[0] + TrailTicks * tick);
+						if (Low[0] <= _entry - BETriggerTicks * tick)
+							_curStop = Math.Min(_curStop, _entry);
+					}
+					else
+					{
+						if (!_beActive && Low[0] <= _entry - BETriggerTicks * tick) _beActive = true;
+						if (_beActive)
+						{
+							_curStop = Math.Min(_curStop, _entry);
+							_curStop = Math.Min(_curStop, High[0] + TrailTicks * tick);
+						}
+					}
+					SetStopLoss("SRun", CalculationMode.Price, _curStop, false);
 				}
-
-				SetStopLoss("SRun", CalculationMode.Price, _curStop, false);
 			}
 		}
 
 		#region Trade structure properties
 		[NinjaScriptProperty]
-		[Range(1, 100)]
-		[Display(Name = "Scalp contracts", GroupName = "1. Trade Structure", Order = 0)]
+		[Range(0, 100)]
+		[Display(Name = "Scalp contracts (0 = no scalp)", GroupName = "1. Trade Structure", Order = 0)]
 		public int ScalpQty { get; set; }
 
 		[NinjaScriptProperty]
-		[Range(1, 100)]
-		[Display(Name = "Runner contracts", GroupName = "1. Trade Structure", Order = 1)]
+		[Range(0, 100)]
+		[Display(Name = "Runner contracts (0 = no runner)", GroupName = "1. Trade Structure", Order = 1)]
 		public int RunnerQty { get; set; }
 
 		[NinjaScriptProperty]
@@ -250,6 +281,10 @@ namespace NinjaTrader.NinjaScript.Strategies
 		[Range(1, 100)]
 		[Display(Name = "Entry valid for N bars", GroupName = "1. Trade Structure", Order = 6)]
 		public int EntryValidBars { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name = "Runner: trail from entry (BE after trigger)", GroupName = "1. Trade Structure", Order = 7)]
+		public bool TrailFromEntry { get; set; }
 		#endregion
 
 		#region MyWedge properties
