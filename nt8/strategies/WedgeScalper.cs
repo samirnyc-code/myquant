@@ -154,10 +154,13 @@ namespace NinjaTrader.NinjaScript.Strategies
 						{
 							// exits are ALL manual (see management) — do NOT mix a Set
 							// method here or NT silently drops the manual scalp limit.
+							// isLiveUntilCancelled = FALSE so an unfilled entry auto-expires
+							// next bar instead of lingering and later filling against a
+							// stale stop price (that leaves the stop on the wrong side).
 							if (_pendingSide == 1)
-								EnterLongStopMarket(0, true, totQ, _entryPx, "Wedge");
+								EnterLongStopMarket(0, false, totQ, _entryPx, "Wedge");
 							else
-								EnterShortStopMarket(0, true, totQ, _entryPx, "Wedge");
+								EnterShortStopMarket(0, false, totQ, _entryPx, "Wedge");
 						}
 					}
 					else
@@ -204,6 +207,10 @@ namespace NinjaTrader.NinjaScript.Strategies
 				// scalp scale-out (skipped when ScalpQty == 0)
 				if (ScalpQty > 0)
 					ExitLongLimit(0, true, ScalpQty, _entry + ScalpTargetTicks * tick, "Scalp", "Wedge");
+				// hard safety net: if a bar CLOSES beyond the stop and we are somehow
+				// still long, the resting stop failed -> force out now.
+				if (Close[0] <= _curStop)
+					ExitLong("StopFail", "Wedge");
 			}
 			else if (Position.MarketPosition == MarketPosition.Short)
 			{
@@ -230,6 +237,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 				ExitShortStopMarket(0, true, Position.Quantity, _curStop, "Stop", "Wedge");
 				if (ScalpQty > 0)
 					ExitShortLimit(0, true, ScalpQty, _entry - ScalpTargetTicks * tick, "Scalp", "Wedge");
+				// hard safety net (see Long branch)
+				if (Close[0] >= _curStop)
+					ExitShort("StopFail", "Wedge");
 			}
 		}
 
