@@ -88,7 +88,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 				EntryValidBars    = 1;
 
 				// ── MyWedge ctor params — SET TO MATCH YOUR CHART ──────────────
-				LookBack       = 3;      // old workspaces show 3; verify vs your chart
+				LookBack       = 20;     // confirmed correct (S107)
 				ShowW2L        = true;
 				WedgeSymmetry  = 0;
 				OLSensitivity  = 0;
