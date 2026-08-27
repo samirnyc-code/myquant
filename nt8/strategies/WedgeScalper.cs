@@ -152,7 +152,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 						int totQ = ScalpQty + RunnerQty;
 						if (totQ > 0)
 						{
-							SetStopLoss("Wedge", CalculationMode.Price, _stopPx, false);
+							// exits are ALL manual (see management) — do NOT mix a Set
+							// method here or NT silently drops the manual scalp limit.
 							if (_pendingSide == 1)
 								EnterLongStopMarket(0, true, totQ, _entryPx, "Wedge");
 							else
@@ -198,7 +199,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 						}
 					}
 				}
-				SetStopLoss("Wedge", CalculationMode.Price, _curStop, false);
+				// whole-position stop (auto-adjusts to remaining qty after scale-out)
+				ExitLongStopMarket(0, true, Position.Quantity, _curStop, "Stop", "Wedge");
 				// scalp scale-out (skipped when ScalpQty == 0)
 				if (ScalpQty > 0)
 					ExitLongLimit(0, true, ScalpQty, _entry + ScalpTargetTicks * tick, "Scalp", "Wedge");
@@ -225,7 +227,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 						}
 					}
 				}
-				SetStopLoss("Wedge", CalculationMode.Price, _curStop, false);
+				ExitShortStopMarket(0, true, Position.Quantity, _curStop, "Stop", "Wedge");
 				if (ScalpQty > 0)
 					ExitShortLimit(0, true, ScalpQty, _entry - ScalpTargetTicks * tick, "Scalp", "Wedge");
 			}
