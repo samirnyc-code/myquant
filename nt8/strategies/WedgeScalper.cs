@@ -144,47 +144,26 @@ namespace NinjaTrader.NinjaScript.Strategies
 				{
 					if (CurrentBar - _sigBar < EntryValidBars)
 					{
-						// GUARANTEED brackets via Set methods (NT owns the stop/target
-						// lifecycle -> they always rest and fill intrabar). Must be set
-						// BEFORE the entry that opens the position. Scalp gets stop+target;
-						// runner gets a stop that we trail via SetStopLoss below.
-						double tgtOff = ScalpTargetTicks * tick;
-						if (_pendingSide == 1)
+						// ONE entry sized to the whole position (scalp + runner). Two
+						// same-price entries did not both fill in backtest, so the
+						// runner qty had no effect. Whole-position stop via SetStopLoss
+						// (reliable, fills intrabar); scalp is scaled out by a limit
+						// below; the remainder rides the trailed stop.
+						int totQ = ScalpQty + RunnerQty;
+						if (totQ > 0)
 						{
-							if (ScalpQty > 0)
-							{
-								SetStopLoss    ("LScalp", CalculationMode.Price, _stopPx, false);
-								SetProfitTarget("LScalp", CalculationMode.Price, _entryPx + tgtOff);
-								EnterLongStopMarket(0, true, ScalpQty, _entryPx, "LScalp");
-							}
-							if (RunnerQty > 0)
-							{
-								SetStopLoss("LRun", CalculationMode.Price, _stopPx, false);
-								EnterLongStopMarket(0, true, RunnerQty, _entryPx, "LRun");
-							}
-						}
-						else
-						{
-							if (ScalpQty > 0)
-							{
-								SetStopLoss    ("SScalp", CalculationMode.Price, _stopPx, false);
-								SetProfitTarget("SScalp", CalculationMode.Price, _entryPx - tgtOff);
-								EnterShortStopMarket(0, true, ScalpQty, _entryPx, "SScalp");
-							}
-							if (RunnerQty > 0)
-							{
-								SetStopLoss("SRun", CalculationMode.Price, _stopPx, false);
-								EnterShortStopMarket(0, true, RunnerQty, _entryPx, "SRun");
-							}
+							SetStopLoss("Wedge", CalculationMode.Price, _stopPx, false);
+							if (_pendingSide == 1)
+								EnterLongStopMarket(0, true, totQ, _entryPx, "Wedge");
+							else
+								EnterShortStopMarket(0, true, totQ, _entryPx, "Wedge");
 						}
 					}
 					else
 					{
-						// past validity, still flat -> cancel the working entries
+						// past validity, still flat -> cancel the working entry
 						foreach (Order o in Orders)
-							if (o.OrderState == OrderState.Working &&
-							    (o.Name == "LScalp" || o.Name == "LRun" ||
-							     o.Name == "SScalp" || o.Name == "SRun"))
+							if (o.OrderState == OrderState.Working && o.Name == "Wedge")
 								CancelOrder(o);
 						_pendingSide = 0;
 					}
@@ -200,6 +179,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			{
 				if (_entry == 0) { _entry = Position.AveragePrice; _curStop = _stopPx; _beActive = false; _pendingSide = 0; }
 
+				// runner trail moves the whole-position stop up once the scalp is out
 				if (RunnerQty > 0)
 				{
 					if (TrailFromEntry)
@@ -217,8 +197,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 							_curStop = Math.Max(_curStop, Low[0] - TrailTicks * tick); // 1t/bar trail
 						}
 					}
-					SetStopLoss("LRun", CalculationMode.Price, _curStop, false);
 				}
+				SetStopLoss("Wedge", CalculationMode.Price, _curStop, false);
+				// scalp scale-out (skipped when ScalpQty == 0)
+				if (ScalpQty > 0)
+					ExitLongLimit(0, true, ScalpQty, _entry + ScalpTargetTicks * tick, "Scalp", "Wedge");
 			}
 			else if (Position.MarketPosition == MarketPosition.Short)
 			{
@@ -241,8 +224,10 @@ namespace NinjaTrader.NinjaScript.Strategies
 							_curStop = Math.Min(_curStop, High[0] + TrailTicks * tick);
 						}
 					}
-					SetStopLoss("SRun", CalculationMode.Price, _curStop, false);
 				}
+				SetStopLoss("Wedge", CalculationMode.Price, _curStop, false);
+				if (ScalpQty > 0)
+					ExitShortLimit(0, true, ScalpQty, _entry - ScalpTargetTicks * tick, "Scalp", "Wedge");
 			}
 		}
 
