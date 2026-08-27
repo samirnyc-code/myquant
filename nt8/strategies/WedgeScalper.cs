@@ -89,7 +89,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 				TrailFromEntry    = false;   // true: runner trails from entry, BE floor after trigger
 
 				// ── MyWedge ctor params — SET TO MATCH YOUR CHART ──────────────
-				LookBack       = 20;     // confirmed correct (S107)
+				LookBack       = 12;     // confirmed correct (S107)
 				ShowW2L        = true;
 				WedgeSymmetry  = 0;
 				OLSensitivity  = 0;
