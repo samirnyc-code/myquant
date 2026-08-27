@@ -6,6 +6,18 @@
 
 ## S106-cont (2026-08-26) — STMR strategy fixed end-to-end (daemon retired); 8/25 missed exit reconstructed; calendar → exit-date
 
+**AWAY NOTE (2026-08-27, user traveling a few days):** everything on scheduled tasks + verified
+green — recorders (SPX+XSP), trigger daemon, XSP mirror, marks, spot_feed, gameplan, postmortem/
+EOD/evening all Ready; **new `MyQuant STMR Decision`** first-fires today 14:59 CT (21:59 Berlin
+trigger; 20:59 no-ops). Both books flat/settled (8/26 XSP settled manually — needed a fresh
+`spx_daily_yahoo.csv` + `--date`). Gateway 4002 seen DOWN at 05:46 CT = **normal** (login 06:00
+CT + Ensure 07:20 CT before the open). **Remote access:** dashboard reachable over Tailscale at
+`http://100.120.208.126:8600/?key=…` (see memory [[dashboard-remote-access]]); laptop needs same
+tailnet login. **RDP is DISABLED** — to run Claude Code against this desk remotely it must be
+enabled first (not done). **Keep-alive NOT added** — `dashboard_live` is unsupervised (died once
+overnight); if it dies while away the link is dead until restarted via launcher `/start`. Did NOT
+change any system state beyond the STMR task swap + settlements above.
+
 **THE STMR PROBLEM (found this session):** the 14-DTE stochastic-mean-reversion book
 (`bps_stmr`: K8<15 & spot>SMA100 → sell a 50-60pt BPS; exit the first day 15:59 spot >
 SMA5 → buy it back) had been **failing silently for weeks**. `options_sim_daemon.py` runs

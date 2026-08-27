@@ -1,0 +1,13 @@
+{
+  "state": "ok",
+  "spot": 7675.95,
+  "k8": 24.77,
+  "sma5": 7664.32,
+  "fire": false,
+  "exit_sig": true,
+  "open_before": 0,
+  "closed": 0,
+  "entered": null,
+  "dry": true,
+  "ts_et": "2026-08-26T16:22:08.717924-04:00"
+}

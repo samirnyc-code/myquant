@@ -28,3 +28,120 @@ run_at_ct: target 05:30 CT | now 05:30 CT | delta +0min | berlin-chicago 7h | RU
 +
 + ** Caution: closing this window will close GATEWAY 1045 **
 +
++==============================================================================
++
++ IBC version 3.24.1
++
++ Running GATEWAY 1045 at Fri 08/14/2026 13:00:01.39
++
++ Diagnostic information is logged in:
++
++ C:\IBC\Logs\IBC-3.24.1_GATEWAY-1045_FRIDAY.txt
++
++
++ ** Caution: closing this window will close GATEWAY 1045 **
++
++==============================================================================
++
++ IBC version 3.24.1
++
++ Running GATEWAY 1045 at Mon 08/17/2026 13:00:01.16
++
++ Diagnostic information is logged in:
++
++ C:\IBC\Logs\IBC-3.24.1_GATEWAY-1045_MONDAY.txt
++
++
++ ** Caution: closing this window will close GATEWAY 1045 **
++
++==============================================================================
++
++ IBC version 3.24.1
++
++ Running GATEWAY 1045 at Tue 08/18/2026 13:00:01.52
++
++ Diagnostic information is logged in:
++
++ C:\IBC\Logs\IBC-3.24.1_GATEWAY-1045_TUESDAY.txt
++
++
++ ** Caution: closing this window will close GATEWAY 1045 **
++
++==============================================================================
++
++ IBC version 3.24.1
++
++ Running GATEWAY 1045 at Wed 08/19/2026 13:00:01.39
++
++ Diagnostic information is logged in:
++
++ C:\IBC\Logs\IBC-3.24.1_GATEWAY-1045_WEDNESDAY.txt
++
++
++ ** Caution: closing this window will close GATEWAY 1045 **
++
++==============================================================================
++
++ IBC version 3.24.1
++
++ Running GATEWAY 1045 at Thu 08/20/2026 13:00:01.74
++
++ Diagnostic information is logged in:
++
++ C:\IBC\Logs\IBC-3.24.1_GATEWAY-1045_THURSDAY.txt
++
++
++ ** Caution: closing this window will close GATEWAY 1045 **
++
++==============================================================================
++
++ IBC version 3.24.1
++
++ Running GATEWAY 1045 at Fri 08/21/2026 13:00:01.62
++
++ Diagnostic information is logged in:
++
++ C:\IBC\Logs\IBC-3.24.1_GATEWAY-1045_FRIDAY.txt
++
++
++ ** Caution: closing this window will close GATEWAY 1045 **
++
++==============================================================================
++
++ IBC version 3.24.1
++
++ Running GATEWAY 1045 at Mon 08/24/2026 13:00:01.65
++
++ Diagnostic information is logged in:
++
++ C:\IBC\Logs\IBC-3.24.1_GATEWAY-1045_MONDAY.txt
++
++
++ ** Caution: closing this window will close GATEWAY 1045 **
++
++==============================================================================
++
++ IBC version 3.24.1
++
++ Running GATEWAY 1045 at Tue 08/25/2026 13:00:01.50
++
++ Diagnostic information is logged in:
++
++ C:\IBC\Logs\IBC-3.24.1_GATEWAY-1045_TUESDAY.txt
++
++
++ ** Caution: closing this window will close GATEWAY 1045 **
++
++==============================================================================
++
++ IBC version 3.24.1
++
++ Running GATEWAY 1045 at Wed 08/26/2026 13:00:01.63
++
++ Diagnostic information is logged in:
++
++ C:\IBC\Logs\IBC-3.24.1_GATEWAY-1045_WEDNESDAY.txt
++
++
++ ** Caution: closing this window will close GATEWAY 1045 **
++

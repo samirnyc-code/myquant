@@ -1,0 +1,28 @@
+<!doctype html><meta charset=utf-8><meta http-equiv=refresh content=30><title>XSP Mini Book</title>
+<style>body{background:#0b0d12;color:#e8ebf0;font:14px/1.5 system-ui,Segoe UI;padding:24px;max-width:760px;margin:auto}
+h1{font-size:19px;margin:0 0 2px}.sub{color:#7d8697;font-size:12.5px;margin-bottom:16px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:18px}
+.tile{background:#171b23;border:1px solid #232833;border-radius:12px;padding:12px 14px}
+.tl{color:#7d8697;font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+.tv{font-size:20px;font-weight:750;margin-top:4px}.pos{color:#2fbf8f}.neg{color:#f0555f}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th,td{text-align:right;padding:7px 10px;border-bottom:1px solid #1c212b}th{color:#7d8697;font-size:11px;text-transform:uppercase}
+td:first-child,th:first-child{text-align:left}.n{font-weight:600}
+.warn{background:#2a2410;border:1px solid #6b5a1e;color:#e6c65b;padding:8px 12px;border-radius:8px;font-size:12.5px;margin-bottom:16px}</style>
+<h1>💹 XSP Mini Book <span style="color:#5b9dd9">(1/10 SPX)</span></h1>
+<div class=sub>the same strategy at 1/10 size — how much edge survives XSP's spreads. generated 2026-08-24 22:15 machine-time</div>
+<div class=warn>LIVE XSP paper fills</div>
+<div class=kpis style="margin-bottom:10px">
+ <div class=tile style="grid-column:span 2"><div class=tl>TODAY net (realized + open)</div><div class="tv neg" style="font-size:26px">$-113.96</div>
+   <div class=tl style="margin-top:4px">realized $-114 (7 closed) · open $+0 (0 live)</div></div>
+</div>
+<div class=kpis>
+ <div class=tile><div class=tl>mirrored today</div><div class=tv>7</div><div class=tl style="margin-top:3px">7 closed · 0 open</div></div>
+ <div class=tile><div class=tl>XSP P&L</div><div class="tv neg">$-113.96</div></div>
+ <div class=tile><div class=tl>win rate</div><div class=tv>43%</div></div>
+ <div class=tile><div class=tl>PF</div><div class=tv>0.3</div></div>
+ <div class=tile><div class=tl>edge survival<br>XSP×10 / SPX</div><div class="tv pos">2.28</div></div>
+</div>
+<b style="font-size:13px">Per-strategy — SPX vs XSP×10</b>
+<table><tr><th>strategy</th><th>SPX $</th><th>XSP $</th><th>XSP×10</th><th>ratio</th></tr><tr><td>eodfly_c</td><td class='n'>+247</td><td class='n'>+15.56</td><td class='n'>+156</td><td class='n'>0.63</td></tr><tr><td>eodfly_p</td><td class='n'>-501</td><td class='n'>-103.40</td><td class='n'>-1034</td><td class='n'>2.06</td></tr><tr><td>eodic_p</td><td class='n'>+57</td><td class='n'>+5.56</td><td class='n'>+56</td><td class='n'>0.97</td></tr><tr><td>gx_bps</td><td class='n'>+277</td><td class='n'>+28.56</td><td class='n'>+286</td><td class='n'>1.03</td></tr><tr><td>openfly_c</td><td class='n'>-196</td><td class='n'>-34.40</td><td class='n'>-344</td><td class='n'>1.75</td></tr><tr><td>openfly_p</td><td class='n'>-411</td><td class='n'>-25.40</td><td class='n'>-254</td><td class='n'>0.62</td></tr><tr><td>openic_p</td><td class='n'>+27</td><td class='n'>-0.44</td><td class='n'>-4</td><td class='n'>-0.16</td></tr></table>
+<p style="color:#7d8697;font-size:12px;margin-top:14px">ratio ≈ 1.0 = XSP keeps the full SPX edge at 1/10 the capital. &lt;1 = the wider XSP spread is eating it. Margin: XSP ties up ~1/10 of SPX.</p>

@@ -1,5 +1,6 @@
 strategy,short_k,right,cushion,mark,max_loss,selloff
-eodic_p,7710.0,P,57.5,15.0,2480.0,HURTS
-eodfly_c,7785.0,C,17.5,610.0,1650.0,helps
-openic_p,7715.0,P,52.5,20.0,2475.0,HURTS
-openfly_c,7785.0,C,17.5,425.0,1835.0,helps
+eodic_p,7665.0,P,32.38000000000011,135.0,2340.0,HURTS
+eodic_c,7825.0,C,127.61999999999989,0.0,,helps
+eodfly_c,7745.0,C,47.61999999999989,135.0,2365.0,helps
+openic_p,7630.0,P,67.38000000000011,45.0,2450.0,HURTS
+openfly_c,7710.0,C,12.61999999999989,935.0,1490.0,helps

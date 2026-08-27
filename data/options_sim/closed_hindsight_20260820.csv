@@ -1,0 +1,5 @@
+strategy,exit_dt,reason,realized,if_held,diff
+eodfly_p,2026-08-20 08:44,level ACCEPTED: ,259,-1003,-1261
+openfly_p,2026-08-20 10:45,level ACCEPTED: ,-271,-1793,-1521
+openfly_c,2026-08-20 08:45,level ACCEPTED: ,-321,1087,1409
+gx_bps,2026-08-20 08:45,level ACCEPTED: ,239,-1303,-1541
