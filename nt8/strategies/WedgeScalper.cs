@@ -143,13 +143,24 @@ namespace NinjaTrader.NinjaScript.Strategies
 				{
 					if (CurrentBar - _sigBar < EntryValidBars)
 					{
+						// GUARANTEED brackets via Set methods (NT owns the stop/target
+						// lifecycle -> they always rest and fill intrabar). Must be set
+						// BEFORE the entry that opens the position. Scalp gets stop+target;
+						// runner gets a stop that we trail via SetStopLoss below.
+						double tgtOff = ScalpTargetTicks * tick;
 						if (_pendingSide == 1)
 						{
+							SetStopLoss  ("LScalp", CalculationMode.Price, _stopPx, false);
+							SetProfitTarget("LScalp", CalculationMode.Price, _entryPx + tgtOff);
+							SetStopLoss  ("LRun",  CalculationMode.Price, _stopPx, false);
 							EnterLongStopMarket(0, true, ScalpQty,  _entryPx, "LScalp");
 							EnterLongStopMarket(0, true, RunnerQty, _entryPx, "LRun");
 						}
 						else
 						{
+							SetStopLoss  ("SScalp", CalculationMode.Price, _stopPx, false);
+							SetProfitTarget("SScalp", CalculationMode.Price, _entryPx - tgtOff);
+							SetStopLoss  ("SRun",  CalculationMode.Price, _stopPx, false);
 							EnterShortStopMarket(0, true, ScalpQty,  _entryPx, "SScalp");
 							EnterShortStopMarket(0, true, RunnerQty, _entryPx, "SRun");
 						}
@@ -169,9 +180,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 			}
 
 			// ── manage an open position ───────────────────────────────────────
-			// Protective stops are submitted isLiveUntilCancelled = true so they
-			// REST in the market across bars (the prior bug: default-false orders
-			// were cancelled every bar-close and left gaps where price ran away).
+			// All protection is via Set methods (guaranteed brackets set at entry).
+			// Here we only TRAIL the runner's stop by re-calling SetStopLoss on the
+			// runner signal; the scalp's stop+target are already locked in.
 			if (Position.MarketPosition == MarketPosition.Long)
 			{
 				if (_entry == 0) { _entry = Position.AveragePrice; _curStop = _stopPx; _beActive = false; _pendingSide = 0; }
@@ -185,11 +196,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 					_curStop = Math.Max(_curStop, Low[0] - TrailTicks * tick); // 1t/bar trail
 				}
 
-				// scalp lot: fixed SB stop + target
-				ExitLongStopMarket(0, true, ScalpQty, _stopPx, "LScalpStop", "LScalp");
-				ExitLongLimit     (0, true, ScalpQty, _entry + ScalpTargetTicks * tick, "LScalpTgt", "LScalp");
-				// runner lot: dynamic stop (SB -> BE -> trail)
-				ExitLongStopMarket(0, true, RunnerQty, _curStop, "LRunStop", "LRun");
+				SetStopLoss("LRun", CalculationMode.Price, _curStop, false);
 			}
 			else if (Position.MarketPosition == MarketPosition.Short)
 			{
@@ -204,9 +211,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 					_curStop = Math.Min(_curStop, High[0] + TrailTicks * tick);
 				}
 
-				ExitShortStopMarket(0, true, ScalpQty, _stopPx, "SScalpStop", "SScalp");
-				ExitShortLimit     (0, true, ScalpQty, _entry - ScalpTargetTicks * tick, "SScalpTgt", "SScalp");
-				ExitShortStopMarket(0, true, RunnerQty, _curStop, "SRunStop", "SRun");
+				SetStopLoss("SRun", CalculationMode.Price, _curStop, false);
 			}
 		}
 
