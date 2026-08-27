@@ -71,8 +71,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 				Description  = "MyWedge signal-bar scalper: stop entry 1t beyond SB, +4t scalp, runner to BE at +5t then 1t/bar trail.";
 				Name         = "WedgeScalper";
 				Calculate    = Calculate.OnBarClose;
-				EntriesPerDirection = 1;
-				EntryHandling = EntryHandling.AllEntries;
+				EntriesPerDirection = 2;                       // scalp + runner, same dir
+				EntryHandling = EntryHandling.UniqueEntries;   // manage each by signal name
 				IsExitOnSessionCloseStrategy = true;
 				ExitOnSessionCloseSeconds    = 30;
 				BarsRequiredToTrade          = 20;
@@ -136,20 +136,32 @@ namespace NinjaTrader.NinjaScript.Strategies
 					}
 				}
 
-				// ── submit the stop entry while still valid, else let it lapse ─
+				// ── submit the stop entries while still valid, else let them lapse
+				// Two independent 1-lot(-ish) entries so each has its OWN clean
+				// stop (no oversized-stop / partial-fill mismatch).
 				if (_pendingSide != 0)
 				{
 					if (CurrentBar - _sigBar < EntryValidBars)
 					{
 						if (_pendingSide == 1)
-							EnterLongStopMarket(ScalpQty + RunnerQty, _entryPx, "Wedge");
+						{
+							EnterLongStopMarket(0, true, ScalpQty,  _entryPx, "LScalp");
+							EnterLongStopMarket(0, true, RunnerQty, _entryPx, "LRun");
+						}
 						else
-							EnterShortStopMarket(ScalpQty + RunnerQty, _entryPx, "Wedge");
+						{
+							EnterShortStopMarket(0, true, ScalpQty,  _entryPx, "SScalp");
+							EnterShortStopMarket(0, true, RunnerQty, _entryPx, "SRun");
+						}
 					}
 					else
 					{
-						// past validity, still flat -> abandon; managed order
-						// auto-cancels once we stop resubmitting it.
+						// past validity, still flat -> cancel the working entries
+						foreach (Order o in Orders)
+							if (o.OrderState == OrderState.Working &&
+							    (o.Name == "LScalp" || o.Name == "LRun" ||
+							     o.Name == "SScalp" || o.Name == "SRun"))
+								CancelOrder(o);
 						_pendingSide = 0;
 					}
 				}
@@ -157,6 +169,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 			}
 
 			// ── manage an open position ───────────────────────────────────────
+			// Protective stops are submitted isLiveUntilCancelled = true so they
+			// REST in the market across bars (the prior bug: default-false orders
+			// were cancelled every bar-close and left gaps where price ran away).
 			if (Position.MarketPosition == MarketPosition.Long)
 			{
 				if (_entry == 0) { _entry = Position.AveragePrice; _curStop = _stopPx; _beActive = false; _pendingSide = 0; }
@@ -170,11 +185,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 					_curStop = Math.Max(_curStop, Low[0] - TrailTicks * tick); // 1t/bar trail
 				}
 
-				int rem      = Position.Quantity;
-				int scalpRem = rem - RunnerQty;
-				if (scalpRem > 0)
-					ExitLongLimit(scalpRem, _entry + ScalpTargetTicks * tick, "Scalp", "Wedge");
-				ExitLongStopMarket(rem, _curStop, "Stop", "Wedge");
+				// scalp lot: fixed SB stop + target
+				ExitLongStopMarket(0, true, ScalpQty, _stopPx, "LScalpStop", "LScalp");
+				ExitLongLimit     (0, true, ScalpQty, _entry + ScalpTargetTicks * tick, "LScalpTgt", "LScalp");
+				// runner lot: dynamic stop (SB -> BE -> trail)
+				ExitLongStopMarket(0, true, RunnerQty, _curStop, "LRunStop", "LRun");
 			}
 			else if (Position.MarketPosition == MarketPosition.Short)
 			{
@@ -189,11 +204,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 					_curStop = Math.Min(_curStop, High[0] + TrailTicks * tick);
 				}
 
-				int rem      = Position.Quantity;
-				int scalpRem = rem - RunnerQty;
-				if (scalpRem > 0)
-					ExitShortLimit(scalpRem, _entry - ScalpTargetTicks * tick, "Scalp", "Wedge");
-				ExitShortStopMarket(rem, _curStop, "Stop", "Wedge");
+				ExitShortStopMarket(0, true, ScalpQty, _stopPx, "SScalpStop", "SScalp");
+				ExitShortLimit     (0, true, ScalpQty, _entry - ScalpTargetTicks * tick, "SScalpTgt", "SScalp");
+				ExitShortStopMarket(0, true, RunnerQty, _curStop, "SRunStop", "SRun");
 			}
 		}
 
