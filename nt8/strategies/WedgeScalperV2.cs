@@ -96,6 +96,10 @@ namespace NinjaTrader.NinjaScript.Strategies
 		private int    _revSigBar;
 		private double _revEntryPx;
 		private double _revStopPx;
+		// manual stop override (value-comparison, per @@MCScaleInStrategy):
+		private double _stratSetStop;   // last stop price the STRATEGY commanded
+		private double _liveStopPrice;  // actual live "Stop" order price (from OnOrderUpdate)
+		private bool   _userMovedStop;  // user dragged the stop -> strategy hands off for this trade
 
 		protected override void OnStateChange()
 		{
@@ -163,6 +167,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			{
 				// reset any leftover open-trade state
 				_entry = 0; _beActive = false; _curStop = 0; _scalpDone = false;
+				_stratSetStop = 0; _liveStopPrice = 0; _userMovedStop = false;
 				if (_revSide != 0)   // stopped out before a reversal triggered -> drop the armed reversal
 				{
 					foreach (Order o in Orders)
@@ -284,7 +289,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 				if (_entry == 0) { _entry = Position.AveragePrice; _curStop = _stopPx; _beActive = false; _scalpDone = false; _pendingSide = 0; }
 
 				// runner trail moves the whole-position stop up once the scalp is out
-				if (RunnerQty > 0)
+				if (RunnerQty > 0 && !_userMovedStop)   // skip auto-trail once the user drags the stop
 				{
 					if (TrailFromEntry)
 					{
@@ -310,7 +315,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			{
 				if (_entry == 0) { _entry = Position.AveragePrice; _curStop = _stopPx; _beActive = false; _scalpDone = false; _pendingSide = 0; }
 
-				if (RunnerQty > 0)
+				if (RunnerQty > 0 && !_userMovedStop)   // skip auto-trail once the user drags the stop
 				{
 					if (TrailFromEntry)
 					{
@@ -340,18 +345,45 @@ namespace NinjaTrader.NinjaScript.Strategies
 		// the scalp scales out — not a bar later (fix #3, #4).
 		private void ManageProtection()
 		{
+			// Manual override: if the live stop price diverged from what we last set, the
+			// user dragged it -> hand off the stop for the rest of this trade (adopt their
+			// level, stop auto-managing it). The scalp target is untouched by this.
+			if (!_userMovedStop && _stratSetStop > 0 && _liveStopPrice > 0
+				&& Math.Abs(_liveStopPrice - _stratSetStop) > TickSize / 2)
+			{
+				_userMovedStop = true;
+				_curStop = _liveStopPrice;
+				Print(ST + " " + Time[0] + "  manual stop @ " + _liveStopPrice + " -> auto-stop OFF for this trade");
+			}
+
 			if (Position.MarketPosition == MarketPosition.Long)
 			{
-				ExitLongStopMarket(0, true, Position.Quantity, _curStop, "Stop", "Wedge");
+				if (!_userMovedStop)
+				{
+					ExitLongStopMarket(0, true, Position.Quantity, _curStop, "Stop", "Wedge");
+					_stratSetStop = _curStop;
+				}
 				if (ScalpQty > 0 && !_scalpDone)
 					ExitLongLimit(0, true, ScalpQty, _entry + ScalpTargetTicks * TickSize, "Scalp", "Wedge");
 			}
 			else if (Position.MarketPosition == MarketPosition.Short)
 			{
-				ExitShortStopMarket(0, true, Position.Quantity, _curStop, "Stop", "Wedge");
+				if (!_userMovedStop)
+				{
+					ExitShortStopMarket(0, true, Position.Quantity, _curStop, "Stop", "Wedge");
+					_stratSetStop = _curStop;
+				}
 				if (ScalpQty > 0 && !_scalpDone)
 					ExitShortLimit(0, true, ScalpQty, _entry - ScalpTargetTicks * TickSize, "Scalp", "Wedge");
 			}
+		}
+
+		protected override void OnOrderUpdate(Order order, double limitPrice, double stopPrice, int quantity,
+			int filled, double averageFillPrice, OrderState orderState, DateTime time, ErrorCode error, string comment)
+		{
+			// track the actual live protective-stop price so a manual drag is detectable
+			if (order != null && order.Name == "Stop" && stopPrice > 0)
+				_liveStopPrice = stopPrice;
 		}
 
 		protected override void OnExecutionUpdate(Execution execution, string executionId, double price,
@@ -372,12 +404,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 				{
 					_stopPx = _revStopPx; _revSide = 0;
 					_entry = Position.AveragePrice; _curStop = _stopPx; _beActive = false; _scalpDone = false;
+					_stratSetStop = 0; _liveStopPrice = 0; _userMovedStop = false;   // new trade -> auto-stop on
 					Print(ST + " " + time + "  REVERSED -> now " + Position.MarketPosition
 						+ " x" + Position.Quantity + "  stop@" + _curStop);
 				}
 				else if (_entry == 0)
 				{
 					_entry = Position.AveragePrice; _curStop = _stopPx; _beActive = false; _scalpDone = false; _pendingSide = 0;
+					_stratSetStop = 0; _liveStopPrice = 0; _userMovedStop = false;
 					Print(ST + " " + time + "  FILLED entry x" + quantity + " @ " + price + "  -> stop@" + _curStop);
 				}
 				ManageProtection();
