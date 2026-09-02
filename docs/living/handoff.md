@@ -1,6 +1,88 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** August 26, 2026 (S106-cont: STMR strategy re-architected — the all-day daemon retired for a lightweight observable near-close decision; missed 8/25 exit reconstructed + IB flattened; calendar now buckets P&L by exit date)
+**Last Updated:** September 2, 2026 (S107: MyWedge NT8 automation — WedgeExporter + WedgeScalperV2 strategy built end-to-end; 2000t python research (fixed a phantom-fill sim bug → breakout entry is net-negative; close-entry is the only positive edge); many exit-engine bugs fixed)
+
+---
+
+## S107 (2026-09-02) — MyWedge NT8 automation: WedgeExporter + WedgeScalperV2; 2000t research
+
+**BIG PICTURE:** Built an automated NT8 strategy (`WedgeScalperV2`) driven by a **black-box**
+custom indicator **MyWedge** (from PriceActionIndicators.com — we NEVER see its code, only its
+plots), plus a `WedgeExporter` to dump its signals to CSV for python research on our continuous
+2000-tick ES data. Strategy compiles + trades in the **Strategy Analyzer**; still being refined.
+
+**MyWedge interface (BLACK BOX — plots only):**
+- Class `Indicators.My.MyWedge`. Hosted via accessor:
+  `MyWedge(lookBack, showW2L, wedgeSymmetry, oLSensitivity, cTSB_Ignore, iB_Ignore, showWedgeSB, signalBarIBS, continueMC, continueOnGap)`.
+- Plots: **WedgeBL / WedgeBR** = wedge condition active (context/bar-color); **WedgeBLSB /
+  WedgeBRSB** = **signal bar = entry trigger**. Values are the PRICE level (not 0/1); `>0` = fired.
+  **BL/BLSB = LONG, BR/BRSB = SHORT** (confirmed by user).
+- **Chart indicator settings the STRATEGY MUST MATCH** (strategy hosts its OWN MyWedge — if params
+  differ, it trades different signals than the chart draws): **LookBack=12** (user-confirmed; the
+  6-mo export was wrongly done at 20), ShowW2L, WedgeSymmetry=4, Overlap/OLSensitivity=1,
+  Ignore CT SBs/CTSB_Ignore=**true**, Ignore Inside Bars/IB_Ignore=**true**, ShowWedgeSB=true,
+  SignalBarIBS=66, ContinueMC/ContinueOnGap=false. (ShowW2L match uncertain — I misread the
+  checkbox once; verify.)
+
+**NT8 files (nt8/, committed; deployed to `Documents\NinjaTrader 8\bin\Custom\`):**
+- `nt8/indicators/WedgeExporter.cs` — hosts MyWedge, writes every signal bar to CSV over full
+  history; auto-writes on historical→realtime + Terminated backstop; exposes all 10 MyWedge params.
+- `nt8/strategies/WedgeScalper.cs` — original (SUPERSEDED).
+- `nt8/strategies/WedgeScalperV2.cs` — **CURRENT** strategy, dated change-log header + diagnostic
+  Print logging. **Compile-check always reports CS0234 on `MyWedge`** (not in the local reference
+  DLL) — EXPECTED/harmless; NT8 F5 resolves it, all other lines compile clean.
+
+**WedgeScalperV2 spec (current):**
+- Entry: ONE stop order sized `ScalpQty+RunnerQty`, 1t beyond the signal bar. If price already ran
+  past the level → rests a **LIMIT** at the entry price (no chase). Submitted **once, LUC=true**,
+  cancelled only after `EntryValidBars` (an earlier submit-then-cancel-next-bar raced the fill
+  engine → every order cancelled unfilled — FIXED).
+- Exits **ALL MANUAL** (mixing Set methods dropped the manual scalp limit → went all-manual).
+  Placed **immediately on fill via OnExecutionUpdate**; stop qty auto-reduces after scale-out.
+- Scalp: `ScalpQty` exits at `+ScalpTargetTicks` (limit, once; `_scalpDone` prevents re-scalp).
+- Runner default: SB stop → BE at `+BETriggerTicks` → 1t/bar trail. Options: `TrailFromEntry`;
+  **`RunnerHoldToOpposite`** (BE then HOLD, no trail — ride until reversal/BE).
+- **Feature A — RunnerHoldToOpposite (stop-and-reverse):** opposite wedge arms an opposite-side
+  entry (regular process, valid `EntryValidBars`); if it TRIGGERS → managed reversal flips the
+  position (OnExecutionUpdate re-inits with the reversal's SB stop); if not → stay in.
+- **Feature B — manual stop override:** drag the stop → value-comparison (OnOrderUpdate captures
+  live stop price; diverges >½ tick from strategy-set → `_userMovedStop` → auto-stop OFF for that
+  trade). Reused pattern from `@@MCScaleInStrategy.cs`. Resets each trade.
+- ScalpQty/RunnerQty can be 0 (disable a lot). Safety: `RealtimeErrorHandling=IgnoreAllErrors`
+  (a rejected order no longer disables the strategy / wipes chart markers); entry guard vs
+  buy-stop-below/sell-stop-above rejection; hard net = force-exit if a bar closes beyond the stop.
+
+**RESEARCH (research/wedge/, committed) — ⚠️ ALL ON LookBack=20 (WRONG) SIGNALS, must redo at 12:**
+- Data: `data/wedge/wedge_signals_ES_2000t_6mo.csv` = 5,206 signals Feb1–Aug26 2026 (24h ETH),
+  exported at LookBack=20. python trove `data/ticks_continuous/*.parquet` = RTH-only, 5yr.
+- Scripts: `wedge_signal_stats.py`, `wedge_structure_pnl.py`, `wedge_exit_sweep.py`,
+  `wedge_mgmt_lab.py`, `wedge_entry_edge.py`.
+- **CRITICAL:** sim had a phantom-fill bug (pre-open signals mapped to the RTH open → fake
+  profits). After the fix (commit 3eed0479), **every exit scheme on the breakout entry is net-
+  NEGATIVE** (structure PF 0.76, 1-lot trail PF 0.69, fixed 4–8t PF 0.86–0.96) and NT8's Analyzer
+  agrees (PF ~0.69). The ONLY positive: **entering at the signal-bar CLOSE** (not the breakout)
+  with a tight stop → ~52–56% win, PF 1.04–1.16 (`wedge_entry_edge.py`) — real but thin +
+  slippage-sensitive. Signals CHOP after firing (don't trend) → trailing beats holding; that's why
+  RunnerHoldToOpposite made P&L WORSE (BE-hold gives back the trail's profit).
+
+**BUGS FIXED THIS SESSION (each was a live/Analyzer symptom):** (1) stops didn't rest → session-
+close blowouts; (2) runner qty ignored (100=1) — two same-price entries didn't both fill → single
+sized entry; (3) scalp target silently dropped (Set+manual mix) → all-manual; (4) all entries
+cancelled unfilled (LUC/cancel race) → submit-once-LUC-true; (5) reversal did nothing (runner still
+trailed out + reversal had a 1-bar expiry) → override runner exit in that mode; (6) buy-stop-below-
+market rejection disabled the strategy + wiped markers → IgnoreAllErrors + limit fallback.
+
+**OPEN ITEMS / NEXT:**
+- **Re-export signals at LookBack=12** (+ match ALL MyWedge params to the chart) and **REDO all
+  research** — current numbers are on the wrong (LB20) signal set.
+- **Verify RunnerHoldToOpposite reversal** actually flips to the correct size in the Analyzer
+  (managed-reversal sizing unverified; suspicion: reversal reuses the `"Wedge"` entry name that
+  already holds the position — may need a distinct name + re-attach exits to the new position).
+- Proposed variant: RunnerHoldToOpposite that keeps the **trail active** while the reversal is
+  armed (don't give back profit).
+- **Close-entry strategy** — the only positive edge; consider building a close-entry variant.
+- Strategy is for **Strategy Analyzer (backtest)** evaluation; on a live chart it only trades
+  FORWARD (no historical trades — that's why the chart showed "no historical performance").
 
 ---
 
