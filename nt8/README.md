@@ -39,6 +39,8 @@ nt8/
 | `ClaudeTracker.cs` | Trade lifecycle tracker — logs every fill/stop/target event | ✅ current |
 | `TradeLifecycle.cs` | Trade lifecycle utilities | ✅ current |
 | `MCStrategyDashboardV3.cs` | MC strategy dashboard | ✅ current |
+| `WedgeScalper.cs` | MyWedge signal-bar scalper (stop entry 1t beyond SB, +4t scalp, runner BE→trail). Superseded by V2. | ✅ current |
+| `WedgeScalperV2.cs` | WedgeScalper renamed + S107 fixes (single sized entry, all-manual exits, immediate stop on fill via OnExecutionUpdate, no re-scalp, entry auto-expire, hard safety net, qty=0 disables a lot). Has dated change-log header. | ✅ current |
 | `MCBreakout.cs` | MC breakout strategy (pyramiding + ratchet-lock, S32) | ❌ LOST — not committed |
 
 ### third_party/
