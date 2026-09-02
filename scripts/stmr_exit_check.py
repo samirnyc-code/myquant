@@ -94,16 +94,21 @@ def main():
     try:
         daily = sd.refresh_spx_daily()
         ib = None
-        for attempt in range(3):
+        import time
+        # 14:59 CT is peak desk contention (recorders/mirror/trigger all still up, shutting
+        # down ~15:00-15:05) — a single connect can TIMEOUT there (9/1 missed a run that way).
+        # Retry hard like the recorder's connect_with_retry (~4 min window) so a busy-gateway
+        # blip can't skip the decision; the read still lands well inside the 15:59-16:15 window.
+        ATTEMPTS = 12
+        for attempt in range(ATTEMPTS):
             try:
                 ib = ib_conn.connect(port=a.port, client_id=CLIENT_ID)
                 break
             except Exception as e:
-                print(f"connect attempt {attempt + 1} failed: {e!r}")
-                if attempt == 2:
+                print(f"connect attempt {attempt + 1}/{ATTEMPTS} failed: {e!r}")
+                if attempt == ATTEMPTS - 1:
                     raise
-                import time
-                time.sleep(20)
+                time.sleep(15)
     except Exception as e:
         write_heartbeat(state="error", stage="connect", err=repr(e), open_before=None)
         alert(f"STMR decision FAILED to connect {today}: {e!r} — entry/exit NOT evaluated")
