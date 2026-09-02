@@ -63,6 +63,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 		private double _entry;         // actual fill price (Position.AveragePrice)
 		private bool   _beActive;      // runner has armed breakeven/trail
 		private double _curStop;       // current protective stop level
+		private bool   _scalpDone;     // scalp lot has scaled out (stop don't re-scalp)
 
 		protected override void OnStateChange()
 		{
@@ -118,7 +119,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			if (Position.MarketPosition == MarketPosition.Flat)
 			{
 				// reset any leftover open-trade state
-				_entry = 0; _beActive = false; _curStop = 0;
+				_entry = 0; _beActive = false; _curStop = 0; _scalpDone = false;
 
 				// ── detect a new signal ────────────────────────────────────────
 				if (_pendingSide == 0)
@@ -181,7 +182,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			// runner signal; the scalp's stop+target are already locked in.
 			if (Position.MarketPosition == MarketPosition.Long)
 			{
-				if (_entry == 0) { _entry = Position.AveragePrice; _curStop = _stopPx; _beActive = false; _pendingSide = 0; }
+				if (_entry == 0) { _entry = Position.AveragePrice; _curStop = _stopPx; _beActive = false; _scalpDone = false; _pendingSide = 0; }
 
 				// runner trail moves the whole-position stop up once the scalp is out
 				if (RunnerQty > 0)
@@ -202,19 +203,13 @@ namespace NinjaTrader.NinjaScript.Strategies
 						}
 					}
 				}
-				// whole-position stop (auto-adjusts to remaining qty after scale-out)
-				ExitLongStopMarket(0, true, Position.Quantity, _curStop, "Stop", "Wedge");
-				// scalp scale-out (skipped when ScalpQty == 0)
-				if (ScalpQty > 0)
-					ExitLongLimit(0, true, ScalpQty, _entry + ScalpTargetTicks * tick, "Scalp", "Wedge");
-				// hard safety net: if a bar CLOSES beyond the stop and we are somehow
-				// still long, the resting stop failed -> force out now.
+				ManageProtection();      // trail the stop (scalp already handled; won't re-scalp)
 				if (Close[0] <= _curStop)
-					ExitLong("StopFail", "Wedge");
+					ExitLong("StopFail", "Wedge");   // safety net
 			}
 			else if (Position.MarketPosition == MarketPosition.Short)
 			{
-				if (_entry == 0) { _entry = Position.AveragePrice; _curStop = _stopPx; _beActive = false; _pendingSide = 0; }
+				if (_entry == 0) { _entry = Position.AveragePrice; _curStop = _stopPx; _beActive = false; _scalpDone = false; _pendingSide = 0; }
 
 				if (RunnerQty > 0)
 				{
@@ -234,12 +229,49 @@ namespace NinjaTrader.NinjaScript.Strategies
 						}
 					}
 				}
-				ExitShortStopMarket(0, true, Position.Quantity, _curStop, "Stop", "Wedge");
-				if (ScalpQty > 0)
-					ExitShortLimit(0, true, ScalpQty, _entry - ScalpTargetTicks * tick, "Scalp", "Wedge");
-				// hard safety net (see Long branch)
+				ManageProtection();
 				if (Close[0] >= _curStop)
 					ExitShort("StopFail", "Wedge");
+			}
+		}
+
+		// Places/updates the whole-position stop and (once) the scalp target. Called
+		// both from OnBarUpdate (trail) and OnExecutionUpdate (immediate on fills), so
+		// the stop is live the instant we fill and its qty drops as soon as the scalp
+		// scales out — not a bar later.
+		private void ManageProtection()
+		{
+			if (Position.MarketPosition == MarketPosition.Long)
+			{
+				ExitLongStopMarket(0, true, Position.Quantity, _curStop, "Stop", "Wedge");
+				if (ScalpQty > 0 && !_scalpDone)
+					ExitLongLimit(0, true, ScalpQty, _entry + ScalpTargetTicks * TickSize, "Scalp", "Wedge");
+			}
+			else if (Position.MarketPosition == MarketPosition.Short)
+			{
+				ExitShortStopMarket(0, true, Position.Quantity, _curStop, "Stop", "Wedge");
+				if (ScalpQty > 0 && !_scalpDone)
+					ExitShortLimit(0, true, ScalpQty, _entry - ScalpTargetTicks * TickSize, "Scalp", "Wedge");
+			}
+		}
+
+		protected override void OnExecutionUpdate(Execution execution, string executionId, double price,
+			int quantity, Cbi.MarketPosition marketPosition, string orderId, DateTime time)
+		{
+			if (execution.Order == null || Position.MarketPosition == MarketPosition.Flat)
+				return;
+			string nm = execution.Order.Name;
+			if (nm == "Wedge")
+			{
+				// entry just filled -> lock entry price and protect immediately
+				if (_entry == 0) { _entry = Position.AveragePrice; _curStop = _stopPx; _beActive = false; _scalpDone = false; _pendingSide = 0; }
+				ManageProtection();
+			}
+			else if (nm == "Scalp")
+			{
+				// scalp scaled out -> never re-scalp; drop stop to the remaining qty now
+				_scalpDone = true;
+				ManageProtection();
 			}
 		}
 
