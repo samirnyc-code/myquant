@@ -104,6 +104,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 				ExitOnSessionCloseSeconds    = 30;
 				BarsRequiredToTrade          = 20;
 				IsUnmanaged                  = false;
+				// A rejected order must NOT disable the strategy (which wipes the chart's
+				// trade markers). Fail quietly and keep running instead.
+				RealtimeErrorHandling        = RealtimeErrorHandling.IgnoreAllErrors;
 
 				// ── trade structure ────────────────────────────────────────────
 				ScalpQty          = 1;   // 0 = no scalp lot
@@ -184,10 +187,22 @@ namespace NinjaTrader.NinjaScript.Strategies
 						int totQ = ScalpQty + RunnerQty;
 						if (totQ > 0)
 						{
+							// A stop entry can't sit on the wrong side of the market (NT
+							// rejects a buy-stop BELOW / sell-stop ABOVE market — that
+							// rejection used to terminate the strategy). If price already
+							// ran past the level, enter at market instead of an invalid stop.
 							if (_pendingSide == 1)
-								EnterLongStopMarket(0, false, totQ, _entryPx, "Wedge");
+							{
+								double ask = State == State.Realtime ? GetCurrentAsk() : Close[0];
+								if (_entryPx > ask) EnterLongStopMarket(0, false, totQ, _entryPx, "Wedge");
+								else                EnterLong(totQ, "Wedge");
+							}
 							else
-								EnterShortStopMarket(0, false, totQ, _entryPx, "Wedge");
+							{
+								double bid = State == State.Realtime ? GetCurrentBid() : Close[0];
+								if (_entryPx < bid) EnterShortStopMarket(0, false, totQ, _entryPx, "Wedge");
+								else                EnterShort(totQ, "Wedge");
+							}
 							Print(ST + " " + Time[0] + "  SIGNAL " + (_pendingSide > 0 ? "LONG " : "SHORT")
 								+ "  submit x" + totQ + " stopEntry@" + _entryPx + " protStop@" + _stopPx
 								+ (State == State.Realtime ? "" : "  (historical -> NO real order placed)"));
