@@ -14,9 +14,19 @@ trigger; 20:59 no-ops). Both books flat/settled (8/26 XSP settled manually — n
 CT + Ensure 07:20 CT before the open). **Remote access:** dashboard reachable over Tailscale at
 `http://100.120.208.126:8600/?key=…` (see memory [[dashboard-remote-access]]); laptop needs same
 tailnet login. **RDP is DISABLED** — to run Claude Code against this desk remotely it must be
-enabled first (not done). **Keep-alive NOT added** — `dashboard_live` is unsupervised (died once
-overnight); if it dies while away the link is dead until restarted via launcher `/start`. Did NOT
-change any system state beyond the STMR task swap + settlements above.
+enabled first (not done).
+
+**FOLLOW-UPS (2026-09-02, still traveling):**
+- **Dashboard keep-alive ADDED** — task `MyQuant Dashboard Keepalive` (every 10 min) runs
+  `dashboard_keepalive.py`: relaunches `options_dashboard_live` only if 8600 is down, never kills.
+  Remote Tailscale link now self-heals.
+- **XSP settlement was LAPSING** — `settle_xsp` is manual-only and nobody ran it while away, so
+  18 expired XSP trades (8/27/28/31, 9/1) sat OPEN, making those days look falsely red (only the
+  losers were booked; the expired-OTM winners weren't credited). **Caught up all 4 days** (book now
+  flat, 0 open) and **automated it**: new task `MyQuant XSP Settle` runs `settle_xsp.py` nightly at
+  16:30 CT (self-fetches the close, default date = today). Corrected days: 8/27 −142→−2, 8/28
+  −243→−208, 8/31 −45→+56, 9/1 −140→−94.
+- RDP still DISABLED (not enabled); keep-alive is the only supervisor added.
 
 **THE STMR PROBLEM (found this session):** the 14-DTE stochastic-mean-reversion book
 (`bps_stmr`: K8<15 & spot>SMA100 → sell a 50-60pt BPS; exit the first day 15:59 spot >

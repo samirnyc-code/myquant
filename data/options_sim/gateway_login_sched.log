@@ -145,3 +145,59 @@ run_at_ct: target 05:30 CT | now 05:30 CT | delta +0min | berlin-chicago 7h | RU
 +
 + ** Caution: closing this window will close GATEWAY 1045 **
 +
++==============================================================================
++
++ IBC version 3.24.1
++
++ Running GATEWAY 1045 at Thu 08/27/2026 13:00:01.51
++
++ Diagnostic information is logged in:
++
++ C:\IBC\Logs\IBC-3.24.1_GATEWAY-1045_THURSDAY.txt
++
++
++ ** Caution: closing this window will close GATEWAY 1045 **
++
++==============================================================================
++
++ IBC version 3.24.1
++
++ Running GATEWAY 1045 at Fri 08/28/2026 13:00:01.48
++
++ Diagnostic information is logged in:
++
++ C:\IBC\Logs\IBC-3.24.1_GATEWAY-1045_FRIDAY.txt
++
++
++ ** Caution: closing this window will close GATEWAY 1045 **
++
++==============================================================================
++
++ IBC version 3.24.1
++
++ Running GATEWAY 1045 at Mon 08/31/2026 13:00:01.19
++
+'wmic' is not recognized as an internal or external command,
+operable program or batch file.
++ Diagnostic information is logged in:
++
++ C:\IBC\Logs\IBC-3.24.1_GATEWAY-1045_.txt
++
++
++ ** Caution: closing this window will close GATEWAY 1045 **
++
++==============================================================================
++
++ IBC version 3.24.1
++
++ Running GATEWAY 1045 at Tue 09/01/2026 13:00:01.33
++
+'wmic' is not recognized as an internal or external command,
+operable program or batch file.
++ Diagnostic information is logged in:
++
++ C:\IBC\Logs\IBC-3.24.1_GATEWAY-1045_.txt
++
++
++ ** Caution: closing this window will close GATEWAY 1045 **
++
