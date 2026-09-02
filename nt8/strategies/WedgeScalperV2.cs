@@ -275,7 +275,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 				// runner trail moves the whole-position stop up once the scalp is out
 				if (RunnerQty > 0 && !_userMovedStop)   // skip auto-trail once the user drags the stop
 				{
-					if (TrailFromEntry)
+					if (RunnerHoldToOpposite)
+					{
+						// HOLD for the reversal: BE after the trigger, then keep the stop
+						// there (NO trail) so the runner rides until it reverses or BE hits.
+						if (!_beActive && High[0] >= _entry + BETriggerTicks * tick) _beActive = true;
+						if (_beActive) _curStop = Math.Max(_curStop, _entry);
+					}
+					else if (TrailFromEntry)
 					{
 						_curStop = Math.Max(_curStop, Low[0] - TrailTicks * tick);   // trail from entry
 						if (High[0] >= _entry + BETriggerTicks * tick)
@@ -299,9 +306,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 			{
 				if (_entry == 0) { _entry = Position.AveragePrice; _curStop = _stopPx; _beActive = false; _scalpDone = false; _pendingSide = 0; }
 
-				if (RunnerQty > 0 && !_userMovedStop)   // skip auto-trail once the user drags the stop
+				if (RunnerQty > 0 && !_userMovedStop)
 				{
-					if (TrailFromEntry)
+					if (RunnerHoldToOpposite)
+					{
+						if (!_beActive && Low[0] <= _entry - BETriggerTicks * tick) _beActive = true;
+						if (_beActive) _curStop = Math.Min(_curStop, _entry);   // BE, then hold (no trail)
+					}
+					else if (TrailFromEntry)
 					{
 						_curStop = Math.Min(_curStop, High[0] + TrailTicks * tick);
 						if (Low[0] <= _entry - BETriggerTicks * tick)
