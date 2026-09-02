@@ -27,6 +27,11 @@ enabled first (not done).
   16:30 CT (self-fetches the close, default date = today). Corrected days: 8/27 −142→−2, 8/28
   −243→−208, 8/31 −45→+56, 9/1 −140→−94.
 - RDP still DISABLED (not enabled); keep-alive is the only supervisor added.
+- **XSP SPREAD GATE added** (`options_mirror_xsp.py`): `MAX_LEG_SPREAD = 0.05` — the mirror now
+  SKIPS a trade (logs to `xsp_skips.csv`, never retries) if ANY XSP leg's bid-ask > $0.05, instead
+  of crossing the full spread at the ask. Targets the S106 bleed (7-day A/B: XSP lagged SPX/10 by
+  ~$370, captured ~none of the desk's green days). Historical bite: skips 20% of entries — flies
+  17-50%, condors/walls 0%. Takes effect on the NEXT mirror run (running instance keeps old code).
 
 **THE STMR PROBLEM (found this session):** the 14-DTE stochastic-mean-reversion book
 (`bps_stmr`: K8<15 & spot>SMA100 → sell a 50-60pt BPS; exit the first day 15:59 spot >

@@ -147,12 +147,36 @@ def _log_fill(tid, strat, kind, fill, leg_q):
                         f"{int(strike)}{right}", b, a, mid, spr, round(fill, 3)])
 
 
+MAX_LEG_SPREAD = 0.05   # skip mirroring if ANY XSP leg's bid-ask exceeds this. S106: the wide
+                        # ATM-fly legs are exactly where the mini bleeds vs SPX/10 (it crosses the
+                        # full spread at the ask). This is a GATE (skip the trade), not a fill tweak.
+
+
+class SpreadTooWide(Exception):
+    """Raised pre-placement when a leg's XSP spread exceeds MAX_LEG_SPREAD — skip the mirror."""
+
+
+def _log_skip(tid, strat, detail):
+    """Record every gated (skipped) mirror to xsp_skips.csv so the gate's effect is auditable."""
+    f = LOG / "xsp_skips.csv"
+    new = not f.exists()
+    with f.open("a") as fh:
+        if new:
+            fh.write("ts,trade_id,strategy,detail\n")
+        fh.write(f"{now_ct():%Y-%m-%d %H:%M:%S},{tid},{strat},{detail}\n")
+
+
 def open_combo(ib, exp, legs, qty=1):
     """BUY the bag (== our position) marketable at the ask; returns (credit, bag, leg_q).
-    leg_q = per-leg NBBO snapshotted AT execution (tick-exact fill-quality record)."""
+    leg_q = per-leg NBBO snapshotted AT execution (tick-exact fill-quality record).
+    Raises SpreadTooWide (before placing) if any leg's bid-ask exceeds MAX_LEG_SPREAD."""
     from ib_async import LimitOrder
     bag = _bag(ib, exp, legs)
     leg_q = _leg_quotes(ib, exp, legs)               # tick-exact per-leg bid/ask at execution
+    wides = [(f"{int(s)}{r}", round(a - b, 3)) for r, s, ac, b, a in leg_q
+             if b is not None and a is not None and (a - b) > MAX_LEG_SPREAD]
+    if wides:
+        raise SpreadTooWide(f"leg spread(s) {wides} > {MAX_LEG_SPREAD:.2f}")
     bid, ask = _quote(ib, bag)
     if bid is None:
         raise RuntimeError("no XSP combo quote")
@@ -264,6 +288,7 @@ def run_live(until):
     ib.commissionReportEvent += _on_comm
     date = now_ct().strftime("%Y-%m-%d")
     bags = {}   # xsp trade_id -> bag (to close later)
+    skipped = set()   # xsp trade_ids gated out by MAX_LEG_SPREAD — one-shot, never retried
     # RESTART-SAFE: if the mirror restarts mid-session, rebuild the combos for positions it
     # already opened today so it can still close them when their SPX parents close (else a
     # restart would orphan the open XSP legs and break the exit A/B).
@@ -289,7 +314,7 @@ def run_live(until):
             # ENTRIES — mirror any SPX trade we haven't mirrored yet
             for _, r in spx.iterrows():
                 tid = f"xsp_{r['trade_id']}"
-                if tid in have:
+                if tid in have or tid in skipped:
                     continue
                 legs = r["legs"] if isinstance(r["legs"], list) else json.loads(r["legs"])
                 exp = legs[0]["expiry"]
@@ -301,6 +326,10 @@ def run_live(until):
                     tlog.set_book("xsp")
                     tlog.append_entry(mirror_row(r, xl, round(credit, 2)))
                     print(f"  mirrored {r['strategy_id']} -> XSP credit {credit:+.2f}")
+                except SpreadTooWide as e:
+                    skipped.add(tid)
+                    _log_skip(tid, r["strategy_id"], str(e))
+                    print(f"  ~ SKIP {r['strategy_id']} (wide XSP spread): {e}")
                 except Exception as e:
                     print(f"  ! mirror entry failed {r['trade_id']}: {e}")
             # EXITS — close XSP mirrors whose SPX parent has closed
