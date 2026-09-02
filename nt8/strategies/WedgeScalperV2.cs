@@ -190,18 +190,19 @@ namespace NinjaTrader.NinjaScript.Strategies
 							// A stop entry can't sit on the wrong side of the market (NT
 							// rejects a buy-stop BELOW / sell-stop ABOVE market — that
 							// rejection used to terminate the strategy). If price already
-							// ran past the level, enter at market instead of an invalid stop.
+							// ran past the level, rest a LIMIT at the same entry price so we
+							// fill only on a pullback back to it (no chasing at market).
 							if (_pendingSide == 1)
 							{
 								double ask = State == State.Realtime ? GetCurrentAsk() : Close[0];
 								if (_entryPx > ask) EnterLongStopMarket(0, false, totQ, _entryPx, "Wedge");
-								else                EnterLong(totQ, "Wedge");
+								else                EnterLongLimit (0, false, totQ, _entryPx, "Wedge");
 							}
 							else
 							{
 								double bid = State == State.Realtime ? GetCurrentBid() : Close[0];
 								if (_entryPx < bid) EnterShortStopMarket(0, false, totQ, _entryPx, "Wedge");
-								else                EnterShort(totQ, "Wedge");
+								else                EnterShortLimit (0, false, totQ, _entryPx, "Wedge");
 							}
 							Print(ST + " " + Time[0] + "  SIGNAL " + (_pendingSide > 0 ? "LONG " : "SHORT")
 								+ "  submit x" + totQ + " stopEntry@" + _entryPx + " protStop@" + _stopPx
