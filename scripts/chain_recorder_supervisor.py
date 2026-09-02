@@ -114,6 +114,20 @@ def main():
         singleton.ensure(f"chain_recorder_supervisor_{SYMBOL}",  # distinct lock per instrument
                          match=f"--symbol {SYMBOL}")             # this supervisor's own cmdline arg
 
+    # ATOMIC backstop (2026-09-02): the pid-file singleton above races on near-simultaneous
+    # launches and the process-pair leaves a stale pid, so a duplicate slipped through and 8
+    # supervisors piled up, colliding on IB client-ids until NO recorder could beat (tape lost
+    # at the open). A bound socket is atomic — two processes can never both hold the port — and
+    # frees on death, so no stale lock. Same pattern as the sim daemon (49733).
+    import socket as _sock
+    _LOCK_PORT = {"SPX": 49740, "XSP": 49741}.get(SYMBOL, 49742)
+    _sup_lock = _sock.socket()
+    try:
+        _sup_lock.bind(("127.0.0.1", _LOCK_PORT))               # held for the process lifetime
+    except OSError:
+        log(f"another {SYMBOL} supervisor already holds port {_LOCK_PORT} — exiting (dup launch)")
+        sys.exit(0)
+
     sh, sm = map(int, a.stop.split(":"))
     stop_t = dt.time(sh, sm)
     log(f"supervisor up — keeping recorder alive until {a.stop} CT, cadence {a.secs}s")
