@@ -29,11 +29,9 @@ sys.path.insert(0, str(ROOT / "scripts"))
 # (dedup_key, predicate(check) -> bool, message builder) per health check name.
 # predicate True == PROBLEM worth paging.
 RULES = {
-    "L2 depth": (
-        "depth",
-        lambda c: c["state"] == "bad",
-        lambda c: f"L2 DEPTH: {c['detail']}",
-    ),
+    # L2 depth paging RETIRED 2026-09-02 (user): the depth subscription is gone, so it sits
+    # permanently TAPE-ONLY and there is nothing to fix — the page was pure noise. pipeline_health
+    # still computes the check (status light / Mission Control show it); we just don't Telegram it.
     "NinjaTrader": (
         "nt8",
         lambda c: c["state"] == "bad",

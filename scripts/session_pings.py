@@ -74,12 +74,8 @@ def main() -> int:
                 once("fut_open",
                      f"🟢 Futures session LIVE — depth recording, {pct:.0f}% book events. "
                      f"File {name} at {mb:,.0f} MB.")
-            else:
-                # book% zero while open is the failure the alert monitor also catches;
-                # send it here too so the FIRST session ping is honest
-                once("fut_tapeonly",
-                     f"🔴 Futures open but TAPE ONLY — no book events yet. Check the depth "
-                     f"subscription / recorder. ({name})", level="alert")
+            # L2 TAPE-ONLY ping RETIRED 2026-09-02 (user): depth subscription is gone, so a
+            # zero-book reading is expected, not a failure — no longer paged. (matches alert_monitor)
 
     # --- options RTH open -----------------------------------------------------
     if ostate == "RTH":
