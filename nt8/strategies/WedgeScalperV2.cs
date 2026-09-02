@@ -132,7 +132,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 				_wedge = MyWedge(Input, LookBack, ShowW2L, WedgeSymmetry, OLSensitivity,
 					CTSB_Ignore, IB_Ignore, ShowWedgeSB, SignalBarIBS, ContinueMC, ContinueOnGap);
 			}
+			else if (State == State.Realtime)
+			{
+				Print("=== WedgeScalperV2 REALTIME: now live. It will ONLY act on NEW "
+					+ "signals from here forward — historical signals on the chart are not traded. ===");
+			}
 		}
+
+		private string ST { get { return State == State.Realtime ? "RT  " : "HIST"; } }
 
 		protected override void OnBarUpdate()
 		{
@@ -181,6 +188,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 								EnterLongStopMarket(0, false, totQ, _entryPx, "Wedge");
 							else
 								EnterShortStopMarket(0, false, totQ, _entryPx, "Wedge");
+							Print(ST + " " + Time[0] + "  SIGNAL " + (_pendingSide > 0 ? "LONG " : "SHORT")
+								+ "  submit x" + totQ + " stopEntry@" + _entryPx + " protStop@" + _stopPx
+								+ (State == State.Realtime ? "" : "  (historical -> NO real order placed)"));
 						}
 					}
 					else
@@ -189,6 +199,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 						foreach (Order o in Orders)
 							if (o.OrderState == OrderState.Working && o.Name == "Wedge")
 								CancelOrder(o);
+						Print(ST + " " + Time[0] + "  entry LAPSED unfilled ("
+							+ (_pendingSide > 0 ? "LONG" : "SHORT") + ")  stopEntry@" + _entryPx);
 						_pendingSide = 0;
 					}
 				}
@@ -198,6 +210,10 @@ namespace NinjaTrader.NinjaScript.Strategies
 			// ── manage an open position (per-bar trail) ───────────────────────
 			// The stop is already live from the fill (OnExecutionUpdate). Here we
 			// only move _curStop (BE / trail) and re-submit via ManageProtection().
+			if (_wedge.WedgeBLSB[0] > 0 || _wedge.WedgeBRSB[0] > 0)
+				Print(ST + " " + Time[0] + "  signal IGNORED — already in "
+					+ Position.MarketPosition + " x" + Position.Quantity + " (one position at a time)");
+
 			if (Position.MarketPosition == MarketPosition.Long)
 			{
 				if (_entry == 0) { _entry = Position.AveragePrice; _curStop = _stopPx; _beActive = false; _scalpDone = false; _pendingSide = 0; }
@@ -283,13 +299,19 @@ namespace NinjaTrader.NinjaScript.Strategies
 			{
 				// entry just filled -> lock entry price and protect IMMEDIATELY (fix #3)
 				if (_entry == 0) { _entry = Position.AveragePrice; _curStop = _stopPx; _beActive = false; _scalpDone = false; _pendingSide = 0; }
+				Print(ST + " " + time + "  FILLED entry x" + quantity + " @ " + price + "  -> stop@" + _curStop);
 				ManageProtection();
 			}
 			else if (nm == "Scalp")
 			{
 				// scalp scaled out -> never re-scalp (fix #4); drop stop to remaining qty now
 				_scalpDone = true;
+				Print(ST + " " + time + "  SCALP filled x" + quantity + " @ " + price + "  runner left x" + Position.Quantity);
 				ManageProtection();
+			}
+			else if (nm == "Stop" || nm == "StopFail")
+			{
+				Print(ST + " " + time + "  " + nm + " filled x" + quantity + " @ " + price);
 			}
 		}
 
