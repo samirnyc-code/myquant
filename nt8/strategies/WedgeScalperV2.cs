@@ -175,68 +175,54 @@ namespace NinjaTrader.NinjaScript.Strategies
 					_revSide = 0;
 				}
 
-				// ── detect a new signal ────────────────────────────────────────
+				// ── detect a NEW signal and submit ONE entry immediately ──────
+				// Submitted isLiveUntilCancelled = TRUE so it actually rests and can
+				// fill; cancelled below only AFTER the validity window fully passes.
+				// (Submitting once + cancelling a bar later with LUC=false raced the
+				// backtest fill engine and every entry got cancelled unfilled.)
 				if (_pendingSide == 0)
 				{
-					if (_wedge.WedgeBLSB[0] > 0)
+					int side = 0;
+					if (_wedge.WedgeBLSB[0] > 0) side = 1;
+					else if (_wedge.WedgeBRSB[0] > 0) side = -1;
+					if (side != 0)
 					{
-						_pendingSide = 1; _sigBar = CurrentBar;
-						_entryPx = High[0] + StopBeyondSBTicks * tick;
-						_stopPx  = Low[0]  - StopBeyondSBTicks * tick;
-					}
-					else if (_wedge.WedgeBRSB[0] > 0)
-					{
-						_pendingSide = -1; _sigBar = CurrentBar;
-						_entryPx = Low[0]  - StopBeyondSBTicks * tick;
-						_stopPx  = High[0] + StopBeyondSBTicks * tick;
-					}
-				}
-
-				// ── submit ONE sized entry while valid, else let it lapse ──────
-				if (_pendingSide != 0)
-				{
-					if (CurrentBar - _sigBar < EntryValidBars)
-					{
-						// Single entry sized to the whole position (fix #1). Exits are
-						// ALL manual (fix #2) — do NOT add a Set method or NT drops the
-						// manual scalp limit. isLiveUntilCancelled = FALSE so an unfilled
-						// entry auto-expires next bar rather than filling later against a
-						// stale stop (fix #5).
+						_pendingSide = side; _sigBar = CurrentBar;
+						if (side == 1) { _entryPx = High[0] + StopBeyondSBTicks * tick; _stopPx = Low[0]  - StopBeyondSBTicks * tick; }
+						else           { _entryPx = Low[0]  - StopBeyondSBTicks * tick; _stopPx = High[0] + StopBeyondSBTicks * tick; }
 						int totQ = ScalpQty + RunnerQty;
 						if (totQ > 0)
 						{
 							// A stop entry can't sit on the wrong side of the market (NT
-							// rejects a buy-stop BELOW / sell-stop ABOVE market — that
-							// rejection used to terminate the strategy). If price already
-							// ran past the level, rest a LIMIT at the same entry price so we
-							// fill only on a pullback back to it (no chasing at market).
-							if (_pendingSide == 1)
+							// rejects a buy-stop BELOW / sell-stop ABOVE market). If price
+							// already ran past the level, rest a LIMIT at the same price.
+							if (side == 1)
 							{
 								double ask = State == State.Realtime ? GetCurrentAsk() : Close[0];
-								if (_entryPx > ask) EnterLongStopMarket(0, false, totQ, _entryPx, "Wedge");
-								else                EnterLongLimit (0, false, totQ, _entryPx, "Wedge");
+								if (_entryPx > ask) EnterLongStopMarket(0, true, totQ, _entryPx, "Wedge");
+								else                EnterLongLimit (0, true, totQ, _entryPx, "Wedge");
 							}
 							else
 							{
 								double bid = State == State.Realtime ? GetCurrentBid() : Close[0];
-								if (_entryPx < bid) EnterShortStopMarket(0, false, totQ, _entryPx, "Wedge");
-								else                EnterShortLimit (0, false, totQ, _entryPx, "Wedge");
+								if (_entryPx < bid) EnterShortStopMarket(0, true, totQ, _entryPx, "Wedge");
+								else                EnterShortLimit (0, true, totQ, _entryPx, "Wedge");
 							}
-							Print(ST + " " + Time[0] + "  SIGNAL " + (_pendingSide > 0 ? "LONG " : "SHORT")
-								+ "  submit x" + totQ + " stopEntry@" + _entryPx + " protStop@" + _stopPx
+							Print(ST + " " + Time[0] + "  SIGNAL " + (side > 0 ? "LONG " : "SHORT")
+								+ "  submit x" + totQ + " entry@" + _entryPx + " protStop@" + _stopPx
 								+ (State == State.Realtime ? "" : "  (historical -> NO real order placed)"));
 						}
 					}
-					else
-					{
-						// past validity, still flat -> cancel the working entry
-						foreach (Order o in Orders)
-							if (o.OrderState == OrderState.Working && o.Name == "Wedge")
-								CancelOrder(o);
-						Print(ST + " " + Time[0] + "  entry LAPSED unfilled ("
-							+ (_pendingSide > 0 ? "LONG" : "SHORT") + ")  stopEntry@" + _entryPx);
-						_pendingSide = 0;
-					}
+				}
+				else if (CurrentBar - _sigBar > EntryValidBars)
+				{
+					// window passed unfilled -> cancel the resting entry
+					foreach (Order o in Orders)
+						if (o.OrderState == OrderState.Working && o.Name == "Wedge")
+							CancelOrder(o);
+					Print(ST + " " + Time[0] + "  entry LAPSED unfilled ("
+						+ (_pendingSide > 0 ? "LONG" : "SHORT") + ")  entry@" + _entryPx);
+					_pendingSide = 0;
 				}
 				return;
 			}
@@ -267,8 +253,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 					{
 						// opposite-direction entry -> managed mode reverses on fill
 						int totQ = ScalpQty + RunnerQty;
-						if (_revSide == 1) EnterLongStopMarket (0, false, totQ, _revEntryPx, "Wedge");
-						else               EnterShortStopMarket(0, false, totQ, _revEntryPx, "Wedge");
+						if (_revSide == 1) EnterLongStopMarket (0, true, totQ, _revEntryPx, "Wedge");
+						else               EnterShortStopMarket(0, true, totQ, _revEntryPx, "Wedge");
 					}
 					else
 					{
