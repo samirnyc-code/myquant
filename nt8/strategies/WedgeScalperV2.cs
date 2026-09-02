@@ -236,14 +236,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 
 			if (RunnerHoldToOpposite)
 			{
-				// On each OPPOSITE wedge, (re)arm the reversal at THAT signal's SB and
-				// leave it RESTING (isLiveUntilCancelled) until it triggers or the next
-				// opposite wedge re-arms it — NO time expiry. In a trend it never
-				// triggers, so we stay in. Same-direction signals are ignored.
-				if (oppSig)
+				// Opposite wedge arms the reversal via the REGULAR entry process: a stop
+				// 1t beyond the opposite SB, valid EntryValidBars bars. If it triggers ->
+				// reverse; if it lapses unfilled -> stay in the original trade.
+				if (oppSig && _revSide == 0)
 				{
-					foreach (Order o in Orders)          // replace any prior armed reversal
-						if (o.OrderState == OrderState.Working && o.Name == "Wedge") CancelOrder(o);
 					_revSide = oppSide; _revSigBar = CurrentBar;
 					int totQ = ScalpQty + RunnerQty;
 					if (oppSide == 1)
@@ -256,8 +253,13 @@ namespace NinjaTrader.NinjaScript.Strategies
 						_revEntryPx = Low[0] - StopBeyondSBTicks * tick; _revStopPx = High[0] + StopBeyondSBTicks * tick;
 						EnterShortStopMarket(0, true, totQ, _revEntryPx, "Wedge");
 					}
-					Print(ST + " " + Time[0] + "  REVERSAL armed " + (oppSide > 0 ? "LONG" : "SHORT")
-						+ "  trigger@" + _revEntryPx + " (rests until it fills)");
+					Print(ST + " " + Time[0] + "  REVERSAL armed " + (oppSide > 0 ? "LONG" : "SHORT") + "  trigger@" + _revEntryPx);
+				}
+				else if (_revSide != 0 && CurrentBar - _revSigBar > EntryValidBars)
+				{
+					foreach (Order o in Orders)   // window passed unfilled -> drop it, stay in
+						if (o.OrderState == OrderState.Working && o.Name == "Wedge") CancelOrder(o);
+					_revSide = 0;
 				}
 			}
 			else if (oppSig || _wedge.WedgeBLSB[0] > 0 || _wedge.WedgeBRSB[0] > 0)
