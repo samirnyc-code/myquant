@@ -236,32 +236,28 @@ namespace NinjaTrader.NinjaScript.Strategies
 
 			if (RunnerHoldToOpposite)
 			{
-				// Arm a reversal on an opposite signal. It only flips the position if its
-				// stop-entry price actually triggers — in a trend it never triggers and we
-				// stay in. Same-direction signals are ignored (not armed).
-				if (oppSig && _revSide == 0)
+				// On each OPPOSITE wedge, (re)arm the reversal at THAT signal's SB and
+				// leave it RESTING (isLiveUntilCancelled) until it triggers or the next
+				// opposite wedge re-arms it — NO time expiry. In a trend it never
+				// triggers, so we stay in. Same-direction signals are ignored.
+				if (oppSig)
 				{
+					foreach (Order o in Orders)          // replace any prior armed reversal
+						if (o.OrderState == OrderState.Working && o.Name == "Wedge") CancelOrder(o);
 					_revSide = oppSide; _revSigBar = CurrentBar;
-					if (oppSide == 1) { _revEntryPx = High[0] + StopBeyondSBTicks * tick; _revStopPx = Low[0]  - StopBeyondSBTicks * tick; }
-					else              { _revEntryPx = Low[0]  - StopBeyondSBTicks * tick; _revStopPx = High[0] + StopBeyondSBTicks * tick; }
-					Print(ST + " " + Time[0] + "  REVERSAL armed " + (oppSide > 0 ? "LONG" : "SHORT")
-						+ "  trigger@" + _revEntryPx + " (holds until this fills)");
-				}
-				if (_revSide != 0)
-				{
-					if (CurrentBar - _revSigBar < EntryValidBars)
+					int totQ = ScalpQty + RunnerQty;
+					if (oppSide == 1)
 					{
-						// opposite-direction entry -> managed mode reverses on fill
-						int totQ = ScalpQty + RunnerQty;
-						if (_revSide == 1) EnterLongStopMarket (0, true, totQ, _revEntryPx, "Wedge");
-						else               EnterShortStopMarket(0, true, totQ, _revEntryPx, "Wedge");
+						_revEntryPx = High[0] + StopBeyondSBTicks * tick; _revStopPx = Low[0] - StopBeyondSBTicks * tick;
+						EnterLongStopMarket(0, true, totQ, _revEntryPx, "Wedge");
 					}
 					else
 					{
-						foreach (Order o in Orders)
-							if (o.OrderState == OrderState.Working && o.Name == "Wedge") CancelOrder(o);
-						_revSide = 0;   // this opposite signal's window passed; wait for the next
+						_revEntryPx = Low[0] - StopBeyondSBTicks * tick; _revStopPx = High[0] + StopBeyondSBTicks * tick;
+						EnterShortStopMarket(0, true, totQ, _revEntryPx, "Wedge");
 					}
+					Print(ST + " " + Time[0] + "  REVERSAL armed " + (oppSide > 0 ? "LONG" : "SHORT")
+						+ "  trigger@" + _revEntryPx + " (rests until it fills)");
 				}
 			}
 			else if (oppSig || _wedge.WedgeBLSB[0] > 0 || _wedge.WedgeBRSB[0] > 0)
