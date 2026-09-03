@@ -1,2 +1,5 @@
 ts,trade_id,strategy,detail
 2026-09-02 09:06:43,xsp_auto_20260902_090604,openfly_p,leg spread(s) [('766P', 0.1)] > 0.05
+2026-09-03 08:38:54,xsp_auto_20260903_083547,gx_bcs,leg spread(s) [('768C', 0.05)] > 0.05
+2026-09-03 08:40:17,xsp_auto_20260903_083447,openfly_c,leg spread(s) [('770C', 0.05)] > 0.05
+2026-09-03 08:40:23,xsp_auto_20260903_083757,eodfly_c,leg spread(s) [('769C', 0.05), ('766C', 0.43)] > 0.05

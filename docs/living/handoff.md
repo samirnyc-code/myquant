@@ -1,10 +1,47 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** September 3, 2026 (S108: OPTIONS DESK — recorder duplicate-supervisor storm fixed + atomic-locked; STMR STILL not executing (connect TimeoutError at 14:59 CT every run — top open item); L2/depth fully retired incl NT AddOn; XSP settle automated + $0.05 spread gate; calendar→exit-date)
+**Last Updated:** September 3, 2026 (S108 cont: STMR connect ROOT-CAUSED + fixed (gateway_ensure restart storm) — passive connect, pending 14:59 CT live test; recorder atomic-lock VALIDATED live; 30-day retro (no GEX filters work, stops ~25% premature); sim IS high-fidelity real-IB-paper fills (corrected); desk has ZERO risk controls — circuit-breaker recommended)
 
 ---
 
 ## S108 (2026-09-02→03) — options desk: recorder storm fixed + storm-proofed; STMR still broken; L2/depth retired; XSP settle+gate
+
+**9/3 UPDATE (this session, on top of S108 below):**
+- **STMR CONNECT ROOT-CAUSED + FIXED (commit e43d54e0).** The TimeoutError was SELF-INFLICTED:
+  `ib_conn.connect`'s default recovery runs `gateway_ensure.main()` (RESTARTS the gateway) on any
+  connect failure; my earlier 12x retry loop amplified one transient into ~12 gateway restarts at
+  14:59 CT, wedging every client (recorders/desk too) for 8 min. Fix: `ensure=False` param on
+  ib_conn.connect (raise, never restart); `stmr_exit_check` now attaches PASSIVELY — probe 4002
+  first, ensure=False, 30s timeout, FRESH client-id each of 8 tries. Keeps the causal 14:59 CT read
+  (entry MUST be near the close — can NOT move later). **PENDING: first live test at 14:59 CT today.**
+- **RECORDER ATOMIC-LOCK VALIDATED LIVE** — 9/3 08:25 launch came up CLEAN (one supervisor+recorder
+  pair per symbol, fresh heartbeats, no storm). The 623be35d fix holds.
+- **9/1 was a MISSED STMR ENTRY** (K8 11.9, oversold, qualified) lost to the connect bug; 9/2 correctly
+  no-trade (K8 34.6). A 9/1 entry would STILL be open — 9/2 didn't close above SMA5 (7687) or even touch
+  it intraday (9/2 high 7681). Left un-booked per user.
+- **30-DAY RETRO (`analyze_retro_filters.py`):** ~25% of "wall broke" stops (18/72) were PREMATURE
+  (short expired OTM, would've won — ~$3.1k). GEX/regime FILTERS DO NOT HELP this window — skipping
+  TREND / NEGATIVE-gamma / STAND_ASIDE days would have LOST money (those were the profitable days).
+  Only narrow positives: skip-EOD-call-side +$445, skip-VIX>16 +$364 (tiny samples). **User: WAIT for
+  more data, do not act on filters.** The one real edge is the stop being too eager (tape study later).
+- **SIM FIDELITY — corrected (I had overstated the gap):** the desk places REAL IB paper orders that
+  CROSS the spread (`options_trigger_daemon.place_combo`: marketable LimitOrder BUY@ask / SELL@bid)
+  against the LIVE NBBO on liquid SPX at 1 lot — HIGH-FIDELITY, not a rough sim. Real-money gaps are
+  small/specific: real margin+BP limits, modeled-$1.30 vs real SPX commissions (still un-captured),
+  queue/partial only AT SCALE, unseen stress regime, psychology. Settlement identical (SPX cash/European).
+- **ACCOUNT SIZE to trade the book:** full book ~$30k (peak concurrent collateral gross $20.6k / netted
+  $11.4k); cut-EOD ~$15-18k. (`analyze_account_size.py`)
+- **RISK CONTROLS — THE DESK HAS NONE** (`options_trigger_daemon` line 5: "1 lot, no concurrency cap").
+  Recommended, NOT built (needs user design sign-off): (1) **daily loss circuit-breaker = TOP priority**,
+  (2) portfolio heat cap, (3) VIX-scaled sizing, (4) trim the ATM flies. NOT regime skip-rules (retro
+  showed they lose). Foundation is already sound: defined-risk = hard max loss = collateral; 0DTE = no
+  overnight gap risk.
+- **INTRADAY DRAWDOWN (`intraday_drawdown.py`):** worst clean-day trough ~−$3.3k (7/29, 8/24); −$6.4k on
+  7/16 is on a sparse 36-mark incident day (unreliable). KEY: intraday troughs run DEEPER than the close
+  — theta recovers (7/29 troughed −$3,310, CLOSED +$2,578) → any circuit-breaker must be wide / mark-aware
+  or it guillotines recovering days.
+
+
 
 **⚠️ TOP OPEN ITEM — STMR IS NOT EXECUTING.** The STMR book (14-DTE stochastic mean-reversion
 BPS, strategy `bps_stmr`) has not placed a trade since the 8/19 entry. S106-cont retired the

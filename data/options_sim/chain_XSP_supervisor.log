@@ -444,3 +444,37 @@
 2026-09-02 15:05:10 CT  [XSP] day COMPLETE: 2355/2370 snaps (99.4%), max gap 29s
 2026-09-02 15:05:11 CT  [XSP] archived: 95254 rows -> data\options_tape\chain_XSP_20260902.parquet (0.24MB, 21.8x) + gz backup; loose CSV removed
 2026-09-02 15:05:11 CT  [XSP] supervisor done.
+2026-09-03 08:25:03 CT  [XSP] supervisor up — keeping recorder alive until 15:05 CT, cadence 10s
+2026-09-03 08:25:03 CT  [XSP] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol XSP --secs 10 --pct 1.25 --stop 15:05
+2026-09-03 08:25:18 CT  [XSP] heartbeat STALE (62527s, state=ok) — process hung, restarting
+2026-09-03 08:25:23 CT  [XSP] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol XSP --secs 10 --pct 1.25 --stop 15:05
+2026-09-03 08:25:38 CT  [XSP] heartbeat STALE (62547s, state=ok) — process hung, restarting
+2026-09-03 08:25:43 CT  [XSP] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol XSP --secs 10 --pct 1.25 --stop 15:05
+2026-09-03 08:25:58 CT  [XSP] heartbeat STALE (62567s, state=ok) — process hung, restarting
+2026-09-03 08:26:03 CT  [XSP] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol XSP --secs 10 --pct 1.25 --stop 15:05
+2026-09-03 08:26:18 CT  [XSP] heartbeat STALE (62587s, state=ok) — process hung, restarting
+2026-09-03 08:26:23 CT  [XSP] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol XSP --secs 10 --pct 1.25 --stop 15:05
+2026-09-03 08:26:38 CT  [XSP] heartbeat STALE (62607s, state=ok) — process hung, restarting
+2026-09-03 08:26:43 CT  [XSP] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol XSP --secs 10 --pct 1.25 --stop 15:05
+2026-09-03 08:26:58 CT  [XSP] heartbeat STALE (62627s, state=ok) — process hung, restarting
+2026-09-03 08:27:03 CT  [XSP] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol XSP --secs 10 --pct 1.25 --stop 15:05
+2026-09-03 08:27:18 CT  [XSP] heartbeat STALE (62647s, state=ok) — process hung, restarting
+2026-09-03 08:27:23 CT  [XSP] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol XSP --secs 10 --pct 1.25 --stop 15:05
+2026-09-03 08:27:38 CT  [XSP] heartbeat STALE (62667s, state=ok) — process hung, restarting
+2026-09-03 08:27:43 CT  [XSP] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol XSP --secs 10 --pct 1.25 --stop 15:05
+2026-09-03 08:27:58 CT  [XSP] heartbeat STALE (62687s, state=ok) — process hung, restarting
+2026-09-03 08:28:03 CT  [XSP] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol XSP --secs 10 --pct 1.25 --stop 15:05
+2026-09-03 08:28:18 CT  [XSP] heartbeat STALE (62707s, state=ok) — process hung, restarting
+2026-09-03 08:28:23 CT  [XSP] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol XSP --secs 10 --pct 1.25 --stop 15:05
+2026-09-03 08:28:38 CT  [XSP] heartbeat STALE (62727s, state=ok) — process hung, restarting
+2026-09-03 08:28:43 CT  [XSP] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol XSP --secs 10 --pct 1.25 --stop 15:05
+2026-09-03 08:28:58 CT  [XSP] heartbeat STALE (62747s, state=ok) — process hung, restarting
+2026-09-03 08:29:03 CT  [XSP] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol XSP --secs 10 --pct 1.25 --stop 15:05
+2026-09-03 08:29:18 CT  [XSP] heartbeat STALE (62767s, state=ok) — process hung, restarting
+2026-09-03 08:29:23 CT  [XSP] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol XSP --secs 10 --pct 1.25 --stop 15:05
+2026-09-03 08:29:38 CT  [XSP] heartbeat STALE (62787s, state=ok) — process hung, restarting
+2026-09-03 08:29:43 CT  [XSP] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol XSP --secs 10 --pct 1.25 --stop 15:05
+2026-09-03 08:29:58 CT  [XSP] heartbeat STALE (62807s, state=ok) — process hung, restarting
+2026-09-03 08:30:03 CT  [XSP] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol XSP --secs 10 --pct 1.25 --stop 15:05
+2026-09-03 08:30:18 CT  [XSP] heartbeat STALE (62827s, state=ok) — process hung, restarting
+2026-09-03 08:30:23 CT  [XSP] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol XSP --secs 10 --pct 1.25 --stop 15:05
