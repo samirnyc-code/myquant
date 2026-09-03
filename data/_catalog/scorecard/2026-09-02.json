@@ -1,0 +1,299 @@
+{
+  "date": "2026-09-02",
+  "captured_at": "2026-09-02 16:58 CT",
+  "n_ok": 11,
+  "n_bad": 0,
+  "n_total": 29,
+  "items": [
+    {
+      "id": "watchdog",
+      "title": "Desk watchdog",
+      "phase": "preopen",
+      "ct": "07:45",
+      "ok": null,
+      "state": "paused",
+      "detail": "PAUSED - will not run until resumed",
+      "paused": true
+    },
+    {
+      "id": "gw_login",
+      "title": "IB Gateway login",
+      "phase": "preopen",
+      "ct": "08:00",
+      "ok": true,
+      "state": "idle",
+      "detail": "port 4002 not answering (desk closed)",
+      "paused": false
+    },
+    {
+      "id": "watchdog_live",
+      "title": "Desk watchdog (daemon)",
+      "phase": "preopen",
+      "ct": "08:12",
+      "ok": true,
+      "state": "ok",
+      "detail": "last 2026-09-02 15:12 - next 09-03 15:12",
+      "paused": false
+    },
+    {
+      "id": "backtest_levels",
+      "title": "Backtest-tile scrape",
+      "phase": "preopen",
+      "ct": "08:15",
+      "ok": null,
+      "state": "paused",
+      "detail": "PAUSED - will not run until resumed",
+      "paused": true
+    },
+    {
+      "id": "levels_history",
+      "title": "Levels history backfill",
+      "phase": "preopen",
+      "ct": "08:17",
+      "ok": null,
+      "state": "paused",
+      "detail": "PAUSED - will not run until resumed",
+      "paused": true
+    },
+    {
+      "id": "gw_ensure",
+      "title": "Gateway ensure (API port)",
+      "phase": "preopen",
+      "ct": "08:20",
+      "ok": true,
+      "state": "idle",
+      "detail": "port 4002 not answering (desk closed)",
+      "paused": false
+    },
+    {
+      "id": "dashboard",
+      "title": "Options desk server",
+      "phase": "preopen",
+      "ct": "08:25",
+      "ok": true,
+      "state": "ok",
+      "detail": "last 2026-09-02 15:25 - next 09-03 14:25",
+      "paused": false
+    },
+    {
+      "id": "spot_feed",
+      "title": "Spot feed (SPX/ES/VIX)",
+      "phase": "preopen",
+      "ct": "08:26",
+      "ok": true,
+      "state": "idle",
+      "detail": "desk closed - feed idle (1.6h)",
+      "paused": false
+    },
+    {
+      "id": "marks",
+      "title": "Position marking",
+      "phase": "preopen",
+      "ct": "08:26",
+      "ok": true,
+      "state": "ok",
+      "detail": "last 2026-09-02 15:26 - next 09-03 15:26",
+      "paused": false
+    },
+    {
+      "id": "levels_fetch",
+      "title": "Today's MQ levels",
+      "phase": "preopen",
+      "ct": "08:27",
+      "ok": null,
+      "state": "paused",
+      "detail": "PAUSED - will not run until resumed",
+      "paused": true
+    },
+    {
+      "id": "gameplan",
+      "title": "Premarket gameplan",
+      "phase": "preopen",
+      "ct": "08:28",
+      "ok": null,
+      "state": "paused",
+      "detail": "PAUSED - will not run until resumed",
+      "paused": true
+    },
+    {
+      "id": "sim_daemon",
+      "title": "OPRA forward-sim daemon",
+      "phase": "preopen",
+      "ct": "08:28",
+      "ok": null,
+      "state": "paused",
+      "detail": "PAUSED - will not run until resumed",
+      "paused": true
+    },
+    {
+      "id": "levels_engine",
+      "title": "Level-fade engine (ES)",
+      "phase": "preopen",
+      "ct": "08:32",
+      "ok": null,
+      "state": "paused",
+      "detail": "PAUSED - will not run until resumed",
+      "paused": true
+    },
+    {
+      "id": "trigger_daemon",
+      "title": "Trigger daemon (to 15:00 CT)",
+      "phase": "preopen",
+      "ct": "08:33",
+      "ok": true,
+      "state": "ok",
+      "detail": "last 2026-09-02 15:29 - next 09-03 15:29",
+      "paused": false
+    },
+    {
+      "id": "scanner",
+      "title": "Cross-symbol gamma scanner",
+      "phase": "preopen",
+      "ct": "08:35",
+      "ok": null,
+      "state": "paused",
+      "detail": "PAUSED - will not run until resumed",
+      "paused": true
+    },
+    {
+      "id": "healthcheck",
+      "title": "Morning health check",
+      "phase": "preopen",
+      "ct": "08:40",
+      "ok": true,
+      "state": "ok",
+      "detail": "last 2026-09-02 15:40 - next 09-03 15:40",
+      "paused": false
+    },
+    {
+      "id": "depth",
+      "title": "L2 depth + tape recorder",
+      "phase": "session",
+      "ct": "cont",
+      "ok": null,
+      "state": "idle",
+      "detail": "193MB - market halt",
+      "paused": false
+    },
+    {
+      "id": "footprint",
+      "title": "Footprint exporter",
+      "phase": "session",
+      "ct": "cont",
+      "ok": null,
+      "state": "idle",
+      "detail": "ES_09-26_6500V_footprint_20260810_085510.csv (562.3h)",
+      "paused": false
+    },
+    {
+      "id": "tickdb",
+      "title": "NT8 tick recording",
+      "phase": "session",
+      "ct": "cont",
+      "ok": null,
+      "state": "idle",
+      "detail": "ES 09-26, 2885 files, 1s ago",
+      "paused": false
+    },
+    {
+      "id": "postmortem",
+      "title": "Daily postmortem",
+      "phase": "close",
+      "ct": "15:15",
+      "ok": true,
+      "state": "ok",
+      "detail": "last 2026-09-02 22:15 - next 09-03 22:15",
+      "paused": false
+    },
+    {
+      "id": "eod",
+      "title": "EOD desk report",
+      "phase": "close",
+      "ct": "15:20",
+      "ok": true,
+      "state": "ok",
+      "detail": "last 2026-09-02 22:20 - next 09-03 22:20",
+      "paused": false
+    },
+    {
+      "id": "rollover",
+      "title": "L2 market depth -> parquet (compress session)",
+      "phase": "halt",
+      "ct": "16:05",
+      "ok": null,
+      "state": "paused",
+      "detail": "PAUSED - will not run until resumed",
+      "paused": true
+    },
+    {
+      "id": "archive",
+      "title": "L2 depth backup -> GitHub (myquantdata)",
+      "phase": "halt",
+      "ct": "16:06",
+      "ok": null,
+      "state": "paused",
+      "detail": "PAUSED - will not run until resumed",
+      "paused": true
+    },
+    {
+      "id": "nt8_restart",
+      "title": "NT8 restart + re-arm",
+      "phase": "halt",
+      "ct": "16:15",
+      "ok": null,
+      "state": "paused",
+      "detail": "PAUSED - will not run until resumed",
+      "paused": true
+    },
+    {
+      "id": "preopen_verify",
+      "title": "Pre-open armed check",
+      "phase": "halt",
+      "ct": "16:45",
+      "ok": null,
+      "state": "paused",
+      "detail": "PAUSED - will not run until resumed",
+      "paused": true
+    },
+    {
+      "id": "mq_mine",
+      "title": "MenthorQ full-surface mine",
+      "phase": "overnight",
+      "ct": "07:30",
+      "ok": null,
+      "state": "paused",
+      "detail": "PAUSED - will not run until resumed",
+      "paused": true
+    },
+    {
+      "id": "mq_harvest",
+      "title": "MenthorQ dashboard harvest",
+      "phase": "overnight",
+      "ct": "15:45",
+      "ok": null,
+      "state": "paused",
+      "detail": "PAUSED - will not run until resumed",
+      "paused": true
+    },
+    {
+      "id": "levels_db",
+      "title": "Levels DB + viewer",
+      "phase": "overnight",
+      "ct": "16:15",
+      "ok": null,
+      "state": "paused",
+      "detail": "PAUSED - will not run until resumed",
+      "paused": true
+    },
+    {
+      "id": "catalog",
+      "title": "Data catalog scan",
+      "phase": "overnight",
+      "ct": "20:30",
+      "ok": true,
+      "state": "ok",
+      "detail": "last 2026-09-02 03:30 - next 09-03 03:30",
+      "paused": false
+    }
+  ]
+}

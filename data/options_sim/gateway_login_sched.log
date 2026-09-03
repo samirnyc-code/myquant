@@ -201,3 +201,18 @@ operable program or batch file.
 +
 + ** Caution: closing this window will close GATEWAY 1045 **
 +
++==============================================================================
++
++ IBC version 3.24.1
++
++ Running GATEWAY 1045 at Wed 09/02/2026 13:00:01.41
++
+'wmic' is not recognized as an internal or external command,
+operable program or batch file.
++ Diagnostic information is logged in:
++
++ C:\IBC\Logs\IBC-3.24.1_GATEWAY-1045_.txt
++
++
++ ** Caution: closing this window will close GATEWAY 1045 **
++

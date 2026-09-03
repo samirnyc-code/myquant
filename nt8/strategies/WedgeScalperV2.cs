@@ -52,7 +52,21 @@ namespace NinjaTrader.NinjaScript.Strategies
 	//
 	//  Behaviour note: ONE POSITION AT A TIME. A wedge that fires while a trade is
 	//  open is IGNORED — no reverse, no pyramiding, no queueing. Only the first wedge
-	//  after going flat is taken.
+	//  after going flat is taken (EXCEPT RunnerHoldToOpposite mode, which reverses).
+	//
+	//  ── 2026-09-03 (S107 cont) reversal + trail fixes ──
+	//  8. REVERSAL NOW ACTUALLY FLIPS. The managed approach attaches exits by entry
+	//     name; submitting an opposite entry under the SAME name that already holds
+	//     the position was ignored, so the runner never reversed (rode thousands of
+	//     bars into "Close position"/"Exit on session close"). Reversals now use a
+	//     DISTINCT name, alternating "Wedge" <-> "WedgeRev" (_entryName/_revName); all
+	//     exits (Stop/Scalp/StopFail) re-point to whichever name holds the position.
+	//     Reversal size = current qty + (Scalp+Runner) so the new side carries a FULL
+	//     fresh trade, not just the leftover runner qty.
+	//  9. TrailWhileHolding toggle. In RunnerHoldToOpposite mode the runner defaults
+	//     to BE-and-hold (no trail). TrailWhileHolding = true ALSO trails 1t/bar while
+	//     the reversal stays armed, so a runaway winner keeps locking gains instead of
+	//     round-tripping to breakeven.
 	// ══════════════════════════════════════════════════════════════════════════
 	//
 	// Automated MyWedge scalper. Hosts the black-box MyWedge indicator and trades
@@ -100,6 +114,12 @@ namespace NinjaTrader.NinjaScript.Strategies
 		private double _stratSetStop;   // last stop price the STRATEGY commanded
 		private double _liveStopPrice;  // actual live "Stop" order price (from OnOrderUpdate)
 		private bool   _userMovedStop;  // user dragged the stop -> strategy hands off for this trade
+		// entry/reversal signal names. The managed approach attaches exits by entry name,
+		// so a reversal MUST use a name different from the one currently holding the
+		// position (submitting an opposite "Wedge" while a "Wedge" position is live gets
+		// ignored -> no flip). We alternate "Wedge" <-> "WedgeRev" on each reversal.
+		private string _entryName = "Wedge";  // signal name currently holding the position
+		private string _revName;              // signal name of the armed reversal entry
 
 		protected override void OnStateChange()
 		{
@@ -128,6 +148,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 				EntryValidBars    = 1;
 				TrailFromEntry    = false;   // true: runner trails from entry, BE floor after trigger
 				RunnerHoldToOpposite = false; // runner holds until an OPPOSITE entry triggers (stop-and-reverse)
+				TrailWhileHolding = false;   // (hold-to-opposite only) ALSO trail 1t/bar while the reversal is armed
 
 				// ── MyWedge ctor params — SET TO MATCH YOUR CHART ──────────────
 				LookBack       = 12;     // confirmed correct (S107)
@@ -155,6 +176,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 
 		private string ST { get { return State == State.Realtime ? "RT  " : "HIST"; } }
 
+		// entry orders alternate between these two names across reversals (see _entryName)
+		private static bool IsEntryOrder(string name) { return name == "Wedge" || name == "WedgeRev"; }
+
 		protected override void OnBarUpdate()
 		{
 			if (CurrentBar < BarsRequiredToTrade || _wedge == null)
@@ -168,11 +192,12 @@ namespace NinjaTrader.NinjaScript.Strategies
 				// reset any leftover open-trade state
 				_entry = 0; _beActive = false; _curStop = 0; _scalpDone = false;
 				_stratSetStop = 0; _liveStopPrice = 0; _userMovedStop = false;
+				_entryName = "Wedge";   // fresh trade -> back to the base entry name
 				if (_revSide != 0)   // stopped out before a reversal triggered -> drop the armed reversal
 				{
 					foreach (Order o in Orders)
-						if (o.OrderState == OrderState.Working && o.Name == "Wedge") CancelOrder(o);
-					_revSide = 0;
+						if (o.OrderState == OrderState.Working && IsEntryOrder(o.Name)) CancelOrder(o);
+					_revSide = 0; _revName = null;
 				}
 
 				// ── detect a NEW signal and submit ONE entry immediately ──────
@@ -242,24 +267,30 @@ namespace NinjaTrader.NinjaScript.Strategies
 				if (oppSig && _revSide == 0)
 				{
 					_revSide = oppSide; _revSigBar = CurrentBar;
-					int totQ = ScalpQty + RunnerQty;
+					// Reversal must use a DIFFERENT name than the one holding the position,
+					// or the managed approach ignores it (no flip). Size = close the whole
+					// current position PLUS a fresh full-size trade, so after the flip the
+					// new side carries its own scalp+runner (not just the leftover qty).
+					_revName = _entryName == "Wedge" ? "WedgeRev" : "Wedge";
+					int revQ = Position.Quantity + ScalpQty + RunnerQty;
 					if (oppSide == 1)
 					{
 						_revEntryPx = High[0] + StopBeyondSBTicks * tick; _revStopPx = Low[0] - StopBeyondSBTicks * tick;
-						EnterLongStopMarket(0, true, totQ, _revEntryPx, "Wedge");
+						EnterLongStopMarket(0, true, revQ, _revEntryPx, _revName);
 					}
 					else
 					{
 						_revEntryPx = Low[0] - StopBeyondSBTicks * tick; _revStopPx = High[0] + StopBeyondSBTicks * tick;
-						EnterShortStopMarket(0, true, totQ, _revEntryPx, "Wedge");
+						EnterShortStopMarket(0, true, revQ, _revEntryPx, _revName);
 					}
-					Print(ST + " " + Time[0] + "  REVERSAL armed " + (oppSide > 0 ? "LONG" : "SHORT") + "  trigger@" + _revEntryPx);
+					Print(ST + " " + Time[0] + "  REVERSAL armed " + (oppSide > 0 ? "LONG" : "SHORT")
+						+ " x" + revQ + " (" + _revName + ")  trigger@" + _revEntryPx);
 				}
 				else if (_revSide != 0 && CurrentBar - _revSigBar > EntryValidBars)
 				{
 					foreach (Order o in Orders)   // window passed unfilled -> drop it, stay in
-						if (o.OrderState == OrderState.Working && o.Name == "Wedge") CancelOrder(o);
-					_revSide = 0;
+						if (o.OrderState == OrderState.Working && o.Name == _revName) CancelOrder(o);
+					_revSide = 0; _revName = null;
 				}
 			}
 			else if (oppSig || _wedge.WedgeBLSB[0] > 0 || _wedge.WedgeBRSB[0] > 0)
@@ -277,10 +308,17 @@ namespace NinjaTrader.NinjaScript.Strategies
 				{
 					if (RunnerHoldToOpposite)
 					{
-						// HOLD for the reversal: BE after the trigger, then keep the stop
-						// there (NO trail) so the runner rides until it reverses or BE hits.
+						// HOLD for the reversal: BE after the trigger. By default the stop
+						// stays at BE (no trail) so the runner rides until it reverses or BE
+						// hits. TrailWhileHolding = true ALSO trails 1t/bar so a runaway
+						// winner keeps locking gains while the reversal stays armed.
 						if (!_beActive && High[0] >= _entry + BETriggerTicks * tick) _beActive = true;
-						if (_beActive) _curStop = Math.Max(_curStop, _entry);
+						if (_beActive)
+						{
+							_curStop = Math.Max(_curStop, _entry);                        // breakeven floor
+							if (TrailWhileHolding)
+								_curStop = Math.Max(_curStop, Low[0] - TrailTicks * tick); // optional 1t/bar trail
+						}
 					}
 					else if (TrailFromEntry)
 					{
@@ -300,7 +338,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 				}
 				ManageProtection();      // trail the stop (scalp already handled; won't re-scalp)
 				if (Close[0] <= _curStop)
-					ExitLong("StopFail", "Wedge");   // safety net (fix #6)
+					ExitLong("StopFail", _entryName);   // safety net (fix #6)
 			}
 			else if (Position.MarketPosition == MarketPosition.Short)
 			{
@@ -311,7 +349,12 @@ namespace NinjaTrader.NinjaScript.Strategies
 					if (RunnerHoldToOpposite)
 					{
 						if (!_beActive && Low[0] <= _entry - BETriggerTicks * tick) _beActive = true;
-						if (_beActive) _curStop = Math.Min(_curStop, _entry);   // BE, then hold (no trail)
+						if (_beActive)
+						{
+							_curStop = Math.Min(_curStop, _entry);                         // BE floor, then hold
+							if (TrailWhileHolding)
+								_curStop = Math.Min(_curStop, High[0] + TrailTicks * tick); // optional 1t/bar trail
+						}
 					}
 					else if (TrailFromEntry)
 					{
@@ -331,7 +374,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 				}
 				ManageProtection();
 				if (Close[0] >= _curStop)
-					ExitShort("StopFail", "Wedge");
+					ExitShort("StopFail", _entryName);
 			}
 		}
 
@@ -356,21 +399,21 @@ namespace NinjaTrader.NinjaScript.Strategies
 			{
 				if (!_userMovedStop)
 				{
-					ExitLongStopMarket(0, true, Position.Quantity, _curStop, "Stop", "Wedge");
+					ExitLongStopMarket(0, true, Position.Quantity, _curStop, "Stop", _entryName);
 					_stratSetStop = _curStop;
 				}
 				if (ScalpQty > 0 && !_scalpDone)
-					ExitLongLimit(0, true, ScalpQty, _entry + ScalpTargetTicks * TickSize, "Scalp", "Wedge");
+					ExitLongLimit(0, true, ScalpQty, _entry + ScalpTargetTicks * TickSize, "Scalp", _entryName);
 			}
 			else if (Position.MarketPosition == MarketPosition.Short)
 			{
 				if (!_userMovedStop)
 				{
-					ExitShortStopMarket(0, true, Position.Quantity, _curStop, "Stop", "Wedge");
+					ExitShortStopMarket(0, true, Position.Quantity, _curStop, "Stop", _entryName);
 					_stratSetStop = _curStop;
 				}
 				if (ScalpQty > 0 && !_scalpDone)
-					ExitShortLimit(0, true, ScalpQty, _entry - ScalpTargetTicks * TickSize, "Scalp", "Wedge");
+					ExitShortLimit(0, true, ScalpQty, _entry - ScalpTargetTicks * TickSize, "Scalp", _entryName);
 			}
 		}
 
@@ -388,24 +431,27 @@ namespace NinjaTrader.NinjaScript.Strategies
 			if (execution.Order == null || Position.MarketPosition == MarketPosition.Flat)
 				return;
 			string nm = execution.Order.Name;
-			if (nm == "Wedge")
+			if (IsEntryOrder(nm))
 			{
 				// A reversal fill flips the position -> re-init the trade with the
 				// reversal's SB stop (the normal _entry==0 guard won't fire because the
-				// OLD side's _entry is still non-zero).
-				bool reversed = _revSide != 0 &&
+				// OLD side's _entry is still non-zero). Detect it by the reversal's
+				// distinct name landing us on the armed side.
+				bool reversed = _revSide != 0 && nm == _revName &&
 					((_revSide == 1 && Position.MarketPosition == MarketPosition.Long) ||
 					 (_revSide == -1 && Position.MarketPosition == MarketPosition.Short));
 				if (reversed)
 				{
 					_stopPx = _revStopPx; _revSide = 0;
+					_entryName = _revName; _revName = null;   // the reversal name now HOLDS the position
 					_entry = Position.AveragePrice; _curStop = _stopPx; _beActive = false; _scalpDone = false;
 					_stratSetStop = 0; _liveStopPrice = 0; _userMovedStop = false;   // new trade -> auto-stop on
 					Print(ST + " " + time + "  REVERSED -> now " + Position.MarketPosition
-						+ " x" + Position.Quantity + "  stop@" + _curStop);
+						+ " x" + Position.Quantity + " (" + _entryName + ")  stop@" + _curStop);
 				}
 				else if (_entry == 0)
 				{
+					_entryName = nm;   // fresh entry from flat -> this name holds the position
 					_entry = Position.AveragePrice; _curStop = _stopPx; _beActive = false; _scalpDone = false; _pendingSide = 0;
 					_stratSetStop = 0; _liveStopPrice = 0; _userMovedStop = false;
 					Print(ST + " " + time + "  FILLED entry x" + quantity + " @ " + price + "  -> stop@" + _curStop);
@@ -468,6 +514,10 @@ namespace NinjaTrader.NinjaScript.Strategies
 		[NinjaScriptProperty]
 		[Display(Name = "Runner holds until opposite entry triggers", GroupName = "1. Trade Structure", Order = 8)]
 		public bool RunnerHoldToOpposite { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name = "Hold-to-opposite: also trail while armed", GroupName = "1. Trade Structure", Order = 9)]
+		public bool TrailWhileHolding { get; set; }
 		#endregion
 
 		#region MyWedge properties

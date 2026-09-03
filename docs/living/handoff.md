@@ -1,6 +1,85 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** September 2, 2026 (S107: MyWedge NT8 automation — WedgeExporter + WedgeScalperV2 strategy built end-to-end; 2000t python research (fixed a phantom-fill sim bug → breakout entry is net-negative; close-entry is the only positive edge); many exit-engine bugs fixed)
+**Last Updated:** September 3, 2026 (S108: OPTIONS DESK — recorder duplicate-supervisor storm fixed + atomic-locked; STMR STILL not executing (connect TimeoutError at 14:59 CT every run — top open item); L2/depth fully retired incl NT AddOn; XSP settle automated + $0.05 spread gate; calendar→exit-date)
+
+---
+
+## S108 (2026-09-02→03) — options desk: recorder storm fixed + storm-proofed; STMR still broken; L2/depth retired; XSP settle+gate
+
+**⚠️ TOP OPEN ITEM — STMR IS NOT EXECUTING.** The STMR book (14-DTE stochastic mean-reversion
+BPS, strategy `bps_stmr`) has not placed a trade since the 8/19 entry. S106-cont retired the
+fragile all-day daemon for `scripts/stmr_exit_check.py` (full entry+exit decision, scheduled
+task **`MyQuant STMR Decision`** at 14:59 CT). But it has **failed at the CONNECT stage on every
+live run** — heartbeat `stmr_exit_heartbeat.json` shows `state:error, stage:connect, err:TimeoutError`
+on 9/1 AND 9/2. I hardened the connect retry 3→12 (~4 min); STILL timed out (9/2 retried ~8 min).
+`decisions.csv` still ends 8/19. Dry `--now` runs pre-open connect FINE (client 78) — so it is
+**contention-specific: at 14:59 CT the recorders (run to 15:05 CT) + trigger + mirror + spot + marks
+are all on IB and the gateway won't accept the extra connection.** NEXT-SESSION FIX CANDIDATES:
+(a) move the STMR run to ~**15:06 CT** — after the recorders stop, gateway quiet — accepting a ~7-min
+causal drift (still inside the 15:59-16:15 window the backtest tolerates); (b) reuse/share an existing
+IB connection; (c) raise ib_conn.connect timeout. Position is FLAT (nothing open), so no risk — it
+just isn't entering. Today (9/2) the pre-open preview fired an entry (K8 14.3) but the 14:59 run died.
+
+**RECORDER DUPLICATE-SUPERVISOR STORM (9/2 08:25) — FIXED + ROOT-CAUSED.** The Chain Recorder task
+launched multiple supervisors; the pid-file singleton is not atomic (check-then-write races on
+near-simultaneous launches, and the process-pair leaves a stale pid), so **8 supervisors + 4 recorders**
+piled up, collided on IB client-ids until NO recorder could write a heartbeat, and every supervisor
+read the stale heartbeat as "hung" → relaunch loop. Tape heartbeat froze; recovered by a manual
+kill-storm + clean single relaunch at 08:42 CT. **9/2 still graded 99.3% complete** (tape had data from
+08:30:57, one small hole — damage less than feared). **FIX (commit 623be35d):** atomic per-symbol
+socket-bind lock in `chain_recorder_supervisor.py` (SPX 49740 / XSP 49741) — a dup launch now exits(0).
+Verified atomic. **Applies at the next 08:25 auto-launch; the storm cannot recur.** Recovery procedure
+if it ever hangs again: kill `*chain_recorder*`/`*chain_supervisor*` procs, delete the stale
+`chain_heartbeat.json`/`chain_XSP_heartbeat.json`, relaunch one supervisor per symbol.
+
+**L2/DEPTH FULLY RETIRED (user: "we don't have L2 data anymore").** The depth subscription is gone
+(NT writes tape-only depth CSVs, zero book events). Removed ALL of it:
+- Telegram paging: dropped the "L2 depth" rule from `alert_monitor.py` + the fut-TAPE-ONLY ping in
+  `session_pings.py` (other health pages intact).
+- Tasks **DISABLED**: `MyQuant NT Watchdog` (nt8_watchdog — was also relaunching NT for the dead feed),
+  `MyQuant Depth Rollover`, `MyQuant Pre-Open Verify` (its pass-test is "depth rows arriving" = never true now).
+- NT AddOn PULLED: live `MarketDepthRecorderAddOn.cs` + `Strategies\MarketDepthRecorder.cs` renamed
+  to `.disabled` (repo archives kept in `nt8/`). **PENDING: user must F5 / restart NT** to unload the
+  still-running AddOn (the "SILENT 90s / forcing resubscribe" NT-log spam continues until then).
+- KEPT: `TickExportAddOn` — NT records ticks INTERNALLY (`.ncd`); this AddOn just exports them to the
+  trove (Tick Trove task, working, trove current through 9/1). Only a comment in it mentions depth.
+
+**XSP MIRROR — settlement automated + spread gate.**
+- `settle_xsp` was manual-only and LAPSED while the user travelled — 18 expired trades sat open across
+  8/27-9/1 making those days look falsely red. Caught all up; **new task `MyQuant XSP Settle`** runs
+  nightly 16:30 CT (self-fetches close, default date=today) so it can't lapse again.
+- **$0.05 leg-spread GATE** added to `options_mirror_xsp.py` (`MAX_LEG_SPREAD`): skips mirroring any
+  trade with a leg bid-ask > $0.05 (the wide ATM-fly legs where the mini bleeds vs SPX/10); logs skips
+  to `xsp_skips.csv`, never retries. Historical bite 20% (flies 17-50%, condors 0%). Live; 1 skip on 9/2.
+- A/B finding (7-day, `analyze_august_trades`/inline): XSP lagged SPX/10 by ~$370, captured ~none of the
+  desk's green days — the mini eats losses, misses wins.
+
+**CALENDAR + 8/25 (S106-cont, still true):** `options_dashboard.py` now buckets realized P&L by EXIT
+date (was entry) — closed trades only; STMR -$690 shows on 8/25 where realized. The missed 8/25 STMR
+exit was reconstructed (both legs booked closed 8/25 at mid 14.35; sim -$420.2 / real -$270.2) and the
+live IB leg flattened (+$25 operational → `stmr_missed_exit_cost_20260825.csv`, out of strategy PnL).
+
+**REMOTE ACCESS + KEEP-ALIVE (user travelling):** dashboard reachable over Tailscale at
+`http://100.120.208.126:8600/?key=Tp3xCWzVnG3_6KeDsvkzUA` (see memory [[dashboard-remote-access]]);
+laptop needs same tailnet login. **RDP is DISABLED** — to run Claude Code against the desk remotely it
+must be enabled first. New task **`MyQuant Dashboard Keepalive`** (every 10 min) relaunches
+`options_dashboard_live` if 8600 is down (only starts, never kills) — it was unsupervised and died once.
+
+**ANALYSIS (committed, saved CSVs):** `analyze_august_trades.py` (Aug 0DTE desk +$7,036, 167 trades:
+Open flies the engine, EOD book the drag -$442, call side weaker than put, held-to-expiry +18.5k /
+stopped -12.1k) + `analyze_account_size.py` (peak concurrent collateral: full book gross $20.6k /
+netted $11.4k; cutting EOD → gross $12.9k / netted $6.9k, ~37-40% less).
+
+**9/2 P&L:** SPX 0DTE desk settled **+$592** (green — held legs settled well after 2 call flies stopped
+out). XSP mirror negative (settles nightly). STMR flat (didn't enter — connect failure).
+
+**Commits this session (all pushed to origin/s75-live-dashboard):** 5301aa48, 346278fb, 9f6e81c5,
+9a58ba8f, 09d4e045, 3bda7290 (S106-cont) · then 9918ed68 (xsp settle+keepalive), 20ae8abb (xsp gate),
+b9873ada (stmr connect hardening), c9bf4589 (L2 paging retired), 623be35d (recorder atomic lock),
++ Aug analysis commits.
+
+**STANDING:** user on CT / machine Berlin — never state converted CT as fact. Ask before start/stop/kill/
+task edits (the harness classifier also gates process kills). Verify before speaking.
 
 ---
 
