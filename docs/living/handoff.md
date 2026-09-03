@@ -1,6 +1,62 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** September 3, 2026 (S108 cont: STMR connect ROOT-CAUSED + fixed (gateway_ensure restart storm) — passive connect, pending 14:59 CT live test; recorder atomic-lock VALIDATED live; 30-day retro (no GEX filters work, stops ~25% premature); sim IS high-fidelity real-IB-paper fills (corrected); desk has ZERO risk controls — circuit-breaker recommended)
+**Last Updated:** September 3, 2026 (S109: WedgeScalperV2 — ALL reversal/flip logic REMOVED per user (now a plain scalper); TICK REPLAY OFF is the entry-fill fix; breakout entry is net-negative (churns) → dead end, only positive edge = close-entry. Options 9/3 realized −$1,811 (call walls run over on a gap-up trend day). STMR FAILED AGAIN (connect timeout, 3rd straight) — book not running.)
+
+---
+
+## S109 (2026-09-03) — WedgeScalperV2 flip REMOVED; options desk −$1,811; STMR still failing
+
+**⚠ TONE/STATE:** long, frustrating session. Much of it was chasing the WedgeScalperV2 "hold-to-
+opposite" reversal, which does not work cleanly in NT8's managed approach. Ended with the user
+ordering ALL flip logic removed. Be efficient and verify before speaking next session.
+
+### NT8 WedgeScalperV2 (`nt8/strategies/WedgeScalperV2.cs`, committed + deployed)
+- **ALL reversal / hold-to-opposite / flip logic REMOVED** (per explicit user request). It is now the
+  PLAIN scalper only: enter 1t beyond the signal bar (stop, or limit if price ran past) → scalp lot at
+  +ScalpTargetTicks → runner BE (entry ± BEOffsetTicks) then 1t/bar trail (or TrailFromEntry) → exit.
+  ONE position at a time; opposite signals while in a trade are ignored. Params `RunnerHoldToOpposite`
+  and `TrailWhileHolding` are GONE. Compiles clean (only the expected `MyWedge` CS0234 that F5 resolves).
+- **KEY FILL FIX — RUN WITH TICK REPLAY *OFF*** (Analyzer + chart). Tick Replay ON drags resting-stop
+  fills PAST the stop price (verified in the Orders grid); OFF fills AT the stop price via the standard
+  bar model. This was the single biggest confusion of the session. Calculate.OnBarClose, [0] indexing.
+- **StopFail** now only fires when there is NO working "Stop" order (`HasWorkingStop()`), so normal
+  exits use the resting stop price instead of a market StopFail (was bleeding slippage).
+- Reversal lessons (for the record, since it's removed): the managed approach will NOT create an
+  opposite entry while a position is open (a resting opposite stop order is never even created);
+  a MARKET opposite entry reverses, but the runner's BE stop kills the hold before an opposite signal
+  arrives, so it fired ~once per 90 trades. Not worth it — removed.
+- **KNOWN OPEN BUG:** `EntryValidBars` is off by one — cancel uses `CurrentBar - _sigBar > EntryValidBars`
+  (the `>` keeps the entry alive N+1 bars, deliberately, to avoid a cancel/fill race). So "1" ≈ 2 bars.
+  User noticed entries filling ~2-3 bars after the signal. Fix = change `>` to `>=` (RISK: may reintroduce
+  the cancel-race that cancelled every entry — must test in Analyzer). NOT changed yet.
+- **BOTTOM LINE (do not forget):** the breakout entry is NET-NEGATIVE. Research already showed PF 0.76;
+  the live Analyzer churns ~90 trades in 2.5 days for no edge. NO exit/BE/trail tuning fixes a whipsaw
+  entry. The ONLY positive edge in the research is the **signal-bar CLOSE entry** (PF 1.04-1.16).
+- **Two-strategy confound seen live:** an ATM `Scalp & Run 2C BE 5t` was also attached to the ES chart,
+  fighting WedgeScalperV2 over the one position. Run ONE system per chart.
+- **PAUSED optimization plan (agreed earlier this session):** re-export MyWedge signals at **LookBack=12**
+  (+ match all chart params) via `WedgeExporter`, then Python WFA comparing breakout vs close-entry on the
+  5yr RTH tick trove (`data/ticks_continuous/`). Current `data/wedge/*.csv` is LB=20 = WRONG. Compare both.
+
+### Options desk (9/3)
+- **Realized today −$1,811** (SPX −$1,716, XSP −$95). CAUSE: gap-up TREND day (open ~7699 above the 7675
+  call wall, ground to 7748.9) while the auto 0DTE book mechanically SOLD CALL WALLS at 08:30. 4 of 5 SPX
+  losers were short calls (7665/7675/7700/7740) — some sold 24-41pt ITM (gexlog feed was down → trades
+  fired UNCONDITIONED as "regime unknown"). eodic_c short 7740 call = −$801 (the killer). The book has
+  **no gap/trend filter** — it sells both walls expecting chop; a trend day runs the call side over.
+- **STMR FAILED AGAIN 9/3** (Telegram: `TimeoutError('no passive attach after 8 tries (gateway up but not
+  accepting)') — entry/exit NOT evaluated`). 3rd straight failure; the STMR book is NOT running. Despite
+  the S108 "root-caused + fixed" note, the passive connect is still not attaching. **NEEDS a real fix.**
+- **9/1 STMR setup was valid and missed:** K8 12.6 (<15) & spot 7631 > SMA100 7449 = SETUP=True, but
+  decisions.csv has NO rows since 8/19 and no bps_stmr trade was entered. It would have WON (market
+  bounced 7631→7666→7748; short put would sit far OTM). STMR = **BPS** (sell ~30Δ put / buy 50pt lower,
+  14 DTE, exit first day spot>SMA5; WF 86% win PF 2.24). Condor variant was tested + RETIRED (loses to BPS).
+- **DATA NOTES (corrected a wrong claim I made):** 0DTE chains ARE archived to
+  `data/options_tape/chain_YYYYMMDD.parquet` (NOT lost) — but they contain the **0DTE expiry only**, so no
+  forward-DTE strikes on any date. ORATS `data/orats/SPX/SPX_2026.parquet` covers only **2026-01-02 →
+  2026-07-15** (July bulk pull, never refreshed). So historical multi-DTE SPX option pricing is NOT
+  available locally without refreshing ORATS. A 1-DTE BPS entered 9/1 (proxied from the 9/2 open chain) ≈
+  $590 credit, full winner.
 
 ---
 
