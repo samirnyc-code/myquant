@@ -94,21 +94,33 @@ def main():
     try:
         daily = sd.refresh_spx_daily()
         ib = None
-        import time
-        # 14:59 CT is peak desk contention (recorders/mirror/trigger all still up, shutting
-        # down ~15:00-15:05) — a single connect can TIMEOUT there (9/1 missed a run that way).
-        # Retry hard like the recorder's connect_with_retry (~4 min window) so a busy-gateway
-        # blip can't skip the decision; the read still lands well inside the 15:59-16:15 window.
-        ATTEMPTS = 12
+        import time, socket
+        port = a.port or 4002
+        # PASSIVE connect at 15:59 ET peak contention. The gateway is already up serving the
+        # recorders/desk, so we just attach a new client — NEVER restart it. The S108 failure
+        # was self-inflicted: ib_conn's default recovery ran gateway_ensure (restart) on each
+        # fail, and this retry loop amplified that into ~12 gateway restarts that wedged every
+        # connect for 8 min and missed the entry (9/1, 9/2). Fix: ensure=False (no restart),
+        # probe the port first (never trigger a relaunch), long timeout, and a FRESH client-id
+        # each try (a timed-out handshake can leave the previous id half-open on the gateway).
+        # 8 tries * (30s timeout + 12s) ~= 5.5 min worst case -> still before the 16:15 ET option close.
+        ATTEMPTS = 8
         for attempt in range(ATTEMPTS):
-            try:
-                ib = ib_conn.connect(port=a.port, client_id=CLIENT_ID)
-                break
-            except Exception as e:
-                print(f"connect attempt {attempt + 1}/{ATTEMPTS} failed: {e!r}")
-                if attempt == ATTEMPTS - 1:
-                    raise
-                time.sleep(15)
+            probe = socket.socket(); probe.settimeout(3)
+            listening = probe.connect_ex(("127.0.0.1", port)) == 0
+            probe.close()
+            if listening:
+                try:
+                    ib = ib_conn.connect(port=port, client_id=CLIENT_ID + attempt,
+                                         timeout=30, ensure=False)
+                    break
+                except Exception as e:
+                    print(f"connect {attempt + 1}/{ATTEMPTS} (cid {CLIENT_ID + attempt}) failed: {e!r}")
+            else:
+                print(f"connect {attempt + 1}/{ATTEMPTS}: port {port} not listening yet")
+            time.sleep(12)
+        if ib is None:
+            raise TimeoutError(f"no passive attach after {ATTEMPTS} tries (gateway up but not accepting)")
     except Exception as e:
         write_heartbeat(state="error", stage="connect", err=repr(e), open_before=None)
         alert(f"STMR decision FAILED to connect {today}: {e!r} — entry/exit NOT evaluated")
