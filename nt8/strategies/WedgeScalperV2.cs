@@ -306,12 +306,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 					_entry = Position.AveragePrice; _curStop = _stopPx; _beActive = false; _scalpDone = false; _pendingSide = 0;
 					_stratSetStop = 0; _liveStopPrice = 0; _userMovedStop = false;
 					Print(ST + " " + time + "  FILLED entry x" + quantity + " @ " + price + "  -> stop@" + _curStop);
-					if (DebugDraw)
-					{
-						int ba = Math.Max(0, CurrentBar - Bars.GetBar(time));   // fill bar from execution time
-						Draw.Text(this, "fil" + executionId, "FILL@" + price, ba,
-							Position.MarketPosition == MarketPosition.Long ? Low[ba] - 6 * TickSize : High[ba] + 6 * TickSize);
-					}
+					// No custom FILL marker: Bars.GetBar(time) is unreliable on a tick chart
+					// (many bars share a timestamp) so it lands on the wrong bar. NT's own
+					// entry arrow already marks the exact fill bar.
 				}
 				ManageProtection();
 			}
