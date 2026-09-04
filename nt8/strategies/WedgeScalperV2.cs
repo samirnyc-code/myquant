@@ -137,6 +137,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 				// instance's serialized value on every load — isolates our Output on Tab2,
 				// away from other strategies sharing the global window (e.g. the PB33 dashboard).
 				PrintTo = PrintTo.OutputTab2;
+
+				// 1-tick series (BarsInProgress==1) fires every tick -> lets the BE/stop move
+				// INTRABAR. The primary series stays OnBarClose so signals/entries/fills are
+				// unchanged (no Tick Replay needed). All orders are submitted against series 0.
+				AddDataSeries(BarsPeriodType.Tick, 1);
 			}
 			else if (State == State.DataLoaded)
 			{
@@ -234,6 +239,13 @@ namespace NinjaTrader.NinjaScript.Strategies
 
 		protected override void OnBarUpdate()
 		{
+			// BarsInProgress==1 = the 1-tick series: run intrabar stop management only.
+			if (BarsInProgress == 1)
+			{
+				IntrabarManageStop();
+				return;
+			}
+
 			if (_wedge == null || CurrentBar < BarsRequiredToTrade)
 				return;
 
@@ -505,6 +517,33 @@ namespace NinjaTrader.NinjaScript.Strategies
 				+ "   (" + (_dayR >= 0 ? "+" : "") + _dayR.ToString("0.00") + "R)");
 			Print(bar);
 			_tSide = 0; _tLegs = null;
+		}
+
+		// Runs on every tick (1-tick series). Moves the BE lock the INSTANT price touches
+		// the trigger intrabar — no waiting for the primary bar to close. Only re-submits
+		// the stop when the level actually changes (no per-tick order churn). The per-bar
+		// 1t trail stays on the primary bar close; this handles the BE lock speed.
+		private void IntrabarManageStop()
+		{
+			if (Position.MarketPosition == MarketPosition.Flat || _entry == 0) return;
+			if (RunnerQty <= 0 || _userMovedStop) return;
+
+			double tick = TickSize;
+			double hi = Highs[0][0], lo = Lows[0][0];   // running extremes of the forming primary bar
+			double before = _curStop;
+
+			if (Position.MarketPosition == MarketPosition.Long)
+			{
+				if (!_beActive && hi >= _entry + BETriggerTicks * tick) _beActive = true;
+				if (_beActive) _curStop = Math.Max(_curStop, _entry + BEOffsetTicks * tick);   // BE lock, intrabar
+			}
+			else
+			{
+				if (!_beActive && lo <= _entry - BETriggerTicks * tick) _beActive = true;
+				if (_beActive) _curStop = Math.Min(_curStop, _entry - BEOffsetTicks * tick);
+			}
+
+			if (_curStop != before) ManageProtection();   // push the new stop only when it moved
 		}
 
 		// Places/updates the whole-position stop and (once) the scalp target. Called
