@@ -324,8 +324,10 @@ namespace NinjaTrader.NinjaScript.Strategies
 			{
 				if (!_userMovedStop)
 				{
-					ExitLongStopMarket(0, true, Position.Quantity, _curStop, "Stop", "Wedge");
+					// set BEFORE submitting so a strategy-driven stop move is never mistaken
+					// for a user drag when OnOrderUpdate fires back with the new price.
 					_stratSetStop = _curStop;
+					ExitLongStopMarket(0, true, Position.Quantity, _curStop, "Stop", "Wedge");
 				}
 				if (ScalpQty > 0 && !_scalpDone)
 					ExitLongLimit(0, true, ScalpQty, _entry + ScalpTargetTicks * TickSize, "Scalp", "Wedge");
@@ -334,8 +336,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 			{
 				if (!_userMovedStop)
 				{
-					ExitShortStopMarket(0, true, Position.Quantity, _curStop, "Stop", "Wedge");
 					_stratSetStop = _curStop;
+					ExitShortStopMarket(0, true, Position.Quantity, _curStop, "Stop", "Wedge");
 				}
 				if (ScalpQty > 0 && !_scalpDone)
 					ExitShortLimit(0, true, ScalpQty, _entry - ScalpTargetTicks * TickSize, "Scalp", "Wedge");
@@ -348,7 +350,25 @@ namespace NinjaTrader.NinjaScript.Strategies
 			if (order == null) return;
 			// track the actual live protective-stop price so a manual drag is detectable
 			if (order.Name == "Stop" && stopPrice > 0)
+			{
 				_liveStopPrice = stopPrice;
+
+				// Immediate manual-drag detection (realtime, doesn't wait for the next bar
+				// close): if the live stop diverged from what the strategy last commanded,
+				// the user dragged it -> hand off + snap the R:R risk box now.
+				if (!_userMovedStop && _stratSetStop > 0
+					&& Math.Abs(_liveStopPrice - _stratSetStop) > TickSize / 2
+					&& Position.MarketPosition != MarketPosition.Flat)
+				{
+					_userMovedStop = true;
+					_curStop = _liveStopPrice;
+					Print(ST + " " + time + "  manual stop @ " + _liveStopPrice + " -> auto-stop OFF for this trade");
+				}
+
+				// Redraw the R:R so a stop drag (or any stop-price change) reflects live.
+				if (Position.MarketPosition != MarketPosition.Flat)
+					DrawTradeVisuals(Position.MarketPosition == MarketPosition.Long);
+			}
 
 			// Entry lifecycle: an entry either FILLS (a trade) or CANCELS — never both.
 			// Only mark Ecancel / reset on the CONFIRMED cancel state; a fill is handled in
