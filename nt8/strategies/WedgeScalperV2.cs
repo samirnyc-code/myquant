@@ -104,6 +104,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 				RunnerQty         = 1;   // 0 = no runner lot
 				StopBeyondSBTicks = 1;
 				InsideBarUsePriorBar = true;  // SB is an inside bar -> stop beyond the prior bar
+				MinRiskReward     = 0.0;      // 0 = off; else skip setups with scalp-tgt:risk worse than this
 				ScalpTargetTicks  = 4;
 				BETriggerTicks    = 5;    // price must reach entry ± this to ARM breakeven
 				BEOffsetTicks     = 0;    // where the stop locks once armed: entry ± this (signed, +4 = lock 1pt)
@@ -113,8 +114,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 				// ── chart visuals ──────────────────────────────────────────────
 				ShowRiskReward    = true;    // green reward box (entry->scalp tgt) + red risk box (entry->initial stop)
 				RiskRewardOpacity = 25;      // 0-100 fill opacity of the R:R boxes
-				ShowBELine        = true;    // dashed gold segment (SB->right) where the runner locks BE
-				DebugDraw         = false;   // draw the strategy's OWN signals + entry/exit lifecycle on the chart
+				ShowBELine        = true;    // dashed ray (SB->right edge) where the runner locks BE
+				BELineBrush       = Brushes.DodgerBlue;   // BE line color (user-settable)
+				DebugDraw         = false;   // draw the SUB tag + entry/exit lifecycle prints
 
 				// ── MyWedge ctor params — SET TO MATCH YOUR CHART ──────────────
 				LookBack       = 12;
@@ -205,7 +207,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 		{
 			if (_rrHover && _entry != 0 && _rrText.Length > 0)
 			{
-				double y = (_rrHiPrice + _rrLoPrice) / 2.0;
+				// keep the box OUT of the trade: above the R:R zone for a SHORT, below for a LONG
+				double pad = 6 * TickSize;
+				double y = _tSide < 0 ? _rrHiPrice + pad : _rrLoPrice - pad;
 				Draw.Text(this, "rrTxt", false, _rrText, 0, y, 0,
 					Brushes.White, new NinjaTrader.Gui.Tools.SimpleFont("Arial", 12), System.Windows.TextAlignment.Left,
 					Brushes.Transparent, Brushes.Black, 85);
@@ -235,13 +239,6 @@ namespace NinjaTrader.NinjaScript.Strategies
 			_wedge.Update();
 			double tick = TickSize;
 
-			// Diagnostics: draw the STRATEGY's own MyWedge signals (cyan up / orange down).
-			if (DebugDraw)
-			{
-				if (_wedge.WedgeBLSB[0] > 0) Draw.Dot(this, "wbl" + CurrentBar, false, 0, Low[0]  - 16 * tick, Brushes.Cyan);
-				if (_wedge.WedgeBRSB[0] > 0) Draw.Dot(this, "wbr" + CurrentBar, false, 0, High[0] + 16 * tick, Brushes.Orange);
-			}
-
 			// ═══════════════════════════ FLAT ═══════════════════════════
 			if (Position.MarketPosition == MarketPosition.Flat)
 			{
@@ -268,6 +265,19 @@ namespace NinjaTrader.NinjaScript.Strategies
 						double stopLo = insideBar ? Low[1]  : Low[0];
 						if (side == 1) { _entryPx = High[0] + StopBeyondSBTicks * tick; _stopPx = stopLo - StopBeyondSBTicks * tick; }
 						else           { _entryPx = Low[0]  - StopBeyondSBTicks * tick; _stopPx = stopHi + StopBeyondSBTicks * tick; }
+
+						// R:R FILTER: skip the setup if the scalp-target:risk ratio is worse than
+						// MinRiskReward (0 = off). risk = SB/prior-bar stop distance.
+						double riskTicks = Math.Abs(_entryPx - _stopPx) / tick;
+						double planRR    = riskTicks > 0 ? ScalpTargetTicks / riskTicks : 0;
+						if (MinRiskReward > 0 && planRR < MinRiskReward)
+						{
+							if (DebugDraw) Print(ST + " " + Time[0] + "  SKIP " + (side > 0 ? "LONG" : "SHORT")
+								+ " — R:R 1:" + planRR.ToString("0.00") + " < min 1:" + MinRiskReward.ToString("0.00"));
+							_pendingSide = 0;
+							return;
+						}
+
 						int totQ = ScalpQty + RunnerQty;
 						if (totQ > 0)
 						{
@@ -289,8 +299,10 @@ namespace NinjaTrader.NinjaScript.Strategies
 							if (DebugDraw) Print(ST + " " + Time[0] + "  SIGNAL " + (side > 0 ? "LONG " : "SHORT")
 								+ "  rest x" + totQ + " entry@" + _entryPx + " protStop@" + _stopPx
 								+ (insideBar ? "  [inside bar -> stop beyond prior bar]" : ""));
+							// Place the SUB tag OUT of the trade's way: above the bar for a SHORT
+							// (price works down), below the bar for a LONG (price works up).
 							if (DebugDraw) Draw.Text(this, "sub" + CurrentBar, "SUB@" + _entryPx,
-								0, side > 0 ? High[0] + 6 * tick : Low[0] - 6 * tick);
+								0, side > 0 ? Low[0] - 6 * tick : High[0] + 6 * tick);
 						}
 					}
 				}
@@ -389,10 +401,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 
 			if (ShowBELine)
 			{
-				// short segment from the signal bar to the current bar (grows right)
+				// horizontal RAY from the signal bar, extending to the right edge (grows with
+				// each new bar automatically). Color is user-settable (BELineBrush).
 				int beStart = Math.Max(0, CurrentBar - _sigBar);
-				Line be = Draw.Line(this, "beLine", beStart, beTrig, 0, beTrig, Brushes.Gold);
-				be.Stroke = new Stroke(Brushes.Gold, DashStyleHelper.Dash, 1);
+				Ray be = Draw.Ray(this, "beLine", beStart, beTrig, 0, beTrig, BELineBrush);
+				be.Stroke = new Stroke(BELineBrush, DashStyleHelper.Dash, 1);
 				Draw.Text(this, "beTxt", "BE", beStart, isLong ? beTrig + 2 * tick : beTrig - 2 * tick);
 			}
 		}
@@ -630,6 +643,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 		[Display(Name = "Inside-bar SB: stop beyond prior bar", GroupName = "2. Entry", Order = 2)]
 		public bool InsideBarUsePriorBar { get; set; }
 
+		[NinjaScriptProperty]
+		[Range(0, 100)]
+		[Display(Name = "Min R:R (scalp tgt / risk, 0 = off)", GroupName = "2. Entry", Order = 3)]
+		public double MinRiskReward { get; set; }
+
 		// ── 3. Scalp Target ─────────────────────────────────────────────────
 		[NinjaScriptProperty]
 		[Range(1, 1000)]
@@ -666,8 +684,19 @@ namespace NinjaTrader.NinjaScript.Strategies
 		[Display(Name = "Show breakeven-trigger line", GroupName = "5. Chart Visuals", Order = 2)]
 		public bool ShowBELine { get; set; }
 
+		[XmlIgnore]
+		[Display(Name = "BE line color", GroupName = "5. Chart Visuals", Order = 3)]
+		public Brush BELineBrush { get; set; }
+
+		[Browsable(false)]
+		public string BELineBrushSerialize
+		{
+			get { return Serialize.BrushToString(BELineBrush); }
+			set { BELineBrush = Serialize.StringToBrush(value); }
+		}
+
 		[NinjaScriptProperty]
-		[Display(Name = "Debug draw (signals + entry/exit lifecycle)", GroupName = "5. Chart Visuals", Order = 3)]
+		[Display(Name = "Debug draw (SUB tag + lifecycle prints)", GroupName = "5. Chart Visuals", Order = 4)]
 		public bool DebugDraw { get; set; }
 		#endregion
 
