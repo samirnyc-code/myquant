@@ -62,6 +62,13 @@ namespace NinjaTrader.NinjaScript.Strategies
 		private bool   _userMovedStop;  // user dragged the stop -> strategy hands off for this trade
 		private Order  _entryOrder;     // the resting "Wedge" entry, so we can cancel it precisely
 
+		// R:R hover tooltip (info box shows only while the cursor is over the R:R boxes)
+		private bool   _mouseHooked;
+		private bool   _rrHover;
+		private int    _rrStartBar = -1;    // left edge (signal/entry bar) for hover hit-test
+		private double _rrLoPrice, _rrHiPrice;
+		private string _rrText = "";
+
 		protected override void OnStateChange()
 		{
 			if (State == State.SetDefaults)
@@ -91,8 +98,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 				EntryValidBars    = 1;
 
 				// ── chart visuals ──────────────────────────────────────────────
-				ShowRiskReward    = true;    // green reward box (entry->scalp tgt) + red risk box (entry->initial stop) + R multiple
-				ShowBELine        = true;    // dashed gold line where the runner locks BE (entry ± BETriggerTicks)
+				ShowRiskReward    = true;    // green reward box (entry->scalp tgt) + red risk box (entry->initial stop)
+				RiskRewardOpacity = 25;      // 0-100 fill opacity of the R:R boxes
+				ShowBELine        = true;    // dashed gold segment (SB->right) where the runner locks BE
 				DebugDraw         = false;   // draw the strategy's OWN signals + entry/exit lifecycle on the chart
 
 				// ── MyWedge ctor params — SET TO MATCH YOUR CHART ──────────────
@@ -112,10 +120,79 @@ namespace NinjaTrader.NinjaScript.Strategies
 				_wedge = MyWedge(Input, LookBack, ShowW2L, WedgeSymmetry, OLSensitivity,
 					CTSB_Ignore, IB_Ignore, ShowWedgeSB, SignalBarIBS, ContinueMC, ContinueOnGap);
 			}
+			else if (State == State.Historical)
+			{
+				// Hook mouse-move for the R:R hover tooltip (only when chart-attached).
+				if (ChartControl != null && !_mouseHooked)
+				{
+					ChartControl.Dispatcher.InvokeAsync((Action)(() =>
+					{
+						ChartPanel.MouseMove += OnChartMouseMove;
+						_mouseHooked = true;
+					}));
+				}
+			}
 			else if (State == State.Realtime)
 			{
 				Print("=== WedgeScalperV2 REALTIME: now live. It will ONLY act on NEW "
 					+ "signals from here forward — historical signals on the chart are not traded. ===");
+			}
+			else if (State == State.Terminated)
+			{
+				if (ChartControl != null && _mouseHooked)
+				{
+					ChartControl.Dispatcher.InvokeAsync((Action)(() =>
+					{
+						ChartPanel.MouseMove -= OnChartMouseMove;
+					}));
+					_mouseHooked = false;
+				}
+			}
+		}
+
+		// ── R:R hover tooltip plumbing ──────────────────────────────────────
+		private void OnChartMouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+		{
+			if (ChartControl == null || ChartPanel == null || !ShowRiskReward) return;
+			int mx = (int)e.GetPosition(ChartPanel).X;
+			int my = (int)e.GetPosition(ChartPanel).Y;
+			bool over = _entry != 0 && _rrStartBar >= 0 && HitTestRR(mx, my);
+			if (over != _rrHover)
+			{
+				_rrHover = over;
+				// marshal the Draw call onto the NinjaScript thread
+				TriggerCustomEvent((o) => { UpdateHoverText(); ChartControl.InvalidateVisual(); }, null);
+			}
+		}
+
+		private bool HitTestRR(int x, int y)
+		{
+			double price = PriceFromY(y);
+			if (price < _rrLoPrice || price > _rrHiPrice) return false;
+			int xLeft  = ChartControl.GetXByBarIndex(ChartBars, _rrStartBar);
+			int xRight = ChartControl.GetXByBarIndex(ChartBars, ChartBars.Count - 1);
+			return x >= xLeft - 2 && x <= Math.Max(xLeft, xRight) + 6;
+		}
+
+		private double PriceFromY(int y)
+		{
+			double min = ChartPanel.MinValue, max = ChartPanel.MaxValue;
+			return (((ChartPanel.Y + ChartPanel.H) - y) * Math.Max(Math.Abs(max - min), 1E-05)) / ChartPanel.H + min;
+		}
+
+		// Add (or remove) the readable info box. Anchored at the right edge of the boxes.
+		private void UpdateHoverText()
+		{
+			if (_rrHover && _entry != 0 && _rrText.Length > 0)
+			{
+				double y = (_rrHiPrice + _rrLoPrice) / 2.0;
+				Draw.Text(this, "rrTxt", false, _rrText, 0, y, 0,
+					Brushes.White, new SimpleFont("Arial", 12), TextAlignment.Left,
+					Brushes.Transparent, Brushes.Black, 85);
+			}
+			else
+			{
+				RemoveDrawObject("rrTxt");
 			}
 		}
 
@@ -256,17 +333,18 @@ namespace NinjaTrader.NinjaScript.Strategies
 			}
 		}
 
-		// Draw the live-trade R:R picture: green reward box (entry -> scalp target),
-		// red risk box (entry -> stop), the R multiple, and a dashed line where the
-		// runner locks breakeven. The risk box uses the INITIAL stop (so R doesn't move
-		// on the auto-trail) UNLESS the user has manually dragged the stop — then it
-		// follows that stop and R recomputes live.
+		// Draw the live-trade R:R picture: green reward box (entry -> scalp target) +
+		// red risk box (entry -> stop). The risk box uses the INITIAL stop (so R doesn't
+		// move on the auto-trail) UNLESS the user dragged the stop — then it follows that
+		// stop and R recomputes live. The R info is shown only on HOVER (see hover
+		// plumbing). A short dashed BE segment (SB -> right) marks the runner's BE lock.
 		// Boxes span from the entry bar to the current bar (extend right as bars form).
 		private void DrawTradeVisuals(bool isLong)
 		{
 			if (_entry == 0 || (!ShowRiskReward && !ShowBELine)) return;
 			double tick = TickSize;
 			int startBarsAgo = Math.Max(0, CurrentBar - _entryBar);
+			int opacity = Math.Max(0, Math.Min(100, RiskRewardOpacity));
 
 			// effective stop for the R:R: manual drag wins, else the initial stop
 			double riskStop = (_userMovedStop && _liveStopPrice > 0) ? _liveStopPrice : _stopPx;
@@ -275,22 +353,27 @@ namespace NinjaTrader.NinjaScript.Strategies
 
 			if (ShowRiskReward)
 			{
-				Draw.Rectangle(this, "rrRew",  false, startBarsAgo, _entry, 0, scalpTgt, Brushes.Transparent, Brushes.SeaGreen,  25);
-				Draw.Rectangle(this, "rrRisk", false, startBarsAgo, _entry, 0, riskStop, Brushes.Transparent, Brushes.Firebrick, 25);
+				Draw.Rectangle(this, "rrRew",  false, startBarsAgo, _entry, 0, scalpTgt, Brushes.Transparent, Brushes.SeaGreen,  opacity);
+				Draw.Rectangle(this, "rrRisk", false, startBarsAgo, _entry, 0, riskStop, Brushes.Transparent, Brushes.Firebrick, opacity);
 
+				// stash the info + hit-test bounds for the hover tooltip (not drawn here)
 				double riskT = Math.Abs(_entry - riskStop) / tick;
 				double rr    = riskT > 0 ? ScalpTargetTicks / riskT : 0;
-				Draw.Text(this, "rrTxt",
-					"R 1:" + rr.ToString("0.00") + "   (tgt " + ScalpTargetTicks + "t / risk " + riskT.ToString("0") + "t)"
-						+ (_userMovedStop ? " [manual stop]" : ""),
-					0, isLong ? scalpTgt + 4 * tick : scalpTgt - 4 * tick);
+				_rrText     = "R 1:" + rr.ToString("0.00") + "   tgt " + ScalpTargetTicks + "t / risk "
+					+ riskT.ToString("0") + "t" + (_userMovedStop ? "   [manual stop]" : "");
+				_rrStartBar = _entryBar;
+				_rrLoPrice  = Math.Min(_entry, Math.Min(riskStop, scalpTgt));
+				_rrHiPrice  = Math.Max(_entry, Math.Max(riskStop, scalpTgt));
+				if (_rrHover) UpdateHoverText();   // keep an open tooltip current
 			}
 
 			if (ShowBELine)
 			{
-				Draw.HorizontalLine(this, "beLine", beTrig, Brushes.Gold, DashStyleHelper.Dash, 1);
-				Draw.Text(this, "beTxt", "BE trig " + BETriggerTicks + "t",
-					0, isLong ? beTrig + 2 * tick : beTrig - 2 * tick);
+				// short segment from the signal bar to the current bar (grows right)
+				int beStart = Math.Max(0, CurrentBar - _sigBar);
+				Line be = Draw.Line(this, "beLine", false, beStart, beTrig, 0, beTrig, Brushes.Gold);
+				be.Stroke = new Stroke(Brushes.Gold, DashStyleHelper.Dash, 1);
+				Draw.Text(this, "beTxt", "BE", beStart, isLong ? beTrig + 2 * tick : beTrig - 2 * tick);
 			}
 		}
 
@@ -301,6 +384,16 @@ namespace NinjaTrader.NinjaScript.Strategies
 			RemoveDrawObject("rrTxt");
 			RemoveDrawObject("beLine");
 			RemoveDrawObject("beTxt");
+			_rrHover = false; _rrStartBar = -1; _rrText = "";
+		}
+
+		// Delete the trade visuals the INSTANT the position goes flat (don't wait for the
+		// next bar close) so the BE line / R:R boxes / tooltip disappear on the exit fill.
+		protected override void OnPositionUpdate(Position position, double averagePrice,
+			int quantity, MarketPosition marketPosition)
+		{
+			if (marketPosition == MarketPosition.Flat)
+				ClearTradeVisuals();
 		}
 
 		// Places/updates the whole-position stop and (once) the scalp target. Called
@@ -471,15 +564,20 @@ namespace NinjaTrader.NinjaScript.Strategies
 
 		// ── 5. Chart Visuals ────────────────────────────────────────────────
 		[NinjaScriptProperty]
-		[Display(Name = "Show risk/reward boxes + R multiple", GroupName = "5. Chart Visuals", Order = 0)]
+		[Display(Name = "Show risk/reward boxes (info on hover)", GroupName = "5. Chart Visuals", Order = 0)]
 		public bool ShowRiskReward { get; set; }
 
 		[NinjaScriptProperty]
-		[Display(Name = "Show breakeven-trigger line", GroupName = "5. Chart Visuals", Order = 1)]
+		[Range(0, 100)]
+		[Display(Name = "Risk/reward box opacity (0-100)", GroupName = "5. Chart Visuals", Order = 1)]
+		public int RiskRewardOpacity { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name = "Show breakeven-trigger line", GroupName = "5. Chart Visuals", Order = 2)]
 		public bool ShowBELine { get; set; }
 
 		[NinjaScriptProperty]
-		[Display(Name = "Debug draw (signals + entry/exit lifecycle)", GroupName = "5. Chart Visuals", Order = 2)]
+		[Display(Name = "Debug draw (signals + entry/exit lifecycle)", GroupName = "5. Chart Visuals", Order = 3)]
 		public bool DebugDraw { get; set; }
 		#endregion
 
