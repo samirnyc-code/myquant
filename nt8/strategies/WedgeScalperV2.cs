@@ -105,6 +105,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 				StopBeyondSBTicks = 1;
 				InsideBarUsePriorBar = true;  // SB is an inside bar -> stop beyond the prior bar
 				MinRiskReward     = 0.0;      // 0 = off; else skip setups with scalp-tgt:risk worse than this
+				MaxSBAbrMult      = 0.0;      // 0 = off; else skip if SB range > avg-bar-range(8) x this
 				ScalpTargetTicks  = 4;
 				BETriggerTicks    = 5;    // price must reach entry ± this to ARM breakeven
 				BEOffsetTicks     = 0;    // where the stop locks once armed: entry ± this (signed, +4 = lock 1pt)
@@ -265,6 +266,22 @@ namespace NinjaTrader.NinjaScript.Strategies
 						double stopLo = insideBar ? Low[1]  : Low[0];
 						if (side == 1) { _entryPx = High[0] + StopBeyondSBTicks * tick; _stopPx = stopLo - StopBeyondSBTicks * tick; }
 						else           { _entryPx = Low[0]  - StopBeyondSBTicks * tick; _stopPx = stopHi + StopBeyondSBTicks * tick; }
+
+						// SB-SIZE FILTER: skip if the signal bar's range is bigger than the
+						// AVERAGE BAR RANGE of the prior 8 bars x MaxSBAbrMult (0 = off). The
+						// average excludes the SB itself so a big SB can't inflate its threshold.
+						double sbRange = High[0] - Low[0];
+						double abrSum = 0;
+						for (int i = 1; i <= 8; i++) abrSum += High[i] - Low[i];
+						double abr = abrSum / 8.0;
+						if (MaxSBAbrMult > 0 && abr > 0 && sbRange > abr * MaxSBAbrMult)
+						{
+							if (DebugDraw) Print(ST + " " + Time[0] + "  SKIP " + (side > 0 ? "LONG" : "SHORT")
+								+ " — SB " + (sbRange / tick).ToString("0") + "t > ABR8 " + (abr / tick).ToString("0")
+								+ "t x " + MaxSBAbrMult.ToString("0.00"));
+							_pendingSide = 0;
+							return;
+						}
 
 						// R:R FILTER: skip the setup if the scalp-target:risk ratio is worse than
 						// MinRiskReward (0 = off). risk = SB/prior-bar stop distance.
@@ -647,6 +664,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 		[Range(0, 100)]
 		[Display(Name = "Min R:R (scalp tgt / risk, 0 = off)", GroupName = "2. Entry", Order = 3)]
 		public double MinRiskReward { get; set; }
+
+		[NinjaScriptProperty]
+		[Range(0, 100)]
+		[Display(Name = "Max SB size (× avg bar range 8, 0 = off)", GroupName = "2. Entry", Order = 4)]
+		public double MaxSBAbrMult { get; set; }
 
 		// ── 3. Scalp Target ─────────────────────────────────────────────────
 		[NinjaScriptProperty]
