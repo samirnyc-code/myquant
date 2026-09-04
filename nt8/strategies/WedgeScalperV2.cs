@@ -83,6 +83,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 				ScalpQty          = 1;   // 0 = no scalp lot
 				RunnerQty         = 1;   // 0 = no runner lot
 				StopBeyondSBTicks = 1;
+				InsideBarUsePriorBar = true;  // SB is an inside bar -> stop beyond the prior bar
 				ScalpTargetTicks  = 4;
 				BETriggerTicks    = 5;    // price must reach entry ± this to ARM breakeven
 				BEOffsetTicks     = 0;    // where the stop locks once armed: entry ± this (signed, +4 = lock 1pt)
@@ -161,8 +162,15 @@ namespace NinjaTrader.NinjaScript.Strategies
 					if (side != 0)
 					{
 						_pendingSide = side; _sigBar = CurrentBar;
-						if (side == 1) { _entryPx = High[0] + StopBeyondSBTicks * tick; _stopPx = Low[0]  - StopBeyondSBTicks * tick; }
-						else           { _entryPx = Low[0]  - StopBeyondSBTicks * tick; _stopPx = High[0] + StopBeyondSBTicks * tick; }
+						// If the SB is an INSIDE bar (contained in the prior bar), its range is
+						// too tight for a protective stop -> put the stop beyond the PRIOR bar
+						// instead. Entry stays at the SB breakout level either way.
+						bool insideBar = InsideBarUsePriorBar && CurrentBar >= 1
+							&& High[0] <= High[1] && Low[0] >= Low[1];
+						double stopHi = insideBar ? High[1] : High[0];
+						double stopLo = insideBar ? Low[1]  : Low[0];
+						if (side == 1) { _entryPx = High[0] + StopBeyondSBTicks * tick; _stopPx = stopLo - StopBeyondSBTicks * tick; }
+						else           { _entryPx = Low[0]  - StopBeyondSBTicks * tick; _stopPx = stopHi + StopBeyondSBTicks * tick; }
 						int totQ = ScalpQty + RunnerQty;
 						if (totQ > 0)
 						{
@@ -182,7 +190,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 								else                EnterShortLimit (0, true, totQ, _entryPx, "Wedge");
 							}
 							Print(ST + " " + Time[0] + "  SIGNAL " + (side > 0 ? "LONG " : "SHORT")
-								+ "  rest x" + totQ + " entry@" + _entryPx + " protStop@" + _stopPx);
+								+ "  rest x" + totQ + " entry@" + _entryPx + " protStop@" + _stopPx
+								+ (insideBar ? "  [inside bar -> stop beyond prior bar]" : ""));
 							if (DebugDraw) Draw.Text(this, "sub" + CurrentBar, "SUB@" + _entryPx,
 								0, side > 0 ? High[0] + 6 * tick : Low[0] - 6 * tick);
 						}
@@ -433,6 +442,10 @@ namespace NinjaTrader.NinjaScript.Strategies
 		[Range(1, 100)]
 		[Display(Name = "Entry valid for N bars", GroupName = "2. Entry", Order = 1)]
 		public int EntryValidBars { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name = "Inside-bar SB: stop beyond prior bar", GroupName = "2. Entry", Order = 2)]
+		public bool InsideBarUsePriorBar { get; set; }
 
 		// ── 3. Scalp Target ─────────────────────────────────────────────────
 		[NinjaScriptProperty]
