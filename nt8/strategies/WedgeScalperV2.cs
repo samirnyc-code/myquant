@@ -53,6 +53,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 		private bool   _beActive;      // runner has armed breakeven/trail
 		private double _curStop;       // current protective stop level
 		private bool   _scalpDone;     // scalp lot has scaled out (never re-scalp)
+		private int    _entryBar;      // CurrentBar at the fill (left edge of the R:R boxes)
 
 		// manual stop override (value-comparison, per @@MCScaleInStrategy):
 		private double _stratSetStop;   // last stop price the STRATEGY commanded
@@ -87,7 +88,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 				TrailTicks        = 1;
 				EntryValidBars    = 1;
 				TrailFromEntry    = false;   // true: runner trails from entry, BE floor after trigger
-				DebugDraw         = true;    // draw the strategy's OWN signals + entry/exit lifecycle on the chart
+
+				// ── chart visuals ──────────────────────────────────────────────
+				ShowRiskReward    = true;    // green reward box (entry->scalp tgt) + red risk box (entry->initial stop) + R multiple
+				ShowBELine        = true;    // dashed gold line where the runner locks BE (entry ± BETriggerTicks)
+				DebugDraw         = false;   // draw the strategy's OWN signals + entry/exit lifecycle on the chart
 
 				// ── MyWedge ctor params — SET TO MATCH YOUR CHART ──────────────
 				LookBack       = 12;
@@ -145,6 +150,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 				// reset leftover open-trade state
 				_entry = 0; _beActive = false; _curStop = 0; _scalpDone = false;
 				_stratSetStop = 0; _liveStopPrice = 0; _userMovedStop = false;
+				ClearTradeVisuals();   // wipe R:R boxes + BE line once flat
 
 				// ── detect a NEW signal on the just-closed bar [0] and rest ONE entry ──
 				if (_pendingSide == 0)
@@ -199,7 +205,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			// One position at a time — opposite/new signals are ignored while in a trade.
 			if (Position.MarketPosition == MarketPosition.Long)
 			{
-				if (_entry == 0) { _entry = Position.AveragePrice; _curStop = _stopPx; _beActive = false; _scalpDone = false; _pendingSide = 0; }
+				if (_entry == 0) { _entry = Position.AveragePrice; _curStop = _stopPx; _beActive = false; _scalpDone = false; _pendingSide = 0; _entryBar = CurrentBar; }
 
 				if (RunnerQty > 0 && !_userMovedStop)   // skip auto-trail once the user drags the stop
 				{
@@ -221,10 +227,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 				}
 				ManageProtection();
 				if (!HasWorkingStop() && Close[0] <= _curStop) ExitLong("StopFail", "Wedge");   // true last-resort only
+				DrawTradeVisuals(true);
 			}
 			else if (Position.MarketPosition == MarketPosition.Short)
 			{
-				if (_entry == 0) { _entry = Position.AveragePrice; _curStop = _stopPx; _beActive = false; _scalpDone = false; _pendingSide = 0; }
+				if (_entry == 0) { _entry = Position.AveragePrice; _curStop = _stopPx; _beActive = false; _scalpDone = false; _pendingSide = 0; _entryBar = CurrentBar; }
 
 				if (RunnerQty > 0 && !_userMovedStop)
 				{
@@ -246,7 +253,50 @@ namespace NinjaTrader.NinjaScript.Strategies
 				}
 				ManageProtection();
 				if (!HasWorkingStop() && Close[0] >= _curStop) ExitShort("StopFail", "Wedge");
+				DrawTradeVisuals(false);
 			}
+		}
+
+		// Draw the live-trade R:R picture: green reward box (entry -> scalp target),
+		// red risk box (entry -> INITIAL stop, so R stays fixed as the runner trails),
+		// the R multiple, and a dashed line where the runner locks breakeven.
+		// Boxes span from the entry bar to the current bar (extend right as bars form).
+		private void DrawTradeVisuals(bool isLong)
+		{
+			if (_entry == 0 || (!ShowRiskReward && !ShowBELine)) return;
+			double tick = TickSize;
+			int startBarsAgo = Math.Max(0, CurrentBar - _entryBar);
+
+			double scalpTgt = isLong ? _entry + ScalpTargetTicks * tick : _entry - ScalpTargetTicks * tick;
+			double beTrig   = isLong ? _entry + BETriggerTicks   * tick : _entry - BETriggerTicks   * tick;
+
+			if (ShowRiskReward)
+			{
+				Draw.Rectangle(this, "rrRew",  false, startBarsAgo, _entry, 0, scalpTgt, Brushes.Transparent, Brushes.SeaGreen,  25);
+				Draw.Rectangle(this, "rrRisk", false, startBarsAgo, _entry, 0, _stopPx,  Brushes.Transparent, Brushes.Firebrick, 25);
+
+				double riskT = Math.Abs(_entry - _stopPx) / tick;
+				double rr    = riskT > 0 ? ScalpTargetTicks / riskT : 0;
+				Draw.Text(this, "rrTxt",
+					"R 1:" + rr.ToString("0.00") + "   (tgt " + ScalpTargetTicks + "t / risk " + riskT.ToString("0") + "t)",
+					0, isLong ? scalpTgt + 4 * tick : scalpTgt - 4 * tick);
+			}
+
+			if (ShowBELine)
+			{
+				Draw.HorizontalLine(this, "beLine", beTrig, Brushes.Gold, DashStyleHelper.Dash, 1);
+				Draw.Text(this, "beTxt", "BE trig " + BETriggerTicks + "t",
+					0, isLong ? beTrig + 2 * tick : beTrig - 2 * tick);
+			}
+		}
+
+		private void ClearTradeVisuals()
+		{
+			RemoveDrawObject("rrRew");
+			RemoveDrawObject("rrRisk");
+			RemoveDrawObject("rrTxt");
+			RemoveDrawObject("beLine");
+			RemoveDrawObject("beTxt");
 		}
 
 		// Places/updates the whole-position stop and (once) the scalp target. Called
@@ -323,7 +373,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			{
 				if (_entry == 0)
 				{
-					_entry = Position.AveragePrice; _curStop = _stopPx; _beActive = false; _scalpDone = false; _pendingSide = 0;
+					_entry = Position.AveragePrice; _curStop = _stopPx; _beActive = false; _scalpDone = false; _pendingSide = 0; _entryBar = CurrentBar;
 					_stratSetStop = 0; _liveStopPrice = 0; _userMovedStop = false;
 					Print(ST + " " + time + "  FILLED entry x" + quantity + " @ " + price + "  -> stop@" + _curStop);
 					// No custom FILL marker: Bars.GetBar(time) is unreliable on a tick chart
@@ -346,97 +396,111 @@ namespace NinjaTrader.NinjaScript.Strategies
 		}
 
 		#region Trade structure properties
+
+		// ── 1. Position Sizing ──────────────────────────────────────────────
 		[NinjaScriptProperty]
 		[Range(0, 100)]
-		[Display(Name = "Scalp contracts (0 = no scalp)", GroupName = "1. Trade Structure", Order = 0)]
+		[Display(Name = "Scalp contracts (0 = no scalp)", GroupName = "1. Position Sizing", Order = 0)]
 		public int ScalpQty { get; set; }
 
 		[NinjaScriptProperty]
 		[Range(0, 100)]
-		[Display(Name = "Runner contracts (0 = no runner)", GroupName = "1. Trade Structure", Order = 1)]
+		[Display(Name = "Runner contracts (0 = no runner)", GroupName = "1. Position Sizing", Order = 1)]
 		public int RunnerQty { get; set; }
 
+		// ── 2. Entry ────────────────────────────────────────────────────────
 		[NinjaScriptProperty]
 		[Range(1, 100)]
-		[Display(Name = "Stop/entry offset beyond SB (ticks)", GroupName = "1. Trade Structure", Order = 2)]
+		[Display(Name = "Stop/entry offset beyond SB (ticks)", GroupName = "2. Entry", Order = 0)]
 		public int StopBeyondSBTicks { get; set; }
 
 		[NinjaScriptProperty]
-		[Range(1, 1000)]
-		[Display(Name = "Scalp target (ticks)", GroupName = "1. Trade Structure", Order = 3)]
-		public int ScalpTargetTicks { get; set; }
+		[Range(1, 100)]
+		[Display(Name = "Entry valid for N bars", GroupName = "2. Entry", Order = 1)]
+		public int EntryValidBars { get; set; }
 
+		// ── 3. Scalp Target ─────────────────────────────────────────────────
 		[NinjaScriptProperty]
 		[Range(1, 1000)]
-		[Display(Name = "Breakeven trigger (ticks)", GroupName = "1. Trade Structure", Order = 4)]
+		[Display(Name = "Scalp target (ticks)", GroupName = "3. Scalp Target", Order = 0)]
+		public int ScalpTargetTicks { get; set; }
+
+		// ── 4. Runner / Breakeven ───────────────────────────────────────────
+		[NinjaScriptProperty]
+		[Range(1, 1000)]
+		[Display(Name = "Breakeven trigger (ticks)", GroupName = "4. Runner / Breakeven", Order = 0)]
 		public int BETriggerTicks { get; set; }
 
 		[NinjaScriptProperty]
 		[Range(-1000, 1000)]
-		[Display(Name = "Breakeven lock offset (ticks, ± entry)", GroupName = "1. Trade Structure", Order = 5)]
+		[Display(Name = "Breakeven lock offset (ticks, ± entry)", GroupName = "4. Runner / Breakeven", Order = 1)]
 		public int BEOffsetTicks { get; set; }
 
 		[NinjaScriptProperty]
 		[Range(1, 1000)]
-		[Display(Name = "Runner trail beyond bar (ticks)", GroupName = "1. Trade Structure", Order = 6)]
+		[Display(Name = "Runner trail beyond bar (ticks)", GroupName = "4. Runner / Breakeven", Order = 2)]
 		public int TrailTicks { get; set; }
 
 		[NinjaScriptProperty]
-		[Range(1, 100)]
-		[Display(Name = "Entry valid for N bars", GroupName = "1. Trade Structure", Order = 7)]
-		public int EntryValidBars { get; set; }
-
-		[NinjaScriptProperty]
-		[Display(Name = "Runner: trail from entry (BE after trigger)", GroupName = "1. Trade Structure", Order = 8)]
+		[Display(Name = "Runner: trail from entry (BE after trigger)", GroupName = "4. Runner / Breakeven", Order = 3)]
 		public bool TrailFromEntry { get; set; }
 
+		// ── 5. Chart Visuals ────────────────────────────────────────────────
 		[NinjaScriptProperty]
-		[Display(Name = "Debug draw (signals + entry/exit lifecycle)", GroupName = "1. Trade Structure", Order = 9)]
+		[Display(Name = "Show risk/reward boxes + R multiple", GroupName = "5. Chart Visuals", Order = 0)]
+		public bool ShowRiskReward { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name = "Show breakeven-trigger line", GroupName = "5. Chart Visuals", Order = 1)]
+		public bool ShowBELine { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name = "Debug draw (signals + entry/exit lifecycle)", GroupName = "5. Chart Visuals", Order = 2)]
 		public bool DebugDraw { get; set; }
 		#endregion
 
 		#region MyWedge properties
 		[NinjaScriptProperty]
 		[Range(1, 10000)]
-		[Display(Name = "LookBack", GroupName = "2. MyWedge Settings", Order = 0)]
+		[Display(Name = "LookBack", GroupName = "6. MyWedge Settings", Order = 0)]
 		public int LookBack { get; set; }
 
 		[NinjaScriptProperty]
-		[Display(Name = "ShowW2L", GroupName = "2. MyWedge Settings", Order = 1)]
+		[Display(Name = "ShowW2L", GroupName = "6. MyWedge Settings", Order = 1)]
 		public bool ShowW2L { get; set; }
 
 		[NinjaScriptProperty]
 		[Range(0, 10000)]
-		[Display(Name = "WedgeSymmetry", GroupName = "2. MyWedge Settings", Order = 2)]
+		[Display(Name = "WedgeSymmetry", GroupName = "6. MyWedge Settings", Order = 2)]
 		public int WedgeSymmetry { get; set; }
 
 		[NinjaScriptProperty]
 		[Range(0, 10000)]
-		[Display(Name = "OLSensitivity", GroupName = "2. MyWedge Settings", Order = 3)]
+		[Display(Name = "OLSensitivity", GroupName = "6. MyWedge Settings", Order = 3)]
 		public int OLSensitivity { get; set; }
 
 		[NinjaScriptProperty]
-		[Display(Name = "CTSB_Ignore", GroupName = "2. MyWedge Settings", Order = 4)]
+		[Display(Name = "CTSB_Ignore", GroupName = "6. MyWedge Settings", Order = 4)]
 		public bool CTSB_Ignore { get; set; }
 
 		[NinjaScriptProperty]
-		[Display(Name = "IB_Ignore", GroupName = "2. MyWedge Settings", Order = 5)]
+		[Display(Name = "IB_Ignore", GroupName = "6. MyWedge Settings", Order = 5)]
 		public bool IB_Ignore { get; set; }
 
 		[NinjaScriptProperty]
-		[Display(Name = "ShowWedgeSB", GroupName = "2. MyWedge Settings", Order = 6)]
+		[Display(Name = "ShowWedgeSB", GroupName = "6. MyWedge Settings", Order = 6)]
 		public bool ShowWedgeSB { get; set; }
 
 		[NinjaScriptProperty]
-		[Display(Name = "SignalBarIBS", GroupName = "2. MyWedge Settings", Order = 7)]
+		[Display(Name = "SignalBarIBS", GroupName = "6. MyWedge Settings", Order = 7)]
 		public double SignalBarIBS { get; set; }
 
 		[NinjaScriptProperty]
-		[Display(Name = "ContinueMC", GroupName = "2. MyWedge Settings", Order = 8)]
+		[Display(Name = "ContinueMC", GroupName = "6. MyWedge Settings", Order = 8)]
 		public bool ContinueMC { get; set; }
 
 		[NinjaScriptProperty]
-		[Display(Name = "ContinueOnGap", GroupName = "2. MyWedge Settings", Order = 9)]
+		[Display(Name = "ContinueOnGap", GroupName = "6. MyWedge Settings", Order = 9)]
 		public bool ContinueOnGap { get; set; }
 		#endregion
 	}
