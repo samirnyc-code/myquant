@@ -258,8 +258,10 @@ namespace NinjaTrader.NinjaScript.Strategies
 		}
 
 		// Draw the live-trade R:R picture: green reward box (entry -> scalp target),
-		// red risk box (entry -> INITIAL stop, so R stays fixed as the runner trails),
-		// the R multiple, and a dashed line where the runner locks breakeven.
+		// red risk box (entry -> stop), the R multiple, and a dashed line where the
+		// runner locks breakeven. The risk box uses the INITIAL stop (so R doesn't move
+		// on the auto-trail) UNLESS the user has manually dragged the stop — then it
+		// follows that stop and R recomputes live.
 		// Boxes span from the entry bar to the current bar (extend right as bars form).
 		private void DrawTradeVisuals(bool isLong)
 		{
@@ -267,18 +269,21 @@ namespace NinjaTrader.NinjaScript.Strategies
 			double tick = TickSize;
 			int startBarsAgo = Math.Max(0, CurrentBar - _entryBar);
 
+			// effective stop for the R:R: manual drag wins, else the initial stop
+			double riskStop = (_userMovedStop && _liveStopPrice > 0) ? _liveStopPrice : _stopPx;
 			double scalpTgt = isLong ? _entry + ScalpTargetTicks * tick : _entry - ScalpTargetTicks * tick;
 			double beTrig   = isLong ? _entry + BETriggerTicks   * tick : _entry - BETriggerTicks   * tick;
 
 			if (ShowRiskReward)
 			{
 				Draw.Rectangle(this, "rrRew",  false, startBarsAgo, _entry, 0, scalpTgt, Brushes.Transparent, Brushes.SeaGreen,  25);
-				Draw.Rectangle(this, "rrRisk", false, startBarsAgo, _entry, 0, _stopPx,  Brushes.Transparent, Brushes.Firebrick, 25);
+				Draw.Rectangle(this, "rrRisk", false, startBarsAgo, _entry, 0, riskStop, Brushes.Transparent, Brushes.Firebrick, 25);
 
-				double riskT = Math.Abs(_entry - _stopPx) / tick;
+				double riskT = Math.Abs(_entry - riskStop) / tick;
 				double rr    = riskT > 0 ? ScalpTargetTicks / riskT : 0;
 				Draw.Text(this, "rrTxt",
-					"R 1:" + rr.ToString("0.00") + "   (tgt " + ScalpTargetTicks + "t / risk " + riskT.ToString("0") + "t)",
+					"R 1:" + rr.ToString("0.00") + "   (tgt " + ScalpTargetTicks + "t / risk " + riskT.ToString("0") + "t)"
+						+ (_userMovedStop ? " [manual stop]" : ""),
 					0, isLong ? scalpTgt + 4 * tick : scalpTgt - 4 * tick);
 			}
 
