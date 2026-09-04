@@ -77,6 +77,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 		private double   _tTicks, _tUsd;    // running realized result
 		private System.Text.StringBuilder _tLegs;
 
+		// running per-DAY scoreboard (resets when the trade date rolls over)
+		private DateTime _dayDate = DateTime.MinValue;
+		private int      _dayN, _dayWins, _dayLosses;
+		private double   _dayUsd, _dayR;
+
 		protected override void OnStateChange()
 		{
 			if (State == State.SetDefaults)
@@ -84,7 +89,6 @@ namespace NinjaTrader.NinjaScript.Strategies
 				Description  = "MyWedge signal-bar scalper: single sized entry, all-manual exits, immediate stop on fill, no re-scalp. No reversal.";
 				Name         = "WedgeScalperV2";
 				Calculate    = Calculate.OnBarClose;
-				PrintTo      = PrintTo.OutputTab2;   // isolate from other strategies' Output (e.g. the PB33 dashboard on Tab1)
 				EntriesPerDirection = 1;
 				EntryHandling = EntryHandling.AllEntries;
 				IsExitOnSessionCloseStrategy = true;
@@ -123,6 +127,13 @@ namespace NinjaTrader.NinjaScript.Strategies
 				SignalBarIBS   = 0.0;
 				ContinueMC     = false;
 				ContinueOnGap  = false;
+			}
+			else if (State == State.Configure)
+			{
+				// Set PrintTo here (NOT SetDefaults) so it reliably overrides the strategy
+				// instance's serialized value on every load — isolates our Output on Tab2,
+				// away from other strategies sharing the global window (e.g. the PB33 dashboard).
+				PrintTo = PrintTo.OutputTab2;
 			}
 			else if (State == State.DataLoaded)
 			{
@@ -450,6 +461,18 @@ namespace NinjaTrader.NinjaScript.Strategies
 			Print("   RESULT  " + (_tTicks >= 0 ? "+" : "") + _tTicks.ToString("0") + "t   "
 				+ (_tUsd >= 0 ? "+$" : "-$") + Math.Abs(_tUsd).ToString("0.00")
 				+ "   (" + (rMult >= 0 ? "+" : "") + rMult.ToString("0.00") + "R)");
+
+			// running daily scoreboard — reset when the trade date rolls over
+			if (_tTime.Date != _dayDate)
+			{
+				_dayDate = _tTime.Date;
+				_dayN = 0; _dayWins = 0; _dayLosses = 0; _dayUsd = 0; _dayR = 0;
+			}
+			_dayN++; _dayUsd += _tUsd; _dayR += rMult;
+			if (_tUsd >= 0) _dayWins++; else _dayLosses++;
+			Print("   DAY " + _dayDate.ToString("M/d") + "  " + _dayN + "T  " + _dayWins + "W-" + _dayLosses + "L   "
+				+ (_dayUsd >= 0 ? "+$" : "-$") + Math.Abs(_dayUsd).ToString("0")
+				+ "   (" + (_dayR >= 0 ? "+" : "") + _dayR.ToString("0.00") + "R)");
 			Print(bar);
 			_tSide = 0; _tLegs = null;
 		}
