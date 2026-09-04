@@ -69,6 +69,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 		private double _rrLoPrice, _rrHiPrice;
 		private string _rrText = "";
 
+		// per-trade summary log — one clean stacked block per closed trade (thick-bar separated)
+		private int      _tSide;            // +1 long / -1 short / 0 = no open trade logged
+		private DateTime _tTime;            // entry time
+		private double   _tEntry, _tInitStop;
+		private int      _tQty;             // initial position size (for max-risk / R)
+		private double   _tTicks, _tUsd;    // running realized result
+		private System.Text.StringBuilder _tLegs;
+
 		protected override void OnStateChange()
 		{
 			if (State == State.SetDefaults)
@@ -76,6 +84,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 				Description  = "MyWedge signal-bar scalper: single sized entry, all-manual exits, immediate stop on fill, no re-scalp. No reversal.";
 				Name         = "WedgeScalperV2";
 				Calculate    = Calculate.OnBarClose;
+				PrintTo      = PrintTo.OutputTab2;   // isolate from other strategies' Output (e.g. the PB33 dashboard on Tab1)
 				EntriesPerDirection = 1;
 				EntryHandling = EntryHandling.AllEntries;
 				IsExitOnSessionCloseStrategy = true;
@@ -291,7 +300,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			// One position at a time — opposite/new signals are ignored while in a trade.
 			if (Position.MarketPosition == MarketPosition.Long)
 			{
-				if (_entry == 0) { _entry = Position.AveragePrice; _curStop = _stopPx; _beActive = false; _scalpDone = false; _pendingSide = 0; _entryBar = CurrentBar; }
+				if (_entry == 0) { _entry = Position.AveragePrice; _curStop = _stopPx; _beActive = false; _scalpDone = false; _pendingSide = 0; _entryBar = CurrentBar; if (_tSide == 0) BeginTradeLog(1, Time[0]); }
 
 				if (RunnerQty > 0 && !_userMovedStop)   // skip auto-trail once the user drags the stop
 				{
@@ -313,7 +322,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			}
 			else if (Position.MarketPosition == MarketPosition.Short)
 			{
-				if (_entry == 0) { _entry = Position.AveragePrice; _curStop = _stopPx; _beActive = false; _scalpDone = false; _pendingSide = 0; _entryBar = CurrentBar; }
+				if (_entry == 0) { _entry = Position.AveragePrice; _curStop = _stopPx; _beActive = false; _scalpDone = false; _pendingSide = 0; _entryBar = CurrentBar; if (_tSide == 0) BeginTradeLog(-1, Time[0]); }
 
 				if (RunnerQty > 0 && !_userMovedStop)
 				{
@@ -389,11 +398,60 @@ namespace NinjaTrader.NinjaScript.Strategies
 
 		// Delete the trade visuals the INSTANT the position goes flat (don't wait for the
 		// next bar close) so the BE line / R:R boxes / tooltip disappear on the exit fill.
+		// Also emit the clean per-trade summary block.
 		protected override void OnPositionUpdate(Position position, double averagePrice,
 			int quantity, MarketPosition marketPosition)
 		{
 			if (marketPosition == MarketPosition.Flat)
+			{
 				ClearTradeVisuals();
+				EmitTradeLog();
+			}
+		}
+
+		// Start a per-trade record when an entry fills (called wherever _entry is first set).
+		private void BeginTradeLog(int side, DateTime t)
+		{
+			_tSide = side; _tTime = t; _tEntry = _entry; _tInitStop = _stopPx;
+			_tQty = Position.Quantity; _tTicks = 0; _tUsd = 0;
+			_tLegs = new System.Text.StringBuilder();
+		}
+
+		// Record one exit leg (scalp / runner / session-close) into the current trade record.
+		private void AddExitLeg(string orderName, double price, int qty)
+		{
+			if (_tSide == 0 || _tLegs == null) return;
+			double tickVal  = Instrument.MasterInstrument.PointValue * TickSize;
+			double legTicks = (price - _tEntry) / TickSize * _tSide;   // + = profit
+			double legUsd   = legTicks * tickVal * qty;
+			_tTicks += legTicks; _tUsd += legUsd;
+			string label = orderName == "Scalp" ? "scalp " : (orderName == "Stop" || orderName == "StopFail") ? "runner" : orderName;
+			_tLegs.Append("   " + label + " x" + qty + " @ " + price.ToString("0.00") + "   "
+				+ (legTicks >= 0 ? "+" : "") + legTicks.ToString("0") + "t  "
+				+ (legUsd >= 0 ? "+$" : "-$") + Math.Abs(legUsd).ToString("0") + "\n");
+		}
+
+		// Print the clean stacked block on trade close. Always on (not gated by DebugDraw).
+		private void EmitTradeLog()
+		{
+			if (_tSide == 0 || _tLegs == null) return;
+			double tickVal   = Instrument.MasterInstrument.PointValue * TickSize;
+			double riskTicks = Math.Abs(_tEntry - _tInitStop) / TickSize;
+			double maxRisk   = riskTicks * tickVal * Math.Max(1, _tQty);
+			double rMult     = maxRisk > 0 ? _tUsd / maxRisk : 0;
+			string bar = new string('═', 52);
+
+			Print("\n" + bar);
+			Print(" " + (_tSide > 0 ? "LONG " : "SHORT") + "  " + _tTime
+				+ "   x" + _tQty + " @ " + _tEntry.ToString("0.00")
+				+ "   stop " + _tInitStop.ToString("0.00") + "   risk " + riskTicks.ToString("0") + "t");
+			Print(_tLegs.ToString().TrimEnd('\n'));
+			Print("   " + new string('─', 30));
+			Print("   RESULT  " + (_tTicks >= 0 ? "+" : "") + _tTicks.ToString("0") + "t   "
+				+ (_tUsd >= 0 ? "+$" : "-$") + Math.Abs(_tUsd).ToString("0.00")
+				+ "   (" + (rMult >= 0 ? "+" : "") + rMult.ToString("0.00") + "R)");
+			Print(bar);
+			_tSide = 0; _tLegs = null;
 		}
 
 		// Places/updates the whole-position stop and (once) the scalp target. Called
@@ -483,15 +541,24 @@ namespace NinjaTrader.NinjaScript.Strategies
 		protected override void OnExecutionUpdate(Execution execution, string executionId, double price,
 			int quantity, Cbi.MarketPosition marketPosition, string orderId, DateTime time)
 		{
-			if (execution.Order == null || Position.MarketPosition == MarketPosition.Flat)
+			if (execution.Order == null)
 				return;
 			string nm = execution.Order.Name;
+
+			// Record every EXIT leg (anything but the "Wedge" entry) for the per-trade summary
+			// BEFORE the flat-return below, so the CLOSING leg is captured too.
+			if (nm != "Wedge")
+				AddExitLeg(nm, price, quantity);
+
+			if (Position.MarketPosition == MarketPosition.Flat)
+				return;
 			if (nm == "Wedge")
 			{
 				if (_entry == 0)
 				{
 					_entry = Position.AveragePrice; _curStop = _stopPx; _beActive = false; _scalpDone = false; _pendingSide = 0; _entryBar = CurrentBar;
 					_stratSetStop = 0; _liveStopPrice = 0; _userMovedStop = false;
+					BeginTradeLog(Position.MarketPosition == MarketPosition.Long ? 1 : -1, time);
 					if (DebugDraw) Print(ST + " " + time + "  FILLED entry x" + quantity + " @ " + price + "  -> stop@" + _curStop);
 					// No custom FILL marker: Bars.GetBar(time) is unreliable on a tick chart
 					// (many bars share a timestamp) so it lands on the wrong bar. NT's own
