@@ -134,7 +134,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			}
 			else if (State == State.Realtime)
 			{
-				Print("=== WedgeScalperV2 REALTIME: now live. It will ONLY act on NEW "
+				if (DebugDraw) Print("=== WedgeScalperV2 REALTIME: now live. It will ONLY act on NEW "
 					+ "signals from here forward — historical signals on the chart are not traded. ===");
 			}
 			else if (State == State.Terminated)
@@ -266,7 +266,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 								if (_entryPx < bid) EnterShortStopMarket(0, true, totQ, _entryPx, "Wedge");
 								else                EnterShortLimit (0, true, totQ, _entryPx, "Wedge");
 							}
-							Print(ST + " " + Time[0] + "  SIGNAL " + (side > 0 ? "LONG " : "SHORT")
+							if (DebugDraw) Print(ST + " " + Time[0] + "  SIGNAL " + (side > 0 ? "LONG " : "SHORT")
 								+ "  rest x" + totQ + " entry@" + _entryPx + " protStop@" + _stopPx
 								+ (insideBar ? "  [inside bar -> stop beyond prior bar]" : ""));
 							if (DebugDraw) Draw.Text(this, "sub" + CurrentBar, "SUB@" + _entryPx,
@@ -409,7 +409,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			{
 				_userMovedStop = true;
 				_curStop = _liveStopPrice;
-				Print(ST + " " + Time[0] + "  manual stop @ " + _liveStopPrice + " -> auto-stop OFF for this trade");
+				if (DebugDraw) Print(ST + " " + Time[0] + "  manual stop @ " + _liveStopPrice + " -> auto-stop OFF for this trade");
 			}
 
 			if (Position.MarketPosition == MarketPosition.Long)
@@ -454,7 +454,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 				{
 					_userMovedStop = true;
 					_curStop = _liveStopPrice;
-					Print(ST + " " + time + "  manual stop @ " + _liveStopPrice + " -> auto-stop OFF for this trade");
+					if (DebugDraw) Print(ST + " " + time + "  manual stop @ " + _liveStopPrice + " -> auto-stop OFF for this trade");
 				}
 
 				// Redraw the R:R so a stop drag (or any stop-price change) reflects live.
@@ -469,7 +469,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			{
 				if (order.OrderState == OrderState.Cancelled)
 				{
-					Print(ST + " " + time + "  entry CANCEL confirmed (" + (_pendingSide > 0 ? "LONG" : "SHORT") + ")");
+					if (DebugDraw) Print(ST + " " + time + "  entry CANCEL confirmed (" + (_pendingSide > 0 ? "LONG" : "SHORT") + ")");
 					if (DebugDraw) Draw.Text(this, "elap" + order.OrderId, "Ecancel", 0, High[0] + 6 * TickSize);
 					_pendingSide = 0; _entryOrder = null;
 				}
@@ -492,7 +492,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 				{
 					_entry = Position.AveragePrice; _curStop = _stopPx; _beActive = false; _scalpDone = false; _pendingSide = 0; _entryBar = CurrentBar;
 					_stratSetStop = 0; _liveStopPrice = 0; _userMovedStop = false;
-					Print(ST + " " + time + "  FILLED entry x" + quantity + " @ " + price + "  -> stop@" + _curStop);
+					if (DebugDraw) Print(ST + " " + time + "  FILLED entry x" + quantity + " @ " + price + "  -> stop@" + _curStop);
 					// No custom FILL marker: Bars.GetBar(time) is unreliable on a tick chart
 					// (many bars share a timestamp) so it lands on the wrong bar. NT's own
 					// entry arrow already marks the exact fill bar.
@@ -503,12 +503,12 @@ namespace NinjaTrader.NinjaScript.Strategies
 			{
 				// scalp scaled out -> never re-scalp; drop stop to remaining qty now
 				_scalpDone = true;
-				Print(ST + " " + time + "  SCALP filled x" + quantity + " @ " + price + "  runner left x" + Position.Quantity);
+				if (DebugDraw) Print(ST + " " + time + "  SCALP filled x" + quantity + " @ " + price + "  runner left x" + Position.Quantity);
 				ManageProtection();
 			}
 			else if (nm == "Stop" || nm == "StopFail")
 			{
-				Print(ST + " " + time + "  " + nm + " filled x" + quantity + " @ " + price);
+				if (DebugDraw) Print(ST + " " + time + "  " + nm + " filled x" + quantity + " @ " + price);
 			}
 		}
 
