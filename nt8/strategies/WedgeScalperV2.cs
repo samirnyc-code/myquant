@@ -187,7 +187,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			{
 				double y = (_rrHiPrice + _rrLoPrice) / 2.0;
 				Draw.Text(this, "rrTxt", false, _rrText, 0, y, 0,
-					Brushes.White, new SimpleFont("Arial", 12), TextAlignment.Left,
+					Brushes.White, new NinjaTrader.Gui.Tools.SimpleFont("Arial", 12), System.Windows.TextAlignment.Left,
 					Brushes.Transparent, Brushes.Black, 85);
 			}
 			else
@@ -371,7 +371,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			{
 				// short segment from the signal bar to the current bar (grows right)
 				int beStart = Math.Max(0, CurrentBar - _sigBar);
-				Line be = Draw.Line(this, "beLine", false, beStart, beTrig, 0, beTrig, Brushes.Gold);
+				Line be = Draw.Line(this, "beLine", beStart, beTrig, 0, beTrig, Brushes.Gold);
 				be.Stroke = new Stroke(Brushes.Gold, DashStyleHelper.Dash, 1);
 				Draw.Text(this, "beTxt", "BE", beStart, isLong ? beTrig + 2 * tick : beTrig - 2 * tick);
 			}
