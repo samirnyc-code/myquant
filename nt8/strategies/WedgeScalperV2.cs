@@ -32,8 +32,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 	//           valid EntryValidBars bar(s), else it lapses.
 	//   STOP    whole-position protective stop 1t beyond the OTHER side of the SB.
 	//   SCALP   ScalpQty contracts exit at +ScalpTargetTicks (limit, scaled out once).
-	//   RUNNER  at +BETriggerTicks the stop jumps to entry ± BEOffsetTicks, then trails
-	//           1t beyond each closed bar. TrailFromEntry = trail from entry, BE floor.
+	//   RUNNER  the stop HOLDS at the SB level until price moves +BETriggerTicks in
+	//           favor; then it locks entry ± BEOffsetTicks and trails 1t beyond each
+	//           closed bar. It never tightens before BE (no trail-from-entry — S110).
 	//
 	// ⚠ RUN WITH TICK REPLAY *OFF*, Calculate.OnBarClose — Tick Replay ON drags
 	//   resting-stop fills past the stop price; OFF fills at the stop price.
@@ -87,7 +88,6 @@ namespace NinjaTrader.NinjaScript.Strategies
 				BEOffsetTicks     = 0;    // where the stop locks once armed: entry ± this (signed, +4 = lock 1pt)
 				TrailTicks        = 1;
 				EntryValidBars    = 1;
-				TrailFromEntry    = false;   // true: runner trails from entry, BE floor after trigger
 
 				// ── chart visuals ──────────────────────────────────────────────
 				ShowRiskReward    = true;    // green reward box (entry->scalp tgt) + red risk box (entry->initial stop) + R multiple
@@ -209,20 +209,16 @@ namespace NinjaTrader.NinjaScript.Strategies
 
 				if (RunnerQty > 0 && !_userMovedStop)   // skip auto-trail once the user drags the stop
 				{
-					if (TrailFromEntry)
+					// HOLD the SB protective stop until the trade earns it: arm BE only when
+					// price has moved +BETriggerTicks in favor, THEN lock BE and trail 1t beyond
+					// each closed bar. No trailing from entry — that tightened the stop INSIDE
+					// the SB and stopped trades out prematurely (S110). Pre-BE, _curStop stays
+					// at the initial SB stop (_stopPx) — untouched here.
+					if (!_beActive && High[0] >= _entry + BETriggerTicks * tick) _beActive = true;
+					if (_beActive)
 					{
-						_curStop = Math.Max(_curStop, Low[0] - TrailTicks * tick);                   // trail from entry
-						if (High[0] >= _entry + BETriggerTicks * tick)
-							_curStop = Math.Max(_curStop, _entry + BEOffsetTicks * tick);            // BE floor (± offset)
-					}
-					else
-					{
-						if (!_beActive && High[0] >= _entry + BETriggerTicks * tick) _beActive = true;
-						if (_beActive)
-						{
-							_curStop = Math.Max(_curStop, _entry + BEOffsetTicks * tick);            // BE (± offset)
-							_curStop = Math.Max(_curStop, Low[0] - TrailTicks * tick);              // 1t/bar trail
-						}
+						_curStop = Math.Max(_curStop, _entry + BEOffsetTicks * tick);            // lock BE (± offset)
+						_curStop = Math.Max(_curStop, Low[0] - TrailTicks * tick);              // then trail 1t/bar
 					}
 				}
 				ManageProtection();
@@ -235,20 +231,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 
 				if (RunnerQty > 0 && !_userMovedStop)
 				{
-					if (TrailFromEntry)
+					// HOLD the SB protective stop until BE arms (price moves +BETriggerTicks in
+					// favor), THEN lock BE and trail 1t beyond each closed bar. No trailing from
+					// entry (S110). Pre-BE, _curStop stays at the initial SB stop (_stopPx).
+					if (!_beActive && Low[0] <= _entry - BETriggerTicks * tick) _beActive = true;
+					if (_beActive)
 					{
-						_curStop = Math.Min(_curStop, High[0] + TrailTicks * tick);
-						if (Low[0] <= _entry - BETriggerTicks * tick)
-							_curStop = Math.Min(_curStop, _entry - BEOffsetTicks * tick);
-					}
-					else
-					{
-						if (!_beActive && Low[0] <= _entry - BETriggerTicks * tick) _beActive = true;
-						if (_beActive)
-						{
-							_curStop = Math.Min(_curStop, _entry - BEOffsetTicks * tick);
-							_curStop = Math.Min(_curStop, High[0] + TrailTicks * tick);
-						}
+						_curStop = Math.Min(_curStop, _entry - BEOffsetTicks * tick);            // lock BE (± offset)
+						_curStop = Math.Min(_curStop, High[0] + TrailTicks * tick);             // then trail 1t/bar
 					}
 				}
 				ManageProtection();
@@ -465,10 +455,6 @@ namespace NinjaTrader.NinjaScript.Strategies
 		[Range(1, 1000)]
 		[Display(Name = "Runner trail beyond bar (ticks)", GroupName = "4. Runner / Breakeven", Order = 2)]
 		public int TrailTicks { get; set; }
-
-		[NinjaScriptProperty]
-		[Display(Name = "Runner: trail from entry (BE after trigger)", GroupName = "4. Runner / Breakeven", Order = 3)]
-		public bool TrailFromEntry { get; set; }
 
 		// ── 5. Chart Visuals ────────────────────────────────────────────────
 		[NinjaScriptProperty]
