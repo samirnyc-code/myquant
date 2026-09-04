@@ -58,6 +58,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 		private double _stratSetStop;   // last stop price the STRATEGY commanded
 		private double _liveStopPrice;  // actual live "Stop" order price (from OnOrderUpdate)
 		private bool   _userMovedStop;  // user dragged the stop -> strategy hands off for this trade
+		private Order  _entryOrder;     // the resting "Wedge" entry, so we can cancel it precisely
 
 		protected override void OnStateChange()
 		{
@@ -183,12 +184,13 @@ namespace NinjaTrader.NinjaScript.Strategies
 				}
 				else if (CurrentBar - _sigBar > EntryValidBars)
 				{
-					foreach (Order o in Orders)   // window passed unfilled -> cancel the resting entry
+					// Window passed: REQUEST cancel only. The Ecancel marker + _pendingSide
+					// reset happen only when NT CONFIRMS the order Cancelled (OnOrderUpdate) —
+					// never optimistically, or a fill that beats the cancel gets a false
+					// Ecancel (the SUB -> Ecancel -> FILL contradiction). Kept idempotent.
+					if (_entryOrder != null) CancelOrder(_entryOrder);
+					else foreach (Order o in Orders)
 						if (o.OrderState == OrderState.Working && o.Name == "Wedge") CancelOrder(o);
-					Print(ST + " " + Time[0] + "  entry LAPSED unfilled ("
-						+ (_pendingSide > 0 ? "LONG" : "SHORT") + ")  entry@" + _entryPx);
-					if (DebugDraw) Draw.Text(this, "elap" + CurrentBar, "Ecancel", 0, High[0] + 6 * tick);
-					_pendingSide = 0;
 				}
 				return;
 			}
@@ -288,9 +290,27 @@ namespace NinjaTrader.NinjaScript.Strategies
 		protected override void OnOrderUpdate(Order order, double limitPrice, double stopPrice, int quantity,
 			int filled, double averageFillPrice, OrderState orderState, DateTime time, ErrorCode error, string comment)
 		{
+			if (order == null) return;
 			// track the actual live protective-stop price so a manual drag is detectable
-			if (order != null && order.Name == "Stop" && stopPrice > 0)
+			if (order.Name == "Stop" && stopPrice > 0)
 				_liveStopPrice = stopPrice;
+
+			// Entry lifecycle: an entry either FILLS (a trade) or CANCELS — never both.
+			// Only mark Ecancel / reset on the CONFIRMED cancel state; a fill is handled in
+			// OnExecutionUpdate. This removes the SUB -> Ecancel -> FILL race.
+			if (order.Name == "Wedge")
+			{
+				if (order.OrderState == OrderState.Cancelled)
+				{
+					Print(ST + " " + time + "  entry CANCEL confirmed (" + (_pendingSide > 0 ? "LONG" : "SHORT") + ")");
+					if (DebugDraw) Draw.Text(this, "elap" + order.OrderId, "Ecancel", 0, High[0] + 6 * TickSize);
+					_pendingSide = 0; _entryOrder = null;
+				}
+				else if (order.OrderState == OrderState.Filled)
+					_entryOrder = null;   // it's a trade now — OnExecutionUpdate inits it
+				else if (order.OrderState == OrderState.Working || order.OrderState == OrderState.Accepted)
+					_entryOrder = order;  // capture the resting entry so we can cancel it precisely
+			}
 		}
 
 		protected override void OnExecutionUpdate(Execution execution, string executionId, double price,

@@ -25,10 +25,19 @@ ordering ALL flip logic removed. Be efficient and verify before speaking next se
   opposite entry while a position is open (a resting opposite stop order is never even created);
   a MARKET opposite entry reverses, but the runner's BE stop kills the hold before an opposite signal
   arrives, so it fired ~once per 90 trades. Not worth it — removed.
-- **KNOWN OPEN BUG:** `EntryValidBars` is off by one — cancel uses `CurrentBar - _sigBar > EntryValidBars`
-  (the `>` keeps the entry alive N+1 bars, deliberately, to avoid a cancel/fill race). So "1" ≈ 2 bars.
-  User noticed entries filling ~2-3 bars after the signal. Fix = change `>` to `>=` (RISK: may reintroduce
-  the cancel-race that cancelled every entry — must test in Analyzer). NOT changed yet.
+- **ENTRY LIFECYCLE FIX (committed, NOT yet verified in Analyzer):** the lapse used to draw `Ecancel` +
+  reset state OPTIMISTICALLY in OnBarUpdate, so a fill that beat the cancel produced a false
+  `SUB -> Ecancel -> FILL` (a "cancelled" entry that filled). Now: OnBarUpdate only REQUESTS the cancel
+  (`CancelOrder(_entryOrder)`); the Ecancel marker + `_pendingSide` reset happen ONLY on the CONFIRMED
+  `OrderState.Cancelled` (OnOrderUpdate). A fill is handled in OnExecutionUpdate. So an entry either fills
+  (a trade) or cancels — never both. **VERIFY this next session in the Analyzer.**
+- **STILL OPEN — `EntryValidBars` off-by-one:** cancel uses `CurrentBar - _sigBar > EntryValidBars`, so the
+  `>` keeps the entry alive N+1 bars (deliberate, to avoid the cancel-race that once cancelled every entry).
+  So "1" ≈ 2 bars; user saw fills ~2-3 bars after the signal. Fix = `>` to `>=`, but that RISK reintroduces
+  the cancel-race — test in Analyzer. NOT changed.
+- **FILL debug marker REMOVED** — `Bars.GetBar(time)` is unreliable on a 2000-tick chart (many bars share a
+  timestamp) so it landed several bars off. NT's native entry arrow marks the exact fill bar; `SUB@` +
+  the native arrow are the diagnostics now.
 - **BOTTOM LINE (do not forget):** the breakout entry is NET-NEGATIVE. Research already showed PF 0.76;
   the live Analyzer churns ~90 trades in 2.5 days for no edge. NO exit/BE/trail tuning fixes a whipsaw
   entry. The ONLY positive edge in the research is the **signal-bar CLOSE entry** (PF 1.04-1.16).
