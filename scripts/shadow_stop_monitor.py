@@ -30,7 +30,32 @@ MARKS = SIM / "marks.csv"
 LOG = SIM / "shadow_stop_log.csv"
 WARN, STOP = -2000, -3000
 FIELDS = ["date", "n", "trough", "trough_ct", "crossed_warn", "warn_ct", "warn_fill",
-          "crossed_stop", "stop_ct", "stop_fill", "end_pnl", "would_help", "vix", "updated_ct"]
+          "crossed_stop", "stop_ct", "stop_fill", "end_pnl", "would_help", "day_swing",
+          "mid_event", "vix", "updated_ct"]
+
+
+def mid_session_event(day):
+    """FOMC-type high-impact event that fires DURING the session (not the 8:30-ET
+    pre-open batch). The 09:05 CT entry-wait does NOT protect against these, so they
+    get extra attention. Returns 'Title HH:MM ET' or ''. Read from the gameplan."""
+    import json as _json
+    f = SIM / f"gameplan_{day.replace('-', '')}.json"
+    if not f.exists():
+        return ""
+    try:
+        cats = (_json.loads(f.read_text(encoding="utf-8")).get("gexlog") or {}).get("catalysts_today") or []
+    except Exception:
+        return ""
+    best = None
+    for c in cats:
+        t, tm, imp = str(c.get("title", "")), str(c.get("time", "")), str(c.get("impact", ""))
+        is_fed = any(k in t.lower() for k in ("fomc", "rate decision", "interest rate", "powell", "beige book"))
+        mid = "11:00" <= tm <= "15:30"          # ET, RTH but past the open data batch
+        if (is_fed or imp == "high") and mid:
+            score = (2 if is_fed else 0) + (1 if imp == "high" else 0)
+            if best is None or score > best[0]:
+                best = (score, f"{t} {tm} ET")
+    return best[1] if best else ""
 
 
 def _now_ct():
@@ -84,8 +109,9 @@ def row_for(day, final):
         "date": day, "n": n, "trough": round(trough), "trough_ct": tct,
         "crossed_warn": bool(len(below_w)), "warn_ct": warn_ct, "warn_fill": warn_fill,
         "crossed_stop": bool(len(below_s)), "stop_ct": stop_ct, "stop_fill": stop_fill,
-        "end_pnl": round(cur), "would_help": help_txt, "vix": vix,
-        "updated_ct": _now_ct().strftime("%H:%M:%S"),
+        "end_pnl": round(cur), "would_help": help_txt,
+        "day_swing": round(curve.max() - curve.min()), "mid_event": mid_session_event(day),
+        "vix": vix, "updated_ct": _now_ct().strftime("%H:%M:%S"),
     }
 
 
@@ -145,6 +171,9 @@ def live_pass():
     print(f"{day} {r['updated_ct']} CT | portfolio {cur:+} | trough {r['trough']:+} @ {r['trough_ct']}"
           f" | warn={'Y' if r['crossed_warn'] else 'n'} stop={'Y' if r['crossed_stop'] else 'n'}")
     # deduped pings — fire once per condition per day
+    if r.get("mid_event") and not prev.get("mid_event"):
+        alert(f"⚑ Mid-session event today: {r['mid_event']}. The 09:05 entry-wait does NOT cover it — "
+              f"watching intraday drawdown closely (observational).", key=f"midevent_{day}")
     if r["crossed_stop"] and str(prev.get("crossed_stop")) != "True":
         alert(f"🟡 SHADOW STOP would fire {day} at {r['stop_ct']} CT: portfolio {cur:+} (level {STOP}). "
               f"NOT executed — observational, collecting data.", key=f"shadow_stop_{day}")

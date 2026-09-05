@@ -570,9 +570,12 @@ def shadow_stop_html():
         fires3 += c3
         fires2 += c2
         r["_cum3"] = cum3
+        r["_badge"] = (f" <span class='midev' title='mid-session Fed event: {r['mid_event']}'>⚑</span>"
+                       if r.get("mid_event") else "")
     worst = min(_i(r["trough"]) for r in rows)
+    nev = sum(1 for r in rows if r.get("mid_event"))
     body = "".join(
-        f"<tr><td>{r['date']}</td>"
+        f"<tr><td>{r['date']}{r['_badge']}</td>"
         f"<td class='neg'>{money(_i(r['trough']))}</td>"
         f"<td class='{'pos' if _i(r['end_pnl'])>=0 else 'neg'}'>{money(_i(r['end_pnl']))}</td>"
         f"{numcell(r['_eod2'], r['_c2'])}"
@@ -587,7 +590,9 @@ def shadow_stop_html():
             f"the natural close. Over {len(rows)} current-book days: <b>−$3k</b> fired {fires3}× → cumulative "
             f"<b class='{ccls(cum3)}'>{money(cum3)}</b> vs actual ({verdict}); <b>−$2k</b> fired {fires2}× → "
             f"cumulative <b class='{ccls(cum2)}'>{money(cum2)}</b> (cuts comebacks). Worst intraday "
-            f"<b class='neg'>{money(worst)}</b>. Recording only — nothing is flattened.")
+            f"<b class='neg'>{money(worst)}</b>. <span class='midev'>⚑</span> = mid-session Fed event "
+            f"({nev} here, none an actual rate decision — the 09:05 entry-wait doesn't cover these). "
+            f"Recording only — nothing is flattened.")
     return (
         "<div class='an-card' style='margin-top:14px'>"
         "<div class='an-h'>Shadow daily stop <span class='muted'>— observational · no orders placed</span></div>"
@@ -1224,6 +1229,7 @@ ANALYTICS_CSS = r"""
 .chartwrap{position:relative}
 .xh-tip{position:absolute;top:4px;pointer-events:none;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:5px 9px;font-size:11.5px;line-height:1.5;font-weight:700;opacity:0;transition:opacity .08s;white-space:nowrap;z-index:5}
 .mbars{max-width:660px}
+.midev{color:var(--warn);cursor:help;font-size:12px}
 .mbtns{display:flex;gap:8px;margin:2px 0 12px}
 .mbtns button{background:var(--chip);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer}
 .bar .val{width:74px;font-variant-numeric:tabular-nums;font-weight:700;text-align:right}
