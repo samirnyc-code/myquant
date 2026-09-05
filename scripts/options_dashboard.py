@@ -553,34 +553,40 @@ def shadow_stop_html():
         except (TypeError, ValueError):
             return None
     ccls = lambda v: "pos" if v > 0 else ("neg" if v < 0 else "muted")
-    numcell = lambda v, changed: (f"<td class='{'pos' if v>=0 else 'neg'}'"
-                                  + (" style='font-weight:700'" if changed else "") + f">{money(v)}</td>")
-    # EOD-with-stop = the WHOLE-DAY result under that stop: flatten at the ACTUAL mark
-    # when the DD trips the line, else the day closes naturally. cumulative = that - actual.
+
+    def cell(cond, v, forced=None):
+        if not cond or v is None:
+            return "<td class='muted'>—</td>"
+        return f"<td class='{forced or ('pos' if v >= 0 else 'neg')}'>{money(v)}</td>"
+    # EOD-with-stop and its Δ are shown ONLY on days that stop actually tripped
+    # (flatten at the ACTUAL mark). Δ cum = running total of the -3k Δ.
     cum3 = cum2 = fires3 = fires2 = 0
     for r in sorted(rows, key=lambda r: r["date"]):
         end = _i(r["end_pnl"])
-        sf, wf = _i(r["stop_fill"]), _i(r["warn_fill"])
-        c3 = r["crossed_stop"] == "True" and sf is not None
+        wf, sf = _i(r["warn_fill"]), _i(r["stop_fill"])
         c2 = r["crossed_warn"] == "True" and wf is not None
-        r["_eod2"], r["_c2"] = (wf if c2 else end), c2
-        r["_eod3"], r["_c3"] = (sf if c3 else end), c3
-        cum3 += r["_eod3"] - end
-        cum2 += r["_eod2"] - end
-        fires3 += c3
-        fires2 += c2
+        c3 = r["crossed_stop"] == "True" and sf is not None
+        r["_c2"], r["_c3"] = c2, c3
+        r["_eod2"], r["_d2"] = (wf, wf - end) if c2 else (None, None)
+        r["_eod3"], r["_d3"] = (sf, sf - end) if c3 else (None, None)
+        cum2 += (wf - end) if c2 else 0
+        cum3 += (sf - end) if c3 else 0
         r["_cum3"] = cum3
+        fires2 += c2
+        fires3 += c3
         r["_badge"] = (f" <span class='midev' title='mid-session Fed event: {r['mid_event']}'>⚑</span>"
                        if r.get("mid_event") else "")
     worst = min(_i(r["trough"]) for r in rows)
     nev = sum(1 for r in rows if r.get("mid_event"))
     body = "".join(
         f"<tr><td>{r['date']}{r['_badge']}</td>"
+        f"{cell(True, _i(r['end_pnl']))}"
         f"<td class='neg'>{money(_i(r['trough']))}</td>"
-        f"<td class='{'pos' if _i(r['end_pnl'])>=0 else 'neg'}'>{money(_i(r['end_pnl']))}</td>"
-        f"{numcell(r['_eod2'], r['_c2'])}"
-        f"{numcell(r['_eod3'], r['_c3'])}"
-        f"<td class='{ccls(r['_cum3'])}'>{money(r['_cum3']) if r['_cum3'] else '—'}</td>"
+        f"{cell(r['_c2'], r['_eod2'])}"
+        f"{cell(r['_c2'], r['_d2'], ccls(r['_d2']) if r['_c2'] else None)}"
+        f"{cell(r['_c3'], r['_eod3'])}"
+        f"{cell(r['_c3'], r['_d3'], ccls(r['_d3']) if r['_c3'] else None)}"
+        f"{cell(r['_c3'], r['_cum3'], ccls(r['_cum3']) if r['_c3'] else None)}"
         f"<td class='muted'>{r['vix']}</td></tr>"
         for r in sorted(rows, key=lambda r: r["date"], reverse=True)[:16])
     verdict = ("identical — it never fired" if cum3 == 0
@@ -598,8 +604,8 @@ def shadow_stop_html():
         "<div class='an-h'>Shadow daily stop <span class='muted'>— observational · no orders placed</span></div>"
         f"<div class='muted' style='font-size:12.5px;margin:-2px 0 10px'>{head}</div>"
         "<div style='overflow-x:auto'><table class='antable'>"
-        "<tr><th>day</th><th>intraday low</th><th>ended (actual)</th><th>EOD w/ −2k</th>"
-        "<th>EOD w/ −3k</th><th>Δ cum (−3k)</th><th>vix</th></tr>"
+        "<tr><th>day</th><th>P&L (actual)</th><th>intraday DD</th><th>EOD −2k stop</th><th>Δ</th>"
+        "<th>EOD −3k stop</th><th>Δ</th><th>Δ cum</th><th>vix</th></tr>"
         f"{body}</table></div></div>")
 
 
