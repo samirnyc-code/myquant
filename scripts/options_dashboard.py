@@ -538,7 +538,8 @@ def analytics_payload(trades, marks_last):
 
 def shadow_stop_html():
     """OBSERVATIONAL shadow daily-stop panel (no executions). Reads the log written
-    by shadow_stop_monitor.py; shows current-book (auto-era) days only."""
+    by shadow_stop_monitor.py; shows current-book (auto-era) days only, with what
+    each day WOULD have ended at under the -3k stop and a running better/worse tally."""
     import csv as _csv
     f = SIM / "shadow_stop_log.csv"
     if not f.exists():
@@ -546,28 +547,40 @@ def shadow_stop_html():
     rows = [r for r in _csv.DictReader(f.open()) if r["date"] >= "2026-08-04"]
     if not rows:
         return ""
-    rows.sort(key=lambda r: r["date"], reverse=True)
-    fires = sum(1 for r in rows if r["crossed_stop"] == "True")
-    warns = sum(1 for r in rows if r["crossed_warn"] == "True")
+    STOP, WARN = -3000, -2000
+    asc = sorted(rows, key=lambda r: r["date"])
+    cum3 = cum2 = fires3 = fires2 = 0
+    for r in asc:
+        end, trough = int(r["end_pnl"]), int(r["trough"])
+        stop3 = STOP if r["crossed_stop"] == "True" else end          # flatten at -3k, else natural close
+        stop2 = WARN if trough <= WARN else end                       # a tighter -2k stop, for comparison
+        r["_s3"], r["_cum3"] = stop3, (cum3 := cum3 + (stop3 - end))
+        cum2 += stop2 - end
+        fires3 += r["crossed_stop"] == "True"
+        fires2 += trough <= WARN
     worst = min(int(r["trough"]) for r in rows)
-    yn = lambda b, c: (f"<span class='{c}'>✓ {{}}</span>" if b == "True" else "<span class='muted'>—</span>")
+    ccls = lambda v: "pos" if v > 0 else ("neg" if v < 0 else "muted")
     body = "".join(
         f"<tr><td>{r['date']}</td>"
-        f"<td class='neg'>{money(int(r['trough']))}</td>"
-        f"<td>{r['trough_ct']}</td>"
+        f"<td class='neg'>{money(int(r['trough']))}"
+        f"{' 🟡' if r['crossed_stop']=='True' else (' 🟠' if int(r['trough'])<=WARN else '')}</td>"
         f"<td class='{'pos' if int(r['end_pnl'])>=0 else 'neg'}'>{money(int(r['end_pnl']))}</td>"
-        f"<td>{'🟠' if r['crossed_warn']=='True' else '·'}</td>"
-        f"<td>{'🟡 '+r['stop_ct'] if r['crossed_stop']=='True' else '·'}</td>"
+        f"<td class='{'pos' if r['_s3']>=0 else 'neg'}'>{money(r['_s3'])}</td>"
+        f"<td class='{ccls(r['_cum3'])}'>{money(r['_cum3']) if r['_cum3'] else '—'}</td>"
         f"<td class='muted'>{r['vix']}</td></tr>"
-        for r in rows[:16])
+        for r in sorted(rows, key=lambda r: r["date"], reverse=True)[:16])
+    verdict = ("no difference — it never fired" if cum3 == 0
+               else (f"better by {money(cum3)}" if cum3 > 0 else f"worse by {money(-cum3)}"))
+    head = (f"Watch −$2,000 · shadow trigger −$3,000 (1-lot). Over {len(rows)} current-book days the −$3k stop "
+            f"would have fired <b>{fires3}×</b> → net <b class='{ccls(cum3)}'>{money(cum3)}</b> ({verdict}). "
+            f"A tighter −$2k stop would fire {fires2}× → net <b class='{ccls(cum2)}'>{money(cum2)}</b> "
+            f"(cuts comebacks). Worst intraday <b class='neg'>{money(worst)}</b>. Recording only — nothing is flattened.")
     return (
         "<div class='an-card' style='margin-top:14px'>"
         "<div class='an-h'>Shadow daily stop <span class='muted'>— observational · no orders placed</span></div>"
-        f"<div class='muted' style='font-size:12.5px;margin:-2px 0 10px'>Watch −$2,000 · shadow trigger −$3,000 "
-        f"(1-lot). In {len(rows)} current-book days: trigger would have fired <b>{fires}×</b>, watch line hit "
-        f"<b>{warns}×</b>, worst intraday <b class='neg'>{money(worst)}</b>. Recording only — nothing is flattened.</div>"
+        f"<div class='muted' style='font-size:12.5px;margin:-2px 0 10px'>{head}</div>"
         "<div style='overflow-x:auto'><table class='antable'>"
-        "<tr><th>day</th><th>intraday low</th><th>at</th><th>ended</th><th>−2k</th><th>−3k</th><th>vix</th></tr>"
+        "<tr><th>day</th><th>intraday low</th><th>ended</th><th>with −3k stop</th><th>Δ cum</th><th>vix</th></tr>"
         f"{body}</table></div></div>")
 
 
