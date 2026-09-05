@@ -558,9 +558,10 @@ def shadow_stop_html():
         if not cond or v is None:
             return "<td class='muted'>—</td>"
         return f"<td class='{forced or ('pos' if v >= 0 else 'neg')}'>{money(v)}</td>"
-    # EOD-with-stop and its Δ are shown ONLY on days that stop actually tripped
-    # (flatten at the ACTUAL mark). Δ cum = running total of the -3k Δ.
-    cum3 = cum2 = fires3 = fires2 = 0
+    # per-stop EOD + Δ shown ONLY on days that stop tripped (flatten at the ACTUAL
+    # mark). ONE running Δ cum, at the end, advanced ONLY on a trigger day (deeper
+    # stop wins if both fire) and shown only on those rows.
+    cum = cum2 = cum3 = fires2 = fires3 = 0
     for r in sorted(rows, key=lambda r: r["date"]):
         end = _i(r["end_pnl"])
         wf, sf = _i(r["warn_fill"]), _i(r["stop_fill"])
@@ -569,45 +570,55 @@ def shadow_stop_html():
         r["_c2"], r["_c3"] = c2, c3
         r["_eod2"], r["_d2"] = (wf, wf - end) if c2 else (None, None)
         r["_eod3"], r["_d3"] = (sf, sf - end) if c3 else (None, None)
+        cum += (r["_d3"] if c3 else (r["_d2"] if c2 else 0))
         cum2 += (wf - end) if c2 else 0
         cum3 += (sf - end) if c3 else 0
-        r["_cum2"], r["_cum3"] = cum2, cum3          # running tab, carries forward
+        r["_trg"], r["_cum"] = (c2 or c3), cum
         fires2 += c2
         fires3 += c3
         r["_badge"] = (f" <span class='midev' title='mid-session Fed event: {r['mid_event']}'>⚑</span>"
                        if r.get("mid_event") else "")
     worst = min(_i(r["trough"]) for r in rows)
     nev = sum(1 for r in rows if r.get("mid_event"))
-    body = "".join(
-        f"<tr><td>{r['date']}{r['_badge']}</td>"
-        f"{cell(True, _i(r['end_pnl']))}"
-        f"<td class='neg'>{money(_i(r['trough']))}</td>"
-        f"{cell(r['_c2'], r['_eod2'])}"
-        f"{cell(r['_c2'], r['_d2'], ccls(r['_d2']) if r['_c2'] else None)}"
-        f"<td class='{ccls(r['_cum2'])}'>{money(r['_cum2']) if r['_cum2'] else '—'}</td>"
-        f"{cell(r['_c3'], r['_eod3'])}"
-        f"{cell(r['_c3'], r['_d3'], ccls(r['_d3']) if r['_c3'] else None)}"
-        f"<td class='{ccls(r['_cum3'])}'>{money(r['_cum3']) if r['_cum3'] else '—'}</td>"
-        f"<td class='muted'>{r['vix']}</td></tr>"
-        for r in sorted(rows, key=lambda r: r["date"], reverse=True))
-    verdict = ("identical — it never fired" if cum3 == 0
-               else (f"+{money(cum3)} better" if cum3 > 0 else f"{money(cum3)} worse"))
-    head = (f"1-lot. <b>EOD w/ −2k</b> and <b>EOD w/ −3k</b> = what the whole day would have closed at under each "
-            f"stop — flattening at the ACTUAL mark when the drawdown trips the line (bold = a day it fired), else "
-            f"the natural close. Over {len(rows)} current-book days: <b>−$3k</b> fired {fires3}× → cumulative "
-            f"<b class='{ccls(cum3)}'>{money(cum3)}</b> vs actual ({verdict}); <b>−$2k</b> fired {fires2}× → "
-            f"cumulative <b class='{ccls(cum2)}'>{money(cum2)}</b> (cuts comebacks). Worst intraday "
-            f"<b class='neg'>{money(worst)}</b>. <span class='midev'>⚑</span> = mid-session Fed event "
-            f"({nev} here, none an actual rate decision — the 09:05 entry-wait doesn't cover these). "
+
+    def drow(r):
+        return (f"<tr><td>{r['date']}{r['_badge']}</td>"
+                f"{cell(True, _i(r['end_pnl']))}"
+                f"<td class='neg'>{money(_i(r['trough']))}</td>"
+                f"{cell(r['_c2'], r['_eod2'])}"
+                f"{cell(r['_c2'], r['_d2'], ccls(r['_d2']) if r['_c2'] else None)}"
+                f"{cell(r['_c3'], r['_eod3'])}"
+                f"{cell(r['_c3'], r['_d3'], ccls(r['_d3']) if r['_c3'] else None)}"
+                f"{cell(r['_trg'], r['_cum'], ccls(r['_cum']) if r['_trg'] else None)}"
+                f"<td class='muted'>{r['vix']}</td></tr>")
+    months = {}
+    for r in rows:
+        months.setdefault(r["date"][:7], []).append(r)
+    tbodies = ""
+    for mk in sorted(months, reverse=True):
+        drows = sorted(months[mk], key=lambda r: r["date"], reverse=True)
+        mp = sum(_i(r["end_pnl"]) for r in drows)
+        trg = sum(1 for r in drows if r["_trg"])
+        mhead = (f"<tr class='mhead' onclick='tglMonth(this)'><td colspan='9'>"
+                 f"<span class='cv'></span>{mk} · <b class='{'pos' if mp >= 0 else 'neg'}'>{money(mp)}</b> · "
+                 f"{len(drows)} days · {trg} stop-hit</td></tr>")
+        tbodies += f"<tbody>{mhead}{''.join(drow(r) for r in drows)}</tbody>"
+    head = (f"1-lot. <b>EOD −2k / −3k</b> = what the day would have closed at, flattening at the ACTUAL mark when "
+            f"the drawdown trips that line — shown only on days it fired. <b>Δ cum</b> = one running tally, "
+            f"advanced only on a trigger day. Over {len(rows)} days: <b>−$2k</b> fired {fires2}× (net "
+            f"<b class='{ccls(cum2)}'>{money(cum2)}</b>), <b>−$3k</b> fired {fires3}× (net "
+            f"<b class='{ccls(cum3)}'>{money(cum3)}</b>). Worst intraday <b class='neg'>{money(worst)}</b>. "
+            f"<span class='midev'>⚑</span> = mid-session Fed event ({nev}, none a rate decision). "
             f"Recording only — nothing is flattened.")
     return (
         "<div class='an-card' style='margin-top:14px'>"
         "<div class='an-h'>Shadow daily stop <span class='muted'>— observational · no orders placed</span></div>"
         f"<div class='muted' style='font-size:12.5px;margin:-2px 0 10px'>{head}</div>"
-        "<div style='overflow-x:auto'><table class='antable'>"
-        "<tr><th>day</th><th>P&L (actual)</th><th>intraday DD</th><th>EOD −2k stop</th><th>Δ</th>"
-        "<th>Δ cum</th><th>EOD −3k stop</th><th>Δ</th><th>Δ cum</th><th>vix</th></tr>"
-        f"{body}</table></div></div>")
+        "<div style='overflow-x:auto'><table class='antable shadowtbl'>"
+        "<thead><tr><th>day</th><th>P&L (actual)</th><th>intraday DD</th><th>EOD −2k stop</th><th>Δ</th>"
+        "<th>EOD −3k stop</th><th>Δ</th><th>Δ cum</th><th>vix</th></tr></thead>"
+        f"{tbodies}</table></div>"
+        "<script>function tglMonth(t){t.parentNode.classList.toggle('col');}</script></div>")
 
 
 def _is_stmr(t):
@@ -1237,6 +1248,11 @@ ANALYTICS_CSS = r"""
 .xh-tip{position:absolute;top:4px;pointer-events:none;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:5px 9px;font-size:11.5px;line-height:1.5;font-weight:700;opacity:0;transition:opacity .08s;white-space:nowrap;z-index:5}
 .mbars{max-width:660px}
 .midev{color:var(--warn);cursor:help;font-size:12px}
+.shadowtbl .mhead{cursor:pointer}
+.shadowtbl .mhead td{background:var(--panel2);font-weight:700;padding:9px 12px;border-top:1px solid var(--line)}
+.shadowtbl .mhead .cv::before{content:"▾ ";color:var(--mut)}
+.shadowtbl tbody.col .mhead .cv::before{content:"▸ "}
+.shadowtbl tbody.col tr:not(.mhead){display:none}
 .mbtns{display:flex;gap:8px;margin:2px 0 12px}
 .mbtns button{background:var(--chip);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer}
 .bar .val{width:74px;font-variant-numeric:tabular-nums;font-weight:700;text-align:right}
