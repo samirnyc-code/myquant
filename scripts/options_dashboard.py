@@ -571,7 +571,7 @@ def shadow_stop_html():
         r["_eod3"], r["_d3"] = (sf, sf - end) if c3 else (None, None)
         cum2 += (wf - end) if c2 else 0
         cum3 += (sf - end) if c3 else 0
-        r["_cum3"] = cum3
+        r["_cum2"], r["_cum3"] = cum2, cum3          # running tab, carries forward
         fires2 += c2
         fires3 += c3
         r["_badge"] = (f" <span class='midev' title='mid-session Fed event: {r['mid_event']}'>⚑</span>"
@@ -584,11 +584,12 @@ def shadow_stop_html():
         f"<td class='neg'>{money(_i(r['trough']))}</td>"
         f"{cell(r['_c2'], r['_eod2'])}"
         f"{cell(r['_c2'], r['_d2'], ccls(r['_d2']) if r['_c2'] else None)}"
+        f"<td class='{ccls(r['_cum2'])}'>{money(r['_cum2']) if r['_cum2'] else '—'}</td>"
         f"{cell(r['_c3'], r['_eod3'])}"
         f"{cell(r['_c3'], r['_d3'], ccls(r['_d3']) if r['_c3'] else None)}"
-        f"{cell(r['_c3'], r['_cum3'], ccls(r['_cum3']) if r['_c3'] else None)}"
+        f"<td class='{ccls(r['_cum3'])}'>{money(r['_cum3']) if r['_cum3'] else '—'}</td>"
         f"<td class='muted'>{r['vix']}</td></tr>"
-        for r in sorted(rows, key=lambda r: r["date"], reverse=True)[:16])
+        for r in sorted(rows, key=lambda r: r["date"], reverse=True))
     verdict = ("identical — it never fired" if cum3 == 0
                else (f"+{money(cum3)} better" if cum3 > 0 else f"{money(cum3)} worse"))
     head = (f"1-lot. <b>EOD w/ −2k</b> and <b>EOD w/ −3k</b> = what the whole day would have closed at under each "
@@ -605,7 +606,7 @@ def shadow_stop_html():
         f"<div class='muted' style='font-size:12.5px;margin:-2px 0 10px'>{head}</div>"
         "<div style='overflow-x:auto'><table class='antable'>"
         "<tr><th>day</th><th>P&L (actual)</th><th>intraday DD</th><th>EOD −2k stop</th><th>Δ</th>"
-        "<th>EOD −3k stop</th><th>Δ</th><th>Δ cum</th><th>vix</th></tr>"
+        "<th>Δ cum</th><th>EOD −3k stop</th><th>Δ</th><th>Δ cum</th><th>vix</th></tr>"
         f"{body}</table></div></div>")
 
 
