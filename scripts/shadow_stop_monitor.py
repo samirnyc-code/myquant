@@ -81,15 +81,40 @@ def portfolio_curve(day):
     return piv.sum(axis=1), (round(vix.iloc[-1], 1) if len(vix) else None), m["trade_id"].nunique()
 
 
+_BOOKED = None
+
+
+def _booked_by_day():
+    """Authoritative realized P&L per day from the trade book — the SAME source the
+    calendar/dashboard use (deduped, STMR-free), so the shadow P&L matches. Cached."""
+    global _BOOKED
+    if _BOOKED is None:
+        import options_trade_log as tlog
+        df = tlog.dedupe_mirrors(pd.read_parquet("data/options_log/trades.parquet"))
+        df = df[df["pnl"].notna()].copy()
+        ex = df["exit_dt"].astype(str).str[:10]
+        en = df["entry_dt"].astype(str).str[:10]
+        df["_b"] = ex.where(df["exit_dt"].notna(), en)
+        _BOOKED = {k: round(v) for k, v in df.groupby("_b")["pnl"].sum().items()}
+    return _BOOKED
+
+
 def row_for(day, final):
     """Build a shadow-log row for `day`. final=True when the day is closed."""
     res = portfolio_curve(day)
     if res is None:
         return None
     curve, vix, n = res
+    # TWO correct-but-different numbers, kept separate on purpose:
+    #  * intraday DD / trough / where-a-stop-fires come from the RAW live MTM (marks) —
+    #    a daily stop triggers on live mark-to-market, so this path must NOT be adjusted.
+    #  * the day's realized "P&L (actual)" is the BOOKED fill from trades.parquet (what
+    #    the calendar/dashboard show). It differs from the marks' last value by the
+    #    bid/ask + settlement gap — that difference is real, not an error.
     trough = curve.min()
     tct = curve.idxmin().strftime("%H:%M")
-    cur = curve.iloc[-1]
+    booked = _booked_by_day().get(day) if final else None
+    cur = booked if booked is not None else curve.iloc[-1]
     warn_ct = stop_ct = warn_fill = stop_fill = ""
     below_w = curve[curve <= WARN]
     below_s = curve[curve <= STOP]
