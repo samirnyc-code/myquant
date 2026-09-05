@@ -3,6 +3,13 @@
  "note": "Snapshot of published Claude Artifacts (claude.ai). Ask Claude to 'refresh the artifacts list' to regenerate via Artifact action:list.",
  "artifacts": [
   {
+   "title": "0DTE Payoff Lab",
+   "url": "https://claude.ai/code/artifact/c87a020b-0c3a-4779-82f4-12ef694f3d6e",
+   "updated": "2026-09-05",
+   "group": "Options Desk",
+   "info": "Interactive payoff diagrams for the desk's 0DTE credit spreads: bull put / bear call building blocks, the iron condor (EM-band vs gamma-wall presets), and the ATM iron fly. Hover any chart to read P&L at a price; strike / break-even / spot markers; comparison table of credit, win zone, and max profit/loss. Illustrative numbers (spot 7700, 25-wide)."
+  },
+  {
    "title": "PATS \u2014 Price Action Trading, decoded",
    "url": "https://claude.ai/code/artifact/c94e1d31-bf0e-4837-8c5a-ff5d0eaa5098",
    "updated": "2026-08-08",
