@@ -49,6 +49,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 		// entries (open trades keep being managed).
 		public static bool MasterArmed = true;
 
+		// Side filter, also dashboard-controllable (LONG / SHORT buttons). Both true = take both.
+		// Disallowed-side signals are skipped. Both false = no new entries.
+		public static bool MasterAllowLong  = true;
+		public static bool MasterAllowShort = true;
+
 		// entry state machine (while flat)
 		private int    _pendingSide;   // 0 none, 1 long, -1 short
 		private int    _sigBar;        // CurrentBar of the signal
@@ -274,6 +279,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 					int side = 0;
 					if (_wedge.WedgeBLSB[0] > 0) side = 1;
 					else if (_wedge.WedgeBRSB[0] > 0) side = -1;
+					// side filter (dashboard LONG/SHORT buttons)
+					if (side == 1 && !MasterAllowLong)  side = 0;
+					if (side == -1 && !MasterAllowShort) side = 0;
 					if (side != 0)
 					{
 						_pendingSide = side; _sigBar = CurrentBar;

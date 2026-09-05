@@ -37,6 +37,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 		private int    ctBaseRowCount;
 		private int    ctRowsAdded;
 		private Button btnMaster;
+		private Button btnLong;
+		private Button btnShort;
 
 		private Color  ColorOn;
 		private Color  ColorOff;
@@ -104,6 +106,24 @@ namespace NinjaTrader.NinjaScript.Strategies
 				AddFullRow(ctButtonsGrid, ctBaseRowCount + ctRowsAdded, btnMaster);
 				ctRowsAdded++;
 
+				// Row 1: LONG | SHORT — allow/deny each side on WedgeScalperV2
+				btnLong = MakeBtn(s, "LONG", "Allow WedgeScalperV2 LONG entries", WedgeScalperV2.MasterAllowLong ? ColorOn : ColorOff);
+				btnLong.Click += (o, e) =>
+				{
+					WedgeScalperV2.MasterAllowLong = !WedgeScalperV2.MasterAllowLong;
+					SetBtn(btnLong, WedgeScalperV2.MasterAllowLong ? ColorOn : ColorOff);
+					Print(DateTime.Now + " WedgeScalperV2 LONG " + (WedgeScalperV2.MasterAllowLong ? "ON" : "OFF"));
+				};
+				btnShort = MakeBtn(s, "SHORT", "Allow WedgeScalperV2 SHORT entries", WedgeScalperV2.MasterAllowShort ? ColorOn : ColorOff);
+				btnShort.Click += (o, e) =>
+				{
+					WedgeScalperV2.MasterAllowShort = !WedgeScalperV2.MasterAllowShort;
+					SetBtn(btnShort, WedgeScalperV2.MasterAllowShort ? ColorOn : ColorOff);
+					Print(DateTime.Now + " WedgeScalperV2 SHORT " + (WedgeScalperV2.MasterAllowShort ? "ON" : "OFF"));
+				};
+				AddHalfRow(ctButtonsGrid, ctBaseRowCount + ctRowsAdded, btnLong, btnShort);
+				ctRowsAdded++;
+
 				ctPanelActive = true;
 			}
 			catch (Exception ex) { Print("BB CreateWPFControls: " + ex.Message); }
@@ -119,7 +139,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 					ctButtonsGrid.Children.RemoveAt(ctButtonsGrid.Children.Count - 1);
 				while (ctButtonsGrid.RowDefinitions.Count > baseRows)
 					ctButtonsGrid.RowDefinitions.RemoveAt(ctButtonsGrid.RowDefinitions.Count - 1);
-				btnMaster = null;
+				btnMaster = null; btnLong = null; btnShort = null;
 				ctPanelActive = false;
 			}
 			catch (Exception ex) { Print("BB DisposeWPFControls: " + ex.Message); }
