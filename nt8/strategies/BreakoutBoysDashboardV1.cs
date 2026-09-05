@@ -45,7 +45,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 		private bool   _mouseHooked;
 
 		private Button btnMaster, btnLong, btnShort;
-		private Button btnSEL, btnSES, btnPickSB, btnStpMode, btnTgtMode;
+		private Button btnSEL, btnSES, btnPickSB, btnFlat, btnStpMode, btnTgtMode, btnTgtVal;
 
 		private Color  ColorOn, ColorOff, ColorArmed, ColorPick;
 
@@ -254,22 +254,30 @@ namespace NinjaTrader.NinjaScript.Strategies
 
 				// Row: STOP ENTRY L | STOP ENTRY S (this dashboard's own entries)
 				btnSEL = MakeBtn(s, "STOP ENT L", "Arm a long stop entry off the SB", ColorOff);
-				btnSEL.Click += (o, e) => ArmStopEntry(true);
+				btnSEL.Click += (o, e) => TriggerCustomEvent(st => ArmStopEntry(true), null);
 				btnSES = MakeBtn(s, "STOP ENT S", "Arm a short stop entry off the SB", ColorOff);
-				btnSES.Click += (o, e) => ArmStopEntry(false);
+				btnSES.Click += (o, e) => TriggerCustomEvent(st => ArmStopEntry(false), null);
 				AddHalfRow(ctButtonsGrid, ctBaseRowCount + ctRowsAdded++, btnSEL, btnSES);
 
-				// Row: PICK SB (select the signal bar manually)
+				// Row: PICK SB | FLATTEN
 				btnPickSB = MakeBtn(s, "PICK SB", "Toggle, then click a bar to use it as the signal bar", ColorOff);
 				btnPickSB.Click += (o, e) => { _pickArmed = !_pickArmed; SetBtn(btnPickSB, _pickArmed ? ColorPick : ColorOff); Print(DateTime.Now + " PICK SB " + (_pickArmed ? "ON — click a bar" : "OFF")); };
-				AddFullRow(ctButtonsGrid, ctBaseRowCount + ctRowsAdded++, btnPickSB);
+				btnFlat = MakeBtn(s, "FLATTEN", "Close the dashboard's SE position + cancel its orders", Color.FromRgb(150,30,30));
+				btnFlat.Click += (o, e) => TriggerCustomEvent(st => FlattenSE(), null);
+				AddHalfRow(ctButtonsGrid, ctBaseRowCount + ctRowsAdded++, btnPickSB, btnFlat);
 
 				// Row: STP mode | TGT mode (cycle)
 				btnStpMode = MakeBtn(s, "STP:" + _stopMode, "Cycle stop mode (BarStop / LastSwing)", Color.FromRgb(60,60,60));
 				btnStpMode.Click += (o, e) => { _stopMode = _stopMode == BBStopMode.BarStop ? BBStopMode.LastSwing : BBStopMode.BarStop; btnStpMode.Content = "STP:" + _stopMode; Print(DateTime.Now + " StopMode -> " + _stopMode); };
 				btnTgtMode = MakeBtn(s, "TGT:" + _tgtMode, "Cycle target mode (Scalp / AbrMult / RMult)", Color.FromRgb(60,60,60));
-				btnTgtMode.Click += (o, e) => { _tgtMode = (BBTargetMode)(((int)_tgtMode + 1) % 3); btnTgtMode.Content = "TGT:" + _tgtMode; Print(DateTime.Now + " TargetMode -> " + _tgtMode); };
+				btnTgtMode.Click += (o, e) => { _tgtMode = (BBTargetMode)(((int)_tgtMode + 1) % 3); btnTgtMode.Content = "TGT:" + _tgtMode; if (btnTgtVal != null) btnTgtVal.Content = TgtValLabel(); Print(DateTime.Now + " TargetMode -> " + _tgtMode); };
 				AddHalfRow(ctButtonsGrid, ctBaseRowCount + ctRowsAdded++, btnStpMode, btnTgtMode);
+
+				// Row: TGT value adjust (left-click = down, right-click = up; adapts to target mode)
+				btnTgtVal = MakeBtn(s, TgtValLabel(), "Target value — left-click −, right-click +", Color.FromRgb(60,60,60));
+				btnTgtVal.PreviewMouseLeftButtonDown  += (o, e) => { e.Handled = true; AdjustTgtVal(-1); };
+				btnTgtVal.PreviewMouseRightButtonDown += (o, e) => { e.Handled = true; AdjustTgtVal(+1); };
+				AddFullRow(ctButtonsGrid, ctBaseRowCount + ctRowsAdded++, btnTgtVal);
 
 				if (!_mouseHooked) { ChartControl.PreviewMouseDown += OnChartMouseDown; _mouseHooked = true; }
 				ctPanelActive = true;
@@ -296,6 +304,40 @@ namespace NinjaTrader.NinjaScript.Strategies
 			SetBtn(isLong ? btnSEL : btnSES, ColorArmed);
 			Print(DateTime.Now + " SE " + (isLong ? "LONG" : "SHORT") + " armed — SB = "
 				+ (_sbPickedBar >= 0 ? "picked bar" : "the bar it closes on") + " [" + _stopMode + "/" + _tgtMode + "]");
+		}
+
+		private void FlattenSE()
+		{
+			foreach (Order o in Orders)
+				if ((o.Name == "SE" || o.Name == "SEstop" || o.Name == "SEtgt") && o.OrderState == OrderState.Working)
+					CancelOrder(o);
+			_pendingLong = _pendingShort = false;
+			if (Position.MarketPosition == MarketPosition.Long)  ExitLong ("SEflat", "SE");
+			else if (Position.MarketPosition == MarketPosition.Short) ExitShort("SEflat", "SE");
+			SetBtn(btnSEL, ColorOff); SetBtn(btnSES, ColorOff);
+			Print(DateTime.Now + " SE FLATTEN");
+		}
+
+		private string TgtValLabel()
+		{
+			switch (_tgtMode)
+			{
+				case BBTargetMode.AbrMult: return "TGT " + SE_AbrMult.ToString("0.0") + "xABR";
+				case BBTargetMode.RMult:   return "TGT " + SE_RMult.ToString("0.0") + "R";
+				default:                   return "TGT " + SE_ScalpTicks + "t";
+			}
+		}
+
+		private void AdjustTgtVal(int dir)
+		{
+			switch (_tgtMode)
+			{
+				case BBTargetMode.AbrMult: SE_AbrMult = Math.Max(0.1, Math.Round(SE_AbrMult + dir * 0.1, 1)); break;
+				case BBTargetMode.RMult:   SE_RMult   = Math.Max(0.1, Math.Round(SE_RMult   + dir * 0.1, 1)); break;
+				default:                   SE_ScalpTicks = Math.Max(1, SE_ScalpTicks + dir);                  break;
+			}
+			if (btnTgtVal != null) btnTgtVal.Content = TgtValLabel();
+			Print(DateTime.Now + " " + TgtValLabel());
 		}
 
 		private void OnChartMouseDown(object sender, MouseButtonEventArgs e)
@@ -325,7 +367,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 					ctButtonsGrid.Children.RemoveAt(ctButtonsGrid.Children.Count - 1);
 				while (ctButtonsGrid.RowDefinitions.Count > baseRows)
 					ctButtonsGrid.RowDefinitions.RemoveAt(ctButtonsGrid.RowDefinitions.Count - 1);
-				btnMaster = btnLong = btnShort = btnSEL = btnSES = btnPickSB = btnStpMode = btnTgtMode = null;
+				btnMaster = btnLong = btnShort = btnSEL = btnSES = btnPickSB = btnFlat = btnStpMode = btnTgtMode = btnTgtVal = null;
 				ctPanelActive = false;
 			}
 			catch (Exception ex) { Print("BB DisposeWPFControls: " + ex.Message); }
