@@ -1,6 +1,64 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** September 3, 2026 (S109: WedgeScalperV2 — ALL reversal/flip logic REMOVED per user (now a plain scalper); TICK REPLAY OFF is the entry-fill fix; breakout entry is net-negative (churns) → dead end, only positive edge = close-entry. Options 9/3 realized −$1,811 (call walls run over on a gap-up trend day). STMR FAILED AGAIN (connect timeout, 3rd straight) — book not running.)
+**Last Updated:** September 5, 2026 (S110: heavy NT8 UI session. WedgeScalperV2 — big fixes (stop no longer trails before BE; intrabar BE via 1-tick series) + visuals (R:R boxes/hover, BE ray, filters) + Output to Tab2 with per-trade blocks + daily scoreboard. NEW **BreakoutBoysDashboardV1** — fresh chart-trader button panel (MC-channel dashboard clone, then rebuilt): MASTER/LONG/SHORT remote-control WedgeScalperV2 via shared statics; STOP ENTRY L/S place own SB stop entries (BarStop/LastSwing × Scalp/AbrMult/RMult) + FLATTEN. **SB arming untested — validate live Mon 9/8.** No trading/options work this session.)
+
+---
+
+## S110 (2026-09-04→05) — NT8: WedgeScalperV2 polish + NEW BreakoutBoysDashboardV1 button panel
+
+**Tone:** long iterative UI/UX session on the two NT8 chart tools. Everything committed +
+deployed to `Documents\NinjaTrader 8\bin\Custom\Strategies\`. **F5 (when flat) is the real
+compile gate** — the standalone checker can't resolve MyWedge/MyMicroChannel or Gui.Tools types.
+See memories [[nt8-deploy-repo-to-custom-folder]] and [[nt8-compile-check]] (both updated S110).
+
+### WedgeScalperV2 (`nt8/strategies/WedgeScalperV2.cs`, committed + deployed)
+- **BUG FIXED — stop no longer trails before BE.** With "trail from entry" on, the protective
+  stop ratcheted 1t beyond each bar from entry, tightening INSIDE the SB → premature stop-outs.
+  Now the stop HOLDS the initial SB stop until BE arms (price moves +BETriggerTicks in favor),
+  then locks BE ± offset and trails 1t/bar. `TrailFromEntry` param removed.
+- **BE lock now moves INTRABAR** via an added 1-tick series (BarsInProgress==1); primary stays
+  OnBarClose so signals/entries/fills (Tick Replay OFF) are unchanged. Orders submit vs series 0.
+- **Inside-bar SB → stop beyond the prior bar** (toggle `InsideBarUsePriorBar`, default on).
+- **Entry filters** (2. Entry, default off): Min R:R (scalp tgt ÷ risk); Max SB size (× avg bar
+  range of last 8 bars).
+- **Visuals** (5. Chart Visuals): R:R green/red boxes w/ opacity param + info **on hover only**
+  (out of the trade); BE line = dashed RAY to the right edge, **color settable** (DodgerBlue);
+  SUB tag flipped out of the way; signal dots removed; DebugDraw default off; R:R risk box
+  follows a manual stop drag (redraws on OnOrderUpdate).
+- **Output → Tab2** (`PrintTo` set in State.Configure, NOT SetDefaults, or it doesn't stick) so
+  it's isolated from the PB33/MCStrategyDashboardV3 spam on Tab1. Clean per-trade block on close
+  (entry, legs, ticks/$, R) + running **daily scoreboard**. All debug prints gated behind DebugDraw.
+- **Shared statics for dashboard control:** `MasterArmed`, `MasterAllowLong/Short`, `LiveInstances`
+  (Realtime++/Terminated--). Gate NEW entries; open trades keep managing.
+- **STILL OPEN:** entry-cancel off-by-one — `CurrentBar - _sigBar > EntryValidBars` keeps the entry
+  alive N+1 bars (so "1"=2 bars). User asked to fix (`>`→`>=`) + auto-cancel orphaned entries on
+  start (a disable/F5 with CancelEntriesOnStrategyDisable=false leaves stale resting orders).
+  **NOT yet applied** — user didn't confirm.
+
+### BreakoutBoysDashboardV1 (`nt8/strategies/BreakoutBoysDashboardV1.cs`, committed + deployed)
+- Started as a verbatim clone of MCStrategyDashboardV3 (commit 3063b639, class/Name/state-file
+  renamed) but the requirements shifted (MC channel OUT, entries SB/wedge-based), so it was
+  **rebuilt fresh** — no MC channel indicator; reuses the proven chart-trader button-mount pattern
+  (`FindFirst("ChartWindowChartTraderControl")` → button grid → MakeBtn/AddFullRow/AddHalfRow,
+  mounted State.Historical, torn down Terminated). MCStrategyDashboardV3 is UNTOUCHED.
+- **MASTER / LONG / SHORT** = remote control of the SEPARATE WedgeScalperV2 via the shared statics.
+  MASTER refuses to arm when `WedgeScalperV2.LiveInstances<=0` (best-effort guard).
+- **STOP ENTRY L / S** = the dashboard's OWN managed stop entries: arm → at the signal bar's close
+  rest a stop 1t beyond the SB, enter next bar. SB = the bar armed in (default) or a **PICK SB**
+  chart-click. Stop modes `BarStop` (1t beyond SB; IB → walk left to first non-IB) / `LastSwing`;
+  target modes `Scalp` (fixed ticks) / `AbrMult` (avg-bar-range(N)×mult) / `RMult` (× risk).
+  **FLATTEN** button; adaptive **TGT value** adjust sub-button; order clicks via TriggerCustomEvent.
+- **⚠ SB arming reportedly not firing** in the user's test — likely just market-closed (SE places at
+  a bar CLOSE, enters next bar; no new bars off-hours). **VALIDATE LIVE MON 9/8 on Sim101** — watch
+  Tab1 Output for `SE LONG entry@… stop@… tgt@…`. If it never prints on the SB close → real bug in
+  auto-SB timing or the PICK-SB click (`ChartBars.GetBarIdxByX(ChartControl, x)`), dig in then.
+- **NOT built yet (need specs):** Speedo L/S, Lmt Buy L/Sell H (both were MC-channel-based; need new
+  trigger/pricing now). Also possible: intrabar BE for SE trades, per-side offset sub-rows.
+
+### Notes
+- Two strategies share one NT process → statics are process-global (one flag steers all wedge
+  instances). Don't run WedgeScalperV2 + BreakoutBoysDashboardV1 both live on the same chart/account
+  expecting them not to interact (dashboard places its own orders).
 
 ---
 
