@@ -639,7 +639,7 @@ if(!openIdx.length){$('#oh').style.display='none';}
 
 
 def main():
-    trades = tlog.load()
+    trades = tlog.dedupe_mirrors(tlog.load())
     marks_f = SIM / "marks.csv"
     last_marks = None
     if marks_f.exists():

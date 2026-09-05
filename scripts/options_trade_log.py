@@ -50,6 +50,24 @@ def load():
     return pd.DataFrame(columns=COLUMNS)
 
 
+def dedupe_mirrors(df):
+    """Drop live-account mirror rows that duplicate a sim-book trade.
+
+    A 'real_paper' row is the real IB leg of a trade also booked in the sim book
+    (same strategy_id + entry day). For any DISPLAY/analytics view we count it
+    once — never both — so collateral, P&L, grades and trade counts don't
+    double-book (STMR sim+REAL pair). Non-destructive: only filters, never writes.
+    """
+    if df is None or not len(df) or "source" not in df.columns:
+        return df
+    ed = pd.to_datetime(df["entry_dt"], errors="coerce").dt.strftime("%Y-%m-%d")
+    key = list(zip(df["strategy_id"].astype(str), ed.astype(str)))
+    df = df.assign(_key=key)
+    sib = set(df.loc[df["source"] != "real_paper", "_key"])
+    dupe = (df["source"] == "real_paper") & df["_key"].isin(sib)
+    return df[~dupe].drop(columns=["_key"])
+
+
 def _save(df):
     LOG.parent.mkdir(parents=True, exist_ok=True)
     df.to_parquet(LOG, index=False)

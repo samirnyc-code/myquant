@@ -106,11 +106,15 @@ EXCLUDE_DAYS = {"2026-08-04", "2026-08-05"}
 
 
 def _shown(trades):
-    """Display filter: drop the excluded past error day(s). Past-only, never future."""
+    """Display filter: drop excluded error day(s) and de-duplicate live mirrors.
+    Past-only, never future. A 'real_paper' row is the live-account leg of a trade
+    already in the sim book (same strategy_id + entry day); count it ONCE so
+    collateral / P&L / grades never double-book (STMR sim+REAL pair)."""
     if trades is None or not len(trades):
         return trades
     ed = pd.to_datetime(trades.entry_dt, errors="coerce").dt.strftime("%Y-%m-%d")
-    return trades[~ed.isin(EXCLUDE_DAYS)].copy()
+    t = trades[~ed.isin(EXCLUDE_DAYS)].copy()
+    return tlog.dedupe_mirrors(t)
 
 
 def load_stats():
@@ -1112,6 +1116,33 @@ ANALYTICS_CSS = r"""
 .bar .lab{width:118px;text-align:right;flex:none}
 .bar .track{flex:1;height:16px;background:var(--chip);border-radius:5px;position:relative;overflow:hidden}
 .bar .fill{position:absolute;top:0;bottom:0;border-radius:5px}
+.leg{display:flex;gap:16px;margin-top:8px;font-size:11px;color:var(--mut);flex-wrap:wrap}
+.leg span{display:flex;align-items:center;gap:5px}
+.leg i{width:14px;height:3px;border-radius:2px;display:inline-block}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.62);display:none;align-items:center;justify-content:center;z-index:1000;padding:24px}
+.modal.on{display:flex}
+.modal-c{background:var(--panel);border:1px solid var(--line);border-radius:14px;max-width:960px;width:100%;max-height:86vh;display:flex;flex-direction:column;box-shadow:0 24px 70px rgba(0,0,0,.55)}
+.modal-h{padding:14px 18px;border-bottom:1px solid var(--line);font-weight:800;font-size:16px;display:flex;justify-content:space-between;align-items:center}
+.modal-x{background:none;border:none;color:var(--mut);font-size:26px;line-height:1;cursor:pointer}
+.modal-body{padding:14px 18px;overflow:auto}
+.mbig{margin-bottom:14px}
+.mday{border-bottom:1px solid var(--line);padding:7px 0}
+.mday summary{display:flex;gap:12px;align-items:center;cursor:pointer;font-weight:700;list-style:none}
+.mday summary::-webkit-details-marker{display:none}
+.mmon{border-bottom:1px solid var(--line);padding:4px 0 6px}
+.mmon>summary{display:flex;gap:12px;align-items:center;cursor:pointer;font-weight:800;font-size:14px;list-style:none;padding:4px 0}
+.mmon>summary::-webkit-details-marker{display:none}
+.mmon>summary .md-d::before{content:"▸ ";color:var(--mut)}
+.mmon[open]>summary .md-d::before{content:"▾ "}
+.mmon .mday{margin-left:16px}
+.mday .md-d{flex:1}.mday .md-p{width:90px;text-align:right;font-variant-numeric:tabular-nums}
+.mday .md-c{width:120px;text-align:right;font-weight:400}
+.mrow{display:flex;justify-content:space-between;padding:3px 0 3px 16px;font-size:12.5px;color:var(--mut)}
+.chartwrap{position:relative}
+.xh-tip{position:absolute;top:4px;pointer-events:none;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:5px 9px;font-size:11.5px;line-height:1.5;font-weight:700;opacity:0;transition:opacity .08s;white-space:nowrap;z-index:5}
+.mbars{max-width:660px}
+.mbtns{display:flex;gap:8px;margin:2px 0 12px}
+.mbtns button{background:var(--chip);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer}
 .bar .val{width:74px;font-variant-numeric:tabular-nums;font-weight:700;text-align:right}
 .antable{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:8px}
 .antable th{color:var(--mut);text-align:right;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;padding:5px 8px;border-bottom:1px solid var(--line)}
@@ -1152,37 +1183,147 @@ ANALYTICS_JS = r"""
   }
   function tile(l,v,c){return '<div class="tile"><div class="tl">'+l+'</div><div class="tv '+(c||'')+'">'+v+'</div></div>';}
   function renderTiles(){const s=statAll(T),el=$('#an-tiles');if(!el)return;
+    const D=(window.__DAILY||{}).days||[];const dd=D.length?Math.min.apply(0,D.map(x=>x.dd)):s.dd;
+    const last=D.length?D[D.length-1]:null;
     el.innerHTML=tile('Total P&L',money(s.tot),s.tot>=0?'pos':'neg')+tile('Trades',s.n,'')+
       tile('Win rate',s.win==null?'—':s.win.toFixed(0)+'%','')+tile('Profit factor',s.pf==null?'—':s.pf.toFixed(2),'')+
       tile('Expectancy',money(s.exp),(s.exp||0)>=0?'pos':'neg')+tile('Avg ROI',pctf(s.avgroi),(s.avgroi||0)>=0?'pos':'neg')+
-      tile('Max drawdown',money(s.dd),'neg');}
-  function renderEquity(){const el=$('#an-equity');if(!el)return;
-    const rows=[...T].filter(t=>t.pnl!=null).sort((a,b)=>(a.entry||'').localeCompare(b.entry||''));
-    if(!rows.length){el.innerHTML='<div class="muted">no closed trades yet</div>';return;}
-    let eq=0;const pts=rows.map((t,i)=>{eq+=t.pnl;return{y:eq,d:t.date};});
-    const W=440,H=170,ml=52,mb=16,mt=8,mr=8;
-    const ys=pts.map(p=>p.y).concat([0]),ymin=Math.min.apply(0,ys),ymax=Math.max.apply(0,ys);
+      tile('Max drawdown',money(dd),'neg')+
+      (last?tile('Peak collateral',money(last.maxColl),''):'')+
+      (last?tile('Ideal acct size',money(last.ideal),''):'');}
+  // ---- DAILY engine: aggregate trades into per-day results, then derive the
+  // equity / drawdown / collateral / ideal-account curves. P&L is bucketed on
+  // t.date (exit date for closed, entry for still-open) to match the calendar.
+  // DD is END-OF-DAY (close-to-close on realized daily results), not intraday. ----
+  const IDEAL_BUFFER=0.25;   // safety cushion on ideal account size (25%)
+  function buildDaily(){
+    const rows=T.filter(t=>t.pnl!=null);
+    const byDay={};
+    rows.forEach(t=>{const d=(t.date||(t.entry||'').slice(0,10));if(!d)return;
+      (byDay[d]=byDay[d]||{d:d,pnl:0,trades:[]});byDay[d].pnl+=t.pnl;byDay[d].trades.push(t);});
+    const days=Object.values(byDay).sort((a,b)=>a.d.localeCompare(b.d));
+    const lastDay=days.length?days[days.length-1].d:null;
+    let cum=0,peak=0;
+    days.forEach(x=>{cum+=x.pnl;x.cum=cum;peak=Math.max(peak,cum);x.dd=cum-peak;});
+    // collateral tied up each day = sum over trades active [entryDay..exitDay]
+    const collBy={};days.forEach(x=>collBy[x.d]=0);
+    rows.forEach(t=>{const c=t.collateral||0;if(!c)return;
+      const e=(t.entry||'').slice(0,10)||t.date;const x=t.open?lastDay:(t.date||e);
+      days.forEach(day=>{if(day.d>=e&&day.d<=x)collBy[day.d]+=c;});});
+    let mc=0,mdd=0;
+    days.forEach(x=>{x.coll=collBy[x.d]||0;mc=Math.max(mc,x.coll);x.maxColl=mc;
+      mdd=Math.max(mdd,-x.dd);x.base=mc+mdd;x.ideal=(mc+mdd)*(1+IDEAL_BUFFER);});
+    return {days:days};
+  }
+  const monLbl=d=>{try{return new Date(d+'T00:00:00').toLocaleDateString('en',{month:'short',year:'2-digit'});}catch(e){return d.slice(0,7);}};
+  // interactive multi-series line chart into `el`. series:[{name,color,get,area?}].
+  // Draws month gridlines/labels on x-axis + a hover crosshair with per-series totals.
+  function drawChart(el,rows,series,opts){opts=opts||{};if(!el)return;
+    const W=1000,H=opts.H||330,ml=70,mb=30,mt=12,mr=16,n=rows.length;
+    let vals=[];series.forEach(s=>rows.forEach(r=>{const v=s.get(r);if(v!=null)vals.push(v);}));
+    vals.push(0);let ymin=Math.min.apply(0,vals),ymax=Math.max.apply(0,vals);
     const pad=(ymax-ymin)*.12||100,lo=ymin-pad,hi=ymax+pad;
-    const X=i=>ml+(pts.length<2?(W-ml-mr)/2:i/(pts.length-1)*(W-ml-mr));
-    const Y=v=>mt+(1-(v-lo)/(hi-lo))*(H-mt-mb),zero=Y(0);
-    const line=pts.map((p,i)=>X(i).toFixed(1)+','+Y(p.y).toFixed(1)).join(' ');
-    if($('#an-eqsub'))$('#an-eqsub').textContent='cum '+money(eq);
-    el.innerHTML='<svg width="100%" viewBox="0 0 '+W+' '+H+'">'+
-      '<line x1="'+ml+'" y1="'+zero+'" x2="'+(W-mr)+'" y2="'+zero+'" stroke="var(--line)"/>'+
-      '<text x="4" y="'+(Y(hi)+9)+'" fill="var(--mut)" font-size="10">'+money(hi)+'</text>'+
-      '<text x="4" y="'+(zero+3)+'" fill="var(--mut)" font-size="10">$0</text>'+
-      '<text x="4" y="'+Y(lo)+'" fill="var(--mut)" font-size="10">'+money(lo)+'</text>'+
-      '<polyline points="'+line+'" fill="none" stroke="var(--acc)" stroke-width="2"/>'+
-      pts.map((p,i)=>'<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(p.y).toFixed(1)+'" r="2.5" fill="'+(p.y>=0?'var(--pos)':'var(--neg)')+'"/>').join('')+'</svg>';}
+    const X=i=>ml+(n<2?(W-ml-mr)/2:i/(n-1)*(W-ml-mr));
+    const Y=v=>mt+(1-(v-lo)/((hi-lo)||1))*(H-mt-mb),zero=Y(0);
+    let g='';let pm='';
+    rows.forEach((r,i)=>{const m=(r.d||'').slice(0,7);if(m&&m!==pm){pm=m;
+      if(i>0)g+='<line x1="'+X(i).toFixed(1)+'" y1="'+mt+'" x2="'+X(i).toFixed(1)+'" y2="'+(H-mb)+'" stroke="var(--line)" stroke-dasharray="3 4" opacity="0.55"/>';
+      g+='<text x="'+X(i).toFixed(1)+'" y="'+(H-8)+'" fill="var(--mut)" font-size="20" text-anchor="middle">'+monLbl(r.d)+'</text>';}});
+    g+='<line x1="'+ml+'" y1="'+zero+'" x2="'+(W-mr)+'" y2="'+zero+'" stroke="var(--line)"/>';
+    g+='<text x="8" y="'+(Y(hi)+16)+'" fill="var(--mut)" font-size="20">'+money(hi)+'</text>';
+    g+='<text x="8" y="'+(zero+6)+'" fill="var(--mut)" font-size="20">$0</text>';
+    g+='<text x="8" y="'+Y(lo)+'" fill="var(--mut)" font-size="20">'+money(lo)+'</text>';
+    series.forEach(s=>{const pts=rows.map((r,i)=>{const v=s.get(r);return v==null?null:X(i).toFixed(1)+','+Y(v).toFixed(1);}).filter(Boolean);
+      if(!pts.length)return;
+      if(s.area)g+='<polygon points="'+X(0).toFixed(1)+','+zero+' '+pts.join(' ')+' '+X(n-1).toFixed(1)+','+zero+'" fill="'+s.color+'" opacity="0.16"/>';
+      g+='<polyline points="'+pts.join(' ')+'" fill="none" stroke="'+s.color+'" stroke-width="2.5"/>';});
+    g+='<line class="xh" x1="0" y1="'+mt+'" x2="0" y2="'+(H-mb)+'" stroke="var(--ink)" stroke-width="1.2" opacity="0"/>';
+    const svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;display:block;overflow:visible">'+g+'</svg>';
+    el.innerHTML='<div class="chartwrap">'+svg+'<div class="xh-tip"></div></div>';
+    const wrap=el.querySelector('.chartwrap'),svgEl=wrap.querySelector('svg'),line=wrap.querySelector('.xh'),tip=wrap.querySelector('.xh-tip');
+    wrap.onmousemove=function(e){const rect=svgEl.getBoundingClientRect();const frac=(e.clientX-rect.left)/rect.width;
+      let i=Math.round((frac*W-ml)/(((W-ml-mr)/((n-1)||1))));i=Math.max(0,Math.min(n-1,i));const r=rows[i];
+      line.setAttribute('x1',X(i));line.setAttribute('x2',X(i));line.setAttribute('opacity','0.55');
+      tip.innerHTML='<b>'+r.d+'</b><br>'+series.map(s=>'<span style="color:'+s.color+'">'+(s.name?s.name+' ':'')+money(s.get(r))+'</span>').join('<br>')+(opts.tipExtra?'<br>'+opts.tipExtra(r):'');
+      tip.style.opacity='1';const px=(X(i)/W)*rect.width;tip.style.left=Math.max(4,Math.min(rect.width-130,px+10))+'px';};
+    wrap.onmouseleave=function(){line.setAttribute('opacity','0');tip.style.opacity='0';};}
+  function eqSeries(){return[{name:'cum',color:'var(--acc)',get:r=>r.cum}];}
+  function ddSeries(){return[{name:'drawdown',color:'var(--neg)',area:true,get:r=>r.dd}];}
+  function capSeries(){return[{name:'daily',color:'var(--mut)',get:r=>r.coll},{name:'max',color:'var(--warn)',get:r=>r.maxColl},{name:'ideal',color:'var(--acc)',get:r=>r.ideal}];}
+  function renderEquity(){const el=$('#an-equity');if(!el)return;const D=(window.__DAILY||{}).days||[];
+    if(!D.length){el.innerHTML='<div class="muted">no closed trades yet</div>';return;}
+    if($('#an-eqsub'))$('#an-eqsub').textContent='cum '+money(D[D.length-1].cum)+' · '+D.length+' days';
+    drawChart(el,D,eqSeries(),{tipExtra:r=>'<span class="'+(r.pnl>=0?'pos':'neg')+'">day '+money(r.pnl)+'</span>'});el.style.cursor='zoom-in';el.onclick=()=>openChartModal('equity');}
+  function renderDD(){const el=$('#an-dd');if(!el)return;const D=(window.__DAILY||{}).days||[];
+    if(!D.length){el.innerHTML='<div class="muted">—</div>';return;}
+    if($('#an-ddsub'))$('#an-ddsub').textContent='max '+money(Math.min.apply(0,D.map(x=>x.dd)))+' · EOD';
+    drawChart(el,D,ddSeries(),{});el.style.cursor='zoom-in';el.onclick=()=>openChartModal('dd');}
+  function renderCapital(){const el=$('#an-capital');if(!el)return;const D=(window.__DAILY||{}).days||[];
+    if(!D.length){el.innerHTML='<div class="muted">—</div>';return;}const last=D[D.length-1];
+    if($('#an-capsub'))$('#an-capsub').innerHTML='peak collateral '+money(last.maxColl)+' · ideal '+money(last.ideal)+' (incl '+Math.round(IDEAL_BUFFER*100)+'% buffer)';
+    drawChart(el,D,capSeries(),{});
+    el.insertAdjacentHTML('beforeend','<div class="leg"><span><i style="background:var(--mut)"></i>daily collateral</span><span><i style="background:var(--warn)"></i>max collateral used</span><span><i style="background:var(--acc)"></i>ideal account size (+'+Math.round(IDEAL_BUFFER*100)+'%)</span></div>');
+    el.style.cursor='zoom-in';el.onclick=()=>openChartModal('capital');}
+  function monthlyBarsHTML(){const D=(window.__DAILY||{}).days||[];const m={};
+    D.forEach(x=>{const k=x.d.slice(0,7);m[k]=(m[k]||0)+x.pnl;});
+    const keys=Object.keys(m).sort();if(!keys.length)return'<div class="muted">—</div>';
+    const mx=Math.max.apply(0,[1].concat(keys.map(k=>Math.abs(m[k]))));
+    return keys.map(k=>{const v=m[k],w=Math.abs(v)/mx*100;
+      return '<div class="bar"><span class="lab">'+k+'</span>'+
+        '<span class="track"><span class="fill" style="width:'+w+'%;background:'+(v>=0?'var(--pos)':'var(--neg)')+';'+(v>=0?'left:50%':'right:50%')+'"></span></span>'+
+        '<span class="val '+(v>=0?'pos':'neg')+'">'+money(v)+'</span></div>';}).join('');}
+  function renderMonthly(){const el=$('#an-monthly');if(!el)return;el.innerHTML=monthlyBarsHTML();
+    el.style.cursor='zoom-in';el.onclick=()=>openChartModal('monthly');}
+  // ---- pop-out modal (lightbox): large, centered, scrollable ----
+  function showModal(title,html){const m=$('#an-modal');if(!m)return;
+    m.querySelector('.modal-h').innerHTML='<span>'+title+'</span><button class="modal-x" aria-label="close">×</button>';
+    m.querySelector('.modal-body').innerHTML=html;m.classList.add('on');
+    m.querySelector('.modal-x').onclick=closeModal;}
+  function closeModal(){const m=$('#an-modal');if(m)m.classList.remove('on');}
+  function dayDetailHTML(x){
+    const tr=x.trades.slice().sort((a,b)=>(b.pnl||0)-(a.pnl||0)).map(t=>
+      '<div class="mrow"><span>'+(t.strategy||'?')+' <span class="muted">'+(t.grade||'')+(t.structure?' · '+t.structure:'')+'</span></span>'+
+      '<span class="'+((t.pnl||0)>=0?'pos':'neg')+'">'+money(t.pnl)+'</span></div>').join('');
+    return '<details class="mday"><summary><span class="md-d">'+x.d+' <span class="muted">'+x.trades.length+' trd</span></span>'+
+      '<span class="md-p '+(x.pnl>=0?'pos':'neg')+'">'+money(x.pnl)+'</span>'+
+      '<span class="muted md-c">coll $'+Math.round(x.coll||0).toLocaleString()+'</span>'+
+      '<span class="muted md-c">cum '+money(x.cum)+'</span></summary>'+tr+'</details>';}
+  // rows grouped under collapsible MONTH sections, so collapsing a month hides all its days
+  function dailyRowsHTML(){const D=(window.__DAILY||{}).days||[];
+    const byM={};D.forEach(x=>{(byM[x.d.slice(0,7)]=byM[x.d.slice(0,7)]||[]).push(x);});
+    return Object.keys(byM).sort().reverse().map(mk=>{
+      const dys=byM[mk].slice().sort((a,b)=>b.d.localeCompare(a.d));
+      const mtot=dys.reduce((a,b)=>a+b.pnl,0);
+      return '<details class="mmon" open><summary><span class="md-d">'+mk+' <span class="muted">'+dys.length+' days</span></span>'+
+        '<span class="md-p '+(mtot>=0?'pos':'neg')+'">'+money(mtot)+'</span></summary>'+
+        dys.map(dayDetailHTML).join('')+'</details>';}).join('');}
+  function openChartModal(kind){const D=(window.__DAILY||{}).days||[];
+    const TITLES={equity:'Daily results — equity detail',dd:'Drawdown (EOD)',capital:'Capital — collateral vs ideal account',monthly:'Monthly P&L',grade:'Grade calibration'};
+    if(kind==='monthly'){showModal(TITLES.monthly,'<div class="mbars">'+monthlyBarsHTML()+'</div>');return;}
+    if(kind==='grade'){showModal(TITLES.grade,'<div class="mbars">'+($('#an-grade')?$('#an-grade').innerHTML:'')+'</div>');return;}
+    if(!D.length){showModal(TITLES[kind]||'Chart','<div class="muted">no data</div>');return;}
+    const leg=kind==='capital'?'<div class="leg"><span><i style="background:var(--mut)"></i>daily collateral</span><span><i style="background:var(--warn)"></i>max collateral used</span><span><i style="background:var(--acc)"></i>ideal account size (+'+Math.round(IDEAL_BUFFER*100)+'%)</span></div>':'';
+    const extra=kind==='equity'?('<div class="mbtns"><button id="mexp">Expand all</button><button id="mcol">Collapse all</button></div>'+dailyRowsHTML()):'';
+    showModal(TITLES[kind]||'Chart','<div class="mbig" id="mchart"></div>'+leg+extra);
+    const series=kind==='equity'?eqSeries():kind==='dd'?ddSeries():capSeries();
+    drawChart($('#mchart'),D,series,{H:420,tipExtra:kind==='equity'?r=>'<span class="'+(r.pnl>=0?'pos':'neg')+'">day '+money(r.pnl)+'</span>':null});
+    const mm=$('#an-modal');
+    if(kind==='equity'&&mm){const ex=mm.querySelector('#mexp'),co=mm.querySelector('#mcol');
+      if(ex)ex.onclick=()=>mm.querySelectorAll('.mmon,.mday').forEach(d=>d.open=true);
+      if(co)co.onclick=()=>mm.querySelectorAll('.mmon,.mday').forEach(d=>d.open=false);}}
   function grp(rows,key){const m={};rows.forEach(t=>{let k=t[key];if(k===true)k='win';if(k===false)k='loss';if(k==null||k==='')k='?';(m[k]=m[k]||[]).push(t);});return m;}
   function bstat(rows){const p=rows.filter(t=>t.pnl!=null).map(t=>t.pnl),w=p.filter(x=>x>=0),l=p.filter(x=>x<0);
     const rois=rows.filter(t=>t.roi!=null).map(t=>t.roi);
+    const cols=rows.filter(t=>t.collateral!=null).map(t=>t.collateral);
     return {n:p.length,tot:p.reduce((a,b)=>a+b,0),win:p.length?w.length/p.length*100:null,
       avg:p.length?p.reduce((a,b)=>a+b,0)/p.length:null,pf:l.length?w.reduce((a,b)=>a+b,0)/-l.reduce((a,b)=>a+b,0):null,
-      roi:rois.length?rois.reduce((a,b)=>a+b,0)/rois.length:null};}
-  const GO=['A+','A','B+','B','B-','C+','C','C-','D','F','?'];
+      roi:rois.length?rois.reduce((a,b)=>a+b,0)/rois.length:null,
+      coll:cols.length?cols.reduce((a,b)=>a+b,0)/cols.length:null};}
+  const GO=['A+','A','B+','B','B-','C+','C','C-','D','F','n/a','?'];
   function renderGrade(){const el=$('#an-grade');if(!el)return;const g=grp(closed,'grade');
-    const keys=Object.keys(g).sort((a,b)=>GO.indexOf(a)-GO.indexOf(b));
+    // Show real letter grades A→F, then ungraded 'n/a' (STMR) pinned at the BOTTOM.
+    // Drop only '?' and unknown labels so a stray tag can't sort to the top.
+    const keys=Object.keys(g).filter(k=>GO.indexOf(k)>=0&&k!=='?').sort((a,b)=>GO.indexOf(a)-GO.indexOf(b));
     const mx=Math.max.apply(0,[1].concat(keys.map(k=>Math.abs(bstat(g[k]).avg||0))));
     el.innerHTML=keys.map(k=>{const s=bstat(g[k]),a=s.avg||0,w=Math.abs(a)/mx*100;
       return '<div class="bar"><span class="lab" style="color:'+gcol(k)+';font-weight:800">'+k+' <span style="color:var(--mut);font-weight:400">n'+s.n+'</span></span>'+
@@ -1193,9 +1334,11 @@ ANALYTICS_JS = r"""
     const g=grp(closed,dim),keys=Object.keys(g).sort((a,b)=>bstat(g[b]).tot-bstat(g[a]).tot);
     const rows=keys.map(k=>{const s=bstat(g[k]);return '<tr><td><b>'+k+'</b></td><td>'+s.n+'</td>'+
       '<td>'+(s.win==null?'—':s.win.toFixed(0)+'%')+'</td><td class="'+(s.tot>=0?'pos':'neg')+'">'+money(s.tot)+'</td>'+
-      '<td class="'+((s.avg||0)>=0?'pos':'neg')+'">'+money(s.avg)+'</td><td>'+(s.pf==null?'—':s.pf.toFixed(2))+'</td>'+
+      '<td class="'+((s.avg||0)>=0?'pos':'neg')+'">'+money(s.avg)+'</td>'+
+      '<td>'+(s.coll==null?'—':'$'+Math.round(s.coll).toLocaleString())+'</td>'+
+      '<td>'+(s.pf==null?'—':s.pf.toFixed(2))+'</td>'+
       '<td class="'+((s.roi||0)>=0?'pos':'neg')+'">'+pctf(s.roi)+'</td></tr>';}).join('');
-    el.innerHTML='<table class="antable"><tr><th>'+dim+'</th><th>n</th><th>win</th><th>total</th><th>avg</th><th>PF</th><th>ROI</th></tr>'+rows+'</table>';
+    el.innerHTML='<table class="antable"><tr><th>'+dim+'</th><th>n</th><th>win</th><th>total</th><th>avg</th><th>avg collat</th><th>PF</th><th>ROI</th></tr>'+rows+'</table>';
     if($('#an-note'))$('#an-note').textContent=closed.length<20?'· only '+closed.length+' closed — small sample, read as noise':'';}
   const byDay={};T.forEach(t=>{if(!t.date)return;(byDay[t.date]=byDay[t.date]||{pnl:0,n:0,rows:[]});
     byDay[t.date].n++;if(t.pnl!=null)byDay[t.date].pnl+=t.pnl;byDay[t.date].rows.push(t);});
@@ -1224,7 +1367,11 @@ ANALYTICS_JS = r"""
     el.innerHTML='<div class="an-h" style="margin:16px 2px 10px;font-size:15px">'+ds+
       ' — <span class="'+(e.pnl>=0?'pos':'neg')+'">'+money(e.pnl)+'</span> · '+e.n+' trades</div>'+
       '<div class="iboard">'+tiles+'</div>';}
-  function initAn(){renderTiles();renderEquity();renderGrade();renderPivot();renderCal();
+  function initAn(){window.__DAILY=buildDaily();
+    renderTiles();renderEquity();renderGrade();renderMonthly();renderDD();renderCapital();renderPivot();renderCal();
+    const gc=$('#an-grade');if(gc){gc.style.cursor='zoom-in';gc.onclick=()=>openChartModal('grade');}
+    const md=$('#an-modal');if(md)md.onclick=e=>{if(e.target===md)closeModal();};
+    document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
     const dim=$('#an-dim');if(dim)dim.onchange=renderPivot;
     const pv=$('#cal-prev'),nx=$('#cal-next');
     if(pv)pv.onclick=()=>{calM.setMonth(calM.getMonth()-1);renderCal();$('#cal-day').innerHTML='';};
@@ -1458,7 +1605,11 @@ h2{{font-size:15px;color:var(--acc);margin:24px 0 8px}}
   <div class="an-charts">
     <div class="an-card"><div class="an-h">Equity curve <span class="muted" id="an-eqsub"></span></div><div id="an-equity"></div></div>
     <div class="an-card"><div class="an-h">Grade calibration <span class="muted">— does grade predict P&amp;L?</span></div><div id="an-grade"></div></div>
+    <div class="an-card"><div class="an-h">Monthly P&amp;L</div><div id="an-monthly"></div></div>
+    <div class="an-card"><div class="an-h">Drawdown <span class="muted" id="an-ddsub"></span></div><div id="an-dd"></div></div>
+    <div class="an-card"><div class="an-h">Capital — collateral vs ideal account <span class="muted" id="an-capsub"></span></div><div id="an-capital"></div></div>
   </div>
+  <div class="modal" id="an-modal"><div class="modal-c"><div class="modal-h"></div><div class="modal-body"></div></div></div>
   <div class="an-card" style="margin-top:14px">
     <div class="an-h">Break down by
       <select id="an-dim">

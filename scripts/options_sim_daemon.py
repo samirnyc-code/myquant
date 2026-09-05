@@ -59,7 +59,7 @@ def entry_extras(legs, credit, spot, width, qty, date_ymd, sig):
     """Full card metrics at entry so no STMR card is ever blank again (S79):
     grade, POP@entry, bounded max-gain/max-loss ($), and the thesis. max-gain/loss
     are structural (credit / collateral); POP needs the day's gameplan sigma."""
-    ex = {"grade": "A/B",
+    ex = {"grade": "n/a",  # STMR = one fixed condition (K8<15 & spot>SMA100); no entry-quality axis to grade
           "max_gain": round(credit * 100 * qty),
           "max_loss": -round((width - credit) * 100 * qty),
           "commentary": (f"STMR 15:59: K8 {sig['k8']} < 15 (oversold) with spot "
