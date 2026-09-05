@@ -11,24 +11,30 @@ using NinjaTrader.Cbi;
 using NinjaTrader.Data;
 using NinjaTrader.NinjaScript;
 using NinjaTrader.NinjaScript.Strategies;
+using NinjaTrader.NinjaScript.Indicators;
 #endregion
 
 namespace NinjaTrader.NinjaScript.Strategies
 {
+	// Stop-entry stop/target modes (fresh, wedge/SB based — NOT the MC channel modes).
+	public enum BBStopMode   { BarStop, LastSwing }
+	public enum BBTargetMode { Scalp, AbrMult, RMult }
+
 	// ══════════════════════════════════════════════════════════════════════════
-	// BreakoutBoysDashboardV1 — chart-trader button panel.
+	// BreakoutBoysDashboardV1 — chart-trader button panel + SB stop-entry engine.
 	// ══════════════════════════════════════════════════════════════════════════
-	// Built fresh (NOT the MC channel dashboard). The MC MicroChannel indicator is
-	// intentionally NOT used here — entries will be SB/wedge-based (added in later
-	// increments). Reuses the proven chart-trader button-mount pattern from
-	// MCStrategyDashboardV3 (FindFirst("ChartWindowChartTraderControl") -> button grid).
+	// Fresh build (no MC channel indicator). Reuses the proven chart-trader button
+	// mount pattern from MCStrategyDashboardV3.
 	//
-	// INCREMENT 1 (this file): MASTER button only — arms/disarms the SEPARATE
-	// WedgeScalperV2 strategy via the shared static WedgeScalperV2.MasterArmed
-	// (both compile into NinjaTrader.Custom = same process). Green = armed.
-	//
-	// TODO (next increments): PICK SB (bar-select), STOP ENTRY L/S with stop modes
-	// {BarStop, LastSwing} + target modes {Scalp, AbrMult, RMult}, then Speedo/Lmt.
+	//   MASTER / LONG / SHORT : remote-control the SEPARATE WedgeScalperV2 via shared
+	//                           statics (arm/disarm + side filter). MASTER refuses to
+	//                           arm when no live WedgeScalperV2 instance exists.
+	//   STOP ENTRY L / S      : this dashboard's OWN stop entry. Arm -> on the signal
+	//                           bar's close, rest a stop 1t beyond the SB, enter next
+	//                           bar. SB = the bar you armed in (default) or a PICK-SB
+	//                           selected bar.
+	//     STOP  = BarStop (1t beyond SB; IB -> walk left to first non-IB) or LastSwing.
+	//     TGT   = Scalp (fixed ticks) / AbrMult (avg-bar-range(N) x mult) / RMult (x risk).
 	public class BreakoutBoysDashboardV1 : Strategy
 	{
 		// ── chart-trader panel state ────────────────────────────────────────
@@ -36,26 +42,56 @@ namespace NinjaTrader.NinjaScript.Strategies
 		private bool   ctPanelActive;
 		private int    ctBaseRowCount;
 		private int    ctRowsAdded;
-		private Button btnMaster;
-		private Button btnLong;
-		private Button btnShort;
+		private bool   _mouseHooked;
 
-		private Color  ColorOn;
-		private Color  ColorOff;
+		private Button btnMaster, btnLong, btnShort;
+		private Button btnSEL, btnSES, btnPickSB, btnStpMode, btnTgtMode;
+
+		private Color  ColorOn, ColorOff, ColorArmed, ColorPick;
+
+		// ── stop-entry runtime state ────────────────────────────────────────
+		private BBStopMode   _stopMode = BBStopMode.BarStop;
+		private BBTargetMode _tgtMode  = BBTargetMode.Scalp;
+		private bool   _pendingLong, _pendingShort;   // armed, waiting for SB close
+		private bool   _pickArmed;                     // next chart click selects the SB
+		private int    _sbPickedBar = -1;              // absolute bar index of a manually-picked SB (-1 = none)
+		private int    _entryBar    = -1;
+		private double _entryPx, _stopPx, _tgtPx;
+		private int    _dir;                           // +1 long / -1 short for the working/open trade
+		private Swing  _swing;
 
 		protected override void OnStateChange()
 		{
 			if (State == State.SetDefaults)
 			{
 				Name         = "BreakoutBoysDashboardV1";
-				Description  = "Breakout Boys Dashboard v1 — chart-trader buttons (MASTER controls WedgeScalperV2)";
+				Description  = "Breakout Boys Dashboard v1 — CT buttons: MASTER/LONG/SHORT steer WedgeScalperV2; STOP ENTRY L/S place SB stop entries";
 				Calculate    = Calculate.OnBarClose;
-				IsUnmanaged  = false;
-				IsExitOnSessionCloseStrategy = false;
-				BarsRequiredToTrade = 1;
+				EntriesPerDirection = 1;
+				EntryHandling = EntryHandling.AllEntries;
+				IsExitOnSessionCloseStrategy = true;
+				ExitOnSessionCloseSeconds    = 30;
+				BarsRequiredToTrade = 20;
+				RealtimeErrorHandling = RealtimeErrorHandling.IgnoreAllErrors;
 
-				ColorOn  = Color.FromRgb(0,  160, 0);
-				ColorOff = Color.FromRgb(80, 80,  80);
+				// stop-entry settings
+				SE_Qty            = 1;
+				SE_EntryOffsetTicks = 1;   // entry this many ticks beyond the SB
+				SE_StopOffsetTicks  = 1;   // stop this many ticks beyond the stop-reference bar/swing
+				SE_ScalpTicks     = 4;
+				SE_AbrBars        = 8;
+				SE_AbrMult        = 1.0;
+				SE_RMult          = 1.0;
+				SE_SwingStrength  = 3;
+
+				ColorOn    = Color.FromRgb(0,   160, 0);
+				ColorOff   = Color.FromRgb(80,  80,  80);
+				ColorArmed = Color.FromRgb(200, 140, 0);   // amber = armed / waiting
+				ColorPick  = Color.FromRgb(0,   110, 200); // blue = pick mode
+			}
+			else if (State == State.DataLoaded)
+			{
+				_swing = Swing(SE_SwingStrength);
 			}
 			else if (State == State.Historical)
 			{
@@ -69,9 +105,111 @@ namespace NinjaTrader.NinjaScript.Strategies
 			}
 		}
 
-		protected override void OnBarUpdate() { /* no trading logic yet (button host) */ }
+		protected override void OnBarUpdate()
+		{
+			if (CurrentBar < BarsRequiredToTrade) return;
 
-		// ── mount the panel into the Chart Trader button grid ───────────────
+			// Place a pending stop entry at the signal bar's close.
+			if ((_pendingLong || _pendingShort) && Position.MarketPosition == MarketPosition.Flat)
+			{
+				bool isLong = _pendingLong;
+				int sbAgo = _sbPickedBar >= 0 ? Math.Max(0, CurrentBar - _sbPickedBar) : 0;
+				PlaceStopEntry(isLong, sbAgo);
+				_pendingLong = _pendingShort = false;
+				_sbPickedBar = -1;
+				SetBtn(btnSEL, _dir == 1 ? ColorArmed : ColorOff);
+				SetBtn(btnSES, _dir == -1 ? ColorArmed : ColorOff);
+			}
+		}
+
+		// Compute entry/stop/target from the SB and rest the entry stop order.
+		private void PlaceStopEntry(bool isLong, int sbAgo)
+		{
+			double tick = TickSize;
+			double sbHi = High[sbAgo], sbLo = Low[sbAgo];
+
+			// STOP reference bar (BarStop): 1t beyond the SB, but if the SB is an inside
+			// bar, walk LEFT to the first non-inside bar and use that.
+			double stopRefHi = sbHi, stopRefLo = sbLo;
+			if (_stopMode == BBStopMode.BarStop)
+			{
+				int a = sbAgo;
+				while (a + 1 <= CurrentBar && High[a] <= High[a + 1] && Low[a] >= Low[a + 1])
+					a++;   // bar a is inside bar a+1 -> step left
+				stopRefHi = High[a]; stopRefLo = Low[a];
+			}
+
+			if (isLong)
+			{
+				_dir = 1;
+				_entryPx = sbHi + SE_EntryOffsetTicks * tick;
+				_stopPx  = (_stopMode == BBStopMode.LastSwing ? _swing.SwingLow[0] : stopRefLo) - SE_StopOffsetTicks * tick;
+			}
+			else
+			{
+				_dir = -1;
+				_entryPx = sbLo - SE_EntryOffsetTicks * tick;
+				_stopPx  = (_stopMode == BBStopMode.LastSwing ? _swing.SwingHigh[0] : stopRefHi) + SE_StopOffsetTicks * tick;
+			}
+
+			double risk = Math.Abs(_entryPx - _stopPx);
+			double tgtDist;
+			switch (_tgtMode)
+			{
+				case BBTargetMode.AbrMult: tgtDist = Abr(SE_AbrBars) * SE_AbrMult; break;
+				case BBTargetMode.RMult:   tgtDist = risk * SE_RMult;             break;
+				default:                   tgtDist = SE_ScalpTicks * tick;        break;   // Scalp
+			}
+			_tgtPx = isLong ? _entryPx + tgtDist : _entryPx - tgtDist;
+
+			if (isLong) EnterLongStopMarket(SE_Qty, _entryPx, "SE");
+			else        EnterShortStopMarket(SE_Qty, _entryPx, "SE");
+			Print(DateTime.Now + "  SE " + (isLong ? "LONG" : "SHORT") + " entry@" + _entryPx.ToString("0.00")
+				+ " stop@" + _stopPx.ToString("0.00") + " tgt@" + _tgtPx.ToString("0.00")
+				+ " [" + _stopMode + "/" + _tgtMode + "]");
+		}
+
+		// Average bar range (High-Low) over the prior n bars (excludes the current bar).
+		private double Abr(int n)
+		{
+			double sum = 0; int c = 0;
+			for (int i = 1; i <= n && i <= CurrentBar; i++) { sum += High[i] - Low[i]; c++; }
+			return c > 0 ? sum / c : 0;
+		}
+
+		protected override void OnExecutionUpdate(Execution execution, string executionId, double price,
+			int quantity, MarketPosition marketPosition, string orderId, DateTime time)
+		{
+			if (execution.Order == null) return;
+			if (execution.Order.Name == "SE" && Position.MarketPosition != MarketPosition.Flat)
+			{
+				_entryBar = CurrentBar;
+				if (Position.MarketPosition == MarketPosition.Long)
+				{
+					ExitLongStopMarket(0, true, Position.Quantity, _stopPx, "SEstop", "SE");
+					ExitLongLimit     (0, true, Position.Quantity, _tgtPx,  "SEtgt",  "SE");
+				}
+				else
+				{
+					ExitShortStopMarket(0, true, Position.Quantity, _stopPx, "SEstop", "SE");
+					ExitShortLimit     (0, true, Position.Quantity, _tgtPx,  "SEtgt",  "SE");
+				}
+				Print(DateTime.Now + "  SE FILLED " + Position.MarketPosition + " x" + quantity + " @ " + price.ToString("0.00"));
+			}
+		}
+
+		protected override void OnPositionUpdate(Position position, double averagePrice,
+			int quantity, MarketPosition marketPosition)
+		{
+			if (marketPosition == MarketPosition.Flat)
+			{
+				_dir = 0; _entryBar = -1;
+				SetBtn(btnSEL, ColorOff);
+				SetBtn(btnSES, ColorOff);
+			}
+		}
+
+		// ══════════════════════ Chart Trader panel ══════════════════════════
 		private void CreateWPFControls()
 		{
 			if (ctPanelActive) return;
@@ -91,70 +229,116 @@ namespace NinjaTrader.NinjaScript.Strategies
 				if (ctButtonsGrid == null) { Print("BB: button grid not found"); return; }
 
 				ctBaseRowCount = ctButtonsGrid.RowDefinitions.Count;
-				ctRowsAdded    = 0;
+				ctRowsAdded = 0;
 				Style s = Application.Current.TryFindResource("Button") as Style;
 
-				// Row 0: MASTER — arm/disarm WedgeScalperV2 entries
+				// Row: MASTER (arm/disarm WedgeScalperV2)
 				btnMaster = MakeBtn(s, MasterLabel(), "Arm/disarm WedgeScalperV2 new entries", WedgeArmedColor());
 				btnMaster.Click += (o, e) =>
 				{
+					if (!WedgeScalperV2.MasterArmed && WedgeScalperV2.LiveInstances <= 0)
+					{ Print(DateTime.Now + " MASTER: no live WedgeScalperV2 to arm — add + enable it on a chart first."); return; }
 					WedgeScalperV2.MasterArmed = !WedgeScalperV2.MasterArmed;
 					btnMaster.Content = MasterLabel();
 					SetBtn(btnMaster, WedgeArmedColor());
 					Print(DateTime.Now + " MASTER -> WedgeScalperV2 " + (WedgeScalperV2.MasterArmed ? "ARMED" : "DISARMED"));
 				};
-				AddFullRow(ctButtonsGrid, ctBaseRowCount + ctRowsAdded, btnMaster);
-				ctRowsAdded++;
+				AddFullRow(ctButtonsGrid, ctBaseRowCount + ctRowsAdded++, btnMaster);
 
-				// Row 1: LONG | SHORT — allow/deny each side on WedgeScalperV2
-				btnLong = MakeBtn(s, "LONG", "Allow WedgeScalperV2 LONG entries", WedgeScalperV2.MasterAllowLong ? ColorOn : ColorOff);
-				btnLong.Click += (o, e) =>
-				{
-					WedgeScalperV2.MasterAllowLong = !WedgeScalperV2.MasterAllowLong;
-					SetBtn(btnLong, WedgeScalperV2.MasterAllowLong ? ColorOn : ColorOff);
-					Print(DateTime.Now + " WedgeScalperV2 LONG " + (WedgeScalperV2.MasterAllowLong ? "ON" : "OFF"));
-				};
+				// Row: LONG | SHORT (wedge side filter)
+				btnLong  = MakeBtn(s, "LONG",  "Allow WedgeScalperV2 LONG entries",  WedgeScalperV2.MasterAllowLong  ? ColorOn : ColorOff);
+				btnLong.Click += (o, e) => { WedgeScalperV2.MasterAllowLong = !WedgeScalperV2.MasterAllowLong; SetBtn(btnLong, WedgeScalperV2.MasterAllowLong ? ColorOn : ColorOff); Print(DateTime.Now + " Wedge LONG " + (WedgeScalperV2.MasterAllowLong ? "ON" : "OFF")); };
 				btnShort = MakeBtn(s, "SHORT", "Allow WedgeScalperV2 SHORT entries", WedgeScalperV2.MasterAllowShort ? ColorOn : ColorOff);
-				btnShort.Click += (o, e) =>
-				{
-					WedgeScalperV2.MasterAllowShort = !WedgeScalperV2.MasterAllowShort;
-					SetBtn(btnShort, WedgeScalperV2.MasterAllowShort ? ColorOn : ColorOff);
-					Print(DateTime.Now + " WedgeScalperV2 SHORT " + (WedgeScalperV2.MasterAllowShort ? "ON" : "OFF"));
-				};
-				AddHalfRow(ctButtonsGrid, ctBaseRowCount + ctRowsAdded, btnLong, btnShort);
-				ctRowsAdded++;
+				btnShort.Click += (o, e) => { WedgeScalperV2.MasterAllowShort = !WedgeScalperV2.MasterAllowShort; SetBtn(btnShort, WedgeScalperV2.MasterAllowShort ? ColorOn : ColorOff); Print(DateTime.Now + " Wedge SHORT " + (WedgeScalperV2.MasterAllowShort ? "ON" : "OFF")); };
+				AddHalfRow(ctButtonsGrid, ctBaseRowCount + ctRowsAdded++, btnLong, btnShort);
 
+				// Row: STOP ENTRY L | STOP ENTRY S (this dashboard's own entries)
+				btnSEL = MakeBtn(s, "STOP ENT L", "Arm a long stop entry off the SB", ColorOff);
+				btnSEL.Click += (o, e) => ArmStopEntry(true);
+				btnSES = MakeBtn(s, "STOP ENT S", "Arm a short stop entry off the SB", ColorOff);
+				btnSES.Click += (o, e) => ArmStopEntry(false);
+				AddHalfRow(ctButtonsGrid, ctBaseRowCount + ctRowsAdded++, btnSEL, btnSES);
+
+				// Row: PICK SB (select the signal bar manually)
+				btnPickSB = MakeBtn(s, "PICK SB", "Toggle, then click a bar to use it as the signal bar", ColorOff);
+				btnPickSB.Click += (o, e) => { _pickArmed = !_pickArmed; SetBtn(btnPickSB, _pickArmed ? ColorPick : ColorOff); Print(DateTime.Now + " PICK SB " + (_pickArmed ? "ON — click a bar" : "OFF")); };
+				AddFullRow(ctButtonsGrid, ctBaseRowCount + ctRowsAdded++, btnPickSB);
+
+				// Row: STP mode | TGT mode (cycle)
+				btnStpMode = MakeBtn(s, "STP:" + _stopMode, "Cycle stop mode (BarStop / LastSwing)", Color.FromRgb(60,60,60));
+				btnStpMode.Click += (o, e) => { _stopMode = _stopMode == BBStopMode.BarStop ? BBStopMode.LastSwing : BBStopMode.BarStop; btnStpMode.Content = "STP:" + _stopMode; Print(DateTime.Now + " StopMode -> " + _stopMode); };
+				btnTgtMode = MakeBtn(s, "TGT:" + _tgtMode, "Cycle target mode (Scalp / AbrMult / RMult)", Color.FromRgb(60,60,60));
+				btnTgtMode.Click += (o, e) => { _tgtMode = (BBTargetMode)(((int)_tgtMode + 1) % 3); btnTgtMode.Content = "TGT:" + _tgtMode; Print(DateTime.Now + " TargetMode -> " + _tgtMode); };
+				AddHalfRow(ctButtonsGrid, ctBaseRowCount + ctRowsAdded++, btnStpMode, btnTgtMode);
+
+				if (!_mouseHooked) { ChartControl.PreviewMouseDown += OnChartMouseDown; _mouseHooked = true; }
 				ctPanelActive = true;
 			}
 			catch (Exception ex) { Print("BB CreateWPFControls: " + ex.Message); }
+		}
+
+		private void ArmStopEntry(bool isLong)
+		{
+			// toggle off if already armed/working on this side
+			if ((isLong && (_pendingLong || _dir == 1)) || (!isLong && (_pendingShort || _dir == -1)))
+			{
+				_pendingLong = _pendingShort = false;
+				foreach (Order o in Orders)
+					if (o.Name == "SE" && o.OrderState == OrderState.Working) CancelOrder(o);
+				SetBtn(isLong ? btnSEL : btnSES, ColorOff);
+				Print(DateTime.Now + " SE " + (isLong ? "LONG" : "SHORT") + " disarmed");
+				return;
+			}
+			if (Position.MarketPosition != MarketPosition.Flat)
+			{ Print(DateTime.Now + " SE: already in a trade — flatten first."); return; }
+
+			_pendingLong = isLong; _pendingShort = !isLong;
+			SetBtn(isLong ? btnSEL : btnSES, ColorArmed);
+			Print(DateTime.Now + " SE " + (isLong ? "LONG" : "SHORT") + " armed — SB = "
+				+ (_sbPickedBar >= 0 ? "picked bar" : "the bar it closes on") + " [" + _stopMode + "/" + _tgtMode + "]");
+		}
+
+		private void OnChartMouseDown(object sender, MouseButtonEventArgs e)
+		{
+			if (!_pickArmed || ChartControl == null || ChartBars == null) return;
+			try
+			{
+				int x = (int)e.GetPosition(ChartPanel).X;
+				int idx = ChartBars.GetBarIdxByX(ChartControl, x);
+				if (idx < 0) return;
+				_sbPickedBar = idx;
+				_pickArmed = false;
+				SetBtn(btnPickSB, ColorOff);
+				Print(DateTime.Now + " SB picked @ bar " + idx + " (" + Time.GetValueAt(Math.Min(idx, CurrentBar)) + ")");
+			}
+			catch (Exception ex) { Print("BB pick: " + ex.Message); }
 		}
 
 		private void DisposeWPFControls()
 		{
 			try
 			{
+				if (_mouseHooked && ChartControl != null) { ChartControl.PreviewMouseDown -= OnChartMouseDown; _mouseHooked = false; }
 				if (!ctPanelActive || ctButtonsGrid == null) return;
 				int baseRows = Math.Max(0, ctBaseRowCount);
 				while (ctButtonsGrid.Children.Count > baseRows)
 					ctButtonsGrid.Children.RemoveAt(ctButtonsGrid.Children.Count - 1);
 				while (ctButtonsGrid.RowDefinitions.Count > baseRows)
 					ctButtonsGrid.RowDefinitions.RemoveAt(ctButtonsGrid.RowDefinitions.Count - 1);
-				btnMaster = null; btnLong = null; btnShort = null;
+				btnMaster = btnLong = btnShort = btnSEL = btnSES = btnPickSB = btnStpMode = btnTgtMode = null;
 				ctPanelActive = false;
 			}
 			catch (Exception ex) { Print("BB DisposeWPFControls: " + ex.Message); }
 		}
 
-		private string MasterLabel()  { return WedgeScalperV2.MasterArmed ? "WEDGE: ARMED" : "WEDGE: DISARMED"; }
+		private string MasterLabel()     { return WedgeScalperV2.MasterArmed ? "WEDGE: ARMED" : "WEDGE: DISARMED"; }
 		private Color  WedgeArmedColor() { return WedgeScalperV2.MasterArmed ? ColorOn : ColorOff; }
 
-		// ── button helpers (from MCStrategyDashboardV3) ─────────────────────
 		private Button MakeBtn(Style s, string label, string tip, Color bg, bool blackText = false)
 		{
-			return new Button() { Content = label, Style = s, Height = 36, Margin = new Thickness(1),
-				FontSize = 13, FontWeight = FontWeights.Bold, ToolTip = tip,
-				Background = new SolidColorBrush(bg),
-				Foreground = blackText ? Brushes.Black : Brushes.White };
+			return new Button() { Content = label, Style = s, Height = 34, Margin = new Thickness(1),
+				FontSize = 12, FontWeight = FontWeights.Bold, ToolTip = tip,
+				Background = new SolidColorBrush(bg), Foreground = blackText ? Brushes.Black : Brushes.White };
 		}
 
 		private void SetBtn(Button btn, Color bg, bool blackText = false)
@@ -170,14 +354,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 
 		private void AddFullRow(Grid grid, int row, Button btn)
 		{
-			grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(38) });
+			grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(36) });
 			Grid.SetRow(btn, row); Grid.SetColumn(btn, 0); Grid.SetColumnSpan(btn, 3);
 			grid.Children.Add(btn);
 		}
 
 		private void AddHalfRow(Grid grid, int row, Button left, Button right)
 		{
-			grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(38) });
+			grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(36) });
 			var g = new Grid() { Margin = new Thickness(0) };
 			g.ColumnDefinitions.Add(new ColumnDefinition());
 			g.ColumnDefinitions.Add(new ColumnDefinition());
@@ -186,5 +370,39 @@ namespace NinjaTrader.NinjaScript.Strategies
 			Grid.SetRow(g, row); Grid.SetColumn(g, 0); Grid.SetColumnSpan(g, 3);
 			grid.Children.Add(g);
 		}
+
+		#region Properties
+		[NinjaScriptProperty, Range(1, 100)]
+		[Display(Name = "Contracts", GroupName = "Stop Entry", Order = 0)]
+		public int SE_Qty { get; set; }
+
+		[NinjaScriptProperty, Range(1, 100)]
+		[Display(Name = "Entry offset (ticks beyond SB)", GroupName = "Stop Entry", Order = 1)]
+		public int SE_EntryOffsetTicks { get; set; }
+
+		[NinjaScriptProperty, Range(0, 100)]
+		[Display(Name = "Stop offset (ticks beyond ref)", GroupName = "Stop Entry", Order = 2)]
+		public int SE_StopOffsetTicks { get; set; }
+
+		[NinjaScriptProperty, Range(1, 1000)]
+		[Display(Name = "Scalp target (ticks)", GroupName = "Stop Entry", Order = 3)]
+		public int SE_ScalpTicks { get; set; }
+
+		[NinjaScriptProperty, Range(1, 500)]
+		[Display(Name = "ABR bars", GroupName = "Stop Entry", Order = 4)]
+		public int SE_AbrBars { get; set; }
+
+		[NinjaScriptProperty, Range(0.1, 20)]
+		[Display(Name = "ABR multiple", GroupName = "Stop Entry", Order = 5)]
+		public double SE_AbrMult { get; set; }
+
+		[NinjaScriptProperty, Range(0.1, 20)]
+		[Display(Name = "R multiple", GroupName = "Stop Entry", Order = 6)]
+		public double SE_RMult { get; set; }
+
+		[NinjaScriptProperty, Range(1, 50)]
+		[Display(Name = "Swing strength", GroupName = "Stop Entry", Order = 7)]
+		public int SE_SwingStrength { get; set; }
+		#endregion
 	}
 }

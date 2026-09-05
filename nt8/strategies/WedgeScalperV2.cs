@@ -54,6 +54,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 		public static bool MasterAllowLong  = true;
 		public static bool MasterAllowShort = true;
 
+		// Count of live (real-time) instances so the dashboard can refuse to "arm" when none
+		// is running. Incremented once this instance reaches Realtime, decremented on Terminated.
+		public static int LiveInstances = 0;
+		private bool _counted;
+
 		// entry state machine (while flat)
 		private int    _pendingSide;   // 0 none, 1 long, -1 short
 		private int    _sigBar;        // CurrentBar of the signal
@@ -173,11 +178,13 @@ namespace NinjaTrader.NinjaScript.Strategies
 			}
 			else if (State == State.Realtime)
 			{
+				if (!_counted) { LiveInstances++; _counted = true; }
 				if (DebugDraw) Print("=== WedgeScalperV2 REALTIME: now live. It will ONLY act on NEW "
 					+ "signals from here forward — historical signals on the chart are not traded. ===");
 			}
 			else if (State == State.Terminated)
 			{
+				if (_counted) { LiveInstances--; _counted = false; }
 				if (ChartControl != null && _mouseHooked)
 				{
 					ChartControl.Dispatcher.InvokeAsync((Action)(() =>
