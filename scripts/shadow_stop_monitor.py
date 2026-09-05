@@ -85,57 +85,75 @@ _BOOKED = None
 
 
 def _booked_by_day():
-    """Authoritative realized P&L per day from the trade book — the SAME source the
-    calendar/dashboard use (deduped, STMR-free), so the shadow P&L matches. Cached."""
+    """Authoritative realized P&L per day — EXACTLY the dashboard/calendar pipeline:
+    dedupe mirrors, drop EXCLUDE_DAYS (error days), round each trade's pnl then sum,
+    bucket on exit date (entry for open). So the shadow P&L ties to the dashboard
+    to the dollar. Cached."""
     global _BOOKED
     if _BOOKED is None:
         import options_trade_log as tlog
-        df = tlog.dedupe_mirrors(pd.read_parquet("data/options_log/trades.parquet"))
+        try:
+            from options_dashboard import EXCLUDE_DAYS
+        except Exception:
+            EXCLUDE_DAYS = {"2026-08-04", "2026-08-05"}
+        df = tlog.dedupe_mirrors(tlog.load())
         df = df[df["pnl"].notna()].copy()
-        ex = df["exit_dt"].astype(str).str[:10]
         en = df["entry_dt"].astype(str).str[:10]
-        df["_b"] = ex.where(df["exit_dt"].notna(), en)
-        _BOOKED = {k: round(v) for k, v in df.groupby("_b")["pnl"].sum().items()}
+        df = df[~en.isin(EXCLUDE_DAYS)].copy()             # match _shown()
+        ex = df["exit_dt"].astype(str).str[:10]
+        df["_b"] = ex.where(df["exit_dt"].notna(), df["entry_dt"].astype(str).str[:10])
+        df["_p"] = df["pnl"].round()                        # match analytics_payload per-trade round
+        _BOOKED = {k: int(round(v)) for k, v in df.groupby("_b")["_p"].sum().items()}
     return _BOOKED
 
 
 def row_for(day, final):
-    """Build a shadow-log row for `day`. final=True when the day is closed."""
-    res = portfolio_curve(day)
-    if res is None:
+    """Build a shadow-log row for `day`. final=True when the day is closed.
+
+    Book-driven: P&L (actual) is the BOOKED fill (ties to the calendar EXACTLY).
+    The intraday DD / trough / where-a-stop-fires come from the RAW live MTM (marks)
+    — a stop triggers on live mark-to-market, so that path is NOT adjusted. A book
+    day with no marks still appears (DD shown as blank / n/a). The two numbers differ
+    by bid/ask + settlement; that gap is real, not an error."""
+    booked = _booked_by_day().get(day)
+    res = portfolio_curve(day)                                   # live MTM path; may be None
+    if res is None and booked is None:
         return None
-    curve, vix, n = res
-    # TWO correct-but-different numbers, kept separate on purpose:
-    #  * intraday DD / trough / where-a-stop-fires come from the RAW live MTM (marks) —
-    #    a daily stop triggers on live mark-to-market, so this path must NOT be adjusted.
-    #  * the day's realized "P&L (actual)" is the BOOKED fill from trades.parquet (what
-    #    the calendar/dashboard show). It differs from the marks' last value by the
-    #    bid/ask + settlement gap — that difference is real, not an error.
-    trough = curve.min()
-    tct = curve.idxmin().strftime("%H:%M")
-    booked = _booked_by_day().get(day) if final else None
-    cur = booked if booked is not None else curve.iloc[-1]
+    n = vix = ""
+    trough = trough_ct = day_swing = ""
     warn_ct = stop_ct = warn_fill = stop_fill = ""
-    below_w = curve[curve <= WARN]
-    below_s = curve[curve <= STOP]
-    # ACTUAL portfolio P&L at the moment DD first tripped the line = the realistic
-    # flatten value (the mark is off the live option quotes). It's usually a touch
-    # PAST the level (marks are ~2min apart), not exactly -level.
-    if len(below_w):
-        warn_ct = below_w.index[0].strftime("%H:%M")
-        warn_fill = round(below_w.iloc[0])
-    if len(below_s):
-        stop_ct = below_s.index[0].strftime("%H:%M")
-        stop_fill = round(below_s.iloc[0])
+    below_w = below_s = ()
+    marks_end = None
+    if res is not None:
+        curve, vix, n = res
+        trough = round(curve.min())
+        trough_ct = curve.idxmin().strftime("%H:%M")
+        day_swing = round(curve.max() - curve.min())
+        marks_end = curve.iloc[-1]
+        below_w = curve[curve <= WARN]
+        below_s = curve[curve <= STOP]
+        if len(below_w):
+            warn_ct = below_w.index[0].strftime("%H:%M")
+            warn_fill = round(below_w.iloc[0])          # actual mark at the crossing
+        if len(below_s):
+            stop_ct = below_s.index[0].strftime("%H:%M")
+            stop_fill = round(below_s.iloc[0])
+    # P&L (actual): booked when final/available, else the live marks end (today).
+    cur = booked if (final and booked is not None) else (round(marks_end) if marks_end is not None else booked)
     help_txt = ""
     if final:
-        help_txt = ("HELPED" if cur < stop_fill else "HURT") if stop_ct else "n/a (never triggered)"
+        if stop_ct:
+            help_txt = "HELPED" if (cur is not None and cur < stop_fill) else "HURT"
+        elif res is None:
+            help_txt = "no marks"
+        else:
+            help_txt = "n/a (never triggered)"
     return {
-        "date": day, "n": n, "trough": round(trough), "trough_ct": tct,
+        "date": day, "n": n, "trough": trough, "trough_ct": trough_ct,
         "crossed_warn": bool(len(below_w)), "warn_ct": warn_ct, "warn_fill": warn_fill,
         "crossed_stop": bool(len(below_s)), "stop_ct": stop_ct, "stop_fill": stop_fill,
-        "end_pnl": round(cur), "would_help": help_txt,
-        "day_swing": round(curve.max() - curve.min()), "mid_event": mid_session_event(day),
+        "end_pnl": (round(cur) if cur is not None else ""), "would_help": help_txt,
+        "day_swing": day_swing, "mid_event": mid_session_event(day),
         "vix": vix, "updated_ct": _now_ct().strftime("%H:%M:%S"),
     }
 
@@ -155,24 +173,23 @@ def _write_log(rows):
 
 
 def backfill():
-    if not MARKS.exists():
-        print("no marks.csv"); return
-    m = pd.read_csv(MARKS)
-    m = m[~m["trade_id"].astype(str).str.contains("stmr", case=False)]
-    m["day"] = pd.to_datetime(m["ts_et"], errors="coerce").dt.strftime("%Y-%m-%d")
-    days = sorted(x for x in m["day"].dropna().unique())
+    # iterate the BOOK's days (the exact set the dashboard shows), not marks days —
+    # so an excluded error day never sneaks in and a no-marks book day never drops out.
+    days = sorted(_booked_by_day().keys())
+    if not days:
+        print("no book days"); return
     out = {}
     for d in days:
         r = row_for(d, final=True)
         if r:
             out[d] = r
     _write_log(out)
+    total = sum(int(r["end_pnl"]) for r in out.values() if r["end_pnl"] != "")
     fired = sum(1 for r in out.values() if r["crossed_stop"])
-    helped = sum(1 for r in out.values() if r["would_help"] == "HELPED")
-    print(f"backfilled {len(out)} days -> {LOG}")
-    print(f"  -$3000 shadow stop would have fired {fired} time(s); HELPED {helped}, "
-          f"HURT {sum(1 for r in out.values() if r['would_help']=='HURT')}")
-    print(f"  worst intraday trough in log: {min(int(r['trough']) for r in out.values()):,}")
+    nomarks = sum(1 for r in out.values() if r["trough"] == "")
+    print(f"backfilled {len(out)} BOOK days -> {LOG}")
+    print(f"  P&L total (ties to dashboard): {total:,}")
+    print(f"  -3k shadow fired {fired}x; book days without marks (DD n/a): {nomarks}")
 
 
 def alert(msg, key):

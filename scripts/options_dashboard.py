@@ -580,13 +580,15 @@ def shadow_stop_html():
         fires3 += c3
         r["_badge"] = (f" <span class='midev' title='mid-session Fed event: {r['mid_event']}'>⚑</span>"
                        if r.get("mid_event") else "")
-    worst = min(_i(r["trough"]) for r in rows)
+    worst = min((_i(r["trough"]) for r in rows if _i(r["trough"]) is not None), default=0)
     nev = sum(1 for r in rows if r.get("mid_event"))
 
     def drow(r):
+        dd = _i(r["trough"])
+        ddcell = (f"<td class='neg'>{money(dd)}</td>" if dd is not None else "<td class='muted'>n/a</td>")
         return (f"<tr><td>{r['date']}{r['_badge']}</td>"
                 f"{cell(True, _i(r['end_pnl']))}"
-                f"<td class='neg'>{money(_i(r['trough']))}</td>"
+                f"{ddcell}"
                 f"{cell(r['_c2'], r['_eod2'])}"
                 f"{cell(r['_c2'], r['_d2'], ccls(r['_d2']) if r['_c2'] else None)}"
                 f"{cell(r['_c3'], r['_eod3'])}"
