@@ -374,7 +374,7 @@ def load_postmortem():
     if not f.exists():
         return None
     try:
-        return json.loads(f.read_text(encoding="utf-8"))
+        return _scrub_stmr(json.loads(f.read_text(encoding="utf-8")))
     except Exception:
         return None
 
@@ -536,6 +536,27 @@ def analytics_payload(trades, marks_last):
     return rows
 
 
+def _is_stmr(t):
+    """STMR tile/trigger detector — retired 2026-09-05, hidden from all views."""
+    if not isinstance(t, dict):
+        return False
+    return (str(t.get("setup", "")).startswith("bps_stmr")
+            or t.get("stream") == "stmr"
+            or "bps_stmr" in str(t.get("id", ""))
+            or "STMR" in str(t.get("name", "")))
+
+
+def _scrub_stmr(gp):
+    """Drop STMR entries from a loaded gameplan/postmortem dict (non-destructive:
+    historical JSON files are left intact; STMR is only hidden at render)."""
+    if not isinstance(gp, dict):
+        return gp
+    for k in ("triggers", "tiles"):
+        if isinstance(gp.get(k), list):
+            gp[k] = [t for t in gp[k] if not _is_stmr(t)]
+    return gp
+
+
 def load_gameplan():
     import datetime as _dt
     from zoneinfo import ZoneInfo
@@ -544,7 +565,7 @@ def load_gameplan():
     if not f.exists():
         return None
     try:
-        return json.loads(f.read_text(encoding="utf-8"))
+        return _scrub_stmr(json.loads(f.read_text(encoding="utf-8")))
     except Exception:
         return None
 
@@ -1041,7 +1062,7 @@ def gameplan_history_html():
     out = [f"<h2 style='margin:24px 0 8px'>History — {len(past)} logged gameplan(s)</h2>"]
     for d in past:
         try:
-            gp = json.loads((SIM / f"gameplan_{d}.json").read_text(encoding="utf-8"))
+            gp = _scrub_stmr(json.loads((SIM / f"gameplan_{d}.json").read_text(encoding="utf-8")))
         except Exception:
             continue
         trigs = gp.get("triggers", [])
@@ -1080,7 +1101,7 @@ def postmortem_history_html():
     out = [f"<h2 style='margin:24px 0 8px'>History — {len(past)} logged postmortem(s)</h2>"]
     for d in past:
         try:
-            pm = json.loads((SIM / f"postmortem_{d}.json").read_text(encoding="utf-8"))
+            pm = _scrub_stmr(json.loads((SIM / f"postmortem_{d}.json").read_text(encoding="utf-8")))
         except Exception:
             continue
         o = pm.get("ohlc") or {}

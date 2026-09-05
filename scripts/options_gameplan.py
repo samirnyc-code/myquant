@@ -228,18 +228,10 @@ def build_triggers(spot, vix, gx):
             _vert("gx_bcs", "gx_bcs", f"[GexLog] Bear Call @ callWall {cw:.0f}", "C", rnd(cw),
                   "gexlog", "gexlog suggested: short call at its Call Wall"),
         ]
-    # STMR 15:59 bull put spread — the one validated edge; run by options_sim_daemon.
-    T.append({
-        "id": "bps_stmr_1559", "setup": "bps_stmr", "stream": "stmr", "path": "—",
-        "name": "STMR Bull Put Spread (15:59 signal)",
-        "arm": {"regime": "any"},
-        "fire": {"type": "signal_1559", "cond": "%K8<15 AND spot>SMA100"},
-        "window": ["14:59", "14:59"],
-        "structure": {"kind": "vertical", "right": "P", "short": "~30Δ", "width": 50, "dte": 14},
-        "projected_grade": "A/B if signal fires",
-        "grade_basis": "the only validated edge; executed by options_sim_daemon at 14:59 CT",
-        "note": "run by options_sim_daemon.py, NOT the trigger daemon",
-    })
+    # STMR 15:59 bull put spread — RETIRED 2026-09-05 (user decision). The strategy
+    # is removed from the book/results/automations; a separate SPY-call tool will
+    # replace it once a reliable live SPY options quote source exists. Do not re-add
+    # a bps_stmr tile here. (stmr_exit_check.py remains on disk, dormant/unscheduled.)
     # structure GROUP (one tile per structure) + CENTER (eod/open P&L split)
     GROUPS = {"eodic_p": "[EOD] Iron Condor", "eodic_c": "[EOD] Iron Condor",
               "eodfly_p": "[EOD] Iron Fly", "eodfly_c": "[EOD] Iron Fly",
