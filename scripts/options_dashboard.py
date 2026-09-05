@@ -562,6 +562,7 @@ def shadow_stop_html():
     # mark). ONE running Δ cum, at the end, advanced ONLY on a trigger day (deeper
     # stop wins if both fire) and shown only on those rows.
     cum = cum2 = cum3 = fires2 = fires3 = 0
+    started = False
     for r in sorted(rows, key=lambda r: r["date"]):
         end = _i(r["end_pnl"])
         wf, sf = _i(r["warn_fill"]), _i(r["stop_fill"])
@@ -573,7 +574,8 @@ def shadow_stop_html():
         cum += (r["_d3"] if c3 else (r["_d2"] if c2 else 0))
         cum2 += (wf - end) if c2 else 0
         cum3 += (sf - end) if c3 else 0
-        r["_trg"], r["_cum"] = (c2 or c3), cum
+        started = started or c2 or c3
+        r["_trg"], r["_cum"], r["_showcum"] = (c2 or c3), cum, started
         fires2 += c2
         fires3 += c3
         r["_badge"] = (f" <span class='midev' title='mid-session Fed event: {r['mid_event']}'>⚑</span>"
@@ -589,7 +591,7 @@ def shadow_stop_html():
                 f"{cell(r['_c2'], r['_d2'], ccls(r['_d2']) if r['_c2'] else None)}"
                 f"{cell(r['_c3'], r['_eod3'])}"
                 f"{cell(r['_c3'], r['_d3'], ccls(r['_d3']) if r['_c3'] else None)}"
-                f"{cell(r['_trg'], r['_cum'], ccls(r['_cum']) if r['_trg'] else None)}"
+                f"{cell(r['_showcum'], r['_cum'], ccls(r['_cum']))}"
                 f"<td class='muted'>{r['vix']}</td></tr>")
     months = {}
     for r in rows:
