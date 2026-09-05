@@ -536,6 +536,41 @@ def analytics_payload(trades, marks_last):
     return rows
 
 
+def shadow_stop_html():
+    """OBSERVATIONAL shadow daily-stop panel (no executions). Reads the log written
+    by shadow_stop_monitor.py; shows current-book (auto-era) days only."""
+    import csv as _csv
+    f = SIM / "shadow_stop_log.csv"
+    if not f.exists():
+        return ""
+    rows = [r for r in _csv.DictReader(f.open()) if r["date"] >= "2026-08-04"]
+    if not rows:
+        return ""
+    rows.sort(key=lambda r: r["date"], reverse=True)
+    fires = sum(1 for r in rows if r["crossed_stop"] == "True")
+    warns = sum(1 for r in rows if r["crossed_warn"] == "True")
+    worst = min(int(r["trough"]) for r in rows)
+    yn = lambda b, c: (f"<span class='{c}'>✓ {{}}</span>" if b == "True" else "<span class='muted'>—</span>")
+    body = "".join(
+        f"<tr><td>{r['date']}</td>"
+        f"<td class='neg'>{money(int(r['trough']))}</td>"
+        f"<td>{r['trough_ct']}</td>"
+        f"<td class='{'pos' if int(r['end_pnl'])>=0 else 'neg'}'>{money(int(r['end_pnl']))}</td>"
+        f"<td>{'🟠' if r['crossed_warn']=='True' else '·'}</td>"
+        f"<td>{'🟡 '+r['stop_ct'] if r['crossed_stop']=='True' else '·'}</td>"
+        f"<td class='muted'>{r['vix']}</td></tr>"
+        for r in rows[:16])
+    return (
+        "<div class='an-card' style='margin-top:14px'>"
+        "<div class='an-h'>Shadow daily stop <span class='muted'>— observational · no orders placed</span></div>"
+        f"<div class='muted' style='font-size:12.5px;margin:-2px 0 10px'>Watch −$2,000 · shadow trigger −$3,000 "
+        f"(1-lot). In {len(rows)} current-book days: trigger would have fired <b>{fires}×</b>, watch line hit "
+        f"<b>{warns}×</b>, worst intraday <b class='neg'>{money(worst)}</b>. Recording only — nothing is flattened.</div>"
+        "<div style='overflow-x:auto'><table class='antable'>"
+        "<tr><th>day</th><th>intraday low</th><th>at</th><th>ended</th><th>−2k</th><th>−3k</th><th>vix</th></tr>"
+        f"{body}</table></div></div>")
+
+
 def _is_stmr(t):
     """STMR tile/trigger detector — retired 2026-09-05, hidden from all views."""
     if not isinstance(t, dict):
@@ -1631,6 +1666,7 @@ h2{{font-size:15px;color:var(--acc);margin:24px 0 8px}}
     <div class="an-card"><div class="an-h">Capital — collateral vs ideal account <span class="muted" id="an-capsub"></span></div><div id="an-capital"></div></div>
   </div>
   <div class="modal" id="an-modal"><div class="modal-c"><div class="modal-h"></div><div class="modal-body"></div></div></div>
+  {shadow_stop_html()}
   <div class="an-card" style="margin-top:14px">
     <div class="an-h">Break down by
       <select id="an-dim">

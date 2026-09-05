@@ -1,0 +1,39 @@
+date,n,trough,trough_ct,crossed_warn,warn_ct,crossed_stop,stop_ct,pnl_at_stop,end_pnl,would_help,vix,updated_ct
+2026-07-14,7,-642,16:07,False,,False,,,-582,n/a (never triggered),16.5,13:26:05
+2026-07-15,5,-542,16:18,False,,False,,,-448,n/a (never triggered),15.7,13:26:05
+2026-07-16,6,-6425,16:15,True,15:39,True,15:39,-3000,-6295,HELPED,16.7,13:26:05
+2026-07-17,2,-2400,15:09,True,05:11,False,,,2755,n/a (never triggered),18.8,13:26:05
+2026-07-20,1,-1820,14:17,False,,False,,,-602,n/a (never triggered),18.6,13:26:05
+2026-07-21,1,-400,11:04,False,,False,,,58,n/a (never triggered),16.9,13:26:06
+2026-07-22,2,-662,11:23,False,,False,,,-662,n/a (never triggered),16.9,13:26:06
+2026-07-23,1,-1415,13:26,False,,False,,,592,n/a (never triggered),19.2,13:26:06
+2026-07-24,2,-1852,15:52,False,,False,,,-1852,n/a (never triggered),18.8,13:26:06
+2026-07-27,1,-1242,15:31,False,,False,,,-628,n/a (never triggered),18.8,13:26:06
+2026-07-28,2,-515,11:08,False,,False,,,228,n/a (never triggered),18.2,13:26:06
+2026-07-29,1,-3310,15:19,True,14:31,True,15:15,-3000,2578,HURT,20.3,13:26:06
+2026-07-30,1,-1762,14:40,False,,False,,,-308,n/a (never triggered),17.5,13:26:06
+2026-07-31,2,-690,11:49,False,,False,,,1655,n/a (never triggered),16.2,13:26:06
+2026-08-03,1,-415,15:11,False,,False,,,-255,n/a (never triggered),15.8,13:26:06
+2026-08-04,8,-1270,13:18,False,,False,,,-1150,n/a (never triggered),16.4,13:26:06
+2026-08-05,7,-258,12:09,False,,False,,,218,n/a (never triggered),15.6,13:26:06
+2026-08-06,10,-1160,12:01,False,,False,,,-295,n/a (never triggered),15.3,13:26:06
+2026-08-07,8,-375,10:13,False,,False,,,1380,n/a (never triggered),14.9,13:26:06
+2026-08-11,9,-30,09:32,False,,False,,,978,n/a (never triggered),15.3,13:26:06
+2026-08-12,9,18,10:35,False,,False,,,1225,n/a (never triggered),14.4,13:26:06
+2026-08-13,9,-1008,09:41,False,,False,,,-30,n/a (never triggered),14.6,13:26:06
+2026-08-14,8,-78,09:32,False,,False,,,580,n/a (never triggered),14.3,13:26:07
+2026-08-17,7,-408,09:34,False,,False,,,918,n/a (never triggered),15.2,13:26:07
+2026-08-18,8,-125,09:34,False,,False,,,1415,n/a (never triggered),15.8,13:26:07
+2026-08-19,9,-48,09:50,False,,False,,,1285,n/a (never triggered),15.2,13:26:07
+2026-08-20,9,-18,09:32,False,,False,,,585,n/a (never triggered),16.0,13:26:07
+2026-08-21,10,-88,11:53,False,,False,,,628,n/a (never triggered),15.2,13:26:07
+2026-08-24,7,-998,12:22,False,,False,,,-392,n/a (never triggered),15.7,13:26:07
+2026-08-25,8,-275,10:30,False,,False,,,240,n/a (never triggered),15.5,13:26:07
+2026-08-26,6,-638,15:04,False,,False,,,-342,n/a (never triggered),15.4,13:26:07
+2026-08-27,8,-465,10:08,False,,False,,,518,n/a (never triggered),14.5,13:26:07
+2026-08-28,10,-2222,13:02,True,12:22,False,,,-1375,n/a (never triggered),14.4,13:26:07
+2026-08-31,9,-680,09:46,False,,False,,,332,n/a (never triggered),15.0,13:26:07
+2026-09-01,8,-285,14:47,False,,False,,,212,n/a (never triggered),16.4,13:26:07
+2026-09-02,8,-75,09:46,False,,False,,,655,n/a (never triggered),15.1,13:26:07
+2026-09-03,9,-1800,11:31,False,,False,,,-1435,n/a (never triggered),14.3,13:26:07
+2026-09-04,10,18,09:32,False,,False,,,1635,n/a (never triggered),14.1,13:26:07
