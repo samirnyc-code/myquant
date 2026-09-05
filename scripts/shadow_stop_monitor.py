@@ -29,8 +29,8 @@ SIM = Path("data/options_sim")
 MARKS = SIM / "marks.csv"
 LOG = SIM / "shadow_stop_log.csv"
 WARN, STOP = -2000, -3000
-FIELDS = ["date", "n", "trough", "trough_ct", "crossed_warn", "warn_ct",
-          "crossed_stop", "stop_ct", "pnl_at_stop", "end_pnl", "would_help", "vix", "updated_ct"]
+FIELDS = ["date", "n", "trough", "trough_ct", "crossed_warn", "warn_ct", "warn_fill",
+          "crossed_stop", "stop_ct", "stop_fill", "end_pnl", "would_help", "vix", "updated_ct"]
 
 
 def _now_ct():
@@ -65,26 +65,27 @@ def row_for(day, final):
     trough = curve.min()
     tct = curve.idxmin().strftime("%H:%M")
     cur = curve.iloc[-1]
-    warn_ct = stop_ct = ""
+    warn_ct = stop_ct = warn_fill = stop_fill = ""
     below_w = curve[curve <= WARN]
     below_s = curve[curve <= STOP]
+    # ACTUAL portfolio P&L at the moment DD first tripped the line = the realistic
+    # flatten value (the mark is off the live option quotes). It's usually a touch
+    # PAST the level (marks are ~2min apart), not exactly -level.
     if len(below_w):
         warn_ct = below_w.index[0].strftime("%H:%M")
+        warn_fill = round(below_w.iloc[0])
     if len(below_s):
         stop_ct = below_s.index[0].strftime("%H:%M")
-    # would the -STOP flatten have helped? only knowable once the day is done
+        stop_fill = round(below_s.iloc[0])
     help_txt = ""
     if final:
-        if stop_ct:
-            help_txt = "HELPED" if cur < STOP else "HURT"   # flatten at STOP vs actual end
-        else:
-            help_txt = "n/a (never triggered)"
+        help_txt = ("HELPED" if cur < stop_fill else "HURT") if stop_ct else "n/a (never triggered)"
     return {
         "date": day, "n": n, "trough": round(trough), "trough_ct": tct,
-        "crossed_warn": bool(len(below_w)), "warn_ct": warn_ct,
-        "crossed_stop": bool(len(below_s)), "stop_ct": stop_ct,
-        "pnl_at_stop": STOP if stop_ct else "", "end_pnl": round(cur),
-        "would_help": help_txt, "vix": vix, "updated_ct": _now_ct().strftime("%H:%M:%S"),
+        "crossed_warn": bool(len(below_w)), "warn_ct": warn_ct, "warn_fill": warn_fill,
+        "crossed_stop": bool(len(below_s)), "stop_ct": stop_ct, "stop_fill": stop_fill,
+        "end_pnl": round(cur), "would_help": help_txt, "vix": vix,
+        "updated_ct": _now_ct().strftime("%H:%M:%S"),
     }
 
 

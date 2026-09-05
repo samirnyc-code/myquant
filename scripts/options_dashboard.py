@@ -547,40 +547,52 @@ def shadow_stop_html():
     rows = [r for r in _csv.DictReader(f.open()) if r["date"] >= "2026-08-04"]
     if not rows:
         return ""
-    STOP, WARN = -3000, -2000
-    asc = sorted(rows, key=lambda r: r["date"])
-    cum3 = cum2 = fires3 = fires2 = 0
-    for r in asc:
-        end, trough = int(r["end_pnl"]), int(r["trough"])
-        stop3 = STOP if r["crossed_stop"] == "True" else end          # flatten at -3k, else natural close
-        stop2 = WARN if trough <= WARN else end                       # a tighter -2k stop, for comparison
-        r["_s3"], r["_cum3"] = stop3, (cum3 := cum3 + (stop3 - end))
-        cum2 += stop2 - end
-        fires3 += r["crossed_stop"] == "True"
-        fires2 += trough <= WARN
-    worst = min(int(r["trough"]) for r in rows)
+    def _i(x):
+        try:
+            return int(x)
+        except (TypeError, ValueError):
+            return None
     ccls = lambda v: "pos" if v > 0 else ("neg" if v < 0 else "muted")
+    tcell = lambda t: f"<span class='neg'>{t}</span>" if t else "<span class='muted'>—</span>"
+    # cumulative uses the REAL flatten value at the crossing (stop_fill / warn_fill), not the round level
+    cum3 = cum2 = fires3 = fires2 = 0
+    for r in sorted(rows, key=lambda r: r["date"]):
+        end = _i(r["end_pnl"])
+        sf, wf = _i(r["stop_fill"]), _i(r["warn_fill"])
+        c3 = r["crossed_stop"] == "True" and sf is not None
+        c2 = r["crossed_warn"] == "True" and wf is not None
+        s3 = sf if c3 else end
+        cum3 += s3 - end
+        cum2 += (wf if c2 else end) - end
+        fires3 += c3
+        fires2 += c2
+        r["_cum3"] = cum3
+        r["_s3cell"] = (f"<span class='neg'>{money(sf)}</span>" if c3 else "<span class='muted'>—</span>")
+    worst = min(_i(r["trough"]) for r in rows)
     body = "".join(
         f"<tr><td>{r['date']}</td>"
-        f"<td class='neg'>{money(int(r['trough']))}"
-        f"{' 🟡' if r['crossed_stop']=='True' else (' 🟠' if int(r['trough'])<=WARN else '')}</td>"
-        f"<td class='{'pos' if int(r['end_pnl'])>=0 else 'neg'}'>{money(int(r['end_pnl']))}</td>"
-        f"<td class='{'pos' if r['_s3']>=0 else 'neg'}'>{money(r['_s3'])}</td>"
+        f"<td class='neg'>{money(_i(r['trough']))}</td>"
+        f"<td>{tcell(r['warn_ct'])}</td>"
+        f"<td>{tcell(r['stop_ct'])}</td>"
+        f"<td class='{'pos' if _i(r['end_pnl'])>=0 else 'neg'}'>{money(_i(r['end_pnl']))}</td>"
+        f"<td>{r['_s3cell']}</td>"
         f"<td class='{ccls(r['_cum3'])}'>{money(r['_cum3']) if r['_cum3'] else '—'}</td>"
         f"<td class='muted'>{r['vix']}</td></tr>"
         for r in sorted(rows, key=lambda r: r["date"], reverse=True)[:16])
     verdict = ("no difference — it never fired" if cum3 == 0
                else (f"better by {money(cum3)}" if cum3 > 0 else f"worse by {money(-cum3)}"))
-    head = (f"Watch −$2,000 · shadow trigger −$3,000 (1-lot). Over {len(rows)} current-book days the −$3k stop "
-            f"would have fired <b>{fires3}×</b> → net <b class='{ccls(cum3)}'>{money(cum3)}</b> ({verdict}). "
-            f"A tighter −$2k stop would fire {fires2}× → net <b class='{ccls(cum2)}'>{money(cum2)}</b> "
-            f"(cuts comebacks). Worst intraday <b class='neg'>{money(worst)}</b>. Recording only — nothing is flattened.")
+    head = (f"Watch −$2,000 · trigger −$3,000 (1-lot); the flatten value is the ACTUAL mark at the crossing, "
+            f"not the round level. Over {len(rows)} current-book days the −$3k stop would fire <b>{fires3}×</b> → "
+            f"net <b class='{ccls(cum3)}'>{money(cum3)}</b> ({verdict}). A tighter −$2k stop: fires {fires2}× → "
+            f"net <b class='{ccls(cum2)}'>{money(cum2)}</b> (cuts comebacks). Worst intraday "
+            f"<b class='neg'>{money(worst)}</b>. Recording only — nothing is flattened.")
     return (
         "<div class='an-card' style='margin-top:14px'>"
         "<div class='an-h'>Shadow daily stop <span class='muted'>— observational · no orders placed</span></div>"
         f"<div class='muted' style='font-size:12.5px;margin:-2px 0 10px'>{head}</div>"
         "<div style='overflow-x:auto'><table class='antable'>"
-        "<tr><th>day</th><th>intraday low</th><th>ended</th><th>with −3k stop</th><th>Δ cum</th><th>vix</th></tr>"
+        "<tr><th>day</th><th>intraday low</th><th>−2k</th><th>−3k</th><th>ended</th>"
+        "<th>if −3k stop</th><th>Δ cum</th><th>vix</th></tr>"
         f"{body}</table></div></div>")
 
 
