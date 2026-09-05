@@ -553,46 +553,48 @@ def shadow_stop_html():
         except (TypeError, ValueError):
             return None
     ccls = lambda v: "pos" if v > 0 else ("neg" if v < 0 else "muted")
-    tcell = lambda t: f"<span class='neg'>{t}</span>" if t else "<span class='muted'>—</span>"
-    # cumulative uses the REAL flatten value at the crossing (stop_fill / warn_fill), not the round level
+    numcell = lambda v, changed: (f"<td class='{'pos' if v>=0 else 'neg'}'"
+                                  + (" style='font-weight:700'" if changed else "") + f">{money(v)}</td>")
+    # EOD-with-stop = the WHOLE-DAY result under that stop: flatten at the ACTUAL mark
+    # when the DD trips the line, else the day closes naturally. cumulative = that - actual.
     cum3 = cum2 = fires3 = fires2 = 0
     for r in sorted(rows, key=lambda r: r["date"]):
         end = _i(r["end_pnl"])
         sf, wf = _i(r["stop_fill"]), _i(r["warn_fill"])
         c3 = r["crossed_stop"] == "True" and sf is not None
         c2 = r["crossed_warn"] == "True" and wf is not None
-        s3 = sf if c3 else end
-        cum3 += s3 - end
-        cum2 += (wf if c2 else end) - end
+        r["_eod2"], r["_c2"] = (wf if c2 else end), c2
+        r["_eod3"], r["_c3"] = (sf if c3 else end), c3
+        cum3 += r["_eod3"] - end
+        cum2 += r["_eod2"] - end
         fires3 += c3
         fires2 += c2
         r["_cum3"] = cum3
-        r["_s3cell"] = (f"<span class='neg'>{money(sf)}</span>" if c3 else "<span class='muted'>—</span>")
     worst = min(_i(r["trough"]) for r in rows)
     body = "".join(
         f"<tr><td>{r['date']}</td>"
         f"<td class='neg'>{money(_i(r['trough']))}</td>"
-        f"<td>{tcell(r['warn_ct'])}</td>"
-        f"<td>{tcell(r['stop_ct'])}</td>"
         f"<td class='{'pos' if _i(r['end_pnl'])>=0 else 'neg'}'>{money(_i(r['end_pnl']))}</td>"
-        f"<td>{r['_s3cell']}</td>"
+        f"{numcell(r['_eod2'], r['_c2'])}"
+        f"{numcell(r['_eod3'], r['_c3'])}"
         f"<td class='{ccls(r['_cum3'])}'>{money(r['_cum3']) if r['_cum3'] else '—'}</td>"
         f"<td class='muted'>{r['vix']}</td></tr>"
         for r in sorted(rows, key=lambda r: r["date"], reverse=True)[:16])
-    verdict = ("no difference — it never fired" if cum3 == 0
-               else (f"better by {money(cum3)}" if cum3 > 0 else f"worse by {money(-cum3)}"))
-    head = (f"Watch −$2,000 · trigger −$3,000 (1-lot); the flatten value is the ACTUAL mark at the crossing, "
-            f"not the round level. Over {len(rows)} current-book days the −$3k stop would fire <b>{fires3}×</b> → "
-            f"net <b class='{ccls(cum3)}'>{money(cum3)}</b> ({verdict}). A tighter −$2k stop: fires {fires2}× → "
-            f"net <b class='{ccls(cum2)}'>{money(cum2)}</b> (cuts comebacks). Worst intraday "
+    verdict = ("identical — it never fired" if cum3 == 0
+               else (f"+{money(cum3)} better" if cum3 > 0 else f"{money(cum3)} worse"))
+    head = (f"1-lot. <b>EOD w/ −2k</b> and <b>EOD w/ −3k</b> = what the whole day would have closed at under each "
+            f"stop — flattening at the ACTUAL mark when the drawdown trips the line (bold = a day it fired), else "
+            f"the natural close. Over {len(rows)} current-book days: <b>−$3k</b> fired {fires3}× → cumulative "
+            f"<b class='{ccls(cum3)}'>{money(cum3)}</b> vs actual ({verdict}); <b>−$2k</b> fired {fires2}× → "
+            f"cumulative <b class='{ccls(cum2)}'>{money(cum2)}</b> (cuts comebacks). Worst intraday "
             f"<b class='neg'>{money(worst)}</b>. Recording only — nothing is flattened.")
     return (
         "<div class='an-card' style='margin-top:14px'>"
         "<div class='an-h'>Shadow daily stop <span class='muted'>— observational · no orders placed</span></div>"
         f"<div class='muted' style='font-size:12.5px;margin:-2px 0 10px'>{head}</div>"
         "<div style='overflow-x:auto'><table class='antable'>"
-        "<tr><th>day</th><th>intraday low</th><th>−2k</th><th>−3k</th><th>ended</th>"
-        "<th>if −3k stop</th><th>Δ cum</th><th>vix</th></tr>"
+        "<tr><th>day</th><th>intraday low</th><th>ended (actual)</th><th>EOD w/ −2k</th>"
+        "<th>EOD w/ −3k</th><th>Δ cum (−3k)</th><th>vix</th></tr>"
         f"{body}</table></div></div>")
 
 
