@@ -43,6 +43,12 @@ namespace NinjaTrader.NinjaScript.Strategies
 	{
 		private Indicators.My.MyWedge _wedge;
 
+		// Master arm/disarm — shared in-process so the BreakoutBoysDashboard MASTER button can
+		// control this strategy (both compile into NinjaTrader.Custom = same process). Default
+		// armed so the strategy trades standalone; the dashboard sets it false to disarm NEW
+		// entries (open trades keep being managed).
+		public static bool MasterArmed = true;
+
 		// entry state machine (while flat)
 		private int    _pendingSide;   // 0 none, 1 long, -1 short
 		private int    _sigBar;        // CurrentBar of the signal
@@ -261,7 +267,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 				ClearTradeVisuals();   // wipe R:R boxes + BE line once flat
 
 				// ── detect a NEW signal on the just-closed bar [0] and rest ONE entry ──
-				if (_pendingSide == 0)
+				// MasterArmed gates NEW entries (dashboard MASTER button); a resting entry from
+				// before a disarm still lapses/cancels via the else-branch below.
+				if (MasterArmed && _pendingSide == 0)
 				{
 					int side = 0;
 					if (_wedge.WedgeBLSB[0] > 0) side = 1;
