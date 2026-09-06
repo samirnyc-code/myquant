@@ -107,7 +107,14 @@ Leg definition (confirmed): intrabar HL reversal off the running extreme by
   Also our 5M bars end 2026-07-24 (no overlap with desk window). Real path =
   synthetic 0DTE wall-selling backtest over the 16y leg history + gamma (ORATS),
   NOT a 24-day fit.
-- **THESIS (triple-confirmed #1/#4/#3):** leg-based metrics forecast VOLATILITY
+- **#6 leg structure BOS vs inside (DONE, leg_structure.py) — FIRST directional
+  signal.** 36% of legs break structure. State persists: P(next same-dir leg BOS)
+  = 48% after BOS vs 14% after inside (base 27%, 3.4x, no lookahead). Balance does
+  NOT coil into breakout — P(next BOS) falls monotonically with consecutive inside
+  legs (39%->3%); ranges beget ranges. BOS legs bigger (0.38 vs 0.28 ADR). CAVEAT:
+  2 & 3 partly mechanical (proximity to extreme); needs a costed tradeable test to
+  confirm real edge beyond "near the high makes new highs."
+- **THESIS (from #1/#4/#3):** leg-based metrics forecast VOLATILITY
   (clustering + persistence), not direction/day-type-sequence. Build vol-timing,
   not trend-prediction, on legs.
 
