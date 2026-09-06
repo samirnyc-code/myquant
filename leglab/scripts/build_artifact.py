@@ -360,8 +360,27 @@ footer {{ margin-top:52px; padding-top:24px; border-top:1px solid var(--line);
 </div>"""
 
 
+STANDALONE_HEAD = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="An independent 16-year reproduction and stress-test of Tim Fairweather's ES leg-counting research.">
+<title>LegLab — What 16 years of ES say about leg counting</title>
+</head>
+<body>
+"""
+STANDALONE_TAIL = "\n</body>\n</html>\n"
+
+
 if __name__ == "__main__":
     html = build()
+    # artifact-body version (no skeleton; wrapped at publish time)
     path = ARTDIR / "leglab_findings.html"
     path.write_text(html, encoding="utf-8")
     print(f"wrote {path}  ({len(html)/1024:.0f} KB)")
+    # standalone full-document version to send to Tim (double-click / email)
+    standalone = STANDALONE_HEAD + html + STANDALONE_TAIL
+    spath = ARTDIR / "leglab_for_tim.html"
+    spath.write_text(standalone, encoding="utf-8")
+    print(f"wrote {spath}  ({len(standalone)/1024:.0f} KB)  [standalone, send this to Tim]")
