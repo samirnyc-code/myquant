@@ -12,13 +12,24 @@ ranges) it closes the current leg and starts a new one. Reversal measured on
 intrabar **high/low**. Count resets each morning.
 `legs_closed` = counted at reversal (Tim's "15"); `legs_total = legs_closed + 1`.
 
-## Status
+## Status — COMPLETE (S111, 2026-09-06)
+Verdict: **legs are a volatility instrument, not a directional one.** Direction was
+tested five ways — count, size, day-type persistence, structure persistence,
+first-BOS — and is null in all of them. The real, repeatable signal is volatility
+(clustering 58.5%, morning→afternoon range +0.40, leg-size mean-reversion 86%,
+scalp size ~5× since 2010). Findings report built + sent to Tim.
+
 - **Baseline reproduced** — 16y ES 5M RTH (2010–2026, 4,137 days). Mean ≈ 15.5
   legs/day; matches Tim's published per-year chart within **1.2%**.
 - **Asymmetry** — down days > up days; +2.89 leg residual survives volatility
-  matching (gamma candidate, GEX test deferred).
-- **Blog digested** — 104 posts catalogued, research posts extracted.
-- **Next build** — Idea #1: early-leg (first 60–90 min) → rest-of-day classifier.
+  matching (gamma candidate, GEX test deferred/parked).
+- **Big-ES-days** — Tim's 85% continuation REFUTED on 16y; ES mean-reverts.
+- **Blog digested** — 104 posts catalogued (`research/zentradingtech_digest.md`).
+- **Artifact** — `artifact/leglab_for_tim.html` (standalone, lightbox charts) +
+  published claude.ai artifact. First person ("I").
+- **Full findings log** — `research/leg_count_research_agenda.md`.
+- **If ever resumed** — the only live leads are USING the vol signal (ADR/leg-scaled
+  targets, next-day expected range for the options desk), not more direction tests.
 
 ## Layout
 - `scripts/` — analysis (each saves a DATED output; no inline analysis).
