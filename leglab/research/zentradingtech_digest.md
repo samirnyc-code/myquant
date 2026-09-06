@@ -71,3 +71,55 @@ GitHub (his code + some ES CSVs + research reports): **https://github.com/Zen-Ti
   Vol Stats), Zen Open 18-Bar v5, Zen Consecutive Bars V9, Zen CSC Bar Strategy v2,
   Zen OOH/OOL v3, Zen EMA20 Streaks v1, Zen Always In v1, Zen Measured Moves, Zen IB v OB.
 - Many stat posts put numbers ONLY in chart images — text gives method, not full distributions.
+
+---
+
+# Second pass — remaining research posts
+
+## Backtestable ES 5M RTH setups (numbers are ours to generate where chart-only)
+- **CSC bars (ES 5m RTH):** enter close of Nth consecutive same-color bar (N=4/5),
+  1-at-a-time fill-or-kill, exit at session close. Test 0.5/1/1.5/2R ± MA filter
+  (with-trend only), longs-only vs both-ways. Blog shows charts only → we generate PF/hit.
+  "4-CSC reversals" highest hit-rate; best PF at 1–1.5R. (script/WEXwahbE)
+- **Micro-gap reversal (MIG):** Bull = 3 consecutive bull bars, bar3.low > bar1.high
+  (gap up) AND that low is BELOW EMA20 → fade SHORT; bear = mirror above EMA20.
+  Author claims "very high hit rate", ZERO numbers → fully ours to test. (script/NmBTPCYQ)
+- **Open-on-High/Low fade:** first bar opens exactly on its extreme (no tail that side)
+  → fade to the open, stop beyond extreme. ES daily 0.5% freq, hourly 2.5%.
+- **Shaved-open HOD/LOD survival:** first RTH bar opens on extreme AND it holds all day:
+  ES 0.42% / FDAX 1.63% / HSI 2.22% / NK 5.17% (no n/date given). (script/NFjaD5lk)
+- **Inside/Outside daily:** IB (H≤prevH & L≥prevL) ~11%, OB ~11%, regular ~78%;
+  ~90% of sessions break the prior day's H or L. Context filter, no direction. (script/VRJ1GoSc)
+- **Bar Range Category (vol-state feature, reusable):** each bar vs 8-bar avg range —
+  Small <80%, Normal ±20%, Large 1.2–2.2×, X-Large >2.2×. Tag any ES study. (script/xnS68Lm8)
+
+## DAX/FDAX + index (secondary market, stat-heavy)
+- **DAX post-FOMC (50 events):** decision tree — OOR-bear + gap-down → 100% bear (n=8);
+  prev-day IBS 0–25 → 89% bear; gap-down → 75% bear; XL gap-up >1×ABR → 0% bull (short).
+  Mean reaction range 1.21× ABR. Fully codeable on FDAX; ≥60%=scalp, ≤40%=fade.
+- **DAX Frankfurt/Globex both-sides break (1,878 days):** PM range broken both sides 62.4%
+  (87% when PM range <10% ADR); overnight range broken 94.1%. PM levels = magnets, not S/R.
+- **Nikkei historic gap-down (≥~3×ABR, 0.4% of days):** buy the open — 80% bull-bar day,
+  O→H +1.17×ABR vs O→L −0.22×ABR, gap doesn't fill same day; invalidate if range<1×ABR & IBS<30.
+- **Weekly-ABR gap (≥~37% ABR):** week's close usually tested that week (fade toward prior close).
+
+## Price-action setups (conceptual, no stats) that CROSS with our leg/2E work
+- **H1/H2/L1/L2 entries** = our second-entry construct: H2 = two-legged pullback entry
+  (above a bull bar AND above MA); **L1-fade = fade first weak attempt expecting the 2nd
+  entry** → directly = our S85 2EL/2ES book. "Stop after 3 signals/legs" recurs everywhere.
+- **Failure-of-a-failure:** failed high-prob entry → price returns to it ("test target");
+  if that fails, wait 3 legs against you before re-entry; hard-failure (big no-tail bars) →
+  treat as range day. Maps to day-type transitions.
+- **Tight channels:** "70% chance a new low gets retested"; avoid 3rd+ legs; fade failed
+  signal bars for 1–2R.
+- **Market-cycle drills:** channel = most common structure, breakout = rarest, "90% sideways"
+  (assertion, not backtested). Spike→channel→range regime framing = our day-type engine.
+- **First-three-bars / RTH-open consecutive bars:** open-spike failure ~50%; same open-structure
+  bucket as shaved-open / consecutive-opening-bar work.
+
+## Flags
+- **ES stats "bookmark this" (/2025/09/02):** the richest stat page but ENTIRELY image-based
+  (gap × open-structure × consecutive-60m-bar probabilities) — needs an OCR/manual pass on the
+  PNGs, or pull the same numbers from his GitHub datasets.
+- **Clone his GitHub** github.com/Zen-Tim/zen-trading-tech-public (MIT): ES/FDAX/HSI/Nikkei OHLC
+  + research kits (FDAX Pre-Market Breakout, Daily Range Distribution #1). Data/code hub.
