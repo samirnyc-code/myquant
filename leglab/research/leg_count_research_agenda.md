@@ -91,6 +91,26 @@ Leg definition (confirmed): intrabar HL reversal off the running extreme by
   for the options desk (#2) early legs = expected-range forecaster, not a trend gate
   (except the 1-leg morning). Engine now emits full per-leg geometry → unlocks #4-6.
 
+- **#4/#5 leg geometry (DONE, leg_geometry.py).** Leg size ~constant ~0.32 ADR all
+  day; duration is a U (2.5 bars open/close, 6.7 lunch) = velocity smile. Strong
+  leg-size mean-reversion (after big leg next larger 14%; after small 81%). Big
+  first leg -> bigger RANGE day (Spearman +0.18) not trend (eff +0.00).
+- **#3 day-type taxonomy (DONE, leg_day_typing.py).** 4 types (Trend-Up 24% /
+  Channel 28% / Range 31% / Trend-Down 16%). Tim's fewer-legs=trend holds for UP
+  trends (12.6 legs) but Trend-Down = 19.2 legs (reconfirms down-day whip). Day-type
+  does NOT persist (transition matrix ~= base rate). Volatility DOES cluster
+  (P big|big 58.5% vs 41.5%). Weak bear-reversal after Trend-Down (55% up next day).
+- **#2 options-desk filter (BLOCKED, not tested).** Desk daily P&L = only 24 days
+  (8/4-9/4 2026) -> statistically unusable (overfitting). Desk ALREADY classifies
+  day-type/high-vol/gap/gamma; both big losers (8/4 -1334 HIVOL, 9/3 -1407 TREND)
+  were self-flagged and traded through -> issue is ACTION/sizing, not detection.
+  Also our 5M bars end 2026-07-24 (no overlap with desk window). Real path =
+  synthetic 0DTE wall-selling backtest over the 16y leg history + gamma (ORATS),
+  NOT a 24-day fit.
+- **THESIS (triple-confirmed #1/#4/#3):** leg-based metrics forecast VOLATILITY
+  (clustering + persistence), not direction/day-type-sequence. Build vol-timing,
+  not trend-prediction, on legs.
+
 ## Status
 - Baseline + asymmetry diagnostics: DONE, committed (branch leglab).
 - Full-site digest: DONE (research/zentradingtech_digest.md); 2nd-pass crawl running.
