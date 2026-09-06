@@ -1,0 +1,38 @@
+Leg-count study — ES 5M RTH  (0.15*ADR, 8d ADR, HL reversals)
+rows written: 4137   -> C:\Users\Admin\myquant\leglab\outputs\leg_count_es_5m_20260906.csv
+span: 2010-06-17 -> 2026-07-24
+
+legs_total: median=16.0  mean=16.53  p10=8  p90=26
+legs_closed: median=15.0  mean=15.53  p10=7  p90=25
+
+TIM WINDOW 2021-08+ (n=1285): legs_total median=16.0 mean=16.28 | legs_closed median=15.0 mean=15.28
+
+legs_total median by year:
+      median       mean  size
+year                         
+2010    17.0  16.404255   141
+2011    17.0  17.581395   258
+2012    16.0  16.572549   255
+2013    16.0  16.281746   252
+2014    16.0  16.864000   250
+2015    16.0  16.841085   258
+2016    16.5  16.879845   258
+2017    16.0  16.902724   257
+2018    17.0  17.101167   257
+2019    16.0  15.992248   258
+2020    15.0  16.200772   259
+2021    15.0  15.701550   258
+2022    15.0  15.786822   258
+2023    16.0  16.315175   257
+2024    16.0  16.467181   259
+2025    15.0  16.105058   257
+2026    17.0  17.172414   145
+
+legs_total by net-move quintile (Tim: ext-down~18, ext-up~12):
+          median       mean  size
+net_q                            
+ext_down    21.0  20.770609   837
+down        17.0  17.572781   845
+flat        14.0  14.668323   805
+up          14.0  14.923821   827
+ext_up      14.0  14.558931   823
