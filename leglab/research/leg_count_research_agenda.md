@@ -114,6 +114,16 @@ Leg definition (confirmed): intrabar HL reversal off the running extreme by
   legs (39%->3%); ranges beget ranges. BOS legs bigger (0.38 vs 0.28 ADR). CAVEAT:
   2 & 3 partly mechanical (proximity to extreme); needs a costed tradeable test to
   confirm real edge beyond "near the high makes new highs."
+- **#6 STRESS-TEST (DONE, leg_structure_stresstest.py).** Raw BOS-persistence is
+  ~85% MECHANICAL: gap-to-beat 0.34 ADR after BOS vs 0.72 after inside. But a
+  +5.4pp edge survives within every gap-to-beat quintile -> a small REAL regime-
+  persistence edge. Earns a costed backtest (next).
+- **Big-ES-days (DONE, big_es_days.py) — Tim's 85% REFUTED on 16y.** Continuation
+  falls below base as K rises (0.333 at 3.3x vs 0.495 base); next-day drift is
+  AGAINST the big move (-11.7 pts at 3.3x); big days extend LESS than random. ES
+  MEAN-REVERTS after big days (big-up reverse hardest, -19.8 pts, n=17). Tim's
+  n=14 (2021-25 bull) = small-sample/recency. Possible FADE lead (big-up -> short).
+  Caveat: outcome = daily close/extreme, not his intraday 50%-pullback rule.
 - **THESIS (from #1/#4/#3):** leg-based metrics forecast VOLATILITY
   (clustering + persistence), not direction/day-type-sequence. Build vol-timing,
   not trend-prediction, on legs.
