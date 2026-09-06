@@ -119,6 +119,35 @@ figcaption { font-family:var(--mono); font-size:.74rem; color:var(--faint); marg
 .next li b { font-weight:640; }
 footer { margin-top:52px; padding-top:24px; border-top:1px solid var(--line);
   font-family:var(--mono); font-size:.74rem; color:var(--faint); line-height:1.6; }
+
+/* lightbox */
+.chart-card { position:relative; }
+.chart-card img { cursor:zoom-in; }
+.chart-card::after { content:"click to expand"; position:absolute; top:10px; right:10px;
+  font-family:var(--mono); font-size:.64rem; letter-spacing:.04em; color:var(--muted);
+  background:color-mix(in srgb,var(--surface) 86%,transparent); border:1px solid var(--line);
+  border-radius:6px; padding:3px 8px; pointer-events:none; opacity:0; transition:opacity .15s; }
+.chart-card:hover::after { opacity:1; }
+.lb { position:fixed; inset:0; z-index:9999; display:none; background:rgba(8,10,12,.94); }
+.lb.open { display:block; }
+.lb-stage { position:absolute; inset:0; overflow:hidden; display:flex; align-items:center;
+  justify-content:center; cursor:crosshair; }
+.lb.zoomed .lb-stage { cursor:grab; }
+.lb.grab .lb-stage { cursor:grabbing; }
+.lb-img { max-width:92vw; max-height:86vh; transform-origin:center center; will-change:transform;
+  user-select:none; -webkit-user-drag:none; box-shadow:0 20px 60px rgba(0,0,0,.5); border-radius:6px; }
+.lb-cx, .lb-cy { position:fixed; background:rgba(86,186,178,.55); pointer-events:none;
+  display:none; z-index:2; }
+.lb-cx { top:0; bottom:0; width:1px; }
+.lb-cy { left:0; right:0; height:1px; }
+.lb.show-cross .lb-cx, .lb.show-cross .lb-cy { display:block; }
+.lb-close { position:absolute; top:16px; right:20px; z-index:3; width:42px; height:42px;
+  background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.35); color:#fff;
+  border-radius:9px; font-size:1.4rem; line-height:1; cursor:pointer; }
+.lb-close:hover { background:rgba(255,255,255,.18); }
+.lb-hint { position:absolute; bottom:18px; left:0; right:0; text-align:center;
+  color:rgba(255,255,255,.6); font-family:var(--mono); font-size:.72rem;
+  letter-spacing:.03em; pointer-events:none; }
 </style>
 
 <div class="wrap">
@@ -325,5 +354,48 @@ footer { margin-top:52px; padding-top:24px; border-top:1px solid var(--line);
     scripts. Inspired by the leg-counting work at zentradingtech.com.
   </footer>
 </div>
+
+<div class="lb" role="dialog" aria-modal="true" aria-label="Chart viewer">
+  <button class="lb-close" aria-label="Close">&times;</button>
+  <div class="lb-stage"><img class="lb-img" alt=""></div>
+  <div class="lb-cx"></div><div class="lb-cy"></div>
+  <div class="lb-hint">scroll to zoom &middot; drag to pan &middot; double-click to reset &middot; Esc to close</div>
+</div>
+<script>
+(function(){
+  var lb=document.querySelector('.lb'), stage=lb.querySelector('.lb-stage'),
+      im=lb.querySelector('.lb-img'), cx=lb.querySelector('.lb-cx'), cy=lb.querySelector('.lb-cy');
+  var s=1, tx=0, ty=0, drag=false, px=0, py=0;
+  function apply(){ im.style.transform='translate('+tx+'px,'+ty+'px) scale('+s+')';
+    lb.classList.toggle('zoomed', s>1); }
+  function reset(){ s=1; tx=0; ty=0; apply(); }
+  function open(src,alt){ im.src=src; im.alt=alt||''; reset(); lb.classList.add('open');
+    document.body.style.overflow='hidden'; }
+  function close(){ lb.classList.remove('open'); document.body.style.overflow='';
+    im.removeAttribute('src'); }
+  Array.prototype.forEach.call(document.querySelectorAll('.chart-card img'), function(img){
+    img.addEventListener('click', function(){ open(img.src, img.alt); });
+  });
+  lb.querySelector('.lb-close').addEventListener('click', close);
+  document.addEventListener('keydown', function(e){
+    if(e.key==='Escape' && lb.classList.contains('open')) close(); });
+  stage.addEventListener('wheel', function(e){ e.preventDefault();
+    var f = e.deltaY<0 ? 1.15 : 1/1.15;
+    s = Math.min(8, Math.max(1, s*f)); if(s<=1){ tx=0; ty=0; } apply();
+  }, {passive:false});
+  stage.addEventListener('mousemove', function(e){
+    lb.classList.add('show-cross'); cx.style.left=e.clientX+'px'; cy.style.top=e.clientY+'px';
+    if(drag){ tx+=e.clientX-px; ty+=e.clientY-py; px=e.clientX; py=e.clientY; apply(); }
+  });
+  stage.addEventListener('mouseleave', function(){ lb.classList.remove('show-cross'); });
+  stage.addEventListener('mousedown', function(e){
+    if(s>1){ drag=true; lb.classList.add('grab'); px=e.clientX; py=e.clientY; e.preventDefault(); }
+    else if(e.target!==im){ close(); }
+  });
+  window.addEventListener('mouseup', function(){ drag=false; lb.classList.remove('grab'); });
+  im.addEventListener('dblclick', function(e){ e.stopPropagation(); reset(); });
+})();
+</script>
+
 </body>
 </html>
