@@ -80,7 +80,20 @@ Leg definition (confirmed): intrabar HL reversal off the running extreme by
 - **Match methodology exactly**: his GitHub (github.com/Zen-Tim/zen-trading-tech-public)
   has Pine source + some ES CSVs + research reports — pull to align ABR/ADR/RLS definitions.
 
+## Findings log
+- **#1 early-leg classifier (DONE, leg_early_classifier.py).** Early leg count does
+  NOT predict trend-ness (efficiency Spearman −0.03) — the intuitive hypothesis
+  FAILS. Sole exception: exactly 1 leg in the first 90 min (3% of days, n=134) =
+  67% trend days vs ~46% base. What early legs DO predict is rest-of-day
+  VOLATILITY (rest_range/ADR Spearman +0.40; +0.26 partial after controlling for
+  morning range — an independent signal, not just a range proxy).
+  Implications: day-typing (#3) needs RLS + structure, not early leg count;
+  for the options desk (#2) early legs = expected-range forecaster, not a trend gate
+  (except the 1-leg morning). Engine now emits full per-leg geometry → unlocks #4-6.
+
 ## Status
-- Baseline + asymmetry diagnostics DONE and committed-ready.
-- Full-site digest DONE → docs/research_notes/zentradingtech_digest.md.
-- Nothing committed yet (awaiting user go). No idea built yet (awaiting priority pick).
+- Baseline + asymmetry diagnostics: DONE, committed (branch leglab).
+- Full-site digest: DONE (research/zentradingtech_digest.md); 2nd-pass crawl running.
+- Reusable engine (leg_engine.py) validated == baseline (median 15, diff 0.0).
+- Idea #1 DONE. Next candidates: #4/#5 leg geometry (engine ready), #3 day-type
+  taxonomy (RLS-based), #11 leg count as trend-day confirmer on his other setups.
