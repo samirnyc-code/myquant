@@ -27,10 +27,10 @@ CHARTS = {k: img(k) for k in [
 FINDINGS = [
     ("Validation", "The pipeline agrees with Tim", "Confirmed", "good",
      "leg_count_vs_tim",
-     "Our leg count vs Tim's published per-year chart, 0.15×ADR threshold.",
-     ["Before trusting anything, we checked our engine against Tim's own numbers. "
+     "My leg count vs Tim's published per-year chart, 0.15×ADR threshold.",
+     ["Before trusting anything, I checked my engine against Tim's own numbers. "
       "Counting legs his way — track the running extreme from the open, close a leg "
-      "when price reverses by more than 0.15×ADR — our results land on his published "
+      "when price reverses by more than 0.15×ADR — my results land on his published "
       "figures within <b>1.2%</b> every year.",
       "That match means the data (16 years of Databento ES 5-minute RTH bars) and the "
       "counting logic are sound, so every result that follows rests on solid ground."]),
@@ -70,7 +70,7 @@ FINDINGS = [
     ("Day types", "A working taxonomy — that doesn't repeat", "Null on persistence", "warn",
      "leg_day_typing",
      "Four day types by structure; the day-to-day transition matrix.",
-     ["We built the day-type classifier Tim never finished (Trend-Up 24%, Channel 28%, "
+     ["I built the day-type classifier Tim never finished (Trend-Up 24%, Channel 28%,"
       "Range 31%, Trend-Down 16%) from directional structure, and it validates his "
       "instinct — but only halfway. Fewer legs does mean more trend <i>for up days</i> "
       "(12.6 legs); trend-<i>down</i> days are the choppiest of all (19.2 legs). Selloffs "
@@ -88,13 +88,13 @@ FINDINGS = [
       "— the more inside legs stack up, the <i>less</i> likely the next one breaks out. "
       "Trends persist; ranges persist.",
       "This is the one thing leg count, size, and day-typing all missed — a genuine "
-      "regime-persistence signal. But before celebrating, we stress-tested it."]),
+      "regime-persistence signal. But before celebrating, I stress-tested it."]),
 
     ("Skepticism", "…but most of it is mechanical", "Partial", "warn",
      "leg_structure_stresstest",
      "The breakout edge, controlled for distance to the extreme.",
      ["After a breakout you're sitting right next to the extreme, so making a new one is "
-      "cheap; deep in a range you're far from it. Once we hold that distance fixed, most "
+      "cheap; deep in a range you're far from it. Once I hold that distance fixed, most "
       "of the 48%-vs-14% gap disappears — it was <b>~85% mechanical positioning</b>.",
       "A small, honest edge survives: <b>+5.4 points</b> of extra breakout probability at "
       "equal distance, consistent across every bucket. Real, but modest — the kind of "
@@ -104,11 +104,11 @@ FINDINGS = [
      "big_es_days",
      "Next-day follow-through after big ES days, vs Tim's 85% claim.",
      ["Tim found that big ES days (range ≥3.3×ABR) get a same-direction second leg 85% of "
-      "the time — from 14 days over 2021–2025. On our full 16 years, it's the <b>opposite</b>: "
+      "the time — from 14 days over 2021–2025. On my full 16 years, it's the <b>opposite</b>: "
       "the bigger the day, the <i>less</i> the next day continues (33% at 3.3×, below the "
       "49% base rate), and the average next-day drift runs <b>against</b> the move.",
       "ES <b>mean-reverts</b> after big days; big up days reverse hardest. His 85% was a "
-      "small, recent bull-market sample. (Caveat: we tested next-day close/extreme, not "
+      "small, recent bull-market sample. (Caveat: I tested next-day close/extreme, not "
       "his exact intraday pullback-entry rule — but the continuation premise clearly fails.)"]),
 
     ("Practical", "The “scalp” has grown 5×", "Use this", "good",
@@ -307,7 +307,7 @@ footer {{ margin-top:52px; padding-top:24px; border-top:1px solid var(--line);
   <div class="summary">
     <h2>The short version</h2>
     <p class="lede">Leg count is a beautifully stable feature of the market &mdash; and, it
-      turns out, a <b>volatility</b> gauge, not a direction gauge. We reproduced Tim's work
+      turns out, a <b>volatility</b> gauge, not a direction gauge. I reproduced Tim's work
       exactly, then tested a dozen ways to trade it. Most directional ideas came up empty;
       the honest, repeatable signal in legs is how <i>much</i> a market moves, not which way.</p>
     <div class="stats">
