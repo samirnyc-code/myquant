@@ -73,11 +73,21 @@ script** (not yet built). It must encode all three:
    do we do a tight time-local check, with a latency offset as a reported parameter. (1-min
    rows are signals/scanning only — never entry/exit truth.)
 
-3. **Prints = confirmation, not a guaranteed fill.**
-   v2 `trade_quote` prints verify our price was real (a trade printed at/through it) but
-   cannot place us in the queue. Use prints to CONFIRM plausibility, never to assert a fill.
-   The print also carries OPRA's OWN timestamp — so a matching print anchors the true fill
-   moment without depending on our clock at all.
+3. **Prints = confirmation, not a guaranteed fill — and FILTER BY CONDITION.**
+   `trade_quote` prints verify a trade printed at/through our price, but can't place us in the
+   queue. **Critical (vendor):** we trade multi-leg, so most window prints are complex-order
+   codes **130 / 131 / 134** — they trade at PACKAGE prices and can land inside/outside the
+   single-leg NBBO, so they DO NOT prove a single-leg fill. Confirm only on **condition 0
+   (regular)** and **18 (electronic single-leg)**; treat complex codes as context. Our
+   `place_legs` path fills each leg as a single-leg order → 0/18 is exactly our confirmation;
+   BAG (`place_combo`) fills appear as complex. Empty window → HTTP **472** "No data" = a valid
+   "no prints", NOT a failure (common on 0DTE) — the fetcher classifies it as such.
+   Center the window on the fill with **millisecond** bounds once we have ms times.
+
+   **at_time freshness gate:** always compare the returned quote's timestamp to the fill time.
+   Quotes update hundreds of times/min on these contracts, so a quote stamped >1–2s before the
+   fill = quiet/early (e.g. a 09:30:01 fill returning a 09:25 pre-open quote) — the fetcher
+   records `quote_lag_s` + a `quote_stale` flag; don't validate against stale quotes.
 
 ## 4. SPX specifics (vendor)
 

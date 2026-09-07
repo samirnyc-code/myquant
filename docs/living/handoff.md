@@ -72,6 +72,10 @@ the real per-strategy gap (Standard includes real-time/streaming).
   then run `ib_flex_executions.py` → recover true August fill times.
 - [ ] Build the **comparison/execution-model script** per the §3–4b spec (price/print-anchored
   primary, size-check, recovered-time + measured-offset window, close-settlement basis).
+- **VENDOR round 2 confirmed (fetcher updated):** trade_quote route right; empty window = HTTP
+  472 "No data" (handle as no-prints, not fail); ms window bounds OK; **confirm fills only on
+  trade condition 0/18 (single-leg), NOT complex 130/131/134 (package prices)**; at_time —
+  compare returned quote stamp to fill time, flag >2s stale. 4 workers is the right pool.
 - [ ] (Vendor offer) send him our quote-pull snippet once we're in — URL form in the note.
 - [ ] Carry-over from S111 (still open): verify 9/8 06:00 resume task fired + 3 sim tasks Ready.
 

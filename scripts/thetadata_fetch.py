@@ -78,8 +78,8 @@ def at_time_url(row) -> str:
 
 
 def trade_quote_url(row) -> str:
-    # v3 path/params to CONFIRM with vendor (they described start_time/end_time behavior; exact
-    # v3 route not yet given). Best-effort; verify at smoke-test.
+    # v3 route CONFIRMED by vendor: option/history/trade_quote with start/end date + start/end
+    # time (HH:MM:SS[.mmm]). Empty window -> HTTP 472 "No data" (handled as no-prints, not fail).
     q = urllib.parse.urlencode({
         "symbol": row["theta_root"], "expiration": str(row["expiry"]),
         "strike": _strike_v3(row["strike"]), "right": str(row["right_v3"]),
@@ -138,6 +138,26 @@ def _rows(body: bytes) -> list[dict]:
     return list(csv.DictReader(io.StringIO(txt)))
 
 
+# ThetaData returns HTTP 472 "No data found for your request" when a window has no prints
+# (or no quote before the time) — a VALID empty result, common on 0DTE, NOT a failure.
+NO_DATA = 472
+
+# Trade condition codes (vendor): only these confirm a SINGLE-LEG fill at that price.
+# Multi-leg complex-order codes (130 complex, 131 complex auction, 134 multi-vs-single) print
+# at PACKAGE prices and can land inside/outside the single-leg NBBO -> context only.
+SINGLE_LEG_CONDITIONS = {"0", "18"}
+COMPLEX_CONDITIONS = {"130", "131", "134"}
+
+
+def _sod(t: str):
+    """'HH:MM:SS' or 'HH:MM:SS.mmm' -> float seconds-of-day (None if unparseable)."""
+    try:
+        h, m, s = str(t).split(":")
+        return int(h) * 3600 + int(m) * 60 + float(s)
+    except (ValueError, AttributeError):
+        return None
+
+
 # ------------------------------------------------------------------------- load
 def newest(glob: str) -> Path | None:
     c = sorted(PULL_DIR.glob(glob))
@@ -170,7 +190,10 @@ def run_at_time(df: pd.DataFrame, dataset: str, force: bool, limit: int | None) 
                 [ex.submit(fetch, it) for it in urls])):
             base = {k: df.loc[i, k] for k in keep if k in df.columns}
             rows = _rows(body) if status == 200 else []
-            if status != 200:
+            if status == NO_DATA:
+                n_empty += 1                          # no quote at/before that ms (valid)
+                results.append({**base, "quote_status": "no_data"})
+            elif status != 200:
                 n_fail += 1
                 results.append({**base, "quote_status": f"http_{status}"})
             elif not rows:
@@ -178,20 +201,82 @@ def run_at_time(df: pd.DataFrame, dataset: str, force: bool, limit: int | None) 
                 results.append({**base, "quote_status": "empty"})
             else:
                 q = rows[-1]                          # at_time returns the as-of NBBO row
+                # Freshness: a quote stamped >2s before our fill = quiet/early -> don't trust it.
+                qts = q.get("timestamp", "")
+                fs, qs = _sod(df.loc[i, "time_of_day_et"]), _sod(qts)
+                lag = round(fs - qs, 3) if (fs is not None and qs is not None) else ""
                 n_ok += 1
-                results.append({**base, "quote_status": "ok",
-                                "quote_timestamp": q.get("timestamp", ""),
+                results.append({**base, "quote_status": "ok", "quote_timestamp": qts,
+                                "quote_lag_s": lag,
+                                "quote_stale": (lag != "" and lag > 2),
                                 "bid_size": q.get("bid_size", ""), "bid": q.get("bid", ""),
                                 "ask_size": q.get("ask_size", ""), "ask": q.get("ask", ""),
                                 "bid_exchange": q.get("bid_exchange", ""),
                                 "ask_exchange": q.get("ask_exchange", "")})
             if (n_ok + n_empty + n_fail) % 50 == 0:
-                print(f"  ...{n_ok} ok / {n_empty} empty / {n_fail} fail")
+                print(f"  ...{n_ok} ok / {n_empty} no-data / {n_fail} fail")
 
     pd.DataFrame(results).to_csv(out, index=False)
-    print(f"\ndone — ok={n_ok} empty={n_empty} fail={n_fail}")
+    print(f"\ndone — ok={n_ok} no-data={n_empty} fail={n_fail}")
     print(f"saved -> {out.relative_to(ROOT)}  (our fill vs the real NBBO, per event)")
     print("REMINDER: catalog the new data/thetadata family now that data landed.")
+    return 0 if n_fail == 0 else 1
+
+
+def run_trade_quote(df: pd.DataFrame, force: bool, limit: int | None) -> int:
+    """Prints in a ±window around each fill. Keeps EVERY print + its condition (schema-agnostic:
+    union of returned columns) so the comparison can confirm on single-leg codes (0/18) only and
+    treat complex-order codes (130/131/134) as context. 472 = no prints in window (valid)."""
+    if limit:
+        df = df.head(limit)
+    out = ROOT / "data" / "thetadata" / f"trade_quote_prints_{dt.datetime.now():%Y%m%d}.csv"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    if out.exists() and not force:
+        print(f"{out.relative_to(ROOT)} exists — use --force to overwrite.")
+        return 0
+
+    keep = ["trade_id", "strategy", "event", "side_action", "occ_root", "expiry",
+            "strike", "right", "time_of_day_et", "our_fill_price"]
+    urls = [(i, trade_quote_url(r)) for i, r in df.iterrows()]
+    out_rows, n_prints, n_none, n_fail = [], 0, 0, 0
+
+    def fetch(item):
+        i, url = item
+        status, body = http_get(url)
+        return i, status, body
+
+    with ThreadPoolExecutor(max_workers=MAX_INFLIGHT) as ex:
+        for i, status, body in (f.result() for f in as_completed(
+                [ex.submit(fetch, it) for it in urls])):
+            base = {k: df.loc[i, k] for k in keep if k in df.columns}
+            if status == NO_DATA:
+                n_none += 1
+                out_rows.append({**base, "print_status": "no_prints_in_window"})
+                continue
+            if status != 200:
+                n_fail += 1
+                out_rows.append({**base, "print_status": f"http_{status}"})
+                continue
+            prints = _rows(body)
+            if not prints:
+                n_none += 1
+                out_rows.append({**base, "print_status": "no_prints_in_window"})
+                continue
+            for p in prints:                          # one row per PRINT (all columns kept)
+                cond = str(p.get("condition", p.get("trade_condition", "")))
+                out_rows.append({**base, "print_status": "print", **p,
+                                 "is_single_leg": cond in SINGLE_LEG_CONDITIONS,
+                                 "is_complex": cond in COMPLEX_CONDITIONS})
+                n_prints += 1
+
+    # union all fieldnames (vendor print schema may add columns we didn't name)
+    cols = list(dict.fromkeys(k for r in out_rows for k in r))
+    with open(out, "w", newline="", encoding="utf-8") as fh:
+        w = csv.DictWriter(fh, fieldnames=cols, extrasaction="ignore")
+        w.writeheader()
+        w.writerows(out_rows)
+    print(f"\ndone — prints={n_prints} events-with-no-prints={n_none} fail={n_fail}")
+    print(f"saved -> {out.relative_to(ROOT)}  (confirm on is_single_leg only; complex=context)")
     return 0 if n_fail == 0 else 1
 
 
@@ -267,6 +352,8 @@ def main() -> int:
 
     if args.dataset == "quote":
         return run_quote(df, args.force, args.limit)
+    if args.dataset == "trade_quote":
+        return run_trade_quote(df, args.force, args.limit)
     return run_at_time(df, args.dataset, args.force, args.limit)
 
 
