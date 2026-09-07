@@ -1,6 +1,133 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** September 5, 2026 (S110: heavy NT8 UI session. WedgeScalperV2 — big fixes (stop no longer trails before BE; intrabar BE via 1-tick series) + visuals (R:R boxes/hover, BE ray, filters) + Output to Tab2 with per-trade blocks + daily scoreboard. NEW **BreakoutBoysDashboardV1** — fresh chart-trader button panel (MC-channel dashboard clone, then rebuilt): MASTER/LONG/SHORT remote-control WedgeScalperV2 via shared statics; STOP ENTRY L/S place own SB stop entries (BarStop/LastSwing × Scalp/AbrMult/RMult) + FLATTEN. **SB arming untested — validate live Mon 9/8.** No trading/options work this session.)
+**Last Updated:** September 7, 2026 (S111: options-sim ANALYSIS + Labor-Day pause + ThetaData prep. NO strategy code changed (user: "nothing changed in the strategy"). Verified: EM=prior-close spot×VIX/√252 (gexlog morning brief; identical to our fallback); Open condor reuses the SAME prior-close-VIX width (no open-time vol). EOD flies = off-center fly on a stale price (weak). Reconstructed sim PnL on the DASHBOARD-CALENDAR basis (SPX-only, incl open marks, excl 08-04/05+orphan): full +$9,240 / n187; minus EOD-flies+Open-condors = **+$7,984 / n112 / PF 1.93**. **Fill realism RESOLVED**: sim uses REAL IB paper fills (NBBO, crosses the spread — median fill at the marketable touch, 79% ≤ mid) — NOT phantom mids. ThetaData Standard $80 = correct tier for fill-validation (quote+trade_quote+sizes, tick, 8yr); needs local Theta Terminal (Java) — **neither Java nor terminal installed here**. Paused sim for Labor Day (disabled 3 tasks + self-deleting resume task 9/8 06:00); chain recorder still respawned via supervisor — user said LEAVE it (no trades firing; watchdog holiday-halted). New analysis scripts UNCOMMITTED — commit next session.)
+
+---
+
+## S111 (2026-09-07, Labor Day) — Options-sim analysis, Labor-Day pause, ThetaData prep
+
+**Tone:** long analytical session on the options sim. User was frustrated by repeated
+"paper ≠ live" caveats — that thread RESOLVED in the sim's favor (fills are real). **NO
+strategy/daemon code was changed** (explicit user instruction, twice). All work = read-only
+analysis + persisted scripts + Windows task changes for the holiday pause. ThetaData buy is
+GO but parked until the user has the terminal set up.
+
+### 1. EM (expected move) — how the sim actually uses it (VERIFIED, unchanged)
+- Sim strike source = **EM = spot × VIX/√252** (1-day, close-to-close). Drives the CONDOR
+  strikes only: `eodic_p/c` (prior close ± EM) and `openic_p/c` (OPEN spot ± the **SAME** EM).
+  Flys are ATM (no EM); gexlog condor uses gamma walls; STMR uses ~30Δ. See
+  [scripts/options_gameplan.py](../../scripts/options_gameplan.py) L172-221.
+- **Morning brief** ([scripts/gexlog_brief.py](../../scripts/gexlog_brief.py)) pulls gexlog
+  `levels.expectedMove/emLower/emUpper` (~06:20 ET, prior-EOD basis, `dataSource=tradier`).
+  **Verified across 6 raw reports** (`data/gexlog/raw/*_morning.json`) that gexlog's EM ==
+  `current(prior close) × VIX(prior close)/√252` — i.e. IDENTICAL to our own fallback formula.
+- **Evening brief** ([scripts/gexlog_evening.py](../../scripts/gexlog_evening.py)) carries **no
+  numeric EM** — only a boolean `expected_move_hit`. So there is exactly ONE numeric EM in the
+  pipeline (the morning/prior-close one). Nothing feeds a fresher (open-time) VIX/EM.
+- **Known limitation (noted, NOT acted on):** the Open condor re-centers on the open spot but
+  keeps the prior-close-VIX width → on an overnight VIX gap the Open band is mis-sized. The
+  market-priced fix would be the **0DTE ATM straddle mid at 08:35** (intraday EM) for the Open
+  center, and the **next-day-expiry straddle at 15:59** (close-to-close EM) for the EOD center.
+  Not built. User understands; parked.
+
+### 2. EOD flies make little sense (analysis)
+- `eodfly_p/c` = short put+call struck at the **prior close** ("ATM=prior close") but the trade
+  fires at the OPEN → a deliberately **off-center** iron fly (a stale-price pin bet, not a vol
+  bet). Data agrees (both fly sides weak). **Likely a retirement candidate** once enough days
+  accrue; the clean test = EOD-fly vs Open-fly paired, **conditioned on overnight gap size**.
+
+### 3. Reconstructed sim PnL — TWO bases (this caused confusion; document it)
+- **Raw parquet basis** (closed only, SPX+XSP, incl error days/orphan): full combined +$6,842.88.
+  Script [scripts/sim_pnl_reconstruct.py](../../scripts/sim_pnl_reconstruct.py).
+- **DASHBOARD-CALENDAR basis** (what the app's card shows): `tlog.load()` = **SPX only**
+  (`trades.parquet`; XSP is a separate book the calendar never loads), **open trades count at
+  their unrealized mark**, EXCLUDES days 2026-08-04/08-05 (drops the orphan too), dedupes
+  live mirrors. Reproduced the card exactly: **n=187, +$9,240, win 66.3%, PF 1.64, exp $49.41,
+  avgROI 1.53%** (card said +$9,216 — ~$24 live-mark drift). Script
+  [scripts/calendar_pnl_reconstruct.py](../../scripts/calendar_pnl_reconstruct.py).
+- **User's requested reconstruction** (remove EOD flies + Open condors + all XSP), on the
+  calendar basis (XSP+orphan already excluded there): **kept book n=112, +$7,984.00, win 67%,
+  PF 1.93, exp $71.29, avgROI 3.39%.** Removing them CUTS ~$1,256 of raw P&L (both buckets were
+  net-positive on this basis) but RAISES every quality metric. `eodic_c` (EOD condor CALL side)
+  is the main drag (−$859, PF 0.49 — short calls run over, same as the 9/3 loss). CSV:
+  `data/options_sim/calendar_pnl_reconstruct.csv`.
+- **Standing caveat:** several put-spread streams show ~100% win / PF ∞ over a one-month
+  up-drift (no big down day tested) — small-sample/untested-tail, per [[backtest_fill_realism]].
+
+### 4. FILL REALISM — RESOLVED (the big one; correct any lingering doubt)
+- The sim is **NOT a phantom/mid-price simulator.** [scripts/options_trigger_daemon.py](../../scripts/options_trigger_daemon.py)
+  L243-328 + [scripts/ib_order_test.py](../../scripts/ib_order_test.py) L32: it connects to
+  **IB (paper)**, pulls the **real NBBO**, opens by BUYing the combo **marketable at the ASK**,
+  closes by SELLing **at the BID** (crosses the spread), and books IB's actual `avgFillPrice`.
+  `fill_model="paper_fill"`. No synthetic fallback — if IB is down it raises, nothing fills.
+- **Empirical audit** ([scripts/fill_vs_nbbo_audit.py](../../scripts/fill_vs_nbbo_audit.py) on
+  `xsp_fills.csv`, 68 entries with per-leg bid/ask logged at fill time): **median fill position
+  = 0.000** (at the marketable cross), mean 0.164, **79% at/worse than mid** (conservative). A
+  mid-phantom engine would show median 0.5. The 21% optimistic tail / 3 through-best fills are
+  small (pennies) and two-sided (17 were WORSE than a full cross) = **quote-snapshot timing
+  noise**, not systematic optimism. CSV: `data/options_sim/fill_vs_nbbo_audit.csv`.
+- **IB docs confirm** the paper engine fills marketable orders at/near the NBBO with slippage,
+  does NOT model counterparty availability/queue (Level I = bid/ask only; Level II depth 5).
+- **Real remaining gaps vs live** (honest list): size (1-lot only; no queue/partial/impact),
+  tail-exit liquidity (stale bid on fast down days), latency. NOT the mechanism.
+- **Level II is NOT the upgrade** for options backtesting: options depth is thin/MM-quoted, and
+  it's a live feed not historical. The upgrade = historical NBBO **+ quote sizes + trade prints**.
+
+### 5. ThetaData — buy decision + readiness (VERIFIED)
+- **Goal:** ground-truth the sim's August-2026 fills against real OPRA (kills the timing noise
+  in #4). Confirmed with user as THE objective.
+- **Tier: Standard $80 is correct.** Value $40 / Standard $80 / Pro $160. Standard includes
+  historical `Quote` (NBBO **with `bid_size`/`ask_size`**), `Trade`, `Trade Quote` (trades paired
+  with NBBO at trade-time = print verification), OI/OHLC/IV/Greeks1-2, **8yr, tick**. (Earlier I
+  wrongly claimed a Standard-vs-Pro contradiction on trade_quote — there is NONE; both pages put
+  Trade + Trade Quote on Standard. Pro only adds 3rd-order/trade greeks + 12yr + streaming scale.)
+- **Connection model:** NOT a bare API key. A local **Theta Terminal (Java)** runs here, logged
+  in with the ThetaData email/password, and serves REST at `http://127.0.0.1:25503/v3`
+  (v2 at `:25510`). **Verified request specs:**
+  - v3 NBBO: `/v3/option/history/quote?symbol=SPX&expiration=YYYYMMDD&strike=6450.000&right=call&date=YYYYMMDD&interval=tick&format=csv` → `timestamp,bid_size,bid,ask_size,ask,…`
+  - v2 print-paired: `/v2/hist/option/trade_quote?root=SPX&exp=YYYYMMDD&strike=64500000&right=C&start_date=…&end_date=…` → trade `price/size/ms_of_day` + paired NBBO. **Strike units differ: v3 = dollars, v2 = 1/10-cent.**
+- **⚠ READINESS GAP ON THIS MACHINE:** `java` NOT on PATH; no Theta Terminal jar installed.
+  Setup order before ANY pull: (1) install Java JRE 11+, (2) download+launch Theta Terminal
+  logged in, (3) then hit localhost. Installing Java = a state change → needs user OK, OR the
+  user sets up the terminal themselves (their creds). **User said: "I will let you do it when I
+  have everything."** So ThetaData is PARKED until the user has the terminal running.
+- **NOT yet built (do first next session, no sub needed):** the fetcher script (v3 spec),
+  the August work-list (every SPX/XSP leg+strike+expiry+fill-timestamp from our logs), and
+  confirm the SPX-weekly (SPXW) / XSP root symbols. Then smoke-test 1 contract once terminal up.
+
+### 6. Labor-Day PAUSE (system-state changes made — with user approval)
+- Today 2026-09-07 = **Labor Day** (verified; no holiday guard exists in the sim code).
+- **Disabled 3 scheduled tasks:** `MyQuant Trigger Daemon`, `MyQuant Chain Recorder`,
+  `MyQuant Spot Feed` (user chose "trade-placer + data feeds, keep infra").
+- **Created self-deleting resume task** `MyQuant Resume 20260908` → fires **9/8 06:00
+  machine-time**, re-enables those 3, logs to `data/options_sim/resume_sim_tasks.log`, then
+  unregisters itself. Script [scripts/resume_sim_tasks.ps1](../../scripts/resume_sim_tasks.ps1).
+  **Next session: verify the 3 tasks are back to Ready and the resume task self-deleted.**
+- **Chain recorder respawned anyway** (SPX PIDs, XSP, marks) via the supervisor chain
+  (`run_at_ct → chain_recorder_supervisor`), OUTSIDE the disabled task — my task-disable was the
+  wrong layer for the recorder. It records data only, **places no orders**. **User said LEAVE
+  it.** No trades fired: Trigger Daemon disabled+not running, and `desk_watchdog.py` correctly
+  holiday-halted (`market_calendar.day_type(2026-09-07)=('holiday','Labor Day')`; log:
+  "skip: Labor Day — market closed"). Recorder self-stops 15:05 CT.
+
+### 7. NT8 holidays imported (data only)
+- Imported US market holidays from NT8 `templates/TradingHours/CBOE US Index Futures RTH.xml`
+  → `data/options_sim/market_holidays.json` (**103 full closures 2015–2026 + 19 early-closes**).
+  Script [scripts/import_nt_holidays.py](../../scripts/import_nt_holidays.py). **Coverage ends
+  2026** (NT template range) — 2027+ needs a template refresh + re-run. **Not wired into any
+  strategy** (user wanted nothing changed). Offered a holiday guard for gameplan/daemon —
+  DECLINED for now; the JSON is ready if we build it later.
+
+### S111 open items / next session
+- [ ] **Commit the new analysis scripts** (all UNCOMMITTED): `eod_vs_open_pnl.py`,
+  `sim_pnl_reconstruct.py`, `calendar_pnl_reconstruct.py`, `fill_vs_nbbo_audit.py`,
+  `import_nt_holidays.py`, `resume_sim_tasks.ps1` (+ their dated CSV/JSON outputs). Per S80 rule.
+- [ ] Verify the resume task fired 9/8 06:00 and the 3 sim tasks are Ready again.
+- [ ] ThetaData: build fetcher + August work-list now (no sub needed); do the pull when the user
+  has Java + Theta Terminal running.
+- [ ] (Optional) wire a holiday guard using `market_holidays.json` so the next holiday auto-skips.
+- [ ] (Analysis, later) gap-conditioned EOD-fly-vs-Open-fly test to justify retiring EOD flies.
+- NOTE from S110 (still open): NT8 BreakoutBoysDashboardV1 **SB arming untested — validate live**.
 
 ---
 

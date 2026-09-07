@@ -1,0 +1,13 @@
+n,pnl,avg,win%,PF,roc%,scope,center
+35,471.6,13.47,91.4,1.28,0.63,SPX condor (eodic vs openic),EOD
+35,140.3,4.01,91.4,1.18,0.19,SPX condor (eodic vs openic),Open
+47,-253.2,-5.39,44.7,0.96,-3.77,SPX fly (eodfly vs openfly),EOD
+48,4927.4,102.65,39.6,1.83,5.25,SPX fly (eodfly vs openfly),Open
+13,-8.68,-0.67,61.5,0.89,-0.06,XSP condor (eodic vs openic),EOD
+9,4.04,0.45,33.3,1.61,0.19,XSP condor (eodic vs openic),Open
+19,-223.92,-11.79,42.1,0.55,-22.42,XSP fly (eodfly vs openfly),EOD
+18,-149.32,-8.3,33.3,0.56,-5.07,XSP fly (eodfly vs openfly),Open
+48,462.92,9.64,83.3,1.26,0.44,"ALL symbols, condor only",EOD
+44,144.34,3.28,79.5,1.18,0.19,"ALL symbols, condor only",Open
+114,-14.2,-0.12,60.5,1.0,-5.16,"ALL symbols, condor + fly",EOD
+110,4922.42,44.75,54.5,1.69,1.56,"ALL symbols, condor + fly",Open
