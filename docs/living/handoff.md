@@ -1,6 +1,56 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** September 7, 2026 (S111: options-sim ANALYSIS + Labor-Day pause + ThetaData prep. NO strategy code changed (user: "nothing changed in the strategy"). Verified: EM=prior-close spot×VIX/√252 (gexlog morning brief; identical to our fallback); Open condor reuses the SAME prior-close-VIX width (no open-time vol). EOD flies = off-center fly on a stale price (weak). Reconstructed sim PnL on the DASHBOARD-CALENDAR basis (SPX-only, incl open marks, excl 08-04/05+orphan): full +$9,240 / n187; minus EOD-flies+Open-condors = **+$7,984 / n112 / PF 1.93**. **Fill realism RESOLVED**: sim uses REAL IB paper fills (NBBO, crosses the spread — median fill at the marketable touch, 79% ≤ mid) — NOT phantom mids. ThetaData Standard $80 = correct tier for fill-validation (quote+trade_quote+sizes, tick, 8yr); needs local Theta Terminal (Java) — **neither Java nor terminal installed here**. Paused sim for Labor Day (disabled 3 tasks + self-deleting resume task 9/8 06:00); chain recorder still respawned via supervisor — user said LEAVE it (no trades firing; watchdog holiday-halted). New analysis scripts UNCOMMITTED — commit next session.)
+**Last Updated:** September 7, 2026 (S112: built the ThetaData fill-validation pull layer (SPX-only; XSP retired per user). Two committed scripts — `thetadata_worklist.py` (read-only; 204 SPX trades → 406 legs → **366 unique 0DTE contracts** over 24 dates 08-04→09-04; 196 ET fill anchors from orders.csv) + `thetadata_fetch.py` (stdlib v3 NBBO tick fetcher; `--dry-run`/`--probe`/`--limit`, resumable, manifest, no-terminal guard that fetches nothing). Validated all paths WITHOUT the terminal (dry-run URLs correct, strike-format bug caught+fixed 7560.0→7560.000). TZ pinned: trades=CT/orders=ET/Theta=ET — pull is by date (tz-safe), align later via orders.csv. STILL BLOCKED on local Theta Terminal (Java) — not installed; needs user OK or user-run. Vendor (ThetaData) confirmed Standard $80 is right + gave execution-model guidance (fill@touch+size-check, tick+latency-delay, prints=confirmation-not-fill, SPXW settles on close, early-close 1pm ET) → saved to `docs/options_0dte/thetadata_fill_validation.md` as the comparison-script spec. S111 scripts were ALREADY committed (9157bb17); that handoff checkbox was stale. — earlier S111: options-sim ANALYSIS + Labor-Day pause + ThetaData prep. NO strategy code changed (user: "nothing changed in the strategy"). Verified: EM=prior-close spot×VIX/√252 (gexlog morning brief; identical to our fallback); Open condor reuses the SAME prior-close-VIX width (no open-time vol). EOD flies = off-center fly on a stale price (weak). Reconstructed sim PnL on the DASHBOARD-CALENDAR basis (SPX-only, incl open marks, excl 08-04/05+orphan): full +$9,240 / n187; minus EOD-flies+Open-condors = **+$7,984 / n112 / PF 1.93**. **Fill realism RESOLVED**: sim uses REAL IB paper fills (NBBO, crosses the spread — median fill at the marketable touch, 79% ≤ mid) — NOT phantom mids. ThetaData Standard $80 = correct tier for fill-validation (quote+trade_quote+sizes, tick, 8yr); needs local Theta Terminal (Java) — **neither Java nor terminal installed here**. Paused sim for Labor Day (disabled 3 tasks + self-deleting resume task 9/8 06:00); chain recorder still respawned via supervisor — user said LEAVE it (no trades firing; watchdog holiday-halted). New analysis scripts UNCOMMITTED — commit next session.)
+
+---
+
+## S112 (2026-09-07) — ThetaData fill-validation pull layer BUILT (SPX-only)
+
+**Tone:** build session. User getting the ThetaData sub; asked to build the pull layer,
+"think of everything and double check." No strategy/daemon code touched. XSP dropped
+mid-session ("we dont need XSP at all, no longer relevant").
+
+### What was built (both committed)
+- **[scripts/thetadata_worklist.py](../../scripts/thetadata_worklist.py)** — READ-ONLY.
+  Enumerates every SPX contract to pull from `trades.parquet`, enriched with ET-second fill
+  anchors from `orders.csv`. Verified on run: 0DTE check **PASS** (expiry==entry date, all
+  406 legs), 204 trades → 406 legs → **366 unique contracts**, 24 dates 08-04→09-04, 196
+  order-fill anchors matched to 77 contracts. Outputs DATED CSVs
+  `data/options_sim/thetadata_pull_list_<date>.csv` + `..._worklist_legs_<date>.csv`.
+- **[scripts/thetadata_fetch.py](../../scripts/thetadata_fetch.py)** — stdlib-only (urllib)
+  v3 NBBO **tick** fetcher. `--dry-run` (no terminal), `--probe` (root confirm), `--limit`
+  (smoke), resumable (skip existing), retry/backoff, per-contract manifest. No-terminal
+  guard prints the Java/terminal setup steps, **fetches nothing, exits non-zero** (never
+  fabricates a pull). v2 `trade_quote` optional for print-verification.
+
+### Verified / decided
+- **TZ pinned** (was the main error risk): `trades.parquet` entry/exit = **CT** (min prec),
+  `orders.csv ts_et` = **ET** (sec), `xsp_fills` = CT; ThetaData `ms_of_day` = ET. The PULL
+  is by calendar DATE (identical CT/ET for daytime fills) = tz-safe. Per-tick ALIGNMENT
+  (comparison script, later) uses `orders.csv` (already ET) + a latency offset.
+- **Bug caught + fixed:** CSV round-trip turned `strike=7560.000`→`7560.0`; now derived from
+  the authoritative float in `build_url` (v3 dollars .3f, v2 1/10-cent int).
+- **All non-terminal paths validated** (dry-run URLs, no-terminal guard, probe guard).
+- **S111 scripts were ALREADY committed** in 9157bb17 — that S111 checkbox was stale.
+
+### Vendor (ThetaData) guidance — saved as the comparison-script spec
+Full note: **[docs/options_0dte/thetadata_fill_validation.md](../options_0dte/thetadata_fill_validation.md)**.
+Key: Standard $80 confirmed correct (consolidated NBBO tick + sizes + prints w/ condition
+codes + underlying on greeks, 2016→). "Data isn't the gap — execution modeling is." Three
+pillars for the (unbuilt) comparison script: (1) fill at touch + **check quote size ≥ order
+size**, (2) ticks + **signal→fill latency delay**, (3) prints = confirmation, not a
+guaranteed fill (no queue position). SPX: **SPXW settles on the CLOSE** (model settlement,
+not assignment; our EOD = `cash_settle` already); **early close = 1pm ET** (have it in
+`market_holidays.json`). Plus: paper-trade live ~2 weeks and compare same-day vs backtest =
+the real per-strategy gap (Standard includes real-time/streaming).
+
+### Open / next
+- [ ] **BLOCKED:** install Java JRE 11+ + launch Theta Terminal (user creds) — state change,
+  needs user. Then `--probe` (root SPXW vs SPX), `--limit 1` smoke, then full 366-contract pull.
+- [ ] Build the **comparison/execution-model script** per the §3–4 spec (size-check,
+  latency-delay, prints-as-confirm, close-settlement basis).
+- [ ] (Vendor offer) send him our quote-pull snippet once we're in — URL form in the note.
+- [ ] Carry-over from S111 (still open): verify 9/8 06:00 resume task fired + 3 sim tasks Ready.
 
 ---
 
