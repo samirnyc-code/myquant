@@ -19,30 +19,39 @@ Vendor's framing (verbatim intent): *"the gap between a backtest and live tradin
 really about the data anymore … the question becomes how you model your own execution on
 top of it, and that is where most of the difference comes from."*
 
-## 2. How we pull (the data layer — BUILT)
+## 2. How we pull (the data layer — BUILT; vendor-reviewed)
 
-- [scripts/thetadata_worklist.py](../../scripts/thetadata_worklist.py) → enumerates every
-  contract from `trades.parquet` (+ ET fill anchors from `orders.csv`). SPX-only, 0DTE.
-  Output: `data/options_sim/thetadata_pull_list_<date>.csv` (366 contracts, 24 dates,
-  2026-08-04 → 09-04) + `..._worklist_legs_<date>.csv`.
-- [scripts/thetadata_fetch.py](../../scripts/thetadata_fetch.py) → v3 NBBO tick pull, one
-  file per contract, resumable, manifest. `--dry-run` (no terminal), `--probe`, `--limit`.
+- [scripts/thetadata_worklist.py](../../scripts/thetadata_worklist.py) → SPX-only, 0DTE, from
+  `trades.parquet` (+ ET fill anchors from `orders.csv`). Emits three DATED CSVs:
+  `thetadata_events_<date>.csv` (**568 fill events** — the at_time/trade_quote input),
+  `thetadata_pull_list_<date>.csv` (366 contracts — full-day input),
+  `thetadata_worklist_legs_<date>.csv`.
+- [scripts/thetadata_fetch.py](../../scripts/thetadata_fetch.py) → three datasets, **4-way
+  parallel** (Standard = 4 requests in flight), header-based parse, `--dry-run`/`--limit`.
 
-v3 request (verified spec; **tick** per the vendor's advice that 0DTE entries/exits belong
-on ticks, not 1-min rows):
+**Primary = `at_time/quote`** (vendor's recommendation — one call per fill, not a day of ticks):
 ```
-GET http://127.0.0.1:25503/v3/option/history/quote
-    ?symbol=SPXW&expiration=YYYYMMDD&strike=<dollars.3f>&right=call|put
-    &date=YYYYMMDD&interval=tick&format=csv
--> timestamp,bid_size,bid,ask_size,ask,...
+GET http://127.0.0.1:25503/v3/option/at_time/quote
+    ?symbol=SPXW&expiration=YYYYMMDD&strike=<dollars>&right=call|put
+    &start_date=YYYYMMDD&end_date=YYYYMMDD&time_of_day=HH:MM:SS.mmm&format=csv
+-> the last NBBO at/before that ms, WITH the quote's own stamp (= how fresh it was at our fill)
 ```
+**Second-check = `trade_quote`** over a ±window (did a print hit our price, which side).
+**Full-day = `history/quote` interval=tick** — only where we want to watch size at the touch move.
 
-**Blocked on:** local Theta Terminal (Java) — not installed here. Installing Java = a
-state change (needs user OK), or the user sets up the terminal with their creds.
+Returned CSV columns (**read by header**, order not guaranteed):
+`symbol,expiration,strike,right,timestamp,bid_size,bid_exchange,bid,bid_condition,ask_size,ask_exchange,ask,ask_condition`
 
-**Smoke-test items (unresolved until terminal up; `--probe` resolves #1–2):**
-1. ThetaData root for SPX weeklys — SPXW vs SPX.
-2. v2 `trade_quote` strike digit-count (v3 dollars is unambiguous; v2 = 1/10-cent int).
+**Vendor-confirmed (2026-09):**
+- **ROOT = SPXW** (SPX = AM monthlies, no 0DTE; SPXW = PM, holds every 0DTE). No `--probe` needed.
+- Daily 0DTE exists only since **2022-05-16** (before: Mon/Wed/Fri) — matters only if the window extends back.
+- `interval=tick` = every OPRA NBBO update w/ sizes+exchange codes (143k rows for one 0DTE put on 08-04).
+- `right=P`/`right=put` and `strike=7560`/`7560.000` are equivalent. Default window ends 16:00 ET
+  (fine for 0DTE; SPXW stops at 16:00). `end_time=16:15` only for non-expiring extended-session pulls.
+
+**Blocked on:** local Theta Terminal (Java) — not installed here (state change → needs user OK,
+or user runs it). **Open to confirm at smoke-test:** exact v3 `trade_quote` route/params (vendor
+described the behavior; we guessed `history/trade_quote?...&start_time&end_time` — verify).
 
 ## 3. Vendor's three execution-model pillars → our comparison-script spec (TO BUILD)
 
@@ -56,14 +65,19 @@ script** (not yet built). It must encode all three:
    (1 lot)** — a touch price with no size behind it is not a real fill. Flag any fill where
    size was 0/insufficient.
 
-2. **Timing — ticks + a signal→fill latency delay.**
-   Align each booked fill to the tick **at fill-time PLUS a small latency offset**, not the
-   exact-second tick. Make the offset a parameter; report sensitivity. (1-min rows are for
-   signals/scanning only — we do not use them for entry/exit truth.)
+2. **Timing — DO NOT trust our logged timestamp (this is the crux).**
+   `orders.csv ts_et` is our MACHINE wall-clock at the fill callback (client-side, +latency,
+   1s) — **not** the exchange execution time. On 0DTE that easily lands on the wrong tick, so
+   an exact-timestamp match is invalid. Handle it three ways (see §4b): primary validation is
+   **price/print-anchored (clock-free)**; only after we've RECOVERED or MEASURED the true time
+   do we do a tight time-local check, with a latency offset as a reported parameter. (1-min
+   rows are signals/scanning only — never entry/exit truth.)
 
 3. **Prints = confirmation, not a guaranteed fill.**
    v2 `trade_quote` prints verify our price was real (a trade printed at/through it) but
    cannot place us in the queue. Use prints to CONFIRM plausibility, never to assert a fill.
+   The print also carries OPRA's OWN timestamp — so a matching print anchors the true fill
+   moment without depending on our clock at all.
 
 ## 4. SPX specifics (vendor)
 
@@ -72,6 +86,40 @@ script** (not yet built). It must encode all three:
   settlement basis, not a last-tick mark.
 - **Early-close days end 1pm ET.** Already captured — `data/options_sim/market_holidays.json`
   (19 early-closes, imported from NT8). Wire into the comparison's session bounds.
+
+## 4b. Timestamp fidelity — the fill-time problem and the fix (S112)
+
+**Problem.** Our only per-leg time for the Aug fills is `orders.csv ts_et` =
+`datetime.now("America/New_York")` written INSIDE the fill callback
+([ib_order_test.py](../../scripts/ib_order_test.py)) — machine wall-clock + processing/
+network latency, 1s granularity. It is NOT the exchange fill time. IB's real time lives on
+`Fill.time`, but the desk never persisted it and `reqExecutions` only reaches the current
+session, so it's not in the live API for August anymore.
+
+**Fix — three prongs (all in motion):**
+
+1. **Validate clock-free (primary).** Anchor on PRICE, not our timestamp: pull the contract's
+   trade prints + NBBO for the whole day and check whether a real print hit our fill price /
+   whether our price was ever at the touch. Answers "was this fill achievable" with zero
+   dependence on our clock. This alone gives a fill-realism verdict.
+
+2. **Recover the true time from IB (paper-account Flex Web Service).** Confirmed supported for
+   paper accounts (own Flex setup in Account Management; identical API). A **Trade Confirmation
+   Flex** query returns each August execution WITH its timestamp, order ID, price, commission.
+   Tool: [scripts/ib_flex_executions.py](../../scripts/ib_flex_executions.py) — needs a paper
+   Flex token + query ID in env (`IBKR_FLEX_TOKEN` / `IBKR_FLEX_QUERY`); prints the exact
+   Client-Portal setup steps if absent. Join on `order_id` → true fill time per leg.
+
+3. **Measure the residual offset.** We logged `quote_px` (the NBBO we saw) next to `ts_et`.
+   Find the ThetaData tick whose NBBO matches `quote_px`; the gap to `ts_et` IS our effective
+   clock+latency offset. Across all ~196 fills → a distribution: tight ⇒ correct and use a
+   narrow ±window; noisy ⇒ widen the window to cover it. Turns the uncertainty into a number.
+
+**Never again (forward fix, DONE S112).** [scripts/exec_logger.py](../../scripts/exec_logger.py)
+persists `Fill.time` + `commissionReport` to `data/options_log/ib_executions.csv` on every
+future fill — wired (guarded, non-fatal) into `ib_order_test.marketable` and the daemon's
+`place_combo`/`close_combo`. Authoritative timestamp = `ib_exec_time_utc`; align ThetaData
+ticks on THAT, never `ts_et`.
 
 ## 5. The number that actually matters — measure the gap live (vendor)
 

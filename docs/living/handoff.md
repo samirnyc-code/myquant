@@ -44,11 +44,34 @@ not assignment; our EOD = `cash_settle` already); **early close = 1pm ET** (have
 `market_holidays.json`). Plus: paper-trade live ~2 weeks and compare same-day vs backtest =
 the real per-strategy gap (Standard includes real-time/streaming).
 
+### Timestamp fidelity — problem found, fix in motion (S112, user pushed hard on this)
+- **`orders.csv ts_et` is our MACHINE wall-clock at the fill callback** (+latency, 1s), NOT
+  the exchange fill time ([ib_order_test.py](../../scripts/ib_order_test.py) `_audit`). So an
+  exact-timestamp match against ThetaData ticks is INVALID — do not do it.
+- **IB's real `Fill.time` was available but never persisted**; `reqExecutions` is session-only
+  → August exec times not in the live API. Recover them from the broker instead.
+- **Fix, 3 prongs** (full spec = `docs/options_0dte/thetadata_fill_validation.md` §4b):
+  1. **Clock-free primary validation** — price/print-anchored (does a real print hit our fill
+     price / was price ever at the touch); no timestamp needed.
+  2. **Recover true times via paper-account Flex** — CONFIRMED supported for paper (own Flex
+     setup, identical API). Tool BUILT: [scripts/ib_flex_executions.py](../../scripts/ib_flex_executions.py)
+     (Trade Confirmation Flex; needs `IBKR_FLEX_TOKEN`/`IBKR_FLEX_QUERY` from the PAPER Client
+     Portal; prints setup steps if absent). **User to create token+query.**
+  3. **Measure residual offset** — logged `quote_px` vs matching ThetaData NBBO tick = our
+     clock+latency offset across ~196 fills → correct/widen window.
+- **Forward fix DONE:** [scripts/exec_logger.py](../../scripts/exec_logger.py) persists
+  `Fill.time`+`commissionReport` → `data/options_log/ib_executions.csv` on every future fill;
+  wired guarded/non-fatal into `marketable` + daemon `place_combo`/`close_combo`. Unit-tested
+  (mock fill → correct row; no-fills/broken → safe no-op). Daemon paused (Labor Day) so edit
+  is safe; additive only, NO strategy logic changed.
+
 ### Open / next
 - [ ] **BLOCKED:** install Java JRE 11+ + launch Theta Terminal (user creds) — state change,
   needs user. Then `--probe` (root SPXW vs SPX), `--limit 1` smoke, then full 366-contract pull.
-- [ ] Build the **comparison/execution-model script** per the §3–4 spec (size-check,
-  latency-delay, prints-as-confirm, close-settlement basis).
+- [ ] **User:** create the paper-account Flex token + Trade-Confirmation query (Aug range),
+  then run `ib_flex_executions.py` → recover true August fill times.
+- [ ] Build the **comparison/execution-model script** per the §3–4b spec (price/print-anchored
+  primary, size-check, recovered-time + measured-offset window, close-settlement basis).
 - [ ] (Vendor offer) send him our quote-pull snippet once we're in — URL form in the note.
 - [ ] Carry-over from S111 (still open): verify 9/8 06:00 resume task fired + 3 sim tasks Ready.
 

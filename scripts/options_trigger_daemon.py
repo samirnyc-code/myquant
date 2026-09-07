@@ -255,6 +255,11 @@ def place_combo(ib, exp, legs, qty, retries=1):
         ib.sleep(8)
         if tr.orderStatus.status == "Filled":
             px = tr.orderStatus.avgFillPrice
+            try:
+                from exec_logger import log_fills
+                log_fills(tr, source="place_combo")     # S112: IB exec time + commission
+            except Exception:
+                pass
             return -px, bag        # negative fill price == credit received
         ib.cancelOrder(tr.order)
         ib.sleep(2)
@@ -273,6 +278,11 @@ def close_combo(ib, bag, qty, retries=1):
         tr = ib.placeOrder(bag, o)
         ib.sleep(8)
         if tr.orderStatus.status == "Filled":
+            try:
+                from exec_logger import log_fills
+                log_fills(tr, source="close_combo")      # S112: IB exec time + commission
+            except Exception:
+                pass
             return -tr.orderStatus.avgFillPrice
         ib.cancelOrder(tr.order)
         ib.sleep(2)
