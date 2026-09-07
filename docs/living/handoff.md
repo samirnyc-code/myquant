@@ -1,6 +1,40 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** September 5, 2026 (S110: heavy NT8 UI session. WedgeScalperV2 — big fixes (stop no longer trails before BE; intrabar BE via 1-tick series) + visuals (R:R boxes/hover, BE ray, filters) + Output to Tab2 with per-trade blocks + daily scoreboard. NEW **BreakoutBoysDashboardV1** — fresh chart-trader button panel (MC-channel dashboard clone, then rebuilt): MASTER/LONG/SHORT remote-control WedgeScalperV2 via shared statics; STOP ENTRY L/S place own SB stop entries (BarStop/LastSwing × Scalp/AbrMult/RMult) + FLATTEN. **SB arming untested — validate live Mon 9/8.** No trading/options work this session.)
+**Last Updated:** September 7, 2026 (S111: OPTIONS DESK session. Dashboard Analytics rebuilt (daily equity w/ clickable month-collapsible modal, monthly P&L, EOD drawdown, collateral + ideal-account curves, grade-calibration fix, hover crosshair). **STMR fully RETIRED** (book + gameplan + scheduled task). **XSP killed.** Built an **observational shadow daily-stop monitor** (no orders) + **scheduled it** weekday 08:35→15:10 CT — first real run **Tue 9/8** (Mon = Labor Day). FOMC/mid-session event flagging. Vendor decision → **ThetaData Options Standard $80/mo** (see `docs/living/thetadata_integration.md`). Plan: **collect 3 months → dissect**. All work on branch **s75-live-dashboard**.)
+
+---
+
+## S111 (2026-09-04→07) — Options desk: dashboard analytics, STMR retired, shadow-stop monitor, ThetaData decision
+
+**All on branch `s75-live-dashboard`** (working tree often parked on `leglab`; commits pushed to `origin/s75-live-dashboard`). Everything below is committed.
+
+### Dashboard (`scripts/options_dashboard.py`, live at :8600)
+- **Analytics tab rebuilt (daily, not per-trade):** equity curve on daily results with a **click-to-pop-out modal** (large, scrollable, **collapsible by month**, per-day trade detail); **Monthly P&L**; **Drawdown** (EOD underwater); **Capital** = daily collateral + max-collateral high-water + **ideal account size** (= peak collateral + max DD, incl 25% buffer). Month x-axis + **hover crosshair** on all time-series. KPI tiles gained peak-collateral + ideal-acct.
+- **Grade calibration:** clean A→D ladder; `n/a` bucket pinned bottom; the misleading "A/B −$345" bar was a **mislabeled double-booked STMR pair**, now gone.
+- **`dedupe_mirrors()`** (`options_trade_log.py`): a `real_paper` live leg is counted ONCE (drops the STMR sim+REAL double-book) across payload, card wall, and analysis scripts.
+
+### STMR — RETIRED (user decision)
+- Root cause it failed: near-close the IB gateway **stops accepting NEW API client handshakes** ("gateway up but not accepting") after ~9h uptime; the recorder (connected since open) survives, but STMR's fresh 14:59 connect fails. Recurring; decisions.csv silent since 8/19.
+- **Removed everywhere:** 2 `bps_stmr` rows dropped from `trades.parquet` (`remove_stmr.py`, backup kept); tile removed from `options_gameplan.py`; scheduled task **`MyQuant STMR Decision` DISABLED**; `_scrub_stmr()` hides it from gameplan/postmortem views. `stmr_exit_check.py` left dormant on disk.
+- **Future:** replace with a **buy-SPY-calls-on-oversold-day** tool (needs live SPY options feed for live; backtestable now via ThetaData).
+
+### XSP — KILLED (useless). Disabled tasks: `MyQuant Chain Recorder XSP`, `MyQuant XSP Mirror`, `MyQuant XSP Settle`. SPX recorder untouched.
+
+### Shadow daily-stop monitor (`scripts/shadow_stop_monitor.py`) — OBSERVATIONAL, NO ORDER PATH
+- Reads `marks.csv`; records what a daily max-loss stop WOULD do. **Never flattens.**
+- **Reasoned levels** (`stop_level_study.py`): current book's worst intraday dip = **−$2,222**; deepest a green day recovered from = −$680; stops in −$1–2k *cost* money (cut comebacks); **−$3k is the free backstop** (never fired in-sample), −$2k the tighter comparison (would've cost −$703 on 8/28).
+- **Panel** (`shadow_stop_html`): `P&L(actual)` = **booked** (ties to calendar EXACTLY — Aug **$8,215**, Sep **$1,001**, matches dashboard); `intraday DD` = raw live-MTM (what a stop watches — legitimately differs by spread/settlement); per-stop **EOD + Δ shown only on hit days**; single **Δ cum** carries forward from first hit; **collapsible by month**; ⚑ = mid-session Fed event. Applies **EXCLUDE_DAYS** (8/04,8/05) + includes no-marks book days (DD=n/a).
+- **SCHEDULED:** task `MyQuant Shadow Stop Monitor`, weekday `run_at_ct 08:35 → --loop --secs 120 --stop 15:10`, logs `shadow_stop_sched.log`. **First real run Tue 9/8** (Mon 9/7 = Labor Day → no-ops).
+- **FOMC/mid-session flag** (`mid_session_event`): Fed events firing during RTH (09:05 wait can't cover) get ⚑ + a heads-up ping. In-sample the 2 (FOMC Minutes 8/19, Beige Book 9/2) troughed in the morning, not at the event; neither a rate decision → still 0 rate-decision days captured.
+
+### Data-vendor decision (for backtesting + GEX walls)
+- **ThetaData Options Standard ($80/mo)** — NBBO + full-chain OI + IV (we compute gamma ourselves, skip Pro), **SPXW** root for 0DTE, underlying `underlying_price` embedded+synced in greeks/IV, bulk via wildcards, ≤1-month multi-day chunking, local Java 21 terminal on port **25503**. Full integration ref: **`docs/living/thetadata_integration.md`**.
+- Alternatives: ORATS ($99 tools + separate data API; OI+greeks to 2007); Cboe DataShop ($6k/mo, authoritative); Databento/**Massive.com** (was Polygon) = 1-min quotes from Mar-2023, **no OI/greeks**. Free CBOE-delayed feed (what `gex_data` uses) gives forward-only walls — our IB recorder is bid/ask-only so **can't** compute walls from what we record.
+
+### Plan / research direction
+- **Collect ~3 months forward, then dissect** for the best-surviving strategy. Backtest approach: **run each strategy individually, combine by day** (positions are independent → book P&L = sum); apply the portfolio daily-stop in the combine step.
+- Regime finding (N=23, DIRECTIONAL only): **NEG-gamma / HIVOL / TREND days made the money; POS-gamma / CHOP were flat-to-negative** — contrarian to theory, worth forward-confirming. Event days ≈ non-event. (`regime_outcome.py`)
+- New committed scripts: `risk_review`, `stop_level_study`, `shadow_stop_monitor`, `regime_outcome`, `grade_calibration`, `collateral_by_day`, `backfill_stmr_grade`, `remove_stmr`, `close_cost_now`, `spy_feed_probe`. Payoff-lab artifact in Mission Control (`docs/artifacts/0dte_payoff_lab.html`).
 
 ---
 
