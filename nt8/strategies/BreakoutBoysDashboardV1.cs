@@ -18,7 +18,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
 	// Stop-entry stop/target modes (fresh, wedge/SB based — NOT the MC channel modes).
 	public enum BBStopMode   { BarStop, LastSwing }
-	public enum BBTargetMode { Scalp, AbrMult, RMult }
+	public enum BBTargetMode { Scalp, AbrMult, RMult, Atm }
 
 	// ══════════════════════════════════════════════════════════════════════════
 	// BreakoutBoysDashboardV1 — chart-trader button panel + SB stop-entry engine.
@@ -38,6 +38,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 	public class BreakoutBoysDashboardV1 : Strategy
 	{
 		// ── chart-trader panel state ────────────────────────────────────────
+		private NinjaTrader.Gui.Chart.ChartTrader _chartTrader;   // kept so we can read its ATM dropdown
 		private Grid   ctButtonsGrid;
 		private bool   ctPanelActive;
 		private int    ctBaseRowCount;
@@ -45,7 +46,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 		private bool   _mouseHooked;
 
 		private Button btnMaster, btnLong, btnShort;
-		private Button btnSEL, btnSES, btnPickSB, btnFlat, btnStpMode, btnTgtMode, btnTgtVal;
+		private Button btnSEL, btnSES, btnPickSB, btnFlat, btnCancel, btnStpMode, btnTgtMode, btnTgtVal;
 
 		private Color  ColorOn, ColorOff, ColorArmed, ColorPick;
 
@@ -59,6 +60,12 @@ namespace NinjaTrader.NinjaScript.Strategies
 		private double _entryPx, _stopPx, _tgtPx;
 		private int    _dir;                           // +1 long / -1 short for the working/open trade
 		private Swing  _swing;
+
+		// ── ATM-mode runtime state ──────────────────────────────────────────
+		private string _cachedAtmTemplate = "";        // last ATM template read from the Chart Trader dropdown (UI thread)
+		private string _atmId = "", _atmOrderId = "";  // active ATM strategy + entry-order ids
+		private bool   _atmActive;                      // an ATM entry has been created and not yet closed
+		private bool   _atmEntered;                     // the ATM has actually taken a position (for flat-detection)
 
 		protected override void OnStateChange()
 		{
@@ -75,6 +82,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 				RealtimeErrorHandling = RealtimeErrorHandling.IgnoreAllErrors;
 
 				// stop-entry settings
+				SE_RestImmediately = true;   // rest the stop entry on arm (off last closed/picked bar); false = wait for the SB's close
+				SE_AtmTemplate    = "";      // fallback ATM template name used only if the Chart Trader dropdown read is empty
 				SE_Qty            = 1;
 				SE_EntryOffsetTicks = 1;   // entry this many ticks beyond the SB
 				SE_StopOffsetTicks  = 1;   // stop this many ticks beyond the stop-reference bar/swing
@@ -109,16 +118,25 @@ namespace NinjaTrader.NinjaScript.Strategies
 		{
 			if (CurrentBar < BarsRequiredToTrade) return;
 
-			// Place a pending stop entry at the signal bar's close.
-			if ((_pendingLong || _pendingShort) && Position.MarketPosition == MarketPosition.Flat)
+			// Track an active ATM trade: clear our state once it has taken a position and gone flat again.
+			if (_atmActive && !string.IsNullOrEmpty(_atmId))
+			{
+				MarketPosition amp = GetAtmStrategyMarketPosition(_atmId);
+				if (amp != MarketPosition.Flat) _atmEntered = true;
+				else if (_atmEntered)
+				{ _atmActive = false; _atmEntered = false; _dir = 0; RefreshSEButtons(); Print(DateTime.Now + " SE ATM closed."); }
+			}
+
+			// Place a pending stop entry at the signal bar's close (deferred mode only —
+			// in immediate mode the order is already resting from ArmStopEntry).
+			if ((_pendingLong || _pendingShort) && !_atmActive && Position.MarketPosition == MarketPosition.Flat)
 			{
 				bool isLong = _pendingLong;
 				int sbAgo = _sbPickedBar >= 0 ? Math.Max(0, CurrentBar - _sbPickedBar) : 0;
 				PlaceStopEntry(isLong, sbAgo);
 				_pendingLong = _pendingShort = false;
 				_sbPickedBar = -1;
-				SetBtn(btnSEL, _dir == 1 ? ColorArmed : ColorOff);
-				SetBtn(btnSES, _dir == -1 ? ColorArmed : ColorOff);
+				RefreshSEButtons();
 			}
 		}
 
@@ -152,6 +170,25 @@ namespace NinjaTrader.NinjaScript.Strategies
 				_stopPx  = (_stopMode == BBStopMode.LastSwing ? _swing.SwingHigh[0] : stopRefHi) + SE_StopOffsetTicks * tick;
 			}
 
+			// ── ATM MODE: hand the entry to a selected ATM template; it owns stop/target ──
+			if (_tgtMode == BBTargetMode.Atm)
+			{
+				string tmpl = ResolveAtmTemplate();
+				if (string.IsNullOrEmpty(tmpl))
+				{ Print(DateTime.Now + " SE ATM: no ATM selected in Chart Trader and no fallback template set — entry aborted."); _dir = 0; return; }
+
+				_atmOrderId = "SE_ORD_" + GetAtmStrategyUniqueId();
+				_atmId      = "SE_ATM_" + GetAtmStrategyUniqueId();
+				_atmActive  = true; _atmEntered = false;
+				string tmplC = tmpl;
+				AtmStrategyCreate(isLong ? OrderAction.Buy : OrderAction.Sell, OrderType.StopMarket,
+					0, Round(_entryPx), TimeInForce.Day, _atmOrderId, tmpl, _atmId,
+					(err, cbId) => Print(DateTime.Now + " SE ATM callback " + (err == ErrorCode.NoError ? "OK — template '" + tmplC + "'" : "FAILED: " + err)));
+				Print(DateTime.Now + "  SE " + (isLong ? "LONG" : "SHORT") + " ATM entry@" + _entryPx.ToString("0.00")
+					+ " template='" + tmpl + "'  (ATM owns stop/target)");
+				return;
+			}
+
 			double risk = Math.Abs(_entryPx - _stopPx);
 			double tgtDist;
 			switch (_tgtMode)
@@ -169,6 +206,68 @@ namespace NinjaTrader.NinjaScript.Strategies
 				+ " [" + _stopMode + "/" + _tgtMode + "]");
 		}
 
+		private double Round(double p) { return Instrument.MasterInstrument.RoundToTickSize(p); }
+
+		// Resolve the ATM template name (safe on ANY thread): returns the last value
+		// read from the Chart Trader dropdown on the UI thread, else the typed fallback.
+		private string ResolveAtmTemplate()
+		{
+			return !string.IsNullOrEmpty(_cachedAtmTemplate) ? _cachedAtmTemplate : SE_AtmTemplate;
+		}
+
+		// UI-THREAD ONLY: walk the Chart Trader visual tree, read the selected ATM
+		// template, cache it. Called from click handlers (which run on the UI thread).
+		private string ReadAtmSelectorUi()
+		{
+			try
+			{
+				var sel = FindAtmSelector(_chartTrader);
+				if (sel != null)
+				{
+					string name = AtmNameFrom(sel.SelectedAtmStrategy);
+					if (!string.IsNullOrEmpty(name) && name != "Custom" && name != "<Custom>")
+					{ _cachedAtmTemplate = name; return name; }
+				}
+				else Print(DateTime.Now + " BB ATM: Chart Trader ATM selector not found — will use fallback param '" + SE_AtmTemplate + "'.");
+			}
+			catch (Exception ex) { Print(DateTime.Now + " BB ATM read failed (" + ex.Message + ") — will use fallback param."); }
+			return _cachedAtmTemplate;
+		}
+
+		// Extract a template-name string from whatever SelectedAtmStrategy returns
+		// (may be a string, or an object exposing Template/Name/DisplayName).
+		private string AtmNameFrom(object v)
+		{
+			if (v == null) return null;
+			if (v is string) return (string)v;
+			foreach (string prop in new[] { "Template", "Name", "DisplayName" })
+			{
+				var pi = v.GetType().GetProperty(prop);
+				if (pi != null)
+				{
+					object pv = pi.GetValue(v, null);
+					if (pv is string && !string.IsNullOrEmpty((string)pv)) return (string)pv;
+				}
+			}
+			return v.ToString();
+		}
+
+		// Walk the Chart Trader visual tree for the ATM selector control.
+		private NinjaTrader.Gui.NinjaScript.AtmStrategy.AtmStrategySelector FindAtmSelector(DependencyObject root)
+		{
+			if (root == null) return null;
+			int n = System.Windows.Media.VisualTreeHelper.GetChildrenCount(root);
+			for (int i = 0; i < n; i++)
+			{
+				var c = System.Windows.Media.VisualTreeHelper.GetChild(root, i);
+				var s = c as NinjaTrader.Gui.NinjaScript.AtmStrategy.AtmStrategySelector;
+				if (s != null) return s;
+				var deep = FindAtmSelector(c);
+				if (deep != null) return deep;
+			}
+			return null;
+		}
+
 		// Average bar range (High-Low) over the prior n bars (excludes the current bar).
 		private double Abr(int n)
 		{
@@ -181,6 +280,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			int quantity, MarketPosition marketPosition, string orderId, DateTime time)
 		{
 			if (execution.Order == null) return;
+			if (_atmActive) return;   // ATM template manages its own stop/target
 			if (execution.Order.Name == "SE" && Position.MarketPosition != MarketPosition.Flat)
 			{
 				_entryBar = CurrentBar;
@@ -204,8 +304,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			if (marketPosition == MarketPosition.Flat)
 			{
 				_dir = 0; _entryBar = -1;
-				SetBtn(btnSEL, ColorOff);
-				SetBtn(btnSES, ColorOff);
+				RefreshSEButtons();
 			}
 		}
 
@@ -219,6 +318,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 				if (win == null) { Print("BB: chart window not found"); return; }
 				var chartTrader = win.FindFirst("ChartWindowChartTraderControl") as NinjaTrader.Gui.Chart.ChartTrader;
 				if (chartTrader == null) { Print("BB: ChartTrader not found (is Chart Trader shown?)"); return; }
+				_chartTrader = chartTrader;
 				var outerGrid = chartTrader.Content as Grid;
 				if (outerGrid == null) return;
 				foreach (UIElement child in outerGrid.Children)
@@ -254,23 +354,28 @@ namespace NinjaTrader.NinjaScript.Strategies
 
 				// Row: STOP ENTRY L | STOP ENTRY S (this dashboard's own entries)
 				btnSEL = MakeBtn(s, "STOP ENT L", "Arm a long stop entry off the SB", ColorOff);
-				btnSEL.Click += (o, e) => TriggerCustomEvent(st => ArmStopEntry(true), null);
+				btnSEL.Click += (o, e) => { if (_tgtMode == BBTargetMode.Atm) ReadAtmSelectorUi(); TriggerCustomEvent(st => ArmStopEntry(true), null); };
 				btnSES = MakeBtn(s, "STOP ENT S", "Arm a short stop entry off the SB", ColorOff);
-				btnSES.Click += (o, e) => TriggerCustomEvent(st => ArmStopEntry(false), null);
+				btnSES.Click += (o, e) => { if (_tgtMode == BBTargetMode.Atm) ReadAtmSelectorUi(); TriggerCustomEvent(st => ArmStopEntry(false), null); };
 				AddHalfRow(ctButtonsGrid, ctBaseRowCount + ctRowsAdded++, btnSEL, btnSES);
 
-				// Row: PICK SB | FLATTEN
+				// Row: PICK SB | CANCEL (cancel disarms + cancels working orders, keeps any open position)
 				btnPickSB = MakeBtn(s, "PICK SB", "Toggle, then click a bar to use it as the signal bar", ColorOff);
 				btnPickSB.Click += (o, e) => { _pickArmed = !_pickArmed; SetBtn(btnPickSB, _pickArmed ? ColorPick : ColorOff); Print(DateTime.Now + " PICK SB " + (_pickArmed ? "ON — click a bar" : "OFF")); };
+				btnCancel = MakeBtn(s, "CANCEL", "Cancel the dashboard's working orders (entry + stop/target); leaves an open position", Color.FromRgb(120,90,20));
+				btnCancel.Click += (o, e) => TriggerCustomEvent(st => CancelSEOrders(), null);
+				AddHalfRow(ctButtonsGrid, ctBaseRowCount + ctRowsAdded++, btnPickSB, btnCancel);
+
+				// Row: FLATTEN (close position + cancel all)
 				btnFlat = MakeBtn(s, "FLATTEN", "Close the dashboard's SE position + cancel its orders", Color.FromRgb(150,30,30));
 				btnFlat.Click += (o, e) => TriggerCustomEvent(st => FlattenSE(), null);
-				AddHalfRow(ctButtonsGrid, ctBaseRowCount + ctRowsAdded++, btnPickSB, btnFlat);
+				AddFullRow(ctButtonsGrid, ctBaseRowCount + ctRowsAdded++, btnFlat);
 
 				// Row: STP mode | TGT mode (cycle)
 				btnStpMode = MakeBtn(s, "STP:" + _stopMode, "Cycle stop mode (BarStop / LastSwing)", Color.FromRgb(60,60,60));
 				btnStpMode.Click += (o, e) => { _stopMode = _stopMode == BBStopMode.BarStop ? BBStopMode.LastSwing : BBStopMode.BarStop; btnStpMode.Content = "STP:" + _stopMode; Print(DateTime.Now + " StopMode -> " + _stopMode); };
 				btnTgtMode = MakeBtn(s, "TGT:" + _tgtMode, "Cycle target mode (Scalp / AbrMult / RMult)", Color.FromRgb(60,60,60));
-				btnTgtMode.Click += (o, e) => { _tgtMode = (BBTargetMode)(((int)_tgtMode + 1) % 3); btnTgtMode.Content = "TGT:" + _tgtMode; if (btnTgtVal != null) btnTgtVal.Content = TgtValLabel(); Print(DateTime.Now + " TargetMode -> " + _tgtMode); };
+				btnTgtMode.Click += (o, e) => { _tgtMode = (BBTargetMode)(((int)_tgtMode + 1) % 4); btnTgtMode.Content = "TGT:" + _tgtMode; if (btnTgtVal != null) btnTgtVal.Content = TgtValLabel(); Print(DateTime.Now + " TargetMode -> " + _tgtMode); };
 				AddHalfRow(ctButtonsGrid, ctBaseRowCount + ctRowsAdded++, btnStpMode, btnTgtMode);
 
 				// Row: TGT value adjust (left-click = down, right-click = up; adapts to target mode)
@@ -287,23 +392,80 @@ namespace NinjaTrader.NinjaScript.Strategies
 
 		private void ArmStopEntry(bool isLong)
 		{
-			// toggle off if already armed/working on this side
-			if ((isLong && (_pendingLong || _dir == 1)) || (!isLong && (_pendingShort || _dir == -1)))
+			bool sameSideActive = isLong ? (_pendingLong || _dir == 1) : (_pendingShort || _dir == -1);
+
+			// Clicking the side that is already armed/working = disarm it.
+			if (sameSideActive)
 			{
 				_pendingLong = _pendingShort = false;
-				foreach (Order o in Orders)
-					if (o.Name == "SE" && o.OrderState == OrderState.Working) CancelOrder(o);
-				SetBtn(isLong ? btnSEL : btnSES, ColorOff);
+				CancelWorkingEntries();
+				CancelAtmIfActive();
+				RefreshSEButtons();
 				Print(DateTime.Now + " SE " + (isLong ? "LONG" : "SHORT") + " disarmed");
 				return;
 			}
-			if (Position.MarketPosition != MarketPosition.Flat)
+			if (Position.MarketPosition != MarketPosition.Flat || _atmActive)
 			{ Print(DateTime.Now + " SE: already in a trade — flatten first."); return; }
 
+			// Mutually exclusive: arming one side clears the other + any stale entry.
 			_pendingLong = isLong; _pendingShort = !isLong;
-			SetBtn(isLong ? btnSEL : btnSES, ColorArmed);
-			Print(DateTime.Now + " SE " + (isLong ? "LONG" : "SHORT") + " armed — SB = "
-				+ (_sbPickedBar >= 0 ? "picked bar" : "the bar it closes on") + " [" + _stopMode + "/" + _tgtMode + "]");
+			CancelWorkingEntries();
+
+			if (SE_RestImmediately)
+			{
+				// Rest the stop entry NOW off the last completed bar (or picked bar) —
+				// no waiting for another bar close.
+				int sbAgo = _sbPickedBar >= 0 ? Math.Max(0, CurrentBar - _sbPickedBar) : 0;
+				PlaceStopEntry(isLong, sbAgo);
+				_pendingLong = _pendingShort = false;
+				_sbPickedBar = -1;
+			}
+			else
+			{
+				Print(DateTime.Now + " SE " + (isLong ? "LONG" : "SHORT") + " armed — SB = "
+					+ (_sbPickedBar >= 0 ? "picked bar" : "the bar it closes on") + " [" + _stopMode + "/" + _tgtMode + "]");
+			}
+			RefreshSEButtons();
+		}
+
+		// Set both SE buttons from the live state so colors can never drift out of sync.
+		private void RefreshSEButtons()
+		{
+			SetBtn(btnSEL, (_pendingLong  || _dir == 1)  ? ColorArmed : ColorOff);
+			SetBtn(btnSES, (_pendingShort || _dir == -1) ? ColorArmed : ColorOff);
+		}
+
+		private void CancelWorkingEntries()
+		{
+			foreach (Order o in Orders)
+				if (o.Name == "SE" && o.OrderState == OrderState.Working) CancelOrder(o);
+		}
+
+		// Close/cancel an active ATM trade (position -> close; resting entry -> cancel).
+		private void CancelAtmIfActive()
+		{
+			if (!_atmActive || string.IsNullOrEmpty(_atmId)) return;
+			try
+			{
+				MarketPosition amp = GetAtmStrategyMarketPosition(_atmId);
+				if (amp != MarketPosition.Flat) AtmStrategyClose(_atmId);
+				else if (!string.IsNullOrEmpty(_atmOrderId)) AtmStrategyCancelEntryOrder(_atmOrderId);
+				Print(DateTime.Now + " SE ATM cancelled/closed (" + amp + ")");
+			}
+			catch (Exception ex) { Print(DateTime.Now + " BB ATM cancel: " + ex.Message); }
+			_atmActive = false; _atmEntered = false;
+		}
+
+		// Cancel working dashboard orders (entry + stop/target) but leave an open position alone.
+		private void CancelSEOrders()
+		{
+			foreach (Order o in Orders)
+				if ((o.Name == "SE" || o.Name == "SEstop" || o.Name == "SEtgt") && o.OrderState == OrderState.Working)
+					CancelOrder(o);
+			CancelAtmIfActive();
+			_pendingLong = _pendingShort = false;
+			RefreshSEButtons();
+			Print(DateTime.Now + " SE CANCEL — working orders cancelled (position kept)");
 		}
 
 		private void FlattenSE()
@@ -311,9 +473,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 			foreach (Order o in Orders)
 				if ((o.Name == "SE" || o.Name == "SEstop" || o.Name == "SEtgt") && o.OrderState == OrderState.Working)
 					CancelOrder(o);
+			CancelAtmIfActive();
 			_pendingLong = _pendingShort = false;
 			if (Position.MarketPosition == MarketPosition.Long)  ExitLong ("SEflat", "SE");
 			else if (Position.MarketPosition == MarketPosition.Short) ExitShort("SEflat", "SE");
+			_dir = 0;
 			SetBtn(btnSEL, ColorOff); SetBtn(btnSES, ColorOff);
 			Print(DateTime.Now + " SE FLATTEN");
 		}
@@ -324,6 +488,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			{
 				case BBTargetMode.AbrMult: return "TGT " + SE_AbrMult.ToString("0.0") + "xABR";
 				case BBTargetMode.RMult:   return "TGT " + SE_RMult.ToString("0.0") + "R";
+				case BBTargetMode.Atm:     { string t = ReadAtmSelectorUi(); if (string.IsNullOrEmpty(t)) t = SE_AtmTemplate; return "ATM: " + (string.IsNullOrEmpty(t) ? "(none)" : t); }
 				default:                   return "TGT " + SE_ScalpTicks + "t";
 			}
 		}
@@ -332,6 +497,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 		{
 			switch (_tgtMode)
 			{
+				case BBTargetMode.Atm:     { string t = ReadAtmSelectorUi(); if (string.IsNullOrEmpty(t)) t = SE_AtmTemplate; Print(DateTime.Now + " ATM template resolves to: '" + (t ?? "") + "'"); if (btnTgtVal != null) btnTgtVal.Content = TgtValLabel(); break; }   // click just re-reads/prints
 				case BBTargetMode.AbrMult: SE_AbrMult = Math.Max(0.1, Math.Round(SE_AbrMult + dir * 0.1, 1)); break;
 				case BBTargetMode.RMult:   SE_RMult   = Math.Max(0.1, Math.Round(SE_RMult   + dir * 0.1, 1)); break;
 				default:                   SE_ScalpTicks = Math.Max(1, SE_ScalpTicks + dir);                  break;
@@ -345,9 +511,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 			if (!_pickArmed || ChartControl == null || ChartBars == null) return;
 			try
 			{
-				int x = (int)e.GetPosition(ChartPanel).X;
-				int idx = ChartBars.GetBarIdxByX(ChartControl, x);
-				if (idx < 0) return;
+				// Coordinate must be relative to ChartControl (NOT ChartPanel) for
+				// GetBarIdxByX to resolve — this was the PICK-SB bug.
+				var pos = e.GetPosition(ChartControl);
+				int idx = ChartBars.GetBarIdxByX(ChartControl, (int)pos.X);
+				if (idx < 0 || idx > CurrentBar) { Print(DateTime.Now + " PICK SB: click off the bars (idx " + idx + ")"); return; }
 				_sbPickedBar = idx;
 				_pickArmed = false;
 				SetBtn(btnPickSB, ColorOff);
@@ -367,7 +535,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 					ctButtonsGrid.Children.RemoveAt(ctButtonsGrid.Children.Count - 1);
 				while (ctButtonsGrid.RowDefinitions.Count > baseRows)
 					ctButtonsGrid.RowDefinitions.RemoveAt(ctButtonsGrid.RowDefinitions.Count - 1);
-				btnMaster = btnLong = btnShort = btnSEL = btnSES = btnPickSB = btnFlat = btnStpMode = btnTgtMode = btnTgtVal = null;
+				btnMaster = btnLong = btnShort = btnSEL = btnSES = btnPickSB = btnFlat = btnCancel = btnStpMode = btnTgtMode = btnTgtVal = null;
+				_chartTrader = null;
 				ctPanelActive = false;
 			}
 			catch (Exception ex) { Print("BB DisposeWPFControls: " + ex.Message); }
@@ -414,8 +583,16 @@ namespace NinjaTrader.NinjaScript.Strategies
 		}
 
 		#region Properties
+		[NinjaScriptProperty]
+		[Display(Name = "Rest entry immediately on arm", GroupName = "Stop Entry", Order = 0)]
+		public bool SE_RestImmediately { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name = "ATM template (fallback if dropdown empty)", GroupName = "Stop Entry", Order = 9)]
+		public string SE_AtmTemplate { get; set; }
+
 		[NinjaScriptProperty, Range(1, 100)]
-		[Display(Name = "Contracts", GroupName = "Stop Entry", Order = 0)]
+		[Display(Name = "Contracts", GroupName = "Stop Entry", Order = 1)]
 		public int SE_Qty { get; set; }
 
 		[NinjaScriptProperty, Range(1, 100)]
