@@ -70,8 +70,12 @@ the real per-strategy gap (Standard includes real-time/streaming).
   needs user. Then `--probe` (root SPXW vs SPX), `--limit 1` smoke, then full 366-contract pull.
 - [ ] **User:** create the paper-account Flex token + Trade-Confirmation query (Aug range),
   then run `ib_flex_executions.py` → recover true August fill times.
-- [ ] Build the **comparison/execution-model script** per the §3–4b spec (price/print-anchored
-  primary, size-check, recovered-time + measured-offset window, close-settlement basis).
+- [x] **Report BUILT (turnkey):** [scripts/thetadata_fill_report.py](../../scripts/thetadata_fill_report.py)
+  — at_time_results (+trade_quote_prints) → presentable August HTML (KPI tiles, fill-position
+  histogram, per-strategy table). `--mock` = watermarked synthetic preview at real scale (568
+  events) verified tonight. TOMORROW = pull → `thetadata_fill_report.py` → the visual.
+- [ ] (Later) comparison depth beyond the point-check: measured-offset window, close-settlement
+  basis for cash_settle legs, §5 live 2-week gap test.
 - **VENDOR round 2 confirmed (fetcher updated):** trade_quote route right; empty window = HTTP
   472 "No data" (handle as no-prints, not fail); ms window bounds OK; **confirm fills only on
   trade condition 0/18 (single-leg), NOT complex 130/131/134 (package prices)**; at_time —

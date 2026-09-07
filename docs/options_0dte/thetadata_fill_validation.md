@@ -145,7 +145,12 @@ the historical fill audit, not instead of it.
   ([scripts/fill_vs_nbbo_audit.py](../../scripts/fill_vs_nbbo_audit.py)): median fill at the
   cross, 79% ≤ mid. ThetaData replaces our snapshot NBBO with the full consolidated tape to
   kill the ~21% quote-timing noise.
-- **Next build (needs terminal + data):** the comparison/execution-model script per §3–4,
-  then the §5 live 2-week gap test.
+- **Report BUILT (turnkey):** [scripts/thetadata_fill_report.py](../../scripts/thetadata_fill_report.py)
+  — reads `at_time_results` (+ `trade_quote_prints`) → the presentable August HTML: KPI tiles
+  (median fill position, % crossed, % size≥1, single-leg print-confirmed, through-book, stale),
+  a fill-position histogram, and a per-strategy table. `--mock` renders a CLEARLY-WATERMARKED
+  synthetic preview at real scale (no terminal). Tomorrow: pull → `thetadata_fill_report.py` → done.
+- **Still to build (needs terminal + data):** nothing for the point-check report; later the §5
+  live 2-week gap test + optional full-day size-at-touch evolution.
 - Vendor offered to review our quote-pull snippet once we're in — the §2 URL form is what
   we'll send.
