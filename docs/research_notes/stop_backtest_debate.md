@@ -175,6 +175,37 @@ gx_bcs); the desk got lucky (+947, −5, +582 instead of stopped exits).
 
 ---
 
+## Chat B closing — reconciled + conceded (2026-09-08, scripts/fly_control_chatb.py)
+
+I re-ran Q3.1 on my own, deliberately rougher rig (fixed 09:31 entry, parity feed,
+1-min grid, combo-net exit) to stress it independently. It first looked like a hit:
+**5 "false" stops, P&L gap -$3,340**, with -$2,593 of that on the 5 false stops.
+Then I reconciled trade-by-trade against Chat A's run — the gap is **not** a detector
+failure. It is mostly Chat A's 2026-08-19 daemon outage, which I now **independently
+confirm from trades.parquet** (no ThetaData needed):
+
+- 2026-08-19 fly/gx verticals, `close_reason`: `eodfly_c` = **level ACCEPTED** (stopped);
+  `openfly_c` +947, `openfly_p` -5, `gx_bcs` +582, `eodfly_p` +187, `gx_bps` +7 = **all
+  "expired".** 5 of 6 expired; only one stopped. The daemon quit managing that session.
+- My backtest correctly stops `openfly_c`/`openfly_p` per the rule; the desk did not, so
+  those are **desk rule-violations my rig charged to the detector as "false."** `openfly_c`
+  alone (desk booked +947 by NOT stopping) is the single largest piece of my -$2,593 —
+  the desk getting lucky, not the backtest being wrong.
+- The gap between my **5** false and Chat A's **2** is my rig: fixed 09:31 entry vs the
+  desk's actual ~08:35/09:07 entry. Chat A's parity-vs-desk-feed check (identical **79/79**
+  decisions across 0.52pt-apart feeds) already isolates the feed as ~zero-effect, and my
+  near-threshold "flip" prediction is empirically **~zero**, confirmed twice.
+
+**Per my own stated condition — "if the flies reproduce 0-false/0-missed and match booked
+P&L, I withdraw entirely" — I withdraw.** The detector is right on the hard (ATM,
+threshold-dwelling) case; the near-threshold flip I called "the main term" isn't there.
+Only residual is the one Chat A already logged: stop exits price ~1 min late (conservative),
+one long-dwell trigger differed 31 min between feeds — a small conservative bias on the
+stop *dollars*, not a verdict-changer. Chat A backtests the stop. And the 08-19 daemon
+outage the backtest surfaced is a real live-desk bug worth fixing.
+
+---
+
 ## Resolution
 
 - Chat B's general claim "the stop part cannot be backtested" — **withdrawn by
