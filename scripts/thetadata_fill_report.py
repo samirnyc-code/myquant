@@ -137,16 +137,14 @@ def render(df: pd.DataFrame, a: dict, synthetic: bool, src: str) -> str:
     scored = df[df.pos.notna() & ~df.stale]
     bars = _hist(scored.pos) if len(scored) else []
     bmax = max((c for _, c, _ in bars), default=1) or 1
-    barw = 100 / max(len(bars), 1)
-    bar_svg = ""
-    for i, (label, c, tone) in enumerate(bars):
-        h = 100 * c / bmax
-        x = i * barw
+    cols_html = labs_html = ""
+    for label, c, tone in bars:
+        h = round(178 * c / bmax) if c else 0
         col = "var(--bad)" if tone == "bad" else "var(--pos)"
-        bar_svg += (f'<g><rect x="{x + 0.6:.2f}%" y="{100 - h:.2f}%" width="{barw - 1.2:.2f}%" '
-                    f'height="{h:.2f}%" rx="3" fill="{col}"><title>pos {label}: {c}</title></rect></g>')
-        bar_svg += (f'<text x="{x + barw/2:.2f}%" y="99%" text-anchor="middle" '
-                    f'font-size="9" fill="var(--muted)">{label}</text>')
+        cols_html += (f'<div class="col" title="pos {label}: {c}"><span class="cval">'
+                      f'{c if c else ""}</span>'
+                      f'<div class="cbar" style="height:{h}px;background:{col}"></div></div>')
+        labs_html += f'<div class="hl">{label}</div>'
 
     # per-strategy table
     trows = ""
@@ -218,7 +216,12 @@ h1{{font-size:17px;margin:0;font-weight:650}}
 .card{{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:15px 17px;margin:14px 0}}
 .card h2{{font-size:13px;margin:0 0 4px;font-weight:640}}
 .card .note{{font-size:12px;color:var(--muted);margin-bottom:12px}}
-svg.chart{{width:100%;height:230px;display:block}}
+.hist{{display:flex;align-items:flex-end;gap:5px;height:200px;padding:6px 2px 0}}
+.col{{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%}}
+.cval{{font-size:10.5px;color:var(--ink2);margin-bottom:3px;font-variant-numeric:tabular-nums;min-height:14px}}
+.cbar{{width:72%;min-height:2px;border-radius:4px 4px 0 0}}
+.hlabs{{display:flex;gap:5px;padding:6px 2px 0}}
+.hl{{flex:1;text-align:center;font-size:10.5px;color:var(--muted);font-variant-numeric:tabular-nums}}
 table{{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}}
 th,td{{text-align:right;padding:6px 10px;border-bottom:1px solid var(--border)}}
 th:first-child,td:first-child{{text-align:left;font-family:ui-monospace,monospace}}
@@ -232,7 +235,7 @@ th{{font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600}}
 <div class="card"><h2>Where our fills sat in the real NBBO</h2>
 <div class="note">0 = crossed the spread (marketable, realistic) · 0.5 = mid · 1 = far touch (price
 improvement) · red = outside the book (timing/data noise). A real marketable engine clusters near 0.</div>
-<svg class="chart" viewBox="0 0 100 100" preserveAspectRatio="none">{bar_svg}</svg></div>
+<div class="hist">{cols_html}</div><div class="hlabs">{labs_html}</div></div>
 <div class="card"><h2>By strategy</h2>
 <div class="note">scored = quote ok, fresh, our price known. confirm% = single-leg prints (cond 0/18).</div>
 <table><thead><tr><th>strategy</th><th>events</th><th>scored</th><th>median pos</th>
