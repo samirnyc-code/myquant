@@ -49,6 +49,13 @@ def _f(x):
         return None
 
 
+def _r(x):
+    """Normalize option right: 'CALL'/'C'->'C', 'PUT'/'P'->'P' (ThetaData prints use CALL/PUT,
+    our events use C/P)."""
+    s = str(x).strip().upper()
+    return s[:1] if s else s
+
+
 def compute(at_df: pd.DataFrame, prints: pd.DataFrame | None) -> pd.DataFrame:
     # index single-leg prints by (trade_id, event, strike, right) for confirmation lookup
     pidx: dict = {}
@@ -56,7 +63,7 @@ def compute(at_df: pd.DataFrame, prints: pd.DataFrame | None) -> pd.DataFrame:
         sl = prints[prints.get("is_single_leg").astype(str).isin(["True", "true", "1"])] \
             if "is_single_leg" in prints.columns else prints.iloc[0:0]
         for _, p in sl.iterrows():
-            key = (p.get("trade_id"), p.get("event"), _f(p.get("strike")), p.get("right"))
+            key = (p.get("trade_id"), p.get("event"), _f(p.get("strike")), _r(p.get("right")))
             pidx.setdefault(key, []).append(_f(p.get("price")))
 
     rows = []
@@ -75,7 +82,7 @@ def compute(at_df: pd.DataFrame, prints: pd.DataFrame | None) -> pd.DataFrame:
         # single-leg print confirmation
         confirmed = None
         if px is not None:
-            prices = pidx.get((r.get("trade_id"), r.get("event"), _f(r.get("strike")), r.get("right")), [])
+            prices = pidx.get((r.get("trade_id"), r.get("event"), _f(r.get("strike")), _r(r.get("right"))), [])
             prices = [p for p in prices if p is not None]
             if prices:
                 confirmed = any((p <= px + TICK) if side == "BUY" else (p >= px - TICK) for p in prices)

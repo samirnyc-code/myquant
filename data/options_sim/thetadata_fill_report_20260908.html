@@ -1,0 +1,50 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎯</text></svg>">
+<title>SPX Fill Realism — August 2026</title>
+<style>
+:root{--surface:#fcfcfb;--plane:#f9f9f7;--ink:#0b0b0b;--ink2:#52514e;--muted:#898781;
+  --grid:#e1e0d9;--border:rgba(11,11,11,.10);--pos:#2a78d6;--card:#fff;
+  --good:#0ca30c;--warn:#fab219;--bad:#e34948;--chip:#f0efea}
+@media(prefers-color-scheme:dark){:root{--surface:#1a1a19;--plane:#0d0d0d;--ink:#fff;--ink2:#c3c2b7;
+  --muted:#898781;--grid:#2c2c2a;--border:rgba(255,255,255,.10);--pos:#3987e5;--card:#1f1f1e;
+  --good:#0ca30c;--warn:#fab219;--bad:#e66767;--chip:#26261f}}
+:root[data-theme=dark]{--surface:#1a1a19;--plane:#0d0d0d;--ink:#fff;--ink2:#c3c2b7;--muted:#898781;
+  --grid:#2c2c2a;--border:rgba(255,255,255,.10);--pos:#3987e5;--card:#1f1f1e;--chip:#26261f}
+*{box-sizing:border-box}
+body{margin:0;background:var(--plane);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:14px}
+header{padding:14px 22px;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:5}
+h1{font-size:17px;margin:0;font-weight:650}
+.sub{font-size:12px;color:var(--muted);margin-top:3px}
+.wrap{max-width:1180px;margin:0 auto;padding:18px 22px 80px}
+.synth{background:rgba(227,73,72,.12);border:1px solid var(--bad);color:var(--bad);
+  border-radius:9px;padding:10px 14px;margin:16px 0;font-weight:600;font-size:13px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin:16px 0}
+.tile{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px 15px}
+.tl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+.tv{font-size:26px;font-weight:680;font-variant-numeric:tabular-nums;margin:3px 0}
+.tv.good{color:var(--good)}.tv.warn{color:var(--warn)}.tv.bad{color:var(--bad)}
+.ts{font-size:11.5px;color:var(--ink2)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:15px 17px;margin:14px 0}
+.card h2{font-size:13px;margin:0 0 4px;font-weight:640}
+.card .note{font-size:12px;color:var(--muted);margin-bottom:12px}
+svg.chart{width:100%;height:230px;display:block}
+table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+th,td{text-align:right;padding:6px 10px;border-bottom:1px solid var(--border)}
+th:first-child,td:first-child{text-align:left;font-family:ui-monospace,monospace}
+th{font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600}
+</style></head><body>
+<header><h1>SPX Fill Realism — August 2026</h1>
+<div class="sub">generated 2026-09-08 04:49 · source data\thetadata\at_time_results_20260908.csv</div></header>
+<div class="wrap">
+
+<div class="tiles"><div class="tile"><div class="tl">Fill events</div><div class="tv ink">518</div><div class="ts">518 with a quote · 0 no logged price</div></div><div class="tile"><div class="tl">Scored fills</div><div class="tv ink">517</div><div class="ts">quote ok, fresh, price known</div></div><div class="tile"><div class="tl">Median fill position</div><div class="tv good">0.0</div><div class="ts">0=crossed · 0.5=mid · 1=touch</div></div><div class="tile"><div class="tl">Crossed the spread</div><div class="tv good">86.1%</div><div class="ts">pos ≤ 0.5 (conservative)</div></div><div class="tile"><div class="tl">Size ≥ 1 at touch</div><div class="tv ink">99.8%</div><div class="ts">real depth behind our lot</div></div><div class="tile"><div class="tl">Single-leg print-confirmed</div><div class="tv ink">384/407</div><div class="ts">cond 0/18 traded at our price</div></div><div class="tile"><div class="tl">Through the book</div><div class="tv bad">2.1%</div><div class="ts">pos > 1 (timing/data noise)</div></div><div class="tile"><div class="tl">Stale quotes</div><div class="tv warn">1</div><div class="ts">quote >2s before fill (excluded)</div></div></div>
+<div class="card"><h2>Where our fills sat in the real NBBO</h2>
+<div class="note">0 = crossed the spread (marketable, realistic) · 0.5 = mid · 1 = far touch (price
+improvement) · red = outside the book (timing/data noise). A real marketable engine clusters near 0.</div>
+<svg class="chart" viewBox="0 0 100 100" preserveAspectRatio="none"><g><rect x="0.60%" y="87.92%" width="7.13%" height="12.08%" rx="3" fill="var(--bad)"><title>pos <0: 43</title></rect></g><text x="4.17%" y="99%" text-anchor="middle" font-size="9" fill="var(--muted)"><0</text><g><rect x="8.93%" y="0.00%" width="7.13%" height="100.00%" rx="3" fill="var(--pos)"><title>pos 0.0: 356</title></rect></g><text x="12.50%" y="99%" text-anchor="middle" font-size="9" fill="var(--muted)">0.0</text><g><rect x="17.27%" y="99.16%" width="7.13%" height="0.84%" rx="3" fill="var(--pos)"><title>pos 0.1: 3</title></rect></g><text x="20.83%" y="99%" text-anchor="middle" font-size="9" fill="var(--muted)">0.1</text><g><rect x="25.60%" y="99.72%" width="7.13%" height="0.28%" rx="3" fill="var(--pos)"><title>pos 0.2: 1</title></rect></g><text x="29.17%" y="99%" text-anchor="middle" font-size="9" fill="var(--muted)">0.2</text><g><rect x="33.93%" y="100.00%" width="7.13%" height="0.00%" rx="3" fill="var(--pos)"><title>pos 0.3: 0</title></rect></g><text x="37.50%" y="99%" text-anchor="middle" font-size="9" fill="var(--muted)">0.3</text><g><rect x="42.27%" y="96.63%" width="7.13%" height="3.37%" rx="3" fill="var(--pos)"><title>pos 0.4: 12</title></rect></g><text x="45.83%" y="99%" text-anchor="middle" font-size="9" fill="var(--muted)">0.4</text><g><rect x="50.60%" y="87.08%" width="7.13%" height="12.92%" rx="3" fill="var(--pos)"><title>pos 0.5: 46</title></rect></g><text x="54.17%" y="99%" text-anchor="middle" font-size="9" fill="var(--muted)">0.5</text><g><rect x="58.93%" y="99.72%" width="7.13%" height="0.28%" rx="3" fill="var(--pos)"><title>pos 0.6: 1</title></rect></g><text x="62.50%" y="99%" text-anchor="middle" font-size="9" fill="var(--muted)">0.6</text><g><rect x="67.27%" y="99.72%" width="7.13%" height="0.28%" rx="3" fill="var(--pos)"><title>pos 0.7: 1</title></rect></g><text x="70.83%" y="99%" text-anchor="middle" font-size="9" fill="var(--muted)">0.7</text><g><rect x="75.60%" y="100.00%" width="7.13%" height="0.00%" rx="3" fill="var(--pos)"><title>pos 0.8: 0</title></rect></g><text x="79.17%" y="99%" text-anchor="middle" font-size="9" fill="var(--muted)">0.8</text><g><rect x="83.93%" y="87.92%" width="7.13%" height="12.08%" rx="3" fill="var(--pos)"><title>pos 0.9: 43</title></rect></g><text x="87.50%" y="99%" text-anchor="middle" font-size="9" fill="var(--muted)">0.9</text><g><rect x="92.27%" y="96.91%" width="7.13%" height="3.09%" rx="3" fill="var(--bad)"><title>pos >1: 11</title></rect></g><text x="95.83%" y="99%" text-anchor="middle" font-size="9" fill="var(--muted)">>1</text></svg></div>
+<div class="card"><h2>By strategy</h2>
+<div class="note">scored = quote ok, fresh, our price known. confirm% = single-leg prints (cond 0/18).</div>
+<table><thead><tr><th>strategy</th><th>events</th><th>scored</th><th>median pos</th>
+<th>crossed%</th><th>size ok%</th><th>confirm%</th></tr></thead><tbody><tr><td>eodfly_c</td><td>74</td><td>74</td><td>0.000</td><td>85%</td><td>100%</td><td>92%</td></tr><tr><td>eodfly_p</td><td>70</td><td>70</td><td>0.000</td><td>79%</td><td>100%</td><td>88%</td></tr><tr><td>eodic_c</td><td>32</td><td>32</td><td>0.000</td><td>94%</td><td>100%</td><td>100%</td></tr><tr><td>eodic_p</td><td>36</td><td>36</td><td>0.000</td><td>86%</td><td>100%</td><td>100%</td></tr><tr><td>gx_bcs</td><td>48</td><td>47</td><td>0.000</td><td>96%</td><td>100%</td><td>95%</td></tr><tr><td>gx_bps</td><td>44</td><td>44</td><td>0.000</td><td>82%</td><td>100%</td><td>100%</td></tr><tr><td>openfly_c</td><td>74</td><td>74</td><td>0.000</td><td>86%</td><td>100%</td><td>99%</td></tr><tr><td>openfly_p</td><td>78</td><td>78</td><td>0.000</td><td>79%</td><td>99%</td><td>89%</td></tr><tr><td>openic_c</td><td>22</td><td>22</td><td>0.000</td><td>91%</td><td>100%</td><td>100%</td></tr><tr><td>openic_p</td><td>40</td><td>40</td><td>0.000</td><td>98%</td><td>100%</td><td>100%</td></tr></tbody></table></div>
+</div></body></html>

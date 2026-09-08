@@ -270,7 +270,10 @@ def run_trade_quote(df: pd.DataFrame, force: bool, limit: int | None) -> int:
                 continue
             for p in prints:                          # one row per PRINT (all columns kept)
                 cond = str(p.get("condition", p.get("trade_condition", "")))
-                out_rows.append({**base, "print_status": "print", **p,
+                # our event keys (base) must WIN over the raw print's duplicate cols
+                # (e.g. print right='CALL' vs our 'C') so the report can join.
+                out_rows.append({**p, **base, "print_status": "print",
+                                 "print_right": p.get("right"), "print_strike": p.get("strike"),
                                  "is_single_leg": cond in SINGLE_LEG_CONDITIONS,
                                  "is_complex": cond in COMPLEX_CONDITIONS})
                 n_prints += 1
