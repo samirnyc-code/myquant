@@ -47,25 +47,28 @@ def fnum(x):
         return None
 
 
-def td_snapshot(expiry, strike, right):
-    """Live TD NBBO: (bid, ask, bid_size, ask_size) or None if no quote."""
+def td_snapshot(expiry, strike, right, retries=3):
+    """Live TD NBBO: (bid, ask, bid_size, ask_size) or None if no quote.
+    Retries a few times — deep-ITM/thin 0DTE legs momentarily return no NBBO."""
     r_ = "call" if str(right).upper().startswith("C") else "put"
     u = (f"{BASE}/option/snapshot/quote?symbol=SPXW&expiration={expiry}"
          f"&strike={float(strike):.3f}&right={r_}&format=csv")
-    try:
-        body = urllib.request.urlopen(u, timeout=8).read().decode("utf-8", "replace")
-    except Exception:
-        return None
-    lines = [l for l in body.splitlines() if l.strip()]
-    if len(lines) < 2 or lines[0].lstrip().startswith("<"):
-        return None
-    h = [x.strip().strip('"') for x in lines[0].split(",")]
-    d = dict(zip(h, [x.strip().strip('"') for x in lines[-1].split(",")]))
-    b, a = fnum(d.get("bid")), fnum(d.get("ask"))
-    bs, as_ = fnum(d.get("bid_size")), fnum(d.get("ask_size"))
-    if b is None or a is None or a < b or a <= 0:
-        return None
-    return (b, a, bs or 0, as_ or 0)
+    for attempt in range(retries):
+        try:
+            body = urllib.request.urlopen(u, timeout=8).read().decode("utf-8", "replace")
+            lines = [l for l in body.splitlines() if l.strip()]
+            if len(lines) >= 2 and not lines[0].lstrip().startswith("<"):
+                h = [x.strip().strip('"') for x in lines[0].split(",")]
+                d = dict(zip(h, [x.strip().strip('"') for x in lines[-1].split(",")]))
+                b, a = fnum(d.get("bid")), fnum(d.get("ask"))
+                bs, as_ = fnum(d.get("bid_size")), fnum(d.get("ask_size"))
+                if b is not None and a is not None and a >= b and a > 0:
+                    return (b, a, bs or 0, as_ or 0)
+        except Exception:
+            pass
+        if attempt < retries - 1:
+            time.sleep(1.5)
+    return None
 
 
 def td_underlying(expiry, strike, right):
@@ -109,7 +112,8 @@ def fill_open(legs):
             ok = False
         detail.append({**{k: lg[k] for k in ("side", "right", "strike")},
                        "bid": b, "ask": a, "bid_size": bs, "ask_size": as_, "px": px})
-    return round(credit, 2), detail, ok
+    # a missing/thin leg means the spread cannot be filled — return None, never a partial sum
+    return (round(credit, 2) if ok else None), detail, ok
 
 
 def fill_close(legs):
@@ -128,7 +132,8 @@ def fill_close(legs):
         debit += (px if lg["side"] == "sell" else -px) * qty
         detail.append({**{k: lg[k] for k in ("side", "right", "strike")},
                        "bid": b, "ask": a, "px": px})
-    return round(debit, 2), detail, ok
+    # a missing/thin leg means the close cannot be priced — return None, never a partial sum
+    return (round(debit, 2) if ok else None), detail, ok
 
 
 def tg(text):
@@ -178,6 +183,7 @@ def process(date, book, dry=False):
                 "id": t.get("id"), "strategy": t.get("setup") or t.get("id"),
                 "stream": t.get("stream"), "legs": legs,
                 "ib_credit": fill.get("net"), "ib_fill_at": fill.get("at"),
+                "ib_submit_at": t.get("submit_at"),   # desk's send moment (ms) once daemon restarts
                 "td_credit": cr, "td_fill_ok": ok, "td_open_at": _now(), "td_open_detail": det,
                 "td_open_underlying": (und or {}).get("underlying_price"),
                 "td_open_underlying_ts": (und or {}).get("underlying_ts"),
@@ -186,15 +192,18 @@ def process(date, book, dry=False):
             print(f"  OPEN  {tid} {t.get('id')}: IB credit {fill.get('net')} | "
                   f"TD credit {cr}{' NO-FILL' if not ok else ''}")
             ibc = fnum(fill.get("net"))
-            dstr = f"Δ ${ibc - cr:+.2f}" if ibc is not None else "Δ n/a"
             legstr = "\n".join(
                 f"   {d.get('side','?')[0].upper()} {d.get('strike'):.0f}{d.get('right')}: "
-                f"bid {d.get('bid')} ask {d.get('ask')} px {d.get('px')}"
+                + (f"bid {d.get('bid')} ask {d.get('ask')} px {d.get('px')}"
+                   if d.get("td") is not False and d.get("bid") is not None else "NO TD QUOTE")
                 for d in det if isinstance(d, dict) and d.get("strike"))
-            tg(f"🟢 OPEN {t.get('id')} ({t.get('stream')})\n"
-               f"{_legs_str(legs)}\n"
-               f"IB credit ${ibc if ibc is not None else 0:.2f}  |  TD credit ${cr:.2f}  |  {dstr}"
-               f"{'  ⚠ TD NO-FILL' if not ok else ''}\n"
+            ibs = f"${ibc:.2f}" if ibc is not None else "n/a"
+            if cr is None:
+                tdline = f"IB credit {ibs}  |  TD credit — ⚠ NO-FILL (thin/missing leg)"
+            else:
+                dstr = f"Δ ${ibc - cr:+.2f}" if ibc is not None else "Δ n/a"
+                tdline = f"IB credit {ibs}  |  TD credit ${cr:.2f}  |  {dstr}"
+            tg(f"🟢 OPEN {t.get('id')} ({t.get('stream')})\n{_legs_str(legs)}\n{tdline}\n"
                f"underlying {book['trades'][tid].get('td_open_underlying')}\n{legstr}")
         # CLOSE order
         ex = t.get("exit")
@@ -221,13 +230,19 @@ def process(date, book, dry=False):
             nleg = len(xlegs)
             ib_pnl = round((ibc - ibx) * 100 - 2 * nleg * FEE, 2) if (ibc is not None and ibx is not None) else None
             td_pnl = tr.get("td_pnl")
-            xd = f"Δ ${ibx - db:+.2f}" if ibx is not None else "Δ n/a"
-            pd_ = (f"IB P&L ${ib_pnl:+.2f}  |  TD P&L ${td_pnl:+.2f}  |  Δ ${ib_pnl - td_pnl:+.2f}"
-                   if (ib_pnl is not None and td_pnl is not None) else
-                   f"TD P&L ${td_pnl}" )
-            tg(f"🔴 CLOSE {tr.get('id')} ({tr.get('stream')})\n"
-               f"IB exit ${ibx if ibx is not None else 0:.2f}  |  TD exit ${db:.2f}  |  {xd}"
-               f"{'  ⚠ TD NO-FILL' if not ok else ''}\n{pd_}\n"
+            ibxs = f"${ibx:.2f}" if ibx is not None else "n/a"
+            if db is None:
+                xline = f"IB exit {ibxs}  |  TD exit — ⚠ NO-FILL (thin/missing leg)"
+            else:
+                xd = f"Δ ${ibx - db:+.2f}" if ibx is not None else "Δ n/a"
+                xline = f"IB exit {ibxs}  |  TD exit ${db:.2f}  |  {xd}"
+            if ib_pnl is not None and td_pnl is not None:
+                pd_ = f"IB P&L ${ib_pnl:+.2f}  |  TD P&L ${td_pnl:+.2f}  |  Δ ${ib_pnl - td_pnl:+.2f}"
+            elif ib_pnl is not None:
+                pd_ = f"IB P&L ${ib_pnl:+.2f}  |  TD P&L — (leg not priced; EOD backstop will fill)"
+            else:
+                pd_ = f"TD P&L {td_pnl}"
+            tg(f"🔴 CLOSE {tr.get('id')} ({tr.get('stream')})\n{xline}\n{pd_}\n"
                f"underlying {tr.get('td_exit_underlying')}\nwhy: {str(ex.get('why'))[:90]}")
 
 

@@ -760,6 +760,9 @@ def fire(ib, trig, spot, plan, reason, dry):
         return
 
     # 3. EXECUTE — only now do real orders hit the account.
+    # Stamp the exact SEND moment (ms) so we can measure submit->fill timing and price
+    # ThetaData at the send instant vs IB's realized fill (the timing-cost test).
+    trig["submit_at"] = now_ct().strftime("%H:%M:%S.%f")[:-3]
     try:
         net = None
         if use_combo:
