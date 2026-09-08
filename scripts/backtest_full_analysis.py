@@ -11,7 +11,7 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
 ROWS = ROOT / "data/options_sim/backtest_full/rows.csv"
-METHODS = ["vix252", "vix365", "straddle"]
+METHODS = ["vix252", "vix365"]   # straddle dropped from reporting (S114: different risk profile, not an EM)
 
 
 def dd(series):
