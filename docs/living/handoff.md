@@ -99,7 +99,8 @@ method sensitivity). Only once TD walls track gexlog do we use them to model Jul
 - [ ] Confirm the IB fee is fully all-in (one more Flex pull with fee-component fields — cheap; it's a floor now).
 - [ ] Verify no OPEN positions in the validated window (TD P&L covers closed/expired only).
 - [ ] (Later) full-book vs kept-book slice; spread-cost-per-trade metric; true submit→fill latency (add Flex "Order Time").
-- [ ] Sim tasks still paused from S111 Labor-Day (3 disabled + resume task 9/8 06:00) — VERIFY they re-enabled and the resume task self-deleted.
+- [x] Sim tasks re-enabled 9/8 06:00 (resume task fired + self-deleted; Trigger Daemon/Chain Recorder/Spot Feed back to Ready — verified S114).
+- [ ] **Max-profit-zone exit-strategy feature (user, S114 9/8):** snapshot the day's max-profit ZONE — between the highest short PUT and the lowest short CALL across the day's open book (all 6 legs are verticals, so it's a true keep-full-credit plateau) — at a defined time-of-day, then make **zone-anchored exit rules a tunable exit-strategy dimension in the sandbox** (fits the Phase-A `exit-rule` slider). Exit strategies to test on the forward + historical record: bank at X% of max credit, exit on zone-edge touch vs acceptance (vary `level_accept_mins`), delta-hedge at the edge (ES/SPY), tighten time-stop. Zone math done ad hoc 9/8 (e.g. 7675↔7705, 30pt); FIRST STEP = persist a `maxprofit_zone.py` that computes it from open legs + have the daemon snapshot it daily to a dated CSV, then feed it to the sandbox as an exit dimension. Current book already exits on 10-min short-strike acceptance + 14:45 stop (thesis_broken) — the feature lets us A/B better exits.
 
 ---
 
