@@ -93,6 +93,17 @@ DASHBOARDS = [
              "the end-of-day report. The keyed :8600 link opens this page.",
      "cmd": _st("options_dashboard_live.py") + ["--host", "0.0.0.0", "--port", "8600"]},
 
+    {"key": "td_vs_ib", "group": "Live desk",
+     "title": "IB vs ThetaData — Live Compare", "port": 8650,
+     "desc": "Head-to-head of the SAME orders executed on IB vs a ThetaData-priced shadow "
+             "desk: per-trade credit/exit/P&L and the IB−TD delta, plus aggregate tiles. "
+             "Auto-refresh 15s. Reads data/options_sim/shadow_td/shadow_book_<date>.json.",
+     "info": "Every order the desk issues is filled twice — once on IB (real paper), once "
+             "on an independent shadow using ThetaData's live prices. This page shows the "
+             "two books side by side so the data/execution gap is visible per trade and in "
+             "aggregate. The td_shadow_live.py process feeds it.",
+     "cmd": _st("td_vs_ib_dashboard.py") + ["--port", "8650"]},
+
     {"key": "mark_setups", "group": "Live desk",
      "title": "ES Setup Marker", "port": 8630,
      "desc": "Forward-reveal ES volume-bar chart annotator (S75J/K): play/step bars, "
