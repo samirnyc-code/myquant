@@ -73,6 +73,14 @@ data/depth/
 scratchpad/orats_token.txt
 data/orats/
 
+# Secrets — env files, ThetaData / IBKR-Flex credentials (never commit)
+.env
+**/.env
+*.creds
+creds.txt
+**/creds.txt
+thetadata_creds.txt
+
 # NT8 stored credential (DPAPI, machine-local) - never commit
 nt8_cred.xml
 **/nt8_cred.xml
