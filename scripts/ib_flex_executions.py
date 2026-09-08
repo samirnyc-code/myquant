@@ -99,9 +99,12 @@ def parse_executions(xml_bytes: bytes) -> list[dict]:
                 "side": a.get("buySell", ""),
                 "quantity": a.get("quantity", ""),
                 "price": a.get("price", ""),
-                "commission": a.get("ibCommission", ""),
-                "currency": a.get("currency", ""),
+                # Trade Confirmation Flex uses `commission`/`commissionCurrency`;
+                # Activity Flex uses `ibCommission`/`currency` — accept either.
+                "commission": a.get("commission") or a.get("ibCommission", ""),
+                "currency": a.get("commissionCurrency") or a.get("currency", ""),
                 "exchange": a.get("exchange", ""),
+                "level": a.get("levelOfDetail", ""),
             })
     return rows
 
@@ -142,7 +145,7 @@ def main() -> int:
         w = csv.DictWriter(fh, fieldnames=list(rows[0].keys()))
         w.writeheader()
         w.writerows(rows)
-    dates = sorted({r["ib_exec_time"][:10] for r in rows if r["ib_exec_time"]})
+    dates = sorted({r["ib_exec_time"][:8] for r in rows if r["ib_exec_time"]})
     print(f"saved -> {out.relative_to(ROOT)}  ({len(rows)} rows, dates {dates[:1]}..{dates[-1:]})")
     print("next: join to orders.csv on order_id to get the true fill time per leg; "
           "catalog the new data/options_log family.")

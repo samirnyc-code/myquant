@@ -141,7 +141,35 @@ def load_order_fills(start: str | None, end: str | None) -> pd.DataFrame:
         rows.append({
             "occ_root": root, "expiry": expiry, "right": right, "strike": strike,
             "ts_et": r["ts_et"], "action": r["action"], "avg_fill": r["avg_fill"],
-            "order_id": r.get("order_id"),
+            "order_id": r.get("order_id"), "src": "orders_et_sec",
+        })
+    return pd.DataFrame(rows)
+
+
+def load_flex_fills(path: Path, start: str | None, end: str | None) -> pd.DataFrame:
+    """IBKR Flex executions (ib_flex_executions.py output) -> TRUE ET-second fill anchors.
+    Higher priority than orders.csv: real exec time + real per-leg price for every fill.
+    SPX (SPXW) only; XSP retired."""
+    f = pd.read_csv(path)
+    f = f[f["symbol"].astype(str).str.startswith("SPXW")].copy()
+    f = f.drop_duplicates(subset=["exec_id"])
+    rows = []
+    for _, r in f.iterrows():
+        dtm = str(r["ib_exec_time"])                      # "20260806;095411"
+        if ";" not in dtm or len(dtm) < 15:
+            continue
+        ymd, hms = dtm.split(";")
+        ts_et = f"{ymd[:4]}-{ymd[4:6]}-{ymd[6:8]} {hms[:2]}:{hms[2:4]}:{hms[4:6]}"
+        date = f"{ymd[:4]}-{ymd[4:6]}-{ymd[6:8]}"
+        if start and date < start:
+            continue
+        if end and date > end:
+            continue
+        rows.append({
+            "occ_root": "SPXW", "expiry": ymd, "right": str(r["put_call"]).upper(),
+            "strike": float(r["strike"]), "ts_et": ts_et,
+            "action": str(r["side"]).upper(), "avg_fill": r["price"],
+            "order_id": r.get("order_id"), "src": "flex_et_sec",
         })
     return pd.DataFrame(rows)
 
@@ -249,6 +277,8 @@ def build_events(legs: pd.DataFrame, fills: pd.DataFrame) -> pd.DataFrame:
                 fm = fills[(fills.occ_root == lg.occ_root) & (fills.expiry == lg.expiry)
                            & (fills.right == lg.right) & (abs(fills.strike - lg.strike) < 1e-6)
                            & (fills.action == action)]
+                flex_only = fm[fm.src == "flex_et_sec"] if "src" in fm.columns else fm
+                fm = flex_only if not flex_only.empty else fm   # Flex (true) wins when present
                 if not fm.empty:
                     target = _ct_to_et(t_ct)
 
@@ -259,7 +289,9 @@ def build_events(legs: pd.DataFrame, fills: pd.DataFrame) -> pd.DataFrame:
                         except ValueError:
                             return 9e9
                     best = min(fm.itertuples(), key=lambda r: _dist(r.ts_et))
-                    tod, tsrc, price = _et_time_only(best.ts_et), "orders_et_sec", best.avg_fill
+                    tod = _et_time_only(best.ts_et)
+                    tsrc = getattr(best, "src", "orders_et_sec")
+                    price = best.avg_fill
             lo, hi = _window(tod)
             ev.append({**base, "event": event, "side_action": action,
                        "time_source": tsrc, "time_of_day_et": tod,
@@ -287,9 +319,10 @@ def verify_and_report(legs: pd.DataFrame, pull: pd.DataFrame, fills: pd.DataFram
     print(f"  unique pull DATES .................... {pull.date.nunique()}")
     print(f"  FILL EVENTS (at_time/trade_quote) .... {len(events)}  "
           f"(entry:{(events.event == 'entry').sum()} exit:{(events.event == 'exit').sum()})")
+    print(f"    time source: FLEX(ET,sec,true) ..... {(events.time_source == 'flex_et_sec').sum()}")
     print(f"    time source: orders(ET,sec) ........ {(events.time_source == 'orders_et_sec').sum()}")
     print(f"    time source: trades(CT+1h,min) ..... {(events.time_source == 'trades_ct_min').sum()}")
-    print(f"  orders.csv filled-leg anchors (ET) ... {len(fills)}")
+    print(f"  fill anchors loaded (ET) ............. {len(fills)}")
     print(f"  strategies ........................... " + ", ".join(sorted(legs.strategy.dropna().unique())))
     print("\n  at_time event samples (first 3):")
     for _, r in events.head(3).iterrows():
@@ -306,13 +339,21 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="Build the ThetaData fill-validation work-list")
     ap.add_argument("--start", help="min trade date YYYY-MM-DD (CT entry), inclusive")
     ap.add_argument("--end", help="max trade date YYYY-MM-DD (CT entry), inclusive")
+    ap.add_argument("--flex", help="ib_flex_executions CSV — use IB's TRUE exec times+prices "
+                                   "as the fill anchor (falls back to orders.csv where unmatched)")
     args = ap.parse_args()
 
     legs = load_legs(args.start, args.end)
     if legs.empty:
         print("No legs found for the given range — nothing to do.")
         return 1
-    fills = load_order_fills(args.start, args.end)
+    if args.flex:
+        flex = load_flex_fills(Path(args.flex), args.start, args.end)
+        orders = load_order_fills(args.start, args.end)
+        # Flex first (true times/prices); orders.csv only for contracts Flex didn't cover.
+        fills = pd.concat([flex, orders], ignore_index=True) if not orders.empty else flex
+    else:
+        fills = load_order_fills(args.start, args.end)
     pull = build_pull_list(legs, fills)
     events = build_events(legs, fills)
 
