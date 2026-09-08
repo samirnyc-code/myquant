@@ -155,7 +155,7 @@ at-or-worse than the midpoint, i.e. not too-good-to-be-true.</li>
 actually available at that price — so the fill wasn't a mirage; real depth was sitting there.</li>
 <li><b>Did a real trade happen at our price.</b> Of the <b>{a['n_confirm_tested']}</b> fills we could
 check, <b>{a['n_confirmed']}</b> had a genuine single-leg trade print at our price (not a multi-leg
-package price).</li>
+package price). A fill without one is <b>not</b> impossible — see the note under the table.</li>
 <li><b>Anything off.</b> <b>{a['pct_through']}%</b> looked slightly better than the market — a
 sub-second timing artifact (the quote we captured was the last one just before the fill), not an
 impossible fill. <b>{a['n_stale']}</b> fill(s) had a too-old quote and were set aside.</li>
@@ -174,6 +174,22 @@ def render(df: pd.DataFrame, a: dict, synthetic: bool, src: str, anon: bool = Fa
                       f'{c if c else ""}</span>'
                       f'<div class="cbar" style="height:{h}px;background:{col}"></div></div>')
         labs_html += f'<div class="hl">{label}</div>'
+
+    # position breakdown — every scored fill in exactly one band; shares sum to 100%
+    nsc = len(scored)
+    cats = [
+        ("Crossed the spread — filled at the touch", scored.pos <= 1e-9, "good"),
+        ("Inside — better than the touch, at/below mid", (scored.pos > 1e-9) & (scored.pos <= 0.5), "ink"),
+        ("Better than mid — price improvement", (scored.pos > 0.5) & (scored.pos <= 1.0), "ink"),
+        ("Through the book — sub-second timing noise", scored.pos > 1.0, "bad"),
+    ]
+    brows = ""
+    for name, mask, tone in cats:
+        cnt = int(mask.sum())
+        pctv = (100 * cnt / nsc) if nsc else 0
+        cls = " class='bad'" if tone == "bad" else (" class='good'" if tone == "good" else "")
+        brows += f"<tr><td>{name}</td><td>{cnt}</td><td{cls}>{pctv:.1f}%</td></tr>"
+    brows += (f"<tr class='tot'><td>All scored fills</td><td>{nsc}</td><td>100.0%</td></tr>")
 
     # per-strategy table
     trows = ""
@@ -263,6 +279,11 @@ table{{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:t
 th,td{{text-align:right;padding:6px 10px;border-bottom:1px solid var(--border)}}
 th:first-child,td:first-child{{text-align:left;font-family:ui-monospace,monospace}}
 th{{font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600}}
+td.good{{color:var(--good);font-weight:600}}td.bad{{color:var(--bad);font-weight:600}}
+tr.tot td{{border-top:2px solid var(--border);font-weight:650;color:var(--ink)}}
+.foot{{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--pos);
+  border-radius:10px;padding:12px 16px;margin:14px 0;font-size:12.5px;line-height:1.55;color:var(--ink2)}}
+.foot b{{color:var(--ink)}}
 </style></head><body>
 <header><h1>{html.escape(title)}</h1>
 <div class="sub">generated {gen} · source {html.escape(src)}</div></header>
@@ -274,11 +295,24 @@ th{{font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600}}
 <div class="note">0 = crossed the spread (marketable, realistic) · 0.5 = mid · 1 = far touch (price
 improvement) · red = outside the book (timing/data noise). A real marketable engine clusters near 0.</div>
 <div class="hist">{cols_html}</div><div class="hlabs">{labs_html}</div></div>
+<div class="card"><h2>Position breakdown — what share filled where</h2>
+<div class="note">Every scored fill falls in exactly one band; the shares add to 100%.
+"Crossed the spread" is the realistic/conservative outcome.</div>
+<table><thead><tr><th>where our fill landed</th><th>fills</th><th>% of fills</th></tr></thead>
+<tbody>{brows}</tbody></table></div>
 <div class="card"><h2>By strategy</h2>
 <div class="note">scored = quote ok, fresh, our price known. confirm% = single-leg prints (cond 0/18).
 {"Strategy names anonymized." if anon else ""}</div>
 <table><thead><tr><th>strategy</th><th>events</th><th>scored</th><th>median pos</th>
 <th>crossed%</th><th>size ok%</th><th>confirm%</th></tr></thead><tbody>{trows}</tbody></table></div>
+<div class="foot"><b>What "print-confirmed" means — and what it doesn't.</b> A single-leg trade
+printing at our price is <i>positive</i> proof the fill was achievable. The reverse is not true:
+an unconfirmed fill is <b>not</b> an impossible one. This is paper, so our own order never prints
+to the tape — confirmation depends on some <i>other</i> trader printing at our exact price within
+±3 seconds. And spread legs frequently trade as multi-leg <i>package</i> orders (conditions
+130/131/134), which we deliberately exclude. Those fills stand on the NBBO + size-at-touch check
+instead. In this run, {a['n_confirm_tested'] - a['n_confirmed']} fills had single-leg prints nearby
+but not at our price, and a further set had no print in the window — neither is a red flag.</div>
 </div></body></html>"""
 
 
