@@ -874,54 +874,77 @@ def main():
 
     prev = None
     last_exit_check = 0.0
+    consec_err = 0
     try:
         while now_ct() < end:
-            spot = read_live()
-            if spot is None:
-                time.sleep(POLL)
-                continue
-            reg = regime(spot, hvl)
-            dirty = False
-            # OPEN CAPTURE: first live tick at/after 08:30 CT = the session open.
-            # Stamped once into the plan — the [Open] strategies strike off it and
-            # the dashboard's EOD-vs-Open tiles/graphic read it.
-            if plan.get("open_spot") is None and now_ct() >= hhmm("08:30"):
-                plan["open_spot"] = round(spot, 2)
-                plan["open_spot_at"] = now_ct().strftime("%H:%M:%S CT")
-                print(f"  OPEN captured: {spot:.2f} @ {plan['open_spot_at']}")
-                dirty = True
-            for trig in plan["triggers"]:
-                if trig.get("fired") or trig["fire"]["type"] == "signal_1559":
+            # RESILIENCE (2026-08-19 outage fix): guard EVERY iteration. Before this,
+            # the loop was a bare try/finally — a single unhandled exception (a bad
+            # quote, an IB blip, a mid-write live.json, a thesis_broken edge case)
+            # fell through to `finally` and KILLED management for the rest of the
+            # session while open positions silently expired unmanaged (08-19: the
+            # daemon kept opening trades but stopped exiting them). Now one fault =
+            # one skipped poll, logged + alerted; positions keep being managed.
+            try:
+                spot = read_live()
+                if spot is None:
+                    time.sleep(POLL)
                     continue
-                if trig.get("status") == "disarmed":
-                    continue  # A5/A1 stood it down premarket; reason is on the trigger
-                w = trig.get("window")
-                if w and not (hhmm(w[0]) <= now_ct() <= hhmm(w[1])):
-                    if now_ct() > hhmm(w[1]) and trig["status"] != "expired":
-                        trig["status"] = "expired"
-                        dirty = True
-                    continue
-                go, reason = should_fire(trig, prev, spot, reg)
-                if go:
-                    fire(ib, trig, spot, plan, reason, args.dry_run)
+                reg = regime(spot, hvl)
+                dirty = False
+                # OPEN CAPTURE: first live tick at/after 08:30 CT = the session open.
+                # Stamped once into the plan — the [Open] strategies strike off it and
+                # the dashboard's EOD-vs-Open tiles/graphic read it.
+                if plan.get("open_spot") is None and now_ct() >= hhmm("08:30"):
+                    plan["open_spot"] = round(spot, 2)
+                    plan["open_spot_at"] = now_ct().strftime("%H:%M:%S CT")
+                    print(f"  OPEN captured: {spot:.2f} @ {plan['open_spot_at']}")
                     dirty = True
-            # Persist ONLY on a real status change (fire / expire). Do NOT write
-            # the live spot here — that churned the file every tick and made the
-            # dashboard full-reload (kicking the user off their tab). Live spot is
-            # already on the page via live.json.
-            if dirty:
-                save_plan(plan)
-            # A3: manage open positions on a slower cadence than the fire loop —
-            # each check quotes every leg of every open position (~6s per leg).
-            if any(t.get("status") == "fired" and not t.get("exited") for t in plan["triggers"]):
-                # A manual CLOSE from the dashboard is acted on next poll (~3s),
-                # not on the 60s exit cadence — when the user hits the button they
-                # mean now.
-                if pending_manual_closes() or time.monotonic() - last_exit_check >= EXIT_POLL:
-                    manage_open(ib, plan, spot, args.dry_run)
-                    last_exit_check = time.monotonic()
+                for trig in plan["triggers"]:
+                    if trig.get("fired") or trig["fire"]["type"] == "signal_1559":
+                        continue
+                    if trig.get("status") == "disarmed":
+                        continue  # A5/A1 stood it down premarket; reason is on the trigger
+                    w = trig.get("window")
+                    if w and not (hhmm(w[0]) <= now_ct() <= hhmm(w[1])):
+                        if now_ct() > hhmm(w[1]) and trig["status"] != "expired":
+                            trig["status"] = "expired"
+                            dirty = True
+                        continue
+                    go, reason = should_fire(trig, prev, spot, reg)
+                    if go:
+                        fire(ib, trig, spot, plan, reason, args.dry_run)
+                        dirty = True
+                # Persist ONLY on a real status change (fire / expire). Do NOT write
+                # the live spot here — that churned the file every tick and made the
+                # dashboard full-reload (kicking the user off their tab). Live spot is
+                # already on the page via live.json.
+                if dirty:
                     save_plan(plan)
-            prev = spot
+                # A3: manage open positions on a slower cadence than the fire loop —
+                # each check quotes every leg of every open position (~6s per leg).
+                if any(t.get("status") == "fired" and not t.get("exited") for t in plan["triggers"]):
+                    # A manual CLOSE from the dashboard is acted on next poll (~3s),
+                    # not on the 60s exit cadence — when the user hits the button they
+                    # mean now.
+                    if pending_manual_closes() or time.monotonic() - last_exit_check >= EXIT_POLL:
+                        manage_open(ib, plan, spot, args.dry_run)
+                        last_exit_check = time.monotonic()
+                        save_plan(plan)
+                prev = spot
+                consec_err = 0
+            except Exception as e:
+                consec_err += 1
+                import traceback
+                traceback.print_exc()
+                print(f"  ! loop iteration error #{consec_err} ({type(e).__name__}: {e}) — daemon CONTINUES")
+                # Alert on the first fault and as it persists, so an outage is visible
+                # immediately (08-19 was only noticed via the evening health check).
+                if consec_err in (1, 5, 25, 100):
+                    try:
+                        notify(f"⚠ trigger daemon loop error #{consec_err}",
+                               f"{type(e).__name__}: {str(e)[:180]} — CONTINUING; open positions still managed")
+                    except Exception:
+                        pass
             time.sleep(POLL)
     finally:
         save_plan(plan)
