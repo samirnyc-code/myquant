@@ -38,9 +38,23 @@ def run_day(d, spx):
     pc, o_o, close = spx.loc[prior, "close"], spx.loc[d, "open"], spx.loc[d, "close"]
     feed, _ = parity_feed(dc, round5(o_o))
 
+    def spot_at(et):
+        """spot at the entry moment from the parity feed (the desk's 'ATM' is ATM
+        AT ENTRY, verified vs desk strikes Aug-2026; open-print was 30pts off on
+        drift days). Fallback: the open print."""
+        if feed is not None and len(feed):
+            w = feed[feed["t"] >= et]
+            if len(w):
+                return float(w["S"].iloc[0])
+        return o_o
+
     rows = []
-    for base, center, ekey in (("eodfly", pc, "eod"), ("openfly", o_o, "open")):
+    for base, ekey in (("eodfly", "eod"), ("openfly", "open")):
         et = ENTRY_ET[ekey]
+        # centering verified vs desk strikes (Aug-2026): eodfly ATM = PRIOR CLOSE
+        # (set in the premarket gameplan, 100% match); openfly ATM = spot at the
+        # trigger-fire moment (~1 min after schedule).
+        center = pc if ekey == "eod" else spot_at("10:05:00")
         k = round5(center)
         for right, suff in (("P", "_p"), ("C", "_c")):
             short_k = k
@@ -51,6 +65,13 @@ def run_day(d, spx):
                        exit_kind="", exit_val=None, pnl=None, note="")
             if cr is None:
                 rec["note"] = "no entry quote"
+                rows.append(rec)
+                continue
+            if cr <= 0:
+                # the DESK's own rule: stand down on zero/negative credit
+                # (seen live 2026-08-19 eodic_p "STOOD DOWN ... zero/negative credit")
+                rec["note"] = "stood down (credit<=0)"
+                rec["credit"] = cr
                 rows.append(rec)
                 continue
             stop_t = detect_stop(feed, short_k, right, et)
