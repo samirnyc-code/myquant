@@ -80,7 +80,20 @@ mine):
   `market_holidays.json`). Do we need dividends/rates? No — TD serves greeks directly.
 - **Open Qs for the new chat:** exact GEX formula/convention to match the desk; which entry rule
   set to replicate first (condor vs fly vs gx); confirm July-2026 SPXW daily expirations exist
-  (yes, post-2022-05-16); DuckDB install OK?
+  (yes, post-2022-05-16). **DuckDB install = APPROVED by user.**
+
+### ▶ FIRST TASK FOR THE NEW CHAT (user-set) — validate TD gamma walls vs saved gexlog
+Before trusting TD-computed walls for July, **compare our TD-computed gamma walls to the REAL
+gexlog walls** over the overlap. What we have (verified 9/8): `data/gexlog/gexlog_daily.csv`
+(**85 days, 2026-04-06 → 2026-08-03**) with `callWall`, `putWall`, `expectedMove`,
+`emLower/emUpper`, `net_gex`, `gex_method`, `vix`, regime, etc.; + 167 raw `data/gexlog/raw/
+YYYY-MM-DD_morning|evening.json`. **⚠ gexlog coverage STOPS 2026-08-03** — we have essentially NO
+gexlog for the Aug-6→Sep-4 trading window (so "compare August" = really just 08-03; use the FULL
+**Apr-6 → Aug-3** overlap, ~85 days, a much better sample). **FLAG to raise:** the `gx_bcs/gx_bps`
+strategies may not have had fresh gexlog walls during the Aug trading window — check whether they
+ran on stale/no walls. Plan: pull the full SPXW chain (OI+gamma) at gexlog's timestamp for those
+85 days, compute GEX→callWall/putWall, and correlate vs gexlog's numbers (match rate, Δ in points,
+method sensitivity). Only once TD walls track gexlog do we use them to model July.
 
 ### Still open / carry-over
 - [ ] Confirm the IB fee is fully all-in (one more Flex pull with fee-component fields — cheap; it's a floor now).
