@@ -38,8 +38,11 @@ BASE = "http://127.0.0.1:25503/v3"
 WING, FEE, STEP, MULT = 25.0, 1.63, 5.0, 100
 SOURCES = ["gx", "td", "mq", "fx"]
 LABEL = {"gx": "gexlog", "td": "ThetaData", "mq": "MenthorQ", "fx": "fixed-offset"}
-ENTRY_HM = "09:31"
-TIME_STOP_HM = "15:45"      # 14:45 CT
+ENTRY_HM = "09:31:00"
+TIME_STOP_HM = "15:45:00"   # 14:45 CT
+FILL = "mid"               # mid = tight-combo proxy (live fills the combo net, ~mid);
+#                            cross = leg-by-leg bid/ask (pessimistic FLOOR, double-counts spread)
+INTERVAL = "1m"            # 1m | tick   (tick = second-level acceptance, closer to the daemon poll)
 _cache: dict = {}
 
 
@@ -50,28 +53,29 @@ def fnum(x):
         return None
 
 
-def _hm(ts: str) -> str:
-    # '2026-05-13T09:31:00.000' -> '09:31'
-    return ts[11:16]
+def _hms(ts: str) -> str:
+    # '2026-05-13T09:31:00.980' -> '09:31:00'  (second-resolution key)
+    return ts[11:19]
 
 
 def opt_path(date: str, strike: float, right: str) -> dict:
-    """{ 'HH:MM': mid } for the 1-min NBBO path of one SPXW option. {} on no-data/err."""
-    key = (date, round(strike, 3), right)
+    """{ 'HH:MM:SS': (bid, ask) } NBBO path of one SPXW option at INTERVAL. Last quote per
+    second wins (tick can have many/sec). {} on no-data. Cached per (date,K,right,INTERVAL)."""
+    key = (date, round(strike, 3), right, INTERVAL)
     if key in _cache:
         return _cache[key]
     exp = date.replace("-", "")
     url = (f"{BASE}/option/history/quote?symbol=SPXW&expiration={exp}"
            f"&strike={strike:.3f}&right={right}&start_date={exp}&end_date={exp}"
-           f"&interval=1m&format=csv")
+           f"&interval={INTERVAL}&format=csv")
     path: dict = {}
     try:
-        with urllib.request.urlopen(url, timeout=30) as r:
+        with urllib.request.urlopen(url, timeout=60) as r:
             rows = list(csv.DictReader(line.decode() for line in r))
         for row in rows:
             b, a = fnum(row.get("bid")), fnum(row.get("ask"))
             if b is not None and a is not None and (b > 0 or a > 0):
-                path[_hm(row["timestamp"])] = (b + a) / 2.0
+                path[_hms(row["timestamp"])] = (b, a)     # last quote in the second wins
     except urllib.error.HTTPError as e:
         if e.code != 472:                     # 472 = no prints; anything else is a real error
             path = {}
@@ -81,24 +85,27 @@ def opt_path(date: str, strike: float, right: str) -> dict:
     return path
 
 
-def _minutes(a: str, b: str):
-    """inclusive 'HH:MM' grid from a to b."""
-    h, m = int(a[:2]), int(a[3:])
-    eh, em = int(b[:2]), int(b[3:])
-    out = []
-    while (h, m) <= (eh, em):
-        out.append(f"{h:02d}:{m:02d}")
-        m += 1
-        if m == 60:
-            h, m = h + 1, 0
-    return out
+def _mid(v):
+    return (v[0] + v[1]) / 2.0 if v else None
 
 
-def _at_or_before(path: dict, hm: str):
-    """mid at hm, else the nearest earlier minute (stale-quote carry)."""
-    if hm in path:
-        return path[hm]
-    prior = [k for k in path if k <= hm]
+def _bid(v):
+    return v[0] if v else None
+
+
+def _ask(v):
+    return v[1] if v else None
+
+
+def _secs(hms: str) -> int:
+    return int(hms[:2]) * 3600 + int(hms[3:5]) * 60 + int(hms[6:8])
+
+
+def _at_or_before(path: dict, hms: str):
+    """(bid,ask) at hms, else the nearest earlier observation (stale-quote carry)."""
+    if hms in path:
+        return path[hms]
+    prior = [k for k in path if k <= hms]
     return path[max(prior)] if prior else None
 
 
@@ -112,51 +119,69 @@ def stopped_side(date, short_k, right, accept_mins):
     opp_p = opt_path(date, short_k, opp)        # for parity spot at the short strike
     if not short_p or not long_p or not opp_p:
         return None
-    if ENTRY_HM not in short_p or ENTRY_HM not in long_p:
+    se0, le0 = _at_or_before(short_p, ENTRY_HM), _at_or_before(long_p, ENTRY_HM)
+    if se0 is None or le0 is None:
         return None
-    credit = short_p[ENTRY_HM] - long_p[ENTRY_HM]
+    # OPEN the credit spread. cross = sell short@bid / buy long@ask (leg-by-leg FLOOR);
+    # mid = net of leg mids (~ the combo net NBBO the live book actually fills).
+    credit = (_bid(se0) - _ask(le0)) if FILL == "cross" else (_mid(se0) - _mid(le0))
 
-    grid = _minutes(ENTRY_HM, TIME_STOP_HM)
-    run = 0
-    exit_hm = TIME_STOP_HM
-    reason = "time_stop"
-    for hm in grid[1:]:                          # from 09:32; entry minute is the anchor
-        # parity spot at the SHORT strike: spot = K + call_mid - put_mid
-        cm = _at_or_before(opp_p if right == "P" else short_p, hm)   # call mid @ short_k
-        pm = _at_or_before(short_p if right == "P" else opp_p, hm)   # put  mid @ short_k
+    # every observed second (union of the three legs) after entry, through the stop —
+    # so tick data drives second-level acceptance, 1m data drives minute-level.
+    grid = sorted(t for t in (set(short_p) | set(long_p) | set(opp_p))
+                  if ENTRY_HM < t <= TIME_STOP_HM)
+    call_src = short_p if right == "C" else opp_p    # parity: spot = K + call_mid - put_mid
+    put_src = short_p if right == "P" else opp_p
+    accept_secs = accept_mins * 60
+    beyond_start = None
+    exit_hm, reason = TIME_STOP_HM, "time_stop"
+    for t in grid:
+        cm, pm = _mid(_at_or_before(call_src, t)), _mid(_at_or_before(put_src, t))
         if cm is None or pm is None:
             continue
         spot = short_k + cm - pm
         beyond = spot < short_k if right == "P" else spot > short_k
-        run = run + 1 if beyond else 0
-        if run >= accept_mins:
-            exit_hm, reason = hm, "acceptance"
-            break
+        if beyond:
+            if beyond_start is None:
+                beyond_start = t
+            if _secs(t) - _secs(beyond_start) >= accept_secs:     # held continuously >= N min
+                exit_hm, reason = t, "acceptance"
+                break
+        else:
+            beyond_start = None
 
-    sm, lm = _at_or_before(short_p, exit_hm), _at_or_before(long_p, exit_hm)
-    if sm is None or lm is None:
+    se, le = _at_or_before(short_p, exit_hm), _at_or_before(long_p, exit_hm)
+    if se is None or le is None:
         return None
-    exit_cost = sm - lm
+    # CLOSE: cross = buy short@ask / sell long@bid (FLOOR); mid = net of leg mids.
+    exit_cost = (_ask(se) - _bid(le)) if FILL == "cross" else (_mid(se) - _mid(le))
     pnl = (credit - exit_cost) * MULT - 4 * FEE
     return {"credit": credit, "exit_hm": exit_hm, "reason": reason,
             "exit_cost": exit_cost, "pnl": pnl}
 
 
+def _settle_side(credit, short_k, right, sc):
+    """Hold-to-settlement P&L for one vertical, SAME cross-fill entry credit."""
+    liab = min(WING, max(0.0, (short_k - sc) if right == "P" else (sc - short_k)))
+    return (credit - liab) * MULT - 4 * FEE
+
+
 def run_day_source(row, src, accept_mins):
     pw, cw = fnum(row.get(f"{src}_pw")), fnum(row.get(f"{src}_cw"))
     otm = str(row.get(f"{src}_otm")) == "True"
-    settle = fnum(row.get(f"{src}_pnl"))
-    if not otm or pw is None or cw is None:
+    sc = fnum(row.get("spx_close"))
+    if not otm or pw is None or cw is None or sc is None:
         return None
     bps = stopped_side(row["date"], pw, "P", accept_mins)
     bcs = stopped_side(row["date"], cw, "C", accept_mins)
     if bps is None or bcs is None:
         return None
     stopped = bps["pnl"] + bcs["pnl"]
+    settle = _settle_side(bps["credit"], pw, "P", sc) + _settle_side(bcs["credit"], cw, "C", sc)
     return {
         "date": row["date"], "source": src, "pw": pw, "cw": cw,
-        "settle_pnl": settle, "stopped_pnl": round(stopped, 2),
-        "delta": round(stopped - settle, 2) if settle is not None else None,
+        "settle_pnl": round(settle, 2), "stopped_pnl": round(stopped, 2),
+        "delta": round(stopped - settle, 2),
         "bps_pnl": round(bps["pnl"], 2), "bcs_pnl": round(bcs["pnl"], 2),
         "bps_exit": bps["exit_hm"], "bps_reason": bps["reason"],
         "bcs_exit": bcs["exit_hm"], "bcs_reason": bcs["reason"],
@@ -167,9 +192,16 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, help="first N days only (smoke-test)")
     ap.add_argument("--accept-mins", type=int, default=10, help="consecutive min beyond short strike")
+    ap.add_argument("--fill", choices=["mid", "cross"], default="mid",
+                    help="mid = combo-net proxy (default, ~live); cross = leg-by-leg bid/ask FLOOR")
+    ap.add_argument("--interval", choices=["1m", "tick"], default="1m",
+                    help="tick = second-level acceptance (closer to the daemon poll); heavier pull")
+    ap.add_argument("--since", help="only days >= this date YYYY-MM-DD (scoped test)")
     ap.add_argument("--validate", type=int, metavar="N",
-                    help="sanity: parity-spot @09:31 & @15:45 vs SPX close, first N days")
+                    help="sanity: parity-spot @15:59 vs SPX close, first N days")
     a = ap.parse_args()
+    global FILL, INTERVAL
+    FILL, INTERVAL = a.fill, a.interval
     if a.validate:
         rows = list(csv.DictReader(open(IN_CSV, encoding="utf-8")))[:a.validate]
         errs = []
@@ -183,9 +215,9 @@ def main() -> int:
                 print(f"{row['date']:12}{cw:>8.0f}   (no path)"); continue
 
             def par(hm):
-                c, p = _at_or_before(cp, hm), _at_or_before(pp, hm)
+                c, p = _mid(_at_or_before(cp, hm)), _mid(_at_or_before(pp, hm))
                 return (cw + c - p) if (c is not None and p is not None) else None
-            s1, sc = par("15:59"), fnum(row.get("spx_close"))
+            s1, sc = par("15:59:00"), fnum(row.get("spx_close"))
             err = (s1 - sc) if (s1 is not None and sc is not None) else None
             if err is not None:
                 errs.append(abs(err))
@@ -197,9 +229,12 @@ def main() -> int:
     if not IN_CSV.exists():
         print(f"missing {IN_CSV} — run wall_pnl_3way.py first."); return 1
     rows = list(csv.DictReader(open(IN_CSV, encoding="utf-8")))
+    if a.since:
+        rows = [r for r in rows if r["date"] >= a.since]
     if a.limit:
         rows = rows[:a.limit]
-    print(f"days={len(rows)}  accept_mins={a.accept_mins}  time_stop={TIME_STOP_HM} ET  (terminal @ {BASE})\n")
+    print(f"days={len(rows)}  interval={INTERVAL}  fill={FILL}  accept_mins={a.accept_mins}  "
+          f"time_stop={TIME_STOP_HM} ET  (terminal @ {BASE})\n")
 
     jobs = [(row, src) for row in rows for src in SOURCES]
     out = []
