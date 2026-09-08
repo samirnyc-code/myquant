@@ -1,0 +1,782 @@
+vol-mode=skew  oi-date=prior  gamma-spot=cash  n_days=77
+
+=== 2026-05-13  gamma_spot=7401.0  iv_spot=7401.0  gap=+0.0  OIrec=20260512  T=0.0040  (OI 60/60, IV 41) ===
+  call R^2=0.552  slope=1.747e+07  n=60
+  put  R^2=0.192  slope=2.095e+07  n=60
+  net  R^2=0.325  slope=9.698e+06  n=60
+  walls  TD net -> put 7350.0 / call 7450.0
+         gexlog corr -> put 7365.0 / call 7425.0
+         gexlog pub  -> put 7375.0 / call 7450.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-05-13.csv
+
+=== 2026-05-14  gamma_spot=7444.0  iv_spot=7444.2  gap=-0.2  OIrec=20260513  T=0.0040  (OI 60/60, IV 60) ===
+  call R^2=0.689  slope=3.619e+08  n=60
+  put  R^2=0.305  slope=2.772e+08  n=60
+  net  R^2=0.586  slope=2.952e+08  n=60
+  walls  TD net -> put 7365.0 / call 7500.0
+         gexlog corr -> put 7335.0 / call 7500.0
+         gexlog pub  -> put 7400.0 / call 7500.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-05-14.csv
+
+=== 2026-05-15  gamma_spot=7501.0  iv_spot=7501.2  gap=-0.2  OIrec=20260514  T=0.0040  (OI 60/60, IV 55) ===
+  call R^2=0.770  slope=1.360e+08  n=60
+  put  R^2=0.892  slope=1.586e+08  n=60
+  net  R^2=0.702  slope=1.242e+08  n=60
+  walls  TD net -> put 7375.0 / call 7560.0
+         gexlog corr -> put 7375.0 / call 7560.0
+         gexlog pub  -> put 7500.0 / call 7525.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-05-15.csv
+
+=== 2026-05-18  gamma_spot=7408.0  iv_spot=7408.5  gap=-0.5  OIrec=20260515  T=0.0040  (OI 60/60, IV 42) ===
+  call R^2=0.418  slope=1.403e+07  n=60
+  put  R^2=0.398  slope=1.327e+07  n=60
+  net  R^2=0.191  slope=5.719e+06  n=60
+  walls  TD net -> put 7300.0 / call 7450.0
+         gexlog corr -> put 7350.0 / call 7475.0
+         gexlog pub  -> put 7350.0 / call 7500.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-05-18.csv
+
+=== 2026-05-19  gamma_spot=7403.0  iv_spot=7403.1  gap=-0.1  OIrec=20260518  T=0.0040  (OI 60/60, IV 44) ===
+  call R^2=0.982  slope=4.906e+07  n=60
+  put  R^2=0.980  slope=5.405e+07  n=60
+  net  R^2=0.981  slope=5.401e+07  n=60
+  walls  TD net -> put 7360.0 / call 7500.0
+         gexlog corr -> put 7360.0 / call 7500.0
+         gexlog pub  -> put 7400.0 / call 7425.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-05-19.csv
+
+=== 2026-05-20  gamma_spot=7354.0  iv_spot=7353.6  gap=+0.4  OIrec=20260519  T=0.0040  (OI 60/60, IV 50) ===
+  call R^2=0.997  slope=5.546e+07  n=60
+  put  R^2=0.995  slope=5.615e+07  n=60
+  net  R^2=0.994  slope=5.685e+07  n=60
+  walls  TD net -> put 7340.0 / call 7450.0
+         gexlog corr -> put 7340.0 / call 7450.0
+         gexlog pub  -> put 7340.0 / call 7400.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-05-20.csv
+
+=== 2026-05-21  gamma_spot=7433.0  iv_spot=7433.0  gap=+0.0  OIrec=20260520  T=0.0040  (OI 60/60, IV 37) ===
+  call R^2=0.923  slope=4.062e+07  n=60
+  put  R^2=0.974  slope=6.029e+07  n=60
+  net  R^2=0.948  slope=4.156e+07  n=60
+  walls  TD net -> put 7375.0 / call 7435.0
+         gexlog corr -> put 7375.0 / call 7475.0
+         gexlog pub  -> put 7400.0 / call 7475.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-05-21.csv
+
+=== 2026-05-22  gamma_spot=7446.0  iv_spot=7445.7  gap=+0.3  OIrec=20260521  T=0.0040  (OI 60/60, IV 60) ===
+  call R^2=0.993  slope=5.681e+07  n=60
+  put  R^2=0.994  slope=5.550e+07  n=60
+  net  R^2=0.995  slope=5.813e+07  n=60
+  walls  TD net -> put 7300.0 / call 7500.0
+         gexlog corr -> put 7300.0 / call 7500.0
+         gexlog pub  -> put 7400.0 / call 7500.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-05-22.csv
+
+=== 2026-05-26  gamma_spot=7473.0  iv_spot=7473.0  gap=+0.0  OIrec=20260525  T=0.0040  (OI 0/60, IV 60) ===
+  call R^2=  -    slope=  -    n=0
+  put  R^2=  -    slope=  -    n=0
+  net  R^2=  -    slope=  -    n=0
+  walls  TD net -> put None / call None
+         gexlog corr -> put 7375.0 / call 7500.0
+         gexlog pub  -> put 7375.0 / call 7500.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-05-26.csv
+
+=== 2026-05-27  gamma_spot=7519.0  iv_spot=7519.1  gap=-0.1  OIrec=20260526  T=0.0040  (OI 60/60, IV 42) ===
+  call R^2=0.990  slope=5.306e+07  n=60
+  put  R^2=0.994  slope=6.201e+07  n=60
+  net  R^2=0.989  slope=5.353e+07  n=60
+  walls  TD net -> put 7450.0 / call 7530.0
+         gexlog corr -> put 7450.0 / call 7530.0
+         gexlog pub  -> put 7450.0 / call 7530.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-05-27.csv
+
+=== 2026-05-28  gamma_spot=7520.0  iv_spot=7520.4  gap=-0.4  OIrec=20260527  T=0.0040  (OI 60/60, IV 60) ===
+  call R^2=0.930  slope=6.231e+07  n=60
+  put  R^2=0.979  slope=5.326e+07  n=60
+  net  R^2=0.968  slope=6.533e+07  n=60
+  walls  TD net -> put 7475.0 / call 7530.0
+         gexlog corr -> put 7475.0 / call 7530.0
+         gexlog pub  -> put 7475.0 / call 7530.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-05-28.csv
+
+=== 2026-05-29  gamma_spot=7564.0  iv_spot=7563.6  gap=+0.4  OIrec=20260528  T=0.0040  (OI 57/57, IV 57) ===
+  call R^2=0.937  slope=5.979e+07  n=57
+  put  R^2=0.983  slope=5.180e+07  n=57
+  net  R^2=0.949  slope=6.268e+07  n=57
+  walls  TD net -> put 7485.0 / call 7600.0
+         gexlog corr -> put 7485.0 / call 7600.0
+         gexlog pub  -> put 7550.0 / call 7600.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-05-29.csv
+
+=== 2026-06-01  gamma_spot=7580.0  iv_spot=7580.1  gap=-0.1  OIrec=20260529  T=0.0040  (OI 60/60, IV 48) ===
+  call R^2=0.987  slope=5.332e+07  n=60
+  put  R^2=0.976  slope=4.839e+07  n=60
+  net  R^2=0.985  slope=5.369e+07  n=60
+  walls  TD net -> put 7475.0 / call 7600.0
+         gexlog corr -> put 7475.0 / call 7600.0
+         gexlog pub  -> put 7550.0 / call 7600.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-06-01.csv
+
+=== 2026-06-02  gamma_spot=7600.0  iv_spot=7600.0  gap=+0.0  OIrec=20260601  T=0.0040  (OI 60/60, IV 41) ===
+  call R^2=0.967  slope=5.693e+07  n=60
+  put  R^2=0.980  slope=4.387e+07  n=60
+  net  R^2=0.961  slope=5.619e+07  n=60
+  walls  TD net -> put 7550.0 / call 7615.0
+         gexlog corr -> put 7550.0 / call 7615.0
+         gexlog pub  -> put 7550.0 / call 7615.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-06-02.csv
+
+=== 2026-06-03  gamma_spot=7610.0  iv_spot=7609.8  gap=+0.2  OIrec=20260602  T=0.0040  (OI 59/59, IV 59) ===
+  call R^2=0.984  slope=5.863e+07  n=59
+  put  R^2=0.985  slope=5.675e+07  n=59
+  net  R^2=0.989  slope=6.012e+07  n=59
+  walls  TD net -> put 7555.0 / call 7630.0
+         gexlog corr -> put 7555.0 / call 7630.0
+         gexlog pub  -> put 7580.0 / call 7630.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-06-03.csv
+
+=== 2026-06-04  gamma_spot=7554.0  iv_spot=7553.7  gap=+0.3  OIrec=20260603  T=0.0040  (OI 60/60, IV 34) ===
+  call R^2=0.907  slope=6.509e+07  n=60
+  put  R^2=0.894  slope=5.625e+07  n=60
+  net  R^2=0.866  slope=5.534e+07  n=60
+  walls  TD net -> put 7500.0 / call 7625.0
+         gexlog corr -> put 7540.0 / call 7625.0
+         gexlog pub  -> put 7550.0 / call 7600.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-06-04.csv
+
+=== 2026-06-05  gamma_spot=7584.0  iv_spot=7584.3  gap=-0.3  OIrec=20260604  T=0.0040  (OI 60/60, IV 37) ===
+  call R^2=0.944  slope=5.636e+07  n=60
+  put  R^2=0.990  slope=5.075e+07  n=60
+  net  R^2=0.928  slope=6.440e+07  n=60
+  walls  TD net -> put 7500.0 / call 7625.0
+         gexlog corr -> put 7500.0 / call 7625.0
+         gexlog pub  -> put 7550.0 / call 7600.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-06-05.csv
+
+=== 2026-06-08  gamma_spot=7384.0  iv_spot=7383.7  gap=+0.3  OIrec=20260605  T=0.0040  (OI 60/60, IV 44) ===
+  call R^2=0.952  slope=5.976e+07  n=60
+  put  R^2=0.912  slope=5.076e+07  n=60
+  net  R^2=0.914  slope=5.004e+07  n=60
+  walls  TD net -> put 7375.0 / call 7505.0
+         gexlog corr -> put 7375.0 / call 7505.0
+         gexlog pub  -> put 7375.0 / call 7500.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-06-08.csv
+
+=== 2026-06-09  gamma_spot=7406.0  iv_spot=7405.7  gap=+0.3  OIrec=20260608  T=0.0040  (OI 60/60, IV 56) ===
+  call R^2=0.998  slope=5.560e+07  n=60
+  put  R^2=0.996  slope=5.660e+07  n=60
+  net  R^2=0.997  slope=5.695e+07  n=60
+  walls  TD net -> put 7375.0 / call 7500.0
+         gexlog corr -> put 7375.0 / call 7500.0
+         gexlog pub  -> put 7375.0 / call 7450.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-06-09.csv
+
+=== 2026-06-10  gamma_spot=7387.0  iv_spot=7386.6  gap=+0.4  OIrec=20260609  T=0.0040  (OI 60/60, IV 55) ===
+  call R^2=0.925  slope=2.887e+07  n=60
+  put  R^2=0.907  slope=5.363e+07  n=60
+  net  R^2=0.925  slope=5.502e+07  n=60
+  walls  TD net -> put 7355.0 / call 7525.0
+         gexlog corr -> put 7355.0 / call 7525.0
+         gexlog pub  -> put 7355.0 / call 7525.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-06-10.csv
+
+=== 2026-06-11  gamma_spot=7267.0  iv_spot=7267.0  gap=+0.0  OIrec=20260610  T=0.0040  (OI 60/60, IV 56) ===
+  call R^2=0.987  slope=5.665e+07  n=60
+  put  R^2=0.996  slope=5.423e+07  n=60
+  net  R^2=0.997  slope=5.409e+07  n=60
+  walls  TD net -> put 7220.0 / call 7330.0
+         gexlog corr -> put 7220.0 / call 7330.0
+         gexlog pub  -> put 7220.0 / call 7350.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-06-11.csv
+
+=== 2026-06-12  gamma_spot=7394.0  iv_spot=7394.3  gap=-0.3  OIrec=20260611  T=0.0040  (OI 60/60, IV 60) ===
+  call R^2=0.975  slope=5.373e+07  n=60
+  put  R^2=0.985  slope=4.961e+07  n=60
+  net  R^2=0.985  slope=4.916e+07  n=60
+  walls  TD net -> put 7320.0 / call 7430.0
+         gexlog corr -> put 7320.0 / call 7500.0
+         gexlog pub  -> put 7350.0 / call 7450.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-06-12.csv
+
+=== 2026-06-15  gamma_spot=7591.8  iv_spot=7431.5  gap=+160.3  OIrec=20260612  T=0.0040  (OI 54/54, IV 54) ===
+  call R^2=0.922  slope=6.384e+07  n=54
+  put  R^2=0.978  slope=5.256e+07  n=54
+  net  R^2=0.819  slope=6.379e+07  n=54
+  walls  TD net -> put None / call 7500.0
+         gexlog corr -> put None / call 7500.0
+         gexlog pub  -> put 7400.0 / call 7600.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-06-15.csv
+
+=== 2026-06-22  gamma_spot=7563.2  iv_spot=7563.2  gap=+0.0  OIrec=20260619  T=0.0040  (OI 0/60, IV 18) ===
+  call R^2=  -    slope=  -    n=0
+  put  R^2=  -    slope=  -    n=0
+  net  R^2=  -    slope=  -    n=0
+  walls  TD net -> put None / call None
+         gexlog corr -> put 7500.0 / call 7575.0
+         gexlog pub  -> put 7500.0 / call 7550.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-06-22.csv
+
+=== 2026-06-23  gamma_spot=7472.8  iv_spot=7472.8  gap=+0.0  OIrec=20260622  T=0.0040  (OI 60/60, IV 60) ===
+  call R^2=0.992  slope=5.372e+07  n=60
+  put  R^2=0.978  slope=6.002e+07  n=60
+  net  R^2=0.979  slope=6.212e+07  n=60
+  walls  TD net -> put 7450.0 / call 7530.0
+         gexlog corr -> put 7450.0 / call 7530.0
+         gexlog pub  -> put 7450.0 / call 7500.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-06-23.csv
+
+=== 2026-06-24  gamma_spot=7445.8  iv_spot=7365.5  gap=+80.3  OIrec=20260623  T=0.0040  (OI 60/60, IV 60) ===
+  call R^2=0.990  slope=4.622e+07  n=60
+  put  R^2=0.948  slope=5.208e+07  n=60
+  net  R^2=0.961  slope=5.346e+07  n=60
+  walls  TD net -> put 7330.0 / call 7515.0
+         gexlog corr -> put 7330.0 / call 7515.0
+         gexlog pub  -> put 7350.0 / call 7500.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-06-24.csv
+
+=== 2026-06-25  gamma_spot=7484.2  iv_spot=7358.2  gap=+126.0  OIrec=20260624  T=0.0040  (OI 60/60, IV 60) ===
+  call R^2=0.591  slope=4.617e+07  n=60
+  put  R^2=0.980  slope=4.199e+07  n=60
+  net  R^2=0.987  slope=4.200e+07  n=60
+  walls  TD net -> put 7320.0 / call 7425.0
+         gexlog corr -> put 7320.0 / call 7425.0
+         gexlog pub  -> put 7320.0 / call 7375.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-06-25.csv
+
+=== 2026-06-26  gamma_spot=7357.5  iv_spot=7357.5  gap=+0.0  OIrec=20260625  T=0.0040  (OI 60/60, IV 60) ===
+  call R^2=0.992  slope=5.260e+07  n=60
+  put  R^2=0.989  slope=5.415e+07  n=60
+  net  R^2=0.990  slope=5.443e+07  n=60
+  walls  TD net -> put 7325.0 / call 7415.0
+         gexlog corr -> put 7325.0 / call 7415.0
+         gexlog pub  -> put 7325.0 / call 7400.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-06-26.csv
+
+=== 2026-06-29  gamma_spot=7461.0  iv_spot=7354.0  gap=+107.0  OIrec=20260626  T=0.0040  (OI 60/60, IV 40) ===
+  call R^2=0.993  slope=5.051e+07  n=60
+  put  R^2=0.951  slope=5.114e+07  n=60
+  net  R^2=0.948  slope=5.350e+07  n=60
+  walls  TD net -> put 7325.0 / call 7425.0
+         gexlog corr -> put 7325.0 / call 7425.0
+         gexlog pub  -> put 7325.0 / call 7400.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-06-29.csv
+
+=== 2026-06-30  gamma_spot=7506.8  iv_spot=7440.4  gap=+66.3  OIrec=20260629  T=0.0040  (OI 60/60, IV 42) ===
+  call R^2=0.974  slope=5.007e+07  n=60
+  put  R^2=0.973  slope=5.611e+07  n=60
+  net  R^2=0.980  slope=4.914e+07  n=60
+  walls  TD net -> put 7300.0 / call 7450.0
+         gexlog corr -> put 7300.0 / call 7450.0
+         gexlog pub  -> put 7400.0 / call 7450.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-06-30.csv
+
+=== 2026-07-01  gamma_spot=7499.4  iv_spot=7499.4  gap=+0.0  OIrec=20260630  T=0.0040  (OI 60/60, IV 35) ===
+  call R^2=0.911  slope=4.841e+07  n=60
+  put  R^2=0.942  slope=4.880e+07  n=60
+  net  R^2=0.938  slope=5.263e+07  n=60
+  walls  TD net -> put 7475.0 / call 7540.0
+         gexlog corr -> put 7475.0 / call 7540.0
+         gexlog pub  -> put 7450.0 / call 7540.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-07-01.csv
+
+=== 2026-07-02  gamma_spot=7534.2  iv_spot=7483.2  gap=+51.0  OIrec=20260701  T=0.0040  (OI 60/60, IV 48) ===
+  call R^2=0.962  slope=6.103e+07  n=60
+  put  R^2=0.962  slope=5.318e+07  n=60
+  net  R^2=0.969  slope=6.346e+07  n=60
+  walls  TD net -> put 7400.0 / call 7500.0
+         gexlog corr -> put 7400.0 / call 7500.0
+         gexlog pub  -> put 7450.0 / call 7500.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-07-02.csv
+
+=== 2026-07-06  gamma_spot=7561.2  iv_spot=7561.2  gap=+0.0  OIrec=20260703  T=0.0040  (OI 0/60, IV 14) ===
+  call R^2=  -    slope=  -    n=0
+  put  R^2=  -    slope=  -    n=0
+  net  R^2=  -    slope=  -    n=0
+  walls  TD net -> put None / call None
+         gexlog corr -> put 7425.0 / call 7570.0
+         gexlog pub  -> put 7450.0 / call 7500.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-07-06.csv
+
+=== 2026-07-07  gamma_spot=7582.0  iv_spot=7537.4  gap=+44.6  OIrec=20260706  T=0.0040  (OI 60/60, IV 60) ===
+  call R^2=0.953  slope=6.441e+07  n=60
+  put  R^2=0.936  slope=4.839e+07  n=60
+  net  R^2=0.963  slope=6.708e+07  n=60
+  walls  TD net -> put 7425.0 / call 7550.0
+         gexlog corr -> put 7475.0 / call 7550.0
+         gexlog pub  -> put 7500.0 / call 7550.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-07-07.csv
+
+=== 2026-07-08  gamma_spot=7503.9  iv_spot=7503.9  gap=+0.0  OIrec=20260707  T=0.0040  (OI 60/60, IV 46) ===
+  call R^2=0.967  slope=5.436e+07  n=60
+  put  R^2=0.975  slope=6.364e+07  n=60
+  net  R^2=0.961  slope=5.486e+07  n=60
+  walls  TD net -> put 7475.0 / call 7525.0
+         gexlog corr -> put 7475.0 / call 7525.0
+         gexlog pub  -> put 7475.0 / call 7525.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-07-08.csv
+
+=== 2026-07-09  gamma_spot=7541.0  iv_spot=7482.7  gap=+58.3  OIrec=20260708  T=0.0040  (OI 60/60, IV 37) ===
+  call R^2=0.979  slope=4.646e+07  n=60
+  put  R^2=0.907  slope=5.153e+07  n=60
+  net  R^2=0.919  slope=5.661e+07  n=60
+  walls  TD net -> put 7475.0 / call 7550.0
+         gexlog corr -> put 7475.0 / call 7550.0
+         gexlog pub  -> put 7475.0 / call 7500.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-07-09.csv
+
+=== 2026-07-10  gamma_spot=7585.2  iv_spot=7543.6  gap=+41.6  OIrec=20260709  T=0.0040  (OI 60/60, IV 40) ===
+  call R^2=0.977  slope=5.440e+07  n=60
+  put  R^2=0.980  slope=5.842e+07  n=60
+  net  R^2=0.980  slope=5.377e+07  n=60
+  walls  TD net -> put 7450.0 / call 7550.0
+         gexlog corr -> put 7450.0 / call 7550.0
+         gexlog pub  -> put 7500.0 / call 7550.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-07-10.csv
+
+=== 2026-07-13  gamma_spot=7575.4  iv_spot=7575.4  gap=+0.0  OIrec=20260710  T=0.0040  (OI 59/59, IV 59) ===
+  call R^2=0.997  slope=5.652e+07  n=59
+  put  R^2=0.993  slope=5.880e+07  n=59
+  net  R^2=0.997  slope=5.667e+07  n=59
+  walls  TD net -> put 7440.0 / call 7600.0
+         gexlog corr -> put 7440.0 / call 7600.0
+         gexlog pub  -> put 7525.0 / call 7600.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-07-13.csv
+
+=== 2026-07-14  gamma_spot=7560.2  iv_spot=7515.3  gap=+44.9  OIrec=20260713  T=0.0040  (OI 60/60, IV 48) ===
+  call R^2=0.996  slope=5.405e+07  n=60
+  put  R^2=0.990  slope=6.035e+07  n=60
+  net  R^2=0.993  slope=5.778e+07  n=60
+  walls  TD net -> put 7475.0 / call 7550.0
+         gexlog corr -> put 7475.0 / call 7550.0
+         gexlog pub  -> put 7500.0 / call 7550.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-07-14.csv
+
+=== 2026-07-15  gamma_spot=7605.0  iv_spot=7543.6  gap=+61.4  OIrec=20260714  T=0.0040  (OI 60/60, IV 60) ===
+  call R^2=0.994  slope=5.951e+07  n=60
+  put  R^2=0.997  slope=5.710e+07  n=60
+  net  R^2=0.994  slope=5.888e+07  n=60
+  walls  TD net -> put 7535.0 / call 7600.0
+         gexlog corr -> put 7535.0 / call 7600.0
+         gexlog pub  -> put 7500.0 / call 7550.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-07-15.csv
+
+=== 2026-07-16  gamma_spot=7572.4  iv_spot=7572.4  gap=+0.0  OIrec=20260715  T=0.0040  (OI 55/57, IV 42) ===
+  call R^2=0.987  slope=5.248e+07  n=55
+  put  R^2=0.980  slope=5.868e+07  n=56
+  net  R^2=0.887  slope=5.090e+07  n=57
+  walls  TD net -> put 7555.0 / call 7600.0
+         gexlog corr -> put 7555.0 / call 7600.0
+         gexlog pub  -> put 7550.0 / call 7600.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-07-16.csv
+
+=== 2026-07-17  gamma_spot=7533.8  iv_spot=7533.8  gap=+0.0  OIrec=20260716  T=0.0040  (OI 60/60, IV 42) ===
+  call R^2=0.172  slope=2.171e+08  n=60
+  put  R^2=0.253  slope=9.778e+07  n=60
+  net  R^2=0.692  slope=6.204e+07  n=60
+  walls  TD net -> put 7520.0 / call 7580.0
+         gexlog corr -> put 7520.0 / call 7550.0
+         gexlog pub  -> put 7500.0 / call 7550.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-07-17.csv
+
+=== 2026-07-20  gamma_spot=7519.0  iv_spot=7457.7  gap=+61.3  OIrec=20260717  T=0.0040  (OI 60/60, IV 58) ===
+  call R^2=0.992  slope=5.627e+07  n=60
+  put  R^2=0.997  slope=5.523e+07  n=60
+  net  R^2=0.997  slope=5.529e+07  n=60
+  walls  TD net -> put 7450.0 / call 7565.0
+         gexlog corr -> put 7450.0 / call 7565.0
+         gexlog pub  -> put 7450.0 / call 7500.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-07-20.csv
+
+=== 2026-07-21  gamma_spot=7521.2  iv_spot=7443.3  gap=+78.0  OIrec=20260720  T=0.0040  (OI 60/60, IV 60) ===
+  call R^2=0.976  slope=6.357e+07  n=60
+  put  R^2=0.967  slope=5.589e+07  n=60
+  net  R^2=0.981  slope=5.353e+07  n=60
+  walls  TD net -> put 7410.0 / call 7540.0
+         gexlog corr -> put 7410.0 / call 7540.0
+         gexlog pub  -> put 7410.0 / call 7500.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-07-21.csv
+
+=== 2026-07-22  gamma_spot=7509.2  iv_spot=7509.2  gap=+0.0  OIrec=20260721  T=0.0040  (OI 60/60, IV 39) ===
+  call R^2=0.989  slope=5.963e+07  n=60
+  put  R^2=0.989  slope=6.228e+07  n=60
+  net  R^2=0.998  slope=5.725e+07  n=60
+  walls  TD net -> put 7450.0 / call 7550.0
+         gexlog corr -> put 7450.0 / call 7550.0
+         gexlog pub  -> put 7500.0 / call 7550.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-07-22.csv
+
+=== 2026-07-23  gamma_spot=7499.0  iv_spot=7499.0  gap=+0.0  OIrec=20260722  T=0.0040  (OI 60/60, IV 60) ===
+  call R^2=0.994  slope=5.993e+07  n=60
+  put  R^2=0.992  slope=5.656e+07  n=60
+  net  R^2=0.991  slope=5.663e+07  n=60
+  walls  TD net -> put 7485.0 / call 7545.0
+         gexlog corr -> put 7485.0 / call 7545.0
+         gexlog pub  -> put 7485.0 / call 7500.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-07-23.csv
+
+=== 2026-07-24  gamma_spot=7461.2  iv_spot=7408.3  gap=+52.9  OIrec=20260723  T=0.0040  (OI 60/60, IV 60) ===
+  call R^2=0.983  slope=4.441e+07  n=60
+  put  R^2=0.954  slope=5.169e+07  n=60
+  net  R^2=0.960  slope=5.308e+07  n=60
+  walls  TD net -> put 7400.0 / call 7470.0
+         gexlog corr -> put 7300.0 / call 7470.0
+         gexlog pub  -> put 7400.0 / call 7500.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-07-24.csv
+
+=== 2026-07-27  gamma_spot=7521.5  iv_spot=7412.0  gap=+109.5  OIrec=20260724  T=0.0040  (OI 60/60, IV 56) ===
+  call R^2=0.977  slope=5.378e+07  n=60
+  put  R^2=0.969  slope=5.156e+07  n=60
+  net  R^2=0.975  slope=5.379e+07  n=60
+  walls  TD net -> put 7400.0 / call 7500.0
+         gexlog corr -> put 7400.0 / call 7500.0
+         gexlog pub  -> put 7400.0 / call 7500.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-07-27.csv
+
+=== 2026-07-28  gamma_spot=7413.2  iv_spot=7413.2  gap=+0.0  OIrec=20260727  T=0.0040  (OI 60/60, IV 60) ===
+  call R^2=0.991  slope=5.686e+07  n=60
+  put  R^2=0.986  slope=5.361e+07  n=60
+  net  R^2=0.986  slope=5.300e+07  n=60
+  walls  TD net -> put 7400.0 / call 7525.0
+         gexlog corr -> put 7400.0 / call 7525.0
+         gexlog pub  -> put 7400.0 / call 7450.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-07-28.csv
+
+=== 2026-07-29  gamma_spot=7485.2  iv_spot=7428.8  gap=+56.5  OIrec=20260728  T=0.0040  (OI 60/60, IV 60) ===
+  call R^2=0.976  slope=6.113e+07  n=60
+  put  R^2=0.992  slope=5.504e+07  n=60
+  net  R^2=0.986  slope=5.474e+07  n=60
+  walls  TD net -> put 7300.0 / call 7490.0
+         gexlog corr -> put 7300.0 / call 7490.0
+         gexlog pub  -> put 7300.0 / call 7450.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-07-29.csv
+
+=== 2026-07-30  gamma_spot=7380.8  iv_spot=7316.1  gap=+64.6  OIrec=20260729  T=0.0040  (OI 60/60, IV 46) ===
+  call R^2=0.960  slope=8.286e+07  n=60
+  put  R^2=0.956  slope=5.082e+07  n=60
+  net  R^2=0.980  slope=4.952e+07  n=60
+  walls  TD net -> put 7300.0 / call 7450.0
+         gexlog corr -> put 7300.0 / call 7450.0
+         gexlog pub  -> put 7300.0 / call 7450.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-07-30.csv
+
+=== 2026-07-31  gamma_spot=7504.5  iv_spot=7437.6  gap=+66.9  OIrec=20260730  T=0.0040  (OI 60/60, IV 60) ===
+  call R^2=0.983  slope=5.974e+07  n=60
+  put  R^2=0.976  slope=5.532e+07  n=60
+  net  R^2=0.970  slope=5.563e+07  n=60
+  walls  TD net -> put 7400.0 / call 7500.0
+         gexlog corr -> put 7400.0 / call 7500.0
+         gexlog pub  -> put 7400.0 / call 7500.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-07-31.csv
+
+=== 2026-08-03  gamma_spot=7558.8  iv_spot=7489.7  gap=+69.0  OIrec=20260731  T=0.0040  (OI 60/60, IV 37) ===
+  call R^2=0.946  slope=5.386e+07  n=60
+  put  R^2=0.945  slope=5.530e+07  n=60
+  net  R^2=0.958  slope=5.464e+07  n=60
+  walls  TD net -> put 7350.0 / call 7530.0
+         gexlog corr -> put 7350.0 / call 7530.0
+         gexlog pub  -> put 7425.0 / call 7530.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-08-03.csv
+
+=== 2026-08-04  gamma_spot=7644.5  iv_spot=7600.5  gap=+44.0  OIrec=20260803  T=0.0040  (OI 69/76, IV 76) ===
+  call R^2=0.664  slope=1.056e+08  n=69
+  put  R^2=0.493  slope=2.996e+08  n=69
+  net  R^2=0.419  slope=7.813e+07  n=69
+  walls  TD net -> put 7475.0 / call 7630.0
+         gexlog corr -> put 7525.0 / call 7630.0
+         gexlog pub  -> put 7525.0 / call 7630.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-08-04.csv
+
+=== 2026-08-05  gamma_spot=7789.5  iv_spot=7736.5  gap=+53.0  OIrec=20260804  T=0.0040  (OI 62/62, IV 62) ===
+  call R^2=0.952  slope=5.641e+07  n=62
+  put  R^2=0.977  slope=7.105e+07  n=62
+  net  R^2=0.959  slope=5.583e+07  n=62
+  walls  TD net -> put 7565.0 / call 7750.0
+         gexlog corr -> put 7565.0 / call 7750.0
+         gexlog pub  -> put 7565.0 / call 7750.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-08-05.csv
+
+=== 2026-08-06  gamma_spot=7723.6  iv_spot=7723.6  gap=+0.0  OIrec=20260805  T=0.0040  (OI 78/93, IV 93) ===
+  call R^2=0.188  slope=6.446e+07  n=78
+  put  R^2=0.759  slope=9.186e+07  n=78
+  net  R^2=0.092  slope=4.998e+07  n=78
+  walls  TD net -> put 7675.0 / call 7750.0
+         gexlog corr -> put 7700.0 / call 7770.0
+         gexlog pub  -> put 7700.0 / call 7800.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-08-06.csv
+
+=== 2026-08-07  gamma_spot=7710.0  iv_spot=7710.0  gap=+0.0  OIrec=20260806  T=0.0040  (OI 89/89, IV 61) ===
+  call R^2=0.992  slope=5.679e+07  n=89
+  put  R^2=0.994  slope=6.026e+07  n=89
+  net  R^2=0.995  slope=5.607e+07  n=89
+  walls  TD net -> put 7650.0 / call 7750.0
+         gexlog corr -> put 7650.0 / call 7750.0
+         gexlog pub  -> put 7650.0 / call 7750.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-08-07.csv
+
+=== 2026-08-10  gamma_spot=7757.6  iv_spot=7757.6  gap=+0.0  OIrec=20260807  T=0.0040  (OI 90/90, IV 56) ===
+  call R^2=0.977  slope=6.016e+07  n=90
+  put  R^2=0.972  slope=6.580e+07  n=90
+  net  R^2=0.980  slope=5.913e+07  n=90
+  walls  TD net -> put 7600.0 / call 7775.0
+         gexlog corr -> put 7600.0 / call 7775.0
+         gexlog pub  -> put 7730.0 / call 7775.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-08-10.csv
+
+=== 2026-08-11  gamma_spot=7753.1  iv_spot=7753.1  gap=+0.0  OIrec=20260810  T=0.0040  (OI 82/82, IV 62) ===
+  call R^2=0.982  slope=5.837e+07  n=82
+  put  R^2=0.996  slope=6.524e+07  n=82
+  net  R^2=0.985  slope=5.648e+07  n=82
+  walls  TD net -> put 7730.0 / call 7775.0
+         gexlog corr -> put 7730.0 / call 7775.0
+         gexlog pub  -> put 7700.0 / call 7775.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-08-11.csv
+
+=== 2026-08-12  gamma_spot=7768.0  iv_spot=7728.2  gap=+39.8  OIrec=20260811  T=0.0040  (OI 90/90, IV 90) ===
+  call R^2=0.876  slope=5.314e+07  n=90
+  put  R^2=0.996  slope=6.580e+07  n=90
+  net  R^2=0.917  slope=5.847e+07  n=90
+  walls  TD net -> put 7670.0 / call 7800.0
+         gexlog corr -> put 7670.0 / call 7800.0
+         gexlog pub  -> put 7650.0 / call 7800.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-08-12.csv
+
+=== 2026-08-13  gamma_spot=7748.5  iv_spot=7748.5  gap=+0.0  OIrec=20260812  T=0.0040  (OI 81/81, IV 47) ===
+  call R^2=0.990  slope=5.954e+07  n=81
+  put  R^2=0.971  slope=5.935e+07  n=81
+  net  R^2=0.978  slope=5.978e+07  n=81
+  walls  TD net -> put 7660.0 / call 7760.0
+         gexlog corr -> put 7660.0 / call 7760.0
+         gexlog pub  -> put 7725.0 / call 7750.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-08-13.csv
+
+=== 2026-08-14  gamma_spot=7799.0  iv_spot=7799.0  gap=+0.0  OIrec=20260813  T=0.0040  (OI 83/83, IV 83) ===
+  call R^2=0.991  slope=6.587e+07  n=83
+  put  R^2=0.992  slope=6.248e+07  n=83
+  net  R^2=0.992  slope=6.623e+07  n=83
+  walls  TD net -> put 7685.0 / call 7800.0
+         gexlog corr -> put 7685.0 / call 7800.0
+         gexlog pub  -> put 7700.0 / call 7800.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-08-14.csv
+
+=== 2026-08-17  gamma_spot=7785.8  iv_spot=7785.8  gap=+0.0  OIrec=20260814  T=0.0040  (OI 60/60, IV 39) ===
+  call R^2=0.971  slope=5.683e+07  n=60
+  put  R^2=0.979  slope=6.297e+07  n=60
+  net  R^2=0.974  slope=5.721e+07  n=60
+  walls  TD net -> put 7775.0 / call 7850.0
+         gexlog corr -> put 7775.0 / call 7850.0
+         gexlog pub  -> put 7775.0 / call 7850.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-08-17.csv
+
+=== 2026-08-18  gamma_spot=7745.1  iv_spot=7745.1  gap=+0.0  OIrec=20260817  T=0.0040  (OI 77/77, IV 57) ===
+  call R^2=0.972  slope=6.553e+07  n=77
+  put  R^2=0.986  slope=6.057e+07  n=77
+  net  R^2=0.982  slope=5.830e+07  n=77
+  walls  TD net -> put 7725.0 / call 7790.0
+         gexlog corr -> put 7725.0 / call 7790.0
+         gexlog pub  -> put 7725.0 / call 7800.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-08-18.csv
+
+=== 2026-08-19  gamma_spot=7691.8  iv_spot=7691.8  gap=+0.0  OIrec=20260818  T=0.0040  (OI 81/81, IV 81) ===
+  call R^2=0.998  slope=6.731e+07  n=81
+  put  R^2=0.982  slope=6.388e+07  n=81
+  net  R^2=0.982  slope=6.343e+07  n=81
+  walls  TD net -> put 7630.0 / call 7725.0
+         gexlog corr -> put 7630.0 / call 7725.0
+         gexlog pub  -> put 7630.0 / call 7725.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-08-19.csv
+
+=== 2026-08-20  gamma_spot=7708.0  iv_spot=7708.0  gap=+0.0  OIrec=20260819  T=0.0040  (OI 79/79, IV 79) ===
+  call R^2=0.998  slope=5.435e+07  n=79
+  put  R^2=0.985  slope=6.033e+07  n=79
+  net  R^2=0.985  slope=5.946e+07  n=79
+  walls  TD net -> put 7650.0 / call 7755.0
+         gexlog corr -> put 7650.0 / call 7755.0
+         gexlog pub  -> put 7700.0 / call 7755.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-08-20.csv
+
+=== 2026-08-21  gamma_spot=7688.0  iv_spot=7641.2  gap=+46.8  OIrec=20260820  T=0.0040  (OI 89/89, IV 89) ===
+  call R^2=0.609  slope=3.793e+08  n=89
+  put  R^2=0.541  slope=1.055e+08  n=89
+  net  R^2=0.679  slope=4.339e+07  n=89
+  walls  TD net -> put 7640.0 / call 7750.0
+         gexlog corr -> put 7640.0 / call 7700.0
+         gexlog pub  -> put 7640.0 / call 7700.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-08-21.csv
+
+=== 2026-08-24  gamma_spot=7674.4  iv_spot=7674.4  gap=+0.0  OIrec=20260821  T=0.0040  (OI 84/84, IV 48) ===
+  call R^2=0.983  slope=5.924e+07  n=84
+  put  R^2=0.996  slope=5.708e+07  n=84
+  net  R^2=0.997  slope=5.702e+07  n=84
+  walls  TD net -> put 7630.0 / call 7725.0
+         gexlog corr -> put 7630.0 / call 7725.0
+         gexlog pub  -> put 7630.0 / call 7725.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-08-24.csv
+
+=== 2026-08-25  gamma_spot=7709.0  iv_spot=7652.9  gap=+56.1  OIrec=20260824  T=0.0040  (OI 74/74, IV 74) ===
+  call R^2=0.980  slope=5.335e+07  n=74
+  put  R^2=0.981  slope=5.420e+07  n=74
+  net  R^2=0.991  slope=5.813e+07  n=74
+  walls  TD net -> put 7600.0 / call 7700.0
+         gexlog corr -> put 7600.0 / call 7665.0
+         gexlog pub  -> put 7650.0 / call 7665.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-08-25.csv
+
+=== 2026-08-26  gamma_spot=7677.3  iv_spot=7677.3  gap=+0.0  OIrec=20260825  T=0.0040  (OI 71/71, IV 41) ===
+  call R^2=0.978  slope=5.986e+07  n=71
+  put  R^2=0.979  slope=6.101e+07  n=71
+  net  R^2=0.977  slope=6.254e+07  n=71
+  walls  TD net -> put 7600.0 / call 7700.0
+         gexlog corr -> put 7600.0 / call 7700.0
+         gexlog pub  -> put 7600.0 / call 7700.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-08-26.csv
+
+=== 2026-08-27  gamma_spot=7722.5  iv_spot=7675.7  gap=+46.8  OIrec=20260826  T=0.0040  (OI 87/87, IV 87) ===
+  call R^2=0.960  slope=6.617e+07  n=87
+  put  R^2=0.861  slope=5.314e+07  n=87
+  net  R^2=0.862  slope=4.846e+07  n=87
+  walls  TD net -> put 7675.0 / call 7725.0
+         gexlog corr -> put 7675.0 / call 7725.0
+         gexlog pub  -> put 7675.0 / call 7725.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-08-27.csv
+
+=== 2026-08-28  gamma_spot=7731.0  iv_spot=7731.0  gap=+0.0  OIrec=20260827  T=0.0040  (OI 78/78, IV 44) ===
+  call R^2=0.962  slope=6.205e+07  n=78
+  put  R^2=0.972  slope=6.166e+07  n=78
+  net  R^2=0.977  slope=6.476e+07  n=78
+  walls  TD net -> put 7650.0 / call 7800.0
+         gexlog corr -> put 7650.0 / call 7800.0
+         gexlog pub  -> put 7700.0 / call 7750.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-08-28.csv
+
+=== 2026-08-31  gamma_spot=7711.8  iv_spot=7711.8  gap=+0.0  OIrec=20260828  T=0.0040  (OI 80/80, IV 80) ===
+  call R^2=0.996  slope=5.638e+07  n=80
+  put  R^2=0.994  slope=5.734e+07  n=80
+  net  R^2=0.981  slope=6.008e+07  n=80
+  walls  TD net -> put 7650.0 / call 7750.0
+         gexlog corr -> put 7650.0 / call 7750.0
+         gexlog pub  -> put 7700.0 / call 7750.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-08-31.csv
+
+=== 2026-09-01  gamma_spot=7686.1  iv_spot=7686.1  gap=+0.0  OIrec=20260831  T=0.0040  (OI 80/80, IV 80) ===
+  call R^2=0.994  slope=6.400e+07  n=80
+  put  R^2=0.986  slope=6.132e+07  n=80
+  net  R^2=0.984  slope=6.116e+07  n=80
+  walls  TD net -> put 7675.0 / call 7710.0
+         gexlog corr -> put 7675.0 / call 7710.0
+         gexlog pub  -> put 7675.0 / call 7715.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-09-01.csv
+
+=== 2026-09-02  gamma_spot=7631.5  iv_spot=7631.5  gap=+0.0  OIrec=20260901  T=0.0040  (OI 81/81, IV 81) ===
+  call R^2=0.947  slope=4.990e+07  n=81
+  put  R^2=0.975  slope=5.934e+07  n=81
+  net  R^2=0.978  slope=6.074e+07  n=81
+  walls  TD net -> put 7550.0 / call 7680.0
+         gexlog corr -> put 7550.0 / call 7680.0
+         gexlog pub  -> put 7550.0 / call 7700.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-09-02.csv
+
+=== 2026-09-03  gamma_spot=7666.6  iv_spot=7666.6  gap=+0.0  OIrec=20260902  T=0.0040  (OI 79/79, IV 42) ===
+  call R^2=0.967  slope=5.379e+07  n=79
+  put  R^2=0.963  slope=5.731e+07  n=79
+  net  R^2=0.973  slope=5.711e+07  n=79
+  walls  TD net -> put 7550.0 / call 7680.0
+         gexlog corr -> put 7550.0 / call 7680.0
+         gexlog pub  -> put 7650.0 / call 7675.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-09-03.csv
+
+=== 2026-09-04  gamma_spot=7747.7  iv_spot=7747.7  gap=+0.0  OIrec=20260903  T=0.0040  (OI 82/82, IV 49) ===
+  call R^2=0.977  slope=5.652e+07  n=82
+  put  R^2=0.987  slope=5.511e+07  n=82
+  net  R^2=0.971  slope=5.821e+07  n=82
+  walls  TD net -> put 7650.0 / call 7750.0
+         gexlog corr -> put 7650.0 / call 7800.0
+         gexlog pub  -> put 7675.0 / call 7750.0
+  -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_2026-09-04.csv
+
+================ SUMMARY (per day) ================
+  2026-05-13  R^2=0.325  TD(7350.0,7450.0) corr(7365.0,7425.0) pub(7375.0,7450.0)  [diff]
+  2026-05-14  R^2=0.586  TD(7365.0,7500.0) corr(7335.0,7500.0) pub(7400.0,7500.0)  [diff]
+  2026-05-15  R^2=0.702  TD(7375.0,7560.0) corr(7375.0,7560.0) pub(7500.0,7525.0)  [MATCH]
+  2026-05-18  R^2=0.191  TD(7300.0,7450.0) corr(7350.0,7475.0) pub(7350.0,7500.0)  [diff]
+  2026-05-19  R^2=0.981  TD(7360.0,7500.0) corr(7360.0,7500.0) pub(7400.0,7425.0)  [MATCH]
+  2026-05-20  R^2=0.994  TD(7340.0,7450.0) corr(7340.0,7450.0) pub(7340.0,7400.0)  [MATCH]
+  2026-05-21  R^2=0.948  TD(7375.0,7435.0) corr(7375.0,7475.0) pub(7400.0,7475.0)  [diff]
+  2026-05-22  R^2=0.995  TD(7300.0,7500.0) corr(7300.0,7500.0) pub(7400.0,7500.0)  [MATCH]
+  2026-05-26  R^2=  -    TD(None,None) corr(7375.0,7500.0) pub(7375.0,7500.0)  [diff]
+  2026-05-27  R^2=0.989  TD(7450.0,7530.0) corr(7450.0,7530.0) pub(7450.0,7530.0)  [MATCH]
+  2026-05-28  R^2=0.968  TD(7475.0,7530.0) corr(7475.0,7530.0) pub(7475.0,7530.0)  [MATCH]
+  2026-05-29  R^2=0.949  TD(7485.0,7600.0) corr(7485.0,7600.0) pub(7550.0,7600.0)  [MATCH]
+  2026-06-01  R^2=0.985  TD(7475.0,7600.0) corr(7475.0,7600.0) pub(7550.0,7600.0)  [MATCH]
+  2026-06-02  R^2=0.961  TD(7550.0,7615.0) corr(7550.0,7615.0) pub(7550.0,7615.0)  [MATCH]
+  2026-06-03  R^2=0.989  TD(7555.0,7630.0) corr(7555.0,7630.0) pub(7580.0,7630.0)  [MATCH]
+  2026-06-04  R^2=0.866  TD(7500.0,7625.0) corr(7540.0,7625.0) pub(7550.0,7600.0)  [diff]
+  2026-06-05  R^2=0.928  TD(7500.0,7625.0) corr(7500.0,7625.0) pub(7550.0,7600.0)  [MATCH]
+  2026-06-08  R^2=0.914  TD(7375.0,7505.0) corr(7375.0,7505.0) pub(7375.0,7500.0)  [MATCH]
+  2026-06-09  R^2=0.997  TD(7375.0,7500.0) corr(7375.0,7500.0) pub(7375.0,7450.0)  [MATCH]
+  2026-06-10  R^2=0.925  TD(7355.0,7525.0) corr(7355.0,7525.0) pub(7355.0,7525.0)  [MATCH]
+  2026-06-11  R^2=0.997  TD(7220.0,7330.0) corr(7220.0,7330.0) pub(7220.0,7350.0)  [MATCH]
+  2026-06-12  R^2=0.985  TD(7320.0,7430.0) corr(7320.0,7500.0) pub(7350.0,7450.0)  [diff]
+  2026-06-15  R^2=0.819  TD(None,7500.0) corr(None,7500.0) pub(7400.0,7600.0)  [diff]
+  2026-06-22  R^2=  -    TD(None,None) corr(7500.0,7575.0) pub(7500.0,7550.0)  [diff]
+  2026-06-23  R^2=0.979  TD(7450.0,7530.0) corr(7450.0,7530.0) pub(7450.0,7500.0)  [MATCH]
+  2026-06-24  R^2=0.961  TD(7330.0,7515.0) corr(7330.0,7515.0) pub(7350.0,7500.0)  [MATCH]
+  2026-06-25  R^2=0.987  TD(7320.0,7425.0) corr(7320.0,7425.0) pub(7320.0,7375.0)  [MATCH]
+  2026-06-26  R^2=0.990  TD(7325.0,7415.0) corr(7325.0,7415.0) pub(7325.0,7400.0)  [MATCH]
+  2026-06-29  R^2=0.948  TD(7325.0,7425.0) corr(7325.0,7425.0) pub(7325.0,7400.0)  [MATCH]
+  2026-06-30  R^2=0.980  TD(7300.0,7450.0) corr(7300.0,7450.0) pub(7400.0,7450.0)  [MATCH]
+  2026-07-01  R^2=0.938  TD(7475.0,7540.0) corr(7475.0,7540.0) pub(7450.0,7540.0)  [MATCH]
+  2026-07-02  R^2=0.969  TD(7400.0,7500.0) corr(7400.0,7500.0) pub(7450.0,7500.0)  [MATCH]
+  2026-07-06  R^2=  -    TD(None,None) corr(7425.0,7570.0) pub(7450.0,7500.0)  [diff]
+  2026-07-07  R^2=0.963  TD(7425.0,7550.0) corr(7475.0,7550.0) pub(7500.0,7550.0)  [diff]
+  2026-07-08  R^2=0.961  TD(7475.0,7525.0) corr(7475.0,7525.0) pub(7475.0,7525.0)  [MATCH]
+  2026-07-09  R^2=0.919  TD(7475.0,7550.0) corr(7475.0,7550.0) pub(7475.0,7500.0)  [MATCH]
+  2026-07-10  R^2=0.980  TD(7450.0,7550.0) corr(7450.0,7550.0) pub(7500.0,7550.0)  [MATCH]
+  2026-07-13  R^2=0.997  TD(7440.0,7600.0) corr(7440.0,7600.0) pub(7525.0,7600.0)  [MATCH]
+  2026-07-14  R^2=0.993  TD(7475.0,7550.0) corr(7475.0,7550.0) pub(7500.0,7550.0)  [MATCH]
+  2026-07-15  R^2=0.994  TD(7535.0,7600.0) corr(7535.0,7600.0) pub(7500.0,7550.0)  [MATCH]
+  2026-07-16  R^2=0.887  TD(7555.0,7600.0) corr(7555.0,7600.0) pub(7550.0,7600.0)  [MATCH]
+  2026-07-17  R^2=0.692  TD(7520.0,7580.0) corr(7520.0,7550.0) pub(7500.0,7550.0)  [diff]
+  2026-07-20  R^2=0.997  TD(7450.0,7565.0) corr(7450.0,7565.0) pub(7450.0,7500.0)  [MATCH]
+  2026-07-21  R^2=0.981  TD(7410.0,7540.0) corr(7410.0,7540.0) pub(7410.0,7500.0)  [MATCH]
+  2026-07-22  R^2=0.998  TD(7450.0,7550.0) corr(7450.0,7550.0) pub(7500.0,7550.0)  [MATCH]
+  2026-07-23  R^2=0.991  TD(7485.0,7545.0) corr(7485.0,7545.0) pub(7485.0,7500.0)  [MATCH]
+  2026-07-24  R^2=0.960  TD(7400.0,7470.0) corr(7300.0,7470.0) pub(7400.0,7500.0)  [diff]
+  2026-07-27  R^2=0.975  TD(7400.0,7500.0) corr(7400.0,7500.0) pub(7400.0,7500.0)  [MATCH]
+  2026-07-28  R^2=0.986  TD(7400.0,7525.0) corr(7400.0,7525.0) pub(7400.0,7450.0)  [MATCH]
+  2026-07-29  R^2=0.986  TD(7300.0,7490.0) corr(7300.0,7490.0) pub(7300.0,7450.0)  [MATCH]
+  2026-07-30  R^2=0.980  TD(7300.0,7450.0) corr(7300.0,7450.0) pub(7300.0,7450.0)  [MATCH]
+  2026-07-31  R^2=0.970  TD(7400.0,7500.0) corr(7400.0,7500.0) pub(7400.0,7500.0)  [MATCH]
+  2026-08-03  R^2=0.958  TD(7350.0,7530.0) corr(7350.0,7530.0) pub(7425.0,7530.0)  [MATCH]
+  2026-08-04  R^2=0.419  TD(7475.0,7630.0) corr(7525.0,7630.0) pub(7525.0,7630.0)  [diff]
+  2026-08-05  R^2=0.959  TD(7565.0,7750.0) corr(7565.0,7750.0) pub(7565.0,7750.0)  [MATCH]
+  2026-08-06  R^2=0.092  TD(7675.0,7750.0) corr(7700.0,7770.0) pub(7700.0,7800.0)  [diff]
+  2026-08-07  R^2=0.995  TD(7650.0,7750.0) corr(7650.0,7750.0) pub(7650.0,7750.0)  [MATCH]
+  2026-08-10  R^2=0.980  TD(7600.0,7775.0) corr(7600.0,7775.0) pub(7730.0,7775.0)  [MATCH]
+  2026-08-11  R^2=0.985  TD(7730.0,7775.0) corr(7730.0,7775.0) pub(7700.0,7775.0)  [MATCH]
+  2026-08-12  R^2=0.917  TD(7670.0,7800.0) corr(7670.0,7800.0) pub(7650.0,7800.0)  [MATCH]
+  2026-08-13  R^2=0.978  TD(7660.0,7760.0) corr(7660.0,7760.0) pub(7725.0,7750.0)  [MATCH]
+  2026-08-14  R^2=0.992  TD(7685.0,7800.0) corr(7685.0,7800.0) pub(7700.0,7800.0)  [MATCH]
+  2026-08-17  R^2=0.974  TD(7775.0,7850.0) corr(7775.0,7850.0) pub(7775.0,7850.0)  [MATCH]
+  2026-08-18  R^2=0.982  TD(7725.0,7790.0) corr(7725.0,7790.0) pub(7725.0,7800.0)  [MATCH]
+  2026-08-19  R^2=0.982  TD(7630.0,7725.0) corr(7630.0,7725.0) pub(7630.0,7725.0)  [MATCH]
+  2026-08-20  R^2=0.985  TD(7650.0,7755.0) corr(7650.0,7755.0) pub(7700.0,7755.0)  [MATCH]
+  2026-08-21  R^2=0.679  TD(7640.0,7750.0) corr(7640.0,7700.0) pub(7640.0,7700.0)  [diff]
+  2026-08-24  R^2=0.997  TD(7630.0,7725.0) corr(7630.0,7725.0) pub(7630.0,7725.0)  [MATCH]
+  2026-08-25  R^2=0.991  TD(7600.0,7700.0) corr(7600.0,7665.0) pub(7650.0,7665.0)  [diff]
+  2026-08-26  R^2=0.977  TD(7600.0,7700.0) corr(7600.0,7700.0) pub(7600.0,7700.0)  [MATCH]
+  2026-08-27  R^2=0.862  TD(7675.0,7725.0) corr(7675.0,7725.0) pub(7675.0,7725.0)  [MATCH]
+  2026-08-28  R^2=0.977  TD(7650.0,7800.0) corr(7650.0,7800.0) pub(7700.0,7750.0)  [MATCH]
+  2026-08-31  R^2=0.981  TD(7650.0,7750.0) corr(7650.0,7750.0) pub(7700.0,7750.0)  [MATCH]
+  2026-09-01  R^2=0.984  TD(7675.0,7710.0) corr(7675.0,7710.0) pub(7675.0,7715.0)  [MATCH]
+  2026-09-02  R^2=0.978  TD(7550.0,7680.0) corr(7550.0,7680.0) pub(7550.0,7700.0)  [MATCH]
+  2026-09-03  R^2=0.973  TD(7550.0,7680.0) corr(7550.0,7680.0) pub(7650.0,7675.0)  [MATCH]
+  2026-09-04  R^2=0.971  TD(7650.0,7750.0) corr(7650.0,7800.0) pub(7675.0,7750.0)  [diff]
+
+================ AGGREGATE ================
+  days: 77   net R^2: median 0.978  >=0.90: 62/74  >=0.80: 66/74
+  call wall vs gexlog CORR: exact 88%  <=5pt 88%  <=10pt 88%  median|d| 0.0  (n=74)
+  call wall vs gexlog PUB : exact 53%  <=5pt 57%  median|d| 0.0
+  put wall vs gexlog CORR: exact 89%  <=5pt 89%  <=10pt 89%  median|d| 0.0  (n=73)
+  put wall vs gexlog PUB : exact 47%  <=5pt 48%  median|d| 20.0
+
+  summary CSV -> C:\Users\Admin\myquant\data\options_sim\td_gex_calib_summary.csv
