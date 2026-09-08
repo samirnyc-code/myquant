@@ -27,6 +27,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import html
+import json
 import math
 import webbrowser
 from pathlib import Path
@@ -124,6 +125,17 @@ def agg(df: pd.DataFrame) -> dict:
     }
 
 
+def load_bridge() -> dict | None:
+    """Newest td_pnl_bridge JSON -> the sim-vs-real P&L bridge (for the report)."""
+    cands = sorted(SIM.glob("td_pnl_bridge_*.json"))
+    if not cands:
+        return None
+    try:
+        return json.loads(cands[-1].read_text(encoding="utf-8"))
+    except (ValueError, OSError):
+        return None
+
+
 def load_latency() -> dict | None:
     """Newest fill_timing_analysis CSV -> our-clock-vs-IB-exec lag summary (for the FAQ)."""
     cands = sorted(SIM.glob("fill_timing_analysis_*.csv"))
@@ -182,7 +194,7 @@ impossible fill. <b>{a['n_stale']}</b> fill(s) had a too-old quote and were set 
 
 
 def render(df: pd.DataFrame, a: dict, synthetic: bool, src: str, anon: bool = False,
-           lat: dict | None = None) -> str:
+           lat: dict | None = None, bridge: dict | None = None) -> str:
     scored = df[df.pos.notna() & ~df.stale]
     bars = _hist(scored.pos) if len(scored) else []
     bmax = max((c for _, c, _ in bars), default=1) or 1
@@ -204,20 +216,22 @@ def render(df: pd.DataFrame, a: dict, synthetic: bool, src: str, anon: bool = Fa
         ("Through the book — sub-second timing noise", scored.pos > 1.0, "bad"),
     ]
     brows, cum = "", 0
-    for idx, (name, mask, tone) in enumerate(cats):
+    for name, mask, tone in cats:
         cnt = int(mask.sum())
         cum += cnt
         pctv = (100 * cnt / nsc) if nsc else 0
+        cumv = (100 * cum / nsc) if nsc else 0
         med = scored.pos[mask].median() if cnt else None
         meds = f"{med:.3f}" if med is not None else "—"
         cls = " class='bad'" if tone == "bad" else (" class='good'" if tone == "good" else "")
-        brows += f"<tr><td>{name}</td><td>{cnt}</td><td{cls}>{pctv:.1f}%</td><td>{meds}</td></tr>"
-        if idx == 1:                                  # subtotal ≤ mid = the tiles' "Conservative"
-            sub = (100 * cum / nsc) if nsc else 0
-            brows += (f"<tr class='sub'><td>↳ ≤ mid — conservative subtotal</td><td>{cum}</td>"
-                      f"<td class='good'>{sub:.1f}%</td><td>—</td></tr>")
+        # highlight the cumulative that equals the "conservative (≤ mid)" headline
+        cumcls = " class='good'" if (a["pct_conservative"] is not None
+                                     and abs(cumv - a["pct_conservative"]) < 0.05) else ""
+        brows += (f"<tr><td>{name}</td><td>{cnt}</td><td{cls}>{pctv:.1f}%</td>"
+                  f"<td{cumcls}>{cumv:.1f}%</td><td>{meds}</td></tr>")
     allmed = f"{scored.pos.median():.3f}" if nsc else "—"
-    brows += (f"<tr class='tot'><td>All scored fills</td><td>{nsc}</td><td>100.0%</td><td>{allmed}</td></tr>")
+    brows += (f"<tr class='tot'><td>All scored fills</td><td>{nsc}</td><td>100.0%</td>"
+              f"<td>—</td><td>{allmed}</td></tr>")
 
     # per-strategy table
     trows = ""
@@ -248,7 +262,7 @@ def render(df: pd.DataFrame, a: dict, synthetic: bool, src: str, anon: bool = Fa
         tile("Scored fills", a["n_scored"], "quote ok, fresh, price known"),
         tile("Median fill position", med, "0=crossed · 0.5=mid · 1=touch", med_tone),
         tile("Conservative (≤ mid)", f'{a["pct_conservative"]}%' if a["pct_conservative"] is not None else None,
-             "pos ≤ 0.5 — at/worse than mid (= table rows 1+2)", "good"),
+             "pos ≤ 0.5 — see the cumulative % column", "good"),
         tile("Median size at touch", a["median_size"],
              f'contracts resting at our price (≥1: {a["pct_size_ok"]}% · =0: {a["pct_size0"]}%)'),
         tile("Single-leg print-confirmed",
@@ -330,6 +344,47 @@ evidence against the fill; fillability is judged by the primary test.</li>
 below the bid — extra-conservative slippage where the quote moved against us. The <b>{belowzero}</b>
 fills below 0 make the sim look <i>harder</i> on itself, not easier. <b>Above&nbsp;1</b> is the reverse:
 better than the best price, the through-the-book timing tail.</p></div>"""
+    # ---- P&L bridge (sim vs real market), if reconstruction present ----
+    pnl_html = ""
+    if bridge and bridge.get("bridge"):
+        b = bridge["bridge"]
+        sim0, tdn = b[0][1], b[-1][1]
+        diff = tdn - sim0
+        pct = (100 * diff / sim0) if sim0 else 0
+        dtone = "bad" if diff < 0 else "good"
+        brows2 = ""
+        for lbl, amt in b:
+            total = lbl.startswith("=")
+            atone = "good" if amt >= 0 else "bad"
+            sign = "+" if (amt >= 0 and not total) else ""
+            rc = " class='tot'" if total else ""
+            label = lbl.lstrip("= ").strip() if total else lbl
+            brows2 += (f"<tr{rc}><td>{'= ' if total else ''}{html.escape(label)}</td>"
+                       f"<td class='{'' if total else atone}'>{sign}${amt:,.2f}</td></tr>")
+        byx = bridge.get("by_exit", {})
+        xrows = ""
+        for k in ("order", "expired"):
+            g = byx.get(k)
+            if g:
+                xrows += (f"<tr><td>{k}-closed</td><td>{g['n']}</td>"
+                          f"<td>${g['sim']:,.0f}</td><td>${g['td_net']:,.0f}</td>"
+                          f"<td class='{'bad' if g['td_net']-g['sim']<0 else 'good'}'>"
+                          f"{'+' if g['td_net']-g['sim']>=0 else ''}${g['td_net']-g['sim']:,.0f}</td></tr>")
+        pnl_html = f"""<div class="card pnl"><h2>P&amp;L reconciliation — sim vs real market</h2>
+<div class="note">The book rebuilt from ONLY real data: entries + order-exits at the real marketable
+touch, expiries cash-settled at the official SPX 4pm close, and IB's <b>real</b> commissions. Each
+step changes one thing and closes to the penny.</div>
+<div class="pnlhead">
+  <div class="ph"><span class="phk">Sim booked</span><span class="phv">${sim0:,.0f}</span></div>
+  <div class="pharrow">→</div>
+  <div class="ph"><span class="phk">Real-market net</span><span class="phv {dtone}">${tdn:,.0f}</span></div>
+  <div class="ph"><span class="phk">Difference</span><span class="phv {dtone}">{'+' if diff>=0 else ''}${diff:,.0f} ({pct:+.1f}%)</span></div>
+</div>
+<table class="bridge"><thead><tr><th>step</th><th>P&amp;L impact</th></tr></thead><tbody>{brows2}</tbody></table>
+<div class="note" style="margin-top:12px">By exit type ({bridge.get('n_trades','')} trades):</div>
+<table><thead><tr><th>closed</th><th>trades</th><th>sim P&amp;L</th><th>real-market net</th><th>diff</th></tr></thead>
+<tbody>{xrows}</tbody></table></div>"""
+
     gen = dt.datetime.now().strftime("%Y-%m-%d %H:%M")
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -393,6 +448,14 @@ tr.sub td{{color:var(--ink2);font-style:italic;background:rgba(127,127,127,.05)}
 .faq h3{{font-size:13px;margin:14px 0 4px;font-weight:640}}
 .faq p,.faq li{{font-size:12.5px;line-height:1.55;color:var(--ink2);margin:5px 0}}
 .faq b{{color:var(--ink)}}.faq ul{{margin:4px 0;padding-left:18px}}
+.pnl .pnlhead{{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin:6px 0 14px}}
+.ph{{display:flex;flex-direction:column;gap:1px}}
+.phk{{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}}
+.phv{{font-size:22px;font-weight:680;font-variant-numeric:tabular-nums}}
+.phv.good{{color:var(--good)}}.phv.bad{{color:var(--bad)}}
+.pharrow{{font-size:20px;color:var(--muted)}}
+table.bridge td:last-child{{font-variant-numeric:tabular-nums;font-weight:600}}
+table.bridge td.good{{color:var(--good)}}table.bridge td.bad{{color:var(--bad)}}
 </style></head><body>
 <header><h1>{html.escape(title)}</h1>
 <div class="sub">generated {gen} · source {html.escape(src)}</div></header>
@@ -400,6 +463,7 @@ tr.sub td{{color:var(--ink2);font-style:italic;background:rgba(127,127,127,.05)}
 {banner}
 <div class="meta">{meta}</div>
 {summary_html(a)}
+{pnl_html}
 <div class="tiles">{tiles}</div>
 <div class="card"><h2>Where our fills sat in the real NBBO</h2>
 <div class="note">0 = crossed the spread (marketable, realistic) · 0.5 = mid · 1 = far touch (price
@@ -409,7 +473,7 @@ improvement) · red = outside the book (timing/data noise). A real marketable en
 <div class="note">Every scored fill falls in exactly one band; the shares add to 100%.
 "Crossed the spread" is the realistic/conservative outcome.</div>
 <table><thead><tr><th>where our fill landed</th><th>fills</th><th>% of fills</th>
-<th>median position</th></tr></thead>
+<th>cumulative %</th><th>median position</th></tr></thead>
 <tbody>{brows}</tbody></table></div>
 <div class="card"><h2>By strategy</h2>
 <div class="note">scored = quote ok, fresh, our price known. confirm% = single-leg prints (cond 0/18).
@@ -522,8 +586,8 @@ def main() -> int:
           + ("   [SYNTHETIC]" if synthetic else "") + ("   [ANON]" if args.anon else ""))
     out = SIM / (f"thetadata_fill_report_{'SYNTHETIC_' if synthetic else ''}"
                  f"{'anon_' if args.anon else ''}{dt.datetime.now():%Y%m%d}.html")
-    out.write_text(render(df, a, synthetic, src, anon=args.anon, lat=load_latency()),
-                   encoding="utf-8")
+    out.write_text(render(df, a, synthetic, src, anon=args.anon, lat=load_latency(),
+                          bridge=load_bridge()), encoding="utf-8")
     print(f"saved -> {out.relative_to(ROOT)}  (self-contained HTML)")
     if args.pdf:
         pdf = export_pdf(out)

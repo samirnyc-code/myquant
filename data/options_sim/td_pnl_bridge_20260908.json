@@ -1,0 +1,45 @@
+{
+ "n_trades": 187,
+ "bridge": [
+  [
+   "Sim booked P&L (modeled $1.30/trade fees)",
+   9240.4
+  ],
+  [
+   "Commission correction (modeled \u2192 real IB)",
+   -574.61
+  ],
+  [
+   "= Calendar P&L at REAL commissions",
+   8665.79
+  ],
+  [
+   "Entry-fill difference (TD touch vs sim credit)",
+   -435.0
+  ],
+  [
+   "Order-exit fill difference (TD touch vs sim)",
+   -220.0
+  ],
+  [
+   "Settlement difference (expired: TD SET vs sim)",
+   149.5
+  ],
+  [
+   "= TD NET P&L (real fills + settlement + fees)",
+   8160.29
+  ]
+ ],
+ "by_exit": {
+  "expired": {
+   "n": 115,
+   "sim": 21044.0,
+   "td_net": 20779.5
+  },
+  "order": {
+   "n": 72,
+   "sim": -11803.6,
+   "td_net": -12619.21
+  }
+ }
+}

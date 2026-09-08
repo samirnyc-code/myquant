@@ -60,9 +60,17 @@ tr.sub td{color:var(--ink2);font-style:italic;background:rgba(127,127,127,.05)}
 .faq h3{font-size:13px;margin:14px 0 4px;font-weight:640}
 .faq p,.faq li{font-size:12.5px;line-height:1.55;color:var(--ink2);margin:5px 0}
 .faq b{color:var(--ink)}.faq ul{margin:4px 0;padding-left:18px}
+.pnl .pnlhead{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin:6px 0 14px}
+.ph{display:flex;flex-direction:column;gap:1px}
+.phk{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+.phv{font-size:22px;font-weight:680;font-variant-numeric:tabular-nums}
+.phv.good{color:var(--good)}.phv.bad{color:var(--bad)}
+.pharrow{font-size:20px;color:var(--muted)}
+table.bridge td:last-child{font-variant-numeric:tabular-nums;font-weight:600}
+table.bridge td.good{color:var(--good)}table.bridge td.bad{color:var(--bad)}
 </style></head><body>
 <header><h1>SPX Fill Realism — August 2026</h1>
-<div class="sub">generated 2026-09-08 09:24 · source data\thetadata\at_time_results_20260908.csv</div></header>
+<div class="sub">generated 2026-09-08 09:39 · source data\thetadata\at_time_results_20260908.csv</div></header>
 <div class="wrap">
 
 <div class="meta"><div class="mi"><span class="mk">Instrument</span><span class="mv">SPX (SPXW) — 0DTE cash-settled index options</span></div><div class="mi"><span class="mk">Exchange</span><span class="mv">Cboe</span></div><div class="mi"><span class="mk">Trading hours</span><span class="mv">09:30–16:00 ET (SPXW settles on the close)</span></div><div class="mi"><span class="mk">Broker</span><span class="mv">Interactive Brokers</span></div><div class="mi"><span class="mk">Mode</span><span class="mv">SIMULATED — IB paper fills, checked vs real OPRA NBBO</span></div><div class="mi"><span class="mk">Date range</span><span class="mv">2026-08-06 → 2026-09-04</span></div><div class="mi"><span class="mk">Trading days</span><span class="mv">22</span></div><div class="mi"><span class="mk">NBBO / print source</span><span class="mv">ThetaData (OPRA consolidated, tick)</span></div></div>
@@ -87,7 +95,21 @@ package price). A fill without one is <b>not</b> impossible — see the note und
 sub-second timing artifact (the quote we captured was the last one just before the fill), not an
 impossible fill. <b>1</b> fill(s) had a too-old quote and were set aside.</li>
 </ul></div>
-<div class="tiles"><div class="tile"><div class="tl">Fill events</div><div class="tv ink">518</div><div class="ts">518 with a quote · 0 no logged price</div></div><div class="tile"><div class="tl">Scored fills</div><div class="tv ink">517</div><div class="ts">quote ok, fresh, price known</div></div><div class="tile"><div class="tl">Median fill position</div><div class="tv good">0.0</div><div class="ts">0=crossed · 0.5=mid · 1=touch</div></div><div class="tile"><div class="tl">Conservative (≤ mid)</div><div class="tv good">86.1%</div><div class="ts">pos ≤ 0.5 — at/worse than mid (= table rows 1+2)</div></div><div class="tile"><div class="tl">Median size at touch</div><div class="tv ink">76</div><div class="ts">contracts resting at our price (≥1: 99.8% · =0: 0.2%)</div></div><div class="tile"><div class="tl">Single-leg print-confirmed</div><div class="tv ink">384/407</div><div class="ts">cond 0/18 traded at our price</div></div><div class="tile"><div class="tl">Through the book</div><div class="tv bad">2.1%</div><div class="ts">pos > 1 (timing/data noise)</div></div><div class="tile"><div class="tl">Stale quotes</div><div class="tv warn">1</div><div class="ts">quote >2s before fill (excluded)</div></div></div>
+<div class="card pnl"><h2>P&amp;L reconciliation — sim vs real market</h2>
+<div class="note">The book rebuilt from ONLY real data: entries + order-exits at the real marketable
+touch, expiries cash-settled at the official SPX 4pm close, and IB's <b>real</b> commissions. Each
+step changes one thing and closes to the penny.</div>
+<div class="pnlhead">
+  <div class="ph"><span class="phk">Sim booked</span><span class="phv">$9,240</span></div>
+  <div class="pharrow">→</div>
+  <div class="ph"><span class="phk">Real-market net</span><span class="phv bad">$8,160</span></div>
+  <div class="ph"><span class="phk">Difference</span><span class="phv bad">$-1,080 (-11.7%)</span></div>
+</div>
+<table class="bridge"><thead><tr><th>step</th><th>P&amp;L impact</th></tr></thead><tbody><tr><td>Sim booked P&amp;L (modeled $1.30/trade fees)</td><td class='good'>+$9,240.40</td></tr><tr><td>Commission correction (modeled → real IB)</td><td class='bad'>$-574.61</td></tr><tr class='tot'><td>= Calendar P&amp;L at REAL commissions</td><td class=''>$8,665.79</td></tr><tr><td>Entry-fill difference (TD touch vs sim credit)</td><td class='bad'>$-435.00</td></tr><tr><td>Order-exit fill difference (TD touch vs sim)</td><td class='bad'>$-220.00</td></tr><tr><td>Settlement difference (expired: TD SET vs sim)</td><td class='good'>+$149.50</td></tr><tr class='tot'><td>= TD NET P&amp;L (real fills + settlement + fees)</td><td class=''>$8,160.29</td></tr></tbody></table>
+<div class="note" style="margin-top:12px">By exit type (187 trades):</div>
+<table><thead><tr><th>closed</th><th>trades</th><th>sim P&amp;L</th><th>real-market net</th><th>diff</th></tr></thead>
+<tbody><tr><td>order-closed</td><td>72</td><td>$-11,804</td><td>$-12,619</td><td class='bad'>$-816</td></tr><tr><td>expired-closed</td><td>115</td><td>$21,044</td><td>$20,780</td><td class='bad'>$-264</td></tr></tbody></table></div>
+<div class="tiles"><div class="tile"><div class="tl">Fill events</div><div class="tv ink">518</div><div class="ts">518 with a quote · 0 no logged price</div></div><div class="tile"><div class="tl">Scored fills</div><div class="tv ink">517</div><div class="ts">quote ok, fresh, price known</div></div><div class="tile"><div class="tl">Median fill position</div><div class="tv good">0.0</div><div class="ts">0=crossed · 0.5=mid · 1=touch</div></div><div class="tile"><div class="tl">Conservative (≤ mid)</div><div class="tv good">86.1%</div><div class="ts">pos ≤ 0.5 — see the cumulative % column</div></div><div class="tile"><div class="tl">Median size at touch</div><div class="tv ink">76</div><div class="ts">contracts resting at our price (≥1: 99.8% · =0: 0.2%)</div></div><div class="tile"><div class="tl">Single-leg print-confirmed</div><div class="tv ink">384/407</div><div class="ts">cond 0/18 traded at our price</div></div><div class="tile"><div class="tl">Through the book</div><div class="tv bad">2.1%</div><div class="ts">pos > 1 (timing/data noise)</div></div><div class="tile"><div class="tl">Stale quotes</div><div class="tv warn">1</div><div class="ts">quote >2s before fill (excluded)</div></div></div>
 <div class="card"><h2>Where our fills sat in the real NBBO</h2>
 <div class="note">0 = crossed the spread (marketable, realistic) · 0.5 = mid · 1 = far touch (price
 improvement) · red = outside the book (timing/data noise). A real marketable engine clusters near 0.</div>
@@ -96,8 +118,8 @@ improvement) · red = outside the book (timing/data noise). A real marketable en
 <div class="note">Every scored fill falls in exactly one band; the shares add to 100%.
 "Crossed the spread" is the realistic/conservative outcome.</div>
 <table><thead><tr><th>where our fill landed</th><th>fills</th><th>% of fills</th>
-<th>median position</th></tr></thead>
-<tbody><tr><td>Crossed the spread — filled at the touch</td><td>399</td><td class='good'>77.2%</td><td>0.000</td></tr><tr><td>Inside — better than the touch, at/below mid</td><td>46</td><td>8.9%</td><td>0.500</td></tr><tr class='sub'><td>↳ ≤ mid — conservative subtotal</td><td>445</td><td class='good'>86.1%</td><td>—</td></tr><tr><td>Better than mid — price improvement</td><td>61</td><td>11.8%</td><td>1.000</td></tr><tr><td>Through the book — sub-second timing noise</td><td>11</td><td class='bad'>2.1%</td><td>2.000</td></tr><tr class='tot'><td>All scored fills</td><td>517</td><td>100.0%</td><td>0.000</td></tr></tbody></table></div>
+<th>cumulative %</th><th>median position</th></tr></thead>
+<tbody><tr><td>Crossed the spread — filled at the touch</td><td>399</td><td class='good'>77.2%</td><td>77.2%</td><td>0.000</td></tr><tr><td>Inside — better than the touch, at/below mid</td><td>46</td><td>8.9%</td><td class='good'>86.1%</td><td>0.500</td></tr><tr><td>Better than mid — price improvement</td><td>61</td><td>11.8%</td><td>97.9%</td><td>1.000</td></tr><tr><td>Through the book — sub-second timing noise</td><td>11</td><td class='bad'>2.1%</td><td>100.0%</td><td>2.000</td></tr><tr class='tot'><td>All scored fills</td><td>517</td><td>100.0%</td><td>—</td><td>0.000</td></tr></tbody></table></div>
 <div class="card"><h2>By strategy</h2>
 <div class="note">scored = quote ok, fresh, our price known. confirm% = single-leg prints (cond 0/18).
 </div>
