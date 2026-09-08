@@ -48,21 +48,28 @@ Backtest convention, from TD NBBO at the entry timestamp:
   ~touch, median at touch, 86% ≤ mid — so touch is the honest/conservative primary).
 
 ## 5. Exits (intraday — whichever fires FIRST) — `thesis_broken`
-Priced at the **then-current TD NBBO** (touch), not 4pm intrinsic:
+Priced at the **then-current TD option NBBO** (touch), not 4pm intrinsic:
 1. **Level acceptance:** spot holds **beyond the short strike** (call: above; put: below) for
    **≥10 min** (`level_accept_mins`), wicks reset the clock → close the breached vertical.
-2. **Regime invalidation:** spot crosses **HVL** against the trade since entry (PIN setups: entry
-   positive-gamma → now negative-gamma) → close. *(HVL source per day = open question, §8.)*
-3. **Time-stop 14:45 CT** (12:15 CT on early-close days) → close whatever's open, flat before the
-   0DTE gamma cliff.
-Each side (bps/bcs) exits independently on its own level-acceptance; regime/time-stop close both.
+2. **Time-stop 14:45 CT** (12:15 CT on early-close days) → close whatever's open.
+Each side (bps/bcs) exits independently on its own level-acceptance.
 
-## 6. Data required from ThetaData (bigger pull than entry+settle)
-- Entry NBBO per leg at the entry time (have the mechanism).
-- **Intraday underlying path** (SPX index, ≤1-min) to detect level-acceptance timing + HVL crosses.
-- Option NBBO **at each candidate exit timestamp** (breach-accept time, HVL-cross time, 14:45).
-- Per-day **HVL** and **entry regime** (spot vs HVL at entry).
+**Regime-invalidation is INERT for these trades (verified 2026-09-08):** the gexlog-rewrite
+gameplan writes `plan["levels"] = {}`, so `thesis_broken`'s `hvl` is None and that branch never
+runs. So NO HVL, NO MenthorQ dependency for exits — just acceptance + time-stop. (If the desk
+later populates HVL, add it back.)
+
+## 6. Data required
+- Entry NBBO per leg at entry time — **TD options (Standard), have it.**
+- Option NBBO **at each candidate exit timestamp** (acceptance time, 14:45) — **TD options, have it.**
+- **Intraday underlying path** (≤1-min) to detect the level-acceptance breach —
+  ⚠ **TD index intraday is NOT on our tier** (index intraday = paid; we have FREE index = EOD only,
+  verified 2026-09-08). Alternatives (pick in §8): **(i)** local **ES 1-min bars** (`data/bars/ES*.parquet`)
+  → SPX via daily basis; **(ii)** infer spot intraday from TD option NBBO via put-call parity at an
+  ATM strike; **(iii)** upgrade TD index tier.
+- SPX EOD close — TD FREE index eod, have it (settlement edge cases only; time-stop closes first).
 - Calendar via market_calendar (no pull).
+- HVL/regime — **not needed** (§5, inert).
 
 ## 7. MenthorQ handling (must be honest)
 MQ 0DTE walls sit **through spot 47/77 days** — not a drop-in condor. Options, pick one:
@@ -72,7 +79,18 @@ MQ 0DTE walls sit **through spot 47/77 days** — not a drop-in condor. Options,
   different trade in. Report separately if at all.
 Never report MQ's subset total next to gx/td full-sample totals without the coverage caveat.
 
-## 8. Open questions (need your call before running)
+## 7b. DECISIONS LOCKED (2026-09-08, user)
+1. **Underlying path = put-call parity from the option NBBO we already pull** — `S(t) = C_mid(t)
+   − P_mid(t) + K·e^(−rT)` at a near-ATM strike. TD's "underlying attached to chains" is **Pro
+   (greeks rows) — not our tier**; parity stays on Standard, exact-time, no new pull beyond the
+   ATM pair. (Verified: option NBBO is available at arbitrary intraday times, fresh + tight.)
+2. **Drop MenthorQ from the P&L.** MQ is not a condor-wall product (through-spot 47/77). It stays
+   only in the wall-POSITION comparison already built. P&L sources = **gexlog · TD · fixed-offset**.
+3. **Pilot the 77 calibration days first** (05-13→09-04), verify the engine, then decide on multi-year.
+4. **Truth anchor = YES:** cross-check the backtest's gexlog column against the REAL logged
+   `gx_bps`/`gx_bcs` fills+exits in the live Aug window before trusting the TD/baseline columns.
+
+## 8. Remaining open questions
 1. **HVL source** for regime-invalidation: gexlog doesn't publish HVL in `levels`; the live plan
    gets it from — MenthorQ? gexlog `gex_flip`? Confirm the desk's actual source so we replicate it.
 2. **Sizing:** keep size=1 (clean per-lot comparison) or replicate any EM-based sizing? (`execution.size=1` today, so 1 is faithful.)
