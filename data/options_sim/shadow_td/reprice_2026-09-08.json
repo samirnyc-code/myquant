@@ -53,7 +53,12 @@
         "px": 21.2,
         "quote_ts": "2026-09-08T09:32:00.998"
       }
-    ]
+    ],
+    "td_exit_debit_exact": 18.4,
+    "et_exit_time_used": "09:47:37",
+    "ib_exit_cost": 18.5,
+    "td_pnl_exact": -556.52,
+    "ib_pnl": -566.52
   },
   "auto_20260908_083317": {
     "td_credit_exact": 3.4,
@@ -137,7 +142,12 @@
         "px": 11.8,
         "quote_ts": "2026-09-08T09:34:50.998"
       }
-    ]
+    ],
+    "td_exit_debit_exact": 12.4,
+    "et_exit_time_used": "09:48:51",
+    "ib_exit_cost": 12.4,
+    "td_pnl_exact": -476.52,
+    "ib_pnl": -486.52
   },
   "auto_20260908_083549": {
     "td_credit_exact": 6.85,

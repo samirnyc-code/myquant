@@ -32,10 +32,14 @@ def render(date):
     reprice = json.loads(rp.read_text(encoding="utf-8")) if rp.exists() else {}
     for tid, t in b.get("trades", {}).items():
         ex = reprice.get(tid)
-        if ex and ex.get("td_credit_exact") is not None:
-            t["td_credit"] = ex["td_credit_exact"]
-            t["td_fill_ok"] = True
-            t["exact"] = True
+        if not ex:
+            continue
+        if ex.get("td_credit_exact") is not None:
+            t["td_credit"] = ex["td_credit_exact"]; t["td_fill_ok"] = True; t["exact"] = True
+        if ex.get("td_exit_debit_exact") is not None:
+            t["td_exit_debit"] = ex["td_exit_debit_exact"]
+        if ex.get("td_pnl_exact") is not None:
+            t["td_pnl"] = ex["td_pnl_exact"]
     trades = list(b.get("trades", {}).values())
 
     def ib_pnl(t):

@@ -78,10 +78,31 @@ def main():
             credit += (px if lg["side"] == "sell" else -px) * lg.get("qty", 1)
             detail.append({"side": lg["side"], "strike": lg["strike"], "right": lg["right"],
                            "bid": b, "ask": a_, "px": px, "quote_ts": ts})
-        return tid, {"td_credit_exact": round(credit, 2) if ok else None, "ok": ok,
-                     "et_time_used": et_time, "ib_fill_at_ct": t.get("ib_fill_at"),
-                     "ib_credit": t.get("ib_credit"), "td_credit_live": t.get("td_credit"),
-                     "detail": detail}
+        rec = {"td_credit_exact": round(credit, 2) if ok else None, "ok": ok,
+               "et_time_used": et_time, "ib_fill_at_ct": t.get("ib_fill_at"),
+               "ib_credit": t.get("ib_credit"), "td_credit_live": t.get("td_credit"),
+               "detail": detail}
+        # EXIT reprice: at the exact close time, marketable-touch to CLOSE the spread
+        # (buy back the short @ask, sell the long @bid) — the way the backtest prices a stop.
+        if t.get("exited") and t.get("ib_exit_at"):
+            xet = ct_to_et(str(t.get("ib_exit_at")))
+            debit, xok = 0.0, True
+            for lg in legs:
+                q = nbbo_at(exp, lg["strike"], lg["right"], exp, xet)
+                if q is None:
+                    xok = False; continue
+                b, a_, _ = q
+                px = a_ if lg["side"] == "sell" else b   # buy back short @ask, sell long @bid
+                debit += (px if lg["side"] == "sell" else -px) * lg.get("qty", 1)
+            rec["td_exit_debit_exact"] = round(debit, 2) if xok else None
+            rec["et_exit_time_used"] = xet
+            rec["ib_exit_cost"] = t.get("ib_exit_cost")
+            if ok and xok:
+                nleg = len(legs)
+                rec["td_pnl_exact"] = round((credit - debit) * 100 - 2 * nleg * 1.63, 2)
+                ibc, ibx = t.get("ib_credit"), t.get("ib_exit_cost")
+                rec["ib_pnl"] = round((ibc - ibx) * 100 - 2 * nleg * 1.63, 2) if (ibc is not None and ibx is not None) else None
+        return tid, rec
 
     with ThreadPoolExecutor(max_workers=4) as ex:
         res = dict(r for r in ex.map(work, book["trades"].items()) if r[1] is not None)
@@ -89,14 +110,22 @@ def main():
     out = SHADOW / f"reprice_{a.date}.json"
     out.write_text(json.dumps(res, indent=2), encoding="utf-8")
 
-    print(f"{'order':10} {'IBfill(CT)':>10} {'ETsec':>9} {'IBcr':>6} {'liveTD':>7} {'exactTD':>8} {'exactD':>7}")
+    print("ENTRY (exact fill second):")
+    print(f"  {'order':10} {'IBcr':>6} {'exactTD':>8} {'d':>6}")
     for tid, r in sorted(res.items(), key=lambda kv: book["trades"][kv[0]].get("id", "")):
         idn = book["trades"][tid].get("id", "")
-        ib = r["ib_credit"]; ex_ = r["td_credit_exact"]; lv = r["td_credit_live"]
+        ib = r["ib_credit"]; ex_ = r["td_credit_exact"]
         dd = round(ib - ex_, 2) if (ib is not None and ex_ is not None) else None
-        print(f"  {idn:10} {str(r['ib_fill_at_ct']):>10} {str(r['et_time_used']):>9} "
-              f"{str(ib):>6} {str(lv):>7} {str(ex_):>8} {str(dd):>7}")
-    print(f"-> {out}")
+        print(f"  {idn:10} {str(ib):>6} {str(ex_):>8} {str(dd):>6}")
+    print("\nEXIT + P&L (exact close second) — CLOSED trades:")
+    print(f"  {'order':10} {'IBexit':>7} {'exactTDexit':>12} {'IB_PnL':>8} {'exactTD_PnL':>12}")
+    for tid, r in sorted(res.items(), key=lambda kv: book["trades"][kv[0]].get("id", "")):
+        if "td_exit_debit_exact" not in r:
+            continue
+        idn = book["trades"][tid].get("id", "")
+        print(f"  {idn:10} {str(r.get('ib_exit_cost')):>7} {str(r.get('td_exit_debit_exact')):>12} "
+              f"{str(r.get('ib_pnl')):>8} {str(r.get('td_pnl_exact')):>12}")
+    print(f"\n-> {out}")
 
 
 if __name__ == "__main__":
