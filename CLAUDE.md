@@ -6,6 +6,12 @@
 or action.** It is the ONLY authoritative record of current state, direction,
 and what is paused/agreed.
 
+The **CONTROL BOARD** at the very top of that file is the shared HUB — one screen:
+every active workstream, its owner, status, and next action. **Multiple chats may work
+this repo at once.** Before starting an item, mark it `WIP <A/B>` in its row so another
+chat won't touch it; clear/update the row when done. This board is how parallel chats
+avoid colliding — there is NO separate `hub.md`, and none should be created.
+
 Do **NOT** treat the `.claude/projects/.../memory/` session-state files as the
 handoff. They are secondary reference notes and may be stale or mislabeled. If
 anything there conflicts with `docs/living/handoff.md`, **handoff.md wins**.
