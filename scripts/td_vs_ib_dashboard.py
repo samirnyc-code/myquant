@@ -42,15 +42,28 @@ def render(date):
         if tdp is not None:
             td_tot += tdp; ntd += 1
         d = (ibp - tdp) if (ibp is not None and tdp is not None) else None
-        nf = "" if t.get("td_fill_ok", True) else " <span class='warn'>no-fill</span>"
-        st = "closed" if t.get("exited") else "open"
+        is_open = not t.get("exited")
+        st = "closed" if t.get("exited") else "<span class='m'>open</span>"
+        okfill = t.get("td_fill_ok", True)
+        # TD credit: on a no-fill show WHY (missing leg), not the stale partial number
+        if okfill:
+            td_cr = money(t.get("td_credit"))
+        else:
+            miss = next((f"{dd.get('strike'):.0f}{dd.get('right')}" for dd in (t.get("td_open_detail") or [])
+                         if isinstance(dd, dict) and dd.get("bid") is None), "leg")
+            td_cr = f"<span class='warn'>no-fill ({miss} had no TD quote)</span>"
+        # open trades have no exit/P&L yet — show 'open', not blank, so it's clearly not a TD miss
+        op = "<span class='m'>open</span>"
+        ib_ex = op if is_open else money(t.get("ib_exit_cost") and -t.get("ib_exit_cost"))
+        td_ex = op if is_open else money(t.get("td_exit_debit") and -t.get("td_exit_debit"))
+        ib_pl = op if is_open else f"<span class='{_c(ibp)}'>{money(ibp)}</span>"
+        td_pl = op if is_open else f"<span class='{_c(tdp)}'>{money(tdp)}</span>"
+        d_cell = op if is_open else f"<span class='{_c(d)}'>{money(d)}</span>"
         rows.append(
             f"<tr><td>{t.get('id')}</td><td class='m'>{t.get('stream')}</td><td>{st}</td>"
-            f"<td class='r'>{money(t.get('ib_credit'))}</td><td class='r'>{money(t.get('td_credit'))}{nf}</td>"
-            f"<td class='r'>{money(t.get('ib_exit_cost') and -t.get('ib_exit_cost'))}</td>"
-            f"<td class='r'>{money(t.get('td_exit_debit') and -t.get('td_exit_debit'))}</td>"
-            f"<td class='r {_c(ibp)}'>{money(ibp)}</td><td class='r {_c(tdp)}'>{money(tdp)}</td>"
-            f"<td class='r {_c(d)}'>{money(d)}</td></tr>")
+            f"<td class='r'>{money(t.get('ib_credit'))}</td><td class='r'>{td_cr}</td>"
+            f"<td class='r'>{ib_ex}</td><td class='r'>{td_ex}</td>"
+            f"<td class='r'>{ib_pl}</td><td class='r'>{td_pl}</td><td class='r'>{d_cell}</td></tr>")
     diff = ib_tot - td_tot
     tiles = (
         f"<div class='card'><div class='ct'>IB book</div><div class='big {_c(ib_tot)}'>{money(ib_tot)}</div>"
@@ -64,7 +77,16 @@ def render(date):
 <th class='r'>TD credit</th><th class='r'>IB exit</th><th class='r'>TD exit</th>
 <th class='r'>IB P&L</th><th class='r'>TD P&L</th><th class='r'>Δ (IB−TD)</th></tr></thead>
 <tbody>{''.join(rows) or '<tr><td colspan=10 class=m>no fills yet</td></tr>'}</tbody></table>
-<p class='m'>{len(trades)} orders mirrored · TD P&L blank = a leg wasn't priceable live (EOD backstop fills it).</p>"""
+<div class="note">
+<b>How to read this:</b> every order is filled twice — real on IB, shadow on ThetaData's live prices.
+<b>"open"</b> = the trade hasn't closed yet, so it has no exit or P&L on <i>either</i> side (not a TD miss).
+<b>"no-fill"</b> = a leg had no live TD quote that instant (usually a far-OTM option); the end-of-day
+backstop reprices it from tick history.<br>
+<b>⚠ Live credits can be mis-timed:</b> the shadow prices a few seconds after IB's fill, and on
+at-the-money legs prices move ~$0.20/sec — so a large credit gap on the <i>flies</i> is timing drift,
+not a real edge. The <b>end-of-day comparison prices each fill at its exact second</b> and is the
+number to trust.</div>
+<p class='m'>{len(trades)} orders mirrored.</p>"""
 
 
 def _c(v):
@@ -84,6 +106,8 @@ h1{font-size:22px;margin:0 0 4px}.sub2{color:#8b949e;font-size:13px}
 table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:left;color:#8b949e;font-size:11px;border-bottom:1px solid #30363d;padding:6px}
 td{padding:5px 6px;border-bottom:1px solid #21262d}.r{text-align:right}.m{color:#8b949e}
 .pos{color:#3fb950;font-weight:600}.neg{color:#f85149;font-weight:600}.warn{color:#e3b341;font-size:11px}
+.note{background:#2b1a0e;border-left:3px solid #d29922;padding:11px 14px;border-radius:6px;margin:16px 0;font-size:12.5px;line-height:1.5}
+@media(prefers-color-scheme:light){.note{background:#fff8e6}}
 </style>"""
 
 
