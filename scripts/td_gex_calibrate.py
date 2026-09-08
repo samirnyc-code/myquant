@@ -28,6 +28,7 @@ import argparse
 import csv
 import json
 import math
+import sys
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
@@ -41,8 +42,8 @@ ROOT = Path(__file__).resolve().parents[1]
 RAW = ROOT / "data/gexlog/raw"
 OUT = ROOT / "data/options_sim"
 BASE = "http://127.0.0.1:25503/v3"
-HOL = json.loads((ROOT / "data/market_holidays.json").read_text()) if (
-    ROOT / "data/market_holidays.json").exists() else {}
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import market_calendar as MC  # rules-derived US market calendar (holidays + early closes)
 R_FREE = 0.043  # ~2y from the reports' treasury block; gamma is ~insensitive to r
 
 
@@ -138,12 +139,9 @@ def implied_vol(price, S, K, T, r, right):
 
 # ---------------------------------------------------------------- calendar
 def prior_trading_day(dstr):
-    d = datetime.strptime(dstr, "%Y-%m-%d")
-    hols = set(HOL.get("holidays", HOL.get("closed", []))) if isinstance(HOL, dict) else set()
-    while True:
-        d -= timedelta(days=1)
-        if d.weekday() < 5 and d.strftime("%Y-%m-%d") not in hols:
-            return d.strftime("%Y-%m-%d")
+    """Prior US-market trading session, holidays + weekends excluded (market_calendar)."""
+    d = datetime.strptime(dstr, "%Y-%m-%d").date()
+    return MC.prev_trading_day(d).strftime("%Y-%m-%d")
 
 
 def year_frac_to_expiry(report_date, expiry_date):
