@@ -135,8 +135,12 @@ def detect_stop(feed, short_k, right, entry_et, hold_min=10):
 
 
 def touch(day_c, short_k, long_k, right, et, closing=False):
-    sq = nbbo_at(day_c, short_k, right, day_c, et)
-    lq = nbbo_at(day_c, long_k, right, day_c, et)
+    sq = lq = None
+    for _ in range(3):                       # retry: terminal drops under load
+        sq = sq or nbbo_at(day_c, short_k, right, day_c, et)
+        lq = lq or nbbo_at(day_c, long_k, right, day_c, et)
+        if sq is not None and lq is not None:
+            break
     if sq is None or lq is None:
         return None
     if closing:

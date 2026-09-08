@@ -71,10 +71,15 @@ def detect(series_t, series_s, short_k, right, entry_t, hold_min=10):
 
 
 def main():
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--month", default="2026-08")
+    a = ap.parse_args()
+    m0, m1 = a.month + "-01", a.month + "-31"
     spx = yahoo_spx()
     df = pd.read_parquet(ROOT / "data/options_log/trades.parquet")
     df["date"] = df["entry_dt"].astype(str).str[:10]
-    fly = df[(df["date"] >= "2026-08-01") & (df["date"] <= "2026-08-31")
+    fly = df[(df["date"] >= m0) & (df["date"] <= m1)
              & df["pnl"].notna()
              & df["strategy_id"].astype(str).str.contains("fly", na=False)].copy()
 
@@ -134,7 +139,7 @@ def main():
         rows.append(rec)
 
     out = pd.DataFrame(rows)
-    out.to_csv(ROOT / "data/options_sim/backtest_fly_control.csv", index=False)
+    out.to_csv(ROOT / f"data/options_sim/backtest_fly_control_{a.month}.csv", index=False)
 
     print(f"August fly verticals: {len(out)}   desk ACTUAL stops: {out.booked_stop.sum()}\n")
     for variant in ("parity", "dfeed"):
