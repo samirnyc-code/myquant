@@ -45,7 +45,7 @@ SIM = ROOT / "data" / "options_sim"
 CT = ZoneInfo("America/Chicago")  # exchange time (Chicago / Central)
 
 
-FEE = 1.30  # $/contract, matches the sim/backtests
+FEE = 1.63  # $/contract — IB ACTUAL all-in per execution (S112 Flex report); was 1.30 modeled
 
 
 def settle_0dte(date, close):

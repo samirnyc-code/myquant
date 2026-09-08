@@ -73,7 +73,7 @@ def entry_extras(legs, credit, spot, width, qty, date_ymd, sig):
     return ex
 
 STRATEGY = "bps_stmr"
-DTE, WIDTH, SHORT_D, FEE = 14, 50, 0.30, 1.30
+DTE, WIDTH, SHORT_D, FEE = 14, 50, 0.30, 1.63   # FEE = IB ACTUAL $/contract/exec (S112; was 1.30)
 DECIDE_T = dt.time(15, 59, 0)
 FILL_END = dt.time(16, 15, 0)
 
@@ -425,7 +425,9 @@ def settle_expired(daily, today, dry):
         cost = sum((1 if l["side"] == "sell" else -1) * _intr(l) for l in legs)
         print(f"SETTLING {tr.trade_id}: expired {exp}, SPX close {S:.2f}, intrinsic cost {cost:.2f}")
         if not dry:
-            r = tlog.update_exit(tr.trade_id, exp, cost, 0.0, fill_model="settlement")
+            # S112: expired = entry executions only (no exit trade), real IB fee per contract
+            fee = len(legs) * int(legs[0].get("qty", 1)) * FEE
+            r = tlog.update_exit(tr.trade_id, exp, cost, fee, fill_model="settlement")
             print(f"  closed: pnl ${r['pnl']:+,.0f}")
 
 
