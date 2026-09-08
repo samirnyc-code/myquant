@@ -344,46 +344,62 @@ evidence against the fill; fillability is judged by the primary test.</li>
 below the bid — extra-conservative slippage where the quote moved against us. The <b>{belowzero}</b>
 fills below 0 make the sim look <i>harder</i> on itself, not easier. <b>Above&nbsp;1</b> is the reverse:
 better than the best price, the through-the-book timing tail.</p></div>"""
-    # ---- P&L bridge (sim vs real market), if reconstruction present ----
-    pnl_html = ""
-    if bridge and bridge.get("bridge"):
-        b = bridge["bridge"]
-        sim0, tdn = b[0][1], b[-1][1]
-        diff = tdn - sim0
-        pct = (100 * diff / sim0) if sim0 else 0
+    # ---- P&L reconciliation (sim vs real market, side by side), if present ----
+    pnl_html, pnl_tiles = "", ""
+    if bridge and bridge.get("compare"):
+        hd = bridge.get("headline", {})
+        sim_adj, tdn = hd.get("sim_adj", 0), hd.get("td_net", 0)
+        sim_booked = bridge.get("sim_booked", 0)
+        comm_corr = bridge.get("commission_correction", 0)
+        diff = tdn - sim_adj
+        pct = (100 * diff / sim_adj) if sim_adj else 0
         dtone = "bad" if diff < 0 else "good"
-        brows2 = ""
-        for lbl, amt in b:
-            total = lbl.startswith("=")
-            atone = "good" if amt >= 0 else "bad"
-            sign = "+" if (amt >= 0 and not total) else ""
-            rc = " class='tot'" if total else ""
-            label = lbl.lstrip("= ").strip() if total else lbl
-            brows2 += (f"<tr{rc}><td>{'= ' if total else ''}{html.escape(label)}</td>"
-                       f"<td class='{'' if total else atone}'>{sign}${amt:,.2f}</td></tr>")
+
+        def money(v):
+            return f"{'−' if v < 0 else ''}${abs(v):,.0f}"
+
+        crows = ""
+        for lbl, s, t, da, dpc, kind in bridge["compare"]:
+            rc = " class='tot'" if kind == "total" else (" class='sub'" if kind == "subtotal" else "")
+            dt_ = "bad" if da < 0 else ("good" if da > 0 else "")
+            crows += (f"<tr{rc}><td>{html.escape(lbl)}</td>"
+                      f"<td>{money(s)}</td><td>{money(t)}</td>"
+                      f"<td class='{dt_}'>{'' if da == 0 else ('+' if da > 0 else '−')}${abs(da):,.0f}</td>"
+                      f"<td class='{dt_}'>{dpc:+.1f}%</td></tr>")
         byx = bridge.get("by_exit", {})
         xrows = ""
         for k in ("order", "expired"):
             g = byx.get(k)
             if g:
+                dd = g["td_net"] - g["sim_adj"]
                 xrows += (f"<tr><td>{k}-closed</td><td>{g['n']}</td>"
-                          f"<td>${g['sim']:,.0f}</td><td>${g['td_net']:,.0f}</td>"
-                          f"<td class='{'bad' if g['td_net']-g['sim']<0 else 'good'}'>"
-                          f"{'+' if g['td_net']-g['sim']>=0 else ''}${g['td_net']-g['sim']:,.0f}</td></tr>")
-        pnl_html = f"""<div class="card pnl"><h2>P&amp;L reconciliation — sim vs real market</h2>
-<div class="note">The book rebuilt from ONLY real data: entries + order-exits at the real marketable
-touch, expiries cash-settled at the official SPX 4pm close, and IB's <b>real</b> commissions. Each
-step changes one thing and closes to the penny.</div>
+                          f"<td>{money(g['sim_adj'])}</td><td>{money(g['td_net'])}</td>"
+                          f"<td class='{'bad' if dd < 0 else 'good'}'>{'+' if dd >= 0 else '−'}${abs(dd):,.0f}</td></tr>")
+        pt = bridge.get("per_trade", {})
+        pnl_html = f"""<div class="card pnl"><h2>P&amp;L — sim vs real market, side by side</h2>
+<div class="note">Book rebuilt from ONLY real data: entries + order-exits at the real marketable
+touch, expiries cash-settled at the official SPX 4pm close. <b>Both sides use IB's real
+commissions</b> (the sim's modeled $1.30/trade is corrected first), so the commissions row is Δ$0
+and every remaining Δ is fills + settlement. {bridge.get('n_trades', '')} trades.</div>
 <div class="pnlhead">
-  <div class="ph"><span class="phk">Sim booked</span><span class="phv">${sim0:,.0f}</span></div>
+  <div class="ph"><span class="phk">Sim booked (modeled fees)</span><span class="phv">{money(sim_booked)}</span></div>
   <div class="pharrow">→</div>
-  <div class="ph"><span class="phk">Real-market net</span><span class="phv {dtone}">${tdn:,.0f}</span></div>
-  <div class="ph"><span class="phk">Difference</span><span class="phv {dtone}">{'+' if diff>=0 else ''}${diff:,.0f} ({pct:+.1f}%)</span></div>
+  <div class="ph"><span class="phk">Sim @ real fees</span><span class="phv">{money(sim_adj)}</span></div>
+  <div class="pharrow">→</div>
+  <div class="ph"><span class="phk">Real-market net</span><span class="phv {dtone}">{money(tdn)}</span></div>
 </div>
-<table class="bridge"><thead><tr><th>step</th><th>P&amp;L impact</th></tr></thead><tbody>{brows2}</tbody></table>
-<div class="note" style="margin-top:12px">By exit type ({bridge.get('n_trades','')} trades):</div>
-<table><thead><tr><th>closed</th><th>trades</th><th>sim P&amp;L</th><th>real-market net</th><th>diff</th></tr></thead>
+<table class="cmp"><thead><tr><th>component</th><th>sim (real fees)</th><th>real (TD)</th><th>Δ $</th><th>Δ %</th></tr></thead>
+<tbody>{crows}</tbody></table>
+<div class="note" style="margin-top:14px">By exit type (both at real fees):</div>
+<table class="cmp"><thead><tr><th>closed</th><th>trades</th><th>sim</th><th>real net</th><th>Δ $</th></tr></thead>
 <tbody>{xrows}</tbody></table></div>"""
+        pnl_tiles = "".join([
+            tile("Real-market net P&L", money(tdn), f"sim @ real fees {money(sim_adj)}", dtone),
+            tile("Sim overstates / trade", money(pt.get('overstate_dollar', 0)),
+                 f"{pct:+.1f}% · fills/settlement only", "bad"),
+            tile("Under-counted fees / trade", money(pt.get('fees_undercounted_dollar', 0)),
+                 f"sim modeled $1.30 vs real IB (was {money(sim_booked)})", "warn"),
+        ])
 
     gen = dt.datetime.now().strftime("%Y-%m-%d %H:%M")
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
@@ -464,7 +480,7 @@ table.bridge td.good{{color:var(--good)}}table.bridge td.bad{{color:var(--bad)}}
 <div class="meta">{meta}</div>
 {summary_html(a)}
 {pnl_html}
-<div class="tiles">{tiles}</div>
+<div class="tiles">{pnl_tiles}{tiles}</div>
 <div class="card"><h2>Where our fills sat in the real NBBO</h2>
 <div class="note">0 = crossed the spread (marketable, realistic) · 0.5 = mid · 1 = far touch (price
 improvement) · red = outside the book (timing/data noise). A real marketable engine clusters near 0.</div>

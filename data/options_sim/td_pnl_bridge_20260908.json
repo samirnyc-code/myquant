@@ -1,44 +1,69 @@
 {
  "n_trades": 187,
- "bridge": [
+ "compare": [
   [
-   "Sim booked P&L (modeled $1.30/trade fees)",
-   9240.4
+   "Entry premium collected",
+   97145.0,
+   96710.0,
+   -435.0,
+   -0.4,
+   "line"
   ],
   [
-   "Commission correction (modeled \u2192 real IB)",
-   -574.61
+   "Exit + settlement",
+   -87661.5,
+   -87732.0,
+   -70.5,
+   -0.1,
+   "line"
   ],
   [
-   "= Calendar P&L at REAL commissions",
-   8665.79
+   "Gross P&L",
+   9483.500000000002,
+   8978.0,
+   -505.5000000000018,
+   -5.3,
+   "subtotal"
   ],
   [
-   "Entry-fill difference (TD touch vs sim credit)",
-   -435.0
+   "Commissions (real IB, both sides)",
+   -817.7099999999999,
+   -817.7099999999999,
+   0.0,
+   0.0,
+   "line"
   ],
   [
-   "Order-exit fill difference (TD touch vs sim)",
-   -220.0
-  ],
-  [
-   "Settlement difference (expired: TD SET vs sim)",
-   149.5
-  ],
-  [
-   "= TD NET P&L (real fills + settlement + fees)",
-   8160.29
+   "Net P&L (at real commissions)",
+   8665.790000000003,
+   8160.290000000002,
+   -505.5000000000009,
+   -5.8,
+   "total"
   ]
  ],
+ "per_trade": {
+  "overstate_dollar": 2.7,
+  "overstate_pct": 6.2,
+  "fees_undercounted_dollar": 3.07
+ },
+ "sim_booked": 9240.4,
+ "sim_modeled_comm": 243.1,
+ "real_comm": 817.71,
+ "commission_correction": -574.61,
+ "headline": {
+  "sim_adj": 8665.79,
+  "td_net": 8160.29
+ },
  "by_exit": {
   "expired": {
    "n": 115,
-   "sim": 21044.0,
+   "sim_adj": 20830.0,
    "td_net": 20779.5
   },
   "order": {
    "n": 72,
-   "sim": -11803.6,
+   "sim_adj": -12164.21,
    "td_net": -12619.21
   }
  }

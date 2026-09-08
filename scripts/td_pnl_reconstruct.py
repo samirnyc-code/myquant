@@ -112,10 +112,12 @@ def main() -> int:
         rows.append({
             "trade_id": r.trade_id, "strategy": r.strategy_id,
             "closed": "order" if order_closed else "expired",
-            "sim_pnl": round(sim_pnl, 2), "sim_comm": SIM_FEE,
-            "real_comm": round(real_comm, 2),
+            "sim_entry": round(float(r.credit) * MULT, 2), "td_entry": round(td_entry * MULT, 2),
+            "sim_gross": round(sim_gross, 2), "td_gross": round(td_gross, 2),
+            "td_exit": round(td_exit * MULT, 2),
+            "sim_comm": SIM_FEE, "real_comm": round(real_comm, 2),
+            "sim_pnl": round(sim_pnl, 2), "td_net": round(td_net, 2),
             "sim_at_realcomm": round(sim_pnl + SIM_FEE - real_comm, 2),
-            "td_gross": round(td_gross, 2), "td_net": round(td_net, 2),
             "commission_adj": round(SIM_FEE - real_comm, 2),
             "entry_fill_diff": round(entry_diff, 2),
             "exit_settle_diff": round(exit_settle_diff, 2),
@@ -125,30 +127,51 @@ def main() -> int:
     stamp = dt.datetime.now().strftime("%Y%m%d")
     d.to_csv(SIM / f"td_pnl_reconstruct_{stamp}.csv", index=False)
 
-    exp = d[d.closed == "expired"]
-    ordr = d[d.closed == "order"]
-    bridge = [
-        ("Sim booked P&L (modeled $1.30/trade fees)", round(d.sim_pnl.sum(), 2)),
-        ("Commission correction (modeled → real IB)", round(d.commission_adj.sum(), 2)),
-        ("= Calendar P&L at REAL commissions", round(d.sim_at_realcomm.sum(), 2)),
-        ("Entry-fill difference (TD touch vs sim credit)", round(d.entry_fill_diff.sum(), 2)),
-        ("Order-exit fill difference (TD touch vs sim)", round(ordr.exit_settle_diff.sum(), 2)),
-        ("Settlement difference (expired: TD SET vs sim)", round(exp.exit_settle_diff.sum(), 2)),
-        ("= TD NET P&L (real fills + settlement + fees)", round(d.td_net.sum(), 2)),
+    n = len(d)
+    sim_entry, td_entry = d.sim_entry.sum(), d.td_entry.sum()
+    sim_gross, td_gross = d.sim_gross.sum(), d.td_gross.sum()
+    sim_exit, td_exit = sim_gross - sim_entry, d.td_exit.sum()
+    sim_comm, real_comm = d.sim_comm.sum(), d.real_comm.sum()
+    sim_net, td_net = d.sim_pnl.sum(), d.td_net.sum()
+
+    # Restate the sim at REAL IB commissions FIRST, so the comparison uses the same fees on both
+    # sides (commissions delta = 0) and the remaining delta is purely fills + settlement.
+    sim_adj = sim_gross - real_comm                       # sim P&L at real commissions
+
+    def dp(s, t):
+        return round((t - s) / abs(s) * 100, 1) if s else 0.0
+    # [label, sim, real, delta$, delta%, kind]  kind: line | subtotal | total
+    compare = [
+        ["Entry premium collected", sim_entry, td_entry, td_entry - sim_entry, dp(sim_entry, td_entry), "line"],
+        ["Exit + settlement", sim_exit, td_exit, td_exit - sim_exit, dp(sim_exit, td_exit), "line"],
+        ["Gross P&L", sim_gross, td_gross, td_gross - sim_gross, dp(sim_gross, td_gross), "subtotal"],
+        ["Commissions (real IB, both sides)", -real_comm, -real_comm, 0.0, 0.0, "line"],
+        ["Net P&L (at real commissions)", sim_adj, td_net, td_net - sim_adj, dp(sim_adj, td_net), "total"],
     ]
+    per_trade = {
+        "overstate_dollar": round((sim_adj - td_net) / n, 2),           # fills/settlement only, per trade
+        "overstate_pct": round((sim_adj - td_net) / abs(td_net) * 100, 1),
+        "fees_undercounted_dollar": round((real_comm - sim_comm) / n, 2),  # the separate fee restatement
+    }
     (SIM / f"td_pnl_bridge_{stamp}.json").write_text(json.dumps({
-        "n_trades": len(d), "bridge": bridge,
-        "by_exit": {k: {"n": int(len(g)), "sim": round(g.sim_pnl.sum(), 2),
+        "n_trades": n, "compare": compare, "per_trade": per_trade,
+        "sim_booked": round(sim_net, 2), "sim_modeled_comm": round(sim_comm, 2),
+        "real_comm": round(real_comm, 2), "commission_correction": round(-(real_comm - sim_comm), 2),
+        "headline": {"sim_adj": round(sim_adj, 2), "td_net": round(td_net, 2)},
+        "by_exit": {k: {"n": int(len(g)), "sim_adj": round(g.sim_at_realcomm.sum(), 2),
                         "td_net": round(g.td_net.sum(), 2)} for k, g in d.groupby("closed")},
     }, indent=1), encoding="utf-8")
 
-    w = max(len(lbl) for lbl, _ in bridge)
-    print(f"\ntrades: {len(d)}  (skipped {miss})\n")
-    for lbl, amt in bridge:
-        lead = "" if lbl.startswith("=") else "   "
-        line = f"  {lead}{lbl:<{w}}  ${amt:>11,.2f}"
-        print(line.encode("ascii", "replace").decode())
-    print(f"\n  saved -> {(SIM / f'td_pnl_reconstruct_{stamp}.csv').relative_to(ROOT)} + bridge json")
+    print(f"\ntrades: {n}  (skipped {miss})")
+    print(f"  Sim booked ${sim_net:,.0f} (modeled fees ${sim_comm:,.0f}) "
+          f"-> restated at REAL fees ${real_comm:,.0f} -> ${sim_adj:,.0f}\n")
+    print(f"  {'component':34} {'sim':>12} {'real(TD)':>12} {'delta$':>10} {'delta%':>8}")
+    for lbl, s, t, da, dpc, _ in compare:
+        print(f"  {lbl:34} ${s:>10,.0f} ${t:>10,.0f} ${da:>8,.0f} {dpc:>7.1f}%")
+    print(f"\n  at real fees, sim overstates ${per_trade['overstate_dollar']}/trade "
+          f"({per_trade['overstate_pct']}%) from fills/settlement; "
+          f"separately, real fees are ${per_trade['fees_undercounted_dollar']}/trade above the sim's model")
+    print(f"  saved -> {(SIM / f'td_pnl_reconstruct_{stamp}.csv').relative_to(ROOT)} + bridge json")
     return 0
 
 
