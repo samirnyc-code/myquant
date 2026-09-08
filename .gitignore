@@ -73,6 +73,10 @@ data/depth/
 scratchpad/orats_token.txt
 data/orats/
 
+# Strategy-name decode key for anonymized vendor reports — private, regenerable
+thetadata_strategy_map_*.csv
+**/thetadata_strategy_map_*.csv
+
 # Secrets — env files, ThetaData / IBKR-Flex credentials (never commit)
 .env
 **/.env

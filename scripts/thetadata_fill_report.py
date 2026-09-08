@@ -133,7 +133,36 @@ def _hist(scored: pd.Series) -> list[tuple[str, int, str]]:
     return [(b, counts[b], tone) for b, tone in buckets]
 
 
-def render(df: pd.DataFrame, a: dict, synthetic: bool, src: str) -> str:
+def summary_html(a: dict) -> str:
+    """Plain-English written summary, generated from the actual metrics."""
+    med = a["median_pos"]
+    good = med is not None and med <= 0.5
+    verdict = ("realistic — the same prices a real marketable order would get"
+               if good else "worth a closer look — fills sit better than a crossing order should")
+    return f"""<div class="summary">
+<h2>In plain English</h2>
+<p>This checks whether our simulated option fills could really have happened. For each of our
+<b>{a['n_events']}</b> buy/sell fills, we looked up the <b>real market</b> — the actual bid/ask and
+the real trades that printed — at the exact second the broker says we filled, and compared our
+price against it.</p>
+<p class="verdict"><b>Bottom line: the fills look {verdict}.</b></p>
+<ul>
+<li><b>Where we filled.</b> The typical fill landed at position <b>{med}</b> between the bid and the
+ask (0 = the price you pay to cross the spread, 0.5 = the midpoint, 1 = the best possible price).
+A value near 0 is what a real market order looks like — <b>{a['pct_conservative']}%</b> of fills were
+at-or-worse than the midpoint, i.e. not too-good-to-be-true.</li>
+<li><b>Was the size really there.</b> <b>{a['pct_size_ok']}%</b> of fills had at least one contract
+actually available at that price — so the fill wasn't a mirage; real depth was sitting there.</li>
+<li><b>Did a real trade happen at our price.</b> Of the <b>{a['n_confirm_tested']}</b> fills we could
+check, <b>{a['n_confirmed']}</b> had a genuine single-leg trade print at our price (not a multi-leg
+package price).</li>
+<li><b>Anything off.</b> <b>{a['pct_through']}%</b> looked slightly better than the market — a
+sub-second timing artifact (the quote we captured was the last one just before the fill), not an
+impossible fill. <b>{a['n_stale']}</b> fill(s) had a too-old quote and were set aside.</li>
+</ul></div>"""
+
+
+def render(df: pd.DataFrame, a: dict, synthetic: bool, src: str, anon: bool = False) -> str:
     scored = df[df.pos.notna() & ~df.stale]
     bars = _hist(scored.pos) if len(scored) else []
     bmax = max((c for _, c, _ in bars), default=1) or 1
@@ -213,6 +242,14 @@ h1{{font-size:17px;margin:0;font-weight:650}}
 .tv{{font-size:26px;font-weight:680;font-variant-numeric:tabular-nums;margin:3px 0}}
 .tv.good{{color:var(--good)}}.tv.warn{{color:var(--warn)}}.tv.bad{{color:var(--bad)}}
 .ts{{font-size:11.5px;color:var(--ink2)}}
+.summary{{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin:16px 0}}
+.summary h2{{font-size:14px;margin:0 0 8px;font-weight:660}}
+.summary p{{margin:0 0 9px;line-height:1.5;color:var(--ink2)}}
+.summary p.verdict{{color:var(--ink);font-size:15px}}
+.summary ul{{margin:6px 0 0;padding-left:18px}}
+.summary li{{margin:5px 0;line-height:1.5;color:var(--ink2)}}
+.summary b{{color:var(--ink)}}
+.anon{{font-size:12px;color:var(--muted);margin:2px 0 0}}
 .card{{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:15px 17px;margin:14px 0}}
 .card h2{{font-size:13px;margin:0 0 4px;font-weight:640}}
 .card .note{{font-size:12px;color:var(--muted);margin-bottom:12px}}
@@ -231,13 +268,15 @@ th{{font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600}}
 <div class="sub">generated {gen} · source {html.escape(src)}</div></header>
 <div class="wrap">
 {banner}
+{summary_html(a)}
 <div class="tiles">{tiles}</div>
 <div class="card"><h2>Where our fills sat in the real NBBO</h2>
 <div class="note">0 = crossed the spread (marketable, realistic) · 0.5 = mid · 1 = far touch (price
 improvement) · red = outside the book (timing/data noise). A real marketable engine clusters near 0.</div>
 <div class="hist">{cols_html}</div><div class="hlabs">{labs_html}</div></div>
 <div class="card"><h2>By strategy</h2>
-<div class="note">scored = quote ok, fresh, our price known. confirm% = single-leg prints (cond 0/18).</div>
+<div class="note">scored = quote ok, fresh, our price known. confirm% = single-leg prints (cond 0/18).
+{"Strategy names anonymized." if anon else ""}</div>
 <table><thead><tr><th>strategy</th><th>events</th><th>scored</th><th>median pos</th>
 <th>crossed%</th><th>size ok%</th><th>confirm%</th></tr></thead><tbody>{trows}</tbody></table></div>
 </div></body></html>"""
@@ -301,6 +340,8 @@ def main() -> int:
     ap.add_argument("--mock", action="store_true", help="synthetic preview (no terminal/data needed)")
     ap.add_argument("--at", help="at_time_results CSV (default: newest)")
     ap.add_argument("--prints", help="trade_quote_prints CSV (default: newest)")
+    ap.add_argument("--anon", action="store_true",
+                    help="anonymize strategy names for a vendor-facing copy (writes a PRIVATE legend)")
     ap.add_argument("--no-open", action="store_true")
     args = ap.parse_args()
 
@@ -318,14 +359,23 @@ def main() -> int:
         src, synthetic = str(Path(at_p).relative_to(ROOT)), False
 
     df = compute(at_df, prints)
+
+    if args.anon:                                        # vendor-facing: hide our strategy names
+        names = sorted(x for x in df.strategy.dropna().unique())
+        strat_map = {n: f"S{i + 1:02d}" for i, n in enumerate(names)}
+        df["strategy"] = df.strategy.map(lambda x: strat_map.get(x, x))
+        legend = SIM / f"thetadata_strategy_map_{dt.datetime.now():%Y%m%d}.csv"
+        pd.DataFrame([{"code": c, "strategy": n} for n, c in strat_map.items()]).to_csv(legend, index=False)
+        print(f"PRIVATE legend (do NOT send) -> {legend.relative_to(ROOT)}")
+
     a = agg(df)
     print(f"events={a['n_events']} scored={a['n_scored']} median_pos={a['median_pos']} "
           f"crossed={a['pct_conservative']}% size_ok={a['pct_size_ok']}% "
           f"confirmed={a['n_confirmed']}/{a['n_confirm_tested']} stale={a['n_stale']}"
-          + ("   [SYNTHETIC]" if synthetic else ""))
+          + ("   [SYNTHETIC]" if synthetic else "") + ("   [ANON]" if args.anon else ""))
     out = SIM / (f"thetadata_fill_report_{'SYNTHETIC_' if synthetic else ''}"
-                 f"{dt.datetime.now():%Y%m%d}.html")
-    out.write_text(render(df, a, synthetic, src), encoding="utf-8")
+                 f"{'anon_' if args.anon else ''}{dt.datetime.now():%Y%m%d}.html")
+    out.write_text(render(df, a, synthetic, src, anon=args.anon), encoding="utf-8")
     print(f"saved -> {out.relative_to(ROOT)}")
     if not args.no_open:
         webbrowser.open(out.as_uri())
