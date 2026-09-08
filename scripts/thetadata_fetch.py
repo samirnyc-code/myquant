@@ -150,10 +150,16 @@ COMPLEX_CONDITIONS = {"130", "131", "134"}
 
 
 def _sod(t: str):
-    """'HH:MM:SS' or 'HH:MM:SS.mmm' -> float seconds-of-day (None if unparseable)."""
+    """Seconds-of-day from 'HH:MM:SS[.mmm]' OR a full ISO/space datetime
+    ('2026-08-04T09:33:34.883', '2026-08-04 09:33:34'). None if unparseable."""
+    s = str(t)
+    if "T" in s:
+        s = s.split("T", 1)[1]
+    elif " " in s:
+        s = s.split(" ", 1)[1]
     try:
-        h, m, s = str(t).split(":")
-        return int(h) * 3600 + int(m) * 60 + float(s)
+        h, m, sec = s.split(":")
+        return int(h) * 3600 + int(m) * 60 + float(sec)
     except (ValueError, AttributeError):
         return None
 
