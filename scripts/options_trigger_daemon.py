@@ -821,6 +821,18 @@ def fire(ib, trig, spot, plan, reason, dry):
     snapshot_chart(tid, "open")
 
 
+def _hb():
+    """Liveness stamp written each loop iteration. desk_watchdog treats a stale
+    heartbeat (process alive but not iterating) as a HANG and restarts us — the
+    other half of the 2026-08-19 outage fix (the try/except guards crashes; this
+    guards hangs)."""
+    try:
+        (ROOT / "data" / "options_sim" / "trigger_daemon_heartbeat.txt").write_text(
+            now_ct().isoformat())
+    except Exception:
+        pass
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--date", help="YYYYMMDD (default today CT)")
@@ -885,6 +897,7 @@ def main():
             # daemon kept opening trades but stopped exiting them). Now one fault =
             # one skipped poll, logged + alerted; positions keep being managed.
             try:
+                _hb()   # heartbeat: proves the loop is iterating (watchdog hang-detection)
                 spot = read_live()
                 if spot is None:
                     time.sleep(POLL)

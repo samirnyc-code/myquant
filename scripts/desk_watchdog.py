@@ -54,6 +54,7 @@ THRESH = {
     "feed":  {"slow": 180, "fast": 45},    # live.json writes every ~5s
     "tape":  {"slow": 600, "fast": 300},   # underlying tape writes every ~60s
     "marks": {"slow": 420, "fast": 300},   # marks watch writes every ~120s
+    "trig_hb": {"slow": 300, "fast": 180}, # trigger daemon stamps every loop; slow=manage_open quoting
 }
 MODE = "slow"             # flipped to "fast" by --daemon
 
@@ -155,7 +156,15 @@ def check_marks():
 
 def check_trigger_daemon():
     pids = procs_matching("options_trigger_daemon")
-    return bool(pids), f"pids {pids}" if pids else "process gone"
+    if not pids:
+        return False, "process gone"
+    # HANG detection (2026-08-19 outage): the process can be alive yet stop iterating
+    # (a blocking IB call, a wedged loop) — leaving open positions unmanaged. The daemon
+    # stamps trigger_daemon_heartbeat.txt every loop; a stale stamp = hung -> restart.
+    age = file_age_s(SIM / "trigger_daemon_heartbeat.txt")
+    if age > THRESH["trig_hb"][MODE]:
+        return False, f"alive but heartbeat {age:.0f}s stale (HUNG — open positions unmanaged)"
+    return True, f"pids {pids}, hb {age:.0f}s"
 
 
 COMPONENTS = [

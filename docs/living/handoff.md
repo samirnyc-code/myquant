@@ -17,7 +17,7 @@ its row + add a dated line to the session log below. Keep this board to ~one scr
 | 2 | ThetaData fill-validation | ✅ DONE (S113) | validated; report built; nothing pending |
 | 3 | **Stress-test SANDBOX + July-2026 TD-only model** | 🔜 NEXT (primary) | build sandbox per S113 spec; exit-rule slider incl. zone-anchored |
 | 4 | Stop-backtest debate | ✅ RESOLVED | stop IS backtestable; Chat B withdrew; fly control 79/79 |
-| 5 | Daemon 08-19 outage | 🟡 PARTIAL | crash-guard committed (c080b5a9); **OPEN: hang-detection heartbeat** |
+| 5 | Daemon 08-19 outage | ✅ FIXED | crash-guard (c080b5a9) + hang heartbeat/watchdog — both classes closed; verify live next session |
 | 6 | ThetaData terminal | 🟡 VERIFY | up in S113 (Java21/:25503); was HTTPError late-S114 — check before any pull |
 | 7 | DuckDB NBBO years-store | ✅ BUILT | `nbbo_store.py` tested; awaiting the real multi-year pull |
 | 8 | 4-year EM backtest (Chat A) | ❓ RECONCILE | `backtest_full_em_2022.py` was running in the other chat — check its output/state |
@@ -25,9 +25,10 @@ its row + add a dated line to the session log below. Keep this board to ~one scr
 | 10 | Max-profit-zone feature | 🟡 STARTED | `maxprofit_zone.py` built; wire into sandbox as an exit dimension |
 
 **Explicitly OPEN (not swept under the rug):**
-- **Daemon HANG-detection** — crash class fixed (per-iteration guard); a true hang (blocking
-  IB call, process alive) is NOT caught. Fix = daemon heartbeat + `desk_watchdog` restart-on-stale.
-- Confirm the daemon crash-guard is live on the next 08:29 CT launch (repo-run, no copy needed).
+- **Daemon fix — VERIFY LIVE:** both classes now handled — crash (per-iteration try/except,
+  c080b5a9) + hang (daemon stamps `trigger_daemon_heartbeat.txt` each loop; `desk_watchdog`
+  `check_trigger_daemon` restarts on a stale stamp). Untested against a real fault. Next session:
+  confirm the heartbeat file updates during RTH and the watchdog logs/acts if it goes stale.
 - ThetaData terminal reachability (needed for any pull/backtest).
 - NT8: user F5 + `SE_RestImmediately=false`, then live-test cancel/arm.
 - Reconcile the other chat's in-flight 4-year run (only its committed artifacts are visible here).
