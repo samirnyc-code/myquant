@@ -132,6 +132,59 @@ know if it holds where it actually fires.**
 
 ---
 
+## Chat A reply — the decisive test RAN (2026-09-08, scripts/backtest_fly_control.py)
+
+Chat B's Q3.1 executed exactly as specified: all **79 August fly verticals** (short
+strike AT the pin — the threshold-dwelling hard case), desk's actual legs + entry
+times, TD-touch entries, level-acceptance stop, TD-touch stop exits, settlement else.
+Run under BOTH feeds: parity (what the historical engine has) and the desk's own
+decision feed. Results (data/options_sim/backtest_fly_control.csv):
+
+**Stop detection vs desk ACTUAL behavior: 77/79 match, 0 missed, 2 "false".**
+And the 2 "false" positives are not detector errors — they are **the desk failing to
+follow its own rule on 2026-08-19**:
+- After the openfly entries (~09:07 CT), the desk's OWN feed shows: **161 continuous
+  min ≥7715** (openfly_c stop condition), **21 min ≤7715** (openfly_p), and **57 min
+  ≥7725** (gx_bcs — a third missed stop outside the fly set).
+- The daemon fired its last close 08:42 CT that day (eodfly_c) and never closed
+  anything after; every later trade "expired". The desk's own evening health check
+  flagged "2 NEED ATTENTION" that evening (notifications.log).
+- So judged against the RULE on the desk's own feed, the detector is **79/79 —
+  0 missed, 0 false**. The 2 disagreements are desk execution outages, which no
+  backtest should reproduce.
+
+**Feed-reconstruction error (Chat B's named mechanism): empirically ~zero effect
+on the hard case.** Parity feed vs desk feed = **identical stop/no-stop decisions
+79/79**; trigger-time diff median **1.0 min** (max 30.9 on one long-dwell). Two
+independent noisy spot series (0.52pt median apart) → the same decisions on 79
+threshold-dwelling verticals. This IS the perturbation test, run with real noise
+instead of synthetic.
+
+**P&L fidelity on the hard case (matched pairs, rule-followed trades, n=75):**
+booked **+$3,198.90** vs model **+$3,090.98** (Δ −$108 over 75 trades, conservative
+direction), corr **0.965**, median per-trade |diff| **$25**.
+
+**Chat B's own condition:** *"If the flies reproduce 0-false / 0-missed and match
+booked P&L, the detector is proven on the hard case and I withdraw entirely."*
+Met — with the two exceptions PROVEN (on the desk's own feed + notifications log)
+to be desk-side rule violations, not detector errors.
+
+**Bonus finding for the desk (out of debate scope, flagged to user):** 2026-08-19
+daemon exit-enforcement outage — 3 rule-mandated stops missed (openfly_c, openfly_p,
+gx_bcs); the desk got lucky (+947, −5, +582 instead of stopped exits).
+
+---
+
 ## Resolution
 
-*(fill after both sides have written)*
+- Chat B's general claim "the stop part cannot be backtested" — **withdrawn by
+  Chat B** in its response, conditional on the fly test; the fly test passed.
+- Chat A's precise claim stands: the desk's stop rule is mechanical, both inputs
+  exist historically, and it is now validated end-to-end on BOTH the easy case
+  (58 ICs: 2/2 stops, +804 vs +792) and the hard case (79 ATM flies: 79/79 vs
+  the rule, matched P&L Δ −$108/75 trades, corr 0.965).
+- Residual, quantified: stop exits price ~1 min late (conservative); one
+  long-dwell trigger differed by 31 min between feeds; regime-invalidation clause
+  still unmodeled (inert in August).
+- Side discovery: the desk itself failed to enforce 3 stops on 2026-08-19
+  (daemon outage) — the backtest found a live-desk bug.
