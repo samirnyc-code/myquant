@@ -41,7 +41,8 @@ from options_gameplan import grade_ok  # single source of truth for the grade la
 ROOT = Path(__file__).resolve().parents[1]
 SIM = ROOT / "data" / "options_sim"
 CT = ZoneInfo("America/Chicago")  # exchange time (Chicago / Central)
-FEE = 1.30
+FEE = 1.30                       # legacy flat per-trade (fallback only)
+COMMISSION_PER_CONTRACT = 1.63   # IB Flex all-in per execution (S112 real data) — use this forward
 POLL = 3        # seconds between spot evaluations
 EXIT_POLL = 60  # seconds between open-position exit checks (each one quotes every leg)
 
@@ -684,13 +685,16 @@ def manage_open(ib, plan, spot, dry):
                 print(f"  ! exit FAILED {tid}: {e}")
                 continue
             cost = -net_out
-        tlog.update_exit(tid, now_ct().strftime("%Y-%m-%d %H:%M"), cost, FEE,
+        # S112: real IB fees — entry + exit execution per leg, per contract (was flat FEE=$1.30)
+        size = plan["execution"]["size"]
+        fee = len(legs) * size * COMMISSION_PER_CONTRACT * 2
+        tlog.update_exit(tid, now_ct().strftime("%Y-%m-%d %H:%M"), cost, fee,
                          close_reason=why)
         if tid in manual:
             mark_manual_done(tid)
         trig["exited"] = True
         trig["exit"] = {"cost": round(cost, 2), "at": now_ct().strftime("%H:%M:%S"), "why": why}
-        pnl = (entry_net - cost) * 100 - FEE
+        pnl = (entry_net - cost) * 100 - fee
         print(f"  CLOSED {tid} cost {cost:.2f} P&L ${pnl:,.0f} — {why}")
         notify(f"TRADE CLOSED · {trig['setup']} (${pnl:,.0f})", f"{trig['name']}: {why}")
         snapshot_chart(tid, "close")

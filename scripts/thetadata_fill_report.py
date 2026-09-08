@@ -118,6 +118,9 @@ def agg(df: pd.DataFrame) -> dict:
         "min_size": int(sz.min()) if len(sz) else None,
         "max_size": int(sz.max()) if len(sz) else None,
         "pct_size0": pct(sz == 0, len(sz)),
+        "pct_size1": pct(sz >= 1, len(sz)),                           # size >= 1/3/10 at our price
+        "pct_size3": pct(sz >= 3, len(sz)),
+        "pct_size10": pct(sz >= 10, len(sz)),
         "n_stale": int(df.stale.sum()),
         "n_confirmed": int((df.print_confirmed == True).sum()),      # noqa: E712
         "n_confirm_tested": int(df.print_confirmed.notna().sum()),
@@ -263,8 +266,10 @@ def render(df: pd.DataFrame, a: dict, synthetic: bool, src: str, anon: bool = Fa
         tile("Median fill position", med, "0=crossed · 0.5=mid · 1=touch", med_tone),
         tile("Conservative (≤ mid)", f'{a["pct_conservative"]}%' if a["pct_conservative"] is not None else None,
              "pos ≤ 0.5 — see the cumulative % column", "good"),
+        tile("Size ≥ 1 at our price", f'{a["pct_size1"]}%' if a.get("pct_size1") is not None else None,
+             f'≥ 3: {a["pct_size3"]}% · ≥ 10: {a["pct_size10"]}%', "good"),
         tile("Median size at touch", a["median_size"],
-             f'contracts resting at our price (≥1: {a["pct_size_ok"]}% · =0: {a["pct_size0"]}%)'),
+             f'contracts resting at our price (max {a["max_size"]})'),
         tile("Single-leg print-confirmed",
              f'{a["n_confirmed"]}/{a["n_confirm_tested"]}' if a["n_confirm_tested"] else None,
              "cond 0/18 traded at our price"),
