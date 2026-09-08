@@ -88,6 +88,7 @@ def compute(at_df: pd.DataFrame, prints: pd.DataFrame | None) -> pd.DataFrame:
                 confirmed = any((p <= px + TICK) if side == "BUY" else (p >= px - TICK) for p in prices)
         rows.append({
             "trade_id": r.get("trade_id"), "strategy": r.get("strategy"), "event": r.get("event"),
+            "expiry": r.get("expiry"),
             "side": side, "strike": _f(r.get("strike")), "right": r.get("right"),
             "our_price": px, "bid": bid, "ask": ask, "spread": spread,
             "pos": pos, "size_at_touch": size_touch, "size_ok": (size_touch is not None and size_touch >= 1),
@@ -102,6 +103,7 @@ def agg(df: pd.DataFrame) -> dict:
     def pct(mask, base):
         return round(100 * mask.sum() / base, 1) if base else None
     n_scored = len(scored)
+    sz = pd.to_numeric(scored.size_at_touch, errors="coerce").dropna()
     return {
         "n_events": len(df),
         "n_ok": int((df.status == "ok").sum()),
@@ -109,13 +111,30 @@ def agg(df: pd.DataFrame) -> dict:
         "median_pos": round(scored.pos.median(), 3) if n_scored else None,
         "mean_pos": round(scored.pos.mean(), 3) if n_scored else None,
         "pct_conservative": pct(scored.pos <= 0.5, n_scored),        # crossed / at-or-worse than mid
-        "pct_through": pct(scored.pos > 1.0, n_scored),              # impossible -> data/timing issue
+        "pct_through": pct(scored.pos > 1.0, n_scored),              # through the book -> timing noise
         "pct_size_ok": pct(scored.size_ok, n_scored),
+        "median_size": int(sz.median()) if len(sz) else None,        # ACTUAL contracts at the touch
+        "min_size": int(sz.min()) if len(sz) else None,
+        "max_size": int(sz.max()) if len(sz) else None,
+        "pct_size0": pct(sz == 0, len(sz)),
         "n_stale": int(df.stale.sum()),
         "n_confirmed": int((df.print_confirmed == True).sum()),      # noqa: E712
         "n_confirm_tested": int(df.print_confirmed.notna().sum()),
         "n_no_price": int(df.our_price.isna().sum()),
     }
+
+
+def load_latency() -> dict | None:
+    """Newest fill_timing_analysis CSV -> our-clock-vs-IB-exec lag summary (for the FAQ)."""
+    cands = sorted(SIM.glob("fill_timing_analysis_*.csv"))
+    if not cands:
+        return None
+    d = pd.read_csv(cands[-1])
+    if "delta_s" not in d.columns or not len(d):
+        return None
+    x = pd.to_numeric(d.delta_s, errors="coerce").dropna()
+    return {"n": len(x), "median": round(x.median(), 2), "mean": round(x.mean(), 2),
+            "p90": round(x.quantile(.9), 2), "within2": round(100 * (x.abs() <= 2).mean())}
 
 
 # ------------------------------------------------------------------- render
@@ -162,7 +181,8 @@ impossible fill. <b>{a['n_stale']}</b> fill(s) had a too-old quote and were set 
 </ul></div>"""
 
 
-def render(df: pd.DataFrame, a: dict, synthetic: bool, src: str, anon: bool = False) -> str:
+def render(df: pd.DataFrame, a: dict, synthetic: bool, src: str, anon: bool = False,
+           lat: dict | None = None) -> str:
     scored = df[df.pos.notna() & ~df.stale]
     bars = _hist(scored.pos) if len(scored) else []
     bmax = max((c for _, c, _ in bars), default=1) or 1
@@ -187,9 +207,12 @@ def render(df: pd.DataFrame, a: dict, synthetic: bool, src: str, anon: bool = Fa
     for name, mask, tone in cats:
         cnt = int(mask.sum())
         pctv = (100 * cnt / nsc) if nsc else 0
+        med = scored.pos[mask].median() if cnt else None
+        meds = f"{med:.3f}" if med is not None else "—"
         cls = " class='bad'" if tone == "bad" else (" class='good'" if tone == "good" else "")
-        brows += f"<tr><td>{name}</td><td>{cnt}</td><td{cls}>{pctv:.1f}%</td></tr>"
-    brows += (f"<tr class='tot'><td>All scored fills</td><td>{nsc}</td><td>100.0%</td></tr>")
+        brows += f"<tr><td>{name}</td><td>{cnt}</td><td{cls}>{pctv:.1f}%</td><td>{meds}</td></tr>"
+    allmed = f"{scored.pos.median():.3f}" if nsc else "—"
+    brows += (f"<tr class='tot'><td>All scored fills</td><td>{nsc}</td><td>100.0%</td><td>{allmed}</td></tr>")
 
     # per-strategy table
     trows = ""
@@ -221,8 +244,8 @@ def render(df: pd.DataFrame, a: dict, synthetic: bool, src: str, anon: bool = Fa
         tile("Median fill position", med, "0=crossed · 0.5=mid · 1=touch", med_tone),
         tile("Crossed the spread", f'{a["pct_conservative"]}%' if a["pct_conservative"] is not None else None,
              "pos ≤ 0.5 (conservative)", "good"),
-        tile("Size ≥ 1 at touch", f'{a["pct_size_ok"]}%' if a["pct_size_ok"] is not None else None,
-             "real depth behind our lot"),
+        tile("Median size at touch", a["median_size"],
+             f'contracts resting at our price (≥1: {a["pct_size_ok"]}% · =0: {a["pct_size0"]}%)'),
         tile("Single-leg print-confirmed",
              f'{a["n_confirmed"]}/{a["n_confirm_tested"]}' if a["n_confirm_tested"] else None,
              "cond 0/18 traded at our price"),
@@ -230,6 +253,71 @@ def render(df: pd.DataFrame, a: dict, synthetic: bool, src: str, anon: bool = Fa
              "pos > 1 (timing/data noise)", "bad" if (a["pct_through"] or 0) > 0 else "ink"),
         tile("Stale quotes", a["n_stale"], "quote >2s before fill (excluded)", "warn"),
     ])
+    belowzero = int((scored.pos < 0).sum())
+    # ---- report metadata (context strip) ----
+    exp = pd.to_numeric(df.expiry, errors="coerce").dropna().astype(int)
+    def _fd(x):
+        s = str(int(x))
+        return f"{s[:4]}-{s[4:6]}-{s[6:]}"
+    dmin, dmax = (_fd(exp.min()), _fd(exp.max())) if len(exp) else ("—", "—")
+    ndays = exp.nunique() if len(exp) else 0
+    meta_items = [
+        ("Instrument", "SPX (SPXW) — 0DTE cash-settled index options"),
+        ("Exchange", "Cboe"),
+        ("Trading hours", "09:30–16:00 ET (SPXW settles on the close)"),
+        ("Broker", "Interactive Brokers"),
+        ("Mode", "SIMULATED — IB paper fills, checked vs real OPRA NBBO"),
+        ("Date range", f"{dmin} → {dmax}"),
+        ("Trading days", str(ndays)),
+        ("NBBO / print source", "ThetaData (OPRA consolidated, tick)"),
+    ]
+    meta = "".join(f'<div class="mi"><span class="mk">{k}</span><span class="mv">{v}</span></div>'
+                   for k, v in meta_items)
+    # ---- latency paragraph ----
+    if lat:
+        lat_p = (f"On the {lat['n']} fills we could match, our log lands a median "
+                 f"<b>{lat['median']:+.2f}s</b> after IB's execution (mean {lat['mean']:+.2f}s, "
+                 f"90th pct {lat['p90']:+.2f}s; {lat['within2']}% within ±2s) — our clock+callback "
+                 f"offset, which is exactly why we anchor the NBBO lookup on IB's exec time, not our clock.")
+    else:
+        lat_p = "Run fill_timing_analysis.py to quantify our-log-vs-IB-exec lag."
+    faq = f"""<div class="card faq"><h2>Method &amp; FAQ</h2>
+<h3>How each fill is timed — and the lag</h3>
+<p>Every fill is anchored to <b>IB's true execution time</b> (Trade-Confirmation report, second
+precision). We also record our own fill time in the sim, but that is our machine's clock at the fill
+<i>callback</i>, which fires after the real execution. {lat_p}</p>
+<p><b>What we don't yet have:</b> the moment the sim <i>submitted</i> the order, so we can't quote a
+true submit→fill latency. That's one checkbox away — add "Order Time" to the IB Flex query and we
+compute it exactly.</p>
+<h3>The ±3-second window</h3>
+<p>The print-confirmation window is <b>centered on the fill</b>: 3s before to 3s after (6s total).
+Why 3s? A trade-off — too narrow (±1s) and thin 0DTE strikes often have no nearby single-leg print, so
+we'd under-confirm real fills; too wide (±9s) and on a fast tape you match prints from a
+<i>different</i> price regime and over-confirm. ±3s catches a genuinely contemporaneous trade without
+drifting. It affects only the <i>secondary</i> print check — the primary metric (where the fill sat in
+the NBBO) uses the exact quote at the fill instant and is <b>not</b> windowed. A volatile 3s is not a
+problem: more prints just means more chances to find a real trade at our price; we still only count one
+at/through it.</p>
+<h3>When would we say a fill could NOT have happened?</h3>
+<p>Two independent questions:</p>
+<ul>
+<li><b>Could it happen? (primary)</b> At the fill instant, was our price at/inside the real NBBO
+<i>and</i> was size there? We capture the <b>actual</b> resting size, not just a flag — median
+<b>{a['median_size']} contracts</b> at our price (range {a['min_size']}–{a['max_size']}; only
+{a['pct_size0']}% had zero). A fill looks <b>not</b> achievable only when it printed <b>through the
+book</b> (better than the best available price — {a['pct_through']}%) or had <b>zero size</b> — and the
+through-book cases are sub-second quote drift, not impossible fills.</li>
+<li><b>Did a real trade print at our price? (secondary)</b> The
+{a['n_confirmed']}/{a['n_confirm_tested']} confirmation. Its absence — {a['n_confirm_tested'] - a['n_confirmed']}
+had nearby single-leg prints but not at our price, others had none in the window — is <b>not</b>
+evidence against the fill; fillability is judged by the primary test.</li>
+</ul>
+<h3>What "position &lt; 0" means</h3>
+<p>Position 0 = filled exactly at the marketable touch (buy at the ask / sell at the bid).
+<b>Below&nbsp;0</b> means we filled <i>worse</i> than the visible touch — paid above the ask or sold
+below the bid — extra-conservative slippage where the quote moved against us. The <b>{belowzero}</b>
+fills below 0 make the sim look <i>harder</i> on itself, not easier. <b>Above&nbsp;1</b> is the reverse:
+better than the best price, the through-the-book timing tail.</p></div>"""
     gen = dt.datetime.now().strftime("%Y-%m-%d %H:%M")
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -284,11 +372,20 @@ tr.tot td{{border-top:2px solid var(--border);font-weight:650;color:var(--ink)}}
 .foot{{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--pos);
   border-radius:10px;padding:12px 16px;margin:14px 0;font-size:12.5px;line-height:1.55;color:var(--ink2)}}
 .foot b{{color:var(--ink)}}
+.meta{{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px 18px;
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px 16px;margin:16px 0}}
+.mi{{display:flex;flex-direction:column;gap:1px}}
+.mk{{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}}
+.mv{{font-size:13px;color:var(--ink);font-weight:550}}
+.faq h3{{font-size:13px;margin:14px 0 4px;font-weight:640}}
+.faq p,.faq li{{font-size:12.5px;line-height:1.55;color:var(--ink2);margin:5px 0}}
+.faq b{{color:var(--ink)}}.faq ul{{margin:4px 0;padding-left:18px}}
 </style></head><body>
 <header><h1>{html.escape(title)}</h1>
 <div class="sub">generated {gen} · source {html.escape(src)}</div></header>
 <div class="wrap">
 {banner}
+<div class="meta">{meta}</div>
 {summary_html(a)}
 <div class="tiles">{tiles}</div>
 <div class="card"><h2>Where our fills sat in the real NBBO</h2>
@@ -298,13 +395,14 @@ improvement) · red = outside the book (timing/data noise). A real marketable en
 <div class="card"><h2>Position breakdown — what share filled where</h2>
 <div class="note">Every scored fill falls in exactly one band; the shares add to 100%.
 "Crossed the spread" is the realistic/conservative outcome.</div>
-<table><thead><tr><th>where our fill landed</th><th>fills</th><th>% of fills</th></tr></thead>
+<table><thead><tr><th>where our fill landed</th><th>fills</th><th>% of fills</th>
+<th>median position</th></tr></thead>
 <tbody>{brows}</tbody></table></div>
 <div class="card"><h2>By strategy</h2>
 <div class="note">scored = quote ok, fresh, our price known. confirm% = single-leg prints (cond 0/18).
 {"Strategy names anonymized." if anon else ""}</div>
-<table><thead><tr><th>strategy</th><th>events</th><th>scored</th><th>median pos</th>
-<th>crossed%</th><th>size ok%</th><th>confirm%</th></tr></thead><tbody>{trows}</tbody></table></div>
+<table><thead><tr><th>strategy</th><th>events</th><th>scored</th><th>median position</th>
+<th>crossed %</th><th>size-ok %</th><th>confirm %</th></tr></thead><tbody>{trows}</tbody></table></div>
 <div class="foot"><b>What "print-confirmed" means — and what it doesn't.</b> A single-leg trade
 printing at our price is <i>positive</i> proof the fill was achievable. The reverse is not true:
 an unconfirmed fill is <b>not</b> an impossible one. This is paper, so our own order never prints
@@ -313,6 +411,7 @@ to the tape — confirmation depends on some <i>other</i> trader printing at our
 130/131/134), which we deliberately exclude. Those fills stand on the NBBO + size-at-touch check
 instead. In this run, {a['n_confirm_tested'] - a['n_confirmed']} fills had single-leg prints nearby
 but not at our price, and a further set had no print in the window — neither is a red flag.</div>
+{faq}
 </div></body></html>"""
 
 
@@ -376,6 +475,7 @@ def main() -> int:
     ap.add_argument("--prints", help="trade_quote_prints CSV (default: newest)")
     ap.add_argument("--anon", action="store_true",
                     help="anonymize strategy names for a vendor-facing copy (writes a PRIVATE legend)")
+    ap.add_argument("--pdf", action="store_true", help="also export a PDF (Edge/Chrome headless)")
     ap.add_argument("--no-open", action="store_true")
     args = ap.parse_args()
 
@@ -409,11 +509,36 @@ def main() -> int:
           + ("   [SYNTHETIC]" if synthetic else "") + ("   [ANON]" if args.anon else ""))
     out = SIM / (f"thetadata_fill_report_{'SYNTHETIC_' if synthetic else ''}"
                  f"{'anon_' if args.anon else ''}{dt.datetime.now():%Y%m%d}.html")
-    out.write_text(render(df, a, synthetic, src, anon=args.anon), encoding="utf-8")
-    print(f"saved -> {out.relative_to(ROOT)}")
+    out.write_text(render(df, a, synthetic, src, anon=args.anon, lat=load_latency()),
+                   encoding="utf-8")
+    print(f"saved -> {out.relative_to(ROOT)}  (self-contained HTML)")
+    if args.pdf:
+        pdf = export_pdf(out)
+        print(f"saved -> {pdf.relative_to(ROOT)}" if pdf else
+              "  PDF skipped — no Edge/Chrome found (open the HTML and Print → Save as PDF).")
     if not args.no_open:
         webbrowser.open(out.as_uri())
     return 0
+
+
+def export_pdf(html_path: Path) -> Path | None:
+    """Render the self-contained HTML to PDF via Edge/Chrome headless (no extra deps)."""
+    import shutil
+    import subprocess
+    pdf = html_path.with_suffix(".pdf")
+    cands = ["msedge", "chrome",
+             r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+             r"C:\Program Files\Google\Chrome\Application\chrome.exe"]
+    exe = next((c for c in cands if shutil.which(c) or Path(c).exists()), None)
+    if not exe:
+        return None
+    try:
+        subprocess.run([exe, "--headless", "--disable-gpu", "--no-pdf-header-footer",
+                        f"--print-to-pdf={pdf}", html_path.as_uri()],
+                       check=True, timeout=120, capture_output=True)
+        return pdf if pdf.exists() else None
+    except (subprocess.SubprocessError, OSError):
+        return None
 
 
 if __name__ == "__main__":

@@ -51,11 +51,20 @@ tr.tot td{border-top:2px solid var(--border);font-weight:650;color:var(--ink)}
 .foot{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--pos);
   border-radius:10px;padding:12px 16px;margin:14px 0;font-size:12.5px;line-height:1.55;color:var(--ink2)}
 .foot b{color:var(--ink)}
+.meta{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px 18px;
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px 16px;margin:16px 0}
+.mi{display:flex;flex-direction:column;gap:1px}
+.mk{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+.mv{font-size:13px;color:var(--ink);font-weight:550}
+.faq h3{font-size:13px;margin:14px 0 4px;font-weight:640}
+.faq p,.faq li{font-size:12.5px;line-height:1.55;color:var(--ink2);margin:5px 0}
+.faq b{color:var(--ink)}.faq ul{margin:4px 0;padding-left:18px}
 </style></head><body>
 <header><h1>SPX Fill Realism — August 2026</h1>
-<div class="sub">generated 2026-09-08 05:07 · source data\thetadata\at_time_results_20260908.csv</div></header>
+<div class="sub">generated 2026-09-08 05:20 · source data\thetadata\at_time_results_20260908.csv</div></header>
 <div class="wrap">
 
+<div class="meta"><div class="mi"><span class="mk">Instrument</span><span class="mv">SPX (SPXW) — 0DTE cash-settled index options</span></div><div class="mi"><span class="mk">Exchange</span><span class="mv">Cboe</span></div><div class="mi"><span class="mk">Trading hours</span><span class="mv">09:30–16:00 ET (SPXW settles on the close)</span></div><div class="mi"><span class="mk">Broker</span><span class="mv">Interactive Brokers</span></div><div class="mi"><span class="mk">Mode</span><span class="mv">SIMULATED — IB paper fills, checked vs real OPRA NBBO</span></div><div class="mi"><span class="mk">Date range</span><span class="mv">2026-08-06 → 2026-09-04</span></div><div class="mi"><span class="mk">Trading days</span><span class="mv">22</span></div><div class="mi"><span class="mk">NBBO / print source</span><span class="mv">ThetaData (OPRA consolidated, tick)</span></div></div>
 <div class="summary">
 <h2>In plain English</h2>
 <p>This checks whether our simulated option fills could really have happened. For each of our
@@ -77,7 +86,7 @@ package price). A fill without one is <b>not</b> impossible — see the note und
 sub-second timing artifact (the quote we captured was the last one just before the fill), not an
 impossible fill. <b>1</b> fill(s) had a too-old quote and were set aside.</li>
 </ul></div>
-<div class="tiles"><div class="tile"><div class="tl">Fill events</div><div class="tv ink">518</div><div class="ts">518 with a quote · 0 no logged price</div></div><div class="tile"><div class="tl">Scored fills</div><div class="tv ink">517</div><div class="ts">quote ok, fresh, price known</div></div><div class="tile"><div class="tl">Median fill position</div><div class="tv good">0.0</div><div class="ts">0=crossed · 0.5=mid · 1=touch</div></div><div class="tile"><div class="tl">Crossed the spread</div><div class="tv good">86.1%</div><div class="ts">pos ≤ 0.5 (conservative)</div></div><div class="tile"><div class="tl">Size ≥ 1 at touch</div><div class="tv ink">99.8%</div><div class="ts">real depth behind our lot</div></div><div class="tile"><div class="tl">Single-leg print-confirmed</div><div class="tv ink">384/407</div><div class="ts">cond 0/18 traded at our price</div></div><div class="tile"><div class="tl">Through the book</div><div class="tv bad">2.1%</div><div class="ts">pos > 1 (timing/data noise)</div></div><div class="tile"><div class="tl">Stale quotes</div><div class="tv warn">1</div><div class="ts">quote >2s before fill (excluded)</div></div></div>
+<div class="tiles"><div class="tile"><div class="tl">Fill events</div><div class="tv ink">518</div><div class="ts">518 with a quote · 0 no logged price</div></div><div class="tile"><div class="tl">Scored fills</div><div class="tv ink">517</div><div class="ts">quote ok, fresh, price known</div></div><div class="tile"><div class="tl">Median fill position</div><div class="tv good">0.0</div><div class="ts">0=crossed · 0.5=mid · 1=touch</div></div><div class="tile"><div class="tl">Crossed the spread</div><div class="tv good">86.1%</div><div class="ts">pos ≤ 0.5 (conservative)</div></div><div class="tile"><div class="tl">Median size at touch</div><div class="tv ink">76</div><div class="ts">contracts resting at our price (≥1: 99.8% · =0: 0.2%)</div></div><div class="tile"><div class="tl">Single-leg print-confirmed</div><div class="tv ink">384/407</div><div class="ts">cond 0/18 traded at our price</div></div><div class="tile"><div class="tl">Through the book</div><div class="tv bad">2.1%</div><div class="ts">pos > 1 (timing/data noise)</div></div><div class="tile"><div class="tl">Stale quotes</div><div class="tv warn">1</div><div class="ts">quote >2s before fill (excluded)</div></div></div>
 <div class="card"><h2>Where our fills sat in the real NBBO</h2>
 <div class="note">0 = crossed the spread (marketable, realistic) · 0.5 = mid · 1 = far touch (price
 improvement) · red = outside the book (timing/data noise). A real marketable engine clusters near 0.</div>
@@ -85,13 +94,14 @@ improvement) · red = outside the book (timing/data noise). A real marketable en
 <div class="card"><h2>Position breakdown — what share filled where</h2>
 <div class="note">Every scored fill falls in exactly one band; the shares add to 100%.
 "Crossed the spread" is the realistic/conservative outcome.</div>
-<table><thead><tr><th>where our fill landed</th><th>fills</th><th>% of fills</th></tr></thead>
-<tbody><tr><td>Crossed the spread — filled at the touch</td><td>399</td><td class='good'>77.2%</td></tr><tr><td>Inside — better than the touch, at/below mid</td><td>46</td><td>8.9%</td></tr><tr><td>Better than mid — price improvement</td><td>61</td><td>11.8%</td></tr><tr><td>Through the book — sub-second timing noise</td><td>11</td><td class='bad'>2.1%</td></tr><tr class='tot'><td>All scored fills</td><td>517</td><td>100.0%</td></tr></tbody></table></div>
+<table><thead><tr><th>where our fill landed</th><th>fills</th><th>% of fills</th>
+<th>median position</th></tr></thead>
+<tbody><tr><td>Crossed the spread — filled at the touch</td><td>399</td><td class='good'>77.2%</td><td>0.000</td></tr><tr><td>Inside — better than the touch, at/below mid</td><td>46</td><td>8.9%</td><td>0.500</td></tr><tr><td>Better than mid — price improvement</td><td>61</td><td>11.8%</td><td>1.000</td></tr><tr><td>Through the book — sub-second timing noise</td><td>11</td><td class='bad'>2.1%</td><td>2.000</td></tr><tr class='tot'><td>All scored fills</td><td>517</td><td>100.0%</td><td>0.000</td></tr></tbody></table></div>
 <div class="card"><h2>By strategy</h2>
 <div class="note">scored = quote ok, fresh, our price known. confirm% = single-leg prints (cond 0/18).
 </div>
-<table><thead><tr><th>strategy</th><th>events</th><th>scored</th><th>median pos</th>
-<th>crossed%</th><th>size ok%</th><th>confirm%</th></tr></thead><tbody><tr><td>eodfly_c</td><td>74</td><td>74</td><td>0.000</td><td>85%</td><td>100%</td><td>92%</td></tr><tr><td>eodfly_p</td><td>70</td><td>70</td><td>0.000</td><td>79%</td><td>100%</td><td>88%</td></tr><tr><td>eodic_c</td><td>32</td><td>32</td><td>0.000</td><td>94%</td><td>100%</td><td>100%</td></tr><tr><td>eodic_p</td><td>36</td><td>36</td><td>0.000</td><td>86%</td><td>100%</td><td>100%</td></tr><tr><td>gx_bcs</td><td>48</td><td>47</td><td>0.000</td><td>96%</td><td>100%</td><td>95%</td></tr><tr><td>gx_bps</td><td>44</td><td>44</td><td>0.000</td><td>82%</td><td>100%</td><td>100%</td></tr><tr><td>openfly_c</td><td>74</td><td>74</td><td>0.000</td><td>86%</td><td>100%</td><td>99%</td></tr><tr><td>openfly_p</td><td>78</td><td>78</td><td>0.000</td><td>79%</td><td>99%</td><td>89%</td></tr><tr><td>openic_c</td><td>22</td><td>22</td><td>0.000</td><td>91%</td><td>100%</td><td>100%</td></tr><tr><td>openic_p</td><td>40</td><td>40</td><td>0.000</td><td>98%</td><td>100%</td><td>100%</td></tr></tbody></table></div>
+<table><thead><tr><th>strategy</th><th>events</th><th>scored</th><th>median position</th>
+<th>crossed %</th><th>size-ok %</th><th>confirm %</th></tr></thead><tbody><tr><td>eodfly_c</td><td>74</td><td>74</td><td>0.000</td><td>85%</td><td>100%</td><td>92%</td></tr><tr><td>eodfly_p</td><td>70</td><td>70</td><td>0.000</td><td>79%</td><td>100%</td><td>88%</td></tr><tr><td>eodic_c</td><td>32</td><td>32</td><td>0.000</td><td>94%</td><td>100%</td><td>100%</td></tr><tr><td>eodic_p</td><td>36</td><td>36</td><td>0.000</td><td>86%</td><td>100%</td><td>100%</td></tr><tr><td>gx_bcs</td><td>48</td><td>47</td><td>0.000</td><td>96%</td><td>100%</td><td>95%</td></tr><tr><td>gx_bps</td><td>44</td><td>44</td><td>0.000</td><td>82%</td><td>100%</td><td>100%</td></tr><tr><td>openfly_c</td><td>74</td><td>74</td><td>0.000</td><td>86%</td><td>100%</td><td>99%</td></tr><tr><td>openfly_p</td><td>78</td><td>78</td><td>0.000</td><td>79%</td><td>99%</td><td>89%</td></tr><tr><td>openic_c</td><td>22</td><td>22</td><td>0.000</td><td>91%</td><td>100%</td><td>100%</td></tr><tr><td>openic_p</td><td>40</td><td>40</td><td>0.000</td><td>98%</td><td>100%</td><td>100%</td></tr></tbody></table></div>
 <div class="foot"><b>What "print-confirmed" means — and what it doesn't.</b> A single-leg trade
 printing at our price is <i>positive</i> proof the fill was achievable. The reverse is not true:
 an unconfirmed fill is <b>not</b> an impossible one. This is paper, so our own order never prints
@@ -100,4 +110,41 @@ to the tape — confirmation depends on some <i>other</i> trader printing at our
 130/131/134), which we deliberately exclude. Those fills stand on the NBBO + size-at-touch check
 instead. In this run, 23 fills had single-leg prints nearby
 but not at our price, and a further set had no print in the window — neither is a red flag.</div>
+<div class="card faq"><h2>Method &amp; FAQ</h2>
+<h3>How each fill is timed — and the lag</h3>
+<p>Every fill is anchored to <b>IB's true execution time</b> (Trade-Confirmation report, second
+precision). We also record our own fill time in the sim, but that is our machine's clock at the fill
+<i>callback</i>, which fires after the real execution. On the 47 fills we could match, our log lands a median <b>+1.00s</b> after IB's execution (mean +2.57s, 90th pct +10.40s; 83% within ±2s) — our clock+callback offset, which is exactly why we anchor the NBBO lookup on IB's exec time, not our clock.</p>
+<p><b>What we don't yet have:</b> the moment the sim <i>submitted</i> the order, so we can't quote a
+true submit→fill latency. That's one checkbox away — add "Order Time" to the IB Flex query and we
+compute it exactly.</p>
+<h3>The ±3-second window</h3>
+<p>The print-confirmation window is <b>centered on the fill</b>: 3s before to 3s after (6s total).
+Why 3s? A trade-off — too narrow (±1s) and thin 0DTE strikes often have no nearby single-leg print, so
+we'd under-confirm real fills; too wide (±9s) and on a fast tape you match prints from a
+<i>different</i> price regime and over-confirm. ±3s catches a genuinely contemporaneous trade without
+drifting. It affects only the <i>secondary</i> print check — the primary metric (where the fill sat in
+the NBBO) uses the exact quote at the fill instant and is <b>not</b> windowed. A volatile 3s is not a
+problem: more prints just means more chances to find a real trade at our price; we still only count one
+at/through it.</p>
+<h3>When would we say a fill could NOT have happened?</h3>
+<p>Two independent questions:</p>
+<ul>
+<li><b>Could it happen? (primary)</b> At the fill instant, was our price at/inside the real NBBO
+<i>and</i> was size there? We capture the <b>actual</b> resting size, not just a flag — median
+<b>76 contracts</b> at our price (range 0–1463; only
+0.2% had zero). A fill looks <b>not</b> achievable only when it printed <b>through the
+book</b> (better than the best available price — 2.1%) or had <b>zero size</b> — and the
+through-book cases are sub-second quote drift, not impossible fills.</li>
+<li><b>Did a real trade print at our price? (secondary)</b> The
+384/407 confirmation. Its absence — 23
+had nearby single-leg prints but not at our price, others had none in the window — is <b>not</b>
+evidence against the fill; fillability is judged by the primary test.</li>
+</ul>
+<h3>What "position &lt; 0" means</h3>
+<p>Position 0 = filled exactly at the marketable touch (buy at the ask / sell at the bid).
+<b>Below&nbsp;0</b> means we filled <i>worse</i> than the visible touch — paid above the ask or sold
+below the bid — extra-conservative slippage where the quote moved against us. The <b>43</b>
+fills below 0 make the sim look <i>harder</i> on itself, not easier. <b>Above&nbsp;1</b> is the reverse:
+better than the best price, the through-the-book timing tail.</p></div>
 </div></body></html>
