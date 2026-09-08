@@ -9,8 +9,13 @@ Secrets never go in the repo or in chat. Related: [[thetadata_fill_validation]].
 
 1. **Get the API key** — log in at <https://www.thetadata.net/portal/api_key> and copy it.
    (Prefer the key over email/password: it's revocable from the dashboard.)
-2. **Install Java 21+** — Adoptium Temurin 21 (JRE or JDK). Verify in a new PowerShell:
-   `java -version` → must show 21 or higher.
+2. **Install Java 21+** — Adoptium Temurin 21. Easiest via winget:
+   ```powershell
+   winget install --id EclipseAdoptium.Temurin.21.JDK -e --accept-package-agreements --accept-source-agreements
+   ```
+   Then **open a NEW PowerShell** (PATH refresh) and verify: `java -version` → must show 21+.
+   (Fallback: Windows x64 MSI from <https://adoptium.net/temurin/releases/?version=21>, and tick
+   "Add to PATH" in the installer's Custom Setup.)
 3. **Download the terminal jar** — <https://downloads.thetadata.us/ThetaTerminalv3.jar> →
    put it in a folder **OUTSIDE this repo**, e.g. `C:\ThetaTerminal\`.
 4. **Store the key as a user env var** (nothing lands in the repo). In PowerShell — replace the
