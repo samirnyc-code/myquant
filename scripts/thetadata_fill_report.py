@@ -203,14 +203,19 @@ def render(df: pd.DataFrame, a: dict, synthetic: bool, src: str, anon: bool = Fa
         ("Better than mid — price improvement", (scored.pos > 0.5) & (scored.pos <= 1.0), "ink"),
         ("Through the book — sub-second timing noise", scored.pos > 1.0, "bad"),
     ]
-    brows = ""
-    for name, mask, tone in cats:
+    brows, cum = "", 0
+    for idx, (name, mask, tone) in enumerate(cats):
         cnt = int(mask.sum())
+        cum += cnt
         pctv = (100 * cnt / nsc) if nsc else 0
         med = scored.pos[mask].median() if cnt else None
         meds = f"{med:.3f}" if med is not None else "—"
         cls = " class='bad'" if tone == "bad" else (" class='good'" if tone == "good" else "")
         brows += f"<tr><td>{name}</td><td>{cnt}</td><td{cls}>{pctv:.1f}%</td><td>{meds}</td></tr>"
+        if idx == 1:                                  # subtotal ≤ mid = the tiles' "Conservative"
+            sub = (100 * cum / nsc) if nsc else 0
+            brows += (f"<tr class='sub'><td>↳ ≤ mid — conservative subtotal</td><td>{cum}</td>"
+                      f"<td class='good'>{sub:.1f}%</td><td>—</td></tr>")
     allmed = f"{scored.pos.median():.3f}" if nsc else "—"
     brows += (f"<tr class='tot'><td>All scored fills</td><td>{nsc}</td><td>100.0%</td><td>{allmed}</td></tr>")
 
@@ -242,8 +247,8 @@ def render(df: pd.DataFrame, a: dict, synthetic: bool, src: str, anon: bool = Fa
         tile("Fill events", a["n_events"], f'{a["n_ok"]} with a quote · {a["n_no_price"]} no logged price'),
         tile("Scored fills", a["n_scored"], "quote ok, fresh, price known"),
         tile("Median fill position", med, "0=crossed · 0.5=mid · 1=touch", med_tone),
-        tile("Crossed the spread", f'{a["pct_conservative"]}%' if a["pct_conservative"] is not None else None,
-             "pos ≤ 0.5 (conservative)", "good"),
+        tile("Conservative (≤ mid)", f'{a["pct_conservative"]}%' if a["pct_conservative"] is not None else None,
+             "pos ≤ 0.5 — at/worse than mid (= table rows 1+2)", "good"),
         tile("Median size at touch", a["median_size"],
              f'contracts resting at our price (≥1: {a["pct_size_ok"]}% · =0: {a["pct_size0"]}%)'),
         tile("Single-leg print-confirmed",
@@ -282,6 +287,13 @@ def render(df: pd.DataFrame, a: dict, synthetic: bool, src: str, anon: bool = Fa
     else:
         lat_p = "Run fill_timing_analysis.py to quantify our-log-vs-IB-exec lag."
     faq = f"""<div class="card faq"><h2>Method &amp; FAQ</h2>
+<h3>What this report covers — and what settles at the close</h3>
+<p>The {a['n_events']} events here are <b>entry fills + order-based exit fills</b> — every time we
+actually traded against the market. That includes the "premise didn't hold" early exits and the few
+positions we closed with an order near the EOD. <b>Positions we held to expiry are not fills</b>:
+SPXW cash-settles at the official 4:00pm close, so those legs are validated separately against the
+settlement price, not the NBBO. That settlement carries a large share of the book's P&amp;L, so it
+gets its own check — this report is the fill half.</p>
 <h3>How each fill is timed — and the lag</h3>
 <p>Every fill is anchored to <b>IB's true execution time</b> (Trade-Confirmation report, second
 precision). We also record our own fill time in the sim, but that is our machine's clock at the fill
@@ -369,6 +381,7 @@ th:first-child,td:first-child{{text-align:left;font-family:ui-monospace,monospac
 th{{font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600}}
 td.good{{color:var(--good);font-weight:600}}td.bad{{color:var(--bad);font-weight:600}}
 tr.tot td{{border-top:2px solid var(--border);font-weight:650;color:var(--ink)}}
+tr.sub td{{color:var(--ink2);font-style:italic;background:rgba(127,127,127,.05)}}
 .foot{{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--pos);
   border-radius:10px;padding:12px 16px;margin:14px 0;font-size:12.5px;line-height:1.55;color:var(--ink2)}}
 .foot b{{color:var(--ink)}}
