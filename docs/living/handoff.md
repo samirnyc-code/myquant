@@ -4,6 +4,64 @@
 
 ---
 
+## ⚡ CONTROL BOARD — the single hub (read FIRST, update AFTER every unit of work)
+
+**2026-09-08 (S114): the two parallel chats are COLLAPSED to ONE.** This board is the sole
+control surface. Close the other chat. Do NOT create `hub.md` or any parallel handoff
+(CLAUDE.md rule) — this board IS the hub. Read it first; pick ONE item; on finishing, update
+its row + add a dated line to the session log below. Keep this board to ~one screen.
+
+| # | workstream | status | next action |
+|---|---|---|---|
+| 1 | 0DTE live desk (paper) | 🟢 RUNNING | trades daily; just watch the book |
+| 2 | ThetaData fill-validation | ✅ DONE (S113) | validated; report built; nothing pending |
+| 3 | **Stress-test SANDBOX + July-2026 TD-only model** | 🔜 NEXT (primary) | build sandbox per S113 spec; exit-rule slider incl. zone-anchored |
+| 4 | Stop-backtest debate | ✅ RESOLVED | stop IS backtestable; Chat B withdrew; fly control 79/79 |
+| 5 | Daemon 08-19 outage | 🟡 PARTIAL | crash-guard committed (c080b5a9); **OPEN: hang-detection heartbeat** |
+| 6 | ThetaData terminal | 🟡 VERIFY | up in S113 (Java21/:25503); was HTTPError late-S114 — check before any pull |
+| 7 | DuckDB NBBO years-store | ✅ BUILT | `nbbo_store.py` tested; awaiting the real multi-year pull |
+| 8 | 4-year EM backtest (Chat A) | ❓ RECONCILE | `backtest_full_em_2022.py` was running in the other chat — check its output/state |
+| 9 | NT8 BreakoutBoysDashboardV1 | 🟡 PENDING USER | fix committed+deployed; **F5 + set `SE_RestImmediately=false` on the chart**, then test cancel/arm |
+| 10 | Max-profit-zone feature | 🟡 STARTED | `maxprofit_zone.py` built; wire into sandbox as an exit dimension |
+
+**Explicitly OPEN (not swept under the rug):**
+- **Daemon HANG-detection** — crash class fixed (per-iteration guard); a true hang (blocking
+  IB call, process alive) is NOT caught. Fix = daemon heartbeat + `desk_watchdog` restart-on-stale.
+- Confirm the daemon crash-guard is live on the next 08:29 CT launch (repo-run, no copy needed).
+- ThetaData terminal reachability (needed for any pull/backtest).
+- NT8: user F5 + `SE_RestImmediately=false`, then live-test cancel/arm.
+- Reconcile the other chat's in-flight 4-year run (only its committed artifacts are visible here).
+
+---
+
+## S114 (2026-09-08) — stop-backtest debate RESOLVED · daemon outage FIXED · chats collapsed
+
+**Tone:** long, contentious (Chat B). Ended with the debate resolved against Chat B's
+"can't backtest the stop," a real live-desk bug found + fixed, and the two chats collapsed
+to this one hub.
+
+- **Stop-backtest debate (`docs/research_notes/stop_backtest_debate.md`): RESOLVED.** Chat A
+  showed the desk stop IS backtestable — mechanical rule; parity spot 0.52pt median vs the
+  desk feed; August IC control +804 vs +792 booked; fly control 79/79 vs the rule. Chat B
+  objected (predicted the ATM flies would break the detector via near-threshold flips), ran
+  the fly control independently (`scripts/fly_control_chatb.py`) and **WITHDREW** — the extra
+  "false stops" were the 2026-08-19 desk OUTAGE, not detector error (flip rate ~0).
+- **Daemon 08-19 outage FIXED (`c080b5a9`):** the trigger daemon main loop was `try:/…/finally:`
+  with **no `except`** → one unhandled exception ended ALL management for the day (open trades
+  expired unmanaged; 3 rule-stops missed; only the evening health check flagged it). Added a
+  per-iteration try/except (traceback + Telegram-alert on 1st/5th/25th/100th fault + continue).
+  CRASH class fixed; HANG class still open (board item 5).
+- **Chat B scripts committed:** `eod_vs_open_pnl`, `sim_pnl_reconstruct`, `calendar_pnl_reconstruct`,
+  `fill_vs_nbbo_audit`, `import_nt_holidays` (+`market_holidays.json`), `nbbo_store` (DuckDB layer),
+  `maxprofit_zone`, `wall_pnl_stops`, `wall_vs_live_overlap`, `book_stops_77d`,
+  `flies_august_stop_vs_hold`, `fly_control_chatb`, `resume_sim_tasks.ps1`.
+- **NT8 BreakoutBoysDashboardV1 (`512f6b42`):** fixed CANCEL/FLATTEN (a resting stop entry sits
+  in `Accepted`, not `Working` — filter was too narrow) + SB now = the bar you arm in
+  (`SE_RestImmediately` default → false). Deployed to Custom; needs F5 + the param on the chart.
+- **Two chats collapsed to ONE hub** (the control board above).
+
+---
+
 ## S113 (2026-09-08) — ThetaData EXECUTED (fill validation + TD P&L + report + fee fixes); NEXT = sandbox → July-2026 TD-only modeling
 
 **Tone:** long execution session. Terminal came up, IB Flex report obtained, full pull ran,
