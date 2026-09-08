@@ -206,6 +206,29 @@ outage the backtest surfaced is a real live-desk bug worth fixing.
 
 ---
 
+## Post-resolution OOS check (Chat A, overnight 2026-09-08/09)
+
+The user rightly rejected the August "pass" as post-hoc requalified (2 false stops
++ $1,185 P&L gap were excluded as desk-outage AFTER the test failed as written).
+A clean out-of-sample test was owed. July has no fly trades (streams went live in
+August), so the OOS window is **September (20 fly verticals, 12 desk stops, no
+daemon outage — hang-detection fix live)**:
+
+- **19/20 stop-match, 0 false, 1 missed** (scripts/backtest_fly_control.py --month 2026-09).
+- The 1 miss (2026-09-03 openfly_p): a dwell that measures **9m37s on the 1-min
+  feeds but ≥10m on the daemon's 2-second feed** — a sampling-granularity edge at
+  the exact threshold, visible on BOTH the parity and desk 1-min feeds (both say
+  no-stop). Not a semantics error: the day-clock hypothesis was tested and
+  REJECTED against the daemon source (thesis_broken L584: beyond_since starts at
+  trigger watch, cannot predate it).
+- Combined track record vs desk actual, zero exclusions: **96/99** (Aug 77/79 +
+  Sep 19/20); every one of the 3 disagreements has a verified physical cause
+  (2 = 08-19 daemon outage, on the desk's own feed; 1 = 23-second sampling edge).
+
+Honest bottom line: the detector is right within the resolution of a 1-min feed;
+borderline dwells (±30s at the threshold) can land either way, ~1 per 100
+threshold-dwelling verticals observed so far.
+
 ## Resolution
 
 - Chat B's general claim "the stop part cannot be backtested" — **withdrawn by
