@@ -65,9 +65,24 @@ the real per-strategy gap (Standard includes real-time/streaming).
   (mock fill → correct row; no-fills/broken → safe no-op). Daemon paused (Labor Day) so edit
   is safe; additive only, NO strategy logic changed.
 
+### ✅ REAL RESULTS IN (2026-09-08) — the pull ran end to end
+- Terminal up (Java 21, Options:STANDARD, port 25503). IB Flex report downloaded
+  (`Aug_Fills.xml` → 1048 execs, 762 SPX) and wired as the TRUE fill-time/price anchor →
+  all 518 events (Aug 6–Sep 4) carry IB's real second-precision exec time + real price.
+- Pulled at_time (518, 0 fail) + trade_quote (518, 4855 prints, 0 fail). Report:
+  `data/options_sim/thetadata_fill_report_20260908.html`. **Median fill position 0.0**
+  (marketable touch — real crossing engine, not a 0.5 mid-phantom), **86.1% crossed the
+  spread, 99.8% size≥1 at touch, 384/407 (94%) single-leg print-confirmed**, 1 stale.
+  2.1% "through book" = sub-second quote drift (at_time = last quote at/before the fill sec),
+  small/two-sided/expected. **This validates the sim's fills against real OPRA.**
+- Live-caught fixes committed: _sod ISO-datetime parse; report right-normalize (CALL/PUT↔C/P);
+  fetch event-keys-win; Flex commission attr. Setup steps + Java-21 in the setup doc.
+
 ### Open / next
-- [ ] **BLOCKED:** install Java 21+ + launch Theta Terminal (user creds) — state change,
-  needs user. Then `--probe` (root SPXW vs SPX), `--limit 1` smoke, then full 366-contract pull.
+- [ ] Package/polish the report to SEND (vendor asked to see how paper fills line up; user wants
+  a presentable August visual). Consider: per-strategy detail, the through-book cases, commissions.
+- [ ] (Optional) re-run trade_quote after the fetch key-fix (current report used the report-side
+  normalize; data is correct either way).
 - [ ] **User:** create the paper-account Flex token + Trade-Confirmation query (Aug range),
   then run `ib_flex_executions.py` → recover true August fill times.
 - [x] **Report BUILT (turnkey):** [scripts/thetadata_fill_report.py](../../scripts/thetadata_fill_report.py)
