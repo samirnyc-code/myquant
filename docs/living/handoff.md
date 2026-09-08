@@ -1,6 +1,92 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** September 7, 2026 (S112: built the ThetaData fill-validation pull layer (SPX-only; XSP retired per user). Two committed scripts — `thetadata_worklist.py` (read-only; 204 SPX trades → 406 legs → **366 unique 0DTE contracts** over 24 dates 08-04→09-04; 196 ET fill anchors from orders.csv) + `thetadata_fetch.py` (stdlib v3 NBBO tick fetcher; `--dry-run`/`--probe`/`--limit`, resumable, manifest, no-terminal guard that fetches nothing). Validated all paths WITHOUT the terminal (dry-run URLs correct, strike-format bug caught+fixed 7560.0→7560.000). TZ pinned: trades=CT/orders=ET/Theta=ET — pull is by date (tz-safe), align later via orders.csv. STILL BLOCKED on local Theta Terminal (Java) — not installed; needs user OK or user-run. Vendor (ThetaData) confirmed Standard $80 is right + gave execution-model guidance (fill@touch+size-check, tick+latency-delay, prints=confirmation-not-fill, SPXW settles on close, early-close 1pm ET) → saved to `docs/options_0dte/thetadata_fill_validation.md` as the comparison-script spec. S111 scripts were ALREADY committed (9157bb17); that handoff checkbox was stale. — earlier S111: options-sim ANALYSIS + Labor-Day pause + ThetaData prep. NO strategy code changed (user: "nothing changed in the strategy"). Verified: EM=prior-close spot×VIX/√252 (gexlog morning brief; identical to our fallback); Open condor reuses the SAME prior-close-VIX width (no open-time vol). EOD flies = off-center fly on a stale price (weak). Reconstructed sim PnL on the DASHBOARD-CALENDAR basis (SPX-only, incl open marks, excl 08-04/05+orphan): full +$9,240 / n187; minus EOD-flies+Open-condors = **+$7,984 / n112 / PF 1.93**. **Fill realism RESOLVED**: sim uses REAL IB paper fills (NBBO, crosses the spread — median fill at the marketable touch, 79% ≤ mid) — NOT phantom mids. ThetaData Standard $80 = correct tier for fill-validation (quote+trade_quote+sizes, tick, 8yr); needs local Theta Terminal (Java) — **neither Java nor terminal installed here**. Paused sim for Labor Day (disabled 3 tasks + self-deleting resume task 9/8 06:00); chain recorder still respawned via supervisor — user said LEAVE it (no trades firing; watchdog holiday-halted). New analysis scripts UNCOMMITTED — commit next session.)
+**Last Updated:** September 8, 2026 (S113: ThetaData EXECUTED end-to-end. Terminal live (Java 21, Options:STANDARD, :25503). Pulled at_time NBBO + trade_quote prints for all 518 Aug-6→Sep-4 SPX fill events (0 fail), anchored on IB's TRUE exec times (from an IB Flex Trade-Confirmation XML the user downloaded → `ib_flex_executions.py --file`). **Fill realism VALIDATED**: median fill position 0.0 (marketable touch), 86.1% ≤ mid, 99.8% had ≥1 size (median 76), 94% single-leg-print-confirmed. **TD-based P&L reconstruction** (`td_pnl_reconstruct.py`): rebuilt the book from ONLY real data — entries/order-exits at the real touch, expiries at intrinsic vs the official SPX 4pm close (`/v3/index/history/eod`), real IB commissions. Sim booked $9,240 (modeled $1.30/trade fees) → restated at REAL fees $8,666 → TD net **$8,160** (−12%); fills-only delta just −$505/187 trades, settlement +$150 → **the sim's fills are accurate; the overstatement was under-counted commissions.** Report `scripts/thetadata_fill_report.py` (self-contained HTML + PDF, `--anon` vendor copy S01–S10): plain-English summary, side-by-side P&L (both at real fees, Δ$0 comm, Δ%), fill-position breakdown w/ cumulative %, size-depth tiles, Method&FAQ, metadata strip. **FORWARD FEE FIX** (real IB $1.63/contract/execution, was flat $1.30): active-close (`options_trigger_daemon`), 0DTE expiry (`options_postmortem` FEE 1.30→1.63), STMR (`options_sim_daemon` fee 0.0→real) — all forward-only, no history rewritten (user declined restating the calendar). **NEXT: build the stress-test sandbox, then model July-2026 entries from TD-only** — see the S113 block. — earlier S112 (9/7): built the ThetaData fill-validation pull layer (SPX-only; XSP retired per user). Two committed scripts — `thetadata_worklist.py` (read-only; 204 SPX trades → 406 legs → **366 unique 0DTE contracts** over 24 dates 08-04→09-04; 196 ET fill anchors from orders.csv) + `thetadata_fetch.py` (stdlib v3 NBBO tick fetcher; `--dry-run`/`--probe`/`--limit`, resumable, manifest, no-terminal guard that fetches nothing). Validated all paths WITHOUT the terminal (dry-run URLs correct, strike-format bug caught+fixed 7560.0→7560.000). TZ pinned: trades=CT/orders=ET/Theta=ET — pull is by date (tz-safe), align later via orders.csv. STILL BLOCKED on local Theta Terminal (Java) — not installed; needs user OK or user-run. Vendor (ThetaData) confirmed Standard $80 is right + gave execution-model guidance (fill@touch+size-check, tick+latency-delay, prints=confirmation-not-fill, SPXW settles on close, early-close 1pm ET) → saved to `docs/options_0dte/thetadata_fill_validation.md` as the comparison-script spec. S111 scripts were ALREADY committed (9157bb17); that handoff checkbox was stale. — earlier S111: options-sim ANALYSIS + Labor-Day pause + ThetaData prep. NO strategy code changed (user: "nothing changed in the strategy"). Verified: EM=prior-close spot×VIX/√252 (gexlog morning brief; identical to our fallback); Open condor reuses the SAME prior-close-VIX width (no open-time vol). EOD flies = off-center fly on a stale price (weak). Reconstructed sim PnL on the DASHBOARD-CALENDAR basis (SPX-only, incl open marks, excl 08-04/05+orphan): full +$9,240 / n187; minus EOD-flies+Open-condors = **+$7,984 / n112 / PF 1.93**. **Fill realism RESOLVED**: sim uses REAL IB paper fills (NBBO, crosses the spread — median fill at the marketable touch, 79% ≤ mid) — NOT phantom mids. ThetaData Standard $80 = correct tier for fill-validation (quote+trade_quote+sizes, tick, 8yr); needs local Theta Terminal (Java) — **neither Java nor terminal installed here**. Paused sim for Labor Day (disabled 3 tasks + self-deleting resume task 9/8 06:00); chain recorder still respawned via supervisor — user said LEAVE it (no trades firing; watchdog holiday-halted). New analysis scripts UNCOMMITTED — commit next session.)
+
+---
+
+## S113 (2026-09-08) — ThetaData EXECUTED (fill validation + TD P&L + report + fee fixes); NEXT = sandbox → July-2026 TD-only modeling
+
+**Tone:** long execution session. Terminal came up, IB Flex report obtained, full pull ran,
+TD-based P&L reconstructed, report polished over many iterations, forward fees corrected.
+Everything committed. NEXT step will be a NEW CHAT (user's call): build the stress-test sandbox,
+then model July-2026 entries from TD data only.
+
+### DONE this session (all committed on branch `leglab`)
+- **Terminal + creds:** Java 21 (winget Temurin), Theta Terminal `ThetaTerminalv3.jar` in
+  `C:\ThetaTerminal\`, API key in USER env `THETADATA_API_KEY` (never in repo). Serves
+  `http://127.0.0.1:25503/v3`. Options:STANDARD, 4 concurrent. Setup steps:
+  `docs/options_0dte/setup_thetadata_and_ib_flex.md`. Secrets ignored (`.env`/`creds.txt`/
+  `thetadata_strategy_map_*.csv`).
+- **IB Flex (true exec times + real commissions):** user built a Trade-Confirmation Flex query
+  (Executions; Date/Time, Symbol, Underlying, Expiry, Strike, Put/Call, Buy/Sell, Qty, Price,
+  Commission+Currency, Order/Exec ID, Exchange), downloaded XML → `scripts/ib_flex_executions.py
+  --file <xml>` (also has a Web-Service mode). 1048 execs, 762 SPX. Flex `orderID` is IB's big
+  id (does NOT join our orders.csv small ids — we match on contract+time+price instead).
+- **Pull layer:** `thetadata_worklist.py --flex <csv> --start 2026-08-06` → 518 fill events,
+  ALL with IB's true 2nd-precision exec time. `thetadata_fetch.py` datasets: `at_time` (as-of
+  NBBO/fill, primary), `trade_quote` (±3s prints, single-leg conditions 0/18 confirm; complex
+  130/131/134 = context), `quote` (full-day tick). 4-way parallel, 472="no data", header-parse.
+- **Fill realism VALIDATED** (report numbers): 518 events, median position **0.0**, **86.1% ≤ mid**,
+  **99.8% ≥1 size** (median 76, max 1463; ≥3:92.7% ≥10:83%), **384/407 single-leg print-confirmed**.
+- **TD-based P&L** (`td_pnl_reconstruct.py`, n=187): Sim $9,240 (modeled fees) → **@ real fees
+  $8,666** → **TD net $8,160** (−12%). Fills-only delta −$505; settlement +$150. Expired book
+  (115) validates (sim $21,044 vs TD $20,779). Settlement = intrinsic vs SPX 4pm close
+  (`/v3/index/history/eod`). Real commissions **$1.63/contract/exec** (median, Flex; likely
+  all-in — it's a floor).
+- **Report** (`scripts/thetadata_fill_report.py`): self-contained HTML + PDF (Edge headless),
+  `--anon` vendor copy (S01–S10, private legend gitignored). Plain-English summary, side-by-side
+  P&L (both real fees, Δ$0 comm + Δ%), fill-position breakdown + cumulative %, size tiles,
+  Method&FAQ, metadata strip (instrument/hours/exchange/broker/SIM/date-range/days). Also
+  `fill_timing_analysis.py` (our-log-vs-IB-exec lag: median +1.0s; size stats).
+- **FORWARD fees now REAL IB (was flat $1.30):** `options_trigger_daemon` active-close
+  (`len(legs)*size*1.63*2`), `options_postmortem` 0DTE expiry (FEE 1.30→1.63), `options_sim_daemon`
+  STMR (fee 0.0→`len*qty*1.63`, FEE→1.63). ALL forward-only (settlers skip already-closed trades).
+  User DECLINED restating the historical calendar (would rewrite trades.parquet = risky). `settle_xsp`
+  already used real $1.22 (XSP retired).
+
+### Vendor (ThetaData) — confirmed for the record
+SPXW = the 0DTE root (SPX root = AM monthlies, no 0DTE). Daily 0DTE only since **2022-05-16**
+(before: Mon/Wed/Fri). `at_time/quote` returns last NBBO at/before a ms (+ its own stamp — flag
+>2s stale). `trade_quote` ±window; confirm ONLY on single-leg conditions **0/18** (multi-leg
+130/131/134 print at package prices). Standard = 4 requests in flight. Empty window → HTTP 472.
+
+### ⏭ NEXT AGENDA (new chat) — STRESS-TEST SANDBOX, then model JULY-2026 from TD-only
+**Two phases. User wants the sandbox modeled FIRST, then use it to model July-2026 entries.**
+
+**Phase A — the sandbox** (aligned S112: canonical fill-store + a stress engine + Mission-Control
+page). v1 on the 518 fills (client-side JS), schema locked for the years-store. Parameters to
+expose as sliders (each re-derives P&L from the atomic fills): **slippage $/contract, commission
+$/contract, latency ms, fill-model (touch/mid/touch+buffer), entry-time (minute), exit-rule,
+settlement basis, size/partial-fill, filters (date/VIX-regime/strategy/structure/gap)**. Store:
+SQLite/client-JS now; **DuckDB+parquet** for the years (needs `pip install duckdb` — ASK first).
+Backtest scale target: **4yr SPXW + 8yr SPY** ≈ 100–200M NBBO rows windowed (~a few GB); pull a
+morning window **09:25–10:30 ET** so entry-time (8:30/8:35/8:40 CT) is a tunable, not a guess.
+
+**Phase B — model July-2026 entries from TD data ONLY** (replicate the sim's strike selection off
+real market inputs, then price fills/exits/settlement from TD). INPUTS NEEDED (user's list +
+mine):
+- **EOD SPX close** — `/v3/index/history/eod?symbol=SPX` (have it; = prior-close for EM + SET for expiry).
+- **VIX — YES, needed.** The sim's EM = prior-close spot × VIX/√252. Pull VIX EOD from TD index
+  (Index tier = FREE, same eod endpoint, symbol=VIX). (Better/optional: **market-implied EM** =
+  0DTE ATM straddle mid — the vendor's suggested intraday EM; derive from the chain, more accurate
+  than VIX-based. Pull BOTH: VIX for sim-replication, straddle for the improved model.)
+- **Gamma walls from TD (not gexlog):** compute GEX from the **full SPXW chain OI + gamma** per
+  decision time (ThetaData Standard has OI + greeks). Walls = strikes with max |GEX|. ⚠ CAVEAT:
+  this APPROXIMATES gexlog (different vendor/method) — the `gx_bcs/gx_bps` strategies won't
+  replicate exactly; flag it. Needs a full-chain pull (OI+greeks+quote), the heavy one.
+- **Also need:** the strategy/strike-selection logic (`scripts/options_gameplan.py` — replicate
+  with TD inputs; 5-pt SPX strike rounding), **greeks/delta** for STMR (~30Δ — TD greeks),
+  morning-window ticks for entry-time testing, **SET** for P&L, trading-calendar/holidays (have
+  `market_holidays.json`). Do we need dividends/rates? No — TD serves greeks directly.
+- **Open Qs for the new chat:** exact GEX formula/convention to match the desk; which entry rule
+  set to replicate first (condor vs fly vs gx); confirm July-2026 SPXW daily expirations exist
+  (yes, post-2022-05-16); DuckDB install OK?
+
+### Still open / carry-over
+- [ ] Confirm the IB fee is fully all-in (one more Flex pull with fee-component fields — cheap; it's a floor now).
+- [ ] Verify no OPEN positions in the validated window (TD P&L covers closed/expired only).
+- [ ] (Later) full-book vs kept-book slice; spread-cost-per-trade metric; true submit→fill latency (add Flex "Order Time").
+- [ ] Sim tasks still paused from S111 Labor-Day (3 disabled + resume task 9/8 06:00) — VERIFY they re-enabled and the resume task self-deleted.
 
 ---
 
