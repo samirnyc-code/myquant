@@ -402,8 +402,6 @@ and every remaining Δ is fills + settlement. {bridge.get('n_trades', '')} trade
             tile("Real-market net P&L", money(tdn), f"sim @ real fees {money(sim_adj)}", dtone),
             tile("Sim overstates / trade", money(pt.get('overstate_dollar', 0)),
                  f"{pct:+.1f}% · fills/settlement only", "bad"),
-            tile("Under-counted fees / trade", money(pt.get('fees_undercounted_dollar', 0)),
-                 f"sim modeled $1.30 vs real IB (was {money(sim_booked)})", "warn"),
         ])
 
     gen = dt.datetime.now().strftime("%Y-%m-%d %H:%M")
