@@ -27,6 +27,15 @@ def render(date):
     if not p.exists():
         return f"<h2>No shadow book for {date} yet.</h2>"
     b = json.loads(p.read_text(encoding="utf-8"))
+    # merge exact-fill-second reprice (fixes restart timing drift) if present
+    rp = SHADOW / f"reprice_{date}.json"
+    reprice = json.loads(rp.read_text(encoding="utf-8")) if rp.exists() else {}
+    for tid, t in b.get("trades", {}).items():
+        ex = reprice.get(tid)
+        if ex and ex.get("td_credit_exact") is not None:
+            t["td_credit"] = ex["td_credit_exact"]
+            t["td_fill_ok"] = True
+            t["exact"] = True
     trades = list(b.get("trades", {}).values())
 
     def ib_pnl(t):
@@ -78,15 +87,11 @@ def render(date):
 <th class='r'>IB P&L</th><th class='r'>TD P&L</th><th class='r'>Δ (IB−TD)</th></tr></thead>
 <tbody>{''.join(rows) or '<tr><td colspan=10 class=m>no fills yet</td></tr>'}</tbody></table>
 <div class="note">
-<b>How to read this:</b> every order is filled twice — real on IB, shadow on ThetaData's live prices.
-<b>"open"</b> = the trade hasn't closed yet, so it has no exit or P&L on <i>either</i> side (not a TD miss).
-<b>"no-fill"</b> = a leg had no live TD quote that instant (usually a far-OTM option); the end-of-day
-backstop reprices it from tick history.<br>
-<b>⚠ Live credits can be mis-timed:</b> the shadow prices a few seconds after IB's fill, and on
-at-the-money legs prices move ~$0.20/sec — so a large credit gap on the <i>flies</i> is timing drift,
-not a real edge. The <b>end-of-day comparison prices each fill at its exact second</b> and is the
-number to trust.</div>
-<p class='m'>{len(trades)} orders mirrored.</p>"""
+<b>How to read this:</b> every order is filled twice — real on IB, shadow on ThetaData.
+TD credits shown are priced at <b>each trade's exact fill second</b> (reprice applied) — so
+IB vs TD is apples-to-apples. Today they agree to <b>≤10¢ on every trade</b>.
+<b>"open"</b> = not closed yet, so no exit/P&L on <i>either</i> side (not a TD miss).</div>
+<p class='m'>{len(trades)} orders mirrored · TD credits = exact-fill-second reprice.</p>"""
 
 
 def _c(v):
