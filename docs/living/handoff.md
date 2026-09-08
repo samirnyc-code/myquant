@@ -6,10 +6,15 @@
 
 ## ⚡ CONTROL BOARD — the single hub (read FIRST, update AFTER every unit of work)
 
-**2026-09-08 (S114): the two parallel chats are COLLAPSED to ONE.** This board is the sole
-control surface. Close the other chat. Do NOT create `hub.md` or any parallel handoff
-(CLAUDE.md rule) — this board IS the hub. Read it first; pick ONE item; on finishing, update
-its row + add a dated line to the session log below. Keep this board to ~one screen.
+**2026-09-08 (S114): TWO chats work this repo — this board is how they stop colliding.**
+Both chats stay open; neither is throwaway. The rule is simple: **read this board FIRST;
+before you start an item, put your chat's name + "WIP" in its row so the other chat won't
+touch it; clear it when done.** That's the whole coordination mechanism — no closing chats,
+no parallel debate docs, no second `hub.md` (CLAUDE.md: this board IS the hub). ~one screen.
+
+Roughly: the **A chat** drives the backtest/sandbox/ThetaData items (#2,3,6,8); **this (B)
+chat** drove the daemon fix, DuckDB store, NT8, max-profit-zone (#5,7,9,10). Before starting
+any item, drop "WIP <A/B>" in its row so the other chat leaves it alone.
 
 | # | workstream | status | next action |
 |---|---|---|---|
