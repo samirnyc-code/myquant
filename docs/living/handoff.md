@@ -66,7 +66,7 @@ the real per-strategy gap (Standard includes real-time/streaming).
   is safe; additive only, NO strategy logic changed.
 
 ### Open / next
-- [ ] **BLOCKED:** install Java JRE 11+ + launch Theta Terminal (user creds) — state change,
+- [ ] **BLOCKED:** install Java 21+ + launch Theta Terminal (user creds) — state change,
   needs user. Then `--probe` (root SPXW vs SPX), `--limit 1` smoke, then full 366-contract pull.
 - [ ] **User:** create the paper-account Flex token + Trade-Confirmation query (Aug range),
   then run `ib_flex_executions.py` → recover true August fill times.
@@ -168,7 +168,7 @@ GO but parked until the user has the terminal set up.
   - v3 NBBO: `/v3/option/history/quote?symbol=SPX&expiration=YYYYMMDD&strike=6450.000&right=call&date=YYYYMMDD&interval=tick&format=csv` → `timestamp,bid_size,bid,ask_size,ask,…`
   - v2 print-paired: `/v2/hist/option/trade_quote?root=SPX&exp=YYYYMMDD&strike=64500000&right=C&start_date=…&end_date=…` → trade `price/size/ms_of_day` + paired NBBO. **Strike units differ: v3 = dollars, v2 = 1/10-cent.**
 - **⚠ READINESS GAP ON THIS MACHINE:** `java` NOT on PATH; no Theta Terminal jar installed.
-  Setup order before ANY pull: (1) install Java JRE 11+, (2) download+launch Theta Terminal
+  Setup order before ANY pull: (1) install Java 21+, (2) download+launch Theta Terminal
   logged in, (3) then hit localhost. Installing Java = a state change → needs user OK, OR the
   user sets up the terminal themselves (their creds). **User said: "I will let you do it when I
   have everything."** So ThetaData is PARKED until the user has the terminal running.

@@ -54,7 +54,7 @@ MAX_INFLIGHT = 4                                  # Standard tier: 4 requests in
 SETUP_MSG = (
     "\n!! Theta Terminal is NOT reachable at {base}.\n"
     "   ThetaData needs a LOCAL terminal, not just the subscription:\n"
-    "     1. Install Java JRE 11+  (java must be on PATH)\n"
+    "     1. Install Java 21+  (java must be on PATH; `java -version`)\n"
     "     2. Download + launch Theta Terminal (jar), log in with the ThetaData account\n"
     "     3. Re-run this script (it serves REST at {base})\n"
     "   Nothing was fetched. (Use --dry-run to verify URLs without the terminal.)\n"

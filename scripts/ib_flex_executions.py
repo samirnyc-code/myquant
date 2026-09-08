@@ -107,21 +107,29 @@ def parse_executions(xml_bytes: bytes) -> list[dict]:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Recover IB real exec times via Flex Web Service")
+    ap = argparse.ArgumentParser(description="Recover IB real exec times (Flex Web Service or a saved file)")
     ap.add_argument("--token", default=os.environ.get("IBKR_FLEX_TOKEN"))
     ap.add_argument("--query", default=os.environ.get("IBKR_FLEX_QUERY"))
+    ap.add_argument("--file", help="parse a Flex report you downloaded (XML) instead of the Web Service")
     args = ap.parse_args()
 
-    if not args.token or not args.query:
-        print("!! Need a paper-account Flex token + query ID (kept in env, never in the repo).")
+    if args.file:                                        # manual route: no token needed
+        p = Path(args.file)
+        if not p.exists():
+            print(f"no such file: {p}")
+            return 1
+        print(f"parsing downloaded Flex report: {p}")
+        rows = parse_executions(p.read_bytes())
+    elif args.token and args.query:                      # automated Web Service route
+        print("Flex: requesting statement...")
+        ref, url = send_request(args.token, args.query)
+        print(f"  reference {ref} — polling for the statement...")
+        rows = parse_executions(get_statement(url, args.token, ref))
+    else:
+        print("!! Provide --file <downloaded.xml>, OR a paper-account Flex token + query ID "
+              "(env IBKR_FLEX_TOKEN / IBKR_FLEX_QUERY — never in the repo).")
         print(SETUP)
         return 2
-
-    print("Flex: requesting statement...")
-    ref, url = send_request(args.token, args.query)
-    print(f"  reference {ref} — polling for the statement...")
-    xml_bytes = get_statement(url, args.token, ref)
-    rows = parse_executions(xml_bytes)
     print(f"  parsed {len(rows)} execution row(s).")
     if not rows:
         print("  (no executions in the statement — check the query's date range + Executions field)")
