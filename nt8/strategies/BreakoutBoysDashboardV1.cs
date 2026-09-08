@@ -82,7 +82,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 				RealtimeErrorHandling = RealtimeErrorHandling.IgnoreAllErrors;
 
 				// stop-entry settings
-				SE_RestImmediately = true;   // rest the stop entry on arm (off last closed/picked bar); false = wait for the SB's close
+				SE_RestImmediately = false;  // DEFERRED (default): SB = the bar you ARM IN; rest 1t beyond it at ITS close, enter next bar. true = rest now off the last CLOSED bar (advanced).
 				SE_AtmTemplate    = "";      // fallback ATM template name used only if the Chart Trader dropdown read is empty
 				SE_Qty            = 1;
 				SE_EntryOffsetTicks = 1;   // entry this many ticks beyond the SB
@@ -435,10 +435,29 @@ namespace NinjaTrader.NinjaScript.Strategies
 			SetBtn(btnSES, (_pendingShort || _dir == -1) ? ColorArmed : ColorOff);
 		}
 
+		// Live (still-cancelable) order states. A resting stop-ENTRY sits in Accepted —
+		// NOT Working — until its stop price triggers, so filtering on Working alone left
+		// the entry (and the OCO stop/target) uncancelable: that was the CANCEL/FLATTEN bug.
+		private static bool IsLive(Order o)
+		{
+			switch (o.OrderState)
+			{
+				case OrderState.Accepted:
+				case OrderState.Working:
+				case OrderState.Submitted:
+				case OrderState.TriggerPending:
+				case OrderState.PartFilled:
+				case OrderState.ChangePending:
+					return true;
+				default:
+					return false;
+			}
+		}
+
 		private void CancelWorkingEntries()
 		{
 			foreach (Order o in Orders)
-				if (o.Name == "SE" && o.OrderState == OrderState.Working) CancelOrder(o);
+				if (o.Name == "SE" && IsLive(o)) CancelOrder(o);
 		}
 
 		// Close/cancel an active ATM trade (position -> close; resting entry -> cancel).
@@ -460,7 +479,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 		private void CancelSEOrders()
 		{
 			foreach (Order o in Orders)
-				if ((o.Name == "SE" || o.Name == "SEstop" || o.Name == "SEtgt") && o.OrderState == OrderState.Working)
+				if ((o.Name == "SE" || o.Name == "SEstop" || o.Name == "SEtgt") && IsLive(o))
 					CancelOrder(o);
 			CancelAtmIfActive();
 			_pendingLong = _pendingShort = false;
@@ -471,7 +490,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 		private void FlattenSE()
 		{
 			foreach (Order o in Orders)
-				if ((o.Name == "SE" || o.Name == "SEstop" || o.Name == "SEtgt") && o.OrderState == OrderState.Working)
+				if ((o.Name == "SE" || o.Name == "SEstop" || o.Name == "SEtgt") && IsLive(o))
 					CancelOrder(o);
 			CancelAtmIfActive();
 			_pendingLong = _pendingShort = false;
