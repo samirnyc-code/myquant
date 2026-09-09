@@ -249,9 +249,13 @@ def tile_specs(s):
     ]
 
 
-def stat_tiles(s):
+def stat_tiles(s, only=None, skip=()):
     out = []
     for key, label, val, cls in tile_specs(s):
+        if only is not None and key not in only:
+            continue
+        if key in skip:
+            continue
         out.append(f"""<div class="tile">
           <div class="tl">{label}</div>
           <div class="tv {cls}" id="k-{key}">{val}</div></div>""")
@@ -1709,7 +1713,7 @@ h2{{font-size:15px;color:var(--acc);margin:24px 0 8px}}
 
 <div id="lvpanel-wrap">{levels_panel(lr)}</div>
 
-<div class="kpis">{stat_tiles(s)}</div>
+<div class="kpis">{stat_tiles(s, skip=("running", "close_now"))}</div>
 
 {positions_html(gp_trades, gp_marks)}
 
@@ -1743,6 +1747,7 @@ h2{{font-size:15px;color:var(--acc);margin:24px 0 8px}}
 #p-ibtd th:first-child,#p-ibtd td:first-child{{text-align:left}}
 </style>
 <div class="muted" style="font-size:12px;margin:4px 0 8px">Live IB paper fills vs ThetaData-priced (TD) reconstruction — today's shadow book. Was the standalone :8610 page; now integrated here.</div>
+<div class="kpis" style="margin:6px 0 14px">{stat_tiles(s, only=("running", "close_now"))}</div>
 {ibtd_html}
 </div>
 <div class="page" id="p-analytics">
