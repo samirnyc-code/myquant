@@ -1,3 +1,24 @@
-# launched 2026-09-02T02:39:26
+# launched 2026-09-09T14:20:41
 # C:\Users\Admin\myquant\.venv\Scripts\pythonw.exe C:\Users\Admin\myquant\scripts\options_dashboard_live.py --host 0.0.0.0 --port 8600
 
+----------------------------------------
+Exception occurred during processing of request from ('127.0.0.1', 60152)
+Traceback (most recent call last):
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\socketserver.py", line 697, in process_request_thread
+    self.finish_request(request, client_address)
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\socketserver.py", line 362, in finish_request
+    self.RequestHandlerClass(request, client_address, self)
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\socketserver.py", line 766, in __init__
+    self.handle()
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\http\server.py", line 436, in handle
+    self.handle_one_request()
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\http\server.py", line 424, in handle_one_request
+    method()
+  File "C:\Users\Admin\myquant\scripts\options_dashboard_live.py", line 168, in do_GET
+    self._send(json.dumps(state()), "application/json", set_cookie)
+  File "C:\Users\Admin\myquant\scripts\options_dashboard_live.py", line 136, in _send
+    self.wfile.write(body)
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\socketserver.py", line 845, in write
+    self._sock.sendall(b)
+ConnectionAbortedError: [WinError 10053] An established connection was aborted by the software in your host machine
+----------------------------------------

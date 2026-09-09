@@ -1,0 +1,80 @@
+{
+  "date": "20260907",
+  "regime_preopen": "n/a (premium-only, unconditional)",
+  "spot_preopen": 7718.18,
+  "levels": {},
+  "settled_0dte": [],
+  "triggers": [
+    {
+      "id": "eodic_p",
+      "setup": "eodic_p",
+      "name": "[EOD] Bull Put @ 7650",
+      "projected_grade": "C",
+      "status": "armed",
+      "fired": false
+    },
+    {
+      "id": "eodic_c",
+      "setup": "eodic_c",
+      "name": "[EOD] Bear Call @ 7790",
+      "projected_grade": "C",
+      "status": "armed",
+      "fired": false
+    },
+    {
+      "id": "eodfly_p",
+      "setup": "eodfly_p",
+      "name": "[EOD] Bull Put @ 7720 (ATM)",
+      "projected_grade": "C",
+      "status": "armed",
+      "fired": false
+    },
+    {
+      "id": "eodfly_c",
+      "setup": "eodfly_c",
+      "name": "[EOD] Bear Call @ 7720 (ATM)",
+      "projected_grade": "C",
+      "status": "armed",
+      "fired": false
+    },
+    {
+      "id": "openic_p",
+      "setup": "openic_p",
+      "name": "[Open] Bull Put @ open-70",
+      "projected_grade": "C",
+      "status": "armed",
+      "fired": false
+    },
+    {
+      "id": "openic_c",
+      "setup": "openic_c",
+      "name": "[Open] Bear Call @ open+70",
+      "projected_grade": "C",
+      "status": "armed",
+      "fired": false
+    },
+    {
+      "id": "openfly_p",
+      "setup": "openfly_p",
+      "name": "[Open] Bull Put @ ATM(open)",
+      "projected_grade": "C",
+      "status": "armed",
+      "fired": false
+    },
+    {
+      "id": "openfly_c",
+      "setup": "openfly_c",
+      "name": "[Open] Bear Call @ ATM(open)",
+      "projected_grade": "C",
+      "status": "armed",
+      "fired": false
+    }
+  ],
+  "ohlc": null,
+  "paths_materialized": [
+    [
+      "?",
+      "no tape for this date"
+    ]
+  ]
+}

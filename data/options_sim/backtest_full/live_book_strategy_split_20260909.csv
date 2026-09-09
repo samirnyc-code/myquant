@@ -1,0 +1,23 @@
+window,family,strategy_id,pnl,n,win_pct
+all,fly (backtested),eodfly_p,-1202.2,26,46.2
+all,condor (backtested),eodic_c,-859.0,16,81.2
+all,other/STMR (NOT backtested),incident_orphan,-735.2,2,0.0
+all,condor (backtested),openic_c,-617.5,13,76.9
+all,fly (backtested),eodfly_c,462.7,24,41.7
+all,gamma-wall (NOT backtested),gx_bcs,475.1,21,71.4
+all,condor (backtested),openic_p,779.5,23,100.0
+all,condor (backtested),eodic_p,1382.3,20,100.0
+all,fly (backtested),openfly_p,1456.0,26,34.6
+all,gamma-wall (NOT backtested),gx_bps,2411.0,18,83.3
+all,fly (backtested),openfly_c,3575.1,25,44.0
+aug2026,fly (backtested),eodfly_p,-946.4,20,50.0
+aug2026,other/STMR (NOT backtested),incident_orphan,-735.2,2,0.0
+aug2026,condor (backtested),openic_c,-632.3,11,72.7
+aug2026,fly (backtested),eodfly_c,-216.2,19,36.8
+aug2026,condor (backtested),eodic_c,-82.5,13,84.6
+aug2026,gamma-wall (NOT backtested),gx_bcs,362.5,16,68.8
+aug2026,condor (backtested),openic_p,703.2,18,100.0
+aug2026,condor (backtested),eodic_p,803.4,16,100.0
+aug2026,fly (backtested),openfly_p,1830.5,20,40.0
+aug2026,gamma-wall (NOT backtested),gx_bps,1953.8,14,78.6
+aug2026,fly (backtested),openfly_c,3259.9,20,45.0

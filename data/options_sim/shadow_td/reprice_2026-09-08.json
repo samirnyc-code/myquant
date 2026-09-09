@@ -25,7 +25,11 @@
         "px": 1.05,
         "quote_ts": "2026-09-08T09:31:17.979"
       }
-    ]
+    ],
+    "td_exit_debit_exact": 0.0,
+    "et_exit_time_used": "settle",
+    "td_pnl_exact": 46.74,
+    "ib_pnl": 51.74
   },
   "auto_20260908_083201": {
     "td_credit_exact": 12.9,
@@ -86,7 +90,11 @@
         "px": 4.3,
         "quote_ts": "2026-09-08T09:33:16.999"
       }
-    ]
+    ],
+    "td_exit_debit_exact": 0.0,
+    "et_exit_time_used": "settle",
+    "td_pnl_exact": 336.74,
+    "ib_pnl": 336.74
   },
   "auto_20260908_083354": {
     "td_credit_exact": 0.2,
@@ -114,7 +122,11 @@
         "px": 0.6,
         "quote_ts": "2026-09-08T09:33:53.609"
       }
-    ]
+    ],
+    "td_exit_debit_exact": 0.0,
+    "et_exit_time_used": "settle",
+    "td_pnl_exact": 16.74,
+    "ib_pnl": 21.74
   },
   "auto_20260908_083451": {
     "td_credit_exact": 7.7,
@@ -175,7 +187,11 @@
         "px": 8.6,
         "quote_ts": "2026-09-08T09:35:48.998"
       }
-    ]
+    ],
+    "td_exit_debit_exact": 0.0,
+    "et_exit_time_used": "settle",
+    "td_pnl_exact": 681.74,
+    "ib_pnl": 686.74
   },
   "auto_20260908_083645": {
     "td_credit_exact": 2.45,
@@ -203,7 +219,11 @@
         "px": 3.9,
         "quote_ts": "2026-09-08T09:36:45.000"
       }
-    ]
+    ],
+    "td_exit_debit_exact": 1.48,
+    "et_exit_time_used": "settle",
+    "td_pnl_exact": 93.74,
+    "ib_pnl": 98.74
   },
   "auto_20260908_083705": {
     "td_credit_exact": 0.2,
@@ -231,6 +251,10 @@
         "px": 0.45,
         "quote_ts": "2026-09-08T09:37:04.994"
       }
-    ]
+    ],
+    "td_exit_debit_exact": 0.0,
+    "et_exit_time_used": "settle",
+    "td_pnl_exact": 16.74,
+    "ib_pnl": 21.74
   }
 }

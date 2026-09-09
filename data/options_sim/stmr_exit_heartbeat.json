@@ -1,7 +1,7 @@
 {
   "state": "error",
   "stage": "connect",
-  "err": "TimeoutError()",
+  "err": "TimeoutError('no passive attach after 8 tries (gateway up but not accepting)')",
   "open_before": null,
-  "ts_et": "2026-09-02T16:07:48.680895-04:00"
+  "ts_et": "2026-09-04T16:04:40.164591-04:00"
 }

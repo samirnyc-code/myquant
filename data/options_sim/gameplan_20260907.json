@@ -1,0 +1,422 @@
+{
+  "date": "20260907",
+  "generated_at": "2026-09-07 07:05:04 CT",
+  "spot_preopen": 7718.18,
+  "spot_source": "15:01 tape",
+  "vix": 14.319999694824219,
+  "vix_source": "2026-09-03",
+  "em_halfwidth": 69.6,
+  "em_source": "computed VIX 14.3 (brief STALE \u2014 gx condor skipped)",
+  "em_low": 7648.6,
+  "em_high": 7787.8,
+  "regime": "n/a (premium-only, unconditional)",
+  "gexlog": {
+    "signal_bucket": "WAIT",
+    "signal": "Wait",
+    "day_type": "HIVOL",
+    "forecast_type": "HIGH VOLATILITY",
+    "regime": "NEGATIVE",
+    "net_gex": -3326533591.0,
+    "gex_flip": null,
+    "putWall": 7710.0,
+    "callWall": 7725.0,
+    "expectedMove": 69.0,
+    "emLower": 7678.0,
+    "emUpper": 7817.0,
+    "current": 7747.71,
+    "risk_level": "High",
+    "confidence": 70,
+    "flip_proximity": null,
+    "borderline_regime": false,
+    "streak_label": "Day 2 Positive Gamma",
+    "catalysts_today": [
+      {
+        "time": "08:30",
+        "title": "Nonfarm Payrolls Private (Aug)",
+        "impact": "high",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Average Hourly Earnings MoM (Aug)",
+        "impact": "medium",
+        "category": "earnings"
+      },
+      {
+        "time": "08:30",
+        "title": "Government Payrolls (Aug)",
+        "impact": "low",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "U-6 Unemployment Rate (Aug)",
+        "impact": "high",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Participation Rate (Aug)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Average Weekly Hours (Aug)",
+        "impact": "low",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Non Farm Payrolls (Aug)",
+        "impact": "high",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Average Hourly Earnings YoY (Aug)",
+        "impact": "medium",
+        "category": "earnings"
+      }
+    ],
+    "high_impact_today": 4,
+    "playbook_wait": true,
+    "playbook": {
+      "primary": {
+        "scenario": "Mean Reversion Chop",
+        "trigger": "Holding between 7675 and 7750 after 08:30 ET NFP resolution",
+        "bias": "WAIT for NFP at 08:30 ET before entry. Positive gamma dampens moves \u2014 fade extensions toward walls using iron condors with short strikes near 7675 put wall and 7750 call wall, or sell a narrow call credit spread capped at 7800.44 (R2) if price spikes but fails to hold above 7750."
+      },
+      "alternative": {
+        "scenario": "Breakout Continuation Higher",
+        "trigger": "Sustained hold > 7750 (Call Wall) post-NFP print",
+        "bias": "WAIT for NFP at 08:30 ET. If ES confirms a clean break and hold above 7750, deploy a debit call spread targeting 7800.44 (R2) with defined risk; limit size given positive gamma environment which may slow momentum and cap upside near the expected move upper bound of 7817."
+      },
+      "neutral": {
+        "scenario": "Rangebound Chop",
+        "trigger": "ES oscillates between 7675 (Put Wall) and 7750 (Call Wall) all session",
+        "bias": "WAIT for NFP at 08:30 ET. Positive gamma supports range containment \u2014 sell an iron condor with short put at 7675 and short call at 7750, long wings near 7660.34 (S2) and 7800.44 (R2) respectively. Ideal for a low-VIX (14.2) Friday with premium decay accelerating into close."
+      }
+    },
+    "pivots": {
+      "r2": 7800.44,
+      "r1": 7774.08,
+      "s1": 7704.03,
+      "s2": 7660.34
+    },
+    "gap_pct": 0.15,
+    "gap_note": "+0.15% (fade)",
+    "calendar_note": "5/5 HIGH",
+    "stale_risk": true,
+    "es_premarket": 7722.0,
+    "rsi_14": 52.0,
+    "corr_putWall": 7720.0,
+    "corr_callWall": null,
+    "gamma_regime": "NEG",
+    "event_day": true,
+    "event_titles": [
+      "Nonfarm Payrolls Private (Aug)",
+      "Government Payrolls (Aug)",
+      "U-6 Unemployment Rate (Aug)",
+      "Non Farm Payrolls (Aug)"
+    ],
+    "in_range_flip": null,
+    "sector_dispersion": 3.08,
+    "generated_at": "2026-09-04 06:20 AM ET",
+    "source": "report.php",
+    "error": null
+  },
+  "event_gate": {
+    "event_day": true,
+    "gamma": "NEG",
+    "verdict": "STAND_ASIDE",
+    "advisory": true,
+    "note": "NEG-gamma event day (Nonfarm Payrolls Private (Aug), Government Payrolls (Aug), U-6 Unemployment Rate (Aug), Non Farm Payrolls (Aug)) \u2014 archive EM-held only 65% (worst cell; breaks are TREND-strong). Real-money posture: size down / widen wings / go directional. Paper still trades all for the record."
+  },
+  "levels": {},
+  "warnings": [],
+  "execution": {
+    "mode": "auto",
+    "size": 1,
+    "concurrency_cap": null,
+    "min_grade": "F",
+    "min_credit_abs": 0.1,
+    "exits": {
+      "level_accept_mins": 10,
+      "regime_invalidation": true,
+      "time_stop": "14:45"
+    },
+    "policy": "PREMIUM-SELLING ONLY, unconditional (data collection). Four 0DTE verticals fired at the open off the VIX EM band; iron condor = bps+bcs, iron fly = atm bps+bcs (summed in analysis). No MenthorQ, no regime gate. Exits: short-strike acceptance or 14:45 time-stop."
+  },
+  "scenarios": [],
+  "triggers": [
+    {
+      "id": "eodic_p",
+      "setup": "eodic_p",
+      "stream": "eod",
+      "path": "\u2014",
+      "name": "[EOD] Bull Put @ 7650",
+      "arm": {
+        "regime": "any"
+      },
+      "fire": {
+        "type": "time_at",
+        "not_before": "08:30"
+      },
+      "window": [
+        "08:30",
+        "09:30"
+      ],
+      "structure": {
+        "kind": "vertical",
+        "right": "P",
+        "short": 7650,
+        "long": 7625,
+        "width": 25
+      },
+      "projected_grade": "C",
+      "grade_basis": "EOD condor put \u2014 prior-close EM low (computed VIX 14.3 (brief STALE \u2014 gx condor skipped))",
+      "group": "[EOD] Iron Condor",
+      "center": "eod",
+      "status": "armed",
+      "fired": false,
+      "trade_id": null,
+      "gexlog_signal": "WAIT",
+      "gexlog_day_type": "HIVOL"
+    },
+    {
+      "id": "eodic_c",
+      "setup": "eodic_c",
+      "stream": "eod",
+      "path": "\u2014",
+      "name": "[EOD] Bear Call @ 7790",
+      "arm": {
+        "regime": "any"
+      },
+      "fire": {
+        "type": "time_at",
+        "not_before": "08:30"
+      },
+      "window": [
+        "08:30",
+        "09:30"
+      ],
+      "structure": {
+        "kind": "vertical",
+        "right": "C",
+        "short": 7790,
+        "long": 7815,
+        "width": 25
+      },
+      "projected_grade": "C",
+      "grade_basis": "EOD condor call \u2014 prior-close EM high (computed VIX 14.3 (brief STALE \u2014 gx condor skipped))",
+      "group": "[EOD] Iron Condor",
+      "center": "eod",
+      "status": "armed",
+      "fired": false,
+      "trade_id": null,
+      "gexlog_signal": "WAIT",
+      "gexlog_day_type": "HIVOL"
+    },
+    {
+      "id": "eodfly_p",
+      "setup": "eodfly_p",
+      "stream": "eod",
+      "path": "\u2014",
+      "name": "[EOD] Bull Put @ 7720 (ATM)",
+      "arm": {
+        "regime": "any"
+      },
+      "fire": {
+        "type": "time_at",
+        "not_before": "08:30"
+      },
+      "window": [
+        "08:30",
+        "09:30"
+      ],
+      "structure": {
+        "kind": "vertical",
+        "right": "P",
+        "short": 7720,
+        "long": 7695,
+        "width": 25
+      },
+      "projected_grade": "C",
+      "grade_basis": "EOD fly put \u2014 ATM = prior close",
+      "group": "[EOD] Iron Fly",
+      "center": "eod",
+      "status": "armed",
+      "fired": false,
+      "trade_id": null,
+      "gexlog_signal": "WAIT",
+      "gexlog_day_type": "HIVOL"
+    },
+    {
+      "id": "eodfly_c",
+      "setup": "eodfly_c",
+      "stream": "eod",
+      "path": "\u2014",
+      "name": "[EOD] Bear Call @ 7720 (ATM)",
+      "arm": {
+        "regime": "any"
+      },
+      "fire": {
+        "type": "time_at",
+        "not_before": "08:30"
+      },
+      "window": [
+        "08:30",
+        "09:30"
+      ],
+      "structure": {
+        "kind": "vertical",
+        "right": "C",
+        "short": 7720,
+        "long": 7745,
+        "width": 25
+      },
+      "projected_grade": "C",
+      "grade_basis": "EOD fly call \u2014 ATM = prior close",
+      "group": "[EOD] Iron Fly",
+      "center": "eod",
+      "status": "armed",
+      "fired": false,
+      "trade_id": null,
+      "gexlog_signal": "WAIT",
+      "gexlog_day_type": "HIVOL"
+    },
+    {
+      "id": "openic_p",
+      "setup": "openic_p",
+      "stream": "open",
+      "path": "\u2014",
+      "name": "[Open] Bull Put @ open-70",
+      "arm": {
+        "regime": "any"
+      },
+      "fire": {
+        "type": "time_at",
+        "not_before": "09:05"
+      },
+      "window": [
+        "09:05",
+        "10:00"
+      ],
+      "structure": {
+        "kind": "vertical_dynamic",
+        "right": "P",
+        "offset": -69.62378687569965,
+        "width": 25
+      },
+      "projected_grade": "C",
+      "grade_basis": "Open condor put \u2014 70pt below the open [WAIT day: entry 09:05 CT post-event per brief]",
+      "group": "[Open] Iron Condor",
+      "center": "open",
+      "status": "armed",
+      "fired": false,
+      "trade_id": null,
+      "gexlog_signal": "WAIT",
+      "gexlog_day_type": "HIVOL"
+    },
+    {
+      "id": "openic_c",
+      "setup": "openic_c",
+      "stream": "open",
+      "path": "\u2014",
+      "name": "[Open] Bear Call @ open+70",
+      "arm": {
+        "regime": "any"
+      },
+      "fire": {
+        "type": "time_at",
+        "not_before": "09:05"
+      },
+      "window": [
+        "09:05",
+        "10:00"
+      ],
+      "structure": {
+        "kind": "vertical_dynamic",
+        "right": "C",
+        "offset": 69.62378687569965,
+        "width": 25
+      },
+      "projected_grade": "C",
+      "grade_basis": "Open condor call \u2014 70pt above the open [WAIT day: entry 09:05 CT post-event per brief]",
+      "group": "[Open] Iron Condor",
+      "center": "open",
+      "status": "armed",
+      "fired": false,
+      "trade_id": null,
+      "gexlog_signal": "WAIT",
+      "gexlog_day_type": "HIVOL"
+    },
+    {
+      "id": "openfly_p",
+      "setup": "openfly_p",
+      "stream": "open",
+      "path": "\u2014",
+      "name": "[Open] Bull Put @ ATM(open)",
+      "arm": {
+        "regime": "any"
+      },
+      "fire": {
+        "type": "time_at",
+        "not_before": "09:05"
+      },
+      "window": [
+        "09:05",
+        "10:00"
+      ],
+      "structure": {
+        "kind": "vertical_dynamic",
+        "right": "P",
+        "offset": 0,
+        "width": 25
+      },
+      "projected_grade": "C",
+      "grade_basis": "Open fly put \u2014 ATM = open [WAIT day: entry 09:05 CT post-event per brief]",
+      "group": "[Open] Iron Fly",
+      "center": "open",
+      "status": "armed",
+      "fired": false,
+      "trade_id": null,
+      "gexlog_signal": "WAIT",
+      "gexlog_day_type": "HIVOL"
+    },
+    {
+      "id": "openfly_c",
+      "setup": "openfly_c",
+      "stream": "open",
+      "path": "\u2014",
+      "name": "[Open] Bear Call @ ATM(open)",
+      "arm": {
+        "regime": "any"
+      },
+      "fire": {
+        "type": "time_at",
+        "not_before": "09:05"
+      },
+      "window": [
+        "09:05",
+        "10:00"
+      ],
+      "structure": {
+        "kind": "vertical_dynamic",
+        "right": "C",
+        "offset": 0,
+        "width": 25
+      },
+      "projected_grade": "C",
+      "grade_basis": "Open fly call \u2014 ATM = open [WAIT day: entry 09:05 CT post-event per brief]",
+      "group": "[Open] Iron Fly",
+      "center": "open",
+      "status": "armed",
+      "fired": false,
+      "trade_id": null,
+      "gexlog_signal": "WAIT",
+      "gexlog_day_type": "HIVOL"
+    }
+  ]
+}
