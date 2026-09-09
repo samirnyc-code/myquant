@@ -1,0 +1,9 @@
+strat,n,same_strike_n,med_abs_dK,max_dK,med_dCr_all,med_absdCr_all,med_absdCr_sameK,max_absdCr_sameK,med_absdCr_sameK_pct
+eodfly_c,18,18,0.0,0.0,0.0,0.67,0.67,28.2,9.1
+eodfly_p,18,18,0.0,0.0,-0.1,0.42,0.42,19.35,7.0
+eodic_c,12,10,0.0,5.0,0.05,0.08,0.08,8.45,13.4
+eodic_p,15,9,0.0,5.0,-0.05,0.05,0.0,0.25,0.0
+openfly_c,18,11,0.0,40.0,0.15,1.3,0.65,2.8,9.1
+openfly_p,18,11,0.0,40.0,0.25,0.95,0.5,2.5,7.1
+openic_c,9,2,5.0,25.0,0.1,0.1,0.02,0.05,25.0
+openic_p,16,5,5.0,25.0,0.0,0.18,0.05,0.1,10.0
