@@ -1,2 +1,3 @@
 run_at_ct: target 08:35 CT | now 08:35 CT | delta +0min | berlin-chicago 7h | RUN: C:\Users\Admin\myquant\.venv\Scripts\python.exe -u C:\Users\Admin\myquant\scripts\shadow_stop_monitor.py --loop --secs 120 --stop 15:10
 run_at_ct: target 08:35 CT | now 08:35 CT | delta +0min | berlin-chicago 7h | RUN: C:\Users\Admin\myquant\.venv\Scripts\python.exe -u C:\Users\Admin\myquant\scripts\shadow_stop_monitor.py --loop --secs 120 --stop 15:10
+run_at_ct: target 08:35 CT | now 08:35 CT | delta +0min | berlin-chicago 7h | RUN: C:\Users\Admin\myquant\.venv\Scripts\python.exe -u C:\Users\Admin\myquant\scripts\shadow_stop_monitor.py --loop --secs 120 --stop 15:10

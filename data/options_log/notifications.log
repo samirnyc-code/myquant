@@ -479,3 +479,4 @@
 2026-09-09 15:40:03	✓ Options desk healthy	FEED spx 7653.1 @ 08:39:59 (4s old) · LEVELS GexLog GO · EM 7596.0–7751.0 · src 2026-09-09 06:20 · GAMEPLAN 10 triggers armed
 2026-09-09 15:44:05	TRADE CLOSED · eodfly_p ($-257)	[EOD] Bull Put @ 7675 (ATM): level ACCEPTED: spot 7649 held below the 7675 short strike for 10min (>10) — the wall we sold did not hold
 2026-09-09 15:46:19	TRADE CLOSED · openfly_p ($-97)	[Open] Bull Put @ ATM(open): level ACCEPTED: spot 7650 held below the 7655 short strike for 10min (>10) — the wall we sold did not hold
+2026-09-09 22:20:34	⚠ Options desk — attention needed	5/8 steps green · 10 fired · 3 NEED ATTENTION
