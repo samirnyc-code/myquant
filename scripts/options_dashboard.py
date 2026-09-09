@@ -1731,14 +1731,15 @@ h2{{font-size:15px;color:var(--acc);margin:24px 0 8px}}
 <div class="page on" id="p-trades">{pnl_summary_html(gp_trades)}{card_body}</div>
 <div class="page" id="p-ibtd">
 <style>
-#p-ibtd .tiles{{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:14px 0}}
-#p-ibtd .card{{background:var(--card,#161b22);border:1px solid var(--bd,#30363d);border-radius:11px;padding:14px}}
-#p-ibtd .ct{{font-size:11px;text-transform:uppercase;color:#8b949e;font-weight:700}}
-#p-ibtd .big{{font-size:26px;font-weight:800;margin:4px 0}}
-#p-ibtd .sub{{color:#8b949e;font-size:12px}}
-#p-ibtd .pos{{color:#2fbf8f}}#p-ibtd .neg{{color:#f85149}}
+/* scoped + RESET the flip-card .big/.card leaks (options_build_cards .big = 760px tall) */
+#p-ibtd .tiles{{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0}}
+#p-ibtd .card{{background:var(--panel,#161b22);border:1px solid var(--line,#30363d);border-radius:11px;padding:10px 12px;height:auto;min-height:0;max-height:none;perspective:none;transform:none}}
+#p-ibtd .ct{{font-size:11px;text-transform:uppercase;color:var(--mut,#8b949e);font-weight:700;letter-spacing:.04em}}
+#p-ibtd .big{{font-size:21px;font-weight:800;margin:3px 0;height:auto!important;width:auto!important;perspective:none;cursor:default;box-shadow:none;background:none}}
+#p-ibtd .sub{{color:var(--mut,#8b949e);font-size:11.5px}}
+#p-ibtd .pos{{color:var(--pos,#2fbf8f)}}#p-ibtd .neg{{color:var(--neg,#f85149)}}
 #p-ibtd table{{width:100%;border-collapse:collapse;margin-top:12px;font-size:12.5px}}
-#p-ibtd th,#p-ibtd td{{padding:5px 8px;border-bottom:1px solid #21262d;text-align:right}}
+#p-ibtd th,#p-ibtd td{{padding:5px 8px;border-bottom:1px solid var(--line,#21262d);text-align:right}}
 #p-ibtd th:first-child,#p-ibtd td:first-child{{text-align:left}}
 </style>
 <div class="muted" style="font-size:12px;margin:4px 0 8px">Live IB paper fills vs ThetaData-priced (TD) reconstruction — today's shadow book. Was the standalone :8610 page; now integrated here.</div>
