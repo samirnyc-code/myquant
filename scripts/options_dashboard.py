@@ -180,7 +180,7 @@ def load_stats():
     # Max-profit zone for the CURRENT open book (reuses maxprofit_zone.compute_zone):
     # inside [highest short put, lowest short call] every short expires OTM -> full
     # credit. Tile shows the zone + whether spot is inside + distance to nearest edge.
-    mpz, mpz_cls = "—", ""
+    mpz, mpz_cls, mpz_pin, mpz_pos, mpz_bar = "—", "", "—", "", None
     try:
         from maxprofit_zone import compute_zone, live_spot
         open_tr = trades[trades.exit_dt.isna()] if len(trades) else trades
@@ -193,25 +193,24 @@ def load_stats():
             if lo is not None or hi is not None:
                 zone = f"{lo:.0f}–{hi:.0f}" if (lo is not None and hi is not None) else \
                        (f">{lo:.0f}" if lo is not None else f"<{hi:.0f}")
+                mpz = zone + (f" ({hi - lo:.0f}pt)" if (lo is not None and hi is not None) else "")
+                pin = _prob_in_zone(lo, hi)
+                mpz_pin = f"{pin:.0f}%" if pin is not None else "—"
                 if spot is not None:
                     inside = (lo is None or spot >= lo) and (hi is None or spot <= hi)
                     edge = min([x for x in (spot - lo if lo is not None else None,
                                             hi - spot if hi is not None else None)
                                 if x is not None])
-                    mpz = f"{zone} · {'IN +' if inside else 'OUT '}{abs(edge):.0f}pt"
                     mpz_cls = "pos" if inside else "neg"
+                    mpz_pos = f"{'IN, edge ' if inside else 'OUT by '}{abs(edge):.0f}pt"
                     if lo is not None and hi is not None:
-                        pct = 100.0 * (spot - lo) / (hi - lo)
-                        mpz += f" · {hi - lo:.0f}w @{pct:.0f}%"
-                    pin = _prob_in_zone(lo, hi)
-                    if pin is not None:
-                        mpz += f" · P {pin:.0f}%"
-                else:
-                    mpz = zone
+                        mpz_bar = dict(lo=lo, hi=hi, spot=spot, inside=inside,
+                                       pct=100.0 * (spot - lo) / (hi - lo))
     except Exception:
         pass
     return {
-        "mpz": mpz, "mpz_cls": mpz_cls,
+        "mpz": mpz, "mpz_cls": mpz_cls, "mpz_pin": mpz_pin, "mpz_pos": mpz_pos,
+        "_mpz_bar": mpz_bar,
         "open": int(len(trades) - len(closed)), "closed": int(len(closed)),
         "win": f"{(p > 0).mean() * 100:.0f}%" if len(p) else "—",
         "pf": f"{pf:.2f}" if pf else "—",
@@ -224,6 +223,32 @@ def load_stats():
         "vix": f"{vix:.1f}" if vix else "—",
         "unreal_val": unreal,
     }
+
+
+def zone_bar_html(s):
+    """Visual zone-position bar: green plateau between the edges, red caps beyond,
+    amber marker at the live spot. Renders empty when zone/spot unavailable."""
+    z = s.get("_mpz_bar")
+    if not z:
+        return ""
+    pct = max(1.5, min(98.5, z["pct"]))
+    col = "var(--pos,#2fbf8f)" if z["inside"] else "var(--neg,#f85149)"
+    return (
+        '<div style="background:var(--panel,#161b22);border:1px solid var(--line,#30363d);'
+        'border-radius:11px;padding:10px 14px;margin:0 0 14px">'
+        '<div style="display:flex;justify-content:space-between;font-size:11px;color:#8b949e;'
+        'text-transform:uppercase;font-weight:700;letter-spacing:.04em">'
+        f'<span>Zone position</span><span>spot {z["spot"]:.2f} · '
+        f'<span style="color:{col}">{s["mpz_pos"]}</span></span></div>'
+        '<div style="position:relative;height:12px;margin:9px 0 5px;border-radius:6px;'
+        'background:linear-gradient(90deg,#f85149 0%,rgba(248,81,73,.25) 3%,'
+        'rgba(47,191,143,.28) 9%,rgba(47,191,143,.55) 50%,rgba(47,191,143,.28) 91%,'
+        'rgba(248,81,73,.25) 97%,#f85149 100%)">'
+        f'<div style="position:absolute;top:-4px;bottom:-4px;left:{pct:.1f}%;width:3px;'
+        'background:#e3b341;border-radius:2px;box-shadow:0 0 7px #e3b341"></div></div>'
+        '<div style="display:flex;justify-content:space-between;font-size:12px;color:#8b949e">'
+        f'<span>{z["lo"]:.0f}</span><span>@{z["pct"]:.0f}% of zone · settle-in prob {s["mpz_pin"]}</span>'
+        f'<span>{z["hi"]:.0f}</span></div></div>')
 
 
 def _pnl_cls(v):
@@ -322,6 +347,7 @@ def tile_specs(s):
         ("running", "Running (open)", s["running"], _pnl_cls(s["running"])),
         ("close_now", "Close now", s["close_now"], _pnl_cls(s["close_now"])),
         ("mpz", "Max-profit zone", s["mpz"], s["mpz_cls"]),
+        ("mpz_pin", "P(settle in zone)", s["mpz_pin"], s["mpz_cls"]),
         ("win", "Win rate", s["win"], ""),
         ("pf", "Profit factor", s["pf"], ""),
         ("openclosed", "Open / Closed", f"{s['open']} / {s['closed']}", ""),
@@ -1795,7 +1821,7 @@ h2{{font-size:15px;color:var(--acc);margin:24px 0 8px}}
 
 <div id="lvpanel-wrap">{levels_panel(lr)}</div>
 
-<div class="kpis">{stat_tiles(s, skip=("running", "close_now", "mpz"))}</div>
+<div class="kpis">{stat_tiles(s, skip=("running", "close_now", "mpz", "mpz_pin"))}</div>
 
 {positions_html(gp_trades, gp_marks)}
 
@@ -1829,7 +1855,8 @@ h2{{font-size:15px;color:var(--acc);margin:24px 0 8px}}
 #p-ibtd th:first-child,#p-ibtd td:first-child{{text-align:left}}
 </style>
 <div class="muted" style="font-size:12px;margin:4px 0 8px">Live IB paper fills vs ThetaData-priced (TD) reconstruction — today's shadow book. Was the standalone :8610 page; now integrated here.</div>
-<div class="kpis" style="margin:6px 0 14px">{stat_tiles(s, only=("running", "close_now", "mpz"))}</div>
+<div class="kpis" style="margin:6px 0 14px">{stat_tiles(s, only=("running", "close_now", "mpz", "mpz_pin"))}</div>
+{zone_bar_html(s)}
 {ibtd_html}
 </div>
 <div class="page" id="p-analytics">
