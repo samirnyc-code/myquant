@@ -129,7 +129,15 @@ def load_stats():
     acct = pd.read_csv(SIM / "account.csv").iloc[-1] if (SIM / "account.csv").exists() else None
     vix = marks.vix.dropna().iloc[-1] if len(marks) and marks.vix.notna().any() else None
     coll = float(trades[trades.exit_dt.isna()].collateral.astype(float).sum()) if len(trades) else 0
-    close_now_val = (float(p.sum()) if len(p) else 0.0) + (unreal or 0.0)
+    # CLOSE NOW = TODAY only (user spec 2026-09-09): today's realized + current
+    # open marks = what the DAY ends at if we flatten everything right now.
+    # (Was all-time realized + marks — showed the cumulative account P&L.)
+    if len(closed):
+        xd = pd.to_datetime(closed.exit_dt, errors="coerce").dt.strftime("%Y-%m-%d")
+        p_today = closed.pnl.astype(float)[xd == dt.datetime.now().strftime("%Y-%m-%d")]
+    else:
+        p_today = pd.Series(dtype=float)
+    close_now_val = (float(p_today.sum()) if len(p_today) else 0.0) + (unreal or 0.0)
     return {
         "open": int(len(trades) - len(closed)), "closed": int(len(closed)),
         "win": f"{(p > 0).mean() * 100:.0f}%" if len(p) else "—",
