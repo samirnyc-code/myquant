@@ -83,15 +83,15 @@ def _final_close():
     except Exception:
         val = None
     if val is None:
-        # TD publishes the index EOD row late evening; fall back to Yahoo's close
+        # TD publishes the index EOD row late evening; until then settle at the
+        # SAME close the desk book settles at (options_postmortem.official_close:
+        # daily cache -> live Yahoo chart API) so both sides of the compare use
+        # one number. yahoo_spx() is wrong here — it drops TODAY's row by design.
         try:
             import sys as _s
             _s.path.insert(0, str(Path(__file__).resolve().parent))
-            from backtest_full_em_2022 import yahoo_spx
-            spx = yahoo_spx()
-            ds = f"{day[:4]}-{day[4:6]}-{day[6:]}"
-            if ds in spx.index:
-                val = float(spx.loc[ds, "close"])
+            from options_postmortem import official_close
+            val = official_close(day)
         except Exception:
             pass
     if val is not None:

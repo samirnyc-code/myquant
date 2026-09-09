@@ -50,7 +50,10 @@ def render(date):
     def ib_pnl(t):
         c, x = t.get("ib_credit"), t.get("ib_exit_cost")
         n = len(t.get("legs", []) or [2])
-        return round((c - x) * 100 - 2 * n * FEE, 2) if (c is not None and x is not None) else None
+        # expired = cash settlement, no closing executions -> entry-side fees only
+        # (same rule as td_shadow_reprice's settle branch / the postmortem book)
+        fees = (n if t.get("expired") else 2 * n) * FEE
+        return round((c - x) * 100 - fees, 2) if (c is not None and x is not None) else None
 
     rows, ib_tot, td_tot, nib, ntd = [], 0.0, 0.0, 0, 0
     for t in sorted(trades, key=lambda x: x.get("id", "")):
