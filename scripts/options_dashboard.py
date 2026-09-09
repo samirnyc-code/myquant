@@ -1522,6 +1522,15 @@ def main():
     pm = load_postmortem()
     gp_trades = _shown(tlog.load())
     gp_marks = None
+    # IB-vs-TD comparison — reuse the standalone td_vs_ib_dashboard.render() so the
+    # comparison logic stays the single source of truth (the A-chat's shadow book).
+    try:
+        import td_vs_ib_dashboard as _tvib
+        from zoneinfo import ZoneInfo as _ZI
+        _ibtd_iso = dt.datetime.now(_ZI("America/Chicago")).strftime("%Y-%m-%d")
+        ibtd_html = _tvib.render(_ibtd_iso)
+    except Exception as _e:
+        ibtd_html = f"<p class='muted'>IB vs TD comparison unavailable: {_e}</p>"
     an_json = "[]"
     _mf = SIM / "marks.csv"
     if _mf.exists():
@@ -1716,9 +1725,25 @@ h2{{font-size:15px;color:var(--acc);margin:24px 0 8px}}
   <div class="tab" data-p="playbook">Playbook</div>
   <div class="tab" data-p="results">Sim Results</div>
   <div class="tab" data-p="levels">Levels</div>
+  <div class="tab" data-p="ibtd">IB vs TD</div>
 </div>
 
 <div class="page on" id="p-trades">{pnl_summary_html(gp_trades)}{card_body}</div>
+<div class="page" id="p-ibtd">
+<style>
+#p-ibtd .tiles{{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:14px 0}}
+#p-ibtd .card{{background:var(--card,#161b22);border:1px solid var(--bd,#30363d);border-radius:11px;padding:14px}}
+#p-ibtd .ct{{font-size:11px;text-transform:uppercase;color:#8b949e;font-weight:700}}
+#p-ibtd .big{{font-size:26px;font-weight:800;margin:4px 0}}
+#p-ibtd .sub{{color:#8b949e;font-size:12px}}
+#p-ibtd .pos{{color:#2fbf8f}}#p-ibtd .neg{{color:#f85149}}
+#p-ibtd table{{width:100%;border-collapse:collapse;margin-top:12px;font-size:12.5px}}
+#p-ibtd th,#p-ibtd td{{padding:5px 8px;border-bottom:1px solid #21262d;text-align:right}}
+#p-ibtd th:first-child,#p-ibtd td:first-child{{text-align:left}}
+</style>
+<div class="muted" style="font-size:12px;margin:4px 0 8px">Live IB paper fills vs ThetaData-priced (TD) reconstruction — today's shadow book. Was the standalone :8610 page; now integrated here.</div>
+{ibtd_html}
+</div>
 <div class="page" id="p-analytics">
   <div class="kpis" id="an-tiles"></div>
   <div class="an-charts">

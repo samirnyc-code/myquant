@@ -68,8 +68,11 @@ def _watch_files():
     import datetime as _dt
     from zoneinfo import ZoneInfo
     date = _dt.datetime.now(ZoneInfo("America/New_York")).strftime("%Y%m%d")
+    ct = _dt.datetime.now(ZoneInfo("America/Chicago")).strftime("%Y-%m-%d")
     return WATCH + [SIM / f"gameplan_{date}.json", SIM / f"postmortem_{date}.json",
-                    SIM / f"eod_status_{date}.json"]  # Desk Report grows through the day → soft-reload
+                    SIM / f"eod_status_{date}.json",  # Desk Report grows through the day → soft-reload
+                    SIM / "shadow_td" / f"shadow_book_{ct}.json",
+                    SIM / "shadow_td" / f"reprice_{ct}.json"]  # IB-vs-TD tab live-refresh
 
 _lock = threading.Lock()
 _last_gen = [None]
