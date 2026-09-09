@@ -40,15 +40,22 @@ def metrics(df, label):
             "max_dd": round(dd), "max_collateral": round(coll),
             "acct_heuristic": round(acct, -2)}
 
-aug = allrows[(allrows["date"] >= "2026-08-01") & (allrows["date"] <= "2026-08-31")]
-bad = (aug["book"].eq("ic") & (aug["credit"] < 0) & aug["date"].eq("2026-08-25"))
+# windows start 2026-08-06 to match the live desk's first trading day
+def window(a, b):
+    return allrows[(allrows["date"] >= a) & (allrows["date"] <= b)]
 
-rows = [
-    metrics(aug[aug["book"] == "ic"], "AUG26 ic"),
-    metrics(aug[aug["book"] == "ic"] [~bad[aug["book"] == "ic"]], "AUG26 ic ex-artifact"),
-    metrics(aug[aug["book"] == "fly"], "AUG26 fly"),
-    metrics(aug, "AUG26 combined"),
-    metrics(aug[~bad], "AUG26 combined ex-artifact"),
+rows = []
+for label, df in (("AUG 8/6-8/31", window("2026-08-06", "2026-08-31")),
+                  ("LIVE-WIN 8/6-9/4", window("2026-08-06", "2026-09-04"))):
+    bad = df["book"].eq("ic") & (df["credit"] < 0) & df["date"].eq("2026-08-25")
+    rows += [
+        metrics(df[df["book"] == "ic"], f"{label} ic"),
+        metrics(df[(df["book"] == "ic") & ~bad], f"{label} ic ex-artifact"),
+        metrics(df[df["book"] == "fly"], f"{label} fly"),
+        metrics(df, f"{label} combined"),
+        metrics(df[~bad], f"{label} combined ex-artifact"),
+    ]
+rows += [
     metrics(allrows[allrows["book"] == "ic"], "4.3yr ic"),
     metrics(allrows[allrows["book"] == "fly"], "4.3yr fly"),
     metrics(allrows, "4.3yr combined"),
