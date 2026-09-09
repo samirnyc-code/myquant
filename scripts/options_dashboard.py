@@ -138,7 +138,35 @@ def load_stats():
     else:
         p_today = pd.Series(dtype=float)
     close_now_val = (float(p_today.sum()) if len(p_today) else 0.0) + (unreal or 0.0)
+    # Max-profit zone for the CURRENT open book (reuses maxprofit_zone.compute_zone):
+    # inside [highest short put, lowest short call] every short expires OTM -> full
+    # credit. Tile shows the zone + whether spot is inside + distance to nearest edge.
+    mpz, mpz_cls = "—", ""
+    try:
+        from maxprofit_zone import compute_zone, live_spot
+        open_tr = trades[trades.exit_dt.isna()] if len(trades) else trades
+        if len(open_tr):
+            z = compute_zone(open_tr)
+            lo, hi = z.get("zone_low"), z.get("zone_high")
+            spot, _ = live_spot()
+            if spot is None and len(lastm) and "und" in lastm.columns:
+                spot = float(lastm["und"].dropna().iloc[-1]) if lastm["und"].notna().any() else None
+            if lo is not None or hi is not None:
+                zone = f"{lo:.0f}–{hi:.0f}" if (lo is not None and hi is not None) else \
+                       (f">{lo:.0f}" if lo is not None else f"<{hi:.0f}")
+                if spot is not None:
+                    inside = (lo is None or spot >= lo) and (hi is None or spot <= hi)
+                    edge = min([x for x in (spot - lo if lo is not None else None,
+                                            hi - spot if hi is not None else None)
+                                if x is not None])
+                    mpz = f"{zone} · {'IN +' if inside else 'OUT '}{abs(edge):.0f}pt"
+                    mpz_cls = "pos" if inside else "neg"
+                else:
+                    mpz = zone
+    except Exception:
+        pass
     return {
+        "mpz": mpz, "mpz_cls": mpz_cls,
         "open": int(len(trades) - len(closed)), "closed": int(len(closed)),
         "win": f"{(p > 0).mean() * 100:.0f}%" if len(p) else "—",
         "pf": f"{pf:.2f}" if pf else "—",
@@ -248,6 +276,7 @@ def tile_specs(s):
         ("realized", "Realized P&L", s["realized"], _pnl_cls(s["realized"])),
         ("running", "Running (open)", s["running"], _pnl_cls(s["running"])),
         ("close_now", "Close now", s["close_now"], _pnl_cls(s["close_now"])),
+        ("mpz", "Max-profit zone", s["mpz"], s["mpz_cls"]),
         ("win", "Win rate", s["win"], ""),
         ("pf", "Profit factor", s["pf"], ""),
         ("openclosed", "Open / Closed", f"{s['open']} / {s['closed']}", ""),
@@ -1721,7 +1750,7 @@ h2{{font-size:15px;color:var(--acc);margin:24px 0 8px}}
 
 <div id="lvpanel-wrap">{levels_panel(lr)}</div>
 
-<div class="kpis">{stat_tiles(s, skip=("running", "close_now"))}</div>
+<div class="kpis">{stat_tiles(s, skip=("running", "close_now", "mpz"))}</div>
 
 {positions_html(gp_trades, gp_marks)}
 
@@ -1755,7 +1784,7 @@ h2{{font-size:15px;color:var(--acc);margin:24px 0 8px}}
 #p-ibtd th:first-child,#p-ibtd td:first-child{{text-align:left}}
 </style>
 <div class="muted" style="font-size:12px;margin:4px 0 8px">Live IB paper fills vs ThetaData-priced (TD) reconstruction — today's shadow book. Was the standalone :8610 page; now integrated here.</div>
-<div class="kpis" style="margin:6px 0 14px">{stat_tiles(s, only=("running", "close_now"))}</div>
+<div class="kpis" style="margin:6px 0 14px">{stat_tiles(s, only=("running", "close_now", "mpz"))}</div>
 {ibtd_html}
 </div>
 <div class="page" id="p-analytics">
