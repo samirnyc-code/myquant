@@ -117,26 +117,6 @@ def _shown(trades):
     return tlog.dedupe_mirrors(t)
 
 
-def _xsp_close_now():
-    """XSP desk close-everything-now = realized (closed) + open positions marked to
-    current quotes. None if there is no XSP book. Mirrors the SPX math in load_stats."""
-    tp = SIM.parent / "options_log" / "trades_xsp.parquet"
-    if not tp.exists():
-        return None
-    t = pd.read_parquet(tp)
-    realized = float(pd.to_numeric(t[t.exit_dt.notna()].pnl, errors="coerce").sum())
-    un = 0.0
-    mp = SIM / "marks_xsp.csv"
-    if mp.exists():
-        m = pd.read_csv(mp)
-        if len(m):
-            last = m.groupby("trade_id").last()
-            open_ids = set(t[t.exit_dt.isna()].trade_id)
-            sub = last[last.index.isin(open_ids)]
-            un = float(pd.to_numeric(sub.get("unreal_pnl"), errors="coerce").sum()) if len(sub) else 0.0
-    return realized + un
-
-
 def load_stats():
     trades = _shown(tlog.load())
     closed = trades[trades.exit_dt.notna()] if len(trades) else trades
@@ -150,7 +130,6 @@ def load_stats():
     vix = marks.vix.dropna().iloc[-1] if len(marks) and marks.vix.notna().any() else None
     coll = float(trades[trades.exit_dt.isna()].collateral.astype(float).sum()) if len(trades) else 0
     close_now_val = (float(p.sum()) if len(p) else 0.0) + (unreal or 0.0)
-    xcn = _xsp_close_now()
     return {
         "open": int(len(trades) - len(closed)), "closed": int(len(closed)),
         "win": f"{(p > 0).mean() * 100:.0f}%" if len(p) else "—",
@@ -158,7 +137,6 @@ def load_stats():
         "realized": money(p.sum()) if len(p) else "—",
         "running": money(unreal) if unreal is not None else "—",
         "close_now": money(close_now_val),
-        "xsp_close_now": money(xcn) if xcn is not None else "—",
         "collateral": money(coll, signed=False),
         "margin": money(float(acct.maint_margin), signed=False) if acct is not None else "—",
         "netliq": money(float(acct.net_liq), signed=False) if acct is not None else "—",
@@ -261,8 +239,7 @@ def tile_specs(s):
         ("netliq", "Net Liq", s["netliq"], ""),
         ("realized", "Realized P&L", s["realized"], _pnl_cls(s["realized"])),
         ("running", "Running (open)", s["running"], _pnl_cls(s["running"])),
-        ("close_now", "Close now · SPX", s["close_now"], _pnl_cls(s["close_now"])),
-        ("xsp_close_now", "Close now · XSP", s.get("xsp_close_now", "—"), _pnl_cls(s.get("xsp_close_now", "—"))),
+        ("close_now", "Close now", s["close_now"], _pnl_cls(s["close_now"])),
         ("win", "Win rate", s["win"], ""),
         ("pf", "Profit factor", s["pf"], ""),
         ("openclosed", "Open / Closed", f"{s['open']} / {s['closed']}", ""),
