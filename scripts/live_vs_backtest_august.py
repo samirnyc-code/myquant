@@ -52,11 +52,23 @@ side = matched.merge(bt, on=["date", "strat"], how="outer",
 side["d_pnl"] = (side["pnl_live"] - side["pnl_bt"]).round(0)
 side["d_strike"] = (side["short_k_live"] - side["short_k_bt"]).abs()
 
+def short_exit(reason):
+    if pd.isna(reason):
+        return "SKIP"
+    if reason.startswith("level ACCEPTED"):
+        return "stop"
+    if reason.startswith("time stop"):
+        return "time"
+    return "exp"
+
+side["exit_live"] = side["close_reason"].apply(short_exit)
+side["exit_bt"] = side["exit_kind"].map({"stop": "stop", "settle": "exp"}).fillna("SKIP")
+
 pd.set_option("display.width", 250)
 print(f"===== MATCHED STREAMS (live vs backtest), {LO}..{HI} =====")
-cols = ["date", "strat", "short_k_live", "short_k_bt", "d_strike",
-        "credit_live", "credit_bt", "pnl_live", "pnl_bt", "d_pnl",
-        "close_reason", "exit_kind"]
+cols = ["date", "strat", "short_k_live", "short_k_bt",
+        "credit_live", "credit_bt", "exit_live", "exit_bt",
+        "pnl_live", "pnl_bt", "d_pnl"]
 print(side[cols].to_string(index=False))
 
 print("\n===== per-stream totals =====")
