@@ -40,6 +40,11 @@ def render(date):
             t["td_exit_debit"] = ex["td_exit_debit_exact"]
         if ex.get("td_pnl_exact") is not None:
             t["td_pnl"] = ex["td_pnl_exact"]
+        # expiry settle (post-close): both desks settle at the same final SPX close
+        if ex.get("et_exit_time_used") == "settle" and not t.get("exited"):
+            t["exited"] = True
+            t["expired"] = True
+            t["ib_exit_cost"] = ex["td_exit_debit_exact"]
     trades = list(b.get("trades", {}).values())
 
     def ib_pnl(t):
@@ -56,7 +61,7 @@ def render(date):
             td_tot += tdp; ntd += 1
         d = (ibp - tdp) if (ibp is not None and tdp is not None) else None
         is_open = not t.get("exited")
-        st = "closed" if t.get("exited") else "<span class='m'>open</span>"
+        st = ("expired" if t.get("expired") else "closed") if t.get("exited") else "<span class='m'>open</span>"
         okfill = t.get("td_fill_ok", True)
         # TD credit: on a no-fill show WHY (missing leg), not the stale partial number
         if okfill:

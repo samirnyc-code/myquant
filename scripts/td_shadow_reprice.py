@@ -40,9 +40,20 @@ def nbbo_at(expiry, strike, right, et_day, et_time):
     r_ = "call" if str(right).upper().startswith("C") else "put"
     q = (f"{BASE}/option/at_time/quote?symbol=SPXW&expiration={et_day}&strike={float(strike):.3f}"
          f"&right={r_}&start_date={et_day}&end_date={et_day}&time_of_day={et_time}&format=csv")
-    try:
-        body = urllib.request.urlopen(q, timeout=15).read().decode("utf-8", "replace")
-    except Exception:
+    body = None
+    for attempt in range(5):
+        try:
+            body = urllib.request.urlopen(q, timeout=15).read().decode("utf-8", "replace")
+            break
+        except urllib.error.HTTPError as e:
+            if e.code == 429:                     # terminal rate limit: back off, retry
+                import time
+                time.sleep(1.5 * (attempt + 1))
+                continue
+            return None
+        except Exception:
+            return None
+    if body is None:
         return None
     lines = [l for l in body.splitlines() if l.strip()]
     if len(lines) < 2 or lines[0].lstrip().startswith("<"):
@@ -53,10 +64,46 @@ def nbbo_at(expiry, strike, right, et_day, et_time):
     return (b, a, d.get("timestamp")) if (b is not None and a is not None and a >= b >= 0) else None
 
 
+_FC = {}
+
+
+def _final_close():
+    """final SPX close for the reprice date (cached); None until published."""
+    if "v" in _FC:
+        return _FC["v"]
+    day = _FC.get("day")
+    u = f"{BASE}/index/history/eod?symbol=SPX&start_date={day}&end_date={day}&format=csv"
+    try:
+        body = urllib.request.urlopen(u, timeout=15).read().decode("utf-8", "replace")
+        lines = [l for l in body.splitlines() if l.strip()]
+        h = [x.strip().strip('"') for x in lines[0].split(",")]
+        r = [x.strip().strip('"') for x in lines[-1].split(",")]
+        v = dict(zip(h, r)).get("close")
+        val = float(v) if v not in (None, "", "0.00", "0") else None
+    except Exception:
+        val = None
+    if val is None:
+        # TD publishes the index EOD row late evening; fall back to Yahoo's close
+        try:
+            import sys as _s
+            _s.path.insert(0, str(Path(__file__).resolve().parent))
+            from backtest_full_em_2022 import yahoo_spx
+            spx = yahoo_spx()
+            ds = f"{day[:4]}-{day[4:6]}-{day[6:]}"
+            if ds in spx.index:
+                val = float(spx.loc[ds, "close"])
+        except Exception:
+            pass
+    if val is not None:
+        _FC["v"] = val          # only cache success (429s must not poison the day)
+    return val
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--date", default=dt.datetime.now().strftime("%Y-%m-%d"))
     a = ap.parse_args()
+    _FC["day"] = a.date.replace("-", "")
     book = json.loads((SHADOW / f"shadow_book_{a.date}.json").read_text(encoding="utf-8"))
 
     def work(item):
@@ -82,6 +129,21 @@ def main():
                "et_time_used": et_time, "ib_fill_at_ct": t.get("ib_fill_at"),
                "ib_credit": t.get("ib_credit"), "td_credit_live": t.get("td_credit"),
                "detail": detail}
+        # EXPIRY settle: trade never exited and the session is over -> settle each
+        # leg at intrinsic vs the FINAL SPX close (same rule as the backtest engine).
+        if not t.get("exited") and _final_close() is not None:
+            fc = _final_close()
+            val = 0.0
+            for lg in legs:
+                itm = max(0.0, lg["strike"] - fc) if lg["right"] == "P" else max(0.0, fc - lg["strike"])
+                val += (itm if lg["side"] == "sell" else -itm) * lg.get("qty", 1)
+            rec["td_exit_debit_exact"] = round(val, 2)
+            rec["et_exit_time_used"] = "settle"
+            if ok:
+                ncon = sum(l.get("qty", 1) for l in legs)
+                rec["td_pnl_exact"] = round((credit - val) * 100 - ncon * 1.63, 2)
+                ibc = t.get("ib_credit")
+                rec["ib_pnl"] = round((ibc - val) * 100 - ncon * 1.63, 2) if ibc is not None else None
         # EXIT reprice: at the exact close time, marketable-touch to CLOSE the spread
         # (buy back the short @ask, sell the long @bid) — the way the backtest prices a stop.
         if t.get("exited") and t.get("ib_exit_at"):
