@@ -238,16 +238,16 @@ def zone_bar_html(s):
         'border-radius:11px;padding:10px 14px;margin:0 0 14px">'
         '<div style="display:flex;justify-content:space-between;font-size:11px;color:#8b949e;'
         'text-transform:uppercase;font-weight:700;letter-spacing:.04em">'
-        f'<span>Zone position</span><span>spot {z["spot"]:.2f} · '
+        f'<span>Zone position</span><span class="zb-head">spot {z["spot"]:.2f} · '
         f'<span style="color:{col}">{s["mpz_pos"]}</span></span></div>'
         '<div style="position:relative;height:12px;margin:9px 0 5px;border-radius:6px;'
         'background:linear-gradient(90deg,#f85149 0%,rgba(248,81,73,.25) 3%,'
         'rgba(47,191,143,.28) 9%,rgba(47,191,143,.55) 50%,rgba(47,191,143,.28) 91%,'
         'rgba(248,81,73,.25) 97%,#f85149 100%)">'
-        f'<div style="position:absolute;top:-4px;bottom:-4px;left:{pct:.1f}%;width:3px;'
+        f'<div class="zb-marker" style="position:absolute;top:-4px;bottom:-4px;left:{pct:.1f}%;width:3px;'
         'background:#e3b341;border-radius:2px;box-shadow:0 0 7px #e3b341"></div></div>'
         '<div style="display:flex;justify-content:space-between;font-size:12px;color:#8b949e">'
-        f'<span>{z["lo"]:.0f}</span><span>@{z["pct"]:.0f}% of zone · settle-in prob {s["mpz_pin"]}</span>'
+        f'<span>{z["lo"]:.0f}</span><span class="zb-cap">@{z["pct"]:.0f}% of zone · settle-in prob {s["mpz_pin"]}</span>'
         f'<span>{z["hi"]:.0f}</span></div></div>')
 
 
@@ -1944,6 +1944,16 @@ async function poll(){{
   for(const [k,t] of Object.entries(d.tiles||{{}})){{
     const el = document.getElementById('k-'+k);
     if(el){{ el.textContent = t.value; el.className = 'tv '+(t.cls||''); }}
+  }}
+  // zone-position bar: marker + captions track the same load_stats as the tiles
+  const zb = d.zone;
+  if(zb){{
+    const zpct = Math.max(1.5, Math.min(98.5, zb.pct)).toFixed(1)+'%';
+    document.querySelectorAll('.zb-marker').forEach(el=>{{ el.style.left = zpct; }});
+    document.querySelectorAll('.zb-head').forEach(el=>{{
+      el.innerHTML = 'spot '+zb.spot.toFixed(2)+' · <span style="color:'+(zb.inside?'var(--pos,#2fbf8f)':'var(--neg,#f85149)')+'">'+zb.pos+'</span>'; }});
+    document.querySelectorAll('.zb-cap').forEach(el=>{{
+      el.textContent = '@'+zb.pct.toFixed(0)+'% of zone · settle-in prob '+zb.pin; }});
   }}
   // TODAY banner — re-rendered server-side each poll from live marks, so it never goes stale
   const tb = document.getElementById('today-banner');

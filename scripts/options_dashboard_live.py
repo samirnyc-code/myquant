@@ -119,8 +119,11 @@ def state():
         banner = dash.today_credit_line(dash._shown(dash.tlog.load()))
     except Exception:
         banner = None
+    zone = s.get("_mpz_bar")
+    if zone:
+        zone = {**zone, "pos": s.get("mpz_pos", ""), "pin": s.get("mpz_pin", "—")}
     return {"gen": gen_stamp(), "live": live_json(), "today_banner": banner,
-            "tiles": tiles, "lr": dash.levels_regime()}
+            "tiles": tiles, "lr": dash.levels_regime(), "zone": zone}
 
 
 class Handler(BaseHTTPRequestHandler):
