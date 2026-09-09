@@ -117,6 +117,45 @@ def _shown(trades):
     return tlog.dedupe_mirrors(t)
 
 
+_PZ_CACHE = {}
+
+
+def _prob_in_zone(lo, hi):
+    """Market-implied P(SPX settles inside [lo,hi]) from live 0DTE call deltas:
+    P(S_T > K) ≈ Δ_call(K)  ⇒  P(in zone) ≈ Δ_call(lo) − Δ_call(hi).
+    Uses ThetaData snapshot greeks (skew-aware, the market's own number), cached
+    30s so page refreshes don't hammer the terminal. None on any failure."""
+    import time
+    import urllib.request
+
+    key = (lo, hi)
+    hit = _PZ_CACHE.get(key)
+    if hit and time.time() - hit[0] < 30:
+        return hit[1]
+
+    def call_delta(k):
+        if k is None:
+            return None
+        exp = dt.date.today().strftime("%Y%m%d")
+        u = (f"http://127.0.0.1:25503/v3/option/snapshot/greeks/first_order?symbol=SPXW"
+             f"&expiration={exp}&strike={float(k):.3f}&right=call&format=csv")
+        try:
+            body = urllib.request.urlopen(u, timeout=4).read().decode("utf-8", "replace")
+            lines = [l for l in body.splitlines() if l.strip()]
+            h = [x.strip().strip('"') for x in lines[0].split(",")]
+            d = dict(zip(h, [x.strip().strip('"') for x in lines[-1].split(",")]))
+            return float(d["delta"])
+        except Exception:
+            return None
+    d_lo = call_delta(lo) if lo is not None else 1.0
+    d_hi = call_delta(hi) if hi is not None else 0.0
+    val = None
+    if d_lo is not None and d_hi is not None:
+        val = max(0.0, min(100.0, 100.0 * (d_lo - d_hi)))
+    _PZ_CACHE[key] = (time.time(), val)
+    return val
+
+
 def load_stats():
     trades = _shown(tlog.load())
     closed = trades[trades.exit_dt.notna()] if len(trades) else trades
@@ -161,6 +200,12 @@ def load_stats():
                                 if x is not None])
                     mpz = f"{zone} · {'IN +' if inside else 'OUT '}{abs(edge):.0f}pt"
                     mpz_cls = "pos" if inside else "neg"
+                    if lo is not None and hi is not None:
+                        pct = 100.0 * (spot - lo) / (hi - lo)
+                        mpz += f" · {hi - lo:.0f}w @{pct:.0f}%"
+                    pin = _prob_in_zone(lo, hi)
+                    if pin is not None:
+                        mpz += f" · P {pin:.0f}%"
                 else:
                     mpz = zone
     except Exception:
