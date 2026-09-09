@@ -77,6 +77,9 @@ def yahoo_spx(start="2022-05-01"):
                          open=round(o, 2), high=round(q["high"][i], 2),
                          low=round(q["low"][i], 2), close=round(c, 2)))
     d = pd.DataFrame(rows)
+    # never ingest TODAY's row: Yahoo serves in-flight values during the 16:00-16:15 ET
+    # settle (09-08 burned us: 7683.26 mid-print vs official 7673.52)
+    d = d[d["date"] < dt.date.today().strftime("%Y-%m-%d")]
     d.to_csv(cache, index=False)
     return d.set_index("date")
 

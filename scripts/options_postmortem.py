@@ -48,6 +48,45 @@ CT = ZoneInfo("America/Chicago")  # exchange time (Chicago / Central)
 FEE = 1.63  # $/contract — IB ACTUAL all-in per execution (S112 Flex report); was 1.30 modeled
 
 
+def official_close(date_compact):
+    """OFFICIAL SPX close for YYYYMMDD: daily cache first, else a live Yahoo
+    chart-API fetch (also refreshes the cache). None if both fail."""
+    iso = f"{date_compact[:4]}-{date_compact[4:6]}-{date_compact[6:]}"
+    v = spx_close_on(iso)
+    if v is not None:
+        return v
+    try:
+        import json as _json
+        import urllib.request as _rq
+        p2 = int(dt.datetime.now().timestamp())
+        u = (f"https://query1.finance.yahoo.com/v8/finance/chart/%5EGSPC"
+             f"?period1={p2 - 14 * 86400}&period2={p2}&interval=1d")
+        req = _rq.Request(u, headers={"User-Agent": "Mozilla/5.0"})
+        j = _json.loads(_rq.urlopen(req, timeout=20).read())
+        res = j["chart"]["result"][0]
+        rows = {dt.datetime.fromtimestamp(t).strftime("%Y-%m-%d"): c
+                for t, c in zip(res["timestamp"], res["indicators"]["quote"][0]["close"])
+                if c is not None}
+        # refresh the cache so build_cards/others see fresh closes too
+        try:
+            f = SIM / "spx_daily_yahoo.csv"
+            d = pd.read_csv(f)
+            have = set(d.Date)
+            q = res["indicators"]["quote"][0]
+            add = [dict(Date=dt.datetime.fromtimestamp(t).strftime("%Y-%m-%d"),
+                        High=q["high"][i], Low=q["low"][i], Close=q["close"][i])
+                   for i, t in enumerate(res["timestamp"])
+                   if q["close"][i] is not None
+                   and dt.datetime.fromtimestamp(t).strftime("%Y-%m-%d") not in have]
+            if add:
+                pd.concat([d, pd.DataFrame(add)]).to_csv(f, index=False)
+        except Exception:
+            pass
+        return rows.get(iso)
+    except Exception:
+        return None
+
+
 def settle_0dte(date, close):
     """Cash-settle any still-open trades whose legs ALL expire `date` (0DTE),
     to the SPX close. exit_cost = per-contract net intrinsic to close the spread
@@ -172,8 +211,16 @@ def main():
     tape = load_tape(date)
     ohlc = tape_ohlc(tape) if tape is not None else None
 
-    # cash-settle 0DTE trades to the close BEFORE reading P&L
-    settled = settle_0dte(date, ohlc["close"]) if ohlc else []
+    # cash-settle 0DTE trades to the OFFICIAL close BEFORE reading P&L.
+    # S115 fix (2026-09-09): the tape close is the FEED'S LAST TICK — on 09-08 the
+    # feed died 15:19 ET at 7673.62 while SPX officially closed 7683.26, so gx_bps
+    # was mis-settled 1.38 ITM (booked +108.74, truth +246.74). Priority:
+    # official daily close (cache -> live Yahoo fetch) -> tape close (warned).
+    oc = official_close(date)
+    if oc is None and ohlc:
+        print(f"  ! WARNING settling at TAPE close {ohlc['close']:.2f} — official close unavailable")
+    settle_close = oc if oc is not None else (ohlc["close"] if ohlc else None)
+    settled = settle_0dte(date, settle_close) if settle_close else []
     flagged = flag_partial_expiry(date)
     if flagged:
         print(f"  flagged partial-expiry (needs decision): {[t for t, _ in flagged]}")

@@ -51,8 +51,8 @@ User directive: "restart and run everything… break shit apart until u find fil
 - Circuit breaker (user's −2k/−3k): already embedded in the per-vertical stop — adds only +6.6k/+0.3k upper-bound. −1.5k breaker looks +23k but needs the stage-2 intraday-path sim (not run; quota).
 - Killer-day framing: non-killer days are +$5.7k; the 14 days are −$34.3k. The strategy dies by event, not by grind.
 
-**LIVE-DESK BUGS FOUND (need user go to fix — DO NOT fix unasked):**
-1. **Expiry settlement uses the feed's LAST TICK, not the official close.** 9/8 gx_bps booked +108.74; truth +246.74 (feed died 15:19 ET at 7673.62; close 7683.26). Systematic: any early feed death mis-settles the whole day's expiries in trades.parquet.
+**LIVE-DESK BUGS (corrected 9/9 pre-open):**
+1. **Expiry settlement source — FIXED 9/9 (user approved "fix what needs fixing").** The postmortem settled at the tape's last tick; now `official_close()` (cache → live Yahoo → tape+warning), options_postmortem.py. ⚠ CORRECTION of the overnight claim: TD's official 9/8 close = **7673.52** — the desk's booking was right within $10; MY evening Yahoo fetch (16:04 ET, mid-settle prints) was the wrong number. Structural risk was real (feed died 45min early; price round-tripped by luck), dollar claim retracted. Guard added: never ingest today's Yahoo row (backtest_full_em_2022.yahoo_spx); 9/8 cache row + fly rows + shadow reprice corrected to 7673.52.
 2. Analytics Max-DD tile = daily-close realized DD (−$1,783) — shallowest definition; intraday truth deeper (~−$2.2k). Offered: tile fed from shadow-stop monitor troughs.
 3. (08-19 daemon outage — already fixed by Chat B: crash-guard + hang heartbeat.)
 
