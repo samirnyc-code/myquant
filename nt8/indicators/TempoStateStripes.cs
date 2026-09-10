@@ -1,28 +1,27 @@
-// TempoStateStripes.cs — S116-tempo companion: the state/regime RACING-STRIPES panel.
+// TempoStateStripes.cs — S116-tempo v2 companion: the state/regime RACING-STRIPES panel.
 //
-// Own panel (IsOverlay=false), seven horizontal lanes, one per market state; each
-// completed 2000t bar fills a cell in its active lane, so regime changes read as
-// lane jumps. States and thresholds MATCH TempoSpeedometer.StateLabel — keep the
-// two files in sync if rules change. Descriptive only (Stage-2: no predictive edge).
+// v2 = SELF-CALIBRATING, same engine as TempoSpeedometer v2: per-time-of-day percentile
+// distributions (96 x 15-min buckets over the 24h CHART clock) built from the chart's
+// own loaded bars, trailing ~TrailingDays sessions. No CSV, no timezone code. Keep the
+// state rules in sync with TempoSpeedometer.StateLabel. Descriptive only.
 //
-// Lanes (top->bottom, "energy" order) and colors:
-//   CLIMAX    gold #ffd700 (tempo >= climax pct for this time of day)
-//   EXPAND    bull teal #199e70 / bear red #e34948  (fast + big + efficient)
-//   CHURN     orange #d95926                        (fast + big + inefficient)
-//   ACTIVITY  magenta #d55181                       (fast, no amplitude)
-//   GRIND     pale teal #8fd0bc / pale red #f0a29b  (slow + directional)
-//   BALANCE   blue #3987e5                          (slow + small = quiet)
-//   MIXED     gray #9aa0a6                          (everything else)
+// Own panel, seven lanes; each completed bar fills a cell in its active lane:
+//   CLIMAX    gold      (tempo >= ClimacticPct for this time of day — matches the dots)
+//   EXPAND    teal/red  (fast + big + efficient, colored by direction)
+//   CHURN     orange    (fast + big + inefficient)
+//   ACTIVITY  magenta   (fast, no amplitude)
+//   GRIND     pale t/r  (slow + directional)
+//   BALANCE   blue      (slow + small = quiet)
+//   MIXED     gray      (everything else)
 //
-// Calibration identical to TempoSpeedometer: tod_percentiles.csv (or rolling toggle),
-// buckets anchored to the 08:30 exchange clock via NT display tz -> exchange tz.
+// Per-bar values land in the Data Box via transparent plots:
+//   State (0..6 in lane order above), TempoPct, AmplitudePct, EffPct, TicksPerSec, DurationSec.
 
 #region Using declarations
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
-using System.IO;
 using System.Xml.Serialization;
 using NinjaTrader.Cbi;
 using NinjaTrader.Data;
@@ -37,23 +36,25 @@ namespace NinjaTrader.NinjaScript.Indicators
 {
 	public class TempoStateStripes : Indicator
 	{
-		private const int NBUCKETS = 27;
+		private const int TODB = 96;
+		private const int MIN_SAMPLES = 30;
 		private const int NLANES = 7;
 		private static readonly string[] LaneNames = { "CLIMAX", "EXPAND", "CHURN", "ACTIVITY", "GRIND", "BALANCE", "MIXED" };
 
-		private double[][] gridTempo, gridRange;
-		private double[] gridEff;
-		private bool tableOk, notTickChart;
-		private Series<double> stateS, dirS;               // state 0..6 (NaN = no data), dir +1/-1
+		private double[][] bufT, bufA;
+		private int[] cntT, cntA;
+		private int cap;
+
+		private Series<double> stateS, dirS;
 		private List<double> rollTempo, rollRange, rollEff;
 		private double emaClose;
-		private bool emaInit;
+		private bool emaInit, notTickChart;
 
 		protected override void OnStateChange()
 		{
 			if (State == State.SetDefaults)
 			{
-				Description = "S116 tempo state stripes: 7-lane regime timeline (matches TempoSpeedometer states). Observational only.";
+				Description = "S116 tempo state stripes v2: self-calibrating 7-lane regime timeline (matches TempoSpeedometer). Observational only.";
 				Name = "TempoStateStripes";
 				Calculate = Calculate.OnBarClose;
 				IsOverlay = false;
@@ -61,69 +62,40 @@ namespace NinjaTrader.NinjaScript.Indicators
 				PaintPriceMarkers = false;
 				IsSuspendedWhileInactive = true;
 
-				// transparent plots: nothing extra draws, but every value lands in the Data Box
-				AddPlot(System.Windows.Media.Brushes.Transparent, "State");        // 0 CLIMAX 1 EXPAND 2 CHURN 3 ACTIVITY 4 GRIND 5 BALANCE 6 MIXED
+				AddPlot(System.Windows.Media.Brushes.Transparent, "State");
 				AddPlot(System.Windows.Media.Brushes.Transparent, "TempoPct");
 				AddPlot(System.Windows.Media.Brushes.Transparent, "AmplitudePct");
 				AddPlot(System.Windows.Media.Brushes.Transparent, "EffPct");
 				AddPlot(System.Windows.Media.Brushes.Transparent, "TicksPerSec");
 				AddPlot(System.Windows.Media.Brushes.Transparent, "DurationSec");
 
-				CsvPath = @"C:\Users\Admin\myquant\tempo\outputs\tod_percentiles.csv";
-				UseTodCalibration = true;
+				TrailingDays = 60;
 				RollingWindow = 200;
 				ClimacticPct = 95;
 			}
 			else if (State == State.Configure)
 			{
 				rollTempo = new List<double>(); rollRange = new List<double>(); rollEff = new List<double>();
-				tableOk = false;
-				if (UseTodCalibration) LoadTable();
 			}
 			else if (State == State.DataLoaded)
 			{
 				stateS = new Series<double>(this, MaximumBarsLookBack.Infinite);
 				dirS = new Series<double>(this, MaximumBarsLookBack.Infinite);
 				notTickChart = BarsPeriod.BarsPeriodType != BarsPeriodType.Tick;
+				cap = Math.Max(80, TrailingDays * 8);
+				bufT = new double[TODB][]; bufA = new double[TODB][];
+				cntT = new int[TODB]; cntA = new int[TODB];
+				for (int b = 0; b < TODB; b++) { bufT[b] = new double[cap]; bufA[b] = new double[cap]; }
 			}
 		}
 
-		private void LoadTable()
+		private double PctFromBuf(double[] buf, int cnt, double v)
 		{
-			try
-			{
-				if (!File.Exists(CsvPath)) { Log("TempoStateStripes: calibration csv not found -> rolling mode", LogLevel.Warning); return; }
-				gridTempo = new double[NBUCKETS + 1][];
-				gridRange = new double[NBUCKETS + 1][];
-				string[] lines = File.ReadAllLines(CsvPath);
-				for (int li = 1; li < lines.Length; li++)
-				{
-					string[] c = lines[li].Split(',');
-					if (c.Length < 102) continue;
-					int bucket = int.Parse(c[1], System.Globalization.CultureInfo.InvariantCulture);
-					double[] g = new double[99];
-					for (int p = 0; p < 99; p++)
-						g[p] = double.Parse(c[3 + p], System.Globalization.CultureInfo.InvariantCulture);
-					int idx = bucket + 1;
-					if (idx < 0 || idx > NBUCKETS) continue;
-					if (c[0] == "tempo") gridTempo[idx] = g;
-					else if (c[0] == "range") gridRange[idx] = g;
-					else if (c[0] == "eff" && bucket == -1) gridEff = g;
-				}
-				tableOk = gridTempo[0] != null && gridRange[0] != null && gridEff != null;
-			}
-			catch (Exception ex) { tableOk = false; Log("TempoStateStripes: csv load failed (" + ex.Message + ")", LogLevel.Warning); }
-		}
-
-		private static double PctFromGrid(double[] g, double v)
-		{
-			if (g == null) return 50;
-			if (v <= g[0]) return 1;
-			if (v >= g[98]) return 99;
-			int lo = 0, hi = 98;
-			while (hi - lo > 1) { int m = (lo + hi) / 2; if (g[m] <= v) lo = m; else hi = m; }
-			double frac = g[hi] > g[lo] ? (v - g[lo]) / (g[hi] - g[lo]) : 0;
-			return (lo + 1) + frac;
+			int n = Math.Min(cnt, cap);
+			if (n < MIN_SAMPLES) return -1;
+			int below = 0;
+			for (int i = 0; i < n; i++) if (buf[i] <= v) below++;
+			return Math.Max(1, Math.Min(99, 100.0 * below / (n + 1)));
 		}
 
 		private static double PctFromRolling(List<double> w, double v)
@@ -134,10 +106,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 			return Math.Max(1, Math.Min(99, 100.0 * below / (w.Count + 1)));
 		}
 
-		private static void Push(List<double> w, double v, int cap)
+		private static void Push(List<double> w, double v, int capN)
 		{
 			w.Add(v);
-			if (w.Count > cap) w.RemoveAt(0);
+			if (w.Count > capN) w.RemoveAt(0);
 		}
 
 		protected override void OnBarUpdate()
@@ -155,34 +127,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 			double range = High[0] - Low[0];
 			double eff = range > 0 ? Math.Abs(Close[0] - Open[0]) / range : 0;
 
-			bool outsideRth = false;
-			int bucket = 0;
-			DateTime exch = Time[0];
-			try
-			{
-				TimeZoneInfo srcTz = NinjaTrader.Core.Globals.GeneralOptions.TimeZoneInfo;
-				TimeZoneInfo exTz = Bars.TradingHours.TimeZoneInfo;
-				exch = TimeZoneInfo.ConvertTime(DateTime.SpecifyKind(Time[0], DateTimeKind.Unspecified), srcTz, exTz);
-			}
-			catch { }
-			double mins = (exch.TimeOfDay - new TimeSpan(8, 30, 0)).TotalMinutes;
-			if (mins < 0 || mins >= 405) outsideRth = true;
-			else bucket = Math.Min(NBUCKETS - 1, Math.Max(0, (int)Math.Floor(mins / 15.0)));
+			int bucket = (int)(Time[0].TimeOfDay.TotalMinutes / 15.0);
+			if (bucket < 0) bucket = 0;
+			if (bucket > TODB - 1) bucket = TODB - 1;
 
-			double tPct, aPct, ePct;
-			if (UseTodCalibration && tableOk)
-			{
-				int gi = outsideRth ? 0 : bucket + 1;
-				tPct = PctFromGrid(gridTempo[gi] != null ? gridTempo[gi] : gridTempo[0], tempo);
-				aPct = PctFromGrid(gridRange[gi] != null ? gridRange[gi] : gridRange[0], range);
-				ePct = PctFromGrid(gridEff, eff);
-			}
-			else
-			{
-				tPct = PctFromRolling(rollTempo, tempo);
-				aPct = PctFromRolling(rollRange, range);
-				ePct = PctFromRolling(rollEff, eff);
-			}
+			double tPct = PctFromBuf(bufT[bucket], cntT[bucket], tempo);
+			double aPct = PctFromBuf(bufA[bucket], cntA[bucket], range);
+			bool warm = tPct < 0 || aPct < 0;
+			if (tPct < 0) tPct = PctFromRolling(rollTempo, tempo);
+			if (aPct < 0) aPct = PctFromRolling(rollRange, range);
+			double ePct = PctFromRolling(rollEff, eff);
+
+			bufT[bucket][cntT[bucket] % cap] = tempo; cntT[bucket]++;
+			bufA[bucket][cntA[bucket] % cap] = range; cntA[bucket]++;
 			Push(rollTempo, tempo, RollingWindow);
 			Push(rollRange, range, RollingWindow);
 			Push(rollEff, eff, RollingWindow);
@@ -192,12 +149,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 			bool bull = Close[0] >= emaClose;
 			emaClose += k * (Close[0] - emaClose);
 
-			// SAME rules as TempoSpeedometer (CLIMAX lane == the gold bar dots: >= ClimacticPct)
+			// SAME rules as TempoSpeedometer (no gold during warmup)
 			int state;
-			if (tPct >= ClimacticPct) state = 0;                              // CLIMAX
+			if (!warm && tPct >= ClimacticPct) state = 0;                     // CLIMAX
 			else if (tPct >= 80 && aPct >= 80 && eff >= 0.60) state = 1;      // EXPAND
 			else if (tPct >= 80 && aPct >= 80 && eff < 0.35) state = 2;       // CHURN
-			else if (tPct >= 80 && aPct < 50) state = 3;                      // ACTIVITY / no progress
+			else if (tPct >= 80 && aPct < 50) state = 3;                      // ACTIVITY
 			else if (tPct < 40 && aPct < 40) state = 5;                       // BALANCE
 			else if (tPct < 40 && eff >= 0.60) state = 4;                     // GRIND
 			else state = 6;                                                   // MIXED
@@ -216,15 +173,15 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
 			switch (state)
 			{
-				case 0: return new SharpDX.Color4(1f, 0.84f, 0f, 1f);                                   // gold
-				case 1: return dir >= 0 ? new SharpDX.Color4(0.10f, 0.62f, 0.44f, 1f)                    // teal
-									   : new SharpDX.Color4(0.89f, 0.29f, 0.28f, 1f);                    // red
-				case 2: return new SharpDX.Color4(0.85f, 0.35f, 0.15f, 1f);                              // orange
-				case 3: return new SharpDX.Color4(0.84f, 0.32f, 0.51f, 1f);                              // magenta
-				case 4: return dir >= 0 ? new SharpDX.Color4(0.56f, 0.82f, 0.74f, 1f)                    // pale teal
-									   : new SharpDX.Color4(0.94f, 0.64f, 0.61f, 1f);                    // pale red
-				case 5: return new SharpDX.Color4(0.22f, 0.53f, 0.90f, 1f);                              // blue
-				default: return new SharpDX.Color4(0.60f, 0.63f, 0.65f, 1f);                             // gray
+				case 0: return new SharpDX.Color4(1f, 0.84f, 0f, 1f);
+				case 1: return dir >= 0 ? new SharpDX.Color4(0.10f, 0.62f, 0.44f, 1f)
+									   : new SharpDX.Color4(0.89f, 0.29f, 0.28f, 1f);
+				case 2: return new SharpDX.Color4(0.85f, 0.35f, 0.15f, 1f);
+				case 3: return new SharpDX.Color4(0.84f, 0.32f, 0.51f, 1f);
+				case 4: return dir >= 0 ? new SharpDX.Color4(0.56f, 0.82f, 0.74f, 1f)
+									   : new SharpDX.Color4(0.94f, 0.64f, 0.61f, 1f);
+				case 5: return new SharpDX.Color4(0.22f, 0.53f, 0.90f, 1f);
+				default: return new SharpDX.Color4(0.60f, 0.63f, 0.65f, 1f);
 			}
 		}
 
@@ -263,7 +220,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					float x = chartControl.GetXByBarIndex(ChartBars, i);
 					SolidColorBrush cb = new SolidColorBrush(RenderTarget, LaneColor(st, dirS.GetValueAt(i)));
 					RenderTarget.FillRectangle(new SharpDX.RectangleF(x - w / 2f, top + st * laneH + 1f,
-						Math.Max(1f, w - 1f), laneH - 2f), cb);
+						Math.Max(1f, w), laneH - 2f), cb);
 					cb.Dispose();
 				}
 
@@ -275,20 +232,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 		}
 
 		#region properties
-		[NinjaScriptProperty]
-		[Display(Name = "Calibration CSV path", GroupName = "1. Calibration", Order = 0)]
-		public string CsvPath { get; set; }
-
-		[NinjaScriptProperty]
-		[Display(Name = "Time-of-day calibration (off = rolling)", GroupName = "1. Calibration", Order = 1)]
-		public bool UseTodCalibration { get; set; }
+		[NinjaScriptProperty, Range(5, 250)]
+		[Display(Name = "Self-calibration depth (sessions)", GroupName = "1. Calibration", Order = 0)]
+		public int TrailingDays { get; set; }
 
 		[NinjaScriptProperty, Range(30, 2000)]
-		[Display(Name = "Rolling window (bars)", GroupName = "1. Calibration", Order = 2)]
+		[Display(Name = "Warmup rolling window (bars)", GroupName = "1. Calibration", Order = 1)]
 		public int RollingWindow { get; set; }
 
 		[NinjaScriptProperty, Range(50, 100)]
-		[Display(Name = "Climactic percentile (match TempoSpeedometer)", GroupName = "1. Calibration", Order = 3)]
+		[Display(Name = "Climactic percentile (match TempoSpeedometer)", GroupName = "1. Calibration", Order = 2)]
 		public int ClimacticPct { get; set; }
 		#endregion
 	}
