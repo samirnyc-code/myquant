@@ -246,7 +246,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			ampPctS[0]   = aPct;
 			lastTempoPct = tPct; lastAmpPct = aPct; lastEffPct = ePct; lastEff = eff;
 			lastAccel = accel; lastClimax = climaxTag;
-			lastState = StateLabel(tPct, aPct, eff, Close[0] >= emaClose, climaxTag);
+			lastState = StateLabel(tPct, aPct, eff, Close[0] >= emaClose, climacticBar);   // label matches dots/lane (>= ClimacticPct); >= ClimaxTagPct only drives the banner + alert
 
 			// ---- bar coloring: direction color always; opacity = quadratic tempo curve
 			// (slow bars fade hard, fast bars pop). Climactic keeps direction at full

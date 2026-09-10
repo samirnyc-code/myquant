@@ -64,7 +64,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				CsvPath = @"C:\Users\Admin\myquant\tempo\outputs\tod_percentiles.csv";
 				UseTodCalibration = true;
 				RollingWindow = 200;
-				ClimaxTagPct = 99;
+				ClimacticPct = 95;
 			}
 			else if (State == State.Configure)
 			{
@@ -179,9 +179,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 			bool bull = Close[0] >= emaClose;
 			emaClose += k * (Close[0] - emaClose);
 
-			// SAME rules as TempoSpeedometer.StateLabel
+			// SAME rules as TempoSpeedometer (CLIMAX lane == the gold bar dots: >= ClimacticPct)
 			int state;
-			if (tPct >= ClimaxTagPct) state = 0;                              // CLIMAX
+			if (tPct >= ClimacticPct) state = 0;                              // CLIMAX
 			else if (tPct >= 80 && aPct >= 80 && eff >= 0.60) state = 1;      // EXPAND
 			else if (tPct >= 80 && aPct >= 80 && eff < 0.35) state = 2;       // CHURN
 			else if (tPct >= 80 && aPct < 50) state = 3;                      // ACTIVITY / no progress
@@ -268,8 +268,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 		public int RollingWindow { get; set; }
 
 		[NinjaScriptProperty, Range(50, 100)]
-		[Display(Name = "Climax percentile", GroupName = "1. Calibration", Order = 3)]
-		public int ClimaxTagPct { get; set; }
+		[Display(Name = "Climactic percentile (match TempoSpeedometer)", GroupName = "1. Calibration", Order = 3)]
+		public int ClimacticPct { get; set; }
 		#endregion
 	}
 }
