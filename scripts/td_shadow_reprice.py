@@ -102,6 +102,10 @@ def _final_close():
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--date", default=dt.datetime.now().strftime("%Y-%m-%d"))
+    ap.add_argument("--no-settle", action="store_true",
+                    help="intraday run: reprice entries + closed exits only; "
+                         "skip expiry-settle rows for still-open trades (the "
+                         "22:20 task run does the settles)")
     a = ap.parse_args()
     _FC["day"] = a.date.replace("-", "")
     book = json.loads((SHADOW / f"shadow_book_{a.date}.json").read_text(encoding="utf-8"))
@@ -131,7 +135,7 @@ def main():
                "detail": detail}
         # EXPIRY settle: trade never exited and the session is over -> settle each
         # leg at intrinsic vs the FINAL SPX close (same rule as the backtest engine).
-        if not t.get("exited") and _final_close() is not None:
+        if not t.get("exited") and not a.no_settle and _final_close() is not None:
             fc = _final_close()
             val = 0.0
             for lg in legs:
