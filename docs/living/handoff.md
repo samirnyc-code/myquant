@@ -25,11 +25,49 @@ any item, drop "WIP <A/B>" in its row so the other chat leaves it alone.
 | 5 | Daemon 08-19 outage | ✅ FIXED | crash-guard (c080b5a9) + hang heartbeat/watchdog — both classes closed; verify live next session |
 | 6 | ThetaData terminal | 🟢 UP (quota-limited) | serves 200; hard 429 quota trips on bulk (~40k req/day) — NEVER run 2 bulk jobs at once; chunked-checkpoint pattern in memory `td-terminal-ops` |
 | 7 | DuckDB NBBO years-store | ✅ BUILT | `nbbo_store.py` tested; awaiting the real multi-year pull |
-| 8 | 4-year EM backtest | WIP B — v2 desk-faithful engine BUILT (`backtest_august_rerun_v2.py`): gameplan WAIT anchors + entry gate + armed strikes + 14:45 quotable-close; Aug validation: eod condors match live (752/764, 828/786), WAIT-vs-NOWAIT +587; NEXT = history rerun policy (no gameplans pre-Aug26) | Aug live-vs-bt audit (`live_vs_backtest_august.py`, `live_vs_backtest_divergence_dig.py`): ① open* streams priced at FIXED 10:05 ET but desk enters regime-armed (~08:33 OR ~09:05 CT) → 5–40pt strike deltas on early days (late days match exactly; condor credits match to pennies sameK) ② 08-25 09:31ET eod snapshot = crossed quotes (bt booked −8.20/−8.40 credits; needs TD re-pull) ③ IC engine lacks fly-v3's credit≤0 stand-down (74 rows / −$3,590 over 4.3yr) |
+| 8 | 4-year EM backtest | ✅ v2 DONE (S115 B, 9/10) | FULL-HISTORY v2 complete (`backtest_full_v2.py` → `rows_v2.csv`, 1,082 days): combined −$243k PF 0.79 neg every year; desk's real 09:33ET open entry −17k WORSE than v1's 10:05ET; calwait≈nowait (−1k); gate on; eodic_p flat (−755). Aug live-vs-v2: credits Δ−1% total, condors match to $, whole +3.3k gap = 3 openfly trades (outage + 2 grid-step flips). See S115 block |
+| 12 | Killer-day mitigation study | ✅ DONE (S115 overnight workflow) | 33-day forensics + 6 rule sweeps + stacks + ADVERSARIAL AUDIT — read `docs/research_notes/killer_day_mitigation_S115.md`. Survivors (hypotheses, advisory-only): fly-dies-in-vol (⇒ retire fly), ic call-leg-drop cr_c>2–3, total_cr<1.0 floor, skip_FOMC, puts_band −1000 breaker. Stack $ headlines are in-sample-on-test — do NOT quote them. NEXT: stage-2 intraday breaker sim (TD minute paths + v2), calendar expansion (OpEx/month-end/ECB/elections/ISM — 6+ killers were on missing dates) |
 | 9 | NT8 BreakoutBoysDashboardV1 | 🟡 PENDING USER | fix committed+deployed; **F5 + set `SE_RestImmediately=false` on the chart**, then test cancel/arm |
 | 10 | Max-profit-zone feature | 🟡 STARTED | `maxprofit_zone.py` built; wire into sandbox as an exit dimension |
 | 11 | Tempo/market-state study (2000t) | WIP (tempo chat) | Stage 0 build + Stage 1 redundancy kill-gate; `tempo/` dir, branch leglab |
 | 11 | GexLog ignored-fields join study | ⛔ CLOSED (S116) | ran + committed (`gexlog_field_join_study.py`, stats 20260910) but user judged the direction a dead end — do NOT pick up the walk-forward follow-up |
+
+---
+
+## S115 (9/9→9/10, Chat B) — engine v2 rebuilt DESK-FAITHFUL · full history rerun · killer-day study + adversarial audit
+
+**Arc:** user challenged the 4.3yr backtest → per-trade Aug audit exposed 3 engine defects
+(fixed) → v2 engine validated vs live → full-history v2 rerun → overnight 48-agent
+killer-day workflow with adversarial verification. All committed on `leglab`.
+
+- **Engine defects found via live-vs-bt per-trade audit:** ① open* streams priced at a FIXED
+  10:05 ET while the desk enters regime-armed 08:33 or ~09:05 CT (gameplan `playbook_wait`,
+  brief-blind ⇒ WAIT) ② no entry gate (74 negative-credit rows, −$3,590; 08-25 eod snapshot
+  crossed quotes) ③ no 14:45 CT quotable-close. **v2 fixes all three** (`backtest_august_rerun_v2.py`
+  Aug validation; `backtest_full_v2.py` history; `data/econ_calendar_2022_2026.csv` FOMC/CPI/NFP
+  from Fed+BLS for the calwait policy band).
+- **Aug live-vs-v2 (`live_vs_v2_metrics.py`):** credits reconcile to −1% total (live 629.35 vs
+  bt 635.50 over 118 trades); condor streams match to ~$; the whole +$3,352 P&L gap = 3 openfly
+  trades (08-19 outage +1,384 unmanaged-luck + two 5-pt grid-step stop/expire flips ~+1,000 each).
+  ATM strike re-derivation carries irreducible ±1-step noise (desk feed second-level vs parity
+  minute-level) ⇒ single-month fly P&L is ±1k/trade chaos; multi-year only.
+- **Full-history v2 (`rows_v2.csv`, 1,082 days):** combined −$243k, PF 0.79, negative every year.
+  Desk's real 09:33 ET open entry is −$17k worse than v1's 10:05 ET anchor. calwait≈nowait
+  (Δ−1k over 4.3yr; Aug's +587 was noise). Gate on: eodic_p now flat (−755); eodic_c −19k = the
+  condor bleed; flies −159k(eod)/−57k(open) unchanged story.
+- **Killer-day study (48-agent workflow + adversarial audit) — `docs/research_notes/killer_day_mitigation_S115.md`:**
+  33-day forensics: 22/33 detectable by 08:30 CT; 11 ambushes (Trump-post cluster = breaker-only);
+  half the killers are MELT-UPS (call side); 6+ killers sat on calendar-missing dates (OpEx,
+  month-end/rebalance, ECB, elections, ISM, CPI-eve). Rule sweeps produced spectacular stack
+  headlines (ic +45k) that the adversarial audit KILLED as in-sample-on-test + Bonferroni-dead.
+  **Survivors (hypotheses only, advisory-only per desk rule):** fly-dies-in-elevated-vol
+  (p_bonf 2e-6 ⇒ the real action is retire the fly book), ic call-leg-drop when cr_c>2–3,
+  total_cr<1.0 dead-tape floor, skip_FOMC, puts_band −1000 breaker (dominated risk). Repro
+  audit: all scripts reproduce byte-identical, no lookahead.
+- **NEXT:** ① stage-2 intraday breaker sim (TD minute paths on v2 book — the breaker/FOMC-close
+  bounds need it) ② expand `econ_calendar` with OpEx/month-end/ECB/elections/ISM ③ user decision
+  on retiring the fly streams (advisory-only — desk keeps trading for the record) ④ forward/paper
+  scorecard for the surviving hypotheses.
 
 ---
 
