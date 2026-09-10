@@ -57,9 +57,17 @@ namespace NinjaTrader.NinjaScript.Indicators
 				Name = "TempoStateStripes";
 				Calculate = Calculate.OnBarClose;
 				IsOverlay = false;
-				DisplayInDataBox = false;
+				DisplayInDataBox = true;
 				PaintPriceMarkers = false;
 				IsSuspendedWhileInactive = true;
+
+				// transparent plots: nothing extra draws, but every value lands in the Data Box
+				AddPlot(System.Windows.Media.Brushes.Transparent, "State");        // 0 CLIMAX 1 EXPAND 2 CHURN 3 ACTIVITY 4 GRIND 5 BALANCE 6 MIXED
+				AddPlot(System.Windows.Media.Brushes.Transparent, "TempoPct");
+				AddPlot(System.Windows.Media.Brushes.Transparent, "AmplitudePct");
+				AddPlot(System.Windows.Media.Brushes.Transparent, "EffPct");
+				AddPlot(System.Windows.Media.Brushes.Transparent, "TicksPerSec");
+				AddPlot(System.Windows.Media.Brushes.Transparent, "DurationSec");
 
 				CsvPath = @"C:\Users\Admin\myquant\tempo\outputs\tod_percentiles.csv";
 				UseTodCalibration = true;
@@ -135,8 +143,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 		protected override void OnBarUpdate()
 		{
 			stateS[0] = double.NaN; dirS[0] = 0;
-			if (notTickChart || CurrentBar < 1) return;
-			if (Bars.IsFirstBarOfSession) return;
+			if (notTickChart || CurrentBar < 1 || Bars.IsFirstBarOfSession)
+			{
+				for (int p = 0; p < 6; p++) Values[p].Reset();
+				return;
+			}
 
 			double duration = (Time[0] - Time[1]).TotalSeconds;
 			if (duration < 0.001) duration = 0.001;
@@ -158,17 +169,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (mins < 0 || mins >= 405) outsideRth = true;
 			else bucket = Math.Min(NBUCKETS - 1, Math.Max(0, (int)Math.Floor(mins / 15.0)));
 
-			double tPct, aPct;
+			double tPct, aPct, ePct;
 			if (UseTodCalibration && tableOk)
 			{
 				int gi = outsideRth ? 0 : bucket + 1;
 				tPct = PctFromGrid(gridTempo[gi] != null ? gridTempo[gi] : gridTempo[0], tempo);
 				aPct = PctFromGrid(gridRange[gi] != null ? gridRange[gi] : gridRange[0], range);
+				ePct = PctFromGrid(gridEff, eff);
 			}
 			else
 			{
 				tPct = PctFromRolling(rollTempo, tempo);
 				aPct = PctFromRolling(rollRange, range);
+				ePct = PctFromRolling(rollEff, eff);
 			}
 			Push(rollTempo, tempo, RollingWindow);
 			Push(rollRange, range, RollingWindow);
@@ -190,6 +203,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 			else state = 6;                                                   // MIXED
 			stateS[0] = state;
 			dirS[0] = bull ? 1 : -1;
+
+			Values[0][0] = state;
+			Values[1][0] = Math.Round(tPct);
+			Values[2][0] = Math.Round(aPct);
+			Values[3][0] = Math.Round(ePct);
+			Values[4][0] = Math.Round(tempo, 1);
+			Values[5][0] = Math.Round(duration, 1);
 		}
 
 		private SharpDX.Color4 LaneColor(int state, double dir)
