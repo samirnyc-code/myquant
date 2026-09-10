@@ -78,9 +78,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				RollingWindow  = 200;
 				ClimacticPct   = 95;
 				ClimaxTagPct   = 99;
-				MinOpacityPct  = 15;
-				NeutralColor   = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xd4, 0xd4, 0xd4));
-				NeutralColor.Freeze();
+				MinOpacityPct  = 10;
 				ShowSpeedo     = true;
 				ShowHeatStrip  = true;
 				ShowEngineDot  = true;
@@ -187,23 +185,31 @@ namespace NinjaTrader.NinjaScript.Indicators
 			double range = High[0] - Low[0];
 			double eff   = range > 0 ? Math.Abs(Close[0] - Open[0]) / range : 0;
 
-			// session bucket
+			// session bucket, anchored to the 08:30 EXCHANGE clock (tz-converted), NOT the
+			// session template begin — an ETH template's begin (17:00 prior day) clamped every
+			// RTH bar into the last bucket and biased all percentiles high.
+			bool outsideRth = false;
 			int bucket = 0;
-			if (sessionIterator.GetNextSession(Time[0], true))
+			DateTime exch = Time[0];
+			try
 			{
-				double mins = (Time[0] - sessionIterator.ActualSessionBegin).TotalMinutes;
-				bucket = (int)Math.Floor(mins / 15.0);
-				if (bucket < 0) bucket = 0;
-				if (bucket > NBUCKETS - 1) bucket = NBUCKETS - 1;
+				TimeZoneInfo exTz = Bars.TradingHours.TimeZoneInfo;
+				exch = TimeZoneInfo.ConvertTime(DateTime.SpecifyKind(Time[0], DateTimeKind.Unspecified),
+					TimeZoneInfo.Local, exTz);
 			}
-			lastBucket = bucket;
+			catch { }
+			double mins = (exch.TimeOfDay - new TimeSpan(8, 30, 0)).TotalMinutes;
+			if (mins < 0 || mins >= 405) outsideRth = true;      // grid is RTH-only -> use global grid
+			else bucket = Math.Min(NBUCKETS - 1, Math.Max(0, (int)Math.Floor(mins / 15.0)));
+			lastBucket = outsideRth ? -1 : bucket;
 
 			double tPct, aPct, ePct;
 			bool useTable = UseTodCalibration && tableOk;
 			if (useTable)
 			{
-				double[] gt = gridTempo[bucket + 1] != null ? gridTempo[bucket + 1] : gridTempo[0];
-				double[] gr = gridRange[bucket + 1] != null ? gridRange[bucket + 1] : gridRange[0];
+				int gi = outsideRth ? 0 : bucket + 1;             // outside RTH -> global grid
+				double[] gt = gridTempo[gi] != null ? gridTempo[gi] : gridTempo[0];
+				double[] gr = gridRange[gi] != null ? gridRange[gi] : gridRange[0];
 				tPct = PctFromGrid(gt, tempo);
 				aPct = PctFromGrid(gr, range);
 				ePct = PctFromGrid(gridEff, eff);
@@ -247,33 +253,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 			else
 			{
-				// FIVE discrete shades per direction (pale -> vivid), stepped by tempo band.
-				// Discrete steps are tellable at a glance; continuous alpha/blends were not.
-				int w = tPct < 20 ? MinOpacityPct : tPct < 40 ? 35 : tPct < 60 ? 55 : tPct < 80 ? 78 : 100;
-				System.Windows.Media.Brush b = GetBlendBrush(up ? UpColor : DownColor, w, up ? 1 : 0);
+				// TRUE opacity, quadratic: slow bars nearly vanish, fast bars solid.
+				// (Percentile compression from the session-template bucket bug — not the
+				// opacity encoding — was why earlier versions looked uniform.)
+				double frac = tPct / 100.0;
+				int alphaPct = (int)(MinOpacityPct + (100 - MinOpacityPct) * frac * frac);
+				alphaPct = 5 * (int)Math.Round(alphaPct / 5.0);   // quantize -> small brush cache
+				System.Windows.Media.Brush b = GetBrush(up ? UpColor : DownColor, alphaPct, up ? 1 : 0);
 				BarBrush = b;
 				CandleOutlineBrush = b;
 			}
-		}
-
-		private System.Windows.Media.Brush GetBlendBrush(System.Windows.Media.Brush baseBrush, int weightPct, int kind)
-		{
-			int key = 100000 + kind * 1000 + weightPct;
-			System.Windows.Media.Brush cached;
-			if (brushCache.TryGetValue(key, out cached)) return cached;
-			System.Windows.Media.SolidColorBrush scb = baseBrush as System.Windows.Media.SolidColorBrush;
-			System.Windows.Media.Color c = scb != null ? scb.Color : System.Windows.Media.Colors.Gray;
-			System.Windows.Media.SolidColorBrush nscb = NeutralColor as System.Windows.Media.SolidColorBrush;
-			System.Windows.Media.Color nc = nscb != null ? nscb.Color : System.Windows.Media.Colors.LightGray;
-			double w = weightPct / 100.0;
-			System.Windows.Media.SolidColorBrush nb = new System.Windows.Media.SolidColorBrush(
-				System.Windows.Media.Color.FromRgb(
-					(byte)(nc.R + (c.R - nc.R) * w),
-					(byte)(nc.G + (c.G - nc.G) * w),
-					(byte)(nc.B + (c.B - nc.B) * w)));
-			nb.Freeze();
-			brushCache[key] = nb;
-			return nb;
 		}
 
 		private System.Windows.Media.Brush GetBrush(System.Windows.Media.Brush baseBrush, int alphaPct, int kind)
@@ -543,12 +532,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[NinjaScriptProperty, Range(10, 3600)]
 		[Display(Name = "Alert cooldown (sec)", GroupName = "4. Live pace / alert", Order = 2)]
 		public int AlertCooldownSec { get; set; }
-
-		[XmlIgnore]
-		[Display(Name = "Neutral (slow-bar) blend color — set to your chart background tint", GroupName = "2. Visual", Order = 6)]
-		public System.Windows.Media.Brush NeutralColor { get; set; }
-		[Browsable(false)]
-		public string NeutralColorSerialize { get { return Serialize.BrushToString(NeutralColor); } set { NeutralColor = Serialize.StringToBrush(value); } }
 
 		[XmlIgnore]
 		[Display(Name = "Up bar color", GroupName = "2. Visual", Order = 3)]
