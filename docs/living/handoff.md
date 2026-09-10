@@ -35,6 +35,25 @@ any item, drop "WIP <A/B>" in its row so the other chat leaves it alone.
 
 ---
 
+## S116-tempo ADDENDUM (2026-09-10 late) — v2 self-calibrating indicators + the user's-eye studies
+
+- **v2 rewrite (user: "different market today" — confirmed, climax share drifted 1.8%→10.1%
+  2021→2025):** both indicators now SELF-CALIBRATE from the chart's own bars (96×15-min
+  buckets over the chart clock, trailing ~60 sessions, rank pctile, warmup→rolling, no CSV/tz
+  code). Offline proof the old runtime was wrong: 2026-09-10 true climax share 3.4% vs NT's
+  wall of gold. TempoStateStripes panel added (7-lane regime racing stripes + Data Box per-bar
+  values). DIAG line shows b#/SELF/WARM. **User set-up note: chart Days-to-load ≥30 for full SELF.**
+- **Climax-at-high test (user's screenshot pattern, frozen spec, `climax_at_high_test.py`):**
+  new 20-bar extreme + tempo≥p95(self-calib) → P(rev)=36.8% vs plain-extreme control 33.2%,
+  **+3.6pp, z=3.3, positive ALL 6 years + last250d.** First event-level tempo effect to
+  replicate by year. Small: 2 of 3 climax extremes still continue. No P&L claims (fill-realism
+  rule) — asymmetric-target gross-EV note in the session log only.
+- **Wedge+climax confluence (`wedge_climax_confluence.py`, MyWedge 6-mo export Feb–Aug 2026):**
+  overall INCONCLUSIVE (+2.9pp, z=0.72, monthly sign flips; 45% price-match rate = feed noise).
+  One suggestive POST-HOC cell: **LONG wedge + climax = 35.2% vs 24.0% plain long (n=54, z≈1.8)**
+  — capitulation-flush longs. ⏳ NEXT: user runs WedgeExporter over a longer history (NT-side),
+  then ONE pre-registered retest of the long-side cell only.
+
 ## S116-tempo (2026-09-10, tempo chat) — 2000t tempo/market-state study: Stages 0–2 run to the pre-registered verdict
 
 New workstream from the user's ES_2000T_Tempo_Market_State_Handoff.md (the "ES speedometer"
