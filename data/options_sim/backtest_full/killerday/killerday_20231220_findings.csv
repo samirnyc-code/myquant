@@ -1,0 +1,15 @@
+key,value
+date,2023-12-20
+spx_close_ret_pct,-1.47
+intraday_high,4778.01
+close,4698.35
+drop_from_high_pct,-1.67
+cause,"No news catalyst. Late-day (~14:00-15:30 ET) flow flush blamed on heavy 0DTE/1DTE SPX put buying at 4755-4765 into overbought, holiday-thin tape after a 9-day win streak; dealer hedging cascade. Cboe disputed 0DTE causation next day. Worst day since September."
+detectable_by_0830ct,False
+intraday_shock,True
+next_day_ret_pct,1.03
+source,https://www.barchart.com/story/news/22887500/zero-day-options-in-spotlight-for-sp-500s-sharp-decline
+source,https://www.bloomberg.com/news/articles/2023-12-21/zero-day-options-catch-blame-for-selloff-cboe-says-not-so-fast
+source,https://www.cnbc.com/2023/12/21/profit-taking-economic-worries-or-options-trading-sudden-sell-off-confounds-analysts.html
+source,https://quantpartners.substack.com/p/qpi-note-122023-stocks-lower-on-some
+source,https://www.fxstreet.com/news/forex-today-soft-uk-inflation-weighs-on-pound-sterling-focus-shifts-to-us-data-202312200714

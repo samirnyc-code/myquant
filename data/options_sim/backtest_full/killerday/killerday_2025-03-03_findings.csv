@@ -1,0 +1,8 @@
+item,note
+cause,"Trump confirmed ~13:00-13:30 CT that 25% Canada+Mexico tariffs start 3/4: 'no room left'. Last-hour selloff; SPX -1.76% to 5849.72, worst day of 2025 to date; NVDA -8.7%; VIX 22.78."
+secondary,09:00 CT ISM mfg 50.3 miss w/ prices-paid 62.4 spike (stagflation); Atlanta Fed GDPNow cut to -2.8% same day.
+overnight,"Quiet/positive: Sunday crypto-reserve pop, futures slightly up, Europe rallying (defense). Cash gap +0.23%."
+prior_days,"Tension visible: 2/27 SPX -1.59% after Trump reaffirmed 3/4 tariff date; 2/28 Zelensky Oval Office blowup yet +1.59% month-end rally. Whipsaw +-1.6% days, realized >> implied."
+aftermath,"Continuation: 3/4 -1.22% (tariffs live, VIX 23.51), 3/5 +1.12% (auto exemption), 3/6 -1.78%; -10% correction by 3/13."
+trade_detail,Killed on the put side only: eodic_p 5880/5855 cr 1.05 stopped @16.4 (-1542); close 5849.72 breached short put. All call sides settled worthless.
+observable_0830ct,"KNOWN: 3/4 tariff deadline next day (public since 2/27); ISM on calendar 09:00 CT; realized vol (2.3 rng, back-to-back +-1.6% days) >> EM 73.6 (1.24%); VIX 19.63 near YTD highs. NOT known: exact Trump presser. Verdict: intraday ambush on a quiet open, but the event calendar (tariff D-day eve + ISM) and realized>implied vol were premarket red flags."

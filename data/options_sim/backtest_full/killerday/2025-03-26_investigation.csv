@@ -1,0 +1,23 @@
+section,detail
+cause,"White House announced midday that Trump would unveil 25% auto-import tariffs at 4pm ET; signed same day, effective 4/3. Afternoon grind lower: SPX -1.12% to 5712.20, Nasdaq -2.04%. NVDA -6% on FT China energy-efficiency-rules story (premarket). Close went through the 5715 short put."
+overnight,Futures little changed after 3-day win streak; gap -0.09%. 7:30 CT Feb durable goods +0.9% vs -1.0% exp (benign). No premarket selloff.
+prior_days,"3/24 +1.76% relief rally on 'targeted' reciprocal-tariff reports; 3/25 +0.16%. Risk-on, VIX down to 17.15, IV compressed (0.10 call credit)."
+aftermath,3/27 -0.33%; 3/28 -1.97% (hot core PCE + UMich inflation expectations); continuation into 4/2 Liberation Day. No snap-back.
+detectable_0830ct,"NO by mechanical signals (VIX 17 falling, flat gap, no Tier-1 event, normal 0.85 put credit). Headline-only tells: auto tariffs expected 'as soon as Wednesday' (Bloomberg), FT NVDA/China story premarket. Thin 0.10 call credit = complacency flag, wrong side."
+,
+context_rows,"date,dow,event,gap_pct,prior_ret,prior_range,prior2_ret,vix_prior,vix_chg,em_pts,cr_eodic_c,cr_eodic_p,ic_pnl,fly_pnl,puts_band_pnl,next_ret"
+ctx,"2025-03-24,Mon,,0.89,0.08,1.2,-0.22,19.28,-0.52,68.8,8.2,0.2,-441.0,-223.0,0.0,0.16"
+ctx,"2025-03-25,Tue,,0.15,1.76,0.99,0.08,17.48,-1.8,63.5,0.65,0.6,202.0,-71.0,138.0,-1.12"
+ctx,"2025-03-26,Wed,,-0.09,0.16,0.46,1.76,17.15,-0.33,62.4,0.1,0.85,-1890.0,247.0,-1903.0,-0.33"
+ctx,"2025-03-27,Thu,,-0.29,-1.12,1.56,0.16,18.33,1.18,66.0,0.25,2.65,467.0,-1446.0,72.0,-1.97"
+ctx,"2025-03-28,Fri,,-0.25,-0.33,1.08,-1.12,18.69,0.36,67.0,0.6,2.8,-1870.0,1150.0,-832.0,0.55"
+ic_rows_vix252,"date,strat,method,center,em,short_k,long_k,credit,exit_kind,exit_val,pnl"
+ic,"2025-03-26,eodic_p,vix252,5776.65,62.4,5715.0,5690.0,0.85,stop,11.8,-1101.52,"
+ic,"2025-03-26,eodic_c,vix252,5776.65,62.4,5840.0,5865.0,0.1,settle,0.0,6.74,"
+ic,"2025-03-26,openic_p,vix252,5771.66,62.4,5710.0,5685.0,0.95,stop,8.9,-801.52,"
+ic,"2025-03-26,openic_c,vix252,5771.66,62.4,5835.0,5860.0,0.1,settle,0.0,6.74,"
+fly_rows,"date,strat,center,short_k,long_k,credit,exit_kind,exit_val,pnl"
+fly,"2025-03-26,eodfly_p,5776.65,5775.0,5750.0,7.3,stop,11.5,-426.52,"
+fly,"2025-03-26,eodfly_c,5776.65,5775.0,5800.0,10.0,stop,10.6,-66.52,"
+fly,"2025-03-26,openfly_p,5761.05,5760.0,5735.0,7.3,stop,9.2,-196.52,"
+fly,"2025-03-26,openfly_c,5761.05,5760.0,5785.0,9.4,settle,0.0,936.74,"

@@ -1,0 +1,113 @@
+rule,book,story,days_skipped,train_delta,test_delta,total_delta,killer_days_avoided,winning_days_lost,avoids_2025_04_09,baseline_train,baseline_test,verdict
+|gap|>=0.3,ic,large overnight gap = strikes set on stale info + elevated open vol,481,20271.0,-993.0,19278.0,23,297,True,-21720.0,-3203.0,TRAIN_ONLY
+|gap|>=0.3,fly,large overnight gap = strikes set on stale info + elevated open vol,481,58107.0,50459.0,108566.0,19,169,True,-125857.0,-74691.0,ROBUST
+|gap|>=0.3,puts_band,large overnight gap = strikes set on stale info + elevated open vol,481,-3197.0,-3132.0,-6329.0,1,223,True,11781.0,3146.0,DEAD
+|gap|>=0.3,combined,large overnight gap = strikes set on stale info + elevated open vol,481,75181.0,46334.0,121515.0,44,200,True,-135796.0,-74748.0,ROBUST
+gap<=-0.3,ic,down-gaps carry follow-through/vol risk that short-premium eats,209,4844.0,-4541.0,303.0,11,133,True,-21720.0,-3203.0,TRAIN_ONLY
+gap<=-0.3,fly,down-gaps carry follow-through/vol risk that short-premium eats,209,27536.0,29768.0,57304.0,10,66,True,-125857.0,-74691.0,ROBUST
+gap<=-0.3,puts_band,down-gaps carry follow-through/vol risk that short-premium eats,209,-5637.0,-3218.0,-8855.0,0,115,True,11781.0,3146.0,DEAD
+gap<=-0.3,combined,down-gaps carry follow-through/vol risk that short-premium eats,209,26743.0,22009.0,48752.0,23,91,True,-135796.0,-74748.0,ROBUST
+|gap|>=0.5,ic,large overnight gap = strikes set on stale info + elevated open vol,250,17081.0,-4591.0,12490.0,11,134,False,-21720.0,-3203.0,TRAIN_ONLY
+|gap|>=0.5,fly,large overnight gap = strikes set on stale info + elevated open vol,250,33069.0,38003.0,71072.0,12,79,False,-125857.0,-74691.0,ROBUST
+|gap|>=0.5,puts_band,large overnight gap = strikes set on stale info + elevated open vol,250,-202.0,-1490.0,-1692.0,1,107,False,11781.0,3146.0,DEAD
+|gap|>=0.5,combined,large overnight gap = strikes set on stale info + elevated open vol,250,49948.0,31922.0,81870.0,25,88,False,-135796.0,-74748.0,ROBUST
+gap<=-0.5,ic,down-gaps carry follow-through/vol risk that short-premium eats,123,8086.0,-4428.0,3658.0,5,68,False,-21720.0,-3203.0,TRAIN_ONLY
+gap<=-0.5,fly,down-gaps carry follow-through/vol risk that short-premium eats,123,15378.0,23353.0,38731.0,7,38,False,-125857.0,-74691.0,ROBUST
+gap<=-0.5,puts_band,down-gaps carry follow-through/vol risk that short-premium eats,123,-1806.0,-1174.0,-2980.0,0,50,False,11781.0,3146.0,DEAD
+gap<=-0.5,combined,down-gaps carry follow-through/vol risk that short-premium eats,123,21658.0,17751.0,39409.0,14,43,False,-135796.0,-74748.0,ROBUST
+|gap|>=0.75,ic,large overnight gap = strikes set on stale info + elevated open vol,124,8335.0,2403.0,10738.0,6,61,False,-21720.0,-3203.0,ROBUST
+|gap|>=0.75,fly,large overnight gap = strikes set on stale info + elevated open vol,124,14933.0,24586.0,39519.0,7,38,False,-125857.0,-74691.0,ROBUST
+|gap|>=0.75,puts_band,large overnight gap = strikes set on stale info + elevated open vol,124,-2203.0,1033.0,-1170.0,0,46,False,11781.0,3146.0,DEAD
+|gap|>=0.75,combined,large overnight gap = strikes set on stale info + elevated open vol,124,21065.0,28022.0,49087.0,12,36,False,-135796.0,-74748.0,ROBUST
+gap<=-0.75,ic,down-gaps carry follow-through/vol risk that short-premium eats,69,7335.0,-176.0,7159.0,3,35,False,-21720.0,-3203.0,TRAIN_ONLY
+gap<=-0.75,fly,down-gaps carry follow-through/vol risk that short-premium eats,69,10011.0,17248.0,27259.0,4,16,False,-125857.0,-74691.0,ROBUST
+gap<=-0.75,puts_band,down-gaps carry follow-through/vol risk that short-premium eats,69,-893.0,-68.0,-961.0,0,20,False,11781.0,3146.0,DEAD
+gap<=-0.75,combined,down-gaps carry follow-through/vol risk that short-premium eats,69,16453.0,17004.0,33457.0,9,17,False,-135796.0,-74748.0,ROBUST
+|gap|>=1.0,ic,large overnight gap = strikes set on stale info + elevated open vol,61,4404.0,5574.0,9978.0,4,29,False,-21720.0,-3203.0,ROBUST
+|gap|>=1.0,fly,large overnight gap = strikes set on stale info + elevated open vol,61,11493.0,13696.0,25189.0,4,17,False,-125857.0,-74691.0,ROBUST
+|gap|>=1.0,puts_band,large overnight gap = strikes set on stale info + elevated open vol,61,-544.0,2763.0,2219.0,0,19,False,11781.0,3146.0,DEAD
+|gap|>=1.0,combined,large overnight gap = strikes set on stale info + elevated open vol,61,15353.0,22033.0,37386.0,10,14,False,-135796.0,-74748.0,ROBUST
+gap<=-1.0,ic,down-gaps carry follow-through/vol risk that short-premium eats,30,5152.0,2931.0,8083.0,3,14,False,-21720.0,-3203.0,ROBUST
+gap<=-1.0,fly,down-gaps carry follow-through/vol risk that short-premium eats,30,6274.0,8739.0,15013.0,3,6,False,-125857.0,-74691.0,ROBUST
+gap<=-1.0,puts_band,down-gaps carry follow-through/vol risk that short-premium eats,30,-632.0,858.0,226.0,0,8,False,11781.0,3146.0,DEAD
+gap<=-1.0,combined,down-gaps carry follow-through/vol risk that short-premium eats,30,10794.0,12528.0,23322.0,8,6,False,-135796.0,-74748.0,ROBUST
+|prior_ret|>=1.0,ic,big prior-day move = elevated realized vol regime next day,285,-5996.0,274.0,-5722.0,17,208,True,-21720.0,-3203.0,DEAD
+|prior_ret|>=1.0,fly,big prior-day move = elevated realized vol regime next day,285,60109.0,34610.0,94719.0,11,87,True,-125857.0,-74691.0,ROBUST
+|prior_ret|>=1.0,puts_band,big prior-day move = elevated realized vol regime next day,285,-7022.0,-7461.0,-14483.0,2,173,True,11781.0,3146.0,DEAD
+|prior_ret|>=1.0,combined,big prior-day move = elevated realized vol regime next day,285,47091.0,27423.0,74514.0,25,117,True,-135796.0,-74748.0,ROBUST
+prior_ret<=-1.0,ic,prior-day crash = next-day vol-of-vol and gap risk,130,-407.0,3793.0,3386.0,10,86,True,-21720.0,-3203.0,DEAD
+prior_ret<=-1.0,fly,prior-day crash = next-day vol-of-vol and gap risk,130,30853.0,29832.0,60685.0,7,34,True,-125857.0,-74691.0,ROBUST
+prior_ret<=-1.0,puts_band,prior-day crash = next-day vol-of-vol and gap risk,130,-3808.0,-4961.0,-8769.0,0,81,True,11781.0,3146.0,DEAD
+prior_ret<=-1.0,combined,prior-day crash = next-day vol-of-vol and gap risk,130,26638.0,28664.0,55302.0,17,40,True,-135796.0,-74748.0,ROBUST
+|prior_ret|>=1.5,ic,big prior-day move = elevated realized vol regime next day,131,-5461.0,5997.0,536.0,8,92,True,-21720.0,-3203.0,DEAD
+|prior_ret|>=1.5,fly,big prior-day move = elevated realized vol regime next day,131,29304.0,25756.0,55060.0,6,34,True,-125857.0,-74691.0,ROBUST
+|prior_ret|>=1.5,puts_band,big prior-day move = elevated realized vol regime next day,131,-3672.0,-3565.0,-7237.0,2,76,True,11781.0,3146.0,DEAD
+|prior_ret|>=1.5,combined,big prior-day move = elevated realized vol regime next day,131,20171.0,28188.0,48359.0,14,48,True,-135796.0,-74748.0,ROBUST
+prior_ret<=-1.5,ic,prior-day crash = next-day vol-of-vol and gap risk,64,-88.0,6934.0,6846.0,5,39,True,-21720.0,-3203.0,DEAD
+prior_ret<=-1.5,fly,prior-day crash = next-day vol-of-vol and gap risk,64,17063.0,18855.0,35918.0,4,13,True,-125857.0,-74691.0,ROBUST
+prior_ret<=-1.5,puts_band,prior-day crash = next-day vol-of-vol and gap risk,64,-2406.0,-2387.0,-4793.0,0,35,True,11781.0,3146.0,DEAD
+prior_ret<=-1.5,combined,prior-day crash = next-day vol-of-vol and gap risk,64,14569.0,23402.0,37971.0,10,16,True,-135796.0,-74748.0,ROBUST
+|prior_ret|>=2.0,ic,big prior-day move = elevated realized vol regime next day,57,-9470.0,109.0,-9361.0,1,43,False,-21720.0,-3203.0,DEAD
+|prior_ret|>=2.0,fly,big prior-day move = elevated realized vol regime next day,57,18307.0,7752.0,26059.0,2,17,False,-125857.0,-74691.0,ROBUST
+|prior_ret|>=2.0,puts_band,big prior-day move = elevated realized vol regime next day,57,-3634.0,-1187.0,-4821.0,0,32,False,11781.0,3146.0,DEAD
+|prior_ret|>=2.0,combined,big prior-day move = elevated realized vol regime next day,57,5203.0,6674.0,11877.0,4,19,False,-135796.0,-74748.0,ROBUST
+prior_ret<=-2.0,ic,prior-day crash = next-day vol-of-vol and gap risk,29,-3810.0,1250.0,-2560.0,1,20,False,-21720.0,-3203.0,DEAD
+prior_ret<=-2.0,fly,prior-day crash = next-day vol-of-vol and gap risk,29,9787.0,4545.0,14332.0,1,9,False,-125857.0,-74691.0,ROBUST
+prior_ret<=-2.0,puts_band,prior-day crash = next-day vol-of-vol and gap risk,29,-2356.0,-330.0,-2686.0,0,16,False,11781.0,3146.0,DEAD
+prior_ret<=-2.0,combined,prior-day crash = next-day vol-of-vol and gap risk,29,3621.0,5465.0,9086.0,3,8,False,-135796.0,-74748.0,ROBUST
+|prior_ret|>=3.0,ic,big prior-day move = elevated realized vol regime next day,15,-4661.0,142.0,-4519.0,0,13,False,-21720.0,-3203.0,DEAD
+|prior_ret|>=3.0,fly,big prior-day move = elevated realized vol regime next day,15,5212.0,3282.0,8494.0,1,6,False,-125857.0,-74691.0,ROBUST
+|prior_ret|>=3.0,puts_band,big prior-day move = elevated realized vol regime next day,15,-1544.0,-77.0,-1621.0,0,10,False,11781.0,3146.0,DEAD
+|prior_ret|>=3.0,combined,big prior-day move = elevated realized vol regime next day,15,-993.0,3347.0,2354.0,1,6,False,-135796.0,-74748.0,DEAD
+prior_ret<=-3.0,ic,prior-day crash = next-day vol-of-vol and gap risk,9,-2788.0,-551.0,-3339.0,0,8,False,-21720.0,-3203.0,DEAD
+prior_ret<=-3.0,fly,prior-day crash = next-day vol-of-vol and gap risk,9,2234.0,3379.0,5613.0,1,4,False,-125857.0,-74691.0,ROBUST
+prior_ret<=-3.0,puts_band,prior-day crash = next-day vol-of-vol and gap risk,9,-763.0,-0.0,-763.0,0,5,False,11781.0,3146.0,DEAD
+prior_ret<=-3.0,combined,prior-day crash = next-day vol-of-vol and gap risk,9,-1317.0,2828.0,1511.0,1,4,False,-135796.0,-74748.0,DEAD
+prior_range>=2.0,ic,wide prior-day range = realized vol already exceeding EM pricing,106,-6971.0,9586.0,2615.0,4,65,True,-21720.0,-3203.0,DEAD
+prior_range>=2.0,fly,wide prior-day range = realized vol already exceeding EM pricing,106,24229.0,16669.0,40898.0,7,30,True,-125857.0,-74691.0,ROBUST
+prior_range>=2.0,puts_band,wide prior-day range = realized vol already exceeding EM pricing,106,-8598.0,-836.0,-9434.0,1,69,True,11781.0,3146.0,DEAD
+prior_range>=2.0,combined,wide prior-day range = realized vol already exceeding EM pricing,106,8660.0,25419.0,34079.0,13,43,True,-135796.0,-74748.0,ROBUST
+prior_range>=3.0,ic,wide prior-day range = realized vol already exceeding EM pricing,20,-603.0,4060.0,3457.0,1,10,True,-21720.0,-3203.0,DEAD
+prior_range>=3.0,fly,wide prior-day range = realized vol already exceeding EM pricing,20,3302.0,6600.0,9902.0,3,5,True,-125857.0,-74691.0,ROBUST
+prior_range>=3.0,puts_band,wide prior-day range = realized vol already exceeding EM pricing,20,-295.0,843.0,548.0,0,11,True,11781.0,3146.0,DEAD
+prior_range>=3.0,combined,wide prior-day range = realized vol already exceeding EM pricing,20,2404.0,11503.0,13907.0,5,8,True,-135796.0,-74748.0,ROBUST
+prior_range>=4.0,ic,wide prior-day range = realized vol already exceeding EM pricing,6,1215.0,3844.0,5059.0,1,2,True,-21720.0,-3203.0,ROBUST
+prior_range>=4.0,fly,wide prior-day range = realized vol already exceeding EM pricing,6,513.0,8804.0,9317.0,3,0,True,-125857.0,-74691.0,ROBUST
+prior_range>=4.0,puts_band,wide prior-day range = realized vol already exceeding EM pricing,6,887.0,1330.0,2217.0,0,1,True,11781.0,3146.0,ROBUST
+prior_range>=4.0,combined,wide prior-day range = realized vol already exceeding EM pricing,6,2615.0,13978.0,16593.0,4,1,True,-135796.0,-74748.0,ROBUST
+prior_range>=5.0,ic,wide prior-day range = realized vol already exceeding EM pricing,4,1215.0,5535.0,6750.0,1,0,True,-21720.0,-3203.0,ROBUST
+prior_range>=5.0,fly,wide prior-day range = realized vol already exceeding EM pricing,4,513.0,5065.0,5578.0,2,0,True,-125857.0,-74691.0,ROBUST
+prior_range>=5.0,puts_band,wide prior-day range = realized vol already exceeding EM pricing,4,887.0,1330.0,2217.0,0,1,True,11781.0,3146.0,ROBUST
+prior_range>=5.0,combined,wide prior-day range = realized vol already exceeding EM pricing,4,2615.0,11930.0,14545.0,3,0,True,-135796.0,-74748.0,ROBUST
+|cum2day|>=2.0,ic,"2-day trend move = market in motion, mean-reversion premium bets lose",148,-12033.0,4075.0,-7958.0,9,111,False,-21720.0,-3203.0,DEAD
+|cum2day|>=2.0,fly,"2-day trend move = market in motion, mean-reversion premium bets lose",148,35717.0,20652.0,56369.0,6,45,False,-125857.0,-74691.0,ROBUST
+|cum2day|>=2.0,puts_band,"2-day trend move = market in motion, mean-reversion premium bets lose",148,-6145.0,-1780.0,-7925.0,1,84,False,11781.0,3146.0,DEAD
+|cum2day|>=2.0,combined,"2-day trend move = market in motion, mean-reversion premium bets lose",148,17539.0,22947.0,40486.0,12,61,False,-135796.0,-74748.0,ROBUST
+|cum2day|>=3.0,ic,"2-day trend move = market in motion, mean-reversion premium bets lose",49,-1041.0,-952.0,-1993.0,3,35,False,-21720.0,-3203.0,DEAD
+|cum2day|>=3.0,fly,"2-day trend move = market in motion, mean-reversion premium bets lose",49,11276.0,11728.0,23004.0,4,15,False,-125857.0,-74691.0,ROBUST
+|cum2day|>=3.0,puts_band,"2-day trend move = market in motion, mean-reversion premium bets lose",49,-1550.0,343.0,-1207.0,1,32,False,11781.0,3146.0,DEAD
+|cum2day|>=3.0,combined,"2-day trend move = market in motion, mean-reversion premium bets lose",49,8685.0,11119.0,19804.0,6,17,False,-135796.0,-74748.0,ROBUST
+|cum2day|>=4.0,ic,"2-day trend move = market in motion, mean-reversion premium bets lose",16,-405.0,3024.0,2619.0,1,8,False,-21720.0,-3203.0,DEAD
+|cum2day|>=4.0,fly,"2-day trend move = market in motion, mean-reversion premium bets lose",16,3836.0,5188.0,9024.0,2,6,False,-125857.0,-74691.0,ROBUST
+|cum2day|>=4.0,puts_band,"2-day trend move = market in motion, mean-reversion premium bets lose",16,1872.0,1259.0,3131.0,1,6,False,11781.0,3146.0,ROBUST
+|cum2day|>=4.0,combined,"2-day trend move = market in motion, mean-reversion premium bets lose",16,5303.0,9471.0,14774.0,4,5,False,-135796.0,-74748.0,ROBUST
+|gap|>=0.5&vixchg>0,ic,"gap with rising VIX = fear-confirmed gap, not a fade",123,9444.0,-8011.0,1433.0,4,67,False,-21720.0,-3203.0,TRAIN_ONLY
+|gap|>=0.5&vixchg>0,fly,"gap with rising VIX = fear-confirmed gap, not a fade",123,15584.0,26642.0,42226.0,9,43,False,-125857.0,-74691.0,ROBUST
+|gap|>=0.5&vixchg>0,puts_band,"gap with rising VIX = fear-confirmed gap, not a fade",123,-869.0,-1434.0,-2303.0,0,58,False,11781.0,3146.0,DEAD
+|gap|>=0.5&vixchg>0,combined,"gap with rising VIX = fear-confirmed gap, not a fade",123,24159.0,17197.0,41356.0,12,40,False,-135796.0,-74748.0,ROBUST
+|gap|>=0.5&vixchg>=2,ic,gap with VIX spike = vol regime shift overnight,29,1892.0,314.0,2206.0,2,14,False,-21720.0,-3203.0,ROBUST
+|gap|>=0.5&vixchg>=2,fly,gap with VIX spike = vol regime shift overnight,29,6716.0,10432.0,17148.0,4,8,False,-125857.0,-74691.0,ROBUST
+|gap|>=0.5&vixchg>=2,puts_band,gap with VIX spike = vol regime shift overnight,29,417.0,-1092.0,-675.0,0,13,False,11781.0,3146.0,TRAIN_ONLY
+|gap|>=0.5&vixchg>=2,combined,gap with VIX spike = vol regime shift overnight,29,9025.0,9654.0,18679.0,4,6,False,-135796.0,-74748.0,ROBUST
+gap<=-0.5&vixchg>=2,ic,down-gap with VIX spike = crash continuation risk,14,948.0,-79.0,869.0,1,7,False,-21720.0,-3203.0,TRAIN_ONLY
+gap<=-0.5&vixchg>=2,fly,down-gap with VIX spike = crash continuation risk,14,4241.0,9250.0,13491.0,3,3,False,-125857.0,-74691.0,ROBUST
+gap<=-0.5&vixchg>=2,puts_band,down-gap with VIX spike = crash continuation risk,14,-391.0,-573.0,-964.0,0,7,False,11781.0,3146.0,DEAD
+gap<=-0.5&vixchg>=2,combined,down-gap with VIX spike = crash continuation risk,14,4798.0,8598.0,13396.0,3,2,False,-135796.0,-74748.0,ROBUST
+prior_range>=3&|gap|>=0.3,ic,wide prior range AND gapping again = vol not settling,15,788.0,4901.0,5689.0,1,6,True,-21720.0,-3203.0,ROBUST
+prior_range>=3&|gap|>=0.3,fly,wide prior range AND gapping again = vol not settling,15,2193.0,5261.0,7454.0,3,5,True,-125857.0,-74691.0,ROBUST
+prior_range>=3&|gap|>=0.3,puts_band,wide prior range AND gapping again = vol not settling,15,223.0,1106.0,1329.0,0,7,True,11781.0,3146.0,ROBUST
+prior_range>=3&|gap|>=0.3,combined,wide prior range AND gapping again = vol not settling,15,3204.0,11268.0,14472.0,5,5,True,-135796.0,-74748.0,ROBUST
+prior_range>=4&vixchg>=0,ic,huge prior range with VIX not falling = still in the storm,4,-0.0,2924.0,2924.0,1,2,True,-21720.0,-3203.0,DEAD
+prior_range>=4&vixchg>=0,fly,huge prior range with VIX not falling = still in the storm,4,-0.0,8361.0,8361.0,3,0,True,-125857.0,-74691.0,DEAD
+prior_range>=4&vixchg>=0,puts_band,huge prior range with VIX not falling = still in the storm,4,-0.0,1330.0,1330.0,0,1,True,11781.0,3146.0,DEAD
+prior_range>=4&vixchg>=0,combined,huge prior range with VIX not falling = still in the storm,4,-0.0,12615.0,12615.0,3,1,True,-135796.0,-74748.0,DEAD

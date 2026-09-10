@@ -1,0 +1,5 @@
+date,strat,center,short_k,long_k,credit,exit_kind,exit_val,pnl,note
+2025-10-22,eodfly_p,6735.35,6735.0,6710.0,7.6,stop,7.0,53.48,
+2025-10-22,eodfly_c,6735.35,6735.0,6760.0,9.6,settle,0.0,956.74,
+2025-10-22,openfly_p,6735.35,6735.0,6710.0,6.5,stop,7.0,-56.52,
+2025-10-22,openfly_c,6735.35,6735.0,6760.0,9.4,settle,0.0,936.74,

@@ -1,0 +1,8 @@
+key,value
+cause,"Monthly OpEx (~$1.9T) whipsaw: gap-up open on China 5y-LPR cut, then no-catalyst intraday slide from 3927.76 open to 3810.32 (-2.3%, intraday bear-market touch at -20.9% off Jan-3 record), late-session V-rally to close 3901.36 flat (+0.01%)."
+mechanics,Put spreads (shorts 3830/3855) blown through by the 3810 low -> stopped; calls settled worthless (close 3901 << 3975/4000); ATM flies stopped both sides by the round trip. puts_band -2203 = eodic_p -1171.52 + openic_p -1031.52.
+overnight,"China cut 5y LPR 15bp (more than expected); HSI +2%, Asia/Europe up, US futures up ~1% -> +0.69% gap up, VIX -1.61 to ~29.35 premarket direction. Risk-ON open."
+prior_days,"5/17 Powell hawkish WSJ remarks; 5/18 Target earnings shock, SPX -4.04% worst day since Jun-2020; 5/19 -0.58% w/ 4.86 VIX pop to 30.96; 7th straight losing week (longest since 2001)."
+aftermath,Snap-back: Mon 5/23 +1.86%; following week ~+6.6%. No continuation.
+knowable_0830ct,"OpEx date (calendar, deterministic); VIX ~29 elevated regime; prior2_ret -4.04% (post-crash fragility); prior_range 1.78 after 3.57; EM 72.1 pts huge; call credit 4.8 vs put credit 0.95 (17x downside skew in credit terms = market paying nothing for put spreads at our band -> terrible risk/reward on the put side); gap-up-into-downtrend pattern. NO specific news trigger was visible - the intraday reversal itself was the ambush, but the fragile-regime + OpEx + thin-put-credit combination was fully knowable."
+intraday_shock,"Yes - quiet green open, no intraday headline; damage came from an OpEx flow-driven reversal."

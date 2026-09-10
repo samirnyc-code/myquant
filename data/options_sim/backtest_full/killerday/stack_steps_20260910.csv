@@ -1,0 +1,161 @@
+book,rank,rule,solo_train,solo_test,marginal_train,marginal_test,action,cum_train,cum_test,reject_reason
+ic,1,breaker_-1000_MID,7398,10547,7398,10547,ADDED,7398,10547,
+ic,2,skip_vix/10dma>1.15,1942,8872,1904,4757,ADDED,9301,15304,
+ic,3,skip_accel2d>3,2078,8631,2934,-5,REJECTED,9301,15304,marginal_test<=0 (redundant with stack)
+ic,4,skip_day_if_cr_p<0.5,15039,8225,14807,-1024,REJECTED,9301,15304,marginal_test<=0 (redundant with stack)
+ic,5,skip_vix/10dma>1.25,2083,8166,0,0,REJECTED,9301,15304,marginal_test<=0 (redundant with stack)
+ic,6,skip_vix>30,892,7723,2220,2268,ADDED,11521,17572,
+ic,7,vixprior>30_standdown,892,7723,0,0,REJECTED,11521,17572,marginal_test<=0 (redundant with stack)
+ic,8,ic_drop_call_leg_if_cr_c>2.0,4757,7658,1258,3059,ADDED,12779,20631,
+ic,9,ic_drop_call_leg_if_cr_c>2.5,4208,7346,1438,1694,ADDED,14217,22325,
+ic,10,skip_day_if_total_cr<1.0,4190,6728,1858,2212,ADDED,16075,24537,
+ic,11,skip_day_if_cr_c>2.5,11321,6616,6394,-5236,REJECTED,16075,24537,marginal_test<=0 (redundant with stack)
+ic,12,ic_drop_call_leg_if_cr_c>3.0,3799,6445,1704,3591,ADDED,17780,28128,
+ic,13,fomc_close_1230_UPPERBOUND,12132,5627,11501,3758,ADDED,29281,31886,
+ic,14,skip_event_if_credit_above_3,6500,5606,-15071,-7237,REJECTED,29281,31886,marginal_test<=0 (redundant with stack)
+ic,15,|gap|>=1.0,4404,5574,-1776,-1581,REJECTED,29281,31886,marginal_test<=0 (redundant with stack)
+ic,16,skip_day_if_cr_c>3.0,7927,5533,-4271,-11074,REJECTED,29281,31886,marginal_test<=0 (redundant with stack)
+ic,17,band_p_0.5-2.5,24030,5334,434,-8926,REJECTED,29281,31886,marginal_test<=0 (redundant with stack)
+ic,18,skip_vix/5dma>1.20,2420,5124,0,0,REJECTED,29281,31886,marginal_test<=0 (redundant with stack)
+ic,19,skip_day_if_cr_c>2.0,9056,5055,-5935,-9795,REJECTED,29281,31886,marginal_test<=0 (redundant with stack)
+ic,20,skip_vix>25,5312,4606,-665,-756,REJECTED,29281,31886,marginal_test<=0 (redundant with stack)
+ic,21,vixprior>25_standdown,5312,4606,-665,-756,REJECTED,29281,31886,marginal_test<=0 (redundant with stack)
+ic,22,skip_accel2d>5,1023,4426,0,0,REJECTED,29281,31886,marginal_test<=0 (redundant with stack)
+ic,23,skip_day_if_total_cr>3.0,19076,4101,-7389,-20436,REJECTED,29281,31886,marginal_test<=0 (redundant with stack)
+ic,24,skip_event_if_credit_above_2,8475,3629,-12677,-9012,REJECTED,29281,31886,marginal_test<=0 (redundant with stack)
+ic,25,skip_event_if_credit_above_4,548,3093,-10377,-4924,REJECTED,29281,31886,marginal_test<=0 (redundant with stack)
+ic,26,gap<=-1.0,5152,2931,232,-848,REJECTED,29281,31886,marginal_test<=0 (redundant with stack)
+ic,27,loss<-1500_until_vixdown,2127,2467,-2097,953,ADDED,27184,32840,
+ic,28,|gap|>=0.75,8335,2403,-2293,-4356,REJECTED,27184,32840,marginal_test<=0 (redundant with stack)
+ic,29,skip_FOMC,2080,2042,-9328,-6360,REJECTED,27184,32840,marginal_test<=0 (redundant with stack)
+ic,30,loss<-2000_until_vixdown,1062,2034,0,0,REJECTED,27184,32840,marginal_test<=0 (redundant with stack)
+ic,31,skip_vix/5dma>1.10,2647,2004,1778,-1510,REJECTED,27184,32840,marginal_test<=0 (redundant with stack)
+ic,32,skip_NFP,5120,1656,-1113,-94,REJECTED,27184,32840,marginal_test<=0 (redundant with stack)
+ic,33,skip_ANY_EVENT,12522,1169,-10699,-10210,REJECTED,27184,32840,marginal_test<=0 (redundant with stack)
+ic,34,skip_event_if_credit_above_6,2722,1133,-10180,-4342,REJECTED,27184,32840,marginal_test<=0 (redundant with stack)
+ic,35,skip_vixchg>2,819,1125,4387,-1464,REJECTED,27184,32840,marginal_test<=0 (redundant with stack)
+ic,36,loss<-2000_stand2d,3280,1111,-2301,-594,REJECTED,27184,32840,marginal_test<=0 (redundant with stack)
+ic,37,skip_event&vix>25,3767,953,524,0,REJECTED,27184,32840,marginal_test<=0 (redundant with stack)
+ic,38,skip_event_if_credit_below_6,9800,36,-519,-5868,REJECTED,27184,32840,marginal_test<=0 (redundant with stack)
+ic,39,skip_vix/10dma>1.15,1942,8872,-2450,-2817,PRUNED_POST,29634,35657,negative leave-one-rule-out test marginal in final stack
+ic,40,skip_vix>30,892,7723,-2899,-2247,PRUNED_POST,32533,37904,negative leave-one-rule-out test marginal in final stack
+puts_band,1,skip_day_if_total_cr<1.0,1165,5145,1165,5145,ADDED,1165,5145,
+puts_band,2,breaker_-1000_MID,3183,3966,2196,2213,ADDED,3361,7358,
+puts_band,3,fomc_close_1230_UPPERBOUND,2172,2943,2172,1626,ADDED,5533,8985,
+puts_band,4,skip_day_if_cr_p<0.5,502,1586,443,1025,ADDED,5976,10010,
+puts_band,5,prior_range>=4.0,887,1330,887,-147,REJECTED,5976,10010,marginal_test<=0 (redundant with stack)
+puts_band,6,skip_day_if_cr_c>4.0,148,905,-162,-260,REJECTED,5976,10010,marginal_test<=0 (redundant with stack)
+fly,1,band_p_0.5-2.5,74949,55575,74949,55575,ADDED,74949,55575,
+fly,2,skip_day_if_total_cr>3.0,51869,55530,156,11855,ADDED,75105,67430,
+fly,3,band_c_0.5-2.5,62094,55425,20003,3613,ADDED,95108,71043,
+fly,4,|gap|>=0.3,58107,50459,79,126,ADDED,95187,71169,
+fly,5,skip_day_if_cr_p>2.0,47234,37670,2274,0,REJECTED,95187,71169,marginal_test<=0 (redundant with stack)
+fly,6,skip_day_if_cr_c<0.5,33279,37624,0,0,REJECTED,95187,71169,marginal_test<=0 (redundant with stack)
+fly,7,skip_day_if_total_cr>4.0,42077,36556,0,0,REJECTED,95187,71169,marginal_test<=0 (redundant with stack)
+fly,8,skip_day_if_cr_p>2.5,35011,35896,0,0,REJECTED,95187,71169,marginal_test<=0 (redundant with stack)
+fly,9,|prior_ret|>=1.0,60109,34610,9977,2516,ADDED,105164,73685,
+fly,10,skip_day_if_cr_p>3.0,31808,34517,0,0,REJECTED,105164,73685,marginal_test<=0 (redundant with stack)
+fly,11,skip_day_if_total_cr>5.0,24307,32651,0,0,REJECTED,105164,73685,marginal_test<=0 (redundant with stack)
+fly,12,prior_ret<=-1.0,30853,29832,0,0,REJECTED,105164,73685,marginal_test<=0 (redundant with stack)
+fly,13,skip_vix/5dma>1.10,17257,27193,1359,-1124,REJECTED,105164,73685,marginal_test<=0 (redundant with stack)
+fly,14,skip_day_if_total_cr>6.0,16862,26114,0,0,REJECTED,105164,73685,marginal_test<=0 (redundant with stack)
+fly,15,skip_vix/10dma>1.15,10792,24029,-107,-1124,REJECTED,105164,73685,marginal_test<=0 (redundant with stack)
+fly,16,skip_day_if_cr_p>4.0,17241,23737,0,0,REJECTED,105164,73685,marginal_test<=0 (redundant with stack)
+fly,17,skip_vix>25,37188,23616,3982,1026,ADDED,109146,74711,
+fly,18,vixprior>25_standdown,37188,23616,0,0,REJECTED,109146,74711,marginal_test<=0 (redundant with stack)
+fly,19,loss<-1000_stand2d,24417,22418,402,0,REJECTED,109146,74711,marginal_test<=0 (redundant with stack)
+fly,20,skip_vixchg>2,14963,21326,0,-3190,REJECTED,109146,74711,marginal_test<=0 (redundant with stack)
+fly,21,skip_accel2d>3,15238,20609,0,-1360,REJECTED,109146,74711,marginal_test<=0 (redundant with stack)
+fly,22,skip_day_if_cr_c>2.0,33474,20395,919,-47,REJECTED,109146,74711,marginal_test<=0 (redundant with stack)
+fly,23,skip_day_if_cr_p<0.5,39938,19679,0,0,REJECTED,109146,74711,marginal_test<=0 (redundant with stack)
+fly,24,skip_day_if_cr_c>2.5,28815,17801,0,0,REJECTED,109146,74711,marginal_test<=0 (redundant with stack)
+fly,25,loss<-1000_until_vixdown,10567,15538,0,0,REJECTED,109146,74711,marginal_test<=0 (redundant with stack)
+fly,26,skip_vixchg>3,8029,14241,0,0,REJECTED,109146,74711,marginal_test<=0 (redundant with stack)
+fly,27,skip_day_if_cr_c>3.0,25233,13092,0,0,REJECTED,109146,74711,marginal_test<=0 (redundant with stack)
+fly,28,skip_2day_both_up1,12122,12810,-107,-1360,REJECTED,109146,74711,marginal_test<=0 (redundant with stack)
+fly,29,skip_accel2d>5,2329,11878,0,0,REJECTED,109146,74711,marginal_test<=0 (redundant with stack)
+fly,30,skip_vix>30,9968,11716,0,0,REJECTED,109146,74711,marginal_test<=0 (redundant with stack)
+fly,31,vixprior>30_standdown,9968,11716,0,0,REJECTED,109146,74711,marginal_test<=0 (redundant with stack)
+fly,32,skip_vix/10dma>1.25,2078,11665,0,0,REJECTED,109146,74711,marginal_test<=0 (redundant with stack)
+fly,33,skip_vix/5dma>1.20,23,10860,0,0,REJECTED,109146,74711,marginal_test<=0 (redundant with stack)
+fly,34,skip_day_if_cr_c>4.0,11774,9853,0,0,REJECTED,109146,74711,marginal_test<=0 (redundant with stack)
+fly,35,loss<-1500_stand2d,9867,8929,0,0,REJECTED,109146,74711,marginal_test<=0 (redundant with stack)
+fly,36,skip_event_if_credit_above_3,17385,8215,0,0,REJECTED,109146,74711,marginal_test<=0 (redundant with stack)
+fly,37,fomc_close_1230_UPPERBOUND,10720,5971,1466,293,ADDED,110612,75004,
+fly,38,loss<-2000_stand2d,6703,5791,0,0,REJECTED,110612,75004,marginal_test<=0 (redundant with stack)
+fly,39,skip_ANY_EVENT,28421,5507,2623,-1170,REJECTED,110612,75004,marginal_test<=0 (redundant with stack)
+fly,40,skip_event_if_credit_above_2,19757,5061,676,-380,REJECTED,110612,75004,marginal_test<=0 (redundant with stack)
+fly,41,loss<-2000_stand1d,3421,4205,0,0,REJECTED,110612,75004,marginal_test<=0 (redundant with stack)
+fly,42,skip_event_if_credit_above_5,16068,4051,0,0,REJECTED,110612,75004,marginal_test<=0 (redundant with stack)
+fly,43,skip_event_if_credit_above_6,12540,3885,0,0,REJECTED,110612,75004,marginal_test<=0 (redundant with stack)
+fly,44,skip_event_if_credit_above_4,18047,3304,0,0,REJECTED,110612,75004,marginal_test<=0 (redundant with stack)
+fly,45,skip_day_if_total_cr<1.0,7278,2591,0,0,REJECTED,110612,75004,marginal_test<=0 (redundant with stack)
+fly,46,skip_event&vix/5dma>1.10,2944,2563,0,0,REJECTED,110612,75004,marginal_test<=0 (redundant with stack)
+fly,47,skip_callside_CPI,8213,2388,494,613,ADDED,111106,75617,
+fly,48,skip_event&vixchg>2,622,2281,0,-1403,REJECTED,111106,75617,marginal_test<=0 (redundant with stack)
+fly,49,skip_CPI,14748,2219,2129,-1403,REJECTED,111106,75617,marginal_test<=0 (redundant with stack)
+fly,50,skip_event_if_credit_below_4,10374,2203,2129,-1783,REJECTED,111106,75617,marginal_test<=0 (redundant with stack)
+fly,51,skip_FOMC,7661,2047,0,0,REJECTED,111106,75617,marginal_test<=0 (redundant with stack)
+fly,52,skip_event&vix>25,9851,1669,0,0,REJECTED,111106,75617,marginal_test<=0 (redundant with stack)
+fly,53,skip_event_if_credit_below_6,15881,1622,2129,-1783,REJECTED,111106,75617,marginal_test<=0 (redundant with stack)
+fly,54,skip_event_if_credit_below_5,12353,1456,2129,-1783,REJECTED,111106,75617,marginal_test<=0 (redundant with stack)
+fly,55,skip_NFP,6215,1241,0,-380,REJECTED,111106,75617,marginal_test<=0 (redundant with stack)
+fly,56,skip_event_if_credit_below_2,8664,446,1226,-1403,REJECTED,111106,75617,marginal_test<=0 (redundant with stack)
+fly,57,|gap|>=0.3,58107,50459,-29,-860,PRUNED_POST,111135,76477,negative leave-one-rule-out test marginal in final stack
+fly,58,skip_day_if_total_cr>3.0,51869,55530,-2324,0,PRUNED_POST,113459,76477,negative leave-one-rule-out test marginal in final stack
+fly,59,band_p_0.5-2.5,74949,55575,10774,-1156,PRUNED_POST,102685,77633,negative leave-one-rule-out test marginal in final stack
+combined,1,skip_day_if_total_cr>3.0,70700,58677,70700,58677,ADDED,70700,58677,
+combined,2,loss<-1000_stand2d,17544,32710,4056,2126,ADDED,74756,60803,
+combined,3,|gap|>=0.5,49948,31922,-655,379,ADDED,74101,61182,
+combined,4,skip_day_if_total_cr>4.0,45733,31637,0,0,REJECTED,74101,61182,marginal_test<=0 (redundant with stack)
+combined,5,skip_vix/10dma>1.15,10943,31069,1549,721,ADDED,75650,61903,
+combined,6,loss<-2000_stand2d,6644,28381,0,0,REJECTED,75650,61903,marginal_test<=0 (redundant with stack)
+combined,7,|prior_ret|>=1.5,20171,28188,2004,3808,ADDED,77654,65711,
+combined,8,|gap|>=0.75,21065,28022,0,0,REJECTED,77654,65711,marginal_test<=0 (redundant with stack)
+combined,9,skip_accel2d>3,17378,28020,661,4065,ADDED,78315,69776,
+combined,10,skip_vix>25,37972,27674,5557,743,ADDED,83872,70519,
+combined,11,vixprior>25_standdown,37972,27674,0,0,REJECTED,83872,70519,marginal_test<=0 (redundant with stack)
+combined,12,skip_day_if_total_cr>5.0,35502,27358,0,0,REJECTED,83872,70519,marginal_test<=0 (redundant with stack)
+combined,13,skip_vix/5dma>1.10,16647,27128,6128,761,ADDED,90000,71280,
+combined,14,loss<-1500_until_vixdown,2516,26905,1,2173,ADDED,90001,73453,
+combined,15,prior_range>=2.0,8660,25419,706,0,REJECTED,90001,73453,marginal_test<=0 (redundant with stack)
+combined,16,skip_day_if_total_cr>6.0,24789,23509,0,0,REJECTED,90001,73453,marginal_test<=0 (redundant with stack)
+combined,17,prior_ret<=-1.5,14569,23402,0,0,REJECTED,90001,73453,marginal_test<=0 (redundant with stack)
+combined,18,|cum2day|>=2.0,17539,22947,4673,6,ADDED,94674,73459,
+combined,19,|gap|>=1.0,15353,22033,0,0,REJECTED,94674,73459,marginal_test<=0 (redundant with stack)
+combined,20,skip_vix>30,8956,21139,0,0,REJECTED,94674,73459,marginal_test<=0 (redundant with stack)
+combined,21,vixprior>30_standdown,8956,21139,0,0,REJECTED,94674,73459,marginal_test<=0 (redundant with stack)
+combined,22,skip_vix/10dma>1.25,3303,19984,0,0,REJECTED,94674,73459,marginal_test<=0 (redundant with stack)
+combined,23,skip_2day_both_up1,3887,18949,644,0,REJECTED,94674,73459,marginal_test<=0 (redundant with stack)
+combined,24,skip_vixchg>2,13820,18293,192,-1482,REJECTED,94674,73459,marginal_test<=0 (redundant with stack)
+combined,25,gap<=-0.5,21658,17751,0,0,REJECTED,94674,73459,marginal_test<=0 (redundant with stack)
+combined,26,skip_accel2d>5,2481,17323,0,0,REJECTED,94674,73459,marginal_test<=0 (redundant with stack)
+combined,27,skip_vix/5dma>1.20,1714,17065,0,0,REJECTED,94674,73459,marginal_test<=0 (redundant with stack)
+combined,28,skip_vixchg>3,5842,15194,0,0,REJECTED,94674,73459,marginal_test<=0 (redundant with stack)
+combined,29,skip_event_if_credit_above_3,22835,14395,0,0,REJECTED,94674,73459,marginal_test<=0 (redundant with stack)
+combined,30,prior_range>=4.0,2615,13978,0,0,REJECTED,94674,73459,marginal_test<=0 (redundant with stack)
+combined,31,cluster_2x_loss<-500,21801,12081,8736,-1321,REJECTED,94674,73459,marginal_test<=0 (redundant with stack)
+combined,32,prior_range>=3&|gap|>=0.3,3204,11268,0,0,REJECTED,94674,73459,marginal_test<=0 (redundant with stack)
+combined,33,|cum2day|>=3.0,8685,11119,0,0,REJECTED,94674,73459,marginal_test<=0 (redundant with stack)
+combined,34,fomc_close_1230_UPPERBOUND,19145,11040,0,1367,ADDED,94674,74826,
+combined,35,|gap|>=0.5&vixchg>=2,9025,9654,0,0,REJECTED,94674,74826,marginal_test<=0 (redundant with stack)
+combined,36,gap<=-0.5&vixchg>=2,4798,8598,0,0,REJECTED,94674,74826,marginal_test<=0 (redundant with stack)
+combined,37,skip_event_if_credit_above_2,27298,8462,7255,-6118,REJECTED,94674,74826,marginal_test<=0 (redundant with stack)
+combined,38,skip_flies_ANY_EVENT,28421,5507,9789,-4233,REJECTED,94674,74826,marginal_test<=0 (redundant with stack)
+combined,39,skip_event_if_credit_above_4,15920,5340,0,0,REJECTED,94674,74826,marginal_test<=0 (redundant with stack)
+combined,40,skip_ANY_EVENT,43208,5163,17600,-10151,REJECTED,94674,74826,marginal_test<=0 (redundant with stack)
+combined,41,skip_FOMC,9497,4697,0,-5122,REJECTED,94674,74826,marginal_test<=0 (redundant with stack)
+combined,42,skip_event_if_credit_above_5,13510,4398,0,0,REJECTED,94674,74826,marginal_test<=0 (redundant with stack)
+combined,43,skip_event_if_credit_above_6,13587,4321,0,0,REJECTED,94674,74826,marginal_test<=0 (redundant with stack)
+combined,44,skip_event&vix>25,13141,2560,0,0,REJECTED,94674,74826,marginal_test<=0 (redundant with stack)
+combined,45,skip_NFP,10590,2342,3289,-3957,REJECTED,94674,74826,marginal_test<=0 (redundant with stack)
+combined,46,skip_flies_CPI,14748,2219,5217,-471,REJECTED,94674,74826,marginal_test<=0 (redundant with stack)
+combined,47,skip_flies_FOMC,7661,2047,0,-2449,REJECTED,94674,74826,marginal_test<=0 (redundant with stack)
+combined,48,skip_flies_NFP,6215,1241,4439,-1313,REJECTED,94674,74826,marginal_test<=0 (redundant with stack)
+combined,49,skip_event&vix/5dma>1.10,10185,1190,0,0,REJECTED,94674,74826,marginal_test<=0 (redundant with stack)
+combined,50,skip_callside_CPI,9649,1042,951,908,ADDED,95625,75734,
+combined,51,skip_event_if_credit_below_6,29621,842,16649,-11059,REJECTED,95625,75734,marginal_test<=0 (redundant with stack)
+combined,52,skip_event_if_credit_below_5,29698,765,16649,-11059,REJECTED,95625,75734,marginal_test<=0 (redundant with stack)
+combined,53,skip_event&vixchg>2,5940,377,0,-1630,REJECTED,95625,75734,marginal_test<=0 (redundant with stack)
+combined,54,|gap|>=0.5,49948,31922,-1613,-4945,PRUNED_POST,97238,80679,negative leave-one-rule-out test marginal in final stack
+combined,55,|cum2day|>=2.0,17539,22947,5155,-1051,PRUNED_POST,92083,81729,negative leave-one-rule-out test marginal in final stack

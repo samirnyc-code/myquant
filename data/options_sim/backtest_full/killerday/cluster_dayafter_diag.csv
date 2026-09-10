@@ -1,0 +1,5 @@
+book,n_killer_days,dayafter_avg_pnl,dayafter_win_rate,dayafter_sum_pnl,dayafter_avg_next_ret_abs,allday_avg_pnl
+ic,60,48.1,0.667,2885.0,0.87,-23.1
+fly,33,-439.3,0.273,-14498.0,1.43,-185.7
+puts_band,12,99.8,0.667,1198.0,0.97,13.8
+combined,88,-286.0,0.42,-25172.0,1.08,-194.9
