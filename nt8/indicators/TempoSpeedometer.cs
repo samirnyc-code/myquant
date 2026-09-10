@@ -48,6 +48,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private SessionIterator sessionIterator;
 
 		private double lastTempoPct = 50, lastAmpPct = 50, lastEffPct = 50, lastEff;
+		private DateTime lastExch = DateTime.MinValue;
+		private double lastRate;
 		private int lastAccel;                            // -1 / 0 / +1
 		private string lastState = "";
 		private bool lastClimax;
@@ -74,8 +76,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 				IsSuspendedWhileInactive = true;
 
 				CsvPath        = @"C:\Users\Admin\myquant\tempo\outputs\tod_percentiles.csv";
-				UseTodCalibration = true;
+				UseTodCalibration = true;    // DIAG line verifies bucketing; existing chart instances keep their own setting
 				RollingWindow  = 200;
+				ShowDiag       = true;
 				ClimacticPct   = 95;
 				ClimaxTagPct   = 99;
 				MinOpacityPct  = 10;
@@ -193,15 +196,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 			DateTime exch = Time[0];
 			try
 			{
+				// Time[] is in NT's configured DISPLAY tz (Tools>Options), not necessarily PC-local
+				TimeZoneInfo srcTz = NinjaTrader.Core.Globals.GeneralOptions.TimeZoneInfo;
 				TimeZoneInfo exTz = Bars.TradingHours.TimeZoneInfo;
 				exch = TimeZoneInfo.ConvertTime(DateTime.SpecifyKind(Time[0], DateTimeKind.Unspecified),
-					TimeZoneInfo.Local, exTz);
+					srcTz, exTz);
 			}
 			catch { }
 			double mins = (exch.TimeOfDay - new TimeSpan(8, 30, 0)).TotalMinutes;
 			if (mins < 0 || mins >= 405) outsideRth = true;      // grid is RTH-only -> use global grid
 			else bucket = Math.Min(NBUCKETS - 1, Math.Max(0, (int)Math.Floor(mins / 15.0)));
 			lastBucket = outsideRth ? -1 : bucket;
+			lastExch = exch;
+			lastRate = tempo;
 
 			double tPct, aPct, ePct;
 			bool useTable = UseTodCalibration && tableOk;
@@ -441,7 +448,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
 			float wBox = 235f;
 			bool showPace = !double.IsNaN(livePacePct);
-			int lines = 4 + (showPace ? 1 : 0) + (ShowStateLabel ? 1 : 0) + (lastClimax ? 1 : 0);
+			int lines = 4 + (showPace ? 1 : 0) + (ShowStateLabel ? 1 : 0) + (lastClimax ? 1 : 0) + (ShowDiag ? 1 : 0);
 			float hBox = 10f + 19f * lines;
 			float x0 = ChartPanel.X + ChartPanel.W - wBox - 10f;
 			float y0 = ChartPanel.Y + 10f;
@@ -457,6 +464,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 			DrawLine2(tf, x0 + 8f, ref y, "TEMPO: " + accel, dim);
 			if (ShowStateLabel) DrawLine2(tf, x0 + 8f, ref y, lastState, white);
 			if (lastClimax)     DrawLine2(tf, x0 + 8f, ref y, "** CLIMACTIC STATE **", gold);
+			if (ShowDiag)
+			{
+				string mode = (UseTodCalibration && tableOk) ? (lastBucket < 0 ? "GLOBAL(!)" : "TOD") : "ROLL";
+				DrawLine2(tf, x0 + 8f, ref y, string.Format("DIAG {0:HH:mm}CT b{1} {2:F0}t/s {3}",
+					lastExch, lastBucket, lastRate, mode), dim);
+			}
 		}
 
 		private SolidColorBrush BarBrushFor(double pct, SolidColorBrush normal, SolidColorBrush hot)
@@ -528,6 +541,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[NinjaScriptProperty]
 		[Display(Name = "Audio alert on climactic pace", GroupName = "4. Live pace / alert", Order = 1)]
 		public bool AlertOnClimax { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name = "Show DIAG line (bucket/tz check)", GroupName = "3. Blocks", Order = 4)]
+		public bool ShowDiag { get; set; }
 
 		[NinjaScriptProperty, Range(10, 3600)]
 		[Display(Name = "Alert cooldown (sec)", GroupName = "4. Live pace / alert", Order = 2)]
