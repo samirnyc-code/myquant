@@ -29,8 +29,40 @@ any item, drop "WIP <A/B>" in its row so the other chat leaves it alone.
 | 12 | Killer-day mitigation study | ✅ DONE (S115 overnight workflow) | 33-day forensics + 6 rule sweeps + stacks + ADVERSARIAL AUDIT — read `docs/research_notes/killer_day_mitigation_S115.md`. Survivors (hypotheses, advisory-only): fly-dies-in-vol (⇒ retire fly), ic call-leg-drop cr_c>2–3, total_cr<1.0 floor, skip_FOMC, puts_band −1000 breaker. Stack $ headlines are in-sample-on-test — do NOT quote them. NEXT: stage-2 intraday breaker sim (TD minute paths + v2), calendar expansion (OpEx/month-end/ECB/elections/ISM — 6+ killers were on missing dates) |
 | 9 | NT8 BreakoutBoysDashboardV1 | 🟡 PENDING USER | fix committed+deployed; **F5 + set `SE_RestImmediately=false` on the chart**, then test cancel/arm |
 | 10 | Max-profit-zone feature | 🟡 STARTED | `maxprofit_zone.py` built; wire into sandbox as an exit dimension |
-| 11 | Tempo/market-state study (2000t) | WIP (tempo chat) | Stage 0 build + Stage 1 redundancy kill-gate; `tempo/` dir, branch leglab |
+| 11 | Tempo/market-state study (2000t) | ✅ DONE (S116-tempo) | Stages 0–2 complete on branch leglab, `tempo/` dir. Stage 1 gate PASS (tempo forecasts future ACTIVITY, pcorr .13–.35/yr over range/vol/volume; direction null). Stage 2 event study: **H4/H5 NULL** — tempo×eff does NOT discriminate reversal-vs-continuation at leg events (d≤0.3, sign-unstable; only structural depth/duration discriminate, partly mechanical). Per pre-registered roadmap: STOP — no Stage 3/indicator unless user wants the observation-aid NT8 overlay. See S116-tempo block |
 | 11 | GexLog ignored-fields join study | ⛔ CLOSED (S116) | ran + committed (`gexlog_field_join_study.py`, stats 20260910) but user judged the direction a dead end — do NOT pick up the walk-forward follow-up |
+
+---
+
+## S116-tempo (2026-09-10, tempo chat) — 2000t tempo/market-state study: Stages 0–2 run to the pre-registered verdict
+
+New workstream from the user's ES_2000T_Tempo_Market_State_Handoff.md (the "ES speedometer"
+idea). Roadmap agreed up front: cheapest-falsification-first, kill gates pre-registered,
+stop without a clear signal. All in `tempo/` on branch `leglab`, 3 commits.
+
+- **Stage 0 — data + build.** Trove audit CLEAN (1,314 days 2021-06-18→2026-09-09, 0
+  non-monotonic, 0 out-of-session; 50 missing weekdays = holidays; 13 half-days + 3 holiday
+  stubs flagged and excluded downstream). Built 2000-tick bars + features full history:
+  **236,663 bars**, median 168/day, duration p10 41s / med 106s / p99 498s
+  (`build_2000t_features.py` → `bars_2000t_all.parquet`, committed; per-day checkpoints gitignored).
+- **Stage 1 — redundancy kill-gate: PASS** (`redundancy_gate.py`). Tempo is NOT a monotone
+  function of vol (corr .46 range / .44 rv20 / **−.24 volume** — fast bars = smaller avg trade
+  size). Tod-adjusted tempo adds forward-ACTIVITY information every year (fwd_range pcorr
+  .13–.35, ΔR² .004–.057 over range+vol+volume+eff baseline; strongest 2021, weakest 2025).
+  Direction: null all 6 years (H1 confirmed). Future |net move|: marginal.
+- **Stage 2 — event fingerprints: H4/H5 NULL** (`event_fingerprints.py`, frozen spec in header;
+  LegLab leg engine on 2000t bars; splits 21-24/2025/2026). ① Prospective 0.7×ADR extension
+  moments (n=526 resolved): P(rev) base .36–.45; ALL tempo/eff features |d|≤0.3 with
+  split-unstable signs; H4 2×2 (tempo-hi × eff-falling) flat at base rate in discovery.
+  ② Pullback continue-vs-fail (n=1,767): tempo terms weak/unstable; only size_ratio (d≈−1.1)
+  and pb_bars (d≈−0.9) discriminate — structural + partly mechanical (label entangled).
+  One mid-run fix was spec-compliance, not tuning (continuation target was ratcheting; spec
+  said fixed at extreme-at-te + 0.25×ADR).
+- **Verdict per the roadmap:** stop. Second house result in a row (after LegLab) that an ES
+  intraday structure/activity signal carries NO directional/event-discriminating edge; tempo's
+  real content is an activity/vol forecast. Salvage options (user's call, NOT started):
+  (a) use tod-adj tempo as an intraday expected-remaining-range input (options desk EM context),
+  (b) cheap NT8 opacity-overlay indicator as a pure observation aid.
 
 ---
 
