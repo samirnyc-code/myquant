@@ -29,7 +29,7 @@ any item, drop "WIP <A/B>" in its row so the other chat leaves it alone.
 | 12 | Killer-day mitigation study | ✅ DONE (S115 overnight workflow) | 33-day forensics + 6 rule sweeps + stacks + ADVERSARIAL AUDIT — read `docs/research_notes/killer_day_mitigation_S115.md`. Survivors (hypotheses, advisory-only): fly-dies-in-vol (⇒ retire fly), ic call-leg-drop cr_c>2–3, total_cr<1.0 floor, skip_FOMC, puts_band −1000 breaker. Stack $ headlines are in-sample-on-test — do NOT quote them. NEXT: stage-2 intraday breaker sim (TD minute paths + v2), calendar expansion (OpEx/month-end/ECB/elections/ISM — 6+ killers were on missing dates) |
 | 9 | NT8 BreakoutBoysDashboardV1 | 🟡 PENDING USER | fix committed+deployed; **F5 + set `SE_RestImmediately=false` on the chart**, then test cancel/arm |
 | 10 | Max-profit-zone feature | 🟡 STARTED | `maxprofit_zone.py` built; wire into sandbox as an exit dimension |
-| 11 | Tempo/market-state study (2000t) | ✅ DONE (S116-tempo) | Stages 0–2 complete on branch leglab, `tempo/` dir. Stage 1 gate PASS (tempo forecasts future ACTIVITY, pcorr .13–.35/yr over range/vol/volume; direction null). Stage 2 event study: **H4/H5 NULL** — tempo×eff does NOT discriminate reversal-vs-continuation at leg events (d≤0.3, sign-unstable; only structural depth/duration discriminate, partly mechanical). Per pre-registered roadmap: STOP — no Stage 3/indicator unless user wants the observation-aid NT8 overlay. See S116-tempo block |
+| 11 | Tempo/market-state study (2000t) | ✅ RESEARCH DONE + VISUAL TOOLING BUILT (S116-tempo) | Research: Stage 1 gate PASS (tempo forecasts ACTIVITY, direction null), Stage 2 **H4/H5 NULL** (no reversal-vs-continuation edge). User then directed: build the visuals anyway (observational). Built + committed: NT8 `TempoSpeedometer.cs` (opacity bars tod-calibrated, speedometer, heat strip, 2D engine dot, state label, live pace + climax audio alert; compile-check OK, deployed to Custom — **PENDING USER F5** + add to ES 2000t chart) + Day-DNA gallery (`tempo/outputs/day_dna_gallery.html`, 1,314 days, k=6 clusters, neighbour matcher). See S116-tempo block |
 | 11 | GexLog ignored-fields join study | ⛔ CLOSED (S116) | ran + committed (`gexlog_field_join_study.py`, stats 20260910) but user judged the direction a dead end — do NOT pick up the walk-forward follow-up |
 
 ---
@@ -58,11 +58,24 @@ stop without a clear signal. All in `tempo/` on branch `leglab`, 3 commits.
   and pb_bars (d≈−0.9) discriminate — structural + partly mechanical (label entangled).
   One mid-run fix was spec-compliance, not tuning (continuation target was ratcheting; spec
   said fixed at extreme-at-te + 0.25×ADR).
-- **Verdict per the roadmap:** stop. Second house result in a row (after LegLab) that an ES
-  intraday structure/activity signal carries NO directional/event-discriminating edge; tempo's
-  real content is an activity/vol forecast. Salvage options (user's call, NOT started):
-  (a) use tod-adj tempo as an intraday expected-remaining-range input (options desk EM context),
-  (b) cheap NT8 opacity-overlay indicator as a pure observation aid.
+- **Verdict per the roadmap:** research stop. Second house result in a row (after LegLab) that
+  an ES intraday structure/activity signal carries NO directional/event-discriminating edge;
+  tempo's real content is an activity/vol forecast.
+- **BUILD PHASE (user directed: build the visuals regardless — observational, he pattern-hunts
+  by eye):** all committed same session.
+  ① `tempo/outputs/tod_percentiles.csv` — 3 metrics × 27 15-min buckets × p1–99 from 235,350
+  bars (the intraday U: open p50 36 t/s, midday 11.5, 13:00 p95 spike = econ releases, close burst).
+  ② **NT8 `nt8/indicators/TempoSpeedometer.cs`** — opacity bars (direction color, opacity =
+  tempo pctile FOR THAT TIME OF DAY; gold climactic ≥p95), speedometer block (TEMPO/AMPLITUDE/
+  EFFICIENCY pctiles + ACCEL state + rule-based state label + CLIMACTIC tag), session heat strip,
+  2D tempo×amplitude engine dot (20-bar trail, quadrants), realtime pace-of-tape (OnMarketData
+  30s window, tod-calibrated — idea borrowed from user's pasted PaceOfTape, minus its fixed-1500
+  threshold + alert-spam bugs) + optional climax audio alert w/ cooldown. Toggle tod-table vs
+  rolling-200 calibration. Compile-check OK, deployed to Custom. **PENDING USER: F5 (when flat)
+  + add to the ES 2000t chart** — compile check can't see render errors, F5 is the gate.
+  ③ **Day-DNA gallery** `tempo/outputs/day_dna_gallery.html` (open in browser; standalone) —
+  1,314 days as tod-calibrated tempo heat strips, k-means k=6 clusters (sizes 119/229/291/343/71/261),
+  sort/filter/hover, click→detail + 5 nearest-profile neighbour days.
 
 ---
 
