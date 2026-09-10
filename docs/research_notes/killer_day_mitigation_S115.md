@@ -193,3 +193,43 @@ Killer-day before/after detail: `data/options_sim/backtest_full/killerday/stack_
 - Adversarial audit: `adversarial_audit.py` → `adversarial_audit_20260910.csv` (174 rule×book recomputes, random-skip MC null, Bonferroni ×395).
 - Reproduction audit: all 7 scripts regenerate their CSVs byte-identical; no lookahead found (all inputs prior-close / morning-entry / advance-known calendar).
 - Constraints honored tonight: no ThetaData requests, no git commits, no system-state changes.
+
+---
+
+## STAGE-2 UPDATE (2026-09-10, post-workflow): exact intraday circuit-breaker simulation
+
+The day-level breaker bounds above are now superseded by an EXACT event-driven
+simulation (`scripts/killerday/breaker_sim_v2.py`): every stop's real timestamp
+rebuilt from the parity feed, breaker fires when cumulative REALIZED day P&L hits
+-X, all open legs closed at the real ThetaData touch at the breach minute, entries
+after breach skipped. Zero missing quotes in the final run. Implementable verbatim
+in the live daemon (keys on booked losses, not marks).
+
+**Results (delta vs baseline, $ 1-lot, 2022-05-16 -> 2026-09-04; train=22-24 / test=25-26):**
+
+| book | level | breach days | total | train | test | killer-day delta | verdict |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| puts_band | -1000 | 35 | **+3,342** | +942 | +2,400 | +4,070 | **ADOPT (advisory) — positive both halves** |
+| puts_band | -1500 | 14 | +60 | +60 | 0 | +60 | neutral |
+| puts_band | -2000/-3000 | 10/1 | 0 | 0 | 0 | 0 | never binds |
+| ic | -1000 | 119 | -969 | -1,596 | +627 | +5,908 | NO — whipsaw pays back the killer savings |
+| ic | -1500/-2000/-3000 | 67/30/2 | -1,473/-639/-104 | neg | mixed | neg | NO |
+| combined (incl fly) | -1000 | 427 | -9,683 | -12,193 | +2,510 | +76,352 | NO |
+| combined | -1500 | 199 | -720 | -3,950 | +3,230 | +26,138 | NO |
+| combined | -2000 | 106 | +4,964 | -1,383 | +6,347 | +11,953 | not robust (train negative) |
+| combined | -3000 | 36 | -1,195 | -1,220 | +25 | -1,090 | NO |
+
+**puts_band -1000 breach-day detail (all 35):** 9 saves totaling +$4,070
+(2025-03-03 +1,060 tariff-eve, 2026-06-17 +610 FOMC/Warsh, 2024-08-01 +650 ISM,
+2022-05-20 +580 OpEx, 2025-02-27 +540, 2026-01-29 +150, 2024-12-18 +60 FOMC,
+2025-12-12 +40, 2022-10-14 +380), 2 whipsaw costs (2023-01-03 -478,
+2024-03-08 -250), 24 days delta 0 (breach at/near the final exit anyway).
+Breach times spread 10:33-15:45 CT-shifted-ET — real intraday triggers, not
+end-of-day artifacts. Full rows: `killerday/breaker_v2_days_20260910.csv`.
+
+**Corrections to the day-level breaker section above:** the stage-1 optimistic
+bounds overstated the ic/combined breaker; exact simulation shows the ic breaker
+net-negative at every level and any fly-containing aggregate strongly negative
+at -1000/-1500. The single adoptable breaker is **puts_band at -1000 realized**:
++$3.3k/4.3yr on top of the +$14.9k base (~+22%), maxDD relief on 9 of the 33
+killer days, cost 2 whipsaw days. Advisory-only per the desk rule.
