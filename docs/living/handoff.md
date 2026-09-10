@@ -123,10 +123,23 @@ killer-day workflow with adversarial verification. All committed on `leglab`.
   (p_bonf 2e-6 ⇒ the real action is retire the fly book), ic call-leg-drop when cr_c>2–3,
   total_cr<1.0 dead-tape floor, skip_FOMC, puts_band −1000 breaker (dominated risk). Repro
   audit: all scripts reproduce byte-identical, no lookahead.
-- **NEXT:** ① stage-2 intraday breaker sim (TD minute paths on v2 book — the breaker/FOMC-close
-  bounds need it) ② expand `econ_calendar` with OpEx/month-end/ECB/elections/ISM ③ user decision
-  on retiring the fly streams (advisory-only — desk keeps trading for the record) ④ forward/paper
-  scorecard for the surviving hypotheses.
+- **STAGE-2 breaker DONE (9/10 day, clean run, 0 missing quotes)** — `breaker_sim_v2.py`, exact
+  stop timestamps + TD breach-minute closes, results in report + `killerday/breaker_v2_*.csv`:
+  **puts_band −1000 realized = ADOPT (advisory): +3,342 (train +942 / test +2,400, 9 saves
+  +4,070 / 2 whipsaws −728 / 24 neutral)**; ic negative at every level; fly-containing books no.
+  Report + PDF rendered/exported (`killer_day_mitigation_S115.{md,pdf}`).
+- **Ops (9/10):** Theta Terminal died mid-session silently + `td_shadow_live` had no launcher task
+  (2-day-old feature, hand-started 9/8+9/9) → morning shadow book missing; recovered intraday
+  (late-start + `td_shadow_reprice --no-settle` new flag → entries within 0.0–0.2 of IB). Fixes:
+  `theta_terminal_watchdog.py` + 10-min task (firing, result 0) + `MyQuant TD Shadow Live` daily
+  15:25 machine. 22:20 reprice first scheduled run CLEAN (8/8; 4 exact exits + 4 settles).
+  `td_shadow_live --dry` no longer sends Telegram (test paged the user with NO-TD-QUOTE spam).
+- **NEXT:** ① expand `econ_calendar` with OpEx/month-end/rebalance/ECB/elections/ISM/CPI-eve
+  (≥8 of 33 killers sat on missing dates) then re-test event rules once ② user decision on
+  retiring the fly streams (advisory-only — desk keeps trading for the record) ③ forward/paper
+  scorecard for call-leg-drop cr_c>2–3 + total_cr<1.0 floor + the puts_band −1000 breaker
+  ④ optionally wire the breaker into the daemon as advisory signal ⑤ verify tomorrow 08:25 CT
+  shadow auto-start (first scheduled run) + watchdog restart path against a real fault.
 
 ---
 

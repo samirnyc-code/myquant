@@ -22,3 +22,4 @@ run_at_ct: target 08:29 CT | now 08:29 CT | delta +0min | berlin-chicago 7h | RU
 run_at_ct: target 08:29 CT | now 08:29 CT | delta +0min | berlin-chicago 7h | RUN: C:\Users\Admin\myquant\.venv\Scripts\python.exe -u C:\Users\Admin\myquant\scripts\options_trigger_daemon.py --until 15:00
 run_at_ct: target 08:29 CT | now 08:29 CT | delta +0min | berlin-chicago 7h | RUN: C:\Users\Admin\myquant\.venv\Scripts\python.exe -u C:\Users\Admin\myquant\scripts\options_trigger_daemon.py --until 15:00
 run_at_ct: target 08:29 CT | now 08:29 CT | delta +0min | berlin-chicago 7h | RUN: C:\Users\Admin\myquant\.venv\Scripts\python.exe -u C:\Users\Admin\myquant\scripts\options_trigger_daemon.py --until 15:00
+run_at_ct: target 08:29 CT | now 08:29 CT | delta +0min | berlin-chicago 7h | RUN: C:\Users\Admin\myquant\.venv\Scripts\python.exe -u C:\Users\Admin\myquant\scripts\options_trigger_daemon.py --until 15:00

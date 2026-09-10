@@ -480,3 +480,19 @@
 2026-09-09 15:44:05	TRADE CLOSED · eodfly_p ($-257)	[EOD] Bull Put @ 7675 (ATM): level ACCEPTED: spot 7649 held below the 7675 short strike for 10min (>10) — the wall we sold did not hold
 2026-09-09 15:46:19	TRADE CLOSED · openfly_p ($-97)	[Open] Bull Put @ ATM(open): level ACCEPTED: spot 7650 held below the 7655 short strike for 10min (>10) — the wall we sold did not hold
 2026-09-09 22:20:34	⚠ Options desk — attention needed	5/8 steps green · 10 fired · 3 NEED ATTENTION
+2026-09-10 15:30:38	TRADE OPENED · eodic_p (A)	[EOD] Bull Put @ 7555: vertical 25pt, net credit 2.60, coll $2,240 — reached 08:30, regime unknown
+2026-09-10 15:30:57	STOOD DOWN · eodic_c [broken]	[EOD] Bear Call @ 7715: zero/negative credit (-0.05) — wall already blown through
+2026-09-10 15:31:35	TRADE OPENED · eodfly_p (B)	[EOD] Bull Put @ 7635 (ATM): vertical 25pt, net credit 19.40, coll $560 — reached 08:30, regime unknown
+2026-09-10 15:31:56	TRADE OPENED · eodfly_c (B)	[EOD] Bear Call @ 7635 (ATM): vertical 25pt, net credit 1.50, coll $2,350 — reached 08:30, regime unknown
+2026-09-10 15:32:18	TRADE OPENED · openic_p (C)	[Open] Bull Put @ open-79: vertical 25pt, net credit 0.70, coll $2,430 — reached 08:30, regime unknown
+2026-09-10 15:32:39	TRADE OPENED · openic_c (D)	[Open] Bear Call @ open+79: vertical 25pt, net credit 0.10, coll $2,490 — reached 08:30, regime unknown
+2026-09-10 15:32:59	TRADE OPENED · openfly_p (C)	[Open] Bull Put @ ATM(open): vertical 25pt, net credit 8.30, coll $1,670 — reached 08:30, regime unknown
+2026-09-10 15:33:22	TRADE OPENED · openfly_c (C)	[Open] Bear Call @ ATM(open): vertical 25pt, net credit 8.70, coll $1,630 — reached 08:30, regime unknown
+2026-09-10 15:33:45	TRADE OPENED · gx_bps (C)	[GexLog] Bull Put @ putWall 7600: vertical 25pt, net credit 10.20, coll $1,480 — reached 08:30, regime unknown
+2026-09-10 15:34:04	STOOD DOWN · gx_bcs [broken]	[GexLog] Bear Call @ callWall 7725: zero/negative credit (-0.05) — wall already blown through
+2026-09-10 15:40:02	✓ Options desk healthy	FEED spx 7597.45 @ 08:39:59 (3s old) · LEVELS GexLog CAUTION · EM 7557.0–7716.0 · src 2026-09-10 06:20 · GAMEPLAN 10 triggers armed
+2026-09-10 15:44:19	TRADE CLOSED · eodfly_p ($33)	[EOD] Bull Put @ 7635 (ATM): level ACCEPTED: spot 7599 held below the 7635 short strike for 10min (>10) — the wall we sold did not hold
+2026-09-10 15:44:34	TRADE CLOSED · gx_bps ($163)	[GexLog] Bull Put @ putWall 7600: level ACCEPTED: spot 7599 held below the 7600 short strike for 10min (>10) — the wall we sold did not hold
+2026-09-10 15:49:49	TRADE CLOSED · openfly_c ($-317)	[Open] Bear Call @ ATM(open): level ACCEPTED: spot 7602 held above the 7595 short strike for 11min (>10) — the wall we sold did not hold
+2026-09-10 16:01:04	TRADE CLOSED · openfly_p ($-307)	[Open] Bull Put @ ATM(open): level ACCEPTED: spot 7585 held below the 7595 short strike for 10min (>10) — the wall we sold did not hold
+2026-09-10 22:20:03	⚠ Options desk — attention needed	7/8 steps green · 10 fired · 1 NEED ATTENTION

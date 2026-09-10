@@ -23,3 +23,4 @@ date,n,trough,trough_ct,crossed_warn,warn_ct,warn_fill,crossed_stop,stop_ct,stop
 2026-09-04,10,18,09:32,False,,,False,,,1564,n/a (never triggered),1618,,14.1,14:43:09
 2026-09-08,8,-802,09:44,False,,,False,,,275,n/a (never triggered),1212,,15.6,15:11:25
 2026-09-09,9,-118,09:34,False,,,False,,,1128,n/a (never triggered),1260,,16.2,15:11:21
+2026-09-10,8,-162,09:34,False,,,False,,,290,n/a (never triggered),452,,17.9,15:11:20

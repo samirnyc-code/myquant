@@ -21,3 +21,4 @@ run_at_ct: target 07:05 CT | now 07:05 CT | delta +0min | berlin-chicago 7h | RU
 run_at_ct: target 07:05 CT | now 07:05 CT | delta +0min | berlin-chicago 7h | RUN: C:\Users\Admin\myquant\.venv\Scripts\python.exe -u C:\Users\Admin\myquant\scripts\options_gameplan.py --force
 run_at_ct: target 07:05 CT | now 07:05 CT | delta +0min | berlin-chicago 7h | RUN: C:\Users\Admin\myquant\.venv\Scripts\python.exe -u C:\Users\Admin\myquant\scripts\options_gameplan.py --force
 run_at_ct: target 07:05 CT | now 07:05 CT | delta +0min | berlin-chicago 7h | RUN: C:\Users\Admin\myquant\.venv\Scripts\python.exe -u C:\Users\Admin\myquant\scripts\options_gameplan.py --force
+run_at_ct: target 07:05 CT | now 07:05 CT | delta +0min | berlin-chicago 7h | RUN: C:\Users\Admin\myquant\.venv\Scripts\python.exe -u C:\Users\Admin\myquant\scripts\options_gameplan.py --force

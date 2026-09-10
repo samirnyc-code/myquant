@@ -1,0 +1,11 @@
+# launched 2026-09-09T22:16:06
+# C:\Users\Admin\myquant\.venv\Scripts\pythonw.exe C:\Users\Admin\myquant\scripts\discord_intel.py --port 8640
+
+2026-09-09T22:16:07  scheduler started (every 3600s)
+2026-09-09T22:16:07  Discord Intel at http://127.0.0.1:8640/
+2026-09-09T22:16:27  scrape start: incremental
+2026-09-09T22:25:21  scrape done rc=0; [discord_report] 35 channels | 85896 msgs | 1566 setups | 3263 nuggets | 20207 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-09-09T23:25:21  scrape start: incremental
+2026-09-09T23:27:56  scrape done rc=0; [discord_report] 35 channels | 85897 msgs | 1566 setups | 3263 nuggets | 20207 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
+2026-09-10T00:27:56  scrape start: incremental
+2026-09-10T00:31:04  scrape done rc=0; [discord_report] 35 channels | 85902 msgs | 1567 setups | 3263 nuggets | 20208 links | [discord_report] -> C:\Users\Admin\myquant\data\discord\report.html
