@@ -28,6 +28,7 @@ any item, drop "WIP <A/B>" in its row so the other chat leaves it alone.
 | 8 | 4-year EM backtest | WIP B — v2 desk-faithful engine BUILT (`backtest_august_rerun_v2.py`): gameplan WAIT anchors + entry gate + armed strikes + 14:45 quotable-close; Aug validation: eod condors match live (752/764, 828/786), WAIT-vs-NOWAIT +587; NEXT = history rerun policy (no gameplans pre-Aug26) | Aug live-vs-bt audit (`live_vs_backtest_august.py`, `live_vs_backtest_divergence_dig.py`): ① open* streams priced at FIXED 10:05 ET but desk enters regime-armed (~08:33 OR ~09:05 CT) → 5–40pt strike deltas on early days (late days match exactly; condor credits match to pennies sameK) ② 08-25 09:31ET eod snapshot = crossed quotes (bt booked −8.20/−8.40 credits; needs TD re-pull) ③ IC engine lacks fly-v3's credit≤0 stand-down (74 rows / −$3,590 over 4.3yr) |
 | 9 | NT8 BreakoutBoysDashboardV1 | 🟡 PENDING USER | fix committed+deployed; **F5 + set `SE_RestImmediately=false` on the chart**, then test cancel/arm |
 | 10 | Max-profit-zone feature | 🟡 STARTED | `maxprofit_zone.py` built; wire into sandbox as an exit dimension |
+| 11 | GexLog ignored-fields join study | ✅ DONE (S116) | `gexlog_field_join_study.py` + stats 20260910: biggest split = walls-inside-EM (+53/day n42) vs walls-at/past-EM (−296/day n65); NEG-gamma > POS and no-flip > flip-in-chain consistent bt+live (collinear axis); advisory-only, next = walk-forward before any use |
 
 ---
 
