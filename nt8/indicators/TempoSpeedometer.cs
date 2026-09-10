@@ -41,7 +41,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private double[]   gridEff;                      // global only (tod-flat)
 		private bool tableOk;
 
-		private Series<double> tempoPctS, ampPctS;
+		private Series<double> tempoPctS, ampPctS, climaxS;
 		private List<double> rollTempo, rollRange, rollEff;
 		private double emaTempo, emaClose;
 		private bool emaInit;
@@ -78,7 +78,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				RollingWindow  = 200;
 				ClimacticPct   = 95;
 				ClimaxTagPct   = 99;
-				MinOpacityPct  = 25;
+				MinOpacityPct  = 12;
 				ShowSpeedo     = true;
 				ShowHeatStrip  = true;
 				ShowEngineDot  = true;
@@ -106,6 +106,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			{
 				tempoPctS = new Series<double>(this, MaximumBarsLookBack.Infinite);
 				ampPctS   = new Series<double>(this, MaximumBarsLookBack.Infinite);
+				climaxS   = new Series<double>(this, MaximumBarsLookBack.Infinite);
 				sessionIterator = new SessionIterator(Bars);
 				notTickChart = BarsPeriod.BarsPeriodType != BarsPeriodType.Tick;
 			}
@@ -173,6 +174,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
 			tempoPctS[0] = double.NaN;
 			ampPctS[0]   = double.NaN;
+			climaxS[0]   = 0;
 			if (notTickChart || CurrentBar < 1) return;
 			if (Bars.IsFirstBarOfSession) return;          // duration would span the overnight gap
 
@@ -231,18 +233,25 @@ namespace NinjaTrader.NinjaScript.Indicators
 			lastAccel = accel; lastClimax = climaxTag;
 			lastState = StateLabel(tPct, aPct, eff, Close[0] >= emaClose, climaxTag);
 
-			// ---- bar coloring: direction color, opacity by tempo pctile; climactic overrides
-			System.Windows.Media.Brush b;
+			// ---- bar coloring: direction color always; opacity = quadratic tempo curve
+			// (slow bars fade hard, fast bars pop). Climactic keeps direction at full
+			// opacity + gold outline; gold DOT above the bar + gold heat-strip cell mark it.
+			bool up = Close[0] >= Open[0];
 			if (climacticBar)
-				b = GetBrush(ClimacticColor, 100, 2);
+			{
+				climaxS[0] = 1;
+				BarBrush = GetBrush(up ? UpColor : DownColor, 100, up ? 1 : 0);
+				CandleOutlineBrush = GetBrush(ClimacticColor, 100, 2);
+			}
 			else
 			{
-				int alphaPct = (int)(MinOpacityPct + (100 - MinOpacityPct) * tPct / 100.0);
+				double frac = tPct / 100.0;
+				int alphaPct = (int)(MinOpacityPct + (100 - MinOpacityPct) * frac * frac);
 				alphaPct = 5 * (int)Math.Round(alphaPct / 5.0);   // quantize -> small brush cache
-				b = GetBrush(Close[0] >= Open[0] ? UpColor : DownColor, alphaPct, Close[0] >= Open[0] ? 1 : 0);
+				System.Windows.Media.Brush b = GetBrush(up ? UpColor : DownColor, alphaPct, up ? 1 : 0);
+				BarBrush = b;
+				CandleOutlineBrush = b;
 			}
-			BarBrush = b;
-			CandleOutlineBrush = b;
 		}
 
 		private System.Windows.Media.Brush GetBrush(System.Windows.Media.Brush baseBrush, int alphaPct, int kind)
@@ -322,6 +331,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					return;
 				}
 				if (ShowHeatStrip) RenderHeatStrip(chartControl);
+				RenderClimaxDots(chartControl, chartScale);
 				if (ShowEngineDot) RenderEngineDot(tfTiny, white, dim, bg, grid);
 				if (ShowSpeedo)    RenderSpeedo(tf, white, dim, gold, bg);
 			}
@@ -350,6 +360,23 @@ namespace NinjaTrader.NinjaScript.Indicators
 				RenderTarget.FillRectangle(new SharpDX.RectangleF(x - w / 2f, y0, Math.Max(1f, w - 1f), stripH), hb);
 				hb.Dispose();
 			}
+		}
+
+		private void RenderClimaxDots(ChartControl chartControl, ChartScale chartScale)
+		{
+			int from = ChartBars.FromIndex, to = ChartBars.ToIndex;
+			SolidColorBrush gold = new SolidColorBrush(RenderTarget, new SharpDX.Color4(1f, 0.84f, 0f, 1f));
+			try
+			{
+				for (int i = Math.Max(0, from); i <= to && i <= CurrentBar; i++)
+				{
+					if (climaxS.GetValueAt(i) < 0.5) continue;
+					float x = chartControl.GetXByBarIndex(ChartBars, i);
+					float y = chartScale.GetYByValue(Bars.GetHigh(i)) - 8f;
+					RenderTarget.FillEllipse(new Ellipse(new SharpDX.Vector2(x, y), 3.5f, 3.5f), gold);
+				}
+			}
+			finally { gold.Dispose(); }
 		}
 
 		private SharpDX.Color4 HeatColor(double pct)
