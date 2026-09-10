@@ -136,9 +136,12 @@ def fill_close(legs):
     return (round(debit, 2) if ok else None), detail, ok
 
 
+DRY = False       # set in main() for --dry; a test run must NEVER page the user
+
+
 def tg(text):
     """Fire a Telegram ping (best-effort; every event, no dedup for today's live test)."""
-    if TG is None:
+    if TG is None or DRY:
         return
     try:
         TG.send(text, level="info", cooldown_s=0)
@@ -264,6 +267,8 @@ def main():
     a = ap.parse_args()
 
     if a.dry:
+        global DRY
+        DRY = True
         book = {"date": a.dry, "trades": {}, "mode": "dry"}
         process(a.dry, book, dry=True)
         print(json.dumps({k: {kk: v.get(kk) for kk in ("id", "stream", "exited", "ib_credit", "ib_exit_cost")}
