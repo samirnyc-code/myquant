@@ -76,6 +76,19 @@ stop without a clear signal. All in `tempo/` on branch `leglab`, 3 commits.
   ③ **Day-DNA gallery** `tempo/outputs/day_dna_gallery.html` (open in browser; standalone) —
   1,314 days as tod-calibrated tempo heat strips, k-means k=6 clusters (sizes 119/229/291/343/71/261),
   sort/filter/hover, click→detail + 5 nearest-profile neighbour days.
+- **INDICATOR ITERATIONS (live with user on chart, 2026-09-10):** ① opacity invisible → tried
+  quadratic curve, then 5 discrete shades — user rejected bands, wants TRUE opacity (restored,
+  quadratic, min 10%). ② climactic bars now KEEP direction color; climax = gold outline + gold
+  dot above high + gold strip cell. ③ TWO bucket bugs found from screenshots: (a) session-template
+  anchor — ETH template clamped all RTH bars into the last bucket (all percentiles high, uniform
+  bars); fixed to exchange-clock anchor; (b) tz source — NT displays CT but code assumed PC-local
+  Berlin → −7h shift → RTH bars scored on the GLOBAL grid → excess climax golds all morning;
+  fixed via `Core.Globals.GeneralOptions.TimeZoneInfo`. ④ Added a DIAG speedo line
+  (`DIAG 09:53CT b5 34t/s TOD`) so bucketing is verifiable on-screen.
+  **⏳ OPEN / NEXT SESSION: user F5s and checks the DIAG line — must show a time matching the
+  chart axis + mode `TOD` (not `GLOBAL(!)`); then golds should thin to ~1-in-20. If wrong,
+  screenshot → fix. User's instance still has MinOpacity 25 (old default) — suggest 10. User
+  stopped the session here deliberately ("before i break something").**
 
 ---
 
