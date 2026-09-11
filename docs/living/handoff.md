@@ -47,6 +47,32 @@ Focus: the GexLog morning brief itself — what's in it, what the sim actually c
 - **Playbook-only backtest (board 14): DONE (d2f059c3).** Parsed ALL 109 playbook days 327/327 scenarios (`gexlog_playbook_parse.py`, 3878be70) and traded ONLY the playbook mechanically (TD 1-min parity trigger detection + NBBO touch entries, hold-to-expiry, official close, $1.63 fees, 106d Apr–Sep): **touch −$42,977 / hold15 +$5,544 / cross15 +$356** — sign flips on how "clears and holds" is read ⇒ NO robust edge. Audit (`gexlog_playbook_bt_audit.py`): touch/hold15 buy deep-ITM debit spreads when the trigger level is already exceeded at the open (06-09: 75-wide @ 56.7 debit, −$5.5k) — hold15's +$5.5k is drift beta, not playbook skill; cross15 (fair reading, real intraday cross required) ≈ $0; Aug: all variants negative while the live desk made +$9.2k Aug–Sep.
 - Machine-time note: 9/10 + 9/11 morning briefs landed in `data/gexlog/raw/` during/after the session.
 
+## S116/117-tempo ADDENDUM-2 (2026-09-11) — climax-reversal marking loop built; studies continued
+
+- **Indicator iterations (user-driven, all deployed+committed):** Data Box rows for BOTH indis
+  (native NT Data Box — custom click-card built then REVERTED per user); amplitude displayed as
+  **% of ABR(8)** (prior-8-bar mean range; user correction — and the tod table PROVED per-bar
+  range is flat across the day on tick charts, p50 4.00–4.25 every bucket); **EXPAND/GRIND are
+  now MULTI-BAR states** (user: 60-pt run lit no green — per-bar rules can't see tick-chart
+  trends; eff10=|10-bar net|/Σrange ≥0.30 & t10≥50, calibrated via `eff10_calibration.py`).
+- **Studies:** climax conditioning pair — C1 level-confluence REFUTED (climax at PDH/PDL
+  reverses LESS: 33.0 vs 38.0; level-break climax leans continuation), C2 eff-collapse NOT
+  confirmed (2021-22 artifact); C3 depth: climax = fatter tails BOTH ways (activity again).
+  Desk lookup SHIPPED: first-hour tempo quintile → rest-of-day range 0.63→0.94 ADR monotone,
+  ΔR² beyond r1h biggest 2025/26 (`opening_tempo_range_forecast.py`). Absorption-at-level
+  (user theory): NOT confirmed (n=143, unstable; big-print split points wrong way); pre-declared
+  DRIVE contrast: fast+wide PDH/PDL touches reject more (+5.3pp, 5/6 yrs) but 2026 = 0.
+- **CLIMAX-REVERSAL MARKING LOOP (the current thread):** `tempo_engine.py` = exact python port
+  of the v2 indis (climax 5.8%, EXPAND 6.4%); **`tempo_review.py` @ localhost:8642** =
+  book_review-style marking tool (indicator-faithful candles, state lanes, wheel/CTRL+wheel
+  zoom both axes, drag-pan, multi-bar setups via SHIFT+click, grade A–C + good/cons notes,
+  draggable dialog, toggleable levels from `tempo_levels_build.py` → levels_by_day.json:
+  HOY/LOY/COY/PDmid/OOD/OOW/OOM/OOQ/OOY/HOD/LOD/IB/VA-Y/W/M/Q/YR/VWAP + GAP band).
+  Marks → `data/annotations/tempo_review/<date>.json` (committed). **User marking in progress
+  (1 mark so far). NEXT: at 30+ marks run the commonality analysis (marked vs unmarked climax
+  bars).** User is also sourcing ETH tick data — when it lands: ONH/ONL levels, real overnight
+  gap range, 24h engine buckets, ETH-chart parity, climax-at-ONH studies.
+
 ## S116-tempo ADDENDUM (2026-09-10 late) — v2 self-calibrating indicators + the user's-eye studies
 
 - **v2 rewrite (user: "different market today" — confirmed, climax share drifted 1.8%→10.1%
