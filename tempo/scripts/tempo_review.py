@@ -149,7 +149,7 @@ button,input,select{background:var(--panel);color:var(--ink);border:1px solid va
  <input id=goto placeholder="YYYY-MM-DD" size=11 onkeydown="if(event.key==='Enter')nav(this.value)">
  <button onclick="nextClimaxDay()">next climax-heavy day (c)</button>
  <span id=marks></span>
- <span id=help>wheel=zoom &middot; drag=pan &middot; dblclick/r=reset &middot; click bar, SHIFT+click extend = multi-bar setup</span>
+ <span id=help>wheel=zoom X &middot; CTRL+wheel=zoom Y &middot; drag=pan &middot; dblclick/r=reset &middot; click bar, SHIFT+click = multi-bar setup</span>
 </div>
 <div id=lvbar><b style="color:var(--ink)">levels:</b></div>
 <canvas id=cv></canvas>
@@ -181,14 +181,16 @@ const LVLINES=[["hoy","HOY","#e6b45a"],["loy","LOY","#e6b45a"],["coy","COY","#d9
 const LVZONES=[["ib","IB","56,130,229"],["vay","VA-Y","230,180,90"],["vaw","VA-W","120,200,150"],
  ["vam","VA-M","170,140,220"],["vaq","VA-Q","220,120,160"],["vayr","VA-YR","150,150,150"]];
 let LV={};try{LV=JSON.parse(localStorage.getItem('tlv')||'{}')}catch(e){}
-const LVDEF={hoy:1,loy:1,coy:1,ood:1,hod:1,lod:1,ib:1,vay:1,vwap:1};
+const LVDEF={hoy:1,loy:1,coy:1,ood:1,hod:1,lod:1,ib:1,vay:1,vwap:1,gap:1};
 function lvOn(k){return LV[k]!==undefined?!!LV[k]:!!LVDEF[k];}
 let D=null,ALL=[],MARKED={},curG='A';
-let V={i0:0,n:0},selA=-1,selB=-1,dragX=null,dragI0=null,panning=false;
+let V={i0:0,n:0},selA=-1,selB=-1,dragX=null,dragY=null,dragI0=null,dragYV=null,panning=false;
+let YV=null;                          // vertical range override {lo,hi}; null = auto-fit
+let LAST={lo:0,hi:1,chartH:100};      // last render geometry (for wheel/drag math)
 const cv=document.getElementById('cv'),cx=cv.getContext('2d');
 // levels toggle bar
 (function(){const bar=document.getElementById('lvbar');
- LVLINES.concat(LVZONES).concat([["vwap","VWAP","#e0e0e0"]]).forEach(([k,nm,c])=>{
+ LVLINES.concat(LVZONES).concat([["vwap","VWAP","#e0e0e0"],["gap","GAP","#c9a86a"]]).forEach(([k,nm,c])=>{
   const l=document.createElement('label');
   l.innerHTML='<input type=checkbox '+(lvOn(k)?'checked':'')+' data-k='+k+'> <span style="color:'+(c.includes(',')?'rgb('+c+')':c)+'">'+nm+'</span>';
   l.querySelector('input').onchange=e=>{LV[k]=e.target.checked?1:0;localStorage.setItem('tlv',JSON.stringify(LV));render();};
@@ -211,10 +213,23 @@ function render(){
  const s=Math.max(0,V.i0),e=Math.min(B.length,V.i0+V.n);
  let lo=1e9,hi=-1e9;
  for(let i=s;i<e;i++){lo=Math.min(lo,B[i][4]);hi=Math.max(hi,B[i][3]);}
- if(lo>hi)return;const pad=(hi-lo)*0.05+0.25;lo-=pad;hi+=pad;
+ if(lo>hi)return;let pad=(hi-lo)*0.05+0.25;lo-=pad;hi+=pad;
+ if(YV){lo=YV.lo;hi=YV.hi;}
+ LAST={lo:lo,hi:hi,chartH:chartH};
  const {bw}=geom(),xR=W-RGUT;
  const Y=p=>14+(hi-p)/(hi-lo)*(chartH-22);
  const lbls=[];
+ // ---- overnight gap band (COY -> OOD)
+ if(lvOn('gap')&&D.levels.coy!==undefined&&D.levels.ood!==undefined){
+  const g0=Math.min(D.levels.coy,D.levels.ood),g1=Math.max(D.levels.coy,D.levels.ood);
+  const gp=D.levels.ood-D.levels.coy;
+  if(g1>lo&&g0<hi&&Math.abs(gp)>=0.25){
+   const up=gp>0;
+   cx.fillStyle=up?'rgba(38,166,154,0.10)':'rgba(239,83,80,0.10)';
+   cx.fillRect(X0,Y(Math.min(g1,hi)),xR-X0,Math.max(1,Y(Math.max(g0,lo))-Y(Math.min(g1,hi))));
+   const my=Y(Math.max(Math.min((g0+g1)/2,hi),lo));
+   lbls.push({y:my,t:'GAP '+(gp>0?'+':'')+gp.toFixed(2),c:up?'#4dd0a1':'#ff8a80'});
+  }}
  // ---- zones first (behind everything)
  LVZONES.forEach(([k,nm,rgb])=>{if(!lvOn(k))return;const z=D.levels[k];if(!z)return;
   const a=z[0],b2=z[z.length-1];if(b2<lo||a>hi)return;
@@ -284,17 +299,29 @@ function barAt(ev){const r=cv.getBoundingClientRect();
  const {bw}=geom();const i=V.i0+Math.floor((ev.clientX-r.left-X0)/bw);
  return (i>=0&&i<D.bars.length)?i:-1;}
 cv.onwheel=ev=>{ev.preventDefault();if(!D)return;
+ if(ev.ctrlKey){                              // vertical zoom around cursor price
+  const r=cv.getBoundingClientRect();
+  const my=ev.clientY-r.top;
+  const p=LAST.hi-(my-14)/(LAST.chartH-22)*(LAST.hi-LAST.lo);
+  const f=ev.deltaY<0?1/1.25:1.25;
+  const nlo=p-(p-LAST.lo)*f,nhi=p+(LAST.hi-p)*f;
+  if(nhi-nlo>0.5&&nhi-nlo<5000)YV={lo:nlo,hi:nhi};
+  render();return;}
  const i=barAt(ev);const frac=i<0?0.5:(i-V.i0)/V.n;
  const f=ev.deltaY<0?1/1.25:1.25;
  let n=Math.round(Math.max(20,Math.min(D.bars.length,V.n*f)));
  let i0=Math.round((i<0?V.i0+V.n/2:i)-frac*n);
  V.n=n;V.i0=Math.max(0,Math.min(D.bars.length-n,i0));render();};
-cv.onmousedown=ev=>{dragX=ev.clientX;dragI0=V.i0;panning=false;};
+cv.onmousedown=ev=>{dragX=ev.clientX;dragY=ev.clientY;dragI0=V.i0;
+ dragYV=YV?{lo:YV.lo,hi:YV.hi}:null;panning=false;};
 cv.onmousemove=ev=>{
  if(dragX!==null&&(ev.buttons&1)){
   const {bw}=geom();const di=Math.round((dragX-ev.clientX)/bw);
-  if(Math.abs(ev.clientX-dragX)>4){panning=true;
-   V.i0=Math.max(0,Math.min(D.bars.length-V.n,dragI0+di));render();}
+  if(Math.abs(ev.clientX-dragX)>4||Math.abs(ev.clientY-dragY)>4){panning=true;
+   V.i0=Math.max(0,Math.min(D.bars.length-V.n,dragI0+di));
+   if(dragYV){const dp=(ev.clientY-dragY)/(LAST.chartH-22)*(dragYV.hi-dragYV.lo);
+    YV={lo:dragYV.lo+dp,hi:dragYV.hi+dp};}
+   render();}
   return;}
  const i=barAt(ev);const tip=document.getElementById('tip');
  if(i<0||!D){tip.style.display='none';return;}
@@ -308,7 +335,7 @@ cv.onmouseup=ev=>{
  const i=barAt(ev);if(i<0)return;
  if(ev.shiftKey&&selA>=0){selB=i;}else{selA=i;selB=i;}
  render();openDlg(ev);};
-cv.ondblclick=()=>{if(D){V={i0:0,n:D.bars.length};render();}};
+cv.ondblclick=()=>{if(D){V={i0:0,n:D.bars.length};YV=null;render();}};
 function openDlg(ev){const a=Math.min(selA,selB),b2=Math.max(selA,selB);
  const BA=D.bars[a],BB=D.bars[b2],dlg=document.getElementById('dlg');
  document.getElementById('dlgbar').textContent=D.date+'  bars '+BA[0]+(b2>a?'–'+BB[0]:'')+'  '+BA[1]+(b2>a?' → '+BB[1]:'')+((BA[12]||BB[12])?' ★CLIMAX':'');
@@ -348,7 +375,7 @@ function nextClimaxDay(){if(!ALL.length||!D)return;let i=ALL.indexOf(D.date);
    else step();});};step();}
 document.onkeydown=e=>{if(e.target.tagName==='TEXTAREA'||e.target.tagName==='INPUT')return;
  if(e.key==='ArrowLeft')nav(D.prev);if(e.key==='ArrowRight')nav(D.next);
- if(e.key==='c')nextClimaxDay();if(e.key==='r'&&D){V={i0:0,n:D.bars.length};render();}
+ if(e.key==='c')nextClimaxDay();if(e.key==='r'&&D){V={i0:0,n:D.bars.length};YV=null;render();}
  if(e.key==='g')document.getElementById('goto').focus();};
 fetch('/dates').then(r=>r.json()).then(j=>{ALL=j.dates;MARKED=j.marked;nav(ALL[ALL.length-1]);});
 </script></body></html>
