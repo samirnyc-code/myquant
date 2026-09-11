@@ -187,8 +187,22 @@ def front_month(now: dt.datetime | None = None) -> str:
     """Which ES contract SHOULD be front month right now.
     ES is quarterly (Mar/Jun/Sep/Dec) and rolls ~2nd Thursday of the expiry month, so from
     mid-month the next quarter leads. Recording a dead contract looks perfectly healthy -
-    a file grows, rows arrive - which is exactly why this is checked explicitly."""
+    a file grows, rows arrive - which is exactly why this is checked explicitly.
+
+    USER OVERRIDE (S116, 2026-09-11): the desk rolls on VOLUME, not the calendar —
+    data/es_roll_override.json {"front": "09-26", "until": "2026-09-18"} keeps the old
+    contract expected past the calendar roll. The `until` date is a HARD stop (set it
+    to the contract's expiry Friday at the latest) so a forgotten override can never
+    pin a dead contract — after it, the calendar rule resumes and the alert returns."""
     now = now or chicago_now()
+    ov = ROOT / "data" / "es_roll_override.json"
+    if ov.exists():
+        try:
+            o = json.loads(ov.read_text(encoding="utf-8"))
+            if now.strftime("%Y-%m-%d") < str(o.get("until", "")):
+                return str(o["front"])
+        except Exception:
+            pass                    # malformed override -> calendar rule
     y, m = now.year, now.month
     for em in (3, 6, 9, 12):
         if m < em or (m == em and now.day < 10):
