@@ -49,6 +49,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private List<double> rollTempo, rollRange, rollEff;
 		private double emaClose;
 		private bool emaInit, notTickChart;
+		private readonly List<double> lastRanges = new List<double>();     // prior 8 bar ranges (ABR-8)
 
 		protected override void OnStateChange()
 		{
@@ -67,7 +68,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				// base plot rendering; only the lanes are painted.
 				AddPlot(System.Windows.Media.Brushes.Gray,       "State");
 				AddPlot(System.Windows.Media.Brushes.DarkOrange, "TempoPct");
-				AddPlot(System.Windows.Media.Brushes.SteelBlue,  "AmplitudePct");
+				AddPlot(System.Windows.Media.Brushes.SteelBlue,  "AmpPctOfABR8");  // bar range as % of the prior-8-bar average range
 				AddPlot(System.Windows.Media.Brushes.SeaGreen,   "EffPct");
 				AddPlot(System.Windows.Media.Brushes.Chocolate,  "TicksPerSec");
 				AddPlot(System.Windows.Media.Brushes.DimGray,    "DurationSec");
@@ -164,9 +165,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 			stateS[0] = state;
 			dirS[0] = bull ? 1 : -1;
 
+			double abr = 0;
+			for (int i = 0; i < lastRanges.Count; i++) abr += lastRanges[i];
+			abr = lastRanges.Count > 0 ? abr / lastRanges.Count : double.NaN;
+			double ampAbr = abr > 0 ? 100.0 * range / abr : double.NaN;
+			lastRanges.Add(range);
+			if (lastRanges.Count > 8) lastRanges.RemoveAt(0);
+
 			Values[0][0] = state;
 			Values[1][0] = Math.Round(tPct);
-			Values[2][0] = Math.Round(aPct);
+			Values[2][0] = double.IsNaN(ampAbr) ? double.NaN : Math.Round(ampAbr);
 			Values[3][0] = Math.Round(ePct);
 			Values[4][0] = Math.Round(tempo, 1);
 			Values[5][0] = Math.Round(duration, 1);

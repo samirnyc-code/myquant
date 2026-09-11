@@ -51,7 +51,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private double emaTempo, emaClose;
 		private bool emaInit;
 
-		private double lastTempoPct = 50, lastAmpPct = 50, lastEffPct = 50;
+		private double lastTempoPct = 50, lastAmpPct = 50, lastEffPct = 50, lastAmpAbr = double.NaN;
+		private readonly List<double> lastRanges = new List<double>();     // prior 8 bar ranges (ABR-8)
 		private int lastAccel, lastBucket, lastN;
 		private double lastRate;
 		private DateTime lastBarTime = DateTime.MinValue;
@@ -81,7 +82,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				// OnRender below does NOT call the base plot renderer.
 				AddPlot(System.Windows.Media.Brushes.Gray,       "State");   // 0 CLIMAX 1 EXPAND 2 CHURN 3 ACTIVITY 4 GRIND 5 BALANCE 6 MIXED
 				AddPlot(System.Windows.Media.Brushes.DarkOrange, "TempoPct");
-				AddPlot(System.Windows.Media.Brushes.SteelBlue,  "AmplitudePct");
+				AddPlot(System.Windows.Media.Brushes.SteelBlue,  "AmpPctOfABR8");  // bar range as % of the prior-8-bar average range
 				AddPlot(System.Windows.Media.Brushes.SeaGreen,   "EffPct");
 				AddPlot(System.Windows.Media.Brushes.Chocolate,  "TicksPerSec");
 				AddPlot(System.Windows.Media.Brushes.DimGray,    "DurationSec");
@@ -157,6 +158,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			effPctS[0]   = double.NaN;
 			durS[0]      = double.NaN;
 			stateCodeS[0] = double.NaN;
+
 			if (notTickChart || CurrentBar < 1 || Bars.IsFirstBarOfSession)
 			{
 				for (int p = 0; p < 6; p++) Values[p].Reset();   // blank Data Box rows
@@ -206,13 +208,21 @@ namespace NinjaTrader.NinjaScript.Indicators
 				(tPct >= 80 && aPct < 50) ? 3 :
 				(tPct < 40 && aPct < 40) ? 5 :
 				(tPct < 40 && eff >= 0.60) ? 4 : 6;
+			// ABR(8): this bar's range as % of the mean range of the PRIOR 8 bars
+			double abr = 0;
+			for (int i = 0; i < lastRanges.Count; i++) abr += lastRanges[i];
+			abr = lastRanges.Count > 0 ? abr / lastRanges.Count : double.NaN;
+			double ampAbr = abr > 0 ? 100.0 * range / abr : double.NaN;
+			lastRanges.Add(range);
+			if (lastRanges.Count > 8) lastRanges.RemoveAt(0);
+
 			Values[0][0] = stateCodeS[0];
 			Values[1][0] = Math.Round(tPct);
-			Values[2][0] = Math.Round(aPct);
+			Values[2][0] = double.IsNaN(ampAbr) ? double.NaN : Math.Round(ampAbr);
 			Values[3][0] = Math.Round(ePct);
 			Values[4][0] = Math.Round(tempo, 1);
 			Values[5][0] = Math.Round(duration, 1);
-			lastTempoPct = tPct; lastAmpPct = aPct; lastEffPct = ePct;
+			lastTempoPct = tPct; lastAmpPct = aPct; lastEffPct = ePct; lastAmpAbr = ampAbr;
 			lastAccel = accel; lastClimax = climaxTag;
 			lastBucket = bucket; lastN = Math.Min(cntT[bucket], cap); lastRate = tempo;
 			lastBarTime = Time[0];
@@ -414,7 +424,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 			DrawLine2(tf, x0 + 8f, ref y, "TEMPO      " + Bar3(lastTempoPct), lastTempoPct >= ClimacticPct ? gold : white);
 			if (showPace)
 				DrawLine2(tf, x0 + 8f, ref y, "PACE " + PaceWindowSec + "s   " + Bar3(livePacePct), livePacePct >= ClimacticPct ? gold : white);
-			DrawLine2(tf, x0 + 8f, ref y, "AMPLITUDE  " + Bar3(lastAmpPct), white);
+			DrawLine2(tf, x0 + 8f, ref y, double.IsNaN(lastAmpAbr)
+				? "AMPLITUDE  " + Bar3(lastAmpPct)
+				: string.Format("AMPLITUDE  {0,3:F0}% ABR8 (p{1:F0})", lastAmpAbr, lastAmpPct), white);
 			DrawLine2(tf, x0 + 8f, ref y, "EFFICIENCY " + Bar3(lastEffPct), white);
 			DrawLine2(tf, x0 + 8f, ref y, "TEMPO: " + accel, dim);
 			if (ShowStateLabel) DrawLine2(tf, x0 + 8f, ref y, lastState, white);
