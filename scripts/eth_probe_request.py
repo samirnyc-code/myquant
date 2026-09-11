@@ -52,11 +52,29 @@ last = lines[-1].split(",")[0] if n else "?"
 print(f"\n{f.name}: {n:,} rows")
 print(f"  first tick: {first}")
 print(f"  last  tick: {last}")
+# ETH present if ANY tick lands outside the RTH window [08:30,15:15) CT.
+import csv as _csv
+outside = 0
+tod_min, tod_max = "23:59:59", "00:00:00"
+with open(f, newline="") as fh:
+    rd = _csv.reader(fh)
+    next(rd, None)
+    for row in rd:
+        if not row:
+            continue
+        tod = row[0][11:19]
+        if tod < tod_min:
+            tod_min = tod
+        if tod > tod_max:
+            tod_max = tod
+        if tod < "08:30:00" or tod >= "15:15:00":
+            outside += 1
+print(f"  clock span: {tod_min} .. {tod_max}   ticks OUTSIDE RTH: {outside:,}")
 print("\nVERDICT: ", end="")
-if first[11:16] < "08:30":
-    print("ETH IS RECOVERABLE — tape starts before the 08:30 RTH open. "
-          ".ncd holds the overnight session; pipeline can be widened.")
+if outside > 1000:
+    print("ETH IS RECOVERABLE — NT's .ncd holds the overnight tape "
+          f"({outside:,} ticks outside 08:30-15:15). The RTH trove was just an "
+          "extraction filter; widen the pipeline to capture ETH.")
 else:
-    print("RTH-only — even with the ETH template the tape starts at 08:30. "
-          "NT's .ncd does NOT hold overnight for this instrument (feed/subscription "
-          "was RTH-only). ETH cannot be recovered retroactively.")
+    print("RTH-only — NT's .ncd has no meaningful overnight ticks for this "
+          "instrument. ETH cannot be recovered retroactively.")
