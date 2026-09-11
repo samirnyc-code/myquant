@@ -1,0 +1,26 @@
+=== OLS: rest_range_adr ~ baseline vs + tempo ===
+  ALL: base R2=0.109  +tempo R2=0.114  dR2=+0.0045  n=1293
+  2021: base R2=0.301  +tempo R2=0.311  dR2=+0.0100  n=128
+  2022: base R2=0.086  +tempo R2=0.095  dR2=+0.0088  n=250
+  2023: base R2=0.038  +tempo R2=0.040  dR2=+0.0014  n=248
+  2024: base R2=0.103  +tempo R2=0.117  dR2=+0.0135  n=249
+  2025: base R2=0.120  +tempo R2=0.167  dR2=+0.0477  n=246
+  2026: base R2=0.177  +tempo R2=0.208  dR2=+0.0308  n=172
+
+=== lookup: first-hour tempo pctile quintile -> median rest-of-day range (ADR units) ===
+     n  tempo1h_mean  rest_med  rest_q75
+q                                       
+0  261        19.459     0.633     0.921
+1  257        31.998     0.697     0.961
+2  258        43.118     0.753     1.060
+3  257        54.932     0.828     1.077
+4  260        73.203     0.944     1.227
+
+by-year medians (rows=quintile):
+year  2021  2022  2023  2024  2025  2026
+q                                       
+0     0.53  0.72  0.66  0.64  0.60  0.61
+1     0.54  0.74  0.76  0.65  0.64  0.76
+2     0.75  0.76  0.86  0.80  0.71  0.66
+3     0.71  0.81  0.77  0.97  0.85  0.79
+4     0.98  0.98  0.85  0.88  0.99  1.08

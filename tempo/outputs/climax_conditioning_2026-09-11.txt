@@ -1,0 +1,26 @@
+
+=== CLIMAX (base P(rev)=0.368, n=2379) ===
+  C1 at prior-day H/L                    n=  579  P(rev)=0.330
+  C1 away from level                     n= 1800  P(rev)=0.380
+  C2 eff collapsing                      n=  568  P(rev)=0.417
+  C2 eff holding                         n= 1811  P(rev)=0.352
+  C1+C2 triple                           n=  139  P(rev)=0.388
+
+=== CONTROL (base P(rev)=0.332, n=9147) ===
+  C1 at prior-day H/L                    n= 2492  P(rev)=0.325
+  C1 away from level                     n= 6655  P(rev)=0.334
+  C2 eff collapsing                      n= 2859  P(rev)=0.353
+  C2 eff holding                         n= 6288  P(rev)=0.322
+  C1+C2 triple                           n=  734  P(rev)=0.347
+
+=== by year: P(rev) climax C1+C2 vs climax rest ===
+  2021: triple n= 14 P(rev)=0.429   rest n= 214 P(rev)=0.453
+  2022: triple n= 36 P(rev)=0.472   rest n= 604 P(rev)=0.326
+  2023: triple n= 29 P(rev)=0.276   rest n= 358 P(rev)=0.385
+  2024: triple n= 17 P(rev)=0.471   rest n= 396 P(rev)=0.356
+  2025: triple n= 24 P(rev)=0.333   rest n= 463 P(rev)=0.374
+  2026: triple n= 19 P(rev)=0.368   rest n= 205 P(rev)=0.366
+
+=== C3 depth profile (ADR units, retrace before extreme broken) ===
+  climax: retrace q25=0.036 med=0.066 q75=0.134 q90=0.316   ext med=0.318
+  control: retrace q25=0.029 med=0.054 q75=0.104 q90=0.259   ext med=0.229
