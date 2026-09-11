@@ -62,12 +62,15 @@ namespace NinjaTrader.NinjaScript.Indicators
 				PaintPriceMarkers = false;
 				IsSuspendedWhileInactive = true;
 
-				AddPlot(System.Windows.Media.Brushes.Transparent, "State");
-				AddPlot(System.Windows.Media.Brushes.Transparent, "TempoPct");
-				AddPlot(System.Windows.Media.Brushes.Transparent, "AmplitudePct");
-				AddPlot(System.Windows.Media.Brushes.Transparent, "EffPct");
-				AddPlot(System.Windows.Media.Brushes.Transparent, "TicksPerSec");
-				AddPlot(System.Windows.Media.Brushes.Transparent, "DurationSec");
+				// visible brushes: the Data Box paints each row's TEXT with its plot brush
+				// (Transparent = invisible rows). Lines never draw — OnRender below skips
+				// base plot rendering; only the lanes are painted.
+				AddPlot(System.Windows.Media.Brushes.Gray,       "State");
+				AddPlot(System.Windows.Media.Brushes.DarkOrange, "TempoPct");
+				AddPlot(System.Windows.Media.Brushes.SteelBlue,  "AmplitudePct");
+				AddPlot(System.Windows.Media.Brushes.SeaGreen,   "EffPct");
+				AddPlot(System.Windows.Media.Brushes.Chocolate,  "TicksPerSec");
+				AddPlot(System.Windows.Media.Brushes.DimGray,    "DurationSec");
 
 				TrailingDays = 60;
 				RollingWindow = 200;
