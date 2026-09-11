@@ -46,7 +46,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private int[] cntT, cntA;
 		private int cap;
 
-		private Series<double> tempoPctS, ampPctS, climaxS;
+		private static readonly string[] StateNames = { "CLIMAX", "EXPAND", "CHURN", "ACTIVITY", "GRIND", "BALANCE", "MIXED" };
+		private Series<double> tempoPctS, ampPctS, climaxS, effPctS, durS, stateCodeS;
+		private int selBar = -1;
+		private float selY = -1f;
 		private List<double> rollTempo, rollRange, rollEff;
 		private double emaTempo, emaClose;
 		private bool emaInit;
@@ -86,6 +89,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				ShowEngineDot  = true;
 				ShowStateLabel = true;
 				ShowDiag       = true;
+				ShowClickCard  = true;
 				PaceWindowSec  = 30;
 				AlertOnClimax  = false;
 				AlertCooldownSec = 120;
@@ -105,12 +109,42 @@ namespace NinjaTrader.NinjaScript.Indicators
 				tempoPctS = new Series<double>(this, MaximumBarsLookBack.Infinite);
 				ampPctS   = new Series<double>(this, MaximumBarsLookBack.Infinite);
 				climaxS   = new Series<double>(this, MaximumBarsLookBack.Infinite);
+				effPctS   = new Series<double>(this, MaximumBarsLookBack.Infinite);
+				durS      = new Series<double>(this, MaximumBarsLookBack.Infinite);
+				stateCodeS = new Series<double>(this, MaximumBarsLookBack.Infinite);
 				notTickChart = BarsPeriod.BarsPeriodType != BarsPeriodType.Tick;
 				cap = Math.Max(80, TrailingDays * 8);      // ~8 bars per 15-min bucket per session
 				bufT = new double[TODB][]; bufA = new double[TODB][];
 				cntT = new int[TODB]; cntA = new int[TODB];
 				for (int b = 0; b < TODB; b++) { bufT[b] = new double[cap]; bufA[b] = new double[cap]; }
 			}
+			else if (State == State.Historical)
+			{
+				if (ChartControl != null)
+					ChartControl.Dispatcher.InvokeAsync(new Action(delegate
+					{ ChartControl.PreviewMouseDown += OnChartMouseDown; }));
+			}
+			else if (State == State.Terminated)
+			{
+				if (ChartControl != null)
+					ChartControl.Dispatcher.InvokeAsync(new Action(delegate
+					{ ChartControl.PreviewMouseDown -= OnChartMouseDown; }));
+			}
+		}
+
+		private void OnChartMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+		{
+			if (e.ChangedButton != System.Windows.Input.MouseButton.Middle) return;
+			try
+			{
+				System.Windows.Point p = e.GetPosition(ChartControl);
+				int idx = ChartBars.GetBarIdxByX(ChartControl, (int)p.X);
+				if (idx < 0 || idx > CurrentBar) return;
+				selBar = selBar == idx ? -1 : idx;
+				selY = (float)p.Y;
+				ForceRefresh();
+			}
+			catch { }
 		}
 
 		private double PctFromBuf(double[] buf, int cnt, double v)
@@ -141,6 +175,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 			tempoPctS[0] = double.NaN;
 			ampPctS[0]   = double.NaN;
 			climaxS[0]   = 0;
+			effPctS[0]   = double.NaN;
+			durS[0]      = double.NaN;
+			stateCodeS[0] = double.NaN;
 			if (notTickChart || CurrentBar < 1) return;
 			if (Bars.IsFirstBarOfSession) return;          // duration spans the session break
 
@@ -179,6 +216,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			tempoPctS[0] = tPct;
 			ampPctS[0]   = aPct;
+			effPctS[0]   = ePct;
+			durS[0]      = duration;
+			stateCodeS[0] = climacticBar ? 0 :
+				(tPct >= 80 && aPct >= 80 && eff >= 0.60) ? 1 :
+				(tPct >= 80 && aPct >= 80 && eff < 0.35) ? 2 :
+				(tPct >= 80 && aPct < 50) ? 3 :
+				(tPct < 40 && aPct < 40) ? 5 :
+				(tPct < 40 && eff >= 0.60) ? 4 : 6;
 			lastTempoPct = tPct; lastAmpPct = aPct; lastEffPct = ePct;
 			lastAccel = accel; lastClimax = climaxTag;
 			lastBucket = bucket; lastN = Math.Min(cntT[bucket], cap); lastRate = tempo;
@@ -276,6 +321,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				RenderClimaxDots(chartControl, chartScale);
 				if (ShowEngineDot) RenderEngineDot(tfTiny, white, dim, bg, grid);
 				if (ShowSpeedo)    RenderSpeedo(tf, white, dim, gold, bg);
+				if (ShowClickCard) RenderClickCard(chartControl, white, dim, gold);
 			}
 			finally
 			{
@@ -394,6 +440,61 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 		}
 
+		private void RenderClickCard(ChartControl chartControl, SolidColorBrush white, SolidColorBrush dim, SolidColorBrush gold)
+		{
+			if (selBar < 0 || selBar > CurrentBar) return;
+			double tp = tempoPctS.GetValueAt(selBar);
+			if (double.IsNaN(tp)) return;
+			double ap = ampPctS.GetValueAt(selBar), ep = effPctS.GetValueAt(selBar);
+			double du = durS.GetValueAt(selBar);
+			int st = (int)Math.Max(0, Math.Min(6, stateCodeS.GetValueAt(selBar)));
+			bool cx0 = climaxS.GetValueAt(selBar) > 0.5;
+			double o = Bars.GetOpen(selBar), hi = Bars.GetHigh(selBar), lo = Bars.GetLow(selBar), cl = Bars.GetClose(selBar);
+			double rng = hi - lo;
+			double effRaw = rng > 0 ? Math.Abs(cl - o) / rng : 0;
+			DateTime bt = Bars.GetTime(selBar);
+
+			string[][] rows = new string[][] {
+				new[] { "D:",          bt.ToString("M/d/yyyy") },
+				new[] { "T:",          bt.ToString("HH:mm:ss") },
+				new[] { "STATE:",      StateNames[st] },
+				new[] { "TEMPO:",      string.Format("p{0:F0}  {1:F0} t/s", tp, BarsPeriod.Value / Math.Max(0.001, du)) },
+				new[] { "AMPLITUDE:",  string.Format("p{0:F0}  {1:F2} pt", ap, rng) },
+				new[] { "EFFICIENCY:", string.Format("p{0:F0}  {1:F2}", ep, effRaw) },
+				new[] { "DURATION:",   string.Format("{0:F1} s", du) },
+				new[] { "VOLUME:",     string.Format("{0:N0}", Bars.GetVolume(selBar)) },
+			};
+			float rowH = 16f, wCard = 195f, hCard = rows.Length * rowH + 10f;
+			float sx = chartControl.GetXByBarIndex(ChartBars, selBar);
+			float cx = sx + 14f;
+			if (cx + wCard > ChartPanel.X + ChartPanel.W) cx = sx - wCard - 14f;
+			float cy = selY >= 0 ? selY - hCard / 2f : ChartPanel.Y + 40f;
+			cy = Math.Max(ChartPanel.Y + 2f, Math.Min(cy, ChartPanel.Y + ChartPanel.H - hCard - 2f));
+
+			SolidColorBrush cardBg = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.97f, 0.97f, 0.95f, 0.95f));
+			SolidColorBrush ink    = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.10f, 0.10f, 0.12f, 1f));
+			SolidColorBrush inkDim = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.42f, 0.42f, 0.45f, 1f));
+			SolidColorBrush edge   = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.3f, 0.3f, 0.3f, 0.9f));
+			SolidColorBrush guide  = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.2f, 0.2f, 0.2f, 0.35f));
+			TextFormat tfc = new TextFormat(NinjaTrader.Core.Globals.DirectWriteFactory, "Consolas", 12f);
+			try
+			{
+				RenderTarget.DrawLine(new SharpDX.Vector2(sx, ChartPanel.Y),
+					new SharpDX.Vector2(sx, ChartPanel.Y + ChartPanel.H), guide, 1f);
+				RenderTarget.FillRectangle(new SharpDX.RectangleF(cx, cy, wCard, hCard), cardBg);
+				RenderTarget.DrawRectangle(new SharpDX.RectangleF(cx, cy, wCard, hCard), edge);
+				float y = cy + 5f;
+				for (int i = 0; i < rows.Length; i++)
+				{
+					RenderTarget.DrawText(rows[i][0], tfc, new SharpDX.RectangleF(cx + 7f, y, 92f, rowH), inkDim);
+					SolidColorBrush vb = (i == 2 && cx0) || (i == 3 && cx0) ? gold : ink;
+					RenderTarget.DrawText(rows[i][1], tfc, new SharpDX.RectangleF(cx + 96f, y, wCard - 100f, rowH), vb);
+					y += rowH;
+				}
+			}
+			finally { cardBg.Dispose(); ink.Dispose(); inkDim.Dispose(); edge.Dispose(); guide.Dispose(); tfc.Dispose(); }
+		}
+
 		private static string Bar3(double pct)
 		{
 			int p = (int)Math.Round(pct);
@@ -450,6 +551,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[NinjaScriptProperty]
 		[Display(Name = "Show DIAG line", GroupName = "3. Blocks", Order = 4)]
 		public bool ShowDiag { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name = "Middle-click bar card", GroupName = "3. Blocks", Order = 5)]
+		public bool ShowClickCard { get; set; }
 
 		[NinjaScriptProperty, Range(5, 300)]
 		[Display(Name = "Live pace window (sec)", GroupName = "4. Live pace / alert", Order = 0)]

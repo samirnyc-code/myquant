@@ -50,6 +50,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private double emaClose;
 		private bool emaInit, notTickChart;
 		private int selBar = -1;                          // middle-click inspected bar
+		private float selY = -1f;                         // click height (chart pixels)
 
 		protected override void OnStateChange()
 		{
@@ -114,6 +115,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				int idx = ChartBars.GetBarIdxByX(ChartControl, (int)p.X);
 				if (idx < 0 || idx > CurrentBar) return;
 				selBar = selBar == idx ? -1 : idx;
+				selY = (float)p.Y;
 				ForceRefresh();
 			}
 			catch { }
@@ -258,29 +260,18 @@ namespace NinjaTrader.NinjaScript.Indicators
 					RenderTarget.DrawText(LaneNames[l], tfTiny,
 						new SharpDX.RectangleF(ChartPanel.X + 4, top + l * laneH + (laneH - 11f) / 2f, 70, 12), dim);
 
-				// middle-click inspect: highlight tick + pinned readout
+				// middle-click inspect: highlight tick only — the full data card is drawn by
+				// TempoSpeedometer on the price panel (same wheel-click selects both).
 				if (selBar >= 0 && selBar <= CurrentBar && !double.IsNaN(stateS.GetValueAt(selBar)))
 				{
 					float sx = chartControl.GetXByBarIndex(ChartBars, selBar);
 					SolidColorBrush hl = new SolidColorBrush(RenderTarget, new SharpDX.Color4(1f, 1f, 1f, 0.85f));
-					SolidColorBrush cardBg = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.05f, 0.05f, 0.08f, 0.85f));
 					try
 					{
 						RenderTarget.DrawLine(new SharpDX.Vector2(sx, top),
 							new SharpDX.Vector2(sx, top + hAll), hl, 1.5f);
-						int st = (int)stateS.GetValueAt(selBar);
-						string card = string.Format("{0:HH:mm:ss}  {1}  T{2:F0} A{3:F0} E{4:F0}  {5:F0} t/s  {6:F0}s",
-							Bars.GetTime(selBar), LaneNames[Math.Max(0, Math.Min(6, st))],
-							Values[1].GetValueAt(selBar), Values[2].GetValueAt(selBar),
-							Values[3].GetValueAt(selBar), Values[4].GetValueAt(selBar),
-							Values[5].GetValueAt(selBar));
-						TextFormat tfCard = new TextFormat(NinjaTrader.Core.Globals.DirectWriteFactory, "Consolas", 12f);
-						RenderTarget.FillRectangle(new SharpDX.RectangleF(ChartPanel.X + 78, top + 1, 420, 17), cardBg);
-						RenderTarget.DrawText(card, tfCard,
-							new SharpDX.RectangleF(ChartPanel.X + 82, top + 2, 416, 15), hl);
-						tfCard.Dispose();
 					}
-					finally { hl.Dispose(); cardBg.Dispose(); }
+					finally { hl.Dispose(); }
 				}
 			}
 			finally { tfTiny.Dispose(); dim.Dispose(); sep.Dispose(); }
