@@ -838,3 +838,7 @@
 2026-09-11 08:30:03 CT  [SPX] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol SPX --secs 10 --pct 1.25 --stop 15:05
 2026-09-11 08:30:18 CT  [SPX] heartbeat STALE (62713s, state=stopped) — process hung, restarting
 2026-09-11 08:30:23 CT  [SPX] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol SPX --secs 10 --pct 1.25 --stop 15:05
+2026-09-11 15:05:10 CT  [SPX] stop time reached — stopping recorder
+2026-09-11 15:05:10 CT  [SPX] day COMPLETE: 2035/2370 snaps (85.9%), max gap 36s
+2026-09-11 15:05:12 CT  [SPX] archived: 187016 rows -> data\options_tape\chain_20260911.parquet (0.56MB, 18.8x) + gz backup; loose CSV removed
+2026-09-11 15:05:12 CT  [SPX] supervisor done.
