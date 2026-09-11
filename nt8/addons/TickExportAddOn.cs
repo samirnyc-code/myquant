@@ -96,20 +96,33 @@ namespace NinjaTrader.NinjaScript.AddOns
                 int.TryParse(JsonStr(txt, "period"), out period);
                 if (period < 1) period = 1;
 
+                // Optional trading-hours override. Empty/absent -> instrument default
+                // (RTH here, which is why the trove is 08:30-15:15). Pass e.g.
+                // "CME US Index Futures ETH" to pull the overnight tape IF it's in the .ncd.
+                TradingHours th = null;
+                string hours = JsonStr(txt, "hours");
+                if (!string.IsNullOrEmpty(hours))
+                {
+                    try { th = TradingHours.Get(hours); }
+                    catch { Log("TickExportAddOn: unknown trading hours '" + hours + "' — using instrument default", LogLevel.Warning); }
+                    if (th == null) Log("TickExportAddOn: trading hours '" + hours + "' not found — using instrument default", LogLevel.Warning);
+                    else Log("TickExportAddOn: using trading hours '" + hours + "'", LogLevel.Information);
+                }
+
                 var days = new List<DateTime>();
                 for (DateTime d = from.Date; d <= to.Date; d = d.AddDays(1))
                     if (d.DayOfWeek != DayOfWeek.Saturday && d.DayOfWeek != DayOfWeek.Sunday)
                         days.Add(d);
-                Log(string.Format("TickExportAddOn: request {0} {1:yyyy-MM-dd}..{2:yyyy-MM-dd} ({3} weekdays, {4}-tick)",
-                                  contract, from, to, days.Count, period), LogLevel.Information);
-                ExportNext(instr, contract, days, 0, 0, period);
+                Log(string.Format("TickExportAddOn: request {0} {1:yyyy-MM-dd}..{2:yyyy-MM-dd} ({3} weekdays, {4}-tick, hours={5})",
+                                  contract, from, to, days.Count, period, string.IsNullOrEmpty(hours) ? "default/RTH" : hours), LogLevel.Information);
+                ExportNext(instr, contract, days, 0, 0, period, th);
             }
             catch (Exception ex) { Log("TickExportAddOn request err: " + ex.Message, LogLevel.Error); Finish("error: " + ex.Message); }
         }
 
         // Export days sequentially: fire one BarsRequest, and in its callback write the
         // CSV and recurse to the next day. Bounded memory, and one failed day is isolated.
-        private void ExportNext(Instrument instr, string contract, List<DateTime> days, int idx, int okCount, int period)
+        private void ExportNext(Instrument instr, string contract, List<DateTime> days, int idx, int okCount, int period, TradingHours th)
         {
             if (idx >= days.Count) { Finish(string.Format("exported {0}/{1} day(s)", okCount, days.Count)); return; }
             DateTime day = days[idx];
@@ -119,6 +132,7 @@ namespace NinjaTrader.NinjaScript.AddOns
             {
                 BarsRequest req = new BarsRequest(instr, f, t);
                 req.BarsPeriod = new BarsPeriod { BarsPeriodType = BarsPeriodType.Tick, Value = period };
+                if (th != null) req.TradingHours = th;   // ETH override; null -> instrument default
                 req.Request((r, err, msg) =>
                 {
                     int wrote = 0;
@@ -133,13 +147,13 @@ namespace NinjaTrader.NinjaScript.AddOns
                     }
                     catch (Exception ex) { Log("TickExportAddOn write err " + day.ToString("yyyy-MM-dd") + ": " + ex.Message, LogLevel.Error); }
                     finally { try { if (r != null) r.Dispose(); } catch { } }
-                    ExportNext(instr, contract, days, idx + 1, okCount + (wrote > 0 ? 1 : 0), period);
+                    ExportNext(instr, contract, days, idx + 1, okCount + (wrote > 0 ? 1 : 0), period, th);
                 });
             }
             catch (Exception ex)
             {
                 Log("TickExportAddOn BarsRequest err " + day.ToString("yyyy-MM-dd") + ": " + ex.Message, LogLevel.Error);
-                ExportNext(instr, contract, days, idx + 1, okCount, period);
+                ExportNext(instr, contract, days, idx + 1, okCount, period, th);
             }
         }
 
