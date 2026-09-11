@@ -53,6 +53,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		private double lastTempoPct = 50, lastAmpPct = 50, lastEffPct = 50, lastAmpAbr = double.NaN;
 		private readonly List<double> lastRanges = new List<double>();     // prior 8 bar ranges (ABR-8)
+		// 10-bar trend window (EXPAND/GRIND are multi-bar states; reset each session)
+		private readonly List<double> w10cl = new List<double>();
+		private readonly List<double> w10rng = new List<double>();
+		private readonly List<double> w10tp = new List<double>();
 		private int lastAccel, lastBucket, lastN;
 		private double lastRate;
 		private DateTime lastBarTime = DateTime.MinValue;
@@ -161,6 +165,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			if (notTickChart || CurrentBar < 1 || Bars.IsFirstBarOfSession)
 			{
+				if (Bars.IsFirstBarOfSession) { w10cl.Clear(); w10rng.Clear(); w10tp.Clear(); }
 				for (int p = 0; p < 6; p++) Values[p].Reset();   // blank Data Box rows
 				return;
 			}
@@ -202,12 +207,27 @@ namespace NinjaTrader.NinjaScript.Indicators
 			ampPctS[0]   = aPct;
 			effPctS[0]   = ePct;
 			durS[0]      = duration;
+			// 10-bar trend window: eff10 = |net move| / sum(range), t10 = mean tempo pctile.
+			// Gate calibrated 2026-09-11 (eff10_calibration.py): eff10>=0.30 & t10>=50 tags
+			// ~8% of bars, catches ~half of top-decile trend-leg bars.
+			w10cl.Add(Close[0]); w10rng.Add(range); w10tp.Add(tPct);
+			if (w10cl.Count > 11) { w10cl.RemoveAt(0); w10rng.RemoveAt(0); w10tp.RemoveAt(0); }
+			double eff10 = double.NaN, t10 = double.NaN, net10 = 0;
+			if (w10cl.Count == 11)
+			{
+				net10 = w10cl[10] - w10cl[0];
+				double sr = 0, st = 0;
+				for (int i = 1; i <= 10; i++) { sr += w10rng[i]; st += w10tp[i]; }
+				if (sr > 0) eff10 = Math.Abs(net10) / sr;
+				t10 = st / 10.0;
+			}
+			bool trending = !double.IsNaN(eff10) && eff10 >= 0.30;
 			stateCodeS[0] = climacticBar ? 0 :
-				(tPct >= 80 && aPct >= 80 && eff >= 0.60) ? 1 :
-				(tPct >= 80 && aPct >= 80 && eff < 0.35) ? 2 :
-				(tPct >= 80 && aPct < 50) ? 3 :
-				(tPct < 40 && aPct < 40) ? 5 :
-				(tPct < 40 && eff >= 0.60) ? 4 : 6;
+				(trending && t10 >= 50) ? 1 :                          // EXPAND (multi-bar)
+				(!double.IsNaN(eff10) && t10 >= 60 && eff10 <= 0.10) ? 2 : // CHURN (fast, no progress over 10 bars)
+				trending ? 4 :                                          // GRIND (directional, slow)
+				(tPct >= 80 && aPct < 50) ? 3 :                         // ACTIVITY (per-bar)
+				(tPct < 40 && aPct < 40) ? 5 : 6;                       // BALANCE / MIXED
 			// ABR(8): this bar's range as % of the mean range of the PRIOR 8 bars
 			double abr = 0;
 			for (int i = 0; i < lastRanges.Count; i++) abr += lastRanges[i];
@@ -226,7 +246,18 @@ namespace NinjaTrader.NinjaScript.Indicators
 			lastAccel = accel; lastClimax = climaxTag;
 			lastBucket = bucket; lastN = Math.Min(cntT[bucket], cap); lastRate = tempo;
 			lastBarTime = Time[0];
-			lastState = StateLabel(tPct, aPct, eff, Close[0] >= emaClose, climacticBar);
+			string dirw = (stateCodeS[0] == 1 || stateCodeS[0] == 4)
+				? (net10 >= 0 ? "BULL" : "BEAR") : (Close[0] >= emaClose ? "BULL" : "BEAR");
+			switch ((int)stateCodeS[0])
+			{
+				case 0: lastState = "CLIMACTIC STATE"; break;
+				case 1: lastState = "HIGH-TEMPO " + dirw + " EXPANSION"; break;
+				case 2: lastState = "HIGH-TEMPO CHURN"; break;
+				case 3: lastState = "HIGH ACTIVITY / NO PROGRESS"; break;
+				case 4: lastState = dirw + " GRIND"; break;
+				case 5: lastState = "BALANCE / QUIET"; break;
+				default: lastState = "MIXED"; break;
+			}
 
 			bool up = Close[0] >= Open[0];
 			if (climacticBar)
@@ -281,17 +312,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 			return nb;
 		}
 
-		private static string StateLabel(double tPct, double aPct, double eff, bool bull, bool climax)
-		{
-			string dir = bull ? "BULL" : "BEAR";
-			if (climax)                                   return "CLIMACTIC STATE";
-			if (tPct >= 80 && aPct >= 80 && eff >= 0.60)  return "HIGH-TEMPO " + dir + " EXPANSION";
-			if (tPct >= 80 && aPct >= 80 && eff <  0.35)  return "HIGH-TEMPO CHURN";
-			if (tPct >= 80 && aPct <  50)                 return "HIGH ACTIVITY / NO PROGRESS";
-			if (tPct <  40 && aPct <  40)                 return "BALANCE / QUIET";
-			if (tPct <  40 && eff >= 0.60)                return dir + " GRIND";
-			return "MIXED";
-		}
 
 		#region rendering
 		protected override void OnRender(ChartControl chartControl, ChartScale chartScale)

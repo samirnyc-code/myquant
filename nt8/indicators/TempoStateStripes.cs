@@ -50,6 +50,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private double emaClose;
 		private bool emaInit, notTickChart;
 		private readonly List<double> lastRanges = new List<double>();     // prior 8 bar ranges (ABR-8)
+		// 10-bar trend window (EXPAND/GRIND are multi-bar states; reset each session)
+		private readonly List<double> w10cl = new List<double>();
+		private readonly List<double> w10rng = new List<double>();
+		private readonly List<double> w10tp = new List<double>();
 
 		protected override void OnStateChange()
 		{
@@ -121,6 +125,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			stateS[0] = double.NaN; dirS[0] = 0;
 			if (notTickChart || CurrentBar < 1 || Bars.IsFirstBarOfSession)
 			{
+				if (Bars.IsFirstBarOfSession) { w10cl.Clear(); w10rng.Clear(); w10tp.Clear(); }
 				for (int p = 0; p < 6; p++) Values[p].Reset();
 				return;
 			}
@@ -153,17 +158,30 @@ namespace NinjaTrader.NinjaScript.Indicators
 			bool bull = Close[0] >= emaClose;
 			emaClose += k * (Close[0] - emaClose);
 
-			// SAME rules as TempoSpeedometer (no gold during warmup)
+			// SAME rules as TempoSpeedometer (keep in sync). EXPAND/GRIND are 10-bar states
+			// (gate calibrated 2026-09-11: eff10>=0.30 & t10>=50); no gold during warmup.
+			w10cl.Add(Close[0]); w10rng.Add(range); w10tp.Add(tPct);
+			if (w10cl.Count > 11) { w10cl.RemoveAt(0); w10rng.RemoveAt(0); w10tp.RemoveAt(0); }
+			double eff10 = double.NaN, t10 = double.NaN, net10 = 0;
+			if (w10cl.Count == 11)
+			{
+				net10 = w10cl[10] - w10cl[0];
+				double sr = 0, st = 0;
+				for (int i = 1; i <= 10; i++) { sr += w10rng[i]; st += w10tp[i]; }
+				if (sr > 0) eff10 = Math.Abs(net10) / sr;
+				t10 = st / 10.0;
+			}
+			bool trending = !double.IsNaN(eff10) && eff10 >= 0.30;
 			int state;
 			if (!warm && tPct >= ClimacticPct) state = 0;                     // CLIMAX
-			else if (tPct >= 80 && aPct >= 80 && eff >= 0.60) state = 1;      // EXPAND
-			else if (tPct >= 80 && aPct >= 80 && eff < 0.35) state = 2;       // CHURN
+			else if (trending && t10 >= 50) state = 1;                        // EXPAND (multi-bar)
+			else if (!double.IsNaN(eff10) && t10 >= 60 && eff10 <= 0.10) state = 2; // CHURN
+			else if (trending) state = 4;                                     // GRIND
 			else if (tPct >= 80 && aPct < 50) state = 3;                      // ACTIVITY
 			else if (tPct < 40 && aPct < 40) state = 5;                       // BALANCE
-			else if (tPct < 40 && eff >= 0.60) state = 4;                     // GRIND
 			else state = 6;                                                   // MIXED
 			stateS[0] = state;
-			dirS[0] = bull ? 1 : -1;
+			dirS[0] = (state == 1 || state == 4) ? (net10 >= 0 ? 1 : -1) : (bull ? 1 : -1);
 
 			double abr = 0;
 			for (int i = 0; i < lastRanges.Count; i++) abr += lastRanges[i];
