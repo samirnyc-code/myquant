@@ -111,7 +111,7 @@ def main():
             if pk:
                 va = va_by[per].get(pk[-1])
                 if va:
-                    lv["va" + per] = va
+                    lv["va" + ("yr" if per == "y" else per)] = va   # 'vay' is the PRIOR-SESSION VA
         if d in ib:
             lv["ib"] = ib[d]
         out[d] = lv

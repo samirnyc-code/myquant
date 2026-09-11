@@ -177,7 +177,7 @@ const SNAME=["CLIMAX","EXPAND","CHURN","ACTIVITY","GRIND","BALANCE","MIXED"];
 const LANEH=13,TAXIS=16,X0=64,RGUT=78;
 const LVLINES=[["hoy","HOY","#e6b45a"],["loy","LOY","#e6b45a"],["coy","COY","#d98f5a"],
  ["pmid","PDmid","#b58a5a"],["ood","OOD","#5ac8e6"],["oow","OOW","#5aa0e6"],
- ["oom","OOM","#7a8ae6"],["ooy","OOY","#9a7ae6"],["hod","HOD","#8b8f96"],["lod","LOD","#8b8f96"]];
+ ["oom","OOM","#7a8ae6"],["ooq","OOQ","#8a7ae6"],["ooy","OOY","#9a7ae6"],["hod","HOD","#8b8f96"],["lod","LOD","#8b8f96"]];
 const LVZONES=[["ib","IB","56,130,229"],["vay","VA-Y","230,180,90"],["vaw","VA-W","120,200,150"],
  ["vam","VA-M","170,140,220"],["vaq","VA-Q","220,120,160"],["vayr","VA-YR","150,150,150"]];
 let LV={};try{LV=JSON.parse(localStorage.getItem('tlv')||'{}')}catch(e){}
