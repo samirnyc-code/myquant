@@ -51,6 +51,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private double emaTempo, emaClose;
 		private bool emaInit;
 
+		// chartMode: 0 = tick chart (original path, byte-identical) · 1 = time chart +
+		// Tick Replay (tempo from counted prints per bar) · 2 = unsupported (warning only)
+		private int chartMode = 2;
+		private int tickInBar;
 		private double lastTempoPct = 50, lastAmpPct = 50, lastEffPct = 50, lastAmpAbr = double.NaN;
 		private readonly List<double> lastRanges = new List<double>();     // prior 8 bar ranges (ABR-8)
 		// 10-bar trend window (EXPAND/GRIND are multi-bar states; reset each session)
@@ -123,7 +127,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 				effPctS   = new Series<double>(this, MaximumBarsLookBack.Infinite);
 				durS      = new Series<double>(this, MaximumBarsLookBack.Infinite);
 				stateCodeS = new Series<double>(this, MaximumBarsLookBack.Infinite);
-				notTickChart = BarsPeriod.BarsPeriodType != BarsPeriodType.Tick;
+				if (BarsPeriod.BarsPeriodType == BarsPeriodType.Tick) chartMode = 0;
+				else if (Bars.IsTickReplay && (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute
+					|| BarsPeriod.BarsPeriodType == BarsPeriodType.Second)) chartMode = 1;
+				else chartMode = 2;
+				notTickChart = chartMode == 2;
 				cap = Math.Max(80, TrailingDays * 8);      // ~8 bars per 15-min bucket per session
 				bufT = new double[TODB][]; bufA = new double[TODB][];
 				cntT = new int[TODB]; cntA = new int[TODB];
@@ -166,13 +174,26 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (notTickChart || CurrentBar < 1 || Bars.IsFirstBarOfSession)
 			{
 				if (Bars.IsFirstBarOfSession) { w10cl.Clear(); w10rng.Clear(); w10tp.Clear(); }
+				tickInBar = 0;
 				for (int p = 0; p < 6; p++) Values[p].Reset();   // blank Data Box rows
 				return;
 			}
 
 			double duration = (Time[0] - Time[1]).TotalSeconds;
 			if (duration < 0.001) duration = 0.001;
-			double tempo = BarsPeriod.Value / duration;
+			double nticks;
+			if (chartMode == 0)
+				nticks = BarsPeriod.Value;                       // tick chart: unchanged
+			else
+			{
+				nticks = tickInBar; tickInBar = 0;               // time chart: counted prints (Tick Replay)
+				if (nticks < 10)                                  // no replay data for this bar -> skip
+				{
+					for (int p = 0; p < 6; p++) Values[p].Reset();
+					return;
+				}
+			}
+			double tempo = nticks / duration;
 			double range = High[0] - Low[0];
 			double eff   = range > 0 ? Math.Abs(Close[0] - Open[0]) / range : 0;
 
@@ -279,8 +300,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		protected override void OnMarketData(MarketDataEventArgs marketDataUpdate)
 		{
-			if (State != State.Realtime || marketDataUpdate.MarketDataType != MarketDataType.Last || notTickChart)
+			if (marketDataUpdate.MarketDataType != MarketDataType.Last || notTickChart)
 				return;
+			if (chartMode == 1)
+				tickInBar++;                                     // historical + realtime print counter (Tick Replay)
+			if (State != State.Realtime)
+				return;                                          // pace/alert below: realtime only (unchanged)
 			DateTime now = marketDataUpdate.Time;
 			tapeQ.Enqueue(now);
 			DateTime cutoff = now.AddSeconds(-PaceWindowSec);
@@ -331,8 +356,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 			{
 				if (notTickChart)
 				{
-					RenderTarget.DrawText("TempoSpeedometer: needs a TICK chart (e.g. ES 2000t)", tf,
-						new SharpDX.RectangleF(ChartPanel.X + 12, ChartPanel.Y + 12, 500, 22), gold);
+					RenderTarget.DrawText("TempoSpeedometer: needs a TICK chart, or a minute/second chart with Tick Replay ON", tf,
+						new SharpDX.RectangleF(ChartPanel.X + 12, ChartPanel.Y + 12, 700, 22), gold);
 					return;
 				}
 				if (ShowHeatStrip) RenderHeatStrip(chartControl);
@@ -453,7 +478,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (lastClimax)     DrawLine2(tf, x0 + 8f, ref y, "** CLIMACTIC STATE **", gold);
 			if (ShowDiag)
 			{
-				string mode = lastN >= MIN_SAMPLES ? "SELF" : "WARM " + lastN + "/" + MIN_SAMPLES;
+				string mode = (lastN >= MIN_SAMPLES ? "SELF" : "WARM " + lastN + "/" + MIN_SAMPLES)
+					+ (chartMode == 1 ? " TR" : "");
 				DrawLine2(tf, x0 + 8f, ref y, string.Format("DIAG {0:HH:mm} b{1} {2:F0}t/s {3}",
 					lastBarTime, lastBucket, lastRate, mode), dim);
 			}

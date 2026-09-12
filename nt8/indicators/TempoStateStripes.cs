@@ -49,6 +49,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private List<double> rollTempo, rollRange, rollEff;
 		private double emaClose;
 		private bool emaInit, notTickChart;
+		private int chartMode = 2;                        // 0 tick (unchanged) · 1 time+TickReplay · 2 unsupported
+		private int tickInBar;
 		private readonly List<double> lastRanges = new List<double>();     // prior 8 bar ranges (ABR-8)
 		// 10-bar trend window (EXPAND/GRIND are multi-bar states; reset each session)
 		private readonly List<double> w10cl = new List<double>();
@@ -89,7 +91,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 			{
 				stateS = new Series<double>(this, MaximumBarsLookBack.Infinite);
 				dirS = new Series<double>(this, MaximumBarsLookBack.Infinite);
-				notTickChart = BarsPeriod.BarsPeriodType != BarsPeriodType.Tick;
+				if (BarsPeriod.BarsPeriodType == BarsPeriodType.Tick) chartMode = 0;
+				else if (Bars.IsTickReplay && (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute
+					|| BarsPeriod.BarsPeriodType == BarsPeriodType.Second)) chartMode = 1;
+				else chartMode = 2;
+				notTickChart = chartMode == 2;
 				cap = Math.Max(80, TrailingDays * 8);
 				bufT = new double[TODB][]; bufA = new double[TODB][];
 				cntT = new int[TODB]; cntA = new int[TODB];
@@ -126,13 +132,26 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (notTickChart || CurrentBar < 1 || Bars.IsFirstBarOfSession)
 			{
 				if (Bars.IsFirstBarOfSession) { w10cl.Clear(); w10rng.Clear(); w10tp.Clear(); }
+				tickInBar = 0;
 				for (int p = 0; p < 6; p++) Values[p].Reset();
 				return;
 			}
 
 			double duration = (Time[0] - Time[1]).TotalSeconds;
 			if (duration < 0.001) duration = 0.001;
-			double tempo = BarsPeriod.Value / duration;
+			double nticks;
+			if (chartMode == 0)
+				nticks = BarsPeriod.Value;                       // tick chart: unchanged
+			else
+			{
+				nticks = tickInBar; tickInBar = 0;               // time chart: counted prints (Tick Replay)
+				if (nticks < 10)
+				{
+					for (int p = 0; p < 6; p++) Values[p].Reset();
+					return;
+				}
+			}
+			double tempo = nticks / duration;
 			double range = High[0] - Low[0];
 			double eff = range > 0 ? Math.Abs(Close[0] - Open[0]) / range : 0;
 
@@ -198,6 +217,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 			Values[5][0] = Math.Round(duration, 1);
 		}
 
+		protected override void OnMarketData(MarketDataEventArgs marketDataUpdate)
+		{
+			if (chartMode == 1 && marketDataUpdate.MarketDataType == MarketDataType.Last)
+				tickInBar++;
+		}
+
 		private SharpDX.Color4 LaneColor(int state, double dir)
 		{
 			switch (state)
@@ -225,8 +250,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 			{
 				if (notTickChart)
 				{
-					RenderTarget.DrawText("TempoStateStripes: needs a TICK chart", tfTiny,
-						new SharpDX.RectangleF(ChartPanel.X + 8, ChartPanel.Y + 8, 400, 14), dim);
+					RenderTarget.DrawText("TempoStateStripes: needs a TICK chart, or a minute/second chart with Tick Replay ON", tfTiny,
+						new SharpDX.RectangleF(ChartPanel.X + 8, ChartPanel.Y + 8, 600, 14), dim);
 					return;
 				}
 				float top = ChartPanel.Y + 2f, hAll = ChartPanel.H - 6f;
