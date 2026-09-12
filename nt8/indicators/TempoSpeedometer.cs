@@ -115,6 +115,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				ShowClimaxFlip = true;
 				ReverseOnOpposite = true;                  // variant 1: opposite signal while in trade = exit @ close + reverse
 				UseIbsDirection   = true;                  // bull/bear from IBS (>=0.55 / <=0.45), middle band = no signal
+				EbScratch         = true;                  // EB rule: first bar after entry non-climax opposite-IBS -> scratch @ close
 				PaceWindowSec  = 30;
 				AlertOnClimax  = false;
 				AlertCooldownSec = 120;
@@ -500,6 +501,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 					{
 						if (reach < 2 && (pSh ? Bars.GetLow(i) <= r2 : Bars.GetHigh(i) >= r2)) reach = 2;
 						else if (reach < 1 && (pSh ? Bars.GetLow(i) <= r1 : Bars.GetHigh(i) >= r1)) reach = 1;
+						// EB scratch: first bar after entry, NOT climax, opposite IBS -> out at close
+						if (EbScratch && i == pi + 1)
+						{
+							int dEB = BarDir(i);
+							bool opp = climaxS.GetValueAt(i) < 0.5
+								&& ((pSh && dEB == 1) || (!pSh && dEB == -1));
+							if (opp) { trades.Add(new[] { pi, pSh ? 1 : 0, 5, i, reach, pByRev ? 1 : 0 }); pi = -1; }
+						}
 					}
 				}
 				int fd = FlipDir(i);
@@ -611,8 +620,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 					RenderTarget.DrawLine(new SharpDX.Vector2(x1, yT1), new SharpDX.Vector2(xE, yT1), tgtBr, 1f);
 					RenderTarget.DrawLine(new SharpDX.Vector2(x1, yT2), new SharpDX.Vector2(xE, yT2), tgtBr, 1f);
 					RenderTarget.DrawLine(new SharpDX.Vector2(x1, yT3), new SharpDX.Vector2(xE, yT3), tgtBr, 1.5f);
-					string tag = result == 1 ? "Xstop" : result == 2 ? "OK 3R" : result == 4 ? "rev" : "open";
-					SolidColorBrush tagBr = result == 2 ? tgtBr : result == 1 ? stopBr : result == 4 ? revBr : entryBr;
+					string tag = result == 1 ? "Xstop" : result == 2 ? "OK 3R" : result == 4 ? "rev"
+						: result == 5 ? "eb-scr" : "open";
+					SolidColorBrush tagBr = result == 2 ? tgtBr : result == 1 ? stopBr
+						: (result == 4 || result == 5) ? revBr : entryBr;
 					RenderTarget.DrawText((sh ? "SHORT " : "LONG ") + tag,
 						tfT, new SharpDX.RectangleF(x1 + 2, yEn - 13, 110, 12), tagBr);
 					RenderTarget.DrawText("stop", tfT, new SharpDX.RectangleF(xE + 3, ySt - 6, 40, 12), stopBr);
@@ -651,7 +662,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					double sgn = sh ? -1 : 1;
 					if (t[2] == 1) { losses++; ptsPnl -= rk; rPnl -= 1; }
 					else if (t[2] == 2) { wins++; ptsPnl += 3 * rk; rPnl += 3; }
-					else if (t[2] == 4)
+					else if (t[2] == 4 || t[2] == 5)
 					{
 						revs++;
 						double p = (Bars.GetClose(t[3]) - en) * sgn;
@@ -850,6 +861,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[NinjaScriptProperty]
 		[Display(Name = "Flip: IBS bar direction (0.55/0.45)", GroupName = "3. Blocks", Order = 7)]
 		public bool UseIbsDirection { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name = "Flip: EB opposite-IBS scratch", GroupName = "3. Blocks", Order = 8)]
+		public bool EbScratch { get; set; }
 
 		[NinjaScriptProperty, Range(5, 300)]
 		[Display(Name = "Live pace window (sec)", GroupName = "4. Live pace / alert", Order = 0)]
