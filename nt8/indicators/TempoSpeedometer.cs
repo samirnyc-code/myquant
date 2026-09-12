@@ -114,7 +114,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				ShowDiag       = true;
 				ShowClimaxFlip = true;
 				ReverseOnOpposite = true;                  // variant 1: opposite signal while in trade = exit @ close + reverse
-				UseIbsDirection   = true;                  // bull/bear from IBS (>=0.55 / <=0.45), middle band = no signal
+				UseIbsDirection   = true;                  // SB dir from IBS (>=0.55 / <=0.45, middle = no signal); bar1 = color only
 				EbScratch         = true;                  // EB rule: first bar after entry non-climax opposite-IBS -> scratch @ close
 				PaceWindowSec  = 30;
 				AlertOnClimax  = false;
@@ -467,8 +467,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private int FlipDir(int i)                        // 0 none · 1 short · 2 long
 		{
 			if (i < 1 || climaxS.GetValueAt(i) < 0.5 || climaxS.GetValueAt(i - 1) < 0.5) return 0;
-			int d1 = BarDir(i - 1), d2 = BarDir(i);
-			if (d1 == 0 || d2 == 0 || d1 == d2) return 0;
+			// bar1: color only; SB: IBS band (user rule 2026-09-12)
+			int d1 = Bars.GetClose(i - 1) >= Bars.GetOpen(i - 1) ? 1 : -1;
+			int d2 = BarDir(i);
+			if (d2 == 0 || d1 == d2) return 0;
 			return d1 == 1 ? 1 : 2;
 		}
 
@@ -859,7 +861,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		public bool ReverseOnOpposite { get; set; }
 
 		[NinjaScriptProperty]
-		[Display(Name = "Flip: IBS bar direction (0.55/0.45)", GroupName = "3. Blocks", Order = 7)]
+		[Display(Name = "Flip: SB IBS direction (0.55/0.45; bar1=color)", GroupName = "3. Blocks", Order = 7)]
 		public bool UseIbsDirection { get; set; }
 
 		[NinjaScriptProperty]
