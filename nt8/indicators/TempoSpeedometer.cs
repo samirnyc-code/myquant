@@ -467,8 +467,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private int FlipDir(int i)                        // 0 none · 1 short · 2 long
 		{
 			if (i < 1 || climaxS.GetValueAt(i) < 0.5 || climaxS.GetValueAt(i - 1) < 0.5) return 0;
-			// bar1: color only; SB: IBS band (user rule 2026-09-12)
-			int d1 = Bars.GetClose(i - 1) >= Bars.GetOpen(i - 1) ? 1 : -1;
+			// bar1: color only; SB: IBS band; perfect dojis have no color -> no signal
+			// on either bar of the pair (user rules 2026-09-12)
+			double o1 = Bars.GetOpen(i - 1), c1 = Bars.GetClose(i - 1);
+			double o2 = Bars.GetOpen(i),     c2 = Bars.GetClose(i);
+			if (Math.Abs(c1 - o1) < TickSize / 2 || Math.Abs(c2 - o2) < TickSize / 2) return 0;
+			int d1 = c1 >= o1 ? 1 : -1;
 			int d2 = BarDir(i);
 			if (d2 == 0 || d1 == d2) return 0;
 			return d1 == 1 ? 1 : 2;
