@@ -31,7 +31,7 @@ any item, drop "WIP <A/B>" in its row so the other chat leaves it alone.
 | 10 | Max-profit-zone feature | 🟡 STARTED | `maxprofit_zone.py` built; wire into sandbox as an exit dimension |
 | 15 | ETH tick capture | 🟢 UNLOCKED (S116-B 9/11) | **NT `.ncd` HOLDS FULL ETH** — probe (`eth_probe_request.py`) exported 9/10 with the ETH template = 2.2M rows, 536k outside RTH, ticks every hour 00-23. The RTH-only trove was purely an extraction filter, NOT a recording gap. ⚠ OVERTURNS the tempo note "ONH/ONL impossible (trove RTH-only)" — ETH IS recoverable back to NT retention (~few weeks). `TickExportAddOn` now takes an optional `hours` field (deployed+compiled). NEXT (needs user OK, touches the 5yr trove): one-time recent-ETH backfill + widen `tick_pipeline.py`/`ingest_nt_ticks.py` off RTH (seam+schema decision) |
 | 16 | ES roll = VOLUME not calendar | ✅ FIXED (S116-B 9/11) | false "WRONG CONTRACT" alert (health check flips to 12-26 on day≥10) — NT was correctly on 09-26. `data/es_roll_override.json` pins 09-26 as expected until hard-stop 2026-09-18 (expiry Fri), then calendar rule+alert resume. `tick_pipeline.py` still hardcodes `CONTRACT="ES 09-26"` — must roll to 12-26 same day the NT chart rolls |
-| 11 | Tempo/market-state study (2000t) | ✅ RESEARCH DONE + VISUAL TOOLING BUILT (S116-tempo) | Research: Stage 1 gate PASS (tempo forecasts ACTIVITY, direction null), Stage 2 **H4/H5 NULL** (no reversal-vs-continuation edge). User then directed: build the visuals anyway (observational). Built + committed: NT8 `TempoSpeedometer.cs` (opacity bars tod-calibrated, speedometer, heat strip, 2D engine dot, state label, live pace + climax audio alert; compile-check OK, deployed to Custom — **PENDING USER F5** + add to ES 2000t chart) + Day-DNA gallery (`tempo/outputs/day_dna_gallery.html`, 1,314 days, k=6 clusters, neighbour matcher). See S116-tempo block |
+| 11 | Tempo → CLIMAX-FLIP setup lab | 🟢 ACTIVE (S117-tempo, tempo chat) | User designing setups on the tempo framework; best config **PF 1.12 / +$14.5 gross per trade full-history** (flip + IBS + SAR + EB-scratch + 2R). His rules keep winning, mine keep losing — iterate WITH him. **READ THE S117-tempo BLOCK FIRST** (full verdicts table, harness inventory, caveats). Earlier: S116 research (activity-not-direction) + visual tooling + Day-DNA gallery + marking tool @ :8642 |
 | 13 | GexLog ignored-fields join study | ⛔ CLOSED (S116-gexlog) | ran + committed (`gexlog_field_join_study.py`, stats 20260910) but user judged the direction a dead end — do NOT pick up the walk-forward follow-up |
 | 14 | Playbook-only backtest (trade what the gexlog playbook says) | ✅ DONE (S116-gexlog) | `gexlog_playbook_parse.py` (327/327 scenarios) + `gexlog_playbook_bt.py` (TD 1-min, 106d Apr–Sep): touch −$43.0k / hold15 +$5.5k / cross15 +$0.4k — sign flips on the trigger reading; no robust edge; rows in backtest_full/playbook_bt_rows.csv |
 | 17 | Trade plan w/ Thomas (setup inventory → regime/risk categorization → trade log/journal) | 🟡 STARTED (S118 9/12) | Setup inventory v1 compiled from ALL sources (handoffs, research notes 0001–0016, leglab/tempo, PATs/Mack taxonomy, Brooks/Dalton/Ali literature, options playbook+sim) → `docs/living/trade_plan/setup_inventory.md` (names+status only, incl. DEAD list + trade-log field sketch). NEXT: Samir+Thomas pick the tradeable subset, then categorize by regime & risk profile, then per-setup detail sheets |
@@ -47,6 +47,68 @@ Focus: the GexLog morning brief itself — what's in it, what the sim actually c
 - **Ignored-fields join study (board 13): CLOSED** — user judged it a dead end; committed for the record only (32674088, 860b1495).
 - **Playbook-only backtest (board 14): DONE (d2f059c3).** Parsed ALL 109 playbook days 327/327 scenarios (`gexlog_playbook_parse.py`, 3878be70) and traded ONLY the playbook mechanically (TD 1-min parity trigger detection + NBBO touch entries, hold-to-expiry, official close, $1.63 fees, 106d Apr–Sep): **touch −$42,977 / hold15 +$5,544 / cross15 +$356** — sign flips on how "clears and holds" is read ⇒ NO robust edge. Audit (`gexlog_playbook_bt_audit.py`): touch/hold15 buy deep-ITM debit spreads when the trigger level is already exceeded at the open (06-09: 75-wide @ 56.7 debit, −$5.5k) — hold15's +$5.5k is drift beta, not playbook skill; cross15 (fair reading, real intraday cross required) ≈ $0; Aug: all variants negative while the live desk made +$9.2k Aug–Sep.
 - Machine-time note: 9/10 + 9/11 morning briefs landed in `data/gexlog/raw/` during/after the session.
+
+## S117-tempo (2026-09-12) — THE CLIMAX-FLIP SETUP: from idea to PF 1.12 in one day. HANDOFF FOR CONTINUATION.
+
+**READ THIS BLOCK FIRST if continuing the flip-setup thread.** The user is actively
+designing trading setups on the tempo/climax framework; iterate WITH him — he supplies
+variants from screen time, we test each with the frozen-spec + train/test discipline.
+His two rules so far BOTH improved the setup; several of my own ideas failed. Score him.
+
+**THE SETUP (user's design, "trap thesis"):** two ADJACENT opposite-direction CLIMAX bars
+(tempo ≥p95 for time-of-day, self-calibrated trailing ~60 sessions). Thesis: traders got
+trapped on bar 1, bar 2 (SB) violently reverses against them → expect follow-through.
+bull→bear = SHORT, bear→bull = LONG. Entry = SB close; stop 1 tick beyond the 2-bar box.
+
+**CURRENT BEST CONFIG (all sim, 1 ES, gross unless noted):**
+climax flip + **IBS direction** (bull IBS≥0.55/bear≤0.45, middle band = no signal)
++ **SAR** (opposite flip signal while in trade = exit @ signal close + reverse)
++ **EB-scratch** (first bar after entry non-climax w/ opposite IBS → scratch @ close)
++ **fixed 2R target** (no BE, no trail) →
+**full 5.2yr: PF 1.12, +$14.5/trade gross, +$10.0 net(@$4.50RT), maxDD −$12.4k;
+1yr: PF 1.12, +$17.0 gross, DD −$6.5k.** ~2,750 trades. 2024 was a negative year.
+
+**Setup naming (user's):** "Basic" = flip w/o reversal entry; "EB Reversal" = entered
+via reversal. More variants coming — he names them.
+
+**TESTED VERDICTS (do not retest, build on):**
+- SAR flips the sign of the whole system (+375 vs −288 pts full). USER'S RULE. ✔
+- IBS direction: independent improvement. USER'S RULE. ✔
+- EB-scratch: validates trap thesis (flagged trades −1.37pt avg vs +0.60 unflagged);
+  scratch > reverse at non-climax EB (reversal needs climax energy). USER'S RULE. ✔
+- RR grid: **RR2 best** (RR3/RR4 ok on EB-Rev, RR1 weak; Basic only marginal @RR2). ✔
+- BE+1 lock (@1R) and 1-tick bar-trails: ALL WORSE (−$4-7/trade; avg winner 7.9→5.3pt,
+  losers unchanged — losers rarely reach 1R, protection mostly scratches real winners).
+  Only benefit: BE1_T2 cuts 1yr DD to −$4.3k. ✘
+- 6-tick scalp: structurally dead (1.5pt reward vs ~6.6pt risk needs 82% wins, has 72%). ✘
+- My 4 trap-geometry filters (trap-extreme/engulf/roundtrip/level-poke): sign-flip between
+  train 21-24 and test 25-26 → unreliable, rejected. ✘ (Trap thesis itself: supported.)
+- Older context: unconditional climax-at-extreme +3.6pp all-6-years; prior-EXPAND-run
+  conditioning passed clean (+0.05-0.09R); hour-5 contaminated post-hoc — see S116 blocks.
+
+**CAVEATS (state them whenever quoting results):** conservative both-in-bar→stop;
+SAR/scratch fills modeled AT the close of fast bars (real slippage will cost ~1t on
+~30% of trades ≈ −$4/trade); no walk-forward of the 2R choice; 2024 negative.
+
+**TOOLING (all committed, branch leglab):**
+- NT8 `nt8/indicators/TempoSpeedometer.cs`: full setup rendering (boxes, RR lines,
+  outcome tags Xstop/OK 3R/rev/eb-scr/open, skip boxes, session tally w/ R-reach,
+  per-setup HOVER CARDS w/ setup name), params: ShowClimaxFlip / ReverseOnOpposite /
+  UseIbsDirection / EbScratch. ⚠ chart target still hardcoded 3R — user asked about
+  RR2; offer a target param. Splice pattern: `tempo/scripts/_splice_flip.py`.
+- Backtest harness (all mirror the NT rules exactly, run in ~1min on
+  `tempo/outputs/tempo_engine_bars.parquet`): `flip_backtest.py` (base+scalp),
+  `flip_sar_backtest.py` (SAR/IBS grid), `flip_metrics.py` (full metric grid),
+  `flip_eb_test.py` (EB rule), `flip_trap_mgmt.py` (filters+management, has the
+  train/test pattern to copy). Engine port: `tempo_engine.py` (exact v2 indicator math).
+- Marking tool `tempo/scripts/tempo_review.py` @ :8642 (levels, zoom, multi-bar marks
+  → data/annotations/tempo_review/). User has 1 mark; the A-grade trap study waits on ~30.
+
+**OPEN / NEXT:** ① user has more variants coming — test each: one frozen spec, train/test
+split, report inline, deploy to indicator if adopted; ② offer RR-target param on chart;
+③ tick-level fill validation of SAR/scratch fills (ThetaData pattern) before any sizing;
+④ ETH tick capture in progress on desk side (S116-B: NT .ncd holds full ETH) → rebuild
+engine 24h when it lands; ⑤ marking-loop commonality study at 30+ marks.
 
 ## S116/117-tempo ADDENDUM-2 (2026-09-11) — climax-reversal marking loop built; studies continued
 
