@@ -105,6 +105,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				ShowEngineDot  = true;
 				ShowStateLabel = true;
 				ShowDiag       = true;
+				ShowClimaxFlip = true;
 				PaceWindowSec  = 30;
 				AlertOnClimax  = false;
 				AlertCooldownSec = 120;
@@ -362,6 +363,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				}
 				if (ShowHeatStrip) RenderHeatStrip(chartControl);
 				RenderClimaxDots(chartControl, chartScale);
+				if (ShowClimaxFlip) RenderClimaxFlips(chartControl, chartScale);
 				if (ShowEngineDot) RenderEngineDot(tfTiny, white, dim, bg, grid);
 				if (ShowSpeedo)    RenderSpeedo(tf, white, dim, gold, bg);
 			}
@@ -406,6 +408,80 @@ namespace NinjaTrader.NinjaScript.Indicators
 				}
 			}
 			finally { gold.Dispose(); }
+		}
+
+		private void RenderClimaxFlips(ChartControl chartControl, ChartScale chartScale)
+		{
+			// SETUP: bull climax bar immediately followed by bear climax bar -> SHORT
+			// (mirror -> LONG). Box spans both bars' extremes; entry = close of bar 2;
+			// stop = 1 tick beyond the box extreme; entry/stop/1R/2R drawn right only
+			// until the FIRST bar whose extreme takes the stop out.
+			int from = Math.Max(1, ChartBars.FromIndex - 1), to = ChartBars.ToIndex;
+			TextFormat tfT = new TextFormat(NinjaTrader.Core.Globals.DirectWriteFactory, "Consolas", 10f);
+			SolidColorBrush boxFill = new SolidColorBrush(RenderTarget, new SharpDX.Color4(1f, 0.84f, 0f, 0.10f));
+			SolidColorBrush boxEdge = new SolidColorBrush(RenderTarget, new SharpDX.Color4(1f, 0.84f, 0f, 0.85f));
+			SolidColorBrush entryBr = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.92f, 0.92f, 0.92f, 0.9f));
+			SolidColorBrush stopBr  = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.94f, 0.33f, 0.31f, 0.9f));
+			SolidColorBrush tgtBr   = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.30f, 0.82f, 0.63f, 0.85f));
+			SolidColorBrush riskZ   = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.94f, 0.33f, 0.31f, 0.07f));
+			SolidColorBrush rewZ    = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.30f, 0.82f, 0.63f, 0.06f));
+			try
+			{
+				float bw = 6f;
+				if (to > from)
+					bw = Math.Max(2f, (float)chartControl.GetXByBarIndex(ChartBars, from + 1)
+									  - chartControl.GetXByBarIndex(ChartBars, from));
+				for (int i = from; i <= to && i <= CurrentBar; i++)
+				{
+					if (climaxS.GetValueAt(i) < 0.5 || climaxS.GetValueAt(i - 1) < 0.5) continue;
+					bool up1 = Bars.GetClose(i - 1) >= Bars.GetOpen(i - 1);
+					bool up2 = Bars.GetClose(i) >= Bars.GetOpen(i);
+					if (up1 == up2) continue;
+					bool isShort = up1 && !up2;
+					double hi2 = Math.Max(Bars.GetHigh(i - 1), Bars.GetHigh(i));
+					double lo2 = Math.Min(Bars.GetLow(i - 1), Bars.GetLow(i));
+					double entry = Bars.GetClose(i);
+					double stop = isShort ? hi2 + TickSize : lo2 - TickSize;
+					double risk = Math.Abs(entry - stop);
+					if (risk < TickSize) continue;
+					double t1 = isShort ? entry - risk : entry + risk;
+					double t2 = isShort ? entry - 2 * risk : entry + 2 * risk;
+
+					int endIdx = Math.Min(CurrentBar, i + 500);
+					bool stopped = false;
+					for (int j = i + 1; j <= Math.Min(CurrentBar, i + 500); j++)
+					{
+						bool hit = isShort ? Bars.GetHigh(j) >= stop : Bars.GetLow(j) <= stop;
+						if (hit) { endIdx = j; stopped = true; break; }
+					}
+
+					float x0 = chartControl.GetXByBarIndex(ChartBars, i - 1) - bw / 2f;
+					float x1 = chartControl.GetXByBarIndex(ChartBars, i) + bw / 2f;
+					float xE = chartControl.GetXByBarIndex(ChartBars, endIdx) + (stopped ? 0f : bw / 2f);
+					float yH = chartScale.GetYByValue(hi2), yL = chartScale.GetYByValue(lo2);
+					RenderTarget.FillRectangle(new SharpDX.RectangleF(x0, yH, x1 - x0, yL - yH), boxFill);
+					RenderTarget.DrawRectangle(new SharpDX.RectangleF(x0, yH, x1 - x0, yL - yH), boxEdge, 1.5f);
+
+					float yEn = chartScale.GetYByValue(entry), ySt = chartScale.GetYByValue(stop);
+					float yT1 = chartScale.GetYByValue(t1), yT2 = chartScale.GetYByValue(t2);
+					RenderTarget.FillRectangle(new SharpDX.RectangleF(x1, Math.Min(yEn, ySt), xE - x1, Math.Abs(ySt - yEn)), riskZ);
+					RenderTarget.FillRectangle(new SharpDX.RectangleF(x1, Math.Min(yEn, yT2), xE - x1, Math.Abs(yT2 - yEn)), rewZ);
+					RenderTarget.DrawLine(new SharpDX.Vector2(x1, yEn), new SharpDX.Vector2(xE, yEn), entryBr, 1.5f);
+					RenderTarget.DrawLine(new SharpDX.Vector2(x1, ySt), new SharpDX.Vector2(xE, ySt), stopBr, 1.5f);
+					RenderTarget.DrawLine(new SharpDX.Vector2(x1, yT1), new SharpDX.Vector2(xE, yT1), tgtBr, 1f);
+					RenderTarget.DrawLine(new SharpDX.Vector2(x1, yT2), new SharpDX.Vector2(xE, yT2), tgtBr, 1f);
+					RenderTarget.DrawText((isShort ? "SHORT " : "LONG ") + (stopped ? "✕stopped" : ""),
+						tfT, new SharpDX.RectangleF(x1 + 2, yEn - 13, 110, 12), entryBr);
+					RenderTarget.DrawText("stop", tfT, new SharpDX.RectangleF(xE + 3, ySt - 6, 40, 12), stopBr);
+					RenderTarget.DrawText("1R", tfT, new SharpDX.RectangleF(xE + 3, yT1 - 6, 30, 12), tgtBr);
+					RenderTarget.DrawText("2R", tfT, new SharpDX.RectangleF(xE + 3, yT2 - 6, 30, 12), tgtBr);
+				}
+			}
+			finally
+			{
+				tfT.Dispose(); boxFill.Dispose(); boxEdge.Dispose(); entryBr.Dispose();
+				stopBr.Dispose(); tgtBr.Dispose(); riskZ.Dispose(); rewZ.Dispose();
+			}
 		}
 
 		private SharpDX.Color4 HeatColor(double pct)
@@ -541,6 +617,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[NinjaScriptProperty]
 		[Display(Name = "Show DIAG line", GroupName = "3. Blocks", Order = 4)]
 		public bool ShowDiag { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name = "Show climax-flip setups (box + RR)", GroupName = "3. Blocks", Order = 5)]
+		public bool ShowClimaxFlip { get; set; }
 
 		[NinjaScriptProperty, Range(5, 300)]
 		[Display(Name = "Live pace window (sec)", GroupName = "4. Live pace / alert", Order = 0)]
