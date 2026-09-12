@@ -1,0 +1,4 @@
+row,n,PF,tot_pts,$/trade,maxDD_$
+WF select-by-pts,1296,1.08,350.0,13.5,-15088.0
+WF select-by-pf,1176,1.11,482.0,20.5,-14175.0
+current config 23-26 (in-sample-flavored),1850,1.15,713.5,19.3,-12438.0
