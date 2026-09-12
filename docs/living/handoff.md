@@ -31,12 +31,54 @@ any item, drop "WIP <A/B>" in its row so the other chat leaves it alone.
 | 10 | Max-profit-zone feature | 🟡 STARTED | `maxprofit_zone.py` built; wire into sandbox as an exit dimension |
 | 15 | ETH tick capture | 🟢 UNLOCKED (S116-B 9/11) | **NT `.ncd` HOLDS FULL ETH** — probe (`eth_probe_request.py`) exported 9/10 with the ETH template = 2.2M rows, 536k outside RTH, ticks every hour 00-23. The RTH-only trove was purely an extraction filter, NOT a recording gap. ⚠ OVERTURNS the tempo note "ONH/ONL impossible (trove RTH-only)" — ETH IS recoverable back to NT retention (~few weeks). `TickExportAddOn` now takes an optional `hours` field (deployed+compiled). NEXT (needs user OK, touches the 5yr trove): one-time recent-ETH backfill + widen `tick_pipeline.py`/`ingest_nt_ticks.py` off RTH (seam+schema decision) |
 | 16 | ES roll = VOLUME not calendar | ✅ FIXED (S116-B 9/11) | false "WRONG CONTRACT" alert (health check flips to 12-26 on day≥10) — NT was correctly on 09-26. `data/es_roll_override.json` pins 09-26 as expected until hard-stop 2026-09-18 (expiry Fri), then calendar rule+alert resume. `tick_pipeline.py` still hardcodes `CONTRACT="ES 09-26"` — must roll to 12-26 same day the NT chart rolls |
-| 11 | Tempo → CLIMAX-FLIP setup lab | 🟢 ACTIVE (S117-tempo, tempo chat) | User designing setups on the tempo framework; best config **PF 1.12 / +$14.5 gross per trade full-history** (flip + IBS + SAR + EB-scratch + 2R). His rules keep winning, mine keep losing — iterate WITH him. **READ THE S117-tempo BLOCK FIRST** (full verdicts table, harness inventory, caveats). Earlier: S116 research (activity-not-direction) + visual tooling + Day-DNA gallery + marking tool @ :8642 |
+| 11 | Tempo → CLIMAX-FLIP setup lab | 🟢 ACTIVE (S119-tempo, tempo chat) | **WALK-FORWARD DONE — quote THESE numbers**: OOS 2023-26 PF 1.08-1.11, +$13.5-20.5/tr gross (~$9-16 net), maxDD −$14-15k. S117 verdicts REVISED: SAR = 25-26-only (attribution: per-opportunity edge sign-flipped, NOT more opportunities — watch live, not structural); EB-scratch = paid insurance (flagged trades better ridden full-hist; WF never picks it); NEW validated rule **skip Basic entries in hour 8** (WF adopts it at 2023 on its own; SAR hour-8 entries stay). BE-limit variant REJECTED. **READ THE S119-tempo BLOCK FIRST.** Earlier: S117 config lab, S116 research + tooling + marking tool @ :8642 |
 | 13 | GexLog ignored-fields join study | ⛔ CLOSED (S116-gexlog) | ran + committed (`gexlog_field_join_study.py`, stats 20260910) but user judged the direction a dead end — do NOT pick up the walk-forward follow-up |
 | 14 | Playbook-only backtest (trade what the gexlog playbook says) | ✅ DONE (S116-gexlog) | `gexlog_playbook_parse.py` (327/327 scenarios) + `gexlog_playbook_bt.py` (TD 1-min, 106d Apr–Sep): touch −$43.0k / hold15 +$5.5k / cross15 +$0.4k — sign flips on the trigger reading; no robust edge; rows in backtest_full/playbook_bt_rows.csv |
 | 17 | Trade plan w/ Thomas (setup inventory → regime/risk categorization → trade log/journal) | 🟡 STARTED (S118 9/12) | Setup inventory v1 compiled from ALL sources (handoffs, research notes 0001–0016, leglab/tempo, PATs/Mack taxonomy, Brooks/Dalton/Ali literature, options playbook+sim) → `docs/living/trade_plan/setup_inventory.md` (names+status only, incl. DEAD list + trade-log field sketch). NEXT: Samir+Thomas pick the tradeable subset, then categorize by regime & risk profile, then per-setup detail sheets |
 
 ---
+
+## S119-tempo (2026-09-12, tempo chat) — climax-bar dissection · WALK-FORWARD · S117 verdicts revised
+
+User asked: dissect the climax bars, find an edge, then demanded honest walk-forward. Result: the
+setup SURVIVES but smaller than quoted, and two S117 verdicts got corrected. All scripts committed
+(`tempo/scripts/flip_bucket_study / flip_edge_report / flip_location_study / flip_year_decomp /
+flip_wedge_join / flip_walkforward(_v2) / flip_eb_belimit / flip_wf2_sar_trace / flip_sar_attrib.py`),
+dated outputs in tempo/outputs.
+
+**HEADLINE (quote these, not the S117 in-sample numbers):** walk-forward (72-config grid, IS=through
+2022 per user, expanding, select on prior years only): **OOS 2023-26 PF 1.08-1.11, +$13.5-20.5/trade
+gross, ~$9-16 net @$4.50RT, maxDD −$14-15k** (select-by-pts / select-by-PF). Hand-picked config same
+span PF 1.15 (in-sample-flavored). Stable WF pick: **IBS + RR2 + skip-hour-8-Basic**, no EB, SAR added
+only for 2026.
+
+**VERDICT REVISIONS vs S117 table:**
+- **SAR: downgraded to regime-only.** Head-to-head (IBS+noEB+RR2+skipH8b family): noSAR won EVERY year
+  2022-24; ALL of SAR's benefit is 2025-26 (+541/+210 pts vs +123/+58). Attribution (`flip_sar_attrib`):
+  divergent-day FREQUENCY ~unchanged (13.6%→16.7%) but per-opportunity EDGE sign-flipped (−1.45 →
+  +8.03 pts/div-day) ⇒ the rule itself only worked recently. Watch rolling live, don't trust structurally.
+- **EB-scratch ("setup 3"): paid insurance, not alpha.** Flagged trades (n=357): ridden −$68.7/tr
+  (21.6% still hit 2R target) vs scratched −$88.8 ⇒ scratch costs ~145pts full-history; 23-26 ~wash
+  (+36pts for scratch); DD benefit (S117 1yr −6.5k vs −9.9k) is the only argument. WF never picks it.
+- **BE-limit variant (user idea, tested): REJECTED.** Work a limit at entry after wrong-IBS EB:
+  63% exit at $0 but 37% eat the FULL stop waiting ⇒ −$96/−$100 per flagged trade (touch/thru), worse
+  than scratch AND ride, both periods.
+- **NEW VALIDATED RULE: skip Basic (from-flat) entries in the 8:xx hour.** Basic hour-8: −$51/−$48 per
+  trade in BOTH halves; SAR hour-8 entries positive — keep those. WF adopts this rule at 2023 on its own.
+
+**Bucket-study residue (weaker, R-checked):** in-range flips ≥ fresh-extreme flips (newsess/beyondPD
+consistent sign but magnitude mostly 25-26); flip-away-from-POC-Y > toward (both halves, modest); VA-Y
+zones / PD-range sub-zones / 30+ other features: dead or sign-flip. Why 25-26 $ looked huge: half scale
+(box 4.75→6.95pt, ES 5307→7138; fixed-risk 2025 ≈ 2022/23) + config selection had used 1yr metrics.
+**Wedge lead (OPEN):** beyond-PD flips WITH same-side MyWedge signal ≤2 bars: n=19, PF 2.84, +$180/tr
+(6-mo NT export overlap only; inside-PD+wedge negative n=16). NO python wedge detector exists — **port
+MyWedge .cs → python** to test full-history. Hindsight check: user's failed-BO-makes-HOD/LOD intuition
+real (n=46 beyond-PD traps held as day extreme: PF 10.9) but flag is circular + 3% of signals.
+
+**PENDING USER DECISIONS:** ① indicator defaults: `EbScratch` ON and `ReverseOnOpposite` ON are both
+now weakly supported — flip defaults? (do NOT change without his word); ② RR-target param on chart
+(still renders 3R); ③ MyWedge python port go/no-go; ④ setups formalized as 3: Basic / EB Reversal /
+EB-scratch (user: "not really a setup" but track it).
 
 ## S116-gexlog (2026-09-10 → 09-11, this chat) — morning-brief deep-read · usage map · playbook-only backtest
 
