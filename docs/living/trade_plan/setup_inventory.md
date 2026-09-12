@@ -1,5 +1,5 @@
 # Setup Inventory — master list for the trade plan (Samir + Thomas)
-**Created:** 2026-09-12 (S118) · **Status:** draft v1 — names only, next step = regime/risk categorization
+**Created:** 2026-09-12 (S118) · **Status:** draft v2 — names + evidence ranking · **SCOPE DECIDED (S118): the trade plan covers MANUAL ES ONLY.** §4 (options desk) stays in the doc as reference but is OUT of the plan.
 **Sources scoured:** docs/living/** (all handoffs + studies), docs/research_notes/** (0001–0016 + killer-day + grimes), leglab/, tempo/, scripts/, nt8/, memory notes, PATs-Trading repo (Mack), Desktop literature (Brooks, Dalton/Steidlmayer, Ali/QuantSystems whitepaper), options playbook + sim code.
 
 Status flags: 🟢 live/validated in-house · 📗 backtested (frozen book) · 📙 studied (result noted) · 📓 in literature/mentor material, never built · ⛔ tested-and-dead (kept so we never re-buy the same idea).
@@ -129,6 +129,33 @@ Status flags: 🟢 live/validated in-house · 📗 backtested (frozen book) · �
 - Mack execution rules (not setups): signal-bar quality veto · room-to-scalp 4-tick gate · don't-chase rule
 
 ---
+
+## Evidence ranking — manual ES scope (S118)
+**What this is:** the in-house tested setups sorted by their own research-note verdicts and numbers (source: notes 0001–0015d, s85 book metrics, living studies — extracted 2026-09-12). **What it is not:** a rank of the ~40 literature-only Brooks/Mack names — those have NO in-house numbers and cannot be ranked, only listed (Tier C). Scorecard numbers are gross/optimistic (252d bench, scalp +2) — directional only.
+
+**Tier A — validated, positive, would anchor the plan**
+| rank | setup | evidence | caveat |
+|---|---|---|---|
+| 1 | REGIME-2E 2EL/2ES | 2021+ n=540 PF 1.54 (+$15.0k/yr ES), v1.1+gap PF 1.64–1.70, 16yr PF 1.33, maxDD −$10.2k, audited real-tick | lives on branch regime/indep; 2ES below SMA20 loses (PF 0.76) — the gate IS the setup |
+| 2 | STMR long (daily) | 17yr n=184 win 80% PF 4.45 +$1,064/ES exp, 16/17 yrs green, walk-forward "fixed beats fitted" | DAILY swing w/ overnight holds — conflicts with prop flat-by-15:00-CT rule; check account fit |
+| 3 | Keystone IB-edge fade | n=1,395 PF 1.38 ExpR +0.159 (honest fwd +0.09–0.12R), positive every year 2021–26, survived look-ahead audit | note's own verdict: "modest — sized COMPONENT, not standalone"; sole survivor of ~85 buckets |
+| 4 | S3_early13@3R | frozen S55 WF survivor, OOS n=1,858 +0.107R PF 1.24, 3.75/4 yrs positive | fails the PF≥1.3 bar at MES costs; ~$2.5–3k/yr per MES |
+| 5 | f2EL fade sleeve | PF 1.35, BEAR-gated, frozen spec | n=105 only |
+
+**Tier B — modest/conditional evidence (component or thin)**
+- MC CC1–CC5 base book — all-signals PF 1.14 n=5,444 (+$47/tr): the signal POOL the Tier-A filters mine, weak unfiltered
+- 3E entries — PF 1.30 +$20.8k/yr but overlaps 2E legs (don't stack blindly)
+- Scorecard LIMIT-entry family (BB/SA+location, fade edges, BB/SA mean-rev) — +$20–23k gross each; robust pattern = LIMIT pullbacks win / STOP breakouts lose (−$122k)
+- Balance-day fade — beats baseline 9/14 OOS folds ($149 vs $94 exp) — a conditioner more than a setup
+- WedgeScalper signal-bar CLOSE entry — PF 1.04–1.16, real but thin, slippage-sensitive (breakout entry is ⛔ PF 0.76); LookBack-12 redo pending
+- Climax-at-high reversal — +3.6pp z=3.3 all 6 years, event-level only, no P&L claim
+- RevFT filtered/portfolio — combined book PF 1.29 n=1,730 BUT 0015b destroyed RevFT as a *signal* (random-time null p=0.12; edge = regime beta) — only tradeable as the gated portfolio, not as a standalone signal
+
+**Tier C — no in-house evidence (literature/decode only — pick on discretionary grounds, then the log builds the evidence)**
+All §1 Brooks/Mack names not listed above (H1/H2/L1/L2 manual, MTR, wedge, DT/DB, fBO, traps, spike&channel, BP, TR plays, gap fill…), Dalton open types + VA rules, Logan MyReversals (decode only, zero edge claims), Always-In flip (no saved stats; negative as a gate).
+
+**Tier D — tested NEGATIVE for manual ES (do not put in the plan)**
+PB scale-in (NO-GO, add is negative-expectancy) · RevFT PB-retest i1R (retire, all variants) · fade-EMA-thrust (retire, 12-trade mirage) · RevFT as counter-trend fade (−$114.9k, loses every year) · reversal-at-developing-HOD/LOD (both hypotheses negative) · NR-ORB (real R-edge but redundant, ~$1k/yr) · ZLO KeyRet standalone (PF 0.97; works only as MC filter) · QS BO+FT / Rev+FT mechanical (ExpR −0.026/−0.028; Ali's numbers = 100 hand-picked trades; 0007's +$359k VOIDED look-ahead bug) · wedge BREAKOUT entry (PF 0.76) · with-trend breakout STOP entries generally (scorecard −$122k) · 1E adds / 1ES (PF ≤1.04) · 2ES below SMA20 (PF 0.76)
 
 ## Trade log → journal (first sketch, S118)
 Per-trade fields (superset; log everything, journal renders):
