@@ -74,6 +74,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		private Dictionary<int, System.Windows.Media.Brush> brushCache;
 
+		// per-setup hover cards (climax-flip trades)
+		private readonly List<float[]> flipRects = new List<float[]>();   // x,y,w,h per rendered trade
+		private readonly List<string[]> flipInfos = new List<string[]>();
+		private int flipHover = -1;
+		private float hoverX, hoverY;
+
 		protected override void OnStateChange()
 		{
 			if (State == State.SetDefaults)
@@ -141,6 +147,35 @@ namespace NinjaTrader.NinjaScript.Indicators
 				cntT = new int[TODB]; cntA = new int[TODB];
 				for (int b = 0; b < TODB; b++) { bufT[b] = new double[cap]; bufA[b] = new double[cap]; }
 			}
+			else if (State == State.Historical)
+			{
+				if (ChartControl != null)
+					ChartControl.Dispatcher.InvokeAsync(new Action(delegate
+					{ ChartControl.PreviewMouseMove += OnChartMouseMove; }));
+			}
+			else if (State == State.Terminated)
+			{
+				if (ChartControl != null)
+					ChartControl.Dispatcher.InvokeAsync(new Action(delegate
+					{ ChartControl.PreviewMouseMove -= OnChartMouseMove; }));
+			}
+		}
+
+		private void OnChartMouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+		{
+			try
+			{
+				System.Windows.Point p = e.GetPosition(ChartControl);
+				hoverX = (float)p.X; hoverY = (float)p.Y;
+				int hit = -1;
+				for (int k = 0; k < flipRects.Count; k++)
+				{
+					float[] r = flipRects[k];
+					if (p.X >= r[0] && p.X <= r[0] + r[2] && p.Y >= r[1] && p.Y <= r[1] + r[3]) { hit = k; break; }
+				}
+				if (hit != flipHover) { flipHover = hit; ForceRefresh(); }
+			}
+			catch { }
 		}
 
 		private double PctFromBuf(double[] buf, int cnt, double v)
@@ -446,14 +481,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 			return risk >= TickSize;
 		}
 
-		// ONE TRADE AT A TIME + optional STOP-AND-REVERSE (variant 1): an opposite flip
-		// signal while in a trade exits at that bar's CLOSE and reverses. Same-direction
-		// signals are skipped. Returns int[]{entryBar, isShort, result, endIdx, reach}
-		// with result 0 open · 1 stop · 2 target(3R) · 4 reversed-out.
+		// ONE TRADE AT A TIME + optional STOP-AND-REVERSE. Record per taken trade:
+		// int[]{entryBar, isShort, result(0 open/1 stop/2 3R/4 reversed), endIdx, reach, openedByRev}
 		private List<int[]> SimFlipSession(int s0, int s1)
 		{
 			List<int[]> trades = new List<int[]>();
-			int pi = -1; bool pSh = false; int reach = 0;
+			int pi = -1; bool pSh = false; int reach = 0; bool pByRev = false;
 			double en = 0, st = 0, rk = 0, tg = 0, r1 = 0, r2 = 0;
 			for (int i = Math.Max(1, s0 + 1); i <= s1 && i <= CurrentBar; i++)
 			{
@@ -461,8 +494,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				{
 					bool hs = pSh ? Bars.GetHigh(i) >= st : Bars.GetLow(i) <= st;
 					bool ht = pSh ? Bars.GetLow(i) <= tg : Bars.GetHigh(i) >= tg;
-					if (hs) { trades.Add(new[] { pi, pSh ? 1 : 0, 1, i, reach }); pi = -1; }
-					else if (ht) { trades.Add(new[] { pi, pSh ? 1 : 0, 2, i, 3 }); pi = -1; }
+					if (hs) { trades.Add(new[] { pi, pSh ? 1 : 0, 1, i, reach, pByRev ? 1 : 0 }); pi = -1; }
+					else if (ht) { trades.Add(new[] { pi, pSh ? 1 : 0, 2, i, 3, pByRev ? 1 : 0 }); pi = -1; }
 					else
 					{
 						if (reach < 2 && (pSh ? Bars.GetLow(i) <= r2 : Bars.GetHigh(i) >= r2)) reach = 2;
@@ -472,19 +505,20 @@ namespace NinjaTrader.NinjaScript.Indicators
 				int fd = FlipDir(i);
 				if (fd == 0) continue;
 				bool sh = fd == 1;
+				bool byRev = false;
 				if (pi >= 0)
 				{
 					if (ReverseOnOpposite && sh != pSh)
-					{ trades.Add(new[] { pi, pSh ? 1 : 0, 4, i, reach }); pi = -1; }
+					{ trades.Add(new[] { pi, pSh ? 1 : 0, 4, i, reach, pByRev ? 1 : 0 }); pi = -1; byRev = true; }
 					else continue;
 				}
 				double e2, s2, k2;
 				if (!FlipPrices(i, sh, out e2, out s2, out k2)) continue;
-				pi = i; pSh = sh; en = e2; st = s2; rk = k2;
+				pi = i; pSh = sh; pByRev = byRev; en = e2; st = s2; rk = k2;
 				double sgn = sh ? -1 : 1;
 				tg = en + sgn * 3 * rk; r1 = en + sgn * rk; r2 = en + sgn * 2 * rk; reach = 0;
 			}
-			if (pi >= 0) trades.Add(new[] { pi, pSh ? 1 : 0, 0, Math.Min(s1, CurrentBar), reach });
+			if (pi >= 0) trades.Add(new[] { pi, pSh ? 1 : 0, 0, Math.Min(s1, CurrentBar), reach, pByRev ? 1 : 0 });
 			return trades;
 		}
 
@@ -508,6 +542,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			int from = Math.Max(1, ChartBars.FromIndex - 1), to = ChartBars.ToIndex;
 			int lastVis = Math.Min(to, CurrentBar);
 			if (lastVis < 1) return;
+			flipRects.Clear(); flipInfos.Clear();
 
 			Dictionary<int, int[]> taken = new Dictionary<int, int[]>();
 			List<int[]> tallyTrades = null;
@@ -561,9 +596,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 					}
 					int[] t = taken[i];
 					int result = t[2], endIdx = t[3];
-					double t1 = sh ? en - rk : en + rk;
-					double t2 = sh ? en - 2 * rk : en + 2 * rk;
-					double t3 = sh ? en - 3 * rk : en + 3 * rk;
+					double sgn = sh ? -1 : 1;
+					double t1 = en + sgn * rk, t2 = en + sgn * 2 * rk, t3 = en + sgn * 3 * rk;
 					float xE = chartControl.GetXByBarIndex(ChartBars, endIdx) + (result == 0 ? bw / 2f : 0f);
 					RenderTarget.FillRectangle(new SharpDX.RectangleF(x0, yH, x1 - x0, yL - yH), boxFill);
 					RenderTarget.DrawRectangle(new SharpDX.RectangleF(x0, yH, x1 - x0, yL - yH), boxEdge, 1.5f);
@@ -585,6 +619,21 @@ namespace NinjaTrader.NinjaScript.Indicators
 					RenderTarget.DrawText("1R", tfT, new SharpDX.RectangleF(xE + 3, yT1 - 6, 30, 12), tgtBr);
 					RenderTarget.DrawText("2R", tfT, new SharpDX.RectangleF(xE + 3, yT2 - 6, 30, 12), tgtBr);
 					RenderTarget.DrawText("3R", tfT, new SharpDX.RectangleF(xE + 3, yT3 - 6, 30, 12), tgtBr);
+
+					// hover hit-region + card content for this trade
+					double exitPx = result == 1 ? st : result == 2 ? t3 : Bars.GetClose(endIdx);
+					double pnl = (exitPx - en) * sgn;
+					float top = Math.Min(Math.Min(yH, yT3), Math.Min(yEn, ySt)) - 18f;
+					float bot = Math.Max(Math.Max(yL, yT3), Math.Max(yEn, ySt));
+					flipRects.Add(new[] { Math.Min(x0, x1), top, Math.Max(xE + 40f, x1) - Math.Min(x0, x1), bot - top });
+					flipInfos.Add(new[] {
+						(t[5] == 1 ? "EB Reversal" : "Basic") + "  ·  " + (sh ? "SHORT" : "LONG"),
+						string.Format("in  {0:HH:mm:ss}  @ {1:F2}", Bars.GetTime(i), en),
+						string.Format("out {0:HH:mm:ss}  @ {1:F2}  ({2})", Bars.GetTime(endIdx), exitPx, tag),
+						string.Format("stop {0:F2}   risk {1:F2} pt", st, rk),
+						string.Format("PnL {0}{1:F2} pt  ({2}{3:F2}R)   reach {4}R",
+							pnl >= 0 ? "+" : "", pnl, pnl >= 0 ? "+" : "", pnl / rk, t[4]),
+					});
 				}
 
 				// session tally (sequential, incl. reversals)
@@ -622,6 +671,30 @@ namespace NinjaTrader.NinjaScript.Indicators
 					RenderTarget.FillRectangle(new SharpDX.RectangleF(ChartPanel.X + 10, ChartPanel.Y + 8, 620, 20), tbg);
 					RenderTarget.DrawText(tly, tfB, new SharpDX.RectangleF(ChartPanel.X + 16, ChartPanel.Y + 11, 610, 16), tb);
 					tfB.Dispose(); tb.Dispose(); tbg.Dispose();
+				}
+
+				// hover card for the setup under the cursor
+				if (flipHover >= 0 && flipHover < flipInfos.Count)
+				{
+					string[] card = flipInfos[flipHover];
+					float cw = 250f, ch = card.Length * 15f + 10f;
+					float cx = hoverX + 16f, cy = hoverY + 12f;
+					if (cx + cw > ChartPanel.X + ChartPanel.W) cx = hoverX - cw - 16f;
+					if (cy + ch > ChartPanel.Y + ChartPanel.H) cy = hoverY - ch - 12f;
+					TextFormat tfC = new TextFormat(NinjaTrader.Core.Globals.DirectWriteFactory, "Consolas", 11f);
+					SolidColorBrush cbg = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.05f, 0.05f, 0.08f, 0.92f));
+					SolidColorBrush cbd = new SolidColorBrush(RenderTarget, new SharpDX.Color4(1f, 0.84f, 0f, 0.7f));
+					SolidColorBrush cin = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.92f, 0.92f, 0.92f, 1f));
+					RenderTarget.FillRectangle(new SharpDX.RectangleF(cx, cy, cw, ch), cbg);
+					RenderTarget.DrawRectangle(new SharpDX.RectangleF(cx, cy, cw, ch), cbd);
+					float yy = cy + 5f;
+					for (int k = 0; k < card.Length; k++)
+					{
+						RenderTarget.DrawText(card[k], tfC, new SharpDX.RectangleF(cx + 7f, yy, cw - 12f, 14f),
+							k == 0 ? cbd : cin);
+						yy += 15f;
+					}
+					tfC.Dispose(); cbg.Dispose(); cbd.Dispose(); cin.Dispose();
 				}
 			}
 			finally
