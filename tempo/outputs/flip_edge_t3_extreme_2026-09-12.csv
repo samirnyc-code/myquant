@@ -1,0 +1,9 @@
+group,n,win%,PF,tot_pts,$/trade
+"bar1 = NEW session extreme, 21-24",436,32.8,0.99,-9.2,-1.1
+"bar1 = NEW session extreme, 25-26",260,35.8,1.07,52.0,10.0
+"inside session range, 21-24",1281,35.4,1.01,42.2,1.6
+"inside session range, 25-26",771,38.4,1.33,714.0,46.3
+"entry beyond prior-day H/L, 21-24",984,35.2,0.98,-47.0,-2.4
+"entry beyond prior-day H/L, 25-26",628,35.8,1.1,175.0,13.9
+"inside prior-day range, 21-24",733,34.2,1.05,80.0,5.5
+"inside prior-day range, 25-26",403,40.7,1.54,591.0,73.3
