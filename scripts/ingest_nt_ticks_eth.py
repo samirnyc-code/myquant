@@ -84,80 +84,85 @@ def main() -> int:
     if not paths:
         print(f"! no files matched ({a.files or a.glob})"); return 2
 
-    contracts_seen, frames = set(), []
-    print(f"reading {len(paths)} file(s):")
-    for p in paths:
-        fp = Path(p)
-        stem = fp.name.split("_ticks_")[0].replace("_", " ")
-        contracts_seen.add(stem)
-        df = pd.read_csv(fp)
-        print(f"  {fp.name}: {len(df):,} rows  contract='{stem}'")
-        frames.append(df)
+    contracts_seen = {Path(p).name.split("_ticks_")[0].replace("_", " ") for p in paths}
     if len(contracts_seen) != 1:
         print(f"! files span multiple contracts {contracts_seen} — one contract at a time")
         return 2
     full_contract = contracts_seen.pop()
     ticker = contract_to_ticker(full_contract)
-    print(f"\ncontract '{full_contract}' -> ticker {ticker}")
+    print(f"\ncontract '{full_contract}' -> ticker {ticker}  ({len(paths)} files)")
 
-    raw = pd.concat(frames, ignore_index=True).dropna(subset=["Time", "Price", "Volume"])
-    ts = pd.to_datetime(raw["Time"])
-    ts = (ts.dt.tz_localize(a.src_tz, ambiguous="infer", nonexistent="shift_forward")
-            .dt.tz_convert("America/Chicago").dt.tz_localize(None))
-    ticks = pd.DataFrame({
-        "DateTime": ts,
-        "Price": raw["Price"].astype(float).values,
-        "Volume": raw["Volume"].astype(int).values,
-    })
-    # overlap dedup: identical (DateTime,Price,Volume) rows from overlapping per-day
-    # export windows are collapsed; a genuine repeat trade has the SAME triple too,
-    # but NT's export is one row per trade, so a triple appearing in TWO files is the
-    # overlap artifact — keep one. (Within a single file there are no exact dup rows.)
-    n0 = len(ticks)
-    ticks = ticks.drop_duplicates(subset=["DateTime", "Price", "Volume"]).sort_values("DateTime")
-    if len(ticks) != n0:
-        print(f"  collapsed {n0 - len(ticks):,} overlap-duplicate rows")
+    # MEMORY-SAFE two-pass. The ETH template makes each session appear COMPLETE in ~2
+    # files (identical full copies); we must NOT concat all files (68 files x ~1M rows
+    # OOMs the box) and must NOT dedup on (Time,Price,Volume) (genuine same-ms/price/size
+    # fills would collapse and destroy ~60% of volume — the 07-23 bug). Instead:
+    #   pass 1: cheaply count rows-per-session in each file (string date/hour, no pandas tz)
+    #   pass 2: load ONLY the single best (most-complete) file per session, one at a time,
+    #           and write that session's rows verbatim (no dedup) -> volume preserved exactly.
+    def cheap_sed(tstr: str):
+        d0 = date.fromisoformat(tstr[:10])
+        return MC.next_trading_day(d0) if int(tstr[11:13]) >= 17 else d0
 
-    ticks["sed"] = ticks["DateTime"].map(session_end_date)
+    from collections import defaultdict
+    best = {}            # sed -> (count, file_index)
+    print("pass 1/2: counting sessions per file...")
+    for i, p in enumerate(paths):
+        col = pd.read_csv(p, usecols=["Time"], dtype=str)["Time"].dropna()
+        seds = col.map(cheap_sed)
+        for d, c in seds.value_counts().items():
+            if d not in best or c > best[d][0]:
+                best[d] = (int(c), i)
+    need = defaultdict(list)
+    for d, (c, i) in best.items():
+        need[i].append(d)
+
     rolls = load_rolls()
-
     written, skipped, aborted = [], [], []
-    for d, g in ticks.groupby("sed"):
-        active = get_active_contract(d, rolls)
-        if active is None:
+    print("pass 2/2: writing best file per session...")
+    for i in sorted(need):
+        raw = pd.read_csv(paths[i]).dropna(subset=["Time", "Price", "Volume"])
+        ts = pd.to_datetime(raw["Time"])
+        ts = (ts.dt.tz_localize(a.src_tz, ambiguous="infer", nonexistent="shift_forward")
+                .dt.tz_convert("America/Chicago").dt.tz_localize(None))
+        fdf = pd.DataFrame({"DateTime": ts.values,
+                            "Price": raw["Price"].astype(float).values,
+                            "Volume": raw["Volume"].astype(int).values})
+        fdf["sed"] = fdf["DateTime"].map(session_end_date)
+        for d in sorted(need[i]):
+          g = fdf[fdf["sed"] == d]
+          active = get_active_contract(d, rolls)
+          if active is None:
             aborted.append(d); print(f"! {d}: no active contract — SKIP"); continue
-        if active["ticker"] != ticker:
+          if active["ticker"] != ticker:
             aborted.append(d)
             print(f"! {d}: front-month {active['ticker']} != export {ticker} (roll) — ABORT")
             continue
-        off = active["cum_offset"]
-        day = g[["DateTime", "Price", "Volume"]].copy()
-        day["Price"] = day["Price"] + off
-        day = day.sort_values("DateTime").reset_index(drop=True)
+          off = active["cum_offset"]
+          day = g[["DateTime", "Price", "Volume"]].copy()
+          day["Price"] = day["Price"] + off
+          day = day.sort_values("DateTime").reset_index(drop=True)
 
-        out = out_dir / f"{d.isoformat()}.parquet"
-        if out.exists() and not a.force:
-            skipped.append(d); print(f"  {d} EXISTS-skip ({len(day):,})"); continue
+          out = out_dir / f"{d.isoformat()}.parquet"
+          if out.exists() and not a.force:
+              skipped.append(d); print(f"  {d} EXISTS-skip ({len(day):,})"); continue
 
-        rth = day[(day["DateTime"].dt.time >= RTH_START) & (day["DateTime"].dt.time < RTH_END)]
-        print(f"  {d} off {off:+.2f}  {len(day):,} ticks ({len(rth):,} RTH)  "
-              f"{day['DateTime'].iloc[0]} .. {day['DateTime'].iloc[-1]}")
+          rth = day[(day["DateTime"].dt.time >= RTH_START) & (day["DateTime"].dt.time < RTH_END)]
+          # cross-vendor invariant: NT total RTH VOLUME must equal the Massive trove
+          # (row counts differ — NT reports every fill, Massive aggregates).
+          vtag = ""
+          if a.validate_rth:
+              rp = RTH_DIR / f"{d.isoformat()}.parquet"
+              if rp.exists():
+                  ref = pd.read_parquet(rp)
+                  ev, tv = int(rth["Volume"].sum()), int(ref["Volume"].sum())
+                  vtag = f"  RTH vol NT {ev} vs Massive {tv}: {'MATCH' if ev == tv else 'MISMATCH'}"
+          print(f"  {d} off {off:+.2f}  {len(day):,} ticks ({len(rth):,} RTH)  "
+                f"{day['DateTime'].iloc[0]} .. {day['DateTime'].iloc[-1]}{vtag}")
 
-        if a.validate_rth:
-            rp = RTH_DIR / f"{d.isoformat()}.parquet"
-            if rp.exists():
-                ref = pd.read_parquet(rp)
-                chk = rth.reset_index(drop=True)[["DateTime", "Price", "Volume"]]
-                same = (len(chk) == len(ref) and
-                        chk["Price"].round(2).equals(ref["Price"].round(2)) and
-                        chk["Volume"].astype("int64").equals(ref["Volume"].astype("int64")))
-                print(f"      RTH cross-check vs trove: {'MATCH' if same else 'MISMATCH'} "
-                      f"(eth-rth {len(chk):,} vs trove {len(ref):,})")
-
-        if not a.dry_run:
-            day["Volume"] = day["Volume"].astype("int64")
-            day.to_parquet(out, index=False)
-        written.append(d)
+          if not a.dry_run:
+              day["Volume"] = day["Volume"].astype("int64")
+              day.to_parquet(out, index=False)
+          written.append(d)
 
     print(f"\ndone: {len(written)} written, {len(skipped)} skipped, {len(aborted)} aborted "
           f"-> {out_dir}")
