@@ -1,0 +1,23 @@
+trades: 1744 over 573 sessions
+
+=== ARM 1: management variants (full history, R per trade) ===
+       RR2: n=1693  win=32.1%  EV=-0.036 R/trade
+       RR3: n=1667  win=23.2%  EV=-0.071 R/trade
+   RR2_BE1: n=1699  win=23.8%  EV=-0.049 R/trade
+   RR3_BE1: n=1690  win=15.7%  EV=-0.056 R/trade
+  RR3_P1 (half @1R + BE, half to 3R): approx EV=-0.054 R/trade
+
+=== ARM 2: RR3 condition sweep — train 2021-24, test 2025-26 (breakeven 25%) ===
+        tpct>=99 both-ish      train n= 429 win=23.3% EV=-0.068 | test n= 220 win=21.4% EV=-0.145
+        risk<=median           train n= 625 win=24.2% EV=-0.034 | test n= 221 win=20.4% EV=-0.186
+        risk/ADR<=0.10         train n= 787 win=23.3% EV=-0.070 | test n= 397 win=22.7% EV=-0.093
+        first flip of day      train n= 355 win=21.7% EV=-0.132 | test n= 177 win=23.2% EV=-0.073
+  PASS->hour 5 (13:30CT)       train n= 147 win=27.9% EV=+0.116 | test n=  61 win=34.4% EV=+0.377
+        COUNTER-trend flip     train n= 968 win=23.5% EV=-0.062 | test n= 553 win=23.1% EV=-0.074
+        WITH-trend flip        train n=  21 win=14.3% EV=-0.429 | test n=  14 win=14.3% EV=-0.429
+        near PDH/PDL           train n= 268 win=25.4% EV=+0.015 | test n= 142 win=24.6% EV=-0.014
+        away from PDH/PDL      train n= 807 win=22.4% EV=-0.103 | test n= 450 win=22.9% EV=-0.084
+        gap day                train n= 563 win=23.3% EV=-0.069 | test n= 344 win=24.1% EV=-0.035
+  PASS->prior EXPAND run       train n= 195 win=27.2% EV=+0.087 | test n= 107 win=26.2% EV=+0.047
+        shorts only            train n= 451 win=24.8% EV=-0.007 | test n= 255 win=25.5% EV=+0.020
+        longs only             train n= 624 win=22.0% EV=-0.122 | test n= 337 win=21.7% EV=-0.134
