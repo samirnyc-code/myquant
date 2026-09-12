@@ -55,6 +55,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		// Tick Replay (tempo from counted prints per bar) · 2 = unsupported (warning only)
 		private int chartMode = 2;
 		private int tickInBar;
+		private readonly List<int> sessStarts = new List<int>();   // bar index of each session's first bar
 		private double lastTempoPct = 50, lastAmpPct = 50, lastEffPct = 50, lastAmpAbr = double.NaN;
 		private readonly List<double> lastRanges = new List<double>();     // prior 8 bar ranges (ABR-8)
 		// 10-bar trend window (EXPAND/GRIND are multi-bar states; reset each session)
@@ -174,7 +175,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			if (notTickChart || CurrentBar < 1 || Bars.IsFirstBarOfSession)
 			{
-				if (Bars.IsFirstBarOfSession) { w10cl.Clear(); w10rng.Clear(); w10tp.Clear(); }
+				if (Bars.IsFirstBarOfSession)
+				{
+					w10cl.Clear(); w10rng.Clear(); w10tp.Clear();
+					if (sessStarts.Count == 0 || sessStarts[sessStarts.Count - 1] != CurrentBar)
+						sessStarts.Add(CurrentBar);
+				}
 				tickInBar = 0;
 				for (int p = 0; p < 6; p++) Values[p].Reset();   // blank Data Box rows
 				return;
@@ -447,34 +453,98 @@ namespace NinjaTrader.NinjaScript.Indicators
 					double t1 = isShort ? entry - risk : entry + risk;
 					double t2 = isShort ? entry - 2 * risk : entry + 2 * risk;
 
+					double t3 = isShort ? entry - 3 * risk : entry + 3 * risk;
 					int endIdx = Math.Min(CurrentBar, i + 500);
-					bool stopped = false;
+					int result = 0;                            // 0 open · 1 stopped · 2 target(3R)
 					for (int j = i + 1; j <= Math.Min(CurrentBar, i + 500); j++)
 					{
-						bool hit = isShort ? Bars.GetHigh(j) >= stop : Bars.GetLow(j) <= stop;
-						if (hit) { endIdx = j; stopped = true; break; }
+						bool hitStop = isShort ? Bars.GetHigh(j) >= stop : Bars.GetLow(j) <= stop;
+						bool hitTgt = isShort ? Bars.GetLow(j) <= t3 : Bars.GetHigh(j) >= t3;
+						if (hitStop) { endIdx = j; result = 1; break; }   // both in one bar -> stop (conservative)
+						if (hitTgt) { endIdx = j; result = 2; break; }
 					}
+					bool stopped = result == 1;
 
 					float x0 = chartControl.GetXByBarIndex(ChartBars, i - 1) - bw / 2f;
 					float x1 = chartControl.GetXByBarIndex(ChartBars, i) + bw / 2f;
-					float xE = chartControl.GetXByBarIndex(ChartBars, endIdx) + (stopped ? 0f : bw / 2f);
+					float xE = chartControl.GetXByBarIndex(ChartBars, endIdx) + (result == 0 ? bw / 2f : 0f);
 					float yH = chartScale.GetYByValue(hi2), yL = chartScale.GetYByValue(lo2);
 					RenderTarget.FillRectangle(new SharpDX.RectangleF(x0, yH, x1 - x0, yL - yH), boxFill);
 					RenderTarget.DrawRectangle(new SharpDX.RectangleF(x0, yH, x1 - x0, yL - yH), boxEdge, 1.5f);
 
 					float yEn = chartScale.GetYByValue(entry), ySt = chartScale.GetYByValue(stop);
 					float yT1 = chartScale.GetYByValue(t1), yT2 = chartScale.GetYByValue(t2);
+					float yT3 = chartScale.GetYByValue(t3);
 					RenderTarget.FillRectangle(new SharpDX.RectangleF(x1, Math.Min(yEn, ySt), xE - x1, Math.Abs(ySt - yEn)), riskZ);
-					RenderTarget.FillRectangle(new SharpDX.RectangleF(x1, Math.Min(yEn, yT2), xE - x1, Math.Abs(yT2 - yEn)), rewZ);
+					RenderTarget.FillRectangle(new SharpDX.RectangleF(x1, Math.Min(yEn, yT3), xE - x1, Math.Abs(yT3 - yEn)), rewZ);
 					RenderTarget.DrawLine(new SharpDX.Vector2(x1, yEn), new SharpDX.Vector2(xE, yEn), entryBr, 1.5f);
 					RenderTarget.DrawLine(new SharpDX.Vector2(x1, ySt), new SharpDX.Vector2(xE, ySt), stopBr, 1.5f);
 					RenderTarget.DrawLine(new SharpDX.Vector2(x1, yT1), new SharpDX.Vector2(xE, yT1), tgtBr, 1f);
 					RenderTarget.DrawLine(new SharpDX.Vector2(x1, yT2), new SharpDX.Vector2(xE, yT2), tgtBr, 1f);
-					RenderTarget.DrawText((isShort ? "SHORT " : "LONG ") + (stopped ? "✕stopped" : ""),
-						tfT, new SharpDX.RectangleF(x1 + 2, yEn - 13, 110, 12), entryBr);
+					RenderTarget.DrawLine(new SharpDX.Vector2(x1, yT3), new SharpDX.Vector2(xE, yT3), tgtBr, 1.5f);
+					RenderTarget.DrawText((isShort ? "SHORT " : "LONG ")
+						+ (result == 1 ? "✕stop" : result == 2 ? "✓3R" : "open"),
+						tfT, new SharpDX.RectangleF(x1 + 2, yEn - 13, 110, 12),
+						result == 2 ? tgtBr : (result == 1 ? stopBr : entryBr));
 					RenderTarget.DrawText("stop", tfT, new SharpDX.RectangleF(xE + 3, ySt - 6, 40, 12), stopBr);
 					RenderTarget.DrawText("1R", tfT, new SharpDX.RectangleF(xE + 3, yT1 - 6, 30, 12), tgtBr);
 					RenderTarget.DrawText("2R", tfT, new SharpDX.RectangleF(xE + 3, yT2 - 6, 30, 12), tgtBr);
+					RenderTarget.DrawText("3R", tfT, new SharpDX.RectangleF(xE + 3, yT3 - 6, 30, 12), tgtBr);
+				}
+
+				// ---- session tally (the session containing the last visible bar)
+				int lastVis = Math.Min(to, CurrentBar);
+				int s0 = 0;
+				for (int k = sessStarts.Count - 1; k >= 0; k--)
+					if (sessStarts[k] <= lastVis) { s0 = sessStarts[k]; break; }
+				int s1 = CurrentBar;
+				for (int k = 0; k < sessStarts.Count; k++)
+					if (sessStarts[k] > s0) { s1 = sessStarts[k] - 1; break; }
+				double ptsPnl = 0, rPnl = 0;
+				int wins = 0, losses = 0, open = 0, r1c = 0, r2c = 0, r3c = 0;
+				for (int i = Math.Max(1, s0 + 1); i <= s1 && i <= CurrentBar; i++)
+				{
+					if (climaxS.GetValueAt(i) < 0.5 || climaxS.GetValueAt(i - 1) < 0.5) continue;
+					bool u1 = Bars.GetClose(i - 1) >= Bars.GetOpen(i - 1);
+					bool u2 = Bars.GetClose(i) >= Bars.GetOpen(i);
+					if (u1 == u2) continue;
+					bool sh = u1 && !u2;
+					double h2 = Math.Max(Bars.GetHigh(i - 1), Bars.GetHigh(i));
+					double l2 = Math.Min(Bars.GetLow(i - 1), Bars.GetLow(i));
+					double en = Bars.GetClose(i);
+					double st = sh ? h2 + TickSize : l2 - TickSize;
+					double rk = Math.Abs(en - st);
+					if (rk < TickSize) continue;
+					double r1v = sh ? en - rk : en + rk;
+					double r2v = sh ? en - 2 * rk : en + 2 * rk;
+					double tg = sh ? en - 3 * rk : en + 3 * rk;
+					int res = 0, reach = 0;
+					for (int j = i + 1; j <= Math.Min(CurrentBar, i + 500); j++)
+					{
+						bool hs = sh ? Bars.GetHigh(j) >= st : Bars.GetLow(j) <= st;
+						if (hs) { res = 1; break; }                 // stop first in a bar -> conservative
+						if (sh ? Bars.GetLow(j) <= tg : Bars.GetHigh(j) >= tg) { reach = 3; res = 2; break; }
+						if (reach < 2 && (sh ? Bars.GetLow(j) <= r2v : Bars.GetHigh(j) >= r2v)) reach = 2;
+						else if (reach < 1 && (sh ? Bars.GetLow(j) <= r1v : Bars.GetHigh(j) >= r1v)) reach = 1;
+					}
+					if (reach >= 1) r1c++;
+					if (reach >= 2) r2c++;
+					if (reach >= 3) r3c++;
+					if (res == 1) { losses++; ptsPnl -= rk; rPnl -= 1; }
+					else if (res == 2) { wins++; ptsPnl += 3 * rk; rPnl += 3; }
+					else open++;
+				}
+				if (wins + losses + open > 0)
+				{
+					string tly = string.Format("FLIP day: {0}{1:F1}R ({2}{3:F2} pt)  W{4} L{5} open{6}  ≥1R:{7} ≥2R:{8} 3R:{9}",
+						rPnl >= 0 ? "+" : "", rPnl, ptsPnl >= 0 ? "+" : "", ptsPnl, wins, losses, open, r1c, r2c, r3c);
+					TextFormat tfB = new TextFormat(NinjaTrader.Core.Globals.DirectWriteFactory, "Consolas", 12f);
+					SolidColorBrush tb = new SolidColorBrush(RenderTarget,
+						rPnl >= 0 ? new SharpDX.Color4(0.30f, 0.82f, 0.63f, 1f) : new SharpDX.Color4(0.94f, 0.33f, 0.31f, 1f));
+					SolidColorBrush tbg = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.05f, 0.05f, 0.08f, 0.72f));
+					RenderTarget.FillRectangle(new SharpDX.RectangleF(ChartPanel.X + 10, ChartPanel.Y + 8, 520, 20), tbg);
+					RenderTarget.DrawText(tly, tfB, new SharpDX.RectangleF(ChartPanel.X + 16, ChartPanel.Y + 11, 510, 16), tb);
+					tfB.Dispose(); tb.Dispose(); tbg.Dispose();
 				}
 			}
 			finally
