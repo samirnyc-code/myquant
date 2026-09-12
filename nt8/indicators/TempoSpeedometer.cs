@@ -107,6 +107,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				ShowStateLabel = true;
 				ShowDiag       = true;
 				ShowClimaxFlip = true;
+				ReverseOnOpposite = true;                  // variant 1: opposite signal while in trade = exit @ close + reverse
+				UseIbsDirection   = true;                  // bull/bear from IBS (>=0.55 / <=0.45), middle band = no signal
 				PaceWindowSec  = 30;
 				AlertOnClimax  = false;
 				AlertCooldownSec = 120;
@@ -417,13 +419,21 @@ namespace NinjaTrader.NinjaScript.Indicators
 		}
 
 		// climax-flip helpers ---------------------------------------------------
+		private int BarDir(int k)                         // 1 bull · -1 bear · 0 undecided (IBS band)
+		{
+			if (!UseIbsDirection) return Bars.GetClose(k) >= Bars.GetOpen(k) ? 1 : -1;
+			double rg = Bars.GetHigh(k) - Bars.GetLow(k);
+			if (rg < TickSize / 2) return 0;
+			double ibs = (Bars.GetClose(k) - Bars.GetLow(k)) / rg;
+			return ibs >= 0.55 ? 1 : (ibs <= 0.45 ? -1 : 0);
+		}
+
 		private int FlipDir(int i)                        // 0 none · 1 short · 2 long
 		{
 			if (i < 1 || climaxS.GetValueAt(i) < 0.5 || climaxS.GetValueAt(i - 1) < 0.5) return 0;
-			bool u1 = Bars.GetClose(i - 1) >= Bars.GetOpen(i - 1);
-			bool u2 = Bars.GetClose(i) >= Bars.GetOpen(i);
-			if (u1 == u2) return 0;
-			return u1 ? 1 : 2;
+			int d1 = BarDir(i - 1), d2 = BarDir(i);
+			if (d1 == 0 || d2 == 0 || d1 == d2) return 0;
+			return d1 == 1 ? 1 : 2;
 		}
 
 		private bool FlipPrices(int i, bool isShort, out double entry, out double stop, out double risk)
@@ -436,35 +446,45 @@ namespace NinjaTrader.NinjaScript.Indicators
 			return risk >= TickSize;
 		}
 
-		// ONE TRADE AT A TIME: walk a session, take a flip only when flat, skip signals
-		// while a trade runs. Returns int[]{entryBar, isShort, result(0 open/1 stop/2 3R),
-		// endIdx, reach(max R level touched before exit)} per TAKEN trade.
+		// ONE TRADE AT A TIME + optional STOP-AND-REVERSE (variant 1): an opposite flip
+		// signal while in a trade exits at that bar's CLOSE and reverses. Same-direction
+		// signals are skipped. Returns int[]{entryBar, isShort, result, endIdx, reach}
+		// with result 0 open · 1 stop · 2 target(3R) · 4 reversed-out.
 		private List<int[]> SimFlipSession(int s0, int s1)
 		{
 			List<int[]> trades = new List<int[]>();
-			int busyUntil = -1;
+			int pi = -1; bool pSh = false; int reach = 0;
+			double en = 0, st = 0, rk = 0, tg = 0, r1 = 0, r2 = 0;
 			for (int i = Math.Max(1, s0 + 1); i <= s1 && i <= CurrentBar; i++)
 			{
-				if (i <= busyUntil) continue;
+				if (pi >= 0)
+				{
+					bool hs = pSh ? Bars.GetHigh(i) >= st : Bars.GetLow(i) <= st;
+					bool ht = pSh ? Bars.GetLow(i) <= tg : Bars.GetHigh(i) >= tg;
+					if (hs) { trades.Add(new[] { pi, pSh ? 1 : 0, 1, i, reach }); pi = -1; }
+					else if (ht) { trades.Add(new[] { pi, pSh ? 1 : 0, 2, i, 3 }); pi = -1; }
+					else
+					{
+						if (reach < 2 && (pSh ? Bars.GetLow(i) <= r2 : Bars.GetHigh(i) >= r2)) reach = 2;
+						else if (reach < 1 && (pSh ? Bars.GetLow(i) <= r1 : Bars.GetHigh(i) >= r1)) reach = 1;
+					}
+				}
 				int fd = FlipDir(i);
 				if (fd == 0) continue;
 				bool sh = fd == 1;
-				double en, st, rk;
-				if (!FlipPrices(i, sh, out en, out st, out rk)) continue;
-				double r1v = sh ? en - rk : en + rk;
-				double r2v = sh ? en - 2 * rk : en + 2 * rk;
-				double tg = sh ? en - 3 * rk : en + 3 * rk;
-				int res = 0, endIdx = Math.Min(CurrentBar, i + 500), reach = 0;
-				for (int j = i + 1; j <= Math.Min(CurrentBar, i + 500); j++)
+				if (pi >= 0)
 				{
-					if (sh ? Bars.GetHigh(j) >= st : Bars.GetLow(j) <= st) { res = 1; endIdx = j; break; }
-					if (sh ? Bars.GetLow(j) <= tg : Bars.GetHigh(j) >= tg) { reach = 3; res = 2; endIdx = j; break; }
-					if (reach < 2 && (sh ? Bars.GetLow(j) <= r2v : Bars.GetHigh(j) >= r2v)) reach = 2;
-					else if (reach < 1 && (sh ? Bars.GetLow(j) <= r1v : Bars.GetHigh(j) >= r1v)) reach = 1;
+					if (ReverseOnOpposite && sh != pSh)
+					{ trades.Add(new[] { pi, pSh ? 1 : 0, 4, i, reach }); pi = -1; }
+					else continue;
 				}
-				trades.Add(new[] { i, sh ? 1 : 0, res, endIdx, reach });
-				busyUntil = res == 0 ? int.MaxValue : endIdx;
+				double e2, s2, k2;
+				if (!FlipPrices(i, sh, out e2, out s2, out k2)) continue;
+				pi = i; pSh = sh; en = e2; st = s2; rk = k2;
+				double sgn = sh ? -1 : 1;
+				tg = en + sgn * 3 * rk; r1 = en + sgn * rk; r2 = en + sgn * 2 * rk; reach = 0;
 			}
+			if (pi >= 0) trades.Add(new[] { pi, pSh ? 1 : 0, 0, Math.Min(s1, CurrentBar), reach });
 			return trades;
 		}
 
@@ -489,7 +509,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 			int lastVis = Math.Min(to, CurrentBar);
 			if (lastVis < 1) return;
 
-			// simulate every session that intersects the visible range (one-trade-at-a-time)
 			Dictionary<int, int[]> taken = new Dictionary<int, int[]>();
 			List<int[]> tallyTrades = null;
 			int tallyS0 = SessionStartFor(lastVis);
@@ -512,6 +531,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			SolidColorBrush entryBr = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.92f, 0.92f, 0.92f, 0.9f));
 			SolidColorBrush stopBr  = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.94f, 0.33f, 0.31f, 0.9f));
 			SolidColorBrush tgtBr   = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.30f, 0.82f, 0.63f, 0.85f));
+			SolidColorBrush revBr   = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.55f, 0.75f, 1f, 0.9f));
 			SolidColorBrush riskZ   = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.94f, 0.33f, 0.31f, 0.07f));
 			SolidColorBrush rewZ    = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.30f, 0.82f, 0.63f, 0.06f));
 			try
@@ -557,19 +577,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 					RenderTarget.DrawLine(new SharpDX.Vector2(x1, yT1), new SharpDX.Vector2(xE, yT1), tgtBr, 1f);
 					RenderTarget.DrawLine(new SharpDX.Vector2(x1, yT2), new SharpDX.Vector2(xE, yT2), tgtBr, 1f);
 					RenderTarget.DrawLine(new SharpDX.Vector2(x1, yT3), new SharpDX.Vector2(xE, yT3), tgtBr, 1.5f);
-					RenderTarget.DrawText((sh ? "SHORT " : "LONG ")
-						+ (result == 1 ? "Xstop" : result == 2 ? "OK 3R" : "open"),
-						tfT, new SharpDX.RectangleF(x1 + 2, yEn - 13, 110, 12),
-						result == 2 ? tgtBr : (result == 1 ? stopBr : entryBr));
+					string tag = result == 1 ? "Xstop" : result == 2 ? "OK 3R" : result == 4 ? "rev" : "open";
+					SolidColorBrush tagBr = result == 2 ? tgtBr : result == 1 ? stopBr : result == 4 ? revBr : entryBr;
+					RenderTarget.DrawText((sh ? "SHORT " : "LONG ") + tag,
+						tfT, new SharpDX.RectangleF(x1 + 2, yEn - 13, 110, 12), tagBr);
 					RenderTarget.DrawText("stop", tfT, new SharpDX.RectangleF(xE + 3, ySt - 6, 40, 12), stopBr);
 					RenderTarget.DrawText("1R", tfT, new SharpDX.RectangleF(xE + 3, yT1 - 6, 30, 12), tgtBr);
 					RenderTarget.DrawText("2R", tfT, new SharpDX.RectangleF(xE + 3, yT2 - 6, 30, 12), tgtBr);
 					RenderTarget.DrawText("3R", tfT, new SharpDX.RectangleF(xE + 3, yT3 - 6, 30, 12), tgtBr);
 				}
 
-				// session tally: SEQUENTIAL one-trade-at-a-time trades of the visible session
+				// session tally (sequential, incl. reversals)
 				double ptsPnl = 0, rPnl = 0;
-				int wins = 0, losses = 0, open = 0, r1c = 0, r2c = 0, r3c = 0;
+				int wins = 0, losses = 0, open = 0, revs = 0, r1c = 0, r2c = 0, r3c = 0;
 				for (int k = 0; k < tallyTrades.Count; k++)
 				{
 					int[] t = tallyTrades[k];
@@ -579,27 +599,36 @@ namespace NinjaTrader.NinjaScript.Indicators
 					if (t[4] >= 1) r1c++;
 					if (t[4] >= 2) r2c++;
 					if (t[4] >= 3) r3c++;
+					double sgn = sh ? -1 : 1;
 					if (t[2] == 1) { losses++; ptsPnl -= rk; rPnl -= 1; }
 					else if (t[2] == 2) { wins++; ptsPnl += 3 * rk; rPnl += 3; }
+					else if (t[2] == 4)
+					{
+						revs++;
+						double p = (Bars.GetClose(t[3]) - en) * sgn;
+						ptsPnl += p; rPnl += p / rk;
+					}
 					else open++;
 				}
-				if (wins + losses + open > 0)
+				if (wins + losses + revs + open > 0)
 				{
-					string tly = string.Format("FLIP day (1-at-a-time): {0}{1:F1}R ({2}{3:F2} pt)  W{4} L{5} open{6}  >=1R:{7} >=2R:{8} 3R:{9}",
-						rPnl >= 0 ? "+" : "", rPnl, ptsPnl >= 0 ? "+" : "", ptsPnl, wins, losses, open, r1c, r2c, r3c);
+					string tly = string.Format("FLIP day (1-at-a-time{0}): {1}{2:F1}R ({3}{4:F2} pt)  W{5} L{6} rev{7} open{8}  >=1R:{9} >=2R:{10} 3R:{11}",
+						ReverseOnOpposite ? ", SAR" : "", rPnl >= 0 ? "+" : "", rPnl,
+						ptsPnl >= 0 ? "+" : "", ptsPnl, wins, losses, revs, open, r1c, r2c, r3c);
 					TextFormat tfB = new TextFormat(NinjaTrader.Core.Globals.DirectWriteFactory, "Consolas", 12f);
 					SolidColorBrush tb = new SolidColorBrush(RenderTarget,
 						rPnl >= 0 ? new SharpDX.Color4(0.30f, 0.82f, 0.63f, 1f) : new SharpDX.Color4(0.94f, 0.33f, 0.31f, 1f));
 					SolidColorBrush tbg = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.05f, 0.05f, 0.08f, 0.72f));
-					RenderTarget.FillRectangle(new SharpDX.RectangleF(ChartPanel.X + 10, ChartPanel.Y + 8, 560, 20), tbg);
-					RenderTarget.DrawText(tly, tfB, new SharpDX.RectangleF(ChartPanel.X + 16, ChartPanel.Y + 11, 550, 16), tb);
+					RenderTarget.FillRectangle(new SharpDX.RectangleF(ChartPanel.X + 10, ChartPanel.Y + 8, 620, 20), tbg);
+					RenderTarget.DrawText(tly, tfB, new SharpDX.RectangleF(ChartPanel.X + 16, ChartPanel.Y + 11, 610, 16), tb);
 					tfB.Dispose(); tb.Dispose(); tbg.Dispose();
 				}
 			}
 			finally
 			{
 				tfT.Dispose(); boxFill.Dispose(); boxEdge.Dispose(); boxDim.Dispose();
-				entryBr.Dispose(); stopBr.Dispose(); tgtBr.Dispose(); riskZ.Dispose(); rewZ.Dispose();
+				entryBr.Dispose(); stopBr.Dispose(); tgtBr.Dispose(); revBr.Dispose();
+				riskZ.Dispose(); rewZ.Dispose();
 			}
 		}
 
@@ -740,6 +769,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[NinjaScriptProperty]
 		[Display(Name = "Show climax-flip setups (box + RR)", GroupName = "3. Blocks", Order = 5)]
 		public bool ShowClimaxFlip { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name = "Flip: reverse on opposite signal (SAR)", GroupName = "3. Blocks", Order = 6)]
+		public bool ReverseOnOpposite { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name = "Flip: IBS bar direction (0.55/0.45)", GroupName = "3. Blocks", Order = 7)]
+		public bool UseIbsDirection { get; set; }
 
 		[NinjaScriptProperty, Range(5, 300)]
 		[Display(Name = "Live pace window (sec)", GroupName = "4. Live pace / alert", Order = 0)]
