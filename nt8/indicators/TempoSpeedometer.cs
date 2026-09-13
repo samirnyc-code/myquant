@@ -35,6 +35,11 @@ using SharpDX.Direct2D1;
 using SharpDX.DirectWrite;
 #endregion
 
+namespace NinjaTrader.NinjaScript
+{
+	public enum TempoBoxCorner { TopLeft, TopRight, BottomLeft, BottomRight }
+}
+
 namespace NinjaTrader.NinjaScript.Indicators
 {
 	public class TempoSpeedometer : Indicator
@@ -108,6 +113,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				ClimaxTagPct   = 99;
 				MinOpacityPct  = 10;
 				ShowSpeedo     = true;
+				SpeedoCorner   = TempoBoxCorner.BottomRight;
 				ShowHeatStrip  = true;
 				ShowEngineDot  = true;
 				ShowStateLabel = true;
@@ -842,26 +848,69 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 		}
 
+		// heat color for a percentile: cool blue -> amber -> orange -> red (climax)
+		private SharpDX.Color4 PctColor(double p)
+		{
+			if (p >= 95) return new SharpDX.Color4(0.95f, 0.30f, 0.25f, 1f);
+			if (p >= 80) return new SharpDX.Color4(1f, 0.62f, 0.15f, 1f);
+			if (p >= 50) return new SharpDX.Color4(1f, 0.84f, 0.30f, 1f);
+			return new SharpDX.Color4(0.45f, 0.65f, 0.85f, 1f);
+		}
+
+		// label + colored value + colored fill gauge with a notch at the climax percentile
+		private void GaugeLine(TextFormat tf, float x, ref float y, string label, double pct,
+			string valText, SolidColorBrush white)
+		{
+			RenderTarget.DrawText(label, tf, new SharpDX.RectangleF(x, y, 76f, 18f), white);
+			bool ok = !double.IsNaN(pct);
+			SolidColorBrush cb = new SolidColorBrush(RenderTarget, ok ? PctColor(pct)
+				: new SharpDX.Color4(0.65f, 0.65f, 0.65f, 1f));
+			RenderTarget.DrawText(valText ?? (ok ? "p" + Math.Round(pct) : "-"), tf,
+				new SharpDX.RectangleF(x + 76f, y, 70f, 18f), cb);
+			float gx = x + 148f, gw = 84f, gh = 7f, gy = y + 5f;
+			SolidColorBrush trk = new SolidColorBrush(RenderTarget, new SharpDX.Color4(1f, 1f, 1f, 0.12f));
+			RenderTarget.FillRectangle(new SharpDX.RectangleF(gx, gy, gw, gh), trk);
+			if (ok)
+				RenderTarget.FillRectangle(new SharpDX.RectangleF(gx, gy,
+					(float)(gw * Math.Max(0.0, Math.Min(100.0, pct)) / 100.0), gh), cb);
+			float nx = gx + gw * (float)(ClimacticPct / 100.0);
+			RenderTarget.DrawLine(new SharpDX.Vector2(nx, gy - 2f), new SharpDX.Vector2(nx, gy + gh + 2f), trk, 1f);
+			trk.Dispose(); cb.Dispose();
+			y += 19f;
+		}
+
 		private void RenderSpeedo(TextFormat tf, SolidColorBrush white, SolidColorBrush dim, SolidColorBrush gold, SolidColorBrush bg)
 		{
-			float wBox = 235f;
+			float wBox = 248f;
 			bool showPace = !double.IsNaN(livePacePct);
 			int lines = 4 + (showPace ? 1 : 0) + (ShowStateLabel ? 1 : 0) + (lastClimax ? 1 : 0) + (ShowDiag ? 1 : 0);
 			float hBox = 10f + 19f * lines;
-			float x0 = ChartPanel.X + ChartPanel.W - wBox - 10f;
-			float y0 = ChartPanel.Y + 10f;
+			bool left = SpeedoCorner == TempoBoxCorner.TopLeft || SpeedoCorner == TempoBoxCorner.BottomLeft;
+			bool top  = SpeedoCorner == TempoBoxCorner.TopLeft || SpeedoCorner == TempoBoxCorner.TopRight;
+			float x0 = left ? ChartPanel.X + 10f : ChartPanel.X + ChartPanel.W - wBox - 10f;
+			float y0 = top ? ChartPanel.Y + 10f : ChartPanel.Y + ChartPanel.H - hBox - 16f;
 			RenderTarget.FillRectangle(new SharpDX.RectangleF(x0, y0, wBox, hBox), bg);
+			SolidColorBrush edge = new SolidColorBrush(RenderTarget, PctColor(lastTempoPct));
+			RenderTarget.DrawRectangle(new SharpDX.RectangleF(x0, y0, wBox, hBox), edge, 1.2f);
 
-			string accel = lastAccel > 0 ? "ACCELERATING" : (lastAccel < 0 ? "DECELERATING" : "STABLE");
 			float y = y0 + 5f;
-			DrawLine2(tf, x0 + 8f, ref y, "TEMPO      " + Bar3(lastTempoPct), lastTempoPct >= ClimacticPct ? gold : white);
+			GaugeLine(tf, x0 + 8f, ref y, "TEMPO", lastTempoPct, null, white);
 			if (showPace)
-				DrawLine2(tf, x0 + 8f, ref y, "PACE " + PaceWindowSec + "s   " + Bar3(livePacePct), livePacePct >= ClimacticPct ? gold : white);
-			DrawLine2(tf, x0 + 8f, ref y, double.IsNaN(lastAmpAbr)
-				? "AMPLITUDE  " + Bar3(lastAmpPct)
-				: string.Format("AMPLITUDE  {0,3:F0}% ABR8 (p{1:F0})", lastAmpAbr, lastAmpPct), white);
-			DrawLine2(tf, x0 + 8f, ref y, "EFFICIENCY " + Bar3(lastEffPct), white);
-			DrawLine2(tf, x0 + 8f, ref y, "TEMPO: " + accel, dim);
+				GaugeLine(tf, x0 + 8f, ref y, "PACE " + PaceWindowSec + "s", livePacePct, null, white);
+			GaugeLine(tf, x0 + 8f, ref y, "AMPLITUDE", lastAmpPct, double.IsNaN(lastAmpAbr)
+				? null : string.Format("{0:F0}% ABR8", lastAmpAbr), white);
+			GaugeLine(tf, x0 + 8f, ref y, "EFFICIENCY", lastEffPct, null, white);
+			if (lastAccel > 0)
+			{
+				SolidColorBrush ab = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.30f, 0.82f, 0.63f, 1f));
+				DrawLine2(tf, x0 + 8f, ref y, "TEMPO: ACCELERATING", ab); ab.Dispose();
+			}
+			else if (lastAccel < 0)
+			{
+				SolidColorBrush ab = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.94f, 0.45f, 0.40f, 1f));
+				DrawLine2(tf, x0 + 8f, ref y, "TEMPO: DECELERATING", ab); ab.Dispose();
+			}
+			else DrawLine2(tf, x0 + 8f, ref y, "TEMPO: STABLE", dim);
 			if (ShowStateLabel) DrawLine2(tf, x0 + 8f, ref y, lastState, white);
 			if (lastClimax)     DrawLine2(tf, x0 + 8f, ref y, "** CLIMACTIC STATE **", gold);
 			if (ShowDiag)
@@ -871,15 +920,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				DrawLine2(tf, x0 + 8f, ref y, string.Format("DIAG {0:HH:mm} b{1} {2:F0}t/s {3}",
 					lastBarTime, lastBucket, lastRate, mode), dim);
 			}
-		}
-
-		private static string Bar3(double pct)
-		{
-			int p = (int)Math.Round(pct);
-			string n = p.ToString();
-			while (n.Length < 3) n = " " + n;
-			int cells = Math.Max(0, Math.Min(10, (int)Math.Round(pct / 10.0)));
-			return n + " " + new string('|', cells) + new string('.', 10 - cells);
+			edge.Dispose();
 		}
 
 		private void DrawLine2(TextFormat tf, float x, ref float y, string s, SolidColorBrush b)
@@ -913,6 +954,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[NinjaScriptProperty]
 		[Display(Name = "Show speedometer", GroupName = "3. Blocks", Order = 0)]
 		public bool ShowSpeedo { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name = "Speedometer corner", GroupName = "3. Blocks", Order = 0)]
+		public TempoBoxCorner SpeedoCorner { get; set; }
 
 		[NinjaScriptProperty]
 		[Display(Name = "Show heat strip", GroupName = "3. Blocks", Order = 1)]
