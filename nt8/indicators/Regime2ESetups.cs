@@ -1,6 +1,8 @@
 #region Using declarations
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Text;
 using System.Windows.Media;
 using NinjaTrader.Cbi;
 using NinjaTrader.Data;
@@ -94,13 +96,37 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private class Sig
 		{
 			public bool IsLong; public double Trig, Lim, Stop;
-			public int FireChartBar, FireEngineBar, FillChartBar;
+			public int FireChartBar, FireEngineBar, FillChartBar, Seq;
 			public int State;                       // 0 pending retest, 1 filled, 2 done
 			public string Tag;
 		}
 		private List<Sig> active;
 
 		private Brush bullBack, bearBack, zoneOutline, zoneFill;
+
+		// ---- CSV export (validation against the Python engine) ----
+		private List<string> csvRows;
+		private string csvPath;
+
+		private void CsvRow(string ev, int seq, string dir, int engBar, double trig, double lim, string reason)
+		{
+			if (!WriteSetupsCsv || csvRows == null) return;
+			csvRows.Add(string.Format("{0:yyyy-MM-dd},{0:HH:mm:ss},{1},{2},{3},{4},{5},{6},{7},{8},{9}",
+				Time[0], ev, seq, dir, engBar, trig, lim, mode,
+				double.IsNaN(smaDaily) ? "" : smaDaily.ToString("F2"), reason));
+		}
+
+		private void CsvFlush()
+		{
+			if (!WriteSetupsCsv || csvRows == null || csvRows.Count == 0 || csvPath == null) return;
+			try
+			{
+				File.WriteAllText(csvPath,
+					"date,time,event,seq,dir,engine_bar,trig,lim,regime,sma20d,reason\r\n"
+					+ string.Join("\r\n", csvRows), Encoding.ASCII);
+			}
+			catch { }
+		}
 
 		protected override void OnStateChange()
 		{
@@ -129,6 +155,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				ShowFiltered = true;
 				ShowTriggerLines = true;
 				ShowStatus = true;
+				WriteSetupsCsv = true;
 			}
 			else if (State == State.Configure)
 			{
@@ -140,12 +167,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 			else if (State == State.DataLoaded)
 			{
 				active = new List<Sig>();
+				csvRows = new List<string>();
+				csvPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+					"regime2e_setups_" + Instrument.MasterInstrument.Name + ".csv");
 				ResetSession();
 				sessionIt = new Data.SessionIterator(Bars);
 				if (BarsPeriod.BarsPeriodType != BarsPeriodType.Minute || BarsPeriod.Value != 5)
 					Log("Regime2ESetups: non-5min series (" + BarsPeriod + ") - the validated book is 5-MINUTE.", LogLevel.Warning);
 				if (!Bars.IsTickReplay)
 					Log("Regime2ESetups: Tick Replay OFF - historical marks are approximate (close-path only); live marks are exact.", LogLevel.Warning);
+			}
+			else if (State == State.Terminated)
+			{
+				CsvFlush();
 			}
 		}
 
@@ -455,6 +489,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				}
 				sessHigh = double.MinValue; sessLow = double.MaxValue;
 				ResetSession();
+				CsvFlush();                            // keep the file current without removing the indicator
 				sessionStartBar = CurrentBar;
 				sessionIt.GetNextSession(Time[0], true);
 				winStartT = sessionIt.ActualSessionBegin.AddMinutes(WindowStartMin);
@@ -530,12 +565,17 @@ namespace NinjaTrader.NinjaScript.Indicators
 			{
 				if (s.State == 0)
 				{
-					if (formBar > s.FireEngineBar + EntryCancelBars) { s.State = 2; ExpireZone(s); }
+					if (formBar > s.FireEngineBar + EntryCancelBars)
+					{
+						s.State = 2; ExpireZone(s);
+						CsvRow("EXPIRE", s.Seq, s.IsLong ? "L" : "S", formBar, s.Trig, s.Lim, "");
+					}
 					else if ((s.IsLong && px < s.Lim + TICK / 2) || (!s.IsLong && px > s.Lim - TICK / 2))
 					{
 						s.State = 1; s.FillChartBar = CurrentBar;
 						s.Stop = s.IsLong ? s.Lim - adrStopTicks * TICK : s.Lim + adrStopTicks * TICK;
 						Draw.Dot(this, s.Tag + "e", false, 0, s.Lim, s.IsLong ? Brushes.LimeGreen : Brushes.Red);
+						CsvRow("FILL", s.Seq, s.IsLong ? "L" : "S", formBar, s.Trig, s.Lim, "");
 					}
 				}
 				else if (s.State == 1)
@@ -545,6 +585,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 						s.State = 2;
 						Draw.Text(this, s.Tag + "x", "STOP", 0,
 							s.Stop + (s.IsLong ? -8 : 8) * TICK, Brushes.DarkRed);
+						CsvRow("STOP", s.Seq, s.IsLong ? "L" : "S", formBar, s.Trig, s.Stop, "");
 					}
 				}
 			}
@@ -568,6 +609,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			if (reason != null)
 			{
+				CsvRow("SKIP", sigSeq, isLong ? "L" : "S", formBar, trig,
+					isLong ? trig - RetestTicks * TICK : trig + RetestTicks * TICK, reason);
 				if (!ShowFiltered) return;
 				Draw.Diamond(this, tg + "f", false, 0, trig, Brushes.Gray);
 				Draw.Text(this, tg + "ft", reason, 0, trig + (isLong ? -10 : 10) * TICK, Brushes.Gray);
@@ -575,6 +618,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 
 			double lim = isLong ? trig - RetestTicks * TICK : trig + RetestTicks * TICK;
+			CsvRow("FIRE", sigSeq, isLong ? "L" : "S", formBar, trig, lim, "OK");
 			if (isLong)
 			{
 				Draw.TriangleUp(this, tg + "a", false, 0, trig - 6 * TICK, Brushes.LimeGreen);
@@ -587,7 +631,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 			active.Add(new Sig
 			{
-				IsLong = isLong, Trig = trig, Lim = lim,
+				IsLong = isLong, Trig = trig, Lim = lim, Seq = sigSeq,
 				FireChartBar = CurrentBar, FireEngineBar = formBar, State = 0, Tag = tg
 			});
 		}
@@ -647,6 +691,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[NinjaScriptProperty] public bool ShowFiltered { get; set; }
 		[NinjaScriptProperty] public bool ShowTriggerLines { get; set; }
 		[NinjaScriptProperty] public bool ShowStatus { get; set; }
+		[NinjaScriptProperty] public bool WriteSetupsCsv { get; set; }
 		#endregion
 	}
 }
