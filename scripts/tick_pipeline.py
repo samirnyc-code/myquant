@@ -30,9 +30,63 @@ DONE = NT_TICKS / "_request.done.json"
 CONTRACT = "ES 09-26"   # current front-month anchor; the ingest roll-guard aborts wrong-contract days
 
 
+ETH_TROVE = ROOT / "data" / "ticks_continuous_eth"
+ETH_HOURS = "CME US Index Futures ETH"
+
+
 def last_trove_day():
     days = sorted(p.stem for p in TROVE.glob("*.parquet"))
     return dt.date.fromisoformat(days[-1]) if days else None
+
+
+def last_eth_day():
+    days = sorted(p.stem for p in ETH_TROVE.glob("*.parquet") if not p.stem.startswith("_"))
+    return dt.date.fromisoformat(days[-1]) if days else None
+
+
+def eth_pass(contract, frm, to, timeout):
+    """Nightly ETH step: export [frm,to] with the ETH session template and fold into
+    the ETH trove (parallel to RTH). Small incrementally (1-2 days). Refreshes the
+    integrity manifest and syncs the off-dir backup after a successful write."""
+    print(f"\n[ETH 1/3] requesting {contract} ETH-session ticks {frm}..{to}")
+    DONE.unlink(missing_ok=True)
+    before = set(glob.glob(str(NT_TICKS / "*_ticks_*.csv")))
+    REQ.write_text(json.dumps({"contract": contract, "from": frm.isoformat(),
+                               "to": to.isoformat(), "hours": ETH_HOURS}))
+    t0 = time.time()
+    while time.time() - t0 < timeout:
+        if DONE.exists():
+            print("      AddOn:", DONE.read_text().strip()); break
+        time.sleep(10)
+    else:
+        REQ.unlink(missing_ok=True)
+        print("! ETH: AddOn never answered"); return 2
+    new = sorted(set(glob.glob(str(NT_TICKS / "*_ticks_*.csv"))) - before)
+    if not new:
+        print("! ETH: no CSVs produced"); return 2
+    print(f"[ETH 2/3] exported {len(new)} CSV file(s); ingesting to ETH trove")
+    tag = contract.replace(" ", "_")
+    rc = subprocess.run([sys.executable, str(ROOT / "scripts" / "ingest_nt_ticks_eth.py"),
+                         "--glob", f"data/nt_ticks/{tag}_ticks_*.csv", "--force",
+                         "--validate-rth"], check=False).returncode
+    for f in new:                       # free disk (ETH CSVs are large)
+        try: Path(f).unlink()
+        except OSError: pass
+    if rc == 0:
+        print("[ETH 3/3] refreshing integrity manifest + backup")
+        subprocess.run([sys.executable, str(ROOT / "scripts" / "eth_store_manifest.py")], check=False)
+        try:
+            import shutil
+            bk = Path(r"C:\eth_trove_backup")
+            if bk.exists():
+                for p in ETH_TROVE.glob("*.parquet"):
+                    if not p.stem.startswith("_"):
+                        dst = bk / p.name
+                        if not dst.exists() or dst.stat().st_size != p.stat().st_size:
+                            shutil.copy2(p, dst)
+        except Exception as e:
+            print(f"  (backup sync skipped: {e})")
+    return rc
 
 
 def main() -> int:
@@ -90,8 +144,17 @@ def main() -> int:
     print("\n--- ingest WRITE ---")
     rc = subprocess.run(cmd, check=False).returncode
     if rc == 0:
-        print(f"\ntrove now current. (If the 5M cache is used downstream, rebuild it: "
+        print(f"\nRTH trove now current. (If the 5M cache is used downstream, rebuild it: "
               f"python research/scalp_swing/build_5m.py)")
+
+    # ETH trove — keep it current alongside RTH (its own last-day range)
+    if not a.dry_run:
+        eth_last = last_eth_day()
+        eth_frm = (eth_last + dt.timedelta(days=1)) if eth_last else frm
+        if to >= eth_frm:
+            eth_pass(a.contract, eth_frm, to, a.timeout)
+        else:
+            print(f"\nETH trove already current through {eth_last}")
     return rc
 
 
