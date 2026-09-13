@@ -38,6 +38,7 @@ using SharpDX.DirectWrite;
 namespace NinjaTrader.NinjaScript
 {
 	public enum TempoBoxCorner { TopLeft, TopRight, BottomLeft, BottomRight }
+	public enum FlipEntryMode { StopEntry, Close }
 }
 
 namespace NinjaTrader.NinjaScript.Indicators
@@ -114,6 +115,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				MinOpacityPct  = 10;
 				ShowSpeedo     = true;
 				SpeedoCorner   = TempoBoxCorner.BottomRight;
+				EntryMode      = FlipEntryMode.StopEntry;
 				ShowHeatStrip  = true;
 				ShowEngineDot  = true;
 				ShowStateLabel = true;
@@ -488,13 +490,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 			return d1 == 1 ? 1 : 2;
 		}
 
-		// STOP ENTRY (2026-09-13, user): 1 tick beyond the SB extreme in trade direction;
-		// fill requires a tick THROUGH the SE price, fill AT the SE price.
+		// Entry per EntryMode: StopEntry = 1 tick beyond the SB extreme (tick-through
+		// fill), Close = at the SB close.
 		private bool FlipPrices(int i, bool isShort, out double entry, out double stop, out double risk)
 		{
 			double h2 = Math.Max(Bars.GetHigh(i - 1), Bars.GetHigh(i));
 			double l2 = Math.Min(Bars.GetLow(i - 1), Bars.GetLow(i));
-			entry = isShort ? Bars.GetLow(i) - TickSize : Bars.GetHigh(i) + TickSize;
+			entry = EntryMode == FlipEntryMode.Close ? Bars.GetClose(i)
+				: (isShort ? Bars.GetLow(i) - TickSize : Bars.GetHigh(i) + TickSize);
 			stop = isShort ? h2 + TickSize : l2 - TickSize;
 			risk = Math.Abs(entry - stop);
 			return risk >= TickSize;
@@ -528,6 +531,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 					{
 						if (reach < 2 && (pSh ? Bars.GetLow(i) <= r2 : Bars.GetHigh(i) >= r2)) reach = 2;
 						else if (reach < 1 && (pSh ? Bars.GetLow(i) <= r1 : Bars.GetHigh(i) >= r1)) reach = 1;
+						// Close-entry EB scratch: bar after the SB closes wrong-IBS non-climax
+						if (EntryMode == FlipEntryMode.Close && EbScratch && i == pi + 1)
+						{
+							int dEB = BarDir(i);
+							bool opp = climaxS.GetValueAt(i) < 0.5
+								&& ((pSh && dEB == 1) || (!pSh && dEB == -1));
+							if (opp) { trades.Add(new[] { pSig, pSh ? 1 : 0, 5, i, reach, pByRev ? 1 : 0, pi }); pi = -1; }
+						}
 					}
 				}
 				if (qSig >= 0 && pi < 0)
@@ -589,6 +600,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 				{ trades.Add(new[] { qSig, qSh ? 1 : 0, 6, i, 0, qByRev ? 1 : 0, -1 }); qSig = -1; }
 				double e2, s2, k2;
 				if (!FlipPrices(i, sh, out e2, out s2, out k2)) continue;
+				if (EntryMode == FlipEntryMode.Close)
+				{
+					pi = i; pSig = i; pSh = sh; pByRev = byRev;
+					en = e2; st = s2; rk = k2;
+					double sg2 = sh ? -1 : 1;
+					tg = en + sg2 * 3 * rk; r1 = en + sg2 * rk; r2 = en + sg2 * 2 * rk; reach = 0;
+					continue;
+				}
 				qSig = i; qSh = sh; qByRev = byRev; qEn = e2; qSt = s2;
 			}
 			if (pi >= 0) trades.Add(new[] { pSig, pSh ? 1 : 0, 0, Math.Min(s1, CurrentBar), reach, pByRev ? 1 : 0, pi });
@@ -724,7 +743,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 					flipRects.Add(new[] { Math.Min(x0, x1), top, Math.Max(xE + 40f, x1) - Math.Min(x0, x1), bot - top });
 					flipInfos.Add(new[] {
 						(t[5] == 1 ? "EB Reversal" : "Basic") + "  ·  " + (sh ? "SHORT" : "LONG"),
-						string.Format("in  {0:HH:mm:ss}  @ {1:F2} (SE)", Bars.GetTime(t[6] >= 0 ? t[6] : i), en),
+						string.Format("in  {0:HH:mm:ss}  @ {1:F2}{2}", Bars.GetTime(t[6] >= 0 ? t[6] : i), en,
+							EntryMode == FlipEntryMode.Close ? "" : " (SE)"),
 						string.Format("out {0:HH:mm:ss}  @ {1:F2}  ({2})", Bars.GetTime(endIdx), exitPx, tag),
 						string.Format("stop {0:F2}   risk {1:F2} pt", st, rk),
 						string.Format("PnL {0}{1:F2} pt  ({2}{3:F2}R)   reach {4}R",
@@ -758,7 +778,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				}
 				if (wins + losses + revs + open + nofill > 0)
 				{
-					string tly = string.Format("FLIP day (SE 1-at-a-time{0}): {1}{2:F1}R ({3}{4:F2} pt)  W{5} L{6} rev{7} open{8} nofill{9}  >=1R:{10} >=2R:{11} 3R:{12}",
+					string tly = string.Format("FLIP day ({0} 1-at-a-time{1}): {2}{3:F1}R ({4}{5:F2} pt)  W{6} L{7} rev{8} open{9} nofill{10}  >=1R:{11} >=2R:{12} 3R:{13}",
+						EntryMode == FlipEntryMode.Close ? "CLOSE" : "SE",
 						ReverseOnOpposite ? ", SAR" : "", rPnl >= 0 ? "+" : "", rPnl,
 						ptsPnl >= 0 ? "+" : "", ptsPnl, wins, losses, revs, open, nofill, r1c, r2c, r3c);
 					TextFormat tfB = new TextFormat(NinjaTrader.Core.Globals.DirectWriteFactory, "Consolas", 12f);
@@ -951,68 +972,75 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[Display(Name = "Minimum opacity %", GroupName = "2. Visual", Order = 2)]
 		public int MinOpacityPct { get; set; }
 
+		// --- 3. Boxes / display ------------------------------------------------
 		[NinjaScriptProperty]
-		[Display(Name = "Show speedometer", GroupName = "3. Blocks", Order = 0)]
+		[Display(Name = "Show speedometer", GroupName = "3. Boxes / display", Order = 0)]
 		public bool ShowSpeedo { get; set; }
 
 		[NinjaScriptProperty]
-		[Display(Name = "Speedometer corner", GroupName = "3. Blocks", Order = 0)]
+		[Display(Name = "Speedometer corner", GroupName = "3. Boxes / display", Order = 1)]
 		public TempoBoxCorner SpeedoCorner { get; set; }
 
 		[NinjaScriptProperty]
-		[Display(Name = "Show heat strip", GroupName = "3. Blocks", Order = 1)]
+		[Display(Name = "Show heat strip", GroupName = "3. Boxes / display", Order = 2)]
 		public bool ShowHeatStrip { get; set; }
 
 		[NinjaScriptProperty]
-		[Display(Name = "Show 2D engine dot", GroupName = "3. Blocks", Order = 2)]
+		[Display(Name = "Show 2D engine dot", GroupName = "3. Boxes / display", Order = 3)]
 		public bool ShowEngineDot { get; set; }
 
 		[NinjaScriptProperty]
-		[Display(Name = "Show state label", GroupName = "3. Blocks", Order = 3)]
+		[Display(Name = "Show state label", GroupName = "3. Boxes / display", Order = 4)]
 		public bool ShowStateLabel { get; set; }
 
 		[NinjaScriptProperty]
-		[Display(Name = "Show DIAG line", GroupName = "3. Blocks", Order = 4)]
+		[Display(Name = "Show DIAG line", GroupName = "3. Boxes / display", Order = 5)]
 		public bool ShowDiag { get; set; }
 
+		// --- 4. Flip setup (signal -> entry -> management) ---------------------
 		[NinjaScriptProperty]
-		[Display(Name = "Show climax-flip setups (box + RR)", GroupName = "3. Blocks", Order = 5)]
+		[Display(Name = "Show climax-flip setups (box + RR)", GroupName = "4. Flip setup", Order = 0)]
 		public bool ShowClimaxFlip { get; set; }
 
 		[NinjaScriptProperty]
-		[Display(Name = "Flip: reverse on opposite signal (SAR)", GroupName = "3. Blocks", Order = 6)]
-		public bool ReverseOnOpposite { get; set; }
-
-		[NinjaScriptProperty]
-		[Display(Name = "Flip: SB IBS direction (0.55/0.45; bar1=color)", GroupName = "3. Blocks", Order = 7)]
+		[Display(Name = "Signal: SB IBS direction (0.55/0.45; bar1=color)", GroupName = "4. Flip setup", Order = 1)]
 		public bool UseIbsDirection { get; set; }
 
-		[NinjaScriptProperty]
-		[Display(Name = "Flip: EB opposite-IBS scratch", GroupName = "3. Blocks", Order = 8)]
-		public bool EbScratch { get; set; }
-
 		[NinjaScriptProperty, Range(0, 20)]
-		[Display(Name = "Flip: min SB body (ticks)", GroupName = "3. Blocks", Order = 9)]
+		[Display(Name = "Signal: min SB body (ticks)", GroupName = "4. Flip setup", Order = 2)]
 		public int MinSbBodyTicks { get; set; }
 
+		[NinjaScriptProperty]
+		[Display(Name = "Entry: mode (StopEntry / Close)", GroupName = "4. Flip setup", Order = 3)]
+		public FlipEntryMode EntryMode { get; set; }
+
 		[NinjaScriptProperty, Range(1, 20)]
-		[Display(Name = "Flip: SE order life (bars after SB)", GroupName = "3. Blocks", Order = 10)]
+		[Display(Name = "Entry: SE order life (bars after SB)", GroupName = "4. Flip setup", Order = 4)]
 		public int SeOrderLifeBars { get; set; }
 
 		[NinjaScriptProperty]
-		[Display(Name = "Flip: EB on bar after SB (off = the bar that fills the SE)", GroupName = "3. Blocks", Order = 11)]
+		[Display(Name = "Manage: reverse on opposite signal (SAR)", GroupName = "4. Flip setup", Order = 5)]
+		public bool ReverseOnOpposite { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name = "Manage: EB opposite-IBS scratch", GroupName = "4. Flip setup", Order = 6)]
+		public bool EbScratch { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name = "Manage: EB on bar after SB (off = the bar that fills the SE)", GroupName = "4. Flip setup", Order = 7)]
 		public bool EbOnSignalBar { get; set; }
 
+		// --- 5. Live pace / alert ----------------------------------------------
 		[NinjaScriptProperty, Range(5, 300)]
-		[Display(Name = "Live pace window (sec)", GroupName = "4. Live pace / alert", Order = 0)]
+		[Display(Name = "Live pace window (sec)", GroupName = "5. Live pace / alert", Order = 0)]
 		public int PaceWindowSec { get; set; }
 
 		[NinjaScriptProperty]
-		[Display(Name = "Audio alert on climactic pace", GroupName = "4. Live pace / alert", Order = 1)]
+		[Display(Name = "Audio alert on climactic pace", GroupName = "5. Live pace / alert", Order = 1)]
 		public bool AlertOnClimax { get; set; }
 
 		[NinjaScriptProperty, Range(10, 3600)]
-		[Display(Name = "Alert cooldown (sec)", GroupName = "4. Live pace / alert", Order = 2)]
+		[Display(Name = "Alert cooldown (sec)", GroupName = "5. Live pace / alert", Order = 2)]
 		public int AlertCooldownSec { get; set; }
 
 		[XmlIgnore]
