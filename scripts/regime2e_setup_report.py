@@ -140,6 +140,39 @@ def html_report(trades, skips, src, stamp):
     return "\n".join(out)
 
 
+def print_metrics(trades):
+    """Full metrics block (gross + net-of-costs at the book's $5 RT + 1t slip)."""
+    c = pd.DataFrame([t for t in trades if t["pts"] is not None])
+    if c.empty:
+        print("no closed trades - no metrics")
+        return
+    c = c.sort_values(["date", "fill_time"]).reset_index(drop=True)
+    days = c["date"].nunique()
+    span_yrs = max((pd.to_datetime(c["date"]).max() - pd.to_datetime(c["date"]).min()).days, 1) / 365.25
+    for label, cost in (("GROSS (no costs)", 0.0), ("NET  ($5 RT + 1t slip = $17.50/tr)", 17.5)):
+        v = c["pts"].values * 50.0 - cost
+        w = v[v > 0]; l = v[v <= 0]
+        pf = w.sum() / -l.sum() if l.sum() < 0 else float("inf")
+        eq = pd.Series(v).cumsum()
+        mdd = float((eq - eq.cummax()).min())
+        daily = pd.DataFrame({"d": c["date"], "v": v}).groupby("d")["v"].sum()
+        sharpe = daily.mean() / daily.std() * (252 ** 0.5) if daily.std() > 0 else float("nan")
+        print(f"\n===== {label}  (n={len(v)}, {days} trading days, {span_yrs:.2f}yr) =====")
+        print(f"  net            ${v.sum():+,.0f}   ({v.sum() / span_yrs:+,.0f}/yr, 1 ES)")
+        print(f"  PF             {pf:.2f}")
+        print(f"  win rate       {100 * (v > 0).mean():.1f}%   ({len(w)}W / {len(l)}L)")
+        print(f"  avg win        ${w.mean():+,.0f}    avg loss ${l.mean():+,.0f}    payoff {abs(w.mean() / l.mean()):.2f}")
+        print(f"  expectancy     ${v.mean():+,.0f}/trade")
+        print(f"  max drawdown   ${mdd:+,.0f}  (trade-equity)")
+        print(f"  best / worst   ${v.max():+,.0f} / ${v.min():+,.0f}")
+        print(f"  daily Sharpe   {sharpe:.2f}   trades/day {len(v) / days:.1f}")
+        for d_ in ("L", "S"):
+            x = v[(c["dir"] == d_).values]
+            if len(x):
+                pfx = x[x > 0].sum() / -x[x <= 0].sum() if (x <= 0).any() and x[x <= 0].sum() < 0 else float("inf")
+                print(f"  {'2EL' if d_ == 'L' else '2ES'}:  n={len(x)}  PF {pfx:.2f}  net ${x.sum():+,.0f}")
+
+
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     csv_path = Path(args[0]) if args else DEFAULT_CSV
@@ -154,7 +187,8 @@ def main():
     if trades:
         pd.DataFrame(trades).to_csv(OUTDIR / f"setup_trades_{stamp}.csv", index=False)
     print(f"events {len(df)} -> trades {len(trades)} (skips {len(skips)})")
-    print(f"report: {html}")
+    print_metrics(trades)
+    print(f"\nreport: {html}")
 
 
 if __name__ == "__main__":
