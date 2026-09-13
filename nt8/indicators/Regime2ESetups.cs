@@ -177,6 +177,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (!Bars.IsTickReplay)
 					Log("Regime2ESetups: Tick Replay OFF - historical marks are approximate (close-path only); live marks are exact.", LogLevel.Warning);
 			}
+			else if (State == State.Realtime)
+			{
+				CsvFlush();                            // historical load done -> full file on disk, no removal needed
+			}
 			else if (State == State.Terminated)
 			{
 				CsvFlush();
