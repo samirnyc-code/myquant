@@ -35,16 +35,19 @@ def load(csv_path: Path) -> pd.DataFrame:
 def build_trades(df: pd.DataFrame):
     """Stitch FIRE -> FILL -> (STOP|EOD|EXPIRE) per (date, seq)."""
     trades, skips = [], []
-    for (d, seq), g in df.groupby(["date", "seq"], sort=True):
+    # group by seq ONLY: the EOD row is written at the NEXT session's first bar,
+    # so it carries the next day's date; seq is globally unique across the run.
+    for seq, g in df.groupby("seq", sort=True):
         ev = {r.event: r for r in g.itertuples()}
         if "SKIP" in ev:
             r = ev["SKIP"]
-            skips.append(dict(date=d, time=r.time, dir=r.dir, trig=r.trig,
+            skips.append(dict(date=r.date, time=r.time, dir=r.dir, trig=r.trig,
                               regime=r.regime, reason=r.reason))
             continue
         if "FIRE" not in ev:
             continue
         f = ev["FIRE"]
+        d = f.date
         t = dict(date=d, seq=seq, time=f.time, dir=f.dir, trig=f.trig, lim=f.lim,
                  regime=f.regime, sma20d=f.sma20d, filled=False, entry=None,
                  fill_time=None, stop_px=None, exit_px=None, outcome="NO FILL",

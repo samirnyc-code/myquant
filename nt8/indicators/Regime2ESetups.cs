@@ -98,6 +98,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			public bool IsLong; public double Trig, Lim, Stop;
 			public int FireChartBar, FireEngineBar, FillChartBar, Seq;
 			public int State;                       // 0 pending retest, 1 filled, 2 done
+			public bool ArrowFixed;                 // arrow re-anchored to the completed signal bar
 			public string Tag;
 		}
 		private List<Sig> active;
@@ -140,6 +141,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 				DisplayInDataBox = true;
 				PaintPriceMarkers = false;
 				AddPlot(new Stroke(Brushes.DimGray, DashStyleHelper.Dash, 1), PlotStyle.Line, "SMA20d");
+				// invisible plots -> trade detail in the native Data Box (CTRL+hover a bar)
+				AddPlot(Brushes.Transparent, "Trade entry");
+				AddPlot(Brushes.Transparent, "Trade stop");
+				AddPlot(Brushes.Transparent, "Trade P&L pts");
 
 				WindowStartMin = 30;                   // fills from session open + 30 min
 				WindowEndMin = 330;                    // ... to open + 5h30 (exclusive)
@@ -496,7 +501,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (active != null)
 					foreach (Sig s in active)
 						if (s.State == 1 && !double.IsNaN(lastSessClose))
+						{
 							CsvRow("EOD", s.Seq, s.IsLong ? "L" : "S", formBar, s.Trig, lastSessClose, "");
+							double pts = s.IsLong ? lastSessClose - s.Lim : s.Lim - lastSessClose;
+							Brush pb = pts >= 0 ? Brushes.LimeGreen : Brushes.Red;
+							Draw.Line(this, s.Tag + "p", false,
+								CurrentBar - s.FillChartBar, s.Lim, 1, lastSessClose,
+								pb, DashStyleHelper.Solid, 2);
+							Draw.Text(this, s.Tag + "x", "EOD " + pts.ToString("+0.00;-0.00"), 1,
+								lastSessClose + (s.IsLong ? 10 : -10) * TICK, pb);
+						}
 				sessHigh = double.MinValue; sessLow = double.MaxValue;
 				ResetSession();
 				CsvFlush();                            // keep the file current without removing the indicator
@@ -596,8 +610,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 					if ((s.IsLong && px < s.Stop + TICK / 2) || (!s.IsLong && px > s.Stop - TICK / 2))
 					{
 						s.State = 2;
-						Draw.Text(this, s.Tag + "x", "STOP", 0,
-							s.Stop + (s.IsLong ? -8 : 8) * TICK, Brushes.DarkRed);
+						double pts = s.IsLong ? s.Stop - s.Lim : s.Lim - s.Stop;
+						Draw.Line(this, s.Tag + "p", false,
+							CurrentBar - s.FillChartBar, s.Lim, 0, s.Stop,
+							Brushes.Red, DashStyleHelper.Solid, 2);
+						Draw.Text(this, s.Tag + "x", "STOP " + pts.ToString("+0.00;-0.00"), 0,
+							s.Stop + (s.IsLong ? -10 : 10) * TICK, Brushes.Red);
 						CsvRow("STOP", s.Seq, s.IsLong ? "L" : "S", formBar, s.Trig, s.Stop, "");
 					}
 				}
@@ -625,27 +643,31 @@ namespace NinjaTrader.NinjaScript.Indicators
 				CsvRow("SKIP", sigSeq, isLong ? "L" : "S", formBar, trig,
 					isLong ? trig - RetestTicks * TICK : trig + RetestTicks * TICK, reason);
 				if (!ShowFiltered) return;
+				// diamond at the trigger level; reason text pushed clear of the bars
 				Draw.Diamond(this, tg + "f", false, 0, trig, Brushes.Gray);
-				Draw.Text(this, tg + "ft", reason, 0, trig + (isLong ? -10 : 10) * TICK, Brushes.Gray);
+				Draw.Text(this, tg + "ft", reason, 0,
+					isLong ? formLow - 14 * TICK : formHigh + 14 * TICK, Brushes.Gray);
 				return;
 			}
 
 			double lim = isLong ? trig - RetestTicks * TICK : trig + RetestTicks * TICK;
 			CsvRow("FIRE", sigSeq, isLong ? "L" : "S", formBar, trig, lim, "OK");
+			// arrow anchored to the signal bar (re-anchored to its final extreme on close)
 			if (isLong)
 			{
-				Draw.TriangleUp(this, tg + "a", false, 0, trig - 6 * TICK, Brushes.LimeGreen);
-				Draw.Text(this, tg + "t", "2EL", 0, trig - 12 * TICK, Brushes.LimeGreen);
+				Draw.ArrowUp(this, tg + "a", false, 0, formLow - 4 * TICK, Brushes.LimeGreen);
+				Draw.Text(this, tg + "t", "2EL", 0, formLow - 12 * TICK, Brushes.LimeGreen);
 			}
 			else
 			{
-				Draw.TriangleDown(this, tg + "a", false, 0, trig + 6 * TICK, Brushes.Red);
-				Draw.Text(this, tg + "t", "2ES", 0, trig + 12 * TICK, Brushes.Red);
+				Draw.ArrowDown(this, tg + "a", false, 0, formHigh + 4 * TICK, Brushes.Red);
+				Draw.Text(this, tg + "t", "2ES", 0, formHigh + 12 * TICK, Brushes.Red);
 			}
 			active.Add(new Sig
 			{
 				IsLong = isLong, Trig = trig, Lim = lim, Seq = sigSeq,
-				FireChartBar = CurrentBar, FireEngineBar = formBar, State = 0, Tag = tg
+				FireChartBar = CurrentBar, FireEngineBar = formBar, State = 0,
+				ArrowFixed = false, Tag = tg
 			});
 		}
 
@@ -653,6 +675,21 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
 			foreach (Sig s in active)
 			{
+				// once the signal bar completes, pin the arrow to its true extreme
+				if (!s.ArrowFixed && CurrentBar == s.FireChartBar + 1)
+				{
+					s.ArrowFixed = true;
+					if (s.IsLong)
+					{
+						Draw.ArrowUp(this, s.Tag + "a", false, 1, Low[1] - 4 * TICK, Brushes.LimeGreen);
+						Draw.Text(this, s.Tag + "t", "2EL", 1, Low[1] - 12 * TICK, Brushes.LimeGreen);
+					}
+					else
+					{
+						Draw.ArrowDown(this, s.Tag + "a", false, 1, High[1] + 4 * TICK, Brushes.Red);
+						Draw.Text(this, s.Tag + "t", "2ES", 1, High[1] + 12 * TICK, Brushes.Red);
+					}
+				}
 				if (s.State == 0)
 					Draw.Rectangle(this, s.Tag + "z", false,
 						CurrentBar - s.FireChartBar, s.Trig, 0, s.Lim, zoneOutline, zoneFill, 100);
@@ -674,6 +711,17 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
 			BackBrush = mode == "BULL" ? bullBack : mode == "BEAR" ? bearBack : null;
 			if (!double.IsNaN(smaDaily)) Values[0][0] = smaDaily; else Values[0].Reset();
+			// Data Box trade detail (CTRL+hover): latest open trade on this bar
+			Sig open = null;
+			for (int i = active.Count - 1; i >= 0; i--)
+				if (active[i].State == 1) { open = active[i]; break; }
+			if (open != null)
+			{
+				Values[1][0] = open.Lim;
+				Values[2][0] = open.Stop;
+				Values[3][0] = open.IsLong ? Close[0] - open.Lim : open.Lim - Close[0];
+			}
+			else { Values[1].Reset(); Values[2].Reset(); Values[3].Reset(); }
 			if (!ShowStatus) return;
 			string gates = (adrStopTicks <= 0 || (UseSmaGate && double.IsNaN(smaDaily))) ? "WARMUP (load 35+ days)"
 				: (UseGapSkip && gapSkip ? "DAY SKIPPED: gap " + gapPctToday.ToString("F2") + "%"
