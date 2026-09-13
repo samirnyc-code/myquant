@@ -65,10 +65,10 @@ def eth_pass(contract, frm, to, timeout):
     if not new:
         print("! ETH: no CSVs produced"); return 2
     print(f"[ETH 2/3] exported {len(new)} CSV file(s); ingesting to ETH trove")
-    tag = contract.replace(" ", "_")
+    # ingest ONLY this pass's own new CSVs (--files), never a broad glob — the RTH pass
+    # leaves same-named RTH-only CSVs in this dir, and a glob would mix them in.
     rc = subprocess.run([sys.executable, str(ROOT / "scripts" / "ingest_nt_ticks_eth.py"),
-                         "--glob", f"data/nt_ticks/{tag}_ticks_*.csv", "--force",
-                         "--validate-rth"], check=False).returncode
+                         "--files", *new, "--force", "--validate-rth"], check=False).returncode
     for f in new:                       # free disk (ETH CSVs are large)
         try: Path(f).unlink()
         except OSError: pass
@@ -144,6 +144,9 @@ def main() -> int:
     print("\n--- ingest WRITE ---")
     rc = subprocess.run(cmd, check=False).returncode
     if rc == 0:
+        for f in new:                       # clean RTH CSVs so they don't accumulate
+            try: Path(f).unlink()
+            except OSError: pass
         print(f"\nRTH trove now current. (If the 5M cache is used downstream, rebuild it: "
               f"python research/scalp_swing/build_5m.py)")
 
