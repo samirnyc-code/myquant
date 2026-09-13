@@ -72,12 +72,13 @@ def main() -> int:
     print(f"reading {len(paths)} file(s):")
     frames = []
     contracts_seen: set[str] = set()
-    for p in paths:
+    for i, p in enumerate(paths):
         fp = Path(p)
         # contract is the filename prefix before '_ticks_': ES_09-26_ticks_... -> "ES 09-26"
         stem = fp.name.split("_ticks_")[0].replace("_", " ")
         contracts_seen.add(stem)
-        df = pd.read_csv(fp)
+        df = pd.read_csv(fp).dropna(subset=["Time", "Price", "Volume"])
+        df["_src"] = i                       # tag source file for overlap handling
         print(f"  {fp.name}: {len(df):,} rows  contract='{stem}'")
         frames.append(df)
 
@@ -88,13 +89,11 @@ def main() -> int:
     ticker = contract_to_ticker(full_contract)
     print(f"\ncontract '{full_contract}' -> ticker {ticker}")
 
+    # DO NOT drop_duplicates on (Time,Price,Volume): NT reports every individual fill,
+    # and a sweep produces MANY genuine same-ms/price/size prints. Collapsing them
+    # destroyed ~60% of volume (the 2026-07+ trove bug). Overlap from re-run/overlapping
+    # dumps is instead handled per-date below by keeping the single most-complete file.
     raw = pd.concat(frames, ignore_index=True)
-    raw = raw.drop_duplicates()  # re-loads / overlapping dumps
-    _n0 = len(raw)
-    raw = raw.dropna(subset=["Time", "Price", "Volume"])  # drop partial/truncated trailing rows
-    if len(raw) != _n0:
-        print(f"  dropped {_n0 - len(raw)} incomplete row(s)")
-    # tz: localize the source zone, convert to Chicago, strip tz -> CT-naive (matches massive.py)
     ts = pd.to_datetime(raw["Time"])
     ts = (ts.dt.tz_localize(a.src_tz, ambiguous="infer", nonexistent="shift_forward")
             .dt.tz_convert("America/Chicago").dt.tz_localize(None))
@@ -102,13 +101,21 @@ def main() -> int:
         "DateTime": ts,
         "Price": raw["Price"].astype(float).values,
         "Volume": raw["Volume"].astype(int).values,
+        "_src": raw["_src"].values,
     }).sort_values("DateTime").reset_index(drop=True)
 
     rolls = load_rolls()
 
     # per-date guard + offset, then RTH filter and write
     written, skipped, aborted = [], [], []
-    for d, g in ticks.groupby(ticks["DateTime"].dt.date):
+    for d, gall in ticks.groupby(ticks["DateTime"].dt.date):
+        # if this date appears in >1 source file (overlap), take the single most-complete
+        # file for it — never merge+dedup, which would drop genuine same-triple fills.
+        if gall["_src"].nunique() > 1:
+            best_src = gall.groupby("_src").size().idxmax()
+            g = gall[gall["_src"] == best_src]
+        else:
+            g = gall
         active = get_active_contract(d, rolls)
         if active is None:
             print(f"! {d}: no active contract in catalog — SKIP"); aborted.append(d); continue
