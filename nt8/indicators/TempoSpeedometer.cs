@@ -480,44 +480,75 @@ namespace NinjaTrader.NinjaScript.Indicators
 			return d1 == 1 ? 1 : 2;
 		}
 
+		// STOP ENTRY (2026-09-13, user): 1 tick beyond the SB extreme in trade direction;
+		// fill requires a tick THROUGH the SE price, fill AT the SE price.
 		private bool FlipPrices(int i, bool isShort, out double entry, out double stop, out double risk)
 		{
 			double h2 = Math.Max(Bars.GetHigh(i - 1), Bars.GetHigh(i));
 			double l2 = Math.Min(Bars.GetLow(i - 1), Bars.GetLow(i));
-			entry = Bars.GetClose(i);
+			entry = isShort ? Bars.GetLow(i) - TickSize : Bars.GetHigh(i) + TickSize;
 			stop = isShort ? h2 + TickSize : l2 - TickSize;
 			risk = Math.Abs(entry - stop);
 			return risk >= TickSize;
 		}
 
-		// ONE TRADE AT A TIME + optional STOP-AND-REVERSE. Record per taken trade:
-		// int[]{entryBar, isShort, result(0 open/1 stop/2 3R/4 reversed), endIdx, reach, openedByRev}
+		// ONE TRADE AT A TIME + optional STOP-AND-REVERSE, stop-entry pending orders.
+		// Pending dies if the protective-stop side breaks first (canc), on a newer
+		// signal (replaced) or at session end. Bar crossing SE and stop together =
+		// filled-then-stopped (conservative). Record per signal:
+		// int[]{sigBar, isShort, result(0 open/1 stop/2 3R/4 reversed/5 eb-scr/
+		//       6 no-fill/7 cancelled), endIdx, reach, openedByRev, fillBar(-1 if none)}
 		private List<int[]> SimFlipSession(int s0, int s1)
 		{
 			List<int[]> trades = new List<int[]>();
-			int pi = -1; bool pSh = false; int reach = 0; bool pByRev = false;
+			int pi = -1, pSig = -1; bool pSh = false; int reach = 0; bool pByRev = false;
 			double en = 0, st = 0, rk = 0, tg = 0, r1 = 0, r2 = 0;
+			int qSig = -1; bool qSh = false, qByRev = false;
+			double qEn = 0, qSt = 0;
 			for (int i = Math.Max(1, s0 + 1); i <= s1 && i <= CurrentBar; i++)
 			{
 				if (pi >= 0)
 				{
 					bool hs = pSh ? Bars.GetHigh(i) >= st : Bars.GetLow(i) <= st;
 					bool ht = pSh ? Bars.GetLow(i) <= tg : Bars.GetHigh(i) >= tg;
-					if (hs) { trades.Add(new[] { pi, pSh ? 1 : 0, 1, i, reach, pByRev ? 1 : 0 }); pi = -1; }
-					else if (ht) { trades.Add(new[] { pi, pSh ? 1 : 0, 2, i, 3, pByRev ? 1 : 0 }); pi = -1; }
+					if (hs) { trades.Add(new[] { pSig, pSh ? 1 : 0, 1, i, reach, pByRev ? 1 : 0, pi }); pi = -1; }
+					else if (ht) { trades.Add(new[] { pSig, pSh ? 1 : 0, 2, i, 3, pByRev ? 1 : 0, pi }); pi = -1; }
 					else
 					{
 						if (reach < 2 && (pSh ? Bars.GetLow(i) <= r2 : Bars.GetHigh(i) >= r2)) reach = 2;
 						else if (reach < 1 && (pSh ? Bars.GetLow(i) <= r1 : Bars.GetHigh(i) >= r1)) reach = 1;
-						// EB scratch: first bar after entry, NOT climax, opposite IBS -> out at close
+						// EB scratch: first bar after FILL, NOT climax, opposite IBS -> out at close
 						if (EbScratch && i == pi + 1)
 						{
 							int dEB = BarDir(i);
 							bool opp = climaxS.GetValueAt(i) < 0.5
 								&& ((pSh && dEB == 1) || (!pSh && dEB == -1));
-							if (opp) { trades.Add(new[] { pi, pSh ? 1 : 0, 5, i, reach, pByRev ? 1 : 0 }); pi = -1; }
+							if (opp) { trades.Add(new[] { pSig, pSh ? 1 : 0, 5, i, reach, pByRev ? 1 : 0, pi }); pi = -1; }
 						}
 					}
+				}
+				if (qSig >= 0 && pi < 0)
+				{
+					bool inval = qSh ? Bars.GetHigh(i) >= qSt : Bars.GetLow(i) <= qSt;
+					bool trig  = qSh ? Bars.GetLow(i) <= qEn - TickSize : Bars.GetHigh(i) >= qEn + TickSize;
+					if (trig)
+					{
+						pi = i; pSig = qSig; pSh = qSh; pByRev = qByRev;
+						en = qEn; st = qSt; rk = Math.Abs(en - st);
+						double sg = pSh ? -1 : 1;
+						tg = en + sg * 3 * rk; r1 = en + sg * rk; r2 = en + sg * 2 * rk; reach = 0;
+						qSig = -1;
+						if (inval) { trades.Add(new[] { pSig, pSh ? 1 : 0, 1, i, 0, pByRev ? 1 : 0, pi }); pi = -1; }
+						else
+						{
+							if (reach < 2 && (pSh ? Bars.GetLow(i) <= r2 : Bars.GetHigh(i) >= r2)) reach = 2;
+							else if (reach < 1 && (pSh ? Bars.GetLow(i) <= r1 : Bars.GetHigh(i) >= r1)) reach = 1;
+							bool ht0 = pSh ? Bars.GetLow(i) <= tg : Bars.GetHigh(i) >= tg;
+							if (ht0) { trades.Add(new[] { pSig, pSh ? 1 : 0, 2, i, 3, pByRev ? 1 : 0, pi }); pi = -1; }
+						}
+					}
+					else if (inval)
+					{ trades.Add(new[] { qSig, qSh ? 1 : 0, 7, i, 0, qByRev ? 1 : 0, -1 }); qSig = -1; }
 				}
 				int fd = FlipDir(i);
 				if (fd == 0) continue;
@@ -526,16 +557,17 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (pi >= 0)
 				{
 					if (ReverseOnOpposite && sh != pSh)
-					{ trades.Add(new[] { pi, pSh ? 1 : 0, 4, i, reach, pByRev ? 1 : 0 }); pi = -1; byRev = true; }
+					{ trades.Add(new[] { pSig, pSh ? 1 : 0, 4, i, reach, pByRev ? 1 : 0, pi }); pi = -1; byRev = true; }
 					else continue;
 				}
+				if (qSig >= 0)
+				{ trades.Add(new[] { qSig, qSh ? 1 : 0, 6, i, 0, qByRev ? 1 : 0, -1 }); qSig = -1; }
 				double e2, s2, k2;
 				if (!FlipPrices(i, sh, out e2, out s2, out k2)) continue;
-				pi = i; pSh = sh; pByRev = byRev; en = e2; st = s2; rk = k2;
-				double sgn = sh ? -1 : 1;
-				tg = en + sgn * 3 * rk; r1 = en + sgn * rk; r2 = en + sgn * 2 * rk; reach = 0;
+				qSig = i; qSh = sh; qByRev = byRev; qEn = e2; qSt = s2;
 			}
-			if (pi >= 0) trades.Add(new[] { pi, pSh ? 1 : 0, 0, Math.Min(s1, CurrentBar), reach, pByRev ? 1 : 0 });
+			if (pi >= 0) trades.Add(new[] { pSig, pSh ? 1 : 0, 0, Math.Min(s1, CurrentBar), reach, pByRev ? 1 : 0, pi });
+			if (qSig >= 0) trades.Add(new[] { qSig, qSh ? 1 : 0, 6, Math.Min(s1, CurrentBar), 0, qByRev ? 1 : 0, -1 });
 			return trades;
 		}
 
@@ -613,6 +645,24 @@ namespace NinjaTrader.NinjaScript.Indicators
 					}
 					int[] t = taken[i];
 					int result = t[2], endIdx = t[3];
+					if (result == 6 || result == 7)
+					{
+						// stop-entry never filled: expired/replaced (6) or invalidated (7)
+						RenderTarget.DrawRectangle(new SharpDX.RectangleF(x0, yH, x1 - x0, yL - yH), boxDim, 1f);
+						float ySe = chartScale.GetYByValue(en);
+						float xD = chartControl.GetXByBarIndex(ChartBars, endIdx);
+						RenderTarget.DrawLine(new SharpDX.Vector2(x1, ySe), new SharpDX.Vector2(xD, ySe), boxDim, 1f);
+						RenderTarget.DrawText(result == 6 ? "no fill" : "canc", tfT,
+							new SharpDX.RectangleF(x1 + 2, yH - 12, 60, 12), boxDim);
+						flipRects.Add(new[] { Math.Min(x0, x1), yH - 18f,
+							Math.Max(xD + 40f, x1) - Math.Min(x0, x1), yL - yH + 18f });
+						flipInfos.Add(new[] {
+							(t[5] == 1 ? "EB Reversal" : "Basic") + "  ·  " + (sh ? "SHORT" : "LONG"),
+							string.Format("SE {0:F2}  never filled", en),
+							result == 6 ? "expired / replaced by newer signal" : "stop side broke first (invalidated)",
+						});
+						continue;
+					}
 					double sgn = sh ? -1 : 1;
 					double t1 = en + sgn * rk, t2 = en + sgn * 2 * rk, t3 = en + sgn * 3 * rk;
 					float xE = chartControl.GetXByBarIndex(ChartBars, endIdx) + (result == 0 ? bw / 2f : 0f);
@@ -647,7 +697,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					flipRects.Add(new[] { Math.Min(x0, x1), top, Math.Max(xE + 40f, x1) - Math.Min(x0, x1), bot - top });
 					flipInfos.Add(new[] {
 						(t[5] == 1 ? "EB Reversal" : "Basic") + "  ·  " + (sh ? "SHORT" : "LONG"),
-						string.Format("in  {0:HH:mm:ss}  @ {1:F2}", Bars.GetTime(i), en),
+						string.Format("in  {0:HH:mm:ss}  @ {1:F2} (SE)", Bars.GetTime(t[6] >= 0 ? t[6] : i), en),
 						string.Format("out {0:HH:mm:ss}  @ {1:F2}  ({2})", Bars.GetTime(endIdx), exitPx, tag),
 						string.Format("stop {0:F2}   risk {1:F2} pt", st, rk),
 						string.Format("PnL {0}{1:F2} pt  ({2}{3:F2}R)   reach {4}R",
@@ -657,10 +707,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 				// session tally (sequential, incl. reversals)
 				double ptsPnl = 0, rPnl = 0;
-				int wins = 0, losses = 0, open = 0, revs = 0, r1c = 0, r2c = 0, r3c = 0;
+				int wins = 0, losses = 0, open = 0, revs = 0, r1c = 0, r2c = 0, r3c = 0, nofill = 0;
 				for (int k = 0; k < tallyTrades.Count; k++)
 				{
 					int[] t = tallyTrades[k];
+					if (t[2] == 6 || t[2] == 7) { nofill++; continue; }
 					bool sh = t[1] == 1;
 					double en, st, rk;
 					if (!FlipPrices(t[0], sh, out en, out st, out rk)) continue;
@@ -678,11 +729,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 					}
 					else open++;
 				}
-				if (wins + losses + revs + open > 0)
+				if (wins + losses + revs + open + nofill > 0)
 				{
-					string tly = string.Format("FLIP day (1-at-a-time{0}): {1}{2:F1}R ({3}{4:F2} pt)  W{5} L{6} rev{7} open{8}  >=1R:{9} >=2R:{10} 3R:{11}",
+					string tly = string.Format("FLIP day (SE 1-at-a-time{0}): {1}{2:F1}R ({3}{4:F2} pt)  W{5} L{6} rev{7} open{8} nofill{9}  >=1R:{10} >=2R:{11} 3R:{12}",
 						ReverseOnOpposite ? ", SAR" : "", rPnl >= 0 ? "+" : "", rPnl,
-						ptsPnl >= 0 ? "+" : "", ptsPnl, wins, losses, revs, open, r1c, r2c, r3c);
+						ptsPnl >= 0 ? "+" : "", ptsPnl, wins, losses, revs, open, nofill, r1c, r2c, r3c);
 					TextFormat tfB = new TextFormat(NinjaTrader.Core.Globals.DirectWriteFactory, "Consolas", 12f);
 					SolidColorBrush tb = new SolidColorBrush(RenderTarget,
 						rPnl >= 0 ? new SharpDX.Color4(0.30f, 0.82f, 0.63f, 1f) : new SharpDX.Color4(0.94f, 0.33f, 0.31f, 1f));
