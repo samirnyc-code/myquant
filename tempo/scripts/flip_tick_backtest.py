@@ -75,7 +75,10 @@ def fidx(mask):
     return int(np.argmax(mask)) if mask.any() else -1
 
 
-def sim_day_tick(g, P, arm):
+def sim_day_tick(g, P, arm, fillmode="thru"):
+    """fillmode for the SE arm: 'thru'  = trigger on first print STRICTLY beyond SE,
+    fill AT that print (worst case); 'touch' = trigger on first print AT the SE,
+    fill AT the SE (standard stop-order model). Slippage vs SE recorded per fill."""
     bar = g["bar"].to_numpy(int)
     h = g["high"].to_numpy(); l = g["low"].to_numpy()
     o = g["open"].to_numpy(); c = g["close"].to_numpy()
@@ -103,8 +106,9 @@ def sim_day_tick(g, P, arm):
                 pos = None; break
             elif pend is not None:
                 sh = pend["short"]
-                tr_i = fidx((T[i0:] <= pend["se"] - TICK + EPS) if sh
-                            else (T[i0:] >= pend["se"] + TICK - EPS))
+                off = TICK if fillmode == "thru" else 0.0
+                tr_i = fidx((T[i0:] <= pend["se"] - off + EPS) if sh
+                            else (T[i0:] >= pend["se"] + off - EPS))
                 iv_i = fidx((T[i0:] >= pend["psl"] - EPS) if sh else (T[i0:] <= pend["psl"] + EPS))
                 if tr_i < 0 and iv_i < 0:
                     break
@@ -112,11 +116,12 @@ def sim_day_tick(g, P, arm):
                     trades.append({"date": pend["date"], "short": sh, "en": np.nan, "rk": np.nan,
                                    "res": "canc", "pnl": 0.0, "sig_j": pend["sig_j"]})
                     pend = None; continue
-                px = T[i0 + tr_i]
+                px = T[i0 + tr_i] if fillmode == "thru" else pend["se"]
+                slip = abs(px - pend["se"])
                 en = px; st = pend["psl"]; rk = abs(en - st)
                 sgn = -1 if sh else 1
                 pos = {"date": pend["date"], "short": sh, "en": en, "st": st, "rk": rk,
-                       "tg": en + sgn * RR * rk, "sig_j": pend["sig_j"]}
+                       "tg": en + sgn * RR * rk, "sig_j": pend["sig_j"], "slip": slip}
                 pend = None
                 i0 = i0 + tr_i + 1
                 continue
@@ -295,7 +300,8 @@ def main():
     dates = [d for d in dates if d not in set(missing)]
     print(f"days {len(dates)} ({dates[0]}..{dates[-1]})  tick-file missing: {len(missing)}")
 
-    res = {("tick", "SE"): [], ("tick", "CLOSE"): [], ("ohlc", "SE"): [], ("ohlc", "CLOSE"): []}
+    res = {("tick-thru", "SE"): [], ("tick-touch", "SE"): [], ("tick", "CLOSE"): [],
+           ("ohlc", "SE"): [], ("ohlc", "CLOSE"): []}
     for k, d in enumerate(dates):
         g = byday[d]
         has_sig = any(signal(g["high"].to_numpy(), g["low"].to_numpy(), g["open"].to_numpy(),
@@ -305,9 +311,11 @@ def main():
             continue
         P = pd.read_parquet(TROVE / f"{d}.parquet", columns=["Price"])["Price"] \
             .to_numpy(np.float64)
-        for arm in ("SE", "CLOSE"):
-            res[("tick", arm)] += sim_day_tick(g, P, arm)
-            res[("ohlc", arm)] += sim_day_ohlc(g, arm)
+        res[("tick-thru", "SE")] += sim_day_tick(g, P, "SE", "thru")
+        res[("tick-touch", "SE")] += sim_day_tick(g, P, "SE", "touch")
+        res[("tick", "CLOSE")] += sim_day_tick(g, P, "CLOSE")
+        res[("ohlc", "SE")] += sim_day_ohlc(g, "SE")
+        res[("ohlc", "CLOSE")] += sim_day_ohlc(g, "CLOSE")
         if (k + 1) % 200 == 0:
             print(f"  {k + 1}/{len(dates)} days", flush=True)
 
@@ -323,6 +331,15 @@ def main():
     out = pd.DataFrame(rows).drop(columns=["row"])
     out.to_csv(OUT / f"flip_tick_backtest_{today}.csv", index=False)
     print(out.to_string(index=False))
+
+    th = pd.DataFrame(res[("tick-thru", "SE")])
+    th = th[th["slip"].notna()] if "slip" in th.columns else pd.DataFrame()
+    if len(th):
+        s = (th["slip"] / TICK).round().astype(int)
+        print("\nSE trigger-print gap beyond the SE (worst-case model, ticks): "
+              + ", ".join(f"{k}t: {v} ({v / len(s):.0%})"
+                          for k, v in s.value_counts().sort_index().items() if k <= 5)
+              + f"  |  mean {s.mean():.2f}t")
 
 
 if __name__ == "__main__":
