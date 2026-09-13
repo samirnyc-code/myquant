@@ -491,6 +491,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 					{ double sc = 0; foreach (double v in sessCloses) sc += v; smaDaily = sc / sessCloses.Count; }
 					else smaDaily = double.NaN;
 				}
+				// close out still-open trades at the session boundary (book = EOD flat):
+				// lim column carries the exit price (prior session's last close)
+				if (active != null)
+					foreach (Sig s in active)
+						if (s.State == 1 && !double.IsNaN(lastSessClose))
+							CsvRow("EOD", s.Seq, s.IsLong ? "L" : "S", formBar, s.Trig, lastSessClose, "");
 				sessHigh = double.MinValue; sessLow = double.MaxValue;
 				ResetSession();
 				CsvFlush();                            // keep the file current without removing the indicator
