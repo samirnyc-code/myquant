@@ -1,0 +1,527 @@
+{
+  "meta": {
+    "reportType": "evening",
+    "generatedAt": "2026-09-11 07:45 PM ET",
+    "version": "2.0",
+    "dataSource": "tradier"
+  },
+  "risk": {
+    "level": "Low",
+    "summary": "Light calendar tomorrow. Good conditions for overnight positions."
+  },
+  "market": {
+    "spx": {
+      "price": 7656.98,
+      "change": 65.28,
+      "changePercent": 0.86,
+      "high": 7677.02,
+      "low": 7636.75,
+      "open": 7636.75
+    },
+    "es": {
+      "price": 7660.75,
+      "change": 62.25,
+      "changePercent": 0.82,
+      "high": 7683.5,
+      "low": 7594.25,
+      "open": 7599.5
+    },
+    "nq": {
+      "price": 29391.75,
+      "change": 256.5,
+      "changePercent": 0.88,
+      "high": 29500.25,
+      "low": 29040.5,
+      "open": 29141.0
+    },
+    "rty": {
+      "price": 2904.7,
+      "change": 11.3,
+      "changePercent": 0.39,
+      "high": 2929.8,
+      "low": 2887.6,
+      "open": 2890.9
+    },
+    "vix": {
+      "price": 15.84,
+      "change": -2.0,
+      "changePercent": -11.22,
+      "high": 17.71,
+      "low": 15.59,
+      "open": 17.51
+    },
+    "global": {
+      "asia": "closed",
+      "europe": "N/A"
+    }
+  },
+  "forecast": {
+    "type": "RANGE BOUND",
+    "confidence": 70,
+    "factors": {
+      "gamma": {
+        "value": "POSITIVE",
+        "sentiment": "positive",
+        "gex_flip": 7660.0,
+        "gex_flip_raw": 7660.0,
+        "flip_proximity": 3.02,
+        "borderline_regime": true,
+        "gex_method": "gex_weighted",
+        "gex_profile": [
+          {
+            "strike": 7640.0,
+            "net_gex": 1355510.0,
+            "call_gex": 5084337.0,
+            "put_gex": -3728826.0
+          },
+          {
+            "strike": 7645.0,
+            "net_gex": 18855197.0,
+            "call_gex": 157877094.0,
+            "put_gex": -139021897.0
+          },
+          {
+            "strike": 7650.0,
+            "net_gex": -525196375.0,
+            "call_gex": 2950991293.0,
+            "put_gex": -3476187669.0
+          },
+          {
+            "strike": 7655.0,
+            "net_gex": 185819839.0,
+            "call_gex": 3959391950.0,
+            "put_gex": -3773572111.0
+          },
+          {
+            "strike": 7660.0,
+            "net_gex": 11017710510.0,
+            "call_gex": 15334502243.0,
+            "put_gex": -4316791733.0
+          },
+          {
+            "strike": 7665.0,
+            "net_gex": 3007788469.0,
+            "call_gex": 5536343036.0,
+            "put_gex": -2528554567.0
+          },
+          {
+            "strike": 7670.0,
+            "net_gex": 269319749.0,
+            "call_gex": 408655313.0,
+            "put_gex": -139335564.0
+          },
+          {
+            "strike": 7675.0,
+            "net_gex": 7842261.0,
+            "call_gex": 10576733.0,
+            "put_gex": -2734473.0
+          }
+        ],
+        "net_gex": 13983495159.0,
+        "gex_zero_gamma": 6994.44,
+        "gex_spot_override": false,
+        "gex_spot_ref": 7656.98
+      },
+      "gap": {
+        "value": "N/A (evening)",
+        "sentiment": "neutral"
+      },
+      "volatility": {
+        "value": "VIX 15.8",
+        "sentiment": "positive"
+      },
+      "calendar": {
+        "value": "1/5 LOW",
+        "sentiment": "positive"
+      }
+    }
+  },
+  "levels": {
+    "pivotSource": "today_session_ohlc",
+    "r2": 7697.19,
+    "r1": 7677.08,
+    "current": 7656.98,
+    "s1": 7636.81,
+    "s2": 7616.65,
+    "putWall": 7650.0,
+    "callWall": 7660.0,
+    "expectedMove": 76.0
+  },
+  "catalysts": {
+    "today": [
+      {
+        "time": "Session",
+        "title": "Market closed",
+        "impact": "low"
+      }
+    ],
+    "tomorrow": [],
+    "week": [
+      {
+        "time": "08:30",
+        "title": "Initial Jobless Claims (Sep/12)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Philly Fed Business Conditions (Sep)",
+        "impact": "low",
+        "category": "fed"
+      },
+      {
+        "time": "08:30",
+        "title": "Housing Starts (Aug)",
+        "impact": "low",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Philly Fed New Orders (Sep)",
+        "impact": "low",
+        "category": "fed"
+      },
+      {
+        "time": "08:30",
+        "title": "Housing Starts MoM (Aug)",
+        "impact": "low",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Building Permits MoM (Aug)",
+        "impact": "low",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Building Permits (Aug)",
+        "impact": "low",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Philly Fed Prices Paid (Sep)",
+        "impact": "low",
+        "category": "fed"
+      },
+      {
+        "time": "08:30",
+        "title": "Continuing Jobless Claims (Sep/05)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Jobless Claims 4-Week Average (Sep/12)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Philly Fed CAPEX Index (Sep)",
+        "impact": "low",
+        "category": "fed"
+      },
+      {
+        "time": "08:30",
+        "title": "Philly Fed Employment (Sep)",
+        "impact": "low",
+        "category": "fed"
+      },
+      {
+        "time": "08:30",
+        "title": "Philadelphia Fed Manufacturing Index (Sep)",
+        "impact": "medium",
+        "category": "fed"
+      },
+      {
+        "time": "08:30",
+        "title": "Retail Sales YoY (Aug)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Retail Sales Ex Autos MoM (Aug)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Export Prices MoM (Aug)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Retail Sales MoM (Aug)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Import Prices YoY (Aug)",
+        "impact": "low",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Export Prices YoY (Aug)",
+        "impact": "low",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Retail Sales Ex Gas/Autos MoM (Aug)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Import Prices MoM (Aug)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "NY Empire State Manufacturing Index (Sep)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "09:15",
+        "title": "Manufacturing Production MoM (Aug)",
+        "impact": "low",
+        "category": "economic"
+      },
+      {
+        "time": "09:15",
+        "title": "Manufacturing Production YoY (Aug)",
+        "impact": "low",
+        "category": "economic"
+      },
+      {
+        "time": "09:15",
+        "title": "Capacity Utilization (Aug)",
+        "impact": "low",
+        "category": "economic"
+      },
+      {
+        "time": "09:15",
+        "title": "Industrial Production YoY (Aug)",
+        "impact": "low",
+        "category": "economic"
+      },
+      {
+        "time": "09:15",
+        "title": "Industrial Production MoM (Aug)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "09:30",
+        "title": "Fed Bowman Speech",
+        "impact": "medium",
+        "category": "fed"
+      },
+      {
+        "time": "10:00",
+        "title": "Leading Index MoM (Aug)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "10:00",
+        "title": "Pending Home Sales MoM (Aug)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "10:00",
+        "title": "Pending Home Sales YoY (Aug)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "10:00",
+        "title": "Business Inventories MoM (Jul)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "10:00",
+        "title": "NAHB Housing Market Index (Sep)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "10:30",
+        "title": "Crude Oil Imports",
+        "impact": "low",
+        "category": "economic"
+      },
+      {
+        "time": "13:00",
+        "title": "10-Year TIPS Auction",
+        "impact": "low",
+        "category": "economic"
+      },
+      {
+        "time": "13:00",
+        "title": "20-Year Bond Auction",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "14:00",
+        "title": "Interest Rate Projection - 3rd Yr",
+        "impact": "low",
+        "category": "economic"
+      },
+      {
+        "time": "14:00",
+        "title": "Interest Rate Projection - 1st Yr",
+        "impact": "low",
+        "category": "economic"
+      },
+      {
+        "time": "14:00",
+        "title": "Interest Rate Projection - Longer",
+        "impact": "low",
+        "category": "economic"
+      },
+      {
+        "time": "14:00",
+        "title": "Fed Interest Rate Decision",
+        "impact": "high",
+        "category": "fed"
+      },
+      {
+        "time": "14:00",
+        "title": "Interest Rate Projection - 2nd Yr",
+        "impact": "low",
+        "category": "economic"
+      },
+      {
+        "time": "14:00",
+        "title": "FOMC Economic Projections",
+        "impact": "high",
+        "category": "fed"
+      },
+      {
+        "time": "14:00",
+        "title": "Interest Rate Projection - Current",
+        "impact": "low",
+        "category": "economic"
+      },
+      {
+        "time": "14:30",
+        "title": "Fed Press Conference",
+        "impact": "high",
+        "category": "fed"
+      },
+      {
+        "time": "14:30",
+        "title": "Press Conference",
+        "impact": "high",
+        "category": "economic"
+      },
+      {
+        "time": "16:00",
+        "title": "Overall Net Capital Flows (Jul)",
+        "impact": "low",
+        "category": "economic"
+      },
+      {
+        "time": "16:00",
+        "title": "Net Long-Term TIC Flows (Jul)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "16:00",
+        "title": "Foreign Bond Investment (Jul)",
+        "impact": "low",
+        "category": "economic"
+      },
+      {
+        "time": "16:30",
+        "title": "Central Bank Balance Sheet (Sep/16)",
+        "impact": "low",
+        "category": "economic"
+      }
+    ]
+  },
+  "lookAhead": {
+    "tomorrow": {
+      "risk": "Low",
+      "reason": "Light calendar. Normal trading expected."
+    },
+    "week": {
+      "risk": "Elevated",
+      "reason": "Coming up: Fed Interest Rate Decision, FOMC Economic Projections. Position sizing appropriately."
+    }
+  },
+  "guidance": {
+    "signal": "Go",
+    "message": "CONDITIONS FAVORABLE",
+    "notes": "VIX crushed today indicating risk-on sentiment. Light calendar tomorrow.\n\nOvernight Iron Butterflies and credit spreads look reasonable."
+  },
+  "session_analysis": {
+    "spx_change": 0.86,
+    "vix_change": -11.22,
+    "forecast_accurate": true,
+    "expected_move_hit": true,
+    "session_type": "TREND (moderate)"
+  },
+  "notes": "# Evening Derivatives Strategy Recap\n### Friday, September 11, 2026 | Post-Close\n\n---\n\n## Session Flow: Macro Dominated, Gamma Regime Contradicted\n\nToday's +0.86% advance in SPX to **7,656.98** was macro-driven, not a technical gamma event. The primary catalyst was today's CPI print of **+3.4%** (in-line with consensus), which \u2014 alongside concurrent rate-repricing narratives \u2014 drove meaningful intraday volatility before the tape steadied into the close. The breadth of the move (Dow +0.98%, Nasdaq +0.96%, Russell +0.45%) confirmed broad risk-on participation, though the session's internal character was more complex than the headline gain suggests.\n\nThe morning's regime call of **NEGATIVE gamma** anticipated a HIGH VOLATILITY day type with 70% confidence \u2014 the logic being that dealer short-gamma positioning would amplify directional moves. That framework was partially validated intraday: VIX spiked earlier in the session on rate-hike repricing, consistent with a trending, amplified-move environment that negative gamma produces. However, the session ultimately resolved as a **moderate trend** rather than a high-volatility breakout, and by the close, the gamma regime had flipped to **POSITIVE** \u2014 a structural shift that demands attention heading into next week.\n\n---\n\n## Regime Validation: A Flip to Positive, With an Important Caveat\n\nThe headline structural story tonight is a **regime change**. The morning opened in negative gamma; the close prints in **positive gamma territory**. In positive gamma regimes, dealers are **long options** and hedge by **selling into rallies and buying dips** \u2014 a dampening feedback loop that compresses realized volatility and favors mean-reversion over trend continuation.\n\nHowever, this regime call carries a critical qualification: **SPX closed at 7,656.98, just 3.02 points below the GEX flip reference of 7,660.0.** The regime is **borderline**, not firmly positive. A modest gap-up or early momentum push through 7,660 could functionally reintroduce negative gamma dynamics. Traders should treat this as a transitional positioning environment, not a settled suppressive one, until spot establishes clear distance above 7,660 \u2014 or falls away from it.\n\nThere is no observable GEX flip level within the chain; the regime is **uniformly positive** above current levels, meaning dealer hedging friction is constructive for compression \u2014 provided spot holds.\n\n---\n\n## VIX / Gamma Interplay: A Disconnect Worth Tracking\n\nThe VIX closed at **15.84, down 11.22%** \u2014 a significant compression from session highs. However, the news feed referenced VIX printing near 17.84 at some point intraday with an intraday gain, which creates a notable divergence: equities rallied while volatility initially spiked, before both resolved in an equity-up, vol-down finish.\n\nThis pattern \u2014 vol rising with equities before collapsing into the close \u2014 is consistent with a mid-session regime transition. As spot pushed toward and through the GEX flip boundary, dealer hedging mechanics likely shifted from gamma-amplifying (buying the rally) in negative territory to gamma-dampening (selling into strength) as positive gamma took hold. The VIX compression into the close corroborates this interpretation: the market moved from an amplified trending environment to one where dealer hedging began absorbing directional pressure.\n\nWith VIX at 15.84, the options market is pricing a relatively benign near-term environment \u2014 but the week-ahead risk outlook is **elevated**, given the **Fed Interest Rate Decision and FOMC Economic Projections** scheduled next week.\n\n---\n\n## Sector Read: Risk-On, But Mixed Against the Data\n\nPer market context, today's sector leadership was **Real Estate (+0.6%) and Industrials (+0.4%)**, with **Healthcare (-0.9%) and Utilities (-1.3%)** as the session's clear laggards. The defensive underperformance in a rising-rate-narrative environment is structurally coherent \u2014 Utilities and Healthcare traditionally reprice lower as rate-hike probabilities firm. Real Estate leading in the same environment is a mild anomaly worth monitoring; it may reflect short-covering or positioning noise rather than fundamental conviction given the 10Y at **4.96% (+1bp)**.\n\nThe yield curve remains positively sloped at **+33bp (2Y-10Y)**, a normal configuration that does not suggest immediate recessionary stress, but the absolute level of the 10Y at 4.96% introduces meaningful discount-rate pressure on long-duration assets into next week's Fed decision.\n\n---\n\n## Tomorrow's Setup: Low Catalyst Load, Tight Range Parameters\n\n**Risk Outlook for Tomorrow: Low.** The calendar is light, offering no scheduled macro catalysts. That said, given the borderline gamma regime and the position of spot relative to key structural levels, tomorrow's session character will be heavily governed by where price opens relative to **7,660**.\n\n**Key Levels to Watch:**\n\n| Level | Value | Significance |\n|---|---|---|\n| Call Wall | 7,660.0 | GEX flip boundary; dealer behavior pivots here |\n| Put Wall | 7,650.0 | Near-term downside anchor; dealer support expected |\n| R1 | 7,677.08 | First meaningful upside target; also today's high vicinity |\n| R2 | 7,697.19 | Extended upside; likely only accessible with regime confirmation |\n| S1 | 7,636.81 | First downside test; break would challenge put wall |\n| S2 | 7,616.65 | Deeper support; outside expected move range |\n| Expected Move | \u00b176.0 | Full-day range envelope: ~7,581\u20137,733 |\n\nThe **7,650\u20137,660 corridor is the critical zone**. Spot closed at 7,656.98, sandwiched between the Put Wall (7,650) and the Call Wall / GEX flip boundary (7,660). Overnight price action in this band is essentially \"dead zone\" territory \u2014 neither level is decisively resolved. A gap open above 7,660 with follow-through confirms the positive regime and supports compression; a drift below 7,650 puts the Put Wall in play and could invite a retest of S1 at 7,636.81.\n\nGiven the light calendar, expect 0DTE flows to dominate Friday's intraday character if today's session is any guide \u2014 particularly around the 7,650\u20137,660 axis.\n\n**Technically:** SPY RSI(14) at **44** remains neutral, offering no overbought/oversold signal. Price sits +0.8% above the 50-SMA and +7.1% above the 200-SMA \u2014 structurally constructive, but not stretched enough to generate technical momentum in either direction absent a catalyst.\n\n---\n\n## Overnight & Week-Ahead Framing\n\nThe near-term trade is compressed and range-oriented \u2014 *if* the positive gamma regime holds above 7,660. Should spot drift back below the flip boundary overnight or at the open, the regime becomes functionally indeterminate, and the 40-point band between S1 (7,636.81) and R1 (7,677.08) should be treated as the realistic session range.\n\nThe larger positioning concern is the **week ahead**. Leveraged funds have reportedly built **$75 billion in short Nasdaq-100 exposure**, a significant sentiment data point that introduces asymmetric risk on any hawkish or dovish surprise from the Fed. The **FOMC Rate Decision and Economic Projections** next week represent the dominant tail risk for current positioning. Into that event, the bid for optionality should logically rebuild \u2014 watch for any VIX ramp from current 15.84 as a signal that the market is beginning to price next week's binary.\n\n---\n\n## Strategy Implications\n\n**Tomorrow (Low Catalyst, Borderline Positive Gamma):**\n\nGiven the *conditional* positive gamma regime and compressed expected move of \u00b176 points, income structures are directionally appropriate \u2014 but sizing should reflect the regime's instability. If spot confirms above **7,660** at the open:\n\n- **Iron condors or credit spreads** centered on the 7,600\u20137,700 range offer reasonable risk/reward in a dealer-dampened environment where selling rallies and buying dips becomes the structural mechanic.\n- Tight-wing structures with strikes near **S1 (7,636) and R1 (7,677)** align well with the natural dealer hedging boundaries.\n\nIf spot opens *below* 7,650 and the regime is in question, **stand aside or use defined-risk structures** that can absorb a directional move without uncapped exposure. Do not position for compression in an environment where the gamma regime has not confirmed.\n\n**Into Next Week (Elevated Risk, Fed Decision):**\n\nAhead of the FOMC decision, **debit structures and defined-risk directional plays** are appropriate. The expected vol expansion around the Fed event is inconsistent with net-short premium positioning. Consider long vertical spreads or calendar structures that benefit from vol expansion without unlimited tail exposure. The $75 billion short Nasdaq overhang also creates asymmetric upside risk on a dovish surprise \u2014 a consideration for any skew-aware positioning.\n\n---\n\n*Position sizing must reflect next week's elevated risk profile. The Fed decision and FOMC projections represent a vol event that current market pricing at VIX 15.84 may not fully discount.*\n\n*\u2014 Head of Derivatives Strategy*",
+  "ai_narrative_claude": "# Evening Derivatives Strategy Recap\n### Friday, September 11, 2026 | Post-Close\n\n---\n\n## Session Flow: Macro Dominated, Gamma Regime Contradicted\n\nToday's +0.86% advance in SPX to **7,656.98** was macro-driven, not a technical gamma event. The primary catalyst was today's CPI print of **+3.4%** (in-line with consensus), which \u2014 alongside concurrent rate-repricing narratives \u2014 drove meaningful intraday volatility before the tape steadied into the close. The breadth of the move (Dow +0.98%, Nasdaq +0.96%, Russell +0.45%) confirmed broad risk-on participation, though the session's internal character was more complex than the headline gain suggests.\n\nThe morning's regime call of **NEGATIVE gamma** anticipated a HIGH VOLATILITY day type with 70% confidence \u2014 the logic being that dealer short-gamma positioning would amplify directional moves. That framework was partially validated intraday: VIX spiked earlier in the session on rate-hike repricing, consistent with a trending, amplified-move environment that negative gamma produces. However, the session ultimately resolved as a **moderate trend** rather than a high-volatility breakout, and by the close, the gamma regime had flipped to **POSITIVE** \u2014 a structural shift that demands attention heading into next week.\n\n---\n\n## Regime Validation: A Flip to Positive, With an Important Caveat\n\nThe headline structural story tonight is a **regime change**. The morning opened in negative gamma; the close prints in **positive gamma territory**. In positive gamma regimes, dealers are **long options** and hedge by **selling into rallies and buying dips** \u2014 a dampening feedback loop that compresses realized volatility and favors mean-reversion over trend continuation.\n\nHowever, this regime call carries a critical qualification: **SPX closed at 7,656.98, just 3.02 points below the GEX flip reference of 7,660.0.** The regime is **borderline**, not firmly positive. A modest gap-up or early momentum push through 7,660 could functionally reintroduce negative gamma dynamics. Traders should treat this as a transitional positioning environment, not a settled suppressive one, until spot establishes clear distance above 7,660 \u2014 or falls away from it.\n\nThere is no observable GEX flip level within the chain; the regime is **uniformly positive** above current levels, meaning dealer hedging friction is constructive for compression \u2014 provided spot holds.\n\n---\n\n## VIX / Gamma Interplay: A Disconnect Worth Tracking\n\nThe VIX closed at **15.84, down 11.22%** \u2014 a significant compression from session highs. However, the news feed referenced VIX printing near 17.84 at some point intraday with an intraday gain, which creates a notable divergence: equities rallied while volatility initially spiked, before both resolved in an equity-up, vol-down finish.\n\nThis pattern \u2014 vol rising with equities before collapsing into the close \u2014 is consistent with a mid-session regime transition. As spot pushed toward and through the GEX flip boundary, dealer hedging mechanics likely shifted from gamma-amplifying (buying the rally) in negative territory to gamma-dampening (selling into strength) as positive gamma took hold. The VIX compression into the close corroborates this interpretation: the market moved from an amplified trending environment to one where dealer hedging began absorbing directional pressure.\n\nWith VIX at 15.84, the options market is pricing a relatively benign near-term environment \u2014 but the week-ahead risk outlook is **elevated**, given the **Fed Interest Rate Decision and FOMC Economic Projections** scheduled next week.\n\n---\n\n## Sector Read: Risk-On, But Mixed Against the Data\n\nPer market context, today's sector leadership was **Real Estate (+0.6%) and Industrials (+0.4%)**, with **Healthcare (-0.9%) and Utilities (-1.3%)** as the session's clear laggards. The defensive underperformance in a rising-rate-narrative environment is structurally coherent \u2014 Utilities and Healthcare traditionally reprice lower as rate-hike probabilities firm. Real Estate leading in the same environment is a mild anomaly worth monitoring; it may reflect short-covering or positioning noise rather than fundamental conviction given the 10Y at **4.96% (+1bp)**.\n\nThe yield curve remains positively sloped at **+33bp (2Y-10Y)**, a normal configuration that does not suggest immediate recessionary stress, but the absolute level of the 10Y at 4.96% introduces meaningful discount-rate pressure on long-duration assets into next week's Fed decision.\n\n---\n\n## Tomorrow's Setup: Low Catalyst Load, Tight Range Parameters\n\n**Risk Outlook for Tomorrow: Low.** The calendar is light, offering no scheduled macro catalysts. That said, given the borderline gamma regime and the position of spot relative to key structural levels, tomorrow's session character will be heavily governed by where price opens relative to **7,660**.\n\n**Key Levels to Watch:**\n\n| Level | Value | Significance |\n|---|---|---|\n| Call Wall | 7,660.0 | GEX flip boundary; dealer behavior pivots here |\n| Put Wall | 7,650.0 | Near-term downside anchor; dealer support expected |\n| R1 | 7,677.08 | First meaningful upside target; also today's high vicinity |\n| R2 | 7,697.19 | Extended upside; likely only accessible with regime confirmation |\n| S1 | 7,636.81 | First downside test; break would challenge put wall |\n| S2 | 7,616.65 | Deeper support; outside expected move range |\n| Expected Move | \u00b176.0 | Full-day range envelope: ~7,581\u20137,733 |\n\nThe **7,650\u20137,660 corridor is the critical zone**. Spot closed at 7,656.98, sandwiched between the Put Wall (7,650) and the Call Wall / GEX flip boundary (7,660). Overnight price action in this band is essentially \"dead zone\" territory \u2014 neither level is decisively resolved. A gap open above 7,660 with follow-through confirms the positive regime and supports compression; a drift below 7,650 puts the Put Wall in play and could invite a retest of S1 at 7,636.81.\n\nGiven the light calendar, expect 0DTE flows to dominate Friday's intraday character if today's session is any guide \u2014 particularly around the 7,650\u20137,660 axis.\n\n**Technically:** SPY RSI(14) at **44** remains neutral, offering no overbought/oversold signal. Price sits +0.8% above the 50-SMA and +7.1% above the 200-SMA \u2014 structurally constructive, but not stretched enough to generate technical momentum in either direction absent a catalyst.\n\n---\n\n## Overnight & Week-Ahead Framing\n\nThe near-term trade is compressed and range-oriented \u2014 *if* the positive gamma regime holds above 7,660. Should spot drift back below the flip boundary overnight or at the open, the regime becomes functionally indeterminate, and the 40-point band between S1 (7,636.81) and R1 (7,677.08) should be treated as the realistic session range.\n\nThe larger positioning concern is the **week ahead**. Leveraged funds have reportedly built **$75 billion in short Nasdaq-100 exposure**, a significant sentiment data point that introduces asymmetric risk on any hawkish or dovish surprise from the Fed. The **FOMC Rate Decision and Economic Projections** next week represent the dominant tail risk for current positioning. Into that event, the bid for optionality should logically rebuild \u2014 watch for any VIX ramp from current 15.84 as a signal that the market is beginning to price next week's binary.\n\n---\n\n## Strategy Implications\n\n**Tomorrow (Low Catalyst, Borderline Positive Gamma):**\n\nGiven the *conditional* positive gamma regime and compressed expected move of \u00b176 points, income structures are directionally appropriate \u2014 but sizing should reflect the regime's instability. If spot confirms above **7,660** at the open:\n\n- **Iron condors or credit spreads** centered on the 7,600\u20137,700 range offer reasonable risk/reward in a dealer-dampened environment where selling rallies and buying dips becomes the structural mechanic.\n- Tight-wing structures with strikes near **S1 (7,636) and R1 (7,677)** align well with the natural dealer hedging boundaries.\n\nIf spot opens *below* 7,650 and the regime is in question, **stand aside or use defined-risk structures** that can absorb a directional move without uncapped exposure. Do not position for compression in an environment where the gamma regime has not confirmed.\n\n**Into Next Week (Elevated Risk, Fed Decision):**\n\nAhead of the FOMC decision, **debit structures and defined-risk directional plays** are appropriate. The expected vol expansion around the Fed event is inconsistent with net-short premium positioning. Consider long vertical spreads or calendar structures that benefit from vol expansion without unlimited tail exposure. The $75 billion short Nasdaq overhang also creates asymmetric upside risk on a dovish surprise \u2014 a consideration for any skew-aware positioning.\n\n---\n\n*Position sizing must reflect next week's elevated risk profile. The Fed decision and FOMC projections represent a vol event that current market pricing at VIX 15.84 may not fully discount.*\n\n*\u2014 Head of Derivatives Strategy*",
+  "ai_narrative_gemini": "**EVENING RECAP: Macro Tape Flips Regime, but Positioning Remains Precarious** \n\n**1. Session Flow**\nToday\u2019s session was dictated by macro flows rather than structural option positioning, as markets digested hot CPI and PPI inflation prints. Despite the morning's negative gamma forecast projecting a high-volatility session, SPX absorbed the rate repricing with a moderate upward drift, closing at 7656.98 (+0.86%) in a highly compressed 0.53% daily range. Under the hood, sector rotation favored Real Estate (+0.6%) and Industrials (+0.4%), while defensive Healthcare (-0.9%) and Utilities (-1.3%) lagged, reflecting a risk-taking tone despite shifting rate expectations. \n\n**2. Regime Validation & VIX Interplay**\nThe morning\u2019s negative gamma forecast was negated by today's price action. VIX firmly rejected any sustained bid, crushing -11.22% to close at 15.84, in direct contradiction to early-session headline fears of elevated volatility. This heavy vol-selling pulled the dealer gamma profile from negative back into positive territory by the close. However, this regime shift is highly fragile. \n\n**3. Tomorrow's Setup**\nWe close in a POSITIVE gamma regime, but with a critical **REGIME CAVEAT**: spot (7656.98) is pinned less than 3 points from the Call Wall and de facto resistance level at 7660.0. The regime is borderline and should not be treated as firmly entrenched. \n\n*   **Upside:** Resistance sits at the 7660.0 Call Wall, followed by R1 at 7677.08. \n*   **Downside:** Support is bracketed by the Put Wall at 7650.0, with S1 at 7636.81.\n*   **Catalysts:** Tomorrow's calendar is exceptionally light, paving the way for flow-driven trading ahead of next week's heavy slate (FOMC Rate Decision and Economic Projections).\n\n**4. Strategy Implications**\nGiven spot's proximity to the 7660.0 flip, we are in a transitional state. *If* positive gamma holds through the morning, dealers will operate from a long options posture\u2014hedging by selling rallies and buying dips. This dampening effect supports income-generation structures, such as iron condors and credit spreads, designed to harvest premium between the 7650 Put Wall and 7660 Call Wall. \n\nHowever, traders must respect the proximity to the pivot. A decisive break above 7660 or below 7650 risks pushing dealers into negative gamma, where hedging flows (buying rallies/selling dips) would amplify directional momentum. Keep sizing contained heading into the weekend with the FOMC looming next week.",
+  "ai_narrative_provider": "claude",
+  "market_context": {
+    "sectors": {
+      "leaders": [
+        {
+          "name": "Real Estate",
+          "change": 0.56
+        },
+        {
+          "name": "Industrials",
+          "change": 0.42
+        },
+        {
+          "name": "Technology",
+          "change": 0.41
+        }
+      ],
+      "laggards": [
+        {
+          "name": "Communication Services",
+          "change": -0.08
+        },
+        {
+          "name": "Healthcare",
+          "change": -0.93
+        },
+        {
+          "name": "Utilities",
+          "change": -1.27
+        }
+      ]
+    },
+    "treasury": {
+      "year2": 4.63,
+      "year10": 4.96,
+      "year30": 5.35,
+      "spread_2y10y": 0.33,
+      "change_10y_bp": 1.0
+    },
+    "technical": {
+      "rsi_14": 44.4,
+      "rsi_label": "neutral",
+      "vs_50sma_pct": 0.8,
+      "vs_200sma_pct": 7.09
+    }
+  }
+}

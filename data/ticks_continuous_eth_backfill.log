@@ -1,0 +1,178 @@
+BACKFILL PLAN (ETH -> data/ticks_continuous_eth/):
+  ES 09-25: 2025-07-11 .. 2025-09-12
+  ES 12-25: 2025-09-14 .. 2025-12-12
+  ES 03-26: 2025-12-14 .. 2026-03-13
+  ES 06-26: 2026-03-15 .. 2026-06-18
+  ES 09-26: 2026-06-08 .. 2026-09-11
+
+=== ES 09-25 2025-07-11..2025-09-12 — requested (ETH); waiting for AddOn ===
+reading 70 file(s):
+  ES_09-25_ticks_20250711_221438.csv: 23,396 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250711_221733.csv: 23,396 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250711_222018.csv: 23,396 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250714_221440.csv: 1,545,184 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250714_221736.csv: 1,545,184 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250714_222028.csv: 1,545,184 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250715_221446.csv: 1,954,050 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250715_221747.csv: 1,954,050 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250715_222036.csv: 1,954,050 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250716_221454.csv: 1,727,086 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250716_221758.csv: 1,727,086 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250717_221500.csv: 1,397,573 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250717_221808.csv: 1,397,573 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250718_221505.csv: 719,379 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250718_221814.csv: 719,379 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250721_221508.csv: 1,387,461 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250721_221819.csv: 1,387,461 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250722_221514.csv: 1,612,994 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250722_221827.csv: 1,612,994 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250723_221520.csv: 1,564,423 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250723_221835.csv: 1,564,423 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250724_221525.csv: 1,280,724 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250724_221844.csv: 1,280,724 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250725_221530.csv: 546,985 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250725_221850.csv: 546,985 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250728_221533.csv: 1,428,142 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250728_221854.csv: 1,428,142 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250729_221538.csv: 1,700,872 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250729_221904.csv: 1,700,872 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250730_221546.csv: 2,176,141 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250730_221914.csv: 2,176,141 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250731_221555.csv: 2,939,888 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250731_221926.csv: 2,939,888 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250801_221605.csv: 1,684,045 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250801_221938.csv: 1,684,045 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250804_221612.csv: 1,890,979 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250804_221951.csv: 1,890,979 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250805_221619.csv: 1,869,425 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250805_222003.csv: 1,869,425 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250806_221628.csv: 1,907,800 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250806_222012.csv: 1,907,800 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250807_221636.csv: 1,878,294 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250807_222022.csv: 1,878,294 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250808_221644.csv: 820,141 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250808_222033.csv: 820,141 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250811_221649.csv: 1,640,648 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250812_221700.csv: 1,626,533 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250813_221712.csv: 1,578,403 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250814_221719.csv: 1,606,140 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250815_221726.csv: 773,820 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250818_221730.csv: 1,422,815 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250819_221741.csv: 1,957,851 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250820_221752.csv: 2,018,084 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250821_221803.csv: 1,895,063 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250822_221811.csv: 1,006,984 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250825_221816.csv: 1,345,831 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250826_221823.csv: 1,360,720 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250827_221832.csv: 1,407,827 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250828_221839.csv: 1,649,367 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250829_221847.csv: 884,198 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250901_221851.csv: 1,253,386 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250902_221858.csv: 2,131,239 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250903_221909.csv: 1,717,513 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250904_221921.csv: 1,981,623 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250905_221934.csv: 1,237,239 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250908_221943.csv: 1,550,651 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250909_221958.csv: 1,686,025 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250910_222008.csv: 1,696,294 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250911_222018.csv: 1,377,682 rows  contract='ES 09-25'
+  ES_09-25_ticks_20250912_222032.csv: 595,681 rows  contract='ES 09-25'
+
+contract 'ES 09-25' -> ticker ESU5
+  collapsed 94,622,217 overlap-duplicate rows
+  2025-07-11 off +227.50  7,998 ticks (5,208 RTH)  2025-07-11 15:00:00 .. 2025-07-11 15:59:59.956000
+      RTH cross-check vs trove: MISMATCH (eth-rth 5,208 vs trove 241,480)
+  2025-07-14 off +227.50  177,523 ticks (133,625 RTH)  2025-07-13 17:00:00.032000 .. 2025-07-14 15:59:59.856000
+      RTH cross-check vs trove: MISMATCH (eth-rth 133,625 vs trove 215,717)
+  2025-07-15 off +227.50  250,182 ticks (188,327 RTH)  2025-07-14 17:00:00.008000 .. 2025-07-15 15:59:59.636000
+      RTH cross-check vs trove: MISMATCH (eth-rth 188,327 vs trove 290,602)
+  2025-07-16 off +227.50  296,049 ticks (247,991 RTH)  2025-07-15 17:00:00.020000 .. 2025-07-16 15:59:59.504000
+      RTH cross-check vs trove: MISMATCH (eth-rth 247,991 vs trove 400,257)
+  2025-07-17 off +227.50  187,485 ticks (145,806 RTH)  2025-07-16 17:00:00.020000 .. 2025-07-17 15:59:59.532000
+      RTH cross-check vs trove: MISMATCH (eth-rth 145,806 vs trove 227,985)
+  2025-07-18 off +227.50  184,905 ticks (144,675 RTH)  2025-07-17 17:00:00.008000 .. 2025-07-18 15:59:59.884000
+      RTH cross-check vs trove: MISMATCH (eth-rth 144,675 vs trove 243,757)
+  2025-07-21 off +227.50  161,039 ticks (131,539 RTH)  2025-07-20 17:00:00.048000 .. 2025-07-21 15:59:58.928000
+      RTH cross-check vs trove: MISMATCH (eth-rth 131,539 vs trove 205,418)
+  2025-07-22 off +227.50  208,130 ticks (173,205 RTH)  2025-07-21 17:00:00.024000 .. 2025-07-22 15:59:59.536000
+      RTH cross-check vs trove: MISMATCH (eth-rth 173,205 vs trove 274,212)
+  2025-07-23 off +227.50  223,898 ticks (174,431 RTH)  2025-07-22 17:00:00.024000 .. 2025-07-23 15:59:59.516000
+      RTH cross-check vs trove: MISMATCH (eth-rth 174,431 vs trove 294,062)
+  2025-07-24 off +227.50  189,632 ticks (150,947 RTH)  2025-07-23 17:00:00.040000 .. 2025-07-24 15:59:59.744000
+      RTH cross-check vs trove: MISMATCH (eth-rth 150,947 vs trove 255,385)
+  2025-07-25 off +227.50  146,607 ticks (112,896 RTH)  2025-07-24 17:00:00.008000 .. 2025-07-25 15:59:59.684000
+      RTH cross-check vs trove: MISMATCH (eth-rth 112,896 vs trove 181,498)
+  2025-07-28 off +227.50  169,788 ticks (128,842 RTH)  2025-07-27 17:00:00.052000 .. 2025-07-28 15:59:59.576000
+      RTH cross-check vs trove: MISMATCH (eth-rth 128,842 vs trove 212,589)
+  2025-07-29 off +227.50  196,282 ticks (167,057 RTH)  2025-07-28 17:00:00.020000 .. 2025-07-29 15:59:59.856000
+      RTH cross-check vs trove: MISMATCH (eth-rth 167,057 vs trove 281,949)
+  2025-07-30 off +227.50  258,140 ticks (219,413 RTH)  2025-07-29 17:00:00.028000 .. 2025-07-30 15:59:58.932000
+      RTH cross-check vs trove: MISMATCH (eth-rth 219,413 vs trove 358,638)
+  2025-07-31 off +227.50  353,934 ticks (291,922 RTH)  2025-07-30 17:00:00.132000 .. 2025-07-31 15:59:59.912000
+      RTH cross-check vs trove: MISMATCH (eth-rth 291,922 vs trove 487,580)
+  2025-08-01 off +227.50  482,384 ticks (371,109 RTH)  2025-07-31 17:00:00.184000 .. 2025-08-01 15:59:59
+      RTH cross-check vs trove: MISMATCH (eth-rth 371,109 vs trove 627,962)
+  2025-08-04 off +227.50  244,057 ticks (179,707 RTH)  2025-08-03 17:00:00.060000 .. 2025-08-04 15:59:59.460000
+      RTH cross-check vs trove: MISMATCH (eth-rth 179,707 vs trove 289,125)
+  2025-08-05 off +227.50  283,193 ticks (232,044 RTH)  2025-08-04 17:00:00.028000 .. 2025-08-05 15:59:59.172000
+      RTH cross-check vs trove: MISMATCH (eth-rth 232,044 vs trove 384,460)
+  2025-08-06 off +227.50  248,801 ticks (198,321 RTH)  2025-08-05 17:00:00.036000 .. 2025-08-06 15:59:59.576000
+      RTH cross-check vs trove: MISMATCH (eth-rth 198,321 vs trove 306,648)
+  2025-08-07 off +227.50  314,202 ticks (257,290 RTH)  2025-08-06 17:00:00.020000 .. 2025-08-07 15:59:59.444000
+      RTH cross-check vs trove: MISMATCH (eth-rth 257,290 vs trove 395,801)
+  2025-08-08 off +227.50  214,444 ticks (174,824 RTH)  2025-08-07 17:00:00.020000 .. 2025-08-08 15:59:59.896000
+      RTH cross-check vs trove: MISMATCH (eth-rth 174,824 vs trove 281,330)
+  2025-08-11 off +227.50  195,017 ticks (157,734 RTH)  2025-08-10 17:00:00.040000 .. 2025-08-11 15:59:59.412000
+      RTH cross-check vs trove: MISMATCH (eth-rth 157,734 vs trove 257,374)
+  2025-08-12 off +227.50  250,384 ticks (187,259 RTH)  2025-08-11 17:00:00.008000 .. 2025-08-12 15:59:57.280000
+      RTH cross-check vs trove: MISMATCH (eth-rth 187,259 vs trove 304,919)
+  2025-08-13 off +227.50  209,707 ticks (174,994 RTH)  2025-08-12 17:00:00.024000 .. 2025-08-13 15:59:57.924000
+      RTH cross-check vs trove: MISMATCH (eth-rth 174,994 vs trove 272,308)
+  2025-08-14 off +227.50  236,826 ticks (185,643 RTH)  2025-08-13 17:00:00.024000 .. 2025-08-14 15:59:59.400000
+      RTH cross-check vs trove: MISMATCH (eth-rth 185,643 vs trove 294,036)
+  2025-08-15 off +227.50  210,003 ticks (168,102 RTH)  2025-08-14 17:00:00.016000 .. 2025-08-15 15:59:59.864000
+      RTH cross-check vs trove: MISMATCH (eth-rth 168,102 vs trove 273,001)
+  2025-08-18 off +227.50  165,353 ticks (130,376 RTH)  2025-08-17 17:00:00.040000 .. 2025-08-18 15:59:59.476000
+      RTH cross-check vs trove: MISMATCH (eth-rth 130,376 vs trove 210,647)
+  2025-08-19 off +227.50  225,117 ticks (193,154 RTH)  2025-08-18 17:00:00.024000 .. 2025-08-19 15:59:59.904000
+      RTH cross-check vs trove: MISMATCH (eth-rth 193,154 vs trove 306,366)
+  2025-08-20 off +227.50  319,510 ticks (273,861 RTH)  2025-08-19 17:00:00.020000 .. 2025-08-20 15:59:58.992000
+      RTH cross-check vs trove: MISMATCH (eth-rth 273,861 vs trove 435,967)
+  2025-08-21 off +227.50  251,708 ticks (205,372 RTH)  2025-08-20 17:00:00.020000 .. 2025-08-21 15:59:58.444000
+      RTH cross-check vs trove: MISMATCH (eth-rth 205,372 vs trove 337,469)
+  2025-08-22 off +227.50  291,422 ticks (251,111 RTH)  2025-08-21 17:00:00.036000 .. 2025-08-22 15:59:59.436000
+      RTH cross-check vs trove: MISMATCH (eth-rth 251,111 vs trove 418,330)
+  2025-08-25 off +227.50  174,297 ticks (137,319 RTH)  2025-08-24 17:00:00.032000 .. 2025-08-25 15:59:59.532000
+      RTH cross-check vs trove: MISMATCH (eth-rth 137,319 vs trove 222,211)
+  2025-08-26 off +227.50  207,128 ticks (153,251 RTH)  2025-08-25 17:00:00.008000 .. 2025-08-26 15:59:59.544000
+      RTH cross-check vs trove: MISMATCH (eth-rth 153,251 vs trove 242,435)
+  2025-08-27 off +227.50  181,279 ticks (129,748 RTH)  2025-08-26 17:00:00.020000 .. 2025-08-27 15:59:59.948000
+      RTH cross-check vs trove: MISMATCH (eth-rth 129,748 vs trove 211,579)
+  2025-08-28 off +227.50  211,581 ticks (169,057 RTH)  2025-08-27 17:00:00.024000 .. 2025-08-28 15:59:59.508000
+      RTH cross-check vs trove: MISMATCH (eth-rth 169,057 vs trove 268,907)
+  2025-08-29 off +227.50  246,112 ticks (205,325 RTH)  2025-08-28 17:00:00.024000 .. 2025-08-29 15:59:59.520000
+      RTH cross-check vs trove: MISMATCH (eth-rth 205,325 vs trove 317,319)
+  2025-09-01 off +227.50  25,671 ticks (8,195 RTH)  2025-09-01 00:00:00.772000 .. 2025-09-01 11:59:59.744000
+  2025-09-02 off +227.50  342,951 ticks (252,446 RTH)  2025-08-31 17:00:00.032000 .. 2025-09-02 15:59:59.952000
+      RTH cross-check vs trove: MISMATCH (eth-rth 252,446 vs trove 401,050)
+  2025-09-03 off +227.50  261,944 ticks (211,936 RTH)  2025-09-02 17:00:00.016000 .. 2025-09-03 15:59:59.500000
+      RTH cross-check vs trove: MISMATCH (eth-rth 211,936 vs trove 335,434)
+  2025-09-04 off +227.50  209,859 ticks (169,096 RTH)  2025-09-03 17:00:00.008000 .. 2025-09-04 15:59:58.932000
+      RTH cross-check vs trove: MISMATCH (eth-rth 169,096 vs trove 249,472)
+  2025-09-05 off +227.50  351,933 ticks (296,856 RTH)  2025-09-04 17:00:00.020000 .. 2025-09-05 15:59:59.376000
+      RTH cross-check vs trove: MISMATCH (eth-rth 296,856 vs trove 473,261)
+  2025-09-08 off +227.50  207,878 ticks (169,189 RTH)  2025-09-07 17:00:00.048000 .. 2025-09-08 15:59:59.468000
+      RTH cross-check vs trove: MISMATCH (eth-rth 169,189 vs trove 260,869)
+  2025-09-09 off +227.50  211,397 ticks (171,109 RTH)  2025-09-08 17:00:00.020000 .. 2025-09-09 15:59:59.484000
+      RTH cross-check vs trove: MISMATCH (eth-rth 171,109 vs trove 91,607)
+  2025-09-10 off +227.50  241,873 ticks (193,090 RTH)  2025-09-09 17:00:00.032000 .. 2025-09-10 15:59:59.260000
+      RTH cross-check vs trove: MISMATCH (eth-rth 193,090 vs trove 308,073)
+  2025-09-11 off +227.50  210,503 ticks (163,203 RTH)  2025-09-10 17:00:00.020000 .. 2025-09-11 15:59:57.160000
+      RTH cross-check vs trove: MISMATCH (eth-rth 163,203 vs trove 252,321)
+  2025-09-12 off +227.50  173,868 ticks (139,176 RTH)  2025-09-11 17:00:00.020000 .. 2025-09-12 15:59:59.004000
+      RTH cross-check vs trove: MISMATCH (eth-rth 139,176 vs trove 205,274)
+
+done: 46 written, 0 skipped, 0 aborted -> C:\Users\Admin\myquant\data\ticks_continuous_eth
+  export done: {"done":"2026-09-12 22:20:33","note":"exported 46/46 day(s)"}
+
+=== ES 12-25 2025-09-14..2025-12-12 — requested (ETH); waiting for AddOn ===

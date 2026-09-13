@@ -21,3 +21,31 @@ EXIT + P&L (exact close second) — CLOSED trades:
   openic_p      None          0.0    66.74        56.74
 
 -> C:\Users\Admin\myquant\data\options_sim\shadow_td\reprice_2026-09-10.json
+ENTRY (exact fill second):
+  order        IBcr  exactTD      d
+  eodfly_c     22.3     22.3    0.0
+  eodfly_p      1.0     1.05  -0.05
+  eodic_c      6.25      6.1   0.15
+  eodic_p       0.1      0.1    0.0
+  openfly_c    7.75     8.25   -0.5
+  openfly_p     8.8      8.8    0.0
+  openic_p      0.3      0.3    0.0
+
+EXIT + P&L (exact close second) — CLOSED trades:
+  order       IBexit  exactTDexit   IB_PnL  exactTD_PnL
+  eodfly_c      23.9         23.8  -166.52      -156.52
+  eodfly_p      None          0.0    96.74       101.74
+  eodic_c       None          0.0   621.74       606.74
+  eodic_p       None          0.0     6.74         6.74
+  openfly_c      9.2          9.3  -151.52      -111.52
+  openfly_p      9.7         10.0   -96.52      -126.52
+  openic_p      None          0.0    26.74        26.74
+
+-> C:\Users\Admin\myquant\data\options_sim\shadow_td\reprice_2026-09-11.json
+ENTRY (exact fill second):
+  order        IBcr  exactTD      d
+
+EXIT + P&L (exact close second) � CLOSED trades:
+  order       IBexit  exactTDexit   IB_PnL  exactTD_PnL
+
+-> C:\Users\Admin\myquant\data\options_sim\shadow_td\reprice_2026-09-12.json

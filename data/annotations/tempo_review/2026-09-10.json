@@ -13,6 +13,20 @@
     0
    ],
    "climax": true
+  },
+  {
+   "b0": 96,
+   "b1": 96,
+   "t0": "11:58:02",
+   "t1": "11:58:02",
+   "grade": "C",
+   "side": "short",
+   "note": "bear climax bar, close to the HOD, also a LH.",
+   "cons": "no bull climax bar preceeding",
+   "states": [
+    6
+   ],
+   "climax": false
   }
  ]
 }
