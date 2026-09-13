@@ -117,6 +117,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				UseIbsDirection   = true;                  // SB dir from IBS (>=0.55 / <=0.45, middle = no signal); bar1 = color only
 				EbScratch         = true;                  // EB rule: first bar after entry non-climax opposite-IBS -> scratch @ close
 			MinSbBodyTicks    = 4;                     // SB body |close-open| must be >= this many ticks, else no signal
+			SeOrderLifeBars   = 1;                     // SE pending pulled after this many bars past the SB
+			EbOnSignalBar     = true;                  // EB = bar after SB (false: first bar after actual fill)
 				PaceWindowSec  = 30;
 				AlertOnClimax  = false;
 				AlertCooldownSec = 120;
@@ -496,8 +498,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 		// Pending dies if the protective-stop side breaks first (canc), on a newer
 		// signal (replaced) or at session end. Bar crossing SE and stop together =
 		// filled-then-stopped (conservative). Record per signal:
+		// Pending pulled after SeOrderLifeBars bars past the SB. EB reference per
+		// EbOnSignalBar: true = bar after SB (fills+wrong IBS -> scratch; no fill +
+		// wrong IBS -> pull order), false = first bar after fill. Record per signal:
 		// int[]{sigBar, isShort, result(0 open/1 stop/2 3R/4 reversed/5 eb-scr/
-		//       6 no-fill/7 cancelled), endIdx, reach, openedByRev, fillBar(-1 if none)}
+		//       6 no-fill/7 cancelled/8 eb-canc), endIdx, reach, openedByRev, fillBar(-1 if none)}
 		private List<int[]> SimFlipSession(int s0, int s1)
 		{
 			List<int[]> trades = new List<int[]>();
@@ -517,8 +522,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 					{
 						if (reach < 2 && (pSh ? Bars.GetLow(i) <= r2 : Bars.GetHigh(i) >= r2)) reach = 2;
 						else if (reach < 1 && (pSh ? Bars.GetLow(i) <= r1 : Bars.GetHigh(i) >= r1)) reach = 1;
-						// EB scratch: first bar after FILL, NOT climax, opposite IBS -> out at close
-						if (EbScratch && i == pi + 1)
+						// EB scratch (fill-referenced mode): first bar after FILL, NOT climax, opposite IBS
+						if (EbScratch && !EbOnSignalBar && i == pi + 1)
 						{
 							int dEB = BarDir(i);
 							bool opp = climaxS.GetValueAt(i) < 0.5
@@ -529,6 +534,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 				}
 				if (qSig >= 0 && pi < 0)
 				{
+					if (i > qSig + SeOrderLifeBars)
+					{ trades.Add(new[] { qSig, qSh ? 1 : 0, 6, i - 1, 0, qByRev ? 1 : 0, -1 }); qSig = -1; }
+					else
+					{
 					bool inval = qSh ? Bars.GetHigh(i) >= qSt : Bars.GetLow(i) <= qSt;
 					bool trig  = qSh ? Bars.GetLow(i) <= qEn - TickSize : Bars.GetHigh(i) >= qEn + TickSize;
 					if (trig)
@@ -545,10 +554,27 @@ namespace NinjaTrader.NinjaScript.Indicators
 							else if (reach < 1 && (pSh ? Bars.GetLow(i) <= r1 : Bars.GetHigh(i) >= r1)) reach = 1;
 							bool ht0 = pSh ? Bars.GetLow(i) <= tg : Bars.GetHigh(i) >= tg;
 							if (ht0) { trades.Add(new[] { pSig, pSh ? 1 : 0, 2, i, 3, pByRev ? 1 : 0, pi }); pi = -1; }
+							else if (EbScratch && EbOnSignalBar && i == pSig + 1)
+							{
+								// EB = bar after SB; filled on it and it closes wrong-IBS -> scratch @ close
+								int dEB = BarDir(i);
+								bool opp = climaxS.GetValueAt(i) < 0.5
+									&& ((pSh && dEB == 1) || (!pSh && dEB == -1));
+								if (opp) { trades.Add(new[] { pSig, pSh ? 1 : 0, 5, i, reach, pByRev ? 1 : 0, pi }); pi = -1; }
+							}
 						}
 					}
 					else if (inval)
 					{ trades.Add(new[] { qSig, qSh ? 1 : 0, 7, i, 0, qByRev ? 1 : 0, -1 }); qSig = -1; }
+					else if (EbScratch && EbOnSignalBar && i == qSig + 1)
+					{
+						// EB (bar after SB) didn't fill the SE and closes wrong-IBS -> pull the order
+						int dEB = BarDir(i);
+						bool opp = climaxS.GetValueAt(i) < 0.5
+							&& ((qSh && dEB == 1) || (!qSh && dEB == -1));
+						if (opp) { trades.Add(new[] { qSig, qSh ? 1 : 0, 8, i, 0, qByRev ? 1 : 0, -1 }); qSig = -1; }
+					}
+					}
 				}
 				int fd = FlipDir(i);
 				if (fd == 0) continue;
@@ -645,21 +671,23 @@ namespace NinjaTrader.NinjaScript.Indicators
 					}
 					int[] t = taken[i];
 					int result = t[2], endIdx = t[3];
-					if (result == 6 || result == 7)
+					if (result == 6 || result == 7 || result == 8)
 					{
-						// stop-entry never filled: expired/replaced (6) or invalidated (7)
+						// stop-entry never filled: expired/replaced (6), invalidated (7), EB-cancelled (8)
 						RenderTarget.DrawRectangle(new SharpDX.RectangleF(x0, yH, x1 - x0, yL - yH), boxDim, 1f);
 						float ySe = chartScale.GetYByValue(en);
 						float xD = chartControl.GetXByBarIndex(ChartBars, endIdx);
 						RenderTarget.DrawLine(new SharpDX.Vector2(x1, ySe), new SharpDX.Vector2(xD, ySe), boxDim, 1f);
-						RenderTarget.DrawText(result == 6 ? "no fill" : "canc", tfT,
+						RenderTarget.DrawText(result == 6 ? "no fill" : result == 7 ? "canc" : "eb-canc", tfT,
 							new SharpDX.RectangleF(x1 + 2, yH - 12, 60, 12), boxDim);
 						flipRects.Add(new[] { Math.Min(x0, x1), yH - 18f,
 							Math.Max(xD + 40f, x1) - Math.Min(x0, x1), yL - yH + 18f });
 						flipInfos.Add(new[] {
 							(t[5] == 1 ? "EB Reversal" : "Basic") + "  ·  " + (sh ? "SHORT" : "LONG"),
 							string.Format("SE {0:F2}  never filled", en),
-							result == 6 ? "expired / replaced by newer signal" : "stop side broke first (invalidated)",
+							result == 6 ? "order life expired / replaced" :
+							result == 7 ? "stop side broke first (invalidated)" :
+							"EB wrong IBS, no fill -> order pulled",
 						});
 						continue;
 					}
@@ -711,7 +739,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				for (int k = 0; k < tallyTrades.Count; k++)
 				{
 					int[] t = tallyTrades[k];
-					if (t[2] == 6 || t[2] == 7) { nofill++; continue; }
+					if (t[2] >= 6) { nofill++; continue; }
 					bool sh = t[1] == 1;
 					double en, st, rk;
 					if (!FlipPrices(t[0], sh, out en, out st, out rk)) continue;
@@ -928,6 +956,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[NinjaScriptProperty, Range(0, 20)]
 		[Display(Name = "Flip: min SB body (ticks)", GroupName = "3. Blocks", Order = 9)]
 		public int MinSbBodyTicks { get; set; }
+
+		[NinjaScriptProperty, Range(1, 20)]
+		[Display(Name = "Flip: SE order life (bars after SB)", GroupName = "3. Blocks", Order = 10)]
+		public int SeOrderLifeBars { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name = "Flip: EB on bar after SB (off = bar after fill)", GroupName = "3. Blocks", Order = 11)]
+		public bool EbOnSignalBar { get; set; }
 
 		[NinjaScriptProperty, Range(5, 300)]
 		[Display(Name = "Live pace window (sec)", GroupName = "4. Live pace / alert", Order = 0)]
