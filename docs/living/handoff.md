@@ -4,6 +4,10 @@
 
 ---
 
+## ⏰ PENDING TONIGHT (2026-09-13): rebuild the 5M cache — `python research/scalp_swing/build_5m.py`
+After today's RTH-trove undercount repair (46 NT days 2026-07-03→09-11), `es_5m_rth.parquet` still
+holds the OLD halved volume. Deferred to tonight (compute needed elsewhere). Confirm with user first.
+
 ## ⚡ CONTROL BOARD — the single hub (read FIRST, update AFTER every unit of work)
 
 **2026-09-08 (S114): TWO chats work this repo — this board is how they stop colliding.**
