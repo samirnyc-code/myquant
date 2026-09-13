@@ -548,13 +548,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 			// armed trigger lines (the "watch this level" state)
 			if (ShowTriggerLines)
 			{
+				// never reach further back than the chart has bars (chart may start mid-session)
+				int back = Math.Max(0, Math.Min(Math.Min(
+					sessionStartBar >= 0 ? CurrentBar - sessionStartBar : 0, 20), CurrentBar));
 				if (hasLongTrig && ShowLongs)
 					Draw.Line(this, "r2e_armL" + armedLongSb, false,
-						Math.Min(CurrentBar - sessionStartBar, 20), armedLongTrig, 0, armedLongTrig,
+						back, armedLongTrig, 0, armedLongTrig,
 						Brushes.SeaGreen, DashStyleHelper.Dot, 1);
 				if (hasShortTrig && ShowShorts)
 					Draw.Line(this, "r2e_armS" + armedShortSb, false,
-						Math.Min(CurrentBar - sessionStartBar, 20), armedShortTrig, 0, armedShortTrig,
+						back, armedShortTrig, 0, armedShortTrig,
 						Brushes.IndianRed, DashStyleHelper.Dot, 1);
 			}
 
