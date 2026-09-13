@@ -26,9 +26,12 @@ def daily_series(df, mult, cost):
 
 
 def sim(daily, base, step, start=None):
+    """STATIC DD: floor is fixed at start - $4,500 (EOD), does NOT trail the peak.
+    Blown only if EOD equity (relative to start=0) ever <= -4,500."""
     if start:
         daily = daily[daily.index >= start]
-    eq = hwm = peak = 0.0; maxdd = 0.0; size = base; blown = None
+    eq = peak = 0.0; maxdd = 0.0; size = base; blown = None
+    min_eq = 0.0                                   # deepest EOD equity below start
     sub_paid = 0.0; pm = None; rows = []
     for d, pnl1 in daily.items():
         m = d[:7]
@@ -36,14 +39,14 @@ def sim(daily, base, step, start=None):
             sub_paid += SUB; pm = m
         size = min(15, base + int(max(eq, 0) // step)) if step else base
         eq += pnl1 * size
-        hwm = max(hwm, eq)
-        floor = min(hwm, DD) - DD
+        floor = -DD                                # STATIC, below start
         peak = max(peak, eq); maxdd = min(maxdd, eq - peak)
-        rows.append((d, eq, hwm, floor, size))
+        min_eq = min(min_eq, eq)
+        rows.append((d, eq, peak, floor, size))
         if blown is None and eq <= floor:
             blown = d
     return dict(final=eq, take=eq - sub_paid, sub=sub_paid, maxdd=maxdd,
-                blown=blown, end_size=size, rows=rows)
+                min_eq=min_eq, blown=blown, end_size=size, rows=rows)
 
 
 def main():
@@ -53,40 +56,45 @@ def main():
     print(f"loaded {len(df)} flip trades from {path.name}\n")
 
     es = daily_series(df, 50.0, 17.5)
-
-    # --- trace the 1 ES blow ---
-    r = sim(es, 1, 0)
-    cur = pd.DataFrame(r["rows"], columns=["date", "eq", "hwm", "floor", "size"])
-    cur["yr"] = cur.date.str[:7]
-    print("1 ES — EOD equity by MONTH-END through the first blow:")
-    monthly = cur.groupby("yr").tail(1)
-    for _, x in monthly[monthly["yr"] <= "2021-12"].iterrows():
-        flag = "  <-- BLOWN" if r["blown"] and x["date"] == r["blown"] else ""
-        print(f"  {x['date']}: eq ${x['eq']:+8,.0f}  peak ${x['hwm']:+8,.0f}  floor ${x['floor']:+8,.0f}{flag}")
-    if r["blown"]:
-        b = cur[cur["date"] == r["blown"]].iloc[0]
-        pre = cur[cur["date"] < r["blown"]]
-        peak_before = pre["eq"].max(); peak_dt = pre.loc[pre["eq"].idxmax(), "date"]
-        print(f"\n  peak BEFORE blow: ${peak_before:+,.0f} on {peak_dt}")
-        print(f"  blow day {r['blown']}: eq ${b['eq']:+,.0f}, floor ${b['floor']:+,.0f} "
-              f"(hwm ${b['hwm']:+,.0f}; floor still trailing if hwm < +$4,500)")
-        print(f"  drawdown peak->blow = ${b['eq'] - peak_before:+,.0f}")
-        seg = cur[(cur["date"] >= peak_dt) & (cur["date"] <= r["blown"])]
-        print(f"  that decline spanned {len(seg)} trading days ({peak_dt} -> {r['blown']})")
-
-    # --- rerun from later account-open dates, ES and MES ---
-    print("\n\nRERUN FROM LATER ACCOUNT-OPEN DATES (fresh $4,500 DD each start):")
     mes = daily_series(df, 5.0, 6.25)
+
+    # --- STATIC DD: the survival question is simply how deep EOD equity ever goes
+    #     below the STARTING balance (floor = -$4,500, fixed). ---
+    print("STATIC DD model: floor = start - $4,500 (fixed, EOD). Blow only if EOD")
+    print("equity ever closes >= $4,500 below where you started.\n")
+    r = sim(es, 1, 0)
+    cur = pd.DataFrame(r["rows"], columns=["date", "eq", "peak", "floor", "size"])
+    trough_dt = cur.loc[cur["eq"].idxmin(), "date"]
+    print(f"1 ES: deepest EOD equity below start = ${r['min_eq']:+,.0f} (on {trough_dt}) "
+          f"vs floor -$4,500 -> {'BLOWN' if r['blown'] else 'SURVIVES'}"
+          + (f" ({r['blown']})" if r["blown"] else f", margin ${r['min_eq']+DD:,.0f}"))
+    print("  1 ES EOD equity at each year-end + intra-year trough:")
+    cur["yr"] = cur["date"].str[:4]
+    for y, x in cur.groupby("yr"):
+        print(f"    {y}: year-end ${x['eq'].iloc[-1]:+8,.0f}   lowest-EOD ${x['eq'].min():+8,.0f} "
+              f"({x.loc[x['eq'].idxmin(),'date']})")
+
+    print("\nRERUN FROM LATER ACCOUNT-OPEN DATES (static $4,500 floor each start):")
     for label, start in [("2021-06 (full)", None), ("2022-06-18", "2022-06-18"),
                          ("2023-01-01", "2023-01-01"), ("2024-01-01", "2024-01-01")]:
-        print(f"\n  --- open {label} ---")
+        print(f"  --- open {label} ---")
         for inst, ser in (("ES ", es), ("MES", mes)):
             for base, step in ((1, 0), (1, 20000)):
                 rr = sim(ser, base, step, start)
-                st = f"BLOWN {rr['blown']}" if rr["blown"] else "SURVIVES"
+                st = f"BLOWN {rr['blown']}" if rr["blown"] else f"SURVIVES (deepest ${rr['min_eq']:+,.0f})"
                 tag = f"{base}c fixed" if not step else f"1c +1/$20k(end {rr['end_size']}c)"
-                print(f"    {inst} {tag:22}: acct ${rr['final']:+8,.0f}  take ${rr['take']:+8,.0f}  "
-                      f"maxDD ${rr['maxdd']:+8,.0f} -> {st}")
+                print(f"    {inst} {tag:22}: acct ${rr['final']:+8,.0f}  take ${rr['take']:+8,.0f}  -> {st}")
+
+    # --- November seasonality: real effect or coincidence? ---
+    print("\nNOVEMBER CHECK — calendar-month P&L across ALL years (1 ES, $/pt=50):")
+    df["mo"] = df["date"].str[5:7]
+    mo = df.assign(pnl=(df["pts"] - 17.5 / 50.0) * 50.0).groupby("mo")["pnl"].agg(["sum", "count"])
+    for m, x in mo.iterrows():
+        bar = "#" * int(abs(x["sum"]) / 400)
+        print(f"    {m}: ${x['sum']:+7,.0f}  (n={int(x['count'])})  {bar}")
+    novs = df[df["mo"] == "11"].assign(yr=df["date"].str[:4], pnl=(df["pts"] - 0.35) * 50.0)
+    print("  November by year:  " + "  ".join(
+        f"{y}:${g['pnl'].sum():+,.0f}(n{len(g)})" for y, g in novs.groupby("yr")))
 
 
 if __name__ == "__main__":
