@@ -64,11 +64,12 @@ def main():
                     num += 1
                     short = dr == "S"
                     stop_px = lim + stop_pts if short else lim - stop_pts
-                    dt = pd.Timestamp(g["DateTime"].iloc[min(jfl, len(g) - 1)])
+                    bar = int(tbar[jfl])                       # tick index -> 5-min bar index
+                    dt = pd.Timestamp(g["DateTime"].iloc[min(bar, len(g) - 1)])  # bar-END time
                     rows.append({
                         "Num": num, "Type": "2E", "Dir": "Short" if short else "Long",
                         "Date": dt.strftime("%d/%m/%Y"), "Time": dt.strftime("%H:%M:%S"),
-                        "BarNum": int(jfl), "Price": round(lim, 2), "Stop": round(stop_px, 2),
+                        "BarNum": bar, "Price": round(lim, 2), "Stop": round(stop_px, 2),
                     })
         prev_close, prev_range = day_cl, day_hi - day_lo
 
