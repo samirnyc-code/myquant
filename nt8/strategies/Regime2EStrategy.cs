@@ -3,9 +3,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Windows.Media;
 using NinjaTrader.Cbi;
 using NinjaTrader.Data;
+using NinjaTrader.Gui;
 using NinjaTrader.NinjaScript;
+using NinjaTrader.NinjaScript.DrawingTools;
 #endregion
 
 namespace NinjaTrader.NinjaScript
@@ -106,6 +109,13 @@ namespace NinjaTrader.NinjaScript.Strategies
 		private readonly List<string> pendingEntry = new List<string>();  // working entry names
 		private readonly List<int> pendingExpiry = new List<int>();       // expiry bar per working entry
 		private List<string> csvRows;
+		private Brush bullBack, bearBack;
+
+		// on-chart visuals: trade/stop-line + daily P&L tile
+		private MarketPosition prevMP = MarketPosition.Flat;
+		private bool inPos; private int entryBar, tradeSeq; private double stopDraw; private string tradeTag;
+		private int prevTradeCount;
+		private string dayKey; private double dayRealized; private int dayStartBar; private double dayHigh;
 
 		protected override void OnStateChange()
 		{
@@ -114,6 +124,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 				Description = "REGIME-2E v1.1 executable: with-trend 2E, SMA20d+trend-day+gap gates, retest limit, 0.30xADR stop, EOD flat, single position.";
 				Name = "Regime2EStrategy";
 				Calculate = Calculate.OnPriceChange;   // REQUIRES Tick Replay for historical parity
+				IsOverlay = true;
+				AddPlot(new Stroke(Brushes.DimGray, DashStyleHelper.Dash, 1), PlotStyle.Line, "SMA20d");
+				ShowVisuals = true;
 				EntriesPerDirection = 1;
 				EntryHandling = EntryHandling.AllEntries;
 				IsExitOnSessionCloseStrategy = true;
@@ -138,9 +151,15 @@ namespace NinjaTrader.NinjaScript.Strategies
 				TradeShorts = true;
 				WriteSignalsCsv = true;
 			}
+			else if (State == State.Configure)
+			{
+				bullBack = new SolidColorBrush(Color.FromArgb(22, 34, 139, 34)); bullBack.Freeze();
+				bearBack = new SolidColorBrush(Color.FromArgb(22, 200, 30, 30)); bearBack.Freeze();
+			}
 			else if (State == State.DataLoaded)
 			{
 				csvRows = new List<string>();
+				prevTradeCount = 0; prevMP = MarketPosition.Flat; inPos = false;
 				ResetSession();
 				sessionIt = new Data.SessionIterator(Bars);
 				if (BarsPeriod.BarsPeriodType != BarsPeriodType.Minute || BarsPeriod.Value != 5)
@@ -491,7 +510,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 					double gapPct = Math.Abs(Close[0] - prevSessClose) / prevSessClose * 100.0;
 					gapSkip = gapPct > GapMaxPct;
 				}
+				// new-day visuals reset
+				dayKey = Time[0].ToString("yyyyMMdd"); dayRealized = 0.0;
+				dayStartBar = CurrentBar; dayHigh = High[0];
 			}
+			if (High[0] > dayHigh) dayHigh = High[0];
 			lastSessClose = Close[0];
 			if (Close[0] > sessHigh) sessHigh = Close[0];
 			if (Close[0] < sessLow) sessLow = Close[0];
@@ -568,6 +591,54 @@ namespace NinjaTrader.NinjaScript.Strategies
 				hasShortTrig = false;
 				if (TradeShorts) TryEnter(false, armedShortTrig, inWindow);
 			}
+
+			if (ShowVisuals) DrawVisuals();
+		}
+
+		private void DrawVisuals()
+		{
+			// regime shading + SMA20d line
+			BackBrush = mode == "BULL" ? bullBack : mode == "BEAR" ? bearBack : null;
+			if (!double.IsNaN(smaDaily)) Values[0][0] = smaDaily; else Values[0].Reset();
+
+			// position change -> start/finalize the stop line
+			MarketPosition mp = Position.MarketPosition;
+			if (mp != prevMP)
+			{
+				if (inPos && tradeTag != null)         // finalize prior line to this bar (exit or reversal)
+					Draw.Line(this, tradeTag, false, CurrentBar - entryBar, stopDraw, 0, stopDraw,
+						Brushes.Red, DashStyleHelper.Solid, 2);
+				if (mp == MarketPosition.Flat) { inPos = false; }
+				else
+				{
+					inPos = true; entryBar = CurrentBar; tradeSeq++;
+					tradeTag = "r2e_stop" + tradeSeq;
+					stopDraw = mp == MarketPosition.Long
+						? Position.AveragePrice - adrStopTicks * TICK
+						: Position.AveragePrice + adrStopTicks * TICK;
+				}
+				prevMP = mp;
+			}
+			if (inPos && tradeTag != null)             // extend the live stop line to the current bar
+				Draw.Line(this, tradeTag, false, CurrentBar - entryBar, stopDraw, 0, stopDraw,
+					Brushes.Red, DashStyleHelper.Solid, 2);
+
+			// realized P&L accrual (per closed trade) -> daily tile
+			if (SystemPerformance.AllTrades.Count > prevTradeCount)
+			{
+				for (int k = prevTradeCount; k < SystemPerformance.AllTrades.Count; k++)
+					dayRealized += SystemPerformance.AllTrades[k].ProfitCurrency;
+				prevTradeCount = SystemPerformance.AllTrades.Count;
+			}
+			if (dayKey != null)
+			{
+				double open_pl = Position.MarketPosition != MarketPosition.Flat
+					? Position.GetUnrealizedProfitLoss(PerformanceUnit.Currency, Close[0]) : 0.0;
+				double shown = dayRealized + open_pl;
+				double y = dayHigh + Math.Max(adrStopTicks, 8) * TICK * 2;
+				Draw.Text(this, "r2e_pnl" + dayKey, shown.ToString("$+#,##0;-$#,##0;$0"),
+					CurrentBar - dayStartBar, y, shown >= 0 ? Brushes.LimeGreen : Brushes.OrangeRed);
+			}
 		}
 
 		private void TryEnter(bool isLong, double trig, bool inWindow)
@@ -620,6 +691,12 @@ namespace NinjaTrader.NinjaScript.Strategies
 			if (isLong) EnterLongLimit(0, true, Contracts, lim, sig);
 			else EnterShortLimit(0, true, Contracts, lim, sig);
 			CsvRow("FIRE", sigSeq, isLong ? "L" : "S", trig, lim, "OK");
+			// mark the signal bar with an arrow at its extreme
+			if (ShowVisuals)
+			{
+				if (isLong) Draw.ArrowUp(this, "r2e_sb" + sigSeq, false, 0, formLow - 4 * TICK, Brushes.LimeGreen);
+				else Draw.ArrowDown(this, "r2e_sb" + sigSeq, false, 0, formHigh + 4 * TICK, Brushes.Red);
+			}
 		}
 
 		private void CancelWorkingEntries(bool longs, bool shorts)
@@ -662,6 +739,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 		[NinjaScriptProperty] public bool TradeLongs { get; set; }
 		[NinjaScriptProperty] public bool TradeShorts { get; set; }
 		[NinjaScriptProperty] public bool WriteSignalsCsv { get; set; }
+		[NinjaScriptProperty] public bool ShowVisuals { get; set; }
 		#endregion
 	}
 }
