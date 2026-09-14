@@ -114,6 +114,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 		// on-chart visuals: trade/stop-line + daily P&L tile
 		private MarketPosition prevMP = MarketPosition.Flat;
 		private bool inPos; private int entryBar, tradeSeq; private double stopDraw; private string tradeTag;
+		private DateTime entryTime;
 		private int prevTradeCount;
 		private string dayKey; private double dayRealized; private int dayStartBar; private double dayHigh;
 
@@ -601,17 +602,17 @@ namespace NinjaTrader.NinjaScript.Strategies
 			BackBrush = mode == "BULL" ? bullBack : mode == "BEAR" ? bearBack : null;
 			if (!double.IsNaN(smaDaily)) Values[0][0] = smaDaily; else Values[0].Reset();
 
-			// position change -> start/finalize the stop line
+			// ── stop line, TIME-anchored (no barsAgo drift) ──
 			MarketPosition mp = Position.MarketPosition;
 			if (mp != prevMP)
 			{
-				if (inPos && tradeTag != null)         // finalize prior line to this bar (exit or reversal)
-					Draw.Line(this, tradeTag, false, CurrentBar - entryBar, stopDraw, 0, stopDraw,
+				if (inPos && tradeTag != null)         // finalize prior line at the exit/reversal bar
+					Draw.Line(this, tradeTag, false, entryTime, stopDraw, Time[0], stopDraw,
 						Brushes.Red, DashStyleHelper.Solid, 2);
-				if (mp == MarketPosition.Flat) { inPos = false; }
+				if (mp == MarketPosition.Flat) inPos = false;
 				else
 				{
-					inPos = true; entryBar = CurrentBar; tradeSeq++;
+					inPos = true; entryTime = Time[0]; tradeSeq++;
 					tradeTag = "r2e_stop" + tradeSeq;
 					stopDraw = mp == MarketPosition.Long
 						? Position.AveragePrice - adrStopTicks * TICK
@@ -620,10 +621,10 @@ namespace NinjaTrader.NinjaScript.Strategies
 				prevMP = mp;
 			}
 			if (inPos && tradeTag != null)             // extend the live stop line to the current bar
-				Draw.Line(this, tradeTag, false, CurrentBar - entryBar, stopDraw, 0, stopDraw,
+				Draw.Line(this, tradeTag, false, entryTime, stopDraw, Time[0], stopDraw,
 					Brushes.Red, DashStyleHelper.Solid, 2);
 
-			// realized P&L accrual (per closed trade) -> daily tile
+			// ── per-day P&L tile: at the END of the day (current bar), near the close ──
 			if (SystemPerformance.AllTrades.Count > prevTradeCount)
 			{
 				for (int k = prevTradeCount; k < SystemPerformance.AllTrades.Count; k++)
@@ -632,13 +633,64 @@ namespace NinjaTrader.NinjaScript.Strategies
 			}
 			if (dayKey != null)
 			{
-				double open_pl = Position.MarketPosition != MarketPosition.Flat
+				double open_pl = mp != MarketPosition.Flat
 					? Position.GetUnrealizedProfitLoss(PerformanceUnit.Currency, Close[0]) : 0.0;
 				double shown = dayRealized + open_pl;
-				double y = dayHigh + Math.Max(adrStopTicks, 8) * TICK * 2;
-				Draw.Text(this, "r2e_pnl" + dayKey, shown.ToString("$+#,##0;-$#,##0;$0"),
-					CurrentBar - dayStartBar, y, shown >= 0 ? Brushes.LimeGreen : Brushes.OrangeRed);
+				Draw.Text(this, "r2e_pnl" + dayKey, Dollar(shown), 0, Close[0] + 6 * TICK,
+					shown >= 0 ? Brushes.LimeGreen : Brushes.OrangeRed);
 			}
+
+			// ── running stats table (recomputed once per bar) ──
+			if (IsFirstTickOfBar) DrawStatsTable();
+		}
+
+		private string Dollar(double v) { return v.ToString("$+#,##0;-$#,##0;$0"); }
+
+		private void DrawStatsTable()
+		{
+			var tr = SystemPerformance.AllTrades;
+			int n = tr.Count;
+			var font = new NinjaTrader.Gui.Tools.SimpleFont("Consolas", 13);
+			if (n == 0)
+			{
+				Draw.TextFixed(this, "r2e_stats", "REGIME-2E — no closed trades yet",
+					TextPosition.TopRight, Brushes.White, font, Brushes.Transparent, Brushes.Black, 40);
+				return;
+			}
+			var cal = System.Globalization.CultureInfo.InvariantCulture.Calendar;
+			int cy = Time[0].Year, cm = Time[0].Month;
+			int cw = cal.GetWeekOfYear(Time[0], System.Globalization.CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday);
+			string cd = Time[0].ToString("yyyyMMdd");
+			double gW = 0, gL = 0, mxW = double.MinValue, mxL = double.MaxValue;
+			double all = 0, day = 0, wk = 0, mo = 0, yr = 0; int wins = 0;
+			for (int i = 0; i < n; i++)
+			{
+				double pc = tr[i].ProfitCurrency; DateTime et = tr[i].Exit.Time;
+				all += pc; if (pc > 0) { wins++; gW += pc; } else gL += -pc;
+				if (pc > mxW) mxW = pc;
+				if (pc < mxL) mxL = pc;
+				if (et.ToString("yyyyMMdd") == cd) day += pc;
+				if (et.Year == cy)
+				{
+					yr += pc;
+					if (et.Month == cm) mo += pc;
+					if (cal.GetWeekOfYear(et, System.Globalization.CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday) == cw) wk += pc;
+				}
+			}
+			double pf = gL > 0 ? gW / gL : 0.0;
+			string s =
+				"REGIME-2E  (" + PosMode + ")\n" +
+				"Day    " + Dollar(day) + "\n" +
+				"Week   " + Dollar(wk) + "\n" +
+				"Month  " + Dollar(mo) + "\n" +
+				"Year   " + Dollar(yr) + "\n" +
+				"All    " + Dollar(all) + "\n" +
+				"────────────────\n" +
+				"Trades " + n + "   Win " + (100.0 * wins / n).ToString("F0") + "%\n" +
+				"PF " + pf.ToString("F2") + "   Exp " + Dollar(all / n) + "\n" +
+				"MaxW " + Dollar(mxW) + "   MaxL " + Dollar(mxL);
+			Draw.TextFixed(this, "r2e_stats", s, TextPosition.TopRight,
+				Brushes.White, font, Brushes.Transparent, Brushes.Black, 45);
 		}
 
 		private void TryEnter(bool isLong, double trig, bool inWindow)
