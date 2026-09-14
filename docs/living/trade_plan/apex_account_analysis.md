@@ -52,6 +52,21 @@ account can liquidate mid-trade. This is the WORST DD type for a hold-to-EOD boo
 - ⚠️ The earlier EOD-model numbers (`regime2e_apex_sim.py`, one_per_day +$1,245/etc.) are SUPERSEDED — wrong
   DD model. Ignore them.
 
+## Apex EOD-drawdown accounts (current 4.0 line) — checked, still too tight
+Apex DOES offer EOD-drawdown accounts, but only **25K–150K (no 250K/300K EOD)**. 150K-EOD: **$4,000** DD
+(recalc at 4:59 ET close, trails highest EOD balance, locks at start+$100), 10 contracts (tier-scaled),
+Daily Loss Limit, 50% consistency, 6-payout close, 100% split. DD MODEL is right (no intraday-unrealized
+ratchet) BUT the $4k cap is too small:
+| EOD account (one_per_day, 1 ES) | result |
+|---|---|
+| 150K-EOD ($4,000) | survives by only **+$245** (daily basis; add intraday floor-enforcement + DLL + backtest optimism ⇒ effectively blows) |
+| 100K-EOD ($3,000) | BLOWN Nov-2021 |
+| 50K-EOD ($2,000) | BLOWN |
+
+**Root cause / the real lesson:** our ramp drawdown ≈ $4.8k FROM A RUNNING PEAK is too big for ANY *trailing*
+floor (Apex intraday OR EOD). It only survives a *static* floor: Apex-EOD-$4k trailing → +$245; TPT static-$4.5k
+→ +$3,022. ⇒ For this book, want a **STATIC (non-trailing) end-of-day drawdown**. Apex has none. TPT-style fits.
+
 ## Recommendation — REVISED after confirming the intraday DD
 **Apex legacy FULL is a poor fit for this hold-to-EOD book.** The intraday-on-unrealized trailing DD ratchets the
 floor on every intraday high and can liquidate mid-trade — exactly what a book that rides winners to the close

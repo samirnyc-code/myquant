@@ -24,7 +24,8 @@ import pandas as pd
 
 MULT = 50.0; COST = 17.5
 OUTDIR = Path(__file__).resolve().parent.parent / "reports" / "regime2e"
-PLANS = [("150K", 5000.0, 9000.0), ("250K", 6500.0, 15000.0), ("300K", 7500.0, 20000.0)]
+PLANS = [("150K-EOD($4k,10c)", 4000.0, 9000.0), ("100K-EOD($3k,6c)", 3000.0, 6000.0),
+         ("50K-EOD($2k,4c)", 2000.0, 3000.0)]
 
 
 def apex_eod(daily, T):

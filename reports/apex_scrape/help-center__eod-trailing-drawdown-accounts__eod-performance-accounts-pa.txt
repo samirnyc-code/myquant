@@ -1,0 +1,115 @@
+URL: https://apextraderfunding.com/help-center/eod-trailing-drawdown-accounts/eod-performance-accounts-pa/
+TITLE: EOD Performance Accounts (PA) - Apex Trader Funding
+
+Skip to content
+ Support  Status
+
+ANY SIZE EVALS UP TO 90% OFF | USE CODE: COUPON “SAVENOW”
+
+COUPON "SAVENOW"
+Ends in: 8d 11h 55m 21s
+
+Apex Trader Funding
+
+Home
+About
+Status
+Products
+Helpdesk
+Testimonials
+Resources
+Log In
+Sign Up
+Home
+Help Center
+EOD Trailing Drawdown Accounts
+HELP CENTER
+Search for:
+EOD Performance Accounts (PA)
+In this article
+EOD PA At A Glance:
+Account Parameters
+EOD PA Trading Rules
+FAQs
+ 
+EOD PA at a Glance:
+
+No intraday trailing drawdown  
+
+EOD Drawdown calculated once per day at market close and enforced intraday
+
+Daily Loss Limit (DLL) enforced intraday  
+
+Tier Based Scaling
+
+100% Payout Split (upon meeting payout eligibility requirements)
+
+The End-of-Day (EOD) Performance Account is a Simulated Funded (Sim Funded) account awarded after you pass the EOD Evaluation. It is issued in the same size as the Evaluation account you passed and follows the same End-of-Day drawdown structure.
+
+Account Parameters
+
+Click the links below to a complete guide on each of the parameters of the EOD PA account:
+
+ 	25K	50K	100K	150K
+Max Drawdown (EOD)	$1,000	$2,000	$3,000	$4,000
+Scaling Tier Based	Yes	Yes	Yes	Yes
+Max Contracts	2	4	6	10
+DLL Tier Based	Yes	Yes	Yes	Yes
+Inactivity Rule	Yes	Yes	Yes	Yes
+EOD PA Trading Rules
+
+To keep your EOD Performance Account active, you must follow these rules:
+
+1. Do Not Breach the EOD Drawdown
+
+Your account balance, including unrealized PnL, may never touch or fall below the End-of-Day (EOD) Drawdown threshold. If it does, all positions are automatically liquidated and the PA is permanently closed.
+
+EOD Drawdown Explained
+
+2. No Prohibited Trading Activity
+
+All trading must follow Apex Trader Funding risk and conduct guidelines.
+
+Engaging in prohibited activities, including hedging violations or any form of rule circumvention, will result in immediate account closure.
+
+Prohibited Activities
+
+FAQs
+How many PAs can I have?
+Is the Performance Account a live account?
+Does hitting the Daily Loss Limit close my PA?
+Can my position size increase?
+Do I keep 100% of approved payouts?
+Can’t find what you’re looking for?
+
+Our team of experts is here to help
+
+Contact Us
+
+Apex Trader Funding Inc.
+2028 E. Ben White Blvd Ste 240-9873
+Austin, TX 78741
+
+Contact Support 24/7 Via Help Desk
+
+Policies
+Privacy Policy
+Cookie Policy
+Terms of Use
+Risk Disclosure
+Cookie Preferences
+Resources
+Coupon Code
+Payouts
+Restricted Countries
+Useful Links
+About Us
+Logos
+News
+
+RISK DISCLOSURE:
+
+Apex Trader Funding offers simulated trading programs for educational, informational, and evaluation purposes only. All activity occurs in a simulated environment using virtual funds; no real capital is at risk and no live market execution occurs. This is not an offer or solicitation to invest or trade in real financial markets. Trading carries substantial risk and is not suitable for everyone. Past performance, whether actual or simulated, does not guarantee future results. Apex does not provide investment advice and is not a broker-dealer, futures commission merchant, or financial advisor. Use of our services is subject to our User Agreement, Terms of Use, Privacy Policy, and Risk Disclosure. Participation does not create an employment relationship. Reward payouts are discretionary and subject to eligibility, compliance, and applicable tax laws. Services are intended for U.S. users only and are not offered where prohibited by local laws or regulations.
+
+2021-2026, Apex Trader Funding Inc. All Rights Reserved.
+💬 Need Help?

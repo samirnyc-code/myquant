@@ -1,0 +1,136 @@
+URL: https://apextraderfunding.com/help-center/eod-trailing-drawdown-accounts/eod-drawdown-explained/
+TITLE: EOD Drawdown Explained - Apex Trader Funding
+
+Skip to content
+ Support  Status
+
+ANY SIZE EVALS UP TO 90% OFF | USE CODE: COUPON “SAVENOW”
+
+COUPON "SAVENOW"
+Ends in: 8d 11h 55m 12s
+
+Apex Trader Funding
+
+Home
+About
+Status
+Products
+Helpdesk
+Testimonials
+Resources
+Log In
+Sign Up
+Home
+Help Center
+EOD Trailing Drawdown Accounts
+HELP CENTER
+Search for:
+EOD Drawdown Explained
+In this article
+EOD Drawdown At A Glance:
+What Is The EOD Drawdown?
+How Is EOD Threshold Calculated?
+What Happens If EOD Threshold Is Reached Intraday
+When EOD Drawdown Stops Trailing
+Video Explanation Of EOD Drawdown
+Frequently Asked Questions
+ 
+EOD Drawdown at a Glance:
+Defines the maximum total drawdown allowed on your account
+Calculated once daily at market close
+Enforced in real time during the next trading session
+If reached → positions close automatically
+If reached → account is failed (evaluation) or closed (PA)
+Threshold never moves downward
+What is the EOD Drawdown?
+
+The End-of-Day (EOD) Drawdown sets the lowest balance your account is allowed to reach. It is calculated once per day at market close based on your EOD account balance.Once calculated, the EOD Drawdown becomes active for the next trading session. If at any moment during the trading session the account balance touches or falls below the EOD Drawdown, all open positions are automatically liquidated. 
+
+In an evaluation, reaching the EOD Drawdown results in evaluation failure.In a Performance Account (PA), reaching the EOD Threshold results in account closure.
+
+How is EOD Threshold Calculated?
+
+The EOD Threshold is recalculated once per trading day at 4:59:59 PM ET, based on the account’s closing balance. It always trails the highest achieved EOD balance and never moves downward. Each account begins with a fixed drawdown amount based on account size.  
+
+Example Explained
+What Happens If EOD threshold is reached intraday
+
+If at any moment your account balance touches or falls below the EOD Threshold:
+
+All open positions are automatically liquidated
+Your evaluation is failed or PA is closed
+Trading stops immediately
+
+Even though the threshold is calculated at end-of-day, it is enforced in real time. 
+
+When EOD Drawdown Stops Trailing
+
+Performance Accounts
+
+Once the EOD Threshold reaches Starting Balance + $100, it stops increasing.
+
+Example for a 50K EOD PA:
+
+Threshold Stop Level = $50,100
+
+This occurs when the Highest EOD Balance reaches $52,100 (Starting Balance + Max Drawdown + $100). From that point onward, the EOD Threshold remains fixed at $50,100
+
+Evaluations Rithmic and Wealthcharts
+
+EOD Threshold stops trailing and becomes fixed when it reaches an amount equal to the Target Profit balance.
+
+Example for a 50K Rithmic and Wealthcharts EOD Evaluation account:
+
+Threshold Stop Level = $53.000
+
+This occurs when the Highest EOD Balance closes above $55,000 ($53,000 + $2,000). From that point onward, the EOD Threshold remains fixed at $53,000.
+
+Evaluations Tradovate
+
+EOD Drawdown trails indefinitely with the peak EOD account balance.
+
+Video Explanation of EOD Drawdown
+Frequently Asked Questions
+Do I fail if I reach EOD Threshold Intraday?
+Does the EOD Threshold move?
+What happens to the EOD Threshold on losing days?
+What is the difference between DLL and EOD Threshold?
+Can my account dip below the threshold intraday if it later recovers?
+What is the difference between Live Trailing Threshold and EOD Threshold?
+
+ 
+
+ 
+Can’t find what you’re looking for?
+
+Our team of experts is here to help
+
+Contact Us
+
+Apex Trader Funding Inc.
+2028 E. Ben White Blvd Ste 240-9873
+Austin, TX 78741
+
+Contact Support 24/7 Via Help Desk
+
+Policies
+Privacy Policy
+Cookie Policy
+Terms of Use
+Risk Disclosure
+Cookie Preferences
+Resources
+Coupon Code
+Payouts
+Restricted Countries
+Useful Links
+About Us
+Logos
+News
+
+RISK DISCLOSURE:
+
+Apex Trader Funding offers simulated trading programs for educational, informational, and evaluation purposes only. All activity occurs in a simulated environment using virtual funds; no real capital is at risk and no live market execution occurs. This is not an offer or solicitation to invest or trade in real financial markets. Trading carries substantial risk and is not suitable for everyone. Past performance, whether actual or simulated, does not guarantee future results. Apex does not provide investment advice and is not a broker-dealer, futures commission merchant, or financial advisor. Use of our services is subject to our User Agreement, Terms of Use, Privacy Policy, and Risk Disclosure. Participation does not create an employment relationship. Reward payouts are discretionary and subject to eligibility, compliance, and applicable tax laws. Services are intended for U.S. users only and are not offered where prohibited by local laws or regulations.
+
+2021-2026, Apex Trader Funding Inc. All Rights Reserved.
+💬 Need Help?
