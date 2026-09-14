@@ -97,10 +97,14 @@ Sizer: size = clamp(base, floor(cushion/R), cap); cushion = realized − floor. 
 | base5 +1c/$500 | survives | +$159k | $31.1k | 100c | +$1,434 |
 | base8 +1c/$500 | survives | +$187k | $36.5k | 100c | +$772 |
 
-- **base5 +1c/$1,000-cushion is the sweet spot: 4× the income of flat-5 with IDENTICAL ramp downside (+$2,420).**
-- ⚠️ These assume profit STAYS IN to compound the cushion. Real withdrawals (first-5 caps $2,750, 30% consistency)
-  lower the balance→cushion→size. Realistic income sits between flat-8 (~$8k/yr) and these. Genuine dial:
-  reinvest-to-grow-size vs withdraw-for-income — can't fully do both. NEXT: model withdrawals to get true take-home.
+- ⚠️⚠️ CORRECTION: the "$99k / $19.5k-yr" was OVERSTATED — a COMPOUNDING MIRAGE. The equity "explosion" is the
+  SIZE growing 5→100 MES (fixed-fractional), NOT the edge (the book's edge was weaker in 2026 than 2024). Fees are
+  trivial ($2.27/contract; $227 at 100 MES). The problems: (a) 100 MES on a 150K acct is reckless — one bad day ≈
+  −$25k, a −40pt trend day ≈ −$20k; the "survival" was PATH LUCK (no killer sequence hit at max size); (b) assumes
+  ZERO withdrawals; real payout caps ($2,750 first-5) + 30% consistency force withdrawals that shrink cushion→size.
+- **Realistic with a sane size cap (`regime2e_apex_scale_math.py`):** cap 10 MES → +$41.6k / ~$8.1k/yr; cap 20 MES
+  → ~$12.3k/yr. Scaling with the cushion DOES beat flat-5 (~$5k/yr) with no added ramp risk — but the honest
+  number is **~$8–12k/yr at a 10–20 MES cap**, not $19.5k+. NEXT: model withdrawals for true take-home.
 
 ## Recommendation — REVISED after confirming the intraday DD
 **Apex legacy FULL is a poor fit for this hold-to-EOD book.** The intraday-on-unrealized trailing DD ratchets the
