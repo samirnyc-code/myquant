@@ -67,6 +67,25 @@ ratchet) BUT the $4k cap is too small:
 floor (Apex intraday OR EOD). It only survives a *static* floor: Apex-EOD-$4k trailing → +$245; TPT static-$4.5k
 → +$3,022. ⇒ For this book, want a **STATIC (non-trailing) end-of-day drawdown**. Apex has none. TPT-style fits.
 
+## ✅ CORRECTION (2026-09-14): sized in MES it WORKS — earlier "poor fit" was a whole-ES artifact
+The fix I missed: size in MICROS *below* 1-ES-equiv so the $ ramp DD fits the trailing floor. Official Apex
+Rithmic fees: **ES $3.98 RT / MES $1.02 RT** (my earlier MES $6.25 was ~6× too high; no $200/mo sub on legacy,
+just $49.70). `regime2e_apex_mes.py`, legacy 150K intraday $5,000, real ticks:
+| size | =ES | result | deepest cushion | net/yr |
+|---|---|---|---|---|
+| 5 MES | 0.5 | SURVIVES | +$2,420 | ~$5,230 |
+| 8 MES | 0.8 | SURVIVES | +$872 | ~$8,370 |
+| 10 MES (=1 ES) | 1.0 | BLOWN | −$160 | — |
+| ≥12 MES | ≥1.2 | BLOWN | neg | — |
+
+- **Apex legacy 150K IS viable at ≤8 MES.** 5 MES = safe (+$2.4k cushion, ~$5.2k/yr); 8 MES = ~$8.4k/yr but thin
+  (+$872, backtest-flattered). 10 MES (=1 ES) is the cliff. Max survivable ~8–9 MES.
+- Same picture on the EOD $4k model (5 MES +$1,919 / 8 MES +$670). All blow risk is the pre-lock ramp (Nov-2021).
+- Scale income via MULTIPLE 150K accounts at 5–8 MES each (Apex allows many) — but separate machine/IP/card per
+  account (two-partner sharing/copy ban). Post-lock (banked $5,100) the floor is BE+$100, so sizing up after the
+  lock is feasible — trade small through the ramp, larger once locked.
+- ⇒ The whole-ES sims above ("150K blows at 1 ES") stand for 1 ES but are NOT the verdict — micro-sizing is.
+
 ## Recommendation — REVISED after confirming the intraday DD
 **Apex legacy FULL is a poor fit for this hold-to-EOD book.** The intraday-on-unrealized trailing DD ratchets the
 floor on every intraday high and can liquidate mid-trade — exactly what a book that rides winners to the close
