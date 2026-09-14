@@ -1,6 +1,9 @@
 ﻿Apex legacy 150K EVAL — goal +$9,000, intraday $5,000 DD, >=7 traded days, MES
 
  size  =ES |  pass%  blow% |  median days-to-pass   25th   75th med traded-days
+    5  0.5 |    82%     0% |             434d   351d   770d            88d  (~14.5 mo)
+    7  0.7 |    77%    10% |             271d   205d   334d            46d  (~9.0 mo)
+    8  0.8 |    71%    18% |             224d   147d   314d            39d  (~7.5 mo)
    10  1.0 |    57%    36% |             177d    82d   224d            30d  (~5.9 mo)
    15  1.5 |    46%    51% |              85d    49d   158d            18d  (~2.9 mo)
    20  2.0 |    39%    60% |              61d    40d   105d            11d  (~2.0 mo)

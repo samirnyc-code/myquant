@@ -42,7 +42,7 @@ def main():
     n = len(trades)
     print(f"Apex legacy 150K EVAL — goal +${GOAL:,.0f}, intraday ${T:,.0f} DD, >={MIN_DAYS} traded days, MES\n")
     print(f"{'size':>5} {'=ES':>4} | {'pass%':>6} {'blow%':>6} | {'median days-to-pass':>20} {'25th':>6} {'75th':>6} {'med traded-days':>15}")
-    for size in (10, 15, 20, 30, 40, 50, 70):
+    for size in (5, 7, 8, 10, 15, 20, 30, 40, 50, 70):
         results = [eval_from(trades, i, size) for i in range(n)]
         passes = [r for r in results if r[0] == "pass"]
         blows = [r for r in results if r[0] == "blow"]
