@@ -1,0 +1,23 @@
+398 independent 2E entries, 2021-2026
+
+  stop      net$    PF  win%   exp$  full history
+0.15xADR   +51,248  1.56    38   +129  maxDD $  -8,202
+0.20xADR   +57,148  1.57    45   +144  maxDD $  -8,875
+0.25xADR   +71,535  1.67    48   +180  maxDD $  -5,848
+0.30xADR   +84,410  1.80    52   +212  maxDD $  -7,302  <- current spec
+0.35xADR   +79,310  1.71    54   +199  maxDD $  -6,485
+0.40xADR   +76,422  1.66    55   +192  maxDD $  -7,910
+0.50xADR   +72,535  1.59    55   +182  maxDD $  -8,765
+0.60xADR   +72,060  1.57    56   +181  maxDD $  -9,052
+0.80xADR   +69,535  1.54    57   +175  maxDD $ -12,628
+1.00xADR   +85,698  1.72    58   +215  maxDD $  -9,555
+no-stop   +84,548  1.70    58   +212  maxDD $  -8,702
+
+OUT-OF-SAMPLE CHECK (train 2021-23, test 2024-26), ranked by PF:
+  best stop in TRAIN  = 0.30xADR  (train PF 1.45)
+  that stop on TEST   = PF 2.05  net $+65,325
+  best stop in TEST   = 0.30xADR  (would-be hindsight)
+  spec 0.30 on TRAIN PF 1.45 / TEST PF 2.05
+  verdict: SMOOTH/robust — train-best ~ 0.30 spec
+
+graphic: C:\Users\Admin\myquant\reports\regime2e\stop_sweep.png
