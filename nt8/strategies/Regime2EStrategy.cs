@@ -625,28 +625,19 @@ namespace NinjaTrader.NinjaScript.Strategies
 				Draw.Line(this, tradeTag, false, entryTime, stopDraw, Time[0], stopDraw,
 					Brushes.Red, DashStyleHelper.Solid, 2);
 
-			// ── per-day P&L tile: at the END of the day (current bar), near the close ──
+			// realized P&L accrual (per closed trade)
+			bool tradeClosed = false;
 			if (SystemPerformance.AllTrades.Count > prevTradeCount)
 			{
 				for (int k = prevTradeCount; k < SystemPerformance.AllTrades.Count; k++)
 					dayRealized += SystemPerformance.AllTrades[k].ProfitCurrency;
 				prevTradeCount = SystemPerformance.AllTrades.Count;
-			}
-			if (dayKey != null)
-			{
-				double open_pl = mp != MarketPosition.Flat
-					? Position.GetUnrealizedProfitLoss(PerformanceUnit.Currency, Close[0]) : 0.0;
-				double shown = dayRealized + open_pl;
-				Brush tb = shown >= 0 ? Brushes.LimeGreen : Brushes.OrangeRed;
-				// boxed tile per day, well clear of the bars + the EOD session-break line
-				Draw.Text(this, "r2e_pnl" + dayKey, false, Dollar(shown),
-					0, Close[0] + PnLTileOffsetTicks * TICK, 0,
-					tb, new NinjaTrader.Gui.Tools.SimpleFont("Consolas", 12),
-					System.Windows.TextAlignment.Center, Brushes.Transparent, Brushes.Black, 55);
+				tradeClosed = true;
 			}
 
-			// ── running stats table (recomputed once per bar) ──
-			if (IsFirstTickOfBar) DrawStatsTable();
+			// running-totals tiles (fixed top-right + one snapshot per day). recompute
+			// once per bar, and again when a trade closes so the day's last trade counts.
+			if (IsFirstTickOfBar || tradeClosed) DrawStatsTable();
 		}
 
 		private string Dollar(double v) { return v.ToString("$+#,##0;-$#,##0;$0"); }
@@ -694,8 +685,16 @@ namespace NinjaTrader.NinjaScript.Strategies
 				"Trades " + n + "   Win " + (100.0 * wins / n).ToString("F0") + "%\n" +
 				"PF " + pf.ToString("F2") + "   Exp " + Dollar(all / n) + "\n" +
 				"MaxW " + Dollar(mxW) + "   MaxL " + Dollar(mxL);
+			// always-visible current snapshot (top-right)
 			Draw.TextFixed(this, "r2e_stats", s, TextPosition.TopRight,
 				Brushes.White, font, Brushes.Transparent, Brushes.Black, 45);
+			// per-day snapshot: RIGHT-aligned at the day's last bar so the box stays
+			// inside its own day and does not spill into the next day's bars.
+			if (dayKey != null)
+				Draw.Text(this, "r2e_day" + dayKey, false, s,
+					0, dayHigh + PnLTileOffsetTicks * TICK, 0,
+					Brushes.White, font, System.Windows.TextAlignment.Right,
+					Brushes.DimGray, Brushes.Black, 55);
 		}
 
 		private void TryEnter(bool isLong, double trig, bool inWindow)
