@@ -152,9 +152,9 @@ def main():
     out = OUTDIR / f"day_{date}.png"
     fig.savefig(out, dpi=120)
     print(f"chart: {out}")
-    print(f"{date}: regime lanes BULL/BEAR/NEUTRAL shaded; {len(sigs)} 2E signals:")
+    print(f"{date}: regime lanes BULL/BEAR/NEUTRAL shaded; {len(sigs)} 2E signals (1-indexed bars):")
     for s in sigs:
-        print(f"  bar {s['fb']:>3} {s['dir']} trig {s['trig']:.2f} -> {s['reason']}" + ("  [TAKEN]" if s['taken'] else ""))
+        print(f"  bar {s['fb']+1:>3} {s['dir']} trig {s['trig']:.2f} -> {s['reason']}" + ("  [TAKEN]" if s['taken'] else ""))
 
 
 if __name__ == "__main__":

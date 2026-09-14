@@ -20,24 +20,22 @@ def main():
     tr = {}
     trans = phase_transitions(H, L, n, tP, tbar, trace=tr)
 
-    # regime by bar
+    # DISPLAY is 1-indexed (bar 1 = first RTH 5-min bar); internal engine is 0-indexed.
+    B1 = lambda x: x + 1
     tr_ix = [i for (i, _) in trans]; tr_md = [m for (_, m) in trans]
-    def reg_at_tick(t):
-        import bisect; return tr_md[bisect.bisect_right(tr_ix, t) - 1]
-    # first tick index per bar
-    print(f"=== {date} pivots (bar: side price  tag/disp  major?) ===")
+    print(f"=== {date} pivots (1-indexed bar: side price  tag/disp  major?) ===")
     for p in tr["piv"]:
         if p["bar"] > 60:
             break
         px = H[p["bar"]] if p["side"] == "H" else L[p["bar"]]
-        mj = f"  MAJOR={p['majlab']}@{p['major']}" if p.get("major") is not None else ""
-        print(f"  bar {p['bar']:>3}: {p['side']} {px:8.2f}  {p['disp']:<3} (leg-tag {p['tag']}){mj}")
+        mj = f"  MAJOR={p['majlab']}@{B1(p['major'])}" if p.get("major") is not None else ""
+        print(f"  bar {B1(p['bar']):>3}: {p['side']} {px:8.2f}  {p['disp']:<3} (leg-tag {p['tag']}){mj}")
 
-    print("\n=== trend starts (bar, dir, broken-pivot-bar) ===")
+    print("\n=== trend starts (1-indexed bar, dir, broken-pivot-bar) ===")
     for (b, dr, brk) in tr["starts"]:
         brokenpx = L[brk] if dr == "bear" else H[brk]
-        print(f"  bar {b:>3}: {dr.upper()} started by breaking {'LOW' if dr=='bear' else 'HIGH'} "
-              f"of bar {brk} ({brokenpx:.2f})")
+        print(f"  bar {B1(b):>3}: {dr.upper()} started by breaking {'LOW' if dr=='bear' else 'HIGH'} "
+              f"of bar {B1(brk)} ({brokenpx:.2f})")
 
     # explain each BEAR start in structural terms
     print("\n=== structural explanation ===")
@@ -50,15 +48,15 @@ def main():
         seg = tP[a:z]
         cross = seg[seg < brokenpx] if dr == "bear" else seg[seg > brokenpx]
         trigpx = (cross[0] if len(cross) else (seg[-1] if len(seg) else brokenpx))
-        print(f"\nbar {b} — {dr.upper()} regime begins because:")
-        print(f"  1. a swing {'LOW' if dr=='bear' else 'HIGH'} stood at bar {brk} = {brokenpx:.2f} (last swing {'low' if dr=='bear' else 'high'}).")
+        print(f"\nbar {B1(b)} — {dr.upper()} regime begins because:")
+        print(f"  1. a swing {'LOW' if dr=='bear' else 'HIGH'} stood at bar {B1(brk)} = {brokenpx:.2f} (last swing {'low' if dr=='bear' else 'high'}).")
         if partner:
             pp = partner[0]; ppx = H[pp["bar"]] if pp["side"] == "H" else L[pp["bar"]]
-            print(f"  2. a {pp['majlab']} (structural {'lower high' if dr=='bear' else 'higher low'}) already existed at bar {pp['bar']} = {ppx:.2f} "
+            print(f"  2. a {pp['majlab']} (structural {'lower high' if dr=='bear' else 'higher low'}) already existed at bar {B1(pp['bar'])} = {ppx:.2f} "
                   f"-> the 'has_{'lh' if dr=='bear' else 'hl'}' condition was TRUE.")
         else:
             print(f"  2. the has_{'lh' if dr=='bear' else 'hl'} structural flag was TRUE (a counter pivot existed).")
-        print(f"  3. during bar {b}, price traded {'below' if dr=='bear' else 'above'} {brokenpx:.2f} "
+        print(f"  3. during bar {B1(b)}, price traded {'below' if dr=='bear' else 'above'} {brokenpx:.2f} "
               f"(hit ~{trigpx:.2f}) -> break of the swing {'low' if dr=='bear' else 'high'} confirmed the trend flip.")
 
 
