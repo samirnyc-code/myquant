@@ -151,6 +151,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 				TradeLongs = true;
 				TradeShorts = true;
 				WriteSignalsCsv = true;
+				PnLTileOffsetTicks = 24;               // vertical offset (ticks) of the per-day P&L tile above the close
 			}
 			else if (State == State.Configure)
 			{
@@ -636,8 +637,12 @@ namespace NinjaTrader.NinjaScript.Strategies
 				double open_pl = mp != MarketPosition.Flat
 					? Position.GetUnrealizedProfitLoss(PerformanceUnit.Currency, Close[0]) : 0.0;
 				double shown = dayRealized + open_pl;
-				Draw.Text(this, "r2e_pnl" + dayKey, Dollar(shown), 0, Close[0] + 6 * TICK,
-					shown >= 0 ? Brushes.LimeGreen : Brushes.OrangeRed);
+				Brush tb = shown >= 0 ? Brushes.LimeGreen : Brushes.OrangeRed;
+				// boxed tile per day, well clear of the bars + the EOD session-break line
+				Draw.Text(this, "r2e_pnl" + dayKey, false, Dollar(shown),
+					0, Close[0] + PnLTileOffsetTicks * TICK, 0,
+					tb, new NinjaTrader.Gui.Tools.SimpleFont("Consolas", 12),
+					System.Windows.TextAlignment.Center, Brushes.Transparent, Brushes.Black, 55);
 			}
 
 			// ── running stats table (recomputed once per bar) ──
@@ -792,6 +797,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 		[NinjaScriptProperty] public bool TradeShorts { get; set; }
 		[NinjaScriptProperty] public bool WriteSignalsCsv { get; set; }
 		[NinjaScriptProperty] public bool ShowVisuals { get; set; }
+		[NinjaScriptProperty] public int PnLTileOffsetTicks { get; set; }
 		#endregion
 	}
 }
