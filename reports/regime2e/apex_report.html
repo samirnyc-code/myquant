@@ -1,0 +1,78 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Apex Trader Funding — 2E Book Fit</title>
+<style>
+ body{font-family:Segoe UI,Arial,sans-serif;background:#0f1216;color:#e6e9ee;margin:0;padding:32px;line-height:1.5}
+ .wrap{max-width:1000px;margin:0 auto}
+ h1{font-size:24px;margin:0 0 4px} h2{font-size:17px;color:#8fb3ff;border-bottom:1px solid #2a2f38;padding-bottom:6px;margin-top:30px}
+ .sub{color:#9aa3af;font-size:13px;margin-bottom:8px}
+ table{border-collapse:collapse;width:100%;margin:10px 0;font-size:13.5px}
+ th,td{border:1px solid #2a2f38;padding:7px 10px;text-align:left} th{background:#1a1f27;color:#cdd6e4}
+ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+ .good{color:#4ade80;font-weight:600}.bad{color:#f87171;font-weight:600}.warn{color:#fbbf24;font-weight:600}
+ .card{background:#161b22;border:1px solid #2a2f38;border-radius:8px;padding:14px 18px;margin:12px 0}
+ .flag{background:#2a1416;border-left:4px solid #f87171;border-radius:6px;padding:12px 16px;margin:14px 0}
+ .rec{background:#12241a;border-left:4px solid #4ade80;border-radius:6px;padding:12px 16px;margin:14px 0}
+ code{background:#1a1f27;padding:1px 5px;border-radius:4px;font-size:12.5px}
+ .meta{color:#6b7280;font-size:12px;margin-top:26px}
+ ul{margin:6px 0}
+</style></head><body><div class="wrap">
+
+<h1>Apex Trader Funding — fit for the REGIME-2E book</h1>
+<div class="sub">S118 · 2026-09-14 · rules from 2026 references (site blocks bots — verify live before buying) · sim: <code>scripts/regime2e_apex_sim.py</code></div>
+
+<div class="flag">
+<b>⚠ Apex is NOT the Take Profit Trader account we modeled.</b> Apex's drawdown <b>trails your peak</b> — it is a moving threshold, not a static floor at start−$4,500. This changes the survival math and it is the single most important thing to get right.
+</div>
+
+<h2>How the drawdown works (both models)</h2>
+<div class="card">
+The trailing threshold follows your highest balance minus the threshold amount, then <b>locks permanently at start + $100</b> once your balance reaches the <b>Safety Net = start + threshold + $100</b>. Pre-safety-net you may use only <b>half</b> the max contracts.
+<ul>
+<li><b>EOD model</b> — trails your highest <i>end-of-day</i> balance; recalculated 4:59 PM ET. Has a daily loss limit. <span class="good">Workable for a hold-to-EOD book.</span></li>
+<li><b>Intraday model</b> — trails the real-time peak <i>including unrealized open profit</i>, every tick. "Daily Drawdown: None" in your screenshot ⇒ the legacy FULL accounts are <b>this one</b>. <span class="bad">Bad fit: our winners take heat and give back intraday, which ratchets the floor against us.</span></li>
+</ul>
+</div>
+
+<h2>The three plans</h2>
+<table>
+<tr><th>Plan</th><th class="n">Start</th><th class="n">Threshold</th><th class="n">Contracts</th><th class="n">Eval goal</th><th class="n">$/mo (coupon)</th><th class="n">PA fee</th></tr>
+<tr><td>150K FULL</td><td class="n">$150,000</td><td class="n">$5,000</td><td class="n">17 (8 pre-SN)</td><td class="n">$9,000</td><td class="n">$49.70</td><td class="n">$125</td></tr>
+<tr><td>250K FULL</td><td class="n">$250,000</td><td class="n">$6,500</td><td class="n">27</td><td class="n">$15,000</td><td class="n">$59.70</td><td class="n">$125</td></tr>
+<tr><td>300K FULL</td><td class="n">$300,000</td><td class="n">$7,500</td><td class="n">35</td><td class="n">$20,000</td><td class="n">$69.70</td><td class="n">$125</td></tr>
+</table>
+<div class="sub">Daily drawdown: None (⇒ intraday). Scaling: None. Real-time data + NinjaTrader platform included.</div>
+
+<h2>Does our book survive? — sim over the 5.3-yr real-tick record (1 ES, net of costs, EOD model)</h2>
+<div class="sub">Survives because the big drawdowns land <i>after</i> the floor locks at start+$100; the binding risk is the <b>un-locked ramp</b>. "Margin" = closest the account ever came to the floor during that ramp.</div>
+<table>
+<tr><th>Mode</th><th class="n">150K margin</th><th class="n">250K margin</th><th class="n">300K margin</th><th class="n">5-yr net (1 ES)</th></tr>
+<tr><td><b>one-per-day</b></td><td class="n good">+$1,245</td><td class="n good">+$2,745</td><td class="n good">+$3,745</td><td class="n">+$55,068</td></tr>
+<tr><td>flip</td><td class="n warn">+$235 (thin)</td><td class="n good">+$1,735</td><td class="n good">+$2,735</td><td class="n">+$60,688</td></tr>
+</table>
+<div class="sub">Worst EOD peak-to-trough drawdown ≈ −$7.3k (flip) / −$7.7k (one-per-day) — but post-lock, so survivable. one-per-day has the smaller <b>ramp</b> drawdown, which is what matters for Apex.</div>
+
+<div class="flag">
+<b>Intraday model caveat:</b> our measured intraday equity drawdown (open positions marked) is ~$7–9k — larger than every plan's threshold. On the intraday-trailing account, unrealized peaks ratchet the floor and this book likely blows. <b>Use the EOD variant, not the legacy intraday FULL.</b>
+</div>
+
+<h2>Rules that bite a lumpy book</h2>
+<div class="card">
+<ul>
+<li><b>50% consistency rule</b> (funded accounts only, not eval): no single day may be &gt;50% of total profit since your last payout. Our book is fat-tailed — one big trend day (e.g. a +$10k FOMC day) can exceed 50% and <b>defer a payout</b>. Mitigate: request payouts often, spread profit across days first.</li>
+<li>Payouts: min $500; <b>8 trading days</b> between payouts; <b>6 payouts then the account closes</b>; 100% of first $25k, then 90/10.</li>
+<li>Flat + orders cancelled by 4:59 PM ET (we flatten at the RTH close — fine). No overnight. No news hedging.</li>
+<li>Eval: profit goal above, ~5–7 qualifying days, <b>no</b> consistency rule.</li>
+</ul>
+</div>
+
+<h2>Recommendation</h2>
+<div class="rec">
+<b>1.</b> Confirm the account is <b>EOD</b>, not intraday. If only intraday FULL is offered, this book is a poor fit there.<br>
+<b>2.</b> On EOD, <b>150K + one-per-day</b> is the value pick — smallest eval goal ($9k, fastest to pass at low size), survives with ~$1.2k ramp margin, cheapest at $49.70/mo.<br>
+<b>3.</b> Prefer <b>250K</b> if the thin backtest margin worries you (it should — backtests flatter): ~$1,500 more ramp cushion for +$10/mo, at the cost of a $15k eval.<br>
+<b>4.</b> Pass the eval faster by sizing up <i>during the eval only</i> (cap allows 8/13/17), then drop to 1 ES on the funded account.<br>
+<b>5.</b> flip mode on 150K clears the floor by only $235 — <b>don't</b>; use one-per-day, or a bigger plan for flip.
+</div>
+
+<div class="meta">Not verified on the live Apex site (bot-blocked). Sim = EOD trailing model on the flip/one-per-day trades over 2021-07→2026-09 real NT ticks, 1 ES, net $17.50/trade. Intraday-model risk is reasoned from measured intraday equity drawdown, not a tick-level intraday-trailing sim (would need per-trade MFE). Backtest is regime-favorable and fat-tail dependent — see the edge report.</div>
+
+</div></body></html>
