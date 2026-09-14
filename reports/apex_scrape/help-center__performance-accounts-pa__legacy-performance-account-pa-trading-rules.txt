@@ -1,0 +1,118 @@
+URL: https://apextraderfunding.com/help-center/performance-accounts-pa/legacy-performance-account-pa-trading-rules/
+TITLE: Legacy Performance Account (PA) Trading Rules - Apex Trader Funding
+
+Skip to content
+ Support  Status
+
+ANY SIZE EVALS UP TO 90% OFF | USE CODE: COUPON “SAVENOW”
+
+COUPON "SAVENOW"
+Ends in: 8d 12h 17m 29s
+
+Apex Trader Funding
+
+Home
+About
+Status
+Products
+Helpdesk
+Testimonials
+Resources
+Log In
+Sign Up
+Home
+Help Center
+Legacy Products
+HELP CENTER
+Search for:
+Legacy Performance Account (PA) Trading Rules
+In this article
+1. Legacy Contract Scaling Rule
+2. Legacy 30% Negative P&L Rule (MAE)
+3. Legacy 5:1 Risk-Reward Ratio Rule
+4. Hedging Rule
+5. One Direction Rule (Directionally Biased Trading)
+
+These rules only apply to the Legacy Performance Accounts:
+
+1. Legacy Contract Scaling Rule
+
+To promote disciplined growth, the Contract Scaling rule outlines how traders manage contract sizes during the growth phase of the account.
+
+Initial Limit: Traders are restricted to trading half of their maximum allowed contracts until they reach the trailing threshold stop.
+Threshold Reached: Once the account’s End-of-Day (EOD) balance exceeds the trailing threshold (the initial balance + trailing drawdown + $100), traders can then use their full contract limit starting with the next full trading session.
+For 100K Static Accounts: Full contracts can be traded after reaching the safety net amount of $2,600.
+
+For full details on the Contract Scaling Rule, please visit the Legacy Contract Scaling Rule page.
+
+2. Legacy 30% Negative P&L Rule (MAE)
+
+The 30% Negative Profit and Loss (P&L) Rule limits the loss a trader can incur on any open trade or trades, providing a structured approach to risk management. Under this rule, the live, unrealized, open negative P&L cannot exceed 30% of the account’s profit balance at the start of the day.
+
+This is not a daily loss limit, but a control to prevent excessive loss on any individual trade. At any point, your open negative P&L should not surpass 30% of your start-of-day profit. Regularly monitor your trades and exposure to stay compliant with the rules.
+
+Adjustment Based on Growth: If the end of day (EOD) profit balance doubles the safety net, traders may use a 50% drawdown limit instead of 30% starting with the next full trading session.
+
+For full details on the 30% Negative P&L Rule – Maximum Adverse Excursion (MAE) rule, please visit the Legacy 30% Negative P&L Rule (MAE) page.
+
+3. Legacy 5:1 Risk-Reward Ratio Rule
+
+The 5:1 Risk-Reward Ratio Rule is a risk management guideline that ensures your trades are balanced with a responsible amount of risk relative to the potential profit. For every trade you make, your stop loss should not exceed five times the amount of your profit target.
+
+For full details on the 5:1 Risk-Reward Ratio rule, please visit the Legacy 5:1 Risk-Reward Ratio page.
+
+4. Hedging Rule
+
+No Hedging: Holding both long and short positions simultaneously on the same or correlated instrument is strictly prohibited. This rule ensures that trades are based on strategic analysis rather than speculative attempts to hedge both sides during a news-driven breakout.
+
+For full details on the Hedging rule, please visit the Hedging Rule page.
+
+5. One Direction Rule (Directionally Biased Trading)
+
+Traders are only allowed to hold a position in one direction at any time—either long (buy) or short (sell). Traders are also prohibited from using a non-directionally biased strategy where they have open orders for both sides of the market
+
+For full details on the One Direction Rule (Directionally Biased Trading), please visit the One Direction Rule (Directionally Biased Trading) rule page.
+
+These rules are designed to create a fair and professional trading environment while keeping the path to payouts straightforward. Review the rules above so you can trade with confidence and stay focused on your growth.
+
+Want more detail or real-world examples?Check out this article for a deeper look at how the trading rules apply in action:What are the Consistency Rules for Legacy PA and Funded Accounts?
+
+Violations of these rules may result in actions ranging from payout request denials, account resets, fund removals or placement on trader probation, depending on the severity and frequency of the violations.
+
+Click here for further explanation.
+
+Click here for further information on Trader Probation.
+
+Can’t find what you’re looking for?
+
+Our team of experts is here to help
+
+Contact Us
+
+Apex Trader Funding Inc.
+2028 E. Ben White Blvd Ste 240-9873
+Austin, TX 78741
+
+Contact Support 24/7 Via Help Desk
+
+Policies
+Privacy Policy
+Cookie Policy
+Terms of Use
+Risk Disclosure
+Cookie Preferences
+Resources
+Coupon Code
+Payouts
+Restricted Countries
+Useful Links
+About Us
+Logos
+News
+
+RISK DISCLOSURE:
+
+Apex Trader Funding offers simulated trading programs for educational, informational, and evaluation purposes only. All activity occurs in a simulated environment using virtual funds; no real capital is at risk and no live market execution occurs. This is not an offer or solicitation to invest or trade in real financial markets. Trading carries substantial risk and is not suitable for everyone. Past performance, whether actual or simulated, does not guarantee future results. Apex does not provide investment advice and is not a broker-dealer, futures commission merchant, or financial advisor. Use of our services is subject to our User Agreement, Terms of Use, Privacy Policy, and Risk Disclosure. Participation does not create an employment relationship. Reward payouts are discretionary and subject to eligibility, compliance, and applicable tax laws. Services are intended for U.S. users only and are not offered where prohibited by local laws or regulations.
+
+2021-2026, Apex Trader Funding Inc. All Rights Reserved.
+💬 Need Help?
