@@ -86,6 +86,22 @@ just $49.70). `regime2e_apex_mes.py`, legacy 150K intraday $5,000, real ticks:
   lock is feasible — trade small through the ramp, larger once locked.
 - ⇒ The whole-ES sims above ("150K blows at 1 ES") stand for 1 ES but are NOT the verdict — micro-sizing is.
 
+## Dynamic MES scaling (trade small through ramp, grow with cushion) — `regime2e_apex_scale.py`
+Sizer: size = clamp(base, floor(cushion/R), cap); cushion = realized − floor. It STAYS at base through the ramp
+(cushion small) and scales only after the cushion builds → same ramp safety as flat-base, big income upside.
+| rule | result | final | ~/yr | peak size | deepest cushion |
+|---|---|---|---|---|---|
+| flat 5 MES | survives | +$26.8k | $5.2k | 5c | +$2,420 |
+| **base5 +1c/$1,000 cush** | survives | +$99.6k | **$19.5k** | 100c | **+$2,420 (= flat-5, no added ramp risk)** |
+| base5 +1c/$750 | survives | +$134k | $26.2k | 100c | +$2,320 |
+| base5 +1c/$500 | survives | +$159k | $31.1k | 100c | +$1,434 |
+| base8 +1c/$500 | survives | +$187k | $36.5k | 100c | +$772 |
+
+- **base5 +1c/$1,000-cushion is the sweet spot: 4× the income of flat-5 with IDENTICAL ramp downside (+$2,420).**
+- ⚠️ These assume profit STAYS IN to compound the cushion. Real withdrawals (first-5 caps $2,750, 30% consistency)
+  lower the balance→cushion→size. Realistic income sits between flat-8 (~$8k/yr) and these. Genuine dial:
+  reinvest-to-grow-size vs withdraw-for-income — can't fully do both. NEXT: model withdrawals to get true take-home.
+
 ## Recommendation — REVISED after confirming the intraday DD
 **Apex legacy FULL is a poor fit for this hold-to-EOD book.** The intraday-on-unrealized trailing DD ratchets the
 floor on every intraday high and can liquidate mid-trade — exactly what a book that rides winners to the close
