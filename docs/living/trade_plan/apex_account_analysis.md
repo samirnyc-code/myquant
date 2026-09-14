@@ -34,27 +34,37 @@ Source: legacy PA payout-parameters + legacy consistency help pages (search snip
 - Legacy has BOTH intraday-trailing and EOD variants; screenshot "Daily DD None" ⇒ intraday. EOD-vs-intraday is
   still the decisive fit question.
 
-## 2E-book fit — `scripts/regime2e_apex_sim.py` (EOD model, 1 ES, net of $17.50/tr)
-Survives all plans because the big drawdowns land AFTER the floor locks; the binding risk is the **un-locked ramp**.
+## 2E-book fit — CONFIRMED: legacy FULL DD is INTRADAY (peak unrealized), scraped from Apex
+Source (verbatim): Legacy Evaluation Rules — "the trailing threshold is based on the **highest live value
+during trades, not on closed trade values**." So the floor ratchets on the intraday UNREALIZED peak and the
+account can liquidate mid-trade. This is the WORST DD type for a hold-to-EOD book.
 
-| mode | 150K margin-to-floor | 250K | 300K | eval-pass (1 ES) |
-|---|---|---|---|---|
-| **one_per_day** | +$1,245 | +$2,745 | +$3,745 | 150K ~9mo / 250K ~1yr / 300K ~3yr |
-| flip | **+$235** (too thin) | +$1,735 | +$2,735 | later (needs a big day) |
+**INTRADAY-model survival (`regime2e_apex_intraday.py`, one_per_day, real ticks, actual 5-yr path):**
+| plan | 1 ES | 2 ES | 3 ES |
+|---|---|---|---|
+| **150K ($5k)** | **BLOWN 2021-11-24** (deepest −$98) | BLOWN | BLOWN |
+| 250K ($6.5k) | survives (+$1,402) | BLOWN | BLOWN |
+| 300K ($7.5k) | survives (+$2,402) | BLOWN | BLOWN |
 
-- Worst EOD peak-to-trough drawdown ≈ **−$7.3k–7.7k**, but it occurs post-lock (floor = start+$100), so it survives.
-- **one_per_day is far safer on Apex** than flip (smaller ramp DD). flip on 150K clears the floor by only $235 — no.
-- **INTRADAY model (what the legacy FULL actually is): our measured intraday equity DD ~$7–9k exceeds every
-  threshold, and unrealized peaks ratchet the floor — a hold-to-EOD book is a BAD fit. Use the EOD variant.**
+- 150K blows even at 1 ES (survived under the wrong EOD model at +$1,245 — the real intraday model kills it).
+- Only 250K/300K survive, and ONLY at exactly 1 ES, on thin margins — and backtests flatter, so marginal.
+- Any size ≥2 contracts blows every plan. No room to scale.
+- ⚠️ The earlier EOD-model numbers (`regime2e_apex_sim.py`, one_per_day +$1,245/etc.) are SUPERSEDED — wrong
+  DD model. Ignore them.
 
-## Recommendation
-1. **Confirm the account is EOD, not intraday.** If only intraday FULL is on offer, this book is a poor fit there.
-2. On **EOD**: **150K, one-per-day** is the value pick — smallest eval goal ($9k, fastest to pass at low size),
-   survives with ~$1.2k ramp margin, cheapest. **250K** buys ~$1.5k more ramp cushion for +$10/mo and a $15k eval
-   — the conservative choice if the thin backtest margin worries us (it should; backtests flatter).
-3. Pass the eval faster by sizing up **during eval only** (cap allows 8/13/17), then drop to 1 ES on the PA.
-4. Plan payouts around the **30%** (legacy) consistency rule — a single FOMC-type day can't be >30% of banked
-   profit at request time, so accumulate ~3.3× a big day before withdrawing it. Legacy accounts do NOT close
-   after 6 payouts (caps go unlimited from the 6th), so one account can run indefinitely — no forced cycling.
-5. Funded blow-up odds at 1 ES (block-bootstrap MC, regime2e_funded_mc.py): 150K ~20% / 250K ~10% / 300K ~6%,
-   nearly all in the pre-lock ramp. 1 ES makes ~$10.8k/yr (one_per_day). Do NOT size up on the funded account.
+## Recommendation — REVISED after confirming the intraday DD
+**Apex legacy FULL is a poor fit for this hold-to-EOD book.** The intraday-on-unrealized trailing DD ratchets the
+floor on every intraday high and can liquidate mid-trade — exactly what a book that rides winners to the close
+gives back. Result: **150K blows even at 1 ES; only 250K/300K survive at strictly 1 ES on thin, backtest-flattered
+margins; nothing scales past 1 contract.**
+1. **Do NOT take the 150K.** It blows at 1 ES on the real DD model.
+2. **250K/300K only, and only at exactly 1 ES** — and even then treat the +$1.4k/+$2.4k cushions as marginal
+   (live is worse than backtest; the single historical path barely survives). Not a confident yes.
+3. **No scaling ever** — 2 contracts blows every plan. That caps income at the 1-ES rate (~$10k/yr gross), against
+   which the 30% consistency rule + first-5-payout caps + discretionary payouts are meaningful drags.
+4. **The right vehicle for this book is an END-OF-DAY / static-drawdown firm** (e.g. the Take Profit Trader $4,500
+   EOD account we modeled first — there 1 ES survived comfortably). Match the DD type to the strategy: a hold-to-
+   EOD book wants an EOD-measured drawdown, not intraday-on-unrealized.
+5. Watch-outs regardless of firm: 30% consistency rule (accumulate ~3.3× a big day before withdrawing), first 5
+   payouts capped ($2,750 on 150K) then uncapped from the 6th, min balance to withdraw = start+DD+$100, and the
+   two-partner ban on shared machines/IPs/cards + trade-copying (Samir & Thomas need fully separate setups).
