@@ -27,7 +27,7 @@ NT_TICKS = ROOT / "data" / "nt_ticks"
 TROVE = ROOT / "data" / "ticks_continuous"
 REQ = NT_TICKS / "_request.json"
 DONE = NT_TICKS / "_request.done.json"
-CONTRACT = "ES 09-26"   # current front-month anchor; the ingest roll-guard aborts wrong-contract days
+CONTRACT = "ES 12-26"   # front-month anchor (rolled from 09-26 on 2026-09-14; ingest roll-guard aborts wrong-contract days)
 
 
 ETH_TROVE = ROOT / "data" / "ticks_continuous_eth"
