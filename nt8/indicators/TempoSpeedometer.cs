@@ -1011,29 +1011,52 @@ namespace NinjaTrader.NinjaScript.Indicators
 					float yT = chartScale.GetYByValue(top), yB = chartScale.GetYByValue(bot);
 					RenderTarget.DrawLine(new SharpDX.Vector2(xL, yT), new SharpDX.Vector2(xR, yT), edge, 1.2f);
 					RenderTarget.DrawLine(new SharpDX.Vector2(xL, yB), new SharpDX.Vector2(xR, yB), edge, 1.2f);
+					// walk the zone: FIRST stab = spring/upthrust (SP/UT, tiered); each later stab =
+					// a TEST -> valid (check) if QUIETER (lower tempo) AND holds (doesn't stab past the
+					// spring extreme), else weak (cross). Tempo is the tick-chart substitute for "lower
+					// volume", since a fixed-tick bar carries near-constant volume.
+					int spBar = -1; double spTempo = 50, spRef = 0;
 					for (int i = Math.Max(lo, 1); i <= hi; i++)
 					{
-						// REJECTION at the zone: test into the band, close back out the other side
-						bool up = isRes && Bars.GetHigh(i) >= bot && Bars.GetClose(i) < bot
-							&& Bars.GetHigh(i - 1) < bot;                       // upthrust at resistance
-						bool sp = !isRes && Bars.GetLow(i) <= top && Bars.GetClose(i) > top
-							&& Bars.GetLow(i - 1) > top;                        // spring at support
-						if (!up && !sp) continue;
-						int tier = ShakeoutTierAt(i, up, up ? top : bot);
-						SolidColorBrush br = tier == 0 ? g : tier == 2 ? r : a;
-						string lab = (up ? "UT" : "SP") + (tier == 0 ? "3" : tier == 1 ? "2" : "1");
-						float x = chartControl.GetXByBarIndex(ChartBars, i);
-						if (up)
+						if (isRes)
 						{
-							float y = chartScale.GetYByValue(Bars.GetHigh(i));
-							FillTriangle(x, y - 13f, y - 4f, 5f, br);
-							RenderTarget.DrawText(lab, tf, new SharpDX.RectangleF(x + 7f, y - 19f, 40f, 12f), br);
+							if (Bars.GetClose(i) > top) { spBar = -1; continue; }             // accepted above -> reset
+							if (!(Bars.GetHigh(i) >= bot && Bars.GetClose(i) < bot)) continue; // stab into resistance
 						}
 						else
 						{
-							float y = chartScale.GetYByValue(Bars.GetLow(i));
-							FillTriangle(x, y + 13f, y + 4f, 5f, br);
-							RenderTarget.DrawText(lab, tf, new SharpDX.RectangleF(x + 7f, y + 5f, 40f, 12f), br);
+							if (Bars.GetClose(i) < bot) { spBar = -1; continue; }             // broke down -> reset
+							if (!(Bars.GetLow(i) <= top && Bars.GetClose(i) > top)) continue;  // stab into support
+						}
+						double tp = tempoPctS.GetValueAt(i); if (double.IsNaN(tp)) tp = 50;
+						float x = chartControl.GetXByBarIndex(ChartBars, i);
+						if (spBar < 0)
+						{
+							int tier = ShakeoutTierAt(i, isRes, isRes ? top : bot);
+							SolidColorBrush br = tier == 0 ? g : tier == 2 ? r : a;
+							string lab = (isRes ? "UT" : "SP") + (tier == 0 ? "3" : tier == 1 ? "2" : "1");
+							if (isRes)
+							{
+								float y = chartScale.GetYByValue(Bars.GetHigh(i));
+								FillTriangle(x, y - 13f, y - 4f, 5f, br);
+								RenderTarget.DrawText(lab, tf, new SharpDX.RectangleF(x + 7f, y - 19f, 40f, 12f), br);
+							}
+							else
+							{
+								float y = chartScale.GetYByValue(Bars.GetLow(i));
+								FillTriangle(x, y + 13f, y + 4f, 5f, br);
+								RenderTarget.DrawText(lab, tf, new SharpDX.RectangleF(x + 7f, y + 5f, 40f, 12f), br);
+							}
+							spBar = i; spTempo = tp; spRef = isRes ? Bars.GetHigh(i) : Bars.GetLow(i);
+						}
+						else
+						{
+							bool holds = isRes ? (Bars.GetHigh(i) <= spRef) : (Bars.GetLow(i) >= spRef);
+							bool valid = tp < spTempo && holds;                               // quieter + holds = valid test
+							SolidColorBrush br = valid ? g : r;
+							float y = isRes ? chartScale.GetYByValue(Bars.GetHigh(i)) - 11f
+											 : chartScale.GetYByValue(Bars.GetLow(i)) + 11f;
+							if (valid) DrawCheck(x, y, br); else DrawCross(x, y, br);
 						}
 					}
 				}
@@ -1075,6 +1098,18 @@ namespace NinjaTrader.NinjaScript.Indicators
 				}
 			}
 			finally { tf.Dispose(); g.Dispose(); a.Dispose(); r.Dispose(); }
+		}
+
+		// small vector checkmark / cross for test marks (font-independent).
+		private void DrawCheck(float cx, float cy, SolidColorBrush br)
+		{
+			RenderTarget.DrawLine(new SharpDX.Vector2(cx - 4f, cy), new SharpDX.Vector2(cx - 1f, cy + 4f), br, 1.7f);
+			RenderTarget.DrawLine(new SharpDX.Vector2(cx - 1f, cy + 4f), new SharpDX.Vector2(cx + 5f, cy - 4f), br, 1.7f);
+		}
+		private void DrawCross(float cx, float cy, SolidColorBrush br)
+		{
+			RenderTarget.DrawLine(new SharpDX.Vector2(cx - 4f, cy - 4f), new SharpDX.Vector2(cx + 4f, cy + 4f), br, 1.7f);
+			RenderTarget.DrawLine(new SharpDX.Vector2(cx - 4f, cy + 4f), new SharpDX.Vector2(cx + 4f, cy - 4f), br, 1.7f);
 		}
 
 		// small filled triangle: base edge (two corners) at baseY, apex at tipY.
