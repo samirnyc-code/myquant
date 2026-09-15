@@ -58,14 +58,14 @@ def main():
     allstrikes = sorted({s for c in sc for s in c.strikes})
     allexps = sorted({e for c in sc for e in c.expirations})
     today = dt.date.today().strftime("%Y%m%d")
-    exps = [e for e in allexps if e >= today]
-    exp0 = exps[0] if exps else None
-    exp_wk = exps[1] if len(exps) > 1 else exp0
-    # strikes near spot only (in $1 grid)
+    exps = [e for e in allexps if e > today]         # NO 0DTE (user)
+    exp0 = exps[0] if exps else None                 # 1DTE (post-FOMC) -> #1/#2/#3
+    tgt = (dt.date.today() + dt.timedelta(days=7)).strftime("%Y%m%d")
+    exp_wk = min(exps, key=lambda e: abs(int(e) - int(tgt))) if exps else exp0  # ~1wk -> #4
     atm = min(allstrikes, key=lambda s: abs(s - spot))
     near = [s for s in allstrikes if atm - 4 <= s <= atm + 4]
     print(f"strikes span {allstrikes[0]}-{allstrikes[-1]} n={len(allstrikes)} | "
-          f"expiries {exps[:4]} | ATM {atm} | near {near}")
+          f"all expiries {exps[:6]} | primary(1DTE) {exp0} | ~1wk {exp_wk} | ATM {atm}")
 
     # qualify a batch of option contracts first (populates conId), then quote
     want = [(exp0, s, r) for s in near for r in ("C", "P")] + \
@@ -106,7 +106,7 @@ def main():
     s1 = atm + 1
     c1 = m(exp0, s1, "C")
     if c1:
-        structs.append({"name": "#1 Long 0DTE call ~1 OTM", "legs": [f"BUY {s1}C {exp0}"],
+        structs.append({"name": "#1 Long call ~1 OTM", "legs": [f"BUY {s1}C {exp0}"],
                         "debit_$": round(c1 * 100, 0), "max_risk_$": round(c1 * 100, 0),
                         "note": "uncapped up; zeros fast if bounce stalls",
                         "fits_300": c1 * 100 <= 300})
@@ -114,7 +114,7 @@ def main():
     cb, cs = m(exp0, atm, "C"), m(exp0, atm + 2, "C")
     if cb and cs:
         deb = cb - cs
-        structs.append({"name": "#2 0DTE call debit spread ATM/+2", "legs": [f"BUY {atm}C", f"SELL {atm+2}C"],
+        structs.append({"name": "#2 Call debit spread ATM/+2", "legs": [f"BUY {atm}C", f"SELL {atm+2}C"],
                         "debit_$": round(deb * 100, 0), "max_risk_$": round(deb * 100, 0),
                         "max_val_$": 200, "max_profit_$": round((2 - deb) * 100, 0),
                         "fits_300": deb * 100 <= 300})
@@ -122,13 +122,13 @@ def main():
     ps, pb = m(exp0, atm - 1, "P"), m(exp0, atm - 3, "P")
     if ps and pb:
         cr = ps - pb
-        structs.append({"name": "#3 0DTE put credit spread -1/-3", "legs": [f"SELL {atm-1}P", f"BUY {atm-3}P"],
+        structs.append({"name": "#3 Put credit spread -1/-3", "legs": [f"SELL {atm-1}P", f"BUY {atm-3}P"],
                         "credit_$": round(cr * 100, 0), "max_risk_$": round((2 - cr) * 100, 0),
                         "note": "wins if SPY holds/bounces/chops up", "fits_300": (2 - cr) * 100 <= 300})
     # #4 weekly ATM call
     c4 = m(exp_wk, atm, "C")
     if c4:
-        structs.append({"name": "#4 Long weekly ATM call", "legs": [f"BUY {atm}C {exp_wk}"],
+        structs.append({"name": "#4 Long ATM call ~1wk", "legs": [f"BUY {atm}C {exp_wk}"],
                         "debit_$": round(c4 * 100, 0), "max_risk_$": round(c4 * 100, 0),
                         "note": "more time for mean-reversion", "fits_300": c4 * 100 <= 300})
 
