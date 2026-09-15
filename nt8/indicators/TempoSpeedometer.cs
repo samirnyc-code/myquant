@@ -996,7 +996,15 @@ namespace NinjaTrader.NinjaScript.Indicators
 					int lo = Math.Max(b0, ChartBars.FromIndex);
 					int hi = Math.Min(ChartBars.ToIndex, CurrentBar);
 					if (hi < lo) continue;
-					// show the levels the indicator READ off the rectangle
+					// zone TYPE: resistance if price sits mostly BELOW the band, support if mostly ABOVE
+					int below = 0, above = 0;
+					for (int k = b0; k <= hi; k++)
+					{
+						if (Bars.GetClose(k) < bot) below++;
+						else if (Bars.GetClose(k) > top) above++;
+					}
+					bool isRes = below >= above;
+					// show the band the indicator READ off the rectangle
 					float xL = chartControl.GetXByBarIndex(ChartBars, lo);
 					float xR = chartControl.GetXByBarIndex(ChartBars, hi);
 					float yT = chartScale.GetYByValue(top), yB = chartScale.GetYByValue(bot);
@@ -1004,8 +1012,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 					RenderTarget.DrawLine(new SharpDX.Vector2(xL, yB), new SharpDX.Vector2(xR, yB), edge, 1.2f);
 					for (int i = Math.Max(lo, 1); i <= hi; i++)
 					{
-						bool up = Bars.GetHigh(i) > top && Bars.GetClose(i) <= top && Bars.GetHigh(i - 1) <= top;
-						bool sp = Bars.GetLow(i) < bot && Bars.GetClose(i) >= bot && Bars.GetLow(i - 1) >= bot;
+						// REJECTION at the zone: test into the band, close back out the other side
+						bool up = isRes && Bars.GetHigh(i) >= bot && Bars.GetClose(i) < bot
+							&& Bars.GetHigh(i - 1) < bot;                       // upthrust at resistance
+						bool sp = !isRes && Bars.GetLow(i) <= top && Bars.GetClose(i) > top
+							&& Bars.GetLow(i - 1) > top;                        // spring at support
 						if (!up && !sp) continue;
 						int tier = ShakeoutTierAt(i, up, up ? top : bot);
 						SolidColorBrush br = tier == 0 ? g : tier == 2 ? r : a;
