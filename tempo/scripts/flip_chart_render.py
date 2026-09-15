@@ -116,11 +116,15 @@ def main():
     date = sys.argv[1] if len(sys.argv) > 1 else "2026-09-14"
     t0 = sys.argv[2] if len(sys.argv) > 2 else "09:45"
     t1 = sys.argv[3] if len(sys.argv) > 3 else "10:25"
+    # price offset to display RAW contract prices (trove is back-adjusted continuous;
+    # ESZ6 spliced -67.75 vs the ESU6 anchor, so raw 12-26 = continuous + 67.75)
+    off = float(sys.argv[4]) if len(sys.argv) > 4 else 0.0
     df = pd.read_parquet(ENG)
     d = df[df["date"] == date].sort_values("bar").reset_index(drop=True)
     d["hhmm"] = pd.to_datetime(d["start"]).dt.strftime("%H:%M:%S")
-    o = d["open"].to_numpy(); h = d["high"].to_numpy(); l = d["low"].to_numpy()
-    c = d["close"].to_numpy(); cx = d["climax"].to_numpy().astype(bool)
+    o = d["open"].to_numpy() + off; h = d["high"].to_numpy() + off
+    l = d["low"].to_numpy() + off; c = d["close"].to_numpy() + off
+    cx = d["climax"].to_numpy().astype(bool)
     tp = d["tpct"].to_numpy()
     sigs = sim(o, h, l, c, cx, len(d))
 
