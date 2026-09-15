@@ -1,0 +1,7 @@
+split,n,win%,PF,$/tr,tot_$
+baseline ALL,1683,35.6,1.11,20.0,33588.0
+ST-scratch ALL,1719,33.1,1.09,15.3,26262.0
+baseline TRAIN,549,36.4,1.18,30.9,16975.0
+ST-scratch TRAIN,560,33.9,1.13,21.6,12075.0
+baseline TEST,1134,35.2,1.08,14.6,16612.0
+ST-scratch TEST,1159,32.7,1.07,12.2,14188.0

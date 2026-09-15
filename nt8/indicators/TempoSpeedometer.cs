@@ -86,6 +86,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private int flipHover = -1;
 		private float hoverX, hoverY;
 
+		// prior-day high/low for the whole-chart spring/upthrust detector (beyond-PD poke + snap-back)
+		private Series<double> pdhS, pdlS;
+		private double curSessHi = double.NaN, curSessLo = double.NaN, pdHigh = double.NaN, pdLow = double.NaN;
+
 		protected override void OnStateChange()
 		{
 			if (State == State.SetDefaults)
@@ -127,6 +131,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 			MinSbBodyTicks    = 4;                     // SB body |close-open| must be >= this many ticks, else no signal
 			SeOrderLifeBars   = 1;                     // SE pending pulled after this many bars past the SB
 			EbOnSignalBar     = true;                  // EB = bar after SB (false: the bar that fills the SE)
+				ShowSpringTypes   = true;                  // mark Wyckoff spring type on each flip (validated vol filter)
+				Sp3MaxRatio       = 0.94;                  // reversal/trap volume <= this = Spring #3 (best)
+				TsoMinRatio       = 1.03;                  // reversal/trap volume >= this = Terminal Shakeout (worst)
+				SkipTerminalShakeout = false;              // if true, do NOT enter TSO flips (SAR still closes; walk-forward-validated)
+				ShowSpringUpthrust = true;                 // whole-chart beyond-prior-day spring/upthrust marks
+				PenVolLowRatio  = 0.85;                    // penetration vol <= this*avg8 = #3 low-vol (best)
+				PenVolHighRatio = 1.30;                    // penetration vol >= this*avg8 = #1 terminal (weak)
 				PaceWindowSec  = 30;
 				AlertOnClimax  = false;
 				AlertCooldownSec = 120;
@@ -149,6 +160,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				effPctS   = new Series<double>(this, MaximumBarsLookBack.Infinite);
 				durS      = new Series<double>(this, MaximumBarsLookBack.Infinite);
 				stateCodeS = new Series<double>(this, MaximumBarsLookBack.Infinite);
+				pdhS = new Series<double>(this, MaximumBarsLookBack.Infinite);
+				pdlS = new Series<double>(this, MaximumBarsLookBack.Infinite);
 				if (BarsPeriod.BarsPeriodType == BarsPeriodType.Tick) chartMode = 0;
 				else if (Bars.IsTickReplay && (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute
 					|| BarsPeriod.BarsPeriodType == BarsPeriodType.Second)) chartMode = 1;
@@ -221,6 +234,18 @@ namespace NinjaTrader.NinjaScript.Indicators
 			effPctS[0]   = double.NaN;
 			durS[0]      = double.NaN;
 			stateCodeS[0] = double.NaN;
+
+			// prior-day high/low tracking (for the beyond-PD spring/upthrust detector)
+			if (!notTickChart)
+			{
+				if (Bars.IsFirstBarOfSession || CurrentBar == 0)
+				{
+					if (!double.IsNaN(curSessHi)) { pdHigh = curSessHi; pdLow = curSessLo; }
+					curSessHi = High[0]; curSessLo = Low[0];
+				}
+				else { curSessHi = Math.Max(curSessHi, High[0]); curSessLo = Math.Min(curSessLo, Low[0]); }
+				pdhS[0] = pdHigh; pdlS[0] = pdLow;
+			}
 
 			if (notTickChart || CurrentBar < 1 || Bars.IsFirstBarOfSession)
 			{
@@ -419,6 +444,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (ShowHeatStrip) RenderHeatStrip(chartControl);
 				RenderClimaxDots(chartControl, chartScale);
 				if (ShowClimaxFlip) RenderClimaxFlips(chartControl, chartScale);
+					if (ShowSpringUpthrust) RenderSpringUpthrust(chartControl, chartScale);
 				if (ShowEngineDot) RenderEngineDot(tfTiny, white, dim, bg, grid);
 				if (ShowSpeedo)    RenderSpeedo(tf, white, dim, gold, bg);
 			}
@@ -599,7 +625,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (qSig >= 0)
 				{ trades.Add(new[] { qSig, qSh ? 1 : 0, 6, i, 0, qByRev ? 1 : 0, -1 }); qSig = -1; }
 				double e2, s2, k2;
-				if (!FlipPrices(i, sh, out e2, out s2, out k2)) continue;
+				if (SkipTerminalShakeout) { double _tvr; if (SpringType(i, out _tvr) == 2) continue; }  // Wyckoff: drop Terminal Shakeout entries (SAR close above already ran)
+					if (!FlipPrices(i, sh, out e2, out s2, out k2)) continue;
 				if (EntryMode == FlipEntryMode.Close)
 				{
 					pi = i; pSig = i; pSh = sh; pByRev = byRev;
@@ -628,6 +655,20 @@ namespace NinjaTrader.NinjaScript.Indicators
 			for (int k = 0; k < sessStarts.Count; k++)
 				if (sessStarts[k] > s0) return sessStarts[k] - 1;
 			return CurrentBar;
+		}
+
+		// Wyckoff spring type of a climax-flip, from reversal(SB) vs trap-bar volume.
+		// Validated (flip_wyckoff_effort.py + walk-forward): LOW ratio = Spring #3
+		// (supply exhausted, best); HIGH = Terminal Shakeout / Spring #1 (worst, loses OOS).
+		// Returns 0 = SP3 · 1 = SP2 · 2 = TSO; the ratio comes back via `ratio`.
+		private int SpringType(int i, out double ratio)
+		{
+			double vt = Bars.GetVolume(i - 1), vs = Bars.GetVolume(i);
+			ratio = vt > 0 ? vs / vt : double.NaN;
+			if (double.IsNaN(ratio)) return 1;
+			if (ratio <= Sp3MaxRatio) return 0;
+			if (ratio >= TsoMinRatio) return 2;
+			return 1;
 		}
 
 		private void RenderClimaxFlips(ChartControl chartControl, ChartScale chartScale)
@@ -662,6 +703,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 			SolidColorBrush revBr   = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.55f, 0.75f, 1f, 0.9f));
 			SolidColorBrush riskZ   = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.94f, 0.33f, 0.31f, 0.07f));
 			SolidColorBrush rewZ    = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.30f, 0.82f, 0.63f, 0.06f));
+			SolidColorBrush spGreen = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.30f, 0.82f, 0.63f, 0.95f));  // SP3
+			SolidColorBrush spAmber = new SolidColorBrush(RenderTarget, new SharpDX.Color4(1f, 0.84f, 0f, 0.95f));        // SP2
+			SolidColorBrush spRed   = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.94f, 0.33f, 0.31f, 0.95f));  // TSO
 			try
 			{
 				float bw = 6f;
@@ -680,6 +724,18 @@ namespace NinjaTrader.NinjaScript.Indicators
 					float x0 = chartControl.GetXByBarIndex(ChartBars, i - 1) - bw / 2f;
 					float x1 = chartControl.GetXByBarIndex(ChartBars, i) + bw / 2f;
 					float yH = chartScale.GetYByValue(h2), yL = chartScale.GetYByValue(l2);
+
+						// Wyckoff spring-type badge under the 2-bar box (green SP3 / amber SP2 / red TSO)
+						double _vr; int _sp = SpringType(i, out _vr);
+						if (ShowSpringTypes)
+						{
+							SolidColorBrush _spb = _sp == 0 ? spGreen : _sp == 2 ? spRed : spAmber;
+							// LONG flip = spring (SP) -> label BELOW box; SHORT flip = upthrust (UT) -> label ABOVE box
+							string _spn = (sh ? "UT" : "SP") + (_sp == 0 ? "3" : _sp == 1 ? "2" : "1");
+							float _spy = sh ? yH - 15f : yL + 3f;
+							RenderTarget.DrawText(_spn + " " + _vr.ToString("F2"), tfT,
+								new SharpDX.RectangleF(x0, _spy, 84f, 12f), _spb);
+						}
 
 					if (!taken.ContainsKey(i))
 					{
@@ -789,6 +845,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 					RenderTarget.FillRectangle(new SharpDX.RectangleF(ChartPanel.X + 10, ChartPanel.Y + 8, 620, 20), tbg);
 					RenderTarget.DrawText(tly, tfB, new SharpDX.RectangleF(ChartPanel.X + 16, ChartPanel.Y + 11, 610, 16), tb);
 					tfB.Dispose(); tb.Dispose(); tbg.Dispose();
+					if (ShowSpringTypes)
+					{
+						SolidColorBrush lg = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.72f, 0.72f, 0.72f, 0.9f));
+						RenderTarget.DrawText("Wyckoff  SP=spring (long) / UT=upthrust (short)  ·  tier 3 low-vol (best) · 2 mid · 1 high-vol terminal (weak)",
+							tfT, new SharpDX.RectangleF(ChartPanel.X + 16, ChartPanel.Y + 30, 760, 14), lg);
+						lg.Dispose();
+					}
 				}
 
 				// hover card for the setup under the cursor
@@ -820,6 +883,75 @@ namespace NinjaTrader.NinjaScript.Indicators
 				tfT.Dispose(); boxFill.Dispose(); boxEdge.Dispose(); boxDim.Dispose();
 				entryBr.Dispose(); stopBr.Dispose(); tgtBr.Dispose(); revBr.Dispose();
 				riskZ.Dispose(); rewZ.Dispose();
+				spGreen.Dispose(); spAmber.Dispose(); spRed.Dispose();
+			}
+		}
+
+		// Whole-chart Wyckoff spring / upthrust detector (independent of the climax-flip):
+		// a FAILED poke beyond the prior-day extreme that snaps back inside on the same bar.
+		//   Spring   = Low < PDL and Close >= PDL  (bear trap  -> bullish)
+		//   Upthrust = High > PDH and Close <= PDH (bull trap  -> bearish)
+		// Only the FIRST bar to breach counts. Volume tier vs the prior-8-bar average sets
+		// the type: <= PenVolLowRatio = #3 low-vol (green, best) .. >= PenVolHighRatio =
+		// #1 terminal (red). Marks: down-triangle+label above an upthrust, up-triangle below a spring.
+		private void RenderSpringUpthrust(ChartControl chartControl, ChartScale chartScale)
+		{
+			int from = Math.Max(1, ChartBars.FromIndex), to = Math.Min(ChartBars.ToIndex, CurrentBar);
+			if (to < from) return;
+			TextFormat tf = new TextFormat(NinjaTrader.Core.Globals.DirectWriteFactory, "Consolas", 9f);
+			SolidColorBrush g = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.30f, 0.82f, 0.63f, 0.95f));
+			SolidColorBrush a = new SolidColorBrush(RenderTarget, new SharpDX.Color4(1f, 0.84f, 0f, 0.95f));
+			SolidColorBrush r = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.94f, 0.33f, 0.31f, 0.95f));
+			try
+			{
+				for (int i = from; i <= to; i++)
+				{
+					double pdh = pdhS.GetValueAt(i), pdl = pdlS.GetValueAt(i);
+					double hi = Bars.GetHigh(i), lo = Bars.GetLow(i), cl = Bars.GetClose(i);
+					bool ut = !double.IsNaN(pdh) && hi > pdh && cl <= pdh && Bars.GetHigh(i - 1) <= pdh;
+					bool sp = !double.IsNaN(pdl) && lo < pdl && cl >= pdl && Bars.GetLow(i - 1) >= pdl;
+					if (!ut && !sp) continue;
+					double v = Bars.GetVolume(i), av = 0; int nc = 0;
+					for (int j = i - 8; j < i; j++) if (j >= 0) { av += Bars.GetVolume(j); nc++; }
+					av = nc > 0 ? av / nc : v;
+					double vr = av > 0 ? v / av : 1;
+					int tier = vr <= PenVolLowRatio ? 0 : (vr >= PenVolHighRatio ? 2 : 1);
+					SolidColorBrush br = tier == 0 ? g : tier == 2 ? r : a;
+					string lab = (ut ? "UT" : "SP") + (tier == 0 ? "3" : tier == 1 ? "2" : "1");
+					float x = chartControl.GetXByBarIndex(ChartBars, i);
+					if (ut)
+					{
+						float y = chartScale.GetYByValue(hi);
+						FillTriangle(x, y - 13f, y - 4f, 5f, br);
+						RenderTarget.DrawText(lab + " " + vr.ToString("F2"), tf,
+							new SharpDX.RectangleF(x + 7f, y - 19f, 72f, 12f), br);
+					}
+					else
+					{
+						float y = chartScale.GetYByValue(lo);
+						FillTriangle(x, y + 13f, y + 4f, 5f, br);
+						RenderTarget.DrawText(lab + " " + vr.ToString("F2"), tf,
+							new SharpDX.RectangleF(x + 7f, y + 5f, 72f, 12f), br);
+					}
+				}
+			}
+			finally { tf.Dispose(); g.Dispose(); a.Dispose(); r.Dispose(); }
+		}
+
+		// small filled triangle: base edge (two corners) at baseY, apex at tipY.
+		private void FillTriangle(float cx, float baseY, float tipY, float hw, SolidColorBrush br)
+		{
+			using (PathGeometry geo = new PathGeometry(RenderTarget.Factory))
+			{
+				using (GeometrySink sink = geo.Open())
+				{
+					sink.BeginFigure(new SharpDX.Vector2(cx - hw, baseY), FigureBegin.Filled);
+					sink.AddLine(new SharpDX.Vector2(cx + hw, baseY));
+					sink.AddLine(new SharpDX.Vector2(cx, tipY));
+					sink.EndFigure(FigureEnd.Closed);
+					sink.Close();
+				}
+				RenderTarget.FillGeometry(geo, br);
 			}
 		}
 
@@ -1029,6 +1161,35 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[NinjaScriptProperty]
 		[Display(Name = "Manage: EB on bar after SB (off = the bar that fills the SE)", GroupName = "4. Flip setup", Order = 7)]
 		public bool EbOnSignalBar { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name = "Wyckoff: show spring type (SP3 / SP2 / TSO)", GroupName = "4. Flip setup", Order = 8)]
+		public bool ShowSpringTypes { get; set; }
+
+		[NinjaScriptProperty, Range(0.10, 2.0)]
+		[Display(Name = "Wyckoff: SP3 max vol ratio (reversal/trap)", GroupName = "4. Flip setup", Order = 9)]
+		public double Sp3MaxRatio { get; set; }
+
+		[NinjaScriptProperty, Range(0.10, 3.0)]
+		[Display(Name = "Wyckoff: TSO min vol ratio (Terminal Shakeout)", GroupName = "4. Flip setup", Order = 10)]
+		public double TsoMinRatio { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name = "Wyckoff: SKIP Terminal Shakeout entries", GroupName = "4. Flip setup", Order = 11)]
+		public bool SkipTerminalShakeout { get; set; }
+
+		// --- 6. Springs & upthrusts (whole-chart, beyond prior-day) ------------
+		[NinjaScriptProperty]
+		[Display(Name = "Show springs / upthrusts (beyond prior-day)", GroupName = "6. Springs & upthrusts", Order = 0)]
+		public bool ShowSpringUpthrust { get; set; }
+
+		[NinjaScriptProperty, Range(0.10, 2.0)]
+		[Display(Name = "Penetration low-vol ratio (#3 best)", GroupName = "6. Springs & upthrusts", Order = 1)]
+		public double PenVolLowRatio { get; set; }
+
+		[NinjaScriptProperty, Range(0.10, 3.0)]
+		[Display(Name = "Penetration high-vol ratio (#1 terminal)", GroupName = "6. Springs & upthrusts", Order = 2)]
+		public double PenVolHighRatio { get; set; }
 
 		// --- 5. Live pace / alert ----------------------------------------------
 		[NinjaScriptProperty, Range(5, 300)]

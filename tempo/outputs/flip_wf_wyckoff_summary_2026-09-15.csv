@@ -1,0 +1,5 @@
+row,wyck_picked,n,PF,tot_pts,$/trade,maxDD_$
+"WF select-by-pts (144-grid, wyck available)",1,1226,1.13,506.5,20.7,-13388.0
+"WF select-by-pf (144-grid, wyck available)",4,829,1.19,531.8,32.1,-7150.0
+WF-stable base (no wyck),0,1134,1.08,332.2,14.6,-14175.0
+WF-stable + WYCK,1,780,1.17,476.5,30.5,-7150.0
