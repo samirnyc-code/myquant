@@ -1,0 +1,64 @@
+URL: https://takeprofittraderhelp.zendesk.com/hc/en-us/articles/15172934987165-Activating-Your-CQG-Data-Feed
+TITLE: Activating Your CQG Data Feed – TakeProfitTrader
+
+Skip to main content
+ Sign in
+TakeProfitTrader
+ Connection Instructions
+ Step 1 (IMPORTANT)
+Articles in this section
+Activating Your Rithmic Data Feed
+Activating Your CQG Data Feed
+Activating Your CQG Data Feed
+ Vlada
+7 months ago Updated
+
+Once you have purchased a CQG account, several steps are required to finish activating your account. 
+
+
+If you prefer a visual walkthrough, we've included a video guide to help you. For those who prefer a written explanation, you’ll find a detailed step-by-step breakdown just below the video.
+
+
+
+
+How to Activate your CQG Data Feed
+Log into your TakeProfitTrader dashboard using your email and password you registered with us. Within your dashboard, you will find all the subscriptions you have purchased with us.
+Locate your CQG account. Please note that its status will initially appear as Pending. This status will update to Active once you have successfully completed all the steps outlined in this video. Click on your CQG account to find the Tradovate credentials.
+Navigate to tradovate.com and copy and paste your credentials into the appropriate fields on the login screen on Tradovate. To copy them, simply click on the Credential field and it will be ready to paste wherever required.
+Click on Login. You will be prompted to review and sign the Market Data Agreement. Carefully read through the agreement to ensure you understand its terms.
+Then, select the Non-Professional option and click on Next to continue. 
+In the next section, take a moment to review the agreement. Acknowledge your understanding and acceptance by checking the appropriate boxes.
+It is important to enter your first and last name exactly as they appear above the required field. The date is typically pre-filled in this section. 
+Once completed, click Sign to proceed.
+Please, close the pop-up window. Read through the User License Agreement and click Accept at the bottom of the page.
+
+Well done! You have successfully completed the initial steps to receive live market data for your CQG account.
+
+Your account status on the Take Profit Trader dashboard will be updated within 10-15 minutes after signing the agreements. We appreciate your patience while the system processes the activation. You will need to refresh your page to see when the update occurs. 
+
+Once the status is updated, you can begin trading. Good luck on your trading journey! 
+
+ 
+
+ 
+ 
+
+ 
+
+Was this article helpful?
+Yes No
+30 out of 43 found this helpful
+Recently viewed articles
+Activating Your Rithmic Data Feed
+My Trading Account Status Says "Pending"
+How to Check Your Renewal Date
+Resetting Your Test Account
+Test Subscriptions
+Related articles
+Approved Instruments & Permitted Products List
+Connecting NinjaTrader 8 with CQG
+Connecting TradingView with Your CQG Account
+Activating Your Rithmic Data Feed
+NOFEE40 PROMO FAQS
+TakeProfitTrader
+English (United States) 

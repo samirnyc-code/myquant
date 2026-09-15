@@ -1,0 +1,76 @@
+URL: https://takeprofittraderhelp.zendesk.com/hc/en-us/articles/15172869346589-Connecting-NinjaTrader-8-with-Rithmic
+TITLE: Connecting NinjaTrader 8 with Rithmic – TakeProfitTrader
+
+Skip to main content
+ Sign in
+TakeProfitTrader
+ Connection Instructions
+ Step 2 Platforms With Specific Connection Instructions
+Articles in this section
+Connecting TradingView with Your CQG Account
+Connecting NinjaTrader 8 with CQG
+Connecting NinjaTrader 8 with Rithmic
+Connecting Quantower With Your Rithmic Account
+Connecting BookMap with Your Rithmic Account
+Connecting MultiCharts with Your Rithmic Account
+Connecting MotiveWave with Your Rithmic Account
+Connecting Finamark with Your Rithmic Account
+Connecting NinjaTrader 8 with Rithmic
+ Vlada
+2 months ago Updated
+
+In order to connect your Rithmic account to Ninjatrader, please follow these steps. Please make sure to have completed the Rithmic connection steps described in this article before connecting to NinjaTrader for the first time with your Rithmic account.
+
+If you prefer a visual walkthrough, we've included a video guide to help you. For those who prefer a written explanation, you’ll find a detailed step-by-step breakdown just below the video.
+
+
+
+ 
+
+Connecting Your Rithmic Account to NinjaTrader
+1. Creating a Ninjatrader Account (if you're already registered with NinjaTrader, there's no need to register again, you can bypass this section)
+Navigate to NinjaTrader's official webpage. Click on Log In and locate the Get Started section.
+Enter your email address and click Sign Up
+Please check your inbox and confirm your email.
+Once your email is confirmed, create your username and password.
+Enter a desired username and a strong password. Be sure to store them securely, as you'll need them to access NinjaTrader in the future.
+Review the Terms and Conditions and check the box to confirm your agreement.
+Complete the registration.
+2. Downloading NinjaTrader
+If you haven't installed the NinjaTrader application on your computer, you can find the download link in the Additional Options section.
+Download and install the NinjaTrader application.
+Once complete, open the application.
+3. Connecting to Rithmic
+To log in, use the credentials you used to create your NinjaTrader account.
+When launching NinjaTrader, several pop-up windows with various indicators and charts may appear. To set up your connection, focus specifically on the Control Center window.
+Before proceeding, please log into your TakeProfitTrader dashboard to have your Rithmic credentials readily available for the connection setup. To access your Rithmic credentials, please login into your user dashboard using your TakeProfitTrader credentials. Locate your Rithmic subscription within your TakeProfitTrader dashboard to access the necessary credentials for connection.
+Return to the NinjaTrader Control Center window.
+In the top menu bar, click on the Connections section and select Configure.
+In case you don't see a configure option, please go to Tools and select Options. In the General Category section, find MultiProvider under Properties and check the box. Don't forget to click Apply, bend the OK button, and restart your NinjaTrader.
+Locate Rithmic for NinjaTrader Brokerage and add it to your connections list.
+Enter your Rithmic credentials from the TakeProfitTrader dashboard and paste them into the Connections tab within the NinjaTrader connection settings.
+Please select Rithmic Paper Trading and Chicago as the system. Click Apply and OK.
+Select your Rithmic for NinjaTrader from the Connections drop-down menu. When the green connection circle appears on the left, you are connected. 
+
+You're now connected and ready to begin your trading journey with us! You can open a new chart window or use the ones that appeared upon launch. Don't forget to choose your TakeProfitTrader account from the chart menu.
+
+Now it's time to dive in and start trading. Best of luck!
+ 
+
+Was this article helpful?
+Yes No
+5 out of 8 found this helpful
+Recently viewed articles
+Connecting NinjaTrader 8 with CQG
+Connecting TradingView with Your CQG Account
+Activating Your CQG Data Feed
+Activating Your Rithmic Data Feed
+My Trading Account Status Says "Pending"
+Related articles
+Activating Your Rithmic Data Feed
+Connecting NinjaTrader 8 with CQG
+Activating Your CQG Data Feed
+Being Connected in Two Places At the Same Time
+Understanding the POA Form
+TakeProfitTrader
+English (United States) 

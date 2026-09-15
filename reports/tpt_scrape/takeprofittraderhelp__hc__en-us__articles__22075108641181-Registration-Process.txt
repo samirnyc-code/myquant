@@ -1,0 +1,83 @@
+URL: https://takeprofittraderhelp.zendesk.com/hc/en-us/articles/22075108641181-Registration-Process
+TITLE: Registration Process – TakeProfitTrader
+
+Skip to main content
+ Sign in
+TakeProfitTrader
+ Getting Started
+ Your First Steps
+Articles in this section
+Sustainable Trading Policy
+Registration Process
+Choosing Your Platform
+KYC Procedure
+KYB verification
+How to Purchase An Account
+Restricted Countries
+Reset Your Password
+Registration Process
+ Max
+8 months ago Updated
+
+To create an account at TakeProfitTrader.com, follow these steps:
+
+Step 1: Create an Account
+
+Go to the registration page and enter your email address, password, and confirm your password.
+
+Your password must contain at least 8 characters, including a number, a symbol, an uppercase letter, and a lowercase letter.
+
+Check the box to agree to the Terms of Service.
+
+Complete the reCAPTCHA verification by selecting “I’m not a robot.”
+
+Click NEXT to continue.
+
+After completing registration, you will receive a confirmation email. This step ensures that your email address is valid and not marked as spam. Click the verification link in the email to confirm your account. Once verified, you can log in to your user dashboard at takeprofittrader.com. 
+
+If you haven’t received the verification email, click the Resend link on the login page. Check all your email folders, including Spam, Junk, or Promotions, as the message might have been delivered there.
+
+Important:
+If your email address is not yet confirmed, you won’t be able to log in to your account.
+Attempting to reset your password will not fix this — you must first confirm your email by following the link in the verification message.
+ 
+
+Step 2: Identity Verification (KYC)
+
+Before you can begin trading, you must complete the KYC (Know Your Customer) verification process.
+
+Log in to your user dashboard.
+
+A pop-up window will appear prompting you to verify your identity.
+
+Click VERIFY MY IDENTITY and follow the instructions to complete the process.
+
+TakeProfitTrader requires all new users to pass this verification step to ensure account security and compliance with regulatory standards.
+
+Step 3: Start Your Trading Journey
+
+ After successfully completing the KYC procedure, you can purchase your first trading test and begin your Trading Journey with TakeProfitTrader. You will receive a Welcome Email containing:
+
+Key information about your user dashboard
+
+Instructions and helpful tips for getting started with your trading test
+
+This message helps you take your first steps on your trading journey with full access to your TakeProfitTrader dashboard and resources.
+
+Was this article helpful?
+Yes No
+85 out of 100 found this helpful
+Recently viewed articles
+Sustainable Trading Policy
+NOFEE30 PROMO FAQ
+Keeping Track of Your Progress
+Restricted Countries
+Connecting US Bank Accounts For Payouts
+Related articles
+KYC Procedure
+Activating Your CQG Data Feed
+Restricted Countries
+Rule 5: Be Consistent
+KYB verification
+TakeProfitTrader
+English (United States) 

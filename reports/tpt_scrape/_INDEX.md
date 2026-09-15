@@ -1,0 +1,71 @@
+# Take Profit Trader scrape index
+
+Scraped via scripts/tpt_scrape.py + tpt_fetch_pages.py (Playwright/Chrome; Zendesk KB 403s WebFetch).
+69 pages.
+
+- [The Best Payout Policy Prop Firm For Funded Futures Traders](takeprofittrader__index.txt) — 14807 chars
+- [TakeProfitTrader Spanish](takeprofittraderhelp__hc__change_language__es.txt) — 406 chars
+- [TakeProfitTrader](takeprofittraderhelp__hc__en-us.txt) — 314 chars
+- [Cancelling My Subscription – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__15136333183261-Cancelling-My-Subscription.txt) — 1919 chars
+- [How to Check Your Renewal Date – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__15136742630429-How-to-Check-Your-Renewal-Date.txt) — 1421 chars
+- [Resetting Your Test Account – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__15140989806493-Resetting-Your-Test-Account.txt) — 2038 chars
+- [Test Subscriptions – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__15141145057053-Test-Subscriptions.txt) — 2762 chars
+- [My Trading Account Status Says "Pending" – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__15141165079069-My-Trading-Account-Status-Says-Pending.txt) — 2071 chars
+- [Keeping Track of Your Progress – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__15168980013085-Keeping-Track-of-Your-Progress.txt) — 3168 chars
+- [Rule 2: Do Not Exceed Maximum Position Size – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__15169066911133-Rule-2-Do-Not-Exceed-Maximum-Position-Size.txt) — 1751 chars
+- [Rule 1: Hit Your Profit Target – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__15169070804125-Rule-1-Hit-Your-Profit-Target.txt) — 1535 chars
+- [Rule 3: Do Not Hit End-Of-Day (EOD) Maximum Trailing Drawdown – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__15170265979165-Rule-3-Do-Not-Hit-End-Of-Day-EOD-Maximum-Trailing-Drawdown.txt) — 2643 chars
+- [Rule 5: Be Consistent – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__15170316538013-Rule-5-Be-Consistent.txt) — 3080 chars
+- [Rule 4: Trade Approved Products, During Approved Hours – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__15170347090461-Rule-4-Trade-Approved-Products-During-Approved-Hours.txt) — 2078 chars
+- [Navigating Your Subscriptions – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__15170412478749-Navigating-Your-Subscriptions.txt) — 2711 chars
+- [Finding Your Accounts – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__15170470213789-Finding-Your-Accounts.txt) — 2025 chars
+- [Utilizing Your Wallet – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__15171522280733-Utilizing-Your-Wallet.txt) — 2498 chars
+- [PRO Account Rules – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__15171769361053-PRO-Account-Rules.txt) — 4074 chars
+- [How to Keep Track Of Your Drawdown – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__15171820366109-How-to-Keep-Track-Of-Your-Drawdown.txt) — 1792 chars
+- [Resetting A PRO Account – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__15171895352733-Resetting-A-PRO-Account.txt) — 1828 chars
+- [Advantages of PRO+ – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__15171929948829-Advantages-of-PRO.txt) — 1559 chars
+- [PRO Account Profit Split & Withdrawal Rules – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__15172219527581-PRO-Account-Profit-Split-Withdrawal-Rules.txt) — 2219 chars
+- [Payout System – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__15172296875165-Payout-System.txt) — 2986 chars
+- [Withdrawal Fees – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__15172354954525-Withdrawal-Fees.txt) — 1165 chars
+- [How to Purchase An Account – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__15172514256669-How-to-Purchase-An-Account.txt) — 1946 chars
+- [Commissions on Test and PRO accounts – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__15172548967069-Commissions-on-Test-and-PRO-accounts.txt) — 1556 chars
+- [Approved Instruments & Permitted Products List – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__15172629238301-Approved-Instruments-Permitted-Products-List.txt) — 2740 chars
+- [Connecting NinjaTrader 8 with Rithmic – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__15172869346589-Connecting-NinjaTrader-8-with-Rithmic.txt) — 4415 chars
+- [Activating Your CQG Data Feed – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__15172934987165-Activating-Your-CQG-Data-Feed.txt) — 3032 chars
+- [Activating Your Rithmic Data Feed – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__15173005536413-Activating-Your-Rithmic-Data-Feed.txt) — 2886 chars
+- [Choosing Your Platform – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__15173017163549-Choosing-Your-Platform.txt) — 2361 chars
+- [Connecting TradingView with Your CQG Account – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__15173215468061-Connecting-TradingView-with-Your-CQG-Account.txt) — 2777 chars
+- [Connecting NinjaTrader 8 with CQG – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__15173229975581-Connecting-NinjaTrader-8-with-CQG.txt) — 3543 chars
+- [Connecting BookMap with Your Rithmic Account – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__15185091398301-Connecting-BookMap-with-Your-Rithmic-Account.txt) — 3761 chars
+- [Connecting Quantower With Your Rithmic Account – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__15185100827677-Connecting-Quantower-With-Your-Rithmic-Account.txt) — 2992 chars
+- [Connecting MultiCharts with Your Rithmic Account – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__15185174875677-Connecting-MultiCharts-with-Your-Rithmic-Account.txt) — 2564 chars
+- [Registration Process – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__22075108641181-Registration-Process.txt) — 2998 chars
+- [KYC Procedure – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__22076187576605-KYC-Procedure.txt) — 2687 chars
+- [How to Activate a PRO Account Using Credit – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__28923632631581-How-to-Activate-a-PRO-Account-Using-Credit.txt) — 1810 chars
+- [NOFEE40 PROMO FAQS – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__29660646764445-NOFEE40-PROMO-FAQS.txt) — 4390 chars
+- [Rule 6: No Counter Positions – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__30331694826909-Rule-6-No-Counter-Positions.txt) — 10410 chars
+- [KYB verification – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__32877159463709-KYB-verification.txt) — 3293 chars
+- [TakeProfitTrader Universal Trading Policies (UTP) – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__34431153546397-TakeProfitTrader-Universal-Trading-Policies-UTP.txt) — 3037 chars
+- [NOFEE50 PROMO FAQS – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__35985020984605-NOFEE50-PROMO-FAQS.txt) — 5105 chars
+- [TPT ScoreCard Overview – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__36049803239581-TPT-ScoreCard-Overview.txt) — 3589 chars
+- [NOFEE30 PROMO FAQ – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__36337706971677-NOFEE30-PROMO-FAQ.txt) — 4621 chars
+- [Sustainable Trading Policy – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__36569493361693-Sustainable-Trading-Policy.txt) — 4551 chars
+- [Speed of Payouts Update: Q&A – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__37697356049949-Speed-of-Payouts-Update-Q-A.txt) — 4079 chars
+- [50AND3 PROMO FAQS – TakeProfitTrader](takeprofittraderhelp__hc__en-us__articles__38320927906717-50AND3-PROMO-FAQS.txt) — 5478 chars
+- [Connection Instructions – TakeProfitTrader](takeprofittraderhelp__hc__en-us__categories__15135936007709-Connection-Instructions.txt) — 708 chars
+- [The Control Center – TakeProfitTrader](takeprofittraderhelp__hc__en-us__categories__15135951167645-The-Control-Center.txt) — 440 chars
+- [PRO Account – TakeProfitTrader](takeprofittraderhelp__hc__en-us__categories__15135954619933-PRO-Account.txt) — 340 chars
+- [Withdrawals – TakeProfitTrader](takeprofittraderhelp__hc__en-us__categories__15135955764509-Withdrawals.txt) — 449 chars
+- [Getting Started – TakeProfitTrader](takeprofittraderhelp__hc__en-us__categories__15135965266589-Getting-Started.txt) — 590 chars
+- [Test Rules – TakeProfitTrader](takeprofittraderhelp__hc__en-us__categories__15135982702621-Test-Rules.txt) — 501 chars
+- [PRO+ Account – TakeProfitTrader](takeprofittraderhelp__hc__en-us__categories__15136001997213-PRO-Account.txt) — 499 chars
+- [Rewards System – TakeProfitTrader](takeprofittraderhelp__hc__en-us__categories__16503320559517-Rewards-System.txt) — 393 chars
+- [FAQ's – TakeProfitTrader](takeprofittraderhelp__hc__en-us__categories__36389390247709-FAQ-s.txt) — 1269 chars
+- [NOFEE30 PROMO FAQ – TakeProfitTrader](takeprofittraderhelp__hc__en-us__related__click.txt) — 4981 chars
+- [Your First Steps – TakeProfitTrader](takeprofittraderhelp__hc__en-us__sections__15136313535901-Your-First-Steps.txt) — 450 chars
+- [Subscription Info – TakeProfitTrader](takeprofittraderhelp__hc__en-us__sections__15136324620061-Subscription-Info.txt) — 430 chars
+- [The 6 Core Rules – TakeProfitTrader](takeprofittraderhelp__hc__en-us__sections__15168850786589-The-6-Core-Rules.txt) — 518 chars
+- [The Main Aspects of The Control Center – TakeProfitTrader](takeprofittraderhelp__hc__en-us__sections__15170366349725-The-Main-Aspects-of-The-Control-Center.txt) — 499 chars
+- [Step 1 (IMPORTANT) – TakeProfitTrader](takeprofittraderhelp__hc__en-us__sections__15172918334493-Step-1-IMPORTANT.txt) — 358 chars
+- [Step 2 Platforms With Specific Connection Instructions – TakeProfitTrader](takeprofittraderhelp__hc__en-us__sections__15172932203421-Step-2-Platforms-With-Specific-Connection-Instructions.txt) — 792 chars
+- [Take Profit Trader | Playbook](try__playbook_v2_0525.txt) — 5509 chars

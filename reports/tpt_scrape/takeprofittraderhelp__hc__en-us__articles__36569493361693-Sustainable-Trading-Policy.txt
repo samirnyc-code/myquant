@@ -1,0 +1,81 @@
+URL: https://takeprofittraderhelp.zendesk.com/hc/en-us/articles/36569493361693-Sustainable-Trading-Policy
+TITLE: Sustainable Trading Policy – TakeProfitTrader
+
+Skip to main content
+ Sign in
+TakeProfitTrader
+ Getting Started
+ Your First Steps
+Articles in this section
+Sustainable Trading Policy
+Registration Process
+Choosing Your Platform
+KYC Procedure
+KYB verification
+How to Purchase An Account
+Restricted Countries
+Reset Your Password
+Sustainable Trading Policy
+ Vlada
+2 months ago Updated
+
+Take Profit Trader’s evaluation process is designed to identify traders who can perform consistently in live-market conditions. Our simulated environments (Test and PRO) are built to closely reflect live markets, but differences in execution, liquidity, and fill behavior can occur.
+
+The principle is simple: trade your TPT account like you would your own brokerage account. 
+
+You Have Freedom To Trade Your Way
+
+We are flexible on strategy. Conservative and aggressive traders are both welcome at TPT. Higher-risk approaches draw closer risk review once trading live capital.
+
+How Your Trading Shapes Your Path
+
+The core principle is that performance in Test and PRO should reasonably replicate in live-market PRO+ conditions.
+
+Traders whose profile shows higher-risk, less sustainable risk management, or divergent performance can expect closer review, especially once trading live. This helps protect both your account longevity and our real capital while you demonstrate that your approach works in live conditions.
+
+The patterns that point toward a higher-risk profile include, but are not limited to:
+
+Using maximum position size on the majority of trades
+Repeatedly blowing through maximum loss limits
+Relying on simulation-specific fill inefficiencies
+Account churning 
+
+These are evaluated as patterns over time, not based on any single trade.
+
+Divergent Performance
+
+A material gap between a trader's PRO and live PRO+ performance is one of the clearest signals of unsustainable behavior. We pay out PRO winners every day, but when sim results don't replicate in live, we review the cause before extending additional capital. Where trading deliberately exploits the simulated environment or reflects reckless risk management, TPT reserves the right to step in at its sole discretion, with or without prior notice.
+
+When Trading Doesn't Reflect An Edge-Based Strategy
+
+Not all aggressive or unconventional trading is the same. A trader who takes larger positions spread out across a session, or whose approach is unusual but reflects a genuine effort to develop a repeatable trading edge, may be striving towards something we can eventually back, even when their style is high-risk. We can work with that trader, and may extend closer review or modified parameters as they demonstrate sustainability in live conditions.
+
+A trader whose activity reflects mostly aggressively sized positions at fixed, predictable market moments like the open, key economic releases, or other simulation-favorable windows, is more indicative of simulation-only strategies, and not an attempt at developing a true trading edge. The same applies to approaches that rely on simulation-specific advantages rather than skill or edge that would carry into a live market.
+
+These aren’t styles we will fund as it’s not sustainable in the live market, regardless of whether any individual trade wins or loses. Where these trades or patterns are identified, TPT may part ways as funding partners without prior notice. This is a recognition that the relationship can't extend to live capital based on what the trading reflects.
+
+How We Evaluate
+
+We assess trading holistically, using factors including execution patterns, fill quality, position sizing, trade duration and frequency, market conditions, performance across Test/PRO/PRO+, and drawdown behavior. No single metric determines the outcome.
+
+The Bottom Line
+
+You're free to trade your way, including aggressively. Just understand that higher-risk and less sustainable trading draws closer review. This policy exists to make sure the traders we fund can sustainably manage risk, in both the simulated and live market environments.
+
+Was this article helpful?
+Yes No
+6 out of 6 found this helpful
+Recently viewed articles
+NOFEE30 PROMO FAQ
+Keeping Track of Your Progress
+Restricted Countries
+Connecting US Bank Accounts For Payouts
+Activating Your CQG Data Feed
+Related articles
+Registration Process
+Choosing Your Platform
+PRO Account Rules
+How to Purchase An Account
+KYC Procedure
+TakeProfitTrader
+English (United States) 

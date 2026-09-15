@@ -1,0 +1,77 @@
+URL: https://takeprofittraderhelp.zendesk.com/hc/en-us/articles/15173215468061-Connecting-TradingView-with-Your-CQG-Account
+TITLE: Connecting TradingView with Your CQG Account – TakeProfitTrader
+
+Skip to main content
+ Sign in
+TakeProfitTrader
+ Connection Instructions
+ Step 2 Platforms With Specific Connection Instructions
+Articles in this section
+Connecting TradingView with Your CQG Account
+Connecting NinjaTrader 8 with CQG
+Connecting NinjaTrader 8 with Rithmic
+Connecting Quantower With Your Rithmic Account
+Connecting BookMap with Your Rithmic Account
+Connecting MultiCharts with Your Rithmic Account
+Connecting MotiveWave with Your Rithmic Account
+Connecting Finamark with Your Rithmic Account
+Connecting TradingView with Your CQG Account
+ Vlada
+6 months ago Updated
+
+Please complete all connection steps described in this article before connecting to TradingView for the first time.
+
+TradingView is a web-based charting and trading platform that is also available as a mobile app for:
+
+iOS 14.0 or later (App Store)
+
+Android 7.0 or later (Google Play)
+
+To access the web platform, click here.
+
+If you prefer a visual walkthrough, follow the steps shown in the instructional video. A written, detailed step-by-step explanation is provided below.
+ 
+
+Follow these quick steps to connect your TakeProfitTrader CQG account to TradingView and start trading.
+
+
+1. Create or Log in to TradingView
+Go to TradingView.com
+Sign up for a new account or log in to your existing one
+2. Open Supercharts
+From the top navigation menu, click Products → Supercharts
+This will open the main TradingView charting workspace
+3. Open the Trading Panel
+Click the Trade button at the top-right side
+In the list of available brokers, find Tradovate
+Make sure the Demo environment is selected
+Click Connect
+4. Get Your Tradovate Credentials
+Log in to your TakeProfitTrader Dashboard
+Navigate to your CQG / Tradovate account subscription
+Copy the Tradovate username and password provided for your account
+5. Log in via Tradovate Verification Page
+Paste your username and password into the Tradovate login window
+Click Login to authorize the connection
+6. Connection Confirmed
+Once connected, your trading accounts will appear in the Trading Panel below the chart
+You can now place trades directly from TradingView
+ 
+ 
+Was this article helpful?
+Yes No
+14 out of 22 found this helpful
+Recently viewed articles
+Activating Your CQG Data Feed
+Activating Your Rithmic Data Feed
+My Trading Account Status Says "Pending"
+How to Check Your Renewal Date
+Resetting Your Test Account
+Related articles
+Activating Your CQG Data Feed
+Connecting NinjaTrader 8 with CQG
+Approved Instruments & Permitted Products List
+Choosing Your Platform
+Activating Your Rithmic Data Feed
+TakeProfitTrader
+English (United States) 

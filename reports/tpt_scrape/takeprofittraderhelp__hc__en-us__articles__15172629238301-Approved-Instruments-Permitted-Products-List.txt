@@ -1,0 +1,90 @@
+URL: https://takeprofittraderhelp.zendesk.com/hc/en-us/articles/15172629238301-Approved-Instruments-Permitted-Products-List
+TITLE: Approved Instruments & Permitted Products List – TakeProfitTrader
+
+Skip to main content
+ Sign in
+TakeProfitTrader
+ FAQ's
+ Trading
+Articles in this section
+Commissions on Test and PRO accounts
+Approved Instruments & Permitted Products List
+Rules for Multiple Accounts
+Being Connected in Two Places At the Same Time
+I Want to Add Market Depth
+How TPT Compares to Opening Your Own Trading Account
+Understanding the Simulation for Your PRO account
+How To Download Log Files
+Approved Instruments & Permitted Products List
+ Vlada
+1 month ago Updated
+
+Here is the official list of all the futures instruments that are permitted and available for trading on our platforms.
+
+Symbol	Product Name	Exchange
+6A	Australian Dollar Futures	CME
+6B	British Pound Futures	CME
+6C	Canadian Dollar Futures	CME
+6E	Euro FX Futures	CME
+6J	Japanese Yen Futures	CME
+6N	New Zealand Dollar Futures	CME
+6S	Swiss Franc Futures	CME
+CL	Crude Oil Futures	NYMEX
+E7	E-mini Euro FX Futures	CME
+ES	E-mini S&P 500 Futures	CME
+GC	Gold Futures	COMEX
+HG	Copper Futures	COMEX
+LE	Live Cattle Futures	CME
+MBT 
+ 	
+
+Micro Bitcoin Futures and Options
+
+	CME
+M2K	Micro E-mini Russell 2000 Index Futures	CME
+M6E	Micro EUR/USD Futures	CME
+MET
+ 	
+
+Micro Ether Futures and Options
+
+	CME
+MCL	Micro WTI Crude Oil Futures	NYMEX
+MES	Micro E-mini S&P 500 Index Futures	CME
+MGC	Micro Gold Futures	COMEX
+MNQ	Micro E-mini Nasdaq-100 Index Futures	CME
+M6A	Micro AUD/USD Futures	CME
+MYM	Micro E-mini Dow Jones Industrial Average Index Futures	CBOT
+NG	Henry Hub Natural Gas Futures	NYMEX
+NQ	E-mini Nasdaq-100 Futures	CME
+QI	E-mini Silver Futures	COMEX
+QM	E-mini Crude Oil Futures	NYMEX
+QO	E-mini Gold Futures	COMEX
+RTY	E-mini Russell 2000 Index Futures	CME
+SI	Silver Futures	COMEX
+UB	Ultra U.S. Treasury Bond Futures	CBOT
+YM	E-mini Dow ($5) Futures	CBOT
+ZF	5-Year T-Note Futures	CBOT
+ZL	Soybean Oil Futures	CBOT
+ZS	Soybean Futures	CBOT
+ZN	10-Year T-Note Futures	CBOT
+ZT	2-Year T-Note Futures	CBOT
+ZW	Chicago SRW Wheat Futures	CBOT
+
+
+Please remember, it is the trader's responsibility to ensure they are trading the correct contract. You can follow the link to the product you wish to trade to view its current contract. 
+
+If you would like to trade an instrument that isn't listed, please reach out to our Live Chat Support and we will review if it can be added.
+ 
+
+Was this article helpful?
+Yes No
+18 out of 20 found this helpful
+Related articles
+Activating Your CQG Data Feed
+Rule 4: Trade Approved Products, During Approved Hours
+How to Keep Track Of Your Drawdown
+Rules for Multiple Accounts
+Commissions on Test and PRO accounts
+TakeProfitTrader
+English (United States) 

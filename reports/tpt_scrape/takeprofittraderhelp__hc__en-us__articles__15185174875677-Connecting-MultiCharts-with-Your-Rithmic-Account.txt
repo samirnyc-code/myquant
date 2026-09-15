@@ -1,0 +1,81 @@
+URL: https://takeprofittraderhelp.zendesk.com/hc/en-us/articles/15185174875677-Connecting-MultiCharts-with-Your-Rithmic-Account
+TITLE: Connecting MultiCharts with Your Rithmic Account – TakeProfitTrader
+
+Skip to main content
+ Sign in
+TakeProfitTrader
+ Connection Instructions
+ Step 2 Platforms With Specific Connection Instructions
+Articles in this section
+Connecting TradingView with Your CQG Account
+Connecting NinjaTrader 8 with CQG
+Connecting NinjaTrader 8 with Rithmic
+Connecting Quantower With Your Rithmic Account
+Connecting BookMap with Your Rithmic Account
+Connecting MultiCharts with Your Rithmic Account
+Connecting MotiveWave with Your Rithmic Account
+Connecting Finamark with Your Rithmic Account
+Connecting MultiCharts with Your Rithmic Account
+ Vlada
+9 months ago Updated
+
+Please complete connection steps described in this article before connecting to MultiCharts for the first time.
+
+If you do not already have MultiCharts downloaded, you can find the download link by clicking on the image on the homepage here.
+
+How to Download MultiCharts
+
+To download MultiCharts, click the Get Started button on their website and register using any email address.
+After completing the registration, you will be redirected to the download page.
+
+
+
+
+If You Do Not Have a MultiCharts Account
+
+If you do not already have an account with MultiCharts, click Sign Up and choose one of their plans.
+Once your account is created, use your MultiCharts credentials to access the platform.
+
+ 
+
+Connecting MultiCharts to TakeProfitTrader
+
+After signing into the platform:
+
+Click on File in the top-left corner.
+
+Select Broker Profiles from the drop-down menu.
+
+Choose Manage Broker Profiles.
+
+Add Rithmic Paper Trading as a broker.
+
+Enter your credentials from your Dashboard at TakeProfitTrader.com.
+
+Look up the correct Trade Route before establishing the connection.
+This lookup process may take some time.
+
+
+ 
+
+Additional Configuration Details
+
+More detailed configuration steps can be found directly on the MultiCharts website.
+
+Was this article helpful?
+Yes No
+0 out of 0 found this helpful
+Recently viewed articles
+Connecting BookMap with Your Rithmic Account
+Connecting Quantower With Your Rithmic Account
+Connecting NinjaTrader 8 with Rithmic
+Connecting NinjaTrader 8 with CQG
+Connecting TradingView with Your CQG Account
+Related articles
+Connecting MotiveWave with Your Rithmic Account
+Activating Your Rithmic Data Feed
+Connecting TradingView with Your CQG Account
+Connecting NinjaTrader 8 with CQG
+Choosing Your Platform
+TakeProfitTrader
+English (United States) 

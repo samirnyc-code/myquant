@@ -1,0 +1,89 @@
+URL: https://takeprofittraderhelp.zendesk.com/hc/en-us/articles/15140989806493-Resetting-Your-Test-Account
+TITLE: Resetting Your Test Account – TakeProfitTrader
+
+Skip to main content
+ Sign in
+TakeProfitTrader
+ Getting Started
+ Subscription Info
+Articles in this section
+Cancelling My Subscription
+Test Subscriptions
+Resetting Your Test Account
+How to Check Your Renewal Date
+My Trading Account Status Says "Pending"
+Resetting Your Test Account
+ Vlada
+3 months ago Updated
+What is an Account Reset?  
+
+An account reset gives you a second chance to start over with your trading test. It’s typically used when your initial test didn’t go as planned — for example, if you broke a rule or want a clean slate to try again.
+
+ 
+
+How Can I Reset My Account?
+Step 1: Access Your Dashboard
+
+Go to takeprofittrader.com.
+
+Log in to your account using your registered email and password.
+
+Navigate to the Subscriptions section of your dashboard.
+
+ 
+
+Step 2: Reset Your Account
+
+You can reset your account in two ways:
+
+From the Subscriptions page:
+Click the Reset Account button next to the subscription you wish to restart.
+
+From the Account Information window:
+Open your account details and select Reset Account from the control options.
+
+After confirming, you’ll receive a new trading test with the same parameters and rules as your original test.
+
+
+
+
+ 
+
+Important Note
+
+Please note that this will not change the subscription renewal date — it will only give you a fresh account to work with.
+
+Account Size	Reset Price
+25K	$79
+50K	$99
+75K	$139
+100K	$169
+150K	$199
+Risk-Adjusted Reset Pricing 
+Aligned to each account size
+
+ 
+
+ 
+
+ 
+
+ 
+
+Was this article helpful?
+Yes No
+2 out of 2 found this helpful
+Recently viewed articles
+Test Subscriptions
+Cancelling My Subscription
+How to Purchase An Account
+KYB verification
+KYC Procedure
+Related articles
+Activating Your CQG Data Feed
+Approved Instruments & Permitted Products List
+PRO Account Profit Split & Withdrawal Rules
+How to Use Your Credits
+NOFEE50 PROMO FAQS
+TakeProfitTrader
+English (United States) 

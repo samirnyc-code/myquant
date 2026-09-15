@@ -1,0 +1,110 @@
+URL: https://takeprofittraderhelp.zendesk.com/hc/en-us/articles/15172219527581-PRO-Account-Profit-Split-Withdrawal-Rules
+TITLE: PRO Account Profit Split & Withdrawal Rules – TakeProfitTrader
+
+Skip to main content
+ Sign in
+TakeProfitTrader
+ Withdrawals
+ Withdrawal
+Articles in this section
+PRO Account Profit Split & Withdrawal Rules
+How to Withdraw from PRO Account to the Wallet
+How to Withdraw from the Wallet
+Payout System
+Withdrawal Fees
+Taxes on Withdrawals
+Filling out tax forms
+PRO Account Profit Split & Withdrawal Rules
+ Vlada
+10 months ago Updated
+Profit Split 
+
+In the PRO account, the profit split is 80/20, where the trader keeps 80% of the profits. 
+
+Withdrawal Rules 
+
+When you reach your PRO account, you have the ability withdraw funds on day one. However, you must build a buffer on the account first. 
+
+You can withdraw your profits at 80% once you reach the level of your maximum drawdown which we refer to as the "buffer zone". For example, if you have a $50,000 account, your maximum drawdown or buffer zone is $2,000. In this case, you will need to reach a balance of $52,000 in order to start withdrawing at 80% of total profit.  
+
+Buffer Zones Per Account Size 
+
+The buffer is equal to the maximum drawdown amount on your account. 
+
+Account Size
+
+	
+
+Buffer Zone 
+
+
+
+
+25k 
+
+	
+
+$26,500
+
+
+
+
+50k
+
+	
+
+$52,000
+
+
+
+
+75k
+
+	
+
+$77,500
+
+
+
+
+100k
+
+	
+
+$103,000
+
+
+
+
+150k
+
+	
+
+$154,500
+
+Withdrawing from the Buffer 
+
+A trader may withdraw profits inside of the buffer zone, however, this action can only be performed once the account has been terminated. The profit split is determined by the length of time the PRO account was traded on.
+
+ 
+
+Profits Taken Inside Buffer Zone	Amount of Buffer Received
+≤60 days since account opening	50%
+>60 days since account opening	80%
+
+Please note it is 60 trading days, the last day being last trading day on your PRO account.
+
+For more information on how to withdraw from your PRO account, please follow these steps.
+
+ 
+Was this article helpful?
+Yes No
+37 out of 43 found this helpful
+Related articles
+How to Withdraw from PRO Account to the Wallet
+Payout System
+PRO Account Rules
+Withdrawal Fees
+How to Keep Track Of Your Drawdown
+TakeProfitTrader
+English (United States) 

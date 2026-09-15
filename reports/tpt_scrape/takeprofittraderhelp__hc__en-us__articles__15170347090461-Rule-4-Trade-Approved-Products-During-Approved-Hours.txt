@@ -1,0 +1,80 @@
+URL: https://takeprofittraderhelp.zendesk.com/hc/en-us/articles/15170347090461-Rule-4-Trade-Approved-Products-During-Approved-Hours
+TITLE: Rule 4: Trade Approved Products, During Approved Hours – TakeProfitTrader
+
+Skip to main content
+ Sign in
+TakeProfitTrader
+ Test Rules
+ The 6 Core Rules
+Articles in this section
+Rule 1: Hit Your Profit Target
+Rule 2: Do Not Exceed Maximum Position Size
+Rule 3: Do Not Hit End-Of-Day (EOD) Maximum Trailing Drawdown
+Rule 4: Trade Approved Products, During Approved Hours
+Rule 5: Be Consistent
+Rule 6: No Counter Positions
+Rule 4: Trade Approved Products, During Approved Hours
+ Vlada
+4 months ago Updated
+Approved Products
+
+You may trade most futures products listed on:
+
+CME
+
+CBOT
+
+NYMEX
+
+COMEX
+
+If an order is rejected for a product you believe should be allowed, contact support.
+You can review the full list of permitted products here.
+
+ 
+
+Approved Trading Hours
+
+Positions cannot be carried from one trading day into the next.
+All positions must be opened and closed within the approved daily window:
+
+Futures:
+
+Trading window: 6 PM Eastern – 5 PM Eastern
+
+The trading day ends at 5 PM Eastern
+
+TPT will automatically close any open position at 4:55 PM Eastern.
+
+You may reopen positions starting at 6 PM Eastern, but any trade opened at or after 6 PM counts toward the next trading day.
+
+ 
+
+Be Aware of Market Hours
+
+Always know the specific hours for the product you’re trading.
+If the market for your product closes before 5 PM Eastern and you cannot exit before the deadline, the account will be liquidated.
+
+ 
+
+Holiday Schedule
+
+Market hours can change due to holidays.
+It is the trader’s responsibility to monitor holiday schedules.
+Missing a holiday-adjusted close time will result in account liquidation.
+
+ 
+
+ 
+
+Was this article helpful?
+Yes No
+22 out of 22 found this helpful
+Related articles
+Rule 5: Be Consistent
+Approved Instruments & Permitted Products List
+PRO Account Rules
+Rule 3: Do Not Hit End-Of-Day (EOD) Maximum Trailing Drawdown
+Rule 2: Do Not Exceed Maximum Position Size
+TakeProfitTrader
+English (United States) 

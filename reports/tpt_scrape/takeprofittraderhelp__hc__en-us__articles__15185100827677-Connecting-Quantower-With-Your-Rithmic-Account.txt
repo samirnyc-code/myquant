@@ -1,0 +1,101 @@
+URL: https://takeprofittraderhelp.zendesk.com/hc/en-us/articles/15185100827677-Connecting-Quantower-With-Your-Rithmic-Account
+TITLE: Connecting Quantower With Your Rithmic Account – TakeProfitTrader
+
+Skip to main content
+ Sign in
+TakeProfitTrader
+ Connection Instructions
+ Step 2 Platforms With Specific Connection Instructions
+Articles in this section
+Connecting TradingView with Your CQG Account
+Connecting NinjaTrader 8 with CQG
+Connecting NinjaTrader 8 with Rithmic
+Connecting Quantower With Your Rithmic Account
+Connecting BookMap with Your Rithmic Account
+Connecting MultiCharts with Your Rithmic Account
+Connecting MotiveWave with Your Rithmic Account
+Connecting Finamark with Your Rithmic Account
+Connecting Quantower With Your Rithmic Account
+ Vlada
+9 months ago Updated
+
+Please make sure to complete all connection steps outlined in this article before connecting to Quantower for the first time.
+
+If you have not yet downloaded Quantower, you can find the download link by clicking on the image on the homepage here.
+
+Once the application is downloaded, follow the written steps below or use the video guide for a visual walkthrough.
+
+ 
+
+Connecting Your Rithmic Account to Quantower
+
+Log into your TakeProfitTrader dashboard using your email and password.
+
+Locate your Rithmic subscription inside your dashboard.
+
+Copy your Rithmic username and password.
+
+Go to quantower.com/download.
+
+Download the version compatible with your operating system.
+
+Install Quantower and allow the application to launch automatically.
+
+Open the Connections section in the top menu of Quantower.
+
+Find the Rithmic provider in the list.
+
+If it does not appear, open the full list of available connections.
+
+Paste your Rithmic username into the username field.
+
+Paste your Rithmic password into the password field.
+
+Select Rithmic Paper Trading as the system.
+
+Select the correct gateway based on your location.
+
+Review the Terms of Use when they appear.
+
+Click Accept and Continue.
+
+Click Connect.
+
+When the indicator circle next to Rithmic turns green, the connection is active.
+
+ 
+
+Viewing Your Account and Opening a Chart
+
+Go to the Accounts section in the top menu to view your account details.
+
+Go to Chart and choose the trading product you want to open.
+
+Once the chart loads, open the Order Bar.
+
+Make sure the correct TakeProfitTrader account is selected before trading.
+
+You are now fully connected and ready to begin trading through Quantower.
+Good luck on your trading journey.
+
+ 
+
+ 
+
+Was this article helpful?
+Yes No
+0 out of 0 found this helpful
+Recently viewed articles
+Connecting NinjaTrader 8 with Rithmic
+Connecting NinjaTrader 8 with CQG
+Connecting TradingView with Your CQG Account
+Activating Your CQG Data Feed
+Activating Your Rithmic Data Feed
+Related articles
+Activating Your Rithmic Data Feed
+Choosing Your Platform
+Connecting BookMap with Your Rithmic Account
+Connecting TradingView with Your CQG Account
+Activating Your CQG Data Feed
+TakeProfitTrader
+English (United States) 
