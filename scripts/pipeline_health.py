@@ -21,6 +21,7 @@ import os
 import shutil
 import socket
 import subprocess
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -212,22 +213,39 @@ def front_month(now: dt.datetime | None = None) -> str:
 
 def check_contract() -> dict:
     """Is NT8 recording the contract we expect? (roll traps: 'ES 12-20' was still in a
-    workspace on 2026-07-19 - a chart on a dead contract records nothing, silently.)"""
+    workspace on 2026-07-19 - a chart on a dead contract records nothing, silently.)
+
+    'active' = the VOLUME LEADER among contracts recorded recently (largest current
+    tick file), NOT the most-recently-touched folder. Near a roll the outgoing
+    contract keeps trading until its expiry (09-26 until 2026-09-18), so BOTH folders
+    are written and picking by mtime flapped OK<->WRONG hourly (S119). Volume-leader
+    is stable, still flags a real wrong-contract (a dead contract has little volume),
+    and self-handles every future roll."""
     want = front_month()
     base = NT8 / "db" / "tick"
-    seen, active = [], None
-    if base.exists():
-        dirs = sorted((p for p in base.glob("ES *") if p.is_dir()), key=lambda p: p.stat().st_mtime)
-        seen = [p.name for p in dirs[-3:]]
-        if dirs:
-            active = dirs[-1].name.replace("ES ", "").strip()
-    if not active:
+    RECENT = 6 * 3600           # a contract counts as "recording" if written within 6h
+    now = time.time()
+
+    def fresh_mt(p):            # newest file mtime if within RECENT, else None
+        files = [f for f in p.glob("*") if f.is_file()] if p.is_dir() else []
+        if not files:
+            return None
+        mt = max(f.stat().st_mtime for f in files)
+        return mt if now - mt <= RECENT else None
+
+    if not base.exists():
         return _chk("Contract", WARN, f"expected ES {want}, no tick data found", want=want)
-    if active != want:
+    want_fresh = fresh_mt(base / f"ES {want}")
+    others = sorted(p.name.replace("ES ", "").strip() for p in base.glob("ES *")
+                    if p.name != f"ES {want}" and fresh_mt(p))
+    if want_fresh:              # front month IS being recorded -> healthy (ignore the
+        return _chk("Contract", OK, f"ES {want} (front month)",   # dying contract still on)
+                    want=want, active=want, seen=[want] + others[:2])
+    if others:                  # front month NOT fresh but something else is -> real trap
         return _chk("Contract", BAD,
-                    f"recording ES {active} but front month is ES {want}",
-                    want=want, active=active, seen=seen)
-    return _chk("Contract", OK, f"ES {active} (front month)", want=want, active=active)
+                    f"front month ES {want} not recording; live instead: {', '.join(others)}",
+                    want=want, seen=others[:3])
+    return _chk("Contract", WARN, f"expected ES {want}, no fresh tick data", want=want)
 
 
 def check_footprint() -> dict:
