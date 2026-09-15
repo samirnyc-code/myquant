@@ -965,10 +965,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 			return inten <= ShakeoutLowIntensity ? 0 : (inten >= ShakeoutHighIntensity ? 2 : 1);
 		}
 
-		// TRADER-DRAWN TR ZONES: read every Rectangle the user drew (Draw -> Rectangle) via the
-		// DrawObjects collection, treat top = resistance / bottom = support, and mark springs/
-		// upthrusts (poke an edge + close back inside) against those edges. Fully causal -- the
-		// zone is user-defined; each mark uses only that bar's own OHLC vs the drawn level.
+		// TRADER-DRAWN TR ZONES: read only "Wyckoff TR Zone" drawing objects (the dedicated tool)
+		// via DrawObjects -- ordinary rectangles are ignored. Auto-type each zone (resistance if
+		// price sits mostly below the band, support if mostly above) and mark the rejection side:
+		// upthrust = test up into a resistance zone, close back below; spring = test down into a
+		// support zone, close back above. Fully causal -- each mark uses only that bar's OHLC.
 		private void RenderDrawnZoneSprings(ChartControl chartControl, ChartScale chartScale)
 		{
 			if (DrawObjects == null) return;
@@ -984,8 +985,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 			{
 				foreach (object d in objs)
 				{
-					NinjaTrader.NinjaScript.DrawingTools.Rectangle rect =
-						d as NinjaTrader.NinjaScript.DrawingTools.Rectangle;
+					NinjaTrader.NinjaScript.DrawingTools.WyckoffTRZone rect =
+						d as NinjaTrader.NinjaScript.DrawingTools.WyckoffTRZone;
 					if (rect == null || rect.StartAnchor == null || rect.EndAnchor == null) continue;
 					double top = Math.Max(rect.StartAnchor.Price, rect.EndAnchor.Price);
 					double bot = Math.Min(rect.StartAnchor.Price, rect.EndAnchor.Price);
@@ -1400,7 +1401,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		public double ShakeoutHighIntensity { get; set; }
 
 		[NinjaScriptProperty]
-		[Display(Name = "Read trader-drawn Rectangles as TR zones", GroupName = "6. Springs & upthrusts", Order = 3)]
+		[Display(Name = "Read 'Wyckoff TR Zone' drawings", GroupName = "6. Springs & upthrusts", Order = 3)]
 		public bool ShowDrawnZones { get; set; }
 
 		// --- 5. Live pace / alert ----------------------------------------------
