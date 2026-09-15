@@ -90,6 +90,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private Series<double> pdhS, pdlS;
 		private double curSessHi = double.NaN, curSessLo = double.NaN, pdHigh = double.NaN, pdLow = double.NaN;
 
+		private int inspectBar = -1;      // bar the user middle-clicked to inspect (Wyckoff read-out)
+
 		protected override void OnStateChange()
 		{
 			if (State == State.SetDefaults)
@@ -176,13 +178,15 @@ namespace NinjaTrader.NinjaScript.Indicators
 			{
 				if (ChartControl != null)
 					ChartControl.Dispatcher.InvokeAsync(new Action(delegate
-					{ ChartControl.PreviewMouseMove += OnChartMouseMove; }));
+					{ ChartControl.PreviewMouseMove += OnChartMouseMove;
+					  ChartControl.PreviewMouseDown += OnChartMouseDown; }));
 			}
 			else if (State == State.Terminated)
 			{
 				if (ChartControl != null)
 					ChartControl.Dispatcher.InvokeAsync(new Action(delegate
-					{ ChartControl.PreviewMouseMove -= OnChartMouseMove; }));
+					{ ChartControl.PreviewMouseMove -= OnChartMouseMove;
+					  ChartControl.PreviewMouseDown -= OnChartMouseDown; }));
 			}
 		}
 
@@ -199,6 +203,28 @@ namespace NinjaTrader.NinjaScript.Indicators
 					if (p.X >= r[0] && p.X <= r[0] + r[2] && p.Y >= r[1] && p.Y <= r[1] + r[3]) { hit = k; break; }
 				}
 				if (hit != flipHover) { flipHover = hit; ForceRefresh(); }
+			}
+			catch { }
+		}
+
+		// middle-mouse (mousewheel) click a bar -> pin a Wyckoff read-out card for that bar.
+		// Click the same bar again to hide.
+		private void OnChartMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+		{
+			try
+			{
+				if (e.ChangedButton != System.Windows.Input.MouseButton.Middle) return;
+				System.Windows.Point p = e.GetPosition(ChartControl);
+				int nearest = -1; double best = double.MaxValue;
+				for (int i = ChartBars.FromIndex; i <= ChartBars.ToIndex; i++)
+				{
+					if (i < 0 || i > CurrentBar) continue;
+					double bx = ChartControl.GetXByBarIndex(ChartBars, i);
+					double d = Math.Abs(bx - p.X);
+					if (d < best) { best = d; nearest = i; }
+				}
+				inspectBar = (nearest == inspectBar) ? -1 : nearest;   // toggle off on re-click
+				ForceRefresh();
 			}
 			catch { }
 		}
@@ -447,6 +473,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					if (ShowSpringUpthrust) RenderSpringUpthrust(chartControl, chartScale);
 				if (ShowEngineDot) RenderEngineDot(tfTiny, white, dim, bg, grid);
 				if (ShowSpeedo)    RenderSpeedo(tf, white, dim, gold, bg);
+					RenderInspectCard(chartControl, chartScale);
 			}
 			finally
 			{
@@ -953,6 +980,79 @@ namespace NinjaTrader.NinjaScript.Indicators
 				}
 				RenderTarget.FillGeometry(geo, br);
 			}
+		}
+
+		// Middle-click read-out: full Wyckoff picture for the inspected bar (climax-flip
+		// spring/upthrust type, beyond-PD spring/upthrust, plus bull/bear + IBS + tempo).
+		private void RenderInspectCard(ChartControl chartControl, ChartScale chartScale)
+		{
+			if (inspectBar < 1 || inspectBar > CurrentBar) return;
+			int i = inspectBar;
+			double o = Bars.GetOpen(i), h = Bars.GetHigh(i), l = Bars.GetLow(i), c = Bars.GetClose(i), v = Bars.GetVolume(i);
+			double rg = h - l; double ibs = rg > 0 ? (c - l) / rg : 0.5;
+			List<string> lines = new List<string>();
+			lines.Add(string.Format("BAR  {0:HH:mm:ss}", Bars.GetTime(i)));
+			lines.Add(string.Format("{0}   IBS {1:F2}   vol {2:F0}", c >= o ? "BULL bar" : "BEAR bar", ibs, v));
+			lines.Add(string.Format("O {0:F2}  H {1:F2}  L {2:F2}  C {3:F2}", o, h, l, c));
+			lines.Add(string.Format("tempo p{0}   climax {1}",
+				double.IsNaN(tempoPctS.GetValueAt(i)) ? 0 : (int)Math.Round(tempoPctS.GetValueAt(i)),
+				climaxS.GetValueAt(i) >= 0.5 ? "YES" : "no"));
+
+			int fd = FlipDir(i);
+			if (fd != 0)
+			{
+				bool sh = fd == 1; double vr; int sp = SpringType(i, out vr);
+				string nm = (sh ? "UT" : "SP") + (sp == 0 ? "3" : sp == 1 ? "2" : "1");
+				lines.Add("---- climax-flip ----");
+				lines.Add(string.Format("{0}  {1}   rev/trap vol x{2:F2}", sh ? "SHORT" : "LONG", nm, vr));
+				lines.Add(sp == 0 ? "  low-vol reversal (Spring #3) - best"
+					: sp == 2 ? "  high-vol Terminal Shakeout - weak" : "  moderate volume");
+			}
+
+			double pdh = pdhS.GetValueAt(i), pdl = pdlS.GetValueAt(i);
+			bool ut = !double.IsNaN(pdh) && h > pdh && c <= pdh && Bars.GetHigh(i - 1) <= pdh;
+			bool spB = !double.IsNaN(pdl) && l < pdl && c >= pdl && Bars.GetLow(i - 1) >= pdl;
+			if (ut || spB)
+			{
+				double av = 0; int nc = 0;
+				for (int j = i - 8; j < i; j++) if (j >= 0) { av += Bars.GetVolume(j); nc++; }
+				av = nc > 0 ? av / nc : v; double vr = av > 0 ? v / av : 1;
+				int tier = vr <= PenVolLowRatio ? 0 : (vr >= PenVolHighRatio ? 2 : 1);
+				lines.Add("---- beyond prior-day ----");
+				lines.Add(string.Format("{0}  {1}   pen vol x{2:F2}", ut ? "UPTHRUST" : "SPRING",
+					(ut ? "UT" : "SP") + (tier == 0 ? "3" : tier == 1 ? "2" : "1"), vr));
+				lines.Add(string.Format("  vs {0} {1:F2}  (observational)", ut ? "PDH" : "PDL", ut ? pdh : pdl));
+			}
+			if (fd == 0 && !ut && !spB) lines.Add("no Wyckoff event on this bar");
+
+			TextFormat tfc = new TextFormat(NinjaTrader.Core.Globals.DirectWriteFactory, "Consolas", 11f);
+			SolidColorBrush cbg = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.05f, 0.05f, 0.08f, 0.94f));
+			SolidColorBrush cbd = new SolidColorBrush(RenderTarget, new SharpDX.Color4(1f, 0.84f, 0f, 0.85f));
+			SolidColorBrush cin = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.92f, 0.92f, 0.92f, 1f));
+			SolidColorBrush cmk = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.45f, 0.78f, 1f, 1f));
+			try
+			{
+				float cw = 250f, ch = lines.Count * 15f + 10f;
+				float bx = (float)chartControl.GetXByBarIndex(ChartBars, i);
+				float by = chartScale.GetYByValue(h) - ch - 14f;
+				float cx = bx + 8f, cy = by;
+				if (cx + cw > ChartPanel.X + ChartPanel.W) cx = bx - cw - 8f;
+				if (cy < ChartPanel.Y + 2f) cy = chartScale.GetYByValue(l) + 14f;
+				// marker line from the bar to the card
+				RenderTarget.DrawLine(new SharpDX.Vector2(bx, chartScale.GetYByValue(h)),
+					new SharpDX.Vector2(bx, chartScale.GetYByValue(h) - 10f), cmk, 1.5f);
+				RenderTarget.FillRectangle(new SharpDX.RectangleF(cx, cy, cw, ch), cbg);
+				RenderTarget.DrawRectangle(new SharpDX.RectangleF(cx, cy, cw, ch), cbd);
+				float yy = cy + 5f;
+				for (int k = 0; k < lines.Count; k++)
+				{
+					bool hdr = lines[k].StartsWith("----");
+					RenderTarget.DrawText(lines[k], tfc, new SharpDX.RectangleF(cx + 7f, yy, cw - 12f, 14f),
+						k == 0 ? cbd : hdr ? cmk : cin);
+					yy += 15f;
+				}
+			}
+			finally { tfc.Dispose(); cbg.Dispose(); cbd.Dispose(); cin.Dispose(); cmk.Dispose(); }
 		}
 
 		private SharpDX.Color4 HeatColor(double pct)
