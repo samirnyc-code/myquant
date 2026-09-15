@@ -137,9 +137,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 				Sp3MaxRatio       = 0.94;                  // reversal/trap volume <= this = Spring #3 (best)
 				TsoMinRatio       = 1.03;                  // reversal/trap volume >= this = Terminal Shakeout (worst)
 				SkipTerminalShakeout = false;              // if true, do NOT enter TSO flips (SAR still closes; walk-forward-validated)
-				ShowSpringUpthrust = true;                 // whole-chart beyond-prior-day spring/upthrust marks
-				PenVolLowRatio  = 0.85;                    // penetration vol <= this*avg8 = #3 low-vol (best)
-				PenVolHighRatio = 1.30;                    // penetration vol >= this*avg8 = #1 terminal (weak)
+				ShowSpringUpthrust = true;                 // whole-chart beyond-prior-day spring/upthrust marks (Wyckoff Event 5)
+				ShakeoutLowIntensity  = 0.85;              // (depth+vol+range)/3 <= this = #3 (slight/low/narrow, best)
+				ShakeoutHighIntensity = 1.50;              // (depth+vol+range)/3 >= this = #1 Terminal Shakeout (deep/high/wide)
 				PaceWindowSec  = 30;
 				AlertOnClimax  = false;
 				AlertCooldownSec = 120;
@@ -914,13 +914,43 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 		}
 
-		// Whole-chart Wyckoff spring / upthrust detector (independent of the climax-flip):
-		// a FAILED poke beyond the prior-day extreme that snaps back inside on the same bar.
-		//   Spring   = Low < PDL and Close >= PDL  (bear trap  -> bullish)
-		//   Upthrust = High > PDH and Close <= PDH (bull trap  -> bearish)
-		// Only the FIRST bar to breach counts. Volume tier vs the prior-8-bar average sets
-		// the type: <= PenVolLowRatio = #3 low-vol (green, best) .. >= PenVolHighRatio =
-		// #1 terminal (red). Marks: down-triangle+label above an upthrust, up-triangle below a spring.
+		// Wyckoff spring / upthrust per Event 5 (tradingwyckoff.com). The THREE factors
+		// TOGETHER set the type -> penetration DEPTH, VOLUME, and RANGE:
+		//   #3 (best):  slight penetration + low volume + narrow range (exhaustion, tradable)
+		//   #2 (mid):   contained penetration + moderate volume        (needs a test)
+		//   #1 (worst): deep penetration + high volume + wide range    (Terminal Shakeout)
+		// Spring = break below the prior-day LOW then RECOVER (close back above it) on the first
+		// breaching bar; upthrust mirrors it at the prior-day HIGH. Candle colour is NOT a Wyckoff
+		// criterion -- the recovery plus the depth/volume/range profile are. type 0=#3 .. 2=#1.
+		private bool WyckoffPoke(int i, out bool upthrust, out int type,
+			out double penFrac, out double volRatio, out double rangeRatio, out double intensity)
+		{
+			upthrust = false; type = 1;
+			penFrac = volRatio = rangeRatio = intensity = double.NaN;
+			if (i < 1) return false;
+			double pdh = pdhS.GetValueAt(i), pdl = pdlS.GetValueAt(i);
+			double h = Bars.GetHigh(i), l = Bars.GetLow(i), c = Bars.GetClose(i);
+			bool ut = !double.IsNaN(pdh) && h > pdh && c <= pdh && Bars.GetHigh(i - 1) <= pdh;
+			bool sp = !double.IsNaN(pdl) && l < pdl && c >= pdl && Bars.GetLow(i - 1) >= pdl;
+			if (!ut && !sp) return false;
+			upthrust = ut;
+			double avgR = 0, avgV = 0; int nc = 0;
+			for (int j = i - 8; j < i; j++)
+				if (j >= 0) { avgR += Bars.GetHigh(j) - Bars.GetLow(j); avgV += Bars.GetVolume(j); nc++; }
+			avgR = nc > 0 ? avgR / nc : (h - l);
+			avgV = nc > 0 ? avgV / nc : Bars.GetVolume(i);
+			double pen = ut ? (h - pdh) : (pdl - l);                 // DEPTH of penetration beyond the level
+			penFrac    = avgR > 0 ? pen / avgR : 1;
+			volRatio   = avgV > 0 ? Bars.GetVolume(i) / avgV : 1;    // VOLUME vs recent
+			rangeRatio = avgR > 0 ? (h - l) / avgR : 1;              // RANGE (bar spread) vs recent
+			intensity  = (penFrac + volRatio + rangeRatio) / 3.0;    // Wyckoff's 3 factors, combined
+			type = intensity <= ShakeoutLowIntensity ? 0
+				 : (intensity >= ShakeoutHighIntensity ? 2 : 1);
+			return true;
+		}
+
+		// Whole-chart spring/upthrust marks: down-triangle+label above an upthrust,
+		// up-triangle+label below a spring; colour by Wyckoff type (green #3 / amber #2 / red #1).
 		private void RenderSpringUpthrust(ChartControl chartControl, ChartScale chartScale)
 		{
 			int from = Math.Max(1, ChartBars.FromIndex), to = Math.Min(ChartBars.ToIndex, CurrentBar);
@@ -933,32 +963,22 @@ namespace NinjaTrader.NinjaScript.Indicators
 			{
 				for (int i = from; i <= to; i++)
 				{
-					double pdh = pdhS.GetValueAt(i), pdl = pdlS.GetValueAt(i);
-					double hi = Bars.GetHigh(i), lo = Bars.GetLow(i), cl = Bars.GetClose(i);
-					bool ut = !double.IsNaN(pdh) && hi > pdh && cl <= pdh && Bars.GetHigh(i - 1) <= pdh;
-					bool sp = !double.IsNaN(pdl) && lo < pdl && cl >= pdl && Bars.GetLow(i - 1) >= pdl;
-					if (!ut && !sp) continue;
-					double v = Bars.GetVolume(i), av = 0; int nc = 0;
-					for (int j = i - 8; j < i; j++) if (j >= 0) { av += Bars.GetVolume(j); nc++; }
-					av = nc > 0 ? av / nc : v;
-					double vr = av > 0 ? v / av : 1;
-					int tier = vr <= PenVolLowRatio ? 0 : (vr >= PenVolHighRatio ? 2 : 1);
-					SolidColorBrush br = tier == 0 ? g : tier == 2 ? r : a;
-					string lab = (ut ? "UT" : "SP") + (tier == 0 ? "3" : tier == 1 ? "2" : "1");
+					bool ut; int type; double pf, vrr, rr, inten;
+					if (!WyckoffPoke(i, out ut, out type, out pf, out vrr, out rr, out inten)) continue;
+					SolidColorBrush br = type == 0 ? g : type == 2 ? r : a;
+					string lab = (ut ? "UT" : "SP") + (type == 0 ? "3" : type == 1 ? "2" : "1");
 					float x = chartControl.GetXByBarIndex(ChartBars, i);
 					if (ut)
 					{
-						float y = chartScale.GetYByValue(hi);
+						float y = chartScale.GetYByValue(Bars.GetHigh(i));
 						FillTriangle(x, y - 13f, y - 4f, 5f, br);
-						RenderTarget.DrawText(lab + " " + vr.ToString("F2"), tf,
-							new SharpDX.RectangleF(x + 7f, y - 19f, 72f, 12f), br);
+						RenderTarget.DrawText(lab, tf, new SharpDX.RectangleF(x + 7f, y - 19f, 40f, 12f), br);
 					}
 					else
 					{
-						float y = chartScale.GetYByValue(lo);
+						float y = chartScale.GetYByValue(Bars.GetLow(i));
 						FillTriangle(x, y + 13f, y + 4f, 5f, br);
-						RenderTarget.DrawText(lab + " " + vr.ToString("F2"), tf,
-							new SharpDX.RectangleF(x + 7f, y + 5f, 72f, 12f), br);
+						RenderTarget.DrawText(lab, tf, new SharpDX.RectangleF(x + 7f, y + 5f, 40f, 12f), br);
 					}
 				}
 			}
@@ -1010,20 +1030,17 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 
 			double pdh = pdhS.GetValueAt(i), pdl = pdlS.GetValueAt(i);
-			bool ut = !double.IsNaN(pdh) && h > pdh && c <= pdh && Bars.GetHigh(i - 1) <= pdh;
-			bool spB = !double.IsNaN(pdl) && l < pdl && c >= pdl && Bars.GetLow(i - 1) >= pdl;
-			if (ut || spB)
+			bool utE; int spType; double pf, vrr, rrr, inten;
+			bool pokeEv = WyckoffPoke(i, out utE, out spType, out pf, out vrr, out rrr, out inten);
+			if (pokeEv)
 			{
-				double av = 0; int nc = 0;
-				for (int j = i - 8; j < i; j++) if (j >= 0) { av += Bars.GetVolume(j); nc++; }
-				av = nc > 0 ? av / nc : v; double vr = av > 0 ? v / av : 1;
-				int tier = vr <= PenVolLowRatio ? 0 : (vr >= PenVolHighRatio ? 2 : 1);
-				lines.Add("---- beyond prior-day ----");
-				lines.Add(string.Format("{0}  {1}   pen vol x{2:F2}", ut ? "UPTHRUST" : "SPRING",
-					(ut ? "UT" : "SP") + (tier == 0 ? "3" : tier == 1 ? "2" : "1"), vr));
-				lines.Add(string.Format("  vs {0} {1:F2}  (observational)", ut ? "PDH" : "PDL", ut ? pdh : pdl));
+				lines.Add("---- beyond prior-day (Wyckoff) ----");
+				lines.Add(string.Format("{0}  {1}", utE ? "UPTHRUST" : "SPRING",
+					(utE ? "UT" : "SP") + (spType == 0 ? "3  (best)" : spType == 1 ? "2" : "1  Terminal")));
+				lines.Add(string.Format("  depth x{0:F2}  vol x{1:F2}  range x{2:F2}", pf, vrr, rrr));
+				lines.Add(string.Format("  vs {0} {1:F2}  (observational)", utE ? "PDH" : "PDL", utE ? pdh : pdl));
 			}
-			if (fd == 0 && !ut && !spB) lines.Add("no Wyckoff event on this bar");
+			if (fd == 0 && !pokeEv) lines.Add("no Wyckoff event on this bar");
 
 			TextFormat tfc = new TextFormat(NinjaTrader.Core.Globals.DirectWriteFactory, "Consolas", 11f);
 			SolidColorBrush cbg = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.05f, 0.05f, 0.08f, 0.94f));
@@ -1283,13 +1300,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[Display(Name = "Show springs / upthrusts (beyond prior-day)", GroupName = "6. Springs & upthrusts", Order = 0)]
 		public bool ShowSpringUpthrust { get; set; }
 
-		[NinjaScriptProperty, Range(0.10, 2.0)]
-		[Display(Name = "Penetration low-vol ratio (#3 best)", GroupName = "6. Springs & upthrusts", Order = 1)]
-		public double PenVolLowRatio { get; set; }
-
 		[NinjaScriptProperty, Range(0.10, 3.0)]
-		[Display(Name = "Penetration high-vol ratio (#1 terminal)", GroupName = "6. Springs & upthrusts", Order = 2)]
-		public double PenVolHighRatio { get; set; }
+		[Display(Name = "Shakeout intensity: #3 max (depth+vol+range)", GroupName = "6. Springs & upthrusts", Order = 1)]
+		public double ShakeoutLowIntensity { get; set; }
+
+		[NinjaScriptProperty, Range(0.20, 5.0)]
+		[Display(Name = "Shakeout intensity: #1 min (Terminal Shakeout)", GroupName = "6. Springs & upthrusts", Order = 2)]
+		public double ShakeoutHighIntensity { get; set; }
 
 		// --- 5. Live pace / alert ----------------------------------------------
 		[NinjaScriptProperty, Range(5, 300)]

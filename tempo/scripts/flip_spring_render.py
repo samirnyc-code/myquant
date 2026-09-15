@@ -112,15 +112,22 @@ def main():
         ax.annotate("PDL", (len(g) - 1, pdl), color="#8b877d", fontsize=8,
                     family="monospace", va="top", ha="right")
         vol = g["vol"].to_numpy(dtype=float)
+        rng = h - l
         nsp = nut = 0
         for i in range(1, len(g)):
             ut = h[i] > pdh and c[i] <= pdh and h[i - 1] <= pdh
             sp = l[i] < pdl and c[i] >= pdl and l[i - 1] >= pdl
             if not (ut or sp):
                 continue
-            av = vol[max(0, i - 8):i].mean() if i > 0 else vol[i]
-            vr = vol[i] / av if av > 0 else 1
-            tr = 0 if vr <= 0.85 else (2 if vr >= 1.30 else 1)
+            # Wyckoff 3-factor classification: depth + volume + range
+            avR = rng[max(0, i - 8):i].mean() if i > 0 else rng[i]
+            avV = vol[max(0, i - 8):i].mean() if i > 0 else vol[i]
+            pen = (h[i] - pdh) if ut else (pdl - l[i])
+            pen_f = pen / avR if avR > 0 else 1
+            vol_r = vol[i] / avV if avV > 0 else 1
+            rng_r = rng[i] / avR if avR > 0 else 1
+            inten = (pen_f + vol_r + rng_r) / 3
+            tr = 0 if inten <= 0.85 else (2 if inten >= 1.50 else 1)
             lab = ("UT" if ut else "SP") + tier[tr]
             if ut:
                 ax.annotate(lab, (i, h[i]), xytext=(0, 8), textcoords="offset points",

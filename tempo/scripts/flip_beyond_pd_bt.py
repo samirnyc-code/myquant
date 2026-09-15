@@ -7,9 +7,10 @@ Event (matches the indicator exactly):
   Upthrust = High > PDH and Close <= PDH and prior-bar High <= PDH -> SHORT
   (PDH/PDL = prior session high/low; only the FIRST breach bar counts)
 
-Volume tier (pre-registered LOW = better, Wyckoff Spring #3):
-  ratio = vol[bar] / mean(vol[prior 8 bars]);  <=0.85 = #3 (best) .. >=1.30 = #1 terminal
-  (these are the shipped indicator defaults PenVolLowRatio / PenVolHighRatio)
+Wyckoff type (Event 5, three factors combined — matches the indicator):
+  intensity = (depth + volume + range) / 3, each vs the prior-8-bar average;
+  <=0.85 = #3 (slight/low/narrow, best) .. >=1.50 = #1 Terminal Shakeout (deep/high/wide).
+  Pre-registered: #3 (low intensity) should beat #1 (high intensity).
 
 Mechanics (frozen, mirror the flip harness): enter at the breach-bar CLOSE, stop 1t
 beyond the poke extreme, RR2 target, one position at a time per session, conservative
@@ -35,7 +36,7 @@ TICK = 0.25
 PT_USD = 50.0
 RR = 2
 TRAIN_MAX = 2022
-VOL_LOW, VOL_HIGH = 0.85, 1.30      # shipped indicator defaults
+LOW_INT, HIGH_INT = 0.85, 1.50      # shipped indicator defaults (Shakeout intensity cutoffs)
 
 
 def sessions(df):
@@ -55,8 +56,9 @@ def sessions(df):
 
 
 def detect(s):
-    """return list of events: dict(i, short, tier, ratio)."""
+    """return list of events: dict(i, short, tier, ratio). ratio = combined intensity."""
     h, l, c, v, n = s["h"], s["l"], s["c"], s["v"], s["n"]
+    rng = h - l
     pdh, pdl = s["pdh"], s["pdl"]
     ev = []
     for i in range(1, n):
@@ -64,10 +66,15 @@ def detect(s):
         sp = not np.isnan(pdl) and l[i] < pdl and c[i] >= pdl and l[i - 1] >= pdl
         if not (ut or sp):
             continue
-        av = v[max(0, i - 8):i].mean() if i > 0 else v[i]
-        ratio = v[i] / av if av > 0 else 1.0
-        tier = 0 if ratio <= VOL_LOW else (2 if ratio >= VOL_HIGH else 1)  # 0 low .. 2 high
-        ev.append({"i": i, "short": ut, "tier": tier, "ratio": ratio})
+        avR = rng[max(0, i - 8):i].mean() if i > 0 else rng[i]
+        avV = v[max(0, i - 8):i].mean() if i > 0 else v[i]
+        pen = (h[i] - pdh) if ut else (pdl - l[i])
+        pen_f = pen / avR if avR > 0 else 1.0
+        vol_r = v[i] / avV if avV > 0 else 1.0
+        rng_r = rng[i] / avR if avR > 0 else 1.0
+        inten = (pen_f + vol_r + rng_r) / 3.0                 # Wyckoff 3 factors combined
+        tier = 0 if inten <= LOW_INT else (2 if inten >= HIGH_INT else 1)  # 0 #3 best .. 2 #1 terminal
+        ev.append({"i": i, "short": ut, "tier": tier, "ratio": inten})
     return ev
 
 
