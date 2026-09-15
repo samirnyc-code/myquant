@@ -1,12 +1,12 @@
-1317 tick days
-  0/1317 2021-06-18.parquet
-  200/1317 2022-04-04.parquet
-  400/1317 2023-01-20.parquet
-  600/1317 2023-11-06.parquet
-  800/1317 2024-08-23.parquet
-  1000/1317 2025-06-12.parquet
-  1200/1317 2026-03-27.parquet
-WROTE c:\Users\Admin\myquant\research\scalp_swing\es_5m_rth.parquet  shape=(107497, 9)  2021-06-18..2026-09-11
+1318 tick days
+  0/1318 2021-06-18.parquet
+  200/1318 2022-04-04.parquet
+  400/1318 2023-01-20.parquet
+  600/1318 2023-11-06.parquet
+  800/1318 2024-08-23.parquet
+  1000/1318 2025-06-12.parquet
+  1200/1318 2026-03-27.parquet
+WROTE c:\Users\Admin\myquant\research\scalp_swing\es_5m_rth.parquet  shape=(107578, 9)  2021-06-18..2026-09-14
              DateTime     Open     High     Low    Close  Volume  Ticks        Date  bar
 0 2021-06-18 08:30:00  4975.25  4982.50  4970.0  4976.50   85671  19041  2021-06-18    0
 1 2021-06-18 08:35:00  4976.50  4980.25  4972.0  4976.75   43278  10084  2021-06-18    1
