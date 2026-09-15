@@ -140,6 +140,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				ShowSpringUpthrust = true;                 // whole-chart beyond-prior-day spring/upthrust marks (Wyckoff Event 5)
 				ShakeoutLowIntensity  = 0.85;              // (depth+vol+range)/3 <= this = #3 (slight/low/narrow, best)
 				ShakeoutHighIntensity = 1.50;              // (depth+vol+range)/3 >= this = #1 Terminal Shakeout (deep/high/wide)
+				ShowDrawnZones     = true;                 // read trader-drawn Rectangles as TR zones (top=R, bottom=S)
 				PaceWindowSec  = 30;
 				AlertOnClimax  = false;
 				AlertCooldownSec = 120;
@@ -471,6 +472,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				RenderClimaxDots(chartControl, chartScale);
 				if (ShowClimaxFlip) RenderClimaxFlips(chartControl, chartScale);
 					if (ShowSpringUpthrust) RenderSpringUpthrust(chartControl, chartScale);
+					if (ShowDrawnZones) RenderDrawnZoneSprings(chartControl, chartScale);
 				if (ShowEngineDot) RenderEngineDot(tfTiny, white, dim, bg, grid);
 				if (ShowSpeedo)    RenderSpeedo(tf, white, dim, gold, bg);
 					RenderInspectCard(chartControl, chartScale);
@@ -949,6 +951,84 @@ namespace NinjaTrader.NinjaScript.Indicators
 			return true;
 		}
 
+		// Wyckoff type at an arbitrary support/resistance level (depth+volume+range vs prior 8).
+		private int ShakeoutTierAt(int i, bool up, double lvl)
+		{
+			double avR = 0, avV = 0; int nc = 0;
+			for (int j = i - 8; j < i; j++)
+				if (j >= 0) { avR += Bars.GetHigh(j) - Bars.GetLow(j); avV += Bars.GetVolume(j); nc++; }
+			double br0 = Bars.GetHigh(i) - Bars.GetLow(i);
+			avR = nc > 0 ? avR / nc : br0; avV = nc > 0 ? avV / nc : Bars.GetVolume(i);
+			double pen = up ? (Bars.GetHigh(i) - lvl) : (lvl - Bars.GetLow(i));
+			double inten = ((avR > 0 ? pen / avR : 1) + (avV > 0 ? Bars.GetVolume(i) / avV : 1)
+				+ (avR > 0 ? br0 / avR : 1)) / 3.0;
+			return inten <= ShakeoutLowIntensity ? 0 : (inten >= ShakeoutHighIntensity ? 2 : 1);
+		}
+
+		// TRADER-DRAWN TR ZONES: read every Rectangle the user drew (Draw -> Rectangle) via the
+		// DrawObjects collection, treat top = resistance / bottom = support, and mark springs/
+		// upthrusts (poke an edge + close back inside) against those edges. Fully causal -- the
+		// zone is user-defined; each mark uses only that bar's own OHLC vs the drawn level.
+		private void RenderDrawnZoneSprings(ChartControl chartControl, ChartScale chartScale)
+		{
+			if (DrawObjects == null) return;
+			List<object> objs = new List<object>();
+			try { foreach (object d in DrawObjects) objs.Add(d); } catch { return; }
+			if (objs.Count == 0) return;
+			TextFormat tf = new TextFormat(NinjaTrader.Core.Globals.DirectWriteFactory, "Consolas", 9f);
+			SolidColorBrush g = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.30f, 0.82f, 0.63f, 0.95f));
+			SolidColorBrush a = new SolidColorBrush(RenderTarget, new SharpDX.Color4(1f, 0.84f, 0f, 0.95f));
+			SolidColorBrush r = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.94f, 0.33f, 0.31f, 0.95f));
+			SolidColorBrush edge = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.55f, 0.75f, 1f, 0.55f));
+			try
+			{
+				foreach (object d in objs)
+				{
+					NinjaTrader.NinjaScript.DrawingTools.Rectangle rect =
+						d as NinjaTrader.NinjaScript.DrawingTools.Rectangle;
+					if (rect == null || rect.StartAnchor == null || rect.EndAnchor == null) continue;
+					double top = Math.Max(rect.StartAnchor.Price, rect.EndAnchor.Price);
+					double bot = Math.Min(rect.StartAnchor.Price, rect.EndAnchor.Price);
+					if (top - bot < TickSize) continue;
+					DateTime tA = rect.StartAnchor.Time, tB = rect.EndAnchor.Time;
+					int b0 = Bars.GetBar(tA < tB ? tA : tB);
+					if (b0 < 1) b0 = 1;
+					int lo = Math.Max(b0, ChartBars.FromIndex);
+					int hi = Math.Min(ChartBars.ToIndex, CurrentBar);
+					if (hi < lo) continue;
+					// show the levels the indicator READ off the rectangle
+					float xL = chartControl.GetXByBarIndex(ChartBars, lo);
+					float xR = chartControl.GetXByBarIndex(ChartBars, hi);
+					float yT = chartScale.GetYByValue(top), yB = chartScale.GetYByValue(bot);
+					RenderTarget.DrawLine(new SharpDX.Vector2(xL, yT), new SharpDX.Vector2(xR, yT), edge, 1.2f);
+					RenderTarget.DrawLine(new SharpDX.Vector2(xL, yB), new SharpDX.Vector2(xR, yB), edge, 1.2f);
+					for (int i = Math.Max(lo, 1); i <= hi; i++)
+					{
+						bool up = Bars.GetHigh(i) > top && Bars.GetClose(i) <= top && Bars.GetHigh(i - 1) <= top;
+						bool sp = Bars.GetLow(i) < bot && Bars.GetClose(i) >= bot && Bars.GetLow(i - 1) >= bot;
+						if (!up && !sp) continue;
+						int tier = ShakeoutTierAt(i, up, up ? top : bot);
+						SolidColorBrush br = tier == 0 ? g : tier == 2 ? r : a;
+						string lab = (up ? "UT" : "SP") + (tier == 0 ? "3" : tier == 1 ? "2" : "1");
+						float x = chartControl.GetXByBarIndex(ChartBars, i);
+						if (up)
+						{
+							float y = chartScale.GetYByValue(Bars.GetHigh(i));
+							FillTriangle(x, y - 13f, y - 4f, 5f, br);
+							RenderTarget.DrawText(lab, tf, new SharpDX.RectangleF(x + 7f, y - 19f, 40f, 12f), br);
+						}
+						else
+						{
+							float y = chartScale.GetYByValue(Bars.GetLow(i));
+							FillTriangle(x, y + 13f, y + 4f, 5f, br);
+							RenderTarget.DrawText(lab, tf, new SharpDX.RectangleF(x + 7f, y + 5f, 40f, 12f), br);
+						}
+					}
+				}
+			}
+			finally { tf.Dispose(); g.Dispose(); a.Dispose(); r.Dispose(); edge.Dispose(); }
+		}
+
 		// Whole-chart spring/upthrust marks: down-triangle+label above an upthrust,
 		// up-triangle+label below a spring; colour by Wyckoff type (green #3 / amber #2 / red #1).
 		private void RenderSpringUpthrust(ChartControl chartControl, ChartScale chartScale)
@@ -1307,6 +1387,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[NinjaScriptProperty, Range(0.20, 5.0)]
 		[Display(Name = "Shakeout intensity: #1 min (Terminal Shakeout)", GroupName = "6. Springs & upthrusts", Order = 2)]
 		public double ShakeoutHighIntensity { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name = "Read trader-drawn Rectangles as TR zones", GroupName = "6. Springs & upthrusts", Order = 3)]
+		public bool ShowDrawnZones { get; set; }
 
 		// --- 5. Live pace / alert ----------------------------------------------
 		[NinjaScriptProperty, Range(5, 300)]
