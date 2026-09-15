@@ -154,7 +154,60 @@ def main():
     ib.disconnect()
 
 
+def read_series():
+    """per-structure P&L series (floats/None) from the timeseries CSV."""
+    series = {st["id"]: [] for st in STRUCTS}
+    if not TS.exists():
+        return series
+    lines = TS.read_text().splitlines()
+    if len(lines) < 2:
+        return series
+    hdr = lines[0].split(",")
+    idx = {st["id"]: (hdr.index(st["id"]) if st["id"] in hdr else None) for st in STRUCTS}
+    for ln in lines[1:]:
+        p = ln.split(",")
+        for st in STRUCTS:
+            j = idx[st["id"]]
+            v = p[j] if (j is not None and j < len(p)) else ""
+            series[st["id"]].append(None if v in ("", "None") else float(v))
+    return series
+
+
+def svg_curve(vals):
+    pts = [(i, v) for i, v in enumerate(vals) if v is not None]
+    if len(pts) < 2:
+        return "<div class='sub' style='height:100px'>collecting…</div>"
+    ys = [v for _, v in pts] + [0.0]
+    lo, hi = min(ys), max(ys)
+    rng = (hi - lo) or 1.0
+    W, H, pad = 340, 100, 10
+    n = max(1, len(vals) - 1)
+    def X(i): return pad + (W - 2 * pad) * i / n
+    def Y(v): return pad + (H - 2 * pad) * (1 - (v - lo) / rng)
+    poly = " ".join(f"{X(i):.1f},{Y(v):.1f}" for i, v in pts)
+    z = Y(0.0)
+    last = pts[-1][1]
+    col = "#31c07a" if last > 0 else "#ef5350" if last < 0 else "#9aa"
+    area = f"{X(pts[0][0]):.1f},{z:.1f} " + poly + f" {X(pts[-1][0]):.1f},{z:.1f}"
+    return (f"<svg viewBox='0 0 {W} {H}' width='100%' height='100' preserveAspectRatio='none'>"
+            f"<line x1='{pad}' y1='{z:.1f}' x2='{W-pad}' y2='{z:.1f}' stroke='#3a3a44' stroke-dasharray='3,3'/>"
+            f"<polygon points='{area}' fill='{col}' opacity='0.12'/>"
+            f"<polyline points='{poly}' fill='none' stroke='{col}' stroke-width='1.6'/>"
+            f"<circle cx='{X(pts[-1][0]):.1f}' cy='{Y(last):.1f}' r='3' fill='{col}'/>"
+            f"<text x='{W-pad}' y='14' fill='{col}' font-size='12' text-anchor='end'>{last:+,.0f}</text>"
+            f"<text x='{pad}' y='{H-2}' fill='#666' font-size='9'>min {lo:+.0f}</text>"
+            f"<text x='{W-pad}' y='{H-2}' fill='#666' font-size='9' text-anchor='end'>max {hi:+.0f}</text>"
+            f"</svg>")
+
+
 def write_dash(state, row):
+    series = read_series()
+    curves = ""
+    for st in STRUCTS:
+        sid = st["id"]
+        curves += (f"<div class='card'><div class='ct'>{sid}</div>"
+                   f"{svg_curve(series[sid])}</div>")
+
     def cell(pnl):
         if pnl is None:
             return "<td class='n'>—</td>"
@@ -183,13 +236,18 @@ h2{{color:#eee}} .sub{{color:#888}} table{{border-collapse:collapse;margin-top:1
 td,th{{padding:7px 12px;border-bottom:1px solid #262630;text-align:right}}
 td:first-child,td.lg{{text-align:left}} th{{color:#9aa;text-align:right;border-bottom:1px solid #444}}
 .up{{color:#31c07a;font-weight:bold}} .dn{{color:#ef5350;font-weight:bold}} .n{{color:#888}}
-.lg{{color:#9fb4d8}} .op{{color:#e8c000}} .ex{{color:#888}} .tot{{font-size:18px;margin-top:14px}}</style></head>
+.lg{{color:#9fb4d8}} .op{{color:#e8c000}} .ex{{color:#888}} .tot{{font-size:18px;margin-top:14px}}
+.grid{{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}}
+.card{{background:#14141a;border:1px solid #262630;border-radius:6px;padding:8px 10px}}
+.ct{{color:#9fb4d8;font-size:12px;margin-bottom:2px}}</style></head>
 <body><h2>SPY bounce test — 4 structures, live P&amp;L</h2>
 <div class=sub>entry locked {state['locked_ct']} · SPY@entry {state['spy_entry']} · updated {row['ts']} (every {POLL}s) · SPY {row['spy']}</div>
 <table><tr><th>structure</th><th>legs</th><th>entry</th><th>P&amp;L $</th><th>status</th></tr>
 {rows}</table>
 <div class=tot>net P&amp;L: <span class='{ 'up' if total>0 else 'dn' if total<0 else 'n'}'>{total:+,.0f}</span>
-<span class=sub>(marketable entry fills; MTM at mid; intrinsic at expiry)</span></div></body></html>"""
+<span class=sub>(marketable entry fills; MTM at mid; intrinsic at expiry)</span></div>
+<h2 style='margin-top:22px;font-size:15px'>equity curves (P&amp;L $ per trade, each 30s snapshot)</h2>
+<div class=grid>{curves}</div></body></html>"""
     tmp = DASH.with_suffix(".tmp"); tmp.write_text(html, encoding="utf-8"); tmp.replace(DASH)
 
 
