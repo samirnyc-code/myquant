@@ -176,27 +176,29 @@ def read_series():
 def svg_curve(vals):
     pts = [(i, v) for i, v in enumerate(vals) if v is not None]
     if len(pts) < 2:
-        return "<div class='sub' style='height:100px'>collecting…</div>"
+        return "<div class='sub' style='height:120px'>collecting…</div>"
     ys = [v for _, v in pts] + [0.0]
     lo, hi = min(ys), max(ys)
     rng = (hi - lo) or 1.0
-    W, H, pad = 340, 100, 10
+    # viewBox aspect (~7.5:1) ~= the card shape, uniform scaling -> no distortion
+    W, H, padx, pady = 900, 120, 14, 16
     n = max(1, len(vals) - 1)
-    def X(i): return pad + (W - 2 * pad) * i / n
-    def Y(v): return pad + (H - 2 * pad) * (1 - (v - lo) / rng)
+    def X(i): return padx + (W - 2 * padx) * i / n
+    def Y(v): return pady + (H - 2 * pady) * (1 - (v - lo) / rng)
     poly = " ".join(f"{X(i):.1f},{Y(v):.1f}" for i, v in pts)
     z = Y(0.0)
     last = pts[-1][1]
     col = "#31c07a" if last > 0 else "#ef5350" if last < 0 else "#9aa"
     area = f"{X(pts[0][0]):.1f},{z:.1f} " + poly + f" {X(pts[-1][0]):.1f},{z:.1f}"
-    return (f"<svg viewBox='0 0 {W} {H}' width='100%' height='100' preserveAspectRatio='none'>"
-            f"<line x1='{pad}' y1='{z:.1f}' x2='{W-pad}' y2='{z:.1f}' stroke='#3a3a44' stroke-dasharray='3,3'/>"
+    return (f"<svg viewBox='0 0 {W} {H}' width='100%' style='height:auto;display:block'>"
+            f"<line x1='{padx}' y1='{z:.1f}' x2='{W-padx}' y2='{z:.1f}' stroke='#3a3a44' stroke-dasharray='4,4'/>"
             f"<polygon points='{area}' fill='{col}' opacity='0.12'/>"
-            f"<polyline points='{poly}' fill='none' stroke='{col}' stroke-width='1.6'/>"
-            f"<circle cx='{X(pts[-1][0]):.1f}' cy='{Y(last):.1f}' r='3' fill='{col}'/>"
-            f"<text x='{W-pad}' y='14' fill='{col}' font-size='12' text-anchor='end'>{last:+,.0f}</text>"
-            f"<text x='{pad}' y='{H-2}' fill='#666' font-size='9'>min {lo:+.0f}</text>"
-            f"<text x='{W-pad}' y='{H-2}' fill='#666' font-size='9' text-anchor='end'>max {hi:+.0f}</text>"
+            f"<polyline points='{poly}' fill='none' stroke='{col}' stroke-width='2' "
+            f"stroke-linejoin='round' vector-effect='non-scaling-stroke'/>"
+            f"<circle cx='{X(pts[-1][0]):.1f}' cy='{Y(last):.1f}' r='3.5' fill='{col}'/>"
+            f"<text x='{W-padx}' y='18' fill='{col}' font-size='15' text-anchor='end'>{last:+,.0f}</text>"
+            f"<text x='{padx}' y='{H-4}' fill='#777' font-size='11'>min {lo:+.0f}</text>"
+            f"<text x='{W-padx}' y='{H-4}' fill='#777' font-size='11' text-anchor='end'>max {hi:+.0f}</text>"
             f"</svg>")
 
 
