@@ -977,6 +977,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			try { foreach (object d in DrawObjects) objs.Add(d); } catch { return; }
 			if (objs.Count == 0) return;
 			TextFormat tf = new TextFormat(NinjaTrader.Core.Globals.DirectWriteFactory, "Consolas", 9f);
+			tf.TextAlignment = SharpDX.DirectWrite.TextAlignment.Center;
 			SolidColorBrush g = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.30f, 0.82f, 0.63f, 0.95f));
 			SolidColorBrush a = new SolidColorBrush(RenderTarget, new SharpDX.Color4(1f, 0.84f, 0f, 0.95f));
 			SolidColorBrush r = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.94f, 0.33f, 0.31f, 0.95f));
@@ -1039,13 +1040,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 							{
 								float y = chartScale.GetYByValue(Bars.GetHigh(i));
 								FillTriangle(x, y - 13f, y - 4f, 5f, br);
-								RenderTarget.DrawText(lab, tf, new SharpDX.RectangleF(x + 7f, y - 19f, 40f, 12f), br);
+								RenderTarget.DrawText(lab, tf, new SharpDX.RectangleF(x - 25f, y - 28f, 50f, 12f), br);
 							}
 							else
 							{
 								float y = chartScale.GetYByValue(Bars.GetLow(i));
 								FillTriangle(x, y + 13f, y + 4f, 5f, br);
-								RenderTarget.DrawText(lab, tf, new SharpDX.RectangleF(x + 7f, y + 5f, 40f, 12f), br);
+								RenderTarget.DrawText(lab, tf, new SharpDX.RectangleF(x - 25f, y + 15f, 50f, 12f), br);
 							}
 							spBar = i; spTempo = tp; spRef = isRes ? Bars.GetHigh(i) : Bars.GetLow(i);
 						}
@@ -1071,6 +1072,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			int from = Math.Max(1, ChartBars.FromIndex), to = Math.Min(ChartBars.ToIndex, CurrentBar);
 			if (to < from) return;
 			TextFormat tf = new TextFormat(NinjaTrader.Core.Globals.DirectWriteFactory, "Consolas", 9f);
+			tf.TextAlignment = SharpDX.DirectWrite.TextAlignment.Center;
 			SolidColorBrush g = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.30f, 0.82f, 0.63f, 0.95f));
 			SolidColorBrush a = new SolidColorBrush(RenderTarget, new SharpDX.Color4(1f, 0.84f, 0f, 0.95f));
 			SolidColorBrush r = new SolidColorBrush(RenderTarget, new SharpDX.Color4(0.94f, 0.33f, 0.31f, 0.95f));
@@ -1087,13 +1089,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 					{
 						float y = chartScale.GetYByValue(Bars.GetHigh(i));
 						FillTriangle(x, y - 13f, y - 4f, 5f, br);
-						RenderTarget.DrawText(lab, tf, new SharpDX.RectangleF(x + 7f, y - 19f, 40f, 12f), br);
+						RenderTarget.DrawText(lab, tf, new SharpDX.RectangleF(x - 25f, y - 28f, 50f, 12f), br);
 					}
 					else
 					{
 						float y = chartScale.GetYByValue(Bars.GetLow(i));
 						FillTriangle(x, y + 13f, y + 4f, 5f, br);
-						RenderTarget.DrawText(lab, tf, new SharpDX.RectangleF(x + 7f, y + 5f, 40f, 12f), br);
+						RenderTarget.DrawText(lab, tf, new SharpDX.RectangleF(x - 25f, y + 15f, 50f, 12f), br);
 					}
 				}
 			}
