@@ -26,13 +26,19 @@ TS = OUT / "pnl_timeseries.csv"
 DASH = OUT / "tracker_dashboard.html"
 POLL = 30
 
-# (right, strike, qty)  qty +1 long / -1 short
+# (right, strike, qty)  qty +1 long / -1 short. ref_k = the near-the-money strike on
+# the profit (upside) side; breakeven = ref_k + net entry value; all 4 profit if S_T > BE.
 STRUCTS = [
-    {"id": "#1 Long 758C", "exp": "20260916", "legs": [("C", 758.0, +1)]},
-    {"id": "#2 757/759C debit", "exp": "20260916", "legs": [("C", 757.0, +1), ("C", 759.0, -1)]},
-    {"id": "#3 756/754P credit", "exp": "20260916", "legs": [("P", 756.0, -1), ("P", 754.0, +1)]},
-    {"id": "#4 Long 757C (~1wk)", "exp": "20260922", "legs": [("C", 757.0, +1)]},
+    {"id": "#1 Long 758C", "exp": "20260916", "ref_k": 758.0, "legs": [("C", 758.0, +1)]},
+    {"id": "#2 757/759C debit", "exp": "20260916", "ref_k": 757.0, "legs": [("C", 757.0, +1), ("C", 759.0, -1)]},
+    {"id": "#3 756/754P credit", "exp": "20260916", "ref_k": 756.0, "legs": [("P", 756.0, -1), ("P", 754.0, +1)]},
+    {"id": "#4 Long 757C (~1wk)", "exp": "20260922", "ref_k": 757.0, "legs": [("C", 757.0, +1)]},
 ]
+STRAD_K = 757.0
+
+
+def norm_cdf(x):
+    return 0.5 * (1.0 + math.erf(x / math.sqrt(2.0)))
 
 
 def uniq_legs():
@@ -54,12 +60,12 @@ def main():
     ib = connect(allow_live=True, market_data_type=1, timeout=20)
     ib.reqMarketDataType(1)
 
-    # subscribe streaming tickers for every leg + a 757 C/P pair for spot (parity)
+    # subscribe every leg + a 757 C/P pair PER expiry (spot parity + ATM straddle -> IV)
     legs = uniq_legs()
-    SPOT_EXP, SPOT_K = STRUCTS[1]["exp"], 757.0
-    for r in ("C", "P"):
-        if (SPOT_EXP, SPOT_K, r) not in legs:
-            legs.append((SPOT_EXP, SPOT_K, r))
+    for e in sorted({st["exp"] for st in STRUCTS}):
+        for r in ("C", "P"):
+            if (e, STRAD_K, r) not in legs:
+                legs.append((e, STRAD_K, r))
     contracts = {kk: Option("SPY", kk[0], kk[1], kk[2], "SMART", tradingClass="SPY") for kk in legs}
     ib.qualifyContracts(*contracts.values())
     tickers = {kk: ib.reqMktData(c, "", False, False) for kk, c in contracts.items() if c.conId}
@@ -110,12 +116,17 @@ def main():
             ib.sleep(POLL)
             now = dt.datetime.now()
             spot = spy_spot()
-            row = {"ts": now.strftime("%Y-%m-%d %H:%M:%S"), "spy": spot, "pnl": {}}
+            strad = {}                                    # ATM straddle -> implied move, per expiry
+            for e in sorted({s["exp"] for s in STRUCTS}):
+                c = leg_px((e, STRAD_K, "C"), "mid"); p = leg_px((e, STRAD_K, "P"), "mid")
+                strad[e] = (c + p) if (c and p) else None
+            row = {"ts": now.strftime("%Y-%m-%d %H:%M:%S"), "spy": spot, "pnl": {}, "pop": {}, "be": {}}
             for st in STRUCTS:
                 sid = st["id"]; e = st["exp"]
                 expired = now.strftime("%Y%m%d") > e or \
                     (now.strftime("%Y%m%d") == e and now.hour >= 23)   # after 16:00 ET close (machine = ET+6/7)
                 ev = state["entry"][sid]["entry_val"]
+                be = round(st["ref_k"] + ev, 2)           # all 4 profit if S_T > BE
                 if expired and spot:
                     cv = 0.0
                     for r, k, qty in st["legs"]:
@@ -124,6 +135,7 @@ def main():
                     pnl = round((cv - ev) * 100, 0)
                     state["settled"][sid] = {"spy_settle": spot, "pnl_$": pnl,
                                              "at": now.isoformat(timespec="seconds")}
+                    pop = 100.0 if pnl > 0 else 0.0
                 else:
                     cv = 0.0; bad = False
                     for r, k, qty in st["legs"]:
@@ -132,7 +144,10 @@ def main():
                             bad = True; break
                         cv += qty * m
                     pnl = None if bad else round((cv - ev) * 100, 0)
-                row["pnl"][sid] = pnl
+                    sd = strad.get(e)
+                    pop = round(100 * (1 - norm_cdf((be - spot) / (sd / 0.7979))), 0) \
+                        if (sd and sd > 0 and spot) else None
+                row["pnl"][sid] = pnl; row["pop"][sid] = pop; row["be"][sid] = be
             with TS.open("a") as f:
                 f.write(row["ts"] + f",{spot}," +
                         ",".join(str(row["pnl"].get(st["id"], "")) for st in STRUCTS) + "\n")
@@ -179,26 +194,29 @@ def svg_curve(vals):
         return "<div class='sub' style='height:120px'>collecting…</div>"
     ys = [v for _, v in pts] + [0.0]
     lo, hi = min(ys), max(ys)
-    rng = (hi - lo) or 1.0
-    # viewBox aspect (~7.5:1) ~= the card shape, uniform scaling -> no distortion
-    W, H, padx, pady = 900, 120, 14, 16
+    span = (hi - lo) or 1.0
+    dlo, dhi = lo - 0.16 * span, hi + 0.16 * span        # headroom so min/max lines show
+    rng = dhi - dlo
+    W, H, padx, pady = 900, 120, 14, 14                  # ~7.5:1 -> uniform scale, no distortion
     n = max(1, len(vals) - 1)
     def X(i): return padx + (W - 2 * padx) * i / n
-    def Y(v): return pady + (H - 2 * pady) * (1 - (v - lo) / rng)
+    def Y(v): return pady + (H - 2 * pady) * (1 - (v - dlo) / rng)
     poly = " ".join(f"{X(i):.1f},{Y(v):.1f}" for i, v in pts)
-    z = Y(0.0)
+    z, ymin, ymax = Y(0.0), Y(lo), Y(hi)
     last = pts[-1][1]
     col = "#31c07a" if last > 0 else "#ef5350" if last < 0 else "#9aa"
     area = f"{X(pts[0][0]):.1f},{z:.1f} " + poly + f" {X(pts[-1][0]):.1f},{z:.1f}"
     return (f"<svg viewBox='0 0 {W} {H}' width='100%' style='height:auto;display:block'>"
-            f"<line x1='{padx}' y1='{z:.1f}' x2='{W-padx}' y2='{z:.1f}' stroke='#3a3a44' stroke-dasharray='4,4'/>"
+            f"<line x1='{padx}' y1='{z:.1f}' x2='{W-padx}' y2='{z:.1f}' stroke='#4a4a55' stroke-dasharray='4,4'/>"
+            f"<line x1='{padx}' y1='{ymax:.1f}' x2='{W-padx}' y2='{ymax:.1f}' stroke='#2f7d55' stroke-dasharray='2,4'/>"
+            f"<line x1='{padx}' y1='{ymin:.1f}' x2='{W-padx}' y2='{ymin:.1f}' stroke='#8a3634' stroke-dasharray='2,4'/>"
             f"<polygon points='{area}' fill='{col}' opacity='0.12'/>"
             f"<polyline points='{poly}' fill='none' stroke='{col}' stroke-width='2' "
             f"stroke-linejoin='round' vector-effect='non-scaling-stroke'/>"
             f"<circle cx='{X(pts[-1][0]):.1f}' cy='{Y(last):.1f}' r='3.5' fill='{col}'/>"
-            f"<text x='{W-padx}' y='18' fill='{col}' font-size='15' text-anchor='end'>{last:+,.0f}</text>"
-            f"<text x='{padx}' y='{H-4}' fill='#777' font-size='11'>min {lo:+.0f}</text>"
-            f"<text x='{W-padx}' y='{H-4}' fill='#777' font-size='11' text-anchor='end'>max {hi:+.0f}</text>"
+            f"<text x='{W-padx}' y='16' fill='{col}' font-size='15' text-anchor='end'>{last:+,.0f}</text>"
+            f"<text x='{padx+2}' y='{ymax-3:.1f}' fill='#3f9d6d' font-size='10'>max {hi:+.0f}</text>"
+            f"<text x='{padx+2}' y='{ymin+11:.1f}' fill='#b05450' font-size='10'>min {lo:+.0f}</text>"
             f"</svg>")
 
 
@@ -225,8 +243,13 @@ def write_dash(state, row):
         stat = "EXPIRED" if settled else "open"
         legs = " · ".join(f"{'+' if q>0 else '-'}{k:.0f}{r} {st['exp']}" for r, k, q in st["legs"])
         pnl = settled["pnl_$"] if settled else row["pnl"].get(sid)
+        be = row["be"].get(sid)
+        pop = row["pop"].get(sid)
+        popc = "—" if pop is None else f"{pop:.0f}%"
         rows += (f"<tr><td>{sid}</td><td class='lg'>{legs}</td>"
-                 f"<td>{abs(dc):,.0f} {kind}</td>{cell(pnl)}<td class='{ 'ex' if settled else 'op'}'>{stat}</td></tr>")
+                 f"<td>{abs(dc):,.0f} {kind}</td><td class='sub'>{be}</td>{cell(pnl)}"
+                 f"<td class='pop'>{popc}</td>"
+                 f"<td class='{ 'ex' if settled else 'op'}'>{stat}</td></tr>")
     total = sum((state["settled"].get(st["id"], {}).get("pnl_$")
                  if state["settled"].get(st["id"]) else row["pnl"].get(st["id"]) or 0)
                 for st in STRUCTS)
@@ -239,13 +262,15 @@ td,th{{padding:7px 12px;border-bottom:1px solid #262630;text-align:right}}
 td:first-child,td.lg{{text-align:left}} th{{color:#9aa;text-align:right;border-bottom:1px solid #444}}
 .up{{color:#31c07a;font-weight:bold}} .dn{{color:#ef5350;font-weight:bold}} .n{{color:#888}}
 .lg{{color:#9fb4d8}} .op{{color:#e8c000}} .ex{{color:#888}} .tot{{font-size:18px;margin-top:14px}}
+.pop{{color:#c8a2ff;font-weight:bold}}
 .grid{{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}}
 .card{{background:#14141a;border:1px solid #262630;border-radius:6px;padding:8px 10px}}
 .ct{{color:#9fb4d8;font-size:12px;margin-bottom:2px}}</style></head>
 <body><h2>SPY bounce test — 4 structures, live P&amp;L</h2>
 <div class=sub>entry locked {state['locked_ct']} · SPY@entry {state['spy_entry']} · updated {row['ts']} (every {POLL}s) · SPY {row['spy']}</div>
-<table><tr><th>structure</th><th>legs</th><th>entry</th><th>P&amp;L $</th><th>status</th></tr>
+<table><tr><th>structure</th><th>legs</th><th>entry</th><th>break-even</th><th>P&amp;L $</th><th>POP*</th><th>status</th></tr>
 {rows}</table>
+<div class=sub style='margin-top:6px'>*POP = market-implied probability of finishing profitable (risk-neutral, from the live ATM straddle) — not an edge; the FOMC move is already priced in.</div>
 <div class=tot>net P&amp;L: <span class='{ 'up' if total>0 else 'dn' if total<0 else 'n'}'>{total:+,.0f}</span>
 <span class=sub>(marketable entry fills; MTM at mid; intrinsic at expiry)</span></div>
 <h2 style='margin-top:22px;font-size:15px'>equity curves (P&amp;L $ per trade, each 30s snapshot)</h2>
