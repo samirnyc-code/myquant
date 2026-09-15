@@ -141,6 +141,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				ShakeoutLowIntensity  = 0.85;              // (depth+vol+range)/3 <= this = #3 (slight/low/narrow, best)
 				ShakeoutHighIntensity = 1.50;              // (depth+vol+range)/3 >= this = #1 Terminal Shakeout (deep/high/wide)
 				ShowDrawnZones     = true;                 // read trader-drawn Rectangles as TR zones (top=R, bottom=S)
+				TestQuietPct       = 50;                   // a zone TEST is valid (check) if tempo pctile is below this (quiet)
 				PaceWindowSec  = 30;
 				AlertOnClimax  = false;
 				AlertCooldownSec = 120;
@@ -1012,52 +1013,56 @@ namespace NinjaTrader.NinjaScript.Indicators
 					float yT = chartScale.GetYByValue(top), yB = chartScale.GetYByValue(bot);
 					RenderTarget.DrawLine(new SharpDX.Vector2(xL, yT), new SharpDX.Vector2(xR, yT), edge, 1.2f);
 					RenderTarget.DrawLine(new SharpDX.Vector2(xL, yB), new SharpDX.Vector2(xR, yB), edge, 1.2f);
-					// walk the zone: FIRST stab = spring/upthrust (SP/UT, tiered); each later stab =
-					// a TEST -> valid (check) if QUIETER (lower tempo) AND holds (doesn't stab past the
-					// spring extreme), else weak (cross). Tempo is the tick-chart substitute for "lower
-					// volume", since a fixed-tick bar carries near-constant volume.
-					int spBar = -1; double spTempo = 50, spRef = 0;
+					// Wyckoff view of the drawn band (bottom = SUPPORT, top = RESISTANCE):
+					//  - SPRING / UPTHRUST = a FALSE BREAK of the range extreme: price pokes BEYOND the
+					//    edge (below support / above resistance) and RECLAIMS -> the tradeable Phase-C
+					//    shakeout. Tiered #3/#2/#1.
+					//  - TEST = a dip/poke that only reaches INTO the zone and HOLDS (never breaks the
+					//    extreme) -> graded by tempo (quiet = valid check, active = weak cross); tempo is
+					//    the tick-chart stand-in for Wyckoff's "lower-volume test".
+					// The range-creating extreme sits AT the edge, never breaks beyond it, so it is not
+					// flagged as a spring (it is the boundary, not the shakeout).
 					for (int i = Math.Max(lo, 1); i <= hi; i++)
 					{
-						if (isRes)
-						{
-							if (Bars.GetClose(i) > top) { spBar = -1; continue; }             // accepted above -> reset
-							if (!(Bars.GetHigh(i) >= bot && Bars.GetClose(i) < bot)) continue; // stab into resistance
-						}
-						else
-						{
-							if (Bars.GetClose(i) < bot) { spBar = -1; continue; }             // broke down -> reset
-							if (!(Bars.GetLow(i) <= top && Bars.GetClose(i) > top)) continue;  // stab into support
-						}
 						double tp = tempoPctS.GetValueAt(i); if (double.IsNaN(tp)) tp = 50;
 						float x = chartControl.GetXByBarIndex(ChartBars, i);
-						if (spBar < 0)
+						if (!isRes)                                          // SUPPORT zone
 						{
-							int tier = ShakeoutTierAt(i, isRes, isRes ? top : bot);
-							SolidColorBrush br = tier == 0 ? g : tier == 2 ? r : a;
-							string lab = (isRes ? "UT" : "SP") + (tier == 0 ? "3" : tier == 1 ? "2" : "1");
-							if (isRes)
+							if (Bars.GetLow(i) < bot && Bars.GetClose(i) > bot)
 							{
-								float y = chartScale.GetYByValue(Bars.GetHigh(i));
-								FillTriangle(x, y - 13f, y - 4f, 5f, br);
-								RenderTarget.DrawText(lab, tf, new SharpDX.RectangleF(x - 25f, y - 28f, 50f, 12f), br);
-							}
-							else
-							{
+								int tier = ShakeoutTierAt(i, false, bot);   // SPRING: broke below support, reclaimed
+								SolidColorBrush br = tier == 0 ? g : tier == 2 ? r : a;
+								string lab = "SP" + (tier == 0 ? "3" : tier == 1 ? "2" : "1");
 								float y = chartScale.GetYByValue(Bars.GetLow(i));
 								FillTriangle(x, y + 13f, y + 4f, 5f, br);
 								RenderTarget.DrawText(lab, tf, new SharpDX.RectangleF(x - 25f, y + 15f, 50f, 12f), br);
 							}
-							spBar = i; spTempo = tp; spRef = isRes ? Bars.GetHigh(i) : Bars.GetLow(i);
+							else if (Bars.GetLow(i) >= bot && Bars.GetLow(i) <= top)
+							{
+								bool valid = tp < TestQuietPct;             // TEST of support (held above the range low)
+								SolidColorBrush br = valid ? g : r;
+								float y = chartScale.GetYByValue(Bars.GetLow(i)) + 11f;
+								if (valid) DrawCheck(x, y, br); else DrawCross(x, y, br);
+							}
 						}
-						else
+						else                                                // RESISTANCE zone
 						{
-							bool holds = isRes ? (Bars.GetHigh(i) <= spRef) : (Bars.GetLow(i) >= spRef);
-							bool valid = tp < spTempo && holds;                               // quieter + holds = valid test
-							SolidColorBrush br = valid ? g : r;
-							float y = isRes ? chartScale.GetYByValue(Bars.GetHigh(i)) - 11f
-											 : chartScale.GetYByValue(Bars.GetLow(i)) + 11f;
-							if (valid) DrawCheck(x, y, br); else DrawCross(x, y, br);
+							if (Bars.GetHigh(i) > top && Bars.GetClose(i) < top)
+							{
+								int tier = ShakeoutTierAt(i, true, top);    // UPTHRUST: broke above resistance, reclaimed
+								SolidColorBrush br = tier == 0 ? g : tier == 2 ? r : a;
+								string lab = "UT" + (tier == 0 ? "3" : tier == 1 ? "2" : "1");
+								float y = chartScale.GetYByValue(Bars.GetHigh(i));
+								FillTriangle(x, y - 13f, y - 4f, 5f, br);
+								RenderTarget.DrawText(lab, tf, new SharpDX.RectangleF(x - 25f, y - 28f, 50f, 12f), br);
+							}
+							else if (Bars.GetHigh(i) <= top && Bars.GetHigh(i) >= bot)
+							{
+								bool valid = tp < TestQuietPct;             // TEST of resistance (held below the range high)
+								SolidColorBrush br = valid ? g : r;
+								float y = chartScale.GetYByValue(Bars.GetHigh(i)) - 11f;
+								if (valid) DrawCheck(x, y, br); else DrawCross(x, y, br);
+							}
 						}
 					}
 				}
@@ -1440,6 +1445,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[NinjaScriptProperty]
 		[Display(Name = "Read 'Wyckoff TR Zone' drawings", GroupName = "6. Springs & upthrusts", Order = 3)]
 		public bool ShowDrawnZones { get; set; }
+
+		[NinjaScriptProperty, Range(1, 99)]
+		[Display(Name = "Zone test valid if tempo pctile below", GroupName = "6. Springs & upthrusts", Order = 4)]
+		public int TestQuietPct { get; set; }
 
 		// --- 5. Live pace / alert ----------------------------------------------
 		[NinjaScriptProperty, Range(5, 300)]
