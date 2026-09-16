@@ -69,21 +69,26 @@ def analyze(bars: pd.DataFrame, reversal: float) -> dict:
     return out
 
 
-def render(ax, bars, a: dict, title: str):
+def render(ax, bars, lvl: dict, title: str, cev=None):
+    """Draw candles + the CONTEXT-derived SC/AR levels (prices, not per-TF waves). cev is the
+    context event dict — passed ONLY for the context panel, to shade the actual SC/AR windows."""
+    import matplotlib.pyplot as plt
     for i in range(len(bars)):
         r = bars.iloc[i]
         up = r["close"] >= r["open"]
         c = "#26a69a" if up else "#ef5350"
         ax.plot([i, i], [r["low"], r["high"]], color=c, lw=0.5, zorder=2)
-        ax.add_patch(__import__("matplotlib").pyplot.Rectangle(
-            (i - 0.4, min(r["open"], r["close"])), 0.8, max(abs(r["close"] - r["open"]), 0.01), color=c, zorder=3))
-    ax.axhspan(a["sc_low"], a["sc_body"], color="#ef5350", alpha=0.13, zorder=1)
-    ax.axhline(a["sc_low"], color="#c62828", lw=1.1, ls="--", label=f"SC low {a['sc_low']:.2f}")
-    ax.axvspan(a["sc"]["s"], a["sc"]["e"], color="#ef5350", alpha=0.05, zorder=0)
-    if "ar" in a:
-        ax.axhspan(a["ar_body"], a["ar_hi"], color="#26a69a", alpha=0.13, zorder=1)
-        ax.axhline(a["ar_hi"], color="#00897b", lw=1.1, ls="--", label=f"AR high {a['ar_hi']:.2f}")
-        ax.axvspan(a["ar"]["s"], a["ar"]["e"], color="#26a69a", alpha=0.05, zorder=0)
+        ax.add_patch(plt.Rectangle((i - 0.4, min(r["open"], r["close"])), 0.8,
+                                   max(abs(r["close"] - r["open"]), 0.01), color=c, zorder=3))
+    ax.axhspan(lvl["sc_low"], lvl["sc_body"], color="#ef5350", alpha=0.13, zorder=1)
+    ax.axhline(lvl["sc_low"], color="#c62828", lw=1.1, ls="--", label=f"SC low {lvl['sc_low']:.2f}")
+    if lvl.get("ar_hi") is not None:
+        ax.axhspan(lvl["ar_body"], lvl["ar_hi"], color="#26a69a", alpha=0.13, zorder=1)
+        ax.axhline(lvl["ar_hi"], color="#00897b", lw=1.1, ls="--", label=f"AR high {lvl['ar_hi']:.2f} (from {lvl['ctx']})")
+    if cev is not None:                                    # only the context panel: shade the windows
+        ax.axvspan(cev["sc"]["s"], cev["sc"]["e"], color="#ef5350", alpha=0.05, zorder=0)
+        if "ar" in cev:
+            ax.axvspan(cev["ar"]["s"], cev["ar"]["e"], color="#26a69a", alpha=0.05, zorder=0)
     ax.set_title(title, fontsize=10); ax.legend(loc="upper right", fontsize=8); ax.grid(alpha=0.15)
     ax.set_xlabel("bar #"); ax.set_ylabel("price")
 
@@ -92,12 +97,21 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--day", default="2026-09-15")
     ap.add_argument("--bars", default="2000t,5min", help="comma list, e.g. 2000t,5min")
+    ap.add_argument("--context", default="5min", help="TF the SC/AR range is DERIVED on (the AR "
+                    "is a context event; it is projected onto the finer TFs, never recomputed there)")
     ap.add_argument("--reversal", type=float, default=2.5)
     ap.add_argument("--eth", action="store_true")
     a = ap.parse_args()
 
     raw = td.load_eth(a.day) if a.eth else td.load_rth(a.day)
     specs = [s.strip() for s in a.bars.split(",")]
+
+    # THE range is computed ONCE, on the context TF. The AR fragments into meaningless micro-
+    # waves on a fine TF, so we never derive it there — we project the context levels down.
+    cbars = hilo_bars(raw, a.context)
+    cres = analyze(cbars, a.reversal)
+    lvl = dict(sc_low=cres["sc_low"], sc_body=cres["sc_body"], ctx=a.context,
+               ar_hi=cres.get("ar_hi"), ar_body=cres.get("ar_body"))
 
     import matplotlib
     matplotlib.use("Agg")
@@ -109,9 +123,9 @@ def main() -> int:
     results = {}
     for spec, ax in zip(specs, axes):
         bars = hilo_bars(raw, spec)
-        res = analyze(bars, a.reversal)
-        results[spec] = (bars, res)
-        render(ax, bars, res, f"{a.day} · {spec} · SC + AR")
+        results[spec] = (bars, cres)
+        render(ax, bars, lvl, f"{a.day} · {spec} · SC/AR (from {a.context})",
+               cev=cres if spec == a.context else None)
 
     png = OUT / f"ar_compare_{a.day}_{'_'.join(specs)}.png"
     fig.suptitle(f"Selling Climax + Automatic Rally — {a.day} (reversal {a.reversal}pt)", fontsize=12)
