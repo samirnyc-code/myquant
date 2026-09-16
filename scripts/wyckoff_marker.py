@@ -41,7 +41,11 @@ HTML = r"""<!doctype html><html><head><meta charset="utf-8"><title>Wyckoff Marke
  #hint{color:#8ea1b5;font-size:12px}
 </style></head><body>
 <div id="bar">
-  <span id="hint">click START then END on the PRICE panel → box snaps + extends to EOD. </span>
+  <span id="hint">box = 2 clicks; spring/upthrust = 1 click. </span>
+  <span>mode:</span>
+  <button id="m_box" class="on">box</button>
+  <button id="m_spring">spring</button>
+  <button id="m_ut">upthrust</button>
   <span>view:</span><select id="tf"></select>
   <button id="snap" class="on">snap: ON</button>
   <button id="undo">undo box</button>
@@ -53,7 +57,7 @@ HTML = r"""<!doctype html><html><head><meta charset="utf-8"><title>Wyckoff Marke
 <script>
 const DATA = __DATA__;
 const TFS = Object.keys(DATA);
-let cur=TFS[0], snap=true, pending=null, boxes=[];
+let cur=TFS[0], snap=true, pending=null, boxes=[], marks=[], hist=[], mode='box';
 const cv=document.getElementById('c'), ctx=cv.getContext('2d');
 const tfSel=document.getElementById('tf');
 TFS.forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;tfSel.appendChild(o)});
@@ -104,8 +108,14 @@ function draw(){
     if(bw()>6){ctx.fillStyle='#cfd8dc';ctx.font='9px monospace';ctx.textAlign='center';ctx.fillText((s.vol/1000).toFixed(0)+'k',(x0+x1)/2,wBot-h-2);}});
   // boxes
   boxes.forEach((bx,k)=>drawBox(bx,k+1));
+  drawMarks();
   if(pending){const x=xOf(pending.i),y=yOf(pending.p);ctx.fillStyle='#ffd54f';ctx.beginPath();ctx.arc(x,y,4,0,7);ctx.fill();}
 }
+function drawMarks(){marks.forEach(m=>{const x=xOf(m.i),y=yOf(m.p);ctx.font='10px monospace';ctx.textAlign='center';
+  if(m.type==='spring'){ctx.strokeStyle=ctx.fillStyle='#26a69a';const yb=y+16;ctx.beginPath();ctx.moveTo(x,yb);ctx.lineTo(x,y+3);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x-4,y+9);ctx.lineTo(x,y+2);ctx.lineTo(x+4,y+9);ctx.closePath();ctx.fill();ctx.fillText('SP '+m.p.toFixed(2),x,yb+11);}
+  else{ctx.strokeStyle=ctx.fillStyle='#ef5350';const yt=y-16;ctx.beginPath();ctx.moveTo(x,yt);ctx.lineTo(x,y-3);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x-4,y-9);ctx.lineTo(x,y-2);ctx.lineTo(x+4,y-9);ctx.closePath();ctx.fill();ctx.fillText('UT '+m.p.toFixed(2),x,yt-4);}});}
 function pAt(i,which){const b=bars[i];if(isRenko)return which==='hi'?b.whi:b.wlo;return which==='hi'?b.h:b.l;}
 function panelLabel(t,y){ctx.fillStyle='#5c6b7a';ctx.font='10px monospace';ctx.textAlign='left';ctx.fillText(t,padL+2,y+10);}
 function drawBox(bx,n){
@@ -117,20 +127,29 @@ function drawBox(bx,n){
   [bx.a,bx.b].forEach(pt=>{ctx.fillStyle='#ffd54f';ctx.beginPath();ctx.arc(xOf(pt.i),yOf(pt.p),3,0,7);ctx.fill();});
 }
 function niceStep(x){const p=Math.pow(10,Math.floor(Math.log10(x)));const m=x/p;return (m<1.5?1:m<3?2:m<7?5:10)*p;}
-function snapClick(x,y){const i=iOf(x),b=bars[i],pc=pOf(y);
+function snapClick(x,y,force){const i=iOf(x),b=bars[i],pc=pOf(y);
+  if(force){const p=force==='lo'?(isRenko?Math.min(b.wlo,b.bottom):b.l):(isRenko?Math.max(b.whi,b.top):b.h);return{i,p,k:force==='lo'?'L':'H'};}
   if(!snap)return{i,p:+pc.toFixed(2),k:'raw'};
   const cand=isRenko?[['T',b.top],['B',b.bottom],['wH',b.whi],['wL',b.wlo]]:[['H',b.h],['L',b.l],['O',b.o],['C',b.c]];
   cand.sort((u,v)=>Math.abs(u[1]-pc)-Math.abs(v[1]-pc));return{i,p:cand[0][1],k:cand[0][0]};}
-cv.addEventListener('click',e=>{const r=cv.getBoundingClientRect();const y=e.clientY-r.top;if(y>pBot)return;
-  const pt=snapClick(e.clientX-r.left,y);if(!pending){pending=pt;}else{boxes.push({a:pending,b:pt});pending=null;}draw();readout();});
+cv.addEventListener('click',e=>{const r=cv.getBoundingClientRect();const y=e.clientY-r.top;if(y>pBot)return;const x=e.clientX-r.left;
+  if(mode==='spring'){const pt=snapClick(x,y,'lo');marks.push({type:'spring',i:pt.i,p:pt.p});hist.push({t:'mark'});draw();readout();return;}
+  if(mode==='ut'){const pt=snapClick(x,y,'hi');marks.push({type:'ut',i:pt.i,p:pt.p});hist.push({t:'mark'});draw();readout();return;}
+  const pt=snapClick(x,y);if(!pending){pending=pt;}else{boxes.push({a:pending,b:pt});pending=null;hist.push({t:'box'});}draw();readout();});
 function fmt(pt){return bars[pt.i].t+' '+pt.p.toFixed(2)+'('+pt.k+')';}
-function readout(){let s=boxes.map((b,k)=>'box'+(k+1)+': '+fmt(b.a)+' -> '+fmt(b.b)+'  ='+Math.abs(b.a.p-b.b.p).toFixed(2)+'pt').join('\n');
-  if(pending)s+=(s?'\n':'')+'start: '+fmt(pending)+'  (click END)';document.getElementById('read').textContent=s||'no boxes yet';}
+function readout(){let parts=boxes.map((b,k)=>'box'+(k+1)+': '+fmt(b.a)+' -> '+fmt(b.b)+'  ='+Math.abs(b.a.p-b.b.p).toFixed(2)+'pt');
+  marks.forEach(m=>parts.push((m.type==='spring'?'SPRING':'UPTHRUST')+': '+bars[m.i].t+' '+m.p.toFixed(2)));
+  if(pending)parts.push('start: '+fmt(pending)+'  (click END)');
+  document.getElementById('read').textContent=parts.join('\n')||'no marks yet';}
+function setMode(m){mode=m;pending=null;['box','spring','ut'].forEach(x=>document.getElementById('m_'+x).classList.toggle('on',x===m));readout();}
+document.getElementById('m_box').onclick=()=>setMode('box');
+document.getElementById('m_spring').onclick=()=>setMode('spring');
+document.getElementById('m_ut').onclick=()=>setMode('ut');
 document.getElementById('snap').onclick=e=>{snap=!snap;e.target.textContent='snap: '+(snap?'ON':'OFF');e.target.classList.toggle('on',snap);};
-document.getElementById('undo').onclick=()=>{boxes.pop();draw();readout();};
-document.getElementById('reset').onclick=()=>{boxes=[];pending=null;draw();readout();};
+document.getElementById('undo').onclick=()=>{const h=hist.pop();if(!h)return;if(h.t==='box')boxes.pop();else marks.pop();draw();readout();};
+document.getElementById('reset').onclick=()=>{boxes=[];marks=[];hist=[];pending=null;draw();readout();};
 document.getElementById('copy').onclick=()=>{navigator.clipboard.writeText(document.getElementById('read').textContent);};
-tfSel.onchange=e=>{cur=e.target.value;boxes=[];pending=null;layout();draw();readout();};
+tfSel.onchange=e=>{cur=e.target.value;boxes=[];marks=[];hist=[];pending=null;layout();draw();readout();};
 window.onresize=()=>{layout();draw();};
 layout();draw();readout();
 </script></body></html>"""
