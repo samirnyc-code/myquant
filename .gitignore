@@ -112,3 +112,6 @@ docs/artifacts/eminiaddict_tool.html
 data/nt_ticks/
 data/regime/mq_reveng/chain_slices_overlap.parquet
 reports/regime2e/*.pkl
+
+# raw L1 tape recordings — regenerable, too large for git (keep _analysis outputs)
+data/l1_tape/*_l1_*.csv

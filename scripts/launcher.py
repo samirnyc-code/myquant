@@ -104,18 +104,6 @@ DASHBOARDS = [
              "aggregate. The td_shadow_live.py process feeds it.",
      "cmd": _st("td_vs_ib_dashboard.py") + ["--port", "8650"]},
 
-    {"key": "spy_bounce", "group": "Live desk", "static": True,
-     "title": "SPY Bounce Tracker", "port": None,
-     "route": "/spybounce", "file": "data/spy_bounce/tracker_dashboard.html",
-     "match": "spy_bounce_tracker", "proc": [str(PY), str(ROOT / "scripts" / "spy_bounce_tracker.py")],
-     "desc": "Live paper-track of the 4 SPY 0DTE-bounce structures to expiry (S119): marks off "
-             "real OPRA via IB paper 4002, gated to the live options session (09:30-16:15 ET). "
-             "Shows per-trade equity curves, break-even, market-implied POP. Entry locked in state.",
-     "info": "Static self-refreshing dashboard written by scripts/spy_bounce_tracker.py (not a "
-             "port app). Green dot = the dashboard file was refreshed in the last 90s (the tracker "
-             "is alive). Marks only during RTH; outside it holds last live marks and shows CLOSED. "
-             "Start/Stop here launch/kill the tracker process; entry persists in tracker_state.json."},
-
     {"key": "mark_setups", "group": "Live desk",
      "title": "ES Setup Marker", "port": 8630,
      "desc": "Forward-reveal ES volume-bar chart annotator (S75J/K): play/step bars, "
@@ -218,55 +206,19 @@ def _rec(key):
     return r if isinstance(r, dict) else None
 
 
-def _static_up(d):
-    """A static (file-writing) dashboard is 'up' if its file was refreshed recently."""
-    f = ROOT / d["file"]
-    try:
-        return f.exists() and (time.time() - f.stat().st_mtime) < 90
-    except Exception:
-        return False
-
-
-def _static_age(d):
-    f = ROOT / d["file"]
-    try:
-        return int(time.time() - f.stat().st_mtime) if f.exists() else None
-    except Exception:
-        return None
-
-
-def _cmd_pids(match):
-    """PIDs of python(w) processes whose command line contains `match` (Windows, best-effort)."""
-    try:
-        r = subprocess.run(
-            ["powershell", "-NoProfile", "-Command",
-             "Get-CimInstance Win32_Process -Filter \"name='python.exe' or name='pythonw.exe'\" | "
-             f"Where-Object {{ $_.CommandLine -like '*{match}*' }} | ForEach-Object {{ $_.ProcessId }}"],
-            capture_output=True, text=True, timeout=8, creationflags=0x08000000).stdout
-        return [int(x) for x in r.split() if x.strip().isdigit()]
-    except Exception:
-        return []
-
-
 def start(key):
     d = BYKEY.get(key)
     if not d:
         return {"ok": False, "err": "unknown"}
-    if d.get("static"):
-        if _static_up(d) or _cmd_pids(d["match"]):
-            return {"ok": True, "already": True}
-        cmd = d["proc"]
-    else:
-        if port_up(d["port"]):
-            return {"ok": True, "already": True}
-        cmd = d["cmd"]
+    if port_up(d["port"]):
+        return {"ok": True, "already": True}
     LOGDIR.mkdir(parents=True, exist_ok=True)
     logf = open(LOGDIR / f"{key}.log", "w", encoding="utf-8", errors="replace")
     logf.write(f"# launched {dt.datetime.now().isoformat(timespec='seconds')}\n"
-               f"# {' '.join(cmd)}\n\n")
+               f"# {' '.join(d['cmd'])}\n\n")
     logf.flush()
     try:
-        p = subprocess.Popen(cmd, cwd=str(ROOT), stdout=logf,
+        p = subprocess.Popen(d["cmd"], cwd=str(ROOT), stdout=logf,
                              stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
                              creationflags=_FLAGS, close_fds=True)
     except Exception as e:
@@ -282,20 +234,13 @@ def stop(key):
     if not d:
         return {"ok": False, "err": "unknown"}
     rec = _rec(key)
-    if d.get("static"):
-        pids = set(_cmd_pids(d["match"]))     # find the tracker even if started outside Mission Control
-        if rec and rec.get("pid"):
-            pids.add(rec["pid"])
-    else:
-        pid = (rec or {}).get("pid") or pid_on_port(d["port"])
-        pids = {pid} if pid else set()
-    if not pids:
+    pid = (rec or {}).get("pid") or pid_on_port(d["port"])
+    if not pid:
         return {"ok": False, "err": "no pid / not running"}
     try:
-        for pid in pids:
-            subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"],
-                           capture_output=True, text=True, timeout=15,
-                           creationflags=0x08000000)   # CREATE_NO_WINDOW: no taskkill flash
+        subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"],
+                       capture_output=True, text=True, timeout=15,
+                       creationflags=0x08000000)   # CREATE_NO_WINDOW: no taskkill flash
     except Exception as e:
         return {"ok": False, "err": str(e)}
     with _lock:
@@ -649,8 +594,9 @@ whether the process is alive. Drag tiles to reorder; the layout is remembered.</
 <footer><span id="gen"></span><span id="note"></span></footer>
 <script>
 const FIX={
- "L1 tape":"L1 tape + best bid/ask recorder (L1TapeRecorderAddOn, writes data/l1_tape). Auto-starts with NT; if stalled or tape-only, restart NinjaTrader. Roll SymbolName on the quarterly contract change.",
+ "L2 depth":"AddOn recorder (data/depth/addon_test). If stalled: restart NinjaTrader — the AddOn starts with NT; the old MarketDepthRecorder strategy is retired.",
  "Contract":"Roll the chart/strategy to the front-month contract, then re-enable the recorder.",
+ "Footprint":"FootprintExporter needs Tick Replay ON for its data series.",
  "NinjaTrader":"scripts/nt8_login.ps1 starts NT8 and signs in.",
  "NT8 tick DB":"Tools → Options → Market data → 'Record live data as historical' must be ON.",
  "IB gateway":"Login is not the same as the API port — run scripts/gateway_ensure.py.",
@@ -716,14 +662,6 @@ def status():
     probe = {}
     live_pids = []
     for d in DASHBOARDS:
-        if d.get("static"):
-            up = _static_up(d)
-            rec = _rec(d["key"]) if up else None
-            pid = (rec or {}).get("pid")
-            if pid:
-                live_pids.append(pid)
-            probe[d["key"]] = (up, 0, rec)
-            continue
         t0 = dt.datetime.now()
         up = port_up(d["port"])
         ms = round((dt.datetime.now() - t0).total_seconds() * 1000)
@@ -735,16 +673,6 @@ def status():
     mem = _mem_map(live_pids)
     for d in DASHBOARDS:
         up, ms, rec = probe[d["key"]]
-        if d.get("static"):
-            age = _static_age(d)
-            rows.append({"key": d["key"], "title": d["title"], "desc": d["desc"],
-                         "info": d.get("info", ""), "up_secs": None,
-                         "port": None, "group": d["group"], "up": up,
-                         "pid": (rec or {}).get("pid"), "started": (rec or {}).get("started"),
-                         "mem": None, "ms": 0, "static": True,
-                         "note": (f"updated {age}s ago" if age is not None else "no file yet"),
-                         "url": d["route"]})
-            continue
         pid = (rec or {}).get("pid")
         started = (rec or {}).get("started")
         up_secs = None
@@ -856,8 +784,6 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send_slides(p)
             if p == "/catalog" or p.startswith("/catalog/"):
                 return self._proxy_catalog(p[len("/catalog"):])
-            if p == "/spybounce":
-                return self._send_spybounce()
             return self._send("<h1>403</h1><p>read-only viewer: not available</p>",
                               "text/html; charset=utf-8", 403)
         # ---- localhost: full Mission Control ----
@@ -884,8 +810,6 @@ class Handler(BaseHTTPRequestHandler):
             return self._send_depthmap(p)
         if p == "/slides" or p.startswith("/slides/"):
             return self._send_slides(p)
-        if p == "/spybounce":
-            return self._send_spybounce()
         if p in ("/favicon.svg", "/favicon.ico"):
             return self._send(FAVICON, "image/svg+xml")
         if p == "/status.json":
@@ -951,16 +875,6 @@ class Handler(BaseHTTPRequestHandler):
             return self._proxy_catalog(p[len("/catalog"):])
         self.send_response(404)
         self.end_headers()
-
-    def _send_spybounce(self):
-        """Serve the static SPY-bounce tracker dashboard (written by spy_bounce_tracker.py)."""
-        f = ROOT / "data" / "spy_bounce" / "tracker_dashboard.html"
-        if not f.exists():
-            return self._send("<h1>SPY Bounce Tracker</h1><p>dashboard not generated yet — "
-                              "start the tracker from Mission Control.</p>",
-                              "text/html; charset=utf-8", 404)
-        return self._send(f.read_text(encoding="utf-8", errors="replace"),
-                          "text/html; charset=utf-8")
 
     def _proxy_catalog(self, sub):
         """GET-only proxy to the Data Catalog (:8620) so remote viewers can browse
@@ -1326,10 +1240,10 @@ async function load(){
   for(const g of Object.keys(groups)){
     h+=`<div class="col"><div class="grp">${g}</div>`;
     for(const d of groups[g]){
-      const meta=d.static?(d.up?(d.note||'live'):(d.note||'stopped')):(d.up?[d.pid?('pid '+d.pid):'', d.up_secs!=null?('up '+uptime(d.up_secs)):'', mem(d.mem), d.ms+'ms'].filter(Boolean).join(' · '):'stopped');
+      const meta=d.up?[d.pid?('pid '+d.pid):'', d.up_secs!=null?('up '+uptime(d.up_secs)):'', mem(d.mem), d.ms+'ms'].filter(Boolean).join(' · '):'stopped';
       h+=`<div class="card" id="card-${d.key}">
         <div class="top"><span class="dot ${d.up?'up':''}"></span>
-          <span class="title">${d.title}</span><span class="port">${d.static?'📄 live view':(':'+d.port)}</span></div>
+          <span class="title">${d.title}</span><span class="port">:${d.port}</span></div>
         <div class="desc">${d.desc}</div>
         <div class="actions">
           <button class="primary btn-start" data-k="${d.key}" ${d.up?'disabled':''}>▶ Start</button>

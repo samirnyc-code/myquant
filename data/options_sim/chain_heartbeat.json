@@ -1,1 +1,1 @@
-{"ts_ct": "2026-09-15 15:05:02", "ts_epoch": 1789502702.3508806, "date": "20260915", "rows": 0, "spot": 7585.12, "state": "stopped", "delayed": 0, "empty": 0, "note": "clean stop 15:05 CT", "pid": 14996}
+{"ts_ct": "2026-09-16 09:27:16", "ts_epoch": 1789568836.3070893, "date": "20260916", "rows": 84, "spot": 7601.15, "state": "ok", "delayed": 0, "empty": 0, "note": "", "pid": 20376}
