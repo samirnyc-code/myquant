@@ -1,5 +1,5 @@
 {
- "generated": "2026-09-15T03:30:02",
+ "generated": "2026-09-16T03:30:02",
  "families": {
   "vendor_flatfiles": {
    "n": 0,
@@ -101,38 +101,38 @@
    "rows": null
   },
   "options_tape": {
-   "n": 66,
-   "size": 33307691,
+   "n": 68,
+   "size": 34964734,
    "zero_byte": 0,
-   "newest": 1789416303.806803,
+   "newest": 1789502712.3797975,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
    "per_path": {
     "data/options_tape": {
      "exists": true,
-     "n": 66,
-     "size": 33307691,
-     "newest": 1789416303.806803,
+     "n": 68,
+     "size": 34964734,
+     "newest": 1789502712.3797975,
      "zero_byte": 0
     }
    },
    "rows": null
   },
   "ticks_continuous": {
-   "n": 8568,
-   "size": 9404906266,
+   "n": 8569,
+   "size": 9406661785,
    "zero_byte": 0,
-   "newest": 1789419687.4466631,
+   "newest": 1789506102.107254,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
    "per_path": {
     "data/ticks_continuous": {
      "exists": true,
-     "n": 1321,
-     "size": 3694376297,
-     "newest": 1789419687.4466631,
+     "n": 1322,
+     "size": 3696131816,
+     "newest": 1789506102.107254,
      "zero_byte": 0
     },
     "data/ticks_continuous_NQ": {
@@ -188,7 +188,7 @@
    "exists_any": true,
    "health": "stale",
    "reasons": [
-    "newest file 49d old (budget 30d)"
+    "newest file 50d old (budget 30d)"
    ],
    "per_path": {
     "data/bars": {
@@ -209,7 +209,7 @@
    "exists_any": true,
    "health": "stale",
    "reasons": [
-    "newest file 40d old (budget 4d)",
+    "newest file 41d old (budget 4d)",
     "2 zero-byte file(s)"
    ],
    "per_path": {
@@ -241,7 +241,7 @@
    "exists_any": true,
    "health": "stale",
    "reasons": [
-    "newest file 41d old (budget 4d)",
+    "newest file 42d old (budget 4d)",
     "1 zero-byte file(s)"
    ],
    "per_path": {
@@ -263,7 +263,7 @@
    "exists_any": true,
    "health": "stale",
    "reasons": [
-    "newest file 48d old (budget 4d)"
+    "newest file 49d old (budget 4d)"
    ],
    "per_path": {
     "gamma_tracker/gamma.db": {
@@ -303,10 +303,10 @@
    "rows": null
   },
   "options_sim": {
-   "n": 792,
-   "size": 28633622,
+   "n": 801,
+   "size": 28817713,
    "zero_byte": 2,
-   "newest": 1789431298.8988907,
+   "newest": 1789517698.5454397,
    "exists_any": true,
    "health": "ok",
    "reasons": [
@@ -315,28 +315,28 @@
    "per_path": {
     "data/options_sim": {
      "exists": true,
-     "n": 792,
-     "size": 28633622,
-     "newest": 1789431298.8988907,
+     "n": 801,
+     "size": 28817713,
+     "newest": 1789517698.5454397,
      "zero_byte": 2
     }
    },
    "rows": null
   },
   "options_log": {
-   "n": 220,
-   "size": 30657794,
+   "n": 225,
+   "size": 31383454,
    "zero_byte": 0,
-   "newest": 1789417204.3505416,
+   "newest": 1789503603.141155,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
    "per_path": {
     "data/options_log": {
      "exists": true,
-     "n": 220,
-     "size": 30657794,
-     "newest": 1789417204.3505416,
+     "n": 225,
+     "size": 31383454,
+     "newest": 1789503603.141155,
      "zero_byte": 0
     }
    },
@@ -460,9 +460,9 @@
   },
   "vix_ib_daily": {
    "n": 6,
-   "size": 1399037,
+   "size": 1399111,
    "zero_byte": 0,
-   "newest": 1789392362.7634482,
+   "newest": 1789478762.8001938,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
@@ -470,8 +470,8 @@
     "data/vix_daily.csv": {
      "exists": true,
      "n": 1,
-     "size": 332121,
-     "newest": 1789392362.7634482,
+     "size": 332195,
+     "newest": 1789478762.8001938,
      "zero_byte": 0
     },
     "data/vix_daily.parquet": {
@@ -610,7 +610,7 @@
    "exists_any": true,
    "health": "stale",
    "reasons": [
-    "newest file 10d old (budget 4d)"
+    "newest file 11d old (budget 4d)"
    ],
    "per_path": {
     "data/depth": {
@@ -650,7 +650,7 @@
    "exists_any": true,
    "health": "stale",
    "reasons": [
-    "newest file 5d old (budget 1d)"
+    "newest file 6d old (budget 1d)"
    ],
    "per_path": {
     "data/discord": {
@@ -683,7 +683,7 @@
    "rows": null
   }
  },
- "total_size": 86395454735,
- "total_files": 34319,
- "scan_seconds": 1.1785
+ "total_size": 86399777122,
+ "total_files": 34336,
+ "scan_seconds": 1.247169
 }

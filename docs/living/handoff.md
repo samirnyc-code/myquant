@@ -103,6 +103,9 @@ self-refreshing dashboard (per-trade equity curves + break-even + market-implied
   restarted, RELAUNCH it** (entry preserved in state; only the 30s marks paused). Settles each structure at
   intrinsic vs SPY on its expiry (#1-3 = **09-16 TODAY, post-FOMC**; #4 = 09-22). POP = market-implied risk-neutral
   prob of profit from the live ATM straddle — **NOT an edge**, FOMC move already priced in.
+- **STATUS 2026-09-16 ~05:02 machine (pre-cash-open):** tracker still running; marks = None (no OPRA
+  outside RTH); `settled` still empty — #1-3 settle at today's 09-16 close (post-FOMC), #4 on 09-22.
+  Nothing to do but let it run to settlement.
 - **EVENT CONTEXT:** 09-16 (today) = **FOMC decision** (gexlog "Elevated"); 09-18 Fri = **quad-witching** + ES Sept
   settlement. My read (user asked): long calls (#1/#4) into FOMC are IV-crush-exposed; #3 (sell premium) benefits
   from the crush; cleanest bounce trade is AFTER the Fed clears. User's thesis = oversold-bounce into the close.

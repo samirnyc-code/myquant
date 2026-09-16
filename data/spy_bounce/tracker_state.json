@@ -1,0 +1,27 @@
+{
+  "locked_ct": "2026-09-15T20:23:43",
+  "spy_entry": 757.55,
+  "entry": {
+    "#1 Long 758C": {
+      "entry_val": 2.92,
+      "ok": true,
+      "debit_credit_$": 292.0
+    },
+    "#2 757/759C debit": {
+      "entry_val": 1.06,
+      "ok": true,
+      "debit_credit_$": 106.0
+    },
+    "#3 756/754P credit": {
+      "entry_val": -0.65,
+      "ok": true,
+      "debit_credit_$": -65.0
+    },
+    "#4 Long 757C (~1wk)": {
+      "entry_val": 5.69,
+      "ok": true,
+      "debit_credit_$": 569.0
+    }
+  },
+  "settled": {}
+}
