@@ -35,9 +35,21 @@ OUT = ROOT / "data" / "l1_tape" / "_analysis"
 
 def to_bars(df: pd.DataFrame, bar: str) -> pd.DataFrame:
     """Resample raw ticks to base bars for a clean swing skeleton. df: DateTime, Price, Volume
-    (+ optional Aggr for delta from an L1 file)."""
-    d = df.set_index("DateTime")
-    agg = {"Price": "last", "Volume": "sum"}
+    (+ optional signed for delta from an L1 file). `bar` = a pandas offset ('1min','5min') OR
+    a tick-count spec ('2000t','1000t') → group every N trade prints (the true 2000-tick bar)."""
+    d = df.sort_values("DateTime").reset_index(drop=True)
+    if bar.endswith("t"):
+        n = int(bar[:-1])
+        grp = np.arange(len(d)) // n
+        g = d.groupby(grp)
+        out = pd.DataFrame({
+            "close": g["Price"].last().values, "high": g["Price"].max().values,
+            "low": g["Price"].min().values, "vol": g["Volume"].sum().values,
+        }, index=g["DateTime"].last().values)
+        if "signed" in d.columns:
+            out["delta"] = g["signed"].sum().values
+        return out
+    d = d.set_index("DateTime")
     o = d["Price"].resample(bar).ohlc()
     v = d["Volume"].resample(bar).sum()
     out = pd.DataFrame({"close": o["close"], "high": o["high"], "low": o["low"], "vol": v})
@@ -141,11 +153,11 @@ def main() -> int:
         raw["DateTime"] = pd.to_datetime(raw["Time" if "Time" in raw.columns else "DateTime"])
         if "Aggr" in raw.columns:
             raw["signed"] = np.where(raw["Aggr"].astype(str) == "A", raw["Volume"], -raw["Volume"])
-        label = f"{p.stem} (L1)"; stamp = f"weis_{p.stem}"
+        label = f"{p.stem} (L1)"; stamp = f"weis_{p.stem}_{a.bar}"
     else:
         day = a.day or td.available("eth" if a.eth else "rth")[-1]
         raw = td.load_eth(day) if a.eth else td.load_rth(day)
-        label = f"{day} ({'ETH' if a.eth else 'RTH'})"; stamp = f"weis_{day}_{'eth' if a.eth else 'rth'}"
+        label = f"{day} ({'ETH' if a.eth else 'RTH'})"; stamp = f"weis_{day}_{'eth' if a.eth else 'rth'}_{a.bar}"
 
     bars = to_bars(raw, a.bar)
     w = waves(bars, a.reversal)
