@@ -212,6 +212,11 @@ self-refreshing dashboard (per-trade equity curves + break-even + market-implied
   Settlement moved to **16:00 ET on each expiry date** at last live SPY; `last_spot` persisted in state.
   Stripped 847 overnight None rows from `pnl_timeseries.csv` (1066→219). Restarted with user OK
   (killed 18612/20500 → relaunched; pair 6600/16056). Gate unit-tested (all boundaries pass).
+- **INTEGRATED into the Options Desk (2026-09-16):** SPY Bounce is now a **tab** in the desk
+  dashboard (`options_dashboard.py`), immediately after "IB vs TD"; embeds the tracker via
+  `<iframe src="/spybounce">`, route added in `options_dashboard_live.py` (:8600). (First tried a
+  Mission Control launcher card — reverted; user wanted a desk tab.) Confirmed live: pill LIVE,
+  marking off OPRA in RTH. Commits e84b1af1 (tab) + earlier gate/commit chain.
 - **EVENT CONTEXT:** 09-16 (today) = **FOMC decision** (gexlog "Elevated"); 09-18 Fri = **quad-witching** + ES Sept
   settlement. My read (user asked): long calls (#1/#4) into FOMC are IV-crush-exposed; #3 (sell premium) benefits
   from the crush; cleanest bounce trade is AFTER the Fed clears. User's thesis = oversold-bounce into the close.
