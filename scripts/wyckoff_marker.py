@@ -46,6 +46,7 @@ HTML = r"""<!doctype html><html><head><meta charset="utf-8"><title>Wyckoff Marke
   <button id="m_box" class="on">box</button>
   <button id="m_spring">spring</button>
   <button id="m_ut">upthrust</button>
+  <button id="auto" class="on">auto sp/ut: ON</button>
   <span>view:</span><select id="tf"></select>
   <button id="snap" class="on">snap: ON</button>
   <button id="undo">undo box</button>
@@ -57,7 +58,7 @@ HTML = r"""<!doctype html><html><head><meta charset="utf-8"><title>Wyckoff Marke
 <script>
 const DATA = __DATA__;
 const TFS = Object.keys(DATA);
-let cur=TFS[0], snap=true, pending=null, boxes=[], marks=[], hist=[], mode='box';
+let cur=TFS[0], snap=true, pending=null, boxes=[], marks=[], hist=[], mode='box', autoOn=true;
 const cv=document.getElementById('c'), ctx=cv.getContext('2d');
 const tfSel=document.getElementById('tf');
 TFS.forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;tfSel.appendChild(o)});
@@ -108,9 +109,22 @@ function draw(){
     if(bw()>6){ctx.fillStyle='#cfd8dc';ctx.font='9px monospace';ctx.textAlign='center';ctx.fillText((s.vol/1000).toFixed(0)+'k',(x0+x1)/2,wBot-h-2);}});
   // boxes
   boxes.forEach((bx,k)=>drawBox(bx,k+1));
+  drawAuto();          // springs/upthrusts auto-found from each box's edges
   drawMarks();
   if(pending){const x=xOf(pending.i),y=yOf(pending.p);ctx.fillStyle='#ffd54f';ctx.beginPath();ctx.arc(x,y,4,0,7);ctx.fill();}
 }
+function barLoHiCl(b){const lo=isRenko?Math.min(b.wlo,b.bottom):b.l,hi=isRenko?Math.max(b.whi,b.top):b.h,cl=isRenko?(b.dir==='up'?b.top:b.bottom):b.c;return[lo,hi,cl];}
+function autoMarks(){                // false breaks of each box's support/resistance that RECLAIM
+  const out=[]; if(!autoOn) return out;
+  boxes.forEach(bx=>{const sup=Math.min(bx.a.p,bx.b.p),res=Math.max(bx.a.p,bx.b.p),from=Math.min(bx.a.i,bx.b.i);
+    for(let i=from;i<bars.length;i++){const [lo,hi,cl]=barLoHiCl(bars[i]);
+      if(lo<sup-0.01 && cl>=sup) out.push({type:'spring',i,p:lo});
+      if(hi>res+0.01 && cl<=res) out.push({type:'ut',i,p:hi});}});
+  return out;
+}
+function drawAuto(){autoMarks().forEach(m=>{const x=xOf(m.i),y=yOf(m.p);ctx.lineWidth=1.4;
+  if(m.type==='spring'){ctx.strokeStyle='#ffb300';ctx.beginPath();ctx.moveTo(x-5,y+11);ctx.lineTo(x,y+2);ctx.lineTo(x+5,y+11);ctx.stroke();ctx.fillStyle='#ffb300';ctx.font='9px monospace';ctx.textAlign='center';ctx.fillText('spring?',x,y+22);}
+  else{ctx.strokeStyle='#ffb300';ctx.beginPath();ctx.moveTo(x-5,y-11);ctx.lineTo(x,y-2);ctx.lineTo(x+5,y-11);ctx.stroke();ctx.fillStyle='#ffb300';ctx.font='9px monospace';ctx.textAlign='center';ctx.fillText('UT?',x,y-14);}});ctx.lineWidth=1;}
 function drawMarks(){marks.forEach(m=>{const x=xOf(m.i),y=yOf(m.p);ctx.font='10px monospace';ctx.textAlign='center';
   if(m.type==='spring'){ctx.strokeStyle=ctx.fillStyle='#26a69a';const yb=y+16;ctx.beginPath();ctx.moveTo(x,yb);ctx.lineTo(x,y+3);ctx.stroke();
     ctx.beginPath();ctx.moveTo(x-4,y+9);ctx.lineTo(x,y+2);ctx.lineTo(x+4,y+9);ctx.closePath();ctx.fill();ctx.fillText('SP '+m.p.toFixed(2),x,yb+11);}
@@ -138,9 +152,11 @@ cv.addEventListener('click',e=>{const r=cv.getBoundingClientRect();const y=e.cli
   const pt=snapClick(x,y);if(!pending){pending=pt;}else{boxes.push({a:pending,b:pt});pending=null;hist.push({t:'box'});}draw();readout();});
 function fmt(pt){return bars[pt.i].t+' '+pt.p.toFixed(2)+'('+pt.k+')';}
 function readout(){let parts=boxes.map((b,k)=>'box'+(k+1)+': '+fmt(b.a)+' -> '+fmt(b.b)+'  ='+Math.abs(b.a.p-b.b.p).toFixed(2)+'pt');
+  autoMarks().forEach(m=>parts.push('  '+(m.type==='spring'?'spring?':'UT?')+' '+bars[m.i].t+' '+m.p.toFixed(2)));
   marks.forEach(m=>parts.push((m.type==='spring'?'SPRING':'UPTHRUST')+': '+bars[m.i].t+' '+m.p.toFixed(2)));
   if(pending)parts.push('start: '+fmt(pending)+'  (click END)');
   document.getElementById('read').textContent=parts.join('\n')||'no marks yet';}
+document.getElementById('auto').onclick=e=>{autoOn=!autoOn;e.target.textContent='auto sp/ut: '+(autoOn?'ON':'OFF');e.target.classList.toggle('on',autoOn);draw();readout();};
 function setMode(m){mode=m;pending=null;['box','spring','ut'].forEach(x=>document.getElementById('m_'+x).classList.toggle('on',x===m));readout();}
 document.getElementById('m_box').onclick=()=>setMode('box');
 document.getElementById('m_spring').onclick=()=>setMode('spring');
