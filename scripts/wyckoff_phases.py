@@ -82,14 +82,16 @@ def derive(bars, W, reversal):
     ev["range_top_ar"] = ar_hi
     ev["range_top_ext"] = phaseB_hi
 
-    # ALL tests of support (not just one ST): down-wave lows after the AR and before the SOS
-    # that sit in the LOWER portion of the range = genuine tests of the low. Real trading
+    # ALL tests of support (not just one ST): a real test PROBES DOWN toward support — it must
+    # reach the LOWER THIRD of the range (book classifies tests by the third they end in, p.90).
+    # A dip that only reaches mid-range is a range rotation, not a test of the low. Real trading
     # never has a single clean ST — the low gets probed repeatedly (that IS Phase B).
-    mid = (sc_low + phaseB_hi) / 2.0
+    lower_third = sc_low + (phaseB_hi - sc_low) / 3.0
     start_b = ar["e"] if ar else sc["e"]
     stop_b = ev["SOS"]["s"] if ev["SOS"] else len(bars)
-    tests = [w for w in W if (not w["up"]) and start_b <= w["s"] < stop_b and w["lo"] <= mid]
+    tests = [w for w in W if (not w["up"]) and start_b <= w["s"] < stop_b and w["lo"] <= lower_third]
     ev["tests"] = tests
+    ev["lower_third"] = lower_third
     return ev
 
 
@@ -198,7 +200,7 @@ def main() -> int:
     mark("SOS", ev["SOS"], "p1", 3)
     ax.set_title(f"{a.day} · {a.bar} · Wyckoff TR + Phases A-E  (reversal {a.reversal}pt)", fontsize=12)
     ax.set_ylabel("price"); ax.set_xlabel(f"{a.bar} bar #"); ax.grid(alpha=0.15)
-    png = OUT / f"phases_{a.day}_{a.bar}.png"
+    png = OUT / f"phases_{a.day}_{'eth' if a.eth else 'rth'}_{a.bar}.png"
     fig.tight_layout(); fig.savefig(png, dpi=110); plt.close(fig)
     print(f"\nchart: {png}")
     try:
