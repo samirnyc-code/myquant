@@ -32,7 +32,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))   # so pipeline_health imports
 DEPTH_DIR = ROOT / "data" / "depth"
-FOOTPRINT_DIR = ROOT / "data" / "footprint"
 STATE_FILE = ROOT / "data" / "_catalog" / "status_light.json"
 MISSION_CONTROL = "http://localhost:8590"
 
@@ -170,12 +169,9 @@ def _probe_depth_only() -> dict:
                         detail=f"market OPEN but no depth file for {now.date()}\nrecorder is not running")
         return dict(color=GREY, short="closed", detail=f"market {mkt} - no file yet")
 
-    fp = sorted(FOOTPRINT_DIR.glob("*_footprint_*.csv"))
-    fp_txt = f"\nfootprint: {fp[-1].name}" if fp else "\nfootprint: (none)"
-
     base = (f"depth {mb:,.1f} MB\n"
             f"files: {', '.join(f.name for f in files)}\n"
-            f"market: {mkt} ({now:%H:%M} CT){fp_txt}")
+            f"market: {mkt} ({now:%H:%M} CT)")
 
     if mkt == "closed":
         return dict(color=GREY, short=f"{mb:,.0f}MB", detail=f"market closed - nothing expected\n{base}")

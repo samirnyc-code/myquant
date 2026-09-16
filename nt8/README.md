@@ -26,7 +26,7 @@ nt8/
 | `AMASignalOverlay.cs` | Overlays Python-generated AMA Breakouts signals on chart (S42) | ✅ current |
 | `MyStochasticsColorwithSignal.cs` | Stochastic %K/%D with OB/OS zone + filtered reversal-bar coloring (source indicator) | ✅ current |
 | `MyStochasticExporter.cs` | Exports per-bar %K/%D + zone/reversal signals to CSV for BA stochastic overlay (S50) | ✅ current |
-| `FootprintExporter.cs` | Reconstructs bid/ask footprint + delta from ticks (Tick Replay) to CSV — free order-flow, no MzPack. Fallback/validation vs a paid MzPack `StrategyFootprintIndicator` extractor (S75) | ✅ current |
+| `FootprintExporter.cs` | Reconstructed bid/ask footprint + delta from ticks (Tick Replay) to CSV | ❌ REMOVED (S120) — superseded by L1TapeRecorderAddOn (footprint reconstructable from the L1 tape offline); restore from git if a live CSV export is needed again. `MzFootprintExtractor.cs` removed with it. |
 | `WedgeExporter.cs` | Hosts black-box `MyWedge` and exports every signal bar (`WedgeBLSB`/`WedgeBRSB` > 0; BL=long, BR=short) to CSV over full history — feeds the 2000t stop/target (MAE/MFE) study. Compiled OK S107 | ✅ current |
 | `ZerolagExporter.cs` | Exports ZLO state to CSV for BA overlay (S31) | ❌ LOST — not committed |
 | `AlwaysIn.cs` | Exports AlwaysIn regime state to CSV (S36) | ❌ LOST — not committed |

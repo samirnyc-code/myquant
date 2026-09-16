@@ -594,9 +594,8 @@ whether the process is alive. Drag tiles to reorder; the layout is remembered.</
 <footer><span id="gen"></span><span id="note"></span></footer>
 <script>
 const FIX={
- "L2 depth":"AddOn recorder (data/depth/addon_test). If stalled: restart NinjaTrader — the AddOn starts with NT; the old MarketDepthRecorder strategy is retired.",
+ "L1 tape":"L1 tape + best bid/ask recorder (L1TapeRecorderAddOn, writes data/l1_tape). Auto-starts with NT; if stalled or tape-only, restart NinjaTrader. Roll SymbolName on the quarterly contract change.",
  "Contract":"Roll the chart/strategy to the front-month contract, then re-enable the recorder.",
- "Footprint":"FootprintExporter needs Tick Replay ON for its data series.",
  "NinjaTrader":"scripts/nt8_login.ps1 starts NT8 and signs in.",
  "NT8 tick DB":"Tools → Options → Market data → 'Record live data as historical' must be ON.",
  "IB gateway":"Login is not the same as the API port — run scripts/gateway_ensure.py.",

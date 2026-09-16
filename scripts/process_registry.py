@@ -223,27 +223,17 @@ PROCESSES = [
 
     # ---------------------------------------------------------------- session
     dict(id="depth", phase="session", ct="cont", task=None,
-         title="L2 depth + tape recorder",
-         script="nt8/strategies/MarketDepthRecorder.cs",
-         health="L2 depth",
-         what="Records every order-book add/update/remove plus the interleaved trade tape, "
-              "on one clock, to a daily CSV.",
-         why="**The only truly irreplaceable dataset here.** NT8 stores no historical depth "
-             "and no vendor sells it cheaply — resting liquidity exists only in the moment. "
-             "Every minute not recorded is gone forever.",
-         writes="data/depth/ES_depth_YYYY-MM-DD.csv",
-         downstream="Iceberg / absorption / DOM-pressure research — and ANY footprint "
-                    "timeframe, since the tape is a superset."),
-
-    dict(id="footprint", phase="session", ct="cont", task=None,
-         title="Footprint exporter",
-         script="nt8/indicators/FootprintExporter.cs",
-         health="Footprint",
-         what="Reconstructs the bid/ask footprint ladder per bar from ticks.",
-         why="Validated EXACT against MzPack (zero error on delta/buy%/POC), which is why we "
-             "never bought their €599 suite.",
-         writes="data/footprint/ES_<series>_footprint_<stamp>.csv",
-         downstream="footprint_metrics.py → POC/VA/imbalance/absorption/CVD."),
+         title="L2 depth + tape recorder — RETIRED (superseded by L1 tape)",
+         script="nt8/addons/MarketDepthRecorderAddOn.cs.disabled",
+         health=None,
+         what="[RETIRED S120] Recorded the full L2 order book + interleaved tape. The AddOn is "
+              "disabled in the Custom folder; the desk moved to L1 capture (tape + best "
+              "bid/ask) — lighter disk, footprint/delta-complete — see the 'l1_tape' entry.",
+         why="Kept in the timeline for provenance: this is where the irreplaceable L2 DOM "
+             "history came from (through 2026-09-04). Re-enable only if full-depth capture "
+             "is wanted again; for now L1 is the live recorder.",
+         writes="data/depth/addon_test/ES_<contract>_depth_YYYY-MM-DD.csv (through 2026-09-04)",
+         downstream="Historical L2/absorption/DOM research on the archived parquet."),
 
     dict(id="tickdb", phase="session", ct="cont", task=None,
          title="NT8 tick recording",
@@ -254,6 +244,21 @@ PROCESSES = [
              "for any past day via Tick Replay.",
          writes="Documents/NinjaTrader 8/db/tick/ES 09-26/",
          downstream="Tick-Replay footprint rebuilds; gap-fill for the parquet tick archive."),
+
+    dict(id="l1_tape", phase="session", ct="cont", task=None,
+         title="L1 tape + best bid/ask recorder",
+         script="nt8/addons/L1TapeRecorderAddOn.cs",
+         health="L1 tape",
+         what="Records every trade print (price/size/aggressor) plus every best-bid and "
+              "best-ask change, on one clock, to a daily CSV. L1 only — NO full depth book.",
+         why="The Wyckoff-2.0 order-flow DB (S120). The tick troves store TRADES ONLY with no "
+             "bid/ask, so footprint/delta and absorption cannot be reconstructed from them. "
+             "This adds the missing quote to the tape at a fraction of L2 DOM's disk. AddOn = "
+             "auto-runs on NT startup, survives restarts, no enable step. L1 gaps are "
+             "unrecoverable (Databento MBP-10 is the paid backfill safety-net).",
+         writes="data/l1_tape/ES_<contract>_l1_YYYY-MM-DD.csv",
+         downstream="Footprint/CVD/absorption on the OF trigger lane; the Wyckoff-2.0 "
+                    "backtest/journal DB. Nightly -> parquet via l1_rollover.py."),
 
 
     # ---------------------------------------------------------------- daily halt
@@ -307,6 +312,20 @@ PROCESSES = [
              "off-machine the same halt hour it is made. Runs inside the rollover job.",
          writes="~/myquant-data/depth/*.parquet (GitHub: samirnyc-code/myquantdata, PRIVATE)",
          downstream="Disaster recovery for the one dataset that cannot be re-collected."),
+
+    dict(id="l1_rollover", phase="halt", ct="16:05", task="MyQuant L1 Rollover",
+         title="L1 tape -> parquet + backup",
+         script="scripts/l1_rollover.py",
+         health="L1 tape",
+         what="Converts each finished L1 tape CSV (trades + best bid/ask) to zstd parquet and "
+              "deletes the CSV ONLY after the parquet is re-read and its row count matches, "
+              "then mirrors the parquet to the private ~/myquant-data archive repo.",
+         why="Raw CSV is right for LIVE capture, wrong for the archive. Parquet is ~10x "
+             "smaller and column-selective. Files carry the TRADE DATE, so the file that just "
+             "closed converts the same afternoon; a file still held open is never touched. "
+             "NOTE: needs a scheduled task 'MyQuant L1 Rollover' (16:05 CT) — pending user OK.",
+         writes="data/l1_tape/*.parquet + ~/myquant-data/l1_tape/*.parquet",
+         downstream="The Wyckoff-2.0 order-flow DB in its archive format; off-machine backup."),
 
     # ---------------------------------------------------------------- close
     dict(id="postmortem", phase="close", ct="15:15", task="MyQuant Postmortem",

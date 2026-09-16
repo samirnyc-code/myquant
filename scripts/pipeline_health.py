@@ -26,7 +26,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 DEPTH_DIR = ROOT / "data" / "depth"
-FOOTPRINT_DIR = ROOT / "data" / "footprint"
+L1_DIR = ROOT / "data" / "l1_tape"
 CATALOG = ROOT / "data" / "_catalog"
 NT8 = Path(os.environ["USERPROFILE"]) / "Documents" / "NinjaTrader 8"
 
@@ -184,6 +184,71 @@ def _tail_mix(path, nbytes: int = 60_000):
         return 0, 0
 
 
+def _tail_mix_l1(path, nbytes: int = 60_000):
+    """(quote_rows, tape_rows) in the last chunk of an L1 CSV.
+
+    Same tail-only trick as _tail_mix, but for the L1 schema: Ev = T tape / B best-bid /
+    A best-ask / C connection. A file that is all T and no B/A means the quote (bid/ask)
+    subscription is not firing — the L1 analogue of the 'TAPE ONLY' depth failure.
+    """
+    try:
+        with open(path, "rb") as f:
+            f.seek(0, 2)
+            f.seek(max(0, f.tell() - nbytes))
+            chunk = f.read().decode("ascii", "ignore")
+        quote = tape = 0
+        for line in chunk.splitlines()[1:-1]:      # drop partial first/last lines
+            parts = line.split(",", 2)
+            if len(parts) < 2:
+                continue
+            ev = parts[1]
+            if ev == "T":
+                tape += 1
+            elif ev in ("B", "A"):
+                quote += 1
+        return quote, tape
+    except Exception:
+        return 0, 0
+
+
+def check_l1_tape() -> dict:
+    """Live L1 tape + best-bid/ask recorder (L1TapeRecorderAddOn) — the Wyckoff-2.0 DB.
+
+    Reports IDLE 'not started' until the recorder has ever written a file, so it does NOT
+    false-alarm before the AddOn is F5'd. Once files exist, it behaves like check_depth:
+    BAD if stalled while the market is open, and BAD if the tail is TAPE-ONLY (the bid/ask
+    subscription is down)."""
+    now = chicago_now()
+    mkt = market_state(now)
+    files = []
+    for d in (-1, 0, 1):
+        day = (now.date() + dt.timedelta(days=d)).isoformat()
+        files += sorted(L1_DIR.glob(f"ES*_l1_{day}.csv"))
+    # not yet activated (no dir / no file ever) -> IDLE, never BAD (pre-F5 state)
+    if not L1_DIR.exists() or not any(L1_DIR.glob("ES*_l1_*.csv")):
+        return _chk("L1 tape", IDLE, "recorder not started (deploy + F5 L1TapeRecorderAddOn)")
+    if not files:
+        return _chk("L1 tape", BAD if mkt == "open" else IDLE,
+                    "no file for today" if mkt == "open" else f"market {mkt}")
+    mb = sum(f.stat().st_size for f in files) / 1e6
+    age = min(_age(f) for f in files)
+    if mkt in ("closed", "halt"):
+        return _chk("L1 tape", IDLE, f"{mb:,.0f}MB - market {mkt}", mb=round(mb, 1))
+    if age > 180:
+        return _chk("L1 tape", BAD, f"STALLED {_fmt_age(age)} - data being lost", mb=round(mb, 1))
+    quote, tape = _tail_mix_l1(files[-1])
+    if quote + tape == 0:
+        return _chk("L1 tape", WARN, f"{mb:,.0f}MB, tail unreadable", mb=round(mb, 1))
+    if quote == 0:
+        return _chk("L1 tape", BAD,
+                    f"TAPE ONLY - no bid/ask in the last {tape:,} rows "
+                    f"(quote subscription down?)", mb=round(mb, 1), quote=0, tape=tape)
+    pct = 100.0 * quote / (quote + tape)
+    return _chk("L1 tape", OK,
+                f"{mb:,.0f}MB, {_fmt_age(age)} ago, {pct:.0f}% quote",
+                mb=round(mb, 1), quote=quote, tape=tape)
+
+
 def front_month(now: dt.datetime | None = None) -> str:
     """Which ES contract SHOULD be front month right now.
     ES is quarterly (Mar/Jun/Sep/Dec) and rolls ~2nd Thursday of the expiry month, so from
@@ -248,33 +313,9 @@ def check_contract() -> dict:
     return _chk("Contract", WARN, f"expected ES {want}, no fresh tick data", want=want)
 
 
-def check_footprint() -> dict:
-    fp = sorted(FOOTPRINT_DIR.glob("*_footprint_*.csv"), key=lambda x: x.stat().st_mtime)
-    if not fp:
-        legacy = FOOTPRINT_DIR / "ES_footprint.csv"
-        if legacy.exists():
-            return _chk("Footprint", WARN if market_state() == "open" else IDLE,
-                        f"legacy file only, {_fmt_age(_age(legacy))} ago")
-        return _chk("Footprint", IDLE, "no stamped file yet")
-    newest = fp[-1]
-    age = _age(newest)
-    mkt = market_state()
-    if mkt != "open":
-        return _chk("Footprint", IDLE, f"{newest.name} ({_fmt_age(age)})")
-    # Footprint updates on BAR CLOSE, and these are VOLUME bars (6500V): a bar closes only
-    # when 6,500 contracts trade. In thin overnight ETH that is routinely 15-40 min apart,
-    # so a flat "stale > 15m" flag false-alarms all night. Only treat footprint as stale if
-    # DEPTH is also not flowing (then nothing is being captured at all) or during RTH, where
-    # volume is high enough that a long gap is genuinely abnormal.
-    depth = check_depth()
-    depth_live = depth.get("book", 0) and depth["state"] == OK
-    rth = _desk_hours()
-    limit = 1800 if rth else 999999      # RTH: 30 min is a real gap; ETH: bar-close driven
-    if depth_live and age <= limit:
-        return _chk("Footprint", OK, f"{newest.name} ({_fmt_age(age)}, bar-close driven)")
-    if not depth_live:
-        return _chk("Footprint", WARN, f"{newest.name} stale {_fmt_age(age)} and depth not flowing")
-    return _chk("Footprint", WARN, f"{newest.name} stale {_fmt_age(age)} during RTH")
+# check_footprint RETIRED (S120): the live footprint export was a CSV archive with no on-screen
+# render, and the L1 tape recorder reconstructs footprint offline (tape + aggressor = the
+# footprint). Tile + exporter + MzFootprintExtractor removed. Archived data/footprint/ kept.
 
 
 def check_nt8() -> dict:
@@ -518,8 +559,12 @@ def check_chain() -> dict:
     return _chk("0DTE chain", OK, f"{mb:,.1f}MB, {_fmt_age(age)} ago", mb=round(mb, 1))
 
 
-CHECKS = [check_depth, check_contract, check_footprint, check_nt8, check_tick_db, check_archive,
-          check_ib_gateway, check_options_sim, check_dashboard, check_disk, check_chain, check_tasks]
+# check_depth (L2 DOM) is retired from the dashboard tiles: the L2 AddOn is disabled and the
+# desk moved to L1 capture (S120). The L1 tape tile REPLACES the old L2 depth tile here. The
+# function stays defined for any tool that still imports it directly (e.g. nt8_watchdog).
+CHECKS = [check_l1_tape, check_contract, check_nt8, check_tick_db,
+          check_archive, check_ib_gateway, check_options_sim, check_dashboard, check_disk,
+          check_chain, check_tasks]
 
 
 def health() -> dict:
