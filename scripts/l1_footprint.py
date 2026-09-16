@@ -85,34 +85,71 @@ def footprint_ladder(fp_all: pd.DataFrame, bars: pd.DataFrame) -> pd.DataFrame:
     return busiest, lad[["Price", "sell", "buy", "delta", "vol"]]
 
 
-def chart(bars: pd.DataFrame, path: Path):
+def chart(bars: pd.DataFrame, fp_all: pd.DataFrame, tape: pd.DataFrame, bar: str, path: Path):
+    """A REAL footprint chart: each bar is a price-ladder column showing sell×buy at every
+    traded level, cell colored by delta (green=buy-heavy, red=sell-heavy), POC outlined,
+    close path overlaid. Bottom panel = cumulative delta on the same bars."""
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
+    from matplotlib.patches import Rectangle
+    import numpy as np
 
-    x = range(len(bars))
-    fig, ax = plt.subplots(3, 1, figsize=(12, 9), sharex=True,
-                           gridspec_kw={"height_ratios": [3, 2, 1.5]})
-    fig.suptitle(f"L1 footprint reconstruction — {bars['t_start'].iloc[0]:%Y-%m-%d %H:%M} "
-                 f"→ {bars['t_end'].iloc[-1]:%H:%M}  ({len(bars)} bars)", fontsize=12)
+    keys = list(bars_key_order(fp_all))
+    keymap = {k: i for i, k in enumerate(keys)}
+    fp = fp_all.copy()
+    fp["bi"] = fp["bar"].map(keymap)
+    n = len(keys)
 
-    ax[0].plot(x, bars["close"], color="#1f77b4", lw=1.4, label="close")
-    ax[0].plot(x, bars["poc"], color="#ff7f0e", lw=0.8, ls="--", alpha=0.7, label="bar POC")
-    ax[0].fill_between(x, bars["low"], bars["high"], color="#1f77b4", alpha=0.12)
-    ax[0].set_ylabel("price"); ax[0].legend(loc="upper left", fontsize=8); ax[0].grid(alpha=0.2)
+    tick = 0.25
+    prices = tape["Price"].unique()
+    pmin, pmax = float(prices.min()), float(prices.max())
+    nlev = int(round((pmax - pmin) / tick)) + 1
 
-    ax[1].plot(x, bars["cvd"], color="#2ca02c", lw=1.6)
-    ax[1].axhline(0, color="#888", lw=0.7)
-    ax[1].set_ylabel("cumulative delta"); ax[1].grid(alpha=0.2)
+    fig_w = max(13, n * 0.78)
+    fig_h = max(6.5, nlev * 0.34 + 2)
+    fig, (ax, axd) = plt.subplots(2, 1, figsize=(fig_w, fig_h), sharex=True,
+                                  gridspec_kw={"height_ratios": [nlev * 0.34, 1.6]})
+    fig.suptitle(f"L1 FOOTPRINT — ES  {bars['t_start'].iloc[0]:%Y-%m-%d %H:%M}→{bars['t_end'].iloc[-1]:%H:%M}"
+                 f"  ·  {bar} bars  ·  cell = sell×buy (aggr sells @bid × aggr buys @ask)", fontsize=11)
 
-    colors = ["#2ca02c" if d >= 0 else "#d62728" for d in bars["delta"]]
-    ax[2].bar(x, bars["delta"], color=colors, width=0.8)
-    ax[2].axhline(0, color="#888", lw=0.7)
-    ax[2].set_ylabel("bar delta"); ax[2].set_xlabel("bar #"); ax[2].grid(alpha=0.2)
+    # per-level footprint cells
+    dmax = max(1, int(fp["buy"].sub(fp["sell"]).abs().max()))
+    for _, r in fp.iterrows():
+        bi, price = int(r["bi"]), float(r["Price"])
+        sell, buy = int(r["sell"]), int(r["buy"])
+        d = buy - sell
+        inten = min(0.85, 0.18 + 0.67 * abs(d) / dmax)
+        color = (0.15, 0.6, 0.25, inten) if d > 0 else (0.8, 0.15, 0.15, inten) if d < 0 else (0.5, 0.5, 0.5, 0.25)
+        ax.add_patch(Rectangle((bi - 0.46, price - tick / 2), 0.92, tick, color=color, lw=0))
+        ax.text(bi, price, f"{sell}×{buy}", ha="center", va="center", fontsize=6.5, color="black")
 
-    fig.tight_layout()
-    fig.savefig(path, dpi=110)
+    # POC per bar (outlined) + close path
+    for i, row in bars.reset_index(drop=True).iterrows():
+        ax.add_patch(Rectangle((i - 0.46, float(row["poc"]) - tick / 2), 0.92, tick,
+                               fill=False, edgecolor="#111", lw=1.6))
+    ax.plot(range(n), bars["close"].values, color="#1f77b4", lw=1.1, alpha=0.55, zorder=5, label="close")
+
+    ax.set_ylim(pmin - tick, pmax + tick)
+    ax.set_xlim(-0.6, n - 0.4)
+    ax.set_yticks(np.arange(pmin, pmax + tick, tick))
+    ax.set_ylabel("price"); ax.grid(axis="y", alpha=0.15); ax.legend(loc="upper left", fontsize=8)
+
+    # bottom: cumulative delta
+    axd.plot(range(n), bars["cvd"].values, color="#2ca02c", lw=1.6, marker="o", ms=3)
+    axd.axhline(0, color="#888", lw=0.7)
+    axd.set_ylabel("cum delta"); axd.grid(alpha=0.2)
+    axd.set_xticks(range(n))
+    axd.set_xticklabels([t.strftime("%H:%M") for t in bars["t_start"]], rotation=90, fontsize=7)
+
+    fig.tight_layout(rect=[0, 0, 1, 0.98])
+    fig.savefig(path, dpi=110, bbox_inches="tight")
     plt.close(fig)
+
+
+def bars_key_order(fp_all: pd.DataFrame):
+    """Bar keys in chronological order (groupby sort order)."""
+    return list(dict.fromkeys(fp_all["bar"].tolist()))
 
 
 def main() -> int:
@@ -140,7 +177,7 @@ def main() -> int:
     csv_out = outdir / f"{stamp}_{a.bar}_bars.csv"
     bars.to_csv(csv_out, index=False)
     png_out = outdir / f"{stamp}_{a.bar}_footprint.png"
-    chart(bars, png_out)
+    chart(bars, fp_all, tape, a.bar, png_out)
 
     # ---- inline summary (user can't see tool stdout otherwise) ----
     tot_buy, tot_sell = int(tape["buy"].sum()), int(tape["sell"].sum())
