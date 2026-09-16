@@ -179,7 +179,7 @@ function structure(){
   segs.push({i0:segStart,i1:bars.length-1,state});
   return {piv,brk,segs,state};
 }
-const SEGCOL={bull:'rgba(0,220,100,0.30)',bear:'rgba(255,70,70,0.24)',trans:'rgba(255,190,0,0.24)',na:'rgba(120,120,120,0.06)'};
+const SEGCOL={bull:'rgba(0,230,118,0.42)',bear:'rgba(255,60,60,0.30)',trans:'rgba(150,150,150,0.24)',na:'rgba(90,90,90,0.06)'};
 const EVSTYLE={spring:['#26a69a','spring',13],ut:['#ef5350','UT',-13],SOS:['#2e7d32','SOS',-13],
   SOW:['#c62828','SOW',13],test:['#00acc1','test',13],BoS:['#1e88e5','BoS',-13],ChoCH:['#f9a825','ChoCH',-13]};
 function drawEvents(){events().forEach(m=>{const s=EVSTYLE[m.type],x=xOf(m.i),y=yOf(m.p);
