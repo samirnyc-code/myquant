@@ -72,13 +72,14 @@ footer a{color:var(--accent)}
     <div class="sec-h"><span class="sec-num">01</span><h2>Identity</h2></div>
     <p class="sec-sub">Name it and classify it so it's searchable and taggable.</p>
     <div class="card">
-      <div class="frow"><div class="fname">Setup name<span class="ftype">text</span></div><div class="fdesc">Plain-language name you'd say out loud.<span class="eg">SPY bounce · 758C debit</span></div></div>
-      <div class="frow"><div class="fname">Setup code<span class="ftype">short tag</span></div><div class="fdesc">Short ID for tagging trades back to this card in the log.<span class="eg">SPY-BNC-01</span></div></div>
+      <div class="frow"><div class="fname">Setup name<span class="ftype">text</span></div><div class="fdesc">Plain-language name you'd say out loud.<span class="eg">ES 2E long · RTH open</span></div></div>
+      <div class="frow"><div class="fname">Setup code<span class="ftype">short tag</span></div><div class="fdesc">Short ID for tagging trades back to this card in the log.<span class="eg">ES-2EL-01</span></div></div>
       <div class="frow"><div class="fname">Status<span class="ftype">select</span></div><div class="fdesc">Where this setup stands.<div class="pillrow"><span class="pill long">Active</span><span class="pill n">Testing</span><span class="pill n">Retired</span></div></div></div>
-      <div class="frow"><div class="fname">Instrument(s)<span class="ftype">text</span></div><div class="fdesc">What you trade it on.<span class="eg">SPX / SPY / ES · options</span></div></div>
+      <div class="frow"><div class="fname">Instrument(s)<span class="ftype">text</span></div><div class="fdesc">What you trade it on — mini and/or micro.<span class="eg">ES/MES · NQ/MNQ</span></div></div>
       <div class="frow"><div class="fname">Direction<span class="ftype">select</span></div><div class="fdesc">Which way the trade leans.<div class="pillrow"><span class="pill long">Long</span><span class="pill short">Short</span><span class="pill n">Both</span></div></div></div>
-      <div class="frow"><div class="fname">Timeframe / horizon<span class="ftype">text</span></div><div class="fdesc">How long you're in it.<span class="eg">0DTE · intraday · swing</span></div></div>
-      <div class="frow"><div class="fname">Tags<span class="ftype">chips</span></div><div class="fdesc">Free-form labels for filtering.<span class="eg">bounce · gamma · low-IV · trend-day</span></div></div>
+      <div class="frow"><div class="fname">Session<span class="ftype">text</span></div><div class="fdesc">Which session it's valid in.<span class="eg">RTH · ETH/Globex · specific kill-zone</span></div></div>
+      <div class="frow"><div class="fname">Timeframe / horizon<span class="ftype">text</span></div><div class="fdesc">Chart TF you read it on + how long you hold.<span class="eg">2000t · 5m · intraday, flat by close</span></div></div>
+      <div class="frow"><div class="fname">Tags<span class="ftype">chips</span></div><div class="fdesc">Free-form labels for filtering.<span class="eg">2E · trend-day · IB-break · VWAP-reclaim</span></div></div>
     </div>
   </section>
 
@@ -86,9 +87,9 @@ footer a{color:var(--accent)}
     <div class="sec-h"><span class="sec-num">02</span><h2>Thesis</h2></div>
     <p class="sec-sub">Why this is +EV. If you can't write the edge in one line, you don't have one.</p>
     <div class="card">
-      <div class="frow"><div class="fname">One-line edge<span class="ftype">text</span></div><div class="fdesc">The single reason this makes money.<span class="eg">Dealers short gamma into a flush → mean-revert bounce off the put wall</span></div></div>
-      <div class="frow"><div class="fname">Full rationale<span class="ftype">long text</span></div><div class="fdesc">The auction / flow / structural logic. What conditions create the opportunity and why it repeats.</div></div>
-      <div class="frow"><div class="fname">Market regime required<span class="ftype">long text</span></div><div class="fdesc">The backdrop that has to be present.<span class="eg">Trend up · chop · high/low IV · dealer gamma side · specific levels</span></div></div>
+      <div class="frow"><div class="fname">One-line edge<span class="ftype">text</span></div><div class="fdesc">The single reason this makes money.<span class="eg">Second failed poke below prior-day low → responsive buyers take it back into value</span></div></div>
+      <div class="frow"><div class="fname">Full rationale<span class="ftype">long text</span></div><div class="fdesc">The auction / order-flow / structural logic. What conditions create the opportunity and why it repeats.</div></div>
+      <div class="frow"><div class="fname">Day type / auction context required<span class="ftype">long text</span></div><div class="fdesc">The backdrop that has to be present — day type and where price sits.<span class="eg">Trend up/down · balance/rotation · open-drive vs open-auction · vs prior-day value, VWAP, IB</span></div></div>
     </div>
   </section>
 
@@ -96,8 +97,8 @@ footer a{color:var(--accent)}
     <div class="sec-h"><span class="sec-num">03</span><h2>Entry criteria</h2></div>
     <p class="sec-sub">The gate. Every item is answerable yes/no on a live chart — no discretion.</p>
     <div class="card">
-      <div class="frow"><div class="fname">Preconditions<span class="ftype">checklist</span></div><div class="fdesc">Must <b>all</b> be true before you even look. Numbered list.</div></div>
-      <div class="frow"><div class="fname">Trigger<span class="ftype">long text</span></div><div class="fdesc">The single event that puts you in.<span class="eg">Reclaim of prior-day low on a 5-min close</span></div></div>
+      <div class="frow"><div class="fname">Preconditions<span class="ftype">checklist</span></div><div class="fdesc">Must <b>all</b> be true before you even look — include <b>location</b> (vs prior-day VA, VWAP, IB, key level). Numbered list.</div></div>
+      <div class="frow"><div class="fname">Trigger<span class="ftype">long text</span></div><div class="fdesc">The single event that puts you in.<span class="eg">Second failed poke (2E) · breakout retest · failed auction back into range</span></div></div>
       <div class="frow"><div class="fname">Confirmation<span class="ftype">long text</span></div><div class="fdesc">What must also be present before you click.</div></div>
       <div class="frow"><div class="fname">Disqualifiers / avoid-if<span class="ftype">checklist</span></div><div class="fdesc">Any one of these voids the setup — don't take it.</div></div>
       <div class="frow"><div class="fname">Time-of-day window<span class="ftype">text</span></div><div class="fdesc">Allowed entry hours (CT).<span class="eg">08:45–14:30 CT · avoid first 5 min</span></div></div>
@@ -108,8 +109,8 @@ footer a{color:var(--accent)}
     <div class="sec-h"><span class="sec-num">04</span><h2>Risk &amp; exits</h2></div>
     <p class="sec-sub">Decided before entry, not in the trade.</p>
     <div class="card">
-      <div class="frow"><div class="fname">Stop rule<span class="ftype">long text</span></div><div class="fdesc">Exact, objective — price / structure / %. No wiggle.</div></div>
-      <div class="frow"><div class="fname">Target(s) / profit-taking<span class="ftype">list</span></div><div class="fdesc">Where and how you take profit. One row per target / scale-out.</div></div>
+      <div class="frow"><div class="fname">Stop rule<span class="ftype">long text</span></div><div class="fdesc">Exact, objective — in <b>points/ticks</b> or a structural level. No wiggle.<span class="eg">ES tick .25 = $12.50, pt = $50 · MES pt = $5</span></div></div>
+      <div class="frow"><div class="fname">Target(s) / profit-taking<span class="ftype">list</span></div><div class="fdesc">Where and how you take profit — R-multiple, points, or structure. One row per target / scale-out.<span class="eg">1R · 2R · prior-day high</span></div></div>
       <div class="frow"><div class="fname">Max hold / time stop<span class="ftype">text</span></div><div class="fdesc">Latest you'll hold.<span class="eg">Flat by 15:00 CT</span></div></div>
       <div class="frow"><div class="fname">Invalidation<span class="ftype">long text</span></div><div class="fdesc">What says the thesis is wrong — get out regardless of price.</div></div>
       <div class="frow"><div class="fname">Scaling in/out rules<span class="ftype">long text</span></div><div class="fdesc">How you add or trim, if at all.</div></div>
@@ -120,7 +121,7 @@ footer a{color:var(--accent)}
     <div class="sec-h"><span class="sec-num">05</span><h2>Sizing</h2></div>
     <p class="sec-sub">How much, capped in advance.</p>
     <div class="card">
-      <div class="frow"><div class="fname">Position size / risk per trade<span class="ftype">long text</span></div><div class="fdesc">Contracts · $ risk · % of account.<span class="eg">Risk $300 · 2 MES · 1% of account</span></div></div>
+      <div class="frow"><div class="fname">Position size / risk per trade<span class="ftype">long text</span></div><div class="fdesc">Contracts (mini/micro) · $ risk · R.<span class="eg">Risk 6 ES pts = $300 at 1 ES · use MES to size smaller</span></div></div>
       <div class="frow"><div class="fname">Max concurrent exposure<span class="ftype">text</span></div><div class="fdesc">How many of this setup can be on at once.<span class="eg">1 position at a time</span></div></div>
     </div>
   </section>
