@@ -3,6 +3,13 @@
  "note": "Snapshot of published Claude Artifacts (claude.ai). Ask Claude to 'refresh the artifacts list' to regenerate via Artifact action:list.",
  "artifacts": [
   {
+   "title": "Wyckoff Study",
+   "url": "https://claude.ai/code/artifact/626f7d99-bd67-4e9a-8fe4-aeae1c7cb9e7",
+   "updated": "2026-09-16",
+   "group": "Research",
+   "info": "Study reference distilling BOTH Villahermosa Wyckoff books (The Wyckoff Methodology in Depth + Wyckoff 2.0) into one tradeable ES 2000t/5M system: the 3-layer model (structure/location/trigger), phases & the range box, spring-vs-test-vs-climax, Volume Profile (VPOC/VA/HVN/LVN/VWAP), Order Flow (absorption/initiative/delta from our own footprint), the 4 setups, a draft playbook with 4 gates, the tools-to-build roadmap, testing/100-trade loop, and the data-recording + custom-journal plan. Page-cited. Local backup served offline."
+  },
+  {
    "title": "0DTE Payoff Lab",
    "url": "https://claude.ai/code/artifact/c87a020b-0c3a-4779-82f4-12ef694f3d6e",
    "updated": "2026-09-05",
