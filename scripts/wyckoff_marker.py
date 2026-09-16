@@ -60,7 +60,7 @@ HTML = r"""<!doctype html><html><head><meta charset="utf-8"><title>Wyckoff Marke
   <button id="reset">reset</button>
   <button id="copy">copy levels</button>
 </div>
-<div id="readpanel"><div id="readhead"><span>levels (<span id="cnt">0</span>)</span><span id="rtoggle">▾ hide</span></div><div id="readbody"></div></div>
+<div id="readpanel" class="collapsed"><div id="readhead"><span>levels (<span id="cnt">0</span>)</span><span id="rtoggle">▸ show</span></div><div id="readbody"></div></div>
 <div id="wrap"><canvas id="c"></canvas></div>
 <script>
 const DATA = __DATA__;
@@ -82,10 +82,11 @@ function zzz(pr,rev){const n=pr.length;if(n<2)return n?[0]:[];let piv=[0],trend=
 function computeSwings(){
   if(isRenko){let out=[],i=0;while(i<bars.length){let j=i;while(j+1<bars.length&&bars[j+1].dir===bars[i].dir)j++;let v=0;for(let k=i;k<=j;k++)v+=bars[k].v;out.push({i0:i,i1:j,dir:bars[i].dir,vol:v});i=j+1;}sw=out;}
   else{const cl=bars.map(b=>b.c),piv=zzz(cl,reversal);let out=[];for(let k=0;k+1<piv.length;k++){const s=piv[k],e=piv[k+1];let v=0;for(let m=s;m<=e;m++)v+=bars[m].v;out.push({i0:s,i1:e,dir:cl[e]>=cl[s]?'up':'dn',vol:v});}sw=out;}}
+function fitX(){const n=(DATA[cur].bars||[]).length||1;bwPx=Math.min(40,Math.max(1.1,(window.innerWidth-padL-padR-4)/n));}
 function layout(){
   ds=DATA[cur]; bars=ds.bars; isRenko=ds.type==='renko'; brick=ds.brick||0; computeSwings();
-  W=Math.max(1000, bars.length*bwPx+padL+padR);
-  H=Math.min(880,Math.max(560,window.innerHeight-70)); cv.width=W; cv.height=H;
+  W=Math.max(300, bars.length*bwPx+padL+padR);
+  H=Math.max(360, window.innerHeight-52); cv.width=W; cv.height=H;   // fill the screen height
   let lo=1e9,hi=-1e9,vm=0;
   for(const b of bars){ if(isRenko){lo=Math.min(lo,b.wlo,b.bottom);hi=Math.max(hi,b.whi,b.top);}else{lo=Math.min(lo,b.l);hi=Math.max(hi,b.h);} vm=Math.max(vm,b.v);}
   const pad=(hi-lo)*0.04, mid=(lo+hi)/2, half=((hi-lo)/2+pad)/yZoom;
@@ -178,7 +179,7 @@ function structure(){
   segs.push({i0:segStart,i1:bars.length-1,state});
   return {piv,brk,segs,state};
 }
-const SEGCOL={bull:'rgba(38,166,154,0.09)',bear:'rgba(239,83,80,0.09)',trans:'rgba(255,179,0,0.11)',na:'rgba(120,120,120,0.04)'};
+const SEGCOL={bull:'rgba(46,204,113,0.16)',bear:'rgba(239,83,80,0.13)',trans:'rgba(255,179,0,0.14)',na:'rgba(120,120,120,0.05)'};
 const EVSTYLE={spring:['#26a69a','spring',13],ut:['#ef5350','UT',-13],SOS:['#2e7d32','SOS',-13],
   SOW:['#c62828','SOW',13],test:['#00acc1','test',13],BoS:['#1e88e5','BoS',-13],ChoCH:['#f9a825','ChoCH',-13]};
 function drawEvents(){events().forEach(m=>{const s=EVSTYLE[m.type],x=xOf(m.i),y=yOf(m.p);
@@ -228,8 +229,17 @@ document.getElementById('snap').onclick=e=>{snap=!snap;e.target.textContent='sna
 document.getElementById('undo').onclick=()=>{const h=hist.pop();if(!h)return;if(h.t==='box')boxes.pop();else marks.pop();draw();readout();};
 document.getElementById('reset').onclick=()=>{boxes=[];marks=[];hist=[];pending=null;draw();readout();};
 document.getElementById('copy').onclick=()=>{navigator.clipboard.writeText(document.getElementById('readbody').textContent);};
-tfSel.onchange=e=>{cur=e.target.value;boxes=[];marks=[];hist=[];pending=null;layout();draw();readout();};
+tfSel.onchange=e=>{cur=e.target.value;boxes=[];marks=[];hist=[];pending=null;fitX();layout();draw();readout();};
 function relayout(){layout();draw();readout();}
+// MOUSE: wheel = time-zoom centered on cursor · Ctrl+wheel = price-zoom · Shift+wheel = pan
+const wrapEl=document.getElementById('wrap');
+cv.addEventListener('wheel',e=>{e.preventDefault();const f=e.deltaY<0?1.15:0.87;
+  if(e.shiftKey){wrapEl.scrollLeft+=e.deltaY;return;}
+  if(e.ctrlKey){yZoom=Math.max(0.3,Math.min(8,yZoom*f));relayout();return;}
+  const r=cv.getBoundingClientRect();const mx=e.clientX-r.left;const barAt=(mx-padL)/bw()-0.5;
+  bwPx=Math.max(1,Math.min(40,bwPx*f));layout();draw();
+  wrapEl.scrollLeft=(padL+(barAt+0.5)*bw())-(e.clientX-wrapEl.getBoundingClientRect().left);
+},{passive:false});
 document.getElementById('xm').onclick=()=>{bwPx=Math.max(2,bwPx*0.8);relayout();};
 document.getElementById('xp').onclick=()=>{bwPx=Math.min(28,bwPx*1.25);relayout();};
 document.getElementById('ym').onclick=()=>{yZoom=Math.max(0.3,yZoom*0.8);relayout();};
@@ -239,7 +249,7 @@ document.getElementById('trend').onclick=e=>{showTrend=!showTrend;e.target.textC
 document.getElementById('pbm').onclick=()=>{reversal=Math.max(0.5,+(reversal-0.5).toFixed(1));document.getElementById('pbv').textContent=reversal;relayout();};
 document.getElementById('pbp').onclick=()=>{reversal=+(reversal+0.5).toFixed(1);document.getElementById('pbv').textContent=reversal;relayout();};
 window.onresize=()=>{layout();draw();};
-layout();draw();readout();
+fitX();layout();draw();readout();
 </script></body></html>"""
 
 
