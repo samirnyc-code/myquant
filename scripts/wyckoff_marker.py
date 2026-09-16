@@ -54,6 +54,7 @@ HTML = r"""<!doctype html><html><head><meta charset="utf-8"><title>Wyckoff Marke
   <button id="snap" class="on">snap: ON</button>
   <span>zoom:</span><button id="xm">x&minus;</button><button id="xp">x+</button><button id="ym">y&minus;</button><button id="yp">y+</button>
   <button id="ww" class="on">WW: ON</button>
+  <button id="trend" class="on">trend: ON</button>
   <span>pb:</span><button id="pbm">&minus;</button><span id="pbv" style="min-width:24px;text-align:center;display:inline-block">2.5</span><button id="pbp">+</button>
   <button id="undo">undo box</button>
   <button id="reset">reset</button>
@@ -65,7 +66,7 @@ HTML = r"""<!doctype html><html><head><meta charset="utf-8"><title>Wyckoff Marke
 const DATA = __DATA__;
 const TFS = Object.keys(DATA);
 let cur=TFS[0], snap=true, pending=null, boxes=[], marks=[], hist=[], mode='box', autoOn=true;
-let bwPx=7, yZoom=1, showWW=true, reversal=2.5;
+let bwPx=7, yZoom=1, showWW=true, reversal=2.5, showTrend=true;
 const cv=document.getElementById('c'), ctx=cv.getContext('2d');
 const tfSel=document.getElementById('tf');
 TFS.forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;tfSel.appendChild(o)});
@@ -101,6 +102,8 @@ const iOf=x=>Math.max(0,Math.min(bars.length-1,Math.round((x-padL)/bw()-0.5)));
 
 function draw(){
   ctx.clearRect(0,0,W,H);ctx.fillStyle='#0f1216';ctx.fillRect(0,0,W,H);
+  const st=showTrend?structure():null;
+  if(st){st.segs.forEach(sg=>{ctx.fillStyle=SEGCOL[sg.state]||SEGCOL.na;const x0=xOf(sg.i0)-bw()/2,x1=xOf(sg.i1)+bw()/2;ctx.fillRect(x0,pTop,x1-x0,pBot-pTop);});}
   // price grid + labels
   ctx.strokeStyle='#1e2732';ctx.fillStyle='#6b7c8f';ctx.font='11px monospace';ctx.textAlign='right';
   const step=niceStep((pmax-pmin)/8);
@@ -126,7 +129,10 @@ function draw(){
     if(bw()>6){ctx.fillStyle='#cfd8dc';ctx.font='9px monospace';ctx.textAlign='center';ctx.fillText((s.vol/1000).toFixed(0)+'k',(x0+x1)/2,wBot-h-2);}});}
   // boxes
   boxes.forEach((bx,k)=>drawBox(bx,k+1));
-  drawEvents();        // spring/UT/test/SOS/SOW/BoS/ChoCH candidates from the box + swings
+  if(st){ctx.font='9px monospace';ctx.textAlign='center';
+    st.piv.forEach(p=>{ctx.fillStyle=p.up?'#7fd3c8':'#f0a0a0';ctx.fillText(p.lbl,xOf(p.i),yOf(p.p)+(p.up?-6:12));});
+    st.brk.forEach(m=>{const s=EVSTYLE[m.type];ctx.fillStyle=s[0];ctx.beginPath();ctx.arc(xOf(m.i),yOf(m.p),2.5,0,7);ctx.fill();ctx.fillText(s[1],xOf(m.i),yOf(m.p)+s[2]);});}
+  drawEvents();        // box-relative candidates: spring/UT/test/SOS/SOW
   drawMarks();
   if(pending){const x=xOf(pending.i),y=yOf(pending.p);ctx.fillStyle='#ffd54f';ctx.beginPath();ctx.arc(x,y,4,0,7);ctx.fill();}
 }
@@ -150,15 +156,25 @@ function events(){                    // ALL candidates derived from the box + s
       if(s.i1>=from&&lo>sup-EPS&&lo<=third) ev.push({type:'test',i:s.i1,p:lo});
       lastDnVol=s.vol;}});
   });
-  // BoS / ChoCH from the swing structure, SCOPED to the box window (from the earliest box start)
-  const minFrom=Math.min(...boxes.map(b=>Math.min(b.a.i,b.b.i)));
-  let trend=0,prevHigh=null,prevLow=null;
-  sw.filter(s=>s.i1>=minFrom).forEach(s=>{if(s.dir==='up'){const hi=pAt(s.i1,'hi');
-      if(prevHigh!=null&&hi>prevHigh+EPS){ev.push({type:trend<0?'ChoCH':'BoS',i:s.i1,p:hi});trend=1;}prevHigh=hi;}
-    else{const lo=pAt(s.i1,'lo');
-      if(prevLow!=null&&lo<prevLow-EPS){ev.push({type:trend>0?'ChoCH':'BoS',i:s.i1,p:lo});trend=-1;}prevLow=lo;}});
-  return ev;
+  return ev;   // box-relative candidates only; trend structure lives in structure() (box-free)
 }
+// BOX-FREE trend engine from the swing structure: HH/HL/LH/LL, BoS=continuation, ChoCH=flip.
+// State machine: bull / bear / trans(ition). ChoCH -> transition; next same-side BoS -> bull/bear.
+function structure(){
+  const piv=[],brk=[],segs=[];let trend=0,prevHigh=null,prevLow=null,state='na',segStart=0;
+  function setState(s,i){if(s!==state){segs.push({i0:segStart,i1:i,state});state=s;segStart=i;}}
+  sw.forEach(s=>{if(s.dir==='up'){const hi=pAt(s.i1,'hi');
+      piv.push({lbl:prevHigh==null?'H':(hi>prevHigh?'HH':'LH'),i:s.i1,p:hi,up:true});
+      if(prevHigh!=null&&hi>prevHigh+EPS){const ch=trend<0;brk.push({type:ch?'ChoCH':'BoS',i:s.i1,p:hi});trend=1;setState(ch?'trans':'bull',s.i1);}
+      prevHigh=hi;}
+    else{const lo=pAt(s.i1,'lo');
+      piv.push({lbl:prevLow==null?'L':(lo<prevLow?'LL':'HL'),i:s.i1,p:lo,up:false});
+      if(prevLow!=null&&lo<prevLow-EPS){const ch=trend>0;brk.push({type:ch?'ChoCH':'BoS',i:s.i1,p:lo});trend=-1;setState(ch?'trans':'bear',s.i1);}
+      prevLow=lo;}});
+  segs.push({i0:segStart,i1:bars.length-1,state});
+  return {piv,brk,segs,state};
+}
+const SEGCOL={bull:'rgba(38,166,154,0.09)',bear:'rgba(239,83,80,0.09)',trans:'rgba(255,179,0,0.11)',na:'rgba(120,120,120,0.04)'};
 const EVSTYLE={spring:['#26a69a','spring?',13],ut:['#ef5350','UT?',-13],SOS:['#2e7d32','SOS?',-13],
   SOW:['#c62828','SOW?',13],test:['#00acc1','test?',13],BoS:['#1e88e5','BoS',-13],ChoCH:['#f9a825','ChoCH',-13]};
 function drawEvents(){events().forEach(m=>{const s=EVSTYLE[m.type],x=xOf(m.i),y=yOf(m.p);
@@ -190,7 +206,9 @@ cv.addEventListener('click',e=>{const r=cv.getBoundingClientRect();const y=e.cli
   if(mode==='ut'){const pt=snapClick(x,y,'hi');marks.push({type:'ut',i:pt.i,p:pt.p});hist.push({t:'mark'});draw();readout();return;}
   const pt=snapClick(x,y);if(!pending){pending=pt;}else{boxes.push({a:pending,b:pt});pending=null;hist.push({t:'box'});}draw();readout();});
 function fmt(pt){return bars[pt.i].t+' '+pt.p.toFixed(2)+'('+pt.k+')';}
-function readout(){let parts=boxes.map((b,k)=>'box'+(k+1)+': '+fmt(b.a)+' -> '+fmt(b.b)+'  ='+Math.abs(b.a.p-b.b.p).toFixed(2)+'pt');
+function readout(){let parts=[];
+  if(showTrend){const st=structure();parts.push('TREND: '+st.state.toUpperCase()+'   ('+st.brk.length+' BoS/ChoCH)');}
+  parts=parts.concat(boxes.map((b,k)=>'box'+(k+1)+': '+fmt(b.a)+' -> '+fmt(b.b)+'  ='+Math.abs(b.a.p-b.b.p).toFixed(2)+'pt'));
   events().forEach(m=>parts.push('  '+(EVSTYLE[m.type]?EVSTYLE[m.type][1]:m.type)+' '+bars[m.i].t+' '+m.p.toFixed(2)));
   marks.forEach(m=>parts.push((m.type==='spring'?'SPRING':'UPTHRUST')+': '+bars[m.i].t+' '+m.p.toFixed(2)));
   if(pending)parts.push('start: '+fmt(pending)+'  (click END)');
@@ -213,6 +231,7 @@ document.getElementById('xp').onclick=()=>{bwPx=Math.min(28,bwPx*1.25);relayout(
 document.getElementById('ym').onclick=()=>{yZoom=Math.max(0.3,yZoom*0.8);relayout();};
 document.getElementById('yp').onclick=()=>{yZoom=Math.min(6,yZoom*1.25);relayout();};
 document.getElementById('ww').onclick=e=>{showWW=!showWW;e.target.textContent='WW: '+(showWW?'ON':'OFF');e.target.classList.toggle('on',showWW);relayout();};
+document.getElementById('trend').onclick=e=>{showTrend=!showTrend;e.target.textContent='trend: '+(showTrend?'ON':'OFF');e.target.classList.toggle('on',showTrend);relayout();};
 document.getElementById('pbm').onclick=()=>{reversal=Math.max(0.5,+(reversal-0.5).toFixed(1));document.getElementById('pbv').textContent=reversal;relayout();};
 document.getElementById('pbp').onclick=()=>{reversal=+(reversal+0.5).toFixed(1);document.getElementById('pbv').textContent=reversal;relayout();};
 window.onresize=()=>{layout();draw();};
