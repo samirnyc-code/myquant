@@ -167,14 +167,16 @@ function events(){                    // box-relative candidates only; nothing b
 // State machine: bull / bear / trans(ition). ChoCH -> transition; next same-side BoS -> bull/bear.
 function structure(){
   const piv=[],brk=[],segs=[];let trend=0,prevHigh=null,prevLow=null,state='na',segStart=0;
-  function setState(s,i){if(s!==state){segs.push({i0:segStart,i1:i,state});state=s;segStart=i;}}
+  // BACKDATE the colour to the move's ORIGIN: a HH break -> bull FROM the low the rally began at;
+  // a LL break -> bear FROM the high the drop began at. So up-moves read green, down-moves red.
+  function setState(s,startBar){if(s!==state){segs.push({i0:segStart,i1:startBar,state});state=s;segStart=startBar;}}
   sw.forEach(s=>{if(s.dir==='up'){const hi=pAt(s.i1,'hi');
       piv.push({lbl:prevHigh==null?'H':(hi>prevHigh?'HH':'LH'),i:s.i1,p:hi,up:true});
-      if(prevHigh!=null&&hi>prevHigh+EPS){const ch=trend<0;brk.push({type:ch?'ChoCH':'BoS',i:s.i1,p:hi});trend=1;setState(ch?'trans':'bull',s.i1);}
+      if(prevHigh!=null&&hi>prevHigh+EPS){brk.push({type:trend<0?'ChoCH':'BoS',i:s.i1,p:hi});trend=1;setState('bull',s.i0);}
       prevHigh=hi;}
     else{const lo=pAt(s.i1,'lo');
       piv.push({lbl:prevLow==null?'L':(lo<prevLow?'LL':'HL'),i:s.i1,p:lo,up:false});
-      if(prevLow!=null&&lo<prevLow-EPS){const ch=trend>0;brk.push({type:ch?'ChoCH':'BoS',i:s.i1,p:lo});trend=-1;setState(ch?'trans':'bear',s.i1);}
+      if(prevLow!=null&&lo<prevLow-EPS){brk.push({type:trend>0?'ChoCH':'BoS',i:s.i1,p:lo});trend=-1;setState('bear',s.i0);}
       prevLow=lo;}});
   segs.push({i0:segStart,i1:bars.length-1,state});
   return {piv,brk,segs,state};
