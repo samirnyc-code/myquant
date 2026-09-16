@@ -68,6 +68,50 @@ def build_renko(df: pd.DataFrame, brick: float) -> pd.DataFrame:
     return pd.DataFrame(bricks)
 
 
+def flex_renko(df: pd.DataFrame, box: float, trend_off: float, rev_off: float, tick: float = 0.25) -> pd.DataFrame:
+    """Sierra-Chart-style FLEX Renko (BoxSize-TrendOffset-ReversalOffset, in ticks).
+    Derived from the Sierra doc's open-offset rules:
+      continuation brick opens TrendOffset inside the prior close -> needs (B-T) ticks beyond it;
+      reversal brick opens ReversalOffset from the prior open      -> needs (2B-R) ticks against.
+    Body is always BoxSize; consecutive bricks overlap (that is the 'flex'). Wicks = true extremes.
+    Invariant per brick: up -> O=bottom,C=top,C=O+B ; down -> O=top,C=bottom,C=O-B."""
+    B, T, R = box * tick, trend_off * tick, rev_off * tick
+    d = df.sort_values("DateTime").reset_index(drop=True)
+    price = d["Price"].to_numpy(); vol = d["Volume"].to_numpy(); times = d["DateTime"].to_numpy()
+    bricks = []
+    O = round(price[0] / tick) * tick; C = O; dirn = 0
+    st = {"accum": 0.0, "hi": price[0], "lo": price[0]}
+
+    def emit(o, c, up, i):
+        bottom, top = min(o, c), max(o, c)
+        bricks.append(dict(dir="up" if up else "dn", bottom=bottom, top=top,
+                           wlo=min(st["lo"], bottom), whi=max(st["hi"], top),
+                           vol=int(st["accum"]), t=times[i]))
+        st["accum"] = 0.0; st["hi"] = price[i]; st["lo"] = price[i]
+
+    for i in range(len(price)):
+        p = price[i]; st["accum"] += vol[i]
+        if p > st["hi"]: st["hi"] = p
+        if p < st["lo"]: st["lo"] = p
+        moved = True
+        while moved:
+            moved = False
+            if dirn == 0:
+                if p >= O + B: emit(O, O + B, True, i); C = O + B; dirn = 1; moved = True
+                elif p <= O - B: emit(O, O - B, False, i); C = O - B; dirn = -1; moved = True
+            elif dirn == 1:
+                if p >= O + 2 * B - T:                 # continuation up (trigger C+(B-T))
+                    On = C - T; Cn = On + B; emit(On, Cn, True, i); O, C = On, Cn; moved = True
+                elif p <= O + R - B:                   # reversal down
+                    On = O + R; Cn = On - B; emit(On, Cn, False, i); O, C = On, Cn; dirn = -1; moved = True
+            else:
+                if p <= O - 2 * B + T:                 # continuation down
+                    On = C + T; Cn = On - B; emit(On, Cn, False, i); O, C = On, Cn; moved = True
+                elif p >= O - R + B:                   # reversal up
+                    On = O - R; Cn = On + B; emit(On, Cn, True, i); O, C = On, Cn; dirn = 1; moved = True
+    return pd.DataFrame(bricks)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--day", default=None)

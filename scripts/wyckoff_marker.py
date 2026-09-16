@@ -24,7 +24,7 @@ import pandas as pd
 import tickdata as td
 from wyckoff_ar import hilo_bars
 from weis_wave import zigzag
-from renko import build_renko
+from renko import build_renko, flex_renko
 
 OUT = ROOT / "data" / "l1_tape" / "_analysis"
 
@@ -255,17 +255,24 @@ def make_swings(bars_df, is_renko, reversal=2.5):
     return out
 
 
+def _renko_rows(R):
+    return [{"t": pd.Timestamp(r["t"]).strftime("%H:%M"), "dir": r["dir"],
+             "bottom": round(float(r["bottom"]), 2), "top": round(float(r["top"]), 2),
+             "wlo": round(float(r["wlo"]), 2), "whi": round(float(r["whi"]), 2),
+             "v": int(r["vol"])} for _, r in R.iterrows()]
+
+
 def dataset(day, spec):
     sess, tf = spec.split(":")
     raw = td.load_eth(day) if sess == "eth" else td.load_rth(day)
+    if tf.startswith("flex"):                       # flexBOX-TREND-REV (ticks), e.g. flex16-8-4
+        box, tr, rv = [int(x) for x in tf.replace("flex", "").split("-")]
+        R = flex_renko(raw, box, tr, rv)
+        return {"type": "renko", "brick": box * 0.25, "bars": _renko_rows(R), "swings": make_swings(R, True)}
     if tf.startswith("renko"):
         brick = float(tf.replace("renko", ""))
         R = build_renko(raw, brick)
-        rows = [{"t": pd.Timestamp(r["t"]).strftime("%H:%M"), "dir": r["dir"],
-                 "bottom": round(float(r["bottom"]), 2), "top": round(float(r["top"]), 2),
-                 "wlo": round(float(r["wlo"]), 2), "whi": round(float(r["whi"]), 2),
-                 "v": int(r["vol"])} for _, r in R.iterrows()]
-        return {"type": "renko", "brick": brick, "bars": rows, "swings": make_swings(R, True)}
+        return {"type": "renko", "brick": brick, "bars": _renko_rows(R), "swings": make_swings(R, True)}
     b = hilo_bars(raw, tf)
     rows = [{"t": pd.Timestamp(t).strftime("%H:%M"), "o": round(float(r["open"]), 2),
              "h": round(float(r["high"]), 2), "l": round(float(r["low"]), 2),
@@ -276,7 +283,7 @@ def dataset(day, spec):
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--day", default="2026-09-15")
-    ap.add_argument("--tfs", default="eth:2000t,eth:5min,eth:renko5,rth:2000t,rth:5min,rth:renko5")
+    ap.add_argument("--tfs", default="eth:flex16-8-4,eth:flex8-4-2,rth:flex16-8-4,rth:flex8-4-2,eth:2000t,rth:2000t")
     a = ap.parse_args()
 
     data = {spec: dataset(a.day, spec) for spec in a.tfs.split(",")}
