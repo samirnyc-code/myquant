@@ -50,7 +50,10 @@ HTML = r"""<!doctype html><html><head><meta charset="utf-8"><title>Wyckoff Marke
   <button id="m_spring">spring</button>
   <button id="m_ut">upthrust</button>
   <button id="auto" class="on">auto events: ON</button>
+  <span>day:</span><button id="dprev">&lt;</button><select id="day"></select><button id="dnext">&gt;</button>
   <span>view:</span><select id="tf"></select>
+  <button id="sr">S/R: OFF</button>
+  <button id="ema">21EMA: OFF</button>
   <button id="snap" class="on">snap: ON</button>
   <span>zoom:</span><button id="xm">x&minus;</button><button id="xp">x+</button><button id="ym">y&minus;</button><button id="yp">y+</button>
   <button id="ww">WW: OFF</button>
@@ -63,13 +66,28 @@ HTML = r"""<!doctype html><html><head><meta charset="utf-8"><title>Wyckoff Marke
 <div id="readpanel" class="collapsed"><div id="readhead"><span>levels (<span id="cnt">0</span>)</span><span id="rtoggle">▸ show</span></div><div id="readbody"></div></div>
 <div id="wrap"><canvas id="c"></canvas></div>
 <script>
-const DATA = __DATA__;
-const TFS = Object.keys(DATA);
+const DATA = __DATA__, LEVELS = __LEVELS__, DAYS = __DAYS__;
+let curDay = DAYS[DAYS.length-1];
+const TFS = Object.keys(DATA[curDay]);
 let cur=TFS[0], snap=true, pending=null, boxes=[], marks=[], hist=[], mode='box', autoOn=true;
-let bwPx=7, yZoom=1, showWW=false, reversal=2.5, showTrend=false;
+let bwPx=7, yZoom=1, showWW=false, reversal=2.5, showTrend=false, showSR=false, showEMA=false;
 const cv=document.getElementById('c'), ctx=cv.getContext('2d');
 const tfSel=document.getElementById('tf');
 TFS.forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;tfSel.appendChild(o)});
+const daySel=document.getElementById('day');
+DAYS.forEach(d=>{const o=document.createElement('option');o.value=d;o.textContent=d;daySel.appendChild(o)});
+daySel.value=curDay;
+function switchDay(d){if(!DATA[d])return;curDay=d;daySel.value=d;boxes=[];marks=[];hist=[];pending=null;fitX();layout();draw();readout();}
+daySel.onchange=e=>switchDay(e.target.value);
+document.getElementById('dprev').onclick=()=>{const i=DAYS.indexOf(curDay);if(i>0)switchDay(DAYS[i-1]);};
+document.getElementById('dnext').onclick=()=>{const i=DAYS.indexOf(curDay);if(i<DAYS.length-1)switchDay(DAYS[i+1]);};
+function closeOf(b){return isRenko?(b.dir==='up'?b.top:b.bottom):b.c;}
+const SRSTYLE={PDH:'#ba68c8',PDL:'#ba68c8',PDC:'#9575cd',ONH:'#4fc3f7',ONL:'#4fc3f7',OPEN:'#ffb74d'};
+function drawSR(){if(!showSR)return;const lv=LEVELS[curDay]||{};ctx.font='10px monospace';ctx.textAlign='left';
+  for(const k in SRSTYLE){if(lv[k]==null)continue;const y=yOf(lv[k]);ctx.strokeStyle=SRSTYLE[k];ctx.setLineDash([2,3]);ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle=SRSTYLE[k];ctx.fillText(k+' '+lv[k].toFixed(2),padL+3,y-2);}}
+function drawEMA(){if(!showEMA||bars.length<2)return;const kk=2/22;let e=closeOf(bars[0]);ctx.strokeStyle='#ffee58';ctx.lineWidth=1.4;ctx.beginPath();
+  for(let i=0;i<bars.length;i++){e=closeOf(bars[i])*kk+e*(1-kk);const x=xOf(i),y=yOf(e);i?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.stroke();ctx.lineWidth=1;
+  ctx.fillStyle='#ffee58';ctx.font='10px monospace';ctx.fillText('21EMA',xOf(bars.length-1)+3,yOf(e));}
 const padL=64,padR=16,padT=14,padB=24;
 let W,H,ds,bars,sw,pmin,pmax,isRenko,brick,volMax,swMax;
 let pTop,pBot,vTop,vBot,wTop,wBot;
@@ -82,9 +100,9 @@ function zzz(pr,rev){const n=pr.length;if(n<2)return n?[0]:[];let piv=[0],trend=
 function computeSwings(){
   if(isRenko){let out=[],i=0;while(i<bars.length){let j=i;while(j+1<bars.length&&bars[j+1].dir===bars[i].dir)j++;let v=0;for(let k=i;k<=j;k++)v+=bars[k].v;out.push({i0:i,i1:j,dir:bars[i].dir,vol:v});i=j+1;}sw=out;}
   else{const cl=bars.map(b=>b.c),piv=zzz(cl,reversal);let out=[];for(let k=0;k+1<piv.length;k++){const s=piv[k],e=piv[k+1];let v=0;for(let m=s;m<=e;m++)v+=bars[m].v;out.push({i0:s,i1:e,dir:cl[e]>=cl[s]?'up':'dn',vol:v});}sw=out;}}
-function fitX(){const n=(DATA[cur].bars||[]).length||1;bwPx=Math.min(40,Math.max(1.1,(window.innerWidth-padL-padR-4)/n));}
+function fitX(){const n=(DATA[curDay][cur].bars||[]).length||1;bwPx=Math.min(40,Math.max(1.1,(window.innerWidth-padL-padR-4)/n));}
 function layout(){
-  ds=DATA[cur]; bars=ds.bars; isRenko=ds.type==='renko'; brick=ds.brick||0; computeSwings();
+  ds=DATA[curDay][cur]; bars=ds.bars; isRenko=ds.type==='renko'; brick=ds.brick||0; computeSwings();
   W=Math.max(300, bars.length*bwPx+padL+padR);
   H=Math.max(360, window.innerHeight-52); cv.width=W; cv.height=H;   // fill the screen height
   let lo=1e9,hi=-1e9,vm=0;
@@ -129,6 +147,7 @@ function draw(){
   sw.forEach((s,k)=>{const x0=xOf(s.i0),x1=xOf(s.i1),h=(s.vol/swMax)*(wBot-wTop);ctx.fillStyle=s.dir==='up'?'rgba(38,166,154,0.8)':'rgba(239,83,80,0.8)';ctx.fillRect(Math.min(x0,x1)-w/2,wBot-h,Math.max(w,Math.abs(x1-x0)+w),h);
     if(bw()>6){ctx.fillStyle='#cfd8dc';ctx.font='9px monospace';ctx.textAlign='center';ctx.fillText((s.vol/1000).toFixed(0)+'k',(x0+x1)/2,wBot-h-2);}});}
   // boxes
+  drawSR(); drawEMA();
   boxes.forEach((bx,k)=>drawBox(bx,k+1));
   if(st){ctx.font='9px monospace';ctx.textAlign='center';
     st.piv.forEach(p=>{ctx.fillStyle=p.up?'#7fd3c8':'#f0a0a0';ctx.fillText(p.lbl,xOf(p.i),yOf(p.p)+(p.up?-6:12));});
@@ -248,6 +267,8 @@ document.getElementById('ym').onclick=()=>{yZoom=Math.max(0.3,yZoom*0.8);relayou
 document.getElementById('yp').onclick=()=>{yZoom=Math.min(6,yZoom*1.25);relayout();};
 document.getElementById('ww').onclick=e=>{showWW=!showWW;e.target.textContent='WW: '+(showWW?'ON':'OFF');e.target.classList.toggle('on',showWW);relayout();};
 document.getElementById('trend').onclick=e=>{showTrend=!showTrend;e.target.textContent='trend: '+(showTrend?'ON':'OFF');e.target.classList.toggle('on',showTrend);relayout();};
+document.getElementById('sr').onclick=e=>{showSR=!showSR;e.target.textContent='S/R: '+(showSR?'ON':'OFF');e.target.classList.toggle('on',showSR);draw();};
+document.getElementById('ema').onclick=e=>{showEMA=!showEMA;e.target.textContent='21EMA: '+(showEMA?'ON':'OFF');e.target.classList.toggle('on',showEMA);draw();};
 document.getElementById('pbm').onclick=()=>{reversal=Math.max(0.5,+(reversal-0.5).toFixed(1));document.getElementById('pbv').textContent=reversal;relayout();};
 document.getElementById('pbp').onclick=()=>{reversal=+(reversal+0.5).toFixed(1);document.getElementById('pbv').textContent=reversal;relayout();};
 window.onresize=()=>{layout();draw();};
@@ -296,20 +317,57 @@ def dataset(day, spec):
     return {"type": "candle", "bars": rows, "swings": make_swings(b, False)}
 
 
+def compute_levels(day):
+    """Usual S/R for a session: prior-day RTH high/low/close, overnight (pre-08:30) high/low,
+    and the RTH open — flat lines the tool toggles on."""
+    import datetime as _dt
+    lv = {}
+    alld = td.available("rth")
+    try:
+        i = alld.index(day)
+        if i > 0:
+            pr = td.load_rth(alld[i - 1])
+            lv["PDH"] = round(float(pr["Price"].max()), 2); lv["PDL"] = round(float(pr["Price"].min()), 2)
+            lv["PDC"] = round(float(pr["Price"].iloc[-1]), 2)
+    except ValueError:
+        pass
+    try:
+        eth = td.load_eth(day)
+        on = eth[eth["DateTime"].dt.time < _dt.time(8, 30)]
+        if len(on):
+            lv["ONH"] = round(float(on["Price"].max()), 2); lv["ONL"] = round(float(on["Price"].min()), 2)
+        lv["OPEN"] = round(float(td.load_rth(day)["Price"].iloc[0]), 2)
+    except Exception:
+        pass
+    return lv
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--day", default="2026-09-15")
+    ap.add_argument("--days", type=int, default=10, help="trading days to embed (skip between them in-tool)")
     ap.add_argument("--tfs", default="eth:flex16-8-4,eth:flex8-4-2,rth:flex16-8-4,rth:flex8-4-2,eth:2000t,rth:2000t")
     a = ap.parse_args()
 
-    data = {spec: dataset(a.day, spec) for spec in a.tfs.split(",")}
+    alld = td.available("rth")
+    anchor = a.day if a.day in alld else alld[-1]
+    i = alld.index(anchor)
+    sel = alld[max(0, i - a.days + 1): i + 1]
+    specs = a.tfs.split(",")
+
+    DATA, LEVELS = {}, {}
+    for day in sel:
+        DATA[day] = {spec: dataset(day, spec) for spec in specs}
+        LEVELS[day] = compute_levels(day)
+        print(f"  {day}: {sum(len(v['bars']) for v in DATA[day].values()):,} bars, "
+              f"S/R {sorted(LEVELS[day])}")
+
     OUT.mkdir(parents=True, exist_ok=True)
-    html = HTML.replace("__DATA__", json.dumps(data)).replace("__DAY__", a.day)
-    path = OUT / f"marker_{a.day}.html"
+    html = (HTML.replace("__DATA__", json.dumps(DATA)).replace("__LEVELS__", json.dumps(LEVELS))
+                .replace("__DAYS__", json.dumps(sel)).replace("__DAY__", anchor))
+    path = OUT / "marker.html"
     path.write_text(html, encoding="utf-8")
-    print(f"marker: {path}  ({len(data)} views: price + volume + weis, incl. renko5)")
-    for spec, d in data.items():
-        print(f"  {spec}: {len(d['bars'])} {d['type']} bars, {len(d['swings'])} swings")
+    print(f"\nmarker: {path}  ({len(sel)} days x {len(specs)} views — day+view dropdowns, S/R + 21EMA toggles)")
     try:
         subprocess.Popen(["cmd", "/c", "start", "", str(path)], shell=False)
     except Exception:
