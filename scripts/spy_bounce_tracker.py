@@ -16,6 +16,7 @@ import math
 import sys
 import time
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -25,6 +26,59 @@ STATE = OUT / "tracker_state.json"
 TS = OUT / "pnl_timeseries.csv"
 DASH = OUT / "tracker_dashboard.html"
 POLL = 30
+
+# ── live-data gate: SPY options (OPRA) trade 09:30–16:15 ET, Mon–Fri, ex-holidays.
+#    Outside this window there are NO live SPY option quotes, so the tracker idles
+#    (no CSV row, no re-mark) and only holds the last live marks on the dashboard.
+ET = ZoneInfo("America/New_York")
+MARKET_HOLIDAYS = {                      # NYSE full closes — SPY options do not trade
+    "2026-01-01", "2026-01-19", "2026-02-16", "2026-04-03", "2026-05-25",
+    "2026-06-19", "2026-07-03", "2026-09-07", "2026-11-26", "2026-12-25",
+}
+EARLY_CLOSE = {"2026-11-27", "2026-12-24"}   # cash 13:00 ET / SPY options 13:15 ET
+
+
+def _sched(now_et):
+    """(open, mark_close, expiry_close) datetimes for now_et's date, or None if not a trading day."""
+    d = now_et.strftime("%Y-%m-%d")
+    if now_et.weekday() >= 5 or d in MARKET_HOLIDAYS:
+        return None
+    early = d in EARLY_CLOSE
+    o = now_et.replace(hour=9, minute=30, second=0, microsecond=0)
+    mc = now_et.replace(hour=(13 if early else 16), minute=15, second=0, microsecond=0)
+    ec = now_et.replace(hour=(13 if early else 16), minute=0, second=0, microsecond=0)
+    return o, mc, ec
+
+
+def market_status(now_et):
+    """SPY options session = 09:30–16:15 ET, Mon–Fri, ex-holidays (13:15 on early-close days)."""
+    s = _sched(now_et)
+    if s is None:
+        return False, ("weekend" if now_et.weekday() >= 5 else "holiday")
+    o, mc, _ = s
+    if now_et < o:
+        return False, "pre-open"
+    if now_et >= mc:
+        return False, "post-close"
+    return True, "open"
+
+
+def expiry_close_et(exp):
+    """16:00 ET on the option's expiry date (13:00 on an early-close day)."""
+    dstr = f"{exp[:4]}-{exp[4:6]}-{exp[6:8]}"
+    base = dt.datetime(int(exp[:4]), int(exp[4:6]), int(exp[6:8]), tzinfo=ET)
+    return base.replace(hour=(13 if dstr in EARLY_CLOSE else 16), minute=0)
+
+
+def next_session_open(now_et):
+    """Next 09:30 ET trading-day open at or after now (label like 'Wed 09:30 ET')."""
+    probe = now_et
+    for _ in range(10):
+        s = _sched(probe)
+        if s is not None and now_et < s[0]:
+            return s[0].strftime("%a %b %d 09:30 ET")
+        probe = (probe + dt.timedelta(days=1)).replace(hour=0, minute=1, second=0, microsecond=0)
+    return "?"
 
 # (right, strike, qty)  qty +1 long / -1 short. ref_k = the near-the-money strike on
 # the profit (upside) side; breakeven = ref_k + net entry value; all 4 profit if S_T > BE.
@@ -110,51 +164,92 @@ def main():
     if not TS.exists():
         TS.write_text("ts_ct,spy," + ",".join(st["id"] for st in STRUCTS) + "\n")
 
-    # ---- 30s mark loop ----
+    # ---- state carried across loops ----
+    last_spot = state.get("last_spot")            # last live SPY (for settlement after close / restart)
+    last_row = None
+
+    def mark_row(now, spot, mark_live):
+        """Build a dashboard row. mark_live=False -> marks are None (no live quotes)."""
+        strad = {}
+        if mark_live:
+            for e in sorted({s["exp"] for s in STRUCTS}):
+                c = leg_px((e, STRAD_K, "C"), "mid"); p = leg_px((e, STRAD_K, "P"), "mid")
+                strad[e] = (c + p) if (c and p) else None
+        row = {"ts": now.strftime("%Y-%m-%d %H:%M:%S"), "spy": spot, "pnl": {}, "pop": {}, "be": {}}
+        for st in STRUCTS:
+            sid = st["id"]; e = st["exp"]
+            ev = state["entry"][sid]["entry_val"]
+            be = round(st["ref_k"] + ev, 2)           # all 4 profit if S_T > BE
+            settled = state["settled"].get(sid)
+            if settled:
+                pnl = settled["pnl_$"]; pop = 100.0 if pnl > 0 else 0.0
+            elif mark_live:
+                cv = 0.0; bad = False
+                for r, k, qty in st["legs"]:
+                    m = leg_px((e, k, r), "mid")
+                    if m is None:
+                        bad = True; break
+                    cv += qty * m
+                pnl = None if bad else round((cv - ev) * 100, 0)
+                sd = strad.get(e)
+                pop = round(100 * (1 - norm_cdf((be - spot) / (sd / 0.7979))), 0) \
+                    if (sd and sd > 0 and spot) else None
+            else:
+                pnl = None; pop = None
+            row["pnl"][sid] = pnl; row["pop"][sid] = pop; row["be"][sid] = be
+        return row
+
+    # ---- gated mark loop: only marks/appends while SPY options quote (09:30–16:15 ET) ----
     while True:
         try:
             ib.sleep(POLL)
             now = dt.datetime.now()
-            spot = spy_spot()
-            strad = {}                                    # ATM straddle -> implied move, per expiry
-            for e in sorted({s["exp"] for s in STRUCTS}):
-                c = leg_px((e, STRAD_K, "C"), "mid"); p = leg_px((e, STRAD_K, "P"), "mid")
-                strad[e] = (c + p) if (c and p) else None
-            row = {"ts": now.strftime("%Y-%m-%d %H:%M:%S"), "spy": spot, "pnl": {}, "pop": {}, "be": {}}
+            now_et = dt.datetime.now(ET)
+            is_open, reason = market_status(now_et)
+
+            # settle any structure past its 16:00 ET expiry close, at the last live SPY
             for st in STRUCTS:
-                sid = st["id"]; e = st["exp"]
-                expired = now.strftime("%Y%m%d") > e or \
-                    (now.strftime("%Y%m%d") == e and now.hour >= 23)   # after 16:00 ET close (machine = ET+6/7)
-                ev = state["entry"][sid]["entry_val"]
-                be = round(st["ref_k"] + ev, 2)           # all 4 profit if S_T > BE
-                if expired and spot:
+                sid = st["id"]
+                if sid in state["settled"]:
+                    continue
+                if now_et >= expiry_close_et(st["exp"]) and last_spot is not None:
                     cv = 0.0
                     for r, k, qty in st["legs"]:
-                        intr = max(0.0, spot - k) if r == "C" else max(0.0, k - spot)
-                        cv += qty * intr
+                        cv += qty * (max(0.0, last_spot - k) if r == "C" else max(0.0, k - last_spot))
+                    ev = state["entry"][sid]["entry_val"]
                     pnl = round((cv - ev) * 100, 0)
-                    state["settled"][sid] = {"spy_settle": spot, "pnl_$": pnl,
-                                             "at": now.isoformat(timespec="seconds")}
-                    pop = 100.0 if pnl > 0 else 0.0
-                else:
-                    cv = 0.0; bad = False
-                    for r, k, qty in st["legs"]:
-                        m = leg_px((e, k, r), "mid")
-                        if m is None:
-                            bad = True; break
-                        cv += qty * m
-                    pnl = None if bad else round((cv - ev) * 100, 0)
-                    sd = strad.get(e)
-                    pop = round(100 * (1 - norm_cdf((be - spot) / (sd / 0.7979))), 0) \
-                        if (sd and sd > 0 and spot) else None
-                row["pnl"][sid] = pnl; row["pop"][sid] = pop; row["be"][sid] = be
-            with TS.open("a") as f:
-                f.write(row["ts"] + f",{spot}," +
-                        ",".join(str(row["pnl"].get(st["id"], "")) for st in STRUCTS) + "\n")
-            write_dash(state, row)
-            print(row["ts"], "SPY", spot, {k: v for k, v in row["pnl"].items()}, flush=True)
-            if len(state["settled"]) == len(STRUCTS):
-                print("all structures settled — done."); break
+                    state["settled"][sid] = {"spy_settle": last_spot, "pnl_$": pnl,
+                                             "at": now_et.isoformat(timespec="seconds")}
+                    print(f"SETTLED {sid} @ SPY {last_spot} -> {pnl:+,.0f}", flush=True)
+
+            all_done = len(state["settled"]) == len(STRUCTS)
+
+            if is_open and not all_done:
+                spot = spy_spot()
+                if spot:
+                    last_spot = spot; state["last_spot"] = spot
+                row = mark_row(now, spot, mark_live=True)
+                with TS.open("a") as f:                # append ONLY during the live session
+                    f.write(row["ts"] + f",{spot}," +
+                            ",".join(str(row["pnl"].get(st["id"], "")) for st in STRUCTS) + "\n")
+                last_row = row
+                write_dash(state, row, status="LIVE", reason="market open")
+                print(row["ts"], "SPY", spot, {k: v for k, v in row["pnl"].items()}, flush=True)
+            else:
+                # closed (or all settled): hold last live marks, do NOT append the CSV
+                base = dict(last_row) if last_row else mark_row(now, last_spot, mark_live=False)
+                base["ts_now"] = now.strftime("%Y-%m-%d %H:%M:%S")
+                write_dash(state, base,
+                           status="SETTLED" if all_done else "CLOSED",
+                           reason=("all structures settled" if all_done
+                                   else f"{reason} — live SPY option quotes only 09:30–16:15 ET"),
+                           next_open=(None if all_done else next_session_open(now_et)))
+                print(now.strftime("%Y-%m-%d %H:%M:%S"),
+                      ("done:" if all_done else "closed:"), reason, flush=True)
+
+            STATE.write_text(json.dumps(state, indent=2))
+            if all_done:
+                print("all structures settled — done.", flush=True); break
         except Exception as ex:                       # keep the tracker alive
             print("loop error:", ex, flush=True)
             try:
@@ -165,7 +260,6 @@ def main():
                     ib.sleep(4)
             except Exception:
                 pass
-        STATE.write_text(json.dumps(state, indent=2))
     ib.disconnect()
 
 
@@ -220,7 +314,7 @@ def svg_curve(vals):
             f"</svg>")
 
 
-def write_dash(state, row):
+def write_dash(state, row, status="LIVE", reason="", next_open=None):
     series = read_series()
     curves = ""
     for st in STRUCTS:
@@ -267,7 +361,8 @@ td:first-child,td.lg{{text-align:left}} th{{color:#9aa;text-align:right;border-b
 .card{{background:#14141a;border:1px solid #262630;border-radius:6px;padding:8px 10px}}
 .ct{{color:#9fb4d8;font-size:12px;margin-bottom:2px}}</style></head>
 <body><h2>SPY bounce test — 4 structures, live P&amp;L</h2>
-<div class=sub>entry locked {state['locked_ct']} · SPY@entry {state['spy_entry']} · updated {row['ts']} (every {POLL}s) · SPY {row['spy']}</div>
+<div style='margin:6px 0'><span style='background:{ {"LIVE":"#31c07a","CLOSED":"#e8c000","SETTLED":"#9aa0aa"}.get(status,"#9aa") };color:#0e0e12;font-weight:bold;padding:3px 10px;border-radius:4px'>{status}</span> <span class=sub>&nbsp;{reason}{(' · next open ' + next_open) if next_open else ''}</span></div>
+<div class=sub>entry locked {state['locked_ct']} · SPY@entry {state['spy_entry']} · last live mark {row['ts']} · SPY {row['spy']}{(' · checked ' + row['ts_now']) if row.get('ts_now') else ''} · poll {POLL}s</div>
 <table><tr><th>structure</th><th>legs</th><th>entry</th><th>break-even</th><th>P&amp;L $</th><th>POP*</th><th>status</th></tr>
 {rows}</table>
 <div class=sub style='margin-top:6px'>*POP = market-implied probability of finishing profitable (risk-neutral, from the live ATM straddle) — not an edge; the FOMC move is already priced in.</div>

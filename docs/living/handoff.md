@@ -205,6 +205,13 @@ self-refreshing dashboard (per-trade equity curves + break-even + market-implied
 - **STATUS 2026-09-16 ~05:02 machine (pre-cash-open):** tracker still running; marks = None (no OPRA
   outside RTH); `settled` still empty — #1-3 settle at today's 09-16 close (post-FOMC), #4 on 09-22.
   Nothing to do but let it run to settlement.
+- **GATED (2026-09-16, this session):** tracker now only marks/appends/writes "LIVE" while SPY options
+  actually quote — **09:30–16:15 ET, Mon–Fri, ex-holidays** (13:15 on early-close days); helpers
+  `market_status`/`expiry_close_et`/`next_session_open` + holiday/early-close sets in the script.
+  Outside RTH it idles (no CSV row, dashboard shows **CLOSED** pill + next-open, holds last live marks).
+  Settlement moved to **16:00 ET on each expiry date** at last live SPY; `last_spot` persisted in state.
+  Stripped 847 overnight None rows from `pnl_timeseries.csv` (1066→219). Restarted with user OK
+  (killed 18612/20500 → relaunched; pair 6600/16056). Gate unit-tested (all boundaries pass).
 - **EVENT CONTEXT:** 09-16 (today) = **FOMC decision** (gexlog "Elevated"); 09-18 Fri = **quad-witching** + ES Sept
   settlement. My read (user asked): long calls (#1/#4) into FOMC are IV-crush-exposed; #3 (sell premium) benefits
   from the crush; cleanest bounce trade is AFTER the Fed clears. User's thesis = oversold-bounce into the close.
