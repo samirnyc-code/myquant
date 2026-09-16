@@ -1838,6 +1838,7 @@ h2{{font-size:15px;color:var(--acc);margin:24px 0 8px}}
   <div class="tab" data-p="results">Sim Results</div>
   <div class="tab" data-p="levels">Levels</div>
   <div class="tab" data-p="ibtd">IB vs TD</div>
+  <div class="tab" data-p="spybounce">SPY Bounce</div>
 </div>
 
 <div class="page on" id="p-trades">{pnl_summary_html(gp_trades)}{card_body}</div>
@@ -1858,6 +1859,10 @@ h2{{font-size:15px;color:var(--acc);margin:24px 0 8px}}
 <div class="kpis" style="margin:6px 0 14px">{stat_tiles(s, only=("running", "close_now", "mpz", "mpz_pin"))}</div>
 {zone_bar_html(s)}
 {ibtd_html}
+</div>
+<div class="page" id="p-spybounce">
+<div class="muted" style="font-size:12px;margin:4px 0 8px">SPY 0DTE-bounce paper-tracker (S119) — 4 structures marked live off OPRA, gated to the options session (09:30–16:15 ET). Written by scripts/spy_bounce_tracker.py; entry locked in state.</div>
+<iframe src="/spybounce" title="SPY Bounce Tracker" style="width:100%;height:1400px;border:1px solid var(--line,#30363d);border-radius:11px;background:#0e0e12"></iframe>
 </div>
 <div class="page" id="p-analytics">
   <div class="kpis" id="an-tiles"></div>

@@ -174,6 +174,14 @@ class Handler(BaseHTTPRequestHandler):
             self._send(json.dumps(state()), "application/json", set_cookie)
         elif u.path == "/live.json":
             self._send(json.dumps(live_json()), "application/json", set_cookie)
+        elif u.path == "/spybounce":            # SPY Bounce tab iframe (static tracker HTML)
+            f = ROOT / "data" / "spy_bounce" / "tracker_dashboard.html"
+            if f.exists():
+                self._send(f.read_bytes(), "text/html; charset=utf-8", set_cookie)
+            else:
+                self._send(b"<body style='font:14px system-ui;background:#0b0d12;color:#e8ebf0;"
+                           b"padding:24px'><p>SPY bounce tracker dashboard not generated yet.</p></body>",
+                           "text/html; charset=utf-8", set_cookie)
         else:
             self.send_error(404)
 
