@@ -152,9 +152,13 @@ function events(){                    // box-relative candidates only; nothing b
       if(o<=res+EPS&&cl>res+EPS) ev.push({type:'SOS',i,p:hi});              // from inside, close breaks out up
       if(o>=sup-EPS&&cl<sup-EPS) ev.push({type:'SOW',i,p:lo});              // from inside, close breaks out down
     }
-    // tests: down-swing bottoming in the lower third but holding above support — only AFTER the AR bar
-    sw.forEach(s=>{if(s.dir==='dn'&&s.i1>arBar){const lo=pAt(s.i1,'lo');
-      if(lo>sup-EPS&&lo<=third) ev.push({type:'test',i:s.i1,p:lo});}});
+    // tests: down-swing bottoming in the lower third but holding above support — only AFTER the AR bar.
+    // On renko the true test low (the dip wick) lands on the NEXT (reversal) brick, so mark it there.
+    sw.forEach(s=>{if(s.dir==='dn'&&s.i1>arBar){
+      let lb=s.i1;
+      if(isRenko&&s.i1+1<bars.length&&bars[s.i1+1].wlo<bars[lb].wlo) lb=s.i1+1;
+      const lo=isRenko?bars[lb].wlo:pAt(s.i1,'lo');
+      if(lo>sup-EPS&&lo<=third) ev.push({type:'test',i:lb,p:lo});}});
   });
   return ev;
 }
