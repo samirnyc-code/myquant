@@ -28,6 +28,10 @@ namespace NinjaTrader.NinjaScript.BarsTypes
 {
     public class FlexRenkoBarsType : BarsType
     {
+        // NT8 auto-discovers BarsType subclasses at startup (ResetBarsTypes) keyed by the unique
+        // BarsPeriodType id below (76308). It shows in the Bar Type dropdown IF the whole Custom
+        // assembly compiles — ONE compile error anywhere in Custom blocks every new type. Restart
+        // NinjaTrader after a clean compile.
         private double flexOpen;    // last completed brick renko open
         private double flexClose;   // last completed brick renko close
         private int    dir;         // 0 neutral, 1 up, -1 down
