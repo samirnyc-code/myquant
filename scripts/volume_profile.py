@@ -193,6 +193,28 @@ def main() -> int:
     js = OUT / f"{stamp}_levels.json"
     js.write_text(json.dumps(levels, indent=2))
 
+    # flat CSV for the NT8 drawer (no JSON lib in NinjaScript). Stable path = the drawer
+    # reads the same file every render; the dated copy is the archive. type,price,label.
+    rows = ["type,price,label",
+            f"VPOC,{res['vpoc']:.2f},VPOC",
+            f"VAH,{res['va_high']:.2f},VA high",
+            f"VAL,{res['va_low']:.2f},VA low",
+            f"BIAS,{res['bias_hvn']:.2f},bias HVN"]
+    rows += [f"HVN,{h:.2f}," for h in res["hvn"]]
+    rows += [f"LVN,{l:.2f}," for l in res["lvn"]]
+    rows += [f"NVP,{n['vpoc']:.2f},{n['date']}" for n in naked]
+    csv_txt = "\n".join(rows) + "\n"
+    (OUT / f"{stamp}_levels.csv").write_text(csv_txt)
+    vpdir = ROOT / "data" / "vp_levels"; vpdir.mkdir(parents=True, exist_ok=True)
+    (vpdir / "current.csv").write_text(csv_txt)   # STABLE path the NT8 drawer watches
+
+    # full volume-at-price distribution so the NT8 drawer can render the whole histogram
+    # (optional on-chart). price,volume per tick level.
+    vap = res["_vap"]
+    prof = "price,volume\n" + "\n".join(f"{p:.2f},{int(v)}" for p, v in vap.items()) + "\n"
+    (OUT / f"{stamp}_profile.csv").write_text(prof)
+    (vpdir / "current_profile.csv").write_text(prof)
+
     # ---- inline summary ----
     print(f"\nVolume Profile — {label}")
     print(f"  range {res['lo']:.2f}–{res['hi']:.2f}  |  total vol {res['total_vol']:,}  |  close {res['close']:.2f}")
