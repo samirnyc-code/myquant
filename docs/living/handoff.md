@@ -1,6 +1,6 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** September 16, 2026 (S119: **SPY 0DTE-bounce LIVE paper-tracker built + RUNNING** — read the S119 block FIRST to continue it; climax-flip tempo lab CLOSED = NO mechanical edge once fills are realistic + no lookahead + correct contract (multiple load-bearing bugs found); contract-flap alert fixed; 3 new HARD memory rules incl. NEVER-show-ideal-fills. See S119 block.) — earlier September 15, 2026 (S118-props: scraped Take Profit Trader + Topstep verbatim, applied to Regime2E. Decisive rule = funded-DD TYPE: TPT PRO intraday-unrealized (hostile, SIM, 150K max), Topstep XFA EOD (friendly, SIM). At 1 ES the $4,500 DD blows 28-38%/yr; FIX = MES fractional sizing — 150K@0.5ES(5 MES) = 2.6% blow/+$4.5k/yr on Topstep. Eval vs funded want OPPOSITE sizes. RECOMMENDATION: Topstep 150K. See S118-props block. TBC: TPT news-flat rule.) — earlier September 11, 2026 (S116-gexlog: morning-brief deep-read + sim-usage map + playbook-only backtest touch/hold15/cross15 = −43k/+5.5k/+0.4k ⇒ no edge in following the playbook — see S116-gexlog block) — earlier September 9, 2026 evening (S115-B: IB-vs-TD same-day settle fixed + automated 22:20 task + expired-row fee fix — see S115-B block; Chat A's S115 divergence work in its own commits) — earlier S114 overnight: 4.3yr backtest COMPLETE — see the S114 OVERNIGHT block under the board — earlier S113 (9/8): (S113: ThetaData EXECUTED end-to-end. Terminal live (Java 21, Options:STANDARD, :25503). Pulled at_time NBBO + trade_quote prints for all 518 Aug-6→Sep-4 SPX fill events (0 fail), anchored on IB's TRUE exec times (from an IB Flex Trade-Confirmation XML the user downloaded → `ib_flex_executions.py --file`). **Fill realism VALIDATED**: median fill position 0.0 (marketable touch), 86.1% ≤ mid, 99.8% had ≥1 size (median 76), 94% single-leg-print-confirmed. **TD-based P&L reconstruction** (`td_pnl_reconstruct.py`): rebuilt the book from ONLY real data — entries/order-exits at the real touch, expiries at intrinsic vs the official SPX 4pm close (`/v3/index/history/eod`), real IB commissions. Sim booked $9,240 (modeled $1.30/trade fees) → restated at REAL fees $8,666 → TD net **$8,160** (−12%); fills-only delta just −$505/187 trades, settlement +$150 → **the sim's fills are accurate; the overstatement was under-counted commissions.** Report `scripts/thetadata_fill_report.py` (self-contained HTML + PDF, `--anon` vendor copy S01–S10): plain-English summary, side-by-side P&L (both at real fees, Δ$0 comm, Δ%), fill-position breakdown w/ cumulative %, size-depth tiles, Method&FAQ, metadata strip. **FORWARD FEE FIX** (real IB $1.63/contract/execution, was flat $1.30): active-close (`options_trigger_daemon`), 0DTE expiry (`options_postmortem` FEE 1.30→1.63), STMR (`options_sim_daemon` fee 0.0→real) — all forward-only, no history rewritten (user declined restating the calendar). **NEXT: build the stress-test sandbox, then model July-2026 entries from TD-only** — see the S113 block. — earlier S112 (9/7): built the ThetaData fill-validation pull layer (SPX-only; XSP retired per user). Two committed scripts — `thetadata_worklist.py` (read-only; 204 SPX trades → 406 legs → **366 unique 0DTE contracts** over 24 dates 08-04→09-04; 196 ET fill anchors from orders.csv) + `thetadata_fetch.py` (stdlib v3 NBBO tick fetcher; `--dry-run`/`--probe`/`--limit`, resumable, manifest, no-terminal guard that fetches nothing). Validated all paths WITHOUT the terminal (dry-run URLs correct, strike-format bug caught+fixed 7560.0→7560.000). TZ pinned: trades=CT/orders=ET/Theta=ET — pull is by date (tz-safe), align later via orders.csv. STILL BLOCKED on local Theta Terminal (Java) — not installed; needs user OK or user-run. Vendor (ThetaData) confirmed Standard $80 is right + gave execution-model guidance (fill@touch+size-check, tick+latency-delay, prints=confirmation-not-fill, SPXW settles on close, early-close 1pm ET) → saved to `docs/options_0dte/thetadata_fill_validation.md` as the comparison-script spec. S111 scripts were ALREADY committed (9157bb17); that handoff checkbox was stale. — earlier S111: options-sim ANALYSIS + Labor-Day pause + ThetaData prep. NO strategy code changed (user: "nothing changed in the strategy"). Verified: EM=prior-close spot×VIX/√252 (gexlog morning brief; identical to our fallback); Open condor reuses the SAME prior-close-VIX width (no open-time vol). EOD flies = off-center fly on a stale price (weak). Reconstructed sim PnL on the DASHBOARD-CALENDAR basis (SPX-only, incl open marks, excl 08-04/05+orphan): full +$9,240 / n187; minus EOD-flies+Open-condors = **+$7,984 / n112 / PF 1.93**. **Fill realism RESOLVED**: sim uses REAL IB paper fills (NBBO, crosses the spread — median fill at the marketable touch, 79% ≤ mid) — NOT phantom mids. ThetaData Standard $80 = correct tier for fill-validation (quote+trade_quote+sizes, tick, 8yr); needs local Theta Terminal (Java) — **neither Java nor terminal installed here**. Paused sim for Labor Day (disabled 3 tasks + self-deleting resume task 9/8 06:00); chain recorder still respawned via supervisor — user said LEAVE it (no trades firing; watchdog holiday-halted). New analysis scripts UNCOMMITTED — commit next session.)
+**Last Updated:** September 16, 2026 (S120-wyckoff, leglab chat: read BOTH Villahermosa Wyckoff books cover-to-cover via 12 subagents → 2 page-cited synthesis notes + a **"Wyckoff Study" learning artifact wired into Mission Control** (card + claude.ai URL). Designed the **Wyckoff-2.0 DISCRETIONARY system** = structure(context) + Volume Profile(location) + Order Flow(trigger, gated to zones); last-HVN = bias line. Reframed the dead mechanical climax-flip into a discretionary-assist toolset. **IMMEDIATE NEXT (user directive): build a full-tape recording DB for ES/NQ/MES/MNQ 23h/day starting now**, then the 3-stage tool build. Wyckoff/TR-zone NT8 tools deployed, PENDING F5. **READ THE S120-wyckoff BLOCK FIRST — new chat continues from there.**) — earlier September 16, 2026 (S119: **SPY 0DTE-bounce LIVE paper-tracker built + RUNNING** — read the S119 block FIRST to continue it; climax-flip tempo lab CLOSED = NO mechanical edge once fills are realistic + no lookahead + correct contract (multiple load-bearing bugs found); contract-flap alert fixed; 3 new HARD memory rules incl. NEVER-show-ideal-fills. See S119 block.) — earlier September 15, 2026 (S118-props: scraped Take Profit Trader + Topstep verbatim, applied to Regime2E. Decisive rule = funded-DD TYPE: TPT PRO intraday-unrealized (hostile, SIM, 150K max), Topstep XFA EOD (friendly, SIM). At 1 ES the $4,500 DD blows 28-38%/yr; FIX = MES fractional sizing — 150K@0.5ES(5 MES) = 2.6% blow/+$4.5k/yr on Topstep. Eval vs funded want OPPOSITE sizes. RECOMMENDATION: Topstep 150K. See S118-props block. TBC: TPT news-flat rule.) — earlier September 11, 2026 (S116-gexlog: morning-brief deep-read + sim-usage map + playbook-only backtest touch/hold15/cross15 = −43k/+5.5k/+0.4k ⇒ no edge in following the playbook — see S116-gexlog block) — earlier September 9, 2026 evening (S115-B: IB-vs-TD same-day settle fixed + automated 22:20 task + expired-row fee fix — see S115-B block; Chat A's S115 divergence work in its own commits) — earlier S114 overnight: 4.3yr backtest COMPLETE — see the S114 OVERNIGHT block under the board — earlier S113 (9/8): (S113: ThetaData EXECUTED end-to-end. Terminal live (Java 21, Options:STANDARD, :25503). Pulled at_time NBBO + trade_quote prints for all 518 Aug-6→Sep-4 SPX fill events (0 fail), anchored on IB's TRUE exec times (from an IB Flex Trade-Confirmation XML the user downloaded → `ib_flex_executions.py --file`). **Fill realism VALIDATED**: median fill position 0.0 (marketable touch), 86.1% ≤ mid, 99.8% had ≥1 size (median 76), 94% single-leg-print-confirmed. **TD-based P&L reconstruction** (`td_pnl_reconstruct.py`): rebuilt the book from ONLY real data — entries/order-exits at the real touch, expiries at intrinsic vs the official SPX 4pm close (`/v3/index/history/eod`), real IB commissions. Sim booked $9,240 (modeled $1.30/trade fees) → restated at REAL fees $8,666 → TD net **$8,160** (−12%); fills-only delta just −$505/187 trades, settlement +$150 → **the sim's fills are accurate; the overstatement was under-counted commissions.** Report `scripts/thetadata_fill_report.py` (self-contained HTML + PDF, `--anon` vendor copy S01–S10): plain-English summary, side-by-side P&L (both at real fees, Δ$0 comm, Δ%), fill-position breakdown w/ cumulative %, size-depth tiles, Method&FAQ, metadata strip. **FORWARD FEE FIX** (real IB $1.63/contract/execution, was flat $1.30): active-close (`options_trigger_daemon`), 0DTE expiry (`options_postmortem` FEE 1.30→1.63), STMR (`options_sim_daemon` fee 0.0→real) — all forward-only, no history rewritten (user declined restating the calendar). **NEXT: build the stress-test sandbox, then model July-2026 entries from TD-only** — see the S113 block. — earlier S112 (9/7): built the ThetaData fill-validation pull layer (SPX-only; XSP retired per user). Two committed scripts — `thetadata_worklist.py` (read-only; 204 SPX trades → 406 legs → **366 unique 0DTE contracts** over 24 dates 08-04→09-04; 196 ET fill anchors from orders.csv) + `thetadata_fetch.py` (stdlib v3 NBBO tick fetcher; `--dry-run`/`--probe`/`--limit`, resumable, manifest, no-terminal guard that fetches nothing). Validated all paths WITHOUT the terminal (dry-run URLs correct, strike-format bug caught+fixed 7560.0→7560.000). TZ pinned: trades=CT/orders=ET/Theta=ET — pull is by date (tz-safe), align later via orders.csv. STILL BLOCKED on local Theta Terminal (Java) — not installed; needs user OK or user-run. Vendor (ThetaData) confirmed Standard $80 is right + gave execution-model guidance (fill@touch+size-check, tick+latency-delay, prints=confirmation-not-fill, SPXW settles on close, early-close 1pm ET) → saved to `docs/options_0dte/thetadata_fill_validation.md` as the comparison-script spec. S111 scripts were ALREADY committed (9157bb17); that handoff checkbox was stale. — earlier S111: options-sim ANALYSIS + Labor-Day pause + ThetaData prep. NO strategy code changed (user: "nothing changed in the strategy"). Verified: EM=prior-close spot×VIX/√252 (gexlog morning brief; identical to our fallback); Open condor reuses the SAME prior-close-VIX width (no open-time vol). EOD flies = off-center fly on a stale price (weak). Reconstructed sim PnL on the DASHBOARD-CALENDAR basis (SPX-only, incl open marks, excl 08-04/05+orphan): full +$9,240 / n187; minus EOD-flies+Open-condors = **+$7,984 / n112 / PF 1.93**. **Fill realism RESOLVED**: sim uses REAL IB paper fills (NBBO, crosses the spread — median fill at the marketable touch, 79% ≤ mid) — NOT phantom mids. ThetaData Standard $80 = correct tier for fill-validation (quote+trade_quote+sizes, tick, 8yr); needs local Theta Terminal (Java) — **neither Java nor terminal installed here**. Paused sim for Labor Day (disabled 3 tasks + self-deleting resume task 9/8 06:00); chain recorder still respawned via supervisor — user said LEAVE it (no trades firing; watchdog holiday-halted). New analysis scripts UNCOMMITTED — commit next session.)
 
 ---
 
@@ -39,8 +39,107 @@ any item, drop "WIP <A/B>" in its row so the other chat leaves it alone.
 | 13 | GexLog ignored-fields join study | ⛔ CLOSED (S116-gexlog) | ran + committed (`gexlog_field_join_study.py`, stats 20260910) but user judged the direction a dead end — do NOT pick up the walk-forward follow-up |
 | 14 | Playbook-only backtest (trade what the gexlog playbook says) | ✅ DONE (S116-gexlog) | `gexlog_playbook_parse.py` (327/327 scenarios) + `gexlog_playbook_bt.py` (TD 1-min, 106d Apr–Sep): touch −$43.0k / hold15 +$5.5k / cross15 +$0.4k — sign flips on the trigger reading; no robust edge; rows in backtest_full/playbook_bt_rows.csv |
 | 17 | Trade plan w/ Thomas (setup inventory → regime/risk → trade log/journal) | 🛑 PAUSED (S118 9/15, USER CALLED STOP — lost confidence in the analysis) | `docs/living/trade_plan/`: `setup_inventory.md` (v1–v2 + evidence ranking, all sources) · `apex_account_analysis.md` · `apex_rulebook.md`. Deep-dived REGIME-2E: edge REAL but lumpy (top-10=55% of net), short-side-heavy, regime-favorable; PF~1.5–1.8. Built + deployed NT8 `Regime2ESetups.cs` (indicator) + `Regime2EStrategy.cs` (OnePerDay/gates/visuals; signal-parity 96.8%/regime 100% vs python) — PENDING user F5 + Sim101 forward test. Apex study: site scraped via Playwright (`scripts/apex_fetch_pages.py`; Cloudflare 403s WebFetch). **⚠ Analysis iterated messily across many turns — user halted, deemed it unreliable.** VERIFIED rules in `apex_rulebook.md` (verbatim+sources): legacy FULL DD = INTRADAY trailing (eval+funded, NOT EOD); needs MES fractional sizing (10 MES=1ES blows; ≤8 MES survives); **2 PA rules (30% MAE, 5:1 RR) NEVER modeled ⇒ ALL funded sims PROVISIONAL/likely-worse; eval sims valid**. Standing take: hold-to-EOD book wants a STATIC-DD firm (TPT), not Apex trailing. NEXT (only if resumed): model 30% MAE+5:1 in ONE clean funded sim; resolve §H open Qs w/ Apex FIRST |
+| 18 | **Wyckoff 2.0 discretionary toolset + full-tape recording DB** | 🟢 ACTIVE (S120-wyckoff 9/16, leglab) — **CONTINUE HERE in the new chat** | Both Wyckoff books read+synthesized; "Wyckoff Study" artifact in Mission Control. **NEXT (user directive): record EVERYTHING (tick/bid/ask/vol) 23h/day for ES+NQ+MES+MNQ starting now** — extend `MarketDepthRecorderAddOn.cs` (or build L1 tape+quote recorder) to 4 instruments + watchdog; troves currently have NO bid/ask + nothing is recording depth today. Then 3-stage tool build (VP/effort → TR-Box+event engine → OF trigger). OPEN: DOM-vs-L1 capture, storage/disk, feed covers NQ/MES/MNQ?, contract roll 09-26→12-26 on 9/18. Data source = OUR OWN (no NT Order Flow+). **READ S120-wyckoff BLOCK.** |
 
 ---
+
+## S120-wyckoff (2026-09-16, leglab chat) — read BOTH Wyckoff books · Wyckoff-2.0 discretionary system · full-tape recording DB is the immediate next task
+
+**READ THIS FIRST if continuing.** This chat is being retired for resource reasons; the new chat
+continues board #18 from here. Distinct from Chat A's S119 SPY-bounce thread. The mechanical
+climax-flip is dead (S119); this pivoted to a **discretionary-assist Wyckoff-2.0 toolset** for ES
+on 2000t + 5M — the user's final direction: no more gurus (Brooks + Dalton + Wyckoff + Wyckoff 2.0
+= complete), a tradeable system that needs discretion, a fixed playbook, and a custom journal.
+
+### DONE this session
+- **Both Villahermosa books read cover-to-cover** (6 subagents each, page-cited):
+  `docs/research_notes/wyckoff_book_synthesis.md` (bk1: structures/events/springs/tests/phases/box)
+  + `docs/research_notes/wyckoff2_book_synthesis.md` (bk2: Volume Profile + Order Flow integration).
+  Raw text: `scratchpad/wyckoff_book.txt` + `wyckoff2_book.txt` (temp; source PDFs on Desktop).
+- **Learning artifact:** `docs/artifacts/wyckoff_study.html` — one self-contained study page (both books
+  distilled, the 4 setups, draft playbook, tools roadmap, data/journal plan). **Wired into Mission
+  Control** (card "Wyckoff Study" in `data/_catalog/claude_artifacts.json`, group Research; slug matches
+  the file so Open-local works; served offline + Tailscale). Cloud URL for the laptop:
+  https://claude.ai/code/artifact/626f7d99-bd67-4e9a-8fe4-aeae1c7cb9e7
+
+### THE WYCKOFF MODEL (the rules that fix our tools — quote/build to these)
+- **Spring/Upthrust = Phase-C false break defined RETROACTIVELY** — only a spring once it CAUSES the
+  opposite-side breakout; else "simply a test" (bk1 p.105-106; bk2 p.258). The range-creating extreme is
+  the **CLIMAX (Phase A), NOT a spring**. **Test = No Supply/No Demand** (narrow range + vol < prior 2 bars).
+  3 spring types by depth+vol+range. New events: Structural Failure, Shortening-of-Thrust.
+- **Wyckoff 2.0 = 3 lanes:** structure=CONTEXT · Volume Profile=LOCATION (VPOC/VA 68.2%/HVN/LVN/naked
+  VPOC/VWAP) · Order Flow=TRIGGER (absorption→initiative + delta) **gated to key zones only** (never
+  chart-wide — the named antidote to our spray). **Last-developed HVN = the bias line** (above→long,
+  below→short). 4 setups (range-edge reversal / range-inside / breakout-test BUEC / trend pullback).
+  Entry = SOS/SOW bar via **stop order** (never limit); stop at the protecting LVN; target next HVN→VPOC.
+- **Tick vs time (decided):** measure effort on **SWINGS (Weis wave)**, NOT per-bar (a 2000t bar's per-bar
+  volume is ~constant). VP is bar-agnostic → same levels on any chart. Use 5M/daily for context, 2000t for
+  execution (nesting: a 2k micro-range at a 5M edge IS the 5M event). NEVER volume-charts. Segregate
+  RTH/ETH volume (validates our two-trove split).
+
+### NT8 TOOL STATE (branch leglab, DEPLOYED to Custom, **PENDING USER F5**)
+- `nt8/indicators/TempoSpeedometer.cs` — climax-flip SP/UT spring-type marks; skip-Terminal-Shakeout
+  toggle; **beyond-prior-day spring/upthrust detector** (Wyckoff 3-factor depth+vol+range); **middle-click
+  Wyckoff inspector card**; **drawn TR-zone reader** → reads the new drawing tool, auto-types
+  resistance/support, marks springs (false-break below support + reclaim) + graded tests (✓ quiet/holds,
+  ✗ loud; tempo = tick-chart volume substitute), labels centered above/below triangles. Params (group
+  "6. Springs & upthrusts"): ShakeoutLowIntensity 0.85 / ShakeoutHighIntensity 1.50 / TestQuietPct 50 /
+  ShowDrawnZones / ShowSpringUpthrust.
+- `nt8/drawingtools/WyckoffTRZone.cs` — NEW dedicated "Wyckoff TR Zone" drawing tool (subclass of
+  Rectangle) so the indicator reads only intentional zones, not every rectangle. Deploy to
+  `Custom\DrawingTools\`. Gui code — **F5 is the real test** (verify it appears in the palette).
+- ⚠ These in-indicator auto-detectors were the source of the "spray" the user rejected. The BOOK's fix
+  is the 3-stage rebuild below (gate to zones + retroactive confirm + last-HVN bias). The **beyond-PD
+  detector backtested to NO standalone edge** (`flip_beyond_pd_bt.py`, raw PF 1.00) — keep observational.
+
+### IMMEDIATE NEXT TASK (USER DIRECTIVE, "starting today") — full-tape recording DB
+- **Record EVERYTHING (tick, bid, ask, volume) 23h/day for ES + NQ + MES + MNQ, building the DB while
+  the live tools run.**
+- FINDINGS: the troves (`data/ticks_continuous*`) store trades ONLY (DateTime/Price/Volume, **no bid/ask**);
+  **no depth files for today** ⇒ order flow is NOT being recorded now. We already have the pieces:
+  `nt8/addons/MarketDepthRecorderAddOn.cs` (full depth book + tape w/ aggressor; AddOn auto-runs on NT
+  start, survives restarts; **ES-only hardcoded "ES 09-26", UNTESTED**), `RawTickExporter.cs` (tape only,
+  chart+TickReplay), `FootprintExporter.cs` (footprint per bar, validated vs MzPack — NT Order Flow+ NOT needed).
+- PLAN: extend the AddOn to the 4 instruments (or build a lighter L1 tape+best-bid/ask recorder), verify it
+  actually writes, add a **watchdog + Telegram alert**, define storage layout + nightly parquet ingest +
+  a Mission Control "recorder alive" card.
+- **OPEN DECISIONS (ask the user first):** (1) capture depth = full **L2 DOM** (heaviest, multi-GB/day/instr,
+  the existing AddOn) vs **L1 tape+best-bid/ask** (footprint-complete, ~sane disk — RECOMMENDED) vs hybrid
+  (L1 all 4 + DOM for ES/NQ); (2) storage location + retention + disk budget (DOM ≈ TB/yr); (3) confirm the
+  NT data feed includes **NQ/MES/MNQ** (+ depth if DOM) — a dependency we can't verify; (4) front-month
+  contracts — TODAY (9/16) all four are still **09-26**, roll to **12-26 at Sep expiry Fri 2026-09-18**;
+  recorder must handle the roll (`data/es_roll_override.json` no longer present).
+- CONSTRAINTS: ES/Globex ≈ 23h/day (Sun 17:00 CT → Fri 16:00 CT, ~1h daily halt) — NT + recorder must run
+  continuously with a watchdog; **L1 gaps are unrecoverable** (Databento MBP-10 = paid backfill safety-net).
+  **Live tools DON'T need the archive** (they read the live feed); the archive is for backtest/refine/journal.
+- STATE-CHANGE RULE (CLAUDE.md): enabling the recorder needs an NT restart (user action) + a watchdog task —
+  **ASK before starting any task/daemon.**
+
+### THE 3-STAGE TOOL BUILD (proposed, NOT started)
+1. **Foundation — levels+effort:** Volume Profile engine (VPOC/VA/HVN/LVN/naked+developing VPOC, session/
+   composite/fixed-range) computed from the tick troves → drawn in NT8; VWAP session+weekly ±σ; **Weis-wave**
+   (per-swing volume); **last-HVN bias line** + price-vs-VWAP/VPOC state; footprint absorption/initiative
+   from `FootprintExporter`.
+2. **Structure:** "**Wyckoff TR Box**" whole-range drawing tool (draw the box; auto Phase A-E partition; edges
+   as LVN-snapped zones; sloping mode) + **retroactive event engine** (climax=edge; spring confirmed only by
+   the opposite-edge breakout; test=No Supply/No Demand; structural failure; SOT).
+3. **Integration:** at an armed zone → OF absorption+initiative + SOS/SOW bar → propose stop-entry, SL at LVN,
+   TP at HVN→VPOC/naked VPOC, R/R + alternative scenario; a "setup ready" panel.
+- PENDING USER DECISIONS: **data source = build from OUR OWN data (CONFIRMED, no NT Order Flow+ package)**;
+  chart workflow (2k with higher-TF VP overlay vs two-chart vs both — I lean "both/either", bar-agnostic) =
+  UNDECIDED; start point = **Stage 1** (recommended). User had said "build it all" then redirected to read
+  book 2 first — the build is greenlit, sequence TBD.
+
+### LAST-PHASE VISION (user's words)
+Discretionary-assist system (full automation abandoned), a **playbook they stick to** (the 4-gate checklist:
+context→location→trigger→risk), a **custom trade journal** tied to the playbook + the daily recorded data,
+and after **~100 trades retune the indicators** to their style. Testable pieces (80% reversion, edge-fade,
+break-retest, spring+confluence) → backtest on the trove with the usual frozen-spec train/test discipline.
+
+### COMMITS this session (branch leglab): Wyckoff effort filter + walk-forward + spring/upthrust marks +
+skip-TSO + beyond-PD detector + middle-click inspector + WyckoffTRZone drawing tool + spring/test grading +
+3-factor rebuild + drawn-zone rejection logic; both book synthesis notes; the Wyckoff Study artifact + MC
+catalog wiring. All committed; pushed at session end.
 
 ## S118-props (2026-09-14→15, leglab chat) — prop-firm rules (TPT + Topstep) applied to Regime2E
 
