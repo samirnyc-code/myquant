@@ -107,13 +107,13 @@ def chart(bars: pd.DataFrame, fp_all: pd.DataFrame, tape: pd.DataFrame, bar: str
     nlev = int(round((pmax - pmin) / tick)) + 1
 
     fig_w = max(13, n * 0.78)
-    fig_h = max(6.5, nlev * 0.34 + 2)
-    fig, (ax, axd) = plt.subplots(2, 1, figsize=(fig_w, fig_h), sharex=True,
-                                  gridspec_kw={"height_ratios": [nlev * 0.34, 1.6]})
+    fig_h = max(7.5, nlev * 0.34 + 3.2)
+    fig, (ax, axd, axb) = plt.subplots(3, 1, figsize=(fig_w, fig_h), sharex=True,
+                                       gridspec_kw={"height_ratios": [nlev * 0.34, 1.6, 1.3]})
     fig.suptitle(f"L1 FOOTPRINT — ES  {bars['t_start'].iloc[0]:%Y-%m-%d %H:%M}→{bars['t_end'].iloc[-1]:%H:%M}"
                  f"  ·  {bar} bars  ·  cell = sell×buy (aggr sells @bid × aggr buys @ask)", fontsize=11)
 
-    # per-level footprint cells
+    # per-level footprint cells — occupy the RIGHT of each column (candle sits on the left)
     dmax = max(1, int(fp["buy"].sub(fp["sell"]).abs().max()))
     for _, r in fp.iterrows():
         bi, price = int(r["bi"]), float(r["Price"])
@@ -121,26 +121,46 @@ def chart(bars: pd.DataFrame, fp_all: pd.DataFrame, tape: pd.DataFrame, bar: str
         d = buy - sell
         inten = min(0.85, 0.18 + 0.67 * abs(d) / dmax)
         color = (0.15, 0.6, 0.25, inten) if d > 0 else (0.8, 0.15, 0.15, inten) if d < 0 else (0.5, 0.5, 0.5, 0.25)
-        ax.add_patch(Rectangle((bi - 0.46, price - tick / 2), 0.92, tick, color=color, lw=0))
-        ax.text(bi, price, f"{sell}×{buy}", ha="center", va="center", fontsize=6.5, color="black")
+        ax.add_patch(Rectangle((bi - 0.08, price - tick / 2), 0.55, tick, color=color, lw=0))
+        ax.text(bi + 0.195, price, f"{sell}×{buy}", ha="center", va="center", fontsize=6.5, color="black")
 
-    # POC per bar (outlined) + close path
+    # candlestick on the LEFT of each column + POC outline (over the cells) + close path
     for i, row in bars.reset_index(drop=True).iterrows():
-        ax.add_patch(Rectangle((i - 0.46, float(row["poc"]) - tick / 2), 0.92, tick,
-                               fill=False, edgecolor="#111", lw=1.6))
-    ax.plot(range(n), bars["close"].values, color="#1f77b4", lw=1.1, alpha=0.55, zorder=5, label="close")
+        o, h, l, c = float(row["open"]), float(row["high"]), float(row["low"]), float(row["close"])
+        up = c >= o
+        ec = "#137333" if up else "#a50e0e"
+        fc = "#2ca02c" if up else "#d62728"
+        cx = i - 0.30
+        ax.plot([cx, cx], [l, h], color=ec, lw=0.9, zorder=6, solid_capstyle="butt")   # wick
+        blo, bhi = min(o, c), max(o, c)
+        ax.add_patch(Rectangle((cx - 0.12, blo), 0.24, max(bhi - blo, tick * 0.06),
+                               facecolor=fc, edgecolor=ec, lw=0.6, zorder=6))           # body
+        ax.add_patch(Rectangle((i - 0.08, float(row["poc"]) - tick / 2), 0.55, tick,
+                               fill=False, edgecolor="#111", lw=1.4, zorder=4))         # POC
+    ax.plot([i - 0.30 for i in range(n)], bars["close"].values, color="#1f77b4",
+            lw=0.8, alpha=0.35, zorder=5, label="close")
 
     ax.set_ylim(pmin - tick, pmax + tick)
-    ax.set_xlim(-0.6, n - 0.4)
+    ax.set_xlim(-0.75, n - 0.25)
     ax.set_yticks(np.arange(pmin, pmax + tick, tick))
     ax.set_ylabel("price"); ax.grid(axis="y", alpha=0.15); ax.legend(loc="upper left", fontsize=8)
 
-    # bottom: cumulative delta
+    # middle: cumulative delta (the running effort line)
     axd.plot(range(n), bars["cvd"].values, color="#2ca02c", lw=1.6, marker="o", ms=3)
     axd.axhline(0, color="#888", lw=0.7)
     axd.set_ylabel("cum delta"); axd.grid(alpha=0.2)
-    axd.set_xticks(range(n))
-    axd.set_xticklabels([t.strftime("%H:%M") for t in bars["t_start"]], rotation=90, fontsize=7)
+
+    # bottom: per-bar delta (buy vol − sell vol), green/red; annotate total bar volume
+    dcolors = ["#2ca02c" if d >= 0 else "#d62728" for d in bars["delta"]]
+    axb.bar(range(n), bars["delta"].values, color=dcolors, width=0.8)
+    axb.axhline(0, color="#888", lw=0.7)
+    axb.set_ylabel("bar delta"); axb.grid(alpha=0.2)
+    vmax = bars["delta"].abs().max() or 1
+    for i, (d, v) in enumerate(zip(bars["delta"], bars["vol"])):
+        axb.text(i, d + (0.06 * vmax if d >= 0 else -0.06 * vmax), str(int(v)),
+                 ha="center", va="bottom" if d >= 0 else "top", fontsize=6, color="#444")
+    axb.set_xticks(range(n))
+    axb.set_xticklabels([t.strftime("%H:%M") for t in bars["t_start"]], rotation=90, fontsize=7)
 
     fig.tight_layout(rect=[0, 0, 1, 0.98])
     fig.savefig(path, dpi=110, bbox_inches="tight")
