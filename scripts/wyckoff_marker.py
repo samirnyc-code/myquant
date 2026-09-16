@@ -53,8 +53,8 @@ HTML = r"""<!doctype html><html><head><meta charset="utf-8"><title>Wyckoff Marke
   <span>view:</span><select id="tf"></select>
   <button id="snap" class="on">snap: ON</button>
   <span>zoom:</span><button id="xm">x&minus;</button><button id="xp">x+</button><button id="ym">y&minus;</button><button id="yp">y+</button>
-  <button id="ww" class="on">WW: ON</button>
-  <button id="trend" class="on">trend: ON</button>
+  <button id="ww">WW: OFF</button>
+  <button id="trend">trend: OFF</button>
   <span>pb:</span><button id="pbm">&minus;</button><span id="pbv" style="min-width:24px;text-align:center;display:inline-block">2.5</span><button id="pbp">+</button>
   <button id="undo">undo box</button>
   <button id="reset">reset</button>
@@ -66,7 +66,7 @@ HTML = r"""<!doctype html><html><head><meta charset="utf-8"><title>Wyckoff Marke
 const DATA = __DATA__;
 const TFS = Object.keys(DATA);
 let cur=TFS[0], snap=true, pending=null, boxes=[], marks=[], hist=[], mode='box', autoOn=true;
-let bwPx=7, yZoom=1, showWW=true, reversal=2.5, showTrend=true;
+let bwPx=7, yZoom=1, showWW=false, reversal=2.5, showTrend=false;
 const cv=document.getElementById('c'), ctx=cv.getContext('2d');
 const tfSel=document.getElementById('tf');
 TFS.forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;tfSel.appendChild(o)});
@@ -179,7 +179,7 @@ function structure(){
   segs.push({i0:segStart,i1:bars.length-1,state});
   return {piv,brk,segs,state};
 }
-const SEGCOL={bull:'rgba(46,204,113,0.16)',bear:'rgba(239,83,80,0.13)',trans:'rgba(255,179,0,0.14)',na:'rgba(120,120,120,0.05)'};
+const SEGCOL={bull:'rgba(0,220,100,0.30)',bear:'rgba(255,70,70,0.24)',trans:'rgba(255,190,0,0.24)',na:'rgba(120,120,120,0.06)'};
 const EVSTYLE={spring:['#26a69a','spring',13],ut:['#ef5350','UT',-13],SOS:['#2e7d32','SOS',-13],
   SOW:['#c62828','SOW',13],test:['#00acc1','test',13],BoS:['#1e88e5','BoS',-13],ChoCH:['#f9a825','ChoCH',-13]};
 function drawEvents(){events().forEach(m=>{const s=EVSTYLE[m.type],x=xOf(m.i),y=yOf(m.p);
