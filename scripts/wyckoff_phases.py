@@ -38,9 +38,11 @@ def build_waves(bars, reversal):
     W = []
     for s, e in zip(piv[:-1], piv[1:]):
         seg = bars.iloc[s:e + 1]
+        lo_bar = s + int(np.argmin(seg["low"].to_numpy()))    # EXACT bar of the intrabar low
+        hi_bar = s + int(np.argmax(seg["high"].to_numpy()))    # EXACT bar of the intrabar high
         W.append(dict(s=s, e=e, up=prices[e] >= prices[s], vol=int(seg["vol"].sum()),
                       lo=float(seg["low"].min()), hi=float(seg["high"].max()),
-                      p0=float(prices[s]), p1=float(prices[e])))
+                      lo_bar=lo_bar, hi_bar=hi_bar, p0=float(prices[s]), p1=float(prices[e])))
     return W
 
 
@@ -79,7 +81,21 @@ def derive(bars, W, reversal):
     ev["range_low"] = sc_low
     ev["range_top_ar"] = ar_hi
     ev["range_top_ext"] = phaseB_hi
+
+    # ALL tests of support (not just one ST): down-wave lows after the AR and before the SOS
+    # that sit in the LOWER portion of the range = genuine tests of the low. Real trading
+    # never has a single clean ST — the low gets probed repeatedly (that IS Phase B).
+    mid = (sc_low + phaseB_hi) / 2.0
+    start_b = ar["e"] if ar else sc["e"]
+    stop_b = ev["SOS"]["s"] if ev["SOS"] else len(bars)
+    tests = [w for w in W if (not w["up"]) and start_b <= w["s"] < stop_b and w["lo"] <= mid]
+    ev["tests"] = tests
     return ev
+
+
+def ext_bar(w, key):
+    """Exact bar index of the labelled extreme (fixes the close-pivot off-by-one)."""
+    return w["lo_bar"] if key == "lo" else w["hi_bar"] if key == "hi" else (w["e"] if key == "p1" else w["s"])
 
 
 def main() -> int:
@@ -120,9 +136,21 @@ def main() -> int:
     show("AR", ev["AR"], "hi")
     show("ST", ev["ST"], "lo")
     print(f"  {'C':<5} " + ("SPRING at %.2f" % ev["SPRING"]["lo"] if ev["SPRING"] else "NO spring - price never broke the SC low; Phase C effectively absent (went straight B->D via LPS)"))
-    show("LPS", ev["LPS"], "lo")
+    show("LPS?", ev["LPS"], "lo")
+    print("        ^ 'LPS' is RETROACTIVE only — in real time it is just another test; it is not")
+    print("          knowable as the LAST one until the SOS confirms and price does not return.")
     show("SOS", ev["SOS"], "p1")
     print(f"  close {float(bars['close'].iloc[-1]):.2f}  ({'ABOVE range top = Phase E markup' if float(bars['close'].iloc[-1])>ev['range_top_ext'] else 'inside/at range'})")
+
+    # every test of the low, in sequence, with volume — this is what you actually watch live
+    print(f"\nTESTS of the low (the range's lower half) — {len(ev['tests'])} of them, not one ST:")
+    print(f"  {'#':<4}{'time':>7}{'low':>10}{'vol':>10}   volume vs prior test")
+    prev = None
+    for k, w in enumerate(ev["tests"], 1):
+        ts = pd.Timestamp(bars.index[ext_bar(w, 'lo')]).strftime("%H:%M")
+        trend = "" if prev is None else ("lighter (absorption)" if w["vol"] < prev else "heavier (supply)")
+        print(f"  t{k:<3}{ts:>7}{w['lo']:>10.2f}{w['vol']:>10,}   {trend}")
+        prev = w["vol"]
 
     # ---- annotated chart ----
     import matplotlib
@@ -149,21 +177,24 @@ def main() -> int:
         ax.axvspan(x0, x1, color=col, alpha=0.10, zorder=0)
         ax.text((x0 + x1) / 2, ax.get_ylim()[1], f"Phase {tag}", ha="center", va="top",
                 fontsize=11, color="#37474f", fontweight="bold")
-    # event markers
+    # all tests of the low (t1..tn) drawn small; the labelled ST / LPS are just two of them
+    for k, w in enumerate(ev["tests"], 1):
+        ax.annotate(f"t{k}", (ext_bar(w, "lo"), w["lo"]), fontsize=7, color="#5d4037",
+                    xytext=(ext_bar(w, "lo"), w["lo"] - 1.5), ha="center")
+
+    # event markers — placed at the EXACT extreme bar (not the close pivot)
     def mark(tag, w, key, dy):
         if w is None:
             return
-        i = w["e"] if key in ("p1", "hi") else w["s"] if key in ("p0",) else (w["e"] if key == "lo" and not w["up"] else w["s"])
-        i = w["e"] if not w["up"] and key == "lo" else (w["e"] if w["up"] and key == "hi" else i)
-        price = w[key]
+        i = ext_bar(w, key); price = w[key]
         ax.annotate(tag, (i, price), fontsize=9, fontweight="bold", color="#263238",
                     xytext=(i, price + dy), ha="center",
                     arrowprops=dict(arrowstyle="->", color="#263238", lw=0.8))
     mark("PS", ev["PS"], "p1", 3)
-    mark("SC", ev["SC"], "lo", -3)
+    mark("SC", ev["SC"], "lo", -4)
     mark("AR", ev["AR"], "hi", 3)
-    mark("ST", ev["ST"], "lo", -3)
-    mark("LPS", ev["LPS"], "lo", -3)
+    mark("ST(t1)", ev["ST"], "lo", -3)
+    mark("LPS?", ev["LPS"], "lo", -3)      # only confirmed retroactively — hence the "?"
     mark("SOS", ev["SOS"], "p1", 3)
     ax.set_title(f"{a.day} · {a.bar} · Wyckoff TR + Phases A-E  (reversal {a.reversal}pt)", fontsize=12)
     ax.set_ylabel("price"); ax.set_xlabel(f"{a.bar} bar #"); ax.grid(alpha=0.15)
