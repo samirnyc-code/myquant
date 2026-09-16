@@ -35,7 +35,10 @@ HTML = r"""<!doctype html><html><head><meta charset="utf-8"><title>Wyckoff Marke
  button,select{background:#232a33;color:#e6e6e6;border:1px solid #3a4552;border-radius:5px;padding:5px 10px;cursor:pointer}
  button:hover{background:#2c3742}
  button.on{background:#1e88e5;border-color:#1e88e5}
- #read{margin-left:auto;font-family:ui-monospace,Consolas,monospace;font-size:12px;white-space:pre;color:#9fd0ff}
+ #readpanel{position:fixed;top:52px;right:10px;width:300px;background:rgba(23,27,33,0.97);border:1px solid #3a4552;border-radius:6px;z-index:6;box-shadow:0 4px 16px rgba(0,0,0,.5)}
+ #readhead{padding:5px 9px;cursor:pointer;font-size:12px;color:#bcd;display:flex;justify-content:space-between;user-select:none}
+ #readbody{max-height:44vh;overflow-y:auto;padding:4px 9px 8px;font:12px ui-monospace,Consolas,monospace;white-space:pre;color:#9fd0ff;border-top:1px solid #3a4552}
+ #readpanel.collapsed #readbody{display:none}
  #wrap{position:relative;overflow-x:auto}
  canvas{display:block;cursor:crosshair}
  #hint{color:#8ea1b5;font-size:12px}
@@ -49,16 +52,20 @@ HTML = r"""<!doctype html><html><head><meta charset="utf-8"><title>Wyckoff Marke
   <button id="auto" class="on">auto events: ON</button>
   <span>view:</span><select id="tf"></select>
   <button id="snap" class="on">snap: ON</button>
+  <span>zoom:</span><button id="xm">x&minus;</button><button id="xp">x+</button><button id="ym">y&minus;</button><button id="yp">y+</button>
+  <button id="ww" class="on">WW: ON</button>
+  <span>pb:</span><button id="pbm">&minus;</button><span id="pbv" style="min-width:24px;text-align:center;display:inline-block">2.5</span><button id="pbp">+</button>
   <button id="undo">undo box</button>
   <button id="reset">reset</button>
   <button id="copy">copy levels</button>
-  <span id="read"></span>
 </div>
+<div id="readpanel"><div id="readhead"><span>levels (<span id="cnt">0</span>)</span><span id="rtoggle">▾ hide</span></div><div id="readbody"></div></div>
 <div id="wrap"><canvas id="c"></canvas></div>
 <script>
 const DATA = __DATA__;
 const TFS = Object.keys(DATA);
 let cur=TFS[0], snap=true, pending=null, boxes=[], marks=[], hist=[], mode='box', autoOn=true;
+let bwPx=7, yZoom=1, showWW=true, reversal=2.5;
 const cv=document.getElementById('c'), ctx=cv.getContext('2d');
 const tfSel=document.getElementById('tf');
 TFS.forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;tfSel.appendChild(o)});
@@ -66,15 +73,25 @@ const padL=64,padR=16,padT=14,padB=24;
 let W,H,ds,bars,sw,pmin,pmax,isRenko,brick,volMax,swMax;
 let pTop,pBot,vTop,vBot,wTop,wBot;
 
+function zzz(pr,rev){const n=pr.length;if(n<2)return n?[0]:[];let piv=[0],trend=0,hi=pr[0],lo=pr[0],hib=0,lob=0;
+  for(let i=1;i<n;i++){const p=pr[i];if(p>hi){hi=p;hib=i;}if(p<lo){lo=p;lob=i;}
+    if(trend<=0&&p>=lo+rev){if(piv[piv.length-1]!==lob)piv.push(lob);trend=1;hi=p;hib=i;}
+    else if(trend>=0&&p<=hi-rev){if(piv[piv.length-1]!==hib)piv.push(hib);trend=-1;lo=p;lob=i;}}
+  piv.push(trend>=0?hib:lob);let out=[];for(const x of piv)if(!out.length||x>out[out.length-1])out.push(x);return out;}
+function computeSwings(){
+  if(isRenko){let out=[],i=0;while(i<bars.length){let j=i;while(j+1<bars.length&&bars[j+1].dir===bars[i].dir)j++;let v=0;for(let k=i;k<=j;k++)v+=bars[k].v;out.push({i0:i,i1:j,dir:bars[i].dir,vol:v});i=j+1;}sw=out;}
+  else{const cl=bars.map(b=>b.c),piv=zzz(cl,reversal);let out=[];for(let k=0;k+1<piv.length;k++){const s=piv[k],e=piv[k+1];let v=0;for(let m=s;m<=e;m++)v+=bars[m].v;out.push({i0:s,i1:e,dir:cl[e]>=cl[s]?'up':'dn',vol:v});}sw=out;}}
 function layout(){
-  ds=DATA[cur]; bars=ds.bars; sw=ds.swings; isRenko=ds.type==='renko'; brick=ds.brick||0;
-  W=Math.max(1000, bars.length*(isRenko?10:7)+padL+padR);
+  ds=DATA[cur]; bars=ds.bars; isRenko=ds.type==='renko'; brick=ds.brick||0; computeSwings();
+  W=Math.max(1000, bars.length*bwPx+padL+padR);
   H=Math.min(880,Math.max(560,window.innerHeight-70)); cv.width=W; cv.height=H;
   let lo=1e9,hi=-1e9,vm=0;
   for(const b of bars){ if(isRenko){lo=Math.min(lo,b.wlo,b.bottom);hi=Math.max(hi,b.whi,b.top);}else{lo=Math.min(lo,b.l);hi=Math.max(hi,b.h);} vm=Math.max(vm,b.v);}
-  const pad=(hi-lo)*0.04; pmin=lo-pad; pmax=hi+pad; volMax=vm||1; swMax=Math.max(1,...sw.map(s=>s.vol));
+  const pad=(hi-lo)*0.04, mid=(lo+hi)/2, half=((hi-lo)/2+pad)/yZoom;
+  pmin=mid-half; pmax=mid+half; volMax=vm||1; swMax=Math.max(1,...sw.map(s=>s.vol));
   const gTop=padT,gBot=H-padB,gH=gBot-gTop,gap=gH*0.03;
-  pTop=gTop; pBot=gTop+gH*0.55; vTop=pBot+gap; vBot=vTop+gH*0.17; wTop=vBot+gap; wBot=gBot;
+  if(showWW){pTop=gTop;pBot=gTop+gH*0.55;vTop=pBot+gap;vBot=vTop+gH*0.17;wTop=vBot+gap;wBot=gBot;}
+  else{pTop=gTop;pBot=gTop+gH*0.74;vTop=pBot+gap;vBot=gBot;wTop=wBot=gBot;}
 }
 const bw=()=>(W-padL-padR)/bars.length;
 const xOf=i=>padL+(i+0.5)*bw();
@@ -103,10 +120,10 @@ function draw(){
   // per-bar volume panel
   panelLabel('volume',vTop);
   for(let i=0;i<bars.length;i++){const b=bars[i],x=xOf(i),h=(b.v/volMax)*(vBot-vTop);const up=isRenko?b.dir==='up':b.c>=b.o;ctx.fillStyle=up?'#2e7d6b':'#b5514f';ctx.fillRect(x-w/2,vBot-h,w,h);}
-  // Weis wave panel (per-swing cumulative volume)
-  panelLabel('weis wave',wTop);
+  // Weis wave panel (per-swing cumulative volume) — toggleable
+  if(showWW){panelLabel('weis wave (pb '+reversal+')',wTop);
   sw.forEach((s,k)=>{const x0=xOf(s.i0),x1=xOf(s.i1),h=(s.vol/swMax)*(wBot-wTop);ctx.fillStyle=s.dir==='up'?'rgba(38,166,154,0.8)':'rgba(239,83,80,0.8)';ctx.fillRect(Math.min(x0,x1)-w/2,wBot-h,Math.max(w,Math.abs(x1-x0)+w),h);
-    if(bw()>6){ctx.fillStyle='#cfd8dc';ctx.font='9px monospace';ctx.textAlign='center';ctx.fillText((s.vol/1000).toFixed(0)+'k',(x0+x1)/2,wBot-h-2);}});
+    if(bw()>6){ctx.fillStyle='#cfd8dc';ctx.font='9px monospace';ctx.textAlign='center';ctx.fillText((s.vol/1000).toFixed(0)+'k',(x0+x1)/2,wBot-h-2);}});}
   // boxes
   boxes.forEach((bx,k)=>drawBox(bx,k+1));
   drawEvents();        // spring/UT/test/SOS/SOW/BoS/ChoCH candidates from the box + swings
@@ -133,9 +150,10 @@ function events(){                    // ALL candidates derived from the box + s
       if(s.i1>=from&&lo>sup-EPS&&lo<=third) ev.push({type:'test',i:s.i1,p:lo});
       lastDnVol=s.vol;}});
   });
-  // BoS / ChoCH from the swing structure (break of the prior same-side swing extreme)
+  // BoS / ChoCH from the swing structure, SCOPED to the box window (from the earliest box start)
+  const minFrom=Math.min(...boxes.map(b=>Math.min(b.a.i,b.b.i)));
   let trend=0,prevHigh=null,prevLow=null;
-  sw.forEach(s=>{if(s.dir==='up'){const hi=pAt(s.i1,'hi');
+  sw.filter(s=>s.i1>=minFrom).forEach(s=>{if(s.dir==='up'){const hi=pAt(s.i1,'hi');
       if(prevHigh!=null&&hi>prevHigh+EPS){ev.push({type:trend<0?'ChoCH':'BoS',i:s.i1,p:hi});trend=1;}prevHigh=hi;}
     else{const lo=pAt(s.i1,'lo');
       if(prevLow!=null&&lo<prevLow-EPS){ev.push({type:trend>0?'ChoCH':'BoS',i:s.i1,p:lo});trend=-1;}prevLow=lo;}});
@@ -176,7 +194,9 @@ function readout(){let parts=boxes.map((b,k)=>'box'+(k+1)+': '+fmt(b.a)+' -> '+f
   events().forEach(m=>parts.push('  '+(EVSTYLE[m.type]?EVSTYLE[m.type][1]:m.type)+' '+bars[m.i].t+' '+m.p.toFixed(2)));
   marks.forEach(m=>parts.push((m.type==='spring'?'SPRING':'UPTHRUST')+': '+bars[m.i].t+' '+m.p.toFixed(2)));
   if(pending)parts.push('start: '+fmt(pending)+'  (click END)');
-  document.getElementById('read').textContent=parts.join('\n')||'no marks yet';}
+  document.getElementById('readbody').textContent=parts.join('\n')||'no marks yet';
+  document.getElementById('cnt').textContent=parts.length;}
+document.getElementById('readhead').onclick=()=>{const p=document.getElementById('readpanel');p.classList.toggle('collapsed');document.getElementById('rtoggle').textContent=p.classList.contains('collapsed')?'▸ show':'▾ hide';};
 document.getElementById('auto').onclick=e=>{autoOn=!autoOn;e.target.textContent='auto events: '+(autoOn?'ON':'OFF');e.target.classList.toggle('on',autoOn);draw();readout();};
 function setMode(m){mode=m;pending=null;['box','spring','ut'].forEach(x=>document.getElementById('m_'+x).classList.toggle('on',x===m));readout();}
 document.getElementById('m_box').onclick=()=>setMode('box');
@@ -185,8 +205,16 @@ document.getElementById('m_ut').onclick=()=>setMode('ut');
 document.getElementById('snap').onclick=e=>{snap=!snap;e.target.textContent='snap: '+(snap?'ON':'OFF');e.target.classList.toggle('on',snap);};
 document.getElementById('undo').onclick=()=>{const h=hist.pop();if(!h)return;if(h.t==='box')boxes.pop();else marks.pop();draw();readout();};
 document.getElementById('reset').onclick=()=>{boxes=[];marks=[];hist=[];pending=null;draw();readout();};
-document.getElementById('copy').onclick=()=>{navigator.clipboard.writeText(document.getElementById('read').textContent);};
+document.getElementById('copy').onclick=()=>{navigator.clipboard.writeText(document.getElementById('readbody').textContent);};
 tfSel.onchange=e=>{cur=e.target.value;boxes=[];marks=[];hist=[];pending=null;layout();draw();readout();};
+function relayout(){layout();draw();readout();}
+document.getElementById('xm').onclick=()=>{bwPx=Math.max(2,bwPx*0.8);relayout();};
+document.getElementById('xp').onclick=()=>{bwPx=Math.min(28,bwPx*1.25);relayout();};
+document.getElementById('ym').onclick=()=>{yZoom=Math.max(0.3,yZoom*0.8);relayout();};
+document.getElementById('yp').onclick=()=>{yZoom=Math.min(6,yZoom*1.25);relayout();};
+document.getElementById('ww').onclick=e=>{showWW=!showWW;e.target.textContent='WW: '+(showWW?'ON':'OFF');e.target.classList.toggle('on',showWW);relayout();};
+document.getElementById('pbm').onclick=()=>{reversal=Math.max(0.5,+(reversal-0.5).toFixed(1));document.getElementById('pbv').textContent=reversal;relayout();};
+document.getElementById('pbp').onclick=()=>{reversal=+(reversal+0.5).toFixed(1);document.getElementById('pbv').textContent=reversal;relayout();};
 window.onresize=()=>{layout();draw();};
 layout();draw();readout();
 </script></body></html>"""
