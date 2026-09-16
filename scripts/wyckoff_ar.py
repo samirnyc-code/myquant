@@ -43,7 +43,23 @@ def hilo_bars(raw: pd.DataFrame, spec: str) -> pd.DataFrame:
     return b
 
 
-def analyze(bars: pd.DataFrame, reversal: float) -> dict:
+def find_ar(bars: pd.DataFrame, lo_bar: int, sc_low: float, pullback: float):
+    """The Automatic Rally = the SUSTAINED rally off the SC low. It ends at the highest high
+    reached BEFORE the first REAL reaction — a pullback of >= `pullback` pts from the running
+    high (small intra-rally dips do NOT end it; that was the truncation bug). The end-check only
+    arms once the rally has actually risen `pullback` above the SC low, so the SC-low bar's own
+    spike-high can't end the AR immediately. Returns (ar_high, high_bar, end_bar)."""
+    hi = sc_low; hi_bar = lo_bar
+    for i in range(lo_bar + 1, len(bars)):        # start AFTER the wide climax bar
+        h = float(bars["high"].iloc[i])
+        if h > hi:
+            hi = h; hi_bar = i
+        if i > hi_bar and hi - sc_low >= pullback and float(bars["low"].iloc[i]) <= hi - pullback:
+            return hi, hi_bar, i
+    return hi, hi_bar, len(bars) - 1
+
+
+def analyze(bars: pd.DataFrame, reversal: float, ar_pullback: float = 6.0) -> dict:
     prices = bars["close"].to_numpy()
     piv = zigzag(prices, reversal)
     waves = []
@@ -52,19 +68,22 @@ def analyze(bars: pd.DataFrame, reversal: float) -> dict:
         waves.append(dict(s=s, e=e, up=prices[e] >= prices[s], vol=int(seg["vol"].sum()),
                           lo=float(seg["low"].min()), hi=float(seg["high"].max())))
     down = [w for w in waves if not w["up"]]
-    # SC = the down-wave that reaches the session LOW — the climactic extreme that defines the
-    # support edge (p.78,84). (The extreme, not the biggest wave, anchors the edge on any TF.)
+    # SC = the down-wave that reaches the session LOW — the climactic extreme (p.78,84).
     sc = min(down, key=lambda w: w["lo"])
-    ar = next((w for w in waves if w["up"] and w["s"] >= sc["e"]), None)
-
     sc_seg = bars.iloc[sc["s"]:sc["e"] + 1]
-    sc_body = float(sc_seg[["open", "close"]].min(axis=1).min())     # body cluster near the low
+    lo_bar = sc["s"] + int(sc_seg["low"].to_numpy().argmin())        # exact SC-low bar
+    sc_body = float(sc_seg[["open", "close"]].min(axis=1).min())
     out = dict(sc=sc, sc_low=sc["lo"], sc_body=sc_body, avg_dn=int(np.mean([w["vol"] for w in down])))
-    if ar:
-        ar_seg = bars.iloc[ar["s"]:ar["e"] + 1]
+
+    # AR via the reaction-threshold scan (NOT the first zigzag up-wave, which truncates it).
+    ar_hi, ar_hi_bar, ar_end = find_ar(bars, lo_bar, sc["lo"], ar_pullback)
+    if ar_hi_bar > lo_bar:
+        ar = dict(s=lo_bar, e=ar_hi_bar)
+        ar_seg = bars.iloc[lo_bar:ar_hi_bar + 1]
         half = max(1, len(ar_seg) // 2)
-        out.update(ar=ar, ar_hi=ar["hi"],
-                   ar_body=float(ar_seg[["open", "close"]].max(axis=1).max()),
+        # AR body = the close cluster near the high (top edge of the wick->body resistance zone)
+        ar_body = float(np.sort(ar_seg[["open", "close"]].max(axis=1).to_numpy())[-max(1, len(ar_seg)//5):].min())
+        out.update(ar=ar, ar_hi=ar_hi, ar_body=ar_body, ar_end=ar_end,
                    ar_v1=int(ar_seg["vol"].iloc[:half].sum()), ar_v2=int(ar_seg["vol"].iloc[half:].sum()))
     return out
 
@@ -100,6 +119,8 @@ def main() -> int:
     ap.add_argument("--context", default="5min", help="TF the SC/AR range is DERIVED on (the AR "
                     "is a context event; it is projected onto the finer TFs, never recomputed there)")
     ap.add_argument("--reversal", type=float, default=2.5)
+    ap.add_argument("--ar-pullback", type=float, default=6.0, dest="ar_pullback",
+                    help="pts of reaction that ENDS the automatic rally (small dips are ignored)")
     ap.add_argument("--eth", action="store_true")
     a = ap.parse_args()
 
@@ -109,7 +130,7 @@ def main() -> int:
     # THE range is computed ONCE, on the context TF. The AR fragments into meaningless micro-
     # waves on a fine TF, so we never derive it there — we project the context levels down.
     cbars = hilo_bars(raw, a.context)
-    cres = analyze(cbars, a.reversal)
+    cres = analyze(cbars, a.reversal, a.ar_pullback)
     lvl = dict(sc_low=cres["sc_low"], sc_body=cres["sc_body"], ctx=a.context,
                ar_hi=cres.get("ar_hi"), ar_body=cres.get("ar_body"))
 
