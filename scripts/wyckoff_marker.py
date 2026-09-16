@@ -138,25 +138,25 @@ function draw(){
 }
 const EPS=0.01;
 function barLoHiCl(b){const lo=isRenko?Math.min(b.wlo,b.bottom):b.l,hi=isRenko?Math.max(b.whi,b.top):b.h,cl=isRenko?(b.dir==='up'?b.top:b.bottom):b.c;return[lo,hi,cl];}
-function events(){                    // ALL candidates derived from the box + swing structure (?)
+function barOpen(b){return isRenko?(b.dir==='up'?b.bottom:b.top):b.o;}
+function events(){                    // box-relative candidates only; nothing before the AR bar
   if(!autoOn||boxes.length===0) return [];
   const ev=[];
-  boxes.forEach(bx=>{const sup=Math.min(bx.a.p,bx.b.p),res=Math.max(bx.a.p,bx.b.p),from=Math.min(bx.a.i,bx.b.i);
+  boxes.forEach(bx=>{const sup=Math.min(bx.a.p,bx.b.p),res=Math.max(bx.a.p,bx.b.p);
+    const arBar=Math.max(bx.a.i,bx.b.i);           // the bar that DEFINES the AR high — nothing before it
     const third=sup+(res-sup)/3;
-    for(let i=from+1;i<bars.length;i++){const [lo,hi,cl]=barLoHiCl(bars[i]);const [,,pcl]=barLoHiCl(bars[i-1]);
-      const wasIn=pcl>=sup-EPS&&pcl<=res+EPS;                        // ORIGIN must be inside the range
-      if(wasIn&&lo<sup-EPS&&cl>=sup-EPS) ev.push({type:'spring',i,p:lo});   // probe below + reclaim
-      if(wasIn&&hi>res+EPS&&cl<=res+EPS) ev.push({type:'ut',i,p:hi});       // probe above + fail back
-      if(cl>res+EPS&&pcl<=res+EPS) ev.push({type:'SOS',i,p:hi});           // close breaks out up
-      if(cl<sup-EPS&&pcl>=sup-EPS) ev.push({type:'SOW',i,p:lo});           // close breaks out down
+    for(let i=arBar+1;i<bars.length;i++){const [lo,hi,cl]=barLoHiCl(bars[i]);const o=barOpen(bars[i]);
+      const openIn=o>=sup-EPS&&o<=res+EPS;         // spring/UT MUST originate INSIDE the range
+      if(openIn&&lo<sup-EPS&&cl>=sup-EPS) ev.push({type:'spring',i,p:lo});   // opens inside, probe below, reclaim
+      if(openIn&&hi>res+EPS&&cl<=res+EPS) ev.push({type:'ut',i,p:hi});       // opens inside, probe above, fail back
+      if(o<=res+EPS&&cl>res+EPS) ev.push({type:'SOS',i,p:hi});              // from inside, close breaks out up
+      if(o>=sup-EPS&&cl<sup-EPS) ev.push({type:'SOW',i,p:lo});              // from inside, close breaks out down
     }
-    // tests: a down-swing bottoming in the lower third but HOLDING above support (return to the low)
-    let lastDnVol=null;
-    sw.forEach(s=>{if(s.dir==='dn'){const lo=pAt(s.i1,'lo');
-      if(s.i1>=from&&lo>sup-EPS&&lo<=third) ev.push({type:'test',i:s.i1,p:lo});
-      lastDnVol=s.vol;}});
+    // tests: down-swing bottoming in the lower third but holding above support — only AFTER the AR bar
+    sw.forEach(s=>{if(s.dir==='dn'&&s.i1>arBar){const lo=pAt(s.i1,'lo');
+      if(lo>sup-EPS&&lo<=third) ev.push({type:'test',i:s.i1,p:lo});}});
   });
-  return ev;   // box-relative candidates only; trend structure lives in structure() (box-free)
+  return ev;
 }
 // BOX-FREE trend engine from the swing structure: HH/HL/LH/LL, BoS=continuation, ChoCH=flip.
 // State machine: bull / bear / trans(ition). ChoCH -> transition; next same-side BoS -> bull/bear.
@@ -175,8 +175,8 @@ function structure(){
   return {piv,brk,segs,state};
 }
 const SEGCOL={bull:'rgba(38,166,154,0.09)',bear:'rgba(239,83,80,0.09)',trans:'rgba(255,179,0,0.11)',na:'rgba(120,120,120,0.04)'};
-const EVSTYLE={spring:['#26a69a','spring?',13],ut:['#ef5350','UT?',-13],SOS:['#2e7d32','SOS?',-13],
-  SOW:['#c62828','SOW?',13],test:['#00acc1','test?',13],BoS:['#1e88e5','BoS',-13],ChoCH:['#f9a825','ChoCH',-13]};
+const EVSTYLE={spring:['#26a69a','spring',13],ut:['#ef5350','UT',-13],SOS:['#2e7d32','SOS',-13],
+  SOW:['#c62828','SOW',13],test:['#00acc1','test',13],BoS:['#1e88e5','BoS',-13],ChoCH:['#f9a825','ChoCH',-13]};
 function drawEvents(){events().forEach(m=>{const s=EVSTYLE[m.type],x=xOf(m.i),y=yOf(m.p);
   ctx.fillStyle=s[0];ctx.beginPath();ctx.arc(x,y,2.5,0,7);ctx.fill();
   ctx.font='9px monospace';ctx.textAlign='center';ctx.fillText(s[1],x,y+s[2]);});}
