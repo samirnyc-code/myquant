@@ -121,15 +121,16 @@ def main() -> int:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    fig, (ax, axv) = plt.subplots(2, 1, figsize=(15, 8), sharex=True,
+    fig_w = min(40, max(14, len(R) * 0.22))          # scale width to brick count (thin bricks)
+    fig, (ax, axv) = plt.subplots(2, 1, figsize=(fig_w, 8), sharex=True,
                                   gridspec_kw={"height_ratios": [3, 1.3]})
     for i, r in R.reset_index(drop=True).iterrows():
         up = r["dir"] == "up"
         c = "#26a69a" if up else "#ef5350"
         # wick = intrabar excursion beyond the brick body (this is where springs/upthrusts show)
-        ax.plot([i, i], [r["wlo"], r["whi"]], color="#455a64", lw=0.7, zorder=2)
-        ax.add_patch(plt.Rectangle((i - 0.48, r["bottom"]), 0.96, a.brick,
-                                    facecolor=c, edgecolor="white", lw=0.4, zorder=3))
+        ax.plot([i, i], [r["wlo"], r["whi"]], color="#455a64", lw=0.6, zorder=2)
+        ax.add_patch(plt.Rectangle((i - 0.30, r["bottom"]), 0.60, a.brick,
+                                    facecolor=c, edgecolor="white", lw=0.5, zorder=3))
     ax.set_xlim(-1, len(R)); ax.set_ylim(true_lo - 1, true_hi + 1)
     # reference lines = the TRUE wick extremes (not the brick-body min/max), so the lines match
     # what the wicks actually reach. Brick-body edges drawn faint for contrast.
