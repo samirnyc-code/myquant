@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parent.parent
 import sys
 sys.path.insert(0, str(ROOT))
 import tickdata as td
-from wyckoff_ar import hilo_bars
+from wyckoff_ar import hilo_bars, ar_levels
 
 OUT = ROOT / "data" / "l1_tape" / "_analysis"
 RTH_OPEN = dt.time(8, 30)
@@ -90,6 +90,11 @@ def main() -> int:
     ax.annotate("overnight low", (onlo_i, on_lo), xytext=(onlo_i, on_lo + 5),
                 fontsize=8, color="#c62828", ha="center",
                 arrowprops=dict(arrowstyle="->", color="#c62828", lw=0.7))
+    # AR RANGE box (SC low -> AR high off the spring low), shaded
+    sc_low, ar_hi, _ = ar_levels(raw)
+    if ar_hi:
+        ax.axhspan(sc_low, ar_hi, color="#1e88e5", alpha=0.13, zorder=1)
+        ax.axhline(ar_hi, color="#1565c0", lw=1.3, ls="-.", label=f"AR high {ar_hi:.2f} (range top)")
     ax.set_title(f"{a.day} · ETH context — the RTH 'SC' is a SPRING of the overnight low", fontsize=12)
     ax.set_ylabel("price"); ax.set_xlabel(f"{a.bar} bar #"); ax.legend(loc="upper right", fontsize=9); ax.grid(alpha=0.15)
     png = OUT / f"eth_context_{a.day}_{a.bar}.png"

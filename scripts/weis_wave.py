@@ -112,7 +112,7 @@ def waves(bars: pd.DataFrame, reversal: float) -> pd.DataFrame:
     return w
 
 
-def chart(bars: pd.DataFrame, w: pd.DataFrame, title: str, path: Path):
+def chart(bars: pd.DataFrame, w: pd.DataFrame, title: str, path: Path, ar=None):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -120,12 +120,20 @@ def chart(bars: pd.DataFrame, w: pd.DataFrame, title: str, path: Path):
     fig, (axp, axv) = plt.subplots(2, 1, figsize=(13, 8), sharex=True,
                                    gridspec_kw={"height_ratios": [3, 2]})
     fig.suptitle(title, fontsize=11)
+    # AR RANGE box (SC low -> AR high), shaded across the price panel
+    if ar and ar[1]:
+        axp.axhspan(ar[0], ar[1], color="#1e88e5", alpha=0.13, zorder=0,
+                    label=f"AR range {ar[0]:.2f}-{ar[1]:.2f}")
+        axp.axhline(ar[0], color="#c62828", lw=1.0, ls="--", zorder=1)
+        axp.axhline(ar[1], color="#1565c0", lw=1.2, ls="-.", zorder=1)
     axp.plot(bars.index, bars["close"], color="#888", lw=0.7, alpha=0.6)
     # zigzag skeleton through the pivots
     px = list(w["t_start"]) + [w["t_end"].iloc[-1]] if not w.empty else []
     py = list(w["p_start"]) + [w["p_end"].iloc[-1]] if not w.empty else []
     axp.plot(px, py, color="#1f77b4", lw=1.4, marker="o", ms=3)
     axp.set_ylabel("price"); axp.grid(alpha=0.2)
+    if ar and ar[1]:
+        axp.legend(loc="upper left", fontsize=8)
 
     for _, r in w.iterrows():
         col = "#2ca02c" if r["dir"] == "up" else "#d62728"
@@ -146,6 +154,7 @@ def main() -> int:
     ap.add_argument("--bar", default="1min", help="base resample bar")
     a = ap.parse_args()
 
+    ar_band = None
     if a.file:
         p = Path(a.file)
         raw = pd.read_parquet(p) if p.suffix == ".parquet" else pd.read_csv(p)
@@ -158,6 +167,9 @@ def main() -> int:
         day = a.day or td.available("eth" if a.eth else "rth")[-1]
         raw = td.load_eth(day) if a.eth else td.load_rth(day)
         label = f"{day} ({'ETH' if a.eth else 'RTH'})"; stamp = f"weis_{day}_{'eth' if a.eth else 'rth'}_{a.bar}"
+        from wyckoff_ar import ar_levels
+        sc_low, ar_hi, _ = ar_levels(raw)
+        ar_band = (sc_low, ar_hi)
 
     bars = to_bars(raw, a.bar)
     w = waves(bars, a.reversal)
@@ -166,7 +178,7 @@ def main() -> int:
 
     OUT.mkdir(parents=True, exist_ok=True)
     csv = OUT / f"{stamp}_r{a.reversal}.csv"; w.to_csv(csv, index=False)
-    png = OUT / f"{stamp}_r{a.reversal}.png"; chart(bars, w, f"Weis wave — {label}  (reversal {a.reversal}pt)", png)
+    png = OUT / f"{stamp}_r{a.reversal}.png"; chart(bars, w, f"Weis wave — {label}  (reversal {a.reversal}pt)", png, ar=ar_band)
 
     up, dn = w[w["dir"] == "up"], w[w["dir"] == "dn"]
     print(f"\nWeis wave — {label}  ·  reversal {a.reversal}pt  ·  {len(w)} swings "

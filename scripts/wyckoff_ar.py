@@ -43,6 +43,13 @@ def hilo_bars(raw: pd.DataFrame, spec: str) -> pd.DataFrame:
     return b
 
 
+def ar_levels(raw: pd.DataFrame, context: str = "5min", reversal: float = 2.5, ar_pullback: float = 6.0):
+    """SC low + AR high for a day's raw ticks, derived on the context TF. Shared by the other
+    chart tools so they can all draw the SAME AR-range box. Returns (sc_low, ar_hi, ar_body)."""
+    res = analyze(hilo_bars(raw, context), reversal, ar_pullback)
+    return res["sc_low"], res.get("ar_hi"), res.get("ar_body")
+
+
 def find_ar(bars: pd.DataFrame, lo_bar: int, sc_low: float, pullback: float):
     """The Automatic Rally = the SUSTAINED rally off the SC low. It ends at the highest high
     reached BEFORE the first REAL reaction — a pullback of >= `pullback` pts from the running

@@ -26,6 +26,7 @@ ROOT = Path(__file__).resolve().parent.parent
 import sys
 sys.path.insert(0, str(ROOT))
 import tickdata as td
+from wyckoff_ar import ar_levels
 
 OUT = ROOT / "data" / "l1_tape" / "_analysis"
 
@@ -138,6 +139,12 @@ def main() -> int:
     ax.axhline(true_hi, color="#00897b", lw=1.2, ls="--", label=f"true high {true_hi:.2f} (wick)")
     ax.axhline(lo, color="#c62828", lw=0.6, ls=":", alpha=0.5, label=f"brick body {lo:.0f}")
     ax.axhline(hi, color="#00897b", lw=0.6, ls=":", alpha=0.5, label=f"brick body {hi:.0f}")
+    # AR RANGE box (SC low -> AR high, derived on the 5M context) shaded across the chart
+    sc_low, ar_hi, _ = ar_levels(raw)
+    if ar_hi:
+        ax.axhspan(sc_low, ar_hi, color="#1e88e5", alpha=0.13, zorder=1,
+                   label=f"AR range {sc_low:.2f}-{ar_hi:.2f}")
+        ax.axhline(ar_hi, color="#1565c0", lw=1.3, ls="-.")
     ax.set_ylabel("price"); ax.set_title(f"Renko — {day} ({'ETH' if a.eth else 'RTH'}) · {a.brick:g}-pt bricks", fontsize=11)
     ax.legend(loc="upper left", fontsize=8); ax.grid(axis="y", alpha=0.15)
 
