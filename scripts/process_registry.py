@@ -323,9 +323,22 @@ PROCESSES = [
          why="Raw CSV is right for LIVE capture, wrong for the archive. Parquet is ~10x "
              "smaller and column-selective. Files carry the TRADE DATE, so the file that just "
              "closed converts the same afternoon; a file still held open is never touched. "
-             "NOTE: needs a scheduled task 'MyQuant L1 Rollover' (16:05 CT) — pending user OK.",
+             "Scheduled task 'MyQuant L1 Rollover' created S120 (run_at_ct --at 16:05, "
+             "DST-safe two-trigger pattern).",
          writes="data/l1_tape/*.parquet + ~/myquant-data/l1_tape/*.parquet",
          downstream="The Wyckoff-2.0 order-flow DB in its archive format; off-machine backup."),
+
+    dict(id="l1_watchdog", phase="session", ct="every 10m", task="MyQuant L1 Recorder Watchdog",
+         title="L1 recorder watchdog",
+         script="scripts/l1_recorder_watchdog.py",
+         health="L1 tape",
+         what="Every 10 min while the market is open: checks the L1 tape freshness/quote mix "
+              "(via check_l1_tape) and Telegram-pages if it stalls or goes tape-only.",
+         why="PAGE-ONLY by design — never closes/restarts NT (that pops the un-answerable "
+             "'Save workspace?' dialog). The AddOn self-heals silent stalls on its own; this "
+             "just alerts a human if recording is genuinely down. Task created S120.",
+         writes="Telegram alert (deduped) on stall/not-started; nothing on disk",
+         downstream="Human intervention only when the AddOn's self-heal can't recover it."),
 
     # ---------------------------------------------------------------- close
     dict(id="postmortem", phase="close", ct="15:15", task="MyQuant Postmortem",
