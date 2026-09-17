@@ -1,0 +1,55 @@
+IB connected 127.0.0.1:4002 (PAPER)  accounts=['DUQ159823']  serverVersion=178
+trigger daemon [LIVE (auto-execute)] 20260916: 10 triggers, watching until 15:00 CT
+  OPEN captured: 7609.30 @ 09:53:05 CT
+  ATOMIC combo fill: net +1.65
+  FIRED openic_p -> auto_20260916_095326: vertical 25pt net credit 1.65 grade B
+  ATOMIC combo fill: net +0.95
+  FIRED openic_c -> auto_20260916_095348: vertical 25pt net credit 0.95 grade C
+  ATOMIC combo fill: net +9.40
+  FIRED openfly_p -> auto_20260916_095409: vertical 25pt net credit 9.40 grade C
+  ATOMIC combo fill: net +11.10
+  FIRED openfly_c -> auto_20260916_095430: vertical 25pt net credit 11.10 grade C
+  ATOMIC combo fill: net +1.55
+  FIRED gx_bps -> auto_20260916_095452: vertical 25pt net credit 1.55 grade B
+  ATOMIC combo fill: net +1.70
+  FIRED gx_bcs -> auto_20260916_095513: vertical 25pt net credit 1.70 grade B
+  ATOMIC combo close auto_20260916_095430: cost +13.40
+  CLOSED auto_20260916_095430 cost 13.40 P&L $-237 — level ACCEPTED: spot 7620 held above the 7610 short strike for 10min (>10) — the wall we sold did not hold
+  ATOMIC combo close auto_20260916_095409: cost +10.20
+  CLOSED auto_20260916_095409 cost 10.20 P&L $-87 — level ACCEPTED: spot 7607 held below the 7610 short strike for 10min (>10) — the wall we sold did not hold
+  combo close failed (combo close did not fill) — falling back to sequential legs
+  ! exit quote failed auto_20260916_095326: no live quote 7530.0P — nothing placed
+  combo close failed (combo close did not fill) — falling back to sequential legs
+  BUY 1 @ lim 2.80 -> orderId 71
+  status=Filled filled=1.0 avgPrice=2.8
+  SELL 1 @ lim 0.20 -> orderId 72
+  status=Filled filled=1.0 avgPrice=0.2
+  CLOSED auto_20260916_095326 cost 2.60 P&L $-102 — time stop 14:45 CT — flat before the 0DTE gamma cliff
+  combo close failed (combo close did not fill) — falling back to sequential legs
+  ! exit quote failed auto_20260916_095348: no live quote 7715.0C — nothing placed
+  combo close failed (combo close did not fill) — falling back to sequential legs
+  BUY 1 @ lim 1.25 -> orderId 93
+  status=Filled filled=1.0 avgPrice=1.05
+  SELL 1 @ lim 0.10 -> orderId 94
+  status=Filled filled=1.0 avgPrice=0.1
+  CLOSED auto_20260916_095452 cost 0.95 P&L $53 — time stop 14:45 CT — flat before the 0DTE gamma cliff
+  combo close failed (combo close did not fill) — falling back to sequential legs
+  ! exit quote failed auto_20260916_095513: no live quote 7700.0C — nothing placed
+  combo close failed (combo close did not fill) — falling back to sequential legs
+  ! exit quote failed auto_20260916_095348: no live quote 7715.0C — nothing placed
+  combo close failed (combo close did not fill) — falling back to sequential legs
+  ! exit quote failed auto_20260916_095513: no live quote 7700.0C — nothing placed
+  combo close failed (combo close did not fill) — falling back to sequential legs
+  ! exit quote failed auto_20260916_095348: no live quote 7715.0C — nothing placed
+  combo close failed (combo close did not fill) — falling back to sequential legs
+  ! exit quote failed auto_20260916_095513: no live quote 7700.0C — nothing placed
+  combo close failed (combo close did not fill) — falling back to sequential legs
+  ! exit quote failed auto_20260916_095348: no live quote 7715.0C — nothing placed
+  combo close failed (combo close did not fill) — falling back to sequential legs
+  ! exit quote failed auto_20260916_095513: no live quote 7700.0C — nothing placed
+  combo close failed (combo close did not fill) — falling back to sequential legs
+  ! exit quote failed auto_20260916_095348: no live quote 7715.0C — nothing placed
+  combo close failed (combo close did not fill) — falling back to sequential legs
+  ! exit quote failed auto_20260916_095513: no live quote 7700.0C — nothing placed
+
+done. 6 triggers fired: openic_p(B), openic_c(C), openfly_p(C), openfly_c(C), gx_bps(B), gx_bcs(B)

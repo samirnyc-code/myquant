@@ -48,3 +48,303 @@
 2026-07-17 15:20:07 daemon: market window closed, exiting
 2026-07-19 13:03:45 skip: Sunday — market closed
 2026-09-07 08:12:01 skip: Labor Day — market closed
+2026-09-17 07:24:25 daemon: 3034s before 08:15 CT window — sleeping to open
+2026-09-17 07:24:49 daemon: 3010s before 08:15 CT window — sleeping to open
+2026-09-17 08:15:01 daemon mode: 10s cadence, fast thresholds
+2026-09-17 08:15:01 all green (daemon)
+2026-09-17 08:18:01 all green
+2026-09-17 08:23:01 all green
+2026-09-17 08:25:02 all green (daemon)
+2026-09-17 08:28:01 all green
+2026-09-17 08:33:01 all green
+2026-09-17 08:35:04 all green (daemon)
+2026-09-17 08:38:01 all green
+2026-09-17 08:40:06 ACTION sim_daemon: process gone — restarting via 'MyQuant Sim Daemon'
+2026-09-17 08:40:17 sim_daemon: process gone — in cooldown (12s), waiting
+2026-09-17 08:40:27 sim_daemon: process gone — in cooldown (22s), waiting
+2026-09-17 08:40:37 sim_daemon: process gone — in cooldown (32s), waiting
+2026-09-17 08:40:47 sim_daemon: process gone — in cooldown (42s), waiting
+2026-09-17 08:40:57 sim_daemon: process gone — in cooldown (52s), waiting
+2026-09-17 08:41:07 sim_daemon: process gone — in cooldown (62s), waiting
+2026-09-17 08:41:18 sim_daemon: process gone — in cooldown (73s), waiting
+2026-09-17 08:41:28 sim_daemon: process gone — in cooldown (83s), waiting
+2026-09-17 08:41:38 sim_daemon: process gone — in cooldown (93s), waiting
+2026-09-17 08:41:48 sim_daemon: process gone — in cooldown (103s), waiting
+2026-09-17 08:41:58 sim_daemon: process gone — in cooldown (113s), waiting
+2026-09-17 08:42:08 sim_daemon: process gone — in cooldown (123s), waiting
+2026-09-17 08:42:19 sim_daemon: process gone — in cooldown (135s), waiting
+2026-09-17 08:42:29 sim_daemon: process gone — in cooldown (145s), waiting
+2026-09-17 08:42:39 sim_daemon: process gone — in cooldown (155s), waiting
+2026-09-17 08:42:49 sim_daemon: process gone — in cooldown (165s), waiting
+2026-09-17 08:42:59 sim_daemon: process gone — in cooldown (175s), waiting
+2026-09-17 08:43:02 sim_daemon: process gone — in cooldown (177s), waiting
+2026-09-17 08:43:02 all green
+2026-09-17 08:43:09 sim_daemon: process gone — in cooldown (185s), waiting
+2026-09-17 08:43:20 sim_daemon: process gone — in cooldown (196s), waiting
+2026-09-17 08:43:30 sim_daemon: process gone — in cooldown (206s), waiting
+2026-09-17 08:43:40 sim_daemon: process gone — in cooldown (216s), waiting
+2026-09-17 08:43:50 sim_daemon: process gone — in cooldown (226s), waiting
+2026-09-17 08:44:00 sim_daemon: process gone — in cooldown (236s), waiting
+2026-09-17 08:44:10 sim_daemon: process gone — in cooldown (246s), waiting
+2026-09-17 08:44:21 sim_daemon: process gone — in cooldown (257s), waiting
+2026-09-17 08:44:31 sim_daemon: process gone — in cooldown (267s), waiting
+2026-09-17 08:44:41 sim_daemon: process gone — in cooldown (277s), waiting
+2026-09-17 08:44:51 sim_daemon: process gone — in cooldown (287s), waiting
+2026-09-17 08:45:01 sim_daemon: process gone — in cooldown (297s), waiting
+2026-09-17 08:45:11 sim_daemon: process gone — in cooldown (307s), waiting
+2026-09-17 08:45:12 all green (daemon)
+2026-09-17 08:45:22 sim_daemon: process gone — in cooldown (318s), waiting
+2026-09-17 08:45:32 sim_daemon: process gone — in cooldown (328s), waiting
+2026-09-17 08:45:42 sim_daemon: process gone — in cooldown (338s), waiting
+2026-09-17 08:45:52 sim_daemon: process gone — in cooldown (348s), waiting
+2026-09-17 08:46:02 sim_daemon: process gone — in cooldown (358s), waiting
+2026-09-17 08:46:13 sim_daemon: process gone — in cooldown (368s), waiting
+2026-09-17 08:46:24 sim_daemon: process gone — in cooldown (379s), waiting
+2026-09-17 08:46:34 sim_daemon: process gone — in cooldown (389s), waiting
+2026-09-17 08:46:44 sim_daemon: process gone — in cooldown (399s), waiting
+2026-09-17 08:46:54 sim_daemon: process gone — in cooldown (409s), waiting
+2026-09-17 08:47:04 sim_daemon: process gone — in cooldown (419s), waiting
+2026-09-17 08:47:14 sim_daemon: process gone — in cooldown (429s), waiting
+2026-09-17 08:47:25 sim_daemon: process gone — in cooldown (440s), waiting
+2026-09-17 08:47:35 sim_daemon: process gone — in cooldown (450s), waiting
+2026-09-17 08:47:45 sim_daemon: process gone — in cooldown (460s), waiting
+2026-09-17 08:47:55 sim_daemon: process gone — in cooldown (470s), waiting
+2026-09-17 08:48:02 sim_daemon: process gone — in cooldown (477s), waiting
+2026-09-17 08:48:02 all green
+2026-09-17 08:48:05 sim_daemon: process gone — in cooldown (480s), waiting
+2026-09-17 08:48:15 sim_daemon: process gone — in cooldown (490s), waiting
+2026-09-17 08:48:26 sim_daemon: process gone — in cooldown (502s), waiting
+2026-09-17 08:48:36 sim_daemon: process gone — in cooldown (512s), waiting
+2026-09-17 08:48:46 sim_daemon: process gone — in cooldown (522s), waiting
+2026-09-17 08:48:56 sim_daemon: process gone — in cooldown (532s), waiting
+2026-09-17 08:49:06 sim_daemon: process gone — in cooldown (542s), waiting
+2026-09-17 08:49:16 sim_daemon: process gone — in cooldown (552s), waiting
+2026-09-17 08:49:27 sim_daemon: process gone — in cooldown (563s), waiting
+2026-09-17 08:49:37 sim_daemon: process gone — in cooldown (573s), waiting
+2026-09-17 08:49:47 sim_daemon: process gone — in cooldown (583s), waiting
+2026-09-17 08:49:57 sim_daemon: process gone — in cooldown (593s), waiting
+2026-09-17 08:50:08 ACTION sim_daemon: process gone — restarting via 'MyQuant Sim Daemon'
+2026-09-17 08:50:19 sim_daemon: process gone — in cooldown (11s), waiting
+2026-09-17 08:50:29 sim_daemon: process gone — in cooldown (22s), waiting
+2026-09-17 08:50:39 sim_daemon: process gone — in cooldown (32s), waiting
+2026-09-17 08:50:49 sim_daemon: process gone — in cooldown (42s), waiting
+2026-09-17 08:50:59 sim_daemon: process gone — in cooldown (52s), waiting
+2026-09-17 08:51:09 sim_daemon: process gone — in cooldown (62s), waiting
+2026-09-17 08:51:20 sim_daemon: process gone — in cooldown (72s), waiting
+2026-09-17 08:51:30 sim_daemon: process gone — in cooldown (83s), waiting
+2026-09-17 08:51:40 sim_daemon: process gone — in cooldown (93s), waiting
+2026-09-17 08:51:50 sim_daemon: process gone — in cooldown (103s), waiting
+2026-09-17 08:52:00 sim_daemon: process gone — in cooldown (113s), waiting
+2026-09-17 08:52:10 sim_daemon: process gone — in cooldown (123s), waiting
+2026-09-17 08:52:21 sim_daemon: process gone — in cooldown (133s), waiting
+2026-09-17 08:52:31 sim_daemon: process gone — in cooldown (144s), waiting
+2026-09-17 08:52:41 sim_daemon: process gone — in cooldown (154s), waiting
+2026-09-17 08:52:52 sim_daemon: process gone — in cooldown (164s), waiting
+2026-09-17 08:53:02 sim_daemon: process gone — in cooldown (174s), waiting
+2026-09-17 08:53:02 sim_daemon: process gone — in cooldown (174s), waiting
+2026-09-17 08:53:02 all green
+2026-09-17 08:53:12 sim_daemon: process gone — in cooldown (184s), waiting
+2026-09-17 08:53:22 sim_daemon: process gone — in cooldown (195s), waiting
+2026-09-17 08:53:33 sim_daemon: process gone — in cooldown (205s), waiting
+2026-09-17 08:53:43 sim_daemon: process gone — in cooldown (215s), waiting
+2026-09-17 08:53:53 sim_daemon: process gone — in cooldown (225s), waiting
+2026-09-17 08:54:03 sim_daemon: process gone — in cooldown (235s), waiting
+2026-09-17 08:54:13 sim_daemon: process gone — in cooldown (245s), waiting
+2026-09-17 08:54:23 sim_daemon: process gone — in cooldown (256s), waiting
+2026-09-17 08:54:34 sim_daemon: process gone — in cooldown (266s), waiting
+2026-09-17 08:54:44 sim_daemon: process gone — in cooldown (276s), waiting
+2026-09-17 08:54:54 sim_daemon: process gone — in cooldown (286s), waiting
+2026-09-17 08:55:04 sim_daemon: process gone — in cooldown (296s), waiting
+2026-09-17 08:55:14 sim_daemon: process gone — in cooldown (306s), waiting
+2026-09-17 08:55:14 all green (daemon)
+2026-09-17 08:55:24 sim_daemon: process gone — in cooldown (317s), waiting
+2026-09-17 08:55:35 sim_daemon: process gone — in cooldown (328s), waiting
+2026-09-17 08:55:45 sim_daemon: process gone — in cooldown (338s), waiting
+2026-09-17 08:55:55 sim_daemon: process gone — in cooldown (348s), waiting
+2026-09-17 08:56:05 sim_daemon: process gone — in cooldown (358s), waiting
+2026-09-17 08:56:15 sim_daemon: process gone — in cooldown (368s), waiting
+2026-09-17 08:56:26 sim_daemon: process gone — in cooldown (378s), waiting
+2026-09-17 08:56:36 sim_daemon: process gone — in cooldown (389s), waiting
+2026-09-17 08:56:46 sim_daemon: process gone — in cooldown (399s), waiting
+2026-09-17 08:56:56 sim_daemon: process gone — in cooldown (409s), waiting
+2026-09-17 08:57:06 sim_daemon: process gone — in cooldown (419s), waiting
+2026-09-17 08:57:16 sim_daemon: process gone — in cooldown (429s), waiting
+2026-09-17 08:57:27 sim_daemon: process gone — in cooldown (439s), waiting
+2026-09-17 08:57:37 sim_daemon: process gone — in cooldown (450s), waiting
+2026-09-17 08:57:47 sim_daemon: process gone — in cooldown (460s), waiting
+2026-09-17 08:57:57 sim_daemon: process gone — in cooldown (470s), waiting
+2026-09-17 08:58:02 sim_daemon: process gone — in cooldown (474s), waiting
+2026-09-17 08:58:02 all green
+2026-09-17 08:58:07 sim_daemon: process gone — in cooldown (480s), waiting
+2026-09-17 08:58:17 sim_daemon: process gone — in cooldown (490s), waiting
+2026-09-17 08:58:28 sim_daemon: process gone — in cooldown (500s), waiting
+2026-09-17 08:58:39 sim_daemon: process gone — in cooldown (511s), waiting
+2026-09-17 08:58:49 sim_daemon: process gone — in cooldown (521s), waiting
+2026-09-17 08:58:59 sim_daemon: process gone — in cooldown (531s), waiting
+2026-09-17 08:59:09 sim_daemon: process gone — in cooldown (541s), waiting
+2026-09-17 08:59:19 sim_daemon: process gone — in cooldown (551s), waiting
+2026-09-17 08:59:29 sim_daemon: process gone — in cooldown (562s), waiting
+2026-09-17 08:59:40 sim_daemon: process gone — in cooldown (572s), waiting
+2026-09-17 08:59:50 sim_daemon: process gone — in cooldown (583s), waiting
+2026-09-17 09:00:00 sim_daemon: process gone — in cooldown (593s), waiting
+2026-09-17 09:00:11 ACTION sim_daemon: process gone — restarting via 'MyQuant Sim Daemon'
+2026-09-17 09:00:21 sim_daemon: process gone — in cooldown (11s), waiting
+2026-09-17 09:00:31 sim_daemon: process gone — in cooldown (21s), waiting
+2026-09-17 09:00:42 sim_daemon: process gone — in cooldown (31s), waiting
+2026-09-17 09:00:52 sim_daemon: process gone — in cooldown (41s), waiting
+2026-09-17 09:01:02 sim_daemon: process gone — in cooldown (52s), waiting
+2026-09-17 09:01:12 sim_daemon: process gone — in cooldown (62s), waiting
+2026-09-17 09:01:23 sim_daemon: process gone — in cooldown (72s), waiting
+2026-09-17 09:01:33 sim_daemon: process gone — in cooldown (82s), waiting
+2026-09-17 09:01:43 sim_daemon: process gone — in cooldown (93s), waiting
+2026-09-17 09:01:53 sim_daemon: process gone — in cooldown (103s), waiting
+2026-09-17 09:02:03 sim_daemon: process gone — in cooldown (113s), waiting
+2026-09-17 09:02:13 sim_daemon: process gone — in cooldown (123s), waiting
+2026-09-17 09:02:24 sim_daemon: process gone — in cooldown (133s), waiting
+2026-09-17 09:02:34 sim_daemon: process gone — in cooldown (143s), waiting
+2026-09-17 09:02:44 sim_daemon: process gone — in cooldown (154s), waiting
+2026-09-17 09:02:54 sim_daemon: process gone — in cooldown (164s), waiting
+2026-09-17 09:03:02 sim_daemon: process gone — in cooldown (171s), waiting
+2026-09-17 09:03:02 all green
+2026-09-17 09:03:04 sim_daemon: process gone — in cooldown (174s), waiting
+2026-09-17 09:03:14 sim_daemon: process gone — in cooldown (184s), waiting
+2026-09-17 09:03:25 sim_daemon: process gone — in cooldown (194s), waiting
+2026-09-17 09:03:35 sim_daemon: process gone — in cooldown (204s), waiting
+2026-09-17 09:03:46 sim_daemon: process gone — in cooldown (215s), waiting
+2026-09-17 09:03:56 sim_daemon: process gone — in cooldown (225s), waiting
+2026-09-17 09:04:06 sim_daemon: process gone — in cooldown (235s), waiting
+2026-09-17 09:04:16 sim_daemon: process gone — in cooldown (245s), waiting
+2026-09-17 09:04:26 sim_daemon: process gone — in cooldown (256s), waiting
+2026-09-17 09:04:36 sim_daemon: process gone — in cooldown (266s), waiting
+2026-09-17 09:04:47 sim_daemon: process gone — in cooldown (276s), waiting
+2026-09-17 09:04:57 sim_daemon: process gone — in cooldown (286s), waiting
+2026-09-17 09:05:07 sim_daemon: process gone — in cooldown (296s), waiting
+2026-09-17 09:05:17 sim_daemon: process gone — in cooldown (306s), waiting
+2026-09-17 09:05:17 all green (daemon)
+2026-09-17 09:05:27 sim_daemon: process gone — in cooldown (317s), waiting
+2026-09-17 09:05:37 sim_daemon: process gone — in cooldown (327s), waiting
+2026-09-17 09:05:48 sim_daemon: process gone — in cooldown (337s), waiting
+2026-09-17 09:05:58 sim_daemon: process gone — in cooldown (347s), waiting
+2026-09-17 09:06:08 sim_daemon: process gone — in cooldown (357s), waiting
+2026-09-17 09:06:18 sim_daemon: process gone — in cooldown (367s), waiting
+2026-09-17 09:06:28 sim_daemon: process gone — in cooldown (378s), waiting
+2026-09-17 09:06:39 sim_daemon: process gone — in cooldown (388s), waiting
+2026-09-17 09:06:49 sim_daemon: process gone — in cooldown (399s), waiting
+2026-09-17 09:06:59 sim_daemon: process gone — in cooldown (409s), waiting
+2026-09-17 09:07:09 sim_daemon: process gone — in cooldown (419s), waiting
+2026-09-17 09:07:19 sim_daemon: process gone — in cooldown (429s), waiting
+2026-09-17 09:07:30 sim_daemon: process gone — in cooldown (439s), waiting
+2026-09-17 09:07:40 sim_daemon: process gone — in cooldown (449s), waiting
+2026-09-17 09:07:50 sim_daemon: process gone — in cooldown (460s), waiting
+2026-09-17 09:08:00 sim_daemon: process gone — in cooldown (470s), waiting
+2026-09-17 09:08:02 sim_daemon: process gone — in cooldown (471s), waiting
+2026-09-17 09:08:02 all green
+2026-09-17 09:08:10 sim_daemon: process gone — in cooldown (480s), waiting
+2026-09-17 09:08:20 sim_daemon: process gone — in cooldown (490s), waiting
+2026-09-17 09:08:31 sim_daemon: process gone — in cooldown (500s), waiting
+2026-09-17 09:08:41 sim_daemon: process gone — in cooldown (510s), waiting
+2026-09-17 09:08:51 sim_daemon: process gone — in cooldown (521s), waiting
+2026-09-17 09:09:01 sim_daemon: process gone — in cooldown (531s), waiting
+2026-09-17 09:09:11 sim_daemon: process gone — in cooldown (541s), waiting
+2026-09-17 09:09:21 sim_daemon: process gone — in cooldown (551s), waiting
+2026-09-17 09:09:32 sim_daemon: process gone — in cooldown (562s), waiting
+2026-09-17 09:09:42 sim_daemon: process gone — in cooldown (572s), waiting
+2026-09-17 09:09:53 sim_daemon: process gone — in cooldown (582s), waiting
+2026-09-17 09:10:03 sim_daemon: process gone — in cooldown (592s), waiting
+2026-09-17 09:10:13 ACTION sim_daemon: process gone — restarting via 'MyQuant Sim Daemon'
+2026-09-17 09:10:24 sim_daemon: process gone — in cooldown (11s), waiting
+2026-09-17 09:10:34 sim_daemon: process gone — in cooldown (21s), waiting
+2026-09-17 09:10:44 sim_daemon: process gone — in cooldown (31s), waiting
+2026-09-17 09:10:55 sim_daemon: process gone — in cooldown (42s), waiting
+2026-09-17 09:11:05 sim_daemon: process gone — in cooldown (52s), waiting
+2026-09-17 09:11:15 sim_daemon: process gone — in cooldown (62s), waiting
+2026-09-17 09:11:25 sim_daemon: process gone — in cooldown (73s), waiting
+2026-09-17 09:11:35 sim_daemon: process gone — in cooldown (83s), waiting
+2026-09-17 09:11:45 sim_daemon: process gone — in cooldown (93s), waiting
+2026-09-17 09:11:56 sim_daemon: process gone — in cooldown (103s), waiting
+2026-09-17 09:12:06 sim_daemon: process gone — in cooldown (113s), waiting
+2026-09-17 09:12:16 sim_daemon: process gone — in cooldown (123s), waiting
+2026-09-17 09:12:26 sim_daemon: process gone — in cooldown (134s), waiting
+2026-09-17 09:12:36 sim_daemon: process gone — in cooldown (144s), waiting
+2026-09-17 09:12:46 sim_daemon: process gone — in cooldown (154s), waiting
+2026-09-17 09:12:57 sim_daemon: process gone — in cooldown (164s), waiting
+2026-09-17 09:13:02 sim_daemon: process gone — in cooldown (169s), waiting
+2026-09-17 09:13:02 all green
+2026-09-17 09:13:07 sim_daemon: process gone — in cooldown (174s), waiting
+2026-09-17 09:13:17 sim_daemon: process gone — in cooldown (184s), waiting
+2026-09-17 09:13:27 sim_daemon: process gone — in cooldown (195s), waiting
+2026-09-17 09:13:38 sim_daemon: process gone — in cooldown (205s), waiting
+2026-09-17 09:13:48 sim_daemon: process gone — in cooldown (215s), waiting
+2026-09-17 09:13:58 sim_daemon: process gone — in cooldown (226s), waiting
+2026-09-17 09:14:08 sim_daemon: process gone — in cooldown (236s), waiting
+2026-09-17 09:14:18 sim_daemon: process gone — in cooldown (246s), waiting
+2026-09-17 09:14:29 sim_daemon: process gone — in cooldown (257s), waiting
+2026-09-17 09:14:40 sim_daemon: process gone — in cooldown (267s), waiting
+2026-09-17 09:14:50 sim_daemon: process gone — in cooldown (277s), waiting
+2026-09-17 09:15:00 sim_daemon: process gone — in cooldown (288s), waiting
+2026-09-17 09:15:10 sim_daemon: process gone — in cooldown (298s), waiting
+2026-09-17 09:15:20 sim_daemon: process gone — in cooldown (308s), waiting
+2026-09-17 09:15:20 all green (daemon)
+2026-09-17 09:15:31 sim_daemon: process gone — in cooldown (318s), waiting
+2026-09-17 09:15:41 sim_daemon: process gone — in cooldown (328s), waiting
+2026-09-17 09:15:51 sim_daemon: process gone — in cooldown (338s), waiting
+2026-09-17 09:16:02 sim_daemon: process gone — in cooldown (349s), waiting
+2026-09-17 09:16:12 sim_daemon: process gone — in cooldown (359s), waiting
+2026-09-17 09:16:22 sim_daemon: process gone — in cooldown (369s), waiting
+2026-09-17 09:16:33 sim_daemon: process gone — in cooldown (380s), waiting
+2026-09-17 09:16:43 sim_daemon: process gone — in cooldown (390s), waiting
+2026-09-17 09:16:53 sim_daemon: process gone — in cooldown (400s), waiting
+2026-09-17 09:17:03 sim_daemon: process gone — in cooldown (411s), waiting
+2026-09-17 09:17:14 sim_daemon: process gone — in cooldown (421s), waiting
+2026-09-17 09:17:24 sim_daemon: process gone — in cooldown (431s), waiting
+2026-09-17 09:17:34 sim_daemon: process gone — in cooldown (442s), waiting
+2026-09-17 09:17:44 sim_daemon: process gone — in cooldown (452s), waiting
+2026-09-17 09:17:54 sim_daemon: process gone — in cooldown (462s), waiting
+2026-09-17 09:18:02 sim_daemon: process gone — in cooldown (469s), waiting
+2026-09-17 09:18:02 all green
+2026-09-17 09:18:05 sim_daemon: process gone — in cooldown (472s), waiting
+2026-09-17 09:18:15 sim_daemon: process gone — in cooldown (482s), waiting
+2026-09-17 09:18:25 sim_daemon: process gone — in cooldown (492s), waiting
+2026-09-17 09:18:36 sim_daemon: process gone — in cooldown (503s), waiting
+2026-09-17 09:18:46 sim_daemon: process gone — in cooldown (513s), waiting
+2026-09-17 09:18:56 sim_daemon: process gone — in cooldown (523s), waiting
+2026-09-17 09:19:06 sim_daemon: process gone — in cooldown (534s), waiting
+2026-09-17 09:19:16 sim_daemon: process gone — in cooldown (544s), waiting
+2026-09-17 09:19:26 sim_daemon: process gone — in cooldown (554s), waiting
+2026-09-17 09:19:37 sim_daemon: process gone — in cooldown (564s), waiting
+2026-09-17 09:19:47 sim_daemon: process gone — in cooldown (574s), waiting
+2026-09-17 09:19:57 sim_daemon: process gone — in cooldown (584s), waiting
+2026-09-17 09:20:07 sim_daemon: process gone — in cooldown (595s), waiting
+2026-09-17 09:20:18 ACTION sim_daemon: process gone — restarting via 'MyQuant Sim Daemon'
+2026-09-17 09:20:29 ACTION sim_daemon: process gone — RESTART CAP HIT (5/day), manual fix needed
+2026-09-17 09:20:39 ACTION sim_daemon: process gone — RESTART CAP HIT (5/day), manual fix needed
+2026-09-17 09:20:49 ACTION sim_daemon: process gone — RESTART CAP HIT (5/day), manual fix needed
+2026-09-17 09:21:00 ACTION sim_daemon: process gone — RESTART CAP HIT (5/day), manual fix needed
+2026-09-17 09:21:10 ACTION sim_daemon: process gone — RESTART CAP HIT (5/day), manual fix needed
+2026-09-17 09:21:20 ACTION sim_daemon: process gone — RESTART CAP HIT (5/day), manual fix needed
+2026-09-17 09:21:30 ACTION sim_daemon: process gone — RESTART CAP HIT (5/day), manual fix needed
+2026-09-17 09:21:41 ACTION sim_daemon: process gone — RESTART CAP HIT (5/day), manual fix needed
+2026-09-17 09:21:51 ACTION sim_daemon: process gone — RESTART CAP HIT (5/day), manual fix needed
+2026-09-17 09:22:02 ACTION sim_daemon: process gone — RESTART CAP HIT (5/day), manual fix needed
+2026-09-17 09:22:12 ACTION sim_daemon: process gone — RESTART CAP HIT (5/day), manual fix needed
+2026-09-17 09:22:22 ACTION sim_daemon: process gone — RESTART CAP HIT (5/day), manual fix needed
+2026-09-17 09:22:33 ACTION sim_daemon: process gone — RESTART CAP HIT (5/day), manual fix needed
+2026-09-17 09:22:43 ACTION sim_daemon: process gone — RESTART CAP HIT (5/day), manual fix needed
+2026-09-17 09:22:53 ACTION sim_daemon: process gone — RESTART CAP HIT (5/day), manual fix needed
+2026-09-17 09:23:04 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-17 09:23:04 ACTION sim_daemon: process gone — RESTART CAP HIT (5/day), manual fix needed
+2026-09-17 09:23:04 all green
+2026-09-17 09:23:14 ACTION sim_daemon: process gone — RESTART CAP HIT (5/day), manual fix needed
+2026-09-17 09:23:19 daemon mode: 10s cadence, fast thresholds
+2026-09-17 09:23:22 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-17 09:23:22 all green (daemon)
+2026-09-17 09:28:03 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-17 09:28:04 all green
+2026-09-17 09:32:32 daemon mode: 10s cadence, fast thresholds
+2026-09-17 09:32:34 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-17 09:32:35 all green (daemon)
+2026-09-17 09:33:03 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-17 09:33:04 all green
+2026-09-17 09:33:24 all green (daemon)
+2026-09-17 09:38:03 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-17 09:38:04 all green

@@ -1,0 +1,14 @@
+WATCHDOG LIVE VERIFY @ 2026-09-17 08:46:32 CT  ->  PASS
+
+  [OK ] watchdog resident loop ran today (all green daemon lines)
+  [OK ] watchdog Live process present
+  [OK ] trigger daemon process present
+  [OK ] trigger daemon heartbeat fresh (<180s, not hung)
+
+  watchdog green-daemon lines today: 4 (first: 2026-09-17 08:15:01 all green (daemon))
+  watchdog Live pids: [21312, 8164]
+  trigger daemon pids: [20796, 20128, 17436, 19836]  heartbeat age: 1s
+  watchdog actions today: 3
+    2026-09-17 07:24:25 daemon: 3034s before 08:15 CT window — sleeping to open
+    2026-09-17 07:24:49 daemon: 3010s before 08:15 CT window — sleeping to open
+    2026-09-17 08:40:06 ACTION sim_daemon: process gone — restarting via 'MyQuant Sim Daemon'

@@ -173,7 +173,7 @@
       "grade_basis": "EOD condor put \u2014 prior-close EM low (gexlog brief)",
       "group": "[EOD] Iron Condor",
       "center": "eod",
-      "status": "armed",
+      "status": "expired",
       "fired": false,
       "trade_id": null,
       "gexlog_signal": "WAIT",
@@ -207,7 +207,7 @@
       "grade_basis": "EOD condor call \u2014 prior-close EM high (gexlog brief)",
       "group": "[EOD] Iron Condor",
       "center": "eod",
-      "status": "armed",
+      "status": "expired",
       "fired": false,
       "trade_id": null,
       "gexlog_signal": "WAIT",
@@ -241,7 +241,7 @@
       "grade_basis": "EOD fly put \u2014 ATM = prior close",
       "group": "[EOD] Iron Fly",
       "center": "eod",
-      "status": "armed",
+      "status": "expired",
       "fired": false,
       "trade_id": null,
       "gexlog_signal": "WAIT",
@@ -275,7 +275,7 @@
       "grade_basis": "EOD fly call \u2014 ATM = prior close",
       "group": "[EOD] Iron Fly",
       "center": "eod",
-      "status": "armed",
+      "status": "expired",
       "fired": false,
       "trade_id": null,
       "gexlog_signal": "WAIT",
@@ -299,20 +299,53 @@
         "10:00"
       ],
       "structure": {
-        "kind": "vertical_dynamic",
+        "kind": "vertical",
         "right": "P",
         "offset": -81.0,
-        "width": 25
+        "width": 25,
+        "short": 7530,
+        "long": 7505
       },
       "projected_grade": "C",
       "grade_basis": "Open condor put \u2014 81pt below the open [WAIT day: entry 09:05 CT post-event per brief]",
       "group": "[Open] Iron Condor",
       "center": "open",
-      "status": "armed",
-      "fired": false,
-      "trade_id": null,
+      "status": "fired",
+      "fired": true,
+      "trade_id": "auto_20260916_095326",
       "gexlog_signal": "WAIT",
-      "gexlog_day_type": "HIVOL"
+      "gexlog_day_type": "HIVOL",
+      "submit_at": "09:53:11.705",
+      "entry_valid": true,
+      "entry_note": "late fill +48min (fixed strike; fill only)",
+      "entry_regime": "unknown",
+      "fill": {
+        "net": 1.65,
+        "grade": "B",
+        "at": "09:53:26"
+      },
+      "filled_legs": [
+        {
+          "side": "buy",
+          "right": "P",
+          "strike": 7505.0,
+          "expiry": "20260916",
+          "qty": 1
+        },
+        {
+          "side": "sell",
+          "right": "P",
+          "strike": 7530.0,
+          "expiry": "20260916",
+          "qty": 1
+        }
+      ],
+      "exited": true,
+      "exit": {
+        "cost": 2.6,
+        "at": "14:46:43",
+        "why": "time stop 14:45 CT \u2014 flat before the 0DTE gamma cliff"
+      }
     },
     {
       "id": "openic_c",
@@ -332,20 +365,48 @@
         "10:00"
       ],
       "structure": {
-        "kind": "vertical_dynamic",
+        "kind": "vertical",
         "right": "C",
         "offset": 81.0,
-        "width": 25
+        "width": 25,
+        "short": 7690,
+        "long": 7715
       },
       "projected_grade": "C",
       "grade_basis": "Open condor call \u2014 81pt above the open [WAIT day: entry 09:05 CT post-event per brief]",
       "group": "[Open] Iron Condor",
       "center": "open",
-      "status": "armed",
-      "fired": false,
-      "trade_id": null,
+      "status": "fired",
+      "fired": true,
+      "trade_id": "auto_20260916_095348",
       "gexlog_signal": "WAIT",
-      "gexlog_day_type": "HIVOL"
+      "gexlog_day_type": "HIVOL",
+      "submit_at": "09:53:33.177",
+      "entry_valid": true,
+      "entry_note": "late fill +49min (fixed strike; fill only)",
+      "entry_regime": "unknown",
+      "fill": {
+        "net": 0.95,
+        "grade": "C",
+        "at": "09:53:48"
+      },
+      "filled_legs": [
+        {
+          "side": "buy",
+          "right": "C",
+          "strike": 7715.0,
+          "expiry": "20260916",
+          "qty": 1
+        },
+        {
+          "side": "sell",
+          "right": "C",
+          "strike": 7690.0,
+          "expiry": "20260916",
+          "qty": 1
+        }
+      ],
+      "exited": false
     },
     {
       "id": "openfly_p",
@@ -365,20 +426,54 @@
         "10:00"
       ],
       "structure": {
-        "kind": "vertical_dynamic",
+        "kind": "vertical",
         "right": "P",
         "offset": 0,
-        "width": 25
+        "width": 25,
+        "short": 7610,
+        "long": 7585
       },
       "projected_grade": "C",
       "grade_basis": "Open fly put \u2014 ATM = open [WAIT day: entry 09:05 CT post-event per brief]",
       "group": "[Open] Iron Fly",
       "center": "open",
-      "status": "armed",
-      "fired": false,
-      "trade_id": null,
+      "status": "fired",
+      "fired": true,
+      "trade_id": "auto_20260916_095409",
       "gexlog_signal": "WAIT",
-      "gexlog_day_type": "HIVOL"
+      "gexlog_day_type": "HIVOL",
+      "submit_at": "09:53:54.841",
+      "entry_valid": true,
+      "entry_note": "late fill +49min (fixed strike; fill only)",
+      "entry_regime": "unknown",
+      "fill": {
+        "net": 9.4,
+        "grade": "C",
+        "at": "09:54:09"
+      },
+      "filled_legs": [
+        {
+          "side": "buy",
+          "right": "P",
+          "strike": 7585.0,
+          "expiry": "20260916",
+          "qty": 1
+        },
+        {
+          "side": "sell",
+          "right": "P",
+          "strike": 7610.0,
+          "expiry": "20260916",
+          "qty": 1
+        }
+      ],
+      "exited": true,
+      "beyond_since": "2026-09-16T11:59:32.660271-05:00",
+      "exit": {
+        "cost": 10.2,
+        "at": "12:09:47",
+        "why": "level ACCEPTED: spot 7607 held below the 7610 short strike for 10min (>10) \u2014 the wall we sold did not hold"
+      }
     },
     {
       "id": "openfly_c",
@@ -398,20 +493,54 @@
         "10:00"
       ],
       "structure": {
-        "kind": "vertical_dynamic",
+        "kind": "vertical",
         "right": "C",
         "offset": 0,
-        "width": 25
+        "width": 25,
+        "short": 7610,
+        "long": 7635
       },
       "projected_grade": "C",
       "grade_basis": "Open fly call \u2014 ATM = open [WAIT day: entry 09:05 CT post-event per brief]",
       "group": "[Open] Iron Fly",
       "center": "open",
-      "status": "armed",
-      "fired": false,
-      "trade_id": null,
+      "status": "fired",
+      "fired": true,
+      "trade_id": "auto_20260916_095430",
       "gexlog_signal": "WAIT",
-      "gexlog_day_type": "HIVOL"
+      "gexlog_day_type": "HIVOL",
+      "submit_at": "09:54:16.139",
+      "entry_valid": true,
+      "entry_note": "late fill +50min (fixed strike; fill only)",
+      "entry_regime": "unknown",
+      "fill": {
+        "net": 11.1,
+        "grade": "C",
+        "at": "09:54:30"
+      },
+      "filled_legs": [
+        {
+          "side": "buy",
+          "right": "C",
+          "strike": 7635.0,
+          "expiry": "20260916",
+          "qty": 1
+        },
+        {
+          "side": "sell",
+          "right": "C",
+          "strike": 7610.0,
+          "expiry": "20260916",
+          "qty": 1
+        }
+      ],
+      "exited": true,
+      "beyond_since": "2026-09-16T09:59:13.870329-05:00",
+      "exit": {
+        "cost": 13.4,
+        "at": "10:09:28",
+        "why": "level ACCEPTED: spot 7620 held above the 7610 short strike for 10min (>10) \u2014 the wall we sold did not hold"
+      }
     },
     {
       "id": "gx_bps",
@@ -441,11 +570,42 @@
       "grade_basis": "gexlog suggested: short put at its Put Wall [WAIT day: entry 09:05 CT post-event per brief]",
       "group": "[GexLog] Iron Condor",
       "center": "gexlog",
-      "status": "armed",
-      "fired": false,
-      "trade_id": null,
+      "status": "fired",
+      "fired": true,
+      "trade_id": "auto_20260916_095452",
       "gexlog_signal": "WAIT",
-      "gexlog_day_type": "HIVOL"
+      "gexlog_day_type": "HIVOL",
+      "submit_at": "09:54:37.225",
+      "entry_valid": true,
+      "entry_note": "late fill +50min (fixed strike; fill only)",
+      "entry_regime": "unknown",
+      "fill": {
+        "net": 1.55,
+        "grade": "B",
+        "at": "09:54:52"
+      },
+      "filled_legs": [
+        {
+          "side": "buy",
+          "right": "P",
+          "strike": 7500.0,
+          "expiry": "20260916",
+          "qty": 1
+        },
+        {
+          "side": "sell",
+          "right": "P",
+          "strike": 7525.0,
+          "expiry": "20260916",
+          "qty": 1
+        }
+      ],
+      "exited": true,
+      "exit": {
+        "cost": 0.95,
+        "at": "14:48:22",
+        "why": "time stop 14:45 CT \u2014 flat before the 0DTE gamma cliff"
+      }
     },
     {
       "id": "gx_bcs",
@@ -475,11 +635,47 @@
       "grade_basis": "gexlog suggested: short call at its Call Wall [WAIT day: entry 09:05 CT post-event per brief]",
       "group": "[GexLog] Iron Condor",
       "center": "gexlog",
-      "status": "armed",
-      "fired": false,
-      "trade_id": null,
+      "status": "fired",
+      "fired": true,
+      "trade_id": "auto_20260916_095513",
       "gexlog_signal": "WAIT",
-      "gexlog_day_type": "HIVOL"
+      "gexlog_day_type": "HIVOL",
+      "submit_at": "09:54:59.195",
+      "entry_valid": true,
+      "entry_note": "late fill +50min (fixed strike; fill only)",
+      "entry_regime": "unknown",
+      "fill": {
+        "net": 1.7,
+        "grade": "B",
+        "at": "09:55:13"
+      },
+      "filled_legs": [
+        {
+          "side": "buy",
+          "right": "C",
+          "strike": 7700.0,
+          "expiry": "20260916",
+          "qty": 1
+        },
+        {
+          "side": "sell",
+          "right": "C",
+          "strike": 7675.0,
+          "expiry": "20260916",
+          "qty": 1
+        }
+      ],
+      "exited": false
     }
-  ]
+  ],
+  "open_spot": 7609.3,
+  "open_spot_at": "09:53:05 CT",
+  "gexlog_evening": {
+    "generated_at": "2026-09-16 07:45 PM ET",
+    "session_type": "MIXED",
+    "forecast_accurate": false,
+    "expected_move_hit": true,
+    "spx_change": -0.45,
+    "vix_change": 2.97
+  }
 }
