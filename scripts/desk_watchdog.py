@@ -277,14 +277,27 @@ def main():
         if now().weekday() >= 5:
             return
 
-    if not in_window("08:15", close):
-        return  # outside the day's market window — silent exit
+    START = "08:15"
+    nowhm = now().strftime("%H:%M")
+    if nowhm >= close:
+        return  # the day's market window is already over
 
     if a.daemon:
         MODE = "fast"
+        # The task can fire a few minutes early. Before the 2026-09-16 fix this hit
+        # the 08:15 guard and insta-exited, so the resident loop NEVER ran — a
+        # trigger-daemon hang went uncaught all day. Wait for the window, don't exit.
+        if nowhm < START:
+            target = now().replace(hour=int(START[:2]), minute=int(START[3:]),
+                                   second=0, microsecond=0)
+            secs = (target - now()).total_seconds()
+            if secs > 0:
+                import time
+                log(f"daemon: {secs:.0f}s before {START} CT window — sleeping to open")
+                time.sleep(min(secs, 1800))
         log("daemon mode: 10s cadence, fast thresholds")
         last_green = 0.0
-        while in_window("08:15", close):
+        while in_window(START, close):
             HEARTBEAT.parent.mkdir(parents=True, exist_ok=True)
             HEARTBEAT.write_text(dt.datetime.now().isoformat(timespec="seconds"))
             try:
@@ -300,6 +313,8 @@ def main():
         return
 
     # one-shot (5-min task): slow thresholds + meta-guard for the daemon
+    if not in_window(START, close):
+        return  # a repetition tick outside the market window — nothing to do
     hb_age = file_age_s(HEARTBEAT)
     if hb_age > 120:
         log(f"resident watchdog heartbeat {hb_age:.0f}s stale — restarting Live task")
