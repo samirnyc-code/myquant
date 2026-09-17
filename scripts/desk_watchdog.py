@@ -107,6 +107,19 @@ def run_task(name):
                    creationflags=0x08000000)
 
 
+def task_enabled(name):
+    """True unless the component's scheduled task is Disabled/Missing. A Disabled
+    task means the component is intentionally OFF — the watchdog must not keep trying
+    to restart it (2026-09-17: it burned its daily restart cap relaunching the
+    Disabled 'MyQuant Sim Daemon' every cycle). General guard, not a sim_daemon hack."""
+    ps = ("$t=Get-ScheduledTask -TaskName '%s' -ErrorAction SilentlyContinue; "
+          "if ($t) { $t.State.ToString() } else { 'Missing' }") % name
+    r = subprocess.run(["powershell", "-NoProfile", "-Command", ps],
+                       capture_output=True, text=True, timeout=30,
+                       creationflags=0x08000000)
+    return r.stdout.strip() not in ("Disabled", "Missing", "")
+
+
 def port_open(port, host="127.0.0.1"):
     try:
         with socket.create_connection((host, port), timeout=3):
@@ -194,6 +207,7 @@ def save_state(s):
 # every PROC_CHECK_S; file/port checks are free and run every loop.
 PROC_CHECK_S = 60
 _check_cache = {}   # key -> (ts, (ok, detail))
+_disabled_logged = set()   # components skipped because their task is Disabled (log once/run)
 
 
 def cycle(dry_run):
@@ -216,6 +230,11 @@ def cycle(dry_run):
         else:
             ok, detail = check()
         if ok:
+            continue
+        if not task_enabled(task):
+            if key not in _disabled_logged:
+                log(f"{key}: {detail} — task '{task}' Disabled; intentionally off, not restarting")
+                _disabled_logged.add(key)
             continue
         st = state.get(key, {})
         restarts_today = st.get("count", 0) if st.get("day") == today else 0
