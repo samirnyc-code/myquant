@@ -303,17 +303,16 @@ def main():
 
     if a.daemon:
         MODE = "fast"
-        # The task can fire a few minutes early. Before the 2026-09-16 fix this hit
-        # the 08:15 guard and insta-exited, so the resident loop NEVER ran — a
-        # trigger-daemon hang went uncaught all day. Wait for the window, don't exit.
-        if nowhm < START:
-            target = now().replace(hour=int(START[:2]), minute=int(START[3:]),
-                                   second=0, microsecond=0)
-            secs = (target - now()).total_seconds()
-            if secs > 0:
-                import time
-                log(f"daemon: {secs:.0f}s before {START} CT window — sleeping to open")
-                time.sleep(min(secs, 1800))
+        # The task fires on a FIXED Berlin clock, but the window is Chicago time, so it can
+        # land well before 08:15 CT — a few minutes normally, up to ~1h during the DST-mismatch
+        # weeks (Berlin=CT+6 not +7 for ~3wk in Mar and ~1wk in Oct/Nov). WAIT for the window in
+        # a loop rather than exit or single-sleep — 2026-09-16 an early start insta-exited and the
+        # watchdog never ran all day; a capped one-shot sleep would fail the same way past the cap.
+        import time
+        if now().strftime("%H:%M") < START:
+            log(f"daemon: before {START} CT window (now {now():%H:%M} CT) — waiting for open")
+        while now().strftime("%H:%M") < START and now().strftime("%H:%M") < close:
+            time.sleep(60)
         log("daemon mode: 10s cadence, fast thresholds")
         last_green = 0.0
         while in_window(START, close):
