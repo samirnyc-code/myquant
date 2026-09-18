@@ -700,7 +700,7 @@ def shadow_stop_html():
 
     def drow(r):
         dd = _i(r["trough"])
-        ddcell = (f"<td class='neg'>{money(dd)}</td>" if dd is not None else "<td class='muted'>n/a</td>")
+        ddcell = (f"<td class='{ccls(dd)}'>{money(dd)}</td>" if dd is not None else "<td class='muted'>n/a</td>")
         return (f"<tr><td>{r['date']}{r['_badge']}</td>"
                 f"{cell(True, _i(r['end_pnl']))}"
                 f"{ddcell}"
@@ -726,7 +726,7 @@ def shadow_stop_html():
             f"the drawdown trips that line — shown only on days it fired. <b>Δ cum</b> = one running tally, "
             f"advanced only on a trigger day. Over {len(rows)} days: <b>−$2k</b> fired {fires2}× (net "
             f"<b class='{ccls(cum2)}'>{money(cum2)}</b>), <b>−$3k</b> fired {fires3}× (net "
-            f"<b class='{ccls(cum3)}'>{money(cum3)}</b>). Worst intraday <b class='neg'>{money(worst)}</b>. "
+            f"<b class='{ccls(cum3)}'>{money(cum3)}</b>). Worst intraday <b class='{ccls(worst)}'>{money(worst)}</b>. "
             f"<span class='midev'>⚑</span> = mid-session Fed event ({nev}, none a rate decision). "
             f"Recording only — nothing is flattened.")
     return (
