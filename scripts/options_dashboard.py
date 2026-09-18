@@ -1419,7 +1419,7 @@ ANALYTICS_JS = r"""
     el.innerHTML=tile('Total P&L',money(s.tot),s.tot>=0?'pos':'neg')+tile('Trades',s.n,'')+
       tile('Win rate',s.win==null?'—':s.win.toFixed(0)+'%','')+tile('Profit factor',s.pf==null?'—':s.pf.toFixed(2),'')+
       tile('Expectancy',money(s.exp),(s.exp||0)>=0?'pos':'neg')+tile('Avg ROI',pctf(s.avgroi),(s.avgroi||0)>=0?'pos':'neg')+
-      tile('Max drawdown',money(dd),'neg')+
+      tile('Max drawdown',money(dd),dd<0?'neg':'pos')+
       (last?tile('Peak collateral',money(last.maxColl),''):'')+
       (last?tile('Ideal acct size',money(last.ideal),''):'');}
   // ---- DAILY engine: aggregate trades into per-day results, then derive the
@@ -1475,11 +1475,11 @@ ANALYTICS_JS = r"""
     wrap.onmousemove=function(e){const rect=svgEl.getBoundingClientRect();const frac=(e.clientX-rect.left)/rect.width;
       let i=Math.round((frac*W-ml)/(((W-ml-mr)/((n-1)||1))));i=Math.max(0,Math.min(n-1,i));const r=rows[i];
       line.setAttribute('x1',X(i));line.setAttribute('x2',X(i));line.setAttribute('opacity','0.55');
-      tip.innerHTML='<b>'+r.d+'</b><br>'+series.map(s=>'<span style="color:'+s.color+'">'+(s.name?s.name+' ':'')+money(s.get(r))+'</span>').join('<br>')+(opts.tipExtra?'<br>'+opts.tipExtra(r):'');
+      tip.innerHTML='<b>'+r.d+'</b><br>'+series.map(s=>{const v=s.get(r);const c=s.signColor?(v>=0?'var(--pos)':'var(--neg)'):s.color;return '<span style="color:'+c+'">'+(s.name?s.name+' ':'')+money(v)+'</span>';}).join('<br>')+(opts.tipExtra?'<br>'+opts.tipExtra(r):'');
       tip.style.opacity='1';const px=(X(i)/W)*rect.width;tip.style.left=Math.max(4,Math.min(rect.width-130,px+10))+'px';};
     wrap.onmouseleave=function(){line.setAttribute('opacity','0');tip.style.opacity='0';};}
-  function eqSeries(){return[{name:'cum',color:'var(--acc)',get:r=>r.cum}];}
-  function ddSeries(){return[{name:'drawdown',color:'var(--neg)',area:true,get:r=>r.dd}];}
+  function eqSeries(){return[{name:'cum',color:'var(--acc)',get:r=>r.cum,signColor:true}];}
+  function ddSeries(){return[{name:'drawdown',color:'var(--neg)',area:true,get:r=>r.dd,signColor:true}];}
   function capSeries(){return[{name:'daily',color:'var(--mut)',get:r=>r.coll},{name:'max',color:'var(--warn)',get:r=>r.maxColl},{name:'ideal',color:'var(--acc)',get:r=>r.ideal}];}
   function renderEquity(){const el=$('#an-equity');if(!el)return;const D=(window.__DAILY||{}).days||[];
     if(!D.length){el.innerHTML='<div class="muted">no closed trades yet</div>';return;}
