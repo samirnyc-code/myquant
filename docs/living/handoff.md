@@ -255,11 +255,18 @@ on 2000t + 5M — the user's final direction: no more gurus (Brooks + Dalton + W
 ### IMMEDIATE NEXT TASK (USER DIRECTIVE, "starting today") — full-tape recording DB
 - **Record EVERYTHING (tick, bid, ask, volume) 23h/day for ES + NQ + MES + MNQ, building the DB while
   the live tools run.**
-- FINDINGS: the troves (`data/ticks_continuous*`) store trades ONLY (DateTime/Price/Volume, **no bid/ask**);
-  **no depth files for today** ⇒ order flow is NOT being recorded now. We already have the pieces:
-  `nt8/addons/MarketDepthRecorderAddOn.cs` (full depth book + tape w/ aggressor; AddOn auto-runs on NT
-  start, survives restarts; **ES-only hardcoded "ES 09-26", UNTESTED**), `RawTickExporter.cs` (tape only,
-  chart+TickReplay), `FootprintExporter.cs` (footprint per bar, validated vs MzPack — NT Order Flow+ NOT needed).
+- FINDINGS (corrected 9/18 — an EARLIER note wrongly said nothing was recording; it missed `data/l1_tape/`):
+  **ES L1 IS already being recorded, live + continuous.** `nt8/addons/L1TapeRecorderAddOn.cs` writes
+  `data/l1_tape/ES_{contract}_l1_{date}.csv` = tape + best bid/ask + connection markers (cols
+  Time,Ev,Side,Price,Size,Aggr; Ev = T tape / A ask / B bid / C conn). Files present for 9/16-17-18
+  (~76-100MB/day), correctly rolled to **12-26**; `MyQuant L1 Recorder Watchdog` green (10-min);
+  `scripts/l1_rollover.py` converts finished CSV→parquet (~13x) in the 16:00-17:00 CT halt + archives to
+  the private `~/myquant-data` git repo. **On 9/18 the `MyQuant L1 Rollover` task was failing 0x1** — a
+  category-dtype bug in l1_rollover.py — **FIXED (026588fe)**, backlog (9/16+9/17) converted+archived.
+  (The `data/ticks_continuous*` troves are a SEPARATE trades-only source for the 5M/2k engine.)
+  `MarketDepthRecorderAddOn.cs` (full L2 book) also exists but is **Disabled** (heavier; separate decision).
+- **THE GAP vs the user directive: only ES is recorded — NQ, MES, MNQ are NOT yet.** That is the build:
+  extend the L1 recorder (and its rollover/watchdog/roll) to all 4 front-month contracts.
 - PLAN: extend the AddOn to the 4 instruments (or build a lighter L1 tape+best-bid/ask recorder), verify it
   actually writes, add a **watchdog + Telegram alert**, define storage layout + nightly parquet ingest +
   a Mission Control "recorder alive" card.
