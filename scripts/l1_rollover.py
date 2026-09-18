@@ -28,9 +28,12 @@ L1 = ROOT / "data" / "l1_tape"
 SOURCES = [(L1, "l1_tape")]
 # dedicated PRIVATE archive repo (off-machine backup of irreplaceable market data).
 ARCHIVE = Path.home() / "myquant-data"
-# Ev: T tape / B best-bid / A best-ask / C connection marker. Side is a spare (blank on L1).
-DTYPES = {"Ev": "category", "Side": "category", "Aggr": "category",
-          "Price": "float32", "Size": "int32"}
+# Ev: T tape / B best-bid / A best-ask / C connection marker. Side/Aggr are blank on most rows
+# -> do NOT force 'category' at READ time (pandas raises "dtype of categories must be the same"
+# when a category column mixes blanks/NaN with strings). Read numerics only; cast the string
+# columns to category AFTER load (see convert()).
+DTYPES = {"Price": "float32", "Size": "int32"}
+CAT_COLS = ("Ev", "Side", "Aggr")
 
 
 def chicago_now() -> dt.datetime:
@@ -80,7 +83,10 @@ def convert(csv: Path, keep_csv: bool, dry: bool) -> dict:
         return {"file": csv.name, "status": "dry", "note": f"{mb_in:,.1f}MB -> parquet"}
 
     try:
-        df = pd.read_csv(csv, dtype=DTYPES, on_bad_lines="skip")
+        df = pd.read_csv(csv, dtype=DTYPES, on_bad_lines="skip", low_memory=False)
+        for c in CAT_COLS:                       # cast to category AFTER load (blanks -> NaN, safe)
+            if c in df.columns:
+                df[c] = df[c].astype("category")
         df["Time"] = pd.to_datetime(df["Time"], errors="coerce")
         n_in = len(df)
         df.to_parquet(pq, engine="pyarrow", compression="zstd", index=False)
