@@ -54,7 +54,9 @@ THRESH = {
     "feed":  {"slow": 180, "fast": 45},    # live.json writes every ~5s
     "tape":  {"slow": 600, "fast": 300},   # underlying tape writes every ~60s
     "marks": {"slow": 420, "fast": 300},   # marks watch writes every ~120s
-    "trig_hb": {"slow": 300, "fast": 180}, # trigger daemon stamps every loop; slow=manage_open quoting
+    "trig_hb": {"slow": 360, "fast": 300}, # daemon stamps every loop, BUT manage_open blocks ~2-3min
+    #   quoting all legs at the 14:45 EOD close burst — fast=180 false-fired "HUNG" there (2026-09-17,
+    #   191s). Both allow the manage burst; a real hang (connect stall) freezes for the whole session.
 }
 MODE = "slow"             # flipped to "fast" by --daemon
 
