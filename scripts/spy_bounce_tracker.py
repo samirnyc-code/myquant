@@ -135,11 +135,13 @@ def main():
             else (lambda b, a: round((b + a) / 2, 3) if (b and a) else None)(valnum(t.bid), valnum(t.ask))
 
     def spy_spot():
-        # parity off the 757 strike of the nearest expiry, else delayed stock
-        e = STRUCTS[1]["exp"]
-        c = leg_px((e, 757.0, "C"), "mid"); p = leg_px((e, 757.0, "P"), "mid")
-        if c and p:
-            return round(757.0 + c - p, 2)
+        # parity off the 757 strike of the nearest LIVE (non-settled) expiry — the original
+        # anchor expires, so once #1-3 settled it must roll to #4's expiry; else delayed stock
+        live = sorted({st["exp"] for st in STRUCTS if st["id"] not in state.get("settled", {})})
+        for e in (live or sorted({s["exp"] for s in STRUCTS})):
+            c = leg_px((e, 757.0, "C"), "mid"); p = leg_px((e, 757.0, "P"), "mid")
+            if c and p:
+                return round(757.0 + c - p, 2)
         return valnum(spy_t.last) or valnum(spy_t.close)
 
     # ---- entry (lock once) ----
