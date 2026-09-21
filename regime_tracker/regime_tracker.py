@@ -109,6 +109,32 @@ def compute_regime(swing_low, swing_high, low, high, bar_dir=None):
             trend = new_trend
             res.change_points.append((i, new_trend))
 
+    def entry_setup(kind):
+        """The range-exit setup, read the way the document's diagram draws it:
+        1(H) 2(L) 3(H = lower high), and the BOS then breaks 2.
+
+        `kind` is the side that must slope: "H" for a bear setup (lower high),
+        "L" for a bull setup (higher low). Returns (counter_bar, counter_price,
+        ref_bar, ref_price) where counter is the LH/HL that becomes the ChoCh
+        level once the trend starts, and ref is the swing standing immediately
+        BEFORE it -- the one the break has to take out.
+
+        Crucially the reference is the swing before the LH/HL, not whatever
+        swing happened last. A minor pivot forming after it never broke the
+        opposing structure, so it does not reset the setup."""
+        pos = [j for j, (_, k, _) in enumerate(zz) if k == kind]
+        if len(pos) < 2 or pos[-1] == 0:
+            return None
+        j = pos[-1]
+        last_price, prev_price = zz[j][2], zz[pos[-2]][2]
+        sloped = last_price < prev_price if kind == "H" else last_price > prev_price
+        if not sloped:
+            return None
+        ref = zz[j - 1]
+        if ref[1] == kind:               # not alternating -- nothing before it
+            return None
+        return zz[j][0], last_price, ref[0], ref[2]
+
     def push(i, kind, price):
         """Fold a pivot into the swing sequence. A same-kind pivot does not
         extend it -- the leg simply ran further, so the tip moves to the more
@@ -154,20 +180,17 @@ def compute_regime(swing_low, swing_high, low, high, bar_dir=None):
         #        before this bar's own pivots can move them ---
         for side in sides:
             if trend == RANGE:
-                # The pullback has to be there before the break can mean
-                # anything: to turn up, the last completed swing must be the
-                # LOW that will serve as the higher low, and the break clears
-                # the high standing before it. If the last swing is still a
-                # high, the leg is simply running -- no new structure yet.
-                tip = zz[-1][1] if zz else None
-                rh, rl = ref("H"), ref("L")
-                if side == "H" and tip == "L" and rh is not None and hp > rh:
-                    res.events.append((i, "BOS", "up", rh))
-                    if higher_low():
+                if side == "H":
+                    s = entry_setup("L")          # higher low in place -> turn up
+                    if s is not None and hp > s[3]:
+                        res.events.append((i, "BOS", "up", s[3]))
+                        major_high.add(s[2])      # the high the break took out
                         enter(i, BULL, hp)
-                elif side == "L" and tip == "H" and rl is not None and lp < rl:
-                    res.events.append((i, "BOS", "down", rl))
-                    if lower_high():
+                else:
+                    s = entry_setup("H")          # lower high in place -> turn down
+                    if s is not None and lp < s[3]:
+                        res.events.append((i, "BOS", "down", s[3]))
+                        major_low.add(s[2])
                         enter(i, BEAR, lp)
             elif trend == BULL:
                 if side == "L" and counter is not None and lp < counter:

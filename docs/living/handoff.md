@@ -40,6 +40,32 @@ majors and 7–13 BOS per session against the PDF diagrams' ~7–8 numbered pivo
 per trend. Those proportions only appear on 30m structure (4–9 majors, 3–6 BOS). Kept on
 5m deliberately — every call is still a literal BOS/ChoCh, just at a finer grain.
 
+**Range-exit reference (fix 2026-09-21, later same day):** the swing the break must clear
+is the one standing immediately *before* the LH/LH — not whatever swing happened last. A
+minor pivot that forms after the LH/HL never broke the opposing structure, so by the
+document's own sentence ("minor pivots ... typically fail to break the opposing major
+structure") it cannot reset the setup. Implemented as `entry_setup()` in
+`regime_tracker.py`. Caught on 06-25: b60→b64 is a bear leg, b65 the pullback LH, and the
+b69 break of b64's low (7422.25 → 7418.75) is a BOS into Bear — the model was missing it
+because b67's minor low of 7422.75 was being taken as the reference. Same rule confirms
+04-06 b25 (LH b19 6705.50, ref low b16 6691.25, broken at 6688.25) while still rejecting
+b23 (6693.75, never reached it).
+
+Effect across the committed baseline (`68277ec3`) — measured, not assumed:
+- **Regime timeline unchanged:** 12-26, 01-13, 02-13, 06-29. 02-13's hand-validated
+  ChoCh at b43 and its Bull 12–43 / Bear 51–81 shape survive intact.
+- **Regime timeline changed:** 04-06 (new Bear 25–37; the old Bull 36–43 becomes 38–43)
+  and 06-12 (new Bear 75–79 inside what was one Range to the close).
+- **Every** session dropped spurious BOS events (12-26 −7, 01-13 −7, 02-13 −4) and
+  **none gained any**; several pullbacks are now correctly promoted to major. Those
+  events were already filtered out of the charts, so the PNGs barely moved.
+
+**Sessions on disk:** 2025-12-26, 2026-01-13, 02-13, 04-06, 06-12, 06-25, 06-29.
+
+**Known rough edge:** 04-06 flips Bull/Range/Bull across bars 37–43 in a 43-point daily
+shell. Rule-correct but close to noise at that compression — a minimum-leg filter is the
+obvious next knob if it bothers us.
+
 **Open:** the 02-13 late ChoCh (~b76) is marked by hand but not produced. b75 is a bearish
 outside bar that likely traded above b74 first and then below, putting in an LH and an LL
 within one bar; intrabar ordering on outside bars is inferred from `bar_dir`. Parked by
