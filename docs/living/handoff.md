@@ -1,10 +1,54 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** July 24, 2026 (MERGED: S83 regime × 2E study — final audited spec [PF 1.36
-OOS, NT8 strategy + cockpit indicator ports] AND the second-PC engine upgrade [immediate-flip
-rule + leg-continuation fix, both reference days still reproduce]. ⚠️ TWO ENGINES NOW COEXIST:
-the reference `scratchpad/regime_phase_machine.py` = new 2nd-PC engine; the S83 study scripts
-embed the OLD engine — A/B comparison pending. Our +$82.7k backtest is on the OLD engine.)
+**Last Updated:** September 21, 2026 (regime tracker added — market-structure BOS/ChoCh
+classifier on 5m ES, rules per `Documents/Market Structure.pdf`, validated against a
+hand-marked 02-13 chart. Independent of the S83 work below, which is unchanged.
+⚠️ STILL OPEN from S83: TWO ENGINES COEXIST — the reference
+`scratchpad/regime_phase_machine.py` = new 2nd-PC engine; the S83 study scripts embed the
+OLD engine. Our +$82.7k backtest is on the OLD engine.)
+
+---
+
+## Regime tracker (2026-09-21) — market-structure BOS/ChoCh classifier (5m ES)
+
+New standalone tool in `regime_tracker/`: labels every bar of a session Bull / Bear /
+Trading-range. Pivots come from a Python port of the NT8 **MyWedge** indicator
+(`mywedge.py`, faithful port, no pip deps); structure + state machine live in
+`regime_tracker.py`.
+
+**Rules are `Projects/Documents/Market Structure.pdf` (BOS / ChoCh)** — not a homegrown
+HH/HL scheme. Everything turns on the document's word *relevant*, which depends on state:
+- **In a trend:** the relevant level in the trend's own direction is the top of the last
+  COMPLETED leg. After a BOS the trend is mid-leg and has no relevant level at all until
+  the pullback that ends the leg promotes it — so exactly one BOS fires per leg, and since
+  each leg tops beyond the last, it *is* the trend extreme. The other side is the pullback
+  before the last BOS: the HL (uptrend) / LH (downtrend), which is the ChoCh level.
+- **In a range:** turning requires the pullback to actually be there. The last completed
+  swing must be the low (→Bull) / high (→Bear) that will serve as the HL/LH, and the break
+  clears the swing standing *before* it. A break with no counter-swing behind it is not a
+  trend, however far price travels.
+- **BOS = continuation**, it does not end a trend. Only a **ChoCh** ends one, always back
+  to Range. A session opens in Range.
+
+**Validated** bar-for-bar against a hand-marked 2026-02-13 chart (ChoCh at bar 43, BOS
+chain lines up). Two bugs were caught that way and fixed: Bear called on 04-06 b23 with no
+lower high, and Bull on 06-12 b39 with no higher low — both were breaks of the last *small
+swing* rather than of a completed leg with a pullback behind it.
+
+**Scale caveat:** on 5m bars mywedge turns roughly every other bar, so this yields 3–14
+majors and 7–13 BOS per session against the PDF diagrams' ~7–8 numbered pivots and 3 BOS
+per trend. Those proportions only appear on 30m structure (4–9 majors, 3–6 BOS). Kept on
+5m deliberately — every call is still a literal BOS/ChoCh, just at a finer grain.
+
+**Open:** the 02-13 late ChoCh (~b76) is marked by hand but not produced. b75 is a bearish
+outside bar that likely traded above b74 first and then below, putting in an LH and an LL
+within one bar; intrabar ordering on outside bars is inferred from `bar_dir`. Parked by
+agreement.
+
+**Entry points:** `run_regime_parquet.py PARQUET --date YYYY-MM-DD [--bar-minutes 5]` → JSON;
+`plot_regime.py` → annotated PNG (BOS/ChoCh drawn from the pivot that set the level, only
+state-changing breaks marked); `build_artifact.py` → interactive HTML. Reads
+`data/bars/_continuous_1m.parquet`. `run_regime.py` takes NT8 text exports instead.
 
 ---
 
