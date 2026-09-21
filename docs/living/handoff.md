@@ -71,6 +71,12 @@ outside bar that likely traded above b74 first and then below, putting in an LH 
 within one bar; intrabar ordering on outside bars is inferred from `bar_dir`. Parked by
 agreement.
 
+⚠️ **Do NOT resolve this with ticks.** The outside-bar analysis further down this file
+(the S83-era block around "outside bar's range is always BIGGER") settles ordering from
+tick granularity. The regime tracker is deliberately **bar-only** — `bar_dir` inference is
+the accepted ceiling here, not a placeholder until tick data is wired in. If the b76 case
+can't be called from bar data, it stays uncalled.
+
 **Entry points:** `run_regime_parquet.py PARQUET --date YYYY-MM-DD [--bar-minutes 5]` → JSON;
 `plot_regime.py` → annotated PNG (BOS/ChoCh drawn from the pivot that set the level, only
 state-changing breaks marked); `build_artifact.py` → interactive HTML. Reads
