@@ -1,0 +1,89 @@
+{
+ "date": "20260921",
+ "entry_et": "09:31:00",
+ "grid_step_min": 2,
+ "ceiling_et": "14:34:00",
+ "stop_et": "15:45:00",
+ "level_accept_min": 10,
+ "time_stop_ct": "14:45",
+ "spot_open": 7694.4,
+ "spot_last": 7766.7,
+ "verticals": [
+  {
+   "id": "eodic_p",
+   "name": "[EOD] Bull Put @ 7580",
+   "struct": "P 7580/7555",
+   "entry_cr": 0.0,
+   "exit_et": "14:33:00",
+   "reason": "open_marked_to_now",
+   "spot_at_exit": 7766.7,
+   "close_cost": 0.1,
+   "pnl": -16.52,
+   "taken": false
+  },
+  {
+   "id": "eodic_c",
+   "name": "[EOD] Bear Call @ 7720",
+   "struct": "C 7720/7745",
+   "entry_cr": 1.05,
+   "exit_et": "10:33:00",
+   "reason": "level_accepted",
+   "spot_at_exit": 7722.6,
+   "close_cost": 8.05,
+   "pnl": -706.52,
+   "taken": true
+  },
+  {
+   "id": "eodfly_p",
+   "name": "[EOD] Bull Put @ 7650 (ATM)",
+   "struct": "P 7650/7625",
+   "entry_cr": 0.55,
+   "exit_et": "14:33:00",
+   "reason": "open_marked_to_now",
+   "spot_at_exit": 7766.7,
+   "close_cost": 0.05,
+   "pnl": 43.48,
+   "taken": true
+  },
+  {
+   "id": "eodfly_c",
+   "name": "[EOD] Bear Call @ 7650 (ATM)",
+   "struct": "C 7650/7675",
+   "entry_cr": 22.2,
+   "exit_et": "09:41:00",
+   "reason": "level_accepted",
+   "spot_at_exit": 7695.5,
+   "close_cost": 23.5,
+   "pnl": -136.52,
+   "taken": true
+  },
+  {
+   "id": "gx_bps",
+   "name": "[GexLog] Bull Put @ putWall 7625",
+   "struct": "P 7625/7600",
+   "entry_cr": 0.15,
+   "exit_et": "14:33:00",
+   "reason": "open_marked_to_now",
+   "spot_at_exit": 7766.7,
+   "close_cost": 0.1,
+   "pnl": -1.52,
+   "taken": true
+  },
+  {
+   "id": "gx_bcs",
+   "name": "[GexLog] Bear Call @ callWall 7700",
+   "struct": "C 7700/7725",
+   "entry_cr": 5.35,
+   "exit_et": "10:01:00",
+   "reason": "level_accepted",
+   "spot_at_exit": 7705.5,
+   "close_cost": 9.7,
+   "pnl": -441.52,
+   "taken": true
+  }
+ ],
+ "total_pnl": -1242.6,
+ "fill_model": "worst-touch (S113): sell short@bid/buy long@ask in, buy short@ask/sell long@bid out",
+ "reconstructed_at": "2026-09-21 20:35:22",
+ "note": "READ-ONLY replay of live exit rules vs ThetaData intraday NBBO; NOT booked."
+}
