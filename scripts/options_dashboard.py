@@ -156,10 +156,47 @@ def _prob_in_zone(lo, hi):
     return val
 
 
+def _recon_df():
+    """Reconstructed missed-desk days as synthetic CLOSED trades so load_stats +
+    positions_html + analytics_payload all count them (flagged recon=True). Realistic
+    worst-touch fills; kept OUT of trades.parquet, injected only for display/consistency."""
+    cols = ["trade_id", "strategy_id", "structure", "grade", "gex_regime", "source",
+            "dte", "entry_dt", "exit_dt", "pnl", "collateral", "close_reason", "recon"]
+    f = SIM / "reconstructed_days.json"
+    if not f.exists():
+        return pd.DataFrame(columns=cols)
+    try:
+        rj = json.loads(f.read_text())
+    except Exception:
+        return pd.DataFrame(columns=cols)
+    out = []
+    for d, rd in rj.items():
+        for t in rd.get("trades", []):
+            st = t.get("structure", "")
+            try:
+                a, b = st.split()[-1].split("/")
+                w = abs(float(a) - float(b))
+            except Exception:
+                w = 25.0
+            cr = t.get("entry_cr") or 0
+            pnl = t.get("pnl")
+            out.append({
+                "trade_id": "recon_" + d.replace("-", "") + "_" + t.get("strategy", ""),
+                "strategy_id": t.get("strategy", "recon"), "structure": st, "grade": "C",
+                "gex_regime": "unknown", "source": "reconstructed", "dte": 0,
+                "entry_dt": d + " 08:31:00", "exit_dt": d + " 15:45:00",
+                "pnl": None if pnl is None else float(round(pnl)),
+                "collateral": round((w - cr) * 100) if w else None,
+                "close_reason": t.get("reason", ""), "recon": True})
+    return pd.DataFrame(out, columns=cols)
+
+
 def load_stats():
-    trades = _shown(tlog.load())
+    trades = pd.concat([_shown(tlog.load()), _recon_df()], ignore_index=True)
     closed = trades[trades.exit_dt.notna()] if len(trades) else trades
-    p = closed.pnl.astype(float) if len(closed) else pd.Series(dtype=float)
+    # round per-trade so realized/PF/win MATCH the analytics basis (analytics_payload rounds
+    # each trade); reconstructed pnls are already integral.
+    p = closed.pnl.astype(float).round() if len(closed) else pd.Series(dtype=float)
     pf = p[p > 0].sum() / -p[p < 0].sum() if len(p) and (p < 0).any() else None
     marks = pd.read_csv(SIM / "marks.csv") if (SIM / "marks.csv").exists() else pd.DataFrame()
     lastm = marks.groupby("trade_id").last() if len(marks) else pd.DataFrame()
@@ -632,13 +669,18 @@ def analytics_payload(trades, marks_last):
         # closed trades. 0DTE enter==exit so only multi-day trades (STMR) move; open trades
         # keep entry (unrealized). dow/hour stay entry-based (strategy-entry analytics).
         bucket_date = exitd[:10] if (not is_open and exitd) else entry[:10]
+        try:
+            _bias = tags.bias_of_row(r)
+        except Exception:
+            _bias = "neutral"
+        _recon = bool(r.get("recon")) if ("recon" in r.index and pd.notna(r.get("recon"))) else False
         rows.append({
             "id": r.trade_id, "strategy": r.strategy_id,
             "date": bucket_date, "entry": entry, "dow": dow,
             "hour": entry[11:13] + ":00" if len(entry) >= 13 else "?",
             "grade": r.grade if isinstance(r.grade, str) else "?",
             "regime": r.gex_regime if isinstance(r.gex_regime, str) else "unknown",
-            "bias": tags.bias_of_row(r),
+            "bias": _bias,
             "source": r.source if isinstance(r.source, str) else "?",
             "dte": int(r.dte) if pd.notna(r.dte) else None,
             "pnl": None if pnl is None else round(float(pnl)),
@@ -647,6 +689,7 @@ def analytics_payload(trades, marks_last):
             "open": bool(is_open),
             "win": None if pnl is None else bool(pnl >= 0),
             "structure": r.structure if isinstance(r.structure, str) else "",
+            "recon": _recon,
         })
     return rows
 
@@ -1672,6 +1715,7 @@ def main():
     gp = load_gameplan()
     pm = load_postmortem()
     gp_trades = _shown(tlog.load())
+    gp_trades_all = pd.concat([gp_trades, _recon_df()], ignore_index=True)  # +recon: analytics/positions only
     gp_marks = None
     # IB-vs-TD comparison — reuse the standalone td_vs_ib_dashboard.render() so the
     # comparison logic stays the single source of truth (the A-chat's shadow book).
@@ -1689,49 +1733,18 @@ def main():
         if len(_mk):
             gp_marks = _mk.groupby("trade_id").last()
     try:
-        an_json = json.dumps(analytics_payload(gp_trades, gp_marks))
+        an_json = json.dumps(analytics_payload(gp_trades_all, gp_marks))
     except Exception:
         an_json = "[]"
-    # reconstructed-day overlay (calendar '*' days) — kept OUT of trades.parquet so the
-    # stat tiles never see reconstructed fills; the calendar merges it in client-side.
+    # recon overlay (calendar '*' asterisk + click-through DD/breaker detail). The recon
+    # trades themselves now flow through analytics_payload(gp_trades_all), so tiles/equity/
+    # calendar/shadow all include them; this JSON just carries the per-day extras.
     try:
         _rf = SIM / "reconstructed_days.json"
         recon_json = _rf.read_text(encoding="utf-8") if _rf.exists() else "{}"
         json.loads(recon_json)
     except Exception:
         recon_json = "{}"
-    # Count reconstructed days EVERYWHERE (user decision): append their trades into the
-    # analytics feed (flagged recon=true) so tiles/equity/DD/monthly/calendar all include
-    # them and MATCH. Realistic worst-touch fills; each row carries recon=true for styling.
-    try:
-        _rec = json.loads(recon_json)
-        _anlist = json.loads(an_json)
-        for _d, _rd in _rec.items():
-            _dow = pd.to_datetime(_d).strftime("%a")
-            for _tr in _rd.get("trades", []):
-                _st = _tr.get("structure", "")
-                try:
-                    _p = _st.split()[-1].split("/")
-                    _w = abs(float(_p[0]) - float(_p[1]))
-                except Exception:
-                    _w = 25.0
-                _cr = _tr.get("entry_cr") or 0
-                _coll = round((_w - _cr) * 100) if _w else None
-                _pnl = _tr.get("pnl")
-                _anlist.append({
-                    "id": "recon_" + _d.replace("-", "") + "_" + _tr.get("strategy", ""),
-                    "strategy": _tr.get("strategy", "recon"), "date": _d,
-                    "entry": _d + " 08:31", "dow": _dow, "hour": "08:00", "grade": "C",
-                    "regime": "unknown", "bias": "neutral", "source": "reconstructed", "dte": 0,
-                    "pnl": None if _pnl is None else round(_pnl),
-                    "collateral": _coll,
-                    "roi": None if (_pnl is None or not _coll) else round(_pnl / _coll * 100, 1),
-                    "open": False, "win": None if _pnl is None else bool(_pnl >= 0),
-                    "structure": _st, "recon": True,
-                })
-        an_json = json.dumps(_anlist)
-    except Exception:
-        pass
     jf = ROOT / "data" / "options_log" / "journal.json"
     jn = json.loads(jf.read_text(encoding="utf-8")) if jf.exists() else {}
     pbf = ROOT / "docs" / "living" / "options_playbook.md"
@@ -1917,7 +1930,7 @@ h2{{font-size:15px;color:var(--acc);margin:24px 0 8px}}
 
 <div class="kpis">{stat_tiles(s, skip=("running", "close_now", "mpz", "mpz_pin"))}</div>
 
-{positions_html(gp_trades, gp_marks)}
+{positions_html(gp_trades_all, gp_marks)}
 
 <div class="tabs">
   <div class="tab on" data-p="trades">Trades</div>
