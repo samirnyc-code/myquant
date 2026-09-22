@@ -651,15 +651,30 @@ def analytics_payload(trades, marks_last):
     return rows
 
 
-def shadow_stop_html():
+def shadow_stop_html(daily_pnl=None, recon_days=None):
     """OBSERVATIONAL shadow daily-stop panel (no executions). Reads the log written
     by shadow_stop_monitor.py; shows current-book (auto-era) days only, with what
-    each day WOULD have ended at under the -3k stop and a running better/worse tally."""
+    each day WOULD have ended at under the -3k stop and a running better/worse tally.
+
+    P&L (ACTUAL) + month totals come from `daily_pnl` (the SAME canonical per-day book
+    P&L that drives the calendar/analytics), so all three panels agree. The log supplies
+    only the intraday DD + stop-trigger info. Reconstructed days with no log row are
+    injected so they still appear as a line item."""
     import csv as _csv
+    daily_pnl = daily_pnl or {}
+    recon_days = recon_days or {}
     f = SIM / "shadow_stop_log.csv"
-    if not f.exists():
-        return ""
-    rows = [r for r in _csv.DictReader(f.open()) if r["date"] >= "2026-08-04"]
+    rows = []
+    if f.exists():
+        rows = [r for r in _csv.DictReader(f.open()) if r["date"] >= "2026-08-04"]
+    _have = {r["date"] for r in rows}
+    for _d, _rd in recon_days.items():
+        if _d >= "2026-08-04" and _d not in _have:
+            rows.append({"date": _d, "n": str(_rd.get("n", "")), "trough": str(_rd.get("dd", "")),
+                         "trough_ct": "", "crossed_warn": "False", "warn_ct": "", "warn_fill": "",
+                         "crossed_stop": "False", "stop_ct": "", "stop_fill": "",
+                         "end_pnl": str(_rd.get("pnl", "")), "would_help": "", "day_swing": "",
+                         "mid_event": "", "vix": "", "updated_ct": "", "_recon": True})
     if not rows:
         return ""
     def _i(x):
@@ -679,7 +694,7 @@ def shadow_stop_html():
     cum = cum2 = cum3 = fires2 = fires3 = 0
     started = False
     for r in sorted(rows, key=lambda r: r["date"]):
-        end = _i(r["end_pnl"])
+        end = daily_pnl.get(r["date"], _i(r["end_pnl"]))
         wf, sf = _i(r["warn_fill"]), _i(r["stop_fill"])
         c2 = r["crossed_warn"] == "True" and wf is not None
         c3 = r["crossed_stop"] == "True" and sf is not None
@@ -695,6 +710,9 @@ def shadow_stop_html():
         fires3 += c3
         r["_badge"] = (f" <span class='midev' title='mid-session Fed event: {r['mid_event']}'>⚑</span>"
                        if r.get("mid_event") else "")
+        if r.get("_recon"):
+            r["_badge"] += (" <span style='color:#e0a04d;font-weight:800' "
+                            "title='reconstructed day (desk was down) — realistic worst-touch fills'>*</span>")
     worst = min((_i(r["trough"]) for r in rows if _i(r["trough"]) is not None), default=0)
     nev = sum(1 for r in rows if r.get("mid_event"))
 
@@ -702,7 +720,7 @@ def shadow_stop_html():
         dd = _i(r["trough"])
         ddcell = (f"<td class='{ccls(dd)}'>{money(dd)}</td>" if dd is not None else "<td class='muted'>n/a</td>")
         return (f"<tr><td>{r['date']}{r['_badge']}</td>"
-                f"{cell(True, _i(r['end_pnl']))}"
+                f"{cell(True, daily_pnl.get(r['date'], _i(r['end_pnl'])))}"
                 f"{ddcell}"
                 f"{cell(r['_c2'], r['_eod2'])}"
                 f"{cell(r['_c2'], r['_d2'], ccls(r['_d2']) if r['_c2'] else None)}"
@@ -716,7 +734,7 @@ def shadow_stop_html():
     tbodies = ""
     for mk in sorted(months, reverse=True):
         drows = sorted(months[mk], key=lambda r: r["date"], reverse=True)
-        mp = sum(_i(r["end_pnl"]) for r in drows)
+        mp = sum((daily_pnl[r["date"]] if r["date"] in daily_pnl else (_i(r["end_pnl"]) or 0)) for r in drows)
         trg = sum(1 for r in drows if r["_trg"])
         mhead = (f"<tr class='mhead' onclick='tglMonth(this)'><td colspan='9'>"
                  f"<span class='cv'></span>{mk} · <b class='{'pos' if mp >= 0 else 'neg'}'>{money(mp)}</b> · "
@@ -1726,6 +1744,21 @@ def main():
         except Exception:
             pass
 
+    # CANONICAL daily P&L — bucket the exact analytics rows (incl reconstructed) that feed
+    # window.__T, so the Shadow-stop table, the calendar and the analytics tiles ALL show the
+    # same per-day number. (Was: shadow_stop_log.end_pnl, a separate drifting computation.)
+    try:
+        _daily_pnl = {}
+        for _r in json.loads(an_json):
+            if _r.get("pnl") is not None and _r.get("date"):
+                _daily_pnl[_r["date"]] = _daily_pnl.get(_r["date"], 0) + _r["pnl"]
+    except Exception:
+        _daily_pnl = {}
+    try:
+        _rec_days = json.loads(recon_json)
+    except Exception:
+        _rec_days = {}
+
     html = f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💹</text></svg>"><title>Options — Forward Sim</title>
@@ -1935,7 +1968,7 @@ h2{{font-size:15px;color:var(--acc);margin:24px 0 8px}}
     <div class="an-card"><div class="an-h">Capital — collateral vs ideal account <span class="muted" id="an-capsub"></span></div><div id="an-capital"></div></div>
   </div>
   <div class="modal" id="an-modal"><div class="modal-c"><div class="modal-h"></div><div class="modal-body"></div></div></div>
-  {shadow_stop_html()}
+  {shadow_stop_html(_daily_pnl, _rec_days)}
   <div class="an-card" style="margin-top:14px">
     <div class="an-h">Break down by
       <select id="an-dim">
