@@ -298,10 +298,21 @@ namespace NinjaTrader.NinjaScript.Indicators
 				else if (_trend == BEAR) BackBrushes[barsAgo] = _bearShade;
 			}
 			if (ExportCsv)
+			{
+				var ci = CultureInfo.InvariantCulture;
+				// BAR row carries OHLC so the CSV is a self-sufficient bar source:
+				// the Python diff replays compute_mywedge+compute_regime on these exact
+				// bars, so any regime mismatch is a logic difference, not bar drift.
 				_csvRows.Add(string.Join(",",
-					i.ToString(CultureInfo.InvariantCulture),
-					Time[barsAgo].ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
-					_trend));
+					"BAR",
+					i.ToString(ci),
+					Time[barsAgo].ToString("yyyy-MM-dd HH:mm:ss", ci),
+					Open[barsAgo].ToString("F2", ci),
+					High[barsAgo].ToString("F2", ci),
+					Low[barsAgo].ToString("F2", ci),
+					Close[barsAgo].ToString("F2", ci),
+					_trend, "", "", ""));
+			}
 		}
 
 		// ── bar direction (verbatim MyWedge.cs BarDir rule) ───────────────────
@@ -425,11 +436,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private void AddEvent(int i, int barsAgo, string kind, string dir, double level)
 		{
 			if (ExportCsv)
+			{
+				var ci = CultureInfo.InvariantCulture;
 				_csvRows.Add(string.Join(",",
-					i.ToString(CultureInfo.InvariantCulture),
-					Time[barsAgo].ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
+					"EVT",
+					i.ToString(ci),
+					Time[barsAgo].ToString("yyyy-MM-dd HH:mm:ss", ci),
+					"", "", "", "", "",
 					kind, dir,
-					double.IsNaN(level) ? "" : level.ToString("F2", CultureInfo.InvariantCulture)));
+					double.IsNaN(level) ? "" : level.ToString("F2", ci)));
+			}
 			if (!ShowEvents) return;
 			bool up = dir == "up";
 			double y = up ? High[barsAgo] + 6 * TickSize : Low[barsAgo] - 6 * TickSize;
@@ -443,7 +459,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			try
 			{
 				var sb = new StringBuilder();
-				sb.AppendLine("bar,time,regime_or_kind,dir,level");
+				sb.AppendLine("type,bar,time,o,h,l,c,regime,kind,dir,level");
 				foreach (var r in _csvRows) sb.AppendLine(r);
 				var tmp = _csvPath + ".tmp";
 				File.WriteAllText(tmp, sb.ToString());
