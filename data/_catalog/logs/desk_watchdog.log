@@ -793,3 +793,6 @@
 2026-09-22 09:15:43 all green (daemon)
 2026-09-22 09:18:06 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
 2026-09-22 09:18:06 all green
+2026-09-22 09:23:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 09:23:06 all green
+2026-09-22 09:25:49 all green (daemon)
