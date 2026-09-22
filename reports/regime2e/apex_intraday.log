@@ -1,0 +1,17 @@
+APEX LEGACY-FULL **INTRADAY** trailing DD (peak unrealized) — one_per_day, 294 trades, real ticks
+
+ plan size |              blew?  deepest cushion net-to-blow/5yr
+ 150K    1 |   BLOWN 2021-11-24 $          -98 $         -42
+ 150K    2 |   BLOWN 2021-11-18 $         -630 $        -565
+ 150K    3 |   BLOWN 2021-11-18 $         -895 $        -848
+
+ 250K    1 |       survives 5yr $       +1,402 $     +55,068
+ 250K    2 |   BLOWN 2021-11-18 $         -630 $        -565
+ 250K    3 |   BLOWN 2021-11-18 $         -895 $        -848
+
+ 300K    1 |       survives 5yr $       +2,402 $     +55,068
+ 300K    2 |   BLOWN 2021-11-18 $         -630 $        -565
+ 300K    3 |   BLOWN 2021-11-18 $         -895 $        -848
+
+150K @ 1 ES per-year (until blow):
+  2021:$-42

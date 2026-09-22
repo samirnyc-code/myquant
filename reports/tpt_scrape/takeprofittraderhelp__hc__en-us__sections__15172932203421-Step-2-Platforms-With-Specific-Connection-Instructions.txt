@@ -1,0 +1,19 @@
+URL: https://takeprofittraderhelp.zendesk.com/hc/en-us/sections/15172932203421-Step-2-Platforms-With-Specific-Connection-Instructions
+TITLE: Step 2 Platforms With Specific Connection Instructions – TakeProfitTrader
+
+Skip to main content
+ Sign in
+TakeProfitTrader
+ Connection Instructions
+ Step 2 Platforms With Specific Connection Instructions
+Step 2 Platforms With Specific Connection Instructions
+Connecting TradingView with Your CQG Account
+Connecting NinjaTrader 8 with CQG
+Connecting NinjaTrader 8 with Rithmic
+Connecting Quantower With Your Rithmic Account
+Connecting BookMap with Your Rithmic Account
+Connecting MultiCharts with Your Rithmic Account
+Connecting MotiveWave with Your Rithmic Account
+Connecting Finamark with Your Rithmic Account
+TakeProfitTrader
+English (United States) 

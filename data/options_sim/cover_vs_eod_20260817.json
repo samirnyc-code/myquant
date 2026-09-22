@@ -1,0 +1,31 @@
+{
+  "mark_time_ct": "2026-08-17 12:04 CT (machine)",
+  "spot_at_mark": 7767.52,
+  "cover_now_total": 1070.0,
+  "positions": [
+    {
+      "trade_id": "auto_20260817_083046",
+      "strategy": "eodic_p",
+      "short": "7710P",
+      "cover_now_pnl": 15.0
+    },
+    {
+      "trade_id": "auto_20260817_083202",
+      "strategy": "eodfly_c",
+      "short": "7785C",
+      "cover_now_pnl": 610.0
+    },
+    {
+      "trade_id": "auto_20260817_083223",
+      "strategy": "openic_p",
+      "short": "7715P",
+      "cover_now_pnl": 20.0
+    },
+    {
+      "trade_id": "auto_20260817_083325",
+      "strategy": "openfly_c",
+      "short": "7785C",
+      "cover_now_pnl": 425.0
+    }
+  ]
+}

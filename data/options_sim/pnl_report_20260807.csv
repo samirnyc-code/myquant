@@ -1,0 +1,3 @@
+trade_id,entry_date,strategy_id,stream,signal,structure,credit,pnl,roc,win,close_reason
+auto_20260807_083138,2026-08-07,eodfly_c,eod,unknown,vertical 25pt,15.3,-211.29999999999978,-0.21783505154639154,False,level ACCEPTED: spot 7737 held above the 7710 short strike for 10min (>10) — the wall we sold did not hold
+auto_20260807_083318,2026-08-07,openfly_c,open,unknown,vertical 25pt,12.2,-31.30000000000007,-0.024453125000000055,False,level ACCEPTED: spot 7737 held above the 7730 short strike for 10min (>10) — the wall we sold did not hold

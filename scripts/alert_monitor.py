@@ -29,11 +29,9 @@ sys.path.insert(0, str(ROOT / "scripts"))
 # (dedup_key, predicate(check) -> bool, message builder) per health check name.
 # predicate True == PROBLEM worth paging.
 RULES = {
-    "L2 depth": (
-        "depth",
-        lambda c: c["state"] == "bad",
-        lambda c: f"L2 DEPTH: {c['detail']}",
-    ),
+    # L2 depth paging RETIRED 2026-09-02 (user): the depth subscription is gone, so it sits
+    # permanently TAPE-ONLY and there is nothing to fix — the page was pure noise. pipeline_health
+    # still computes the check (status light / Mission Control show it); we just don't Telegram it.
     "NinjaTrader": (
         "nt8",
         lambda c: c["state"] == "bad",
@@ -54,7 +52,88 @@ RULES = {
         lambda c: c["state"] == "bad",     # WARN on gateway is normal off-hours; only BAD pages
         lambda c: f"IB GATEWAY: {c['detail']}",
     ),
+    # 2026-07-20: sim daemon died at the 08:28 launch and nothing paged. BAD here means
+    # desk hours + market open + (no gameplan after 08:35 CT, or feed dead >10 min).
+    "Options sim": (
+        "options_sim",
+        lambda c: c["state"] == "bad",
+        lambda c: f"OPTIONS DESK: {c['detail']}",
+    ),
+    # 2026-08-17: the 0DTE chain recorder died silently 08-07->08-16 (nothing paged) —
+    # BAD = session hours + no file today or the file stalled >3min (stuck / all-delayed).
+    "0DTE chain": (
+        "chain0dte",
+        lambda c: c["state"] == "bad",
+        lambda c: f"0DTE CHAIN RECORDER: {c['detail']}",
+    ),
+    # 2026-07-20: dashboard crashed on a bad trade record and stayed dead all session.
+    "Options dashboard": (
+        "options_dashboard",
+        lambda c: c["state"] == "warn",     # WARN only fires during desk hours
+        lambda c: f"OPTIONS DASHBOARD: {c['detail']}",
+    ),
 }
+
+
+def _heal_options_sim(c, tg, verbose: bool) -> None:
+    """Self-heal a dead desk instead of only paging about it (2026-07-20: daemon failed
+    at 08:28 launch, sat dead until manually restarted). Direct invocation, NOT
+    Start-ScheduledTask - the run_at_ct wrapper would skip outside its 25-min window,
+    which is exactly when a heal is needed. At most one attempt per 30 min so a genuinely
+    broken script cannot be relaunch-spammed; if the cause persists (e.g. truly stale
+    levels) the BAD page keeps firing and the human decides."""
+    import subprocess
+    py = str(ROOT / ".venv" / "Scripts" / "python.exe")
+    if not tg.send("🔧 attempting desk self-heal (gameplan + sim daemon)…", level="info",
+                   dedup_key="desk_heal", cooldown_s=1800):
+        return                                  # healed too recently - let the page stand
+    if "NO GAMEPLAN" in c["detail"]:
+        r = subprocess.run([py, str(ROOT / "scripts" / "options_gameplan.py")],
+                           capture_output=True, text=True, timeout=180,
+                           cwd=str(ROOT), creationflags=0x08000000)
+        tg.send("✅ self-heal: gameplan rebuilt" if r.returncode == 0 else
+                f"❌ self-heal: gameplan still failing:\n{(r.stderr or r.stdout)[-400:]}",
+                level="info" if r.returncode == 0 else "alert")
+        if r.returncode != 0:
+            return                              # no point starting the daemon on no plan
+    # restart the daemon detached (DETACHED_PROCESS|CREATE_NO_WINDOW) - it exits by
+    # itself if another instance already holds the lock, so double-start is safe
+    subprocess.Popen([py, str(ROOT / "scripts" / "options_sim_daemon.py")],
+                     cwd=str(ROOT), creationflags=0x08000008,
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    if verbose:
+        print("self-heal: daemon relaunched")
+
+
+def _heal_chain(tg, verbose: bool) -> None:
+    """Relaunch the 0DTE chain recorder if it stopped writing during the session — the
+    intraday prices can't be re-collected, so a page alone isn't enough. The singleton
+    lock makes a double-start safe (a second copy exits immediately). Throttled 30 min."""
+    import subprocess
+    if not tg.send("🔧 relaunching 0DTE chain recorder…", level="info",
+                   dedup_key="chain_heal", cooldown_s=1800):
+        return
+    pyw = str(ROOT / ".venv" / "Scripts" / "pythonw.exe")
+    subprocess.Popen([pyw, str(ROOT / "scripts" / "options_chain_recorder.py"), "--stop", "15:05"],
+                     cwd=str(ROOT), creationflags=0x08000008,
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    if verbose:
+        print("chain recorder relaunched")
+
+
+def _heal_dashboard(tg, verbose: bool) -> None:
+    """Relaunch the options dashboard server if its port died (throttled 30 min)."""
+    import subprocess
+    if not tg.send("🔧 relaunching options dashboard (:8600)…", level="info",
+                   dedup_key="dash_heal", cooldown_s=1800):
+        return
+    pyw = str(ROOT / ".venv" / "Scripts" / "pythonw.exe")
+    subprocess.Popen([pyw, str(ROOT / "scripts" / "options_dashboard_live.py"),
+                      "--host", "0.0.0.0", "--port", "8600"],
+                     cwd=str(ROOT), creationflags=0x08000008,
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    if verbose:
+        print("dashboard relaunched")
 
 
 def run_once(verbose: bool = False) -> int:
@@ -78,6 +157,24 @@ def run_once(verbose: bool = False) -> int:
                 paged += 1
                 if verbose:
                     print(f"PAGED [{key}]: {msg(c)}")
+            if key == "options_sim":
+                try:
+                    _heal_options_sim(c, tg, verbose)
+                except Exception as e:
+                    if verbose:
+                        print(f"self-heal error: {type(e).__name__}: {e}")
+            if key == "options_dashboard":
+                try:
+                    _heal_dashboard(tg, verbose)
+                except Exception as e:
+                    if verbose:
+                        print(f"dashboard heal error: {type(e).__name__}: {e}")
+            if key == "chain0dte":
+                try:
+                    _heal_chain(tg, verbose)
+                except Exception as e:
+                    if verbose:
+                        print(f"chain heal error: {type(e).__name__}: {e}")
         else:
             # condition healthy -> if we had paged it, announce recovery once
             import json
@@ -90,6 +187,16 @@ def run_once(verbose: bool = False) -> int:
                 tg.send(f"recovered: {name} — {c['detail']}", level="ok")
                 if verbose:
                     print(f"RECOVERED [{key}]")
+    # real-time options-data watchdog: pages FAST when the shared market-data session is
+    # stolen by a competing live login (IBKR app / TWS) -> paper gateway drops to delayed
+    # and the whole desk silently dies (2026-08-17, ~4h unnoticed). Cheap unless live.json
+    # is stale, then one IB probe names the cause.
+    try:
+        import rt_data_watchdog
+        rt_data_watchdog.run_once(verbose=verbose)
+    except Exception as e:
+        if verbose:
+            print(f"rt_data_watchdog error: {type(e).__name__}: {e}")
     # positive session-milestone pings (open, first readings, ...) - additive, never noise
     for mod in ("session_pings", "activity_pings", "cool_pings"):
         try:

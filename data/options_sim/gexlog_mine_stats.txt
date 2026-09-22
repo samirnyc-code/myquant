@@ -1,0 +1,39 @@
+GEXLOG ARCHIVE MINE — 83 morning, 84 evening, 82 paired days (2026-04-06..2026-08-03)
+
+=== FORECAST ACCURACY by morning signal (their self-scored) ===
+  GO    n=  9  forecast-accurate  33%  EM-held 100%  sessions={'RANGE': 3, 'TREND': 3, 'MIXED': 3}
+  CAUT  n= 56  forecast-accurate  23%  EM-held  79%  sessions={'TREND': 29, 'RANGE': 17, 'MIXED': 10}
+  WAIT  n= 17  forecast-accurate  41%  EM-held  71%  sessions={'TREND': 10, 'RANGE': 6, 'MIXED': 1}
+
+=== OVERALL ===
+  forecast accurate: 28% (n=82)   EM held: 79% (n=82)
+  realized session types: {'TREND': 42, 'RANGE': 26, 'MIXED': 14}
+
+=== MORNING forecast_type -> accuracy ===
+  HIGH VOLATILITY        n= 31  right  35%
+  MIXED / CHOP           n= 26  right   0%
+  TREND (UP)             n= 12  right  50%
+  RANGE BOUND            n=  5  right  40%
+  TREND (DOWN)           n=  4  right  25%
+  TREND POTENTIAL        n=  4  right  75%
+
+=== WALL CONTAINMENT (close within morning put/call wall) ===
+  57% of 82 days
+
+=== recurring GUIDANCE phrases (morning notes) ===
+  'wait': 17 days
+  'wider wing': 17 days
+  'reduce': 14 days
+  'size': 14 days
+
+=== playbook STRUCTURE recommendations (across scenarios) ===
+  debit spread: 120 mentions
+  iron condor: 100 mentions
+  bull call: 73 mentions
+  bear put: 53 mentions
+  credit spread: 20 mentions
+  bear call: 12 mentions
+  put credit: 7 mentions
+  call credit: 7 mentions
+  butterfly: 4 mentions
+  bull put: 1 mentions

@@ -1,0 +1,44 @@
+URL: https://takeprofittraderhelp.zendesk.com/hc/en-us/articles/15171929948829-Advantages-of-PRO
+TITLE: Advantages of PRO+ – TakeProfitTrader
+
+Skip to main content
+ Sign in
+TakeProfitTrader
+ PRO+ Account
+ PRO+ Account FAQ's
+Articles in this section
+Advantages of PRO+
+PRO+ Account Upgrade Process – Overview and Guidelines
+PRO+ Account Rules
+PRO+ Development Accounts
+CME Market Rules and Regulations
+Self-Match Prevention (SMP) Implementation for PRO+ Accounts
+Resetting A PRO+ Account
+Commissions for PRO+
+Advantages of PRO+
+ Vlada
+6 months ago Updated
+What is a PRO+ Account?
+
+PRO+ accounts are live accounts that have a $0 margin. Upon transitioning to a PRO+ account, the trader is classified as a professional trader. 
+
+How Do I Become Eligible for a PRO+ Account? 
+
+Once a trader becomes eligible for a PRO+ upgrade, an official invitation will be sent via email by the Take Profit Trader team. Please note that the decision to upgrade a trader to a PRO+ account is made solely at the discretion of Take Profit Trader.
+
+Benefits of a PRO+ Account
+90/10 profit split, where the trader keeps 90% of the profits
+Trader directly routed to the exchange, not on the simulation or ''copy traded''
+No buffer zone requirement for withdrawal
+EOD (End-Of-Day) Drawdown
+Was this article helpful?
+Yes No
+27 out of 28 found this helpful
+Related articles
+PRO+ Account Upgrade Process – Overview and Guidelines
+PRO+ Account Rules
+PRO Account Rules
+PRO Account Profit Split & Withdrawal Rules
+How to Keep Track Of Your Drawdown
+TakeProfitTrader
+English (United States) 

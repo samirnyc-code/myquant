@@ -1,0 +1,60 @@
+{
+ "date": "2026-07-31",
+ "weekday": "Friday",
+ "mmddyy": "073126",
+ "video_url": "https://ttmm25.s3.us-west-2.amazonaws.com/073126.mp4",
+ "transcribed": true,
+ "extracted": true,
+ "headline": "Indices grinding straight up in extensions into month-end, but Bank + Crude + Euro warn a dollar-strength reversal is loading — VIX 18.85 is the trigger.",
+ "market_state": "Range-bound ~8 weeks; risk-off hedging into weekends; USD negatively correlated with indices (30d & 15d); regime flip-flopping inflationary bust/boom (crude + S&P sideways). Last day of July (month-end). Econ: Employment Cost Index 8:30, Chicago PMI 9:45 (exp 55.9), U-Mich sentiment 10:00. Fed-watch: 67.4% prob of a Sept hike.",
+ "bias": "Short-term BULLISH while extensions hold (VIX < 18.85 and DXY below its 61.8%). Structurally BEARISH building: Bank in a confirmed head-&-shoulders downtrend (the ONLY leading indicator confirming weakness), crude breaking out of shorts (inflationary), euro confirming the dollar-strength trade, and a yen carry-trade unwind starting.",
+ "es": {
+  "daily": {
+   "tf": "Daily / 12h",
+   "structure": "UP measured move — target reached (range ceiling)",
+   "anchors": [["Lo", "6353.25", "Apr low"], ["Hi", "7648.75", "Jun high"]],
+   "target": ["-23.6%", "7632.25", "green ceiling (reached)"],
+   "levels": [["7231.24", "red support"], ["7076.5", "red support"],
+              ["6921.22", "red support"], ["6655.54", "red support"],
+              ["6387.68", "red support"]]
+  },
+  "tf": "4-hour",
+  "structure": "SHORT measured move (active)",
+  "anchors": [["100%", "7632.35", "range high = daily -23.6% ceiling"],
+              ["0%", "7411.75", "swing low"]],
+  "ladder": [["61.8%", "7547.86", "failure", "red", "= his bearish-below 7547.75"],
+             ["50%", "7521.88", "entry", "yellow", ""],
+             ["38.2%", "7495.89", "level", "", ""],
+             ["-23.6%", "7359.77", "TARGET", "green", "= his target ~7359"]],
+  "price_now": "~7510 — between the 38.2% and 50%",
+  "htf": "Daily UP-MM: Low 6353.25 -> High 7648.75; its -23.6% target 7632.25 is reached = the ceiling this short hangs from.",
+  "series": "THREE timeframes in play: Daily UP-MM (target 7632.25 reached = ceiling); 4h SHORT-MM (capped at 61.8% 7547.86, target 7359.77); and a 15m EXTENSION-LONG (Lo 7446.5 -> Hi 7517.75; 61.8% 7473.72 = his 'bullish above 7473-75'; -23.6% targets 7524.75/7534.57). Bullish while the 15m holds 7473.72; bearish if the 4h short caps it at 7547.86 with VIX>18.85.",
+  "watch": "Below 7547.86 (61.8% red) the SHORT is in play -> 7521.88 (50%) -> 7359.77 (green target). Reclaim >7547.86 with VIX<18.85 fails the short and re-opens the ceiling. Gap: outside the 20-handle = coin flip, no edge."
+ },
+ "instruments": {
+  "ES": {"bias": "up (fragile)", "mm_state": "straight-up extensions; failure at gap fill", "levels": "bull>7473-75", "notes": "hedge-covering squeeze into month-end"},
+  "NQ": {"bias": "up", "mm_state": "extensions; long way up to a larger traditional short", "levels": "bull>28,397 (ext-failure)", "notes": "most aggressive of the indices yesterday"},
+  "YM": {"bias": "up (strongest)", "mm_state": "highs-to-highs extension; grinding top of range", "levels": "line 52,366", "notes": "debatable it has even tagged the extension yet"},
+  "RTY": {"bias": "up", "mm_state": "trailing extensions; all-the-way-HWB shorts overhead", "levels": "bull>2957.50", "notes": "close to tagging daily shorts"},
+  "CL": {"bias": "up", "mm_state": "broke out of shorts, defended support, rallying away", "levels": "bull>80.90", "notes": "MOST IMPORTANT chart; rising crude = inflationary = bearish read-through for indices"},
+  "GC": {"bias": "down", "mm_state": "still inside 50% shorts; longs-from-lows failed", "levels": "bear<4232.40", "notes": "green July monthly close is historically bullish, but no confirmation yet; dollar-strength is the danger"},
+  "6E": {"bias": "down", "mm_state": "extension-long broke its 61.8% -> confirmed; 1st MM short", "levels": "1st MM short 1.5015", "notes": "euro = 57.6% of DXY; front-run 38.2% a 3rd time; drives the dollar-strength trade"},
+  "ZB": {"bias": "", "mm_state": "", "levels": "", "notes": ""}
+ },
+ "scenarios": [
+  {"id": "0731-es-up15", "instrument": "ES", "direction": "long", "thesis": "15m EXTENSION-LONG holds its 61.8% -> grind up to the -23.6% targets (his 'bullish above 7473-75').", "trigger": "holds >7473.72 (15m 61.8%) & VIX<18.85", "target": "7524.75 / 7534.57 (-23.6% green)", "invalidation": "loses 7473.72 (61.8% = extension failure at the gap fill)", "outcome": "pending", "auto": false},
+  {"id": "0731-es-dn", "instrument": "ES", "direction": "short", "thesis": "4h SHORT measured move: capped by the 61.8% (7547.86), works down the ladder.", "trigger": "stays <7547.86 (4h 61.8% red), esp. VIX>18.85", "target": "7521.88 (50%) -> 7359.77 (-23.6% green target)", "invalidation": "reclaim >7547.86 with VIX<18.85", "outcome": "pending", "auto": false},
+  {"id": "0731-nq-dn", "instrument": "NQ", "direction": "short", "thesis": "Larger traditional short overhead once tagged.", "trigger": "tag larger traditional / lose 28,397", "target": "traditional short target", "invalidation": ">28,397", "outcome": "pending", "auto": false},
+  {"id": "0731-cl-up", "instrument": "CL", "direction": "long", "thesis": "Broke out of shorts, defended support -> pullbacks defended higher (inflationary).", "trigger": "holds >80.90", "target": "away from support", "invalidation": "<80.90 support fails", "outcome": "pending", "auto": false},
+  {"id": "0731-6e-dn", "instrument": "6E", "direction": "short", "thesis": "Extension-long broke 61.8% -> first measured-move short; dollar strength.", "trigger": "1st MM short at 1.5015", "target": "123% short target", "invalidation": "reclaim extension-long", "outcome": "pending", "auto": false},
+  {"id": "0731-gc-dn", "instrument": "GC", "direction": "short", "thesis": "Still in 50% shorts, longs-from-lows failed, into dollar strength.", "trigger": "<4232.40", "target": "short target", "invalidation": "confirm longs-from-lows", "outcome": "pending", "auto": false},
+  {"id": "0731-6j-dn", "instrument": "6E", "direction": "short", "thesis": "USD/JPY 50% short = yen strength; carry-trade unwind ingredients in place.", "trigger": "<161.69 (USDJPY)", "target": "carry unwind", "invalidation": ">161.69", "outcome": "pending", "auto": false}
+ ],
+ "key_quotes": [
+  {"t": "06:47", "text": "Wall Street always gets its fill — every important level, if it happens on a Friday or Monday or pre-FOMC, is retested."},
+  {"t": "08:54", "text": "We're going straight up in extensions on the indices as long as the VIX holds below its 18.85."},
+  {"t": "17:56", "text": "Crude oil rallying away from its support... is a bearish sign for the indices."},
+  {"t": "19:05", "text": "We have started a carry-trade unwind — all the ingredients are mixed and the oven's preheated."}
+ ],
+ "other_notes": "Leading-indicator scoreboard: only BANK is confirming the indices weakness so far; VIX and DXY have NOT yet. Crypto (BTC/ETH) choppy in head-&-shoulders, ~80% through the 'crypto winter'. Silver bearish <59.76."
+}

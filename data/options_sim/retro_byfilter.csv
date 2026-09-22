@@ -1,0 +1,9 @@
+filter,skipped,skipped_pnl,kept_pnl,delta_vs_base
+skip EOD call side,35,-445,8327,445
+skip VIX>16 days,14,-364,8246,364
+skip the EOD book,75,343,7539,-343
+skip shorts sold BEYOND the wall,55,1184,6698,-1184
+skip the CALL side,86,1677,6205,-1677
+skip TREND days,34,1868,6014,-1868
+skip STAND_ASIDE (event-gate) days,35,4206,3676,-4206
+skip NEGATIVE-gamma days,84,6724,1158,-6724

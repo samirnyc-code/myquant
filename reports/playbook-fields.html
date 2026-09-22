@@ -1,0 +1,151 @@
+<style>
+:root{
+  --paper:#f4f4f1; --surface:#ffffff; --surface-2:#ecedf0;
+  --ink:#1a1f27; --muted:#6b727e; --faint:#9299a4; --line:#dcdee4;
+  --accent:#8a6d1f; --accent-fill:#c39b3a; --accent-soft:#f0e7cd;
+  --long:#2f9e6b; --long-soft:#e0f2e9; --short:#cf4b5c; --short-soft:#fae1e4;
+  --mono:ui-monospace,"Cascadia Code","SFMono-Regular","Segoe UI Mono",Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;
+  --shadow:0 1px 2px rgba(20,25,35,.05),0 4px 18px rgba(20,25,35,.06);
+}
+@media (prefers-color-scheme:dark){
+  :root{ --paper:#11141a; --surface:#191d25; --surface-2:#222834;
+    --ink:#e7e9ee; --muted:#949cab; --faint:#6c7481; --line:#2b323d;
+    --accent:#d8b558; --accent-fill:#d4b054; --accent-soft:#332c14;
+    --long:#41b581; --long-soft:#16281f; --short:#e0687a; --short-soft:#2c1a1e;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.35); }
+}
+:root[data-theme="light"]{ --paper:#f4f4f1; --surface:#ffffff; --surface-2:#ecedf0; --ink:#1a1f27; --muted:#6b727e; --faint:#9299a4; --line:#dcdee4; --accent:#8a6d1f; --accent-fill:#c39b3a; --accent-soft:#f0e7cd; --long:#2f9e6b; --long-soft:#e0f2e9; --short:#cf4b5c; --short-soft:#fae1e4; --shadow:0 1px 2px rgba(20,25,35,.05),0 4px 18px rgba(20,25,35,.06); }
+:root[data-theme="dark"]{ --paper:#11141a; --surface:#191d25; --surface-2:#222834; --ink:#e7e9ee; --muted:#949cab; --faint:#6c7481; --line:#2b323d; --accent:#d8b558; --accent-fill:#d4b054; --accent-soft:#332c14; --long:#41b581; --long-soft:#16281f; --short:#e0687a; --short-soft:#2c1a1e; --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.35); }
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;padding:0 20px 80px}
+.wrap{max-width:760px;margin:0 auto}
+
+header{padding:56px 0 30px;border-bottom:1px solid var(--line);margin-bottom:36px}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);font-weight:600;margin-bottom:14px}
+h1{font-size:34px;font-weight:700;letter-spacing:-.025em;line-height:1.1;text-wrap:balance;margin-bottom:14px}
+.lede{font-size:16px;color:var(--muted);max-width:60ch}
+.lede b{color:var(--ink);font-weight:600}
+
+.toc{display:flex;flex-wrap:wrap;gap:8px;margin-top:24px}
+.toc a{font-family:var(--mono);font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);text-decoration:none;border:1px solid var(--line);border-radius:20px;padding:5px 12px;transition:all .12s}
+.toc a:hover{border-color:var(--accent-fill);color:var(--accent);background:var(--accent-soft)}
+
+section{margin-bottom:34px}
+.sec-h{display:flex;align-items:baseline;gap:12px;margin-bottom:6px}
+.sec-num{font-family:var(--mono);font-size:13px;color:var(--accent);font-weight:600}
+.sec-h h2{font-size:21px;font-weight:650;letter-spacing:-.015em}
+.sec-sub{color:var(--muted);font-size:14px;margin:0 0 18px 32px}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);overflow:hidden}
+.frow{display:grid;grid-template-columns:210px 1fr;gap:18px;padding:15px 20px;border-top:1px solid var(--line)}
+.frow:first-child{border-top:none}
+.fname{font-weight:600;font-size:14.5px;display:flex;flex-direction:column;gap:5px}
+.ftype{font-family:var(--mono);font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);font-weight:600}
+.fdesc{color:var(--muted);font-size:13.5px}
+.fdesc .eg{display:block;margin-top:5px;font-family:var(--mono);font-size:12px;color:var(--faint)}
+.fdesc .eg::before{content:"e.g. ";color:var(--accent);opacity:.8}
+
+.pillrow{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.pill{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:4px;font-weight:600}
+.pill.long{background:var(--long-soft);color:var(--long)} .pill.short{background:var(--short-soft);color:var(--short)}
+.pill.n{background:var(--surface-2);color:var(--muted)}
+
+footer{margin-top:46px;padding-top:22px;border-top:1px solid var(--line);color:var(--faint);font-size:13px}
+footer a{color:var(--accent)}
+
+@media (max-width:620px){ .frow{grid-template-columns:1fr;gap:6px} h1{font-size:27px} }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Desk · Trade Playbook</div>
+    <h1>The fields we fill out for every setup</h1>
+    <p class="lede">One rule: <b>we only trade what's written here.</b> Each setup gets defined once — thesis, the exact entry gate, risk, sizing, and annotated screenshots — so a live decision is just a yes/no check against the card. Below is every field on the form, and what goes in it.</p>
+    <nav class="toc">
+      <a href="#s1">01 Identity</a><a href="#s2">02 Thesis</a><a href="#s3">03 Entry</a>
+      <a href="#s4">04 Risk &amp; exits</a><a href="#s5">05 Sizing</a><a href="#s6">06 Examples</a><a href="#s7">07 Review</a>
+    </nav>
+  </header>
+
+  <section id="s1">
+    <div class="sec-h"><span class="sec-num">01</span><h2>Identity</h2></div>
+    <p class="sec-sub">Name it and classify it so it's searchable and taggable.</p>
+    <div class="card">
+      <div class="frow"><div class="fname">Setup name<span class="ftype">text</span></div><div class="fdesc">Plain-language name you'd say out loud.<span class="eg">ES 2E long · RTH open</span></div></div>
+      <div class="frow"><div class="fname">Setup code<span class="ftype">short tag</span></div><div class="fdesc">Short ID for tagging trades back to this card in the log.<span class="eg">ES-2EL-01</span></div></div>
+      <div class="frow"><div class="fname">Status<span class="ftype">select</span></div><div class="fdesc">Where this setup stands.<div class="pillrow"><span class="pill long">Active</span><span class="pill n">Testing</span><span class="pill n">Retired</span></div></div></div>
+      <div class="frow"><div class="fname">Instrument(s)<span class="ftype">text</span></div><div class="fdesc">What you trade it on — mini and/or micro.<span class="eg">ES/MES · NQ/MNQ</span></div></div>
+      <div class="frow"><div class="fname">Direction<span class="ftype">select</span></div><div class="fdesc">Which way the trade leans.<div class="pillrow"><span class="pill long">Long</span><span class="pill short">Short</span><span class="pill n">Both</span></div></div></div>
+      <div class="frow"><div class="fname">Session<span class="ftype">text</span></div><div class="fdesc">Which session it's valid in.<span class="eg">RTH · ETH/Globex · specific kill-zone</span></div></div>
+      <div class="frow"><div class="fname">Timeframe / horizon<span class="ftype">text</span></div><div class="fdesc">Chart TF you read it on + how long you hold.<span class="eg">2000t · 5m · intraday, flat by close</span></div></div>
+      <div class="frow"><div class="fname">Tags<span class="ftype">chips</span></div><div class="fdesc">Free-form labels for filtering.<span class="eg">2E · trend-day · IB-break · VWAP-reclaim</span></div></div>
+    </div>
+  </section>
+
+  <section id="s2">
+    <div class="sec-h"><span class="sec-num">02</span><h2>Thesis</h2></div>
+    <p class="sec-sub">Why this is +EV. If you can't write the edge in one line, you don't have one.</p>
+    <div class="card">
+      <div class="frow"><div class="fname">One-line edge<span class="ftype">text</span></div><div class="fdesc">The single reason this makes money.<span class="eg">Second failed poke below prior-day low → responsive buyers take it back into value</span></div></div>
+      <div class="frow"><div class="fname">Full rationale<span class="ftype">long text</span></div><div class="fdesc">The auction / order-flow / structural logic. What conditions create the opportunity and why it repeats.</div></div>
+      <div class="frow"><div class="fname">Day type / auction context required<span class="ftype">long text</span></div><div class="fdesc">The backdrop that has to be present — day type and where price sits.<span class="eg">Trend up/down · balance/rotation · open-drive vs open-auction · vs prior-day value, VWAP, IB</span></div></div>
+    </div>
+  </section>
+
+  <section id="s3">
+    <div class="sec-h"><span class="sec-num">03</span><h2>Entry criteria</h2></div>
+    <p class="sec-sub">The gate. Every item is answerable yes/no on a live chart — no discretion.</p>
+    <div class="card">
+      <div class="frow"><div class="fname">Preconditions<span class="ftype">checklist</span></div><div class="fdesc">Must <b>all</b> be true before you even look — include <b>location</b> (vs prior-day VA, VWAP, IB, key level). Numbered list.</div></div>
+      <div class="frow"><div class="fname">Trigger<span class="ftype">long text</span></div><div class="fdesc">The single event that puts you in.<span class="eg">Second failed poke (2E) · breakout retest · failed auction back into range</span></div></div>
+      <div class="frow"><div class="fname">Confirmation<span class="ftype">long text</span></div><div class="fdesc">What must also be present before you click.</div></div>
+      <div class="frow"><div class="fname">Disqualifiers / avoid-if<span class="ftype">checklist</span></div><div class="fdesc">Any one of these voids the setup — don't take it.</div></div>
+      <div class="frow"><div class="fname">Time-of-day window<span class="ftype">text</span></div><div class="fdesc">Allowed entry hours (CT).<span class="eg">08:45–14:30 CT · avoid first 5 min</span></div></div>
+    </div>
+  </section>
+
+  <section id="s4">
+    <div class="sec-h"><span class="sec-num">04</span><h2>Risk &amp; exits</h2></div>
+    <p class="sec-sub">Decided before entry, not in the trade.</p>
+    <div class="card">
+      <div class="frow"><div class="fname">Stop rule<span class="ftype">long text</span></div><div class="fdesc">Exact, objective — in <b>points/ticks</b> or a structural level. No wiggle.<span class="eg">ES tick .25 = $12.50, pt = $50 · MES pt = $5</span></div></div>
+      <div class="frow"><div class="fname">Target(s) / profit-taking<span class="ftype">list</span></div><div class="fdesc">Where and how you take profit — R-multiple, points, or structure. One row per target / scale-out.<span class="eg">1R · 2R · prior-day high</span></div></div>
+      <div class="frow"><div class="fname">Max hold / time stop<span class="ftype">text</span></div><div class="fdesc">Latest you'll hold.<span class="eg">Flat by 15:00 CT</span></div></div>
+      <div class="frow"><div class="fname">Invalidation<span class="ftype">long text</span></div><div class="fdesc">What says the thesis is wrong — get out regardless of price.</div></div>
+      <div class="frow"><div class="fname">Scaling in/out rules<span class="ftype">long text</span></div><div class="fdesc">How you add or trim, if at all.</div></div>
+    </div>
+  </section>
+
+  <section id="s5">
+    <div class="sec-h"><span class="sec-num">05</span><h2>Sizing</h2></div>
+    <p class="sec-sub">How much, capped in advance.</p>
+    <div class="card">
+      <div class="frow"><div class="fname">Position size / risk per trade<span class="ftype">long text</span></div><div class="fdesc">Contracts (mini/micro) · $ risk · R.<span class="eg">Risk 6 ES pts = $300 at 1 ES · use MES to size smaller</span></div></div>
+      <div class="frow"><div class="fname">Max concurrent exposure<span class="ftype">text</span></div><div class="fdesc">How many of this setup can be on at once.<span class="eg">1 position at a time</span></div></div>
+    </div>
+  </section>
+
+  <section id="s6">
+    <div class="sec-h"><span class="sec-num">06</span><h2>Examples</h2></div>
+    <p class="sec-sub">Screenshots teach the pattern faster than prose. Both kinds matter.</p>
+    <div class="card">
+      <div class="frow"><div class="fname">Good examples<span class="ftype">image · caption</span></div><div class="fdesc">Clean textbook instances. Each screenshot gets a caption saying what it shows.</div></div>
+      <div class="frow"><div class="fname">Counter-examples<span class="ftype">image · caption</span></div><div class="fdesc">Looks-similar-but-skip. The near-misses that keep you disciplined.</div></div>
+    </div>
+  </section>
+
+  <section id="s7">
+    <div class="sec-h"><span class="sec-num">07</span><h2>Review</h2></div>
+    <p class="sec-sub">Ownership and a running log of changes.</p>
+    <div class="card">
+      <div class="frow"><div class="fname">Author<span class="ftype">text</span></div><div class="fdesc">Who owns this card.<span class="eg">Samir / Thomas</span></div></div>
+      <div class="frow"><div class="fname">Notes / changelog<span class="ftype">long text</span></div><div class="fdesc">Running notes — tweaks, what you learned, why a rule changed.</div></div>
+      <div class="frow"><div class="fname">Created / updated<span class="ftype">auto</span></div><div class="fdesc">Timestamped automatically each save.</div></div>
+    </div>
+  </section>
+
+  <footer>
+    Reference sheet — the live fill-out form is a separate page. Suggest changes to fields before we start filling setups in.
+  </footer>
+</div>

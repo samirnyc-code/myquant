@@ -329,7 +329,7 @@ class Handler(BaseHTTPRequestHandler):
 
 PAGE = r"""<!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Discord Intel</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔎</text></svg>"><title>Discord Intel</title>
 <style>
 :root{--bg:#0f1115;--surface:#161a22;--card:#1a1e27;--border:#2a2f3a;--ink:#e6e6e6;--muted:#8a94a6;--accent:#6fa8ff;--good:#3fb950;--warn:#d29922}
 *{box-sizing:border-box}

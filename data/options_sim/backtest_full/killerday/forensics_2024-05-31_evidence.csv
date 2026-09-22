@@ -1,0 +1,23 @@
+section,detail
+context,"{'date': '2024-05-31', 'dow': 'Fri', 'event': '', 'gap_pct': '0.15', 'prior_ret': '-0.6', 'prior_range': '0.73', 'prior2_ret': '-0.74', 'vix_prior': '14.47', 'vix_chg': '0.19', 'em_pts': '47.7', 'cr_eodic_c': '0.75', 'cr_eodic_p': '0.5', 'ic_pnl': '197.0', 'fly_pnl': '-2506.0', 'puts_band_pnl': '108.0', 'next_ret': '0.11'}"
+ic_row,"{'date': '2024-05-31', 'strat': 'eodic_p', 'method': 'vix252', 'center': '5235.48', 'em': '47.7', 'short_k': '5190.0', 'long_k': '5165.0', 'credit': '0.5', 'exit_kind': 'settle', 'exit_val': '0.0', 'pnl': '46.74', 'note': ''}"
+ic_row,"{'date': '2024-05-31', 'strat': 'eodic_p', 'method': 'vix365', 'center': '5235.48', 'em': '39.7', 'short_k': '5195.0', 'long_k': '5170.0', 'credit': '0.7', 'exit_kind': 'settle', 'exit_val': '0.0', 'pnl': '66.74', 'note': ''}"
+ic_row,"{'date': '2024-05-31', 'strat': 'eodic_p', 'method': 'straddle', 'center': '5235.48', 'em': '24.8', 'short_k': '5210.0', 'long_k': '5185.0', 'credit': '1.75', 'exit_kind': 'stop', 'exit_val': '7.35', 'pnl': '-566.52', 'note': ''}"
+ic_row,"{'date': '2024-05-31', 'strat': 'eodic_c', 'method': 'vix252', 'center': '5235.48', 'em': '47.7', 'short_k': '5285.0', 'long_k': '5310.0', 'credit': '0.75', 'exit_kind': 'settle', 'exit_val': '0.0', 'pnl': '71.74', 'note': ''}"
+ic_row,"{'date': '2024-05-31', 'strat': 'eodic_c', 'method': 'vix365', 'center': '5235.48', 'em': '39.7', 'short_k': '5275.0', 'long_k': '5300.0', 'credit': '1.8', 'exit_kind': 'settle', 'exit_val': '2.5100000000002183', 'pnl': '-74.26', 'note': ''}"
+ic_row,"{'date': '2024-05-31', 'strat': 'eodic_c', 'method': 'straddle', 'center': '5235.48', 'em': '24.8', 'short_k': '5260.0', 'long_k': '5285.0', 'credit': '4.7', 'exit_kind': 'settle', 'exit_val': '17.51000000000022', 'pnl': '-1284.26', 'note': ''}"
+ic_row,"{'date': '2024-05-31', 'strat': 'openic_p', 'method': 'vix252', 'center': '5243.21', 'em': '47.7', 'short_k': '5195.0', 'long_k': '5170.0', 'credit': '0.65', 'exit_kind': 'settle', 'exit_val': '0.0', 'pnl': '61.74', 'note': ''}"
+ic_row,"{'date': '2024-05-31', 'strat': 'openic_p', 'method': 'vix365', 'center': '5243.21', 'em': '39.7', 'short_k': '5205.0', 'long_k': '5180.0', 'credit': '1.35', 'exit_kind': 'stop', 'exit_val': '8.8', 'pnl': '-751.52', 'note': ''}"
+ic_row,"{'date': '2024-05-31', 'strat': 'openic_p', 'method': 'straddle', 'center': '5243.21', 'em': '24.8', 'short_k': '5220.0', 'long_k': '5195.0', 'credit': '3.2', 'exit_kind': 'stop', 'exit_val': '9.3', 'pnl': '-616.52', 'note': ''}"
+ic_row,"{'date': '2024-05-31', 'strat': 'openic_c', 'method': 'vix252', 'center': '5243.21', 'em': '47.7', 'short_k': '5290.0', 'long_k': '5315.0', 'credit': '0.2', 'exit_kind': 'settle', 'exit_val': '0.0', 'pnl': '16.74', 'note': ''}"
+ic_row,"{'date': '2024-05-31', 'strat': 'openic_c', 'method': 'vix365', 'center': '5243.21', 'em': '39.7', 'short_k': '5285.0', 'long_k': '5310.0', 'credit': '0.3', 'exit_kind': 'settle', 'exit_val': '0.0', 'pnl': '26.74', 'note': ''}"
+ic_row,"{'date': '2024-05-31', 'strat': 'openic_c', 'method': 'straddle', 'center': '5243.21', 'em': '24.8', 'short_k': '5270.0', 'long_k': '5295.0', 'credit': '1.25', 'exit_kind': 'settle', 'exit_val': '7.510000000000218', 'pnl': '-629.26', 'note': ''}"
+fly_row,"{'date': '2024-05-31', 'strat': 'eodfly_p', 'center': '5235.48', 'short_k': '5235.0', 'long_k': '5210.0', 'credit': '5.6', 'exit_kind': 'stop', 'exit_val': '11.8', 'pnl': '-626.52', 'note': ''}"
+fly_row,"{'date': '2024-05-31', 'strat': 'eodfly_c', 'center': '5235.48', 'short_k': '5235.0', 'long_k': '5260.0', 'credit': '12.4', 'exit_kind': 'stop', 'exit_val': '16.3', 'pnl': '-396.52', 'note': ''}"
+fly_row,"{'date': '2024-05-31', 'strat': 'openfly_p', 'center': '5238.8', 'short_k': '5240.0', 'long_k': '5215.0', 'credit': '8.1', 'exit_kind': 'stop', 'exit_val': '12.1', 'pnl': '-406.52', 'note': ''}"
+fly_row,"{'date': '2024-05-31', 'strat': 'openfly_c', 'center': '5238.8', 'short_k': '5240.0', 'long_k': '5265.0', 'credit': '8.05', 'exit_kind': 'stop', 'exit_val': '18.75', 'pnl': '-1076.52', 'note': ''}"
+finding,MSCI semi-annual rebalance + month-end; morning megacap selloff (DELL -18%) to ~5192 then final-hour MOC-flow ramp to 5277.51; both fly wings stopped = -2506; vix252 IC survived both extremes by ~2pts = +197
+premarket,"April core PCE in-line (+0.2% m/m, 2.8% y/y) at 07:30 CT; gap +0.15%; VIX 14.47; quiet open"
+prior_days,5/29 -0.74% (yields 4.6% weak auctions); 5/30 -0.60% (CRM -20%)
+aftermath,"6/03 +0.11% to 5283.40 (ISM 48.7); no continuation, calm"
+verdict,intraday ambush; only premarket-knowable flag = month-end + MSCI rebalance calendar (late-day flow risk)

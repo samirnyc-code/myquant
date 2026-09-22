@@ -1,0 +1,128 @@
+[
+ {
+  "topic": "NQ",
+  "sec": 79,
+  "blue": 0,
+  "file": "00_NQ.png",
+  "instrument": null,
+  "tf": "",
+  "header": "a"
+ },
+ {
+  "topic": "DXY",
+  "sec": 129,
+  "blue": 0,
+  "file": "01_DXY.png",
+  "instrument": "DXY",
+  "tf": "4h",
+  "header": "SDXY 360 D 4h D: 8/20/26 6:35 PMY: 111.904 Mc"
+ },
+ {
+  "topic": "6E",
+  "sec": 154,
+  "blue": 0,
+  "file": "02_6E.png",
+  "instrument": "6E",
+  "tf": "",
+  "header": "EUR/USD (MARK) MaxW 0D: 1/31/28 Y:1.18475 [|"
+ },
+ {
+  "topic": "BANK",
+  "sec": 363,
+  "blue": 0,
+  "file": "03_BANK.png",
+  "instrument": "NQ",
+  "tf": "1h",
+  "header": "BANK 180 D 1h [NASDAQ] From price: 5062.56 T"
+ },
+ {
+  "topic": "VIX",
+  "sec": 396,
+  "blue": 0,
+  "file": "04_VIX.png",
+  "instrument": null,
+  "tf": "",
+  "header": "WX Max1D D: 9/28/26 Y: 26.09 MovAvgExponer"
+ },
+ {
+  "topic": "ES",
+  "sec": 579,
+  "blue": 0,
+  "file": "05_ES.png",
+  "instrument": "ES",
+  "tf": "",
+  "header": "/ES 180 D th \u2018D: 7/23/26 11:00 PM (O: 7439.5 (H: 74"
+ },
+ {
+  "topic": "YM",
+  "sec": 970,
+  "blue": 0,
+  "file": "06_YM.png",
+  "instrument": "YM",
+  "tf": "1h",
+  "header": "SYM 180 D 1h | From price: 51303 | To price: 53447"
+ },
+ {
+  "topic": "RTY",
+  "sec": 998,
+  "blue": 0,
+  "file": "07_RTY.png",
+  "instrument": "RTY",
+  "tf": "12h",
+  "header": "/RTY 180 D 12h | From price: 2387.3 To price: 3123"
+ },
+ {
+  "topic": "BTC",
+  "sec": 1033,
+  "blue": 0,
+  "file": "08_BTC.png",
+  "instrument": "BTC",
+  "tf": "4h",
+  "header": "/BTC 360 D 4h | D: 7/27/26 5:00 AM | 0: 65115 | H: 65"
+ },
+ {
+  "topic": "ETH",
+  "sec": 1033,
+  "blue": 0,
+  "file": "09_ETH.png",
+  "instrument": "BTC",
+  "tf": "4h",
+  "header": "/BTC 360 D 4h | D: 7/27/26 5:00 AM | 0: 65115 | H: 65"
+ },
+ {
+  "topic": "CL",
+  "sec": 1121,
+  "blue": 0,
+  "file": "10_CL.png",
+  "instrument": "CL",
+  "tf": "4h",
+  "header": "/CL 360 D 4h | D: 7/13/26 5:00 PM | O: 78.04 JH: 80.4"
+ },
+ {
+  "topic": "6J",
+  "sec": 1195,
+  "blue": 0,
+  "file": "11_6J.png",
+  "instrument": "6J",
+  "tf": "1h",
+  "header": "USD/JPY (MARK) 180 D 1h From price: 161.165 Te"
+ },
+ {
+  "topic": "GC",
+  "sec": 1305,
+  "blue": 0,
+  "file": "12_GC.png",
+  "instrument": "GC",
+  "tf": "",
+  "header": "/GC 180 D th D: 9/17/26 11:15 PM | \u00a5: N/A MovAy;"
+ },
+ {
+  "topic": "SI",
+  "sec": 1305,
+  "blue": 0,
+  "file": "13_SI.png",
+  "instrument": "GC",
+  "tf": "",
+  "header": "/GC 180 D th D: 9/17/26 11:15 PM | \u00a5: N/A MovAy;"
+ }
+]

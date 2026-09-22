@@ -1,0 +1,43 @@
+URL: https://takeprofittraderhelp.zendesk.com/hc/en-us/articles/15172548967069-Commissions-on-Test-and-PRO-accounts
+TITLE: Commissions on Test and PRO accounts – TakeProfitTrader
+
+Skip to main content
+ Sign in
+TakeProfitTrader
+ FAQ's
+ Trading
+Articles in this section
+Commissions on Test and PRO accounts
+Approved Instruments & Permitted Products List
+Rules for Multiple Accounts
+Being Connected in Two Places At the Same Time
+I Want to Add Market Depth
+How TPT Compares to Opening Your Own Trading Account
+Understanding the Simulation for Your PRO account
+How To Download Log Files
+Commissions on Test and PRO accounts
+ Vlada
+1 month ago Updated
+
+Commissions are the same for all of our permitted products.
+
+Futures Contracts 
+$4.50 per round trip per contract
+Micros  
+$1.50 per round trip per contract. 
+
+It's important to note that these commissions are not imposed by a third party; rather, they are established and regulated by TakeProfitTrader. Commissions are integral to live trading, and as such, we strive for uniformity in our traders' requirements when engaging in trading activities within the SIM environment. These commission rates are applicable to both test and PRO accounts.
+
+For detailed information on PRO+ commissions, please refer to a separate article.
+
+Was this article helpful?
+Yes No
+5 out of 5 found this helpful
+Related articles
+Approved Instruments & Permitted Products List
+Commissions for PRO+
+PRO Account Rules
+I Want to Add Market Depth
+PRO Account Profit Split & Withdrawal Rules
+TakeProfitTrader
+English (United States) 

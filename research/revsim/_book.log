@@ -1,0 +1,52 @@
+
+=== BOOK: BO-all + IB-ext8 + OB-ext8 (Trap dropped) ===
+ALL  n=1559 PF 1.14 $81,155 netDD 3.2 Sharpe 0.73
+TRAIN PF 1.04 $11,882   OOS PF 1.23 $69,272   ex-2025 $32,080   green 4/6
+        n      pnl    pf   win
+year                          
+2021  160   -538.0  0.99  34.4
+2022  313   4348.0  1.03  34.2
+2023  313   8072.0  1.09  37.1
+2024  337  -6522.0  0.94  32.9
+2025  285  49075.0  1.41  41.1
+2026  151  26720.0  1.41  43.0
+
+=== BOOK + below-SMA20 gate ===
+ALL  n=611 PF 1.25 $70,708 netDD 2.6 Sharpe 1.22
+TRAIN PF 1.08 $11,770   OOS PF 1.43 $58,938   ex-2025 $9,142   green 3/6
+        n      pnl    pf   win
+year                          
+2021   68   -502.0  0.98  38.2
+2022  183  12835.0  1.13  37.7
+2023  100   -562.0  0.98  37.0
+2024   85  -7688.0  0.82  31.8
+2025  102  61565.0  2.15  49.0
+2026   73   5060.0  1.12  43.8
+
+=== BOOK ib-ext10 + ob-ext10 ===
+ALL  n=1531 PF 1.13 $74,195 netDD 2.6 Sharpe 0.68
+TRAIN PF 1.04 $9,990   OOS PF 1.21 $64,205   ex-2025 $23,250   green 5/6
+        n      pnl    pf   win
+year                          
+2021  152    540.0  1.01  34.2
+2022  309   1492.0  1.01  34.3
+2023  306   7958.0  1.09  37.3
+2024  334 -11232.0  0.90  32.6
+2025  281  50945.0  1.43  42.0
+2026  149  24492.0  1.37  42.3
+
+=== BO only (all) ===
+ALL  n=1307 PF 1.15 $73,928 netDD 2.4 Sharpe 0.77
+TRAIN PF 1.05 $12,292   OOS PF 1.24 $61,635   ex-2025 $23,235   green 4/6
+        n      pnl    pf   win
+year                          
+2021  128   5185.0  1.17  35.9
+2022  273  -2602.0  0.98  35.2
+2023  258   9710.0  1.13  37.6
+2024  279 -16432.0  0.83  32.6
+2025  244  50692.0  1.48  41.4
+2026  125  27375.0  1.56  46.4
+
+exported 2412 book signals -> c:\Users\Admin\myquant\research\revsim\revft_book_signals.csv
+exported 8099 all strong-FT signals -> revft_all_signals.csv
+DONE_BOOK

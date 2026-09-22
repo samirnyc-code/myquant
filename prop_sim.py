@@ -253,6 +253,10 @@ def _run_prop_sim(trades: pd.DataFrame, cfg: dict, buffer: float) -> dict:
     restart = cfg["restart_after_blowup"]
     floor = start + max(0.0, buffer)
 
+    dd_static_eod = cfg.get("dd_static_eod", False)
+    eod_peak = start                       # running max of END-OF-DAY equity (static-EOD mode)
+    static_locked = False                  # True once an EOD close has reached start+tdd
+
     cum_net = 0.0
     withdrawn = 0.0
     peak_equity = start
@@ -342,6 +346,21 @@ def _run_prop_sim(trades: pd.DataFrame, cfg: dict, buffer: float) -> dict:
         if trade_date != current_date:
             if current_date is not None:
                 period_day_pnls.append(day_pnl)
+                # STATIC-EOD DD: settle the prior day's close against the fixed floor
+                if dd_static_eod and tdd > 0 and not blown:
+                    eod_eq = start + cum_net
+                    eod_peak = max(eod_peak, eod_eq)
+                    if eod_peak >= start + tdd:
+                        static_locked = True
+                    floor_lvl = start if static_locked else start - tdd
+                    if eod_eq <= floor_lvl:
+                        blown = True
+                        blown_date = current_date
+                        reset_count += 1
+                        reset_total += reset_fee
+                        if restart:
+                            cum_net = 0.0; withdrawn = 0.0; peak_equity = start
+                            eod_peak = start; static_locked = False; blown = False
             current_date = trade_date
             trading_days += 1
             day_pnl = 0.0
@@ -439,7 +458,7 @@ def _run_prop_sim(trades: pd.DataFrame, cfg: dict, buffer: float) -> dict:
         if max_daily_loss > 0 and day_pnl <= -max_daily_loss:
             day_breached = True
 
-        if tdd > 0 and trailing_dd <= -tdd:
+        if tdd > 0 and not dd_static_eod and trailing_dd <= -tdd:
             blown = True
             blown_date = trade_date
             reset_count += 1
@@ -450,6 +469,8 @@ def _run_prop_sim(trades: pd.DataFrame, cfg: dict, buffer: float) -> dict:
                 cum_net = 0.0
                 withdrawn = 0.0
                 peak_equity = start
+                eod_peak = start
+                static_locked = False
                 blown = False
                 day_breached = True   # no more trades this day after a reset
 
@@ -474,6 +495,17 @@ def _run_prop_sim(trades: pd.DataFrame, cfg: dict, buffer: float) -> dict:
             "R_achieved": t.get("R_achieved", np.nan),
             "RiskPts": t.get("RiskPts", np.nan),
         })
+
+    # STATIC-EOD DD: settle the FINAL day's close against the fixed floor
+    if dd_static_eod and tdd > 0 and not blown and current_date is not None:
+        eod_eq = start + cum_net
+        eod_peak = max(eod_peak, eod_eq)
+        if eod_peak >= start + tdd:
+            static_locked = True
+        floor_lvl = start if static_locked else start - tdd
+        if eod_eq <= floor_lvl:
+            blown = True
+            blown_date = current_date
 
     # Final settle (last partial month)
     if current_date is not None:
@@ -599,10 +631,16 @@ def show_prop_sim_tab():
     cc1, cc2, cc3 = st.columns(3)
     direction_filter = cc1.radio("Direction", ["Both", "Long", "Short"],
                                  horizontal=True, key="ps_dir")
-    dd_lock_at_start = cc2.checkbox(
-        "Lock DD at starting balance", value=True, key="ps_dd_lock",
-        help="Trailing DD stops trailing once the threshold reaches the starting "
-             "balance, then locks there. Off = trails indefinitely.")
+    dd_model = cc2.selectbox(
+        "Drawdown model",
+        ["Static (start−DD), lock at BE, EOD", "Trailing, lock at BE", "Trailing (peak−DD)"],
+        index=0, key="ps_dd_model",
+        help="Static: floor is FIXED at start−DD (does NOT trail the peak); once you "
+             "bank +DD it locks at breakeven; blow is checked END-OF-DAY only (matches "
+             "the real prop account). Trailing lock-at-BE: floor trails peak−DD until it "
+             "reaches BE then locks. Trailing: floor = peak−DD forever.")
+    dd_static_eod = dd_model.startswith("Static")
+    dd_lock_at_start = dd_model == "Trailing, lock at BE"
     count_per_dir = cc3.checkbox(
         "Max trades per direction", value=False, key="ps_per_dir",
         help="Max trades counted per direction (N longs + N shorts).")
@@ -694,6 +732,7 @@ def show_prop_sim_tab():
             "max_daily_loss": max_daily_loss,
             "max_trailing_dd": max_trailing_dd,
             "dd_lock_at_start": dd_lock_at_start,
+            "dd_static_eod": dd_static_eod,
             "base_contracts": base_contracts,
             "scale_interval": scale_interval,
             "max_contracts": max_contracts,

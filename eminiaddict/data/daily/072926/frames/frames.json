@@ -1,0 +1,128 @@
+[
+ {
+  "topic": "CL",
+  "sec": 25,
+  "blue": 0,
+  "file": "00_CL.png",
+  "instrument": null,
+  "tf": "",
+  "header": "="
+ },
+ {
+  "topic": "GC",
+  "sec": 141,
+  "blue": 0,
+  "file": "01_GC.png",
+  "instrument": null,
+  "tf": "",
+  "header": ""
+ },
+ {
+  "topic": "SI",
+  "sec": 181,
+  "blue": 0,
+  "file": "02_SI.png",
+  "instrument": "DXY",
+  "tf": "",
+  "header": "$DXY Max M D: 6/1/25 |0:99.408 H: 99.421 | L: 9\u20ac"
+ },
+ {
+  "topic": "DXY",
+  "sec": 186,
+  "blue": 0,
+  "file": "03_DXY.png",
+  "instrument": "DXY",
+  "tf": "",
+  "header": "$DXY Max 1D D: 3/19/27 Y: 109.083 MovAvgExp"
+ },
+ {
+  "topic": "6E",
+  "sec": 230,
+  "blue": 0,
+  "file": "04_6E.png",
+  "instrument": "6E",
+  "tf": "4h",
+  "header": "EUR/USD (MARK) 360 D 4h | D: 7/28/26 9:00 PM | O"
+ },
+ {
+  "topic": "VIX",
+  "sec": 370,
+  "blue": 0,
+  "file": "05_VIX.png",
+  "instrument": null,
+  "tf": "4h",
+  "header": "VX 360 D 4h \u2014D: 8/21/26 12:55 PMY: 28.66 | MovA"
+ },
+ {
+  "topic": "ES",
+  "sec": 569,
+  "blue": 0,
+  "file": "06_ES.png",
+  "instrument": "ES",
+  "tf": "12h",
+  "header": "/ES 180 D 12h \u2014D: 7/23/26 1:00 AM | 0: 7527.5 H: 75"
+ },
+ {
+  "topic": "NQ",
+  "sec": 804,
+  "blue": 0,
+  "file": "07_NQ.png",
+  "instrument": "NQ",
+  "tf": "12h",
+  "header": "JNQ 180 D 12h D: 8/5/26 5:15 AM | Y: 29583 MovA"
+ },
+ {
+  "topic": "ES-tf2",
+  "sec": 823,
+  "blue": 0,
+  "file": "08_ES-tf2.png",
+  "instrument": "NQ",
+  "tf": "",
+  "header": "/NQ 180 D th D: 7/28/26 10:00 PM | O: 27785 H:2"
+ },
+ {
+  "topic": "YM",
+  "sec": 905,
+  "blue": 0,
+  "file": "09_YM.png",
+  "instrument": null,
+  "tf": "",
+  "header": "\u2018YM 360 D 4h_D: 7/30/26 5:00 AMY: 52205 | MovA"
+ },
+ {
+  "topic": "RTY",
+  "sec": 967,
+  "blue": 0,
+  "file": "10_RTY.png",
+  "instrument": "RTY",
+  "tf": "12h",
+  "header": "/RTY 180 D 12h | D: 7/29/26 1:00 AM | O: 2957 | H: 2\u00b0"
+ },
+ {
+  "topic": "BTC",
+  "sec": 1028,
+  "blue": 0,
+  "file": "11_BTC.png",
+  "instrument": "BTC",
+  "tf": "",
+  "header": "/BTC 180 D th | D: 7/29/26 7:00 AM 0: 64505 | H: 64"
+ },
+ {
+  "topic": "ETH",
+  "sec": 1028,
+  "blue": 0,
+  "file": "12_ETH.png",
+  "instrument": "BTC",
+  "tf": "",
+  "header": "/BTC 180 D th | D: 7/29/26 7:00 AM 0: 64505 | H: 64"
+ },
+ {
+  "topic": "6J",
+  "sec": 1195,
+  "blue": 0,
+  "file": "13_6J.png",
+  "instrument": "6J",
+  "tf": "1h",
+  "header": "USD/JPY (MARK) 180 D 1h From price: 157.44> Te"
+ }
+]

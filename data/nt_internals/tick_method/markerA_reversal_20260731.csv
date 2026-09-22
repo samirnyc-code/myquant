@@ -1,0 +1,9 @@
+marker,target,n_bars,p_near,base_rate,lift
+TICK >= +800,swing H,2540,0.359,0.292,1.23
+TICK >= +1000,swing H,482,0.376,0.292,1.29
+confirm HI (tick+px new-high together),swing H,3053,0.336,0.292,1.15
+TICK <= -800,swing L,4153,0.38,0.292,1.3
+TICK <= -1000,swing L,717,0.381,0.292,1.3
+confirm LO (tick+px new-low together),swing L,3645,0.38,0.292,1.3
+bull_div active (expect LOW: continuation),swing H,10419,0.418,0.292,1.43
+bear_div active (expect LOW: continuation),swing L,7526,0.449,0.292,1.54

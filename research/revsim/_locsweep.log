@@ -1,0 +1,35 @@
+15444 port signals with location features
+26 configs, loop days once...
+                        cfg  tr_n  tr_pnl  tr_pf  tr_win  tr_dd  oo_n  oo_pnl  oo_pf  oo_win  oo_dd  both_pos
+       ALL|eod|loc0.5|below   676  -17818   0.92    27.4 -40152   448   64360   1.33    32.6 -30368     False
+             ALL|eod|loc0.5  1432  -54498   0.87    25.8 -73805  1381   57982   1.13    28.0 -53055     False
+             ALL|eod|loc1.0  1531     120   1.00    32.6 -38262  1465   22825   1.04    32.6 -47220      True
+        IB|eod|loc.33|fresh    88  -13478   0.37    17.0 -13875    64   15055   2.19    25.0  -3285     False
+      ALL|eod|loc0.33|below   564   -8420   0.95    27.0 -17432   388   12710   1.08    30.4 -18950     False
+      ALL|eod|loc0.33|fresh   744  -56195   0.73    21.9 -56060   675   12412   1.06    25.8 -17348     False
+       ALL|eod|fresh|loc.33   744  -56195   0.73    21.9 -56060   675   12412   1.06    25.8 -17348     False
+     BO+IB|eod|loc.33|fresh    93  -15340   0.34    16.1 -15738    74   11692   1.73    21.6  -3770     False
+              IB|eod|loc.33   324  -16082   0.81    23.8 -24158   347    5315   1.06    25.4 -16612     False
+ ALL|eod|loc.33|fresh|SHORT   442  -34810   0.69    20.8 -40215   403    4572   1.04    23.3 -15750     False
+      Trap|eod|loc.33|fresh   556  -45718   0.71    20.9 -45588   535    1525   1.01    25.0 -18578     False
+             ALL|eod|loc0.2   680  -15050   0.91    25.0 -30175   633    1310   1.01    25.8 -18012     False
+  ALL|eod|loc.33|fresh|LONG   359  -27958   0.74    24.0 -28032   308    -478   1.00    28.2 -20358     False
+              OB|eod|loc.33   217   -6522   0.89    30.9 -11400   196   -1580   0.97    35.2 -18102     False
+              BO|eod|loc.33   255   -6250   0.91    32.5 -16770   262   -2535   0.97    33.2 -16238     False
+        BO|eod|loc.33|fresh     5   -1862   0.00     0.0  -1445    10   -3362   0.00     0.0  -3070     False
+BO+IB|eod|loc.5|fresh|below    48   -7378   0.56    12.5 -13945    12   -4548   0.00     0.0  -4292     False
+       ALL|eod|loc0.5|fresh   947  -86148   0.68    22.5 -89538   892   -5022   0.98    24.9 -39905     False
+            ALL|eod|loc0.33  1193  -50340   0.85    24.9 -54670  1155   -5450   0.98    27.2 -33302     False
+        OB|eod|loc.33|fresh   142   -1798   0.96    30.3  -9565   102   -9285   0.73    34.3 -17052     False
+            Trap|eod|loc.33   698  -40315   0.79    22.5 -40595   690  -17912   0.91    24.6 -34485     False
+    ALL|rr2.0|loc0.33|fresh   819  -59995   0.70    30.8 -60060   719  -33770   0.83    32.8 -37830     False
+    ALL|rr1.5|loc0.33|fresh   824  -61851   0.68    35.3 -62182   730  -36881   0.80    37.5 -39801     False
+              ALL|eod|fresh  1237  -50672   0.86    26.7 -64710  1233  -41252   0.90    27.0 -64860     False
+     ALL|rr1.5|loc0.5|fresh  1128  -66990   0.75    36.3 -68014  1043  -67140   0.77    37.5 -71724     False
+     ALL|rr2.0|loc0.5|fresh  1096  -71918   0.74    31.5 -73022  1013  -72152   0.77    32.3 -76620     False
+
+*** BOTH-HALVES POSITIVE (robust candidates) ***
+           cfg  tr_n  tr_pnl  tr_pf  tr_win  tr_dd  oo_n  oo_pnl  oo_pf  oo_win  oo_dd  both_pos
+ALL|eod|loc1.0  1531     120    1.0    32.6 -38262  1465   22825   1.04    32.6 -47220      True
+
+DONE_LOC

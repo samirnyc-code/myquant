@@ -1,0 +1,8 @@
+ 1yr COLOR-SKIP n= 343  {'stop': 257, 'target': 66, 'open': 20}  total  -294.50 pt (  -46.7R)  avg -0.859 pt/trade (-0.136R)
+ 1yr COLOR-SAR  n= 584  {'stop': 260, 'rev': 221, 'target': 84, 'open': 19}  total   +92.00 pt (  +22.3R)  avg +0.158 pt/trade (+0.038R)
+ 1yr   IBS-SKIP n= 309  {'stop': 222, 'target': 71, 'open': 16}  total  -116.75 pt (   -0.4R)  avg -0.378 pt/trade (-0.001R)
+ 1yr   IBS-SAR  n= 520  {'stop': 237, 'rev': 190, 'target': 77, 'open': 16}  total  +100.75 pt (  +25.9R)  avg +0.194 pt/trade (+0.050R)
+full COLOR-SKIP n=1801  {'stop': 1325, 'target': 395, 'open': 81}  total  -288.00 pt (  -85.3R)  avg -0.160 pt/trade (-0.047R)
+full COLOR-SAR  n=3024  {'stop': 1416, 'rev': 1107, 'target': 423, 'open': 78}  total  +374.75 pt (  +28.7R)  avg +0.124 pt/trade (+0.009R)
+full   IBS-SKIP n=1746  {'stop': 1258, 'target': 420, 'open': 68}  total  +270.75 pt (  +45.6R)  avg +0.155 pt/trade (+0.026R)
+full   IBS-SAR  n=2715  {'stop': 1303, 'rev': 928, 'target': 419, 'open': 65}  total  +814.00 pt ( +131.7R)  avg +0.300 pt/trade (+0.049R)

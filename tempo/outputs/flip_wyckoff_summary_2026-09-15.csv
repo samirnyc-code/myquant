@@ -1,0 +1,6 @@
+feature,expect,favored,train_edge_$,test_edge_$,verdict
+sb_vol_rel,low,T1(low),79.4,29.7,BLESS
+sb_tempo_rel,low,T1(low),-14.5,-5.0,reject
+sb_rpe,high,T3(high),86.3,41.1,BLESS
+sb_tpct,low,T1(low),35.0,-46.7,reject
+trap_absorb,high,T3(high),-39.1,-10.6,reject

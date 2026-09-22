@@ -53,6 +53,8 @@ QUOTA = 20_000
 # canonical -> (orats_ticker, mq_date_key, kind, ~rows/day, note)
 INSTRUMENTS = {
     "SPX":   ("SPX",   "SPX",   "index",       14600, "clean - SPX index options ARE the S&P basket"),
+    "XSP":   ("XSP",   "XSP",   "index",        4000, "Mini-SPX (1/10 SPX) — small-size vehicle, data to 2007"),
+    "VIX":   ("VIX",   "VIX",   "index",         400, "VIX options — vol/tail-hedge strategies, data to 2007"),
     "AAPL":  ("AAPL",  "AAPL",  "equity",       1800, "clean (validated)"),
     "AMZN":  ("AMZN",  "AMZN",  "equity",       2200, "clean"),
     "GOOGL": ("GOOGL", "GOOGL", "equity",       2000, "clean"),

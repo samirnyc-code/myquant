@@ -31,8 +31,8 @@ REGISTRY = ROOT / "catalog.yaml"
 MANIFEST = ROOT / "data" / "_catalog" / "manifest.json"
 PY = ROOT / ".venv" / "Scripts" / "python.exe"
 
-CATEGORY_ORDER = ["Raw vendor", "Ticks", "Bars/continuous", "MenthorQ",
-                  "Options desk", "Research/WFA", "Educational", "Misc"]
+CATEGORY_ORDER = ["Raw vendor", "Ticks", "Bars/continuous", "Order flow", "MenthorQ",
+                  "Intel", "Options desk", "Research/WFA", "Educational", "Misc"]
 
 _scan_lock = threading.Lock()
 _scan_state = {"running": False, "log": "", "at": None}
@@ -86,6 +86,7 @@ def load_registry():
         f.setdefault("paths", [])
         f["expected_freshness_days"] = _int(f.get("expected_freshness_days"), 999)
         f["count_rows"] = str(f.get("count_rows", "")).lower() == "true"
+        f["optional"] = str(f.get("optional", "")).lower() == "true"
     return fams
 
 
@@ -147,6 +148,11 @@ def health(fam, agg):
     """Verdict for a family: ok / stale / missing / empty, plus reasons."""
     reasons = []
     if not agg["exists_any"]:
+        # a family flagged `optional: true` is data we INTENTIONALLY removed (e.g. the
+        # ~81GB vendor flat files deleted to free disk, rebuildable on demand) — that is
+        # "offline" (grey), not "missing" (red alarm). 2026-07-21.
+        if fam.get("optional"):
+            return "offline", ["intentionally offline — deleted to free disk; rebuildable (see gotchas)"]
         return "missing", ["no registered path exists on disk"]
     if agg["n"] == 0:
         return "empty", ["path(s) exist but contain no files"]
@@ -260,7 +266,7 @@ def build_view():
     total = manifest.get("total_size", 0) or 1
     cats = {}
     worst = {"health": "ok", "key": None, "reasons": []}
-    rank = {"missing": 3, "empty": 2, "stale": 1, "ok": 0}
+    rank = {"missing": 3, "empty": 2, "stale": 1, "ok": 0, "offline": 0}
     for f in fams:
         m = mfam.get(f["key"], {})
         size = m.get("size", 0)
@@ -336,7 +342,7 @@ class Handler(BaseHTTPRequestHandler):
 # ------------------------------------------------------------------------- HTML
 HTML = r"""<!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Data Catalog</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>"><title>Data Catalog</title>
 <style>
 :root{--surface:#fcfcfb;--plane:#f9f9f7;--ink:#0b0b0b;--ink2:#52514e;--muted:#898781;
   --grid:#e1e0d9;--border:rgba(11,11,11,.10);--pos:#2a78d6;--card:#fff;
@@ -402,7 +408,7 @@ details summary{cursor:pointer;font-size:12px;color:var(--muted);user-select:non
   <div id="cats"></div>
 </div>
 <script>
-const HB={ok:'--good',stale:'--warn',empty:'--warn',missing:'--bad',unknown:'--muted'};
+const HB={ok:'--good',stale:'--warn',empty:'--warn',missing:'--bad',offline:'--muted',unknown:'--muted'};
 const css=k=>getComputedStyle(document.documentElement).getPropertyValue(k).trim();
 const gb=b=>b>=1e9?(b/1e9).toFixed(b>=1e10?0:2)+' GB':b>=1e6?(b/1e6).toFixed(1)+' MB':b>=1e3?(b/1e3).toFixed(0)+' KB':b+' B';
 const nfmt=n=>n.toLocaleString('en-US');

@@ -1,0 +1,297 @@
+{
+  "pulled_ct": "2026-09-15T20:08:19",
+  "spot": 757.06,
+  "spot_data": "DELAYED",
+  "atm": 757.0,
+  "exp0": "20260916",
+  "exp_wk": "20260922",
+  "quotes": {
+    "20260916:753.0C": {
+      "exp": "20260916",
+      "strike": 753.0,
+      "right": "C",
+      "bid": 6.12,
+      "ask": 6.16,
+      "last": 6.06,
+      "mid": 6.14,
+      "two_sided": true,
+      "mdt": "REALTIME"
+    },
+    "20260916:753.0P": {
+      "exp": "20260916",
+      "strike": 753.0,
+      "right": "P",
+      "bid": 1.53,
+      "ask": 1.54,
+      "last": 1.53,
+      "mid": 1.54,
+      "two_sided": true,
+      "mdt": "REALTIME"
+    },
+    "20260916:754.0C": {
+      "exp": "20260916",
+      "strike": 754.0,
+      "right": "C",
+      "bid": 5.39,
+      "ask": 5.42,
+      "last": 5.44,
+      "mid": 5.4,
+      "two_sided": true,
+      "mdt": "REALTIME"
+    },
+    "20260916:754.0P": {
+      "exp": "20260916",
+      "strike": 754.0,
+      "right": "P",
+      "bid": 1.79,
+      "ask": 1.8,
+      "last": 1.78,
+      "mid": 1.79,
+      "two_sided": true,
+      "mdt": "REALTIME"
+    },
+    "20260916:755.0C": {
+      "exp": "20260916",
+      "strike": 755.0,
+      "right": "C",
+      "bid": 4.7,
+      "ask": 4.72,
+      "last": 4.73,
+      "mid": 4.71,
+      "two_sided": true,
+      "mdt": "REALTIME"
+    },
+    "20260916:755.0P": {
+      "exp": "20260916",
+      "strike": 755.0,
+      "right": "P",
+      "bid": 2.1,
+      "ask": 2.11,
+      "last": 2.09,
+      "mid": 2.1,
+      "two_sided": true,
+      "mdt": "REALTIME"
+    },
+    "20260916:756.0C": {
+      "exp": "20260916",
+      "strike": 756.0,
+      "right": "C",
+      "bid": 4.05,
+      "ask": 4.06,
+      "last": 4.06,
+      "mid": 4.05,
+      "two_sided": true,
+      "mdt": "REALTIME"
+    },
+    "20260916:756.0P": {
+      "exp": "20260916",
+      "strike": 756.0,
+      "right": "P",
+      "bid": 2.45,
+      "ask": 2.46,
+      "last": 2.45,
+      "mid": 2.46,
+      "two_sided": true,
+      "mdt": "REALTIME"
+    },
+    "20260916:757.0C": {
+      "exp": "20260916",
+      "strike": 757.0,
+      "right": "C",
+      "bid": 3.45,
+      "ask": 3.46,
+      "last": 3.46,
+      "mid": 3.46,
+      "two_sided": true,
+      "mdt": "REALTIME"
+    },
+    "20260916:757.0P": {
+      "exp": "20260916",
+      "strike": 757.0,
+      "right": "P",
+      "bid": 2.85,
+      "ask": 2.86,
+      "last": 2.83,
+      "mid": 2.85,
+      "two_sided": true,
+      "mdt": "REALTIME"
+    },
+    "20260916:758.0C": {
+      "exp": "20260916",
+      "strike": 758.0,
+      "right": "C",
+      "bid": 2.89,
+      "ask": 2.91,
+      "last": 2.91,
+      "mid": 2.9,
+      "two_sided": true,
+      "mdt": "REALTIME"
+    },
+    "20260916:758.0P": {
+      "exp": "20260916",
+      "strike": 758.0,
+      "right": "P",
+      "bid": 3.29,
+      "ask": 3.3,
+      "last": 3.28,
+      "mid": 3.29,
+      "two_sided": true,
+      "mdt": "REALTIME"
+    },
+    "20260916:759.0C": {
+      "exp": "20260916",
+      "strike": 759.0,
+      "right": "C",
+      "bid": 2.39,
+      "ask": 2.4,
+      "last": 2.39,
+      "mid": 2.4,
+      "two_sided": true,
+      "mdt": "REALTIME"
+    },
+    "20260916:759.0P": {
+      "exp": "20260916",
+      "strike": 759.0,
+      "right": "P",
+      "bid": 3.79,
+      "ask": 3.8,
+      "last": 3.78,
+      "mid": 3.79,
+      "two_sided": true,
+      "mdt": "REALTIME"
+    },
+    "20260916:760.0C": {
+      "exp": "20260916",
+      "strike": 760.0,
+      "right": "C",
+      "bid": 1.95,
+      "ask": 1.96,
+      "last": 1.96,
+      "mid": 1.96,
+      "two_sided": true,
+      "mdt": "REALTIME"
+    },
+    "20260916:760.0P": {
+      "exp": "20260916",
+      "strike": 760.0,
+      "right": "P",
+      "bid": 4.34,
+      "ask": 4.35,
+      "last": 4.33,
+      "mid": 4.34,
+      "two_sided": true,
+      "mdt": "REALTIME"
+    },
+    "20260916:761.0C": {
+      "exp": "20260916",
+      "strike": 761.0,
+      "right": "C",
+      "bid": 1.55,
+      "ask": 1.56,
+      "last": 1.57,
+      "mid": 1.56,
+      "two_sided": true,
+      "mdt": "REALTIME"
+    },
+    "20260916:761.0P": {
+      "exp": "20260916",
+      "strike": 761.0,
+      "right": "P",
+      "bid": 4.94,
+      "ask": 4.97,
+      "last": 4.93,
+      "mid": 4.96,
+      "two_sided": true,
+      "mdt": "REALTIME"
+    },
+    "20260922:757.0C": {
+      "exp": "20260922",
+      "strike": 757.0,
+      "right": "C",
+      "bid": 5.59,
+      "ask": 5.7,
+      "last": 5.62,
+      "mid": 5.64,
+      "two_sided": true,
+      "mdt": "REALTIME"
+    },
+    "20260922:758.0C": {
+      "exp": "20260922",
+      "strike": 758.0,
+      "right": "C",
+      "bid": 5.03,
+      "ask": 5.1,
+      "last": 5.09,
+      "mid": 5.06,
+      "two_sided": true,
+      "mdt": "REALTIME"
+    },
+    "20260922:759.0C": {
+      "exp": "20260922",
+      "strike": 759.0,
+      "right": "C",
+      "bid": 4.5,
+      "ask": 4.57,
+      "last": 4.53,
+      "mid": 4.54,
+      "two_sided": true,
+      "mdt": "REALTIME"
+    },
+    "20260922:760.0C": {
+      "exp": "20260922",
+      "strike": 760.0,
+      "right": "C",
+      "bid": 3.99,
+      "ask": 4.06,
+      "last": 4.0,
+      "mid": 4.03,
+      "two_sided": true,
+      "mdt": "REALTIME"
+    }
+  },
+  "structures": [
+    {
+      "name": "#1 Long call ~1 OTM",
+      "legs": [
+        "BUY 758.0C 20260916"
+      ],
+      "debit_$": 290.0,
+      "max_risk_$": 290.0,
+      "note": "uncapped up; zeros fast if bounce stalls",
+      "fits_300": true
+    },
+    {
+      "name": "#2 Call debit spread ATM/+2",
+      "legs": [
+        "BUY 757.0C",
+        "SELL 759.0C"
+      ],
+      "debit_$": 106.0,
+      "max_risk_$": 106.0,
+      "max_val_$": 200,
+      "max_profit_$": 94.0,
+      "fits_300": true
+    },
+    {
+      "name": "#3 Put credit spread -1/-3",
+      "legs": [
+        "SELL 756.0P",
+        "BUY 754.0P"
+      ],
+      "credit_$": 67.0,
+      "max_risk_$": 133.0,
+      "note": "wins if SPY holds/bounces/chops up",
+      "fits_300": true
+    },
+    {
+      "name": "#4 Long ATM call ~1wk",
+      "legs": [
+        "BUY 757.0C 20260922"
+      ],
+      "debit_$": 564.0,
+      "max_risk_$": 564.0,
+      "note": "more time for mean-reversion",
+      "fits_300": false
+    }
+  ]
+}

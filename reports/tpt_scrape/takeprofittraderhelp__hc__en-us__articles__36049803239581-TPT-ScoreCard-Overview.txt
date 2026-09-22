@@ -1,0 +1,62 @@
+URL: https://takeprofittraderhelp.zendesk.com/hc/en-us/articles/36049803239581-TPT-ScoreCard-Overview
+TITLE: TPT ScoreCard Overview – TakeProfitTrader
+
+Skip to main content
+ Sign in
+TakeProfitTrader
+ The Control Center
+ The Main Aspects of The Control Center
+Articles in this section
+TPT ScoreCard Overview
+Navigating Your Subscriptions
+Finding Your Accounts
+Keeping Track of Your Progress
+Utilizing Your Wallet
+TPT ScoreCard Overview
+ Vlada
+4 months ago Updated
+
+The TPT ScoreCard is a free visual dashboard and detailed breakdown of the trading performance. It shows key metrics giving you a clear view of how you have traded over time. These metrics include: Risk Management, Position Sizing, Execution, Consistency and Performance. The goal is to help traders understand the patterns behind trading activity and identify what is helping or hurting performance.
+ 
+
+How the TPT ScoreCard helps you as a trader: 
+
+Individual Trader Roadmap: The TPT ScoreCard turns your trading data into a roadmap to become a better trader, helping shape how your trading decisions impact overall performance, not just short term results. 
+
+Tracks Patterns: It highlights patterns in your behavior across key areas like risk, execution, and consistency, so you can see what’s working and what’s holding you back. 
+
+Consistent Trading Habits: By focusing on these trends and patterns over time, you can make better decisions and build more consistent trading habits. The goal is to look at how your metrics are trending over time and how they combine to reflect your overall trading behavior.
+ 
+
+ScoreCard Features and Highlights:
+Logging into your TPT ScoreCard is simple, traders can log-in using your existing Take Profit Trader credentials.  Navigate to the Journey to Profit page and select the TPT ScoreCard link.
+The ScoreCard will populate with your trading data from all of your Take Profit Trader accounts (Test, PRO and PRO+). 
+You can filter out which accounts, products, and dates you want the dashboard to summarize. 
+You can further filter by Custom Tags if you decide to label your trades and have given them custom tags.
+The ScoreCard tracks a wide range of performance metrics:  Trade Summary, Daily and Monthly Stats, Expectancy, Win/Loss, P&L Distribution, Cumulative P&L, P&L, Median P&L vs. Day of Week, Full Trade History.  
+Metrics can be viewed in USD or ticks to standardize performance across different products and position sizes. 
+Your ScoreCard will update within seconds of any closed trade. Open trades do not show up on ScoreCard. Also, note that trades that are reversed are treated as 2 separate trades. 
+All fills will all be logged inside your ScoreCard allowing you to conveniently go back as far as you want and find details about any trade.
+
+The ScoreCard will provide a lifetime, historical view of all trading data at Take Profit Trader. Also, instead of going to different trading platforms to find your different fills, they will all be logged inside your ScoreCard allowing you to conveniently go back as far as you want and find details about any trade.
+
+
+
+
+Was this article helpful?
+Yes No
+1 out of 1 found this helpful
+Recently viewed articles
+Rule 6: No Counter Positions
+Rule 5: Be Consistent
+Rule 4: Trade Approved Products, During Approved Hours
+Rule 3: Do Not Hit End-Of-Day (EOD) Maximum Trailing Drawdown
+Rule 2: Do Not Exceed Maximum Position Size
+Related articles
+Navigating Your Subscriptions
+PRO Account Rules
+Utilizing Your Wallet
+How to Activate a PRO Account Using Credit
+Activating Your CQG Data Feed
+TakeProfitTrader
+English (United States) 

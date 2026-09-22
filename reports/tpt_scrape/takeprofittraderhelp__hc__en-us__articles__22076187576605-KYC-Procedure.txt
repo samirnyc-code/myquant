@@ -1,0 +1,90 @@
+URL: https://takeprofittraderhelp.zendesk.com/hc/en-us/articles/22076187576605-KYC-Procedure
+TITLE: KYC Procedure – TakeProfitTrader
+
+Skip to main content
+ Sign in
+TakeProfitTrader
+ Getting Started
+ Your First Steps
+Articles in this section
+Sustainable Trading Policy
+Registration Process
+Choosing Your Platform
+KYC Procedure
+KYB verification
+How to Purchase An Account
+Restricted Countries
+Reset Your Password
+KYC Procedure
+ Max
+10 months ago Updated
+Why KYC Is Required
+
+The KYC is a mandatory process used to verify a customer's identity. All new registrants at TakeProfitTrader must complete a KYC (Know Your Customer) verification before becoming fully verified customers. 
+
+This ensures compliance with legal and regulatory standards and helps protect account security. 
+
+Possible Verification Outcomes
+
+After you submit your KYC information, there are three possible paths:
+
+A. Successful Verification
+
+Your identity is verified quickly (usually within minutes)
+
+After completion, we will receive your personal details such as first and last name, phone number and full address 
+
+You’ll receive a confirmation email, and then you can continue with your trading journey. 
+
+B. Manual Review
+
+Sometimes your verification must be reviewed manually by a TakeProfitTrader admin. 
+
+This manual review is handled by a team that works 24/5, and usually happens in real time. 
+
+After review, there are three possible outcomes:
+
+Approved — You receive confirmation by email and move forward. 
+
+Approved but flagged — An admin will approve your verification, but some part of the KYC screening will fail again. You’ll see a “Try again” button to re-submit your information. 
+
+Rejected — Verification is denied, and you will be contacted via email with the reason. 
+
+C. Failed Verification
+
+If your KYC attempt fails, TakeProfitTrader will manually review your application.
+
+You will receive an email outlining the next steps.
+
+D. When to Contact Support
+
+In some cases, you may see an error message during the KYC process instructing you to contact support. When this happens:
+
+You should visit the Live Support Chat.
+
+The support team can forward your case to an admin to manually verify your identity.
+
+We will reach out to you via email with next steps. 
+
+ 
+
+
+ 
+
+Was this article helpful?
+Yes No
+41 out of 53 found this helpful
+Recently viewed articles
+Choosing Your Platform
+Registration Process
+Sustainable Trading Policy
+NOFEE30 PROMO FAQ
+Keeping Track of Your Progress
+Related articles
+Registration Process
+How to Purchase An Account
+Activating Your CQG Data Feed
+Payout System
+KYC Process: How to Enter a Phone Number from a Different Country
+TakeProfitTrader
+English (United States) 

@@ -1,0 +1,219 @@
+URL: https://apextraderfunding.com/help-center/rithmic/rithmic-commissions-instruments/
+TITLE: Rithmic Commissions & Instruments - Apex Trader Funding
+
+Skip to content
+ Support  Status
+
+ANY SIZE EVALS UP TO 90% OFF | USE CODE: COUPON “SAVENOW”
+
+COUPON "SAVENOW"
+Ends in: 8d 11h 49m 28s
+
+Apex Trader Funding
+
+Home
+About
+Status
+Products
+Helpdesk
+Testimonials
+Resources
+Log In
+Sign Up
+Home
+Help Center
+Platforms
+Rithmic
+HELP CENTER
+Search for:
+Rithmic Commissions & Instruments
+In this article
+Commissions For Rithmic
+How Commissions Are Deducted
+Adding Commissions To NinjaTrader
+Current Commission Schedule
+Rithmic Instrument List
+How To Check Available Instruments
+Commissions for Rithmic
+
+Welcome to the current commission schedule for both Evaluation and Paid/Funded Accounts. Our goal is to provide you with the lowest possible commissions to enhance your trading experience.
+
+How Commissions Are Deducted
+
+Please review the image below that shows the Rithmic Performance Tab and how commissions are deducted.Example: A trade is placed using 1 contract on NQ. The per side commission is $1.99. The trade is opened with 1 contract and closed with a second contract to flatten the position. Hence, 2 contracts multiplied by $1.99 commission = $3.98.
+
+On the Rithmic Performance Tab, the trade gross P&L is shown in green, and the commissions for the trade are added in orange. This results in a P&L of -$30, then deducting $3.98 in commissions, this equals a net P&L of -$33.98.
+
+As you execute trades, commissions are automatically deducted from your account balance. It’s important to note that: 
+
+Notice: NinjaTrader may not reflect commission balance adjustments unless you configure this setting. Please ensure you regularly check your balance in RTrader to maintain accurate records.
+
+Adding Commissions to NinjaTrader
+
+To integrate commissions into NinjaTrader when using Rithmic, please follow the steps outlined in the video below. For optimal results, we recommend using the “lifetime” template.
+
+ 
+
+ 
+Current Commission Schedule
+
+Below is the latest commission schedule applicable to your account:
+
+Name	Symbol	Exchange	Per Side 	Round Turn
+Equity Futures
+E-mini S&P 500 (ES)	ES	CME	1.99	3.98
+Nikkei NKD (NKD)	NKD	CME	1.99	3.98
+E-mini NASDAQ 100 (NQ)	NQ	CME	1.99	3.98
+Mini-DOW (YM)	YM	CBOT	1.99	3.98
+E-mini Midcap 400 (EMD)	EMD	CME	1.99	3.98
+Russell 2000 (RTY)	RTY	CME	1.99	3.98
+Currency Futures	 	 	 	 
+Australian Dollar (6A)	6A	CME	2.36	4.72
+British Pound (6B)	6B	CME	2.36	4.72
+Canadian Dollar (6C)	6C	CME	2.36	4.72
+Euro FX (6E)	6E	CME	2.36	4.72
+Japanese Yen (6J)	6J	CME	2.36	4.72
+Swiss Franc (6S)	6S	CME	2.36	4.72
+New Zealand Dollar (6N)	6N	CME	2.36	4.72
+Agricultural Futures	 	 	 	 
+Lean Hogs (HE)	HE	CME	2.79	5.58
+Live Cattle (LE)	LE	CME	2.79	5.58
+Feeder Cattle (GF)	GF	CME	2.79	5.58
+Corn (ZC)	ZC	CBOT	2.79	5.58
+Wheat (ZW)	ZW	CBOT	2.79	5.58
+Soybeans (ZS)	ZS	CBOT	2.79	5.58
+Soybean Meal (ZM)	ZM	CBOT	2.79	5.58
+Soybean Oil (ZL)	ZL	CBOT	2.79	5.58
+Energy Futures	 	 	 	 
+Crude Oil (CL)	CL	NYMEX	1.98	3.96
+Mini Crude Oil (QM)	QM	NYMEX	1.96	3.92
+Mini Crude Oil (MCL)	MCL	NYMEX	0.51	1.02
+Natural Gas (NG)	NG	NYMEX	1.98	3.96
+E-mini Natural Gas (QG)	QG	NYMEX	1.26	2.52
+Heating Oil (HO)	HO	NYMEX	1.98	3.96
+New York Harbor (RB)	RB	NYMEX	1.98	3.96
+Metal Futures				
+Gold (GC)	GC	COMEX	2.31	4.62
+Silver (SI)	SI	COMEX	2.31	4.62
+Copper (HG)	HG	COMEX	2.31	4.62
+Platinum (PL)	PL	NYMEX	2.31	4.62
+Palladium (PA)	PA	NYMEX	2.31	4.62
+Micro Futures	 	 	 	 
+Micro E-Mini S&P 500 (MES)	MES	CME	0.51	1.02
+Micro E-Mini Dow Jones (MYM)	MYM	CME	0.51	1.02
+Micro E-Mini Nasdaq-100 (MNQ)	MNQ	CME	0.51	1.02
+Micro E-Mini Russell 2000 (M2K)	M2K	CME	0.51	1.02
+Micro Silver	SIL	COMEX	0.76	1.52
+E-Micro Gold (MGC)	MGC	COMEX	0.76	1.52
+E-Micro AUD/USD (M6A)	M6A	CME	0.42	0.84
+E-Micro EUR/USD (M6E)	M6E	CME	0.42	0.84
+Micro Crude Oil (MCL)	MCL	NYMEX	0.51	1.02
+Cryptocurrency	 	 	 	 
+Micro Bitcoin Futures	MBT	CME	2.76	5.52
+Micro Ethereum Futures	MET	CME	0.46	0.92
+Rithmic Instrument List
+
+Explore the range of instruments available for trading below. Please be aware that attempting to place an order on a non-authorized instrument will result in a trade rejection without any penalties.
+
+How to Check Available Instruments
+
+1. Log in to your RTrader account.
+
+2. From the Trader Dashboard, click precisely on your account name.
+
+3. Left-click to select View Risk Parameters.
+
+4. A list of active products for your account will be displayed.
+
+If a necessary instrument is missing from your list, please submit a help desk ticket to request its addition.
+
+Equity Futures	 	 
+E-mini S&P 500 (ES)	ES	CME
+Nikkei NKD (NKD)	NKD	CME
+E-mini NASDAQ 100 (NQ)	NQ	CME
+Mini-DOW (YM)	YM	CBOT
+E-mini Midcap 400 (EMD)	EMD	CME
+Russell 2000 (RTY)	RTY	CME
+Currency Futures	 	 
+Australian Dollar (6A)	6A	CME
+British Pound (6B)	6B	CME
+Canadian Dollar (6C)	6C	CME
+Euro FX (6E)	6E	CME
+Japanese Yen (6J)	6J	CME
+Swiss Franc (6S)	6S	CME
+New Zealand Dollar (6N)	6N	CME
+Agricultural Futures	 	 
+Lean Hogs (HE)	HE	CME
+Live Cattle (LE)	LE	CME
+Feeder Cattle (GF)	GF	CME
+Corn (ZC)	ZC	CBOT
+Wheat (ZW)	ZW	CBOT
+Soybeans (ZS)	ZS	CBOT
+Soybean Meal (ZM)	ZM	CBOT
+Soybean Oil (ZL)	ZL	CBOT
+Energy Futures	 	 
+Crude Oil (CL)	CL	NYMEX
+Mini Crude Oil (QM)	QM	NYMEX
+Natural Gas (NG)	NG	NYMEX
+E-mini Natural Gas (QG)	QG	NYMEX
+Heating Oil (HO)	HO	NYMEX
+New York Harbor (RB)	RB	NYMEX
+Metal Futures		
+Gold (GC)	GC	COMEX
+Silver (SI)	SI	COMEX
+Copper (HG)	HG	COMEX
+Platinum (PL)	PL	COMEX
+Palladium (PA)	PA	COMEX
+Micro Futures	 	 
+Micro E-Mini S&P 500 (MES)	MES	CME
+Micro E-Mini Dow Jones (MYM)	MYM	CME
+Micro E-Mini Nasdaq-100 (MNQ)	MNQ	CME
+Micro E-Mini Russell 2000 (M2K)	M2K	CME
+Micro Silver	SIL	COMEX
+E-Micro Gold (MGC)	MGC	COMEX
+E-Micro AUD/USD (M6A)	M6A	CME
+E-Micro EUR/USD (M6E)	M6E	CME
+Micro Crude Oil (MCL)	MCL	NYMEX
+Cryptocurrencies	 	 
+Micro Bitcoin (note: do not trade mini BT as it is not supported)	MBT	CME
+Micro Ethereum (note: do not trade mini ET as it is not supported)	MET	CME
+
+ 
+
+We are committed to providing a seamless and cost-effective trading environment. If you have any questions or require further assistance, please don’t hesitate submit a help desk ticket.
+
+ 
+
+Can’t find what you’re looking for?
+
+Our team of experts is here to help
+
+Contact Us
+
+Apex Trader Funding Inc.
+2028 E. Ben White Blvd Ste 240-9873
+Austin, TX 78741
+
+Contact Support 24/7 Via Help Desk
+
+Policies
+Privacy Policy
+Cookie Policy
+Terms of Use
+Risk Disclosure
+Cookie Preferences
+Resources
+Coupon Code
+Payouts
+Restricted Countries
+Useful Links
+About Us
+Logos
+News
+
+RISK DISCLOSURE:
+
+Apex Trader Funding offers simulated trading programs for educational, informational, and evaluation purposes only. All activity occurs in a simulated environment using virtual funds; no real capital is at risk and no live market execution occurs. This is not an offer or solicitation to invest or trade in real financial markets. Trading carries substantial risk and is not suitable for everyone. Past performance, whether actual or simulated, does not guarantee future results. Apex does not provide investment advice and is not a broker-dealer, futures commission merchant, or financial advisor. Use of our services is subject to our User Agreement, Terms of Use, Privacy Policy, and Risk Disclosure. Participation does not create an employment relationship. Reward payouts are discretionary and subject to eligibility, compliance, and applicable tax laws. Services are intended for U.S. users only and are not offered where prohibited by local laws or regulations.
+
+2021-2026, Apex Trader Funding Inc. All Rights Reserved.
+💬 Need Help?

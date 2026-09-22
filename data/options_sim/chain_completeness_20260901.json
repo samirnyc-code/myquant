@@ -1,0 +1,12 @@
+{
+  "date": "20260901",
+  "cadence_s": 10,
+  "expected_snaps": 2370,
+  "actual_snaps": 2364,
+  "coverage_pct": 99.7,
+  "first_ct": "08:30:57",
+  "last_ct": "15:04:59",
+  "max_gap_s": 15,
+  "holes_over_2x": 0,
+  "complete": true
+}

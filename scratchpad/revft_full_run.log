@@ -1,0 +1,105 @@
+[200/1287] rows=575
+[400/1287] rows=1361
+[600/1287] rows=2072
+[800/1287] rows=2763
+[1000/1287] rows=3515
+[1200/1287] rows=4258
+
+saved C:\Users\Admin\myquant\data\regime\revft_regime_full_20260725.parquet  (4582 trades, 1204 days)
+
+====================================================================================================
+REGIME MIX  |  phase-machine: BULL 28%  BEAR 28%  NEUTRAL 44%   |  MQ gamma: pos 57%  neg 41%
+====================================================================================================
+
+### A. BASELINE (no gate)
+  all / n1r                      n= 4582  tot=$   -59,222  $/tr= -12.9  PF=0.94  win=49.4%
+  all / n2r                      n= 4582  tot=$   -29,610  $/tr=  -6.5  PF=0.98  win=37.0%
+  all / n3r                      n= 4582  tot=$   -19,898  $/tr=  -4.3  PF=0.98  win=32.9%
+  all / neod                     n= 4582  tot=$    -6,310  $/tr=  -1.4  PF=1.00  win=29.1%
+  all / w30eod                   n= 4582  tot=$     8,652  $/tr=   1.9  PF=1.01  win=43.1%
+
+### B. PHASE-MACHINE trend gate
+  WT with-trend / n1r            n=  723  tot=$    14,922  $/tr=  20.6  PF=1.10  win=50.8%
+  WT with-trend / neod           n=  723  tot=$     9,298  $/tr=  12.9  PF=1.05  win=32.5%
+  WT with-trend / w30eod         n=  723  tot=$    17,310  $/tr=  23.9  PF=1.07  win=45.1%
+  WT with-trend / w20eod         n=  723  tot=$    13,210  $/tr=  18.3  PF=1.06  win=39.3%
+  WT with-trend / w50eod         n=  723  tot=$    41,598  $/tr=  57.5  PF=1.16  win=50.2%
+
+  CT counter-trend / n1r         n= 1840  tot=$   -54,050  $/tr= -29.4  PF=0.84  win=48.9%
+  CT counter-trend / neod        n= 1840  tot=$   -94,688  $/tr= -51.5  PF=0.80  win=23.4%
+  CT counter-trend / w30eod      n= 1840  tot=$  -114,862  $/tr= -62.4  PF=0.84  win=41.3%
+  CT counter-trend / w20eod      n= 1840  tot=$  -111,075  $/tr= -60.4  PF=0.82  win=34.5%
+  CT counter-trend / w50eod      n= 1840  tot=$  -113,375  $/tr= -61.6  PF=0.85  win=45.7%
+
+  NEUTRAL / n1r                  n= 2019  tot=$   -20,095  $/tr= -10.0  PF=0.96  win=49.4%
+  NEUTRAL / neod                 n= 2019  tot=$    79,080  $/tr=  39.2  PF=1.12  win=33.1%
+  NEUTRAL / w30eod               n= 2019  tot=$   106,205  $/tr=  52.6  PF=1.14  win=44.0%
+  NEUTRAL / w20eod               n= 2019  tot=$    81,718  $/tr=  40.5  PF=1.12  win=37.7%
+  NEUTRAL / w50eod               n= 2019  tot=$   114,255  $/tr=  56.6  PF=1.14  win=48.5%
+
+### C. MQ GAMMA gate (reversal thesis: fades work in positive_gamma)
+  POS gamma / all / n1r          n= 2615  tot=$   -52,975  $/tr= -20.3  PF=0.88  win=48.6%
+  POS gamma / all / neod         n= 2615  tot=$   -81,662  $/tr= -31.2  PF=0.86  win=27.4%
+  POS gamma / all / w30eod       n= 2615  tot=$   -66,738  $/tr= -25.5  PF=0.92  win=43.1%
+
+  NEG gamma / all / n1r          n= 1896  tot=$    -5,480  $/tr=  -2.9  PF=0.99  win=50.5%
+  NEG gamma / all / neod         n= 1896  tot=$    71,482  $/tr=  37.7  PF=1.10  win=31.1%
+  NEG gamma / all / w30eod       n= 1896  tot=$    77,895  $/tr=  41.1  PF=1.09  win=43.1%
+
+  POS gamma / WT / n1r           n=  434  tot=$       168  $/tr=   0.4  PF=1.00  win=50.0%
+  POS gamma / WT / neod          n=  434  tot=$    -9,045  $/tr= -20.8  PF=0.90  win=31.8%
+  POS gamma / WT / w30eod        n=  434  tot=$     1,555  $/tr=   3.6  PF=1.01  win=47.0%
+
+  POS gamma / CT / n1r           n= 1094  tot=$   -29,945  $/tr= -27.4  PF=0.82  win=48.3%
+  POS gamma / CT / neod          n= 1094  tot=$   -58,208  $/tr= -53.2  PF=0.75  win=22.1%
+  POS gamma / CT / w30eod        n= 1094  tot=$   -50,145  $/tr= -45.8  PF=0.86  win=42.3%
+
+  NEG gamma / WT / n1r           n=  278  tot=$    16,022  $/tr=  57.6  PF=1.22  win=51.8%
+  NEG gamma / WT / neod          n=  278  tot=$    19,572  $/tr=  70.4  PF=1.20  win=33.8%
+  NEG gamma / WT / w30eod        n=  278  tot=$    18,498  $/tr=  66.5  PF=1.14  win=42.8%
+
+  NEG gamma / CT / n1r           n=  725  tot=$   -25,175  $/tr= -34.7  PF=0.86  win=49.2%
+  NEG gamma / CT / neod          n=  725  tot=$   -40,075  $/tr= -55.3  PF=0.83  win=24.6%
+  NEG gamma / CT / w30eod        n=  725  tot=$   -66,800  $/tr= -92.1  PF=0.81  win=39.4%
+
+### D. SETUP TYPE x with-trend (note 0013 flagged BO/IB)
+  BO / WT / neod                 n=  118  tot=$    -3,478  $/tr= -29.5  PF=0.90  win=34.7%
+  IB / WT / neod                 n=  123  tot=$     2,748  $/tr=  22.3  PF=1.09  win=34.1%
+  OB / WT / neod                 n=  138  tot=$    -3,028  $/tr= -21.9  PF=0.93  win=37.7%
+  Trap / WT / neod               n=  344  tot=$    13,055  $/tr=  38.0  PF=1.16  win=29.1%
+
+### E. best-looking books — train/holdout + year + bootstrap CI
+
+  WT / neod:  ALL n=  723  tot=$     9,298  $/tr=  12.9  PF=1.05  win=32.5%  95%CI$/tr[-49.9,75.2]
+     train n=  359  tot=$    -4,308  $/tr= -12.0  PF=0.95  win=31.5%
+     holdo n=  364  tot=$    13,605  $/tr=  37.4  PF=1.13  win=33.5%
+     yr: 2021:  -2,080  2022:  -1,995  2023:    -232  2024:  27,505  2025: -18,832  2026:   4,932
+
+  WT / w30eod:  ALL n=  723  tot=$    17,310  $/tr=  23.9  PF=1.07  win=45.1%  95%CI$/tr[-57.9,103.1]
+     train n=  359  tot=$   -15,545  $/tr= -43.3  PF=0.88  win=42.9%
+     holdo n=  364  tot=$    32,855  $/tr=  90.3  PF=1.27  win=47.3%
+     yr: 2021:  -2,980  2022: -16,082  2023:   3,518  2024:  43,455  2025: -19,195  2026:   8,595
+
+  POSg / neod:  ALL n= 2615  tot=$   -81,662  $/tr= -31.2  PF=0.86  win=27.4%  95%CI$/tr[-54.3,-6.5]
+     train n= 1138  tot=$   -21,778  $/tr= -19.1  PF=0.91  win=26.7%
+     holdo n= 1477  tot=$   -59,885  $/tr= -40.5  PF=0.83  win=28.0%
+     yr: 2021:  -6,560  2022:  11,915  2023: -27,132  2024:  -7,675  2025: -41,750  2026: -10,460
+
+  POSg / n1r:  ALL n= 2615  tot=$   -52,975  $/tr= -20.3  PF=0.88  win=48.6%  95%CI$/tr[-35.9,-4.3]
+     train n= 1138  tot=$   -11,015  $/tr=  -9.7  PF=0.94  win=48.4%
+     holdo n= 1477  tot=$   -41,960  $/tr= -28.4  PF=0.85  win=48.7%
+     yr: 2021: -10,672  2022:  18,565  2023: -18,908  2024: -23,825  2025: -13,238  2026:  -4,898
+
+  POSg&WT / w30eod:  ALL n=  434  tot=$     1,555  $/tr=   3.6  PF=1.01  win=47.0%  95%CI$/tr[-61.6,71.6]
+     train n=  204  tot=$   -10,182  $/tr= -49.9  PF=0.83  win=43.1%
+     holdo n=  230  tot=$    11,738  $/tr=  51.0  PF=1.20  win=50.4%
+     yr: 2021:    -632  2022:  -9,382  2023:    -168  2024:  12,278  2025:  -8,118  2026:   7,578
+
+  CT / neod:  ALL n= 1840  tot=$   -94,688  $/tr= -51.5  PF=0.80  win=23.4%  95%CI$/tr[-85.1,-16.0]
+     train n=  923  tot=$   -56,928  $/tr= -61.7  PF=0.75  win=23.1%
+     holdo n=  917  tot=$   -37,760  $/tr= -41.2  PF=0.85  win=23.8%
+     yr: 2021:  -9,810  2022: -15,480  2023: -31,638  2024:   6,912  2025: -34,788  2026:  -9,885
+
+### F. engine A/B (pt_new vs pt_old) on the WT/neod book
+  pt_new WT / neod               n=  723  tot=$     9,298  $/tr=  12.9  PF=1.05  win=32.5%
+  pt_old WT / neod               n=  567  tot=$      -560  $/tr=  -1.0  PF=1.00  win=32.5%

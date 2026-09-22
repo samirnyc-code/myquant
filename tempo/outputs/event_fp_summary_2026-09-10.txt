@@ -1,0 +1,70 @@
+=== CONTRAST 1: extension moments (prospective) ===
+label
+continuation    326
+reversal        200
+unresolved      147
+
+--- discovery: n=330  P(reversal)=0.355 ---
+       tempo_mean: rev +0.640  cont +0.581  d=+0.10
+      tempo_accel: rev +0.213  cont +0.256  d=-0.08
+      effdir_mean: rev +0.292  cont +0.311  d=-0.15
+     effdir_slope: rev +0.038  cont +0.036  d=+0.04
+    leg_depth_adr: rev +0.730  cont +0.733  d=-0.09
+      session_min: rev +168.411  cont +188.450  d=-0.17
+  H4 P(rev) [base 0.355]:
+    tempo_hi x eff_falling n=  85  P(rev)=0.365
+    tempo_hi x eff_rising  n=  74  P(rev)=0.365
+    tempo_lo x eff_falling n=  80  P(rev)=0.350
+    tempo_lo x eff_rising  n=  91  P(rev)=0.341
+
+--- validation: n=119  P(reversal)=0.454 ---
+       tempo_mean: rev +0.879  cont +0.805  d=+0.11
+      tempo_accel: rev +0.021  cont +0.211  d=-0.29
+      effdir_mean: rev +0.297  cont +0.322  d=-0.21
+     effdir_slope: rev +0.032  cont +0.033  d=-0.03
+    leg_depth_adr: rev +0.750  cont +0.731  d=+0.18
+      session_min: rev +178.508  cont +128.146  d=+0.47
+  H4 P(rev) [base 0.454]:
+    tempo_hi x eff_falling n=  48  P(rev)=0.458
+    tempo_hi x eff_rising  n=  39  P(rev)=0.487
+    tempo_lo x eff_falling n=  18  P(rev)=0.444
+    tempo_lo x eff_rising  n=  14  P(rev)=0.357
+
+--- oos: n=77  P(reversal)=0.377 ---
+       tempo_mean: rev +0.326  cont +0.634  d=-0.45
+      tempo_accel: rev +0.083  cont +0.257  d=-0.20
+      effdir_mean: rev +0.309  cont +0.343  d=-0.25
+     effdir_slope: rev +0.021  cont +0.034  d=-0.28
+    leg_depth_adr: rev +0.745  cont +0.734  d=+0.26
+      session_min: rev +129.364  cont +147.581  d=-0.16
+  H4 P(rev) [base 0.377]:
+    tempo_hi x eff_falling n=  25  P(rev)=0.200
+    tempo_hi x eff_rising  n=  12  P(rev)=0.333
+    tempo_lo x eff_falling n=  19  P(rev)=0.737
+    tempo_lo x eff_rising  n=  21  P(rev)=0.286
+
+=== CONTRAST 2: pullback continue vs fail (retrospective) ===
+label
+continue    1388
+fail         379
+
+--- discovery: n=1096  P(continue)=0.773 ---
+      pb_tempo: continue +0.518  fail +0.464  d=+0.09
+   tempo_ratio: continue +0.014  fail +0.068  d=-0.14
+    pb_opp_eff: continue +0.233  fail +0.264  d=-0.15
+    size_ratio: continue +0.409  fail +0.692  d=-1.15
+       pb_bars: continue +6.483  fail +12.719  d=-0.83
+
+--- validation: n=411  P(continue)=0.820 ---
+      pb_tempo: continue +0.846  fail +0.639  d=+0.28
+   tempo_ratio: continue +0.102  fail +0.091  d=+0.03
+    pb_opp_eff: continue +0.244  fail +0.255  d=-0.05
+    size_ratio: continue +0.421  fail +0.685  d=-1.10
+       pb_bars: continue +6.463  fail +15.162  d=-1.00
+
+--- oos: n=260  P(continue)=0.785 ---
+      pb_tempo: continue +0.471  fail +0.337  d=+0.21
+   tempo_ratio: continue +0.142  fail +0.116  d=+0.04
+    pb_opp_eff: continue +0.243  fail +0.319  d=-0.39
+    size_ratio: continue +0.415  fail +0.624  d=-0.99
+       pb_bars: continue +5.995  fail +10.982  d=-0.80

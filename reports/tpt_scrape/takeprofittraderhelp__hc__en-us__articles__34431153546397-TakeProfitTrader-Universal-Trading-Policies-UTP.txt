@@ -1,0 +1,64 @@
+URL: https://takeprofittraderhelp.zendesk.com/hc/en-us/articles/34431153546397-TakeProfitTrader-Universal-Trading-Policies-UTP
+TITLE: TakeProfitTrader Universal Trading Policies (UTP) – TakeProfitTrader
+
+Skip to main content
+ Sign in
+TakeProfitTrader
+ FAQ's
+ Universal Trading Policies
+Articles in this section
+TakeProfitTrader Universal Trading Policies (UTP)
+Independent Trade Execution Policy
+Trade Copier Policy
+TakeProfitTrader Universal Trading Policies (UTP)
+ Max
+6 months ago Updated
+
+At TakeProfitTrader, our goal is to give traders access to meaningful capital and the ability to earn real payouts. These policies help us ensure that opportunity remains available, fair, and sustainable for everyone.
+
+The Universal Trading Policies (UTP) establish the core standards that apply to all TakeProfitTrader accounts, including Test, PRO, and PRO+.
+
+They align with CME exchange compliance and regulatory requirements, maintain fair and independent trading conditions, and support the long-term integrity of the platform. 
+
+The policies below establish these standards, with additional details provided:
+ 
+
+#1: No Trading Bots or Algos. Automated trading systems, bots, or algorithmic execution tools are not permitted.
+ 
+
+#2: Maximum Position Size. Traders may not exceed the maximum position size permitted for their account type, as displayed or communicated by TakeProfitTrader.
+ 
+
+#3: Comply with CME Rules. All trading must comply with applicable CME Group requirements and all TakeProfitTrader policies.
+ 
+
+#4: Independent Trading Requirement. All trading must adhere to the Independent Trade Execution Policy. Coordinated trading, third-party account management, or participation in structured trading schemes designed to reduce or neutralize risk is prohibited.
+ 
+
+#5: No Counter Position Trading. As required by CME rules and our No Counter Positions Policy, you may not trade accounts you own or control in opposite directions, or coordinate with other users to trade in opposite directions. 
+ 
+
+#6: Trade Approved Products, During Approved Times. Most products traded on CME Group exchanges (CME, NYMEX, COMEX, CBOT) are permitted, but positions may not be held from one session to the next. See the most up to date products and info here.
+
+ 
+
+These Universal Trading Policies apply to all TakeProfitTrader accounts, including Test, PRO, and PRO+. Additional account-specific rules (Test, PRO, and PRO+) may apply and are outlined in the knowledge base. 
+
+ 
+
+Violation of any of these policies may result in profit forfeiture, account reset, account closure, or removal from the platform.
+ 
+
+These standards ensure a fair and compliant environment where skilled traders can continue accessing capital receiving payouts with confidence.
+
+Was this article helpful?
+Yes No
+2 out of 2 found this helpful
+Related articles
+Independent Trade Execution Policy
+Cancelling My Subscription
+Trade Copier Policy
+Approved Instruments & Permitted Products List
+CME Market Rules and Regulations
+TakeProfitTrader
+English (United States) 

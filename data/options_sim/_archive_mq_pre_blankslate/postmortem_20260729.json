@@ -1,0 +1,97 @@
+{
+  "date": "20260729",
+  "regime_preopen": "negative_gamma",
+  "spot_preopen": 7428.55,
+  "levels": {
+    "ps": 7300.0,
+    "ps0": 7300.0,
+    "hvl": 7485.0,
+    "gw0": 7490.0,
+    "cr0": 7490.0,
+    "cr": 7600.0
+  },
+  "settled_0dte": [
+    {
+      "trade_id": "auto_20260729_090023",
+      "pnl": 2642
+    }
+  ],
+  "triggers": [
+    {
+      "id": "sell_0dte_put",
+      "setup": "sell_0dte_gamma",
+      "name": "0DTE Put Credit Spread @ PS0",
+      "projected_grade": "C",
+      "status": "expired",
+      "fired": false,
+      "counterfactual": "condition did NOT occur (price never reached 7300 above)"
+    },
+    {
+      "id": "sell_0dte_call",
+      "setup": "sell_0dte_gamma",
+      "name": "0DTE Call Credit Spread @ CR0",
+      "projected_grade": "C",
+      "status": "expired",
+      "fired": false,
+      "counterfactual": "condition did NOT occur (price never reached 7490 below)"
+    },
+    {
+      "id": "fly_gw_0dte",
+      "setup": "fly_gw_0dte",
+      "name": "0DTE Call Butterfly @ GW0",
+      "projected_grade": "F",
+      "status": "expired",
+      "fired": false
+    },
+    {
+      "id": "cr0_touch_fade",
+      "setup": "cr0_fade",
+      "name": "CR0 first-touch fade (short call spread)",
+      "projected_grade": "D",
+      "status": "expired",
+      "fired": false,
+      "counterfactual": "condition did NOT occur (price never reached 7490 below)"
+    },
+    {
+      "id": "ps0_touch_fade",
+      "setup": "ps0_fade",
+      "name": "PS0 first-touch fade (short put spread)",
+      "projected_grade": "D",
+      "status": "expired",
+      "fired": false,
+      "counterfactual": "condition did NOT occur (price never reached 7300 above)"
+    },
+    {
+      "id": "straddle_0dte",
+      "setup": "straddle_0dte",
+      "name": "Long ATM Straddle (0DTE) \u2014 gap-armed",
+      "projected_grade": "B",
+      "status": "fired",
+      "fired": true,
+      "final_grade": "B",
+      "credit": -55.8,
+      "pnl": 2642,
+      "outcome": "WIN"
+    },
+    {
+      "id": "bps_stmr_1559",
+      "setup": "bps_stmr",
+      "name": "STMR Bull Put Spread (15:59 signal)",
+      "projected_grade": "A/B if signal fires",
+      "status": "armed",
+      "fired": false
+    }
+  ],
+  "ohlc": {
+    "open": 7419.1,
+    "high": 7448.65,
+    "low": 7314.62,
+    "close": 7317.75
+  },
+  "paths_materialized": [
+    [
+      "D",
+      "closed 7318 below HVL 7485 \u2014 regime tipped negative"
+    ]
+  ]
+}

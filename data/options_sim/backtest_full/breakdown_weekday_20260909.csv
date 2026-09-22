@@ -1,0 +1,16 @@
+book,weekday,pnl,n,win_pct,avg
+ic_condor,Friday,-14254.24,868,80.88,-16.48
+ic_condor,Monday,10887.4,804,83.46,13.59
+ic_condor,Thursday,-10846.38,864,79.4,-12.61
+ic_condor,Tuesday,-6825.5,896,78.01,-7.63
+ic_condor,Wednesday,-3909.72,888,80.07,-4.41
+fly,Friday,-37238.94,869,33.14,-43.0
+fly,Monday,-31899.86,804,35.07,-39.87
+fly,Thursday,-58798.5,865,32.83,-68.29
+fly,Tuesday,-41333.8,900,32.33,-46.13
+fly,Wednesday,-31564.5,888,31.76,-35.55
+puts_credit_band,Friday,4692.78,181,91.16,25.93
+puts_credit_band,Monday,7745.12,133,96.24,58.23
+puts_credit_band,Thursday,-1291.58,165,89.09,-7.83
+puts_credit_band,Tuesday,3731.04,181,91.71,20.61
+puts_credit_band,Wednesday,56.74,183,87.43,0.31

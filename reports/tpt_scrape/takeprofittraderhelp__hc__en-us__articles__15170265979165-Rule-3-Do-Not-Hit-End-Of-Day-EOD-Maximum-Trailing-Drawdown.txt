@@ -1,0 +1,83 @@
+URL: https://takeprofittraderhelp.zendesk.com/hc/en-us/articles/15170265979165-Rule-3-Do-Not-Hit-End-Of-Day-EOD-Maximum-Trailing-Drawdown
+TITLE: Rule 3: Do Not Hit End-Of-Day (EOD) Maximum Trailing Drawdown – TakeProfitTrader
+
+Skip to main content
+ Sign in
+TakeProfitTrader
+ Test Rules
+ The 6 Core Rules
+Articles in this section
+Rule 1: Hit Your Profit Target
+Rule 2: Do Not Exceed Maximum Position Size
+Rule 3: Do Not Hit End-Of-Day (EOD) Maximum Trailing Drawdown
+Rule 4: Trade Approved Products, During Approved Hours
+Rule 5: Be Consistent
+Rule 6: No Counter Positions
+Rule 3: Do Not Hit End-Of-Day (EOD) Maximum Trailing Drawdown
+ Vlada
+10 months ago Updated
+How the EOD Trailing Drawdown Works
+
+The End-of-Day (EOD) trailing drawdown is one of the most common reasons accounts fail.
+To simplify the process, the drawdown for test accounts is calculated only at the end of the trading day, not during open trades.
+
+Your EOD trailing drawdown amount is listed in the account table.
+
+Futures
+
+Futures Account Size	Maximum Position Size	Profit Target	Maximum Trailing Drawdown
+$25,000 	3 Contracts	$1,500	$1,500
+$50,000 	6 Contracts	$3,000	$2,000
+$75,000	9 Contracts	$4,500	$2,500
+$100,000	12 Contracts	$6,000	$3,000
+$150,000	15 Contracts	$9,000	$4,500
+
+In your dashboard (Control Center), this value appears as Minimum Account Balance.
+
+Example
+
+For a 25,000 account:
+
+The trailing drawdown is 1,500.
+
+The minimum account balance starts at 23,500 (25,000 − 1,500).
+
+The drawdown is called “trailing” because the minimum account balance follows your highest end-of-day balance upward.
+
+ 
+
+Example movement:
+
+If you earn 1,000 on Day 1, your end-of-day balance becomes 26,000.
+
+The minimum account balance moves to 24,500 (still 1,500 behind the highest EOD balance).
+
+This continues until the minimum account balance reaches the original starting balance of 25,000.
+
+Once it reaches that point, it stops trailing and remains fixed.
+
+
+
+ 
+
+When an Account Fails
+
+If your account drops to the Minimum Account Balance at any time — through realized or unrealized losses — the account is immediately liquidated.
+
+Was this article helpful?
+Yes No
+34 out of 38 found this helpful
+Recently viewed articles
+Rule 2: Do Not Exceed Maximum Position Size
+Rule 1: Hit Your Profit Target
+Connecting MultiCharts with Your Rithmic Account
+Connecting BookMap with Your Rithmic Account
+Connecting Quantower With Your Rithmic Account
+Related articles
+Rule 4: Trade Approved Products, During Approved Hours
+Rule 5: Be Consistent
+PRO Account Rules
+Rule 1: Hit Your Profit Target
+Rule 2: Do Not Exceed Maximum Position Size
+TakeProfitTrader
+English (United States) 

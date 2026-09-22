@@ -1,0 +1,126 @@
+URL: https://takeprofittraderhelp.zendesk.com/hc/en-us/articles/15171769361053-PRO-Account-Rules
+TITLE: PRO Account Rules – TakeProfitTrader
+
+Skip to main content
+ Sign in
+TakeProfitTrader
+ PRO Account
+ Pro Account FAQ's
+Articles in this section
+PRO Account Rules
+How to Keep Track Of Your Drawdown
+Resetting A PRO Account
+PRO Account Rules
+ Vlada
+9 months ago Updated
+
+Here you will find all the rules for PRO accounts. This will all be in the PRO contract we send you as well.
+ 
+
+1. No Trading bots/Algos
+We do not allow any automated or bot trading of any kind.
+All trades must be manually executed by the trader.  
+2. Avoid the Limit Up/Down
+Understanding Market Price Limits
+
+Futures and related markets can reach limit up or limit down levels, triggering circuit breakers.
+
+This limits how far the market can go in a single day. 
+
+Current daily price limits can be found on the CME website: CME PRICE LIMITS
+
+Trader Responsibilities
+
+You must exit all open positions before a price limit is reached.
+
+If the market approaches a limit, our company must "hedge" against traders holding positions near those levels.
+
+Account Liquidation
+
+If a price limit is hit, and you have not exited your position, you will lose your PRO Account.
+
+3. Trade your Account
+Weekly Trading Requirement
+
+To keep your PRO Account active, you must trade at least one day per calendar week (Sunday–Friday).
+
+A “traded day” is defined as a day where at least one round-trip has been executed on any permitted instrument.
+
+Purpose of This Rule
+
+Ensures traders remain active and do not keep capital idle or “squat” on a PRO Account.
+
+Exceptions
+
+Life circumstances may prevent trading.
+
+Contact support if you need a temporary exception. 
+
+4. No Counter Positions 
+You cannot hold open positions in opposite directions within the same product or closely related products.
+This applies across all account types: Test, PRO, and PRO+.
+5. Intraday Trailing Drawdown
+How the Drawdown Works
+
+The Trailing Drawdown is calculated intraday using your peak balance, which includes realized gains and unrealized gains.
+
+The drawdown trails intraday as your unrealized profits rise.
+
+The drawdown will never exceed your starting account balance.
+
+Maximum drawdown in PRO = maximum drawdown from your passed test.
+
+Example
+
+For a $25,000 PRO Account:
+
+Drawdown = $1,500
+
+If unrealized profit reaches $1,000, your minimum account balance rises to $24,500 in real time.
+
+If you close the trade with a $500 realized gain, your balance becomes $25,500, but your minimum remains $24,500.
+
+You are now $1,000 away from hitting the drawdown limit.
+
+The drawdown continues to trail profits until it reaches your starting balance; once it reaches that level, it no longer moves.
+
+Account Liquidation
+If your account balance drops to the Minimum Account Balance at any time — through realized or unrealized losses — the account is immediately liquidated.
+6. No Open Positions During Prohibited News 
+General Rule
+All PRO Accounts must be out of all open positions and have no open orders one minute before, during and one minute after any prohibited news event.
+Prohibited News Events (All Products)
+
+FOMC statements/announcements Wednesdays at 2:00 PM ET (FED speakers, FOMC meeting minutes are allowed)
+
+Non-Farm Payroll (NFP) Monthly, Fridays at 8:30 AM ET
+
+Consumer Price Index (CPI)
+
+In addition to these news events, the following news events are prohibited for specific instruments:
+
+Crude Oil Inventories → Prohibited product: Crude Oil
+
+Bond Auctions → Prohibited products: 10-Year Note, 30-Year Bond
+
+How to Track Prohibited News
+
+Review news marked with the red folder, USD currency, on:
+
+forexfactory.com
+
+All required news events also appear on the trader calendar:
+
+https://takeprofittrader.com/user-info/calendar
+
+Was this article helpful?
+Yes No
+56 out of 63 found this helpful
+Related articles
+How to Keep Track Of Your Drawdown
+PRO Account Profit Split & Withdrawal Rules
+Advantages of PRO+
+Taxes on Withdrawals
+Approved Instruments & Permitted Products List
+TakeProfitTrader
+English (United States) 

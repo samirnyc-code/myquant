@@ -1,0 +1,318 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>%F0%9F%A6%85</text></svg>">
+<title>0DTE Payoff Lab</title>
+<style>
+:root{
+  --bg:#eaeef2; --panel:#ffffff; --panel2:#f6f8fb; --ink:#14202a; --muted:#5a6875;
+  --line:#e0e6ec; --profit:#1E9E68; --loss:#CB3F39; --spot:#2F6FB3; --accent:#2F6FB3;
+  --hatch:rgba(203,63,57,.14);
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono","Cascadia Code","JetBrains Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0c1117; --panel:#141b23; --panel2:#10161e; --ink:#e7edf3; --muted:#8b98a6;
+  --line:#222b35; --profit:#22A874; --loss:#EF6A62; --spot:#4E92D6; --accent:#5AA0E4;
+  --hatch:rgba(239,106,98,.16);
+}}
+:root[data-theme="light"]{
+  --bg:#eaeef2; --panel:#ffffff; --panel2:#f6f8fb; --ink:#14202a; --muted:#5a6875;
+  --line:#e0e6ec; --profit:#1E9E68; --loss:#CB3F39; --spot:#2F6FB3; --accent:#2F6FB3;
+  --hatch:rgba(203,63,57,.14);
+}
+:root[data-theme="dark"]{
+  --bg:#0c1117; --panel:#141b23; --panel2:#10161e; --ink:#e7edf3; --muted:#8b98a6;
+  --line:#222b35; --profit:#22A874; --loss:#EF6A62; --spot:#4E92D6; --accent:#5AA0E4;
+  --hatch:rgba(239,106,98,.16);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+  line-height:1.5;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1060px;margin:0 auto;padding:40px 22px 72px}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--accent);font-weight:600;margin:0 0 10px}
+h1{font-size:clamp(28px,4.4vw,40px);line-height:1.08;margin:0 0 14px;letter-spacing:-.02em;
+  text-wrap:balance;font-weight:800}
+.lede{font-size:17px;color:var(--muted);max-width:60ch;margin:0 0 6px}
+.lede b{color:var(--ink);font-weight:600}
+.rulebar{display:flex;flex-wrap:wrap;gap:10px 22px;margin:22px 0 4px;padding:14px 16px;
+  background:var(--panel);border:1px solid var(--line);border-radius:12px;font-size:13.5px}
+.rulebar .k{font-family:var(--mono);color:var(--muted)}
+.rulebar b{font-family:var(--mono)}
+.key{display:flex;flex-wrap:wrap;gap:8px 18px;margin:16px 0 6px;font-size:12.5px;color:var(--muted)}
+.key span{display:inline-flex;align-items:center;gap:7px}
+.key i{width:15px;height:11px;border-radius:3px;display:inline-block;flex:none}
+.key .ln{width:16px;height:0;border-top:2px dashed var(--muted)}
+.key .sp{width:2px;height:14px;background:var(--spot);border-radius:2px}
+.sec{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--muted);font-weight:600;margin:40px 0 14px;padding-bottom:9px;border-bottom:1px solid var(--line)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:15px;overflow:hidden}
+.card-h{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding:16px 18px 4px}
+.card-h h3{margin:0;font-size:18px;font-weight:700;letter-spacing:-.01em}
+.chip{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--muted);background:var(--panel2);border:1px solid var(--line);
+  padding:2px 8px;border-radius:20px;font-weight:600}
+.split{display:grid;grid-template-columns:1.55fr 1fr;gap:6px;align-items:start;padding:6px 14px 16px}
+.chartwrap{position:relative;padding:6px 4px 0}
+.chartwrap svg{width:100%;height:auto;display:block}
+.chartwrap svg text{font-family:var(--mono)}
+.tip{position:absolute;top:6px;pointer-events:none;opacity:0;transition:opacity .08s;
+  background:var(--panel);border:1px solid var(--line);border-radius:8px;
+  padding:6px 9px;font-family:var(--mono);font-size:12px;white-space:nowrap;
+  box-shadow:0 6px 20px rgba(0,0,0,.18);z-index:4}
+.tip .px{color:var(--muted)}
+.side{padding:12px 14px 4px;display:flex;flex-direction:column;gap:12px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.stat .l{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);
+  font-family:var(--mono)}
+.stat .v{font-family:var(--mono);font-size:15px;font-weight:600;margin-top:2px;
+  font-variant-numeric:tabular-nums}
+.v.pos{color:var(--profit)} .v.neg{color:var(--loss)}
+.legs{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px}
+.legs li{font-family:var(--mono);font-size:12.5px;display:flex;align-items:center;gap:8px}
+.legs .a{font-weight:700;width:34px;flex:none}
+.legs .sell{color:var(--loss)} .legs .buy{color:var(--profit)}
+.note{font-size:13px;color:var(--muted);padding:0 14px 16px;max-width:64ch}
+.note b{color:var(--ink);font-weight:600}
+.presets{display:flex;gap:8px;padding:2px 14px 0;flex-wrap:wrap}
+.presets button{font-family:var(--mono);font-size:12px;font-weight:600;cursor:pointer;
+  background:var(--panel2);color:var(--muted);border:1px solid var(--line);
+  border-radius:8px;padding:6px 11px}
+.presets button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.presets button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+table.cmp{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:4px}
+table.cmp th,table.cmp td{text-align:right;padding:10px 12px;border-bottom:1px solid var(--line);
+  font-variant-numeric:tabular-nums;font-family:var(--mono)}
+table.cmp th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600}
+table.cmp td:first-child,table.cmp th:first-child{text-align:left;font-family:var(--sans);font-weight:600}
+table.cmp .pos{color:var(--profit)} table.cmp .neg{color:var(--loss)}
+.foot{margin-top:34px;font-size:12.5px;color:var(--muted);font-family:var(--mono)}
+@media(max-width:760px){.grid2{grid-template-columns:1fr}.split{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head><body>
+
+<div class="wrap">
+  <p class="eyebrow">0DTE Premium Desk · Payoff Lab</p>
+  <h1>Every trade is a sold credit spread.</h1>
+  <p class="lede">You get paid <b>up front</b> and win if price stays <b>away from the strike you sold</b>.
+    Each card shows the profit &amp; loss at expiry — hover any chart to read the P&amp;L at a price.</p>
+
+  <div class="rulebar">
+    <span><span class="k">wing width</span> <b>25 pts</b></span>
+    <span><span class="k">example spot</span> <b>7700</b></span>
+    <span><span class="k">grade driver</span> <b>credit % of width × distance of short from spot</b></span>
+    <span class="k">numbers are illustrative — real credits move daily</span>
+  </div>
+
+  <div class="key">
+    <span><i style="background:var(--profit)"></i>profit (above the zero line)</span>
+    <span><i style="background:var(--loss)"></i>loss (below the zero line)</span>
+    <span><span class="sp"></span>spot</span>
+    <span><span class="ln"></span>break-even</span>
+    <span>▏strike</span>
+  </div>
+
+  <div class="sec">Building blocks — one spread = two legs</div>
+  <div class="grid2" id="blocks"></div>
+
+  <div class="sec">The live structures</div>
+  <div class="grid2" id="structures" style="grid-template-columns:1fr"></div>
+
+  <div class="sec">How they trade off</div>
+  <div class="card" style="padding:6px 4px">
+    <div style="overflow-x:auto">
+      <table class="cmp" id="cmp">
+        <thead><tr><th>Structure</th><th>Shorts sit</th><th>Credit</th><th>Profit zone</th><th>Max profit</th><th>Max loss</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <p class="foot">Iron condor = a bull put + a bear call sold <b>apart</b>. Iron fly = the same, sold <b>at the money</b>.
+    Wider apart → thinner credit → bigger safe zone. At the money → fat credit → narrow zone.</p>
+</div>
+
+<script>
+const SPOT=7700, W=25;
+const money=v=>(v<0?'−$':'+$')+Math.abs(Math.round(v)).toLocaleString();
+const legsFor=(kp,kc,name)=>{
+  const out=[];
+  if(kc!=null){out.push(['SELL','call '+kc]); out.push(['BUY','call '+(kc+W)]);}
+  if(kp!=null){out.push(['SELL','put '+kp]); out.push(['BUY','put '+(kp-W)]);}
+  return out;
+};
+function payoff(P,kp,kc,credit){
+  const pl = kp!=null ? Math.max(0,Math.min(kp-P,W)) : 0;
+  const cl = kc!=null ? Math.max(0,Math.min(P-kc,W)) : 0;
+  return (credit-pl-cl)*100;
+}
+function stats(kp,kc,credit){
+  const maxGain=credit*100, maxLoss=(credit-W)*100;
+  const beLo = kp!=null ? kp-credit : null;
+  const beHi = kc!=null ? kc+credit : null;
+  return {maxGain,maxLoss,beLo,beHi};
+}
+
+function drawChart(el, cfg){
+  const {kp,kc,credit}=cfg;
+  const s=stats(kp,kc,credit);
+  const strikes=[]; if(kp!=null){strikes.push(kp,kp-W);} if(kc!=null){strikes.push(kc,kc+W);}
+  const xmin=Math.min(...strikes,SPOT)-42, xmax=Math.max(...strikes,SPOT)+42;
+  const N=260, samples=[];
+  for(let i=0;i<=N;i++){const p=xmin+(xmax-xmin)*i/N; samples.push({p,v:payoff(p,kp,kc,credit)});}
+  const vs=samples.map(s=>s.v).concat([0]);
+  let vmax=Math.max(...vs), vmin=Math.min(...vs);
+  vmax+= (vmax-vmin)*0.14; vmin-= (vmax-vmin)*0.10;
+  const Wd=720,H=344,ml=66,mr=16,mt=16,mb=34;
+  const X=p=>ml+(p-xmin)/(xmax-xmin)*(Wd-ml-mr);
+  const Y=v=>mt+(1-(v-vmin)/(vmax-vmin))*(H-mt-mb);
+  const y0=Y(0);
+  // area paths split at zero
+  const pts=samples.map(s=>({x:X(s.p),y:Y(s.v),v:s.v}));
+  const withCross=[];
+  for(let i=0;i<pts.length;i++){withCross.push(pts[i]);
+    if(i<pts.length-1){const a=pts[i],b=pts[i+1];
+      if((a.v<0)!==(b.v<0)&&a.v!==b.v){const t=(0-a.v)/(b.v-a.v);
+        withCross.push({x:a.x+(b.x-a.x)*t,y:y0,v:0});}}}
+  const runs=sign=>{let paths=[],cur=null;
+    for(const pt of withCross){const on=sign>0?pt.v>=0:pt.v<=0;
+      if(on){if(!cur)cur=[];cur.push(pt);}else{if(cur){paths.push(cur);cur=null;}}}
+    if(cur)paths.push(cur);
+    return paths.map(r=>r.length<2?'':'M'+r[0].x.toFixed(1)+','+y0.toFixed(1)+' '+
+      r.map(p=>'L'+p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ')+
+      ' L'+r[r.length-1].x.toFixed(1)+','+y0.toFixed(1)+' Z').join(' ');};
+  const line=pts.map((p,i)=>(i?'L':'M')+p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ');
+  // ticks
+  let ticks='';
+  strikes.forEach(k=>{const isShort=(k===kp||k===kc);
+    ticks+=`<line x1="${X(k).toFixed(1)}" y1="${mt}" x2="${X(k).toFixed(1)}" y2="${H-mb}"
+      style="stroke:var(--line)" stroke-width="${isShort?1.4:1}" ${isShort?'':'stroke-dasharray="2 4"'}/>`;
+    ticks+=`<text x="${X(k).toFixed(1)}" y="${H-mb+15}" text-anchor="middle" font-size="11"
+      style="fill:var(--muted)" font-weight="${isShort?700:400}">${k}</text>`;});
+  let bes='';
+  [s.beLo,s.beHi].forEach(be=>{if(be==null)return;
+    bes+=`<line x1="${X(be).toFixed(1)}" y1="${mt}" x2="${X(be).toFixed(1)}" y2="${H-mb}"
+      style="stroke:var(--muted)" stroke-width="1" stroke-dasharray="4 4" opacity=".7"/>`;});
+  const spotLine=`<line x1="${X(SPOT).toFixed(1)}" y1="${mt}" x2="${X(SPOT).toFixed(1)}" y2="${H-mb}"
+      style="stroke:var(--spot)" stroke-width="2"/>
+      <text x="${X(SPOT).toFixed(1)}" y="${mt-4}" text-anchor="middle" font-size="10.5"
+      style="fill:var(--spot)" font-weight="700">spot ${SPOT}</text>`;
+  const yLab=(v)=>`<text x="${ml-8}" y="${(Y(v)+4).toFixed(1)}" text-anchor="end" font-size="11"
+      style="fill:var(--muted)">${money(v).replace('+$','$')}</text>`;
+  const svg=`
+  <svg viewBox="0 0 ${Wd} ${H}" role="img" aria-label="${cfg.title} payoff at expiry">
+    <defs><pattern id="h-${cfg.id}" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+      <line x1="0" y1="0" x2="0" y2="6" style="stroke:var(--loss)" stroke-width="1" opacity=".28"/></pattern></defs>
+    ${ticks}${bes}
+    <path d="${runs(1)}" style="fill:var(--profit)" opacity=".16"/>
+    <path d="${runs(-1)}" fill="url(#h-${cfg.id})"/>
+    <path d="${runs(-1)}" style="fill:var(--loss)" opacity=".10"/>
+    <line x1="${ml}" y1="${y0.toFixed(1)}" x2="${Wd-mr}" y2="${y0.toFixed(1)}" style="stroke:var(--muted)" stroke-width="1.2"/>
+    ${yLab(s.maxGain)}${yLab(s.maxLoss)}${yLab(0)}
+    ${spotLine}
+    <path d="${line}" fill="none" style="stroke:var(--ink)" stroke-width="2.5" stroke-linejoin="round"/>
+    <line class="xh" x1="0" y1="${mt}" x2="0" y2="${H-mb}" style="stroke:var(--ink)" stroke-width="1" opacity="0"/>
+    <circle class="xd" r="4" style="fill:var(--ink)" opacity="0"/>
+  </svg><div class="tip"></div>`;
+  el.innerHTML=`<div class="chartwrap">${svg}</div>`;
+  const wrap=el.querySelector('.chartwrap'), sv=wrap.querySelector('svg'),
+    xh=wrap.querySelector('.xh'), xd=wrap.querySelector('.xd'), tip=wrap.querySelector('.tip');
+  wrap.onmousemove=e=>{const r=sv.getBoundingClientRect();
+    let p=xmin+((e.clientX-r.left)/r.width*Wd-ml)/(Wd-ml-mr)*(xmax-xmin);
+    p=Math.max(xmin,Math.min(xmax,p)); const v=payoff(p,kp,kc,credit);
+    const px=X(p); xh.setAttribute('x1',px);xh.setAttribute('x2',px);xh.setAttribute('opacity','.5');
+    xd.setAttribute('cx',px);xd.setAttribute('cy',Y(v));xd.setAttribute('opacity','1');
+    xd.style.fill = v>=0?'var(--profit)':'var(--loss)';
+    tip.innerHTML=`<span class="px">SPX ${Math.round(p)}</span> &nbsp;<b style="color:${v>=0?'var(--profit)':'var(--loss)'}">${money(v)}</b>`;
+    tip.style.opacity='1'; const lp=px/Wd*r.width;
+    tip.style.left=Math.max(4,Math.min(r.width-124,lp+10))+'px';};
+  wrap.onmouseleave=()=>{xh.setAttribute('opacity','0');xd.setAttribute('opacity','0');tip.style.opacity='0';};
+}
+
+function statCards(kp,kc,credit){
+  const s=stats(kp,kc,credit);
+  const zone = (s.beLo!=null&&s.beHi!=null)?`${Math.round(s.beLo)}–${Math.round(s.beHi)}`
+    : s.beLo!=null?`above ${Math.round(s.beLo)}`:`below ${Math.round(s.beHi)}`;
+  return `<div class="stats">
+    <div class="stat"><div class="l">Max profit</div><div class="v pos">${money(s.maxGain)}</div></div>
+    <div class="stat"><div class="l">Max loss</div><div class="v neg">${money(s.maxLoss)}</div></div>
+    <div class="stat"><div class="l">Break-even</div><div class="v">${s.beLo!=null?Math.round(s.beLo):'—'}${s.beHi!=null?' / '+Math.round(s.beHi):''}</div></div>
+    <div class="stat"><div class="l">Win zone</div><div class="v">${zone}</div></div>
+  </div>`;
+}
+function legList(kp,kc){
+  return '<ul class="legs">'+legsFor(kp,kc).map(([a,t])=>
+    `<li><span class="a ${a==='SELL'?'sell':'buy'}">${a}</span>${t}</li>`).join('')+'</ul>';
+}
+
+const BLOCKS=[
+ {id:'bps',title:'Bull Put Spread',chip:'put credit',kp:7630,kc:null,credit:0.55,
+  note:'Sell a put, buy a cheaper put 25 below. <b>Win if price stays above 7630.</b> This is the put side of every condor and fly.'},
+ {id:'bcs',title:'Bear Call Spread',chip:'call credit',kp:null,kc:7770,credit:0.50,
+  note:'Sell a call, buy a cheaper call 25 above. <b>Win if price stays below 7770.</b> The mirror image — the call side.'},
+];
+const STRUCT=[
+ {id:'condor',title:'Iron Condor',chip:'EOD · Open · GexLog',
+  presets:[
+    {label:'EM band (EOD / Open)',kp:7630,kc:7770,credit:1.05},
+    {label:'Gamma walls (GexLog)',kp:7675,kc:7750,credit:4.6}],
+  note:'Sell <b>both sides, apart</b> — flat max profit between the shorts. EOD centers the band on <b>yesterday’s close</b>, Open on <b>the open</b>, GexLog parks the shorts <b>at its put/call walls</b>. Toggle the strikes above the chart.'},
+ {id:'fly',title:'ATM Iron Fly',chip:'EOD · Open',kp:7700,kc:7700,credit:16,
+  note:'Sell <b>both sides at the money</b> (same strike). Fat credit, but a <b>narrow tent</b> — you need price to pin near the center. Bigger reward, smaller safe zone than the condor.'},
+];
+
+function blockCard(c){
+  const el=document.createElement('div'); el.className='card';
+  el.innerHTML=`<div class="card-h"><h3>${c.title}</h3><span class="chip">${c.chip}</span></div>
+    <div class="split"><div class="chart"></div>
+      <div class="side">${statCards(c.kp,c.kc,c.credit)}${legList(c.kp,c.kc)}</div></div>
+    <p class="note">${c.note}</p>`;
+  drawChart(el.querySelector('.chart'),{...c});
+  return el;
+}
+function structCard(c){
+  const el=document.createElement('div'); el.className='card';
+  if(c.presets){
+    el.innerHTML=`<div class="card-h"><h3>${c.title}</h3><span class="chip">${c.chip}</span></div>
+      <div class="presets"></div>
+      <div class="split"><div class="chart"></div><div class="side"></div></div>
+      <p class="note">${c.note}</p>`;
+    const pbox=el.querySelector('.presets'), chart=el.querySelector('.chart'), side=el.querySelector('.side');
+    const render=(p,i)=>{drawChart(chart,{id:c.id,title:c.title,...p});
+      side.innerHTML=statCards(p.kp,p.kc,p.credit)+legList(p.kp,p.kc);
+      [...pbox.children].forEach((b,j)=>b.classList.toggle('on',j===i));};
+    c.presets.forEach((p,i)=>{const b=document.createElement('button');b.textContent=p.label;
+      b.onclick=()=>render(p,i);pbox.appendChild(b);});
+    render(c.presets[0],0);
+  }else{
+    el.innerHTML=`<div class="card-h"><h3>${c.title}</h3><span class="chip">${c.chip}</span></div>
+      <div class="split"><div class="chart"></div>
+        <div class="side">${statCards(c.kp,c.kc,c.credit)}${legList(c.kp,c.kc)}</div></div>
+      <p class="note">${c.note}</p>`;
+    drawChart(el.querySelector('.chart'),{...c});
+  }
+  return el;
+}
+
+BLOCKS.forEach(c=>document.getElementById('blocks').appendChild(blockCard(c)));
+STRUCT.forEach(c=>document.getElementById('structures').appendChild(structCard(c)));
+
+// comparison table
+const CMP=[
+ {n:'Bull Put Spread',w:'70 pts below spot',kp:7630,kc:null,credit:0.55},
+ {n:'Bear Call Spread',w:'70 pts above spot',kp:null,kc:7770,credit:0.50},
+ {n:'Iron Condor — EM band',w:'±70 (EOD / Open)',kp:7630,kc:7770,credit:1.05},
+ {n:'Iron Condor — walls',w:'put/call walls (GexLog)',kp:7675,kc:7750,credit:4.6},
+ {n:'ATM Iron Fly',w:'at the money',kp:7700,kc:7700,credit:16},
+];
+document.querySelector('#cmp tbody').innerHTML=CMP.map(r=>{
+  const s=stats(r.kp,r.kc,r.credit);
+  const zone=(s.beLo!=null&&s.beHi!=null)?`${Math.round(s.beLo)}–${Math.round(s.beHi)}`
+    :s.beLo!=null?`&gt; ${Math.round(s.beLo)}`:`&lt; ${Math.round(s.beHi)}`;
+  return `<tr><td>${r.n}</td><td>${r.w}</td><td>$${r.credit.toFixed(2)}</td>
+    <td>${zone}</td><td class="pos">${money(s.maxGain)}</td><td class="neg">${money(s.maxLoss)}</td></tr>`;
+}).join('');
+</script>
+
+</body></html>

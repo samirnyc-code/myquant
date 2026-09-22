@@ -45,12 +45,20 @@ def _ping(text, level="info"):
 
 
 def depth_size() -> int:
+    """Total live depth bytes across the candidate days. Files carry the FULL contract
+    (ES_09-26_depth_) and the TRADE DATE (session template: after 17:00 CT the live file
+    is dated tomorrow), so glob by contract and scan -1/0/+1 — the old fixed 'ES_depth_'
+    pattern matched nothing and made this silently return 0 (2026-07-20 fix)."""
     import pipeline_health as ph
     now = ph.chicago_now()
     tot = 0
-    for d in (-1, 0):
-        p = ROOT / "data" / "depth" / f"ES_depth_{(now.date()+dt.timedelta(days=d)).isoformat()}.csv"
-        if p.exists():
+    depth = ROOT / "data" / "depth"
+    for d in (-1, 0, 1):
+        day = (now.date() + dt.timedelta(days=d)).isoformat()
+        for p in depth.glob(f"ES*_depth_{day}.csv"):
+            tot += p.stat().st_size
+        # 2026-07: the AddOn recorder is the live collector and writes addon_test/
+        for p in (depth / "addon_test").glob(f"ES*_depth_{day}.csv"):
             tot += p.stat().st_size
     return tot
 
@@ -65,18 +73,144 @@ def nt8_running() -> bool:
         return False
 
 
-def restart() -> bool:
-    """Close NT8 cleanly, then bring it back with the scripted login."""
+def _save_workspace_hint() -> None:
+    """Ask NT8 to persist the workspace BEFORE we close it, so a restart never eats the
+    user's chart drawings and extra tabs (2026-07-20: a forced kill lost all of them).
+
+    NT8 saves the workspace on a CLEAN exit; the danger is ONLY the force-kill path. We
+    cannot press its menu from here, so the real guarantees are (a) the settings the user
+    enabled once — Tools>Options>General 'Save workspaces on exit' + restore last workspace
+    — and (b) NEVER force-killing except as an explicit, logged last resort below."""
+    say("relying on NT8 clean-exit workspace save (force-kill is avoided below)")
+
+
+NT_WORKSPACES = Path.home() / "Documents" / "NinjaTrader 8" / "workspaces"
+
+
+def _newest_workspace_mtime() -> float:
+    """Newest mtime across all workspace XMLs. NT8 rewrites the ACTIVE workspace (with its
+    chart drawings) on a CLEAN exit, so this value ADVANCING after close = drawings saved.
+    ReopenWorkspaces=false only stops the reload-all on startup; it does NOT stop the save."""
+    try:
+        return max((p.stat().st_mtime for p in NT_WORKSPACES.glob("*.xml")), default=0.0)
+    except Exception:
+        return 0.0
+
+
+def _dismiss_nt_dialogs() -> str:
+    """Auto-answer NinjaTrader's blocking close dialogs so a graceful shutdown COMPLETES
+    without a force-kill. On close NT pops two modals that otherwise sit forever:
+      1. "NinjaScript strategies are running ... disable?"  -> Yes (let it close)
+      2. "Save workspace '<name>'?"                          -> Yes (PRESERVE drawings)
+    Uses Windows UI Automation and acts ONLY on NinjaTrader-owned dialog windows, invoking
+    a button named Yes / Save / OK. It never touches other applications. Safe to call in a
+    loop: if no dialog is up it clicks nothing. Returns what it clicked (for the log).
+
+    NOTE: cannot be validated headless — needs one live NT halt-test to confirm the exact
+    dialog titles/buttons on this install. Built defensively; logs every click.
+
+    HARDENED (2026-07-26): the first version missed the live dialog. Now it (a) scans BOTH
+    top-level windows AND any nested Window under the main NT window (WPF confirm dialogs can
+    be nested), (b) enumerates every Button control and matches its Name case-insensitively
+    with the '&' access-key stripped (so '&Yes' / 'Yes ' still match), (c) tries Invoke and
+    falls back to keyboard SetFocus+Enter on the default button. Still NinjaTrader-only and
+    only ever clicks an affirmative Yes/Save/OK button."""
+    ps = r"""
+Add-Type -AssemblyName UIAutomationClient,UIAutomationTypes,System.Windows.Forms 2>$null
+$root=[System.Windows.Automation.AutomationElement]::RootElement
+$CT=[System.Windows.Automation.AutomationElement]::ControlTypeProperty
+$winCond=New-Object System.Windows.Automation.PropertyCondition($CT,[System.Windows.Automation.ControlType]::Window)
+$btnCond=New-Object System.Windows.Automation.PropertyCondition($CT,[System.Windows.Automation.ControlType]::Button)
+$tops=$root.FindAll([System.Windows.Automation.TreeScope]::Children,$winCond)
+# candidate windows = every NinjaTrader-owned top-level window PLUS any nested Window under it
+$cands=New-Object System.Collections.ArrayList
+foreach($w in $tops){
+  try{
+    $pr=Get-Process -Id $w.Current.ProcessId -ErrorAction SilentlyContinue
+    if(-not $pr -or $pr.ProcessName -ne 'NinjaTrader'){continue}
+    [void]$cands.Add($w)
+    $nested=$w.FindAll([System.Windows.Automation.TreeScope]::Descendants,$winCond)
+    foreach($n in $nested){[void]$cands.Add($n)}
+  }catch{}
+}
+function Norm($s){ if($null-eq$s){return ''}; return ($s -replace '&','').Trim().ToLower() }
+$want=@('yes','save','ok','save and close','save workspace')
+$done=@()
+foreach($w in $cands){
+  try{
+    $btns=$w.FindAll([System.Windows.Automation.TreeScope]::Descendants,$btnCond)
+    foreach($b in $btns){
+      $nm=Norm($b.Current.Name)
+      if($want -contains $nm){
+        try{
+          $ip=$b.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern)
+          $ip.Invoke()
+        }catch{
+          # fallback: focus the button and press Enter
+          try{ $b.SetFocus(); [System.Windows.Forms.SendKeys]::SendWait('{ENTER}') }catch{}
+        }
+        $done+=("'"+$w.Current.Name+"' -> "+$b.Current.Name); break
+      }
+    }
+  }catch{}
+}
+$done -join '; '
+"""
+    try:
+        r = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", ps],
+                           capture_output=True, text=True, timeout=30, creationflags=NOWIN)
+        out = (r.stdout or "").strip()
+        if out:
+            say(f"NT dialog auto-dismiss clicked: {out}")
+        return out
+    except Exception as e:
+        say(f"NT dialog dismiss error: {type(e).__name__}: {e}")
+        return ""
+
+
+def restart(force_ok: bool = False) -> bool:
+    """Restart NT8 while PRESERVING the workspace (drawings, extra tabs) and re-arming the
+    recorder afterwards.
+
+    A plain `taskkill` sends WM_CLOSE, which NT8 answers with a 'strategies are running'
+    confirmation dialog and then SITS THERE. The old code waited 60s, force-killed, and so
+    lost every unsaved drawing and left the strategy disabled. Now:
+      1. hint a workspace save,
+      2. graceful close, generous 120s grace for NT to flush its workspace,
+      3. force-kill ONLY if explicitly allowed AND still hung — and shout that drawings
+         since the last auto-save may be lost,
+      4. relaunch via the scripted login,
+      5. (caller) verify the recorder re-armed and PAGE if not.
+    """
     if nt8_running():
-        say("closing NT8")
+        _save_workspace_hint()
+        ws_before = _newest_workspace_mtime()   # to VERIFY the clean exit actually saved drawings
+        say("closing NT8 (graceful — waiting for clean workspace save)")
         subprocess.run(["taskkill", "/IM", "NinjaTrader.exe"], capture_output=True,
                        timeout=60, creationflags=NOWIN)
-        for _ in range(20):
+        for _i in range(40):                # 120s: give NT time to save + answer its dialog
             time.sleep(3)
+            if nt8_running():
+                _dismiss_nt_dialogs()       # auto-answer the "disable strategy?" / "save workspace?" modals
             if not nt8_running():
+                time.sleep(2)               # let NT finish flushing the workspace XML to disk
+                if _newest_workspace_mtime() > ws_before:
+                    say("NT8 closed cleanly — workspace SAVED (verified: workspace XML updated)")
+                else:
+                    say("⚠ NT8 closed but NO workspace XML updated — drawings may NOT be saved")
+                    _ping("⚠️ NT8 closed on restart but its workspace file did not update — chart "
+                          "drawings may not have saved. Verify on next launch before drawing more.", "warn")
                 break
         if nt8_running():
-            say("NT8 did not close cleanly - forcing")
+            if not force_ok:
+                say("NT8 did NOT close cleanly and force-kill is DISABLED (would lose "
+                    "unsaved drawings). Leaving NT8 up — a human should close it.")
+                _ping("🔴 NT8 restart aborted: it would not close cleanly and I refuse to "
+                      "force-kill (that loses your chart drawings). NT8 left running.", "alert")
+                return False
+            say("NT8 still hung - FORCE killing (drawings since last auto-save may be lost)")
+            _ping("⚠️ NT8 had to be force-killed on restart — drawings since the last "
+                  "workspace auto-save may be lost.", "warn")
             subprocess.run(["taskkill", "/IM", "NinjaTrader.exe", "/F"], capture_output=True,
                            timeout=60, creationflags=NOWIN)
             time.sleep(5)
@@ -107,6 +241,14 @@ def _armed_state():
     enabled = None
     connected = None
     for ln in lines:
+        if "MarketDepthRecorderAddOn" in ln:
+            # 2026-07: the AddOn is the live collector. It never logs strategy-style
+            # 'Enabling' lines — its own lifecycle lines are the arming signal.
+            if "feed CONNECTED, recording" in ln:
+                enabled, connected = True, True
+            elif "stopped:" in ln or "waiting for price feed" in ln:
+                enabled, connected = True, False
+            continue
         if "MarketDepthRecorder" in ln and "Enabling" in ln:
             enabled = True
         elif "MarketDepthRecorder" in ln and "Disabling" in ln:
@@ -165,12 +307,15 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--verify-only", action="store_true")
     ap.add_argument("--no-restart", action="store_true")
+    ap.add_argument("--allow-force-kill", action="store_true",
+                    help="permit a last-resort force-kill if NT8 will not close (RISKS "
+                         "losing chart drawings since the last workspace save)")
     ap.add_argument("--wait", type=int, default=90, help="seconds to watch for growth")
     a = ap.parse_args()
 
     ok = True
     if not (a.verify_only or a.no_restart):
-        ok = restart()
+        ok = restart(force_ok=a.allow_force_kill)
         if not ok:
             say("restart FAILED - not proceeding to verify")
             return 1

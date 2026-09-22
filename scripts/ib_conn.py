@@ -16,7 +16,7 @@ HOST = os.environ.get("IB_HOST", "127.0.0.1")
 PAPER_PORT, LIVE_PORT = 4002, 4001
 
 
-def connect(port=None, client_id=None, timeout=15, market_data_type=None, allow_live=False):
+def connect(port=None, client_id=None, timeout=15, market_data_type=None, allow_live=False, ensure=True):
     """Connect to IB Gateway; verifies the account really is PAPER (DU…).
 
     Live (4001) is refused unless allow_live=True — S70/S73 rule: everything
@@ -33,7 +33,10 @@ def connect(port=None, client_id=None, timeout=15, market_data_type=None, allow_
         # S75 auto-recovery: a "logged-in" Gateway whose API port never came up
         # (the 2026-07-16 silent-morning failure) — bring it up and retry ONCE.
         # Paper port only; never auto-launch anything for live.
-        if port != PAPER_PORT:
+        # ensure=False: caller connects PASSIVELY (gateway already up serving other clients)
+        # — NEVER restart it. Restarting a live gateway mid-session wedges every client (the
+        # S108 STMR failure: a retry loop ran gateway_ensure ~12x at 14:59 CT and jammed it).
+        if port != PAPER_PORT or not ensure:
             raise
         print(f"IB connect failed ({type(e).__name__}: {e}) — running gateway_ensure "
               f"to bring paper {PAPER_PORT} up, then retrying once...")

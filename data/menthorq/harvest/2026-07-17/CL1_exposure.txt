@@ -1,0 +1,120 @@
+Toggle left sidebar
+C
+CL1!
+Ctrl
++
+K
+OPEN
+Delayed
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+Net GEX Exposure
+Levels
+3/7
+Net GEX
+10 Strikes +/-
+Intraday
+All
+Expirations
+Jul 20
+3d
+Jul 21
+4d
+Jul 22
+5d
+Jul 23
+6d
+Jul 24
+7d
+Jul 27
+10d
+Jul 28
+11d
+Jul 29
+12d
+Jul 30
+13d
+Jul 31
+14d
+Aug 03
+17d
+Aug 04
+18d
+Aug 05
+19d
+Aug 06
+20d
+Aug 07
+21d
+Aug 10
+24d
+Aug 11
+25d
+Aug 12
+26d
+Aug 13
+27d
+Aug 17
+31d
+Strike
+Net GEX
+Put / Call OI
+84.25
+0
+84.00
+4.39M
+83.75
+83.67K
+83.50
+1.56M
+83.25
+-16.58K
+83.00
+6.44M
+82.75
+9.59K
+82.50
+4.23M
+82.25
+266.43K
+82.00
+4.53M
+81.75
+141.93K
+81.50
+6.77M
+81.25
+245.91K
+81.00
+6.26M
+80.75
+57.18K
+80.50
+377.39K
+80.25
+-179.5K
+80.00
+22.34M
+79.75
+725.99K
+79.50
+528.46K
+79.25
+-273.65K
+Intraday summary
+Watchlist
+Net Gex
+Chats

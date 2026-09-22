@@ -1,0 +1,56 @@
+Toggle left sidebar
+G
+GC1!
+Ctrl
++
+K
+OPEN
+Delayed
+Samir
+Premium
+SA
+For You
+Levels
+Watchlists
+Create Watchlist
+Overview
+Summary
+Chart
+Options
+Screeners
+Explore
+Create
+Saved
+Matrix
+Intraday
+Expiration Date
+DTE
+GEX
+DEX
+GEX Normalized
+DEX Normalized
+OI Normalized
+GEX Change 1D
+DEX Change 1D
+Tot. Exposure
+—
+-673.82K
+-4.45B
+100.0%
+100.0%
+100.0%
+7.15M
+2.06B
+2026-07-28
+1
+-673.82K
+-4.45B
+-100.0%
+-100.0%
+100.0%
+7.15M
+2.06B
+Intraday summary
+Watchlist
+Net Gex
+Chats

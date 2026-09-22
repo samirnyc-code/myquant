@@ -16,11 +16,9 @@ import pandas as pd
 
 import options_build_cards as obc
 import options_trade_log as tlog
-import mq_levels_db as mqdb
 
 ROOT = Path(__file__).resolve().parents[1]
 SIM = ROOT / "data" / "options_sim"
-LEVELS_FILE = ROOT / "scratchpad" / "mq_levels_today.json"
 
 
 def last_spot():
@@ -37,35 +35,25 @@ def last_spot():
     return None, None
 
 
-def load_levels():
-    if not LEVELS_FILE.exists():
+# (MenthorQ regime/levels code removed 2026-08-04 — premium-selling only, GexLog levels.)
+
+
+def _today_gameplan():
+    import datetime as _dt
+    from zoneinfo import ZoneInfo
+    d = _dt.datetime.now(ZoneInfo("America/Chicago")).strftime("%Y%m%d")
+    p = SIM / f"gameplan_{d}.json"
+    if not p.exists():
         return None
     try:
-        return json.loads(LEVELS_FILE.read_text(encoding="utf-8"))
+        return json.loads(p.read_text(encoding="utf-8"))
     except Exception:
         return None
 
 
-def regime_state(spot, lv):
-    """Options dealer-gamma regime from spot vs HVL (NOT the Brooks engine).
-    spot > HVL => positive gamma (dealers long gamma: mean-revert / pin bias)."""
-    if spot is None or not lv or lv.get("hvl") is None:
-        return {"label": "—", "detail": "need spot + HVL", "cls": ""}
-    hvl = float(lv["hvl"])
-    if spot >= hvl:
-        return {"label": "POSITIVE GAMMA",
-                "detail": f"spot {spot:.0f} > HVL {hvl:.0f} — dealers long gamma; "
-                          "pin / fade-the-extremes bias. Favors premium-sell & flies.",
-                "cls": "pos"}
-    return {"label": "NEGATIVE GAMMA",
-            "detail": f"spot {spot:.0f} < HVL {hvl:.0f} — dealers short gamma; "
-                      "moves amplify. Favors long vol / straddles, avoid naked premium.",
-            "cls": "neg"}
-
-
 def levels_regime():
-    """Bundle used by the header panel + the live /state.json endpoint."""
-    lv = load_levels()
+    """GexLog levels + signal for the header panel and the live /state.json endpoint.
+    MenthorQ fully removed — premium-selling only. Reads the day's gameplan gexlog block."""
     live = SIM / "live.json"
     spot = spot_ts = None
     if live.exists():
@@ -79,16 +67,25 @@ def levels_regime():
         s, t = last_spot()
         if s is not None:
             spot, spot_ts = s, (t or "") + " delayed"
-    spx = (lv or {}).get
-    es = ((lv or {}).get("es") or {}).get
+    gp = _today_gameplan() or {}
+    gx = gp.get("gexlog", {}) or {}
+    sig = gx.get("signal_bucket", "—")
+    reg = gx.get("regime")
+    detail = (f"GexLog {sig} · {gx.get('day_type', '—')} day · {reg or '—'} gamma"
+              if gx else "no GexLog brief yet")
     return {
         "spot": None if spot is None else round(spot, 1),
         "spot_ts": spot_ts,
-        "regime": regime_state(spot, lv),
-        "spx": {k: spx(k) for k in ("ps", "ps0", "hvl", "gw0", "cr0", "cr")} if lv else {},
-        "es": {k: es(k) for k in ("ps", "ps0", "hvl", "gw0", "cr0", "cr")} if lv else {},
-        "d1_min": (lv or {}).get("d1_min"), "d1_max": (lv or {}).get("d1_max"),
-        "gex": (lv or {}).get("gex", [])[:6] if lv else [],
+        "signal": sig,
+        "regime": {"label": sig, "detail": detail,
+                   "cls": {"GO": "pos", "CAUTION": "warn", "WAIT": "neg"}.get(sig, "")},
+        "gexlog": {
+            "putWall": gx.get("putWall"), "callWall": gx.get("callWall"),
+            "gex_flip": gx.get("gex_flip"), "day_type": gx.get("day_type"),
+            "net_gex": gx.get("net_gex"),
+            "em_low": gp.get("em_low"), "em_high": gp.get("em_high"),
+        },
+        "vix": gp.get("vix"),
     }
 
 
@@ -98,10 +95,108 @@ def money(v, signed=True):
     return (f"{'+' if v >= 0 else '−'}${abs(v):,.0f}") if signed else f"${abs(v):,.0f}"
 
 
+# --- historical clean-up: hide the desk's known-bad early days from what the app SHOWS -
+# 2026-08-04: blank-slate setup day, untracked (user recalls it wasn't right).
+# 2026-08-05: dead-feed day (IB feed down till 09:26 -> late/invalid entries + 2 orphaned
+#             positions; the orphans live here so this drops them too).
+# Aug 6/7 are KEPT (not proven broken; Aug 7 was a +$1,367 winner). This is a FIXED
+# PAST-DATE exclusion: it can never hide a current or future trade, and only affects
+# DISPLAY — the desk still loads the full book via tlog for its own position logic.
+EXCLUDE_DAYS = {"2026-08-04", "2026-08-05"}
+
+
+def _shown(trades):
+    """Display filter: drop excluded error day(s) and de-duplicate live mirrors.
+    Past-only, never future. A 'real_paper' row is the live-account leg of a trade
+    already in the sim book (same strategy_id + entry day); count it ONCE so
+    collateral / P&L / grades never double-book (STMR sim+REAL pair)."""
+    if trades is None or not len(trades):
+        return trades
+    ed = pd.to_datetime(trades.entry_dt, errors="coerce").dt.strftime("%Y-%m-%d")
+    t = trades[~ed.isin(EXCLUDE_DAYS)].copy()
+    return tlog.dedupe_mirrors(t)
+
+
+_PZ_CACHE = {}
+
+
+def _prob_in_zone(lo, hi):
+    """Market-implied P(SPX settles inside [lo,hi]) from live 0DTE call deltas:
+    P(S_T > K) ≈ Δ_call(K)  ⇒  P(in zone) ≈ Δ_call(lo) − Δ_call(hi).
+    Uses ThetaData snapshot greeks (skew-aware, the market's own number), cached
+    30s so page refreshes don't hammer the terminal. None on any failure."""
+    import time
+    import urllib.request
+
+    key = (lo, hi)
+    hit = _PZ_CACHE.get(key)
+    if hit and time.time() - hit[0] < 30:
+        return hit[1]
+
+    def call_delta(k):
+        if k is None:
+            return None
+        exp = dt.date.today().strftime("%Y%m%d")
+        u = (f"http://127.0.0.1:25503/v3/option/snapshot/greeks/first_order?symbol=SPXW"
+             f"&expiration={exp}&strike={float(k):.3f}&right=call&format=csv")
+        try:
+            body = urllib.request.urlopen(u, timeout=4).read().decode("utf-8", "replace")
+            lines = [l for l in body.splitlines() if l.strip()]
+            h = [x.strip().strip('"') for x in lines[0].split(",")]
+            d = dict(zip(h, [x.strip().strip('"') for x in lines[-1].split(",")]))
+            return float(d["delta"])
+        except Exception:
+            return None
+    d_lo = call_delta(lo) if lo is not None else 1.0
+    d_hi = call_delta(hi) if hi is not None else 0.0
+    val = None
+    if d_lo is not None and d_hi is not None:
+        val = max(0.0, min(100.0, 100.0 * (d_lo - d_hi)))
+    _PZ_CACHE[key] = (time.time(), val)
+    return val
+
+
+def _recon_df():
+    """Reconstructed missed-desk days as synthetic CLOSED trades so load_stats +
+    positions_html + analytics_payload all count them (flagged recon=True). Realistic
+    worst-touch fills; kept OUT of trades.parquet, injected only for display/consistency."""
+    cols = ["trade_id", "strategy_id", "structure", "grade", "gex_regime", "source",
+            "dte", "entry_dt", "exit_dt", "pnl", "collateral", "close_reason", "recon"]
+    f = SIM / "reconstructed_days.json"
+    if not f.exists():
+        return pd.DataFrame(columns=cols)
+    try:
+        rj = json.loads(f.read_text())
+    except Exception:
+        return pd.DataFrame(columns=cols)
+    out = []
+    for d, rd in rj.items():
+        for t in rd.get("trades", []):
+            st = t.get("structure", "")
+            try:
+                a, b = st.split()[-1].split("/")
+                w = abs(float(a) - float(b))
+            except Exception:
+                w = 25.0
+            cr = t.get("entry_cr") or 0
+            pnl = t.get("pnl")
+            out.append({
+                "trade_id": "recon_" + d.replace("-", "") + "_" + t.get("strategy", ""),
+                "strategy_id": t.get("strategy", "recon"), "structure": st, "grade": "C",
+                "gex_regime": "unknown", "source": "reconstructed", "dte": 0,
+                "entry_dt": d + " 08:31:00", "exit_dt": d + " 15:45:00",
+                "pnl": None if pnl is None else float(round(pnl)),
+                "collateral": round((w - cr) * 100) if w else None,
+                "close_reason": t.get("reason", ""), "recon": True})
+    return pd.DataFrame(out, columns=cols)
+
+
 def load_stats():
-    trades = tlog.load()
+    trades = pd.concat([_shown(tlog.load()), _recon_df()], ignore_index=True)
     closed = trades[trades.exit_dt.notna()] if len(trades) else trades
-    p = closed.pnl.astype(float) if len(closed) else pd.Series(dtype=float)
+    # round per-trade so realized/PF/win MATCH the analytics basis (analytics_payload rounds
+    # each trade); reconstructed pnls are already integral.
+    p = closed.pnl.astype(float).round() if len(closed) else pd.Series(dtype=float)
     pf = p[p > 0].sum() / -p[p < 0].sum() if len(p) and (p < 0).any() else None
     marks = pd.read_csv(SIM / "marks.csv") if (SIM / "marks.csv").exists() else pd.DataFrame()
     lastm = marks.groupby("trade_id").last() if len(marks) else pd.DataFrame()
@@ -110,18 +205,87 @@ def load_stats():
     acct = pd.read_csv(SIM / "account.csv").iloc[-1] if (SIM / "account.csv").exists() else None
     vix = marks.vix.dropna().iloc[-1] if len(marks) and marks.vix.notna().any() else None
     coll = float(trades[trades.exit_dt.isna()].collateral.astype(float).sum()) if len(trades) else 0
+    # CLOSE NOW = TODAY only (user spec 2026-09-09): today's realized + current
+    # open marks = what the DAY ends at if we flatten everything right now.
+    # (Was all-time realized + marks — showed the cumulative account P&L.)
+    if len(closed):
+        xd = pd.to_datetime(closed.exit_dt, errors="coerce").dt.strftime("%Y-%m-%d")
+        p_today = closed.pnl.astype(float)[xd == dt.datetime.now().strftime("%Y-%m-%d")]
+    else:
+        p_today = pd.Series(dtype=float)
+    close_now_val = (float(p_today.sum()) if len(p_today) else 0.0) + (unreal or 0.0)
+    # Max-profit zone for the CURRENT open book (reuses maxprofit_zone.compute_zone):
+    # inside [highest short put, lowest short call] every short expires OTM -> full
+    # credit. Tile shows the zone + whether spot is inside + distance to nearest edge.
+    mpz, mpz_cls, mpz_pin, mpz_pos, mpz_bar = "—", "", "—", "", None
+    try:
+        from maxprofit_zone import compute_zone, live_spot
+        open_tr = trades[trades.exit_dt.isna()] if len(trades) else trades
+        if len(open_tr):
+            z = compute_zone(open_tr)
+            lo, hi = z.get("zone_low"), z.get("zone_high")
+            spot, _ = live_spot()
+            if spot is None and len(lastm) and "und" in lastm.columns:
+                spot = float(lastm["und"].dropna().iloc[-1]) if lastm["und"].notna().any() else None
+            if lo is not None or hi is not None:
+                zone = f"{lo:.0f}–{hi:.0f}" if (lo is not None and hi is not None) else \
+                       (f">{lo:.0f}" if lo is not None else f"<{hi:.0f}")
+                mpz = zone + (f" ({hi - lo:.0f}pt)" if (lo is not None and hi is not None) else "")
+                pin = _prob_in_zone(lo, hi)
+                mpz_pin = f"{pin:.0f}%" if pin is not None else "—"
+                if spot is not None:
+                    inside = (lo is None or spot >= lo) and (hi is None or spot <= hi)
+                    edge = min([x for x in (spot - lo if lo is not None else None,
+                                            hi - spot if hi is not None else None)
+                                if x is not None])
+                    mpz_cls = "pos" if inside else "neg"
+                    mpz_pos = f"{'IN, edge ' if inside else 'OUT by '}{abs(edge):.0f}pt"
+                    if lo is not None and hi is not None:
+                        mpz_bar = dict(lo=lo, hi=hi, spot=spot, inside=inside,
+                                       pct=100.0 * (spot - lo) / (hi - lo))
+    except Exception:
+        pass
     return {
+        "mpz": mpz, "mpz_cls": mpz_cls, "mpz_pin": mpz_pin, "mpz_pos": mpz_pos,
+        "_mpz_bar": mpz_bar,
         "open": int(len(trades) - len(closed)), "closed": int(len(closed)),
         "win": f"{(p > 0).mean() * 100:.0f}%" if len(p) else "—",
         "pf": f"{pf:.2f}" if pf else "—",
         "realized": money(p.sum()) if len(p) else "—",
         "running": money(unreal) if unreal is not None else "—",
+        "close_now": money(close_now_val),
         "collateral": money(coll, signed=False),
         "margin": money(float(acct.maint_margin), signed=False) if acct is not None else "—",
         "netliq": money(float(acct.net_liq), signed=False) if acct is not None else "—",
         "vix": f"{vix:.1f}" if vix else "—",
         "unreal_val": unreal,
     }
+
+
+def zone_bar_html(s):
+    """Visual zone-position bar: green plateau between the edges, red caps beyond,
+    amber marker at the live spot. Renders empty when zone/spot unavailable."""
+    z = s.get("_mpz_bar")
+    if not z:
+        return ""
+    pct = max(1.5, min(98.5, z["pct"]))
+    col = "var(--pos,#2fbf8f)" if z["inside"] else "var(--neg,#f85149)"
+    return (
+        '<div style="background:var(--panel,#161b22);border:1px solid var(--line,#30363d);'
+        'border-radius:11px;padding:10px 14px;margin:0 0 14px">'
+        '<div style="display:flex;justify-content:space-between;font-size:11px;color:#8b949e;'
+        'text-transform:uppercase;font-weight:700;letter-spacing:.04em">'
+        f'<span>Zone position</span><span class="zb-head">spot {z["spot"]:.2f} · '
+        f'<span style="color:{col}">{s["mpz_pos"]}</span></span></div>'
+        '<div style="position:relative;height:12px;margin:9px 0 5px;border-radius:6px;'
+        'background:linear-gradient(90deg,#f85149 0%,rgba(248,81,73,.25) 3%,'
+        'rgba(47,191,143,.28) 9%,rgba(47,191,143,.55) 50%,rgba(47,191,143,.28) 91%,'
+        'rgba(248,81,73,.25) 97%,#f85149 100%)">'
+        f'<div class="zb-marker" style="position:absolute;top:-4px;bottom:-4px;left:{pct:.1f}%;width:3px;'
+        'background:#e3b341;border-radius:2px;box-shadow:0 0 7px #e3b341"></div></div>'
+        '<div style="display:flex;justify-content:space-between;font-size:12px;color:#8b949e">'
+        f'<span>{z["lo"]:.0f}</span><span class="zb-cap">@{z["pct"]:.0f}% of zone · settle-in prob {s["mpz_pin"]}</span>'
+        f'<span>{z["hi"]:.0f}</span></div></div>')
 
 
 def _pnl_cls(v):
@@ -218,6 +382,9 @@ def tile_specs(s):
         ("netliq", "Net Liq", s["netliq"], ""),
         ("realized", "Realized P&L", s["realized"], _pnl_cls(s["realized"])),
         ("running", "Running (open)", s["running"], _pnl_cls(s["running"])),
+        ("close_now", "Close now", s["close_now"], _pnl_cls(s["close_now"])),
+        ("mpz", "Max-profit zone", s["mpz"], s["mpz_cls"]),
+        ("mpz_pin", "P(settle in zone)", s["mpz_pin"], s["mpz_cls"]),
         ("win", "Win rate", s["win"], ""),
         ("pf", "Profit factor", s["pf"], ""),
         ("openclosed", "Open / Closed", f"{s['open']} / {s['closed']}", ""),
@@ -227,9 +394,13 @@ def tile_specs(s):
     ]
 
 
-def stat_tiles(s):
+def stat_tiles(s, only=None, skip=()):
     out = []
     for key, label, val, cls in tile_specs(s):
+        if only is not None and key not in only:
+            continue
+        if key in skip:
+            continue
         out.append(f"""<div class="tile">
           <div class="tl">{label}</div>
           <div class="tv {cls}" id="k-{key}">{val}</div></div>""")
@@ -299,69 +470,29 @@ def md_to_html(md):
 # C = structure test / off-signal; F = broken execution. Each setup below spells
 # out what actually earns each grade for THAT structure.
 SETUPS = [
-    {"name": "STMR Bull Put Spread", "id": "bps_stmr", "tag": "SUPPORTED (in-sample)",
+    {"name": "STMR Bull Put Spread", "id": "bps_stmr", "tag": "VALIDATED EDGE",
      "tagcls": "pos", "thesis": "Oversold-but-uptrend mean reversion; sell put premium into the bounce.",
      "default": "SPXW ~30Δ put / buy 50pt lower · 14 DTE · exit on SMA5 signal (NO stops/targets/holds).",
      "grades": [
-        ("A+", "15:59 %K8<15 AND spot>SMA100, LOW VIX-rank tercile, non-crash uptrend, no gap-down cluster."),
-        ("A / B", "Trigger fires but one context off (VIX-rank mid, choppy tape). Still the only real edge — take it."),
-        ("C", "Off-signal execution/labeling test (%K8 not oversold) — plumbing only, no edge."),
-        ("F", "Held to expiry / used price stops / profit target — the exit shootout proved these are negative."),
+        ("A+", "15:59 %K8<15 AND spot>SMA100 — the only validated edge (PF 4.45, 80% win, 16/17 yrs)."),
+        ("F", "Held to expiry / price stops / profit target — the exit shootout proved these negative."),
      ]},
-    {"name": "0DTE Premium Sell @ Wall", "id": "sell_0dte_gamma", "tag": "HYPOTHESIS (live)",
-     "tagcls": "warn", "thesis": "Positive-gamma days pin; sell defined-risk premium at the walls.",
-     "default": "0DTE 25pt credit spread, short AT PS0 (puts) / CR0 (calls), 8:45–9:30 CT.",
-     "grades": [
-        ("A+", "Positive gamma (spot>HVL), VIX<20, no FOMC/CPI, spot ≥40pt from short strike, credit ≥0.80."),
-        ("A / B", "Positive gamma but closer to the wall (25–40pt) or credit 0.60–0.80."),
-        ("C", "Ambiguous regime (|spot−HVL|<15) or entered late/off the wall — structure test."),
-        ("F", "Zero/near-zero credit fill (wall already faded past the strike) — reject before placing."),
-     ]},
-    {"name": "0DTE Iron Condor (inside walls)", "id": "condor_0dte", "tag": "HYPOTHESIS",
-     "tagcls": "warn", "thesis": "Add call-side credit on ~zero extra collateral on a pin day.",
-     "default": "Short put AT/inside PS0 + short call AT/inside CR0 · 25pt wings · both ≥40pt OTM, total credit ≥1.50.",
-     "grades": [
-        ("A+", "Clean positive gamma, spot mid-channel between PS0/CR0, both strikes ≥40pt OTM, credit ≥1.50."),
-        ("A / B", "Positive gamma but one side <40pt OTM (asymmetric) — the risk side is the trending one."),
-        ("C", "|spot−HVL|<15 (regime ambiguity) — playbook says skip; logged only as a test."),
-        ("F", "One side filled far after the other (leg risk) or a side already breached."),
-     ]},
-    {"name": "Long ATM Straddle", "id": "straddle_0dte", "tag": "HYPOTHESIS (counter-regime)",
-     "tagcls": "warn", "thesis": "Buy vol when realized>implied is likely: events, negative-gamma days.",
-     "default": "Buy ATM C+P · 0DTE (event) or nearest weekly · risk = full debit.",
-     "grades": [
-        ("A+", "Scheduled event (FOMC/CPI before 16:00) OR negative-gamma morning with VIX term inverted."),
-        ("A / B", "Negative gamma but VIX term not clearly inverted."),
-        ("C", "Taken to test debit/two-right execution with no vol catalyst."),
-        ("F", "Bought on a positive-gamma pin day at low VIX — the textbook counter-regime loss (2026-07-14)."),
-     ]},
-    {"name": "Butterfly at the Pin", "id": "fly_gw_0dte", "tag": "HYPOTHESIS (most aligned long)",
-     "tagcls": "warn", "thesis": "Positive-gamma days settle near the Gamma Wall; convex payoff into the pin.",
-     "default": "Call butterfly · 25pt wings · centered ON GW0 · 0DTE · enter 10:00–12:00 · debit ≤40% of wing.",
-     "grades": [
-        ("A+", "Positive gamma, spot hovering near GW0, debit ≤40% of wing width, no event."),
-        ("A / B", "Positive gamma but spot 25–50pt off GW0, or debit 40–50% of wing."),
-        ("C", "Entered outside the 10:00–12:00 window or center guessed (no clean GW0)."),
-        ("F", "Bought on a negative-gamma / trend day (no pin) — the wall won't hold price."),
-     ]},
-    {"name": "Directional Verticals", "id": "bull_cs_wk", "tag": "HYPOTHESIS (needs a signal)",
-     "tagcls": "warn", "thesis": "A debit vertical is a delta bet; only sanctioned to express a VALIDATED futures signal.",
-     "default": "Buy 50Δ / sell 25Δ · 7–14 DTE · ONLY on a validated STMR-long signal day · exit with the signal.",
-     "grades": [
-        ("A+", "Expresses an active validated STMR-long signal in defined-risk form; exit tied to the signal."),
-        ("A / B", "Validated signal present but sizing/DTE improvised."),
-        ("C", "Momentum chase with no validated signal — coin flip minus the spread (2026-07-14 sample)."),
-        ("F", "Blind directional bet against the regime / no exit plan."),
-     ]},
-    {"name": "Put Calendar", "id": "put_cal_wk", "tag": "PARKED (structure test)",
-     "tagcls": "mut", "thesis": "Short-leg theta > long-leg theta near ATM; vega hedge. No testable edge with owned data.",
-     "default": "ATM put calendar (short 0DTE / long weekly) · risk = net debit.",
-     "grades": [
-        ("A+", "n/a — parked until term-structure history is owned."),
-        ("A / B", "n/a."),
-        ("C", "Logged once to prove multi-expiry handling."),
-        ("F", "—"),
-     ]},
+    {"name": "EOD-centered Iron Condor", "id": "eod", "tag": "FORWARD TEST", "tagcls": "warn",
+     "thesis": "Sell the expected-move range anchored on the PRIOR CLOSE (GexLog EM band).",
+     "default": "Bull put @ prior_close−EM · bear call @ prior_close+EM · 25pt wings · 0DTE · fire 08:35 CT.",
+     "grades": [("C", "Unconditional data-collection — every day taken, exit on short-strike acceptance or 14:45.")]},
+    {"name": "Open-centered Iron Condor", "id": "open", "tag": "FORWARD TEST", "tagcls": "warn",
+     "thesis": "Same ± expected move, centered on the actual OPEN (strikes struck at 08:35).",
+     "default": "Bull put @ open−EM · bear call @ open+EM · 25pt wings · 0DTE.",
+     "grades": [("C", "A/B vs EOD centering — which anchor contains the session better.")]},
+    {"name": "ATM Iron Fly", "id": "fly", "tag": "FORWARD TEST", "tagcls": "warn",
+     "thesis": "Short straddle at the money with defined-risk wings — max theta, tightest range.",
+     "default": "Short put + short call ATM(open) · 25pt wings · 0DTE.",
+     "grades": [("C", "Highest credit, highest gamma — the aggressive premium sell.")]},
+    {"name": "GexLog Iron Condor (its walls)", "id": "gexlog", "tag": "FORWARD TEST", "tagcls": "warn",
+     "thesis": "Sell at GexLog's own suggested strikes — short put @ Put Wall, short call @ Call Wall.",
+     "default": "Bull put @ putWall · bear call @ callWall · 25pt wings · 0DTE.",
+     "grades": [("C", "Tests GexLog's gamma walls vs the VIX EM band as the strike source.")]},
 ]
 
 
@@ -395,7 +526,7 @@ def load_postmortem():
     if not f.exists():
         return None
     try:
-        return json.loads(f.read_text(encoding="utf-8"))
+        return _scrub_stmr(json.loads(f.read_text(encoding="utf-8")))
     except Exception:
         return None
 
@@ -529,17 +660,27 @@ def analytics_payload(trades, marks_last):
             pnl = float(r.pnl) if pd.notna(r.pnl) else None
         coll = float(r.collateral) if pd.notna(r.collateral) else None
         entry = str(r.entry_dt) if pd.notna(r.entry_dt) else ""
+        exitd = str(r.exit_dt) if pd.notna(r.exit_dt) else ""
         try:
             dow = pd.to_datetime(entry).strftime("%a") if entry else ""
         except Exception:
             dow = ""
+        # P&L buckets (calendar/equity curve) on the day it was REALIZED = exit date for
+        # closed trades. 0DTE enter==exit so only multi-day trades (STMR) move; open trades
+        # keep entry (unrealized). dow/hour stay entry-based (strategy-entry analytics).
+        bucket_date = exitd[:10] if (not is_open and exitd) else entry[:10]
+        try:
+            _bias = tags.bias_of_row(r)
+        except Exception:
+            _bias = "neutral"
+        _recon = bool(r.get("recon")) if ("recon" in r.index and pd.notna(r.get("recon"))) else False
         rows.append({
             "id": r.trade_id, "strategy": r.strategy_id,
-            "date": entry[:10], "entry": entry, "dow": dow,
+            "date": bucket_date, "entry": entry, "dow": dow,
             "hour": entry[11:13] + ":00" if len(entry) >= 13 else "?",
             "grade": r.grade if isinstance(r.grade, str) else "?",
             "regime": r.gex_regime if isinstance(r.gex_regime, str) else "unknown",
-            "bias": tags.bias_of_row(r),
+            "bias": _bias,
             "source": r.source if isinstance(r.source, str) else "?",
             "dte": int(r.dte) if pd.notna(r.dte) else None,
             "pnl": None if pnl is None else round(float(pnl)),
@@ -548,8 +689,137 @@ def analytics_payload(trades, marks_last):
             "open": bool(is_open),
             "win": None if pnl is None else bool(pnl >= 0),
             "structure": r.structure if isinstance(r.structure, str) else "",
+            "recon": _recon,
         })
     return rows
+
+
+def shadow_stop_html(daily_pnl=None, recon_days=None):
+    """OBSERVATIONAL shadow daily-stop panel (no executions). Reads the log written
+    by shadow_stop_monitor.py; shows current-book (auto-era) days only, with what
+    each day WOULD have ended at under the -3k stop and a running better/worse tally.
+
+    P&L (ACTUAL) + month totals come from `daily_pnl` (the SAME canonical per-day book
+    P&L that drives the calendar/analytics), so all three panels agree. The log supplies
+    only the intraday DD + stop-trigger info. Reconstructed days with no log row are
+    injected so they still appear as a line item."""
+    import csv as _csv
+    daily_pnl = daily_pnl or {}
+    recon_days = recon_days or {}
+    f = SIM / "shadow_stop_log.csv"
+    rows = []
+    if f.exists():
+        rows = [r for r in _csv.DictReader(f.open()) if r["date"] >= "2026-08-04"]
+    _have = {r["date"] for r in rows}
+    for _d, _rd in recon_days.items():
+        if _d >= "2026-08-04" and _d not in _have:
+            rows.append({"date": _d, "n": str(_rd.get("n", "")), "trough": str(_rd.get("dd", "")),
+                         "trough_ct": "", "crossed_warn": "False", "warn_ct": "", "warn_fill": "",
+                         "crossed_stop": "False", "stop_ct": "", "stop_fill": "",
+                         "end_pnl": str(_rd.get("pnl", "")), "would_help": "", "day_swing": "",
+                         "mid_event": "", "vix": "", "updated_ct": "", "_recon": True})
+    if not rows:
+        return ""
+    def _i(x):
+        try:
+            return int(x)
+        except (TypeError, ValueError):
+            return None
+    ccls = lambda v: "pos" if v > 0 else ("neg" if v < 0 else "muted")
+
+    def cell(cond, v, forced=None):
+        if not cond or v is None:
+            return "<td class='muted'>—</td>"
+        return f"<td class='{forced or ('pos' if v >= 0 else 'neg')}'>{money(v)}</td>"
+    # per-stop EOD + Δ shown ONLY on days that stop tripped (flatten at the ACTUAL
+    # mark). ONE running Δ cum, at the end, advanced ONLY on a trigger day (deeper
+    # stop wins if both fire) and shown only on those rows.
+    cum = cum2 = cum3 = fires2 = fires3 = 0
+    started = False
+    for r in sorted(rows, key=lambda r: r["date"]):
+        end = daily_pnl.get(r["date"], _i(r["end_pnl"]))
+        wf, sf = _i(r["warn_fill"]), _i(r["stop_fill"])
+        c2 = r["crossed_warn"] == "True" and wf is not None
+        c3 = r["crossed_stop"] == "True" and sf is not None
+        r["_c2"], r["_c3"] = c2, c3
+        r["_eod2"], r["_d2"] = (wf, wf - end) if c2 else (None, None)
+        r["_eod3"], r["_d3"] = (sf, sf - end) if c3 else (None, None)
+        cum += (r["_d3"] if c3 else (r["_d2"] if c2 else 0))
+        cum2 += (wf - end) if c2 else 0
+        cum3 += (sf - end) if c3 else 0
+        started = started or c2 or c3
+        r["_trg"], r["_cum"], r["_showcum"] = (c2 or c3), cum, started
+        fires2 += c2
+        fires3 += c3
+        r["_badge"] = (f" <span class='midev' title='mid-session Fed event: {r['mid_event']}'>⚑</span>"
+                       if r.get("mid_event") else "")
+        if r.get("_recon"):
+            r["_badge"] += (" <span style='color:#e0a04d;font-weight:800' "
+                            "title='reconstructed day (desk was down) — realistic worst-touch fills'>*</span>")
+    worst = min((_i(r["trough"]) for r in rows if _i(r["trough"]) is not None), default=0)
+    nev = sum(1 for r in rows if r.get("mid_event"))
+
+    def drow(r):
+        dd = _i(r["trough"])
+        ddcell = (f"<td class='{ccls(dd)}'>{money(dd)}</td>" if dd is not None else "<td class='muted'>n/a</td>")
+        return (f"<tr><td>{r['date']}{r['_badge']}</td>"
+                f"{cell(True, daily_pnl.get(r['date'], _i(r['end_pnl'])))}"
+                f"{ddcell}"
+                f"{cell(r['_c2'], r['_eod2'])}"
+                f"{cell(r['_c2'], r['_d2'], ccls(r['_d2']) if r['_c2'] else None)}"
+                f"{cell(r['_c3'], r['_eod3'])}"
+                f"{cell(r['_c3'], r['_d3'], ccls(r['_d3']) if r['_c3'] else None)}"
+                f"{cell(r['_showcum'], r['_cum'], ccls(r['_cum']))}"
+                f"<td class='muted'>{r['vix']}</td></tr>")
+    months = {}
+    for r in rows:
+        months.setdefault(r["date"][:7], []).append(r)
+    tbodies = ""
+    for mk in sorted(months, reverse=True):
+        drows = sorted(months[mk], key=lambda r: r["date"], reverse=True)
+        mp = sum((daily_pnl[r["date"]] if r["date"] in daily_pnl else (_i(r["end_pnl"]) or 0)) for r in drows)
+        trg = sum(1 for r in drows if r["_trg"])
+        mhead = (f"<tr class='mhead' onclick='tglMonth(this)'><td colspan='9'>"
+                 f"<span class='cv'></span>{mk} · <b class='{'pos' if mp >= 0 else 'neg'}'>{money(mp)}</b> · "
+                 f"{len(drows)} days · {trg} stop-hit</td></tr>")
+        tbodies += f"<tbody>{mhead}{''.join(drow(r) for r in drows)}</tbody>"
+    head = (f"1-lot. <b>EOD −2k / −3k</b> = what the day would have closed at, flattening at the ACTUAL mark when "
+            f"the drawdown trips that line — shown only on days it fired. <b>Δ cum</b> = one running tally, "
+            f"advanced only on a trigger day. Over {len(rows)} days: <b>−$2k</b> fired {fires2}× (net "
+            f"<b class='{ccls(cum2)}'>{money(cum2)}</b>), <b>−$3k</b> fired {fires3}× (net "
+            f"<b class='{ccls(cum3)}'>{money(cum3)}</b>). Worst intraday <b class='{ccls(worst)}'>{money(worst)}</b>. "
+            f"<span class='midev'>⚑</span> = mid-session Fed event ({nev}, none a rate decision). "
+            f"Recording only — nothing is flattened.")
+    return (
+        "<div class='an-card' style='margin-top:14px'>"
+        "<div class='an-h'>Shadow daily stop <span class='muted'>— observational · no orders placed</span></div>"
+        f"<div class='muted' style='font-size:12.5px;margin:-2px 0 10px'>{head}</div>"
+        "<div style='overflow-x:auto'><table class='antable shadowtbl'>"
+        "<thead><tr><th>day</th><th>P&L (actual)</th><th>intraday DD</th><th>EOD −2k stop</th><th>Δ</th>"
+        "<th>EOD −3k stop</th><th>Δ</th><th>Δ cum</th><th>vix</th></tr></thead>"
+        f"{tbodies}</table></div>"
+        "<script>function tglMonth(t){t.parentNode.classList.toggle('col');}</script></div>")
+
+
+def _is_stmr(t):
+    """STMR tile/trigger detector — retired 2026-09-05, hidden from all views."""
+    if not isinstance(t, dict):
+        return False
+    return (str(t.get("setup", "")).startswith("bps_stmr")
+            or t.get("stream") == "stmr"
+            or "bps_stmr" in str(t.get("id", ""))
+            or "STMR" in str(t.get("name", "")))
+
+
+def _scrub_stmr(gp):
+    """Drop STMR entries from a loaded gameplan/postmortem dict (non-destructive:
+    historical JSON files are left intact; STMR is only hidden at render)."""
+    if not isinstance(gp, dict):
+        return gp
+    for k in ("triggers", "tiles"):
+        if isinstance(gp.get(k), list):
+            gp[k] = [t for t in gp[k] if not _is_stmr(t)]
+    return gp
 
 
 def load_gameplan():
@@ -560,7 +830,7 @@ def load_gameplan():
     if not f.exists():
         return None
     try:
-        return json.loads(f.read_text(encoding="utf-8"))
+        return _scrub_stmr(json.loads(f.read_text(encoding="utf-8")))
     except Exception:
         return None
 
@@ -592,6 +862,10 @@ def _struct_txt(st):
         s, l = st.get("short"), st.get("long")
         both = isinstance(s, (int, float)) and isinstance(l, (int, float))
         return f"{st.get('right','')} {s:.0f}/{l:.0f}" if both else f"{st.get('right','')} {s} w{st.get('width','')}"
+    if k == "vertical_dynamic":
+        off = st.get("offset", 0)
+        where = "ATM" if off == 0 else f"open{off:+.0f}"
+        return f"{st.get('right','')} {where} · w{st.get('width','')} (struck at open)"
     if k == "butterfly":
         return f"C {st['lower']:.0f}/{st['center']:.0f}/{st['upper']:.0f}"
     if k == "straddle":
@@ -611,6 +885,22 @@ def _idea_tile(t, foot, gc=None):
       <div class="itile-foot">{foot}</div></div>"""
 
 
+def _group_tile(ts, foot):
+    """One tile for a structure — both legs of a condor/fly shown together."""
+    t0 = ts[0]
+    gr = t0.get("projected_grade")
+    color = _grade_color(gr)
+    legs = "".join(
+        f"<div class='itile-sub'>{_struct_txt(t['structure'])} "
+        f"<span class='muted'>· {t.get('stream', '')}</span></div>" for t in ts)
+    return f"""<div class="itile" style="--gc:{color}">
+      <div class="itile-h"><div class="itile-name">{t0.get('group', t0['name'])}</div>
+        <span class="ichip" style="background:{color}">{gr}</span></div>
+      {legs}
+      <div class="itile-sub">fires <b>{_fire_str(t0['fire'])}</b></div>
+      <div class="itile-foot">{foot}</div></div>"""
+
+
 def _bucket(title, tiles, bid, is_open=True):
     body = "".join(tiles) if tiles else "<div class='muted' style='padding:6px 2px'>—</div>"
     return (f"<details id='ex-{bid}' class='ex ex-sec'{' open' if is_open else ''}>"
@@ -618,18 +908,272 @@ def _bucket(title, tiles, bid, is_open=True):
             f"<div class='iboard'>{body}</div></details>")
 
 
+CENTER_OF = {
+    "eodic_p": "EOD", "eodic_c": "EOD", "eodfly_p": "EOD", "eodfly_c": "EOD",
+    "openic_p": "Open", "openic_c": "Open", "openfly_p": "Open", "openfly_c": "Open",
+    "gx_bps": "GexLog", "gx_bcs": "GexLog", "bps_stmr": "STMR",
+}
+STRUCT_OF = {
+    "eodic_p": "Iron Condor", "eodic_c": "Iron Condor",
+    "eodfly_p": "Iron Fly", "eodfly_c": "Iron Fly",
+    "openic_p": "Iron Condor", "openic_c": "Iron Condor",
+    "openfly_p": "Iron Fly", "openfly_c": "Iron Fly",
+    "gx_bps": "GexLog Condor", "gx_bcs": "GexLog Condor", "bps_stmr": "STMR",
+}
+
+
+def bands_svg(gp, live_spot=None):
+    """EOD vs Open bands graphic: EOD spot level, open level, both strategy bands,
+    and where price is now — plus PoP (Normal, sigma = 1-day EM) per structure."""
+    import math
+    RES, SUP, PIV, SPOT = "#e05561", "#4cc38a", "#e0a04d", "#5b9dd9"
+    eod = (gp.get("gexlog") or {}).get("current")
+    move = gp.get("em_halfwidth")
+    if not (eod and move):
+        return ""
+    op = gp.get("open_spot")
+    cur = live_spot or op or eod
+    e_lo, e_hi = eod - move, eod + move
+    o_lo, o_hi = (op - move, op + move) if op else (None, None)
+    xs = [e_lo, e_hi, cur, eod] + ([o_lo, o_hi, op] if op else [])
+    lo, hi = min(xs) - move * 0.25, max(xs) + move * 0.25
+    W, H = 860, 148
+    X = lambda p: 30 + (p - lo) / (hi - lo) * (W - 60)
+
+    def N(z):  # standard normal CDF
+        return 0.5 * (1 + math.erf(z / math.sqrt(2)))
+
+    def pop_band(b_lo, b_hi):
+        return (N((b_hi - cur) / move) - N((b_lo - cur) / move)) * 100
+
+    rows = []
+    # EOD band row (y=44) and Open band row (y=84)
+    rows.append(f"<rect x='{X(e_lo):.0f}' y='36' width='{X(e_hi)-X(e_lo):.0f}' height='16' rx='3' fill='{SUP}22' stroke='#2a3245'/>")
+    rows.append(f"<text x='24' y='48' fill='#8a94a6' font-size='11'>EOD band</text>")
+    if op:
+        rows.append(f"<rect x='{X(o_lo):.0f}' y='76' width='{X(o_hi)-X(o_lo):.0f}' height='16' rx='3' fill='{PIV}22' stroke='#2a3245'/>")
+        rows.append(f"<text x='24' y='88' fill='#8a94a6' font-size='11'>Open band</text>")
+    else:
+        rows.append(f"<text x='24' y='88' fill='#5a6478' font-size='11'>Open band — waits for the 08:30 bell</text>")
+    # levels
+    for p, c, lab, y0, y1 in [
+        (eod, SPOT, f"EOD {eod:.0f}", 24, 118),
+        (op, "#e8ecf4", (f"OPEN {op:.0f}" if op else None), 24, 118) if op else (None,)*5,
+        (e_lo, SUP, f"{e_lo:.0f}", 30, 56), (e_hi, RES, f"{e_hi:.0f}", 30, 56),
+    ]:
+        if p is None:
+            continue
+        rows.append(f"<line x1='{X(p):.0f}' y1='{y0}' x2='{X(p):.0f}' y2='{y1}' stroke='{c}' stroke-width='1.6' stroke-dasharray='4 3'/>")
+        if lab:
+            rows.append(f"<text x='{X(p):.0f}' y='{y0-6}' fill='{c}' font-size='11' text-anchor='middle'>{lab}</text>")
+    if op:
+        for p, c in [(o_lo, SUP), (o_hi, RES)]:
+            rows.append(f"<line x1='{X(p):.0f}' y1='70' x2='{X(p):.0f}' y2='96' stroke='{c}' stroke-width='1.6'/>")
+            rows.append(f"<text x='{X(p):.0f}' y='108' fill='{c}' font-size='10' text-anchor='middle'>{p:.0f}</text>")
+    # current price marker — id'd so the 5s poll moves it LIVE from lr.spot
+    rows.append(f"<line id='bm-line' x1='{X(cur):.0f}' y1='20' x2='{X(cur):.0f}' y2='122' stroke='#fff' stroke-width='2'/>")
+    rows.append(f"<text id='bm-text' x='{X(cur):.0f}' y='136' fill='#fff' font-size='12' font-weight='700' text-anchor='middle'>▲ {cur:.0f}</text>")
+    # PoP legend
+    pops = [f"EOD condor PoP <b style='color:{SUP}'>{pop_band(e_lo, e_hi):.0f}%</b>"]
+    if op:
+        pops.append(f"Open condor PoP <b style='color:{PIV}'>{pop_band(o_lo, o_hi):.0f}%</b>")
+    pw, cw = (gp.get("gexlog") or {}).get("putWall"), (gp.get("gexlog") or {}).get("callWall")
+    if pw and cw:
+        pops.append(f"GexLog condor PoP <b style='color:{RES}'>{pop_band(pw, cw):.0f}%</b>")
+    legend = " · ".join(pops) + " <span class='muted'>(Normal, σ = 1-day EM, from current price)</span>"
+    return (f"<div style='background:#10141f;border:1px solid #232a3a;border-radius:8px;"
+            f"padding:10px 8px 4px;margin:8px 0'>"
+            f"<svg id='bands-svg' data-lo='{lo:.2f}' data-hi='{hi:.2f}' data-w='{W}' "
+            f"viewBox='0 0 {W} {H}' style='width:100%;height:auto'>{''.join(rows)}</svg>"
+            f"<div style='padding:2px 10px 8px;font-size:12.5px'>{legend}</div></div>")
+
+
+def today_credit_line(trades):
+    """Headline: today's credit collected, realized, open unrealized, buy-back cost."""
+    import datetime as _dt
+    from zoneinfo import ZoneInfo as _ZI
+    today = _dt.datetime.now(_ZI("America/Chicago")).strftime("%Y-%m-%d")
+    td = trades[trades.entry_dt.astype(str).str.startswith(today)].copy()
+    if not len(td):
+        return "<div id='today-banner'></div>"   # keep the id so the 5s poll can fill it later
+    td["credit"] = pd.to_numeric(td.credit, errors="coerce").fillna(0)
+    credit = float(td.credit.clip(lower=0).sum()) * 100          # premium sold today
+    closed = td[td.exit_dt.notna()]
+    realized = float(pd.to_numeric(closed.pnl, errors="coerce").sum()) if len(closed) else 0.0
+    open_ = td[td.exit_dt.isna()]
+    open_credit = float(open_.credit.clip(lower=0).sum()) * 100
+    # unrealized from marks
+    unreal = None
+    mf = SIM / "marks.csv"
+    if mf.exists() and len(open_):
+        try:
+            mk = pd.read_csv(mf).groupby("trade_id").last()
+            vals = [mk.unreal_pnl.get(t) for t in open_.trade_id]
+            vals = [v for v in vals if v is not None and v == v]
+            unreal = float(sum(vals)) if vals else None
+        except Exception:
+            unreal = None
+    buyback = (open_credit - unreal) if unreal is not None else None
+    def m(v, signed=True):
+        return money(v, signed)
+    parts = [f"credit collected <b style='color:#5b9dd9'>{m(credit, False)}</b>",
+             f"realized <b class='{'pos' if realized >= 0 else 'neg'}'>{m(realized)}</b>",
+             f"open {len(open_)} (sold for {m(open_credit, False)})"]
+    if unreal is not None:
+        parts.append(f"open P&L <b class='{'pos' if unreal >= 0 else 'neg'}'>{m(unreal)}</b>")
+        parts.append(f"buy-back cost now <b style='color:#e0a04d'>{m(buyback, False)}</b>")
+        day = realized + unreal
+        parts.append(f"→ day if closed now <b class='{'pos' if day >= 0 else 'neg'}' "
+                     f"style='font-size:15px'>{m(day)}</b>")
+    return ("<div id='today-banner' style='background:#131826;border:1px solid #2a3245;border-radius:8px;"
+            "padding:8px 12px;margin:6px 0;font-size:13px'>📊 <b>TODAY</b> · "
+            + " · ".join(parts) + "</div>")
+
+
+def pnl_summary_html(trades):
+    """Running-P&L summary table for the main page — split by center (EOD vs Open)
+    and structure. Realized (closed) P&L; open counts shown separately."""
+    if trades is None or len(trades) == 0:
+        return ("<div class='pnlsum'><b>Running P&L</b>"
+                "<p class='muted'>No trades yet — this fills as the day trades.</p></div>")
+    df = trades.copy()
+    df["center"] = df.strategy_id.map(lambda s: CENTER_OF.get(str(s)))
+    df["struct"] = df.strategy_id.map(lambda s: STRUCT_OF.get(str(s)))
+    df = df[df.center.notna()]
+    df["pnl"] = pd.to_numeric(df.pnl, errors="coerce")
+    df["closed"] = df.exit_dt.notna()
+
+    def block(sub):
+        cl = sub[sub.closed]
+        real = cl.pnl.sum()
+        n = len(cl); nopen = int((~sub.closed).sum())
+        win = (cl.pnl > 0).mean() * 100 if n else float("nan")
+        cls = "pos" if real >= 0 else "neg"
+        wins = f"{win:.0f}%" if n else "—"
+        return (f"<td>{n}</td><td>{nopen}</td><td>{wins}</td>"
+                f"<td class='{cls}'>{money(real)}</td>")
+
+    hdr = "<tr><th>bucket</th><th>closed</th><th>open</th><th>win%</th><th>realized</th></tr>"
+    # by CENTER (the headline the user wants)
+    center_rows = ""
+    for c in ("EOD", "Open", "GexLog", "STMR"):
+        sub = df[df.center == c]
+        if len(sub):
+            center_rows += f"<tr><td><b>{c}</b></td>{block(sub)}</tr>"
+    total = f"<tr class='tot'><td><b>TOTAL</b></td>{block(df)}</tr>"
+    # by CENTER × STRUCTURE
+    combo_rows = ""
+    for c in ("EOD", "Open", "GexLog", "STMR"):
+        for s in ("Iron Condor", "Iron Fly", "GexLog Condor", "STMR"):
+            sub = df[(df.center == c) & (df.struct == s)]
+            if len(sub):
+                combo_rows += f"<tr><td class='muted'>{c} · {s}</td>{block(sub)}</tr>"
+    return today_credit_line(df) + f"""<div class="pnlsum">
+      <b>Running P&L — by center (EOD vs Open)</b>
+      <table class="sumtab">{hdr}{center_rows}{total}</table>
+      <b style="display:block;margin-top:10px">By structure</b>
+      <table class="sumtab">{hdr}{combo_rows}</table>
+    </div>"""
+
+
 def gameplan_html(gp, trades=None, marks_last=None):
     if not gp:
         return ("<p class='muted'>No gameplan generated yet. Run "
                 "<code>scripts/options_gameplan.py</code> (auto ~8:25 CT).</p>")
-    regcls = "pos" if gp.get("regime") == "positive_gamma" else "neg"
-    head = (f"<div class='gp-head'><span class='rlabel {regcls}'>"
-            f"{gp.get('regime','').replace('_',' ').upper()}</span>"
+    gx = gp.get("gexlog", {}) or {}
+    sig = gx.get("signal_bucket", "—")
+    sigcls = {"GO": "pos", "CAUTION": "warn", "WAIT": "neg"}.get(sig, "muted")
+    v = gp.get("vix")
+    vixtxt = f"{v:.2f}" if isinstance(v, (int, float)) else "—"
+    head = (f"<div class='gp-head'><span class='rlabel {sigcls}'>{sig}</span>"
             f"<span class='muted'>{gp.get('date','')} · preopen {gp.get('spot_preopen','—')} "
-            f"({gp.get('spot_source','')})</span>")
+            f"({gp.get('spot_source','')}) · VIX {vixtxt}</span>")
     if gp.get("live_spot"):
         head += f"<span class='muted' style='margin-left:auto'>live {gp['live_spot']} @ {gp.get('live_ts','')}</span>"
     head += "</div>"
+
+    # CONSISTENT level colors everywhere: resistance red / support green / flip amber
+    RES, SUP, PIV = "#e05561", "#4cc38a", "#e0a04d"
+    def _gxt(label, val, color=None, border=None):
+        vs = f"color:{color}" if color else ""
+        bd = border or "#232a3a"
+        return (f"<div style='display:inline-block;padding:5px 11px;margin:3px 4px 3px 0;"
+                f"background:#161b28;border:1px solid {bd};border-radius:6px;min-width:64px'>"
+                f"<div style='font-size:10px;color:#8a94a6;text-transform:uppercase;letter-spacing:.3px'>{label}</div>"
+                f"<div style='font-weight:600;font-size:14px;{vs}'>{val}</div></div>")
+    if gx:
+        reg = gx.get("regime") or "—"
+        regc = SUP if reg == "POSITIVE" else (RES if reg == "NEGATIVE" else None)
+        dt_ = gx.get("day_type") or "—"
+        dtc = {"RANGE": SUP, "CHOP": PIV, "TREND": RES}.get(dt_)
+        em_band = (f"<span style='color:{SUP}'>{gp.get('em_low', '—')}</span>"
+                   f"<span style='color:#8a94a6'> – </span>"
+                   f"<span style='color:{RES}'>{gp.get('em_high', '—')}</span>")
+        SPOTC = "#5b9dd9"
+        op = gp.get("open_spot")
+        head += ("<div style='margin:8px 0 4px'>"
+                 + _gxt("EOD Spot", gx.get("current") or "—", SPOTC, border=SPOTC)
+                 + _gxt("Open Spot", (f"{op:.2f}" if op else "at 08:30…"),
+                        "#e8ecf4" if op else "#5a6478",
+                        border="#e8ecf4" if op else None)
+                 + _gxt("GexLog Regime", reg, regc)
+                 + _gxt("GEX Flip", gx.get("gex_flip") or "—", PIV)
+                 + _gxt("Put Wall", gx.get("putWall") or "—", SUP)
+                 + _gxt("Call Wall", gx.get("callWall") or "—", RES)
+                 + _gxt("EM Band", em_band)
+                 + _gxt("Day Type", dt_, dtc, border=dtc)
+                 + "</div>")
+        # brief context row: risk / confidence / streak / today's catalysts
+        cat = gx.get("catalysts_today") or []
+        hi_n = gx.get("high_impact_today") or 0
+        catc = RES if hi_n else (PIV if cat else SUP)
+        cat_txt = " · ".join(f"{c.get('time','')} {c.get('title','')}"
+                             + (f" [{c.get('impact','')}]" if c.get('impact') == 'high' else "")
+                             for c in cat[:5]) or "none listed"
+        ctx = []
+        if gx.get("risk_level"):
+            ctx.append(f"risk <b>{gx['risk_level']}</b>")
+        if gx.get("confidence") is not None:
+            ctx.append(f"confidence <b>{gx['confidence']}%</b>")
+        if gx.get("streak_label"):
+            ctx.append(f"<b>{gx['streak_label']}</b>")
+        if gx.get("flip_proximity") is not None:
+            fp = gx["flip_proximity"]
+            ctx.append(f"flip {fp:.0f}pt away" + (" <b style='color:#e0a04d'>(borderline)</b>"
+                                                  if gx.get("borderline_regime") else ""))
+        if gx.get("gap_note"):
+            gpc = gx.get("gap_pct") or 0
+            ctx.append(f"gap <b style='color:{SUP if gpc >= 0 else RES}'>{gx['gap_note']}</b>")
+        if gx.get("es_premarket") and gx.get("current"):
+            imp = gx["es_premarket"] - gx["current"]
+            ctx.append(f"ES premkt {gx['es_premarket']:.0f} (implied {imp:+.0f}pt)")
+        if gx.get("calendar_note"):
+            ctx.append(f"calendar <b>{gx['calendar_note']}</b>")
+        if gx.get("stale_risk"):
+            ctx.append("<b style='color:#e0a04d'>⚠ their data caveat: quote-derived close</b>")
+        if gx.get("corr_putWall") and gx.get("putWall") and (
+                gx["corr_putWall"] != gx["putWall"] or gx.get("corr_callWall") != gx.get("callWall")):
+            ctx.append(f"<b style='color:#e05561'>corrected walls {gx['corr_putWall']:.0f}/"
+                       f"{gx.get('corr_callWall') or 0:.0f} ≠ published</b>")
+        head += (f"<div class='muted' style='margin:2px 0 6px;font-size:12.5px'>"
+                 + " · ".join(ctx)
+                 + f"<br><span style='color:{catc}'>catalysts today ({len(cat)}"
+                 + (f", {hi_n} HIGH" if hi_n else "") + "):</span> " + cat_txt + "</div>")
+        # brief hyperlinks: today's live brief + the history/archive site
+        head += ("<div style='margin:0 0 6px;font-size:12.5px'>"
+                 "<a href='https://gexlog.com/dashboard/' target='_blank' style='color:#5b9dd9'>"
+                 "Morning/Evening brief (gexlog.com) ↗</a> &nbsp;·&nbsp; "
+                 "<a href='https://gexlog.com/dashboard/history/' target='_blank' "
+                 "style='color:#5b9dd9'>Brief archive / past days ↗</a></div>")
+        # live spot for the bands graphic (same live.json the ticker uses)
+        _ls = None
+        try:
+            _d = json.loads((SIM / "live.json").read_text())
+            if _d.get("spx"):
+                _ls = float(_d["spx"])
+        except Exception:
+            pass
+        head += bands_svg(gp, _ls)
     paths = ""
     for p in gp.get("scenarios", []):
         paths += (f"<div class='path'><div class='path-h'><b>{p['id']}. {p['name']}</b>"
@@ -637,17 +1181,19 @@ def gameplan_html(gp, trades=None, marks_last=None):
                   f"<div class='muted'>{p['means']} → <span style='color:var(--ink)'>{p['acts']}</span></div></div>")
     paths = f"<div class='paths'>{paths}</div>" if paths else ""
 
-    # sort each trigger into a lifecycle bucket
+    # sort each trigger into a lifecycle bucket. Armed ideas are GROUPED by
+    # structure (both legs of a condor/fly in one tile); fired trades stay per-leg.
+    from collections import OrderedDict
     ideas, opens, closed, never = [], [], [], []
+    armed_groups = OrderedDict()
     for t in gp.get("triggers", []):
         st = t.get("status", "armed")
         tid = t.get("trade_id")
         fill = t.get("fill") or {}
-        if t["fire"]["type"] == "signal_1559":
-            ideas.append(_idea_tile(t, "<span class='wait'>◷ 15:59 signal — run by the BPS daemon</span>"))
-        elif st in ("armed",):
-            ideas.append(_idea_tile(t, "<span class='wait'>◷ armed — waiting for trigger</span>"))
-        elif st == "fired" and tid is not None and trades is not None:
+        if t["fire"]["type"] == "signal_1559" or st == "armed":
+            armed_groups.setdefault(t.get("group", t["id"]), []).append(t)
+            continue
+        if st == "fired" and tid is not None and trades is not None:
             tr = trades[trades.trade_id == tid]
             if len(tr):
                 r = tr.iloc[0]
@@ -677,11 +1223,18 @@ def gameplan_html(gp, trades=None, marks_last=None):
         else:
             ideas.append(_idea_tile(t, f"<span class='muted'>{st}</span>"))
 
-    note = ("<p class='muted' style='margin:14px 0 10px'>Every idea flows "
+    # render grouped armed ideas — one tile per structure, both legs together
+    for g, ts in armed_groups.items():
+        foot = ("<span class='wait'>◷ 15:59 signal — run by the BPS daemon</span>"
+                if ts[0]["fire"]["type"] == "signal_1559"
+                else "<span class='wait'>◷ armed — waiting for trigger</span>")
+        ideas.append(_group_tile(ts, foot))
+
+    note = ("<p class='muted' style='margin:14px 0 10px'>Premium-selling only. Every idea flows "
             "<b>Idea → Open → Closed</b>, or lands in <b>Never triggered</b>. Committed premarket, "
-            "auto-executed by the trigger daemon on its condition (1 lot, all grades). Deduped: two "
-            "one-sided spreads, no condor. This board is saved per day (<code>gameplan_*.json</code>) — "
-            "the growing historical record.</p>")
+            "auto-executed by the trigger daemon at the open (1 lot). Two streams: <b>algo</b> (EM band) "
+            "vs <b>gexlog</b> (its walls); iron condor = the two 1σ legs, iron fly = the ATM legs. "
+            "Saved per day (<code>gameplan_*.json</code>).</p>")
     board = (_bucket("💡 IDEAS · waiting to trigger", ideas, "ideas", True)
              + _bucket("🟢 OPEN · triggered, live", opens, "opens", True)
              + _bucket("⚪ CLOSED · settled", closed, "closed", len(closed) > 0)
@@ -689,37 +1242,43 @@ def gameplan_html(gp, trades=None, marks_last=None):
     paths_ex = (f"<details id='ex-paths' class='ex ex-sec' open><summary>Price paths "
                 f"<span class='cnt'>{len(gp.get('scenarios', []))}</span></summary>"
                 f"{paths}</details>") if paths else ""
-    return head + note + paths_ex + board
+    return head + pnl_summary_html(trades) + note + paths_ex + board
 
 
 def levels_panel(lr):
-    """Server-side render of the levels + regime strip (also live-updated by poll())."""
+    """GexLog levels + signal strip (MenthorQ fully removed)."""
     r = lr["regime"]
     spot = lr["spot"]
     spot_txt = f"{spot:,.1f}" if spot is not None else "—"
+    g = lr.get("gexlog", {}) or {}
 
-    def wall(label, key, cls):
-        v = lr["spx"].get(key)
-        return (f"<div class='lv {cls}'><b>{label}</b>"
-                f"<span>{v:,.0f}</span></div>") if v is not None else ""
-    walls = (wall("CR", "cr", "res") + wall("CR0", "cr0", "res")
-             + wall("GW0", "gw0", "piv") + f"<div class='lv spot'><b>SPOT</b><span id='lv-spot'>{spot_txt}</span></div>"
-             + wall("HVL", "hvl", "piv") + wall("PS0", "ps0", "sup") + wall("PS", "ps", "sup"))
-    d1 = ""
-    if lr["d1_min"] and lr["d1_max"]:
-        d1 = (f"<span class='d1'>1-day range {lr['d1_min']:,.0f} – {lr['d1_max']:,.0f}</span>")
-    gex = ""
-    if lr["gex"]:
-        gex = "<span class='gex'>top GEX: " + " · ".join(f"{int(g):,}" for g in lr["gex"]) + "</span>"
+    def tile(label, key, cls):
+        v = g.get(key)
+        return (f"<div class='lv {cls}'><b>{label}</b><span>{v:,.0f}</span></div>"
+                if v is not None else "")
+    row = (tile("CALL WALL", "callWall", "res")
+           + tile("EM HIGH", "em_high", "res")
+           + f"<div class='lv spot'><b>SPOT</b><span id='lv-spot'>{spot_txt}</span></div>"
+           + tile("GEX FLIP", "gex_flip", "piv")
+           + tile("EM LOW", "em_low", "sup")
+           + tile("PUT WALL", "putWall", "sup"))
+    foot = ""
+    if g.get("net_gex") is not None:
+        ng = g["net_gex"] / 1e9
+        foot += (f"<span class='gex' style='color:{'#4cc38a' if ng >= 0 else '#e05561'}'>"
+                 f"net GEX {ng:+.1f}B</span> ")
+    if g.get("day_type"):
+        dtc = {"RANGE": "#4cc38a", "CHOP": "#e0a04d", "TREND": "#e05561"}.get(g["day_type"], "#8a94a6")
+        foot += (f"<span class='d1' style='color:{dtc};border:1px solid {dtc};border-radius:4px;"
+                 f"padding:1px 7px'>{g['day_type']} day forecast</span> ")
     return f"""<div class="lvpanel">
       <div class="lvhead">
         <span class="rlabel {r['cls']}" id="lv-regime">{r['label']}</span>
         <span class="muted" id="lv-regdetail">{r['detail']}</span>
         <span class="muted" style="margin-left:auto" id="lv-spotts">{lr['spot_ts'] or ''}</span>
       </div>
-      <div class="lvrow">{walls}</div>
-      <div class="lvfoot">{d1} {gex}
-        <span class="muted">SPX $MenthorQ walls · today</span></div>
+      <div class="lvrow">{row}</div>
+      <div class="lvfoot">{foot}<span class="muted">GexLog SPX · today</span></div>
     </div>"""
 
 
@@ -740,11 +1299,10 @@ def results_html():
 
 
 def levels_html():
-    """MenthorQ levels visual DB, embedded from mq_levels_db (nightly capture)."""
-    try:
-        return mqdb.panel_html(mqdb.load_db())
-    except Exception as e:
-        return f"<p class='muted'>Levels unavailable: {e}</p>"
+    """MenthorQ levels DB removed — premium-selling only. GexLog levels live in the
+    header strip + the gameplan board."""
+    return ("<p class='muted'>MenthorQ removed. GexLog levels (Put/Call Wall, GEX Flip, "
+            "EM band) are in the header strip and on each gameplan tile.</p>")
 
 
 def _history_dates(prefix):
@@ -769,7 +1327,7 @@ def gameplan_history_html():
     out = [f"<h2 style='margin:24px 0 8px'>History — {len(past)} logged gameplan(s)</h2>"]
     for d in past:
         try:
-            gp = json.loads((SIM / f"gameplan_{d}.json").read_text(encoding="utf-8"))
+            gp = _scrub_stmr(json.loads((SIM / f"gameplan_{d}.json").read_text(encoding="utf-8")))
         except Exception:
             continue
         trigs = gp.get("triggers", [])
@@ -808,7 +1366,7 @@ def postmortem_history_html():
     out = [f"<h2 style='margin:24px 0 8px'>History — {len(past)} logged postmortem(s)</h2>"]
     for d in past:
         try:
-            pm = json.loads((SIM / f"postmortem_{d}.json").read_text(encoding="utf-8"))
+            pm = _scrub_stmr(json.loads((SIM / f"postmortem_{d}.json").read_text(encoding="utf-8")))
         except Exception:
             continue
         o = pm.get("ohlc") or {}
@@ -844,6 +1402,39 @@ ANALYTICS_CSS = r"""
 .bar .lab{width:118px;text-align:right;flex:none}
 .bar .track{flex:1;height:16px;background:var(--chip);border-radius:5px;position:relative;overflow:hidden}
 .bar .fill{position:absolute;top:0;bottom:0;border-radius:5px}
+.leg{display:flex;gap:16px;margin-top:8px;font-size:11px;color:var(--mut);flex-wrap:wrap}
+.leg span{display:flex;align-items:center;gap:5px}
+.leg i{width:14px;height:3px;border-radius:2px;display:inline-block}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.62);display:none;align-items:center;justify-content:center;z-index:1000;padding:24px}
+.modal.on{display:flex}
+.modal-c{background:var(--panel);border:1px solid var(--line);border-radius:14px;max-width:960px;width:100%;max-height:86vh;display:flex;flex-direction:column;box-shadow:0 24px 70px rgba(0,0,0,.55)}
+.modal-h{padding:14px 18px;border-bottom:1px solid var(--line);font-weight:800;font-size:16px;display:flex;justify-content:space-between;align-items:center}
+.modal-x{background:none;border:none;color:var(--mut);font-size:26px;line-height:1;cursor:pointer}
+.modal-body{padding:14px 18px;overflow:auto}
+.mbig{margin-bottom:14px}
+.mday{border-bottom:1px solid var(--line);padding:7px 0}
+.mday summary{display:flex;gap:12px;align-items:center;cursor:pointer;font-weight:700;list-style:none}
+.mday summary::-webkit-details-marker{display:none}
+.mmon{border-bottom:1px solid var(--line);padding:4px 0 6px}
+.mmon>summary{display:flex;gap:12px;align-items:center;cursor:pointer;font-weight:800;font-size:14px;list-style:none;padding:4px 0}
+.mmon>summary::-webkit-details-marker{display:none}
+.mmon>summary .md-d::before{content:"▸ ";color:var(--mut)}
+.mmon[open]>summary .md-d::before{content:"▾ "}
+.mmon .mday{margin-left:16px}
+.mday .md-d{flex:1}.mday .md-p{width:90px;text-align:right;font-variant-numeric:tabular-nums}
+.mday .md-c{width:120px;text-align:right;font-weight:400}
+.mrow{display:flex;justify-content:space-between;padding:3px 0 3px 16px;font-size:12.5px;color:var(--mut)}
+.chartwrap{position:relative}
+.xh-tip{position:absolute;top:4px;pointer-events:none;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:5px 9px;font-size:11.5px;line-height:1.5;font-weight:700;opacity:0;transition:opacity .08s;white-space:nowrap;z-index:5}
+.mbars{max-width:660px}
+.midev{color:var(--warn);cursor:help;font-size:12px}
+.shadowtbl .mhead{cursor:pointer}
+.shadowtbl .mhead td{background:var(--panel2);font-weight:700;padding:9px 12px;border-top:1px solid var(--line)}
+.shadowtbl .mhead .cv::before{content:"▾ ";color:var(--mut)}
+.shadowtbl tbody.col .mhead .cv::before{content:"▸ "}
+.shadowtbl tbody.col tr:not(.mhead){display:none}
+.mbtns{display:flex;gap:8px;margin:2px 0 12px}
+.mbtns button{background:var(--chip);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer}
 .bar .val{width:74px;font-variant-numeric:tabular-nums;font-weight:700;text-align:right}
 .antable{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:8px}
 .antable th{color:var(--mut);text-align:right;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;padding:5px 8px;border-bottom:1px solid var(--line)}
@@ -884,37 +1475,148 @@ ANALYTICS_JS = r"""
   }
   function tile(l,v,c){return '<div class="tile"><div class="tl">'+l+'</div><div class="tv '+(c||'')+'">'+v+'</div></div>';}
   function renderTiles(){const s=statAll(T),el=$('#an-tiles');if(!el)return;
+    const D=(window.__DAILY||{}).days||[];const dd=D.length?Math.min.apply(0,D.map(x=>x.dd)):s.dd;
+    const last=D.length?D[D.length-1]:null;
     el.innerHTML=tile('Total P&L',money(s.tot),s.tot>=0?'pos':'neg')+tile('Trades',s.n,'')+
       tile('Win rate',s.win==null?'—':s.win.toFixed(0)+'%','')+tile('Profit factor',s.pf==null?'—':s.pf.toFixed(2),'')+
       tile('Expectancy',money(s.exp),(s.exp||0)>=0?'pos':'neg')+tile('Avg ROI',pctf(s.avgroi),(s.avgroi||0)>=0?'pos':'neg')+
-      tile('Max drawdown',money(s.dd),'neg');}
-  function renderEquity(){const el=$('#an-equity');if(!el)return;
-    const rows=[...T].filter(t=>t.pnl!=null).sort((a,b)=>(a.entry||'').localeCompare(b.entry||''));
-    if(!rows.length){el.innerHTML='<div class="muted">no closed trades yet</div>';return;}
-    let eq=0;const pts=rows.map((t,i)=>{eq+=t.pnl;return{y:eq,d:t.date};});
-    const W=440,H=170,ml=52,mb=16,mt=8,mr=8;
-    const ys=pts.map(p=>p.y).concat([0]),ymin=Math.min.apply(0,ys),ymax=Math.max.apply(0,ys);
+      tile('Max drawdown',money(dd),dd<0?'neg':'pos')+
+      (last?tile('Peak collateral',money(last.maxColl),''):'')+
+      (last?tile('Ideal acct size',money(last.ideal),''):'')+
+      (T.some(t=>t.recon)?'<div style="flex-basis:100%;width:100%;font-size:11px;color:var(--mut);margin-top:6px">* totals include reconstructed day(s) (desk was down) — realistic worst-touch fills, marked <span style="color:#e0a04d;font-weight:800">*</span> on the calendar</div>':'');}
+  // ---- DAILY engine: aggregate trades into per-day results, then derive the
+  // equity / drawdown / collateral / ideal-account curves. P&L is bucketed on
+  // t.date (exit date for closed, entry for still-open) to match the calendar.
+  // DD is END-OF-DAY (close-to-close on realized daily results), not intraday. ----
+  const IDEAL_BUFFER=0.25;   // safety cushion on ideal account size (25%)
+  function buildDaily(){
+    const rows=T.filter(t=>t.pnl!=null);
+    const byDay={};
+    rows.forEach(t=>{const d=(t.date||(t.entry||'').slice(0,10));if(!d)return;
+      (byDay[d]=byDay[d]||{d:d,pnl:0,trades:[]});byDay[d].pnl+=t.pnl;byDay[d].trades.push(t);});
+    const days=Object.values(byDay).sort((a,b)=>a.d.localeCompare(b.d));
+    const lastDay=days.length?days[days.length-1].d:null;
+    let cum=0,peak=0;
+    days.forEach(x=>{cum+=x.pnl;x.cum=cum;peak=Math.max(peak,cum);x.dd=cum-peak;});
+    // collateral tied up each day = sum over trades active [entryDay..exitDay]
+    const collBy={};days.forEach(x=>collBy[x.d]=0);
+    rows.forEach(t=>{const c=t.collateral||0;if(!c)return;
+      const e=(t.entry||'').slice(0,10)||t.date;const x=t.open?lastDay:(t.date||e);
+      days.forEach(day=>{if(day.d>=e&&day.d<=x)collBy[day.d]+=c;});});
+    let mc=0,mdd=0;
+    days.forEach(x=>{x.coll=collBy[x.d]||0;mc=Math.max(mc,x.coll);x.maxColl=mc;
+      mdd=Math.max(mdd,-x.dd);x.base=mc+mdd;x.ideal=(mc+mdd)*(1+IDEAL_BUFFER);});
+    return {days:days};
+  }
+  const monLbl=d=>{try{return new Date(d+'T00:00:00').toLocaleDateString('en',{month:'short',year:'2-digit'});}catch(e){return d.slice(0,7);}};
+  // interactive multi-series line chart into `el`. series:[{name,color,get,area?}].
+  // Draws month gridlines/labels on x-axis + a hover crosshair with per-series totals.
+  function drawChart(el,rows,series,opts){opts=opts||{};if(!el)return;
+    const W=1000,H=opts.H||330,ml=70,mb=30,mt=12,mr=16,n=rows.length;
+    let vals=[];series.forEach(s=>rows.forEach(r=>{const v=s.get(r);if(v!=null)vals.push(v);}));
+    vals.push(0);let ymin=Math.min.apply(0,vals),ymax=Math.max.apply(0,vals);
     const pad=(ymax-ymin)*.12||100,lo=ymin-pad,hi=ymax+pad;
-    const X=i=>ml+(pts.length<2?(W-ml-mr)/2:i/(pts.length-1)*(W-ml-mr));
-    const Y=v=>mt+(1-(v-lo)/(hi-lo))*(H-mt-mb),zero=Y(0);
-    const line=pts.map((p,i)=>X(i).toFixed(1)+','+Y(p.y).toFixed(1)).join(' ');
-    if($('#an-eqsub'))$('#an-eqsub').textContent='cum '+money(eq);
-    el.innerHTML='<svg width="100%" viewBox="0 0 '+W+' '+H+'">'+
-      '<line x1="'+ml+'" y1="'+zero+'" x2="'+(W-mr)+'" y2="'+zero+'" stroke="var(--line)"/>'+
-      '<text x="4" y="'+(Y(hi)+9)+'" fill="var(--mut)" font-size="10">'+money(hi)+'</text>'+
-      '<text x="4" y="'+(zero+3)+'" fill="var(--mut)" font-size="10">$0</text>'+
-      '<text x="4" y="'+Y(lo)+'" fill="var(--mut)" font-size="10">'+money(lo)+'</text>'+
-      '<polyline points="'+line+'" fill="none" stroke="var(--acc)" stroke-width="2"/>'+
-      pts.map((p,i)=>'<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(p.y).toFixed(1)+'" r="2.5" fill="'+(p.y>=0?'var(--pos)':'var(--neg)')+'"/>').join('')+'</svg>';}
+    const X=i=>ml+(n<2?(W-ml-mr)/2:i/(n-1)*(W-ml-mr));
+    const Y=v=>mt+(1-(v-lo)/((hi-lo)||1))*(H-mt-mb),zero=Y(0);
+    let g='';let pm='';
+    rows.forEach((r,i)=>{const m=(r.d||'').slice(0,7);if(m&&m!==pm){pm=m;
+      if(i>0)g+='<line x1="'+X(i).toFixed(1)+'" y1="'+mt+'" x2="'+X(i).toFixed(1)+'" y2="'+(H-mb)+'" stroke="var(--line)" stroke-dasharray="3 4" opacity="0.55"/>';
+      g+='<text x="'+X(i).toFixed(1)+'" y="'+(H-8)+'" fill="var(--mut)" font-size="20" text-anchor="middle">'+monLbl(r.d)+'</text>';}});
+    g+='<line x1="'+ml+'" y1="'+zero+'" x2="'+(W-mr)+'" y2="'+zero+'" stroke="var(--line)"/>';
+    g+='<text x="8" y="'+(Y(hi)+16)+'" fill="var(--mut)" font-size="20">'+money(hi)+'</text>';
+    g+='<text x="8" y="'+(zero+6)+'" fill="var(--mut)" font-size="20">$0</text>';
+    g+='<text x="8" y="'+Y(lo)+'" fill="var(--mut)" font-size="20">'+money(lo)+'</text>';
+    series.forEach(s=>{const pts=rows.map((r,i)=>{const v=s.get(r);return v==null?null:X(i).toFixed(1)+','+Y(v).toFixed(1);}).filter(Boolean);
+      if(!pts.length)return;
+      if(s.area)g+='<polygon points="'+X(0).toFixed(1)+','+zero+' '+pts.join(' ')+' '+X(n-1).toFixed(1)+','+zero+'" fill="'+s.color+'" opacity="0.16"/>';
+      g+='<polyline points="'+pts.join(' ')+'" fill="none" stroke="'+s.color+'" stroke-width="2.5"/>';});
+    g+='<line class="xh" x1="0" y1="'+mt+'" x2="0" y2="'+(H-mb)+'" stroke="var(--ink)" stroke-width="1.2" opacity="0"/>';
+    const svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;display:block;overflow:visible">'+g+'</svg>';
+    el.innerHTML='<div class="chartwrap">'+svg+'<div class="xh-tip"></div></div>';
+    const wrap=el.querySelector('.chartwrap'),svgEl=wrap.querySelector('svg'),line=wrap.querySelector('.xh'),tip=wrap.querySelector('.xh-tip');
+    wrap.onmousemove=function(e){const rect=svgEl.getBoundingClientRect();const frac=(e.clientX-rect.left)/rect.width;
+      let i=Math.round((frac*W-ml)/(((W-ml-mr)/((n-1)||1))));i=Math.max(0,Math.min(n-1,i));const r=rows[i];
+      line.setAttribute('x1',X(i));line.setAttribute('x2',X(i));line.setAttribute('opacity','0.55');
+      tip.innerHTML='<b>'+r.d+'</b><br>'+series.map(s=>{const v=s.get(r);const c=s.signColor?(v>=0?'var(--pos)':'var(--neg)'):s.color;return '<span style="color:'+c+'">'+(s.name?s.name+' ':'')+money(v)+'</span>';}).join('<br>')+(opts.tipExtra?'<br>'+opts.tipExtra(r):'');
+      tip.style.opacity='1';const px=(X(i)/W)*rect.width;tip.style.left=Math.max(4,Math.min(rect.width-130,px+10))+'px';};
+    wrap.onmouseleave=function(){line.setAttribute('opacity','0');tip.style.opacity='0';};}
+  function eqSeries(){return[{name:'cum',color:'var(--acc)',get:r=>r.cum,signColor:true}];}
+  function ddSeries(){return[{name:'drawdown',color:'var(--neg)',area:true,get:r=>r.dd,signColor:true}];}
+  function capSeries(){return[{name:'daily',color:'var(--mut)',get:r=>r.coll},{name:'max',color:'var(--warn)',get:r=>r.maxColl},{name:'ideal',color:'var(--acc)',get:r=>r.ideal}];}
+  function renderEquity(){const el=$('#an-equity');if(!el)return;const D=(window.__DAILY||{}).days||[];
+    if(!D.length){el.innerHTML='<div class="muted">no closed trades yet</div>';return;}
+    if($('#an-eqsub'))$('#an-eqsub').textContent='cum '+money(D[D.length-1].cum)+' · '+D.length+' days';
+    drawChart(el,D,eqSeries(),{tipExtra:r=>'<span class="'+(r.pnl>=0?'pos':'neg')+'">day '+money(r.pnl)+'</span>'});el.style.cursor='zoom-in';el.onclick=()=>openChartModal('equity');}
+  function renderDD(){const el=$('#an-dd');if(!el)return;const D=(window.__DAILY||{}).days||[];
+    if(!D.length){el.innerHTML='<div class="muted">—</div>';return;}
+    if($('#an-ddsub'))$('#an-ddsub').textContent='max '+money(Math.min.apply(0,D.map(x=>x.dd)))+' · EOD';
+    drawChart(el,D,ddSeries(),{});el.style.cursor='zoom-in';el.onclick=()=>openChartModal('dd');}
+  function renderCapital(){const el=$('#an-capital');if(!el)return;const D=(window.__DAILY||{}).days||[];
+    if(!D.length){el.innerHTML='<div class="muted">—</div>';return;}const last=D[D.length-1];
+    if($('#an-capsub'))$('#an-capsub').innerHTML='peak collateral '+money(last.maxColl)+' · ideal '+money(last.ideal)+' (incl '+Math.round(IDEAL_BUFFER*100)+'% buffer)';
+    drawChart(el,D,capSeries(),{});
+    el.insertAdjacentHTML('beforeend','<div class="leg"><span><i style="background:var(--mut)"></i>daily collateral</span><span><i style="background:var(--warn)"></i>max collateral used</span><span><i style="background:var(--acc)"></i>ideal account size (+'+Math.round(IDEAL_BUFFER*100)+'%)</span></div>');
+    el.style.cursor='zoom-in';el.onclick=()=>openChartModal('capital');}
+  function monthlyBarsHTML(){const D=(window.__DAILY||{}).days||[];const m={};
+    D.forEach(x=>{const k=x.d.slice(0,7);m[k]=(m[k]||0)+x.pnl;});
+    const keys=Object.keys(m).sort();if(!keys.length)return'<div class="muted">—</div>';
+    const mx=Math.max.apply(0,[1].concat(keys.map(k=>Math.abs(m[k]))));
+    return keys.map(k=>{const v=m[k],w=Math.abs(v)/mx*100;
+      return '<div class="bar"><span class="lab">'+k+'</span>'+
+        '<span class="track"><span class="fill" style="width:'+w+'%;background:'+(v>=0?'var(--pos)':'var(--neg)')+';'+(v>=0?'left:50%':'right:50%')+'"></span></span>'+
+        '<span class="val '+(v>=0?'pos':'neg')+'">'+money(v)+'</span></div>';}).join('');}
+  function renderMonthly(){const el=$('#an-monthly');if(!el)return;el.innerHTML=monthlyBarsHTML();
+    el.style.cursor='zoom-in';el.onclick=()=>openChartModal('monthly');}
+  // ---- pop-out modal (lightbox): large, centered, scrollable ----
+  function showModal(title,html){const m=$('#an-modal');if(!m)return;
+    m.querySelector('.modal-h').innerHTML='<span>'+title+'</span><button class="modal-x" aria-label="close">×</button>';
+    m.querySelector('.modal-body').innerHTML=html;m.classList.add('on');
+    m.querySelector('.modal-x').onclick=closeModal;}
+  function closeModal(){const m=$('#an-modal');if(m)m.classList.remove('on');}
+  function dayDetailHTML(x){
+    const tr=x.trades.slice().sort((a,b)=>(b.pnl||0)-(a.pnl||0)).map(t=>
+      '<div class="mrow"><span>'+(t.strategy||'?')+' <span class="muted">'+(t.grade||'')+(t.structure?' · '+t.structure:'')+'</span></span>'+
+      '<span class="'+((t.pnl||0)>=0?'pos':'neg')+'">'+money(t.pnl)+'</span></div>').join('');
+    return '<details class="mday"><summary><span class="md-d">'+x.d+' <span class="muted">'+x.trades.length+' trd</span></span>'+
+      '<span class="md-p '+(x.pnl>=0?'pos':'neg')+'">'+money(x.pnl)+'</span>'+
+      '<span class="muted md-c">coll $'+Math.round(x.coll||0).toLocaleString()+'</span>'+
+      '<span class="muted md-c">cum '+money(x.cum)+'</span></summary>'+tr+'</details>';}
+  // rows grouped under collapsible MONTH sections, so collapsing a month hides all its days
+  function dailyRowsHTML(){const D=(window.__DAILY||{}).days||[];
+    const byM={};D.forEach(x=>{(byM[x.d.slice(0,7)]=byM[x.d.slice(0,7)]||[]).push(x);});
+    return Object.keys(byM).sort().reverse().map(mk=>{
+      const dys=byM[mk].slice().sort((a,b)=>b.d.localeCompare(a.d));
+      const mtot=dys.reduce((a,b)=>a+b.pnl,0);
+      return '<details class="mmon" open><summary><span class="md-d">'+mk+' <span class="muted">'+dys.length+' days</span></span>'+
+        '<span class="md-p '+(mtot>=0?'pos':'neg')+'">'+money(mtot)+'</span></summary>'+
+        dys.map(dayDetailHTML).join('')+'</details>';}).join('');}
+  function openChartModal(kind){const D=(window.__DAILY||{}).days||[];
+    const TITLES={equity:'Daily results — equity detail',dd:'Drawdown (EOD)',capital:'Capital — collateral vs ideal account',monthly:'Monthly P&L',grade:'Grade calibration'};
+    if(kind==='monthly'){showModal(TITLES.monthly,'<div class="mbars">'+monthlyBarsHTML()+'</div>');return;}
+    if(kind==='grade'){showModal(TITLES.grade,'<div class="mbars">'+($('#an-grade')?$('#an-grade').innerHTML:'')+'</div>');return;}
+    if(!D.length){showModal(TITLES[kind]||'Chart','<div class="muted">no data</div>');return;}
+    const leg=kind==='capital'?'<div class="leg"><span><i style="background:var(--mut)"></i>daily collateral</span><span><i style="background:var(--warn)"></i>max collateral used</span><span><i style="background:var(--acc)"></i>ideal account size (+'+Math.round(IDEAL_BUFFER*100)+'%)</span></div>':'';
+    const extra=kind==='equity'?('<div class="mbtns"><button id="mexp">Expand all</button><button id="mcol">Collapse all</button></div>'+dailyRowsHTML()):'';
+    showModal(TITLES[kind]||'Chart','<div class="mbig" id="mchart"></div>'+leg+extra);
+    const series=kind==='equity'?eqSeries():kind==='dd'?ddSeries():capSeries();
+    drawChart($('#mchart'),D,series,{H:420,tipExtra:kind==='equity'?r=>'<span class="'+(r.pnl>=0?'pos':'neg')+'">day '+money(r.pnl)+'</span>':null});
+    const mm=$('#an-modal');
+    if(kind==='equity'&&mm){const ex=mm.querySelector('#mexp'),co=mm.querySelector('#mcol');
+      if(ex)ex.onclick=()=>mm.querySelectorAll('.mmon,.mday').forEach(d=>d.open=true);
+      if(co)co.onclick=()=>mm.querySelectorAll('.mmon,.mday').forEach(d=>d.open=false);}}
   function grp(rows,key){const m={};rows.forEach(t=>{let k=t[key];if(k===true)k='win';if(k===false)k='loss';if(k==null||k==='')k='?';(m[k]=m[k]||[]).push(t);});return m;}
   function bstat(rows){const p=rows.filter(t=>t.pnl!=null).map(t=>t.pnl),w=p.filter(x=>x>=0),l=p.filter(x=>x<0);
     const rois=rows.filter(t=>t.roi!=null).map(t=>t.roi);
+    const cols=rows.filter(t=>t.collateral!=null).map(t=>t.collateral);
     return {n:p.length,tot:p.reduce((a,b)=>a+b,0),win:p.length?w.length/p.length*100:null,
       avg:p.length?p.reduce((a,b)=>a+b,0)/p.length:null,pf:l.length?w.reduce((a,b)=>a+b,0)/-l.reduce((a,b)=>a+b,0):null,
-      roi:rois.length?rois.reduce((a,b)=>a+b,0)/rois.length:null};}
-  const GO=['A+','A','B+','B','B-','C+','C','C-','D','F','?'];
+      roi:rois.length?rois.reduce((a,b)=>a+b,0)/rois.length:null,
+      coll:cols.length?cols.reduce((a,b)=>a+b,0)/cols.length:null};}
+  const GO=['A+','A','B+','B','B-','C+','C','C-','D','F','n/a','?'];
   function renderGrade(){const el=$('#an-grade');if(!el)return;const g=grp(closed,'grade');
-    const keys=Object.keys(g).sort((a,b)=>GO.indexOf(a)-GO.indexOf(b));
+    // Show real letter grades A→F, then ungraded 'n/a' (STMR) pinned at the BOTTOM.
+    // Drop only '?' and unknown labels so a stray tag can't sort to the top.
+    const keys=Object.keys(g).filter(k=>GO.indexOf(k)>=0&&k!=='?').sort((a,b)=>GO.indexOf(a)-GO.indexOf(b));
     const mx=Math.max.apply(0,[1].concat(keys.map(k=>Math.abs(bstat(g[k]).avg||0))));
     el.innerHTML=keys.map(k=>{const s=bstat(g[k]),a=s.avg||0,w=Math.abs(a)/mx*100;
       return '<div class="bar"><span class="lab" style="color:'+gcol(k)+';font-weight:800">'+k+' <span style="color:var(--mut);font-weight:400">n'+s.n+'</span></span>'+
@@ -925,12 +1627,18 @@ ANALYTICS_JS = r"""
     const g=grp(closed,dim),keys=Object.keys(g).sort((a,b)=>bstat(g[b]).tot-bstat(g[a]).tot);
     const rows=keys.map(k=>{const s=bstat(g[k]);return '<tr><td><b>'+k+'</b></td><td>'+s.n+'</td>'+
       '<td>'+(s.win==null?'—':s.win.toFixed(0)+'%')+'</td><td class="'+(s.tot>=0?'pos':'neg')+'">'+money(s.tot)+'</td>'+
-      '<td class="'+((s.avg||0)>=0?'pos':'neg')+'">'+money(s.avg)+'</td><td>'+(s.pf==null?'—':s.pf.toFixed(2))+'</td>'+
+      '<td class="'+((s.avg||0)>=0?'pos':'neg')+'">'+money(s.avg)+'</td>'+
+      '<td>'+(s.coll==null?'—':'$'+Math.round(s.coll).toLocaleString())+'</td>'+
+      '<td>'+(s.pf==null?'—':s.pf.toFixed(2))+'</td>'+
       '<td class="'+((s.roi||0)>=0?'pos':'neg')+'">'+pctf(s.roi)+'</td></tr>';}).join('');
-    el.innerHTML='<table class="antable"><tr><th>'+dim+'</th><th>n</th><th>win</th><th>total</th><th>avg</th><th>PF</th><th>ROI</th></tr>'+rows+'</table>';
+    el.innerHTML='<table class="antable"><tr><th>'+dim+'</th><th>n</th><th>win</th><th>total</th><th>avg</th><th>avg collat</th><th>PF</th><th>ROI</th></tr>'+rows+'</table>';
     if($('#an-note'))$('#an-note').textContent=closed.length<20?'· only '+closed.length+' closed — small sample, read as noise':'';}
   const byDay={};T.forEach(t=>{if(!t.date)return;(byDay[t.date]=byDay[t.date]||{pnl:0,n:0,rows:[]});
     byDay[t.date].n++;if(t.pnl!=null)byDay[t.date].pnl+=t.pnl;byDay[t.date].rows.push(t);});
+  // reconstructed-day overlay: merge into the calendar (asterisk); NOT into stat tiles.
+  const RECON=window.__RECON||{};
+  Object.keys(RECON).forEach(ds=>{const r=RECON[ds];const e=(byDay[ds]=byDay[ds]||{pnl:0,n:0,rows:[]});
+    e.recon=true;e.reconData=r;if(!e.rows.length){e.pnl=r.pnl;e.n=r.n;}});
   const allDates=Object.keys(byDay).sort();
   let calM=allDates.length?new Date(allDates[allDates.length-1]+'T12:00:00'):new Date();
   function renderCal(){const grid=$('#cal-grid');if(!grid)return;const y=calM.getFullYear(),m=calM.getMonth();
@@ -940,12 +1648,28 @@ ANALYTICS_JS = r"""
     for(let i=0;i<start;i++)html+='<div class="cal-cell empty"></div>';
     for(let d=1;d<=days;d++){const ds=y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0'),e=byDay[ds];
       if(e){mtot+=e.pnl;const cls=e.pnl>=0?'pos':'neg';
-        html+='<div class="cal-cell has '+cls+'" data-d="'+ds+'"><div class="d">'+d+'</div><div class="p '+cls+'">'+money(e.pnl)+'</div><div class="n">'+e.n+' trd</div></div>';}
+        const star=e.recon?'<span style="color:#e0a04d;font-weight:800" title="Reconstructed day (desk was down at the open) — not a booked result">*</span>':'';
+        const rstyle=e.recon?' style="outline:1px dashed #e0a04d;outline-offset:-2px"':'';
+        html+='<div class="cal-cell has '+cls+'" data-d="'+ds+'"'+rstyle+'><div class="d">'+d+'</div><div class="p '+cls+'">'+money(e.pnl)+star+'</div><div class="n">'+(e.recon?'recon*':e.n+' trd')+'</div></div>';}
       else html+='<div class="cal-cell"><div class="d">'+d+'</div></div>';}
     grid.innerHTML=html;
     $('#cal-month-tot').innerHTML='month <b class="'+(mtot>=0?'pos':'neg')+'">'+money(mtot)+'</b>';
     grid.querySelectorAll('.cal-cell.has').forEach(c=>c.onclick=()=>showDay(c.dataset.d));}
   function showDay(ds){const e=byDay[ds],el=$('#cal-day');if(!e){el.innerHTML='';return;}
+    if(e.recon){const r=e.reconData;const bk=(hit,v)=>hit?'<b class="neg">'+money(v)+' (hit)</b>':'<b class="muted">not hit</b>';
+      el.innerHTML='<div class="an-h" style="margin:16px 2px 10px;font-size:15px">'+ds+
+        ' <span style="color:#e0a04d;font-weight:800">*</span> — <span class="'+(e.pnl>=0?'pos':'neg')+'">'+money(e.pnl)+
+        '</span> · '+r.n+' trades · <span class="muted" style="font-weight:700">RECONSTRUCTED</span></div>'+
+        '<div style="display:flex;gap:18px;flex-wrap:wrap;font-size:12px;margin:0 2px 12px">'+
+          '<span>intraday DD <b class="neg">'+money(r.dd)+'</b></span>'+
+          '<span>−2k breaker '+bk(r.breaker_2k_hit,r.breaker_2k)+'</span>'+
+          '<span>−3k breaker '+bk(r.breaker_3k_hit,r.breaker_3k)+'</span>'+
+          (r.spot_open!=null?'<span>spot <b>'+r.spot_open+' → '+r.spot_close+'</b></span>':'')+'</div>'+
+        '<div class="iboard">'+r.trades.map(t=>'<div class="itile" style="--gc:#5b9dd9"><div class="itile-h"><div class="itile-name">'+t.strategy+
+          '</div></div><div class="itile-sub">'+t.structure+' · cr '+t.entry_cr+' · exit '+t.exit_et.slice(0,5)+' '+String(t.reason).replace(/_/g,' ')+
+          '</div><div class="itile-foot"><span class="'+((t.pnl||0)>=0?'pos':'neg')+'">'+money(t.pnl)+'</span></div></div>').join('')+'</div>'+
+        '<div class="muted" style="font-size:11px;margin-top:10px;max-width:640px">'+r.note+'</div>';
+      return;}
     const tiles=e.rows.map(t=>{const c=gcol(t.grade);
       return '<div class="itile" style="--gc:'+c+'"><div class="itile-h"><div class="itile-name">'+t.strategy+'</div>'+
         '<span class="ichip" style="background:'+c+'">'+t.grade+'</span></div>'+
@@ -956,7 +1680,11 @@ ANALYTICS_JS = r"""
     el.innerHTML='<div class="an-h" style="margin:16px 2px 10px;font-size:15px">'+ds+
       ' — <span class="'+(e.pnl>=0?'pos':'neg')+'">'+money(e.pnl)+'</span> · '+e.n+' trades</div>'+
       '<div class="iboard">'+tiles+'</div>';}
-  function initAn(){renderTiles();renderEquity();renderGrade();renderPivot();renderCal();
+  function initAn(){window.__DAILY=buildDaily();
+    renderTiles();renderEquity();renderGrade();renderMonthly();renderDD();renderCapital();renderPivot();renderCal();
+    const gc=$('#an-grade');if(gc){gc.style.cursor='zoom-in';gc.onclick=()=>openChartModal('grade');}
+    const md=$('#an-modal');if(md)md.onclick=e=>{if(e.target===md)closeModal();};
+    document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
     const dim=$('#an-dim');if(dim)dim.onchange=renderPivot;
     const pv=$('#cal-prev'),nx=$('#cal-next');
     if(pv)pv.onclick=()=>{calM.setMonth(calM.getMonth()-1);renderCal();$('#cal-day').innerHTML='';};
@@ -986,8 +1714,18 @@ def main():
     lr = levels_regime()
     gp = load_gameplan()
     pm = load_postmortem()
-    gp_trades = tlog.load()
+    gp_trades = _shown(tlog.load())
+    gp_trades_all = pd.concat([gp_trades, _recon_df()], ignore_index=True)  # +recon: analytics/positions only
     gp_marks = None
+    # IB-vs-TD comparison — reuse the standalone td_vs_ib_dashboard.render() so the
+    # comparison logic stays the single source of truth (the A-chat's shadow book).
+    try:
+        import td_vs_ib_dashboard as _tvib
+        from zoneinfo import ZoneInfo as _ZI
+        _ibtd_iso = dt.datetime.now(_ZI("America/Chicago")).strftime("%Y-%m-%d")
+        ibtd_html = _tvib.render(_ibtd_iso)
+    except Exception as _e:
+        ibtd_html = f"<p class='muted'>IB vs TD comparison unavailable: {_e}</p>"
     an_json = "[]"
     _mf = SIM / "marks.csv"
     if _mf.exists():
@@ -995,9 +1733,18 @@ def main():
         if len(_mk):
             gp_marks = _mk.groupby("trade_id").last()
     try:
-        an_json = json.dumps(analytics_payload(gp_trades, gp_marks))
+        an_json = json.dumps(analytics_payload(gp_trades_all, gp_marks))
     except Exception:
         an_json = "[]"
+    # recon overlay (calendar '*' asterisk + click-through DD/breaker detail). The recon
+    # trades themselves now flow through analytics_payload(gp_trades_all), so tiles/equity/
+    # calendar/shadow all include them; this JSON just carries the per-day extras.
+    try:
+        _rf = SIM / "reconstructed_days.json"
+        recon_json = _rf.read_text(encoding="utf-8") if _rf.exists() else "{}"
+        json.loads(recon_json)
+    except Exception:
+        recon_json = "{}"
     jf = ROOT / "data" / "options_log" / "journal.json"
     jn = json.loads(jf.read_text(encoding="utf-8")) if jf.exists() else {}
     pbf = ROOT / "docs" / "living" / "options_playbook.md"
@@ -1010,9 +1757,24 @@ def main():
         except Exception:
             pass
 
+    # CANONICAL daily P&L — bucket the exact analytics rows (incl reconstructed) that feed
+    # window.__T, so the Shadow-stop table, the calendar and the analytics tiles ALL show the
+    # same per-day number. (Was: shadow_stop_log.end_pnl, a separate drifting computation.)
+    try:
+        _daily_pnl = {}
+        for _r in json.loads(an_json):
+            if _r.get("pnl") is not None and _r.get("date"):
+                _daily_pnl[_r["date"]] = _daily_pnl.get(_r["date"], 0) + _r["pnl"]
+    except Exception:
+        _daily_pnl = {}
+    try:
+        _rec_days = json.loads(recon_json)
+    except Exception:
+        _rec_days = {}
+
     html = f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Options — Forward Sim</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💹</text></svg>"><title>Options — Forward Sim</title>
 <style>
 :root{{--bg:#0b0d12;--panel:#12151c;--panel2:#171b23;--line:#232833;--ink:#e8ebf0;
 --mut:#7d8697;--acc:#5b9bff;--pos:#2fbf8f;--neg:#f0555f;--warn:#e6a84b;--chip:#1c212b;
@@ -1166,9 +1928,9 @@ h2{{font-size:15px;color:var(--acc);margin:24px 0 8px}}
 
 <div id="lvpanel-wrap">{levels_panel(lr)}</div>
 
-<div class="kpis">{stat_tiles(s)}</div>
+<div class="kpis">{stat_tiles(s, skip=("running", "close_now", "mpz", "mpz_pin"))}</div>
 
-{positions_html(gp_trades, gp_marks)}
+{positions_html(gp_trades_all, gp_marks)}
 
 <div class="tabs">
   <div class="tab on" data-p="trades">Trades</div>
@@ -1182,15 +1944,44 @@ h2{{font-size:15px;color:var(--acc);margin:24px 0 8px}}
   <div class="tab" data-p="playbook">Playbook</div>
   <div class="tab" data-p="results">Sim Results</div>
   <div class="tab" data-p="levels">Levels</div>
+  <div class="tab" data-p="ibtd">IB vs TD</div>
+  <div class="tab" data-p="spybounce">SPY Bounce</div>
 </div>
 
-<div class="page on" id="p-trades">{card_body}</div>
+<div class="page on" id="p-trades">{pnl_summary_html(gp_trades)}{card_body}</div>
+<div class="page" id="p-ibtd">
+<style>
+/* scoped + RESET the flip-card .big/.card leaks (options_build_cards .big = 760px tall) */
+#p-ibtd .tiles{{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0}}
+#p-ibtd .card{{background:var(--panel,#161b22);border:1px solid var(--line,#30363d);border-radius:11px;padding:10px 12px;height:auto;min-height:0;max-height:none;perspective:none;transform:none}}
+#p-ibtd .ct{{font-size:11px;text-transform:uppercase;color:var(--mut,#8b949e);font-weight:700;letter-spacing:.04em}}
+#p-ibtd .big{{font-size:21px;font-weight:800;margin:3px 0;height:auto!important;width:auto!important;perspective:none;cursor:default;box-shadow:none;background:none}}
+#p-ibtd .sub{{color:var(--mut,#8b949e);font-size:11.5px}}
+#p-ibtd .pos{{color:var(--pos,#2fbf8f)}}#p-ibtd .neg{{color:var(--neg,#f85149)}}
+#p-ibtd table{{width:100%;border-collapse:collapse;margin-top:12px;font-size:12.5px}}
+#p-ibtd th,#p-ibtd td{{padding:5px 8px;border-bottom:1px solid var(--line,#21262d);text-align:right}}
+#p-ibtd th:first-child,#p-ibtd td:first-child{{text-align:left}}
+</style>
+<div class="muted" style="font-size:12px;margin:4px 0 8px">Live IB paper fills vs ThetaData-priced (TD) reconstruction — today's shadow book. Was the standalone :8610 page; now integrated here.</div>
+<div class="kpis" style="margin:6px 0 14px">{stat_tiles(s, only=("running", "close_now", "mpz", "mpz_pin"))}</div>
+{zone_bar_html(s)}
+{ibtd_html}
+</div>
+<div class="page" id="p-spybounce">
+<div class="muted" style="font-size:12px;margin:4px 0 8px">SPY 0DTE-bounce paper-tracker (S119) — 4 structures marked live off OPRA, gated to the options session (09:30–16:15 ET). Written by scripts/spy_bounce_tracker.py; entry locked in state.</div>
+<iframe src="/spybounce" title="SPY Bounce Tracker" style="width:100%;height:1400px;border:1px solid var(--line,#30363d);border-radius:11px;background:#0e0e12"></iframe>
+</div>
 <div class="page" id="p-analytics">
   <div class="kpis" id="an-tiles"></div>
   <div class="an-charts">
     <div class="an-card"><div class="an-h">Equity curve <span class="muted" id="an-eqsub"></span></div><div id="an-equity"></div></div>
     <div class="an-card"><div class="an-h">Grade calibration <span class="muted">— does grade predict P&amp;L?</span></div><div id="an-grade"></div></div>
+    <div class="an-card"><div class="an-h">Monthly P&amp;L</div><div id="an-monthly"></div></div>
+    <div class="an-card"><div class="an-h">Drawdown <span class="muted" id="an-ddsub"></span></div><div id="an-dd"></div></div>
+    <div class="an-card"><div class="an-h">Capital — collateral vs ideal account <span class="muted" id="an-capsub"></span></div><div id="an-capital"></div></div>
   </div>
+  <div class="modal" id="an-modal"><div class="modal-c"><div class="modal-h"></div><div class="modal-body"></div></div></div>
+  {shadow_stop_html(_daily_pnl, _rec_days)}
   <div class="an-card" style="margin-top:14px">
     <div class="an-h">Break down by
       <select id="an-dim">
@@ -1266,6 +2057,19 @@ async function poll(){{
     const el = document.getElementById('k-'+k);
     if(el){{ el.textContent = t.value; el.className = 'tv '+(t.cls||''); }}
   }}
+  // zone-position bar: marker + captions track the same load_stats as the tiles
+  const zb = d.zone;
+  if(zb){{
+    const zpct = Math.max(1.5, Math.min(98.5, zb.pct)).toFixed(1)+'%';
+    document.querySelectorAll('.zb-marker').forEach(el=>{{ el.style.left = zpct; }});
+    document.querySelectorAll('.zb-head').forEach(el=>{{
+      el.innerHTML = 'spot '+zb.spot.toFixed(2)+' · <span style="color:'+(zb.inside?'var(--pos,#2fbf8f)':'var(--neg,#f85149)')+'">'+zb.pos+'</span>'; }});
+    document.querySelectorAll('.zb-cap').forEach(el=>{{
+      el.textContent = '@'+zb.pct.toFixed(0)+'% of zone · settle-in prob '+zb.pin; }});
+  }}
+  // TODAY banner — re-rendered server-side each poll from live marks, so it never goes stale
+  const tb = document.getElementById('today-banner');
+  if(tb && d.today_banner!==undefined){{ tb.outerHTML = d.today_banner || "<div id='today-banner'></div>"; }}
   // live ticker + feed state
   const L = d.live||{{}}, live = L.state==='live';
   const lb = document.getElementById('livebadge');
@@ -1286,6 +2090,17 @@ async function poll(){{
   const sp = document.getElementById('lv-spot');
   if(sp && lr.spot!=null) sp.textContent = lr.spot.toLocaleString(undefined,{{minimumFractionDigits:1,maximumFractionDigits:1}});
   const sts = document.getElementById('lv-spotts'); if(sts) sts.textContent = lr.spot_ts||'';
+  // LIVE band-graphic marker: move the white price line with each poll
+  const bs = document.getElementById('bands-svg');
+  if(bs && lr.spot!=null){{
+    const blo=+bs.dataset.lo, bhi=+bs.dataset.hi, bw=+bs.dataset.w;
+    if(bhi>blo){{
+      const bx = 30 + (Math.min(Math.max(lr.spot,blo),bhi)-blo)/(bhi-blo)*(bw-60);
+      const bl=document.getElementById('bm-line'), bt=document.getElementById('bm-text');
+      if(bl){{ bl.setAttribute('x1',bx); bl.setAttribute('x2',bx); }}
+      if(bt){{ bt.setAttribute('x',bx); bt.textContent='▲ '+Math.round(lr.spot); }}
+    }}
+  }}
   if(lr.regime){{
     const rl = document.getElementById('lv-regime');
     if(rl){{ rl.textContent = lr.regime.label; rl.className = 'rlabel '+(lr.regime.cls||''); }}
@@ -1304,6 +2119,7 @@ poll(); setInterval(poll, 5000);
 <style>{ANALYTICS_CSS}</style>
 <script>
 window.__T = {an_json};
+window.__RECON = {recon_json};
 {ANALYTICS_JS}
 </script></body></html>"""
     out = SIM / "dashboard.html"

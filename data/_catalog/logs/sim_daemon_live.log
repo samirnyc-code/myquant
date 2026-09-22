@@ -1,0 +1,23 @@
+SPX daily refreshed from Yahoo: 500 rows, last 2026-07-20
+IB connected 127.0.0.1:4002 (PAPER)  accounts=['DUQ159823']  serverVersion=178
+rough_spot: delayed index unavailable — seeding 7493.4 from underlying_20260721.csv
+delayed SPX ~ 7493.40
+chain SPXW@SMART, expiry 20260804 (14 DTE)
+streaming 22 puts + spot rig (0DTE 20260721), waiting for OPRA...
+OPRA check: 22/22 strikes quoting, parity spot = 7490.2
+session H/L seeded from tape: 7467.80..7497.00 (202 samples)
+sampling until 15:59 ET (297 min)...
+
+=== 2026-07-21 15:59 ET DECISION ===
+spot 7509.20  K8 51.88  SMA100 7161.69  SMA5 7503.27
+ENTRY fire: False   EXIT signal: True   open trades: 2
+tags: {'vix': 18.649999618530277, 'vix_rank': 0.702, 'er10': 0.013, 'dow': 'Tue'}
+  EXECUTED exit_bps_stmr_2026-07-20 @ 16:00:04: net -10.70 (mid -10.40)
+CLOSED bps_stmr_2026-07-20: pnl $+465
+  REAL close-short 7350P: Filled 1.0@32.1
+  REAL close-long  7300P: Filled 1.0@24.6
+REAL CLOSED bps_stmr_REAL_20260721_0943: paid 7.50
+RECONCILE: OK — real ledger matches IB
+
+3 closed (0 open)  win 100%  PF inf  total $+720  avg $+240
+wrote C:\Users\Admin\myquant\data\options_sim\report.html

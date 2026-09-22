@@ -1,0 +1,107 @@
+URL: https://takeprofittraderhelp.zendesk.com/hc/en-us/articles/15170316538013-Rule-5-Be-Consistent
+TITLE: Rule 5: Be Consistent – TakeProfitTrader
+
+Skip to main content
+ Sign in
+TakeProfitTrader
+ Test Rules
+ The 6 Core Rules
+Articles in this section
+Rule 1: Hit Your Profit Target
+Rule 2: Do Not Exceed Maximum Position Size
+Rule 3: Do Not Hit End-Of-Day (EOD) Maximum Trailing Drawdown
+Rule 4: Trade Approved Products, During Approved Hours
+Rule 5: Be Consistent
+Rule 6: No Counter Positions
+Rule 5: Be Consistent
+ Vlada
+28 days ago Updated
+
+Before funding traders, Take Profit Trader must ensure they demonstrate consistency.
+There are two requirements that determine whether your performance is considered consistent.
+
+ 
+
+1. Minimum Number of Trading Days
+
+To show that you can make money and manage risk, you must trade for a minimum of 3 trading days.
+
+A trading day is defined as any day in which you place at least one trade.
+
+You may take as long as you want to complete the test, but you must meet the 3-day minimum.
+If you reach your profit target in only 2 days, you still need 1 additional active trading days.
+
+This rule exists because a trader needs to demonstrate skill and discipline, not just a few lucky trades.
+
+ 
+
+2. Profit Consistency (Percentage of Profits Rule)
+
+To prevent the evaluation from being treated like a lottery ticket, no single trading day may exceed 50% of your total net profits.
+
+This is based on your net P/L.
+
+Use the formula:
+
+Highest profit day / Net P/L = Consistency Percentage
+
+This percentage must be below 50% to qualify for a PRO account. 
+
+If your consistency percentage is above 50%, you do not meet the consistency rule. However, you have not failed the test account; you simply need to increase your total profit goal to pass the consistency rule.
+
+ 
+
+Updated Profit Goal (Automatic Adjustment)
+
+Your consistency threshold adjusts automatically based on your net P/L.
+
+To determine your updated profit requirement, use:
+
+Updated Profit Goal = Net P/L × 2
+
+This updated goal appears directly in your dashboard.
+
+ 
+
+Example
+
+Account size: $50,000
+Required profit target: $3,000
+
+Your results:
+
+Day 1: +$2,000
+Day 2: +$600
+Day 3: +$500
+
+Net P/L = $3,100
+
+Consistency percentage:
+$2,000 / $3,100 = 65% (too high)
+
+You need to increase your net P/L until your highest day becomes less than 50% of total net profits.
+
+Updated required profit (Net P/L × 2):
+$3,100 × 2 = $6,200
+
+$2,000 / $4,001 < 50%
+
+This ensures your performance is not dominated by a single trading day.
+
+Was this article helpful?
+Yes No
+37 out of 46 found this helpful
+Recently viewed articles
+Rule 4: Trade Approved Products, During Approved Hours
+Rule 3: Do Not Hit End-Of-Day (EOD) Maximum Trailing Drawdown
+Rule 2: Do Not Exceed Maximum Position Size
+Rule 1: Hit Your Profit Target
+Connecting MultiCharts with Your Rithmic Account
+Related articles
+PRO Account Rules
+Rule 4: Trade Approved Products, During Approved Hours
+Activating Your CQG Data Feed
+Approved Instruments & Permitted Products List
+Advantages of PRO+
+TakeProfitTrader
+English (United States) 

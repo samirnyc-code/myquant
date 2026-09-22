@@ -1,0 +1,50 @@
+URL: https://takeprofittraderhelp.zendesk.com/hc/en-us/articles/15169070804125-Rule-1-Hit-Your-Profit-Target
+TITLE: Rule 1: Hit Your Profit Target – TakeProfitTrader
+
+Skip to main content
+ Sign in
+TakeProfitTrader
+ Test Rules
+ The 6 Core Rules
+Articles in this section
+Rule 1: Hit Your Profit Target
+Rule 2: Do Not Exceed Maximum Position Size
+Rule 3: Do Not Hit End-Of-Day (EOD) Maximum Trailing Drawdown
+Rule 4: Trade Approved Products, During Approved Hours
+Rule 5: Be Consistent
+Rule 6: No Counter Positions
+Rule 1: Hit Your Profit Target
+ Vlada
+10 months ago Updated
+Profit Targets by Account Size
+
+Each Take Profit Trader account has its own required profit target.
+To see the exact target for your account size, check the table provided for all account types.
+ 
+
+Futures Account Size	Maximum Contracts	Profit Target
+$25,000	3 Contracts	$1,500
+$50,000 	6 Contracts	$3,000
+$75,000 	9 Contracts	$4,500
+$100,000 	12 Contracts	$6,000
+$150,000	15 Contracts	$9,000
+
+ 
+
+Was this article helpful?
+Yes No
+23 out of 25 found this helpful
+Recently viewed articles
+Connecting MultiCharts with Your Rithmic Account
+Connecting BookMap with Your Rithmic Account
+Connecting Quantower With Your Rithmic Account
+Connecting NinjaTrader 8 with Rithmic
+Connecting NinjaTrader 8 with CQG
+Related articles
+Rule 2: Do Not Exceed Maximum Position Size
+Rule 5: Be Consistent
+Rule 3: Do Not Hit End-Of-Day (EOD) Maximum Trailing Drawdown
+Activating Your CQG Data Feed
+Approved Instruments & Permitted Products List
+TakeProfitTrader
+English (United States) 

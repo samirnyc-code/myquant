@@ -121,8 +121,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		// state-transition log for validation diff vs the research engine
 		private System.IO.StreamWriter tlog;
-		private System.IO.StreamWriter mlog;
-		private DateTime marksDay = DateTime.MinValue;
 		private void TLog(string evt, int b, double px)
 		{
 			if (tlog == null) return;
@@ -131,16 +129,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 			catch { }
 		}
 
-		private void DumpMarks()
+		// per-PIVOT log (bar/side/tag/major) for diffing HH/LL labels vs the Python engine
+		private System.IO.StreamWriter plog;
+		private DateTime sessionDate;
+		private void DumpPivots()
 		{
-			if (mlog == null || piv == null || piv.Count == 0 || marksDay == DateTime.MinValue) return;
+			if (plog == null) return;
 			try {
-				string ds = marksDay.ToString("yyyy-MM-dd");
-				foreach (Piv p in piv)
-					mlog.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture,
-						"{0},{1},pivot,{2},{3},{4},{5},{6}", ds, p.Bar + 1,
-						p.IsH ? "H" : "L", p.Tag, p.Disp, p.Major ? 1 : 0, p.MajLab ?? ""));
-				mlog.Flush();
+				foreach (var p in piv)
+					plog.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+						"{0:yyyy-MM-dd},{1},{2},{3},{4},{5},{6},{7:F2}",
+						sessionDate, p.Bar + 1, p.IsH ? "H" : "L", p.Tag, p.Disp,
+						p.Major ? 1 : 0, p.MajLab ?? "", p.IsH ? HiAt(p.Bar) : LoAt(p.Bar)));
+				plog.Flush();
 			} catch { }
 		}
 
@@ -217,11 +218,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 					tlog = new System.IO.StreamWriter(
 						@"C:\Users\Admin\myquant\data\regime\nt8_transitions.csv", false);
 					tlog.WriteLine("time,bar,event,mode,px");
-					mlog = new System.IO.StreamWriter(
-						@"C:\Users\Admin\myquant\data\regime\nt8_marks.csv", false);
-					mlog.WriteLine("date,bar,event,side,minor_tag,disp,is_major,major_lab");
+					plog = new System.IO.StreamWriter(
+						@"C:\Users\Admin\myquant\data\regime\nt8_pivots.csv", false);
+					plog.WriteLine("session,bar,side,tag,disp,major,majlab,price");
 				}
-				catch { tlog = null; mlog = null; }
+				catch { tlog = null; plog = null; }
 				sessionIt = new Data.SessionIterator(Bars);
 				ResetDay();
 				foreach (Account a in Account.All)
@@ -232,9 +233,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 			else if (State == State.Terminated)
 			{
 				if (acct != null) acct.ExecutionUpdate -= OnExec;
-				DumpMarks();
+				if (piv != null && piv.Count > 0) DumpPivots();   // last session
 				if (tlog != null) { try { tlog.Close(); } catch { } tlog = null; }
-				if (mlog != null) { try { mlog.Close(); } catch { } mlog = null; }
+				if (plog != null) { try { plog.Close(); } catch { } plog = null; }
 			}
 		}
 
@@ -315,8 +316,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 			{ if (cand == null || LoAt(bar) < LoAt(cand.Bar)) { cand = p; candRefPx = runPx; candHasRef = hasRun; } }
 			else if (mode == "BEAR" && isH)
 			{ if (cand == null || HiAt(bar) > HiAt(cand.Bar)) { cand = p; candRefPx = runPx; candHasRef = hasRun; } }
-			if (mode == "BULL" && isH && bar == runB) { p.Major = true; p.MajLab = "HH"; }
-			else if (mode == "BEAR" && !isH && bar == runB) { p.Major = true; p.MajLab = "LL"; }
+			// run-peak promotion must go through PromoteMajor so the HH/LL label is actually DRAWN
+			// (setting p.Major directly flagged it major but only drew the minor tag, and the later
+			//  PromoteMajor call was then skipped by its "already major" guard -> missing HH/LL).
+			if (mode == "BULL" && isH && bar == runB) PromoteMajor(p, "HH");
+			else if (mode == "BEAR" && !isH && bar == runB) PromoteMajor(p, "LL");
 			if (ShowPivotTags) DrawPivot(p);
 		}
 
@@ -594,20 +598,20 @@ namespace NinjaTrader.NinjaScript.Indicators
 			// historical sessions (machine stuck in one regime across days).
 			if (sessionIt.IsNewSession(Time[0], true))
 			{
+				if (piv.Count > 0) DumpPivots();     // flush completed session's pivots before reset
+				sessionDate = Time[0].Date;
 				if (sessHigh > double.MinValue)
 				{
 					sessRanges.Enqueue(sessHigh - sessLow);
 					while (sessRanges.Count > 10) sessRanges.Dequeue();
 					prevSessClose = lastSessClose;
 				}
-				DumpMarks();
 				sessHigh = double.MinValue; sessLow = double.MaxValue;
 				ResetDay();
 				TLog("RESET", -1, Close[0]);
 				lastObUpList = new List<bool>();
 				sessFirstCurrentBar = CurrentBar;
 				sessionIt.GetNextSession(Time[0], true);
-				marksDay = sessionIt.ActualSessionBegin.Date;
 				winStartT = sessionIt.ActualSessionBegin.AddMinutes(WindowStartMin);
 				winEndT = sessionIt.ActualSessionBegin.AddMinutes(WindowEndMin);
 				flatT = sessionIt.ActualSessionBegin.AddMinutes(FlatAfterMin);
@@ -830,3 +834,60 @@ namespace NinjaTrader.NinjaScript.Indicators
 		#endregion
 	}
 }
+
+#region NinjaScript generated code. Neither change nor remove.
+
+namespace NinjaTrader.NinjaScript.Indicators
+{
+	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
+	{
+		private RegimePhaseMachine[] cacheRegimePhaseMachine;
+		public RegimePhaseMachine RegimePhaseMachine(string accountName, string hvlCsvPath, bool showHvlLine, bool showPivotTags, bool showLevels, bool showTriggers, double gapMaxPct, double stopAdrMult, int stopFloorTicks, int windowStartMin, int windowEndMin, int flatAfterMin)
+		{
+			return RegimePhaseMachine(Input, accountName, hvlCsvPath, showHvlLine, showPivotTags, showLevels, showTriggers, gapMaxPct, stopAdrMult, stopFloorTicks, windowStartMin, windowEndMin, flatAfterMin);
+		}
+
+		public RegimePhaseMachine RegimePhaseMachine(ISeries<double> input, string accountName, string hvlCsvPath, bool showHvlLine, bool showPivotTags, bool showLevels, bool showTriggers, double gapMaxPct, double stopAdrMult, int stopFloorTicks, int windowStartMin, int windowEndMin, int flatAfterMin)
+		{
+			if (cacheRegimePhaseMachine != null)
+				for (int idx = 0; idx < cacheRegimePhaseMachine.Length; idx++)
+					if (cacheRegimePhaseMachine[idx] != null && cacheRegimePhaseMachine[idx].AccountName == accountName && cacheRegimePhaseMachine[idx].HvlCsvPath == hvlCsvPath && cacheRegimePhaseMachine[idx].ShowHvlLine == showHvlLine && cacheRegimePhaseMachine[idx].ShowPivotTags == showPivotTags && cacheRegimePhaseMachine[idx].ShowLevels == showLevels && cacheRegimePhaseMachine[idx].ShowTriggers == showTriggers && cacheRegimePhaseMachine[idx].GapMaxPct == gapMaxPct && cacheRegimePhaseMachine[idx].StopAdrMult == stopAdrMult && cacheRegimePhaseMachine[idx].StopFloorTicks == stopFloorTicks && cacheRegimePhaseMachine[idx].WindowStartMin == windowStartMin && cacheRegimePhaseMachine[idx].WindowEndMin == windowEndMin && cacheRegimePhaseMachine[idx].FlatAfterMin == flatAfterMin && cacheRegimePhaseMachine[idx].EqualsInput(input))
+						return cacheRegimePhaseMachine[idx];
+			return CacheIndicator<RegimePhaseMachine>(new RegimePhaseMachine(){ AccountName = accountName, HvlCsvPath = hvlCsvPath, ShowHvlLine = showHvlLine, ShowPivotTags = showPivotTags, ShowLevels = showLevels, ShowTriggers = showTriggers, GapMaxPct = gapMaxPct, StopAdrMult = stopAdrMult, StopFloorTicks = stopFloorTicks, WindowStartMin = windowStartMin, WindowEndMin = windowEndMin, FlatAfterMin = flatAfterMin }, input, ref cacheRegimePhaseMachine);
+		}
+	}
+}
+
+namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
+{
+	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
+	{
+		public Indicators.RegimePhaseMachine RegimePhaseMachine(string accountName, string hvlCsvPath, bool showHvlLine, bool showPivotTags, bool showLevels, bool showTriggers, double gapMaxPct, double stopAdrMult, int stopFloorTicks, int windowStartMin, int windowEndMin, int flatAfterMin)
+		{
+			return indicator.RegimePhaseMachine(Input, accountName, hvlCsvPath, showHvlLine, showPivotTags, showLevels, showTriggers, gapMaxPct, stopAdrMult, stopFloorTicks, windowStartMin, windowEndMin, flatAfterMin);
+		}
+
+		public Indicators.RegimePhaseMachine RegimePhaseMachine(ISeries<double> input , string accountName, string hvlCsvPath, bool showHvlLine, bool showPivotTags, bool showLevels, bool showTriggers, double gapMaxPct, double stopAdrMult, int stopFloorTicks, int windowStartMin, int windowEndMin, int flatAfterMin)
+		{
+			return indicator.RegimePhaseMachine(input, accountName, hvlCsvPath, showHvlLine, showPivotTags, showLevels, showTriggers, gapMaxPct, stopAdrMult, stopFloorTicks, windowStartMin, windowEndMin, flatAfterMin);
+		}
+	}
+}
+
+namespace NinjaTrader.NinjaScript.Strategies
+{
+	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
+	{
+		public Indicators.RegimePhaseMachine RegimePhaseMachine(string accountName, string hvlCsvPath, bool showHvlLine, bool showPivotTags, bool showLevels, bool showTriggers, double gapMaxPct, double stopAdrMult, int stopFloorTicks, int windowStartMin, int windowEndMin, int flatAfterMin)
+		{
+			return indicator.RegimePhaseMachine(Input, accountName, hvlCsvPath, showHvlLine, showPivotTags, showLevels, showTriggers, gapMaxPct, stopAdrMult, stopFloorTicks, windowStartMin, windowEndMin, flatAfterMin);
+		}
+
+		public Indicators.RegimePhaseMachine RegimePhaseMachine(ISeries<double> input , string accountName, string hvlCsvPath, bool showHvlLine, bool showPivotTags, bool showLevels, bool showTriggers, double gapMaxPct, double stopAdrMult, int stopFloorTicks, int windowStartMin, int windowEndMin, int flatAfterMin)
+		{
+			return indicator.RegimePhaseMachine(input, accountName, hvlCsvPath, showHvlLine, showPivotTags, showLevels, showTriggers, gapMaxPct, stopAdrMult, stopFloorTicks, windowStartMin, windowEndMin, flatAfterMin);
+		}
+	}
+}
+
+#endregion

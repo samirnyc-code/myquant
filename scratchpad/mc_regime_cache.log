@@ -1,0 +1,22 @@
+2026-07-25 06:30:26.556 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-07-25 06:30:26.558 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-07-25 06:30:26.558 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-07-25 06:30:26.559 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-07-25 06:30:26.680 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-07-25 06:30:26.681 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-07-25 06:30:26.696 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-07-25 06:30:26.703 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+1264 signal days (2021-06-08 -> 2026-07-02)
+  …100/1264 days  (17s, 0.22s/day)
+  …200/1264 days  (49s, 0.31s/day)
+  …300/1264 days  (91s, 0.35s/day)
+  …400/1264 days  (133s, 0.38s/day)
+  …600/1264 days  (201s, 0.37s/day)
+  …700/1264 days  (231s, 0.36s/day)
+  …800/1264 days  (264s, 0.35s/day)
+  …900/1264 days  (297s, 0.35s/day)
+  …1000/1264 days  (344s, 0.37s/day)
+  …1100/1264 days  (377s, 0.36s/day)
+  …1200/1264 days  (419s, 0.37s/day)
+WROTE C:\Users\Admin\myquant\data\regime\mc_signal_day_regime.parquet  (96778 bar-rows, 1203 days, 444s)
+regime bar-share: {'neutral': 35.9, 'bull': 34.0, 'bear': 30.1}

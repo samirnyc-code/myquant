@@ -1,0 +1,64 @@
+rule,book,train_delta,test_delta,days_flagged,days_flagged_train,days_flagged_test,killer_days_avoided,winning_days_lost,verdict,economic_story
+skip_day_if_cr_c>2.0,ic,9056.0,5055.0,208,147,61,12,108,ROBUST,Rich call credit (> 2.0) = market pricing upside risk the EM missed; stand down.
+skip_day_if_cr_p>2.0,ic,122.0,-8527.0,255,161,94,14,161,TRAIN_ONLY,Rich put credit (> 2.0) = market pricing downside risk the EM missed; stand down.
+skip_day_if_cr_c>2.0,fly,33474.0,20395.0,208,147,61,7,70,ROBUST,Rich call credit (> 2.0) = market pricing upside risk the EM missed; stand down.
+skip_day_if_cr_p>2.0,fly,47234.0,37670.0,255,161,94,13,78,ROBUST,Rich put credit (> 2.0) = market pricing downside risk the EM missed; stand down.
+skip_day_if_cr_c>2.0,puts_band,848.0,-1210.0,208,147,61,2,99,TRAIN_ONLY,Rich call credit (> 2.0) = market pricing upside risk the EM missed; stand down.
+skip_day_if_cr_p>2.0,puts_band,-7440.0,-6057.0,255,161,94,1,136,DEAD,Rich put credit (> 2.0) = market pricing downside risk the EM missed; stand down.
+skip_day_if_cr_c>2.5,ic,11321.0,6616.0,171,120,51,12,82,ROBUST,Rich call credit (> 2.5) = market pricing upside risk the EM missed; stand down.
+skip_day_if_cr_p>2.5,ic,8991.0,-2891.0,199,124,75,13,114,TRAIN_ONLY,Rich put credit (> 2.5) = market pricing downside risk the EM missed; stand down.
+skip_day_if_cr_c>2.5,fly,28815.0,17801.0,171,120,51,7,55,ROBUST,Rich call credit (> 2.5) = market pricing upside risk the EM missed; stand down.
+skip_day_if_cr_p>2.5,fly,35011.0,35896.0,199,124,75,12,57,ROBUST,Rich put credit (> 2.5) = market pricing downside risk the EM missed; stand down.
+skip_day_if_cr_c>2.5,puts_band,2599.0,-627.0,171,120,51,2,78,TRAIN_ONLY,Rich call credit (> 2.5) = market pricing upside risk the EM missed; stand down.
+skip_day_if_cr_p>2.5,puts_band,-1841.0,-765.0,199,124,75,0,85,DEAD,Rich put credit (> 2.5) = market pricing downside risk the EM missed; stand down.
+skip_day_if_cr_c>3.0,ic,7927.0,5533.0,135,95,40,8,62,ROBUST,Rich call credit (> 3.0) = market pricing upside risk the EM missed; stand down.
+skip_day_if_cr_p>3.0,ic,7377.0,-7564.0,164,102,62,8,94,TRAIN_ONLY,Rich put credit (> 3.0) = market pricing downside risk the EM missed; stand down.
+skip_day_if_cr_c>3.0,fly,25233.0,13092.0,135,95,40,6,44,ROBUST,Rich call credit (> 3.0) = market pricing upside risk the EM missed; stand down.
+skip_day_if_cr_p>3.0,fly,31808.0,34517.0,164,102,62,12,43,ROBUST,Rich put credit (> 3.0) = market pricing downside risk the EM missed; stand down.
+skip_day_if_cr_c>3.0,puts_band,524.0,-90.0,135,95,40,1,61,TRAIN_ONLY,Rich call credit (> 3.0) = market pricing upside risk the EM missed; stand down.
+skip_day_if_cr_p>3.0,puts_band,-1933.0,-2057.0,164,102,62,0,69,DEAD,Rich put credit (> 3.0) = market pricing downside risk the EM missed; stand down.
+skip_day_if_cr_c>4.0,ic,2982.0,-2161.0,94,63,31,4,44,TRAIN_ONLY,Rich call credit (> 4.0) = market pricing upside risk the EM missed; stand down.
+skip_day_if_cr_p>4.0,ic,7909.0,-221.0,110,65,45,6,58,TRAIN_ONLY,Rich put credit (> 4.0) = market pricing downside risk the EM missed; stand down.
+skip_day_if_cr_c>4.0,fly,11774.0,9853.0,94,63,31,3,32,ROBUST,Rich call credit (> 4.0) = market pricing upside risk the EM missed; stand down.
+skip_day_if_cr_p>4.0,fly,17241.0,23737.0,110,65,45,8,29,ROBUST,Rich put credit (> 4.0) = market pricing downside risk the EM missed; stand down.
+skip_day_if_cr_c>4.0,puts_band,148.0,905.0,94,63,31,1,43,ROBUST,Rich call credit (> 4.0) = market pricing upside risk the EM missed; stand down.
+skip_day_if_cr_p>4.0,puts_band,-860.0,-713.0,110,65,45,0,39,DEAD,Rich put credit (> 4.0) = market pricing downside risk the EM missed; stand down.
+skip_day_if_total_cr>3.0,ic,19076.0,4101.0,346,227,119,24,183,ROBUST,"Total morning credit c+p > 3.0 = both wings bid, market braced for a move the EM missed."
+skip_day_if_total_cr>3.0,fly,51869.0,55530.0,346,227,119,19,108,ROBUST,"Total morning credit c+p > 3.0 = both wings bid, market braced for a move the EM missed."
+skip_day_if_total_cr>3.0,puts_band,-245.0,-954.0,346,227,119,3,164,DEAD,"Total morning credit c+p > 3.0 = both wings bid, market braced for a move the EM missed."
+skip_day_if_total_cr>3.0,combined,70700.0,58677.0,346,227,119,47,132,ROBUST,"Total morning credit c+p > 3.0 = both wings bid, market braced for a move the EM missed."
+skip_day_if_total_cr>4.0,ic,6055.0,-3144.0,241,155,86,11,125,TRAIN_ONLY,"Total morning credit c+p > 4.0 = both wings bid, market braced for a move the EM missed."
+skip_day_if_total_cr>4.0,fly,42077.0,36556.0,241,155,86,12,72,ROBUST,"Total morning credit c+p > 4.0 = both wings bid, market braced for a move the EM missed."
+skip_day_if_total_cr>4.0,puts_band,-2399.0,-1775.0,241,155,86,1,108,DEAD,"Total morning credit c+p > 4.0 = both wings bid, market braced for a move the EM missed."
+skip_day_if_total_cr>4.0,combined,45733.0,31637.0,241,155,86,28,90,ROBUST,"Total morning credit c+p > 4.0 = both wings bid, market braced for a move the EM missed."
+skip_day_if_total_cr>5.0,ic,12478.0,-4049.0,171,105,66,9,83,TRAIN_ONLY,"Total morning credit c+p > 5.0 = both wings bid, market braced for a move the EM missed."
+skip_day_if_total_cr>5.0,fly,24307.0,32651.0,171,105,66,9,47,ROBUST,"Total morning credit c+p > 5.0 = both wings bid, market braced for a move the EM missed."
+skip_day_if_total_cr>5.0,puts_band,-1283.0,-1244.0,171,105,66,1,67,DEAD,"Total morning credit c+p > 5.0 = both wings bid, market braced for a move the EM missed."
+skip_day_if_total_cr>5.0,combined,35502.0,27358.0,171,105,66,20,60,ROBUST,"Total morning credit c+p > 5.0 = both wings bid, market braced for a move the EM missed."
+skip_day_if_total_cr>6.0,ic,10256.0,-1745.0,132,78,54,6,62,TRAIN_ONLY,"Total morning credit c+p > 6.0 = both wings bid, market braced for a move the EM missed."
+skip_day_if_total_cr>6.0,fly,16862.0,26114.0,132,78,54,8,40,ROBUST,"Total morning credit c+p > 6.0 = both wings bid, market braced for a move the EM missed."
+skip_day_if_total_cr>6.0,puts_band,-2329.0,-860.0,132,78,54,0,51,DEAD,"Total morning credit c+p > 6.0 = both wings bid, market braced for a move the EM missed."
+skip_day_if_total_cr>6.0,combined,24789.0,23509.0,132,78,54,13,43,ROBUST,"Total morning credit c+p > 6.0 = both wings bid, market braced for a move the EM missed."
+band_p_0.5-2.5,ic,24030.0,5334.0,664,402,262,29,458,ROBUST,"Put credit inside 0.5-2.5 = normal premium; below = no edge, above = market pricing a down move."
+band_c_0.5-2.5,ic,17594.0,-1775.0,764,447,317,39,563,TRAIN_ONLY,"Call credit inside 0.5-2.5 = normal premium; below = no edge, above = market pricing an up move."
+band_p_0.5-2.5,fly,74949.0,55575.0,664,402,262,22,252,ROBUST,"Put credit inside 0.5-2.5 = normal premium; below = no edge, above = market pricing a down move."
+band_c_0.5-2.5,fly,62094.0,55425.0,764,447,317,19,305,ROBUST,"Call credit inside 0.5-2.5 = normal premium; below = no edge, above = market pricing an up move."
+band_p_0.5-2.5,puts_band,-1339.0,821.0,664,402,262,0,202,DEAD,"Put credit inside 0.5-2.5 = normal premium; below = no edge, above = market pricing a down move."
+band_c_0.5-2.5,puts_band,-5986.0,-1638.0,764,447,317,9,405,DEAD,"Call credit inside 0.5-2.5 = normal premium; below = no edge, above = market pricing an up move."
+skip_day_if_cr_c<0.5,ic,6273.0,-8391.0,593,327,266,27,481,TRAIN_ONLY,Thin call credit < 0.5 = no premium to harvest; risk/reward not there.
+skip_day_if_cr_p<0.5,ic,15039.0,8225.0,465,278,187,16,344,ROBUST,Thin put credit < 0.5 = no premium to harvest; risk/reward not there.
+skip_day_if_total_cr<1.0,ic,4190.0,6728.0,315,164,151,11,282,ROBUST,"Total credit < 1.0 = dead tape, nothing to sell; commissions eat the edge."
+skip_day_if_cr_c<0.5,fly,33279.0,37624.0,593,327,266,12,250,ROBUST,Thin call credit < 0.5 = no premium to harvest; risk/reward not there.
+skip_day_if_cr_p<0.5,fly,39938.0,19679.0,465,278,187,10,195,ROBUST,Thin put credit < 0.5 = no premium to harvest; risk/reward not there.
+skip_day_if_total_cr<1.0,fly,7278.0,2591.0,315,164,151,2,153,ROBUST,"Total credit < 1.0 = dead tape, nothing to sell; commissions eat the edge."
+skip_day_if_cr_c<0.5,puts_band,-8585.0,-1011.0,593,327,266,7,327,DEAD,Thin call credit < 0.5 = no premium to harvest; risk/reward not there.
+skip_day_if_cr_p<0.5,puts_band,502.0,1586.0,465,278,187,0,117,ROBUST,Thin put credit < 0.5 = no premium to harvest; risk/reward not there.
+skip_day_if_total_cr<1.0,puts_band,1165.0,5145.0,315,164,151,4,125,ROBUST,"Total credit < 1.0 = dead tape, nothing to sell; commissions eat the edge."
+ic_drop_call_leg_if_cr_c>2.0,ic,4757.0,7658.0,208,147,61,12,108,ROBUST,"Drop only the call spread when its credit > 2.0: sell the normal side, skip the side the market says is in play."
+ic_drop_put_leg_if_cr_p>2.0,ic,-789.0,-4863.0,255,161,94,14,161,DEAD,"Drop only the put spread when its credit > 2.0: sell the normal side, skip the side the market says is in play."
+ic_drop_call_leg_if_cr_c>2.5,ic,4208.0,7346.0,171,120,51,12,82,ROBUST,"Drop only the call spread when its credit > 2.5: sell the normal side, skip the side the market says is in play."
+ic_drop_put_leg_if_cr_p>2.5,ic,2634.0,-610.0,199,124,75,13,114,TRAIN_ONLY,"Drop only the put spread when its credit > 2.5: sell the normal side, skip the side the market says is in play."
+ic_drop_call_leg_if_cr_c>3.0,ic,3799.0,6445.0,135,95,40,8,62,ROBUST,"Drop only the call spread when its credit > 3.0: sell the normal side, skip the side the market says is in play."
+ic_drop_put_leg_if_cr_p>3.0,ic,3469.0,-4270.0,164,102,62,8,94,TRAIN_ONLY,"Drop only the put spread when its credit > 3.0: sell the normal side, skip the side the market says is in play."
+ic_drop_call_leg_if_cr_c>4.0,ic,4346.0,-737.0,94,63,31,4,44,TRAIN_ONLY,"Drop only the call spread when its credit > 4.0: sell the normal side, skip the side the market says is in play."
+ic_drop_put_leg_if_cr_p>4.0,ic,4280.0,-1585.0,110,65,45,6,58,TRAIN_ONLY,"Drop only the put spread when its credit > 4.0: sell the normal side, skip the side the market says is in play."

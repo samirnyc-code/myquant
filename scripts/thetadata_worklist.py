@@ -1,0 +1,377 @@
+"""thetadata_worklist.py — build the exact ThetaData pull list to validate our
+Aug–Sep-2026 options-sim fills against real OPRA NBBO.  READ-ONLY.
+
+WHY: the fill-realism audit (scripts/fill_vs_nbbo_audit.py) showed sim fills sit at
+the marketable cross (median pos 0.000, 79% <= mid) but had ~21% quote-snapshot
+timing noise.  ThetaData (historical NBBO w/ bid_size/ask_size + trade prints) lets
+us ground-truth every leg's fill against the real book at fill time.  This script
+enumerates WHICH contracts to pull.
+
+SCOPE: SPX only (root SPXW). XSP is a retired side-book — excluded (user, S112).
+
+SOURCES (authoritative leg enumeration — every SPX trade, incl. cash-settled):
+  * data/options_log/trades.parquet      — SPX book (root SPXW), `legs` JSON per trade
+  * data/options_log/orders.csv          — per-LEG IB fills (ts_et=ET, avg_fill); SPXW only
+                                           -> enriches SPX legs with ET-second fill anchors
+
+VERIFIED FACTS (baked into the report, re-checked each run):
+  * 100% 0DTE: every leg's `expiry` == its trade's entry date -> date==expiry for the pull.
+  * TZ: trades.parquet entry_dt/exit_dt = CT (daemon now_ct, America/Chicago, MINUTE prec);
+        orders.csv ts_et = ET (America/New_York, SECOND prec); xsp_fills.csv ts = CT.
+        ThetaData ms_of_day is ET, so per-tick ALIGNMENT (a later comparison script) must
+        convert CT->ET (+1h std).  The PULL here is by calendar DATE — identical in CT/ET
+        for daytime fills — so the work-list is tz-safe.  orders.csv (ET, seconds) is the
+        preferred alignment anchor.
+  * Strike encoding: v3 wants DOLLARS (e.g. 6450.000); v2 wants 1/10-cent int (6450*1000).
+        (Handoff example digit-count for v2 to be re-confirmed at smoke-test; v3 is primary.)
+  * ROOT MAPPING IS UNCONFIRMED until the terminal smoke-test: our OPRA roots are SPXW / XSP.
+        ThetaData may serve SPX weeklys under 'SPXW' or under 'SPX'.  The fetcher's --probe
+        resolves this empirically.  We emit theta_root = OPRA root (SPXW/XSP) as the primary
+        guess and carry the alternative.
+
+OUTPUT (DATED, per S80):
+  data/options_sim/thetadata_worklist_legs_<YYYYMMDD>.csv  — one row per (trade, leg, side)
+  data/options_sim/thetadata_pull_list_<YYYYMMDD>.csv      — deduped contracts to fetch
+        (this is the fetcher's input; scripts/thetadata_fetch.py reads the newest one)
+
+Run:
+  .venv/Scripts/python.exe scripts/thetadata_worklist.py
+  .venv/Scripts/python.exe scripts/thetadata_worklist.py --start 2026-08-01 --end 2026-08-31
+"""
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import json
+import re
+from pathlib import Path
+
+import pandas as pd
+
+ROOT = Path(__file__).resolve().parents[1]
+OL = ROOT / "data" / "options_log"
+OUT = ROOT / "data" / "options_sim"
+
+# OPRA root (from trades `symbol`) -> primary ThetaData root guess + alternative.
+# UNCONFIRMED: resolved empirically by `thetadata_fetch.py --probe`.
+THETA_ROOT = {"SPXW": ("SPXW", "SPX")}
+
+
+def _legs(val):
+    """trades.parquet `legs` is a JSON string (or already a list). -> list[dict]."""
+    if isinstance(val, list):
+        return val
+    if isinstance(val, str) and val.strip():
+        try:
+            return json.loads(val)
+        except json.JSONDecodeError:
+            return []
+    return []
+
+
+def _parse_local_symbol(sym: str):
+    """'SPXW  260715C07605000' -> (root, expiry YYYYMMDD, right C/P, strike float)."""
+    if not isinstance(sym, str):
+        return None
+    m = re.match(r"^([A-Z]+)\s+(\d{6})([CP])(\d{8})$", sym.strip())
+    if not m:
+        return None
+    root, yymmdd, right, strike8 = m.groups()
+    expiry = "20" + yymmdd                       # 260715 -> 20260715
+    strike = int(strike8) / 1000.0               # OCC: dollars x 1000
+    return root, expiry, right, strike
+
+
+def load_legs(start: str | None, end: str | None) -> pd.DataFrame:
+    """Explode the SPX book into one row per (trade, leg)."""
+    frames = []
+    p = OL / "trades.parquet"
+    if not p.exists():
+        print(f"  !! missing {p.relative_to(ROOT)}")
+        return pd.DataFrame()
+    df = pd.read_parquet(p)
+    for _, r in df.iterrows():
+        entry_date = str(r["entry_dt"])[:10]                # CT, YYYY-MM-DD
+        if start and entry_date < start:
+            continue
+        if end and entry_date > end:
+            continue
+        for i, lg in enumerate(_legs(r["legs"])):
+            frames.append({
+                "book": "SPX",
+                "trade_id": r["trade_id"],
+                "strategy": r.get("strategy_id"),
+                "source": r.get("source"),
+                "structure": r.get("structure"),
+                "occ_root": r["symbol"],                     # SPXW
+                "leg_idx": i,
+                "side": lg.get("side"),                      # buy / sell
+                "right": (lg.get("right") or "").upper(),    # C / P
+                "strike": float(lg.get("strike")),
+                "expiry": str(lg.get("expiry")),             # YYYYMMDD (== trade date, 0DTE)
+                "qty": lg.get("qty"),
+                "entry_dt_ct": r["entry_dt"],                # CT minute
+                "exit_dt_ct": r.get("exit_dt"),              # CT minute
+                "fill_model": r.get("fill_model"),
+                "close_reason": r.get("close_reason"),
+                "credit": r.get("credit"),
+                "exit_cost": r.get("exit_cost"),
+            })
+    return pd.DataFrame(frames)
+
+
+def load_order_fills(start: str | None, end: str | None) -> pd.DataFrame:
+    """orders.csv filled legs -> ET-second fill anchors keyed by contract."""
+    p = OL / "orders.csv"
+    if not p.exists():
+        return pd.DataFrame()
+    od = pd.read_csv(p)
+    od = od[od["status"] == "Filled"].copy()
+    rows = []
+    for _, r in od.iterrows():
+        parsed = _parse_local_symbol(r["localSymbol"])
+        if not parsed:
+            continue
+        root, expiry, right, strike = parsed
+        date = f"{expiry[:4]}-{expiry[4:6]}-{expiry[6:]}"
+        if start and date < start:
+            continue
+        if end and date > end:
+            continue
+        rows.append({
+            "occ_root": root, "expiry": expiry, "right": right, "strike": strike,
+            "ts_et": r["ts_et"], "action": r["action"], "avg_fill": r["avg_fill"],
+            "order_id": r.get("order_id"), "src": "orders_et_sec",
+        })
+    return pd.DataFrame(rows)
+
+
+def load_flex_fills(path: Path, start: str | None, end: str | None) -> pd.DataFrame:
+    """IBKR Flex executions (ib_flex_executions.py output) -> TRUE ET-second fill anchors.
+    Higher priority than orders.csv: real exec time + real per-leg price for every fill.
+    SPX (SPXW) only; XSP retired."""
+    f = pd.read_csv(path)
+    f = f[f["symbol"].astype(str).str.startswith("SPXW")].copy()
+    f = f.drop_duplicates(subset=["exec_id"])
+    rows = []
+    for _, r in f.iterrows():
+        dtm = str(r["ib_exec_time"])                      # "20260806;095411"
+        if ";" not in dtm or len(dtm) < 15:
+            continue
+        ymd, hms = dtm.split(";")
+        ts_et = f"{ymd[:4]}-{ymd[4:6]}-{ymd[6:8]} {hms[:2]}:{hms[2:4]}:{hms[4:6]}"
+        date = f"{ymd[:4]}-{ymd[4:6]}-{ymd[6:8]}"
+        if start and date < start:
+            continue
+        if end and date > end:
+            continue
+        rows.append({
+            "occ_root": "SPXW", "expiry": ymd, "right": str(r["put_call"]).upper(),
+            "strike": float(r["strike"]), "ts_et": ts_et,
+            "action": str(r["side"]).upper(), "avg_fill": r["price"],
+            "order_id": r.get("order_id"), "src": "flex_et_sec",
+        })
+    return pd.DataFrame(rows)
+
+
+def build_pull_list(legs: pd.DataFrame, fills: pd.DataFrame) -> pd.DataFrame:
+    """Dedupe legs to unique (occ_root, expiry, strike, right) contracts to fetch."""
+    key = ["occ_root", "expiry", "strike", "right"]
+    g = legs.groupby(key, dropna=False)
+    out = []
+    for (occ_root, expiry, strike, right), grp in g:
+        # ET fill anchors for this contract (SPX only; XSP has none in orders.csv)
+        if not fills.empty:
+            fm = fills[(fills.occ_root == occ_root) & (fills.expiry == expiry)
+                       & (fills.right == right) & (abs(fills.strike - strike) < 1e-6)]
+        else:
+            fm = fills
+        theta_primary, theta_alt = THETA_ROOT.get(occ_root, (occ_root, occ_root))
+        ts_list = sorted(fm.ts_et.tolist()) if not fm.empty else []
+        out.append({
+            "occ_root": occ_root,
+            "theta_root": theta_primary,
+            "theta_root_alt": theta_alt,
+            "expiry": expiry,                                # YYYYMMDD
+            "date": expiry,                                  # 0DTE: pull date == expiry
+            "right": right,                                  # C / P
+            "right_v3": "call" if right == "C" else "put",
+            "strike": strike,
+            "strike_v3": f"{strike:.3f}",                    # dollars, 3dp  (v3)
+            "strike_v2": int(round(strike * 1000)),          # 1/10-cent int (v2) — confirm @smoke
+            "n_trades": grp.trade_id.nunique(),
+            "n_legs": len(grp),
+            "n_order_fills": len(fm),
+            "first_fill_ts_et": ts_list[0] if ts_list else "",
+            "last_fill_ts_et": ts_list[-1] if ts_list else "",
+        })
+    d = pd.DataFrame(out).sort_values(["date", "occ_root", "strike", "right"])
+    return d.reset_index(drop=True)
+
+
+WINDOW_S = 3  # trade_quote window half-width (seconds) around each fill
+
+
+def _ct_to_et(ts_ct: str) -> str:
+    """'YYYY-MM-DD HH:MM[:SS]' in CT -> 'HH:MM:SS' in ET. CT is a CONSTANT 1h behind ET
+    (both observe DST on the same dates), so +1h is exact year-round."""
+    s = str(ts_ct)
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"):
+        try:
+            return (dt.datetime.strptime(s, fmt) + dt.timedelta(hours=1)).strftime("%H:%M:%S")
+        except ValueError:
+            continue
+    return ""
+
+
+def _et_time_only(ts_et: str) -> str:
+    """'YYYY-MM-DD HH:MM:SS' (already ET) -> 'HH:MM:SS'."""
+    s = str(ts_et)
+    try:
+        return dt.datetime.strptime(s, "%Y-%m-%d %H:%M:%S").strftime("%H:%M:%S")
+    except ValueError:
+        return s[-8:] if len(s) >= 8 else s
+
+
+def _window(tod: str, half: int = WINDOW_S) -> tuple[str, str]:
+    try:
+        t = dt.datetime.strptime(tod, "%H:%M:%S")
+        return ((t - dt.timedelta(seconds=half)).strftime("%H:%M:%S"),
+                (t + dt.timedelta(seconds=half)).strftime("%H:%M:%S"))
+    except ValueError:
+        return "", ""
+
+
+def build_events(legs: pd.DataFrame, fills: pd.DataFrame) -> pd.DataFrame:
+    """One row per (leg, entry|exit) FILL EVENT — the input for at_time/trade_quote.
+
+    Vendor's recommended pattern: one `at_time/quote` call per fill returns the NBBO at/
+    before that instant (+ its own stamp = freshness); `trade_quote` over a ±window checks
+    whether a print actually hit our price. Both need a per-event ET time-of-day.
+
+      entry event = every leg (we always trade to open).
+      exit event  = only if actively CLOSED by an order (fill_model=='paper_fill');
+                    cash_settle legs expired at settlement -> no NBBO exit fill (§4 close basis).
+    Time source: exact orders.csv ts_et (ET, seconds) matched by contract+action+nearest-time
+    when available; else trades.parquet entry/exit_dt (CT minute) -> ET(+1h), flagged coarser.
+    True millisecond times come later from IB Flex (see ib_flex_executions.py).
+    """
+    ev = []
+    for lg in legs.itertuples():
+        theta_root = THETA_ROOT.get(lg.occ_root, (lg.occ_root,))[0]
+        base = {
+            "occ_root": lg.occ_root, "theta_root": theta_root,
+            "expiry": lg.expiry, "date": lg.expiry,
+            "strike": lg.strike, "right": lg.right,
+            "right_v3": "call" if lg.right == "C" else "put",
+            "trade_id": lg.trade_id, "strategy": lg.strategy,
+        }
+        open_action = "BUY" if lg.side == "buy" else "SELL"
+        events = [("entry", open_action, lg.entry_dt_ct)]
+        if str(lg.fill_model) == "paper_fill" and pd.notna(lg.exit_dt_ct):
+            close_action = "SELL" if lg.side == "buy" else "BUY"   # exit reverses the leg
+            events.append(("exit", close_action, lg.exit_dt_ct))
+        for event, action, t_ct in events:
+            tod, tsrc, price = _ct_to_et(t_ct), "trades_ct_min", ""
+            if not fills.empty:
+                fm = fills[(fills.occ_root == lg.occ_root) & (fills.expiry == lg.expiry)
+                           & (fills.right == lg.right) & (abs(fills.strike - lg.strike) < 1e-6)
+                           & (fills.action == action)]
+                flex_only = fm[fm.src == "flex_et_sec"] if "src" in fm.columns else fm
+                fm = flex_only if not flex_only.empty else fm   # Flex (true) wins when present
+                if not fm.empty:
+                    target = _ct_to_et(t_ct)
+
+                    def _dist(ts, target=target):
+                        try:
+                            return abs((dt.datetime.strptime(_et_time_only(ts), "%H:%M:%S")
+                                        - dt.datetime.strptime(target, "%H:%M:%S")).total_seconds())
+                        except ValueError:
+                            return 9e9
+                    best = min(fm.itertuples(), key=lambda r: _dist(r.ts_et))
+                    tod = _et_time_only(best.ts_et)
+                    tsrc = getattr(best, "src", "orders_et_sec")
+                    price = best.avg_fill
+            lo, hi = _window(tod)
+            ev.append({**base, "event": event, "side_action": action,
+                       "time_source": tsrc, "time_of_day_et": tod,
+                       "window_lo_et": lo, "window_hi_et": hi, "our_fill_price": price})
+    return pd.DataFrame(ev).sort_values(["date", "time_of_day_et", "strike", "right"]).reset_index(drop=True)
+
+
+def verify_and_report(legs: pd.DataFrame, pull: pd.DataFrame, fills: pd.DataFrame,
+                      events: pd.DataFrame):
+    print("\n================= ThetaData work-list — VERIFICATION =================")
+    # 0DTE check: expiry == entry date (CT) for every leg
+    legs = legs.copy()
+    legs["entry_date"] = legs["entry_dt_ct"].astype(str).str[:10].str.replace("-", "", regex=False)
+    mism = (legs["expiry"] != legs["entry_date"]).sum()
+    print(f"  0DTE check (expiry == entry date) .... {'PASS' if mism == 0 else f'FAIL ({mism} mismatches)'}")
+    print(f"  legs total ........................... {len(legs)}")
+    print(f"  trades ............................... {legs.trade_id.nunique()}")
+    print(f"  book split ........................... " + ", ".join(
+        f"{b}:{n}" for b, n in legs.book.value_counts().items()))
+    print(f"  OPRA roots ........................... " + ", ".join(
+        f"{r}:{n}" for r, n in legs.occ_root.value_counts().items()))
+    dmin, dmax = legs.entry_date.min(), legs.entry_date.max()
+    print(f"  date span (CT entry) ................. {dmin} -> {dmax}")
+    print(f"  unique contracts (full-day pull) ..... {len(pull)}")
+    print(f"  unique pull DATES .................... {pull.date.nunique()}")
+    print(f"  FILL EVENTS (at_time/trade_quote) .... {len(events)}  "
+          f"(entry:{(events.event == 'entry').sum()} exit:{(events.event == 'exit').sum()})")
+    print(f"    time source: FLEX(ET,sec,true) ..... {(events.time_source == 'flex_et_sec').sum()}")
+    print(f"    time source: orders(ET,sec) ........ {(events.time_source == 'orders_et_sec').sum()}")
+    print(f"    time source: trades(CT+1h,min) ..... {(events.time_source == 'trades_ct_min').sum()}")
+    print(f"  fill anchors loaded (ET) ............. {len(fills)}")
+    print(f"  strategies ........................... " + ", ".join(sorted(legs.strategy.dropna().unique())))
+    print("\n  at_time event samples (first 3):")
+    for _, r in events.head(3).iterrows():
+        print(f"    {r.event:5} {r.side_action:4} {r.occ_root} {r.expiry} {r.strike:>7.0f}{r.right} "
+              f"@ {r.time_of_day_et} ET ({r.time_source})  our_px={r.our_fill_price}")
+    print("\n  ROOT: SPXW CONFIRMED by vendor (SPX=AM monthlies/no 0DTE; SPXW=PM/all 0DTE).")
+    print("        Daily 0DTE only exists since 2022-05-16 (before: Mon/Wed/Fri) — matters if window extends back.")
+    print("  TZ: at_time uses per-event ET time-of-day; orders(ET,sec) preferred, trades(CT+1h) fallback;")
+    print("      true ms via IB Flex later. NEVER align on our ts_et alone (machine clock+latency).")
+    print("======================================================================\n")
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description="Build the ThetaData fill-validation work-list")
+    ap.add_argument("--start", help="min trade date YYYY-MM-DD (CT entry), inclusive")
+    ap.add_argument("--end", help="max trade date YYYY-MM-DD (CT entry), inclusive")
+    ap.add_argument("--flex", help="ib_flex_executions CSV — use IB's TRUE exec times+prices "
+                                   "as the fill anchor (falls back to orders.csv where unmatched)")
+    args = ap.parse_args()
+
+    legs = load_legs(args.start, args.end)
+    if legs.empty:
+        print("No legs found for the given range — nothing to do.")
+        return 1
+    if args.flex:
+        flex = load_flex_fills(Path(args.flex), args.start, args.end)
+        orders = load_order_fills(args.start, args.end)
+        # Flex first (true times/prices); orders.csv only for contracts Flex didn't cover.
+        fills = pd.concat([flex, orders], ignore_index=True) if not orders.empty else flex
+    else:
+        fills = load_order_fills(args.start, args.end)
+    pull = build_pull_list(legs, fills)
+    events = build_events(legs, fills)
+
+    verify_and_report(legs, pull, fills, events)
+
+    stamp = dt.datetime.now().strftime("%Y%m%d")
+    legs_path = OUT / f"thetadata_worklist_legs_{stamp}.csv"
+    pull_path = OUT / f"thetadata_pull_list_{stamp}.csv"
+    events_path = OUT / f"thetadata_events_{stamp}.csv"
+    legs.drop(columns=["entry_date"], errors="ignore").to_csv(legs_path, index=False)
+    pull.to_csv(pull_path, index=False)
+    events.to_csv(events_path, index=False)
+    print(f"saved -> {events_path.relative_to(ROOT)}  ({len(events)} fill events) [at_time/trade_quote input]")
+    print(f"saved -> {legs_path.relative_to(ROOT)}  ({len(legs)} legs)")
+    print(f"saved -> {pull_path.relative_to(ROOT)}  ({len(pull)} contracts)")
+    print("\nnext: .venv/Scripts/python.exe scripts/thetadata_fetch.py --dry-run   (verify URLs)")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

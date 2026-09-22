@@ -1,0 +1,14 @@
+item,value
+cause,AI-trade unwind: Broadcom -11.5% (margin/backlog commentary after 12/11 post-close earnings beat) + afternoon Bloomberg/The Information report Oracle delayed OpenAI data centers 2027->2028 (Oracle denied it). SPX -1.07% to 6827.41 from 12/11 record; Nasdaq -1.69%; Dow -0.51% after intraday record; SOX -5% at worst; NVDA -2.9%.
+overnight,"Quiet/green: SPX futs +0.17%, Dow futs +0.34%, NQ futs -0.07% premarket; AVGO ~-4/-5% premarket (first rose after hours, reversed on Hock Tan backlog/margin commentary); no US data before open; cash gap -0.21%."
+prior_days,"12/10 FOMC 25bp cut, SPX +0.67%; Oracle Q2 FY26 cloud-rev miss + capex jump after close 12/10 -> ORCL -11% on 12/11; yet SPX +0.21% RECORD close 12/11, VIX 14.85 (-0.92). AI stress visible in single names, masked at index level."
+aftermath,"No snap-back: 12/15 -0.16%, 12/16 -0.24% (delayed Nov jobs), 12/17 -1.16%, then bounce 12/18 +0.79% (CPI) and 12/19 +0.88%. VIX 15.74 close 12/12 (+0.89 only)."
+intraday_shock,"TRUE - mixed open, Dow record intraday, selling accelerated on afternoon Oracle-delay headline; put wing 6835/6810 (66pts below 6901 close) stopped at 12.1 vs 1.1 credit."
+detectable_0830ct,"MOSTLY NO - VIX 14.85 falling, green futures, gap -0.21%, no event. Soft tells only: AVGO -5% premkt after ORCL -11% the day before (AI-complex stress 2 days running); call-side credit 0.00 (untradeable) vs put 1.1 = one-sided skew; day-after-record complacency; EM 64.6pts vs realized -74pt drop."
+source,https://www.cnbc.com/2025/12/11/stock-market-today-live-updates.html
+source,https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-sink-to-cap-brutal-week-for-tech-stocks-210016552.html
+source,https://www.cnbc.com/2025/12/12/broadcom-tumbles-10percent-after-earnings-as-ai-trade-sells-off-.html
+source,https://www.bloomberg.com/news/articles/2025-12-12/some-oracle-data-centers-for-openai-delayed-to-2028-from-2027
+source,https://www.cnbc.com/2025/12/12/oracle-says-there-have-been-no-delays-in-openai-arrangement.html
+source,https://fortune.com/2025/12/11/oracle-earnings-stock-falls-11-percent-why-investors-disappointed-data-centers-cloud/
+source,https://www.forbes.com/sites/tylerroush/2025/12/12/broadcom-shares-plummet-10-after-sales-forecast-falls-short/

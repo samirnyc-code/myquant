@@ -1,0 +1,13 @@
+# Copyrighted third-party material — never commit
+data/*.pdf
+data/book_text.txt
+data/chapters/
+figures/page_*.png
+figures/sequences/*.png
+figures/mm_anatomy.png
+figures/swings_test.png
+figures/fib_render.png
+data/site/
+data/es_5m_current.parquet
+figures/monday_es.png
+data/es_5m_24h.parquet

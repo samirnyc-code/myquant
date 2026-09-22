@@ -1,0 +1,31 @@
+TOPSTEP XFA — EOD trailing DD (floor ratchets at close, locks at start) — one_per_day, 294 trades, real ticks
+COST=$17.50/RT (=Apex/TPT runs). TPT/Topstep ES comm differ; kept equal for compare.
+
+Sequential 5-yr path:
+   plan size |              blew?    net/5yr
+    50K    1 |   BLOWN 2021-11-18 $     +185
+    50K    2 |   BLOWN 2021-07-30 $     +320
+    50K    3 |   BLOWN 2021-07-27 $   +2,182
+
+   100K    1 |   BLOWN 2021-11-18 $     +185
+   100K    2 |   BLOWN 2021-11-18 $     +370
+   100K    3 |   BLOWN 2021-07-30 $     +480
+
+   150K    1 |       survives 5yr $  +55,068
+   150K    2 |   BLOWN 2021-11-18 $     +370
+   150K    3 |   BLOWN 2021-11-18 $     +555
+
+Block-bootstrap MC (~49 trades/yr, block=15, 10,000 paths):
+   plan size |   med yr$     10th     90th  P(down) | P(blow<lock) P(blow<1yr)
+    50K    1 | $   +251 $-1,618 $+17,580     42% |        45.8%       61.5%
+    50K    2 | $   +235 $-1,765 $+29,788     44% |        52.3%       76.3%
+    50K    3 | $     +0 $-1,515 $+37,365     28% |        62.5%       82.2%
+
+   100K    1 | $ +5,318 $-2,335 $+19,305     27% |        30.4%       42.1%
+   100K    2 | $   +430 $-2,355 $+34,388     42% |        45.1%       65.7%
+   100K    3 | $   +390 $-2,603 $+43,631     43% |        51.7%       75.9%
+
+   150K    1 | $ +7,818 $-2,298 $+19,305     20% |        20.9%       26.5%
+   150K    2 | $ +1,140 $-3,490 $+37,110     37% |        39.7%       54.3%
+   150K    3 | $   +652 $-3,540 $+49,778     42% |        45.3%       65.4%
+

@@ -54,6 +54,9 @@ THRESH = {
     "feed":  {"slow": 180, "fast": 45},    # live.json writes every ~5s
     "tape":  {"slow": 600, "fast": 300},   # underlying tape writes every ~60s
     "marks": {"slow": 420, "fast": 300},   # marks watch writes every ~120s
+    "trig_hb": {"slow": 360, "fast": 300}, # daemon stamps every loop, BUT manage_open blocks ~2-3min
+    #   quoting all legs at the 14:45 EOD close burst — fast=180 false-fired "HUNG" there (2026-09-17,
+    #   191s). Both allow the manage burst; a real hang (connect stall) freezes for the whole session.
 }
 MODE = "slow"             # flipped to "fast" by --daemon
 
@@ -90,17 +93,33 @@ def procs_matching(pattern):
           f"Where-Object {{ $_.CommandLine -match '{pattern}' }} | "
           "Select-Object -ExpandProperty ProcessId")
     r = subprocess.run(["powershell", "-NoProfile", "-Command", ps],
-                       capture_output=True, text=True, timeout=60)
+                       capture_output=True, text=True, timeout=60,
+                       creationflags=0x08000000)   # NO console flash (this loops every 10s)
     return [int(x) for x in r.stdout.split() if x.strip().isdigit()]
 
 
 def kill_pids(pids):
     for pid in pids:
-        subprocess.run(["taskkill", "/PID", str(pid), "/F"], capture_output=True)
+        subprocess.run(["taskkill", "/PID", str(pid), "/F"], capture_output=True,
+                       creationflags=0x08000000)
 
 
 def run_task(name):
-    subprocess.run(["schtasks", "/run", "/tn", name], capture_output=True, text=True)
+    subprocess.run(["schtasks", "/run", "/tn", name], capture_output=True, text=True,
+                   creationflags=0x08000000)
+
+
+def task_enabled(name):
+    """True unless the component's scheduled task is Disabled/Missing. A Disabled
+    task means the component is intentionally OFF — the watchdog must not keep trying
+    to restart it (2026-09-17: it burned its daily restart cap relaunching the
+    Disabled 'MyQuant Sim Daemon' every cycle). General guard, not a sim_daemon hack."""
+    ps = ("$t=Get-ScheduledTask -TaskName '%s' -ErrorAction SilentlyContinue; "
+          "if ($t) { $t.State.ToString() } else { 'Missing' }") % name
+    r = subprocess.run(["powershell", "-NoProfile", "-Command", ps],
+                       capture_output=True, text=True, timeout=30,
+                       creationflags=0x08000000)
+    return r.stdout.strip() not in ("Disabled", "Missing", "")
 
 
 def port_open(port, host="127.0.0.1"):
@@ -152,7 +171,15 @@ def check_marks():
 
 def check_trigger_daemon():
     pids = procs_matching("options_trigger_daemon")
-    return bool(pids), f"pids {pids}" if pids else "process gone"
+    if not pids:
+        return False, "process gone"
+    # HANG detection (2026-08-19 outage): the process can be alive yet stop iterating
+    # (a blocking IB call, a wedged loop) — leaving open positions unmanaged. The daemon
+    # stamps trigger_daemon_heartbeat.txt every loop; a stale stamp = hung -> restart.
+    age = file_age_s(SIM / "trigger_daemon_heartbeat.txt")
+    if age > THRESH["trig_hb"][MODE]:
+        return False, f"alive but heartbeat {age:.0f}s stale (HUNG — open positions unmanaged)"
+    return True, f"pids {pids}, hb {age:.0f}s"
 
 
 COMPONENTS = [
@@ -182,6 +209,7 @@ def save_state(s):
 # every PROC_CHECK_S; file/port checks are free and run every loop.
 PROC_CHECK_S = 60
 _check_cache = {}   # key -> (ts, (ok, detail))
+_disabled_logged = set()   # components skipped because their task is Disabled (log once/run)
 
 
 def cycle(dry_run):
@@ -204,6 +232,11 @@ def cycle(dry_run):
         else:
             ok, detail = check()
         if ok:
+            continue
+        if not task_enabled(task):
+            if key not in _disabled_logged:
+                log(f"{key}: {detail} — task '{task}' Disabled; intentionally off, not restarting")
+                _disabled_logged.add(key)
             continue
         st = state.get(key, {})
         restarts_today = st.get("count", 0) if st.get("day") == today else 0
@@ -265,14 +298,26 @@ def main():
         if now().weekday() >= 5:
             return
 
-    if not in_window("08:15", close):
-        return  # outside the day's market window — silent exit
+    START = "08:15"
+    nowhm = now().strftime("%H:%M")
+    if nowhm >= close:
+        return  # the day's market window is already over
 
     if a.daemon:
         MODE = "fast"
+        # The task fires on a FIXED Berlin clock, but the window is Chicago time, so it can
+        # land well before 08:15 CT — a few minutes normally, up to ~1h during the DST-mismatch
+        # weeks (Berlin=CT+6 not +7 for ~3wk in Mar and ~1wk in Oct/Nov). WAIT for the window in
+        # a loop rather than exit or single-sleep — 2026-09-16 an early start insta-exited and the
+        # watchdog never ran all day; a capped one-shot sleep would fail the same way past the cap.
+        import time
+        if now().strftime("%H:%M") < START:
+            log(f"daemon: before {START} CT window (now {now():%H:%M} CT) — waiting for open")
+        while now().strftime("%H:%M") < START and now().strftime("%H:%M") < close:
+            time.sleep(60)
         log("daemon mode: 10s cadence, fast thresholds")
         last_green = 0.0
-        while in_window("08:15", close):
+        while in_window(START, close):
             HEARTBEAT.parent.mkdir(parents=True, exist_ok=True)
             HEARTBEAT.write_text(dt.datetime.now().isoformat(timespec="seconds"))
             try:
@@ -288,6 +333,8 @@ def main():
         return
 
     # one-shot (5-min task): slow thresholds + meta-guard for the daemon
+    if not in_window(START, close):
+        return  # a repetition tick outside the market window — nothing to do
     hb_age = file_age_s(HEARTBEAT)
     if hb_age > 120:
         log(f"resident watchdog heartbeat {hb_age:.0f}s stale — restarting Live task")

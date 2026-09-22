@@ -1,0 +1,49 @@
+{
+  "date": "20260814",
+  "generated_ct": "2026-08-14T15:20:03.810735-05:00",
+  "steps": [
+    {
+      "label": "Gateway login (API 4002)",
+      "status": "ok",
+      "detail": "connected DUQ159823"
+    },
+    {
+      "label": "Live feed",
+      "status": "warn",
+      "detail": "state=closed"
+    },
+    {
+      "label": "MenthorQ levels",
+      "status": "ok",
+      "detail": "GexLog CAUTION \u00b7 EM 7727.0\u20137871.0 \u00b7 src 2026-08-14 06:20"
+    },
+    {
+      "label": "Game plan",
+      "status": "ok",
+      "detail": "11 triggers armed"
+    },
+    {
+      "label": "Gamma scanner",
+      "status": "warn",
+      "detail": "no scanner output today"
+    },
+    {
+      "label": "Trigger daemon (\u219215:00 CT)",
+      "status": "ok",
+      "detail": "11 armed \u00b7 10 fired"
+    },
+    {
+      "label": "Trade log / marks",
+      "status": "ok",
+      "detail": "trades.parquet updated today"
+    },
+    {
+      "label": "Postmortem",
+      "status": "ok",
+      "detail": "postmortem_20260814.json"
+    }
+  ],
+  "n_ok": 6,
+  "n_bad": 2,
+  "fired": 10
+}

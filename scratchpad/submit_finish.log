@@ -1,0 +1,43 @@
+[1] job OPRA-20260806-4VQ7AUGWJL  2025-05-21..2025-06-05  11d 1782sym  $0.0000   (running $0.0000)
+[2] job OPRA-20260806-WJ9NT9C3AU  2025-06-06..2025-06-23  11d 1782sym  $0.0000   (running $0.0000)
+[3] job OPRA-20260806-UVL6WTWVBB  2025-06-24..2025-07-09  11d 1782sym  $0.0000   (running $0.0000)
+[4] job OPRA-20260806-5EAKYC5T5T  2025-07-10..2025-07-24  11d 1782sym  $0.0000   (running $0.0000)
+[5] job OPRA-20260806-MQTYEE88YC  2025-07-25..2025-08-08  11d 1782sym  $0.0000   (running $0.0000)
+[6] job OPRA-20260806-4QMWNWKRKJ  2025-08-11..2025-08-25  11d 1782sym  $0.0000   (running $0.0000)
+[7] job OPRA-20260806-VUNHRGMDXU  2025-08-26..2025-09-10  11d 1782sym  $0.0000   (running $0.0000)
+[8] job OPRA-20260806-ADCWQF6TP6  2025-09-11..2025-09-25  11d 1782sym  $0.0000   (running $0.0000)
+[9] job OPRA-20260806-QUG5TFRHNX  2025-09-26..2025-10-10  11d 1782sym  $0.0000   (running $0.0000)
+[10] job OPRA-20260806-4Y3AVCACGY  2025-10-13..2025-10-27  11d 1782sym  $0.0000   (running $0.0000)
+[11] job OPRA-20260806-JTTQEV8YY9  2025-10-28..2025-11-11  11d 1782sym  $0.0000   (running $0.0000)
+[12] job OPRA-20260806-53XNVBUTDC  2025-11-12..2025-11-26  11d 1782sym  $0.0000   (running $0.0000)
+[13] job OPRA-20260806-JU3U8MQJV8  2025-11-28..2025-12-12  11d 1782sym  $0.0000   (running $0.0000)
+[14] job OPRA-20260806-RVPD3B6F57  2025-12-15..2025-12-30  11d 1782sym  $0.0000   (running $0.0000)
+[15] job OPRA-20260806-6Y5UVQLJRW  2025-12-31..2026-01-15  11d 1782sym  $0.0000   (running $0.0000)
+[16] job OPRA-20260806-KF4GJQVMUH  2026-01-16..2026-02-02  11d 1782sym  $0.0000   (running $0.0000)
+[17] job OPRA-20260806-46LSQ6M4GC  2026-02-03..2026-02-18  11d 1782sym  $0.0000   (running $0.0000)
+[18] job OPRA-20260806-QBMKUS5NP6  2026-02-19..2026-03-05  11d 1782sym  $0.0000   (running $0.0000)
+[19] job OPRA-20260806-SUMJSYHE5M  2026-03-06..2026-03-20  11d 1782sym  $0.0000   (running $0.0000)
+[20] job OPRA-20260806-VW3SMKJUV6  2026-03-23..2026-04-07  11d 1782sym  $0.0000   (running $0.0000)
+[21] job OPRA-20260806-MU6RVSS6YM  2026-04-08..2026-04-22  11d 1782sym  $0.0000   (running $0.0000)
+[22] job OPRA-20260806-CPFUVQF3DV  2026-04-23..2026-05-07  11d 1782sym  $0.0000   (running $0.0000)
+[23] job OPRA-20260806-YCYYG9G4DQ  2026-05-08..2026-05-22  11d 1782sym  $0.0000   (running $0.0000)
+[24] job OPRA-20260806-Q5X58FVST3  2026-05-26..2026-06-09  11d 1782sym  $0.0000   (running $0.0000)
+[25] job OPRA-20260806-QEJVFGY6H4  2026-06-10..2026-06-25  11d 1782sym  $0.0000   (running $0.0000)
+[26] job OPRA-20260806-VL9LMHGDGJ  2026-06-26..2026-07-13  11d 1782sym  $0.0000   (running $0.0000)
+[27] job OPRA-20260806-6CKJAXJHLP  2026-07-14..2026-07-28  11d 1782sym  $0.0000   (running $0.0000)
+Traceback (most recent call last):
+  File "C:\Users\Admin\myquant\scripts\databento_0dte_submit.py", line 104, in <module>
+    main()
+  File "C:\Users\Admin\myquant\scripts\databento_0dte_submit.py", line 83, in main
+    job = client.batch.submit_job(
+          ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\myquant\.venv\Lib\site-packages\databento\historical\api\batch.py", line 188, in submit_job
+    return self._post(
+           ^^^^^^^^^^^
+  File "C:\Users\Admin\myquant\.venv\Lib\site-packages\databento\common\http.py", line 113, in _post
+    check_http_error(response)
+  File "C:\Users\Admin\myquant\.venv\Lib\site-packages\databento\common\http.py", line 249, in check_http_error
+    raise BentoClientError(
+databento.common.error.BentoClientError: 403 license_not_found_unauthorized
+A live data license is required to access OPRA.PILLAR data after 2026-08-05T13:30:00.000000000Z.
+documentation: https://databento.com/docs

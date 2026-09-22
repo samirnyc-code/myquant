@@ -1,0 +1,17 @@
+SPX: 0 sessions already on disk
+SPX: 1253 business days to try (2021-09-28..2026-07-16)
+  ...100/1253  kept 97 sessions  (100 requests)
+  ...200/1253  kept 192 sessions  (200 requests)
+  ...300/1253  kept 291 sessions  (300 requests)
+  ...400/1253  kept 385 sessions  (400 requests)
+  ...500/1253  kept 482 sessions  (500 requests)
+  ...600/1253  kept 577 sessions  (600 requests)
+  ...700/1253  kept 674 sessions  (700 requests)
+  ...800/1253  kept 771 sessions  (800 requests)
+  ...900/1253  kept 865 sessions  (900 requests)
+  ...1000/1253  kept 961 sessions  (1000 requests)
+  ...1100/1253  kept 1059 sessions  (1100 requests)
+  ...1200/1253  kept 1154 sessions  (1200 requests)
+
+DONE — 1203 new sessions kept, 1253 requests used.
+CSV: C:\Users\Admin\myquant\data\menthorq\SPX_mq_levels_history.csv  (1203 total sessions, 2021-09-28..2026-07-15)

@@ -1,0 +1,13 @@
+depth rollover — 2026-07-30 01:55 CT — 10 finished file(s) across 2 source(s)
+  [skip] depth       ES_09-26_depth_2026-07-21.csv      parquet already exists
+  [skip] depth       ES_09-26_depth_2026-07-22.csv      parquet already exists
+  [skip] depth       ES_depth_2026-07-17.csv            parquet already exists
+  [  ok] depth_addon ES_09-26_depth_2026-07-21.csv      0.1MB -> 0.0MB (11.5x), CSV removed  ·  archive: committed + pushed
+  [  ok] depth_addon ES_09-26_depth_2026-07-22.csv      454.1MB -> 21.1MB (21.5x), CSV removed  ·  archive: committed + pushed
+  [  ok] depth_addon ES_09-26_depth_2026-07-23.csv      712.7MB -> 26.7MB (26.7x), CSV removed  ·  archive: committed + pushed
+  [  ok] depth_addon ES_09-26_depth_2026-07-24.csv      686.4MB -> 26.3MB (26.1x), CSV removed  ·  archive: committed + pushed
+  [  ok] depth_addon ES_09-26_depth_2026-07-27.csv      659.5MB -> 26.0MB (25.3x), CSV removed  ·  archive: committed + pushed
+  [  ok] depth_addon ES_09-26_depth_2026-07-28.csv      742.0MB -> 28.0MB (26.5x), CSV removed  ·  archive: committed + pushed
+  [  ok] depth_addon ES_09-26_depth_2026-07-29.csv      1,021.2MB -> 34.3MB (29.8x), CSV removed  ·  archive: committed + pushed
+
+10/10 converted

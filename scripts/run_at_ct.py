@@ -93,7 +93,10 @@ def main() -> None:
     if off != 7:
         print(f"{stamp} | NOTE: DST mismatch window active (offset {off:.0f}h, normally 7h)")
     print(f"{stamp} | RUN: {' '.join(rest)}")
-    sys.exit(subprocess.run(rest).returncode)
+    # CREATE_NO_WINDOW: the wrapped child must NOT pop a console. Without this, every
+    # run_at_ct-wrapped scheduled task flashed a python.exe window when it launched its
+    # real command (2026-07-21 - user watching consoles strobe every few minutes).
+    sys.exit(subprocess.run(rest, creationflags=0x08000000).returncode)
 
 
 if __name__ == "__main__":

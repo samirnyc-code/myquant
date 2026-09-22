@@ -1,0 +1,108 @@
+==========================================================================
+TARGET ES1! ndays 200
+src    level              nd  real ratio       nullmu nmax z     
+ES1!   Gamma Wall 0DTE    200   25 0.99995        7.6    9  26.23
+ES1!   Call Resistance 0DTE 200   25 0.99995        7.5    9  21.81
+ES1!   1D Min             200   16 1.01611        6.7    8   16.7
+ES1!   HVL 0DTE           200   20 0.99978        7.2    9  15.76
+SPX    1D Max             200   16 1.00145        7.0    8  15.18
+RTY1!  Gamma Wall 0DTE    200   10 2.58377        6.0    7  12.65
+SPX    Gamma Wall 0DTE    200   16 1.00347        7.2    9  11.76
+ES1!   Call Resistance    200   21 0.99992        8.0   11  10.85
+SPX    HVL 0DTE           200   13 1.00765        7.2    8  10.72
+SPY    GEX 4              200   13 10.01853       7.0    8  10.26
+SPY    HVL 0DTE           200   13 10.18875       7.0    8  10.09
+SPX    GEX 2              200   16 1.00366        7.1   10  10.01
+SPY    GEX 1              200   14 10.00027       7.3    9   9.38
+SPX    GEX 8              200   14 0.99957        6.7    8   9.35
+SPX    Put Support 0DTE   200   13 1.00189        7.0    8   9.04
+==========================================================================
+TARGET NQ1! ndays 200
+src    level              nd  real ratio       nullmu nmax z     
+RUT    HVL                200    8 10.46338       6.0    6 2000000000.0
+NQ1!   Gamma Wall 0DTE    200   19 0.99993        6.5    8  21.29
+NQ1!   HVL                200   14 1.0004         6.3    7  16.04
+NQ1!   Call Resistance    200   16 0.99995        6.7    8  14.52
+NDX    Gamma Wall 0DTE    200   15 1.00412        6.5    8   14.5
+NQ1!   Call Resistance 0DTE 200   19 0.99993        6.4    9  13.75
+QQQ    GEX 3              200   13 41.46566       6.2    7  13.34
+QQQ    HVL 0DTE           200   13 41.09037       6.5    7  13.17
+NDX    GEX 3              200   15 1.00017        6.6    8  12.66
+NDX    GEX 6              200   13 1.00848        5.8    7  10.94
+NDX    GEX 1              200   14 1.00021        6.5    8   10.2
+NQ1!   GEX 2              200   12 0.99985        6.1    7   9.45
+NDX    GEX 2              200   14 1.0022         6.3    8   9.14
+NDX    Call Resistance 0DTE 200   15 1.00412        6.8    9   8.84
+NQ1!   GEX 1              200   13 1.00009        6.2    8   8.81
+==========================================================================
+TARGET SPY ndays 200
+src    level              nd  real ratio       nullmu nmax z     
+SPY    Gamma Wall 0DTE    200   38 1.00004        8.0   10  38.73
+SPY    Call Resistance 0DTE 200   38 1.00004        7.8   10  32.11
+SPY    1D Min             200   21 1.00036        6.8    8  20.41
+SPX    1D Max             200   18 0.09967        7.0    8  18.74
+SPY    GEX 3              200   19 0.99991        7.7    9  17.65
+SPX    GEX 8              200   17 0.09964        7.0    8  17.05
+ES1!   GEX 8              200   14 0.0989         6.8    8  14.99
+ES1!   GEX 2              200   16 0.09965        6.9    8  14.57
+SPX    1D Min             200   17 0.09967        6.8    8  13.98
+SPY    Call Resistance    200   20 1.00007        8.2   10  13.89
+SPY    Put Support 0DTE   200   19 0.99992        7.3    9  13.89
+SPY    GEX 4              200   16 1.00291        7.3    9  12.18
+SPX    GEX 3              200   16 0.09964        7.0    9   12.1
+SPX    GEX 1              200   18 0.10001        7.8   10  11.55
+DIA    GEX 10             198   12 1.4389         6.5    7  11.16
+==========================================================================
+TARGET QQQ ndays 200
+src    level              nd  real ratio       nullmu nmax z     
+QQQ    1D Max             200   26 0.99981        6.3    7  34.34
+QQQ    1D Min             200   22 0.99997        5.8    7  20.39
+QQQ    Gamma Wall 0DTE    200   22 0.99996        7.2    8  18.22
+NDX    1D Max             200   19 0.02434        6.3    8  17.78
+QQQ    HVL                200   21 0.99995        6.9    9  16.97
+NDX    Gamma Wall 0DTE    200   19 0.02434        6.6    8   15.5
+NDX    Call Resistance 0DTE 200   19 0.02434        6.8    9  15.02
+QQQ    Call Resistance 0DTE 200   22 0.99996        6.7    9  14.52
+QQQ    GEX 8              200   12 0.99996        6.2    7   14.5
+NDX    1D Min             200   17 0.02433        6.1    7  14.19
+QQQ    HVL 0DTE           200   19 0.99993        6.8    9   13.8
+NQ1!   Put Support 0DTE   200   13 0.02424        6.0    7  12.78
+NDX    GEX 4              200   13 0.02414        6.2    7  11.97
+RTY1!  GEX 10             200   11 0.24263        5.8    7   10.8
+NDX    GEX 5              200   10 0.02396        6.2    7  10.78
+==========================================================================
+TARGET SPX ndays 200
+src    level              nd  real ratio       nullmu nmax z     
+SPX    1D Max             200   25 1.00023        7.0    8  30.45
+SPX    1D Min             200   23 0.99979        6.7    8  29.28
+SPX    Gamma Wall 0DTE    200   23 1.00017        7.2    8   23.3
+SPX    Call Resistance 0DTE 200   23 1.00017        7.5    9  19.23
+ES1!   GEX 4              200   18 1.00016        7.2    9  14.43
+SPX    HVL                200   18 1.00021        7.5    9  13.11
+ES1!   GEX 2              200   15 1.00012        7.2    8  12.45
+SPY    1D Max             200   18 10.02936       7.1    9  12.26
+ES1!   1D Min             200   14 1.01159        6.8    8   12.0
+SPX    Put Support 0DTE   200   17 0.99997        7.0    9  11.62
+IWM    GEX 7              200   10 26.78941       5.8    6  11.62
+SPX    GEX 1              200   16 0.99971        7.5    9  11.46
+SPY    GEX 6              200   13 10.00097       6.7    8  11.32
+ES1!   Gamma Wall 0DTE    200   17 0.99279        7.2    9  11.24
+SPY    GEX 1              200   16 10.03261       7.3    9  10.92
+==========================================================================
+TARGET NDX ndays 200
+src    level              nd  real ratio       nullmu nmax z     
+QQQ    1D Max             200   20 41.09519       6.3    7   29.9
+NDX    1D Min             200   25 1.00008        6.5    8  27.58
+NDX    1D Max             200   21 0.99991        6.3    8  18.82
+QQQ    Gamma Wall 0DTE    200   15 41.10039       6.7    7  17.51
+NDX    Gamma Wall 0DTE    200   18 1.00002        6.5    8  17.27
+NDX    Call Resistance 0DTE 200   18 1.00002        6.5    8  15.47
+GOOG   HVL 0DTE           200    9 80.30468       5.1    6   13.0
+NDX    Call Resistance    200   16 0.99971        6.1    8  12.89
+QQQ    GEX 2              200   13 41.44842       6.1    7  12.81
+NDX    HVL 0DTE           200   13 1.00013        6.1    7  12.81
+QQQ    1D Min             200   15 41.10437       6.1    8  12.71
+NQ1!   GEX 4              200   14 0.99774        6.2    7  12.45
+NDX    HVL                200   13 1.00007        6.7    8  11.32
+QQQ    HVL 0DTE           200   12 41.07979       6.5    7  10.95
+NQ1!   Gamma Wall 0DTE    200   12 1.00797        6.3    7   9.87

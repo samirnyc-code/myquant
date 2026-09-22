@@ -1,0 +1,45 @@
+[1/21] ESH2: 34,555,471 ticks -> 85,493 1m bars [2021-12-12 17:00:00 .. 2022-03-09 23:59:00] off=+816.25  28s
+[2/21] ESH3: 28,878,913 ticks -> 82,013 1m bars [2022-12-12 00:00:00 .. 2023-03-12 23:59:00] off=+771.50  52s
+[3/21] ESH4: 21,467,970 ticks -> 86,385 1m bars [2023-12-11 00:00:00 .. 2024-03-10 23:59:00] off=+591.25  72s
+[4/21] ESH5: 35,407,678 ticks -> 85,459 1m bars [2024-12-16 00:00:00 .. 2025-03-16 23:59:00] off=+331.50  98s
+[5/21] ESH6: 30,703,021 ticks -> 86,232 1m bars [2025-12-15 00:00:00 .. 2026-03-15 23:59:00] off=+111.00  126s
+[6/21] ESM2: 33,026,631 ticks -> 86,292 1m bars [2022-03-10 17:00:00 .. 2022-06-12 23:59:00] off=+823.50  152s
+[7/21] ESM3: 26,741,961 ticks -> 88,939 1m bars [2023-03-13 00:00:00 .. 2023-06-11 23:59:00] off=+737.00  175s
+[8/21] ESM4: 25,647,084 ticks -> 94,903 1m bars [2024-03-11 00:00:00 .. 2024-06-16 23:59:00] off=+527.00  197s
+[9/21] ESM5: 35,363,364 ticks -> 88,078 1m bars [2025-03-17 00:00:00 .. 2025-06-15 23:59:00] off=+279.25  225s
+[10/21] ESM6: 32,144,889 ticks -> 87,614 1m bars [2026-03-16 00:00:00 .. 2026-06-11 23:59:00] off=+61.25  252s
+[11/21] ESU1: 10,897,020 ticks -> 64,634 1m bars [2021-06-17 17:00:00 .. 2021-09-08 23:59:00] off=+799.50  265s
+[12/21] ESU2: 31,257,359 ticks -> 88,495 1m bars [2022-06-13 00:00:00 .. 2022-09-11 23:59:00] off=+822.25  291s
+[13/21] ESU3: 24,396,659 ticks -> 88,651 1m bars [2023-06-12 00:00:00 .. 2023-09-10 23:59:00] off=+693.25  312s
+[14/21] ESU4: 28,643,207 ticks -> 88,690 1m bars [2024-06-17 00:00:00 .. 2024-09-15 23:59:00] off=+462.50  334s
+[15/21] ESU5: 22,199,290 ticks -> 87,636 1m bars [2025-06-16 00:00:00 .. 2025-09-14 23:59:00] off=+227.50  354s
+[16/21] ESU6: 7,234,725 ticks -> 20,040 1m bars [2026-06-12 00:00:00 .. 2026-07-02 15:59:00] off=+0.00  361s
+[17/21] ESZ1: 17,198,231 ticks -> 73,008 1m bars [2021-09-09 17:00:00 .. 2021-12-08 10:29:00] off=+809.00  378s
+[18/21] ESZ2: 37,745,967 ticks -> 86,293 1m bars [2022-09-12 00:00:00 .. 2022-12-11 23:59:00] off=+804.50  408s
+[19/21] ESZ3: 28,506,564 ticks -> 89,173 1m bars [2023-09-11 00:00:00 .. 2023-12-10 23:59:00] off=+644.00  432s
+[20/21] ESZ4: 23,988,145 ticks -> 89,208 1m bars [2024-09-16 00:00:00 .. 2024-12-15 23:59:00] off=+401.75  452s
+[21/21] ESZ5: 32,262,937 ticks -> 88,467 1m bars [2025-09-15 00:00:00 .. 2025-12-14 23:59:00] off=+170.75  567s
+Traceback (most recent call last):
+  File "C:\Users\Admin\myquant\.venv\Lib\site-packages\pandas\core\indexes\base.py", line 3641, in get_loc
+    return self._engine.get_loc(casted_key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "pandas/_libs/index.pyx", line 168, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/index.pyx", line 197, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7668, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7676, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'DateTime'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Admin\myquant\scratchpad\build_24h_continuous.py", line 70, in <module>
+    main()
+  File "C:\Users\Admin\myquant\scratchpad\build_24h_continuous.py", line 63, in main
+    hrs = out["DateTime"].dt.hour.value_counts().sort_index()
+          ~~~^^^^^^^^^^^^
+  File "C:\Users\Admin\myquant\.venv\Lib\site-packages\pandas\core\frame.py", line 4378, in __getitem__
+    indexer = self.columns.get_loc(key)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\myquant\.venv\Lib\site-packages\pandas\core\indexes\base.py", line 3648, in get_loc
+    raise KeyError(key) from err
+KeyError: 'DateTime'

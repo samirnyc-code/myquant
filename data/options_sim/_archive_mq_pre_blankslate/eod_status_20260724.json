@@ -1,0 +1,49 @@
+{
+  "date": "20260724",
+  "generated_ct": "2026-07-24T15:20:05.645310-05:00",
+  "steps": [
+    {
+      "label": "Gateway login (API 4002)",
+      "status": "ok",
+      "detail": "connected DUQ159823"
+    },
+    {
+      "label": "Live feed",
+      "status": "ok",
+      "detail": "spx 7410.82 @ 15:19:58 (5s old)"
+    },
+    {
+      "label": "MenthorQ levels",
+      "status": "ok",
+      "detail": "CR 7600.0 PS0 7400.0 \u00b7 src 2026-07-23T20:00"
+    },
+    {
+      "label": "Game plan",
+      "status": "ok",
+      "detail": "7 triggers armed"
+    },
+    {
+      "label": "Gamma scanner",
+      "status": "ok",
+      "detail": "scanner_20260724.json written"
+    },
+    {
+      "label": "Trigger daemon (\u219215:00 CT)",
+      "status": "ok",
+      "detail": "7 armed \u00b7 2 fired"
+    },
+    {
+      "label": "Trade log / marks",
+      "status": "ok",
+      "detail": "trades.parquet updated today"
+    },
+    {
+      "label": "Postmortem",
+      "status": "ok",
+      "detail": "postmortem_20260724.json"
+    }
+  ],
+  "n_ok": 8,
+  "n_bad": 0,
+  "fired": 2
+}

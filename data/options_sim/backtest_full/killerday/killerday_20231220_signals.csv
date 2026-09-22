@@ -1,0 +1,8 @@
+signal,knowable_at,note
+"VIX 12.53, multi-year low regime",premarket,Premium floor: em_pts 37.6 but credits collapsed - richness was NOT there
+Call-side credit 0.05 (cr_eodic_c),at-entry,Near-zero call credit after 9 up days = market paying nothing for upside risk; book was effectively short-put-skewed for pennies
+Put-side credit 0.70 (cr_eodic_p),at-entry,All the credit on the put side; skew said downside was the priced risk
+"Gap -0.08%, ES overnight range ~17pt",premarket,Dead-quiet open - nothing to warn on
+"9 straight up days, RSI-overbought, 52-wk high tape",premarket,"Fragility/positioning signal, not a timing signal"
+No scheduled macro event (only 2nd-tier 10:00 data + 20y auction),premarket,Calendar was clean; both 10:00 prints BEAT (bullish surprise)
+Heavy 0DTE/1DTE put prints 4755-4765 mid-session,intraday-only,The actual trigger per Cantor/Bloomberg; unknowable at 08:30 CT

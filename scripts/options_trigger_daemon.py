@@ -41,7 +41,8 @@ from options_gameplan import grade_ok  # single source of truth for the grade la
 ROOT = Path(__file__).resolve().parents[1]
 SIM = ROOT / "data" / "options_sim"
 CT = ZoneInfo("America/Chicago")  # exchange time (Chicago / Central)
-FEE = 1.30
+FEE = 1.30                       # legacy flat per-trade (fallback only)
+COMMISSION_PER_CONTRACT = 1.63   # IB Flex all-in per execution (S112 real data) — use this forward
 POLL = 3        # seconds between spot evaluations
 EXIT_POLL = 60  # seconds between open-position exit checks (each one quotes every leg)
 
@@ -84,6 +85,51 @@ def read_live():
         except Exception:
             pass
     return None
+
+
+# S99 entry-integrity thresholds — a trade breaching either is tagged entry_valid=False
+# and (for strike-at-fire structures) is NOT a clean A/B datapoint.
+ENTRY_LAG_TOL_MIN = 15    # minutes after the trigger's not_before still counts as "on time"
+FEED_STALE_TOL_S = 120    # spot tick older than this = stale feed
+
+
+def live_feed_age():
+    """Seconds since the live feed's last tick (ts_epoch in live.json), or None if
+    unknown. Large/So None ⇒ we are firing off a stale or absent spot."""
+    f = SIM / "live.json"
+    if not f.exists():
+        return None
+    try:
+        d = json.loads(f.read_text())
+        ep = d.get("ts_epoch")
+        return None if ep is None else max(0.0, time.time() - float(ep))
+    except Exception:
+        return None
+
+
+def entry_integrity(trig):
+    """Compute (entry_valid, lag_min, feed_age_s, note) at the moment of fire.
+    STRIKE-AT-FIRE structures (vertical_dynamic — the open/gexlog streams) are the
+    ones a late or stale entry actually CORRUPTS (wrong strike); fixed-strike EOD
+    trades still get tagged so fills can be audited, but lateness alone doesn't
+    invalidate their premarket-fixed strikes."""
+    nb = trig.get("fire", {}).get("not_before")
+    lag = None
+    if nb and len(nb) >= 5 and nb[2] == ":":
+        lag = round((now_ct() - hhmm(nb)).total_seconds() / 60.0, 1)
+    age = live_feed_age()
+    dynamic = trig.get("structure", {}).get("kind") == "vertical_dynamic"
+    problems = []
+    if age is not None and age > FEED_STALE_TOL_S:
+        problems.append(f"stale feed {age:.0f}s")
+    if dynamic and lag is not None and lag > ENTRY_LAG_TOL_MIN:
+        problems.append(f"late entry +{lag:.0f}min (strike struck off drifted spot)")
+    elif lag is not None and lag > ENTRY_LAG_TOL_MIN:
+        problems.append(f"late fill +{lag:.0f}min (fixed strike; fill only)")
+    # a fixed-strike late fill is a soft flag, not an invalidation
+    hard = bool(age is not None and age > FEED_STALE_TOL_S) or \
+           bool(dynamic and lag is not None and lag > ENTRY_LAG_TOL_MIN)
+    return (not hard), lag, (round(age, 0) if age is not None else None), "; ".join(problems) or "ok"
 
 
 # ---------- condition evaluation ----------
@@ -139,6 +185,15 @@ def should_fire(trig, prev, spot, reg):
 def build_legs(struct, spot):
     """Return [(right, strike, action)] BUY-wings-first. Credit structures list
     the protective long first so it is placed before the naked short."""
+    # OPEN-centered / ATM structures carry no fixed strike — resolve them from the
+    # live (open) spot at fire time, then treat as a normal vertical. Mutates the
+    # struct so grade/exit/risk downstream see the concrete strikes.
+    if struct.get("kind") == "vertical_dynamic":
+        w = struct.get("width", 25)
+        short = round((spot + struct["offset"]) / 5) * 5
+        struct["short"] = short
+        struct["long"] = short - w if struct["right"] == "P" else short + w
+        struct["kind"] = "vertical"
     kind = struct["kind"]
     if kind == "vertical":
         r = struct["right"]
@@ -151,6 +206,88 @@ def build_legs(struct, spot):
         c = round(spot / 5) * 5
         return [("C", c, "BUY"), ("P", c, "BUY")]
     raise ValueError(f"unknown structure kind {kind}")
+
+
+import os
+COMBO_ORDERS = os.environ.get("MYQUANT_COMBO_ORDERS", "1") == "1"
+# ATOMIC COMBO (BAG) ORDERS — 2026-08-05, after two ITM shorts missed their fills
+# and orphaned their long wings (-$730). A BAG order fills both legs together or
+# not at all: no sequencing gap, no orphan possible.
+# DEFAULT ON as COMBO-FIRST WITH FALLBACK (08-05 night): combos are RTH-only so
+# the overnight test couldn't fill; the daemon therefore TRIES the atomic combo
+# and falls back to the sequential leg path if the combo can't quote/fill.
+# Worst case = today's behavior; whenever combos work, orphans are impossible.
+
+
+def combo_contract(ib, exp, legs):
+    """BAG whose BUY equals our position. legs=[(right,strike,action)]."""
+    from ib_async import Contract, ComboLeg
+    bag = Contract(secType="BAG", symbol="SPX", currency="USD", exchange="SMART")
+    bag.comboLegs = []
+    for right, strike, action in legs:
+        c = qualify(ib, exp, strike, right)
+        cl = ComboLeg()
+        cl.conId, cl.ratio, cl.action, cl.exchange = c.conId, 1, action, "SMART"
+        bag.comboLegs.append(cl)
+    return bag
+
+
+def quote_combo(ib, bag, wait=6):
+    t = ib.reqMktData(bag, "", snapshot=False)
+    ib.sleep(wait)
+    bid, ask = t.bid, t.ask
+    ib.cancelMktData(bag)
+    ok = all(x == x and x is not None for x in (bid, ask))
+    return (bid, ask) if ok else (None, None)
+
+
+def place_combo(ib, exp, legs, qty, retries=1):
+    """Open the position atomically: BUY the bag marketable at the ask.
+    For a credit spread the bag trades NEGATIVE (we get paid to buy it);
+    returns net credit per spread (positive = credit received)."""
+    from ib_async import LimitOrder
+    bag = combo_contract(ib, exp, legs)
+    for attempt in range(retries + 1):
+        bid, ask = quote_combo(ib, bag)
+        if bid is None:
+            raise RuntimeError("no combo quote")
+        o = LimitOrder("BUY", qty, round(ask, 2)); o.tif = "DAY"
+        tr = ib.placeOrder(bag, o)
+        ib.sleep(8)
+        if tr.orderStatus.status == "Filled":
+            px = tr.orderStatus.avgFillPrice
+            try:
+                from exec_logger import log_fills
+                log_fills(tr, source="place_combo")     # S112: IB exec time + commission
+            except Exception:
+                pass
+            return -px, bag        # negative fill price == credit received
+        ib.cancelOrder(tr.order)
+        ib.sleep(2)
+    raise RuntimeError("combo did not fill (atomic — nothing was placed)")
+
+
+def close_combo(ib, bag, qty, retries=1):
+    """Close atomically: SELL the same bag marketable at the bid.
+    Returns cost paid to close per spread (positive = we paid)."""
+    from ib_async import LimitOrder
+    for attempt in range(retries + 1):
+        bid, ask = quote_combo(ib, bag)
+        if bid is None:
+            raise RuntimeError("no combo quote to close")
+        o = LimitOrder("SELL", qty, round(bid, 2)); o.tif = "DAY"
+        tr = ib.placeOrder(bag, o)
+        ib.sleep(8)
+        if tr.orderStatus.status == "Filled":
+            try:
+                from exec_logger import log_fills
+                log_fills(tr, source="close_combo")      # S112: IB exec time + commission
+            except Exception:
+                pass
+            return -tr.orderStatus.avgFillPrice
+        ib.cancelOrder(tr.order)
+        ib.sleep(2)
+    raise RuntimeError("combo close did not fill")
 
 
 def qualify(ib, exp, strike, right):
@@ -225,6 +362,27 @@ def grade_at_fill(trig, net, spot, plan):
         if reg == "negative_gamma":
             return "D", f"NEG-gamma fade — fading into momentum, wall likely breaks; credit {net:.2f}"
         return "C", f"neutral-regime fade; credit {net:.2f}"
+    if setup in CREDIT_SETUPS:
+        # PREMIUM-SPREAD ladder (2026-08-05, replaces the default-C catch-all).
+        # Objective, from the fill: credit richness vs width + short-strike cushion.
+        # UNVALIDATED as a P&L predictor — it grades entry QUALITY for later analysis
+        # (the old MQ-era ladder anti-correlated with P&L; this one gets tested too).
+        width = st.get("width", 25)
+        short = st.get("short")
+        dist = (spot - short) if st.get("right") == "P" else (short - spot)   # +OTM / −ITM
+        ratio = net / width if width else 0
+        if dist is None:
+            return "C", f"credit {net:.2f}, no strike distance"
+        if ratio >= 0.10 and dist >= 30:
+            g = "A"          # rich credit AND real cushion
+        elif (ratio >= 0.05 and dist >= 15) or ratio >= 0.50:
+            g = "B"          # decent both, or very rich ITM (deliberate gap-fade)
+        elif ratio >= 0.02:
+            g = "C"          # thin but priced
+        else:
+            g = "D"          # near-free credit — data collection only
+        side = f"{dist:.0f}pt {'OTM' if dist >= 0 else 'ITM'}"
+        return g, f"credit {net:.2f} = {ratio*100:.0f}% of width, short {side}"
     if setup == "sell_0dte_gamma":
         # PREMIUM-SELL grading: here you WANT the short far OTM, so distance IS
         # the right axis (unlike a fade).
@@ -256,7 +414,9 @@ def grade_at_fill(trig, net, spot, plan):
     return "C", reg
 
 
-CREDIT_SETUPS = ("sell_0dte_gamma", "cr0_fade", "ps0_fade")
+CREDIT_SETUPS = ("eodic_p", "eodic_c", "eodfly_p", "eodfly_c",
+                 "openic_p", "openic_c", "openfly_p", "openfly_c",
+                 "gx_bps", "gx_bcs")
 
 
 def short_strike(trig):
@@ -292,19 +452,24 @@ def gate(trig, est_net, spot, plan):
             f"credit {est_net:.2f} < playbook minimum {min_cred:.2f} — would risk "
             f"${(width - est_net) * 100:,.0f} to make ${est_net * 100:,.0f}")
 
-    # --- A2: dedupe by SHORT STRIKE, not just by side ---
+    # --- A2: dedupe by SHORT STRIKE, WITHIN THE SAME SETUP ONLY ---
+    # We deliberately run overlapping structures/streams in parallel (algo vs
+    # gexlog can pick the same short strike) — that is the experiment, not an
+    # error. So dedupe only guards a setup against firing its OWN short twice.
     mine = short_strike(trig)
     if mine is not None:
         for other in plan["triggers"]:
             if other is trig or other.get("status") != "fired":
+                continue
+            if other.get("setup") != setup:
                 continue
             if other.get("structure", {}).get("right") != st.get("right"):
                 continue
             theirs = short_strike(other)
             if theirs is not None and theirs == mine:
                 return False, "duplicate_level", (
-                    f"{other['id']} already fired a {st.get('right')} short at {theirs:.0f} — "
-                    f"this is the same trade twice, doubled risk on one idea")
+                    f"{other['id']} already fired the same {setup} {st.get('right')} short "
+                    f"at {theirs:.0f} — same trade twice")
 
     # --- A1: grade gate, using the grade the REAL quote implies ---
     g, basis = grade_at_fill(trig, est_net, spot, plan)
@@ -325,6 +490,39 @@ DEFAULT_EXITS = {"level_accept_mins": 10, "regime_invalidation": True,
 # a bet on the pin BREAKING. Crossing HVL invalidates one and confirms the other.
 PIN_SETUPS = ("sell_0dte_gamma", "cr0_fade", "ps0_fade", "fly_gw_0dte", "condor_0dte")
 ANTI_PIN_SETUPS = ("straddle_0dte",)
+
+
+def risk_metrics(st, net, width, spot, strikes, plan):
+    """(max_gain, max_loss, pop) in $ at fill — never logged as NaN again (2026-07-20:
+    the straddle card showed no max loss / no POP; the auto path simply never computed
+    them). POP is an ESTIMATE: expiry distribution ~ Normal(spot, sigma) with sigma =
+    half the MenthorQ 1-day expected-move range — same basis trade_chart.py uses.
+    Unbounded max gain (straddle) is None by design, not missing data."""
+    import math
+
+    def P(z):                       # P(Z <= z)
+        return 0.5 * (1 + math.erf(z / math.sqrt(2)))
+
+    hw = plan.get("em_halfwidth")
+    sigma = hw if hw else (spot or 7500) * 0.009   # 1-day expected move = 1σ
+    kind = st.get("kind")
+    try:
+        if kind == "vertical" and net > 0:
+            short = st.get("short")
+            pop = P((spot - short) / sigma) if st.get("right") == "P" else P((short - spot) / sigma)
+            return round(net * 100, 0), round((width - net) * 100, 0), round(pop, 2)
+        if kind == "butterfly":
+            debit, half = abs(net), (st["center"] - st["lower"])
+            be_lo, be_hi = st["lower"] + debit, st["upper"] - debit
+            pop = P((be_hi - spot) / sigma) - P((be_lo - spot) / sigma)
+            return round((half - debit) * 100, 0), round(debit * 100, 0), round(pop, 2)
+        if kind == "straddle":
+            debit, k = abs(net), (min(strikes) if strikes else spot)
+            pop = P((k - debit - spot) / sigma) + 1 - P((k + debit - spot) / sigma)
+            return None, round(debit * 100, 0), round(pop, 2)
+    except Exception:
+        pass
+    return None, None, None
 
 
 def thesis_level(trig):
@@ -358,14 +556,20 @@ def thesis_broken(trig, spot, plan, rules):
         return True, f"time stop {ts} CT — flat before the 0DTE gamma cliff"
 
     # --- 2. regime invalidation ---
+    # Invalidation is a CHANGE, not a state: the regime must have flipped AGAINST the
+    # trade SINCE ENTRY. Testing the bare state killed the 2026-07-20 08:53 PS0 fade the
+    # instant it opened — it fired (legally) in negative gamma, then "reg == negative"
+    # closed it on the next pass for pure spread friction (−$31). A fade entered in
+    # −gamma dies by LEVEL ACCEPTANCE (rule 1), not by the regime it was born in.
     if rules.get("regime_invalidation", True) and hvl is not None and spot is not None:
         reg = regime(spot, hvl)
-        if setup in PIN_SETUPS and reg == "negative_gamma":
-            return True, (f"regime flip: spot {spot:.0f} crossed BELOW HVL {hvl:.0f} — this "
-                          f"structure needs the pin and the pin is gone")
-        if setup in ANTI_PIN_SETUPS and reg == "positive_gamma":
-            return True, (f"regime reclaim: spot {spot:.0f} back ABOVE HVL {hvl:.0f} — long vol "
-                          f"wanted negative gamma; thesis over")
+        entry_reg = trig.get("entry_regime") or plan.get("regime", "unknown")
+        if setup in PIN_SETUPS and reg == "negative_gamma" and entry_reg == "positive_gamma":
+            return True, (f"regime flip since entry: spot {spot:.0f} crossed BELOW HVL "
+                          f"{hvl:.0f} — this structure needed the pin and the pin is gone")
+        if setup in ANTI_PIN_SETUPS and reg == "positive_gamma" and entry_reg == "negative_gamma":
+            return True, (f"regime reclaim since entry: spot {spot:.0f} back ABOVE HVL "
+                          f"{hvl:.0f} — long vol wanted negative gamma; thesis over")
 
     # --- 1. level acceptance (distance + persistence) ---
     lvl, fatal = thesis_level(trig)
@@ -451,31 +655,64 @@ def manage_open(ib, plan, spot, dry):
         if not go:
             continue
 
+        use_combo = COMBO_ORDERS and trig.get("structure", {}).get("kind") == "vertical"
         close_legs = reverse(legs)
-        try:
-            _, quoted = quote_legs(ib, exp, close_legs)
-        except Exception as e:
-            print(f"  ! exit quote failed {tid}: {e}")
-            continue
         if dry:
             print(f"  [DRY] WOULD CLOSE {tid}: {why}")
             trig["exited"] = True
             continue
-        try:
-            net_out, _ = place_legs(ib, exp, quoted, plan["execution"]["size"])
-        except Exception as e:
-            print(f"  ! exit FAILED {tid}: {e}")
-            continue
-        cost = -net_out
-        tlog.update_exit(tid, now_ct().strftime("%Y-%m-%d %H:%M"), cost, FEE,
+        cost = None
+        if use_combo:
+            # ATOMIC close: SELL the same bag we bought at entry (both legs together)
+            try:
+                open_legs = [(l["right"], l["strike"], "SELL" if l["side"] == "sell" else "BUY")
+                             for l in legs]
+                bag = combo_contract(ib, exp, open_legs)
+                cost = close_combo(ib, bag, plan["execution"]["size"])
+                print(f"  ATOMIC combo close {tid}: cost {cost:+.2f}")
+            except Exception as e:
+                print(f"  combo close failed ({e}) — falling back to sequential legs")
+                cost = None
+        if cost is None:
+            try:
+                _, quoted = quote_legs(ib, exp, close_legs)
+            except Exception as e:
+                print(f"  ! exit quote failed {tid}: {e}")
+                continue
+            try:
+                net_out, _ = place_legs(ib, exp, quoted, plan["execution"]["size"])
+            except Exception as e:
+                print(f"  ! exit FAILED {tid}: {e}")
+                continue
+            cost = -net_out
+        # S112: real IB fees — entry + exit execution per leg, per contract (was flat FEE=$1.30)
+        size = plan["execution"]["size"]
+        fee = len(legs) * size * COMMISSION_PER_CONTRACT * 2
+        tlog.update_exit(tid, now_ct().strftime("%Y-%m-%d %H:%M"), cost, fee,
                          close_reason=why)
         if tid in manual:
             mark_manual_done(tid)
         trig["exited"] = True
         trig["exit"] = {"cost": round(cost, 2), "at": now_ct().strftime("%H:%M:%S"), "why": why}
-        pnl = (entry_net - cost) * 100 - FEE
+        pnl = (entry_net - cost) * 100 - fee
         print(f"  CLOSED {tid} cost {cost:.2f} P&L ${pnl:,.0f} — {why}")
         notify(f"TRADE CLOSED · {trig['setup']} (${pnl:,.0f})", f"{trig['name']}: {why}")
+        snapshot_chart(tid, "close")
+
+
+def snapshot_chart(tid, when):
+    """Fire-and-forget trade-card render (trade_chart.py) at entry and exit — the
+    daily visual record the user reviews. Detached so a slow matplotlib render can
+    never stall trigger evaluation; a chart is documentation, not execution."""
+    import subprocess
+    try:
+        py = str(ROOT / ".venv" / "Scripts" / "python.exe")
+        subprocess.Popen([py, str(ROOT / "scripts" / "trade_chart.py"),
+                          "--trade", tid, "--when", when],
+                         cwd=str(ROOT), creationflags=0x08000008,
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception as e:
+        print(f"  ! snapshot {when} {tid}: {type(e).__name__}")
 
 
 # ---------- firing ----------
@@ -489,8 +726,23 @@ def fire(ib, trig, spot, plan, reason, dry):
         trig["fired"], trig["status"] = True, "dry-fired"
         return
     # 1. QUOTE — no order exists yet, so every gate below is free to say no.
+    use_combo = COMBO_ORDERS and trig["structure"].get("kind") == "vertical"
+    quoted = None
     try:
-        est_net, quoted = quote_legs(ib, exp, legs)
+        est_net = None
+        if use_combo:
+            try:
+                _bag = combo_contract(ib, exp, legs)
+                _cbid, _cask = quote_combo(ib, _bag)
+                if _cbid is not None and -_cask > 0:     # sane credit sign
+                    est_net = -_cask                      # BUY at ask; negative price = credit
+                else:
+                    use_combo = False                     # weird quote -> fall back
+            except Exception as ce:
+                print(f"  combo quote unavailable ({ce}) — falling back to legs")
+                use_combo = False
+        if est_net is None:
+            est_net, quoted = quote_legs(ib, exp, legs)
     except Exception as e:
         print(f"  ! {trig['id']} quote FAILED: {e}")
         trig["status"] = "error"
@@ -508,8 +760,25 @@ def fire(ib, trig, spot, plan, reason, dry):
         return
 
     # 3. EXECUTE — only now do real orders hit the account.
+    # Stamp the exact SEND moment (ms) so we can measure submit->fill timing and price
+    # ThetaData at the send instant vs IB's realized fill (the timing-cost test).
+    trig["submit_at"] = now_ct().strftime("%H:%M:%S.%f")[:-3]
     try:
-        net, filled = place_legs(ib, exp, quoted, plan["execution"]["size"])
+        net = None
+        if use_combo:
+            try:
+                net, _ = place_combo(ib, exp, legs, plan["execution"]["size"])
+                filled = [{"side": "sell" if a == "SELL" else "buy", "right": rt,
+                           "strike": float(k), "expiry": exp, "qty": plan["execution"]["size"]}
+                          for rt, k, a in legs]
+                print(f"  ATOMIC combo fill: net {net:+.2f}")
+            except Exception as ce:
+                print(f"  combo did not fill ({ce}) — falling back to sequential legs")
+                net = None
+        if net is None:
+            if quoted is None:
+                est_net, quoted = quote_legs(ib, exp, legs)
+            net, filled = place_legs(ib, exp, quoted, plan["execution"]["size"])
     except Exception as e:
         print(f"  ! {trig['id']} fire FAILED after gates passed: {e}")
         trig["status"] = "error"
@@ -522,22 +791,46 @@ def fire(ib, trig, spot, plan, reason, dry):
     kind = "credit" if net > 0 else "debit"
     coll = (width - net) * 100 if (width and net > 0) else abs(net) * 100
     struct_txt = trig["structure"]["kind"] + (f" {width:.0f}pt" if width else "")
+    mg, ml, pop = risk_metrics(trig["structure"], net, width, spot, strikes, plan)
+    e_valid, e_lag, e_age, e_note = entry_integrity(trig)   # S99 entry-integrity tag
     tlog.append_entry({
         "trade_id": tid, "strategy_id": trig["setup"], "source": "auto_trigger",
         "symbol": "SPXW", "entry_dt": now_ct().strftime("%Y-%m-%d %H:%M"),
         "dte": 0, "structure": struct_txt, "fill_model": "paper_fill",
+        "max_gain": mg, "max_loss": ml, "pop": pop,
         "legs": filled, "credit": net, "collateral": coll, "dow": now_ct().strftime("%a"),
         "gex_regime": regime(spot, plan["levels"].get("hvl")),  # for analytics slicing
+        "entry_valid": e_valid, "entry_lag_min": e_lag, "feed_age_s": e_age, "entry_note": e_note,
         "grade": grade, "commentary": f"AUTO-TRIGGER [{trig['id']}] fired: {reason}. {gbasis}. "
                                       f"Projected {trig['projected_grade']} premarket. Path {trig.get('path','—')}.",
     })
     trig["fired"], trig["status"], trig["trade_id"] = True, "fired", tid
+    trig["entry_valid"], trig["entry_note"] = e_valid, e_note   # surfaced on the plan too
+    if not e_valid:
+        notify(f"⚠️ ENTRY INVALID · {trig['setup']}",
+               f"{label}: {e_note}. Trade booked but EXCLUDED from A/B (not a clean datapoint).")
+        print(f"  ⚠️ ENTRY INVALID {trig['id']}: {e_note} — booked but tagged entry_valid=False")
+    # the regime the trade was BORN in — regime invalidation compares against this
+    trig["entry_regime"] = regime(spot, plan.get("levels", {}).get("hvl"))
     trig["fill"] = {"net": round(net, 2), "grade": grade, "at": now_ct().strftime("%H:%M:%S")}
     trig["filled_legs"] = filled   # A3: the exit manager reverses these
     trig["exited"] = False
     print(f"  FIRED {trig['id']} -> {tid}: {struct_txt} net {kind} {abs(net):.2f} grade {grade}")
     notify(f"TRADE OPENED · {trig['setup']} ({grade})",
            f"{label}: {struct_txt}, net {kind} {abs(net):.2f}, coll ${coll:,.0f} — {reason}")
+    snapshot_chart(tid, "open")
+
+
+def _hb():
+    """Liveness stamp written each loop iteration. desk_watchdog treats a stale
+    heartbeat (process alive but not iterating) as a HANG and restarts us — the
+    other half of the 2026-08-19 outage fix (the try/except guards crashes; this
+    guards hangs)."""
+    try:
+        (ROOT / "data" / "options_sim" / "trigger_daemon_heartbeat.txt").write_text(
+            now_ct().isoformat())
+    except Exception:
+        pass
 
 
 def main():
@@ -546,6 +839,8 @@ def main():
     ap.add_argument("--dry-run", action="store_true", help="evaluate + log, place nothing")
     ap.add_argument("--until", default="15:00", help="stop time CT (default 15:00 = 16:00 ET)")
     args = ap.parse_args()
+    import singleton
+    singleton.ensure("options_trigger_daemon")   # one trigger daemon only (one order writer)
     date = args.date or now_ct().strftime("%Y%m%d")
     plan = load_plan(date)
     hvl = plan["levels"].get("hvl")
@@ -553,53 +848,116 @@ def main():
 
     ib = None
     if not args.dry_run:
-        ib = ib_conn.connect()
+        # S103: a late / cold-auth-hung gateway must NOT kill the daemon at
+        # startup. The 2026-08-10 hang (gateway not authenticated until 08:56)
+        # crashed the 08:29 daemon on its very first connect — ib_conn.connect()
+        # retries only ONCE — so every open setup was missed. Retry until
+        # connected or the --until deadline; the fire loop below already tolerates
+        # a null feed, so once the gateway comes up the armed setups fire (entry-
+        # integrity tags them late rather than the day recording zero trades).
+        import socket as _sock
+        while ib is None and now_ct() < end:
+            # Wait PASSIVELY for a genuinely-up gateway. Do NOT call ib_conn.connect()
+            # while 4002 is down: on failure it auto-runs gateway_ensure, which
+            # relaunches IBC — and repeated relaunches trip IB's login rate-limiter
+            # (the 2026-08-11 storm). Only attempt a real connect once the port is
+            # actually listening (gateway_ensure then no-ops, so no relaunch).
+            up = False
+            try:
+                with _sock.create_connection(("127.0.0.1", 4002), timeout=3):
+                    up = True
+            except OSError:
+                up = False
+            if not up:
+                print(f"  waiting for gateway — 4002 down, recheck in 30s (until {args.until} CT)")
+                time.sleep(30)
+                continue
+            try:
+                ib = ib_conn.connect()
+            except Exception as e:
+                print(f"  4002 up but connect not ready ({type(e).__name__}: {e}) — retry 30s")
+                time.sleep(30)
+        if ib is None:
+            print(f"gateway never came up before {args.until} CT — nothing fired.")
+            return
     mode = "DRY-RUN" if args.dry_run else "LIVE (auto-execute)"
     armed = [t for t in plan["triggers"] if t["fire"]["type"] != "signal_1559"]
     print(f"trigger daemon [{mode}] {date}: {len(armed)} triggers, watching until {args.until} CT")
 
     prev = None
     last_exit_check = 0.0
+    consec_err = 0
     try:
         while now_ct() < end:
-            spot = read_live()
-            if spot is None:
-                time.sleep(POLL)
-                continue
-            reg = regime(spot, hvl)
-            dirty = False
-            for trig in plan["triggers"]:
-                if trig.get("fired") or trig["fire"]["type"] == "signal_1559":
+            # RESILIENCE (2026-08-19 outage fix): guard EVERY iteration. Before this,
+            # the loop was a bare try/finally — a single unhandled exception (a bad
+            # quote, an IB blip, a mid-write live.json, a thesis_broken edge case)
+            # fell through to `finally` and KILLED management for the rest of the
+            # session while open positions silently expired unmanaged (08-19: the
+            # daemon kept opening trades but stopped exiting them). Now one fault =
+            # one skipped poll, logged + alerted; positions keep being managed.
+            try:
+                _hb()   # heartbeat: proves the loop is iterating (watchdog hang-detection)
+                spot = read_live()
+                if spot is None:
+                    time.sleep(POLL)
                     continue
-                if trig.get("status") == "disarmed":
-                    continue  # A5/A1 stood it down premarket; reason is on the trigger
-                w = trig.get("window")
-                if w and not (hhmm(w[0]) <= now_ct() <= hhmm(w[1])):
-                    if now_ct() > hhmm(w[1]) and trig["status"] != "expired":
-                        trig["status"] = "expired"
-                        dirty = True
-                    continue
-                go, reason = should_fire(trig, prev, spot, reg)
-                if go:
-                    fire(ib, trig, spot, plan, reason, args.dry_run)
+                reg = regime(spot, hvl)
+                dirty = False
+                # OPEN CAPTURE: first live tick at/after 08:30 CT = the session open.
+                # Stamped once into the plan — the [Open] strategies strike off it and
+                # the dashboard's EOD-vs-Open tiles/graphic read it.
+                if plan.get("open_spot") is None and now_ct() >= hhmm("08:30"):
+                    plan["open_spot"] = round(spot, 2)
+                    plan["open_spot_at"] = now_ct().strftime("%H:%M:%S CT")
+                    print(f"  OPEN captured: {spot:.2f} @ {plan['open_spot_at']}")
                     dirty = True
-            # Persist ONLY on a real status change (fire / expire). Do NOT write
-            # the live spot here — that churned the file every tick and made the
-            # dashboard full-reload (kicking the user off their tab). Live spot is
-            # already on the page via live.json.
-            if dirty:
-                save_plan(plan)
-            # A3: manage open positions on a slower cadence than the fire loop —
-            # each check quotes every leg of every open position (~6s per leg).
-            if any(t.get("status") == "fired" and not t.get("exited") for t in plan["triggers"]):
-                # A manual CLOSE from the dashboard is acted on next poll (~3s),
-                # not on the 60s exit cadence — when the user hits the button they
-                # mean now.
-                if pending_manual_closes() or time.monotonic() - last_exit_check >= EXIT_POLL:
-                    manage_open(ib, plan, spot, args.dry_run)
-                    last_exit_check = time.monotonic()
+                for trig in plan["triggers"]:
+                    if trig.get("fired") or trig["fire"]["type"] == "signal_1559":
+                        continue
+                    if trig.get("status") == "disarmed":
+                        continue  # A5/A1 stood it down premarket; reason is on the trigger
+                    w = trig.get("window")
+                    if w and not (hhmm(w[0]) <= now_ct() <= hhmm(w[1])):
+                        if now_ct() > hhmm(w[1]) and trig["status"] != "expired":
+                            trig["status"] = "expired"
+                            dirty = True
+                        continue
+                    go, reason = should_fire(trig, prev, spot, reg)
+                    if go:
+                        fire(ib, trig, spot, plan, reason, args.dry_run)
+                        dirty = True
+                # Persist ONLY on a real status change (fire / expire). Do NOT write
+                # the live spot here — that churned the file every tick and made the
+                # dashboard full-reload (kicking the user off their tab). Live spot is
+                # already on the page via live.json.
+                if dirty:
                     save_plan(plan)
-            prev = spot
+                # A3: manage open positions on a slower cadence than the fire loop —
+                # each check quotes every leg of every open position (~6s per leg).
+                if any(t.get("status") == "fired" and not t.get("exited") for t in plan["triggers"]):
+                    # A manual CLOSE from the dashboard is acted on next poll (~3s),
+                    # not on the 60s exit cadence — when the user hits the button they
+                    # mean now.
+                    if pending_manual_closes() or time.monotonic() - last_exit_check >= EXIT_POLL:
+                        manage_open(ib, plan, spot, args.dry_run)
+                        last_exit_check = time.monotonic()
+                        save_plan(plan)
+                prev = spot
+                consec_err = 0
+            except Exception as e:
+                consec_err += 1
+                import traceback
+                traceback.print_exc()
+                print(f"  ! loop iteration error #{consec_err} ({type(e).__name__}: {e}) — daemon CONTINUES")
+                # Alert on the first fault and as it persists, so an outage is visible
+                # immediately (08-19 was only noticed via the evening health check).
+                if consec_err in (1, 5, 25, 100):
+                    try:
+                        notify(f"⚠ trigger daemon loop error #{consec_err}",
+                               f"{type(e).__name__}: {str(e)[:180]} — CONTINUING; open positions still managed")
+                    except Exception:
+                        pass
             time.sleep(POLL)
     finally:
         save_plan(plan)

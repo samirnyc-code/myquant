@@ -1,0 +1,24 @@
+{
+  "dataset": "OPRA.PILLAR",
+  "probe_date": "2026-08-05",
+  "n_probe_symbols": 6,
+  "strikes_per_day": 30,
+  "sessions": 1050,
+  "quoted": "2026-08-06T08:55:55",
+  "schemas": {
+    "cbbo-1m": {
+      "probe_bytes": 187200,
+      "probe_cost_usd": 0.000348687172,
+      "rate_usd_per_gb": 1.8626451495726495,
+      "per_instrument_day_usd": 5.8114528666666663e-05,
+      "full_pull_usd": 1.8306076529999997
+    },
+    "trades": {
+      "probe_bytes": 9011568,
+      "probe_cost_usd": 2.349949479103,
+      "rate_usd_per_gb": 260.7703208923242,
+      "per_instrument_day_usd": 0.3916582465171667,
+      "full_pull_usd": 12337.234765290752
+    }
+  }
+}

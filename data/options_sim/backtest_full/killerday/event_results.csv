@@ -1,0 +1,77 @@
+rule,book,train_delta,test_delta,killer_days_avoided,winning_days_lost,verdict,economic_story
+skip_FOMC,ic,2080.0,2042.0,6,21,ROBUST,FOMC announcement can gap SPX through short strikes; stand aside
+skip_FOMC,fly,7661.0,2047.0,0,9,ROBUST,FOMC announcement can gap SPX through short strikes; stand aside
+skip_FOMC,puts_band,-244.0,608.0,1,21,DEAD,FOMC announcement can gap SPX through short strikes; stand aside
+skip_FOMC,combined,9497.0,4697.0,8,18,ROBUST,FOMC announcement can gap SPX through short strikes; stand aside
+skip_CPI,ic,4893.0,-2529.0,4,30,TRAIN_ONLY,CPI announcement can gap SPX through short strikes; stand aside
+skip_CPI,fly,14748.0,2219.0,4,15,ROBUST,CPI announcement can gap SPX through short strikes; stand aside
+skip_CPI,puts_band,3147.0,-1566.0,1,26,TRAIN_ONLY,CPI announcement can gap SPX through short strikes; stand aside
+skip_CPI,combined,22788.0,-1876.0,4,17,TRAIN_ONLY,CPI announcement can gap SPX through short strikes; stand aside
+skip_NFP,ic,5120.0,1656.0,4,30,ROBUST,NFP announcement can gap SPX through short strikes; stand aside
+skip_NFP,fly,6215.0,1241.0,2,20,ROBUST,NFP announcement can gap SPX through short strikes; stand aside
+skip_NFP,puts_band,-745.0,-555.0,0,27,DEAD,NFP announcement can gap SPX through short strikes; stand aside
+skip_NFP,combined,10590.0,2342.0,7,22,ROBUST,NFP announcement can gap SPX through short strikes; stand aside
+skip_ANY_EVENT,ic,12522.0,1169.0,14,80,ROBUST,ANY_EVENT announcement can gap SPX through short strikes; stand aside
+skip_ANY_EVENT,fly,28421.0,5507.0,6,44,ROBUST,ANY_EVENT announcement can gap SPX through short strikes; stand aside
+skip_ANY_EVENT,puts_band,2265.0,-1513.0,2,73,TRAIN_ONLY,ANY_EVENT announcement can gap SPX through short strikes; stand aside
+skip_ANY_EVENT,combined,43208.0,5163.0,19,56,ROBUST,ANY_EVENT announcement can gap SPX through short strikes; stand aside
+skip_callside_FOMC,ic,-260.0,-507.0,3,1,DEAD,relief rallies after FOMC rip through call strikes while puts survive
+skip_callside_FOMC,fly,6821.0,-3200.0,0,3,TRAIN_ONLY,relief rallies after FOMC blow out the call fly wing
+skip_callside_FOMC,combined,6560.0,-3707.0,3,3,TRAIN_ONLY,"drop all call-side premium on FOMC days, keep put side"
+skip_callside_CPI,ic,1436.0,-1346.0,1,0,TRAIN_ONLY,relief rallies after CPI rip through call strikes while puts survive
+skip_callside_CPI,fly,8213.0,2388.0,4,4,ROBUST,relief rallies after CPI blow out the call fly wing
+skip_callside_CPI,combined,9649.0,1042.0,1,3,ROBUST,"drop all call-side premium on CPI days, keep put side"
+skip_callside_NFP,ic,4284.0,-1796.0,1,1,TRAIN_ONLY,relief rallies after NFP rip through call strikes while puts survive
+skip_callside_NFP,fly,6855.0,-4946.0,2,7,TRAIN_ONLY,relief rallies after NFP blow out the call fly wing
+skip_callside_NFP,combined,11140.0,-6742.0,1,9,TRAIN_ONLY,"drop all call-side premium on NFP days, keep put side"
+skip_callside_ANY_EVENT,ic,5745.0,-3649.0,5,2,TRAIN_ONLY,relief rallies after ANY_EVENT rip through call strikes while puts survive
+skip_callside_ANY_EVENT,fly,21516.0,-5758.0,6,14,TRAIN_ONLY,relief rallies after ANY_EVENT blow out the call fly wing
+skip_callside_ANY_EVENT,combined,27261.0,-9407.0,5,15,TRAIN_ONLY,"drop all call-side premium on ANY_EVENT days, keep put side"
+skip_flies_FOMC,combined,7661.0,2047.0,3,0,ROBUST,tight ATM flies need pin; FOMC days trend away from the morning pin
+skip_flies_CPI,combined,14748.0,2219.0,1,3,ROBUST,tight ATM flies need pin; CPI days trend away from the morning pin
+skip_flies_NFP,combined,6215.0,1241.0,4,2,ROBUST,tight ATM flies need pin; NFP days trend away from the morning pin
+skip_flies_ANY_EVENT,combined,28421.0,5507.0,8,5,ROBUST,tight ATM flies need pin; ANY_EVENT days trend away from the morning pin
+fomc_close_1230_UPPERBOUND,ic,12132.0,5627.0,6,0,ROBUST,"13:00 CT announcement hits after morning entry; exit before it (approx keeps winners full, losers flat = optimistic bound)"
+fomc_close_1230_UPPERBOUND,fly,10720.0,5971.0,0,0,ROBUST,"13:00 CT announcement hits after morning entry; exit before it (approx keeps winners full, losers flat = optimistic bound)"
+fomc_close_1230_UPPERBOUND,puts_band,2172.0,2943.0,1,0,ROBUST,"13:00 CT announcement hits after morning entry; exit before it (approx keeps winners full, losers flat = optimistic bound)"
+fomc_close_1230_UPPERBOUND,combined,19145.0,11040.0,8,0,ROBUST,"13:00 CT announcement hits after morning entry; exit before it (approx keeps winners full, losers flat = optimistic bound)"
+skip_event_if_credit_below_2,ic,4047.0,-2460.0,3,33,TRAIN_ONLY,thin credit on an event day = no compensation for announcement risk
+skip_event_if_credit_above_2,ic,8475.0,3629.0,11,47,ROBUST,rich credit on an event day = market itself pricing a big move
+skip_event_if_credit_below_2,fly,8664.0,446.0,1,14,ROBUST,thin credit on an event day = no compensation for announcement risk
+skip_event_if_credit_above_2,fly,19757.0,5061.0,5,30,ROBUST,rich credit on an event day = market itself pricing a big move
+skip_event_if_credit_below_2,puts_band,3199.0,-1285.0,1,25,TRAIN_ONLY,thin credit on an event day = no compensation for announcement risk
+skip_event_if_credit_above_2,puts_band,-934.0,-228.0,1,48,DEAD,rich credit on an event day = market itself pricing a big move
+skip_event_if_credit_below_2,combined,15910.0,-3299.0,4,18,TRAIN_ONLY,thin credit on an event day = no compensation for announcement risk
+skip_event_if_credit_above_2,combined,27298.0,8462.0,15,38,ROBUST,rich credit on an event day = market itself pricing a big move
+skip_event_if_credit_below_3,ic,6022.0,-4437.0,4,42,TRAIN_ONLY,thin credit on an event day = no compensation for announcement risk
+skip_event_if_credit_above_3,ic,6500.0,5606.0,10,38,ROBUST,rich credit on an event day = market itself pricing a big move
+skip_event_if_credit_below_3,fly,11036.0,-2708.0,1,20,TRAIN_ONLY,thin credit on an event day = no compensation for announcement risk
+skip_event_if_credit_above_3,fly,17385.0,8215.0,5,24,ROBUST,rich credit on an event day = market itself pricing a big move
+skip_event_if_credit_below_3,puts_band,3315.0,-2087.0,1,34,TRAIN_ONLY,thin credit on an event day = no compensation for announcement risk
+skip_event_if_credit_above_3,puts_band,-1050.0,574.0,1,39,DEAD,rich credit on an event day = market itself pricing a big move
+skip_event_if_credit_below_3,combined,20373.0,-9232.0,5,25,TRAIN_ONLY,thin credit on an event day = no compensation for announcement risk
+skip_event_if_credit_above_3,combined,22835.0,14395.0,14,31,ROBUST,rich credit on an event day = market itself pricing a big move
+skip_event_if_credit_below_4,ic,11974.0,-1924.0,9,50,TRAIN_ONLY,thin credit on an event day = no compensation for announcement risk
+skip_event_if_credit_above_4,ic,548.0,3093.0,5,30,ROBUST,rich credit on an event day = market itself pricing a big move
+skip_event_if_credit_below_4,fly,10374.0,2203.0,3,26,ROBUST,thin credit on an event day = no compensation for announcement risk
+skip_event_if_credit_above_4,fly,18047.0,3304.0,3,18,ROBUST,rich credit on an event day = market itself pricing a big move
+skip_event_if_credit_below_4,puts_band,4940.0,-456.0,2,44,TRAIN_ONLY,thin credit on an event day = no compensation for announcement risk
+skip_event_if_credit_above_4,puts_band,-2675.0,-1057.0,0,29,DEAD,rich credit on an event day = market itself pricing a big move
+skip_event_if_credit_below_4,combined,27288.0,-177.0,10,32,TRAIN_ONLY,thin credit on an event day = no compensation for announcement risk
+skip_event_if_credit_above_4,combined,15920.0,5340.0,9,24,ROBUST,rich credit on an event day = market itself pricing a big move
+skip_event_if_credit_below_5,ic,13059.0,-138.0,10,54,TRAIN_ONLY,thin credit on an event day = no compensation for announcement risk
+skip_event_if_credit_above_5,ic,-537.0,1307.0,4,26,DEAD,rich credit on an event day = market itself pricing a big move
+skip_event_if_credit_below_5,fly,12353.0,1456.0,3,31,ROBUST,thin credit on an event day = no compensation for announcement risk
+skip_event_if_credit_above_5,fly,16068.0,4051.0,3,13,ROBUST,rich credit on an event day = market itself pricing a big move
+skip_event_if_credit_below_5,puts_band,4286.0,-553.0,2,49,TRAIN_ONLY,thin credit on an event day = no compensation for announcement risk
+skip_event_if_credit_above_5,puts_band,-2021.0,-960.0,0,24,DEAD,rich credit on an event day = market itself pricing a big move
+skip_event_if_credit_below_5,combined,29698.0,765.0,13,37,ROBUST,thin credit on an event day = no compensation for announcement risk
+skip_event_if_credit_above_5,combined,13510.0,4398.0,6,19,ROBUST,rich credit on an event day = market itself pricing a big move
+skip_event_if_credit_below_6,ic,9800.0,36.0,10,60,ROBUST,thin credit on an event day = no compensation for announcement risk
+skip_event_if_credit_above_6,ic,2722.0,1133.0,4,20,ROBUST,rich credit on an event day = market itself pricing a big move
+skip_event_if_credit_below_6,fly,15881.0,1622.0,3,32,ROBUST,thin credit on an event day = no compensation for announcement risk
+skip_event_if_credit_above_6,fly,12540.0,3885.0,3,12,ROBUST,rich credit on an event day = market itself pricing a big move
+skip_event_if_credit_below_6,puts_band,3940.0,-816.0,2,53,TRAIN_ONLY,thin credit on an event day = no compensation for announcement risk
+skip_event_if_credit_above_6,puts_band,-1675.0,-697.0,0,20,DEAD,rich credit on an event day = market itself pricing a big move
+skip_event_if_credit_below_6,combined,29621.0,842.0,14,42,ROBUST,thin credit on an event day = no compensation for announcement risk
+skip_event_if_credit_above_6,combined,13587.0,4321.0,5,14,ROBUST,rich credit on an event day = market itself pricing a big move

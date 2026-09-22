@@ -1,0 +1,279 @@
+{
+  "date": "20260717",
+  "generated_at": "2026-07-17 08:28:01 CT",
+  "spot_preopen": 7478.6,
+  "spot_source": "05:54 tape",
+  "regime": "negative_gamma",
+  "regime_detail": "spot 7479 < HVL 7540 \u2014 dealers short gamma; moves amplify",
+  "levels": {
+    "ps": 7520.0,
+    "ps0": 7520.0,
+    "hvl": 7540.0,
+    "gw0": 7500.0,
+    "cr0": 7500.0,
+    "cr": 7600.0
+  },
+  "d1_min": 7474.85,
+  "d1_max": 7594.39,
+  "execution": {
+    "mode": "auto",
+    "size": 1,
+    "concurrency_cap": null,
+    "policy": "take all triggers regardless of grade; dedupe (two sides, no condor); skip only broken fills"
+  },
+  "scenarios": [
+    {
+      "id": "A",
+      "name": "Grind up to the wall",
+      "path": "spot 7479 \u2192 7500",
+      "means": "tags CR0/GW0 resistance",
+      "acts": "CR0 touch-fade (short call spread); fly @ GW0 if it pins there"
+    },
+    {
+      "id": "B",
+      "name": "Fade to support",
+      "path": "spot 7479 \u2192 7540 \u2192 7520",
+      "means": "tests HVL then PS0",
+      "acts": "PS0 touch-fade (short put spread); regime still + while HVL holds"
+    },
+    {
+      "id": "C",
+      "name": "Pin / chop (base case, +gamma)",
+      "path": "chop 7540\u20137500",
+      "means": "the pin \u2014 positive gamma pins price",
+      "acts": "both premium-sells decay; fly @ GW0 ideal"
+    },
+    {
+      "id": "D",
+      "name": "Break below HVL",
+      "path": "spot < 7540",
+      "means": "regime tips toward negative gamma",
+      "acts": "premium-sells STAND DOWN; straddle arms; PS 7520 next magnet"
+    }
+  ],
+  "triggers": [
+    {
+      "id": "sell_0dte_put",
+      "setup": "sell_0dte_gamma",
+      "path": "B/C",
+      "name": "0DTE Put Credit Spread @ PS0",
+      "arm": {
+        "regime": "positive_gamma"
+      },
+      "fire": {
+        "type": "first_of",
+        "touch": {
+          "level": 7520,
+          "dir": "from_above"
+        },
+        "not_before": "09:00"
+      },
+      "window": [
+        "08:45",
+        "10:00"
+      ],
+      "structure": {
+        "kind": "vertical",
+        "right": "P",
+        "short": 7520,
+        "long": 7495,
+        "width": 25
+      },
+      "projected_grade": "C",
+      "grade_basis": "off primary regime (premium-sell wants positive gamma)",
+      "status": "expired",
+      "fired": false,
+      "trade_id": null
+    },
+    {
+      "id": "sell_0dte_call",
+      "setup": "sell_0dte_gamma",
+      "path": "A/C",
+      "name": "0DTE Call Credit Spread @ CR0",
+      "arm": {
+        "regime": "positive_gamma"
+      },
+      "fire": {
+        "type": "first_of",
+        "touch": {
+          "level": 7500,
+          "dir": "from_below"
+        },
+        "not_before": "09:00"
+      },
+      "window": [
+        "08:45",
+        "10:00"
+      ],
+      "structure": {
+        "kind": "vertical",
+        "right": "C",
+        "short": 7500,
+        "long": 7525,
+        "width": 25
+      },
+      "projected_grade": "C",
+      "grade_basis": "off primary regime (premium-sell wants positive gamma)",
+      "status": "expired",
+      "fired": false,
+      "trade_id": null
+    },
+    {
+      "id": "fly_gw_0dte",
+      "setup": "fly_gw_0dte",
+      "path": "A/C",
+      "name": "0DTE Call Butterfly @ GW0",
+      "arm": {
+        "regime": "positive_gamma"
+      },
+      "fire": {
+        "type": "time_at",
+        "not_before": "09:00"
+      },
+      "window": [
+        "09:00",
+        "11:00"
+      ],
+      "structure": {
+        "kind": "butterfly",
+        "right": "C",
+        "center": 7500,
+        "lower": 7475,
+        "upper": 7525,
+        "width": 25
+      },
+      "projected_grade": "F",
+      "grade_basis": "no pin on a negative-gamma/trend day \u2014 the wall won't hold",
+      "status": "expired",
+      "fired": false,
+      "trade_id": null
+    },
+    {
+      "id": "cr0_touch_fade",
+      "setup": "cr0_fade",
+      "path": "A",
+      "name": "CR0 first-touch fade (short call spread)",
+      "arm": {
+        "regime": "any",
+        "spot_side": {
+          "level": 7500,
+          "side": "below"
+        }
+      },
+      "fire": {
+        "type": "touch",
+        "level": 7500,
+        "dir": "from_below",
+        "first_only": true
+      },
+      "window": [
+        "08:45",
+        "14:30"
+      ],
+      "structure": {
+        "kind": "vertical",
+        "right": "C",
+        "short": 7500,
+        "long": 7525,
+        "width": 25
+      },
+      "projected_grade": "B",
+      "grade_basis": "armed: spot below CR0, waiting for first touch from below",
+      "status": "expired",
+      "fired": false,
+      "trade_id": null
+    },
+    {
+      "id": "ps0_touch_fade",
+      "setup": "ps0_fade",
+      "path": "B",
+      "name": "PS0 first-touch fade (short put spread)",
+      "arm": {
+        "regime": "any",
+        "spot_side": {
+          "level": 7520,
+          "side": "above"
+        }
+      },
+      "fire": {
+        "type": "touch",
+        "level": 7520,
+        "dir": "from_above",
+        "first_only": true
+      },
+      "window": [
+        "08:45",
+        "14:30"
+      ],
+      "structure": {
+        "kind": "vertical",
+        "right": "P",
+        "short": 7520,
+        "long": 7495,
+        "width": 25
+      },
+      "projected_grade": "C",
+      "grade_basis": "spot already at/below PS0",
+      "status": "expired",
+      "fired": false,
+      "trade_id": null
+    },
+    {
+      "id": "straddle_0dte",
+      "setup": "straddle_0dte",
+      "path": "D",
+      "name": "Long ATM Straddle (0DTE)",
+      "arm": {
+        "regime": "any"
+      },
+      "fire": {
+        "type": "regime_break",
+        "level": 7540,
+        "dir": "below"
+      },
+      "window": [
+        "08:45",
+        "13:00"
+      ],
+      "structure": {
+        "kind": "straddle",
+        "center": "atm"
+      },
+      "projected_grade": "B if it fires",
+      "grade_basis": "dormant on a positive-gamma pin day; ARMS if spot breaks below HVL 7540 (regime flip \u2192 long vol makes sense)",
+      "status": "expired",
+      "fired": false,
+      "trade_id": null
+    },
+    {
+      "id": "bps_stmr_1559",
+      "setup": "bps_stmr",
+      "path": "\u2014",
+      "name": "STMR Bull Put Spread (15:59 signal)",
+      "arm": {
+        "regime": "any"
+      },
+      "fire": {
+        "type": "signal_1559",
+        "cond": "%K8<15 AND spot>SMA100"
+      },
+      "window": [
+        "14:59",
+        "14:59"
+      ],
+      "structure": {
+        "kind": "vertical",
+        "right": "P",
+        "short": "~30\u0394",
+        "width": 50,
+        "dte": 14
+      },
+      "projected_grade": "A/B if signal fires",
+      "grade_basis": "the only validated edge; executed by options_sim_daemon at 14:59 CT",
+      "note": "run by options_sim_daemon.py, NOT the trigger daemon",
+      "status": "armed",
+      "fired": false,
+      "trade_id": null
+    }
+  ]
+}

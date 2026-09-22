@@ -1,0 +1,32 @@
+=== CRASH TAIL (open, skip up-gaps, hold-to-expiry, 1-EM/25-wide) ===
+
+IC: n=522  worst day $-2445  (defined-risk cap ~-$2300/contract)
+     maxDD $8671  longest losing streak 3 trades
+     5 worst days:
+       2023-12-20  gap -0.08%  close 4698  $-2445
+       2025-02-21  gap -0.06%  close 6013  $-2403
+       2026-06-05  gap -0.62%  close 7384  $-2380
+       2024-07-24  gap -0.90%  close 5427  $-2343
+       2024-12-18  gap -0.05%  close 5872  $-2325
+     of the big-loss days (<-$1000), 68% were DOWN days -> the gap filter (up-gaps) does NOT protect the crash tail.
+
+BPS: n=549  worst day $-2463  (defined-risk cap ~-$2300/contract)
+     maxDD $5513  longest losing streak 1 trades
+     5 worst days:
+       2025-10-10  gap +0.08%  close 6552  $-2463
+       2023-12-20  gap -0.08%  close 4698  $-2455
+       2024-07-24  gap -0.90%  close 5427  $-2420
+       2026-06-05  gap -0.62%  close 7384  $-2418
+       2025-02-21  gap -0.06%  close 6013  $-2415
+     of the big-loss days (<-$1000), 100% were DOWN days -> the gap filter (up-gaps) does NOT protect the crash tail.
+
+=== SYNTHETIC CRASH (what a -5% day does to 1 contract) ===
+  defined-risk: put spread caps at width-credit ~ -$2,300; call side expires -> keep call credit.
+  IC on a crash day ~ -$2,300 + call credit(~$80) = ~-$2,220/contract.
+  A 3-day crash streak ~ -$6,700/contract; 5-day ~ -$11,000/contract (~55% of a $20k acct).
+  KEY: crashes are down-gaps, which PASS the up-gap filter -> full exposure. Not hedged.
+
+=== IC + BPS PORTFOLIO (both, same days) ===
+  correlation IC vs BPS: 0.81  (high = same bet, low = diversifying)
+  IC alone  Sharpe 1.79  | BPS alone Sharpe 1.62  | IC+BPS Sharpe 1.80  maxDD $9735
+  (both are short-vol / short the same down-tail -> expect high corr, little diversification)

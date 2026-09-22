@@ -1,0 +1,83 @@
+date,gamma,em_hit,event,event_title,in_range_flip,signal,session_type,spx_change
+2026-04-06,NEG,True,False,,,Caution,MIXED,0.45
+2026-04-07,NEG,True,True,Consumer Inflation Expectation (Mar),,Wait,RANGE BOUND,0.08
+2026-04-08,NEG,False,True,FOMC Minutes,,Caution,TREND (strong),2.51
+2026-04-09,POS,True,True,PCE Price Index YoY (Feb),,Wait,TREND (moderate),0.62
+2026-04-10,POS,True,True,CPI s.a (Mar),,Wait,RANGE BOUND,-0.12
+2026-04-13,POS,True,False,,,Caution,TREND (strong),1.02
+2026-04-14,POS,False,False,,,Caution,TREND (strong),1.18
+2026-04-15,POS,True,False,,,Caution,TREND (moderate),0.8
+2026-04-16,POS,True,True,Continuing Jobless Claims (Apr/04),,Caution,RANGE BOUND,0.27
+2026-04-17,POS,False,False,,,Caution,TREND (strong),1.21
+2026-04-20,POS,True,False,,,Go,RANGE BOUND,-0.24
+2026-04-21,POS,True,False,,,Caution,TREND (moderate),-0.64
+2026-04-22,POS,True,False,,,Go,TREND (strong),1.05
+2026-04-23,POS,True,True,Continuing Jobless Claims (Apr/11),,Caution,MIXED,-0.42
+2026-04-24,POS,True,False,,,Go,TREND (moderate),0.8
+2026-04-27,POS,True,False,,,Caution,RANGE BOUND,0.13
+2026-04-28,POS,True,False,,,Caution,MIXED,-0.49
+2026-04-29,POS,True,True,FOMC Economic Projections,,Wait,RANGE BOUND,-0.04
+2026-04-30,POS,True,True,GDP Price Index QoQ (Q1),,Wait,TREND (strong),1.03
+2026-05-01,POS,True,False,,,Caution,MIXED,0.3
+2026-05-04,POS,True,False,,,Caution,MIXED,-0.41
+2026-05-05,POS,True,False,,,Caution,TREND (moderate),0.82
+2026-05-06,POS,False,False,,,Caution,TREND (strong),1.46
+2026-05-07,POS,True,True,Continuing Jobless Claims (Apr/25),,Caution,MIXED,-0.38
+2026-05-08,POS,True,True,U-6 Unemployment Rate (Apr),,Wait,TREND (moderate),0.85
+2026-05-11,POS,True,False,,,Caution,RANGE BOUND,0.19
+2026-05-12,POS,True,True,CPI MoM (Apr),,Wait,RANGE BOUND,-0.16
+2026-05-13,POS,True,False,,,Caution,TREND (moderate),0.59
+2026-05-14,POS,True,True,Initial Jobless Claims (May/09),,Caution,TREND (moderate),0.77
+2026-05-15,POS,False,False,,,Caution,TREND (strong),-1.24
+2026-05-18,NEG,True,False,,,Caution,RANGE BOUND,-0.08
+2026-05-19,NEG,True,False,,,Caution,TREND (moderate),-0.67
+2026-05-20,NEG,True,True,FOMC Minutes,,Caution,TREND (strong),1.08
+2026-05-21,POS,True,True,Jobless Claims 4-Week Average (May/16),,Caution,RANGE BOUND,0.18
+2026-05-22,POS,True,False,,,Caution,MIXED,0.38
+2026-05-26,POS,True,False,,,Caution,TREND (moderate),0.62
+2026-05-27,POS,True,False,,,Caution,RANGE BOUND,0.02
+2026-05-28,POS,True,True,Initial Jobless Claims (May/23),,Wait,TREND (moderate),0.58
+2026-05-29,POS,True,False,,,Caution,RANGE BOUND,0.22
+2026-06-01,POS,True,False,,,Caution,RANGE BOUND,0.27
+2026-06-02,POS,True,False,,,Caution,RANGE BOUND,0.13
+2026-06-03,POS,True,False,,,Caution,TREND (moderate),-0.74
+2026-06-04,NEG,True,True,Initial Jobless Claims (May/30),,Caution,MIXED,0.41
+2026-06-05,POS,False,True,Nonfarm Payrolls Private (May),,Wait,TREND (strong),-2.65
+2026-06-08,NEG,True,True,Consumer Inflation Expectation (May),,Go,MIXED,0.3
+2026-06-09,NEG,True,False,,,Caution,RANGE BOUND,-0.26
+2026-06-10,NEG,False,True,CPI (May),,Wait,TREND (strong),-1.62
+2026-06-11,NEG,False,True,Jobless Claims 4-Week Average (Jun/06),,Caution,TREND (strong),1.76
+2026-06-12,NEG,True,True,Michigan Inflation Expectations (Jun),,Caution,TREND (moderate),0.51
+2026-06-15,NEG,False,False,,,Caution,TREND (strong),1.66
+2026-06-17,POS,False,True,FOMC Economic Projections,,Wait,TREND (strong),-1.22
+2026-06-18,POS,False,True,Initial Jobless Claims (Jun/13),,Caution,TREND (strong),1.09
+2026-06-22,NEG,True,False,,,Go,MIXED,-0.38
+2026-06-23,NEG,False,False,,,Caution,TREND (strong),-1.44
+2026-06-24,NEG,True,False,,,Caution,RANGE BOUND,-0.1
+2026-06-25,NEG,True,True,Core PCE Price Index YoY (May),,Wait,RANGE BOUND,-0.01
+2026-06-26,NEG,True,False,,,Caution,RANGE BOUND,-0.05
+2026-06-29,NEG,False,False,,,Caution,TREND (strong),1.18
+2026-06-30,POS,True,False,,True,Wait,TREND (moderate),0.8
+2026-07-01,POS,True,False,,,Caution,RANGE BOUND,-0.22
+2026-07-02,POS,True,True,Jobless Claims 4-Week Average (Jun/27),True,Wait,RANGE BOUND,0.0
+2026-07-06,NEG,True,False,,,Caution,TREND (moderate),0.73
+2026-07-07,POS,True,True,Consumer Inflation Expectation (Jun),,Caution,MIXED,-0.45
+2026-07-08,NEG,True,True,FOMC Minutes,,Caution,RANGE BOUND,-0.29
+2026-07-09,NEG,True,True,Jobless Claims 4-Week Average (Jul/04),,Caution,TREND (moderate),0.82
+2026-07-10,POS,True,False,,True,Go,MIXED,0.43
+2026-07-13,POS,True,False,,True,Caution,TREND (moderate),-0.8
+2026-07-14,NEG,True,True,CPI YoY (Jun),,Wait,MIXED,0.38
+2026-07-15,POS,True,False,,True,Caution,MIXED,0.39
+2026-07-16,POS,True,True,Initial Jobless Claims (Jul/11),True,Caution,TREND (moderate),-0.51
+2026-07-17,NEG,True,True,Michigan Inflation Expectations (Jul),,Caution,TREND (strong),-1.01
+2026-07-20,NEG,True,False,,,Go,RANGE BOUND,-0.2
+2026-07-21,NEG,True,False,,,Go,TREND (moderate),0.89
+2026-07-22,POS,True,False,,True,Go,RANGE BOUND,-0.14
+2026-07-23,NEG,False,True,Jobless Claims 4-Week Average (Jul/18),,Caution,TREND (strong),-1.21
+2026-07-24,NEG,True,False,,,Caution,RANGE BOUND,0.05
+2026-07-27,NEG,True,False,,,Caution,RANGE BOUND,0.02
+2026-07-28,NEG,True,False,,,Caution,RANGE BOUND,0.21
+2026-07-29,NEG,False,True,Fed Interest Rate Decision,,Wait,TREND (strong),-1.52
+2026-07-30,NEG,False,True,Jobless Claims 4-Week Average (Jul/25),,Wait,TREND (strong),1.66
+2026-07-31,NEG,True,True,Michigan 1 Year Inflation Expectations (Jul),,Caution,TREND (moderate),0.7
+2026-08-03,POS,False,False,,True,Caution,TREND (strong),1.48

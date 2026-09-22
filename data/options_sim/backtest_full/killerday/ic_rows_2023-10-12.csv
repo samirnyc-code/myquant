@@ -1,0 +1,5 @@
+date,strat,method,center,em,short_k,long_k,credit,exit_kind,exit_val,pnl,note
+2023-10-12,eodic_p,vix252,4376.95,44.4,4335.0,4310.0,0.95,stop,9.4,-851.52,
+2023-10-12,eodic_c,vix252,4376.95,44.4,4420.0,4445.0,0.75,settle,0.0,71.74,
+2023-10-12,openic_p,vix252,4380.94,44.4,4335.0,4310.0,1.4,stop,9.4,-806.52,
+2023-10-12,openic_c,vix252,4380.94,44.4,4425.0,4450.0,0.15,settle,0.0,11.74,

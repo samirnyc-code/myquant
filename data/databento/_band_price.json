@@ -1,0 +1,55 @@
+{
+  "dataset": "OPRA.PILLAR",
+  "schema": "cbbo-1m",
+  "band_pts": 200,
+  "step": 5,
+  "window_start": "2023-03-28",
+  "quoted": "2026-08-06T09:14:27",
+  "samples": [
+    {
+      "date": "2023-06-15",
+      "prior_close": 4372.58984375,
+      "n_symbols": 162,
+      "bytes": 5248800,
+      "cost_usd": 0.009776651859
+    },
+    {
+      "date": "2024-01-17",
+      "prior_close": 4765.97998046875,
+      "n_symbols": 162,
+      "bytes": 4989600,
+      "cost_usd": 0.009293854237
+    },
+    {
+      "date": "2024-09-18",
+      "prior_close": 5634.580078125,
+      "n_symbols": 162,
+      "bytes": 5119200,
+      "cost_usd": 0.009535253048
+    },
+    {
+      "date": "2025-03-19",
+      "prior_close": 5614.66015625,
+      "n_symbols": 162,
+      "bytes": 5054000,
+      "cost_usd": 0.009413808584
+    },
+    {
+      "date": "2025-11-19",
+      "prior_close": 6617.31982421875,
+      "n_symbols": 162,
+      "bytes": 5019280,
+      "cost_usd": 0.009349137545
+    },
+    {
+      "date": "2026-07-16",
+      "prior_close": 7572.39990234375,
+      "n_symbols": 162,
+      "bytes": 5032160,
+      "cost_usd": 0.009373128414
+    }
+  ],
+  "avg_per_day_usd": 0.009456972281166667,
+  "n_sessions_in_window": 829,
+  "full_pull_est_usd": 7.839830021087168
+}

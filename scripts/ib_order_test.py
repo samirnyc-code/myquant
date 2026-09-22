@@ -72,6 +72,12 @@ def _audit(contract, action, qty, px, lim, tr):
         w.writerow([_dt.datetime.now(_Z("America/New_York")).strftime("%Y-%m-%d %H:%M:%S"),
                     contract.localSymbol, action, qty, px, lim,
                     st.status, st.filled, st.avgFillPrice, tr.order.orderId, reasons])
+    # S112: also persist IB's OWN execution time + commission (never dropped again).
+    try:
+        from exec_logger import log_fills
+        log_fills(tr, source="marketable")
+    except Exception:
+        pass
 
 
 def main():
