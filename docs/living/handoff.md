@@ -102,7 +102,8 @@ can't be called from bar data, it stays uncalled.
 
 **Entry points:** `run_regime_parquet.py PARQUET --date YYYY-MM-DD [--bar-minutes 5]` → JSON;
 `plot_regime.py` → annotated PNG (BOS/ChoCh drawn from the pivot that set the level, only
-state-changing breaks marked); `build_artifact.py` → interactive HTML. Reads
+state-changing breaks marked); `build_artifact.py` → interactive HTML; `pages/*.py` → the self-contained review pages
+(one per published artifact; see `pages/README.md`). Reads
 `data/bars/_continuous_1m.parquet`. `run_regime.py` takes NT8 text exports instead.
 
 ---
