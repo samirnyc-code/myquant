@@ -1421,7 +1421,8 @@ ANALYTICS_JS = r"""
       tile('Expectancy',money(s.exp),(s.exp||0)>=0?'pos':'neg')+tile('Avg ROI',pctf(s.avgroi),(s.avgroi||0)>=0?'pos':'neg')+
       tile('Max drawdown',money(dd),dd<0?'neg':'pos')+
       (last?tile('Peak collateral',money(last.maxColl),''):'')+
-      (last?tile('Ideal acct size',money(last.ideal),''):'');}
+      (last?tile('Ideal acct size',money(last.ideal),''):'')+
+      (T.some(t=>t.recon)?'<div style="flex-basis:100%;width:100%;font-size:11px;color:var(--mut);margin-top:6px">* totals include reconstructed day(s) (desk was down) — realistic worst-touch fills, marked <span style="color:#e0a04d;font-weight:800">*</span> on the calendar</div>':'');}
   // ---- DAILY engine: aggregate trades into per-day results, then derive the
   // equity / drawdown / collateral / ideal-account curves. P&L is bucketed on
   // t.date (exit date for closed, entry for still-open) to match the calendar.
@@ -1681,6 +1682,38 @@ def main():
         json.loads(recon_json)
     except Exception:
         recon_json = "{}"
+    # Count reconstructed days EVERYWHERE (user decision): append their trades into the
+    # analytics feed (flagged recon=true) so tiles/equity/DD/monthly/calendar all include
+    # them and MATCH. Realistic worst-touch fills; each row carries recon=true for styling.
+    try:
+        _rec = json.loads(recon_json)
+        _anlist = json.loads(an_json)
+        for _d, _rd in _rec.items():
+            _dow = pd.to_datetime(_d).strftime("%a")
+            for _tr in _rd.get("trades", []):
+                _st = _tr.get("structure", "")
+                try:
+                    _p = _st.split()[-1].split("/")
+                    _w = abs(float(_p[0]) - float(_p[1]))
+                except Exception:
+                    _w = 25.0
+                _cr = _tr.get("entry_cr") or 0
+                _coll = round((_w - _cr) * 100) if _w else None
+                _pnl = _tr.get("pnl")
+                _anlist.append({
+                    "id": "recon_" + _d.replace("-", "") + "_" + _tr.get("strategy", ""),
+                    "strategy": _tr.get("strategy", "recon"), "date": _d,
+                    "entry": _d + " 08:31", "dow": _dow, "hour": "08:00", "grade": "C",
+                    "regime": "unknown", "bias": "neutral", "source": "reconstructed", "dte": 0,
+                    "pnl": None if _pnl is None else round(_pnl),
+                    "collateral": _coll,
+                    "roi": None if (_pnl is None or not _coll) else round(_pnl / _coll * 100, 1),
+                    "open": False, "win": None if _pnl is None else bool(_pnl >= 0),
+                    "structure": _st, "recon": True,
+                })
+        an_json = json.dumps(_anlist)
+    except Exception:
+        pass
     jf = ROOT / "data" / "options_log" / "journal.json"
     jn = json.loads(jf.read_text(encoding="utf-8")) if jf.exists() else {}
     pbf = ROOT / "docs" / "living" / "options_playbook.md"
