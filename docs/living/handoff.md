@@ -1,11 +1,6 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** September 21, 2026 (regime tracker added — market-structure BOS/ChoCh
-classifier on 5m ES, rules per `Documents/Market Structure.pdf`, validated against a
-hand-marked 02-13 chart. Independent of the S83 work below, which is unchanged.
-⚠️ STILL OPEN from S83: TWO ENGINES COEXIST — the reference
-`scratchpad/regime_phase_machine.py` = new 2nd-PC engine; the S83 study scripts embed the
-OLD engine. Our +$82.7k backtest is on the OLD engine.)
+**Last Updated:** September 21, 2026 — 2nd PC pushed the standalone **regime tracker** (market-structure BOS/ChoCh classifier on 5m ES, `regime_tracker/`); merged into `main` 2026-09-22. Independent of the S83 book work. The desk-side CONTROL BOARD and current state (last desk update Sept 17, S122) are unchanged below. A 2nd-PC S83 / phase-machine detail archive is at the very bottom of this file.
 
 ---
 
@@ -83,6 +78,3641 @@ state-changing breaks marked); `build_artifact.py` → interactive HTML. Reads
 `data/bars/_continuous_1m.parquet`. `run_regime.py` takes NT8 text exports instead.
 
 ---
+
+**Last Updated:** September 17, 2026 (S122-desk-reliability, leglab chat — **DESK RELIABILITY sweep**. The trigger daemon had HUNG at its 08:29 CT launch (connected to IB but the main loop never iterated — heartbeat frozen from the prior day) ⇒ **0 morning fires; the 4 EOD/fly setups (08:30–09:30 window) MISSED**. Restarted it → recovered the 6 open-window setups (09:05–10:00) live before close. Root of the silence: the **desk watchdog has been DEAD since 2026-07-17** — both its tasks fired 3 min BEFORE the script's 08:15 CT window guard so they insta-exited every day, and the 5-min meta-guard task was also **Disabled since Aug 13**; the two-layer safety net was silently off for 2 months. **FIXED + verified LIVE (PASS** via `scripts/verify_watchdog_live.py`): daemon now loop-waits for the CT window instead of insta-exiting/capped-sleep; meta-guard re-enabled + repeating; added `task_enabled()` so the watchdog never fights an intentionally-Disabled component (it was burning its daily restart cap trying to relaunch the retired `options_sim_daemon`); and **DST-robust triggers** — fire early in Berlin (Live 14:15, meta-guard 14:18) to cover the 6h-offset weeks, scripts self-guard on America/Chicago. FlexRenko "not showing" was NOT a compile bug — it's in **Data Series → Type**, not the Chart-Style dropdown (verified the type + its strings are in the compiled DLL). Raw L1 tapes (`data/l1_tape/*_l1_*.csv`, ~28MB/day) gitignored. **READ THE S122-desk-reliability BLOCK FIRST.**) — earlier September 16, 2026 (S121-wyckoff-tools, leglab chat — continued board #18. **RECORDING DB LIVE + HARDENED**: built the **L1 tape+best-bid/ask recorder** `nt8/addons/L1TapeRecorderAddOn.cs` (ES only per user; live on **ES 12-26**, verified capturing tape+BBO ~90% quote, self-healing), nightly `scripts/l1_rollover.py`, `check_l1_tape` health tile (repurposed the dead L2 tile), + two scheduled tasks CREATED (`MyQuant L1 Rollover` 16:05CT, `MyQuant L1 Recorder Watchdog` /10min page-only). **RETIRED the footprint pipeline** (FootprintExporter+MzFootprintExtractor removed; L1 reconstructs footprint — proved via `scripts/l1_footprint.py` CVD/footprint). **Stage-1 Wyckoff tools**: `scripts/volume_profile.py` (VPOC/VA/HVN/LVN/naked-VPOC/bias) + NT8 drawer `nt8/indicators/WyckoffVPLevels.cs` (PENDING F5); `scripts/weis_wave.py`; LizardTrader VWAP is READABLE (host it, don't rebuild). **THE BIG DELIVERABLE = `scripts/wyckoff_marker.py`** — interactive HTML Wyckoff marker (click-box+snap-to-extreme/body, auto spring/UT/test/SOS/SOW/BoS/ChoCH from the drawn box, **box-FREE bull/bear/transition trend engine**, multi-day skip, S/R+21EMA toggles, flex-renko views, mouse-wheel zoom). `scripts/renko.py` (Renko+verified wicks + **Sierra-style flex_renko**) + NT8 `nt8/barstypes/FlexRenkoBarsType.cs` (deployed, **NOT in dropdown yet — check Custom compile**). **KEY FINDING: 9/15 RTH "SC" 7575.75 is a SPRING of the overnight low 7577.25** (false break −1.5pt+reclaim; `scripts/wyckoff_eth_context.py`). **READ THE S121-wyckoff-tools BLOCK FIRST.**) — earlier September 16, 2026 (S120-wyckoff, leglab chat: read BOTH Villahermosa Wyckoff books cover-to-cover via 12 subagents → 2 page-cited synthesis notes + a **"Wyckoff Study" learning artifact wired into Mission Control** (card + claude.ai URL). Designed the **Wyckoff-2.0 DISCRETIONARY system** = structure(context) + Volume Profile(location) + Order Flow(trigger, gated to zones); last-HVN = bias line. Reframed the dead mechanical climax-flip into a discretionary-assist toolset. **IMMEDIATE NEXT (user directive): build a full-tape recording DB for ES/NQ/MES/MNQ 23h/day starting now**, then the 3-stage tool build. Wyckoff/TR-zone NT8 tools deployed, PENDING F5. **READ THE S120-wyckoff BLOCK FIRST — new chat continues from there.**) — earlier September 16, 2026 (S119: **SPY 0DTE-bounce LIVE paper-tracker built + RUNNING** — read the S119 block FIRST to continue it; climax-flip tempo lab CLOSED = NO mechanical edge once fills are realistic + no lookahead + correct contract (multiple load-bearing bugs found); contract-flap alert fixed; 3 new HARD memory rules incl. NEVER-show-ideal-fills. See S119 block.) — earlier September 15, 2026 (S118-props: scraped Take Profit Trader + Topstep verbatim, applied to Regime2E. Decisive rule = funded-DD TYPE: TPT PRO intraday-unrealized (hostile, SIM, 150K max), Topstep XFA EOD (friendly, SIM). At 1 ES the $4,500 DD blows 28-38%/yr; FIX = MES fractional sizing — 150K@0.5ES(5 MES) = 2.6% blow/+$4.5k/yr on Topstep. Eval vs funded want OPPOSITE sizes. RECOMMENDATION: Topstep 150K. See S118-props block. TBC: TPT news-flat rule.) — earlier September 11, 2026 (S116-gexlog: morning-brief deep-read + sim-usage map + playbook-only backtest touch/hold15/cross15 = −43k/+5.5k/+0.4k ⇒ no edge in following the playbook — see S116-gexlog block) — earlier September 9, 2026 evening (S115-B: IB-vs-TD same-day settle fixed + automated 22:20 task + expired-row fee fix — see S115-B block; Chat A's S115 divergence work in its own commits) — earlier S114 overnight: 4.3yr backtest COMPLETE — see the S114 OVERNIGHT block under the board — earlier S113 (9/8): (S113: ThetaData EXECUTED end-to-end. Terminal live (Java 21, Options:STANDARD, :25503). Pulled at_time NBBO + trade_quote prints for all 518 Aug-6→Sep-4 SPX fill events (0 fail), anchored on IB's TRUE exec times (from an IB Flex Trade-Confirmation XML the user downloaded → `ib_flex_executions.py --file`). **Fill realism VALIDATED**: median fill position 0.0 (marketable touch), 86.1% ≤ mid, 99.8% had ≥1 size (median 76), 94% single-leg-print-confirmed. **TD-based P&L reconstruction** (`td_pnl_reconstruct.py`): rebuilt the book from ONLY real data — entries/order-exits at the real touch, expiries at intrinsic vs the official SPX 4pm close (`/v3/index/history/eod`), real IB commissions. Sim booked $9,240 (modeled $1.30/trade fees) → restated at REAL fees $8,666 → TD net **$8,160** (−12%); fills-only delta just −$505/187 trades, settlement +$150 → **the sim's fills are accurate; the overstatement was under-counted commissions.** Report `scripts/thetadata_fill_report.py` (self-contained HTML + PDF, `--anon` vendor copy S01–S10): plain-English summary, side-by-side P&L (both at real fees, Δ$0 comm, Δ%), fill-position breakdown w/ cumulative %, size-depth tiles, Method&FAQ, metadata strip. **FORWARD FEE FIX** (real IB $1.63/contract/execution, was flat $1.30): active-close (`options_trigger_daemon`), 0DTE expiry (`options_postmortem` FEE 1.30→1.63), STMR (`options_sim_daemon` fee 0.0→real) — all forward-only, no history rewritten (user declined restating the calendar). **NEXT: build the stress-test sandbox, then model July-2026 entries from TD-only** — see the S113 block. — earlier S112 (9/7): built the ThetaData fill-validation pull layer (SPX-only; XSP retired per user). Two committed scripts — `thetadata_worklist.py` (read-only; 204 SPX trades → 406 legs → **366 unique 0DTE contracts** over 24 dates 08-04→09-04; 196 ET fill anchors from orders.csv) + `thetadata_fetch.py` (stdlib v3 NBBO tick fetcher; `--dry-run`/`--probe`/`--limit`, resumable, manifest, no-terminal guard that fetches nothing). Validated all paths WITHOUT the terminal (dry-run URLs correct, strike-format bug caught+fixed 7560.0→7560.000). TZ pinned: trades=CT/orders=ET/Theta=ET — pull is by date (tz-safe), align later via orders.csv. STILL BLOCKED on local Theta Terminal (Java) — not installed; needs user OK or user-run. Vendor (ThetaData) confirmed Standard $80 is right + gave execution-model guidance (fill@touch+size-check, tick+latency-delay, prints=confirmation-not-fill, SPXW settles on close, early-close 1pm ET) → saved to `docs/options_0dte/thetadata_fill_validation.md` as the comparison-script spec. S111 scripts were ALREADY committed (9157bb17); that handoff checkbox was stale. — earlier S111: options-sim ANALYSIS + Labor-Day pause + ThetaData prep. NO strategy code changed (user: "nothing changed in the strategy"). Verified: EM=prior-close spot×VIX/√252 (gexlog morning brief; identical to our fallback); Open condor reuses the SAME prior-close-VIX width (no open-time vol). EOD flies = off-center fly on a stale price (weak). Reconstructed sim PnL on the DASHBOARD-CALENDAR basis (SPX-only, incl open marks, excl 08-04/05+orphan): full +$9,240 / n187; minus EOD-flies+Open-condors = **+$7,984 / n112 / PF 1.93**. **Fill realism RESOLVED**: sim uses REAL IB paper fills (NBBO, crosses the spread — median fill at the marketable touch, 79% ≤ mid) — NOT phantom mids. ThetaData Standard $80 = correct tier for fill-validation (quote+trade_quote+sizes, tick, 8yr); needs local Theta Terminal (Java) — **neither Java nor terminal installed here**. Paused sim for Labor Day (disabled 3 tasks + self-deleting resume task 9/8 06:00); chain recorder still respawned via supervisor — user said LEAVE it (no trades firing; watchdog holiday-halted). New analysis scripts UNCOMMITTED — commit next session.)
+
+---
+
+## ⏰ PENDING TONIGHT (2026-09-13): rebuild the 5M cache — `python research/scalp_swing/build_5m.py`
+After today's RTH-trove undercount repair (46 NT days 2026-07-03→09-11), `es_5m_rth.parquet` still
+holds the OLD halved volume. Deferred to tonight (compute needed elsewhere). Confirm with user first.
+
+## ⚡ CONTROL BOARD — the single hub (read FIRST, update AFTER every unit of work)
+
+**2026-09-08 (S114): TWO chats work this repo — this board is how they stop colliding.**
+Both chats stay open; neither is throwaway. The rule is simple: **read this board FIRST;
+before you start an item, put your chat's name + "WIP" in its row so the other chat won't
+touch it; clear it when done.** That's the whole coordination mechanism — no closing chats,
+no parallel debate docs, no second `hub.md` (CLAUDE.md: this board IS the hub). ~one screen.
+
+Roughly: the **A chat** drives the backtest/sandbox/ThetaData items (#2,3,6,8); **this (B)
+chat** drove the daemon fix, DuckDB store, NT8, max-profit-zone (#5,7,9,10). Before starting
+any item, drop "WIP <A/B>" in its row so the other chat leaves it alone.
+
+| # | workstream | status | next action |
+|---|---|---|---|
+| 1 | 0DTE live desk (paper) | 🟢 RUNNING | trades daily; just watch the book |
+| 2 | ThetaData fill-validation | ✅ DONE (S113) | validated; report built; nothing pending |
+| 3 | **Stress-test SANDBOX + July-2026 TD-only model** | 🔜 NEXT (primary) | build sandbox per S113 spec; exit-rule slider incl. zone-anchored |
+| 4 | Stop-backtest debate | ✅ RESOLVED + OOS | Sept OOS 19/20; combined **96/99 vs desk actual, zero exclusions**; all 3 misses physically verified (2=08-19 outage, 1=23s sampling edge) |
+| 5 | Daemon outage / hang coverage | ✅ FIXED + VERIFIED LIVE (S122 9/17) | crash-guard (c080b5a9) + hang heartbeat. **S122: the watchdog that catches a hang was DEAD since 2026-07-17** (both tasks fired before the 08:15 CT window guard → insta-exit; meta-guard also Disabled since Aug 13) — so when the daemon hung at its 08:29 launch 9/16 (connected to IB, loop never iterated) NOTHING caught it → 0 morning fires, 4 EOD/fly setups missed. FIXED: daemon loop-waits for window + `task_enabled()` guard + DST-robust early triggers (`97b9d6ea`/`09172a2d`/`8e228a51`); watchdog re-enabled + **verified LIVE PASS** (`verify_watchdog_live.py`). **OPEN:** daemon-hang root cause undiagnosed — the scheduled daemon's stdout isn't captured (re-exec drops it); add capture to diagnose a recurrence |
+| 6 | ThetaData terminal | 🟢 UP + WATCHDOG (S115 9/10) | died mid-session 9/10 (silent, killed TD-dependent work) → new 10-min task `MyQuant Theta Terminal Watchdog` (`theta_terminal_watchdog.py`: ping :25503, kill hung jar, relaunch, Telegram) — firing, result 0. User: no quota, 4-concurrent limit. Also NEW: `MyQuant TD Shadow Live` daily 15:25 machine (td_shadow_live had NO task — 9/10 shadow book was missing until hand-started; 22:20 reprice proved itself same night 8/8 ok) |
+| 7 | DuckDB NBBO years-store | ✅ BUILT | `nbbo_store.py` tested; awaiting the real multi-year pull |
+| 8 | 4-year EM backtest | ✅ v2 DONE (S115 B, 9/10) | FULL-HISTORY v2 complete (`backtest_full_v2.py` → `rows_v2.csv`, 1,082 days): combined −$243k PF 0.79 neg every year; desk's real 09:33ET open entry −17k WORSE than v1's 10:05ET; calwait≈nowait (−1k); gate on; eodic_p flat (−755). Aug live-vs-v2: credits Δ−1% total, condors match to $, whole +3.3k gap = 3 openfly trades (outage + 2 grid-step flips). See S115 block |
+| 12 | Killer-day mitigation study | ✅ DONE (S115 overnight workflow) | 33-day forensics + 6 rule sweeps + stacks + ADVERSARIAL AUDIT — read `docs/research_notes/killer_day_mitigation_S115.md`. Survivors (hypotheses, advisory-only): fly-dies-in-vol (⇒ retire fly), ic call-leg-drop cr_c>2–3, total_cr<1.0 floor, skip_FOMC, puts_band −1000 breaker. Stack $ headlines are in-sample-on-test — do NOT quote them. NEXT: stage-2 intraday breaker sim (TD minute paths + v2), calendar expansion (OpEx/month-end/ECB/elections/ISM — 6+ killers were on missing dates) |
+| 9 | NT8 BreakoutBoysDashboardV1 | 🟡 PENDING USER | fix committed+deployed; **F5 + set `SE_RestImmediately=false` on the chart**, then test cancel/arm |
+| 10 | Max-profit-zone feature | 🟡 STARTED | `maxprofit_zone.py` built; wire into sandbox as an exit dimension |
+| 15 | Tick troves (RTH + ETH) | ✅ LOCKED + CANONICAL (S116-B 9/13) | **Two troves, ONE access point `tickdata.py`** (HARD rule memory `canonical-tick-data` — never use any other tick source for any test/chart). **RTH_TROVE** `data/ticks_continuous/` 1,317d 2021-06-18→9-11 (08:30-15:15, Massive→NT, auto-nightly). **ETH_TROVE** `data/ticks_continuous_eth/` 301d 2025-07-16→9-11 full-session ~23h (NT; RTH⊂ETH). **Nightly ETH pass ADDED to `tick_pipeline.py`** → ETH now auto-expands like RTH (+manifest refresh +backup sync). Validated 230 match/51 NT-more-complete/13 NT-light/7 eth-only. LOCK: `eth_store_manifest.py --check` (sha1/day) + backup `C:\eth_trove_backup`. ⚠ 5yr trove is RTH-ONLY (not ETH); full-5yr-ETH needs Massive re-sub; recent RTH trove volume-undercounted (dedup bug in `ingest_nt_ticks.py`, NOT fixed — don't touch trove w/o asking) |
+| 16 | ES roll = VOLUME not calendar | ✅ FIXED (S116-B 9/11) | false "WRONG CONTRACT" alert (health check flips to 12-26 on day≥10) — NT was correctly on 09-26. `data/es_roll_override.json` pins 09-26 as expected until hard-stop 2026-09-18 (expiry Fri), then calendar rule+alert resume. `tick_pipeline.py` still hardcodes `CONTRACT="ES 09-26"` — must roll to 12-26 same day the NT chart rolls |
+| 11 | Tempo → CLIMAX-FLIP setup lab | ⛔ CLOSED (S119) — NO mechanical edge (realistic fills + no lookahead + correct 12-26 contract kill it; see S119 block). Indicator changes deployed, PENDING F5. NEW live thread → **SPY bounce tracker running (S119 block, CONTINUE HERE)** | earlier: **WALK-FORWARD DONE — quote THESE numbers**: OOS 2023-26 PF 1.08-1.11, +$13.5-20.5/tr gross (~$9-16 net), maxDD −$14-15k. S117 verdicts REVISED: SAR = 25-26-only (attribution: per-opportunity edge sign-flipped, NOT more opportunities — watch live, not structural); EB-scratch = paid insurance (flagged trades better ridden full-hist; WF never picks it); NEW validated rule **skip Basic entries in hour 8** (WF adopts it at 2023 on its own; SAR hour-8 entries stay). BE-limit variant REJECTED. **READ THE S119-tempo BLOCK FIRST.** Earlier: S117 config lab, S116 research + tooling + marking tool @ :8642 |
+| 13 | GexLog ignored-fields join study | ⛔ CLOSED (S116-gexlog) | ran + committed (`gexlog_field_join_study.py`, stats 20260910) but user judged the direction a dead end — do NOT pick up the walk-forward follow-up |
+| 14 | Playbook-only backtest (trade what the gexlog playbook says) | ✅ DONE (S116-gexlog) | `gexlog_playbook_parse.py` (327/327 scenarios) + `gexlog_playbook_bt.py` (TD 1-min, 106d Apr–Sep): touch −$43.0k / hold15 +$5.5k / cross15 +$0.4k — sign flips on the trigger reading; no robust edge; rows in backtest_full/playbook_bt_rows.csv |
+| 17 | Trade plan w/ Thomas (setup inventory → regime/risk → trade log/journal) | 🛑 PAUSED (S118 9/15, USER CALLED STOP — lost confidence in the analysis) | `docs/living/trade_plan/`: `setup_inventory.md` (v1–v2 + evidence ranking, all sources) · `apex_account_analysis.md` · `apex_rulebook.md`. Deep-dived REGIME-2E: edge REAL but lumpy (top-10=55% of net), short-side-heavy, regime-favorable; PF~1.5–1.8. Built + deployed NT8 `Regime2ESetups.cs` (indicator) + `Regime2EStrategy.cs` (OnePerDay/gates/visuals; signal-parity 96.8%/regime 100% vs python) — PENDING user F5 + Sim101 forward test. Apex study: site scraped via Playwright (`scripts/apex_fetch_pages.py`; Cloudflare 403s WebFetch). **⚠ Analysis iterated messily across many turns — user halted, deemed it unreliable.** VERIFIED rules in `apex_rulebook.md` (verbatim+sources): legacy FULL DD = INTRADAY trailing (eval+funded, NOT EOD); needs MES fractional sizing (10 MES=1ES blows; ≤8 MES survives); **2 PA rules (30% MAE, 5:1 RR) NEVER modeled ⇒ ALL funded sims PROVISIONAL/likely-worse; eval sims valid**. Standing take: hold-to-EOD book wants a STATIC-DD firm (TPT), not Apex trailing. NEXT (only if resumed): model 30% MAE+5:1 in ONE clean funded sim; resolve §H open Qs w/ Apex FIRST |
+| 18 | **Wyckoff 2.0 discretionary toolset + full-tape recording DB** | 🟢 ACTIVE (S121-wyckoff-tools 9/16, leglab) — **CONTINUE HERE** | **DB LIVE**: L1 tape+BBO recorder `L1TapeRecorderAddOn.cs` running on **ES 12-26** (ES-only per user; ~90% quote, self-healing) + nightly rollover + watchdog tasks + `check_l1_tape` tile. Footprint pipeline RETIRED (L1 reconstructs it). **Stage-1 tools built** (VP engine+NT8 drawer PENDING F5, Weis wave, VWAP-readable). **`wyckoff_marker.py` = the interactive HTML Wyckoff marker** (click-box+snap, auto events from box, box-free bull/bear/transition trend engine, multi-day, S/R+21EMA, flex-renko). Renko+wicks+**Sierra flex_renko**; NT8 `FlexRenkoBarsType.cs` deployed — **RESOLVED (S122): it's in Data Series → Type, NOT the Chart-Style dropdown; not a compile error (type + strings byte-verified in the DLL)**. **FINDING: 9/15 low = SPRING of overnight low.** NEXT: Stage-2 (TR-Box + retro event engine) + Stage-3 (OF trigger panel); VWAP host-exporter; marker threshold calibration (user marks AR/springs); optional ChoCH volume/spread confirm. **READ S121-wyckoff-tools BLOCK.** |
+
+---
+
+## S122-desk-reliability (2026-09-17, leglab chat) — trigger-daemon hang recovery + watchdog resurrection + DST fix
+
+**READ THIS FIRST.** All fixes committed + pushed on `leglab`. Machine clock = Berlin (W. Europe,
+UTC+2); the desk runs on America/Chicago — never state a converted CT wall-clock as fact.
+
+### 1. Trigger daemon HUNG this morning — 0 fires until hand-restarted
+- The 08:29 CT scheduled launch connected to IB (socket ESTABLISHED, 8 ib threads) but its main loop
+  **never iterated** — `trigger_daemon_heartbeat.txt` was frozen at the prior day. `_hb()` is the first
+  line of every loop pass, so a frozen stamp = the loop body never ran. Hung after `ib_conn.connect()`,
+  before the first poll (suspected ib_insync asyncio-loop stall — `connect()` HAS `timeout=15`, so the
+  naive "hangs forever in connect" story doesn't fully hold; **root cause NOT nailed** because the 08:29
+  daemon's stdout is not captured on a scheduled launch — the venv→system-python re-exec drops it).
+- Consequence: all 10 triggers sat `armed`; the 4 morning EOD/fly setups (window 08:30–09:30) **MISSED**.
+- **Recovery:** killed the hung tree, relaunched `options_trigger_daemon.py --until 15:00`. It reconnected,
+  captured the open, and fired the **6 open-window setups** (09:05–10:00) live before close:
+  openic_p +1.65(B), openic_c +0.95(C), openfly_p +9.40(C), openfly_c +11.10(C), gx_bps +1.55(B), gx_bcs +1.70(B).
+  Managed to EOD; the two bear-call shorts (7715C/7700C) couldn't be quoted to close late → carried to
+  0DTE expiry (OTM). **Today (9/17) the daemon launched clean and did NOT hang** (heartbeat 1s at 08:46).
+- **OBSERVABILITY GAP (open):** to ever root-cause a recurrence, the scheduled daemon's stdout must be
+  captured. Not done yet.
+
+### 2. Desk watchdog was DEAD since 2026-07-17 — the reason nothing caught the hang
+- `desk_watchdog.py` has two layers: **Live** resident (`--daemon`, 10s fast checks) + a **meta-guard**
+  one-shot. Both tasks were scheduled to START at 15:12/14:45 Berlin = **08:12/07:45 CT — BEFORE** the
+  script's own `in_window("08:15", …)` guard, so each fired once and **insta-exited**, every trading day.
+  `watchdog_heartbeat.txt` frozen at 2026-07-17; `desk_watchdog.log` had zero trading-day activity since.
+  The meta-guard task was ALSO **Disabled since Aug 13**. Net: the trigger-daemon hang detector (which
+  restarts on a stale heartbeat, window 08:40–14:55 CT) never ran → yesterday's hang had zero coverage.
+- **FIX (committed):**
+  - `97b9d6ea` — daemon no longer insta-exits on an early start.
+  - `8e228a51` — DST-robust: daemon **loop-waits** for the 08:15 CT window (was a 30-min-capped single
+    sleep that could fall through and exit un-started on a >30-min-early DST-week start).
+  - `09172a2d` — `task_enabled()` guard: the watchdog **never restarts a component whose task is
+    Disabled** (it was firing `run_task('MyQuant Sim Daemon')` every cycle on the retired, Disabled
+    `options_sim_daemon` → burning its 5/day restart cap on noise). Verified 0 noise post-fix.
+  - `b950741f` — `scripts/verify_watchdog_live.py`: one-shot live PASS/FAIL prover.
+- **Tasks reconfigured + ENABLED** (all via `Set-ScheduledTask`, verified):
+  - `MyQuant Desk Watchdog Live` — single trigger **14:15 Berlin**, `pythonw desk_watchdog.py --daemon`.
+  - `MyQuant Desk Watchdog` (meta-guard) — trigger **14:18 Berlin, repeat 5 min for 8h30m**, ENABLED,
+    `pythonw desk_watchdog.py`.
+- **Verified LIVE today (PASS):** resident loop running (`all green (daemon)` from 08:15:01 CT), both
+  watchdog processes up, trigger daemon present + heartbeat 1s. Restarted the running resident so the
+  new code is live today too; log clean (0 restart-cap noise post-fix).
+
+### 3. DST robustness (the "Berlin time issue")
+- Tasks fire on a FIXED Berlin clock but the desk runs on Chicago time; the offset is 7h normally and
+  **6h** for ~3 wk each March + ~1 wk each Oct/Nov (US/EU change DST on different dates) — a pinned
+  Berlin trigger drifts an hour twice a year (this is exactly what `scripts/run_at_ct.py` documents).
+- **Fix approach:** fire the Berlin triggers **early enough to cover the 6h-offset case** (14:15/14:18
+  Berlin = 08:15/08:18 CT at 6h, 07:15/07:18 CT at 7h) and let the scripts' **Chicago-time self-guards**
+  (`in_window` uses `America/Chicago`) anchor the real work — the daemon loop-waits to 08:15 CT, the
+  meta-guard no-ops its out-of-window ticks. No dependence on a fixed offset; no more twice-a-year drift.
+
+### 4. FlexRenko "not showing" — NOT a bug
+- It compiled fine (the type + its `"Flex Renko"` / `"Box size (ticks)"` string literals are in the
+  running `NinjaTrader.Custom.dll`, byte-verified). Custom BarsTypes appear in **Data Series → Type**
+  (with Minute/Tick/Range/Renko…), **not** the Chart-Style dropdown (Candlestick/OHLC/Mountain…) the user
+  was looking at. The transient "Could not find NinjaTrader.Custom.csproj" dialog was a compile-time state;
+  the desk had already built clean at 14:32 on 9/16.
+
+### Housekeeping
+- Raw L1 tapes gitignored (`data/l1_tape/*_l1_*.csv`, ~28MB/day) — kept local; `_analysis` outputs stay in git.
+- Commits: `5a6e4459` (data + L1 analysis) · `97b9d6ea` · `b950741f` · `09172a2d` · `8e228a51`.
+
+---
+
+## S121-wyckoff-tools (2026-09-16, leglab chat) — recording DB LIVE + the interactive Wyckoff marker toolset
+
+**READ THIS FIRST if continuing #18.** Continued from S120-wyckoff. Everything committed + pushed on
+branch `leglab`. All ES tick access via `tickdata.py` (canonical). Machine clock ≠ CT (Berlin) — never
+state a CT wall-clock as fact.
+
+### 1. RECORDING DB — LIVE + HARDENED (the S120 "immediate next task", done)
+User decisions (asked up front): **L1 tape + best bid/ask** (NOT full L2 DOM), **ES only to start**
+(not the 4 instruments yet), **under `data/` + nightly parquet**.
+- `nt8/addons/L1TapeRecorderAddOn.cs` — live streaming recorder: every trade (price/size/aggressor A/B)
+  + every best-bid/ask change → `data/l1_tape/ES_<contract>_l1_<TRADE-DATE>.csv` (schema
+  `Time,Ev,Side,Price,Size,Aggr`; Ev = T tape / B bid / A ask / C conn). AddOn = auto-runs on NT start,
+  self-heals silent stalls. **LIVE on ES 12-26** (rolled from 09-26 on 9/15 per user; VOLUME roll).
+  Verified capturing tape+BBO, ~90% quote rows. **Deployed to Custom\AddOns, user F5'd + it's recording.**
+- `scripts/l1_rollover.py` — nightly CSV→zstd parquet (verify-reread-before-delete) + mirror to
+  `~/myquant-data`. `scripts/l1_selftest.py` — end-to-end pipeline test (passes).
+- **Scheduled tasks CREATED + verified Ready** (cloned proven Depth-Rollover/Theta-WD XML):
+  `MyQuant L1 Rollover` (run_at_ct --at 16:05, DST-safe) + `MyQuant L1 Recorder Watchdog` (/10min,
+  page-only, `scripts/l1_recorder_watchdog.py`). Note: `MyQuant NT Watchdog` + `MyQuant Depth Rollover`
+  are Disabled (L2 retired).
+- **FOOTPRINT PIPELINE RETIRED**: removed `FootprintExporter.cs` + `MzFootprintExtractor.cs` (repo+Custom),
+  `check_footprint` tile, registry entry. L1 reconstructs footprint offline — PROVED by
+  `scripts/l1_footprint.py` (footprint ladder + cumulative delta from the L1 tape; real footprint chart
+  with candles). L2 depth tile → repurposed to **L1 tape tile** in Mission Control.
+- Disk: 160GB free on C:. L1 est ~sane (tape ~840k rows/day; quote 5-15×).
+
+### 2. STAGE-1 WYCKOFF-2.0 TOOLS (location + effort lanes)
+- `scripts/volume_profile.py` — VP engine from troves: VPOC, value area 70%, HVN/LVN (peaks/troughs),
+  **naked VPOCs** (untested prior-session magnets), last-HVN bias line. Emits `data/vp_levels/current.csv`
+  (type,price,label) + `current_profile.csv` (price,volume histogram).
+- `nt8/indicators/WyckoffVPLevels.cs` — NT8 overlay reads those files, draws VPOC/VA-band/HVN/LVN/naked +
+  **optional full histogram** (`ShowProfile`); de-collided labels (no-overlap rule). **PENDING USER F5.**
+- `scripts/weis_wave.py` — Weis wave (per-swing cumulative volume + vol/pt + delta from L1); tick AND time
+  bars (`--bar 2000t` / `5min`); filename includes bar (no overwrite).
+- **VWAP: reuse the user's LizardTrader `LT_Current_Day_VWAP`** — VERIFIED readable via named
+  Series<double> accessors (`SessionVWAP`, `UpperBand1/2/3`+`05/15/25`, `LowerBand…`, `PriorDayVWAP/VAH/VAL`,
+  `Prior2/3VWAP`, `Trend`, `ZScore`). Host it (WedgeExporter pattern), don't rebuild. **TODO: build the host
+  exporter** so tools read VWAP live.
+
+### 3. THE INTERACTIVE MARKER — `scripts/wyckoff_marker.py` (main deliverable, heavily iterated)
+Self-contained HTML (embeds bar data; opens in browser, no server). `python scripts/wyckoff_marker.py`
+→ `data/l1_tape/_analysis/marker.html`. Features (all user-driven):
+- **Views**: day dropdown + `< >` (last 10 trading days); view dropdown = `eth/rth × flex16-8-4 / flex8-4-2 /
+  2000t` (his Sierra settings). Candle AND renko rendering.
+- **Click-to-mark**: box (2 clicks, snaps each to nearest high/low/open/close, extends to EOD) · spring ·
+  upthrust (1 click). Snap toggle, undo/reset, copy-levels. Floating collapsible readout panel.
+- **Auto events FROM the box** (candidates, no `?`): spring/UT (must ORIGINATE inside range — bar OPEN
+  inside), SOS/SOW, test (lower-third, holds) — all only AFTER the AR-defining bar (max of the 2 clicks).
+  Renko test marker sits on the reversal brick's wick.
+- **Box-FREE trend engine** (`structure()`): HH/HL/LH/LL labels, BoS (continuation) / ChoCH (first
+  counter-trend break) — **backdated to the move origin** so rallies read GREEN. Bull green / bear red /
+  transition GREY. `trend` toggle (OFF default). Driven by the `pb` (reversal) live control.
+- **S/R toggle**: PDH/PDL/PDC (prior RTH day), ONH/ONL (overnight pre-08:30), RTH OPEN. **21EMA toggle**.
+  WW (Weis) + volume panels (OFF default). **Mouse**: wheel=time-zoom (cursor-centered), Ctrl+wheel=price,
+  Shift+wheel=pan. Full-screen, fit-to-day.
+
+### 4. RENKO + FLEX RENKO
+- `scripts/renko.py` — Renko engine (brick pts) + **WICKS** (true intrabar extremes — pure Renko hides
+  springs; `--dump` INDEPENDENTLY verifies each wick vs the raw tape, 30/32 exact). + `flex_renko(box,
+  trend,rev in ticks)` = **Sierra-Chart Flex Renko** (continuation needs B−T; reversal 2B−R; body=B,
+  overlapping; his 16-8-4/8-4-2). Verified.
+- `nt8/barstypes/FlexRenkoBarsType.cs` — **NT8 custom bar type** (Value=box, Value2=trend, rev=trend/2;
+  BarsPeriodType `(BarsPeriodType)76308`; adapts @RenkoBarsType). Compiles clean, deployed to Custom\BarsTypes.
+  ⚠ **STILL NOT in the Bar Type dropdown after restart.** NT auto-discovers BarsType subclasses at startup
+  (no manual Register in NT8 — the forum "Register()" is NT7). Enum only goes to 16; custom uses a unique
+  int cast (76308 fine). Near-certain cause = a **compile error somewhere in the live Custom folder** (one
+  bad file blocks ALL new types). NEXT: user opens Control Center→New→NinjaScript Output, F5, reports the
+  first red error. (The duplicate-`ApproxExtensions` in TradeLifecycle/ClaudeTracker is REPO-only, NOT in Custom.)
+
+### 5. THE 9/15 CASE STUDY + KEY FINDING (analysis tools)
+- `scripts/wyckoff_ar.py` — SC/AR range; **AR is a CONTEXT-TF event** (compute on `--context 5min`, PROJECT
+  onto the 2k — never recompute AR on the fine TF, it fragments). `find_ar` = reaction-threshold scan
+  (`--ar-pullback`, default 6; small dips don't end the AR). `ar_levels()` shared by the chart tools.
+- `scripts/wyckoff_phases.py` — TR + Phase A-E marker; ALL tests (t1..tn) with volume; **LPS is RETROACTIVE**
+  (marked `LPS?`); exact-bar markers.
+- `scripts/wyckoff_eth_context.py` — **THE FINDING**: on the RTH chart 7575.75 looks like a Selling Climax,
+  but on the **ETH (full session) chart it is a SPRING** — a false break of the **overnight low 7577.25** by
+  1.50pt that reclaims and drives the markup (nesting, book p.206-212). The high-prob long the RTH-only view
+  called an "absent Phase C". Double-bottom ~7576-7577 across the two sessions.
+
+### OPEN / NEXT (pick up here)
+1. **FlexRenko not in NT dropdown** — diagnose the Custom compile error (NinjaScript Output).
+2. **Stage-2** = "Wyckoff TR-Box" whole-range drawing tool + retroactive event engine (climax=edge; spring
+   confirmed only by opposite-edge breakout; test=No Supply/Demand; SOT). **Stage-3** = OF trigger panel
+   (absorption+initiative+SOS/SOW bar at an armed zone → stop-entry, SL at LVN, TP at HVN/VPOC).
+3. **VWAP host-exporter** (read LizardTrader VWAP into our tools live).
+4. **Marker calibration** — user marks the AR/springs on `marker.html` → tune the detector thresholds to
+   their eye. Optional: make ChoCH Wyckoff-truer (require Weis-volume/spread change, not just a pivot break —
+   ChoCH is an SMC term, NOT in the Villahermosa books; classical Wyckoff = behavioral change-of-character).
+5. Eventually extend recorder to NQ/MES/MNQ (user's original 4-instrument directive; started ES-only).
+6. Then: paper-trade the 4-gate playbook, journal, retune after ~100 trades (S120 vision).
+
+---
+
+## S120-wyckoff (2026-09-16, leglab chat) — read BOTH Wyckoff books · Wyckoff-2.0 discretionary system · full-tape recording DB is the immediate next task
+
+**READ THIS FIRST if continuing.** This chat is being retired for resource reasons; the new chat
+continues board #18 from here. Distinct from Chat A's S119 SPY-bounce thread. The mechanical
+climax-flip is dead (S119); this pivoted to a **discretionary-assist Wyckoff-2.0 toolset** for ES
+on 2000t + 5M — the user's final direction: no more gurus (Brooks + Dalton + Wyckoff + Wyckoff 2.0
+= complete), a tradeable system that needs discretion, a fixed playbook, and a custom journal.
+
+### DONE this session
+- **Both Villahermosa books read cover-to-cover** (6 subagents each, page-cited):
+  `docs/research_notes/wyckoff_book_synthesis.md` (bk1: structures/events/springs/tests/phases/box)
+  + `docs/research_notes/wyckoff2_book_synthesis.md` (bk2: Volume Profile + Order Flow integration).
+  Raw text: `scratchpad/wyckoff_book.txt` + `wyckoff2_book.txt` (temp; source PDFs on Desktop).
+- **Learning artifact:** `docs/artifacts/wyckoff_study.html` — one self-contained study page (both books
+  distilled, the 4 setups, draft playbook, tools roadmap, data/journal plan). **Wired into Mission
+  Control** (card "Wyckoff Study" in `data/_catalog/claude_artifacts.json`, group Research; slug matches
+  the file so Open-local works; served offline + Tailscale). Cloud URL for the laptop:
+  https://claude.ai/code/artifact/626f7d99-bd67-4e9a-8fe4-aeae1c7cb9e7
+
+### THE WYCKOFF MODEL (the rules that fix our tools — quote/build to these)
+- **Spring/Upthrust = Phase-C false break defined RETROACTIVELY** — only a spring once it CAUSES the
+  opposite-side breakout; else "simply a test" (bk1 p.105-106; bk2 p.258). The range-creating extreme is
+  the **CLIMAX (Phase A), NOT a spring**. **Test = No Supply/No Demand** (narrow range + vol < prior 2 bars).
+  3 spring types by depth+vol+range. New events: Structural Failure, Shortening-of-Thrust.
+- **Wyckoff 2.0 = 3 lanes:** structure=CONTEXT · Volume Profile=LOCATION (VPOC/VA 68.2%/HVN/LVN/naked
+  VPOC/VWAP) · Order Flow=TRIGGER (absorption→initiative + delta) **gated to key zones only** (never
+  chart-wide — the named antidote to our spray). **Last-developed HVN = the bias line** (above→long,
+  below→short). 4 setups (range-edge reversal / range-inside / breakout-test BUEC / trend pullback).
+  Entry = SOS/SOW bar via **stop order** (never limit); stop at the protecting LVN; target next HVN→VPOC.
+- **Tick vs time (decided):** measure effort on **SWINGS (Weis wave)**, NOT per-bar (a 2000t bar's per-bar
+  volume is ~constant). VP is bar-agnostic → same levels on any chart. Use 5M/daily for context, 2000t for
+  execution (nesting: a 2k micro-range at a 5M edge IS the 5M event). NEVER volume-charts. Segregate
+  RTH/ETH volume (validates our two-trove split).
+
+### NT8 TOOL STATE (branch leglab, DEPLOYED to Custom, **PENDING USER F5**)
+- `nt8/indicators/TempoSpeedometer.cs` — climax-flip SP/UT spring-type marks; skip-Terminal-Shakeout
+  toggle; **beyond-prior-day spring/upthrust detector** (Wyckoff 3-factor depth+vol+range); **middle-click
+  Wyckoff inspector card**; **drawn TR-zone reader** → reads the new drawing tool, auto-types
+  resistance/support, marks springs (false-break below support + reclaim) + graded tests (✓ quiet/holds,
+  ✗ loud; tempo = tick-chart volume substitute), labels centered above/below triangles. Params (group
+  "6. Springs & upthrusts"): ShakeoutLowIntensity 0.85 / ShakeoutHighIntensity 1.50 / TestQuietPct 50 /
+  ShowDrawnZones / ShowSpringUpthrust.
+- `nt8/drawingtools/WyckoffTRZone.cs` — NEW dedicated "Wyckoff TR Zone" drawing tool (subclass of
+  Rectangle) so the indicator reads only intentional zones, not every rectangle. Deploy to
+  `Custom\DrawingTools\`. Gui code — **F5 is the real test** (verify it appears in the palette).
+- ⚠ These in-indicator auto-detectors were the source of the "spray" the user rejected. The BOOK's fix
+  is the 3-stage rebuild below (gate to zones + retroactive confirm + last-HVN bias). The **beyond-PD
+  detector backtested to NO standalone edge** (`flip_beyond_pd_bt.py`, raw PF 1.00) — keep observational.
+
+### IMMEDIATE NEXT TASK (USER DIRECTIVE, "starting today") — full-tape recording DB
+- **Record EVERYTHING (tick, bid, ask, volume) 23h/day for ES + NQ + MES + MNQ, building the DB while
+  the live tools run.**
+- FINDINGS (corrected 9/18 — an EARLIER note wrongly said nothing was recording; it missed `data/l1_tape/`):
+  **ES L1 IS already being recorded, live + continuous.** `nt8/addons/L1TapeRecorderAddOn.cs` writes
+  `data/l1_tape/ES_{contract}_l1_{date}.csv` = tape + best bid/ask + connection markers (cols
+  Time,Ev,Side,Price,Size,Aggr; Ev = T tape / A ask / B bid / C conn). Files present for 9/16-17-18
+  (~76-100MB/day), correctly rolled to **12-26**; `MyQuant L1 Recorder Watchdog` green (10-min);
+  `scripts/l1_rollover.py` converts finished CSV→parquet (~13x) in the 16:00-17:00 CT halt + archives to
+  the private `~/myquant-data` git repo. **On 9/18 the `MyQuant L1 Rollover` task was failing 0x1** — a
+  category-dtype bug in l1_rollover.py — **FIXED (026588fe)**, backlog (9/16+9/17) converted+archived.
+  (The `data/ticks_continuous*` troves are a SEPARATE trades-only source for the 5M/2k engine.)
+  `MarketDepthRecorderAddOn.cs` (full L2 book) also exists but is **Disabled** (heavier; separate decision).
+- **THE GAP vs the user directive: only ES is recorded — NQ, MES, MNQ are NOT yet.** That is the build:
+  extend the L1 recorder (and its rollover/watchdog/roll) to all 4 front-month contracts.
+- PLAN: extend the AddOn to the 4 instruments (or build a lighter L1 tape+best-bid/ask recorder), verify it
+  actually writes, add a **watchdog + Telegram alert**, define storage layout + nightly parquet ingest +
+  a Mission Control "recorder alive" card.
+- **OPEN DECISIONS (ask the user first):** (1) capture depth = full **L2 DOM** (heaviest, multi-GB/day/instr,
+  the existing AddOn) vs **L1 tape+best-bid/ask** (footprint-complete, ~sane disk — RECOMMENDED) vs hybrid
+  (L1 all 4 + DOM for ES/NQ); (2) storage location + retention + disk budget (DOM ≈ TB/yr); (3) confirm the
+  NT data feed includes **NQ/MES/MNQ** (+ depth if DOM) — a dependency we can't verify; (4) front-month
+  contracts — TODAY (9/16) all four are still **09-26**, roll to **12-26 at Sep expiry Fri 2026-09-18**;
+  recorder must handle the roll (`data/es_roll_override.json` no longer present).
+- CONSTRAINTS: ES/Globex ≈ 23h/day (Sun 17:00 CT → Fri 16:00 CT, ~1h daily halt) — NT + recorder must run
+  continuously with a watchdog; **L1 gaps are unrecoverable** (Databento MBP-10 = paid backfill safety-net).
+  **Live tools DON'T need the archive** (they read the live feed); the archive is for backtest/refine/journal.
+- STATE-CHANGE RULE (CLAUDE.md): enabling the recorder needs an NT restart (user action) + a watchdog task —
+  **ASK before starting any task/daemon.**
+
+### THE 3-STAGE TOOL BUILD (proposed, NOT started)
+1. **Foundation — levels+effort:** Volume Profile engine (VPOC/VA/HVN/LVN/naked+developing VPOC, session/
+   composite/fixed-range) computed from the tick troves → drawn in NT8; VWAP session+weekly ±σ; **Weis-wave**
+   (per-swing volume); **last-HVN bias line** + price-vs-VWAP/VPOC state; footprint absorption/initiative
+   from `FootprintExporter`.
+2. **Structure:** "**Wyckoff TR Box**" whole-range drawing tool (draw the box; auto Phase A-E partition; edges
+   as LVN-snapped zones; sloping mode) + **retroactive event engine** (climax=edge; spring confirmed only by
+   the opposite-edge breakout; test=No Supply/No Demand; structural failure; SOT).
+3. **Integration:** at an armed zone → OF absorption+initiative + SOS/SOW bar → propose stop-entry, SL at LVN,
+   TP at HVN→VPOC/naked VPOC, R/R + alternative scenario; a "setup ready" panel.
+- PENDING USER DECISIONS: **data source = build from OUR OWN data (CONFIRMED, no NT Order Flow+ package)**;
+  chart workflow (2k with higher-TF VP overlay vs two-chart vs both — I lean "both/either", bar-agnostic) =
+  UNDECIDED; start point = **Stage 1** (recommended). User had said "build it all" then redirected to read
+  book 2 first — the build is greenlit, sequence TBD.
+
+### LAST-PHASE VISION (user's words)
+Discretionary-assist system (full automation abandoned), a **playbook they stick to** (the 4-gate checklist:
+context→location→trigger→risk), a **custom trade journal** tied to the playbook + the daily recorded data,
+and after **~100 trades retune the indicators** to their style. Testable pieces (80% reversion, edge-fade,
+break-retest, spring+confluence) → backtest on the trove with the usual frozen-spec train/test discipline.
+
+### COMMITS this session (branch leglab): Wyckoff effort filter + walk-forward + spring/upthrust marks +
+skip-TSO + beyond-PD detector + middle-click inspector + WyckoffTRZone drawing tool + spring/test grading +
+3-factor rebuild + drawn-zone rejection logic; both book synthesis notes; the Wyckoff Study artifact + MC
+catalog wiring. All committed; pushed at session end.
+
+## S118-props (2026-09-14→15, leglab chat) — prop-firm rules (TPT + Topstep) applied to Regime2E
+
+Continued the prop-firm rule investigation (Apex done prior). Scraped **Take Profit
+Trader** and **Topstep** verbatim and ran Regime2E funded-survival + eval-pass sims
+under each firm's DD model. Full write-up: `docs/research_notes/prop_firm_rules_regime2e.md`.
+
+**Scrapes (Playwright/Chrome; both KBs 403 WebFetch, like Apex):**
+- TPT: 66 pages → `reports/tpt_scrape/` (`_INDEX.md`/`_ALL.md`). Scripts
+  `scripts/tpt_scrape.py`, `scripts/tpt_fetch_pages.py`.
+- Topstep: authoritative rules via `topstep.com/express-funded-account-rules` +
+  Intercom payout policy + official homepage base rates.
+
+**THE decisive rule = drawdown TYPE for a hold-to-EOD book:**
+- **TPT PRO (funded) = INTRADAY** trailing on peak realized+unrealized (like Apex
+  legacy funded) — hostile. Locks at START (Apex locked start+$100). Max acct
+  150K/$4,500 DD (Apex went 300K/$7,500). PRO is **SIM**; PRO+ is live, invite-only.
+- **Topstep XFA (funded) = EOD** trailing ("highest end-of-day balance") — friendly.
+  Same DD $ (2k/3k/4.5k for 50/100/150). XFA is SIM; LFA is live.
+- TPT payouts: daily, no min-days, BUT buffer (= start+DD) withheld until you close
+  after 60+ trading days (50% if ≤60d). Consistency 50% (Apex 30%). News-flat rule:
+  flat ±1min around FOMC/NFP/CPI. Topstep XFA payout: 5×$150 winning days, caps
+  $2k/$3k/$5k, 90/10 (100% of first $10k), min $125.
+
+**Regime2E sims (real trove ticks, one_per_day, 294 trades, COST $17.50/RT parity):**
+- New scripts: `regime2e_tpt_intraday.py`, `regime2e_tpt_funded_mc.py`,
+  `regime2e_topstep_eod.py`, `regime2e_micro_sizing.py`, `regime2e_topstep_combine.py`.
+  Outputs in `reports/regime2e/*_out.txt`.
+- **At 1 ES the small $4,500 DD is the killer** — funded blow<1yr: Topstep 150K 28%,
+  TPT 150K 38%; sequential path blows every size on TPT, only 150K@1ES survives Topstep.
+- **FIX = MES fractional sizing.** 150K @ **0.5 ES (5 MES)**: Topstep **2.6% blow /
+  +$4,565/yr**, TPT 6.4%/+$4,468. Topstep beats TPT at every size. Both permit MES
+  (comm $1.50 vs $4.50 ES; Topstep 10 MES = 1 ES vs the position cap on native).
+- **Eval vs funded want OPPOSITE sizes:** Combine has no capital at risk → size UP to
+  pass (150K 1.0–1.5 ES = 56–73% pass-odds, ~6–9mo), then size DOWN to 0.5 ES funded.
+- Topstep Combine fees ~$49/$99/$199/mo + $149 activation; 30–40% promo codes common.
+  Official 2025 base rates: 16.8% of Combines passed, 51.8% of people, 33.3% got payout.
+
+**RECOMMENDATION: Topstep 150K.** Eval ~1.0–1.5 ES, funded ~0.5 ES.
+**TBC (paused, user "another day"):** model TPT news-flat rule (forced flat/skip on
+FOMC/NFP/CPI); expected $-cost-to-funded per size; confirm Topstep live price at checkout.
+
+## S119 (2026-09-15→16) — SPY BOUNCE LIVE TRACKER (running) · tempo climax-flip CLOSED · desk fixes
+
+### 🟢 CONTINUE HERE — SPY 0DTE-bounce live paper-tracker (RUNNING)
+4 SPY option structures paper-tracked to expiry, marked every 30s off **LIVE OPRA**, with a
+self-refreshing dashboard (per-trade equity curves + break-even + market-implied POP + min/max lines).
+- **Live data:** SPY **OPTIONS = realtime OPRA** via IB paper 4002 (marketDataType REALTIME, penny-wide).
+  SPY **STOCK = delayed** (err 10089) → spot derived from 757 put/call **parity**. (Index SPX/VIX/ES also delayed.)
+- **The 4 structures — entry LOCKED at marketable fills (buy ask / sell bid), 2026-09-15 ~20:22 machine, SPY≈757.5:**
+  - #1 Long 758C 09/16 · **$296 debit** · BE 760.92 · POP ~33%
+  - #2 757/759C call debit spread 09/16 · **$107 debit** · BE 758.06 · POP ~47% · max profit ~$93
+  - #3 756/754P put credit spread 09/16 · **$65 credit** · BE 755.35 · POP ~60% · max risk $133
+  - #4 Long 757C 09/22 (~1wk) · **$573 debit** (OVER the $300 budget — tracked anyway) · BE 762.69 · POP ~36%
+- **Files (committed):** `scripts/spy_bounce_quote.py` (one-off pricer), `scripts/spy_bounce_tracker.py` (tracker).
+  Data in `data/spy_bounce/`: `tracker_state.json` (locked entry, persists), `pnl_timeseries.csv` (30s snapshots),
+  `tracker_dashboard.html` (auto-refresh 30s, open in browser).
+- **Run/manage:** `.venv/Scripts/python.exe scripts/spy_bounce_tracker.py` (background; RESUMES the locked entry from
+  state). `--reset` re-locks entry NOW. It's a background process tied to the session — **if the machine/session
+  restarted, RELAUNCH it** (entry preserved in state; only the 30s marks paused). Settles each structure at
+  intrinsic vs SPY on its expiry (#1-3 = **09-16 TODAY, post-FOMC**; #4 = 09-22). POP = market-implied risk-neutral
+  prob of profit from the live ATM straddle — **NOT an edge**, FOMC move already priced in.
+- **STATUS 2026-09-16 ~05:02 machine (pre-cash-open):** tracker still running; marks = None (no OPRA
+  outside RTH); `settled` still empty — #1-3 settle at today's 09-16 close (post-FOMC), #4 on 09-22.
+  Nothing to do but let it run to settlement.
+- **GATED (2026-09-16, this session):** tracker now only marks/appends/writes "LIVE" while SPY options
+  actually quote — **09:30–16:15 ET, Mon–Fri, ex-holidays** (13:15 on early-close days); helpers
+  `market_status`/`expiry_close_et`/`next_session_open` + holiday/early-close sets in the script.
+  Outside RTH it idles (no CSV row, dashboard shows **CLOSED** pill + next-open, holds last live marks).
+  Settlement moved to **16:00 ET on each expiry date** at last live SPY; `last_spot` persisted in state.
+  Stripped 847 overnight None rows from `pnl_timeseries.csv` (1066→219). Restarted with user OK
+  (killed 18612/20500 → relaunched; pair 6600/16056). Gate unit-tested (all boundaries pass).
+- **INTEGRATED into the Options Desk (2026-09-16):** SPY Bounce is now a **tab** in the desk
+  dashboard (`options_dashboard.py`), immediately after "IB vs TD"; embeds the tracker via
+  `<iframe src="/spybounce">`, route added in `options_dashboard_live.py` (:8600). (First tried a
+  Mission Control launcher card — reverted; user wanted a desk tab.) Confirmed live: pill LIVE,
+  marking off OPRA in RTH. Commits e84b1af1 (tab) + earlier gate/commit chain.
+- **EVENT CONTEXT:** 09-16 (today) = **FOMC decision** (gexlog "Elevated"); 09-18 Fri = **quad-witching** + ES Sept
+  settlement. My read (user asked): long calls (#1/#4) into FOMC are IV-crush-exposed; #3 (sell premium) benefits
+  from the crush; cleanest bounce trade is AFTER the Fed clears. User's thesis = oversold-bounce into the close.
+- **Offered, user declined/deferred:** scheduled-task for #4's week-long survival; remote share to Thomas
+  (Tailscale/Vercel — a plain HTML send does NOT live-update, needs serving).
+
+### Tempo climax-flip lab (board 11) → **CLOSED: NO mechanical edge**
+Survives neither realistic fills nor forward-time. Load-bearing bugs found & fixed, each killed phantom edge:
+ideal-fill fantasy (at-close market orders don't fill at the bar close → next-print +1t ⇒ PF 1.12→~1.0);
+SAR-reversal-exit **lookahead** (priced at the signal bar; fixed ⇒ 16yr 5M/1M PF 1.3→<1.0); row-vs-**time** bar
+adjacency (phantom flips); stale 2000t bars + **wrong contract** (recent trove was ES 09-26, user charts **ES 12-26**
+— different tick stream ⇒ different bars/climax; roll to ESZ6 offset 67.75 roll_date 09-14 is DONE in rolls.json +
+tick_pipeline). Engine rebuild ≠ live NT chart because of contract + the trove tick-**undercount** (board 15, unfixed).
+User corrected me: a stop-entry does NOT fill on touch — the "expired" short was CORRECT (EB didn't tick through).
+- **Deployed to `nt8/indicators/TempoSpeedometer.cs` (compiled+committed, PENDING user F5):** SE stop-entry +
+  order-life param, **EntryMode Close/StopEntry**, EbOnSignalBar, MinSbBodyTicks, doji guard, bar1-color-only signal,
+  settings reorg (5 groups), speedometer → bottom-right + colored gauges + SpeedoCorner param.
+- Committed research scripts (tempo/scripts): flip_bucket_study / flip_edge_report / flip_location_study /
+  flip_year_decomp / flip_wedge_join / flip_walkforward(_v2) / flip_wf2_sar_trace / flip_sar_attrib / flip_dir_rule_test /
+  flip_tick_backtest / flip_config_sweep / flip_close_fill_test / flip_limit_entry_test / flip_16yr_5m1m /
+  flip_why_no_short / flip_chart_render.
+
+### NEW HARD RULES (memory — apply everywhere)
+- `no-unrequested-backtests` — never run backtests/studies unasked; requested change → implement/deploy/stop.
+- `results-reporting-standard` — every result table states the exact PERIOD + breaks out per setup; never mixed-only.
+- `backtest_fill_realism` (updated) — **NEVER show ideal-fill numbers, EVER**; realistic fills are the only numbers
+  the user sees; fill model fixed in the spec before running; same realism in every arm.
+
+### Desk ops (09-15)
+- **Contract-flap alert FIXED** (`scripts/pipeline_health.py check_contract`): was picking the most-recently-touched
+  ES folder → flapped OK↔WRONG hourly (09-26 still trades until its 09-18 expiry). Now checks whether the FRONT
+  MONTH (12-26) is being recorded FRESH. Verified stable OK. Board 16 note was stale (roll already done).
+- **`tempo_engine_bars.parquet` is a MANUAL artifact** (build_2000t_features → tempo_engine) — does NOT auto-update.
+- 09-15 desk: SPX sold through the put wall, both bull puts stopped (−$714 realized), HIGH-VOL / Day-5 neg-gamma day.
+
+## S119-tempo (2026-09-12, tempo chat) — climax-bar dissection · WALK-FORWARD · S117 verdicts revised
+
+User asked: dissect the climax bars, find an edge, then demanded honest walk-forward. Result: the
+setup SURVIVES but smaller than quoted, and two S117 verdicts got corrected. All scripts committed
+(`tempo/scripts/flip_bucket_study / flip_edge_report / flip_location_study / flip_year_decomp /
+flip_wedge_join / flip_walkforward(_v2) / flip_eb_belimit / flip_wf2_sar_trace / flip_sar_attrib.py`),
+dated outputs in tempo/outputs.
+
+**HEADLINE (quote these, not the S117 in-sample numbers):** walk-forward (72-config grid, IS=through
+2022 per user, expanding, select on prior years only): **OOS 2023-26 PF 1.08-1.11, +$13.5-20.5/trade
+gross, ~$9-16 net @$4.50RT, maxDD −$14-15k** (select-by-pts / select-by-PF). Hand-picked config same
+span PF 1.15 (in-sample-flavored). Stable WF pick: **IBS + RR2 + skip-hour-8-Basic**, no EB, SAR added
+only for 2026.
+
+**VERDICT REVISIONS vs S117 table:**
+- **SAR: downgraded to regime-only.** Head-to-head (IBS+noEB+RR2+skipH8b family): noSAR won EVERY year
+  2022-24; ALL of SAR's benefit is 2025-26 (+541/+210 pts vs +123/+58). Attribution (`flip_sar_attrib`):
+  divergent-day FREQUENCY ~unchanged (13.6%→16.7%) but per-opportunity EDGE sign-flipped (−1.45 →
+  +8.03 pts/div-day) ⇒ the rule itself only worked recently. Watch rolling live, don't trust structurally.
+- **EB-scratch ("setup 3"): paid insurance, not alpha.** Flagged trades (n=357): ridden −$68.7/tr
+  (21.6% still hit 2R target) vs scratched −$88.8 ⇒ scratch costs ~145pts full-history; 23-26 ~wash
+  (+36pts for scratch); DD benefit (S117 1yr −6.5k vs −9.9k) is the only argument. WF never picks it.
+- **BE-limit variant (user idea, tested): REJECTED.** Work a limit at entry after wrong-IBS EB:
+  63% exit at $0 but 37% eat the FULL stop waiting ⇒ −$96/−$100 per flagged trade (touch/thru), worse
+  than scratch AND ride, both periods.
+- **NEW VALIDATED RULE: skip Basic (from-flat) entries in the 8:xx hour.** Basic hour-8: −$51/−$48 per
+  trade in BOTH halves; SAR hour-8 entries positive — keep those. WF adopts this rule at 2023 on its own.
+
+**Bucket-study residue (weaker, R-checked):** in-range flips ≥ fresh-extreme flips (newsess/beyondPD
+consistent sign but magnitude mostly 25-26); flip-away-from-POC-Y > toward (both halves, modest); VA-Y
+zones / PD-range sub-zones / 30+ other features: dead or sign-flip. Why 25-26 $ looked huge: half scale
+(box 4.75→6.95pt, ES 5307→7138; fixed-risk 2025 ≈ 2022/23) + config selection had used 1yr metrics.
+**Wedge lead (OPEN):** beyond-PD flips WITH same-side MyWedge signal ≤2 bars: n=19, PF 2.84, +$180/tr
+(6-mo NT export overlap only; inside-PD+wedge negative n=16). NO python wedge detector exists — **port
+MyWedge .cs → python** to test full-history. Hindsight check: user's failed-BO-makes-HOD/LOD intuition
+real (n=46 beyond-PD traps held as day extreme: PF 10.9) but flag is circular + 3% of signals.
+
+**PENDING USER DECISIONS:** ① indicator defaults: `EbScratch` ON and `ReverseOnOpposite` ON are both
+now weakly supported — flip defaults? (do NOT change without his word); ② RR-target param on chart
+(still renders 3R); ③ MyWedge python port go/no-go; ④ setups formalized as 3: Basic / EB Reversal /
+EB-scratch (user: "not really a setup" but track it).
+
+## S116-gexlog (2026-09-10 → 09-11, this chat) — morning-brief deep-read · usage map · playbook-only backtest
+
+Focus: the GexLog morning brief itself — what's in it, what the sim actually consumes, and whether FOLLOWING it would have made money.
+
+- **9/9 morning brief dissected** (raw JSON, all blocks): rules-layer signal said GO/"normal sizing for iron butterflies + credit spreads" while the SAME report's AI narrative + playbook said negative-gamma/no-flip ⇒ avoid premium selling — the machine signal is calendar-driven and blind to gamma. Narratives claimed PPI/claims "today" but the structured calendar had them tomorrow (9/10) — the structured block was right. Published walls are GROSS put/call-GEX peaks (7625/7700); the net-GEX method gives 7550/7780 (our `corr_*` fields; display-only). Evening report graded the TREND forecast inaccurate (session MIXED, EM held) — 3rd consecutive day-type miss; desk sold premium anyway (by design) +$1,184.
+- **Usage map (code-traced, agent-verified):** decision-affecting brief fields = EM/emLower/emUpper/current (EOD+open strike selection), putWall/callWall (gx stream existence + strikes), playbook_wait (open/gexlog retime 08:30→09:05), generated_at/error freshness (stale ⇒ VIX-EM fallback + forced 09:05 WAIT). Everything else (signal, day_type, event gate, risk, confidence, net_gex, gex_flip, corr walls, pivots) = advisory/display/unused. Never-block-trades rule holds.
+- **Ignored-fields join study (board 13): CLOSED** — user judged it a dead end; committed for the record only (32674088, 860b1495).
+- **Playbook-only backtest (board 14): DONE (d2f059c3).** Parsed ALL 109 playbook days 327/327 scenarios (`gexlog_playbook_parse.py`, 3878be70) and traded ONLY the playbook mechanically (TD 1-min parity trigger detection + NBBO touch entries, hold-to-expiry, official close, $1.63 fees, 106d Apr–Sep): **touch −$42,977 / hold15 +$5,544 / cross15 +$356** — sign flips on how "clears and holds" is read ⇒ NO robust edge. Audit (`gexlog_playbook_bt_audit.py`): touch/hold15 buy deep-ITM debit spreads when the trigger level is already exceeded at the open (06-09: 75-wide @ 56.7 debit, −$5.5k) — hold15's +$5.5k is drift beta, not playbook skill; cross15 (fair reading, real intraday cross required) ≈ $0; Aug: all variants negative while the live desk made +$9.2k Aug–Sep.
+- Machine-time note: 9/10 + 9/11 morning briefs landed in `data/gexlog/raw/` during/after the session.
+
+## S117-tempo (2026-09-12) — THE CLIMAX-FLIP SETUP: from idea to PF 1.12 in one day. HANDOFF FOR CONTINUATION.
+
+**READ THIS BLOCK FIRST if continuing the flip-setup thread.** The user is actively
+designing trading setups on the tempo/climax framework; iterate WITH him — he supplies
+variants from screen time, we test each with the frozen-spec + train/test discipline.
+His two rules so far BOTH improved the setup; several of my own ideas failed. Score him.
+
+**THE SETUP (user's design, "trap thesis"):** two ADJACENT opposite-direction CLIMAX bars
+(tempo ≥p95 for time-of-day, self-calibrated trailing ~60 sessions). Thesis: traders got
+trapped on bar 1, bar 2 (SB) violently reverses against them → expect follow-through.
+bull→bear = SHORT, bear→bull = LONG. Entry = SB close; stop 1 tick beyond the 2-bar box.
+
+**CURRENT BEST CONFIG (all sim, 1 ES, gross unless noted):**
+climax flip + **IBS direction** (bull IBS≥0.55/bear≤0.45, middle band = no signal)
++ **SAR** (opposite flip signal while in trade = exit @ signal close + reverse)
++ **EB-scratch** (first bar after entry non-climax w/ opposite IBS → scratch @ close)
++ **fixed 2R target** (no BE, no trail) →
+**full 5.2yr: PF 1.12, +$14.5/trade gross, +$10.0 net(@$4.50RT), maxDD −$12.4k;
+1yr: PF 1.12, +$17.0 gross, DD −$6.5k.** ~2,750 trades. 2024 was a negative year.
+
+**Setup naming (user's):** "Basic" = flip w/o reversal entry; "EB Reversal" = entered
+via reversal. More variants coming — he names them.
+
+**TESTED VERDICTS (do not retest, build on):**
+- SAR flips the sign of the whole system (+375 vs −288 pts full). USER'S RULE. ✔
+- IBS direction: independent improvement. USER'S RULE. ✔
+- EB-scratch: validates trap thesis (flagged trades −1.37pt avg vs +0.60 unflagged);
+  scratch > reverse at non-climax EB (reversal needs climax energy). USER'S RULE. ✔
+- RR grid: **RR2 best** (RR3/RR4 ok on EB-Rev, RR1 weak; Basic only marginal @RR2). ✔
+- BE+1 lock (@1R) and 1-tick bar-trails: ALL WORSE (−$4-7/trade; avg winner 7.9→5.3pt,
+  losers unchanged — losers rarely reach 1R, protection mostly scratches real winners).
+  Only benefit: BE1_T2 cuts 1yr DD to −$4.3k. ✘
+- 6-tick scalp: structurally dead (1.5pt reward vs ~6.6pt risk needs 82% wins, has 72%). ✘
+- My 4 trap-geometry filters (trap-extreme/engulf/roundtrip/level-poke): sign-flip between
+  train 21-24 and test 25-26 → unreliable, rejected. ✘ (Trap thesis itself: supported.)
+- Older context: unconditional climax-at-extreme +3.6pp all-6-years; prior-EXPAND-run
+  conditioning passed clean (+0.05-0.09R); hour-5 contaminated post-hoc — see S116 blocks.
+
+**CAVEATS (state them whenever quoting results):** conservative both-in-bar→stop;
+SAR/scratch fills modeled AT the close of fast bars (real slippage will cost ~1t on
+~30% of trades ≈ −$4/trade); no walk-forward of the 2R choice; 2024 negative.
+
+**TOOLING (all committed, branch leglab):**
+- NT8 `nt8/indicators/TempoSpeedometer.cs`: full setup rendering (boxes, RR lines,
+  outcome tags Xstop/OK 3R/rev/eb-scr/open, skip boxes, session tally w/ R-reach,
+  per-setup HOVER CARDS w/ setup name), params: ShowClimaxFlip / ReverseOnOpposite /
+  UseIbsDirection / EbScratch. ⚠ chart target still hardcoded 3R — user asked about
+  RR2; offer a target param. Splice pattern: `tempo/scripts/_splice_flip.py`.
+- Backtest harness (all mirror the NT rules exactly, run in ~1min on
+  `tempo/outputs/tempo_engine_bars.parquet`): `flip_backtest.py` (base+scalp),
+  `flip_sar_backtest.py` (SAR/IBS grid), `flip_metrics.py` (full metric grid),
+  `flip_eb_test.py` (EB rule), `flip_trap_mgmt.py` (filters+management, has the
+  train/test pattern to copy). Engine port: `tempo_engine.py` (exact v2 indicator math).
+- Marking tool `tempo/scripts/tempo_review.py` @ :8642 (levels, zoom, multi-bar marks
+  → data/annotations/tempo_review/). User has 1 mark; the A-grade trap study waits on ~30.
+
+**OPEN / NEXT:** ① user has more variants coming — test each: one frozen spec, train/test
+split, report inline, deploy to indicator if adopted; ② offer RR-target param on chart;
+③ tick-level fill validation of SAR/scratch fills (ThetaData pattern) before any sizing;
+④ ETH tick capture in progress on desk side (S116-B: NT .ncd holds full ETH) → rebuild
+engine 24h when it lands; ⑤ marking-loop commonality study at 30+ marks.
+
+## S116/117-tempo ADDENDUM-2 (2026-09-11) — climax-reversal marking loop built; studies continued
+
+- **Indicator iterations (user-driven, all deployed+committed):** Data Box rows for BOTH indis
+  (native NT Data Box — custom click-card built then REVERTED per user); amplitude displayed as
+  **% of ABR(8)** (prior-8-bar mean range; user correction — and the tod table PROVED per-bar
+  range is flat across the day on tick charts, p50 4.00–4.25 every bucket); **EXPAND/GRIND are
+  now MULTI-BAR states** (user: 60-pt run lit no green — per-bar rules can't see tick-chart
+  trends; eff10=|10-bar net|/Σrange ≥0.30 & t10≥50, calibrated via `eff10_calibration.py`).
+- **Studies:** climax conditioning pair — C1 level-confluence REFUTED (climax at PDH/PDL
+  reverses LESS: 33.0 vs 38.0; level-break climax leans continuation), C2 eff-collapse NOT
+  confirmed (2021-22 artifact); C3 depth: climax = fatter tails BOTH ways (activity again).
+  Desk lookup SHIPPED: first-hour tempo quintile → rest-of-day range 0.63→0.94 ADR monotone,
+  ΔR² beyond r1h biggest 2025/26 (`opening_tempo_range_forecast.py`). Absorption-at-level
+  (user theory): NOT confirmed (n=143, unstable; big-print split points wrong way); pre-declared
+  DRIVE contrast: fast+wide PDH/PDL touches reject more (+5.3pp, 5/6 yrs) but 2026 = 0.
+- **CLIMAX-REVERSAL MARKING LOOP (the current thread):** `tempo_engine.py` = exact python port
+  of the v2 indis (climax 5.8%, EXPAND 6.4%); **`tempo_review.py` @ localhost:8642** =
+  book_review-style marking tool (indicator-faithful candles, state lanes, wheel/CTRL+wheel
+  zoom both axes, drag-pan, multi-bar setups via SHIFT+click, grade A–C + good/cons notes,
+  draggable dialog, toggleable levels from `tempo_levels_build.py` → levels_by_day.json:
+  HOY/LOY/COY/PDmid/OOD/OOW/OOM/OOQ/OOY/HOD/LOD/IB/VA-Y/W/M/Q/YR/VWAP + GAP band).
+  Marks → `data/annotations/tempo_review/<date>.json` (committed). **User marking in progress
+  (1 mark so far). NEXT: at 30+ marks run the commonality analysis (marked vs unmarked climax
+  bars).** User is also sourcing ETH tick data — when it lands: ONH/ONL levels, real overnight
+  gap range, 24h engine buckets, ETH-chart parity, climax-at-ONH studies.
+
+## S116-tempo ADDENDUM (2026-09-10 late) — v2 self-calibrating indicators + the user's-eye studies
+
+- **v2 rewrite (user: "different market today" — confirmed, climax share drifted 1.8%→10.1%
+  2021→2025):** both indicators now SELF-CALIBRATE from the chart's own bars (96×15-min
+  buckets over the chart clock, trailing ~60 sessions, rank pctile, warmup→rolling, no CSV/tz
+  code). Offline proof the old runtime was wrong: 2026-09-10 true climax share 3.4% vs NT's
+  wall of gold. TempoStateStripes panel added (7-lane regime racing stripes + Data Box per-bar
+  values). DIAG line shows b#/SELF/WARM. **User set-up note: chart Days-to-load ≥30 for full SELF.**
+- **Climax-at-high test (user's screenshot pattern, frozen spec, `climax_at_high_test.py`):**
+  new 20-bar extreme + tempo≥p95(self-calib) → P(rev)=36.8% vs plain-extreme control 33.2%,
+  **+3.6pp, z=3.3, positive ALL 6 years + last250d.** First event-level tempo effect to
+  replicate by year. Small: 2 of 3 climax extremes still continue. No P&L claims (fill-realism
+  rule) — asymmetric-target gross-EV note in the session log only.
+- **Wedge+climax confluence (`wedge_climax_confluence.py`, MyWedge 6-mo export Feb–Aug 2026):**
+  overall INCONCLUSIVE (+2.9pp, z=0.72, monthly sign flips; 45% price-match rate = feed noise).
+  One suggestive POST-HOC cell: **LONG wedge + climax = 35.2% vs 24.0% plain long (n=54, z≈1.8)**
+  — capitulation-flush longs. ⏳ NEXT: user runs WedgeExporter over a longer history (NT-side),
+  then ONE pre-registered retest of the long-side cell only.
+
+## S116-tempo (2026-09-10, tempo chat) — 2000t tempo/market-state study: Stages 0–2 run to the pre-registered verdict
+
+New workstream from the user's ES_2000T_Tempo_Market_State_Handoff.md (the "ES speedometer"
+idea). Roadmap agreed up front: cheapest-falsification-first, kill gates pre-registered,
+stop without a clear signal. All in `tempo/` on branch `leglab`, 3 commits.
+
+- **Stage 0 — data + build.** Trove audit CLEAN (1,314 days 2021-06-18→2026-09-09, 0
+  non-monotonic, 0 out-of-session; 50 missing weekdays = holidays; 13 half-days + 3 holiday
+  stubs flagged and excluded downstream). Built 2000-tick bars + features full history:
+  **236,663 bars**, median 168/day, duration p10 41s / med 106s / p99 498s
+  (`build_2000t_features.py` → `bars_2000t_all.parquet`, committed; per-day checkpoints gitignored).
+- **Stage 1 — redundancy kill-gate: PASS** (`redundancy_gate.py`). Tempo is NOT a monotone
+  function of vol (corr .46 range / .44 rv20 / **−.24 volume** — fast bars = smaller avg trade
+  size). Tod-adjusted tempo adds forward-ACTIVITY information every year (fwd_range pcorr
+  .13–.35, ΔR² .004–.057 over range+vol+volume+eff baseline; strongest 2021, weakest 2025).
+  Direction: null all 6 years (H1 confirmed). Future |net move|: marginal.
+- **Stage 2 — event fingerprints: H4/H5 NULL** (`event_fingerprints.py`, frozen spec in header;
+  LegLab leg engine on 2000t bars; splits 21-24/2025/2026). ① Prospective 0.7×ADR extension
+  moments (n=526 resolved): P(rev) base .36–.45; ALL tempo/eff features |d|≤0.3 with
+  split-unstable signs; H4 2×2 (tempo-hi × eff-falling) flat at base rate in discovery.
+  ② Pullback continue-vs-fail (n=1,767): tempo terms weak/unstable; only size_ratio (d≈−1.1)
+  and pb_bars (d≈−0.9) discriminate — structural + partly mechanical (label entangled).
+  One mid-run fix was spec-compliance, not tuning (continuation target was ratcheting; spec
+  said fixed at extreme-at-te + 0.25×ADR).
+- **Verdict per the roadmap:** research stop. Second house result in a row (after LegLab) that
+  an ES intraday structure/activity signal carries NO directional/event-discriminating edge;
+  tempo's real content is an activity/vol forecast.
+- **BUILD PHASE (user directed: build the visuals regardless — observational, he pattern-hunts
+  by eye):** all committed same session.
+  ① `tempo/outputs/tod_percentiles.csv` — 3 metrics × 27 15-min buckets × p1–99 from 235,350
+  bars (the intraday U: open p50 36 t/s, midday 11.5, 13:00 p95 spike = econ releases, close burst).
+  ② **NT8 `nt8/indicators/TempoSpeedometer.cs`** — opacity bars (direction color, opacity =
+  tempo pctile FOR THAT TIME OF DAY; gold climactic ≥p95), speedometer block (TEMPO/AMPLITUDE/
+  EFFICIENCY pctiles + ACCEL state + rule-based state label + CLIMACTIC tag), session heat strip,
+  2D tempo×amplitude engine dot (20-bar trail, quadrants), realtime pace-of-tape (OnMarketData
+  30s window, tod-calibrated — idea borrowed from user's pasted PaceOfTape, minus its fixed-1500
+  threshold + alert-spam bugs) + optional climax audio alert w/ cooldown. Toggle tod-table vs
+  rolling-200 calibration. Compile-check OK, deployed to Custom. **PENDING USER: F5 (when flat)
+  + add to the ES 2000t chart** — compile check can't see render errors, F5 is the gate.
+  ③ **Day-DNA gallery** `tempo/outputs/day_dna_gallery.html` (open in browser; standalone) —
+  1,314 days as tod-calibrated tempo heat strips, k-means k=6 clusters (sizes 119/229/291/343/71/261),
+  sort/filter/hover, click→detail + 5 nearest-profile neighbour days.
+- **INDICATOR ITERATIONS (live with user on chart, 2026-09-10):** ① opacity invisible → tried
+  quadratic curve, then 5 discrete shades — user rejected bands, wants TRUE opacity (restored,
+  quadratic, min 10%). ② climactic bars now KEEP direction color; climax = gold outline + gold
+  dot above high + gold strip cell. ③ TWO bucket bugs found from screenshots: (a) session-template
+  anchor — ETH template clamped all RTH bars into the last bucket (all percentiles high, uniform
+  bars); fixed to exchange-clock anchor; (b) tz source — NT displays CT but code assumed PC-local
+  Berlin → −7h shift → RTH bars scored on the GLOBAL grid → excess climax golds all morning;
+  fixed via `Core.Globals.GeneralOptions.TimeZoneInfo`. ④ Added a DIAG speedo line
+  (`DIAG 09:53CT b5 34t/s TOD`) so bucketing is verifiable on-screen.
+  **⏳ OPEN / NEXT SESSION: user F5s and checks the DIAG line — must show a time matching the
+  chart axis + mode `TOD` (not `GLOBAL(!)`); then golds should thin to ~1-in-20. If wrong,
+  screenshot → fix. User's instance still has MinOpacity 25 (old default) — suggest 10. User
+  stopped the session here deliberately ("before i break something").**
+
+---
+
+## S115 (9/9→9/10, Chat B) — engine v2 rebuilt DESK-FAITHFUL · full history rerun · killer-day study + adversarial audit
+
+**Arc:** user challenged the 4.3yr backtest → per-trade Aug audit exposed 3 engine defects
+(fixed) → v2 engine validated vs live → full-history v2 rerun → overnight 48-agent
+killer-day workflow with adversarial verification. All committed on `leglab`.
+
+- **Engine defects found via live-vs-bt per-trade audit:** ① open* streams priced at a FIXED
+  10:05 ET while the desk enters regime-armed 08:33 or ~09:05 CT (gameplan `playbook_wait`,
+  brief-blind ⇒ WAIT) ② no entry gate (74 negative-credit rows, −$3,590; 08-25 eod snapshot
+  crossed quotes) ③ no 14:45 CT quotable-close. **v2 fixes all three** (`backtest_august_rerun_v2.py`
+  Aug validation; `backtest_full_v2.py` history; `data/econ_calendar_2022_2026.csv` FOMC/CPI/NFP
+  from Fed+BLS for the calwait policy band).
+- **Aug live-vs-v2 (`live_vs_v2_metrics.py`):** credits reconcile to −1% total (live 629.35 vs
+  bt 635.50 over 118 trades); condor streams match to ~$; the whole +$3,352 P&L gap = 3 openfly
+  trades (08-19 outage +1,384 unmanaged-luck + two 5-pt grid-step stop/expire flips ~+1,000 each).
+  ATM strike re-derivation carries irreducible ±1-step noise (desk feed second-level vs parity
+  minute-level) ⇒ single-month fly P&L is ±1k/trade chaos; multi-year only.
+- **Full-history v2 (`rows_v2.csv`, 1,082 days):** combined −$243k, PF 0.79, negative every year.
+  Desk's real 09:33 ET open entry is −$17k worse than v1's 10:05 ET anchor. calwait≈nowait
+  (Δ−1k over 4.3yr; Aug's +587 was noise). Gate on: eodic_p now flat (−755); eodic_c −19k = the
+  condor bleed; flies −159k(eod)/−57k(open) unchanged story.
+- **Killer-day study (48-agent workflow + adversarial audit) — `docs/research_notes/killer_day_mitigation_S115.md`:**
+  33-day forensics: 22/33 detectable by 08:30 CT; 11 ambushes (Trump-post cluster = breaker-only);
+  half the killers are MELT-UPS (call side); 6+ killers sat on calendar-missing dates (OpEx,
+  month-end/rebalance, ECB, elections, ISM, CPI-eve). Rule sweeps produced spectacular stack
+  headlines (ic +45k) that the adversarial audit KILLED as in-sample-on-test + Bonferroni-dead.
+  **Survivors (hypotheses only, advisory-only per desk rule):** fly-dies-in-elevated-vol
+  (p_bonf 2e-6 ⇒ the real action is retire the fly book), ic call-leg-drop when cr_c>2–3,
+  total_cr<1.0 dead-tape floor, skip_FOMC, puts_band −1000 breaker (dominated risk). Repro
+  audit: all scripts reproduce byte-identical, no lookahead.
+- **STAGE-2 breaker DONE (9/10 day, clean run, 0 missing quotes)** — `breaker_sim_v2.py`, exact
+  stop timestamps + TD breach-minute closes, results in report + `killerday/breaker_v2_*.csv`:
+  **puts_band −1000 realized = ADOPT (advisory): +3,342 (train +942 / test +2,400, 9 saves
+  +4,070 / 2 whipsaws −728 / 24 neutral)**; ic negative at every level; fly-containing books no.
+  Report + PDF rendered/exported (`killer_day_mitigation_S115.{md,pdf}`).
+- **Ops (9/10):** Theta Terminal died mid-session silently + `td_shadow_live` had no launcher task
+  (2-day-old feature, hand-started 9/8+9/9) → morning shadow book missing; recovered intraday
+  (late-start + `td_shadow_reprice --no-settle` new flag → entries within 0.0–0.2 of IB). Fixes:
+  `theta_terminal_watchdog.py` + 10-min task (firing, result 0) + `MyQuant TD Shadow Live` daily
+  15:25 machine. 22:20 reprice first scheduled run CLEAN (8/8; 4 exact exits + 4 settles).
+  `td_shadow_live --dry` no longer sends Telegram (test paged the user with NO-TD-QUOTE spam).
+- **NEXT:** ① expand `econ_calendar` with OpEx/month-end/rebalance/ECB/elections/ISM/CPI-eve
+  (≥8 of 33 killers sat on missing dates) then re-test event rules once ② user decision on
+  retiring the fly streams (advisory-only — desk keeps trading for the record) ③ forward/paper
+  scorecard for call-leg-drop cr_c>2–3 + total_cr<1.0 floor + the puts_band −1000 breaker
+  ④ optionally wire the breaker into the daemon as advisory signal ⑤ verify tomorrow 08:25 CT
+  shadow auto-start (first scheduled run) + watchdog restart path against a real fault.
+
+---
+
+## S115-B (2026-09-09 evening, Chat B) — IB-vs-TD tab now settles same-day; reprice automated
+
+User complaint at 22:28 machine: IB-vs-TD tab showed 7/9 trades "open" post-close.
+
+- **Root cause (3 layers):** the tab's "expired" flip comes only from `td_shadow_reprice.py`, which (1) had NO scheduled task, (2) needs TD's `/v3/index/history/eod` row which publishes late evening (error 472 until then), and (3) its Yahoo fallback used `yahoo_spx()`, which drops TODAY's row by design (the S114 mid-settle guard) → same-day settle was impossible.
+- **Fix (e4df8c1f):** reprice settle-close now falls back to `options_postmortem.official_close()` — the SAME number the desk book settles at, so both sides of the compare use one close. NEW scheduled task **`MyQuant TD Shadow Reprice`**, daily 22:20 machine (5 min after the 22:15 postmortem), logs to `data/options_sim/td_reprice_sched.log`. Created with user approval.
+- **Fee bug fixed (same commit):** `td_vs_ib_dashboard.ib_pnl()` charged close-side fees on EXPIRED rows (expiry = cash settlement, no closing executions) → IB P&L −$3.26/2-leg-trade vs the postmortem. Now entry-side fees only on expired rows; all 7 expired rows verified to tie to postmortem exactly.
+- **9/9 book settled + verified:** 2 closed (eodfly_p −256.52, openfly_p −96.52), 7 expired all-OTM (+327/+107/+47/+307/+722/+7/+22 ≈ +$1,539) — postmortem, reprice, and tab all agree.
+- **Dashboard :8600 restarted** (user said "restart it sure"): killed the stale pair 15264/19864, `dashboard_keepalive.py` relaunched it (PID 12416), served page verified carrying the fixed values (326.74 present, 323.48 gone).
+- **Persistence answer (user asked):** every tab's data is saved per-day (dated gameplan/postmortem/eod_status/underlying, trades.parquet, `eod_report_<date>.html` = frozen EOD page, 27 days) + git-committed; live `dashboard.html`/`cards.html` are overwritten by design (pure renders). IB-vs-TD per-date history (shadow_book + reprice JSONs) starts 9/8 — the day the shadow layer went live.
+- Data commits: 0ffe1491 (EOD 09-09 artifacts), e4df8c1f (fix + 9/9 reprice/postmortem JSONs).
+
+## 🌙 S114 OVERNIGHT (Chat A, 9/8→9/9) — the 4.3-year backtest is DONE. Read this before touching strategy.
+
+User directive: "restart and run everything… break shit apart until u find filters and methods to improve all this."
+
+**DATA (all committed, `data/options_sim/backtest_full/`):**
+- `rows.csv` — IC streams, 1,082/1,082 days × vix252/vix365/straddle (straddle excluded from reporting per user). 33 rows = genuinely unlisted strikes, unfixable.
+- `fly_rows.csv` — fly streams v3, 1,083 days, clean (min credit 0.05; v1 kept as `*_BAD` — its openfly used the OPEN PRINT, 30pts off on drift days).
+- Engine validation chain: Step1a corr .9988 · strikes 35/35 · gexlog EM = prior_close×VIX/100×√252 (1.1pt) · stops **96/99 vs desk actual (Aug+Sep, zero exclusions)** · parity SPX 0.52pt.
+
+**BASELINES (1-lot, real touch fills, real stop rule, official-close settlement, $1.63 fees):**
+- **IC condor (vix252, the desk/gexlog formula): −$25k.** Independently ≈ ORATS's −$24k. 20/42 positive months; **14 killer days each erase 1.2–2.0 winning months** (all real events: 04/09-25 tariff squeeze, FOMC 12/18-24, carry-unwind 8/5-24, SVB…). Call side = the whole bleed (eodic_c −$17k). vix365 similar (−$26k).
+- **ATM fly streams: −$200.8k. Negative EVERY year, EVERY stream.** 77% stop rate, −$47/trade. No filter flips them (best, open_only: still −$42k). This is the architecture's biggest bleed. (Live desk's +$3.9k Aug = 2-month sample + ATM strike-flip luck; single-month fly realizations are ±1-strike chaos — only multi-year totals valid.)
+- IC vs fly daily corr −0.12 (no hedge value at these magnitudes).
+
+**WHAT WORKS (robust: positive on BOTH train 22-24 AND test 25-26):**
+- **IC puts-only + credit-band 0.5–2.5 → +$14.9k total** (train +33.5k / test +6.4k). Economic story: <0.5 credit isn't worth the risk (−$10.7k bucket), >2.5 = the market pricing what the EM missed (crash warning; every killer day had rich credit). NEEDS WALK-FORWARD before anything live.
+- Also robust: puts+no_big_gap (+$3.8k kept), calls_only_if_gap_dn, puts+vix<25. NOT robust: VIX-spike skip, prior-day-wild skip, gap filter (decays OOS).
+- Circuit breaker (user's −2k/−3k): already embedded in the per-vertical stop — adds only +6.6k/+0.3k upper-bound. −1.5k breaker looks +23k but needs the stage-2 intraday-path sim (not run; quota).
+- Killer-day framing: non-killer days are +$5.7k; the 14 days are −$34.3k. The strategy dies by event, not by grind.
+
+**LIVE-DESK BUGS (corrected 9/9 pre-open):**
+1. **Expiry settlement source — FIXED 9/9 (user approved "fix what needs fixing").** The postmortem settled at the tape's last tick; now `official_close()` (cache → live Yahoo → tape+warning), options_postmortem.py. ⚠ CORRECTION of the overnight claim: TD's official 9/8 close = **7673.52** — the desk's booking was right within $10; MY evening Yahoo fetch (16:04 ET, mid-settle prints) was the wrong number. FULL retraction 9/9: the feed never died early either — underlying_*.csv column `ts_et` actually holds CT (files open at 08:30=CT open); last tick 15:19 CT = 16:19 ET, post-close, 7673.62 ≈ official 7673.52. Desk was correct at every layer; both of my 9/8 claims (bad close, early feed death) were my own tz/source errors. official_close() fix kept as defense-in-depth. ⚠ ts_et column-name is a CT-mislabeled trap. Guard added: never ingest today's Yahoo row (backtest_full_em_2022.yahoo_spx); 9/8 cache row + fly rows + shadow reprice corrected to 7673.52.
+2. Analytics Max-DD tile = daily-close realized DD (−$1,783) — shallowest definition; intraday truth deeper (~−$2.2k). Offered: tile fed from shadow-stop monitor troughs.
+3. (08-19 daemon outage — already fixed by Chat B: crash-guard + hang heartbeat.)
+
+**OTHER SHIPPED OVERNIGHT:** dashboards+Mission Control restarted (stale-process class — see memory `stale-process-after-code-change`); :8650 settles expiries post-close; day-1 live IB-vs-TD final: 8/8 orders, credits ≤10¢, day totals within ~$5; Flex orderTime latency (median 2s, p99 19s, max 51s); Sept OOS stop test.
+
+**MORNING QUEUE (user decisions):** ① settlement-source fix ② intraday-DD tile ③ walk-forward the credit-band rule ④ stage-2 breaker sim ⑤ wall streams 2022→ (needs TD-computed wall history — the planned wall project) ⑥ ask TD support what the request quota/reset actually is.
+
+**Explicitly OPEN (not swept under the rug):**
+- **Daemon fix — VERIFY LIVE:** both classes now handled — crash (per-iteration try/except,
+  c080b5a9) + hang (daemon stamps `trigger_daemon_heartbeat.txt` each loop; `desk_watchdog`
+  `check_trigger_daemon` restarts on a stale stamp). Untested against a real fault. Next session:
+  confirm the heartbeat file updates during RTH and the watchdog logs/acts if it goes stale.
+- ThetaData terminal reachability (needed for any pull/backtest).
+- NT8: user F5 + `SE_RestImmediately=false`, then live-test cancel/arm.
+- Reconcile the other chat's in-flight 4-year run (only its committed artifacts are visible here).
+
+---
+
+## S114 (2026-09-08) — stop-backtest debate RESOLVED · daemon outage FIXED · chats collapsed
+
+**Tone:** long, contentious (Chat B). Ended with the debate resolved against Chat B's
+"can't backtest the stop," a real live-desk bug found + fixed, and the two chats collapsed
+to this one hub.
+
+- **Stop-backtest debate (`docs/research_notes/stop_backtest_debate.md`): RESOLVED.** Chat A
+  showed the desk stop IS backtestable — mechanical rule; parity spot 0.52pt median vs the
+  desk feed; August IC control +804 vs +792 booked; fly control 79/79 vs the rule. Chat B
+  objected (predicted the ATM flies would break the detector via near-threshold flips), ran
+  the fly control independently (`scripts/fly_control_chatb.py`) and **WITHDREW** — the extra
+  "false stops" were the 2026-08-19 desk OUTAGE, not detector error (flip rate ~0).
+- **Daemon 08-19 outage FIXED (`c080b5a9`):** the trigger daemon main loop was `try:/…/finally:`
+  with **no `except`** → one unhandled exception ended ALL management for the day (open trades
+  expired unmanaged; 3 rule-stops missed; only the evening health check flagged it). Added a
+  per-iteration try/except (traceback + Telegram-alert on 1st/5th/25th/100th fault + continue).
+  CRASH class fixed; HANG class still open (board item 5).
+- **Chat B scripts committed:** `eod_vs_open_pnl`, `sim_pnl_reconstruct`, `calendar_pnl_reconstruct`,
+  `fill_vs_nbbo_audit`, `import_nt_holidays` (+`market_holidays.json`), `nbbo_store` (DuckDB layer),
+  `maxprofit_zone`, `wall_pnl_stops`, `wall_vs_live_overlap`, `book_stops_77d`,
+  `flies_august_stop_vs_hold`, `fly_control_chatb`, `resume_sim_tasks.ps1`.
+- **NT8 BreakoutBoysDashboardV1 (`512f6b42`):** fixed CANCEL/FLATTEN (a resting stop entry sits
+  in `Accepted`, not `Working` — filter was too narrow) + SB now = the bar you arm in
+  (`SE_RestImmediately` default → false). Deployed to Custom; needs F5 + the param on the chart.
+- **Two chats collapsed to ONE hub** (the control board above).
+
+---
+
+## S113 (2026-09-08) — ThetaData EXECUTED (fill validation + TD P&L + report + fee fixes); NEXT = sandbox → July-2026 TD-only modeling
+
+**Tone:** long execution session. Terminal came up, IB Flex report obtained, full pull ran,
+TD-based P&L reconstructed, report polished over many iterations, forward fees corrected.
+Everything committed. NEXT step will be a NEW CHAT (user's call): build the stress-test sandbox,
+then model July-2026 entries from TD data only.
+
+### DONE this session (all committed on branch `leglab`)
+- **Terminal + creds:** Java 21 (winget Temurin), Theta Terminal `ThetaTerminalv3.jar` in
+  `C:\ThetaTerminal\`, API key in USER env `THETADATA_API_KEY` (never in repo). Serves
+  `http://127.0.0.1:25503/v3`. Options:STANDARD, 4 concurrent. Setup steps:
+  `docs/options_0dte/setup_thetadata_and_ib_flex.md`. Secrets ignored (`.env`/`creds.txt`/
+  `thetadata_strategy_map_*.csv`).
+- **IB Flex (true exec times + real commissions):** user built a Trade-Confirmation Flex query
+  (Executions; Date/Time, Symbol, Underlying, Expiry, Strike, Put/Call, Buy/Sell, Qty, Price,
+  Commission+Currency, Order/Exec ID, Exchange), downloaded XML → `scripts/ib_flex_executions.py
+  --file <xml>` (also has a Web-Service mode). 1048 execs, 762 SPX. Flex `orderID` is IB's big
+  id (does NOT join our orders.csv small ids — we match on contract+time+price instead).
+- **Pull layer:** `thetadata_worklist.py --flex <csv> --start 2026-08-06` → 518 fill events,
+  ALL with IB's true 2nd-precision exec time. `thetadata_fetch.py` datasets: `at_time` (as-of
+  NBBO/fill, primary), `trade_quote` (±3s prints, single-leg conditions 0/18 confirm; complex
+  130/131/134 = context), `quote` (full-day tick). 4-way parallel, 472="no data", header-parse.
+- **Fill realism VALIDATED** (report numbers): 518 events, median position **0.0**, **86.1% ≤ mid**,
+  **99.8% ≥1 size** (median 76, max 1463; ≥3:92.7% ≥10:83%), **384/407 single-leg print-confirmed**.
+- **TD-based P&L** (`td_pnl_reconstruct.py`, n=187): Sim $9,240 (modeled fees) → **@ real fees
+  $8,666** → **TD net $8,160** (−12%). Fills-only delta −$505; settlement +$150. Expired book
+  (115) validates (sim $21,044 vs TD $20,779). Settlement = intrinsic vs SPX 4pm close
+  (`/v3/index/history/eod`). Real commissions **$1.63/contract/exec** (median, Flex; likely
+  all-in — it's a floor).
+- **Report** (`scripts/thetadata_fill_report.py`): self-contained HTML + PDF (Edge headless),
+  `--anon` vendor copy (S01–S10, private legend gitignored). Plain-English summary, side-by-side
+  P&L (both real fees, Δ$0 comm + Δ%), fill-position breakdown + cumulative %, size tiles,
+  Method&FAQ, metadata strip (instrument/hours/exchange/broker/SIM/date-range/days). Also
+  `fill_timing_analysis.py` (our-log-vs-IB-exec lag: median +1.0s; size stats).
+- **FORWARD fees now REAL IB (was flat $1.30):** `options_trigger_daemon` active-close
+  (`len(legs)*size*1.63*2`), `options_postmortem` 0DTE expiry (FEE 1.30→1.63), `options_sim_daemon`
+  STMR (fee 0.0→`len*qty*1.63`, FEE→1.63). ALL forward-only (settlers skip already-closed trades).
+  User DECLINED restating the historical calendar (would rewrite trades.parquet = risky). `settle_xsp`
+  already used real $1.22 (XSP retired).
+
+### Vendor (ThetaData) — confirmed for the record
+SPXW = the 0DTE root (SPX root = AM monthlies, no 0DTE). Daily 0DTE only since **2022-05-16**
+(before: Mon/Wed/Fri). `at_time/quote` returns last NBBO at/before a ms (+ its own stamp — flag
+>2s stale). `trade_quote` ±window; confirm ONLY on single-leg conditions **0/18** (multi-leg
+130/131/134 print at package prices). Standard = 4 requests in flight. Empty window → HTTP 472.
+
+### ⏭ NEXT AGENDA (new chat) — STRESS-TEST SANDBOX, then model JULY-2026 from TD-only
+**Two phases. User wants the sandbox modeled FIRST, then use it to model July-2026 entries.**
+
+**Phase A — the sandbox** (aligned S112: canonical fill-store + a stress engine + Mission-Control
+page). v1 on the 518 fills (client-side JS), schema locked for the years-store. Parameters to
+expose as sliders (each re-derives P&L from the atomic fills): **slippage $/contract, commission
+$/contract, latency ms, fill-model (touch/mid/touch+buffer), entry-time (minute), exit-rule,
+settlement basis, size/partial-fill, filters (date/VIX-regime/strategy/structure/gap)**. Store:
+SQLite/client-JS now; **DuckDB+parquet** for the years (needs `pip install duckdb` — ASK first).
+Backtest scale target: **4yr SPXW + 8yr SPY** ≈ 100–200M NBBO rows windowed (~a few GB); pull a
+morning window **09:25–10:30 ET** so entry-time (8:30/8:35/8:40 CT) is a tunable, not a guess.
+
+**Phase B — model July-2026 entries from TD data ONLY** (replicate the sim's strike selection off
+real market inputs, then price fills/exits/settlement from TD). INPUTS NEEDED (user's list +
+mine):
+- **EOD SPX close** — `/v3/index/history/eod?symbol=SPX` (have it; = prior-close for EM + SET for expiry).
+- **VIX — YES, needed.** The sim's EM = prior-close spot × VIX/√252. Pull VIX EOD from TD index
+  (Index tier = FREE, same eod endpoint, symbol=VIX). (Better/optional: **market-implied EM** =
+  0DTE ATM straddle mid — the vendor's suggested intraday EM; derive from the chain, more accurate
+  than VIX-based. Pull BOTH: VIX for sim-replication, straddle for the improved model.)
+- **Gamma walls from TD (not gexlog):** compute GEX from the **full SPXW chain OI + gamma** per
+  decision time (ThetaData Standard has OI + greeks). Walls = strikes with max |GEX|. ⚠ CAVEAT:
+  this APPROXIMATES gexlog (different vendor/method) — the `gx_bcs/gx_bps` strategies won't
+  replicate exactly; flag it. Needs a full-chain pull (OI+greeks+quote), the heavy one.
+- **Also need:** the strategy/strike-selection logic (`scripts/options_gameplan.py` — replicate
+  with TD inputs; 5-pt SPX strike rounding), **greeks/delta** for STMR (~30Δ — TD greeks),
+  morning-window ticks for entry-time testing, **SET** for P&L, trading-calendar/holidays (have
+  `market_holidays.json`). Do we need dividends/rates? No — TD serves greeks directly.
+- **Open Qs for the new chat:** exact GEX formula/convention to match the desk; which entry rule
+  set to replicate first (condor vs fly vs gx); confirm July-2026 SPXW daily expirations exist
+  (yes, post-2022-05-16). **DuckDB install = APPROVED by user.**
+
+### ▶ FIRST TASK FOR THE NEW CHAT (user-set) — validate TD gamma walls vs saved gexlog
+Before trusting TD-computed walls for July, **compare our TD-computed gamma walls to the REAL
+gexlog walls** over the overlap. What we have (verified 9/8): `data/gexlog/gexlog_daily.csv`
+(**85 days, 2026-04-06 → 2026-08-03**) with `callWall`, `putWall`, `expectedMove`,
+`emLower/emUpper`, `net_gex`, `gex_method`, `vix`, regime, etc.; + 167 raw `data/gexlog/raw/
+YYYY-MM-DD_morning|evening.json`. **⚠ gexlog coverage STOPS 2026-08-03** — we have essentially NO
+gexlog for the Aug-6→Sep-4 trading window (so "compare August" = really just 08-03; use the FULL
+**Apr-6 → Aug-3** overlap, ~85 days, a much better sample). **FLAG to raise:** the `gx_bcs/gx_bps`
+strategies may not have had fresh gexlog walls during the Aug trading window — check whether they
+ran on stale/no walls. Plan: pull the full SPXW chain (OI+gamma) at gexlog's timestamp for those
+85 days, compute GEX→callWall/putWall, and correlate vs gexlog's numbers (match rate, Δ in points,
+method sensitivity). Only once TD walls track gexlog do we use them to model July.
+
+### Still open / carry-over
+- [ ] Confirm the IB fee is fully all-in (one more Flex pull with fee-component fields — cheap; it's a floor now).
+- [ ] Verify no OPEN positions in the validated window (TD P&L covers closed/expired only).
+- [ ] (Later) full-book vs kept-book slice; spread-cost-per-trade metric; true submit→fill latency (add Flex "Order Time").
+- [x] Sim tasks re-enabled 9/8 06:00 (resume task fired + self-deleted; Trigger Daemon/Chain Recorder/Spot Feed back to Ready — verified S114).
+- [ ] **Max-profit-zone exit-strategy feature (user, S114 9/8):** snapshot the day's max-profit ZONE — between the highest short PUT and the lowest short CALL across the day's open book (all 6 legs are verticals, so it's a true keep-full-credit plateau) — at a defined time-of-day, then make **zone-anchored exit rules a tunable exit-strategy dimension in the sandbox** (fits the Phase-A `exit-rule` slider). Exit strategies to test on the forward + historical record: bank at X% of max credit, exit on zone-edge touch vs acceptance (vary `level_accept_mins`), delta-hedge at the edge (ES/SPY), tighten time-stop. Zone math done ad hoc 9/8 (e.g. 7675↔7705, 30pt); FIRST STEP = persist a `maxprofit_zone.py` that computes it from open legs + have the daemon snapshot it daily to a dated CSV, then feed it to the sandbox as an exit dimension. Current book already exits on 10-min short-strike acceptance + 14:45 stop (thesis_broken) — the feature lets us A/B better exits.
+
+---
+
+## S112 (2026-09-07) — ThetaData fill-validation pull layer BUILT (SPX-only)
+
+**Tone:** build session. User getting the ThetaData sub; asked to build the pull layer,
+"think of everything and double check." No strategy/daemon code touched. XSP dropped
+mid-session ("we dont need XSP at all, no longer relevant").
+
+### What was built (both committed)
+- **[scripts/thetadata_worklist.py](../../scripts/thetadata_worklist.py)** — READ-ONLY.
+  Enumerates every SPX contract to pull from `trades.parquet`, enriched with ET-second fill
+  anchors from `orders.csv`. Verified on run: 0DTE check **PASS** (expiry==entry date, all
+  406 legs), 204 trades → 406 legs → **366 unique contracts**, 24 dates 08-04→09-04, 196
+  order-fill anchors matched to 77 contracts. Outputs DATED CSVs
+  `data/options_sim/thetadata_pull_list_<date>.csv` + `..._worklist_legs_<date>.csv`.
+- **[scripts/thetadata_fetch.py](../../scripts/thetadata_fetch.py)** — stdlib-only (urllib)
+  v3 NBBO **tick** fetcher. `--dry-run` (no terminal), `--probe` (root confirm), `--limit`
+  (smoke), resumable (skip existing), retry/backoff, per-contract manifest. No-terminal
+  guard prints the Java/terminal setup steps, **fetches nothing, exits non-zero** (never
+  fabricates a pull). v2 `trade_quote` optional for print-verification.
+
+### Verified / decided
+- **TZ pinned** (was the main error risk): `trades.parquet` entry/exit = **CT** (min prec),
+  `orders.csv ts_et` = **ET** (sec), `xsp_fills` = CT; ThetaData `ms_of_day` = ET. The PULL
+  is by calendar DATE (identical CT/ET for daytime fills) = tz-safe. Per-tick ALIGNMENT
+  (comparison script, later) uses `orders.csv` (already ET) + a latency offset.
+- **Bug caught + fixed:** CSV round-trip turned `strike=7560.000`→`7560.0`; now derived from
+  the authoritative float in `build_url` (v3 dollars .3f, v2 1/10-cent int).
+- **All non-terminal paths validated** (dry-run URLs, no-terminal guard, probe guard).
+- **S111 scripts were ALREADY committed** in 9157bb17 — that S111 checkbox was stale.
+
+### Vendor (ThetaData) guidance — saved as the comparison-script spec
+Full note: **[docs/options_0dte/thetadata_fill_validation.md](../options_0dte/thetadata_fill_validation.md)**.
+Key: Standard $80 confirmed correct (consolidated NBBO tick + sizes + prints w/ condition
+codes + underlying on greeks, 2016→). "Data isn't the gap — execution modeling is." Three
+pillars for the (unbuilt) comparison script: (1) fill at touch + **check quote size ≥ order
+size**, (2) ticks + **signal→fill latency delay**, (3) prints = confirmation, not a
+guaranteed fill (no queue position). SPX: **SPXW settles on the CLOSE** (model settlement,
+not assignment; our EOD = `cash_settle` already); **early close = 1pm ET** (have it in
+`market_holidays.json`). Plus: paper-trade live ~2 weeks and compare same-day vs backtest =
+the real per-strategy gap (Standard includes real-time/streaming).
+
+### Timestamp fidelity — problem found, fix in motion (S112, user pushed hard on this)
+- **`orders.csv ts_et` is our MACHINE wall-clock at the fill callback** (+latency, 1s), NOT
+  the exchange fill time ([ib_order_test.py](../../scripts/ib_order_test.py) `_audit`). So an
+  exact-timestamp match against ThetaData ticks is INVALID — do not do it.
+- **IB's real `Fill.time` was available but never persisted**; `reqExecutions` is session-only
+  → August exec times not in the live API. Recover them from the broker instead.
+- **Fix, 3 prongs** (full spec = `docs/options_0dte/thetadata_fill_validation.md` §4b):
+  1. **Clock-free primary validation** — price/print-anchored (does a real print hit our fill
+     price / was price ever at the touch); no timestamp needed.
+  2. **Recover true times via paper-account Flex** — CONFIRMED supported for paper (own Flex
+     setup, identical API). Tool BUILT: [scripts/ib_flex_executions.py](../../scripts/ib_flex_executions.py)
+     (Trade Confirmation Flex; needs `IBKR_FLEX_TOKEN`/`IBKR_FLEX_QUERY` from the PAPER Client
+     Portal; prints setup steps if absent). **User to create token+query.**
+  3. **Measure residual offset** — logged `quote_px` vs matching ThetaData NBBO tick = our
+     clock+latency offset across ~196 fills → correct/widen window.
+- **Forward fix DONE:** [scripts/exec_logger.py](../../scripts/exec_logger.py) persists
+  `Fill.time`+`commissionReport` → `data/options_log/ib_executions.csv` on every future fill;
+  wired guarded/non-fatal into `marketable` + daemon `place_combo`/`close_combo`. Unit-tested
+  (mock fill → correct row; no-fills/broken → safe no-op). Daemon paused (Labor Day) so edit
+  is safe; additive only, NO strategy logic changed.
+
+### ✅ REAL RESULTS IN (2026-09-08) — the pull ran end to end
+- Terminal up (Java 21, Options:STANDARD, port 25503). IB Flex report downloaded
+  (`Aug_Fills.xml` → 1048 execs, 762 SPX) and wired as the TRUE fill-time/price anchor →
+  all 518 events (Aug 6–Sep 4) carry IB's real second-precision exec time + real price.
+- Pulled at_time (518, 0 fail) + trade_quote (518, 4855 prints, 0 fail). Report:
+  `data/options_sim/thetadata_fill_report_20260908.html`. **Median fill position 0.0**
+  (marketable touch — real crossing engine, not a 0.5 mid-phantom), **86.1% crossed the
+  spread, 99.8% size≥1 at touch, 384/407 (94%) single-leg print-confirmed**, 1 stale.
+  2.1% "through book" = sub-second quote drift (at_time = last quote at/before the fill sec),
+  small/two-sided/expected. **This validates the sim's fills against real OPRA.**
+- Live-caught fixes committed: _sod ISO-datetime parse; report right-normalize (CALL/PUT↔C/P);
+  fetch event-keys-win; Flex commission attr. Setup steps + Java-21 in the setup doc.
+
+### Open / next
+- [ ] Package/polish the report to SEND (vendor asked to see how paper fills line up; user wants
+  a presentable August visual). Consider: per-strategy detail, the through-book cases, commissions.
+- [ ] (Optional) re-run trade_quote after the fetch key-fix (current report used the report-side
+  normalize; data is correct either way).
+- [ ] **User:** create the paper-account Flex token + Trade-Confirmation query (Aug range),
+  then run `ib_flex_executions.py` → recover true August fill times.
+- [x] **Report BUILT (turnkey):** [scripts/thetadata_fill_report.py](../../scripts/thetadata_fill_report.py)
+  — at_time_results (+trade_quote_prints) → presentable August HTML (KPI tiles, fill-position
+  histogram, per-strategy table). `--mock` = watermarked synthetic preview at real scale (568
+  events) verified tonight. TOMORROW = pull → `thetadata_fill_report.py` → the visual.
+- [ ] (Later) comparison depth beyond the point-check: measured-offset window, close-settlement
+  basis for cash_settle legs, §5 live 2-week gap test.
+- **VENDOR round 2 confirmed (fetcher updated):** trade_quote route right; empty window = HTTP
+  472 "No data" (handle as no-prints, not fail); ms window bounds OK; **confirm fills only on
+  trade condition 0/18 (single-leg), NOT complex 130/131/134 (package prices)**; at_time —
+  compare returned quote stamp to fill time, flag >2s stale. 4 workers is the right pool.
+- [ ] (Vendor offer) send him our quote-pull snippet once we're in — URL form in the note.
+- [ ] Carry-over from S111 (still open): verify 9/8 06:00 resume task fired + 3 sim tasks Ready.
+
+---
+
+## S111 (2026-09-07, Labor Day) — Options-sim analysis, Labor-Day pause, ThetaData prep
+
+**Tone:** long analytical session on the options sim. User was frustrated by repeated
+"paper ≠ live" caveats — that thread RESOLVED in the sim's favor (fills are real). **NO
+strategy/daemon code was changed** (explicit user instruction, twice). All work = read-only
+analysis + persisted scripts + Windows task changes for the holiday pause. ThetaData buy is
+GO but parked until the user has the terminal set up.
+
+### 1. EM (expected move) — how the sim actually uses it (VERIFIED, unchanged)
+- Sim strike source = **EM = spot × VIX/√252** (1-day, close-to-close). Drives the CONDOR
+  strikes only: `eodic_p/c` (prior close ± EM) and `openic_p/c` (OPEN spot ± the **SAME** EM).
+  Flys are ATM (no EM); gexlog condor uses gamma walls; STMR uses ~30Δ. See
+  [scripts/options_gameplan.py](../../scripts/options_gameplan.py) L172-221.
+- **Morning brief** ([scripts/gexlog_brief.py](../../scripts/gexlog_brief.py)) pulls gexlog
+  `levels.expectedMove/emLower/emUpper` (~06:20 ET, prior-EOD basis, `dataSource=tradier`).
+  **Verified across 6 raw reports** (`data/gexlog/raw/*_morning.json`) that gexlog's EM ==
+  `current(prior close) × VIX(prior close)/√252` — i.e. IDENTICAL to our own fallback formula.
+- **Evening brief** ([scripts/gexlog_evening.py](../../scripts/gexlog_evening.py)) carries **no
+  numeric EM** — only a boolean `expected_move_hit`. So there is exactly ONE numeric EM in the
+  pipeline (the morning/prior-close one). Nothing feeds a fresher (open-time) VIX/EM.
+- **Known limitation (noted, NOT acted on):** the Open condor re-centers on the open spot but
+  keeps the prior-close-VIX width → on an overnight VIX gap the Open band is mis-sized. The
+  market-priced fix would be the **0DTE ATM straddle mid at 08:35** (intraday EM) for the Open
+  center, and the **next-day-expiry straddle at 15:59** (close-to-close EM) for the EOD center.
+  Not built. User understands; parked.
+
+### 2. EOD flies make little sense (analysis)
+- `eodfly_p/c` = short put+call struck at the **prior close** ("ATM=prior close") but the trade
+  fires at the OPEN → a deliberately **off-center** iron fly (a stale-price pin bet, not a vol
+  bet). Data agrees (both fly sides weak). **Likely a retirement candidate** once enough days
+  accrue; the clean test = EOD-fly vs Open-fly paired, **conditioned on overnight gap size**.
+
+### 3. Reconstructed sim PnL — TWO bases (this caused confusion; document it)
+- **Raw parquet basis** (closed only, SPX+XSP, incl error days/orphan): full combined +$6,842.88.
+  Script [scripts/sim_pnl_reconstruct.py](../../scripts/sim_pnl_reconstruct.py).
+- **DASHBOARD-CALENDAR basis** (what the app's card shows): `tlog.load()` = **SPX only**
+  (`trades.parquet`; XSP is a separate book the calendar never loads), **open trades count at
+  their unrealized mark**, EXCLUDES days 2026-08-04/08-05 (drops the orphan too), dedupes
+  live mirrors. Reproduced the card exactly: **n=187, +$9,240, win 66.3%, PF 1.64, exp $49.41,
+  avgROI 1.53%** (card said +$9,216 — ~$24 live-mark drift). Script
+  [scripts/calendar_pnl_reconstruct.py](../../scripts/calendar_pnl_reconstruct.py).
+- **User's requested reconstruction** (remove EOD flies + Open condors + all XSP), on the
+  calendar basis (XSP+orphan already excluded there): **kept book n=112, +$7,984.00, win 67%,
+  PF 1.93, exp $71.29, avgROI 3.39%.** Removing them CUTS ~$1,256 of raw P&L (both buckets were
+  net-positive on this basis) but RAISES every quality metric. `eodic_c` (EOD condor CALL side)
+  is the main drag (−$859, PF 0.49 — short calls run over, same as the 9/3 loss). CSV:
+  `data/options_sim/calendar_pnl_reconstruct.csv`.
+- **Standing caveat:** several put-spread streams show ~100% win / PF ∞ over a one-month
+  up-drift (no big down day tested) — small-sample/untested-tail, per [[backtest_fill_realism]].
+
+### 4. FILL REALISM — RESOLVED (the big one; correct any lingering doubt)
+- The sim is **NOT a phantom/mid-price simulator.** [scripts/options_trigger_daemon.py](../../scripts/options_trigger_daemon.py)
+  L243-328 + [scripts/ib_order_test.py](../../scripts/ib_order_test.py) L32: it connects to
+  **IB (paper)**, pulls the **real NBBO**, opens by BUYing the combo **marketable at the ASK**,
+  closes by SELLing **at the BID** (crosses the spread), and books IB's actual `avgFillPrice`.
+  `fill_model="paper_fill"`. No synthetic fallback — if IB is down it raises, nothing fills.
+- **Empirical audit** ([scripts/fill_vs_nbbo_audit.py](../../scripts/fill_vs_nbbo_audit.py) on
+  `xsp_fills.csv`, 68 entries with per-leg bid/ask logged at fill time): **median fill position
+  = 0.000** (at the marketable cross), mean 0.164, **79% at/worse than mid** (conservative). A
+  mid-phantom engine would show median 0.5. The 21% optimistic tail / 3 through-best fills are
+  small (pennies) and two-sided (17 were WORSE than a full cross) = **quote-snapshot timing
+  noise**, not systematic optimism. CSV: `data/options_sim/fill_vs_nbbo_audit.csv`.
+- **IB docs confirm** the paper engine fills marketable orders at/near the NBBO with slippage,
+  does NOT model counterparty availability/queue (Level I = bid/ask only; Level II depth 5).
+- **Real remaining gaps vs live** (honest list): size (1-lot only; no queue/partial/impact),
+  tail-exit liquidity (stale bid on fast down days), latency. NOT the mechanism.
+- **Level II is NOT the upgrade** for options backtesting: options depth is thin/MM-quoted, and
+  it's a live feed not historical. The upgrade = historical NBBO **+ quote sizes + trade prints**.
+
+### 5. ThetaData — buy decision + readiness (VERIFIED)
+- **Goal:** ground-truth the sim's August-2026 fills against real OPRA (kills the timing noise
+  in #4). Confirmed with user as THE objective.
+- **Tier: Standard $80 is correct.** Value $40 / Standard $80 / Pro $160. Standard includes
+  historical `Quote` (NBBO **with `bid_size`/`ask_size`**), `Trade`, `Trade Quote` (trades paired
+  with NBBO at trade-time = print verification), OI/OHLC/IV/Greeks1-2, **8yr, tick**. (Earlier I
+  wrongly claimed a Standard-vs-Pro contradiction on trade_quote — there is NONE; both pages put
+  Trade + Trade Quote on Standard. Pro only adds 3rd-order/trade greeks + 12yr + streaming scale.)
+- **Connection model:** NOT a bare API key. A local **Theta Terminal (Java)** runs here, logged
+  in with the ThetaData email/password, and serves REST at `http://127.0.0.1:25503/v3`
+  (v2 at `:25510`). **Verified request specs:**
+  - v3 NBBO: `/v3/option/history/quote?symbol=SPX&expiration=YYYYMMDD&strike=6450.000&right=call&date=YYYYMMDD&interval=tick&format=csv` → `timestamp,bid_size,bid,ask_size,ask,…`
+  - v2 print-paired: `/v2/hist/option/trade_quote?root=SPX&exp=YYYYMMDD&strike=64500000&right=C&start_date=…&end_date=…` → trade `price/size/ms_of_day` + paired NBBO. **Strike units differ: v3 = dollars, v2 = 1/10-cent.**
+- **⚠ READINESS GAP ON THIS MACHINE:** `java` NOT on PATH; no Theta Terminal jar installed.
+  Setup order before ANY pull: (1) install Java 21+, (2) download+launch Theta Terminal
+  logged in, (3) then hit localhost. Installing Java = a state change → needs user OK, OR the
+  user sets up the terminal themselves (their creds). **User said: "I will let you do it when I
+  have everything."** So ThetaData is PARKED until the user has the terminal running.
+- **NOT yet built (do first next session, no sub needed):** the fetcher script (v3 spec),
+  the August work-list (every SPX/XSP leg+strike+expiry+fill-timestamp from our logs), and
+  confirm the SPX-weekly (SPXW) / XSP root symbols. Then smoke-test 1 contract once terminal up.
+
+### 6. Labor-Day PAUSE (system-state changes made — with user approval)
+- Today 2026-09-07 = **Labor Day** (verified; no holiday guard exists in the sim code).
+- **Disabled 3 scheduled tasks:** `MyQuant Trigger Daemon`, `MyQuant Chain Recorder`,
+  `MyQuant Spot Feed` (user chose "trade-placer + data feeds, keep infra").
+- **Created self-deleting resume task** `MyQuant Resume 20260908` → fires **9/8 06:00
+  machine-time**, re-enables those 3, logs to `data/options_sim/resume_sim_tasks.log`, then
+  unregisters itself. Script [scripts/resume_sim_tasks.ps1](../../scripts/resume_sim_tasks.ps1).
+  **Next session: verify the 3 tasks are back to Ready and the resume task self-deleted.**
+- **Chain recorder respawned anyway** (SPX PIDs, XSP, marks) via the supervisor chain
+  (`run_at_ct → chain_recorder_supervisor`), OUTSIDE the disabled task — my task-disable was the
+  wrong layer for the recorder. It records data only, **places no orders**. **User said LEAVE
+  it.** No trades fired: Trigger Daemon disabled+not running, and `desk_watchdog.py` correctly
+  holiday-halted (`market_calendar.day_type(2026-09-07)=('holiday','Labor Day')`; log:
+  "skip: Labor Day — market closed"). Recorder self-stops 15:05 CT.
+
+### 7. NT8 holidays imported (data only)
+- Imported US market holidays from NT8 `templates/TradingHours/CBOE US Index Futures RTH.xml`
+  → `data/options_sim/market_holidays.json` (**103 full closures 2015–2026 + 19 early-closes**).
+  Script [scripts/import_nt_holidays.py](../../scripts/import_nt_holidays.py). **Coverage ends
+  2026** (NT template range) — 2027+ needs a template refresh + re-run. **Not wired into any
+  strategy** (user wanted nothing changed). Offered a holiday guard for gameplan/daemon —
+  DECLINED for now; the JSON is ready if we build it later.
+
+### S111 open items / next session
+- [ ] **Commit the new analysis scripts** (all UNCOMMITTED): `eod_vs_open_pnl.py`,
+  `sim_pnl_reconstruct.py`, `calendar_pnl_reconstruct.py`, `fill_vs_nbbo_audit.py`,
+  `import_nt_holidays.py`, `resume_sim_tasks.ps1` (+ their dated CSV/JSON outputs). Per S80 rule.
+- [ ] Verify the resume task fired 9/8 06:00 and the 3 sim tasks are Ready again.
+- [ ] ThetaData: build fetcher + August work-list now (no sub needed); do the pull when the user
+  has Java + Theta Terminal running.
+- [ ] (Optional) wire a holiday guard using `market_holidays.json` so the next holiday auto-skips.
+- [ ] (Analysis, later) gap-conditioned EOD-fly-vs-Open-fly test to justify retiring EOD flies.
+- NOTE from S110 (still open): NT8 BreakoutBoysDashboardV1 **SB arming untested — validate live**.
+
+---
+
+## S110 (2026-09-04→05) — NT8: WedgeScalperV2 polish + NEW BreakoutBoysDashboardV1 button panel
+
+**Tone:** long iterative UI/UX session on the two NT8 chart tools. Everything committed +
+deployed to `Documents\NinjaTrader 8\bin\Custom\Strategies\`. **F5 (when flat) is the real
+compile gate** — the standalone checker can't resolve MyWedge/MyMicroChannel or Gui.Tools types.
+See memories [[nt8-deploy-repo-to-custom-folder]] and [[nt8-compile-check]] (both updated S110).
+
+### WedgeScalperV2 (`nt8/strategies/WedgeScalperV2.cs`, committed + deployed)
+- **BUG FIXED — stop no longer trails before BE.** With "trail from entry" on, the protective
+  stop ratcheted 1t beyond each bar from entry, tightening INSIDE the SB → premature stop-outs.
+  Now the stop HOLDS the initial SB stop until BE arms (price moves +BETriggerTicks in favor),
+  then locks BE ± offset and trails 1t/bar. `TrailFromEntry` param removed.
+- **BE lock now moves INTRABAR** via an added 1-tick series (BarsInProgress==1); primary stays
+  OnBarClose so signals/entries/fills (Tick Replay OFF) are unchanged. Orders submit vs series 0.
+- **Inside-bar SB → stop beyond the prior bar** (toggle `InsideBarUsePriorBar`, default on).
+- **Entry filters** (2. Entry, default off): Min R:R (scalp tgt ÷ risk); Max SB size (× avg bar
+  range of last 8 bars).
+- **Visuals** (5. Chart Visuals): R:R green/red boxes w/ opacity param + info **on hover only**
+  (out of the trade); BE line = dashed RAY to the right edge, **color settable** (DodgerBlue);
+  SUB tag flipped out of the way; signal dots removed; DebugDraw default off; R:R risk box
+  follows a manual stop drag (redraws on OnOrderUpdate).
+- **Output → Tab2** (`PrintTo` set in State.Configure, NOT SetDefaults, or it doesn't stick) so
+  it's isolated from the PB33/MCStrategyDashboardV3 spam on Tab1. Clean per-trade block on close
+  (entry, legs, ticks/$, R) + running **daily scoreboard**. All debug prints gated behind DebugDraw.
+- **Shared statics for dashboard control:** `MasterArmed`, `MasterAllowLong/Short`, `LiveInstances`
+  (Realtime++/Terminated--). Gate NEW entries; open trades keep managing.
+- **STILL OPEN:** entry-cancel off-by-one — `CurrentBar - _sigBar > EntryValidBars` keeps the entry
+  alive N+1 bars (so "1"=2 bars). User asked to fix (`>`→`>=`) + auto-cancel orphaned entries on
+  start (a disable/F5 with CancelEntriesOnStrategyDisable=false leaves stale resting orders).
+  **NOT yet applied** — user didn't confirm.
+
+### BreakoutBoysDashboardV1 (`nt8/strategies/BreakoutBoysDashboardV1.cs`, committed + deployed)
+- Started as a verbatim clone of MCStrategyDashboardV3 (commit 3063b639, class/Name/state-file
+  renamed) but the requirements shifted (MC channel OUT, entries SB/wedge-based), so it was
+  **rebuilt fresh** — no MC channel indicator; reuses the proven chart-trader button-mount pattern
+  (`FindFirst("ChartWindowChartTraderControl")` → button grid → MakeBtn/AddFullRow/AddHalfRow,
+  mounted State.Historical, torn down Terminated). MCStrategyDashboardV3 is UNTOUCHED.
+- **MASTER / LONG / SHORT** = remote control of the SEPARATE WedgeScalperV2 via the shared statics.
+  MASTER refuses to arm when `WedgeScalperV2.LiveInstances<=0` (best-effort guard).
+- **STOP ENTRY L / S** = the dashboard's OWN managed stop entries: arm → at the signal bar's close
+  rest a stop 1t beyond the SB, enter next bar. SB = the bar armed in (default) or a **PICK SB**
+  chart-click. Stop modes `BarStop` (1t beyond SB; IB → walk left to first non-IB) / `LastSwing`;
+  target modes `Scalp` (fixed ticks) / `AbrMult` (avg-bar-range(N)×mult) / `RMult` (× risk).
+  **FLATTEN** button; adaptive **TGT value** adjust sub-button; order clicks via TriggerCustomEvent.
+- **⚠ SB arming reportedly not firing** in the user's test — likely just market-closed (SE places at
+  a bar CLOSE, enters next bar; no new bars off-hours). **VALIDATE LIVE MON 9/8 on Sim101** — watch
+  Tab1 Output for `SE LONG entry@… stop@… tgt@…`. If it never prints on the SB close → real bug in
+  auto-SB timing or the PICK-SB click (`ChartBars.GetBarIdxByX(ChartControl, x)`), dig in then.
+- **NOT built yet (need specs):** Speedo L/S, Lmt Buy L/Sell H (both were MC-channel-based; need new
+  trigger/pricing now). Also possible: intrabar BE for SE trades, per-side offset sub-rows.
+
+### Notes
+- Two strategies share one NT process → statics are process-global (one flag steers all wedge
+  instances). Don't run WedgeScalperV2 + BreakoutBoysDashboardV1 both live on the same chart/account
+  expecting them not to interact (dashboard places its own orders).
+
+---
+
+## S109 (2026-09-03) — WedgeScalperV2 flip REMOVED; options desk −$1,811; STMR still failing
+
+**⚠ TONE/STATE:** long, frustrating session. Much of it was chasing the WedgeScalperV2 "hold-to-
+opposite" reversal, which does not work cleanly in NT8's managed approach. Ended with the user
+ordering ALL flip logic removed. Be efficient and verify before speaking next session.
+
+### NT8 WedgeScalperV2 (`nt8/strategies/WedgeScalperV2.cs`, committed + deployed)
+- **ALL reversal / hold-to-opposite / flip logic REMOVED** (per explicit user request). It is now the
+  PLAIN scalper only: enter 1t beyond the signal bar (stop, or limit if price ran past) → scalp lot at
+  +ScalpTargetTicks → runner BE (entry ± BEOffsetTicks) then 1t/bar trail (or TrailFromEntry) → exit.
+  ONE position at a time; opposite signals while in a trade are ignored. Params `RunnerHoldToOpposite`
+  and `TrailWhileHolding` are GONE. Compiles clean (only the expected `MyWedge` CS0234 that F5 resolves).
+- **KEY FILL FIX — RUN WITH TICK REPLAY *OFF*** (Analyzer + chart). Tick Replay ON drags resting-stop
+  fills PAST the stop price (verified in the Orders grid); OFF fills AT the stop price via the standard
+  bar model. This was the single biggest confusion of the session. Calculate.OnBarClose, [0] indexing.
+- **StopFail** now only fires when there is NO working "Stop" order (`HasWorkingStop()`), so normal
+  exits use the resting stop price instead of a market StopFail (was bleeding slippage).
+- Reversal lessons (for the record, since it's removed): the managed approach will NOT create an
+  opposite entry while a position is open (a resting opposite stop order is never even created);
+  a MARKET opposite entry reverses, but the runner's BE stop kills the hold before an opposite signal
+  arrives, so it fired ~once per 90 trades. Not worth it — removed.
+- **ENTRY LIFECYCLE FIX (committed, NOT yet verified in Analyzer):** the lapse used to draw `Ecancel` +
+  reset state OPTIMISTICALLY in OnBarUpdate, so a fill that beat the cancel produced a false
+  `SUB -> Ecancel -> FILL` (a "cancelled" entry that filled). Now: OnBarUpdate only REQUESTS the cancel
+  (`CancelOrder(_entryOrder)`); the Ecancel marker + `_pendingSide` reset happen ONLY on the CONFIRMED
+  `OrderState.Cancelled` (OnOrderUpdate). A fill is handled in OnExecutionUpdate. So an entry either fills
+  (a trade) or cancels — never both. **VERIFY this next session in the Analyzer.**
+- **STILL OPEN — `EntryValidBars` off-by-one:** cancel uses `CurrentBar - _sigBar > EntryValidBars`, so the
+  `>` keeps the entry alive N+1 bars (deliberate, to avoid the cancel-race that once cancelled every entry).
+  So "1" ≈ 2 bars; user saw fills ~2-3 bars after the signal. Fix = `>` to `>=`, but that RISK reintroduces
+  the cancel-race — test in Analyzer. NOT changed.
+- **FILL debug marker REMOVED** — `Bars.GetBar(time)` is unreliable on a 2000-tick chart (many bars share a
+  timestamp) so it landed several bars off. NT's native entry arrow marks the exact fill bar; `SUB@` +
+  the native arrow are the diagnostics now.
+- **BOTTOM LINE (do not forget):** the breakout entry is NET-NEGATIVE. Research already showed PF 0.76;
+  the live Analyzer churns ~90 trades in 2.5 days for no edge. NO exit/BE/trail tuning fixes a whipsaw
+  entry. The ONLY positive edge in the research is the **signal-bar CLOSE entry** (PF 1.04-1.16).
+- **Two-strategy confound seen live:** an ATM `Scalp & Run 2C BE 5t` was also attached to the ES chart,
+  fighting WedgeScalperV2 over the one position. Run ONE system per chart.
+- **PAUSED optimization plan (agreed earlier this session):** re-export MyWedge signals at **LookBack=12**
+  (+ match all chart params) via `WedgeExporter`, then Python WFA comparing breakout vs close-entry on the
+  5yr RTH tick trove (`data/ticks_continuous/`). Current `data/wedge/*.csv` is LB=20 = WRONG. Compare both.
+
+### Options desk (9/3)
+- **Realized today −$1,811** (SPX −$1,716, XSP −$95). CAUSE: gap-up TREND day (open ~7699 above the 7675
+  call wall, ground to 7748.9) while the auto 0DTE book mechanically SOLD CALL WALLS at 08:30. 4 of 5 SPX
+  losers were short calls (7665/7675/7700/7740) — some sold 24-41pt ITM (gexlog feed was down → trades
+  fired UNCONDITIONED as "regime unknown"). eodic_c short 7740 call = −$801 (the killer). The book has
+  **no gap/trend filter** — it sells both walls expecting chop; a trend day runs the call side over.
+- **STMR FAILED AGAIN 9/3** (Telegram: `TimeoutError('no passive attach after 8 tries (gateway up but not
+  accepting)') — entry/exit NOT evaluated`). 3rd straight failure; the STMR book is NOT running. Despite
+  the S108 "root-caused + fixed" note, the passive connect is still not attaching. **NEEDS a real fix.**
+- **9/1 STMR setup was valid and missed:** K8 12.6 (<15) & spot 7631 > SMA100 7449 = SETUP=True, but
+  decisions.csv has NO rows since 8/19 and no bps_stmr trade was entered. It would have WON (market
+  bounced 7631→7666→7748; short put would sit far OTM). STMR = **BPS** (sell ~30Δ put / buy 50pt lower,
+  14 DTE, exit first day spot>SMA5; WF 86% win PF 2.24). Condor variant was tested + RETIRED (loses to BPS).
+- **DATA NOTES (corrected a wrong claim I made):** 0DTE chains ARE archived to
+  `data/options_tape/chain_YYYYMMDD.parquet` (NOT lost) — but they contain the **0DTE expiry only**, so no
+  forward-DTE strikes on any date. ORATS `data/orats/SPX/SPX_2026.parquet` covers only **2026-01-02 →
+  2026-07-15** (July bulk pull, never refreshed). So historical multi-DTE SPX option pricing is NOT
+  available locally without refreshing ORATS. A 1-DTE BPS entered 9/1 (proxied from the 9/2 open chain) ≈
+  $590 credit, full winner.
+
+---
+
+## S108 (2026-09-02→03) — options desk: recorder storm fixed + storm-proofed; STMR still broken; L2/depth retired; XSP settle+gate
+
+**9/3 UPDATE (this session, on top of S108 below):**
+- **STMR CONNECT ROOT-CAUSED + FIXED (commit e43d54e0).** The TimeoutError was SELF-INFLICTED:
+  `ib_conn.connect`'s default recovery runs `gateway_ensure.main()` (RESTARTS the gateway) on any
+  connect failure; my earlier 12x retry loop amplified one transient into ~12 gateway restarts at
+  14:59 CT, wedging every client (recorders/desk too) for 8 min. Fix: `ensure=False` param on
+  ib_conn.connect (raise, never restart); `stmr_exit_check` now attaches PASSIVELY — probe 4002
+  first, ensure=False, 30s timeout, FRESH client-id each of 8 tries. Keeps the causal 14:59 CT read
+  (entry MUST be near the close — can NOT move later). **PENDING: first live test at 14:59 CT today.**
+- **RECORDER ATOMIC-LOCK VALIDATED LIVE** — 9/3 08:25 launch came up CLEAN (one supervisor+recorder
+  pair per symbol, fresh heartbeats, no storm). The 623be35d fix holds.
+- **9/1 was a MISSED STMR ENTRY** (K8 11.9, oversold, qualified) lost to the connect bug; 9/2 correctly
+  no-trade (K8 34.6). A 9/1 entry would STILL be open — 9/2 didn't close above SMA5 (7687) or even touch
+  it intraday (9/2 high 7681). Left un-booked per user.
+- **30-DAY RETRO (`analyze_retro_filters.py`):** ~25% of "wall broke" stops (18/72) were PREMATURE
+  (short expired OTM, would've won — ~$3.1k). GEX/regime FILTERS DO NOT HELP this window — skipping
+  TREND / NEGATIVE-gamma / STAND_ASIDE days would have LOST money (those were the profitable days).
+  Only narrow positives: skip-EOD-call-side +$445, skip-VIX>16 +$364 (tiny samples). **User: WAIT for
+  more data, do not act on filters.** The one real edge is the stop being too eager (tape study later).
+- **SIM FIDELITY — corrected (I had overstated the gap):** the desk places REAL IB paper orders that
+  CROSS the spread (`options_trigger_daemon.place_combo`: marketable LimitOrder BUY@ask / SELL@bid)
+  against the LIVE NBBO on liquid SPX at 1 lot — HIGH-FIDELITY, not a rough sim. Real-money gaps are
+  small/specific: real margin+BP limits, modeled-$1.30 vs real SPX commissions (still un-captured),
+  queue/partial only AT SCALE, unseen stress regime, psychology. Settlement identical (SPX cash/European).
+- **ACCOUNT SIZE to trade the book:** full book ~$30k (peak concurrent collateral gross $20.6k / netted
+  $11.4k); cut-EOD ~$15-18k. (`analyze_account_size.py`)
+- **RISK CONTROLS — THE DESK HAS NONE** (`options_trigger_daemon` line 5: "1 lot, no concurrency cap").
+  Recommended, NOT built (needs user design sign-off): (1) **daily loss circuit-breaker = TOP priority**,
+  (2) portfolio heat cap, (3) VIX-scaled sizing, (4) trim the ATM flies. NOT regime skip-rules (retro
+  showed they lose). Foundation is already sound: defined-risk = hard max loss = collateral; 0DTE = no
+  overnight gap risk.
+- **INTRADAY DRAWDOWN (`intraday_drawdown.py`):** worst clean-day trough ~−$3.3k (7/29, 8/24); −$6.4k on
+  7/16 is on a sparse 36-mark incident day (unreliable). KEY: intraday troughs run DEEPER than the close
+  — theta recovers (7/29 troughed −$3,310, CLOSED +$2,578) → any circuit-breaker must be wide / mark-aware
+  or it guillotines recovering days.
+
+
+
+**⚠️ TOP OPEN ITEM — STMR IS NOT EXECUTING.** The STMR book (14-DTE stochastic mean-reversion
+BPS, strategy `bps_stmr`) has not placed a trade since the 8/19 entry. S106-cont retired the
+fragile all-day daemon for `scripts/stmr_exit_check.py` (full entry+exit decision, scheduled
+task **`MyQuant STMR Decision`** at 14:59 CT). But it has **failed at the CONNECT stage on every
+live run** — heartbeat `stmr_exit_heartbeat.json` shows `state:error, stage:connect, err:TimeoutError`
+on 9/1 AND 9/2. I hardened the connect retry 3→12 (~4 min); STILL timed out (9/2 retried ~8 min).
+`decisions.csv` still ends 8/19. Dry `--now` runs pre-open connect FINE (client 78) — so it is
+**contention-specific: at 14:59 CT the recorders (run to 15:05 CT) + trigger + mirror + spot + marks
+are all on IB and the gateway won't accept the extra connection.** NEXT-SESSION FIX CANDIDATES:
+(a) move the STMR run to ~**15:06 CT** — after the recorders stop, gateway quiet — accepting a ~7-min
+causal drift (still inside the 15:59-16:15 window the backtest tolerates); (b) reuse/share an existing
+IB connection; (c) raise ib_conn.connect timeout. Position is FLAT (nothing open), so no risk — it
+just isn't entering. Today (9/2) the pre-open preview fired an entry (K8 14.3) but the 14:59 run died.
+
+**RECORDER DUPLICATE-SUPERVISOR STORM (9/2 08:25) — FIXED + ROOT-CAUSED.** The Chain Recorder task
+launched multiple supervisors; the pid-file singleton is not atomic (check-then-write races on
+near-simultaneous launches, and the process-pair leaves a stale pid), so **8 supervisors + 4 recorders**
+piled up, collided on IB client-ids until NO recorder could write a heartbeat, and every supervisor
+read the stale heartbeat as "hung" → relaunch loop. Tape heartbeat froze; recovered by a manual
+kill-storm + clean single relaunch at 08:42 CT. **9/2 still graded 99.3% complete** (tape had data from
+08:30:57, one small hole — damage less than feared). **FIX (commit 623be35d):** atomic per-symbol
+socket-bind lock in `chain_recorder_supervisor.py` (SPX 49740 / XSP 49741) — a dup launch now exits(0).
+Verified atomic. **Applies at the next 08:25 auto-launch; the storm cannot recur.** Recovery procedure
+if it ever hangs again: kill `*chain_recorder*`/`*chain_supervisor*` procs, delete the stale
+`chain_heartbeat.json`/`chain_XSP_heartbeat.json`, relaunch one supervisor per symbol.
+
+**L2/DEPTH FULLY RETIRED (user: "we don't have L2 data anymore").** The depth subscription is gone
+(NT writes tape-only depth CSVs, zero book events). Removed ALL of it:
+- Telegram paging: dropped the "L2 depth" rule from `alert_monitor.py` + the fut-TAPE-ONLY ping in
+  `session_pings.py` (other health pages intact).
+- Tasks **DISABLED**: `MyQuant NT Watchdog` (nt8_watchdog — was also relaunching NT for the dead feed),
+  `MyQuant Depth Rollover`, `MyQuant Pre-Open Verify` (its pass-test is "depth rows arriving" = never true now).
+- NT AddOn PULLED: live `MarketDepthRecorderAddOn.cs` + `Strategies\MarketDepthRecorder.cs` renamed
+  to `.disabled` (repo archives kept in `nt8/`). **PENDING: user must F5 / restart NT** to unload the
+  still-running AddOn (the "SILENT 90s / forcing resubscribe" NT-log spam continues until then).
+- KEPT: `TickExportAddOn` — NT records ticks INTERNALLY (`.ncd`); this AddOn just exports them to the
+  trove (Tick Trove task, working, trove current through 9/1). Only a comment in it mentions depth.
+
+**XSP MIRROR — settlement automated + spread gate.**
+- `settle_xsp` was manual-only and LAPSED while the user travelled — 18 expired trades sat open across
+  8/27-9/1 making those days look falsely red. Caught all up; **new task `MyQuant XSP Settle`** runs
+  nightly 16:30 CT (self-fetches close, default date=today) so it can't lapse again.
+- **$0.05 leg-spread GATE** added to `options_mirror_xsp.py` (`MAX_LEG_SPREAD`): skips mirroring any
+  trade with a leg bid-ask > $0.05 (the wide ATM-fly legs where the mini bleeds vs SPX/10); logs skips
+  to `xsp_skips.csv`, never retries. Historical bite 20% (flies 17-50%, condors 0%). Live; 1 skip on 9/2.
+- A/B finding (7-day, `analyze_august_trades`/inline): XSP lagged SPX/10 by ~$370, captured ~none of the
+  desk's green days — the mini eats losses, misses wins.
+
+**CALENDAR + 8/25 (S106-cont, still true):** `options_dashboard.py` now buckets realized P&L by EXIT
+date (was entry) — closed trades only; STMR -$690 shows on 8/25 where realized. The missed 8/25 STMR
+exit was reconstructed (both legs booked closed 8/25 at mid 14.35; sim -$420.2 / real -$270.2) and the
+live IB leg flattened (+$25 operational → `stmr_missed_exit_cost_20260825.csv`, out of strategy PnL).
+
+**REMOTE ACCESS + KEEP-ALIVE (user travelling):** dashboard reachable over Tailscale at
+`http://100.120.208.126:8600/?key=Tp3xCWzVnG3_6KeDsvkzUA` (see memory [[dashboard-remote-access]]);
+laptop needs same tailnet login. **RDP is DISABLED** — to run Claude Code against the desk remotely it
+must be enabled first. New task **`MyQuant Dashboard Keepalive`** (every 10 min) relaunches
+`options_dashboard_live` if 8600 is down (only starts, never kills) — it was unsupervised and died once.
+
+**ANALYSIS (committed, saved CSVs):** `analyze_august_trades.py` (Aug 0DTE desk +$7,036, 167 trades:
+Open flies the engine, EOD book the drag -$442, call side weaker than put, held-to-expiry +18.5k /
+stopped -12.1k) + `analyze_account_size.py` (peak concurrent collateral: full book gross $20.6k /
+netted $11.4k; cutting EOD → gross $12.9k / netted $6.9k, ~37-40% less).
+
+**9/2 P&L:** SPX 0DTE desk settled **+$592** (green — held legs settled well after 2 call flies stopped
+out). XSP mirror negative (settles nightly). STMR flat (didn't enter — connect failure).
+
+**Commits this session (all pushed to origin/s75-live-dashboard):** 5301aa48, 346278fb, 9f6e81c5,
+9a58ba8f, 09d4e045, 3bda7290 (S106-cont) · then 9918ed68 (xsp settle+keepalive), 20ae8abb (xsp gate),
+b9873ada (stmr connect hardening), c9bf4589 (L2 paging retired), 623be35d (recorder atomic lock),
++ Aug analysis commits.
+
+**STANDING:** user on CT / machine Berlin — never state converted CT as fact. Ask before start/stop/kill/
+task edits (the harness classifier also gates process kills). Verify before speaking.
+
+---
+
+## S107 (2026-09-02) — MyWedge NT8 automation: WedgeExporter + WedgeScalperV2; 2000t research
+
+**BIG PICTURE:** Built an automated NT8 strategy (`WedgeScalperV2`) driven by a **black-box**
+custom indicator **MyWedge** (from PriceActionIndicators.com — we NEVER see its code, only its
+plots), plus a `WedgeExporter` to dump its signals to CSV for python research on our continuous
+2000-tick ES data. Strategy compiles + trades in the **Strategy Analyzer**; still being refined.
+
+**MyWedge interface (BLACK BOX — plots only):**
+- Class `Indicators.My.MyWedge`. Hosted via accessor:
+  `MyWedge(lookBack, showW2L, wedgeSymmetry, oLSensitivity, cTSB_Ignore, iB_Ignore, showWedgeSB, signalBarIBS, continueMC, continueOnGap)`.
+- Plots: **WedgeBL / WedgeBR** = wedge condition active (context/bar-color); **WedgeBLSB /
+  WedgeBRSB** = **signal bar = entry trigger**. Values are the PRICE level (not 0/1); `>0` = fired.
+  **BL/BLSB = LONG, BR/BRSB = SHORT** (confirmed by user).
+- **Chart indicator settings the STRATEGY MUST MATCH** (strategy hosts its OWN MyWedge — if params
+  differ, it trades different signals than the chart draws): **LookBack=12** (user-confirmed; the
+  6-mo export was wrongly done at 20), ShowW2L, WedgeSymmetry=4, Overlap/OLSensitivity=1,
+  Ignore CT SBs/CTSB_Ignore=**true**, Ignore Inside Bars/IB_Ignore=**true**, ShowWedgeSB=true,
+  SignalBarIBS=66, ContinueMC/ContinueOnGap=false. (ShowW2L match uncertain — I misread the
+  checkbox once; verify.)
+
+**NT8 files (nt8/, committed; deployed to `Documents\NinjaTrader 8\bin\Custom\`):**
+- `nt8/indicators/WedgeExporter.cs` — hosts MyWedge, writes every signal bar to CSV over full
+  history; auto-writes on historical→realtime + Terminated backstop; exposes all 10 MyWedge params.
+- `nt8/strategies/WedgeScalper.cs` — original (SUPERSEDED).
+- `nt8/strategies/WedgeScalperV2.cs` — **CURRENT** strategy, dated change-log header + diagnostic
+  Print logging. **Compile-check always reports CS0234 on `MyWedge`** (not in the local reference
+  DLL) — EXPECTED/harmless; NT8 F5 resolves it, all other lines compile clean.
+
+**WedgeScalperV2 spec (current):**
+- Entry: ONE stop order sized `ScalpQty+RunnerQty`, 1t beyond the signal bar. If price already ran
+  past the level → rests a **LIMIT** at the entry price (no chase). Submitted **once, LUC=true**,
+  cancelled only after `EntryValidBars` (an earlier submit-then-cancel-next-bar raced the fill
+  engine → every order cancelled unfilled — FIXED).
+- Exits **ALL MANUAL** (mixing Set methods dropped the manual scalp limit → went all-manual).
+  Placed **immediately on fill via OnExecutionUpdate**; stop qty auto-reduces after scale-out.
+- Scalp: `ScalpQty` exits at `+ScalpTargetTicks` (limit, once; `_scalpDone` prevents re-scalp).
+- Runner default: SB stop → BE at `+BETriggerTicks` → 1t/bar trail. Options: `TrailFromEntry`;
+  **`RunnerHoldToOpposite`** (BE then HOLD, no trail — ride until reversal/BE).
+- **Feature A — RunnerHoldToOpposite (stop-and-reverse):** opposite wedge arms an opposite-side
+  entry (regular process, valid `EntryValidBars`); if it TRIGGERS → managed reversal flips the
+  position (OnExecutionUpdate re-inits with the reversal's SB stop); if not → stay in.
+- **Feature B — manual stop override:** drag the stop → value-comparison (OnOrderUpdate captures
+  live stop price; diverges >½ tick from strategy-set → `_userMovedStop` → auto-stop OFF for that
+  trade). Reused pattern from `@@MCScaleInStrategy.cs`. Resets each trade.
+- ScalpQty/RunnerQty can be 0 (disable a lot). Safety: `RealtimeErrorHandling=IgnoreAllErrors`
+  (a rejected order no longer disables the strategy / wipes chart markers); entry guard vs
+  buy-stop-below/sell-stop-above rejection; hard net = force-exit if a bar closes beyond the stop.
+
+**RESEARCH (research/wedge/, committed) — ⚠️ ALL ON LookBack=20 (WRONG) SIGNALS, must redo at 12:**
+- Data: `data/wedge/wedge_signals_ES_2000t_6mo.csv` = 5,206 signals Feb1–Aug26 2026 (24h ETH),
+  exported at LookBack=20. python trove `data/ticks_continuous/*.parquet` = RTH-only, 5yr.
+- Scripts: `wedge_signal_stats.py`, `wedge_structure_pnl.py`, `wedge_exit_sweep.py`,
+  `wedge_mgmt_lab.py`, `wedge_entry_edge.py`.
+- **CRITICAL:** sim had a phantom-fill bug (pre-open signals mapped to the RTH open → fake
+  profits). After the fix (commit 3eed0479), **every exit scheme on the breakout entry is net-
+  NEGATIVE** (structure PF 0.76, 1-lot trail PF 0.69, fixed 4–8t PF 0.86–0.96) and NT8's Analyzer
+  agrees (PF ~0.69). The ONLY positive: **entering at the signal-bar CLOSE** (not the breakout)
+  with a tight stop → ~52–56% win, PF 1.04–1.16 (`wedge_entry_edge.py`) — real but thin +
+  slippage-sensitive. Signals CHOP after firing (don't trend) → trailing beats holding; that's why
+  RunnerHoldToOpposite made P&L WORSE (BE-hold gives back the trail's profit).
+
+**BUGS FIXED THIS SESSION (each was a live/Analyzer symptom):** (1) stops didn't rest → session-
+close blowouts; (2) runner qty ignored (100=1) — two same-price entries didn't both fill → single
+sized entry; (3) scalp target silently dropped (Set+manual mix) → all-manual; (4) all entries
+cancelled unfilled (LUC/cancel race) → submit-once-LUC-true; (5) reversal did nothing (runner still
+trailed out + reversal had a 1-bar expiry) → override runner exit in that mode; (6) buy-stop-below-
+market rejection disabled the strategy + wiped markers → IgnoreAllErrors + limit fallback.
+
+**OPEN ITEMS / NEXT:**
+- **Re-export signals at LookBack=12** (+ match ALL MyWedge params to the chart) and **REDO all
+  research** — current numbers are on the wrong (LB20) signal set.
+- **Verify RunnerHoldToOpposite reversal** actually flips to the correct size in the Analyzer
+  (managed-reversal sizing unverified; suspicion: reversal reuses the `"Wedge"` entry name that
+  already holds the position — may need a distinct name + re-attach exits to the new position).
+- Proposed variant: RunnerHoldToOpposite that keeps the **trail active** while the reversal is
+  armed (don't give back profit).
+- **Close-entry strategy** — the only positive edge; consider building a close-entry variant.
+- Strategy is for **Strategy Analyzer (backtest)** evaluation; on a live chart it only trades
+  FORWARD (no historical trades — that's why the chart showed "no historical performance").
+
+---
+
+## S106-cont (2026-08-26) — STMR strategy fixed end-to-end (daemon retired); 8/25 missed exit reconstructed; calendar → exit-date
+
+**AWAY NOTE (2026-08-27, user traveling a few days):** everything on scheduled tasks + verified
+green — recorders (SPX+XSP), trigger daemon, XSP mirror, marks, spot_feed, gameplan, postmortem/
+EOD/evening all Ready; **new `MyQuant STMR Decision`** first-fires today 14:59 CT (21:59 Berlin
+trigger; 20:59 no-ops). Both books flat/settled (8/26 XSP settled manually — needed a fresh
+`spx_daily_yahoo.csv` + `--date`). Gateway 4002 seen DOWN at 05:46 CT = **normal** (login 06:00
+CT + Ensure 07:20 CT before the open). **Remote access:** dashboard reachable over Tailscale at
+`http://100.120.208.126:8600/?key=…` (see memory [[dashboard-remote-access]]); laptop needs same
+tailnet login. **RDP is DISABLED** — to run Claude Code against this desk remotely it must be
+enabled first (not done).
+
+**FOLLOW-UPS (2026-09-02, still traveling):**
+- **Dashboard keep-alive ADDED** — task `MyQuant Dashboard Keepalive` (every 10 min) runs
+  `dashboard_keepalive.py`: relaunches `options_dashboard_live` only if 8600 is down, never kills.
+  Remote Tailscale link now self-heals.
+- **XSP settlement was LAPSING** — `settle_xsp` is manual-only and nobody ran it while away, so
+  18 expired XSP trades (8/27/28/31, 9/1) sat OPEN, making those days look falsely red (only the
+  losers were booked; the expired-OTM winners weren't credited). **Caught up all 4 days** (book now
+  flat, 0 open) and **automated it**: new task `MyQuant XSP Settle` runs `settle_xsp.py` nightly at
+  16:30 CT (self-fetches the close, default date = today). Corrected days: 8/27 −142→−2, 8/28
+  −243→−208, 8/31 −45→+56, 9/1 −140→−94.
+- RDP still DISABLED (not enabled); keep-alive is the only supervisor added.
+- **XSP SPREAD GATE added** (`options_mirror_xsp.py`): `MAX_LEG_SPREAD = 0.05` — the mirror now
+  SKIPS a trade (logs to `xsp_skips.csv`, never retries) if ANY XSP leg's bid-ask > $0.05, instead
+  of crossing the full spread at the ask. Targets the S106 bleed (7-day A/B: XSP lagged SPX/10 by
+  ~$370, captured ~none of the desk's green days). Historical bite: skips 20% of entries — flies
+  17-50%, condors/walls 0%. Takes effect on the NEXT mirror run (running instance keeps old code).
+
+**THE STMR PROBLEM (found this session):** the 14-DTE stochastic-mean-reversion book
+(`bps_stmr`: K8<15 & spot>SMA100 → sell a 50-60pt BPS; exit the first day 15:59 spot >
+SMA5 → buy it back) had been **failing silently for weeks**. `options_sim_daemon.py` runs
+all day (launches 08:28 CT, must survive to the 15:59 ET decision), headless (`pythonw`, no
+output capture), so every `res=1` was invisible. `decisions.csv` logged only 7/21, 7/22,
+7/28, 8/10, 8/17, 8/19 — many missing weekdays. On **8/25 it missed a live exit**: the rule
+fired (15:59 spot 7679 > SMA5 7671, verified from the tape) but the daemon died before the
+decision, so both `bps_stmr` legs (entered 8/19) sat open unmanaged.
+
+**ROOT-CAUSE INSIGHT:** the daemon runs all day for **one reason** — to accumulate the
+session High/Low the K8 stochastic needs. But that H/L is **independently recorded** in
+`data/options_sim/underlying_YYYYMMDD.csv` (verified: full-session, reliable). So the
+fragile 6.5-hour process is unnecessary.
+
+**THE FIX (`scripts/stmr_exit_check.py`, now the SOLE STMR decision-maker):** a lightweight,
+OBSERVABLE near-close run — reads realtime spot (SpotRig) + session H/L (tape), computes the
+full signal, then `exit_sig → do_exits()` / `fire → open_put_ladder + do_entry()` (sim +
+real IB rows). Needs only a ~1-min connection at 15:59 ET; writes `stmr_exit_heartbeat.json`
++ a `decisions.csv` row; Telegram-alerts on any action/error. Own lock port 49734; idempotent
+via `open_trades`. Entry/exit logic extracted from the daemon into shared `do_entry`/`do_exits`
+(one tested copy each — daemon still has them but its all-day path is retired). Commits
+**5301aa48** (exit-only stopgap) → **09d4e045** (full entry+exit).
+
+**OPS CHANGES APPLIED THIS SESSION (all done + verified):**
+- `MyQuant Sim Daemon` → **DISABLED**. Do NOT re-enable — its decision is superseded.
+- **NEW task `MyQuant STMR Decision`** → Ready, runs `run_at_ct --at 14:59 -- stmr_exit_check.py`,
+  Mon-Fri, DST-safe dual triggers (21:59/20:59 Berlin). **First live fire: 2026-08-27 14:59 CT.**
+- `dashboard_live` restarted (fresh code) to apply the calendar fix.
+- **WATCH 8/27 ~15:05 CT:** `stmr_exit_heartbeat.json` should show `state:ok`; a `decisions.csv`
+  row noted `decision`; Telegram only if it enters/exits. Nothing written = task didn't run.
+
+**8/25 MISSED EXIT — RECONSTRUCTED (commit 346278fb):** booked both `bps_stmr` legs closed
+as-of **8/25** at the 16:05 mid mark **14.35** (`fill_model=reconstructed_1600_mark`, tagged
+so it's never mistaken for a real NBBO fill; ~0.15-0.30 optimistic). PnL **sim −$420.2 /
+real −$270.2 = −$690.4**. Book backed up → `trades.parquet.bak_reconstruct_20260825`. The
+live IB paper leg (short 7635P/long 7575P exp 9/2) was **flattened** (commit 9a58ba8f) after
+the opening spread tightened: paid **14.60**, IB verified flat. The **+$25** vs the 14.35 book
+went to `data/options_sim/stmr_missed_exit_cost_20260825.csv` as **operational cost ONLY** —
+NOT in strategy or today's desk PnL (user's explicit instruction).
+
+**CALENDAR FIX (commit 9f6e81c5):** `options_dashboard.py` bucketed every trade's P&L by
+**entry** date — fine for 0DTE (enter==exit) but the STMR swing (entered 8/19 / exited 8/25)
+dumped its −$690 onto 8/19, hiding it. Closed trades now bucket by **exit** (realization) date;
+open trades stay on entry (unrealized); dow/hour stay entry-based (strategy-entry analytics).
+Result: **8/19 +$2,023** (true same-day), **8/25 −$436** (0DTE +254 − STMR 690). Only multi-day
+trades move.
+
+**8/26 DESK (for the record):** recorder **99.9% complete** (first fully-clean tape since 8/21,
+started 08:30:36 at the open). 0DTE desk **−$720.2** realized — the EOD iron fly got whipsawed
+through 7675 (call side −$616 closed 09:02 CT, put side −$81 closed 09:33 CT; both walls broke
+opposite sides — same pattern as 8/24). XSP mirror ran clean; `settle_xsp` still needed nightly.
+
+---
+
+## S106 (2026-08-21→25) — XSP mini mirror (1/10 SPX) built + running LIVE; recorder @10s + archival
+
+**BIG PICTURE:** on top of the SPX 0DTE paper desk, we now run a **parallel XSP (Mini-SPX,
+1/10 SPX, same Cboe/OPRA feed) mirror** — every SPX fill is mirrored into XSP on the paper
+account — to measure the SAME strategy at 1/10 size and see if a small account is viable.
+Both books + both tapes now record. The desk is a SIM/paper account; end goal = a clean
+intraday tape (now **10s** cadence, maybe 5s) to backtest exit rules after ~90 days.
+
+**RECORDER (S105 rebuild) now @10s + archives:** crash-proof/supervised recorder is
+parameterized by instrument (SPX + XSP), both at **10s** (was 30s). At EOD each day's CSV
+→ snappy **Parquet** in `data/options_tape/` + gzipped raw backup (`archive_chain_day.py`,
+wired into the supervisor); working dir stays clean. 8-day backfill done. Completeness gate
+grades on continuity (started-at-open + ran-to-close + no big hole), not nominal count.
+
+**THE XSP MIRROR (Phase 1+2 done; Phase 3 mini-dashboard-tab NOT built):**
+- `options_chain_recorder.py` + `chain_recorder_supervisor.py` — `--symbol SPX|XSP`; XSP =
+  $1 strikes at spot/10, client 72, own files (`chain_XSP_*`), lock, heartbeat, archival.
+  Task **`MyQuant Chain Recorder XSP`** (08:25 CT).
+- `options_mirror_xsp.py` — mirrors each SPX fill → XSP (strike/10 nearest $1, same
+  side/qty/expiry), places the combo on paper (client 73), logs to parallel book
+  **`data/options_log/trades_xsp.parquet`** (via `tlog.set_book('xsp')`). Marks open
+  positions → `marks_xsp.csv`. Captures IB's ACTUAL commission (`commissionReportEvent`) →
+  `xsp_commissions.csv`, and **tick-exact per-leg bid/ask at each fill** → `xsp_fills.csv`.
+  RESTART-SAFE (rebuilds open combos from the book on startup). Task **`MyQuant XSP Mirror`**
+  (08:29→15:00 CT). `settle_xsp.py` cash-settles the mirror book at XSP close (=SPX/10) —
+  **the SPX postmortem does NOT settle the XSP book, you must run settle_xsp**.
+- VIEWS (standalone, auto-refresh 30s, kept live by a regen loop): **`mini_stats.html`**
+  (mini net realized+open, XSP-vs-SPX×10 edge-survival) and **`mini_executions.html`**
+  (tick-exact spread paid/trade + fly-vs-condor cost). Open in browser, NOT VSCode.
+
+**REAL XSP FEE = $1.22/contract** (IB commissionReport, live). NOT the modeled $1.30, NOT
+my wrong $0.70 estimate. Cboe waives the XSP index fee 1-9 lots; verify exact via
+`check_fees_ib.py` (whatIf) — note whatIf returned empty (paper preset), real fills are
+definitive. `ib_executions.py` pulls IB's fills (commissions show $0 from a fresh client —
+they only reach the PLACING client live). Fee is per-contract FLAT → ~2x the % drag of SPX;
+`xsp_fee_model.py` details 1-9 lots (stay ≤9/leg to keep index fee $0).
+
+**KEY FINDING (the whole point):** the mini **tracks condors/walls ~10% cleanly** (XSP OTM
+spreads 0.01–0.02, fill near mid) but the **ATM iron FLIES do NOT scale** — the at-the-money
+strike has a wide XSP spread (e.g. 766C bid 2.04/ask 2.51 = 0.47) + the flat $1.22 fee, so
+the mini goes negative even when SPX is ~flat. OPEN QUESTION: fix execution (**mid-limit vs
+marketable**, both books — proposed next study) before deciding to **exclude flies from the
+minis only** (keep full-size in SPX). Don't exclude on 1-2 days.
+
+**P&L:** 8/21 SPX +$748 (first 100% clean tape). **8/24 SPX −$499 (RED)** — whipsaw THROUGH
+the 7665 ATM: dropped→cut put flies, reversed→cut call fly (path, not size; range was only
+30pts). 8/24 XSP −$114 (vs expected −$50; ATM-fly execution the culprit, esp eodfly_p 2x
+worse). **8/25 (in progress, ~14:21 CT): SPX +$250 GREEN (mark-to-market, 4 open), XSP
+−$189** (fee+fly drag; XSP open marks are noisy/thin).
+
+**OPEN ITEMS / GAPS:**
+- Mirror was **7 vs SPX 8** on 8/25 — one SPX trade not mirrored; investigate.
+- **SPX real-commission capture** (add `commissionReportEvent` to trigger/sim daemon) — NOT
+  done (touches the working desk; needs user OK). SPX still uses modeled $1.30.
+- **Phase 3 mini dashboard TAB** — not built (standalone views instead); build on real data.
+- **ES trove backup** — `data/ticks_continuous` (5yr, 1301 sessions, through 8/21) is
+  **gitignored/LOCAL-ONLY**; raw Massive flatfiles intentionally deleted (re-downloadable via
+  `download_instruments_5y.py`). Next ES roll ~**Sep 14-16** into Dec (ESZ6), automatic.
+- sim daemon `res=1` (STMR daily-check gap) — left per user.
+- Mid-limit-vs-marketable execution study (proposed, not built).
+
+**STANDING (unchanged, reinforced):** user is on CT, machine is Berlin — NEVER state a
+converted CT wall-clock as fact (use zoneinfo). No unilateral state changes (ask before
+start/stop/kill/task edits). Verify before speaking; I mis-stated the XSP fee twice and
+false-alarmed a "stuck mirror" — the user rightly wants me to reconcile prior claims, not
+skip past them.
+
+---
+
+## S105 (2026-08-19→20) — 0DTE recorder rebuilt (crash-proof + supervised @30s); Aug 19 P&L corrected
+
+**GOAL clarified by the user (this reframes everything):** the desk exists to **collect
+data** — the trades PLUS a clean intraday 0DTE tape at **30s** — so that **after 90 days**
+we replay and test exit strategies on real recorded prices. Live execution / marks /
+dashboard are SECONDARY. A gap or a delayed stretch = lost forever = corrupts the dataset.
+
+**ROOT CAUSE of the lost dataset — verified across Aug 4-19: PROCESS DEATH, not the feed.**
+Measured spot behavior per day: the feed was **realtime on 5 of 6 recorded days** (spot
+moving, 200-350 distinct values). The recorder just **wasn't alive**: Aug 7-16 exited 1
+silently (**8 sessions lost**), Aug 17/18 crashed at the open and started hours late on a
+**fine** feed. The delayed feed cost **exactly ONE day (Aug 19)**. We had been fighting the
+wrong enemy for days.
+- Banked toward the 90 so far: ~3 usable days (Aug 4, 6, partial 5/17). **The clock has not
+  really started.** Cadence was **60s**, not the 30s assumed. Assessment scripts print a
+  per-day completeness table.
+
+**REBUILT recorder `options_chain_recorder.py` (durable):** `connect_with_retry` (never
+SystemExit on a cold-feed launch — THE Aug 7-16 killer, was `raise SystemExit("no spot")`);
+waits-alive-for-spot; crash-proof per-sweep loop; reconnect on drop; **true 30s wall-clock-
+anchored cadence** (default `--secs 30`); heartbeat each sweep → `chain_heartbeat.json`; EOD
+completeness gate → `chain_completeness_YYYYMMDD.json` (≥90% coverage or it does NOT count).
+
+**NEW supervisor `chain_recorder_supervisor.py`:** keeps exactly one recorder alive
+08:25→15:05 CT, relaunches within seconds on death, and reads the heartbeat to separate
+**hung/dead (relaunch)** from **feed_delayed (alert only — relaunching can't fix IB's feed)**.
+Pages on death/hang/incomplete-day; recovery ping when realtime returns. **Scheduled task
+`MyQuant Chain Recorder` REPOINTED to it** (run_at_ct `--at 08:25` wrapper + log preserved).
+
+**Settlement bug fixed** (`options_sim_daemon.py` settle_expired): calls now `max(S-K,0)`,
+puts `max(K-S,0)`. Prior code applied the PUT formula to every leg → mis-settled every call
+spread held through that path.
+
+**Aug 19 re-booked to the official ^GSPC close 7707.98** (spot_feed had frozen at 7717.6):
+`openfly_p` −145.6 → −4.6; **day +1884.9 → +2025.9**. `trades.parquet` (backup
+`.bak_20260819`) + `daily_summary.csv` corrected. Scripts: `correct_20260819_settlement.py`,
+`reconcile_0dte_settlement.py`, `feed_watch.py`. **Commit `fbe31f14`.**
+
+**⚠️ NOT YET PROVEN:** the live connect / reconnect / real-sweep path — only tested offline
+(mock + completeness validator + heartbeat). **It proves on the Aug 20 open — WATCH the first
+session** via `chain_heartbeat.json` (live) and `chain_completeness_20260820.json` (EOD).
+
+**Still open:** strike width is ±1.25% (~40-60 strikes) — widen if exit research needs it.
+The data-SOURCE question (flaky paper OPRA vs a read-only market-data login on the LIVE
+account) remains — but it is correctly scoped to ~1-in-11 days, not the main problem.
+
+---
+
+## S104 (2026-08-13) — MQ automations paused; gexlog pipeline confirmed unaffected
+
+**All MenthorQ (MQ) automations put ON HOLD (user decision).** We have no working
+MenthorQ site session and cannot re-auth headlessly. Root cause: the shared Playwright
+session `gamma_tracker/auth_state.json` expired — on load the dashboard redirects
+`/charts` → `/login` → Cognito → WordPress, so every MQ scraper times out. Last good data:
+Backtest-tile scraper **2026-07-29**; full harvester **2026-08-04** (folders since are
+created but 0 files — it exits 0 while capturing nothing, so the task result LIES).
+
+**Scheduled tasks DISABLED this session** (all verified `Disabled`):
+- MQ/MenthorQ scrapers: `MyQuant Backtest Levels`, `MyQuant MQ Harvest`, `MyQuant MQ Mine`,
+  `MyQuant Levels Fetch`, `MyQuant Levels DB`, `MyQuant Levels Engine`, `MyQuant Levels History`
+- `MyQuant Gamma Scanner` — confirmed MQ (imports `mq_api`, direct MenthorQ API) → out.
+- Redundancy trim: `MyQuant Desk Watchdog` (plain one-shot; kept `…Live` daemon) and
+  `MyQuant Gameplan` (08:28 duplicate; kept `Gameplan Early` 07:05, same script).
+- Already-disabled, left inert (no telegram since disabled = never run): `QUIN Harvest`,
+  `NT8 Restart`, `Gateway Watchdog`.
+- No live MQ python processes were running — nothing to kill. Nothing deleted; re-enable
+  with `Enable-ScheduledTask`. Full revival needs a fresh MenthorQ login saved to
+  `gamma_tracker/auth_state.json` (must be done at the browser).
+
+**KEPT (verified NOT MenthorQ — do not confuse with MQ):**
+- `MyQuant Sim Daemon` = `options_sim_daemon.py`, the live 15:59 BPS SPX paper-trader off
+  IB/OPRA. (Its two triggers 14:28/15:28 machine = DST belt-and-suspenders, not a dup.)
+- `MyQuant Chain Recorder` = `options_chain_recorder.py`, forward SPXW 0DTE NBBO off IB/OPRA.
+  Exits `1` — not yet diagnosed (clean `--stop` vs gateway issue); left enabled.
+
+**Morning/evening brief = GexLog (gexlog.com), NOT MenthorQ → unaffected by the MQ hold.**
+- Morning: `gexlog_brief.fetch()` called INSIDE `options_gameplan.py` (not a standalone
+  task). Verified live in today's `gameplan_20260813.json`: day_type CHOP, EM 7677–7820,
+  putWall 7725 / callWall 7750, `error=None`. Runs via `Gameplan Early` (07:05 CT, result 0).
+  Strategies (EM-band condor, gexlog wall condors, day-type buckets, WAIT/event-gate) all
+  build off this brief — intact.
+- Evening: `MyQuant Evening Brief` → `gexlog_evening.py` (19:05 CT), result 0, ran today;
+  pushes a Telegram recap = a real ongoing telegram source (independent of MQ).
+
+---
+
+## S103 (2026-08-11 → 08-12) — Gateway login reliability + NT popup fix
+
+**What broke and why (own it): a gateway "watchdog" I shipped 08-10 caused a worse
+daily failure.** Root incident 08-10 (Mon): a weekend-expired IBC autorestart token
+forced a FULL cold authentication that HUNG ~85 min (07:30→08:56 CT), feed dead through
+the open, the 08:29 trigger daemon died on first connect → every premium setup missed.
+
+- **08-10 fix attempt (`gateway_watchdog.py`, commit 451ef8e5):** verify real auth
+  (managed accounts, not just port 4002), relaunch-if-down, force-restart-if-stuck,
+  Telegram alert. **TWO BUGS:** (1) 8-min "stuck" grace is SHORTER than a cold-auth, so
+  it killed the gateway mid-login; (2) its readiness check called `ib_conn.connect()`,
+  which auto-runs `gateway_ensure` → relaunches IBC. Together = a kill-loop + spawn-storm.
+- **08-11 (Tue) result:** the watchdog fired ~6 rapid logins at the open, tripped **IB's
+  login rate-limiter** ("Too many failed login attempts" / "Server disconnected"), and
+  blocked the gateway all morning. User logged in MANUALLY (~07:30 CT) and it worked —
+  proving it was never the password (IBC entered it every attempt), it was the throttle.
+- **Remediation shipped (committed, verified):**
+  - **`gateway_watchdog.py` DISABLED** (task `MyQuant Gateway Watchdog` = Disabled). Do
+    NOT re-enable until its two bugs are properly fixed (longer grace; a readiness probe
+    that NEVER launches anything).
+  - **Trigger daemon now waits PASSIVELY** (commit c295814b): raw-socket-probes 4002 and
+    only calls `ib_conn.connect()` once the port is actually listening — so it can never
+    re-trigger the relaunch storm / throttle. (Earlier hardening 451ef8e5 added the
+    connect-retry that had the storm bug; c295814b is the corrected version.)
+- **Gateway login TIMING (key lesson):** logging in TOO EARLY hits IB's overnight
+  server-maintenance window. **02:34 CT (09:30 Berlin / 03:34 ET) → clean single attempt
+  still gets "Server disconnected"** = IB refusing logins that early, NOT our throttle.
+  Working times observed: ~06:30 ET (manual) and the long-standing original 07:30 CT.
+  **Current setting: `MyQuant Gateway Login` = 06:00 CT (13:00 Berlin), Mon–Fri**, plain
+  local trigger (no run_at_ct), StartGateway.bat /INLINE + log. Rationale: after IB's
+  window, ~2.5 h idle buffer before the 08:30 CT open. `config.ini AutoRestartTime=02:00`
+  set 08-10 (out-of-repo). **UNSOLVED:** the Monday case — weekend cold-auth needs a big
+  pre-open buffer, but early enough for that buffer collides with IB's downtime. Solve
+  separately; do not just move the login earlier.
+- **NOTE:** 08-11 the desk MISSED the open (gateway blocked); trades only fired after a
+  manual relaunch ~09:00 CT, all entry_valid=False (contaminated day, filter it out).
+
+**NT8 save-workspace popup — SOLVED structurally (commit 26c5eb95).** The "Save
+workspace 'Massive'?" popups + the "restart aborted, needs a human" Telegram flood all
+came from ONE path: `nt8_watchdog.py` trying to CLOSE a running-but-jammed NT to restart
+it. NT's close dialog can't be reliably auto-answered (`_dismiss_nt_dialogs` misses the
+native Win32 box), so the close hangs → abort → popup on the user.
+- **Fix:** the watchdog now **NEVER auto-closes a running NT** — it only RELAUNCHES NT
+  when it is already DOWN (that path closes nothing → no dialog → no popup; the AddOn L2
+  recorder resumes on its own on relaunch). A running-but-stalled NT gets ONE alert; user
+  restarts manually. `MyQuant NT8 Restart` (the daily-halt restart, the other close-path)
+  stays **Disabled**. Net: no automated path closes a running NT, so the popup can only
+  appear if the USER closes NT. Tradeoff accepted: no auto-recovery of a jammed NT.
+- **Verified:** recording auto-resumes on manual restart — the L2 recorder is an *AddOn*
+  (loads on startup) and `ReopenWorkspaces=false`, so it doesn't even need the workspace.
+
+---
+
+## S102-EA (2026-08-10) — Final 6 method webinars transcribed + key-points mined
+
+Finished the EminiAddict webinar collection: the **6 remaining method webinars**
+(12 Gap Fill 90m, 16 Past-Predicts-Future, 20 Profiting from Gap Fills, 21 Crude
+& Gold, 22 Manage Positions, 25 Trend Changes / Dead Cat Bounce) transcribed +
+assistant-written key-points nuggets. **All 11 method webinars now done** (5 in
+S94-EA + these 6).
+
+- **Transcribe:** `ea_transcribe` pulls mp4s direct from public S3 — **no cookie
+  needed** for transcription (only the initial scrape did). Ran
+  `scrape_webinars.py --transcribe --idx 12,16,20,21,22,25` with a throwaway
+  `EA_COOKIE` file just to satisfy the import-time cookie read in
+  `scrape_getting_started.py`. `small.en` CPU whisper, ~30–85 min/file.
+  Transcripts → `data/site/webinars/transcripts/` (untracked, copyrighted).
+- **Nuggets committed** (`26c1313c`, `git add -f`): `data/site/webinars/nuggets/
+  {12,16,20,21,22,25}.md`. Same **In short:** + thematic-section format as 03/08/
+  09/10/11. Only nuggets tracked; transcripts stay ignored (GS precedent).
+- **Tool rebuilt + Drive-synced:** `build_getting_started_page.py` reads
+  `webinars/nuggets/NN.md`, so the rebuild folded the 6 key-point cards in.
+  `docs/artifacts/eminiaddict_tool.html` (24 MB, gitignored) → copied to
+  `G:\My Drive\myquant_transfer\eminiaddict_tool.html`. Verified: 0 method
+  webinars still "pending transcription".
+- Remaining webinars are macro/crypto (Fed Pivot ×3, Bitcoin Cycles, SPX-in-Gold,
+  Crypto Winter, Hedging) = video-only by prior user decision — NOT transcribing.
+
+**NEW THREAD — structured curriculum + "Modern Edition" of DH's book.** User's
+gripe: DH has no ground-up teaching sequence (DH admits it). Wrote a full
+**blueprint** `eminiaddict/notes/CURRICULUM_SYLLABUS.md` (`0e436b26`) — approve
+before ANY build. Locked decisions:
+- **5 stages / 14 modules**, ground-up (atom-first: MM geometry → seed-swing →
+  setups → entries → exits → series → timeframes → daily process → internals →
+  playbooks → history → psychology → capstone plan). Per-lesson template:
+  objective → DH-in-his-words (cited) → worked examples → mistakes → drill →
+  gating quiz.
+- **Voice:** DH base preserved, our commentary layered (`[OUR ADD]` boxes).
+- **Book incorporated FULLY**, cited ch/fig/page (§3a citation map in the doc).
+- **Biggest gap-fill = a real seed-swing methodology** (his one discretionary
+  step, barely taught). Also: terminology fixes, expectations/risk-of-ruin math,
+  honesty flags on unproven bits (S92 backtests, S93 TICK).
+- **Verified sourcing fact:** book covers TICK/BANK/breadth confluence (Ch 10–11)
+  but **NOT VIX** (0 mentions) — the 5-signal VIX/checklist is webinar/site-only.
+  Module 9 sources are split accordingly.
+- **Two outputs, one research base:** each module → (a) interactive gated lesson
+  (new "Learn" tab superseding the Academy hub) + (b) a **Modern-Edition prose
+  chapter**. Modern Edition = re-sequenced, current charts, webinar material
+  folded in — framed explicitly as a **PITCH TO DH** (clean copyright posture;
+  no public distribution without him). Chapters → `eminiaddict/modern_edition/`.
+- **RESOLVED (user):** ES-primary · soft gates · multi-week depth · improved
+  sequence + crosswalk to his original 1–16.
+- **Build started.** `eminiaddict/notes/seed_swing_methodology.md` = the flagship
+  gap-fill (5-step seed-pick procedure; his one discretionary step, taught
+  nowhere). Detector `draw_mm_fib.py` verified on live ES (two-seed rule). Target
+  relabeled **−23.6%** (spoken "123.6%") per his Fib convention. NEXT: validate
+  `ZZ_PCT` vs his daily frames, then cross-cutting components → Module 0/1.
+
+**METHODOLOGY COVERAGE STUDY (verified, committed).** Answered "does he teach
+things in the room not in the book/webinars, and what's covered poorly?"
+`scripts/methodology_coverage.py` counts 58 components across book/webinars/
+room(5 daily videos)/diagrams, per-10k normalized → `data/analysis/
+method_coverage_*.csv` + `notes/methodology_coverage_findings.md`. Verified:
+- **Seed-selection HOW-TO = 0/0/0** everywhere (genuine void, matches Ch2 deferral).
+- **VIX + dollar/DXY leading-indicator routine = ROOM-only** (VIX 0 in book).
+- **Psychology + trading-plan = BOOK-only** (absent from videos).
+- **Named-but-undefined:** "blows past target" threshold, tick hook, failure
+  significance, which-touch, zone width.
+- **Re-anchoring decode:** "constant anchor changing" is MECHANICAL — 3 triggers
+  (target-hit→fresh traditional; blows-past→same-anchor extension highs-to-highs;
+  61.8 fail→wait halfway-back, opposing MM). The only fuzzy call = "hit vs blew
+  past" (undefined threshold) which routes traditional-redraw vs extension-redraw.
+- **Caveat:** room corpus = 5 days only. Transcribe more daily videos (S3 keys
+  live) + re-run to harden. Untranscribed anchor-relevant candidate: webinar #23
+  "Measured Move Diagram Webinar". No dedicated anchor-pick or $-correlation webinar.
+
+---
+
+## S101 (2026-08-09) — PATs auction-profile tool (research thread, not the live system)
+
+Side thread supporting the **PATs-Trading** repo (Mack price-action study). Added
+`scripts/pats_profile_charts.py`: renders N random ES days as a **2000-tick chart +
+Volume Profile + TPO/Market Profile** from `data/ticks_continuous/` (5-yr RTH ES ticks).
+- **Dalton value area** computed exactly per *Mind Over Markets* Appendix 1 (volume,
+  two-prices-above vs two-below, heavier pair, to 70%). Verified against the book.
+- Shows **prior-session VA as the shaded "trade-from" zone**, **current developing VA**
+  as dashed migrating lines, POC, initial balance, TPO colored by 30-min bracket.
+- Outputs to `data/profiles/charts/`. Knobs: `--n --days --ticks --rowh --seed`.
+- Data note: tick archive is **RTH-only** (08:30–15:14 CT); Mack's live chart is ETH.
+- Next (PATs, tomorrow): NT8 TPO indicator (colored squares) + premium midday charts
+  compared to these EOD profiles. Congestion detector still PARKED (not built).
+
+---
+
+## S100 (2026-08-08) — Week-1 review + data-integrity plumbing
+
+**Wk1 forward P&L (08-04→07, paper): net −$953, 35 trades, 57% win, n=4 (2 clean).**
+Do NOT trust the centering read: the reported "Open beats EOD by +$2,642" was
+CONTAMINATED — **75% of the Open stream (+$791 of +$1,056) came from ONE 08-05 trade
+struck ~1h late** (dead feed until 09:26). Cleaned edge is +$1,087 (3 days) / +$692
+(ex-NFP), leaning on the lucky 08-07 NFP day. **Withdrawn — no centering conclusion at
+n=2 clean.** Two execution problems found: (1) 08-07 bell-fire blind into NFP (pre-fix
+artifact; blind→WAIT now handles it), (2) 08-05 feed dead 1h at the open.
+
+**Decision (user): keep trading everything unchanged (fact-finding, never block), FIX
+THE PLUMBING so the record stops lying.** Shipped, all compile + tested:
+- **Entry-integrity tag** (#29): daemon `entry_integrity()` writes `entry_valid`/
+  `entry_lag_min`/`feed_age_s`/`entry_note` per trade (LAG_TOL 15min, FEED_TOL 120s;
+  dynamic/strike-at-fire trades hard-invalidate on lateness, fixed strikes soft-flag).
+  **Every A/B table must now filter `entry_valid`.** `daily_summary.n_entry_invalid`
+  surfaces contamination (08-05 = 4). 08-05 backfilled via `backfill_entry_valid_0805.py`.
+- **Feed-health guard** (#30): `live_feed_age()`; invalid fires get a Telegram alert +
+  entry_valid=False, trade STILL booked (never block).
+- **Blind-clobber guard** (#31): gameplan refuses to overwrite a good-brief plan with a
+  blind (errored) one — the 08-07 failure mode. Code neutralizes it.
+
+**OPEN — needs user OK (system state):** the scheduler has a redundant **08:28 CT
+gameplan trigger** (+07:05, 07:28). Propose removing the 08:28 one. Code guard already
+makes it safe; removal is cleanup. NOT touched — awaiting approval per the no-unilateral
+rule.
+
+---
+
+## S99 (2026-08-08) — Weekend review: validate-then-ship batch
+
+User approved "validate #20 on the archive first," then "continue with all the other
+suggestions." Done, all committed on `s75-live-dashboard`, nothing pushed.
+
+**#20 event-gate VALIDATED on 82 days** (`gexlog_event_gate_validate.py` →
+`event_gate_validation_20260808.csv`): EM-held by cell — POS+event **83%** (n=18) ≈
+POS non-event 84%; NEG+event **65%** (n=17, worst, breaks all TREND-strong FOMC/CPI);
+NEG non-event 81%. ⇒ gate event days on **gamma regime**, not the calendar. Caveats:
+n≈17/cell (suggestive); 06-05 POS-NFP still broke (damper≠wall). Flip-half untestable
+(field only recent) → forward capture.
+
+**Shipped this session (all compile + tested offline; NO live network trades):**
+- `gexlog_brief.py`: new fields `gamma_regime` (POS/NEG/?), `event_day`+`event_titles`
+  (macro-print regex), `in_range_flip`, `sector_dispersion`; `_norm_day_type` now maps
+  HIGH VOLATILITY → **HIVOL** (#7, was lost to unknown).
+- `options_gameplan.py`: `event_gate()` → `plan["event_gate"]` + console + Telegram
+  banner. **ADVISORY ONLY** — records STAND_ASIDE/TRADE_NORMAL, does NOT disarm any
+  trigger (the always-trade-everything comparison must stay intact; gate informs
+  real-money sizing later).
+- `daily_summary.py` (#27): captures gamma_regime/event_day/event_gate/in_range_flip/
+  sector_dispersion/rsi_14 (backfills gamma/flip/rsi on old days; event/dispersion
+  forward-only). Verified populated.
+- `deadman_0832.py`: fixed the "cry wolf" — it was a **reader race** (single-shot at
+  08:32 vs first fire ~08:33), NOT a persistence bug (daemon save path verified atomic
+  on every status change). Now polls a 3-min grace window; alarms only on what's still
+  wrong. **This resolves the "plan-file fired-flag persistence bug" — it was mis-diagnosed.**
+- `#19` KEEP as-is: verified `grep` shows forecast_type gates nothing in either daemon.
+- `docs/living/premium_sim_spec.md`: turnkey battery for the 8 minute-data experiments
+  (#2/#12/#14/#15/#22/#23/#24/#28) — build order for when the 2-yr 1-min 0DTE data lands.
+
+**GexLog access RESTORED** — one controlled morning pull returned HTTP 200 on the clean
+IP (VPN off). No separate Saturday preview exists (endpoint still serves Fri 08-07);
+the evening week-ahead (CPI elevated) is the weekend intel. Friday's forecast was
+literally "HIGH VOLATILITY"+"Wait" → real-data confirmation of the #7 normalizer + #19 fade.
+
+**NEXT:** implement the #20 gate into a real-money sizing rule if/when we go live;
+grade-bucket sims + the 8-experiment battery when the minute data arrives; keep
+accruing the forward record (n=4 days, far too small to conclude anything yet).
+
+---
+
+## S98 (2026-08-08) — Evening report auto-pull VERIFIED + 08-07 NFP analysis
+
+**First unattended evening pull worked.** `evening_20260807.json` written by the
+scheduled task at 19:05 CT (`delta +0min RUN`) on the clean IP — no manual retry. Full
+text at `docs/living/evening_reads/evening_20260807.md`, now read every word + analyzed.
+
+**08-07 NFP verdict:** payrolls −23k vs +83k consensus. Their morning forecast (POSITIVE
+gamma + HIGH-VOL 70%) was **wrong the archive-predicted way** — printed moderate trend,
+0.57% range, **EM held**, VIX −1.65% to 14.90. We traded EOD structures at 08:30 into
+their Caution and **netted +$1,366.80** (8/8 legs closed). Both losers were the ATM
+iron-fly **short-call** side (eodfly_c −$211 @7710, openfly_c −$31 @7730) on the +0.62%
+drift; every put side + condor wing expired full credit. Both centerings (EOD + Open) net-positive.
+
+**Rule refined (improvement_log #20):** it's the **gamma regime**, not the calendar, that
+gates event days. `event + neg-gamma = stand aside; event + pos-gamma + no in-range flip
+= EM holds, sell it.` New item **#28**: ATM-fly short-call is our only directional leak on
+drift days → test a directional/near-wall fly center vs symmetric-ATM.
+
+**Their Monday (08-10) look-ahead:** POSITIVE gamma, no in-range flip; SPX pinned on Call
+Wall 7,760 (Put Wall 7,700; EM ±73 ≈ 7,685–7,831); only catalyst Bowman 12:45 ET (medium);
+**week ELEVATED — Core CPI MoM+YoY** → don't over-lever income into it.
+
+**NEXT (user returns for it):** weekend triage of all 28 improvement-log items — bucket
+each into make-live-now / needs-2yr-minute-sim / park. Still pending: plan-file fired-flag
+persistence bug; Saturday weekend-preview pull.
+
+---
+
+## S97 (2026-08-07) — NEW SIDE PROJECT: PATs-Trading transcript library (separate repo) + Mission Control `/pats`
+
+**Separate repo `C:\Users\Admin\Desktop\PATs-Trading`** (GitHub samirnyc-code/PATs-Trading,
+private). Read ITS `PROJECT.md` first — it is that project's source of truth. Goal: extract
+Mack's PATs methodology from ~2,920 @PATsTrading YouTube recaps (captions only, no video)
++ comments, cross-checked against his manual (`manual/`, gitignored), full corpus +
+longitudinal tone/rule-drift analysis. Key user rulings recorded in PROJECT.md.
+
+### Done today (all committed there)
+- Pipeline: manifest (2,920 videos) → resumable transcript fetcher → comments fetcher →
+  extraction agents → `library/` JSON (`nuggets.json` 657 nuggets/41 videos,
+  `term_counts.json`, `videos.json`, `comments_signal.json`) → `library/index.html`.
+- Synthesis `nuggets/00–05`: glossary, manual baseline (page-cited), Top-10 trade setups
+  (second entry 644 mentions/40 vids; "room to scalp out" = biggest video-only rule),
+  risk (4t target vs 8t stop ⇒ needs ~68–70% real WR to break even), mindset, structure.
+- Comments signal (282 comments): Mack never replies; ≥6 commenters call hindsight bias;
+  losses more concrete than wins; 13% bot share.
+- **myquant change (commit 77120ed9, this branch): launcher.py `/pats` route + 📚 Library
+  dropdown entry "🎯 PATs Library"** serving the PATs page from the other repo. Launcher
+  restarted (user-approved); NOTE: killing launcher coincided with MyQuant Alert Monitor
+  task reviving dashboards — looked like the ES Sim restarting, it wasn't; be careful.
+
+### Open / how to resume
+- **YouTube IP-blocked caption fetch** (home IP + VPN both 429'd; cookies/impersonation/
+  IPv6/alt-clients all tested, don't help). Loop `scripts/run_full_fetch.py` retries every
+  30 min at 22s+jitter pacing; survives nothing — restart it after reboot from the repo
+  (venv python, resumable via `transcripts/_progress.json`). 41/2,920 fetched so far.
+- Free unblock: router reconnect after session close (fresh Telekom IP) or wait ~12–24h.
+  Paid fallback: Webshare rotating residential (~$6) — youtube-transcript-api supports it.
+- As transcripts land: extraction agent batches (template `library/extractions/
+  KQ02L-Ngexs.json`), then `term_counts.py`/`build_library.py`/`build_page.py`
+  (auto_rebuild.py loop does this every 10 min while running).
+- Backlog user liked (S97 suggestion list): trade-reconstruction backtest vs own tick
+  data, PATS-as-mechanical-system backtest, day-type labels → regime validation, NT8
+  indicator pack (2E counter / signal-bar lamp / room gauge / trap detector).
+
+## S96 (2026-08-06 evening) — machine load triage + dashboard "always loading" fix (branch `s75-live-dashboard`)
+
+### Dashboard fix (commit 8718ec7e) — tab no longer reloads itself every ~2 min
+Root cause was TWO independent 2-minute reload drivers in `options_dashboard_live.py`:
+1. `marks.csv` was in the WATCH list and `options_mark.py --watch 120` rewrites it every ~2 min.
+2. The trigger daemon rewrites `gameplan_YYYYMMDD.json` every ~2 min with **byte-identical
+   content** — `gen_stamp()` was mtime-based, so identical rewrites still bumped `gen` →
+   `location.reload()` → 2s full dashboard rebuild per cycle (the perpetual spinner).
+Fix: marks.csv removed from WATCH; `gen_stamp()` now CRC32s watched-file contents (all ≤21KB).
+Live P&L tiles + SPX/ES/VIX ticker still update via the 5s `/state.json` poll; hard reload only
+on real trade/journal/ledger/plan content change. **Verified live:** gameplan + marks both
+rewritten, gen stable. Server restarted with new code (port 8600); nightly 08:25 retirement
+keeps serving current code going forward.
+
+### Machine triage (fan/RAM complaints)
+- No runaway process. Load = legitimate stack (IB Gateway ~7%, NT8 ~4%, Chrome ~13% CPU /
+  6.8GB RAM, VS Code ~2.3GB) on the 35W i5-8400T at full turbo → loud fan. RAM was down to
+  1.6GB free of 15.8GB.
+- Killed (user-approved): 3 stale `fib_tool.py` pairs from 7/30+8/1 (newest kept), and
+  thinkorswim with its embedded jxbrowser chromium (~1.75GB freed → 2.6GB free).
+- **⚠ java PID pattern:** the lone `java.exe` was **IB Gateway**, NOT thinkorswim's JVM —
+  verify command line (`Jts|ibgateway|IBC`) before ever killing java.
+- **PUP removed: SYSCLEANER** (`%APPDATA%\Roaming\SYSCLEANER\sclhelper.exe`, signed
+  "Esperanza Pte. Ltd." SG, running since 7/30 with 13,110s cumulative CPU, persisted via
+  Startup-folder `sclhelper.lnk`). Process killed + startup link deleted; Defender custom scan
+  of the folder = clean. Permission system blocked running `uinst.exe`/deleting the folder —
+  **folder remains at `%APPDATA%\Roaming\SYSCLEANER`, user to delete manually.**
+- Still running, offered but not killed: 5 old claude.exe sessions from 8/4–8/5 (~855MB).
+- The 08:31 bell-check `python -c` watcher pair is expected (sleeps until tomorrow 08:31 CT).
+
+---
+
+## S95 (2026-08-06) — Databento 0DTE intraday pull + 0DTE premium-selling backtest (branch `s75-live-dashboard`)
+
+**Full detail: `docs/options_0dte/research_log.md` (consolidated state at top).**
+
+### Data bought (~$46 of the $125 Databento credit; card NOT charged — credit covered it)
+- **OPRA.PILLAR cbbo-1m (1-min NBBO), 0DTE SPXW, 2023-03-28 → 2026-08-04**, calls+puts,
+  prior_close ±200pt grid. 77 batch jobs, ~21GB DBN → `data/databento/0dte_spxw_cbbo1m/`
+  (gitignored). Parsed to lean per-day 0DTE parquet `data/databento/0dte_parsed/` (841 days).
+- **COST LESSON (committed):** `get_cost` == the bill ONLY when its params match the submit
+  exactly. I priced per-day (~$7.70) but submitted ~11-day chunk ranges, so each option was
+  pulled across all its pre-expiry days (~5×). Actual ~$46 for a SUPERSET (0DTE + 1-15 DTE).
+  Manifest of 77 job IDs: `data/databento/_0dte_jobs.json` (tracked — irreplaceable).
+- **Databento key rotated? NO — still exposed in chat (2nd account key). ROTATE IT.**
+- Also pulled earlier this session: ORATS Mag7 + SPX-to-2007 (see the OLDER S75T block below).
+- New: `data/spx_daily_ohlc.csv` (Yahoo ^GSPC OHLC, has OPEN) + VIX refreshed to 8/06.
+
+### Backtest — what's real vs not (open-anchored EM band; `scripts/options_0dte_*.py`)
+Structures: bull-put (bps), bear-call (bcs), iron condor (ic), iron fly (ifly), 25-wide.
+- **Open-anchored band >> close-anchored** on every directional structure (the gap carries info).
+- **Candidate book: open IC (or BPS), skip up-gaps>+0.2%, HOLD TO EXPIRY, 1-EM/25-wide.**
+  Positive even at worst-case cross fills (break-even fill fraction >1), positive every year,
+  passed true OOS. Mid ~33%/yr, cross ~20%/yr on ~$20k/contract; LUMPY (29% red months).
+- **Intraday STOPS do NOT help** — mid-fill mirage (fill worst exactly when they fire).
+  Profit targets alone hurt (commission churn). Hold-to-expiry is execution-robust.
+- **Width = leverage not edge; 1-EM/25-wide near-optimal.** IC & BPS 0.81 corr (no diversification).
+- **⚠ NOT a green light.** Recent $ is VIX-tailwind-inflated (base strategy flat); gap filter
+  in-sample (OOS-mitigated); **un-hedged crash tail** (crashes are down-gaps the filter takes;
+  static long-put hedge FAILED — drag >> payoff); **ZERO crisis data** (0DTE has no pre-2023
+  history). Durable piece = VRP (realized ≈ 0.5× implied every year). Defined-risk caps single
+  day ~−$2.3k/contract (no blowup), but a crash streak ≈ −$2.3k/contract/day.
+
+### Databento scoping (researched, NOT bought)
+- No SPX index intraday exists on Databento (PCAP-only $750/mo). ES=`GLBX.MDP3`/`ES.v.0`/`trades`.
+- `options_data_vendors.md` CORRECTION: Databento HAS open interest (statistics schema,
+  stat_type=9), lacks greeks/IV. ORATS↔Databento are complements (greeks vs microstructure).
+
+### Forward sim (running)
+`scripts/options_0dte_forward.py` — separate paper ledger from 2026-08-05, logs daily gap%
+(unfiltered), IC+BPS, retries live-gated days. `data/options_0dte/forward_pnl.csv`.
+
+### NEXT (Cycle 6+, all free — data on disk)
+Regime-conditional hedge/sizing (VIX or term-structure trigger — the one real tail defense left);
+entry-time sweep; day-of-week (M/W/F vs Tu/Th 0DTE); model the desk's actual 14:45/short-strike
+exits vs hold-to-expiry. **Do NOT trade this off the backtest — crisis-untested + VIX-flattered.**
+
+---
+
+## S95-RND (2026-08-05..07) — tick-chart RANDOM-ENTRY baseline: friction floor quantified, 2E-on-ticks dead (`research/tick2000_random/`, branch `s75-live-dashboard`)
+
+**Question:** can simple bracket scalps on ES 2000-tick RTH charts beat random?
+Data: `data/ticks_continuous` (2021-06-18..2026-07-31, 1,287 days, RTH-only).
+Engine (all sims): 2000-tick bars, stop entry 1t beyond signal bar (valid next bar
+only), target limit needs 1-TICK TICK-THROUGH, stops fill on touch (gap = worse
+fill), one position, EOD flatten, **$3.50 RT** ES (user corrected from $4).
+
+**Results (ALL negative — this is the friction-floor baseline):**
+- Direction variants @4t/8t, 2-5 fills/day: EMA21 filter −1.21 t/tr (PF 0.65);
+  random / long-only / short-only −1.13..−1.16. The EMA filter adds NOTHING.
+- 64-combo target×stop sweep {2..24t}: all lose; best 12t/24t −0.53 t/tr (PF 0.94).
+  **Friction floor ≈ 1 t/tr** (stops ≤12t) → ~0.5 t/tr (wide stops). MAE≈MFE
+  (random = zero info). Win% sits ~2-3pts below breakeven in every cell.
+- WF 12m/3m combo-selection: OOS **−$62.5k** chained, 2/17 quarters positive —
+  IS selection on random entries = selecting noise.
+- Hour-of-day: late entries are the LEAST bad (14h+ mildly positive on 12/24);
+  excluding them makes results worse. 13h is the worst hour.
+- **H2/L2 second entries (Brooks 2E) on the tick chart = SAME AS RANDOM** (~8
+  fills/day, best −0.70 t/tr, delta grid ±noise). Consistent with S87: the 2E edge
+  lives in 5-min TIME structure + context gates (PF 1.54 REGIME-2E book on
+  `regime/indep`), NOT in the naked pattern.
+- ABR of 2000t bars by year: 3.82 / 4.91 / 3.49 / 3.99 / 5.27 / 5.50 pts
+  (2021→2026; ALL 4.56 pts = 18.3t); 20d rolling now ~6.2 pts. Chart + per-day CSV
+  committed (`abr_tick2000_*`).
+
+**Standing conclusion:** any entry idea on this chart must clear ~1 t/tr friction
+before edge counts; test with wide stops / EOD holds / context gates (where 2E
+survives), not small fixed brackets. Scripts: `run_tick2000_random.py`,
+`sweep_tick2000_targets.py`, `wf_tick2000.py`, `tick2000_2e.py`, `abr_tick2000.py`,
+`abr_chart.py` (+ dated trade lists/summaries, all committed 66cf8fbd..d2a65259).
+
+---
+
+## S94 (2026-08-04) — PREMIUM-SELLING DESK: blank slate, GexLog integration, DAY 1 LIVE
+
+**THE RESET (user-mandated):** MenthorQ fully purged from the live options system
+(sub expired; Note 0009 = no edge). Ledger + journal blanked (archives:
+`trades_pre_blankslate_20260804.parquet`, `_archive_mq_pre_blankslate/` 74 files+).
+Premium-selling ONLY. New data source: **GexLog.com** (free, no auth; see the
+separate repo `Desktop/gexlog` = client + 85-day archive + backtests, GitHub
+samirnyc-code/gexlog, private).
+
+**The system (all committed today, ~15 commits a5ec2b87..ef6820ac):**
+- `gexlog_brief.py` — full morning-brief capture: signal GO/CAUTION/WAIT (P&L bucket),
+  day-type, EM band, walls, flip, gap %+follow/fade, calendar load, catalysts,
+  confidence, streak, stale_risk, ES premkt, RSI, corrected net-GEX walls,
+  playbook scenarios + playbook_wait flag, pivots r1/r2/s1/s2.
+- `options_gameplan.py` — 11 triggers/day, ALL premium: [EOD] condor+fly (prior
+  close ± EM, strikes fixed premarket) + [Open] condor+fly (struck at entry) +
+  [GexLog] walls condor + STMR 15:59. Entry 08:30; playbook_wait days shift
+  open/gexlog streams to 09:05 (EOD keeps the open per user). Telegram push
+  (HTML, stacked, all catalysts). Staleness guard: brief not generated today →
+  computed VIX band, gx condor skipped.
+- `options_trigger_daemon.py` — vertical_dynamic strikes struck at fire; open_spot
+  stamped at 08:30; CREDIT_SETUPS=new streams; dedupe same-setup only.
+- Dashboard: GexLog strip + tiles (consistent colors: res red/sup green/flip amber),
+  bands SVG graphic w/ LIVE marker + PoP, Running P&L tables (Trades + Game Plan
+  tabs, by center + structure, partial-day flags), grouped structure tiles.
+- `options_pnl_report.py` — streams eod/open/gexlog/stmr × GO/CAUTION/WAIT.
+- `options_chain_recorder.py` — OWN forward 0DTE dataset: rolling ±1.25% window
+  + day's traded strikes pinned all session → chain_YYYYMMDD.csv (user: "never
+  buying data again"). Task 08:25–15:05 CT.
+- `gexlog_evening.py` — NEW nightly task 19:05 CT: archives evening report,
+  annotates gameplan with REALIZED session verdict, full-text read file →
+  `docs/living/evening_reads/`, Telegram recap.
+- notify() → Telegram (all fills/exits); morning plan + evening recap pushed.
+
+**DAY 1 RESULT (2026-08-04, +41pt gap-up, trend day, CAUTION/HIGH-VOL):**
+8 fills + 2 correct stand-downs (thin/zero credit put wings after the gap).
+**Total −$1,334.** Flies WON (+$296 open, +$61 eod — rich credits absorb trend);
+small-credit condor call wings took the damage (−$754/−$866); gexlog condor −$71.
+Exits worked: worst loss $866 vs $2,465 max risk (short-strike acceptance).
+STMR: no signal (correct). Full report `pnl_report_20260804.csv`.
+
+**Day-1 incidents (both fixed):** trigger-daemon task fired 08:33 not 08:29
+(Windows trigger time, not wrapper — trigger moved to 07:33 CT, wrapper releases
+08:29; verified for 08-05). Chain recorder crashed silently at 08:25 (pythonw, no
+log) — relaunched 08:40 WITH logging; watch tomorrow. During diagnosis the daemon
+process chain was killed and relaunched manually (~3 min gap, no dupes — fired
+flags prevented refires).
+
+**⚠ DAILY REVIEW PROTOCOL (user mandate: "improve every day"):** every session,
+FIRST read `docs/living/evening_reads/evening_<latest>.md` (the FULL evening
+narrative) + the morning brief words (playbook/guidance/notes — they carry
+timing instructions, e.g. 08-04 "WAIT for JOLTs" moved our entries). Write 2–3 concrete improvement suggestions INTO docs/living/improvement_log.md (the tracked ideas ledger — every idea gets a row and a fate), get user sign-off, implement, measure, record verdict. Seeded queue:
+(1) pre-event full-notional entries — measure after ~10 WAIT days; (2) pivot-wing
+condor variant (S2/S1/R1/R2 wings, their evening suggestion); (3) playbook-scenario
+resolution tagging → test "trade the primary scenario"; (4) wall/flip proximity as
+entry-quality tag; (5) all-or-none condor option (user undecided; today partial =
+call-wing-only was BETTER); (6) sim-daemon rc=1 recheck; (7) day-type normalizer:
+map 'HIGH VOLATILITY' forecasts (currently 'unknown').
+
+**Open ends:** gexlog repo has the EM-vs-MQ + signal backtests (VIX-regime band
+scaling validated 1183 sessions: VIX<20 → VIX band, VIX>30 → ATM-IV band).
+Databento 0DTE definition-schema workflow documented (scratchpad/databento_page.txt);
+prototype pull pending. MQ-era tasks (Levels Fetch, MQ Mine, Gamma Scanner) left
+ENABLED per user ("let's see if they still work") — MQ sub expired, expect decay.
+
+---
+
+## S94-EA (2026-08-04) — ALL-IN-ONE EminiAddict Tool + webinar scrape/transcribe
+
+Goal: one self-contained shareable tool for the 2nd PC. All committed on `s75-live-dashboard`
+(`906f6e2d`, `bc36a45e`, `72313770`).
+
+- **ALL-IN-ONE tool (`docs/artifacts/eminiaddict_tool.html`, ~24 MB, gitignored):** now 7 tabs —
+  Getting Started / Daily Analysis / **Academy** (hub folded in as cross-tab curriculum links —
+  its page is now redundant) / **Method** / **Diagrams** / **Quiz** (each embedded as isolated
+  srcdoc iframe, postMessage anchor routing) / About-Sync. Zero content duplication. Builder =
+  `eminiaddict/scripts/build_getting_started_page.py` (rebuild embedded artifacts first if changed);
+  `build_academy.py` refactored so MODULES/CHEAT import (side effects under `__main__`).
+  **2nd-PC share channel: `G:\My Drive\myquant_transfer\eminiaddict_tool.html`** (kept current;
+  open by double-click, no server; notes/tags = per-browser localStorage → Export/Import notes).
+- **Webinars collection scraped (NEW `scripts/scrape_webinars.py`):** the ?page_id=1867 hub the
+  GS scrape never followed — 26 sub-pages → `data/site/webinars/` (gitignored) manifest.
+  8 are the SAME mp4s as GS lessons (marked `dupe_of_lesson`, render as links to the lesson).
+  Renderer: Webinars section = full collection, inline streaming players (public S3, zero size),
+  key points + transcript slots fill as transcribed. Also fixed: all lesson mp4s play inline;
+  the 3 forever-"pending" sections were never videos (OneDrive position-sizing calculator +
+  2 SlideShare decks) → now live iframe embeds.
+- **Transcription state: 5 of 11 method webinars done, then STOPPED per user** (was task
+  b7ulyj5i2; ~27 min/90-min webinar, small.en CPU). Done + committed key-points nuggets
+  (`data/site/webinars/nuggets/`, force-added; transcripts stay untracked like GS precedent):
+  03 Gap Fill Drill · 08 Micro 6E · 09 #2 50% Retracement/Trend Failure · 10 Spot Forex
+  Two-Trades-a-Day · 11 Euro Trading Rules. **Remaining 6 NOT transcribed** (12 Gap Fill 90m,
+  16 Past-Predicts-Future, 20 Profiting from Gap Fills, 21 Crude & Gold, 22 Manage Positions,
+  25 Dead Cat Bounce): resumable anytime via
+  `EA_COOKIE=<cookie> python eminiaddict/scripts/scrape_webinars.py --transcribe --method-only`
+  (skips existing). Macro/crypto webinars (Fed Pivot ×3, Bitcoin Cycles, SPX-in-Gold, Crypto
+  Winter, Hedging) = video-only by user decision. EA cookie: session scratchpad `ea_cookie.txt`
+  (from 08-02 session; still valid 08-04).
+- The 4 standalone MC artifacts (Academy/Method/Diagrams/Quiz) still exist — now redundant with
+  the tool; user hasn't said whether to retire them from the MC catalog.
+
+---
+
+## S93-TICK (2026-08-03) — Halsey TICK-method testing → RESOLUTION WALL (not testable at 5M/15M)
+
+Goal: expand/test David Halsey's NYSE-TICK method. Two committed scripts; verdict = the
+faithful test is BLOCKED by data resolution, not by a negative result.
+
+- **`scripts/tick_method_test.py` — REJECTED framing (kept for the record).** Un-gated marker +
+  divergence-episode tests over the 5yr master (105k 5M bars). User's correction: **DH reads the
+  TICK ONLY at the 50% HWB pullback of a measured move**, not at arbitrary swings — so these
+  don't test his method. Findings anyway: (A) reversal markers (TICK ±800/±1000, confirm bars)
+  land near a matching structural swing only ~1.2–1.3× base rate (weak). (B) faithful
+  divergence-EPISODE hold ("stay in until next opposing new tick") beats a matched-horizon
+  baseline at the MEDIAN (long +4.0 vs +0.75 pts; short +3.75 vs −0.5; hit ~62–64% vs ~47–53%)
+  BUT mean ≈ 0 (long) / negative (short), median MAE ≥ MFE, 59% of episodes just run to EOD —
+  fragile, context not trigger.
+- **`scripts/tick_at_hwb_test.py` — #2 at the CORRECT location; NOT TESTABLE at 5M/15M.** TICK
+  confluence at 50%-HWB entries (leg from find_mm_trades.py zigzag; 50% entry / 61.8% stop /
+  123.6% tgt; leg-relative so roll/back-adjust offset can't corrupt; conservative same-bar=stop).
+  2,421 entries, 95% resolve to stop-before-target. **Two fatal artifacts:** (1) the 61.8% stop
+  is only 0.118R below the 50% entry → on 15M bars a pullback tagging 50% usually pierces 38.2%
+  intrabar, so **56% of stops fire on the entry bar itself** (15M phantom-intrabar, the exact
+  failure the handoff already flagged). (2) the ±400 TICK filter is **degenerate on 15M** — a 15M
+  bar's tick-low is ≤ −400 ~89% of the time, so it filters nothing; ±800 (37% fire) showed no
+  positive separation, no per-year stability.
+- **BLOCKER / the one unlock:** DH's TICK-at-HWB is inherently a **1-minute / intrabar** technique
+  (1M TICK read + intrabar entry-stop path). A faithful test needs **1-minute ^TICK** (NOT
+  ingested — master is 5M; user has 5yr TICK in NT, needs a 1M export+ingest) + the intrabar ES
+  price path (HAVE IT: `data/ticks_continuous/`, 1,287 days). Decision pending: export 5yr 1M
+  ^TICK from NT, or park.
+- **HARD LESSON (do not repeat):** never test the TICK method at 5M/15M — any coarse-bar version
+  produces artifact-driven numbers (tight-stop same-bar exits + degenerate ±400 filter). The
+  method lives at 1M/intrabar or it isn't being tested.
+- Result CSVs (in gitignored `data/nt_internals/tick_method/`, force-added small ones):
+  `markerA_reversal_*`, `markerB_episodes_summary_*`, `hwb_conditioning_*`, `hwb_entries_*`.
+  Prior untracked `scripts/internals_tick_divergence_deep.py` also committed this session.
+
+---
+
+## S92-MQ (2026-08-02) — MenthorQ FINAL-DAY capture (sub expires today)
+
+Last day of the MenthorQ sub. Did a final max-history archive pull.
+
+- **Final `mq_mine.py --backfill` run:** 192/200 = **96%** (only YM1! fails — dead contract,
+  404, no MQ data). All 8 surfaces × 24 live symbols fresh. History surfaces already at MQ's
+  365-day API cap. Blindspots "+0 new sessions" = correct (weekend; Fri 07-31 is the last EOD set).
+- **Found + captured a surface the daily miner NEVER archived:** `levels-report/{sym}` (the
+  "Backtest" tile — per-level regime hold-rate, come-back rate, median/avg/worst adverse
+  excursion low&close, +0DTE variants; 57 fields/ticker). TODAY-ONLY → would've been lost.
+  New committed script `scripts/mq_levels_report_capture.py` → `data/menthorq/levels_report_20260802.csv`
+  plus raw JSON `data/menthorq/mine/raw/levels_report/`. Only un-captured endpoint left = trivial
+  `gamma-insights/{sym}/expirations` share.
+- **"Keep getting data after expiry?"** Cached token won't survive — entitlement is server-side
+  (403/empty on lapse); circumventing = ToS violation. Legit path already built: S74 reverse-
+  engineered MQ's level formulas (`docs/research_notes/mq_level_reveng_20260724.md`, main set
+  0 fitted params: Σ_{dte≥2} gamma·(callOI−putOI)·100·spot; blindspots too). The real dependency
+  is a forward per-strike OI+greeks feed — our ORATS source is ALSO cancelled (ends ~8/4). MQ is
+  replaceable; the options-data sub is the actual thing to keep.
+- **User verdict on MQ (recorded):** the "Backtest" tile is not backtestable — it never says what
+  the regime IS, never shows the comparable same-regime days, never says how many regimes exist or
+  how often levels are actually hit; the hit-rate placeholder only just populated. Gamma-levels
+  history capped at ~30d also blocks any real backtest. We found MORE levels than MQ exposes and
+  NO edge with them yet; without years of levels there's no point. "Easy API but no rollout target
+  date — why?" User distrusts Patrick (feels like a conman; promised call never happened); unsure
+  if Fabio missed it or knows. Considering telling Fabio but wary of overstepping.
+- **Fabio correspondence (in progress):** user is writing Fabio honest feedback before cancelling.
+  Fabio engaged, asked "how have you tested the levels? what criteria?" Agreed framing: describe
+  testing on the website levels only (do NOT reveal the 82-day accumulation or the scrape). The
+  real substance to draw on = **Note 0009** (`docs/research_notes/0009_menthorq_gamma_mc.md`, 81
+  days, 4 pre-registered rounds): claims REFUTED — levels bounce no more than random (21.8% vs
+  23.9%), containment explained by IV distance not gamma, "don't trade into a level" refuted
+  (into-level did better), QScores null; only survivor = neg-gamma days realize 1.18× implied
+  move (VOL-amplitude, not S/R/direction). Patrick's own site rules mostly UNtestable at the event
+  rate: "wait for 2nd/3rd test" (main levels touched ~5% of days), the 41.26 QQQ→NQ Blind-Spots
+  ratio (never tested), the "1.5×ATR overextension→reversal" Academy claim (never run; we only
+  tested the implied-EM-boundary fade cousin, RevFT R5).
+- **Median-zone backtest — BLOCKED, do not chase:** user asked to backtest "setups at the levels,
+  stop at the median zone" using MQ's backtest data. Can't faithfully: MQ's median/worst adverse-
+  excursion zone is a **today-only single snapshot** (captured 08-02 for the first time; NO
+  history). Applying one value across 4.5yr = lookahead/dishonest; computing our own median from
+  price = our stat, not theirs. This IS the user's Fabio point — the backtest output is a scalar,
+  not a series, so it's unbacktestable by anyone. (Have the pieces for a self-computed version if
+  ever wanted: reveng levels `data/regime/mq_reveng/final_replication.csv` 2021→2026, ES 5M bars
+  `data/bars/_continuous.parquet`, 1,287d ES ticks, MC/RevFT signal exports in `data/signals/`.)
+- **Reverse-engineered CR/PS accuracy vs MQ published (recall, from reveng note):** CR exact-strike
+  81% fit / 92% holdout; PS 74% / 87%; by year rising to CR 97.7% / PS 94.7% in 2026; regime label
+  95%; GEX $ values R² 0.99; 0 fitted params.
+
+---
+
+## S92-EA2 (2026-08-02) — Internals/MM backtesting ABANDONED → pivot to EDUCATIONAL TOOL
+
+Direction change (user decision). The NYSE-internals turning-point study and the Halsey 50%
+measured-move backtests are **dropped**. All session test scripts, charts, and metrics were
+**removed from the repo** this session (`ingest_nt_internals.py`, `internals_*`, `halsey_mm50_*`,
+`mm50_*`, `nt_swing.py`, `mm_swing_viz.py`, plus `data/nt_internals/master/` outputs and the
+`eminiaddict/figures/` test PNGs/CSVs). Do **NOT** resume this testing.
+
+**Why:** the backtests were not trustworthy / not faithful to DH (RTH-vs-24H bar issue,
+touch-vs-tick-through fills, 15M intrabar phantom targets; the mechanized 50%-MM does not
+reflect DH's discretionary execution). Not worth continuing as a strategy study.
+
+**NEW FOCUS:** build an **educational tool** that repackages DH's method from the site content
+we already scraped (`eminiaddict/data/site/`, the Academy hub, diagrams/flowcharts, transcribed
+videos, `notes/RULEBOOK.md` + chapter notes). No live analysis, no backtests — teaching only.
+Raw internals export retained at `data/nt_internals/*.csv` but unused.
+
+---
+
+## S92-EA (2026-08-02) — EminiAddict: site fully scraped, video pipeline, NT exporters, Academy
+
+Continuation of the EminiAddict/Halsey project (all in `eminiaddict/`, branch s75-live-dashboard).
+
+**Site access SOLVED (member content).** WordPress WishList paywall; user's session cookie in
+session scratchpad (`ea_cookie.txt`, NEVER committed). `scripts/scrape_ea.py` pulls daily posts →
+slides `keylevels/*.png` (16/post) + video (public S3 `<MMDDYY>.mp4`, ~230MB) + text. The
+"Measured Move Diagram Slideshow" (?p=13011) = 16 teaching diagrams on public S3, INCLUDING the
+two FLOW CHARTS: **#5 "Measured Move Flow Chart" (THE decision tree — user confirmed)** and
+**#8 "Market Analysis Flow Chart"** (daily process). All under `eminiaddict/data/site/` (gitignored, copyrighted).
+
+**Video transcription WORKS** (`scripts/transcribe_video.py`, faster-whisper; ffmpeg via winget).
+Transcribed 07-31 ES video. **His actual method (not a lone traditional):** a SERIES — traditional
+→ traditional → extension → break → reverse toward the ATW-HWB of the whole series (his flowchart).
+Signal-alignment GATE (his checklist): VIX down-MM + Indices up-MM + new low TICK + BANK strength +
+USD weakness = long (mirror short); ES stays bullish only while VIX < 18.85 & DXY falling.
+
+**Mission Control artifacts (served :8590, group EminiAddict):** `eminiaddict_academy` (NEW hub —
+9-module curriculum), `_measured_move_method`, `_diagrams` (16 diagrams + both flowcharts),
+`_method_study_quiz`. **`_mm_sequence_library` DELETED per user (they hated it)** — scripts
+sequence_lib/mm_anatomy/build_gallery also removed.
+
+**⚠️ MONDAY-CHART LESSONS (user very frustrated; repeatedly wrong; then said stop live analysis,
+"educational tool only"):** (1) **NT bars are CLOSE-labeled**, not open (resample label='right').
+(2) His charts are **24H/ETH**, not RTH — his fib legs form overnight; `build_24h_bars.py` builds
+24H bars from the raw CSV. (3) Fibs must be **ANCHORED** to the swing bars (read exact anchors off
+his fib-tool popup in video frames via ffmpeg), never floated. (4) It's a **series** (T→T→E), and
+the extension **broke** — read is DOWN toward ATW-HWB, not "still bullish". User has a
+**RegimeSecondEntry** NT indicator that auto-draws the T/E structure (ground truth).
+
+**Data / NT exporters:** `ticks_continuous` extended through 07-31 via RawTickExporter →
+`scripts/ingest_nt_ticks.py` (RTH, ESU6 offset 0, contract-checked; seams clean) → `build_5m.py`.
+`.ncd` direct-read ABANDONED (proprietary binary; header cracked but records not worth it — use the
+exporter). **NEW `nt8/indicators/MarketInternalExporter.cs`** (committed + copied to NT8 Custom\Indicators):
+exports internals as BARS (OHLCV, close-labeled, no Tick Replay) — **HARD-CODED list** (no editable
+params so no stale value): `^TICK,^VIX,^ADD,^ADV,^UVOL,^DVOL,^TRIN,^TICKQ,BANK,DX 09-26`
+(^TRINQ/^ADVN/^DECN dropped — feed not entitled/nonexistent). User has **5yr VIX+TICK** in NT.
+
+**NEXT:** user running the internals exporter → write ingest (parallel to ingest_nt_ticks) to align
+internals to ES → then the theory tests (gap-fill durability by VIX regime, MM expectancy, tick
+divergence — user said NOT yet). Deepen Academy via video-nugget mining across more days.
+
+---
+
+## S92-ABS (2026-08-01) — L2 absorption at PB levels: engine + ChartSim viz + VALIDATION verdict
+
+Built absorption-at-pullback-level for the book (user: "absorption at pb levels like 2E, rev, MC").
+
+**Engine (`scripts/absorption_engine.py`, main):** reconstructs traded volume at any
+price/time from the order book — NT AddOn depth (≥07-21) or Databento **MBO** (Jan01–Jul20,
+172 days; the MBO we already have, NOT buying more). Auto-calibrates the **roll-basis offset**
+(book = back-adjusted continuous; raw ESH6 ~+68 pt below) AND the **aggressor side** (from
+price-move corr, not assumed). Tape cached to `data/depth/tape_cache/` (gitignored) so re-runs
+at new levels are instant, no re-decode.
+
+**ChartSim viz (`scripts/book_review.py`, regime/indep):** `absorb` toggle → badge
+(✓held/✗swept + contracts) + per-tick depth strip at each setup's PB level; hover = numbers;
+`/absorption/<date>` route. ⚠️ **KNOWN-IMPERFECT (do not trust the badges yet):** window starts
+at the signal bar (misses the real pullback low) and held/swept was anchored to a far stop →
+misleading on messy days (user caught this on 04-13). Only **2E-family** in the viz; **rev + MC
+NOT wired**.
+
+**VALIDATION (`scripts/absorption_validate.py`) — the gate; MC carries real P&L:**
+- MC pb levels = **33/50/66% of the signal→stop leg** (the parquet's `PBLevel` col is EMPTY,
+  so this is a leg ASSUMPTION — confirm with user). 711 level-tests / 109 days.
+- **A pb level HOLDING is a real filter:** held **36.1% win / +0.08R** vs swept **26.4% / −0.13R**.
+  Best cell = **fib-33% + held: 41.9% / +0.14R**.
+- **But L2 absorption VOLUME does NOT add:** against-vol quartiles flat (28–29%). The edge is
+  "did the fib hold" — visible from PRICE alone; the order-flow magnitude isn't earning its keep.
+- **2E inconclusive:** only 2/177 "held" in-window — 2E window/level needs rework.
+- **Verdict:** pb-hold = real edge; the order-flow absorption layer is UNPROVEN for MC.
+  Results: `data/depth/absorption_validation_20260702.txt`.
+
+**NEXT (cheap, off the cache):** does against-vol add WITHIN held levels (order flow's last
+chance)? · fix 2E window · wire rev+MC into viz ONLY if order flow proves out. Earlier same
+session: ChartSim toolbar regroup + date-invert + 5M/15M TF (committed `9bb19e2`).
+
+---
+
+## S91-EA (2026-07-30) — EminiAddict / Halsey Measured-Move project (all in `eminiaddict/`)
+
+New project: learn/codify/test David Halsey's Measured-Move method (eminiaddict.com,
+$29.99/mo — **user is subscribing now**). Book *Trading the Measured Move* (Wiley 2014)
+pulled + fully extracted; site content is WishList-paywalled (not scrapable logged-out).
+
+**Committed & pushed on `s75-live-dashboard`** (commits `7413ceb`→`9284eed`):
+- Full-book extraction: `notes/chNN_*.md` (16 chapters) + `notes/RULEBOOK.md`. Method artifact
+  + interactive study quiz + MM sequence gallery all in Mission Control (`docs/artifacts/
+  eminiaddict_*.html`, served :8590). `notes/questions_for_halsey.md`.
+- Scripts (`eminiaddict/scripts/`): `draw_mm_fib.py`, `find_mm_trades.py`, `sequence_lib.py`,
+  `mm_anatomy.py`, `swings_test.py` (bar-by-bar structural swing detector), `fib_render.py`,
+  **`fib_tool.py`** (interactive Halsey Fib tool, stdlib server + canvas, **:8641**).
+
+**⚠️ STATE — the visual/detection work is NOT landing with the user (they are dissatisfied).**
+- The auto-detected swing/sequence charts (%-ZigZag → then structural) were rejected as
+  wrong/cluttered/"useless". Root problem: swing-picking is discretionary; auto-drawing every
+  fib statically is noise. Pivoted to **interactive tool** (`fib_tool.py`) where the USER clicks
+  the swing anchors and the tool draws all levels (consistent per-level colors, toggle) —
+  fibs persist as price+time so they show on every TF (Daily fib shows on 15M/5M) and carry a
+  live status (in play / target hit / failed=61.8 breached). This is the current v1 to react to.
+- **Chart rule now HARD (memory `chart-label-no-overlap`):** text never overlaps level lines or
+  other labels; lines stop at price-area edge; consistent per-level colors; bigger fonts.
+
+**NEXT (per user, unconfirmed since they're unhappy):** iterate `fib_tool.py` to their taste
+(snap-to-swing, styling, status logic), then port into ChartSim (`book_review.py`, regime/indep)
+as the configurable Fib tool + 15M/D modes. Once subscribed: scrape slides + Whisper-transcribe
+videos for repeated-rule mining. Prices in `_db` bar files are back-adjusted (recent≈real).
+
+---
+
+## S91d (2026-07-30) — L2 depth AddOn into the pipeline + Bookmap-style liquidity heatmap
+
+**Context:** the `MarketDepthRecorderAddOn` has been the SOLE L2 recorder since ~07-24
+(the old Strategy stopped), writing raw CSV to `data/depth/addon_test/` — 4.3 GB, NOT
+compressed, NOT backed up, NOT the same pipeline as the primary. Fixed all three + built
+the viz the user wanted.
+
+**Pipeline integration (`depth_rollover.py`):**
+- Now processes TWO sources — `data/depth/` (legacy strategy) and `data/depth/addon_test/`
+  (AddOn) — via `SOURCES`. Each archives to its own backup subdir (`depth/` vs
+  `depth_addon/`) so overlap-day filenames (07-21..23, both recorders) never collide.
+- Backlog converted: 7 addon days (07-21→07-29) → zstd parquet, verify-by-reread before
+  CSV delete (~20-30× each, 4.3 GB → ~180 MB). Today's live file (07-30) correctly skipped.
+- Off-machine backup CONFIRMED: all 7 committed to `~/myquant-data/depth_addon/` (158 MB).
+- The daily 16:00 CT `MyQuant Depth Rollover` task now picks up new addon days automatically
+  (no task change needed — same script).
+- Catalog `depth_l2` gotchas rewritten (event-stream schema, position-keyed removes, AddOn
+  = sole recorder, both parquet dirs).
+
+**Liquidity heatmap (`scripts/depth_heatmap.py`, NEW):** Bookmap-style — replays the L2
+event stream, reconstructs the resting book, renders time×price with resting size as the
+Bookmap heat ramp + last-trade line + buy/sell tape. Static PNG (`docs/depth_heatmap/
+ES_<date>.png`, committed) AND per-day interactive Plotly viewer (candlesticks + zoom,
+`ES_<date>.html`, gitignored — 10 MB each, regenerable). Gallery index + MC route
+`/depthmap` (+ `/depthmap/ES_<date>.html`). 6 days built (07-22→07-29), npz cache.
+
+**⚠️ RECONSTRUCTION SEMANTICS (verified, non-obvious — do not "fix" blindly):**
+- Book is NT's price-sorted DOM ladder keyed by **POSITION** (rank), NOT price: `A`=insert
+  at Pos, `U`=replace at Pos, `R`=delete at Pos. **`R` rows carry Pos only — Price/Size are
+  0** (measured: 100% of R events). Price-keying silently corrupts on repricing Updates.
+- **Clear the book on every `C` (connection) marker** — on reconnect NT re-sends the whole
+  ladder via Adds; without clearing you get an exact 2× depth leak (measured 60 vs 30 levels).
+- Perfect replay isn't attainable (repricing U + any dropped event drift a few stale FAR
+  levels → crossed book). For the VIZ: anchor the price line to the TAPE and clip levels
+  >`clip_ticks` (56) from it at snapshot time. Near-touch book stays faithful.
+
+**Also (S91c, same session):** disabled the 16:15 `MyQuant NT8 Restart` scheduled task per
+user request (committed `8d9e264`).
+
+**NOT yet done / pending:**
+- **Commit:** code + PNGs + index STAGED, awaiting user OK (no-commit-without-confirm rule).
+- **2nd surface:** user wants the heatmap ALSO as an NT8 indicator overlay (live) — deferred.
+- MC needs a restart to serve the new `/depthmap` route (did NOT restart — ask first).
+
+**UPDATE (findings after the viz — CHANGES the read):**
+- **Feed is only ~30 DOM levels ≈ ±7pt each side** (verified `scripts/depth_book_probe.py`:
+  bid/ask 29–30 levels spanning 7.00–7.25pt at 09:00/11:15/12:00/14:00; 8 C-resyncs/day).
+  The "±39pt" seen in RAW events is transient far-quote flicker, not resting size.
+  **⇒ distant fixed-price Bookmap walls DO NOT EXIST in this data.** Widening the clip just
+  renders empty black; correct frame is clip ≈36 (±9pt), and 07-29 PNG re-rendered so.
+  The heatmap is a **near-touch tool only**. Deep walls would need CME MDP full-depth / MBO
+  (Databento MBP-10 = 10 levels, shallower — not it).
+- **Near-touch edge study (`scripts/depth_level_edge.py`, NEW; 6 sessions 07-22→29, n≈97k):**
+  does big touch-size predict a 60s hold (no 2-tick break)? Base hold 0.31. Monotone by size
+  quintile Q1 0.26 → Q5 0.35 on BOTH sides, survives de-overlapping = **real but weak**.
+  Effect SATURATES ~2× and the biggest levels (≥5×) do NOT hold better (ask ≥5× negative) =
+  **spoof fingerprint** — the giant displayed walls are the most fake. Too weak to trade
+  alone. Results: `data/depth/level_edge_summary_20260729.txt` + events CSV.
+  Next: split absorbed (traded) vs pulled (removed) big levels; or test as a conditioner on
+  the 2E/reversal entries — NOT a standalone trigger.
+
+---
+
+## S92 (2026-07-30) — NT8 overnight feed-disconnect incident + VWAP/VA-from-ticks confirmed
+
+**Incident (RESOLVED by user manual restart).** Telegram spammed "L2 RECORDING DOWN /
+Auto-restart could NOT bring NT8 back / needs a human" from ~08:45 machine time. Root cause,
+verified from `log.20260730.00000` + the live depth CSV:
+- NT8 data feed **disconnected at 01:41:49 CT (08:41 machine)** — log: `Primary
+  connection=Disconnected, Price feed=Disconnected` → `MarketDepthRecorderAddOn: feed LOST
+  after 4,060,563 book + 53,031 tape rows`. It was NOT a chart/GUI jam.
+- NT8 then logged **nothing for ~28 min** — no reconnect retries. Process alive (PID 16200,
+  up since 3:18 AM) but its connection pump was hung behind a possibly-stale "connected"
+  indicator. This is the "Control Center looks healthy, recorder is dead" failure mode.
+- The watchdog (`nt8_watchdog.py`) correctly paged, and being overnight (not desk hours)
+  tried `nt8_maintenance.restart()` — a graceful, workspace-saving close. NT wouldn't close
+  cleanly and **force-kill is deliberately disabled** (protects chart drawings), so every
+  cycle aborted "needs a human." Two schedulers (NT Watchdog ~3 min, Alert Monitor 5 min)
+  looped it → the alert storm.
+- **User restarted NT8 manually at ~02:09 CT.** Verified recovery: new PID 12072, depth CSV
+  live, `feed CONNECTED, recording ES 09-26`, workspace 'Massive' restored (drawings intact),
+  FootprintExporter re-armed. **Data gap = ~28 min** (01:41:49→02:09:47 CT); the 4.06M
+  pre-drop rows are safe on disk.
+
+**TWO UNFIXED GAPS (need user go before any change):**
+1. NT8 did not auto-reconnect on a routine feed blip — root cause of the hang unknown (check
+   01:41 window for provider blip / machine sleep / network).
+2. The watchdog can page but structurally cannot recover a hung-NT overnight — its only tool
+   is a graceful restart it refuses to escalate. Candidate fix: allow overnight force-kill
+   ONLY after confirming a fresh workspace save, or add NT-side auto-reconnect. Not started.
+
+**VWAP + Value Areas from ticks — CONFIRMED FEASIBLE (accurate).** `data/ticks_continuous/*.parquet`
+schema = `[DateTime, Price, Volume]` per trade. That's exactly the input VWAP (Σ price·vol / Σ vol)
+and volume Value Areas (volume-at-price histogram → POC → 70% VA) require, with no reconstruction.
+Not yet built — just verified the data supports it. (User was mid-thread on Halsey MM "next
+traditional after target hit" in `eminiaddict/` when this came up.)
+
+---
+
+## S91c (2026-07-29) — Disabled the 16:15 NT8 auto-restart task
+
+Per user request, **`MyQuant NT8 Restart`** scheduled task set to **Disabled**
+(`Disable-ScheduledTask`). The 16:15 CT daily-halt auto-close/relaunch of NT8
+(`scripts/nt8_maintenance.py` via `run_at_ct`, see `process_registry.py` id
+`nt8_restart`) no longer fires — NT stays up untouched through the halt. Left
+intact: `MyQuant NT Watchdog` (dead/jam recovery) + `MyQuant Pre-Open Verify`
+(read-only armed check). MC timeline will show this halt step as PAUSED.
+Re-enable: `Enable-ScheduledTask -TaskName 'MyQuant NT8 Restart'`.
+
+---
+
+## S91b (2026-07-29) — Regime engine Python↔NT verification + KNOWN pivot-label bug
+
+**Python↔NT regime pivots — VERIFIED.** Diffed the NT `RegimePhaseMachine` indicator
+export (`data/regime/nt8_pivots.csv`) vs Python `phase_transitions` on the SAME ticks:
+- **20/22 overlap days pivot-identical, 0 engine-logic differences** (`scripts/verify_pivots_final.py`
+  → `data/regime/pivot_verify_2026-07-28.csv`). The 2 non-matches are DATA gaps in the tick
+  export (07-06 stale parquet, 07-17 ~1hr hole), not logic. 06-29 = a +1 bar-number offset on
+  the first-day-of-data (session counter edge), pivots identical once aligned.
+- Python 5yr reference built: `data/regime/py_realtick_pivots.csv` (1,284 sessions, 2021→2026).
+
+**DATA PROVENANCE (settle this — it caused a mess):** the ONE dataset is **Massive ticks**.
+- `data/ticks_continuous/` = Massive tick data (`massive.build_continuous_ticks_for_date` →
+  `fetch_massive_trades`), tick-granularity, 2021-06→2026-07, 1,284 days. NOT Databento.
+- NT **ES_MAS** = the same Massive ticks loaded into NT (tick data 2021-06-17→~2026-03-13;
+  ES_MAS 06-26/09-26 empty). Recent gap filled by real ES 09-26 contract ticks.
+- **Databento** only ever fed the ChartSim proxy (`book_review_prep.py` `_db_*` + `proxy_ticks`).
+  User banned Databento AND 1M — build 5M straight from ticks. Purge `_db_` from consumers
+  (NOT done — needs user go; do not blanket-delete).
+- NT tick DB: real ES contracts only ~2025-07→now; older ES tick folders are EMPTY. 5yr of
+  MINUTE data exists but is not ticks.
+
+**KNOWN BUG — pivot mislabel on trend termination (UNFIXED; do NOT patch blind):**
+On Jul 29, b37 (high 7398.75 > prior high) should be `hh` and b38 (low 7385.25 > prior low
+b34 7371.75) should be `hl`, but the engine emits no b37 and tags b38 `ll`. Root cause verified:
+`phase_transitions.terminate()` does `prevH=b; prevL=b` and `d=leg_px=leg_bar=None`, which
+(1) drops the termination-bar swing and (2) rebaselines the next pivot's hl/ll tag to the
+termination bar instead of the true prior like-pivot. Same reset also feeds the "bull flip late"
+complaint. **A fix that keeps the leg across termination REGRESSED 07-24 from 34/34-clean to
+match-2** — the reset is load-bearing. Needs a surgical fix (emit term-bar swing explicitly +
+keep prevH/prevL, leave leg reset) with FULL multi-day regression before touching the .cs.
+This engine drives every regime flip AND the 2E backtest — changing it re-labels all history.
+
+**Tick Replay MUST be ON** for correct historical states (engine is tick-driven; without it NT
+feeds only bar closes → sparse pivots, missed flips → looks stuck NEUTRAL on obvious trends).
+Cockpit already prints `!! TICK REPLAY OFF !!`. NT `.cs` restored to committed (HH-fix intact).
+
+**ChartSim:** added `scripts/chartsim_realtick_day.py` (builds a book_review day JSON from the
+real ticks with NT-matching pivots) + 2026-07-28 day; `book_review.py` v21 (hash deep-link
+`#date`, defaults to newest day). Server on :8640 still serves old page until restarted.
+
+---
+
+## S91 (2026-07-29) — NEW PROJECT: EminiAddict / Halsey Measured-Move method (in `eminiaddict/`)
+
+New project to learn, codify, and test David Halsey's **Measured Move (MM)** method
+(eminiaddict.com, $29.99/mo). User has the book PDF and will subscribe.
+
+**Site recon (verified):** WordPress + WishList Member paywall. Daily analysis + videos +
+slides are member-only — NOT scrapable logged-out (only post titles/dates via sitemap; old
+2009 blog posts are the only public text). Once subscribed: cookie/Playwright scrape + Whisper
+transcript nugget-mining (target the structured daily-review/education videos, not 8-hr live room).
+
+**Book** = *Trading the Measured Move* (Wiley 2014), 226 pp. Pulled from user's Drive to
+`eminiaddict/data/halsey_measured_move.pdf` (gitignored, copyrighted). Full text →
+`data/book_text.txt` (gitignored). Text extraction clean (13/226 image-only pages). Render script
+`scripts/render_pages.py`. Confirmed I read both chart diagrams (Fig 6.1) and stat tables (Fig 12.1).
+
+**The method (verified from book):** Fib on a swing leg. UP leg low L→high H, range R:
+100%=L (start) · 61.8%=L+0.382R = FAILURE (breach kills MM) · 50%=L+0.500R = HWB (entry) ·
+0%=H (end) · 123.6%=H+0.236R = TARGET (seeds next swing). Down leg mirrored. Key chapters:
+2 (Fibs), 6 (three setups: Traditional 50% MM / Extension 50% MM / 61.8% Failure), 8 (entries),
+12 (gap fills + stat table: 2010–12 fill ~66.6%, ~77.8% if gap <10pts), 13 (mgmt/23% target),
+16 (trading plan rules). Gap def: ES professional gap ≥10pts, amateur <10 fills within 1st hr.
+
+**"What defines a swing?"** = NO mechanical fractal rule. Seed swing = discretionary "significant
+high-low that jumps off the page." AFTER the seed it's mechanical: new peak = prior MM retrace
+high, new trough = prior MM 123.6% target; leg confirmed by 61.8% break of the opposing MM.
+**Only discretionary knob = the seed** → codify with a ZigZag/ATR seed detector, tune/validate in WFA.
+
+**Built `scripts/draw_mm_fib.py [last|dominant]`** — ZigZag seed detector on ES daily
+(`data/bars/_db_es_daily_24h.parquet`), draws MM Fib with all Halsey levels, anchors snapped to
+true extreme wicks. Two demo charts committed (`figures/es_daily_mm_fib_{dominant,last}.png`).
+Dominant leg 6,420.75 (3/31)→7,699.75 (6/1): HWB 7,060, fail 6,909, target 8,001.59; price 7,530
+never retraced to HWB (shallow=strong, MM intact, target unmet). Last/counter leg 7,699→7,299:
+HWB 7,499.75, fail 7,546.95, target 7,205.35 — price pressing the 7,547 failure line (decision point).
+
+**FULL-BOOK EXTRACTION DONE (8 parallel agents):** all 16 chapters extracted to faithful,
+number-exact notes `eminiaddict/notes/chNN_*.md` (167K chars) + synthesized
+`notes/RULEBOOK.md`. Split via `scripts/split_chapters.py` (chapters gitignored, copyrighted).
+Key locked specs: 3 setups (traditional/extension/61.8%-failure, Ch6); 3 entries in fixed order
+(first-test/front-run-2nd/trend-break) + ES tick table (ES front-run +2, stop −6→−4, 1st tgt +2, Ch8);
+4 exits (Distance Formula = |50%−38.2%| = 0.118R, trail-61.8, confirmation-of-trend, −23%/123% target, Ch13);
+gap-fill book (open <10pt→77–79% fill, >10pt→9–26%; 08:00–08:30 ET; ES gap 5–10pt; Fig12.1 stats, Ch12);
+Ch16 = 31 rules (10 General/8 Gap/9 NYSE/4 Euro) + sessions 08:00–11:30 & 13:30–16:00 ET, no-trade
+09:30–10:00 & after 15:45, ≤1% risk, half-size Mon/Fri/opt-ex/rollover; DP=(H+L+C)/3.
+
+**NEXT:** (a) encode RULEBOOK §3–§5 as machine-readable config + backtest on ES (seed-detector param
+swept in WFA); (b) optionally draw the chained next-MM sequence; (c) subscribe → scrape slides + video transcripts.
+
+---
+
+## S90 (2026-07-28) — ChartSim (Book Review) big UI build + RevFT per-type book + RegimePhaseMachine HH bug fixed + Render-deploy plan for Thomas
+
+**ChartSim = the renamed Book Review tool** (`scripts/book_review.py` on branch `regime/indep`,
+worktree `myquant-regime`, localhost:8640). Large UI session, all committed there (7dfcfa1):
+- MyReversals indicator markers on every day (default detection, computed from ChartSim's
+  OWN bars, 2021-01→2026-07-24): green ▲ FT-long / red ▼ FT-short + blue reversal-bar dot +
+  T/B/O/I. Racing stripe per reversal AND per 2E setup (taken or not); hover data boxes;
+  click→panel/grade. Removed entry/stop/trigger lines + labels (clutter).
+- Themes dark/light/**grey-NT (Thomas)** = white-up/dark-grey-down/black wicks; level+Globex
+  (overnight H/L) lines + hover tooltip; panel collapse fixed (flexbox min-width:0 bug);
+  ThreadingHTTPServer + no-cache. Build tag `vNN` top-left to confirm fresh loads.
+
+**RevFT per-type book (research/revsim, committed on main 297aefa):** splitting setups by
+type = first ex-2025-positive result. Trap DEAD (drop). BO best (net/DD 2.4). Extreme filter
+RESCUES OB and makes IB most consistent. BOOK = BO-all + IB/OB-at-8bar-extreme, Trap dropped:
+PF 1.14, +$81k, net/DD 3.2, ex-2025 +$32k, 4-5/6 green. Modest, regime-tilted, 2024 red.
+(Prior S89 sweeps: raw/location/detection all 2025-carried; strong-FT+below-SMA20 = satellite.)
+
+**Regime engine port checked (agent diff Python `phase_transitions` vs `RegimePhaseMachine.cs`):**
+the BULL/BEAR/NEUTRAL **phase-machine shading is a faithful line-for-line match.** Divergences
+live in the separate S61 2E-trigger engine: Python is OFFLINE/look-ahead (adopts regime earlier)
+vs NT causal; + leg-direction seed. **FOUND + FIXED a real HH/LL drawing bug in
+`RegimePhaseMachine.cs`:** run-peak highs set `Major` directly then only drew the minor `hh`,
+and the later `PromoteMajor` was skipped by its already-major guard → missing HH/LL on trend
+days. Fix: route run-peak promotion through `PromoteMajor` (flags AND draws). File copied to
+`nt8/indicators/RegimePhaseMachine.cs` (was never version-controlled). **User must recompile in NT.**
+- **STILL OPEN (HH fix confirmed drawing, but labels not yet fully reconciled).** Added a
+  per-PIVOT export to the NT indicator → `data/regime/nt8_pivots.csv` (session,bar,side,tag,
+  disp,major,majlab,price) generated on recompile+chart-load. Python reference pivots dumped
+  from book_review day-JSONs → `data/regime/py_pivots.csv` (43,610 pivots, 1434 sessions,
+  same schema) via `scripts/dump_py_pivots.py`. NEXT: recompile NT, load an overlapping day
+  (≤2026-07-24), diff nt8_pivots vs py_pivots by (session,bar,side) to find remaining
+  HH/LL/HL/LH label divergences. (User example: b37 not LL — explained: bull-mode pullback,
+  major-LL only in established bear; minor tag is vs prior swing-low pivot, not vs b25.)
+
+**NEXT — deploy ChartSim for Thomas (Path B, user chose):** deploy the Python app AS-IS to a
+persistent host (Render free tier — NOT Vercel, which is serverless/no persistent disk), add a
+login (Samir/Thomas) + move comments from files → a DB (Neon or Render Postgres) keyed by user.
+Standalone repo (don't expose research). Waiting on user: DB connection, 2 passwords, repo OK.
+Auto-updates on redeploy; comments per-user (separate). Regime-engine 2E-trigger causality
+(make Python causal to match NT) = separate open task.
+
+---
+
+## S89 (2026-07-28) — MyReversals (RevFT) ported to Python + full setting sweep: strong-FT+OB-strict+below-SMA20 = PF 1.19 (regime satellite). Work in `research/revsim/`
+
+**Converted `MyReversals.cs` to Python, ran in tick-accurate sim on 5yr ES 5M RTH, swept
+the individual setup settings (the user's ask). All fills tick-accurate.**
+
+- **PORT (`revdetect.py`)** — faithful Trap/BO/OB/IB + Follow-Through, every detection
+  param exposed. **Validated vs the NT signal export: 97.4% of exported signals matched,
+  99.0% type agreement** on the common 08:35–13:30 window. (Export used a Nymex-Energy
+  08:10–13:30 session; port uses standard equity RTH — deltas are just the non-overlap.)
+  Raw EOD PF **0.98** (breakeven) = matches prior RevFT baseline.
+- **NT bar-close-time convention:** export Time = FT bar CLOSE; port emits open-label +5min;
+  entries fill on first tick ≥ signal time = next bar (no look-ahead). (User flagged this.)
+- **Swept:** filters/combos, **trade LOCATION** (loc_pct/dist-extreme/fresh-extreme/PDH-PDL),
+  and **detection params**. LOCATION: fading INTO the day extreme HURTS (these are
+  momentum-CONFIRMED reversals). DETECTION: stricter = better; **FT_ABR (follow-through
+  strength) is the single most impactful knob**.
+- **BEST: FT_ABR≥1.0 + OB_Strict + below-prior-day-SMA20-D + EOD hold** → ALL 2021-26
+  **PF 1.19, +$96,330, maxDD −$33,288, net/DD 2.9, Sharpe 1.28; OOS PF 1.31 +$72k Sharpe
+  1.88.** Below-SMA20 gate = negative-gamma regime (matches `s85-2e-book-metrics`).
+- **CAVEATS (satellite, not core):** type-concentrated (BO +$80k of $96k; **OB loses −$14k
+  → drop**); year-concentrated (2023 −$15k, 2024 −$6k lose; 2025 +$66.5k dominates); train
+  net/DD only 0.8; ~2yr flat stretch. Refines the prior RevFT "modern-regime satellite" verdict.
+- **Files:** `research/revsim/FINDINGS_revft.md`, `revdetect.py`, `revsim.py`, `location.py`,
+  `run_*sweep.py`, `run_refine.py`, `finalize_revft.py`, `TRADES_revft_final.csv`, charts.
+  **NEXT if pursued:** drop-OB variant + BO-only sizing; forward-track; NT8 strategy port of
+  the strong-FT+below-SMA20 spec; combine with S88 gated-long swing as a two-regime book.
+
+---
+
+## S88 (2026-07-27) — Fresh scalp/swing hunt on 5yr ES RTH ticks: SWING FOUND (gated, real), SCALP does not exist (branch `s75-live-dashboard`, work in `research/scalp_swing/`)
+
+**Task:** find profitable scalp + swing, min RR 2:1, 1 ES, no opposing trades. Confirmed
+assumptions: $30 RT cost, flat by RTH close, train 2021-23 / OOS 2024-26.
+
+**New tick-accurate engine** (`research/scalp_swing/engine_ticks.py`): signals on 5M RTH
+bars (built from `data/ticks_continuous`, 1270 days), every fill resolved on raw ticks in
+time order — no phantom fills. All results OOS-tested + chart-audited.
+
+- **CORE FINDING (~150 configs, 5 families):** ungated directional entries have ZERO edge
+  at ANY R/R (breakout/pullback/gated-VWAP/fade all net-neg OOS; relaxing to 1:1/0.75:1
+  didn't help). **The edge is SELECTION/gate, not entry/exit/RR** — reconfirms S85.
+- **SWING = FOUND (real, modest):** LONG-only, **price>prior-day SMA20-D gate** + 60-min
+  IB breakout, **10pt stop / 20pt tgt (2:1), hold to RTH close.** ALL 2021-26 **PF 1.28,
+  +$36,975 (~$7.4k/yr/ES), maxDD −$6,665, Sharpe 1.81**; **OOS 2024-26 PF 1.14, +$11,210,
+  Sharpe 0.96**; green every year (1.87→1.08, decaying). SMA20-D≈HVL (both tested).
+  **Beta-checked:** pure buy-IB-hold-close = Sharpe 0.10/−$31k DD → gate lifts to Sharpe
+  ~1 OOS/−$6.7k DD = real selection value, not just the bull market. Shorts lose (dropped).
+- **SCALP = DOES NOT EXIST:** every config (ungated any-RR, gated short-hold) fails OOS
+  (gated 30-min hold PF 0.92). The ES intraday edge only appears held-to-close with a wide
+  stop → structurally a swing. A real scalp would need L2/L3 order-flow, not 5M OHLC.
+- **Caveats:** long-only, 5yr BULL sample only (no bear holdout); edge decaying; modest
+  PF 1.14 OOS. Stronger sibling already validated = the 2E-HVL book (same SMA20-D gate
+  family, PF 1.54) on `regime/indep` — see memory `s85-2e-book-metrics`.
+
+**Files (committed):** `research/scalp_swing/FINDINGS.md` (full writeup), `swing_level_gated.py`
+(the winner), `engine_ticks.py`, `strategies.py`, `TRADES_swing_final.csv`,
+`AUDIT_swing_trades.png`, `EQUITY_swing_final.png`. **NEXT:** if pursued — filter the
+decaying edge / add the 2E entry mechanic / test on ETH data / bear-regime robustness.
+
+---
+
+## S86 (2026-07-26 eve, CT) — NT8 nightly-restart popup STILL blocks; watchdog re-enabled; L2 recording verified live at Sunday reopen (branch `s75-live-dashboard`)
+
+**Operational, not research. L2 recording is HEALTHY for tonight; the nightly restart is still broken on the workspace popup.**
+
+- **RECORDING VERIFIED LIVE** (Sun 2026-07-26, ~17:13 CT): NT8 up (PID since 15:10 CT), feed
+  Connected, `MarketDepthRecorderAddOn: feed CONNECTED, recording ES 09-26`. `check_depth()=ok`,
+  5MB / 96% book / 5,000 rows per 20s. **The recorder is an AddOn now (not a strategy)** → auto-loads
+  on every NT start, NOT disabled by restart/recompile (the old S75V trap is retired for it).
+  - Transient at the reopen: connection flapped 16:59 + 17:10 CT (lost→reconnect in ~2s each); the
+    depth file had a ~68s zero-row gap 17:11–17:13 CT then resumed at full rate. Sunday-open settle,
+    self-recovered. NOT a dead subscription.
+- **NT8 NIGHTLY RESTART STILL FAILS on the "Save workspace?" modal.** `MyQuant NT8 Restart` fired
+  16:15 CT, exited **0x1** (aborted). Confirmed it never closed: no workspace XML written at 16:15
+  (active `Massive.xml` last saved 7/25), NT process start still 15:10 CT. The S82 UI-Automation
+  auto-dismiss is NOT clicking the live dialog. This fires the "🔴 restart aborted" Telegram alert
+  the user sees. **It does NOT threaten recording** — restart is memory-hygiene only; NT + AddOn stay up.
+- **CORRECTION (I was wrong):** I told the user to disable a "save workspaces on shutdown" checkbox
+  in Tools>Options>General. **That toggle does NOT exist** (verified by the user's screenshot: General
+  has "Confirm on window or tab close" — already OFF — and NO save-on-exit toggle). There is no GUI
+  switch for that prompt. **The hardened auto-dismiss code is therefore the ONLY fix path.**
+- **Hardened `nt8_maintenance._dismiss_nt_dialogs`** (commit `481ea27`): scans nested NT Window
+  elements, enumerates Button controls, matches Name with `&` access-key stripped + case-insensitive
+  (`yes/save/ok/save and close/save workspace`), SendKeys+Enter fallback. NT-only, affirmative-only.
+  **STILL UNVALIDATED** — needs one observed live 16:15 CT halt to confirm it clicks the real dialog,
+  OR the user reads out the exact button text/window title. Dry-run runs clean (nothing to click now).
+- **`MyQuant NT Watchdog` RE-ENABLED** (was Disabled; user approved). 8-min stall threshold, market-open
+  gate, overnight→clean auto-restart via `restart(force_ok=False)`, desk-hours→page-only. Crash/stall
+  auto-recovery restored. **CAVEAT: its overnight restart path calls the SAME unvalidated dismiss** — if
+  NT jams overnight and the popup blocks, restart aborts and it pages "needs a human." So the popup fix
+  is still the critical open item.
+
+**NEXT:** (1) validate the hardened dismiss on the next live 16:15 CT restart (or capture the real
+dialog button/title). (2) If it fails again, consider a different close mechanism (e.g. NT `AddOn`
+that self-saves + `Environment.Exit`, or a targeted SendKeys to the known dialog). (3) Watch tonight's
+watchdog behavior + tomorrow's restart result.
+
+---
+
+## S85f (2026-07-25) — ⭐ CORRECTED verdict: HVL-gated two-sided 2E PASSES within-modern-era OOS (branch `regime/indep`)
+
+**The autonomous edge-hunt's earlier "dead/modest" calls were WRONG on two counts (both mine),
+and the corrected book is materially better.** Full arc + reckoning in the `regime/indep` git log
+(`8075217`→`93439ab`). This SUPERSEDES the S85d/S85e "modest ~$2.5k/yr long-only" framing.
+
+- **Two corrections that flipped the verdict:** (1) I had tested the WRONG gamma construction —
+  sign of same-day EOD `net_total_gex` (look-ahead) — and wrongly called gamma dead. The LIVE
+  method is **price vs PRIOR-day HVL, intraday** (Samir's method, always was). (2) I held a
+  16yr all-weather bar; Samir correctly argued that's the wrong standard for a modern-regime
+  strategy (2013-17 low-vol era is structurally gone: 0DTE/retail sticky). Recalibrated to:
+  validate WITHIN 2021+, no look-ahead, keep BOTH sides, monitor for regime change.
+- **THE BOOK: with-trend 2E (both sides) | entry ABOVE prior-day HVL | 0.30xADR stop | 09-13 |
+  EOD hold.** Full modern (2021+): **PF 1.50, +$76.4k (+$15.3k/yr/ES), maxDD −$7.9k, net/DD 9.6**,
+  positive every year. NOT drift/beta: counter-trend same-days-to-EOD LOSES (0.94 vs 1.50), and
+  shorts above HVL PF 1.57 > longs 1.43 (beta can't do that). Below-HVL is the mirror (negative-
+  gamma) where 2E dies and RevFT lives.
+- **OOS PASS (`regime_2e_hvl_traintest.py`):** trained 2021-23 (PF 1.18, +$13k, positive), HOLDOUT
+  2024-26 = **PF 1.78, +$63,360, every year green (1.64/1.94/1.77), maxDD −$7.2k, shorts hold
+  (holdout S PF 2.11).** First result all session to survive a clean no-tuning OOS test.
+- **RevFT (MyReversals):** confirmed the negative-gamma mirror over full 5yr (below-HVL PF ~1.10
+  EOD, +$71k; positive-gamma loses). But lower-grade: maxDD −$34k, −$19k in 2023; pairing with 2E
+  DEGRADES net/DD (9.6→4.5). Needs filtering (types Trap/IB good, OB bad) before it earns a slot.
+  RevFT gamma tag inherited from the PARALLEL session's `revft_regime_*_20260725` build — VERIFY
+  its causality before trusting.
+- **HONEST caveats:** HVL-gate strength is largely a 2024+ phenomenon (weak in 2021-23); modest
+  samples (~290/period); one broad regime (no bear-only holdout). Validated, not bulletproof.
+
+**Scripts (regime/indep):** `regime_2e_gamma_hvl_causal`, `_hvl_traintest`, `regime_hvl_portfolio`,
+`regime_2e_gamma_full`, `_era_vs_vol`, `_vol_history` (+ the earlier oos/wfa/reconcile/fixed_configs
+battery). Charts `hvl_traintest_`, `hvl_portfolio_`, `forward_spec_` in `docs/living/`.
+**NEXT:** verify RevFT causal tag; filter RevFT for a below-HVL slot; forward-track; NT8 port of
+the HVL-gated spec.
+
+---
+
+## S85c (2026-07-25) — 2E-book reproductions + regime-gate comparison + tick-proxy fidelity + Databento data audit
+
+**Regime/2E work is on branch `regime/indep` (worktree `C:\Users\Admin\myquant-regime`), pushed.**
+Two new committed studies there (`e970499`, `2e81320`) + that worktree's handoff updated (S84 block).
+
+- **Reproduced the agreed three-book 2E system, 5-yr ES tick** — OLD engine **+$93,722 / 678 tr /
+  PF 1.44 / maxDD −$9,502**; NEW immediate-flip engine **+$102,298 / 773 tr / PF 1.43 / maxDD
+  −$14,288** (+95 tr, +$8.6k, ~flat PF, ~50% deeper DD). Both match frozen `R2E_system_config_v1.md`.
+  The +100k "with more trades" the user recalled = the NEW engine.
+- **REGIME-GATE COMPARISON** (`regime_2e_gate_compare.py`): same WT 2E book, only the gate differs.
+  **PHASE (validated phase machine) +$86,848 / PF 1.45 / net-DD 9.83 — decisively best.
+  NONE (no gate) +$67,422 / PF 1.10 (raw 2E ~dead, 3× trades/DD). EMA20 +$71,572 / PF 1.20**
+  (real but weak, 2021 losing 0.92). Only the phase gate filters the SHORT side. **Gate = the edge.**
+  → goes into the final 2E-book artifact.
+- **TICK-PROXY FIDELITY** (`regime_2e_tickproxy_fidelity.py`): can a 1-MIN backfill replace ticks?
+  On 2021-26 (both available) reconstruct pseudo-ticks from `_continuous_1m.parquet` and run the
+  identical PHASE-gate WT book vs real ticks. **Regime-label agreement 99.89% per RTH 5M bar
+  (73,823/73,906, 930 days)** — the engine incl. OB break-ordering is ~perfectly reproduced by
+  1-min. Book PnL REAL +$86,848/PF 1.45 vs PROXY +$76,005/PF 1.35 (every year green). The ~12% gap
+  is the FILL SIM, not the signal; hits shorts hardest. Proxy mildly PESSIMISTIC = safe.
+  **VERDICT: a 1-min pre-2021 backfill is a trustworthy kill-test — ticks NOT needed for history.**
+
+- **DATABENTO DATA AUDIT (verified by reading the actual files, not the handoff):**
+  - **On disk = L3 (mbo), 6 months, 2 batches** — job `4T649EM33V` (Jan 1–Mar 31 2026, 77 files) +
+    `JRSPF47X5J` (Apr 1–Jul 20 2026, 95 files), ~20GB+20GB DBN/zstd, `ES.FUT` parent. Decoded both:
+    `meta.schema=mbo`, per-order `order_id` + A/C/M/F/T actions = L3 signature (NOT mbp-10). **This is
+    the L3 iceberg/queue data** — bought over L2 because native CME iceberg refill detection is
+    deterministic only from MBO (S78 rationale; MBP-10 can't).
+  - **Schema map for reference:** L1=`mbp-1`/`tbbo`, **L2=`mbp-10`**, **L3=`mbo`** (Market-By-Order).
+  - **Queued today (2026-07-25, not yet downloaded):** `X98V5EDDHH` + `AU7NMUKBYK` = **DUPLICATE**
+    ES ohlcv-1m 2010→2026 (the pre-2021 1-min backfill, submitted twice — user emailed support to
+    cancel one); `HUUY5RDR7V` = **mbp-10 (L2)** ES Nov 1–Dec 26 2025. All `ES.FUT` parent (include
+    calendar spreads → filter to front-month outright on convert).
+  - API key stored gitignored at `%LOCALAPPDATA%\myquant\databento.json` (key was pasted in-chat →
+    **regenerate it**). Databento batch API has **no cancel method** — cancellation is support-email only.
+
+**DONE THIS SESSION — 16-yr OOS + full autonomous edge-hunt (S85e below). PENDING:**
+1. Download the `mbp-10` L2 job when `done` → catalog. Confirm support cancelled the dup 1-min job.
+2. Test the LONG-2E+ER10 forward spec MULTI-INSTRUMENT (NQ/RTY) to scale the modest edge.
+
+## S85e (2026-07-25) — AUTONOMOUS EDGE-HUNT: the frozen book is regime-fit+hindsight; the real forward edge is a MODEST long-only + ER10 + crash-guard (branch `regime/indep`)
+
+**Full memo:** `docs/research_notes/2e_forward_edge_16yr_20260725.md`. 15 scripts committed
+(`regime_2e_{oos_databento,diagnostics,pertrade,analysis,wfa,wfa_cleanroom,reconcile,fixed_configs,
+long_hunt,era_vs_vol,gamma_condition,reversion,forward_spec,vol_history,crashguard}.py`), branch
+`regime/indep` pushed through `87b05f8`.
+
+- **Frozen +$93.7k/1.44 is INFLATED by regime-fit + hindsight.** Clean-room WFA from 2010
+  (re-optimize gap/stop/window/side yearly, zero 2021 priors) = **PF 1.10** vs frozen 1.21 → the
+  0.11 gap is curve-fit premium. True OOS 2010-20 frozen = PF 0.96. The pre-2021 loss is ALL the
+  SHORT side (secular bull); gross long edge is small-but-positive every era.
+- **THE REAL FORWARD EDGE (causal, block-robust): LONG-only 2E + ER10-top(causal, prior-day trend
+  efficiency, expanding-median threshold — NOT the S83 look-ahead bug) + crash-guard (skip if
+  prior-5d ret < −4%).** PF **1.38**, meanR +0.165, **~$2,637/yr per ES**, win 51%, net-positive in
+  ALL four 4-yr blocks (1.33/1.36/1.23/1.47), realized maxDD ~−$13k. Modest, low-freq (31/yr),
+  ~2.7%/yr on ~$96k/ES. **NOT a standalone money machine — value is multi-instrument scaling.**
+- **DEAD ENDS (recorded, don't re-run):** with-trend shorts = regime-dependent; **GAMMA-regime
+  conditioning = LOOK-AHEAD** (MQ gamma[D] uses D's own EOD chain; POS 1.66→1.27 causal ≈ NEG 1.20);
+  VIX conditioning = 2024-driven; mean-reversion/fade complement = dead (PF 0.87-0.94, choppy days
+  have no edge either way); vol-regime day-filter = no help.
+- **STRUCTURAL/vol context:** dead 2010-17 era = extreme low vol (VIX med 10.8-15.3) AND pre-0DTE;
+  0DTE(2022+)/retail(2020+) are sticky; edge does NOT need high VIX (2024 low-VIX was strong). Full
+  return to the dead regime unlikely. The 2021 equity "explosion" is ~4x exaggerated by $-vol scaling
+  (R ratio 3:1 not 14:1) — real edge-shift but smaller than the $ curve implies.
+- **Caveat:** proxy unvalidated below ADR 25 pre-2018 (no low-vol days in 2021-26 to check against).
+
+**NEXT:** (a) multi-instrument test of the long spec (NQ/RTY — long-only, not the failed symmetric
+book); (b) NT8 port of the long-only+ER10+crash-guard spec; (c) the parallel NQ cross-instrument
+work is on `regime/indep` too (don't collide).
+
+---
+
+## S85d (2026-07-25) — ⭐ 16-YEAR OOS on Databento 1-min: frozen 2E is REGIME-fit to 2021-26; WFA recovers a durable LONG-BIASED edge (branch `regime/indep`)
+
+**Bought+built the pre-2021 data and ran the true OOS the frozen system never had.** Databento
+ES `ohlcv-1m` 2010→2026 pulled ($0.48, job `X98V5EDDHH`) → `databento_build_continuous_1m.py`
+(panama front-month, **seam corr 0.99987** vs `_continuous_1m` on 2021-26) → frames
+`_db_es_{5m,1m}_rth.parquet` (gitignored). 2E book run via the validated tick-proxy. Full battery
+committed on `regime/indep` (`b4c3d9a`): scripts `regime_2e_oos_{databento,diagnostics,pertrade,
+analysis}.py` + `regime_2e_wfa.py`.
+
+- **Pipeline PROVEN sound** (`regime_2e_oos_diagnostics`): pre-2021 data pristine (81 5m / 405 1m
+  bars/day, 08:30-15:10 every yr, flat1m~0%, regime mix stable ~32/26/42), **Databento 5M == NT 5M**
+  (range corr 0.99996, median diff 0.0000pt). The null is REAL, not an artifact.
+- **Frozen three-book pre-2021 (2010-20): PF 0.96, −$6,435** (n=997) vs **2021+ PF 1.38, +$90,410.**
+  The +$93.7k/1.44 headline is validated on 2021-26 = ONE favorable high-vol two-sided regime.
+- **DECOMPOSITION:** the loss is the **SHORT side** — pre-2021 longs PF 1.03 (breakeven), shorts
+  PF 0.91 (−$8.6k). With-trend shorts need a real downtrend; the 2010-20 secular bull starved them.
+  Moderate-vol (ADR 22-37) profits in BOTH eras (1.34/1.67); low-vol grind kills pre-2021; a single
+  ADR/VIX threshold does NOT transfer cleanly. Counter-trend negative both eras (gate dir correct).
+- **WFA (`regime_2e_wfa`, user-requested train-early-test-late):** optimize on **2010-2011 ONLY** →
+  picks **long-only / 0.40×ADR / 10-13**, **OOS 2012-2026 PF 1.39 +$53k** (green through 2012-16).
+  **Anchored WFA PF 1.28 +$77k**, rolling 3yr/1yr 1.26 — both beat the frozen PF 1.21. Picks `long`
+  2012-18, adds `both` from 2021 (exactly when shorts start paying).
+- **VERDICT:** NOT a pure 2021 artifact — a real long-biased second-entry edge the frozen SYMMETRIC
+  spec was masking. **Durable core = long-biased, shorts gated to bear/high-vol.** Honest caveats:
+  early-train sample thin (n=51), pre-2021 is modest (money still vol-amplified), the trustworthy
+  figure is anchored-WFA PF 1.28 (not the single-pick 1.39).
+
+### DURABLE SPEC built + stress-tested (S85, `regime/indep` `5625f98`→`6379afe`)
+
+**THE DURABLE 2E BOOK = with-trend LONGS (all, 0.40×ADR stop) + with-trend SHORTS gated to a
+downtrend (price below 50-day SMA, 0.30×ADR stop).** One universal, non-fit trend filter fixes
+the regime-fit frozen book. Scripts: `regime_2e_durable{,_risk,_volfilter,_stress}.py`, book
+`data/regime/durable_20260725.csv`, charts `docs/living/durable_risk_20260725.png`.
+
+- **Headline (1 ES, $5 RT, 2010-2026):** +$78,082, PF **1.30**, win 52.4%, realized maxDD −$17,702,
+  net/DD 4.41. **Pre-2021 PF 1.09 (+$9,588) — was −$6,435 frozen. Post-2021 PF 1.44 (+$68,495).**
+  No losing year worse than −$1,570.
+- **Robust to the gate:** below-sma50 / below-sma100 / sma50-falling all give pre-2021 1.09-1.14 —
+  not a knife-edge. **Anchored WFA (short-gate chosen from prior years only): OOS 2013-26 PF 1.24,
+  +$58k** — optimizer picks a trend-gate EVERY year (never 'none').
+- **Gated shorts are worth it:** add +$24,950 (32% of net) AND improve net/DD (4.41 vs long-only 3.81).
+- **Two honest limits:** (1) **vol-concentrated** — 2022+2024 = 59% of 16yr net; 90% of sessions
+  underwater; a vol-regime day-filter does NOT help (uw% stuck 86-90%, net/DD never beats 4.41 —
+  paying days aren't identifiable ex-ante). (2) **Cost-fragile in low vol** — at $10 RT + 3t slip the
+  book holds (PF 1.17) and the **high-vol era stays strong (post 1.34) but the thin pre-2021 layer
+  goes negative (0.92)**.
+- **BOTTOM LINE:** a real, 16-yr-OOS-validated, cost-robust edge **in elevated-vol regimes** — it is a
+  **volatility-harvesting strategy**, not an all-weather one. Strong in high vol (2021-26 and any
+  2011/2020-style vol), ~flat-after-costs in dead-calm grinds (2013-17). We are CURRENTLY in a
+  favorable regime. Sizing ~$110k/ES (moderate 33% of block-boot worst-1% −$36k); prop $4,500 = MES only.
+- **REAL-TICK CROSS-CHECK (2021-26, not proxy; `regime_2e_durable_realtick.py` `7f1d8bc`):** FROZEN
+  (0.30 both, ungated) +$86.8k PF1.45 **net/DD 9.83** (reproduces gate_compare); DURABLE40 (long 0.40 +
+  gated short) +$72.5k PF **1.58** but maxDD −$18.4k **net/DD 3.94** (0.40>0.30 long stop confirmed on
+  real ticks; short-gate lifts short PF to 1.68). **In the modern regime FROZEN WINS** — the *ungated*
+  shorts DIVERSIFY the longs and smooth DD; gating them ~doubles DD. So the short-gate is **insurance
+  against a low-vol secular bull** (rescues pre-2021), paid for with lower net/DD in favorable regimes.
+- **THE DECISION (not a bug — a genuine choice):** FROZEN = bet the current high-vol regime persists
+  (high-octane, net/DD ~10, but dies if vol collapses to 2013-17 levels). DURABLE40 = pay ~60% of the
+  modern net/DD for all-weather positivity. Recommended posture: **trade FROZEN now (favorable regime)
+  but treat it as regime-conditional — monitor a vol/regime trigger and switch to DURABLE (or stand
+  down) if ADR/VIX collapse to secular-bull-grind levels.** Not "green every year forever."
+
+**NEXT:** (a) sanity-check the durable short-gate on REAL NT ticks 2021-26 (not just proxy);
+(b) wire the durable spec (long 0.40 + below-SMA50 short gate) into `RegimeSecondEntry.cs`;
+(c) refresh `R2E_system_config_v1.md` to the durable spec + regime-conditional framing.
+
+---
+
+## S85b (2026-07-25) — SLIPPAGE-MODE reconciliation: raw MC is slippage-FRAGILE, 2E is slippage-IMMUNE (branch `s75-live-dashboard`)
+
+**Trigger:** user recalled the ES-app MC numbers being "much worse" than what I quoted, and
+asked what execution mode we'd been on ("was it on touch or some crazy shit"). **Answer: no —
+`entry_model="market"` (fill at the next bar's first tick, fixed 1t entry+exit slip, ZERO
+latency), the SAME for all regime books (MC, 2E, RevFT). NOT on-touch (that's `entry_model="stop"`,
+never used).** The only optimism is latency=0 → between the app's Optimistic and Realistic presets.
+
+**Reproduced the app's 4 ESA presets exactly** (`simulation_engine.EXECUTION_PRESETS`, fed as
+`bar_analysis` does: calc/wire delay + randomized entry/exit slip ranges + seed 42). Scripts:
+`mc_pnl_reconcile.py`, `mc_pnl_exec_modes.py`, `regime_books_slippage_sensitivity.py`
+(+ `data/regime/regime_books_slippage_sensitivity_20260725.csv`). Exp $/tr in every metric.
+
+**FINDINGS:**
+- **The "much worse" = the app-default `Realistic` preset, not my fixed-1t/no-latency quote.**
+  Raw MC (1R exit, only slippage varying): Optimistic +$49/tr PF1.15 → **Realistic +$31/tr PF1.09**
+  → Conservative +$19/tr PF1.06 → **Brutal +$1.7/tr PF1.00 (ExpR neg, 2/6 green)**. Raw MC is
+  acutely **slippage-fragile** (breakeven +2.5 extra ticks). **Stack v2 stays +$59–100/tr PF≥1.16
+  across ALL modes** → the S53 filter's real job is slippage-robustness.
+- **2E is slippage-IMMUNE.** WT combined base +$145/tr PF1.44, **breakeven +11.6 extra ticks**;
+  even Brutal +$101/tr PF1.29. Wide 0.30×ADR stop + hold-to-EOD → big absolute $/tr edge that
+  absorbs 10+ ticks. Polar opposite of tight-stop MC. (First-order cost model, validated: it
+  reproduces the MC real-preset spread, −$47.6/tr ≈ +3.8t between Optimistic and Brutal.)
+- **Unifying rule:** slippage sensitivity ≈ absolute $/tr edge ÷ $12.50/tick. Wide-stop/runner
+  designs are robust; tight-stop small-edge scalping is fragile. Corollary: the S85 "2E exit is
+  neutral for MC" was measured at generous slippage — **re-test the MC×2E study at Brutal** (open item).
+- **RevFT EXCLUDED** — concurrent chat's LIVE workstream (its output files rewritten minutes ago:
+  `revft_fade_ema_20260725` 10:52, `revft_2e_sequence` 10:36); intermediate lists inconsistent
+  (the 107-row `revft_regime_2e` CSV scores WT NEGATIVE vs their committed "+$123–145k"). No stable
+  RevFT trade list on our side — rerun the sweep once their book is frozen. **Do NOT interfere with
+  their worktree/jobs** (`regime_2e_nq_recalib.py`, `revft_fade_ema_frozen.py` running).
+
+---
+
+## S85 (2026-07-25) — MC setups × 2E regime engine: NEGATIVE — the two books don't cross-pollinate (branch `s75-live-dashboard`)
+
+**Premise (user):** take the latest fast-flip tick-driven regime engine + the second-entry
+book's machinery (vol stop, gap gate) and see if any of it improves the MC/CC breakout setups.
+Ran in two staged passes (user chose filters-only first). **Result: clean, decisive NO on every
+application.** Both books stay frozen and independent.
+
+**Built (committed on `s75-live-dashboard`):**
+- `scripts/regime_label_engine.py` — reusable class port of `scratchpad/regime_phase_machine.py`
+  (the fast-flip engine). Emits per-5M-bar regime (neutral/bull/bear) at bar CLOSE (causal).
+  **Self-test in lockstep with the validated standalone: 2022-02-24=35 pivots, 2022-04-12=36.**
+- `scripts/mc_regime_label_cache.py` → `data/regime/mc_signal_day_regime.parquet` (1,203 signal
+  days, tick replay ~7min). Resumable.
+- `scripts/mc_regime_filter_study.py` (filters-only) + `scripts/mc_regime_harness_swap.py`
+  (full 2E exec). Scoreboards: `mc_regime_filter_scoreboard_20260725.csv`,
+  `mc_regime_harness_swap_scoreboard_20260725.csv`.
+
+**Findings (harness gate passed — frozen Stack v2 book reproduces: +0.135R, PF 1.33, green 6/6):**
+- **GAP GATE (|RTH gap|>0.54%) — INERT on MC.** Identical netR (+0.135), just deletes 24% of
+  trades; the skipped big-gap days ran AT book average.
+- **REGIME GATE — does not add / hurts.** As an add-on netR moves within noise while cutting the
+  book; as a replacement for the crude F1 counter-IB gate it is strictly WORSE (0.107/0.090 vs
+  0.135) — the simple IB-break state beats the phase machine as a directional filter. **With-trend
+  kills LONGS** (an MC breakout often IS the regime change → gate is late by construction).
+- **2E EXIT (0.30×ADR vol stop + hold-to-close) — NEUTRAL for MC.** On stackv2: +0.143R PF 1.27
+  ≈ frozen 3R/BE (+0.135R PF 1.33); only change is higher WR (46 vs 40%), same net edge.
+- **CC trigger in the FULL 2E harness (regime+gap+vol-stop+hold) = PF 1.10, green 4/6, $35/tr —
+  loses decisively to the 2E second-entry trigger** (PF 1.44, green 6/6). CC is a worse trigger
+  for that harness.
+- **Conclusion:** MC edge = its own stack entry filters + simple exit; 2E edge = second-entry
+  trigger + with-trend + runner exit. Separately optimized, do not combine. Reinforces note 0009.
+  `regime_label_engine.py` is now a reusable causal per-bar regime labeler for any future study.
+
+---
+
+## S85 (2026-07-25) — RevFT RESCUED by the regime engine + 2E exit (branch `s75-live-dashboard`, committed `1bb8190`)
+
+**Goal:** apply the latest regime engine + the S83 2E-book improvements to the RevFT loser to
+improve PnL. **Result: works — base −$59k/5yr → +$123.5k (drop-CT) or +$144.7k (neg∩drop-CT).**
+Full note: `docs/research_notes/0015_revft_regime_2e.md`. All verified from
+`data/regime/revft_regime_full_20260725.parquet` (4,582 trades / 1,204 days).
+
+**THE FINDING — neither lever works alone; the interaction is the edge:**
+- Exit-only (all signals, wide-vol stop + hold-to-EOD): flat +$1.9/tr.
+- Gate-only (drop counter-trend, keep 1R target): flat −$1.9/tr.
+- **Gate + Exit (drop counter-trend + hold-to-close on 0.30×ADR stop): +$45/tr, +$123.5k, PF 1.12,
+  bootCI[3,90], 4–5/6 yrs green.** Counter-trend RevFT (fading a live intraday phase-machine trend)
+  loses −$115k *every year* — that's the whole disease; removing it + letting survivors run is the cure.
+- **+ MQ gamma day-filter (trade only negative-gamma / trending days): +$123.6/tr, +$144.7k, PF 1.27,
+  bootCI[37,213], 5/6 yrs green (only 2023 red −$7k), holdout(2024–26)>train.**
+- My "fades work when dealers pin (positive gamma)" hypothesis was **BACKWARDS** — RevFT is momentum,
+  wants trending/negative-gamma days. Confirms Note 0005's thesis (RevFT is with-trend, not a fade)
+  with a real label instead of the VWAP proxy that only reached break-even carried by 2022.
+- Why the EOD exit matters: with-trend median MFE=1.46R (P(MFE≥2R)=40%); the old 1R target clipped
+  the momentum tail. `pt_new` beats `pt_old` on the gate (+$9.3k vs −$0.6k).
+
+**CAVEATS (not yet an edge):** RevFT has two prior kill-notes (0005, 0013); ~26 books searched
+(multiple-testing); no truly-OOS run. Survivors are broad/monotone (every neg∩notCT∩EOD variant wins,
+every CT variant loses), better than a single fitted cell — but forward-validate on MES before capital.
+
+**FOLLOW-UP DONE (entry sweep + filter ablation, `scripts/revft_regime_entry.py`, parquet
+`revft_regime_entry_20260725.parquet`):** which 2E improvements port to RevFT —
+- wide-vol stop + hold-to-EOD ✅, phase-machine gate ✅, gamma-day filter ✅ (all essential/additive).
+- **Limit-back entry ✗ ANTI-PORTS** — swept k=0..16t; native next-tick (+$45/tr DROP-CT) beats every
+  offset (k=0 −$32/tr up to k=16t +$32/tr on 54% fills). RevFT is a first-move momentum signal;
+  demanding a pullback adversely selects out the winners (mirror of note 0013). Keep native market fill.
+- **Gap-skip ✗ HURTS** — central to the 2E book but cuts RevFT's net-positive gap days (total $ falls).
+- **Hours 09-13 ~ optional** — trims afternoon dead-weight, $/tr 45→58 (DROP-CT) / 124→150 (neg∩notCT)
+  at ~unchanged total; efficiency only.
+**Next:** forward-track neg∩drop-CT/wide+EOD on MES; regime-confluence sizing; NT8 signal-diff before live.
+
+**VALIDATION BATTERY DONE (mirrors the 2E 10-test battery; `scripts/revft_regime_stress.py`, note
+`0015b_revft_validation.md`) — 8 of 10 runnable, headline Book B clears them:**
+- **N1 permutation null: p<0.0001** (real $124/tr vs null μ≈$2) — the regime gate is NOT a
+  multiple-testing artifact (this is the headline; refutes the "1 of 26 subsets" worry).
+- **N2 gamma inversion: PASSES** — RevFT's neg-gamma edge is STRONGER OOS (tr PF 1.15/te 1.39),
+  opposite of the 2E pos/neg label that inverted (tr 2.07/te 0.91) and got killed.
+- Engine-invariance ✅ (pt_old≈pt_new $/tr), param-neighborhood ✅ plateau, pess-fills ✅.
+- **Book A (DROP-CT alone) is MARGINAL — retire standalone:** fails cost-stress (PF 1.12→1.01) and
+  goes negative on top-20 tail-jackknife. **Neg-gamma filter is load-bearing → trade Book B only.**
+- **Quantified risks:** tail-concentrated (top-20 of 1171 ≈ all profit, like 2E); honest block-boot
+  DD worst-1% = **−$59k/1 ES** (the sizing #); rolling-OOS 65% green quarters (2E was 78%).
+- **BLOCKED gates before capital:** #4 Databento clean-tick cross-check; #10 out-of-period ES
+  2010-2020 + cross-instrument NQ/MES (needs RevFT signal export off ES); #9 NT8 signal-diff +
+  forward MES real fills. Sequence #4 → #10 → #9; do NOT deploy on the in-sample battery alone.
+
+**COMBINED + SEQUENCE (note `0015c`, `revft_2e_combined.py` + `revft_2e_sequence.py`):**
+- **Book B spec updated: adopt hours 09-13** (= 2E window) → n=908, +$136.5k, $/tr 150, PF 1.30.
+- **2E three-book + RevFT-B combined = +$221k, PF 1.29, green every yr but 2023 (−$15.4k).**
+  Diversification MODEST: daily corr +0.39 on shared days; combined maxDD −$39.9k saves only ~$6k vs
+  summed; combined tail DD −$61k ≈ RevFT alone. Additive return, weak hedge. (2E file = near-final
+  combined_books_20260724, FADE-S ~breakeven here, below frozen spec PF1.35.)
+- **RevFT→2E sequence CONFLUENCE — TESTED & REFUTED** (`revft_2e_confluence.py`): the pooled
+  "preceded 2E better (PF 1.37 vs 1.14)" does NOT survive per-book permutation-null (all p=0.13–0.90,
+  none <0.05). Noise signatures: per-book lift flips sign across windows (WT-S +139→−75→−26); train→
+  holdout collapse (FADE-S preceded $128→$17/tr, WT-S $266→$31); EMA-cross incoherent (helps WT-S,
+  hurts FADE-S). Pooled illusion = FADE-S's weak not-preceded trades (this file's fade is ~breakeven).
+  **Do NOT wire preceding-RevFT into 2E.** Contrast: RevFT Book B passed the SAME null at p<0.0001.
+- **Durable kept result = the combined portfolio** (two independently-validated books, +$221k additive).
+  Sequence/conditioning is dead. (Samir's neutral→fade thought was dropped by him — not pursued.)
+
+**FADE × STRONG-MOVE-THROUGH-EMA — PROMISING, first-pass rigor PASSED** (note `0015d`,
+`revft_fade_ema.py`): only take f2EL fades after a strong down-thrust THROUGH the 20-EMA. Feature
+cross_str = strength of the down-cross in prior 10 bars /ATR14 (causal). Base FADE-S breakeven
+(−$7.7/tr) → filter cross_str≥2.0 ATR = **+$126/tr PF 1.36, perm-null p=0.039, train +112/holdout
++143**, MONOTONE dose-response ($54→$126→$251→$323 as thr 1.5→3.0), holdout≥train. Secondary pen_atr
+(deep-below-EMA) FAILS — the through-EMA STRENGTH is the signal, not distance (matches the mechanism →
+not data-mining). Caveats: threshold swept (lean on pre-committed 2.0), moderate n (114/249), tested
+on the WEAK near-final fade. **FROZEN-FADE RE-RUN DONE** (`revft_fade_ema_frozen.py`, regen n=112 PF
+1.31 ≈ wf_dataset n141/PF1.28): the answer CHANGES — the frozen fade base is already profitable, so
+the non-strong fades are **breakeven (+$3/tr PF1.02), NOT dead**. → **SIZER not FILTER**: filtering
+strong-only keeps ~same total $ on half the trades; sizing 2×strong+1×rest ~doubles total ($6.4k→
+$12.7k). BUT on the frozen fade the **perm-null is NOT significant (p=0.14–0.37** vs 0.039 weak-fade). **LOOKBACK-K
+SWEEP (K∈{5,8,10,15,20}) FAILED** — strong-vs-rest INVERTS at K=5 (strong PF0.85 vs rest 1.39) and
+K=15 (1.13 vs 1.57); only K=8-10; perm-null never <0.05. BUT Samir's correction resolved WHY: `cross_str`
+took the MAX cross in a K-window → large K tagged STALE/reversed crosses (meaningless on 5M). **REBUILT
+recency-aware (`revft_fade_ema_recency.py`) → the real feature is different AND lookback-FREE:** the fade
+works when price is **ABOVE the EMA at entry = a FAILED EMA RECLAIM** (failed long reclaimed the MA then
+failed): PF **2.78, +$295/tr, n=25, perm-p 0.06, holdout PF 4.29 > train 1.91**. Below-EMA weak-bounce
+fades = breakeven-neg (PF 0.94, n=87) = dead weight. Down-cross strength/recency all dead (p>0.3); stale
+strong cross PF 0.81 (confirms Samir). Failed-reclaim was borderline on ES (p=0.06, n=25). **NQ CROSS-
+INSTRUMENT TEST → DOES NOT CONFIRM → WHOLE FADE-EMA THREAD RETIRED (`revft_fade_nq.py`):** (1) ES stop-
+dependent — ADR-scaled stop instead of the ES 4pt drops perm-p 0.06→0.30 (ns); (2) NQ INVERTS —
+above-EMA PF 0.62 vs below 0.94 (base fade also loses on NQ, PF 0.88, ES-tuned geometry). Every fade-EMA
+form failed under rigor (down-cross K-unstable/stale; failed-reclaim stop-dependent + NQ-inverts). **No
+robust EMA-context edge for the fade; did NOT wire into the indicator (dead signal).** Samir's recency
+correction was right + gave a better feature, just didn't survive — clean negative.
+
+**⚠️ BOOK B ITSELF DESTROYED as a SIGNAL edge (`revft_bookb_destroy.py`, conservative $30/tr) — mirrors
+the 2ES kill in the other chat.** The 0015b battery only proved the GATE (which days) is informative;
+it never tested the SIGNAL. Red-team: (1) RANDOM-TIME NULL — replace each entry with a random 09-13 bar,
+same day/dir/exit: Book B $125k vs null mean $86k, **p=0.12 (ns)**, signal beats random timing on only
+40% of trades → ~69% of return is DRIFT CAPTURE (be with-trend on trending days, hold to close); RevFT
+timing adds nothing significant. (2) TAIL JACKKNIFE — the entire +$125k is 20 of 908 trades (remove
+top-20 → −$7k). (3) recent decay: survives (2025 PF1.32, 2026 1.35, last-12mo 1.38). **Verdict: retire
+Book B as a standalone RevFT signal edge; residual = neg-gamma trend-day drift (regime beta), tail-
+concentrated, doesn't need RevFT.** Filter-ablation earlier confirmed the same: E (hold-EOD exit) is the
+whole edge; the signal/gates just pick which trades hold to close. **NET OF THE WHOLE ARC: no deployable
+RevFT signal edge survived; the durable facts are the negative results + that neg-gamma trend days have
+positive with-trend drift (regime beta, not a signal).**
+
+**Files (all committed `1bb8190`, `git add -f`):** `scripts/revft_regime_full.py` (sim, vendors
+pt_new + joins MQ gamma), `scripts/revft_regime_deep.py` (slicing + honest verdict),
+`scripts/revft_regime_2e.py` (superseded focused v), `scripts/revft_regime_chart.py`,
+`docs/living/revft_regime_equity_20260725.png`, note 0015.
+
+---
+
+## S84b (2026-07-25, night) — NT8 RegimePhaseMachine indicator: marks-export + engine-port diff harness (regime work lives on branch `regime/indep`)
+
+**Goal:** audit the NT8 `RegimePhaseMachine` indicator (the "UNVALIDATED PORT" of the
+tick-driven phase machine v4) against the Python reference engine by dumping every mark to
+CSV and diffing. Reference days: **2022-02-24** (bull) + **2022-04-12** (bear) — both are the
+user-validated teaching days and are in `_continuous.parquet`/`ticks_continuous`, so Python runs
+them and NT8 can Tick-Replay them.
+
+**DONE:**
+- **Python reference exporter** — `scratchpad/regime_marks_export.py` (reuses the validated
+  `regime_phase_machine.py` state). Emits `date,bar,event,side,minor_tag,disp,is_major,major_lab,
+  promoted_at,confirm_bar,confirm_i,is_ob,ob_kind,ob_dir,ref_bar,price`. Ran →
+  `scratchpad/marks_py_2022-02-24.csv` (35 pivots), `marks_py_2022-04-12.csv` (36). Reproduces the
+  teaching exactly (b35 minor `ll`+major `HL`@52; intrabar `i` set; seed→b77; term b71/b69-HL).
+- **Indicator marks-export** — added to `nt8/indicators/RegimePhaseMachine.cs` (add-only:
+  `mlog`/`marksDay` fields, `DumpMarks()`, per-session dump → `data/regime/nt8_marks.csv`, cols
+  `date,bar,event,side,minor_tag,disp,is_major,major_lab`). **Committed + PUSHED on `regime/indep`
+  `b494747`** (swept in by the concurrent sim session; `origin/regime/indep`=`477bfef`). NOT yet
+  compiled/mirrored to the live NT8 file.
+- **Diff harness** — `scratchpad/diff_marks.py <date>` aligns on `(bar,side)`, reports
+  py-only / nt-only / label mismatches.
+
+**FINDINGS (before running the diff):**
+- **b2=HH bug:** `StartTrend` unconditionally stamps the broken pivot `HH`/`LL`
+  (`RegimePhaseMachine.cs:346`; same in Python `regime_phase_machine.py start_trend:154`) — it does
+  NOT respect the day-first single-letter rule that the partner/opp pivots DO (`:348/:350`). So the
+  first bull leg breaking the opening high restamps that `H` as `HH`. Violates the agreed
+  "a first leg can never form HH/HL/LH/LL → single gold H/L" rule. Fix must land in BOTH engine +
+  indicator to stay in lockstep.
+- **Discrepancy #1:** the indicator has **no confirmation-bar subsystem** — `Piv` stores only
+  `Bar/IsH/Tag/Disp/MajLab/Major`; the two-rule confirmation (`conf`/`promoted_at`/`intrabar`:
+  HH/LL→turn, HL/LH→new-extreme) is unported. That's why the C# export has only 6 columns.
+
+**PENDING PICKUPS (tomorrow):**
+1. Get the patched `.cs` onto the NT8 machine → **recompile** → **Tick-Replay 02-24 + 04-12** so it
+   writes `nt8_marks.csv` → `python scratchpad/diff_marks.py 2022-02-24` (and 04-12).
+2. Decide the **b2 `H` vs `HH`** fix (apply to engine + indicator together).
+
+**⚠️ CONCURRENCY:** the `regime/indep` worktree (`C:/Users/Admin/myquant-regime`) is shared with a
+concurrent "other chat" running the sim task (stress-test #5 / engine A/B `newengine_20260724.*`,
+new-engine PF 1.43 vs 1.44). Its work was uncommitted when I checked — **pull/re-verify worktree
+state before acting** and do NOT sweep its files into a commit.
+
+### ⏸️ PICK UP SOON — per-bar Python↔NT comparison harness (brainstormed, NOT decided, NOT built)
+
+**The bigger frame behind the marks-export work.** Goal: have the current Python regime engine AND
+the NT `RegimePhaseMachine` indicator each emit a **recordable per-5M-RTH-bar output**, diff them
+side-by-side, treat **Python as ground truth**, and drive NT to a **100% match given identical
+input**. Then finding porting bugs = reading the first divergent bar.
+
+**Established this session (verified):**
+- The 5-yr backfill ticks are **massive.io on BOTH sides** (Samir feeds the same ticks into NT), so
+  historical days are **already input-identical → diffable now, no export needed**.
+- Python's 5M bars are **resampled straight from the tick parquets** (`massive.py:202`,
+  `resample("5min", label="left", closed="left")`, CT), schema `ticks_continuous/<d>.parquet` =
+  `DateTime,Price,Volume`. So bars = f(ticks, binning); same ticks → same bars.
+- Existing NT tick-export path: `data/nt_import/ES_MAS *.Last.txt` (the 24h-continuous pipeline).
+
+**The only genuinely new plumbing = pull YESTERDAY's NT-realtime-saved ticks into Python** (live day,
+NT is the tick source). Two approaches — **UNDECIDED (Samir paused here):**
+- **A. Reuse existing export:** NT → Historical Data → Export (Tick) → `*.Last.txt` → converter →
+  `ticks_continuous/<d>.parquet` → downstream just runs. Cheapest.
+- **B. (assistant's vote) Hermetic:** the indicator dumps its OWN consumed input — per-bar OHLC +
+  the ordered `(bar,price)` `OnPriceChange` stream it processed — and Python replays THAT through
+  `phase_transitions`. Nothing left to reconcile (no massive-vs-NT, no resample, no timestamp
+  question); works for any day.
+
+**Gotchas captured:** (1) preserve **intra-second tick ORDER** — OB first-break (U-first/D-first)
+depends on it; a second-resolution CSV re-sorted by timestamp manufactures fake OB diffs. (2) Put
+**OHLC + break-order in every output row** so the diff self-labels data-mismatch vs logic-mismatch.
+(3) Diff tool should report the **FIRST divergent bar** (bugs cascade); 02-24/04-12 should be
+zero-divergence when the port is right. (4) Confirm once that NT's 5M binning == pandas left/left CT.
+
+**DECISION PENDING that defines the whole harness:** A vs B for the canonical input. Nothing built
+for this yet. Existing pieces to reuse: `scratchpad/regime_marks_export.py` (per-event, Python),
+`scratchpad/diff_marks.py`, indicator marks-dump (`regime/indep b494747`).
+
+---
+
+## S84 (2026-07-24→25) — MenthorQ level methodology REVERSE-ENGINEERED (6-agent workflow, branch `s75-live-dashboard`)
+
+**Premise: figure out how MQ computes its levels. Result: cracked for the main level set.**
+Ground truth = 1,183 scraped MQ days (2021-09..2026-07) incl. MQ's own published GEX values
+(`data/regime/mq_reveng/mq_truth.csv`); inputs = ORATS SPX chains. Full note:
+`docs/research_notes/mq_level_reveng_20260724.md`. All 28 scripts + scoreboards committed
+(`76d72a6`). Metrics below verified from `final_replication_summary_20260724.csv`.
+
+**THE INFERRED SPEC (fit ≤2023 / holdout 2024+):**
+- **Value formula (0 fitted params):** per-strike net GEX = Σ_{dte≥2} gamma·(callOI−putOI)·100·spot
+  ($ per 1-pt move), dying expiry EXCLUDED (it feeds the 0DTE set). Matches MQ's published values:
+  holdout R² 0.989, median ratio 0.991.
+- **CR** = argmax net(K), all strikes: exact 81.4% / **92.1%**. **PS** = argmin net(K) ±20% of spot:
+  exact 74.1% / **87.0%**.
+- **HVL** = per-strike net-GEX SIGN FLIP nearest spot (5-pt grid, ±25pt smoothing) — **NOT the
+  cumulative zero-cross** (that hypothesis refuted head-to-head: 420/180pt medAE, 12–14% regime).
+  HVL medAE 15pt / **10pt**, within-25 77.6% / **94.8%**.
+- **REGIME LABEL: 94.0% fit / 96.5% holdout / 95.3% overall** (v1 was 21.8%).
+- GEX 1-10: top strikes by max(call,put) side gamma·OI, 2≤dte≤21, ±3% spot, excluding primary
+  levels, ordered by spot-proximity — membership ~58–65%, treat as fuzzy zones not exact strikes.
+- 0DTE set (CR0/GW0/PS0/HVL0): DATA-limited ~25–28% exact (~65% within-25) — MQ uses same-day
+  intraday OI/flow that EOD chains can't see. gw0==cr0 on 99.8% of truth days.
+- ORATS hygiene: clamp gamma to [0,0.5] (63 corrupt rows, ~961k negative deep-ITM gammas).
+
+**Backfill verdict (2007-2021): qualified yes** for regime label + CR/PS/HVL structure — every
+metric BETTER on holdout than fit (not overfit), but 2021 is the worst overlap year on every
+metric (CR 65%, regime 89.4%) and pre-2022 SPX lacked dailies → expect ~89–92% regime fidelity
+pre-2022, ~96%+ recent. 0DTE set NOT trustworthy historically.
+
+**DONE (2026-07-25): 19y backfill recomputed with the cracked spec** —
+`data/regime/mq_regime_daily_2007_2026_v2.csv` (4,789 days, 2007-06-01..2026-07-15:
+CR/PS/HVL + gex values + net_total_gex + regime label; `mq_regime_backfill_20260725.py`).
+Sanity gate vs MQ truth on the 1,181-day overlap: **regime agreement 95.1%, HVL medAE 10pt**
+— reproduces the synthesis. The v1 file (`gamma_regime_daily_2007_2026.csv`) is SUPERSEDED —
+do not use it. **0DTE set ADDED on user call** (relevant 2023+): cr0/ps0/hvl0/gw0 wherever an
+expiry dies — 2,377/4,789 days total, **865/866 days 2023+** — sanity vs MQ: cr0 24% exact /
+62% within-25, medAE 25pt (known intraday-data ceiling → zones, not exact strikes). GEX1-10
+still not backfilled. Cataloged as family `mq_gamma_regime` (+ MC Artifact Library page
+`/artifact/mq_gamma_regime_19y`); Data Catalog :8620 had died silently — restarted with user
+approval. OPEN IDEA: pipeline_health probe for the 85xx/86xx dashboard ports.
+
+**0DTE HISTORY RECONCILIATION (settled a cross-chat discrepancy, all verified from raw files):**
+- **SPX**: 1,183 sessions of MQ 0DTE levels 2021-09-27..2026-07-15 (raw-API audited — 2021's
+  are ~77% copies of main levels; **meaningful from 2022-05** daily expiries, **clean 2023-01+**).
+- **ES1!/NQ1!/RTY1!/CL1!/GC1!**: exactly **530 sessions, 2024-07-01..2026-07-23** — MQ futures
+  history starts 2024-07-01. The "530 days of 0DTE" figure from another chat = the FUTURES
+  tickers, not SPX. Both correct.
+- **ES 0DTE levels for the regime engine/sim: `data/menthorq/ES1!_mq_levels_history.csv`**
+  (cols cr0/ps0/hvl0/gw0 + _gex, session_date/eod_date keys; futures price scale — no basis
+  conversion; dedup keep-last per session_date; raw audit ES1!_mq_levels_history_raw.jsonl).
+- Evidence: `mq_0dte_authenticity_20260725.csv` + `mq_0dte_extent_alltickers_20260725.csv`
+  in data/regime/mq_reveng/ (scripts of the same names in scripts/).
+
+---
+
+## S83 (2026-07-24) — NT8 restart false-fails killed; stale desk bots restarted (branch `s75-live-dashboard`)
+
+**Dashboard still showed "L2 depth: no file for today" AFTER the f823c52 fix** because
+`telegram_bot.py` + `status_light.py` had been running since 7/21 05:33 machine-time with the
+pre-fix `pipeline_health` cached in-process. Depth was fine the whole time
+(`addon_test/ES_09-26_depth_2026-07-24.csv`, 99% book). **User approved restart** of both pairs
+(done 11:47 machine-time — new PIDs 1068/22812 telegram, 20460/18564 status_light).
+
+**NT8 Restart + Pre-Open Verify exit-1 every night = FALSE ALARMS, fixed (`bd7d648`):**
+- The restart itself WORKED last night (NT8 logs, CT): clean close 16:18, relaunch 16:41,
+  AddOn recording all night, no force-kill, no data loss. The S82 dialog auto-dismiss path is
+  effectively validated (graceful close completed).
+- Exit 1 came from `nt8_maintenance.verify()`: `_armed_state()` grepped for STRATEGY
+  "Enabling …MarketDepthRecorder" lines but the collector is the **AddOn** (never logs
+  "Enabling") → "recorder never enabled"; `depth_size()` also missed `addon_test/`.
+  Both fixed; `scripts/verify_nt_checks_20260724.py` run live: PASS (945MB, armed, ok).
+- **Tasks stay scheduled** (restart machinery is good; only the verdict lied).
+- **NT Watchdog stays DISABLED** — user decision: re-enable only after tonight's
+  16:15/16:45 CT runs pass clean with the fixed verifier. CHECK TOMORROW.
+- Unrelated: NT restarted 21:42 CT by the morning session (manual), not the scheduler.
+  `RegimeSecondEntry` strategy logs out-of-range OnBarUpdate errors — pre-existing, untouched.
+
+---
+
+## S81-b (2026-07-23) — Grimes EVENT tests: one survivor (Keltner pullback LONG), catalog regime family (branch `s75-live-dashboard`)
+
+**MORNING DESK FINDINGS (2026-07-23, ~08:0x–08:4x CT, all read-only diagnosis):**
+- **NT8 Restart + Pre-Open Verify both exited 1 last night SILENTLY** (no Telegram — `say()`
+  stdout is discarded under pythonw and the `restart FAILED` path in `nt8_maintenance.main()`
+  never pings). NT8 process start time is still **7/21 23:16** → NT was NOT restarted, running
+  ~36h. **No data loss** (7/22 depth parquet finalized 23:05; 7/23 CSV growing, L2 fresh).
+  TODO before tonight's 16:15 CT run: file-logging + ping on EVERY failure path so we capture
+  WHY `restart()` returned False. S82's auto-dismiss first live run = FAIL, cause unknown.
+- **"Options sim DEAD" tile at 08:06 CT = the S79 pre-open idle false-alarm again** — S82's
+  IDLE fix is not reflected in that tile (different renderer or stale process). Not urgent.
+- **MQ LEVELS-ROLL DISCOVERY (design decision needed):** user saw MQ showing ES HVL 7500 while
+  the desk's pinned 7/23 set says ES 7530/SPX 7525. Direct API pull confirmed: MQ **re-publishes
+  levels intraday and the payload is now date-stamped 2026-07-24** (ES1! hvl 7500, SPX 7535).
+  Our desk pins one set per session (by design); MQ's display had already rolled. Implication:
+  yesterday's HVL-whipsaw trades (−$641/−$31) defended a level MQ may have already moved.
+  **OPEN QUESTION for user: should the desk adopt MQ's intraday re-publish or stay pinned?**
+  Interacts with every regime-flip rule. (Refresh run approved+done; new values landed under
+  2026-07-24 per the API's own dating — 7/23 row untouched.)
+- **`SPX_mq_levels_history.csv` (deep miner) has NO rows since 7/15** — "MyQuant Levels History"
+  task failing silently for a week. Diagnose separately (levels_db.csv is NOT affected).
+
+**Continuation of S81 after the v0 occupancy gate failed.** Ran Grimes's own EVENT studies on ES
+vs 20×shuffle/20×rw aggregated nulls (`regime_events.py` RTH daily/60m/30m + `regime_events_24h.py`
+true-CME-session daily robustness rerun). Full note: `docs/research_notes/grimes_regime/RESULTS_event_tests.md`.
+
+**RESULTS (daily; verified from events_gate/events24h_gate CSVs):**
+- **SURVIVOR — Keltner pullback→20-EMA, LONG only**: RTH d1 +41bp (13/18 up, t 2.54, edge vs null
+  +33bp); 24h d3 +55bp (12/15 up, t 2.13, edge +43), d20 +79 (edge +48). Same-sign mean/median every
+  horizon, both bar constructions. **N=15–18 → X-of-Y evidence, NOT confirmed** (N≈20 rule).
+- Keltner pullback SHORT: fails (opposite of Grimes's pooled-futures claim) — ES is buy-dip.
+- **Compression breakout (his flagship): UNDERPOWERED, N=6–7 in 5yrs** (~1-in-500 freq). Not
+  falsified, not confirmed — cannot be tested on this sample length.
+- Donchian 100/260 longs: weak d20 lean (+31/+39 edge, t≈1) — not evidence. **Donchian SHORTS
+  INVERTED: −252 to −624bp d20** — ES channel breakdowns were bounce points. HARD FILTER: no
+  breakdown-shorting logic on ES daily.
+- All events at 60m/30m: DEAD (<15bp) — consistent with costs-eat-intraday + S80 STMR.
+- **Binding constraint = history: 1,300 daily bars can't power daily event studies.** Fix = extend
+  ES daily/1h to 2010+ via Databento OHLCV (pennies, keys on hand) — **ASK before spending**.
+
+**ALSO:** registered `data/regime` family in the data catalog (S82 had already completed the rest of
+the catalog — verified committed in `94d8f9b`; queue item closed). Note S82 runs CONCURRENTLY with
+S81 sessions on this branch — pull/rebase before assuming file state.
+
+**POWERED RERUN DONE (2026-07-23, later same session):** user submitted Databento batch
+`GLBX-20260723-QSMLGGLMWB` (ohlcv-1h ES.FUT 2010→2026, $0.69, quote cross-verified vs unit
+prices). Built volume-roll continuous (65 rolls audited) → `_db_es_1h_continuous.parquet` +
+`_db_es_daily_24h.parquet` (4,155 session dailies). **FINAL VERDICTS**
+(`RESULTS_event_tests_2010.md`): kelt-pullback LONG **confirmed-small** (d3 +32bp, edge +23,
+t 2.0, N=49, ~3/yr — filter/sizing input, not a strategy); **compression breakout does NOT
+replicate on ES** (negative edge at his d3–d5, even at 16yrs); Donchian **shorts −271/−514bp
+vs null (3rd consecutive sample) → HARD RULE: no breakdown-short logic on ES daily** — ES
+"bear regime" = bounce-risk regime, not short-momentum regime; 60m dead at N=2,800.
+**Standalone Grimes engine NOT supported** — fold the two surviving facts into the desk;
+if regime work continues, the evidence points to a MEAN-REVERSION-regime engine.
+
+**STMR RE-RUN ON CLEAN DB SERIES (`stmr_db_rerun.py`; S82 engine was never persisted —
+reconstructed from stmr_final.json specs, NO "+1" add rule):**
+- **DAILY engine SURVIVES**: A-window (S82 span) n=38 vs S82's 37 (signals match), **$3,340
+  PF 2.02** vs S82's $5,722 on faulty data (gap = data fault + missing add rule). **OOS
+  2010–2021: n=81, +$2,341, PF 1.67, 73% win — the daily STMR edge is REAL out-of-sample.**
+  Full 2010–2026: n=125, +$5,988, PF 1.82, worst −$181 (stop35 works).
+- **4H engine FAILS on clean data**: construction-sensitive (n=163 vs S82's 74 — 4h binning
+  differs, not apples-to-apples), ~$0 over the S82 span, **PF 0.75 OOS 2010–2021**. Do not
+  trust the tearsheet's 4h book; the tearsheet needs a rebuild from `stmr_db_rerun` numbers.
+- Trades: `data/regime/stmr_db_rerun_20260723.csv`.
+
+**⚠️ DATA FAULT FOUND (cross-workstream, affects S82):** NT-derived
+`data/bars/_continuous_1m_24h.parquet` has **~20 bad daily closes in 2021–23** (worst
+2022-09-26: −4.98% vs actual −1.0%). Refereed vs SPX cash: Databento closer 17–2
+(`db_overlap_audit_20260723.csv`). **The S82 STMR-MES tearsheet was built on the faulty NT
+series → re-run STMR on `_db_es_daily_24h.parquet` before trusting its numbers.** DB series
+is now the canonical ES daily/hourly source.
+
+---
+
+## S82 (2026-07-22, evening) — desk false-alarm + NT dialog fix, data catalog completed, Gamma-Backtest MC section (branch `s75-live-dashboard`)
+
+**HARD RULES ADDED (CLAUDE.md + memory) after a rough day of self-inflicted problems:**
+- **NEVER change system state (enable/disable tasks, start/stop procs, configs) without asking** —
+  disabled the NT8 Restart task unasked, user angry; re-enabled. (`no-unilateral-state-changes`)
+- **VERIFY EVERYTHING before speaking**, esp. TIME: this machine's clock reads "W. Europe"; the
+  user is on CT — never state a converted/"CT" wall-clock time as fact (got it wrong repeatedly).
+- No meta-commentary about my reliability / the user's frustration (`communication-style` updated).
+
+**DESK FIXES (all committed):**
+- **Pre-open false-alarm KILLED** (`pipeline_health.check_options_sim`): before 08:35 CT the feed is
+  idle-BY-DESIGN, now returns IDLE (neutral) not BAD — no more "sim daemon feed DEAD" alert +
+  self-heal scramble during the 08:00–08:28 arming window. Red now means real damage only.
+- **NT restart auto-dismiss BUILT** (`nt8_maintenance._dismiss_nt_dialogs`) — UI-Automation clicks
+  Yes/Save/OK on NinjaTrader's "disable strategy?" / "save workspace?" modals so the graceful close
+  completes. **UNVALIDATED — needs one live NT halt-test.** force-kill stays OFF, so worst case =
+  aborts + leaves NT up (safe). NT8 Restart task left ENABLED; runs tonight with this code.
+- **Playbook chart render fixed** (`options_gameplan`): was fire-and-forget with stderr=DEVNULL →
+  silent crash left the playbook chartless all day. Now SYNCHRONOUS + logged to
+  `gameplan_charts_render.log`; loud on failure. (Today's 20260722 charts rendered manually.)
+- **Window-flash audit**: 2 scheduled tasks (Backtest Levels, Levels History) python.exe→pythonw.exe;
+  3 subprocess calls got CREATE_NO_WINDOW (options_healthcheck wmic ran every 5min, launcher taskkill,
+  overnight_batch). Desk now flash-free.
+
+**DATA CATALOG COMPLETED** (`catalog.yaml`, +2 categories in `data_catalog.py`): added 5 missing
+families — **databento_mbo (39GB MBO), depth_l2, footprint, discord_intel, annotations**; updated
+**orats_chains** (now names XSP+VIX) and **bars** (now names the 24h ETH series). Now 24 families /
+75.5GB / 21,794 files, all `ok`. New categories: Order flow, Intel.
+
+**NEW MC SECTION — Gamma Backtest** (`scripts/backtest_page.py`, routes `/backtest` + `/backtest.json`
+in launcher, nav button): the 6 MenthorQ "Gamma Levels | Backtesting" panels per session (hold-rate %,
+break-at-close, comeback, avg/worst moves) from `gamma.db`, one expander per day, newest open. 8 days
+so far (accrues from 2026-07-10). Artifact Library also **re-organized by date** (newest first).
+
+**24H ETH DATA BUILT** — `data/bars/_continuous_1m_24h.parquet` (1.74M 1-min bars, 2021-06→2026-07,
+panama-stitched from `data/nt_import/ES_MAS *.Last.txt` NT tick exports, **validated tick-for-tick vs
+eth_levels**). Producer `scratchpad/build_24h_continuous.py`. Overnight-aware STMR-on-MES tearsheet
+built from it (`docs/artifacts/stmr_mes_tearsheet.html`, producer `build_stmr_tearsheet.py`):
+combined 1-MES book +$2,351/yr, PF 2.26, 70% win, max unrealized DD $1,662 (4h stops die overnight;
+4h no-stop + daily-scaled survive). Grimes brief exported standalone to Desktop for Thomas.
+
+**OPEN / NEXT:**
+1. **Validate the NT auto-dismiss** with a live halt-test (only unvalidated piece).
+2. QUIN Harvest task is DISABLED — confirm intended.
+3. STMR: walk-forward split (train 2021-23 / test 2024-26) before trusting the params.
+4. Gamma-backtest "actual outcome" fields are null in gamma.db — wire the EOD backfill if wanted.
+
+---
+
+## S81 (2026-07-22) — Grimes regime-engine research corpus (branch `s75-live-dashboard`)
+
+**GOAL (new workstream):** build a market regime engine classifying **BULL / BEAR / TRANSITION /
+NO-TRADE** on ES. Standing constraint: the old Brooks always-in engine is BANNED for reuse
+(memory `brooks_regime_engine_broken`); only structure/fill primitives may be reused.
+
+**DONE (all committed):**
+- **Both Grimes books read in full** (Art & Science of Technical Analysis 480pp + course
+  workbook 609pp) via 11 parallel readers; page-cited raw extractions persisted per ~100-page
+  chunk in `docs/research_notes/grimes_regime/raw_*.md` (commit `a7d2395`).
+- **Synthesis doc** `docs/research_notes/grimes_regime/SYNTHESIS_regime_engine_design.md`:
+  two-force model (range expansion vs mean reversion; vol cycle = his strongest result), the
+  four states with codable rules (2-step transition rule; no-trade = default), 18-feature
+  candidate input table, v0 state-machine sketch, Pythia validation protocol, tested dead ends
+  (Fibonacci, MA-as-S/R, crosses, pivots, seasonality). Key futures-specific numbers: MA-slope/
+  triple-MA states correct-sign in futures only (short side strongest −203bp); vol-compression
+  breakout (5/40 ATR<0.5) = strongest continuation signal (+128bp** d4, 73% up d5); big single
+  days in futures lean continuation (don't fade); ES intraday rarely >3 legs, ~1 in 5 sessions
+  trends.
+- **Shareable artifact for Thomas**: "Grimes Regime Engine — Research Brief"
+  (https://claude.ai/code/artifact/a112473b-4bfe-40a3-b070-6eac0eb67027), local backup in the
+  Artifact Library at `docs/artifacts/grimes_regime_engine_research_brief.html` + catalog entry
+  (commits `566133a`, `597164c`). NOTE: artifact HTML backups go in `docs/artifacts/` with the
+  title-slug filename + `claude_artifacts.json` entry — NOT elsewhere (I got this wrong first).
+
+**BUILT + VALIDATED (v0, all committed):** `regime_features.py` (Grimes feature set on ES
+daily/60m/30m from `_continuous_1m.parquet`), `regime_v0.py` (no-trade-default state machine,
+2-step transition rule; daily no_trade 57/bull 22/bear 19/transition 2%, Grimes-faithful dwell),
+`regime_validate.py` (Pythia forward-return-by-prior-state vs rw/shuffle/ar1 nulls).
+**GATE RESULT — v0 FAILED (this is a real, useful negative):** the only large effect is
+"bear state → +226bp bounce @ h20" — but the SHUFFLE null (real returns, order destroyed)
+reproduces it at +249bp. So it is a **mechanical entry-selection artifact, not a market edge**
+(BULL fires buying an upper-band+MACD-high top, BEAR buys a bottom → any series reverts).
+Bull state is flat-to-negative. Overlapping windows also inflate all t-stats. **State-OCCUPANCY
+is the wrong test unit** — Grimes validates EVENTS, not "being in a trend". Full write-up:
+`docs/research_notes/grimes_regime/RESULTS_v0_validation.md`.
+
+**NEXT (regime engine):** replicate Grimes's own EVENT studies on ES vs the same nulls —
+(1) vol-compression breakout (5/40 ATR<0.5 + TR≥5d-ATR trigger; he claims +128bp** d4 in
+futures), (2) Keltner pullback-to-20-EMA, (3) Donchian 100/260 breakout. Only events that beat
+the shuffle null become state-machine blocks; rebuild around those. If his flagship compression
+breakout doesn't replicate on ES, the program stops there. **DECISION FOR USER: this is the
+juncture where Fable-level judgment on direction matters (Opus ran the build fine).**
+S80 queue (data-catalog registration — time-sensitive before +6mo L3 lands, tick stop/target
+sweep, NT dialog auto-dismiss…) still open.
+
+---
+
+## S80 (2026-07-22, overnight) — same-day IB exec built, AddOn shadow-validated, big data pulls, intraday STMR (branch `s75-live-dashboard`)
+
+**COMMS:** brief, factual. **I made several careless errors this session (false "halt"/"crash"
+alarms, "zero data loss" before scanning, wrong Databento range from memory, "tick only in NT").
+Standing correction: VERIFY from the actual data/metadata, never from memory or the handoff.**
+
+**BUILT & COMMITTED THIS SESSION (6 code files):**
+- `options_sim_daemon.py`: **same-day REAL IB paper execution** at 16:00 ET on the 15:59 signal
+  (`place_real_entry`/`place_real_exit`, `outsideRth=True`+TIF pinned so post-close fills don't
+  cancel, marketable, protective-long-first, guards); `entry_extras()` fills grade/POP/max-gain/
+  max-loss/thesis so cards are never blank; **EOD playbook re-render** after fills; restart-safe
+  session-H/L reconstruction from tape; real rows never sim-closed. Round-trip TESTED on paper.
+- `options_mark.py`: **`l["qty"]` KeyError crash FIXED** (`.get("qty",1)`) + per-trade isolation —
+  this was silently killing ALL marks (blank P&L) whenever a legacy qty-less leg was open.
+- `gameplan_charts.py`: **`KeyError:'TR'` FIXED** (+ safe fallback) — this crashed the playbook
+  render on EVERY negative-gamma day with a rotation path (missing price paths / trades). Was NEVER
+  in git history → confirms fixes were being lost by not committing. Now committed.
+- `options_build_cards.py`: "Closed Today" now uses **client-side CT date** → clears at midnight CT.
+- `nt8_maintenance.py`: restart() now **verifies the workspace XML saved** after clean close (pages
+  if not); never force-kills. NOTE: `ReopenWorkspaces=false` stays (loads-all is unusable).
+- `orats_pull.py`: added **XSP** + **VIX** instruments.
+
+**NT RECORDING — root-caused, PARTLY fixed:**
+- **AddOn `MarketDepthRecorderAddOn` DEPLOYED + VALIDATED**: runs in PARALLEL with the Strategy,
+  writing to `data\depth\addon_test\` (separate folder, no collision). Output byte-identical to the
+  Strategy (77,740,120 vs 77,740,199) → **AddOn works**. Both recording now.
+- **The real failure mode**: NT's modal dialogs (**"disable strategy?"** and **"Save workspace 'Massive'?"**)
+  BLOCK the graceful auto-restart → it times out, refuses to force-kill (protect drawings), pages a
+  human. **That caused a real 55-min L2 gap on 7/20 22:28–23:23 CT** (verified via gap scan). Fix =
+  auto-dismiss both dialogs in restart() — **STILL TODO**.
+- Tonight's 7/22 session: **0 gaps, complete**. The "STALLED 3m/4m data being lost" Telegram alerts
+  were **false alarms** (quiet market vs stalled recorder — watchdog can't tell). Fix TODO.
+
+**DATA PULLS (verified from files):**
+- **XSP options 2020→today** (ORATS, ~1710 req). **VIX options 2007–2026 SKIPPING 2013+2017**
+  (~4570 req, complete years incl. 2008 GFC 253d + 2020 COVID 253d). **⚠️ ORATS quota now ~19,650/
+  20,000 — nearly maxed; do NOT launch more ORATS pulls without checking usage.**
+- **Databento ES MBO**: Q1 2026 (`…4T649EM33V`, 20GB) DONE = **Jan 1–Mar 31 2026** (NOT Apr–Jul as the
+  OLD handoff wrongly said). Apr 1–Jul 20 2026 (`GLBX-20260721-JRSPF47X5J`, 70.6GB, key `db-HgYF…`)
+  DOWNLOADING per-file. **User getting +6 months L3 next week** — catalog it BEFORE it lands.
+- **Massive tick data is INTACT** at `data/ticks_continuous/` (1,270 daily parquets, 2021-06-18→
+  2026-07-09, 3.4GB) + `_continuous_1m.parquet` (519k bars). `validate_engine.py` reads TICKS_DIR.
+  Nothing deleted (git confirms). Also raw in NT db as `ES_MAS` instrument.
+
+**KEY RESEARCH (see Desktop reports `STMR_Options_Report_SPX_XSP.html` + `STMR_Filter_Test.html`):**
+- **Options NOT tradeable in the prop account** — regular margin account; for defined-risk spreads
+  margin = max loss = collateral. STMR BPS **crash test**: SMA100 filter shields slow crashes (0
+  trades in 2008/2011/2018Q4); caught by FAST shocks — **COVID −$10,249 (= the max DD, one trade)**,
+  Volmageddon −$3,711. **Best params (walk-forward OOS-validated, PF 3.2–3.8): BPS short 30Δ/long
+  10Δ, 14 DTE, K8<15, exit SMA5.** Measured bid/ask haircut 1.25% (edge survives: PF 4.18→3.80).
+  Thomas's **IBS<40+body filter is REDUNDANT** on daily (near no-op). XSP fee drag 10× SPX (fixed
+  $1.30/ct on 1/10 premiums).
+- **Intraday STMR on ES 1-min** (2021-06→2026-07): dead on 1m/5m (noise), works 30m+; **MES 1c (best
+  = 4h: 77% win, PF 2.36, +$81/tr; $5 RT fee kills fast frames)**. NO STOP yet — worst −$1,860.
+
+**QUEUE (next session, in order):**
+1. **Register the data pulls in the MC data catalog** (ORATS options, Databento MBO, ticks, depth) —
+   `data_catalog.py` currently tracks NONE of them. Do before the +6mo L3 arrives.
+2. **Tick-based stop + target sweep** on 1h/2h/4h MES (needs intrabar scan of `ticks_continuous/`).
+3. **NT dialog auto-dismiss** in restart() + smarter watchdog (market-active check) + **NT event log in MC**.
+4. Options **margin + capital-to-not-blow-up graphs** (equity/DD + physical-$).
+5. Fix `data_catalog`/lvlfade futures-card P&L (shows $0/−$12k bogus for futures rows).
+
+---
+
+## S79 (2026-07-21) — morning false-alarm, corrected diagnosis, SAME-DAY IB EXEC required (branch `s75-live-dashboard`)
+
+**COMMS:** brief, factual (memory: communication-style.md).
+
+**WHAT ACTUALLY HAPPENED (a scramble driven by a monitor false-alarm):**
+- At the open the desk tile read `overall BAD / Options sim: sim daemon feed DEAD / live.json
+  stale 16.7h`. **This is the NORMAL overnight-idle state** — the sim daemon exits after each
+  close and does not restart until its own **08:28 CT `run_at_ct` auto-start**. Checked at
+  ~08:18 CT (10 min before that start), saw it not-running, and treated normal idle as an
+  emergency. Restarted the feed chain ~10 min early (spot_feed/sim_daemon/marks/trigger — all
+  came up). **The gameplan auto-fired correctly at 08:28:02 CT** (pre-open spot 7479.25 from the
+  09:24 tape), proving the 08:28 CT machinery works. **Conclusion: had we done nothing, the
+  15:59 signal would almost certainly have executed correctly on its own** (same as 7/20).
+
+**CORRECTED DIAGNOSIS (I was wrong 3x — do NOT repeat these):**
+- **The STMR `options_sim_daemon.py` does NOT place IB orders.** It is a forward-SIM: `log_fill_window`
+  streams the real 16:00–16:15 ET OPRA NBBO and LOGS an executed fill (credit only; per-leg fills
+  are never stored — that absence is NOT a phantom). "Not in the IB account" is BY DESIGN.
+- **Realtime OPRA quotes DO work on the paper account.** The 7/20 fill-window CSV
+  (`quotes_20260720_entry_bps_stmr_2026-07-20.csv`) shows complete live bid/ask every 5s the whole
+  window. Error **10090 is a partial index-level ("SPX/TOP/ALL") warning, not a block** on the SPXW
+  option NBBO. My "subscription broken → phantom" theory was false.
+- **The 7/20 signal was entered correctly in the sim:** fired valid (K8 8.46 < 15, spot 7444 > SMA100
+  7156), executed credit **$15.40** logged. `bps_stmr_2026-07-20` is a VALID sim row — do NOT void it.
+
+**NEW REQUIREMENT (user, approved): place the REAL IB paper order SAME DAY at 16:00 ET on signal.**
+Size = **1 contract** (approved). **NOT BUILT YET — next task.** Plan: integrate a guarded combo
+placement into the daemon fire path (reuse `scratchpad/place_stmr_real.py` — it filled today: valid
+quotes + width + max-loss guards, protective LONG leg first), KEEP the sim NBBO logging (fill-drift),
+add a **post-16:15 reconciliation alert** (ledger open-trades vs actual IB positions). **Real EXITS
+(buy-to-close at the exit signal) are the required follow-on** or positions accumulate unmanaged.
+
+**MANUAL REAL PAPER TRADE PLACED (user-ordered, "leave it alone"):** `bps_stmr_REAL_20260721_0943`
+— sell 7350P / buy 7300P exp **2026-08-04**, 50pt, net credit **$8.56**, max loss **$4,144**, filled &
+held in IB paper **DUQ159823**, logged. (Late/worse than the sim's 15.40 — placed on my mistaken
+"trade was missed" premise; kept at user's call.) Pre-existing IB position: 7/14 spread 7435/7385P
+exp 7/28 (origin separate — the sim never placed it).
+
+**MONITOR TILE BUGS TO FIX (these caused the whole scramble):**
+1. Reads **normal overnight-idle as `DEAD`/`BAD`** — should know the daemon is idle-by-design until
+   its 08:28 CT start, not flag it red pre-start.
+2. **"N failing" counts running daemons as failures** — result code `0x41301` = "task currently
+   running" = HEALTHY, not a failure. Fix the counter.
+
+**DATABENTO DL STALLED:** partial zip **745 MB** of ~18–20 GB (~4%), downloader died; `batch.download`
+pulls the whole job as ONE zip and the remote **504-times-out**. Needs a **file-by-file** pull instead.
+`data/databento/` now **gitignored** (never commit the flat files).
+
+**OPEN (carried + new):** (1) **Build same-day IB exec + reconciliation alert** (top priority). (2) Fix
+the 2 monitor-tile bugs. (3) Databento file-by-file re-pull. (4) Real exits (buy-to-close). (5) Prior
+S75V-2 items still stand (AddOn halt-test, ORATS calib before 8/4, MBO ingest, task consolidation).
+
+---
+
+## S75V-2 (2026-07-21) — desk fixes, hands-free recorder AddOn, Databento MBO buy (branch `s75-live-dashboard`)
+
+**COMMS PREF:** brief, factual, no fluff/emotion/opinion (memory: communication-style.md).
+
+**DESK FIXES (all committed):**
+- Monday stale-levels gate → trading-day-aware (was blocking gameplan/sim every Monday).
+- Dashboard blackout: STMR legs missing `qty` crashed the whole card build → `.get('qty',1)` +
+  per-trade isolation + STMR writes qty; dashboard now a health tile + alert_monitor self-heals it.
+- PS0 fade opened+closed instantly (−$31): regime-invalidation tested STATE not CHANGE →
+  now compares vs `entry_regime`. Fades in −gamma die by level-acceptance only.
+- Trade cards rebuilt (`trade_chart.py`): live `underlying_*.csv` (was frozen 7/16), TRUE 5M ES-tape
+  candles basis-adj to SPX (fixed ns/µs unit bug), bars cut at fill/exit (no fwd reveal), axis scaled
+  to price action, labels in gutter. Risk metrics (maxG/maxL/POP) computed at fill.
+- Gameplan: added **TR/balance price path** (both regimes); guard blocks --force overwriting a
+  fired plan.
+- MC: `/playbook` (per-day path+trade+card archive, auto-rendered by gameplan/daemon), `/scorecard`
+  (process×day pass/fail grid, task `MyQuant Daily Scorecard` 23:58), timeline reorder
+  preopen→session→close→halt→overnight + per-tile ✓/✗ badges, distinct emoji favicons per app,
+  catalog `offline` state (vendor_flatfiles deleted-on-purpose reads grey not red).
+
+**CONSOLE-FLASH (root-caused + fixed):** `launcher._mem_map` ran `tasklist` w/o CREATE_NO_WINDOW on
+every `/status.json` poll (~3s flash); `run_at_ct` child unflagged; 25 tasks used python.exe. All
+fixed (pythonw + flags). `desk_watchdog` had same bug (10s loop) → flagged all 3 subprocess calls,
+**re-enabled** both Desk Watchdog tasks. Client-side `window.open` for Start-all so Chrome groups tabs.
+
+**NT CRASH RECOVERY (partial):** `nt8_watchdog.py` (task `MyQuant NT Watchdog`, 3-min) restarts the NT
+PROCESS on depth-stall (dead, or jammed-overnight; NOT during desk hours = protect drawings). Gap:
+strategy RE-ARM — NT can't auto-enable a Strategy. **FIX = `nt8/addons/MarketDepthRecorderAddOn.cs`**
+(AddOns auto-run on startup, no enable step). ⚠️ **UNTESTED — compile(F5)+verify in a 16:00 CT halt.**
+APIs all from local NT8 Help Guide PDF (`C:\Users\Admin\Downloads\NinjaTraderVersion8HelpGuide-en-compressed.pdf`).
+Yesterday's crash = NT8 SuperDOM GUI NullRef (close SuperDOM on unattended box). nt8_maintenance no
+longer force-kills (protects workspace; NT restore-all-workspaces is unusable per prior handoff).
+
+**DATABENTO MBO (bought, downloading):** job `GLBX-20260721-4T649EM33V`, ES GLBX.MDP3 MBO
+2026-04-01→07-20, 68GB uncompressed / ~18-20GB DBN+zstd, 1.2B records, **$118 on the $125 free credit.**
+API key → `%LOCALAPPDATA%\myquant\databento.json` (gitignored; ALSO in this transcript—regenerate if
+concerned). Downloading via API (bg) + browser to `data/databento/GLBX-20260721/`. Tool
+`scripts/databento_mbo.py inspect|ingest` ready (needs `pip install databento` — done). MBO = full L3
+book+orders+trades+fills; validated footprint rebuild r=0.9995 vs FootprintExporter
+(`scratchpad/fp_compare.py`). NT8 can't ingest MBO live — forward feed stays L2.
+
+**ORATS:** sub CANCELLED, access ends **~2026-08-04**. On disk: SPX+7 mega-cap per-strike OI+greeks to
+2007 (1.1GB, retained). GEX scripts built (`orats_gex_calib.py`, `gex_net_vs_total.py`). Edge test
+(naive 1D condor) lost −$24k (expected). **NEXT before cutoff: run `orats_gex_calib.py` — did self-GEX
+reproduce MenthorQ? If yes, pull more history now; if no, stop.**
+
+**OPEN:** (1) AddOn halt compile+test → hands-free recording. (2) ORATS calib verdict before 8/4.
+(3) Directional long-options entry criteria — build the S78 breakout event-STUDY first (agreed), not
+the trigger. (4) Consolidate scheduled tasks (fewer tiles). (5) Ingest MBO when download done.
+
+---
+
+## S78 (2026-07-21) — Depth data: what to build with it (research + direction, no code) (branch `s75-live-dashboard`)
+
+**Goal:** decide how to use the S75V L2/depth recording. Samir's two objectives: (a) identify
+major intraday turning points, (b) distinguish breakouts that produce a second leg / new trend
+from breakouts that fail. Idea-collection session — deep-research sweep over practitioner +
+academic sources, plus repo audit of what the recorder actually captures. **No code written.**
+
+**WHAT WE HAVE (audited):** `MarketDepthRecorder.cs` writes the RAW book event stream — every
+Add/Update/Remove at up to ~30 levels/side, ms timestamps, Chicago clock — **with the tape
+interleaved on the same clock** (`T` rows: price/size/aggressor, same classification rule as
+FootprintExporter) + connection markers. Schema `Time,Ev,Side,Pos,Price,Size`, files
+`data/depth/{Contract}_depth_{date}.csv` (~200–500 MB/day, ~20x parquet compression via
+`depth_rollover.py`). Coverage: 7/19 + 7/20 full book; 7/17 tape-only (pre-subscription).
+This is sufficient input for order-flow analytics AND a Bookmap-style heatmap replay
+(heatmap = resting size per price over time + trade dots; we hold the exact inputs).
+
+**RESEARCH SWEEP (deep-research workflow, 16 claims survived 3-vote adversarial verify;
+iceberg/VPIN verify batch + final synthesis died on session limit — findings below are the
+verified core):**
+- **OFI (order flow imbalance) is CONTEMPORANEOUS, not predictive:** best-level OFI explains
+  ~65% OOS of *same-window* 10-s returns, integrated (PCA) OFI ~84% — but LAGGED OFI forecasting
+  1-min-ahead returns has **negative** OOS R² (−17 to −19%). An OFI indicator explains the move
+  happening now, not the next one. Depth beyond ~level 8 adds nothing (arxiv 2112.13213).
+- **Queue imbalance (top-of-book only):** extreme imbalance predicts direction of the *very next
+  mid-price move* at ~0.8–0.9 probability on large-tick instruments (ES is large-tick) — but the
+  horizon is ONE TICK, pre-cost (arxiv 1512.03492). Microstructure edge decays in seconds→minutes.
+- **VPIN: do NOT build.** BVC-based VPIN is a distorted realized-vol measure (bulk return corr
+  0.84–0.86 with actual returns ON ES); RV subsumes it entirely (adding VPIN to RV leaves R²
+  unchanged, t≈0.5). Multiple 3-0 verified refutations (Andersen-Bondarenko).
+- **Iceberg detection is the real depth-native prize:** native CME icebergs are deterministic
+  from MBO (order-ID refill tracking) — our MBP feed can't do that, but *synthetic* refill
+  detection (trade at level followed by size restoration, needs depth+tape same clock — exactly
+  what we record) is the implementable version. Verification of the iceberg-edge claims was the
+  batch lost to the session limit — re-run if pursued.
+- **Net of literature:** book features have real information at seconds-to-minutes horizons only.
+  For Samir's swing-horizon objectives, depth is an **event-anchored evidence layer** (what
+  happened AT the level/breakout: absorption/refill vs liquidity pull/vacuum), not a standalone
+  directional predictor.
+
+**AGREED DIRECTION (build order, all offline-first — nothing built yet):**
+1. **Book reconstruction + feature library** (event stream → book state at any t; OFI, refill/
+   absorption events, pulled-vs-stacked size near a level, sweep detection). Keystone for all else.
+2. **Bookmap-style replay viewer** of our recorded sessions — dual purpose: research microscope
+   (eyeball absorption/pull signatures at real turning points/breakouts) AND later a
+   **deliberate-practice scalping simulator** (pause/step/speed, log user entries vs actual
+   subsequent prices, per-setup personal expectancy stats).
+3. **Event studies** once enough days recorded: anchor on level touches/breakouts, matched nulls,
+   BL-study discipline. Test: absorbed touches → reversal? pulled-liquidity breakouts → second leg?
+4. **Live NT8 indicators LAST**, only for signatures surviving #3.
+
+**SCALPING TRACK (new, from this session):** Samir wants to learn a scalping methodology with
+proven edge. Position taken on record: no vendor sells a *proven* one; proof must be built —
+Layer 1 = validate signatures statistically on our own recordings first, Layer 2 = prove the
+trader via replay-sim stats (positive stable expectancy over hundreds of sim trades before live).
+**Cost math flag:** $5 RT on MES = 4 ticks round-trip → MES scalping mathematically dead.
+**Samir confirmed: ES is allowed as long as trailing DD stays under $4,500** (prop limit), where
+the same RT ≈ 0.4 ticks. ES tick $12.50 → DD budget = 360 ES ticks cumulative; sizing/stop
+discipline design needed before any live scalp.
+**Databento MBP-10 backfill** (paused-research memory: history to 2010, $125 free credit) is the
+shortcut to enough breakout/turning-point events for #3 without waiting months of recording.
+
+**STATUS: parked — "we will revisit all this."** Keep the recorder running (data compounds
+regardless). Nothing above is committed-to except continued recording.
+
+---
+
+## 🗄️ Archive — 2nd-PC S83 / phase-machine branch detail (merged 2026-09-22)
+
+*Preserved verbatim from the `main` (2nd PC) handoff during the leglab→main reconcile. The regime/phase-machine study lives on branch `regime/indep`; this is the narrative that was on `main`'s handoff top before the merge.*
 
 ## S83 evening (2026-07-24) — engine A/B done + THREE-BOOK system + fade-gate bug found/fixed
 
@@ -559,6 +4189,7 @@ distinguished from other minor pivots — open item).
    attempt-gate) logic above, which is the real deliverable per the S72 brief.
 4. Nothing from this conversation's edits to `brooks_regime_layer.py` is committed yet —
    review/commit when ready (separately from whatever the parallel session is doing).
+
 
 ---
 

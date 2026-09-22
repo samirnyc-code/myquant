@@ -1,0 +1,118 @@
+GEXLOG IGNORED-FIELDS JOIN — v2 backtest day P&L (eod policy + nowait opens) x morning brief fields
+bt days 107 (2026-04-06..2026-09-04) · gexlog days 111 (2026-04-06..2026-09-09) · joined 107
+ADVISORY-ONLY fact table. Single-field splits, no combos. n<10 buckets = noise.
+
+BASELINE all joined days: total -16,982  avg/day -159  win% 42  per family: eod_ic +1,780  eod_fly -12,815  open_ic +2,004  open_fly -7,951
+
+=== MORNING-KNOWABLE FIELDS ===
+
+--- guidance signal (GO/CAUTION/WAIT) [signal_b] ---
+ bucket  n   total  avg/day  win%  worst  eod_ic  eod_fly  open_ic  open_fly
+     GO 10  -1,220     -122   +40 -1,257  +1,446   -1,507     +600    -1,759
+CAUTION 75 -10,315     -138   +41 -4,259  +2,165  -10,656   +2,119    -3,943
+   WAIT 22  -5,447     -248   +45 -3,041  -1,832     -651     -715    -2,249
+
+--- forecast day-type [ftype_b] ---
+bucket  n  total  avg/day  win%  worst  eod_ic  eod_fly  open_ic  open_fly
+ RANGE  6    -87      -14   +50   -828    +584     -323     +332      -680
+  CHOP 33 -2,880      -87   +36 -1,186    -897   -5,708   +2,035    +1,690
+ HIVOL 44 -7,520     -171   +41 -3,041    -254   -3,706     +113    -3,673
+ TREND 24 -6,495     -271   +50 -4,259  +2,347   -3,077     -476    -5,288
+
+--- gamma regime (POS/NEG) [regime_b] ---
+bucket  n   total  avg/day  win%  worst  eod_ic  eod_fly  open_ic  open_fly
+   NEG 43  -5,439     -126   +51 -4,259  +3,301   -3,346   +1,264    -6,659
+   POS 64 -11,543     -180   +36 -3,041  -1,521   -9,468     +739    -1,293
+
+--- GEX flip level in chain? [flip_present] ---
+       bucket  n   total  avg/day  win%  worst  eod_ic  eod_fly  open_ic  open_fly
+      no-flip 59  -6,328     -107   +51 -4,259  +2,923   -4,780   +1,371    -5,843
+flip-in-chain 48 -10,654     -222   +31 -1,606  -1,143   -8,034     +632    -2,109
+
+--- net GEX sign [netgex_sign] ---
+ bucket  n   total  avg/day  win%  worst  eod_ic  eod_fly  open_ic  open_fly
+netgex- 43  -5,439     -126   +51 -4,259  +3,301   -3,346   +1,264    -6,659
+netgex+ 64 -11,543     -180   +36 -3,041  -1,521   -9,468     +739    -1,293
+
+--- |net GEX| tercile [netgex_mag] ---
+   bucket  n  total  avg/day  win%  worst  eod_ic  eod_fly  open_ic  open_fly
+ |gex| lo 36 -3,644     -101   +50 -2,426  +1,881   -5,244   +2,706    -2,987
+ |gex| hi 36 -4,371     -121   +39 -3,041  -1,679   -1,854     +851    -1,689
+|gex| mid 35 -8,967     -256   +37 -4,259  +1,578   -5,716   -1,554    -3,276
+
+--- regime streak age [streak_b] ---
+bucket  n   total  avg/day  win%  worst  eod_ic  eod_fly  open_ic  open_fly
+  day1 20  +2,907     +145   +55 -1,257    +328     -930   +1,614    +1,895
+day2-3 22  -1,803      -82   +41 -3,041     +75   -3,186     -314    +1,622
+   nan 48 -13,264     -276   +38 -4,259    -515   -4,078     -771    -7,900
+ day4+ 17  -4,823     -284   +41 -2,426  +1,893   -4,621   +1,474    -3,569
+
+--- forecast confidence [conf_b] ---
+   bucket  n   total  avg/day  win%  worst  eod_ic  eod_fly  open_ic  open_fly
+conf60-69  7    +994     +142   +86   -471  +1,231      -27   +1,138    -1,348
+  conf<60 33  -2,880      -87   +36 -1,186    -897   -5,708   +2,035    +1,690
+  conf70+ 67 -15,096     -225   +40 -4,259  +1,446   -7,080   -1,169    -8,294
+
+--- risk level [risk_level] ---
+  bucket  n  total  avg/day  win%  worst  eod_ic  eod_fly  open_ic  open_fly
+Elevated 22 -2,073      -94   +36 -1,349  +1,578   -3,055     +828    -1,424
+     Low 10 -1,220     -122   +40 -1,257  +1,446   -1,507     +600    -1,759
+Moderate 53 -8,242     -156   +43 -4,259    +587   -7,602   +1,292    -2,519
+    High 22 -5,447     -248   +45 -3,041  -1,832     -651     -715    -2,249
+
+--- EM width %% of spot tercile [empct_b] ---
+ bucket  n   total  avg/day  win%  worst  eod_ic  eod_fly  open_ic  open_fly
+ EM% lo 35  +3,594     +103   +51 -1,606    -537      +65     -214    +4,281
+ EM% hi 36  -8,611     -239   +36 -2,282  +2,064   -3,334   +2,425    -9,765
+EM% mid 36 -11,966     -332   +39 -4,259    +254   -9,546     -207    -2,467
+
+--- overnight gap magnitude [gap_b] ---
+    bucket  n  total  avg/day  win%  worst  eod_ic  eod_fly  open_ic  open_fly
+  |gap|<.2 22 -3,160     -144   +50 -1,606    +231   -2,168     +338    -1,561
+  |gap|>.5 55 -8,016     -146   +36 -3,041  -2,533   -5,230     +602      -856
+|gap|.2-.5 30 -5,806     -194   +47 -4,259  +4,082   -5,417   +1,064    -5,535
+
+--- walls inside EM band? [walls_in_em] ---
+          bucket  n   total  avg/day  win%  worst  eod_ic  eod_fly  open_ic  open_fly
+ walls-inside-EM 42  +2,227      +53   +50 -1,482  +3,341   -5,303   +3,685      +504
+walls-at/past-EM 65 -19,209     -296   +37 -4,259  -1,561   -7,512   -1,681    -8,456
+
+=== HINDSIGHT (sanity only — NOT tradeable) ===
+
+--- evening self-grade: forecast accurate (HINDSIGHT) [h_accurate] ---
+bucket  n  total  avg/day  win%  worst  eod_ic  eod_fly  open_ic  open_fly
+   nan  1   +459     +459  +100   +459     +88     -543      +83      +830
+ False 79 -8,172     -103   +39 -4,259  +6,439  -14,111   +4,018    -4,517
+  True 27 -9,269     -343   +48 -3,041  -4,747   +1,840   -2,098    -4,264
+
+--- realized session type (HINDSIGHT) [h_session] ---
+bucket  n   total  avg/day  win%  worst  eod_ic  eod_fly  open_ic  open_fly
+   nan  1    +459     +459  +100   +459     +88     -543      +83      +830
+ MIXED 20  +4,281     +214   +55 -1,257  +2,369     -460   +1,137    +1,235
+ TREND 51  -7,101     -139   +47 -3,041  -6,095   +1,387     -551    -1,842
+ RANGE 35 -14,622     -418   +26 -4,259  +5,417  -13,198   +1,334    -8,175
+
+=== LIVE BOOK overlay (n=26 days, 2026-08-04..2026-09-09 — tiny sample, direction check only) ===
+
+--- signal_b ---
+signal_b  n  total  avg
+    WAIT  5 +4,238 +848
+      GO  3 +1,642 +547
+ CAUTION 18 +2,785 +155
+
+--- ftype_b ---
+ftype_b  n  total  avg
+  TREND  5 +3,053 +611
+  HIVOL 13 +4,734 +364
+  RANGE  2   +458 +229
+   CHOP  6   +420  +70
+
+--- regime_b ---
+regime_b  n  total  avg
+     NEG 11 +7,908 +719
+     POS 15   +757  +50
+
+--- flip_present ---
+ flip_present  n  total  avg
+      no-flip 17 +7,778 +458
+flip-in-chain  9   +887  +99

@@ -1,0 +1,11 @@
+date,signal,knowable_at,note
+2025-10-22,cause,intraday-only,"Reuters exclusive ~midday ET: US considering broad software-linked export curbs on China (laptops-to-jet-engines); White House confirmed weighing it. Tech flush to SPX -1.2% lows, close -0.53%."
+2025-10-22,earnings_drag,premarket,"Netflix -10% (miss, Brazil tax dispute) and TXN -5.6% (weak Q4 guide) both reported Oct 21 after close; known before open but read as single-name/semis drag, index gap only +0.09%."
+2025-10-22,gap_pct=+0.09,premarket,Quiet open; no index-level warning.
+2025-10-22,vix_17.87_falling,premarket,"VIX 17.87, -0.36 d/d, third straight decline; complacent, no warning."
+2025-10-22,em_75.8pts_~1.1%,at-entry,"Small expected move; day's -1.2% flush exceeded it. Small EM = thin cushion, but that is a regime fact, not a day-specific alarm."
+2025-10-22,call_credit_broken_-0.05,at-entry,eodic_c vix252 credit -0.05 (openic_c 0.00): call side unquotable/broken while puts paid 0.75. Extreme put skew on tiny EM. Entry gate 'credit<=0 broken' fired on the call side. Strongest mechanical tell; advisory-only per desk rule.
+2025-10-22,china_theme_live,premarket,"Trump Oct 10 threat of 'critical software' export controls (Nov 1) was public; Oct 22 Reuters story was an escalation of a known theme, but its timing/content was not knowable premarket."
+2025-10-22,gold_silver_crash_oct21,premarket,"Oct 21: gold -6% (worst in 12+ yrs), silver -9%. Cross-asset deleveraging shock the day before, while equities sat flat."
+2025-10-22,shutdown_data_blackout,premarket,Gov't shutdown since Oct 1; macro data delayed (CPI moved to Oct 24). No scheduled US release on Oct 22 - event calendar was CLEAN.
+2025-10-22,aftermath_snapback,n/a,Oct 23 +0.58%; Oct 24 cooler delayed CPI -> record highs. No continuation; one-day headline ambush.

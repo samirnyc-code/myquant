@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- launchd job for the LAPTOP: runs repo_autopull.sh every 10 minutes + at login.
+     Setup (on the laptop):
+       cp ~/github/myquant/scripts/com.myquant.autopull.plist ~/Library/LaunchAgents/
+       # edit the path below to your real username if it is not "nuy"
+       launchctl load ~/Library/LaunchAgents/com.myquant.autopull.plist
+     Stop:  launchctl unload ~/Library/LaunchAgents/com.myquant.autopull.plist -->
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.myquant.autopull</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/Users/nuy/github/myquant/scripts/repo_autopull.sh</string>
+  </array>
+  <key>StartInterval</key><integer>600</integer>
+  <key>RunAtLoad</key><true/>
+  <key>StandardOutPath</key><string>/tmp/myquant_autopull.out</string>
+  <key>StandardErrorPath</key><string>/tmp/myquant_autopull.err</string>
+</dict></plist>

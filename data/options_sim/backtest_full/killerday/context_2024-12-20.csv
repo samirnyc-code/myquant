@@ -1,0 +1,2 @@
+date,dow,event,gap_pct,prior_ret,prior_range,prior2_ret,vix_prior,vix_chg,em_pts,cr_eodic_c,cr_eodic_p,ic_pnl,fly_pnl,puts_band_pnl,next_ret
+2024-12-20,Fri,,-0.43,-0.09,1.18,-2.95,24.09,-3.53,89.0,0.2,2.6,-2195.0,-303.0,0.0,0.73

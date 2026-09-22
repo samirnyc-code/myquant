@@ -1,0 +1,22 @@
+  [ES 300/1267] fades=29
+  [ES 600/1267] fades=63
+  [ES 900/1267] fades=87
+  [ES 1200/1267] fades=111
+
+===== ES (normalized stop)  (fade outcome in R, ADR-scaled stop, hold-EOD) =====
+  ALL fades                 n= 112  netR=   31.7  R/tr=+0.28  PF=1.32  win=11.6%
+  ABOVE EMA (failed reclaim) n=  26  netR=   15.8  R/tr=+0.61  PF=1.79  win=23.1%   perm-p=0.3034
+     train n=  16  netR=    9.3  R/tr=+0.58  PF=1.77  win=25.0%   holdout n=  10  netR=    6.5  R/tr=+0.65  PF=1.82  win=20.0%
+  BELOW EMA (weak bounce)    n=  86  netR=   15.9  R/tr=+0.19  PF=1.20  win= 8.1%
+  year (above): 2021:-1.0 2022:+17.3 2023:-7.0 2024:-5.0 2025:+11.5 2026:+0.0
+  [NQ 300/1265] fades=20
+  [NQ 600/1265] fades=37
+  [NQ 900/1265] fades=63
+  [NQ 1200/1265] fades=82
+
+===== NQ (normalized stop)  (fade outcome in R, ADR-scaled stop, hold-EOD) =====
+  ALL fades                 n=  83  netR=   -8.8  R/tr=-0.11  PF=0.88  win=10.8%
+  ABOVE EMA (failed reclaim) n=  15  netR=   -5.0  R/tr=-0.33  PF=0.62  win=13.3%   perm-p=0.5266
+     train n=   5  netR=   -1.6  R/tr=-0.33  PF=0.59  win=20.0%   holdout n=  10  netR=   -3.3  R/tr=-0.33  PF=0.63  win=10.0%
+  BELOW EMA (weak bounce)    n=  68  netR=   -3.8  R/tr=-0.06  PF=0.94  win=10.3%
+  year (above): 2021:+2.4 2022:+0.0 2023:-4.0 2024:+3.7 2025:-6.0 2026:-1.0

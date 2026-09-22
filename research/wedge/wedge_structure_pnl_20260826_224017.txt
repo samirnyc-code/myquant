@@ -1,0 +1,32 @@
+WedgeScalper structure P&L — forward tick-sim on RTH trove
+params: entry 1t beyond SB, scalp +4t, BE @+5t, trail 1t/bar, fee $4.0/ct RT
+signals in file 5206 | trove days used 142 | signals with no trove day 118
+TRADES simulated (filled, RTH, 1-at-a-time): 3287
+
+PER-LEG (ticks, pre-fee):
+  scalp : net +44t  avg +0.01t  win 77.7%  (>0 counts BE as loss after fee-free ticks)
+  runner: net +4510t  avg +1.37t  win 14.9%  (>0 counts BE as loss after fee-free ticks)
+
+COMBINED per trade (2 lots, after $4.0/ct RT):
+  total net  : $+30,629
+  per trade  : $+9.32   median $+42.00
+  win rate   : 74.4%
+  profit factor: 1.111
+  gross ticks/trade: +1.39t
+
+MAE/MFE (ticks): MAE avg 4.7 med 5 | MFE avg 14.1 med 7
+
+by side:
+  BL: n=1618  net $+14,812  per-trade $+9.15
+  BR: n=1669  net $+15,817  per-trade $+9.48
+
+audit — first 8 trades:
+      date side  scalp_t  run_t  mae_t  mfe_t  gross_t  net_usd
+2026-02-02   BR    -13.0  -13.0   13.0    1.0    -26.0   -333.0
+2026-02-02   BL    -13.0  -13.0   13.0    3.0    -26.0   -333.0
+2026-02-02   BL    -18.0  -18.0   18.0    0.0    -36.0   -458.0
+2026-02-02   BL      4.0    0.0    1.0    5.0      4.0     42.0
+2026-02-02   BR      4.0    0.0    2.0    5.0      4.0     42.0
+2026-02-02   BL    -12.0  -12.0   13.0    2.0    -24.0   -308.0
+2026-02-02   BL      4.0    0.0   -0.0    6.0      4.0     42.0
+2026-02-02   BR      4.0   23.0    3.0   46.0     27.0    329.5

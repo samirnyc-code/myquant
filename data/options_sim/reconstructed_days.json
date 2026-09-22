@@ -1,0 +1,57 @@
+{
+ "2026-09-21": {
+  "pnl": -1238,
+  "n": 5,
+  "dd": -1256,
+  "dd_p2t": 1235,
+  "breaker_2k": -1238,
+  "breaker_2k_hit": false,
+  "breaker_3k": -1238,
+  "breaker_3k_hit": false,
+  "spot_open": 7694.4,
+  "spot_close": 7774.5,
+  "note": "Reconstructed from ThetaData NBBO (desk was down at the open). Entry at the 08:31 CT open; live exits replayed (10-min level-acceptance + 14:45 CT stop); realistic worst-touch fills. NOT a booked day \u2014 excluded from all stat tiles.",
+  "trades": [
+   {
+    "strategy": "eodic_c",
+    "structure": "C 7720/7745",
+    "entry_cr": 1.05,
+    "exit_et": "10:33:00",
+    "reason": "level_accepted",
+    "pnl": -707
+   },
+   {
+    "strategy": "eodfly_p",
+    "structure": "P 7650/7625",
+    "entry_cr": 0.55,
+    "exit_et": "15:45:00",
+    "reason": "time_stop_1445CT",
+    "pnl": 43
+   },
+   {
+    "strategy": "eodfly_c",
+    "structure": "C 7650/7675",
+    "entry_cr": 22.2,
+    "exit_et": "09:41:00",
+    "reason": "level_accepted",
+    "pnl": -137
+   },
+   {
+    "strategy": "gx_bps",
+    "structure": "P 7625/7600",
+    "entry_cr": 0.15,
+    "exit_et": "15:45:00",
+    "reason": "time_stop_1445CT",
+    "pnl": 3
+   },
+   {
+    "strategy": "gx_bcs",
+    "structure": "C 7700/7725",
+    "entry_cr": 5.35,
+    "exit_et": "10:01:00",
+    "reason": "level_accepted",
+    "pnl": -442
+   }
+  ]
+ }
+}

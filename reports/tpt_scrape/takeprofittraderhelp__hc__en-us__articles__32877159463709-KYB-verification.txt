@@ -1,0 +1,124 @@
+URL: https://takeprofittraderhelp.zendesk.com/hc/en-us/articles/32877159463709-KYB-verification
+TITLE: KYB verification – TakeProfitTrader
+
+Skip to main content
+ Sign in
+TakeProfitTrader
+ Getting Started
+ Your First Steps
+Articles in this section
+Sustainable Trading Policy
+Registration Process
+Choosing Your Platform
+KYC Procedure
+KYB verification
+How to Purchase An Account
+Restricted Countries
+Reset Your Password
+KYB verification
+ Vlada
+6 months ago Updated
+What is KYB verification?
+
+KYB (Know Your Business) verification is a required process to verify your company information. It is completed using our verification provider. KYB helps ensure compliance, security, and uninterrupted access to platform features.
+
+ 
+
+When do you need to complete it?
+
+You may be asked to complete KYB verification if:
+
+You choose to trade as a company
+Your company data needs to be verified or updated
+Additional compliance checks are required
+
+ 
+
+How to start KYB verification
+
+After completing personal verification (KYC), you will be asked how you want to trade:
+
+Select “As a company”
+Fill in your company details (US companies only)
+Click “Verify company”
+
+ 
+
+Possible statuses
+Verified — verification successful
+Failed — verification was rejected
+In progress — verification is being processed
+
+ 
+
+After you complete the flow
+Your verification status will be updated automatically
+This may take a some time
+In some cases, processing can take longer
+✅ KYB verification successful
+Your business is verified successfully
+A success information modal will be shown
+A confirmation email will be sent to you
+❌ KYB verification failed
+If KYB verification fails, you can try again.
+You can attempt KYB verification up to 3 times
+After each failed attempt:
+A failure information modal will be shown
+You will receive an email with the result
+ℹ️ Note: In the US, business ownership or control detail information is not always available in public records. This means we may not be able to complete business verification due to limitations.
+⏳ Verification pending
+
+You may see a pending status after completing the verification. This means that the verification is still under review.
+
+During this time:
+
+A pending information modal will be shown
+Please wait until the verification is completed
+You can continue trade an individual
+No additional action is required at this time
+
+ 
+
+If you didn’t finish the flow
+
+If you closed the tab:
+
+Click Learn more in the banner on the top or
+Go to User Profile
+Open the Identity tab
+Click Switch to Company
+Fill in your company details
+Click “Verify company”
+ℹ️ The verification data shown on the Identity tab is for informational purposes only and is not retained if the verification is not successful.
+
+ 
+
+Security & privacy
+KYB verification is handled securely by verification provider
+
+ 
+
+Need help?
+
+If KYB verification stays pending for a long time or fails after multiple attempts, please contact support.
+
+
+ 
+
+Was this article helpful?
+Yes No
+1 out of 1 found this helpful
+Recently viewed articles
+KYC Procedure
+Choosing Your Platform
+Registration Process
+Sustainable Trading Policy
+NOFEE30 PROMO FAQ
+Related articles
+How to Purchase An Account
+KYC Procedure
+Restricted Countries
+Registration Process
+Filling out tax forms
+TakeProfitTrader
+English (United States) 

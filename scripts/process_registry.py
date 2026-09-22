@@ -13,13 +13,17 @@ Consumed by scripts/launcher.py (Mission Control /timeline).
 """
 from __future__ import annotations
 
-# phase -> ordering on the page; each is one tile group
+# phase -> ordering on the page; each is one tile group. Ordered to follow the trading
+# day CHRONOLOGICALLY so the "market-shut" phases (close -> halt -> overnight) sit
+# together and flow logically, instead of overnight-first / halt-last with a gap between
+# them (2026-07-20 fix). The overnight block ends at the 07:30 mine, looping back to
+# pre-open at the top — a natural daily cycle.
 PHASES = [
-    ("overnight", "Overnight — archive while the market is shut"),
-    ("preopen",   "Pre-open — get the desk armed before 08:30 CT"),
-    ("session",   "Session — live, running all day"),
-    ("close",     "Close — reconcile and learn"),
-    ("halt",      "Daily halt 16:00–17:00 CT — the only hour restarting costs nothing"),
+    ("preopen",   "① Pre-open  08:00–08:35 CT — get the desk armed before the 08:30 open"),
+    ("session",   "② Session  08:30–15:00 CT — live, running all day"),
+    ("close",     "③ Close  15:00–15:30 CT — reconcile and learn"),
+    ("halt",      "④ Daily halt  16:00–17:00 CT — compress + back up; the only hour a restart costs nothing"),
+    ("overnight", "⑤ Overnight  17:00–07:30 CT — record ETH + archive while the market is shut"),
 ]
 
 # ct     : Chicago time the step is meant to run ("cont" = continuous)
@@ -48,15 +52,6 @@ PROCESSES = [
              "from the S66 scraper.",
          writes="data/menthorq/harvest/YYYY-MM-DD/",
          downstream="Cross-check against the API pull; fills gaps the REST endpoints miss."),
-
-    dict(id="quin", phase="overnight", ct="16:00", task="MyQuant QUIN Harvest",
-         title="QUIN AI harvest",
-         script="scripts/mq_quin_harvest.py",
-         what="Asks MenthorQ's in-app AI for a gamma-levels table + top-10 GEX strikes per "
-              "symbol and parses the answer into JSON.",
-         why="QUIN can answer things no endpoint returns. Quota-limited, so it runs last.",
-         writes="data/menthorq/harvest/YYYY-MM-DD/quin_<SYM>.json",
-         downstream="Supplementary only — mq_levels_fetch replaced it as the primary source."),
 
     dict(id="levels_db", phase="overnight", ct="16:15", task="MyQuant Levels DB",
          title="Levels DB + viewer",
@@ -228,27 +223,17 @@ PROCESSES = [
 
     # ---------------------------------------------------------------- session
     dict(id="depth", phase="session", ct="cont", task=None,
-         title="L2 depth + tape recorder",
-         script="nt8/strategies/MarketDepthRecorder.cs",
-         health="L2 depth",
-         what="Records every order-book add/update/remove plus the interleaved trade tape, "
-              "on one clock, to a daily CSV.",
-         why="**The only truly irreplaceable dataset here.** NT8 stores no historical depth "
-             "and no vendor sells it cheaply — resting liquidity exists only in the moment. "
-             "Every minute not recorded is gone forever.",
-         writes="data/depth/ES_depth_YYYY-MM-DD.csv",
-         downstream="Iceberg / absorption / DOM-pressure research — and ANY footprint "
-                    "timeframe, since the tape is a superset."),
-
-    dict(id="footprint", phase="session", ct="cont", task=None,
-         title="Footprint exporter",
-         script="nt8/indicators/FootprintExporter.cs",
-         health="Footprint",
-         what="Reconstructs the bid/ask footprint ladder per bar from ticks.",
-         why="Validated EXACT against MzPack (zero error on delta/buy%/POC), which is why we "
-             "never bought their €599 suite.",
-         writes="data/footprint/ES_<series>_footprint_<stamp>.csv",
-         downstream="footprint_metrics.py → POC/VA/imbalance/absorption/CVD."),
+         title="L2 depth + tape recorder — RETIRED (superseded by L1 tape)",
+         script="nt8/addons/MarketDepthRecorderAddOn.cs.disabled",
+         health=None,
+         what="[RETIRED S120] Recorded the full L2 order book + interleaved tape. The AddOn is "
+              "disabled in the Custom folder; the desk moved to L1 capture (tape + best "
+              "bid/ask) — lighter disk, footprint/delta-complete — see the 'l1_tape' entry.",
+         why="Kept in the timeline for provenance: this is where the irreplaceable L2 DOM "
+             "history came from (through 2026-09-04). Re-enable only if full-depth capture "
+             "is wanted again; for now L1 is the live recorder.",
+         writes="data/depth/addon_test/ES_<contract>_depth_YYYY-MM-DD.csv (through 2026-09-04)",
+         downstream="Historical L2/absorption/DOM research on the archived parquet."),
 
     dict(id="tickdb", phase="session", ct="cont", task=None,
          title="NT8 tick recording",
@@ -260,18 +245,35 @@ PROCESSES = [
          writes="Documents/NinjaTrader 8/db/tick/ES 09-26/",
          downstream="Tick-Replay footprint rebuilds; gap-fill for the parquet tick archive."),
 
+    dict(id="l1_tape", phase="session", ct="cont", task=None,
+         title="L1 tape + best bid/ask recorder",
+         script="nt8/addons/L1TapeRecorderAddOn.cs",
+         health="L1 tape",
+         what="Records every trade print (price/size/aggressor) plus every best-bid and "
+              "best-ask change, on one clock, to a daily CSV. L1 only — NO full depth book.",
+         why="The Wyckoff-2.0 order-flow DB (S120). The tick troves store TRADES ONLY with no "
+             "bid/ask, so footprint/delta and absorption cannot be reconstructed from them. "
+             "This adds the missing quote to the tape at a fraction of L2 DOM's disk. AddOn = "
+             "auto-runs on NT startup, survives restarts, no enable step. L1 gaps are "
+             "unrecoverable (Databento MBP-10 is the paid backfill safety-net).",
+         writes="data/l1_tape/ES_<contract>_l1_YYYY-MM-DD.csv",
+         downstream="Footprint/CVD/absorption on the OF trigger lane; the Wyckoff-2.0 "
+                    "backtest/journal DB. Nightly -> parquet via l1_rollover.py."),
+
 
     # ---------------------------------------------------------------- daily halt
     dict(id="rollover", phase="halt", ct="16:05", task="MyQuant Depth Rollover",
-         title="Depth CSV -> parquet",
+         title="L2 market depth -> parquet (compress session)",
          script="scripts/depth_rollover.py",
-         what="Converts every FINISHED depth CSV to zstd parquet and deletes the CSV once "
-              "the parquet is re-read and its row count matches.",
+         what="The session just ended at 16:00: every finished L2/tape CSV (book events + "
+              "trades) is converted to zstd parquet (~20x smaller) and the CSV deleted "
+              "ONLY after the parquet is re-read and its row count matches.",
          why="Raw CSV is right for LIVE capture (appendable, crash-safe) and wrong for the "
              "archive: ES book events run to hundreds of MB a day and disk is what limits "
-             "how long we can record. Measured 20.2x on the first real file (37.8MB -> "
-             "1.9MB). Today's file is never touched - the recorder still holds it open.",
-         writes="data/depth/ES_depth_YYYY-MM-DD.parquet",
+             "how long we can record. Measured 20.2x on the first real file. Files carry "
+             "the TRADE DATE (session template), so the file that just closed converts "
+             "the same afternoon. A file still held open by the recorder is never touched.",
+         writes="data/depth/ES_<contract>_depth_YYYY-MM-DD.parquet",
          downstream="Every order-flow study reads the parquet; ~50MB/day instead of ~1GB."),
 
     dict(id="nt8_restart", phase="halt", ct="16:15", task="MyQuant NT8 Restart",
@@ -300,7 +302,7 @@ PROCESSES = [
          downstream="The difference between finding out at 16:45 and finding out at 08:00."),
 
     dict(id="archive", phase="halt", ct="16:06", task="MyQuant Depth Rollover",
-         title="Off-machine archive (data repo)",
+         title="L2 depth backup -> GitHub (myquantdata)",
          script="scripts/depth_rollover.py -> ~/myquant-data",
          health="Data archive",
          what="Copies each verified depth parquet into the PRIVATE myquantdata git repo and "
@@ -310,6 +312,33 @@ PROCESSES = [
              "off-machine the same halt hour it is made. Runs inside the rollover job.",
          writes="~/myquant-data/depth/*.parquet (GitHub: samirnyc-code/myquantdata, PRIVATE)",
          downstream="Disaster recovery for the one dataset that cannot be re-collected."),
+
+    dict(id="l1_rollover", phase="halt", ct="16:05", task="MyQuant L1 Rollover",
+         title="L1 tape -> parquet + backup",
+         script="scripts/l1_rollover.py",
+         health="L1 tape",
+         what="Converts each finished L1 tape CSV (trades + best bid/ask) to zstd parquet and "
+              "deletes the CSV ONLY after the parquet is re-read and its row count matches, "
+              "then mirrors the parquet to the private ~/myquant-data archive repo.",
+         why="Raw CSV is right for LIVE capture, wrong for the archive. Parquet is ~10x "
+             "smaller and column-selective. Files carry the TRADE DATE, so the file that just "
+             "closed converts the same afternoon; a file still held open is never touched. "
+             "Scheduled task 'MyQuant L1 Rollover' created S120 (run_at_ct --at 16:05, "
+             "DST-safe two-trigger pattern).",
+         writes="data/l1_tape/*.parquet + ~/myquant-data/l1_tape/*.parquet",
+         downstream="The Wyckoff-2.0 order-flow DB in its archive format; off-machine backup."),
+
+    dict(id="l1_watchdog", phase="session", ct="every 10m", task="MyQuant L1 Recorder Watchdog",
+         title="L1 recorder watchdog",
+         script="scripts/l1_recorder_watchdog.py",
+         health="L1 tape",
+         what="Every 10 min while the market is open: checks the L1 tape freshness/quote mix "
+              "(via check_l1_tape) and Telegram-pages if it stalls or goes tape-only.",
+         why="PAGE-ONLY by design — never closes/restarts NT (that pops the un-answerable "
+             "'Save workspace?' dialog). The AddOn self-heals silent stalls on its own; this "
+             "just alerts a human if recording is genuinely down. Task created S120.",
+         writes="Telegram alert (deduped) on stall/not-started; nothing on disk",
+         downstream="Human intervention only when the AddOn's self-heal can't recover it."),
 
     # ---------------------------------------------------------------- close
     dict(id="postmortem", phase="close", ct="15:15", task="MyQuant Postmortem",

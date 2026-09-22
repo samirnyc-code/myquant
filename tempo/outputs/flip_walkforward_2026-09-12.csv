@@ -1,0 +1,11 @@
+select,test_year,picked,n,PF,tot_pts,$/trade,maxDD_$
+pts,2022,co+noSAR+noEB+RR2,469,1.0,8.2,0.9,-19238.0
+pf,2022,co+noSAR+noEB+RR2,469,1.0,8.2,0.9,-19238.0
+pts,2023,co+SAR+noEB+RR3+skipH8b,356,1.13,96.8,13.6,-2812.0
+pf,2023,IBS+noSAR+noEB+RR2+skipH8b,236,1.43,228.8,48.5,-3138.0
+pts,2024,IBS+noSAR+noEB+RR2+skipH8b,275,0.92,-79.5,-14.5,-12275.0
+pf,2024,IBS+noSAR+noEB+RR2+skipH8b,275,0.92,-79.5,-14.5,-12275.0
+pts,2025,IBS+noSAR+noEB+RR2+skipH8b,425,1.06,122.8,14.4,-9688.0
+pf,2025,IBS+noSAR+noEB+RR2+skipH8b,425,1.06,122.8,14.4,-9688.0
+pts,2026,IBS+SAR+noEB+RR2+skipH8b,240,1.27,210.0,43.8,-6450.0
+pf,2026,IBS+SAR+noEB+RR2+skipH8b,240,1.27,210.0,43.8,-6450.0

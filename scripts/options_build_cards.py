@@ -92,6 +92,142 @@ def _series_for(hist):
             "pop": [None if pd.isna(x) else round(float(x) * 100) for x in h["pop"]]}
 
 
+_TAPE_CACHE = {}
+
+
+def spot_at(ts):
+    """SPX from the day's underlying tape at/just-before timestamp 'YYYY-MM-DD HH:MM[:SS]'."""
+    try:
+        s = str(ts)
+        day, hhmm = s[:10], s[11:16]
+        if not hhmm:
+            return None
+        f = SIM / f"underlying_{day.replace('-', '')}.csv"
+        if day not in _TAPE_CACHE:
+            _TAPE_CACHE[day] = pd.read_csv(f) if f.exists() else None
+        tape = _TAPE_CACHE[day]
+        if tape is None or not len(tape):
+            return None
+        sub = tape[tape.ts_et.str[:5] <= hhmm]
+        row = sub.iloc[-1] if len(sub) else tape.iloc[0]
+        return round(float(row.und), 1)
+    except Exception:
+        return None
+
+
+_CHAIN_CACHE = {}
+
+
+def chain_series(legs, entry_dt, exit_dt, credit):
+    """Intraday P&L line reconstructed from OUR chain recording (minute NBBO mids):
+    pnl(t) = (entry credit − cost to close at t) × 100, from entry to exit/now.
+    Chain timestamps are ET; trade timestamps are CT (ET−1h)."""
+    try:
+        day = str(entry_dt)[:10]
+        f = SIM / f"chain_{day.replace('-', '')}.csv"
+        if day not in _CHAIN_CACHE:
+            _CHAIN_CACHE[day] = pd.read_csv(f) if f.exists() else None
+        ch = _CHAIN_CACHE[day]
+        if ch is None or not len(ch) or not legs:
+            return None
+
+        def to_et(ts):  # CT 'YYYY-MM-DD HH:MM' -> ET 'YYYY-MM-DD HH:MM'
+            t = pd.to_datetime(str(ts)[:16]) + pd.Timedelta(hours=1)
+            return t.strftime("%Y-%m-%d %H:%M")
+        t0 = to_et(entry_dt)
+        t1 = to_et(exit_dt) if exit_dt is not None and pd.notna(exit_dt) else "9999"
+        sub = ch[(ch.ts_et.str[:16] >= t0) & (ch.ts_et.str[:16] <= t1)]
+        if not len(sub):
+            return None
+        out_t, out_p = [], []
+        for ts, g in sub.groupby(sub.ts_et.str[:16]):
+            px = {(row.strike, row.right): (row.bid, row.ask) for row in g.itertuples()}
+            cost = 0.0
+            ok = True
+            for l in legs:
+                q = px.get((float(l["strike"]), l["right"]))
+                if not q or pd.isna(q[0]) or pd.isna(q[1]) or q[1] <= 0:
+                    ok = False
+                    break
+                mid = (float(q[0]) + float(q[1])) / 2
+                cost += mid if l["side"] == "sell" else -mid
+            if not ok:
+                continue
+            ct = (pd.to_datetime(ts) - pd.Timedelta(hours=1)).strftime("%H:%M")
+            out_t.append(ct)
+            out_p.append(round((credit - cost) * 100))
+        if len(out_p) < 2:
+            return None
+        return {"t": out_t, "pnl": out_p, "pop": [None] * len(out_p)}
+    except Exception:
+        return None
+
+
+def chain_series_wings(wings):
+    """Exit-aware combined P&L path: per timestamp, an open wing is marked from
+    the chain (credit − cost-to-close at mid); an EXITED wing contributes its
+    REALIZED ledger P&L (frozen). Ends exactly at the booked total."""
+    try:
+        day = str(wings[0][2])[:10]
+        f = SIM / f"chain_{day.replace('-', '')}.csv"
+        if day not in _CHAIN_CACHE:
+            _CHAIN_CACHE[day] = pd.read_csv(f) if f.exists() else None
+        ch = _CHAIN_CACHE[day]
+        if ch is None or not len(ch):
+            return None
+
+        def et(ts):
+            return (pd.to_datetime(str(ts)[:16]) + pd.Timedelta(hours=1)).strftime("%Y-%m-%d %H:%M")
+        t0 = min(et(w[2]) for w in wings)
+        t1 = max(et(w[3]) for w in wings if w[3] and w[3] != "NaT")
+        sub = ch[(ch.ts_et.str[:16] >= t0) & (ch.ts_et.str[:16] <= t1)]
+        out_t, out_p = [], []
+        for ts, g in sub.groupby(sub.ts_et.str[:16]):
+            px = {(row.strike, row.right): (row.bid, row.ask) for row in g.itertuples()}
+            tot, ok = 0.0, True
+            for legs, credit, ent, ex, realized in wings:
+                if ts < et(ent):
+                    continue
+                if ex and ex != "NaT" and ts >= et(ex):
+                    tot += (realized or 0.0)          # frozen at its booked P&L
+                    continue
+                cost = 0.0
+                for l in legs:
+                    q = px.get((float(l["strike"]), l["right"]))
+                    if not q or pd.isna(q[0]) or pd.isna(q[1]) or q[1] <= 0:
+                        ok = False
+                        break
+                    mid = (float(q[0]) + float(q[1])) / 2
+                    cost += mid if l["side"] == "sell" else -mid
+                if not ok:
+                    break
+                tot += (credit - cost) * 100
+            if ok:
+                ct = (pd.to_datetime(ts) - pd.Timedelta(hours=1)).strftime("%H:%M")
+                out_t.append(ct)
+                out_p.append(round(tot))
+        # terminal point = the booked total, at the last exit (ledger truth)
+        final = sum((w[4] or 0.0) for w in wings)
+        if out_t:
+            out_t.append((pd.to_datetime(t1) - pd.Timedelta(hours=1)).strftime("%H:%M"))
+            out_p.append(round(final))
+        if len(out_p) < 2:
+            return None
+        return {"t": out_t, "pnl": out_p, "pop": [None] * len(out_p)}
+    except Exception:
+        return None
+
+
+def _with_final(series, final_pnl, at_hhmm=None):
+    """Append the LEDGER's booked P&L as the terminal point so every line ends at
+    the number on the card (chain mids ≈ fills, but the book is the truth)."""
+    if series and final_pnl is not None:
+        series["t"].append(at_hhmm or series["t"][-1])
+        series["pnl"].append(round(float(final_pnl)))
+        series["pop"].append(None)
+    return series
+
+
 def trade_payload(r, last_marks, spot, metrics_hist=None):
     legs = json.loads(r.legs) if isinstance(r.legs, str) else []
     is_open = pd.isna(r.exit_dt)
@@ -144,7 +280,7 @@ def trade_payload(r, last_marks, spot, metrics_hist=None):
             g = bs_greeks(spot, l["strike"], T, sig, l["right"])
             sgn = -1 if l["side"] == "sell" else 1
             for i in range(4):
-                tot[i] += sgn * l["qty"] * g[i] * 100
+                tot[i] += sgn * l.get("qty", 1) * g[i] * 100   # qty optional (STMR legs omit it)
         greeks = {"delta": round(tot[0], 1), "gamma": round(tot[1], 3),
                   "theta": round(tot[2], 0), "vega": round(tot[3], 0)}
     pop_v = r["pop"]
@@ -168,6 +304,8 @@ def trade_payload(r, last_marks, spot, metrics_hist=None):
         "entry": str(r.entry_dt), "dow": r.dow if isinstance(r.dow, str) else "",
         "commentary": r.commentary if isinstance(r.commentary, str) else "",
         "payoff": payoff, "breakevens": bes, "spot": None if spot is None else round(spot, 1),
+        "entry_spot": spot_at(r.entry_dt),
+        "exit_spot": spot_at(r.exit_dt) if not is_open and pd.notna(r.exit_dt) else None,
         "greeks": greeks, "multi": multi_exp,
         "series": _series_for(metrics_hist),
     }
@@ -273,9 +411,19 @@ function payoffSVG(t, w, h, mini){
     const iMax=v.indexOf(Math.max(...v)), iMin=v.indexOf(Math.min(...v));
     extras+=`<circle cx="${X(s[iMax])}" cy="${Y(v[iMax])}" r="4" fill="var(--good)"/>`+
             `<circle cx="${X(s[iMin])}" cy="${Y(v[iMin])}" r="4" fill="var(--crit)"/>`;
-    if(t.spot!=null && t.spot>=x0 && t.spot<=x1)
+    const closed = t.state==='CLOSED';
+    // live spot line only while the position EXISTS; a closed trade's curve is hypothetical
+    if(!closed && t.spot!=null && t.spot>=x0 && t.spot<=x1)
       extras+=`<line x1="${X(t.spot)}" y1="${mt}" x2="${X(t.spot)}" y2="${h-mb}" stroke="var(--blue)" stroke-width="2" stroke-dasharray="6 4"/>`+
               `<text x="${X(t.spot)+5}" y="${mt+12}" fill="var(--blue)" font-size="11" font-weight="700">spot ${t.spot}</text>`;
+    if(t.entry_spot!=null && t.entry_spot>=x0 && t.entry_spot<=x1)
+      extras+=`<line x1="${X(t.entry_spot)}" y1="${mt}" x2="${X(t.entry_spot)}" y2="${h-mb}" stroke="var(--ink)" stroke-width="1.6" stroke-dasharray="2 3"/>`+
+              `<text x="${X(t.entry_spot)+4}" y="${h-mb-6}" fill="var(--ink)" font-size="10.5" font-weight="700">entry ${t.entry_spot}</text>`;
+    if(t.exit_spot!=null && t.exit_spot>=x0 && t.exit_spot<=x1)
+      extras+=`<line x1="${X(t.exit_spot)}" y1="${mt}" x2="${X(t.exit_spot)}" y2="${h-mb}" stroke="var(--orange)" stroke-width="2"/>`+
+              `<text x="${X(t.exit_spot)+4}" y="${mt+26}" fill="var(--orange)" font-size="10.5" font-weight="700">exit ${t.exit_spot}</text>`;
+    if(closed)
+      extras+=`<text x="${w-mr}" y="${mt+2}" fill="var(--mut)" font-size="9.5" text-anchor="end">payoff = hypothetical at expiry · position closed early</text>`;
     for(const b of t.breakevens)
       extras+=`<circle cx="${X(b)}" cy="${zero}" r="5" fill="var(--warn)" stroke="var(--bg)" stroke-width="2"/>`+
               `<text x="${X(b)}" y="${+zero-9}" fill="var(--warn)" font-size="10.5" font-weight="700" text-anchor="middle">BE ${b}</text>`;
@@ -444,7 +592,12 @@ function openCard(i){
        <span class="mut" style="font-size:13px;font-weight:400">${t.state=='OPEN'?'running (mark-to-market now — includes time value)':'final'}</span></div>
      ${expAtSpot(t)}
      ${gauge(t)}
-     ${payoffSVG(t, 900, 340, false)}
+     ${t.series?`<div class="sechead">Intraday P&amp;L — what actually happened</div>
+       <div class="mut" style="font-size:11.5px;margin:-2px 0 4px">${t.credit>=0
+         ?`credit <b>$${Math.round(Math.abs(t.credit)*100).toLocaleString()}</b> collected at entry · line = credit − cost to buy back (starts ≈ $0; rises as the sold options decay)`
+         :`debit $${Math.round(Math.abs(t.credit)*100).toLocaleString()} paid at entry · line = liquidation value − debit`}</div>`+metricsSVG(t):''}
+     <div class="sechead">Payoff structure${t.state==='CLOSED'?' (hypothetical at expiry)':''}</div>
+     ${payoffSVG(t, 900, t.series?250:340, false)}
      ${closeBtn(t)}
      <div class="hint">click to flip for details ⟲</div></div>
    <div class="face back" style="--gc:${gc}">
@@ -472,7 +625,9 @@ function openCard(i){
 $('#big').addEventListener('click', e=>{e.stopPropagation();$('#big').classList.toggle('flip');});
 $('#ovl').addEventListener('click', ()=>$('#ovl').classList.remove('on'));
 document.addEventListener('keydown', e=>{if(e.key=='Escape')$('#ovl').classList.remove('on');});
-const TODAY = '__TODAY__';  // CT date — closed section shows only today's, resets daily
+// live CT date computed in the browser so "Closed Today" clears at MIDNIGHT CT on its own
+// (baking it in at gen-time left yesterday's trades showing until the next regeneration)
+const TODAY = new Date().toLocaleDateString('en-CA', {timeZone: 'America/Chicago'});
 const openIdx = T.map((t,i)=>[t,i]).filter(([t])=>t.state=='OPEN');
 const closedIdx = T.map((t,i)=>[t,i]).filter(([t])=>t.state!='OPEN' && t.exitd==TODAY);
 $('#grid_open').innerHTML = openIdx.map(([t,i])=>tile(t,i)).join('');
@@ -484,7 +639,7 @@ if(!openIdx.length){$('#oh').style.display='none';}
 
 
 def main():
-    trades = tlog.load()
+    trades = tlog.dedupe_mirrors(tlog.load())
     marks_f = SIM / "marks.csv"
     last_marks = None
     if marks_f.exists():
@@ -499,8 +654,109 @@ def main():
         if len(mt):
             hist_by_id = {tid: g for tid, g in mt.groupby("trade_id")}
     spot = latest_spot()
-    data = [trade_payload(r, last_marks, spot, hist_by_id.get(r.trade_id))
-            for _, r in trades.iloc[::-1].iterrows()]
+    # PER-TRADE ISOLATION: one malformed trade record must NEVER take down the whole
+    # dashboard (2026-07-20: a STMR leg missing 'qty' crashed the build, and the dashboard
+    # would not reload for the rest of the session). Skip-and-log a bad row instead.
+    # STRUCTURE MERGE (2026-08-05, user request): the two legs of a condor/fly are
+    # ONE strategy — render ONE tile with combined numbers and the true 4-leg
+    # payoff, not two half-tiles the user has to sum in their head. Legs merge
+    # when both same-day trades share a pair-group and the same open/closed state.
+    PAIR = {"eodic_p": "eodic", "eodic_c": "eodic", "eodfly_p": "eodfly", "eodfly_c": "eodfly",
+            "openic_p": "openic", "openic_c": "openic", "openfly_p": "openfly", "openfly_c": "openfly",
+            "gx_bps": "gxic", "gx_bcs": "gxic"}
+    GNAME = {"eodic": "[EOD] Iron Condor", "eodfly": "[EOD] Iron Fly",
+             "openic": "[Open] Iron Condor", "openfly": "[Open] Iron Fly",
+             "gxic": "[GexLog] Iron Condor"}
+    trades = trades.copy()
+    trades["_day"] = trades.entry_dt.astype(str).str[:10]
+    trades["_grp"] = trades.strategy_id.map(PAIR)
+    merged_rows, consumed = [], set()
+    for (day, grp), g in trades[trades._grp.notna()].groupby(["_day", "_grp"]):
+        if len(g) != 2 or g.exit_dt.isna().nunique() != 1:
+            continue                      # lone wing or mixed state -> leave as-is
+        a, b = g.iloc[0], g.iloc[1]
+        m = a.copy()
+        m["trade_id"] = f"{grp}_{day.replace('-', '')}"
+        m["strategy_id"] = grp
+        m["structure"] = GNAME[grp] + " (both legs)"
+        la = json.loads(a.legs) if isinstance(a.legs, str) else []
+        lb = json.loads(b.legs) if isinstance(b.legs, str) else []
+        m["legs"] = json.dumps(la + lb)
+        m["credit"] = (a.credit or 0) + (b.credit or 0)
+        m["collateral"] = max(a.collateral or 0, b.collateral or 0)   # broker margins one side
+        m["pnl"] = (a.pnl if pd.notna(a.pnl) else 0) + (b.pnl if pd.notna(b.pnl) else 0) \
+            if not pd.isna(a.exit_dt) else None
+        m["pop"] = min(x for x in (a["pop"], b["pop"]) if pd.notna(x)) if (pd.notna(a["pop"]) or pd.notna(b["pop"])) else float("nan")
+        # recompute risk numbers for the COMBINED structure (not leg-A's):
+        # max gain = total credit; max loss = widest side's width − total credit
+        allw = []
+        for L in (la, lb):
+            ks = [x["strike"] for x in L]
+            if len(ks) >= 2:
+                allw.append(abs(ks[0] - ks[1]))
+        w = max(allw) if allw else 25.0
+        m["max_gain"] = round(m["credit"] * 100)
+        m["max_loss"] = round((w - m["credit"]) * 100)
+        m["collateral"] = round((w - m["credit"]) * 100)
+
+        def _wing(r0):
+            side = "P-wing" if str(r0.strategy_id).endswith(("_p", "bps")) else "C-wing"
+            pnl0 = f"{r0.pnl:+,.0f}" if pd.notna(r0.pnl) else "open"
+            return f"{side} {r0.structure or ''} cr {r0.credit or 0:.2f} → ${pnl0}"
+        m["commentary"] = _wing(a) + "  ·  " + _wing(b)
+        m["_wings"] = [_wing(a), _wing(b)]
+        # per-wing data for the EXIT-AWARE intraday P&L reconstruction: a wing's
+        # P&L freezes at its REALIZED value once that wing exits (marking a closed
+        # leg to market all day painted a fictional path — 2026-08-05 bug).
+        m["_wingdata"] = [
+            (la, float(a.credit or 0), str(a.entry_dt), str(a.exit_dt), float(a.pnl) if pd.notna(a.pnl) else None),
+            (lb, float(b.credit or 0), str(b.entry_dt), str(b.exit_dt), float(b.pnl) if pd.notna(b.pnl) else None),
+        ]
+        m["_hist"] = None
+        merged_rows.append(m)
+        consumed |= {a.trade_id, b.trade_id}
+        # merged unrealized mark = sum of the legs'
+        if last_marks is not None and a.trade_id in last_marks.index and b.trade_id in last_marks.index:
+            row = last_marks.loc[a.trade_id].copy()
+            row["unreal_pnl"] = (last_marks.loc[a.trade_id].unreal_pnl or 0) + (last_marks.loc[b.trade_id].unreal_pnl or 0)
+            last_marks.loc[m["trade_id"]] = row
+    NAMES.update(GNAME)
+    # solo wings (partner stood down / failed) get an explicit label — no head-math
+    NAMES.update({
+        "eodic_p": "[EOD] Condor · put wing only", "eodic_c": "[EOD] Condor · call wing only",
+        "eodfly_p": "[EOD] Fly · put wing only", "eodfly_c": "[EOD] Fly · call wing only",
+        "openic_p": "[Open] Condor · put wing only", "openic_c": "[Open] Condor · call wing only",
+        "openfly_p": "[Open] Fly · put wing only", "openfly_c": "[Open] Fly · call wing only",
+        "gx_bps": "[GexLog] Condor · put wing only", "gx_bcs": "[GexLog] Condor · call wing only",
+        "incident_orphan": "⚠ Incident — orphaned leg",
+    })
+
+    data = []
+    for m in merged_rows[::-1]:
+        try:
+            p = trade_payload(m, last_marks, spot, m.get("_hist"))
+            # per-wing results shown on the card, above the raw leg list
+            p["legs"] = m["_wings"] + p["legs"]
+            # EXIT-AWARE reconstruction (each wing freezes at its realized P&L)
+            p["series"] = chain_series_wings(m["_wingdata"]) or p.get("series")
+            data.append(p)
+        except Exception as e:
+            print(f"  ! skipped merged card {m['trade_id']}: {type(e).__name__}: {e}")
+    for _, r in trades.iloc[::-1].iterrows():
+        if r.trade_id in consumed:
+            continue
+        try:
+            p = trade_payload(r, last_marks, spot, hist_by_id.get(r.trade_id))
+            if not p.get("series"):
+                lg = json.loads(r.legs) if isinstance(r.legs, str) else []
+                s = chain_series(lg, r.entry_dt, r.exit_dt,
+                                 float(r.credit) if pd.notna(r.credit) else 0.0)
+                if s and pd.notna(r.exit_dt) and pd.notna(r.pnl):
+                    s = _with_final(s, float(r.pnl))
+                p["series"] = s
+            data.append(p)
+        except Exception as e:
+            print(f"  ! skipped card for {getattr(r,'trade_id','?')}: {type(e).__name__}: {e}")
     today = dt.datetime.now(ZoneInfo("America/Chicago")).strftime("%Y-%m-%d")
     out = SIM / "cards.html"
     out.write_text(HTML.replace("__DATA__", json.dumps(data)).replace("__TODAY__", today),

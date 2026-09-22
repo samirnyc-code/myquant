@@ -27,6 +27,7 @@ import sys
 import threading
 import urllib.parse
 import webbrowser
+import zlib
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -56,23 +57,38 @@ TOKEN = load_token()
 
 # Files that, when they change, mean the page needs a rebuild (cards / journal /
 # results / game-plan status). Today's gameplan is resolved lazily in gen_stamp.
-WATCH = [LOG / "trades.parquet", LOG / "journal.json", SIM / "sim_ledger.csv", SIM / "marks.csv"]
+# marks.csv is deliberately NOT watched: it rewrites every ~2 min all session and
+# forced a full reload+rebuild each time (tab stuck "loading"). Live P&L/spot
+# reach the page through the 5s /state.json poll; only trade/journal/plan
+# changes need the hard reload.
+WATCH = [LOG / "trades.parquet", LOG / "journal.json", SIM / "sim_ledger.csv"]
 
 
 def _watch_files():
     import datetime as _dt
     from zoneinfo import ZoneInfo
     date = _dt.datetime.now(ZoneInfo("America/New_York")).strftime("%Y%m%d")
+    ct = _dt.datetime.now(ZoneInfo("America/Chicago")).strftime("%Y-%m-%d")
     return WATCH + [SIM / f"gameplan_{date}.json", SIM / f"postmortem_{date}.json",
-                    SIM / f"eod_status_{date}.json"]  # Desk Report grows through the day → soft-reload
+                    SIM / f"eod_status_{date}.json",  # Desk Report grows through the day → soft-reload
+                    SIM / "shadow_td" / f"shadow_book_{ct}.json",
+                    SIM / "shadow_td" / f"reprice_{ct}.json"]  # IB-vs-TD tab live-refresh
 
 _lock = threading.Lock()
 _last_gen = [None]
 
 
 def gen_stamp():
-    """Integer that changes whenever any watched file is written."""
-    return int(sum(f.stat().st_mtime_ns for f in _watch_files() if f.exists()) % 2_000_000_000)
+    """Integer that changes whenever any watched file's CONTENT changes.
+    mtime is not enough: the trigger daemon rewrites the day's gameplan every
+    ~2 min with identical bytes, which must not reload the page."""
+    h = 0
+    for f in _watch_files():
+        try:
+            h = zlib.crc32(f.read_bytes(), h)
+        except OSError:
+            pass
+    return h
 
 
 def live_json():
@@ -97,8 +113,17 @@ def ensure_html(force=False):
 def state():
     s = dash.load_stats()
     tiles = {k: {"value": v, "cls": c} for k, _label, v, c in dash.tile_specs(s)}
-    return {"gen": gen_stamp(), "live": live_json(),
-            "tiles": tiles, "lr": dash.levels_regime()}
+    # TODAY banner re-rendered each poll from CURRENT marks, so it's never the stale
+    # value frozen into the HTML at last regen.
+    try:
+        banner = dash.today_credit_line(dash._shown(dash.tlog.load()))
+    except Exception:
+        banner = None
+    zone = s.get("_mpz_bar")
+    if zone:
+        zone = {**zone, "pos": s.get("mpz_pos", ""), "pin": s.get("mpz_pin", "—")}
+    return {"gen": gen_stamp(), "live": live_json(), "today_banner": banner,
+            "tiles": tiles, "lr": dash.levels_regime(), "zone": zone}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -149,6 +174,14 @@ class Handler(BaseHTTPRequestHandler):
             self._send(json.dumps(state()), "application/json", set_cookie)
         elif u.path == "/live.json":
             self._send(json.dumps(live_json()), "application/json", set_cookie)
+        elif u.path == "/spybounce":            # SPY Bounce tab iframe (static tracker HTML)
+            f = ROOT / "data" / "spy_bounce" / "tracker_dashboard.html"
+            if f.exists():
+                self._send(f.read_bytes(), "text/html; charset=utf-8", set_cookie)
+            else:
+                self._send(b"<body style='font:14px system-ui;background:#0b0d12;color:#e8ebf0;"
+                           b"padding:24px'><p>SPY bounce tracker dashboard not generated yet.</p></body>",
+                           "text/html; charset=utf-8", set_cookie)
         else:
             self.send_error(404)
 
@@ -218,7 +251,7 @@ def main():
     try:
         import subprocess
         tsip = subprocess.run(["tailscale", "ip", "-4"], capture_output=True, text=True,
-                              timeout=5).stdout.strip().splitlines()
+                              timeout=5, creationflags=0x08000000).stdout.strip().splitlines()
         if tsip:
             print(f"  SHARE (Tailscale): http://{tsip[0]}:{args.port}/?key={TOKEN}")
     except Exception:

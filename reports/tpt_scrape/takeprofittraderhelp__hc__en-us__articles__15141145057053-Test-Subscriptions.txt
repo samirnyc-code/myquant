@@ -1,0 +1,62 @@
+URL: https://takeprofittraderhelp.zendesk.com/hc/en-us/articles/15141145057053-Test-Subscriptions
+TITLE: Test Subscriptions – TakeProfitTrader
+
+Skip to main content
+ Sign in
+TakeProfitTrader
+ Getting Started
+ Subscription Info
+Articles in this section
+Cancelling My Subscription
+Test Subscriptions
+Resetting Your Test Account
+How to Check Your Renewal Date
+My Trading Account Status Says "Pending"
+Test Subscriptions
+ Vlada
+2 months ago Updated
+
+Your Trading Test with TakeProfitTrader is structured as a monthly subscription. This approach provides you with complete flexibility to trade at your own pace — there is no time limit to reach your profit target.
+
+Subscription Billing
+You will be charged a subscription fee each month on the same calendar day as the original purchase of the first account under this subscription, unless the test is cancelled.
+If you break a rule, your subscription will not cancel automatically. You must manually cancel it from your dashboard at takeprofittrader.com.
+You also have the option to reset your test account at any time for a fee. This will not change your subscription renewal date.
+Overdue Subscriptions  
+
+Overdue subscriptions will be marked with a red card symbol in your user dashboard, with the note, “Subscription balance is overdue. The account cannot move to PRO unless the payment issue is resolved.”
+
+Subscription renewals are fully automated. If your renewal payment fails, we will attempt to charge your card again.
+
+Please make sure to have a sufficient balance and valid payment method on file because if the final payment attempt fails, your account will expire. We are not able to reactivate expired accounts.
+
+Note: As stated above, if you pass the test with an overdue subscription, your account will not move to PRO until the balance is paid. If all renewal attempts are unsuccessful, the account will not move to PRO. 
+
+If you need to update your payment method, you can follow these steps: Changing Your Payment Method.  
+
+Transition to PRO Account
+
+Once you successfully pass your trading test, your subscription will be automatically canceled.
+There are no recurring subscription fees for PRO accounts — they operate differently from test subscriptions.
+
+Related Article
+
+For detailed instructions on how to cancel your subscription, see How Do I Cancel My Subscription?
+
+Was this article helpful?
+Yes No
+19 out of 22 found this helpful
+Recently viewed articles
+Cancelling My Subscription
+How to Purchase An Account
+KYB verification
+KYC Procedure
+Choosing Your Platform
+Related articles
+My Trading Account Status Says "Pending"
+Resetting Your Test Account
+Rule 1: Hit Your Profit Target
+Activating Your CQG Data Feed
+Connecting NinjaTrader 8 with CQG
+TakeProfitTrader
+English (United States) 

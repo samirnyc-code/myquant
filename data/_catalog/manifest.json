@@ -1,5 +1,5 @@
 {
- "generated": "2026-07-20T03:30:02",
+ "generated": "2026-09-22T03:30:03",
  "families": {
   "vendor_flatfiles": {
    "n": 0,
@@ -82,38 +82,57 @@
    "rows": null
   },
   "orats_chains": {
-   "n": 62,
-   "size": 1136457282,
+   "n": 87,
+   "size": 1422187186,
    "zero_byte": 0,
-   "newest": 1784418624.5398178,
+   "newest": 1784700168.299365,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
    "per_path": {
     "data/orats": {
      "exists": true,
-     "n": 62,
-     "size": 1136457282,
-     "newest": 1784418624.5398178,
+     "n": 87,
+     "size": 1422187186,
+     "newest": 1784700168.299365,
+     "zero_byte": 0
+    }
+   },
+   "rows": null
+  },
+  "options_tape": {
+   "n": 74,
+   "size": 40000190,
+   "zero_byte": 0,
+   "newest": 1789761911.0308008,
+   "exists_any": true,
+   "health": "ok",
+   "reasons": [],
+   "per_path": {
+    "data/options_tape": {
+     "exists": true,
+     "n": 74,
+     "size": 40000190,
+     "newest": 1789761911.0308008,
      "zero_byte": 0
     }
    },
    "rows": null
   },
   "ticks_continuous": {
-   "n": 8517,
-   "size": 9314757798,
+   "n": 8573,
+   "size": 9414667834,
    "zero_byte": 0,
-   "newest": 1783724529.831879,
+   "newest": 1790024503.8568888,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
    "per_path": {
     "data/ticks_continuous": {
      "exists": true,
-     "n": 1270,
-     "size": 3604227829,
-     "newest": 1783724529.831879,
+     "n": 1326,
+     "size": 3704137865,
+     "newest": 1790024503.8568888,
      "zero_byte": 0
     },
     "data/ticks_continuous_NQ": {
@@ -162,40 +181,43 @@
    "rows": null
   },
   "bars": {
-   "n": 225,
-   "size": 64046295,
+   "n": 232,
+   "size": 205667770,
    "zero_byte": 0,
-   "newest": 1784121423.9402983,
+   "newest": 1785165775.5989387,
    "exists_any": true,
-   "health": "ok",
-   "reasons": [],
+   "health": "stale",
+   "reasons": [
+    "newest file 56d old (budget 30d)"
+   ],
    "per_path": {
     "data/bars": {
      "exists": true,
-     "n": 225,
-     "size": 64046295,
-     "newest": 1784121423.9402983,
+     "n": 232,
+     "size": 205667770,
+     "newest": 1785165775.5989387,
      "zero_byte": 0
     }
    },
    "rows": null
   },
   "mq_levels_history": {
-   "n": 3792,
-   "size": 258690967,
+   "n": 8282,
+   "size": 901635705,
    "zero_byte": 2,
-   "newest": 1784500448.2409656,
+   "newest": 1785943496.9435425,
    "exists_any": true,
-   "health": "ok",
+   "health": "stale",
    "reasons": [
+    "newest file 47d old (budget 4d)",
     "2 zero-byte file(s)"
    ],
    "per_path": {
     "data/menthorq": {
      "exists": true,
-     "n": 3792,
-     "size": 258690967,
-     "newest": 1784500448.2409656,
+     "n": 8282,
+     "size": 901635705,
+     "newest": 1785943496.9435425,
      "zero_byte": 2
     }
    },
@@ -212,21 +234,22 @@
    }
   },
   "mq_harvest": {
-   "n": 847,
-   "size": 205205255,
+   "n": 2815,
+   "size": 740297497,
    "zero_byte": 1,
-   "newest": 1784448556.4428895,
+   "newest": 1785877446.5836911,
    "exists_any": true,
-   "health": "ok",
+   "health": "stale",
    "reasons": [
+    "newest file 48d old (budget 4d)",
     "1 zero-byte file(s)"
    ],
    "per_path": {
     "data/menthorq/harvest": {
      "exists": true,
-     "n": 847,
-     "size": 205205255,
-     "newest": 1784448556.4428895,
+     "n": 2815,
+     "size": 740297497,
+     "newest": 1785877446.5836911,
      "zero_byte": 1
     }
    },
@@ -234,37 +257,39 @@
   },
   "mq_gamma_db": {
    "n": 1,
-   "size": 12288,
+   "size": 24576,
    "zero_byte": 0,
-   "newest": 1784466922.2578876,
+   "newest": 1785330924.1503267,
    "exists_any": true,
-   "health": "ok",
-   "reasons": [],
+   "health": "stale",
+   "reasons": [
+    "newest file 55d old (budget 4d)"
+   ],
    "per_path": {
     "gamma_tracker/gamma.db": {
      "exists": true,
      "n": 1,
-     "size": 12288,
-     "newest": 1784466922.2578876,
+     "size": 24576,
+     "newest": 1785330924.1503267,
      "zero_byte": 0
     }
    },
    "rows": null
   },
   "mq_mine": {
-   "n": 436,
-   "size": 17188403,
+   "n": 2957,
+   "size": 123010891,
    "zero_byte": 0,
-   "newest": 1784485703.4964614,
+   "newest": 1785943496.9435425,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
    "per_path": {
     "data/menthorq/mine": {
      "exists": true,
-     "n": 403,
-     "size": 17127800,
-     "newest": 1784485703.4964614,
+     "n": 2924,
+     "size": 122950288,
+     "newest": 1785943496.9435425,
      "zero_byte": 0
     },
     "data/menthorq/academy": {
@@ -278,38 +303,40 @@
    "rows": null
   },
   "options_sim": {
-   "n": 58,
-   "size": 2427287,
-   "zero_byte": 0,
-   "newest": 1784480146.2305827,
+   "n": 839,
+   "size": 38345553,
+   "zero_byte": 2,
+   "newest": 1790036098.089592,
    "exists_any": true,
    "health": "ok",
-   "reasons": [],
+   "reasons": [
+    "2 zero-byte file(s)"
+   ],
    "per_path": {
     "data/options_sim": {
      "exists": true,
-     "n": 58,
-     "size": 2427287,
-     "newest": 1784480146.2305827,
-     "zero_byte": 0
+     "n": 839,
+     "size": 38345553,
+     "newest": 1790036098.089592,
+     "zero_byte": 2
     }
    },
    "rows": null
   },
   "options_log": {
-   "n": 8,
-   "size": 297752,
+   "n": 243,
+   "size": 33834946,
    "zero_byte": 0,
-   "newest": 1784480147.2918184,
+   "newest": 1790022004.1324873,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
    "per_path": {
     "data/options_log": {
      "exists": true,
-     "n": 8,
-     "size": 297752,
-     "newest": 1784480147.2918184,
+     "n": 243,
+     "size": 33834946,
+     "newest": 1790022004.1324873,
      "zero_byte": 0
     }
    },
@@ -360,6 +387,58 @@
    },
    "rows": null
   },
+  "regime": {
+   "n": 113,
+   "size": 187647905,
+   "zero_byte": 0,
+   "newest": 1785603691.870921,
+   "exists_any": true,
+   "health": "ok",
+   "reasons": [],
+   "per_path": {
+    "data/regime": {
+     "exists": true,
+     "n": 113,
+     "size": 187647905,
+     "newest": 1785603691.870921,
+     "zero_byte": 0
+    }
+   },
+   "rows": null
+  },
+  "mq_gamma_regime": {
+   "n": 61,
+   "size": 172367074,
+   "zero_byte": 0,
+   "newest": 1784950967.2779732,
+   "exists_any": true,
+   "health": "ok",
+   "reasons": [],
+   "per_path": {
+    "data/regime/mq_reveng": {
+     "exists": true,
+     "n": 59,
+     "size": 171455768,
+     "newest": 1784950967.2779732,
+     "zero_byte": 0
+    },
+    "data/regime/mq_regime_daily_2007_2026_v2.csv": {
+     "exists": true,
+     "n": 1,
+     "size": 807430,
+     "newest": 1784949586.4981933,
+     "zero_byte": 0
+    },
+    "data/regime/mq_regime_19y_20260725.png": {
+     "exists": true,
+     "n": 1,
+     "size": 103876,
+     "newest": 1784949619.1280892,
+     "zero_byte": 0
+    }
+   },
+   "rows": null
+  },
   "mq_knowledge": {
    "n": 428,
    "size": 1365961,
@@ -381,9 +460,9 @@
   },
   "vix_ib_daily": {
    "n": 6,
-   "size": 1395549,
+   "size": 1399371,
    "zero_byte": 0,
-   "newest": 1784448556.6933627,
+   "newest": 1789737962.4547348,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
@@ -391,8 +470,8 @@
     "data/vix_daily.csv": {
      "exists": true,
      "n": 1,
-     "size": 328633,
-     "newest": 1784448556.6933627,
+     "size": 332455,
+     "newest": 1789737962.4547348,
      "zero_byte": 0
     },
     "data/vix_daily.parquet": {
@@ -434,19 +513,19 @@
    "rows": null
   },
   "signals": {
-   "n": 7,
-   "size": 3822698,
+   "n": 8,
+   "size": 4099517,
    "zero_byte": 0,
-   "newest": 1783351762.9703033,
+   "newest": 1785329347.38686,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
    "per_path": {
     "data/signals": {
      "exists": true,
-     "n": 7,
-     "size": 3822698,
-     "newest": 1783351762.9703033,
+     "n": 8,
+     "size": 4099517,
+     "newest": 1785329347.38686,
      "zero_byte": 0
     }
    },
@@ -458,10 +537,8 @@
    "zero_byte": 0,
    "newest": 1784129671.75377,
    "exists_any": true,
-   "health": "stale",
-   "reasons": [
-    "newest file 4d old (budget 3d)"
-   ],
+   "health": "ok",
+   "reasons": [],
    "per_path": {
     "data/briefs": {
      "exists": true,
@@ -505,9 +582,108 @@
     }
    },
    "rows": null
+  },
+  "databento_mbo": {
+   "n": 2107,
+   "size": 50000558001,
+   "zero_byte": 0,
+   "newest": 1786009545.3753889,
+   "exists_any": true,
+   "health": "ok",
+   "reasons": [],
+   "per_path": {
+    "data/databento": {
+     "exists": true,
+     "n": 2107,
+     "size": 50000558001,
+     "newest": 1786009545.3753889,
+     "zero_byte": 0
+    }
+   },
+   "rows": null
+  },
+  "depth_l2": {
+   "n": 226,
+   "size": 1592688714,
+   "zero_byte": 0,
+   "newest": 1788536113.6382196,
+   "exists_any": true,
+   "health": "stale",
+   "reasons": [
+    "newest file 17d old (budget 4d)"
+   ],
+   "per_path": {
+    "data/depth": {
+     "exists": true,
+     "n": 226,
+     "size": 1592688714,
+     "newest": 1788536113.6382196,
+     "zero_byte": 0
+    }
+   },
+   "rows": null
+  },
+  "footprint": {
+   "n": 93,
+   "size": 22859358,
+   "zero_byte": 0,
+   "newest": 1786361847.7274535,
+   "exists_any": true,
+   "health": "ok",
+   "reasons": [],
+   "per_path": {
+    "data/footprint": {
+     "exists": true,
+     "n": 93,
+     "size": 22859358,
+     "newest": 1786361847.7274535,
+     "zero_byte": 0
+    }
+   },
+   "rows": null
+  },
+  "discord_intel": {
+   "n": 3705,
+   "size": 206649289,
+   "zero_byte": 0,
+   "newest": 1788993064.842634,
+   "exists_any": true,
+   "health": "stale",
+   "reasons": [
+    "newest file 12d old (budget 1d)"
+   ],
+   "per_path": {
+    "data/discord": {
+     "exists": true,
+     "n": 3705,
+     "size": 206649289,
+     "newest": 1788993064.842634,
+     "zero_byte": 0
+    }
+   },
+   "rows": null
+  },
+  "annotations": {
+   "n": 9,
+   "size": 21751,
+   "zero_byte": 0,
+   "newest": 1789243366.4676423,
+   "exists_any": true,
+   "health": "ok",
+   "reasons": [],
+   "per_path": {
+    "data/annotations": {
+     "exists": true,
+     "n": 9,
+     "size": 21751,
+     "newest": 1789243366.4676423,
+     "zero_byte": 0
+    }
+   },
+   "rows": null
   }
  },
- "total_size": 32321136665,
- "total_files": 17930,
- "scan_seconds": 0.180158
+ "total_size": 86424798219,
+ "total_files": 34402,
+ "scan_seconds": 2.27523
 }

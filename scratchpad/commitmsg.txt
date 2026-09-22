@@ -1,0 +1,20 @@
+feat(0dte): full SPXW 0DTE premium-selling backtest — parse, engine, report
+
+Parses the 77-job cbbo-1m pull (841 sessions, 2023-03-28..2026-08-04) to lean
+0DTE parquet, then backtests the four desk structures bps/bcs/ic/ifly, each run
+CLOSE-anchored (prior close) AND OPEN-anchored (today open) off the same VIX EM
+band, with MID (fair) and CROSS (worst-case) fills, 1.30/leg.
+
+HEADLINE: open-anchored beats close-anchored on every directional structure
+(+6 to +31/trade). Open-anchored bear-call is the only structure profitable
+under BOTH fills (+11.8 mid / +5.1 cross, 96.7 pct win, Sharpe 0.71, PF 1.32,
+DD 4.5k). Open iron condor best total (+10.5k, 13.2/trade) but fill-fragile.
+Iron fly and all close-anchored directionals lose. Gap analysis: condor/bps
+profit on down+flat gaps, bleed on up-gaps; the gap carries the edge.
+
+Scripts: parse_dbn_0dte, options_0dte_backtest (NaN-quote guarded, hand-verified
+P&L), options_0dte_report (gap buckets, close-vs-open, Sharpe/PF/DD, equity PNG),
+databento_0dte_download. refresh_spx_ohlc now also refreshes VIX. DBN/parquet
+gitignored; trades_all.csv + report tracked.
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>

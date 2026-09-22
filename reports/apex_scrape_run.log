@@ -1,0 +1,10 @@
+  BLOCKED https://apextraderfunding.com/
+  BLOCKED https://apextraderfunding.com/legacy-products/
+  BLOCKED https://apextraderfunding.com/help-center/
+  BLOCKED https://apextraderfunding.com/faq/
+  ERR https://support.apextraderfunding.com/hc/en-us: Page.inner_text: Target page, context or browser has been closed
+Call log:
+  - waiting for locator("body")
+
+
+DONE: 0 pages -> C:\Users\Admin\myquant\reports\apex_scrape

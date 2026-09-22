@@ -1,0 +1,11 @@
+book,strat,pnl,n,win_pct,avg
+ic_condor,eodic_c,-21052.2,1080,69.81,-19.6
+ic_condor,eodic_p,421.06,1080,84.81,0.39
+ic_condor,openic_c,-1717.84,1080,77.5,-1.6
+ic_condor,openic_p,-2599.46,1080,89.07,-2.41
+fly,eodfly_c,-85979.56,1081,36.63,-79.98
+fly,eodfly_p,-72406.38,1081,42.74,-67.23
+fly,openfly_c,-31063.72,1081,24.79,-28.79
+fly,openfly_p,-11385.94,1081,27.84,-10.54
+puts_credit_band,eodic_p,9000.78,413,91.28,21.79
+puts_credit_band,openic_p,5933.32,430,90.47,13.8

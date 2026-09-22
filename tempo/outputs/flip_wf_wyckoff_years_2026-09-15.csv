@@ -1,0 +1,9 @@
+select,test_year,picked,wyck_on,n,PF,tot_pts,$/trade,maxDD_$
+pts,2023,co+SAR+noEB+RR3+skipH8b,False,356,1.13,96.8,13.6,-2812.0
+pf,2023,IBS+SAR+noEB+RR2+skipH8b+WYCK,True,183,1.23,81.5,22.3,-1888.0
+pts,2024,IBS+noSAR+noEB+RR2+skipH8b,False,275,0.92,-79.5,-14.5,-12275.0
+pf,2024,IBS+noSAR+noEB+RR2+skipH8b+WYCK,True,180,1.06,35.2,9.8,-4800.0
+pts,2025,co+noSAR+noEB+RR2+skipH8b+WYCK,True,319,1.17,257.0,40.3,-8500.0
+pf,2025,IBS+noSAR+noEB+RR2+skipH8b+WYCK,True,302,1.21,281.2,46.6,-7150.0
+pts,2026,IBS+SAR+noEB+RR2+skipH8b,False,276,1.28,232.2,42.1,-6450.0
+pf,2026,IBS+SAR+noEB+RR2+skipH8b+WYCK,True,164,1.28,133.8,40.8,-4600.0

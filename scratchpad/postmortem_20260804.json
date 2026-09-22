@@ -1,0 +1,104 @@
+{
+  "date": "20260804",
+  "regime_preopen": "n/a (premium-only, unconditional)",
+  "spot_preopen": 7600.0,
+  "levels": {},
+  "settled_0dte": [],
+  "triggers": [
+    {
+      "id": "eodic_p",
+      "setup": "eodic_p",
+      "name": "[EOD] Bull Put @ 7415",
+      "projected_grade": "C",
+      "status": "armed",
+      "fired": false
+    },
+    {
+      "id": "eodic_c",
+      "setup": "eodic_c",
+      "name": "[EOD] Bear Call @ 7565",
+      "projected_grade": "C",
+      "status": "armed",
+      "fired": false
+    },
+    {
+      "id": "eodfly_p",
+      "setup": "eodfly_p",
+      "name": "[EOD] Bull Put @ 7490 (ATM)",
+      "projected_grade": "C",
+      "status": "armed",
+      "fired": false
+    },
+    {
+      "id": "eodfly_c",
+      "setup": "eodfly_c",
+      "name": "[EOD] Bear Call @ 7490 (ATM)",
+      "projected_grade": "C",
+      "status": "armed",
+      "fired": false
+    },
+    {
+      "id": "openic_p",
+      "setup": "openic_p",
+      "name": "[Open] Bull Put @ open-75",
+      "projected_grade": "C",
+      "status": "armed",
+      "fired": false
+    },
+    {
+      "id": "openic_c",
+      "setup": "openic_c",
+      "name": "[Open] Bear Call @ open+75",
+      "projected_grade": "C",
+      "status": "armed",
+      "fired": false
+    },
+    {
+      "id": "openfly_p",
+      "setup": "openfly_p",
+      "name": "[Open] Bull Put @ ATM(open)",
+      "projected_grade": "C",
+      "status": "armed",
+      "fired": false
+    },
+    {
+      "id": "openfly_c",
+      "setup": "openfly_c",
+      "name": "[Open] Bear Call @ ATM(open)",
+      "projected_grade": "C",
+      "status": "armed",
+      "fired": false
+    },
+    {
+      "id": "gx_bps",
+      "setup": "gx_bps",
+      "name": "[GexLog] Bull Put @ putWall 7425",
+      "projected_grade": "C",
+      "status": "armed",
+      "fired": false
+    },
+    {
+      "id": "gx_bcs",
+      "setup": "gx_bcs",
+      "name": "[GexLog] Bear Call @ callWall 7530",
+      "projected_grade": "C",
+      "status": "armed",
+      "fired": false
+    },
+    {
+      "id": "bps_stmr_1559",
+      "setup": "bps_stmr",
+      "name": "STMR Bull Put Spread (15:59 signal)",
+      "projected_grade": "A/B if signal fires",
+      "status": "armed",
+      "fired": false
+    }
+  ],
+  "ohlc": null,
+  "paths_materialized": [
+    [
+      "?",
+      "no tape for this date"
+    ]
+  ]
+}

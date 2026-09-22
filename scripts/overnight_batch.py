@@ -36,7 +36,8 @@ def run_job(name, cmd):
     log(f"START: {name}")
     log(f"  cmd: {' '.join(cmd)}")
     t0 = time.perf_counter()
-    result = subprocess.run(cmd, cwd=str(_ROOT), capture_output=False)
+    result = subprocess.run(cmd, cwd=str(_ROOT), capture_output=False,
+                            creationflags=0x08000000)   # CREATE_NO_WINDOW: no child console flash
     elapsed = time.perf_counter() - t0
     status = "OK" if result.returncode == 0 else f"FAILED (exit {result.returncode})"
     log(f"END:   {name} — {status} — {elapsed/60:.1f} min")

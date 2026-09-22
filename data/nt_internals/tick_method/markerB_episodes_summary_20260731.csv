@@ -1,0 +1,3 @@
+side,n_episodes,med_continuation_pts,mean_continuation_pts,med_mfe_pts,med_mae_pts,med_bars_held,pct_profitable,pct_ended_by_confirm,n_newextreme_bars,med_baseline_pts,mean_baseline_pts,%positive
+"DN (bear div, short)",1757,3.75,-0.82,11.0,12.5,25,61.7,49.9,11408,-0.5,-0.09,47.2
+"UP (bull div, long)",1682,4.0,0.34,10.5,11.5,43,64.3,40.9,13733,0.75,0.38,53.3

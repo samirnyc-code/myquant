@@ -61,7 +61,7 @@ def _build_catalog() -> list[Contract]:
         (2023, 3), (2023, 6), (2023, 9), (2023, 12),
         (2024, 3), (2024, 6), (2024, 9), (2024, 12),
         (2025, 3), (2025, 6), (2025, 9), (2025, 12),
-        (2026, 3), (2026, 6), (2026, 9),
+        (2026, 3), (2026, 6), (2026, 9), (2026, 12),
     ]
 
     contracts    = []
@@ -88,6 +88,11 @@ def _build_catalog() -> list[Contract]:
 
     return contracts
 
+
+# Fixed back-adjustment anchor (see get_contract_windows). ESU6 = the 2026-09
+# front-month the continuous trove is adjusted to. NEVER change this — moving it
+# would require re-adjusting the whole trove, whose pre-2025 source (Massive) is gone.
+ANCHOR_TICKER = "ESU6"
 
 CATALOG:           list[Contract]       = _build_catalog()
 CATALOG_BY_TICKER: dict[str, Contract] = {c.ticker: c for c in CATALOG}
@@ -171,6 +176,19 @@ def get_contract_windows(tickers: list[str], rolls: dict[str, dict]) -> list[dic
         if i > 0:
             off = get_offset(c.ticker, rolls)
             cum_offset += (off if off is not None else 0.0)
+
+    # FIXED ANCHOR (2026-09-15): the continuous trove is back-adjusted to ESU6=raw
+    # (offset 0). Massive is gone, so we can NEVER re-adjust pre-2025 history from
+    # source. We therefore PIN the anchor at ESU6 forever: existing contracts keep
+    # their exact cum_offsets, and each NEW contract splices on with a NEGATIVE
+    # offset (ESZ6 = -67.75) so no existing trove file ever changes on a roll and
+    # the series stays continuous. Re-anchoring to newest would shift every day and
+    # is not needed (absolute level is arbitrary). Do NOT move ANCHOR_TICKER.
+    anchor = next((w["cum_offset"] for w in windows
+                   if w["ticker"] == ANCHOR_TICKER), None)
+    if anchor:
+        for w in windows:
+            w["cum_offset"] = round(w["cum_offset"] - anchor, 4)
 
     return windows[::-1]
 

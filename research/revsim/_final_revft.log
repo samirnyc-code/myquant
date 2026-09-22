@@ -1,0 +1,34 @@
+=== RevFT FINAL: FT_ABR>=1.0 + OB_strict + below-SMA20-D + EOD hold ===
+ALL 2021-26    {'label': '', 'n': 1044, 'pnl': 96330, 'pf': np.float64(1.19), 'win': np.float64(37.1), 'avgR': np.float64(0.07), 'maxdd': -33288, 'netdd': np.float64(2.9), 'sharpe': np.float64(1.28)}
+TRAIN 2021-23  {'label': '', 'n': 630, 'pnl': 24362, 'pf': np.float64(1.09), 'win': np.float64(36.2), 'avgR': np.float64(0.05), 'maxdd': -28840, 'netdd': np.float64(0.8), 'sharpe': np.float64(0.68)}
+OOS 2024-26    {'label': '', 'n': 414, 'pnl': 71968, 'pf': np.float64(1.31), 'win': np.float64(38.4), 'avgR': np.float64(0.09), 'maxdd': -26610, 'netdd': np.float64(2.7), 'sharpe': np.float64(1.88)}
+
+PER YEAR:
+        n      pnl    pf   win
+year                          
+2021  109  10805.0  1.36  39.4
+2022  313  28660.0  1.17  39.0
+2023  208 -15102.0  0.80  30.3
+2024  149  -6420.0  0.91  30.2
+2025  158  66522.0  1.68  44.9
+2026  107  11865.0  1.18  40.2
+
+BY TYPE:
+      count      sum
+rev                 
+BO      291  80458.0
+IB      169  17655.0
+OB      126 -14192.0
+Trap    458  12410.0
+BY SIDE:
+      count      sum
+side                
+-1      559  40230.0
+ 1      485  56100.0
+EXIT REASONS:
+reason
+stop    595
+eod     449
+
+charts -> EQUITY_revft_final.png, AUDIT_revft_trades.png
+DONE_FINAL_REVFT

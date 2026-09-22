@@ -1,0 +1,14 @@
+﻿Apex legacy 150K intraday $5,000 — dynamic MES scaling, 294 trades, 5.1yr
+
+rule                                   result  final net      ~/yr  peak sz  med sz   deepest
+flat 5 MES                           survives $  +26,769 $  +5,229      5c     5c $  +2,420
+flat 8 MES                           survives $  +42,831 $  +8,366      8c     8c $    +872
+base5, +1c / $1500 cush              survives $  +47,664 $  +9,310     40c     5c $  +2,420
+base5, +1c / $1000 cush              survives $  +99,632 $ +19,460    100c     8c $  +2,420
+base5, +1c / $750 cush               survives $ +134,048 $ +26,182    100c     9c $  +2,320
+base5, +1c / $500 cush               survives $ +159,028 $ +31,062    100c    12c $  +1,434
+base8, +1c / $750 cush               survives $ +185,536 $ +36,239    100c    15c $    +872
+base8, +1c / $500 cush               survives $ +187,071 $ +36,539    100c    17c $    +772
+
+per-year for base5 +1c/$750 cush (if survives):
+  2021:$+2,273  2022:$+1,334  2023:$+283  2024:$+12,479  2025:$+37,440  2026:$+80,239

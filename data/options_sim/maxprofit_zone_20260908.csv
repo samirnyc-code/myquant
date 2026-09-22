@@ -1,0 +1,2 @@
+snapshot_ts_et,date,scope,n_positions,zone_low,zone_high,zone_width,spx,in_zone,total_credit,low_edge,high_edge
+12:48:46,2026-09-08,open positions,6,7675.0,7705.0,30.0,7690.23,True,13.85,gx_bps,openfly_c

@@ -21,11 +21,12 @@ import os
 import shutil
 import socket
 import subprocess
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 DEPTH_DIR = ROOT / "data" / "depth"
-FOOTPRINT_DIR = ROOT / "data" / "footprint"
+L1_DIR = ROOT / "data" / "l1_tape"
 CATALOG = ROOT / "data" / "_catalog"
 NT8 = Path(os.environ["USERPROFILE"]) / "Documents" / "NinjaTrader 8"
 
@@ -121,11 +122,15 @@ def check_depth() -> dict:
     """The one dataset that can never be re-collected."""
     now = chicago_now()
     mkt = market_state(now)
-    # ES_09-26_depth_YYYY-MM-DD.csv (and legacy ES_depth_...) - match any contract
+    # ES_09-26_depth_YYYY-MM-DD.csv (and legacy ES_depth_...) - match any contract.
+    # +1: files carry the TRADE DATE (session template), so after 17:00 CT the LIVE
+    # file is dated tomorrow. Without +1 every evening looks like "no file" (S75V).
     files = []
-    for d in (-1, 0):
+    for d in (-1, 0, 1):
         day = (now.date() + dt.timedelta(days=d)).isoformat()
         files += sorted(DEPTH_DIR.glob(f"ES*_depth_{day}.csv"))
+        # 2026-07: the AddOn recorder is the live collector and writes addon_test/
+        files += sorted((DEPTH_DIR / "addon_test").glob(f"ES*_depth_{day}.csv"))
     if not files:
         return _chk("L2 depth", BAD if mkt == "open" else IDLE,
                     "no file for today" if mkt == "open" else f"market {mkt}")
@@ -179,12 +184,91 @@ def _tail_mix(path, nbytes: int = 60_000):
         return 0, 0
 
 
+def _tail_mix_l1(path, nbytes: int = 60_000):
+    """(quote_rows, tape_rows) in the last chunk of an L1 CSV.
+
+    Same tail-only trick as _tail_mix, but for the L1 schema: Ev = T tape / B best-bid /
+    A best-ask / C connection. A file that is all T and no B/A means the quote (bid/ask)
+    subscription is not firing — the L1 analogue of the 'TAPE ONLY' depth failure.
+    """
+    try:
+        with open(path, "rb") as f:
+            f.seek(0, 2)
+            f.seek(max(0, f.tell() - nbytes))
+            chunk = f.read().decode("ascii", "ignore")
+        quote = tape = 0
+        for line in chunk.splitlines()[1:-1]:      # drop partial first/last lines
+            parts = line.split(",", 2)
+            if len(parts) < 2:
+                continue
+            ev = parts[1]
+            if ev == "T":
+                tape += 1
+            elif ev in ("B", "A"):
+                quote += 1
+        return quote, tape
+    except Exception:
+        return 0, 0
+
+
+def check_l1_tape() -> dict:
+    """Live L1 tape + best-bid/ask recorder (L1TapeRecorderAddOn) — the Wyckoff-2.0 DB.
+
+    Reports IDLE 'not started' until the recorder has ever written a file, so it does NOT
+    false-alarm before the AddOn is F5'd. Once files exist, it behaves like check_depth:
+    BAD if stalled while the market is open, and BAD if the tail is TAPE-ONLY (the bid/ask
+    subscription is down)."""
+    now = chicago_now()
+    mkt = market_state(now)
+    files = []
+    for d in (-1, 0, 1):
+        day = (now.date() + dt.timedelta(days=d)).isoformat()
+        files += sorted(L1_DIR.glob(f"ES*_l1_{day}.csv"))
+    # not yet activated (no dir / no file ever) -> IDLE, never BAD (pre-F5 state)
+    if not L1_DIR.exists() or not any(L1_DIR.glob("ES*_l1_*.csv")):
+        return _chk("L1 tape", IDLE, "recorder not started (deploy + F5 L1TapeRecorderAddOn)")
+    if not files:
+        return _chk("L1 tape", BAD if mkt == "open" else IDLE,
+                    "no file for today" if mkt == "open" else f"market {mkt}")
+    mb = sum(f.stat().st_size for f in files) / 1e6
+    age = min(_age(f) for f in files)
+    if mkt in ("closed", "halt"):
+        return _chk("L1 tape", IDLE, f"{mb:,.0f}MB - market {mkt}", mb=round(mb, 1))
+    if age > 180:
+        return _chk("L1 tape", BAD, f"STALLED {_fmt_age(age)} - data being lost", mb=round(mb, 1))
+    quote, tape = _tail_mix_l1(files[-1])
+    if quote + tape == 0:
+        return _chk("L1 tape", WARN, f"{mb:,.0f}MB, tail unreadable", mb=round(mb, 1))
+    if quote == 0:
+        return _chk("L1 tape", BAD,
+                    f"TAPE ONLY - no bid/ask in the last {tape:,} rows "
+                    f"(quote subscription down?)", mb=round(mb, 1), quote=0, tape=tape)
+    pct = 100.0 * quote / (quote + tape)
+    return _chk("L1 tape", OK,
+                f"{mb:,.0f}MB, {_fmt_age(age)} ago, {pct:.0f}% quote",
+                mb=round(mb, 1), quote=quote, tape=tape)
+
+
 def front_month(now: dt.datetime | None = None) -> str:
     """Which ES contract SHOULD be front month right now.
     ES is quarterly (Mar/Jun/Sep/Dec) and rolls ~2nd Thursday of the expiry month, so from
     mid-month the next quarter leads. Recording a dead contract looks perfectly healthy -
-    a file grows, rows arrive - which is exactly why this is checked explicitly."""
+    a file grows, rows arrive - which is exactly why this is checked explicitly.
+
+    USER OVERRIDE (S116, 2026-09-11): the desk rolls on VOLUME, not the calendar —
+    data/es_roll_override.json {"front": "09-26", "until": "2026-09-18"} keeps the old
+    contract expected past the calendar roll. The `until` date is a HARD stop (set it
+    to the contract's expiry Friday at the latest) so a forgotten override can never
+    pin a dead contract — after it, the calendar rule resumes and the alert returns."""
     now = now or chicago_now()
+    ov = ROOT / "data" / "es_roll_override.json"
+    if ov.exists():
+        try:
+            o = json.loads(ov.read_text(encoding="utf-8"))
+            if now.strftime("%Y-%m-%d") < str(o.get("until", "")):
+                return str(o["front"])
+        except Exception:
+            pass                    # malformed override -> calendar rule
     y, m = now.year, now.month
     for em in (3, 6, 9, 12):
         if m < em or (m == em and now.day < 10):
@@ -194,51 +278,44 @@ def front_month(now: dt.datetime | None = None) -> str:
 
 def check_contract() -> dict:
     """Is NT8 recording the contract we expect? (roll traps: 'ES 12-20' was still in a
-    workspace on 2026-07-19 - a chart on a dead contract records nothing, silently.)"""
+    workspace on 2026-07-19 - a chart on a dead contract records nothing, silently.)
+
+    'active' = the VOLUME LEADER among contracts recorded recently (largest current
+    tick file), NOT the most-recently-touched folder. Near a roll the outgoing
+    contract keeps trading until its expiry (09-26 until 2026-09-18), so BOTH folders
+    are written and picking by mtime flapped OK<->WRONG hourly (S119). Volume-leader
+    is stable, still flags a real wrong-contract (a dead contract has little volume),
+    and self-handles every future roll."""
     want = front_month()
     base = NT8 / "db" / "tick"
-    seen, active = [], None
-    if base.exists():
-        dirs = sorted((p for p in base.glob("ES *") if p.is_dir()), key=lambda p: p.stat().st_mtime)
-        seen = [p.name for p in dirs[-3:]]
-        if dirs:
-            active = dirs[-1].name.replace("ES ", "").strip()
-    if not active:
+    RECENT = 6 * 3600           # a contract counts as "recording" if written within 6h
+    now = time.time()
+
+    def fresh_mt(p):            # newest file mtime if within RECENT, else None
+        files = [f for f in p.glob("*") if f.is_file()] if p.is_dir() else []
+        if not files:
+            return None
+        mt = max(f.stat().st_mtime for f in files)
+        return mt if now - mt <= RECENT else None
+
+    if not base.exists():
         return _chk("Contract", WARN, f"expected ES {want}, no tick data found", want=want)
-    if active != want:
+    want_fresh = fresh_mt(base / f"ES {want}")
+    others = sorted(p.name.replace("ES ", "").strip() for p in base.glob("ES *")
+                    if p.name != f"ES {want}" and fresh_mt(p))
+    if want_fresh:              # front month IS being recorded -> healthy (ignore the
+        return _chk("Contract", OK, f"ES {want} (front month)",   # dying contract still on)
+                    want=want, active=want, seen=[want] + others[:2])
+    if others:                  # front month NOT fresh but something else is -> real trap
         return _chk("Contract", BAD,
-                    f"recording ES {active} but front month is ES {want}",
-                    want=want, active=active, seen=seen)
-    return _chk("Contract", OK, f"ES {active} (front month)", want=want, active=active)
+                    f"front month ES {want} not recording; live instead: {', '.join(others)}",
+                    want=want, seen=others[:3])
+    return _chk("Contract", WARN, f"expected ES {want}, no fresh tick data", want=want)
 
 
-def check_footprint() -> dict:
-    fp = sorted(FOOTPRINT_DIR.glob("*_footprint_*.csv"), key=lambda x: x.stat().st_mtime)
-    if not fp:
-        legacy = FOOTPRINT_DIR / "ES_footprint.csv"
-        if legacy.exists():
-            return _chk("Footprint", WARN if market_state() == "open" else IDLE,
-                        f"legacy file only, {_fmt_age(_age(legacy))} ago")
-        return _chk("Footprint", IDLE, "no stamped file yet")
-    newest = fp[-1]
-    age = _age(newest)
-    mkt = market_state()
-    if mkt != "open":
-        return _chk("Footprint", IDLE, f"{newest.name} ({_fmt_age(age)})")
-    # Footprint updates on BAR CLOSE, and these are VOLUME bars (6500V): a bar closes only
-    # when 6,500 contracts trade. In thin overnight ETH that is routinely 15-40 min apart,
-    # so a flat "stale > 15m" flag false-alarms all night. Only treat footprint as stale if
-    # DEPTH is also not flowing (then nothing is being captured at all) or during RTH, where
-    # volume is high enough that a long gap is genuinely abnormal.
-    depth = check_depth()
-    depth_live = depth.get("book", 0) and depth["state"] == OK
-    rth = _desk_hours()
-    limit = 1800 if rth else 999999      # RTH: 30 min is a real gap; ETH: bar-close driven
-    if depth_live and age <= limit:
-        return _chk("Footprint", OK, f"{newest.name} ({_fmt_age(age)}, bar-close driven)")
-    if not depth_live:
-        return _chk("Footprint", WARN, f"{newest.name} stale {_fmt_age(age)} and depth not flowing")
-    return _chk("Footprint", WARN, f"{newest.name} stale {_fmt_age(age)} during RTH")
+# check_footprint RETIRED (S120): the live footprint export was a CSV archive with no on-screen
+# render, and the L1 tape recorder reconstructs footprint offline (tape + aggressor = the
+# footprint). Tile + exporter + MzFootprintExtractor removed. Archived data/footprint/ kept.
 
 
 def check_nt8() -> dict:
@@ -330,9 +407,43 @@ def check_options_sim() -> dict:
         n = 0
     if mkt != "open" or not _desk_hours():
         return _chk("Options sim", IDLE, f"desk closed - feed idle ({_fmt_age(age)})")
-    if age > 3600:
-        return _chk("Options sim", WARN, f"live.json stale {_fmt_age(age)}")
+    # PRE-OPEN ARMING WINDOW (08:00-08:35 CT): the spot feed + sim daemon do not start
+    # until ~08:26-08:28 CT, so a stale/missing live.json BEFORE the desk is armed is
+    # idle-BY-DESIGN, not a dead daemon. This is a NEUTRAL state, never red -- flagging
+    # it BAD (and self-healing) is the false alarm that scrambled the morning on 07-21/22.
+    # Red must mean damage: only after 08:35 CT is a stale feed / missing gameplan a fault.
+    now = chicago_now()
+    armed_by = now.replace(hour=8, minute=35, second=0, microsecond=0)
+    if now < armed_by:
+        return _chk("Options sim", IDLE,
+                    f"pre-open - desk arms by 08:35 CT (feed idle {_fmt_age(age)})")
+    # 08:35 CT onward, market open: a dead daemon is a PAGE, not a shrug. On 2026-07-20 the
+    # daemon failed at the 08:28 launch and nothing alerted - only a screenshot caught it.
+    gp = ROOT / "data" / "options_sim" / f"gameplan_{now:%Y%m%d}.json"
+    if not gp.exists():
+        return _chk("Options sim", BAD,
+                    f"NO GAMEPLAN for {now:%Y-%m-%d} - desk NOT armed")
+    if age > 600:
+        return _chk("Options sim", BAD,
+                    f"sim daemon feed DEAD - live.json stale {_fmt_age(age)}")
     return _chk("Options sim", OK, f"{n} position(s), {_fmt_age(age)} ago")
+
+
+def check_dashboard() -> dict:
+    """The options desk web dashboard (:8600). On 2026-07-20 it crashed on a malformed
+    trade record and stayed dead all session with nothing flagging it. Now it is a
+    first-class health tile: if the port stops answering during desk hours, it is WARN
+    (self-healed by alert_monitor). Off-hours a down dashboard is fine."""
+    s = socket.socket()
+    s.settimeout(1.5)
+    try:
+        s.connect(("127.0.0.1", 8600))
+        return _chk("Options dashboard", OK, "serving :8600")
+    except Exception:
+        return _chk("Options dashboard", WARN if _desk_hours() else IDLE,
+                    ":8600 not answering" + ("" if _desk_hours() else " (desk closed)"))
+    finally:
+        s.close()
 
 
 def check_disk() -> dict:
@@ -355,7 +466,7 @@ def _check_tasks_uncached() -> dict:
     # the tasks are weekday-only now, but the last recorded result lingers until Monday.
     ps = ("Get-ScheduledTask | Where-Object {$_.TaskName -like 'MyQuant*'} | "
           "ForEach-Object { $i=$_|Get-ScheduledTaskInfo; "
-          "[PSCustomObject]@{n=$_.TaskName;r=$i.LastTaskResult;"
+          "[PSCustomObject]@{n=$_.TaskName;r=$i.LastTaskResult;s=[int]$_.State;"
           "d=(&{if($i.LastRunTime){[int]$i.LastRunTime.DayOfWeek}else{-1}})} } | ConvertTo-Json -Compress")
     try:
         out = subprocess.run(["powershell", "-NoProfile", "-NonInteractive",
@@ -370,15 +481,19 @@ def _check_tasks_uncached() -> dict:
     # 267009 = currently running, 267011 = never run, 267014 = terminated (normal for the
     # long-running dashboard server), 0 = success. Day 0/6 = Sunday/Saturday -> ignore.
     ok_codes = (0, 267009, 267011, 267014)
-    bad, weekend = [], 0
+    bad, weekend, disabled = [], 0, 0
     for r in rows:
+        if r.get("s") == 1:            # Disabled = intentionally off, not a failure
+            disabled += 1
+            continue
         if r.get("r") in ok_codes:
             continue
         if r.get("d") in (0, 6):
             weekend += 1
             continue
         bad.append(r["n"])
-    note = f" ({weekend} stale weekend)" if weekend else ""
+    note = (f" ({weekend} stale weekend)" if weekend else "") + \
+        (f" ({disabled} disabled)" if disabled else "")
     if not bad:
         return _chk("Scheduled tasks", OK, f"{len(rows)} tasks, all clean{note}")
     # While the market is shut, a stale weekday failure is history, not a live problem, and
@@ -423,8 +538,33 @@ def _check_archive_uncached() -> dict:
         return _chk("Data archive", WARN, f"git check failed: {type(e).__name__}", n=n)
 
 
-CHECKS = [check_depth, check_contract, check_footprint, check_nt8, check_tick_db, check_archive,
-          check_ib_gateway, check_options_sim, check_disk, check_tasks]
+def check_chain() -> dict:
+    """0DTE SPXW chain recorder — the intraday per-strike NBBO tape (cannot be re-collected).
+    A fresh, growing chain_<today>.csv during the session is proof it's recording. Pages
+    ONLY during the options session (recorder runs ~08:25-15:05 CT); silent 08-07->08-16."""
+    now = chicago_now()
+    session = now.weekday() < 5 and dt.time(8, 35) <= now.time() <= dt.time(15, 0)
+    day = now.strftime("%Y%m%d")
+    f = ROOT / "data" / "options_sim" / f"chain_{day}.csv"
+    if not session:
+        return _chk("0DTE chain", IDLE,
+                    f"{f.stat().st_size / 1e6:,.1f}MB - off session" if f.exists() else "off session")
+    if not f.exists():
+        return _chk("0DTE chain", BAD, "NO file today - recorder not writing")
+    age = _age(f)
+    mb = f.stat().st_size / 1e6
+    if age > 180:
+        return _chk("0DTE chain", BAD,
+                    f"STALLED {_fmt_age(age)} - recorder stuck or all-delayed", mb=round(mb, 1))
+    return _chk("0DTE chain", OK, f"{mb:,.1f}MB, {_fmt_age(age)} ago", mb=round(mb, 1))
+
+
+# check_depth (L2 DOM) is retired from the dashboard tiles: the L2 AddOn is disabled and the
+# desk moved to L1 capture (S120). The L1 tape tile REPLACES the old L2 depth tile here. The
+# function stays defined for any tool that still imports it directly (e.g. nt8_watchdog).
+CHECKS = [check_l1_tape, check_contract, check_nt8, check_tick_db,
+          check_archive, check_ib_gateway, check_options_sim, check_dashboard, check_disk,
+          check_chain, check_tasks]
 
 
 def health() -> dict:

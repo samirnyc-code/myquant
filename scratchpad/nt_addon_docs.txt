@@ -1,0 +1,2328 @@
+
+======================================================================
+### MarketDepth class ref (pages 1844-1848)
+======================================================================
+
+--- p1844 ---
+NinjaScript
+1845
+© 2017 NinjaTrader, LLC
+protected override void OnMarketData(MarketDataEventArgs
+marketDataUpdate)
+{
+     // Print some data to the Output window
+     if (marketDataUpdate.MarketDataType ==
+MarketDataType.Last)
+          Print("Last = " + marketDataUpdate.Price + " " +
+marketDataUpdate.Volume);
+     else if (marketDataUpdate.MarketDataType ==
+MarketDataType.Ask)
+          Print("Ask = " + marketDataUpdate.Price + " " +
+marketDataUpdate.Volume);
+     else if (marketDataUpdate.MarketDataType ==
+MarketDataType.Bid)
+          Print("Bid = " + marketDataUpdate.Price + " " +
+marketDataUpdate.Volume);
+}
+12.5.2.14 OnMarketDepth()
+Definition
+An event driven method which is called and guaranteed to be in the correct sequence for
+every change in level two market data (market depth) for the underlying instrument. The
+OnMarketDepth() method can be used to build your own level two book.
+Notes
+1. This is a real-time data stream and can be CPU intensive if your program code is
+compute intensive (not optimal) 
+2. This method is not called on historical data (backtest) 
+Method Return Value
+This method does not return a value.
+Syntax
+You must override the method in your strategy or indicator with the following syntax:
+protected override void OnMarketDepth(MarketDepthEventArgs marketDepthUpdate) 
+{
+}
+
+--- p1845 ---
+NinjaTrader 8
+1846
+© 2017 NinjaTrader, LLC
+Tip:  The NinjaScript code wizards can automatically generate the method syntax for you
+when creating a new script.
+Parameters
+marketDepthUpdate
+MarketDepthEventArgs
+representing the recent change in
+market data
+Examples
+protected override void OnMarketDepth(MarketDepthEventArgs
+marketDepthUpdate)
+{
+     // Print some data to the Output window
+     if (marketDepthUpdate.MarketDataType ==
+MarketDataType.Ask && marketDepthUpdate.Operation ==
+Operation.Update)
+          Print(string.Format("The most recent ask change is
+{0} {1}", marketDepthUpdate.Price, marketDepthUpdate.Volume));
+}   
+Tips
+1. With multi-time frame and instrument strategies, OnMarketDepth will be called for
+all unique instruments in your strategy. Use the BarsInProgress to filter the
+OnMarketDepth() method for a specific instrument. (BarsInProgress will return the
+first BarsInProgress series that matches the instrument for the event)
+2. Do not leave an unused OnMarketDepth() method declared in your NinjaScript
+object. This will unnecessarily attach a data stream to your strategy which uses
+unnecessary CPU cycles.
+3. Should you wish to run comparisons against prior values you will need to store and
+update local variables to track the relevant values.
+4. With NinjaTrader being multi-threaded, you should not rely on any particular
+sequence of events like OnMarketDepth() always being called before
+OnMarketData() or vice versa.
+12.5.2.14.1  MarketDepthEventArgs
+Definition
+Represents a change in level two market data also known as market depth and is passed as
+
+--- p1846 ---
+NinjaScript
+1847
+© 2017 NinjaTrader, LLC
+a parameter in the OnMarketDepth() method. 
+Methods and Parameters
+Instrument
+A Instrument object representing the instrument
+of the market data
+IsReset
+A bool value representing if a UI reset is needed
+after a manual disconnect.
+Note: This is only relevant for columns.
+Whenever this property is true, the UI needs to
+be reset.
+MarketDataType
+Possible values are:
+MarketDataType.Ask
+MarketDataType.Bid
+MarketMaker
+A string representing the market maker id
+Operation
+Represents the action you should take when
+building a level two book.
+Possible values are:
+Operation.Add
+Operation.Update
+Operation.Remove
+Position
+An int value representing the zero based
+position in the depth ladder.
+Price
+A double value representing the price
+Time
+A DateTime structure representing the time
+ToString()
+A string representation of the
+MarketDataEventArgs object
+Volume
+A long value representing volume
+Examples
+
+--- p1847 ---
+NinjaTrader 8
+1848
+© 2017 NinjaTrader, LLC
+protected override void OnMarketDepth(MarketDepthEventArgs
+marketDepthUpdate)
+{
+     // Print some data to the Output window
+     if (marketDepthUpdate.MarketDataType ==
+MarketDataType.Ask && marketDepthUpdate.Operation ==
+Operation.Update)
+          Print("The most recent ask change is " +
+marketDepthUpdate.Price + " " + marketDepthUpdate.Volume);
+}
+Tips
+1. For an example of how to use IsReset please see \MarketAnalyzerColumns\AskPrice.cs
+12.5.2.15 OnStateChange()
+Definition
+An event driven method which is called whenever the script enters a new State. The
+OnStateChange() method can be used to configure script properties, create one-time
+behavior when going from historical to real-time, as well as manage clean up resources on
+termination. 
+Notes: 
+Viewing any UI element which lists NinjaScript classes (such as the Indicators or
+Strategies window, a chart's Chart Style dropdown menu, etc.) will initialize all classes
+of that Type when it is opened, which causes each script to enter State.SetDefaults,
+even if it is not actively configured or running in any window. It is important to keep this in
+mind when adding logic within State.SetDefaults in OnStateChange(), as this logic
+will be processed each time the script is initialized. For example, opening the Indicators
+window will trigger State.SetDefaults for all indicators in the system, and closing the
+Indicators window will trigger State.Terminated for all Indicators. In addition,
+disconnecting or connecting to a data provider can cause State transitions for any
+currently active scripts. Further discussion of this aspect of the state change model can
+be found via Understanding the lifecycle of your NinjaScript objects.
+When an indicator is configured on a chart while a Compile is taking place in the 
+NinjaScript Editor, it can appear that the script passes through State.Terminated.
+However, this is the result of a copy of the script being initialized at compile-time, NOT
+the result of the indicator on the chart being disabled and re-initialized.
+Related Methods and Properties
+
+======================================================================
+### AddOn dev: instrument+depth+connection+AddOnBase (pages 2042-2100)
+======================================================================
+
+--- p2042 ---
+NinjaScript
+2043
+© 2017 NinjaTrader, LLC
+/* Example of subscribing/unsubscribing to bars data events
+from an Add On as well as making bars requests.
+The concept can be carried over to any NinjaScript object you
+may be working on. */
+public class MyAddOnTab : NTTabPage
+{
+  private int daysBack = 5;
+  private bool barsRequestSubscribed = false;
+  private BarsRequest barsRequest;
+  public MyAddOnTab()
+  {
+    // create a new bars request.  This will determine the
+insturment and range for the bars to be requested
+    barsRequest = new
+BarsRequest(Cbi.Instrument.GetInstrument("AAPL"),
+DateTime.Now.AddDays(-daysBack), DateTime.Now);
+    // Parametrize your request. 
+    barsRequest.BarsPeriod  = new BarsPeriod { BarsPeriodType
+= BarsPeriodType.Minute, Value = 1 };
+    barsRequest.TradingHours = TradingHours.Get("Default 24 x
+7");
+    // Attach event handler for real-time events if you want
+to process real-time data
+    barsRequest.Update      += OnBarUpdate;
+    // Request the bars
+    barsRequest.Request(new Action<BarsRequest, ErrorCode,
+string>((bars, errorCode, errorMessage) =>
+    {
+      if (errorCode != ErrorCode.NoError)
+      {
+        // Handle any errors in requesting bars here
+        NinjaTrader.Code.Output.Process(string.Format("Error
+on requesting bars: {0}, {1}",
+                                        errorCode,
+errorMessage), PrintTo.OutputTab1);
+        return;
+      }
+      // Output the bars we requested. Note: The last returned
+bar may be a currently in-progress bar
+      for (int i = 0; i < bars.Bars.Count; i++)
+      {
+        // Output the bars
+        NinjaTrader.Code.Output.Process(string.Format("Time:
+{0} Open: {1} High: {2} Low: {3} Close: {4} Volume: {5}",
+                                        bars.Bars.GetTime(i),
+                                        bars.Bars.GetOpen(i),
+                                        bars.Bars.GetHigh(i),
+                                        bars.Bars.GetLow(i),
+b
+B
+G tCl
+(i)
+
+--- p2043 ---
+NinjaTrader 8
+2044
+© 2017 NinjaTrader, LLC
+12.5.3.3.1  Request()
+Definition
+Performs the bars request for a BarsRequest object
+Syntax
+BarsRequest.Request(Action<BarsRequest, ErrorCode, string> callback)
+Properties
+BarsRequest
+A BarsRequest representing the bars
+ErrorCode
+An ErrorCode representing error status
+string
+A string representing error message
+Example
+
+--- p2044 ---
+NinjaScript
+2045
+© 2017 NinjaTrader, LLC
+// Request the bars
+barsRequest.Request(new Action<BarsRequest, ErrorCode,
+string>((bars, errorCode, errorMessage) =>
+{
+     if (errorCode != ErrorCode.NoError)
+     {
+          // Handle any errors in requesting bars here
+          NinjaTrader.Code.Output.Process(string.Format("Error
+on requesting bars: {0}, {1}",
+                                          errorCode,
+errorMessage), PrintTo.OutputTab1);
+          return;
+     }
+     // Do something with the returned bars here.
+     for (int i = 0; i < bars.Bars.Count; i++)
+     {
+          // Output the bars
+          NinjaTrader.Code.Output.Process(string.Format("Time:
+{1} Open: {2} High: {3} Low: {4} Close: {5} Volume: {6}",
+                                          bars.Bars.GetTime(i)
+,
+                                          bars.Bars.GetOpen(i)
+,
+                                          bars.Bars.GetHigh(i)
+,
+                                          bars.Bars.GetLow(i),
+                                          bars.Bars.GetClose(i
+),
+                                          bars.Bars.GetVolume(
+i)), PrintTo.OutputTab1);
+     }
+}));
+12.5.3.3.2  MergePolicy
+Definition
+Determines the merge policy of the bars request.
+Notes:
+This property is ONLY applicable to Futures contracts
+General information regrading merge policies can be found from the Market Data
+Configuration section
+For an Instruments configured merge policy, please see the
+MasterInstrument.MergePolicy property
+
+--- p2045 ---
+NinjaTrader 8
+2046
+© 2017 NinjaTrader, LLC
+Property Value
+Represents the MergePolicy used for the bars request.
+Possible values are:
+DoNotMerge
+No merge policy is applied
+MergeBackAdjusted
+Merge policy is applied between contracts
+along with rollover offsets
+MergeNonBackAdjusted
+Merge policy is applied between contracts
+without offsets
+UseGlobalSettings
+Uses the value configured from Tools ->
+Options -> Market Data
+UseDefault
+Uses the default values configured for the 
+MasterInstrument
+Syntax
+MergePolicy
+Example
+
+--- p2046 ---
+NinjaScript
+2047
+© 2017 NinjaTrader, LLC
+// request the last 365 1 day bars
+BarsRequest useGlobalRequest = new
+BarsRequest(Instrument.GetInstrument("ES 09-16"), 365);
+useGlobalRequest.BarsPeriod = new BarsPeriod { BarsPeriodType
+= BarsPeriodType.Day, Value = 1 };
+// use the merge policy the user has configured as their
+global setting
+useGlobalRequest.MergePolicy = MergePolicy.UseGlobalSettings;
+useGlobalRequest.Request(new Action<BarsRequest, ErrorCode,
+string>((barsRequest, errorCode, errorMessage) =>{
+   Print("bars returned=" + barsRequest.Bars.Count);
+}));
+// dispose of the bars request if we are done with it
+useGlobalRequest.Dispose();
+12.5.3.4 Connection
+Definition
+The Connection class can be used to monitor connection related events as well as accessing
+connection related information.
+Static Connection Class Events and Properties
+CancelAllOrd
+ers()
+Cancels all orders
+Connect()
+Connects to a connection
+ConnectionSt
+atusUpdate
+Event handler for connection status updates
+Events and Properties from Connection instances
+Accounts
+List of accounts from the connection
+Disconnect()
+Disconnects from the connection
+Options
+The connection's configuration options
+
+--- p2047 ---
+NinjaTrader 8
+2048
+© 2017 NinjaTrader, LLC
+PriceStatus
+A ConnectionStatus representing the status of the
+price feed. Possible values are:
+ConnectionStatus.Connected
+ConnectionStatus.Connecting 
+ConnectionStatus.ConnectionLost
+ConnectionStatus.Disconnecting
+ConnectionStatus.Disconnected
+Status
+A ConnectionStatus representing the status of the
+order feed. Possible values are:
+ConnectionStatus.Connected
+ConnectionStatus.Connecting 
+ConnectionStatus.ConnectionLost
+ConnectionStatus.Disconnecting
+ConnectionStatus.Disconnected
+Example
+// Example of accessing information on all connected
+connections
+public class MyAddOnTab : NTTabPage
+{
+   public MyAddOnTab()
+   {
+      // Print information about all connected connections
+      lock (Connection.Connections)
+         Connection.Connections.ToList().ForEach(c =>
+NinjaTrader.Code.Output.Process(
+                 string.Format("Connection: {0} Provider:
+{1}", c.Options.Name, c.Options.Provider),
+                 PrintTo.OutputTab1));
+      // Other required NTTabPage members left out for
+demonstration purposes. Be sure to add them in your own code.
+   }
+}
+12.5.3.4.1  CancelAllOrders()
+Definition
+Cancels all orders for the specified instrument on the connection.
+
+--- p2048 ---
+NinjaScript
+2049
+© 2017 NinjaTrader, LLC
+Syntax
+<Connection>.CancelAllOrders(Instrument instrument)
+instru
+ment
+An Instrument object used to identify the instrument for which
+to cancel orders
+Example
+private Account myAccount;
+protected override void OnStateChange()
+{
+    if (State == State.SetDefaults)
+    {
+        // Initialize myAccount
+    }
+}
+private void OnExecutionUpdate(object sender,
+ExecutionEventArgs e)
+{
+    // Cancel all orders if an execution is triggered after
+9pm
+    if (e.Time > new DateTime(now.Year, now.Month, now.Day,
+21, 0, 0))
+        myAccount.CancelAllOrders(e.Execution.Instrument);
+}
+12.5.3.4.2  Connect()
+Definition
+Connects to a connection.
+Syntax
+Connection.Connect(ConnectOptions options)
+Parameters
+options
+The connection option of what you want to
+connect to
+Example
+
+--- p2049 ---
+NinjaTrader 8
+2050
+© 2017 NinjaTrader, LLC
+/* Example of subscribing/unsubscribing to execution update
+events from an Add On. The concept can be carried over
+to any NinjaScript object you may be working on. */
+public class MyAddOnTab : NTTabPage
+{
+     private Connection connection;
+     public MyAddOnTab()
+     {
+          // Connect to Kinetick EOD
+          if (connection == null)
+               connection = Connect("Kinetick - End Of Day
+(Free)");
+     }
+     private void Connect(string connectionName)
+     {
+          // Output the execution
+          try
+          {
+               // Get the configured account connection
+               ConnectOptions connectOptions = null;
+               lock (Core.Globals.ConnectOptions)
+                    connectOptions =
+Core.Globals.ConnectOptions.FirstOrDefault(o => o.Name ==
+connectionName);
+               if (connectOptions == null)
+               {
+                    NinjaTrader.Code.Output.Process("Could not
+connect. No connection found.", PrintTo.OutputTab1);
+                    return null;
+               }
+               // If connection is not already connected,
+connect.
+               lock (Connection.Connections)
+                    if
+(Connection.Connections.FirstOrDefault(c => c.Options.Name ==
+connectionName) == null)
+                    {
+                         Connection connect =
+Connection.Connect(connectOptions);
+                         // Only return connection if
+successfully connected
+                         if (connect.Status ==
+ConnectionStatus.Connected)
+
+--- p2050 ---
+NinjaScript
+2051
+© 2017 NinjaTrader, LLC
+                              return connect;
+                         else
+                              return null;
+                    }
+               return null;
+          }
+          catch (Exception error)
+          {
+               NinjaTrader.Code.Output.Process("Connect
+exception: " + error.ToString(), PrintTo.OutputTab1);
+               return null;
+          }
+     }
+     // Called by TabControl when tab is being removed or
+window is closed
+     public override void Cleanup()
+     {
+          // Disconnect from our connection
+          if (connection != null)
+               connection.Disconnect();
+     }
+     // Other required NTTabPage members left out for
+demonstration purposes. Be sure to add them in your own code.
+}
+12.5.3.4.3  ConnectionStatusUpdate
+Definition
+ConnectionStatusUpdate can be used for subscribing to connection status update events.
+Note: Remember to unsubscribe if you are no longer using the subscription.
+Syntax
+ConnectionStatusUpdate
+Example
+/* Example of subscribing/unsubscribing to execution update
+events from an Add On. The concept can be carried over
+to any NinjaScript object you may be working on. */
+public class MyAddOnTab : NTTabPage
+
+--- p2051 ---
+NinjaTrader 8
+2052
+© 2017 NinjaTrader, LLC
+{
+     private Connection connection;
+     public MyAddOnTab()
+     {
+          // Subscribe to execution updates
+          Connection.ConnectionStatusUpdate +=
+OnConnectionStatusUpdate;
+     }
+     // This method is fired on connection status update
+events
+     private void OnConnectionStatusUpdate(object sender,
+ConnectionStatusEventArgs e)
+     {
+          /* For multi-threading reasons, work with a copy of
+the ConnectionStatusEventArgs to prevent situations
+          where the ConnectionStatusEventArgs may already be
+ahead of us while in the middle processing it. */
+          ConnectStatusEventArgs eCopy = e;
+          // If the Kinetick EOD connection disconnects, do
+something
+          if (eCopy.Connection.Options.Name == "Kinetick - End
+Of Day (Free)")
+          {
+               if (eCopy.Status ==
+ConnectionStatus.Disconnected)
+                    // Do something
+          }
+     }
+     // Called by TabControl when tab is being removed or
+window is closed
+     public override void Cleanup()
+     {
+          // Make sure to unsubscribe to the connection status
+subscription
+          Connection.ConnectionStatusUpdate -=
+OnConnectionStatusUpdate;
+     }
+     // Other required NTTabPage members left out for
+demonstration purposes. Be sure to add them in your own code.
+}
+
+--- p2052 ---
+NinjaScript
+2053
+© 2017 NinjaTrader, LLC
+12.5.3.4.4  Disconnect()
+Definition
+Disconnects from the data connection.
+Syntax
+<Connection>.Disconnect()
+Example
+private void OnExecutionUpdate(object sender,
+ExecutionEventArgs e)
+{
+    // If an execution triggers after 9pm, disconnect from the
+account's data source
+    if (e.Time > new DateTime(now.Year, now.Month, now.Day,
+21, 0, 0))
+        myAccount.Connection.Disconnect();
+}
+12.5.3.4.5  Options
+Definition
+The connection's configuration options
+Properties
+ConnectOnSt
+artup
+A bool representing if this connection auto connects
+on startup
+Name
+A string representing the connection's name
+Provider
+A Provider representing the connection's provider
+Example
+
+--- p2053 ---
+NinjaTrader 8
+2054
+© 2017 NinjaTrader, LLC
+// Example of accessing information on all connected
+connections
+public class MyAddOnTab : NTTabPage
+{
+     public MyAddOnTab()
+     {
+          // Print information about all connected connections
+          lock (Connection.Connections)
+               Connection.Connections.ToList().ForEach(c =>
+NinjaTrader.Code.Output.Process(string.Format("Connection:
+{0} 
+                    Provider: {1}", c.Options.Name,
+c.Options.Provider), PrintTo.OutputTab1);
+     }
+     // Other required NTTabPage members left out for
+demonstration purposes. Be sure to add them in your own code.
+}
+12.5.3.4.6  PriceStatus
+Definition
+Indicates the current status of the price feed of the primary data connection
+Syntax
+<Connection>.PriceStatus
+Example
+
+--- p2054 ---
+NinjaScript
+2055
+© 2017 NinjaTrader, LLC
+private int priceLost;
+private int mainLost;
+private void OnAccountItemUpdate(object sender,
+AccountItemEventArgs e)
+{
+    // Count the number of times OnAccountItemUpdate() is
+called with a lost price connection
+    if (myAccount.Connection.PriceStatus ==
+ConnectionStatus.ConnectionLost)
+        priceLost += 1;
+    // Count the number of times OnAccountItemUpdate() is
+called with a lost primary connection
+    if (myAccount.Connection.Status ==
+ConnectionStatus.ConnectionLost)
+        mainLost += 1;
+    // Print the number of times each connection was lost
+during OnAccountItemUpdate()
+    if (mainLost > 0 || priceLost > 0)
+        Print(String.Format("Main connection lost {0} times.
+Price feed lost {1} times.", mainLost, priceLost));
+}
+12.5.3.4.7  Status
+Definition
+Indicates the current status of the primary data connection.
+Properties
+<Connection>.Status
+Example
+
+--- p2055 ---
+NinjaTrader 8
+2056
+© 2017 NinjaTrader, LLC
+private int priceLost;
+private int mainLost;
+private void OnAccountItemUpdate(object sender,
+AccountItemEventArgs e)
+{
+    // Count the number of times OnAccountItemUpdate() is
+called with a lost price connection
+    if (myAccount.Connection.PriceStatus ==
+ConnectionStatus.ConnectionLost)
+        priceLost += 1;
+    // Count the number of times OnAccountItemUpdate() is
+called with a lost primary connection
+    if (myAccount.Connection.Status ==
+ConnectionStatus.ConnectionLost)
+        mainLost += 1;
+    // Print the number of times each connection was lost
+during OnAccountItemUpdate()
+    if (mainLost > 0 || priceLost > 0)
+        Print(String.Format("Main connection lost {0} times.
+Price feed lost {1} times.", mainLost, priceLost));
+}
+12.5.3.4.8  ReloadAllHistoricalData()
+Definition
+To be used only in the OnConnectionStatusUpdate() event.  Forces the data repository to be
+reloaded for any bars series running in the hosting script after.  Data will be reloaded for any
+charts currently running which match the hosting scripts bars series (minute, tick, day).  This
+method will also check and reload the max number of days or bars to load used in every chart
+running which matches the bars series contained in the script.  Reloading historical data
+refreshes the UI which will force the NinjaScript object to re-transition to real-time.  This
+method was designed for reloading historical data after an OnConnectionStatusUpdate event.
+ 
+Critical: This method should NOT be called from any of the event methods which access
+data or any of the OnStateChange() states as it may be called recursively while the
+hosting object transitions through states.  The designed use case for this method is
+reloading historical data after a connection update therefore we suggest ONLY using this
+method in the OnConnectionStatusUpdate method.  Please see the examples below for
+an demonstration of the intended use case.
+
+--- p2056 ---
+NinjaScript
+2057
+© 2017 NinjaTrader, LLC
+Method Return Value
+This method does not return a value
+Syntax
+ReloadAllHistoricalData()
+Parameters
+This method does not take any parameters
+Examples
+//monitor our connection status so our NinjaScript object
+would know to reload historical data
+//create a bool which tracks when historical data would need
+to be reloaded after a connection loss
+private bool IsReloadAllHistoricalDataNeeded = false;
+protected override void
+OnConnectionStatusUpdate(ConnectionStatusEventArgs
+connectionStatusUpdate)
+{            
+   //if the connection status update detects a lost connection
+   if(connectionStatusUpdate.Status ==
+ConnectionStatus.ConnectionLost)
+   {
+      Print("Connection Lost, setting IsReloadAllHistorical
+Data to true");
+      // switch the reload data bool to true            
+      IsReloadAllHistoricalDataNeeded = true;
+      
+   
+   }         
+   // only if we needed to reload historical data && only
+after when we have reconnected
+   else if (IsReloadAllHistoricalDataNeeded &&
+connectionStatusUpdate.Status == ConnectionStatus.Connected )
+   {
+      Print("Connection is reconnected, reloading all
+historical data");
+      //then reload data and set our bool back to false.
+      ReloadAllHistoricalData();
+      IsReloadAllHistoricalDataNeeded = false;
+   }
+   
+}
+
+--- p2057 ---
+NinjaTrader 8
+2058
+© 2017 NinjaTrader, LLC
+12.5.3.5 IInstrumentProvider Interface
+When creating your NTTabPage, if you wish to use the instrument link, be sure to implement
+the IInstrumentProvider interface.
+Examples
+
+--- p2058 ---
+NinjaScript
+2059
+© 2017 NinjaTrader, LLC
+public class MyWindowTabPage : NTTabPage, IInstrumentProvider
+{
+     private Instrument instrument;
+     public MyWindowTabPage()
+     {
+          /* Define the content for our NTTabPage. We can load
+loose XAML to define controls and layouts
+          if we so choose here as well.
+          Note: XAML with event handlers defined inside WILL
+FAIL when attempted to load.
+          Note: XAML with "inline code" WILL FAIL when
+attempted to load */
+     }
+     // IInstrumentProvider member
+     public Instrument Instrument
+     {
+          get { return instrument; }
+          set
+          {
+               if (instrument != null)
+               {
+                    // Unsubscribe to subscriptions to
+previously selected instrument
+               }
+               
+               if (value != null)
+               {
+                    // Create subscriptions for the newly
+selected instrument
+               }
+               instrument = value;
+               // Send instrument to other windows linked to
+the same color
+               PropagateInstrumentChange(value);
+               // Update the tab header name
+               RefreshHeader();
+          }
+     }
+     // Be sure to include all the required NTTabPage members
+as well
+}
+
+--- p2059 ---
+NinjaTrader 8
+2060
+© 2017 NinjaTrader, LLC
+12.5.3.5.1  Instrument
+In order for instrument linking to work properly in your Add On, Instrument must be created.
+Examples
+// IInstrumentProvider member
+public Instrument Instrument
+{
+     get { return instrument; }
+     set
+     {
+          if (instrument != null)
+          {
+               // Unsubscribe to subscriptions to previously
+selected instrument
+          }
+               
+          if (value != null)
+          {
+               // Create subscriptions for the newly selected
+instrument
+          }
+          instrument = value;
+          // Send instrument to other windows linked to the
+same color
+          PropagateInstrumentChange(value);
+          // Update the tab header name
+          RefreshHeader();
+     }
+}
+12.5.3.6 IIntervalProvider Interface
+When creating your NTTabPage, if you wish to use the interval link, be sure to implement the
+IIntervalProvider interface.
+Examples
+
+--- p2060 ---
+NinjaScript
+2061
+© 2017 NinjaTrader, LLC
+public class MyWindowTabPage : NTTabPage, IIntervalProvider
+{
+     public MyWindowTabPage()
+     {
+          /* Define the content for our NTTabPage. We can load
+loose XAML to define controls and layouts
+          if we so choose here as well.
+          Note: XAML with event handlers defined inside WILL
+FAIL when attempted to load.
+          Note: XAML with "inline code" WILL FAIL when
+attempted to load */
+     }
+     // IIntervalProvider member
+     public BarsPeriod BarsPeriod { get; set; }
+     // Be sure to include all the required NTTabPage members
+as well
+}
+12.5.3.6.1  BarsPeriod
+In order for interval linking to work properly in your Add On, BarsPeriod must be created.
+Examples
+// IIntervalProvider member
+public BarsPeriod BarsPeriod { get; set; }
+12.5.3.7 INTTabFactory Interface
+If you wish to have tab page functionality like adding, removing, moving, duplicating tabs you
+must create a class which implements the INTTabFactory interface. 
+This interface contains two methods which must be hidden:
+NTWindow CreateParentWindow();
+NTTabPage CreateTabPage(string typeName, bool isNewWindow = false);
+Examples
+
+--- p2061 ---
+NinjaTrader 8
+2062
+© 2017 NinjaTrader, LLC
+public class MyWindowFactory : INTTabFactory
+{
+     // INTTabFactory member. Creates the parent window that
+contains tabs
+     public NTWindow CreateParentWindow()
+     {
+          return new MyWindow();
+     }
+     // INTTabFactory member. Creates new tab pages whenever
+the user presses the + button
+     public NTTabPage CreateTabPage(string typeName)
+     {
+          return new MyWindowTabPage();
+     }
+}
+12.5.3.7.1  CreateParentWindow ()
+This determines which NTWindow is created as the parent window for our Add On.
+Examples
+// INTTabFactory member. Creates the parent window that
+contains tabs
+public NTWindow CreateParentWindow()
+{
+     return new MyWindow();
+}
+12.5.3.7.2  CreateTabPage()
+This determines which NTTabPage is created whenever a new tab is needed in our parent
+window for our Add On.
+Examples
+
+--- p2062 ---
+NinjaScript
+2063
+© 2017 NinjaTrader, LLC
+// INTTabFactory member. Creates new tab pages whenever the
+user presses the + button
+public NTTabPage CreateTabPage(string typeName, bool
+isNewWindow = false)
+{
+   return new MyWindowTabPage();
+}
+12.5.3.8 IWorkspacePersistence Interface
+When creating your NTWindow, be sure to implement the IWorkspacePersistence interface
+as well for the ability to save and restore your window with NinjaTrader workspaces. 
+Note:  AddOn Classes which derive from NTWindow or implements
+IWorkspacePersistance CANNOT be a nested type of another class and MUST have a
+default constructor
+This interface contains two methods and one property which must be hidden by the
+implementing class:
+Restore()
+Restores the window from
+workspaces.
+Save()
+Saves the window to workspaces.
+WorkspaceOptions
+Sets required workspace options. 
+Examples
+
+--- p2063 ---
+NinjaTrader 8
+2064
+© 2017 NinjaTrader, LLC
+public class MyWindow : NTWindow, IWorkspacePersistence
+{
+    // default constructor 
+    public MyWindow()
+     {
+          // Define our NTWindow. If we want to use NT style
+tabs, we would define that here.
+          
+          // WorkspaceOptions property must be set
+          Loaded += (o, e) =>
+          {
+               if (WorkspaceOptions == null)
+                    WorkspaceOptions = new
+WorkspaceOptions("MyWindow-" + Guid.NewGuid().ToString("N"), 
+this);
+          };
+     }
+     // IWorkspacePersistence member. Required for restoring
+window from workspaces
+     public void Restore(XDocument document, XElement)
+     {
+          if (MainTabControl != null)
+               MainTabControl.RestoreFromXElement(element);
+     }
+     // IWorkspacePersistence member. Required for saving
+window to workspaces
+     public void Save(XDocument document, XElement element)
+     {
+          if (MainTabControl != null)
+               MainTabControl.SaveToXElement(element);
+     }
+     // IWorkspacePersistence member
+     public WorkspaceOptions WorkspaceOptions { get; set; }
+}
+12.5.3.8.1  Restore()
+Restores the window from workspaces.
+Examples
+
+--- p2064 ---
+NinjaScript
+2065
+© 2017 NinjaTrader, LLC
+// IWorkspacePersistence member. Required for restoring window
+from workspaces
+public void Restore(XDocument document, XElement)
+{
+     if (MainTabControl != null)
+          MainTabControl.RestoreFromXElement(element);
+}
+12.5.3.8.2  Save()
+Saves the window to workspaces.
+Examples
+// IWorkspacePersistence member. Required for saving window to
+workspaces
+public void Save(XDocument document, XElement element)
+{
+     if (MainTabControl != null)
+          MainTabControl.SaveToXElement(element);
+}
+12.5.3.8.3  WorkspaceOptions
+Definition
+Sets required workspace options. 
+Notes: 
+The WorkspaceOptions class includes logic for opening, closing, saving, and restoring
+workspaces, checking windows are off screen, and setting basic properties such as the
+workspace name and current status.
+A WorkspaceOptions property must simply be declared within your NTWindow, as in
+the example below. All of its contained logic is taken care of automatically.
+Tip: For a complete, working example of this class in use, download the AddOn
+Framework Example located on our File Sharing forum.
+Examples
+
+--- p2065 ---
+NinjaTrader 8
+2066
+© 2017 NinjaTrader, LLC
+// IWorkspacePersistence member
+public WorkspaceOptions WorkspaceOptions { get; set; }
+12.5.3.9 NTTabPage Class
+This is where the actual content for tabs inside the custom add on NTWindow can be defined.
+Note: A class derived from NTTabPage has to be created if instrument link or interval link
+functionality is desired. IInstrumentProvider and IIntervalProvider interfaces should be
+implemented as well to ensure proper linking.
+GetH
+eader
+Part()
+Indicates the tab header name.
+Rest
+ore()
+Restores any elements in our NTTabPage from the
+workspace.
+Save
+()
+Saves elements in our NTTabPage to the workspace.
+Examples
+public class MyWindowTabPage : NTTabPage,
+NinjaTrader.Gui.Tools.IInstrumentProvider, IIntervalProvider
+{
+     private Instrument instrument;
+     public MyWindowTabPage()
+     {
+          /* Define the content for our NTTabPage. We can load
+loose XAML to define controls and layouts
+          if we so choose here as well.
+          Note: XAML with event handlers defined inside WILL
+FAIL when attempted to load.
+          Note: XAML with "inline code" WILL FAIL when
+attempted to load */
+     }
+     // Called by TabControl when a tab is being removed or
+
+--- p2066 ---
+NinjaScript
+2067
+© 2017 NinjaTrader, LLC
+window is closed
+     public override void Cleanup()
+     {
+          /* Unsubscribe and clean up resources used by the
+tab that just closed. You may have
+          resources you don't want to clean up just yet
+because the window is still being used */
+     }
+     // NTTabPage member. Required for determining the tab
+header name
+     protected override string GetHeaderPart(string variable)
+     {
+          // Determine the text for the tab header name
+       return variable;
+     }
+     // NTTabPage member. Required for restoring elements from
+workspaces
+     protected override void Restore(System.Xml.Linq.XElement
+element)
+     {
+          if (element == null)
+               return;
+          
+          // Restore any elements you may have saved. e.g.
+selected accounts or instruments
+     }
+     // NTTabPage member. Required for saving elements to
+workspaces
+     protected override void Save(System.Xml.Linq.XElement
+element)
+     {
+          if (element == null)
+               return;
+          
+          // Save any elements you may want persisted. e.g.
+selected accounts or instruments
+     }
+     // IInstrumentProvider member
+     public Instrument Instrument
+     {
+          get { return instrument; }
+          set
+          {
+
+--- p2067 ---
+NinjaTrader 8
+2068
+© 2017 NinjaTrader, LLC
+               if (instrument != null)
+               {
+                    // Unsubscribe to subscriptions to
+previously selected instrument
+               }
+               
+               if (value != null)
+               {
+                    // Create subscriptions for the newly
+selected instrument
+               }
+               instrument = value;           
+               // Update the tab header name
+               RefreshHeader();
+          }
+     }
+     // IIntervalProvider member
+     public BarsPeriod BarsPeriod { get; set; }
+}
+12.5.3.9.1  GetHeaderPart()
+Definition 
+Indicates the tab header name.
+Examples
+// NTTabPage member. Required for determining the tab header
+name
+protected override string GetHeaderPart(string variable)
+{
+     // Determine the text for the tab header name
+     switch (variable)
+     {
+         case "@INSTRUMENT": return Instrument == null ?
+Resource.GuiNewTab : Instrument.MasterInstrument.Name;
+         case "@INSTRUMENT_FULL": return Instrument == null ?
+Resource.GuiNewTab : Instrument.FullName;
+     }
+     return variable;
+}
+
+--- p2068 ---
+NinjaScript
+2069
+© 2017 NinjaTrader, LLC
+12.5.3.9.2  Restore()
+Restores any elements in our NTTabPage from the workspace. (e.g. Selected accounts or
+instruments)
+Examples
+// NTTabPage member. Required for restoring elements from
+workspaces
+public void Restore(XElement element)
+{
+     if (element == null)
+          return;
+     // Restore any elements you may have saved. e.g. selected
+accounts or instruments
+}
+12.5.3.9.3  Save()
+Saves elements in our NTTabPage to the workspace (e.g. Selected accounts or instruments)
+Examples
+// NTTabPage member. Required for saving elements to
+workspaces
+public void Save(XElement element)
+{
+     if (element == null)
+          return;
+     // Save any elements you may want persisted. e.g.
+selected accounts or instruments
+}
+12.5.3.10 Alert and Debug Concepts
+In most scenarios you can use the NinjaScript provided methods for triggering alerts and
+debugging functionality. However, when building your own custom objects, you may find
+yourself wanting to use this functionality outside the NinjaScript scope (e.g. when building a 
+NTTabPage for Add Ons).
+Using the NinjaScript Output
+Instead of Print(), use Output.Process() to write a message.
+Instead of ClearOutputWindow(), use Output.Reset() to clear the output window.
+
+--- p2069 ---
+NinjaTrader 8
+2070
+© 2017 NinjaTrader, LLC
+Example
+// Instead of Print()
+NinjaTrader.Code.Output.Process("my message",
+PrintTo.OutputTab1);
+// Instead of ClearOutputWindow()
+NinjaTrader.Code.Output.Reset()
+Using Alerts
+Instead of Alert(), use NinjaTrader.NinjaScript.Alert.AlertCallBack() for sending an alert.
+Instead of ResetAlert(), use NinjaTrader.NinjaScript.Alert.RearmAlert()
+Example
+// Instead of Alert()
+NinjaTrader.NinjaScript.Alert.AlertCallback(NinjaTrader.Cbi.In
+strument.GetInstrument("MSFT"), this, "someId",
+NinjaTrader.Core.Globals.Now, Priority.High, "message", null,
+new SolidColorBrush(Colors.Blue), new
+SolidColorBrush(Colors.White), 0);
+// Instead of ResetAlert()
+NinjaTrader.NinjaScript.Alert.ResetAlertRearmById("someId");
+Miscellaneous
+Instead of Log(), use Log.Process() to send a message to NinjaTrader logs.
+Instead of PlaySound(), use Globals.PlaySound() to play a sound.
+Instead of SendMail(), use Globals.SendMail() to send a mail.
+Examples
+
+--- p2070 ---
+NinjaScript
+2071
+© 2017 NinjaTrader, LLC
+// Instead of Log()
+NinjaTrader.Cbi.Log.Process(typeof(Resource), "someName", new
+object[] { "My log message" }, LogLevel.Error,
+LogCategories.Default, null)
+// Instead of PlaySound()
+NinjaTrader.Core.Globals.PlaySound(@"C:\mySound.wav");
+// Instead of SendMail()
+NinjaTrader.Core.Globals.SendMail("customers@email.com",
+"cc_these_people@email.com", "Subject", "Mail body", null);
+Error Codes in Log Files
+The ErrorCode enumeration can be found in NinjaTrader logs from time to time when an error
+occurs, and these can provide further clues into the cause of unexpected behavior during
+your debugging. These error codes are not necessarily related to your code, but they can
+provide an indication of an issue to address outside of the scope of your code, saving you
+time in trying to find the source of errors in your code. Below is a list of ErrorCode enum
+values and their meanings:
+NoError
+No errors were thrown
+LogOnFai
+led
+Failed to log on due to invalid credentials
+OrderRej
+ected
+Broker rejected the current order
+UnableTo
+CancelOr
+der
+Order cannot be canceled now, but may be successfully
+canceled later
+UnableTo
+ChangeO
+rder
+Either the exchange or broker does not support order
+updates for the instrument in question, or the order has
+not yet been submitted
+UserAbor
+t
+The operation was aborted by the user
+Panic
+An unspecified error was thrown
+
+--- p2071 ---
+NinjaTrader 8
+2072
+© 2017 NinjaTrader, LLC
+12.5.3.10.1  AlertCallback()
+Definition
+Creates an alert event to be raised specified by a string "id" and a corresponding .wav file will
+be played matching the "soundLocation" parameter.  Once an alert has triggered, its
+message is reflected in the "Alerts Log" window based on the background and foreground
+brushes provided in the callback.   
+Notes:  
+1. If the AlertCallBack() method is called again with the same string "id" parameter before
+the provided "rearmSeconds" duration has passed, the alert event will be reset based
+on the new "rearmSeconds" parameter provided.  Doing so could consequently cause
+an alert to be reset inadvertently, in which case you should pass a "rearmSeconds"
+parameter of "0" to ensure the specified alert event is always raised.
+2. The AlertCallback() method is the same core function used by the simpler Alert()
+method which can alternatively be used with NinjaScript indicators and strategies.  The
+AletCallBack() was exposed for use with Add-ons or other more advance use cases.  
+3. Providing a "rearmSeconds"  parameter greater than "0" will add the matching alert id to
+a rearmed state, which only allows the alert to be reissued after the specified time
+interval in seconds has lapsed.  You can reset an alert's rearm parameter by using the 
+ResetAlertRearmById().
+Method Return Value
+This method does not return a value.
+Syntax
+NinjaTrader.NinjaScript.Alert.AlertCallBack(Instrument instrument, object source,
+string id, DateTime time, Priority priority, string message, string soundLocation,
+Brush backBrush, Brush foreBrush, int rearmSeconds)
+Warning:  An "id" parameter MUST  be provided otherwise a null argument exception will
+be generated
+Parameters
+instrument
+An Instrument object associated with the alert.  
+source
+A generic object type which created the alert
+(e.g. "this")
+id
+A string representing a unique id for the alert
+
+--- p2072 ---
+NinjaScript
+2073
+© 2017 NinjaTrader, LLC
+time
+The DateTime representing the time associated
+with the alert
+priority
+Sets the precedence of the alert in relation to
+other alerts.
+Any one of the following values:
+Priority.High
+Priority.Low
+Priority.Medium
+message
+A string representing the Alert message
+soundLocation
+A string representing the absolute file path of the
+.wav file to play.  
+backBrush
+Sets the background color of the Alerts window
+row for this alert when triggered (reference)
+foreBrush
+Sets the foreground color of the Alerts window
+row for this alert when triggered (reference)
+rearmSeconds
+An int which sets the number of seconds an
+alert will rearm.
+Note: If the same alert (identified by the id
+parameter) is called within a time window of the
+time of last alert + rearmSeconds, the alert will
+be ignored.
+Tips:  You can obtain the default NinjaTrader installation directory to access the sounds
+folder by using NinjaTrader.Core.Globals.InstallDir property.  Please see the example
+below for usage.
+Examples
+
+--- p2073 ---
+NinjaTrader 8
+2074
+© 2017 NinjaTrader, LLC
+NinjaTrader.NinjaScript.Alert.AlertCallback(NinjaTrader.Cbi.In
+strument.GetInstrument("MSFT"), this, "someId",
+NinjaTrader.Core.Globals.Now, Priority.High, "message",
+NinjaTrader.Core.Globals.InstallDir+@"\sounds\Alert1.wav", new
+ SolidColorBrush(Colors.Blue), new
+SolidColorBrush(Colors.White), 0);
+12.5.3.10.2  RearmAlert()
+Definition
+Rearms an existing alert event by the string "id" parameter created via the AlertCallback()
+method.  A NinjaScript generated alert by may need to be rearmed after the alert is triggered
+depending on the Alert()'s rearmSeconds parameter.
+Note:  The NinjaScriptBase has a non-static method implemented with the same name. 
+Please see the RearmAlert() method for Indicator or Strategies.
+Method Return Value
+This method does not return a value.
+Syntax
+NinjaTrader.NinjaScript.Alert.RearmAlert(string id)
+Parameters
+id
+A unique string id representing an alert id to reset
+Examples
+if (resetCondition) 
+{
+    NinjaTrader.NinjaScript.Alert.ResetAlertRearmById("someId"
+);
+    resetCondition = false;
+}
+12.5.3.11 AtmStrategy
+AtmStrategy contains properties and methods used to manage ATM Strategies. When
+working with an AtmStrategySelector, selected objects can be case to AtmStrategy to obtain
+
+--- p2074 ---
+NinjaScript
+2075
+© 2017 NinjaTrader, LLC
+or change their properties.
+Notes: 
+1. For a complete, working example of this class in use, download the AddOn Framework
+Example located on our File Sharing forum.
+2. For more information on working with the ATM strategies programmatically in general,
+please see the Using ATM Strategies section.
+Example
+// Using AtmStrategy to handle user selections in an ATM
+Strategy Selector
+myAtmStrategySelector.SelectionChanged += (o, args) =>
+{
+    if (myAtmStrategySelector.SelectedItem == null)
+        return;
+    if (args.AddedItems.Count > 0)
+    {
+        // Change the selected TIF in a TIF selector based on
+what is selected in the ATM Strategy Selector 
+        NinjaTrader.NinjaScript.AtmStrategy
+selectedAtmStrategy = args.AddedItems[0] as
+NinjaTrader.NinjaScript.AtmStrategy;
+        if (selectedAtmStrategy != null)
+        {
+            myTifSelector.SelectedTif =
+selectedAtmStrategy.TimeInForce;
+        }
+    }
+};
+12.5.3.12 ControlCenter
+Definition
+ControlCenter is a XAML-defined class containing the layout and properties of the Control
+Center window. When altering the Control Center window (for example, to add a menu item
+into the "New" menu to launch an NTWindow as part of an AddOn, as seen in the example
+below), a generic reference to a Window object can be cast to ControlCenter specifically. 
+Example
+
+--- p2075 ---
+NinjaTrader 8
+2076
+© 2017 NinjaTrader, LLC
+private NTMenuItem ControlCenterNewMenu;
+protected override void OnWindowCreated(Window window)
+{
+    // We want to place the menu item for the AddOn in the
+Control Center's "New" menu
+    // First obtain a reference to the Control Center window
+    ControlCenter cc = window as ControlCenter;
+    if (cc == null)
+        return;
+    /* Determine we want to place the AddOn in the Control
+Center's "New" menu
+    Other menus can be accessed via the control's "Automation
+ID". For example: toolsMenuItem, workspacesMenuItem,
+connectionsMenuItem, helpMenuItem. */
+    ControlCenterNewMenu =
+cc.FindFirst("ControlCenterMenuItemNew") as NTMenuItem;
+}
+Note: For a complete, working example of this class in use, download the AddOn
+Framework Example located on our File Sharing forum.
+12.5.3.13 FundamentalData
+Definition
+FundamentalData is used to access fundamental snapshot data and for subscribing to
+fundamental data events. 
+Note: Remember to unsubscribe if you are no longer using the subscription.
+Properties
+AverageDailyVolu
+me
+A double representing the average daily volume
+Beta
+A double representing the beta
+CalendarYearHigh
+A double representing the high price of the
+calendar year
+
+--- p2076 ---
+NinjaScript
+2077
+© 2017 NinjaTrader, LLC
+CalendarYearHigh
+Date
+A DateTime representing the date of the calendar
+year's high price
+CalendarYearLow
+A double representing the low price of the
+calendar year
+CalendarYearLow
+Date
+A DateTime representing the date of the calendar
+year's low price
+CurrentRatio
+A double representing the current ratio
+DividendAmount
+A double representing the dividend amount
+DividendPayDate
+A DateTime representing the date dividends are
+paid
+DividendYield
+A double representing the dividend yield
+EarningsPerShare
+A double representing the earnings per share
+FiveYearsGrowthP
+ercentage
+A double representing the 5yr growth percent
+High52Weeks
+A double representing the 52 week high
+High52WeeksDate
+A DateTime representing the date of the 52 week
+high price
+HistoricalVolatility
+A double representing the historical volatility
+InsiderOwned
+A double representing the insider owned amount
+Instrument
+An Instrument representing the instrument
+Low52Weeks
+A double representing the 52 week low
+Low52WeeksDate
+A DateTime representing the date of the 52 week
+low price
+MarketCap
+A double representing the market capitalization
+NextYearsEarning
+sPerShare
+A double representing next year's earnings per
+share
+
+--- p2077 ---
+NinjaTrader 8
+2078
+© 2017 NinjaTrader, LLC
+PercentHeldByInsti
+tutions
+A double representing the percent held by
+institutions
+PriceEarningsRati
+o
+A double representing the P/E ratio
+RevenuePerShare
+A double representing the revenue per share
+SharesOutstandin
+g
+A long representing the shares outstanding
+ShortInterest
+A double representing the short interest
+ShortInterestRatio
+A double representing the short interest ratio
+VWAP
+A double representing the VWAP
+Update
+Event handler for subscribing/unsubscribing to
+market depth events
+Syntax
+FundamentalData
+Example
+
+--- p2078 ---
+NinjaScript
+2079
+© 2017 NinjaTrader, LLC
+/* Example of subscribing/unsubscribing to fundamental data
+from an Add On. The concept can be carried over
+to any NinjaScript object you may be working on. */
+public class MyAddOnTab : NTTabPage
+{
+     private FundamentalData fundamentalData;
+     public MyAddOnTab()
+     {
+          // Subscribe to fundamental data. Snapshot data is
+provided right on subscription
+          fundamentalData = new FundamentalData(value);
+          fundamentalData.Update += OnFundamentalData;
+          // Printing snapshot fundamental data for average
+daily volume
+          NinjaTrader.Code.Output.Process(fundamentalData.Aver
+ageDailyVolume, PrintTo.OutputTab1);
+     }
+     // This method is fired on fundamental data events
+     private void OnFundamentalData(object sender,
+FundamentalDataEventArgs e)
+     {
+          // Do something with fundamental data events
+     }
+     // Called by TabControl when tab is being removed or
+window is closed
+     public override void Cleanup()
+     {
+          // Make sure to unsubscribe to the fundamental data
+subscription
+          if (fundamentalData != null)
+               fundamentalData.Update -= OnFundamentalData;
+     }
+     // Other required NTTabPage members left out for
+demonstration purposes. Be sure to add them in your own code.
+}
+12.5.3.14 MarketData
+Definition
+MarketData can be used to access snapshot market data and for subscribing to market data
+events.
+
+--- p2079 ---
+NinjaTrader 8
+2080
+© 2017 NinjaTrader, LLC
+Notes: 
+1. Remember to unsubscribe if you are no longer using the subscription.
+2. You should only unsubscribe to a market data even if you are actually subscribed.
+Properties
+Ask
+A MarketDataEventArgs representing the ask
+price
+Bid
+A MarketDataEventArgs  representing the bid
+price
+DailyHigh
+A MarketDataEventArgs  representing the daily
+high
+DailyLow
+A MarketDataEventArgs  representing the daily
+low
+DailyVolume
+A MarketDataEventArgs  representing the daily
+volume
+Instrument
+An Instrument representing the instrument
+Last
+A MarketDataEventArgs  representing the last
+price
+LastClose
+A MarketDataEventArgs  representing the last
+close
+Opening
+A MarketDataEventArgs  representing the
+opening price
+OpenInterest
+A MarketDataEventArgs  representing the open
+interest
+Settlement
+A MarketDataEventArgs  representing the
+settlement price
+Update
+Event handler for subscribing/unsubscribing to
+market depth events
+Note:  Attempting to unsubscribe to this event
+
+--- p2080 ---
+NinjaScript
+2081
+© 2017 NinjaTrader, LLC
+before there is a subscription will generate
+errors.
+Syntax
+MarketData
+Example
+
+--- p2081 ---
+NinjaTrader 8
+2082
+© 2017 NinjaTrader, LLC
+/* Example of subscribing/unsubscribing to market data from an
+Add On. The concept can be carried over
+to any NinjaScript object you may be working on. */
+public class MyAddOnTab : NTTabPage
+{
+     private MarketData marketData;
+     public MyAddOnTab()
+     {
+          // Subscribe to market data. Snapshot data is
+provided right on subscription
+          // Note: "instrument" is a placeholder in this
+example, you will need to replace 
+          // with a valid Instrument object through various
+methods or properties available depending
+          // on the NinjaScript type you are working with
+(e.g., Bars.Instrument or Instrument.GetInstrument()
+          marketData = new MarketData(instrument);
+          marketData.Update += OnMarketData;
+          // Printing snapshot market data for the last price
+and time
+          NinjaTrader.Code.Output.Process(marketData.Last.Pric
+e.ToString() + " " + marketData.Last.Time.ToString(),
+               PrintTo.OutputTab1);
+     }
+     // This method is fired on market data events
+     private void OnMarketData(object sender,
+MarketDataEventArgs e)
+     {
+          // Do something with market data events
+     }
+     // Called by TabControl when tab is being removed or
+window is closed
+     public override void Cleanup()
+     {
+          // Make sure to unsubscribe to the market data
+subscription
+          if (marketData != null)
+               marketData.Update -= OnMarketData;
+     }
+     // Other required NTTabPage members left out for
+demonstration purposes. Be sure to add them in your own code.
+}
+
+--- p2082 ---
+NinjaScript
+2083
+© 2017 NinjaTrader, LLC
+12.5.3.15 MarketDepth
+Definition
+MarketDepth can be used to access snapshot market depth and for subscribing to market
+depth events.
+Note: Remember to unsubscribe if you are no longer using the subscription.
+Properties
+Asks
+List of ask prices
+Bids
+List of bid prices
+Instrument
+Instrument representing the instrument of the
+market depth event
+Update
+Event handler for subscribing/unsubscribing to
+market depth events
+Syntax
+MarketDepth
+Example
+
+--- p2083 ---
+NinjaTrader 8
+2084
+© 2017 NinjaTrader, LLC
+/* Example of subscribing/unsubscribing to market depth from
+an Add On. The concept can be carried over
+to any NinjaScript object you may be working on. */
+public class MyAddOnTab : NTTabPage
+{
+     private MarketDepth<MarketDepthRow> marketDepth;
+     public MyAddOnTab()
+     {
+          // Subscribe to market data. Snapshot data is
+provided right on subscription
+          // Note: "instrument" is a placeholder in this
+example, you will need to replace          
+          // with a valid Instrument object through various
+methods or properties available depending
+          // on the NinjaScript type you are working with
+(e.g., Bars.Instrument or Instrument.GetInstrument()
+          marketDepth = new
+MarketDepth<MarketDepthRow>(instrument);
+          marketDepth.Update += OnMarketDepth;
+     }
+     // This method is fired on market depth events and after
+the snapshot data is updated.
+     private void OnMarketDepth(object sender,
+MarketDepthEventArgs e)
+     {
+          // Print the Ask's price ladder
+          for (int i = 0; i < marketDepth.Asks.Count; i++)
+          {
+               NinjaTrader.Code.Output.Process(string.Format("
+Position: {0} Price: {1} Volume: {2}", i,
+                    marketDepth.Asks[i].Price,
+marketDepth.Asks[i].Volume), PrintTo.OutputTab1);
+          }
+     }
+     // Called by TabControl when tab is being removed or
+window is closed
+     public override void Cleanup()
+     {
+          // Make sure to unsubscribe to the market data
+subscription
+          if (marketDepth != null)
+               marketDepth.Update -= OnMarketDepth;
+     }
+     // Other required NTTabPage members left out for
+demonstration purposes. Be sure to add them in your own code.
+}
+
+--- p2084 ---
+NinjaScript
+2085
+© 2017 NinjaTrader, LLC
+12.5.3.16 NewsItems
+Definition
+NewsItems can be used to store news articles.
+Properties
+Items
+Collection of NewsEventArgs representing news
+articles
+NewsToMaintain
+An int representing the number of articles to
+maintain
+Update()
+For storing news articles
+Syntax
+NewsItems
+Example
+
+--- p2085 ---
+NinjaTrader 8
+2086
+© 2017 NinjaTrader, LLC
+/* Example of storing and accessing news items from an Add On.
+The concept can be carried over
+to any NinjaScript object you may be working on. */
+public class MyAddOnTab : NTTabPage
+{
+     private NewsSubscription newsSubscription;
+     private NewsItems        newsItems;
+     public MyAddOnTab()
+     {
+          // Subscribe to news
+          newsSubscription         = new NewsSubscription();
+          newsSubscription.Update += OnNews;
+          newsItems                = new NewsItems(10);
+          // Print news
+          PrintNews(newsItems);
+     }
+     // This method is fired as new News events come in. Old
+News events are not provided when you subscribe.
+     private void OnNews(object sender, NewsEventArgs e)
+     {
+          // Store the news items
+          newsItems.Update(e);
+     }
+     // Loop through the stored news articles and output them
+     private void PrintNews(NewsItems news)
+     {
+          for (int x = 0; x < news.Items.Count; x++)
+          {
+               NinjaTrader.Code.Output.Process(string.Format("
+ID: {0} News Provider: {1} Headline: {2}",
+                    news.Items[x].Id,
+                    news.Items[x].NewsProvider,
+                    news.Items[x].Headline),
+PrintTo.OutputTab1);
+          }
+     }
+     // Called by TabControl when tab is being removed or
+window is closed
+     public override void Cleanup()
+     {
+          // Make sure to unsubscribe to the News subscription
+          if (newsSubscription != null)
+               newsSubscription.Update -= OnNews;
+     }
+     // Other required NTTabPage members left out for
+demonstration purposes. Be sure to add them in your own code.
+}
+
+--- p2086 ---
+NinjaScript
+2087
+© 2017 NinjaTrader, LLC
+12.5.3.17 NewsSubscription
+Definition
+NewsSubscription can be used for subscribing to News events.
+Note: Remember to unsubscribe if you are no longer using the subscription.
+Properties
+Update
+Event handler for subscribing/unsubscribing to
+market depth events
+Syntax
+NewsSubscription
+Example
+
+--- p2087 ---
+NinjaTrader 8
+2088
+© 2017 NinjaTrader, LLC
+/* Example of subscribing/unsubscribing to news from an Add
+On. The concept can be carried over
+to any NinjaScript object you may be working on. */
+public class MyAddOnTab : NTTabPage
+{
+     private NewsSubscription newsSubscription;
+     private NewsItems        newsItems;
+     public MyAddOnTab()
+     {
+          // Subscribe to news
+          newsSubscription         = new NewsSubscription();
+          newsSubscription.Update += OnNews;
+          newsItems                = new NewsItems(10);
+     }
+     // This method is fired as new News events come in. Old
+News events are not provided when you subscribe.
+     private void OnNews(object sender, NewsEventArgs e)
+     {
+          // Print the headline of the news
+          NinjaTrader.Code.Output.Process(string.Format("ID:
+{0} News Provider: {1} Headline: {2}",
+               e.Id,
+               e.NewsProvider,
+               e.Headline), PrintTo.OutputTab1);
+          // Maintain the news items
+          newsItems.Update(e);
+     }
+     // Called by TabControl when tab is being removed or
+window is closed
+     public override void Cleanup()
+     {
+          // Make sure to unsubscribe to the News subscription
+          if (newsSubscription != null)
+               newsSubscription.Update -= OnNews;
+     }
+     // Other required NTTabPage members left out for
+demonstration purposes. Be sure to add them in your own code.
+}
+12.5.3.18 NTMenuItem
+Definition
+NTMenuItem is used to create new menu entries. For example, an instance of this class can
+
+--- p2088 ---
+NinjaScript
+2089
+© 2017 NinjaTrader, LLC
+be placed in an existing Control Center menu to launch an NTWindow as part of an AddOn,
+as seen in the example code below.
+Examples
+private NTMenuItem myNewMenuItem;
+private NTMenuItem existingControlCenterNewMenu;
+protected override void OnWindowCreated(Window window)
+{
+    // We want to place the menu item for the AddOn in the
+Control Center's "New" menu
+    // First obtain a reference to the Control Center window
+    ControlCenter cc = window as ControlCenter;
+    if (cc == null)
+        return;
+    /* Determine we want to place the AddOn in the Control
+Center's "New" menu
+    Other menus can be accessed via the control's "Automation
+ID". For example: toolsMenuItem, workspacesMenuItem,
+connectionsMenuItem, helpMenuItem. */
+    existingControlCenterNewMenu =
+cc.FindFirst("ControlCenterMenuItemNew") as NTMenuItem;
+    if (existingControlCenterNewMenu == null)
+        return;
+    // Instantiate myNewMenuItem
+    // 'Header' sets the name of our AddOn seen in the menu
+structure. 'Style' sets the font style.
+    myNewMenuItem = new NTMenuItem { Header = "AddOn
+Framework", Style =
+Application.Current.TryFindResource("MainMenuItem") as
+Style };
+    // Add our AddOn menu item into the "New" menu
+    existingControlCenterNewMenu.Items.Add(myNewMenuItem);
+    // Subscribe to the event for when the user presses the
+menu item
+    myNewMenuItem.Click += OnMenuItemClick;
+}
+Note: For a complete, working example of this class in use, download the AddOn
+Framework Example located on our File Sharing forum.
+
+--- p2089 ---
+NinjaTrader 8
+2090
+© 2017 NinjaTrader, LLC
+12.5.3.19 NTWindow
+Definition
+The NTWindow class defines parent windows for custom window creation. Instances of
+NTWindow act as containers for instances of NTTabPage, in which UI elements and their
+related logic are contained. 
+Notes: 
+The IWorkspacePersistance interface should be implemented if you want your window
+to be saved and restored with NinjaTrader workspaces.
+AddOn Classes which derive from NTWindow or implements IWorkspacePersistance
+ CANNOT be a nested type of another class and MUST have a default constructor
+Example
+The example below shows how to instantiate an NTWindow while:
+Implementing IWorkspacePersistence to ensure the window is saved/restored in
+workspaces
+Setting the window caption and dimensions
+Instantiating a TabControl to support tabs within the window
+Setting workspace options
+Tip: For a complete, working example of this class in use, download the AddOn
+Framework Example located on our File Sharing forum.
+
+--- p2090 ---
+NinjaScript
+2091
+© 2017 NinjaTrader, LLC
+public class AddOnFrameworkWindow : NTWindow,
+IWorkspacePersistence
+{
+    // default constructor
+    public AddOnFrameworkWindow()
+    {
+        // set Caption property (not Title), since Title is
+managed internally to properly combine selected Tab Header and
+Caption for display in the Windows taskbar
+        // This is the name displayed in the top-left of the
+window
+        Caption = "AddOn Framework";
+        // Set the default dimensions of the window
+        Width   = 1085;
+        Height  = 900;
+        // TabControl should be created for window content if
+tab features are wanted
+        TabControl tc = new TabControl();
+        // Attached properties defined in the
+TabControlManager class should be set to achieve adding,
+removing, and moving tabs
+        TabControlManager.SetIsMovable(tc, true);
+        TabControlManager.SetCanAddTabs(tc, true);
+        TabControlManager.SetCanRemoveTabs(tc, true);
+        // if ability to add new tabs is desired, TabControl
+has to have attached property "Factory" set.
+        TabControlManager.SetFactory(tc, new
+AddOnFrameworkWindowFactory());
+        Content = tc;
+        /* In order to have link buttons functionality, tab
+control items must be derived from Tools.NTTabPage
+        They can be added using extension method
+AddNTTabPage(NTTabPage page) */
+        tc.AddNTTabPage(new AddOnFrameworkTab());
+        // WorkspaceOptions property must be set
+        Loaded += (o, e) =>
+        {
+            if (WorkspaceOptions == null)
+                WorkspaceOptions = new
+WorkspaceOptions("AddOnFramework-" +
+Guid.NewGuid().ToString("N"), this);
+        };
+    }
+    // IWorkspacePersistence member. Required for restoring
+window from workspace
+    public void Restore(XDocument document, XElement element)
+{
+
+--- p2091 ---
+NinjaTrader 8
+2092
+© 2017 NinjaTrader, LLC
+12.5.3.20 NumericTextBox
+NumericTextBox provides functionality for numeric text boxes to capture user input. This UI
+element can be defined in XAML for an AddOn if desired, with functionality and logic related to
+the text box defined in C#, as in the examples below.
+NumericTextBox inherits from System.Windows.Controls.Textbox, and the following
+additional properties can be accessed for an instance the class:
+Minimum
+Determines the minimum value which can be entered
+Maximu
+m
+Determines the maximum value which can be entered
+ValueTyp
+e
+Determines the System.Type which can be accepted
+Examples
+XAML Definition of the UI Element
+<!-- Create a grid in which to place the NumericTextBox -->
+<Grid>
+    <!-- Define a NumericTextBox -->
+    <t:NumericTextBox x:Name="daysBackSelector" Text="5"
+ValueType="{x:Type system:Int32}" Width="50" Grid.Column="2">
+        <!-- Set the margins for the box -->
+        <t:NumericTextBox.Margin>
+            <Thickness Left="{StaticResource
+MarginButtonLeft}" Top="{StaticResource PaddingColumn}"
+Right="{StaticResource MarginBase}"/>
+        </t:NumericTextBox.Margin>
+    </t:NumericTextBox>
+</Grid>
+
+--- p2092 ---
+NinjaScript
+2093
+© 2017 NinjaTrader, LLC
+C# Code Handling Logic
+private NumericTextBox daysBack;
+private DependencyObject LoadXAML()
+{
+        // Find days back selector
+        daysBack =
+LogicalTreeHelper.FindLogicalNode(pageContent,
+"daysBackSelector") as NumericTextBox;
+}
+Note: For a complete, working example of this class in use, download the AddOn
+Framework Example located on our File Sharing forum.
+12.5.3.21 OnWindowCreated()
+Definition
+This method is called whenever a new NTWindow is created. It will be called in the thread of
+that window.  This is where you would install your AddOn to an existing window, or if creating
+your own custom window, add a Menu item to the NinjaTrader Control Center.
+Note:  This method will also be called on a recompile of the NinjaTrader.Custom project
+(e.g., when you compile an indicator, strategy, or add-on)
+Method Return Value
+This method does not return a value
+Syntax
+OnWindowCreated(Window window)
+Parameters
+window
+A Window object which is being
+added to the workspace
+Examples
+public class MyWindowAddOn : AddOnBase
+
+--- p2093 ---
+NinjaTrader 8
+2094
+© 2017 NinjaTrader, LLC
+{
+     private NTMenuItem myMenuItem;
+     private NTMenuItem existingMenuItem;
+     protected override void OnStateChange()
+     {
+          if (State == State.SetDefaults)
+          {
+               Description = "Our custom MyWindow add on";
+               Name        = "MyWindow";
+          }
+     }
+     // Will be called as a new NTWindow is created. It will
+be called in the thread of that window
+     protected override void OnWindowCreated(Window window)
+     {
+          // We want to place our add on in the Control
+Center's menus
+          ControlCenter cc = window as ControlCenter;
+          if (cc == null)
+               return;
+          /* Determine we want to place our add on in the
+Control Center's "New" menu
+          Other menus can be accessed via the control's
+Automation ID. For example: toolsMenuItem,  
+          workspacesMenuItem, connectionsMenuItem,
+helpMenuItem. */
+          existingMenuItem =
+cc.FindFirst("ControlCenterMenuItemNew") as NTMenuItem;
+          if (existingMenuItem == null)
+               return;
+          // 'Header' sets the name of our add on seen in the
+menu structure
+          myMenuItem = new NTMenuItem { Header = "My Menu
+Item",
+               Style =
+Application.Current.TryFindResource("MainMenuItem") as
+Style };
+          // Place our add on into the "New" menu
+          existingMenuItem.Items.Add(myMenuItem);
+          // Subscribe to the event for when the user presses
+our add on's menu item
+
+--- p2094 ---
+NinjaScript
+2095
+© 2017 NinjaTrader, LLC
+          myMenuItem.Click += ;
+     }
+     // Open our add on's window when the menu item is clicked
+on
+     private void OnMenuItemClick(object sender,
+RoutedEventArgs e)
+     {
+          // Show the NTWindow "MyWindow"
+          Core.Globals.RandomDispatcher.InvokeAsync(new
+Action(()=> new MyWindow().Show()));
+     }
+}
+12.5.3.22 OnWindowDestroyed()
+Definition
+This method is called whenever a new NTWindow is destroyed. It will be called in the thread
+of that window.  A window is destroyed either by the user closing the window, closing a
+workspace, or on a shut down of NinjaTrader.
+Note:  This method will also be called on a recompile of the NinjaTrader.Custom project
+(e.g., when you compile an indicator, strategy, or add-on)
+Method Return Value
+This method does not return a value
+Syntax
+OnWindowDestroyed(Window window)
+Parameters
+window
+A Window object which is being
+removed from the workspace
+Examples
+
+--- p2095 ---
+NinjaTrader 8
+2096
+© 2017 NinjaTrader, LLC
+public class MyWindowAddOn : AddOnBase
+{
+     private NTMenuItem myMenuItem;
+     private NTMenuItem existingMenuItem;
+     protected override void OnStateChange()
+     {
+          if (State == State.SetDefaults)
+          {
+               Description = "Our custom MyWindow add on";
+               Name        = "MyWindow";
+          }
+     }
+     // Will be called as a new NTWindow is destroyed. It will
+be called in the thread of that window
+     protected override void OnWindowDestroyed(Window window)
+     {
+          if (myMenuItem != null && window is ControlCenter)
+          {
+               if (existingMenuItem != null &&
+existingMenuItem.Items.Contains(myMenuItem))
+                    existingMenuItem.Items.Remove(myMenuItem);
+               myMenuItem.Click -= OnMenuItemClick;
+               myMenuItem = null;
+          }
+     }
+}
+12.5.3.23 OnWindowRestored()
+Definition
+Called when the window is restored from a workspace, which is called after 
+OnWindowCreated().  This method is used to recall any custom XElement data from the
+workspace by referencing a window.   Please also see OnWindowSaved() for information on
+how to store custom XElement data when a window is saved.
+Method Return Value
+This method does not return a value
+Syntax
+OnWindowRestored(Window window, XElement element)
+Parameters
+window
+A Window object which is being
+
+--- p2096 ---
+NinjaScript
+2097
+© 2017 NinjaTrader, LLC
+restored from a workspace
+element
+The XElement object representing
+the workspace being restored
+Examples
+protected override void OnWindowRestored(Window window,
+XElement element)
+{   
+    Print("OnWindowRestored for " + window.GetHashCode()); 
+    // locate the worksapces "SampleAddOn" elemenet which was
+created and saved earlier using the OnWindowSaved() method
+    XElement sampleAddOnElement =
+element.Element("SampleAddOn");
+    // do not do anything if that element does not exist
+    if (sampleAddOnElement == null)
+     return;
+     // loop through all the contents of the "SampleAddOn"
+element
+    foreach (XElement content in
+sampleAddOnElement.Elements())
+    {
+        // find the "ButtonState" content, restore it's value
+and set that as our tracked buttonState
+        if (content.Name == "ButtonState")
+        {
+            bool buttonState = false;
+            bool.TryParse(content.Value, out buttonState);
+             continue;
+        }
+        //Parse additional elements here
+    }
+    //Don't forget to call the base OnWindowRestored method
+after you're done.  
+    base.OnWindowRestored(window, element);
+}
+12.5.3.24 OnWindowSaved()
+Definition
+Called when the window is saved to a workspace, which is called before
+
+--- p2097 ---
+NinjaTrader 8
+2098
+© 2017 NinjaTrader, LLC
+OnWindowDestroyed().  This method is used to save any custom XElement data associated
+with your window.
+Method Return Value
+This method does not return a value
+Syntax
+OnWindowSaved(Window window, XElement element)
+Parameters
+window
+A Window object which is being
+saved to the workspace
+element
+A XElement object representing
+the workspace being saved
+Examples
+protected override void OnWindowSaved(Window window, XElement
+element)
+{
+    Print("OnWindowSaved for " + window.GetHashCode()); 
+    // create a new XElement to save the last state of a
+custom button to the workspace
+    XElement xml = new XElement("SampleAddOn", new
+XElement("ButtonState", true));
+    // e.g.,
+    // <SampleAddOn>
+    //  <ButtonState>true</ButtonState>
+    // </SampleAddOn>
+    // add the new element to the workspace which can be
+restored later
+    element.Add(xml);                
+    //Don't forget to call the base OnWindowSaved method after
+you've finished your operation.
+    base.OnWindowSaved(window, element);
+}
+
+--- p2098 ---
+NinjaScript
+2099
+© 2017 NinjaTrader, LLC
+12.5.3.25 StartAtmStrategy()
+Definition
+StartAtmStrategy can be used to submit entry orders with ATM strategies.
+Syntax
+NinjaTrader.NinjaScript.AtmStrategy.StartAtmStrategy(AtmStrategy atmStrategyTemplate,
+Order entryOrder)
+NinjaTrader.NinjaScript.AtmStrategy.StartAtmStrategy(string atmStrategyTemplateName,
+Order entryOrder)
+Properties
+atmStrategyTempl
+ate
+An AtmStrategy representing the ATM strategy
+you wish to use
+atmStrategyTempl
+ateName
+A string representing the name of the ATM
+strategy you wish to use
+entryOrder
+An Order representing the entry order
+Critical:  The "name" argument on the CreateOrder() method MUST be named "Entry" for
+the ATM Strategy to be started successfully.
+Example
+
+--- p2099 ---
+NinjaTrader 8
+2100
+© 2017 NinjaTrader, LLC
+/* Example of subscribing/unsubscribing to order update events
+from an Add On. The concept can be carried over
+to any NinjaScript object you may be working on. */
+public class MyAddOnTab : NTTabPage
+{
+     private Account account;
+     private Order myEntryOrder;
+     public MyAddOnTab()
+     {
+          // Find our Sim101 account
+          lock (Account.All)
+               account = Account.All.FirstOrDefault(a =>
+a.Name == "Sim101");
+          if (account != null)
+          {
+               entryOrder =
+account.CreateOrder(Cbi.Instrument.GetInstrument("AAPL"),
+OrderAction.Buy, OrderType.Market,
+                    TimeInForce.Day, 1, 0, 0, string.Empty,
+"Entry", null);
+               // Submits our entry order with the ATM
+strategy named "myAtmStrategyName"
+               NinjaTrader.NinjaScript.AtmStrategy.StartAtmStr
+ategy("myAtmStrategyName", entryOrder);
+          }
+     }
+     // Other required NTTabPage members left out for
+demonstration purposes. Be sure to add them in your own code.
+}
+12.5.3.26 StrategyBase
+StrategyBase contains properties and methods for managing a Strategy object, and is the
+base class from which AtmStrategy derives. 
+Example

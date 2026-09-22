@@ -1,0 +1,49 @@
+{
+  "date": "20260807",
+  "generated_ct": "2026-08-07T15:20:03.910447-05:00",
+  "steps": [
+    {
+      "label": "Gateway login (API 4002)",
+      "status": "ok",
+      "detail": "connected DUQ159823"
+    },
+    {
+      "label": "Live feed",
+      "status": "warn",
+      "detail": "state=closed"
+    },
+    {
+      "label": "MenthorQ levels",
+      "status": "ok",
+      "detail": "GexLog unknown \u00b7 EM 7636.1\u20137783.2 \u00b7 src ? (brief STALE \u2014 computed-VIX fallback)"
+    },
+    {
+      "label": "Game plan",
+      "status": "ok",
+      "detail": "9 triggers armed"
+    },
+    {
+      "label": "Gamma scanner",
+      "status": "warn",
+      "detail": "no scanner output today"
+    },
+    {
+      "label": "Trigger daemon (\u219215:00 CT)",
+      "status": "ok",
+      "detail": "9 armed \u00b7 8 fired"
+    },
+    {
+      "label": "Trade log / marks",
+      "status": "ok",
+      "detail": "trades.parquet updated today"
+    },
+    {
+      "label": "Postmortem",
+      "status": "ok",
+      "detail": "postmortem_20260807.json"
+    }
+  ],
+  "n_ok": 6,
+  "n_bad": 2,
+  "fired": 8
+}

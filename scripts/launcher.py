@@ -93,6 +93,17 @@ DASHBOARDS = [
              "the end-of-day report. The keyed :8600 link opens this page.",
      "cmd": _st("options_dashboard_live.py") + ["--host", "0.0.0.0", "--port", "8600"]},
 
+    {"key": "td_vs_ib", "group": "Live desk",
+     "title": "IB vs ThetaData — Live Compare", "port": 8650,
+     "desc": "Head-to-head of the SAME orders executed on IB vs a ThetaData-priced shadow "
+             "desk: per-trade credit/exit/P&L and the IB−TD delta, plus aggregate tiles. "
+             "Auto-refresh 15s. Reads data/options_sim/shadow_td/shadow_book_<date>.json.",
+     "info": "Every order the desk issues is filled twice — once on IB (real paper), once "
+             "on an independent shadow using ThetaData's live prices. This page shows the "
+             "two books side by side so the data/execution gap is visible per trade and in "
+             "aggregate. The td_shadow_live.py process feeds it.",
+     "cmd": _st("td_vs_ib_dashboard.py") + ["--port", "8650"]},
+
     {"key": "mark_setups", "group": "Live desk",
      "title": "ES Setup Marker", "port": 8630,
      "desc": "Forward-reveal ES volume-bar chart annotator (S75J/K): play/step bars, "
@@ -228,7 +239,8 @@ def stop(key):
         return {"ok": False, "err": "no pid / not running"}
     try:
         subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"],
-                       capture_output=True, text=True, timeout=15)
+                       capture_output=True, text=True, timeout=15,
+                       creationflags=0x08000000)   # CREATE_NO_WINDOW: no taskkill flash
     except Exception as e:
         return {"ok": False, "err": str(e)}
     with _lock:
@@ -270,7 +282,8 @@ def _mem_map(pids):
     out = {}
     try:
         r = subprocess.run(["tasklist", "/FO", "CSV", "/NH"],
-                           capture_output=True, text=True, timeout=8).stdout
+                           capture_output=True, text=True, timeout=8,
+                           creationflags=0x08000000).stdout   # NO console flash (polled every few s)
         import csv as _csv
         want = set(pids)
         for row in _csv.reader(r.splitlines()):
@@ -302,6 +315,39 @@ def _timeline_html():
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     import timeline_page, mc_theme
     return timeline_page.HTML.replace("</body></html>", mc_theme.SNIPPET + "</body></html>", 1)
+
+
+def _backtest_data():
+    """MenthorQ 'Gamma Levels | Backtesting' tile from gamma_tracker/gamma.db, grouped by
+    session (newest first). Six level panels per day, all fields."""
+    import sqlite3
+    db = ROOT / "gamma_tracker" / "gamma.db"
+    if not db.exists():
+        return []
+    order = ["1D Max", "Call Res.", "Call Res. 0DTE", "Put Sup. 0DTE", "Put Support", "1D Min"]
+    try:
+        con = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
+        con.row_factory = sqlite3.Row
+        rows = [dict(r) for r in con.execute("SELECT * FROM daily_levels")]
+        con.close()
+    except Exception:
+        return []
+    by_date = {}
+    for r in rows:
+        by_date.setdefault(r["date"], []).append(r)
+    out = []
+    for d in sorted(by_date, reverse=True):
+        lv = by_date[d]
+        lv.sort(key=lambda x: (order.index(x["level_name"]) if x["level_name"] in order else 99,
+                               x["level_name"] or ""))
+        out.append({"date": d, "levels": lv})
+    return out
+
+
+def _backtest_html():
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import backtest_page, mc_theme
+    return backtest_page.HTML.replace("</body></html>", mc_theme.SNIPPET + "</body></html>", 1)
 
 
 
@@ -376,6 +422,7 @@ def _artifact_files():
                     "title": m.get("title") or f.stem.replace("_", " "),
                     "kb": round(st.st_size / 1024, 1), "url": m.get("url", ""),
                     "group": m.get("group", ""), "info": (m.get("info") or "")[:400],
+                    "date": m.get("updated") or dt.datetime.fromtimestamp(st.st_mtime).strftime("%Y-%m-%d"),
                     "saved": dt.datetime.fromtimestamp(st.st_mtime).strftime("%Y-%m-%d %H:%M")})
 
     # Locally-built HTML libraries that were never Claude artifacts. The Brooks Codex is
@@ -393,8 +440,12 @@ def _artifact_files():
                         "title": _title_of(f), "kb": round(st.st_size / 1024, 1),
                         "url": "", "group": label,
                         "info": f"Local library page ({label}) — built in-repo, not a Claude artifact.",
+                        "date": dt.datetime.fromtimestamp(st.st_mtime).strftime("%Y-%m-%d"),
                         "saved": dt.datetime.fromtimestamp(st.st_mtime).strftime("%Y-%m-%d %H:%M")})
-    return sorted(out, key=lambda x: x["title"].lower())
+    # Organize by date, newest first (title breaks ties within a day).
+    out.sort(key=lambda x: x["title"].lower())
+    out.sort(key=lambda x: x.get("date", ""), reverse=True)
+    return out
 
 
 def _timeline():
@@ -449,7 +500,20 @@ def _timeline():
                 if paused:
                     st, nxt = "paused", None
                     detail = "PAUSED - will not run until resumed"
+                # #2: did this process SUCCEED for the displayed day? A task that ran today
+                # with an OK exit gets a ✓; a task that ran today and failed gets a ✗;
+                # a continuous recorder is ✓ while its health check is OK. Anything that
+                # hasn't run today yet is neither (no badge).
+                today_iso = ph.chicago_now().date().isoformat()
+                ran_today = bool(t and str(t.get("last", "")).startswith(today_iso))
+                if pr["ct"] == "cont":
+                    ok_today = True if st == "ok" else (False if st == "bad" else None)
+                elif ran_today:
+                    ok_today = bool(t and t["result"] in ok_codes)
+                else:
+                    ok_today = None
                 rows.append(dict(pr, state=st, detail=detail, next_epoch=nxt, paused=paused,
+                                 ok_today=ok_today,
                                  last=(t or {}).get("last", ""), next=(t or {}).get("next", "")))
             out.append({"key": key, "label": label, "items": rows})
         # the process the clock is about to hit — the board should point at what is NEXT,
@@ -483,7 +547,7 @@ def _health():
 
 
 _HEALTH_HTML = """<!doctype html><html><head><meta charset="utf-8">
-<title>Pipeline Health — Mission Control</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🩺</text></svg>"><title>Pipeline Health — Mission Control</title>
 <style>
 :root{--bg:#0d1117;--card:#161b22;--chip:#30363d;--fg:#e6edf3;--muted:#8b949e}
 *{box-sizing:border-box}
@@ -530,7 +594,7 @@ whether the process is alive. Drag tiles to reorder; the layout is remembered.</
 <footer><span id="gen"></span><span id="note"></span></footer>
 <script>
 const FIX={
- "L2 depth":"Control Center → Strategies → MarketDepthRecorder must be ENABLED (a recompile disables it).",
+ "L2 depth":"AddOn recorder (data/depth/addon_test). If stalled: restart NinjaTrader — the AddOn starts with NT; the old MarketDepthRecorder strategy is retired.",
  "Contract":"Roll the chart/strategy to the front-month contract, then re-enable the recorder.",
  "Footprint":"FootprintExporter needs Tick Replay ON for its data series.",
  "NinjaTrader":"scripts/nt8_login.ps1 starts NT8 and signs in.",
@@ -712,6 +776,10 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send_gexlab()
             if p == "/flowlab":
                 return self._send_flowlab()
+            if p == "/pats":
+                return self._send_pats()
+            if p == "/depthmap" or p.startswith("/depthmap/"):
+                return self._send_depthmap(p)
             if p == "/slides" or p.startswith("/slides/"):
                 return self._send_slides(p)
             if p == "/catalog" or p.startswith("/catalog/"):
@@ -736,6 +804,10 @@ class Handler(BaseHTTPRequestHandler):
             return self._send_gexlab()
         if p == "/flowlab":
             return self._send_flowlab()
+        if p == "/pats":
+            return self._send_pats()
+        if p == "/depthmap" or p.startswith("/depthmap/"):
+            return self._send_depthmap(p)
         if p == "/slides" or p.startswith("/slides/"):
             return self._send_slides(p)
         if p in ("/favicon.svg", "/favicon.ico"):
@@ -752,6 +824,10 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(json.dumps(_pause_task(name, p.startswith("/pause/"))))
         if p == "/artifacts":
             return self._send(_artifacts_html(), "text/html; charset=utf-8")
+        if p == "/backtest":
+            return self._send(_backtest_html(), "text/html; charset=utf-8")
+        if p == "/backtest.json":
+            return self._send(json.dumps(_backtest_data()))
         if p == "/artifacts_local.json":
             return self._send(json.dumps(_artifact_files()))
         if p.startswith("/artifact/"):
@@ -773,6 +849,24 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(json.dumps(_timeline()))
         if p == "/timeline":
             return self._send(_timeline_html(), "text/html; charset=utf-8")
+        if p == "/scorecard":
+            import scorecard_page
+            return self._send(scorecard_page.html(), "text/html; charset=utf-8")
+        if p == "/playbook":
+            import playbook_page
+            return self._send(playbook_page.html(), "text/html; charset=utf-8")
+        if p == "/playbook.json":
+            import playbook_page, urllib.parse
+            q = urllib.parse.parse_qs(self.path.split("?", 1)[1] if "?" in self.path else "")
+            return self._send(json.dumps(playbook_page.day_data((q.get("date") or [""])[0])))
+        if p.startswith("/playbook_img/"):
+            import playbook_page
+            parts = p.split("/")          # /playbook_img/<kind>/<date>/<name>
+            if len(parts) == 5:
+                f = playbook_page.resolve_img(parts[2], parts[3], parts[4])
+                if f:
+                    return self._send(f.read_bytes(), "image/png")
+            return self._send("<h1>404</h1>", "text/html; charset=utf-8", 404)
         if p == "/artifacts.json":
             return self._send(json.dumps(load_artifacts()))
         if p.startswith("/log/"):
@@ -865,6 +959,17 @@ class Handler(BaseHTTPRequestHandler):
         return self._send("<h1>dossier missing</h1><p>docs/mq_method/index.html not found.</p>",
                           "text/html; charset=utf-8")
 
+    def _send_pats(self):
+        # PATs (Mack) transcript library — nuggets extracted from the @PATsTrading
+        # YouTube recaps, cross-checked against his manual. Lives in the separate
+        # PATs-Trading repo; rebuilt there by scripts/build_page.py. Static
+        # self-contained HTML, safe for the remote viewer.
+        f = Path(r"C:\Users\Admin\Desktop\PATs-Trading\library\index.html")
+        if f.exists():
+            return self._send(f.read_text(encoding="utf-8"), "text/html; charset=utf-8")
+        return self._send("<h1>PATs library not built</h1><p>run scripts/build_page.py "
+                          "in the PATs-Trading repo.</p>", "text/html; charset=utf-8")
+
     def _send_levels(self):
         # Gamma Levels slide deck (S75P) — 10 sessions/slide across every session we
         # have ORATS chains + ES bars for, with MenthorQ and our own CR/PS/HVL overlaid,
@@ -887,6 +992,28 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(f.read_text(encoding="utf-8"), "text/html; charset=utf-8")
         return self._send("<h1>report not built</h1><p>run scripts/flowlab_1m.py, "
                           "scripts/render_1m_bars.py, then scripts/flowlab_report.py.</p>",
+                          "text/html; charset=utf-8")
+
+    def _send_depthmap(self, p="/depthmap"):
+        # ES L2 liquidity heatmap (Bookmap-style) reconstructed from the NT8 AddOn depth
+        # event stream by scripts/depth_heatmap.py. /depthmap = the gallery index; the
+        # per-day interactive Plotly viewer is /depthmap/ES_<date>.html. Static + path-
+        # traversal-safe, so the keyed remote viewer may browse it too. Rebuild a day:
+        #   python scripts/depth_heatmap.py build YYYY-MM-DD
+        base = (ROOT / "docs" / "depth_heatmap").resolve()
+        sub = p[len("/depthmap"):].lstrip("/") or "index.html"
+        from urllib.parse import unquote
+        target = (base / unquote(sub)).resolve()
+        if base != target and base not in target.parents:
+            return self._send("not found", "text/plain", 404)
+        if target.is_file():
+            ctype = {".html": "text/html; charset=utf-8", ".png": "image/png"}.get(
+                target.suffix, "application/octet-stream")
+            data = target.read_bytes() if ctype == "image/png" else \
+                target.read_text(encoding="utf-8")
+            return self._send(data, ctype)
+        return self._send("<h1>no heatmaps yet</h1><p>run scripts/depth_heatmap.py build "
+                          "&lt;date&gt; then scripts/depth_heatmap.py page.</p>",
                           "text/html; charset=utf-8")
 
     def _send_gexlab(self):
@@ -919,8 +1046,9 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(json.dumps({"ok": False, "err": "read-only viewer"}), code=403)
         if self.path.startswith("/startall"):
             res = {d["key"]: start(d["key"]) for d in DASHBOARDS}
-            for d in DASHBOARDS:
-                open_when_up(d["key"])
+            # tabs are opened CLIENT-SIDE (window.open from the MC page) so Chrome keeps
+            # them in the Mission Control tab group; a server-side webbrowser.open tab has
+            # no opener and can never join a group (2026-07-21).
             return self._send(json.dumps(res))
         if self.path.startswith("/openall"):
             for d in DASHBOARDS:
@@ -1038,20 +1166,24 @@ pre{background:var(--chip);border-radius:7px;padding:8px 10px;font-size:11px;ove
   <h1>🚀 Mission Control</h1>
   <span class="pill" id="summary">…</span>
   <span style="margin-left:auto"></span>
-  <a href="/timeline" target="_blank" rel="noopener"><button title="the trading day as a chronological set of automated processes">🕐 Timeline</button></a>
-  <a href="/health" target="_blank" rel="noopener"><button id="healthbtn" title="is everything actually recording? evidence-based pipeline health">● Health</button></a>
+  <a href="/timeline" target="_blank"><button title="the trading day as a chronological set of automated processes">🕐 Timeline</button></a>
+  <a href="/backtest" target="_blank"><button title="MenthorQ Gamma-Levels Backtest — the 6 level panels (hold-rate, break, comeback, moves) per day, from gamma.db">📊 Gamma Backtest</button></a>
+  <a href="/health" target="_blank"><button id="healthbtn" title="is everything actually recording? evidence-based pipeline health">● Health</button></a>
   <div class="menu">
     <button id="libbtn" title="explanations, study material and research write-ups">📚 Library ▾</button>
     <div class="menu-pop" id="libpop">
-      <a href="/tour" target="_blank" rel="noopener" title="how the options desk automation works — shareable explainer">📖 Desk Tour</a>
-      <a href="/library" target="_blank" rel="noopener" title="MZpack Insights knowledge base — order-flow education organized by topic">📚 MZpack Library</a>
-      <a href="/slides" target="_blank" rel="noopener" title="study-material slides by topic (docs/slides/)">🎞 Slides</a>
-      <a href="/levels" target="_blank" rel="noopener" title="Gamma Levels slide deck — MenthorQ + our CR/PS/HVL over intraday price">📈 Gamma Levels</a>
-      <a href="/mqmethod" target="_blank" rel="noopener" title="MenthorQ Method — framework from 7 Academy videos, every claim tested">🔬 MQ Method</a>
-      <a href="/gexlab" target="_blank" rel="noopener" title="S75Q — do MenthorQ gamma levels help the Brooks method?">🧪 GEX Lab</a>
-      <a href="/flowlab" target="_blank" rel="noopener" title="S75R — ES 1M order-flow reading, bar by bar">🕯 Flow Lab</a>
-      <a href="/artifacts" target="_blank" rel="noopener" title="Local backups of every Claude artifact - readable offline">🗂 Artifact Library</a>
-      <a href="/catalog" target="_blank" rel="noopener" title="Data Catalog — every dataset, where it lives, how fresh it is">🗄 Data Catalog</a>
+      <a href="/tour" target="_blank" title="how the options desk automation works — shareable explainer">📖 Desk Tour</a>
+      <a href="/library" target="_blank" title="MZpack Insights knowledge base — order-flow education organized by topic">📚 MZpack Library</a>
+      <a href="/slides" target="_blank" title="study-material slides by topic (docs/slides/)">🎞 Slides</a>
+      <a href="/levels" target="_blank" title="Gamma Levels slide deck — MenthorQ + our CR/PS/HVL over intraday price">📈 Gamma Levels</a>
+      <a href="/mqmethod" target="_blank" title="MenthorQ Method — framework from 7 Academy videos, every claim tested">🔬 MQ Method</a>
+      <a href="/gexlab" target="_blank" title="S75Q — do MenthorQ gamma levels help the Brooks method?">🧪 GEX Lab</a>
+      <a href="/pats" target="_blank" title="PATs (Mack) transcript library — rules/nuggets from ~2.9k YouTube recaps, cross-checked against the manual">🎯 PATs Library</a>
+      <a href="/flowlab" target="_blank" title="S75R — ES 1M order-flow reading, bar by bar">🕯 Flow Lab</a>
+      <a href="/artifacts" target="_blank" title="Local backups of every Claude artifact - readable offline">🗂 Artifact Library</a>
+      <a href="/playbook" target="_blank" title="Every day's price-path slides, trade-idea charts and entry/exit trade cards - archived automatically">📋 Daily Playbook</a>
+      <a href="/scorecard" target="_blank" title="Process × day history grid - see which processes failed on which day">📅 Daily Scorecard</a>
+      <a href="/catalog" target="_blank" title="Data Catalog — every dataset, where it lives, how fresh it is">🗄 Data Catalog</a>
     </div>
   </div>
   <button id="reload" title="refresh status now">↻ Reload</button>
@@ -1115,7 +1247,7 @@ async function load(){
         <div class="desc">${d.desc}</div>
         <div class="actions">
           <button class="primary btn-start" data-k="${d.key}" ${d.up?'disabled':''}>▶ Start</button>
-          <a class="open" href="${d.url}" target="_blank" rel="noopener"><button ${d.up?'':'disabled'}>↗ Open</button></a>
+          <a class="open" href="${d.url}" target="_blank"><button ${d.up?'':'disabled'}>↗ Open</button></a>
           <button class="btn-restart" data-k="${d.key}" ${d.up?'':'disabled'} title="stop then start">⟳ Restart</button>
           <button class="danger btn-stop" data-k="${d.key}" ${d.up?'':'disabled'}>■ Stop</button>
           <button class="ic btn-copy" data-u="${d.url}" title="copy URL">⧉</button>
@@ -1150,14 +1282,18 @@ async function bulk(kind,label){const map={startall:'starting all…',stopall:'s
   const b=document.getElementById(kind);const t=b.textContent;b.disabled=true;b.innerHTML='<span class="spin"></span>';
   await fetch('/'+kind,{method:'POST'});
   for(let i=0;i<11;i++){await new Promise(r=>setTimeout(r,800));await load();}
+  if(kind==='startall')openAllTabs();     // open the tabs FROM this page so they group
   b.disabled=false;b.textContent=t;}
-// Start all: POST /startall — the launcher spawns each server AND opens its tab
-// (server-side webbrowser.open once the port is up), so there are no blank tabs and
-// no popup blocker. We just poll to refresh the dots.
+// Open every RUNNING dashboard as a child tab of THIS Mission Control tab, so Chrome
+// keeps them in the same tab GROUP. A server-side webbrowser.open tab has no opener and
+// can never join a group. Opening several at once trips Chrome's popup blocker the first
+// time — allow pop-ups for this site once ("Always allow") and they all land in the group.
+function openAllTabs(){if(!ST)return;let blocked=false;
+  ST.dashboards.filter(d=>d.up).forEach(d=>{const w=window.open(d.url,'_blank');if(!w)blocked=true;});
+  if(blocked)alert('Chrome blocked the extra tabs. Click the pop-up icon at the right of the address bar → "Always allow pop-ups from this site", then press "Open running" again — they will open inside the Mission Control group.');}
 document.getElementById('startall').onclick=()=>bulk('startall');
 document.getElementById('stopall').onclick=()=>bulk('stopall');
-// Open running: let the launcher open the tabs server-side (reliable; no popup block).
-document.getElementById('openall').onclick=()=>fetch('/openall',{method:'POST'});
+document.getElementById('openall').onclick=openAllTabs;
 document.getElementById('reload').onclick=load;
 const auto=document.getElementById('autochk');
 function setAuto(){if(timer)clearInterval(timer);timer=null;if(auto.checked)timer=setInterval(load,5000);}
@@ -1282,11 +1418,11 @@ async function load(){
     for(const d of groups[g]){
       let extra='';
       if(d.key==='options_desk')
-        extra=d.up?`<a href="http://${location.hostname}:8600/?key=__DESKKEY__" target="_blank" rel="noopener"><button class="primary">↗ Open desk</button></a>
+        extra=d.up?`<a href="http://${location.hostname}:8600/?key=__DESKKEY__" target="_blank"><button class="primary">↗ Open desk</button></a>
                     <button onclick="deskAct(this,'restart','reloading…')" title="restart the desk server if it looks stuck">⟳ Reload desk</button>`
                   :`<button class="primary" onclick="deskAct(this,'start','starting…')">▶ Start desk</button>`;
       if(d.key==='data_catalog'&&d.up)
-        extra=`<a href="${k('/catalog')}" target="_blank" rel="noopener"><button>↗ Browse (read-only)</button></a>`;
+        extra=`<a href="${k('/catalog')}" target="_blank"><button>↗ Browse (read-only)</button></a>`;
       const inf=d.info?`<span class="info" title="${d.info.replace(/"/g,'&quot;')}">i</span>`:'';
       h+=`<div class="card">
         <div class="top"><span class="dot ${d.up?'up':''}"></span>

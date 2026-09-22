@@ -1,0 +1,104 @@
+  ... 200/1317 days, 69s
+  ... 400/1317 days, 167s
+  ... 600/1317 days, 273s
+  ... 800/1317 days, 360s
+  ... 1000/1317 days, 459s
+  ... 1200/1317 days, 557s
+
+days: 1317  skipped: {'warm': 20, 'gap': 306, 'tdy': 101, 'thin': 0}
+
+======================================================================
+CONFIG A_pb5_through6:  limit 5t back from trigger, fills only when price trades through to 6t (stops on touch)
+======================================================================
+
+----- GROSS (no costs)  (n=415, 300 days, 5.1yr) -----
+  net            $+88,400   ($+17,266/yr, 1 ES)
+  PF             1.82
+  win rate       51.8%   (215W / 200L)
+  avg win        $+913    avg loss $-539    payoff 1.69
+  expectancy     $+213/trade
+  closed-eq maxDD$-7,838
+  intraday maxDD $-9,438  (open positions marked, GROSS)
+  daily Sharpe   2.72    trades/yr 81
+  2EL:  n=224  PF 1.67  net $+36,688
+  2ES:  n=191  PF 1.97  net $+51,712
+  per-year:
+    2021: $   +7,775  PF 1.85  n=  55  win  55%
+    2022: $   +7,938  PF 1.49  n=  35  win  46%
+    2023: $   +4,575  PF 1.24  n=  73  win  51%
+    2024: $  +18,425  PF 1.69  n= 102  win  48%
+    2025: $  +34,262  PF 2.68  n=  89  win  52%
+    2026: $  +15,425  PF 1.95  n=  61  win  61%
+
+----- NET ($17.50/trade)  (n=415, 300 days, 5.1yr) -----
+  net            $+81,138   ($+15,848/yr, 1 ES)
+  PF             1.73
+  win rate       51.6%   (214W / 201L)
+  avg win        $+900    avg loss $-554    payoff 1.62
+  expectancy     $+196/trade
+  closed-eq maxDD$-8,082
+  intraday maxDD $-9,438  (open positions marked, GROSS)
+  daily Sharpe   2.50    trades/yr 81
+  2EL:  n=224  PF 1.58  net $+32,768
+  2ES:  n=191  PF 1.88  net $+48,370
+  per-year:
+    2021: $   +6,812  PF 1.71  n=  55  win  53%
+    2022: $   +7,325  PF 1.44  n=  35  win  46%
+    2023: $   +3,298  PF 1.17  n=  73  win  51%
+    2024: $  +16,640  PF 1.60  n= 102  win  48%
+    2025: $  +32,705  PF 2.55  n=  89  win  52%
+    2026: $  +14,358  PF 1.86  n=  61  win  61%
+
+  --- intraday risk ---
+  per-trade MAE  avg $445  median $438  worst $1,475
+  MAE on WINNERS avg $259  worst $925
+  max concurrent open trades: 4
+
+======================================================================
+CONFIG B_pb6_through7:  limit 6t back from trigger, fills only when price trades through to 7t (stops on touch)
+======================================================================
+
+----- GROSS (no costs)  (n=398, 294 days, 5.1yr) -----
+  net            $+91,375   ($+17,847/yr, 1 ES)
+  PF             1.90
+  win rate       52.8%   (210W / 188L)
+  avg win        $+919    avg loss $-541    payoff 1.70
+  expectancy     $+230/trade
+  closed-eq maxDD$-7,075
+  intraday maxDD $-9,262  (open positions marked, GROSS)
+  daily Sharpe   2.88    trades/yr 78
+  2EL:  n=212  PF 1.75  net $+38,175
+  2ES:  n=186  PF 2.05  net $+53,200
+  per-year:
+    2021: $   +7,438  PF 1.87  n=  51  win  53%
+    2022: $   +7,250  PF 1.47  n=  33  win  45%
+    2023: $   +7,075  PF 1.41  n=  69  win  54%
+    2024: $  +21,250  PF 1.87  n= 100  win  50%
+    2025: $  +32,912  PF 2.68  n=  85  win  53%
+    2026: $  +15,450  PF 1.95  n=  60  win  60%
+
+----- NET ($17.50/trade)  (n=398, 294 days, 5.1yr) -----
+  net            $+84,410   ($+16,487/yr, 1 ES)
+  PF             1.80
+  win rate       52.3%   (208W / 190L)
+  avg win        $+910    avg loss $-552    payoff 1.65
+  expectancy     $+212/trade
+  closed-eq maxDD$-7,302
+  intraday maxDD $-9,262  (open positions marked, GROSS)
+  daily Sharpe   2.66    trades/yr 78
+  2EL:  n=212  PF 1.66  net $+34,465
+  2ES:  n=186  PF 1.95  net $+49,945
+  per-year:
+    2021: $   +6,545  PF 1.73  n=  51  win  53%
+    2022: $   +6,672  PF 1.42  n=  33  win  45%
+    2023: $   +5,868  PF 1.33  n=  69  win  54%
+    2024: $  +19,500  PF 1.77  n= 100  win  50%
+    2025: $  +31,425  PF 2.55  n=  85  win  51%
+    2026: $  +14,400  PF 1.87  n=  60  win  60%
+
+  --- intraday risk ---
+  per-trade MAE  avg $443  median $425  worst $1,462
+  MAE on WINNERS avg $261  worst $912
+  max concurrent open trades: 4
+
+csvs in C:\Users\Admin\myquant\reports\regime2e

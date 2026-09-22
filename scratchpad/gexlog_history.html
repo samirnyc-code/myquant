@@ -1,0 +1,1523 @@
+<!DOCTYPE html><html lang="en"><head>
+    <script async="" src="https://scripts.clarity.ms/0.8.69/clarity.js"></script><script async="" src="https://www.clarity.ms/tag/vky567tvbh"></script><script type="text/javascript">
+    (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "vky567tvbh");
+</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market History | The Gamma Brief</title>
+    <meta name="description" content="Browse historical SPX options market snapshots. Daily gamma regime, key levels, and trade guidance from The Gamma Brief.">
+    <link rel="canonical" href="https://gexlog.com/dashboard/history/">
+    <meta property="og:title" content="Market History | The Gamma Brief">
+<meta property="og:description" content="Browse historical SPX options market snapshots. Daily gamma regime, key levels, and trade guidance from The Gamma Brief.">
+<meta property="og:url" content="https://gexlog.com/dashboard/history/">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://gexlog.com/img/gex-og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Market History | The Gamma Brief">
+<meta name="twitter:description" content="Browse historical SPX options market snapshots. Daily gamma regime, key levels, and trade guidance from The Gamma Brief.">
+<meta name="twitter:image" content="https://gexlog.com/img/gex-og.jpg">
+
+    <link rel="icon" type="image/png" href="/img/gex-icon-96.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/style.css?v=4">
+    <link rel="stylesheet" href="../css/dashboard-ad.css">
+    <link rel="stylesheet" href="/css/shared-footer.css">
+
+    <style>
+        .history-header {
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .history-title {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .history-subtitle {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+        }
+
+        #contentArea .risk-banner {
+            margin-bottom: var(--space-md);
+        }
+
+        /* Calendar Styles */
+        .history-top-row {
+            display: flex;
+            justify-content: center;
+            gap: var(--space-lg);
+            margin-bottom: 2rem;
+            align-items: flex-start;
+        }
+
+        .history-top-row .history-calendar {
+            flex: 0 1 420px;
+            max-width: 420px;
+            margin: 0;
+        }
+
+        .history-top-row .dash-ad {
+            flex: 0 0 300px;
+            margin-top: 0;
+            padding-top: 0;
+            border-top: none;
+        }
+
+        @media (max-width: 768px) {
+            .history-top-row {
+                flex-direction: column;
+            }
+            .history-top-row .dash-ad {
+                flex: none;
+                width: 100%;
+            }
+            .history-top-row .history-calendar {
+                flex: none;
+                max-width: none;
+                width: 100%;
+            }
+        }
+
+        .history-calendar {
+            background-color: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 1rem;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .calendar-nav {
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+        }
+
+        .calendar-nav:hover {
+            color: var(--accent-cyan);
+        }
+
+        .calendar-month {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 0.25rem;
+            text-align: center;
+        }
+
+        .calendar-day-header {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            padding-bottom: 0.5rem;
+        }
+
+        .calendar-day {
+            aspect-ratio: unset;
+            padding: 0.4rem 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            position: relative;
+            font-size: 0.9rem;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        .calendar-day.empty {
+            cursor: default;
+        }
+
+        .calendar-day.unavailable {
+            color: var(--text-muted);
+            cursor: default;
+        }
+
+        .calendar-day.available {
+            color: var(--text-primary);
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .calendar-day.available:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .calendar-day.selected {
+            background-color: var(--accent-cyan);
+            color: var(--bg-primary);
+            font-weight: 600;
+        }
+
+        .calendar-indicators {
+            display: flex;
+            gap: 2px;
+            margin-top: 2px;
+        }
+
+        .calendar-dot {
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+        }
+
+        .calendar-dot.morning {
+            background-color: var(--accent-cyan);
+        }
+
+        .calendar-day.selected .calendar-dot {
+            background-color: var(--bg-primary);
+        }
+
+        .calendar-dot.evening {
+            background-color: var(--accent-purple);
+        }
+
+        .calendar-dot.weekend {
+            background-color: var(--accent-green, #22c55e);
+        }
+
+        .calendar-legend {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        /* Tab Styles */
+        .history-tabs-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .history-tab {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            padding: 1rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            position: relative;
+            transition: color 0.2s;
+        }
+
+        .history-tab:hover:not(:disabled) {
+            color: var(--text-primary);
+        }
+
+        .history-tab.active {
+            color: var(--accent-cyan);
+        }
+
+        .history-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background-color: var(--accent-cyan);
+        }
+
+        .history-tab:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .report-placeholder {
+            text-align: center;
+            padding: 4rem 1rem;
+            color: var(--text-secondary);
+            background-color: var(--bg-panel);
+            border-radius: var(--radius-md);
+            border: 1px dashed var(--border-color);
+        }
+
+        /* Report Grid Scoped Layout */
+        #reportGrid .panel-catalysts,
+        #reportGrid .panel-guidance,
+        #reportGrid .panel-conditions {
+            grid-column: span 4;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            #reportGrid .panel-catalysts { grid-column: span 6; }
+            #reportGrid .panel-guidance { grid-column: span 3; }
+            #reportGrid .panel-conditions { grid-column: span 3; }
+        }
+
+        @media (max-width: 768px) {
+            .history-title {
+                font-size: 1.5rem;
+            }
+            .calendar-day {
+                font-size: 0.8rem;
+            }
+            #reportGrid .panel-catalysts,
+            #reportGrid .panel-guidance,
+            #reportGrid .panel-conditions {
+                grid-column: span 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <a href="/" class="logo">GEX<span class="logo-accent">LOG</span></a>
+                <nav class="nav-tabs">
+                    <a href="/dashboard/index.php" class="nav-tab">Dashboard</a>
+                                        <a href="/dashboard/history/" class="nav-tab active">History</a>
+                    <a href="/dashboard/methodology/" class="nav-tab">Methodology</a>
+                </nav>
+            </div>
+            <div class="header-right">
+                            </div>
+        </header>
+
+        <main class="main-grid" style="display: block;">
+            <div class="history-header">
+                <h1 class="history-title">Market History</h1>
+                <p class="history-subtitle" id="subtitleText">Select a date to view its market snapshot</p>
+            </div>
+
+            <!-- Calendar and Ad Row -->
+            <div class="history-top-row">
+                <div class="history-calendar">
+                    <div class="calendar-header">
+                        <button class="calendar-nav" id="prevMonth" style="opacity: 1; cursor: pointer;">◄</button>
+                        <div class="calendar-month" id="currentMonthYear">August 2026</div>
+                        <button class="calendar-nav" id="nextMonth" disabled="" style="opacity: 0.2; cursor: default;">►</button>
+                    </div>
+                    <div class="calendar-grid">
+                        <div class="calendar-day-header">Sun</div>
+                        <div class="calendar-day-header">Mon</div>
+                        <div class="calendar-day-header">Tue</div>
+                        <div class="calendar-day-header">Wed</div>
+                        <div class="calendar-day-header">Thu</div>
+                        <div class="calendar-day-header">Fri</div>
+                        <div class="calendar-day-header">Sat</div>
+                    </div>
+                    <div class="calendar-grid" id="calendarDays"><div class="calendar-day empty"></div><div class="calendar-day empty"></div><div class="calendar-day empty"></div><div class="calendar-day empty"></div><div class="calendar-day empty"></div><div class="calendar-day empty"></div><div class="calendar-day available"><span>1</span><div class="calendar-indicators"><span class="calendar-dot weekend"></span></div></div><div class="calendar-day unavailable"><span>2</span></div><div class="calendar-day available"><span>3</span><div class="calendar-indicators"><span class="calendar-dot morning"></span><span class="calendar-dot evening"></span></div></div><div class="calendar-day unavailable"><span>4</span></div><div class="calendar-day unavailable"><span>5</span></div><div class="calendar-day unavailable"><span>6</span></div><div class="calendar-day unavailable"><span>7</span></div><div class="calendar-day unavailable"><span>8</span></div><div class="calendar-day unavailable"><span>9</span></div><div class="calendar-day unavailable"><span>10</span></div><div class="calendar-day unavailable"><span>11</span></div><div class="calendar-day unavailable"><span>12</span></div><div class="calendar-day unavailable"><span>13</span></div><div class="calendar-day unavailable"><span>14</span></div><div class="calendar-day unavailable"><span>15</span></div><div class="calendar-day unavailable"><span>16</span></div><div class="calendar-day unavailable"><span>17</span></div><div class="calendar-day unavailable"><span>18</span></div><div class="calendar-day unavailable"><span>19</span></div><div class="calendar-day unavailable"><span>20</span></div><div class="calendar-day unavailable"><span>21</span></div><div class="calendar-day unavailable"><span>22</span></div><div class="calendar-day unavailable"><span>23</span></div><div class="calendar-day unavailable"><span>24</span></div><div class="calendar-day unavailable"><span>25</span></div><div class="calendar-day unavailable"><span>26</span></div><div class="calendar-day unavailable"><span>27</span></div><div class="calendar-day unavailable"><span>28</span></div><div class="calendar-day unavailable"><span>29</span></div><div class="calendar-day unavailable"><span>30</span></div><div class="calendar-day unavailable"><span>31</span></div><div class="calendar-day empty"></div><div class="calendar-day empty"></div><div class="calendar-day empty"></div><div class="calendar-day empty"></div><div class="calendar-day empty"></div></div>
+
+                    <div class="calendar-legend">
+                        <div class="legend-item">
+                            <span class="calendar-dot morning"></span> Morning
+                        </div>
+                        <div class="legend-item">
+                            <span class="calendar-dot evening"></span> Evening
+                        </div>
+                        <div class="legend-item">
+                            <span class="calendar-dot weekend"></span> Weekend
+                        </div>
+                    </div>
+                </div>
+                
+<div class="dash-ad" data-ad-id="optionalpha">
+    <span class="dash-ad-label">Ad</span>
+    <a href="https://join.optionalpha.com/3gdl75otnm25" class="dash-ad-link" target="_blank" rel="sponsored noopener">
+                <div class="dash-ad-logo">
+            <img src="/img/ads/oa-icon.png" alt="Option Alpha" loading="lazy" onerror="this.parentNode.style.display='none'">
+        </div>
+                <div class="dash-ad-body">
+                        <span class="dash-ad-badge">Automate Your Trades</span>
+                        <p class="dash-ad-headline">No Coding Required.</p>
+            <p class="dash-ad-subtext">Build and run options bots on autopilot. Try Option Alpha today!</p>
+            <span class="dash-ad-cta">Start Your Bot →</span>
+        </div>
+    </a>
+</div>
+            </div>
+
+            <div id="contentArea" style="display: none;">
+                <div class="history-tabs-container">
+                    <button class="history-tab" id="tabMorning" data-type="morning">Morning Brief</button>
+                    <button class="history-tab" id="tabEvening" data-type="evening">Evening Recap</button>
+                    <button class="history-tab" id="tabWeekend" data-type="weekend" style="display:none;">Weekend Preview</button>
+                </div>
+
+                <div class="risk-banner" id="riskBanner" style="display: none;">
+                    <span class="risk-label">TRADE RISK:</span>
+                    <span class="risk-level" id="riskLevel">--</span>
+                    <span class="risk-summary" id="riskSummary">--</span>
+                </div>
+
+                <div class="main-grid" id="reportGrid">
+                    <!-- Dynamic panels will be injected here -->
+                </div>
+
+            </div>
+
+            <div id="placeholderArea" class="report-placeholder" style="">
+                <h3>No Date Selected</h3>
+                <p>Choose a highlighted date from the calendar above to view historical market data.</p>
+            </div>
+        </main>
+
+        
+    <footer class="footer">
+        <div class="footer-row-links">
+                            <a href="/about/" class="footer-link">About</a>
+                            <a href="/contact/" class="footer-link">Contact</a>
+                            <a href="/dashboard/history/" class="footer-link">History</a>
+                            <a href="/dashboard/methodology/" class="footer-link">Methodology</a>
+                            <a href="/terms/" class="footer-link">Terms</a>
+                            <a href="/privacy/" class="footer-link">Privacy</a>
+                            <a href="/disclaimer/" class="footer-link">Disclaimer</a>
+                    </div>
+
+        <div class="footer-row-meta">
+            <span class="footer-item">Data as of: <span id="dataTimestamp">2026-08-03 07:45 PM ET</span>
+            </span>
+
+            <span class="footer-item">Next update: <span id="nextUpdate">7:00 AM ET (tomorrow)</span></span>
+
+            <a href="/dashboard/status.php" class="footer-item" id="footerStatus" style="text-decoration:none; display:flex; align-items:center; gap:6px;">
+                <span class="status-dot" style="background: rgb(34, 197, 94);"></span>
+                <span class="status-text">System Status: Operational</span>
+            </a>
+        </div>
+
+        <div class="footer-row-disclaimer">
+            Informational use only · Not financial, investment, or trading advice
+        </div>
+    </footer>
+
+
+<script>
+(function() {
+  fetch('/dashboard/api/status.php')
+    .then(r => r.json())
+    .then(data => {
+      const label = data.system_status || 'Operational';
+      const level = data.status_level || 'good';
+      const palette = { good: '#22c55e', warning: '#f0b90b', bad: '#ff4757' };
+      const cssVar  = { good: 'var(--accent-green)', warning: 'var(--accent-yellow)', bad: 'var(--accent-red)' };
+
+      // Dashboard footer shape
+      const dashEl = document.getElementById('footerStatus');
+      if (dashEl) {
+        const dot  = dashEl.querySelector('.status-dot');
+        const text = dashEl.querySelector('.status-text');
+        if (dot)  dot.style.background = palette[level] || palette.good;
+        if (text) text.textContent = 'System Status: ' + label;
+      }
+
+      // Page footer shape
+      const pageDot  = document.getElementById('statusDot');
+      const pageText = document.getElementById('statusText');
+      if (pageText) pageText.textContent = label;
+      if (pageDot)  pageDot.style.background = palette[level] || palette.good;
+    })
+    .catch(() => {});
+})();
+</script>
+    </div>
+
+    <script>
+        const HistoryApp = {
+            state: {
+                currentDate: new Date(),
+                selectedDate: "",
+                activeTab: 'morning',
+                availableDates: {
+                    morning: new Set(),
+                    evening: new Set(),
+                    weekend: new Set()
+                },
+                reportCache: {}
+            },
+
+            init() {
+                if (this.state.selectedDate) {
+                    const [year, month, day] = this.state.selectedDate.split('-');
+                    this.state.currentDate = new Date(year, month - 1, 1);
+                }
+
+                this.bindEvents();
+                this.fetchAvailableDates().then(() => {
+                    this.renderCalendar();
+                    if (this.state.selectedDate) {
+                        this.loadSelectedDate(this.state.selectedDate);
+                    }
+                });
+            },
+
+            bindEvents() {
+                document.getElementById('prevMonth').addEventListener('click', () => {
+                    this.state.currentDate.setMonth(this.state.currentDate.getMonth() - 1);
+                    this.renderCalendar();
+                });
+
+                document.getElementById('nextMonth').addEventListener('click', () => {
+                    this.state.currentDate.setMonth(this.state.currentDate.getMonth() + 1);
+                    this.renderCalendar();
+                });
+
+                document.getElementById('tabMorning').addEventListener('click', () => this.switchTab('morning'));
+                document.getElementById('tabEvening').addEventListener('click', () => this.switchTab('evening'));
+                document.getElementById('tabWeekend').addEventListener('click', () => this.switchTab('weekend'));
+
+                window.addEventListener('popstate', () => {
+                    const params = new URLSearchParams(window.location.search);
+                    const date = params.get('date');
+                    if (date) {
+                        this.state.selectedDate = date;
+                        const [year, month, day] = date.split('-');
+                        this.state.currentDate = new Date(year, month - 1, 1);
+                        this.renderCalendar();
+                        this.loadSelectedDate(date);
+                    } else {
+                        this.state.selectedDate = '';
+                        this.renderCalendar();
+                        document.getElementById('contentArea').style.display = 'none';
+                        document.getElementById('placeholderArea').style.display = 'block';
+                        document.getElementById('subtitleText').textContent = 'Select a date to view its market snapshot';
+                    }
+                });
+            },
+
+            async fetchAvailableDates() {
+                try {
+                    const res = await fetch('../api/archive.php?action=dates');
+                    if (!res.ok) throw new Error('Failed to fetch dates');
+                    const data = await res.json();
+
+                    this.state.availableDates.morning = new Set(data.morning);
+                    this.state.availableDates.evening = new Set(data.evening);
+                    this.state.availableDates.weekend = new Set(data.weekend || []);
+                    const allDates = [...data.morning, ...data.evening, ...(data.weekend || [])];
+                    if (allDates.length > 0) {
+                        this.state.minDate = new Date(allDates.sort()[0] + 'T12:00:00');
+                        this.state.maxDate = new Date();
+                    }
+                } catch (e) {
+                    console.error('Error fetching available dates', e);
+                }
+            },
+
+            renderCalendar() {
+                const year = this.state.currentDate.getFullYear();
+                const month = this.state.currentDate.getMonth();
+
+                const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+                document.getElementById('currentMonthYear').textContent = `${monthNames[month]} ${year}`;
+
+                const prevBtn = document.getElementById('prevMonth');
+                const nextBtn = document.getElementById('nextMonth');
+
+                if (this.state.minDate) {
+                    const isMinMonth = year === this.state.minDate.getFullYear() && month === this.state.minDate.getMonth();
+                    prevBtn.disabled = isMinMonth;
+                    prevBtn.style.opacity = isMinMonth ? '0.2' : '1';
+                    prevBtn.style.cursor = isMinMonth ? 'default' : 'pointer';
+                }
+
+                if (this.state.maxDate) {
+                    const isMaxMonth = year === this.state.maxDate.getFullYear() && month === this.state.maxDate.getMonth();
+                    nextBtn.disabled = isMaxMonth;
+                    nextBtn.style.opacity = isMaxMonth ? '0.2' : '1';
+                    nextBtn.style.cursor = isMaxMonth ? 'default' : 'pointer';
+                }
+
+                const firstDay = new Date(year, month, 1).getDay();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+                const calendarDays = document.getElementById('calendarDays');
+                calendarDays.innerHTML = '';
+
+                // Empty cells before the 1st
+                for (let i = 0; i < firstDay; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'calendar-day empty';
+                    calendarDays.appendChild(cell);
+                }
+
+                // Days of the month
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    const hasMorning = this.state.availableDates.morning.has(dateStr);
+                    const hasEvening = this.state.availableDates.evening.has(dateStr);
+                    const hasWeekend = this.state.availableDates.weekend.has(dateStr);
+                    const isAvailable = hasMorning || hasEvening || hasWeekend;
+
+                    const cell = document.createElement('div');
+                    cell.className = `calendar-day ${isAvailable ? 'available' : 'unavailable'}`;
+                    if (this.state.selectedDate === dateStr) {
+                        cell.classList.add('selected');
+                    }
+
+                    cell.innerHTML = `<span>${day}</span>`;
+
+                    if (isAvailable) {
+                        const indicators = document.createElement('div');
+                        indicators.className = 'calendar-indicators';
+                        if (hasMorning) indicators.innerHTML += '<span class="calendar-dot morning"></span>';
+                        if (hasEvening) indicators.innerHTML += '<span class="calendar-dot evening"></span>';
+                        if (hasWeekend) indicators.innerHTML += '<span class="calendar-dot weekend"></span>';
+                        cell.appendChild(indicators);
+
+                        cell.addEventListener('click', () => {
+                            this.selectDate(dateStr);
+                        });
+                    }
+
+                    calendarDays.appendChild(cell);
+                }
+
+                // Empty cells after the end of month to complete grid (42 cells max)
+                const totalCells = firstDay + daysInMonth;
+                const remaining = 42 - totalCells;
+                for (let i = 0; i < remaining; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'calendar-day empty';
+                    calendarDays.appendChild(cell);
+                }
+            },
+
+            selectDate(dateStr) {
+                if (this.state.selectedDate === dateStr) return;
+
+                this.state.selectedDate = dateStr;
+                this.renderCalendar();
+
+                // Update URL via pushState
+                const newUrl = new URL(window.location);
+                newUrl.searchParams.set('date', dateStr);
+                window.history.pushState({ date: dateStr }, '', newUrl);
+
+                // Update Subtitle
+                const dateObj = new Date(dateStr + 'T12:00:00'); // Force noon to avoid timezone shift
+                document.getElementById('subtitleText').textContent = dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+                // Update doc title
+                document.title = `SPX Market Snapshot — ${dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} | The Gamma Brief`;
+
+                this.loadSelectedDate(dateStr);
+            },
+
+            async loadSelectedDate(dateStr) {
+                const hasMorning = this.state.availableDates.morning.has(dateStr);
+                const hasEvening = this.state.availableDates.evening.has(dateStr);
+                const hasWeekend = this.state.availableDates.weekend.has(dateStr);
+                const isSaturday = new Date(dateStr + 'T12:00:00').getDay() === 6;
+
+                const tabMorning = document.getElementById('tabMorning');
+                const tabEvening = document.getElementById('tabEvening');
+                const tabWeekend = document.getElementById('tabWeekend');
+
+                tabMorning.disabled = !hasMorning;
+                tabEvening.disabled = !hasEvening;
+                tabWeekend.disabled = !hasWeekend;
+
+                tabWeekend.style.display = isSaturday ? '' : 'none';
+
+                if (isSaturday && hasWeekend) {
+                    this.switchTab('weekend');
+                } else if (hasMorning && hasEvening) {
+                    this.switchTab('morning');
+                } else if (hasMorning) {
+                    this.switchTab('morning');
+                } else if (hasEvening) {
+                    this.switchTab('evening');
+                } else if (isSaturday && !hasWeekend) {
+                    document.getElementById('reportGrid').innerHTML = '<p class="notes-placeholder">No weekend archive available for this date.</p>';
+                }
+
+                document.getElementById('placeholderArea').style.display = 'none';
+                document.getElementById('contentArea').style.display = 'block';
+            },
+
+            async switchTab(type) {
+                this.state.activeTab = type;
+
+                document.getElementById('tabMorning').classList.toggle('active', type === 'morning');
+                document.getElementById('tabEvening').classList.toggle('active', type === 'evening');
+                document.getElementById('tabWeekend').classList.toggle('active', type === 'weekend');
+
+                const cacheKey = `${type}_${this.state.selectedDate}`;
+
+                if (this.state.reportCache[cacheKey]) {
+                    this.renderReport(this.state.reportCache[cacheKey], type);
+                    return;
+                }
+
+                try {
+                    const res = await fetch(`../api/archive.php?type=${type}&date=${this.state.selectedDate}`);
+                    if (!res.ok) throw new Error('Failed to load report');
+                    const data = await res.json();
+                    this.state.reportCache[cacheKey] = data;
+                    this.renderReport(data, type);
+                } catch (e) {
+                    console.error('Error loading report', e);
+                    document.getElementById('reportGrid').innerHTML = '<p class="notes-placeholder">Error loading report data.</p>';
+                }
+            },
+
+
+            generateProgrammaticConditions(obs_data) {
+                const regime = (obs_data.regime || 'NEUTRAL').toUpperCase();
+                const gex_flip = obs_data.gex_flip ?? null;
+                const call_wall = obs_data.call_wall ?? null;
+                const put_wall = obs_data.put_wall ?? null;
+                const borderline = obs_data.borderline || false;
+
+                if (borderline) {
+                    return {
+                        consistent_with: 'Reduced size and patience before commitment.',
+                        hostile_to: 'Aggressive positioning ahead of regime resolution.',
+                        invalidation_at: gex_flip
+                            ? `Decisive move away from ${gex_flip} flip level.`
+                            : 'Regime confirmation via sustained directional move.'
+                    };
+                }
+
+                if (regime === 'POSITIVE') {
+                    return {
+                        consistent_with: 'Range-bound mean reversion and income structures.',
+                        hostile_to: 'Breakout momentum and trend-following strategies.',
+                        invalidation_at: (call_wall && put_wall)
+                            ? `Breach of ${call_wall} Call Wall or ${put_wall} Put Wall.`
+                            : 'Breach of dealer wall boundaries.'
+                    };
+                }
+
+                if (regime === 'NEGATIVE') {
+                    return {
+                        consistent_with: 'Directional momentum and volatility expansion.',
+                        hostile_to: 'Premium collection and range-bound assumptions.',
+                        invalidation_at: gex_flip
+                            ? `Reclaim of ${gex_flip} GEX flip level.`
+                            : 'Return to dampened intraday range.'
+                    };
+                }
+
+                return {
+                    consistent_with: 'Defined-risk setups with clear invalidation levels.',
+                    hostile_to: 'Over-leveraged directional commitment.',
+                    invalidation_at: (call_wall && put_wall)
+                        ? `Move outside ${put_wall}–${call_wall} range.`
+                        : 'Sustained directional break.'
+                };
+            },
+
+            renderReport(data, type) {
+                // Weekend merge: hoist friday_context fields, then overlay weekend-specific keys
+                if (type === 'weekend' && data.friday_context) {
+                    data = { ...data.friday_context, ...data };
+                }
+
+                const grid = document.getElementById('reportGrid');
+                grid.innerHTML = '';
+
+                // Risk Banner
+                if (type === 'weekend') {
+                    document.getElementById('riskBanner').style.display = 'none';
+                } else if (data.risk) {
+                    const riskBanner = document.getElementById('riskBanner');
+                    riskBanner.style.display = 'flex';
+                    riskBanner.className = `risk-banner risk-${data.risk.level.toLowerCase()}`;
+                    document.getElementById('riskLevel').textContent = data.risk.level.toUpperCase();
+                    document.getElementById('riskLevel').className = `risk-level ${data.risk.level.toLowerCase()}`;
+                    document.getElementById('riskSummary').textContent = data.risk.summary;
+                } else {
+                    document.getElementById('riskBanner').style.display = 'none';
+                }
+
+                // Market Overview
+                if (data.market) {
+                    grid.innerHTML += `
+                        <section class="panel panel-market">
+                            <h2 class="panel-title">Market Overview</h2>
+                            <div class="market-grid">
+                                ${this.renderMarketItem('ES', data.market.es)}
+                                ${this.renderMarketItem('NQ', data.market.nq)}
+                                ${this.renderMarketItem('RTY', data.market.rty)}
+                                ${this.renderMarketItem('VIX', data.market.vix)}
+                            </div>
+                            ${data.market.global ? `
+                            <div class="global-markets">
+                                <div class="global-item">
+                                    <span class="global-label">Asia</span>
+                                    <span class="global-status ${this.getChangeClass(data.market.global.asia)}">${(data.market.global.asia || '').replace(/\s*(green|red|flat)$/i, '')}</span>
+                                </div>
+                                <div class="global-item">
+                                    <span class="global-label">Europe</span>
+                                    <span class="global-status ${this.getChangeClass(data.market.global.europe)}">${(data.market.global.europe || '').replace(/\s*(green|red|flat)$/i, '')}</span>
+                                </div>
+                            </div>
+                            ` : ''}
+                            ${data.market_context ? `
+                            <div class="market-context-strip">
+                                ${data.market_context.treasury?.year10 != null ? `
+                                <div class="context-item">
+                                    <span class="context-label">10Y</span>
+                                    <span class="context-value">${data.market_context.treasury.year10.toFixed(2)}%</span>
+                                    ${data.market_context.treasury.change_10y_bp != null ? `<span class="context-change ${data.market_context.treasury.change_10y_bp > 0 ? 'negative' : (data.market_context.treasury.change_10y_bp < 0 ? 'positive' : 'neutral')}">${data.market_context.treasury.change_10y_bp > 0 ? '+' : (data.market_context.treasury.change_10y_bp < 0 ? '-' : '')}${Math.abs(data.market_context.treasury.change_10y_bp).toFixed(0)}bp</span>` : ''}
+                                </div>
+                                ` : ''}
+                                ${data.market_context.treasury?.spread_2y10y != null ? `
+                                <div class="context-item">
+                                    <span class="context-label">2Y-10Y</span>
+                                    <span class="context-value">${data.market_context.treasury.spread_2y10y * 100 > 0 ? '+' : (data.market_context.treasury.spread_2y10y * 100 < 0 ? '-' : '')}${Math.abs(data.market_context.treasury.spread_2y10y * 100).toFixed(0)}bp</span>
+                                    ${data.market_context.treasury.spread_2y10y * 100 < 0 ? `<span class="context-change negative">INVERTED</span>` : ''}
+                                </div>
+                                ` : ''}
+
+                                ${data.market_context.sectors?.leaders?.length > 0 ? `
+                                <div class="context-item">
+                                    <span class="context-label">Top Sector</span>
+                                    <span class="context-value sector-name">${data.market_context.sectors.leaders[0].name || '--'}</span>
+                                    ${data.market_context.sectors.leaders[0].change != null ? `<span class="context-change ${data.market_context.sectors.leaders[0].change > 0 ? 'positive' : (data.market_context.sectors.leaders[0].change < 0 ? 'negative' : 'neutral')}">${data.market_context.sectors.leaders[0].change > 0 ? '+' : ''}${data.market_context.sectors.leaders[0].change.toFixed(2)}%</span>` : ''}
+                                </div>
+                                ${data.market_context.sectors.laggards?.length > 0 ? `
+                                <div class="context-item">
+                                    <span class="context-label">Bottom Sector</span>
+                                    <span class="context-value sector-name">${data.market_context.sectors.laggards[0].name || '--'}</span>
+                                    ${data.market_context.sectors.laggards[0].change != null ? `<span class="context-change ${data.market_context.sectors.laggards[0].change > 0 ? 'positive' : (data.market_context.sectors.laggards[0].change < 0 ? 'negative' : 'neutral')}">${data.market_context.sectors.laggards[0].change > 0 ? '+' : ''}${data.market_context.sectors.laggards[0].change.toFixed(2)}%</span>` : ''}
+                                </div>
+                                ` : ''}
+                                ` : ''}
+
+                                ${data.market_context.technical?.rsi_14 != null ? (() => {
+                                    const rsi = data.market_context.technical.rsi_14;
+                                    const rsiColor = rsi > 70 ? 'var(--accent-red)'
+                                        : rsi > 60 ? 'var(--accent-yellow)'
+                                        : rsi < 30 ? 'var(--accent-green)'
+                                        : rsi < 40 ? 'var(--accent-cyan)'
+                                        : 'var(--text-secondary)';
+                                    return `
+                                <div class="context-row-technical" style="width:100%;">
+                                    <div class="context-item">
+                                        <span class="context-label">RSI(14)</span>
+                                        <div class="rsi-gauge">
+                                            <span class="rsi-value ${rsi >= 70 ? 'overbought' : (rsi <= 30 ? 'oversold' : '')}">${Math.round(rsi)}</span>
+                                            <span class="rsi-label">${rsi >= 70 ? 'OVERBOUGHT' : (rsi <= 30 ? 'OVERSOLD' : 'NEUTRAL')}</span>
+                                            <div class="rsi-track">
+                                                <div class="rsi-fill" style="width: ${Math.max(0, Math.min(100, rsi))}%; background-color: ${rsiColor};"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    ${data.market_context.technical.vs_50sma_pct != null ? `
+                                    <div class="context-item">
+                                        <span class="context-label">vs 50-SMA</span>
+                                        <span class="context-change ${data.market_context.technical.vs_50sma_pct > 0 ? 'positive' : (data.market_context.technical.vs_50sma_pct < 0 ? 'negative' : 'neutral')}">${data.market_context.technical.vs_50sma_pct > 0 ? '+' : ''}${data.market_context.technical.vs_50sma_pct.toFixed(2)}%</span>
+                                    </div>
+                                    ` : ''}
+                                    ${data.market_context.technical.vs_200sma_pct != null ? `
+                                    <div class="context-item">
+                                        <span class="context-label">vs 200-SMA</span>
+                                        <span class="context-change ${data.market_context.technical.vs_200sma_pct > 0 ? 'positive' : (data.market_context.technical.vs_200sma_pct < 0 ? 'negative' : 'neutral')}">${data.market_context.technical.vs_200sma_pct > 0 ? '+' : ''}${data.market_context.technical.vs_200sma_pct.toFixed(2)}%</span>
+                                    </div>
+                                    ` : ''}
+                                </div>
+                                `;
+                                })() : ''}
+                            </div>
+                            ` : ''}
+                        </section>
+                    `;
+                }
+
+                // Forecast
+                if (data.forecast) {
+                    grid.innerHTML += `
+                        <section class="panel panel-forecast">
+                            <h2 class="panel-title">${type === 'weekend' ? 'Last Session' : type === 'evening' ? 'Tomorrow\'s Forecast' : 'Today\'s Forecast'}</h2>
+                            <div class="forecast-primary">
+                                <span class="forecast-type">${data.forecast.type || '--'}</span>
+                                <span class="forecast-confidence">${data.forecast.confidence ? data.forecast.confidence + '% confidence' : ''}</span>
+                            </div>
+                            ${data.forecast.factors ? `
+                            <div class="forecast-factors">
+                                ${this.renderFactor('Gamma', data.forecast.factors.gamma)}
+                                ${this.renderFactor('Gap', data.forecast.factors.gap)}
+                                ${this.renderFactor('Vol Setup', data.forecast.factors.volatility)}
+                                ${this.renderFactor('Calendar', data.forecast.factors.calendar)}
+                            </div>
+                            ` : ''}
+                            ${type !== 'weekend' && data.forecast.factors?.gamma?.net_gex != null ? `
+                            <div class="regime-detail-card" style="display:flex;">
+                                <div class="regime-detail-row">
+                                    <span class="regime-detail-label">Context</span>
+                                    <div class="regime-detail-value-group">
+                                        <span class="regime-value ${data.forecast.factors.gamma.value === 'POSITIVE' ? 'positive' : (data.forecast.factors.gamma.value === 'NEGATIVE' ? 'negative' : 'neutral')}">${data.forecast.factors.gamma.value || '--'}</span>
+                                        <span class="regime-badge ${data.forecast.factors.gamma.borderline_regime ? 'badge-borderline' : 'badge-stable'}">${data.forecast.factors.gamma.borderline_regime ? 'BORDERLINE' : 'STABLE'}</span>
+                                    </div>
+                                </div>
+                                <div class="regime-detail-row">
+                                    <span class="regime-detail-label">Net GEX</span>
+                                    <span class="regime-value-mono">${(() => {
+                                        const ng = data.forecast.factors.gamma.net_gex;
+                                        const abs = Math.abs(ng);
+                                        const s = ng > 0 ? '+' : (ng < 0 ? '-' : '');
+                                        if (abs >= 1e8) return s + '$' + (abs / 1e9).toFixed(1) + 'B';
+                                        if (abs > 0) return s + '$' + (abs / 1e6).toFixed(0) + 'M';
+                                        return '$0';
+                                    })()}</span>
+                                </div>
+                                <div class="regime-detail-row">
+                                    <span class="regime-detail-label">GEX Flip</span>
+                                    <div class="regime-detail-value-group">
+                                        <span class="regime-value-mono">${data.forecast.factors.gamma.gex_flip != null ? data.forecast.factors.gamma.gex_flip.toFixed(0) : '--'}</span>
+                                        <span class="regime-prox ">${data.forecast.factors.gamma.gex_flip_prox != null ? Math.abs(data.forecast.factors.gamma.gex_flip_prox).toFixed(1) + '% away' : '--'}</span>
+                                    </div>
+                                </div>
+                                ${data.forecast.regime_streak != null ? (() => {
+                                    const streak = data.forecast.regime_streak;
+                                    const count = streak.regime_count !== undefined ? streak.regime_count : (streak.count || streak);
+                                    const rName = streak.regime ? (streak.regime.charAt(0).toUpperCase() + streak.regime.slice(1).toLowerCase()) + ' Gamma' : '';
+                                    const mainLabel = streak.regime_count !== undefined ? `Day ${count} &middot; ${rName}` : `D${count}`;
+
+                                    let traj = [];
+                                    if (streak.gex_trend === 'building') traj.push('<span title="Net GEX building">GEX ▲</span>');
+                                    else if (streak.gex_trend === 'fading') traj.push('<span title="Net GEX fading">GEX ▼</span>');
+
+                                    if (streak.flip_trend === 'widening') traj.push('<span title="Distance to flip widening">Flip ▲</span>');
+                                    else if (streak.flip_trend === 'narrowing') traj.push('<span title="Distance to flip narrowing">Flip ▼</span>');
+
+                                    let subLabel = streak.day_type_label || streak.label || '';
+                                    if (traj.length > 0) {
+                                        subLabel += ' &middot; ' + traj.join(' &middot; ');
+                                    }
+
+                                    const flipBadge = streak.flip ? `<span class="regime-badge" style="background:var(--negative);color:#fff;margin-left:8px;">FLIP</span>` : '';
+
+                                    return `
+                                    <div class="regime-detail-row">
+                                        <span class="regime-detail-label">Streak</span>
+                                        <div class="regime-detail-value-group">
+                                            <div style="display:flex;align-items:center;">
+                                                <span class="regime-value-mono">${mainLabel}</span>
+                                                ${flipBadge}
+                                            </div>
+                                            <span class="regime-streak-label ${streak.day_type ? streak.day_type.toLowerCase().replace(/[^a-z0-9]/g, '-') : ''}">${subLabel}</span>
+                                        </div>
+                                    </div>
+                                    `;
+                                })() : ''}
+                            </div>
+                            ` : ''}
+                        </section>
+                    `;
+                }
+
+                // Levels
+                if (data.levels) {
+                    grid.innerHTML += `
+                        <section class="panel panel-levels">
+                            <h2 class="panel-title">${type === 'evening' ? 'Tomorrow\'s Levels' : 'Key Levels'} <span class="panel-subtitle">SPX</span></h2>
+                            <div class="levels-grid">
+                                <div class="level-group level-resistance">
+                                    <span class="level-label">R2</span>
+                                    <span class="level-value">${this.formatPrice(data.levels.r2)}</span>
+                                </div>
+                                <div class="level-group level-resistance">
+                                    <span class="level-label">R1</span>
+                                    <span class="level-value">${this.formatPrice(data.levels.r1)}</span>
+                                </div>
+                                <div class="level-group level-current">
+                                    <span class="level-label">CURR</span>
+                                    <span class="level-value">${this.formatPrice(data.levels.current)}</span>
+                                </div>
+                                <div class="level-group level-support">
+                                    <span class="level-label">S1</span>
+                                    <span class="level-value">${this.formatPrice(data.levels.s1)}</span>
+                                </div>
+                                <div class="level-group level-support">
+                                    <span class="level-label">S2</span>
+                                    <span class="level-value">${this.formatPrice(data.levels.s2)}</span>
+                                </div>
+                            </div>
+                            <div class="levels-extra">
+                                <div class="level-item">
+                                    <span class="level-label">Put Wall</span>
+                                    <span class="level-value">${this.formatPrice(data.levels.putWall)}</span>
+                                </div>
+                                <div class="level-item">
+                                    <span class="level-label">Call Wall</span>
+                                    <span class="level-value">${this.formatPrice(data.levels.callWall)}</span>
+                                </div>
+                                <div class="level-item">
+                                    <span class="level-label">Exp Move</span>
+                                    <span class="level-value">${data.levels.expectedMove ? '±' + data.levels.expectedMove : '--'}</span>
+                                </div>
+                            </div>
+
+                            ${type !== 'weekend' && data.levels.current != null && data.levels.putWall != null && data.levels.callWall != null && data.levels.expectedMove != null ? (() => {
+                                const putDist = Math.abs(data.levels.current - data.levels.putWall);
+                                const callDist = Math.abs(data.levels.callWall - data.levels.current);
+                                const em = data.levels.expectedMove;
+                                let valText, valClass;
+                                if (em >= putDist && em >= callDist) {
+                                    valText = 'DUAL WALL BREACH RISK';
+                                    valClass = 'negative';
+                                } else if (em >= putDist) {
+                                    valText = 'PUT WALL BREACH RISK';
+                                    valClass = 'negative';
+                                } else if (em >= callDist) {
+                                    valText = 'CALL WALL BREACH RISK';
+                                    valClass = 'negative';
+                                } else {
+                                    valText = 'WALLS OUTSIDE EM RANGE';
+                                    valClass = 'positive';
+                                }
+                                return `
+                                <div class="wall-geometry-indicator" style="display:flex;">
+                                    <span class="geometry-label">GEOMETRY</span>
+                                    <span class="geometry-value ${valClass}">${valText}</span>
+                                </div>
+                                `;
+                            })() : ''}
+                        </section>
+                    `;
+                }
+
+                // Catalysts & Look Ahead
+                if (data.catalysts || data.lookAhead) {
+                    let panelHtml = `
+                        <section class="panel panel-catalysts">
+                            <h2 class="panel-title">Catalysts & Outlook</h2>`;
+
+                    if (data.catalysts?.today) {
+                        panelHtml += `
+                            <div class="catalysts-list">
+                                ${data.catalysts.today.length ? data.catalysts.today.map(item => `
+                                <div class="catalyst-item ${(item.impact || 'low').toLowerCase()}-impact">
+                                    <span class="catalyst-time">${item.time || ''}</span>
+                                    <div class="catalyst-content">
+                                        <div class="catalyst-title">${item.title}</div>
+                                        <div class="catalyst-impact">${item.impact} impact</div>
+                                    </div>
+                                </div>
+                                `).join('') : '<p class="notes-placeholder">No scheduled events</p>'}
+                            </div>`;
+                    }
+
+                    if (data.lookAhead) {
+                        panelHtml += `
+                            <div class="catalysts-separator"></div>
+                            <div class="lookahead-content">
+                                ${data.lookAhead.tomorrow ? `
+                                <div class="lookahead-item">
+                                    <span class="lookahead-day">Tomorrow</span>
+                                    <span class="lookahead-risk ${data.lookAhead.tomorrow.risk.toLowerCase()}">${data.lookAhead.tomorrow.risk}</span>
+                                    <span class="lookahead-reason">${data.lookAhead.tomorrow.reason}</span>
+                                </div>
+                                ` : ''}
+                                ${data.lookAhead.week ? `
+                                <div class="lookahead-item">
+                                    <span class="lookahead-day">This Week</span>
+                                    <span class="lookahead-risk ${data.lookAhead.week.risk.toLowerCase()}">${data.lookAhead.week.risk}</span>
+                                    <span class="lookahead-reason">${data.lookAhead.week.reason}</span>
+                                </div>
+                                ` : ''}
+                            </div>`;
+                    }
+
+                    panelHtml += `
+                        </section>
+                    `;
+                    grid.innerHTML += panelHtml;
+                }
+
+                // Guidance
+                if (data.guidance) {
+                    grid.innerHTML += `
+                        <section class="panel panel-guidance">
+                            <h2 class="panel-title">Trade Guidance</h2>
+                            <div class="guidance-content">
+                                <div class="guidance-top">
+                                    <div class="guidance-signal ${data.guidance.signal.toLowerCase()}">
+                                        <span class="signal-icon">◉</span>
+                                        <span class="signal-text">${data.guidance.message}</span>
+                                    </div>
+                                    <div class="guidance-notes">
+                                        ${data.guidance.notes || ''}
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    `;
+                }
+
+                // Conditions Card
+                if (type !== 'weekend' && data.forecast?.factors?.gamma?.value) {
+                    const obs_data = {
+                        regime: data.forecast.factors.gamma.value || 'NEUTRAL',
+                        borderline: data.forecast.factors.gamma.borderline_regime || false,
+                        gex_flip: data.forecast.factors.gamma.gex_flip ?? null,
+                        call_wall: data.levels?.callWall ?? null,
+                        put_wall: data.levels?.putWall ?? null
+                    };
+                    const conditions = this.generateProgrammaticConditions(obs_data);
+
+                    grid.innerHTML += `
+                        <section class="panel panel-conditions">
+                            <h2 class="panel-title">Strategy Conditions</h2>
+                            <div class="conditions-grid">
+                                <div class="condition-item">
+                                    <span class="condition-label label-consistent">Consistent With</span>
+                                    <p class="condition-text">${conditions.consistent_with}</p>
+                                </div>
+                                <div class="condition-item">
+                                    <span class="condition-label label-hostile">Hostile To</span>
+                                    <p class="condition-text">${conditions.hostile_to}</p>
+                                </div>
+                                <div class="condition-item">
+                                    <span class="condition-label label-invalidation">Invalidation At</span>
+                                    <p class="condition-text">${conditions.invalidation_at}</p>
+                                </div>
+                            </div>
+                        </section>
+                    `;
+                }
+
+                // Session Analysis
+                if (type === 'evening' && data.session_analysis) {
+                     grid.innerHTML += `
+                        <section class="panel panel-catalysts">
+                            <h2 class="panel-title">Session Recap</h2>
+                            <div class="session-recap-content" style="padding: 1rem; font-size: 0.9rem;">
+                                <div class="market-item">
+                                    <span class="market-label">SPX Change</span>
+                                    <span class="market-change ${this.getChangeClass(data.session_analysis.spx_change)}">${this.getChangeClass(data.session_analysis.spx_change) === 'positive' ? '+' : ''}${data.session_analysis.spx_change}%</span>
+                                </div>
+                                <div class="market-item">
+                                    <span class="market-label">VIX Change</span>
+                                    <span class="market-change ${this.getChangeClass(data.session_analysis.vix_change)}">${this.getChangeClass(data.session_analysis.vix_change) === 'positive' ? '+' : ''}${data.session_analysis.vix_change}%</span>
+                                </div>
+                                <div class="market-item">
+                                    <span class="market-label">Session Type</span>
+                                    <span class="market-value">${data.session_analysis.session_type || '--'}</span>
+                                </div>
+                                <div class="market-item">
+                                    <span class="market-label">Forecast Met</span>
+                                    <span class="market-value">${data.session_analysis.forecast_accurate ? 'YES' : 'NO'}</span>
+                                </div>
+                                <div class="market-item">
+                                    <span class="market-label">Exp Move Hit</span>
+                                    <span class="market-value">${data.session_analysis.expected_move_hit ? 'YES' : 'NO'}</span>
+                                </div>
+                            </div>
+                        </section>
+                    `;
+                }
+
+
+                // Narrative Analysis
+                const primaryProvider = data.ai_narrative_provider || 'claude';
+                const narrativeKey = `ai_narrative_${primaryProvider}`;
+                const narrative = data[narrativeKey] || data.notes;
+
+                if (narrative) {
+                    grid.innerHTML += `
+                        <section class="panel panel-notes" style="grid-column: 1 / -1;">
+                            <div class="panel-title-row">
+                                <h2 class="panel-title">Analysis Notes <span class="provider-badge" style="font-size:0.7rem; padding:0.1rem 0.3rem; background:rgba(255,255,255,0.1); border-radius:3px; margin-left:0.5rem; vertical-align:middle;">${primaryProvider.toUpperCase()}</span></h2>
+                                <div class="notes-tabs">
+                                    <button class="notes-tab active" data-tab="narrative">Narrative</button>
+                                    <button class="notes-tab" data-tab="rawdata">Raw Data</button>
+                                </div>
+                            </div>
+                            <div class="notes-tab-body" id="historyNarrative">
+                                <div class="notes-content" style="padding: 1.5rem;">
+                                    ${this.parseMarkdown(narrative)}
+                                </div>
+                            </div>
+                            <div class="notes-tab-body" id="historyRawData" style="display:none">
+                                <div class="notes-rawdata" id="historyRawDataContent"></div>
+                            </div>
+                        </section>
+                    `;
+
+                    // Bind tab toggle
+                    const notesTabs = grid.querySelectorAll('.panel-notes .notes-tab');
+                    notesTabs.forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            notesTabs.forEach(t => t.classList.remove('active'));
+                            btn.classList.add('active');
+                            const tab = btn.dataset.tab;
+                            document.getElementById('historyNarrative').style.display = tab === 'narrative' ? '' : 'none';
+                            document.getElementById('historyRawData').style.display = tab === 'rawdata' ? '' : 'none';
+                        });
+                    });
+
+                    // Populate raw data
+                    this.renderRawData(data);
+                }
+            },
+
+            renderMarketItem(label, data) {
+                if (!data) return '';
+                const price = this.formatPrice(data.price);
+                const changeTxt = this.formatChange(data.change, data.changePercent);
+                const cls = this.getChangeClass(data.change);
+
+                return `
+                    <div class="market-item">
+                        <span class="market-label">${label}</span>
+                        <span class="market-value">${price}</span>
+                        <span class="market-change ${cls}">${changeTxt}</span>
+                    </div>
+                `;
+            },
+
+            renderRawData(data) {
+                const container = document.getElementById('historyRawDataContent');
+                if (!container) return;
+
+                let html = '';
+
+                const escapeHtml = (unsafe) => {
+                    if (typeof unsafe !== 'string') return unsafe;
+                    return unsafe
+                        .replace(/&/g, "&amp;")
+                        .replace(/</g, "&lt;")
+                        .replace(/>/g, "&gt;")
+                        .replace(/"/g, "&quot;")
+                        .replace(/'/g, "&#039;");
+                };
+
+                const addRow = (label, value) => {
+                    if (value === null || value === undefined || value === '') return;
+                    if (typeof value === 'boolean') {
+                        value = value ? 'Yes' : 'No';
+                    } else if (typeof value === 'string') {
+                        value = escapeHtml(value);
+                    }
+                    html += `<div class="rawdata-row">
+                                <span class="rawdata-label">${label}</span>
+                                <span class="rawdata-value">${value}</span>
+                             </div>`;
+                };
+
+                const addSection = (title, buildRows) => {
+                    let htmlBeforeSection = html;
+                    html += `<div class="rawdata-section">
+                                <h3 class="rawdata-section-title">${title}</h3>`;
+
+                    const lengthBeforeBuild = html.length;
+                    buildRows();
+
+                    if (html.length === lengthBeforeBuild) {
+                        html = htmlBeforeSection;
+                    } else {
+                        html += `</div>`;
+                    }
+                };
+
+                const formatPercent = (val) => {
+                    if (val === null || val === undefined) return null;
+                    const prefix = val > 0 ? '+' : '';
+                    return `${prefix}${val.toFixed(2)}%`;
+                };
+
+                const formatPrice = (val) => {
+                    if (val === null || val === undefined) return null;
+                    return val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                };
+
+                const formatChange = (val) => {
+                    if (val === null || val === undefined) return null;
+                    const prefix = val > 0 ? '+' : '';
+                    return `${prefix}${val.toFixed(2)}`;
+                };
+
+                const formatNetGex = (val) => {
+                    if (val === null || val === undefined) return null;
+                    return val.toLocaleString();
+                };
+
+                if (data.market) {
+                    addSection('Market', () => {
+                        if (data.market.es) {
+                            addRow('ES Price', formatPrice(data.market.es.price));
+                            addRow('ES Change', formatChange(data.market.es.change));
+                            addRow('ES Change %', formatPercent(data.market.es.changePercent));
+                        }
+                        if (data.market.nq) {
+                            addRow('NQ Price', formatPrice(data.market.nq.price));
+                            addRow('NQ Change', formatChange(data.market.nq.change));
+                            addRow('NQ Change %', formatPercent(data.market.nq.changePercent));
+                        }
+                        if (data.market.rty) {
+                            addRow('RTY Price', formatPrice(data.market.rty.price));
+                            addRow('RTY Change', formatChange(data.market.rty.change));
+                            addRow('RTY Change %', formatPercent(data.market.rty.changePercent));
+                        }
+                        if (data.market.vix) {
+                            addRow('VIX Price', formatPrice(data.market.vix.price));
+                            addRow('VIX Change', formatChange(data.market.vix.change));
+                            addRow('VIX Change %', formatPercent(data.market.vix.changePercent));
+                        }
+                        if (data.market.global) {
+                            addRow('Asia', data.market.global.asia);
+                            addRow('Europe', data.market.global.europe);
+                        }
+                    });
+                }
+
+                if (data.levels) {
+                    addSection('Levels', () => {
+                        addRow('Current', data.levels.current);
+                        addRow('R2', data.levels.r2);
+                        addRow('R1', data.levels.r1);
+                        addRow('S1', data.levels.s1);
+                        addRow('S2', data.levels.s2);
+                        addRow('Put Wall', data.levels.putWall);
+                        addRow('Call Wall', data.levels.callWall);
+                        addRow('Expected Move', data.levels.expectedMove);
+                    });
+                }
+
+                if (data.forecast) {
+                    addSection('Forecast', () => {
+                        addRow('Type', data.forecast.type);
+                        addRow('Confidence', data.forecast.confidence);
+                    });
+
+                    if (data.forecast.factors && data.forecast.factors.gamma) {
+                        addSection('Gamma', () => {
+                            const g = data.forecast.factors.gamma;
+                            addRow('Regime', g.value);
+                            addRow('Method', g.gex_method);
+                            addRow('Net GEX', formatNetGex(g.net_gex));
+                            addRow('Flip Level', formatPrice(g.gex_flip));
+                            addRow('Proximity', formatPercent(g.flip_proximity));
+                            addRow('Borderline', g.borderline_regime);
+                        });
+                    }
+
+                    if (data.forecast.factors) {
+                        addSection('Other Factors', () => {
+                            if (data.forecast.factors.gap) addRow('Gap', data.forecast.factors.gap.value);
+                            if (data.forecast.factors.volatility) addRow('Volatility', data.forecast.factors.volatility.value);
+                            if (data.forecast.factors.calendar) addRow('Calendar', data.forecast.factors.calendar.value);
+                        });
+                    }
+                }
+
+                if (data.guidance) {
+                    addSection('Guidance', () => {
+                        addRow('Signal', data.guidance.signal);
+                        addRow('Message', data.guidance.message);
+                        addRow('Notes', data.guidance.notes);
+                    });
+                }
+
+                if (data.catalysts) {
+                    addSection('Catalysts', () => {
+                        const countEvents = (arr) => Array.isArray(arr) ? arr.length : 0;
+                        addRow('Today Events', countEvents(data.catalysts.today));
+                        addRow('Tomorrow Events', countEvents(data.catalysts.tomorrow));
+                        addRow('Week Events', countEvents(data.catalysts.week));
+                    });
+                }
+
+                if (data.playbook) {
+                    addSection('Playbook', () => {
+                        if (data.playbook.primary) {
+                            addRow('Primary Scenario', data.playbook.primary.scenario);
+                            addRow('Primary Trigger', data.playbook.primary.trigger);
+                            addRow('Primary Bias', data.playbook.primary.bias);
+                        }
+                        if (data.playbook.alternative) {
+                            addRow('Alternative Scenario', data.playbook.alternative.scenario);
+                            addRow('Alternative Trigger', data.playbook.alternative.trigger);
+                            addRow('Alternative Bias', data.playbook.alternative.bias);
+                        }
+                        if (data.playbook.neutral) {
+                            addRow('Neutral Scenario', data.playbook.neutral.scenario);
+                            addRow('Neutral Trigger', data.playbook.neutral.trigger);
+                            addRow('Neutral Bias', data.playbook.neutral.bias);
+                        }
+                        addRow('Source', data.playbook.source);
+                    });
+                }
+
+                // Weekend schema specific items
+                if (data.week_risk_score !== undefined) {
+                    addSection('Weekend Metadata', () => {
+                        addRow('Week Risk Score', data.week_risk_score);
+                        addRow('High Impact Days', data.high_impact_days?.join(', '));
+                        if (data.week_calendar) {
+                            const countEvents = (arr) => Array.isArray(arr) ? arr.length : 0;
+                            addRow('Monday Events', countEvents(data.week_calendar.Monday));
+                        }
+                    });
+                }
+
+                if (data.meta) {
+                    addSection('Generated', () => {
+                        addRow('Report Type', data.meta.reportType);
+                        addRow('Generated At', data.meta.generatedAt);
+                        addRow('Version', data.meta.version);
+                        addRow('Market Status', data.meta.marketStatus);
+                    });
+                }
+
+                container.innerHTML = html || '<p class="notes-placeholder">No raw data available</p>';
+            },
+
+            renderFactor(label, factor) {
+                if (!factor) return '';
+                const val = typeof factor === 'object' ? (factor.value || factor) : factor;
+                const sentiment = factor.sentiment ? factor.sentiment : '';
+                return `
+                    <div class="factor">
+                        <span class="factor-label">${label}</span>
+                        <span class="factor-value ${sentiment}">${val}</span>
+                    </div>
+                `;
+            },
+
+            formatPrice(price) {
+                if (price === null || price === undefined) return '--';
+                return parseFloat(price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            },
+
+            formatChange(change, percent) {
+                if (change === null || change === undefined) return '--';
+                const sign = change >= 0 ? '+' : '';
+                const pct = percent !== undefined ? ` (${sign}${percent}%)` : '';
+                return `${sign}${change.toFixed(2)}${pct}`;
+            },
+
+            getChangeClass(value) {
+                if (typeof value === 'string') {
+                    if (value.includes('+') || value.includes('↑')) return 'positive';
+                    if (value.includes('-') || value.includes('↓')) return 'negative';
+                    return 'neutral';
+                }
+                if (typeof value === 'number') {
+                    if (value > 0) return 'positive';
+                    if (value < 0) return 'negative';
+                    return 'neutral';
+                }
+                return '';
+            },
+
+            parseMarkdown(text) {
+                if (!text) return '';
+                let raw = text.replace(/<p>/gi, '').replace(/<\/p>/gi, '\n\n').replace(/<br\s*\/?>/gi, '\n');
+                raw = raw.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+
+                const lines = raw.split('\n');
+                let output = '';
+                let inList = false;
+                let inTable = false;
+                let tableRows = [];
+
+                const flushTable = () => {
+                    if (!tableRows.length) return;
+                    let tableHtml = '<table class="narrative-table">\n<thead>\n';
+                    tableRows.forEach((row, i) => {
+                        const isHeader = i === 0;
+                        const tag = isHeader ? 'th' : 'td';
+                        const cells = row.split('|').map(c => c.trim());
+                        tableHtml += '<tr>' + cells.map(c => `<${tag}>${this.parseInline(c)}</${tag}>`).join('') + '</tr>\n';
+                        if (isHeader) tableHtml += '</thead>\n<tbody>\n';
+                    });
+                    tableHtml += '</tbody>\n</table>\n';
+                    output += tableHtml;
+                    tableRows = [];
+                    inTable = false;
+                };
+
+                lines.forEach(line => {
+                    let cleanLine = line.trim();
+                    if (!cleanLine) {
+                        if (inList) { output += '</ul>\n'; inList = false; }
+                        if (inTable) flushTable();
+                        return;
+                    }
+                    if (/^(-{3,}|\*{3,}|_{3,})$/.test(cleanLine)) {
+                        if (inList) { output += '</ul>\n'; inList = false; }
+                        if (inTable) flushTable();
+                        output += '<hr>';
+                        return;
+                    }
+                    if (/^\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?$/.test(cleanLine)) {
+                        inTable = true;
+                        return;
+                    }
+                    if (cleanLine.startsWith('|')) {
+                        if (inList) { output += '</ul>\n'; inList = false; }
+                        inTable = true;
+                        tableRows.push(cleanLine.replace(/^\||\|$/g, ''));
+                        return;
+                    }
+                    if (inTable) flushTable();
+
+                    if (cleanLine.match(/^#{1,3} /)) {
+                        if (inList) { output += '</ul>\n'; inList = false; }
+                        const levelMatch = cleanLine.match(/^(#+)/);
+                        const level = levelMatch ? levelMatch[0].length : 2;
+                        const content = cleanLine.replace(/^#+\s+/, '');
+                        const tag = level === 1 ? 'h3' : 'h4';
+                        output += `<${tag}>${this.parseInline(content)}</${tag}>`;
+                    } else if (cleanLine.startsWith('- ')) {
+                        if (!inList) { output += '<ul>\n'; inList = true; }
+                        output += `<li>${this.parseInline(cleanLine.substring(2))}</li>`;
+                    } else {
+                        if (inList) { output += '</ul>\n'; inList = false; }
+                        output += `<p>${this.parseInline(cleanLine)}</p>`;
+                    }
+                });
+
+                if (inList) output += '</ul>\n';
+                if (inTable) flushTable();
+                return output;
+            },
+
+            parseInline(text) {
+                return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>');
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => HistoryApp.init());
+    </script>
+    <script src="https://unpkg.com/@solana/web3.js@1/lib/index.iife.min.js"></script>
+    <script src="../js/webmcp-tools.js"></script>
+
+
+</body></html>

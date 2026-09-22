@@ -1,0 +1,19 @@
+2026-08-11 05:30:01 CT gateway watchdog up — window 05:30-08:25 CT, poll 60s
+2026-08-11 05:33:39 CT gateway NOT ready — no connect (ConnectionRefusedError) (grace 8min before restart)
+2026-08-11 05:38:15 CT gateway NOT ready — no connect (ConnectionRefusedError) (stuck 5min)
+2026-08-11 05:42:53 CT FORCE-RESTART gateway [no connect (ConnectionRefusedError), stuck 9min] — killing java=[12228] launcher=[308, 6988, 21500, 14912, 12228, 18488]
+2026-08-11 05:47:34 CT gateway NOT ready — no connect (ConnectionRefusedError) (grace 8min before restart)
+2026-08-11 05:52:10 CT gateway NOT ready — no connect (ConnectionRefusedError) (stuck 5min)
+2026-08-11 05:56:48 CT FORCE-RESTART gateway [no connect (ConnectionRefusedError), stuck 9min] — killing java=[6780] launcher=[27520, 6780, 24584]
+2026-08-11 06:01:28 CT gateway NOT ready — no connect (ConnectionRefusedError) (grace 8min before restart)
+2026-08-11 06:06:05 CT gateway NOT ready — no connect (ConnectionRefusedError) (stuck 5min)
+2026-08-11 06:10:42 CT FORCE-RESTART gateway [no connect (ConnectionRefusedError), stuck 9min] — killing java=[16648] launcher=[10436, 16648, 20124]
+2026-08-11 06:15:22 CT gateway NOT ready — no connect (ConnectionRefusedError) (grace 8min before restart)
+2026-08-11 06:19:59 CT gateway NOT ready — no connect (ConnectionRefusedError) (stuck 5min)
+2026-08-11 06:24:36 CT FORCE-RESTART gateway [no connect (ConnectionRefusedError), stuck 9min] — killing java=[22952] launcher=[23400, 22952, 13588]
+2026-08-11 06:29:16 CT gateway NOT ready — no connect (ConnectionRefusedError) (grace 8min before restart)
+2026-08-11 06:33:53 CT gateway NOT ready — no connect (ConnectionRefusedError) (stuck 5min)
+2026-08-11 06:38:30 CT FORCE-RESTART gateway [no connect (ConnectionRefusedError), stuck 9min] — killing java=[25976] launcher=[19092, 25976, 2096]
+2026-08-11 06:43:11 CT gateway NOT ready — no connect (ConnectionRefusedError) (grace 8min before restart)
+2026-08-11 06:47:47 CT gateway NOT ready — no connect (ConnectionRefusedError) (stuck 5min)
+2026-08-11 06:52:25 CT FORCE-RESTART gateway [no connect (ConnectionRefusedError), stuck 9min] — killing java=[9048] launcher=[11856, 9048, 23648]

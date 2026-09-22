@@ -1,0 +1,451 @@
+{
+  "date": "2026-09-15",
+  "trades": {
+    "auto_20260915_083027": {
+      "id": "eodic_p",
+      "strategy": "eodic_p",
+      "stream": "eod",
+      "legs": [
+        {
+          "side": "buy",
+          "right": "P",
+          "strike": 7510.0,
+          "expiry": "20260915",
+          "qty": 1
+        },
+        {
+          "side": "sell",
+          "right": "P",
+          "strike": 7535.0,
+          "expiry": "20260915",
+          "qty": 1
+        }
+      ],
+      "ib_credit": 0.2,
+      "ib_fill_at": "08:30:27",
+      "ib_submit_at": "08:30:12.752",
+      "td_credit": 0.4,
+      "td_fill_ok": true,
+      "td_open_at": "15:32:44",
+      "td_open_detail": [
+        {
+          "side": "buy",
+          "right": "P",
+          "strike": 7510.0,
+          "bid": 0.4,
+          "ask": 0.45,
+          "bid_size": 315.0,
+          "ask_size": 31.0,
+          "px": 0.45
+        },
+        {
+          "side": "sell",
+          "right": "P",
+          "strike": 7535.0,
+          "bid": 0.85,
+          "ask": 0.9,
+          "bid_size": 152.0,
+          "ask_size": 134.0,
+          "px": 0.85
+        }
+      ],
+      "td_open_underlying": 7605.36,
+      "td_open_underlying_ts": "2026-09-15T09:32:44.000",
+      "exited": false
+    },
+    "auto_20260915_083145": {
+      "id": "eodfly_p",
+      "strategy": "eodfly_p",
+      "stream": "eod",
+      "legs": [
+        {
+          "side": "buy",
+          "right": "P",
+          "strike": 7595.0,
+          "expiry": "20260915",
+          "qty": 1
+        },
+        {
+          "side": "sell",
+          "right": "P",
+          "strike": 7620.0,
+          "expiry": "20260915",
+          "qty": 1
+        }
+      ],
+      "ib_credit": 12.1,
+      "ib_fill_at": "08:31:45",
+      "ib_submit_at": "08:30:54.869",
+      "td_credit": 12.6,
+      "td_fill_ok": true,
+      "td_open_at": "15:32:44",
+      "td_open_detail": [
+        {
+          "side": "buy",
+          "right": "P",
+          "strike": 7595.0,
+          "bid": 8.8,
+          "ask": 8.9,
+          "bid_size": 46.0,
+          "ask_size": 2.0,
+          "px": 8.9
+        },
+        {
+          "side": "sell",
+          "right": "P",
+          "strike": 7620.0,
+          "bid": 21.5,
+          "ask": 21.7,
+          "bid_size": 5.0,
+          "ask_size": 2.0,
+          "px": 21.5
+        }
+      ],
+      "td_open_underlying": 7607.32,
+      "td_open_underlying_ts": "2026-09-15T09:31:35.000",
+      "exited": true,
+      "ib_exit_cost": 12.0,
+      "ib_exit_at": "08:42:56",
+      "exit_why": "level ACCEPTED: spot 7608 held below the 7620 short strike for 10min (>10) \u2014 the wall we sold did not hold",
+      "td_exit_debit": 12.9,
+      "td_exit_ok": true,
+      "td_exit_at": "15:43:01",
+      "td_exit_detail": [
+        {
+          "side": "buy",
+          "right": "P",
+          "strike": 7595.0,
+          "bid": 6.8,
+          "ask": 6.9,
+          "px": 6.8
+        },
+        {
+          "side": "sell",
+          "right": "P",
+          "strike": 7620.0,
+          "bid": 19.6,
+          "ask": 19.7,
+          "px": 19.7
+        }
+      ],
+      "td_exit_underlying": 7609.66,
+      "td_exit_underlying_ts": "2026-09-15T09:40:14.000",
+      "td_pnl": -36.52
+    },
+    "auto_20260915_083239": {
+      "id": "eodfly_c",
+      "strategy": "eodfly_c",
+      "stream": "eod",
+      "legs": [
+        {
+          "side": "buy",
+          "right": "C",
+          "strike": 7645.0,
+          "expiry": "20260915",
+          "qty": 1
+        },
+        {
+          "side": "sell",
+          "right": "C",
+          "strike": 7620.0,
+          "expiry": "20260915",
+          "qty": 1
+        }
+      ],
+      "ib_credit": 4.45,
+      "ib_fill_at": "08:32:39",
+      "ib_submit_at": "08:31:52.331",
+      "td_credit": 5.05,
+      "td_fill_ok": true,
+      "td_open_at": "15:32:45",
+      "td_open_detail": [
+        {
+          "side": "buy",
+          "right": "C",
+          "strike": 7645.0,
+          "bid": 1.3,
+          "ask": 1.35,
+          "bid_size": 58.0,
+          "ask_size": 114.0,
+          "px": 1.35
+        },
+        {
+          "side": "sell",
+          "right": "C",
+          "strike": 7620.0,
+          "bid": 6.4,
+          "ask": 6.6,
+          "bid_size": 102.0,
+          "ask_size": 41.0,
+          "px": 6.4
+        }
+      ],
+      "td_open_underlying": 7606.96,
+      "td_open_underlying_ts": "2026-09-15T09:31:36.000",
+      "exited": false
+    },
+    "auto_20260915_090522": {
+      "id": "openic_p",
+      "strategy": "openic_p",
+      "stream": "open",
+      "legs": [
+        {
+          "side": "buy",
+          "right": "P",
+          "strike": 7490.0,
+          "expiry": "20260915",
+          "qty": 1
+        },
+        {
+          "side": "sell",
+          "right": "P",
+          "strike": 7515.0,
+          "expiry": "20260915",
+          "qty": 1
+        }
+      ],
+      "ib_credit": 0.1,
+      "ib_fill_at": "09:05:22",
+      "ib_submit_at": "09:05:08.074",
+      "td_credit": 0.15,
+      "td_fill_ok": true,
+      "td_open_at": "16:06:53",
+      "td_open_detail": [
+        {
+          "side": "buy",
+          "right": "P",
+          "strike": 7490.0,
+          "bid": 0.25,
+          "ask": 0.3,
+          "bid_size": 751.0,
+          "ask_size": 291.0,
+          "px": 0.3
+        },
+        {
+          "side": "sell",
+          "right": "P",
+          "strike": 7515.0,
+          "bid": 0.45,
+          "ask": 0.5,
+          "bid_size": 199.0,
+          "ask_size": 633.0,
+          "px": 0.45
+        }
+      ],
+      "td_open_underlying": 7599.12,
+      "td_open_underlying_ts": "2026-09-15T10:06:53.000",
+      "exited": false
+    },
+    "auto_20260915_090602": {
+      "id": "openfly_p",
+      "strategy": "openfly_p",
+      "stream": "open",
+      "legs": [
+        {
+          "side": "buy",
+          "right": "P",
+          "strike": 7575.0,
+          "expiry": "20260915",
+          "qty": 1
+        },
+        {
+          "side": "sell",
+          "right": "P",
+          "strike": 7600.0,
+          "expiry": "20260915",
+          "qty": 1
+        }
+      ],
+      "ib_credit": 6.9,
+      "ib_fill_at": "09:06:02",
+      "ib_submit_at": "09:05:47.576",
+      "td_credit": 7.4,
+      "td_fill_ok": true,
+      "td_open_at": "16:06:53",
+      "td_open_detail": [
+        {
+          "side": "buy",
+          "right": "P",
+          "strike": 7575.0,
+          "bid": 3.7,
+          "ask": 3.8,
+          "bid_size": 31.0,
+          "ask_size": 208.0,
+          "px": 3.8
+        },
+        {
+          "side": "sell",
+          "right": "P",
+          "strike": 7600.0,
+          "bid": 11.2,
+          "ask": 11.4,
+          "bid_size": 83.0,
+          "ask_size": 122.0,
+          "px": 11.2
+        }
+      ],
+      "td_open_underlying": 7599.12,
+      "td_open_underlying_ts": "2026-09-15T10:06:53.000",
+      "exited": true,
+      "ib_exit_cost": 9.4,
+      "ib_exit_at": "09:18:06",
+      "exit_why": "level ACCEPTED: spot 7594 held below the 7600 short strike for 10min (>10) \u2014 the wall we sold did not hold",
+      "td_exit_debit": 9.3,
+      "td_exit_ok": true,
+      "td_exit_at": "16:18:11",
+      "td_exit_detail": [
+        {
+          "side": "buy",
+          "right": "P",
+          "strike": 7575.0,
+          "bid": 4.4,
+          "ask": 4.5,
+          "px": 4.4
+        },
+        {
+          "side": "sell",
+          "right": "P",
+          "strike": 7600.0,
+          "bid": 13.6,
+          "ask": 13.7,
+          "px": 13.7
+        }
+      ],
+      "td_exit_underlying": 7593.41,
+      "td_exit_underlying_ts": "2026-09-15T10:18:11.000",
+      "td_pnl": -196.52
+    },
+    "auto_20260915_090622": {
+      "id": "openfly_c",
+      "strategy": "openfly_c",
+      "stream": "open",
+      "legs": [
+        {
+          "side": "buy",
+          "right": "C",
+          "strike": 7625.0,
+          "expiry": "20260915",
+          "qty": 1
+        },
+        {
+          "side": "sell",
+          "right": "C",
+          "strike": 7600.0,
+          "expiry": "20260915",
+          "qty": 1
+        }
+      ],
+      "ib_credit": 8.9,
+      "ib_fill_at": "09:06:22",
+      "ib_submit_at": "09:06:08.571",
+      "td_credit": 8.1,
+      "td_fill_ok": true,
+      "td_open_at": "16:06:54",
+      "td_open_detail": [
+        {
+          "side": "buy",
+          "right": "C",
+          "strike": 7625.0,
+          "bid": 2.35,
+          "ask": 2.4,
+          "bid_size": 178.0,
+          "ask_size": 85.0,
+          "px": 2.4
+        },
+        {
+          "side": "sell",
+          "right": "C",
+          "strike": 7600.0,
+          "bid": 10.5,
+          "ask": 10.6,
+          "bid_size": 72.0,
+          "ask_size": 30.0,
+          "px": 10.5
+        }
+      ],
+      "td_open_underlying": 7599.3,
+      "td_open_underlying_ts": "2026-09-15T10:06:54.000",
+      "exited": false
+    },
+    "auto_20260915_090645": {
+      "id": "gx_bps",
+      "strategy": "gx_bps",
+      "stream": "gexlog",
+      "legs": [
+        {
+          "side": "buy",
+          "right": "P",
+          "strike": 7570.0,
+          "expiry": "20260915",
+          "qty": 1
+        },
+        {
+          "side": "sell",
+          "right": "P",
+          "strike": 7595.0,
+          "expiry": "20260915",
+          "qty": 1
+        }
+      ],
+      "ib_credit": 5.8,
+      "ib_fill_at": "09:06:45",
+      "ib_submit_at": "09:06:30.004",
+      "td_credit": 6.0,
+      "td_fill_ok": true,
+      "td_open_at": "16:06:54",
+      "td_open_detail": [
+        {
+          "side": "buy",
+          "right": "P",
+          "strike": 7570.0,
+          "bid": 2.95,
+          "ask": 3.0,
+          "bid_size": 52.0,
+          "ask_size": 54.0,
+          "px": 3.0
+        },
+        {
+          "side": "sell",
+          "right": "P",
+          "strike": 7595.0,
+          "bid": 9.0,
+          "ask": 9.1,
+          "bid_size": 90.0,
+          "ask_size": 31.0,
+          "px": 9.0
+        }
+      ],
+      "td_open_underlying": 7599.3,
+      "td_open_underlying_ts": "2026-09-15T10:06:54.000",
+      "exited": true,
+      "ib_exit_cost": 10.3,
+      "ib_exit_at": "09:22:38",
+      "exit_why": "level ACCEPTED: spot 7588 held below the 7595 short strike for 10min (>10) \u2014 the wall we sold did not hold",
+      "td_exit_debit": 9.8,
+      "td_exit_ok": true,
+      "td_exit_at": "16:22:42",
+      "td_exit_detail": [
+        {
+          "side": "buy",
+          "right": "P",
+          "strike": 7570.0,
+          "bid": 5.6,
+          "ask": 5.7,
+          "px": 5.6
+        },
+        {
+          "side": "sell",
+          "right": "P",
+          "strike": 7595.0,
+          "bid": 15.2,
+          "ask": 15.4,
+          "px": 15.4
+        }
+      ],
+      "td_exit_underlying": 7586.9,
+      "td_exit_underlying_ts": "2026-09-15T10:22:42.000",
+      "td_pnl": -386.52
+    }
+  },
+  "mode": "live"
+}

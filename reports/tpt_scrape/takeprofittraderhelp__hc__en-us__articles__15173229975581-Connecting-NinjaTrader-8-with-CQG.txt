@@ -1,0 +1,61 @@
+URL: https://takeprofittraderhelp.zendesk.com/hc/en-us/articles/15173229975581-Connecting-NinjaTrader-8-with-CQG
+TITLE: Connecting NinjaTrader 8 with CQG – TakeProfitTrader
+
+Skip to main content
+ Sign in
+TakeProfitTrader
+ Connection Instructions
+ Step 2 Platforms With Specific Connection Instructions
+Articles in this section
+Connecting TradingView with Your CQG Account
+Connecting NinjaTrader 8 with CQG
+Connecting NinjaTrader 8 with Rithmic
+Connecting Quantower With Your Rithmic Account
+Connecting BookMap with Your Rithmic Account
+Connecting MultiCharts with Your Rithmic Account
+Connecting MotiveWave with Your Rithmic Account
+Connecting Finamark with Your Rithmic Account
+Connecting NinjaTrader 8 with CQG
+ Vlada
+9 months ago Updated
+
+In order to connect your CQG account to Ninjatrader, please follow these steps. Please make sure to have already activated your CQG account as described in this article before connecting to NinjaTrader for the first time.
+
+If you prefer a visual walkthrough, we've included a video guide to help you. For those who prefer a written explanation, you’ll find a detailed step-by-step breakdown just below the video.
+
+Connecting Your CQG Account to NinjaTrader
+Log in to your TakeProfitTrader dashboard. Inside your dashboard, you'll find all the subscriptions you purchased.
+Locate your CQG account to find your Tradovate username and password.
+Open the Ninjatrader app.
+If you don't have the NinjaTrader application, please login to tradovate.com and locate the download link for the latest NinjaTrader application for your computer.
+Download it and complete the installation process.
+Use your Tradovate username and password from your TakeProfitTrader dashboard to log in to Ninjatrader.
+When launching the NinjaTrader app, you may notice several pop-up windows displaying various indicators and charts. For setting up your connection, we will focus specifically on the Control Center window.
+Locate the ‘Connections’ button at the top of the window and click the ‘Configure’ option from the drop-down menu.
+If you don't see configuration options in the Connections section, go to Tools, Select Options, and in the General section, locate MultiProvider and check the box. Be sure to click Apply and OK. We recommend to restart your application in this case.
+Under ‘Available Connections’, locate the NinjaTrader connection and add it to your list.
+Again, use your Tradovate credentials provided to you in TakeProfitTrader dashboard.
+Select Simulation for the account type and click on ‘Apply’ and ‘OK’.
+Finally, choose your NinjaTrader connection from the Connections drop-down menu to connect. Once the connection indicator on the left turns green, your CQG account will appear in the NinjaTrader Control Center.
+
+You're now connected and ready to begin your trading journey with us! You can open a new chart window or use the ones that appeared upon launch. Don't forget to choose your TakeProfitTrader account from the chart menu.
+
+Now it's time to dive in and start trading. Best of luck!
+
+Was this article helpful?
+Yes No
+18 out of 27 found this helpful
+Recently viewed articles
+Connecting TradingView with Your CQG Account
+Activating Your CQG Data Feed
+Activating Your Rithmic Data Feed
+My Trading Account Status Says "Pending"
+How to Check Your Renewal Date
+Related articles
+Activating Your CQG Data Feed
+Connecting TradingView with Your CQG Account
+Approved Instruments & Permitted Products List
+Choosing Your Platform
+Activating Your Rithmic Data Feed
+TakeProfitTrader
+English (United States) 

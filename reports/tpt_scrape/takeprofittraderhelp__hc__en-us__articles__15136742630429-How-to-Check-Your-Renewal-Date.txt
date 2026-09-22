@@ -1,0 +1,56 @@
+URL: https://takeprofittraderhelp.zendesk.com/hc/en-us/articles/15136742630429-How-to-Check-Your-Renewal-Date
+TITLE: How to Check Your Renewal Date – TakeProfitTrader
+
+Skip to main content
+ Sign in
+TakeProfitTrader
+ Getting Started
+ Subscription Info
+Articles in this section
+Cancelling My Subscription
+Test Subscriptions
+Resetting Your Test Account
+How to Check Your Renewal Date
+My Trading Account Status Says "Pending"
+How to Check Your Renewal Date
+ Vlada
+8 months ago Updated
+
+You can check your subscription renewal date by logging into your dashboard and selecting the Subscriptions section.
+
+ 
+
+Monthly Renewal Time
+
+Your subscription renews at the same time of day each month.
+For example, if you started your trading test at 10:00 AM, your subscription will renew on the renewal date at 10:00 AM.
+
+
+ 
+
+Reset Policy on Renewal
+
+TakeProfitTrader resets trading accounts during monthly renewal only if the account is disabled.
+
+If your account is active, the monthly subscription renewal will not trigger a reset.
+ 
+
+ 
+
+Was this article helpful?
+Yes No
+11 out of 15 found this helpful
+Recently viewed articles
+Resetting Your Test Account
+Test Subscriptions
+Cancelling My Subscription
+How to Purchase An Account
+KYB verification
+Related articles
+Resetting Your Test Account
+Test Subscriptions
+Cancelling My Subscription
+Activating Your CQG Data Feed
+How to Use Your Credits
+TakeProfitTrader
+English (United States) 

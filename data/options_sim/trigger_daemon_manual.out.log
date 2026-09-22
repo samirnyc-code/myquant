@@ -1,0 +1,55 @@
+IB connected 127.0.0.1:4002 (PAPER)  accounts=['DUQ159823']  serverVersion=178
+trigger daemon [LIVE (auto-execute)] 20260908: 10 triggers, watching until 15:00 CT
+  OPEN captured: 7707.00 @ 08:30:11 CT
+  combo did not fill (combo did not fill (atomic — nothing was placed)) — falling back to sequential legs
+  BUY 1 @ lim 0.55 -> orderId 16
+  status=Filled filled=1.0 avgPrice=0.5
+  SELL 1 @ lim 0.95 -> orderId 17
+  status=Filled filled=1.0 avgPrice=1.05
+  FIRED eodic_p -> auto_20260908_083118: vertical 25pt net credit 0.55 grade C
+  STAND DOWN eodic_c [broken]: zero/negative credit (0.00) — wall already blown through (est net 0.00) — no order placed
+  ATOMIC combo fill: net +12.90
+  FIRED eodfly_p -> auto_20260908_083201: vertical 25pt net credit 12.90 grade B
+  combo did not fill (combo did not fill (atomic — nothing was placed)) — falling back to sequential legs
+  BUY 1 @ lim 0.95 -> orderId 45
+  status=Filled filled=1.0 avgPrice=0.9
+  SELL 1 @ lim 4.30 -> orderId 46
+  status=Filled filled=1.0 avgPrice=4.3
+  FIRED eodfly_c -> auto_20260908_083317: vertical 25pt net credit 3.40 grade C
+  ATOMIC combo fill: net +0.25
+  FIRED openic_p -> auto_20260908_083354: vertical 25pt net credit 0.25 grade D
+  STAND DOWN openic_c [broken]: zero/negative credit (0.00) — wall already blown through (est net 0.00) — no order placed
+  ATOMIC combo fill: net +7.60
+  FIRED openfly_p -> auto_20260908_083451: vertical 25pt net credit 7.60 grade C
+  combo did not fill (combo did not fill (atomic — nothing was placed)) — falling back to sequential legs
+  BUY 1 @ lim 1.85 -> orderId 85
+  status=Filled filled=1.0 avgPrice=1.8
+  SELL 1 @ lim 8.70 -> orderId 86
+  status=Filled filled=1.0 avgPrice=8.7
+  FIRED openfly_c -> auto_20260908_083549: vertical 25pt net credit 6.90 grade C
+  combo did not fill (combo did not fill (atomic — nothing was placed)) — falling back to sequential legs
+  BUY 1 @ lim 1.45 -> orderId 100
+  status=Filled filled=1.0 avgPrice=1.4
+  SELL 1 @ lim 3.90 -> orderId 101
+  status=Filled filled=1.0 avgPrice=3.9
+  FIRED gx_bps -> auto_20260908_083645: vertical 25pt net credit 2.50 grade A
+  ATOMIC combo fill: net +0.25
+  FIRED gx_bcs -> auto_20260908_083705: vertical 25pt net credit 0.25 grade D
+  ATOMIC combo close auto_20260908_083201: cost +18.50
+  CLOSED auto_20260908_083201 cost 18.50 P&L $-567 — level ACCEPTED: spot 7689 held below the 7720 short strike for 10min (>10) — the wall we sold did not hold
+  ATOMIC combo close auto_20260908_083451: cost +12.40
+  CLOSED auto_20260908_083451 cost 12.40 P&L $-487 — level ACCEPTED: spot 7691 held below the 7705 short strike for 11min (>10) — the wall we sold did not hold
+  combo close failed (combo close did not fill) — falling back to sequential legs
+  ! exit quote failed auto_20260908_083118: no live quote 7620.0P — nothing placed
+  combo close failed (combo close did not fill) — falling back to sequential legs
+  ! exit quote failed auto_20260908_083317: no live quote 7745.0C — nothing placed
+  combo close failed (combo close did not fill) — falling back to sequential legs
+  ! exit quote failed auto_20260908_083354: no live quote 7605.0P — nothing placed
+  combo close failed (combo close did not fill) — falling back to sequential legs
+  ! exit quote failed auto_20260908_083549: no live quote 7730.0C — nothing placed
+  combo close failed (combo close did not fill) — falling back to sequential legs
+  ! exit quote failed auto_20260908_083645: no live quote 7650.0P — nothing placed
+  combo close failed (combo close did not fill) — falling back to sequential legs
+  ! exit quote failed auto_20260908_083705: no live quote 7775.0C — nothing placed
+
+done. 10 triggers fired: eodic_p(C), eodic_c(?), eodfly_p(B), eodfly_c(C), openic_p(D), openic_c(?), openfly_p(C), openfly_c(C), gx_bps(A), gx_bcs(D)

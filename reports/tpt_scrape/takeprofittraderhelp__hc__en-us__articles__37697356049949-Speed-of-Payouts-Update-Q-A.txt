@@ -1,0 +1,70 @@
+URL: https://takeprofittraderhelp.zendesk.com/hc/en-us/articles/37697356049949-Speed-of-Payouts-Update-Q-A
+TITLE: Speed of Payouts Update: Q&A – TakeProfitTrader
+
+Skip to main content
+ Sign in
+TakeProfitTrader
+ FAQ's
+ Payments
+Articles in this section
+Speed of Payouts Update: Q&A
+Changing Your Payment Method
+How to Make A Payment
+Speed of Payouts Update: Q&A
+ KeShonna
+24 days ago Updated
+
+“What’s the Speed of Payouts update?”
+
+The account-to-wallet withdrawal step for Tradovate PRO accounts is now fully automated. What previously required manual review and could take up to 12 business hours now processes in seconds. Payout eligibility is unchanged: still day-1 and daily in PRO.
+
+“Does this affect when I become eligible to request a payout?”
+
+No, eligibility to request a payout is unchanged. This update only affects how fast a withdrawal request is approved once it is submitted.
+
+“How fast will my account-to-wallet withdrawal process be?”
+
+For eligible accounts, the account-to-wallet withdrawal process will take 5-10 seconds. The automated system runs instantly once a request is submitted. There is no manual review step and no pending window.
+
+“Can I get back to trading while my withdrawal is processing?”
+
+You cannot trade while the withdrawal is processing, but the wait is a matter of seconds. The only requirement is being flat with no open positions or working orders at the exact moment the request is submitted. Once complete, the funds are in your wallet and you are free to get straight back to trading. No manual review, no waiting on approvals, no sitting out of the market.
+
+“If I made profits at 3:00PM EST, when is the soonest I can have them withdrawn”
+
+The TPT dashboard reflects updated account balances approximately between 8-9PM EST. Submit your withdrawal request while flat and the account-to-wallet step completes in seconds. From profit at 3PM to funds in your wallet, same evening.
+
+“Do I need to be flat to submit a withdrawal request?”
+
+Yes, traders must have no open positions or working orders at the exact moment the request is submitted. Once the automated check runs and the funds move to the wallet, trading can resume immediately.
+
+“Can my withdrawal request get denied?”
+
+Yes, your withdrawal requests can get denied, but only for one of four reasons: 
+
+Insufficient funds in the account
+Open positions or working orders at the moment of the request
+Tradovate platform maintenance 
+Tradovate API not functioning properly. 
+
+If a request is denied for any of these reasons, the issue can be resolved and the request resubmitted immediately. There is no queue to re-enter and no waiting period.
+
+“Does this apply to all TPT account withdrawals?”
+
+This update covers the vast majority of Tradovate PRO account withdrawals. Rithmic PRO, PRO+ withdrawals, and a small number of archived Tradovate PRO accounts remain manual for now. Archived accounts are those that Tradovate flags after three or more days of liquidation as part of their routine system maintenance. Automating the majority of withdrawal volume frees the service team to process those remaining manual requests faster too.
+
+“How long until my payout lands in my bank account?”
+
+Once funds are in your wallet, submitting a payout request to your bank is a separate step. The Profit Team manually reviews payout requests to the wallet for compliance purposes, which takes up to 12 business hours, though usually a lot faster. From there, bank processing time depends on the payout method. Same-day bank deposit is not guaranteed. For US bank accounts, payouts are processed through Plaid and are typically real-time, though in some cases it may take 1-2 business days depending on the bank. For international payouts via PayPal or Wise, processing takes up to 12 business hours.
+
+Was this article helpful?
+Yes No
+0 out of 0 found this helpful
+Related articles
+PRO Account Profit Split & Withdrawal Rules
+How to Withdraw from PRO Account to the Wallet
+PRO+ Development Accounts
+Rules for Multiple Accounts
+Trade Copier Policy
+TakeProfitTrader
+English (United States) 

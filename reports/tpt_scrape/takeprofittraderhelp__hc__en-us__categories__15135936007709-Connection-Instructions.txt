@@ -1,0 +1,21 @@
+URL: https://takeprofittraderhelp.zendesk.com/hc/en-us/categories/15135936007709-Connection-Instructions
+TITLE: Connection Instructions – TakeProfitTrader
+
+Skip to main content
+ Sign in
+TakeProfitTrader
+ Connection Instructions
+Connection Instructions
+Step 1 (IMPORTANT)
+Activating Your Rithmic Data Feed
+Activating Your CQG Data Feed
+Step 2 Platforms With Specific Connection Instructions
+Connecting TradingView with Your CQG Account
+Connecting NinjaTrader 8 with CQG
+Connecting NinjaTrader 8 with Rithmic
+Connecting Quantower With Your Rithmic Account
+Connecting BookMap with Your Rithmic Account
+Connecting MultiCharts with Your Rithmic Account
+See all 8 articles
+TakeProfitTrader
+English (United States) 

@@ -1,0 +1,119 @@
+[
+ {
+  "topic": "GC",
+  "sec": 128,
+  "blue": 0,
+  "file": "00_GC.png",
+  "instrument": null,
+  "tf": "",
+  "header": ""
+ },
+ {
+  "topic": "BTC",
+  "sec": 203,
+  "blue": 0,
+  "file": "01_BTC.png",
+  "instrument": null,
+  "tf": "",
+  "header": "\u2014\u2014l t\u201d~\u2014\u2122"
+ },
+ {
+  "topic": "DXY",
+  "sec": 221,
+  "blue": 0,
+  "file": "02_DXY.png",
+  "instrument": "DXY",
+  "tf": "4h",
+  "header": "S$DXY 360 D 4h From price: 98.973 | To price: 102.7"
+ },
+ {
+  "topic": "6E",
+  "sec": 257,
+  "blue": 0,
+  "file": "03_6E.png",
+  "instrument": "DXY",
+  "tf": "",
+  "header": "S$DXY 180 D th | D: 7/27/26 10:00 AM | O: 101.459 |F"
+ },
+ {
+  "topic": "BANK",
+  "sec": 330,
+  "blue": 0,
+  "file": "04_BANK.png",
+  "instrument": "NQ",
+  "tf": "12h",
+  "header": "BANK 180 D 12h [NASDAQ] D: 2/6/26 1:00PM \u00a9:"
+ },
+ {
+  "topic": "VIX",
+  "sec": 389,
+  "blue": 0,
+  "file": "05_VIX.png",
+  "instrument": null,
+  "tf": "4h",
+  "header": "NX 360 D 4h D: 8/31/26 4:55 PMY: 26.29 MovAv"
+ },
+ {
+  "topic": "NQ",
+  "sec": 868,
+  "blue": 0,
+  "file": "06_NQ.png",
+  "instrument": "NQ",
+  "tf": "",
+  "header": "/NQ 180 D 15m_D: 7/27/26 3:30 PM | O: 28243.75 ||"
+ },
+ {
+  "topic": "YM",
+  "sec": 893,
+  "blue": 0,
+  "file": "07_YM.png",
+  "instrument": "YM",
+  "tf": "",
+  "header": "\u2018YM 180 D 12h_ DD: 7/24/26 1:00 PM | 0: 52187 | H: 5."
+ },
+ {
+  "topic": "6J",
+  "sec": 973,
+  "blue": 0,
+  "file": "08_6J.png",
+  "instrument": "RTY",
+  "tf": "",
+  "header": "/RTY 180 D th | D: 7/27/26 9:00 AM | O: 2973.3 | H: 2"
+ },
+ {
+  "topic": "RTY",
+  "sec": 988,
+  "blue": 0,
+  "file": "09_RTY.png",
+  "instrument": "RTY",
+  "tf": "",
+  "header": "/RTY30D15m From price: 291 5.9 | To price: 2996."
+ },
+ {
+  "topic": "ETH",
+  "sec": 1040,
+  "blue": 0,
+  "file": "10_ETH.png",
+  "instrument": "ETH",
+  "tf": "4h",
+  "header": "/ETH 360 D 4h D: 8/25/269:15 PM Y:2056 MovA\\"
+ },
+ {
+  "topic": "CL",
+  "sec": 1061,
+  "blue": 0,
+  "file": "11_CL.png",
+  "instrument": "CL",
+  "tf": "",
+  "header": "/CL180D th From price: -1.24 | To price: 174.23 | D"
+ },
+ {
+  "topic": "SI",
+  "sec": 1317,
+  "blue": 0,
+  "file": "12_SI.png",
+  "instrument": null,
+  "tf": "12h",
+  "header": "/S1 180 D 12h | D: 7/28/26 1:00 AM 0: 57.395 | H: 57."
+ }
+]

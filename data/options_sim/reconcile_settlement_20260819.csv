@@ -1,0 +1,10 @@
+strategy,logged,note,corrected,delta
+eodic_c,72.4,settle 7717.6->7707.98,72.4,0.0
+eodfly_p,187.4,settle 7717.6->7707.98,187.4,0.0
+eodfly_c,218.7,intraday exit — unaffected,218.7,0.0
+openic_p,17.4,settle 7717.6->7707.98,17.4,0.0
+openic_c,-2.6,settle 7717.6->7707.98,-2.6,0.0
+openfly_p,-145.6,settle 7717.6->7707.98,-847.6,-702.0
+openfly_c,947.4,settle 7717.6->7707.98,1207.4,260.0
+gx_bps,7.4,settle 7717.6->7707.98,7.4,0.0
+gx_bcs,582.4,settle 7717.6->7707.98,582.4,0.0

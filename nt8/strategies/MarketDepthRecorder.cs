@@ -20,8 +20,10 @@
 // Trades share the stream because iceberg/refill detection needs trades and book updates
 // on ONE clock (trade hits a level -> Update restores size = refill).
 //
-// Files are named from NT8's clock (Chicago), so an ETH session opening 17:00 CT rolls to
-// the next file at Chicago midnight. depth_verify.py checks both candidate days.
+// Files follow the SESSION TEMPLATE, not the calendar (S75V, user decision 2026-07-20):
+// everything from 17:00 CT onward belongs to the NEXT trading day (CME/NT8 trade-date
+// convention), so ONE file = ONE full session (Sun 17:00 -> Mon 16:00 = "_2026-07-21").
+// A session file is closed at 16:00 and can be parqueted + archived in the same halt.
 //
 // SIZE: ES books are a firehose (millions of rows/day, hundreds of MB). data/depth/ is
 // .gitignore'd — NEVER commit the CSVs. Convert to parquet in the 16:00-17:00 CT halt.
@@ -44,6 +46,8 @@ namespace NinjaTrader.NinjaScript.Strategies
         private DateTime curFileDate = DateTime.MinValue;
         private long linesSinceFlush;
         private long bookRows, tapeRows;
+        private System.Timers.Timer haltTimer;   // releases the session file during the halt
+        private readonly object fileLock = new object();
 
         protected override void OnStateChange()
         {
@@ -59,8 +63,33 @@ namespace NinjaTrader.NinjaScript.Strategies
                 ExportDir = @"C:\Users\Admin\myquant\data\depth";
                 LogTrades = true;
             }
+            else if (State == State.Realtime)
+            {
+                // In the 16:00-17:00 halt no events fire, so the writer would sit on the
+                // finished session file until 17:00 - blocking the 16:05 parquet rollover.
+                // This timer closes the file once the session is over; the 17:00 open
+                // re-creates the (next-session) file via EnsureFile as usual.
+                haltTimer = new System.Timers.Timer(60000);
+                haltTimer.Elapsed += (s, a) =>
+                {
+                    try
+                    {
+                        TimeSpan now = Core.Globals.Now.TimeOfDay;
+                        if (now >= new TimeSpan(16, 0, 30) && now < new TimeSpan(16, 59, 0))
+                            lock (fileLock)
+                                if (writer != null)
+                                {
+                                    Log("MarketDepthRecorder: session over - releasing file for rollover", LogLevel.Information);
+                                    CloseFile();
+                                }
+                    }
+                    catch { }
+                };
+                haltTimer.Start();
+            }
             else if (State == State.Terminated)
             {
+                if (haltTimer != null) { try { haltTimer.Stop(); haltTimer.Dispose(); } catch { } haltTimer = null; }
                 if (writer != null)
                     Log(string.Format("MarketDepthRecorder stopped: {0:N0} book + {1:N0} tape rows",
                         bookRows, tapeRows), LogLevel.Information);
@@ -68,9 +97,22 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
+        /// Trading day a timestamp belongs to: >= 17:00 CT rolls to the NEXT weekday
+        /// (Sun 17:00 -> Monday's session; Fri evening/weekend anomalies -> Monday too).
+        private static DateTime TradeDate(DateTime t)
+        {
+            DateTime d = t.Date;
+            if (t.TimeOfDay >= new TimeSpan(17, 0, 0)) d = d.AddDays(1);
+            while (d.DayOfWeek == DayOfWeek.Saturday || d.DayOfWeek == DayOfWeek.Sunday)
+                d = d.AddDays(1);
+            return d;
+        }
+
         private void EnsureFile(DateTime t)
         {
-            if (t.Date == curFileDate && writer != null) return;
+          lock (fileLock)
+          {
+            if (TradeDate(t) == curFileDate && writer != null) return;
             CloseFile();
             try
             {
@@ -79,29 +121,35 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // WHICH contract it holds, and a chart left on a rolled-off contract records
                 // perfectly happily. On a roll the two contracts must never share a filename.
                 string sym = Instrument.FullName.Replace(" ", "_");   // "ES 09-26" -> "ES_09-26"
+                DateTime td = TradeDate(t);
                 string path = Path.Combine(ExportDir,
-                    string.Format("{0}_depth_{1:yyyy-MM-dd}.csv", sym, t));
+                    string.Format("{0}_depth_{1:yyyy-MM-dd}.csv", sym, td));
                 bool fresh = !File.Exists(path);
                 // APPEND: a restart mid-session must never truncate the day's capture
                 writer = new StreamWriter(path, true, System.Text.Encoding.ASCII, 1 << 20);
                 if (fresh) writer.WriteLine("Time,Ev,Side,Pos,Price,Size");
-                curFileDate = t.Date;
+                curFileDate = td;
                 Log("MarketDepthRecorder -> " + path, LogLevel.Information);
             }
             catch (Exception e) { Log("MarketDepthRecorder open failed: " + e.Message, LogLevel.Error); }
+          }
         }
 
         private void CloseFile()
         {
-            if (writer != null) { try { writer.Flush(); writer.Close(); } catch { } writer = null; }
+            lock (fileLock)
+                if (writer != null) { try { writer.Flush(); writer.Close(); } catch { } writer = null; }
         }
 
         private void WriteRow(DateTime t, char ev, char side, int pos, double price, long size)
         {
+          lock (fileLock)
+          {
             if (writer == null) return;
             writer.WriteLine(string.Format("{0:yyyy-MM-dd HH:mm:ss.fff},{1},{2},{3},{4},{5}",
                 t, ev, side, pos, price, size));
             if (++linesSinceFlush >= 5000) { writer.Flush(); linesSinceFlush = 0; }
+          }
         }
 
         protected override void OnMarketDepth(MarketDepthEventArgs e)

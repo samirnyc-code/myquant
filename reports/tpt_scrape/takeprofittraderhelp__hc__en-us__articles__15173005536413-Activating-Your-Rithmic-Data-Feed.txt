@@ -1,0 +1,62 @@
+URL: https://takeprofittraderhelp.zendesk.com/hc/en-us/articles/15173005536413-Activating-Your-Rithmic-Data-Feed
+TITLE: Activating Your Rithmic Data Feed – TakeProfitTrader
+
+Skip to main content
+ Sign in
+TakeProfitTrader
+ Connection Instructions
+ Step 1 (IMPORTANT)
+Articles in this section
+Activating Your Rithmic Data Feed
+Activating Your CQG Data Feed
+Activating Your Rithmic Data Feed
+ Vlada
+9 months ago Updated
+
+After purchasing your first Rithmic account, you will need to activate the data feed. 
+
+You can download Rithmic Trader Pro here. 
+
+For web app follow this link.
+
+
+If you prefer a visual walkthrough, we've included a video guide to help you. For those who prefer a written explanation, you’ll find a detailed step-by-step breakdown just below the video.
+
+
+
+How to Activate Your Rithmic Data Feed
+Log into your TakeProfitTrader dashboard using your email and password you registered with us. Within your dashboard, you will find all the subscriptions you have purchased with us.
+Locate your Rithmic account and its access credentials.
+If you recently purchased your Rithmic account, please be aware that you will need to wait for the account status to update from pending to active before proceeding.
+Open the Rithmic Trader Pro app and enter your Rithmic account credentials from your dashboard into both fields the order and market data in the Rhythmic Trader Pro app. To do this, simply click on the field of your dashboard you wish to copy and paste it where required.
+You can also save your credentials for quick access later by selecting Remember Me.
+Please ensure that you select Rithmic Paper Trading as the system for both fields. Based on your location, select the appropriate gateway from the options provided (e.g Chicago Area) and then click on Login to proceed.
+You will be prompted to sign the market data agreements. Please open and carefully read through the first agreement.
+Once you have reviewed the document and scrolled all the way to the bottom, you will be able to select 'I Agree'. You need to click on it to proceed.
+Please open the second agreement and carefully read through its content.
+Once you have reviewed the document, select the non-professional option and click Submit to proceed.
+Close the agreement window. You're all set! The application will automatically load, and you'll be ready to start using it.
+
+Wishing you the best of luck in your trading journey!
+
+ 
+
+ 
+
+Was this article helpful?
+Yes No
+10 out of 18 found this helpful
+Recently viewed articles
+My Trading Account Status Says "Pending"
+How to Check Your Renewal Date
+Resetting Your Test Account
+Test Subscriptions
+Cancelling My Subscription
+Related articles
+Activating Your CQG Data Feed
+Connecting NinjaTrader 8 with Rithmic
+Connecting Quantower With Your Rithmic Account
+Connecting NinjaTrader 8 with CQG
+Choosing Your Platform
+TakeProfitTrader
+English (United States) 

@@ -76,7 +76,7 @@ def setup(token: str) -> int:
 
 
 def send(text: str, level: str = "info", dedup_key: str | None = None,
-         cooldown_s: int = 3600) -> bool:
+         cooldown_s: int = 3600, html: bool = False, no_preview: bool = False) -> bool:
     """Send a message. Returns True if it went out.
 
     dedup_key: if given, the SAME key will not resend within cooldown_s — so a condition
@@ -100,9 +100,13 @@ def send(text: str, level: str = "info", dedup_key: str | None = None,
 
     icon = {"alert": "🔴", "warn": "🟠", "ok": "🟢", "info": "ℹ️"}.get(level, "")
     try:
-        r = _api(cfg["token"], "sendMessage",
-                 chat_id=cfg["chat_id"], text=f"{icon} {text}".strip(),
-                 disable_notification=(level == "info"))
+        kw = dict(chat_id=cfg["chat_id"], text=f"{icon} {text}".strip(),
+                  disable_notification=(level == "info"))
+        if html:
+            kw["parse_mode"] = "HTML"
+        if no_preview:
+            kw["disable_web_page_preview"] = True
+        r = _api(cfg["token"], "sendMessage", **kw)
         return bool(r.get("ok"))
     except Exception:
         return False

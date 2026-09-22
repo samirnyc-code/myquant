@@ -1,0 +1,9 @@
+group,n,win%,PF,tot_pts,$/trade
+"beyondPD + trap WAS day extreme, 21-24",29,72.4,11.04,130.5,225.0
+"beyondPD + it was not, 21-24",955,34.0,0.92,-177.5,-9.3
+"beyondPD + trap WAS day extreme, 25-26",17,82.4,10.79,117.5,345.6
+"beyondPD + it was not, 25-26",611,34.5,1.03,57.5,4.7
+"beyondPD + trap WAS day extreme, full",46,76.1,10.92,248.0,269.6
+"beyondPD + it was not, full",1566,34.2,0.97,-120.0,-3.8
+"ALL trades where trap = day extreme, full",78,79.5,17.3,550.2,352.7
+"ALL others, full",2670,34.6,1.04,248.8,4.7

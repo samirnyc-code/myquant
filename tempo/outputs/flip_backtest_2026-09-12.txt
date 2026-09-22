@@ -1,0 +1,37 @@
+--- 1yr RR3: n=326 over 107 sessions (3.05/day) ---
+    open:   19 (5.8%)
+    stop:  240 (73.6%)
+  target:   67 (20.6%)
+  win rate 20.6%   total -205.50 pts (-29.1R)   avg/trade -0.630 pts (-0.089R)   avg risk 6.53 pts
+    long: n=184 win 19.6% avg -0.620 pts
+   short: n=142 win 21.8% avg -0.644 pts
+
+  reach (before exit): >=1R 46.3%  >=2R 30.6%  3R 21.8%
+
+  by month (pts): 2025-09:-57.8  2025-10:-182.5  2025-11:+119.8  2025-12:-21.8  2026-01:-34.8  2026-02:-14.2  2026-03:-26.8  2026-04:-72.5  2026-05:-8.2  2026-06:+23.8  2026-07:+35.0  2026-08:+16.0  2026-09:+18.5
+
+  by session hour (n / avg pts): h0:70/+2.10  h1:53/+0.73  h2:48/-2.35  h3:48/-0.33  h4:34/-4.08  h5:33/-1.32  h6:40/-2.01
+
+--- 1yr SCALP6: n=462 over 107 sessions (4.32/day) ---
+    open:    1 (0.2%)
+    stop:  127 (27.5%)
+  target:  334 (72.3%)
+  win rate 72.3%   total -169.50 pts (-39.3R)   avg/trade -0.367 pts (-0.085R)   avg risk 6.66 pts
+    long: n=240 win 72.5% avg -0.278 pts
+   short: n=222 win 72.1% avg -0.463 pts
+
+--- full RR3: n=1744 over 573 sessions (3.04/day) ---
+    open:   77 (4.4%)
+    stop: 1280 (73.4%)
+  target:  387 (22.2%)
+  win rate 22.2%   total +79.50 pts (-66.7R)   avg/trade +0.046 pts (-0.038R)   avg risk 5.60 pts
+    long: n=1007 win 20.9% avg -0.159 pts
+   short: n=737 win 24.0% avg +0.325 pts
+
+--- full SCALP6: n=2361 over 573 sessions (4.12/day) ---
+    open:    4 (0.2%)
+    stop:  670 (28.4%)
+  target: 1687 (71.5%)
+  win rate 71.5%   total -516.25 pts (-145.8R)   avg/trade -0.219 pts (-0.062R)   avg risk 5.91 pts
+    long: n=1283 win 72.0% avg -0.154 pts
+   short: n=1078 win 70.8% avg -0.295 pts

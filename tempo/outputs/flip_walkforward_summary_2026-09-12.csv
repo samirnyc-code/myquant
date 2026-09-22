@@ -1,0 +1,5 @@
+row,n,PF,tot_pts,$/trade,maxDD_$
+WF (select by tot pts),1765,1.06,358.2,10.1,-25538.0
+WF (select by PF),1645,1.08,490.2,14.9,-19238.0
+current config 22-26 (IN-SAMPLE by construction),2498,1.14,845.8,16.9,-12438.0
+current config full 21-26 (in-sample),2748,1.12,799.0,14.5,-12438.0

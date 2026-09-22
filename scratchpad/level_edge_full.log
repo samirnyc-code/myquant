@@ -1,0 +1,58 @@
+level-edge study — 6 day(s), step 3s, horizon 60s, break 2t
+  [ok]  2026-07-22: 8,100 samples  (med touch size bid=29/ask=29)
+  [ok]  2026-07-23: 8,100 samples  (med touch size bid=20/ask=19)
+  [ok]  2026-07-24: 8,096 samples  (med touch size bid=20/ask=18)
+  [ok]  2026-07-27: 8,100 samples  (med touch size bid=21/ask=19)
+  [ok]  2026-07-28: 8,100 samples  (med touch size bid=21/ask=18)
+  [ok]  2026-07-29: 8,100 samples  (med touch size bid=16/ask=14)
+L2 near-touch level-edge study — days ['2026-07-22', '2026-07-23', '2026-07-24', '2026-07-27', '2026-07-28', '2026-07-29']
+step=3s horizon=60s buffer=2t  events CSV: level_edge_events_20260729.csv
+
+===== ALL SAMPLES (overlapping, 3s)  (n=97,192 side-samples) =====
+
+  support: base hold rate = 0.313  (n=48,596)
+    hold rate by size quintile (1=small .. 5=big):
+      Q1: 0.262  (n=10,068)
+      Q2: 0.290  (n=9,425)
+      Q3: 0.323  (n=9,686)
+      Q4: 0.339  (n=9,770)
+      Q5: 0.350  (n=9,647)
+    big(>= 2x): hold 0.345 (n=2,545)  vs rest 0.311  -> lift +0.034
+    big(>= 3x): hold 0.311 (n=547)  vs rest 0.313  -> lift -0.002
+    big(>= 5x): hold 0.333 (n=117)  vs rest 0.313  -> lift +0.021
+
+  resistance: base hold rate = 0.313  (n=48,596)
+    hold rate by size quintile (1=small .. 5=big):
+      Q1: 0.252  (n=9,816)
+      Q2: 0.300  (n=9,721)
+      Q3: 0.325  (n=9,628)
+      Q4: 0.344  (n=9,952)
+      Q5: 0.343  (n=9,479)
+    big(>= 2x): hold 0.331 (n=2,506)  vs rest 0.312  -> lift +0.019
+    big(>= 3x): hold 0.315 (n=492)  vs rest 0.313  -> lift +0.002
+    big(>= 5x): hold 0.225 (n=80)  vs rest 0.313  -> lift -0.088
+
+===== DE-OVERLAPPED (1 sample / 60s, independent)  (n=4,860 side-samples) =====
+
+  support: base hold rate = 0.307  (n=2,430)
+    hold rate by size quintile (1=small .. 5=big):
+      Q1: 0.256  (n=489)
+      Q2: 0.270  (n=497)
+      Q3: 0.308  (n=478)
+      Q4: 0.353  (n=493)
+      Q5: 0.351  (n=473)
+    big(>= 2x): hold 0.368 (n=155)  vs rest 0.303  -> lift +0.065
+    big(>= 3x): hold 0.382 (n=34)  vs rest 0.306  -> lift +0.076
+
+  resistance: base hold rate = 0.295  (n=2,430)
+    hold rate by size quintile (1=small .. 5=big):
+      Q1: 0.207  (n=503)
+      Q2: 0.321  (n=470)
+      Q3: 0.302  (n=517)
+      Q4: 0.312  (n=474)
+      Q5: 0.339  (n=466)
+    big(>= 2x): hold 0.372 (n=145)  vs rest 0.290  -> lift +0.082
+
+NOTE: pulled (spoof) levels that price then bounces from are counted as HOLDs — this measures the level as a VISUAL signal, not fill quality.
+
+saved: level_edge_events_20260729.csv + level_edge_summary_20260729.txt

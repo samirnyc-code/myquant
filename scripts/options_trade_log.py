@@ -17,6 +17,15 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 LOG = ROOT / "data" / "options_log" / "trades.parquet"
 
+
+def set_book(name: str = "spx") -> None:
+    """Point this process's trade log at a parallel book. Default 'spx' = the canonical
+    trades.parquet (unchanged); 'xsp' = trades_xsp.parquet (the Mini-SPX mirror book).
+    Per-process module state — the mirror daemon sets 'xsp'; the desk stays 'spx'."""
+    global LOG
+    LOG = ROOT / "data" / "options_log" / (
+        "trades.parquet" if name in ("spx", "", None) else f"trades_{name}.parquet")
+
 COLUMNS = [
     "trade_id", "strategy_id", "source", "symbol", "entry_dt", "exit_dt", "dte",
     "structure", "legs", "credit", "exit_cost", "fill_model", "slippage",
@@ -28,6 +37,10 @@ COLUMNS = [
     # "traded_to_close" (we placed offsetting orders) | "partial_expiry" (some legs
     # expired, position residual — needs attention). Tracked as an outcome stat.
     "close_reason",
+    # S99 (2026-08-08) — ENTRY INTEGRITY. A trade struck late or off a stale feed is
+    # NOT a clean datapoint (08-05: an open-centered trade struck ~1h late polluted the
+    # centering A/B). entry_valid=False ⇒ exclude from A/B tables; the others explain why.
+    "entry_valid", "entry_lag_min", "feed_age_s", "entry_note",
 ]
 
 
@@ -35,6 +48,24 @@ def load():
     if LOG.exists():
         return pd.read_parquet(LOG)
     return pd.DataFrame(columns=COLUMNS)
+
+
+def dedupe_mirrors(df):
+    """Drop live-account mirror rows that duplicate a sim-book trade.
+
+    A 'real_paper' row is the real IB leg of a trade also booked in the sim book
+    (same strategy_id + entry day). For any DISPLAY/analytics view we count it
+    once — never both — so collateral, P&L, grades and trade counts don't
+    double-book (STMR sim+REAL pair). Non-destructive: only filters, never writes.
+    """
+    if df is None or not len(df) or "source" not in df.columns:
+        return df
+    ed = pd.to_datetime(df["entry_dt"], errors="coerce").dt.strftime("%Y-%m-%d")
+    key = list(zip(df["strategy_id"].astype(str), ed.astype(str)))
+    df = df.assign(_key=key)
+    sib = set(df.loc[df["source"] != "real_paper", "_key"])
+    dupe = (df["source"] == "real_paper") & df["_key"].isin(sib)
+    return df[~dupe].drop(columns=["_key"])
 
 
 def _save(df):

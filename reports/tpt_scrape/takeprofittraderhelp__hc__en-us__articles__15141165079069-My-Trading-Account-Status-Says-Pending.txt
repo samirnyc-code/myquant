@@ -1,0 +1,65 @@
+URL: https://takeprofittraderhelp.zendesk.com/hc/en-us/articles/15141165079069-My-Trading-Account-Status-Says-Pending
+TITLE: My Trading Account Status Says "Pending" – TakeProfitTrader
+
+Skip to main content
+ Sign in
+TakeProfitTrader
+ Getting Started
+ Subscription Info
+Articles in this section
+Cancelling My Subscription
+Test Subscriptions
+Resetting Your Test Account
+How to Check Your Renewal Date
+My Trading Account Status Says "Pending"
+My Trading Account Status Says "Pending"
+ Vlada
+8 months ago Updated
+
+After purchasing your evaluation, your trading account status may temporarily display as “Pending”. This is completely normal and typically resolves within a short period.
+
+ 
+
+For CQG Accounts
+
+If this is your first CQG account, you’ll need to complete a few setup steps:
+
+Follow the link provided to sign the market data agreements.
+
+Once completed, your status will automatically change to Active within 10–15 minutes.
+
+If you have already signed the agreements, your status should update shortly after the system processes your activation.
+
+ 
+
+For Rithmic Accounts
+
+If you signed up for a Rithmic account, your status will change to Active once TakeProfitTrader receives confirmation from Rithmic that your account was successfully created.
+This process typically takes 10–15 minutes.
+
+If your account remains pending beyond this timeframe, please contact Live Chat Support for assistance.
+
+ 
+
+Weekend and Market Hours
+
+If you registered for a trading test over the weekend, your status will remain Pending until the markets reopen.
+The futures markets open on Sunday at 17:00 (5 PM) Central USA Time.
+
+Was this article helpful?
+Yes No
+14 out of 18 found this helpful
+Recently viewed articles
+How to Check Your Renewal Date
+Resetting Your Test Account
+Test Subscriptions
+Cancelling My Subscription
+How to Purchase An Account
+Related articles
+Activating Your CQG Data Feed
+Test Subscriptions
+Activating Your Rithmic Data Feed
+Approved Instruments & Permitted Products List
+Connecting TradingView with Your CQG Account
+TakeProfitTrader
+English (United States) 

@@ -1,0 +1,19 @@
+8099 strong-FT signals
+  sw_pdl: 1570 signals (19%)
+  sw_sess: 1343 signals (17%)
+  sw_swing: 4748 signals (59%)
+
+=== SWEPT-AND-RECLAIMED REFERENCE TEST (strong-FT base) ===
+        cfg    n  all_pnl  all_pf  all_ndd  all_shp  tr_pf  tr_pnl  oo_pf  oo_pnl green_yrs  both
+ NO-REF|eod 2645    55138    1.05      1.0     0.38   1.04   19290   1.07   35848       4/6  True
+   SESS|eod 1107    17852    1.04      0.3     0.24   1.06   11592   1.03    6260       4/6  True
+  SWING|eod 2291     9332    1.01      0.2     0.08   0.98   -8060   1.05   17392       2/6 False
+   SESS|rr2 1180     4888    1.01      0.1     0.09   1.09   17340   0.94  -12452       3/6 False
+  SWING|rr2 2913   -12615    0.99     -0.2    -0.14   0.99   -4518   0.98   -8098       2/6 False
+PDL/PDH|eod  874   -54358    0.83     -0.8    -1.07   0.80  -30945   0.87  -23412       1/6 False
+PDL/PDH|rr2 1027   -53322    0.85     -0.9    -1.18   0.79  -34665   0.91  -18658       0/6 False
+Traceback (most recent call last):
+  File "C:\Users\Admin\myquant\research\revsim\reference_test.py", line 102, in <module>
+    tr, yr = keep[cfg]
+             ~~~~^^^^^
+KeyError: 'NO-REF|eod'

@@ -1,0 +1,8 @@
+trade_id,entry_date,strategy_id,stream,signal,structure,credit,pnl,roc,win,close_reason
+auto_20260805_092640,2026-08-05,eodic_p,eod,CAUTION,vertical 25pt,0.2,17.4,0.007016129032258064,True,expired
+auto_20260805_092813,2026-08-05,eodfly_p,eod,CAUTION,vertical 25pt,2.5999999999999996,-781.3000000000001,-0.3487946428571429,False,level ACCEPTED: spot 7728 held below the 7735 short strike for 12min (>10) — the wall we sold did not hold
+auto_20260805_092930,2026-08-05,openic_p,open,CAUTION,vertical 25pt,0.8,77.4,0.03198347107438017,True,expired
+auto_20260805_092945,2026-08-05,openic_c,open,CAUTION,vertical 25pt,0.29999999999999993,27.39999999999999,0.011093117408906878,True,expired
+auto_20260805_093432,2026-08-05,openfly_c,open,CAUTION,vertical 25pt,8.2,817.3999999999999,0.48654761904761895,True,expired
+auto_20260805_093447,2026-08-05,gx_bcs,gexlog,CAUTION,vertical 25pt,14.999999999999998,108.69999999999979,0.10869999999999977,True,level ACCEPTED: spot 7764 held above the 7750 short strike for 10min (>10) — the wall we sold did not hold
+auto_20260805_093505,2026-08-05,openfly_p,open,CAUTION,vertical 25pt,11.100000000000001,-131.30000000000007,-0.09446043165467632,False,level ACCEPTED: spot 7765 held below the 7780 short strike for 10min (>10) — the wall we sold did not hold

@@ -195,6 +195,8 @@ def run_session(ib, end, tape):
 
 
 def main():
+    import singleton
+    singleton.ensure("spot_feed")   # one feed only — duplicates fight for the OPRA lines
     # ES-est/basis comes from MenthorQ's candle feed on a background thread
     # (see basis_worker) — decoupled from the fast loop so it can't stall it.
     threading.Thread(target=basis_worker, daemon=True).start()

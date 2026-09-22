@@ -1,0 +1,39 @@
+section,key,value
+context,date,2023-05-02
+context,dow,Tue
+context,event,
+context,gap_pct,-0.09
+context,prior_ret,-0.04
+context,prior_range,0.55
+context,prior2_ret,0.83
+context,vix_prior,16.08
+context,vix_chg,0.3
+context,em_pts,42.2
+context,cr_eodic_c,0.0
+context,cr_eodic_p,0.8
+context,ic_pnl,-2050.0
+context,fly_pnl,65.0
+context,puts_band_pnl,-2043.0
+context,next_ret,-0.7
+ic_rows,date|strat|method|center|em|short_k|long_k|credit|exit_kind|exit_val|pnl|note,2023-05-02|eodic_p|vix252|4167.87|42.2|4125.0|4100.0|0.8|stop|11.3|-1056.52|
+ic_rows,date|strat|method|center|em|short_k|long_k|credit|exit_kind|exit_val|pnl|note,2023-05-02|eodic_p|vix365|4167.87|35.1|4135.0|4110.0|1.75|stop|10.8|-911.52|
+ic_rows,date|strat|method|center|em|short_k|long_k|credit|exit_kind|exit_val|pnl|note,2023-05-02|eodic_p|straddle|4167.87|18.2|4150.0|4125.0|4.7|stop|10.05|-541.52|
+ic_rows,date|strat|method|center|em|short_k|long_k|credit|exit_kind|exit_val|pnl|note,2023-05-02|eodic_c|vix252|4167.87|42.2|4210.0|4235.0|0.0|settle|0.0|-3.26|
+ic_rows,date|strat|method|center|em|short_k|long_k|credit|exit_kind|exit_val|pnl|note,2023-05-02|eodic_c|vix365|4167.87|35.1|4205.0|4230.0|0.0|settle|0.0|-3.26|
+ic_rows,date|strat|method|center|em|short_k|long_k|credit|exit_kind|exit_val|pnl|note,2023-05-02|eodic_c|straddle|4167.87|18.2|4185.0|4210.0|0.6|settle|0.0|56.74|
+ic_rows,date|strat|method|center|em|short_k|long_k|credit|exit_kind|exit_val|pnl|note,2023-05-02|openic_p|vix252|4164.1|42.2|4120.0|4095.0|1.2|stop|11.0|-986.52|
+ic_rows,date|strat|method|center|em|short_k|long_k|credit|exit_kind|exit_val|pnl|note,2023-05-02|openic_p|vix365|4164.1|35.1|4130.0|4105.0|2.6|stop|12.5|-996.52|
+ic_rows,date|strat|method|center|em|short_k|long_k|credit|exit_kind|exit_val|pnl|note,2023-05-02|openic_p|straddle|4164.1|18.2|4145.0|4120.0|7.2|stop|13.0|-586.52|
+ic_rows,date|strat|method|center|em|short_k|long_k|credit|exit_kind|exit_val|pnl|note,2023-05-02|openic_c|vix252|4164.1|42.2|4205.0|4230.0|0.0|settle|0.0|-3.26|
+ic_rows,date|strat|method|center|em|short_k|long_k|credit|exit_kind|exit_val|pnl|note,2023-05-02|openic_c|vix365|4164.1|35.1|4200.0|4225.0|0.0|settle|0.0|-3.26|
+ic_rows,date|strat|method|center|em|short_k|long_k|credit|exit_kind|exit_val|pnl|note,2023-05-02|openic_c|straddle|4164.1|18.2|4180.0|4205.0|0.25|settle|0.0|21.74|
+fly_rows,date|strat|center|short_k|long_k|credit|exit_kind|exit_val|pnl|note,2023-05-02|eodfly_p|4167.87|4170.0|4145.0|12.5|stop|15.2|-276.52|
+fly_rows,date|strat|center|short_k|long_k|credit|exit_kind|exit_val|pnl|note,2023-05-02|eodfly_c|4167.87|4170.0|4195.0|2.65|settle|0.0|261.74|
+fly_rows,date|strat|center|short_k|long_k|credit|exit_kind|exit_val|pnl|note,2023-05-02|openfly_p|4144.1|4145.0|4120.0|7.2|stop|13.0|-586.52|
+fly_rows,date|strat|center|short_k|long_k|credit|exit_kind|exit_val|pnl|note,2023-05-02|openfly_c|4144.1|4145.0|4170.0|6.7|settle|0.0|666.74|
+finding,cause,"Regional-bank contagion rout day after First Republic seizure: PacWest -28pct (multiple halts, -39pct intraday), Western Alliance -15pct, KBW regional index -5.5pct (worst since SVB March). Amplifiers: Yellen debt-ceiling X-date 'as early as June 1' letter (out Mon 5/1 PM), JOLTS 9.59M miss at 10:00 ET, WTI -5.3pct, FOMC decision next day. SPX 4167.87 -> 4119.58 (-1.16pct), low 4089.7 (-1.9pct)."
+finding,overnight,Quiet: gap -0.09pct at open (open 4163-4164 vs 4167.87 close). Yellen letter and First Republic/JPM deal were known before the open; RBA surprise +25bp hike overnight; oil already sliding. Futures barely down.
+finding,prior_days,"Mon 5/1: First Republic seized + sold to JPM pre-open; SPX closed flat (-0.04pct) but regional banks (KRE) fell -2-3pct - stress was visible in banks, not in the index. Fri 4/28 +0.83pct. VIX 16.08, near lows."
+finding,aftermath,"No snap-back: 5/3 FOMC +25bp, SPX -0.70pct; 5/4 PacWest -50pct (exploring sale), SPX -0.72pct; 5/5 +1.85pct rally (Apple earnings + NFP beat). 3-day continuation of bank stress before relief."
+finding,morning_signals,"By 08:30 CT the numeric features were QUIET (gap -0.09, VIX 16.08 +0.3, EM 42pts, prior day flat). The loud signals were contextual: FOMC-eve + FOMC meeting starting that day, active bank failure 24h old, debt-ceiling X-date headline, JOLTS scheduled 09:00 CT. The single best mechanical tell was OUR OWN CREDIT ASYMMETRY at entry: call-side EOD-IC credit 0.00 (entry-gate 'broken') vs put-side 0.80 - the market was pricing pure downside. Put shorts sat only ~1pct OTM."
+finding,verdict,"Intraday ambush with a quiet open, but NOT an unknowable one: price/vol features gave nothing, while the event calendar (FOMC eve, bank crisis in progress) and the zero call credit at entry were observable warnings."

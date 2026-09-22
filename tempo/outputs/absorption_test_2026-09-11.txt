@@ -1,0 +1,21 @@
+=== P(reject) by group ===
+  ABSORB  n=  143  P(reject)=0.434
+  DRIVE   n= 1232  P(reject)=0.450
+  PLAIN   n= 3928  P(reject)=0.397
+
+=== by year ===
+      count               mean              
+grp  ABSORB DRIVE PLAIN ABSORB  DRIVE  PLAIN
+year                                        
+2021      3    97   252  0.333  0.464  0.365
+2022     43   295   906  0.395  0.451  0.376
+2023     36   248   759  0.333  0.464  0.394
+2024     17   198   705  0.706  0.434  0.394
+2025     31   261   761  0.548  0.471  0.439
+2026     13   133   545  0.231  0.398  0.398
+
+=== ABSORB trade-size split ===
+  big prints  n=  59  P(reject)=0.373
+  small prints n=  38  P(reject)=0.500
+
+headline: P(reject|ABSORB)=0.434 (n=143) vs PLAIN=0.397 (n=3928)  diff=+0.036  z=0.87

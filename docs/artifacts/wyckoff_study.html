@@ -1,0 +1,324 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wyckoff Study — ES Trading System</title>
+<style>
+:root{
+  --bg:#0d1117; --card:#161b22; --card2:#12161d; --chip:#30363d; --fg:#e6edf3; --muted:#8b949e;
+  --accent:#58a6ff; --good:#3fb950; --warn:#d29922; --bad:#f85149; --line:#30363d;
+  --mono:ui-monospace,"Cascadia Code",Consolas,Menlo,monospace;
+  --sans:-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+@media(prefers-color-scheme:light){:root:not([data-theme="dark"]){
+  --bg:#f6f7f9;--card:#ffffff;--card2:#f0f2f5;--chip:#e2e6ee;--fg:#161b24;--muted:#5b6472;
+  --accent:#1e6fe0;--line:#e2e6ee;}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:14.5px/1.62 var(--sans)}
+a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+.layout{display:grid;grid-template-columns:250px 1fr;gap:0;max-width:1280px;margin:0 auto}
+nav{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:20px 14px;
+  border-right:1px solid var(--line);font-size:13px}
+nav h2{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:16px 0 6px}
+nav a{display:block;color:var(--muted);padding:3px 8px;border-radius:6px;margin:1px 0}
+nav a:hover{color:var(--fg);background:var(--card);text-decoration:none}
+nav .brand{font-weight:700;font-size:15px;color:var(--fg);margin-bottom:2px}
+nav .sub{color:var(--muted);font-size:11.5px;margin-bottom:8px}
+main{padding:28px 40px 90px;min-width:0}
+h1{font-size:27px;margin:.1em 0 .1em;letter-spacing:-.01em}
+h2{font-size:20px;margin:2em 0 .5em;padding-top:.4em;border-top:1px solid var(--line);scroll-margin-top:12px}
+h3{font-size:15.5px;margin:1.4em 0 .3em;color:var(--fg)}
+p,li{max-width:74ch} li{margin:3px 0}
+code{font-family:var(--mono);font-size:.9em;background:var(--card);padding:1px 5px;border-radius:5px}
+.lede{color:var(--muted);font-size:15.5px;max-width:74ch}
+.tag{display:inline-block;font-family:var(--mono);font-size:11px;color:var(--muted);border:1px solid var(--chip);
+  border-radius:999px;padding:2px 9px;margin:2px 4px 2px 0}
+table{border-collapse:collapse;width:100%;margin:10px 0;font-size:13.5px}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:10px;margin:12px 0}
+th,td{padding:8px 11px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);
+  background:var(--card2)}
+tr:last-child td{border-bottom:none}
+.call{border-left:3px solid var(--accent);background:color-mix(in srgb,var(--accent) 8%,transparent);
+  padding:11px 15px;border-radius:0 8px 8px 0;margin:14px 0;font-size:14px}
+.call.good{border-color:var(--good);background:color-mix(in srgb,var(--good) 9%,transparent)}
+.call.warn{border-color:var(--warn);background:color-mix(in srgb,var(--warn) 10%,transparent)}
+.call.bad{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 9%,transparent)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:15px 18px;margin:12px 0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:820px){.grid2{grid-template-columns:1fr}.layout{grid-template-columns:1fr}nav{position:static;height:auto;border-right:none;border-bottom:1px solid var(--line)}}
+.src{color:var(--muted);font-family:var(--mono);font-size:11px}
+.k{color:var(--accent);font-weight:600}
+.step{display:flex;gap:12px;margin:10px 0}
+.step .n{flex:none;width:26px;height:26px;border-radius:50%;background:var(--card);border:1px solid var(--chip);
+  display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12px;color:var(--accent);font-weight:700}
+.pill{font-family:var(--mono);font-size:11px;padding:1px 7px;border-radius:5px;border:1px solid var(--chip);color:var(--muted)}
+hr{border:none;border-top:1px solid var(--line);margin:24px 0}
+.foot{color:var(--muted);font-size:12px;margin-top:40px;border-top:1px solid var(--line);padding-top:14px}
+ul.tight li{margin:2px 0}
+.badge{font-family:var(--mono);font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:4px}
+.b-do{background:color-mix(in srgb,var(--good) 20%,transparent);color:var(--good)}
+.b-no{background:color-mix(in srgb,var(--bad) 18%,transparent);color:var(--bad)}
+</style></head>
+<body><div class="layout">
+<nav>
+  <div class="brand">🎯 Wyckoff Study</div>
+  <div class="sub">ES 2000t / 5M · discretionary system</div>
+  <h2>Core</h2>
+  <a href="#overview">The system in one screen</a>
+  <a href="#model">The 3-layer model + rules</a>
+  <h2>Book 1 — Structures</h2>
+  <a href="#laws">Laws & phases</a>
+  <a href="#box">The trading-range box</a>
+  <a href="#events">Events: spring / test / climax</a>
+  <h2>Book 2 — Wyckoff 2.0</h2>
+  <a href="#vp">Volume Profile (location)</a>
+  <a href="#of">Order Flow (trigger)</a>
+  <a href="#integration">The integration</a>
+  <h2>Trading</h2>
+  <a href="#contexts">The 4 setups</a>
+  <a href="#es">Applying on 2000t & 5M</a>
+  <a href="#playbook">The playbook (draft)</a>
+  <h2>Build & operate</h2>
+  <a href="#roadmap">Tools to build</a>
+  <a href="#testing">Testing & the 100-trade loop</a>
+  <a href="#data">Data recording & journal</a>
+  <a href="#glossary">Glossary</a>
+  <a href="#sources">Sources</a>
+</nav>
+<main>
+
+<h1 id="overview">Wyckoff Study — a tradeable ES system</h1>
+<p class="lede">Everything distilled from Villahermosa's two books (<i>The Wyckoff Methodology in Depth</i> and
+<i>Wyckoff 2.0: Structures, Volume Profile &amp; Order Flow</i>), organised into one reference for trading
+ES on the 2000-tick and 5-minute charts. This is a <b>discretionary-assist</b> system: the tools surface
+context, levels and confirmation; you make the call. No more gurus — Wyckoff structure + auction
+theory (Dalton, via Volume Profile) + price action (Brooks) is a complete toolkit.</p>
+<p><span class="tag">discretionary, not automated</span><span class="tag">2000-tick + 5M ES</span>
+<span class="tag">structure → location → trigger</span><span class="tag">page-cited to both books</span></p>
+
+<div class="call good"><b>The whole system in one sentence:</b> in the direction of the <b>last shakeout</b>
+and the <b>last HVN</b>, wait for price to reach a <b>value-area edge or structure edge</b>, and enter only
+when <b>order flow confirms</b> (absorption → initiative / an SOS-SOW bar) — stop beyond the structure at an
+LVN, target the next HVN's VPOC.</p>
+
+<h2 id="model">The 3-layer model + the master rules</h2>
+<p>Wyckoff 2.0 assigns each tool one job. Keeping these lanes separate is what stops the chart from
+becoming "a 1-minute chart full of labels" (the book's own named failure mode).</p>
+<div class="tw"><table>
+<thead><tr><th>Layer</th><th>Job</th><th>Answers</th><th>Our tool</th></tr></thead>
+<tbody>
+<tr><td><b>Wyckoff structure</b></td><td>Context — build the scenario &amp; bias</td><td><i>What &amp; why</i></td><td>the TR-box you draw + event engine</td></tr>
+<tr><td><b>Volume Profile</b></td><td>Location — where to act</td><td><i>Where</i></td><td>VPOC / VAH·VAL / HVN / LVN / VWAP / naked VPOC</td></tr>
+<tr><td><b>Order Flow</b></td><td>Trigger — time the entry, <b>only at the zone</b></td><td><i>When</i></td><td>footprint absorption + initiative + delta</td></tr>
+</tbody></table></div>
+<p><b>Master rules (memorize these):</b></p>
+<ul>
+<li><span class="k">Bias:</span> trade with the <b>last-developed HVN</b> — price above it → longs only; below → shorts only. Flip only when price effectively breaks that zone. <span class="src">(bk2 p.218-220)</span></li>
+<li><span class="k">Dominant event:</span> always favour the direction of the <b>last shakeout</b> (spring → long, upthrust → short). <span class="src">(bk2 p.28-29, 78)</span></li>
+<li><span class="k">Order flow only at zones:</span> never read the footprint chart-wide — only when price has reached a pre-chosen level. <span class="src">(bk2 p.247, 275)</span></li>
+<li><span class="k">One move at a time:</span> propose only the next move; enter with a <b>stop order</b>, never a limit. <span class="src">(bk2 p.303-305)</span></li>
+<li><span class="k">Labels are provisional:</span> a "spring" that produces no follow-through <i>becomes</i> a test. Read dynamics, not labels. <span class="src">(bk1 p.105-106; bk2 p.67)</span></li>
+<li><span class="k">Confluence wins:</span> the best trades stack a structure event + a VP level + VWAP at one price. <span class="src">(bk2 p.296, 320)</span></li>
+</ul>
+
+<h2 id="laws">Book 1 — the three laws & the five phases</h2>
+<div class="grid2">
+<div class="card"><h3>The 3 laws</h3>
+<ul class="tight">
+<li><b>Supply &amp; demand</b> — aggressive (market) orders move price; passive (limit) orders stop it. <span class="src">(p.29-34)</span></li>
+<li><b>Cause &amp; effect</b> — the sideways range builds the cause; the trend is the effect, proportional to time+volume in the range. <span class="src">(p.35-40)</span></li>
+<li><b>Effort vs result</b> — volume=effort, price=result. High effort + small result = absorption/exhaustion (reversal). Read it <b>relatively</b>, never absolute. <span class="src">(p.41-48)</span></li>
+</ul></div>
+<div class="card"><h3>Phases A–E</h3>
+<ul class="tight">
+<li><b>A</b> — stop the trend (PS · Climax · AR · ST). Ends at the ST.</li>
+<li><b>B</b> — build the cause (tests at both edges). Should be <b>longer</b> than A &amp; C.</li>
+<li><b>C</b> — the test / shakeout (Spring or Upthrust).</li>
+<li><b>D</b> — trend within the range (SOS/SOW, then LPS/BUEC).</li>
+<li><b>E</b> — trend outside the range.</li>
+</ul>
+<p class="src">(p.134-144). Only trade C / D / E.</p></div>
+</div>
+
+<h2 id="box">The trading-range box</h2>
+<p>The range is a <b>box</b> whose edges are <b>zones, not lines</b> (draw a band; more touches = more
+confidence). <span class="src">(bk1 p.147-154; bk2 p.40-42)</span></p>
+<ul>
+<li><b>Top edge (Creek)</b> = the Automatic-Rally high, refined by Phase-B highs. <b>Bottom edge (Ice)</b> = the Automatic-Reaction low, refined by Phase-B lows. The opposite edge = the <b>climax</b> extreme. <span class="src">(p.147, 150)</span></li>
+<li>Structure edges are, in profile terms, <b>Low Volume Nodes</b> — price didn't want to trade there. <span class="src">(bk2 p.215-216)</span></li>
+<li>If Phase B stops respecting the horizontal edges → switch to a <b>sloping box</b> (draw one edge through A/B/C extremes, clone the other; up-slope = strength, down = weakness). <span class="src">(bk1 p.153-154)</span></li>
+</ul>
+
+<h2 id="events">Events — spring vs test vs climax (the part we kept getting wrong)</h2>
+<div class="call bad"><b>The rule that fixes the mislabeling:</b> the low that <b>creates</b> the range is the
+<b>Climax</b> (Phase A) — never a spring. A <b>spring</b> is a Phase-C event, defined <b>retroactively</b>:
+it is a false break of the <i>already-established</i> edge that <b>then causes the breakout to the opposite
+side</b>. "Anything other than this… is simply a test." <span class="src">(bk1 p.105-106; bk2 p.67, p.258)</span></div>
+<div class="tw"><table>
+<thead><tr><th>Event</th><th>What it is</th><th>Signature</th></tr></thead>
+<tbody>
+<tr><td><b>Climax (SC/BC)</b></td><td>Culmination that defines the range edge (Phase A)</td><td>Wide-range spike OR a cluster of high-volume bars; can also end by <i>exhaustion</i> (low volume). <span class="src">(p.75-79)</span></td></tr>
+<tr><td><b>Secondary Test</b></td><td>Return to the climax; ends Phase A</td><td>Narrower range + lower volume than the climax; read by which third of the range it lands in. <span class="src">(p.90,195)</span></td></tr>
+<tr><td><b>Spring / Upthrust</b></td><td>Phase-C false break that launches the trend</td><td>Poke beyond the edge + reclaim; <b>must be followed by the opposite-side breakout</b> or it's a test. <span class="src">(p.105-109)</span></td></tr>
+<tr><td><b>Test (No Supply / No Demand)</b></td><td>Assesses commitment; doesn't break or launch</td><td>Narrow range + volume <b>lower than the prior two bars</b>. <span class="src">(p.94-97)</span></td></tr>
+<tr><td><b>SOS / SOW bar</b></td><td>The breakout / entry trigger (Phase D)</td><td>Wide range, close in the final third, higher volume. <span class="src">(p.119-121, 231)</span></td></tr>
+<tr><td><b>LPS/BUEC · LPSY/FTI</b></td><td>Break-and-retest confirmation (Wyckoff's favourite entry)</td><td>Low-volume, narrow retest that doesn't re-enter the range. <span class="src">(p.124-125, 225)</span></td></tr>
+</tbody></table></div>
+<h3>Three spring types (by depth + volume + range, together)</h3>
+<div class="tw"><table>
+<thead><tr><th>Type</th><th>Penetration</th><th>Volume</th><th>Range</th><th>Trade</th></tr></thead>
+<tbody>
+<tr><td><b>#3 (best)</b></td><td>shallow</td><td>low</td><td>narrow</td><td>tradable immediately (exhaustion)</td></tr>
+<tr><td><b>#2</b></td><td>moderate</td><td>moderate</td><td>moderate</td><td>needs a test</td></tr>
+<tr><td><b>#1 / Terminal Shakeout</b></td><td>deep</td><td>high</td><td>wide</td><td>riskiest — needs immediate aggressive reversal</td></tr>
+</tbody></table></div>
+<p class="src">(p.107-109). Plus <b>Structural Failure</b> (price fails to reach the opposite edge → strength/weakness; LPS/LPSY are instances) and <b>Shortening of the Thrust</b> (≥3 pushes; short travel + high vol = divergence, + low vol = exhaustion). (bk2 p.31-37)</p>
+
+<h2 id="vp">Book 2 — Volume Profile (the "where")</h2>
+<div class="tw"><table>
+<thead><tr><th>Level</th><th>Meaning</th><th>Use</th></tr></thead>
+<tbody>
+<tr><td><b>VPOC</b></td><td>Most-traded price (fairest); always an HVN</td><td>Control line: price above → long bias, below → short. Avoid trading right at it. <span class="src">(p.189-190)</span></td></tr>
+<tr><td><b>VAH / VAL</b></td><td>Value-area edges (<b>68.2%</b> of volume, 1σ)</td><td>S/R; fade the edges in balance (buy VAL, sell VAH). <span class="src">(p.186)</span></td></tr>
+<tr><td><b>HVN</b></td><td>High-volume node (acceptance)</td><td><b>Magnet → targets.</b> The last HVN = the bias line. <span class="src">(p.192-193, 218)</span></td></tr>
+<tr><td><b>LVN</b></td><td>Low-volume node (rejection)</td><td><b>Entries &amp; stops</b>; structure edges live here. <span class="src">(p.193-196, 215)</span></td></tr>
+<tr><td><b>Naked / developing VPOC</b></td><td>Untested prior VPOC / live session VPOC</td><td>Untested VPOCs = magnets → targets. <span class="src">(p.310-311)</span></td></tr>
+<tr><td><b>VWAP (session/weekly)</b></td><td>Volume-weighted mean ± 1σ/2σ</td><td>Equilibrium; author's favourite combo = <b>weekly VWAP + structure VPOC</b>. <span class="src">(p.190-192, 222)</span></td></tr>
+</tbody></table></div>
+<p><b>Profiles to build:</b> session (developing), composite (multi-session context), and <b>fixed-range</b>
+dragged over a Wyckoff structure (scope = start of rotation → just before the breakout). <span class="src">(p.196-202)</span></p>
+<h3>The 5 value-area trading principles</h3>
+<ul class="tight">
+<li><b>Range fade</b> — inside a VA, fade the edges; target VPOC then the opposite edge. <span class="src">(p.237)</span></li>
+<li><b>80% reversion</b> — a failed break that re-enters the VA → ~80% odds of reaching the opposite edge. <span class="src">(p.239, 327)</span></li>
+<li><b>Continuation</b> — fail to enter the VA / rejected at the edge → imbalance away (the break-and-retest). <span class="src">(p.242)</span></li>
+<li><b>Failed reversion</b> — rejected at the VPOC → reversal cancelled; re-assess. <span class="src">(p.244)</span></li>
+<li><b>Shapes:</b> P = accumulation/strength, b = distribution/weakness; bP → up, Pb → down (= Phases A/B). <span class="src">(p.209-228)</span></li>
+</ul>
+
+<h2 id="of">Book 2 — Order Flow (the "when") — from our own footprint</h2>
+<div class="call"><b>We already have the data.</b> <code>FootprintExporter.cs</code> reconstructs the ES footprint
+(bid/ask volume per price + delta) <b>free from raw ticks</b>, validated exact vs MzPack. NT's Order Flow+
+is <b>not needed</b>.</div>
+<ul>
+<li><b>Read diagonally</b> — aggressive buys hit the ASK, sells hit the BID; compare BID[L] vs ASK[L+1]. <span class="src">(p.249-251)</span></li>
+<li><b>Imbalance</b> = 200/300/400% diagonal disparity + a min-contracts floor (calibrate to ES). <span class="src">(p.251-252)</span></li>
+<li><b>Turning pattern = Absorption → Initiative:</b>
+  <ul class="tight">
+  <li><b>Absorption</b> (potential): high volume, price stops, imbalances <i>against</i> the close (BID at the bottom for a spring low). <span class="src">(p.253-255)</span></li>
+  <li><b>Initiative</b> (confirmation = the SOS/SOW bar): aggression in the entry direction, close at the extreme, <b>delta rotation</b>. <b>Initiative is mandatory; absorption optional.</b> <span class="src">(p.255-257, 330-331)</span></li>
+  </ul></li>
+<li><b>Continuation pattern = Control + Test</b> — trend add, then a low-volume retest of the control level. <span class="src">(p.262-267)</span></li>
+<li><b>Delta</b> = ASK−BID vol; divergence = delta sign ≠ bar direction; absorption = big |delta| + no progress. <span class="src">(p.164, 176-177)</span></li>
+</ul>
+<div class="call warn"><b>Caveats baked into the tools:</b> delta = <b>aggression, not intent</b> (label it that way);
+dark-pool / CME block trades are hidden (~24h delayed); order flow is meaningless without structural context.</div>
+
+<h2 id="integration">The integrated workflow</h2>
+<div class="step"><div class="n">1</div><div><b>Context</b> — read the structure (are we range-at-edge, range-inside, trend-breakout, or trend-pullback?). Set bias from the last shakeout + last HVN.</div></div>
+<div class="step"><div class="n">2</div><div><b>Location</b> — pick the VP level to wait at (VAL/VAH, structure edge = LVN, broken Creek/Ice, prior VPOC/VWAP). Look for confluence.</div></div>
+<div class="step"><div class="n">3</div><div><b>Scenario</b> — "if X then Y", <b>with an alternative</b> for the opposite outcome.</div></div>
+<div class="step"><div class="n">4</div><div><b>Trigger &amp; manage</b> — only now open the footprint at that zone: absorption → initiative / SOS-SOW bar. Enter stop-order, stop at LVN, target next HVN→VPOC. Breakeven at first VA target.</div></div>
+<p class="src">(bk2 p.277-278, 300-311)</p>
+
+<h2 id="contexts">The 4 setups (each = structure + VP + OF)</h2>
+<div class="tw"><table>
+<thead><tr><th>Setup</th><th>Structure</th><th>Location (VP)</th><th>Trigger (OF)</th><th>Stop / Target</th></tr></thead>
+<tbody>
+<tr><td><b>1. Range reversal at the edge</b></td><td>Spring at the low / Upthrust at the high (Phase C)</td><td>VAL (long) / VAH (short); edge ≈ LVN</td><td>Absorption → buy/sell initiative</td><td>Stop past the shakeout extreme (LVN) · Target opposite VA edge</td></tr>
+<tr><td><b>2. Range → opposite edge</b></td><td>Phase-D move after the test</td><td>Enter at LVN/VWAP/VPOC inside the range; HVN sets bias</td><td>SOS/SOW bar</td><td>Stop mid-range · Target opposite edge / VPOC</td></tr>
+<tr><td><b>3. Breakout test (BUEC/LPS)</b></td><td>Break of the box, then retest</td><td>The broken Creek/Ice (an LVN)</td><td>Low-volume test + fresh initiative; VPOC migration confirms</td><td>Stop below SOS bar &amp; broken edge · Target next HVN→VPOC</td></tr>
+<tr><td><b>4. Trend pullback (Phase E)</b></td><td>Pullback in an established trend</td><td>Prior VA / weekly VWAP / prior-impulse VPOC / LVN</td><td>SOS/SOW bar or minor structure</td><td>Stop past the pullback · Target next liquidity/HVN</td></tr>
+</tbody></table></div>
+<p class="src">Wyckoff's best R/R = setup 1 (Phase C); his favourite = setup 3 (the break-and-retest). ES worked example = bk2 §8.3 (2020-07-17): prior-day VAL/VWAP test → 5-min Spring+test+Weis → footprint delta trigger → target opposite VA edge.</p>
+
+<h2 id="es">Applying it on ES — 2000-tick &amp; 5-minute</h2>
+<div class="call"><b>Volume works on the tick chart — if you measure it right.</b> A 2000-tick bar has ~constant
+<i>trade count</i> but variable <i>contract volume</i>. Measure effort on <b>swings (Weis wave)</b>, not per bar.
+VP levels are built from contracts-per-price, so they are <b>identical on any bar type</b>. <span class="src">(bk2 p.17-24, 203)</span></div>
+<ul>
+<li><b>5M = context, 2000t = execution.</b> Read structure + draw the box + mark VP levels on the 5M (and daily for the macro HVN/VWAP); drop to 2000t for the spring/test and the footprint trigger. The book's own rule: top-down for context, bottom-up for the trigger; a 2000t micro-range at a 5M edge <b>is</b> the 5M event (nesting). <span class="src">(bk1 p.206-212)</span></li>
+<li><b>Never use volume-based bars</b> (they disable volume analysis). Tick and time both fine. <span class="src">(bk2 p.22)</span></li>
+<li><b>Segregate RTH vs ETH volume</b> — the US open prints huge volume; don't compare RTH vs ETH magnitudes raw. (Validates our two-trove RTH/ETH split.) <span class="src">(bk2 p.17-19)</span></li>
+<li><b>Effort read on 2000t:</b> Weis-wave (volume per swing), range (spread, undistorted on tick), and — at the trigger bar only — tempo (ticks/sec) as the "loud vs quiet" gauge.</li>
+</ul>
+
+<h2 id="roadmap">Future indicators / tools to build (staged)</h2>
+<div class="card"><h3>Stage 1 — foundation: levels + effort</h3>
+<ul class="tight">
+<li><b>Volume Profile engine</b> (from the tick troves → drawn in NT8): VPOC, VAH/VAL (68.2%), HVN/LVN, naked/developing VPOC; session / composite / fixed-range scopes.</li>
+<li><b>VWAP</b> session + weekly ± 1σ/2σ.</li>
+<li><b>Weis-wave</b> (volume per swing) — the tick-safe effort meter.</li>
+<li><b>Last-HVN bias line</b> + price-vs-VWAP/VPOC state (the master gate).</li>
+<li><b>Footprint layer</b> from <code>FootprintExporter</code>: delta, diagonal imbalance, absorption, initiative — computed but only surfaced at zones.</li>
+</ul></div>
+<div class="card"><h3>Stage 2 — structure tools</h3>
+<ul class="tight">
+<li><b>"Wyckoff TR Box" drawing tool</b> — draw the whole range; auto-partition Phases A–E; edges as LVN-snapped zones; sloping mode.</li>
+<li><b>Retroactive event engine</b> — climax = range edge; spring/upthrust confirmed only by the opposite-edge breakout; test = No Supply/No Demand; structural failure; shortening-of-thrust.</li>
+</ul></div>
+<div class="card"><h3>Stage 3 — trigger + management (the integration)</h3>
+<ul class="tight">
+<li>At an armed zone: absorption + initiative + SOS/SOW bar → propose stop-entry, SL at LVN, TP at HVN→VPOC / naked VPOC, R/R + alternative scenario.</li>
+<li>A single <b>"setup ready" panel</b>: shows the active context, the level, the confluence count, and the missing ingredient ("waiting for initiative").</li>
+</ul></div>
+<p class="src">Design contract: structure builds the scenario, VP sets location, OF times the trigger — OF never originates a trade, never trade against the last-HVN bias, never spray marks chart-wide.</p>
+
+<h2 id="playbook">The playbook (draft — to harden over the first 100 trades)</h2>
+<p>Each trade must pass all four gates. If any is missing, no trade.</p>
+<div class="tw"><table>
+<thead><tr><th>Gate</th><th>Question</th><th>Pass condition</th></tr></thead>
+<tbody>
+<tr><td><b>1 Context</b></td><td>Which of the 4 setups is this, and does bias agree?</td><td>Price on the correct side of the last HVN; trading with the last shakeout.</td></tr>
+<tr><td><b>2 Location</b></td><td>Is price at a real level?</td><td>At a VAL/VAH, structure edge, broken Creek/Ice, or prior VPOC/VWAP — ideally ≥2 stacked (confluence).</td></tr>
+<tr><td><b>3 Trigger</b></td><td>Did order flow confirm?</td><td>Absorption → <b>initiative</b> (SOS/SOW bar with delta rotation) at the zone.</td></tr>
+<tr><td><b>4 Risk</b></td><td>Is the trade worth it?</td><td>Stop at the protecting LVN; nearest HVN→VPOC target gives ≥ 2R; ≤ 1–2% risk; alternative scenario written.</td></tr>
+</tbody></table></div>
+<p><b>Management:</b> enter on a <b>stop order</b> at the trigger bar; move to <b>breakeven</b> at the first VA target;
+scale/hold a runner to the next HVN. Exit fully on an <b>ultra-high-volume opposing climax</b> or the opposite
+structure's Phase A/C. <span class="src">(bk2 p.302-311)</span></p>
+
+<h2 id="testing">What's testable + the 100-trade refinement loop</h2>
+<ul>
+<li><b>Testable now (against the trove):</b> value-area reversion (80% rule), fade-the-edge, break-and-retest continuation, and the spring/upthrust-with-confluence edge — all with entry/stop/target rules above. This is exactly the kind of frozen-spec, train/test study we already run on the tempo engine.</li>
+<li><b>Not fully testable (discretionary):</b> reading which of the 4 contexts is live, and confluence judgement — these need the forward record.</li>
+<li><b>The loop:</b> trade the playbook → journal every trade with its gates + the data (below) → after ~100 trades, measure which setups/levels/triggers actually paid → <b>retune the indicators to your style</b> (e.g., imbalance ratio, "quiet test" threshold, which VP levels to trust). <span class="badge b-do">This is the plan you described.</span></li>
+</ul>
+
+<h2 id="data">Data recording &amp; the custom journal</h2>
+<div class="call warn"><b>Recording every tick + bid/ask + volume requires an always-on recorder during market hours.</b>
+ES trades ~23h/day (Sun 5pm CT → Fri 4pm CT, with a ~1h daily break) — not literally 24/7, but "on whenever ES
+trades." A recorder must be connected to the feed the whole time; anything it misses (crash/off) is lost for
+bid/ask (trade ticks can sometimes backfill, L1 usually can't).</div>
+<ul>
+<li><b>For live trading you do NOT need the archive</b> — the indicators compute footprint from the live feed in real time. The 24h recording is for the <b>data asset</b>: backtesting the tools, building historical Volume Profiles, and the journal/refinement loop.</li>
+<li><b>Recommended:</b> a dedicated tick recorder (bid/ask/volume → the DuckDB store) with a watchdog, running alongside NT during all ES hours; Databento as a paid backfill safety-net for any gaps.</li>
+</ul>
+<h3>The custom journal (tied to this playbook)</h3>
+<p>Per trade, auto-capture: setup #, context, the level(s) hit + confluence count, the trigger (absorption/initiative,
+delta, SOS-SOW bar stats), entry/stop/target, R multiple, screenshot, and the data snapshot (VP levels, Weis wave,
+footprint at entry). That schema is what lets the 100-trade review retune the tools.</p>
+
+<h2 id="glossary">Glossary</h2>
+<div class="tw"><table><tbody>
+<tr><td><b>Spring / Upthrust</b></td><td>Phase-C false break of the range edge that <i>causes</i> the breakout — the tradeable shakeout.</td></tr>
+<tr><td><b>Test</b></td><td>Quiet probe (narrow range, volume < prior 2 bars) that doesn't break/launch. "No Supply"/"No Demand".</td></tr>
+<tr><td><b>Climax</b></td><td>The Phase-A extreme that <i>creates</i> the range. Not a spring.</td></tr>
+<tr><td><b>Creek / Ice</b></td><td>Resistance / support edge of the range (from the AR + Phase B). Structurally an LVN.</td></tr>
+<tr><td><b>VPOC</b></td><td>Volume Point of Control — most-traded price; the control line.</td></tr>
+<tr><td><b>VA / VAH / VAL</b></td><td>Value Area (68.2% of volume) and its high/low edges.</td></tr>
+<tr><td><b>HVN / LVN</b></td><td>High / Low Volume Node — acceptance (magnet, targets) / rejection (entries, stops, edges).</td></tr>
+<tr><td><b>Absorption / Initiative</b></td><td>Passive blocking (stops price) / aggressive push (moves price = the confirmation).</td></tr>
+<tr><td><b>Delta</b></td><td>ASK-aggressor volume − BID-aggressor volume. Rotation of sign = change of control.</td></tr>
+<tr><td><b>Weis wave</b></td><td>Volume summed per price swing — the effort meter that survives on tick charts.</td></tr>
+<tr><td><b>SOS / SOW bar</b></td><td>Sign of Strength/Weakness bar — wide range, close in the final third, high volume; the entry trigger.</td></tr>
+</tbody></table></div>
+
+<h2 id="sources">Sources</h2>
+<p>Rubén Villahermosa — <i>The Wyckoff Methodology in Depth</i> (276 pp) and <i>Wyckoff 2.0: Structures,
+Volume Profile &amp; Order Flow</i> (342 pp). Both read in full and page-cited. Full internal syntheses:
+<code>docs/research_notes/wyckoff_book_synthesis.md</code> and <code>docs/research_notes/wyckoff2_book_synthesis.md</code>.
+Auction-theory concepts (Value Area, VPOC, 80% rule) trace to Steidlmayer/Dalton; price-action reading to Brooks —
+both complement the Wyckoff structure but are not the source of the citations here.</p>
+
+<div class="foot">Wyckoff Study · built for Mission Control · study material, not trade advice · citations are to the two books above.</div>
+</main></div></body></html>

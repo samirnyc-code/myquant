@@ -1,0 +1,17 @@
+SPX daily refreshed from Yahoo: 499 rows, last 2026-08-07
+IB connected 127.0.0.1:4002 (PAPER)  accounts=['DUQ159823']  serverVersion=178
+delayed SPX ~ 7768.95
+chain SPXW@SMART, expiry 20260824 (14 DTE)
+streaming 18 puts + spot rig (0DTE 20260810), waiting for OPRA...
+OPRA check: 18/18 strikes quoting, parity spot = 7771.7
+session H/L seeded from tape: 7755.95..7771.70 (46 samples)
+sampling until 15:59 ET (312 min)...
+
+=== 2026-08-10 15:59 ET DECISION ===
+spot 7750.07  K8 89.68  SMA100 7268.52  SMA5 7735.55
+ENTRY fire: False   EXIT signal: True   open trades: 0
+tags: {'vix': 14.899999618530272, 'vix_rank': 0.071, 'er10': 0.534, 'dow': 'Mon'}
+
+0 trades, none closed yet
+wrote C:\Users\Admin\myquant\data\options_sim\report.html
+re-rendered playbook with executed trades

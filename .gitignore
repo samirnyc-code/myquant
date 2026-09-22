@@ -74,6 +74,18 @@ data/depth/
 scratchpad/orats_token.txt
 data/orats/
 
+# Strategy-name decode key for anonymized vendor reports — private, regenerable
+thetadata_strategy_map_*.csv
+**/thetadata_strategy_map_*.csv
+
+# Secrets — env files, ThetaData / IBKR-Flex credentials (never commit)
+.env
+**/.env
+*.creds
+creds.txt
+**/creds.txt
+thetadata_creds.txt
+
 # NT8 stored credential (DPAPI, machine-local) - never commit
 nt8_cred.xml
 **/nt8_cred.xml
@@ -87,3 +99,23 @@ cool_pings_state.json
 docs/living/regime_2e_charts/
 data/regime_eth/ticks/
 docs/living/gapday_gallery/*.png
+
+# Databento flat files — large market data, never commit
+data/databento/
+
+# depth heatmap: interactive Plotly HTMLs are heavy (~10MB each, plotly inlined) and
+# fully regenerable via scripts/depth_heatmap.py build — keep index.html + PNGs, not these
+docs/depth_heatmap/ES_*.html
+# copyrighted EminiAddict diagram gallery (embeds paid content)
+docs/artifacts/eminiaddict_diagrams.html
+data/nt_internals/
+docs/artifacts/eminiaddict_getting_started.html
+docs/artifacts/eminiaddict_tool.html
+
+# huge NT8 tick exports — never in git (1.4GB files; GitHub hard-rejects >100MB)
+data/nt_ticks/
+data/regime/mq_reveng/chain_slices_overlap.parquet
+reports/regime2e/*.pkl
+
+# raw L1 tape recordings — regenerable, too large for git (keep _analysis outputs)
+data/l1_tape/*_l1_*.csv

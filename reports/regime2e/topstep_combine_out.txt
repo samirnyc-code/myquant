@@ -1,0 +1,30 @@
+TOPSTEP COMBINE — Regime2E one_per_day, 1289 sessions 2021-07-22->2026-09-04, 1 ES ~$10,766/yr
+EOD trailing DD, consistency (best day <=50% of target), MES sizes (0.1ES=1MES)
+
+=== 50K: target $3,000 · MLL $2,000 ===
+    ES  MES   median   25th   75th  pass-odds  blow%  (pass-odds = pass/(pass+blow), ex-censored)
+   0.3    3    276d  179d  371d       95%     5%  (~13.1mo median)
+   0.5    5    120d   84d  197d       70%    29%  (~5.7mo median)
+   0.7    7     81d   49d  110d       53%    47%  (~3.9mo median)
+   1.0   10     58d   32d  107d       39%    61%  (~2.8mo median)
+   1.5   15     41d   23d   97d       34%    66%  (~2.0mo median)
+   2.0   20     36d   19d   90d       33%    67%  (~1.7mo median)
+
+=== 100K: target $6,000 · MLL $3,000 ===
+    ES  MES   median   25th   75th  pass-odds  blow%  (pass-odds = pass/(pass+blow), ex-censored)
+   0.3    3    415d  306d  680d      100%     0%  (~19.8mo median)
+   0.5    5    290d  209d  441d       94%     5%  (~13.8mo median)
+   0.7    7    186d  127d  274d       73%    26%  (~8.9mo median)
+   1.0   10    130d   93d  201d       56%    43%  (~6.2mo median)
+   1.5   15     65d   39d  108d       38%    61%  (~3.1mo median)
+   2.0   20     54d   30d  105d       34%    65%  (~2.6mo median)
+
+=== 150K: target $9,000 · MLL $4,500 ===
+    ES  MES   median   25th   75th  pass-odds  blow%  (pass-odds = pass/(pass+blow), ex-censored)
+   0.3    3    635d  458d  843d      100%     0%  (~30.2mo median)
+   0.5    5    415d  297d  667d      100%     0%  (~19.8mo median)
+   0.7    7    302d  221d  474d       94%     5%  (~14.4mo median)
+   1.0   10    199d  142d  296d       73%    26%  (~9.5mo median)
+   1.5   15    130d   93d  202d       56%    43%  (~6.2mo median)
+   2.0   20     77d   45d  111d       42%    58%  (~3.7mo median)
+

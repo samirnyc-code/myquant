@@ -52,8 +52,6 @@ CHECKS = [
      [PY, "scripts/mq_mine.py"], 1800, True),
     ("mq_harvest", "MenthorQ dashboard harvest (Playwright)",
      [PY, "scripts/mq_harvest.py"], 1800, True),
-    ("quin", "QUIN AI harvest (quota-limited)",
-     [PY, "scripts/mq_quin_harvest.py"], 1800, True),
 ]
 
 

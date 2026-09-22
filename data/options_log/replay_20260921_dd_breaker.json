@@ -1,0 +1,24 @@
+{
+ "date": "20260921",
+ "entry_et": "09:31:00",
+ "grid_step_min": 2,
+ "final_pnl": -1237.6,
+ "intraday_trough": -1256.08,
+ "trough_at_et": "10:51:00",
+ "intraday_dd_peak_to_trough": 1234.78,
+ "breaker_2k": {
+  "triggered": false,
+  "pnl": -1237.6,
+  "note": "never reached -2,000 intraday"
+ },
+ "breaker_3k": {
+  "triggered": false,
+  "pnl": -1237.6,
+  "note": "never reached -3,000 intraday"
+ },
+ "spot_open": 7694.4,
+ "spot_close": 7774.5,
+ "fill_model": "worst-touch (S113)",
+ "reconstructed": true,
+ "note": "READ-ONLY intraday-path DD + Stage-2 circuit-breaker replay; NOT booked."
+}

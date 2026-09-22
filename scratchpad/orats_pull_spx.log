@@ -1,0 +1,34 @@
+
+SPX -> ORATS SPX [index]  clean - SPX index options ARE the S&P basket
+  1165 dates to pull (18 on disk, 1183 in plan)  ~570 MB, 1165 req (5.8% quota)
+  ...100/1165 (100 req, ~0.5% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2021.parquet (740,414 rows)
+  wrote data\orats\SPX\SPX_2022.parquet (537,799 rows)
+  ...200/1165 (200 req, ~1.0% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2022.parquet (1,509,276 rows)
+  ...300/1165 (300 req, ~1.5% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2022.parquet (2,477,808 rows)
+  wrote data\orats\SPX\SPX_2023.parquet (8,866 rows)
+  ...400/1165 (400 req, ~2.0% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2023.parquet (909,241 rows)
+  ...500/1165 (500 req, ~2.5% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2023.parquet (1,890,986 rows)
+  ...600/1165 (600 req, ~3.0% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2023.parquet (2,233,308 rows)
+  wrote data\orats\SPX\SPX_2024.parquet (724,938 rows)
+  ...700/1165 (700 req, ~3.5% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2024.parquet (1,898,448 rows)
+  ...800/1165 (800 req, ~4.0% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2024.parquet (2,901,900 rows)
+  wrote data\orats\SPX\SPX_2025.parquet (218,219 rows)
+  ...900/1165 (900 req, ~4.5% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2025.parquet (1,458,238 rows)
+  ...1000/1165 (1000 req, ~5.0% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2025.parquet (2,714,488 rows)
+  ...1100/1165 (1100 req, ~5.5% quota) — checkpoint
+  wrote data\orats\SPX\SPX_2025.parquet (3,136,914 rows)
+  wrote data\orats\SPX\SPX_2026.parquet (916,188 rows)
+  wrote data\orats\SPX\SPX_2026.parquet (1,900,082 rows)
+  coverage: 1183 dates on disk
+
+DONE - 1165 requests this run (~5.8% of 20,000/mo quota)

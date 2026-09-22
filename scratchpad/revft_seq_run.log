@@ -1,0 +1,59 @@
+==========================================================================================
+A. 2E entries — does a preceding RevFT signal change the 2E outcome? (confluence)
+==========================================================================================
+
+ within 6 bars:  (of 812 2E entries, 29% preceded by a RevFT, 8% by a NEUTRAL RevFT)
+   preceded=YES      n= 238  tot=$  33,048  $/tr= 138.9  PF=1.38  win=47.5%
+   preceded=NO       n= 574  tot=$  50,042  $/tr=  87.2  PF=1.24  win=42.7%
+   preceded-NEUTRAL  n=  64  tot=$  10,768  $/tr= 168.2  PF=1.45  win=48.4%
+   preceded + EMAx   n=  62  tot=$   7,452  $/tr= 120.2  PF=1.32  win=43.5%
+
+ within 12 bars:  (of 812 2E entries, 46% preceded by a RevFT, 15% by a NEUTRAL RevFT)
+   preceded=YES      n= 377  tot=$  44,728  $/tr= 118.6  PF=1.33  win=45.4%
+   preceded=NO       n= 435  tot=$  38,362  $/tr=  88.2  PF=1.24  win=43.0%
+   preceded-NEUTRAL  n= 120  tot=$   3,875  $/tr=  32.3  PF=1.08  win=40.8%
+   preceded + EMAx   n= 136  tot=$  17,945  $/tr= 131.9  PF=1.36  win=42.6%
+
+ within 24 bars:  (of 812 2E entries, 62% preceded by a RevFT, 29% by a NEUTRAL RevFT)
+   preceded=YES      n= 505  tot=$  66,238  $/tr= 131.2  PF=1.37  win=45.7%
+   preceded=NO       n= 307  tot=$  16,852  $/tr=  54.9  PF=1.14  win=41.4%
+   preceded-NEUTRAL  n= 232  tot=$   7,278  $/tr=  31.4  PF=1.08  win=42.2%
+   preceded + EMAx   n= 275  tot=$  43,250  $/tr= 157.3  PF=1.43  win=44.4%
+
+==========================================================================================
+B. by 2E book (X=12): the f2EL(FADE-S)/2ES(WT-S) short-trend-change idea
+==========================================================================================
+
+ WT-S:  all n= 290  tot=$  50,462  $/tr= 174.0  PF=1.48  win=42.8%
+   preceded by RevFT        n= 148  tot=$  20,335  $/tr= 137.4  PF=1.37  win=41.9%
+   preceded by NEUTRAL RevFTn=  32  tot=$  -3,398  $/tr=-106.2  PF=0.73  win=40.6%
+   preceded NEUTRAL + EMAx  n=  17  tot=$   2,528  $/tr= 148.7  PF=1.50  win=52.9%
+
+ FADE-S:  all n= 246  tot=$  -1,668  $/tr=  -6.8  PF=0.98  win=37.0%
+   preceded by RevFT        n= 102  tot=$   7,202  $/tr=  70.6  PF=1.17  win=41.2%
+   preceded by NEUTRAL RevFTn=  70  tot=$   8,450  $/tr= 120.7  PF=1.30  win=42.9%
+   preceded NEUTRAL + EMAx  n=  37  tot=$  -2,348  $/tr= -63.4  PF=0.85  win=37.8%
+
+ WT-L:  all n= 276  tot=$  34,295  $/tr= 124.3  PF=1.40  win=51.8%
+   preceded by RevFT        n= 127  tot=$  17,190  $/tr= 135.4  PF=1.42  win=52.8%
+   preceded by NEUTRAL RevFTn=  18  tot=$  -1,178  $/tr= -65.4  PF=0.87  win=33.3%
+   preceded NEUTRAL + EMAx  n=  10  tot=$     538  $/tr=  53.8  PF=1.10  win=30.0%
+
+==========================================================================================
+C. forward: after a RevFT signal, does a 2E follow within 24 bars? (by RevFT regime)
+==========================================================================================
+
+ RevFT in NEUTRAL  (n=872):  2E follows within 24b 32%  (median gap 13b)
+     -> WT-S    n=  86  tot=$   4,270  $/tr=  49.7  PF=1.15  win=41.9%
+     -> FADE-S  n= 117  tot=$   6,090  $/tr=  52.1  PF=1.13  win=42.7%
+     -> WT-L    n=  73  tot=$  -5,778  $/tr= -79.1  PF=0.83  win=42.5%
+
+ RevFT in BULL     (n=561):  2E follows within 24b 33%  (median gap 8b)
+     -> WT-S    n=  21  tot=$   8,782  $/tr= 418.2  PF=2.09  win=42.9%
+     -> FADE-S  n=  24  tot=$   5,955  $/tr= 248.1  PF=1.73  win=50.0%
+     -> WT-L    n= 141  tot=$  19,158  $/tr= 135.9  PF=1.46  win=55.3%
+
+ RevFT in BEAR     (n=637):  2E follows within 24b 34%  (median gap 8b)
+     -> WT-S    n= 150  tot=$  29,438  $/tr= 196.2  PF=1.55  win=43.3%
+     -> FADE-S  n=  47  tot=$  -8,860  $/tr=-188.5  PF=0.59  win=36.2%
+     -> WT-L    n=  17  tot=$  -3,848  $/tr=-226.3  PF=0.38  win=35.3%

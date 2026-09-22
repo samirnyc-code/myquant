@@ -1,0 +1,67 @@
+URL: https://takeprofittraderhelp.zendesk.com/hc/en-us/articles/15173017163549-Choosing-Your-Platform
+TITLE: Choosing Your Platform – TakeProfitTrader
+
+Skip to main content
+ Sign in
+TakeProfitTrader
+ Getting Started
+ Your First Steps
+Articles in this section
+Sustainable Trading Policy
+Registration Process
+Choosing Your Platform
+KYC Procedure
+KYB verification
+How to Purchase An Account
+Restricted Countries
+Reset Your Password
+Choosing Your Platform
+ Vlada
+9 months ago Updated
+
+Each trader chooses their platform when signing up at Take Profit Trader. We provide connection instructions for the platforms inside the Connection section of this knowledge base.
+
+For most platforms you will need a license key, but there are some offered for free. 
+
+Depending on the data feed you select, you can seamlessly switch between compatible platforms during your subscription period. Simply follow the connection instructions provided for the new platform, there is no need to inform us.
+
+
+Here is a list of available platforms:
+ 
+Platform	Free During Test (Yes/No)	Web/Mobile Based	Data Feed
+TradingView	Yes*	Yes	CQG
+NinjaTrader	Yes	Mobile	CQG
+Tradovate	Yes	Yes	CQG
+Bookmap	No	No	Rithmic
+MultiCharts	No	No	Rithmic
+MotiveWave	No	No	Rithmic
+Trade Navigator	No	No	Rithmic
+R|Trader	Yes	Mobile	Rithmic
+VolFix	No	No	Rithmic
+ATAS	No	No	Rithmic
+Investor R/T	No	No	Rithmic
+Quantower	Yes	No	Rithmic
+Finamark	No	No	Rithmic
+Jigsaw Trader	No	No	Rithmic
+*You can use ''Basic'' plan on TradingView for free. However, if you are on the 'Basic' plan, be aware that there may be slight delays in the data, as this plan does not include the fastest data flow feature. As a result, you may experience small discrepancies in the prices, which can result in worse filled prices than expected. Keep in mind that Take Profit does not have a direct affiliation with TradingView and cannot be held responsible for these discrepancies.
+ 
+
+ 
+
+Was this article helpful?
+Yes No
+8 out of 9 found this helpful
+Recently viewed articles
+Registration Process
+Sustainable Trading Policy
+NOFEE30 PROMO FAQ
+Keeping Track of Your Progress
+Restricted Countries
+Related articles
+Connecting TradingView with Your CQG Account
+Connecting NinjaTrader 8 with CQG
+Activating Your Rithmic Data Feed
+Connecting Quantower With Your Rithmic Account
+Rules for Multiple Accounts
+TakeProfitTrader
+English (United States) 

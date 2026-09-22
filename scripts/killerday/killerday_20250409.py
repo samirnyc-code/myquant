@@ -1,0 +1,57 @@
+"""Killer-day forensics: 2025-04-09 (Trump 90-day tariff pause, SPX +9.52%).
+
+Reads the local context CSV (no ThetaData calls), extracts the surrounding
+window (2025-04-04..2025-04-11), attaches the verified event narrative from
+web sources, and writes a dated findings CSV.
+
+Outputs:
+  data/options_sim/backtest_full/killerday/killerday_20250409_context.csv
+  data/options_sim/backtest_full/killerday/killerday_20250409_findings.csv
+"""
+import os
+import pandas as pd
+
+REPO = r"c:\Users\Admin\myquant"
+CTX = os.path.join(REPO, "data", "options_sim", "backtest_full", "killer_context.csv")
+OUTDIR = os.path.join(REPO, "data", "options_sim", "backtest_full", "killerday")
+os.makedirs(OUTDIR, exist_ok=True)
+
+TARGET = "2025-04-09"
+WINDOW = ["2025-04-04", "2025-04-07", "2025-04-08", "2025-04-09", "2025-04-10", "2025-04-11"]
+
+ctx = pd.read_csv(CTX)
+win = ctx[ctx["date"].isin(WINDOW)].copy()
+win.to_csv(os.path.join(OUTDIR, "killerday_20250409_context.csv"), index=False)
+
+findings = [
+    ("cause", "12:18 CT (1:18pm ET) Trump Truth Social post: 90-day pause on reciprocal "
+              "tariffs for non-retaliators, China raised to 125%. SPX +9.52% to 5456.90, "
+              "3rd-biggest post-WWII gain, best day since 2008. Nasdaq +12.16% (2nd-best ever). "
+              "Killed the CALL side of short premium; move ~3x the 164pt EM."),
+    ("overnight", "104% China tariff took effect 12:01am ET Apr 9. China retaliated 84% "
+                  "(announced early US-morning hours, effective Apr 10). Treasury rout: 10y "
+                  "spiked above 4.50% overnight (from ~3.87% Fri), 30y near 5%; basis-trade "
+                  "'disorderly liquidation' talk. ES futures down ~1.8% premarket; cash open "
+                  "gap only -0.35%."),
+    ("prior_days", "Apr 2 Liberation Day tariffs after close; Apr 3 -4.84%; Apr 4 -5.97% "
+                   "(China 34% retaliation, NFP day); Apr 7 -0.23% with 8.13% range incl. "
+                   "false 'Hassett 90-day pause' headline that added/erased ~$2.4T in minutes; "
+                   "Apr 8 gap +2.59% rally FADED to -1.57% as 104% tariff confirmed. VIX 45.31 "
+                   "-> 46.98 -> 52.33 closes."),
+    ("aftermath", "Apr 10: -3.46% giveback (worry over 145% effective China rate), VIX still "
+                  "40.72. Apr 11: +1.81%. Whipsaw regime, no clean continuation; bottom held "
+                  "(Apr 8 close 4982.77 was the closing low of the episode)."),
+    ("detectable_0830ct", "YES as a regime flag, NO as direction/timing. Observable premarket: "
+                          "VIX prior close 52.33 (crash regime, >50), +5.35 on the day; EM 164.3pts "
+                          "(~3.3%) - largest of the whole backtest window to that point; prior-day "
+                          "range 7.17% after an 8.13% range day; both-side credits fat (C 3.9 / P 4.9); "
+                          "104% tariffs live + China 84% retaliation already announced; policy "
+                          "headline-tape (Apr 7 fake-pause spike) had ALREADY demonstrated +7-8% "
+                          "instantaneous upside headline risk in this exact regime. The specific "
+                          "1:18pm ET post was an ambush, but the possibility of it was priced and visible."),
+]
+pd.DataFrame(findings, columns=["item", "finding"]).to_csv(
+    os.path.join(OUTDIR, "killerday_20250409_findings.csv"), index=False)
+
+print(win.to_string(index=False))
+print("\nWrote findings ->", OUTDIR)

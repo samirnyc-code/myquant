@@ -1,0 +1,19 @@
+eff10 quantiles  ALL:   q25=0.068  q50=0.141  q75=0.236  q85=0.291  q95=0.385
+eff10 quantiles  TREND: q25=0.300  q50=0.358  q75=0.423  q85=0.458  q95=0.520
+eff10 quantiles  REST:  q25=0.061  q50=0.125  q75=0.204  q85=0.248  q95=0.319
+t10 mean   TREND: 61.9   REST: 48.3
+  gate eff10>=0.30 & t10>=50: tags  8.2% of all bars, catches 51.3% of trend-leg bars
+  gate eff10>=0.30 & t10>=55: tags  7.3% of all bars, catches 46.1% of trend-leg bars
+  gate eff10>=0.30 & t10>=60: tags  6.3% of all bars, catches 40.6% of trend-leg bars
+  gate eff10>=0.35 & t10>=50: tags  5.0% of all bars, catches 37.3% of trend-leg bars
+  gate eff10>=0.35 & t10>=55: tags  4.4% of all bars, catches 33.6% of trend-leg bars
+  gate eff10>=0.35 & t10>=60: tags  3.9% of all bars, catches 29.5% of trend-leg bars
+  gate eff10>=0.40 & t10>=50: tags  2.7% of all bars, catches 23.4% of trend-leg bars
+  gate eff10>=0.40 & t10>=55: tags  2.5% of all bars, catches 21.2% of trend-leg bars
+  gate eff10>=0.40 & t10>=60: tags  2.2% of all bars, catches 18.7% of trend-leg bars
+  gate eff10>=0.45 & t10>=50: tags  1.3% of all bars, catches 12.4% of trend-leg bars
+  gate eff10>=0.45 & t10>=55: tags  1.2% of all bars, catches 11.3% of trend-leg bars
+  gate eff10>=0.45 & t10>=60: tags  1.1% of all bars, catches 10.1% of trend-leg bars
+  gate eff10>=0.50 & t10>=50: tags  0.6% of all bars, catches  5.6% of trend-leg bars
+  gate eff10>=0.50 & t10>=55: tags  0.5% of all bars, catches  5.1% of trend-leg bars
+  gate eff10>=0.50 & t10>=60: tags  0.5% of all bars, catches  4.6% of trend-leg bars

@@ -1,0 +1,140 @@
+URL: https://takeprofittraderhelp.zendesk.com/hc/en-us/articles/15185091398301-Connecting-BookMap-with-Your-Rithmic-Account
+TITLE: Connecting BookMap with Your Rithmic Account – TakeProfitTrader
+
+Skip to main content
+ Sign in
+TakeProfitTrader
+ Connection Instructions
+ Step 2 Platforms With Specific Connection Instructions
+Articles in this section
+Connecting TradingView with Your CQG Account
+Connecting NinjaTrader 8 with CQG
+Connecting NinjaTrader 8 with Rithmic
+Connecting Quantower With Your Rithmic Account
+Connecting BookMap with Your Rithmic Account
+Connecting MultiCharts with Your Rithmic Account
+Connecting MotiveWave with Your Rithmic Account
+Connecting Finamark with Your Rithmic Account
+Connecting BookMap with Your Rithmic Account
+ Vlada
+9 months ago Updated
+
+Please ensure you complete the connection steps described in this article before connecting to BookMap for the first time using your Rithmic account.
+
+You must have Level 2 market data enabled for at least one exchange. To activate it, please contact our Live Chat.
+
+Once you are ready, follow the steps below to connect BookMap to your Rithmic account.
+
+
+ 
+
+Connecting Your Rithmic Account to BookMap
+
+Go to bookmap.com in your web browser.
+
+Review the subscription options for BookMap.
+
+Purchase a Global or Global Plus plan (required for Rithmic connections).
+
+Create your BookMap user account during checkout.
+
+Log into the BookMap user portal with the credentials you created.
+
+Go to the Get Started section.
+
+Select the version compatible with your operating system.
+
+Download the production version (recommended).
+
+Install the application on your computer.
+
+Launch BookMap after installation.
+
+Enter your BookMap login credentials on first launch.
+
+If you are already logged into the user portal, BookMap may recognize you automatically.
+
+Select Simulation Mode and click OK to continue.
+
+Ignore any pop-ups for now (you can configure them later).
+
+In the top menu, open the Connections section.
+
+Click Configure.
+
+In the new window, click Add Connection.
+
+Select Rithmic from the list of available platforms.
+
+Log into your TakeProfitTrader dashboard.
+
+Locate your purchased Rithmic account.
+
+Copy your Rithmic username.
+
+Paste it into the username field in BookMap.
+
+Copy your Rithmic password.
+
+Paste it into the password field in BookMap.
+
+Select Rithmic Paper Trading as the system.
+
+Select the correct gateway based on your location.
+
+Click OK to save your configuration.
+
+Return to the Connections menu in BookMap.
+
+Select your newly created Rithmic connection.
+
+Verify that the connection status shows successfully connected.
+
+ 
+
+Opening a Chart and Starting to Trade
+
+In the top menu bar, click the + icon.
+
+Make sure Rithmic Platform is pre-selected.
+
+Select the appropriate exchange from the list.
+
+Enter the symbol you want to trade.
+
+Click Subscribe.
+
+Wait for the chart to load.
+
+Customize the chart’s visual settings if needed.
+
+Open the Trade Control Panel (appears automatically; if not, click the lock icon).
+
+Select the Chart option to enable chart trading.
+
+Choose the number of contracts you want to trade.
+
+Confirm your settings and begin trading.
+
+You are now fully connected and ready to trade through BookMap.
+Happy trading!
+
+ 
+
+Was this article helpful?
+Yes No
+0 out of 0 found this helpful
+Recently viewed articles
+Connecting Quantower With Your Rithmic Account
+Connecting NinjaTrader 8 with Rithmic
+Connecting NinjaTrader 8 with CQG
+Connecting TradingView with Your CQG Account
+Activating Your CQG Data Feed
+Related articles
+Activating Your Rithmic Data Feed
+Connecting MultiCharts with Your Rithmic Account
+Choosing Your Platform
+Connecting TradingView with Your CQG Account
+Connecting NinjaTrader 8 with CQG
+TakeProfitTrader
+English (United States) 

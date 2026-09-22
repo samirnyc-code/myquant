@@ -1,0 +1,49 @@
+  ... 300/1317 days, 71s
+  ... 600/1317 days, 165s
+  ... 900/1317 days, 248s
+  ... 1200/1317 days, 334s
+
+FLIP MODE (single position) — 315 trades, 294 days, 2021-2026
+outcomes: {'EOD': 213, 'STOP': 93, 'FLIP': 9}
+
+==================================================================
+MES  ($5/pt, cost $6.25/contract/trade, $200/mo sub OUTSIDE account)
+==================================================================
+1 MES: net $+4,651  PF 1.50  win 49%  exp $+15/tr  ~$+912/yr
+worst single DAY at 1 MES: $-192 (2026-05-07)   best $+1,042
+  per-year:  2021:$+215  2022:$+339  2023:$-5  2024:$+1,654  2025:$+1,611  2026:$+838
+
+  FIXED SIZE (no scaling) vs $4,500 EOD trailing-DD-freeze-at-BE:
+     1 MES: acct $  +4,651  take(after sub $12,200) $  -7,549  EODmaxDD $   -898  -> SURVIVES
+     2 MES: acct $  +9,302  take(after sub $12,200) $  -2,898  EODmaxDD $ -1,795  -> SURVIVES
+     3 MES: acct $ +13,954  take(after sub $12,200) $  +1,754  EODmaxDD $ -2,692  -> SURVIVES
+     5 MES: acct $ +23,256  take(after sub $12,200) $ +11,056  EODmaxDD $ -4,488  -> SURVIVES
+
+  SCALING start 1 MES, +1c per $step banked (cap 15):
+    +1c/$ 2,000: acct $  +7,388  take $  -4,812  EODmaxDD $ -2,111  end  4c -> SURVIVES
+    +1c/$ 3,000: acct $  +5,368  take $  -6,832  EODmaxDD $ -1,148  end  2c -> SURVIVES
+    +1c/$ 5,000: acct $  +4,580  take $  -7,620  EODmaxDD $   -898  end  1c -> SURVIVES
+    +1c/$10,000: acct $  +4,651  take $  -7,549  EODmaxDD $   -898  end  1c -> SURVIVES
+    +1c/$20,000: acct $  +4,651  take $  -7,549  EODmaxDD $   -898  end  1c -> SURVIVES
+
+==================================================================
+ES  ($50/pt, cost $17.5/contract/trade, $200/mo sub OUTSIDE account)
+==================================================================
+1 ES: net $+60,688  PF 1.70  win 50%  exp $+193/tr  ~$+11,900/yr
+worst single DAY at 1 ES: $-1,835 (2026-05-07)   best $+10,470
+  per-year:  2021:$+3,950  2022:$+4,603  2023:$+2,425  2024:$+20,318  2025:$+18,902  2026:$+10,490
+
+  FIXED SIZE (no scaling) vs $4,500 EOD trailing-DD-freeze-at-BE:
+     1 ES: acct $ +60,688  take(after sub $12,200) $ +48,488  EODmaxDD $ -7,272  -> BLOWN 2021-11-19
+     2 ES: acct $+121,375  take(after sub $12,200) $+109,175  EODmaxDD $-14,545  -> BLOWN 2021-11-16
+     3 ES: acct $+182,062  take(after sub $12,200) $+169,862  EODmaxDD $-21,818  -> BLOWN 2021-11-16
+     5 ES: acct $+303,438  take(after sub $12,200) $+291,238  EODmaxDD $-36,362  -> BLOWN 2021-11-16
+
+  SCALING start 1 ES, +1c per $step banked (cap 15):
+    +1c/$ 2,000: acct $+454,422  take $+442,222  EODmaxDD $-65,250  end 15c -> BLOWN 2021-11-17
+    +1c/$ 3,000: acct $+396,718  take $+384,518  EODmaxDD $-62,588  end 15c -> BLOWN 2021-11-17
+    +1c/$ 5,000: acct $+428,970  take $+416,770  EODmaxDD $-62,588  end 15c -> BLOWN 2021-11-19
+    +1c/$10,000: acct $+329,370  take $+317,170  EODmaxDD $-62,588  end 15c -> BLOWN 2021-11-19
+    +1c/$20,000: acct $+141,578  take $+129,378  EODmaxDD $-35,700  end  8c -> BLOWN 2021-11-19
+
+csv: C:\Users\Admin\myquant\reports\regime2e\flip_trades_20260913_230542.csv

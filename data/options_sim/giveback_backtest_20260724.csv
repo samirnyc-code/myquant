@@ -1,0 +1,27 @@
+trade_id,structure,collateral,peak_unreal,actual_pnl,rule_pnl,delta,rule_exit_reason,rule_exit_ts,actual_close_reason
+bull_cs_wk_20260714_1221,bull call spread 50pt 20260717,2399.9999999999995,1150.0,-2403.0,527.0,2930.0,"TRAIL: gave back 50% of peak $1,105",2026-07-15 09:50:55,expired
+auto_20260716_084837,straddle,3170.0,-305.0,-2471.0,-843.0,1628.0,HARD STOP -25% collat,2026-07-16 12:22:02,expired
+auto_20260715_132024,vertical 25pt,1860.0000000000002,-2.0,-1663.0,-495.0,1168.0,HARD STOP -25% collat,2026-07-15 13:46:22,
+straddle_0dte_20260714_1039,long ATM straddle 0DTE,2679.9999999999995,-1268.0,-2324.0,-1275.0,1049.0,HARD STOP -25% collat,2026-07-14 14:26:18,
+auto_20260721_090014,straddle,2800.0,872.0,135.0,370.0,235.0,TRAIL: gave back 50% of peak $872,2026-07-21 13:16:05,expired
+auto_20260716_090122,butterfly 50pt,254.99999999999997,-30.0,-260.0,-120.0,140.0,HARD STOP -25% collat,2026-07-16 12:06:22,expired
+auto_20260716_090019,vertical 25pt,1509.9999999999998,398.0,-1513.0,-1453.0,60.0,HARD STOP -25% collat,2026-07-16 15:39:13,expired
+auto_20260716_090626,vertical 25pt,1710.0000000000002,198.0,-1713.0,-1653.0,60.0,HARD STOP -25% collat,2026-07-16 15:39:13,expired
+auto_20260722_090119,straddle,2300.0,458.0,-641.0,-593.0,49.0,HARD STOP -25% collat,2026-07-22 11:16:37,regime reclaim since entry: spot 7515 back ABOVE HVL 7515 — long vol wanted negative gamma; thesis over
+paper_20260714_0953,P-spread 25pt x1,2370.0,130.0,127.0,127.0,0.0,held to actual exit (rule never fired),,
+bps_stmr_20260714_1030,bull put spread 50pt 14DTE,4000.0000000000014,210.0,155.0,155.0,0.0,held to actual exit (rule never fired),,
+condor_0dte_20260714_1036,iron condor 25pt wings 0DTE,2320.0000000000045,180.0,175.0,175.0,0.0,held to actual exit (rule never fired),,
+fly_gw_0dte_20260714_1056,call butterfly 25pt @ GW 7550,905.0000000000182,1242.0,949.0,949.0,0.0,held to actual exit (rule never fired),,
+bcs_cr_0dte_20260714_1220,bear call spread 25pt @ CR 7600,2500.0000000000114,0.0,-3.0,-3.0,0.0,held to actual exit (rule never fired),,
+put_cal_wk_20260714_1221,put calendar 20260714/20260717,2450.0,5670.0,4752.0,4752.0,0.0,held to actual exit (rule never fired),,expired
+paper_20260715_1052,P-spread 20pt x1,1950.0,50.0,47.0,47.0,0.0,held to actual exit (rule never fired),,
+paper_20260715_1055,C-spread 25pt x1,2425.0,75.0,72.0,72.0,0.0,held to actual exit (rule never fired),,
+paper_20260715_1212,P-spread 25pt x1,2435.0,65.0,62.0,62.0,0.0,held to actual exit (rule never fired),,
+auto_20260716_090044,vertical 25pt,2465.0,35.0,32.0,32.0,0.0,held to actual exit (rule never fired),,expired
+bps_stmr_2026-07-20,BPS 50pt,8460.0,525.0,465.0,465.0,0.0,held to actual exit (rule never fired),,
+bps_stmr_REAL_20260721_0943,bull put spread 50pt 14DTE,,166.0,101.0,101.0,0.0,held to actual exit (rule never fired),,
+auto_20260722_102127,butterfly 50pt,345.0,-32.0,-31.0,-31.0,0.0,held to actual exit (rule never fired),,regime flip since entry: spot 7515 crossed BELOW HVL 7515 — this structure needed the pin and the pin is gone
+auto_20260720_090212,straddle,3100.0,768.0,-636.0,-808.0,-171.0,HARD STOP -25% collat,2026-07-20 11:27:31,time stop 14:45 CT — flat before the 0DTE gamma cliff
+auto_20260723_090131,straddle,3809.9999999999995,1542.0,804.0,282.0,-521.0,TRAIL: gave back 50% of peak $855,2026-07-23 11:20:55,time stop 14:45 CT — flat before the 0DTE gamma cliff
+auto_20260724_085540,vertical 25pt,1620.0000000000002,855.0,,330.0,,TRAIL: gave back 50% of peak $855,2026-07-24 14:34:49,
+auto_20260724_090200,straddle,3129.9999999999995,2522.0,,1125.0,,"TRAIL: gave back 50% of peak $2,522",2026-07-24 12:41:36,

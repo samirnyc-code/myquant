@@ -1,0 +1,58 @@
+category,component,book_n,book_/10k,web_n,web_/10k,room_n,room_/10k,diagram_n,classification
+geometry,Measured move,494,76.7,623,47.65,9,4.32,3,WELL COVERED
+geometry,Halfway back (HWB / 50%),161,25.0,707,54.08,44,21.11,0,WELL COVERED
+geometry,61.8% failure level,95,14.75,231,17.67,3,1.44,0,WELL COVERED
+geometry,-23.6% / 123.6% target,131,20.34,142,10.86,18,8.64,0,WELL COVERED
+geometry,Distance formula / 38.2%,26,4.04,24,1.84,5,2.4,0,WELL COVERED
+geometry,Seed / anchor / starting point,18,2.79,71,5.43,2,0.96,0,WELL COVERED
+geometry,Zones vs lines,30,4.66,14,1.07,0,0.0,0,WELL COVERED
+geometry,Fibonacci,104,16.15,16,1.22,0,0.0,0,WELL COVERED
+setups,Traditional setup,99,15.37,195,14.92,28,13.44,0,WELL COVERED
+setups,Extension setup,89,13.82,502,38.4,62,29.75,0,WELL COVERED
+setups,Expanded / extension-of-extension,5,0.78,50,3.82,17,8.16,0,PARTIAL
+setups,Trend break / 61.8 failure,67,10.4,196,14.99,5,2.4,0,WELL COVERED
+setups,Series progression,59,9.16,183,14.0,0,0.0,0,WELL COVERED
+setups,All-the-way-halfway-back,13,2.02,69,5.28,17,8.16,0,WELL COVERED
+setups,Nested / fractal timeframes,3,0.47,15,1.15,0,0.0,1,POST-BOOK (not in book)
+entries,First test,29,4.5,90,6.88,0,0.0,0,WELL COVERED
+entries,Second test / gotcha,29,4.5,130,9.94,2,0.96,0,WELL COVERED
+entries,Front-run,27,4.19,187,14.3,26,12.48,0,WELL COVERED
+entries,Limit order entry,21,3.26,47,3.6,0,0.0,0,WELL COVERED
+entries,Reduced-risk / free trade,18,2.79,65,4.97,0,0.0,0,WELL COVERED
+exits,Trailing the series,20,3.11,28,2.14,2,0.96,0,WELL COVERED
+exits,Confirmation of trend,5,0.78,85,6.5,3,1.44,0,PARTIAL
+exits,Four phases,11,1.71,4,0.31,0,0.0,0,BOOK-ONLY
+exits,1% risk / position sizing,49,7.61,67,5.12,1,0.48,0,WELL COVERED
+exits,Half-size days,17,2.64,11,0.84,0,0.0,0,PARTIAL
+timeframes,Weekly trend,23,3.57,90,6.88,5,2.4,0,WELL COVERED
+timeframes,Daily trend,27,4.19,154,11.78,3,1.44,0,WELL COVERED
+timeframes,15-minute trend,38,5.9,424,32.43,2,0.96,0,WELL COVERED
+timeframes,Micro trend,52,8.07,330,25.24,0,0.0,0,WELL COVERED
+timeframes,Top-down / path of least resistance,19,2.95,22,1.68,0,0.0,0,WELL COVERED
+internals,NYSE TICK,167,25.93,203,15.53,6,2.88,0,WELL COVERED
+internals,Tick hook,12,1.86,7,0.54,0,0.0,0,PARTIAL
+internals,Tick divergence / extremes,86,13.35,83,6.35,0,0.0,0,WELL COVERED
+internals,Bank (Nasdaq banking index),34,5.28,40,3.06,18,8.64,0,WELL COVERED
+internals,Breadth,58,9.01,27,2.07,0,0.0,0,WELL COVERED
+internals,Time & sales / tape,36,5.59,17,1.3,0,0.0,0,WELL COVERED
+internals,VIX,0,0.0,0,0.0,66,31.67,0,POST-BOOK (not in book)
+internals,USD / Dollar correlation,23,3.57,39,2.98,175,83.97,0,ROOM-LEANING
+internals,Signal-alignment checklist,1,0.16,3,0.23,0,0.0,0,ABSENT (lexicon miss?)
+internals,Daily pivot,12,1.86,24,1.84,0,0.0,0,WELL COVERED
+internals,Sessions / no-trade zones,82,12.73,168,12.85,5,2.4,0,WELL COVERED
+playbooks,Gap fills,129,20.03,270,20.65,37,17.75,0,WELL COVERED
+playbooks,Instrument idiosyncrasies,110,17.08,373,28.53,117,56.14,0,WELL COVERED
+playbooks,Seasonality,27,4.19,24,1.84,0,0.0,0,WELL COVERED
+playbooks,History / replay (Groundhog),1,0.16,22,1.68,0,0.0,0,POST-BOOK (not in book)
+playbooks,Dead cat / crash anatomy,22,3.42,26,1.99,0,0.0,0,WELL COVERED
+psychology,Casino vs gambler,23,3.57,0,0.0,0,0.0,0,BOOK-ONLY
+psychology,Emotional capital,53,8.23,7,0.54,0,0.0,0,PARTIAL
+psychology,Proactive vs reactive,18,2.79,1,0.08,0,0.0,0,BOOK-ONLY
+psychology,90/10 rule,24,3.73,10,0.76,0,0.0,0,PARTIAL
+psychology,Trading journal,26,4.04,1,0.08,0,0.0,0,BOOK-ONLY
+psychology,Four legs / trading plan,43,6.68,4,0.31,0,0.0,0,BOOK-ONLY
+psychology,Deliberate practice / 10k hours,2,0.31,0,0.0,0,0.0,0,ABSENT (lexicon miss?)
+discretionary,Seed selection RULE (how to pick),0,0.0,0,0.0,0,0.0,0,ABSENT (lexicon miss?)
+discretionary,'Blows past target' threshold,2,0.31,20,1.53,1,0.48,0,POST-BOOK (not in book)
+discretionary,Failure significance by context,15,2.33,2,0.15,1,0.48,0,BOOK-ONLY
+discretionary,Which touch counts,2,0.31,10,0.76,0,0.0,0,ABSENT (lexicon miss?)

@@ -1,0 +1,47 @@
+section,key,value
+context,date,2023-02-14
+context,dow,Tue
+context,event,CPI
+context,gap_pct,-0.26
+context,prior_ret,1.14
+context,prior_range,1.12
+context,prior2_ret,0.22
+context,vix_prior,20.34
+context,vix_chg,-0.19
+context,em_pts,53.0
+context,cr_eodic_c,0.85
+context,cr_eodic_p,5.4
+context,ic_pnl,927.0
+context,fly_pnl,-2116.0
+context,puts_band_pnl,0.0
+context,next_ret,0.28
+ic_row,eodic_p/vix252,short 4085.0 credit 5.4 exit settle pnl 536.74
+ic_row,eodic_p/vix365,short 4095.0 credit 6.7 exit settle pnl 666.74
+ic_row,eodic_p/straddle,short 4095.0 credit 6.7 exit settle pnl 666.74
+ic_row,eodic_c/vix252,short 4190.0 credit 0.85 exit settle pnl 81.74
+ic_row,eodic_c/vix365,short 4180.0 credit 1.3 exit settle pnl 126.74
+ic_row,eodic_c/straddle,short 4180.0 credit 1.3 exit settle pnl 126.74
+ic_row,openic_p/vix252,short 4075.0 credit 0.45 exit settle pnl 41.74
+ic_row,openic_p/vix365,short 4085.0 credit 0.7 exit settle pnl 66.74
+ic_row,openic_p/straddle,short 4085.0 credit 0.7 exit settle pnl 66.74
+ic_row,openic_c/vix252,short 4180.0 credit 2.7 exit settle pnl 266.74
+ic_row,openic_c/vix365,short 4170.0 credit 4.25 exit settle pnl 421.74
+ic_row,openic_c/straddle,short 4170.0 credit 4.25 exit settle pnl 421.74
+fly_row,eodfly_p,center 4137.29 credit 13.2 exit stop@14.1 pnl -96.52
+fly_row,eodfly_c,center 4137.29 credit 6.1 exit stop@14.2 pnl -816.52
+fly_row,openfly_p,center 4149.1 credit 8.7 exit stop@18.0 pnl -936.52
+fly_row,openfly_c,center 4149.1 credit 9.1 exit stop@11.7 pnl -266.52
+finding,cause,Jan CPI hot on all counts (6.4 y/y vs 6.2 est; core 5.6 vs 5.5) at 07:30 CT; rally-to-4159 then slide-to-4095 as 2y yield ran to ~4.62 (post-Nov high) on hawkish Fed speakers (Barkin/Logan/Harker/Williams); late rebound -> flat close 4136 (-0.03)
+finding,overnight,CPI print PUBLIC one hour before 08:30 CT; futures whipsawed on release; cash gap only -0.26 -- tame open masking event risk
+finding,prior_days,Feb 13 pre-CPI relief rally +1.14; VIX 20.3 and FALLING into the event; no visible stress
+finding,aftermath,"Feb 15 +0.28, VIX -1.43 to 18.91 = snap-back; theme returned Feb 16 (-1.38, hot PPI) and Feb 21 (-2.0)"
+finding,mechanics,"Two-way 64pt (~1.56%) range with flat close: all 4 flies stopped (eod P 13.2->14.1, eod C 6.1->14.2, open P 8.7->18.0, open C 9.1->11.7) = -2116; all IC streams settled worthless (close pinned near eod center 4137.29)"
+finding,signal_0830ct,CPI on calendar (knowable premarket) + print already out and HOT by entry
+finding,signal_0830ct,EM 53pts elevated vs VIX 20.3 quiet -- options pricing event risk the tape wasn't
+finding,signal_0830ct,eodic put credit 5.4 vs call 0.85 -- extreme downside-skew richness at entry
+finding,signal_0830ct,gap only -0.26 despite hot CPI = quiet open; whipsaw risk NOT visible in gap/VIX
+finding,verdict,"NOT an ambush: scheduled CPI, print public pre-entry. But direction/close were benign -- the kill was event-day PATH (two-way travel) which only the calendar flag + rich EM/put credit could proxy at 08:30 CT"
+finding,sources,finance.yahoo.com/news/stock-market-news-today-february-14-2023-112357213.html
+finding,sources,investinglive.com/centralbank/federal-reserve-speakers-for-14-february-2023-barkin-logan-harker-willaims-20230214/
+finding,sources,seekingalpha.com/mp/1232-the-savvy-investor/articles/5838854 (Feb 14 chart update)
+finding,sources,zacks.com/stock/news/2054132/pre-markets-treat-strong-cpi-as-good-news

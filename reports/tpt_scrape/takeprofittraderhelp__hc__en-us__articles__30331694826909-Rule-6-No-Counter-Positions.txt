@@ -1,0 +1,252 @@
+URL: https://takeprofittraderhelp.zendesk.com/hc/en-us/articles/30331694826909-Rule-6-No-Counter-Positions
+TITLE: Rule 6: No Counter Positions – TakeProfitTrader
+
+Skip to main content
+ Sign in
+TakeProfitTrader
+ Test Rules
+ The 6 Core Rules
+Articles in this section
+Rule 1: Hit Your Profit Target
+Rule 2: Do Not Exceed Maximum Position Size
+Rule 3: Do Not Hit End-Of-Day (EOD) Maximum Trailing Drawdown
+Rule 4: Trade Approved Products, During Approved Hours
+Rule 5: Be Consistent
+Rule 6: No Counter Positions
+Rule 6: No Counter Positions
+ Max
+9 months ago Updated
+
+Take Profit Trader strictly prohibits holding opposite positions in the same or closely related products across any accounts under the same beneficial control. This rule protects the integrity of our trading environment, ensures compliance with CME regulatory standards, and preserves our ability to offer funded trading opportunities.
+
+ 
+
+What Counts as a Counter Position
+
+A counter position occurs when:
+
+You have one account long on a contract while another account (under your control) is short in the same or a closely related contract.
+You coordinate or mirror trades in opposite directions with another trader (or another account under the same beneficial control).
+Your trading behavior results in activity that appears similar to pre-arranged, wash, paired or non-competitive trades — as defined under the relevant CME rules.
+You can access the CME Rulebook here to read more about CME-compliant trading behavior.
+ 
+What “Closely Related Products” Means
+
+Opposite positions are forbidden not only within the exact same contract, but also across correlated futures markets where one is a “micro” version of another. Current examples of such related contract pairs include:
+
+ES ↔ MES
+NQ ↔ MNQ
+YM ↔ MYM
+
+Note: This list is not exhaustive. Other related products may be considered “closely related” if CME guidance or TPT policy deem them correlated.
+
+Example of a Violation
+
+If you hold:
+
+Long 2 ES contracts on one account and
+Short 1 MES contract on another account
+
+…you are in violation of Rule 6. Both accounts will be automatically liquidated.
+
+ 
+
+Enforcement and Consequences
+
+
+Take Profit Trader uses enhanced compliance-monitoring technology to detect counter-trading patterns in near real time. This system identifies:
+
+Accounts taking opposite positions in related products
+Accounts trading against each other
+Patterns resembling wash, paired, or non-competitive trades per CME rules 432, 531, 533, 534, and 539 
+
+These behaviors violate both CME standards and Take Profit Trader’s rules. 
+Consequences may include:
+
+Automatic liquidation and closure of affected accounts
+Forfeiture of profits
+Restrictions or permanent bans depending on severity
+
+Note: These are not new rules. They are long-standing industry and CME requirements. What’s new is improved detection technology. 
+
+ 
+
+Why This Rule Exists
+
+Counter-positioning undermines fair market play. Specifically:
+
+It can create unfair trading advantages;
+It violates CME standards for competitive, non-manipulative trading;
+It may constitute “wash trading”, “pre-arranged trading”, or other disallowed behavior;
+It threatens TPT’s compliance with CME regulations — risking the firm’s ability to offer live-market capital to funded accounts (e.g. PRO+).
+
+Enforcing this rule helps protect both your position and the broader trader community.
+ 
+
+
+What Happens When a Counter-Position Is Detected
+
+When our systems detect activity that meets the definition of counter positioning:
+
+The account involved will be liquidated.
+All profit in that account will be forfeited.
+You will receive an email notification explaining the event.
+The email includes a link to download a Counter-Positions Report that details the specific trades involved.
+
+This report provides full visibility into the activity that triggered enforcement.
+
+ 
+
+How to Access Your Counter-Positions Report
+
+When you receive the counter-positions notification email:
+
+Scroll to the section labeled “Download Detailed Report.”
+Click the “View Report” button.
+
+This will download a PDF report that includes:
+
+Timestamps
+Products traded
+Buy/Sell actions
+Quantities
+Exposure (“Exp”) for each trade
+A “Correlation” column showing how the two accounts’ activity relates
+
+ 
+
+How to Read the Counter-Positions Report
+
+The report displays activity from Account 1 and Account 2 side by side, helping you compare their positions and exposure over time.
+
+Each row includes:
+
+Timestamp
+Product / Contract
+Action (Buy or Sell)
+Quantity
+Exposure (“Exp”) — running position after each trade
+Correlation — classification of the relationship at that moment
+
+The Correlation column indicates whether the positions were aligned, neutral, or conflicting.
+
+
+Understanding the “Correlation” Column
+
+The report uses three correlation types:
+
+1. Counter Position
+
+A counter position occurs when:
+
+One account has positive exposure (long), and
+The other has negative exposure (short),
+At the same time, in the same or a related product.
+
+These rows represent the exact violation moments.
+
+2. Same Direction
+
+Both accounts were trading in the same direction, such as:
+
+Both buying
+Both selling
+Both increasing or decreasing exposure together
+
+This is considered aligned activity and does not violate Rule 6.
+
+3. No Overlap
+
+There is no conflicting exposure, such as:
+
+Only one account had a position
+Both accounts were flat
+Their activity did not overlap in a conflicting way
+
+These rows provide neutral context around the trading timeline.
+
+ 
+
+CME Rules & Regulatory Background
+
+TPT’s Rule 6 is aligned with the broader regulatory framework set by the CME Group. The relevant rules include:
+
+CME Rule 531 — prohibits knowingly trading against customer orders, or for one’s own account (or control account) against a customer order under certain conditions.
+CME Rule 533 — prohibits simultaneous buy and sell orders for different beneficial owners without proper exposure procedures, to avoid self-matching or improper crossing.
+CME Rule 534 — prohibits “wash trades”: orders that offset each other without genuine market risk or competitive intent, particularly among accounts with identical or common beneficial ownership.
+CME Rule 539 — prohibits pre-arranged, non-competitive, or non-transparent trades — including “pre-execution communications” or coordinated trades across accounts to avoid market exposure.
+
+Under these rules, placing or coordinating offsetting trades across accounts to avoid risk exposure or simulate activity without competitiveness is strictly forbidden. TPT enforces these standards via Rule 6 to ensure compliance with CME requirements and to maintain market integrity.
+
+
+ 
+
+Frequently Asked Questions (FAQ)
+
+Q1. What happens after liquidation - is my account permanently closed?
+
+Receiving the liquidation report does not mean your trading privileges are permanently revoked. While the account has been liquidated and associated profits forfeited, depending on circumstances your account may:
+
+be reset, or
+(in the case of a test account) wait until its next scheduled renewal date for possible re-activation.
+
+Permanent closure or bans may apply in repeated or severe cases.
+
+Q2. Is Rule 6 new?
+
+No. The underlying restrictions come from long-standing CME rules. What’s new is TPT’s enhanced detection technology that monitors counter-positions and coordinated trades in near real time.
+
+Q3. Does this affect most traders?
+
+No. Only traders who attempt to open offsetting positions (intentionally or accidentally) across multiple accounts — or coordinate opposite trades with others — are affected.
+
+Q4. What happens if I unintentionally open opposite positions?
+
+If opposite positions are detected, the account will be liquidated and profits forfeited. Repeated or severe violations may result in permanent account closure or ban.
+
+Q5. Can I maintain multiple accounts?
+
+Yes — multiple accounts are allowed, as long as you never hold opposite positions (long vs short) in the same or correlated contracts across those accounts.
+
+Q6. Can two people (e.g. in the same household) trade separately?
+
+Yes — as long as neither places offsetting positions in the same or closely related contracts. Coordination or mirror trading is not permitted.
+
+Q7. Does TPT need extra proof (video, screenshots) to enforce Rule 6?
+
+No. Since all trades are timestamped and logged electronically, the compliance system can detect counter-positions and coordination without additional evidence.
+
+Q8. Can hedging strategies using related futures be used?
+
+No. Hedging using opposite positions in correlated CME futures contracts is prohibited under Rule 6, because it violates CME’s wash-trade and market-integrity standards.
+
+Q9. What constitutes “related contracts/markets”?
+
+Currently, examples include ES/MES, NQ/MNQ, YM/MYM — but the list is not exhaustive. Other contract pairs may be treated as related if defined by CME guidance or TPT policy.
+
+Q10. How do I remain compliant?
+Never open opposite positions across your accounts.
+Do not coordinate trades with other accounts or traders (same beneficial control).
+Avoid hedging by using offsetting positions in correlated futures.
+Monitor all your accounts carefully to ensure no overlapping long/short positions in same or related contracts.
+Q11. If a trade copier causes opposite positions, does that count as a Rule 6 violation?
+
+Yes. Traders are fully responsible for the use of any trade copiers or third-party automation tools connected to their Take Profit Trader accounts. This includes correctly configuring the tool, monitoring all copied activity, and accepting all risks associated with its use. Take Profit Trader is not liable for losses, violations, delays, or account actions resulting from trade copier activity. Any trades executed through a copier or automation tool are treated as the trader’s own actions under all rules and policies.
+
+Was this article helpful?
+Yes No
+9 out of 9 found this helpful
+Recently viewed articles
+Rule 5: Be Consistent
+Rule 4: Trade Approved Products, During Approved Hours
+Rule 3: Do Not Hit End-Of-Day (EOD) Maximum Trailing Drawdown
+Rule 2: Do Not Exceed Maximum Position Size
+Rule 1: Hit Your Profit Target
+Related articles
+PRO Account Rules
+Rule 5: Be Consistent
+Rule 4: Trade Approved Products, During Approved Hours
+How to Activate a PRO Account Using Credit
+NOFEE40 PROMO FAQS
+TakeProfitTrader
+English (United States) 

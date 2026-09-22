@@ -1,0 +1,29 @@
+date,strat,short_k,long_k,credit,pnl,close_reason
+2026-08-06,gx_bps,7700.0,7675.0,2.35,232.4,expired
+2026-08-06,gx_bcs,7800.0,7825.0,0.45,42.4,expired
+2026-08-10,gx_bps,7730.0,7705.0,1.5,147.4,expired
+2026-08-10,gx_bcs,7775.0,7800.0,3.1,307.4,expired
+2026-08-11,gx_bps,7700.0,7675.0,0.65,62.4,expired
+2026-08-11,gx_bcs,7775.0,7800.0,3.85,382.4,expired
+2026-08-12,gx_bcs,7800.0,7825.0,0.45,42.4,expired
+2026-08-13,gx_bps,7725.0,7700.0,0.85,82.4,expired
+2026-08-13,gx_bcs,7750.0,7775.0,16.6,-241.29999999999987,level ACCEPTED: spot 7781 held above the 7750 short strike for 10min (>10) — the wall we sold did not hold
+2026-08-14,gx_bcs,7800.0,7825.0,11.3,173.7,level ACCEPTED: spot 7804 held above the 7800 short strike for 10min (>10) — the wall we sold did not hold
+2026-08-17,gx_bps,7775.0,7750.0,4.95,-81.29999999999998,level ACCEPTED: spot 7774 held below the 7775 short strike for 53min (>10) — the wall we sold did not hold
+2026-08-18,gx_bps,7725.0,7700.0,12.7,-101.3,level ACCEPTED: spot 7707 held below the 7725 short strike for 10min (>10) — the wall we sold did not hold
+2026-08-19,gx_bps,7630.0,7605.0,0.1,7.4,expired
+2026-08-19,gx_bcs,7725.0,7750.0,5.85,582.4,expired
+2026-08-20,gx_bps,7700.0,7675.0,12.0,238.70000000000002,level ACCEPTED: spot 7695 held below the 7700 short strike for 10min (>10) — the wall we sold did not hold
+2026-08-20,gx_bcs,7755.0,7780.0,0.15,12.4,expired
+2026-08-21,gx_bps,7640.0,7615.0,2.75,272.4,expired
+2026-08-21,gx_bcs,7700.0,7725.0,2.05,202.39999999999998,expired
+2026-08-24,gx_bps,7630.0,7605.0,2.8,277.4,expired
+2026-08-25,gx_bps,7650.0,7625.0,2.25,222.4,expired
+2026-08-25,gx_bcs,7665.0,7690.0,10.1,-21.300000000000107,level ACCEPTED: spot 7671 held above the 7665 short strike for 10min (>10) — the wall we sold did not hold
+2026-08-26,gx_bcs,7700.0,7725.0,2.65,262.4,expired
+2026-08-27,gx_bps,7675.0,7650.0,3.2,317.4,expired
+2026-08-27,gx_bcs,7725.0,7750.0,3.4499999999999997,-486.3000000000001,level ACCEPTED: spot 7727 held above the 7725 short strike for 10min (>10) — the wall we sold did not hold
+2026-08-28,gx_bps,7700.0,7675.0,3.9,387.4,expired
+2026-08-28,gx_bcs,7750.0,7775.0,4.75,-946.2999999999998,level ACCEPTED: spot 7763 held above the 7750 short strike for 10min (>10) — the wall we sold did not hold
+2026-08-31,gx_bps,7700.0,7675.0,14.5,-111.29999999999997,level ACCEPTED: spot 7678 held below the 7700 short strike for 10min (>10) — the wall we sold did not hold
+2026-08-31,gx_bcs,7750.0,7775.0,0.15,12.4,expired

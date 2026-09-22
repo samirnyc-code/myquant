@@ -1,0 +1,110 @@
+URL: https://takeprofittraderhelp.zendesk.com/hc/en-us/articles/15170412478749-Navigating-Your-Subscriptions
+TITLE: Navigating Your Subscriptions – TakeProfitTrader
+
+Skip to main content
+ Sign in
+TakeProfitTrader
+ The Control Center
+ The Main Aspects of The Control Center
+Articles in this section
+TPT ScoreCard Overview
+Navigating Your Subscriptions
+Finding Your Accounts
+Keeping Track of Your Progress
+Utilizing Your Wallet
+Navigating Your Subscriptions
+ Vlada
+8 months ago Updated
+What a Subscription Means
+
+A subscription is your pathway toward earning a specific PRO account.
+Under one subscription, you can make multiple attempts (resets) to reach that PRO account without creating a new user.
+
+Your Take Profit Trader login gives you one user profile.
+Inside that profile, you can have:
+
+multiple subscriptions
+
+multiple trading accounts
+
+multiple attempts under each subscription
+
+Each subscription represents its own “Journey to Profit.”
+
+ 
+
+Viewing Your Subscriptions
+
+When you log in, you will see all your subscriptions in one list.
+Each subscription displays:
+
+subscription status (active or disabled)
+
+renewal date
+
+trading accounts created under that subscription
+
+Subscriptions renew every 30 days until canceled.
+
+
+ 
+
+Access After Cancellation
+
+If you cancel a subscription, you still keep full access for the remainder of the billing cycle.
+This ensures that you always receive the full 30 days you paid for.
+ 
+
+Opening a Subscription Dashboard
+
+Clicking on a subscription opens the trading dashboard for that specific journey.
+From there, you can view:
+
+your trading accounts
+
+account metrics
+
+platform credentials
+
+progress toward targets
+
+your “How Am I Doing?” section
+
+your NinjaTrader license key
+
+You can switch between subscriptions by using the navigation that lists your “Journey to Profit” paths.
+
+
+
+Viewing All Accounts Under a Subscription
+
+Each subscription can contain multiple trading accounts if you choose to reset.
+To view all accounts under one subscription:
+
+click the arrow next to the subscription name
+
+all accounts created during past attempts will expand in a list
+
+This allows you to review each attempt individually, check trades, and analyze your performance history.
+
+
+
+
+ 
+Was this article helpful?
+Yes No
+7 out of 16 found this helpful
+Recently viewed articles
+TPT ScoreCard Overview
+Rule 6: No Counter Positions
+Rule 5: Be Consistent
+Rule 4: Trade Approved Products, During Approved Hours
+Rule 3: Do Not Hit End-Of-Day (EOD) Maximum Trailing Drawdown
+Related articles
+Finding Your Accounts
+Activating Your CQG Data Feed
+How to Keep Track Of Your Drawdown
+PRO Account Profit Split & Withdrawal Rules
+TPT's Rewards System
+TakeProfitTrader
+English (United States) 

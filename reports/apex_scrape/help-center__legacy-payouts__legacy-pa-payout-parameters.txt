@@ -1,0 +1,242 @@
+URL: https://apextraderfunding.com/help-center/legacy-payouts/legacy-pa-payout-parameters/
+TITLE: Legacy PA Payout Parameters - Apex Trader Funding
+
+Skip to content
+ Support  Status
+
+ANY SIZE EVALS UP TO 90% OFF | USE CODE: COUPON “SAVENOW”
+
+COUPON "SAVENOW"
+Ends in: 8d 12h 17m 52s
+
+Apex Trader Funding
+
+Home
+About
+Status
+Products
+Helpdesk
+Testimonials
+Resources
+Log In
+Sign Up
+Home
+Help Center
+Legacy Products
+Legacy Payouts
+HELP CENTER
+Search for:
+Legacy PA Payout Parameters
+In this article
+Important Information On Apex Legacy Account Payout Rules And Procedures
+Payout Split Percentage
+Payout Requirements And Criteria
+30% Consistency Rule – Windfall
+Required Minimum Balance To Request A Payout
+Minimum And Maximum Payout Amounts
+100% Payout Eligibility Guidelines
+How Payouts Work With Multiple Accounts
+Prohibited Activities
+Probation And Payout Guidelines
+Important Information on Apex Legacy Account Payout Rules and Procedures
+
+At Apex, we make getting paid simple and reliable. Our priority is to process your payouts quickly and accurately so you can enjoy the rewards of your trading. To help make every transaction smooth and hassle-free, here are the key details and reminders you’ll want to know.
+
+Once you request a payout, you can immediately keep trading. You do NOT need to wait to trade until the payout is approved. Just be sure to trade as if the funds were already approved and removed from your balance, keeping in mind minimum thresholds so as not to blow the account.If you submit a request and then your account balance falls below the minimum required balance to request a payout, it will simply be denied. There is no reason to request to cancel or edit it. 
+
+Payout Split Percentage
+
+Traders are entitled to 100% of the first $25,000 per account they are paid out, and 90% of the profit after that. 
+
+Payout Requirements and Criteria
+
+To request a payout, you must meet the following criteria to ensure smooth and compliant processing. These steps apply to both U.S. and non-U.S. traders.
+
+8 Trading Days: You must have completed at least 8 trading days.
+
+Profit on 5 Days: At least 5 of those 8 days must show a profit of $50 or more.
+
+Safety Net for First Three Payouts: The safety net is calculated as your drawdown limit plus $100. This requirement applies to your first three payouts only. For more details, please refer to Safety Net Rules. 
+
+30% Consistency Rule – Windfall
+
+The 30% Consistency Rule ensures that no single trading day accounts for more than 30% of the total profit balance at the time of a payout request. This rule promotes consistent trading practices and discourages high-risk, erratic trading styles.
+
+Key Details to Note:
+
+Profit Restrictions: If a single trading day generates more than 30% of the profit balance.
+
+Reset After Payout: Once a payout is approved, any single day after the approval can not be more than 30% of the profit balance.
+
+Exceptions: The rule applies until the sixth payout or until the account is transferred to a Live Prop Trading Account. At that point, the 30% rule is no longer in effect.
+
+Easy Calculation Method:
+
+Formula: Highest Profit Day ÷ 0.3 = Minimum Total Profit Required
+
+Example:
+
+On a $50k account, if your highest profit day since your last approved payout (or since you started trading, if this is your first payout request) was $1,500:
+
+Calculation: $1,500 ÷ 0.3 = $5,000
+
+In this situation, to request a payout, you would have to have at least $5,000 in total profit (current balance minus starting balance). If your current total profit is below this minimum, you’ll need to continue trading until you meet this requirement before requesting a payout.
+
+Safety Net Requirement for First Three Payouts
+
+Applies to First Three Payouts Only: The safety net requirement must be observed for the first three approved payouts. As of the fourth payout, the safety net requirement is no longer applicable.
+
+Safety Net Definition: The safety net is defined as the amount equivalent to the drawdown based on the account size, plus an additional $100.
+
+Applies to All Accounts: This rule applies to both new and existing accounts, ensuring consistency for traders as they progress.
+
+Minimum Payout: If the safety net threshold has been met, a payout equal to the minimum allowed amount of $500 can be requested, even if it exceeds the safety net amount.
+
+Payouts Above Minimum:
+To request a payout over $500, the balance must exceed the safety net threshold by an amount equal to the additional amount requested.
+
+Example:
+
+For a $50,000 account, we calculate the safety net as $2,500 + $100 = $2,600, based on the drawdown of $2,500. 
+
+A trader with this account reaches a balance of $52,600. The trader can request the minimum payout of $500, leaving the balance at $52,100. This is acceptable, even though it encroaches on the safety net by the $500 allowed.
+
+To request a higher amount, for example, $1,200, the balance must exceed the safety net by the additional amount requested above the minimum of $500. In this case, the additional amount is $700, meaning the account balance must be at least $53,300. Requesting the $1,200 would leave the account balance at $52,100, which is still acceptable since it encroaches on the safety net by no more than the $500 allowed.
+
+Required Minimum Balance to Request a Payout
+
+Your account must meet the required minimum balance to approve a payout, which includes surpassing the trailing drawdown level. The trailing drawdown in a PA account stops at the starting balance plus $100.
+
+Minimum Required Balances:
+
+Account Size	Minimum Required Balance
+$25k Account	$26,600
+$50k Account	$52,600
+$100k Account	$103,100
+$150k Account	$155,100
+$250k Account	$256,600
+$300k Account	$307,600
+$100k Static	$102,600
+
+Note: For a $50k account, you cannot request a payout if your balance is $52,000. It must be at least $52,600.
+
+Minimum and Maximum Payout Amounts
+Minimum Payout: $500 for any account size. You must have at least eight (8) trading days since the last request and meet the minimum required balance.
+
+Maximum Payouts (First Five Payouts):
+Account Size	Maximum Payout
+$25k Account	$1,500
+$50k Account	$2,000
+$100k Account	$2,500
+$150k Account	$2,750
+$250k Account	$3,000
+$300k Account	$3,500
+$100k Static	$1,000
+No Maximum After Fifth Payout: Starting from the sixth payout, there’s no maximum payout amount, provided the minimum balance threshold remains in the account after the payout.
+100% Payout Eligibility Guidelines
+
+To qualify for 100% payouts, traders must first complete five approved payouts. Starting with the sixth payout, you can withdraw 100% of your profits, even if you reach this milestone earlier than four months. By following a steady 8-day payout cycle, you can achieve this in as little as 48 trading days, providing full access to your profits in approximately two months.
+
+Key Highlights:
+
+Eligibility: Complete five approved payouts to access 100% of your profits from the sixth payout onward.
+
+Faster Access: Achieve this in 48 trading days by maintaining an 8-day payout cycle.
+
+Existing Traders: If you’re already receiving 100% payouts or are in your third month, this update does not impact you.
+
+By following these guidelines, you’ll have streamlined and faster access to your earnings, providing you with more control over your profits.
+
+Multiple Accounts and Payouts: Understanding the Benefits
+
+At Apex Trader Funding, each account you manage is treated as a separate, stand-alone account. This allows you to maximize flexibility and opportunity when requesting payouts across multiple accounts.
+
+How Payouts Work with Multiple Accounts
+Separate Payouts: Each account operates independently, meaning you can request the maximum payout for each account during every eligible payout period.
+
+Example Scenario:Suppose you have ten (10) $50,000 accounts:
+You can withdraw $2,000 from each account every 8 trading days, for a total of $20,000 across all accounts.
+If you repeat this process over 16 trading days, you could withdraw a total of $40,000.
+
+This independence allows you to scale your trading and withdrawals based on your overall account structure.
+
+Benefits of Managing Multiple Accounts
+Increased Earning Potential: By leveraging payouts from multiple accounts, you can optimize your income within the same trading periods.
+
+Risk Management: Multiple accounts allow you to diversify your strategies and reduce the impact of losses on any single account.
+
+For more information on why maintaining multiple accounts can be advantageous, check out our detailed guide: Benefits of Managing Multiple Accounts.
+
+By managing multiple accounts responsibly, you can enhance both your trading opportunities and your payout potential.
+
+Prohibited Activities
+
+To maintain integrity and ensure funding is provided only to disciplined and consistent traders, Apex Trader Funding strictly prohibits the following activities in Performance Accounts (PA):
+
+Trading Without Risk Management: All trades must have either pending or mental stop losses and a well-defined risk management strategy. Trading without these measures is strictly prohibited.
+
+High-Risk Strategies: Strategies that involve small profit targets while risking disproportionately large amounts are not allowed. For example, setting a five-tick profit target with a 150-tick stop loss demonstrates unacceptable risk management.
+
+Using the Trailing Threshold as a Stop Loss: Traders are prohibited from using the account’s full threshold as a stop-loss mechanism to absorb large losses, leading to account liquidation.
+
+Stockpiling Evaluation Accounts: Purchasing multiple discounted evaluation accounts to cycle through and intentionally “blow up” accounts in pursuit of windfall profits is not permitted.
+
+Unsustainable Strategies: Any trading, risk management, or implementation that fails to demonstrate consistent growth and sustainability is prohibited. This includes schemes or behaviors that do not align with responsible trading practices.
+
+Deviating from Professional Standards: Traders must employ strategies and risk management techniques consistent with those they would use in a personally funded account at a registered broker. Apex does not fund traders who deviate from this standard.
+
+Manipulation of the simulated trading environment: Apex Trader Funding strictly prohibits manipulation or exploitation of the simulation environment in any way, including High Frequency Trading (HFT) or any other exploitative strategies.
+
+Unauthorized Users: Allowing any individual other than the registered owner to access or perform account verification is strictly prohibited. Apex reserves the right to request additional information, including audits and verification procedures, from the account owner to ensure that only the authorized user is trading or accessing the account and to enforce compliance with the contract.
+
+Account and Resource Sharing: Sharing MAC addresses, computers, IPs, credit cards, or trade copying with other traders is strictly forbidden. Violations will result in account closure, forfeiture of funds, and potential additional verification or audits to ensure compliance.
+
+Multiple Account Creation: Creating multiple user accounts is prohibited and is a bannable offense. For more information, please see the following article: Apex Trader Funding Accounts.
+
+Traders engaging in these prohibited activities will forfeit their accounts and all associated balances. Apex reserves the right to audit accounts further if there is a suspicion of non-compliance to guarantee adherence to the trader agreement.
+
+By adhering to these guidelines, traders can maintain their accounts in good standing and demonstrate the consistent, disciplined approach Apex seeks to fund.
+
+Probation and Payout Guidelines
+
+If your account is placed on probation, it signifies that specific compliance guidelines need your attention. To navigate this status, please refer to the details provided in the notification email. Understanding the compliance rules and the required next steps is essential to restore your account to good standing.
+
+Consequences of Non-Compliance
+
+If the account does not meet the requirements during the probation period, further action may be taken, including denial of payouts, profit removal, and/or account closure.
+
+Remember: Probation is a chance to improve and prove that you can maintain a consistent, responsible trading strategy. By maintaining a consistent, disciplined approach to your trading during probation, you can restore your account to good standing and continue working towards a successful partnership with Apex Trader Funding.
+
+Can’t find what you’re looking for?
+
+Our team of experts is here to help
+
+Contact Us
+
+Apex Trader Funding Inc.
+2028 E. Ben White Blvd Ste 240-9873
+Austin, TX 78741
+
+Contact Support 24/7 Via Help Desk
+
+Policies
+Privacy Policy
+Cookie Policy
+Terms of Use
+Risk Disclosure
+Cookie Preferences
+Resources
+Coupon Code
+Payouts
+Restricted Countries
+Useful Links
+About Us
+Logos
+News
+
+RISK DISCLOSURE:
+
+Apex Trader Funding offers simulated trading programs for educational, informational, and evaluation purposes only. All activity occurs in a simulated environment using virtual funds; no real capital is at risk and no live market execution occurs. This is not an offer or solicitation to invest or trade in real financial markets. Trading carries substantial risk and is not suitable for everyone. Past performance, whether actual or simulated, does not guarantee future results. Apex does not provide investment advice and is not a broker-dealer, futures commission merchant, or financial advisor. Use of our services is subject to our User Agreement, Terms of Use, Privacy Policy, and Risk Disclosure. Participation does not create an employment relationship. Reward payouts are discretionary and subject to eligibility, compliance, and applicable tax laws. Services are intended for U.S. users only and are not offered where prohibited by local laws or regulations.
+
+2021-2026, Apex Trader Funding Inc. All Rights Reserved.
+💬 Need Help?

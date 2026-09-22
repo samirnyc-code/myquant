@@ -1,0 +1,66 @@
+{
+ "date": "20260921",
+ "entry_ct": "08:31",
+ "entry_et": "09:31:00",
+ "mark_et": "12:51:48",
+ "verticals": [
+  {
+   "id": "eodic_p",
+   "name": "[EOD] Bull Put @ 7580",
+   "entry_mid": 0.07,
+   "now_mid": 0.05,
+   "pnl_mid": -0.76,
+   "pnl_worst": -13.26,
+   "taken": false
+  },
+  {
+   "id": "eodic_c",
+   "name": "[EOD] Bear Call @ 7720",
+   "entry_mid": 1.15,
+   "now_mid": 21.55,
+   "pnl_mid": -2043.26,
+   "pnl_worst": -2078.26,
+   "taken": true
+  },
+  {
+   "id": "eodfly_p",
+   "name": "[EOD] Bull Put @ 7650 (ATM)",
+   "entry_mid": 0.62,
+   "now_mid": 0.05,
+   "pnl_mid": 54.24,
+   "pnl_worst": 41.74,
+   "taken": true
+  },
+  {
+   "id": "eodfly_c",
+   "name": "[EOD] Bear Call @ 7650 (ATM)",
+   "entry_mid": 22.65,
+   "now_mid": 24.85,
+   "pnl_mid": -223.26,
+   "pnl_worst": -323.26,
+   "taken": true
+  },
+  {
+   "id": "gx_bps",
+   "name": "[GexLog] Bull Put @ putWall 7625",
+   "entry_mid": 0.22,
+   "now_mid": 0.05,
+   "pnl_mid": 14.24,
+   "pnl_worst": 1.74,
+   "taken": true
+  },
+  {
+   "id": "gx_bcs",
+   "name": "[GexLog] Bear Call @ callWall 7700",
+   "entry_mid": 5.5,
+   "now_mid": 24.4,
+   "pnl_mid": -1893.26,
+   "pnl_worst": -1938.26,
+   "taken": true
+  }
+ ],
+ "pnl_central_mid": -4091.3,
+ "pnl_floor_worst": -4296.3,
+ "reconstructed_at": "2026-09-21 18:51:54",
+ "note": "READ-ONLY bounded reconstruction; APPROXIMATE (live combo quote not recorded); NOT booked."
+}

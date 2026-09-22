@@ -1,0 +1,63 @@
+IB connected 127.0.0.1:4002 (PAPER)  accounts=['DUQ159823']  serverVersion=178
+trigger daemon [LIVE (auto-execute)] 20260810: 10 triggers, watching until 15:00 CT
+  OPEN captured: 7758.20 @ 09:00:48 CT
+  ATOMIC combo fill: net +0.10
+  FIRED eodic_p -> auto_20260810_090109: vertical 25pt net credit 0.10 grade D
+  STAND DOWN eodic_c [thin_credit]: credit 0.05 < playbook minimum 0.10 — would risk $2,495 to make $5 (est net 0.05) — no order placed
+  ATOMIC combo fill: net +7.70
+  FIRED eodfly_p -> auto_20260810_090137: vertical 25pt net credit 7.70 grade C
+  ATOMIC combo fill: net +7.90
+  FIRED eodfly_c -> auto_20260810_090158: vertical 25pt net credit 7.90 grade C
+  ATOMIC combo fill: net +0.10
+  FIRED openic_p -> auto_20260810_090219: vertical 25pt net credit 0.10 grade D
+  STAND DOWN openic_c [thin_credit]: credit 0.05 < playbook minimum 0.10 — would risk $2,495 to make $5 (est net 0.05) — no order placed
+  ATOMIC combo fill: net +7.10
+  FIRED openfly_p -> auto_20260810_090247: vertical 25pt net credit 7.10 grade C
+  ATOMIC combo fill: net +7.90
+  FIRED openfly_c -> auto_20260810_090308: vertical 25pt net credit 7.90 grade C
+  ATOMIC combo fill: net +1.50
+  FIRED gx_bps -> auto_20260810_090329: vertical 25pt net credit 1.50 grade B
+  ATOMIC combo fill: net +3.10
+  FIRED gx_bcs -> auto_20260810_090350: vertical 25pt net credit 3.10 grade B
+  ATOMIC combo close auto_20260810_090158: cost +9.90
+  CLOSED auto_20260810_090158 cost 9.90 P&L $-201 — level ACCEPTED: spot 7765 held above the 7760 short strike for 10min (>10) — the wall we sold did not hold
+  ATOMIC combo close auto_20260810_090308: cost +9.65
+  CLOSED auto_20260810_090308 cost 9.65 P&L $-176 — level ACCEPTED: spot 7765 held above the 7760 short strike for 10min (>10) — the wall we sold did not hold
+  ATOMIC combo close auto_20260810_090137: cost +6.50
+  CLOSED auto_20260810_090137 cost 6.50 P&L $119 — level ACCEPTED: spot 7758 held below the 7760 short strike for 10min (>10) — the wall we sold did not hold
+  ATOMIC combo close auto_20260810_090247: cost +6.35
+  CLOSED auto_20260810_090247 cost 6.35 P&L $74 — level ACCEPTED: spot 7758 held below the 7760 short strike for 11min (>10) — the wall we sold did not hold
+  combo close failed (combo close did not fill) — falling back to sequential legs
+  ! exit quote failed auto_20260810_090109: no live quote 7655.0P — nothing placed
+  combo close failed (combo close did not fill) — falling back to sequential legs
+  ! exit quote failed auto_20260810_090219: no live quote 7655.0P — nothing placed
+  combo close failed (combo close did not fill) — falling back to sequential legs
+  ! exit quote failed auto_20260810_090329: no live quote 7705.0P — nothing placed
+  combo close failed (combo close did not fill) — falling back to sequential legs
+  ! exit quote failed auto_20260810_090350: no live quote 7800.0C — nothing placed
+  combo close failed (combo close did not fill) — falling back to sequential legs
+  ! exit quote failed auto_20260810_090109: no live quote 7655.0P — nothing placed
+  combo close failed (combo close did not fill) — falling back to sequential legs
+  ! exit quote failed auto_20260810_090219: no live quote 7655.0P — nothing placed
+  combo close failed (combo close did not fill) — falling back to sequential legs
+  ! exit quote failed auto_20260810_090329: no live quote 7705.0P — nothing placed
+  combo close failed (combo close did not fill) — falling back to sequential legs
+  ! exit quote failed auto_20260810_090350: no live quote 7800.0C — nothing placed
+  combo close failed (combo close did not fill) — falling back to sequential legs
+  ! exit quote failed auto_20260810_090109: no live quote 7655.0P — nothing placed
+  combo close failed (combo close did not fill) — falling back to sequential legs
+  ! exit quote failed auto_20260810_090219: no live quote 7655.0P — nothing placed
+  combo close failed (combo close did not fill) — falling back to sequential legs
+  ! exit quote failed auto_20260810_090329: no live quote 7705.0P — nothing placed
+  combo close failed (combo close did not fill) — falling back to sequential legs
+  ! exit quote failed auto_20260810_090350: no live quote 7800.0C — nothing placed
+  combo close failed (combo close did not fill) — falling back to sequential legs
+  ! exit quote failed auto_20260810_090109: no live quote 7655.0P — nothing placed
+  combo close failed (combo close did not fill) — falling back to sequential legs
+  ! exit quote failed auto_20260810_090219: no live quote 7655.0P — nothing placed
+  combo close failed (combo close did not fill) — falling back to sequential legs
+  ! exit quote failed auto_20260810_090329: no live quote 7705.0P — nothing placed
+  combo close failed (combo close did not fill) — falling back to sequential legs
+  ! exit quote failed auto_20260810_090350: no live quote 7800.0C — nothing placed
+
+done. 10 triggers fired: eodic_p(D), eodic_c(?), eodfly_p(C), eodfly_c(C), openic_p(D), openic_c(?), openfly_p(C), openfly_c(C), gx_bps(B), gx_bcs(B)
