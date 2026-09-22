@@ -63,6 +63,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		// ── regime state machine (mirrors compute_regime locals) ──────────────
 		private string        _trend;
 		private List<int>     _zzIdx;    private List<char> _zzKind; private List<double> _zzPrice;
+		private List<int>     _seqIdx;   private List<char> _seqKind; private List<double> _seqPrice;
 		private bool          _bosSet;   private double _bosLevel;
 		private bool          _legSet;   private double _leg;     private int _legI;
 		private bool          _cntSet;   private double _counter; private int _counterI;
@@ -129,6 +130,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 				_trend    = RANGE;
 				_zzIdx    = new List<int>();  _zzKind = new List<char>(); _zzPrice = new List<double>();
+				_seqIdx   = new List<int>();  _seqKind = new List<char>(); _seqPrice = new List<double>();
 				_bosSet   = false; _legSet = false; _cntSet = false; _candSet = false;
 				_majorLow = new HashSet<int>(); _majorHigh = new HashSet<int>();
 				_prevBarDir = 0;
@@ -361,22 +363,66 @@ namespace NinjaTrader.NinjaScript.Indicators
 			return outp;
 		}
 
+		// ── outside-bar collapse ──────────────────────────────────────────────
+		// MyWedge marks an outside bar as BOTH a swing high and a swing low, so zz
+		// records two swings for one bar. That splits a single pullback in half: a
+		// pullback ending HIGHER than the one before it then gets compared against
+		// its own other half and reads as a lower low, and the setup is lost.
+		//
+		// Whether the bar counts as one swing or two turns on whether it EXTENDED
+		// the structure at both ends -- ran past the last swing of its own kind on
+		// each side. Both ends extended: the bar really made new ground both ways
+		// and both swings stand. Only one end did (or neither): the bar is one move
+		// with an overshoot attached, and collapses to the extreme it LEFT ON, from
+		// BarDir. Mirrors swings()/extends() in regime_tracker.py.
+
+		// Does this extreme run past the last swing of its own kind in `s`?
+		private static bool Extends(List<char> sKind, List<double> sPrice, char kind, double price)
+		{
+			for (int j = sKind.Count - 1; j >= 0; j--)
+				if (sKind[j] == kind)
+					return kind == 'H' ? price > sPrice[j] : price < sPrice[j];
+			return true;                        // nothing to compare against yet
+		}
+
+		private void Swings(List<int> oIdx, List<char> oKind, List<double> oPrice)
+		{
+			oIdx.Clear(); oKind.Clear(); oPrice.Clear();
+			for (int t = 0; t < _zzKind.Count; t++)
+			{
+				int idx = _zzIdx[t]; char k = _zzKind[t]; double price = _zzPrice[t];
+				bool pair = t + 1 < _zzKind.Count && _zzIdx[t + 1] == idx && _zzKind[t + 1] != k;
+				if (pair && !(Extends(oKind, oPrice, k, price)
+				           && Extends(oKind, oPrice, _zzKind[t + 1], _zzPrice[t + 1])))
+					continue;                   // one-sided bar: its later extreme wins
+				int n = oKind.Count;
+				if (n > 0 && oKind[n - 1] == k)
+				{
+					bool moreExtreme = k == 'H' ? price > oPrice[n - 1] : price < oPrice[n - 1];
+					if (moreExtreme) { oIdx[n - 1] = idx; oPrice[n - 1] = price; }
+				}
+				else { oIdx.Add(idx); oKind.Add(k); oPrice.Add(price); }
+			}
+		}
+
 		private class Setup { public int CounterBar; public double CounterPrice; public int RefBar; public double RefPrice; }
 
 		// range-exit setup: 1(H) 2(L) 3(H=lower high), BOS then breaks 2. `kind` is
 		// the side that must slope (H = bear setup / lower high; L = bull / higher low).
 		private Setup EntrySetup(char kind)
 		{
+			// read the collapsed sequence, not zz itself
+			Swings(_seqIdx, _seqKind, _seqPrice);
 			var pos = new List<int>();
-			for (int j = 0; j < _zzKind.Count; j++) if (_zzKind[j] == kind) pos.Add(j);
+			for (int j = 0; j < _seqKind.Count; j++) if (_seqKind[j] == kind) pos.Add(j);
 			if (pos.Count < 2 || pos[pos.Count - 1] == 0) return null;
 			int j2 = pos[pos.Count - 1];
-			double lastPrice = _zzPrice[j2], prevPrice = _zzPrice[pos[pos.Count - 2]];
+			double lastPrice = _seqPrice[j2], prevPrice = _seqPrice[pos[pos.Count - 2]];
 			bool sloped = kind == 'H' ? lastPrice < prevPrice : lastPrice > prevPrice;
 			if (!sloped) return null;
 			int refIdx = j2 - 1;
-			if (_zzKind[refIdx] == kind) return null;   // not alternating
-			return new Setup { CounterBar = _zzIdx[j2], CounterPrice = lastPrice, RefBar = _zzIdx[refIdx], RefPrice = _zzPrice[refIdx] };
+			if (_seqKind[refIdx] == kind) return null;   // not alternating
+			return new Setup { CounterBar = _seqIdx[j2], CounterPrice = lastPrice, RefBar = _seqIdx[refIdx], RefPrice = _seqPrice[refIdx] };
 		}
 
 		private void Enter(int i, string newTrend, double level)
