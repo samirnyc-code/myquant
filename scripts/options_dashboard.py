@@ -1573,6 +1573,10 @@ ANALYTICS_JS = r"""
     if($('#an-note'))$('#an-note').textContent=closed.length<20?'· only '+closed.length+' closed — small sample, read as noise':'';}
   const byDay={};T.forEach(t=>{if(!t.date)return;(byDay[t.date]=byDay[t.date]||{pnl:0,n:0,rows:[]});
     byDay[t.date].n++;if(t.pnl!=null)byDay[t.date].pnl+=t.pnl;byDay[t.date].rows.push(t);});
+  // reconstructed-day overlay: merge into the calendar (asterisk); NOT into stat tiles.
+  const RECON=window.__RECON||{};
+  Object.keys(RECON).forEach(ds=>{const r=RECON[ds];const e=(byDay[ds]=byDay[ds]||{pnl:0,n:0,rows:[]});
+    e.recon=true;e.reconData=r;if(!e.rows.length){e.pnl=r.pnl;e.n=r.n;}});
   const allDates=Object.keys(byDay).sort();
   let calM=allDates.length?new Date(allDates[allDates.length-1]+'T12:00:00'):new Date();
   function renderCal(){const grid=$('#cal-grid');if(!grid)return;const y=calM.getFullYear(),m=calM.getMonth();
@@ -1582,12 +1586,28 @@ ANALYTICS_JS = r"""
     for(let i=0;i<start;i++)html+='<div class="cal-cell empty"></div>';
     for(let d=1;d<=days;d++){const ds=y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0'),e=byDay[ds];
       if(e){mtot+=e.pnl;const cls=e.pnl>=0?'pos':'neg';
-        html+='<div class="cal-cell has '+cls+'" data-d="'+ds+'"><div class="d">'+d+'</div><div class="p '+cls+'">'+money(e.pnl)+'</div><div class="n">'+e.n+' trd</div></div>';}
+        const star=e.recon?'<span style="color:#e0a04d;font-weight:800" title="Reconstructed day (desk was down at the open) — not a booked result">*</span>':'';
+        const rstyle=e.recon?' style="outline:1px dashed #e0a04d;outline-offset:-2px"':'';
+        html+='<div class="cal-cell has '+cls+'" data-d="'+ds+'"'+rstyle+'><div class="d">'+d+'</div><div class="p '+cls+'">'+money(e.pnl)+star+'</div><div class="n">'+(e.recon?'recon*':e.n+' trd')+'</div></div>';}
       else html+='<div class="cal-cell"><div class="d">'+d+'</div></div>';}
     grid.innerHTML=html;
     $('#cal-month-tot').innerHTML='month <b class="'+(mtot>=0?'pos':'neg')+'">'+money(mtot)+'</b>';
     grid.querySelectorAll('.cal-cell.has').forEach(c=>c.onclick=()=>showDay(c.dataset.d));}
   function showDay(ds){const e=byDay[ds],el=$('#cal-day');if(!e){el.innerHTML='';return;}
+    if(e.recon){const r=e.reconData;const bk=(hit,v)=>hit?'<b class="neg">'+money(v)+' (hit)</b>':'<b class="muted">not hit</b>';
+      el.innerHTML='<div class="an-h" style="margin:16px 2px 10px;font-size:15px">'+ds+
+        ' <span style="color:#e0a04d;font-weight:800">*</span> — <span class="'+(e.pnl>=0?'pos':'neg')+'">'+money(e.pnl)+
+        '</span> · '+r.n+' trades · <span class="muted" style="font-weight:700">RECONSTRUCTED</span></div>'+
+        '<div style="display:flex;gap:18px;flex-wrap:wrap;font-size:12px;margin:0 2px 12px">'+
+          '<span>intraday DD <b class="neg">'+money(r.dd)+'</b></span>'+
+          '<span>−2k breaker '+bk(r.breaker_2k_hit,r.breaker_2k)+'</span>'+
+          '<span>−3k breaker '+bk(r.breaker_3k_hit,r.breaker_3k)+'</span>'+
+          (r.spot_open!=null?'<span>spot <b>'+r.spot_open+' → '+r.spot_close+'</b></span>':'')+'</div>'+
+        '<div class="iboard">'+r.trades.map(t=>'<div class="itile" style="--gc:#5b9dd9"><div class="itile-h"><div class="itile-name">'+t.strategy+
+          '</div></div><div class="itile-sub">'+t.structure+' · cr '+t.entry_cr+' · exit '+t.exit_et.slice(0,5)+' '+String(t.reason).replace(/_/g,' ')+
+          '</div><div class="itile-foot"><span class="'+((t.pnl||0)>=0?'pos':'neg')+'">'+money(t.pnl)+'</span></div></div>').join('')+'</div>'+
+        '<div class="muted" style="font-size:11px;margin-top:10px;max-width:640px">'+r.note+'</div>';
+      return;}
     const tiles=e.rows.map(t=>{const c=gcol(t.grade);
       return '<div class="itile" style="--gc:'+c+'"><div class="itile-h"><div class="itile-name">'+t.strategy+'</div>'+
         '<span class="ichip" style="background:'+c+'">'+t.grade+'</span></div>'+
@@ -1653,6 +1673,14 @@ def main():
         an_json = json.dumps(analytics_payload(gp_trades, gp_marks))
     except Exception:
         an_json = "[]"
+    # reconstructed-day overlay (calendar '*' days) — kept OUT of trades.parquet so the
+    # stat tiles never see reconstructed fills; the calendar merges it in client-side.
+    try:
+        _rf = SIM / "reconstructed_days.json"
+        recon_json = _rf.read_text(encoding="utf-8") if _rf.exists() else "{}"
+        json.loads(recon_json)
+    except Exception:
+        recon_json = "{}"
     jf = ROOT / "data" / "options_log" / "journal.json"
     jn = json.loads(jf.read_text(encoding="utf-8")) if jf.exists() else {}
     pbf = ROOT / "docs" / "living" / "options_playbook.md"
@@ -2012,6 +2040,7 @@ poll(); setInterval(poll, 5000);
 <style>{ANALYTICS_CSS}</style>
 <script>
 window.__T = {an_json};
+window.__RECON = {recon_json};
 {ANALYTICS_JS}
 </script></body></html>"""
     out = SIM / "dashboard.html"
