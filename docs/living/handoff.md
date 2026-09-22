@@ -60,7 +60,35 @@ Effect across the committed baseline (`68277ec3`) — measured, not assumed:
   **none gained any**; several pullbacks are now correctly promoted to major. Those
   events were already filtered out of the charts, so the PNGs barely moved.
 
-**Sessions on disk:** 2025-12-26, 2026-01-13, 02-13, 04-06, 06-12, 06-25, 06-29.
+**Outside bars (fix 2026-09-22).** mywedge marks an outside bar as BOTH a swing high and
+a swing low, and the zigzag recorded them as two separate swings. That splits one pullback
+in two, so a pullback ending HIGHER than the one before it gets compared against its own
+other half and reads as a lower low -- the setup is lost.
+
+Rule now: if the bar EXTENDED the structure at both ends (ran past the last swing of its
+own kind on each side) both swings stand; otherwise it collapses to the extreme it LEFT ON,
+from `bar_dir`. Implemented as `swings()` + `extends()` in `regime_tracker.py`; only
+`entry_setup()` reads the collapsed sequence, so trend-internal logic is untouched.
+
+Validated against four hand-marked charts, all four agreeing at once:
+- 02-13 b6 high fails vs b4 (6973.75) -> bearish bar keeps its low -> **Bull from b9**
+  (b3 low, b4 high, b6 higher low, b9 breaks b4) -- the case that started this.
+- 12-26 b16 high fails vs b13 (7097.75) -> bullish bar keeps its high -> **one Bear b21-53**
+  in place of five flips; the old b17 Bear was a break of the low that is now gone.
+- 05-19 b13 high fails -> bearish bar keeps its low -> **Bear from b16**, not a 1-bar Bull
+  at b15. Afternoon Bear from b52 unaffected.
+- 05-21 b21 makes a new session low AND a high 0.75 over b18 -> both ends extend, both
+  swings stand -> **Bull still opens b28**. Keeping b21's low is what suppresses a
+  premature b23 signal.
+
+The other eight sessions on disk are byte-identical to `bc4ec032`. Two earlier attempts
+were tried and thrown away, both recorded here so they are not retried: (1) walking back to
+the prior opposing extreme with no bound -- gets b9 right but 05-19 loses its whole
+afternoon Bear and 06-12 becomes Bull from b17 to the close; (2) always keeping the extreme
+the bar left on -- gets b9/12-26/05-19 right but breaks 05-21 to b23.
+
+**Sessions on disk:** 2025-12-26, 2026-01-13, 02-13, 04-06, 05-18, 05-19, 05-20, 05-21, 05-22,
+06-12, 06-25, 06-29.
 
 **Known rough edge:** 04-06 flips Bull/Range/Bull across bars 37–43 in a 43-point daily
 shell. Rule-correct but close to noise at that compression — a minimum-leg filter is the

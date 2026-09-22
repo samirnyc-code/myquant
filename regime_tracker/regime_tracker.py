@@ -109,6 +109,45 @@ def compute_regime(swing_low, swing_high, low, high, bar_dir=None):
             trend = new_trend
             res.change_points.append((i, new_trend))
 
+    def extends(out, kind, price):
+        """Does this extreme run past the last swing of its own kind?"""
+        for idx, k, p in reversed(out):
+            if k == kind:
+                return (price > p) if kind == "H" else (price < p)
+        return True                      # nothing to compare against yet
+
+    def swings():
+        """The swing sequence with outside-bar pairs collapsed.
+
+        mywedge marks an outside bar as BOTH a swing high and a swing low, and
+        `zz` records them as two separate swings. Structurally that is wrong:
+        one bar is one moment, and it cannot be the end of one leg and the start
+        of the next. Left in, the pair splits a single pullback into two -- so a
+        pullback that ends HIGHER than the one before it gets compared against
+        its own other half instead, and reads as a lower low.
+
+        Whether the bar counts as one swing or two turns on whether it EXTENDED
+        the structure at both ends -- ran past the last swing of its own kind on
+        each side.
+
+        Both ends extended: the bar really did make new ground in both
+        directions, so both swings stand. Only one end did (or neither): the bar
+        is one move with an overshoot attached, and it collapses to the extreme
+        it LEFT ON, taken from `bar_dir`. The other end never turned anything;
+        it just splits the pullback around it and inverts the slope test."""
+        out = []
+        for t, (idx, k, price) in enumerate(zz):
+            nxt = zz[t + 1] if t + 1 < len(zz) else None
+            pair = nxt is not None and nxt[0] == idx and nxt[1] != k
+            if pair and not (extends(out, k, price) and extends(out, *nxt[1:])):
+                continue                 # one-sided bar: its later extreme wins
+            if out and out[-1][1] == k:
+                if (price > out[-1][2]) if k == "H" else (price < out[-1][2]):
+                    out[-1] = (idx, k, price)
+            else:
+                out.append((idx, k, price))
+        return out
+
     def entry_setup(kind):
         """The range-exit setup, read the way the document's diagram draws it:
         1(H) 2(L) 3(H = lower high), and the BOS then breaks 2.
@@ -122,18 +161,19 @@ def compute_regime(swing_low, swing_high, low, high, bar_dir=None):
         Crucially the reference is the swing before the LH/HL, not whatever
         swing happened last. A minor pivot forming after it never broke the
         opposing structure, so it does not reset the setup."""
-        pos = [j for j, (_, k, _) in enumerate(zz) if k == kind]
+        seq = swings()
+        pos = [j for j, (_, k, _) in enumerate(seq) if k == kind]
         if len(pos) < 2 or pos[-1] == 0:
             return None
         j = pos[-1]
-        last_price, prev_price = zz[j][2], zz[pos[-2]][2]
+        last_price, prev_price = seq[j][2], seq[pos[-2]][2]
         sloped = last_price < prev_price if kind == "H" else last_price > prev_price
         if not sloped:
             return None
-        ref = zz[j - 1]
+        ref = seq[j - 1]
         if ref[1] == kind:               # not alternating -- nothing before it
             return None
-        return zz[j][0], last_price, ref[0], ref[2]
+        return seq[j][0], last_price, ref[0], ref[2]
 
     def push(i, kind, price):
         """Fold a pivot into the swing sequence. A same-kind pivot does not
