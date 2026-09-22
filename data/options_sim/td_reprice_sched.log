@@ -119,3 +119,64 @@ EXIT + P&L (exact close second) — CLOSED trades:
   openic_p       2.6         2.75  -101.52      -106.52
 
 -> C:\Users\Admin\myquant\data\options_sim\shadow_td\reprice_2026-09-16.json
+ENTRY (exact fill second):
+  order        IBcr  exactTD      d
+  eodfly_c     23.7     23.8   -0.1
+  eodfly_p     0.25     0.25    0.0
+  eodic_c      12.0     12.7   -0.7
+  gx_bcs       0.85      0.9  -0.05
+  openfly_c    7.35     7.25    0.1
+  openfly_p     9.2      9.4   -0.2
+  openic_p     0.65      0.7  -0.05
+
+EXIT + P&L (exact close second) — CLOSED trades:
+  order       IBexit  exactTDexit   IB_PnL  exactTD_PnL
+  eodfly_c      23.8         23.9   -16.52       -16.52
+  eodfly_p      None          0.0    21.74        21.74
+  eodic_c        9.1         9.35   283.48       328.48
+  gx_bcs        None          0.0    81.74        86.74
+  openfly_c     None          0.0   731.74       721.74
+  openfly_p     13.8         13.5  -466.52      -416.52
+  openic_p      None          0.0    61.74        66.74
+
+-> C:\Users\Admin\myquant\data\options_sim\shadow_td\reprice_2026-09-17.json
+ENTRY (exact fill second):
+  order        IBcr  exactTD      d
+  eodfly_c     11.0     11.6   -0.6
+  eodfly_p      6.7      6.7    0.0
+  eodic_c      0.15     0.15    0.0
+  eodic_p      0.45      0.4   0.05
+  gx_bcs       6.85     6.55    0.3
+  gx_bps        1.4     1.45  -0.05
+  openfly_c    10.6     10.3    0.3
+  openfly_p     6.3      6.5   -0.2
+  openic_c      0.1      0.1    0.0
+  openic_p     0.45      0.4   0.05
+
+EXIT + P&L (exact close second) — CLOSED trades:
+  order       IBexit  exactTDexit   IB_PnL  exactTD_PnL
+  eodfly_c       6.3          6.1   463.48       543.48
+  eodfly_p      11.6         11.7  -496.52      -506.52
+  eodic_c       None          0.0    11.74        11.74
+  eodic_p       None          0.0    41.74        36.74
+  gx_bcs        None          0.5   631.74       601.74
+  gx_bps        None          0.0   136.74       141.74
+  openfly_c      6.2          6.2   433.48       403.48
+  openfly_p     11.5         11.5  -526.52      -506.52
+  openic_c      None          0.0     6.74         6.74
+  openic_p      None          0.0    41.74        36.74
+
+-> C:\Users\Admin\myquant\data\options_sim\shadow_td\reprice_2026-09-18.json
+Traceback (most recent call last):
+  File "C:\Users\Admin\myquant\scripts\td_shadow_reprice.py", line 198, in <module>
+    main()
+  File "C:\Users\Admin\myquant\scripts\td_shadow_reprice.py", line 111, in main
+    book = json.loads((SHADOW / f"shadow_book_{a.date}.json").read_text(encoding="utf-8"))
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\pathlib.py", line 1027, in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python312\Lib\pathlib.py", line 1013, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\Admin\\myquant\\data\\options_sim\\shadow_td\\shadow_book_2026-09-21.json'

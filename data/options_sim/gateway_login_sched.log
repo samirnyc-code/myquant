@@ -306,3 +306,4 @@ operable program or batch file.
 +
 + ** Caution: closing this window will close GATEWAY 1045 **
 +
+IB Gateway already up (API 4002 listening) - not launching a second instance.

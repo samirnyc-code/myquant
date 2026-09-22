@@ -1052,3 +1052,79 @@
 2026-09-17 08:30:03 CT  [SPX] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol SPX --secs 10 --pct 1.25 --stop 15:05
 2026-09-17 08:30:18 CT  [SPX] heartbeat STALE (62711s, state=stopped) — process hung, restarting
 2026-09-17 08:30:23 CT  [SPX] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol SPX --secs 10 --pct 1.25 --stop 15:05
+2026-09-17 15:05:10 CT  [SPX] stop time reached — stopping recorder
+2026-09-17 15:05:10 CT  [SPX] day COMPLETE: 2365/2370 snaps (99.8%), max gap 17s
+2026-09-17 15:05:11 CT  [SPX] archived: 209622 rows -> data\options_tape\chain_20260917.parquet (0.6MB, 19.5x) + gz backup; loose CSV removed
+2026-09-17 15:05:11 CT  [SPX] supervisor done.
+2026-09-18 08:25:02 CT  [SPX] supervisor up — keeping recorder alive until 15:05 CT, cadence 10s
+2026-09-18 08:25:02 CT  [SPX] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol SPX --secs 10 --pct 1.25 --stop 15:05
+2026-09-18 08:25:17 CT  [SPX] heartbeat STALE (62409s, state=stopped) — process hung, restarting
+2026-09-18 08:25:22 CT  [SPX] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol SPX --secs 10 --pct 1.25 --stop 15:05
+2026-09-18 08:25:37 CT  [SPX] heartbeat STALE (62429s, state=stopped) — process hung, restarting
+2026-09-18 08:25:42 CT  [SPX] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol SPX --secs 10 --pct 1.25 --stop 15:05
+2026-09-18 08:25:57 CT  [SPX] heartbeat STALE (62449s, state=stopped) — process hung, restarting
+2026-09-18 08:26:02 CT  [SPX] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol SPX --secs 10 --pct 1.25 --stop 15:05
+2026-09-18 08:26:17 CT  [SPX] heartbeat STALE (62469s, state=stopped) — process hung, restarting
+2026-09-18 08:26:22 CT  [SPX] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol SPX --secs 10 --pct 1.25 --stop 15:05
+2026-09-18 08:26:37 CT  [SPX] heartbeat STALE (62489s, state=stopped) — process hung, restarting
+2026-09-18 08:26:42 CT  [SPX] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol SPX --secs 10 --pct 1.25 --stop 15:05
+2026-09-18 08:26:57 CT  [SPX] heartbeat STALE (62509s, state=stopped) — process hung, restarting
+2026-09-18 08:27:02 CT  [SPX] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol SPX --secs 10 --pct 1.25 --stop 15:05
+2026-09-18 08:27:17 CT  [SPX] heartbeat STALE (62529s, state=stopped) — process hung, restarting
+2026-09-18 08:27:22 CT  [SPX] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol SPX --secs 10 --pct 1.25 --stop 15:05
+2026-09-18 08:27:37 CT  [SPX] heartbeat STALE (62549s, state=stopped) — process hung, restarting
+2026-09-18 08:27:42 CT  [SPX] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol SPX --secs 10 --pct 1.25 --stop 15:05
+2026-09-18 08:27:57 CT  [SPX] heartbeat STALE (62569s, state=stopped) — process hung, restarting
+2026-09-18 08:28:02 CT  [SPX] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol SPX --secs 10 --pct 1.25 --stop 15:05
+2026-09-18 08:28:17 CT  [SPX] heartbeat STALE (62589s, state=stopped) — process hung, restarting
+2026-09-18 08:28:22 CT  [SPX] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol SPX --secs 10 --pct 1.25 --stop 15:05
+2026-09-18 08:28:37 CT  [SPX] heartbeat STALE (62609s, state=stopped) — process hung, restarting
+2026-09-18 08:28:42 CT  [SPX] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol SPX --secs 10 --pct 1.25 --stop 15:05
+2026-09-18 08:28:57 CT  [SPX] heartbeat STALE (62629s, state=stopped) — process hung, restarting
+2026-09-18 08:29:02 CT  [SPX] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol SPX --secs 10 --pct 1.25 --stop 15:05
+2026-09-18 08:29:17 CT  [SPX] heartbeat STALE (62649s, state=stopped) — process hung, restarting
+2026-09-18 08:29:22 CT  [SPX] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol SPX --secs 10 --pct 1.25 --stop 15:05
+2026-09-18 08:29:37 CT  [SPX] heartbeat STALE (62669s, state=stopped) — process hung, restarting
+2026-09-18 08:29:42 CT  [SPX] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol SPX --secs 10 --pct 1.25 --stop 15:05
+2026-09-18 08:29:57 CT  [SPX] heartbeat STALE (62689s, state=stopped) — process hung, restarting
+2026-09-18 08:30:02 CT  [SPX] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol SPX --secs 10 --pct 1.25 --stop 15:05
+2026-09-18 08:30:17 CT  [SPX] heartbeat STALE (62709s, state=stopped) — process hung, restarting
+2026-09-18 08:30:22 CT  [SPX] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol SPX --secs 10 --pct 1.25 --stop 15:05
+2026-09-18 15:05:09 CT  [SPX] stop time reached — stopping recorder
+2026-09-18 15:05:09 CT  [SPX] day COMPLETE: 2366/2370 snaps (99.8%), max gap 14s
+2026-09-18 15:05:11 CT  [SPX] archived: 194584 rows -> data\options_tape\chain_20260918.parquet (0.58MB, 18.8x) + gz backup; loose CSV removed
+2026-09-18 15:05:11 CT  [SPX] supervisor done.
+2026-09-22 08:25:04 CT  [SPX] supervisor up — keeping recorder alive until 15:05 CT, cadence 10s
+2026-09-22 08:25:04 CT  [SPX] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol SPX --secs 10 --pct 1.25 --stop 15:05
+2026-09-22 08:25:19 CT  [SPX] heartbeat STALE (62414s, state=stopped) — process hung, restarting
+2026-09-22 08:25:24 CT  [SPX] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol SPX --secs 10 --pct 1.25 --stop 15:05
+2026-09-22 08:25:39 CT  [SPX] heartbeat STALE (62434s, state=stopped) — process hung, restarting
+2026-09-22 08:25:44 CT  [SPX] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol SPX --secs 10 --pct 1.25 --stop 15:05
+2026-09-22 08:25:59 CT  [SPX] heartbeat STALE (62454s, state=stopped) — process hung, restarting
+2026-09-22 08:26:04 CT  [SPX] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol SPX --secs 10 --pct 1.25 --stop 15:05
+2026-09-22 08:26:19 CT  [SPX] heartbeat STALE (62474s, state=stopped) — process hung, restarting
+2026-09-22 08:26:24 CT  [SPX] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol SPX --secs 10 --pct 1.25 --stop 15:05
+2026-09-22 08:26:39 CT  [SPX] heartbeat STALE (62494s, state=stopped) — process hung, restarting
+2026-09-22 08:26:44 CT  [SPX] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol SPX --secs 10 --pct 1.25 --stop 15:05
+2026-09-22 08:26:59 CT  [SPX] heartbeat STALE (62514s, state=stopped) — process hung, restarting
+2026-09-22 08:27:04 CT  [SPX] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol SPX --secs 10 --pct 1.25 --stop 15:05
+2026-09-22 08:27:19 CT  [SPX] heartbeat STALE (62534s, state=stopped) — process hung, restarting
+2026-09-22 08:27:24 CT  [SPX] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol SPX --secs 10 --pct 1.25 --stop 15:05
+2026-09-22 08:27:39 CT  [SPX] heartbeat STALE (62554s, state=stopped) — process hung, restarting
+2026-09-22 08:27:44 CT  [SPX] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol SPX --secs 10 --pct 1.25 --stop 15:05
+2026-09-22 08:27:59 CT  [SPX] heartbeat STALE (62574s, state=stopped) — process hung, restarting
+2026-09-22 08:28:04 CT  [SPX] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol SPX --secs 10 --pct 1.25 --stop 15:05
+2026-09-22 08:28:19 CT  [SPX] heartbeat STALE (62594s, state=stopped) — process hung, restarting
+2026-09-22 08:28:24 CT  [SPX] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol SPX --secs 10 --pct 1.25 --stop 15:05
+2026-09-22 08:28:39 CT  [SPX] heartbeat STALE (62614s, state=stopped) — process hung, restarting
+2026-09-22 08:28:44 CT  [SPX] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol SPX --secs 10 --pct 1.25 --stop 15:05
+2026-09-22 08:28:59 CT  [SPX] heartbeat STALE (62634s, state=stopped) — process hung, restarting
+2026-09-22 08:29:04 CT  [SPX] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol SPX --secs 10 --pct 1.25 --stop 15:05
+2026-09-22 08:29:19 CT  [SPX] heartbeat STALE (62654s, state=stopped) — process hung, restarting
+2026-09-22 08:29:24 CT  [SPX] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol SPX --secs 10 --pct 1.25 --stop 15:05
+2026-09-22 08:29:39 CT  [SPX] heartbeat STALE (62674s, state=stopped) — process hung, restarting
+2026-09-22 08:29:44 CT  [SPX] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol SPX --secs 10 --pct 1.25 --stop 15:05
+2026-09-22 08:29:59 CT  [SPX] heartbeat STALE (62694s, state=stopped) — process hung, restarting
+2026-09-22 08:30:04 CT  [SPX] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol SPX --secs 10 --pct 1.25 --stop 15:05
+2026-09-22 08:30:19 CT  [SPX] heartbeat STALE (62714s, state=stopped) — process hung, restarting
+2026-09-22 08:30:24 CT  [SPX] launching recorder: C:\Users\Admin\myquant\scripts\options_chain_recorder.py --symbol SPX --secs 10 --pct 1.25 --stop 15:05

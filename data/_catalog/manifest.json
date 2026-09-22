@@ -1,5 +1,5 @@
 {
- "generated": "2026-09-17T03:30:02",
+ "generated": "2026-09-22T03:30:03",
  "families": {
   "vendor_flatfiles": {
    "n": 0,
@@ -101,38 +101,38 @@
    "rows": null
   },
   "options_tape": {
-   "n": 70,
-   "size": 36718777,
+   "n": 74,
+   "size": 40000190,
    "zero_byte": 0,
-   "newest": 1789589112.1549187,
+   "newest": 1789761911.0308008,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
    "per_path": {
     "data/options_tape": {
      "exists": true,
-     "n": 70,
-     "size": 36718777,
-     "newest": 1789589112.1549187,
+     "n": 74,
+     "size": 40000190,
+     "newest": 1789761911.0308008,
      "zero_byte": 0
     }
    },
    "rows": null
   },
   "ticks_continuous": {
-   "n": 8570,
-   "size": 9409275191,
+   "n": 8573,
+   "size": 9414667834,
    "zero_byte": 0,
-   "newest": 1789592481.8015673,
+   "newest": 1790024503.8568888,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
    "per_path": {
     "data/ticks_continuous": {
      "exists": true,
-     "n": 1323,
-     "size": 3698745222,
-     "newest": 1789592481.8015673,
+     "n": 1326,
+     "size": 3704137865,
+     "newest": 1790024503.8568888,
      "zero_byte": 0
     },
     "data/ticks_continuous_NQ": {
@@ -188,7 +188,7 @@
    "exists_any": true,
    "health": "stale",
    "reasons": [
-    "newest file 51d old (budget 30d)"
+    "newest file 56d old (budget 30d)"
    ],
    "per_path": {
     "data/bars": {
@@ -209,7 +209,7 @@
    "exists_any": true,
    "health": "stale",
    "reasons": [
-    "newest file 42d old (budget 4d)",
+    "newest file 47d old (budget 4d)",
     "2 zero-byte file(s)"
    ],
    "per_path": {
@@ -241,7 +241,7 @@
    "exists_any": true,
    "health": "stale",
    "reasons": [
-    "newest file 43d old (budget 4d)",
+    "newest file 48d old (budget 4d)",
     "1 zero-byte file(s)"
    ],
    "per_path": {
@@ -263,7 +263,7 @@
    "exists_any": true,
    "health": "stale",
    "reasons": [
-    "newest file 50d old (budget 4d)"
+    "newest file 55d old (budget 4d)"
    ],
    "per_path": {
     "gamma_tracker/gamma.db": {
@@ -303,10 +303,10 @@
    "rows": null
   },
   "options_sim": {
-   "n": 812,
-   "size": 28988742,
+   "n": 839,
+   "size": 38345553,
    "zero_byte": 2,
-   "newest": 1789604098.1362321,
+   "newest": 1790036098.089592,
    "exists_any": true,
    "health": "ok",
    "reasons": [
@@ -315,28 +315,28 @@
    "per_path": {
     "data/options_sim": {
      "exists": true,
-     "n": 812,
-     "size": 28988742,
-     "newest": 1789604098.1362321,
+     "n": 839,
+     "size": 38345553,
+     "newest": 1790036098.089592,
      "zero_byte": 2
     }
    },
    "rows": null
   },
   "options_log": {
-   "n": 231,
-   "size": 32309855,
+   "n": 243,
+   "size": 33834946,
    "zero_byte": 0,
-   "newest": 1789590002.723255,
+   "newest": 1790022004.1324873,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
    "per_path": {
     "data/options_log": {
      "exists": true,
-     "n": 231,
-     "size": 32309855,
-     "newest": 1789590002.723255,
+     "n": 243,
+     "size": 33834946,
+     "newest": 1790022004.1324873,
      "zero_byte": 0
     }
    },
@@ -460,9 +460,9 @@
   },
   "vix_ib_daily": {
    "n": 6,
-   "size": 1399198,
+   "size": 1399371,
    "zero_byte": 0,
-   "newest": 1789565163.005694,
+   "newest": 1789737962.4547348,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
@@ -470,8 +470,8 @@
     "data/vix_daily.csv": {
      "exists": true,
      "n": 1,
-     "size": 332282,
-     "newest": 1789565163.005694,
+     "size": 332455,
+     "newest": 1789737962.4547348,
      "zero_byte": 0
     },
     "data/vix_daily.parquet": {
@@ -610,7 +610,7 @@
    "exists_any": true,
    "health": "stale",
    "reasons": [
-    "newest file 12d old (budget 4d)"
+    "newest file 17d old (budget 4d)"
    ],
    "per_path": {
     "data/depth": {
@@ -650,7 +650,7 @@
    "exists_any": true,
    "health": "stale",
    "reasons": [
-    "newest file 7d old (budget 1d)"
+    "newest file 12d old (budget 1d)"
    ],
    "per_path": {
     "data/discord": {
@@ -683,7 +683,7 @@
    "rows": null
   }
  },
- "total_size": 86405242088,
- "total_files": 34356,
- "scan_seconds": 0.794858
+ "total_size": 86424798219,
+ "total_files": 34402,
+ "scan_seconds": 2.27523
 }

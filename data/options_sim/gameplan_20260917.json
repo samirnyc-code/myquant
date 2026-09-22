@@ -243,8 +243,13 @@
           "qty": 1
         }
       ],
-      "exited": false,
-      "beyond_since": "2026-09-17T09:41:06.660526-05:00"
+      "exited": true,
+      "beyond_since": "2026-09-17T10:37:09.285685-05:00",
+      "exit": {
+        "cost": 9.1,
+        "at": "10:47:25",
+        "why": "level ACCEPTED: spot 7634 held above the 7630 short strike for 10min (>10) \u2014 the wall we sold did not hold"
+      }
     },
     {
       "id": "eodfly_p",
@@ -596,7 +601,8 @@
           "qty": 1
         }
       ],
-      "exited": false
+      "exited": false,
+      "beyond_since": "2026-09-17T14:43:35.950314-05:00"
     },
     {
       "id": "gx_bps",
@@ -696,5 +702,13 @@
     }
   ],
   "open_spot": 7641.55,
-  "open_spot_at": "08:30:12 CT"
+  "open_spot_at": "08:30:12 CT",
+  "gexlog_evening": {
+    "generated_at": "2026-09-17 07:45 PM ET",
+    "session_type": "TREND (strong)",
+    "forecast_accurate": true,
+    "expected_move_hit": false,
+    "spx_change": 1.14,
+    "vix_change": -12.82
+  }
 }

@@ -51,7 +51,34 @@
       ],
       "td_open_underlying": 7637.14,
       "td_open_underlying_ts": "2026-09-17T09:31:22.000",
-      "exited": false
+      "exited": true,
+      "ib_exit_cost": 9.1,
+      "ib_exit_at": "10:47:25",
+      "exit_why": "level ACCEPTED: spot 7634 held above the 7630 short strike for 10min (>10) \u2014 the wall we sold did not hold",
+      "td_exit_debit": 10.1,
+      "td_exit_ok": true,
+      "td_exit_at": "17:47:30",
+      "td_exit_detail": [
+        {
+          "side": "buy",
+          "right": "C",
+          "strike": 7655.0,
+          "bid": 0.8,
+          "ask": 0.9,
+          "px": 0.8
+        },
+        {
+          "side": "sell",
+          "right": "C",
+          "strike": 7630.0,
+          "bid": 10.7,
+          "ask": 10.9,
+          "px": 10.9
+        }
+      ],
+      "td_exit_underlying": 7634.69,
+      "td_exit_underlying_ts": "2026-09-17T11:47:30.000",
+      "td_pnl": 163.48
     },
     "auto_20260917_083101": {
       "id": "eodfly_p",
