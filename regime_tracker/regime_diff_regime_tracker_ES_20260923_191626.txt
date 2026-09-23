@@ -1,0 +1,9 @@
+NT-vs-Python regime diff  —  C:/Users/Admin/Documents/regime_tracker_ES.csv
+bars compared: 10139   session-mode: eth   lag: 3
+MyWedge params: lookback=12 sym=4 ol=1 ctsb_ignore=True ib_ignore=True sb_ibs=66.0
+
+REGIME AGREEMENT: 10139/10139 = 100.00%
+  core (excl. last 3 tail bars): 10136/10136 = 100.00%
+  tail-zone mismatches (truncation edge, informational): 0
+
+EVENTS  NT=1566  PY=1566  agree=1566  NT-only=0  PY-only=0
