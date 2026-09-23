@@ -8,3 +8,7 @@
 2026-09-21T17:10:27 terminal RESTARTED ok
 2026-09-22T14:00:04 terminal DOWN — restarting
 2026-09-22T14:00:18 terminal RESTARTED ok
+2026-09-22T22:40:13 terminal DOWN — restarting
+2026-09-22T22:40:14 killed hung terminal pid(s): 16124
+6656
+2026-09-22T22:40:25 terminal RESTARTED ok

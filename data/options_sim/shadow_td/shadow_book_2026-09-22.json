@@ -103,7 +103,34 @@
       ],
       "td_open_underlying": 7778.47,
       "td_open_underlying_ts": "2026-09-22T09:33:51.000",
-      "exited": false
+      "exited": true,
+      "ib_exit_cost": 9.65,
+      "ib_exit_at": "10:39:37",
+      "exit_why": "level ACCEPTED: spot 7757 held below the 7765 short strike for 10min (>10) \u2014 the wall we sold did not hold",
+      "td_exit_debit": 9.4,
+      "td_exit_ok": true,
+      "td_exit_at": "17:39:42",
+      "td_exit_detail": [
+        {
+          "side": "buy",
+          "right": "P",
+          "strike": 7740.0,
+          "bid": 2.4,
+          "ask": 2.5,
+          "px": 2.4
+        },
+        {
+          "side": "sell",
+          "right": "P",
+          "strike": 7765.0,
+          "bid": 11.7,
+          "ask": 11.8,
+          "px": 11.8
+        }
+      ],
+      "td_exit_underlying": 7757.97,
+      "td_exit_underlying_ts": "2026-09-22T11:39:42.000",
+      "td_pnl": -521.52
     },
     "auto_20260922_083150": {
       "id": "eodfly_c",
@@ -286,7 +313,34 @@
       ],
       "td_open_underlying": 7778.03,
       "td_open_underlying_ts": "2026-09-22T09:33:52.000",
-      "exited": false
+      "exited": true,
+      "ib_exit_cost": 8.1,
+      "ib_exit_at": "09:29:20",
+      "exit_why": "level ACCEPTED: spot 7766 held below the 7770 short strike for 10min (>10) \u2014 the wall we sold did not hold",
+      "td_exit_debit": 8.3,
+      "td_exit_ok": true,
+      "td_exit_at": "16:29:23",
+      "td_exit_detail": [
+        {
+          "side": "buy",
+          "right": "P",
+          "strike": 7745.0,
+          "bid": 2.9,
+          "ask": 2.95,
+          "px": 2.9
+        },
+        {
+          "side": "sell",
+          "right": "P",
+          "strike": 7770.0,
+          "bid": 11.0,
+          "ask": 11.2,
+          "px": 11.2
+        }
+      ],
+      "td_exit_underlying": 7766.76,
+      "td_exit_underlying_ts": "2026-09-22T10:29:23.000",
+      "td_pnl": -281.52
     },
     "auto_20260922_083303": {
       "id": "openfly_c",

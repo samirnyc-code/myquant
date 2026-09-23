@@ -796,3 +796,296 @@
 2026-09-22 09:23:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
 2026-09-22 09:23:06 all green
 2026-09-22 09:25:49 all green (daemon)
+2026-09-22 09:28:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 09:28:06 all green
+2026-09-22 09:33:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 09:33:06 all green
+2026-09-22 09:35:51 all green (daemon)
+2026-09-22 09:38:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 09:38:06 all green
+2026-09-22 09:43:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 09:43:06 all green
+2026-09-22 09:46:02 all green (daemon)
+2026-09-22 09:48:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 09:48:06 all green
+2026-09-22 09:53:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 09:53:06 all green
+2026-09-22 09:56:02 all green (daemon)
+2026-09-22 09:58:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 09:58:06 all green
+2026-09-22 10:03:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 10:03:05 all green
+2026-09-22 10:06:13 all green (daemon)
+2026-09-22 10:08:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 10:08:06 all green
+2026-09-22 10:13:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 10:13:06 all green
+2026-09-22 10:16:23 all green (daemon)
+2026-09-22 10:18:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 10:18:06 all green
+2026-09-22 10:23:06 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 10:23:07 all green
+2026-09-22 10:26:28 all green (daemon)
+2026-09-22 10:28:06 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 10:28:06 all green
+2026-09-22 10:33:08 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 10:33:09 all green
+2026-09-22 10:36:32 all green (daemon)
+2026-09-22 10:38:06 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 10:38:07 all green
+2026-09-22 10:43:06 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 10:43:06 all green
+2026-09-22 10:46:39 all green (daemon)
+2026-09-22 10:48:06 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 10:48:07 all green
+2026-09-22 10:53:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 10:53:05 all green
+2026-09-22 10:56:47 all green (daemon)
+2026-09-22 10:58:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 10:58:05 all green
+2026-09-22 11:03:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 11:03:05 all green
+2026-09-22 11:06:53 all green (daemon)
+2026-09-22 11:08:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 11:08:05 all green
+2026-09-22 11:13:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 11:13:05 all green
+2026-09-22 11:17:00 all green (daemon)
+2026-09-22 11:18:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 11:18:06 all green
+2026-09-22 11:23:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 11:23:06 all green
+2026-09-22 11:27:07 all green (daemon)
+2026-09-22 11:28:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 11:28:06 all green
+2026-09-22 11:33:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 11:33:05 all green
+2026-09-22 11:37:14 all green (daemon)
+2026-09-22 11:38:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 11:38:05 all green
+2026-09-22 11:43:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 11:43:06 all green
+2026-09-22 11:47:21 all green (daemon)
+2026-09-22 11:48:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 11:48:05 all green
+2026-09-22 11:53:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 11:53:06 all green
+2026-09-22 11:57:21 all green (daemon)
+2026-09-22 11:58:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 11:58:05 all green
+2026-09-22 12:03:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 12:03:05 all green
+2026-09-22 12:07:27 all green (daemon)
+2026-09-22 12:08:09 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 12:08:10 all green
+2026-09-22 12:13:07 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 12:13:08 all green
+2026-09-22 12:17:30 all green (daemon)
+2026-09-22 12:18:08 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 12:18:09 all green
+2026-09-22 12:23:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 12:23:06 all green
+2026-09-22 12:27:31 all green (daemon)
+2026-09-22 12:28:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 12:28:06 all green
+2026-09-22 12:33:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 12:33:06 all green
+2026-09-22 12:37:33 all green (daemon)
+2026-09-22 12:38:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 12:38:06 all green
+2026-09-22 12:43:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 12:43:06 all green
+2026-09-22 12:47:41 all green (daemon)
+2026-09-22 12:48:06 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 12:48:06 all green
+2026-09-22 12:53:06 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 12:53:08 all green
+2026-09-22 12:57:48 all green (daemon)
+2026-09-22 12:58:06 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 12:58:06 all green
+2026-09-22 13:03:06 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 13:03:07 all green
+2026-09-22 13:07:58 all green (daemon)
+2026-09-22 13:08:06 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 13:08:07 all green
+2026-09-22 13:13:06 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 13:13:06 all green
+2026-09-22 13:18:03 all green (daemon)
+2026-09-22 13:18:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 13:18:06 all green
+2026-09-22 13:23:06 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 13:23:06 all green
+2026-09-22 13:28:06 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 13:28:07 all green
+2026-09-22 13:28:11 all green (daemon)
+2026-09-22 13:33:06 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 13:33:06 all green
+2026-09-22 13:38:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 13:38:06 all green
+2026-09-22 13:38:19 all green (daemon)
+2026-09-22 13:43:06 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 13:43:06 all green
+2026-09-22 13:48:06 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 13:48:07 all green
+2026-09-22 13:48:29 all green (daemon)
+2026-09-22 13:53:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 13:53:06 all green
+2026-09-22 13:58:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 13:58:06 all green
+2026-09-22 13:58:38 all green (daemon)
+2026-09-22 14:03:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 14:03:06 all green
+2026-09-22 14:08:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 14:08:06 all green
+2026-09-22 14:08:49 all green (daemon)
+2026-09-22 14:13:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 14:13:05 all green
+2026-09-22 14:18:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 14:18:06 all green
+2026-09-22 14:18:57 all green (daemon)
+2026-09-22 14:23:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 14:23:06 all green
+2026-09-22 14:28:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 14:28:06 all green
+2026-09-22 14:29:08 all green (daemon)
+2026-09-22 14:33:06 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 14:33:07 all green
+2026-09-22 14:38:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 14:38:06 all green
+2026-09-22 14:39:11 all green (daemon)
+2026-09-22 14:43:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 14:43:06 all green
+2026-09-22 14:48:06 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-22 14:48:06 all green
+2026-09-22 14:49:17 all green (daemon)
+2026-09-22 14:53:04 all green
+2026-09-22 14:58:03 all green
+2026-09-22 14:59:26 all green (daemon)
+2026-09-22 15:03:03 all green
+2026-09-22 15:08:03 all green
+2026-09-22 15:09:27 all green (daemon)
+2026-09-22 15:13:03 all green
+2026-09-22 15:18:03 resident watchdog heartbeat 176s stale — restarting Live task
+2026-09-22 15:18:03 all green
+2026-09-22 15:18:04 daemon mode: 10s cadence, fast thresholds
+2026-09-22 15:18:04 all green (daemon)
+2026-09-22 15:20:04 daemon: market window closed, exiting
+2026-09-23 07:15:02 daemon: before 08:15 CT window (now 07:15 CT) — waiting for open
+2026-09-23 08:15:02 daemon mode: 10s cadence, fast thresholds
+2026-09-23 08:15:02 all green (daemon)
+2026-09-23 08:18:03 all green
+2026-09-23 08:23:03 all green
+2026-09-23 08:25:04 all green (daemon)
+2026-09-23 08:28:03 all green
+2026-09-23 08:33:03 all green
+2026-09-23 08:35:05 all green (daemon)
+2026-09-23 08:38:03 all green
+2026-09-23 08:40:07 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 08:43:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 08:43:05 all green
+2026-09-23 08:45:16 all green (daemon)
+2026-09-23 08:48:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 08:48:06 all green
+2026-09-23 08:53:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 08:53:06 all green
+2026-09-23 08:55:23 all green (daemon)
+2026-09-23 08:58:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 08:58:05 all green
+2026-09-23 09:03:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 09:03:05 all green
+2026-09-23 09:05:29 all green (daemon)
+2026-09-23 09:08:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 09:08:05 all green
+2026-09-23 09:13:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 09:13:05 all green
+2026-09-23 09:15:36 all green (daemon)
+2026-09-23 09:18:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 09:18:06 all green
+2026-09-23 09:23:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 09:23:05 all green
+2026-09-23 09:25:42 all green (daemon)
+2026-09-23 09:28:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 09:28:05 all green
+2026-09-23 09:33:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 09:33:05 all green
+2026-09-23 09:35:48 all green (daemon)
+2026-09-23 09:38:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 09:38:05 all green
+2026-09-23 09:43:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 09:43:06 all green
+2026-09-23 09:45:55 all green (daemon)
+2026-09-23 09:48:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 09:48:05 all green
+2026-09-23 09:53:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 09:53:05 all green
+2026-09-23 09:56:02 all green (daemon)
+2026-09-23 09:58:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 09:58:05 all green
+2026-09-23 10:03:06 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 10:03:07 all green
+2026-09-23 10:06:02 all green (daemon)
+2026-09-23 10:08:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 10:08:06 all green
+2026-09-23 10:13:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 10:13:06 all green
+2026-09-23 10:16:10 all green (daemon)
+2026-09-23 10:18:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 10:18:06 all green
+2026-09-23 10:23:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 10:23:06 all green
+2026-09-23 10:26:17 all green (daemon)
+2026-09-23 10:28:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 10:28:06 all green
+2026-09-23 10:33:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 10:33:05 all green
+2026-09-23 10:36:24 all green (daemon)
+2026-09-23 10:38:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 10:38:05 all green
+2026-09-23 10:43:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 10:43:06 all green
+2026-09-23 10:46:31 all green (daemon)
+2026-09-23 10:48:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 10:48:06 all green
+2026-09-23 10:53:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 10:53:05 all green
+2026-09-23 10:56:42 all green (daemon)
+2026-09-23 10:58:08 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 10:58:08 all green
+2026-09-23 11:03:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 11:03:05 all green
+2026-09-23 11:06:49 all green (daemon)
+2026-09-23 11:08:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 11:08:05 all green
+2026-09-23 11:13:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 11:13:06 all green
+2026-09-23 11:16:55 all green (daemon)
+2026-09-23 11:18:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 11:18:06 all green
+2026-09-23 11:23:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 11:23:05 all green
+2026-09-23 11:27:02 all green (daemon)
+2026-09-23 11:28:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 11:28:05 all green
+2026-09-23 11:33:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 11:33:05 all green
+2026-09-23 11:37:09 all green (daemon)
+2026-09-23 11:38:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 11:38:05 all green
+2026-09-23 11:43:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 11:43:06 all green
+2026-09-23 11:47:16 all green (daemon)
+2026-09-23 11:48:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 11:48:05 all green
+2026-09-23 11:53:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 11:53:06 all green
+2026-09-23 11:57:24 all green (daemon)
+2026-09-23 11:58:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 11:58:06 all green
+2026-09-23 12:03:06 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 12:03:06 all green
+2026-09-23 12:07:34 all green (daemon)
+2026-09-23 12:08:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 12:08:06 all green
+2026-09-23 12:13:05 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-09-23 12:13:05 all green
+2026-09-23 12:17:34 all green (daemon)

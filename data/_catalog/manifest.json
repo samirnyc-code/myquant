@@ -1,5 +1,5 @@
 {
- "generated": "2026-09-22T03:30:03",
+ "generated": "2026-09-23T03:30:03",
  "families": {
   "vendor_flatfiles": {
    "n": 0,
@@ -101,38 +101,38 @@
    "rows": null
   },
   "options_tape": {
-   "n": 74,
-   "size": 40000190,
+   "n": 76,
+   "size": 41661964,
    "zero_byte": 0,
-   "newest": 1789761911.0308008,
+   "newest": 1790107513.2765732,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
    "per_path": {
     "data/options_tape": {
      "exists": true,
-     "n": 74,
-     "size": 40000190,
-     "newest": 1789761911.0308008,
+     "n": 76,
+     "size": 41661964,
+     "newest": 1790107513.2765732,
      "zero_byte": 0
     }
    },
    "rows": null
   },
   "ticks_continuous": {
-   "n": 8573,
-   "size": 9414667834,
+   "n": 8574,
+   "size": 9416576615,
    "zero_byte": 0,
-   "newest": 1790024503.8568888,
+   "newest": 1790110893.6585977,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
    "per_path": {
     "data/ticks_continuous": {
      "exists": true,
-     "n": 1326,
-     "size": 3704137865,
-     "newest": 1790024503.8568888,
+     "n": 1327,
+     "size": 3706046646,
+     "newest": 1790110893.6585977,
      "zero_byte": 0
     },
     "data/ticks_continuous_NQ": {
@@ -188,7 +188,7 @@
    "exists_any": true,
    "health": "stale",
    "reasons": [
-    "newest file 56d old (budget 30d)"
+    "newest file 57d old (budget 30d)"
    ],
    "per_path": {
     "data/bars": {
@@ -209,7 +209,7 @@
    "exists_any": true,
    "health": "stale",
    "reasons": [
-    "newest file 47d old (budget 4d)",
+    "newest file 48d old (budget 4d)",
     "2 zero-byte file(s)"
    ],
    "per_path": {
@@ -241,7 +241,7 @@
    "exists_any": true,
    "health": "stale",
    "reasons": [
-    "newest file 48d old (budget 4d)",
+    "newest file 49d old (budget 4d)",
     "1 zero-byte file(s)"
    ],
    "per_path": {
@@ -263,7 +263,7 @@
    "exists_any": true,
    "health": "stale",
    "reasons": [
-    "newest file 55d old (budget 4d)"
+    "newest file 56d old (budget 4d)"
    ],
    "per_path": {
     "gamma_tracker/gamma.db": {
@@ -303,10 +303,10 @@
    "rows": null
   },
   "options_sim": {
-   "n": 839,
-   "size": 38345553,
+   "n": 849,
+   "size": 38572468,
    "zero_byte": 2,
-   "newest": 1790036098.089592,
+   "newest": 1790122498.1445723,
    "exists_any": true,
    "health": "ok",
    "reasons": [
@@ -315,28 +315,28 @@
    "per_path": {
     "data/options_sim": {
      "exists": true,
-     "n": 839,
-     "size": 38345553,
-     "newest": 1790036098.089592,
+     "n": 849,
+     "size": 38572468,
+     "newest": 1790122498.1445723,
      "zero_byte": 2
     }
    },
    "rows": null
   },
   "options_log": {
-   "n": 243,
-   "size": 33834946,
+   "n": 250,
+   "size": 34608951,
    "zero_byte": 0,
-   "newest": 1790022004.1324873,
+   "newest": 1790108404.102068,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
    "per_path": {
     "data/options_log": {
      "exists": true,
-     "n": 243,
-     "size": 33834946,
-     "newest": 1790022004.1324873,
+     "n": 250,
+     "size": 34608951,
+     "newest": 1790108404.102068,
      "zero_byte": 0
     }
    },
@@ -388,19 +388,19 @@
    "rows": null
   },
   "regime": {
-   "n": 113,
-   "size": 187647905,
+   "n": 189,
+   "size": 245954890,
    "zero_byte": 0,
-   "newest": 1785603691.870921,
+   "newest": 1790087389.908861,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
    "per_path": {
     "data/regime": {
      "exists": true,
-     "n": 113,
-     "size": 187647905,
-     "newest": 1785603691.870921,
+     "n": 189,
+     "size": 245954890,
+     "newest": 1790087389.908861,
      "zero_byte": 0
     }
    },
@@ -460,9 +460,9 @@
   },
   "vix_ib_daily": {
    "n": 6,
-   "size": 1399371,
+   "size": 1399545,
    "zero_byte": 0,
-   "newest": 1789737962.4547348,
+   "newest": 1790083563.286922,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
@@ -470,8 +470,8 @@
     "data/vix_daily.csv": {
      "exists": true,
      "n": 1,
-     "size": 332455,
-     "newest": 1789737962.4547348,
+     "size": 332629,
+     "newest": 1790083563.286922,
      "zero_byte": 0
     },
     "data/vix_daily.parquet": {
@@ -610,7 +610,7 @@
    "exists_any": true,
    "health": "stale",
    "reasons": [
-    "newest file 17d old (budget 4d)"
+    "newest file 18d old (budget 4d)"
    ],
    "per_path": {
     "data/depth": {
@@ -650,7 +650,7 @@
    "exists_any": true,
    "health": "stale",
    "reasons": [
-    "newest file 12d old (budget 1d)"
+    "newest file 13d old (budget 1d)"
    ],
    "per_path": {
     "data/discord": {
@@ -683,7 +683,7 @@
    "rows": null
   }
  },
- "total_size": 86424798219,
- "total_files": 34402,
- "scan_seconds": 2.27523
+ "total_size": 86487676853,
+ "total_files": 34498,
+ "scan_seconds": 1.681387
 }
