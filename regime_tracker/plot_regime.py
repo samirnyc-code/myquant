@@ -144,13 +144,17 @@ def main():
         Line2D([0], [0], marker="o", color="none", markerfacecolor=PIVOT_COLOR, markersize=8, alpha=0.95, label="major pivot (drives regime)"),
         Line2D([0], [0], marker="o", color="none", markerfacecolor=PIVOT_COLOR, markersize=5, alpha=0.45, label="minor pivot (context only)"),
     ]
-    leg = ax.legend(handles=legend_elems, loc="upper left", frameon=True, fontsize=8.5,
+    # Below the time axis: the top strip carries the bar-number axis, and inside
+    # the axes the legend covers bars on any session that trades up into it.
+    leg = ax.legend(handles=legend_elems, loc="upper center", bbox_to_anchor=(0.5, -0.11),
+                    ncol=len(legend_elems), frameon=True, fontsize=8.5, borderaxespad=0,
+                    columnspacing=1.6, handletextpad=0.6,
                     facecolor=SURFACE, edgecolor=AXIS, labelcolor=TEXT_PRIMARY)
     leg.get_frame().set_linewidth(0.7)
 
     fig.autofmt_xdate()
     fig.tight_layout()
-    fig.savefig(a.out, facecolor=SURFACE, dpi=200)
+    fig.savefig(a.out, facecolor=SURFACE, dpi=200, bbox_inches="tight")
     print(f"wrote {a.out}")
 
 
