@@ -73,7 +73,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private int           _procBar;  // next absolute bar index to process
 
 		// ── rendering ─────────────────────────────────────────────────────────
-		private Brush _bullShade, _bearShade, _majLowBrush, _majHighBrush, _minBrush;
+		private Brush _bullShade, _bearShade;
+		private Dictionary<int, bool> _pivLow, _pivHigh;   // bar index -> isMajor (drawn in OnRender)
 
 		// ── validation export ─────────────────────────────────────────────────
 		private List<string> _csvRows;
@@ -114,15 +115,31 @@ namespace NinjaTrader.NinjaScript.Indicators
 				ExportCsv     = false;
 				ExportFileName = "";
 
+				// style — pivots
+				MinorDotBrush  = Brushes.Gray;
+				MinorDotSize   = 3;
+				MajorLowBrush  = Brushes.LimeGreen;
+				MajorHighBrush = Brushes.OrangeRed;
+				MajorDotSize   = 5;
+				// style — events
+				BosBrush        = Brushes.DodgerBlue;
+				ChoChBrush      = Brushes.Gold;
+				EventFontSize   = 12;
+				EventOffsetTicks = 6;
+				BosText         = "BOS";
+				ChoChText       = "ChoCh";
+				// style — shading
+				BullShadeBrush = Brushes.SeaGreen;
+				BearShadeBrush = Brushes.IndianRed;
+
 				AddPlot(new Stroke(Brushes.Transparent), PlotStyle.Line, "RegimePlot"); // exposes a visible-less plot slot
 			}
 			else if (State == State.Configure)
 			{
-				_bullShade    = MakeShade(Brushes.SeaGreen,  ShadeOpacity);
-				_bearShade    = MakeShade(Brushes.IndianRed, ShadeOpacity);
-				_majLowBrush  = Frozen(Brushes.LimeGreen);
-				_majHighBrush = Frozen(Brushes.OrangeRed);
-				_minBrush     = Frozen(Brushes.Gray);
+				_bullShade = MakeShade(BullShadeBrush, ShadeOpacity);
+				_bearShade = MakeShade(BearShadeBrush, ShadeOpacity);
+				FreezeIf(MinorDotBrush); FreezeIf(MajorLowBrush); FreezeIf(MajorHighBrush);
+				FreezeIf(BosBrush); FreezeIf(ChoChBrush);
 			}
 			else if (State == State.DataLoaded)
 			{
@@ -133,6 +150,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				_seqIdx   = new List<int>();  _seqKind = new List<char>(); _seqPrice = new List<double>();
 				_bosSet   = false; _legSet = false; _cntSet = false; _candSet = false;
 				_majorLow = new HashSet<int>(); _majorHigh = new HashSet<int>();
+				_pivLow   = new Dictionary<int, bool>(); _pivHigh = new Dictionary<int, bool>();
 				_prevBarDir = 0;
 				_procBar    = 0;
 
@@ -154,15 +172,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 		}
 
-		private static Brush Frozen(Brush b)
+		private static void FreezeIf(Brush b)
 		{
-			var c = b.Clone(); if (c.CanFreeze) c.Freeze(); return c;
+			if (b != null && b.CanFreeze && !b.IsFrozen) b.Freeze();
 		}
 
-		private static Brush MakeShade(SolidColorBrush src, int opacityPct)
+		private static Brush MakeShade(Brush src, int opacityPct)
 		{
+			var scb = src as SolidColorBrush;
+			Color c = scb != null ? scb.Color : Colors.Gray;
 			byte a = (byte)Math.Max(0, Math.Min(255, (int)Math.Round(opacityPct / 100.0 * 255.0)));
-			var c = src.Color;
 			var b = new SolidColorBrush(Color.FromArgb(a, c.R, c.G, c.B));
 			b.Freeze();
 			return b;
@@ -454,29 +473,15 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		private void SetTrend(string newTrend) { _trend = newTrend; }
 
-		// ── major-pivot tracking + rendering ──────────────────────────────────
-		private void AddMajorLow(int idx)  { if (_majorLow.Add(idx)  && ShowMajors) Redraw(idx, 'L'); }
-		private void AddMajorHigh(int idx) { if (_majorHigh.Add(idx) && ShowMajors) Redraw(idx, 'H'); }
+		// ── major-pivot tracking (drawn in OnRender; visibility decided there) ──
+		private void AddMajorLow(int idx)  { if (_majorLow.Add(idx))  _pivLow[idx]  = true; }
+		private void AddMajorHigh(int idx) { if (_majorHigh.Add(idx)) _pivHigh[idx] = true; }
 
+		// record a pivot for OnRender to draw (major flag can be upgraded later)
 		private void DrawPivot(int i, char kind, double price)
 		{
-			bool major = kind == 'L' ? _majorLow.Contains(i) : _majorHigh.Contains(i);
-			if (!major && !ShowMinors) return;
-			if (major && !ShowMajors) return;
-			int barsAgo = CurrentBar - i;
-			if (barsAgo < 0) return;
-			double y = kind == 'L' ? Low[barsAgo] - 2 * TickSize : High[barsAgo] + 2 * TickSize;
-			Brush b = major ? (kind == 'L' ? _majLowBrush : _majHighBrush) : _minBrush;
-			Draw.Dot(this, "rt_pv_" + i + "_" + kind, false, barsAgo, y, b);
-		}
-
-		private void Redraw(int idx, char kind)
-		{
-			int barsAgo = CurrentBar - idx;
-			if (barsAgo < 0) return;
-			double y = kind == 'L' ? Low[barsAgo] - 2 * TickSize : High[barsAgo] + 2 * TickSize;
-			Brush b = kind == 'L' ? _majLowBrush : _majHighBrush;
-			Draw.Dot(this, "rt_pv_" + idx + "_" + kind, false, barsAgo, y, b);
+			if (kind == 'L') _pivLow[i]  = _majorLow.Contains(i);
+			else             _pivHigh[i] = _majorHigh.Contains(i);
 		}
 
 		private void AddEvent(int i, int barsAgo, string kind, string dir, double level)
@@ -494,9 +499,52 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 			if (!ShowEvents) return;
 			bool up = dir == "up";
-			double y = up ? High[barsAgo] + 6 * TickSize : Low[barsAgo] - 6 * TickSize;
-			Brush b = kind == "ChoCh" ? Brushes.Gold : (up ? _majLowBrush : _majHighBrush);
-			Draw.Text(this, "rt_ev_" + i + "_" + kind + "_" + dir, kind, barsAgo, y, b);
+			double y = up ? High[barsAgo] + EventOffsetTicks * TickSize
+			              : Low[barsAgo]  - EventOffsetTicks * TickSize;
+			Brush b = kind == "ChoCh" ? ChoChBrush : BosBrush;
+			string label = kind == "ChoCh" ? ChoChText : BosText;
+			var font = new NinjaTrader.Gui.Tools.SimpleFont("Arial", EventFontSize);
+			Draw.Text(this, "rt_ev_" + i + "_" + kind + "_" + dir, false, label, barsAgo, y, 0,
+				b, font, System.Windows.TextAlignment.Center, null, null, 0);
+		}
+
+		// ── pivot dots (custom size via OnRender; Draw.Dot has no size knob) ───
+		protected override void OnRender(ChartControl chartControl, ChartScale chartScale)
+		{
+			base.OnRender(chartControl, chartScale);
+			if (ChartBars == null || RenderTarget == null || Bars == null) return;
+			if (_pivLow == null || _pivHigh == null) return;
+			if (!ShowMinors && !ShowMajors) return;
+
+			var minorDx  = MinorDotBrush.ToDxBrush(RenderTarget);
+			var majLowDx = MajorLowBrush.ToDxBrush(RenderTarget);
+			var majHiDx  = MajorHighBrush.ToDxBrush(RenderTarget);
+			try
+			{
+				int from = ChartBars.FromIndex, to = ChartBars.ToIndex;
+				for (int bi = Math.Max(0, from); bi <= to && bi < Bars.Count; bi++)
+				{
+					float x = chartControl.GetXByBarIndex(ChartBars, bi);
+
+					bool majL;
+					if (_pivLow.TryGetValue(bi, out majL) && ((majL && ShowMajors) || (!majL && ShowMinors)))
+					{
+						float r = majL ? MajorDotSize : MinorDotSize;
+						float y = chartScale.GetYByValue(Bars.GetLow(bi) - 2 * TickSize) + r + 1f;
+						RenderTarget.FillEllipse(new SharpDX.Direct2D1.Ellipse(new SharpDX.Vector2(x, y), r, r),
+							majL ? majLowDx : minorDx);
+					}
+					bool majH;
+					if (_pivHigh.TryGetValue(bi, out majH) && ((majH && ShowMajors) || (!majH && ShowMinors)))
+					{
+						float r = majH ? MajorDotSize : MinorDotSize;
+						float y = chartScale.GetYByValue(Bars.GetHigh(bi) + 2 * TickSize) - r - 1f;
+						RenderTarget.FillEllipse(new SharpDX.Direct2D1.Ellipse(new SharpDX.Vector2(x, y), r, r),
+							majH ? majHiDx : minorDx);
+					}
+				}
+			}
+			finally { minorDx.Dispose(); majLowDx.Dispose(); majHiDx.Dispose(); }
 		}
 
 		private void WriteCsv()
@@ -539,6 +587,50 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[NinjaScriptProperty] [Display(Name = "Show BOS/ChoCh", GroupName = "Regime", Order = 5)] public bool ShowEvents { get; set; }
 		[NinjaScriptProperty] [Display(Name = "Export validation CSV", GroupName = "Regime", Order = 6)] public bool ExportCsv { get; set; }
 		[Display(Name = "Export file (empty = Documents\\regime_tracker_<instr>.csv)", GroupName = "Regime", Order = 7)] public string ExportFileName { get; set; }
+
+		// ── Style: pivots ─────────────────────────────────────────────────────
+		[XmlIgnore] [Display(Name = "Minor dot color", GroupName = "Style — pivots", Order = 0)]
+		public Brush MinorDotBrush { get; set; }
+		[Browsable(false)] public string MinorDotBrushSerialize { get { return Serialize.BrushToString(MinorDotBrush); } set { MinorDotBrush = Serialize.StringToBrush(value); } }
+
+		[Range(1, 50)] [Display(Name = "Minor dot size (px)", GroupName = "Style — pivots", Order = 1)]
+		public int MinorDotSize { get; set; }
+
+		[XmlIgnore] [Display(Name = "Major LOW dot color", GroupName = "Style — pivots", Order = 2)]
+		public Brush MajorLowBrush { get; set; }
+		[Browsable(false)] public string MajorLowBrushSerialize { get { return Serialize.BrushToString(MajorLowBrush); } set { MajorLowBrush = Serialize.StringToBrush(value); } }
+
+		[XmlIgnore] [Display(Name = "Major HIGH dot color", GroupName = "Style — pivots", Order = 3)]
+		public Brush MajorHighBrush { get; set; }
+		[Browsable(false)] public string MajorHighBrushSerialize { get { return Serialize.BrushToString(MajorHighBrush); } set { MajorHighBrush = Serialize.StringToBrush(value); } }
+
+		[Range(1, 50)] [Display(Name = "Major dot size (px)", GroupName = "Style — pivots", Order = 4)]
+		public int MajorDotSize { get; set; }
+
+		// ── Style: events (BOS / ChoCh text) ──────────────────────────────────
+		[XmlIgnore] [Display(Name = "BOS text color", GroupName = "Style — events", Order = 0)]
+		public Brush BosBrush { get; set; }
+		[Browsable(false)] public string BosBrushSerialize { get { return Serialize.BrushToString(BosBrush); } set { BosBrush = Serialize.StringToBrush(value); } }
+
+		[XmlIgnore] [Display(Name = "ChoCh text color", GroupName = "Style — events", Order = 1)]
+		public Brush ChoChBrush { get; set; }
+		[Browsable(false)] public string ChoChBrushSerialize { get { return Serialize.BrushToString(ChoChBrush); } set { ChoChBrush = Serialize.StringToBrush(value); } }
+
+		[Range(4, 72)] [Display(Name = "Event font size", GroupName = "Style — events", Order = 2)]
+		public int EventFontSize { get; set; }
+		[Range(-100, 100)] [Display(Name = "Event vertical offset (ticks, +up/-down side)", GroupName = "Style — events", Order = 3)]
+		public int EventOffsetTicks { get; set; }
+		[Display(Name = "BOS label text", GroupName = "Style — events", Order = 4)] public string BosText { get; set; }
+		[Display(Name = "ChoCh label text", GroupName = "Style — events", Order = 5)] public string ChoChText { get; set; }
+
+		// ── Style: shading ────────────────────────────────────────────────────
+		[XmlIgnore] [Display(Name = "Bull shade color", GroupName = "Style — shading", Order = 0)]
+		public Brush BullShadeBrush { get; set; }
+		[Browsable(false)] public string BullShadeBrushSerialize { get { return Serialize.BrushToString(BullShadeBrush); } set { BullShadeBrush = Serialize.StringToBrush(value); } }
+
+		[XmlIgnore] [Display(Name = "Bear shade color", GroupName = "Style — shading", Order = 1)]
+		public Brush BearShadeBrush { get; set; }
+		[Browsable(false)] public string BearShadeBrushSerialize { get { return Serialize.BrushToString(BearShadeBrush); } set { BearShadeBrush = Serialize.StringToBrush(value); } }
 
 		[Browsable(false)] [XmlIgnore] public Series<double> RegimePlot { get { return Values[0]; } }
 		#endregion
