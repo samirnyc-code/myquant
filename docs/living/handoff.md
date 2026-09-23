@@ -82,8 +82,11 @@ the prior opposing extreme with no bound -- gets b9 right but 05-19 loses its wh
 afternoon Bear and 06-12 becomes Bull from b17 to the close; (2) always keeping the extreme
 the bar left on -- gets b9/12-26/05-19 right but breaks 05-21 to b23.
 
-**Sessions on disk:** 2025-12-26, 2026-01-13, 02-13, 04-06, 05-18, 05-19, 05-20, 05-21, 05-22,
-06-12, 06-25, 06-29.
+**Sessions on disk:** 2025-12-26, 2026-01-13, 02-13, 04-06, 05-06, 05-12, 05-18, 05-19, 05-20, 05-21,
+05-22, 06-12, 06-25, 06-29 (14). Re-run them all with `run_all_sessions.py` (prints a
+summary line per session, so a rule change is diffable by eye); review page =
+`pages/build_all_sessions.py`, which takes its sessions from the file glob rather than
+hardcoded prose.
 
 **Known rough edge:** 04-06 flips Bull/Range/Bull across bars 37–43 in a 43-point daily
 shell. Rule-correct but close to noise at that compression — a minimum-leg filter is the
