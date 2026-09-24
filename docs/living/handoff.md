@@ -28,8 +28,11 @@
 - 90 bars/22 segments = **timing shifts** (same trend/direction, edge moves a few bars, or one trend split by a brief Range gap).
 - 19 bars/~4 spots = **direction flips** Bull↔Bear over short windows, always tied to a pivot lag≥2 erased. Biggest: 09-15 11:40 (Lag3 Bear b7370-7399 vs Lag1 Bull b7358-7382, ~12-24 bars). Others: 09-04 (3-bar Bull pocket inside a Bear), 09-16, 09-01 (~5-6 bar early starts).
 
+### Serialization bugfix (2026-09-24, same session)
+- **`RegimeTracker.cs` threw "There was an error reflecting type ... RegimeTracker" on saving a workspace / chart template.** Cause: `public Series<double> Regime;` (line 83) was an unguarded **public field** — XmlSerializer reflects public fields too, and `Series<double>` is not serializable, so save (not render) blew up. Fix: added `[XmlIgnore] [Browsable(false)]` to the field. Compiled clean, redeployed — **PENDING USER F5**. (All Brush props were already XmlIgnore + string-companion, so they were not at fault.)
+
 ### OPEN / next
-- **PENDING: user F5** the redeployed Lag-1 indicator (when flat).
+- **PENDING: user F5** the redeployed Lag-1 + serialization-fix indicator (when flat), then confirm workspace/template save works.
 - **PARKED (user will revisit): Lag 1 vs Lag 2.** Lag 1 = matches the live chart, reacts 1 bar sooner, but can show a trend that later evaporates (repaint). Lag 2 (= Lag 3) = MyWedge's settled/non-repaint pivots, confirms ~1-2 bars later. Matters IF regime ever feeds a trade decision. User does not yet fully understand repainting — explained above.
 - **2nd PC:** still nothing unpushed arrived on origin during S123; if the 2nd PC has newer regime logic it must `git push` from `main`. This session's Lag work is now the canonical reference.
 - Tools committed: `compare_latest_vs_desktop_20260924.txt`, `crosstab_regime_vs_ohlc_20260924.py`, `breakdown_by_day_20260924.py`, `repaint_effect_20260924.py` (+ outputs).

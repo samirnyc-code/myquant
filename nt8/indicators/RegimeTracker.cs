@@ -80,6 +80,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private List<string> _csvRows;
 		private string       _csvPath;
 
+		// XmlIgnore is REQUIRED: XmlSerializer reflects public fields too, and a
+		// Series<double> is not serializable — without this, saving a workspace or
+		// chart template throws "There was an error reflecting type ... RegimeTracker".
+		[XmlIgnore] [Browsable(false)]
 		public Series<double> Regime;   // 1 Bull / -1 Bear / 0 Range (exposed for strategies/exporters)
 
 		protected override void OnStateChange()
