@@ -72,6 +72,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private int           _prevBarDir;
 		private int           _procBar;  // next absolute bar index to process
 
+		// ── session/weekly reset ───────────────────────────────────────────────
+		private Data.SessionIterator _sessionIt;
+		private DateTime      _weekAnchor;   // Sunday-anchored week-start date of the last week a weekly reset fired for
+
 		// ── rendering ─────────────────────────────────────────────────────────
 		private Brush _bullShade, _bearShade;
 		private Dictionary<int, bool> _pivLow, _pivHigh;   // bar index -> isMajor (drawn in OnRender)
@@ -118,6 +122,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				ShowEvents    = true;
 				ExportCsv     = false;
 				ExportFileName = "";
+				ResetOnNewSession = true;
+				WeeklyResetOnly   = false;
 
 				// style — pivots
 				MinorDotBrush  = Brushes.Gray;
@@ -157,6 +163,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				_pivLow   = new Dictionary<int, bool>(); _pivHigh = new Dictionary<int, bool>();
 				_prevBarDir = 0;
 				_procBar    = 0;
+				_sessionIt  = new Data.SessionIterator(Bars);
+				_weekAnchor = DateTime.MinValue;
 
 				_wedge = MyWedge(Input, LookBack, ShowW2L, WedgeSymmetry, OLSensitivity,
 					CTSB_Ignore, IB_Ignore, ShowWedgeSB, SignalBarIBS, ContinueMC, ContinueOnGap);
@@ -212,6 +220,29 @@ namespace NinjaTrader.NinjaScript.Indicators
 		// ── the compute_regime() loop body, for one finalised bar ─────────────
 		private void ProcessBar(int i, int barsAgo)
 		{
+			// bar 0 has nothing to reset (DataLoaded already started the state
+			// machine fresh); SessionIterator is only exercised from bar 1 on,
+			// same as RegimePhaseMachine.cs's CurrentBar<1 guard.
+			if (i > 0 && ResetOnNewSession)
+			{
+				DateTime t = Time[barsAgo];
+				if (_sessionIt.IsNewSession(t, true))
+				{
+					// Sunday-anchored week start (CME's trading week opens Sunday
+					// ETH): if Sunday's session is closed for a holiday, the first
+					// session that week (e.g. Monday) still carries a NEW week-start
+					// date relative to _weekAnchor, so the weekly reset still fires
+					// on the first session of the week even without a literal Sunday bar.
+					DateTime weekStart = t.Date.AddDays(-(int)t.Date.DayOfWeek);
+					if (!WeeklyResetOnly || weekStart != _weekAnchor)
+					{
+						ResetRegimeState();
+						_weekAnchor = weekStart;
+					}
+					_sessionIt.GetNextSession(t, true);
+				}
+			}
+
 			double lp = Low[barsAgo], hp = High[barsAgo];
 			bool isLow  = _wedge.SwingLow.IsValidDataPoint(barsAgo);
 			bool isHigh = _wedge.SwingHigh.IsValidDataPoint(barsAgo);
@@ -477,6 +508,18 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		private void SetTrend(string newTrend) { _trend = newTrend; }
 
+		// clears only the forward-going state machine (trend/BOS-ChoCh/legs/zz+seq
+		// sequences) so classification starts fresh from Range. Majors/minors and
+		// already-rendered shading are NOT touched — chart history stays intact.
+		private void ResetRegimeState()
+		{
+			_trend = RANGE;
+			_zzIdx.Clear();  _zzKind.Clear();  _zzPrice.Clear();
+			_seqIdx.Clear(); _seqKind.Clear(); _seqPrice.Clear();
+			_bosSet = false; _legSet = false; _cntSet = false; _candSet = false;
+			_prevBarDir = 0;
+		}
+
 		// ── major-pivot tracking (drawn in OnRender; visibility decided there) ──
 		private void AddMajorLow(int idx)  { if (_majorLow.Add(idx))  _pivLow[idx]  = true; }
 		private void AddMajorHigh(int idx) { if (_majorHigh.Add(idx)) _pivHigh[idx] = true; }
@@ -591,6 +634,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[NinjaScriptProperty] [Display(Name = "Show BOS/ChoCh", GroupName = "Regime", Order = 5)] public bool ShowEvents { get; set; }
 		[NinjaScriptProperty] [Display(Name = "Export validation CSV", GroupName = "Regime", Order = 6)] public bool ExportCsv { get; set; }
 		[Display(Name = "Export file (empty = Documents\\regime_tracker_<instr>.csv)", GroupName = "Regime", Order = 7)] public string ExportFileName { get; set; }
+		[NinjaScriptProperty] [Display(Name = "Reset on new session", GroupName = "Regime", Order = 8)] public bool ResetOnNewSession { get; set; }
+		[NinjaScriptProperty] [Display(Name = "Weekly reset only (Sunday ETH start)", GroupName = "Regime", Order = 9)] public bool WeeklyResetOnly { get; set; }
 
 		// ── Style: pivots ─────────────────────────────────────────────────────
 		[XmlIgnore] [Display(Name = "Minor dot color", GroupName = "Style — pivots", Order = 0)]
