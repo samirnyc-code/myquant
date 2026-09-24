@@ -4,6 +4,36 @@
 
 ---
 
+## S123-regime-nt8 (2026-09-23/24) — NT8 RegimeTracker port, 2-PC git unification, export-diff forensics
+
+**READ THIS FIRST. Machine clock = Berlin (UTC+2); desk runs America/Chicago — never state a converted CT time as fact.**
+
+### ⭐ FIRST ORDER OF BUSINESS (next chat)
+**Pull the latest regime logic from the 2nd PC (`tdeutschmann-byte`) and reconcile the engine.**
+- This PC is FULLY in sync right now: `repo == origin/main == deployed NT8 indicator`, all at the RegimeTracker logic in `36d9cdb1` (main tip is `aa683392`; deployed `Custom/Indicators/RegimeTracker.cs` == repo HEAD, only NT8's auto-generated region + 1 trailing blank line differ). **There is nothing unpulled on origin** — so any newer regime logic the 2nd PC has is **UNPUSHED**.
+- WHY this matters: the two CSV exports we compared prove the regime engine that produced them DIFFERS (see forensics below) — 92 regime flips on **byte-identical** bars. That can only be a settings/build difference. Since this PC's repo/deployed are self-consistent, the different engine lives on the **2nd PC or a different chart**.
+- ACTION: have the 2nd PC run `git push` (its `repo_autopush` only pushes when on `main` now — confirm it's on main), then `git pull` here and diff `regime_tracker/regime_tracker.py` + `nt8/indicators/RegimeTracker.cs`. Also get the exact indicator SETTINGS used for each export: **Lag**, MyWedge **LookBack / WedgeSymmetry / OLSensitivity / CTSB_Ignore / IB_Ignore / SignalBarIBS**, and the chart **session template**. That determines which engine is canonical.
+
+### What shipped this session
+- **NT8 RegimeTracker indicator** (`nt8/indicators/RegimeTracker.cs`): C# port of `regime_tracker/regime_tracker.py` `compute_regime()`. Hosts the black-box **MyWedge** indicator, reads its public `SwingLow`/`SwingHigh` (pivot price = raw bar High/Low), recomputes `bar_dir` locally, runs the BOS/ChoCh state machine at a **Lag of 3 bars** (so MyWedge's retro-resets finalise first). Renders Bull/Bear shading + major/minor pivot dots + BOS/ChoCh text; exposes a `Regime` series (1/-1/0); optional **validation CSV** export (BAR rows carry OHLC so it's a self-sufficient bar source). Compiles clean (`nt8_compile_check`), deployed, F5'd, running.
+- **Customizable style** added (commit `36d9cdb1`): minor/major dot color+size (dots drawn in OnRender — `Draw.Dot` has no size knob), BOS/ChoCh text color/font-size/vertical-offset/label, Bull/Bear shade colors.
+- **Outside-bar collapse rule** is IN (pulled from 2nd PC, both `regime_tracker.py` and the C# — `Swings()`/`Extends()`): an outside bar = one swing unless it extends structure both ways.
+- **VALIDATED 100%** NT8 vs Python on 30 days ES 12-26 (10,139 bars + 1,566 BOS/ChoCh events, bar-for-bar) via `regime_tracker/diff_nt_vs_py.py` — BUT that was the Documents/CT export. Validation script: `python regime_tracker/diff_nt_vs_py.py <csv> --session eth|date`.
+
+### Export-diff forensics (the thing the user was chasing)
+- Two files exist: **`Documents\regime_tracker_ES.csv`** (live desk, CT time, STILL being appended by the running desk) and **`Desktop\regime_tracker_ES.csv`** (the copy the user pasted; Berlin time, frozen ~19:53). The 7h gap is only CT-vs-Berlin display — cosmetic.
+- Full bar-by-bar compare (joined by bar index): **identical bars 0–2143**, then diverge. **978 bars differ in OHLC**, **186 in regime label**, **112 in events**.
+- TWO INDEPENDENT causes, split by the compare tool: **(A) engine/config/build differs — 92 regime flips on byte-identical OHLC** (e.g. bars 1972–1975: same O/H/L/C, Documents=Bull vs Desktop=Range; first regime split at bar 1972 is 172 bars BEFORE the first OHLC diff at 2144). **(B) tick data differs — 978 OHLC diffs, small (≤1pt), concentrated on 09-18 (418/444 bars) + the live tail 09-21/22/23.**
+- Tools (committed): `regime_tracker/compare_two_exports.py`, `compare_report_data.json`, `compare_docs_vs_desktop_20260923.txt`. Forensic report artifact: https://claude.ai/code/artifact/84b94b50-7c84-483b-a472-b835d91e50ab
+
+### Git / 2-PC housekeeping done
+- **Unified the 2-PC branch split**: `leglab` (823 commits, this PC's working line) merged into **`main`** as the single trunk; `leglab` deleted local+remote (backup tag `backup/leglab-pre-merge-20260922`). This PC now works on `main`.
+- **Stay-on-main guard** added to `scripts/repo_autopush.py`: refuses to push when HEAD ≠ main and Telegram-alerts. Root cause of the split was autopush doing `git push origin HEAD` (whatever branch was checked out) — this PC sat on `leglab`, 2nd PC on `main`.
+- **STILL TODO**: the **laptop** (macOS auto-pull side) must `git checkout main` once, or it keeps following its old branch.
+- main tip at handoff: `aa683392`.
+
+---
+
 ## Regime tracker (2026-09-21) — market-structure BOS/ChoCh classifier (5m ES)
 
 New standalone tool in `regime_tracker/`: labels every bar of a session Bull / Bear /
