@@ -1,5 +1,5 @@
 {
- "generated": "2026-09-23T03:30:03",
+ "generated": "2026-09-24T03:30:03",
  "families": {
   "vendor_flatfiles": {
    "n": 0,
@@ -101,38 +101,38 @@
    "rows": null
   },
   "options_tape": {
-   "n": 76,
-   "size": 41661964,
+   "n": 78,
+   "size": 43395950,
    "zero_byte": 0,
-   "newest": 1790107513.2765732,
+   "newest": 1790193912.1467535,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
    "per_path": {
     "data/options_tape": {
      "exists": true,
-     "n": 76,
-     "size": 41661964,
-     "newest": 1790107513.2765732,
+     "n": 78,
+     "size": 43395950,
+     "newest": 1790193912.1467535,
      "zero_byte": 0
     }
    },
    "rows": null
   },
   "ticks_continuous": {
-   "n": 8574,
-   "size": 9416576615,
+   "n": 8575,
+   "size": 9419007352,
    "zero_byte": 0,
-   "newest": 1790110893.6585977,
+   "newest": 1790197305.0088952,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
    "per_path": {
     "data/ticks_continuous": {
      "exists": true,
-     "n": 1327,
-     "size": 3706046646,
-     "newest": 1790110893.6585977,
+     "n": 1328,
+     "size": 3708477383,
+     "newest": 1790197305.0088952,
      "zero_byte": 0
     },
     "data/ticks_continuous_NQ": {
@@ -188,7 +188,7 @@
    "exists_any": true,
    "health": "stale",
    "reasons": [
-    "newest file 57d old (budget 30d)"
+    "newest file 58d old (budget 30d)"
    ],
    "per_path": {
     "data/bars": {
@@ -209,7 +209,7 @@
    "exists_any": true,
    "health": "stale",
    "reasons": [
-    "newest file 48d old (budget 4d)",
+    "newest file 49d old (budget 4d)",
     "2 zero-byte file(s)"
    ],
    "per_path": {
@@ -241,7 +241,7 @@
    "exists_any": true,
    "health": "stale",
    "reasons": [
-    "newest file 49d old (budget 4d)",
+    "newest file 50d old (budget 4d)",
     "1 zero-byte file(s)"
    ],
    "per_path": {
@@ -263,7 +263,7 @@
    "exists_any": true,
    "health": "stale",
    "reasons": [
-    "newest file 56d old (budget 4d)"
+    "newest file 57d old (budget 4d)"
    ],
    "per_path": {
     "gamma_tracker/gamma.db": {
@@ -303,10 +303,10 @@
    "rows": null
   },
   "options_sim": {
-   "n": 849,
-   "size": 38572468,
+   "n": 858,
+   "size": 38779766,
    "zero_byte": 2,
-   "newest": 1790122498.1445723,
+   "newest": 1790208898.0808766,
    "exists_any": true,
    "health": "ok",
    "reasons": [
@@ -315,28 +315,28 @@
    "per_path": {
     "data/options_sim": {
      "exists": true,
-     "n": 849,
-     "size": 38572468,
-     "newest": 1790122498.1445723,
+     "n": 858,
+     "size": 38779766,
+     "newest": 1790208898.0808766,
      "zero_byte": 2
     }
    },
    "rows": null
   },
   "options_log": {
-   "n": 250,
-   "size": 34608951,
+   "n": 254,
+   "size": 35209190,
    "zero_byte": 0,
-   "newest": 1790108404.102068,
+   "newest": 1790194803.3692498,
    "exists_any": true,
    "health": "ok",
    "reasons": [],
    "per_path": {
     "data/options_log": {
      "exists": true,
-     "n": 250,
-     "size": 34608951,
-     "newest": 1790108404.102068,
+     "n": 254,
+     "size": 35209190,
+     "newest": 1790194803.3692498,
      "zero_byte": 0
     }
    },
@@ -610,7 +610,7 @@
    "exists_any": true,
    "health": "stale",
    "reasons": [
-    "newest file 18d old (budget 4d)"
+    "newest file 19d old (budget 4d)"
    ],
    "per_path": {
     "data/depth": {
@@ -650,7 +650,7 @@
    "exists_any": true,
    "health": "stale",
    "reasons": [
-    "newest file 13d old (budget 1d)"
+    "newest file 14d old (budget 1d)"
    ],
    "per_path": {
     "data/discord": {
@@ -683,7 +683,7 @@
    "rows": null
   }
  },
- "total_size": 86487676853,
- "total_files": 34498,
- "scan_seconds": 1.681387
+ "total_size": 86492649113,
+ "total_files": 34514,
+ "scan_seconds": 0.314546
 }

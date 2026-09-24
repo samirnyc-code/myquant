@@ -1,0 +1,260 @@
+{
+  "auto_20260923_083101": {
+    "td_credit_exact": 0.25,
+    "ok": true,
+    "et_time_used": "09:31:01",
+    "ib_fill_at_ct": "08:31:01",
+    "ib_credit": 0.25,
+    "td_credit_live": 0.2,
+    "detail": [
+      {
+        "side": "buy",
+        "strike": 7670.0,
+        "right": "P",
+        "bid": 0.35,
+        "ask": 0.4,
+        "px": 0.4,
+        "quote_ts": "2026-09-23T09:31:00.948"
+      },
+      {
+        "side": "sell",
+        "strike": 7695.0,
+        "right": "P",
+        "bid": 0.65,
+        "ask": 0.75,
+        "px": 0.65,
+        "quote_ts": "2026-09-23T09:31:00.962"
+      }
+    ],
+    "td_exit_debit_exact": 0.0,
+    "et_exit_time_used": "settle",
+    "td_pnl_exact": 21.74,
+    "ib_pnl": 21.74
+  },
+  "auto_20260923_083159": {
+    "td_credit_exact": 9.2,
+    "ok": true,
+    "et_time_used": "09:31:59",
+    "ib_fill_at_ct": "08:31:59",
+    "ib_credit": 9.5,
+    "td_credit_live": 10.8,
+    "detail": [
+      {
+        "side": "buy",
+        "strike": 7740.0,
+        "right": "P",
+        "bid": 3.6,
+        "ask": 3.7,
+        "px": 3.7,
+        "quote_ts": "2026-09-23T09:31:58.996"
+      },
+      {
+        "side": "sell",
+        "strike": 7765.0,
+        "right": "P",
+        "bid": 12.9,
+        "ask": 13.0,
+        "px": 12.9,
+        "quote_ts": "2026-09-23T09:31:58.994"
+      }
+    ],
+    "td_exit_debit_exact": 13.8,
+    "et_exit_time_used": "09:45:31",
+    "ib_exit_cost": 13.5,
+    "td_pnl_exact": -466.52,
+    "ib_pnl": -406.52
+  },
+  "auto_20260923_083236": {
+    "td_credit_exact": 4.7,
+    "ok": true,
+    "et_time_used": "09:32:36",
+    "ib_fill_at_ct": "08:32:36",
+    "ib_credit": 4.5,
+    "td_credit_live": 3.9,
+    "detail": [
+      {
+        "side": "buy",
+        "strike": 7790.0,
+        "right": "C",
+        "bid": 0.95,
+        "ask": 1.0,
+        "px": 1.0,
+        "quote_ts": "2026-09-23T09:32:35.998"
+      },
+      {
+        "side": "sell",
+        "strike": 7765.0,
+        "right": "C",
+        "bid": 5.7,
+        "ask": 5.8,
+        "px": 5.7,
+        "quote_ts": "2026-09-23T09:32:36.000"
+      }
+    ],
+    "td_exit_debit_exact": 0.0,
+    "et_exit_time_used": "settle",
+    "td_pnl_exact": 466.74,
+    "ib_pnl": 446.74
+  },
+  "auto_20260923_083340": {
+    "td_credit_exact": 0.1,
+    "ok": true,
+    "et_time_used": "09:33:40",
+    "ib_fill_at_ct": "08:33:40",
+    "ib_credit": 0.1,
+    "td_credit_live": 0.2,
+    "detail": [
+      {
+        "side": "buy",
+        "strike": 7665.0,
+        "right": "P",
+        "bid": 0.3,
+        "ask": 0.35,
+        "px": 0.35,
+        "quote_ts": "2026-09-23T09:33:34.717"
+      },
+      {
+        "side": "sell",
+        "strike": 7690.0,
+        "right": "P",
+        "bid": 0.45,
+        "ask": 0.55,
+        "px": 0.45,
+        "quote_ts": "2026-09-23T09:33:39.847"
+      }
+    ],
+    "td_exit_debit_exact": 0.0,
+    "et_exit_time_used": "settle",
+    "td_pnl_exact": 6.74,
+    "ib_pnl": 6.74
+  },
+  "auto_20260923_083409": {
+    "td_credit_exact": 8.0,
+    "ok": true,
+    "et_time_used": "09:34:09",
+    "ib_fill_at_ct": "08:34:09",
+    "ib_credit": 7.35,
+    "td_credit_live": 8.9,
+    "detail": [
+      {
+        "side": "buy",
+        "strike": 7735.0,
+        "right": "P",
+        "bid": 2.9,
+        "ask": 3.0,
+        "px": 3.0,
+        "quote_ts": "2026-09-23T09:34:08.994"
+      },
+      {
+        "side": "sell",
+        "strike": 7760.0,
+        "right": "P",
+        "bid": 11.0,
+        "ask": 11.1,
+        "px": 11.0,
+        "quote_ts": "2026-09-23T09:34:08.997"
+      }
+    ],
+    "td_exit_debit_exact": 11.9,
+    "et_exit_time_used": "09:45:46",
+    "ib_exit_cost": 11.7,
+    "td_pnl_exact": -396.52,
+    "ib_pnl": -441.52
+  },
+  "auto_20260923_083430": {
+    "td_credit_exact": 6.2,
+    "ok": true,
+    "et_time_used": "09:34:30",
+    "ib_fill_at_ct": "08:34:30",
+    "ib_credit": 6.5,
+    "td_credit_live": 5.35,
+    "detail": [
+      {
+        "side": "buy",
+        "strike": 7785.0,
+        "right": "C",
+        "bid": 1.25,
+        "ask": 1.3,
+        "px": 1.3,
+        "quote_ts": "2026-09-23T09:34:29.986"
+      },
+      {
+        "side": "sell",
+        "strike": 7760.0,
+        "right": "C",
+        "bid": 7.5,
+        "ask": 7.6,
+        "px": 7.5,
+        "quote_ts": "2026-09-23T09:34:30.000"
+      }
+    ],
+    "td_exit_debit_exact": 0.0,
+    "et_exit_time_used": "settle",
+    "td_pnl_exact": 616.74,
+    "ib_pnl": 646.74
+  },
+  "auto_20260923_083453": {
+    "td_credit_exact": 0.25,
+    "ok": true,
+    "et_time_used": "09:34:53",
+    "ib_fill_at_ct": "08:34:53",
+    "ib_credit": 0.25,
+    "td_credit_live": 0.3,
+    "detail": [
+      {
+        "side": "buy",
+        "strike": 7675.0,
+        "right": "P",
+        "bid": 0.35,
+        "ask": 0.4,
+        "px": 0.4,
+        "quote_ts": "2026-09-23T09:34:52.942"
+      },
+      {
+        "side": "sell",
+        "strike": 7700.0,
+        "right": "P",
+        "bid": 0.65,
+        "ask": 0.7,
+        "px": 0.65,
+        "quote_ts": "2026-09-23T09:34:52.845"
+      }
+    ],
+    "td_exit_debit_exact": 0.0,
+    "et_exit_time_used": "settle",
+    "td_pnl_exact": 21.74,
+    "ib_pnl": 21.74
+  },
+  "auto_20260923_083516": {
+    "td_credit_exact": 1.75,
+    "ok": true,
+    "et_time_used": "09:35:16",
+    "ib_fill_at_ct": "08:35:16",
+    "ib_credit": 1.75,
+    "td_credit_live": 1.75,
+    "detail": [
+      {
+        "side": "buy",
+        "strike": 7800.0,
+        "right": "C",
+        "bid": 0.45,
+        "ask": 0.5,
+        "px": 0.5,
+        "quote_ts": "2026-09-23T09:35:15.949"
+      },
+      {
+        "side": "sell",
+        "strike": 7775.0,
+        "right": "C",
+        "bid": 2.25,
+        "ask": 2.3,
+        "px": 2.25,
+        "quote_ts": "2026-09-23T09:35:15.995"
+      }
+    ],
+    "td_exit_debit_exact": 0.0,
+    "et_exit_time_used": "settle",
+    "td_pnl_exact": 171.74,
+    "ib_pnl": 171.74
+  }
+}
